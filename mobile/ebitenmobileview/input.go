@@ -27,9 +27,10 @@ type position struct {
 }
 
 var (
-	keys    = map[driver.Key]struct{}{}
-	runes   []rune
-	touches = map[int]position{}
+	keys     = map[driver.Key]struct{}{}
+	runes    []rune
+	touches  = map[int]position{}
+	gamepads = map[int]*mobile.Gamepad{}
 )
 
 func updateInput() {
@@ -41,5 +42,11 @@ func updateInput() {
 			Y:  position.y,
 		})
 	}
-	mobile.Get().UpdateInput(keys, runes, ts)
+
+	gs := make([]mobile.Gamepad, 0, len(gamepads))
+	for _, g := range gamepads {
+		gs = append(gs, *g)
+	}
+
+	mobile.Get().UpdateInput(keys, runes, ts, gs)
 }

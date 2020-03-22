@@ -50,3 +50,5 @@ const (
 	GamepadButton30
 	GamepadButton31
 )
+
+const GamepadButtonNum = 32

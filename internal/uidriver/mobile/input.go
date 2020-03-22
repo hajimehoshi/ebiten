@@ -26,12 +26,13 @@ type pos struct {
 }
 
 type Input struct {
-	cursorX int
-	cursorY int
-	keys    map[driver.Key]struct{}
-	runes   []rune
-	touches map[int]pos
-	ui      *UserInterface
+	cursorX  int
+	cursorY  int
+	keys     map[driver.Key]struct{}
+	runes    []rune
+	touches  map[int]pos
+	gamepads []Gamepad
+	ui       *UserInterface
 }
 
 func (i *Input) CursorPosition() (x, y int) {
@@ -41,30 +42,78 @@ func (i *Input) CursorPosition() (x, y int) {
 }
 
 func (i *Input) GamepadIDs() []int {
-	return nil
+	i.ui.m.RLock()
+	defer i.ui.m.RUnlock()
+
+	ids := make([]int, 0, len(i.gamepads))
+	for _, g := range i.gamepads {
+		ids = append(ids, g.ID)
+	}
+	return ids
 }
 
 func (i *Input) GamepadSDLID(id int) string {
+	i.ui.m.RLock()
+	defer i.ui.m.RUnlock()
+
+	for _, g := range i.gamepads {
+		if g.ID != id {
+			continue
+		}
+		return g.SDLID
+	}
 	return ""
 }
 
 func (i *Input) GamepadName(id int) string {
+	i.ui.m.RLock()
+	defer i.ui.m.RUnlock()
+
+	for _, g := range i.gamepads {
+		if g.ID != id {
+			continue
+		}
+		return g.Name
+	}
 	return ""
 }
 
 func (i *Input) GamepadAxisNum(id int) int {
+	// TODO: Implement this
 	return 0
 }
 
 func (i *Input) GamepadAxis(id int, axis int) float64 {
+	// TODO: Implement this
 	return 0
 }
 
 func (i *Input) GamepadButtonNum(id int) int {
+	i.ui.m.RLock()
+	defer i.ui.m.RUnlock()
+
+	for _, g := range i.gamepads {
+		if g.ID != id {
+			continue
+		}
+		return g.ButtonNum
+	}
 	return 0
 }
 
 func (i *Input) IsGamepadButtonPressed(id int, button driver.GamepadButton) bool {
+	i.ui.m.RLock()
+	defer i.ui.m.RUnlock()
+
+	for _, g := range i.gamepads {
+		if g.ID != id {
+			continue
+		}
+		if g.ButtonNum <= int(button) {
+			return false
+		}
+		return g.Buttons[button]
+	}
 	return false
 }
 
@@ -118,7 +167,7 @@ func (i *Input) IsMouseButtonPressed(key driver.MouseButton) bool {
 	return false
 }
 
-func (i *Input) update(keys map[driver.Key]struct{}, runes []rune, touches []*Touch) {
+func (i *Input) update(keys map[driver.Key]struct{}, runes []rune, touches []*Touch, gamepads []Gamepad) {
 	i.ui.m.Lock()
 	defer i.ui.m.Unlock()
 
@@ -137,6 +186,9 @@ func (i *Input) update(keys map[driver.Key]struct{}, runes []rune, touches []*To
 			Y: t.Y,
 		}
 	}
+
+	i.gamepads = make([]Gamepad, len(gamepads))
+	copy(i.gamepads, gamepads)
 }
 
 func (i *Input) ResetForFrame() {

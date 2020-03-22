@@ -16,7 +16,110 @@ package ebitenmobileview
 
 import (
 	"unicode"
+
+	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/internal/uidriver/mobile"
 )
+
+// https://developer.android.com/reference/android/view/KeyEvent
+const (
+	keycodeButtonA      = 0x00000060
+	keycodeButtonB      = 0x00000061
+	keycodeButtonC      = 0x00000062
+	keycodeButtonX      = 0x00000063
+	keycodeButtonY      = 0x00000064
+	keycodeButtonZ      = 0x00000065
+	keycodeButtonL1     = 0x00000066
+	keycodeButtonR1     = 0x00000067
+	keycodeButtonL2     = 0x00000068
+	keycodeButtonR2     = 0x00000069
+	keycodeButtonThumbl = 0x0000006a
+	keycodeButtonThumbr = 0x0000006b
+	keycodeButtonStart  = 0x0000006c
+	keycodeButtonSelect = 0x0000006d
+	keycodeButtonMode   = 0x0000006e
+	keycodeButton1      = 0x000000bc
+	keycodeButton2      = 0x000000bd
+	keycodeButton3      = 0x000000be
+	keycodeButton4      = 0x000000bf
+	keycodeButton5      = 0x000000c0
+	keycodeButton6      = 0x000000c1
+	keycodeButton7      = 0x000000c2
+	keycodeButton8      = 0x000000c3
+	keycodeButton9      = 0x000000c4
+	keycodeButton10     = 0x000000c5
+	keycodeButton11     = 0x000000c6
+	keycodeButton12     = 0x000000c7
+	keycodeButton13     = 0x000000c8
+	keycodeButton14     = 0x000000c9
+	keycodeButton15     = 0x000000ca
+	keycodeButton16     = 0x000000cb
+)
+
+// https://developer.android.com/reference/android/view/InputDevice
+const (
+	sourceKeyboard = 0x00000101
+	sourceGamepad  = 0x00000401
+	sourceJoystick = 0x01000010
+)
+
+var androidKeyToGamepadButton = map[int]driver.GamepadButton{
+	keycodeButtonA:      driver.GamepadButton0,
+	keycodeButtonB:      driver.GamepadButton1,
+	keycodeButtonC:      driver.GamepadButton2,
+	keycodeButtonX:      driver.GamepadButton3,
+	keycodeButtonY:      driver.GamepadButton4,
+	keycodeButtonZ:      driver.GamepadButton5,
+	keycodeButtonL1:     driver.GamepadButton6,
+	keycodeButtonR1:     driver.GamepadButton7,
+	keycodeButtonL2:     driver.GamepadButton8,
+	keycodeButtonR2:     driver.GamepadButton9,
+	keycodeButtonThumbl: driver.GamepadButton10,
+	keycodeButtonThumbr: driver.GamepadButton11,
+	keycodeButtonStart:  driver.GamepadButton12,
+	keycodeButtonSelect: driver.GamepadButton13,
+	keycodeButtonMode:   driver.GamepadButton14,
+	keycodeButton1:      driver.GamepadButton15,
+	keycodeButton2:      driver.GamepadButton16,
+	keycodeButton3:      driver.GamepadButton17,
+	keycodeButton4:      driver.GamepadButton18,
+	keycodeButton5:      driver.GamepadButton19,
+	keycodeButton6:      driver.GamepadButton20,
+	keycodeButton7:      driver.GamepadButton21,
+	keycodeButton8:      driver.GamepadButton22,
+	keycodeButton9:      driver.GamepadButton23,
+	keycodeButton10:     driver.GamepadButton24,
+	keycodeButton11:     driver.GamepadButton25,
+	keycodeButton12:     driver.GamepadButton26,
+	keycodeButton13:     driver.GamepadButton27,
+	keycodeButton14:     driver.GamepadButton28,
+	keycodeButton15:     driver.GamepadButton29,
+	keycodeButton16:     driver.GamepadButton30,
+}
+
+var (
+	// deviceIDToGamepadID is a map from Android device IDs to Ebiten gamepad IDs.
+	// As convention, Ebiten gamepad IDs start with 0, and many applications depend on this fact.
+	deviceIDToGamepadID = map[int]int{}
+)
+
+func gamepadIDFromDeviceID(deviceID int) int {
+	if id, ok := deviceIDToGamepadID[deviceID]; ok {
+		return id
+	}
+	ids := map[int]struct{}{}
+	for _, id := range deviceIDToGamepadID {
+		ids[id] = struct{}{}
+	}
+	for i := 0; ; i++ {
+		if _, ok := ids[i]; ok {
+			continue
+		}
+		deviceIDToGamepadID[deviceID] = i
+		return i
+	}
+	panic("ebitenmobileview: a gamepad ID cannot be determined")
+}
 
 func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 	switch action {
@@ -35,23 +138,66 @@ func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
 	panic("ebitenmobileview: updateTouchesOnIOSImpl must not be called on Android")
 }
 
-func OnKeyDownOnAndroid(keyCode int, unicodeChar int) {
-	key, ok := androidKeyToDriverKey[keyCode]
-	if !ok {
-		return
+func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int) {
+	switch {
+	case source&sourceGamepad == sourceGamepad:
+		// A gamepad can be detected as a keyboard. Detect the device as a gamepad first.
+		if button, ok := androidKeyToGamepadButton[keyCode]; ok {
+			id := gamepadIDFromDeviceID(deviceID)
+			if _, ok := gamepads[id]; !ok {
+				// Can this happen?
+				gamepads[id] = &mobile.Gamepad{}
+			}
+			gamepads[id].Buttons[button] = true
+			updateInput()
+		}
+	case source&sourceJoystick == sourceJoystick:
+		// TODO: Handle DPAD keys
+	case source&sourceKeyboard == sourceKeyboard:
+		if key, ok := androidKeyToDriverKey[keyCode]; ok {
+			keys[key] = struct{}{}
+			if r := rune(unicodeChar); r != 0 && unicode.IsPrint(r) {
+				runes = []rune{r}
+			}
+			updateInput()
+		}
 	}
-	keys[key] = struct{}{}
-	if r := rune(unicodeChar); r != 0 && unicode.IsPrint(r) {
-		runes = []rune{r}
-	}
-	updateInput()
 }
 
-func OnKeyUpOnAndroid(keyCode int) {
-	key, ok := androidKeyToDriverKey[keyCode]
-	if !ok {
-		return
+func OnKeyUpOnAndroid(keyCode int, source int, deviceID int) {
+	switch {
+	case source&sourceGamepad == sourceGamepad:
+		// A gamepad can be detected as a keyboard. Detect the device as a gamepad first.
+		if button, ok := androidKeyToGamepadButton[keyCode]; ok {
+			id := gamepadIDFromDeviceID(deviceID)
+			if _, ok := gamepads[id]; !ok {
+				// Can this happen?
+				gamepads[id] = &mobile.Gamepad{}
+			}
+			gamepads[id].Buttons[button] = false
+			updateInput()
+		}
+	case source&sourceJoystick == sourceJoystick:
+		// TODO: Handle DPAD keys
+	case source&sourceKeyboard == sourceKeyboard:
+		if key, ok := androidKeyToDriverKey[keyCode]; ok {
+			delete(keys, key)
+			updateInput()
+		}
 	}
-	delete(keys, key)
-	updateInput()
+}
+
+func OnGamepadAdded(deviceID int, name string, buttonNum int) {
+	id := gamepadIDFromDeviceID(deviceID)
+	gamepads[id] = &mobile.Gamepad{
+		ID:        id,
+		SDLID:     "", // TODO: Implement this
+		Name:      name,
+		ButtonNum: buttonNum,
+	}
+}
+
+func OnGamepadRemoved(deviceID int) {
+	id := gamepadIDFromDeviceID(deviceID)
+	delete(gamepads, id)
 }

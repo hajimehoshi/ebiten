@@ -229,7 +229,7 @@ func (u *UserInterface) appMain(a app.App) {
 			for _, t := range touches {
 				ts = append(ts, t)
 			}
-			u.input.update(keys, runes, ts)
+			u.input.update(keys, runes, ts, nil)
 		}
 	}
 }
@@ -451,6 +451,14 @@ type Touch struct {
 	Y  int
 }
 
-func (u *UserInterface) UpdateInput(keys map[driver.Key]struct{}, runes []rune, touches []*Touch) {
-	u.input.update(keys, runes, touches)
+type Gamepad struct {
+	ID        int
+	SDLID     string
+	Name      string
+	Buttons   [driver.GamepadButtonNum]bool
+	ButtonNum int
+}
+
+func (u *UserInterface) UpdateInput(keys map[driver.Key]struct{}, runes []rune, touches []*Touch, gamepads []Gamepad) {
+	u.input.update(keys, runes, touches, gamepads)
 }
