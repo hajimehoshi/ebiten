@@ -15,5 +15,8 @@
 package ebiten
 
 //go:generate go run genkeys.go
-//go:generate go run genevents.go
 //go:generate gofmt -s -w .
+
+// TODO: Add this after event package is added again (#926).
+//
+//    go:generate go run genevents.go

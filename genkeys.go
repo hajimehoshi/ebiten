@@ -663,8 +663,11 @@ func main() {
 	sort.Slice(ebitenKeyNamesWithoutMods, keyNamesLess(ebitenKeyNamesWithoutMods))
 	sort.Slice(driverKeyNames, keyNamesLess(driverKeyNames))
 
+	// TODO: Add this line for event package (#926).
+	//
+	//     filepath.Join("event", "keys.go"):                              eventKeysTmpl,
+
 	for path, tmpl := range map[string]string{
-		filepath.Join("event", "keys.go"):                              eventKeysTmpl,
 		filepath.Join("internal", "driver", "keys.go"):                 driverKeysTmpl,
 		filepath.Join("internal", "glfw", "keys.go"):                   glfwKeysTmpl,
 		filepath.Join("internal", "uidriver", "glfw", "keys.go"):       uidriverGlfwKeysTmpl,
