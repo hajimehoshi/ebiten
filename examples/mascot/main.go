@@ -81,20 +81,12 @@ const (
 	left
 )
 
-type state int
-
-const (
-	walking state = iota
-	jumping
-)
-
 type mascot struct {
 	x16  int
 	y16  int
 	vy16 int
 
 	dir   dir
-	state state
 	count int
 }
 
@@ -150,7 +142,7 @@ func (m *mascot) update(screen *ebiten.Image) error {
 	}
 
 	img := gopher1
-	if m.state == walking {
+	if m.y16 == 0 {
 		switch (m.count / 3) % 4 {
 		case 0:
 			img = gopher1
