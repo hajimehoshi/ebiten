@@ -74,19 +74,12 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-type dir int
-
-const (
-	right dir = iota
-	left
-)
-
 type mascot struct {
 	x16  int
 	y16  int
+	vx16 int
 	vy16 int
 
-	dir   dir
 	count int
 }
 
@@ -96,19 +89,15 @@ func (m *mascot) update(screen *ebiten.Image) error {
 	sw, sh := ebiten.ScreenSizeInFullscreen()
 	ebiten.SetWindowPosition(m.x16/16, m.y16/16+sh-height)
 
-	switch m.dir {
-	case right:
-		m.x16 += 64
-	case left:
-		m.x16 -= 64
-	default:
-		panic("not reached")
+	if m.vx16 == 0 {
+		m.vx16 = 64
 	}
-	if m.x16/16 > sw-width && m.dir == right {
-		m.dir = left
+	m.x16 += m.vx16
+	if m.x16/16 > sw-width && m.vx16 > 0 {
+		m.vx16 = -64
 	}
-	if m.x16 <= 0 && m.dir == left {
-		m.dir = right
+	if m.x16 <= 0 && m.vx16 < 0 {
+		m.vx16 = 64
 	}
 
 	// Accelarate the mascot in the Y direction.
@@ -129,11 +118,7 @@ func (m *mascot) update(screen *ebiten.Image) error {
 			m.vy16 = -240
 		case 1:
 			// Turn.
-			if m.dir == right {
-				m.dir = left
-			} else {
-				m.dir = right
-			}
+			m.vx16 = -m.vx16
 		}
 	}
 
@@ -153,7 +138,7 @@ func (m *mascot) update(screen *ebiten.Image) error {
 		}
 	}
 	op := &ebiten.DrawImageOptions{}
-	if m.dir == left {
+	if m.vx16 < 0 {
 		op.GeoM.Scale(-1, 1)
 		op.GeoM.Translate(width, 0)
 	}
