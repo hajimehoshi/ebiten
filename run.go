@@ -250,14 +250,26 @@ func RunGameWithoutMainLoop(game Game) {
 	uiDriver().RunWithoutMainLoop(theUIContext)
 }
 
-// ScreenSizeInFullscreen is deprecated as of 1.11.0-alpha.
-// Use SetFulllscreen, RunGame and the interface Game's Layout instead.
+// ScreenSizeInFullscreen returns the size in device-independent pixels when the game is fullscreen.
+// The adopted monitor is the 'current' monitor which the window belongs to.
+// The returned value can be given to Run or SetSize function if the perfectly fit fullscreen is needed.
+//
+// On browsers, ScreenSizeInFullscreen returns the 'window' (global object) size, not 'screen' size since an Ebiten
+// game should not know the outside of the window object. For more details, see SetFullscreen API comment.
+//
+// On mobiles, ScreenSizeInFullscreen returns (0, 0) so far.
+//
+// ScreenSizeInFullscreen's use cases are limited. If you are making a fullscreen application, you can use RunGame and
+// the Game interface's Layout function instead. If you are making a not-fullscreen application but the application's
+// behavior depends on the monitor size, ScreenSizeInFullscreen is useful.
+//
+// ScreenSizeInFullscreen must be called on the main thread before ebiten.Run, and is concurrent-safe after
+// ebiten.Run.
 func ScreenSizeInFullscreen() (int, int) {
 	return uiDriver().ScreenSizeInFullscreen()
 }
 
-// MonitorSize is deprecated as of 1.8.0-alpha.
-// Use SetFulllscreen, RunGame and the interface Game's Layout instead.
+// MonitorSize is deprecated as of 1.8.0-alpha. Use ScreenSizeInFullscreen instead.
 func MonitorSize() (int, int) {
 	return ScreenSizeInFullscreen()
 }

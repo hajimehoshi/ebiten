@@ -30,6 +30,9 @@
 //go:generate file2byteslice -package=blocks -input=./images/blocks/blocks.png -output=./images/blocks/blocks.go -var=Blocks_png
 //go:generate file2byteslice -package=flappy -input=./images/flappy/gopher.png -output=./images/flappy/gopher.go -var=Gopher_png
 //go:generate file2byteslice -package=flappy -input=./images/flappy/tiles.png -output=./images/flappy/tiles.go -var=Tiles_png
+//go:generate file2byteslice -package=mascot -input=./images/mascot/out01.png -output=./images/mascot/out01.go -var=Out01_png
+//go:generate file2byteslice -package=mascot -input=./images/mascot/out02.png -output=./images/mascot/out02.go -var=Out02_png
+//go:generate file2byteslice -package=mascot -input=./images/mascot/out03.png -output=./images/mascot/out03.go -var=Out03_png
 //go:generate file2byteslice -package=platformer -input=./images/platformer/background.png -output=./images/platformer/background.go -var=Background_png
 //go:generate file2byteslice -package=platformer -input=./images/platformer/left.png -output=./images/platformer/left.go -var=Left_png
 //go:generate file2byteslice -package=platformer -input=./images/platformer/mainchar.png -output=./images/platformer/mainchar.go -var=MainChar_png
