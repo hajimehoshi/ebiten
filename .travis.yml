@@ -50,8 +50,7 @@ install:
   - GO111MODULE=off go1.12.16 get github.com/gopherjs/gopherjs
   - mkdir -p $GOPATH/src/github.com/hajimehoshi
   - cd $GOPATH/src/github.com/hajimehoshi
-  - wget -O ebiten.zip https://github.com/$TRAVIS_REPO_SLUG/archive/$TRAVIS_COMMIT.zip
-  - unzip ebiten.zip
+  - unzip /tmp/work/ebiten.zip
   - mv ./ebiten-$TRAVIS_COMMIT ebiten
   - cd ./ebiten
   - GO111MODULE=off go get -d -tags=example ./...
