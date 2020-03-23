@@ -35,7 +35,7 @@ const (
 func init() {
 	flag.Usage = func() {
 		// This message is copied from `gomobile bind -h`
-		fmt.Fprintf(os.Stderr, "%s bind [-target android|ios] [-bootclasspath <path>] [-classpath <path>] [-o output] [build flags] [package]", ebitenmobileCommand)
+		fmt.Fprintf(os.Stderr, "%s bind [-target android|ios] [-bootclasspath <path>] [-classpath <path>] [-o output] [build flags] [package]\n", ebitenmobileCommand)
 		os.Exit(2)
 	}
 	flag.Parse()
