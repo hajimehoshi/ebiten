@@ -54,6 +54,11 @@ const (
 	keycodeButton14     = 0x000000c9
 	keycodeButton15     = 0x000000ca
 	keycodeButton16     = 0x000000cb
+
+	keycodeDpadUp    = 0x00000013
+	keycodeDpadDown  = 0x00000014
+	keycodeDpadLeft  = 0x00000015
+	keycodeDpadRight = 0x00000016
 )
 
 // https://developer.android.com/reference/android/view/InputDevice
@@ -95,6 +100,76 @@ var androidKeyToGamepadButton = map[int]driver.GamepadButton{
 	keycodeButton14:     driver.GamepadButton28,
 	keycodeButton15:     driver.GamepadButton29,
 	keycodeButton16:     driver.GamepadButton30,
+}
+
+// Axis constant definitions for joysticks only.
+// https://developer.android.com/reference/android/view/MotionEvent
+const (
+	axisX         = 0x00000000
+	axisY         = 0x00000001
+	axisZ         = 0x0000000b
+	axisRx        = 0x0000000c
+	axisRy        = 0x0000000d
+	axisRz        = 0x0000000e
+	axisHatX      = 0x0000000f
+	axisHatY      = 0x00000010
+	axisLtrigger  = 0x00000011
+	axisRtrigger  = 0x00000012
+	axisThrottle  = 0x00000013
+	axisRudder    = 0x00000014
+	axisWheel     = 0x00000015
+	axisGas       = 0x00000016
+	axisBrake     = 0x00000017
+	axisGeneric1  = 0x00000020
+	axisGeneric2  = 0x00000021
+	axisGeneric3  = 0x00000022
+	axisGeneric4  = 0x00000023
+	axisGeneric5  = 0x00000024
+	axisGeneric6  = 0x00000025
+	axisGeneric7  = 0x00000026
+	axisGeneric8  = 0x00000027
+	axisGeneric9  = 0x00000028
+	axisGeneric10 = 0x00000029
+	axisGeneric11 = 0x0000002a
+	axisGeneric12 = 0x0000002b
+	axisGeneric13 = 0x0000002c
+	axisGeneric14 = 0x0000002d
+	axisGeneric15 = 0x0000002e
+	axisGeneric16 = 0x0000002f
+)
+
+var androidAxisIDToAxisID = map[int]int{
+	axisX:         0,
+	axisY:         1,
+	axisZ:         2,
+	axisRx:        3,
+	axisRy:        4,
+	axisRz:        5,
+	axisHatX:      6,
+	axisHatY:      7,
+	axisLtrigger:  8,
+	axisRtrigger:  9,
+	axisThrottle:  10,
+	axisRudder:    11,
+	axisWheel:     12,
+	axisGas:       13,
+	axisBrake:     14,
+	axisGeneric1:  15,
+	axisGeneric2:  16,
+	axisGeneric3:  17,
+	axisGeneric4:  18,
+	axisGeneric5:  19,
+	axisGeneric6:  20,
+	axisGeneric7:  21,
+	axisGeneric8:  22,
+	axisGeneric9:  23,
+	axisGeneric10: 24,
+	axisGeneric11: 25,
+	axisGeneric12: 26,
+	axisGeneric13: 27,
+	axisGeneric14: 28,
+	axisGeneric15: 29,
+	axisGeneric16: 30,
 }
 
 var (
@@ -144,15 +219,15 @@ func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int) 
 		// A gamepad can be detected as a keyboard. Detect the device as a gamepad first.
 		if button, ok := androidKeyToGamepadButton[keyCode]; ok {
 			id := gamepadIDFromDeviceID(deviceID)
-			if _, ok := gamepads[id]; !ok {
-				// Can this happen?
-				gamepads[id] = &mobile.Gamepad{}
+			g, ok := gamepads[id]
+			if !ok {
+				return
 			}
-			gamepads[id].Buttons[button] = true
+			g.Buttons[button] = true
 			updateInput()
 		}
 	case source&sourceJoystick == sourceJoystick:
-		// TODO: Handle DPAD keys
+		// DPAD keys can come here, but they are also treated as an axis at a motion event. Ignore them.
 	case source&sourceKeyboard == sourceKeyboard:
 		if key, ok := androidKeyToDriverKey[keyCode]; ok {
 			keys[key] = struct{}{}
@@ -170,15 +245,15 @@ func OnKeyUpOnAndroid(keyCode int, source int, deviceID int) {
 		// A gamepad can be detected as a keyboard. Detect the device as a gamepad first.
 		if button, ok := androidKeyToGamepadButton[keyCode]; ok {
 			id := gamepadIDFromDeviceID(deviceID)
-			if _, ok := gamepads[id]; !ok {
-				// Can this happen?
-				gamepads[id] = &mobile.Gamepad{}
+			g, ok := gamepads[id]
+			if !ok {
+				return
 			}
-			gamepads[id].Buttons[button] = false
+			g.Buttons[button] = false
 			updateInput()
 		}
 	case source&sourceJoystick == sourceJoystick:
-		// TODO: Handle DPAD keys
+		// DPAD keys can come here, but they are also treated as an axis at a motion event. Ignore them.
 	case source&sourceKeyboard == sourceKeyboard:
 		if key, ok := androidKeyToDriverKey[keyCode]; ok {
 			delete(keys, key)
@@ -187,13 +262,29 @@ func OnKeyUpOnAndroid(keyCode int, source int, deviceID int) {
 	}
 }
 
-func OnGamepadAdded(deviceID int, name string, buttonNum int) {
+func OnGamepadAxesChanged(deviceID int, axisID int, value float32) {
+	did := gamepadIDFromDeviceID(deviceID)
+	g, ok := gamepads[did]
+	if !ok {
+		return
+	}
+	aid, ok := androidAxisIDToAxisID[axisID]
+	if !ok {
+		// Unexpected axis value.
+		return
+	}
+	g.Axes[aid] = value
+	updateInput()
+}
+
+func OnGamepadAdded(deviceID int, name string, buttonNum int, axisNum int) {
 	id := gamepadIDFromDeviceID(deviceID)
 	gamepads[id] = &mobile.Gamepad{
 		ID:        id,
 		SDLID:     "", // TODO: Implement this
 		Name:      name,
 		ButtonNum: buttonNum,
+		AxisNum:   axisNum,
 	}
 }
 

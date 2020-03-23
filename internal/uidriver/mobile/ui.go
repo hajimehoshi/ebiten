@@ -457,6 +457,8 @@ type Gamepad struct {
 	Name      string
 	Buttons   [driver.GamepadButtonNum]bool
 	ButtonNum int
+	Axes      [32]float32
+	AxisNum   int
 }
 
 func (u *UserInterface) UpdateInput(keys map[driver.Key]struct{}, runes []rune, touches []*Touch, gamepads []Gamepad) {

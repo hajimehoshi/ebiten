@@ -79,12 +79,31 @@ func (i *Input) GamepadName(id int) string {
 }
 
 func (i *Input) GamepadAxisNum(id int) int {
-	// TODO: Implement this
+	i.ui.m.RLock()
+	defer i.ui.m.RUnlock()
+
+	for _, g := range i.gamepads {
+		if g.ID != id {
+			continue
+		}
+		return g.AxisNum
+	}
 	return 0
 }
 
 func (i *Input) GamepadAxis(id int, axis int) float64 {
-	// TODO: Implement this
+	i.ui.m.RLock()
+	defer i.ui.m.RUnlock()
+
+	for _, g := range i.gamepads {
+		if g.ID != id {
+			continue
+		}
+		if g.AxisNum <= int(axis) {
+			return 0
+		}
+		return float64(g.Axes[axis])
+	}
 	return 0
 }
 

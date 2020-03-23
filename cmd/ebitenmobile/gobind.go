@@ -448,6 +448,64 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         KeyEvent.KEYCODE_BUTTON_16,
     };
 
+    // The order must be the same as mobile/ebitenmobileview/input_android.go.
+    static int[] axes = {
+        MotionEvent.AXIS_X,
+        MotionEvent.AXIS_Y,
+        MotionEvent.AXIS_Z,
+        MotionEvent.AXIS_RX,
+        MotionEvent.AXIS_RY,
+        MotionEvent.AXIS_RZ,
+        MotionEvent.AXIS_HAT_X,
+        MotionEvent.AXIS_HAT_Y,
+        MotionEvent.AXIS_LTRIGGER,
+        MotionEvent.AXIS_RTRIGGER,
+        MotionEvent.AXIS_THROTTLE,
+        MotionEvent.AXIS_RUDDER,
+        MotionEvent.AXIS_WHEEL,
+        MotionEvent.AXIS_GAS,
+        MotionEvent.AXIS_BRAKE,
+        MotionEvent.AXIS_GENERIC_1,
+        MotionEvent.AXIS_GENERIC_2,
+        MotionEvent.AXIS_GENERIC_3,
+        MotionEvent.AXIS_GENERIC_4,
+        MotionEvent.AXIS_GENERIC_5,
+        MotionEvent.AXIS_GENERIC_6,
+        MotionEvent.AXIS_GENERIC_7,
+        MotionEvent.AXIS_GENERIC_8,
+        MotionEvent.AXIS_GENERIC_9,
+        MotionEvent.AXIS_GENERIC_10,
+        MotionEvent.AXIS_GENERIC_11,
+        MotionEvent.AXIS_GENERIC_12,
+        MotionEvent.AXIS_GENERIC_13,
+        MotionEvent.AXIS_GENERIC_14,
+        MotionEvent.AXIS_GENERIC_15,
+        MotionEvent.AXIS_GENERIC_16,
+    };
+
+    @Override
+    public boolean onGenericMotionEvent(MotionEvent event) {
+        if ((event.getSource() & InputDevice.SOURCE_JOYSTICK) != InputDevice.SOURCE_JOYSTICK) {
+            return super.onGenericMotionEvent(event);
+        }
+        if (event.getAction() != MotionEvent.ACTION_MOVE) {
+            return super.onGenericMotionEvent(event);
+        }
+        InputDevice inputDevice = this.inputManager.getInputDevice(event.getDeviceId());
+        for (int axis : axes) {
+            InputDevice.MotionRange motionRange = inputDevice.getMotionRange(axis, event.getSource());
+            float value = 0.0f;
+            if (motionRange != null) {
+                value = event.getAxisValue(axis);
+                if (Math.abs(value) <= motionRange.getFlat()) {
+                    value = 0.0f;
+                }
+            }
+            Ebitenmobileview.onGamepadAxesChanged(event.getDeviceId(), axis, value);
+        }
+        return true;
+    }
+
     @Override
     public void onInputDeviceAdded(int deviceId) {
         InputDevice inputDevice = this.inputManager.getInputDevice(deviceId);
@@ -456,6 +514,7 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
             (sources & InputDevice.SOURCE_JOYSTICK) != InputDevice.SOURCE_JOYSTICK) {
             return;
         }
+
         boolean[] keyExistences = inputDevice.hasKeys(gamepadButtons);
         int buttonNum = gamepadButtons.length - 1;
         for (int i = gamepadButtons.length - 1; i >= 0; i--) {
@@ -464,7 +523,16 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
             }
             buttonNum--;
         }
-        Ebitenmobileview.onGamepadAdded(deviceId, inputDevice.getName(), buttonNum);
+
+        int axisNum = axes.length - 1;
+        for (int i = axes.length - 1; i >= 0; i--) {
+            if (inputDevice.getMotionRange(axes[i], InputDevice.SOURCE_JOYSTICK) != null) {
+                break;
+            }
+            axisNum--;
+        }
+
+        Ebitenmobileview.onGamepadAdded(deviceId, inputDevice.getName(), buttonNum, axisNum);
     }
 
     @Override
