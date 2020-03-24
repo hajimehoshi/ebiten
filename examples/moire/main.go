@@ -86,13 +86,11 @@ func (g *game) Update(screen *ebiten.Image) error {
 		fullscreen = !fullscreen
 		ebiten.SetFullscreen(fullscreen)
 	}
-
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
-	screen.ReplacePixels(getDots(screen.Size()))
 	return nil
+}
+
+func (g *game) Draw(screen *ebiten.Image) {
+	screen.ReplacePixels(getDots(screen.Size()))
 }
 
 func main() {

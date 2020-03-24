@@ -23,3 +23,8 @@ type imageDumper struct {
 func (i *imageDumper) update(screen *Image) error {
 	return i.f(screen)
 }
+
+func (i *imageDumper) dump(screen *Image) error {
+	// Do nothing
+	return nil
+}
