@@ -15,6 +15,8 @@
 package ebitenmobileview
 
 import (
+	"encoding/hex"
+	"hash/crc32"
 	"unicode"
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
@@ -277,11 +279,36 @@ func OnGamepadAxesChanged(deviceID int, axisID int, value float32) {
 	updateInput()
 }
 
-func OnGamepadAdded(deviceID int, name string, buttonNum int, axisNum int) {
+func OnGamepadAdded(deviceID int, name string, buttonNum int, axisNum int, descriptor string, vendorID int, productID int, buttonMask int, axisMask int) {
+	// This emulates the implementation of Android_AddJoystick.
+	// https://hg.libsdl.org/SDL/file/bc90ce38f1e2/src/joystick/android/SDL_sysjoystick.c#l386
+	const SDL_HARDWARE_BUS_BLUETOOTH = 0x05
+
+	var sdlid [16]byte
+	sdlid[0] = byte(SDL_HARDWARE_BUS_BLUETOOTH)
+	sdlid[1] = byte(SDL_HARDWARE_BUS_BLUETOOTH >> 8)
+	if vendorID != 0 && productID != 0 {
+		sdlid[4] = byte(vendorID)
+		sdlid[5] = byte(vendorID >> 8)
+		sdlid[8] = byte(productID)
+		sdlid[9] = byte(productID >> 8)
+	} else {
+		crc := crc32.ChecksumIEEE(([]byte)(descriptor))
+		copy(sdlid[4:8], ([]byte)(descriptor))
+		sdlid[8] = byte(crc)
+		sdlid[9] = byte(crc >> 8)
+		sdlid[10] = byte(crc >> 16)
+		sdlid[11] = byte(crc >> 24)
+	}
+	sdlid[12] = byte(buttonMask)
+	sdlid[13] = byte(buttonMask >> 8)
+	sdlid[14] = byte(axisMask)
+	sdlid[15] = byte(axisMask >> 8)
+
 	id := gamepadIDFromDeviceID(deviceID)
 	gamepads[id] = &mobile.Gamepad{
 		ID:        id,
-		SDLID:     "", // TODO: Implement this
+		SDLID:     hex.EncodeToString(sdlid[:]),
 		Name:      name,
 		ButtonNum: buttonNum,
 		AxisNum:   axisNum,
