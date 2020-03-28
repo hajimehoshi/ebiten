@@ -681,13 +681,25 @@ func (u *UserInterface) run(context driver.UIContext) error {
 		return err
 	}
 
-	// Set the window size and the window position in this order.
-	// This is necessary especially on Linux (#1118).
-	ww, wh := u.getInitWindowSize()
-	ww = int(u.toDeviceDependentPixel(float64(ww)))
-	wh = int(u.toDeviceDependentPixel(float64(wh)))
-	u.setWindowSize(ww, wh, u.isFullscreen(), u.vsync)
-	u.iwindow.SetPosition(u.getInitWindowPosition())
+	setPosition := func() {
+		u.iwindow.SetPosition(u.getInitWindowPosition())
+	}
+	setSize := func() {
+		ww, wh := u.getInitWindowSize()
+		ww = int(u.toDeviceDependentPixel(float64(ww)))
+		wh = int(u.toDeviceDependentPixel(float64(wh)))
+		u.setWindowSize(ww, wh, u.isFullscreen(), u.vsync)
+	}
+
+	// Set the window size and the window position in this order on Linux (X) (#1118),
+	// but this is inverted on Windows. This is very tricky, but there is no obvious way to solve this.
+	if runtime.GOOS == "windows" {
+		setPosition()
+		setSize()
+	} else {
+		setSize()
+		setPosition()
+	}
 
 	// Maximizing a window requires a proper size and position. Call Maximize here (#1117).
 	if u.isInitWindowMaximized() {
