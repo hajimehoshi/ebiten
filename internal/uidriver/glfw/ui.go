@@ -691,8 +691,9 @@ func (u *UserInterface) run(context driver.UIContext) error {
 		u.setWindowSize(ww, wh, u.isFullscreen(), u.vsync)
 	}
 
-	// Set the window size and the window position in this order on Linux (X) (#1118),
-	// but this is inverted on Windows. This is very tricky, but there is no obvious way to solve this.
+	// Set the window size and the window position in this order on Linux or other UNIX using X (#1118),
+	// but this should be inverted on Windows. This is very tricky, but there is no obvious way to solve this.
+	// This doesn't matter on macOS.
 	if runtime.GOOS == "windows" {
 		setPosition()
 		setSize()
