@@ -112,6 +112,8 @@ func SetWindowIcon(iconImages []image.Image) {
 }
 
 // WindowPosition returns the window position.
+// The origin position is the left-upper corner of the current monitor.
+// The unit is device-independent pixels.
 //
 // WindowPosition panics if the main loop does not start yet.
 //
@@ -131,6 +133,8 @@ func WindowPosition() (x, y int) {
 }
 
 // SetWindowPosition sets the window position.
+// The origin position is the left-upper corner of the current monitor.
+// The unit is device-independent pixels.
 //
 // SetWindowPosition does nothing on fullscreen mode.
 //
@@ -194,10 +198,9 @@ func fixWindowPosition(width, height int) {
 	}
 
 	if initWindowPosition.x == invalidPos || initWindowPosition.y == invalidPos {
-		mx, my := uiDriver().MonitorPosition()
 		sw, sh := uiDriver().ScreenSizeInFullscreen()
-		x := mx + (sw-width)/2
-		y := my + (sh-height)/3
+		x := (sw - width) / 2
+		y := (sh - height) / 3
 		w.SetPosition(x, y)
 	} else {
 		w.SetPosition(initWindowPosition.x, initWindowPosition.y)

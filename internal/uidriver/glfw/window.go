@@ -185,6 +185,9 @@ func (w *window) Position() (int, int) {
 		} else {
 			wx, wy = w.ui.window.GetPos()
 		}
+		mx, my := w.ui.currentMonitor().GetPos()
+		wx -= mx
+		wy -= my
 		xf := w.ui.toDeviceIndependentPixel(float64(wx))
 		yf := w.ui.toDeviceIndependentPixel(float64(wy))
 		x, y = int(xf), int(yf)
@@ -199,9 +202,10 @@ func (w *window) SetPosition(x, y int) {
 		return
 	}
 	_ = w.ui.t.Call(func() error {
+		mx, my := w.ui.currentMonitor().GetPos()
 		xf := w.ui.toDeviceDependentPixel(float64(x))
 		yf := w.ui.toDeviceDependentPixel(float64(y))
-		x, y := adjustWindowPosition(int(xf), int(yf))
+		x, y := adjustWindowPosition(mx+int(xf), my+int(yf))
 		if w.ui.isFullscreen() {
 			w.ui.origPosX, w.ui.origPosY = x, y
 		} else {

@@ -433,10 +433,6 @@ func (u *UserInterface) IsScreenTransparent() bool {
 	return false
 }
 
-func (u *UserInterface) MonitorPosition() (int, int) {
-	return 0, 0
-}
-
 func (u *UserInterface) Input() driver.Input {
 	return &u.input
 }

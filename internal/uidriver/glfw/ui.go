@@ -1043,23 +1043,6 @@ func (u *UserInterface) IsScreenTransparent() bool {
 	return val
 }
 
-func (u *UserInterface) MonitorPosition() (int, int) {
-	if !u.isRunning() {
-		return u.monitorPosition()
-	}
-	var mx, my int
-	_ = u.t.Call(func() error {
-		mx, my = u.monitorPosition()
-		return nil
-	})
-	return mx, my
-}
-
-func (u *UserInterface) monitorPosition() (int, int) {
-	// TODO: toDeviceIndependentPixel might be required.
-	return u.currentMonitor().GetPos()
-}
-
 func (u *UserInterface) Input() driver.Input {
 	return &u.input
 }

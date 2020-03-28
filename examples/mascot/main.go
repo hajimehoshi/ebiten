@@ -87,7 +87,6 @@ func (m *mascot) update(screen *ebiten.Image) error {
 	m.count++
 
 	sw, sh := ebiten.ScreenSizeInFullscreen()
-	// TODO: Consider multiple monitors. This requires new APIs (#1114).
 	ebiten.SetWindowPosition(m.x16/16, m.y16/16+sh-height)
 
 	if m.vx16 == 0 {

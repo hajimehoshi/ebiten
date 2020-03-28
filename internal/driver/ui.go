@@ -42,7 +42,6 @@ type UI interface {
 	IsVsyncEnabled() bool
 	ScreenSizeInFullscreen() (int, int)
 	IsScreenTransparent() bool
-	MonitorPosition() (int, int)
 
 	SetCursorMode(mode CursorMode)
 	SetFullscreen(fullscreen bool)
