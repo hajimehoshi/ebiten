@@ -295,13 +295,13 @@ func (g *game) Draw(screen *ebiten.Image) {
 
 	var lines []string
 	if !ebiten.IsWindowMaximized() && ebiten.IsWindowResizable() {
-		lines = append(lines, "[M] Maximize the window")
+		lines = append(lines, "[M] Maximize the window (only for desktops)")
 	}
 	if !ebiten.IsWindowMinimized() {
-		lines = append(lines, "[N] Minimize the window")
+		lines = append(lines, "[N] Minimize the window (only for desktops)")
 	}
 	if ebiten.IsWindowMaximized() || ebiten.IsWindowMinimized() {
-		lines = append(lines, "[E] Restore the window from maximized/minimized state")
+		lines = append(lines, "[E] Restore the window from maximized/minimized state (only for desktops)")
 	}
 	msgM := strings.Join(lines, "\n")
 
