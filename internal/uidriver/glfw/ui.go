@@ -662,12 +662,6 @@ func (u *UserInterface) run(context driver.UIContext) error {
 		}
 		glfw.WindowHint(glfw.Floating, floating)
 
-		maximized := glfw.False
-		if u.isInitWindowMaximized() {
-			maximized = glfw.True
-		}
-		glfw.WindowHint(glfw.Maximized, maximized)
-
 		// Set the window visible explicitly or the application freezes on Wayland (#974).
 		if os.Getenv("WAYLAND_DISPLAY") != "" {
 			glfw.WindowHint(glfw.Visible, glfw.True)
@@ -690,6 +684,14 @@ func (u *UserInterface) run(context driver.UIContext) error {
 	ww = int(u.toDeviceDependentPixel(float64(ww)))
 	wh = int(u.toDeviceDependentPixel(float64(wh)))
 	u.setWindowSize(ww, wh, u.isFullscreen(), u.vsync)
+
+	// Maximizing a window requires a proper size and position. Call Maximize here (#1117).
+	if u.isInitWindowMaximized() {
+		_ = u.t.Call(func() error {
+			u.window.Maximize()
+			return nil
+		})
+	}
 
 	_ = u.t.Call(func() error {
 		u.title = u.getInitTitle()
