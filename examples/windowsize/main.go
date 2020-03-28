@@ -230,7 +230,7 @@ func (g *game) Update(screen *ebiten.Image) error {
 		resizable = !resizable
 	}
 	maximize := inpututil.IsKeyJustPressed(ebiten.KeyM)
-	minimize := inpututil.IsKeyJustPressed(ebiten.KeyI)
+	minimize := inpututil.IsKeyJustPressed(ebiten.KeyN)
 	restore := inpututil.IsKeyJustPressed(ebiten.KeyE)
 
 	if toUpdateWindowSize {
@@ -298,7 +298,7 @@ func (g *game) Draw(screen *ebiten.Image) {
 		lines = append(lines, "[M] Maximize the window")
 	}
 	if !ebiten.IsWindowMinimized() {
-		lines = append(lines, "[I] Minimize the window")
+		lines = append(lines, "[N] Minimize the window")
 	}
 	if ebiten.IsWindowMaximized() || ebiten.IsWindowMinimized() {
 		lines = append(lines, "[E] Restore the window from maximized/minimized state")
