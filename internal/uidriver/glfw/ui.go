@@ -1018,7 +1018,7 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool, vsync 
 // currentMonitor must be called on the main thread.
 func (u *UserInterface) currentMonitor() *glfw.Monitor {
 	if w := u.window; w != nil {
-		// TODO: When is the monitor nil?
+		// GetMonitor is available only on fullscreen.
 		if m := w.GetMonitor(); m != nil {
 			return m
 		}
