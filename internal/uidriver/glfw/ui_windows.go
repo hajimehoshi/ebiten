@@ -114,7 +114,7 @@ func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	if err != nil {
 		panic(err)
 	}
-	if y < my + t {
+	if y < my+t {
 		y = my + t
 	}
 	return x, y

@@ -536,11 +536,13 @@ func (u *UserInterface) DeviceScaleFactor() float64 {
 
 // deviceScaleFactor must be called from the main thread.
 func (u *UserInterface) deviceScaleFactor() float64 {
-	// Avoid calling monitor.GetPos if we have the monitor position cached already.
-	if cm, ok := getCachedMonitor(u.window.GetPos()); ok {
-		return devicescale.GetAt(cm.x, cm.y)
+	// Before calling SetWindowPosition, the window's positin is not reliable.
+	if u.iwindow.setPositionCalled {
+		// Avoid calling monitor.GetPos if we have the monitor position cached already.
+		if cm, ok := getCachedMonitor(u.window.GetPos()); ok {
+			return devicescale.GetAt(cm.x, cm.y)
+		}
 	}
-	// TODO: When is this reached?
 	return devicescale.GetAt(u.currentMonitor().GetPos())
 }
 
