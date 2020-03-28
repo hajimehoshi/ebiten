@@ -295,38 +295,38 @@ func (g *game) Draw(screen *ebiten.Image) {
 
 	var lines []string
 	if !ebiten.IsWindowMaximized() {
-		lines = append(lines, "Press M key to maximize the window")
+		lines = append(lines, "[M] Maximize the window")
 	}
 	if !ebiten.IsWindowMinimized() {
-		lines = append(lines, "Press I key to minimize the window")
+		lines = append(lines, "[I] Minimize the window")
 	}
 	if ebiten.IsWindowMaximized() || ebiten.IsWindowMinimized() {
-		lines = append(lines, "Press E key to restore the window from maximized/minimized state")
+		lines = append(lines, "[E] Restore the window from maximized/minimized state")
 	}
 	msgM := strings.Join(lines, "\n")
 
 	var msgS string
 	var msgR string
 	if *flagLegacy {
-		msgS = "Press S key to change the window scale (only for desktops)\n"
+		msgS = "[S] Change the window scale (only for desktops)\n"
 	} else {
-		msgR = "Press R key to switch the window resizable state (only for desktops)\n"
+		msgR = "[R] Switch the window resizable state (only for desktops)\n"
 	}
 	fg := "Yes"
 	if !ebiten.IsFocused() {
 		fg = "No"
 	}
 
-	msg := fmt.Sprintf(`Press arrow keys to move the window
-Press shift + arrow keys to change the window size
-%sPress F key to switch the fullscreen state (only for desktops)
-Press U key to switch the runnable-on-unfocused state
-Press C key to switch the cursor visibility
-Press I key to change the window icon (only for desktops)
-Press V key to switch vsync
-Press T key to switch TPS (ticks per second)
-Press D key to switch the window decoration (only for desktops)
-Press L key to switch the window floating state (only for desktops)
+	msg := fmt.Sprintf(`[Arrow keys] Move the window
+[Shift + Arrow keys] Change the window size
+%s[F] Switch the fullscreen state (only for desktops)
+[U] Switch the runnable-on-unfocused state
+[C] Switch the cursor visibility
+[I] Change the window icon (only for desktops)
+[V] Switch vsync
+[T] Switch TPS (ticks per second)
+[D] Switch the window decoration (only for desktops)
+[L] Switch the window floating state (only for desktops)
 %s
 %s
 IsFocused?: %s
