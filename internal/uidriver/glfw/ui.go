@@ -679,11 +679,13 @@ func (u *UserInterface) run(context driver.UIContext) error {
 		return err
 	}
 
-	u.iwindow.SetPosition(u.getInitWindowPosition())
+	// Set the window size and the window position in this order.
+	// This is necessary especially on Linux (#1118).
 	ww, wh := u.getInitWindowSize()
 	ww = int(u.toDeviceDependentPixel(float64(ww)))
 	wh = int(u.toDeviceDependentPixel(float64(wh)))
 	u.setWindowSize(ww, wh, u.isFullscreen(), u.vsync)
+	u.iwindow.SetPosition(u.getInitWindowPosition())
 
 	// Maximizing a window requires a proper size and position. Call Maximize here (#1117).
 	if u.isInitWindowMaximized() {
