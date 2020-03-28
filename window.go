@@ -262,12 +262,15 @@ func SetWindowFloating(float bool) {
 
 // MaximizeWindow maximizes the window.
 //
-// On some environments like macOS, MaximizeWindow requres that the window is resizable.
+// MaximizeWindow panics when the window is not resizable.
 //
 // MaximizeWindow does nothing on browsers or mobiles.
 //
 // MaximizeWindow is concurrent-safe.
 func MaximizeWindow() {
+	if !IsWindowResizable() {
+		panic("ebiten: a window to maximize must be resizable")
+	}
 	if w := uiDriver().Window(); w != nil {
 		w.Maximize()
 	}

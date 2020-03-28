@@ -251,7 +251,7 @@ func (g *game) Update(screen *ebiten.Image) error {
 	ebiten.SetWindowDecorated(decorated)
 	ebiten.SetWindowPosition(positionX, positionY)
 	ebiten.SetWindowFloating(floating)
-	if maximize {
+	if maximize && ebiten.IsWindowResizable() {
 		ebiten.MaximizeWindow()
 	}
 	if minimize {
@@ -294,7 +294,7 @@ func (g *game) Draw(screen *ebiten.Image) {
 	}
 
 	var lines []string
-	if !ebiten.IsWindowMaximized() {
+	if !ebiten.IsWindowMaximized() && ebiten.IsWindowResizable() {
 		lines = append(lines, "[M] Maximize the window")
 	}
 	if !ebiten.IsWindowMinimized() {
@@ -403,6 +403,7 @@ func main() {
 		ebiten.SetWindowFloating(true)
 	}
 	if *flagMaximize {
+		ebiten.SetWindowResizable(true)
 		ebiten.MaximizeWindow()
 	}
 	if *flagAutoAdjusting {

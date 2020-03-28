@@ -129,6 +129,9 @@ func (w *window) IsMaximized() bool {
 }
 
 func (w *window) Maximize() {
+	if !w.IsResizable() {
+		panic("glfw: a window to maximize must be resizable")
+	}
 	if !w.ui.isRunning() {
 		w.ui.setInitWindowMaximized(true)
 		return
