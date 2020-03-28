@@ -25,7 +25,8 @@ package devicescale
 //
 // static float scaleAt(int x, int y) {
 //   // On macOS, the direction of Y axis is inverted from GLFW monitors (#807).
-//   y = -y;
+//   // This is a reverse function of _glfwTransformYNS in GLFW (#1113).
+//   y = CGDisplayBounds(CGMainDisplayID()).size.height - y - 1;
 //
 //   NSArray<NSScreen*>* screens = [NSScreen screens];
 //   for (NSScreen* screen in screens) {
