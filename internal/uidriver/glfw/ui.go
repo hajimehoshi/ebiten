@@ -180,9 +180,9 @@ func cacheMonitors() {
 // returns false if monitor is not found.
 //
 // getCachedMonitor must be called on the main thread.
-func getCachedMonitor(glfwMonitor *glfw.Monitor) (*cachedMonitor, bool) {
+func getCachedMonitor(wx, wy int) (*cachedMonitor, bool) {
 	for _, m := range monitors {
-		if m.m == glfwMonitor {
+		if m.x <= wx && wx < m.x+m.vm.Width && m.y <= wy && wy < m.y+m.vm.Height {
 			return m, true
 		}
 	}
@@ -537,7 +537,7 @@ func (u *UserInterface) DeviceScaleFactor() float64 {
 // deviceScaleFactor must be called from the main thread.
 func (u *UserInterface) deviceScaleFactor() float64 {
 	// Avoid calling monitor.GetPos if we have the monitor position cached already.
-	if cm, ok := getCachedMonitor(u.window.GetMonitor()); ok {
+	if cm, ok := getCachedMonitor(u.window.GetPos()); ok {
 		return devicescale.GetAt(cm.x, cm.y)
 	}
 	// TODO: When is this reached?
