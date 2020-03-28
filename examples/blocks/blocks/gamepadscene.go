@@ -38,6 +38,7 @@ func (s *GamepadScene) Update(state *GameState) error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		state.Input.gamepadConfig.Reset()
 		state.SceneManager.GoTo(&TitleScene{})
+		return nil
 	}
 
 	if s.buttonStates == nil {
