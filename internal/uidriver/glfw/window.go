@@ -205,7 +205,7 @@ func (w *window) SetPosition(x, y int) {
 		mx, my := w.ui.currentMonitor().GetPos()
 		xf := w.ui.toDeviceDependentPixel(float64(x))
 		yf := w.ui.toDeviceDependentPixel(float64(y))
-		x, y := adjustWindowPosition(mx+int(xf), my+int(yf))
+		x, y := w.ui.adjustWindowPosition(mx+int(xf), my+int(yf))
 		if w.ui.isFullscreen() {
 			w.ui.origPosX, w.ui.origPosY = x, y
 		} else {

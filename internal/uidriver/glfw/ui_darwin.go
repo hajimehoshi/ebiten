@@ -51,7 +51,7 @@ func (u *UserInterface) glfwScale() float64 {
 	return 1
 }
 
-func adjustWindowPosition(x, y int) (int, int) {
+func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
 

@@ -103,18 +103,19 @@ func (u *UserInterface) glfwScale() float64 {
 	return u.deviceScaleFactor()
 }
 
-func adjustWindowPosition(x, y int) (int, int) {
+func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
+	mx, my := u.currentMonitor().GetPos()
 	// As the video width/height might be wrong,
 	// adjust x/y at least to enable to handle the window (#328)
-	if x < 0 {
-		x = 0
+	if x < mx {
+		x = mx
 	}
 	t, err := getSystemMetrics(smCyCaption)
 	if err != nil {
 		panic(err)
 	}
-	if y < t {
-		y = t
+	if y < my + t {
+		y = my + t
 	}
 	return x, y
 }
