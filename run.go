@@ -296,8 +296,14 @@ func runGame(game Game, scale float64) error {
 // Ebiten users should NOT call RunGameWithoutMainLoop.
 // Instead, functions in github.com/hajimehoshi/ebiten/mobile package calls this.
 func RunGameWithoutMainLoop(game Game) {
-	game = &imageDumperGame{game: game}
 	fixWindowPosition(WindowSize())
+	if _, ok := game.(interface{ Draw(*Image) }); ok {
+		game = &imageDumperGameWithDraw{
+			imageDumperGame: imageDumperGame{game: game},
+		}
+	} else {
+		game = &imageDumperGame{game: game}
+	}
 	theUIContext.set(game, 0)
 	uiDriver().RunWithoutMainLoop(theUIContext)
 }
