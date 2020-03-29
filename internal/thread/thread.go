@@ -37,6 +37,8 @@ func New() *Thread {
 // Loop starts the thread loop.
 //
 // Loop must be called on the thread.
+//
+// Loop can be called multiple times.
 func (t *Thread) Loop(context context.Context) {
 loop:
 	for {
@@ -53,7 +55,7 @@ loop:
 //
 // Do not call this from the same thread. This would block forever.
 //
-// Call panics when Loop already ends.
+// Call blocks if Loop is not called.
 func (t *Thread) Call(f func() error) error {
 	t.funcs <- f
 	return <-t.results
