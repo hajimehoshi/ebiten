@@ -278,10 +278,15 @@ func MaximizeWindow() {
 
 // IsWindowMaximized reports whether the window is maximized or not.
 //
+// IsWindowMaximized returns false when the window is not resizable.
+//
 // IsWindowMaximized always returns false on browsers and mobiles.
 //
 // IsWindowMaximized is concurrent-safe.
 func IsWindowMaximized() bool {
+	if !IsWindowResizable() {
+		return false
+	}
 	if w := uiDriver().Window(); w != nil {
 		return w.IsMaximized()
 	}
@@ -315,8 +320,13 @@ func IsWindowMinimized() bool {
 
 // RestoreWindow restores the window from its maximized or minimized state.
 //
+// RestoreWindow panics when the window is not maximized nor minimized.
+//
 // RestoreWindow is concurrent-safe.
 func RestoreWindow() {
+	if !IsWindowMaximized() && !IsWindowMinimized() {
+		panic("ebiten: RestoreWindow must be called on a maximized or a minimized window")
+	}
 	if w := uiDriver().Window(); w != nil {
 		w.Restore()
 	}
