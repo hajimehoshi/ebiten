@@ -61,12 +61,10 @@ func init() {
 	keyboardKeyRects[ebiten.KeyX] = image.Rect(72, 54, 88, 72)
 	keyboardKeyRects[ebiten.KeyY] = image.Rect(120, 18, 136, 36)
 	keyboardKeyRects[ebiten.KeyZ] = image.Rect(56, 54, 72, 72)
-	keyboardKeyRects[ebiten.KeyAlt] = image.Rect(64, 72, 96, 90)
 	keyboardKeyRects[ebiten.KeyApostrophe] = image.Rect(208, 36, 224, 54)
 	keyboardKeyRects[ebiten.KeyBackslash] = image.Rect(224, 0, 240, 18)
 	keyboardKeyRects[ebiten.KeyBackspace] = image.Rect(232, 18, 272, 36)
 	keyboardKeyRects[ebiten.KeyComma] = image.Rect(168, 54, 184, 72)
-	keyboardKeyRects[ebiten.KeyControl] = image.Rect(0, 36, 48, 54)
 	keyboardKeyRects[ebiten.KeyDown] = image.Rect(48, 126, 96, 144)
 	keyboardKeyRects[ebiten.KeyEnter] = image.Rect(224, 36, 272, 54)
 	keyboardKeyRects[ebiten.KeyEqual] = image.Rect(208, 0, 224, 18)
@@ -79,11 +77,13 @@ func init() {
 	keyboardKeyRects[ebiten.KeyRight] = image.Rect(96, 126, 144, 144)
 	keyboardKeyRects[ebiten.KeyRightBracket] = image.Rect(216, 18, 232, 36)
 	keyboardKeyRects[ebiten.KeySemicolon] = image.Rect(192, 36, 208, 54)
-	keyboardKeyRects[ebiten.KeyShift] = image.Rect(0, 54, 56, 72)
 	keyboardKeyRects[ebiten.KeySlash] = image.Rect(200, 54, 216, 72)
 	keyboardKeyRects[ebiten.KeySpace] = image.Rect(96, 72, 176, 90)
 	keyboardKeyRects[ebiten.KeyTab] = image.Rect(0, 18, 40, 36)
 	keyboardKeyRects[ebiten.KeyUp] = image.Rect(48, 108, 96, 126)
+	keyboardKeyRects[ebiten.KeyAlt] = image.Rect(64, 72, 96, 90)
+	keyboardKeyRects[ebiten.KeyControl] = image.Rect(0, 36, 48, 54)
+	keyboardKeyRects[ebiten.KeyShift] = image.Rect(0, 54, 56, 72)
 }
 
 func KeyRect(key ebiten.Key) (image.Rectangle, bool) {

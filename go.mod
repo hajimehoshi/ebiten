@@ -10,12 +10,11 @@ require (
 	github.com/hajimehoshi/go-mp3 v0.2.1
 	github.com/hajimehoshi/oto v0.5.4
 	github.com/jakecoffman/cp v0.1.0
-	github.com/jfreymuth/oggvorbis v1.0.0
-	github.com/jfreymuth/vorbis v1.0.0 // indirect
-	github.com/kr/pretty v0.1.0 // indirect
-	golang.org/x/image v0.0.0-20191009234506-e7c1f5e7dbb8
-	golang.org/x/mobile v0.0.0-20200222142934-3c8601c510d0
-	golang.org/x/sys v0.0.0-20191026070338-33540a1f6037
-	golang.org/x/tools v0.0.0-20200117220505-0cba7a3a9ee9
-	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
+	github.com/jfreymuth/oggvorbis v1.0.1
+	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
+	golang.org/x/image v0.0.0-20200119044424-58c23975cae1
+	golang.org/x/mobile v0.0.0-20200329125638-4c31acba0007
+	golang.org/x/sys v0.0.0-20200327173247-9dae0f8f5775
+	golang.org/x/tools v0.0.0-20200330175517-31583a0dbbc8
+	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 )
