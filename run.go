@@ -28,16 +28,23 @@ type Game interface {
 	// Basically Update updates the game logic, and whether Update draws the screen depends on the existence of
 	// Draw implementation.
 	//
+	// The give argument represents a screen image. Whether the updated content is used or not
+	// depends on the existence of Draw definition.
+	//
 	// With Draw, Update updates only the game logic and Draw draws the screen. This is recommended.
+	// In this case, the argument screen's updated content is not adopted and is always cleared.
 	//
 	// Without Draw, Update updates the game logic and also draws the screen. This is a legacy way.
-	Update(*Image) error
+	// In this case, the argument screen's updated content is adopted as the actual game screen.
+	Update(screen *Image) error
 
 	// Draw draws the game screen by one frame.
 	//
+	// The give argument represents a screen image. The updated content is adopted as the game screen.
+	//
 	// Draw is an optional function for backward compatibility.
 	//
-	// Draw(*Image) error
+	// Draw(screen *Image) error
 
 	// Layout accepts a native outside size in device-independent pixels and returns the game's logical screen
 	// size.
