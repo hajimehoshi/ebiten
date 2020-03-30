@@ -231,7 +231,10 @@ func (g *game) Update(screen *ebiten.Image) error {
 	}
 	maximize := inpututil.IsKeyJustPressed(ebiten.KeyM)
 	minimize := inpututil.IsKeyJustPressed(ebiten.KeyN)
-	restore := inpututil.IsKeyJustPressed(ebiten.KeyE)
+	restore := false
+	if ebiten.IsWindowMaximized() || ebiten.IsWindowMinimized() {
+		restore = inpututil.IsKeyJustPressed(ebiten.KeyE)
+	}
 
 	if toUpdateWindowSize {
 		if *flagLegacy {
