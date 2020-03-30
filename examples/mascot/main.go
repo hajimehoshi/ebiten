@@ -83,7 +83,11 @@ type mascot struct {
 	count int
 }
 
-func (m *mascot) update(screen *ebiten.Image) error {
+func (m *mascot) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return width, height
+}
+
+func (m *mascot) Update(screen *ebiten.Image) error {
 	m.count++
 
 	sw, sh := ebiten.ScreenSizeInFullscreen()
@@ -121,11 +125,10 @@ func (m *mascot) update(screen *ebiten.Image) error {
 			m.vx16 = -m.vx16
 		}
 	}
+	return nil
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
+func (m *mascot) Draw(screen *ebiten.Image) {
 	img := gopher1
 	if m.y16 == 0 {
 		switch (m.count / 3) % 4 {
@@ -143,7 +146,6 @@ func (m *mascot) update(screen *ebiten.Image) error {
 		op.GeoM.Translate(width, 0)
 	}
 	screen.DrawImage(img, op)
-	return nil
 }
 
 func main() {
@@ -151,8 +153,8 @@ func main() {
 	ebiten.SetWindowDecorated(false)
 	ebiten.SetRunnableOnUnfocused(true)
 	ebiten.SetWindowFloating(true)
-	m := &mascot{}
-	if err := ebiten.Run(m.update, width, height, 1, "Mascot (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(width, height)
+	if err := ebiten.RunGame(&mascot{}); err != nil {
 		log.Fatal(err)
 	}
 }
