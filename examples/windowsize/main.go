@@ -415,7 +415,17 @@ func main() {
 
 	const title = "Window Size (Ebiten Demo)"
 	if *flagLegacy {
-		if err := ebiten.Run(g.Update, g.width, g.height, initScreenScale, title); err != nil {
+		update := func(screen *ebiten.Image) error {
+			if err := g.Update(screen); err != nil {
+				return err
+			}
+			if ebiten.IsDrawingSkipped() {
+				return nil
+			}
+			g.Draw(screen)
+			return nil
+		}
+		if err := ebiten.Run(update, g.width, g.height, initScreenScale, title); err != nil {
 			log.Fatal(err)
 		}
 	} else {
