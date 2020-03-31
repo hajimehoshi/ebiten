@@ -30,7 +30,7 @@ type Game interface {
 	//
 	// The Draw function's definition is:
 	//
-	//     Draw(screen *Image) error
+	//     Draw(screen *Image)
 	//
 	// The give argument represents a screen image. Whether the updated content is used or not
 	// depends on the existence of Draw definition.
@@ -48,7 +48,7 @@ type Game interface {
 	//
 	// Draw is an optional function for backward compatibility.
 	//
-	// Draw(screen *Image) error
+	// Draw(screen *Image)
 
 	// Layout accepts a native outside size in device-independent pixels and returns the game's logical screen
 	// size.
