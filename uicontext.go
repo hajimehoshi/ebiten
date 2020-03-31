@@ -242,14 +242,27 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 	if err := buffered.EndFrame(); err != nil {
 		return err
 	}
+	return nil
+}
 
+func (c *uiContext) Draw() error {
+	if err, ok := c.err.Load().(error); ok && err != nil {
+		return err
+	}
+	if err := buffered.BeginFrame(); err != nil {
+		return err
+	}
+	c.draw()
+	if err := buffered.EndFrame(); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (c *uiContext) update(afterFrameUpdate func()) error {
 	updateCount := clock.Update(MaxTPS())
 
-	if game, ok := c.game.(interface{ Draw(*Image) }); ok {
+	if _, ok := c.game.(interface{ Draw(*Image) }); ok {
 		for i := 0; i < updateCount; i++ {
 			c.updateOffscreen()
 
@@ -269,9 +282,6 @@ func (c *uiContext) update(afterFrameUpdate func()) error {
 			uiDriver().Input().ResetForFrame()
 			afterFrameUpdate()
 		}
-
-		c.offscreen.Clear()
-		game.Draw(c.offscreen)
 	} else {
 		for i := 0; i < updateCount; i++ {
 			c.updateOffscreen()
@@ -290,10 +300,18 @@ func (c *uiContext) update(afterFrameUpdate func()) error {
 			afterFrameUpdate()
 		}
 	}
+	return nil
+}
 
+func (c *uiContext) draw() {
 	// c.screen might be nil when updateCount is 0 in the initial state (#1039).
 	if c.screen == nil {
-		return nil
+		return
+	}
+
+	if game, ok := c.game.(interface{ Draw(*Image) }); ok {
+		c.offscreen.Clear()
+		game.Draw(c.offscreen)
 	}
 
 	// This clear is needed for fullscreen mode or some mobile platforms (#622).
@@ -326,7 +344,6 @@ func (c *uiContext) update(afterFrameUpdate func()) error {
 		op.Filter = FilterLinear
 	}
 	_ = c.screen.DrawImage(c.offscreen, op)
-	return nil
 }
 
 func (c *uiContext) AdjustPosition(x, y float64) (float64, float64) {

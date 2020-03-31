@@ -813,6 +813,9 @@ func (u *UserInterface) update(context driver.UIContext) error {
 	}); err != nil {
 		return err
 	}
+	if err := context.Draw(); err != nil {
+		return err
+	}
 
 	// Update the screen size when the window is resizable.
 	var w, h int

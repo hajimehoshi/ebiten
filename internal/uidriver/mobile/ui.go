@@ -345,6 +345,9 @@ func (u *UserInterface) update(context driver.UIContext) error {
 	}); err != nil {
 		return err
 	}
+	if err := context.Draw(); err != nil {
+		return err
+	}
 	return nil
 }
 
