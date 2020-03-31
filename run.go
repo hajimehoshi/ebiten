@@ -28,6 +28,10 @@ type Game interface {
 	// Basically Update updates the game logic, and whether Update draws the screen depends on the existence of
 	// Draw implementation.
 	//
+	// The Draw function's definition is:
+	//
+	//     Draw(screen *Image) error
+	//
 	// The give argument represents a screen image. Whether the updated content is used or not
 	// depends on the existence of Draw definition.
 	//
