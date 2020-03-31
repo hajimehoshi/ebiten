@@ -266,7 +266,13 @@ func (c *uiContext) update(afterFrameUpdate func()) error {
 	for i := 0; i < updateCount; i++ {
 		c.updateOffscreen()
 
-		// When Draw exists, rendering should be always skipped.
+		// When the game's Draw exists, rendering should be always skipped.
+		//
+		// When the game's Draw does not exist, the last Update call should process drawing.
+		// This assumes that (*uiContext).Update and (*uiContext).Draw are called successively.
+		//
+		// TODO: Make (Game).Draw mandatory and remove this assumption when we can update the major version.
+		// Move the clock usage to the UI driver side.
 		setDrawingSkipped(hasDraw || i < updateCount-1)
 
 		if err := hooks.RunBeforeUpdateHooks(); err != nil {
