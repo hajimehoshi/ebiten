@@ -402,7 +402,6 @@ func (i *Image) at(x, y int) (byte, byte, byte, byte, error) {
 // A function from finalizer must not be blocked, but disposing operation can be blocked.
 // Defer this operation until it becomes safe. (#913)
 func (i *Image) MarkDisposed() {
-	// deferred doesn't have to be, and should not be protected by a mutex.
 	deferredM.Lock()
 	deferred = append(deferred, func() {
 		i.dispose(true)
