@@ -260,45 +260,27 @@ func (c *uiContext) Draw() error {
 }
 
 func (c *uiContext) update(afterFrameUpdate func()) error {
+	_, hasDraw := c.game.(interface{ Draw(*Image) })
+
 	updateCount := clock.Update(MaxTPS())
+	for i := 0; i < updateCount; i++ {
+		c.updateOffscreen()
 
-	if _, ok := c.game.(interface{ Draw(*Image) }); ok {
-		for i := 0; i < updateCount; i++ {
-			c.updateOffscreen()
+		// When Draw exists, rendering should be always skipped.
+		setDrawingSkipped(hasDraw || i < updateCount-1)
 
-			// Rendering should be always skipped.
-			setDrawingSkipped(true)
-
-			if err := hooks.RunBeforeUpdateHooks(); err != nil {
-				return err
-			}
-
-			// Multiple successive Clear call should be integrated into one graphics command, then
-			// calling Clear on every Update should not affect the performance.
-			c.offscreen.Clear()
-			if err := c.game.Update(c.offscreen); err != nil {
-				return err
-			}
-			uiDriver().Input().ResetForFrame()
-			afterFrameUpdate()
+		if err := hooks.RunBeforeUpdateHooks(); err != nil {
+			return err
 		}
-	} else {
-		for i := 0; i < updateCount; i++ {
-			c.updateOffscreen()
 
-			c.offscreen.Clear()
-
-			setDrawingSkipped(i < updateCount-1)
-
-			if err := hooks.RunBeforeUpdateHooks(); err != nil {
-				return err
-			}
-			if err := c.game.Update(c.offscreen); err != nil {
-				return err
-			}
-			uiDriver().Input().ResetForFrame()
-			afterFrameUpdate()
+		// Multiple successive Clear call should be integrated into one graphics command, then
+		// calling Clear on every Update should not affect the performance.
+		c.offscreen.Clear()
+		if err := c.game.Update(c.offscreen); err != nil {
+			return err
 		}
+		uiDriver().Input().ResetForFrame()
+		afterFrameUpdate()
 	}
 	return nil
 }
