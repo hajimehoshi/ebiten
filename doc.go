@@ -28,7 +28,7 @@
 //
 //     // Draw draws the game screen.
 //     // Draw is called every frame (typically 1/60[s] for 60Hz display).
-//     func (g *Game) Update(screen *ebiten.Image) error {
+//     func (g *Game) Draw(screen *ebiten.Image) error {
 //         // Write your game's rendering.
 //     }
 //
