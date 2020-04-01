@@ -23,19 +23,35 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/testflock"
 )
 
+var regularTermination = errors.New("regular termination")
+
+type game struct {
+	m    *testing.M
+	code int
+}
+
+func (g *game) Update(*ebiten.Image) error {
+	g.code = g.m.Run()
+	return regularTermination
+}
+
+func (*game) Draw(*ebiten.Image) {
+}
+
+func (*game) Layout(int, int) (int, int) {
+	return 320, 240
+}
+
 func MainWithRunLoop(m *testing.M) {
 	testflock.Lock()
 	defer testflock.Unlock()
 
-	code := 0
 	// Run an Ebiten process so that (*Image).At is available.
-	regularTermination := errors.New("regular termination")
-	f := func(screen *ebiten.Image) error {
-		code = m.Run()
-		return regularTermination
+	g := &game{
+		m: m,
 	}
-	if err := ebiten.Run(f, 320, 240, 1, "Test"); err != nil && err != regularTermination {
+	if err := ebiten.RunGame(g); err != nil && err != regularTermination {
 		panic(err)
 	}
-	os.Exit(code)
+	os.Exit(g.code)
 }
