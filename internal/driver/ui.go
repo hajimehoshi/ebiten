@@ -36,18 +36,22 @@ type UI interface {
 	RunWithoutMainLoop(context UIContext)
 
 	DeviceScaleFactor() float64
-	CursorMode() CursorMode
-	IsFullscreen() bool
 	IsFocused() bool
-	IsRunnableOnUnfocused() bool
-	IsVsyncEnabled() bool
 	ScreenSizeInFullscreen() (int, int)
-	IsScreenTransparent() bool
 
+	CursorMode() CursorMode
 	SetCursorMode(mode CursorMode)
+
+	IsFullscreen() bool
 	SetFullscreen(fullscreen bool)
+
+	IsRunnableOnUnfocused() bool
 	SetRunnableOnUnfocused(runnableOnUnfocused bool)
+
+	IsVsyncEnabled() bool
 	SetVsyncEnabled(enabled bool)
+
+	IsScreenTransparent() bool
 	SetScreenTransparent(transparent bool)
 
 	Input() Input
