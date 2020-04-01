@@ -16,13 +16,11 @@ package ebiten_test
 
 import (
 	"bytes"
-	"errors"
 	"image"
 	"image/color"
 	"image/draw"
 	_ "image/png"
 	"math"
-	"os"
 	"runtime"
 	"testing"
 
@@ -30,24 +28,11 @@ import (
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/testflock"
+	t "github.com/hajimehoshi/ebiten/internal/testing"
 )
 
 func TestMain(m *testing.M) {
-	testflock.Lock()
-	defer testflock.Unlock()
-
-	code := 0
-	// Run an Ebiten process so that (*Image).At is available.
-	regularTermination := errors.New("regular termination")
-	f := func(screen *Image) error {
-		code = m.Run()
-		return regularTermination
-	}
-	if err := Run(f, 320, 240, 1, "Test"); err != nil && err != regularTermination {
-		panic(err)
-	}
-	os.Exit(code)
+	t.MainWithRunLoop(m)
 }
 
 func openEbitenImage() (*Image, image.Image, error) {
