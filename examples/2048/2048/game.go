@@ -51,8 +51,13 @@ func NewGame() (*Game, error) {
 	return g, nil
 }
 
+// Layout implements ebiten.Game's Layout.
+func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
+	return ScreenWidth, ScreenHeight
+}
+
 // Update updates the current game state.
-func (g *Game) Update() error {
+func (g *Game) Update(*ebiten.Image) error {
 	g.input.Update()
 	if err := g.board.Update(g.input); err != nil {
 		return err

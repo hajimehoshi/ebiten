@@ -23,28 +23,14 @@ import (
 	"github.com/hajimehoshi/ebiten/examples/2048/2048"
 )
 
-var (
-	game *twenty48.Game
-)
-
-func update(screen *ebiten.Image) error {
-	if err := game.Update(); err != nil {
-		return err
-	}
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-	game.Draw(screen)
-	return nil
-}
-
 func main() {
-	var err error
-	game, err = twenty48.NewGame()
+	game, err := twenty48.NewGame()
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := ebiten.Run(update, twenty48.ScreenWidth, twenty48.ScreenHeight, 1, "2048 (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(twenty48.ScreenWidth, twenty48.ScreenHeight)
+	ebiten.SetWindowTitle("2048 (Ebiten Demo)")
+	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}
 }
