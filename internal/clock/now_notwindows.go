@@ -12,24 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build js
+// +build !windows
 
 package clock
 
 import (
-	"syscall/js"
 	"time"
 )
 
-var (
-	jsPerformance = js.Global().Get("performance")
-	jsNow         = jsPerformance.Get("now").Call("bind", jsPerformance)
-)
+var initTime = time.Now()
 
 func now() int64 {
-	// time.Now() is not reliable until GopherJS supports performance.now().
-	//
-	// performance.now is monotonic:
-	// https://www.w3.org/TR/hr-time-2/#sec-monotonic-clock
-	return int64(jsNow.Invoke().Float() * float64(time.Millisecond))
+	// time.Since() returns monotonic timer difference (#875):
+	// https://golang.org/pkg/time/#hdr-Monotonic_Clocks
+	return int64(time.Since(initTime))
 }
