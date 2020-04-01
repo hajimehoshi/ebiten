@@ -15,33 +15,18 @@
 package shareable_test
 
 import (
-	"errors"
 	"image/color"
-	"os"
 	"runtime"
 	"testing"
 
-	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	. "github.com/hajimehoshi/ebiten/internal/shareable"
-	"github.com/hajimehoshi/ebiten/internal/testflock"
+	t "github.com/hajimehoshi/ebiten/internal/testing"
 )
 
 func TestMain(m *testing.M) {
-	testflock.Lock()
-	defer testflock.Unlock()
-
-	code := 0
-	regularTermination := errors.New("regular termination")
-	f := func(screen *ebiten.Image) error {
-		code = m.Run()
-		return regularTermination
-	}
-	if err := ebiten.Run(f, 320, 240, 1, "Test"); err != nil && err != regularTermination {
-		panic(err)
-	}
-	os.Exit(code)
+	t.MainWithRunLoop(m)
 }
 
 func quadVertices(sw, sh, x, y int, scalex float32) []float32 {
