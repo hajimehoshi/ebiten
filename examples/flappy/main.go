@@ -193,6 +193,10 @@ func jump() bool {
 	return false
 }
 
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
+}
+
 func (g *Game) Update(screen *ebiten.Image) error {
 	switch g.mode {
 	case ModeTitle:
@@ -230,11 +234,10 @@ func (g *Game) Update(screen *ebiten.Image) error {
 			g.mode = ModeTitle
 		}
 	}
+	return nil
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
+func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{0x80, 0xa0, 0xc0, 0xff})
 	g.drawTiles(screen)
 	if g.mode != ModeTitle {
@@ -266,7 +269,6 @@ func (g *Game) Update(screen *ebiten.Image) error {
 	scoreStr := fmt.Sprintf("%04d", g.score())
 	text.Draw(screen, scoreStr, arcadeFont, screenWidth-len(scoreStr)*fontSize, fontSize, color.White)
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
-	return nil
 }
 
 func (g *Game) pipeAt(tileX int) (tileY int, ok bool) {
@@ -390,8 +392,9 @@ func (g *Game) drawGopher(screen *ebiten.Image) {
 }
 
 func main() {
-	g := NewGame()
-	if err := ebiten.Run(g.Update, screenWidth, screenHeight, 1, "Flappy Gopher (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("Flappy Gopher (Ebiten Demo)")
+	if err := ebiten.RunGame(NewGame()); err != nil {
 		panic(err)
 	}
 }
