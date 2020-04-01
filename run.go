@@ -23,23 +23,20 @@ import (
 
 // Game defines necessary functions for a game.
 type Game interface {
-	// Update updates a game by one tick.
+	// Update updates a game by one tick. The given argument represents a screen image.
 	//
-	// Basically Update updates the game logic, and whether Update draws the screen depends on the existence of
-	// Draw implementation.
+	// Basically Update updates the game logic. Whether Update also draws the screen or not depends on the
+	// existence of Draw implementation.
 	//
 	// The Draw function's definition is:
 	//
 	//     Draw(screen *Image)
 	//
-	// The give argument represents a screen image. Whether the updated content is used or not
-	// depends on the existence of Draw definition.
+	// With Draw (the recommended way), Update updates only the game logic and Draw draws the screen.
+	// In this case, the argument screen's updated content is not adopted for the actual game screen.
 	//
-	// With Draw, Update updates only the game logic and Draw draws the screen. This is recommended.
-	// In this case, the argument screen's updated content is not adopted and is always cleared.
-	//
-	// Without Draw, Update updates the game logic and also draws the screen. This is a legacy way.
-	// In this case, the argument screen's updated content is adopted as the actual game screen.
+	// Without Draw (the legacy way), Update updates the game logic and also draws the screen.
+	// In this case, the argument screen's updated content is adopted for the actual game screen.
 	Update(screen *Image) error
 
 	// Draw draws the game screen by one frame.
@@ -54,9 +51,10 @@ type Game interface {
 	// size.
 	//
 	// On desktops, the outside is a window or a monitor (fullscreen mode). On browsers, the outside is a body
-	// element. On mobiles, the outside is the phone's entire screen.
+	// element. On mobiles, the outside is the view's size.
 	//
-	// The screen scale is automatically adjusted to fit the outside.
+	// Even though the outside size and the screen size differ, the rendering scale is automatically adjusted to
+	// fit with the outside.
 	//
 	// Layout is called almost every frame.
 	//
