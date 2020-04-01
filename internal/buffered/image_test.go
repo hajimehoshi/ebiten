@@ -34,6 +34,31 @@ func runOnMainThread(f func()) {
 	<-ch
 }
 
+var regularTermination = errors.New("regular termination")
+
+type game struct {
+	m     *testing.M
+	endCh chan struct{}
+	code  int
+}
+
+func (g *game) Update(*ebiten.Image) error {
+	select {
+	case f := <-mainCh:
+		f()
+	case <-g.endCh:
+		return regularTermination
+	}
+	return nil
+}
+
+func (*game) Draw(*ebiten.Image) {
+}
+
+func (*game) Layout(int, int) (int, int) {
+	return 320, 240
+}
+
 func TestMain(m *testing.M) {
 	codeCh := make(chan int)
 	endCh := make(chan struct{})
@@ -44,16 +69,11 @@ func TestMain(m *testing.M) {
 		close(codeCh)
 	}()
 
-	rt := errors.New("regular termination")
-	if err := ebiten.Run(func(*ebiten.Image) error {
-		select {
-		case f := <-mainCh:
-			f()
-		case <-endCh:
-			return rt
-		}
-		return nil
-	}, 320, 240, 1, ""); err != nil && err != rt {
+	g := &game{
+		m:     m,
+		endCh: endCh,
+	}
+	if err := ebiten.RunGame(g); err != nil && err != regularTermination {
 		panic(err)
 	}
 
