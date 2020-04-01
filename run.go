@@ -244,7 +244,7 @@ func (i *imageDumperGameWithDraw) Draw(screen *Image) {
 // Game's Draw function is optional, but it is recommended to implement Draw to seperate updating the logic and
 // rendering.
 //
-// RunGame is a more flexibile form of Run due to 'Layout' function.
+// RunGame is a more flexibile form of Run due to game's Layout function.
 // You can make a resizable window if you use RunGame, while you cannot if you use Run.
 // RunGame is more sophisticated way than Run and hides the notion of 'scale'.
 //
@@ -254,7 +254,7 @@ func (i *imageDumperGameWithDraw) Draw(screen *Image) {
 //
 // Some functions (ScreenScale, SetScreenScale, SetScreenSize) are not available with RunGame.
 //
-// A window size is based on the given values (width, height and scale).
+// On browsers, it is strongly recommended to use iframe if you embed an Ebiten application in your website.
 //
 // RunGame must be called on the main thread.
 // Note that Ebiten bounds the main goroutine to the main OS thread by runtime.LockOSThread.
@@ -265,8 +265,6 @@ func (i *imageDumperGameWithDraw) Draw(screen *Image) {
 //
 // game's Update is not called when the window is in background by default.
 // This setting is configurable with SetRunnableOnUnfocused.
-//
-// The given scale is ignored on fullscreen mode or gomobile-build mode.
 //
 // On non-GopherJS environments, RunGame returns error when 1) OpenGL error happens, 2) audio error happens or
 // 3) f returns error. In the case of 3), RunGame returns the same error.
