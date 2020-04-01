@@ -96,4 +96,7 @@
 // number of graphics commands affects the performance of your game.
 //
 // `ebitengl` forces to use OpenGL in any environments.
+//
+// `monogame` changes the build target to MonoGame. This must be used with GOOS=js and GOARCH=wasm. This is
+// experimental.
 package ebiten

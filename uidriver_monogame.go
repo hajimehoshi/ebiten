@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !monogame
+// +build monogame
 // +build js
 
 package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/uidriver/js"
+	"github.com/hajimehoshi/ebiten/internal/uidriver/monogame"
 )
 
 func uiDriver() driver.UI {
-	return js.Get()
+	return monogame.Get()
 }
