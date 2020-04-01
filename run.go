@@ -33,10 +33,11 @@ type Game interface {
 	//     Draw(screen *Image)
 	//
 	// With Draw (the recommended way), Update updates only the game logic and Draw draws the screen.
-	// In this case, the argument screen's updated content is not adopted for the actual game screen.
+	// In this case, the argument screen's updated content by Update is not adopted for the actual game screen,
+	// and the screen's updated content by Draw is adopted instead.
 	//
 	// Without Draw (the legacy way), Update updates the game logic and also draws the screen.
-	// In this case, the argument screen's updated content is adopted for the actual game screen.
+	// In this case, the argument screen's updated content by Update is adopted for the actual game screen.
 	Update(screen *Image) error
 
 	// Draw draws the game screen by one frame.
