@@ -28,7 +28,11 @@ type Game struct {
 	input        Input
 }
 
-func (g *Game) Update(r *ebiten.Image) error {
+func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
+	return ScreenWidth, ScreenHeight
+}
+
+func (g *Game) Update(*ebiten.Image) error {
 	if g.sceneManager == nil {
 		g.sceneManager = &SceneManager{}
 		g.sceneManager.GoTo(&TitleScene{})
@@ -38,10 +42,9 @@ func (g *Game) Update(r *ebiten.Image) error {
 	if err := g.sceneManager.Update(&g.input); err != nil {
 		return err
 	}
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
-	g.sceneManager.Draw(r)
 	return nil
+}
+
+func (g *Game) Draw(screen *ebiten.Image) {
+	g.sceneManager.Draw(screen)
 }
