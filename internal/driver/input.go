@@ -25,7 +25,6 @@ type Input interface {
 	IsGamepadButtonPressed(id int, button GamepadButton) bool
 	IsKeyPressed(key Key) bool
 	IsMouseButtonPressed(button MouseButton) bool
-	ResetForFrame()
 	RuneBuffer() []rune
 	TouchIDs() []int
 	TouchPosition(id int) (x, y int)

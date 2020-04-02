@@ -20,7 +20,7 @@ import (
 )
 
 type UIContext interface {
-	Update(afterFrameUpdate func()) error
+	Update() error
 	Draw() error
 	Layout(outsideWidth, outsideHeight float64)
 	AdjustPosition(x, y float64) (float64, float64)
@@ -38,6 +38,7 @@ type UI interface {
 	DeviceScaleFactor() float64
 	IsFocused() bool
 	ScreenSizeInFullscreen() (int, int)
+	ResetForFrame()
 
 	CursorMode() CursorMode
 	SetCursorMode(mode CursorMode)

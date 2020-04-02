@@ -167,9 +167,7 @@ func (u *UserInterface) update() error {
 
 	u.input.UpdateGamepads()
 	u.updateSize()
-	if err := u.context.Update(func() {
-		u.updateSize()
-	}); err != nil {
+	if err := u.context.Update(); err != nil {
 		return err
 	}
 	if err := u.context.Draw(); err != nil {
@@ -457,6 +455,11 @@ func (u *UserInterface) SetScreenTransparent(transparent bool) {
 func (u *UserInterface) IsScreenTransparent() bool {
 	bodyStyle := document.Get("body").Get("style")
 	return bodyStyle.Get("backgroundColor").String() == "transparent"
+}
+
+func (u *UserInterface) ResetForFrame() {
+	u.updateSize()
+	u.input.resetForFrame()
 }
 
 func (u *UserInterface) Input() driver.Input {

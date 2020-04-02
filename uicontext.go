@@ -227,7 +227,7 @@ func (c *uiContext) offsets() (float64, float64) {
 	return (c.outsideWidth*d - width) / 2, (c.outsideHeight*d - height) / 2
 }
 
-func (c *uiContext) Update(afterFrameUpdate func()) error {
+func (c *uiContext) Update() error {
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
 
 	if err, ok := c.err.Load().(error); ok && err != nil {
@@ -236,7 +236,7 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 	if err := buffered.BeginFrame(); err != nil {
 		return err
 	}
-	if err := c.update(afterFrameUpdate); err != nil {
+	if err := c.update(); err != nil {
 		return err
 	}
 	if err := buffered.EndFrame(); err != nil {
@@ -259,7 +259,7 @@ func (c *uiContext) Draw() error {
 	return nil
 }
 
-func (c *uiContext) update(afterFrameUpdate func()) error {
+func (c *uiContext) update() error {
 	_, hasDraw := c.game.(interface{ Draw(*Image) })
 
 	updateCount := clock.Update(MaxTPS())
@@ -285,8 +285,7 @@ func (c *uiContext) update(afterFrameUpdate func()) error {
 		if err := c.game.Update(c.offscreen); err != nil {
 			return err
 		}
-		uiDriver().Input().ResetForFrame()
-		afterFrameUpdate()
+		uiDriver().ResetForFrame()
 	}
 	return nil
 }

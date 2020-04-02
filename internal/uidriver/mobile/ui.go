@@ -302,15 +302,15 @@ func (u *UserInterface) run(context driver.UIContext, mainloop bool) (err error)
 	}
 
 	// Force to set the screen size
-	u.updateSize(context)
+	u.updateSize()
 	for {
-		if err := u.update(context); err != nil {
+		if err := u.update(); err != nil {
 			return err
 		}
 	}
 }
 
-func (u *UserInterface) updateSize(context driver.UIContext) {
+func (u *UserInterface) updateSize() {
 	var outsideWidth, outsideHeight float64
 
 	u.m.Lock()
@@ -330,22 +330,20 @@ func (u *UserInterface) updateSize(context driver.UIContext) {
 	u.m.Unlock()
 
 	if sizeChanged {
-		context.Layout(outsideWidth, outsideHeight)
+		u.context.Layout(outsideWidth, outsideHeight)
 	}
 }
 
-func (u *UserInterface) update(context driver.UIContext) error {
+func (u *UserInterface) update() error {
 	<-renderCh
 	defer func() {
 		renderEndCh <- struct{}{}
 	}()
 
-	if err := context.Update(func() {
-		u.updateSize(context)
-	}); err != nil {
+	if err := u.context.Update(); err != nil {
 		return err
 	}
-	if err := context.Draw(); err != nil {
+	if err := u.context.Draw(); err != nil {
 		return err
 	}
 	return nil
@@ -434,6 +432,11 @@ func (u *UserInterface) SetScreenTransparent(transparent bool) {
 
 func (u *UserInterface) IsScreenTransparent() bool {
 	return false
+}
+
+func (u *UserInterface) ResetForFrame() {
+	u.updateSize()
+	u.input.resetForFrame()
 }
 
 func (u *UserInterface) Input() driver.Input {

@@ -228,7 +228,7 @@ func (i *Input) RuneBuffer() []rune {
 	return r
 }
 
-func (i *Input) ResetForFrame() {
+func (i *Input) resetForFrame() {
 	if !i.ui.isRunning() {
 		return
 	}

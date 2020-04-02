@@ -146,7 +146,7 @@ func (i *Input) RuneBuffer() []rune {
 	return i.runeBuffer
 }
 
-func (i *Input) ResetForFrame() {
+func (i *Input) resetForFrame() {
 	i.runeBuffer = nil
 	i.wheelX = 0
 	i.wheelY = 0

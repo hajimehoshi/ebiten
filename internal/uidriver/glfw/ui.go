@@ -37,8 +37,9 @@ import (
 )
 
 type UserInterface struct {
-	title  string
-	window *glfw.Window
+	context driver.UIContext
+	title   string
+	window  *glfw.Window
 
 	// windowWidth and windowHeight represents a window size.
 	// The unit is device-dependent pixels.
@@ -552,6 +553,8 @@ func init() {
 }
 
 func (u *UserInterface) Run(uicontext driver.UIContext) error {
+	u.context = uicontext
+
 	// Initialize the main thread first so the thread is available at u.run (#809).
 	u.t = thread.New()
 	u.Graphics().SetThread(u.t)
@@ -562,7 +565,7 @@ func (u *UserInterface) Run(uicontext driver.UIContext) error {
 	go func() {
 		defer cancel()
 		defer close(ch)
-		if err := u.run(uicontext); err != nil {
+		if err := u.run(); err != nil {
 			ch <- err
 		}
 	}()
@@ -626,7 +629,7 @@ func (u *UserInterface) createWindow() error {
 	return nil
 }
 
-func (u *UserInterface) run(context driver.UIContext) error {
+func (u *UserInterface) run() error {
 	if err := u.t.Call(func() error {
 		// The window is created at initialize().
 		u.window.Destroy()
@@ -725,10 +728,10 @@ func (u *UserInterface) run(context driver.UIContext) error {
 	if g, ok := u.Graphics().(interface{ SetWindow(unsafe.Pointer) }); ok {
 		g.SetWindow(w)
 	}
-	return u.loop(context)
+	return u.loop()
 }
 
-func (u *UserInterface) updateSize(context driver.UIContext) {
+func (u *UserInterface) updateSize() {
 	var w, h int
 	_ = u.t.Call(func() error {
 		w, h = u.windowWidth, u.windowHeight
@@ -761,11 +764,11 @@ func (u *UserInterface) updateSize(context driver.UIContext) {
 			h = u.toDeviceIndependentPixel(float64(wh))
 			return nil
 		})
-		context.Layout(w, h)
+		u.context.Layout(w, h)
 	}
 }
 
-func (u *UserInterface) update(context driver.UIContext) error {
+func (u *UserInterface) update() error {
 	shouldClose := false
 	_ = u.t.Call(func() error {
 		shouldClose = u.window.ShouldClose()
@@ -786,13 +789,13 @@ func (u *UserInterface) update(context driver.UIContext) error {
 	}
 
 	// This call is needed for initialization.
-	u.updateSize(context)
+	u.updateSize()
 
 	_ = u.t.Call(func() error {
 		glfw.PollEvents()
 		return nil
 	})
-	u.input.update(u.window, context)
+	u.input.update(u.window, u.context)
 	_ = u.t.Call(func() error {
 		defer hooks.ResumeAudio()
 
@@ -807,13 +810,10 @@ func (u *UserInterface) update(context driver.UIContext) error {
 		}
 		return nil
 	})
-	if err := context.Update(func() {
-		// The offscreens must be updated every frame (#490).
-		u.updateSize(context)
-	}); err != nil {
+	if err := u.context.Update(); err != nil {
 		return err
 	}
-	if err := context.Draw(); err != nil {
+	if err := u.context.Draw(); err != nil {
 		return err
 	}
 
@@ -834,7 +834,7 @@ func (u *UserInterface) update(context driver.UIContext) error {
 	return nil
 }
 
-func (u *UserInterface) loop(context driver.UIContext) error {
+func (u *UserInterface) loop() error {
 	defer func() {
 		_ = u.t.Call(func() error {
 			glfw.Terminate()
@@ -856,7 +856,7 @@ func (u *UserInterface) loop(context driver.UIContext) error {
 		if unfocused {
 			t1 = time.Now()
 		}
-		if err := u.update(context); err != nil {
+		if err := u.update(); err != nil {
 			return err
 		}
 
@@ -1063,6 +1063,12 @@ func (u *UserInterface) IsScreenTransparent() bool {
 		return nil
 	})
 	return val
+}
+
+func (u *UserInterface) ResetForFrame() {
+	// The offscreens must be updated every frame (#490).
+	u.updateSize()
+	u.input.resetForFrame()
 }
 
 func (u *UserInterface) Input() driver.Input {

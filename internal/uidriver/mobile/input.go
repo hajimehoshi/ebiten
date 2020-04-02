@@ -210,6 +210,6 @@ func (i *Input) update(keys map[driver.Key]struct{}, runes []rune, touches []*To
 	copy(i.gamepads, gamepads)
 }
 
-func (i *Input) ResetForFrame() {
+func (i *Input) resetForFrame() {
 	i.runes = nil
 }
