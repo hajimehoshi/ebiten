@@ -17,8 +17,14 @@
 package monogame
 
 import (
+	"syscall/js"
+
 	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/monogame"
 )
+
+// TODO: Update this
+const temporaryNamespace = "Go2DotNet.Example.Rotate"
 
 type UI struct {
 }
@@ -30,6 +36,17 @@ func Get() *UI {
 }
 
 func (*UI) Run(context driver.UIContext) error {
+	update := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		return context.Update()
+	})
+	defer update.Release()
+
+	draw := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		return context.Draw()
+	})
+	defer draw.Release()
+
+	js.Global().Get(".net").Get(temporaryNamespace+".GoGameRunner").Call("Run", update, draw)
 	return nil
 }
 
@@ -48,6 +65,9 @@ func (*UI) IsFocused() bool {
 func (*UI) ScreenSizeInFullscreen() (int, int) {
 	// TODO: Implement this
 	return 0, 0
+}
+
+func (*UI) ResetForFrame() {
 }
 
 func (*UI) CursorMode() driver.CursorMode {
@@ -102,5 +122,5 @@ func (*UI) Window() driver.Window {
 }
 
 func (*UI) Graphics() driver.Graphics {
-	return nil
+	return monogame.Get()
 }
