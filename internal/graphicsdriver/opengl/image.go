@@ -20,7 +20,7 @@ import (
 )
 
 type Image struct {
-	driver        *Driver
+	graphics      *Graphics
 	textureNative textureNative
 	framebuffer   *framebuffer
 	pbo           buffer
@@ -30,30 +30,30 @@ type Image struct {
 }
 
 func (i *Image) IsInvalidated() bool {
-	return !i.driver.context.isTexture(i.textureNative)
+	return !i.graphics.context.isTexture(i.textureNative)
 }
 
 func (i *Image) Dispose() {
 	if !i.pbo.equal(*new(buffer)) {
-		i.driver.context.deleteBuffer(i.pbo)
+		i.graphics.context.deleteBuffer(i.pbo)
 	}
 	if i.framebuffer != nil {
-		i.framebuffer.delete(&i.driver.context)
+		i.framebuffer.delete(&i.graphics.context)
 	}
 	if !i.textureNative.equal(*new(textureNative)) {
-		i.driver.context.deleteTexture(i.textureNative)
+		i.graphics.context.deleteTexture(i.textureNative)
 	}
 }
 
 func (i *Image) SetAsDestination() {
-	i.driver.state.destination = i
+	i.graphics.state.destination = i
 }
 
 func (i *Image) setViewport() error {
 	if err := i.ensureFramebuffer(); err != nil {
 		return err
 	}
-	i.driver.context.setViewport(i.framebuffer)
+	i.graphics.context.setViewport(i.framebuffer)
 	return nil
 }
 
@@ -61,7 +61,7 @@ func (i *Image) Pixels() ([]byte, error) {
 	if err := i.ensureFramebuffer(); err != nil {
 		return nil, err
 	}
-	p, err := i.driver.context.framebufferPixels(i.framebuffer, i.width, i.height)
+	p, err := i.graphics.context.framebufferPixels(i.framebuffer, i.width, i.height)
 	if err != nil {
 		return nil, err
 	}
@@ -77,12 +77,12 @@ func (i *Image) ensureFramebuffer() error {
 		// The (default) framebuffer size can't be converted to a power of 2.
 		// On browsers, c.width and c.height are used as viewport size and
 		// Edge can't treat a bigger viewport than the drawing area (#71).
-		i.framebuffer = newScreenFramebuffer(&i.driver.context, i.width, i.height)
+		i.framebuffer = newScreenFramebuffer(&i.graphics.context, i.width, i.height)
 		return nil
 	}
 
 	w, h := graphics.InternalImageSize(i.width), graphics.InternalImageSize(i.height)
-	f, err := newFramebufferFromTexture(&i.driver.context, i.textureNative, w, h)
+	f, err := newFramebufferFromTexture(&i.graphics.context, i.textureNative, w, h)
 	if err != nil {
 		return err
 	}
@@ -100,26 +100,26 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 
 	// glFlush is necessary on Android.
 	// glTexSubImage2D didn't work without this hack at least on Nexus 5x and NuAns NEO [Reloaded] (#211).
-	if i.driver.drawCalled {
-		i.driver.context.flush()
+	if i.graphics.drawCalled {
+		i.graphics.context.flush()
 	}
-	i.driver.drawCalled = false
+	i.graphics.drawCalled = false
 
 	w, h := i.width, i.height
-	if !i.driver.context.canUsePBO() {
-		i.driver.context.texSubImage2D(i.textureNative, w, h, args)
+	if !i.graphics.context.canUsePBO() {
+		i.graphics.context.texSubImage2D(i.textureNative, w, h, args)
 		return
 	}
 	if i.pbo.equal(*new(buffer)) {
-		i.pbo = i.driver.context.newPixelBufferObject(w, h)
+		i.pbo = i.graphics.context.newPixelBufferObject(w, h)
 	}
 	if i.pbo.equal(*new(buffer)) {
 		panic("opengl: newPixelBufferObject failed")
 	}
 
-	i.driver.context.replacePixelsWithPBO(i.pbo, i.textureNative, w, h, args)
+	i.graphics.context.replacePixelsWithPBO(i.pbo, i.textureNative, w, h, args)
 }
 
 func (i *Image) SetAsSource() {
-	i.driver.state.source = i
+	i.graphics.state.source = i
 }

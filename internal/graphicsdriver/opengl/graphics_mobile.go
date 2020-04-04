@@ -20,6 +20,6 @@ import (
 	"golang.org/x/mobile/gl"
 )
 
-func (d *Driver) SetMobileGLContext(context gl.Context) {
-	d.context.gl = context
+func (g *Graphics) SetMobileGLContext(context gl.Context) {
+	g.context.gl = context
 }

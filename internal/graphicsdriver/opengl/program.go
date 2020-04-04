@@ -255,12 +255,12 @@ func areSameFloat32Array(a, b []float32) bool {
 }
 
 // useProgram uses the program (programTexture).
-func (d *Driver) useProgram(mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address) error {
-	destination := d.state.destination
+func (g *Graphics) useProgram(mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address) error {
+	destination := g.state.destination
 	if destination == nil {
 		panic("destination image is not set")
 	}
-	source := d.state.source
+	source := g.state.source
 	if source == nil {
 		panic("source image is not set")
 	}
@@ -271,73 +271,73 @@ func (d *Driver) useProgram(mode driver.CompositeMode, colorM *affine.ColorM, fi
 	dstW := destination.width
 	srcW, srcH := source.width, source.height
 
-	d.context.blendFunc(mode)
+	g.context.blendFunc(mode)
 
-	program := d.state.programs[programKey{
+	program := g.state.programs[programKey{
 		useColorM: colorM != nil,
 		filter:    filter,
 		address:   address,
 	}]
-	if !d.state.lastProgram.equal(program) {
-		d.context.useProgram(program)
-		if d.state.lastProgram.equal(zeroProgram) {
-			theArrayBufferLayout.enable(&d.context, program)
-			d.context.bindBuffer(arrayBuffer, d.state.arrayBuffer)
-			d.context.bindBuffer(elementArrayBuffer, d.state.elementArrayBuffer)
-			d.context.uniformInt(program, "texture", 0)
+	if !g.state.lastProgram.equal(program) {
+		g.context.useProgram(program)
+		if g.state.lastProgram.equal(zeroProgram) {
+			theArrayBufferLayout.enable(&g.context, program)
+			g.context.bindBuffer(arrayBuffer, g.state.arrayBuffer)
+			g.context.bindBuffer(elementArrayBuffer, g.state.elementArrayBuffer)
+			g.context.uniformInt(program, "texture", 0)
 		}
 
-		d.state.lastProgram = program
-		d.state.lastViewportWidth = 0
-		d.state.lastViewportHeight = 0
-		d.state.lastColorMatrix = nil
-		d.state.lastColorMatrixTranslation = nil
-		d.state.lastSourceWidth = 0
-		d.state.lastSourceHeight = 0
+		g.state.lastProgram = program
+		g.state.lastViewportWidth = 0
+		g.state.lastViewportHeight = 0
+		g.state.lastColorMatrix = nil
+		g.state.lastColorMatrixTranslation = nil
+		g.state.lastSourceWidth = 0
+		g.state.lastSourceHeight = 0
 	}
 
 	vw := destination.framebuffer.width
 	vh := destination.framebuffer.height
-	if d.state.lastViewportWidth != vw || d.state.lastViewportHeight != vh {
-		d.context.uniformFloats(program, "viewport_size", []float32{float32(vw), float32(vh)})
-		d.state.lastViewportWidth = vw
-		d.state.lastViewportHeight = vh
+	if g.state.lastViewportWidth != vw || g.state.lastViewportHeight != vh {
+		g.context.uniformFloats(program, "viewport_size", []float32{float32(vw), float32(vh)})
+		g.state.lastViewportWidth = vw
+		g.state.lastViewportHeight = vh
 	}
 
 	if colorM != nil {
 		esBody, esTranslate := colorM.UnsafeElements()
-		if !areSameFloat32Array(d.state.lastColorMatrix, esBody) {
-			d.context.uniformFloats(program, "color_matrix_body", esBody)
+		if !areSameFloat32Array(g.state.lastColorMatrix, esBody) {
+			g.context.uniformFloats(program, "color_matrix_body", esBody)
 			// ColorM's elements are immutable. It's OK to hold the reference without copying.
-			d.state.lastColorMatrix = esBody
+			g.state.lastColorMatrix = esBody
 		}
-		if !areSameFloat32Array(d.state.lastColorMatrixTranslation, esTranslate) {
-			d.context.uniformFloats(program, "color_matrix_translation", esTranslate)
+		if !areSameFloat32Array(g.state.lastColorMatrixTranslation, esTranslate) {
+			g.context.uniformFloats(program, "color_matrix_translation", esTranslate)
 			// ColorM's elements are immutable. It's OK to hold the reference without copying.
-			d.state.lastColorMatrixTranslation = esTranslate
+			g.state.lastColorMatrixTranslation = esTranslate
 		}
 	}
 
 	if filter != driver.FilterNearest {
 		sw := graphics.InternalImageSize(srcW)
 		sh := graphics.InternalImageSize(srcH)
-		if d.state.lastSourceWidth != sw || d.state.lastSourceHeight != sh {
-			d.context.uniformFloats(program, "source_size", []float32{float32(sw), float32(sh)})
-			d.state.lastSourceWidth = sw
-			d.state.lastSourceHeight = sh
+		if g.state.lastSourceWidth != sw || g.state.lastSourceHeight != sh {
+			g.context.uniformFloats(program, "source_size", []float32{float32(sw), float32(sh)})
+			g.state.lastSourceWidth = sw
+			g.state.lastSourceHeight = sh
 		}
 	}
 
 	if filter == driver.FilterScreen {
 		scale := float32(dstW) / float32(srcW)
-		d.context.uniformFloat(program, "scale", scale)
+		g.context.uniformFloat(program, "scale", scale)
 	}
 
 	// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture
 	// See also: https://www.opengl.org/sdk/docs/man2/xhtml/glActiveTexture.xml
-	d.context.bindTexture(source.textureNative)
+	g.context.bindTexture(source.textureNative)
 
-	d.state.source = nil
-	d.state.destination = nil
+	g.state.source = nil
+	g.state.destination = nil
 	return nil
 }

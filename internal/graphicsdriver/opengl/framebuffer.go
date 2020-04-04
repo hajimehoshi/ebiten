@@ -16,10 +16,10 @@ package opengl
 
 // framebuffer is a wrapper of OpenGL's framebuffer.
 type framebuffer struct {
-	driver *Driver
-	native framebufferNative
-	width  int
-	height int
+	graphics *Graphics
+	native   framebufferNative
+	width    int
+	height   int
 }
 
 // newFramebufferFromTexture creates a framebuffer from the given texture.

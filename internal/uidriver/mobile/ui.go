@@ -290,7 +290,7 @@ func (u *UserInterface) run(context driver.UIContext, mainloop bool) (err error)
 		} else {
 			ctx, u.glWorker = gl.NewContext()
 		}
-		u.Graphics().(*opengl.Driver).SetMobileGLContext(ctx)
+		u.Graphics().(*opengl.Graphics).SetMobileGLContext(ctx)
 	} else {
 		u.t = thread.New()
 		u.Graphics().SetThread(u.t)
