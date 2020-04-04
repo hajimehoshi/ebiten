@@ -19,6 +19,8 @@ package monogame
 import (
 	"runtime"
 	"syscall/js"
+
+	"github.com/hajimehoshi/ebiten/internal/driver"
 )
 
 // TODO: This implementation depends on some C# files that are not uploaded yet.
@@ -53,7 +55,7 @@ func NewGame(ud UpdateDrawer) *Game {
 		return ud.Draw()
 	})
 
-	v := js.Global().Get(".net").Get(temporaryNamespace+".GoBinding").New(update, draw)
+	v := js.Global().Get(".net").Get(temporaryNamespace+".GameGoBinding").New(update, draw)
 	g := &Game{
 		binding: v,
 		update:  update,
@@ -76,8 +78,9 @@ func (g *Game) Run() {
 }
 
 func (g *Game) NewRenderTarget2D(width, height int) *RenderTarget2D {
+	v := g.binding.Call("NewRenderTarget2D", width, height)
 	r := &RenderTarget2D{
-		v: g.binding.Call("NewRenderTarget2D", width, height),
+		v: v,
 	}
 	runtime.SetFinalizer(r, (*RenderTarget2D).Dispose)
 	return r
@@ -90,4 +93,12 @@ type RenderTarget2D struct {
 func (r *RenderTarget2D) Dispose() {
 	runtime.SetFinalizer(r, nil)
 	r.v.Call("Dispose")
+}
+
+func (r *RenderTarget2D) ReplacePixels(args []*driver.ReplacePixelsArgs) {
+	for _, a := range args {
+		arr := js.Global().Get("Uint8Array").New(len(a.Pixels))
+		js.CopyBytesToJS(arr, a.Pixels)
+		r.v.Call("ReplacePixels", arr, a.X, a.Y, a.Width, a.Height)
+	}
 }

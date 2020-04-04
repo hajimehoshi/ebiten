@@ -45,5 +45,6 @@ func (*Image) SetAsDestination() {
 func (*Image) SetAsSource() {
 }
 
-func (*Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
+func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
+	i.v.ReplacePixels(args)
 }
