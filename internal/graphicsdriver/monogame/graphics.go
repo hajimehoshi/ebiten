@@ -19,11 +19,11 @@ package monogame
 import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/internal/monogame"
 	"github.com/hajimehoshi/ebiten/internal/thread"
 )
 
 type Graphics struct {
-	t *thread.Thread
 }
 
 var theGraphics Graphics
@@ -33,7 +33,7 @@ func Get() *Graphics {
 }
 
 func (g *Graphics) SetThread(thread *thread.Thread) {
-	g.t = thread
+	panic("monogame: SetThread is not implemented yet")
 }
 
 func (g *Graphics) Begin() {
@@ -49,7 +49,9 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) {
 }
 
 func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
+	v := monogame.CurrentGame().NewRenderTarget2D(width, height)
 	return &Image{
+		v:      v,
 		width:  width,
 		height: height,
 	}, nil

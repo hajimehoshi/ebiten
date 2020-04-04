@@ -18,14 +18,17 @@ package monogame
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/internal/monogame"
 )
 
 type Image struct {
+	v      *monogame.RenderTarget2D
 	width  int
 	height int
 }
 
-func (*Image) Dispose() {
+func (i *Image) Dispose() {
+	i.v.Dispose()
 }
 
 func (*Image) IsInvalidated() bool {

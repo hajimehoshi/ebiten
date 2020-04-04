@@ -21,6 +21,9 @@ import (
 	"syscall/js"
 )
 
+// TODO: This implementation depends on some C# files that are not uploaded yet.
+// Create 'ebitenmonogame' command to generate C# project for the MonoGame.
+
 // TODO: Update this
 const temporaryNamespace = "Go2DotNet.Example.Rotate"
 
@@ -30,23 +33,16 @@ type UpdateDrawer interface {
 }
 
 type Game struct {
-	v      js.Value
-	update js.Func
-	draw   js.Func
+	binding js.Value
+	update  js.Func
+	draw    js.Func
 }
 
-func (g *Game) Run() {
-	// Methods named *FromGo is defined to avoid ambiguous matches of methods.
-	g.v.Call("RunFromGo")
-}
+var currentGame *Game
 
-func (g *Game) Dispose() {
-	runtime.SetFinalizer(g, nil)
-	g.update.Release()
-	g.draw.Release()
+func CurrentGame() *Game {
+	return currentGame
 }
-
-type RenderTarget2D js.Value
 
 func NewGame(ud UpdateDrawer) *Game {
 	update := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -57,12 +53,41 @@ func NewGame(ud UpdateDrawer) *Game {
 		return ud.Draw()
 	})
 
-	v := js.Global().Get(".net").Get(temporaryNamespace+".GoGame").New(update, draw)
+	v := js.Global().Get(".net").Get(temporaryNamespace+".GoBinding").New(update, draw)
 	g := &Game{
-		v:      v,
-		update: update,
-		draw:   draw,
+		binding: v,
+		update:  update,
+		draw:    draw,
 	}
 	runtime.SetFinalizer(g, (*Game).Dispose)
+	currentGame = g
 	return g
+}
+
+func (g *Game) Dispose() {
+	runtime.SetFinalizer(g, nil)
+	g.update.Release()
+	g.draw.Release()
+	currentGame = nil
+}
+
+func (g *Game) Run() {
+	g.binding.Call("Run")
+}
+
+func (g *Game) NewRenderTarget2D(width, height int) *RenderTarget2D {
+	r := &RenderTarget2D{
+		v: g.binding.Call("NewRenderTarget2D", width, height),
+	}
+	runtime.SetFinalizer(r, (*RenderTarget2D).Dispose)
+	return r
+}
+
+type RenderTarget2D struct {
+	v js.Value
+}
+
+func (r *RenderTarget2D) Dispose() {
+	runtime.SetFinalizer(r, nil)
+	r.v.Call("Dispose")
 }
