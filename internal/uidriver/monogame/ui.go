@@ -17,16 +17,13 @@
 package monogame
 
 import (
-	"syscall/js"
-
 	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/monogame"
+	graphics "github.com/hajimehoshi/ebiten/internal/graphicsdriver/monogame"
+	"github.com/hajimehoshi/ebiten/internal/monogame"
 )
 
-// TODO: Update this
-const temporaryNamespace = "Go2DotNet.Example.Rotate"
-
 type UI struct {
+	game *monogame.Game
 }
 
 var theUI = &UI{}
@@ -36,17 +33,11 @@ func Get() *UI {
 }
 
 func (*UI) Run(context driver.UIContext) error {
-	update := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		return context.Update()
-	})
-	defer update.Release()
+	g := monogame.NewGame(context)
+	defer g.Dispose()
 
-	draw := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		return context.Draw()
-	})
-	defer draw.Release()
-
-	js.Global().Get(".net").Get(temporaryNamespace+".GoGameRunner").Call("Run", update, draw)
+	theUI.game = g
+	g.Run()
 	return nil
 }
 
@@ -122,5 +113,5 @@ func (*UI) Window() driver.Window {
 }
 
 func (*UI) Graphics() driver.Graphics {
-	return monogame.Get()
+	return graphics.Get()
 }
