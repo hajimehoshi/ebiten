@@ -114,8 +114,8 @@ type screen struct {
 	game *monogame.Game
 }
 
-func (s *screen) SetAsDestination() {
-	s.game.ResetDestination()
+func (s *screen) SetAsDestination(viewportWidth, viewportHeight int) {
+	s.game.ResetDestination(viewportWidth, viewportHeight)
 }
 
 func (s *screen) SetAsSource() {

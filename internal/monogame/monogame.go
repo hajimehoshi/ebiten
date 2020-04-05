@@ -110,8 +110,8 @@ func (g *Game) Draw(indexLen int, indexOffset int, mode driver.CompositeMode, co
 	g.binding.Call("Draw", indexLen, indexOffset)
 }
 
-func (g *Game) ResetDestination() {
-	g.binding.Set("Dst", nil)
+func (g *Game) ResetDestination(viewportWidth, viewportHeight int) {
+	g.binding.Call("SetDestination", nil, viewportWidth, viewportHeight)
 }
 
 type RenderTarget2D struct {
@@ -132,10 +132,10 @@ func (r *RenderTarget2D) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	}
 }
 
-func (r *RenderTarget2D) SetAsDestination() {
-	r.binding.Set("Dst", r.v)
+func (r *RenderTarget2D) SetAsDestination(viewportWidth, viewportHeight int) {
+	r.binding.Call("SetDestination", r.v, viewportWidth, viewportHeight)
 }
 
 func (r *RenderTarget2D) SetAsSource() {
-	r.binding.Set("Src", r.v)
+	r.binding.Call("SetSource", r.v)
 }

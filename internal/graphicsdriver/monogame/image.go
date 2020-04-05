@@ -21,7 +21,7 @@ import (
 )
 
 type RenderTarget2D interface {
-	SetAsDestination()
+	SetAsDestination(viewportWidth, viewportHeight int)
 	SetAsSource()
 	ReplacePixels(args []*driver.ReplacePixelsArgs)
 	Dispose()
@@ -48,7 +48,7 @@ func (*Image) Pixels() ([]byte, error) {
 }
 
 func (i *Image) SetAsDestination() {
-	i.v.SetAsDestination()
+	i.v.SetAsDestination(i.width, i.height)
 }
 
 func (i *Image) SetAsSource() {
