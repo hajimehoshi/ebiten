@@ -17,8 +17,10 @@
 package monogame
 
 import (
+	"reflect"
 	"runtime"
 	"syscall/js"
+	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
 )
@@ -80,7 +82,26 @@ func (g *Game) NewRenderTarget2D(width, height int) *RenderTarget2D {
 }
 
 func (g *Game) SetVertices(vertices []float32, indices []uint16) {
-	// TODO: Implement this
+	var vs, is js.Value
+	{
+		h := (*reflect.SliceHeader)(unsafe.Pointer(&vertices))
+		h.Len *= 4
+		h.Cap *= 4
+		bs := *(*[]byte)(unsafe.Pointer(h))
+		runtime.KeepAlive(vertices)
+		vs = js.Global().Get("Uint8Array").New(len(bs))
+		js.CopyBytesToJS(vs, bs)
+	}
+	{
+		h := (*reflect.SliceHeader)(unsafe.Pointer(&indices))
+		h.Len *= 2
+		h.Cap *= 2
+		bs := *(*[]byte)(unsafe.Pointer(h))
+		runtime.KeepAlive(indices)
+		is = js.Global().Get("Uint8Array").New(len(bs))
+		js.CopyBytesToJS(is, bs)
+	}
+	g.binding.Call("SetVertices", vs, is)
 }
 
 type RenderTarget2D struct {
