@@ -69,6 +69,7 @@ func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
 
 func (g *Graphics) NewScreenFramebufferImage(width, height int) (driver.Image, error) {
 	return &Image{
+		v:      &screen{game: g.game},
 		g:      g,
 		width:  width,
 		height: height,
@@ -107,4 +108,24 @@ func (g *Graphics) HasHighPrecisionFloat() bool {
 func (g *Graphics) MaxImageSize() int {
 	// TODO: Implement this
 	return 4096
+}
+
+type screen struct {
+	game *monogame.Game
+}
+
+func (s *screen) SetAsDestination() {
+	s.game.ResetDestination()
+}
+
+func (s *screen) SetAsSource() {
+	panic("monogame: SetAsSource on screen is forbidden")
+}
+
+func (s *screen) ReplacePixels(args []*driver.ReplacePixelsArgs) {
+	panic("monogame: ReplacePixels on screen is forbidden")
+}
+
+func (s *screen) Dispose() {
+	// Do nothing?
 }

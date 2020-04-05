@@ -23,7 +23,8 @@ import (
 )
 
 type UI struct {
-	game *monogame.Game
+	game    *monogame.Game
+	context driver.UIContext
 }
 
 var theUI = &UI{}
@@ -32,12 +33,14 @@ func Get() *UI {
 	return theUI
 }
 
-func (*UI) Run(context driver.UIContext) error {
+func (u *UI) Run(context driver.UIContext) error {
 	g := monogame.NewGame(context)
 	defer g.Dispose()
 
-	theUI.game = g
-	theUI.Graphics().(*graphics.Graphics).SetGame(g)
+	u.game = g
+	u.context = context
+	u.Graphics().(*graphics.Graphics).SetGame(g)
+	u.updateSize()
 	g.Run()
 	return nil
 }
@@ -56,10 +59,16 @@ func (*UI) IsFocused() bool {
 
 func (*UI) ScreenSizeInFullscreen() (int, int) {
 	// TODO: Implement this
-	return 0, 0
+	return 640, 480
 }
 
-func (*UI) ResetForFrame() {
+func (u *UI) ResetForFrame() {
+	u.updateSize()
+}
+
+func (u *UI) updateSize() {
+	// TODO: Implement this
+	u.context.Layout(640, 480)
 }
 
 func (*UI) CursorMode() driver.CursorMode {

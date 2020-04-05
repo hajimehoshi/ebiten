@@ -18,11 +18,17 @@ package monogame
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/monogame"
 )
 
+type RenderTarget2D interface {
+	SetAsDestination()
+	SetAsSource()
+	ReplacePixels(args []*driver.ReplacePixelsArgs)
+	Dispose()
+}
+
 type Image struct {
-	v      *monogame.RenderTarget2D
+	v      RenderTarget2D
 	g      *Graphics
 	width  int
 	height int

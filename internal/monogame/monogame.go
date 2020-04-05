@@ -110,6 +110,10 @@ func (g *Game) Draw(indexLen int, indexOffset int, mode driver.CompositeMode, co
 	g.binding.Call("Draw", indexLen, indexOffset)
 }
 
+func (g *Game) ResetDestination() {
+	g.binding.Set("Dst", nil)
+}
+
 type RenderTarget2D struct {
 	v       js.Value
 	binding js.Value
