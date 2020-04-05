@@ -23,6 +23,7 @@ import (
 
 type Image struct {
 	v      *monogame.RenderTarget2D
+	g      *Graphics
 	width  int
 	height int
 }
@@ -36,13 +37,16 @@ func (*Image) IsInvalidated() bool {
 }
 
 func (*Image) Pixels() ([]byte, error) {
+	panic("monogame: Pixels is not implemented yet")
 	return nil, nil
 }
 
-func (*Image) SetAsDestination() {
+func (i *Image) SetAsDestination() {
+	i.g.dst = i
 }
 
-func (*Image) SetAsSource() {
+func (i *Image) SetAsSource() {
+	i.g.src = i
 }
 
 func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {

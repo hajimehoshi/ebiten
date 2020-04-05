@@ -24,6 +24,10 @@ import (
 )
 
 type Graphics struct {
+	dst      *Image
+	src      *Image
+	vertices []float32
+	indices  []uint16
 }
 
 var theGraphics Graphics
@@ -33,25 +37,31 @@ func Get() *Graphics {
 }
 
 func (g *Graphics) SetThread(thread *thread.Thread) {
-	panic("monogame: SetThread is not implemented yet")
+	panic("monogame: SetThread is not implemented")
 }
 
 func (g *Graphics) Begin() {
+	// Do nothing
 }
 
 func (g *Graphics) End() {
+	// Do nothing
 }
 
 func (g *Graphics) SetTransparent(transparent bool) {
+	panic("monogame: SetTransparent is not implemented yet")
 }
 
 func (g *Graphics) SetVertices(vertices []float32, indices []uint16) {
+	g.vertices = vertices
+	g.indices = indices
 }
 
 func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
 	v := monogame.CurrentGame().NewRenderTarget2D(width, height)
 	return &Image{
 		v:      v,
+		g:      g,
 		width:  width,
 		height: height,
 	}, nil
@@ -59,6 +69,7 @@ func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
 
 func (g *Graphics) NewScreenFramebufferImage(width, height int) (driver.Image, error) {
 	return &Image{
+		g:      g,
 		width:  width,
 		height: height,
 	}, nil
@@ -69,11 +80,12 @@ func (g *Graphics) Reset() error {
 }
 
 func (g *Graphics) Draw(indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address) error {
+	// TODO: Implement
 	return nil
 }
 
 func (g *Graphics) SetVsyncEnabled(enabled bool) {
-	// TODO: Implement this
+	panic("monogame: SetVsyncEnabled is not implemented yet")
 }
 
 func (g *Graphics) VDirection() driver.VDirection {
