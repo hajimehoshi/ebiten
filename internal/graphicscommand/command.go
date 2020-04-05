@@ -361,7 +361,7 @@ func (c *drawTrianglesCommand) String() string {
 		src += " (screen)"
 	}
 
-	return fmt.Sprintf("draw-triangles: dst: %s <- src: %s, colorm: %v, mode %s, filter: %s, address: %s", dst, src, c.color, mode, filter, address)
+	return fmt.Sprintf("draw-triangles: dst: %s <- src: %s, nindices: %d, colorm: %v, mode %s, filter: %s, address: %s", dst, src, c.nindices, c.color, mode, filter, address)
 }
 
 // Exec executes the drawTrianglesCommand.
