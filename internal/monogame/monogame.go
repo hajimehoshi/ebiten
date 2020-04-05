@@ -22,6 +22,7 @@ import (
 	"syscall/js"
 	"unsafe"
 
+	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 )
 
@@ -102,6 +103,11 @@ func (g *Game) SetVertices(vertices []float32, indices []uint16) {
 		js.CopyBytesToJS(is, bs)
 	}
 	g.binding.Call("SetVertices", vs, is)
+}
+
+func (g *Game) Draw(indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address) {
+	// TODO: Implement this
+	g.binding.Call("Draw", indexLen, indexOffset)
 }
 
 type RenderTarget2D struct {

@@ -80,7 +80,7 @@ func (g *Graphics) Reset() error {
 }
 
 func (g *Graphics) Draw(indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address) error {
-	// TODO: Implement
+	g.game.Draw(indexLen, indexOffset, mode, colorM, filter, address)
 	return nil
 }
 
