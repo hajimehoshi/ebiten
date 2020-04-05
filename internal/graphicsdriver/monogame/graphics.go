@@ -24,16 +24,17 @@ import (
 )
 
 type Graphics struct {
-	dst      *Image
-	src      *Image
-	vertices []float32
-	indices  []uint16
+	game *monogame.Game
 }
 
 var theGraphics Graphics
 
 func Get() *Graphics {
 	return &theGraphics
+}
+
+func (g *Graphics) SetGame(game *monogame.Game) {
+	g.game = game
 }
 
 func (g *Graphics) SetThread(thread *thread.Thread) {
@@ -53,12 +54,11 @@ func (g *Graphics) SetTransparent(transparent bool) {
 }
 
 func (g *Graphics) SetVertices(vertices []float32, indices []uint16) {
-	g.vertices = vertices
-	g.indices = indices
+	g.game.SetVertices(vertices, indices)
 }
 
 func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
-	v := monogame.CurrentGame().NewRenderTarget2D(width, height)
+	v := g.game.NewRenderTarget2D(width, height)
 	return &Image{
 		v:      v,
 		g:      g,

@@ -42,11 +42,11 @@ func (*Image) Pixels() ([]byte, error) {
 }
 
 func (i *Image) SetAsDestination() {
-	i.g.dst = i
+	i.v.SetAsDestination()
 }
 
 func (i *Image) SetAsSource() {
-	i.g.src = i
+	i.v.SetAsSource()
 }
 
 func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {

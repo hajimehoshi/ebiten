@@ -37,6 +37,7 @@ func (*UI) Run(context driver.UIContext) error {
 	defer g.Dispose()
 
 	theUI.game = g
+	theUI.Graphics().(*graphics.Graphics).SetGame(g)
 	g.Run()
 	return nil
 }

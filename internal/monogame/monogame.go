@@ -40,12 +40,6 @@ type Game struct {
 	draw    js.Func
 }
 
-var currentGame *Game
-
-func CurrentGame() *Game {
-	return currentGame
-}
-
 func NewGame(ud UpdateDrawer) *Game {
 	update := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		return ud.Update()
@@ -62,7 +56,6 @@ func NewGame(ud UpdateDrawer) *Game {
 		draw:    draw,
 	}
 	runtime.SetFinalizer(g, (*Game).Dispose)
-	currentGame = g
 	return g
 }
 
@@ -70,7 +63,6 @@ func (g *Game) Dispose() {
 	runtime.SetFinalizer(g, nil)
 	g.update.Release()
 	g.draw.Release()
-	currentGame = nil
 }
 
 func (g *Game) Run() {
@@ -80,14 +72,20 @@ func (g *Game) Run() {
 func (g *Game) NewRenderTarget2D(width, height int) *RenderTarget2D {
 	v := g.binding.Call("NewRenderTarget2D", width, height)
 	r := &RenderTarget2D{
-		v: v,
+		v:       v,
+		binding: g.binding,
 	}
 	runtime.SetFinalizer(r, (*RenderTarget2D).Dispose)
 	return r
 }
 
+func (g *Game) SetVertices(vertices []float32, indices []uint16) {
+	// TODO: Implement this
+}
+
 type RenderTarget2D struct {
-	v js.Value
+	v       js.Value
+	binding js.Value
 }
 
 func (r *RenderTarget2D) Dispose() {
@@ -99,6 +97,14 @@ func (r *RenderTarget2D) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	for _, a := range args {
 		arr := js.Global().Get("Uint8Array").New(len(a.Pixels))
 		js.CopyBytesToJS(arr, a.Pixels)
-		r.v.Call("ReplacePixels", arr, a.X, a.Y, a.Width, a.Height)
+		r.binding.Call("ReplacePixels", r.v, arr, a.X, a.Y, a.Width, a.Height)
 	}
+}
+
+func (r *RenderTarget2D) SetAsDestination() {
+	r.binding.Set("Dst", r.v)
+}
+
+func (r *RenderTarget2D) SetAsSource() {
+	r.binding.Set("Src", r.v)
 }
