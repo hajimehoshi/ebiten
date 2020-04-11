@@ -18,6 +18,7 @@ package monogame
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
 type RenderTarget2D interface {
@@ -48,7 +49,8 @@ func (*Image) Pixels() ([]byte, error) {
 }
 
 func (i *Image) SetAsDestination() {
-	i.v.SetAsDestination(i.width, i.height)
+	w, h := graphics.InternalImageSize(i.width), graphics.InternalImageSize(i.height)
+	i.v.SetAsDestination(w, h)
 }
 
 func (i *Image) SetAsSource() {
