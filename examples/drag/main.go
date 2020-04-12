@@ -187,7 +187,7 @@ type Game struct {
 	sprites []*Sprite
 }
 
-var theGame *Game
+var ebitenImage *ebiten.Image
 
 func init() {
 	// Decode image from a byte slice instead of a file so that
@@ -203,8 +203,10 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ebitenImage, _ := ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	ebitenImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+}
 
+func NewGame() *Game {
 	// Initialize the sprites.
 	sprites := []*Sprite{}
 	w, h := ebitenImage.Size()
@@ -218,7 +220,7 @@ func init() {
 	}
 
 	// Initialize the game.
-	theGame = &Game{
+	return &Game{
 		strokes: map[*Stroke]struct{}{},
 		sprites: sprites,
 	}
@@ -264,7 +266,7 @@ func (g *Game) updateStroke(stroke *Stroke) {
 	stroke.SetDraggingObject(nil)
 }
 
-func (g *Game) update(screen *ebiten.Image) error {
+func (g *Game) Update(screen *ebiten.Image) error {
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		s := NewStroke(&MouseStrokeSource{})
 		s.SetDraggingObject(g.spriteAt(s.Position()))
@@ -282,11 +284,10 @@ func (g *Game) update(screen *ebiten.Image) error {
 			delete(g.strokes, s)
 		}
 	}
+	return nil
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
+func (g *Game) Draw(screen *ebiten.Image) {
 	draggingSprites := map[*Sprite]struct{}{}
 	for s := range g.strokes {
 		if sprite := s.DraggingObject().(*Sprite); sprite != nil {
@@ -308,12 +309,16 @@ func (g *Game) update(screen *ebiten.Image) error {
 	}
 
 	ebitenutil.DebugPrint(screen, "Drag & Drop the sprites!")
+}
 
-	return nil
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
-	if err := ebiten.Run(theGame.update, screenWidth, screenHeight, 2, "Drag & Drop (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Drag & Drop (Ebiten Demo)")
+	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -33,7 +33,6 @@ const (
 
 var (
 	pixels      = make([]byte, screenSize*4)
-	firePixels  = make([]byte, screenSize)
 	firePalette = []color.RGBA{
 		{R: 7, G: 7, B: 7, A: 255},       //  0
 		{R: 31, G: 7, B: 7, A: 255},      //  1
@@ -75,29 +74,37 @@ var (
 	}
 )
 
-func init() {
+type Game struct {
+	firePixels []byte
+}
+
+func NewGame() *Game {
+	firePixels := make([]byte, screenSize)
 	for i := screenSize - screenWidth; i < screenSize; i++ {
 		firePixels[i] = 36
 	}
+	return &Game{
+		firePixels: firePixels,
+	}
 }
 
-func updateFirePixels() {
+func (g *Game) updateFirePixels() {
 	for i := 0; i < screenWidth; i++ {
 		for j := 0; j < screenHeight; j++ {
 			idx := i + (screenWidth * j)
-			updateFireIntensityPerPixel(idx)
+			g.updateFireIntensityPerPixel(idx)
 		}
 	}
 }
 
-func updateFireIntensityPerPixel(currentPixelIndex int) {
+func (g *Game) updateFireIntensityPerPixel(currentPixelIndex int) {
 	below := currentPixelIndex + screenWidth
 	if below >= screenSize {
 		return
 	}
 
 	d := rand.Intn(3)
-	newI := int(firePixels[below]) - d
+	newI := int(g.firePixels[below]) - d
 	if newI < 0 {
 		newI = 0
 	}
@@ -105,11 +112,11 @@ func updateFireIntensityPerPixel(currentPixelIndex int) {
 	if currentPixelIndex-d < 0 {
 		return
 	}
-	firePixels[currentPixelIndex-d] = byte(newI)
+	g.firePixels[currentPixelIndex-d] = byte(newI)
 }
 
-func renderFire() {
-	for i, v := range firePixels {
+func (g *Game) renderFire() {
+	for i, v := range g.firePixels {
 		p := firePalette[v]
 		pixels[i*4] = p.R
 		pixels[i*4+1] = p.G
@@ -118,22 +125,26 @@ func renderFire() {
 	}
 }
 
-func update(screen *ebiten.Image) error {
-	updateFirePixels()
-
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
-	renderFire()
-	screen.ReplacePixels(pixels)
+func (g *Game) Update(screen *ebiten.Image) error {
+	g.updateFirePixels()
 	return nil
+}
+
+func (g *Game) Draw(screen *ebiten.Image) {
+	g.renderFire()
+	screen.ReplacePixels(pixels)
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	if err := ebiten.Run(update, screenWidth, screenHeight, 6, "Doom Fire (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*6, screenHeight*6)
+	ebiten.SetWindowTitle("Doom Fire (Ebiten Demo)")
+	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}
 }

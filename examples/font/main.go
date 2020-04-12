@@ -41,11 +41,7 @@ var (
 	sampleText      = `The quick brown fox jumps over the lazy dog.`
 	mplusNormalFont font.Face
 	mplusBigFont    font.Face
-	counter         = 0
-	kanjiText       = []rune{}
-	kanjiTextColor  color.RGBA
 )
-
 var jaKanjis = []rune{}
 
 func init() {
@@ -115,28 +111,33 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-func update(screen *ebiten.Image) error {
+type Game struct {
+	counter        int
+	kanjiText      []rune
+	kanjiTextColor color.RGBA
+}
+
+func (g *Game) Update(screen *ebiten.Image) error {
 	// Change the text color for each second.
-	if counter%ebiten.MaxTPS() == 0 {
-		kanjiText = []rune{}
+	if g.counter%ebiten.MaxTPS() == 0 {
+		g.kanjiText = nil
 		for j := 0; j < 4; j++ {
 			for i := 0; i < 8; i++ {
-				kanjiText = append(kanjiText, jaKanjis[rand.Intn(len(jaKanjis))])
+				g.kanjiText = append(g.kanjiText, jaKanjis[rand.Intn(len(jaKanjis))])
 			}
-			kanjiText = append(kanjiText, '\n')
+			g.kanjiText = append(g.kanjiText, '\n')
 		}
 
-		kanjiTextColor.R = 0x80 + uint8(rand.Intn(0x7f))
-		kanjiTextColor.G = 0x80 + uint8(rand.Intn(0x7f))
-		kanjiTextColor.B = 0x80 + uint8(rand.Intn(0x7f))
-		kanjiTextColor.A = 0xff
+		g.kanjiTextColor.R = 0x80 + uint8(rand.Intn(0x7f))
+		g.kanjiTextColor.G = 0x80 + uint8(rand.Intn(0x7f))
+		g.kanjiTextColor.B = 0x80 + uint8(rand.Intn(0x7f))
+		g.kanjiTextColor.A = 0xff
 	}
-	counter++
+	g.counter++
+	return nil
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
+func (g *Game) Draw(screen *ebiten.Image) {
 	const x = 20
 
 	// Draw info
@@ -147,14 +148,19 @@ func update(screen *ebiten.Image) error {
 	text.Draw(screen, sampleText, mplusNormalFont, x, 80, color.White)
 
 	// Draw Kanji text lines
-	for i, line := range strings.Split(string(kanjiText), "\n") {
-		text.Draw(screen, line, mplusBigFont, x, 160+54*i, kanjiTextColor)
+	for i, line := range strings.Split(string(g.kanjiText), "\n") {
+		text.Draw(screen, line, mplusBigFont, x, 160+54*i, g.kanjiTextColor)
 	}
-	return nil
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 1, "Font (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("Font (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }

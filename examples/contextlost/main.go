@@ -39,14 +39,17 @@ const (
 )
 
 var (
-	count        = 0
 	gophersImage *ebiten.Image
 	extraImages  []*ebiten.Image
-	lost         = false
 )
 
-func loseAndRestoreContext(context js.Value) {
-	if lost {
+type Game struct {
+	count int
+	lost  bool
+}
+
+func (g *Game) loseAndRestoreContext(context js.Value) {
+	if g.lost {
 		return
 	}
 
@@ -61,7 +64,7 @@ func loseAndRestoreContext(context js.Value) {
 	ext.Call("loseContext")
 	fmt.Println("Lost the context!")
 	fmt.Println("The context is automatically restored after 3 seconds.")
-	lost = true
+	g.lost = true
 
 	// If and only if the context is lost by loseContext, you need to call restoreContext. Note that in usual
 	// case of context lost, you cannot call restoreContext but the context should be restored automatically.
@@ -71,11 +74,11 @@ func loseAndRestoreContext(context js.Value) {
 		time.Sleep(3 * time.Second)
 		ext.Call("restoreContext")
 		fmt.Println("Restored the context!")
-		lost = false
+		g.lost = false
 	}()
 }
 
-func update(screen *ebiten.Image) error {
+func (g *Game) Update(screen *ebiten.Image) error {
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 		doc := js.Global().Get("document")
 		canvas := doc.Call("getElementsByTagName", "canvas").Index(0)
@@ -86,26 +89,29 @@ func update(screen *ebiten.Image) error {
 				context = canvas.Call("getContext", "experimental-webgl")
 			}
 		}
-		loseAndRestoreContext(context)
+		g.loseAndRestoreContext(context)
 		return nil
 	}
 
-	count++
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
+	g.count++
+	return nil
+}
+
+func (g *Game) Draw(screen *ebiten.Image) {
 	w, h := gophersImage.Size()
 	op := &ebiten.DrawImageOptions{}
 
 	// For the details, see examples/rotate.
 	op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
-	op.GeoM.Rotate(float64(count%360) * 2 * math.Pi / 360)
+	op.GeoM.Rotate(float64(g.count%360) * 2 * math.Pi / 360)
 	op.GeoM.Translate(screenWidth/2, screenHeight/2)
 	screen.DrawImage(gophersImage, op)
 
 	ebitenutil.DebugPrint(screen, "Press Space to force to lose/restore the GL context!\n(Browser only)")
+}
 
-	return nil
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
@@ -130,7 +136,9 @@ func main() {
 		extraImages = append(extraImages, eimg)
 	}
 
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Context Lost (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Context Lost (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }

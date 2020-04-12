@@ -36,11 +36,14 @@ var (
 	ebitenImage *ebiten.Image
 )
 
-func update(screen *ebiten.Image) error {
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
+type Game struct {
+}
 
+func (g *Game) Update(screen *ebiten.Image) error {
+	return nil
+}
+
+func (g *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrint(screen, "Nearest Filter (default) VS Linear Filter")
 
 	op := &ebiten.DrawImageOptions{}
@@ -55,8 +58,10 @@ func update(screen *ebiten.Image) error {
 	// Specify linear filter.
 	op.Filter = ebiten.FilterLinear
 	screen.DrawImage(ebitenImage, op)
+}
 
-	return nil
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
@@ -79,7 +84,9 @@ func main() {
 	// Specify FilterDefault here, that means to prefer filter specified at DrawImageOptions.
 	ebitenImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 
-	if err := ebiten.Run(update, screenWidth, screenHeight, 1, "Filter (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("Filter (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }
