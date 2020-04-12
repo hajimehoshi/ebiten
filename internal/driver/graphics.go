@@ -15,6 +15,8 @@
 package driver
 
 import (
+	"errors"
+
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/thread"
 )
@@ -36,6 +38,9 @@ type Graphics interface {
 	HasHighPrecisionFloat() bool
 	MaxImageSize() int
 }
+
+// GraphicsNotReady represents that the graphics driver is not ready for recovering from the context lost.
+var GraphicsNotReady = errors.New("graphics not ready")
 
 type Image interface {
 	Dispose()

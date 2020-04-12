@@ -212,7 +212,7 @@ func (c *context) reset() error {
 	c.gl = js.Value{}
 	c.ensureGL()
 	if c.gl.Call("isContextLost").Bool() {
-		return fmt.Errorf("opengl: the context is lost")
+		return driver.GraphicsNotReady
 	}
 	gl := c.gl
 	gl.Call("enable", blend)

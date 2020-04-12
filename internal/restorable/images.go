@@ -17,6 +17,7 @@ package restorable
 import (
 	"path/filepath"
 
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
 )
 
@@ -90,7 +91,11 @@ func RestoreIfNeeded() error {
 		}
 	}
 
-	if err := graphicscommand.ResetGraphicsDriverState(); err != nil {
+	err := graphicscommand.ResetGraphicsDriverState()
+	if err == driver.GraphicsNotReady {
+		return nil
+	}
+	if err != nil {
 		return err
 	}
 	return theImages.restore()
