@@ -26,12 +26,7 @@ import (
 )
 
 var (
-	count          int
-	highDPIImage   *ebiten.Image
 	highDPIImageCh = make(chan *ebiten.Image)
-
-	// scale represents the device scale when the application starts.
-	scale = 1.0
 )
 
 func init() {
@@ -50,32 +45,38 @@ func init() {
 	}()
 }
 
-func update(screen *ebiten.Image) error {
+type Game struct {
+	highDPIImage *ebiten.Image
+}
+
+func (g *Game) Update(screen *ebiten.Image) error {
 	// TODO: DeviceScaleFactor() might return different values for different monitors.
 	// Add a mode to adjust the screen size along with the current device scale (#705).
 	// Now this example uses the device scale initialized at the beginning of this application.
 
-	if highDPIImage == nil {
-		// Use select and 'default' clause for non-blocking receiving.
-		select {
-		case img := <-highDPIImageCh:
-			highDPIImage = img
-		default:
-		}
-	}
-
-	if ebiten.IsDrawingSkipped() {
+	if g.highDPIImage != nil {
 		return nil
 	}
 
-	if highDPIImage == nil {
+	// Use select and 'default' clause for non-blocking receiving.
+	select {
+	case img := <-highDPIImageCh:
+		g.highDPIImage = img
+	default:
+	}
+
+	return nil
+}
+
+func (g *Game) Draw(screen *ebiten.Image) {
+	if g.highDPIImage == nil {
 		ebitenutil.DebugPrint(screen, "Loading the image...")
-		return nil
+		return
 	}
 
 	sw, sh := screen.Size()
 
-	w, h := highDPIImage.Size()
+	w, h := g.highDPIImage.Size()
 	op := &ebiten.DrawImageOptions{}
 
 	// Move the images's center to the upper left corner.
@@ -86,30 +87,29 @@ func update(screen *ebiten.Image) error {
 
 	// Scale the image by the device ratio so that the rendering result can be same
 	// on various (different-DPI) environments.
+	scale := ebiten.DeviceScaleFactor()
 	op.GeoM.Scale(scale, scale)
 
 	// Move the image's center to the screen's center.
 	op.GeoM.Translate(float64(sw)/2, float64(sh)/2)
 
 	op.Filter = ebiten.FilterLinear
-	screen.DrawImage(highDPIImage, op)
+	screen.DrawImage(g.highDPIImage, op)
 
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("(Init) Device Scale Ratio: %0.2f", scale))
-	return nil
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	// The unit of outsideWidth/Height is device-independent pixels.
+	// By multiplying them by the device scale factor, we can get a hi-DPI screen size.
+	s := ebiten.DeviceScaleFactor()
+	return int(float64(outsideWidth) * s), int(float64(outsideHeight) * s)
 }
 
 func main() {
-	const (
-		screenWidth  = 640
-		screenHeight = 480
-	)
-
-	// Pass the invert of scale so that Ebiten's auto scaling by device scale is disabled.
-	//
-	// Note that DeviceScaleFactor cannot be called from init() functions on some environments.
-	scale = ebiten.DeviceScaleFactor()
-	s := scale
-	if err := ebiten.Run(update, int(screenWidth*s), int(screenHeight*s), 1/s, "High DPI (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(640, 480)
+	ebiten.SetWindowTitle("High DPI (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }
