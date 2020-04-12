@@ -102,11 +102,13 @@ func drawRect(screen *ebiten.Image, img *ebiten.Image, x, y, width, height float
 	ebitenutil.DebugPrintAt(screen, msg, int(x), int(y)-16)
 }
 
-func update(screen *ebiten.Image) error {
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
+type Game struct{}
 
+func (g *Game) Update(screen *ebiten.Image) error {
+	return nil
+}
+
+func (g *Game) Draw(screen *ebiten.Image) {
 	const ox, oy = 40, 60
 	drawRect(screen, ebitenImage, ox, oy, 200, 100, ebiten.AddressClampToZero, "Regular")
 	drawRect(screen, ebitenImage, 220+ox, oy, 200, 100, ebiten.AddressRepeat, "Regular, Repeat")
@@ -114,11 +116,16 @@ func update(screen *ebiten.Image) error {
 	subImage := ebitenImage.SubImage(image.Rect(10, 5, 20, 30)).(*ebiten.Image)
 	drawRect(screen, subImage, ox, 200+oy, 200, 100, ebiten.AddressClampToZero, "Subimage")
 	drawRect(screen, subImage, 220+ox, 200+oy, 200, 100, ebiten.AddressRepeat, "Subimage, Repeat")
-	return nil
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 1, "Sampler Address (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("Sampler Address (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }

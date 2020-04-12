@@ -38,12 +38,8 @@ const (
 )
 
 var (
-	skyColor  = color.RGBA{0x66, 0xcc, 0xff, 0xff}
-	thePlayer = &player{
-		x16:   16 * 100,
-		y16:   16 * 200,
-		angle: maxAngle * 3 / 4,
-	}
+	skyColor = color.RGBA{0x66, 0xcc, 0xff, 0xff}
+
 	gophersImage           *ebiten.Image
 	repeatedGophersImage   *ebiten.Image
 	groundImage            *ebiten.Image
@@ -186,11 +182,11 @@ func (p *player) Angle() int {
 }
 
 // updateGroundImage updates the ground image according to the current player's position.
-func updateGroundImage(ground *ebiten.Image) {
+func (g *Game) updateGroundImage(ground *ebiten.Image) {
 	ground.Clear()
 
-	x16, y16 := thePlayer.Position()
-	a := thePlayer.Angle()
+	x16, y16 := g.player.Position()
+	a := g.player.Angle()
 	gw, gh := ground.Size()
 	w, h := gophersImage.Size()
 	op := &ebiten.DrawImageOptions{}
@@ -202,7 +198,7 @@ func updateGroundImage(ground *ebiten.Image) {
 }
 
 // drawGroundImage draws the ground image to the given screen image.
-func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
+func (g *Game) drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
 	perspectiveGroundImage.Clear()
 	gw, _ := ground.Size()
 	pw, ph := perspectiveGroundImage.Size()
@@ -225,47 +221,65 @@ func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(-float64(pw)/2, 0)
-	op.GeoM.Rotate(-1 * float64(thePlayer.lean) / maxLean * math.Pi / 8)
+	op.GeoM.Rotate(-1 * float64(g.player.lean) / maxLean * math.Pi / 8)
 	op.GeoM.Translate(float64(screenWidth)/2, screenHeight/3)
 	screen.DrawImage(perspectiveGroundImage, op)
 }
 
-func update(screen *ebiten.Image) error {
+type Game struct {
+	player *player
+}
+
+func NewGame() *Game {
+	return &Game{
+		player: &player{
+			x16:   16 * 100,
+			y16:   16 * 200,
+			angle: maxAngle * 3 / 4,
+		},
+	}
+}
+
+func (g *Game) Update(screen *ebiten.Image) error {
 	// Manipulate the player by the input.
 	if ebiten.IsKeyPressed(ebiten.KeySpace) {
-		thePlayer.MoveForward()
+		g.player.MoveForward()
 	}
 	rotated := false
 	if ebiten.IsKeyPressed(ebiten.KeyRight) {
-		thePlayer.RotateRight()
+		g.player.RotateRight()
 		rotated = true
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
-		thePlayer.RotateLeft()
+		g.player.RotateLeft()
 		rotated = true
 	}
 	if !rotated {
-		thePlayer.Stabilize()
+		g.player.Stabilize()
 	}
+	return nil
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
+func (g *Game) Draw(screen *ebiten.Image) {
 	// Draw the ground image.
 	screen.Fill(skyColor)
-	updateGroundImage(groundImage)
-	drawGroundImage(screen, groundImage)
+	g.updateGroundImage(groundImage)
+	g.drawGroundImage(screen, groundImage)
 
 	// Draw the message.
 	tutrial := "Space: Move forward\nLeft/Right: Rotate"
 	msg := fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f\n%s", ebiten.CurrentTPS(), ebiten.CurrentFPS(), tutrial)
 	ebitenutil.DebugPrint(screen, msg)
-	return nil
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Air Ship (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Air Ship (Ebiten Demo)")
+	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -32,9 +32,12 @@ const (
 	screenHeight = 240
 )
 
-type Game struct {
-	count        int
+var (
 	gophersImage *ebiten.Image
+)
+
+type Game struct {
+	count int
 }
 
 func (g *Game) Update(screen *ebiten.Image) error {
@@ -43,7 +46,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	w, h := g.gophersImage.Size()
+	w, h := gophersImage.Size()
 	op := &ebiten.DrawImageOptions{}
 
 	// Move the image's center to the screen's upper-left corner.
@@ -58,7 +61,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Move the image to the screen's center.
 	op.GeoM.Translate(screenWidth/2, screenHeight/2)
 
-	screen.DrawImage(g.gophersImage, op)
+	screen.DrawImage(gophersImage, op)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -79,12 +82,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	g := &Game{}
-	g.gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
 	ebiten.SetWindowTitle("Rotate (Ebiten Demo)")
-	if err := ebiten.RunGame(g); err != nil {
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }

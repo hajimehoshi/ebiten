@@ -36,11 +36,13 @@ var (
 	ebitenImage *ebiten.Image
 )
 
-func update(screen *ebiten.Image) error {
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
+type Game struct{}
 
+func (g *Game) Update(screen *ebiten.Image) error {
+	return nil
+}
+
+func (g *Game) Draw(screen *ebiten.Image) {
 	const (
 		// The offset point to render the image.
 		ox = 10
@@ -60,8 +62,10 @@ func update(screen *ebiten.Image) error {
 	op.GeoM.Translate(ox+float64(w), oy)
 	op.CompositeMode = ebiten.CompositeModeLighter
 	screen.DrawImage(ebitenImage, op)
+}
 
-	return nil
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
@@ -80,7 +84,9 @@ func main() {
 	}
 	ebitenImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Additive Blending (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Additive Blending (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }

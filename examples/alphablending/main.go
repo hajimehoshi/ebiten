@@ -33,38 +33,48 @@ const (
 )
 
 var (
-	count       int
 	ebitenImage *ebiten.Image
 )
 
-func update(screen *ebiten.Image) error {
-	count++
-	count %= ebiten.MaxTPS() * 10
-	diff := float64(count) * 0.2
+type Game struct {
+	count int
+}
+
+func (g *Game) Update(screen *ebiten.Image) error {
+	g.count++
+	g.count %= ebiten.MaxTPS() * 10
+	return nil
+}
+
+func (g *Game) offset() float64 {
+	v := float64(g.count) * 0.2
 	switch {
-	case 480 < count:
-		diff = 0
-	case 240 < count:
-		diff = float64(480-count) * 0.2
+	case 480 < g.count:
+		v = 0
+	case 240 < g.count:
+		v = float64(480-g.count) * 0.2
 	}
+	return v
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
+func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.NRGBA{0x00, 0x00, 0x80, 0xff})
 
 	// Draw 100 Ebitens
+	v := g.offset()
 	op := &ebiten.DrawImageOptions{}
 	op.ColorM.Scale(1.0, 1.0, 1.0, 0.5)
 	for i := 0; i < 10*10; i++ {
 		op.GeoM.Reset()
-		x := float64(i%10)*diff + 15
-		y := float64(i/10)*diff + 20
+		x := float64(i%10)*v + 15
+		y := float64(i/10)*v + 20
 		op.GeoM.Translate(x, y)
 		screen.DrawImage(ebitenImage, op)
 	}
-	return nil
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
@@ -83,7 +93,9 @@ func main() {
 	}
 	ebitenImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Alpha Blending (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Alpha Blending (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }

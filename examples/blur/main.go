@@ -35,11 +35,13 @@ var (
 	gophersImage *ebiten.Image
 )
 
-func update(screen *ebiten.Image) error {
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
+type Game struct{}
 
+func (g *Game) Update(screen *ebiten.Image) error {
+	return nil
+}
+
+func (g *Game) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(0, 0)
 	screen.DrawImage(gophersImage, op)
@@ -60,8 +62,10 @@ func update(screen *ebiten.Image) error {
 			screen.DrawImage(gophersImage, op)
 		}
 	}
+}
 
-	return nil
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
@@ -80,7 +84,9 @@ func main() {
 	}
 	gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 
-	if err := ebiten.Run(update, screenWidth, screenHeight, 1, "Blur (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("Blur (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }

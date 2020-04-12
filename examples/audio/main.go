@@ -256,28 +256,46 @@ Press U to switch the runnable-on-unfocused state
 Press A to switch Ogg and MP3
 Current Time: %s
 Current Volume: %d/128
-Type: %s`, ebiten.CurrentTPS(), currentTimeStr, int(p.audioPlayer.Volume()*128), musicPlayer.musicType)
+Type: %s`, ebiten.CurrentTPS(), currentTimeStr, int(p.audioPlayer.Volume()*128), p.musicType)
 	ebitenutil.DebugPrint(screen, msg)
 }
 
-var (
+type Game struct {
 	musicPlayer   *Player
-	musicPlayerCh = make(chan *Player)
-	errCh         = make(chan error)
-)
+	musicPlayerCh chan *Player
+	errCh         chan error
+}
 
-func update(screen *ebiten.Image) error {
+func NewGame() (*Game, error) {
+	audioContext, err := audio.NewContext(sampleRate)
+	if err != nil {
+		return nil, err
+	}
+
+	m, err := NewPlayer(audioContext, typeOgg)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Game{
+		musicPlayer:   m,
+		musicPlayerCh: make(chan *Player),
+		errCh:         make(chan error),
+	}, nil
+}
+
+func (g *Game) Update(screen *ebiten.Image) error {
 	select {
-	case p := <-musicPlayerCh:
-		musicPlayer = p
-	case err := <-errCh:
+	case p := <-g.musicPlayerCh:
+		g.musicPlayer = p
+	case err := <-g.errCh:
 		return err
 	default:
 	}
 
-	if musicPlayer != nil && inpututil.IsKeyJustPressed(ebiten.KeyA) {
+	if g.musicPlayer != nil && inpututil.IsKeyJustPressed(ebiten.KeyA) {
 		var t musicType
-		switch musicPlayer.musicType {
+		switch g.musicPlayer.musicType {
 		case typeOgg:
 			t = typeMP3
 		case typeMP3:
@@ -286,46 +304,45 @@ func update(screen *ebiten.Image) error {
 			panic("not reached")
 		}
 
-		musicPlayer.Close()
-		musicPlayer = nil
+		g.musicPlayer.Close()
+		g.musicPlayer = nil
 
 		go func() {
 			p, err := NewPlayer(audio.CurrentContext(), t)
 			if err != nil {
-				errCh <- err
+				g.errCh <- err
 				return
 			}
-			musicPlayerCh <- p
+			g.musicPlayerCh <- p
 		}()
 	}
 
-	if musicPlayer != nil {
-		if err := musicPlayer.update(); err != nil {
+	if g.musicPlayer != nil {
+		if err := g.musicPlayer.update(); err != nil {
 			return err
 		}
-	}
-
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
-	if musicPlayer != nil {
-		musicPlayer.draw(screen)
 	}
 	return nil
 }
 
-func main() {
-	audioContext, err := audio.NewContext(sampleRate)
-	if err != nil {
-		log.Fatal(err)
+func (g *Game) Draw(screen *ebiten.Image) {
+	if g.musicPlayer != nil {
+		g.musicPlayer.draw(screen)
 	}
+}
 
-	musicPlayer, err = NewPlayer(audioContext, typeOgg)
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
+}
+
+func main() {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Audio (Ebiten Demo)")
+	g, err := NewGame()
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Audio (Ebiten Demo)"); err != nil {
+	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
 }

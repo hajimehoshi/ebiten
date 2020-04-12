@@ -27,9 +27,13 @@ import (
 	"github.com/jakecoffman/cp"
 )
 
+const (
+	screenWidth  = 600
+	screenHeight = 480
+)
+
 var (
-	space *cp.Space
-	dot   *ebiten.Image
+	dot *ebiten.Image
 )
 
 func init() {
@@ -37,26 +41,77 @@ func init() {
 	dot.Fill(color.White)
 }
 
-func update(screen *ebiten.Image) error {
-	space.Step(1.0 / float64(ebiten.MaxTPS()))
+type Game struct {
+	space *cp.Space
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
+func NewGame() *Game {
+	const (
+		imageWidth  = 188
+		imageHeight = 35
+	)
+
+	space := cp.NewSpace()
+	space.Iterations = 1
+
+	// The space will contain a very large number of similarly sized objects.
+	// This is the perfect candidate for using the spatial hash.
+	// Generally you will never need to do this.
+	space.UseSpatialHash(2.0, 10000)
+
+	var body *cp.Body
+	var shape *cp.Shape
+
+	for y := 0; y < imageHeight; y++ {
+		for x := 0; x < imageWidth; x++ {
+			if getPixel(uint(x), uint(y)) == 0 {
+				continue
+			}
+
+			xJitter := 0.05 * rand.Float64()
+			yJitter := 0.05 * rand.Float64()
+
+			shape = makeBall(2.0*(float64(x)+imageWidth/2+xJitter)-75, 2*(imageHeight/2.0+float64(y)+yJitter)+150)
+			space.AddBody(shape.Body())
+			space.AddShape(shape)
+		}
 	}
 
+	body = space.AddBody(cp.NewBody(1e9, cp.INFINITY))
+	body.SetPosition(cp.Vector{X: -1000, Y: 225})
+	body.SetVelocity(400, 0)
+
+	shape = space.AddShape(cp.NewCircle(body, 8, cp.Vector{}))
+	shape.SetElasticity(0)
+	shape.SetFriction(0)
+
+	return &Game{
+		space: space,
+	}
+}
+
+func (g *Game) Update(screen *ebiten.Image) error {
+	g.space.Step(1.0 / float64(ebiten.MaxTPS()))
+	return nil
+}
+
+func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.Black)
 
 	op := &ebiten.DrawImageOptions{}
 	op.ColorM.Scale(200.0/255.0, 200.0/255.0, 200.0/255.0, 1)
 
-	space.EachBody(func(body *cp.Body) {
+	g.space.EachBody(func(body *cp.Body) {
 		op.GeoM.Reset()
 		op.GeoM.Translate(body.Position().X, body.Position().Y)
 		screen.DrawImage(dot, op)
 	})
 
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
-	return nil
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func getPixel(x, y uint) int {
@@ -112,46 +167,9 @@ var imageBitmap = []int{
 }
 
 func main() {
-	const (
-		imageWidth  = 188
-		imageHeight = 35
-	)
-
-	space = cp.NewSpace()
-	space.Iterations = 1
-
-	// The space will contain a very large number of similarly sized objects.
-	// This is the perfect candidate for using the spatial hash.
-	// Generally you will never need to do this.
-	space.UseSpatialHash(2.0, 10000)
-
-	var body *cp.Body
-	var shape *cp.Shape
-
-	for y := 0; y < imageHeight; y++ {
-		for x := 0; x < imageWidth; x++ {
-			if getPixel(uint(x), uint(y)) == 0 {
-				continue
-			}
-
-			xJitter := 0.05 * rand.Float64()
-			yJitter := 0.05 * rand.Float64()
-
-			shape = makeBall(2.0*(float64(x)+imageWidth/2+xJitter)-75, 2*(imageHeight/2.0+float64(y)+yJitter)+150)
-			space.AddBody(shape.Body())
-			space.AddShape(shape)
-		}
-	}
-
-	body = space.AddBody(cp.NewBody(1e9, cp.INFINITY))
-	body.SetPosition(cp.Vector{X: -1000, Y: 225})
-	body.SetVelocity(400, 0)
-
-	shape = space.AddShape(cp.NewCircle(body, 8, cp.Vector{}))
-	shape.SetElasticity(0)
-	shape.SetFriction(0)
-
-	if err := ebiten.Run(update, 600, 480, 1, "Ebiten"); err != nil {
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("Ebiten")
+	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}
 }

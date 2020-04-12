@@ -47,37 +47,40 @@ func init() {
 	}
 }
 
-var player *audio.Player
+type Game struct {
+	player *audio.Player
+}
 
-func update(screen *ebiten.Image) error {
-	if player == nil {
-		// Decode the wav file.
-		// wavS is a decoded io.ReadCloser and io.Seeker.
-		oggS, err := vorbis.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Ragtime_ogg))
-		if err != nil {
-			return err
-		}
-
-		// Create an infinite loop stream from the decoded bytes.
-		// s is still an io.ReadCloser and io.Seeker.
-		s := audio.NewInfiniteLoopWithIntro(oggS, introLengthInSecond*4*sampleRate, loopLengthInSecond*4*sampleRate)
-
-		player, err = audio.NewPlayer(audioContext, s)
-		if err != nil {
-			return err
-		}
-
-		// Play the infinite-length stream. This never ends.
-		player.Play()
-	}
-
-	if ebiten.IsDrawingSkipped() {
+func (g *Game) Update(screen *ebiten.Image) error {
+	if g.player != nil {
 		return nil
 	}
 
-	pos := player.Current()
+	// Decode the wav file.
+	// wavS is a decoded io.ReadCloser and io.Seeker.
+	oggS, err := vorbis.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Ragtime_ogg))
+	if err != nil {
+		return err
+	}
+
+	// Create an infinite loop stream from the decoded bytes.
+	// s is still an io.ReadCloser and io.Seeker.
+	s := audio.NewInfiniteLoopWithIntro(oggS, introLengthInSecond*4*sampleRate, loopLengthInSecond*4*sampleRate)
+
+	g.player, err = audio.NewPlayer(audioContext, s)
+	if err != nil {
+		return err
+	}
+
+	// Play the infinite-length stream. This never ends.
+	g.player.Play()
+	return nil
+}
+
+func (g *Game) Draw(screen *ebiten.Image) {
+	pos := g.player.Current()
 	if pos > 5*time.Second {
-		pos = (player.Current()-5*time.Second)%(4*time.Second) + 5*time.Second
+		pos = (g.player.Current()-5*time.Second)%(4*time.Second) + 5*time.Second
 	}
 	msg := fmt.Sprintf(`TPS: %0.2f
 This is an example using
@@ -87,11 +90,16 @@ Intro:   0[s] - %[2]d[s]
 Loop:    %[2]d[s] - %[3]d[s]
 Current: %0.2[4]f[s]`, ebiten.CurrentTPS(), introLengthInSecond, introLengthInSecond+loopLengthInSecond, float64(pos)/float64(time.Second))
 	ebitenutil.DebugPrint(screen, msg)
-	return nil
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Audio Infinite Loop (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Audio Infinite Loop (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }

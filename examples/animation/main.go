@@ -38,24 +38,29 @@ const (
 )
 
 var (
-	count       = 0
 	runnerImage *ebiten.Image
 )
 
-func update(screen *ebiten.Image) error {
-	count++
+type Game struct {
+	count int
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
+func (g *Game) Update(screen *ebiten.Image) error {
+	g.count++
+	return nil
+}
 
+func (g *Game) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(-float64(frameWidth)/2, -float64(frameHeight)/2)
 	op.GeoM.Translate(screenWidth/2, screenHeight/2)
-	i := (count / 5) % frameNum
+	i := (g.count / 5) % frameNum
 	sx, sy := frameOX+i*frameWidth, frameOY
 	screen.DrawImage(runnerImage.SubImage(image.Rect(sx, sy, sx+frameWidth, sy+frameHeight)).(*ebiten.Image), op)
-	return nil
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
@@ -74,7 +79,9 @@ func main() {
 	}
 	runnerImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Animation (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Animation (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }
