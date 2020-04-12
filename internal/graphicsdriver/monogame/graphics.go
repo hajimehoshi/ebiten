@@ -129,3 +129,7 @@ func (s *screen) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 func (s *screen) Dispose() {
 	// Do nothing?
 }
+
+func (s *screen) IsScreen() bool {
+	return true
+}

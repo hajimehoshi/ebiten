@@ -106,8 +106,8 @@ func (g *Game) SetVertices(vertices []float32, indices []uint16) {
 }
 
 func (g *Game) Draw(indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address) {
-	// TODO: Implement this
-	g.binding.Call("Draw", indexLen, indexOffset)
+	src, dst := mode.Operations()
+	g.binding.Call("Draw", indexLen, indexOffset, int(src), int(dst))
 }
 
 func (g *Game) ResetDestination(viewportWidth, viewportHeight int) {
@@ -138,4 +138,8 @@ func (r *RenderTarget2D) SetAsDestination(viewportWidth, viewportHeight int) {
 
 func (r *RenderTarget2D) SetAsSource() {
 	r.binding.Call("SetSource", r.v)
+}
+
+func (r *RenderTarget2D) IsScreen() bool {
+	return false
 }

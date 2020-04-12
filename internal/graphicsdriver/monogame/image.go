@@ -26,6 +26,7 @@ type RenderTarget2D interface {
 	SetAsSource()
 	ReplacePixels(args []*driver.ReplacePixelsArgs)
 	Dispose()
+	IsScreen() bool
 }
 
 type Image struct {
@@ -49,7 +50,10 @@ func (*Image) Pixels() ([]byte, error) {
 }
 
 func (i *Image) SetAsDestination() {
-	w, h := graphics.InternalImageSize(i.width), graphics.InternalImageSize(i.height)
+	w, h := i.width, i.height
+	if !i.v.IsScreen() {
+		w, h = graphics.InternalImageSize(w), graphics.InternalImageSize(h)
+	}
 	i.v.SetAsDestination(w, h)
 }
 
