@@ -32,17 +32,18 @@ const (
 	screenHeight = 240
 )
 
-var (
-	count        = 0
+type Game struct {
+	count        int
 	gophersImage *ebiten.Image
-)
+}
 
-func update(screen *ebiten.Image) error {
-	count++
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-	w, h := gophersImage.Size()
+func (g *Game) Update(screen *ebiten.Image) error {
+	g.count++
+	return nil
+}
+
+func (g *Game) Draw(screen *ebiten.Image) {
+	w, h := g.gophersImage.Size()
 	op := &ebiten.DrawImageOptions{}
 
 	// Move the image's center to the screen's upper-left corner.
@@ -52,13 +53,16 @@ func update(screen *ebiten.Image) error {
 
 	// Rotate the image. As a result, the anchor point of this rotate is
 	// the center of the image.
-	op.GeoM.Rotate(float64(count%360) * 2 * math.Pi / 360)
+	op.GeoM.Rotate(float64(g.count%360) * 2 * math.Pi / 360)
 
 	// Move the image to the screen's center.
 	op.GeoM.Translate(screenWidth/2, screenHeight/2)
 
-	screen.DrawImage(gophersImage, op)
-	return nil
+	screen.DrawImage(g.gophersImage, op)
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
@@ -75,9 +79,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	g := &Game{}
+	g.gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Rotate (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Rotate (Ebiten Demo)")
+	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
 }
