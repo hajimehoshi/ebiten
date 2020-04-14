@@ -25,6 +25,7 @@ import (
 type UI struct {
 	game    *monogame.Game
 	context driver.UIContext
+	input   Input
 }
 
 var theUI = &UI{}
@@ -114,8 +115,8 @@ func (*UI) SetScreenTransparent(transparent bool) {
 	panic("monogame: SetScreenTransparent is not implemented")
 }
 
-func (*UI) Input() driver.Input {
-	return nil
+func (u *UI) Input() driver.Input {
+	return &u.input
 }
 
 func (*UI) Window() driver.Window {

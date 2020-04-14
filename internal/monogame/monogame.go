@@ -30,7 +30,7 @@ import (
 // Create 'ebitenmonogame' command to generate C# project for the MonoGame.
 
 // TODO: Update this
-const temporaryNamespace = "Go2DotNet.Example.Rotate"
+const temporaryNamespace = "Go2DotNet.Example.Ebiten"
 
 type UpdateDrawer interface {
 	Update() error
