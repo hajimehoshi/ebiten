@@ -2011,3 +2011,20 @@ func TestImageDrawTrianglesWithColorM(t *testing.T) {
 		}
 	}
 }
+
+// Issue #1137
+func TestImageDrawOver(t *testing.T) {
+	dst, _ := NewImage(320, 240, FilterDefault)
+	src := image.NewUniform(color.RGBA{0xff, 0, 0, 0xff})
+	// This must not cause infinite-loop.
+	draw.Draw(dst, dst.Bounds(), src, image.ZP, draw.Over)
+	for j := 0; j < 240; j++ {
+		for i := 0; i < 320; i++ {
+			got := dst.At(i, j)
+			want := color.RGBA{0xff, 0, 0, 0xff}
+			if got != want {
+				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
