@@ -127,7 +127,10 @@ func (i *Image) At(x, y int) (r, g, b, a byte, err error) {
 	if needsToDelayCommands {
 		panic("buffered: the command queue is not available yet at At")
 	}
-	// TODO: Use pending pixels
+	if i.pixels != nil {
+		idx := i.width*y + x
+		return i.pixels[4*idx], i.pixels[4*idx+1], i.pixels[4*idx+2], i.pixels[4*idx+3], nil
+	}
 	i.resolvePendingPixels(true)
 	return i.img.At(x, y)
 }
