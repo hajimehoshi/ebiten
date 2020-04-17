@@ -29,6 +29,9 @@ type Image struct {
 	width  int
 	height int
 
+	hasFill   bool
+	fillColor color.RGBA
+
 	pixels               []byte
 	needsToResolvePixels bool
 }
@@ -92,18 +95,29 @@ func (i *Image) initializeAsScreenFramebuffer(width, height int) {
 func (i *Image) invalidatePendingPixels() {
 	i.pixels = nil
 	i.needsToResolvePixels = false
+	i.hasFill = false
 }
 
 func (i *Image) resolvePendingPixels(keepPendingPixels bool) {
-	if !i.needsToResolvePixels {
+	if i.needsToResolvePixels && i.hasFill {
+		panic("buffered: needsToResolvePixels and hasFill must not be true at the same time")
+	}
+	if i.needsToResolvePixels {
+		i.img.ReplacePixels(i.pixels)
+		if !keepPendingPixels {
+			i.pixels = nil
+		}
+		i.needsToResolvePixels = false
+	}
+	i.resolvePendingFill()
+}
+
+func (i *Image) resolvePendingFill() {
+	if !i.hasFill {
 		return
 	}
-
-	i.img.ReplacePixels(i.pixels)
-	if !keepPendingPixels {
-		i.pixels = nil
-	}
-	i.needsToResolvePixels = false
+	i.img.Fill(i.fillColor)
+	i.hasFill = false
 }
 
 func (i *Image) MarkDisposed() {
@@ -126,6 +140,12 @@ func (i *Image) At(x, y int) (r, g, b, a byte, err error) {
 	defer delayedCommandsM.Unlock()
 	if needsToDelayCommands {
 		panic("buffered: the command queue is not available yet at At")
+	}
+
+	// If there are pixels or pending fillling that needs to be resolved, use this rather than resolving.
+	// Resolving them needs to access GPU and is expensive (#1137).
+	if i.hasFill {
+		return i.fillColor.R, i.fillColor.G, i.fillColor.B, i.fillColor.A, nil
 	}
 	if i.pixels != nil {
 		idx := i.width*y + x
@@ -156,8 +176,10 @@ func (i *Image) Fill(clr color.RGBA) {
 		return
 	}
 
+	// Defer filling the image so that successive fillings will be merged into one (#1134).
 	i.invalidatePendingPixels()
-	i.img.Fill(clr)
+	i.fillColor = clr
+	i.hasFill = true
 }
 
 func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
@@ -177,6 +199,8 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
 		})
 		return nil
 	}
+
+	i.resolvePendingFill()
 
 	if x == 0 && y == 0 && width == i.width && height == i.height {
 		i.invalidatePendingPixels()
