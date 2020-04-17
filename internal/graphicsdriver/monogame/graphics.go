@@ -90,7 +90,7 @@ func (g *Graphics) SetVsyncEnabled(enabled bool) {
 }
 
 func (g *Graphics) VDirection() driver.VDirection {
-	return driver.VDownward
+	return driver.VUpward
 }
 
 func (g *Graphics) NeedsRestoring() bool {
