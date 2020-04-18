@@ -142,16 +142,26 @@ func (i *Image) At(x, y int) (r, g, b, a byte, err error) {
 		panic("buffered: the command queue is not available yet at At")
 	}
 
+	if x < 0 || y < 0 || x >= i.width || y >= i.height {
+		return 0, 0, 0, 0, nil
+	}
+
 	// If there are pixels or pending fillling that needs to be resolved, use this rather than resolving.
 	// Resolving them needs to access GPU and is expensive (#1137).
 	if i.hasFill {
 		return i.fillColor.R, i.fillColor.G, i.fillColor.B, i.fillColor.A, nil
 	}
-	if i.pixels != nil {
-		idx := i.width*y + x
-		return i.pixels[4*idx], i.pixels[4*idx+1], i.pixels[4*idx+2], i.pixels[4*idx+3], nil
+
+	if i.pixels == nil {
+		pix, err := i.img.Pixels(0, 0, i.width, i.height)
+		if err != nil {
+			return 0, 0, 0, 0, err
+		}
+		i.pixels = pix
 	}
-	return i.img.At(x, y)
+
+	idx := i.width*y + x
+	return i.pixels[4*idx], i.pixels[4*idx+1], i.pixels[4*idx+2], i.pixels[4*idx+3], nil
 }
 
 func (i *Image) Dump(name string, blackbg bool) error {
@@ -209,22 +219,9 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
 
 	// TODO: Can we use (*restorable.Image).ReplacePixels?
 	if i.pixels == nil {
-		pix := make([]byte, 4*i.width*i.height)
-		idx := 0
-		img := i.img
-		sw, sh := i.width, i.height
-		for j := 0; j < sh; j++ {
-			for i := 0; i < sw; i++ {
-				r, g, b, a, err := img.At(i, j)
-				if err != nil {
-					return err
-				}
-				pix[4*idx] = r
-				pix[4*idx+1] = g
-				pix[4*idx+2] = b
-				pix[4*idx+3] = a
-				idx++
-			}
+		pix, err := i.img.Pixels(0, 0, i.width, i.height)
+		if err != nil {
+			return err
 		}
 		i.pixels = pix
 	}

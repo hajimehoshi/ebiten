@@ -92,8 +92,8 @@ func (m *Mipmap) ReplacePixels(pix []byte) {
 	m.disposeMipmaps()
 }
 
-func (m *Mipmap) At(x, y int) (r, g, b, a byte, err error) {
-	return m.orig.At(x, y)
+func (m *Mipmap) Pixels(x, y, width, height int) ([]byte, error) {
+	return m.orig.Pixels(x, y, width, height)
 }
 
 func (m *Mipmap) DrawImage(src *Mipmap, bounds image.Rectangle, geom GeoM, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter) {

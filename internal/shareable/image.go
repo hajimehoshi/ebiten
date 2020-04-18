@@ -376,11 +376,26 @@ func (i *Image) replacePixels(p []byte) {
 	i.backend.restorable.ReplacePixels(p, x, y, w, h)
 }
 
-func (i *Image) At(x, y int) (byte, byte, byte, byte, error) {
+func (img *Image) Pixels(x, y, width, height int) ([]byte, error) {
 	backendsM.Lock()
-	r, g, b, a, err := i.at(x, y)
-	backendsM.Unlock()
-	return r, g, b, a, err
+	defer backendsM.Unlock()
+
+	bs := make([]byte, 4*width*height)
+	idx := 0
+	for j := y; j < y+height; j++ {
+		for i := x; i < x+width; i++ {
+			r, g, b, a, err := img.at(i, j)
+			if err != nil {
+				return nil, err
+			}
+			bs[4*idx] = r
+			bs[4*idx+1] = g
+			bs[4*idx+2] = b
+			bs[4*idx+3] = a
+			idx++
+		}
+	}
+	return bs, nil
 }
 
 func (i *Image) at(x, y int) (byte, byte, byte, byte, error) {

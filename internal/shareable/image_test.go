@@ -95,12 +95,16 @@ func TestEnsureNotShared(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
+	pix, err := img4.Pixels(0, 0, size, size)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
-			r, g, b, a, err := img4.At(i, j)
-			if err != nil {
-				t.Fatal(err)
-			}
+			r := pix[4*(size*j+i)]
+			g := pix[4*(size*j+i)+1]
+			b := pix[4*(size*j+i)+2]
+			a := pix[4*(size*j+i)+3]
 			got := color.RGBA{r, g, b, a}
 			var want color.RGBA
 			if i < dx0 || dx1 <= i || j < dy0 || dy1 <= j {
@@ -108,7 +112,7 @@ func TestEnsureNotShared(t *testing.T) {
 				want = color.RGBA{c, c, c, c}
 			}
 			if got != want {
-				t.Errorf("img4.At(%d, %d): got: %v, want: %v", i, j, got, want)
+				t.Errorf("at(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}
 	}
@@ -174,13 +178,17 @@ func TestReshared(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	pix, err := img1.Pixels(0, 0, size, size)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
 			want := color.RGBA{byte(i + j), byte(i + j), byte(i + j), byte(i + j)}
-			r, g, b, a, err := img1.At(i, j)
-			if err != nil {
-				t.Fatal(err)
-			}
+			r := pix[4*(size*j+i)]
+			g := pix[4*(size*j+i)+1]
+			b := pix[4*(size*j+i)+2]
+			a := pix[4*(size*j+i)+3]
 			got := color.RGBA{r, g, b, a}
 			if got != want {
 				t.Errorf("got: %v, want: %v", got, want)
@@ -193,13 +201,17 @@ func TestReshared(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
+	pix, err = img1.Pixels(0, 0, size, size)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
 			want := color.RGBA{byte(i + j), byte(i + j), byte(i + j), byte(i + j)}
-			r, g, b, a, err := img1.At(i, j)
-			if err != nil {
-				t.Fatal(err)
-			}
+			r := pix[4*(size*j+i)]
+			g := pix[4*(size*j+i)+1]
+			b := pix[4*(size*j+i)+2]
+			a := pix[4*(size*j+i)+3]
 			got := color.RGBA{r, g, b, a}
 			if got != want {
 				t.Errorf("got: %v, want: %v", got, want)
@@ -247,32 +259,40 @@ func TestExtend(t *testing.T) {
 	// Ensure to allocate
 	img1.ReplacePixels(p1)
 
+	pix0, err := img0.Pixels(0, 0, w0, h0)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for j := 0; j < h0; j++ {
 		for i := 0; i < w0; i++ {
-			r, g, b, a, err := img0.At(i, j)
-			if err != nil {
-				t.Fatal(err)
-			}
+			r := pix0[4*(w0*j+i)]
+			g := pix0[4*(w0*j+i)+1]
+			b := pix0[4*(w0*j+i)+2]
+			a := pix0[4*(w0*j+i)+3]
 			got := color.RGBA{r, g, b, a}
 			c := byte(i + w0*j)
 			want := color.RGBA{c, c, c, c}
 			if got != want {
-				t.Errorf("img0.At(%d, %d): got: %v, want: %v", i, j, got, want)
+				t.Errorf("at(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}
 	}
 
+	pix1, err := img1.Pixels(0, 0, w1, h1)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for j := 0; j < h1; j++ {
 		for i := 0; i < w1; i++ {
-			r, g, b, a, err := img1.At(i, j)
-			if err != nil {
-				t.Fatal(err)
-			}
+			r := pix1[4*(w1*j+i)]
+			g := pix1[4*(w1*j+i)+1]
+			b := pix1[4*(w1*j+i)+2]
+			a := pix1[4*(w1*j+i)+3]
 			got := color.RGBA{r, g, b, a}
 			c := byte(i + w1*j)
 			want := color.RGBA{c, c, c, c}
 			if got != want {
-				t.Errorf("img1.At(%d, %d): got: %v, want: %v", i, j, got, want)
+				t.Errorf("at(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}
 	}
@@ -302,17 +322,21 @@ func TestReplacePixelsAfterDrawTriangles(t *testing.T) {
 	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
 	dst.ReplacePixels(pix)
 
+	pix, err := dst.Pixels(0, 0, w, h)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
-			r, g, b, a, err := dst.At(i, j)
-			if err != nil {
-				t.Fatal(err)
-			}
+			r := pix[4*(w*j+i)]
+			g := pix[4*(w*j+i)+1]
+			b := pix[4*(w*j+i)+2]
+			a := pix[4*(w*j+i)+3]
 			got := color.RGBA{r, g, b, a}
 			c := byte(i + w*j)
 			want := color.RGBA{c, c, c, c}
 			if got != want {
-				t.Errorf("dst.At(%d, %d): got %v, want: %v", i, j, got, want)
+				t.Errorf("at(%d, %d): got %v, want: %v", i, j, got, want)
 			}
 		}
 	}
@@ -339,17 +363,19 @@ func TestSmallImages(t *testing.T) {
 	is := graphics.QuadIndices()
 	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero)
 
+	pix, err := dst.Pixels(0, 0, w, h)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
-			r, _, _, a, err := dst.At(i, j)
-			if err != nil {
-				t.Fatal(err)
-			}
+			r := pix[4*(w*j+i)]
+			a := pix[4*(w*j+i)+3]
 			if got, want := r, byte(0xff); got != want {
-				t.Errorf("At(%d, %d) red: got: %d, want: %d", i, j, got, want)
+				t.Errorf("at(%d, %d) red: got: %d, want: %d", i, j, got, want)
 			}
 			if got, want := a, byte(0xff); got != want {
-				t.Errorf("At(%d, %d) alpha: got: %d, want: %d", i, j, got, want)
+				t.Errorf("at(%d, %d) alpha: got: %d, want: %d", i, j, got, want)
 			}
 		}
 	}
@@ -360,7 +386,9 @@ func TestLongImages(t *testing.T) {
 	const w, h = 1, 6
 	src := NewImage(w, h, false)
 	defer src.MarkDisposed()
-	dst := NewImage(256, 256, false)
+
+	const dstW, dstH = 256, 256
+	dst := NewImage(dstW, dstH, false)
 	defer dst.MarkDisposed()
 
 	pix := make([]byte, 4*w*h)
@@ -377,17 +405,19 @@ func TestLongImages(t *testing.T) {
 	is := graphics.QuadIndices()
 	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero)
 
+	pix, err := dst.Pixels(0, 0, dstW, dstH)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for j := 0; j < h; j++ {
 		for i := 0; i < w*scale; i++ {
-			r, _, _, a, err := dst.At(i, j)
-			if err != nil {
-				t.Fatal(err)
-			}
+			r := pix[4*(dstW*j+i)]
+			a := pix[4*(dstW*j+i)+3]
 			if got, want := r, byte(0xff); got != want {
-				t.Errorf("At(%d, %d) red: got: %d, want: %d", i, j, got, want)
+				t.Errorf("at(%d, %d) red: got: %d, want: %d", i, j, got, want)
 			}
 			if got, want := a, byte(0xff); got != want {
-				t.Errorf("At(%d, %d) alpha: got: %d, want: %d", i, j, got, want)
+				t.Errorf("at(%d, %d) alpha: got: %d, want: %d", i, j, got, want)
 			}
 		}
 	}
