@@ -196,6 +196,19 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
 		panic(fmt.Sprintf("buffered: len(pix) was %d but must be %d", len(pix), l))
 	}
 
+	// This is an optimization to avoid mutex for the case when ReplacePixels is called very often (e.g., Set).
+	// If i.pixels is not nil, delayed commands have already been flushed.
+	// needsToDelayCommands should be false, but we don't check it because this is out of the mutex lock.
+	// (#1137)
+	if i.pixels != nil {
+		// If the region is the whole image, don't use this optimization, or more memory is consumed by
+		// keeping pixels.
+		if !(x == 0 && y == 0 && width == i.width && height == i.height) {
+			i.replacePendingPixels(pix, x, y, width, height)
+			return nil
+		}
+	}
+
 	delayedCommandsM.Lock()
 	defer delayedCommandsM.Unlock()
 
@@ -225,11 +238,15 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
 		}
 		i.pixels = pix
 	}
+	i.replacePendingPixels(pix, x, y, width, height)
+	return nil
+}
+
+func (i *Image) replacePendingPixels(pix []byte, x, y, width, height int) {
 	for j := 0; j < height; j++ {
 		copy(i.pixels[4*((j+y)*i.width+x):], pix[4*j*width:4*(j+1)*width])
 	}
 	i.needsToResolvePixels = true
-	return nil
 }
 
 func (i *Image) DrawImage(src *Image, bounds image.Rectangle, a, b, c, d, tx, ty float32, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter) {
