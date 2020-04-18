@@ -29,6 +29,7 @@ import (
 	"github.com/hajimehoshi/ebiten/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	t "github.com/hajimehoshi/ebiten/internal/testing"
+	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
 func TestMain(m *testing.M) {
@@ -65,6 +66,10 @@ func sameColors(c1, c2 color.RGBA, delta int) bool {
 		abs(int(c1.G)-int(c2.G)) <= delta &&
 		abs(int(c1.B)-int(c2.B)) <= delta &&
 		abs(int(c1.A)-int(c2.A)) <= delta
+}
+
+func isGopherJS() bool {
+	return web.IsBrowser() && runtime.GOOS != "js"
 }
 
 func TestImagePixels(t *testing.T) {
@@ -542,6 +547,11 @@ func TestImageClear(t *testing.T) {
 
 // Issue #317, #558, #724
 func TestImageEdge(t *testing.T) {
+	if isGopherJS() {
+		t.Skip("too slow on GopherJS")
+		return
+	}
+
 	const (
 		img0Width        = 16
 		img0Height       = 16
@@ -927,6 +937,11 @@ func TestImageCopy(t *testing.T) {
 
 // Issue #611, #907
 func TestImageStretch(t *testing.T) {
+	if isGopherJS() {
+		t.Skip("too slow on GopherJS")
+		return
+	}
+
 	const w = 16
 
 	dst, _ := NewImage(w, 4096, FilterDefault)
