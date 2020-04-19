@@ -32,37 +32,41 @@ const (
 	screenHeight = 480
 )
 
-var (
-	gamepadIDs = map[int]struct{}{}
-)
+type Game struct {
+	gamepadIDs     map[int]struct{}
+	axes           map[int][]string
+	pressedButtons map[int][]string
+}
 
-func update(screen *ebiten.Image) error {
+func (g *Game) Update(screen *ebiten.Image) error {
+	if g.gamepadIDs == nil {
+		g.gamepadIDs = map[int]struct{}{}
+	}
+
 	// Log the gamepad connection events.
 	for _, id := range inpututil.JustConnectedGamepadIDs() {
 		log.Printf("gamepad connected: id: %d", id)
-		gamepadIDs[id] = struct{}{}
+		g.gamepadIDs[id] = struct{}{}
 	}
-	for id := range gamepadIDs {
+	for id := range g.gamepadIDs {
 		if inpututil.IsGamepadJustDisconnected(id) {
 			log.Printf("gamepad disconnected: id: %d", id)
-			delete(gamepadIDs, id)
+			delete(g.gamepadIDs, id)
 		}
 	}
 
-	ids := ebiten.GamepadIDs()
-	axes := map[int][]string{}
-	pressedButtons := map[int][]string{}
-
-	for _, id := range ids {
+	g.axes = map[int][]string{}
+	g.pressedButtons = map[int][]string{}
+	for id := range g.gamepadIDs {
 		maxAxis := ebiten.GamepadAxisNum(id)
 		for a := 0; a < maxAxis; a++ {
 			v := ebiten.GamepadAxis(id, a)
-			axes[id] = append(axes[id], fmt.Sprintf("%d:%0.2f", a, v))
+			g.axes[id] = append(g.axes[id], fmt.Sprintf("%d:%0.2f", a, v))
 		}
 		maxButton := ebiten.GamepadButton(ebiten.GamepadButtonNum(id))
 		for b := ebiten.GamepadButton(id); b < maxButton; b++ {
 			if ebiten.IsGamepadButtonPressed(id, b) {
-				pressedButtons[id] = append(pressedButtons[id], strconv.Itoa(int(b)))
+				g.pressedButtons[id] = append(g.pressedButtons[id], strconv.Itoa(int(b)))
 			}
 
 			// Log button events.
@@ -74,29 +78,33 @@ func update(screen *ebiten.Image) error {
 			}
 		}
 	}
+	return nil
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
+func (g *Game) Draw(screen *ebiten.Image) {
 	// Draw the current gamepad status.
 	str := ""
-	if len(ids) > 0 {
-		for _, id := range ids {
+	if len(g.gamepadIDs) > 0 {
+		for id := range g.gamepadIDs {
 			str += fmt.Sprintf("Gamepad (ID: %d, SDL ID: %s):\n", id, ebiten.GamepadSDLID(id))
-			str += fmt.Sprintf("  Axes:    %s\n", strings.Join(axes[id], ", "))
-			str += fmt.Sprintf("  Buttons: %s\n", strings.Join(pressedButtons[id], ", "))
+			str += fmt.Sprintf("  Axes:    %s\n", strings.Join(g.axes[id], ", "))
+			str += fmt.Sprintf("  Buttons: %s\n", strings.Join(g.pressedButtons[id], ", "))
 			str += "\n"
 		}
 	} else {
 		str = "Please connect your gamepad."
 	}
 	ebitenutil.DebugPrint(screen, str)
-	return nil
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 1, "Gamepad (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("Gamepad (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }
