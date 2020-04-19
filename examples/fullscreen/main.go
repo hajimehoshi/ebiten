@@ -36,7 +36,6 @@ import (
 )
 
 var (
-	count              = 0
 	gophersImage       *ebiten.Image
 	mplusFont          font.Face
 	regularTermination = errors.New("regular termination")
@@ -73,17 +72,20 @@ func initFont() {
 	})
 }
 
-func update(screen *ebiten.Image) error {
-	count++
+type Game struct {
+	count int
+}
+
+func (g *Game) Update(screen *ebiten.Image) error {
+	g.count++
 
 	if ebiten.IsKeyPressed(ebiten.KeyQ) {
 		return regularTermination
 	}
+	return nil
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
+func (g *Game) Draw(screen *ebiten.Image) {
 	scale := ebiten.DeviceScaleFactor()
 
 	w, h := gophersImage.Size()
@@ -91,7 +93,7 @@ func update(screen *ebiten.Image) error {
 
 	op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
 	op.GeoM.Scale(scale, scale)
-	op.GeoM.Rotate(float64(count%360) * 2 * math.Pi / 360)
+	op.GeoM.Rotate(float64(g.count%360) * 2 * math.Pi / 360)
 	sw, sh := screen.Size()
 	op.GeoM.Translate(float64(sw)/2, float64(sh)/2)
 	op.Filter = ebiten.FilterLinear
@@ -108,8 +110,11 @@ func update(screen *ebiten.Image) error {
 	for i, msg := range msgs {
 		text.Draw(screen, msg, mplusFont, int(50*scale), int(50+float64(i)*16*scale), color.White)
 	}
+}
 
-	return nil
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	s := ebiten.DeviceScaleFactor()
+	return int(float64(outsideWidth) * s), int(float64(outsideHeight) * s)
 }
 
 func main() {
@@ -117,17 +122,8 @@ func main() {
 	initFont()
 
 	ebiten.SetFullscreen(true)
-
-	w, h := ebiten.ScreenSizeInFullscreen()
-	// On mobiles, ebiten.MonitorSize is not available so far.
-	// Use arbitrary values.
-	if w == 0 || h == 0 {
-		w = 300
-		h = 450
-	}
-
-	s := ebiten.DeviceScaleFactor()
-	if err := ebiten.Run(update, int(float64(w)*s), int(float64(h)*s), 1/s, "Rotate (Ebiten Demo)"); err != nil && err != regularTermination {
+	ebiten.SetWindowTitle("Fullscreen (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil && err != regularTermination {
 		log.Fatal(err)
 	}
 }
