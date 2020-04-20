@@ -19,6 +19,7 @@ package monogame
 import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/monogame"
 	"github.com/hajimehoshi/ebiten/internal/thread"
 )
@@ -58,7 +59,8 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) {
 }
 
 func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
-	v := g.game.NewRenderTarget2D(width, height)
+	w, h := graphics.InternalImageSize(width), graphics.InternalImageSize(height)
+	v := g.game.NewRenderTarget2D(w, h)
 	return &Image{
 		v:      v,
 		g:      g,
