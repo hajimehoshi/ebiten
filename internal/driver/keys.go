@@ -340,5 +340,5 @@ func (k Key) String() string {
 	case KeyUp:
 		return "KeyUp"
 	}
-	panic(fmt.Sprintf("driver: invalid key: %v", k))
+	panic(fmt.Sprintf("driver: invalid key: %d", k))
 }

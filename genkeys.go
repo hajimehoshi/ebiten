@@ -437,7 +437,7 @@ func (k Key) String() string {
 	{{range $index, $name := .DriverKeyNames}}case Key{{$name}}:
 		return {{$name | printf "Key%s" | printf "%q"}}
 	{{end}}}
-	panic(fmt.Sprintf("driver: invalid key: %v", k))
+	panic(fmt.Sprintf("driver: invalid key: %d", k))
 }
 `
 
