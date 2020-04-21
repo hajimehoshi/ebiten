@@ -114,6 +114,11 @@ func (g *Game) ResetDestination(viewportWidth, viewportHeight int) {
 	g.binding.Call("SetDestination", nil, viewportWidth, viewportHeight)
 }
 
+func (g *Game) IsKeyPressed(key driver.Key) bool {
+	// Pass a string of the key since both driver.Key value and XNA's key value are not reliable.
+	return g.binding.Call("IsKeyPressed", key.String()).Bool()
+}
+
 type RenderTarget2D struct {
 	v       js.Value
 	binding js.Value

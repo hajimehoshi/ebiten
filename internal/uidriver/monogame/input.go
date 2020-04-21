@@ -18,9 +18,11 @@ package monogame
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/internal/monogame"
 )
 
 type Input struct {
+	game *monogame.Game
 }
 
 func (i *Input) CursorPosition() (x, y int) {
@@ -56,7 +58,7 @@ func (i *Input) IsGamepadButtonPressed(id int, button driver.GamepadButton) bool
 }
 
 func (i *Input) IsKeyPressed(key driver.Key) bool {
-	return false
+	return i.game.IsKeyPressed(key)
 }
 
 func (i *Input) IsMouseButtonPressed(button driver.MouseButton) bool {

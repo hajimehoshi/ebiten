@@ -39,6 +39,7 @@ func (u *UI) Run(context driver.UIContext) error {
 	defer g.Dispose()
 
 	u.game = g
+	u.input.game = g
 	u.context = context
 	u.Graphics().(*graphics.Graphics).SetGame(g)
 	u.updateSize()
