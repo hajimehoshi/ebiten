@@ -419,6 +419,10 @@ const driverKeysTmpl = `{{.License}}
 
 package driver
 
+import (
+	"fmt"
+)
+
 type Key int
 
 const (
@@ -427,6 +431,14 @@ const (
 	KeyReserved1
 	KeyReserved2
 )
+
+func (k Key) String() string {
+	switch k {
+	{{range $index, $name := .DriverKeyNames}}case Key{{$name}}:
+		return {{$name | printf "Key%s" | printf "%q"}}
+	{{end}}}
+	panic(fmt.Sprintf("driver: invalid key: %v", k))
+}
 `
 
 const eventKeysTmpl = `{{.License}}
