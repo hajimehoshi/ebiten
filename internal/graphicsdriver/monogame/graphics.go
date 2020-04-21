@@ -124,6 +124,10 @@ func (s *screen) SetAsSource() {
 	panic("monogame: SetAsSource on screen is forbidden")
 }
 
+func (s *screen) Pixels(width, height int) ([]byte, error) {
+	panic("monogame: Pixels on screen is forbidden")
+}
+
 func (s *screen) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	panic("monogame: ReplacePixels on screen is forbidden")
 }

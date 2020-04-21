@@ -24,6 +24,7 @@ import (
 type RenderTarget2D interface {
 	SetAsDestination(viewportWidth, viewportHeight int)
 	SetAsSource()
+	Pixels(width, height int) ([]byte, error)
 	ReplacePixels(args []*driver.ReplacePixelsArgs)
 	Dispose()
 	IsScreen() bool
@@ -44,9 +45,8 @@ func (*Image) IsInvalidated() bool {
 	return false
 }
 
-func (*Image) Pixels() ([]byte, error) {
-	panic("monogame: Pixels is not implemented yet")
-	return nil, nil
+func (i *Image) Pixels() ([]byte, error) {
+	return i.v.Pixels(i.width, i.height)
 }
 
 func (i *Image) SetAsDestination() {

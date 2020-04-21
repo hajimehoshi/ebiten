@@ -126,7 +126,14 @@ type RenderTarget2D struct {
 
 func (r *RenderTarget2D) Dispose() {
 	runtime.SetFinalizer(r, nil)
-	r.v.Call("Dispose")
+	r.binding.Call("Dispose", r.v)
+}
+
+func (r *RenderTarget2D) Pixels(width, height int) ([]byte, error) {
+	v := r.binding.Call("Pixels", r.v, width, height)
+	bs := make([]byte, v.Length())
+	js.CopyBytesToGo(bs, v)
+	return bs, nil
 }
 
 func (r *RenderTarget2D) ReplacePixels(args []*driver.ReplacePixelsArgs) {
