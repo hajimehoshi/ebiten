@@ -175,6 +175,10 @@ func fract(x float32) float32 {
 
 // Flush flushes the command queue.
 func (q *commandQueue) Flush() error {
+	if len(q.commands) == 0 {
+		return nil
+	}
+
 	es := q.indices
 	vs := q.vertices
 	if recordLog() {
@@ -233,7 +237,6 @@ func (q *commandQueue) Flush() error {
 			vs[i*graphics.VertexFloatNum+7] /= s.height
 		}
 	}
-
 	theGraphicsDriver.Begin()
 	cs := q.commands
 	for len(cs) > 0 {
