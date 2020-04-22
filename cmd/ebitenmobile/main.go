@@ -111,10 +111,12 @@ func main() {
 
 	// Add ldflags to suppress linker errors (#932).
 	// See https://github.com/golang/go/issues/17807
-	if buildLdflags == "" {
-		buildLdflags += " "
+	if buildTarget == "android" {
+		if buildLdflags != "" {
+			buildLdflags += " "
+		}
+		buildLdflags += "-extldflags=-Wl,-soname,libgojni.so"
 	}
-	buildLdflags += "-extldflags=-Wl,-soname,libgojni.so"
 
 	if err := prepareGomobileCommands(); err != nil {
 		log.Fatal(err)
