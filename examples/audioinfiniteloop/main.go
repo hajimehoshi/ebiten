@@ -56,8 +56,8 @@ func (g *Game) Update(screen *ebiten.Image) error {
 		return nil
 	}
 
-	// Decode the wav file.
-	// wavS is a decoded io.ReadCloser and io.Seeker.
+	// Decode an Ogg file.
+	// oggS is a decoded io.ReadCloser and io.Seeker.
 	oggS, err := vorbis.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Ragtime_ogg))
 	if err != nil {
 		return err
