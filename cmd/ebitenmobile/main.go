@@ -109,9 +109,14 @@ func main() {
 
 	flagset.Parse(args[1:])
 
+	os, err := osFromBuildTarget(buildTarget)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Add ldflags to suppress linker errors (#932).
 	// See https://github.com/golang/go/issues/17807
-	if buildTarget == "android" {
+	if os == "android" {
 		if buildLdflags != "" {
 			buildLdflags += " "
 		}
@@ -124,7 +129,7 @@ func main() {
 
 	switch args[0] {
 	case "bind":
-		if err := doBind(args, &flagset); err != nil {
+		if err := doBind(args, &flagset, os); err != nil {
 			log.Fatal(err)
 		}
 	default:
@@ -132,14 +137,28 @@ func main() {
 	}
 }
 
-func doBind(args []string, flagset *flag.FlagSet) error {
+func osFromBuildTarget(buildTarget string) (string, error) {
+	var os string
+	for i, pair := range strings.Split(buildTarget, ",") {
+		osarch := strings.SplitN(pair, "/", 2)
+		if i == 0 {
+			os = osarch[0]
+		}
+		if os != osarch[0] {
+			return "", fmt.Errorf("ebitenmobile: cannot target different OSes")
+		}
+	}
+	if os == "ios" {
+		os = "darwin"
+	}
+	return os, nil
+}
+
+func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 	tags := buildTags
 	cfg := &packages.Config{}
-	switch buildTarget {
-	case "android":
-		cfg.Env = append(os.Environ(), "GOOS=android")
-	case "ios":
-		cfg.Env = append(os.Environ(), "GOOS=darwin")
+	cfg.Env = append(os.Environ(), "GOOS="+buildOS)
+	if buildOS == "darwin" {
 		if tags != "" {
 			tags += " "
 		}
@@ -185,10 +204,7 @@ func doBind(args []string, flagset *flag.FlagSet) error {
 		return content
 	}
 
-	switch buildTarget {
-	case "android":
-		// Do nothing.
-	case "ios":
+	if buildOS == "darwin" {
 		dir := filepath.Join(buildO, "Versions", "A")
 
 		if err := ioutil.WriteFile(filepath.Join(dir, "Headers", prefixUpper+"EbitenViewController.h"), []byte(replacePrefixes(objcH)), 0644); err != nil {
