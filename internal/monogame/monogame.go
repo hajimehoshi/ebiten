@@ -29,8 +29,10 @@ import (
 // TODO: This implementation depends on some C# files that are not uploaded yet.
 // Create 'ebitenmonogame' command to generate C# project for the MonoGame.
 
-// TODO: Update this
-const temporaryNamespace = "Go2DotNet.Example.Ebiten"
+// namespace is C# namespace.
+//
+// This is overwritten by -ldflags='-X github.com/hajimehoshi/ebiten/internal/monogame.namespace=NAMESPACE'.
+var namespace = "Go2DotNet.Example.Ebiten"
 
 type UpdateDrawer interface {
 	Update() error
@@ -52,7 +54,7 @@ func NewGame(ud UpdateDrawer) *Game {
 		return ud.Draw()
 	})
 
-	v := js.Global().Get(".net").Get(temporaryNamespace+".GameGoBinding").New(update, draw)
+	v := js.Global().Get(".net").Get(namespace+".GameGoBinding").New(update, draw)
 	g := &Game{
 		binding: v,
 		update:  update,
