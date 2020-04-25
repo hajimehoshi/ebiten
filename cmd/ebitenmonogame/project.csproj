@@ -19,7 +19,6 @@
   <ItemGroup>
     <PackageReference Include="MonoGame.Content.Builder" Version="3.7.0.9" />
     <PackageReference Include="MonoGame.Framework.DesktopGL.Core" Version="3.8.0.13" />
-    <PackageReference Include="InfinitespaceStudios.Pipeline" Version="1.0.9" />
   </ItemGroup>
 
 </Project>
