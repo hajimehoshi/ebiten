@@ -27,6 +27,7 @@ import (
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/examples/resources/images"
+	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
 const (
@@ -35,13 +36,6 @@ const (
 )
 
 var (
-	hue128        = 0
-	saturation128 = 128
-	value128      = 128
-
-	inverted = false
-
-	prevPressedI = false
 	gophersImage *ebiten.Image
 )
 
@@ -59,54 +53,66 @@ func clamp(v, min, max int) int {
 	return v
 }
 
-func update(screen *ebiten.Image) error {
+type Game struct {
+	hue128        int
+	saturation128 int
+	value128      int
+
+	inverted bool
+}
+
+func NewGame() *Game {
+	return &Game{
+		saturation128: 128,
+		value128:      128,
+	}
+}
+
+func (g *Game) Update(screen *ebiten.Image) error {
 	// Adjust HSV values along with the user's input.
 	if ebiten.IsKeyPressed(ebiten.KeyQ) {
-		hue128--
+		g.hue128--
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyW) {
-		hue128++
+		g.hue128++
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyA) {
-		saturation128--
+		g.saturation128--
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyS) {
-		saturation128++
+		g.saturation128++
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyZ) {
-		value128--
+		g.value128--
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyX) {
-		value128++
+		g.value128++
 	}
 
-	hue128 = clamp(hue128, -256, 256)
-	saturation128 = clamp(saturation128, 0, 256)
-	value128 = clamp(value128, 0, 256)
+	g.hue128 = clamp(g.hue128, -256, 256)
+	g.saturation128 = clamp(g.saturation128, 0, 256)
+	g.value128 = clamp(g.value128, 0, 256)
 
-	pressedI := ebiten.IsKeyPressed(ebiten.KeyI)
-	if pressedI && !prevPressedI {
-		inverted = !inverted
+	if inpututil.IsKeyJustPressed(ebiten.KeyI) {
+		g.inverted = !g.inverted
 	}
-	prevPressedI = pressedI
+	return nil
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
+func (g *Game) Draw(screen *ebiten.Image) {
 	// Center the image on the screen.
 	w, h := gophersImage.Size()
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(screenWidth-w)/2, float64(screenHeight-h)/2)
 
 	// Change HSV.
-	hue := float64(hue128) * 2 * math.Pi / 128
-	saturation := float64(saturation128) / 128
-	value := float64(value128) / 128
+	hue := float64(g.hue128) * 2 * math.Pi / 128
+	saturation := float64(g.saturation128) / 128
+	value := float64(g.value128) / 128
 	op.ColorM.ChangeHSV(hue, saturation, value)
 
 	// Invert the color.
-	if inverted {
+	if g.inverted {
 		op.ColorM.Scale(-1, -1, -1, 1)
 		op.ColorM.Translate(1, 1, 1, 0)
 	}
@@ -115,7 +121,7 @@ func update(screen *ebiten.Image) error {
 
 	// Draw the text of the current status.
 	msgInverted := "false"
-	if inverted {
+	if g.inverted {
 		msgInverted = "true"
 	}
 	msg := fmt.Sprintf(`Hue:        %0.2f [Q][W]
@@ -123,7 +129,10 @@ Saturation: %0.2f [A][S]
 Value:      %0.2f [Z][X]
 Inverted:   %s [I]`, hue, saturation, value, msgInverted)
 	ebitenutil.DebugPrint(screen, msg)
-	return nil
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
@@ -142,7 +151,9 @@ func main() {
 	}
 	gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "HSV (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("HSV (Ebiten Demo)")
+	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}
 }
