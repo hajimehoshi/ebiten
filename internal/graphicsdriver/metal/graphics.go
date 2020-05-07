@@ -76,15 +76,19 @@ vertex VertexOut VertexShader(
 ) {
   float4x4 projectionMatrix = float4x4(
     float4(2.0 / viewport_size.x, 0, 0, 0),
-    float4(0, -2.0 / viewport_size.y, 0, 0),
+    float4(0, 2.0 / viewport_size.y, 0, 0),
     float4(0, 0, 1, 0),
-    float4(-1, 1, 0, 1)
+    float4(-1, -1, 0, 1)
   );
 
   VertexIn in = vertices[vid];
 
+  // TODO: Is this a correct fix?
+  float4 pos = projectionMatrix * float4(in.position, 0, 1);
+  pos.y = -pos.y;
+
   VertexOut out = {
-    .position = projectionMatrix * float4(in.position, 0, 1),
+    .position = pos,
     .tex = in.tex,
     .tex_region = in.tex_region,
     .color = in.color,
