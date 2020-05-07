@@ -83,7 +83,8 @@ vertex VertexOut VertexShader(
 
   VertexIn in = vertices[vid];
 
-  // TODO: Is this a correct fix?
+  // In Metal, the NDC's Y direction (upward) and the framebuffer's Y direction (downward) don't match.
+  // Then, the Y value must be inverted.
   float4 pos = projectionMatrix * float4(in.position, 0, 1);
   pos.y = -pos.y;
 
