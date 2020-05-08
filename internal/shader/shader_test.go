@@ -33,10 +33,22 @@ type VertexOut struct {
 	TexCoord vec2
 	Color    vec4
 }
+
+var Foo float
+var (
+	Bar       vec2
+	Baz, Quux vec3
+	qux       vec4
+)
 `,
 			Dump: `var Position varying vec4 // position
 var Color varying vec4
 var TexCoord varying vec2
+var Bar uniform vec2
+var Baz uniform vec3
+var Foo uniform float
+var Quux uniform vec3
+var qux vec4
 `,
 		},
 	}
