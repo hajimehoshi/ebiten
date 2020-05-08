@@ -129,8 +129,8 @@ func (g *Graphics) SetVsyncEnabled(enabled bool) {
 	// Do nothing
 }
 
-func (g *Graphics) VDirection() driver.VDirection {
-	return driver.VDownward
+func (g *Graphics) FramebufferYDirection() driver.YDirection {
+	return driver.Upward
 }
 
 func (g *Graphics) NeedsRestoring() bool {

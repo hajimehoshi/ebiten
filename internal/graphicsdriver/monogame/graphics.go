@@ -91,8 +91,8 @@ func (g *Graphics) SetVsyncEnabled(enabled bool) {
 	panic("monogame: SetVsyncEnabled is not implemented yet")
 }
 
-func (g *Graphics) VDirection() driver.VDirection {
-	return driver.VUpward
+func (g *Graphics) FramebufferYDirection() driver.YDirection {
+	return driver.Downward
 }
 
 func (g *Graphics) NeedsRestoring() bool {

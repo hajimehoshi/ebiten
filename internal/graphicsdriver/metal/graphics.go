@@ -684,8 +684,8 @@ func (g *Graphics) SetVsyncEnabled(enabled bool) {
 	g.view.setDisplaySyncEnabled(enabled)
 }
 
-func (g *Graphics) VDirection() driver.VDirection {
-	return driver.VUpward
+func (g *Graphics) FramebufferYDirection() driver.YDirection {
+	return driver.Downward
 }
 
 func (g *Graphics) NeedsRestoring() bool {

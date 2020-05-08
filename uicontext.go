@@ -307,14 +307,14 @@ func (c *uiContext) draw() {
 	op := &DrawImageOptions{}
 
 	s := c.screenScale()
-	switch vd := uiDriver().Graphics().VDirection(); vd {
-	case driver.VDownward:
+	switch vd := uiDriver().Graphics().FramebufferYDirection(); vd {
+	case driver.Upward:
 		// c.screen is special: its Y axis is down to up,
 		// and the origin point is lower left.
 		op.GeoM.Scale(s, -s)
 		_, h := c.offscreen.Size()
 		op.GeoM.Translate(0, float64(h)*s)
-	case driver.VUpward:
+	case driver.Downward:
 		op.GeoM.Scale(s, s)
 	default:
 		panic(fmt.Sprintf("ebiten: invalid v-direction: %d", vd))

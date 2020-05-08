@@ -32,7 +32,7 @@ type Graphics interface {
 	Reset() error
 	Draw(indexLen int, indexOffset int, mode CompositeMode, colorM *affine.ColorM, filter Filter, address Address) error
 	SetVsyncEnabled(enabled bool)
-	VDirection() VDirection
+	FramebufferYDirection() YDirection
 	NeedsRestoring() bool
 	IsGL() bool
 	HasHighPrecisionFloat() bool
@@ -59,9 +59,9 @@ type ReplacePixelsArgs struct {
 	Height int
 }
 
-type VDirection int
+type YDirection int
 
 const (
-	VUpward VDirection = iota
-	VDownward
+	Upward YDirection = iota
+	Downward
 )
