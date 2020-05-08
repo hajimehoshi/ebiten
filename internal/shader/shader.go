@@ -32,23 +32,25 @@ var (
 	kageTagRe = regexp.MustCompile("^`" + `kage:\"(.+)\"` + "`$")
 )
 
-type nameAndType struct {
-	name string
-	typ  typ
+type variable struct {
+	name     string
+	typ      typ
+	constant bool
+	init     string
 }
 
 type Shader struct {
 	// position is the field name of VertexOut that represents a vertex position (gl_Position in GLSL).
-	position nameAndType
+	position variable
 
 	// varyings is a collection of varying variables.
-	varyings []nameAndType
+	varyings []variable
 
 	// uniforms is a collection of uniform variables.
-	uniforms []nameAndType
+	uniforms []variable
 
 	// globals is a collection of global variables.
-	globals []nameAndType
+	globals []variable
 
 	errs []string
 }
@@ -100,6 +102,8 @@ func (s *Shader) parse(f *ast.File) {
 			s.parseVaryingStruct(obj)
 		default:
 			switch obj.Kind {
+			case ast.Con:
+				s.parsePackageLevelConstant(name, obj)
 			case ast.Var:
 				s.parsePackageLevelVariable(name, obj)
 			}
@@ -145,7 +149,7 @@ func (sh *Shader) parseVaryingStruct(obj *ast.Object) {
 				sh.addError(fmt.Sprintf("position must be vec4 but %s", t))
 				continue
 			}
-			sh.position = nameAndType{
+			sh.position = variable{
 				name: f.Names[0].Name,
 				typ:  t,
 			}
@@ -161,7 +165,7 @@ func (sh *Shader) parseVaryingStruct(obj *ast.Object) {
 			continue
 		}
 		for _, n := range f.Names {
-			sh.varyings = append(sh.varyings, nameAndType{
+			sh.varyings = append(sh.varyings, variable{
 				name: n.Name,
 				typ:  t,
 			})
@@ -180,14 +184,52 @@ func (s *Shader) parsePackageLevelVariable(name string, obj *ast.Object) {
 		s.addError(err.Error())
 		return
 	}
-	nt := nameAndType{
+	val := variable{
 		name: name,
 		typ:  t,
 	}
+	// TODO: Parse initial value.
 	if 'A' <= name[0] && name[0] <= 'Z' {
-		s.uniforms = append(s.uniforms, nt)
+		s.uniforms = append(s.uniforms, val)
 	} else {
-		s.globals = append(s.globals, nt)
+		s.globals = append(s.globals, val)
+	}
+}
+
+func (s *Shader) parsePackageLevelConstant(name string, obj *ast.Object) {
+	vs, ok := obj.Decl.(*ast.ValueSpec)
+	if !ok {
+		s.addError("value spec expected")
+		return
+	}
+	t, err := parseType(vs.Type)
+	if err != nil {
+		s.addError(err.Error())
+		return
+	}
+	for i, v := range vs.Values {
+		if vs.Names[i].Name != name {
+			continue
+		}
+
+		var init string
+		switch v := v.(type) {
+		case *ast.BasicLit:
+			if v.Kind != token.INT && v.Kind != token.FLOAT {
+				s.addError(fmt.Sprintf("literal must be int or float but %s", v.Kind))
+				return
+			}
+			init = v.Value // TODO: This should be math/big.Int or Float.
+		default:
+			// TODO: Parse the expression.
+		}
+		val := variable{
+			name:     name,
+			typ:      t, // TODO: Treat consts without types
+			constant: true,
+			init:     init,
+		}
+		s.globals = append(s.globals, val)
 	}
 }
 
@@ -205,7 +247,15 @@ func (s *Shader) Dump() string {
 	}
 
 	for _, g := range s.globals {
-		lines = append(lines, fmt.Sprintf("var %s %s", g.name, g.typ))
+		prefix := "var"
+		if g.constant {
+			prefix = "const"
+		}
+		init := ""
+		if g.init != "" {
+			init = " = " + g.init
+		}
+		lines = append(lines, fmt.Sprintf("%s %s %s%s", prefix, g.name, g.typ, init))
 	}
 
 	return strings.Join(lines, "\n") + "\n"

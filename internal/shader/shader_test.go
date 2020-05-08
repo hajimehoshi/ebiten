@@ -40,6 +40,9 @@ var (
 	Baz, Quux vec3
 	qux       vec4
 )
+
+const C1 float = 1
+const C2, C3 float = 2, 3
 `,
 			Dump: `var Position varying vec4 // position
 var Color varying vec4
@@ -48,6 +51,9 @@ var Bar uniform vec2
 var Baz uniform vec3
 var Foo uniform float
 var Quux uniform vec3
+const C1 float = 1
+const C2 float = 2
+const C3 float = 3
 var qux vec4
 `,
 		},
