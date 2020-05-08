@@ -309,8 +309,6 @@ func (c *uiContext) draw() {
 	s := c.screenScale()
 	switch vd := uiDriver().Graphics().FramebufferYDirection(); vd {
 	case driver.Upward:
-		// c.screen is special: its Y axis is down to up,
-		// and the origin point is lower left.
 		op.GeoM.Scale(s, -s)
 		_, h := c.offscreen.Size()
 		op.GeoM.Translate(0, float64(h)*s)
