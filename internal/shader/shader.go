@@ -91,11 +91,11 @@ func NewShader(src []byte) (*Shader, error) {
 }
 
 func (s *Shader) addError(str string) {
+	// TODO: Add token positions.
 	s.errs = append(s.errs, str)
 }
 
 func (s *Shader) parse(f *ast.File) {
-	// TODO: Accumulate errors
 	for name, obj := range f.Scope.Objects {
 		switch name {
 		case varyingStructName:
