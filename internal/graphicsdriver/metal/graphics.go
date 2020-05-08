@@ -82,14 +82,8 @@ vertex VertexOut VertexShader(
   );
 
   VertexIn in = vertices[vid];
-
-  // In Metal, the NDC's Y direction (upward) and the framebuffer's Y direction (downward) don't match.
-  // Then, the Y value must be inverted.
-  float4 pos = projectionMatrix * float4(in.position, 0, 1);
-  pos.y = -pos.y;
-
   VertexOut out = {
-    .position = pos,
+    .position = projectionMatrix * float4(in.position, 0, 1),
     .tex = in.tex,
     .tex_region = in.tex_region,
     .color = in.color,
@@ -613,8 +607,6 @@ func (g *Graphics) Draw(indexLen int, indexOffset int, mode driver.CompositeMode
 		rpd.ColorAttachments[0].Texture = t
 		rpd.ColorAttachments[0].ClearColor = mtl.ClearColor{}
 
-		w, h := g.dst.viewportSize()
-
 		if g.cb == (mtl.CommandBuffer{}) {
 			g.cb = g.cq.MakeCommandBuffer()
 		}
@@ -631,11 +623,14 @@ func (g *Graphics) Draw(indexLen int, indexOffset int, mode driver.CompositeMode
 				compositeMode: mode,
 			}])
 		}
+		// In Metal, the NDC's Y direction (upward) and the framebuffer's Y direction (downward) don't
+		// match. Then, the Y direction must be inverted.
+		w, h := g.dst.viewportSize()
 		rce.SetViewport(mtl.Viewport{
 			OriginX: 0,
-			OriginY: 0,
+			OriginY: float64(h),
 			Width:   float64(w),
-			Height:  float64(h),
+			Height:  -float64(h),
 			ZNear:   -1,
 			ZFar:    1,
 		})
