@@ -40,6 +40,8 @@ type variable struct {
 }
 
 type Shader struct {
+	fs *token.FileSet
+
 	// position is the field name of VertexOut that represents a vertex position (gl_Position in GLSL).
 	position variable
 
@@ -64,12 +66,15 @@ func (p *ParseError) Error() string {
 }
 
 func NewShader(src []byte) (*Shader, error) {
-	f, err := parser.ParseFile(token.NewFileSet(), "", src, parser.AllErrors)
+	fs := token.NewFileSet()
+	f, err := parser.ParseFile(fs, "", src, parser.AllErrors)
 	if err != nil {
 		return nil, err
 	}
 
-	s := &Shader{}
+	s := &Shader{
+		fs: fs,
+	}
 	s.parse(f)
 
 	if len(s.errs) > 0 {
@@ -90,9 +95,9 @@ func NewShader(src []byte) (*Shader, error) {
 	return s, nil
 }
 
-func (s *Shader) addError(str string) {
-	// TODO: Add token positions.
-	s.errs = append(s.errs, str)
+func (s *Shader) addError(pos token.Pos, str string) {
+	p := s.fs.Position(pos)
+	s.errs = append(s.errs, fmt.Sprintf("%s: %s", p, str))
 }
 
 func (s *Shader) parse(f *ast.File) {
@@ -114,13 +119,13 @@ func (s *Shader) parse(f *ast.File) {
 func (sh *Shader) parseVaryingStruct(obj *ast.Object) {
 	name := obj.Name
 	if obj.Kind != ast.Typ {
-		sh.addError(fmt.Sprintf("%s must be a type but %s", name, obj.Kind))
+		sh.addError(obj.Pos(), fmt.Sprintf("%s must be a type but %s", name, obj.Kind))
 		return
 	}
 	t := obj.Decl.(*ast.TypeSpec).Type
 	s, ok := t.(*ast.StructType)
 	if !ok {
-		sh.addError(fmt.Sprintf("%s must be a struct but not", name))
+		sh.addError(t.Pos(), fmt.Sprintf("%s must be a struct but not", name))
 		return
 	}
 
@@ -129,24 +134,24 @@ func (sh *Shader) parseVaryingStruct(obj *ast.Object) {
 			tag := f.Tag.Value
 			m := kageTagRe.FindStringSubmatch(tag)
 			if m == nil {
-				sh.addError(fmt.Sprintf("invalid struct tag: %s", tag))
+				sh.addError(f.Tag.Pos(), fmt.Sprintf("invalid struct tag: %s", tag))
 				continue
 			}
 			if m[1] != "position" {
-				sh.addError(fmt.Sprintf("struct tag value must be position in %s but %s", varyingStructName, m[1]))
+				sh.addError(f.Tag.Pos(), fmt.Sprintf("struct tag value must be position in %s but %s", varyingStructName, m[1]))
 				continue
 			}
 			if len(f.Names) != 1 {
-				sh.addError(fmt.Sprintf("position members must be one"))
+				sh.addError(f.Pos(), fmt.Sprintf("position members must be one"))
 				continue
 			}
 			t, err := parseType(f.Type)
 			if err != nil {
-				sh.addError(err.Error())
+				sh.addError(f.Type.Pos(), err.Error())
 				continue
 			}
 			if t != typVec4 {
-				sh.addError(fmt.Sprintf("position must be vec4 but %s", t))
+				sh.addError(f.Type.Pos(), fmt.Sprintf("position must be vec4 but %s", t))
 				continue
 			}
 			sh.position = variable{
@@ -157,11 +162,11 @@ func (sh *Shader) parseVaryingStruct(obj *ast.Object) {
 		}
 		t, err := parseType(f.Type)
 		if err != nil {
-			sh.addError(err.Error())
+			sh.addError(f.Type.Pos(), err.Error())
 			continue
 		}
 		if !t.numeric() {
-			sh.addError(fmt.Sprintf("members in %s must be numeric but %s", varyingStructName, t))
+			sh.addError(f.Type.Pos(), fmt.Sprintf("members in %s must be numeric but %s", varyingStructName, t))
 			continue
 		}
 		for _, n := range f.Names {
@@ -176,12 +181,12 @@ func (sh *Shader) parseVaryingStruct(obj *ast.Object) {
 func (s *Shader) parsePackageLevelVariable(name string, obj *ast.Object) {
 	v, ok := obj.Decl.(*ast.ValueSpec)
 	if !ok {
-		s.addError("value spec expected")
+		s.addError(obj.Pos(), "value spec expected")
 		return
 	}
 	t, err := parseType(v.Type)
 	if err != nil {
-		s.addError(err.Error())
+		s.addError(v.Type.Pos(), err.Error())
 		return
 	}
 	val := variable{
@@ -199,12 +204,12 @@ func (s *Shader) parsePackageLevelVariable(name string, obj *ast.Object) {
 func (s *Shader) parsePackageLevelConstant(name string, obj *ast.Object) {
 	vs, ok := obj.Decl.(*ast.ValueSpec)
 	if !ok {
-		s.addError("value spec expected")
+		s.addError(obj.Pos(), "value spec expected")
 		return
 	}
 	t, err := parseType(vs.Type)
 	if err != nil {
-		s.addError(err.Error())
+		s.addError(vs.Pos(), err.Error())
 		return
 	}
 	for i, v := range vs.Values {
@@ -216,7 +221,7 @@ func (s *Shader) parsePackageLevelConstant(name string, obj *ast.Object) {
 		switch v := v.(type) {
 		case *ast.BasicLit:
 			if v.Kind != token.INT && v.Kind != token.FLOAT {
-				s.addError(fmt.Sprintf("literal must be int or float but %s", v.Kind))
+				s.addError(v.Pos(), fmt.Sprintf("literal must be int or float but %s", v.Kind))
 				return
 			}
 			init = v.Value // TODO: This should be math/big.Int or Float.
