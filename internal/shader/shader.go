@@ -33,10 +33,15 @@ var (
 )
 
 type variable struct {
-	name     string
-	typ      typ
-	constant bool
-	init     string
+	name string
+	typ  typ
+	init string
+}
+
+type constant struct {
+	name string
+	typ  typ
+	init string
 }
 
 type function struct {
@@ -60,6 +65,8 @@ type Shader struct {
 
 	// globals is a collection of global variables.
 	globals []variable
+
+	constants []constant
 
 	funcs []function
 
@@ -128,7 +135,8 @@ func (sh *Shader) parse(f *ast.File) {
 			case token.CONST:
 				for _, s := range d.Specs {
 					s := s.(*ast.ValueSpec)
-					sh.parseTopLevelConstant(s)
+					cs := sh.parseConstant(s)
+					sh.constants = append(sh.constants, cs...)
 				}
 			case token.VAR:
 				for _, s := range d.Specs {
@@ -233,12 +241,18 @@ func (s *Shader) parseVariable(vs *ast.ValueSpec) []variable {
 	return vars
 }
 
-func (s *Shader) parseTopLevelConstant(vs *ast.ValueSpec) {
-	t, err := parseType(vs.Type)
-	if err != nil {
-		s.addError(vs.Type.Pos(), err.Error())
-		return
+func (s *Shader) parseConstant(vs *ast.ValueSpec) []constant {
+	var t typ
+	if vs.Type != nil {
+		var err error
+		t, err = parseType(vs.Type)
+		if err != nil {
+			s.addError(vs.Type.Pos(), err.Error())
+			return nil
+		}
 	}
+
+	var cs []constant
 	for i, n := range vs.Names {
 		v := vs.Values[i]
 		var init string
@@ -246,21 +260,19 @@ func (s *Shader) parseTopLevelConstant(vs *ast.ValueSpec) {
 		case *ast.BasicLit:
 			if v.Kind != token.INT && v.Kind != token.FLOAT {
 				s.addError(v.Pos(), fmt.Sprintf("literal must be int or float but %s", v.Kind))
-				return
+				return cs
 			}
 			init = v.Value // TODO: This should be go/constant.Value
 		default:
 			// TODO: Parse the expression.
 		}
-		name := n.Name
-		val := variable{
-			name:     name,
-			typ:      t, // TODO: Treat consts without types
-			constant: true,
-			init:     init,
-		}
-		s.globals = append(s.globals, val)
+		cs = append(cs, constant{
+			name: n.Name,
+			typ:  t,
+			init: init,
+		})
 	}
+	return cs
 }
 
 func (sh *Shader) parseFunc(d *ast.FuncDecl) {
@@ -392,15 +404,15 @@ func (s *Shader) Dump() string {
 	}
 
 	for _, g := range s.globals {
-		prefix := "var"
-		if g.constant {
-			prefix = "const"
-		}
 		init := ""
 		if g.init != "" {
 			init = " = " + g.init
 		}
-		lines = append(lines, fmt.Sprintf("%s %s %s%s", prefix, g.name, g.typ, init))
+		lines = append(lines, fmt.Sprintf("var %s %s%s", g.name, g.typ, init))
+	}
+
+	for _, g := range s.constants {
+		lines = append(lines, fmt.Sprintf("const %s %s = %s", g.name, g.typ, g.init))
 	}
 
 	for _, f := range s.funcs {
