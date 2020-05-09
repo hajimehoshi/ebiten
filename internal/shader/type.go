@@ -24,8 +24,7 @@ type typ int
 // TODO: What about array types?
 
 const (
-	typBool typ = iota
-	typInt
+	typNone typ = iota
 	typFloat
 	typVec2
 	typVec3
@@ -40,10 +39,6 @@ func parseType(expr ast.Expr) (typ, error) {
 	switch t := expr.(type) {
 	case *ast.Ident:
 		switch t.Name {
-		case "bool":
-			return typBool, nil
-		case "int":
-			return typInt, nil
 		case "float":
 			return typFloat, nil
 		case "vec2":
@@ -68,10 +63,8 @@ func parseType(expr ast.Expr) (typ, error) {
 
 func (t typ) String() string {
 	switch t {
-	case typBool:
-		return "bool"
-	case typInt:
-		return "int"
+	case typNone:
+		return "(none)"
 	case typFloat:
 		return "float"
 	case typVec2:
@@ -94,15 +87,13 @@ func (t typ) String() string {
 }
 
 func (t typ) numeric() bool {
-	return t != typSampler2d
+	return t != typNone && t != typSampler2d
 }
 
 func (t typ) glslString() string {
 	switch t {
-	case typBool:
-		return "bool"
-	case typInt:
-		return "int"
+	case typNone:
+		return "?(none)"
 	case typFloat:
 		return "float"
 	case typVec2:

@@ -44,7 +44,11 @@ var (
 const C1 float = 1
 const C2, C3 float = 2, 3
 
-func foo(a, b vec2) vec4 {
+func F1(a, b vec2) vec4 {
+	var c0 vec2 = a
+	var c1 = b
+	c2 := vec4{c0, c1}
+	return c2
 }
 `,
 			Dump: `var Position varying vec4 // position
@@ -58,7 +62,11 @@ const C1 float = 1
 const C2 float = 2
 const C3 float = 3
 var qux vec4
-func foo(a vec2, b vec2) (_ vec4)
+func F1(a vec2, b vec2) (_ vec4) {
+	var c0 vec2
+	var c1 (none)
+	var c2 (none)
+}
 `,
 		},
 	}

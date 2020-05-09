@@ -43,6 +43,7 @@ type function struct {
 	name string
 	args []variable
 	rets []variable
+	body *block
 }
 
 type Shader struct {
@@ -89,6 +90,9 @@ func NewShader(src []byte) (*Shader, error) {
 		return nil, &ParseError{s.errs}
 	}
 
+	// TODO: Resolve identifiers?
+	// TODO: Resolve constants
+
 	sort.Slice(s.varyings, func(a, b int) bool {
 		return s.varyings[a].name < s.varyings[b].name
 	})
@@ -129,7 +133,14 @@ func (sh *Shader) parse(f *ast.File) {
 			case token.VAR:
 				for _, s := range d.Specs {
 					s := s.(*ast.ValueSpec)
-					sh.parseTopLevelVariable(s)
+					vs := sh.parseVariable(s)
+					for _, v := range vs {
+						if 'A' <= v.name[0] && v.name[0] <= 'Z' {
+							sh.uniforms = append(sh.uniforms, v)
+						} else {
+							sh.globals = append(sh.globals, v)
+						}
+					}
 				}
 			case token.IMPORT:
 				sh.addError(d.Pos(), "import is forbidden")
@@ -200,25 +211,26 @@ func (sh *Shader) parseVaryingStruct(t *ast.TypeSpec) {
 	}
 }
 
-func (s *Shader) parseTopLevelVariable(vs *ast.ValueSpec) {
-	t, err := parseType(vs.Type)
-	if err != nil {
-		s.addError(vs.Type.Pos(), err.Error())
-		return
+func (s *Shader) parseVariable(vs *ast.ValueSpec) []variable {
+	var t typ
+	if vs.Type != nil {
+		var err error
+		t, err = parseType(vs.Type)
+		if err != nil {
+			s.addError(vs.Type.Pos(), err.Error())
+			return nil
+		}
 	}
+
+	var vars []variable
 	for _, n := range vs.Names {
 		name := n.Name
-		val := variable{
+		vars = append(vars, variable{
 			name: name,
 			typ:  t,
-		}
-		// TODO: Parse initial value.
-		if 'A' <= name[0] && name[0] <= 'Z' {
-			s.uniforms = append(s.uniforms, val)
-		} else {
-			s.globals = append(s.globals, val)
-		}
+		})
 	}
+	return vars
 }
 
 func (s *Shader) parseTopLevelConstant(vs *ast.ValueSpec) {
@@ -302,8 +314,49 @@ func (sh *Shader) parseFunc(d *ast.FuncDecl) {
 		name: d.Name.Name,
 		args: args,
 		rets: rets,
+		body: sh.parseBlock(d.Body),
 	}
 	sh.funcs = append(sh.funcs, f)
+}
+
+func (sh *Shader) parseBlock(b *ast.BlockStmt) *block {
+	block := &block{}
+
+	for _, l := range b.List {
+		switch l := l.(type) {
+		case *ast.AssignStmt:
+			if l.Tok == token.DEFINE {
+				for _, s := range l.Lhs {
+					ident := s.(*ast.Ident)
+					block.vars = append(block.vars, variable{
+						name: ident.Name,
+					})
+				}
+			} else {
+				// TODO
+			}
+		case *ast.DeclStmt:
+			switch d := l.Decl.(type) {
+			case *ast.GenDecl:
+				switch d.Tok {
+				case token.VAR:
+					for _, s := range d.Specs {
+						s := s.(*ast.ValueSpec)
+						vs := sh.parseVariable(s)
+						block.vars = append(block.vars, vs...)
+					}
+				}
+			}
+		case *ast.ReturnStmt:
+		default:
+		}
+	}
+
+	sort.Slice(block.vars, func(a, b int) bool {
+		return block.vars[a].name < block.vars[b].name
+	})
+
+	return block
 }
 
 // Dump dumps the shader state in an intermediate language.
@@ -348,7 +401,10 @@ func (s *Shader) Dump() string {
 		if len(rets) > 0 {
 			l += " (" + strings.Join(rets, ", ") + ")"
 		}
+		l += " {"
 		lines = append(lines, l)
+		lines = append(lines, f.body.dump(1)...)
+		lines = append(lines, "}")
 	}
 
 	return strings.Join(lines, "\n") + "\n"
