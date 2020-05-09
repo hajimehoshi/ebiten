@@ -15,12 +15,12 @@ Ebiten is an open source game library for the Go programming language. Ebiten's 
 
 ## Platforms
 
-* Windows (No Cgo!)
-* macOS
-* Linux
-* FreeBSD
-* Android
-* iOS
+* [Windows](https://ebiten.org/documents/install.html?os=windows) (No Cgo!)
+* [macOS](https://ebiten.org/documents/install.html?os=darwin)
+* [Linux](https://ebiten.org/documents/install.html?os=linux)
+* [FreeBSD](https://ebiten.org/documents/install.html?os=freebsd)
+* [Android](https://ebiten.org/documents/mobile.html)
+* [iOS](https://ebiten.org/documents/mobile.html)
 * Web browsers (Chrome, Firefox, Safari and Edge)
   * [WebAssembly](https://ebiten.org/documents/webassembly.html)
   * [GopherJS](https://ebiten.org/documents/gopherjs.html)
