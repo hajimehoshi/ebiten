@@ -33,6 +33,10 @@ import (
 	"github.com/hajimehoshi/ebiten"
 )
 
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
 // World represents the game state.
 type World struct {
 	area   []bool
@@ -49,11 +53,6 @@ func NewWorld(width, height int, maxInitLiveCells int) *World {
 	}
 	w.init(maxInitLiveCells)
 	return w
-}
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-	world = NewWorld(screenWidth, screenHeight, int((screenWidth*screenHeight)/10))
 }
 
 // init inits world with a random state.
@@ -156,25 +155,36 @@ const (
 	screenHeight = 240
 )
 
-var (
+type Game struct {
 	world  *World
-	pixels = make([]byte, screenWidth*screenHeight*4)
-)
+	pixels []byte
+}
 
-func update(screen *ebiten.Image) error {
-	world.Update()
-
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
-	world.Draw(pixels)
-	screen.ReplacePixels(pixels)
+func (g *Game) Update(screen *ebiten.Image) error {
+	g.world.Update()
 	return nil
 }
 
+func (g *Game) Draw(screen *ebiten.Image) {
+	if g.pixels == nil {
+		g.pixels = make([]byte, screenWidth*screenHeight*4)
+	}
+	g.world.Draw(g.pixels)
+	screen.ReplacePixels(g.pixels)
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
+}
+
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Game of Life (Ebiten Demo)"); err != nil {
+	g := &Game{
+		world: NewWorld(screenWidth, screenHeight, int((screenWidth*screenHeight)/10)),
+	}
+
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Game of Life (Ebiten Demo)")
+	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
 }

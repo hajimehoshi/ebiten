@@ -54,10 +54,6 @@ func init() {
 	bgImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 }
 
-var (
-	theViewport = &viewport{}
-)
-
 type viewport struct {
 	x16 int
 	y16 int
@@ -78,14 +74,17 @@ func (p *viewport) Position() (int, int) {
 	return p.x16, p.y16
 }
 
-func update(screen *ebiten.Image) error {
-	theViewport.Move()
+type Game struct {
+	viewport viewport
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
+func (g *Game) Update(screen *ebiten.Image) error {
+	g.viewport.Move()
+	return nil
+}
 
-	x16, y16 := theViewport.Position()
+func (g *Game) Draw(screen *ebiten.Image) {
+	x16, y16 := g.viewport.Position()
 	offsetX, offsetY := float64(-x16)/16, float64(-y16)/16
 
 	// Draw bgImage on the screen repeatedly.
@@ -101,11 +100,16 @@ func update(screen *ebiten.Image) error {
 	}
 
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
-	return nil
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Infinite Scroll (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Infinite Scroll (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }

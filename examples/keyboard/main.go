@@ -45,18 +45,21 @@ func init() {
 	keyboardImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 }
 
-func update(screen *ebiten.Image) error {
-	var pressed []ebiten.Key
+type Game struct {
+	pressed []ebiten.Key
+}
+
+func (g *Game) Update(screen *ebiten.Image) error {
+	g.pressed = nil
 	for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {
 		if ebiten.IsKeyPressed(k) {
-			pressed = append(pressed, k)
+			g.pressed = append(g.pressed, k)
 		}
 	}
+	return nil
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
+func (g *Game) Draw(screen *ebiten.Image) {
 	const (
 		offsetX = 24
 		offsetY = 40
@@ -70,7 +73,7 @@ func update(screen *ebiten.Image) error {
 
 	// Draw the highlighted keys.
 	op = &ebiten.DrawImageOptions{}
-	for _, p := range pressed {
+	for _, p := range g.pressed {
 		op.GeoM.Reset()
 		r, ok := keyboard.KeyRect(p)
 		if !ok {
@@ -82,16 +85,20 @@ func update(screen *ebiten.Image) error {
 	}
 
 	keyStrs := []string{}
-	for _, p := range pressed {
+	for _, p := range g.pressed {
 		keyStrs = append(keyStrs, p.String())
 	}
 	ebitenutil.DebugPrint(screen, strings.Join(keyStrs, ", "))
+}
 
-	return nil
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Keyboard (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Keyboard (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }
