@@ -64,10 +64,12 @@ const C1 float = 1
 const C2 float = 2
 const C3 float = 3
 func F1(a vec2, b vec2) (_ vec4) {
-	var c0 vec2
-	var c1 (none)
-	var c2 (none)
+	var c0 vec2 = a
+	var c1 (none) = b
+	var c2 (none) = 1.0
 	var c3 (none)
+	c1.x = c2.x
+	c3 = vec4{c0, c1}
 	return c2
 }
 `,

@@ -35,30 +35,30 @@ const (
 	typSampler2d
 )
 
-func parseType(expr ast.Expr) (typ, error) {
+func parseType(expr ast.Expr) typ {
 	switch t := expr.(type) {
 	case *ast.Ident:
 		switch t.Name {
 		case "float":
-			return typFloat, nil
+			return typFloat
 		case "vec2":
-			return typVec2, nil
+			return typVec2
 		case "vec3":
-			return typVec3, nil
+			return typVec3
 		case "vec4":
-			return typVec4, nil
+			return typVec4
 		case "mat2":
-			return typMat2, nil
+			return typMat2
 		case "mat3":
-			return typMat3, nil
+			return typMat3
 		case "mat4":
-			return typMat4, nil
+			return typMat4
 		case "sampler2d":
-			return typSampler2d, nil
+			return typSampler2d
 		}
 		// TODO: Parse array types
 	}
-	return 0, fmt.Errorf("invalid type: %s", expr)
+	return typNone
 }
 
 func (t typ) String() string {

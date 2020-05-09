@@ -35,13 +35,13 @@ var (
 type variable struct {
 	name string
 	typ  typ
-	init string
+	init ast.Expr
 }
 
 type constant struct {
 	name string
 	typ  typ
-	init string
+	init ast.Expr
 }
 
 type function struct {
@@ -194,9 +194,9 @@ func (sh *Shader) parseVaryingStruct(t *ast.TypeSpec) {
 				sh.addError(f.Pos(), fmt.Sprintf("position members must be one"))
 				continue
 			}
-			t, err := parseType(f.Type)
-			if err != nil {
-				sh.addError(f.Type.Pos(), err.Error())
+			t := parseType(f.Type)
+			if t == typNone {
+				sh.addError(f.Type.Pos(), fmt.Sprintf("unexpected type: %s", f.Type))
 				continue
 			}
 			if t != typVec4 {
@@ -209,9 +209,9 @@ func (sh *Shader) parseVaryingStruct(t *ast.TypeSpec) {
 			}
 			continue
 		}
-		t, err := parseType(f.Type)
-		if err != nil {
-			sh.addError(f.Type.Pos(), err.Error())
+		t := parseType(f.Type)
+		if t == typNone {
+			sh.addError(f.Type.Pos(), fmt.Sprintf("unexpected type: %s", f.Type))
 			continue
 		}
 		if !t.numeric() {
@@ -230,20 +230,24 @@ func (sh *Shader) parseVaryingStruct(t *ast.TypeSpec) {
 func (s *Shader) parseVariable(vs *ast.ValueSpec) []variable {
 	var t typ
 	if vs.Type != nil {
-		var err error
-		t, err = parseType(vs.Type)
-		if err != nil {
-			s.addError(vs.Type.Pos(), err.Error())
+		t = parseType(vs.Type)
+		if t == typNone {
+			s.addError(vs.Type.Pos(), fmt.Sprintf("unexpected type: %s", vs.Type))
 			return nil
 		}
 	}
 
 	var vars []variable
-	for _, n := range vs.Names {
+	for i, n := range vs.Names {
+		var init ast.Expr
+		if len(vs.Values) > 0 {
+			init = vs.Values[i]
+		}
 		name := n.Name
 		vars = append(vars, variable{
 			name: name,
 			typ:  t,
+			init: init,
 		})
 	}
 	return vars
@@ -252,32 +256,19 @@ func (s *Shader) parseVariable(vs *ast.ValueSpec) []variable {
 func (s *Shader) parseConstant(vs *ast.ValueSpec) []constant {
 	var t typ
 	if vs.Type != nil {
-		var err error
-		t, err = parseType(vs.Type)
-		if err != nil {
-			s.addError(vs.Type.Pos(), err.Error())
+		t = parseType(vs.Type)
+		if t == typNone {
+			s.addError(vs.Type.Pos(), fmt.Sprintf("unexpected type: %s", vs.Type))
 			return nil
 		}
 	}
 
 	var cs []constant
 	for i, n := range vs.Names {
-		v := vs.Values[i]
-		var init string
-		switch v := v.(type) {
-		case *ast.BasicLit:
-			if v.Kind != token.INT && v.Kind != token.FLOAT {
-				s.addError(v.Pos(), fmt.Sprintf("literal must be int or float but %s", v.Kind))
-				return cs
-			}
-			init = v.Value // TODO: This should be go/constant.Value
-		default:
-			// TODO: Parse the expression.
-		}
 		cs = append(cs, constant{
 			name: n.Name,
 			typ:  t,
-			init: init,
+			init: vs.Values[i],
 		})
 	}
 	return cs
@@ -295,9 +286,9 @@ func (sh *Shader) parseFunc(d *ast.FuncDecl) function {
 
 	var args []variable
 	for _, f := range d.Type.Params.List {
-		t, err := parseType(f.Type)
-		if err != nil {
-			sh.addError(f.Type.Pos(), err.Error())
+		t := parseType(f.Type)
+		if t == typNone {
+			sh.addError(f.Type.Pos(), fmt.Sprintf("unexpected type: %s", f.Type))
 			continue
 		}
 		for _, n := range f.Names {
@@ -310,9 +301,9 @@ func (sh *Shader) parseFunc(d *ast.FuncDecl) function {
 
 	var rets []variable
 	for _, f := range d.Type.Results.List {
-		t, err := parseType(f.Type)
-		if err != nil {
-			sh.addError(f.Type.Pos(), err.Error())
+		t := parseType(f.Type)
+		if t == typNone {
+			sh.addError(f.Type.Pos(), fmt.Sprintf("unexpected type: %s", f.Type))
 			continue
 		}
 		if len(f.Names) == 0 {
@@ -344,22 +335,35 @@ func (sh *Shader) parseBlock(b *ast.BlockStmt) *block {
 	for _, l := range b.List {
 		switch l := l.(type) {
 		case *ast.AssignStmt:
-			if l.Tok == token.DEFINE {
+			switch l.Tok {
+			case token.DEFINE:
 				for _, s := range l.Lhs {
 					ident := s.(*ast.Ident)
 					block.vars = append(block.vars, variable{
 						name: ident.Name,
 					})
 				}
-			} else {
-				// TODO
+				for i := range l.Rhs {
+					block.stmts = append(block.stmts, stmt{
+						stmtType: stmtAssign,
+						exprs:    []ast.Expr{l.Lhs[i], l.Rhs[i]},
+					})
+				}
+			case token.ASSIGN:
+				// TODO: What about the statement `a,b = b,a?`
+				for i := range l.Rhs {
+					block.stmts = append(block.stmts, stmt{
+						stmtType: stmtAssign,
+						exprs:    []ast.Expr{l.Lhs[i], l.Rhs[i]},
+					})
+				}
 			}
 		case *ast.DeclStmt:
 			sh.parseDecl(block, l.Decl)
 		case *ast.ReturnStmt:
-			var exprs []expr
+			var exprs []ast.Expr
 			for _, r := range l.Results {
-				exprs = append(exprs, sh.parseExpr(r))
+				exprs = append(exprs, r)
 			}
 			block.stmts = append(block.stmts, stmt{
 				stmtType: stmtReturn,
@@ -377,17 +381,6 @@ func (sh *Shader) parseBlock(b *ast.BlockStmt) *block {
 	})
 
 	return block
-}
-
-func (sh *Shader) parseExpr(e ast.Expr) expr {
-	switch e := e.(type) {
-	case *ast.Ident:
-		return expr{
-			exprType: exprIdent,
-			value:    e.Name,
-		}
-	}
-	return expr{}
 }
 
 // Dump dumps the shader state in an intermediate language.

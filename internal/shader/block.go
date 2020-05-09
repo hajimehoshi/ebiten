@@ -16,6 +16,7 @@ package shader
 
 import (
 	"fmt"
+	"go/ast"
 	"go/token"
 	"strings"
 )
@@ -35,13 +36,13 @@ func (b *block) dump(indent int) []string {
 
 	for _, v := range b.vars {
 		init := ""
-		if v.init != "" {
-			init = " = " + v.init
+		if v.init != nil {
+			init = " = " + dumpExpr(v.init)
 		}
 		lines = append(lines, fmt.Sprintf("%svar %s %s%s", idt, v.name, v.typ, init))
 	}
 	for _, c := range b.consts {
-		lines = append(lines, fmt.Sprintf("%sconst %s %s = %s", idt, c.name, c.typ, c.init))
+		lines = append(lines, fmt.Sprintf("%sconst %s %s = %s", idt, c.name, c.typ, dumpExpr(c.init)))
 	}
 	for _, f := range b.funcs {
 		var args []string
@@ -77,12 +78,13 @@ type stmtType int
 
 const (
 	stmtNone stmtType = iota
+	stmtAssign
 	stmtReturn
 )
 
 type stmt struct {
 	stmtType stmtType
-	exprs    []expr
+	exprs    []ast.Expr
 }
 
 func (s *stmt) dump(indent int) []string {
@@ -92,12 +94,14 @@ func (s *stmt) dump(indent int) []string {
 	switch s.stmtType {
 	case stmtNone:
 		lines = append(lines, "%s(none)", idt)
+	case stmtAssign:
+		lines = append(lines, fmt.Sprintf("%s%s = %s", idt, dumpExpr(s.exprs[0]), dumpExpr(s.exprs[1])))
 	case stmtReturn:
 		var expr string
 		if len(s.exprs) > 0 {
 			var strs []string
 			for _, e := range s.exprs {
-				strs = append(strs, e.dump())
+				strs = append(strs, dumpExpr(e))
 			}
 			expr = " " + strings.Join(strs, ", ")
 		}
@@ -109,25 +113,22 @@ func (s *stmt) dump(indent int) []string {
 	return lines
 }
 
-type exprType int
-
-const (
-	exprNone exprType = iota
-	exprIdent
-)
-
-type expr struct {
-	exprType exprType
-	value    string
-}
-
-func (e *expr) dump() string {
-	switch e.exprType {
-	case exprNone:
-		return "(none)"
-	case exprIdent:
-		return e.value
+func dumpExpr(e ast.Expr) string {
+	switch e := e.(type) {
+	case *ast.BasicLit:
+		return e.Value
+	case *ast.CompositeLit:
+		t := parseType(e.Type)
+		var vals []string
+		for _, e := range e.Elts {
+			vals = append(vals, dumpExpr(e))
+		}
+		return fmt.Sprintf("%s{%s}", t, strings.Join(vals, ", "))
+	case *ast.Ident:
+		return e.Name
+	case *ast.SelectorExpr:
+		return fmt.Sprintf("%s.%s", dumpExpr(e.X), dumpExpr(e.Sel))
 	default:
-		return fmt.Sprintf("(unkown expr: %d)", e.exprType)
+		return fmt.Sprintf("(unkown expr: %#v)", e)
 	}
 }
