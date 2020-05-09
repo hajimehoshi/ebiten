@@ -35,8 +35,68 @@ func (b *block) dump(indent int) []string {
 		lines = append(lines, fmt.Sprintf("%svar %s %s", idt, v.name, v.typ))
 	}
 
+	for _, s := range b.stmts {
+		lines = append(lines, s.dump(indent)...)
+	}
+
 	return lines
 }
 
+type stmtType int
+
+const (
+	stmtNone stmtType = iota
+	stmtReturn
+)
+
 type stmt struct {
+	stmtType stmtType
+	exprs    []expr
+}
+
+func (s *stmt) dump(indent int) []string {
+	idt := strings.Repeat("\t", indent)
+
+	var lines []string
+	switch s.stmtType {
+	case stmtNone:
+		lines = append(lines, "%s(none)", idt)
+	case stmtReturn:
+		var expr string
+		if len(s.exprs) > 0 {
+			var strs []string
+			for _, e := range s.exprs {
+				strs = append(strs, e.dump())
+			}
+			expr = " " + strings.Join(strs, ", ")
+		}
+		lines = append(lines, fmt.Sprintf("%sreturn%s", idt, expr))
+	default:
+		lines = append(lines, fmt.Sprintf("%s(unknown stmt: %d)", idt, s.stmtType))
+	}
+
+	return lines
+}
+
+type exprType int
+
+const (
+	exprNone exprType = iota
+	exprIdent
+)
+
+type expr struct {
+	exprType exprType
+	value    string
+}
+
+func (e *expr) dump() string {
+	switch e.exprType {
+	case exprNone:
+		return "(none)"
+	case exprIdent:
+		return e.value
+	default:
+		return fmt.Sprintf("(unkown expr: %d)", e.exprType)
+	}
 }

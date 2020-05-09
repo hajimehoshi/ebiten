@@ -248,7 +248,7 @@ func (s *Shader) parseTopLevelConstant(vs *ast.ValueSpec) {
 				s.addError(v.Pos(), fmt.Sprintf("literal must be int or float but %s", v.Kind))
 				return
 			}
-			init = v.Value // TODO: This should be math/big.Int or Float.
+			init = v.Value // TODO: This should be go/constant.Value
 		default:
 			// TODO: Parse the expression.
 		}
@@ -348,6 +348,14 @@ func (sh *Shader) parseBlock(b *ast.BlockStmt) *block {
 				}
 			}
 		case *ast.ReturnStmt:
+			var exprs []expr
+			for _, r := range l.Results {
+				exprs = append(exprs, sh.parseExpr(r))
+			}
+			block.stmts = append(block.stmts, stmt{
+				stmtType: stmtReturn,
+				exprs:    exprs,
+			})
 		default:
 		}
 	}
@@ -357,6 +365,17 @@ func (sh *Shader) parseBlock(b *ast.BlockStmt) *block {
 	})
 
 	return block
+}
+
+func (sh *Shader) parseExpr(e ast.Expr) expr {
+	switch e := e.(type) {
+	case *ast.Ident:
+		return expr{
+			exprType: exprIdent,
+			value:    e.Name,
+		}
+	}
+	return expr{}
 }
 
 // Dump dumps the shader state in an intermediate language.
