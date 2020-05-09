@@ -27,7 +27,7 @@ func TestDump(t *testing.T) {
 	}{
 		{
 			In: `package main
- 
+
 type VertexOut struct {
 	Position vec4 ` + "`kage:\"position\"`" + `
 	TexCoord vec2
@@ -58,6 +58,7 @@ const C1 float = 1
 const C2 float = 2
 const C3 float = 3
 var qux vec4
+func foo
 `,
 		},
 	}

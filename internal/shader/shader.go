@@ -39,6 +39,10 @@ type variable struct {
 	init     string
 }
 
+type function struct {
+	name string
+}
+
 type Shader struct {
 	fs *token.FileSet
 
@@ -53,6 +57,8 @@ type Shader struct {
 
 	// globals is a collection of global variables.
 	globals []variable
+
+	funcs []function
 
 	errs []string
 }
@@ -116,16 +122,22 @@ func (sh *Shader) parse(f *ast.File) {
 			case token.CONST:
 				for _, s := range d.Specs {
 					s := s.(*ast.ValueSpec)
-					sh.parsePackageLevelConstant(s)
+					sh.parseTopLevelConstant(s)
 				}
 			case token.VAR:
 				for _, s := range d.Specs {
 					s := s.(*ast.ValueSpec)
-					sh.parsePackageLevelVariable(s)
+					sh.parseTopLevelVariable(s)
 				}
+			case token.IMPORT:
+				sh.addError(d.Pos(), "import is forbidden")
+			default:
+				sh.addError(d.Pos(), "unexpected token")
 			}
+		case *ast.FuncDecl:
+			sh.parseFunc(d)
 		default:
-			// TODO: Parse functions
+			sh.addError(d.Pos(), "unexpected decl")
 		}
 	}
 }
@@ -186,7 +198,7 @@ func (sh *Shader) parseVaryingStruct(t *ast.TypeSpec) {
 	}
 }
 
-func (s *Shader) parsePackageLevelVariable(vs *ast.ValueSpec) {
+func (s *Shader) parseTopLevelVariable(vs *ast.ValueSpec) {
 	t, err := parseType(vs.Type)
 	if err != nil {
 		s.addError(vs.Type.Pos(), err.Error())
@@ -207,7 +219,7 @@ func (s *Shader) parsePackageLevelVariable(vs *ast.ValueSpec) {
 	}
 }
 
-func (s *Shader) parsePackageLevelConstant(vs *ast.ValueSpec) {
+func (s *Shader) parseTopLevelConstant(vs *ast.ValueSpec) {
 	t, err := parseType(vs.Type)
 	if err != nil {
 		s.addError(vs.Type.Pos(), err.Error())
@@ -237,6 +249,22 @@ func (s *Shader) parsePackageLevelConstant(vs *ast.ValueSpec) {
 	}
 }
 
+func (sh *Shader) parseFunc(d *ast.FuncDecl) {
+	if d.Name == nil {
+		sh.addError(d.Pos(), "function must have a name")
+		return
+	}
+	if d.Body == nil {
+		sh.addError(d.Pos(), "function must have a body")
+		return
+	}
+
+	f := function{
+		name: d.Name.Name,
+	}
+	sh.funcs = append(sh.funcs, f)
+}
+
 // Dump dumps the shader state in an intermediate language.
 func (s *Shader) Dump() string {
 	var lines []string
@@ -260,6 +288,10 @@ func (s *Shader) Dump() string {
 			init = " = " + g.init
 		}
 		lines = append(lines, fmt.Sprintf("%s %s %s%s", prefix, g.name, g.typ, init))
+	}
+
+	for _, f := range s.funcs {
+		lines = append(lines, fmt.Sprintf("func %s", f.name))
 	}
 
 	return strings.Join(lines, "\n") + "\n"
