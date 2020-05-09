@@ -41,6 +41,8 @@ type variable struct {
 
 type function struct {
 	name string
+	args []variable
+	rets []variable
 }
 
 type Shader struct {
@@ -259,8 +261,47 @@ func (sh *Shader) parseFunc(d *ast.FuncDecl) {
 		return
 	}
 
+	var args []variable
+	for _, f := range d.Type.Params.List {
+		t, err := parseType(f.Type)
+		if err != nil {
+			sh.addError(f.Type.Pos(), err.Error())
+			continue
+		}
+		for _, n := range f.Names {
+			args = append(args, variable{
+				name: n.Name,
+				typ:  t,
+			})
+		}
+	}
+
+	var rets []variable
+	for _, f := range d.Type.Results.List {
+		t, err := parseType(f.Type)
+		if err != nil {
+			sh.addError(f.Type.Pos(), err.Error())
+			continue
+		}
+		if len(f.Names) == 0 {
+			rets = append(rets, variable{
+				name: "",
+				typ:  t,
+			})
+		} else {
+			for _, n := range f.Names {
+				rets = append(rets, variable{
+					name: n.Name,
+					typ:  t,
+				})
+			}
+		}
+	}
+
 	f := function{
 		name: d.Name.Name,
+		args: args,
+		rets: rets,
 	}
 	sh.funcs = append(sh.funcs, f)
 }
@@ -291,7 +332,23 @@ func (s *Shader) Dump() string {
 	}
 
 	for _, f := range s.funcs {
-		lines = append(lines, fmt.Sprintf("func %s", f.name))
+		var args []string
+		for _, a := range f.args {
+			args = append(args, fmt.Sprintf("%s %s", a.name, a.typ))
+		}
+		var rets []string
+		for _, r := range f.rets {
+			name := r.name
+			if name == "" {
+				name = "_"
+			}
+			rets = append(rets, fmt.Sprintf("%s %s", name, r.typ))
+		}
+		l := fmt.Sprintf("func %s(%s)", f.name, strings.Join(args, ", "))
+		if len(rets) > 0 {
+			l += " (" + strings.Join(rets, ", ") + ")"
+		}
+		lines = append(lines, l)
 	}
 
 	return strings.Join(lines, "\n") + "\n"
