@@ -63,12 +63,7 @@ type Shader struct {
 	// uniforms is a collection of uniform variables.
 	uniforms []variable
 
-	// globals is a collection of global variables.
-	globals []variable
-
-	constants []constant
-
-	funcs []function
+	global block
 
 	errs []string
 }
@@ -100,16 +95,6 @@ func NewShader(src []byte) (*Shader, error) {
 	// TODO: Resolve identifiers?
 	// TODO: Resolve constants
 
-	sort.Slice(s.varyings, func(a, b int) bool {
-		return s.varyings[a].name < s.varyings[b].name
-	})
-	sort.Slice(s.uniforms, func(a, b int) bool {
-		return s.uniforms[a].name < s.uniforms[b].name
-	})
-	sort.Slice(s.globals, func(a, b int) bool {
-		return s.globals[a].name < s.globals[b].name
-	})
-
 	// TODO: Make a call graph and reorder the elements.
 	return s, nil
 }
@@ -121,45 +106,71 @@ func (s *Shader) addError(pos token.Pos, str string) {
 
 func (sh *Shader) parse(f *ast.File) {
 	for _, d := range f.Decls {
-		switch d := d.(type) {
-		case *ast.GenDecl:
-			switch d.Tok {
-			case token.TYPE:
-				// TODO: Parse regular structs or other types
-				for _, s := range d.Specs {
-					s := s.(*ast.TypeSpec)
-					if s.Name.Name == varyingStructName {
-						sh.parseVaryingStruct(s)
-					}
-				}
-			case token.CONST:
-				for _, s := range d.Specs {
-					s := s.(*ast.ValueSpec)
-					cs := sh.parseConstant(s)
-					sh.constants = append(sh.constants, cs...)
-				}
-			case token.VAR:
-				for _, s := range d.Specs {
-					s := s.(*ast.ValueSpec)
-					vs := sh.parseVariable(s)
-					for _, v := range vs {
-						if 'A' <= v.name[0] && v.name[0] <= 'Z' {
-							sh.uniforms = append(sh.uniforms, v)
-						} else {
-							sh.globals = append(sh.globals, v)
-						}
-					}
-				}
-			case token.IMPORT:
-				sh.addError(d.Pos(), "import is forbidden")
-			default:
-				sh.addError(d.Pos(), "unexpected token")
-			}
-		case *ast.FuncDecl:
-			sh.parseFunc(d)
-		default:
-			sh.addError(d.Pos(), "unexpected decl")
+		sh.parseDecl(&sh.global, d)
+	}
+
+	vars := make([]variable, len(sh.global.vars))
+	copy(vars, sh.global.vars)
+	sh.global.vars = nil
+	for _, v := range vars {
+		if 'A' <= v.name[0] && v.name[0] <= 'Z' {
+			sh.uniforms = append(sh.uniforms, v)
+		} else {
+			sh.global.vars = append(sh.global.vars, v)
 		}
+	}
+
+	// TODO: This is duplicated with parseBlock.
+	sort.Slice(sh.global.vars, func(a, b int) bool {
+		return sh.global.vars[a].name < sh.global.vars[b].name
+	})
+	sort.Slice(sh.global.consts, func(a, b int) bool {
+		return sh.global.consts[a].name < sh.global.consts[b].name
+	})
+	sort.Slice(sh.global.funcs, func(a, b int) bool {
+		return sh.global.funcs[a].name < sh.global.funcs[b].name
+	})
+	sort.Slice(sh.varyings, func(a, b int) bool {
+		return sh.varyings[a].name < sh.varyings[b].name
+	})
+	sort.Slice(sh.uniforms, func(a, b int) bool {
+		return sh.uniforms[a].name < sh.uniforms[b].name
+	})
+}
+
+func (sh *Shader) parseDecl(b *block, d ast.Decl) {
+	switch d := d.(type) {
+	case *ast.GenDecl:
+		switch d.Tok {
+		case token.TYPE:
+			// TODO: Parse regular structs or other types
+			for _, s := range d.Specs {
+				s := s.(*ast.TypeSpec)
+				if s.Name.Name == varyingStructName {
+					sh.parseVaryingStruct(s)
+				}
+			}
+		case token.CONST:
+			for _, s := range d.Specs {
+				s := s.(*ast.ValueSpec)
+				cs := sh.parseConstant(s)
+				b.consts = append(b.consts, cs...)
+			}
+		case token.VAR:
+			for _, s := range d.Specs {
+				s := s.(*ast.ValueSpec)
+				vs := sh.parseVariable(s)
+				b.vars = append(b.vars, vs...)
+			}
+		case token.IMPORT:
+			sh.addError(d.Pos(), "import is forbidden")
+		default:
+			sh.addError(d.Pos(), "unexpected token")
+		}
+	case *ast.FuncDecl:
+		b.funcs = append(b.funcs, sh.parseFunc(d))
+	default:
+		sh.addError(d.Pos(), "unexpected decl")
 	}
 }
 
@@ -275,14 +286,14 @@ func (s *Shader) parseConstant(vs *ast.ValueSpec) []constant {
 	return cs
 }
 
-func (sh *Shader) parseFunc(d *ast.FuncDecl) {
+func (sh *Shader) parseFunc(d *ast.FuncDecl) function {
 	if d.Name == nil {
 		sh.addError(d.Pos(), "function must have a name")
-		return
+		return function{}
 	}
 	if d.Body == nil {
 		sh.addError(d.Pos(), "function must have a body")
-		return
+		return function{}
 	}
 
 	var args []variable
@@ -322,13 +333,12 @@ func (sh *Shader) parseFunc(d *ast.FuncDecl) {
 		}
 	}
 
-	f := function{
+	return function{
 		name: d.Name.Name,
 		args: args,
 		rets: rets,
 		body: sh.parseBlock(d.Body),
 	}
-	sh.funcs = append(sh.funcs, f)
 }
 
 func (sh *Shader) parseBlock(b *ast.BlockStmt) *block {
@@ -348,17 +358,7 @@ func (sh *Shader) parseBlock(b *ast.BlockStmt) *block {
 				// TODO
 			}
 		case *ast.DeclStmt:
-			switch d := l.Decl.(type) {
-			case *ast.GenDecl:
-				switch d.Tok {
-				case token.VAR:
-					for _, s := range d.Specs {
-						s := s.(*ast.ValueSpec)
-						vs := sh.parseVariable(s)
-						block.vars = append(block.vars, vs...)
-					}
-				}
-			}
+			sh.parseDecl(block, l.Decl)
 		case *ast.ReturnStmt:
 			var exprs []expr
 			for _, r := range l.Results {
@@ -374,6 +374,12 @@ func (sh *Shader) parseBlock(b *ast.BlockStmt) *block {
 
 	sort.Slice(block.vars, func(a, b int) bool {
 		return block.vars[a].name < block.vars[b].name
+	})
+	sort.Slice(block.consts, func(a, b int) bool {
+		return block.consts[a].name < block.consts[b].name
+	})
+	sort.Slice(block.funcs, func(a, b int) bool {
+		return block.funcs[a].name < block.funcs[b].name
 	})
 
 	return block
@@ -403,40 +409,7 @@ func (s *Shader) Dump() string {
 		lines = append(lines, fmt.Sprintf("var %s uniform %s", u.name, u.typ))
 	}
 
-	for _, g := range s.globals {
-		init := ""
-		if g.init != "" {
-			init = " = " + g.init
-		}
-		lines = append(lines, fmt.Sprintf("var %s %s%s", g.name, g.typ, init))
-	}
-
-	for _, g := range s.constants {
-		lines = append(lines, fmt.Sprintf("const %s %s = %s", g.name, g.typ, g.init))
-	}
-
-	for _, f := range s.funcs {
-		var args []string
-		for _, a := range f.args {
-			args = append(args, fmt.Sprintf("%s %s", a.name, a.typ))
-		}
-		var rets []string
-		for _, r := range f.rets {
-			name := r.name
-			if name == "" {
-				name = "_"
-			}
-			rets = append(rets, fmt.Sprintf("%s %s", name, r.typ))
-		}
-		l := fmt.Sprintf("func %s(%s)", f.name, strings.Join(args, ", "))
-		if len(rets) > 0 {
-			l += " (" + strings.Join(rets, ", ") + ")"
-		}
-		l += " {"
-		lines = append(lines, l)
-		lines = append(lines, f.body.dump(1)...)
-		lines = append(lines, "}")
-	}
+	lines = append(lines, s.global.dump(0)...)
 
 	return strings.Join(lines, "\n") + "\n"
 }

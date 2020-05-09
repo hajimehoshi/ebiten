@@ -21,9 +21,11 @@ import (
 )
 
 type block struct {
-	vars  []variable
-	stmts []stmt
-	pos   token.Pos
+	vars   []variable
+	consts []constant
+	funcs  []function
+	stmts  []stmt
+	pos    token.Pos
 }
 
 func (b *block) dump(indent int) []string {
@@ -32,7 +34,36 @@ func (b *block) dump(indent int) []string {
 	var lines []string
 
 	for _, v := range b.vars {
-		lines = append(lines, fmt.Sprintf("%svar %s %s", idt, v.name, v.typ))
+		init := ""
+		if v.init != "" {
+			init = " = " + v.init
+		}
+		lines = append(lines, fmt.Sprintf("%svar %s %s%s", idt, v.name, v.typ, init))
+	}
+	for _, c := range b.consts {
+		lines = append(lines, fmt.Sprintf("%sconst %s %s = %s", idt, c.name, c.typ, c.init))
+	}
+	for _, f := range b.funcs {
+		var args []string
+		for _, a := range f.args {
+			args = append(args, fmt.Sprintf("%s %s", a.name, a.typ))
+		}
+		var rets []string
+		for _, r := range f.rets {
+			name := r.name
+			if name == "" {
+				name = "_"
+			}
+			rets = append(rets, fmt.Sprintf("%s %s", name, r.typ))
+		}
+		l := fmt.Sprintf("func %s(%s)", f.name, strings.Join(args, ", "))
+		if len(rets) > 0 {
+			l += " (" + strings.Join(rets, ", ") + ")"
+		}
+		l += " {"
+		lines = append(lines, l)
+		lines = append(lines, f.body.dump(indent+1)...)
+		lines = append(lines, "}")
 	}
 
 	for _, s := range b.stmts {
