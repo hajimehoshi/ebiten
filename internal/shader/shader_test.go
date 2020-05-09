@@ -20,7 +20,7 @@ import (
 	. "github.com/hajimehoshi/ebiten/internal/shader"
 )
 
-func TestGlsl(t *testing.T) {
+func TestDump(t *testing.T) {
 	tests := []struct {
 		In   string
 		Dump string
@@ -43,6 +43,9 @@ var (
 
 const C1 float = 1
 const C2, C3 float = 2, 3
+
+func foo() {
+}
 `,
 			Dump: `var Position varying vec4 // position
 var Color varying vec4
