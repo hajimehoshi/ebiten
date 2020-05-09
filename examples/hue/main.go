@@ -33,27 +33,32 @@ const (
 )
 
 var (
-	count        int
 	gophersImage *ebiten.Image
 )
 
-func update(screen *ebiten.Image) error {
-	count++
+type Game struct {
+	count int
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
+func (g *Game) Update(screen *ebiten.Image) error {
+	g.count++
+	return nil
+}
 
+func (g *Game) Draw(screen *ebiten.Image) {
 	// Center the image on the screen.
 	w, h := gophersImage.Size()
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(screenWidth-w)/2, float64(screenHeight-h)/2)
 
 	// Rotate the hue.
-	op.ColorM.RotateHue(float64(count%360) * 2 * math.Pi / 360)
+	op.ColorM.RotateHue(float64(g.count%360) * 2 * math.Pi / 360)
 
 	screen.DrawImage(gophersImage, op)
-	return nil
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
@@ -72,7 +77,9 @@ func main() {
 	}
 	gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Hue (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Hue (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }
