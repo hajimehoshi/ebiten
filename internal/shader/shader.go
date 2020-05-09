@@ -121,9 +121,6 @@ func (sh *Shader) parse(f *ast.File) {
 	}
 
 	// TODO: This is duplicated with parseBlock.
-	sort.Slice(sh.global.vars, func(a, b int) bool {
-		return sh.global.vars[a].name < sh.global.vars[b].name
-	})
 	sort.Slice(sh.global.consts, func(a, b int) bool {
 		return sh.global.consts[a].name < sh.global.consts[b].name
 	})
@@ -372,9 +369,6 @@ func (sh *Shader) parseBlock(b *ast.BlockStmt) *block {
 		}
 	}
 
-	sort.Slice(block.vars, func(a, b int) bool {
-		return block.vars[a].name < block.vars[b].name
-	})
 	sort.Slice(block.consts, func(a, b int) bool {
 		return block.consts[a].name < block.consts[b].name
 	})
