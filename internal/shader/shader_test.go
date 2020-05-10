@@ -40,7 +40,6 @@ var Foo float
 var (
 	Bar       vec2
 	Baz, Quux vec3
-	qux       vec4
 )
 
 const C1 float = 1
@@ -61,7 +60,6 @@ var Bar uniform vec2
 var Baz uniform vec3
 var Foo uniform float
 var Quux uniform vec3
-var qux vec4
 const C1 float = 1
 const C2 float = 2
 const C3 float = 3
@@ -80,31 +78,15 @@ func F1(a vec2, b vec2) (_ vec4) {
 			Name: "AutoType",
 			Src: `package main
 
-var v0 = 0.0
+var V0 = 0.0
 func F() {
-	v1 := v0
+	v1 := V0
 }
 `,
-			Dump: `var v0 float = 0.0
+			Dump: `var V0 uniform float
 func F() {
 	var v1 float
-	v1 = v0
-}
-`,
-		},
-		{
-			Name: "AutoType",
-			Src: `package main
-
-var v0 = 0.0
-func F() {
-	v1 := v0
-}
-`,
-			Dump: `var v0 float = 0.0
-func F() {
-	var v1 float
-	v1 = v0
+	v1 = V0
 }
 `,
 		},
@@ -112,18 +94,18 @@ func F() {
 			Name: "AutoType2",
 			Src: `package main
 
-var v0 = 0.0
+var V0 = 0.0
 func F() {
-	v1 := v0
+	v1 := V0
 	{
 		v2 := v1
 	}
 }
 `,
-			Dump: `var v0 float = 0.0
+			Dump: `var V0 uniform float
 func F() {
 	var v1 float
-	v1 = v0
+	v1 = V0
 	{
 		var v2 float
 		v2 = v1

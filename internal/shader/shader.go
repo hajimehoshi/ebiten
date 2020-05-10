@@ -106,18 +106,7 @@ func (s *Shader) addError(pos token.Pos, str string) {
 
 func (sh *Shader) parse(f *ast.File) {
 	for _, d := range f.Decls {
-		sh.parseDecl(&sh.global, d)
-	}
-
-	vars := make([]variable, len(sh.global.vars))
-	copy(vars, sh.global.vars)
-	sh.global.vars = nil
-	for _, v := range vars {
-		if 'A' <= v.name[0] && v.name[0] <= 'Z' {
-			sh.uniforms = append(sh.uniforms, v)
-		} else {
-			sh.global.vars = append(sh.global.vars, v)
-		}
+		sh.parseDecl(&sh.global, d, true)
 	}
 
 	// TODO: This is duplicated with parseBlock.
@@ -135,7 +124,7 @@ func (sh *Shader) parse(f *ast.File) {
 	})
 }
 
-func (sh *Shader) parseDecl(b *block, d ast.Decl) {
+func (sh *Shader) parseDecl(b *block, d ast.Decl, global bool) {
 	switch d := d.(type) {
 	case *ast.GenDecl:
 		switch d.Tok {
@@ -157,7 +146,17 @@ func (sh *Shader) parseDecl(b *block, d ast.Decl) {
 			for _, s := range d.Specs {
 				s := s.(*ast.ValueSpec)
 				vs := sh.parseVariable(b, s)
-				b.vars = append(b.vars, vs...)
+				if !global {
+					b.vars = append(b.vars, vs...)
+					continue
+				}
+				for i, v := range vs {
+					if 'A' <= v.name[0] && v.name[0] <= 'Z' {
+						sh.uniforms = append(sh.uniforms, v)
+					} else {
+						sh.addError(s.Names[i].Pos(), fmt.Sprintf("global variables must be exposed: %s", v.name))
+					}
+				}
 			}
 		case token.IMPORT:
 			sh.addError(d.Pos(), "import is forbidden")
@@ -374,7 +373,7 @@ func (sh *Shader) parseBlock(outer *block, b *ast.BlockStmt) *block {
 				block:    sh.parseBlock(block, l),
 			})
 		case *ast.DeclStmt:
-			sh.parseDecl(block, l.Decl)
+			sh.parseDecl(block, l.Decl, false)
 		case *ast.ReturnStmt:
 			var exprs []ast.Expr
 			for _, r := range l.Results {
@@ -416,6 +415,13 @@ func (s *Shader) detectType(b *block, expr ast.Expr) typ {
 		for _, v := range b.vars {
 			if v.name == n {
 				return v.typ
+			}
+		}
+		if b == &s.global {
+			for _, v := range s.uniforms {
+				if v.name == n {
+					return v.typ
+				}
 			}
 		}
 		if b.outer != nil {
