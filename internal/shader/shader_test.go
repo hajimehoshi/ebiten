@@ -22,10 +22,12 @@ import (
 
 func TestDump(t *testing.T) {
 	tests := []struct {
+		Name string
 		In   string
 		Dump string
 	}{
 		{
+			Name: "general",
 			In: `package main
 
 type VertexOut struct {
@@ -65,7 +67,7 @@ const C2 float = 2
 const C3 float = 3
 func F1(a vec2, b vec2) (_ vec4) {
 	var c0 vec2 = a
-	var c1 vec2 = b
+	var c1 vec2 = c0
 	var c2 vec2 = 1.0
 	var c3 vec4
 	c1.x = c2.x
@@ -82,7 +84,7 @@ func F1(a vec2, b vec2) (_ vec4) {
 			continue
 		}
 		if got, want := s.Dump(), tc.Dump; got != want {
-			t.Errorf("got: %v, want: %v", got, want)
+			t.Errorf("%s: got: %v, want: %v", tc.Name, got, want)
 		}
 	}
 }
