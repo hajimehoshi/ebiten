@@ -46,7 +46,7 @@ const C2, C3 float = 2, 3
 
 func F1(a, b vec2) vec4 {
 	var c0 vec2 = a
-	var c1, c2 = b, 1.0
+	var c1, c2 = c0, 1.0
 	c1.x = c2.x
 	c3 := vec4{c0, c1}
 	return c2
@@ -65,9 +65,9 @@ const C2 float = 2
 const C3 float = 3
 func F1(a vec2, b vec2) (_ vec4) {
 	var c0 vec2 = a
-	var c1 (none) = b
-	var c2 (none) = 1.0
-	var c3 (none)
+	var c1 vec2 = b
+	var c2 vec2 = 1.0
+	var c3 vec4
 	c1.x = c2.x
 	c3 = vec4{c0, c1}
 	return c2

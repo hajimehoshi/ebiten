@@ -27,6 +27,7 @@ type block struct {
 	funcs  []function
 	stmts  []stmt
 	pos    token.Pos
+	outer  *block
 }
 
 func (b *block) dump(indent int) []string {

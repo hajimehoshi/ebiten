@@ -156,7 +156,7 @@ func (sh *Shader) parseDecl(b *block, d ast.Decl) {
 		case token.VAR:
 			for _, s := range d.Specs {
 				s := s.(*ast.ValueSpec)
-				vs := sh.parseVariable(s)
+				vs := sh.parseVariable(b, s)
 				b.vars = append(b.vars, vs...)
 			}
 		case token.IMPORT:
@@ -165,7 +165,7 @@ func (sh *Shader) parseDecl(b *block, d ast.Decl) {
 			sh.addError(d.Pos(), "unexpected token")
 		}
 	case *ast.FuncDecl:
-		b.funcs = append(b.funcs, sh.parseFunc(d))
+		b.funcs = append(b.funcs, sh.parseFunc(d, b))
 	default:
 		sh.addError(d.Pos(), "unexpected decl")
 	}
@@ -227,7 +227,7 @@ func (sh *Shader) parseVaryingStruct(t *ast.TypeSpec) {
 	}
 }
 
-func (s *Shader) parseVariable(vs *ast.ValueSpec) []variable {
+func (s *Shader) parseVariable(block *block, vs *ast.ValueSpec) []variable {
 	var t typ
 	if vs.Type != nil {
 		t = parseType(vs.Type)
@@ -242,6 +242,9 @@ func (s *Shader) parseVariable(vs *ast.ValueSpec) []variable {
 		var init ast.Expr
 		if len(vs.Values) > 0 {
 			init = vs.Values[i]
+			if t == typNone {
+				t = s.detectType(block, init)
+			}
 		}
 		name := n.Name
 		vars = append(vars, variable{
@@ -274,7 +277,7 @@ func (s *Shader) parseConstant(vs *ast.ValueSpec) []constant {
 	return cs
 }
 
-func (sh *Shader) parseFunc(d *ast.FuncDecl) function {
+func (sh *Shader) parseFunc(d *ast.FuncDecl, block *block) function {
 	if d.Name == nil {
 		sh.addError(d.Pos(), "function must have a name")
 		return function{}
@@ -325,23 +328,28 @@ func (sh *Shader) parseFunc(d *ast.FuncDecl) function {
 		name: d.Name.Name,
 		args: args,
 		rets: rets,
-		body: sh.parseBlock(d.Body),
+		body: sh.parseBlock(d.Body, block),
 	}
 }
 
-func (sh *Shader) parseBlock(b *ast.BlockStmt) *block {
-	block := &block{}
+func (sh *Shader) parseBlock(b *ast.BlockStmt, outer *block) *block {
+	block := &block{
+		outer: outer,
+	}
 
 	for _, l := range b.List {
 		switch l := l.(type) {
 		case *ast.AssignStmt:
 			switch l.Tok {
 			case token.DEFINE:
-				for _, s := range l.Lhs {
-					ident := s.(*ast.Ident)
-					block.vars = append(block.vars, variable{
-						name: ident.Name,
-					})
+				for i, s := range l.Lhs {
+					v := variable{
+						name: s.(*ast.Ident).Name,
+					}
+					if len(l.Rhs) > 0 {
+						v.typ = sh.detectType(block, l.Rhs[i])
+					}
+					block.vars = append(block.vars, v)
 				}
 				for i := range l.Rhs {
 					block.stmts = append(block.stmts, stmt{
@@ -381,6 +389,36 @@ func (sh *Shader) parseBlock(b *ast.BlockStmt) *block {
 	})
 
 	return block
+}
+
+func (s *Shader) detectType(b *block, expr ast.Expr) typ {
+	switch e := expr.(type) {
+	case *ast.BasicLit:
+		if e.Kind == token.FLOAT {
+			return typFloat
+		}
+		s.addError(expr.Pos(), fmt.Sprintf("unexpected literal: %s", e.Value))
+		return typNone
+	case *ast.CompositeLit:
+		return parseType(e.Type)
+	case *ast.Ident:
+		n := e.Name
+		for _, v := range b.vars {
+			if v.name == n {
+				return v.typ
+			}
+		}
+		if b.outer != nil {
+			return s.detectType(b.outer, e)
+		}
+		s.addError(expr.Pos(), fmt.Sprintf("unexpected identity: %s", n))
+		return typNone
+	//case *ast.SelectorExpr:
+	//return fmt.Sprintf("%s.%s", dumpExpr(e.X), dumpExpr(e.Sel))
+	default:
+		s.addError(expr.Pos(), fmt.Sprintf("detecting type not implemented: %#v", expr))
+		return typNone
+	}
 }
 
 // Dump dumps the shader state in an intermediate language.
