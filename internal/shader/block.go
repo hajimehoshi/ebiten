@@ -40,15 +40,15 @@ func (b *block) dump(indent int) []string {
 		if v.init != nil {
 			init = " = " + dumpExpr(v.init)
 		}
-		lines = append(lines, fmt.Sprintf("%svar %s %s%s", idt, v.name, v.typ, init))
+		lines = append(lines, fmt.Sprintf("%svar %s %s%s", idt, v.name, v.basicType, init))
 	}
 	for _, c := range b.consts {
-		lines = append(lines, fmt.Sprintf("%sconst %s %s = %s", idt, c.name, c.typ, dumpExpr(c.init)))
+		lines = append(lines, fmt.Sprintf("%sconst %s %s = %s", idt, c.name, c.basicType, dumpExpr(c.init)))
 	}
 	for _, f := range b.funcs {
 		var args []string
 		for _, a := range f.args {
-			args = append(args, fmt.Sprintf("%s %s", a.name, a.typ))
+			args = append(args, fmt.Sprintf("%s %s", a.name, a.basicType))
 		}
 		var rets []string
 		for _, r := range f.rets {
@@ -56,7 +56,7 @@ func (b *block) dump(indent int) []string {
 			if name == "" {
 				name = "_"
 			}
-			rets = append(rets, fmt.Sprintf("%s %s", name, r.typ))
+			rets = append(rets, fmt.Sprintf("%s %s", name, r.basicType))
 		}
 		l := fmt.Sprintf("func %s(%s)", f.name, strings.Join(args, ", "))
 		if len(rets) > 0 {

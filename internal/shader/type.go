@@ -19,96 +19,96 @@ import (
 	"go/ast"
 )
 
-type typ int
+type basicType int
 
 // TODO: What about array types?
 
 const (
-	typNone typ = iota
-	typFloat
-	typVec2
-	typVec3
-	typVec4
-	typMat2
-	typMat3
-	typMat4
-	typSampler2d
+	basicTypeNone basicType = iota
+	basicTypeFloat
+	basicTypeVec2
+	basicTypeVec3
+	basicTypeVec4
+	basicTypeMat2
+	basicTypeMat3
+	basicTypeMat4
+	basicTypeSampler2d
 )
 
-func parseType(expr ast.Expr) typ {
+func parseType(expr ast.Expr) basicType {
 	switch t := expr.(type) {
 	case *ast.Ident:
 		switch t.Name {
 		case "float":
-			return typFloat
+			return basicTypeFloat
 		case "vec2":
-			return typVec2
+			return basicTypeVec2
 		case "vec3":
-			return typVec3
+			return basicTypeVec3
 		case "vec4":
-			return typVec4
+			return basicTypeVec4
 		case "mat2":
-			return typMat2
+			return basicTypeMat2
 		case "mat3":
-			return typMat3
+			return basicTypeMat3
 		case "mat4":
-			return typMat4
+			return basicTypeMat4
 		case "sampler2d":
-			return typSampler2d
+			return basicTypeSampler2d
 		}
 		// TODO: Parse array types
 	}
-	return typNone
+	return basicTypeNone
 }
 
-func (t typ) String() string {
+func (t basicType) String() string {
 	switch t {
-	case typNone:
+	case basicTypeNone:
 		return "(none)"
-	case typFloat:
+	case basicTypeFloat:
 		return "float"
-	case typVec2:
+	case basicTypeVec2:
 		return "vec2"
-	case typVec3:
+	case basicTypeVec3:
 		return "vec3"
-	case typVec4:
+	case basicTypeVec4:
 		return "vec4"
-	case typMat2:
+	case basicTypeMat2:
 		return "mat2"
-	case typMat3:
+	case basicTypeMat3:
 		return "mat3"
-	case typMat4:
+	case basicTypeMat4:
 		return "mat4"
-	case typSampler2d:
+	case basicTypeSampler2d:
 		return "sampler2d"
 	default:
 		return fmt.Sprintf("unknown(%d)", t)
 	}
 }
 
-func (t typ) numeric() bool {
-	return t != typNone && t != typSampler2d
+func (t basicType) numeric() bool {
+	return t != basicTypeNone && t != basicTypeSampler2d
 }
 
-func (t typ) glslString() string {
+func (t basicType) glslString() string {
 	switch t {
-	case typNone:
+	case basicTypeNone:
 		return "?(none)"
-	case typFloat:
+	case basicTypeFloat:
 		return "float"
-	case typVec2:
+	case basicTypeVec2:
 		return "vec2"
-	case typVec3:
+	case basicTypeVec3:
 		return "vec3"
-	case typVec4:
+	case basicTypeVec4:
 		return "vec4"
-	case typMat2:
+	case basicTypeMat2:
 		return "mat2"
-	case typMat3:
+	case basicTypeMat3:
 		return "mat3"
-	case typMat4:
+	case basicTypeMat4:
 		return "mat4"
-	case typSampler2d:
+	case basicTypeSampler2d:
 		return "?(sampler2d)"
 	default:
 		return fmt.Sprintf("?(%d)", t)

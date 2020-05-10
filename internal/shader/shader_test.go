@@ -113,6 +113,27 @@ func F() {
 }
 `,
 		},
+		/*{
+					Name: "Struct",
+					Src: `package main
+
+		type S struct {
+			M0 float
+			M1, M2 vec2
+			M3, M4, M5 vec3
+		}
+		`,
+					Dump: `var V0 uniform float
+		type S struct {
+			M0 float
+			M1 vec2
+			M2 vec2
+			M3 vec3
+			M4 vec3
+			M5 vec3
+		}
+		`,
+				},*/
 	}
 	for _, tc := range tests {
 		s, err := NewShader([]byte(tc.Src))
