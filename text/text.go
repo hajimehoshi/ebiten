@@ -277,6 +277,8 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 	fx, fy := fixed.I(x), fixed.I(y)
 	prevR := rune(-1)
 
+	faceHeight := face.Metrics().Height
+
 	runes := []rune(text)
 	glyphImgs := getGlyphImages(face, runes)
 	colorm := colorToColorM(clr)
@@ -287,7 +289,7 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 		}
 		if r == '\n' {
 			fx = fixed.I(x)
-			fy += face.Metrics().Height
+			fy += faceHeight
 			prevR = rune(-1)
 			continue
 		}
@@ -299,4 +301,50 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 	}
 
 	textM.Unlock()
+}
+
+// MeasureString measures the size of a given string using a given font.
+//
+// text is the string that's being measured.
+// face is the font for text rendering.
+//
+// Be careful that the passed font face is held by this package and is never released.
+// This is a known issue (#498).
+//
+// MeasureString is concurrent-safe.
+func MeasureString(text string, face font.Face) (int, int) {
+	textM.Lock()
+
+	x, y := 0, 0
+	w, h := 0, 0
+
+	faceHeight := face.Metrics().Height
+
+	fx, fy := fixed.I(x), fixed.I(y)
+	prevR := rune(-1)
+
+	runes := []rune(text)
+
+	for _, r := range runes {
+		if prevR >= 0 {
+			fx += face.Kern(prevR, r)
+		}
+		if r == '\n' {
+			fx = fixed.I(x)
+			fy += faceHeight
+			prevR = rune(-1)
+			continue
+		}
+
+		fx += glyphAdvance(face, r)
+
+		w = int(math.Max(float64(w), float64(fx.Ceil())))
+		h = int(math.Max(float64(h), float64(fy.Ceil() + faceHeight.Ceil())))
+
+		prevR = r
+	}
+
+	textM.Unlock()
+
+	return w, h + face.Metrics().Descent.Ceil()
 }
