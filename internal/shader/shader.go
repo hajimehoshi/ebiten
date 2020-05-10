@@ -330,11 +330,11 @@ func (sh *Shader) parseFunc(d *ast.FuncDecl, block *block) function {
 		name: d.Name.Name,
 		args: args,
 		rets: rets,
-		body: sh.parseBlock(d.Body, block),
+		body: sh.parseBlock(block, d.Body),
 	}
 }
 
-func (sh *Shader) parseBlock(b *ast.BlockStmt, outer *block) *block {
+func (sh *Shader) parseBlock(outer *block, b *ast.BlockStmt) *block {
 	block := &block{
 		outer: outer,
 	}
@@ -368,6 +368,11 @@ func (sh *Shader) parseBlock(b *ast.BlockStmt, outer *block) *block {
 					})
 				}
 			}
+		case *ast.BlockStmt:
+			block.stmts = append(block.stmts, stmt{
+				stmtType: stmtBlock,
+				block:    sh.parseBlock(block, l),
+			})
 		case *ast.DeclStmt:
 			sh.parseDecl(block, l.Decl)
 		case *ast.ReturnStmt:
@@ -379,7 +384,6 @@ func (sh *Shader) parseBlock(b *ast.BlockStmt, outer *block) *block {
 				stmtType: stmtReturn,
 				exprs:    exprs,
 			})
-		default:
 		}
 	}
 

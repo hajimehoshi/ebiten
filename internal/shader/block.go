@@ -80,12 +80,14 @@ type stmtType int
 const (
 	stmtNone stmtType = iota
 	stmtAssign
+	stmtBlock
 	stmtReturn
 )
 
 type stmt struct {
 	stmtType stmtType
 	exprs    []ast.Expr
+	block    *block
 }
 
 func (s *stmt) dump(indent int) []string {
@@ -97,6 +99,10 @@ func (s *stmt) dump(indent int) []string {
 		lines = append(lines, "%s(none)", idt)
 	case stmtAssign:
 		lines = append(lines, fmt.Sprintf("%s%s = %s", idt, dumpExpr(s.exprs[0]), dumpExpr(s.exprs[1])))
+	case stmtBlock:
+		lines = append(lines, fmt.Sprintf("%s{", idt))
+		lines = append(lines, s.block.dump(indent+1)...)
+		lines = append(lines, fmt.Sprintf("%s}", idt))
 	case stmtReturn:
 		var expr string
 		if len(s.exprs) > 0 {

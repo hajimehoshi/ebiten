@@ -77,18 +77,57 @@ func F1(a vec2, b vec2) (_ vec4) {
 `,
 		},
 		{
-			Name: "Type",
-			Src:  `package main
+			Name: "AutoType",
+			Src: `package main
 
-var c0 = 0.0
+var v0 = 0.0
 func F() {
-	c1 := c0
+	v1 := v0
 }
 `,
-			Dump: `var c0 float = 0.0
+			Dump: `var v0 float = 0.0
 func F() {
-	var c1 float
-	c1 = c0
+	var v1 float
+	v1 = v0
+}
+`,
+		},
+		{
+			Name: "AutoType",
+			Src: `package main
+
+var v0 = 0.0
+func F() {
+	v1 := v0
+}
+`,
+			Dump: `var v0 float = 0.0
+func F() {
+	var v1 float
+	v1 = v0
+}
+`,
+		},
+		{
+			Name: "AutoType2",
+			Src: `package main
+
+var v0 = 0.0
+func F() {
+	v1 := v0
+	{
+		v2 := v1
+	}
+}
+`,
+			Dump: `var v0 float = 0.0
+func F() {
+	var v1 float
+	v1 = v0
+	{
+		var v2 float
+		v2 = v1
+	}
 }
 `,
 		},
