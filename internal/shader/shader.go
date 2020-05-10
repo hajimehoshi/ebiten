@@ -192,11 +192,7 @@ func (sh *Shader) parseStruct(t *ast.TypeSpec) {
 				sh.addError(f.Pos(), fmt.Sprintf("position members must be one"))
 				continue
 			}
-			t := parseType(f.Type)
-			if t == basicTypeNone {
-				sh.addError(f.Type.Pos(), fmt.Sprintf("unexpected type: %s", f.Type))
-				continue
-			}
+			t := sh.parseType(f.Type)
 			if t != basicTypeVec4 {
 				sh.addError(f.Type.Pos(), fmt.Sprintf("position must be vec4 but %s", t))
 				continue
@@ -207,11 +203,7 @@ func (sh *Shader) parseStruct(t *ast.TypeSpec) {
 			}
 			continue
 		}
-		t := parseType(f.Type)
-		if t == basicTypeNone {
-			sh.addError(f.Type.Pos(), fmt.Sprintf("unexpected type: %s", f.Type))
-			continue
-		}
+		t := sh.parseType(f.Type)
 		if !t.numeric() {
 			sh.addError(f.Type.Pos(), fmt.Sprintf("members in %s must be numeric but %s", varyingStructName, t))
 			continue
@@ -228,11 +220,7 @@ func (sh *Shader) parseStruct(t *ast.TypeSpec) {
 func (s *Shader) parseVariable(block *block, vs *ast.ValueSpec) []variable {
 	var t basicType
 	if vs.Type != nil {
-		t = parseType(vs.Type)
-		if t == basicTypeNone {
-			s.addError(vs.Type.Pos(), fmt.Sprintf("unexpected type: %s", vs.Type))
-			return nil
-		}
+		t = s.parseType(vs.Type)
 	}
 
 	var vars []variable
@@ -257,11 +245,7 @@ func (s *Shader) parseVariable(block *block, vs *ast.ValueSpec) []variable {
 func (s *Shader) parseConstant(vs *ast.ValueSpec) []constant {
 	var t basicType
 	if vs.Type != nil {
-		t = parseType(vs.Type)
-		if t == basicTypeNone {
-			s.addError(vs.Type.Pos(), fmt.Sprintf("unexpected type: %s", vs.Type))
-			return nil
-		}
+		t = s.parseType(vs.Type)
 	}
 
 	var cs []constant
@@ -287,11 +271,7 @@ func (sh *Shader) parseFunc(d *ast.FuncDecl, block *block) function {
 
 	var args []variable
 	for _, f := range d.Type.Params.List {
-		t := parseType(f.Type)
-		if t == basicTypeNone {
-			sh.addError(f.Type.Pos(), fmt.Sprintf("unexpected type: %s", f.Type))
-			continue
-		}
+		t := sh.parseType(f.Type)
 		for _, n := range f.Names {
 			args = append(args, variable{
 				name:      n.Name,
@@ -303,11 +283,7 @@ func (sh *Shader) parseFunc(d *ast.FuncDecl, block *block) function {
 	var rets []variable
 	if d.Type.Results != nil {
 		for _, f := range d.Type.Results.List {
-			t := parseType(f.Type)
-			if t == basicTypeNone {
-				sh.addError(f.Type.Pos(), fmt.Sprintf("unexpected type: %s", f.Type))
-				continue
-			}
+			t := sh.parseType(f.Type)
 			if len(f.Names) == 0 {
 				rets = append(rets, variable{
 					name:      "",
@@ -408,7 +384,7 @@ func (s *Shader) detectType(b *block, expr ast.Expr) basicType {
 		}
 		return basicTypeNone
 	case *ast.CompositeLit:
-		return parseType(e.Type)
+		return s.parseType(e.Type)
 	case *ast.Ident:
 		n := e.Name
 		for _, v := range b.vars {

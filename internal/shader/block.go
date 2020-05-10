@@ -125,12 +125,11 @@ func dumpExpr(e ast.Expr) string {
 	case *ast.BasicLit:
 		return e.Value
 	case *ast.CompositeLit:
-		t := parseType(e.Type)
 		var vals []string
 		for _, e := range e.Elts {
 			vals = append(vals, dumpExpr(e))
 		}
-		return fmt.Sprintf("%s{%s}", t, strings.Join(vals, ", "))
+		return fmt.Sprintf("%s{%s}", e.Type, strings.Join(vals, ", "))
 	case *ast.Ident:
 		return e.Name
 	case *ast.SelectorExpr:

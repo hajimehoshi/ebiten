@@ -35,7 +35,7 @@ const (
 	basicTypeSampler2d
 )
 
-func parseType(expr ast.Expr) basicType {
+func (s *Shader) parseType(expr ast.Expr) basicType {
 	switch t := expr.(type) {
 	case *ast.Ident:
 		switch t.Name {
@@ -55,8 +55,9 @@ func parseType(expr ast.Expr) basicType {
 			return basicTypeMat4
 		case "sampler2d":
 			return basicTypeSampler2d
+		default:
+			s.addError(t.Pos(), fmt.Sprintf("unexpected type: %s", t.Name))
 		}
-		// TODO: Parse array types
 	}
 	return basicTypeNone
 }
