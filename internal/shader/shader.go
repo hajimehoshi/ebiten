@@ -34,15 +34,15 @@ var (
 )
 
 type variable struct {
-	name      string
-	basicType basicType
-	init      ast.Expr
+	name string
+	typ  typ
+	init ast.Expr
 }
 
 type constant struct {
-	name      string
-	basicType basicType
-	init      ast.Expr
+	name string
+	typ  typ
+	init ast.Expr
 }
 
 type function struct {
@@ -133,7 +133,9 @@ func (sh *Shader) parseDecl(b *block, d ast.Decl, global bool) {
 			// TODO: Parse other types
 			for _, s := range d.Specs {
 				s := s.(*ast.TypeSpec)
-				sh.parseStruct(s)
+				t := sh.parseType(s.Type)
+				t.name = s.Name.Name
+				b.types = append(b.types, t)
 			}
 		case token.CONST:
 			for _, s := range d.Specs {
@@ -193,32 +195,28 @@ func (sh *Shader) parseStruct(t *ast.TypeSpec) {
 				continue
 			}
 			t := sh.parseType(f.Type)
-			if t != basicTypeVec4 {
+			if t.basic != basicTypeVec4 {
 				sh.addError(f.Type.Pos(), fmt.Sprintf("position must be vec4 but %s", t))
 				continue
 			}
 			sh.position = variable{
-				name:      f.Names[0].Name,
-				basicType: t,
+				name: f.Names[0].Name,
+				typ:  t,
 			}
 			continue
 		}
 		t := sh.parseType(f.Type)
-		if !t.numeric() {
-			sh.addError(f.Type.Pos(), fmt.Sprintf("members in %s must be numeric but %s", varyingStructName, t))
-			continue
-		}
 		for _, n := range f.Names {
 			sh.varyings = append(sh.varyings, variable{
-				name:      n.Name,
-				basicType: t,
+				name: n.Name,
+				typ:  t,
 			})
 		}
 	}
 }
 
 func (s *Shader) parseVariable(block *block, vs *ast.ValueSpec) []variable {
-	var t basicType
+	var t typ
 	if vs.Type != nil {
 		t = s.parseType(vs.Type)
 	}
@@ -228,22 +226,22 @@ func (s *Shader) parseVariable(block *block, vs *ast.ValueSpec) []variable {
 		var init ast.Expr
 		if len(vs.Values) > 0 {
 			init = vs.Values[i]
-			if t == basicTypeNone {
+			if t.isNone() {
 				t = s.detectType(block, init)
 			}
 		}
 		name := n.Name
 		vars = append(vars, variable{
-			name:      name,
-			basicType: t,
-			init:      init,
+			name: name,
+			typ:  t,
+			init: init,
 		})
 	}
 	return vars
 }
 
 func (s *Shader) parseConstant(vs *ast.ValueSpec) []constant {
-	var t basicType
+	var t typ
 	if vs.Type != nil {
 		t = s.parseType(vs.Type)
 	}
@@ -251,9 +249,9 @@ func (s *Shader) parseConstant(vs *ast.ValueSpec) []constant {
 	var cs []constant
 	for i, n := range vs.Names {
 		cs = append(cs, constant{
-			name:      n.Name,
-			basicType: t,
-			init:      vs.Values[i],
+			name: n.Name,
+			typ:  t,
+			init: vs.Values[i],
 		})
 	}
 	return cs
@@ -274,8 +272,8 @@ func (sh *Shader) parseFunc(d *ast.FuncDecl, block *block) function {
 		t := sh.parseType(f.Type)
 		for _, n := range f.Names {
 			args = append(args, variable{
-				name:      n.Name,
-				basicType: t,
+				name: n.Name,
+				typ:  t,
 			})
 		}
 	}
@@ -286,14 +284,14 @@ func (sh *Shader) parseFunc(d *ast.FuncDecl, block *block) function {
 			t := sh.parseType(f.Type)
 			if len(f.Names) == 0 {
 				rets = append(rets, variable{
-					name:      "",
-					basicType: t,
+					name: "",
+					typ:  t,
 				})
 			} else {
 				for _, n := range f.Names {
 					rets = append(rets, variable{
-						name:      n.Name,
-						basicType: t,
+						name: n.Name,
+						typ:  t,
 					})
 				}
 			}
@@ -323,7 +321,7 @@ func (sh *Shader) parseBlock(outer *block, b *ast.BlockStmt) *block {
 						name: s.(*ast.Ident).Name,
 					}
 					if len(l.Rhs) > 0 {
-						v.basicType = sh.detectType(block, l.Rhs[i])
+						v.typ = sh.detectType(block, l.Rhs[i])
 					}
 					block.vars = append(block.vars, v)
 				}
@@ -371,31 +369,33 @@ func (sh *Shader) parseBlock(outer *block, b *ast.BlockStmt) *block {
 	return block
 }
 
-func (s *Shader) detectType(b *block, expr ast.Expr) basicType {
+func (s *Shader) detectType(b *block, expr ast.Expr) typ {
 	switch e := expr.(type) {
 	case *ast.BasicLit:
 		if e.Kind == token.FLOAT {
-			return basicTypeFloat
+			return typ{
+				basic: basicTypeFloat,
+			}
 		}
 		if e.Kind == token.INT {
 			s.addError(expr.Pos(), fmt.Sprintf("integer literal is not implemented yet: %s", e.Value))
 		} else {
 			s.addError(expr.Pos(), fmt.Sprintf("unexpected literal: %s", e.Value))
 		}
-		return basicTypeNone
+		return typ{}
 	case *ast.CompositeLit:
 		return s.parseType(e.Type)
 	case *ast.Ident:
 		n := e.Name
 		for _, v := range b.vars {
 			if v.name == n {
-				return v.basicType
+				return v.typ
 			}
 		}
 		if b == &s.global {
 			for _, v := range s.uniforms {
 				if v.name == n {
-					return v.basicType
+					return v.typ
 				}
 			}
 		}
@@ -403,12 +403,12 @@ func (s *Shader) detectType(b *block, expr ast.Expr) basicType {
 			return s.detectType(b.outer, e)
 		}
 		s.addError(expr.Pos(), fmt.Sprintf("unexpected identity: %s", n))
-		return basicTypeNone
+		return typ{}
 	//case *ast.SelectorExpr:
 	//return fmt.Sprintf("%s.%s", dumpExpr(e.X), dumpExpr(e.Sel))
 	default:
 		s.addError(expr.Pos(), fmt.Sprintf("detecting type not implemented: %#v", expr))
-		return basicTypeNone
+		return typ{}
 	}
 }
 
@@ -417,27 +417,16 @@ func (s *Shader) Dump() string {
 	var lines []string
 
 	if s.position.name != "" {
-		lines = append(lines, fmt.Sprintf("var %s varying %s // position", s.position.name, s.position.basicType))
+		lines = append(lines, fmt.Sprintf("var %s varying %s // position", s.position.name, s.position.typ))
 	}
 	for _, v := range s.varyings {
-		lines = append(lines, fmt.Sprintf("var %s varying %s", v.name, v.basicType))
+		lines = append(lines, fmt.Sprintf("var %s varying %s", v.name, v.typ))
 	}
-
 	for _, u := range s.uniforms {
-		lines = append(lines, fmt.Sprintf("var %s uniform %s", u.name, u.basicType))
+		lines = append(lines, fmt.Sprintf("var %s uniform %s", u.name, u.typ))
 	}
 
 	lines = append(lines, s.global.dump(0)...)
 
-	return strings.Join(lines, "\n") + "\n"
-}
-
-func (s *Shader) GlslVertex() string {
-	var lines []string
-
-	for _, v := range s.varyings {
-		// TODO: variable names must be escaped not to conflict with keywords.
-		lines = append(lines, fmt.Sprintf("varying %s %s;", v.basicType.glslString(), v.name))
-	}
 	return strings.Join(lines, "\n") + "\n"
 }

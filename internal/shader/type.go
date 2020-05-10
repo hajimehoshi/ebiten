@@ -17,6 +17,7 @@ package shader
 import (
 	"fmt"
 	"go/ast"
+	"strings"
 )
 
 type basicType int
@@ -33,33 +34,113 @@ const (
 	basicTypeMat3
 	basicTypeMat4
 	basicTypeSampler2d
+	basicTypeStruct
 )
 
-func (s *Shader) parseType(expr ast.Expr) basicType {
+type structMember struct {
+	name string
+	typ  typ
+	tag  string
+}
+
+type typ struct {
+	basic         basicType
+	name          string
+	structMembers []structMember
+}
+
+func (t *typ) isNone() bool {
+	return t.basic == basicTypeNone
+}
+
+func (sh *Shader) parseType(expr ast.Expr) typ {
 	switch t := expr.(type) {
 	case *ast.Ident:
 		switch t.Name {
 		case "float":
-			return basicTypeFloat
+			return typ{
+				basic: basicTypeFloat,
+			}
 		case "vec2":
-			return basicTypeVec2
+			return typ{
+				basic: basicTypeVec2,
+			}
 		case "vec3":
-			return basicTypeVec3
+			return typ{
+				basic: basicTypeVec3,
+			}
 		case "vec4":
-			return basicTypeVec4
+			return typ{
+				basic: basicTypeVec4,
+			}
 		case "mat2":
-			return basicTypeMat2
+			return typ{
+				basic: basicTypeMat2,
+			}
 		case "mat3":
-			return basicTypeMat3
+			return typ{
+				basic: basicTypeMat3,
+			}
 		case "mat4":
-			return basicTypeMat4
+			return typ{
+				basic: basicTypeMat4,
+			}
 		case "sampler2d":
-			return basicTypeSampler2d
+			return typ{
+				basic: basicTypeSampler2d,
+			}
 		default:
-			s.addError(t.Pos(), fmt.Sprintf("unexpected type: %s", t.Name))
+			sh.addError(t.Pos(), fmt.Sprintf("unexpected type: %s", t.Name))
+			return typ{}
 		}
+	case *ast.StructType:
+		str := typ{
+			basic: basicTypeStruct,
+		}
+		for _, f := range t.Fields.List {
+			typ := sh.parseType(f.Type)
+			var tag string
+			if f.Tag != nil {
+				tag = f.Tag.Value
+			}
+			for _, n := range f.Names {
+				str.structMembers = append(str.structMembers, structMember{
+					name: n.Name,
+					typ:  typ,
+					tag:  tag,
+				})
+			}
+		}
+		return str
+	default:
+		sh.addError(t.Pos(), fmt.Sprintf("unepxected type: %v", t))
+		return typ{}
 	}
-	return basicTypeNone
+}
+
+func (t typ) dump(indent int) []string {
+	idt := strings.Repeat("\t", indent)
+
+	switch t.basic {
+	case basicTypeStruct:
+		ls := []string{
+			fmt.Sprintf("%sstruct {", idt),
+		}
+		for _, m := range t.structMembers {
+			ls = append(ls, fmt.Sprintf("%s\t%s %s", idt, m.name, m.typ))
+		}
+		ls = append(ls, fmt.Sprintf("%s}", idt))
+		return ls
+	default:
+		return []string{t.basic.String()}
+	}
+}
+
+func (t typ) String() string {
+	if t.name != "" {
+		return t.name
+	}
+	return t.basic.String()
 }
 
 func (t basicType) String() string {
@@ -82,6 +163,8 @@ func (t basicType) String() string {
 		return "mat4"
 	case basicTypeSampler2d:
 		return "sampler2d"
+	case basicTypeStruct:
+		return "(struct)"
 	default:
 		return fmt.Sprintf("unknown(%d)", t)
 	}

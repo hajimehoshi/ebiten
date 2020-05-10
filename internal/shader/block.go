@@ -22,6 +22,7 @@ import (
 )
 
 type block struct {
+	types  []typ
 	vars   []variable
 	consts []constant
 	funcs  []function
@@ -35,20 +36,25 @@ func (b *block) dump(indent int) []string {
 
 	var lines []string
 
+	for _, t := range b.types {
+		ls := t.dump(indent)
+		ls[0] = fmt.Sprintf("type %s %s", t.name, ls[0])
+		lines = append(lines, ls...)
+	}
 	for _, v := range b.vars {
 		init := ""
 		if v.init != nil {
 			init = " = " + dumpExpr(v.init)
 		}
-		lines = append(lines, fmt.Sprintf("%svar %s %s%s", idt, v.name, v.basicType, init))
+		lines = append(lines, fmt.Sprintf("%svar %s %s%s", idt, v.name, v.typ, init))
 	}
 	for _, c := range b.consts {
-		lines = append(lines, fmt.Sprintf("%sconst %s %s = %s", idt, c.name, c.basicType, dumpExpr(c.init)))
+		lines = append(lines, fmt.Sprintf("%sconst %s %s = %s", idt, c.name, c.typ, dumpExpr(c.init)))
 	}
 	for _, f := range b.funcs {
 		var args []string
 		for _, a := range f.args {
-			args = append(args, fmt.Sprintf("%s %s", a.name, a.basicType))
+			args = append(args, fmt.Sprintf("%s %s", a.name, a.typ))
 		}
 		var rets []string
 		for _, r := range f.rets {
@@ -56,7 +62,7 @@ func (b *block) dump(indent int) []string {
 			if name == "" {
 				name = "_"
 			}
-			rets = append(rets, fmt.Sprintf("%s %s", name, r.basicType))
+			rets = append(rets, fmt.Sprintf("%s %s", name, r.typ))
 		}
 		l := fmt.Sprintf("func %s(%s)", f.name, strings.Join(args, ", "))
 		if len(rets) > 0 {
