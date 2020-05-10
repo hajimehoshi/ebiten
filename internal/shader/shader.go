@@ -303,23 +303,25 @@ func (sh *Shader) parseFunc(d *ast.FuncDecl, block *block) function {
 	}
 
 	var rets []variable
-	for _, f := range d.Type.Results.List {
-		t := parseType(f.Type)
-		if t == typNone {
-			sh.addError(f.Type.Pos(), fmt.Sprintf("unexpected type: %s", f.Type))
-			continue
-		}
-		if len(f.Names) == 0 {
-			rets = append(rets, variable{
-				name: "",
-				typ:  t,
-			})
-		} else {
-			for _, n := range f.Names {
+	if d.Type.Results != nil {
+		for _, f := range d.Type.Results.List {
+			t := parseType(f.Type)
+			if t == typNone {
+				sh.addError(f.Type.Pos(), fmt.Sprintf("unexpected type: %s", f.Type))
+				continue
+			}
+			if len(f.Names) == 0 {
 				rets = append(rets, variable{
-					name: n.Name,
+					name: "",
 					typ:  t,
 				})
+			} else {
+				for _, n := range f.Names {
+					rets = append(rets, variable{
+						name: n.Name,
+						typ:  t,
+					})
+				}
 			}
 		}
 	}
@@ -397,7 +399,11 @@ func (s *Shader) detectType(b *block, expr ast.Expr) typ {
 		if e.Kind == token.FLOAT {
 			return typFloat
 		}
-		s.addError(expr.Pos(), fmt.Sprintf("unexpected literal: %s", e.Value))
+		if e.Kind == token.INT {
+			s.addError(expr.Pos(), fmt.Sprintf("integer literal is not implemented yet: %s", e.Value))
+		} else {
+			s.addError(expr.Pos(), fmt.Sprintf("unexpected literal: %s", e.Value))
+		}
 		return typNone
 	case *ast.CompositeLit:
 		return parseType(e.Type)
@@ -425,7 +431,9 @@ func (s *Shader) detectType(b *block, expr ast.Expr) typ {
 func (s *Shader) Dump() string {
 	var lines []string
 
-	lines = append(lines, fmt.Sprintf("var %s varying %s // position", s.position.name, s.position.typ))
+	if s.position.name != "" {
+		lines = append(lines, fmt.Sprintf("var %s varying %s // position", s.position.name, s.position.typ))
+	}
 	for _, v := range s.varyings {
 		lines = append(lines, fmt.Sprintf("var %s varying %s", v.name, v.typ))
 	}

@@ -23,12 +23,12 @@ import (
 func TestDump(t *testing.T) {
 	tests := []struct {
 		Name string
-		In   string
+		Src  string
 		Dump string
 	}{
 		{
 			Name: "general",
-			In: `package main
+			Src: `package main
 
 type VertexOut struct {
 	Position vec4 ` + "`kage:\"position\"`" + `
@@ -76,9 +76,25 @@ func F1(a vec2, b vec2) (_ vec4) {
 }
 `,
 		},
+		{
+			Name: "Type",
+			Src:  `package main
+
+var c0 = 0.0
+func F() {
+	c1 := c0
+}
+`,
+			Dump: `var c0 float = 0.0
+func F() {
+	var c1 float
+	c1 = c0
+}
+`,
+		},
 	}
 	for _, tc := range tests {
-		s, err := NewShader([]byte(tc.In))
+		s, err := NewShader([]byte(tc.Src))
 		if err != nil {
 			t.Error(err)
 			continue
