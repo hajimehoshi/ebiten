@@ -338,13 +338,13 @@ func MeasureString(text string, face font.Face) (int, int) {
 
 		fx += glyphAdvance(face, r)
 
-		w = int(math.Max(float64(w), float64(fx.Ceil())))
-		h = int(math.Max(float64(h), float64(fy.Ceil() + faceHeight.Ceil())))
+		w = int(math.Max(float64(w), float64(fx.Round())))
+		h = int(math.Max(float64(h), float64(fy.Round() + faceHeight.Round())))
 
 		prevR = r
 	}
 
 	textM.Unlock()
 
-	return w, h + face.Metrics().Descent.Ceil()
+	return w, h + face.Metrics().Descent.Round()
 }
