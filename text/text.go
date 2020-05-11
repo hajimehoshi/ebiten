@@ -318,7 +318,9 @@ func MeasureString(text string, face font.Face) (int, int) {
 	x, y := 0, 0
 	w, h := 0, 0
 
-	faceHeight := face.Metrics().Height
+	m := face.Metrics()
+	faceHeight := m.Height
+	faceDescent := m.Descent
 
 	fx, fy := fixed.I(x), fixed.I(y)
 	prevR := rune(-1)
@@ -346,5 +348,5 @@ func MeasureString(text string, face font.Face) (int, int) {
 
 	textM.Unlock()
 
-	return w, h + face.Metrics().Descent.Round()
+	return w, h + faceDescent.Round()
 }
