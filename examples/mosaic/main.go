@@ -55,11 +55,14 @@ func init() {
 	gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 }
 
-func update(screen *ebiten.Image) error {
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
+type Game struct {
+}
 
+func (g *Game) Update(screen *ebiten.Image) error {
+	return nil
+}
+
+func (g *Game) Draw(screen *ebiten.Image) {
 	// Shrink the image once.
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Scale(1.0/mosaicRatio, 1.0/mosaicRatio)
@@ -70,13 +73,18 @@ func update(screen *ebiten.Image) error {
 	op = &ebiten.DrawImageOptions{}
 	op.GeoM.Scale(mosaicRatio, mosaicRatio)
 	screen.DrawImage(gophersRenderTarget, op)
-	return nil
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
 	w, h := gophersImage.Size()
 	gophersRenderTarget, _ = ebiten.NewImage(w/mosaicRatio, h/mosaicRatio, ebiten.FilterDefault)
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Mosaic (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Mosaic (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }

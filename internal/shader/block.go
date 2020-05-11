@@ -22,6 +22,7 @@ import (
 )
 
 type block struct {
+	types  []typ
 	vars   []variable
 	consts []constant
 	funcs  []function
@@ -35,6 +36,11 @@ func (b *block) dump(indent int) []string {
 
 	var lines []string
 
+	for _, t := range b.types {
+		ls := t.dump(indent)
+		ls[0] = fmt.Sprintf("type %s %s", t.name, ls[0])
+		lines = append(lines, ls...)
+	}
 	for _, v := range b.vars {
 		init := ""
 		if v.init != nil {
@@ -80,12 +86,14 @@ type stmtType int
 const (
 	stmtNone stmtType = iota
 	stmtAssign
+	stmtBlock
 	stmtReturn
 )
 
 type stmt struct {
 	stmtType stmtType
 	exprs    []ast.Expr
+	block    *block
 }
 
 func (s *stmt) dump(indent int) []string {
@@ -97,6 +105,10 @@ func (s *stmt) dump(indent int) []string {
 		lines = append(lines, "%s(none)", idt)
 	case stmtAssign:
 		lines = append(lines, fmt.Sprintf("%s%s = %s", idt, dumpExpr(s.exprs[0]), dumpExpr(s.exprs[1])))
+	case stmtBlock:
+		lines = append(lines, fmt.Sprintf("%s{", idt))
+		lines = append(lines, s.block.dump(indent+1)...)
+		lines = append(lines, fmt.Sprintf("%s}", idt))
 	case stmtReturn:
 		var expr string
 		if len(s.exprs) > 0 {
@@ -119,12 +131,11 @@ func dumpExpr(e ast.Expr) string {
 	case *ast.BasicLit:
 		return e.Value
 	case *ast.CompositeLit:
-		t := parseType(e.Type)
 		var vals []string
 		for _, e := range e.Elts {
 			vals = append(vals, dumpExpr(e))
 		}
-		return fmt.Sprintf("%s{%s}", t, strings.Join(vals, ", "))
+		return fmt.Sprintf("%s{%s}", e.Type, strings.Join(vals, ", "))
 	case *ast.Ident:
 		return e.Name
 	case *ast.SelectorExpr:

@@ -38,10 +38,6 @@ var (
 	fgImage        *ebiten.Image
 	maskedFgImage  *ebiten.Image
 	spotLightImage *ebiten.Image
-	spotLightX     = 0
-	spotLightY     = 0
-	spotLightVX    = 1
-	spotLightVY    = 1
 )
 
 func init() {
@@ -84,37 +80,59 @@ func init() {
 	spotLightImage, _ = ebiten.NewImageFromImage(a, ebiten.FilterDefault)
 }
 
-func update(screen *ebiten.Image) error {
-	spotLightX += spotLightVX
-	spotLightY += spotLightVY
-	if spotLightX < 0 {
-		spotLightX = -spotLightX
-		spotLightVX = -spotLightVX
+type Game struct {
+	spotLightX  int
+	spotLightY  int
+	spotLightVX int
+	spotLightVY int
+}
+
+func NewGame() *Game {
+	return &Game{
+		spotLightX:  0,
+		spotLightY:  0,
+		spotLightVX: 1,
+		spotLightVY: 1,
 	}
-	if spotLightY < 0 {
-		spotLightY = -spotLightY
-		spotLightVY = -spotLightVY
+}
+
+func (g *Game) Update(screen *ebiten.Image) error {
+	if g.spotLightVX == 0 {
+		g.spotLightVX = 1
+	}
+	if g.spotLightVY == 0 {
+		g.spotLightVY = 1
+	}
+
+	g.spotLightX += g.spotLightVX
+	g.spotLightY += g.spotLightVY
+	if g.spotLightX < 0 {
+		g.spotLightX = -g.spotLightX
+		g.spotLightVX = -g.spotLightVX
+	}
+	if g.spotLightY < 0 {
+		g.spotLightY = -g.spotLightY
+		g.spotLightVY = -g.spotLightVY
 	}
 	w, h := spotLightImage.Size()
 	maxX, maxY := screenWidth-w, screenHeight-h
-	if maxX < spotLightX {
-		spotLightX = -spotLightX + 2*maxX
-		spotLightVX = -spotLightVX
+	if maxX < g.spotLightX {
+		g.spotLightX = -g.spotLightX + 2*maxX
+		g.spotLightVX = -g.spotLightVX
 	}
-	if maxY < spotLightY {
-		spotLightY = -spotLightY + 2*maxY
-		spotLightVY = -spotLightVY
+	if maxY < g.spotLightY {
+		g.spotLightY = -g.spotLightY + 2*maxY
+		g.spotLightVY = -g.spotLightVY
 	}
+	return nil
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
+func (g *Game) Draw(screen *ebiten.Image) {
 	// Reset the maskedFgImage.
 	maskedFgImage.Fill(color.White)
 	op := &ebiten.DrawImageOptions{}
 	op.CompositeMode = ebiten.CompositeModeCopy
-	op.GeoM.Translate(float64(spotLightX), float64(spotLightY))
+	op.GeoM.Translate(float64(g.spotLightX), float64(g.spotLightY))
 	maskedFgImage.DrawImage(spotLightImage, op)
 
 	// Use 'source-in' composite mode so that the source image (fgImage) is used but the alpha
@@ -133,8 +151,10 @@ func update(screen *ebiten.Image) error {
 	screen.Fill(color.RGBA{0x00, 0x00, 0x80, 0xff})
 	screen.DrawImage(bgImage, &ebiten.DrawImageOptions{})
 	screen.DrawImage(maskedFgImage, &ebiten.DrawImageOptions{})
+}
 
-	return nil
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func max(a, b int) int {
@@ -152,7 +172,9 @@ func min(a, b int) int {
 }
 
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Masking (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Masking (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }

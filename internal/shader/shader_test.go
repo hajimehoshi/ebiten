@@ -23,12 +23,12 @@ import (
 func TestDump(t *testing.T) {
 	tests := []struct {
 		Name string
-		In   string
+		Src  string
 		Dump string
 	}{
 		{
 			Name: "general",
-			In: `package main
+			Src: `package main
 
 type VertexOut struct {
 	Position vec4 ` + "`kage:\"position\"`" + `
@@ -40,7 +40,6 @@ var Foo float
 var (
 	Bar       vec2
 	Baz, Quux vec3
-	qux       vec4
 )
 
 const C1 float = 1
@@ -54,14 +53,15 @@ func F1(a, b vec2) vec4 {
 	return c2
 }
 `,
-			Dump: `var Position varying vec4 // position
-var Color varying vec4
-var TexCoord varying vec2
-var Bar uniform vec2
+			Dump: `var Bar uniform vec2
 var Baz uniform vec3
 var Foo uniform float
 var Quux uniform vec3
-var qux vec4
+type VertexOut struct {
+	Position vec4
+	TexCoord vec2
+	Color vec4
+}
 const C1 float = 1
 const C2 float = 2
 const C3 float = 3
@@ -76,9 +76,69 @@ func F1(a vec2, b vec2) (_ vec4) {
 }
 `,
 		},
+		{
+			Name: "AutoType",
+			Src: `package main
+
+var V0 = 0.0
+func F() {
+	v1 := V0
+}
+`,
+			Dump: `var V0 uniform float
+func F() {
+	var v1 float
+	v1 = V0
+}
+`,
+		},
+		{
+			Name: "AutoType2",
+			Src: `package main
+
+var V0 = 0.0
+func F() {
+	v1 := V0
+	{
+		v2 := v1
+	}
+}
+`,
+			Dump: `var V0 uniform float
+func F() {
+	var v1 float
+	v1 = V0
+	{
+		var v2 float
+		v2 = v1
+	}
+}
+`,
+		},
+		/*{
+					Name: "Struct",
+					Src: `package main
+
+		type S struct {
+			M0 float
+			M1, M2 vec2
+			M3, M4, M5 vec3
+		}
+		`,
+					Dump: `var V0 uniform float
+		type S struct {
+			M0 float
+			M1 vec2
+			M2 vec2
+			M3 vec3
+			M4 vec3
+			M5 vec3
+		}
+		`,
+				},*/
 	}
 	for _, tc := range tests {
-		s, err := NewShader([]byte(tc.In))
+		s, err := NewShader([]byte(tc.Src))
 		if err != nil {
 			t.Error(err)
 			continue

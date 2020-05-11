@@ -30,10 +30,6 @@ const (
 	screenHeight = 240
 )
 
-var (
-	noiseImage *image.RGBA
-)
-
 type rand struct {
 	x, y, z, w uint32
 }
@@ -49,29 +45,39 @@ func (r *rand) next() uint32 {
 
 var theRand = &rand{12345678, 4185243, 776511, 45411}
 
-func update(screen *ebiten.Image) error {
+type Game struct {
+	noiseImage *image.RGBA
+}
+
+func (g *Game) Update(screen *ebiten.Image) error {
 	// Generate the noise with random RGB values.
 	const l = screenWidth * screenHeight
 	for i := 0; i < l; i++ {
 		x := theRand.next()
-		noiseImage.Pix[4*i] = uint8(x >> 24)
-		noiseImage.Pix[4*i+1] = uint8(x >> 16)
-		noiseImage.Pix[4*i+2] = uint8(x >> 8)
-		noiseImage.Pix[4*i+3] = 0xff
+		g.noiseImage.Pix[4*i] = uint8(x >> 24)
+		g.noiseImage.Pix[4*i+1] = uint8(x >> 16)
+		g.noiseImage.Pix[4*i+2] = uint8(x >> 8)
+		g.noiseImage.Pix[4*i+3] = 0xff
 	}
-
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
-	screen.ReplacePixels(noiseImage.Pix)
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
 	return nil
 }
 
+func (g *Game) Draw(screen *ebiten.Image) {
+	screen.ReplacePixels(g.noiseImage.Pix)
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
+}
+
 func main() {
-	noiseImage = image.NewRGBA(image.Rect(0, 0, screenWidth, screenHeight))
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Noise (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Noise (Ebiten Demo)")
+	g := &Game{
+		noiseImage: image.NewRGBA(image.Rect(0, 0, screenWidth, screenHeight)),
+	}
+	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
 }

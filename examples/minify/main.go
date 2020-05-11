@@ -40,29 +40,31 @@ const (
 
 var (
 	gophersImage *ebiten.Image
-	rotate       = false
-	clip         = false
-	counter      = 0
 )
 
-func update(screen *ebiten.Image) error {
-	counter++
-	if counter == 480 {
-		counter = 0
+type Game struct {
+	rotate  bool
+	clip    bool
+	counter int
+}
+
+func (g *Game) Update(screen *ebiten.Image) error {
+	g.counter++
+	if g.counter == 480 {
+		g.counter = 0
 	}
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
-		rotate = !rotate
+		g.rotate = !g.rotate
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyC) {
-		clip = !clip
+		g.clip = !g.clip
 	}
+	return nil
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
-	s := 1.5 / math.Pow(1.01, float64(counter))
+func (g *Game) Draw(screen *ebiten.Image) {
+	s := 1.5 / math.Pow(1.01, float64(g.counter))
 	msg := fmt.Sprintf(`Minifying images (Nearest filter vs Linear filter):
 Press R to rotate the images.
 Press C to clip the images.
@@ -74,22 +76,24 @@ Scale: %0.2f`, s)
 		w, h := gophersImage.Size()
 
 		op := &ebiten.DrawImageOptions{}
-		if rotate {
+		if g.rotate {
 			op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
-			op.GeoM.Rotate(float64(counter) / 300 * 2 * math.Pi)
+			op.GeoM.Rotate(float64(g.counter) / 300 * 2 * math.Pi)
 			op.GeoM.Translate(float64(w)/2, float64(h)/2)
 		}
 		op.GeoM.Scale(s, s)
 		op.GeoM.Translate(32+float64(i*w)*s+float64(i*4), 64)
 		op.Filter = f
-		if clip {
+		if g.clip {
 			screen.DrawImage(clippedGophersImage, op)
 		} else {
 			screen.DrawImage(gophersImage, op)
 		}
 	}
+}
 
-	return nil
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
@@ -112,7 +116,9 @@ func main() {
 	// Specify FilterDefault here, that means to prefer filter specified at DrawImageOptions.
 	gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 
-	if err := ebiten.Run(update, screenWidth, screenHeight, 1, "Minify (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("Minify (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }

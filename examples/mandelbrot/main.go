@@ -35,14 +35,6 @@ var (
 	palette      [maxIt]byte
 )
 
-func init() {
-	offscreen, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterDefault)
-	offscreenPix = make([]byte, screenWidth*screenHeight*4)
-	for i := range palette {
-		palette[i] = byte(math.Sqrt(float64(i)/float64(len(palette))) * 0x80)
-	}
-}
-
 func color(it int) (r, g, b byte) {
 	if it == maxIt {
 		return 0xff, 0xff, 0xff
@@ -77,21 +69,34 @@ func updateOffscreen(centerX, centerY, size float64) {
 }
 
 func init() {
+	offscreen, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterDefault)
+	offscreenPix = make([]byte, screenWidth*screenHeight*4)
+	for i := range palette {
+		palette[i] = byte(math.Sqrt(float64(i)/float64(len(palette))) * 0x80)
+	}
 	// Now it is not feasible to call updateOffscreen every frame due to performance.
 	updateOffscreen(-0.75, 0.25, 2)
 }
 
-func update(screen *ebiten.Image) error {
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
+type Game struct {
+}
 
-	screen.DrawImage(offscreen, nil)
+func (g *Game) Update(screen *ebiten.Image) error {
 	return nil
 }
 
+func (g *Game) Draw(screen *ebiten.Image) {
+	screen.DrawImage(offscreen, nil)
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
+}
+
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 1, "Mandelbrot (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("Mandelbrot (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }
