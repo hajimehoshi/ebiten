@@ -311,7 +311,7 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 // This is a known issue (#498).
 //
 // MeasureString is concurrent-safe.
-func MeasureString(text string, face font.Face) (int, int) {
+func MeasureString(text string, face font.Face) (image.Point, image.Point) {
 	textM.Lock()
 	defer textM.Unlock()
 
@@ -345,5 +345,14 @@ func MeasureString(text string, face font.Face) (int, int) {
 		prevR = r
 	}
 
-	return int(math.Round(w)), int(math.Round(h)) + faceDescent.Round()
+	origin := image.Point{
+		X: 0,
+		Y: -faceHeight.Round(),
+	}
+	bounds := image.Point{
+		X: int(math.Round(w)),
+		Y: int(math.Round(h)) + faceDescent.Round(),
+	}
+
+	return origin, bounds
 }
