@@ -20,13 +20,13 @@ import (
 )
 
 type Type struct {
-	MainType BasicType
-	SubTypes []Type
-	Length   int
+	Main   BasicType
+	Sub    []Type
+	Length int
 }
 
 func (t *Type) serialize() string {
-	switch t.MainType {
+	switch t.Main {
 	case None:
 		return "none"
 	case Bool:
@@ -48,11 +48,11 @@ func (t *Type) serialize() string {
 	case Image2D:
 		return "image2d"
 	case Array:
-		return fmt.Sprintf("%s[%d]", t.SubTypes[0].serialize(), t.Length)
+		return fmt.Sprintf("%s[%d]", t.Sub[0].serialize(), t.Length)
 	case Struct:
 		str := "struct{"
-		sub := make([]string, 0, len(t.SubTypes))
-		for _, st := range t.SubTypes {
+		sub := make([]string, 0, len(t.Sub))
+		for _, st := range t.Sub {
 			sub = append(sub, st.serialize())
 		}
 		str += strings.Join(sub, ",")
