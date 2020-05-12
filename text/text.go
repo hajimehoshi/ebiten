@@ -39,7 +39,7 @@ func now() int64 {
 }
 
 func fixed26_6ToFloat64(x fixed.Int26_6) float64 {
-	return float64(x) / (1 << 6)
+	return float64(x >> 6) + float64(x & ((1 << 6) - 1)) / float64(1 << 6)
 }
 
 const (
@@ -315,7 +315,7 @@ func MeasureString(text string, face font.Face) (image.Point, image.Point) {
 	textM.Lock()
 	defer textM.Unlock()
 
-	w, h := 0.0, 0.0
+	var w, h fixed.Int26_6
 
 	m := face.Metrics()
 	faceHeight := m.Height
@@ -339,8 +339,12 @@ func MeasureString(text string, face font.Face) (image.Point, image.Point) {
 
 		fx += glyphAdvance(face, r)
 
-		w = math.Max(w, float64(fx.Round()))
-		h = math.Max(h, float64(fy.Round() + faceHeight.Round()))
+		if fx > w {
+			w = fx
+		}
+		if (fy+faceHeight) > h {
+			h = fy+faceHeight
+		}
 
 		prevR = r
 	}
@@ -350,8 +354,8 @@ func MeasureString(text string, face font.Face) (image.Point, image.Point) {
 		Y: -faceHeight.Round(),
 	}
 	bounds := image.Point{
-		X: int(math.Round(w)),
-		Y: int(math.Round(h)) + faceDescent.Round(),
+		X: int(math.Round(fixed26_6ToFloat64(w))),
+		Y: int(math.Round(fixed26_6ToFloat64(h+faceDescent))),
 	}
 
 	return origin, bounds
