@@ -20,7 +20,7 @@ import (
 )
 
 func (p *Program) structName(t *Type) string {
-	if t.MainType != Struct {
+	if t.Main != Struct {
 		panic("shaderir: the given type at structName must be a struct")
 	}
 	s := t.serialize()
@@ -41,11 +41,20 @@ func (p *Program) Glsl() string {
 	for _, u := range p.Uniforms {
 		lines = append(lines, fmt.Sprintf("uniform %s;", p.glslVarDecl(&u.Type, u.Name)))
 	}
+	for _, a := range p.Attributes {
+		lines = append(lines, fmt.Sprintf("attribute %s;", p.glslVarDecl(&a.Type, a.Name)))
+	}
+	for _, v := range p.Varyings {
+		lines = append(lines, fmt.Sprintf("varying %s;", p.glslVarDecl(&v.Type, v.Name)))
+	}
+	for _, f := range p.Funcs {
+		lines = append(lines, p.glslFunc(&f)...)
+	}
 
 	var stLines []string
 	for i, t := range p.structTypes {
 		stLines = append(stLines, fmt.Sprintf("struct S%d {", i))
-		for j, st := range t.SubTypes {
+		for j, st := range t.Sub {
 			stLines = append(stLines, fmt.Sprintf("\t%s;", p.glslVarDecl(&st, fmt.Sprintf("M%d", j))))
 		}
 		stLines = append(stLines, "};")
@@ -56,16 +65,23 @@ func (p *Program) Glsl() string {
 }
 
 func (p *Program) glslVarDecl(t *Type, varname string) string {
-	switch t.MainType {
+	switch t.Main {
 	case None:
 		return "?(none)"
 	case Image2D:
 		panic("not implemented")
 	case Array:
-		return fmt.Sprintf("")
+		panic("not implemented")
 	case Struct:
 		return fmt.Sprintf("%s %s", p.structName(t), varname)
 	default:
-		return fmt.Sprintf("%s %s", t.MainType.Glsl(), varname)
+		return fmt.Sprintf("%s %s", t.Main.Glsl(), varname)
+	}
+}
+
+func (p *Program) glslFunc(f *Func) []string {
+	return []string{
+		fmt.Sprintf(`void %s(void) {`, f.Name),
+		`}`,
 	}
 }

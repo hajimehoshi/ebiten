@@ -36,23 +36,23 @@ func TestOutput(t *testing.T) {
 			Program: Program{
 				Uniforms: []Variable{
 					{
-						Name: "U1",
-						Type: Type{MainType: Float},
+						Name: "U0",
+						Type: Type{Main: Float},
 					},
 				},
 			},
-			Glsl: `uniform float U1;`,
+			Glsl: `uniform float U0;`,
 		},
 		{
 			Name: "UniformStruct",
 			Program: Program{
 				Uniforms: []Variable{
 					{
-						Name: "U1",
+						Name: "U0",
 						Type: Type{
-							MainType: Struct,
-							SubTypes: []Type{
-								{MainType: Float},
+							Main: Struct,
+							Sub: []Type{
+								{Main: Float},
 							},
 						},
 					},
@@ -61,7 +61,45 @@ func TestOutput(t *testing.T) {
 			Glsl: `struct S0 {
 	float M0;
 };
-uniform S0 U1;`,
+uniform S0 U0;`,
+		},
+		{
+			Name: "Vars",
+			Program: Program{
+				Uniforms: []Variable{
+					{
+						Name: "U0",
+						Type: Type{Main: Float},
+					},
+				},
+				Attributes: []Variable{
+					{
+						Name: "A0",
+						Type: Type{Main: Vec2},
+					},
+				},
+				Varyings: []Variable{
+					{
+						Name: "V0",
+						Type: Type{Main: Vec3},
+					},
+				},
+			},
+			Glsl: `uniform float U0;
+attribute vec2 A0;
+varying vec3 V0;`,
+		},
+		{
+			Name: "Function",
+			Program: Program{
+				Funcs: []Func{
+					{
+						Name: "F0",
+					},
+				},
+			},
+			Glsl: `void F0(void) {
+}`,
 		},
 	}
 	for _, tc := range tests {
