@@ -273,6 +273,7 @@ func colorToColorM(clr color.Color) ebiten.ColorM {
 // Draw is concurrent-safe.
 func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Color) {
 	textM.Lock()
+	defer textM.Unlock()
 
 	fx, fy := fixed.I(x), fixed.I(y)
 	prevR := rune(-1)
@@ -299,8 +300,6 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 
 		prevR = r
 	}
-
-	textM.Unlock()
 }
 
 // MeasureString measures the size of a given string using a given font.
@@ -314,15 +313,15 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 // MeasureString is concurrent-safe.
 func MeasureString(text string, face font.Face) (int, int) {
 	textM.Lock()
+	defer textM.Unlock()
 
-	x, y := 0, 0
-	w, h := 0, 0
+	w, h := 0.0, 0.0
 
 	m := face.Metrics()
 	faceHeight := m.Height
 	faceDescent := m.Descent
 
-	fx, fy := fixed.I(x), fixed.I(y)
+	fx, fy := fixed.I(0), fixed.I(0)
 	prevR := rune(-1)
 
 	runes := []rune(text)
@@ -332,7 +331,7 @@ func MeasureString(text string, face font.Face) (int, int) {
 			fx += face.Kern(prevR, r)
 		}
 		if r == '\n' {
-			fx = fixed.I(x)
+			fx = fixed.I(0)
 			fy += faceHeight
 			prevR = rune(-1)
 			continue
@@ -340,13 +339,11 @@ func MeasureString(text string, face font.Face) (int, int) {
 
 		fx += glyphAdvance(face, r)
 
-		w = int(math.Max(float64(w), float64(fx.Round())))
-		h = int(math.Max(float64(h), float64(fy.Round() + faceHeight.Round())))
+		w = math.Max(w, float64(fx.Round()))
+		h = math.Max(h, float64(fy.Round() + faceHeight.Round()))
 
 		prevR = r
 	}
 
-	textM.Unlock()
-
-	return w, h + faceDescent.Round()
+	return int(math.Round(w)), int(math.Round(h)) + faceDescent.Round()
 }
