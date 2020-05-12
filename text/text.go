@@ -302,7 +302,7 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 	}
 }
 
-// MeasureString measures the size of a given string using a given font.
+// MeasureString returns the measured size of a given string using a given font.
 //
 // text is the string that's being measured.
 // face is the font for text rendering.
@@ -311,7 +311,7 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 // This is a known issue (#498).
 //
 // MeasureString is concurrent-safe.
-func MeasureString(text string, face font.Face) (image.Point, image.Point) {
+func MeasureString(text string, face font.Face) image.Point {
 	textM.Lock()
 	defer textM.Unlock()
 
@@ -349,14 +349,10 @@ func MeasureString(text string, face font.Face) (image.Point, image.Point) {
 		prevR = r
 	}
 
-	origin := image.Point{
-		X: 0,
-		Y: -faceHeight.Round(),
-	}
 	bounds := image.Point{
 		X: int(math.Ceil(fixed26_6ToFloat64(w))),
 		Y: int(math.Ceil(fixed26_6ToFloat64(h+faceDescent))),
 	}
 
-	return origin, bounds
+	return bounds
 }
