@@ -354,8 +354,8 @@ func MeasureString(text string, face font.Face) (image.Point, image.Point) {
 		Y: -faceHeight.Round(),
 	}
 	bounds := image.Point{
-		X: int(math.Round(fixed26_6ToFloat64(w))),
-		Y: int(math.Round(fixed26_6ToFloat64(h+faceDescent))),
+		X: int(math.Ceil(fixed26_6ToFloat64(w))),
+		Y: int(math.Ceil(fixed26_6ToFloat64(h+faceDescent))),
 	}
 
 	return origin, bounds
