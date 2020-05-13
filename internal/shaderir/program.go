@@ -32,10 +32,11 @@ type Variable struct {
 }
 
 type Func struct {
-	Name      string
-	InParams  []Type
-	OutParams []Type
-	Block     Block
+	Name        string
+	InParams    []Type
+	InOutParams []Type
+	OutParams   []Type
+	Block       Block
 }
 
 type Block struct {

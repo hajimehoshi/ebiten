@@ -80,8 +80,27 @@ func (p *Program) glslVarDecl(t *Type, varname string) string {
 }
 
 func (p *Program) glslFunc(f *Func) []string {
+	var args []string
+	var idx int
+	for _, t := range f.InParams {
+		args = append(args, "in "+p.glslVarDecl(&t, fmt.Sprintf("l%d", idx)))
+		idx++
+	}
+	for _, t := range f.InOutParams {
+		args = append(args, "inout "+p.glslVarDecl(&t, fmt.Sprintf("l%d", idx)))
+		idx++
+	}
+	for _, t := range f.OutParams {
+		args = append(args, "out "+p.glslVarDecl(&t, fmt.Sprintf("l%d", idx)))
+		idx++
+	}
+	argsstr := "void"
+	if len(args) > 0 {
+		argsstr = strings.Join(args, ", ")
+	}
+
 	return []string{
-		fmt.Sprintf(`void %s(void) {`, f.Name),
+		fmt.Sprintf(`void %s(%s) {`, f.Name, argsstr),
 		`}`,
 	}
 }

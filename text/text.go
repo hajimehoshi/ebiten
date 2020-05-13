@@ -39,7 +39,7 @@ func now() int64 {
 }
 
 func fixed26_6ToFloat64(x fixed.Int26_6) float64 {
-	return float64(x >> 6) + float64(x & ((1 << 6) - 1)) / float64(1 << 6)
+	return float64(x>>6) + float64(x&((1<<6)-1))/float64(1<<6)
 }
 
 const (
@@ -343,8 +343,8 @@ func MeasureString(text string, face font.Face) image.Point {
 		if fx > w {
 			w = fx
 		}
-		if (fy+faceHeight) > h {
-			h = fy+faceHeight
+		if (fy + faceHeight) > h {
+			h = fy + faceHeight
 		}
 
 		prevR = r
@@ -352,7 +352,7 @@ func MeasureString(text string, face font.Face) image.Point {
 
 	bounds := image.Point{
 		X: int(math.Ceil(fixed26_6ToFloat64(w))),
-		Y: int(math.Ceil(fixed26_6ToFloat64(h+faceDescent))),
+		Y: int(math.Ceil(fixed26_6ToFloat64(h + faceDescent))),
 	}
 
 	return bounds

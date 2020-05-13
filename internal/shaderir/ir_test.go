@@ -90,7 +90,7 @@ attribute vec2 A0;
 varying vec3 V0;`,
 		},
 		{
-			Name: "Function",
+			Name: "Func",
 			Program: Program{
 				Funcs: []Func{
 					{
@@ -99,6 +99,29 @@ varying vec3 V0;`,
 				},
 			},
 			Glsl: `void F0(void) {
+}`,
+		},
+		{
+			Name: "FuncParams",
+			Program: Program{
+				Funcs: []Func{
+					{
+						Name: "F0",
+						InParams: []Type{
+							{Main: Float},
+							{Main: Vec2},
+							{Main: Vec4},
+						},
+						InOutParams: []Type{
+							{Main: Mat2},
+						},
+						OutParams: []Type{
+							{Main: Mat4},
+						},
+					},
+				},
+			},
+			Glsl: `void F0(in float l0, in vec2 l1, in vec4 l2, inout mat2 l3, out mat4 l4) {
 }`,
 		},
 	}
