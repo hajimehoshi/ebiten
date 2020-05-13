@@ -39,7 +39,7 @@ func now() int64 {
 }
 
 func fixed26_6ToFloat64(x fixed.Int26_6) float64 {
-	return float64(x) / (1 << 6)
+	return float64(x >> 6) + float64(x & ((1 << 6) - 1)) / float64(1 << 6)
 }
 
 const (
@@ -273,9 +273,12 @@ func colorToColorM(clr color.Color) ebiten.ColorM {
 // Draw is concurrent-safe.
 func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Color) {
 	textM.Lock()
+	defer textM.Unlock()
 
 	fx, fy := fixed.I(x), fixed.I(y)
 	prevR := rune(-1)
+
+	faceHeight := face.Metrics().Height
 
 	runes := []rune(text)
 	glyphImgs := getGlyphImages(face, runes)
@@ -287,7 +290,7 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 		}
 		if r == '\n' {
 			fx = fixed.I(x)
-			fy += face.Metrics().Height
+			fy += faceHeight
 			prevR = rune(-1)
 			continue
 		}
@@ -297,6 +300,60 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 
 		prevR = r
 	}
+}
 
-	textM.Unlock()
+// MeasureString returns the measured size of a given string using a given font.
+// This method will return the exact size in pixels that a string drawn by Draw will be.
+//
+// text is the string that's being measured.
+// face is the font for text rendering.
+//
+// Be careful that the passed font face is held by this package and is never released.
+// This is a known issue (#498).
+//
+// MeasureString is concurrent-safe.
+func MeasureString(text string, face font.Face) image.Point {
+	textM.Lock()
+	defer textM.Unlock()
+
+	var w, h fixed.Int26_6
+
+	m := face.Metrics()
+	faceHeight := m.Height
+	faceDescent := m.Descent
+
+	fx, fy := fixed.I(0), fixed.I(0)
+	prevR := rune(-1)
+
+	runes := []rune(text)
+
+	for _, r := range runes {
+		if prevR >= 0 {
+			fx += face.Kern(prevR, r)
+		}
+		if r == '\n' {
+			fx = fixed.I(0)
+			fy += faceHeight
+			prevR = rune(-1)
+			continue
+		}
+
+		fx += glyphAdvance(face, r)
+
+		if fx > w {
+			w = fx
+		}
+		if (fy+faceHeight) > h {
+			h = fy+faceHeight
+		}
+
+		prevR = r
+	}
+
+	bounds := image.Point{
+		X: int(math.Ceil(fixed26_6ToFloat64(w))),
+		Y: int(math.Ceil(fixed26_6ToFloat64(h+faceDescent))),
+	}
+
+	return bounds
 }
