@@ -101,23 +101,19 @@ func (p *Program) glslFunc(f *Func) []string {
 
 	var lines []string
 	lines = append(lines, fmt.Sprintf("void %s(%s) {", f.Name, argsstr))
-	lines = append(lines, p.glslBlock(&f.Block, f, 0)...)
+	lines = append(lines, p.glslBlock(&f.Block, f, 0, idx)...)
 	lines = append(lines, "}")
 
 	return lines
 }
 
-func (p *Program) glslBlock(b *Block, f *Func, level int) []string {
+func (p *Program) glslBlock(b *Block, f *Func, level int, localVarIndex int) []string {
 	idt := strings.Repeat("\t", level+1)
 
 	var lines []string
-	var idx int
-	if level == 0 {
-		idx = len(f.InParams) + len(f.InOutParams) + len(f.OutParams)
-	}
 	for _, t := range b.LocalVars {
-		lines = append(lines, fmt.Sprintf("%s%s;", idt, p.glslVarDecl(&t, fmt.Sprintf("l%d", idx))))
-		idx++
+		lines = append(lines, fmt.Sprintf("%s%s;", idt, p.glslVarDecl(&t, fmt.Sprintf("l%d", localVarIndex))))
+		localVarIndex++
 	}
 
 	var glslExpr func(e *Expr) string
@@ -149,7 +145,7 @@ func (p *Program) glslBlock(b *Block, f *Func, level int) []string {
 			lines = append(lines, fmt.Sprintf("%s%s;", idt, glslExpr(&s.Exprs[0])))
 		case BlockStmt:
 			lines = append(lines, idt+"{")
-			lines = append(lines, p.glslBlock(s.Block, f, level+1)...)
+			lines = append(lines, p.glslBlock(s.Block, f, level+1, localVarIndex)...)
 			lines = append(lines, idt+"}")
 		case Assign:
 			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, glslExpr(&s.Exprs[0]), glslExpr(&s.Exprs[1])))

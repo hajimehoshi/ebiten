@@ -154,6 +154,50 @@ varying vec3 V0;`,
 }`,
 		},
 		{
+			Name: "FuncBlocks",
+			Program: Program{
+				Funcs: []Func{
+					{
+						Name: "F0",
+						InParams: []Type{
+							{Main: Float},
+						},
+						InOutParams: []Type{
+							{Main: Float},
+						},
+						OutParams: []Type{
+							{Main: Float},
+						},
+						Block: Block{
+							LocalVars: []Type{
+								{Main: Mat4},
+								{Main: Mat4},
+							},
+							Stmts: []Stmt{
+								{
+									Type: BlockStmt,
+									Block: &Block{
+										LocalVars: []Type{
+											{Main: Mat4},
+											{Main: Mat4},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			Glsl: `void F0(in float l0, inout float l1, out float l2) {
+	mat4 l3;
+	mat4 l4;
+	{
+		mat4 l5;
+		mat4 l6;
+	}
+}`,
+		},
+		{
 			Name: "FuncAdd",
 			Program: Program{
 				Funcs: []Func{
