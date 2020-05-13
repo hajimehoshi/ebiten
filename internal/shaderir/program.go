@@ -48,21 +48,22 @@ type Stmt struct {
 	Type      StmtType
 	Exprs     []Expr
 	Condition Expr
-	ElseStmts []Expr
+	ElseExprs []Expr
 	ForInit   Expr
 	ForRest   Expr
+	Block     *Block
 }
 
 type StmtType int
 
 const (
 	ExprStmt StmtType = iota
+	BlockStmt
 	Assign
 	If
 	For
 	Continue
 	Break
-	Return
 	Discard
 )
 
@@ -78,7 +79,6 @@ type ExprType int
 const (
 	Literal ExprType = iota
 	Ident
-	LocalVarID
 	Unary
 	Binary
 	Call

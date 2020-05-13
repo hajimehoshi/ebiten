@@ -153,6 +153,53 @@ varying vec3 V0;`,
 	mat4 l4;
 }`,
 		},
+		{
+			Name: "FuncAdd",
+			Program: Program{
+				Funcs: []Func{
+					{
+						Name: "F0",
+						InParams: []Type{
+							{Main: Float},
+							{Main: Float},
+						},
+						OutParams: []Type{
+							{Main: Float},
+						},
+						Block: Block{
+							Stmts: []Stmt{
+								{
+									Type: Assign,
+									Exprs: []Expr{
+										{
+											Type:  Ident,
+											Value: "l2",
+										},
+										{
+											Type: Binary,
+											Op:   Add,
+											Exprs: []Expr{
+												{
+													Type:  Ident,
+													Value: "l0",
+												},
+												{
+													Type:  Ident,
+													Value: "l1",
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			Glsl: `void F0(in float l0, in float l1, out float l2) {
+	l2 = (l0) + (l1);
+}`,
+		},
 	}
 	for _, tc := range tests {
 		got := tc.Program.Glsl()

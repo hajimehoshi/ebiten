@@ -119,5 +119,53 @@ func (p *Program) glslBlock(b *Block, f *Func, level int) []string {
 		lines = append(lines, fmt.Sprintf("%s%s;", idt, p.glslVarDecl(&t, fmt.Sprintf("l%d", idx))))
 		idx++
 	}
+
+	var glslExpr func(e *Expr) string
+	glslExpr = func(e *Expr) string {
+		switch e.Type {
+		case Literal:
+			return e.Value
+		case Ident:
+			return e.Value
+		case Unary:
+			return fmt.Sprintf("%s(%s)", e.Op, glslExpr(&e.Exprs[0]))
+		case Binary:
+			return fmt.Sprintf("(%s) %s (%s)", glslExpr(&e.Exprs[0]), e.Op, glslExpr(&e.Exprs[1]))
+		case Call:
+			return fmt.Sprintf("(%s).(%s)", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]))
+		case Selector:
+			return fmt.Sprintf("(%s).%s", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]))
+		case Index:
+			return fmt.Sprintf("(%s)[%s]", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]))
+		default:
+			return fmt.Sprintf("?(unexpected expr: %d)", e.Type)
+		}
+	}
+
+	for _, s := range b.Stmts {
+		switch s.Type {
+		case ExprStmt:
+			panic("not implemented")
+		case BlockStmt:
+			lines = append(lines, idt+"{")
+			lines = append(lines, p.glslBlock(s.Block, f, level+1)...)
+			lines = append(lines, idt+"}")
+		case Assign:
+			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, glslExpr(&s.Exprs[0]), glslExpr(&s.Exprs[1])))
+		case If:
+			panic("not implemented")
+		case For:
+			panic("not implemented")
+		case Continue:
+			lines = append(lines, idt+"continue;")
+		case Break:
+			lines = append(lines, idt+"break;")
+		case Discard:
+			lines = append(lines, idt+"discard;")
+		default:
+			lines = append(lines, fmt.Sprintf("%s?(unexpected stmt: %d)", idt, s.Type))
+		}
+	}
+
 	return lines
 }
