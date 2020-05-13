@@ -124,6 +124,35 @@ varying vec3 V0;`,
 			Glsl: `void F0(in float l0, in vec2 l1, in vec4 l2, inout mat2 l3, out mat4 l4) {
 }`,
 		},
+		{
+			Name: "FuncLocals",
+			Program: Program{
+				Funcs: []Func{
+					{
+						Name: "F0",
+						InParams: []Type{
+							{Main: Float},
+						},
+						InOutParams: []Type{
+							{Main: Float},
+						},
+						OutParams: []Type{
+							{Main: Float},
+						},
+						Block: Block{
+							LocalVars: []Type{
+								{Main: Mat4},
+								{Main: Mat4},
+							},
+						},
+					},
+				},
+			},
+			Glsl: `void F0(in float l0, inout float l1, out float l2) {
+	mat4 l3;
+	mat4 l4;
+}`,
+		},
 	}
 	for _, tc := range tests {
 		got := tc.Program.Glsl()
