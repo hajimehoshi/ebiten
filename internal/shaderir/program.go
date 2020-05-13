@@ -64,6 +64,7 @@ const (
 	For
 	Continue
 	Break
+	Return
 	Discard
 )
 

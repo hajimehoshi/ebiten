@@ -132,6 +132,7 @@ func (p *Program) glslBlock(b *Block, f *Func, level int) []string {
 		case Binary:
 			return fmt.Sprintf("(%s) %s (%s)", glslExpr(&e.Exprs[0]), e.Op, glslExpr(&e.Exprs[1]))
 		case Call:
+			// TODO: Take multiple args
 			return fmt.Sprintf("(%s).(%s)", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]))
 		case Selector:
 			return fmt.Sprintf("(%s).%s", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]))
@@ -145,7 +146,7 @@ func (p *Program) glslBlock(b *Block, f *Func, level int) []string {
 	for _, s := range b.Stmts {
 		switch s.Type {
 		case ExprStmt:
-			panic("not implemented")
+			lines = append(lines, fmt.Sprintf("%s%s;", idt, glslExpr(&s.Exprs[0])))
 		case BlockStmt:
 			lines = append(lines, idt+"{")
 			lines = append(lines, p.glslBlock(s.Block, f, level+1)...)
@@ -160,6 +161,8 @@ func (p *Program) glslBlock(b *Block, f *Func, level int) []string {
 			lines = append(lines, idt+"continue;")
 		case Break:
 			lines = append(lines, idt+"break;")
+		case Return:
+			lines = append(lines, idt+"return;")
 		case Discard:
 			lines = append(lines, idt+"discard;")
 		default:
@@ -169,3 +172,5 @@ func (p *Program) glslBlock(b *Block, f *Func, level int) []string {
 
 	return lines
 }
+
+// TODO: Distinguish regular functions, vertex functions and fragment functions. e.g., Treat gl_Position correctly.
