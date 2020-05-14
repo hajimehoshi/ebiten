@@ -20,6 +20,20 @@ import (
 	. "github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
+func block(localVars []Type, stmts ...Stmt) Block {
+	return Block{
+		LocalVars: localVars,
+		Stmts:     stmts,
+	}
+}
+
+func blockStmt(block Block) Stmt {
+	return Stmt{
+		Type:   BlockStmt,
+		Blocks: []Block{block},
+	}
+}
+
 func assignStmt(lhs Expr, rhs Expr) Stmt {
 	return Stmt{
 		Type:  Assign,
@@ -164,12 +178,10 @@ varying vec3 V0;`,
 						OutParams: []Type{
 							{Main: Float},
 						},
-						Block: Block{
-							LocalVars: []Type{
-								{Main: Mat4},
-								{Main: Mat4},
-							},
-						},
+						Block: block([]Type{
+							{Main: Mat4},
+							{Main: Mat4},
+						}),
 					},
 				},
 			},
@@ -193,25 +205,20 @@ varying vec3 V0;`,
 						OutParams: []Type{
 							{Main: Float},
 						},
-						Block: Block{
-							LocalVars: []Type{
+						Block: block(
+							[]Type{
 								{Main: Mat4},
 								{Main: Mat4},
 							},
-							Stmts: []Stmt{
-								{
-									Type: BlockStmt,
-									Blocks: []Block{
-										{
-											LocalVars: []Type{
-												{Main: Mat4},
-												{Main: Mat4},
-											},
-										},
+							blockStmt(
+								block(
+									[]Type{
+										{Main: Mat4},
+										{Main: Mat4},
 									},
-								},
-							},
-						},
+								),
+							),
+						),
 					},
 				},
 			},
@@ -237,18 +244,17 @@ varying vec3 V0;`,
 						OutParams: []Type{
 							{Main: Float},
 						},
-						Block: Block{
-							Stmts: []Stmt{
-								assignStmt(
-									varNameExpr(Local, 2),
-									binaryExpr(
-										Add,
-										varNameExpr(Local, 0),
-										varNameExpr(Local, 1),
-									),
+						Block: block(
+							nil,
+							assignStmt(
+								varNameExpr(Local, 2),
+								binaryExpr(
+									Add,
+									varNameExpr(Local, 0),
+									varNameExpr(Local, 1),
 								),
-							},
-						},
+							),
+						),
 					},
 				},
 			},
@@ -269,33 +275,30 @@ varying vec3 V0;`,
 						OutParams: []Type{
 							{Main: Float},
 						},
-						Block: Block{
-							Stmts: []Stmt{
-								ifStmt(
-									binaryExpr(
-										Eq,
-										varNameExpr(Local, 0),
-										numericExpr(0),
-									),
-									Block{
-										Stmts: []Stmt{
-											assignStmt(
-												varNameExpr(Local, 2),
-												varNameExpr(Local, 0),
-											),
-										},
-									},
-									Block{
-										Stmts: []Stmt{
-											assignStmt(
-												varNameExpr(Local, 2),
-												varNameExpr(Local, 1),
-											),
-										},
-									},
+						Block: block(
+							nil,
+							ifStmt(
+								binaryExpr(
+									Eq,
+									varNameExpr(Local, 0),
+									numericExpr(0),
 								),
-							},
-						},
+								block(
+									nil,
+									assignStmt(
+										varNameExpr(Local, 2),
+										varNameExpr(Local, 0),
+									),
+								),
+								block(
+									nil,
+									assignStmt(
+										varNameExpr(Local, 2),
+										varNameExpr(Local, 1),
+									),
+								),
+							),
+						),
 					},
 				},
 			},
