@@ -36,8 +36,8 @@ type Game interface {
 	// In this case, the argument screen's updated content by Update is not adopted for the actual game screen,
 	// and the screen's updated content by Draw is adopted instead.
 	// In the first frame, it is ensured that Update is called at least once before Draw. You can use Update
-	// to initialize the game state. After the first frame, Update might not be called or might be called
-	// multiple times for one frame. The frequency is determined by the current TPS (tick-per-second).
+	// to initialize the game state. After the first frame, Update might not be called or might be called once
+	// or more for one frame. The frequency is determined by the current TPS (tick-per-second).
 	//
 	// Without Draw (the legacy way), Update updates the game logic and also draws the screen.
 	// In this case, the argument screen's updated content by Update is adopted for the actual game screen.
