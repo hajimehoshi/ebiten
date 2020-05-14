@@ -38,14 +38,14 @@ func (p *Program) Glsl() string {
 	p.structTypes = nil
 
 	var lines []string
-	for _, u := range p.Uniforms {
-		lines = append(lines, fmt.Sprintf("uniform %s;", p.glslVarDecl(&u.Type, u.Name)))
+	for i, t := range p.Uniforms {
+		lines = append(lines, fmt.Sprintf("uniform %s;", p.glslVarDecl(&t, fmt.Sprintf("U%d", i))))
 	}
-	for _, a := range p.Attributes {
-		lines = append(lines, fmt.Sprintf("attribute %s;", p.glslVarDecl(&a.Type, a.Name)))
+	for i, t := range p.Attributes {
+		lines = append(lines, fmt.Sprintf("attribute %s;", p.glslVarDecl(&t, fmt.Sprintf("A%d", i))))
 	}
-	for _, v := range p.Varyings {
-		lines = append(lines, fmt.Sprintf("varying %s;", p.glslVarDecl(&v.Type, v.Name)))
+	for i, t := range p.Varyings {
+		lines = append(lines, fmt.Sprintf("varying %s;", p.glslVarDecl(&t, fmt.Sprintf("V%d", i))))
 	}
 	for _, f := range p.Funcs {
 		lines = append(lines, p.glslFunc(&f)...)
@@ -121,6 +121,19 @@ func (p *Program) glslBlock(b *Block, f *Func, level int, localVarIndex int) []s
 		switch e.Type {
 		case Literal:
 			return e.Value
+		case VarName:
+			switch e.Variable.Type {
+			case Uniform:
+				return fmt.Sprintf("U%d", e.Variable.Index)
+			case Attribute:
+				return fmt.Sprintf("A%d", e.Variable.Index)
+			case Varying:
+				return fmt.Sprintf("V%d", e.Variable.Index)
+			case Local:
+				return fmt.Sprintf("l%d", e.Variable.Index)
+			default:
+				return fmt.Sprintf("?(unexpected variable type: %d)", e.Variable.Type)
+			}
 		case Ident:
 			return e.Value
 		case Unary:

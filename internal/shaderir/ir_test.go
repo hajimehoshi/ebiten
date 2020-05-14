@@ -20,6 +20,31 @@ import (
 	. "github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
+func assignStmt(lhs Expr, rhs Expr) Stmt {
+	return Stmt{
+		Type:  Assign,
+		Exprs: []Expr{lhs, rhs},
+	}
+}
+
+func varNameExpr(vt VariableType, index int) Expr {
+	return Expr{
+		Type: VarName,
+		Variable: Variable{
+			Type:  vt,
+			Index: index,
+		},
+	}
+}
+
+func binaryExpr(op Op, exprs ...Expr) Expr {
+	return Expr{
+		Type:  Binary,
+		Op:    op,
+		Exprs: exprs,
+	}
+}
+
 func TestOutput(t *testing.T) {
 	tests := []struct {
 		Name    string
@@ -34,11 +59,8 @@ func TestOutput(t *testing.T) {
 		{
 			Name: "Uniform",
 			Program: Program{
-				Uniforms: []Variable{
-					{
-						Name: "U0",
-						Type: Type{Main: Float},
-					},
+				Uniforms: []Type{
+					{Main: Float},
 				},
 			},
 			Glsl: `uniform float U0;`,
@@ -46,14 +68,11 @@ func TestOutput(t *testing.T) {
 		{
 			Name: "UniformStruct",
 			Program: Program{
-				Uniforms: []Variable{
+				Uniforms: []Type{
 					{
-						Name: "U0",
-						Type: Type{
-							Main: Struct,
-							Sub: []Type{
-								{Main: Float},
-							},
+						Main: Struct,
+						Sub: []Type{
+							{Main: Float},
 						},
 					},
 				},
@@ -66,23 +85,14 @@ uniform S0 U0;`,
 		{
 			Name: "Vars",
 			Program: Program{
-				Uniforms: []Variable{
-					{
-						Name: "U0",
-						Type: Type{Main: Float},
-					},
+				Uniforms: []Type{
+					{Main: Float},
 				},
-				Attributes: []Variable{
-					{
-						Name: "A0",
-						Type: Type{Main: Vec2},
-					},
+				Attributes: []Type{
+					{Main: Vec2},
 				},
-				Varyings: []Variable{
-					{
-						Name: "V0",
-						Type: Type{Main: Vec3},
-					},
+				Varyings: []Type{
+					{Main: Vec3},
 				},
 			},
 			Glsl: `uniform float U0;
@@ -212,29 +222,13 @@ varying vec3 V0;`,
 						},
 						Block: Block{
 							Stmts: []Stmt{
-								{
-									Type: Assign,
-									Exprs: []Expr{
-										{
-											Type:  Ident,
-											Value: "l2",
-										},
-										{
-											Type: Binary,
-											Op:   Add,
-											Exprs: []Expr{
-												{
-													Type:  Ident,
-													Value: "l0",
-												},
-												{
-													Type:  Ident,
-													Value: "l1",
-												},
-											},
-										},
-									},
-								},
+								assignStmt(
+									varNameExpr(Local, 2),
+									binaryExpr(Add,
+										varNameExpr(Local, 0),
+										varNameExpr(Local, 1),
+									),
+								),
 							},
 						},
 					},

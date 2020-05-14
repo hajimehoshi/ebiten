@@ -15,20 +15,15 @@
 package shaderir
 
 type Program struct {
-	Uniforms      []Variable
-	Attributes    []Variable
-	Varyings      []Variable
+	Uniforms      []Type
+	Attributes    []Type
+	Varyings      []Type
 	Funcs         []Func
 	VertexEntry   string
 	FragmentEntry string
 
 	structNames map[string]string
 	structTypes []Type
-}
-
-type Variable struct {
-	Name string
-	Type Type
 }
 
 type Func struct {
@@ -69,22 +64,38 @@ const (
 )
 
 type Expr struct {
-	Type  ExprType
-	Exprs []Expr
-	Value string
-	Op    Op
+	Type     ExprType
+	Exprs    []Expr
+	Variable Variable
+	Value    string
+	Op       Op
 }
 
 type ExprType int
 
 const (
 	Literal ExprType = iota
+	VarName
 	Ident
 	Unary
 	Binary
 	Call
 	Selector
 	Index
+)
+
+type Variable struct {
+	Type  VariableType
+	Index int
+}
+
+type VariableType int
+
+const (
+	Uniform VariableType = iota
+	Attribute
+	Varying
+	Local
 )
 
 type Op string
