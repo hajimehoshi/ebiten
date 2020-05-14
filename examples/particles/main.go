@@ -137,38 +137,48 @@ func newSprite(img *ebiten.Image) *sprite {
 	}
 }
 
-var sprites = list.New()
+type Game struct {
+	sprites *list.List
+}
 
-func update(screen *ebiten.Image) error {
-	if sprites.Len() < 500 && rand.Intn(4) < 3 {
-		// Emit
-		sprites.PushBack(newSprite(smokeImage))
+func (g *Game) Update(screen *ebiten.Image) error {
+	if g.sprites == nil {
+		g.sprites = list.New()
 	}
 
-	for e := sprites.Front(); e != nil; e = e.Next() {
+	if g.sprites.Len() < 500 && rand.Intn(4) < 3 {
+		// Emit
+		g.sprites.PushBack(newSprite(smokeImage))
+	}
+
+	for e := g.sprites.Front(); e != nil; e = e.Next() {
 		s := e.Value.(*sprite)
 		s.update()
 		if s.terminated() {
-			defer sprites.Remove(e)
+			defer g.sprites.Remove(e)
 		}
 	}
+	return nil
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
+func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{0x99, 0xcc, 0xff, 0xff})
-	for e := sprites.Front(); e != nil; e = e.Next() {
+	for e := g.sprites.Front(); e != nil; e = e.Next() {
 		s := e.Value.(*sprite)
 		s.draw(screen)
 	}
 
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f\nSprites: %d", ebiten.CurrentTPS(), sprites.Len()))
-	return nil
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f\nSprites: %d", ebiten.CurrentTPS(), g.sprites.Len()))
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 1, "Particles (Ebiten demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("Particles (Ebiten demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }

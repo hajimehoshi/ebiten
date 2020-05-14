@@ -33,7 +33,6 @@ const (
 )
 
 var (
-	count       int
 	brushImage  *ebiten.Image
 	canvasImage *ebiten.Image
 )
@@ -60,55 +59,64 @@ func init() {
 	canvasImage.Fill(color.White)
 }
 
-// paint draws the brush on the given canvas image at the position (x, y).
-func paint(canvas *ebiten.Image, x, y int) {
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(x), float64(y))
-	// Scale the color and rotate the hue so that colors vary on each frame.
-	op.ColorM.Scale(1.0, 0.50, 0.125, 1.0)
-	tps := ebiten.MaxTPS()
-	theta := 2.0 * math.Pi * float64(count%tps) / float64(tps)
-	op.ColorM.RotateHue(theta)
-	canvas.DrawImage(brushImage, op)
+type Game struct {
+	count int
 }
 
-func update(screen *ebiten.Image) error {
+func (g *Game) Update(screen *ebiten.Image) error {
 	drawn := false
 
 	// Paint the brush by mouse dragging
 	mx, my := ebiten.CursorPosition()
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		paint(canvasImage, mx, my)
+		g.paint(canvasImage, mx, my)
 		drawn = true
 	}
 
 	// Paint the brush by touches
 	for _, t := range ebiten.TouchIDs() {
 		x, y := ebiten.TouchPosition(t)
-		paint(canvasImage, x, y)
+		g.paint(canvasImage, x, y)
 		drawn = true
 	}
 	if drawn {
-		count++
+		g.count++
 	}
+	return nil
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
+// paint draws the brush on the given canvas image at the position (x, y).
+func (g *Game) paint(canvas *ebiten.Image, x, y int) {
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(float64(x), float64(y))
+	// Scale the color and rotate the hue so that colors vary on each frame.
+	op.ColorM.Scale(1.0, 0.50, 0.125, 1.0)
+	tps := ebiten.MaxTPS()
+	theta := 2.0 * math.Pi * float64(g.count%tps) / float64(tps)
+	op.ColorM.RotateHue(theta)
+	canvas.DrawImage(brushImage, op)
+}
 
+func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(canvasImage, nil)
 
+	mx, my := ebiten.CursorPosition()
 	msg := fmt.Sprintf("(%d, %d)", mx, my)
 	for _, t := range ebiten.TouchIDs() {
 		x, y := ebiten.TouchPosition(t)
 		msg += fmt.Sprintf("\n(%d, %d) touch %d", x, y, t)
 	}
 	ebitenutil.DebugPrint(screen, msg)
-	return nil
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Paint (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Paint (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }
