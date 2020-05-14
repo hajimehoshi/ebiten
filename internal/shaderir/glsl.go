@@ -158,16 +158,16 @@ func (p *Program) glslBlock(b *Block, f *Func, level int, localVarIndex int) []s
 			lines = append(lines, fmt.Sprintf("%s%s;", idt, glslExpr(&s.Exprs[0])))
 		case BlockStmt:
 			lines = append(lines, idt+"{")
-			lines = append(lines, p.glslBlock(s.Block, f, level+1, localVarIndex)...)
+			lines = append(lines, p.glslBlock(&s.Blocks[0], f, level+1, localVarIndex)...)
 			lines = append(lines, idt+"}")
 		case Assign:
 			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, glslExpr(&s.Exprs[0]), glslExpr(&s.Exprs[1])))
 		case If:
 			lines = append(lines, fmt.Sprintf("%sif (%s) {", idt, glslExpr(&s.Exprs[0])))
-			lines = append(lines, p.glslBlock(s.Block, f, level+1, localVarIndex)...)
-			if s.ElseBlock != nil {
+			lines = append(lines, p.glslBlock(&s.Blocks[0], f, level+1, localVarIndex)...)
+			if len(s.Blocks) > 1 {
 				lines = append(lines, fmt.Sprintf("%s} else {", idt))
-				lines = append(lines, p.glslBlock(s.ElseBlock, f, level+1, localVarIndex)...)
+				lines = append(lines, p.glslBlock(&s.Blocks[1], f, level+1, localVarIndex)...)
 			}
 			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case For:

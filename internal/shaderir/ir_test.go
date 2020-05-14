@@ -27,12 +27,11 @@ func assignStmt(lhs Expr, rhs Expr) Stmt {
 	}
 }
 
-func ifStmt(cond Expr, block *Block, elseBlock *Block) Stmt {
+func ifStmt(cond Expr, block Block, elseBlock Block) Stmt {
 	return Stmt{
-		Type:      If,
-		Exprs:     []Expr{cond},
-		Block:     block,
-		ElseBlock: elseBlock,
+		Type:   If,
+		Exprs:  []Expr{cond},
+		Blocks: []Block{block, elseBlock},
 	}
 }
 
@@ -202,10 +201,12 @@ varying vec3 V0;`,
 							Stmts: []Stmt{
 								{
 									Type: BlockStmt,
-									Block: &Block{
-										LocalVars: []Type{
-											{Main: Mat4},
-											{Main: Mat4},
+									Blocks: []Block{
+										{
+											LocalVars: []Type{
+												{Main: Mat4},
+												{Main: Mat4},
+											},
 										},
 									},
 								},
@@ -276,7 +277,7 @@ varying vec3 V0;`,
 										varNameExpr(Local, 0),
 										numericExpr(0),
 									),
-									&Block{
+									Block{
 										Stmts: []Stmt{
 											assignStmt(
 												varNameExpr(Local, 2),
@@ -284,7 +285,7 @@ varying vec3 V0;`,
 											),
 										},
 									},
-									&Block{
+									Block{
 										Stmts: []Stmt{
 											assignStmt(
 												varNameExpr(Local, 2),

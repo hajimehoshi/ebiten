@@ -40,12 +40,11 @@ type Block struct {
 }
 
 type Stmt struct {
-	Type      StmtType
-	Exprs     []Expr
-	Block     *Block
-	ElseBlock *Block
-	ForInit   Expr
-	ForRest   Expr
+	Type    StmtType
+	Exprs   []Expr
+	Blocks  []Block
+	ForInit Expr
+	ForRest Expr
 }
 
 type StmtType int
