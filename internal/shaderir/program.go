@@ -42,11 +42,10 @@ type Block struct {
 type Stmt struct {
 	Type      StmtType
 	Exprs     []Expr
-	Condition Expr
-	ElseExprs []Expr
+	Block     *Block
+	ElseBlock *Block
 	ForInit   Expr
 	ForRest   Expr
-	Block     *Block
 }
 
 type StmtType int
@@ -67,14 +66,15 @@ type Expr struct {
 	Type     ExprType
 	Exprs    []Expr
 	Variable Variable
-	Value    string
+	Num      float64
+	Ident    string
 	Op       Op
 }
 
 type ExprType int
 
 const (
-	Literal ExprType = iota
+	Numeric ExprType = iota
 	VarName
 	Ident
 	Unary

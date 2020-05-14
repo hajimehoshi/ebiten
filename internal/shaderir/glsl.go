@@ -119,8 +119,8 @@ func (p *Program) glslBlock(b *Block, f *Func, level int, localVarIndex int) []s
 	var glslExpr func(e *Expr) string
 	glslExpr = func(e *Expr) string {
 		switch e.Type {
-		case Literal:
-			return e.Value
+		case Numeric:
+			return fmt.Sprintf("%.9e", e.Num)
 		case VarName:
 			switch e.Variable.Type {
 			case Uniform:
@@ -135,7 +135,7 @@ func (p *Program) glslBlock(b *Block, f *Func, level int, localVarIndex int) []s
 				return fmt.Sprintf("?(unexpected variable type: %d)", e.Variable.Type)
 			}
 		case Ident:
-			return e.Value
+			return e.Ident
 		case Unary:
 			return fmt.Sprintf("%s(%s)", e.Op, glslExpr(&e.Exprs[0]))
 		case Binary:
@@ -163,7 +163,13 @@ func (p *Program) glslBlock(b *Block, f *Func, level int, localVarIndex int) []s
 		case Assign:
 			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, glslExpr(&s.Exprs[0]), glslExpr(&s.Exprs[1])))
 		case If:
-			panic("not implemented")
+			lines = append(lines, fmt.Sprintf("%sif (%s) {", idt, glslExpr(&s.Exprs[0])))
+			lines = append(lines, p.glslBlock(s.Block, f, level+1, localVarIndex)...)
+			if s.ElseBlock != nil {
+				lines = append(lines, fmt.Sprintf("%s} else {", idt))
+				lines = append(lines, p.glslBlock(s.ElseBlock, f, level+1, localVarIndex)...)
+			}
+			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case For:
 			panic("not implemented")
 		case Continue:

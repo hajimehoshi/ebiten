@@ -27,6 +27,22 @@ func assignStmt(lhs Expr, rhs Expr) Stmt {
 	}
 }
 
+func ifStmt(cond Expr, block *Block, elseBlock *Block) Stmt {
+	return Stmt{
+		Type:      If,
+		Exprs:     []Expr{cond},
+		Block:     block,
+		ElseBlock: elseBlock,
+	}
+}
+
+func numericExpr(value float64) Expr {
+	return Expr{
+		Type: Numeric,
+		Num:  value,
+	}
+}
+
 func varNameExpr(vt VariableType, index int) Expr {
 	return Expr{
 		Type: VarName,
@@ -224,7 +240,8 @@ varying vec3 V0;`,
 							Stmts: []Stmt{
 								assignStmt(
 									varNameExpr(Local, 2),
-									binaryExpr(Add,
+									binaryExpr(
+										Add,
 										varNameExpr(Local, 0),
 										varNameExpr(Local, 1),
 									),
@@ -236,6 +253,57 @@ varying vec3 V0;`,
 			},
 			Glsl: `void F0(in float l0, in float l1, out float l2) {
 	l2 = (l0) + (l1);
+}`,
+		},
+		{
+			Name: "FuncIf",
+			Program: Program{
+				Funcs: []Func{
+					{
+						Name: "F0",
+						InParams: []Type{
+							{Main: Float},
+							{Main: Float},
+						},
+						OutParams: []Type{
+							{Main: Float},
+						},
+						Block: Block{
+							Stmts: []Stmt{
+								ifStmt(
+									binaryExpr(
+										Eq,
+										varNameExpr(Local, 0),
+										numericExpr(0),
+									),
+									&Block{
+										Stmts: []Stmt{
+											assignStmt(
+												varNameExpr(Local, 2),
+												varNameExpr(Local, 0),
+											),
+										},
+									},
+									&Block{
+										Stmts: []Stmt{
+											assignStmt(
+												varNameExpr(Local, 2),
+												varNameExpr(Local, 1),
+											),
+										},
+									},
+								),
+							},
+						},
+					},
+				},
+			},
+			Glsl: `void F0(in float l0, in float l1, out float l2) {
+	if ((l0) == (0.000000000e+00)) {
+		l2 = l0;
+	} else {
+		l2 = l1;
+	}
 }`,
 		},
 	}
