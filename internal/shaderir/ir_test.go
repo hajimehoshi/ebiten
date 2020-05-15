@@ -59,10 +59,10 @@ func forStmt(init, end, delta int, block Block) Stmt {
 	}
 }
 
-func numericExpr(value float64) Expr {
+func floatExpr(value float32) Expr {
 	return Expr{
-		Type: Numeric,
-		Num:  value,
+		Type:  FloatExpr,
+		Float: value,
 	}
 }
 
@@ -291,7 +291,7 @@ varying vec3 V0;`,
 								binaryExpr(
 									Eq,
 									varNameExpr(Local, 0),
-									numericExpr(0),
+									floatExpr(0),
 								),
 								block(
 									nil,

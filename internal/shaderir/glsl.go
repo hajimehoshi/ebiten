@@ -119,8 +119,10 @@ func (p *Program) glslBlock(b *Block, f *Func, level int, localVarIndex int) []s
 	var glslExpr func(e *Expr) string
 	glslExpr = func(e *Expr) string {
 		switch e.Type {
-		case Numeric:
-			return fmt.Sprintf("%.9e", e.Num)
+		case IntExpr:
+			return fmt.Sprintf("%d", e.Int)
+		case FloatExpr:
+			return fmt.Sprintf("%.9e", e.Float)
 		case VarName:
 			switch e.Variable.Type {
 			case Uniform:

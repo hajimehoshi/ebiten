@@ -66,7 +66,8 @@ type Expr struct {
 	Type     ExprType
 	Exprs    []Expr
 	Variable Variable
-	Num      float64
+	Int      int32
+	Float    float32
 	Ident    string
 	Op       Op
 }
@@ -74,7 +75,8 @@ type Expr struct {
 type ExprType int
 
 const (
-	Numeric ExprType = iota
+	IntExpr ExprType = iota
+	FloatExpr
 	VarName
 	Ident
 	Unary
