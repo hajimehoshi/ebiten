@@ -49,6 +49,16 @@ func ifStmt(cond Expr, block Block, elseBlock Block) Stmt {
 	}
 }
 
+func forStmt(init, end, delta int, block Block) Stmt {
+	return Stmt{
+		Type:     For,
+		Blocks:   []Block{block},
+		ForInit:  init,
+		ForEnd:   end,
+		ForDelta: delta,
+	}
+}
+
 func numericExpr(value float64) Expr {
 	return Expr{
 		Type: Numeric,
@@ -307,6 +317,43 @@ varying vec3 V0;`,
 		l2 = l0;
 	} else {
 		l2 = l1;
+	}
+}`,
+		},
+		{
+			Name: "FuncFor",
+			Program: Program{
+				Funcs: []Func{
+					{
+						Name: "F0",
+						InParams: []Type{
+							{Main: Float},
+							{Main: Float},
+						},
+						OutParams: []Type{
+							{Main: Float},
+						},
+						Block: block(
+							nil,
+							forStmt(
+								0,
+								100,
+								1,
+								block(
+									nil,
+									assignStmt(
+										varNameExpr(Local, 2),
+										varNameExpr(Local, 0),
+									),
+								),
+							),
+						),
+					},
+				},
+			},
+			Glsl: `void F0(in float l0, in float l1, out float l2) {
+	for (int l3 = 0; l3 < 100; l3++) {
+		l2 = l0;
 	}
 }`,
 		},

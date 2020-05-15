@@ -171,7 +171,20 @@ func (p *Program) glslBlock(b *Block, f *Func, level int, localVarIndex int) []s
 			}
 			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case For:
-			panic("not implemented")
+			v := localVarIndex
+			localVarIndex++
+			var delta string
+			switch s.ForDelta {
+			case 1:
+				delta = fmt.Sprintf("l%d++", v)
+			case -1:
+				delta = fmt.Sprintf("l%d--", v)
+			default:
+				delta = fmt.Sprintf("l%d += %d", v, s.ForDelta)
+			}
+			lines = append(lines, fmt.Sprintf("%sfor (int l%d = %d; l%d < %d; %s) {", idt, v, s.ForInit, v, s.ForEnd, delta))
+			lines = append(lines, p.glslBlock(&s.Blocks[0], f, level+1, localVarIndex)...)
+			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case Continue:
 			lines = append(lines, idt+"continue;")
 		case Break:

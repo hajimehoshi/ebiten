@@ -31,6 +31,8 @@ func (t *Type) serialize() string {
 		return "none"
 	case Bool:
 		return "bool"
+	case Int:
+		return "int"
 	case Float:
 		return "float"
 	case Vec2:
@@ -68,6 +70,7 @@ type BasicType int
 const (
 	None BasicType = iota
 	Bool
+	Int
 	Float
 	Vec2
 	Vec3
@@ -86,6 +89,8 @@ func (t BasicType) Glsl() string {
 		return "?(none)"
 	case Bool:
 		return "bool"
+	case Int:
+		return "Int"
 	case Float:
 		return "float"
 	case Vec2:
