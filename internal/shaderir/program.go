@@ -119,6 +119,7 @@ type VariableType int
 
 const (
 	Uniform VariableType = iota
+	StructMember
 	Local
 )
 

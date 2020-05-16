@@ -193,6 +193,8 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 			switch e.Variable.Type {
 			case Uniform:
 				return fmt.Sprintf("U%d", e.Variable.Index)
+			case StructMember:
+				return fmt.Sprintf("M%d", e.Variable.Index)
 			case Local:
 				idx := e.Variable.Index
 				switch b {
