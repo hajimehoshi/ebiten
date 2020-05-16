@@ -139,13 +139,22 @@ func (p *Program) glslBlock(b *Block, f *Func, level int, localVarIndex int) []s
 		case Ident:
 			return e.Ident
 		case Unary:
-			return fmt.Sprintf("%s(%s)", e.Op, glslExpr(&e.Exprs[0]))
+			var op string
+			switch e.Op {
+			case Add, Sub, Neg:
+				op = string(e.Op)
+			default:
+				op = fmt.Sprintf("?(unexpected op: %s)", string(e.Op))
+			}
+			return fmt.Sprintf("%s(%s)", op, glslExpr(&e.Exprs[0]))
 		case Binary:
 			return fmt.Sprintf("(%s) %s (%s)", glslExpr(&e.Exprs[0]), e.Op, glslExpr(&e.Exprs[1]))
+		case Selection:
+			return fmt.Sprintf("(%s) ? (%s) : (%s)", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]), glslExpr(&e.Exprs[2]))
 		case Call:
 			// TODO: Take multiple args
 			return fmt.Sprintf("(%s).(%s)", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]))
-		case Selector:
+		case FieldSelector:
 			return fmt.Sprintf("(%s).%s", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]))
 		case Index:
 			return fmt.Sprintf("(%s)[%s]", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]))

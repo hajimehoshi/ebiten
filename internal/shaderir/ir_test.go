@@ -85,6 +85,13 @@ func binaryExpr(op Op, exprs ...Expr) Expr {
 	}
 }
 
+func selectionExpr(cond, a, b Expr) Expr {
+	return Expr{
+		Type:  Selection,
+		Exprs: []Expr{cond, a, b},
+	}
+}
+
 func TestOutput(t *testing.T) {
 	tests := []struct {
 		Name    string
@@ -243,7 +250,7 @@ varying vec3 V0;`,
 }`,
 		},
 		{
-			Name: "FuncAdd",
+			Name: "Add",
 			Program: Program{
 				Funcs: []Func{
 					{
@@ -274,7 +281,39 @@ varying vec3 V0;`,
 }`,
 		},
 		{
-			Name: "FuncIf",
+			Name: "Selection",
+			Program: Program{
+				Funcs: []Func{
+					{
+						Name: "F0",
+						InParams: []Type{
+							{Main: Bool},
+							{Main: Float},
+							{Main: Float},
+						},
+						OutParams: []Type{
+							{Main: Float},
+						},
+						Block: block(
+							nil,
+							assignStmt(
+								varNameExpr(Local, 3),
+								selectionExpr(
+									varNameExpr(Local, 0),
+									varNameExpr(Local, 1),
+									varNameExpr(Local, 2),
+								),
+							),
+						),
+					},
+				},
+			},
+			Glsl: `void F0(in bool l0, in float l1, in float l2, out float l3) {
+	l3 = (l0) ? (l1) : (l2);
+}`,
+		},
+		{
+			Name: "If",
 			Program: Program{
 				Funcs: []Func{
 					{
@@ -322,7 +361,7 @@ varying vec3 V0;`,
 }`,
 		},
 		{
-			Name: "FuncFor",
+			Name: "For",
 			Program: Program{
 				Funcs: []Func{
 					{

@@ -82,8 +82,9 @@ const (
 	Ident
 	Unary
 	Binary
+	Selection
 	Call
-	Selector
+	FieldSelector
 	Index
 )
 
@@ -123,5 +124,4 @@ const (
 	Or           Op = "|"
 	AndAnd       Op = "&&"
 	OrOr         Op = "||"
-	Condition    Op = "?:"
 )
