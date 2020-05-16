@@ -37,18 +37,21 @@ func isValidSwizzling(s string) bool {
 				return false
 			}
 		}
+		return true
 	case strings.IndexByte(rgba, s[0]) >= 0:
 		for _, c := range s {
 			if strings.IndexRune(rgba, c) == -1 {
 				return false
 			}
 		}
+		return true
 	case strings.IndexByte(strq, s[0]) >= 0:
 		for _, c := range s {
 			if strings.IndexRune(strq, c) == -1 {
 				return false
 			}
 		}
+		return true
 	}
 	return false
 }
@@ -225,7 +228,7 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 		case BuiltinFuncExpr:
 			return string(e.BuiltinFunc)
 		case SwizzlingExpr:
-			if isValidSwizzling(e.Swizzling) {
+			if !isValidSwizzling(e.Swizzling) {
 				return fmt.Sprintf("?(unexpected swizzling: %s)", e.Swizzling)
 			}
 			return e.Swizzling
