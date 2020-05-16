@@ -562,11 +562,13 @@ attribute float A1;
 attribute vec2 A2;
 varying float V0;
 varying vec2 V1;
+#if defined(COMPILING_VERTEX_SHADER)
 void main(void) {
 	gl_Position = A0;
 	V0 = A1;
 	V1 = A2;
-}`,
+}
+#endif`,
 		},
 		{
 			Name: "FragmentFunc",
@@ -628,11 +630,14 @@ attribute float A1;
 attribute vec2 A2;
 varying float V0;
 varying vec2 V1;
+#if defined(COMPILING_VERTEX_SHADER)
 void main(void) {
 	gl_Position = A0;
 	V0 = A1;
 	V1 = A2;
 }
+#endif
+#if defined(COMPILING_FRAGMENT_SHADER)
 void main(void) {
 	vec2 l0;
 	vec4 l1;
@@ -640,7 +645,8 @@ void main(void) {
 	l2 = V0;
 	l0 = V1;
 	l1 = gl_FragCoord;
-}`,
+}
+#endif`,
 		},
 	}
 	for _, tc := range tests {
