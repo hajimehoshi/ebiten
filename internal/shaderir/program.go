@@ -89,7 +89,6 @@ type Expr struct {
 	Int         int32
 	Float       float32
 	BuiltinFunc BuiltinFunc
-	Swizzling   string
 	Ident       string
 	Op          Op
 }

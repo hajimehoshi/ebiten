@@ -228,10 +228,10 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 		case BuiltinFuncExpr:
 			return string(e.BuiltinFunc)
 		case SwizzlingExpr:
-			if !isValidSwizzling(e.Swizzling) {
-				return fmt.Sprintf("?(unexpected swizzling: %s)", e.Swizzling)
+			if !isValidSwizzling(e.Ident) {
+				return fmt.Sprintf("?(unexpected swizzling: %s)", e.Ident)
 			}
-			return e.Swizzling
+			return e.Ident
 		case Ident:
 			return e.Ident
 		case Unary:

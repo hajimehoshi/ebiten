@@ -100,8 +100,8 @@ func builtinFuncExpr(f BuiltinFunc) Expr {
 
 func swizzlingExpr(swizzling string) Expr {
 	return Expr{
-		Type:      SwizzlingExpr,
-		Swizzling: swizzling,
+		Type:  SwizzlingExpr,
+		Ident: swizzling,
 	}
 }
 
