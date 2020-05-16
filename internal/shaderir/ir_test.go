@@ -98,6 +98,13 @@ func builtinFuncExpr(f BuiltinFunc) Expr {
 	}
 }
 
+func swizzlingExpr(swizzling string) Expr {
+	return Expr{
+		Type:      SwizzlingExpr,
+		Swizzling: swizzling,
+	}
+}
+
 func identExpr(ident string) Expr {
 	return Expr{
 		Type:  Ident,
@@ -455,7 +462,7 @@ varying vec3 V0;`,
 							{Main: Vec4},
 						},
 						OutParams: []Type{
-							{Main: Float},
+							{Main: Vec2},
 						},
 						Block: block(
 							nil,
@@ -463,15 +470,15 @@ varying vec3 V0;`,
 								varNameExpr(Local, 1),
 								fieldSelectorExpr(
 									varNameExpr(Local, 0),
-									identExpr("x"),
+									swizzlingExpr("xz"),
 								),
 							),
 						),
 					},
 				},
 			},
-			Glsl: `void F0(in vec4 l0, out float l1) {
-	l1 = (l0).x;
+			Glsl: `void F0(in vec4 l0, out vec2 l1) {
+	l1 = (l0).xz;
 }`,
 		},
 		{

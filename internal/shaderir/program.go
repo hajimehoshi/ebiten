@@ -89,6 +89,7 @@ type Expr struct {
 	Int         int32
 	Float       float32
 	BuiltinFunc BuiltinFunc
+	Swizzling   string
 	Ident       string
 	Op          Op
 }
@@ -100,6 +101,7 @@ const (
 	FloatExpr
 	VarName
 	BuiltinFuncExpr
+	SwizzlingExpr
 	Ident
 	Unary
 	Binary

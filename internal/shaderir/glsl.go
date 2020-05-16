@@ -19,6 +19,40 @@ import (
 	"strings"
 )
 
+func isValidSwizzling(s string) bool {
+	if len(s) < 1 || 4 < len(s) {
+		return false
+	}
+
+	const (
+		xyzw = "xyzw"
+		rgba = "rgba"
+		strq = "strq"
+	)
+
+	switch {
+	case strings.IndexByte(xyzw, s[0]) >= 0:
+		for _, c := range s {
+			if strings.IndexRune(xyzw, c) == -1 {
+				return false
+			}
+		}
+	case strings.IndexByte(rgba, s[0]) >= 0:
+		for _, c := range s {
+			if strings.IndexRune(rgba, c) == -1 {
+				return false
+			}
+		}
+	case strings.IndexByte(strq, s[0]) >= 0:
+		for _, c := range s {
+			if strings.IndexRune(strq, c) == -1 {
+				return false
+			}
+		}
+	}
+	return false
+}
+
 func (p *Program) structName(t *Type) string {
 	if t.Main != Struct {
 		panic("shaderir: the given type at structName must be a struct")
@@ -190,6 +224,11 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 			}
 		case BuiltinFuncExpr:
 			return string(e.BuiltinFunc)
+		case SwizzlingExpr:
+			if isValidSwizzling(e.Swizzling) {
+				return fmt.Sprintf("?(unexpected swizzling: %s)", e.Swizzling)
+			}
+			return e.Swizzling
 		case Ident:
 			return e.Ident
 		case Unary:
