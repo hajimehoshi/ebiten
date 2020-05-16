@@ -100,15 +100,15 @@ func builtinFuncExpr(f BuiltinFunc) Expr {
 
 func swizzlingExpr(swizzling string) Expr {
 	return Expr{
-		Type:  SwizzlingExpr,
-		Ident: swizzling,
+		Type:      SwizzlingExpr,
+		Swizzling: swizzling,
 	}
 }
 
-func identExpr(ident string) Expr {
+func functionExpr(index int) Expr {
 	return Expr{
-		Type:  Ident,
-		Ident: ident,
+		Type:  FunctionExpr,
+		Index: index,
 	}
 }
 
@@ -200,7 +200,7 @@ varying vec3 V0;`,
 			Program: Program{
 				Funcs: []Func{
 					{
-						Name: "F0",
+						Index: 0,
 					},
 				},
 			},
@@ -212,7 +212,7 @@ varying vec3 V0;`,
 			Program: Program{
 				Funcs: []Func{
 					{
-						Name: "F0",
+						Index: 0,
 						InParams: []Type{
 							{Main: Float},
 							{Main: Vec2},
@@ -235,7 +235,7 @@ varying vec3 V0;`,
 			Program: Program{
 				Funcs: []Func{
 					{
-						Name: "F0",
+						Index: 0,
 						InParams: []Type{
 							{Main: Float},
 						},
@@ -258,7 +258,7 @@ varying vec3 V0;`,
 			Program: Program{
 				Funcs: []Func{
 					{
-						Name: "F0",
+						Index: 0,
 						InParams: []Type{
 							{Main: Float},
 						},
@@ -285,7 +285,7 @@ varying vec3 V0;`,
 			Program: Program{
 				Funcs: []Func{
 					{
-						Name: "F0",
+						Index: 0,
 						InParams: []Type{
 							{Main: Float},
 						},
@@ -326,7 +326,7 @@ varying vec3 V0;`,
 			Program: Program{
 				Funcs: []Func{
 					{
-						Name: "F0",
+						Index: 0,
 						InParams: []Type{
 							{Main: Float},
 							{Main: Float},
@@ -357,7 +357,7 @@ varying vec3 V0;`,
 			Program: Program{
 				Funcs: []Func{
 					{
-						Name: "F0",
+						Index: 0,
 						InParams: []Type{
 							{Main: Bool},
 							{Main: Float},
@@ -389,7 +389,7 @@ varying vec3 V0;`,
 			Program: Program{
 				Funcs: []Func{
 					{
-						Name: "F0",
+						Index: 0,
 						InParams: []Type{
 							{Main: Float},
 							{Main: Float},
@@ -401,13 +401,13 @@ varying vec3 V0;`,
 							nil,
 							exprStmt(
 								callExpr(
-									identExpr("F1"),
+									functionExpr(1),
 								),
 							),
 							assignStmt(
 								varNameExpr(Local, 2),
 								callExpr(
-									identExpr("F2"),
+									functionExpr(2),
 									varNameExpr(Local, 0),
 									varNameExpr(Local, 1),
 								),
@@ -426,7 +426,7 @@ varying vec3 V0;`,
 			Program: Program{
 				Funcs: []Func{
 					{
-						Name: "F0",
+						Index: 0,
 						InParams: []Type{
 							{Main: Float},
 							{Main: Float},
@@ -457,7 +457,7 @@ varying vec3 V0;`,
 			Program: Program{
 				Funcs: []Func{
 					{
-						Name: "F0",
+						Index: 0,
 						InParams: []Type{
 							{Main: Vec4},
 						},
@@ -486,7 +486,7 @@ varying vec3 V0;`,
 			Program: Program{
 				Funcs: []Func{
 					{
-						Name: "F0",
+						Index: 0,
 						InParams: []Type{
 							{Main: Float},
 							{Main: Float},
@@ -534,7 +534,7 @@ varying vec3 V0;`,
 			Program: Program{
 				Funcs: []Func{
 					{
-						Name: "F0",
+						Index: 0,
 						InParams: []Type{
 							{Main: Float},
 							{Main: Float},

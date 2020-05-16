@@ -27,10 +27,8 @@ type Program struct {
 	structTypes []Type
 }
 
-// TODO: How to avoid the name with existing functions?
-
 type Func struct {
-	Name        string
+	Index       int
 	InParams    []Type
 	InOutParams []Type
 	OutParams   []Type
@@ -89,7 +87,8 @@ type Expr struct {
 	Int         int32
 	Float       float32
 	BuiltinFunc BuiltinFunc
-	Ident       string
+	Swizzling   string
+	Index       int
 	Op          Op
 }
 
@@ -101,7 +100,7 @@ const (
 	VarName
 	BuiltinFuncExpr
 	SwizzlingExpr
-	Ident
+	FunctionExpr
 	Unary
 	Binary
 	Selection

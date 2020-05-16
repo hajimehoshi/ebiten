@@ -166,7 +166,7 @@ func (p *Program) glslFunc(f *Func) []string {
 	}
 
 	var lines []string
-	lines = append(lines, fmt.Sprintf("%s %s(%s) {", p.glslType(&f.Return), f.Name, argsstr))
+	lines = append(lines, fmt.Sprintf("%s F%d(%s) {", p.glslType(&f.Return), f.Index, argsstr))
 	lines = append(lines, p.glslBlock(&f.Block, 0, idx)...)
 	lines = append(lines, "}")
 
@@ -230,12 +230,12 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 		case BuiltinFuncExpr:
 			return string(e.BuiltinFunc)
 		case SwizzlingExpr:
-			if !isValidSwizzling(e.Ident) {
-				return fmt.Sprintf("?(unexpected swizzling: %s)", e.Ident)
+			if !isValidSwizzling(e.Swizzling) {
+				return fmt.Sprintf("?(unexpected swizzling: %s)", e.Swizzling)
 			}
-			return e.Ident
-		case Ident:
-			return e.Ident
+			return e.Swizzling
+		case FunctionExpr:
+			return fmt.Sprintf("F%d", e.Index)
 		case Unary:
 			var op string
 			switch e.Op {
