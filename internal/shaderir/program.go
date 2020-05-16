@@ -83,13 +83,14 @@ const (
 )
 
 type Expr struct {
-	Type     ExprType
-	Exprs    []Expr
-	Variable Variable
-	Int      int32
-	Float    float32
-	Ident    string
-	Op       Op
+	Type        ExprType
+	Exprs       []Expr
+	Variable    Variable
+	Int         int32
+	Float       float32
+	BuiltinFunc BuiltinFunc
+	Ident       string
+	Op          Op
 }
 
 type ExprType int
@@ -98,6 +99,7 @@ const (
 	IntExpr ExprType = iota
 	FloatExpr
 	VarName
+	BuiltinFuncExpr
 	Ident
 	Unary
 	Binary
@@ -122,23 +124,75 @@ const (
 type Op string
 
 const (
-	Add          Op = "+"
-	Sub          Op = "-"
-	Neg          Op = "!"
-	Mul          Op = "*"
-	Div          Op = "/"
-	Mod          Op = "%"
-	LeftShift    Op = "<<"
-	RightShift   Op = ">>"
-	LessThan     Op = "<"
-	LessEqual    Op = "<="
-	GreaterThan  Op = ">"
-	GreaterEqual Op = ">="
-	Equal        Op = "=="
-	NotEqual     Op = "!="
-	And          Op = "&"
-	Xor          Op = "^"
-	Or           Op = "|"
-	AndAnd       Op = "&&"
-	OrOr         Op = "||"
+	Add                Op = "+"
+	Sub                Op = "-"
+	Neg                Op = "!"
+	Mul                Op = "*"
+	Div                Op = "/"
+	ModOp              Op = "%"
+	LeftShift          Op = "<<"
+	RightShift         Op = ">>"
+	LessThanOp         Op = "<"
+	LessThanEqualOp    Op = "<="
+	GreaterThanOp      Op = ">"
+	GreaterThanEqualOp Op = ">="
+	EqualOp            Op = "=="
+	NotEqualOp         Op = "!="
+	And                Op = "&"
+	Xor                Op = "^"
+	Or                 Op = "|"
+	AndAnd             Op = "&&"
+	OrOr               Op = "||"
+)
+
+type BuiltinFunc string
+
+const (
+	Radians          BuiltinFunc = "radians"
+	Degrees          BuiltinFunc = "degrees"
+	Sin              BuiltinFunc = "sin"
+	Cos              BuiltinFunc = "cos"
+	Tan              BuiltinFunc = "tan"
+	Asin             BuiltinFunc = "asin"
+	Acos             BuiltinFunc = "acos"
+	Atan             BuiltinFunc = "atan"
+	Pow              BuiltinFunc = "pow"
+	Exp              BuiltinFunc = "exp"
+	Log              BuiltinFunc = "log"
+	Exp2             BuiltinFunc = "exp2"
+	Log2             BuiltinFunc = "log2"
+	Sqrt             BuiltinFunc = "sqrt"
+	Inversesqrt      BuiltinFunc = "inversesqrt"
+	Abs              BuiltinFunc = "abs"
+	Sign             BuiltinFunc = "sign"
+	Floor            BuiltinFunc = "floor"
+	Ceil             BuiltinFunc = "ceil"
+	Fract            BuiltinFunc = "fract"
+	Mod              BuiltinFunc = "mod"
+	Min              BuiltinFunc = "min"
+	Max              BuiltinFunc = "max"
+	Clamp            BuiltinFunc = "clamp"
+	Mix              BuiltinFunc = "mix"
+	Step             BuiltinFunc = "step"
+	Smoothstep       BuiltinFunc = "smoothstep"
+	Length           BuiltinFunc = "length"
+	Distance         BuiltinFunc = "distance"
+	Dot              BuiltinFunc = "dot"
+	Cross            BuiltinFunc = "cross"
+	Normalize        BuiltinFunc = "normalize"
+	Faceforward      BuiltinFunc = "faceforward"
+	Reflect          BuiltinFunc = "reflect"
+	MatrixCompMult   BuiltinFunc = "matrixCompMult"
+	OuterProduct     BuiltinFunc = "outerProduct"
+	Transpose        BuiltinFunc = "transpose"
+	LessThan         BuiltinFunc = "lessThan"
+	LessThanEqual    BuiltinFunc = "lessThanEqual"
+	GreaterThan      BuiltinFunc = "greaterThan"
+	GreaterThanEqual BuiltinFunc = "greaterThanEqual"
+	Equal            BuiltinFunc = "equal"
+	NotEqual         BuiltinFunc = "notEqual"
+	Any              BuiltinFunc = "any"
+	All              BuiltinFunc = "all"
+	Not              BuiltinFunc = "not"
+	Texture2D        BuiltinFunc = "texture2D"
 )

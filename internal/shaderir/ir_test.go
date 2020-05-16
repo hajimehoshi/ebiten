@@ -91,6 +91,13 @@ func varNameExpr(vt VariableType, index int) Expr {
 	}
 }
 
+func builtinFuncExpr(f BuiltinFunc) Expr {
+	return Expr{
+		Type:        BuiltinFuncExpr,
+		BuiltinFunc: f,
+	}
+}
+
 func identExpr(ident string) Expr {
 	return Expr{
 		Type:  Ident,
@@ -113,11 +120,10 @@ func selectionExpr(cond, a, b Expr) Expr {
 	}
 }
 
-func callExpr(name string, args ...Expr) Expr {
+func callExpr(callee Expr, args ...Expr) Expr {
 	return Expr{
 		Type:  Call,
-		Ident: name,
-		Exprs: args,
+		Exprs: append([]Expr{callee}, args...),
 	}
 }
 
@@ -388,13 +394,13 @@ varying vec3 V0;`,
 							nil,
 							exprStmt(
 								callExpr(
-									"F1",
+									identExpr("F1"),
 								),
 							),
 							assignStmt(
 								varNameExpr(Local, 2),
 								callExpr(
-									"F2",
+									identExpr("F2"),
 									varNameExpr(Local, 0),
 									varNameExpr(Local, 1),
 								),
@@ -404,8 +410,39 @@ varying vec3 V0;`,
 				},
 			},
 			Glsl: `void F0(in float l0, in float l1, out vec2 l2) {
-	F1();
-	l2 = F2(l0, l1);
+	(F1)();
+	l2 = (F2)(l0, l1);
+}`,
+		},
+		{
+			Name: "BuiltinFunc",
+			Program: Program{
+				Funcs: []Func{
+					{
+						Name: "F0",
+						InParams: []Type{
+							{Main: Float},
+							{Main: Float},
+						},
+						OutParams: []Type{
+							{Main: Float},
+						},
+						Block: block(
+							nil,
+							assignStmt(
+								varNameExpr(Local, 2),
+								callExpr(
+									builtinFuncExpr(Min),
+									varNameExpr(Local, 0),
+									varNameExpr(Local, 1),
+								),
+							),
+						),
+					},
+				},
+			},
+			Glsl: `void F0(in float l0, in float l1, out float l2) {
+	l2 = (min)(l0, l1);
 }`,
 		},
 		{
@@ -454,7 +491,7 @@ varying vec3 V0;`,
 							nil,
 							ifStmt(
 								binaryExpr(
-									Equal,
+									EqualOp,
 									varNameExpr(Local, 0),
 									floatExpr(0),
 								),
@@ -503,7 +540,7 @@ varying vec3 V0;`,
 							forStmt(
 								0,
 								100,
-								LessThan,
+								LessThanOp,
 								1,
 								block(
 									nil,

@@ -188,6 +188,8 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 			default:
 				return fmt.Sprintf("?(unexpected variable type: %d)", e.Variable.Type)
 			}
+		case BuiltinFuncExpr:
+			return string(e.BuiltinFunc)
 		case Ident:
 			return e.Ident
 		case Unary:
@@ -205,10 +207,10 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 			return fmt.Sprintf("(%s) ? (%s) : (%s)", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]), glslExpr(&e.Exprs[2]))
 		case Call:
 			var args []string
-			for _, exp := range e.Exprs {
+			for _, exp := range e.Exprs[1:] {
 				args = append(args, glslExpr(&exp))
 			}
-			return fmt.Sprintf("%s(%s)", e.Ident, strings.Join(args, ", "))
+			return fmt.Sprintf("(%s)(%s)", glslExpr(&e.Exprs[0]), strings.Join(args, ", "))
 		case FieldSelector:
 			return fmt.Sprintf("(%s).%s", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]))
 		case Index:
@@ -256,7 +258,7 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 			}
 			var op string
 			switch s.ForOp {
-			case LessThan, LessEqual, GreaterThan, GreaterEqual, Equal, NotEqual:
+			case LessThanOp, LessThanEqualOp, GreaterThanOp, GreaterThanEqualOp, EqualOp, NotEqualOp:
 				op = string(s.ForOp)
 			default:
 				op = fmt.Sprintf("?(unexpected op: %s)", string(s.ForOp))
