@@ -523,6 +523,51 @@ varying vec3 V0;`,
 	}
 }`,
 		},
+		{
+			Name: "VertexFunc",
+			Program: Program{
+				Uniforms: []Type{
+					{Main: Float},
+				},
+				Attributes: []Type{
+					{Main: Vec4},
+					{Main: Float},
+					{Main: Vec2},
+				},
+				Varyings: []Type{
+					{Main: Float},
+					{Main: Vec2},
+				},
+				VertexFunc: VertexFunc{
+					Block: block(
+						nil,
+						assignStmt(
+							varNameExpr(Local, 5),
+							varNameExpr(Local, 0),
+						),
+						assignStmt(
+							varNameExpr(Local, 3),
+							varNameExpr(Local, 1),
+						),
+						assignStmt(
+							varNameExpr(Local, 4),
+							varNameExpr(Local, 2),
+						),
+					),
+				},
+			},
+			Glsl: `uniform float U0;
+attribute vec4 A0;
+attribute float A1;
+attribute vec2 A2;
+varying float V0;
+varying vec2 V1;
+void main(void) {
+	gl_Position = A0;
+	V0 = A1;
+	V1 = A2;
+}`,
+		},
 	}
 	for _, tc := range tests {
 		got := tc.Program.Glsl()

@@ -51,6 +51,13 @@ func (p *Program) Glsl() string {
 		lines = append(lines, p.glslFunc(&f)...)
 	}
 
+	// Vertex func
+	if len(p.VertexFunc.Block.Stmts) > 0 {
+		lines = append(lines, "void main(void) {")
+		lines = append(lines, p.glslBlock(&p.VertexFunc.Block, 0, 0)...)
+		lines = append(lines, "}")
+	}
+
 	var stLines []string
 	for i, t := range p.structTypes {
 		stLines = append(stLines, fmt.Sprintf("struct S%d {", i))
@@ -116,13 +123,13 @@ func (p *Program) glslFunc(f *Func) []string {
 
 	var lines []string
 	lines = append(lines, fmt.Sprintf("%s %s(%s) {", p.glslType(&f.Return), f.Name, argsstr))
-	lines = append(lines, p.glslBlock(&f.Block, f, 0, idx)...)
+	lines = append(lines, p.glslBlock(&f.Block, 0, idx)...)
 	lines = append(lines, "}")
 
 	return lines
 }
 
-func (p *Program) glslBlock(b *Block, f *Func, level int, localVarIndex int) []string {
+func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 	idt := strings.Repeat("\t", level+1)
 
 	var lines []string
@@ -142,12 +149,24 @@ func (p *Program) glslBlock(b *Block, f *Func, level int, localVarIndex int) []s
 			switch e.Variable.Type {
 			case Uniform:
 				return fmt.Sprintf("U%d", e.Variable.Index)
-			case Attribute:
-				return fmt.Sprintf("A%d", e.Variable.Index)
-			case Varying:
-				return fmt.Sprintf("V%d", e.Variable.Index)
 			case Local:
-				return fmt.Sprintf("l%d", e.Variable.Index)
+				idx := e.Variable.Index
+				if b == &p.VertexFunc.Block {
+					na := len(p.Attributes)
+					nv := len(p.Varyings)
+					switch {
+					case idx < na:
+						return fmt.Sprintf("A%d", idx)
+					case idx < na+nv:
+						return fmt.Sprintf("V%d", idx-na)
+					case idx == na+nv:
+						return "gl_Position"
+					default:
+						return fmt.Sprintf("l%d", idx-(na+nv))
+					}
+				} else {
+					return fmt.Sprintf("l%d", idx)
+				}
 			default:
 				return fmt.Sprintf("?(unexpected variable type: %d)", e.Variable.Type)
 			}
@@ -187,16 +206,16 @@ func (p *Program) glslBlock(b *Block, f *Func, level int, localVarIndex int) []s
 			lines = append(lines, fmt.Sprintf("%s%s;", idt, glslExpr(&s.Exprs[0])))
 		case BlockStmt:
 			lines = append(lines, idt+"{")
-			lines = append(lines, p.glslBlock(&s.Blocks[0], f, level+1, localVarIndex)...)
+			lines = append(lines, p.glslBlock(&s.Blocks[0], level+1, localVarIndex)...)
 			lines = append(lines, idt+"}")
 		case Assign:
 			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, glslExpr(&s.Exprs[0]), glslExpr(&s.Exprs[1])))
 		case If:
 			lines = append(lines, fmt.Sprintf("%sif (%s) {", idt, glslExpr(&s.Exprs[0])))
-			lines = append(lines, p.glslBlock(&s.Blocks[0], f, level+1, localVarIndex)...)
+			lines = append(lines, p.glslBlock(&s.Blocks[0], level+1, localVarIndex)...)
 			if len(s.Blocks) > 1 {
 				lines = append(lines, fmt.Sprintf("%s} else {", idt))
-				lines = append(lines, p.glslBlock(&s.Blocks[1], f, level+1, localVarIndex)...)
+				lines = append(lines, p.glslBlock(&s.Blocks[1], level+1, localVarIndex)...)
 			}
 			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case For:
@@ -225,7 +244,7 @@ func (p *Program) glslBlock(b *Block, f *Func, level int, localVarIndex int) []s
 				op = fmt.Sprintf("?(unexpected op: %s)", string(s.ForOp))
 			}
 			lines = append(lines, fmt.Sprintf("%sfor (int l%d = %d; l%d %s %d; %s) {", idt, v, s.ForInit, v, op, s.ForEnd, delta))
-			lines = append(lines, p.glslBlock(&s.Blocks[0], f, level+1, localVarIndex)...)
+			lines = append(lines, p.glslBlock(&s.Blocks[0], level+1, localVarIndex)...)
 			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case Continue:
 			lines = append(lines, idt+"continue;")
@@ -246,5 +265,3 @@ func (p *Program) glslBlock(b *Block, f *Func, level int, localVarIndex int) []s
 
 	return lines
 }
-
-// TODO: Distinguish regular functions, vertex functions and fragment functions. e.g., Treat gl_Position correctly.

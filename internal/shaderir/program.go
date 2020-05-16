@@ -15,12 +15,12 @@
 package shaderir
 
 type Program struct {
-	Uniforms      []Type
-	Attributes    []Type
-	Varyings      []Type
-	Funcs         []Func
-	VertexEntry   string
-	FragmentEntry string
+	Uniforms     []Type
+	Attributes   []Type
+	Varyings     []Type
+	Funcs        []Func
+	VertexFunc   VertexFunc
+	FragmentFunc FragmentFunc
 
 	structNames map[string]string
 	structTypes []Type
@@ -35,6 +35,21 @@ type Func struct {
 	OutParams   []Type
 	Return      Type
 	Block       Block
+}
+
+// VertexFunc takes pseudo params, and the number if len(attributes) + len(varyings) + 1.
+// If 0 <= index < len(attributes), the params are in-params and treated as attribute variables.
+// If len(attributes) <= index < len(attributes) + len(varyings), the params are out-params and treated as varying
+// variables.
+// The last param represents the position in vec4 (gl_Position in GLSL).
+type VertexFunc struct {
+	Block Block
+}
+
+// FragmentFunc takes pseudo in-params, and the number is len(varyings) + 1.
+// The last param represents the coordinate of the fragment (gl_FragCoord in GLSL)
+type FragmentFunc struct {
+	Block Block
 }
 
 type Block struct {
@@ -100,8 +115,6 @@ type VariableType int
 
 const (
 	Uniform VariableType = iota
-	Attribute
-	Varying
 	Local
 )
 
