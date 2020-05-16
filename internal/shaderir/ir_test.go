@@ -81,13 +81,17 @@ func floatExpr(value float32) Expr {
 	}
 }
 
-func varNameExpr(vt VariableType, index int) Expr {
+func uniformVariableExpr(index int) Expr {
 	return Expr{
-		Type: VarName,
-		Variable: Variable{
-			Type:  vt,
-			Index: index,
-		},
+		Type:  UniformVariable,
+		Index: index,
+	}
+}
+
+func localVariableExpr(index int) Expr {
+	return Expr{
+		Type:  LocalVariable,
+		Index: index,
 	}
 }
 
@@ -243,7 +247,7 @@ varying vec3 V0;`,
 						Block: block(
 							nil,
 							returnStmt(
-								varNameExpr(Local, 0),
+								localVariableExpr(0),
 							),
 						),
 					},
@@ -337,11 +341,11 @@ varying vec3 V0;`,
 						Block: block(
 							nil,
 							assignStmt(
-								varNameExpr(Local, 2),
+								localVariableExpr(2),
 								binaryExpr(
 									Add,
-									varNameExpr(Local, 0),
-									varNameExpr(Local, 1),
+									localVariableExpr(0),
+									localVariableExpr(1),
 								),
 							),
 						),
@@ -369,11 +373,11 @@ varying vec3 V0;`,
 						Block: block(
 							nil,
 							assignStmt(
-								varNameExpr(Local, 3),
+								localVariableExpr(3),
 								selectionExpr(
-									varNameExpr(Local, 0),
-									varNameExpr(Local, 1),
-									varNameExpr(Local, 2),
+									localVariableExpr(0),
+									localVariableExpr(1),
+									localVariableExpr(2),
 								),
 							),
 						),
@@ -405,11 +409,11 @@ varying vec3 V0;`,
 								),
 							),
 							assignStmt(
-								varNameExpr(Local, 2),
+								localVariableExpr(2),
 								callExpr(
 									functionExpr(2),
-									varNameExpr(Local, 0),
-									varNameExpr(Local, 1),
+									localVariableExpr(0),
+									localVariableExpr(1),
 								),
 							),
 						),
@@ -437,11 +441,11 @@ varying vec3 V0;`,
 						Block: block(
 							nil,
 							assignStmt(
-								varNameExpr(Local, 2),
+								localVariableExpr(2),
 								callExpr(
 									builtinFuncExpr(Min),
-									varNameExpr(Local, 0),
-									varNameExpr(Local, 1),
+									localVariableExpr(0),
+									localVariableExpr(1),
 								),
 							),
 						),
@@ -467,9 +471,9 @@ varying vec3 V0;`,
 						Block: block(
 							nil,
 							assignStmt(
-								varNameExpr(Local, 1),
+								localVariableExpr(1),
 								fieldSelectorExpr(
-									varNameExpr(Local, 0),
+									localVariableExpr(0),
 									swizzlingExpr("xz"),
 								),
 							),
@@ -499,21 +503,21 @@ varying vec3 V0;`,
 							ifStmt(
 								binaryExpr(
 									EqualOp,
-									varNameExpr(Local, 0),
+									localVariableExpr(0),
 									floatExpr(0),
 								),
 								block(
 									nil,
 									assignStmt(
-										varNameExpr(Local, 2),
-										varNameExpr(Local, 0),
+										localVariableExpr(2),
+										localVariableExpr(0),
 									),
 								),
 								block(
 									nil,
 									assignStmt(
-										varNameExpr(Local, 2),
-										varNameExpr(Local, 1),
+										localVariableExpr(2),
+										localVariableExpr(1),
 									),
 								),
 							),
@@ -552,8 +556,8 @@ varying vec3 V0;`,
 								block(
 									nil,
 									assignStmt(
-										varNameExpr(Local, 2),
-										varNameExpr(Local, 0),
+										localVariableExpr(2),
+										localVariableExpr(0),
 									),
 								),
 							),
@@ -586,16 +590,16 @@ varying vec3 V0;`,
 					Block: block(
 						nil,
 						assignStmt(
-							varNameExpr(Local, 5),
-							varNameExpr(Local, 0),
+							localVariableExpr(5),
+							localVariableExpr(0),
 						),
 						assignStmt(
-							varNameExpr(Local, 3),
-							varNameExpr(Local, 1),
+							localVariableExpr(3),
+							localVariableExpr(1),
 						),
 						assignStmt(
-							varNameExpr(Local, 4),
-							varNameExpr(Local, 2),
+							localVariableExpr(4),
+							localVariableExpr(2),
 						),
 					),
 				},
@@ -633,16 +637,16 @@ void main(void) {
 					Block: block(
 						nil,
 						assignStmt(
-							varNameExpr(Local, 5),
-							varNameExpr(Local, 0),
+							localVariableExpr(5),
+							localVariableExpr(0),
 						),
 						assignStmt(
-							varNameExpr(Local, 3),
-							varNameExpr(Local, 1),
+							localVariableExpr(3),
+							localVariableExpr(1),
 						),
 						assignStmt(
-							varNameExpr(Local, 4),
-							varNameExpr(Local, 2),
+							localVariableExpr(4),
+							localVariableExpr(2),
 						),
 					),
 				},
@@ -654,16 +658,16 @@ void main(void) {
 							{Main: Float},
 						},
 						assignStmt(
-							varNameExpr(Local, 5),
-							varNameExpr(Local, 0),
+							localVariableExpr(5),
+							localVariableExpr(0),
 						),
 						assignStmt(
-							varNameExpr(Local, 3),
-							varNameExpr(Local, 1),
+							localVariableExpr(3),
+							localVariableExpr(1),
 						),
 						assignStmt(
-							varNameExpr(Local, 4),
-							varNameExpr(Local, 2),
+							localVariableExpr(4),
+							localVariableExpr(2),
 						),
 					),
 				},

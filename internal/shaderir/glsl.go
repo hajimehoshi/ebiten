@@ -189,44 +189,39 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 			return fmt.Sprintf("%d", e.Int)
 		case FloatExpr:
 			return fmt.Sprintf("%.9e", e.Float)
-		case VarName:
-			switch e.Variable.Type {
-			case Uniform:
-				return fmt.Sprintf("U%d", e.Variable.Index)
-			case StructMember:
-				return fmt.Sprintf("M%d", e.Variable.Index)
-			case Local:
-				idx := e.Variable.Index
-				switch b {
-				case &p.VertexFunc.Block:
-					na := len(p.Attributes)
-					nv := len(p.Varyings)
-					switch {
-					case idx < na:
-						return fmt.Sprintf("A%d", idx)
-					case idx < na+nv:
-						return fmt.Sprintf("V%d", idx-na)
-					case idx == na+nv:
-						return "gl_Position"
-					default:
-						return fmt.Sprintf("l%d", idx-(na+nv+1))
-					}
-				case &p.FragmentFunc.Block:
-					nv := len(p.Varyings)
-					switch {
-					case idx < nv:
-						return fmt.Sprintf("V%d", idx)
-					case idx == nv:
-						return "gl_FragCoord"
-					default:
-						return fmt.Sprintf("l%d", idx-(nv+1))
-					}
+		case UniformVariable:
+			return fmt.Sprintf("U%d", e.Index)
+		case LocalVariable:
+			idx := e.Index
+			switch b {
+			case &p.VertexFunc.Block:
+				na := len(p.Attributes)
+				nv := len(p.Varyings)
+				switch {
+				case idx < na:
+					return fmt.Sprintf("A%d", idx)
+				case idx < na+nv:
+					return fmt.Sprintf("V%d", idx-na)
+				case idx == na+nv:
+					return "gl_Position"
 				default:
-					return fmt.Sprintf("l%d", idx)
+					return fmt.Sprintf("l%d", idx-(na+nv+1))
+				}
+			case &p.FragmentFunc.Block:
+				nv := len(p.Varyings)
+				switch {
+				case idx < nv:
+					return fmt.Sprintf("V%d", idx)
+				case idx == nv:
+					return "gl_FragCoord"
+				default:
+					return fmt.Sprintf("l%d", idx-(nv+1))
 				}
 			default:
-				return fmt.Sprintf("?(unexpected variable type: %d)", e.Variable.Type)
+				return fmt.Sprintf("l%d", idx)
 			}
+		case StructMember:
+			return fmt.Sprintf("M%d", e.Index)
 		case BuiltinFuncExpr:
 			return string(e.BuiltinFunc)
 		case SwizzlingExpr:

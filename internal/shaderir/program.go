@@ -83,7 +83,6 @@ const (
 type Expr struct {
 	Type        ExprType
 	Exprs       []Expr
-	Variable    Variable
 	Int         int32
 	Float       float32
 	BuiltinFunc BuiltinFunc
@@ -97,7 +96,9 @@ type ExprType int
 const (
 	IntExpr ExprType = iota
 	FloatExpr
-	VarName
+	UniformVariable
+	LocalVariable
+	StructMember
 	BuiltinFuncExpr
 	SwizzlingExpr
 	FunctionExpr
@@ -107,19 +108,6 @@ const (
 	Call
 	FieldSelector
 	Index
-)
-
-type Variable struct {
-	Type  VariableType
-	Index int
-}
-
-type VariableType int
-
-const (
-	Uniform VariableType = iota
-	StructMember
-	Local
 )
 
 type Op string
