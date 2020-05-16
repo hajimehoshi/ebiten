@@ -26,6 +26,8 @@ type Program struct {
 	structTypes []Type
 }
 
+// TODO: How to avoid the name with existing functions?
+
 type Func struct {
 	Name        string
 	InParams    []Type

@@ -27,6 +27,13 @@ func block(localVars []Type, stmts ...Stmt) Block {
 	}
 }
 
+func exprStmt(expr Expr) Stmt {
+	return Stmt{
+		Type:  ExprStmt,
+		Exprs: []Expr{expr},
+	}
+}
+
 func blockStmt(block Block) Stmt {
 	return Stmt{
 		Type:   BlockStmt,
@@ -96,6 +103,14 @@ func selectionExpr(cond, a, b Expr) Expr {
 	return Expr{
 		Type:  Selection,
 		Exprs: []Expr{cond, a, b},
+	}
+}
+
+func callExpr(name string, args ...Expr) Expr {
+	return Expr{
+		Type:  Call,
+		Ident: name,
+		Exprs: args,
 	}
 }
 
@@ -324,6 +339,43 @@ varying vec3 V0;`,
 			},
 			Glsl: `void F0(in bool l0, in float l1, in float l2, out float l3) {
 	l3 = (l0) ? (l1) : (l2);
+}`,
+		},
+		{
+			Name: "Call",
+			Program: Program{
+				Funcs: []Func{
+					{
+						Name: "F0",
+						InParams: []Type{
+							{Main: Float},
+							{Main: Float},
+						},
+						OutParams: []Type{
+							{Main: Vec2},
+						},
+						Block: block(
+							nil,
+							exprStmt(
+								callExpr(
+									"F1",
+								),
+							),
+							assignStmt(
+								varNameExpr(Local, 2),
+								callExpr(
+									"F2",
+									varNameExpr(Local, 0),
+									varNameExpr(Local, 1),
+								),
+							),
+						),
+					},
+				},
+			},
+			Glsl: `void F0(in float l0, in float l1, out vec2 l2) {
+	F1();
+	l2 = F2(l0, l1);
 }`,
 		},
 		{

@@ -152,8 +152,11 @@ func (p *Program) glslBlock(b *Block, f *Func, level int, localVarIndex int) []s
 		case Selection:
 			return fmt.Sprintf("(%s) ? (%s) : (%s)", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]), glslExpr(&e.Exprs[2]))
 		case Call:
-			// TODO: Take multiple args
-			return fmt.Sprintf("(%s).(%s)", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]))
+			var args []string
+			for _, exp := range e.Exprs {
+				args = append(args, glslExpr(&exp))
+			}
+			return fmt.Sprintf("%s(%s)", e.Ident, strings.Join(args, ", "))
 		case FieldSelector:
 			return fmt.Sprintf("(%s).%s", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]))
 		case Index:
