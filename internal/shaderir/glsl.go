@@ -177,14 +177,27 @@ func (p *Program) glslBlock(b *Block, f *Func, level int, localVarIndex int) []s
 			localVarIndex++
 			var delta string
 			switch s.ForDelta {
+			case 0:
+				delta = fmt.Sprintf("?(unexpected delta: %d)", s.ForDelta)
 			case 1:
 				delta = fmt.Sprintf("l%d++", v)
 			case -1:
 				delta = fmt.Sprintf("l%d--", v)
 			default:
-				delta = fmt.Sprintf("l%d += %d", v, s.ForDelta)
+				if s.ForDelta > 0 {
+					delta = fmt.Sprintf("l%d += %d", v, s.ForDelta)
+				} else {
+					delta = fmt.Sprintf("l%d -= %d", v, -s.ForDelta)
+				}
 			}
-			lines = append(lines, fmt.Sprintf("%sfor (int l%d = %d; l%d < %d; %s) {", idt, v, s.ForInit, v, s.ForEnd, delta))
+			var op string
+			switch s.ForOp {
+			case LessThan, LessEqual, GreaterThan, GreaterEqual, Equal, NotEqual:
+				op = string(s.ForOp)
+			default:
+				op = fmt.Sprintf("?(unexpected op: %s)", string(s.ForOp))
+			}
+			lines = append(lines, fmt.Sprintf("%sfor (int l%d = %d; l%d %s %d; %s) {", idt, v, s.ForInit, v, op, s.ForEnd, delta))
 			lines = append(lines, p.glslBlock(&s.Blocks[0], f, level+1, localVarIndex)...)
 			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case Continue:

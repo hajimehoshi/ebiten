@@ -45,6 +45,7 @@ type Stmt struct {
 	Blocks   []Block
 	ForInit  int
 	ForEnd   int
+	ForOp    Op
 	ForDelta int
 }
 
@@ -103,24 +104,24 @@ const (
 type Op string
 
 const (
-	Add    Op = "+"
-	Sub    Op = "-"
-	Neg    Op = "!"
-	Mul    Op = "*"
-	Div    Op = "/"
-	Mod    Op = "%"
-	LShift Op = "<<"
-	RShift Op = ">>"
-	LT     Op = "<"
-	LE     Op = "<="
-	GT     Op = ">"
-	GE     Op = ">="
-	Eq     Op = "=="
-	NE     Op = "!="
-	And    Op = "&"
-	Xor    Op = "^"
-	Or     Op = "|"
-	AndAnd Op = "&&"
-	OrOr   Op = "||"
-	Cond   Op = "?:"
+	Add          Op = "+"
+	Sub          Op = "-"
+	Neg          Op = "!"
+	Mul          Op = "*"
+	Div          Op = "/"
+	Mod          Op = "%"
+	LeftShift    Op = "<<"
+	RightShift   Op = ">>"
+	LessThan     Op = "<"
+	LessEqual    Op = "<="
+	GreaterThan  Op = ">"
+	GreaterEqual Op = ">="
+	Equal        Op = "=="
+	NotEqual     Op = "!="
+	And          Op = "&"
+	Xor          Op = "^"
+	Or           Op = "|"
+	AndAnd       Op = "&&"
+	OrOr         Op = "||"
+	Condition    Op = "?:"
 )
