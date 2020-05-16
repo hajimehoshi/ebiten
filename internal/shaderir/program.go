@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package shaderir offers intermediate representation for shader programs.
 package shaderir
 
 type Program struct {
