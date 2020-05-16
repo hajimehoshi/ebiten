@@ -33,6 +33,7 @@ type Func struct {
 	InParams    []Type
 	InOutParams []Type
 	OutParams   []Type
+	Return      Type
 	Block       Block
 }
 

@@ -64,6 +64,21 @@ func (p *Program) Glsl() string {
 	return strings.Join(lines, "\n") + "\n"
 }
 
+func (p *Program) glslType(t *Type) string {
+	switch t.Main {
+	case None:
+		return "void"
+	case Image2D:
+		panic("not implemented")
+	case Array:
+		panic("not implemented")
+	case Struct:
+		return p.structName(t)
+	default:
+		return t.Main.Glsl()
+	}
+}
+
 func (p *Program) glslVarDecl(t *Type, varname string) string {
 	switch t.Main {
 	case None:
@@ -100,7 +115,7 @@ func (p *Program) glslFunc(f *Func) []string {
 	}
 
 	var lines []string
-	lines = append(lines, fmt.Sprintf("void %s(%s) {", f.Name, argsstr))
+	lines = append(lines, fmt.Sprintf("%s %s(%s) {", p.glslType(&f.Return), f.Name, argsstr))
 	lines = append(lines, p.glslBlock(&f.Block, f, 0, idx)...)
 	lines = append(lines, "}")
 
@@ -217,7 +232,11 @@ func (p *Program) glslBlock(b *Block, f *Func, level int, localVarIndex int) []s
 		case Break:
 			lines = append(lines, idt+"break;")
 		case Return:
-			lines = append(lines, idt+"return;")
+			if len(s.Exprs) == 0 {
+				lines = append(lines, idt+"return;")
+			} else {
+				lines = append(lines, fmt.Sprintf("%sreturn %s;", idt, glslExpr(&s.Exprs[0])))
+			}
 		case Discard:
 			lines = append(lines, idt+"discard;")
 		default:

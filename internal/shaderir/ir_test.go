@@ -41,6 +41,13 @@ func blockStmt(block Block) Stmt {
 	}
 }
 
+func returnStmt(expr Expr) Stmt {
+	return Stmt{
+		Type:  Return,
+		Exprs: []Expr{expr},
+	}
+}
+
 func assignStmt(lhs Expr, rhs Expr) Stmt {
 	return Stmt{
 		Type:  Assign,
@@ -208,6 +215,29 @@ varying vec3 V0;`,
 				},
 			},
 			Glsl: `void F0(in float l0, in vec2 l1, in vec4 l2, inout mat2 l3, out mat4 l4) {
+}`,
+		},
+		{
+			Name: "FuncReturn",
+			Program: Program{
+				Funcs: []Func{
+					{
+						Name: "F0",
+						InParams: []Type{
+							{Main: Float},
+						},
+						Return: Type{Main: Float},
+						Block: block(
+							nil,
+							returnStmt(
+								varNameExpr(Local, 0),
+							),
+						),
+					},
+				},
+			},
+			Glsl: `float F0(in float l0) {
+	return l0;
 }`,
 		},
 		{
