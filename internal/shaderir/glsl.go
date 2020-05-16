@@ -58,6 +58,13 @@ func (p *Program) Glsl() string {
 		lines = append(lines, "}")
 	}
 
+	// Fragment func
+	if len(p.FragmentFunc.Block.Stmts) > 0 {
+		lines = append(lines, "void main(void) {")
+		lines = append(lines, p.glslBlock(&p.FragmentFunc.Block, 0, 0)...)
+		lines = append(lines, "}")
+	}
+
 	var stLines []string
 	for i, t := range p.structTypes {
 		stLines = append(stLines, fmt.Sprintf("struct S%d {", i))
@@ -151,7 +158,8 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 				return fmt.Sprintf("U%d", e.Variable.Index)
 			case Local:
 				idx := e.Variable.Index
-				if b == &p.VertexFunc.Block {
+				switch b {
+				case &p.VertexFunc.Block:
 					na := len(p.Attributes)
 					nv := len(p.Varyings)
 					switch {
@@ -162,9 +170,19 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 					case idx == na+nv:
 						return "gl_Position"
 					default:
-						return fmt.Sprintf("l%d", idx-(na+nv))
+						return fmt.Sprintf("l%d", idx-(na+nv+1))
 					}
-				} else {
+				case &p.FragmentFunc.Block:
+					nv := len(p.Varyings)
+					switch {
+					case idx < nv:
+						return fmt.Sprintf("V%d", idx)
+					case idx == nv:
+						return "gl_FragCoord"
+					default:
+						return fmt.Sprintf("l%d", idx-(nv+1))
+					}
+				default:
 					return fmt.Sprintf("l%d", idx)
 				}
 			default:
