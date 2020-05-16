@@ -47,8 +47,8 @@ func (t *Type) serialize() string {
 		return "mat3"
 	case Mat4:
 		return "mat4"
-	case Image2D:
-		return "image2d"
+	case Sampler2D:
+		return "sampler2D"
 	case Array:
 		return fmt.Sprintf("%s[%d]", t.Sub[0].serialize(), t.Length)
 	case Struct:
@@ -78,7 +78,7 @@ const (
 	Mat2
 	Mat3
 	Mat4
-	Image2D
+	Sampler2D
 	Array
 	Struct
 )
@@ -105,8 +105,8 @@ func (t BasicType) Glsl() string {
 		return "mat3"
 	case Mat4:
 		return "mat4"
-	case Image2D:
-		return "?(image2d)"
+	case Sampler2D:
+		return "sampler2D"
 	case Array:
 		// First-class array is not available on GLSL ES 2.
 		return "?(array)"

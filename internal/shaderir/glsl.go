@@ -86,8 +86,6 @@ func (p *Program) glslType(t *Type) string {
 	switch t.Main {
 	case None:
 		return "void"
-	case Image2D:
-		panic("not implemented")
 	case Array:
 		panic("not implemented")
 	case Struct:
@@ -101,8 +99,6 @@ func (p *Program) glslVarDecl(t *Type, varname string) string {
 	switch t.Main {
 	case None:
 		return "?(none)"
-	case Image2D:
-		panic("not implemented")
 	case Array:
 		panic("not implemented")
 	case Struct:
