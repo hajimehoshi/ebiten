@@ -77,6 +77,13 @@ func varNameExpr(vt VariableType, index int) Expr {
 	}
 }
 
+func identExpr(ident string) Expr {
+	return Expr{
+		Type:  Ident,
+		Ident: ident,
+	}
+}
+
 func binaryExpr(op Op, exprs ...Expr) Expr {
 	return Expr{
 		Type:  Binary,
@@ -89,6 +96,13 @@ func selectionExpr(cond, a, b Expr) Expr {
 	return Expr{
 		Type:  Selection,
 		Exprs: []Expr{cond, a, b},
+	}
+}
+
+func fieldSelectorExpr(a, b Expr) Expr {
+	return Expr{
+		Type:  FieldSelector,
+		Exprs: []Expr{a, b},
 	}
 }
 
@@ -310,6 +324,35 @@ varying vec3 V0;`,
 			},
 			Glsl: `void F0(in bool l0, in float l1, in float l2, out float l3) {
 	l3 = (l0) ? (l1) : (l2);
+}`,
+		},
+		{
+			Name: "FieldSelector",
+			Program: Program{
+				Funcs: []Func{
+					{
+						Name: "F0",
+						InParams: []Type{
+							{Main: Vec4},
+						},
+						OutParams: []Type{
+							{Main: Float},
+						},
+						Block: block(
+							nil,
+							assignStmt(
+								varNameExpr(Local, 1),
+								fieldSelectorExpr(
+									varNameExpr(Local, 0),
+									identExpr("x"),
+								),
+							),
+						),
+					},
+				},
+			},
+			Glsl: `void F0(in vec4 l0, out float l1) {
+	l1 = (l0).x;
 }`,
 		},
 		{
