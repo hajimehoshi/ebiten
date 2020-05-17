@@ -17,7 +17,6 @@ package opengl
 import (
 	"fmt"
 
-	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/web"
@@ -241,27 +240,7 @@ func areSameFloat32Array(a, b []float32) bool {
 }
 
 // useProgram uses the program (programTexture).
-func (g *Graphics) useProgram(colorM *affine.ColorM, filter driver.Filter, address driver.Address) error {
-	destination := g.state.destination
-	if destination == nil {
-		panic("destination image is not set")
-	}
-	source := g.state.source
-	if source == nil {
-		panic("source image is not set")
-	}
-
-	if err := destination.setViewport(); err != nil {
-		return err
-	}
-	dstW := destination.width
-	srcW, srcH := source.width, source.height
-
-	program := g.state.programs[programKey{
-		useColorM: colorM != nil,
-		filter:    filter,
-		address:   address,
-	}]
+func (g *Graphics) useProgram(program program, uniforms map[string][]float32, filter driver.Filter) error {
 	if !g.state.lastProgram.equal(program) {
 		g.context.useProgram(program)
 		if g.state.lastProgram.equal(zeroProgram) {
@@ -275,46 +254,22 @@ func (g *Graphics) useProgram(colorM *affine.ColorM, filter driver.Filter, addre
 		g.state.lastUniforms = map[string][]float32{}
 	}
 
-	vw := destination.framebuffer.width
-	vh := destination.framebuffer.height
-	vs := []float32{float32(vw), float32(vh)}
-	if !areSameFloat32Array(g.state.lastUniforms["viewport_size"], vs) {
-		g.context.uniformFloats(program, "viewport_size", vs)
-		g.state.lastUniforms["viewport_size"] = vs
-	}
-
-	if colorM != nil {
-		esBody, esTranslate := colorM.UnsafeElements()
-		if !areSameFloat32Array(g.state.lastUniforms["color_matrix_body"], esBody) {
-			g.context.uniformFloats(program, "color_matrix_body", esBody)
-			// ColorM's elements are immutable. It's OK to hold the reference without copying.
-			g.state.lastUniforms["color_matrix_body"] = esBody
+	for key, u := range uniforms {
+		if areSameFloat32Array(g.state.lastUniforms[key], u) {
+			continue
 		}
-		if !areSameFloat32Array(g.state.lastUniforms["color_matrix_translation"], esTranslate) {
-			g.context.uniformFloats(program, "color_matrix_translation", esTranslate)
-			// ColorM's elements are immutable. It's OK to hold the reference without copying.
-			g.state.lastUniforms["color_matrix_translation"] = esTranslate
-		}
-	}
-
-	if filter != driver.FilterNearest {
-		sw := graphics.InternalImageSize(srcW)
-		sh := graphics.InternalImageSize(srcH)
-		s := []float32{float32(sw), float32(sh)}
-		if !areSameFloat32Array(g.state.lastUniforms["source_size"], s) {
-			g.context.uniformFloats(program, "source_size", s)
-			g.state.lastUniforms["source_size"] = s
-		}
+		g.context.uniformFloats(program, key, u)
+		g.state.lastUniforms[key] = u
 	}
 
 	if filter == driver.FilterScreen {
-		scale := float32(dstW) / float32(srcW)
+		scale := float32(g.state.destination.width) / float32(g.state.source.width)
 		g.context.uniformFloat(program, "scale", scale)
 	}
 
 	// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture
 	// See also: https://www.opengl.org/sdk/docs/man2/xhtml/glActiveTexture.xml
-	g.context.bindTexture(source.textureNative)
+	g.context.bindTexture(g.state.source.textureNative)
 
 	g.state.source = nil
 	g.state.destination = nil

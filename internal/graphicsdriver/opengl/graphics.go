@@ -113,13 +113,52 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) {
 }
 
 func (g *Graphics) Draw(indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address) error {
+	destination := g.state.destination
+	if destination == nil {
+		panic("destination image is not set")
+	}
+	source := g.state.source
+	if source == nil {
+		panic("source image is not set")
+	}
+
 	g.drawCalled = true
 
-	g.context.blendFunc(mode)
-
-	if err := g.useProgram(colorM, filter, address); err != nil {
+	if err := destination.setViewport(); err != nil {
 		return err
 	}
+	g.context.blendFunc(mode)
+
+	program := g.state.programs[programKey{
+		useColorM: colorM != nil,
+		filter:    filter,
+		address:   address,
+	}]
+
+	uniforms := map[string][]float32{}
+
+	vw := destination.framebuffer.width
+	vh := destination.framebuffer.height
+	uniforms["viewport_size"] = []float32{float32(vw), float32(vh)}
+
+	if colorM != nil {
+		// ColorM's elements are immutable. It's OK to hold the reference without copying.
+		esBody, esTranslate := colorM.UnsafeElements()
+		uniforms["color_matrix_body"] = esBody
+		uniforms["color_matrix_translation"] = esTranslate
+	}
+
+	if filter != driver.FilterNearest {
+		srcW, srcH := source.width, source.height
+		sw := graphics.InternalImageSize(srcW)
+		sh := graphics.InternalImageSize(srcH)
+		uniforms["source_size"] = []float32{float32(sw), float32(sh)}
+	}
+
+	if err := g.useProgram(program, uniforms, filter); err != nil {
+		return err
+	}
+
 	g.context.drawElements(indexLen, indexOffset*2) // 2 is uint16 size in bytes
 	// glFlush() might be necessary at least on MacBook Pro (a smilar problem at #419),
 	// but basically this pass the tests (esp. TestImageTooManyFill).
