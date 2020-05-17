@@ -112,6 +112,8 @@ var (
 	unsignedByte        js.Value
 	unsignedShort       js.Value
 
+	texture0 int
+
 	isWebGL2Available bool
 )
 
@@ -154,6 +156,7 @@ func init() {
 	nearest = contextPrototype.Get("NEAREST")
 	noError = contextPrototype.Get("NO_ERROR")
 	rgba = contextPrototype.Get("RGBA")
+	texture0 = contextPrototype.Get("TEXTURE0").Int()
 	texture2d = contextPrototype.Get("TEXTURE_2D")
 	textureMagFilter = contextPrototype.Get("TEXTURE_MAG_FILTER")
 	textureMinFilter = contextPrototype.Get("TEXTURE_MIN_FILTER")
@@ -277,6 +280,12 @@ func (c *context) framebufferPixels(f *framebuffer, width, height int) ([]byte, 
 	gl.Call("readPixels", 0, 0, width, height, rgba, unsignedByte, p)
 
 	return jsutil.Uint8ArrayToSlice(p), nil
+}
+
+func (c *context) activeTexture(idx int) {
+	c.ensureGL()
+	gl := c.gl
+	gl.Call("activeTexture", texture0+idx)
 }
 
 func (c *context) bindTextureImpl(t textureNative) {

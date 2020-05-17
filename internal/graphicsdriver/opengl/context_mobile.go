@@ -156,6 +156,11 @@ func (c *context) framebufferPixels(f *framebuffer, width, height int) ([]byte, 
 	return pixels, nil
 }
 
+func (c *context) activeTexture(idx int) {
+	gl := c.gl
+	gl.ActiveTexture(mgl.Enum(mgl.TEXTURE0 + idx))
+}
+
 func (c *context) bindTextureImpl(t textureNative) {
 	gl := c.gl
 	gl.BindTexture(mgl.TEXTURE_2D, mgl.Texture(t))

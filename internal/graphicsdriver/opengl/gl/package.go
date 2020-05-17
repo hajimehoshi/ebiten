@@ -49,6 +49,7 @@ const (
 	NO_ERROR             = 0
 	READ_WRITE           = 0x88BA
 	RGBA                 = 0x1908
+	TEXTURE0             = 0x84C0
 	TEXTURE_2D           = 0x0DE1
 	TEXTURE_MAG_FILTER   = 0x2800
 	TEXTURE_MIN_FILTER   = 0x2801

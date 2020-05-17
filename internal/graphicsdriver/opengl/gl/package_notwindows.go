@@ -95,7 +95,8 @@ package gl
 // typedef void (APIENTRY *GLDEBUGPROCAMD)(GLuint id,GLenum category,GLenum severity,GLsizei length,const GLchar *message,void *userParam);
 // typedef unsigned short GLhalfNV;
 // typedef GLintptr GLvdpauSurfaceNV;
-// typedef void (APIENTRY *GLVULKANPROCNV)(void);
+//
+// typedef void  (APIENTRYP GPACTIVETEXTURE)(GLenum  texture);
 // typedef void  (APIENTRYP GPATTACHSHADER)(GLuint  program, GLuint  shader);
 // typedef void  (APIENTRYP GPBINDATTRIBLOCATION)(GLuint  program, GLuint  index, const GLchar * name);
 // typedef void  (APIENTRYP GPBINDBUFFER)(GLenum  target, GLuint  buffer);
@@ -159,6 +160,9 @@ package gl
 // typedef void  (APIENTRYP GPVERTEXATTRIBPOINTER)(GLuint  index, GLint  size, GLenum  type, GLboolean  normalized, GLsizei  stride, const uintptr_t pointer);
 // typedef void  (APIENTRYP GPVIEWPORT)(GLint  x, GLint  y, GLsizei  width, GLsizei  height);
 //
+// static void  glowActiveTexture(GPACTIVETEXTURE fnptr, GLenum  texture) {
+//   (*fnptr)(texture);
+// }
 // static void  glowAttachShader(GPATTACHSHADER fnptr, GLuint  program, GLuint  shader) {
 //   (*fnptr)(program, shader);
 // }
@@ -353,6 +357,7 @@ import (
 )
 
 var (
+	gpActiveTexture               C.GPACTIVETEXTURE
 	gpAttachShader                C.GPATTACHSHADER
 	gpBindAttribLocation          C.GPBINDATTRIBLOCATION
 	gpBindBuffer                  C.GPBINDBUFFER
@@ -422,6 +427,10 @@ func boolToInt(b bool) int {
 		return 1
 	}
 	return 0
+}
+
+func ActiveTexture(texture uint32) {
+	C.glowActiveTexture(gpActiveTexture, (C.GLenum)(texture))
 }
 
 func AttachShader(program uint32, shader uint32) {
@@ -675,6 +684,10 @@ func Viewport(x int32, y int32, width int32, height int32) {
 // InitWithProcAddrFunc intializes the package using the specified OpenGL
 // function pointer loading function. For more cases Init should be used
 func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
+	gpActiveTexture = (C.GPACTIVETEXTURE)(getProcAddr("glActiveTexture"))
+	if gpActiveTexture == nil {
+		return errors.New("glActiveTexture")
+	}
 	gpAttachShader = (C.GPATTACHSHADER)(getProcAddr("glAttachShader"))
 	if gpAttachShader == nil {
 		return errors.New("glAttachShader")

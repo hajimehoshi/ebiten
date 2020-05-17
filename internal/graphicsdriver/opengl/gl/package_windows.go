@@ -10,6 +10,7 @@ import (
 )
 
 var (
+	gpActiveTexture               uintptr
 	gpAttachShader                uintptr
 	gpBindAttribLocation          uintptr
 	gpBindBuffer                  uintptr
@@ -79,6 +80,10 @@ func boolToUintptr(b bool) uintptr {
 		return 1
 	}
 	return 0
+}
+
+func ActiveTexture(texture uint32) {
+	syscall.Syscall(gpActiveTexture, 1, uintptr(texture), 0, 0)
 }
 
 func AttachShader(program uint32, shader uint32) {
@@ -332,6 +337,10 @@ func Viewport(x int32, y int32, width int32, height int32) {
 // InitWithProcAddrFunc intializes the package using the specified OpenGL
 // function pointer loading function. For more cases Init should be used
 func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
+	gpActiveTexture = getProcAddr("glActiveTexture")
+	if gpActiveTexture == 0 {
+		return errors.New("glActiveTexture")
+	}
 	gpAttachShader = getProcAddr("glAttachShader")
 	if gpAttachShader == 0 {
 		return errors.New("glAttachShader")

@@ -160,7 +160,7 @@ func (g *Graphics) Draw(indexLen int, indexOffset int, mode driver.CompositeMode
 		uniforms["scale"] = scale
 	}
 
-	uniforms["texture"] = source.textureNative
+	uniforms["texture/0"] = source.textureNative
 
 	if err := g.useProgram(program, uniforms); err != nil {
 		return err

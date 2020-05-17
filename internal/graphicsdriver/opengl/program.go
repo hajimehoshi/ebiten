@@ -16,6 +16,8 @@ package opengl
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
@@ -132,8 +134,9 @@ type openGLState struct {
 	// programs is OpenGL's program for rendering a texture.
 	programs map[programKey]program
 
-	lastProgram  program
-	lastUniforms map[string]interface{}
+	lastProgram       program
+	lastUniforms      map[string]interface{}
+	lastActiveTexture int
 
 	source      *Image
 	destination *Image
@@ -251,6 +254,8 @@ func (g *Graphics) useProgram(program program, uniforms map[string]interface{}) 
 
 		g.state.lastProgram = program
 		g.state.lastUniforms = map[string]interface{}{}
+		g.state.lastActiveTexture = 0
+		g.context.activeTexture(0)
 	}
 
 	for key, u := range uniforms {
@@ -271,10 +276,19 @@ func (g *Graphics) useProgram(program program, uniforms map[string]interface{}) 
 			g.state.lastUniforms[key] = u
 		case textureNative:
 			// Apparently, a texture must be bound every time. The cache is not used here.
-			// TODO: Use another value than 0 when binding multiple textures.
-			g.context.uniformInt(program, key, 0)
-			// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture
-			// See also: https://www.opengl.org/sdk/docs/man2/xhtml/glActiveTexture.xml
+			tokens := strings.SplitN(key, "/", 2)
+			if len(tokens) != 2 {
+				return fmt.Errorf("opengl: a uniform variable name for textures must be '[name]/[index]' but %s", key)
+			}
+			idx, err := strconv.Atoi(tokens[1])
+			if err != nil {
+				return fmt.Errorf("opengl: a uniform variable name for textures must be '[name]/[index]' but %s", key)
+			}
+			g.context.uniformInt(program, tokens[0], idx)
+			if g.state.lastActiveTexture != idx {
+				g.context.activeTexture(idx)
+				g.state.lastActiveTexture = idx
+			}
 			g.context.bindTexture(u)
 		}
 	}

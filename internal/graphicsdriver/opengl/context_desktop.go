@@ -198,6 +198,13 @@ func (c *context) framebufferPixels(f *framebuffer, width, height int) ([]byte, 
 	return pixels, nil
 }
 
+func (c *context) activeTexture(idx int) {
+	_ = c.t.Call(func() error {
+		gl.ActiveTexture(gl.TEXTURE0 + uint32(idx))
+		return nil
+	})
+}
+
 func (c *context) bindTextureImpl(t textureNative) {
 	_ = c.t.Call(func() error {
 		gl.BindTexture(gl.TEXTURE_2D, uint32(t))
