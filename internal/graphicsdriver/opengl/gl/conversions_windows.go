@@ -30,8 +30,6 @@ func Ptr(data interface{}) unsafe.Pointer {
 		addr = unsafe.Pointer(v)
 	case *float32:
 		addr = unsafe.Pointer(v)
-	case uintptr:
-		addr = unsafe.Pointer(v)
 	case []uint8:
 		addr = unsafe.Pointer(&v[0])
 	case []uint16:
