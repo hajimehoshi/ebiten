@@ -114,7 +114,10 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) {
 
 func (g *Graphics) Draw(indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address) error {
 	g.drawCalled = true
-	if err := g.useProgram(mode, colorM, filter, address); err != nil {
+
+	g.context.blendFunc(mode)
+
+	if err := g.useProgram(colorM, filter, address); err != nil {
 		return err
 	}
 	g.context.drawElements(indexLen, indexOffset*2) // 2 is uint16 size in bytes

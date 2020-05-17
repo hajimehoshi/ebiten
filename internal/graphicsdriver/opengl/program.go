@@ -241,7 +241,7 @@ func areSameFloat32Array(a, b []float32) bool {
 }
 
 // useProgram uses the program (programTexture).
-func (g *Graphics) useProgram(mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address) error {
+func (g *Graphics) useProgram(colorM *affine.ColorM, filter driver.Filter, address driver.Address) error {
 	destination := g.state.destination
 	if destination == nil {
 		panic("destination image is not set")
@@ -256,8 +256,6 @@ func (g *Graphics) useProgram(mode driver.CompositeMode, colorM *affine.ColorM, 
 	}
 	dstW := destination.width
 	srcW, srcH := source.width, source.height
-
-	g.context.blendFunc(mode)
 
 	program := g.state.programs[programKey{
 		useColorM: colorM != nil,
