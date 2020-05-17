@@ -135,7 +135,7 @@ func (g *Graphics) Draw(indexLen int, indexOffset int, mode driver.CompositeMode
 		address:   address,
 	}]
 
-	uniforms := map[string][]float32{}
+	uniforms := map[string]interface{}{}
 
 	vw := destination.framebuffer.width
 	vh := destination.framebuffer.height
@@ -155,7 +155,12 @@ func (g *Graphics) Draw(indexLen int, indexOffset int, mode driver.CompositeMode
 		uniforms["source_size"] = []float32{float32(sw), float32(sh)}
 	}
 
-	if err := g.useProgram(program, uniforms, filter); err != nil {
+	if filter == driver.FilterScreen {
+		scale := float32(g.state.destination.width) / float32(g.state.source.width)
+		uniforms["scale"] = scale
+	}
+
+	if err := g.useProgram(program, uniforms); err != nil {
 		return err
 	}
 

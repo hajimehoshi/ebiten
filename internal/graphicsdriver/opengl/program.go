@@ -133,7 +133,7 @@ type openGLState struct {
 	programs map[programKey]program
 
 	lastProgram  program
-	lastUniforms map[string][]float32
+	lastUniforms map[string]interface{}
 
 	source      *Image
 	destination *Image
@@ -151,7 +151,7 @@ func (s *openGLState) reset(context *context) error {
 	}
 
 	s.lastProgram = zeroProgram
-	s.lastUniforms = map[string][]float32{}
+	s.lastUniforms = map[string]interface{}{}
 
 	// When context lost happens, deleting programs or buffers is not necessary.
 	// However, it is not assumed that reset is called only when context lost happens.
@@ -240,7 +240,7 @@ func areSameFloat32Array(a, b []float32) bool {
 }
 
 // useProgram uses the program (programTexture).
-func (g *Graphics) useProgram(program program, uniforms map[string][]float32, filter driver.Filter) error {
+func (g *Graphics) useProgram(program program, uniforms map[string]interface{}) error {
 	if !g.state.lastProgram.equal(program) {
 		g.context.useProgram(program)
 		if g.state.lastProgram.equal(zeroProgram) {
@@ -251,20 +251,25 @@ func (g *Graphics) useProgram(program program, uniforms map[string][]float32, fi
 		}
 
 		g.state.lastProgram = program
-		g.state.lastUniforms = map[string][]float32{}
+		g.state.lastUniforms = map[string]interface{}{}
 	}
 
 	for key, u := range uniforms {
-		if areSameFloat32Array(g.state.lastUniforms[key], u) {
-			continue
+		switch u := u.(type) {
+		case float32:
+			cached, ok := g.state.lastUniforms[key].(float32)
+			if ok && cached == u {
+				continue
+			}
+			g.context.uniformFloat(program, key, u)
+		case []float32:
+			cached, ok := g.state.lastUniforms[key].([]float32)
+			if ok && areSameFloat32Array(cached, u) {
+				continue
+			}
+			g.context.uniformFloats(program, key, u)
 		}
-		g.context.uniformFloats(program, key, u)
 		g.state.lastUniforms[key] = u
-	}
-
-	if filter == driver.FilterScreen {
-		scale := float32(g.state.destination.width) / float32(g.state.source.width)
-		g.context.uniformFloat(program, "scale", scale)
 	}
 
 	// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture
