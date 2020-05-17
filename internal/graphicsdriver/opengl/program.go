@@ -140,8 +140,6 @@ type openGLState struct {
 	lastColorMatrixTranslation []float32
 	lastSourceWidth            int
 	lastSourceHeight           int
-	lastFilter                 *driver.Filter
-	lastAddress                *driver.Address
 
 	source      *Image
 	destination *Image
@@ -165,8 +163,6 @@ func (s *openGLState) reset(context *context) error {
 	s.lastColorMatrixTranslation = nil
 	s.lastSourceWidth = 0
 	s.lastSourceHeight = 0
-	s.lastFilter = nil
-	s.lastAddress = nil
 
 	// When context lost happens, deleting programs or buffers is not necessary.
 	// However, it is not assumed that reset is called only when context lost happens.
