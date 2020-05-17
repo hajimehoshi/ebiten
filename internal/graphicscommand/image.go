@@ -110,7 +110,7 @@ func (i *Image) resolveBufferedReplacePixels() {
 }
 
 func (i *Image) Dispose() {
-	c := &disposeCommand{
+	c := &disposeImageCommand{
 		target: i,
 	}
 	theCommandQueue.Enqueue(c)
@@ -156,7 +156,33 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 	src.resolveBufferedReplacePixels()
 	i.resolveBufferedReplacePixels()
 
-	theCommandQueue.EnqueueDrawTrianglesCommand(i, src, vertices, indices, clr, mode, filter, address)
+	theCommandQueue.EnqueueDrawTrianglesCommand(i, src, vertices, indices, clr, mode, filter, address, nil, nil)
+
+	if i.lastCommand == lastCommandNone && !i.screen {
+		i.lastCommand = lastCommandClear
+	} else {
+		i.lastCommand = lastCommandDrawTriangles
+	}
+}
+
+func (i *Image) DrawShader(shader *Shader, vertices []float32, indices []uint16, mode driver.CompositeMode, uniforms map[int]interface{}) {
+	if i.lastCommand == lastCommandNone {
+		panic("graphicscommand: the image must be cleared first before DrawShader")
+	}
+
+	us := map[int]interface{}{}
+	for k, v := range uniforms {
+		switch v := v.(type) {
+		case *Image:
+			v.resolveBufferedReplacePixels()
+			us[k] = v.image
+		default:
+			us[k] = v
+		}
+	}
+	i.resolveBufferedReplacePixels()
+
+	theCommandQueue.EnqueueDrawTrianglesCommand(i, nil, vertices, indices, nil, mode, 0, 0, shader, us)
 
 	if i.lastCommand == lastCommandNone && !i.screen {
 		i.lastCommand = lastCommandClear

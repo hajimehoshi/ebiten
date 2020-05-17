@@ -21,6 +21,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	. "github.com/hajimehoshi/ebiten/internal/graphicscommand"
+	"github.com/hajimehoshi/ebiten/internal/shaderir"
 	t "github.com/hajimehoshi/ebiten/internal/testing"
 )
 
@@ -77,4 +78,244 @@ func TestReplacePixelsPartAfterDrawTriangles(t *testing.T) {
 	dst.DrawTriangles(clr, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressClampToZero)
 	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero)
 	dst.ReplacePixels(make([]byte, 4), 0, 0, 1, 1)
+}
+
+func TestShader(t *testing.T) {
+	if !IsGL() {
+		t.Skip("shader is not implemented on non-GL environment")
+	}
+
+	const w, h = 16, 16
+	clr := NewImage(w, h)
+	dst := NewImage(w, h)
+	vs := quadVertices(w, h)
+	is := graphics.QuadIndices()
+	dst.DrawTriangles(clr, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressClampToZero)
+
+	mat := shaderir.Expr{
+		Type: shaderir.Call,
+		Exprs: []shaderir.Expr{
+			{
+				Type:        shaderir.BuiltinFuncExpr,
+				BuiltinFunc: shaderir.Mat4F,
+			},
+			{
+				Type: shaderir.Binary,
+				Op:   shaderir.Div,
+				Exprs: []shaderir.Expr{
+					{
+						Type:  shaderir.FloatExpr,
+						Float: 2,
+					},
+					{
+						Type: shaderir.FieldSelector,
+						Exprs: []shaderir.Expr{
+							{
+								Type:  shaderir.UniformVariable,
+								Index: 0,
+							},
+							{
+								Type:      shaderir.SwizzlingExpr,
+								Swizzling: "x",
+							},
+						},
+					},
+				},
+			},
+			{
+				Type:  shaderir.FloatExpr,
+				Float: 0,
+			},
+			{
+				Type:  shaderir.FloatExpr,
+				Float: 0,
+			},
+			{
+				Type:  shaderir.FloatExpr,
+				Float: 0,
+			},
+			{
+				Type:  shaderir.FloatExpr,
+				Float: 0,
+			},
+			{
+				Type: shaderir.Binary,
+				Op:   shaderir.Div,
+				Exprs: []shaderir.Expr{
+					{
+						Type:  shaderir.FloatExpr,
+						Float: 2,
+					},
+					{
+						Type: shaderir.FieldSelector,
+						Exprs: []shaderir.Expr{
+							{
+								Type:  shaderir.UniformVariable,
+								Index: 0,
+							},
+							{
+								Type:      shaderir.SwizzlingExpr,
+								Swizzling: "y",
+							},
+						},
+					},
+				},
+			},
+			{
+				Type:  shaderir.FloatExpr,
+				Float: 0,
+			},
+			{
+				Type:  shaderir.FloatExpr,
+				Float: 0,
+			},
+			{
+				Type:  shaderir.FloatExpr,
+				Float: 0,
+			},
+			{
+				Type:  shaderir.FloatExpr,
+				Float: 0,
+			},
+			{
+				Type:  shaderir.FloatExpr,
+				Float: 1,
+			},
+			{
+				Type:  shaderir.FloatExpr,
+				Float: 0,
+			},
+			{
+				Type:  shaderir.FloatExpr,
+				Float: -1,
+			},
+			{
+				Type:  shaderir.FloatExpr,
+				Float: -1,
+			},
+			{
+				Type:  shaderir.FloatExpr,
+				Float: 0,
+			},
+			{
+				Type:  shaderir.FloatExpr,
+				Float: 1,
+			},
+		},
+	}
+	pos := shaderir.Expr{
+		Type: shaderir.Call,
+		Exprs: []shaderir.Expr{
+			{
+				Type:        shaderir.BuiltinFuncExpr,
+				BuiltinFunc: shaderir.Vec4F,
+			},
+			{
+				Type:  shaderir.LocalVariable,
+				Index: 0,
+			},
+			{
+				Type:  shaderir.FloatExpr,
+				Float: 0,
+			},
+			{
+				Type:  shaderir.FloatExpr,
+				Float: 1,
+			},
+		},
+	}
+	red := shaderir.Expr{
+		Type: shaderir.Call,
+		Exprs: []shaderir.Expr{
+			{
+				Type:        shaderir.BuiltinFuncExpr,
+				BuiltinFunc: shaderir.Vec4F,
+			},
+			{
+				Type:  shaderir.FloatExpr,
+				Float: 1,
+			},
+			{
+				Type:  shaderir.FloatExpr,
+				Float: 0,
+			},
+			{
+				Type:  shaderir.FloatExpr,
+				Float: 0,
+			},
+			{
+				Type:  shaderir.FloatExpr,
+				Float: 1,
+			},
+		},
+	}
+	s := NewShader(&shaderir.Program{
+		Uniforms: []shaderir.Type{
+			{Main: shaderir.Vec2},
+		},
+		Attributes: []shaderir.Type{
+			{Main: shaderir.Vec2},
+			{Main: shaderir.Vec2},
+			{Main: shaderir.Vec4},
+			{Main: shaderir.Vec4},
+		},
+		VertexFunc: shaderir.VertexFunc{
+			Block: shaderir.Block{
+				Stmts: []shaderir.Stmt{
+					{
+						Type: shaderir.Assign,
+						Exprs: []shaderir.Expr{
+							{
+								Type:  shaderir.LocalVariable,
+								Index: 4,
+							},
+							{
+								Type: shaderir.Binary,
+								Op:   shaderir.Mul,
+								Exprs: []shaderir.Expr{
+									mat,
+									pos,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		FragmentFunc: shaderir.FragmentFunc{
+			Block: shaderir.Block{
+				Stmts: []shaderir.Stmt{
+					{
+						Type: shaderir.Assign,
+						Exprs: []shaderir.Expr{
+							{
+								Type:  shaderir.LocalVariable,
+								Index: 1,
+							},
+							red,
+						},
+					},
+				},
+			},
+		},
+	})
+	us := map[int]interface{}{
+		0: []float32{w, h},
+	}
+	dst.DrawShader(s, vs, is, driver.CompositeModeSourceOver, us)
+
+	pix, err := dst.Pixels()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			idx := 4 * (i + w*j)
+			got := color.RGBA{pix[idx], pix[idx+1], pix[idx+2], pix[idx+3]}
+			want := color.RGBA{0xff, 0, 0, 0xff}
+			if got != want {
+				t.Errorf("dst.At(%d, %d) after DrawTriangles: got %v, want: %v", i, j, got, want)
+			}
+		}
+	}
 }

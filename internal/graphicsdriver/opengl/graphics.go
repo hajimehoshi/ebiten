@@ -20,6 +20,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/internal/thread"
 )
 
@@ -30,10 +31,14 @@ func Get() *Graphics {
 }
 
 type Graphics struct {
+	state   openGLState
+	context context
+
 	nextImageID driver.ImageID
-	state       openGLState
-	context     context
 	images      map[driver.ImageID]*Image
+
+	nextShaderID driver.ShaderID
+	shaders      map[driver.ShaderID]*Shader
 
 	// drawCalled is true just after Draw is called. This holds true until ReplacePixels is called.
 	drawCalled bool
@@ -76,6 +81,12 @@ func (g *Graphics) checkSize(width, height int) {
 func (g *Graphics) genNextImageID() driver.ImageID {
 	id := g.nextImageID
 	g.nextImageID++
+	return id
+}
+
+func (g *Graphics) genNextShaderID() driver.ShaderID {
+	id := g.nextShaderID
+	g.nextShaderID++
 	return id
 }
 
@@ -217,4 +228,50 @@ func (g *Graphics) HasHighPrecisionFloat() bool {
 
 func (g *Graphics) MaxImageSize() int {
 	return g.context.getMaxTextureSize()
+}
+
+func (g *Graphics) NewShader(program *shaderir.Program) (driver.Shader, error) {
+	s, err := NewShader(g.genNextShaderID(), g, program)
+	if err != nil {
+		return nil, err
+	}
+	g.addShader(s)
+	return s, nil
+}
+
+func (g *Graphics) addShader(shader *Shader) {
+	if g.shaders == nil {
+		g.shaders = map[driver.ShaderID]*Shader{}
+	}
+	if _, ok := g.shaders[shader.id]; ok {
+		panic(fmt.Sprintf("opengl: shader ID %d was already registered", shader.id))
+	}
+	g.shaders[shader.id] = shader
+}
+
+func (g *Graphics) removeShader(shader *Shader) {
+	delete(g.shaders, shader.id)
+}
+
+func (g *Graphics) DrawShader(dst driver.ImageID, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms map[int]interface{}) error {
+	d := g.images[dst]
+	s := g.shaders[shader]
+
+	g.drawCalled = true
+
+	if err := d.setViewport(); err != nil {
+		return err
+	}
+	g.context.blendFunc(mode)
+
+	us := map[string]interface{}{}
+	for k, v := range uniforms {
+		us[fmt.Sprintf("U%d", k)] = v
+	}
+	if err := g.useProgram(s.p, us); err != nil {
+		return err
+	}
+	g.context.drawElements(indexLen, indexOffset*2) // 2 is uint16 size in bytes
+
+	return nil
 }
