@@ -156,15 +156,18 @@ func (g *Graphics) Draw(indexLen int, indexOffset int, mode driver.CompositeMode
 	}
 
 	if filter == driver.FilterScreen {
-		scale := float32(g.state.destination.width) / float32(g.state.source.width)
+		scale := float32(destination.width) / float32(source.width)
 		uniforms["scale"] = scale
 	}
+
+	uniforms["texture"] = source.textureNative
 
 	if err := g.useProgram(program, uniforms); err != nil {
 		return err
 	}
 
 	g.context.drawElements(indexLen, indexOffset*2) // 2 is uint16 size in bytes
+
 	// glFlush() might be necessary at least on MacBook Pro (a smilar problem at #419),
 	// but basically this pass the tests (esp. TestImageTooManyFill).
 	// As glFlush() causes performance problems, this should be avoided as much as possible.

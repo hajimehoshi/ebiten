@@ -247,7 +247,6 @@ func (g *Graphics) useProgram(program program, uniforms map[string]interface{}) 
 			theArrayBufferLayout.enable(&g.context, program)
 			g.context.bindBuffer(arrayBuffer, g.state.arrayBuffer)
 			g.context.bindBuffer(elementArrayBuffer, g.state.elementArrayBuffer)
-			g.context.uniformInt(program, "texture", 0)
 		}
 
 		g.state.lastProgram = program
@@ -262,19 +261,23 @@ func (g *Graphics) useProgram(program program, uniforms map[string]interface{}) 
 				continue
 			}
 			g.context.uniformFloat(program, key, u)
+			g.state.lastUniforms[key] = u
 		case []float32:
 			cached, ok := g.state.lastUniforms[key].([]float32)
 			if ok && areSameFloat32Array(cached, u) {
 				continue
 			}
 			g.context.uniformFloats(program, key, u)
+			g.state.lastUniforms[key] = u
+		case textureNative:
+			// Apparently, a texture must be bound every time. The cache is not used here.
+			// TODO: Use another value than 0 when binding multiple textures.
+			g.context.uniformInt(program, key, 0)
+			// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture
+			// See also: https://www.opengl.org/sdk/docs/man2/xhtml/glActiveTexture.xml
+			g.context.bindTexture(u)
 		}
-		g.state.lastUniforms[key] = u
 	}
-
-	// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture
-	// See also: https://www.opengl.org/sdk/docs/man2/xhtml/glActiveTexture.xml
-	g.context.bindTexture(g.state.source.textureNative)
 
 	g.state.source = nil
 	g.state.destination = nil
