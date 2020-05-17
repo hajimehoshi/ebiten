@@ -90,6 +90,7 @@ func (p *Program) Glsl() string {
 
 	// Vertex func
 	if len(p.VertexFunc.Block.Stmts) > 0 {
+		lines = append(lines, "")
 		lines = append(lines, "#if defined(COMPILING_VERTEX_SHADER)")
 		lines = append(lines, "void main(void) {")
 		lines = append(lines, p.glslBlock(&p.VertexFunc.Block, 0, 0)...)
@@ -99,6 +100,7 @@ func (p *Program) Glsl() string {
 
 	// Fragment func
 	if len(p.FragmentFunc.Block.Stmts) > 0 {
+		lines = append(lines, "")
 		lines = append(lines, "#if defined(COMPILING_FRAGMENT_SHADER)")
 		lines = append(lines, "void main(void) {")
 		lines = append(lines, p.glslBlock(&p.FragmentFunc.Block, 0, 0)...)

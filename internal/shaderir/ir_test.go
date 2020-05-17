@@ -610,6 +610,7 @@ attribute float A1;
 attribute vec2 A2;
 varying float V0;
 varying vec2 V1;
+
 #if defined(COMPILING_VERTEX_SHADER)
 void main(void) {
 	gl_Position = A0;
@@ -678,6 +679,7 @@ attribute float A1;
 attribute vec2 A2;
 varying float V0;
 varying vec2 V1;
+
 #if defined(COMPILING_VERTEX_SHADER)
 void main(void) {
 	gl_Position = A0;
@@ -685,6 +687,7 @@ void main(void) {
 	V1 = A2;
 }
 #endif
+
 #if defined(COMPILING_FRAGMENT_SHADER)
 void main(void) {
 	vec2 l0;
