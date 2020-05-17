@@ -133,13 +133,8 @@ type openGLState struct {
 	// programs is OpenGL's program for rendering a texture.
 	programs map[programKey]program
 
-	lastProgram                program
-	lastViewportWidth          int
-	lastViewportHeight         int
-	lastColorMatrix            []float32
-	lastColorMatrixTranslation []float32
-	lastSourceWidth            int
-	lastSourceHeight           int
+	lastProgram  program
+	lastUniforms map[string][]float32
 
 	source      *Image
 	destination *Image
@@ -157,12 +152,7 @@ func (s *openGLState) reset(context *context) error {
 	}
 
 	s.lastProgram = zeroProgram
-	s.lastViewportWidth = 0
-	s.lastViewportHeight = 0
-	s.lastColorMatrix = nil
-	s.lastColorMatrixTranslation = nil
-	s.lastSourceWidth = 0
-	s.lastSourceHeight = 0
+	s.lastUniforms = map[string][]float32{}
 
 	// When context lost happens, deleting programs or buffers is not necessary.
 	// However, it is not assumed that reset is called only when context lost happens.
@@ -284,43 +274,38 @@ func (g *Graphics) useProgram(mode driver.CompositeMode, colorM *affine.ColorM, 
 		}
 
 		g.state.lastProgram = program
-		g.state.lastViewportWidth = 0
-		g.state.lastViewportHeight = 0
-		g.state.lastColorMatrix = nil
-		g.state.lastColorMatrixTranslation = nil
-		g.state.lastSourceWidth = 0
-		g.state.lastSourceHeight = 0
+		g.state.lastUniforms = map[string][]float32{}
 	}
 
 	vw := destination.framebuffer.width
 	vh := destination.framebuffer.height
-	if g.state.lastViewportWidth != vw || g.state.lastViewportHeight != vh {
-		g.context.uniformFloats(program, "viewport_size", []float32{float32(vw), float32(vh)})
-		g.state.lastViewportWidth = vw
-		g.state.lastViewportHeight = vh
+	vs := []float32{float32(vw), float32(vh)}
+	if !areSameFloat32Array(g.state.lastUniforms["viewport_size"], vs) {
+		g.context.uniformFloats(program, "viewport_size", vs)
+		g.state.lastUniforms["viewport_size"] = vs
 	}
 
 	if colorM != nil {
 		esBody, esTranslate := colorM.UnsafeElements()
-		if !areSameFloat32Array(g.state.lastColorMatrix, esBody) {
+		if !areSameFloat32Array(g.state.lastUniforms["color_matrix_body"], esBody) {
 			g.context.uniformFloats(program, "color_matrix_body", esBody)
 			// ColorM's elements are immutable. It's OK to hold the reference without copying.
-			g.state.lastColorMatrix = esBody
+			g.state.lastUniforms["color_matrix_body"] = esBody
 		}
-		if !areSameFloat32Array(g.state.lastColorMatrixTranslation, esTranslate) {
+		if !areSameFloat32Array(g.state.lastUniforms["color_matrix_translation"], esTranslate) {
 			g.context.uniformFloats(program, "color_matrix_translation", esTranslate)
 			// ColorM's elements are immutable. It's OK to hold the reference without copying.
-			g.state.lastColorMatrixTranslation = esTranslate
+			g.state.lastUniforms["color_matrix_translation"] = esTranslate
 		}
 	}
 
 	if filter != driver.FilterNearest {
 		sw := graphics.InternalImageSize(srcW)
 		sh := graphics.InternalImageSize(srcH)
-		if g.state.lastSourceWidth != sw || g.state.lastSourceHeight != sh {
-			g.context.uniformFloats(program, "source_size", []float32{float32(sw), float32(sh)})
-			g.state.lastSourceWidth = sw
-			g.state.lastSourceHeight = sh
+		s := []float32{float32(sw), float32(sh)}
+		if !areSameFloat32Array(g.state.lastUniforms["source_size"], s) {
+			g.context.uniformFloats(program, "source_size", s)
+			g.state.lastUniforms["source_size"] = s
 		}
 	}
 
