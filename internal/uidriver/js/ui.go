@@ -183,10 +183,10 @@ func (u *UserInterface) loop(context driver.UIContext) <-chan error {
 	resStopAudioCh := make(chan struct{})
 
 	var cf js.Func
-	f := func(this js.Value, args []js.Value) interface{} {
+	f := func() {
 		if u.contextLost {
 			requestAnimationFrame.Invoke(cf)
-			return nil
+			return
 		}
 
 		if err := u.update(); err != nil {
@@ -195,21 +195,23 @@ func (u *UserInterface) loop(context driver.UIContext) <-chan error {
 
 			errCh <- err
 			close(errCh)
-			return nil
+			return
 		}
 		if u.vsync {
 			requestAnimationFrame.Invoke(cf)
 		} else {
 			setTimeout.Invoke(cf, 0)
 		}
-		return nil
+		return
 	}
 	// TODO: Should cf be released after the game ends?
-	cf = js.FuncOf(f)
+	cf = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		go f()
+		return nil
+	})
+
 	// Call f asyncly to be async since ch is used in f.
-	go func() {
-		f(js.Value{}, nil)
-	}()
+	go f()
 
 	// Run another loop to watch suspended() as the above update function is never called when the tab is hidden.
 	// To check the document's visiblity, visibilitychange event should usually be used. However, this event is
