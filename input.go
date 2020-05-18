@@ -203,7 +203,9 @@ func TouchPosition(id int) (int, int) {
 	return uiDriver().Input().TouchPosition(id)
 }
 
-// Touch is deprecated as of 1.7.0. Use TouchPosition instead.
+// Touch represents a touch.
+//
+// Deprecated: (as of 1.7.0). Use TouchPosition instead.
 type Touch interface {
 	// ID returns an identifier for one stroke.
 	ID() int
@@ -226,7 +228,9 @@ func (t *touch) Position() (x, y int) {
 	return t.x, t.y
 }
 
-// Touches is deprecated as of 1.7.0. Use TouchIDs instead.
+// Touches returns the current touches.
+//
+// Deprecated: (as of 1.7.0) Use TouchIDs instead.
 func Touches() []Touch {
 	var ts []Touch
 	for _, id := range TouchIDs() {

@@ -72,7 +72,9 @@ type Game interface {
 // TPS represents a default ticks per second, that represents how many times game updating happens in a second.
 const DefaultTPS = 60
 
-// FPS is deprecated as of 1.8.0-alpha: Use DefaultTPS instead.
+// FPS represents the default TPS (tick per second). This is for backward compatibility.
+//
+// Deprecated: (as of 1.8.0) Use DefaultTPS instead.
 const FPS = DefaultTPS
 
 // CurrentFPS returns the current number of FPS (frames per second), that represents
@@ -129,7 +131,9 @@ func IsDrawingSkipped() bool {
 	return atomic.LoadInt32(&isDrawingSkipped) != 0
 }
 
-// IsRunningSlowly is deprecated as of 1.8.0-alpha. Use Game's Draw function instead.
+// IsRunningSlowly is an old name for IsDrawingSkipped.
+//
+// Deprecated: (as of 1.8.0) Use Game's Draw function instead.
 func IsRunningSlowly() bool {
 	return IsDrawingSkipped()
 }
@@ -338,12 +342,16 @@ func ScreenSizeInFullscreen() (int, int) {
 	return uiDriver().ScreenSizeInFullscreen()
 }
 
-// MonitorSize is deprecated as of 1.8.0-alpha. Use ScreenSizeInFullscreen instead.
+// MonitorSize is an old name for ScreenSizeInFullscreen
+//
+// Deprecated: (as of 1.8.0) Use ScreenSizeInFullscreen instead.
 func MonitorSize() (int, int) {
 	return ScreenSizeInFullscreen()
 }
 
-// SetScreenSize is deprecated as of 1.11.0-alpha. Use SetWindowSize and RunGame (Game's Layout) instead.
+// SetScreenSize sets the game screen size and resizes the window.
+//
+// Deprecated: (as of 1.11.0) Use SetWindowSize and RunGame (Game's Layout) instead.
 func SetScreenSize(width, height int) {
 	if width <= 0 || height <= 0 {
 		panic("ebiten: width and height must be positive")
@@ -351,7 +359,9 @@ func SetScreenSize(width, height int) {
 	theUIContext.setScreenSize(width, height)
 }
 
-// SetScreenScale is deprecated as of 1.11.0-alpha. Use SetWindowSize instead.
+// SetScreenScale sets the game screen scale and resizes the window.
+//
+// Deprecated: (as of 1.11.0-alpha). Use SetWindowSize instead.
 func SetScreenScale(scale float64) {
 	if scale <= 0 {
 		panic("ebiten: scale must be positive")
@@ -359,7 +369,9 @@ func SetScreenScale(scale float64) {
 	theUIContext.setScaleForWindow(scale)
 }
 
-// ScreenScale is deprecated as of 1.11.0-alpha. Use WindowSize instead.
+// ScreenScale returns the game screen scale.
+//
+// Deprecated: (as of 1.11.0-alpha) Use WindowSize instead.
 func ScreenScale() float64 {
 	return theUIContext.getScaleForWindow()
 }
@@ -389,12 +401,16 @@ func SetCursorMode(mode CursorModeType) {
 	uiDriver().SetCursorMode(driver.CursorMode(mode))
 }
 
-// IsCursorVisible is deprecated as of 1.11.0-alpha. Use CursorMode instead.
+// IsCursorVisible reports whether the cursor is visible or not.
+//
+// Deprecated: (as of 1.11.0-alpha) Use CursorMode instead.
 func IsCursorVisible() bool {
 	return CursorMode() == CursorModeVisible
 }
 
-// SetCursorVisible is deprecated as of 1.11.0-alpha. Use SetCursorMode instead.
+// SetCursorVisible sets the cursor visibility.
+//
+// Deprecated: (as of 1.11.0-alpha) Use SetCursorMode instead.
 func SetCursorVisible(visible bool) {
 	if visible {
 		SetCursorMode(CursorModeVisible)
@@ -403,7 +419,9 @@ func SetCursorVisible(visible bool) {
 	}
 }
 
-// SetCursorVisibility is deprecated as of 1.6.0-alpha. Use SetCursorMode instead.
+// SetCursorVisibility sets the cursor visibility.
+//
+// Deprecated: (as of 1.6.0-alpha) Use SetCursorMode instead.
 func SetCursorVisibility(visible bool) {
 	SetCursorVisible(visible)
 }
@@ -458,7 +476,9 @@ func IsRunnableOnUnfocused() bool {
 	return uiDriver().IsRunnableOnUnfocused()
 }
 
-// IsRunnableInBackground is deprecated as of 1.11.0-alpha. Use IsRunnableOnUnfocused instead.
+// IsRunnableInBackground is an old name for IsRunnableOnUnfocused.
+//
+// Deprecated: (as of 1.11.0) Use IsRunnableOnUnfocused instead.
 func IsRunnableInBackground() bool {
 	return IsRunnableOnUnfocused()
 }
@@ -478,7 +498,9 @@ func SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 	uiDriver().SetRunnableOnUnfocused(runnableOnUnfocused)
 }
 
-// SetRunnableInBackground is deprecated as of 1.11.0-alpha. Use SetRunnableOnUnfocused instead.
+// SetRunnableInBackground is an old name for SetRunnableOnUnfocused.
+//
+// Deprecated: (as of 1.11.0-alpha) Use SetRunnableOnUnfocused instead.
 func SetRunnableInBackground(runnableInBackground bool) {
 	SetRunnableOnUnfocused(runnableInBackground)
 }

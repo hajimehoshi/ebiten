@@ -505,13 +505,13 @@ type DrawImageOptions struct {
 	// Otherwise, Filter specified at DrawImageOptions is used.
 	Filter Filter
 
-	// Deprecated (as of 1.5.0-alpha): Use SubImage instead.
+	// Deprecated: (as of 1.5.0) Use SubImage instead.
 	ImageParts ImageParts
 
-	// Deprecated (as of 1.1.0-alpha): Use SubImage instead.
+	// Deprecated: (as of 1.1.0) Use SubImage instead.
 	Parts []ImagePart
 
-	// Deprecated (as of 1.9.0-alpha): Use SubImage instead.
+	// Deprecated: (as of 1.9.0) Use SubImage instead.
 	SourceRect *image.Rectangle
 }
 
@@ -571,7 +571,9 @@ func newScreenFramebufferImage(width, height int) *Image {
 	return i
 }
 
-// MaxImageSize is deprecated as of 1.7.0-alpha. No replacement so far.
+// MaxImageSize represented the maximum size of an image, but now this constant is deprecated.
+//
+// Deprecated: (as of 1.7.0) No replacement so far.
 //
 // TODO: Make this replacement (#541)
 var MaxImageSize = 4096

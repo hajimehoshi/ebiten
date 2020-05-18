@@ -98,7 +98,9 @@ func (s *Stream) Length() int64 {
 	return int64(len(s.leftData) * 4)
 }
 
-// Size is deprecated as of 1.6.0-alpha. Use Length instead.
+// Size returns the size of decoded stream in bytes.
+//
+// Deprecated: (as of 1.6.0) Use Length instead.
 func (s *Stream) Size() int64 {
 	return s.Length()
 }

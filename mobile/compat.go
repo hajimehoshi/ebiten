@@ -35,9 +35,9 @@ func (g *game) Layout(viewWidth, viewHeight int) (screenWidth, screenHeight int)
 	return g.width, g.height
 }
 
-// Start is deprecated as of 1.10.0-alpha. Use `ebitenmobile` command and `SetGame` instead.
-//
 // Start starts the game and returns immediately.
+//
+// Deprecated: (as of 1.10.0) Use `ebitenmobile` command and `SetGame` instead.
 //
 // Different from ebiten.Run, this invokes only the game loop and not the main (UI) loop.
 //
@@ -61,10 +61,10 @@ func Start(f func(*ebiten.Image) error, width, height int, scale float64, title 
 	return nil
 }
 
-// Update is deprecated as of 1.10.0-alpha. Use `ebitenmobile` command and `SetGame` instead.
-//
 // Update updates and renders the game.
 // This should be called on every frame.
+//
+// Deprecated: (as of 1.10.0) Use `ebitenmobile` command and `SetGame` instead.
 //
 // If Update is called before Start is called, Update panics.
 //
@@ -79,9 +79,9 @@ func Update() error {
 	return ebitenmobileview.Update()
 }
 
-// UpdateTouchesOnAndroid is deprecated as of 1.10.0-alpha. Use `ebitenmobile` command instead.
-//
 // UpdateTouchesOnAndroid updates the touch state on Android.
+//
+// Deprecated: (as of 1.10.0) Use `ebitenmobile` command instead.
 //
 // This should be called with onTouchEvent of GLSurfaceView like this:
 //
@@ -118,9 +118,9 @@ func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 	ebitenmobileview.UpdateTouchesOnAndroid(action, id, x, y)
 }
 
-// UpdateTouchesOnIOS is deprecated as of 1.10.0-alpha. Use `ebitenmobile` command instead.
-//
 // UpdateTouchesOnIOS updates the touch state on iOS.
+//
+// Deprecated: (as of 1.10.0) Use `ebitenmobile` command instead.
 //
 // This should be called with touch handlers of UIViewController like this:
 //

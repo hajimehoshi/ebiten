@@ -18,13 +18,17 @@ import (
 	"image"
 )
 
-// An ImagePart is deprecated (as of 1.1.0-alpha): Use SubImage instead.
+// ImagePart is sub image regions of the source and destination images.
+//
+// Deprecated: (as of 1.1.0) Use SubImage instead.
 type ImagePart struct {
 	Dst image.Rectangle
 	Src image.Rectangle
 }
 
-// An ImageParts is deprecated (as of 1.5.0-alpha): Use SubImage instead.
+// ImageParts is sub image regions of the source and destination images.
+//
+// Deprecated: (as of 1.5.0) Use SubImage instead.
 type ImageParts interface {
 	Len() int
 	Dst(i int) (x0, y0, x1, y1 int)

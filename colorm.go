@@ -67,7 +67,10 @@ func (c *ColorM) Concat(other ColorM) {
 	c.impl = c.impl.Concat(other.impl)
 }
 
-// Add is deprecated as of 1.5.0-alpha.
+// Add adds a matrix, but in a wrong way.
+//
+// Deprecated: (as of 1.5.0) Do not use this.
+//
 // Note that this doesn't make sense as an operation for affine matrices.
 func (c *ColorM) Add(other ColorM) {
 	c.impl = c.impl.Add(other.impl)
@@ -113,28 +116,36 @@ func (c *ColorM) SetElement(i, j int, element float64) {
 	c.impl = c.impl.SetElement(i, j, float32(element))
 }
 
-// Monochrome is deprecated as of 1.6.0-alpha. Use ChangeHSV(0, 0, 1) instead.
+// Monochrome returns a color matrix for monochrome.
+//
+// Deprecated: (as of 1.6.0) Use ChangeHSV(0, 0, 1) instead.
 func Monochrome() ColorM {
 	c := ColorM{}
 	c.ChangeHSV(0, 0, 1)
 	return c
 }
 
-// ScaleColor is deprecated as of 1.2.0-alpha. Use Scale instead.
+// ScaleColor returns a color matrix for scaling.
+//
+// Deprecated: (as of 1.2.0) Use Scale instead.
 func ScaleColor(r, g, b, a float64) ColorM {
 	c := ColorM{}
 	c.Scale(r, g, b, a)
 	return c
 }
 
-// TranslateColor is deprecated as of 1.2.0-alpha. Use Translate instead.
+// TranslateColor returns a color matrix for translating.
+//
+// Deprecated: (as of 1.2.0) Use Translate instead.
 func TranslateColor(r, g, b, a float64) ColorM {
 	c := ColorM{}
 	c.Translate(r, g, b, a)
 	return c
 }
 
-// RotateHue is deprecated as of 1.2.0-alpha. Use RotateHue member function instead.
+// RotateHue returns a color matrix for chanting the hue.
+//
+// Deprecated: (as of 1.2.0-alpha) Use RotateHue member function instead.
 func RotateHue(theta float64) ColorM {
 	c := ColorM{}
 	c.RotateHue(theta)

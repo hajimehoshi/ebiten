@@ -208,7 +208,9 @@ func (c *Context) IsReady() bool {
 	return r
 }
 
-// Update is deprecated as of 1.6.0-alpha.
+// Update does nothing.
+//
+// Deprecated: (as of 1.6.0) Do not use this.
 //
 // As of 1.6.0-alpha, Update always returns nil and does nothing related to updating the state.
 // You don't have to call Update any longer.
