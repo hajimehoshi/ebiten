@@ -203,10 +203,11 @@ func (u *UserInterface) loop(context driver.UIContext) <-chan error {
 		} else {
 			setTimeout.Invoke(cf, 0)
 		}
-		return
 	}
+
 	// TODO: Should cf be released after the game ends?
 	cf = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		// f can be blocked but callbacks must not be blocked. Create a goroutine (#1161).
 		go f()
 		return nil
 	})
