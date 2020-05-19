@@ -137,9 +137,6 @@ type openGLState struct {
 	lastProgram       program
 	lastUniforms      map[string]interface{}
 	lastActiveTexture int
-
-	source      *Image
-	destination *Image
 }
 
 var (
@@ -292,8 +289,5 @@ func (g *Graphics) useProgram(program program, uniforms map[string]interface{}) 
 			g.context.bindTexture(u)
 		}
 	}
-
-	g.state.source = nil
-	g.state.destination = nil
 	return nil
 }

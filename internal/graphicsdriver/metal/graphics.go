@@ -292,8 +292,12 @@ type Graphics struct {
 
 	screenDrawable ca.MetalDrawable
 
-	vb  mtl.Buffer
-	ib  mtl.Buffer
+	vb mtl.Buffer
+	ib mtl.Buffer
+
+	images      map[driver.ImageID]*Image
+	nextImageID driver.ImageID
+
 	src *Image
 	dst *Image
 
@@ -399,6 +403,12 @@ func (g *Graphics) checkSize(width, height int) {
 	}
 }
 
+func (g *Graphics) genNextImageID() driver.ImageID {
+	id := g.nextImageID
+	g.nextImageID++
+	return id
+}
+
 func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
 	g.checkSize(width, height)
 	td := mtl.TextureDescriptor{
@@ -413,12 +423,15 @@ func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
 		t = g.view.getMTLDevice().MakeTexture(td)
 		return nil
 	})
-	return &Image{
+	i := &Image{
+		id:       g.genNextImageID(),
 		graphics: g,
 		width:    width,
 		height:   height,
 		texture:  t,
-	}, nil
+	}
+	g.addImage(i)
+	return i, nil
 }
 
 func (g *Graphics) NewScreenFramebufferImage(width, height int) (driver.Image, error) {
@@ -426,12 +439,29 @@ func (g *Graphics) NewScreenFramebufferImage(width, height int) (driver.Image, e
 		g.view.setDrawableSize(width, height)
 		return nil
 	})
-	return &Image{
+	i := &Image{
+		id:       g.genNextImageID(),
 		graphics: g,
 		width:    width,
 		height:   height,
 		screen:   true,
-	}, nil
+	}
+	g.addImage(i)
+	return i, nil
+}
+
+func (g *Graphics) addImage(img *Image) {
+	if g.images == nil {
+		g.images = map[driver.ImageID]*Image{}
+	}
+	if _, ok := g.images[img.id]; ok {
+		panic(fmt.Sprintf("opengl: image ID %d was already registered", img.id))
+	}
+	g.images[img.id] = img
+}
+
+func (g *Graphics) removeImage(img *Image) {
+	delete(g.images, img.id)
 }
 
 func (g *Graphics) SetTransparent(transparent bool) {
@@ -579,7 +609,10 @@ func (g *Graphics) Reset() error {
 	return nil
 }
 
-func (g *Graphics) Draw(indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address) error {
+func (g *Graphics) Draw(dstID, srcID driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address) error {
+	dst := g.images[dstID]
+	src := g.images[srcID]
+
 	g.drawCalled = true
 
 	if err := g.t.Call(func() error {
@@ -592,7 +625,7 @@ func (g *Graphics) Draw(indexLen int, indexOffset int, mode driver.CompositeMode
 		rpd.ColorAttachments[0].StoreAction = mtl.StoreActionStore
 
 		var t mtl.Texture
-		if g.dst.screen {
+		if dst.screen {
 			if g.screenDrawable == (ca.MetalDrawable{}) {
 				drawable := g.view.drawable()
 				if drawable == (ca.MetalDrawable{}) {
@@ -602,7 +635,7 @@ func (g *Graphics) Draw(indexLen int, indexOffset int, mode driver.CompositeMode
 			}
 			t = g.screenDrawable.Texture()
 		} else {
-			t = g.dst.texture
+			t = dst.texture
 		}
 		rpd.ColorAttachments[0].Texture = t
 		rpd.ColorAttachments[0].ClearColor = mtl.ClearColor{}
@@ -612,11 +645,11 @@ func (g *Graphics) Draw(indexLen int, indexOffset int, mode driver.CompositeMode
 		}
 		rce := g.cb.MakeRenderCommandEncoder(rpd)
 
-		if g.dst.screen && filter == driver.FilterScreen {
+		if dst.screen && filter == driver.FilterScreen {
 			rce.SetRenderPipelineState(g.screenRPS)
 		} else {
 			rce.SetRenderPipelineState(g.rpss[rpsKey{
-				screen:        g.dst.screen,
+				screen:        dst.screen,
 				useColorM:     colorM != nil,
 				filter:        filter,
 				address:       address,
@@ -625,7 +658,7 @@ func (g *Graphics) Draw(indexLen int, indexOffset int, mode driver.CompositeMode
 		}
 		// In Metal, the NDC's Y direction (upward) and the framebuffer's Y direction (downward) don't
 		// match. Then, the Y direction must be inverted.
-		w, h := g.dst.viewportSize()
+		w, h := dst.viewportSize()
 		rce.SetViewport(mtl.Viewport{
 			OriginX: 0,
 			OriginY: float64(h),
@@ -640,8 +673,8 @@ func (g *Graphics) Draw(indexLen int, indexOffset int, mode driver.CompositeMode
 		rce.SetVertexBytes(unsafe.Pointer(&viewportSize[0]), unsafe.Sizeof(viewportSize), 1)
 
 		sourceSize := [...]float32{
-			float32(graphics.InternalImageSize(g.src.width)),
-			float32(graphics.InternalImageSize(g.src.height)),
+			float32(graphics.InternalImageSize(src.width)),
+			float32(graphics.InternalImageSize(src.height)),
 		}
 		rce.SetFragmentBytes(unsafe.Pointer(&sourceSize[0]), unsafe.Sizeof(sourceSize), 2)
 
@@ -649,11 +682,11 @@ func (g *Graphics) Draw(indexLen int, indexOffset int, mode driver.CompositeMode
 		rce.SetFragmentBytes(unsafe.Pointer(&esBody[0]), unsafe.Sizeof(esBody[0])*uintptr(len(esBody)), 3)
 		rce.SetFragmentBytes(unsafe.Pointer(&esTranslate[0]), unsafe.Sizeof(esTranslate[0])*uintptr(len(esTranslate)), 4)
 
-		scale := float32(g.dst.width) / float32(g.src.width)
+		scale := float32(dst.width) / float32(src.width)
 		rce.SetFragmentBytes(unsafe.Pointer(&scale), unsafe.Sizeof(scale), 5)
 
-		if g.src != nil {
-			rce.SetFragmentTexture(g.src.texture, 0)
+		if src != nil {
+			rce.SetFragmentTexture(src.texture, 0)
 		} else {
 			rce.SetFragmentTexture(mtl.Texture{}, 0)
 		}
@@ -666,13 +699,6 @@ func (g *Graphics) Draw(indexLen int, indexOffset int, mode driver.CompositeMode
 	}
 
 	return nil
-}
-
-func (g *Graphics) ResetSource() {
-	g.t.Call(func() error {
-		g.src = nil
-		return nil
-	})
 }
 
 func (g *Graphics) SetVsyncEnabled(enabled bool) {
@@ -733,11 +759,16 @@ func (g *Graphics) MaxImageSize() int {
 }
 
 type Image struct {
+	id       driver.ImageID
 	graphics *Graphics
 	width    int
 	height   int
 	screen   bool
 	texture  mtl.Texture
+}
+
+func (i *Image) ID() driver.ImageID {
+	return i.id
 }
 
 // viewportSize must be called from the main thread.
@@ -756,6 +787,7 @@ func (i *Image) Dispose() {
 		}
 		return nil
 	})
+	i.graphics.removeImage(i)
 }
 
 func (i *Image) IsInvalidated() bool {
@@ -793,20 +825,6 @@ func (i *Image) Pixels() ([]byte, error) {
 		return nil
 	})
 	return b, nil
-}
-
-func (i *Image) SetAsDestination() {
-	i.graphics.t.Call(func() error {
-		i.graphics.dst = i
-		return nil
-	})
-}
-
-func (i *Image) SetAsSource() {
-	i.graphics.t.Call(func() error {
-		i.graphics.src = i
-		return nil
-	})
 }
 
 func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {

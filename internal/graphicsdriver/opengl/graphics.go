@@ -30,8 +30,10 @@ func Get() *Graphics {
 }
 
 type Graphics struct {
-	state   openGLState
-	context context
+	nextImageID driver.ImageID
+	state       openGLState
+	context     context
+	images      map[driver.ImageID]*Image
 
 	// drawCalled is true just after Draw is called. This holds true until ReplacePixels is called.
 	drawCalled bool
@@ -71,8 +73,15 @@ func (g *Graphics) checkSize(width, height int) {
 	}
 }
 
+func (g *Graphics) genNextImageID() driver.ImageID {
+	id := g.nextImageID
+	g.nextImageID++
+	return id
+}
+
 func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
 	i := &Image{
+		id:       g.genNextImageID(),
 		graphics: g,
 		width:    width,
 		height:   height,
@@ -85,18 +94,35 @@ func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
 		return nil, err
 	}
 	i.textureNative = t
+	g.addImage(i)
 	return i, nil
 }
 
 func (g *Graphics) NewScreenFramebufferImage(width, height int) (driver.Image, error) {
 	g.checkSize(width, height)
 	i := &Image{
+		id:       g.genNextImageID(),
 		graphics: g,
 		width:    width,
 		height:   height,
 		screen:   true,
 	}
+	g.addImage(i)
 	return i, nil
+}
+
+func (g *Graphics) addImage(img *Image) {
+	if g.images == nil {
+		g.images = map[driver.ImageID]*Image{}
+	}
+	if _, ok := g.images[img.id]; ok {
+		panic(fmt.Sprintf("opengl: image ID %d was already registered", img.id))
+	}
+	g.images[img.id] = img
+}
+
+func (g *Graphics) removeImage(img *Image) {
+	delete(g.images, img.id)
 }
 
 // Reset resets or initializes the current OpenGL state.
@@ -112,15 +138,9 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) {
 	g.context.elementArrayBufferSubData(indices)
 }
 
-func (g *Graphics) Draw(indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address) error {
-	destination := g.state.destination
-	if destination == nil {
-		panic("destination image is not set")
-	}
-	source := g.state.source
-	if source == nil {
-		panic("source image is not set")
-	}
+func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address) error {
+	destination := g.images[dst]
+	source := g.images[src]
 
 	g.drawCalled = true
 

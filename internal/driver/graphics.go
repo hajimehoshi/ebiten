@@ -30,7 +30,7 @@ type Graphics interface {
 	NewImage(width, height int) (Image, error)
 	NewScreenFramebufferImage(width, height int) (Image, error)
 	Reset() error
-	Draw(indexLen int, indexOffset int, mode CompositeMode, colorM *affine.ColorM, filter Filter, address Address) error
+	Draw(dst, src ImageID, indexLen int, indexOffset int, mode CompositeMode, colorM *affine.ColorM, filter Filter, address Address) error
 	SetVsyncEnabled(enabled bool)
 	FramebufferYDirection() YDirection
 	NeedsRestoring() bool
@@ -43,13 +43,14 @@ type Graphics interface {
 var GraphicsNotReady = errors.New("graphics not ready")
 
 type Image interface {
+	ID() ImageID
 	Dispose()
 	IsInvalidated() bool
 	Pixels() ([]byte, error)
-	SetAsDestination()
-	SetAsSource()
 	ReplacePixels(args []*ReplacePixelsArgs)
 }
+
+type ImageID int
 
 type ReplacePixelsArgs struct {
 	Pixels []byte

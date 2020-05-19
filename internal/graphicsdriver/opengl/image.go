@@ -20,6 +20,7 @@ import (
 )
 
 type Image struct {
+	id            driver.ImageID
 	graphics      *Graphics
 	textureNative textureNative
 	framebuffer   *framebuffer
@@ -27,6 +28,10 @@ type Image struct {
 	width         int
 	height        int
 	screen        bool
+}
+
+func (i *Image) ID() driver.ImageID {
+	return i.id
 }
 
 func (i *Image) IsInvalidated() bool {
@@ -43,10 +48,8 @@ func (i *Image) Dispose() {
 	if !i.textureNative.equal(*new(textureNative)) {
 		i.graphics.context.deleteTexture(i.textureNative)
 	}
-}
 
-func (i *Image) SetAsDestination() {
-	i.graphics.state.destination = i
+	i.graphics.removeImage(i)
 }
 
 func (i *Image) setViewport() error {
@@ -118,8 +121,4 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	}
 
 	i.graphics.context.replacePixelsWithPBO(i.pbo, i.textureNative, w, h, args)
-}
-
-func (i *Image) SetAsSource() {
-	i.graphics.state.source = i
 }

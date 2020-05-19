@@ -374,9 +374,7 @@ func (c *drawTrianglesCommand) Exec(indexOffset int) error {
 		return nil
 	}
 
-	c.dst.image.SetAsDestination()
-	c.src.image.SetAsSource()
-	if err := theGraphicsDriver.Draw(c.nindices, indexOffset, c.mode, c.color, c.filter, c.address); err != nil {
+	if err := theGraphicsDriver.Draw(c.dst.image.ID(), c.src.image.ID(), c.nindices, indexOffset, c.mode, c.color, c.filter, c.address); err != nil {
 		return err
 	}
 	return nil

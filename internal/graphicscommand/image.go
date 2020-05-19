@@ -43,7 +43,12 @@ type Image struct {
 	internalWidth  int
 	internalHeight int
 	screen         bool
-	id             int
+
+	// id is an indentifier for the image. This is used only when dummping the information.
+	//
+	// This is duplicated with driver.Image's ID, but this id is still necessary because this image might not
+	// have its driver.Image.
+	id int
 
 	bufferedRP []*driver.ReplacePixelsArgs
 
