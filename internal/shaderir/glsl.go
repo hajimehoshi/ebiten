@@ -70,7 +70,7 @@ func (p *Program) structName(t *Type) string {
 	return n
 }
 
-func (p *Program) Glsl() string {
+func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 	p.structNames = map[string]string{}
 	p.structTypes = nil
 
@@ -89,23 +89,21 @@ func (p *Program) Glsl() string {
 	}
 
 	// Vertex func
+	var vslines []string
 	if len(p.VertexFunc.Block.Stmts) > 0 {
-		lines = append(lines, "")
-		lines = append(lines, "#if defined(COMPILING_VERTEX_SHADER)")
-		lines = append(lines, "void main(void) {")
-		lines = append(lines, p.glslBlock(&p.VertexFunc.Block, 0, 0)...)
-		lines = append(lines, "}")
-		lines = append(lines, "#endif")
+		vslines = append(vslines, "")
+		vslines = append(vslines, "void main(void) {")
+		vslines = append(vslines, p.glslBlock(&p.VertexFunc.Block, 0, 0)...)
+		vslines = append(vslines, "}")
 	}
 
 	// Fragment func
+	var fslines []string
 	if len(p.FragmentFunc.Block.Stmts) > 0 {
-		lines = append(lines, "")
-		lines = append(lines, "#if defined(COMPILING_FRAGMENT_SHADER)")
-		lines = append(lines, "void main(void) {")
-		lines = append(lines, p.glslBlock(&p.FragmentFunc.Block, 0, 0)...)
-		lines = append(lines, "}")
-		lines = append(lines, "#endif")
+		fslines = append(fslines, "")
+		fslines = append(fslines, "void main(void) {")
+		fslines = append(fslines, p.glslBlock(&p.FragmentFunc.Block, 0, 0)...)
+		fslines = append(fslines, "}")
 	}
 
 	var stLines []string
@@ -118,7 +116,12 @@ func (p *Program) Glsl() string {
 	}
 	lines = append(stLines, lines...)
 
-	return strings.Join(lines, "\n") + "\n"
+	vslines = append(lines, vslines...)
+	tmp := make([]string, len(lines))
+	copy(tmp, lines)
+	fslines = append(tmp, fslines...)
+
+	return strings.Join(vslines, "\n") + "\n", strings.Join(fslines, "\n") + "\n"
 }
 
 func (p *Program) glslType(t *Type) string {

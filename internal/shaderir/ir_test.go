@@ -149,12 +149,14 @@ func TestOutput(t *testing.T) {
 	tests := []struct {
 		Name    string
 		Program Program
-		Glsl    string
+		GlslVS  string
+		GlslFS  string
 	}{
 		{
 			Name:    "Empty",
 			Program: Program{},
-			Glsl:    ``,
+			GlslVS:  ``,
+			GlslFS:  ``,
 		},
 		{
 			Name: "Uniform",
@@ -163,7 +165,8 @@ func TestOutput(t *testing.T) {
 					{Main: Float},
 				},
 			},
-			Glsl: `uniform float U0;`,
+			GlslVS: `uniform float U0;`,
+			GlslFS: `uniform float U0;`,
 		},
 		{
 			Name: "UniformStruct",
@@ -177,7 +180,11 @@ func TestOutput(t *testing.T) {
 					},
 				},
 			},
-			Glsl: `struct S0 {
+			GlslVS: `struct S0 {
+	float M0;
+};
+uniform S0 U0;`,
+			GlslFS: `struct S0 {
 	float M0;
 };
 uniform S0 U0;`,
@@ -195,7 +202,10 @@ uniform S0 U0;`,
 					{Main: Vec3},
 				},
 			},
-			Glsl: `uniform float U0;
+			GlslVS: `uniform float U0;
+attribute vec2 A0;
+varying vec3 V0;`,
+			GlslFS: `uniform float U0;
 attribute vec2 A0;
 varying vec3 V0;`,
 		},
@@ -208,7 +218,9 @@ varying vec3 V0;`,
 					},
 				},
 			},
-			Glsl: `void F0(void) {
+			GlslVS: `void F0(void) {
+}`,
+			GlslFS: `void F0(void) {
 }`,
 		},
 		{
@@ -231,7 +243,9 @@ varying vec3 V0;`,
 					},
 				},
 			},
-			Glsl: `void F0(in float l0, in vec2 l1, in vec4 l2, inout mat2 l3, out mat4 l4) {
+			GlslVS: `void F0(in float l0, in vec2 l1, in vec4 l2, inout mat2 l3, out mat4 l4) {
+}`,
+			GlslFS: `void F0(in float l0, in vec2 l1, in vec4 l2, inout mat2 l3, out mat4 l4) {
 }`,
 		},
 		{
@@ -253,7 +267,10 @@ varying vec3 V0;`,
 					},
 				},
 			},
-			Glsl: `float F0(in float l0) {
+			GlslVS: `float F0(in float l0) {
+	return l0;
+}`,
+			GlslFS: `float F0(in float l0) {
 	return l0;
 }`,
 		},
@@ -279,7 +296,11 @@ varying vec3 V0;`,
 					},
 				},
 			},
-			Glsl: `void F0(in float l0, inout float l1, out float l2) {
+			GlslVS: `void F0(in float l0, inout float l1, out float l2) {
+	mat4 l3;
+	mat4 l4;
+}`,
+			GlslFS: `void F0(in float l0, inout float l1, out float l2) {
 	mat4 l3;
 	mat4 l4;
 }`,
@@ -316,7 +337,15 @@ varying vec3 V0;`,
 					},
 				},
 			},
-			Glsl: `void F0(in float l0, inout float l1, out float l2) {
+			GlslVS: `void F0(in float l0, inout float l1, out float l2) {
+	mat4 l3;
+	mat4 l4;
+	{
+		mat4 l5;
+		mat4 l6;
+	}
+}`,
+			GlslFS: `void F0(in float l0, inout float l1, out float l2) {
 	mat4 l3;
 	mat4 l4;
 	{
@@ -352,7 +381,10 @@ varying vec3 V0;`,
 					},
 				},
 			},
-			Glsl: `void F0(in float l0, in float l1, out float l2) {
+			GlslVS: `void F0(in float l0, in float l1, out float l2) {
+	l2 = (l0) + (l1);
+}`,
+			GlslFS: `void F0(in float l0, in float l1, out float l2) {
 	l2 = (l0) + (l1);
 }`,
 		},
@@ -384,7 +416,10 @@ varying vec3 V0;`,
 					},
 				},
 			},
-			Glsl: `void F0(in bool l0, in float l1, in float l2, out float l3) {
+			GlslVS: `void F0(in bool l0, in float l1, in float l2, out float l3) {
+	l3 = (l0) ? (l1) : (l2);
+}`,
+			GlslFS: `void F0(in bool l0, in float l1, in float l2, out float l3) {
 	l3 = (l0) ? (l1) : (l2);
 }`,
 		},
@@ -420,7 +455,11 @@ varying vec3 V0;`,
 					},
 				},
 			},
-			Glsl: `void F0(in float l0, in float l1, out vec2 l2) {
+			GlslVS: `void F0(in float l0, in float l1, out vec2 l2) {
+	(F1)();
+	l2 = (F2)(l0, l1);
+}`,
+			GlslFS: `void F0(in float l0, in float l1, out vec2 l2) {
 	(F1)();
 	l2 = (F2)(l0, l1);
 }`,
@@ -452,7 +491,10 @@ varying vec3 V0;`,
 					},
 				},
 			},
-			Glsl: `void F0(in float l0, in float l1, out float l2) {
+			GlslVS: `void F0(in float l0, in float l1, out float l2) {
+	l2 = (min)(l0, l1);
+}`,
+			GlslFS: `void F0(in float l0, in float l1, out float l2) {
 	l2 = (min)(l0, l1);
 }`,
 		},
@@ -481,7 +523,10 @@ varying vec3 V0;`,
 					},
 				},
 			},
-			Glsl: `void F0(in vec4 l0, out vec2 l1) {
+			GlslVS: `void F0(in vec4 l0, out vec2 l1) {
+	l1 = (l0).xz;
+}`,
+			GlslFS: `void F0(in vec4 l0, out vec2 l1) {
 	l1 = (l0).xz;
 }`,
 		},
@@ -525,7 +570,14 @@ varying vec3 V0;`,
 					},
 				},
 			},
-			Glsl: `void F0(in float l0, in float l1, out float l2) {
+			GlslVS: `void F0(in float l0, in float l1, out float l2) {
+	if ((l0) == (0.000000000e+00)) {
+		l2 = l0;
+	} else {
+		l2 = l1;
+	}
+}`,
+			GlslFS: `void F0(in float l0, in float l1, out float l2) {
 	if ((l0) == (0.000000000e+00)) {
 		l2 = l0;
 	} else {
@@ -565,7 +617,12 @@ varying vec3 V0;`,
 					},
 				},
 			},
-			Glsl: `void F0(in float l0, in float l1, out float l2) {
+			GlslVS: `void F0(in float l0, in float l1, out float l2) {
+	for (int l3 = 0; l3 < 100; l3++) {
+		l2 = l0;
+	}
+}`,
+			GlslFS: `void F0(in float l0, in float l1, out float l2) {
 	for (int l3 = 0; l3 < 100; l3++) {
 		l2 = l0;
 	}
@@ -604,20 +661,24 @@ varying vec3 V0;`,
 					),
 				},
 			},
-			Glsl: `uniform float U0;
+			GlslVS: `uniform float U0;
 attribute vec4 A0;
 attribute float A1;
 attribute vec2 A2;
 varying float V0;
 varying vec2 V1;
 
-#if defined(COMPILING_VERTEX_SHADER)
 void main(void) {
 	gl_Position = A0;
 	V0 = A1;
 	V1 = A2;
-}
-#endif`,
+}`,
+			GlslFS: `uniform float U0;
+attribute vec4 A0;
+attribute float A1;
+attribute vec2 A2;
+varying float V0;
+varying vec2 V1;`,
 		},
 		{
 			Name: "FragmentFunc",
@@ -673,22 +734,25 @@ void main(void) {
 					),
 				},
 			},
-			Glsl: `uniform float U0;
+			GlslVS: `uniform float U0;
 attribute vec4 A0;
 attribute float A1;
 attribute vec2 A2;
 varying float V0;
 varying vec2 V1;
 
-#if defined(COMPILING_VERTEX_SHADER)
 void main(void) {
 	gl_Position = A0;
 	V0 = A1;
 	V1 = A2;
-}
-#endif
+}`,
+			GlslFS: `uniform float U0;
+attribute vec4 A0;
+attribute float A1;
+attribute vec2 A2;
+varying float V0;
+varying vec2 V1;
 
-#if defined(COMPILING_FRAGMENT_SHADER)
 void main(void) {
 	vec2 l0;
 	vec4 l1;
@@ -696,15 +760,24 @@ void main(void) {
 	l2 = V0;
 	l0 = V1;
 	l1 = gl_FragCoord;
-}
-#endif`,
+}`,
 		},
 	}
 	for _, tc := range tests {
-		got := tc.Program.Glsl()
-		want := tc.Glsl + "\n"
-		if got != want {
-			t.Errorf("%s: got: %s, want: %s", tc.Name, got, want)
+		vs, fs := tc.Program.Glsl()
+		{
+			got := vs
+			want := tc.GlslVS + "\n"
+			if got != want {
+				t.Errorf("%s: got: %s, want: %s", tc.Name, got, want)
+			}
+		}
+		{
+			got := fs
+			want := tc.GlslFS + "\n"
+			if got != want {
+				t.Errorf("%s: got: %s, want: %s", tc.Name, got, want)
+			}
 		}
 	}
 }
