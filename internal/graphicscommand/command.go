@@ -139,6 +139,8 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst, src *Image, vertices []f
 		iw, ih := src.InternalSize()
 		q.appendVertices(vertices, float32(iw), float32(ih))
 	} else {
+		// TODO: Use the image's size in the uniform variables.
+		// When there are multiple images, the smallest ID's image should be adopted.
 		q.appendVertices(vertices, 1, 1)
 	}
 	q.appendIndices(indices, uint16(q.nextIndex))
