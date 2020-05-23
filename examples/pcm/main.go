@@ -131,40 +131,44 @@ func playNote(scoreIndex int) rune {
 	return rune(note)
 }
 
-var (
-	scoreIndex  = 0
-	frames      = 0
+type Game struct {
+	scoreIndex  int
+	frames      int
 	currentNote rune
-)
+}
 
-func update(screen *ebiten.Image) error {
+func (g *Game) Update(screen *ebiten.Image) error {
 	// Play notes for each half second.
-	if frames%30 == 0 && audioContext.IsReady() {
-		currentNote = playNote(scoreIndex)
-		scoreIndex++
-		scoreIndex %= len(score)
+	if g.frames%30 == 0 && audioContext.IsReady() {
+		g.currentNote = playNote(g.scoreIndex)
+		g.scoreIndex++
+		g.scoreIndex %= len(score)
 	}
-	frames++
+	g.frames++
+	return nil
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
+func (g *Game) Draw(screen *ebiten.Image) {
 	msg := "Note: "
-	if currentNote == 'R' || currentNote == 0 {
+	if g.currentNote == 'R' || g.currentNote == 0 {
 		msg += "-"
 	} else {
-		msg += string(currentNote)
+		msg += string(g.currentNote)
 	}
 	if !audioContext.IsReady() {
 		msg += "\n\n(If the audio doesn't start,\n click the screen or press keys)"
 	}
 	ebitenutil.DebugPrint(screen, msg)
-	return nil
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "PCM (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("PCM (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }
