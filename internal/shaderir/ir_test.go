@@ -757,9 +757,9 @@ void main(void) {
 	vec2 l0;
 	vec4 l1;
 	float l2;
-	l2 = V0;
-	l0 = V1;
-	l1 = gl_FragCoord;
+	l1 = V0;
+	gl_FragColor = V1;
+	l0 = gl_FragCoord;
 }`,
 		},
 	}

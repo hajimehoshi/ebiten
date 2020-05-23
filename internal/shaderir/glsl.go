@@ -219,8 +219,10 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 					return fmt.Sprintf("V%d", idx)
 				case idx == nv:
 					return "gl_FragCoord"
+				case idx == nv+1:
+					return "gl_FragColor"
 				default:
-					return fmt.Sprintf("l%d", idx-(nv+1))
+					return fmt.Sprintf("l%d", idx-(nv+2))
 				}
 			default:
 				return fmt.Sprintf("l%d", idx)
