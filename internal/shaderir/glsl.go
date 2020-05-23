@@ -74,51 +74,63 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 	p.structNames = map[string]string{}
 	p.structTypes = nil
 
-	var lines []string
-	for i, t := range p.Uniforms {
-		lines = append(lines, fmt.Sprintf("uniform %s;", p.glslVarDecl(&t, fmt.Sprintf("U%d", i))))
-	}
-	for i, t := range p.Attributes {
-		lines = append(lines, fmt.Sprintf("attribute %s;", p.glslVarDecl(&t, fmt.Sprintf("A%d", i))))
-	}
-	for i, t := range p.Varyings {
-		lines = append(lines, fmt.Sprintf("varying %s;", p.glslVarDecl(&t, fmt.Sprintf("V%d", i))))
-	}
-	for _, f := range p.Funcs {
-		lines = append(lines, p.glslFunc(&f)...)
-	}
-
 	// Vertex func
 	var vslines []string
-	if len(p.VertexFunc.Block.Stmts) > 0 {
-		vslines = append(vslines, "")
-		vslines = append(vslines, "void main(void) {")
-		vslines = append(vslines, p.glslBlock(&p.VertexFunc.Block, 0, 0)...)
-		vslines = append(vslines, "}")
+	{
+		for i, t := range p.Uniforms {
+			vslines = append(vslines, fmt.Sprintf("uniform %s;", p.glslVarDecl(&t, fmt.Sprintf("U%d", i))))
+		}
+		for i, t := range p.Attributes {
+			vslines = append(vslines, fmt.Sprintf("attribute %s;", p.glslVarDecl(&t, fmt.Sprintf("A%d", i))))
+		}
+		for i, t := range p.Varyings {
+			vslines = append(vslines, fmt.Sprintf("varying %s;", p.glslVarDecl(&t, fmt.Sprintf("V%d", i))))
+		}
+		for _, f := range p.Funcs {
+			vslines = append(vslines, p.glslFunc(&f)...)
+		}
+
+		if len(p.VertexFunc.Block.Stmts) > 0 {
+			vslines = append(vslines, "")
+			vslines = append(vslines, "void main(void) {")
+			vslines = append(vslines, p.glslBlock(&p.VertexFunc.Block, 0, 0)...)
+			vslines = append(vslines, "}")
+		}
 	}
 
 	// Fragment func
 	var fslines []string
-	if len(p.FragmentFunc.Block.Stmts) > 0 {
-		fslines = append(fslines, "")
-		fslines = append(fslines, "void main(void) {")
-		fslines = append(fslines, p.glslBlock(&p.FragmentFunc.Block, 0, 0)...)
-		fslines = append(fslines, "}")
-	}
-
-	var stLines []string
-	for i, t := range p.structTypes {
-		stLines = append(stLines, fmt.Sprintf("struct S%d {", i))
-		for j, st := range t.Sub {
-			stLines = append(stLines, fmt.Sprintf("\t%s;", p.glslVarDecl(&st, fmt.Sprintf("M%d", j))))
+	{
+		for i, t := range p.Uniforms {
+			fslines = append(fslines, fmt.Sprintf("uniform %s;", p.glslVarDecl(&t, fmt.Sprintf("U%d", i))))
 		}
-		stLines = append(stLines, "};")
-	}
-	lines = append(stLines, lines...)
+		for i, t := range p.Varyings {
+			fslines = append(fslines, fmt.Sprintf("varying %s;", p.glslVarDecl(&t, fmt.Sprintf("V%d", i))))
+		}
+		for _, f := range p.Funcs {
+			fslines = append(fslines, p.glslFunc(&f)...)
+		}
 
-	vslines = append(lines, vslines...)
-	tmp := make([]string, len(lines))
-	copy(tmp, lines)
+		if len(p.FragmentFunc.Block.Stmts) > 0 {
+			fslines = append(fslines, "")
+			fslines = append(fslines, "void main(void) {")
+			fslines = append(fslines, p.glslBlock(&p.FragmentFunc.Block, 0, 0)...)
+			fslines = append(fslines, "}")
+		}
+	}
+
+	var stlines []string
+	for i, t := range p.structTypes {
+		stlines = append(stlines, fmt.Sprintf("struct S%d {", i))
+		for j, st := range t.Sub {
+			stlines = append(stlines, fmt.Sprintf("\t%s;", p.glslVarDecl(&st, fmt.Sprintf("M%d", j))))
+		}
+		stlines = append(stlines, "};")
+	}
+
+	vslines = append(stlines, vslines...)
+	tmp := make([]string, len(stlines))
+	copy(tmp, stlines)
 	fslines = append(tmp, fslines...)
 
 	return strings.Join(vslines, "\n") + "\n", strings.Join(fslines, "\n") + "\n"

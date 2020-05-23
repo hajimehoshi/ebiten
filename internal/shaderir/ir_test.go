@@ -206,7 +206,6 @@ uniform S0 U0;`,
 attribute vec2 A0;
 varying vec3 V0;`,
 			GlslFS: `uniform float U0;
-attribute vec2 A0;
 varying vec3 V0;`,
 		},
 		{
@@ -674,9 +673,6 @@ void main(void) {
 	V1 = A2;
 }`,
 			GlslFS: `uniform float U0;
-attribute vec4 A0;
-attribute float A1;
-attribute vec2 A2;
 varying float V0;
 varying vec2 V1;`,
 		},
@@ -747,9 +743,6 @@ void main(void) {
 	V1 = A2;
 }`,
 			GlslFS: `uniform float U0;
-attribute vec4 A0;
-attribute float A1;
-attribute vec2 A2;
 varying float V0;
 varying vec2 V1;
 
