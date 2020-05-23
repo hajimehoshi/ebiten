@@ -145,7 +145,7 @@ func (i *Image) InternalSize() (int, int) {
 //
 // src and shader are exclusive and only either is non-nil.
 func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, clr *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, shader *Shader, uniforms map[int]interface{}) {
-	if src.screen {
+	if src != nil && src.screen {
 		panic("graphicscommand: the screen image cannot be the rendering source")
 	}
 
