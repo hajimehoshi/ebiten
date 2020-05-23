@@ -137,6 +137,9 @@ const (
 type BuiltinFunc string
 
 const (
+	Vec2F            BuiltinFunc = "vec2"
+	Vec3F            BuiltinFunc = "vec3"
+	Vec4F            BuiltinFunc = "vec4"
 	Radians          BuiltinFunc = "radians"
 	Degrees          BuiltinFunc = "degrees"
 	Sin              BuiltinFunc = "sin"
