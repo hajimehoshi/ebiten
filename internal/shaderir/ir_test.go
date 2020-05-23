@@ -456,12 +456,12 @@ varying vec3 V0;`,
 				},
 			},
 			GlslVS: `void F0(in float l0, in float l1, out vec2 l2) {
-	(F1)();
-	l2 = (F2)(l0, l1);
+	F1();
+	l2 = F2(l0, l1);
 }`,
 			GlslFS: `void F0(in float l0, in float l1, out vec2 l2) {
-	(F1)();
-	l2 = (F2)(l0, l1);
+	F1();
+	l2 = F2(l0, l1);
 }`,
 		},
 		{
@@ -492,10 +492,10 @@ varying vec3 V0;`,
 				},
 			},
 			GlslVS: `void F0(in float l0, in float l1, out float l2) {
-	l2 = (min)(l0, l1);
+	l2 = min(l0, l1);
 }`,
 			GlslFS: `void F0(in float l0, in float l1, out float l2) {
-	l2 = (min)(l0, l1);
+	l2 = min(l0, l1);
 }`,
 		},
 		{

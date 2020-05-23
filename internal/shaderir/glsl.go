@@ -254,7 +254,8 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 			for _, exp := range e.Exprs[1:] {
 				args = append(args, glslExpr(&exp))
 			}
-			return fmt.Sprintf("(%s)(%s)", glslExpr(&e.Exprs[0]), strings.Join(args, ", "))
+			// Using parentheses at the callee is illegal.
+			return fmt.Sprintf("%s(%s)", glslExpr(&e.Exprs[0]), strings.Join(args, ", "))
 		case FieldSelector:
 			return fmt.Sprintf("(%s).%s", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]))
 		case Index:
