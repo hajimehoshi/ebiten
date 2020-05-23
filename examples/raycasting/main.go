@@ -169,38 +169,38 @@ func rayCasting(cx, cy float64, objects []object) []line {
 	return rays
 }
 
-func handleMovement() {
+func (g *Game) handleMovement() {
 	if ebiten.IsKeyPressed(ebiten.KeyD) || ebiten.IsKeyPressed(ebiten.KeyRight) {
-		px += 4
+		g.px += 4
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyS) || ebiten.IsKeyPressed(ebiten.KeyDown) {
-		py += 4
+		g.py += 4
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyLeft) {
-		px -= 4
+		g.px -= 4
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyW) || ebiten.IsKeyPressed(ebiten.KeyUp) {
-		py -= 4
+		g.py -= 4
 	}
 
 	// +1/-1 is to stop player before it reaches the border
-	if px >= screenWidth-padding {
-		px = screenWidth - padding - 1
+	if g.px >= screenWidth-padding {
+		g.px = screenWidth - padding - 1
 	}
 
-	if px <= padding {
-		px = padding + 1
+	if g.px <= padding {
+		g.px = padding + 1
 	}
 
-	if py >= screenHeight-padding {
-		py = screenHeight - padding - 1
+	if g.py >= screenHeight-padding {
+		g.py = screenHeight - padding - 1
 	}
 
-	if py <= padding {
-		py = padding + 1
+	if g.py <= padding {
+		g.py = padding + 1
 	}
 }
 
@@ -212,24 +212,30 @@ func rayVertices(x1, y1, x2, y2, x3, y3 float64) []ebiten.Vertex {
 	}
 }
 
-func update(screen *ebiten.Image) error {
+type Game struct {
+	showRays bool
+	px, py   int
+	objects  []object
+}
+
+func (g *Game) Update(screen *ebiten.Image) error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		return errors.New("game ended by player")
 	}
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
-		showRays = !showRays
+		g.showRays = !g.showRays
 	}
 
-	handleMovement()
+	g.handleMovement()
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
+	return nil
+}
 
+func (g *Game) Draw(screen *ebiten.Image) {
 	// Reset the shadowImage
 	shadowImage.Fill(color.Black)
-	rays := rayCasting(float64(px), float64(py), objects)
+	rays := rayCasting(float64(g.px), float64(g.py), g.objects)
 
 	// Subtract ray triangles from shadow
 	opt := &ebiten.DrawTrianglesOptions{}
@@ -239,14 +245,14 @@ func update(screen *ebiten.Image) error {
 		nextLine := rays[(i+1)%len(rays)]
 
 		// Draw triangle of area between rays
-		v := rayVertices(float64(px), float64(py), nextLine.X2, nextLine.Y2, line.X2, line.Y2)
+		v := rayVertices(float64(g.px), float64(g.py), nextLine.X2, nextLine.Y2, line.X2, line.Y2)
 		shadowImage.DrawTriangles(v, []uint16{0, 1, 2}, triangleImage, opt)
 	}
 
 	// Draw background
 	screen.DrawImage(bgImage, nil)
 
-	if showRays {
+	if g.showRays {
 		// Draw rays
 		for _, r := range rays {
 			ebitenutil.DrawLine(screen, r.X1, r.Y1, r.X2, r.Y2, color.RGBA{255, 255, 0, 150})
@@ -259,17 +265,17 @@ func update(screen *ebiten.Image) error {
 	screen.DrawImage(shadowImage, op)
 
 	// Draw walls
-	for _, obj := range objects {
+	for _, obj := range g.objects {
 		for _, w := range obj.walls {
 			ebitenutil.DrawLine(screen, w.X1, w.Y1, w.X2, w.Y2, color.RGBA{255, 0, 0, 255})
 		}
 	}
 
 	// Draw player as a rect
-	ebitenutil.DrawRect(screen, float64(px)-2, float64(py)-2, 4, 4, color.Black)
-	ebitenutil.DrawRect(screen, float64(px)-1, float64(py)-1, 2, 2, color.RGBA{255, 100, 100, 255})
+	ebitenutil.DrawRect(screen, float64(g.px)-2, float64(g.py)-2, 4, 4, color.Black)
+	ebitenutil.DrawRect(screen, float64(g.px)-1, float64(g.py)-1, 2, 2, color.RGBA{255, 100, 100, 255})
 
-	if showRays {
+	if g.showRays {
 		ebitenutil.DebugPrintAt(screen, "R: hide rays", padding, 0)
 	} else {
 		ebitenutil.DebugPrintAt(screen, "R: show rays", padding, 0)
@@ -277,14 +283,11 @@ func update(screen *ebiten.Image) error {
 
 	ebitenutil.DebugPrintAt(screen, "WASD: move", 160, 0)
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()), 51, 51)
-	return nil
 }
 
-var (
-	showRays bool
-	px, py   int
-	objects  []object
-)
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
+}
 
 func rect(x, y, w, h float64) []line {
 	return []line{
@@ -296,20 +299,24 @@ func rect(x, y, w, h float64) []line {
 }
 
 func main() {
-	px = screenWidth / 2
-	py = screenHeight / 2
+	g := &Game{
+		px: screenWidth / 2,
+		py: screenHeight / 2,
+	}
 
 	// Add outer walls
-	objects = append(objects, object{rect(padding, padding, screenWidth-2*padding, screenHeight-2*padding)})
+	g.objects = append(g.objects, object{rect(padding, padding, screenWidth-2*padding, screenHeight-2*padding)})
 
 	// Angled wall
-	objects = append(objects, object{[]line{{50, 110, 100, 150}}})
+	g.objects = append(g.objects, object{[]line{{50, 110, 100, 150}}})
 
 	// Rectangles
-	objects = append(objects, object{rect(45, 50, 70, 20)})
-	objects = append(objects, object{rect(150, 50, 30, 60)})
+	g.objects = append(g.objects, object{rect(45, 50, 70, 20)})
+	g.objects = append(g.objects, object{rect(150, 50, 30, 60)})
 
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Ray casting and shadows (Ebiten demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Ray casting and shadows (Ebiten demo)")
+	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
 }
