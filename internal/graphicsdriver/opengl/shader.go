@@ -62,7 +62,7 @@ func (s *Shader) compile() error {
 	if err != nil {
 		return err
 	}
-	defer s.graphics.context.deleteShader(vs)
+	defer s.graphics.context.deleteShader(fs)
 
 	p, err := s.graphics.context.newProgram([]shader{vs, fs}, theArrayBufferLayout.names())
 	if err != nil {
