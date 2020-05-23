@@ -252,7 +252,7 @@ func fillImage(i *graphicscommand.Image, clr color.RGBA) {
 	vs := quadVertices(0, 0, float32(dw), float32(dh), 0, 0, float32(sw), float32(sh), rf, gf, bf, af)
 	is := graphics.QuadIndices()
 
-	i.DrawTriangles(emptyImage.image, vs, is, nil, compositemode, driver.FilterNearest, driver.AddressClampToZero)
+	i.DrawTriangles(emptyImage.image, vs, is, nil, compositemode, driver.FilterNearest, driver.AddressClampToZero, nil, nil)
 }
 
 // BasePixelsForTesting returns the image's basePixels for testing.
@@ -369,7 +369,7 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 	} else {
 		i.appendDrawTrianglesHistory(img, vertices, indices, colorm, mode, filter, address)
 	}
-	i.image.DrawTriangles(img.image, vertices, indices, colorm, mode, filter, address)
+	i.image.DrawTriangles(img.image, vertices, indices, colorm, mode, filter, address, nil, nil)
 }
 
 // appendDrawTrianglesHistory appends a draw-image history item to the image.
@@ -536,7 +536,7 @@ func (i *Image) restore() error {
 		if c.image.hasDependency() {
 			panic("restorable: all dependencies must be already resolved but not")
 		}
-		gimg.DrawTriangles(c.image.image, c.vertices, c.indices, c.colorm, c.mode, c.filter, c.address)
+		gimg.DrawTriangles(c.image.image, c.vertices, c.indices, c.colorm, c.mode, c.filter, c.address, nil, nil)
 	}
 
 	if len(i.drawTrianglesHistory) > 0 {

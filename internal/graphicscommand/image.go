@@ -142,7 +142,9 @@ func (i *Image) InternalSize() (int, int) {
 //   9:  Color G
 //   10: Color B
 //   11: Color Y
-func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, clr *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
+//
+// src and shader are exclusive and only either is non-nil.
+func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, clr *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, shader *Shader, uniforms map[int]interface{}) {
 	if src.screen {
 		panic("graphicscommand: the screen image cannot be the rendering source")
 	}
@@ -153,36 +155,24 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 		}
 	}
 
-	src.resolveBufferedReplacePixels()
-	i.resolveBufferedReplacePixels()
-
-	theCommandQueue.EnqueueDrawTrianglesCommand(i, src, vertices, indices, clr, mode, filter, address, nil, nil)
-
-	if i.lastCommand == lastCommandNone && !i.screen {
-		i.lastCommand = lastCommandClear
+	var us map[int]interface{}
+	if src != nil {
+		src.resolveBufferedReplacePixels()
 	} else {
-		i.lastCommand = lastCommandDrawTriangles
-	}
-}
-
-func (i *Image) DrawShader(shader *Shader, vertices []float32, indices []uint16, mode driver.CompositeMode, uniforms map[int]interface{}) {
-	if i.lastCommand == lastCommandNone {
-		panic("graphicscommand: the image must be cleared first before DrawShader")
-	}
-
-	us := map[int]interface{}{}
-	for k, v := range uniforms {
-		switch v := v.(type) {
-		case *Image:
-			v.resolveBufferedReplacePixels()
-			us[k] = v.image
-		default:
-			us[k] = v
+		us = map[int]interface{}{}
+		for k, v := range uniforms {
+			switch v := v.(type) {
+			case *Image:
+				v.resolveBufferedReplacePixels()
+				us[k] = v.image
+			default:
+				us[k] = v
+			}
 		}
 	}
 	i.resolveBufferedReplacePixels()
 
-	theCommandQueue.EnqueueDrawTrianglesCommand(i, nil, vertices, indices, nil, mode, 0, 0, shader, us)
+	theCommandQueue.EnqueueDrawTrianglesCommand(i, src, vertices, indices, clr, mode, filter, address, shader, us)
 
 	if i.lastCommand == lastCommandNone && !i.screen {
 		i.lastCommand = lastCommandClear

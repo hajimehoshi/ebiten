@@ -46,7 +46,7 @@ func TestClear(t *testing.T) {
 
 	vs := quadVertices(w/2, h/2)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressClampToZero)
+	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressClampToZero, nil, nil)
 
 	pix, err := dst.Pixels()
 	if err != nil {
@@ -76,8 +76,8 @@ func TestReplacePixelsPartAfterDrawTriangles(t *testing.T) {
 	dst := NewImage(w, h)
 	vs := quadVertices(w/2, h/2)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles(clr, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressClampToZero)
-	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero)
+	dst.DrawTriangles(clr, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressClampToZero, nil, nil)
+	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero, nil, nil)
 	dst.ReplacePixels(make([]byte, 4), 0, 0, 1, 1)
 }
 
@@ -94,7 +94,7 @@ func TestShader(t *testing.T) {
 	dst := NewImage(w, h)
 	vs := quadVertices(w, h)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles(clr, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressClampToZero)
+	dst.DrawTriangles(clr, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressClampToZero, nil, nil)
 
 	mat := shaderir.Expr{
 		Type: shaderir.Call,
@@ -306,7 +306,7 @@ func TestShader(t *testing.T) {
 	us := map[int]interface{}{
 		0: []float32{w, h},
 	}
-	dst.DrawShader(s, vs, is, driver.CompositeModeSourceOver, us)
+	dst.DrawTriangles(nil, vs, is, nil, driver.CompositeModeSourceOver, 0, 0, s, us)
 
 	pix, err := dst.Pixels()
 	if err != nil {
