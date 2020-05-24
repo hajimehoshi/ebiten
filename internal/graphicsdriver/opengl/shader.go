@@ -15,6 +15,8 @@
 package opengl
 
 import (
+	"fmt"
+
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
@@ -50,17 +52,16 @@ func (s *Shader) Dispose() {
 
 func (s *Shader) compile() error {
 	vssrc, fssrc := s.ir.Glsl()
-	println(vssrc, fssrc)
 
 	vs, err := s.graphics.context.newShader(vertexShader, vssrc)
 	if err != nil {
-		return err
+		return fmt.Errorf("opengl: vertex shader compile error: %v, source:\n%s", vssrc)
 	}
 	defer s.graphics.context.deleteShader(vs)
 
 	fs, err := s.graphics.context.newShader(fragmentShader, fssrc)
 	if err != nil {
-		return err
+		return fmt.Errorf("opengl: fragment shader compile error: %v, source:\n%s", fssrc)
 	}
 	defer s.graphics.context.deleteShader(fs)
 
