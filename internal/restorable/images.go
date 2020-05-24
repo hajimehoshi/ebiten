@@ -40,12 +40,14 @@ func EnableRestoringForTesting() {
 // images is a set of Image objects.
 type images struct {
 	images     map[*Image]struct{}
+	shaders    map[*Shader]struct{}
 	lastTarget *Image
 }
 
 // theImages represents the images for the current process.
 var theImages = &images{
-	images: map[*Image]struct{}{},
+	images:  map[*Image]struct{}{},
+	shaders: map[*Shader]struct{}{},
 }
 
 // ResolveStaleImages flushes the queued draw commands and resolves
@@ -118,10 +120,21 @@ func (i *images) add(img *Image) {
 	i.images[img] = struct{}{}
 }
 
+func (i *images) addShader(shader *Shader) {
+	i.shaders[shader] = struct{}{}
+}
+
 // remove removes img from the images.
 func (i *images) remove(img *Image) {
 	i.makeStaleIfDependingOnImpl(img)
 	delete(i.images, img)
+}
+
+func (i *images) removeShader(shader *Shader) {
+	// TODO: Do we have to make images stale?
+	// However, dependencies are determiend by uniform variables...
+	// ??
+	delete(i.shaders, shader)
 }
 
 // resolveStaleImages resolves stale images.
@@ -163,6 +176,15 @@ func (i *images) makeStaleIfDependingOnImpl(target *Image) {
 func (i *images) restore() error {
 	if !needsRestoring() {
 		panic("restorable: restore cannot be called when restoring is disabled")
+	}
+
+	// Dispose all the shaders ahead of restoring. A current shader ID and a new shader ID can be duplicated.
+	for s := range i.shaders {
+		s.shader.Dispose()
+		s.shader = nil
+	}
+	for s := range i.shaders {
+		s.restore()
 	}
 
 	// Dispose all the images ahead of restoring. A current texture ID and a new texture ID can be duplicated.

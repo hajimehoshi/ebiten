@@ -214,7 +214,7 @@ func (i *Image) ensureNotShared() {
 		dx1, dy1, sx1, sy1, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
 	}
 	is := graphics.QuadIndices()
-	newImg.DrawTriangles(i.backend.restorable, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
+	newImg.DrawTriangles(i.backend.restorable, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero, nil, nil)
 
 	i.dispose(false)
 	i.backend = &backend{
@@ -316,7 +316,7 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 		vertices[i*graphics.VertexFloatNum+7] += oyf
 	}
 
-	i.backend.restorable.DrawTriangles(img.backend.restorable, vertices, indices, colorm, mode, filter, address)
+	i.backend.restorable.DrawTriangles(img.backend.restorable, vertices, indices, colorm, mode, filter, address, nil, nil)
 
 	i.nonUpdatedCount = 0
 	delete(imagesToMakeShared, i)
