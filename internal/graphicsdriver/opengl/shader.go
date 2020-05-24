@@ -55,13 +55,13 @@ func (s *Shader) compile() error {
 
 	vs, err := s.graphics.context.newShader(vertexShader, vssrc)
 	if err != nil {
-		return fmt.Errorf("opengl: vertex shader compile error: %v, source:\n%s", vssrc)
+		return fmt.Errorf("opengl: vertex shader compile error: %v, source:\n%s", err, vssrc)
 	}
 	defer s.graphics.context.deleteShader(vs)
 
 	fs, err := s.graphics.context.newShader(fragmentShader, fssrc)
 	if err != nil {
-		return fmt.Errorf("opengl: fragment shader compile error: %v, source:\n%s", fssrc)
+		return fmt.Errorf("opengl: fragment shader compile error: %v, source:\n%s", err, fssrc)
 	}
 	defer s.graphics.context.deleteShader(fs)
 
