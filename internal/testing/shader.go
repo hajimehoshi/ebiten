@@ -159,7 +159,20 @@ var (
 					Exprs: []shaderir.Expr{
 						{
 							Type:  shaderir.LocalVariable,
-							Index: 4,
+							Index: 4, // the varying variable
+						},
+						{
+							Type:  shaderir.LocalVariable,
+							Index: 1, // the 2nd attribute variable
+						},
+					},
+				},
+				{
+					Type: shaderir.Assign,
+					Exprs: []shaderir.Expr{
+						{
+							Type:  shaderir.LocalVariable,
+							Index: 5, // gl_Position in GLSL
 						},
 						{
 							Type: shaderir.Binary,
@@ -174,25 +187,31 @@ var (
 			},
 		},
 	}
-	defaultProgram = shaderir.Program{
+)
+
+func defaultProgram() shaderir.Program {
+	return shaderir.Program{
 		Uniforms: []shaderir.Type{
 			{Main: shaderir.Vec2},
 		},
 		Attributes: []shaderir.Type{
-			{Main: shaderir.Vec2},
-			{Main: shaderir.Vec2},
-			{Main: shaderir.Vec4},
-			{Main: shaderir.Vec4},
+			{Main: shaderir.Vec2}, // Local var (0) in the vertex shader
+			{Main: shaderir.Vec2}, // Local var (1) in the vertex shader
+			{Main: shaderir.Vec4}, // Local var (2) in the vertex shader
+			{Main: shaderir.Vec4}, // Local var (3) in the vertex shader
+		},
+		Varyings: []shaderir.Type{
+			{Main: shaderir.Vec2}, // Local var (4) in the vertex shader, (0) in the fragment shader
 		},
 		VertexFunc: defaultVertexFunc,
 	}
-)
+}
 
 // ShaderProgramFill returns a shader intermediate representation to fill the frambuffer.
 //
 // Uniform variables:
 //
-//   0. the framebuffer size (vec2)
+//   0: the framebuffer size (Vec2)
 func ShaderProgramFill(r, g, b, a byte) shaderir.Program {
 	clr := shaderir.Expr{
 		Type: shaderir.Call,
@@ -220,7 +239,7 @@ func ShaderProgramFill(r, g, b, a byte) shaderir.Program {
 		},
 	}
 
-	p := defaultProgram
+	p := defaultProgram()
 	p.FragmentFunc = shaderir.FragmentFunc{
 		Block: shaderir.Block{
 			Stmts: []shaderir.Stmt{
@@ -229,12 +248,130 @@ func ShaderProgramFill(r, g, b, a byte) shaderir.Program {
 					Exprs: []shaderir.Expr{
 						{
 							Type:  shaderir.LocalVariable,
-							Index: 1,
+							Index: 2,
 						},
 						clr,
 					},
 				},
 			},
+		},
+	}
+
+	return p
+}
+
+// ShaderProgramImages returns a shader intermediate representation to render the frambuffer with the given images.
+//
+// Uniform variables:
+//
+//   0:    the framebuffer size (Vec2)
+//   1:    the first images (Sampler2D)
+//   3n-1: the (n+1)th image (Sampler2D)
+//   3n:   the (n+1)th image's size (Vec2)
+//   3n+1: the (n+1)th image's region (Vec4)
+//
+// The first image's size and region are represented in attribute variables.
+//
+// The size and region values are actually not used in this shader so far.
+func ShaderProgramImages(imageNum int) shaderir.Program {
+	if imageNum <= 0 {
+		panic("testing: imageNum must be >= 1")
+	}
+
+	p := defaultProgram()
+
+	for i := 0; i < imageNum; i++ {
+		p.Uniforms = append(p.Uniforms, shaderir.Type{Main: shaderir.Sampler2D})
+		if i > 0 {
+			p.Uniforms = append(p.Uniforms, shaderir.Type{Main: shaderir.Vec2})
+			p.Uniforms = append(p.Uniforms, shaderir.Type{Main: shaderir.Vec4})
+		}
+	}
+
+	// In the fragment shader, local variables are:
+	//
+	//   0: Varying variables (vec2)
+	//   1: gl_FragCoord
+	//   2: gl_FragColor
+	//   3: Actual local variables in the main function
+
+	local := shaderir.Expr{
+		Type:  shaderir.LocalVariable,
+		Index: 3,
+	}
+	fragColor := shaderir.Expr{
+		Type:  shaderir.LocalVariable,
+		Index: 2,
+	}
+	texPos := shaderir.Expr{
+		Type:  shaderir.LocalVariable,
+		Index: 0,
+	}
+
+	var stmts []shaderir.Stmt
+	for i := 0; i < imageNum; i++ {
+		var rhs shaderir.Expr
+		if i == 0 {
+			rhs = shaderir.Expr{
+				Type: shaderir.Call,
+				Exprs: []shaderir.Expr{
+					{
+						Type:        shaderir.BuiltinFuncExpr,
+						BuiltinFunc: shaderir.Texture2D,
+					},
+					{
+						Type:  shaderir.UniformVariable,
+						Index: 1,
+					},
+					texPos,
+				},
+			}
+		} else {
+			rhs = shaderir.Expr{
+				Type: shaderir.Binary,
+				Op:   shaderir.Add,
+				Exprs: []shaderir.Expr{
+					local,
+					{
+						Type: shaderir.Call,
+						Exprs: []shaderir.Expr{
+							{
+								Type:        shaderir.BuiltinFuncExpr,
+								BuiltinFunc: shaderir.Texture2D,
+							},
+							{
+								Type:  shaderir.UniformVariable,
+								Index: 3*i - 1,
+							},
+							texPos,
+						},
+					},
+				},
+			}
+		}
+		stmts = append(stmts, shaderir.Stmt{
+			Type: shaderir.Assign,
+			Exprs: []shaderir.Expr{
+				local,
+				rhs,
+			},
+		})
+	}
+
+	stmts = append(stmts, shaderir.Stmt{
+		Type: shaderir.Assign,
+		Exprs: []shaderir.Expr{
+			fragColor,
+			local,
+		},
+	})
+
+	p.FragmentFunc = shaderir.FragmentFunc{
+		Block: shaderir.Block{
+			LocalVars: []shaderir.Type{
+				{Main: shaderir.Vec4},
+			},
+			Stmts: stmts,
 		},
 	}
 

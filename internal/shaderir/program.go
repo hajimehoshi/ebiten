@@ -45,7 +45,7 @@ type VertexFunc struct {
 	Block Block
 }
 
-// FragmentFunc takes pseudo in-params, and the number is len(varyings) + 2.
+// FragmentFunc takes pseudo params, and the number is len(varyings) + 2.
 // If index == len(varyings), the param represents the coordinate of the fragment (gl_FragCoord in GLSL).
 // If index == len(varyings)+1, the param is an out-param representing the color of the pixel (gl_FragColor in GLSL).
 type FragmentFunc struct {
