@@ -16,6 +16,7 @@ package opengl
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
@@ -265,8 +266,21 @@ func (g *Graphics) DrawShader(dst driver.ImageID, shader driver.ShaderID, indexL
 	g.context.blendFunc(mode)
 
 	us := map[string]interface{}{}
-	for k, v := range uniforms {
-		us[fmt.Sprintf("U%d", k)] = v
+	var keys []int
+	for k := range uniforms {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+	tidx := 0
+	for _, k := range keys {
+		v := uniforms[k]
+		switch v := v.(type) {
+		case driver.ImageID:
+			us[fmt.Sprintf("U%d/%d", k, tidx)] = g.images[v].textureNative
+			tidx++
+		default:
+			us[fmt.Sprintf("U%d", k)] = v
+		}
 	}
 	if err := g.useProgram(s.p, us); err != nil {
 		return err

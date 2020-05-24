@@ -424,7 +424,16 @@ func (c *drawTrianglesCommand) Exec(indexOffset int) error {
 	}
 
 	if c.shader != nil {
-		return theGraphicsDriver.DrawShader(c.dst.image.ID(), c.shader.shader.ID(), c.nindices, indexOffset, c.mode, c.uniforms)
+		us := map[int]interface{}{}
+		for k, v := range c.uniforms {
+			switch v := v.(type) {
+			case *Image:
+				us[k] = v.image.ID()
+			default:
+				us[k] = v
+			}
+		}
+		return theGraphicsDriver.DrawShader(c.dst.image.ID(), c.shader.shader.ID(), c.nindices, indexOffset, c.mode, us)
 	}
 	return theGraphicsDriver.Draw(c.dst.image.ID(), c.src.image.ID(), c.nindices, indexOffset, c.mode, c.color, c.filter, c.address)
 }

@@ -287,6 +287,8 @@ func (g *Graphics) useProgram(program program, uniforms map[string]interface{}) 
 				g.state.lastActiveTexture = idx
 			}
 			g.context.bindTexture(u)
+		default:
+			return fmt.Errorf("opengl: unexpected uniform value: %v", u)
 		}
 	}
 	return nil

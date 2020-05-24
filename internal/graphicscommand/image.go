@@ -162,24 +162,17 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 		}
 	}
 
-	var us map[int]interface{}
 	if src != nil {
 		src.resolveBufferedReplacePixels()
-	} else {
-		us = map[int]interface{}{}
-		for k, v := range uniforms {
-			switch v := v.(type) {
-			case *Image:
-				v.resolveBufferedReplacePixels()
-				us[k] = v.image
-			default:
-				us[k] = v
-			}
+	}
+	for _, v := range uniforms {
+		if img, ok := v.(*Image); ok {
+			img.resolveBufferedReplacePixels()
 		}
 	}
 	i.resolveBufferedReplacePixels()
 
-	theCommandQueue.EnqueueDrawTrianglesCommand(i, src, vertices, indices, clr, mode, filter, address, shader, us)
+	theCommandQueue.EnqueueDrawTrianglesCommand(i, src, vertices, indices, clr, mode, filter, address, shader, uniforms)
 
 	if i.lastCommand == lastCommandNone && !i.screen {
 		i.lastCommand = lastCommandClear
