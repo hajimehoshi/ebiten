@@ -24,8 +24,8 @@ import (
 )
 
 type inputState struct {
-	keyDurations     map[ebiten.Key]int
-	prevKeyDurations map[ebiten.Key]int
+	keyDurations     []int
+	prevKeyDurations []int
 
 	mouseButtonDurations     map[ebiten.MouseButton]int
 	prevMouseButtonDurations map[ebiten.MouseButton]int
@@ -33,8 +33,8 @@ type inputState struct {
 	gamepadIDs     map[int]struct{}
 	prevGamepadIDs map[int]struct{}
 
-	gamepadButtonDurations     map[int]map[ebiten.GamepadButton]int
-	prevGamepadButtonDurations map[int]map[ebiten.GamepadButton]int
+	gamepadButtonDurations     map[int][]int
+	prevGamepadButtonDurations map[int][]int
 
 	touchDurations     map[int]int
 	prevTouchDurations map[int]int
@@ -43,8 +43,8 @@ type inputState struct {
 }
 
 var theInputState = &inputState{
-	keyDurations:     map[ebiten.Key]int{},
-	prevKeyDurations: map[ebiten.Key]int{},
+	keyDurations:     make([]int, ebiten.KeyMax+1),
+	prevKeyDurations: make([]int, ebiten.KeyMax+1),
 
 	mouseButtonDurations:     map[ebiten.MouseButton]int{},
 	prevMouseButtonDurations: map[ebiten.MouseButton]int{},
@@ -52,8 +52,8 @@ var theInputState = &inputState{
 	gamepadIDs:     map[int]struct{}{},
 	prevGamepadIDs: map[int]struct{}{},
 
-	gamepadButtonDurations:     map[int]map[ebiten.GamepadButton]int{},
-	prevGamepadButtonDurations: map[int]map[ebiten.GamepadButton]int{},
+	gamepadButtonDurations:     map[int][]int{},
+	prevGamepadButtonDurations: map[int][]int{},
 
 	touchDurations:     map[int]int{},
 	prevTouchDurations: map[int]int{},
@@ -71,8 +71,8 @@ func (i *inputState) update() {
 	defer i.m.Unlock()
 
 	// Keyboard
+	copy(i.prevKeyDurations[:], i.keyDurations[:])
 	for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {
-		i.prevKeyDurations[k] = i.keyDurations[k]
 		if ebiten.IsKeyPressed(k) {
 			i.keyDurations[k]++
 		} else {
@@ -103,19 +103,16 @@ func (i *inputState) update() {
 	}
 
 	// Copy the gamepad button durations.
-	i.prevGamepadButtonDurations = map[int]map[ebiten.GamepadButton]int{}
+	i.prevGamepadButtonDurations = map[int][]int{}
 	for id, ds := range i.gamepadButtonDurations {
-		i.prevGamepadButtonDurations[id] = map[ebiten.GamepadButton]int{}
-		for b, d := range ds {
-			i.prevGamepadButtonDurations[id][b] = d
-		}
+		i.prevGamepadButtonDurations[id] = append([]int{}, ds...)
 	}
 
 	i.gamepadIDs = map[int]struct{}{}
 	for _, id := range ebiten.GamepadIDs() {
 		i.gamepadIDs[id] = struct{}{}
 		if _, ok := i.gamepadButtonDurations[id]; !ok {
-			i.gamepadButtonDurations[id] = map[ebiten.GamepadButton]int{}
+			i.gamepadButtonDurations[id] = make([]int, ebiten.GamepadButtonMax+1)
 		}
 		n := ebiten.GamepadButtonNum(id)
 		for b := ebiten.GamepadButton(0); b < ebiten.GamepadButton(n); b++ {
