@@ -18,8 +18,8 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
-func ShaderProgramFill(r, g, b, a byte) shaderir.Program {
-	mat := shaderir.Expr{
+var (
+	projectionMatrix = shaderir.Expr{
 		Type: shaderir.Call,
 		Exprs: []shaderir.Expr{
 			{
@@ -130,7 +130,7 @@ func ShaderProgramFill(r, g, b, a byte) shaderir.Program {
 			},
 		},
 	}
-	pos := shaderir.Expr{
+	vertexPosition = shaderir.Expr{
 		Type: shaderir.Call,
 		Exprs: []shaderir.Expr{
 			{
@@ -151,6 +151,49 @@ func ShaderProgramFill(r, g, b, a byte) shaderir.Program {
 			},
 		},
 	}
+	defaultVertexFunc = shaderir.VertexFunc{
+		Block: shaderir.Block{
+			Stmts: []shaderir.Stmt{
+				{
+					Type: shaderir.Assign,
+					Exprs: []shaderir.Expr{
+						{
+							Type:  shaderir.LocalVariable,
+							Index: 4,
+						},
+						{
+							Type: shaderir.Binary,
+							Op:   shaderir.Mul,
+							Exprs: []shaderir.Expr{
+								projectionMatrix,
+								vertexPosition,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	defaultProgram = shaderir.Program{
+		Uniforms: []shaderir.Type{
+			{Main: shaderir.Vec2},
+		},
+		Attributes: []shaderir.Type{
+			{Main: shaderir.Vec2},
+			{Main: shaderir.Vec2},
+			{Main: shaderir.Vec4},
+			{Main: shaderir.Vec4},
+		},
+		VertexFunc: defaultVertexFunc,
+	}
+)
+
+// ShaderProgramFill returns a shader intermediate representation to fill the frambuffer.
+//
+// Uniform variables:
+//
+//   0. the framebuffer size (vec2)
+func ShaderProgramFill(r, g, b, a byte) shaderir.Program {
 	clr := shaderir.Expr{
 		Type: shaderir.Call,
 		Exprs: []shaderir.Expr{
@@ -177,54 +220,23 @@ func ShaderProgramFill(r, g, b, a byte) shaderir.Program {
 		},
 	}
 
-	return shaderir.Program{
-		Uniforms: []shaderir.Type{
-			{Main: shaderir.Vec2},
-		},
-		Attributes: []shaderir.Type{
-			{Main: shaderir.Vec2},
-			{Main: shaderir.Vec2},
-			{Main: shaderir.Vec4},
-			{Main: shaderir.Vec4},
-		},
-		VertexFunc: shaderir.VertexFunc{
-			Block: shaderir.Block{
-				Stmts: []shaderir.Stmt{
-					{
-						Type: shaderir.Assign,
-						Exprs: []shaderir.Expr{
-							{
-								Type:  shaderir.LocalVariable,
-								Index: 4,
-							},
-							{
-								Type: shaderir.Binary,
-								Op:   shaderir.Mul,
-								Exprs: []shaderir.Expr{
-									mat,
-									pos,
-								},
-							},
+	p := defaultProgram
+	p.FragmentFunc = shaderir.FragmentFunc{
+		Block: shaderir.Block{
+			Stmts: []shaderir.Stmt{
+				{
+					Type: shaderir.Assign,
+					Exprs: []shaderir.Expr{
+						{
+							Type:  shaderir.LocalVariable,
+							Index: 1,
 						},
-					},
-				},
-			},
-		},
-		FragmentFunc: shaderir.FragmentFunc{
-			Block: shaderir.Block{
-				Stmts: []shaderir.Stmt{
-					{
-						Type: shaderir.Assign,
-						Exprs: []shaderir.Expr{
-							{
-								Type:  shaderir.LocalVariable,
-								Index: 1,
-							},
-							clr,
-						},
+						clr,
 					},
 				},
 			},
 		},
 	}
+
+	return p
 }
