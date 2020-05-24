@@ -23,7 +23,6 @@ import (
 	. "github.com/hajimehoshi/ebiten/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
 	t "github.com/hajimehoshi/ebiten/internal/testing"
-	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
 func TestMain(m *testing.M) {
@@ -82,11 +81,8 @@ func TestReplacePixelsPartAfterDrawTriangles(t *testing.T) {
 }
 
 func TestShader(t *testing.T) {
-	if !IsGL() {
-		t.Skip("shader is not implemented on non-GL environment")
-	}
-	if web.IsBrowser() {
-		t.Skip("shader is not implemented on browsers")
+	if !IsShaderAvailable() {
+		t.Skip("shader is not implemented on this environment")
 	}
 
 	const w, h = 16, 16

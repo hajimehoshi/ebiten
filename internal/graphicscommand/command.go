@@ -22,6 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
 var theGraphicsDriver driver.Graphics
@@ -37,6 +38,17 @@ func NeedsRestoring() bool {
 		return true
 	}
 	return theGraphicsDriver.NeedsRestoring()
+}
+
+// IsShaderAvailable reports whether shaders are available. This function is only for testing.
+func IsShaderAvailable() bool {
+	if !theGraphicsDriver.IsGL() {
+		return false
+	}
+	if web.IsBrowser() {
+		return false
+	}
+	return true
 }
 
 // command represents a drawing command.
