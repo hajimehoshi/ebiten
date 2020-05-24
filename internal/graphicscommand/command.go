@@ -92,7 +92,7 @@ type commandQueue struct {
 var theCommandQueue = &commandQueue{}
 
 // appendVertices appends vertices to the queue.
-func (q *commandQueue) appendVertices(vertices []float32, width, height float32) {
+func (q *commandQueue) appendVertices(vertices []float32, src *Image) {
 	if len(q.vertices) < q.nvertices+len(vertices) {
 		n := q.nvertices + len(vertices) - len(q.vertices)
 		q.vertices = append(q.vertices, make([]float32, n)...)
@@ -102,6 +102,16 @@ func (q *commandQueue) appendVertices(vertices []float32, width, height float32)
 
 	n := len(vertices) / graphics.VertexFloatNum
 	base := q.nvertices / graphics.VertexFloatNum
+
+	// If src is nil, elements for texels (the index in between 2 and 7) in the vertices are not used.
+	// Then, giving the size 1 is fine.
+	width := float32(1)
+	height := float32(1)
+	if src != nil {
+		w, h := src.InternalSize()
+		width = float32(w)
+		height = float32(h)
+	}
 	for i := 0; i < n; i++ {
 		idx := base + i
 		q.srcSizes[idx].width = width
@@ -134,17 +144,27 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst, src *Image, vertices []f
 		split = true
 	}
 
-	n := len(vertices) / graphics.VertexFloatNum
+	const (
+		maxUint = ^uint(0)
+		maxInt  = int(maxUint >> 1)
+	)
+
 	if src != nil {
-		iw, ih := src.InternalSize()
-		q.appendVertices(vertices, float32(iw), float32(ih))
+		q.appendVertices(vertices, src)
 	} else {
-		// TODO: Use the image's size in the uniform variables.
-		// When there are multiple images, the smallest ID's image should be adopted.
-		q.appendVertices(vertices, 1, 1)
+		var img *Image
+		id := maxInt
+		for k, v := range uniforms {
+			if i, ok := v.(*Image); ok && id > k {
+				img = i
+				id = k
+				continue
+			}
+		}
+		q.appendVertices(vertices, img)
 	}
 	q.appendIndices(indices, uint16(q.nextIndex))
-	q.nextIndex += n
+	q.nextIndex += len(vertices) / graphics.VertexFloatNum
 	q.tmpNumIndices += len(indices)
 
 	// TODO: If dst is the screen, reorder the command to be the last.
