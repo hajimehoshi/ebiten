@@ -384,7 +384,6 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 	if (img != nil && (img.stale || img.volatile)) || i.screen || !needsRestoring() || i.volatile {
 		i.makeStale()
 	} else {
-		// TODO: Need to copy uniform variables?
 		i.appendDrawTrianglesHistory(img, vertices, indices, colorm, mode, filter, address, shader, uniforms)
 	}
 	var s *graphicscommand.Shader
@@ -502,7 +501,7 @@ func (i *Image) resolveStale() error {
 	return i.readPixelsFromGPU()
 }
 
-// dependsOn returns a boolean value indicating whether the image depends on target.
+// dependsOn reports whether the image depends on target.
 func (i *Image) dependsOn(target *Image) bool {
 	for _, c := range i.drawTrianglesHistory {
 		if c.image == target {

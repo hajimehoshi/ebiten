@@ -150,10 +150,9 @@ func (i *images) resolveStaleImages() error {
 
 // makeStaleIfDependingOn makes all the images stale that depend on target.
 //
-// When target is changed, all images depending on target can't be restored with target.
+// When target is modified, all images depending on target can't be restored with target.
 // makeStaleIfDependingOn is called in such situation.
 func (i *images) makeStaleIfDependingOn(target *Image) {
-	// Avoid defer for performance
 	i.makeStaleIfDependingOnImpl(target)
 }
 

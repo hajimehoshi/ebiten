@@ -94,3 +94,45 @@ func TestShaderChain(t *testing.T) {
 		}
 	}
 }
+
+func TestShaderMultipleSources(t *testing.T) {
+	if !graphicscommand.IsShaderAvailable() {
+		t.Skip("shader is not available on this environment")
+	}
+
+	srcs := make([]*Image, 3)
+	for i := range srcs {
+		srcs[i] = NewImage(1, 1, false)
+	}
+	srcs[0].ReplacePixels([]byte{0x40, 0, 0, 0xff}, 0, 0, 1, 1)
+	srcs[1].ReplacePixels([]byte{0, 0x80, 0, 0xff}, 0, 0, 1, 1)
+	srcs[2].ReplacePixels([]byte{0, 0, 0xc0, 0xff}, 0, 0, 1, 1)
+
+	dst := NewImage(1, 1, false)
+
+	ir := etesting.ShaderProgramImages(3)
+	s := NewShader(&ir)
+	us := map[int]interface{}{
+		0: []float32{1, 1},
+		1: srcs[0],
+		2: srcs[1],
+		5: srcs[2],
+	}
+	dst.DrawTriangles(nil, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero, s, us)
+
+	// Clear one of the sources after DrawTriangles. dst should not be affected.
+	srcs[0].Fill(color.RGBA{})
+
+	if err := ResolveStaleImages(); err != nil {
+		t.Fatal(err)
+	}
+	if err := RestoreIfNeeded(); err != nil {
+		t.Fatal(err)
+	}
+
+	want := color.RGBA{0x40, 0x80, 0xc0, 0xff}
+	got := pixelsToColor(dst.BasePixelsForTesting(), 0, 0)
+	if !sameColors(got, want, 1) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
