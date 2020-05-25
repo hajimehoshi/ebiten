@@ -819,6 +819,38 @@ func TestFill(t *testing.T) {
 	}
 }
 
+// Issue #1170
+func TestFill2(t *testing.T) {
+	const w, h = 16, 16
+	src := NewImage(w, h, false)
+	src.Fill(color.RGBA{0xff, 0, 0, 0xff})
+
+	dst := NewImage(w, h, false)
+	vs := quadVertices(w, h, 0, 0)
+	is := graphics.QuadIndices()
+	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero, nil, nil)
+
+	// Fill src with a different color. This should not affect dst.
+	src.Fill(color.RGBA{0, 0xff, 0, 0xff})
+
+	if err := ResolveStaleImages(); err != nil {
+		t.Fatal(err)
+	}
+	if err := RestoreIfNeeded(); err != nil {
+		t.Fatal(err)
+	}
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := pixelsToColor(dst.BasePixelsForTesting(), i, j)
+			want := color.RGBA{0xff, 0, 0, 0xff}
+			if got != want {
+				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
 func TestMutateSlices(t *testing.T) {
 	const w, h = 16, 16
 	dst := NewImage(w, h, false)

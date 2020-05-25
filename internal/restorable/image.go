@@ -215,6 +215,7 @@ func quadVertices(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca float32
 
 // Fill fills the specified part of the image with a solid color.
 func (i *Image) Fill(clr color.RGBA) {
+	theImages.makeStaleIfDependingOn(i)
 	i.basePixels = Pixels{
 		baseColor: clr,
 	}
