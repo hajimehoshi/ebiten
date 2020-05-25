@@ -152,7 +152,8 @@ func TestShaderDispose(t *testing.T) {
 	}
 	img.DrawTriangles(nil, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero, s, us)
 
-	// Dispose the shader. This should invalidates (= being stale) all the images using this shader.
+	// Dispose the shader. This should invalidates all the images using this shader i.e., all the images become
+	// stale.
 	s.Dispose()
 
 	if err := ResolveStaleImages(); err != nil {
