@@ -470,6 +470,16 @@ func (i *Image) makeStaleIfDependingOn(target *Image) {
 	}
 }
 
+// makeStaleIfDependingOnShader makes the image stale if the image depends on shader.
+func (i *Image) makeStaleIfDependingOnShader(shader *Shader) {
+	if i.stale {
+		return
+	}
+	if i.dependsOnShader(shader) {
+		i.makeStale()
+	}
+}
+
 // readPixelsFromGPU reads the pixels from GPU and resolves the image's 'stale' state.
 func (i *Image) readPixelsFromGPU() error {
 	pix, err := i.image.Pixels()
@@ -511,6 +521,16 @@ func (i *Image) dependsOn(target *Image) bool {
 			if img, ok := v.(*Image); ok && img == target {
 				return true
 			}
+		}
+	}
+	return false
+}
+
+// dependsOnShader reports whether the image depends on shader.
+func (i *Image) dependsOnShader(shader *Shader) bool {
+	for _, c := range i.drawTrianglesHistory {
+		if c.shader == shader {
+			return true
 		}
 	}
 	return false

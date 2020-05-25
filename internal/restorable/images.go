@@ -126,14 +126,12 @@ func (i *images) addShader(shader *Shader) {
 
 // remove removes img from the images.
 func (i *images) remove(img *Image) {
-	i.makeStaleIfDependingOnImpl(img)
+	i.makeStaleIfDependingOn(img)
 	delete(i.images, img)
 }
 
 func (i *images) removeShader(shader *Shader) {
-	// TODO: Do we have to make images stale?
-	// However, dependencies are determiend by uniform variables...
-	// ??
+	i.makeStaleIfDependingOnShader(shader)
 	delete(i.shaders, shader)
 }
 
@@ -153,12 +151,8 @@ func (i *images) resolveStaleImages() error {
 // When target is modified, all images depending on target can't be restored with target.
 // makeStaleIfDependingOn is called in such situation.
 func (i *images) makeStaleIfDependingOn(target *Image) {
-	i.makeStaleIfDependingOnImpl(target)
-}
-
-func (i *images) makeStaleIfDependingOnImpl(target *Image) {
 	if target == nil {
-		panic("restorable: target must not be nil at makeStaleIfDependingOnImpl")
+		panic("restorable: target must not be nil at makeStaleIfDependingOn")
 	}
 	if i.lastTarget == target {
 		return
@@ -166,6 +160,16 @@ func (i *images) makeStaleIfDependingOnImpl(target *Image) {
 	i.lastTarget = target
 	for img := range i.images {
 		img.makeStaleIfDependingOn(target)
+	}
+}
+
+// makeStaleIfDependingOn makes all the images stale that depend on shader.
+func (i *images) makeStaleIfDependingOnShader(shader *Shader) {
+	if shader == nil {
+		panic("restorable: shader must not be nil at makeStaleIfDependingOnShader")
+	}
+	for img := range i.images {
+		img.makeStaleIfDependingOnShader(shader)
 	}
 }
 

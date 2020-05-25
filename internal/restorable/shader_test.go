@@ -136,3 +136,35 @@ func TestShaderMultipleSources(t *testing.T) {
 		t.Errorf("got %v, want %v", got, want)
 	}
 }
+
+func TestShaderDispose(t *testing.T) {
+	if !graphicscommand.IsShaderAvailable() {
+		t.Skip("shader is not available on this environment")
+	}
+
+	img := NewImage(1, 1, false)
+	defer img.Dispose()
+
+	ir := etesting.ShaderProgramFill(0xff, 0, 0, 0xff)
+	s := NewShader(&ir)
+	us := map[int]interface{}{
+		0: []float32{1, 1},
+	}
+	img.DrawTriangles(nil, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero, s, us)
+
+	// Dispose the shader. This should invalidates (= being stale) all the images using this shader.
+	s.Dispose()
+
+	if err := ResolveStaleImages(); err != nil {
+		t.Fatal(err)
+	}
+	if err := RestoreIfNeeded(); err != nil {
+		t.Fatal(err)
+	}
+
+	want := color.RGBA{0xff, 0, 0, 0xff}
+	got := pixelsToColor(img.BasePixelsForTesting(), 0, 0)
+	if !sameColors(got, want, 1) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
