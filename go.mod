@@ -7,8 +7,8 @@ require (
 	github.com/gofrs/flock v0.7.1
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/hajimehoshi/bitmapfont v1.2.0
-	github.com/hajimehoshi/go-mp3 v0.2.1
-	github.com/hajimehoshi/oto v0.5.4
+	github.com/hajimehoshi/go-mp3 v0.2.2
+	github.com/hajimehoshi/oto v0.6.1
 	github.com/jakecoffman/cp v0.1.0
 	github.com/jfreymuth/oggvorbis v1.0.1
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
