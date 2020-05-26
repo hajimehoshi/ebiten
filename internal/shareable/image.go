@@ -282,7 +282,7 @@ func (i *Image) region() (x, y, width, height int) {
 //   9:  Color G
 //   10: Color B
 //   11: Color Y
-func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
+func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, shader *Shader, uniforms []interface{}) {
 	backendsM.Lock()
 	// Do not use defer for performance.
 
@@ -316,7 +316,36 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 		vertices[i*graphics.VertexFloatNum+7] += oyf
 	}
 
-	i.backend.restorable.DrawTriangles(img.backend.restorable, vertices, indices, colorm, mode, filter, address, nil, nil)
+	var s *restorable.Shader
+	if shader != nil {
+		s = shader.shader
+	}
+
+	firstImage := true
+	us := make([]interface{}, len(uniforms))
+	for i := 0; i < len(uniforms); i++ {
+		switch v := us[i].(type) {
+		case *Image:
+			us[i] = v.backend.restorable
+			if !firstImage {
+				i++
+				pos := us[i].([]float32)
+				pos[0] += oxf
+				pos[1] += oyf
+				i++
+				region := us[i].([]float32)
+				region[0] += oxf
+				region[1] += oyf
+				region[2] += oxf
+				region[3] += oyf
+			}
+			firstImage = false
+		default:
+			us[i] = v
+		}
+	}
+
+	i.backend.restorable.DrawTriangles(img.backend.restorable, vertices, indices, colorm, mode, filter, address, s, us)
 
 	i.nonUpdatedCount = 0
 	delete(imagesToMakeShared, i)

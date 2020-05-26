@@ -150,7 +150,7 @@ func (m *Mipmap) DrawImage(src *Mipmap, bounds image.Rectangle, geom GeoM, color
 	if level == 0 {
 		vs := quadVertices(bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y, a, b, c, d, tx, ty, cr, cg, cb, ca, screen)
 		is := graphics.QuadIndices()
-		m.orig.DrawTriangles(src.orig, vs, is, colorm, mode, filter, driver.AddressClampToZero)
+		m.orig.DrawTriangles(src.orig, vs, is, colorm, mode, filter, driver.AddressClampToZero, nil, nil)
 	} else if buf := src.level(bounds, level); buf != nil {
 		w, h := sizeForLevel(bounds.Dx(), bounds.Dy(), level)
 		s := pow2(level)
@@ -160,7 +160,7 @@ func (m *Mipmap) DrawImage(src *Mipmap, bounds image.Rectangle, geom GeoM, color
 		d *= s
 		vs := quadVertices(0, 0, w, h, a, b, c, d, tx, ty, cr, cg, cb, ca, false)
 		is := graphics.QuadIndices()
-		m.orig.DrawTriangles(buf, vs, is, colorm, mode, filter, driver.AddressClampToZero)
+		m.orig.DrawTriangles(buf, vs, is, colorm, mode, filter, driver.AddressClampToZero, nil, nil)
 	}
 	m.disposeMipmaps()
 }
@@ -183,7 +183,7 @@ func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16
 			vertices[i*n+11] *= ca
 		}
 	}
-	m.orig.DrawTriangles(src.orig, vertices, indices, colorm, mode, filter, address)
+	m.orig.DrawTriangles(src.orig, vertices, indices, colorm, mode, filter, address, nil, nil)
 	m.disposeMipmaps()
 }
 
@@ -246,7 +246,7 @@ func (m *Mipmap) level(r image.Rectangle, level int) *shareable.Image {
 		return nil
 	}
 	s := shareable.NewImage(w2, h2, m.volatile)
-	s.DrawTriangles(src, vs, is, nil, driver.CompositeModeCopy, filter, driver.AddressClampToZero)
+	s.DrawTriangles(src, vs, is, nil, driver.CompositeModeCopy, filter, driver.AddressClampToZero, nil, nil)
 	imgs[level] = s
 
 	return imgs[level]
