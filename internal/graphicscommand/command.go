@@ -144,7 +144,7 @@ func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
 }
 
 // EnqueueDrawTrianglesCommand enqueues a drawing-image command.
-func (q *commandQueue) EnqueueDrawTrianglesCommand(dst, src *Image, vertices []float32, indices []uint16, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, shader *Shader, uniforms map[int]interface{}) {
+func (q *commandQueue) EnqueueDrawTrianglesCommand(dst, src *Image, vertices []float32, indices []uint16, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, shader *Shader, uniforms []interface{}) {
 	if len(indices) > graphics.IndicesNum {
 		panic(fmt.Sprintf("graphicscommand: len(indices) must be <= graphics.IndicesNum but not at EnqueueDrawTrianglesCommand: len(indices): %d, graphics.IndicesNum: %d", len(indices), graphics.IndicesNum))
 	}
@@ -341,7 +341,7 @@ type drawTrianglesCommand struct {
 	filter    driver.Filter
 	address   driver.Address
 	shader    *Shader
-	uniforms  map[int]interface{}
+	uniforms  []interface{}
 }
 
 func (c *drawTrianglesCommand) String() string {
@@ -424,7 +424,7 @@ func (c *drawTrianglesCommand) Exec(indexOffset int) error {
 	}
 
 	if c.shader != nil {
-		us := map[int]interface{}{}
+		us := make([]interface{}, len(c.uniforms))
 		for k, v := range c.uniforms {
 			switch v := v.(type) {
 			case *Image:

@@ -209,7 +209,7 @@ func defaultProgram() shaderir.Program {
 
 // ShaderProgramFill returns a shader intermediate representation to fill the frambuffer.
 //
-// Uniform variables:
+// Uniform variable's index and its value are:
 //
 //   0: the framebuffer size (Vec2)
 func ShaderProgramFill(r, g, b, a byte) shaderir.Program {
@@ -262,7 +262,7 @@ func ShaderProgramFill(r, g, b, a byte) shaderir.Program {
 
 // ShaderProgramImages returns a shader intermediate representation to render the frambuffer with the given images.
 //
-// Uniform variables:
+// Uniform variables's indices and their values are:
 //
 //   0:    the framebuffer size (Vec2)
 //   1:    the first images (Sampler2D)

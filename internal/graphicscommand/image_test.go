@@ -93,8 +93,8 @@ func TestShader(t *testing.T) {
 
 	ir := etesting.ShaderProgramFill(0xff, 0, 0, 0xff)
 	s := NewShader(&ir)
-	us := map[int]interface{}{
-		0: []float32{w, h},
+	us := []interface{}{
+		[]float32{w, h},
 	}
 	dst.DrawTriangles(nil, vs, is, nil, driver.CompositeModeSourceOver, 0, 0, s, us)
 

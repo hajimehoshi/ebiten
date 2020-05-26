@@ -16,8 +16,6 @@ package opengl
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
@@ -239,8 +237,14 @@ func areSameFloat32Array(a, b []float32) bool {
 	return true
 }
 
+type uniformVariable struct {
+	name         string
+	value        interface{}
+	textureIndex int
+}
+
 // useProgram uses the program (programTexture).
-func (g *Graphics) useProgram(program program, uniforms map[string]interface{}) error {
+func (g *Graphics) useProgram(program program, uniforms []uniformVariable) error {
 	if !g.state.lastProgram.equal(program) {
 		g.context.useProgram(program)
 		if g.state.lastProgram.equal(zeroProgram) {
@@ -255,40 +259,35 @@ func (g *Graphics) useProgram(program program, uniforms map[string]interface{}) 
 		g.context.activeTexture(0)
 	}
 
-	for key, u := range uniforms {
-		switch u := u.(type) {
+	for _, u := range uniforms {
+		switch v := u.value.(type) {
 		case float32:
-			cached, ok := g.state.lastUniforms[key].(float32)
-			if ok && cached == u {
+			cached, ok := g.state.lastUniforms[u.name].(float32)
+			if ok && cached == v {
 				continue
 			}
-			g.context.uniformFloat(program, key, u)
-			g.state.lastUniforms[key] = u
+			g.context.uniformFloat(program, u.name, v)
+			g.state.lastUniforms[u.name] = v
 		case []float32:
-			cached, ok := g.state.lastUniforms[key].([]float32)
-			if ok && areSameFloat32Array(cached, u) {
+			cached, ok := g.state.lastUniforms[u.name].([]float32)
+			if ok && areSameFloat32Array(cached, v) {
 				continue
 			}
-			g.context.uniformFloats(program, key, u)
-			g.state.lastUniforms[key] = u
+			g.context.uniformFloats(program, u.name, v)
+			g.state.lastUniforms[u.name] = v
 		case textureNative:
 			// Apparently, a texture must be bound every time. The cache is not used here.
-			tokens := strings.SplitN(key, "/", 2)
-			if len(tokens) != 2 {
-				return fmt.Errorf("opengl: a uniform variable name for textures must be '[name]/[index]' but %s", key)
+			g.context.uniformInt(program, u.name, u.textureIndex)
+			if g.state.lastActiveTexture != u.textureIndex {
+				g.context.activeTexture(u.textureIndex)
+				g.state.lastActiveTexture = u.textureIndex
 			}
-			idx, err := strconv.Atoi(tokens[1])
-			if err != nil {
-				return fmt.Errorf("opengl: a uniform variable name for textures must be '[name]/[index]' but %s", key)
-			}
-			g.context.uniformInt(program, tokens[0], idx)
-			if g.state.lastActiveTexture != idx {
-				g.context.activeTexture(idx)
-				g.state.lastActiveTexture = idx
-			}
-			g.context.bindTexture(u)
+			g.context.bindTexture(v)
+		case nil:
+			// TODO: Rather than using nil for skipping, check the availablity of locations at e.g.,
+			// uniformFloats and ignore the error for unavailability.
 		default:
-			return fmt.Errorf("opengl: unexpected uniform value: %v", u)
+			return fmt.Errorf("opengl: unexpected uniform value: %v", u.value)
 		}
 	}
 	return nil

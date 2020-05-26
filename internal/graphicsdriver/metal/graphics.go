@@ -763,7 +763,7 @@ func (g *Graphics) NewShader(program *shaderir.Program) (driver.Shader, error) {
 	panic("metal: NewShader is not implemented")
 }
 
-func (g *Graphics) DrawShader(dst driver.ImageID, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms map[int]interface{}) error {
+func (g *Graphics) DrawShader(dst driver.ImageID, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms []interface{}) error {
 	panic("metal: DrawShader is not implemented")
 }
 

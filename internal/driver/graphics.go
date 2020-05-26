@@ -45,7 +45,7 @@ type Graphics interface {
 	//
 	// uniforms represents a colletion of uniform variables. The values must be one of these types:
 	// float32, []float32, or ImageID.
-	DrawShader(dst ImageID, shader ShaderID, indexLen int, indexOffset int, mode CompositeMode, uniforms map[int]interface{}) error
+	DrawShader(dst ImageID, shader ShaderID, indexLen int, indexOffset int, mode CompositeMode, uniforms []interface{}) error
 }
 
 // GraphicsNotReady represents that the graphics driver is not ready for recovering from the context lost.

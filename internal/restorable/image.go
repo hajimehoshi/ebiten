@@ -77,7 +77,7 @@ type drawTrianglesHistoryItem struct {
 	filter   driver.Filter
 	address  driver.Address
 	shader   *Shader
-	uniforms map[int]interface{}
+	uniforms []interface{}
 }
 
 // Image represents an image that can be restored when GL context is lost.
@@ -343,8 +343,8 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 }
 
 // convertUniformVariables converts the uniform variables for the lower layer (graphicscommand).
-func convertUniformVariables(uniforms map[int]interface{}) map[int]interface{} {
-	us := map[int]interface{}{}
+func convertUniformVariables(uniforms []interface{}) []interface{} {
+	us := make([]interface{}, len(uniforms))
 	for k, v := range uniforms {
 		switch v := v.(type) {
 		case *Image:
@@ -372,7 +372,7 @@ func convertUniformVariables(uniforms map[int]interface{}) map[int]interface{} {
 //   9:  Color G
 //   10: Color B
 //   11: Color Y
-func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, shader *Shader, uniforms map[int]interface{}) {
+func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, shader *Shader, uniforms []interface{}) {
 	if i.priority {
 		panic("restorable: DrawTriangles cannot be called on a priority image")
 	}
@@ -398,7 +398,7 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 }
 
 // appendDrawTrianglesHistory appends a draw-image history item to the image.
-func (i *Image) appendDrawTrianglesHistory(image *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, shader *Shader, uniforms map[int]interface{}) {
+func (i *Image) appendDrawTrianglesHistory(image *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, shader *Shader, uniforms []interface{}) {
 	if i.stale || i.volatile || i.screen {
 		return
 	}

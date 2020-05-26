@@ -16,7 +16,6 @@ package opengl
 
 import (
 	"fmt"
-	"sort"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
@@ -167,32 +166,50 @@ func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, 
 		address:   address,
 	}]
 
-	uniforms := map[string]interface{}{}
+	uniforms := []uniformVariable{}
 
 	vw := destination.framebuffer.width
 	vh := destination.framebuffer.height
-	uniforms["viewport_size"] = []float32{float32(vw), float32(vh)}
+	uniforms = append(uniforms, uniformVariable{
+		name:  "viewport_size",
+		value: []float32{float32(vw), float32(vh)},
+	})
 
 	if colorM != nil {
 		// ColorM's elements are immutable. It's OK to hold the reference without copying.
 		esBody, esTranslate := colorM.UnsafeElements()
-		uniforms["color_matrix_body"] = esBody
-		uniforms["color_matrix_translation"] = esTranslate
+		uniforms = append(uniforms, uniformVariable{
+			name:  "color_matrix_body",
+			value: esBody,
+		}, uniformVariable{
+			name:  "color_matrix_translation",
+			value: esTranslate,
+		})
 	}
 
 	if filter != driver.FilterNearest {
 		srcW, srcH := source.width, source.height
 		sw := graphics.InternalImageSize(srcW)
 		sh := graphics.InternalImageSize(srcH)
-		uniforms["source_size"] = []float32{float32(sw), float32(sh)}
+		uniforms = append(uniforms, uniformVariable{
+			name:  "source_size",
+			value: []float32{float32(sw), float32(sh)},
+		})
 	}
 
 	if filter == driver.FilterScreen {
 		scale := float32(destination.width) / float32(source.width)
-		uniforms["scale"] = scale
+		uniforms = append(uniforms, uniformVariable{
+			name:  "scale",
+			value: scale,
+		})
 	}
 
-	uniforms["texture/0"] = source.textureNative
+	uniforms = append(uniforms, uniformVariable{
+		name:         "texture",
+		value:        source.textureNative,
+		textureIndex: 0,
+	})
 
 	if err := g.useProgram(program, uniforms); err != nil {
 		return err
@@ -254,7 +271,7 @@ func (g *Graphics) removeShader(shader *Shader) {
 	delete(g.shaders, shader.id)
 }
 
-func (g *Graphics) DrawShader(dst driver.ImageID, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms map[int]interface{}) error {
+func (g *Graphics) DrawShader(dst driver.ImageID, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms []interface{}) error {
 	d := g.images[dst]
 	s := g.shaders[shader]
 
@@ -265,21 +282,17 @@ func (g *Graphics) DrawShader(dst driver.ImageID, shader driver.ShaderID, indexL
 	}
 	g.context.blendFunc(mode)
 
-	us := map[string]interface{}{}
-	var keys []int
-	for k := range uniforms {
-		keys = append(keys, k)
-	}
-	sort.Ints(keys)
+	us := make([]uniformVariable, len(uniforms))
 	tidx := 0
-	for _, k := range keys {
-		v := uniforms[k]
+	for k, v := range uniforms {
+		us[k].name = fmt.Sprintf("U%d", k)
 		switch v := v.(type) {
 		case driver.ImageID:
-			us[fmt.Sprintf("U%d/%d", k, tidx)] = g.images[v].textureNative
+			us[k].value = g.images[v].textureNative
+			us[k].textureIndex = tidx
 			tidx++
 		default:
-			us[fmt.Sprintf("U%d", k)] = v
+			us[k].value = v
 		}
 	}
 	if err := g.useProgram(s.p, us); err != nil {

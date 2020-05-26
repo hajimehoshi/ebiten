@@ -35,7 +35,7 @@ func TestShader(t *testing.T) {
 
 	ir := etesting.ShaderProgramFill(0xff, 0, 0, 0xff)
 	s := NewShader(&ir)
-	us := map[int]interface{}{
+	us := []interface{}{
 		0: []float32{1, 1},
 	}
 	img.DrawTriangles(nil, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero, s, us)
@@ -72,9 +72,9 @@ func TestShaderChain(t *testing.T) {
 	ir := etesting.ShaderProgramImages(1)
 	s := NewShader(&ir)
 	for i := 0; i < num-1; i++ {
-		us := map[int]interface{}{
-			0: []float32{1, 1},
-			1: imgs[i],
+		us := []interface{}{
+			[]float32{1, 1},
+			imgs[i],
 		}
 		imgs[i+1].DrawTriangles(nil, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero, s, us)
 	}
@@ -112,11 +112,18 @@ func TestShaderMultipleSources(t *testing.T) {
 
 	ir := etesting.ShaderProgramImages(3)
 	s := NewShader(&ir)
-	us := map[int]interface{}{
-		0: []float32{1, 1},
-		1: srcs[0],
-		2: srcs[1],
-		5: srcs[2],
+	// TODO: Now GLSL's optimization eliminates unused uniform variables by the program. Now nils are given,
+	// but it is strange to care about optimization from users. We should ignore the error when the location is
+	// not available.
+	us := []interface{}{
+		[]float32{1, 1},
+		srcs[0],
+		srcs[1],
+		nil, // []float32{1, 1},
+		nil, // []float32{0, 0, 1, 1},
+		srcs[2],
+		nil, // []float32{1, 1},
+		nil, // []float32{0, 0, 1, 1},
 	}
 	dst.DrawTriangles(nil, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero, s, us)
 
@@ -147,8 +154,8 @@ func TestShaderDispose(t *testing.T) {
 
 	ir := etesting.ShaderProgramFill(0xff, 0, 0, 0xff)
 	s := NewShader(&ir)
-	us := map[int]interface{}{
-		0: []float32{1, 1},
+	us := []interface{}{
+		[]float32{1, 1},
 	}
 	img.DrawTriangles(nil, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero, s, us)
 
