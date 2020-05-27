@@ -115,6 +115,9 @@ func (i *inputState) update() {
 			i.gamepadButtonDurations[id] = make([]int, ebiten.GamepadButtonMax+1)
 		}
 		n := ebiten.GamepadButtonNum(id)
+		if n > int(ebiten.GamepadButtonMax+1) {
+			n = int(ebiten.GamepadButtonMax + 1)
+		}
 		for b := ebiten.GamepadButton(0); b < ebiten.GamepadButton(n); b++ {
 			if ebiten.IsGamepadButtonPressed(id, b) {
 				i.gamepadButtonDurations[id][b]++
