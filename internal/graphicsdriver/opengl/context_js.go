@@ -67,6 +67,8 @@ func (p program) equal(rhs program) bool {
 
 var InvalidTexture = textureNative(js.Null())
 
+var invalidUniform = uniformLocation(js.Null())
+
 func getProgramID(p program) programID {
 	return p.id
 }
@@ -423,24 +425,35 @@ func (c *context) getUniformLocationImpl(p program, location string) uniformLoca
 	return uniformLocation(gl.Call("getUniformLocation", p.value, location))
 }
 
-func (c *context) uniformInt(p program, location string, v int) {
+func (c *context) uniformInt(p program, location string, v int) bool {
 	c.ensureGL()
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
+	if l.equal(invalidUniform) {
+		return false
+	}
 	gl.Call("uniform1i", js.Value(l), v)
+	return true
 }
 
-func (c *context) uniformFloat(p program, location string, v float32) {
+func (c *context) uniformFloat(p program, location string, v float32) bool {
 	c.ensureGL()
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
+	if l.equal(invalidUniform) {
+		return false
+	}
 	gl.Call("uniform1f", js.Value(l), v)
+	return true
 }
 
-func (c *context) uniformFloats(p program, location string, v []float32) {
+func (c *context) uniformFloats(p program, location string, v []float32) bool {
 	c.ensureGL()
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
+	if l.equal(invalidUniform) {
+		return false
+	}
 	switch len(v) {
 	case 2:
 		gl.Call("uniform2f", js.Value(l), v[0], v[1])
@@ -454,6 +467,7 @@ func (c *context) uniformFloats(p program, location string, v []float32) {
 	default:
 		panic(fmt.Sprintf("opengl: invalid uniform floats num: %d", len(v)))
 	}
+	return true
 }
 
 func (c *context) vertexAttribPointer(p program, index int, size int, dataType dataType, stride int, offset int) {

@@ -266,6 +266,7 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable) error
 			if ok && cached == v {
 				continue
 			}
+			// TODO: Remember whether the location is available or not.
 			g.context.uniformFloat(program, u.name, v)
 			g.state.lastUniforms[u.name] = v
 		case []float32:
@@ -283,9 +284,6 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable) error
 				g.state.lastActiveTexture = u.textureIndex
 			}
 			g.context.bindTexture(v)
-		case nil:
-			// TODO: Rather than using nil for skipping, check the availablity of locations at e.g.,
-			// uniformFloats and ignore the error for unavailability.
 		default:
 			return fmt.Errorf("opengl: unexpected uniform value: %v", u.value)
 		}

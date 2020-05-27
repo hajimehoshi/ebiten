@@ -69,6 +69,7 @@ type programID uint32
 var (
 	invalidTexture     = textureNative(mgl.Texture{})
 	invalidFramebuffer = framebufferNative(mgl.Framebuffer{(1 << 32) - 1})
+	invalidUniform     = uniformLocation(mgl.Uniform{-1})
 )
 
 func getProgramID(p program) programID {
@@ -286,35 +287,46 @@ func (c *context) deleteProgram(p program) {
 func (c *context) getUniformLocationImpl(p program, location string) uniformLocation {
 	gl := c.gl
 	u := uniformLocation(gl.GetUniformLocation(mgl.Program(p), location))
-	if u.Value == -1 {
-		panic("invalid uniform location: " + location)
-	}
 	return u
 }
 
-func (c *context) uniformInt(p program, location string, v int) {
+func (c *context) uniformInt(p program, location string, v int) bool {
 	gl := c.gl
-	gl.Uniform1i(mgl.Uniform(c.locationCache.GetUniformLocation(c, p, location)), v)
+	l := c.locationCache.GetUniformLocation(c, p, location)
+	if l == invalidUniform {
+		return false
+	}
+	gl.Uniform1i(mgl.Uniform(l), v)
+	return true
 }
 
-func (c *context) uniformFloat(p program, location string, v float32) {
+func (c *context) uniformFloat(p program, location string, v float32) bool {
 	gl := c.gl
-	gl.Uniform1f(mgl.Uniform(c.locationCache.GetUniformLocation(c, p, location)), v)
+	l := c.locationCache.GetUniformLocation(c, p, location)
+	if l == invalidUniform {
+		return false
+	}
+	gl.Uniform1f(mgl.Uniform(l), v)
+	return true
 }
 
-func (c *context) uniformFloats(p program, location string, v []float32) {
+func (c *context) uniformFloats(p program, location string, v []float32) bool {
 	gl := c.gl
-	l := mgl.Uniform(c.locationCache.GetUniformLocation(c, p, location))
+	l := c.locationCache.GetUniformLocation(c, p, location)
+	if l == invalidUniform {
+		return false
+	}
 	switch len(v) {
 	case 2:
-		gl.Uniform2fv(l, v)
+		gl.Uniform2fv(mgl.Uniform(l), v)
 	case 4:
-		gl.Uniform4fv(l, v)
+		gl.Uniform4fv(mgl.Uniform(l), v)
 	case 16:
-		gl.UniformMatrix4fv(l, v)
+		gl.UniformMatrix4fv(mgl.Uniform(l), v)
 	default:
 		panic(fmt.Sprintf("opengl: invalid uniform floats num: %d", len(v)))
 	}
+	return true
 }
 
 func (c *context) vertexAttribPointer(p program, index int, size int, dataType dataType, stride int, offset int) {
