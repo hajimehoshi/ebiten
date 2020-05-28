@@ -47,6 +47,10 @@ func (s *Shader) MarkDisposed() {
 }
 
 func (s *Shader) dispose() {
+	runtime.SetFinalizer(s, nil)
+	if s.shader == nil {
+		return
+	}
 	s.shader.Dispose()
 	s.shader = nil
 }
