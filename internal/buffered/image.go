@@ -305,5 +305,5 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 
 	src.resolvePendingPixels(true)
 	i.resolvePendingPixels(false)
-	i.img.DrawTriangles(src.img, vertices, indices, colorm, mode, filter, address)
+	i.img.DrawTriangles(src.img, vertices, indices, colorm, mode, filter, address, nil, nil)
 }

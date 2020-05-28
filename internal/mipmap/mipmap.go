@@ -23,6 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/internal/shareable"
 )
 
@@ -165,7 +166,7 @@ func (m *Mipmap) DrawImage(src *Mipmap, bounds image.Rectangle, geom GeoM, color
 	m.disposeMipmaps()
 }
 
-func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
+func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, shader *Shader, uniforms []interface{}) {
 	// TODO: Use a mipmap? (#909)
 
 	if colorm != nil && colorm.ScaleOnly() {
@@ -183,7 +184,22 @@ func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16
 			vertices[i*n+11] *= ca
 		}
 	}
-	m.orig.DrawTriangles(src.orig, vertices, indices, colorm, mode, filter, address, nil, nil)
+	var s *shareable.Shader
+	if shader != nil {
+		s = shader.shader
+	}
+
+	us := make([]interface{}, len(uniforms))
+	for k, v := range uniforms {
+		switch v := v.(type) {
+		case *Mipmap:
+			us[k] = v.orig
+		default:
+			us[k] = v
+		}
+	}
+
+	m.orig.DrawTriangles(src.orig, vertices, indices, colorm, mode, filter, address, s, us)
 	m.disposeMipmaps()
 }
 
@@ -427,4 +443,19 @@ func geomScaleSize(geom *GeoM) (sx, sy float32) {
 	miny := minf32(0, y0, y1, y2)
 
 	return maxx - minx, maxy - miny
+}
+
+type Shader struct {
+	shader *shareable.Shader
+}
+
+func NewShader(program *shaderir.Program) *Shader {
+	return &Shader{
+		shader: shareable.NewShader(program),
+	}
+}
+
+func (s *Shader) MarkDisposed() {
+	s.shader.MarkDisposed()
+	s.shader = nil
 }
