@@ -115,8 +115,8 @@ func (q *commandQueue) appendVertices(vertices []float32, src *Image) {
 	n := len(vertices) / graphics.VertexFloatNum
 	base := q.nvertices / graphics.VertexFloatNum
 
-	// If src is nil, elements for texels (the index in between 2 and 7) in the vertices are not used.
-	// Then, giving the size 1 is fine.
+	// TODO: If src is nil, elements for texels (the index in between 2 and 7) in the vertices are used for the
+	// first image's information. Fix this.
 	width := float32(1)
 	height := float32(1)
 	if src != nil {
@@ -265,8 +265,6 @@ func (q *commandQueue) Flush() error {
 			vs[i*graphics.VertexFloatNum+6] -= 1.0 / s.width * texelAdjustmentFactor
 			vs[i*graphics.VertexFloatNum+7] -= 1.0 / s.height * texelAdjustmentFactor
 		}
-
-		// TODO: Adjust the source sizes in uniform variables.
 	} else {
 		n := q.nvertices / graphics.VertexFloatNum
 		for i := 0; i < n; i++ {
@@ -281,6 +279,7 @@ func (q *commandQueue) Flush() error {
 			vs[i*graphics.VertexFloatNum+7] /= s.height
 		}
 	}
+
 	theGraphicsDriver.Begin()
 	cs := q.commands
 	for len(cs) > 0 {
@@ -427,6 +426,7 @@ func (c *drawTrianglesCommand) Exec(indexOffset int) error {
 
 	if c.shader != nil {
 		us := make([]interface{}, len(c.uniforms))
+		// TODO: Adjust the source sizes in uniform variables.
 		for k, v := range c.uniforms {
 			switch v := v.(type) {
 			case *Image:
