@@ -266,9 +266,8 @@ func ShaderProgramFill(r, g, b, a byte) shaderir.Program {
 //
 //   0:    the framebuffer size (Vec2)
 //   1:    the first images (Sampler2D)
-//   3n-1: the (n+1)th image (Sampler2D)
-//   3n:   the (n+1)th image's size (Vec2)
-//   3n+1: the (n+1)th image's region (Vec4)
+//   2n:   the n-th image (Sampler2D)
+//   2n+1: the n-th image's region (Vec4)
 //
 // The first image's size and region are represented in attribute variables.
 //
@@ -283,7 +282,6 @@ func ShaderProgramImages(imageNum int) shaderir.Program {
 	for i := 0; i < imageNum; i++ {
 		p.Uniforms = append(p.Uniforms, shaderir.Type{Main: shaderir.Sampler2D})
 		if i > 0 {
-			p.Uniforms = append(p.Uniforms, shaderir.Type{Main: shaderir.Vec2})
 			p.Uniforms = append(p.Uniforms, shaderir.Type{Main: shaderir.Vec4})
 		}
 	}
@@ -341,7 +339,7 @@ func ShaderProgramImages(imageNum int) shaderir.Program {
 							},
 							{
 								Type:  shaderir.UniformVariable,
-								Index: 3*i - 1,
+								Index: 2 * i,
 							},
 							texPos,
 						},

@@ -329,10 +329,6 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 			us[i] = v.backend.restorable
 			if !firstImage {
 				i++
-				pos := us[i].([]float32)
-				pos[0] += oxf
-				pos[1] += oyf
-				i++
 				region := us[i].([]float32)
 				region[0] += oxf
 				region[1] += oyf

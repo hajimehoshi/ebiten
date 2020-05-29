@@ -265,6 +265,8 @@ func (q *commandQueue) Flush() error {
 			vs[i*graphics.VertexFloatNum+6] -= 1.0 / s.width * texelAdjustmentFactor
 			vs[i*graphics.VertexFloatNum+7] -= 1.0 / s.height * texelAdjustmentFactor
 		}
+
+		// TODO: Adjust the source sizes in uniform variables.
 	} else {
 		n := q.nvertices / graphics.VertexFloatNum
 		for i := 0; i < n; i++ {
