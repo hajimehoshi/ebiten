@@ -312,7 +312,6 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	bx1 := float32(b.Max.X)
 	by1 := float32(b.Max.Y)
 
-	// TODO: Should we use mipmap.verticesBackend?
 	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
 	for i, v := range vertices {
 		vs[i*graphics.VertexFloatNum] = v.DstX
@@ -332,6 +331,87 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	copy(is, indices)
 
 	i.buffered.DrawTriangles(img.buffered, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), nil, nil)
+}
+
+type DrawTrianglesWithShaderOptions struct {
+	Uniforms      []interface{}
+	CompositeMode CompositeMode
+}
+
+func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, shader *Shader, options *DrawTrianglesWithShaderOptions) {
+	i.copyCheck()
+
+	if i.isDisposed() {
+		return
+	}
+
+	if i.isSubImage() {
+		panic("ebiten: render to a subimage is not implemented (DrawTriangles)")
+	}
+
+	if len(indices)%3 != 0 {
+		panic("ebiten: len(indices) % 3 must be 0")
+	}
+	if len(indices) > MaxIndicesNum {
+		panic("ebiten: len(indices) must be <= MaxIndicesNum")
+	}
+
+	if options == nil {
+		options = &DrawTrianglesWithShaderOptions{}
+	}
+
+	mode := driver.CompositeMode(options.CompositeMode)
+
+	us := []interface{}{}
+	var firstImage *Image
+	for _, v := range options.Uniforms {
+		switch v := v.(type) {
+		case *Image:
+			us = append(us, v.buffered)
+			if firstImage == nil {
+				firstImage = v
+			} else {
+				b := v.Bounds()
+				us = append(us, []float32{
+					float32(b.Min.X),
+					float32(b.Min.Y),
+					float32(b.Max.X),
+					float32(b.Max.Y),
+				})
+			}
+		default:
+			us = append(us, v)
+		}
+	}
+
+	var bx0, by0, bx1, by1 float32
+	if firstImage != nil {
+		b := firstImage.Bounds()
+		bx0 = float32(b.Min.X)
+		by0 = float32(b.Min.Y)
+		bx1 = float32(b.Max.X)
+		by1 = float32(b.Max.Y)
+	}
+
+	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
+	for i, v := range vertices {
+		vs[i*graphics.VertexFloatNum] = v.DstX
+		vs[i*graphics.VertexFloatNum+1] = v.DstY
+		vs[i*graphics.VertexFloatNum+2] = v.SrcX
+		vs[i*graphics.VertexFloatNum+3] = v.SrcY
+		vs[i*graphics.VertexFloatNum+4] = bx0
+		vs[i*graphics.VertexFloatNum+5] = by0
+		vs[i*graphics.VertexFloatNum+6] = bx1
+		vs[i*graphics.VertexFloatNum+7] = by1
+		vs[i*graphics.VertexFloatNum+8] = v.ColorR
+		vs[i*graphics.VertexFloatNum+9] = v.ColorG
+		vs[i*graphics.VertexFloatNum+10] = v.ColorB
+		vs[i*graphics.VertexFloatNum+11] = v.ColorA
+	}
+	is := make([]uint16, len(indices))
+	copy(is, indices)
+
+	i.buffered.DrawTriangles(nil, vs, is, nil, mode, driver.FilterNearest, driver.AddressClampToZero, shader.shader, us)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r. The returned value shares pixels with the original image.
