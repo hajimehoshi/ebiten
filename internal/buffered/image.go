@@ -22,6 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/mipmap"
+	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
 type Image struct {
@@ -286,7 +287,7 @@ func (i *Image) drawImage(src *Image, bounds image.Rectangle, g mipmap.GeoM, col
 // DrawTriangles draws the src image with the given vertices.
 //
 // Copying vertices and indices is the caller's responsibility.
-func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
+func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, shader *Shader, uniforms []interface{}) {
 	if i == src {
 		panic("buffered: Image.DrawTriangles: src must be different from the receiver")
 	}
@@ -297,7 +298,7 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() error {
 			// Arguments are not copied. Copying is the caller's responsibility.
-			i.DrawTriangles(src, vertices, indices, colorm, mode, filter, address)
+			i.DrawTriangles(src, vertices, indices, colorm, mode, filter, address, shader, uniforms)
 			return nil
 		})
 		return
@@ -305,5 +306,36 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 
 	src.resolvePendingPixels(true)
 	i.resolvePendingPixels(false)
-	i.img.DrawTriangles(src.img, vertices, indices, colorm, mode, filter, address, nil, nil)
+
+	var s *mipmap.Shader
+	if shader != nil {
+		s = shader.shader
+	}
+	us := make([]interface{}, len(uniforms))
+	for k, v := range uniforms {
+		switch v := v.(type) {
+		case *Image:
+			i.resolvePendingPixels(true)
+			us[k] = v.img
+		default:
+			us[k] = v
+		}
+	}
+
+	i.img.DrawTriangles(src.img, vertices, indices, colorm, mode, filter, address, s, us)
+}
+
+type Shader struct {
+	shader *mipmap.Shader
+}
+
+func NewShader(program *shaderir.Program) *Shader {
+	return &Shader{
+		shader: mipmap.NewShader(program),
+	}
+}
+
+func (s *Shader) MarkDisposed() {
+	s.shader.MarkDisposed()
+	s.shader = nil
 }

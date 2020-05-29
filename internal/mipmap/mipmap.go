@@ -184,6 +184,7 @@ func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16
 			vertices[i*n+11] *= ca
 		}
 	}
+
 	var s *shareable.Shader
 	if shader != nil {
 		s = shader.shader

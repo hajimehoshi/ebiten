@@ -331,7 +331,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
-	i.buffered.DrawTriangles(img.buffered, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address))
+	i.buffered.DrawTriangles(img.buffered, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), nil, nil)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r. The returned value shares pixels with the original image.
