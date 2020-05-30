@@ -37,10 +37,12 @@ type constant struct {
 }
 
 type function struct {
-	name string
-	args []variable
-	rets []variable
-	body *block
+	name  string
+	args  []variable
+	rets  []variable
+	block *block
+
+	ir shaderir.Func
 }
 
 type compileState struct {
@@ -54,6 +56,15 @@ type compileState struct {
 	global block
 
 	errs []string
+}
+
+type block struct {
+	types  []typ
+	vars   []variable
+	consts []constant
+	funcs  []function
+	pos    token.Pos
+	outer  *block
 }
 
 type ParseError struct {
@@ -232,7 +243,7 @@ func (cs *compileState) parseFunc(d *ast.FuncDecl, block *block) function {
 		name: d.Name.Name,
 		args: args,
 		rets: rets,
-		body: cs.parseBlock(block, d.Body),
+		//body: cs.parseBlock(block, d.Body),
 	}
 }
 
@@ -255,26 +266,26 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt) *block {
 					}
 					block.vars = append(block.vars, v)
 				}
-				for i := range l.Rhs {
-					block.stmts = append(block.stmts, stmt{
+				for range l.Rhs {
+					/*block.stmts = append(block.stmts, stmt{
 						stmtType: stmtAssign,
 						exprs:    []ast.Expr{l.Lhs[i], l.Rhs[i]},
-					})
+					})*/
 				}
 			case token.ASSIGN:
 				// TODO: What about the statement `a,b = b,a?`
-				for i := range l.Rhs {
-					block.stmts = append(block.stmts, stmt{
+				for range l.Rhs {
+					/*block.stmts = append(block.stmts, stmt{
 						stmtType: stmtAssign,
 						exprs:    []ast.Expr{l.Lhs[i], l.Rhs[i]},
-					})
+					})*/
 				}
 			}
 		case *ast.BlockStmt:
-			block.stmts = append(block.stmts, stmt{
+			/*block.stmts = append(block.stmts, stmt{
 				stmtType: stmtBlock,
 				block:    cs.parseBlock(block, l),
-			})
+			})*/
 		case *ast.DeclStmt:
 			cs.parseDecl(block, l.Decl, false)
 		case *ast.ReturnStmt:
@@ -282,10 +293,10 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt) *block {
 			for _, r := range l.Results {
 				exprs = append(exprs, r)
 			}
-			block.stmts = append(block.stmts, stmt{
+			/*block.stmts = append(block.stmts, stmt{
 				stmtType: stmtReturn,
 				exprs:    exprs,
-			})
+			})*/
 		}
 	}
 
