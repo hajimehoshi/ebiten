@@ -19,7 +19,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"sort"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
@@ -103,20 +102,6 @@ func (cs *compileState) parse(f *ast.File) {
 	for _, d := range f.Decls {
 		cs.parseDecl(&cs.global, d, true)
 	}
-
-	// TODO: This is duplicated with parseBlock.
-	sort.Slice(cs.global.consts, func(a, b int) bool {
-		return cs.global.consts[a].name < cs.global.consts[b].name
-	})
-	sort.Slice(cs.global.funcs, func(a, b int) bool {
-		return cs.global.funcs[a].name < cs.global.funcs[b].name
-	})
-	sort.Slice(cs.varyings, func(a, b int) bool {
-		return cs.varyings[a].name < cs.varyings[b].name
-	})
-	sort.Slice(cs.uniforms, func(a, b int) bool {
-		return cs.uniforms[a].name < cs.uniforms[b].name
-	})
 }
 
 func (cs *compileState) parseDecl(b *block, d ast.Decl, global bool) {
@@ -326,13 +311,6 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt) *block {
 			})
 		}
 	}
-
-	sort.Slice(block.consts, func(a, b int) bool {
-		return block.consts[a].name < block.consts[b].name
-	})
-	sort.Slice(block.funcs, func(a, b int) bool {
-		return block.funcs[a].name < block.funcs[b].name
-	})
 
 	return block
 }
