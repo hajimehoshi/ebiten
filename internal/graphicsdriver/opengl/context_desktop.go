@@ -228,12 +228,7 @@ func (c *context) deleteTexture(t textureNative) {
 }
 
 func (c *context) isTexture(t textureNative) bool {
-	r := false
-	_ = c.t.Call(func() error {
-		r = gl.IsTexture(uint32(t))
-		return nil
-	})
-	return r
+	panic("opengl: isTexture is not implemented")
 }
 
 func (c *context) newFramebuffer(texture textureNative) (framebufferNative, error) {
