@@ -47,7 +47,7 @@ func (t *Type) serialize() string {
 		return "mat3"
 	case Mat4:
 		return "mat4"
-	case Sampler2D:
+	case Texture2D:
 		return "sampler2D"
 	case Array:
 		return fmt.Sprintf("%s[%d]", t.Sub[0].serialize(), t.Length)
@@ -67,6 +67,10 @@ func (t *Type) serialize() string {
 
 type BasicType int
 
+// For a texture, a name Texture2D is used instead of Sampler2D. A sampler is a combination of a texture and how to
+// get its texel (a fitlter or an address), while a texture is just a 2D byte array. In Ebiten, a sampler in GLSL
+// always uses the same filter (nearest) and address (clamp-to-zero), then the name Texture2D is adopted.
+
 const (
 	None BasicType = iota
 	Bool
@@ -78,7 +82,7 @@ const (
 	Mat2
 	Mat3
 	Mat4
-	Sampler2D
+	Texture2D
 	Array
 	Struct
 )
@@ -105,7 +109,7 @@ func (t BasicType) Glsl() string {
 		return "mat3"
 	case Mat4:
 		return "mat4"
-	case Sampler2D:
+	case Texture2D:
 		return "sampler2D"
 	case Array:
 		// First-class array is not available on GLSL ES 2.

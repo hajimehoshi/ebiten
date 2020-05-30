@@ -190,5 +190,5 @@ const (
 	Any              BuiltinFunc = "any"
 	All              BuiltinFunc = "all"
 	Not              BuiltinFunc = "not"
-	Texture2D        BuiltinFunc = "texture2D"
+	Texture2DF       BuiltinFunc = "texture2D"
 )
