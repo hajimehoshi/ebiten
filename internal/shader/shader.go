@@ -46,16 +46,10 @@ type function struct {
 type compileState struct {
 	fs *token.FileSet
 
-	result *shaderir.Program
+	ir shaderir.Program
 
-	// position is the field name of VertexOut that represents a vertex position (gl_Position in GLSL).
-	position variable
-
-	// varyings is a collection of varying variables.
-	varyings []variable
-
-	// uniforms is a collection of uniform variables.
-	uniforms []variable
+	// uniforms is a collection of uniform variable names.
+	uniforms []string
 
 	global block
 
@@ -90,7 +84,7 @@ func Compile(src []byte) (*shaderir.Program, error) {
 	// TODO: Resolve constants
 
 	// TODO: Make a call graph and reorder the elements.
-	return s.result, nil
+	return &s.ir, nil
 }
 
 func (s *compileState) addError(pos token.Pos, str string) {
@@ -135,7 +129,8 @@ func (cs *compileState) parseDecl(b *block, d ast.Decl, global bool) {
 						cs.addError(s.Names[i].Pos(), fmt.Sprintf("global variables must be exposed: %s", v.name))
 					}
 					// TODO: Check RHS
-					cs.uniforms = append(cs.uniforms, v)
+					cs.uniforms = append(cs.uniforms, v.name)
+					cs.ir.Uniforms = append(cs.ir.Uniforms, v.typ.ir)
 				}
 			}
 		case token.IMPORT:
@@ -147,24 +142,6 @@ func (cs *compileState) parseDecl(b *block, d ast.Decl, global bool) {
 		b.funcs = append(b.funcs, cs.parseFunc(d, b))
 	default:
 		cs.addError(d.Pos(), "unexpected decl")
-	}
-}
-
-func (cs *compileState) parseStruct(t *ast.TypeSpec) {
-	s, ok := t.Type.(*ast.StructType)
-	if !ok {
-		cs.addError(t.Type.Pos(), fmt.Sprintf("%s must be a struct but not", t.Name))
-		return
-	}
-
-	for _, f := range s.Fields.List {
-		t := cs.parseType(f.Type)
-		for _, n := range f.Names {
-			cs.varyings = append(cs.varyings, variable{
-				name: n.Name,
-				typ:  t,
-			})
-		}
 	}
 }
 
@@ -324,10 +301,11 @@ func (s *compileState) detectType(b *block, expr ast.Expr) typ {
 			}
 		}
 		if e.Kind == token.INT {
-			s.addError(expr.Pos(), fmt.Sprintf("integer literal is not implemented yet: %s", e.Value))
-		} else {
-			s.addError(expr.Pos(), fmt.Sprintf("unexpected literal: %s", e.Value))
+			return typ{
+				ir: shaderir.Type{Main: shaderir.Int},
+			}
 		}
+		s.addError(expr.Pos(), fmt.Sprintf("unexpected literal: %s", e.Value))
 		return typ{}
 	case *ast.CompositeLit:
 		return s.parseType(e.Type)
@@ -339,9 +317,9 @@ func (s *compileState) detectType(b *block, expr ast.Expr) typ {
 			}
 		}
 		if b == &s.global {
-			for _, v := range s.uniforms {
-				if v.name == n {
-					return v.typ
+			for i, v := range s.uniforms {
+				if v == n {
+					return typ{ir: s.ir.Uniforms[i]}
 				}
 			}
 		}

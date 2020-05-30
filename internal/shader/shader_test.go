@@ -27,116 +27,19 @@ func TestDump(t *testing.T) {
 		VS   string
 		FS   string
 	}{
-		/*{
-					Name: "general",
-					Src: `package main
+		{
+			Name: "uniforms",
+			Src: `package main
 
-		type VertexOut struct {
-			Position vec4 ` + "`kage:\"position\"`" + `
-			TexCoord vec2
-			Color    vec4
-		}
-
-		var Foo float
-		var (
-			Bar       vec2
-			Baz, Quux vec3
-		)
-
-		const C1 float = 1
-		const C2, C3 float = 2, 3
-
-		func F1(a, b vec2) vec4 {
-			var c0 vec2 = a
-			var c1, c2 = c0, 1.0
-			c1.x = c2.x
-			c3 := vec4{c0, c1}
-			return c2
-		}
-		`,
-					Dump: `var Bar uniform vec2
-		var Baz uniform vec3
-		var Foo uniform float
-		var Quux uniform vec3
-		type VertexOut struct {
-			Position vec4
-			TexCoord vec2
-			Color vec4
-		}
-		const C1 float = 1
-		const C2 float = 2
-		const C3 float = 3
-		func F1(a vec2, b vec2) (_ vec4) {
-			var c0 vec2 = a
-			var c1 vec2 = c0
-			var c2 vec2 = 1.0
-			var c3 vec4
-			c1.x = c2.x
-			c3 = vec4{c0, c1}
-			return c2
-		}
-		`,
-				},
-				{
-					Name: "AutoType",
-					Src: `package main
-
-		var V0 = 0.0
-		func F() {
-			v1 := V0
-		}
-		`,
-					Dump: `var V0 uniform float
-		func F() {
-			var v1 float
-			v1 = V0
-		}
-		`,
-				},
-				{
-					Name: "AutoType2",
-					Src: `package main
-
-		var V0 = 0.0
-		func F() {
-			v1 := V0
-			{
-				v2 := v1
-			}
-		}
-		`,
-					Dump: `var V0 uniform float
-		func F() {
-			var v1 float
-			v1 = V0
-			{
-				var v2 float
-				v2 = v1
-			}
-		}
-		`,
-				},*/
-		/*{
-					Name: "Struct",
-					Src: `package main
-
-		type S struct {
-			M0 float
-			M1, M2 vec2
-			M3, M4, M5 vec3
-		}
-		`,
-					Dump: `var V0 uniform float
-		type S struct {
-			M0 float
-			M1 vec2
-			M2 vec2
-			M3 vec3
-			M4 vec3
-			M5 vec3
-		}
-		`,
-				},*/
+var (
+	Foo vec2
+	Boo vec4
+)`,
+			VS: `uniform vec2 U0;
+uniform vec4 U1;`,
+			FS: `uniform vec2 U0;
+uniform vec4 U1;`,
+		},
 	}
 	for _, tc := range tests {
 		s, err := Compile([]byte(tc.Src))
@@ -145,10 +48,10 @@ func TestDump(t *testing.T) {
 			continue
 		}
 		vs, fs := s.Glsl()
-		if got, want := vs, tc.VS; got != want {
+		if got, want := vs, tc.VS+"\n"; got != want {
 			t.Errorf("%s: got: %v, want: %v", tc.Name, got, want)
 		}
-		if got, want := fs, tc.FS; got != want {
+		if got, want := fs, tc.FS+"\n"; got != want {
 			t.Errorf("%s: got: %v, want: %v", tc.Name, got, want)
 		}
 	}
