@@ -207,6 +207,11 @@ func fract(x float32) float32 {
 	return x - float32(math.Floor(float64(x)))
 }
 
+const (
+	dstAdjustmentFactor   = 1.0 / 256.0
+	texelAdjustmentFactor = 1.0 / 512.0
+)
+
 // Flush flushes the command queue.
 func (q *commandQueue) Flush() error {
 	if len(q.commands) == 0 {
@@ -220,9 +225,6 @@ func (q *commandQueue) Flush() error {
 	}
 
 	if theGraphicsDriver.HasHighPrecisionFloat() {
-		const dstAdjustmentFactor = 1.0 / 256.0
-		const texelAdjustmentFactor = 1.0 / 512.0
-
 		n := q.nvertices / graphics.VertexFloatNum
 		for i := 0; i < n; i++ {
 			s := q.srcSizes[i]
@@ -424,19 +426,29 @@ func (c *drawTrianglesCommand) Exec(indexOffset int) error {
 			switch v := c.uniforms[i].(type) {
 			case *Image:
 				us[i] = v.image.ID()
-				if !firstImage {
-					// Convert pixels to texels.
-					w, h := v.InternalSize()
-					i++
-					region := c.uniforms[i].([]float32)
-					us[i] = []float32{
-						region[0] / float32(w),
-						region[1] / float32(h),
-						region[2] / float32(w),
-						region[3] / float32(h),
-					}
+				if firstImage {
+					firstImage = false
+					continue
 				}
-				firstImage = false
+
+				// Convert pixels to texels.
+				w, h := v.InternalSize()
+				i++
+				region := c.uniforms[i].([]float32)
+				vs := []float32{
+					region[0] / float32(w),
+					region[1] / float32(h),
+					region[2] / float32(w),
+					region[3] / float32(h),
+				}
+
+				// Adjust regions not to violate neighborhoods (#317, #558, #724).
+				if theGraphicsDriver.HasHighPrecisionFloat() {
+					vs[2] -= 1.0 / float32(w) * texelAdjustmentFactor
+					vs[3] -= 1.0 / float32(h) * texelAdjustmentFactor
+				}
+
+				us[i] = vs
 			default:
 				us[i] = v
 			}
