@@ -418,13 +418,27 @@ func (c *drawTrianglesCommand) Exec(indexOffset int) error {
 
 	if c.shader != nil {
 		us := make([]interface{}, len(c.uniforms))
-		// TODO: Adjust the source sizes in uniform variables.
-		for k, v := range c.uniforms {
-			switch v := v.(type) {
+
+		firstImage := true
+		for i := 0; i < len(c.uniforms); i++ {
+			switch v := c.uniforms[i].(type) {
 			case *Image:
-				us[k] = v.image.ID()
+				us[i] = v.image.ID()
+				if !firstImage {
+					// Convert pixels to texels.
+					w, h := v.InternalSize()
+					i++
+					region := c.uniforms[i].([]float32)
+					us[i] = []float32{
+						region[0] / float32(w),
+						region[1] / float32(h),
+						region[2] / float32(w),
+						region[3] / float32(h),
+					}
+				}
+				firstImage = false
 			default:
-				us[k] = v
+				us[i] = v
 			}
 		}
 		return theGraphicsDriver.DrawShader(c.dst.image.ID(), c.shader.shader.ID(), c.nindices, indexOffset, c.mode, us)
