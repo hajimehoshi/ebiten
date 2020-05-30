@@ -39,9 +39,10 @@ func EnableRestoringForTesting() {
 
 // images is a set of Image objects.
 type images struct {
-	images     map[*Image]struct{}
-	shaders    map[*Shader]struct{}
-	lastTarget *Image
+	images      map[*Image]struct{}
+	shaders     map[*Shader]struct{}
+	lastTarget  *Image
+	contextLost bool
 }
 
 // theImages represents the images for the current process.
@@ -73,21 +74,27 @@ func RestoreIfNeeded() error {
 	}
 
 	if !forceRestoring {
-		r := false
-		// As isInvalidated() is expensive, call this only for one image.
-		// This assumes that if there is one image that is invalidated, all images are invalidated.
-		for img := range theImages.images {
-			// The screen image might not have a texture. Skip this.
-			if img.screen {
-				continue
+		var r bool
+
+		if canDetectContextLostExplicitly {
+			r = theImages.contextLost
+		} else {
+			// As isInvalidated() is expensive, call this only for one image.
+			// This assumes that if there is one image that is invalidated, all images are invalidated.
+			for img := range theImages.images {
+				// The screen image might not have a texture. Skip this.
+				if img.screen {
+					continue
+				}
+				var err error
+				r, err = img.isInvalidated()
+				if err != nil {
+					return err
+				}
+				break
 			}
-			var err error
-			r, err = img.isInvalidated()
-			if err != nil {
-				return err
-			}
-			break
 		}
+
 		if !r {
 			return nil
 		}
@@ -257,10 +264,21 @@ func (i *images) restore() error {
 			return err
 		}
 	}
+
+	i.contextLost = false
+
 	return nil
 }
 
 // InitializeGraphicsDriverState initializes the graphics driver state.
 func InitializeGraphicsDriverState() error {
 	return graphicscommand.ResetGraphicsDriverState()
+}
+
+// OnContextLost is called when the context lost is detected in an explicit way.
+func OnContextLost() {
+	if !canDetectContextLostExplicitly {
+		panic("restorable: OnContextLost cannot be called in this environment")
+	}
+	theImages.contextLost = true
 }

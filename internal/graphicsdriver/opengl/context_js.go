@@ -309,9 +309,8 @@ func (c *context) deleteTexture(t textureNative) {
 }
 
 func (c *context) isTexture(t textureNative) bool {
-	c.ensureGL()
-	gl := c.gl
-	return gl.Call("isTexture", js.Value(t)).Bool()
+	// isTexture should not be called to detect context-lost since this performance is not good (#1175).
+	panic("opengl: isTexture is not implemented")
 }
 
 func (c *context) newFramebuffer(t textureNative) (framebufferNative, error) {
