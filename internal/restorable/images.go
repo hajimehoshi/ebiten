@@ -183,7 +183,9 @@ func (i *images) restore() error {
 
 	// Dispose all the shaders ahead of restoring. A current shader ID and a new shader ID can be duplicated.
 	for s := range i.shaders {
-		s.shader.Dispose()
+		if needsDisposingWhenRestoring {
+			s.shader.Dispose()
+		}
 		s.shader = nil
 	}
 	for s := range i.shaders {
@@ -193,7 +195,9 @@ func (i *images) restore() error {
 	// Dispose all the images ahead of restoring. A current texture ID and a new texture ID can be duplicated.
 	// TODO: Write a test to confirm that ID duplication never happens.
 	for i := range i.images {
-		i.image.Dispose()
+		if needsDisposingWhenRestoring {
+			i.image.Dispose()
+		}
 		i.image = nil
 	}
 
