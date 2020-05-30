@@ -19,18 +19,10 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"regexp"
 	"sort"
 	"strings"
-)
 
-const (
-	// TODO: Remove this. This struct is a user-defined struct.
-	varyingStructName = "VertexOut"
-)
-
-var (
-	kageTagRe = regexp.MustCompile("^`" + `kage:\"(.+)\"` + "`$")
+	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
 type variable struct {
@@ -52,8 +44,10 @@ type function struct {
 	body *block
 }
 
-type Shader struct {
+type compileState struct {
 	fs *token.FileSet
+
+	result *shaderir.Program
 
 	// position is the field name of VertexOut that represents a vertex position (gl_Position in GLSL).
 	position variable
@@ -77,14 +71,14 @@ func (p *ParseError) Error() string {
 	return strings.Join(p.errs, "\n")
 }
 
-func NewShader(src []byte) (*Shader, error) {
+func Compile(src []byte) (*shaderir.Program, error) {
 	fs := token.NewFileSet()
 	f, err := parser.ParseFile(fs, "", src, parser.AllErrors)
 	if err != nil {
 		return nil, err
 	}
 
-	s := &Shader{
+	s := &compileState{
 		fs: fs,
 	}
 	s.parse(f)
@@ -97,35 +91,35 @@ func NewShader(src []byte) (*Shader, error) {
 	// TODO: Resolve constants
 
 	// TODO: Make a call graph and reorder the elements.
-	return s, nil
+	return s.result, nil
 }
 
-func (s *Shader) addError(pos token.Pos, str string) {
+func (s *compileState) addError(pos token.Pos, str string) {
 	p := s.fs.Position(pos)
 	s.errs = append(s.errs, fmt.Sprintf("%s: %s", p, str))
 }
 
-func (sh *Shader) parse(f *ast.File) {
+func (cs *compileState) parse(f *ast.File) {
 	for _, d := range f.Decls {
-		sh.parseDecl(&sh.global, d, true)
+		cs.parseDecl(&cs.global, d, true)
 	}
 
 	// TODO: This is duplicated with parseBlock.
-	sort.Slice(sh.global.consts, func(a, b int) bool {
-		return sh.global.consts[a].name < sh.global.consts[b].name
+	sort.Slice(cs.global.consts, func(a, b int) bool {
+		return cs.global.consts[a].name < cs.global.consts[b].name
 	})
-	sort.Slice(sh.global.funcs, func(a, b int) bool {
-		return sh.global.funcs[a].name < sh.global.funcs[b].name
+	sort.Slice(cs.global.funcs, func(a, b int) bool {
+		return cs.global.funcs[a].name < cs.global.funcs[b].name
 	})
-	sort.Slice(sh.varyings, func(a, b int) bool {
-		return sh.varyings[a].name < sh.varyings[b].name
+	sort.Slice(cs.varyings, func(a, b int) bool {
+		return cs.varyings[a].name < cs.varyings[b].name
 	})
-	sort.Slice(sh.uniforms, func(a, b int) bool {
-		return sh.uniforms[a].name < sh.uniforms[b].name
+	sort.Slice(cs.uniforms, func(a, b int) bool {
+		return cs.uniforms[a].name < cs.uniforms[b].name
 	})
 }
 
-func (sh *Shader) parseDecl(b *block, d ast.Decl, global bool) {
+func (cs *compileState) parseDecl(b *block, d ast.Decl, global bool) {
 	switch d := d.(type) {
 	case *ast.GenDecl:
 		switch d.Tok {
@@ -133,81 +127,55 @@ func (sh *Shader) parseDecl(b *block, d ast.Decl, global bool) {
 			// TODO: Parse other types
 			for _, s := range d.Specs {
 				s := s.(*ast.TypeSpec)
-				t := sh.parseType(s.Type)
+				t := cs.parseType(s.Type)
 				t.name = s.Name.Name
 				b.types = append(b.types, t)
 			}
 		case token.CONST:
 			for _, s := range d.Specs {
 				s := s.(*ast.ValueSpec)
-				cs := sh.parseConstant(s)
+				cs := cs.parseConstant(s)
 				b.consts = append(b.consts, cs...)
 			}
 		case token.VAR:
 			for _, s := range d.Specs {
 				s := s.(*ast.ValueSpec)
-				vs := sh.parseVariable(b, s)
+				vs := cs.parseVariable(b, s)
 				if !global {
 					b.vars = append(b.vars, vs...)
 					continue
 				}
 				for i, v := range vs {
 					if v.name[0] < 'A' || 'Z' < v.name[0] {
-						sh.addError(s.Names[i].Pos(), fmt.Sprintf("global variables must be exposed: %s", v.name))
+						cs.addError(s.Names[i].Pos(), fmt.Sprintf("global variables must be exposed: %s", v.name))
 					}
 					// TODO: Check RHS
-					sh.uniforms = append(sh.uniforms, v)
+					cs.uniforms = append(cs.uniforms, v)
 				}
 			}
 		case token.IMPORT:
-			sh.addError(d.Pos(), "import is forbidden")
+			cs.addError(d.Pos(), "import is forbidden")
 		default:
-			sh.addError(d.Pos(), "unexpected token")
+			cs.addError(d.Pos(), "unexpected token")
 		}
 	case *ast.FuncDecl:
-		b.funcs = append(b.funcs, sh.parseFunc(d, b))
+		b.funcs = append(b.funcs, cs.parseFunc(d, b))
 	default:
-		sh.addError(d.Pos(), "unexpected decl")
+		cs.addError(d.Pos(), "unexpected decl")
 	}
 }
 
-func (sh *Shader) parseStruct(t *ast.TypeSpec) {
+func (cs *compileState) parseStruct(t *ast.TypeSpec) {
 	s, ok := t.Type.(*ast.StructType)
 	if !ok {
-		sh.addError(t.Type.Pos(), fmt.Sprintf("%s must be a struct but not", t.Name))
+		cs.addError(t.Type.Pos(), fmt.Sprintf("%s must be a struct but not", t.Name))
 		return
 	}
 
 	for _, f := range s.Fields.List {
-		if f.Tag != nil {
-			tag := f.Tag.Value
-			m := kageTagRe.FindStringSubmatch(tag)
-			if m == nil {
-				sh.addError(f.Tag.Pos(), fmt.Sprintf("invalid struct tag: %s", tag))
-				continue
-			}
-			if m[1] != "position" {
-				sh.addError(f.Tag.Pos(), fmt.Sprintf("struct tag value must be position in %s but %s", varyingStructName, m[1]))
-				continue
-			}
-			if len(f.Names) != 1 {
-				sh.addError(f.Pos(), fmt.Sprintf("position members must be one"))
-				continue
-			}
-			t := sh.parseType(f.Type)
-			if t.basic != basicTypeVec4 {
-				sh.addError(f.Type.Pos(), fmt.Sprintf("position must be vec4 but %s", t))
-				continue
-			}
-			sh.position = variable{
-				name: f.Names[0].Name,
-				typ:  t,
-			}
-			continue
-		}
-		t := sh.parseType(f.Type)
+		t := cs.parseType(f.Type)
 		for _, n := range f.Names {
-			sh.varyings = append(sh.varyings, variable{
+			cs.varyings = append(cs.varyings, variable{
 				name: n.Name,
 				typ:  t,
 			})
@@ -215,7 +183,7 @@ func (sh *Shader) parseStruct(t *ast.TypeSpec) {
 	}
 }
 
-func (s *Shader) parseVariable(block *block, vs *ast.ValueSpec) []variable {
+func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) []variable {
 	var t typ
 	if vs.Type != nil {
 		t = s.parseType(vs.Type)
@@ -226,7 +194,7 @@ func (s *Shader) parseVariable(block *block, vs *ast.ValueSpec) []variable {
 		var init ast.Expr
 		if len(vs.Values) > 0 {
 			init = vs.Values[i]
-			if t.isNone() {
+			if t.ir.Main == shaderir.None {
 				t = s.detectType(block, init)
 			}
 		}
@@ -240,7 +208,7 @@ func (s *Shader) parseVariable(block *block, vs *ast.ValueSpec) []variable {
 	return vars
 }
 
-func (s *Shader) parseConstant(vs *ast.ValueSpec) []constant {
+func (s *compileState) parseConstant(vs *ast.ValueSpec) []constant {
 	var t typ
 	if vs.Type != nil {
 		t = s.parseType(vs.Type)
@@ -257,19 +225,19 @@ func (s *Shader) parseConstant(vs *ast.ValueSpec) []constant {
 	return cs
 }
 
-func (sh *Shader) parseFunc(d *ast.FuncDecl, block *block) function {
+func (cs *compileState) parseFunc(d *ast.FuncDecl, block *block) function {
 	if d.Name == nil {
-		sh.addError(d.Pos(), "function must have a name")
+		cs.addError(d.Pos(), "function must have a name")
 		return function{}
 	}
 	if d.Body == nil {
-		sh.addError(d.Pos(), "function must have a body")
+		cs.addError(d.Pos(), "function must have a body")
 		return function{}
 	}
 
 	var args []variable
 	for _, f := range d.Type.Params.List {
-		t := sh.parseType(f.Type)
+		t := cs.parseType(f.Type)
 		for _, n := range f.Names {
 			args = append(args, variable{
 				name: n.Name,
@@ -281,7 +249,7 @@ func (sh *Shader) parseFunc(d *ast.FuncDecl, block *block) function {
 	var rets []variable
 	if d.Type.Results != nil {
 		for _, f := range d.Type.Results.List {
-			t := sh.parseType(f.Type)
+			t := cs.parseType(f.Type)
 			if len(f.Names) == 0 {
 				rets = append(rets, variable{
 					name: "",
@@ -302,11 +270,11 @@ func (sh *Shader) parseFunc(d *ast.FuncDecl, block *block) function {
 		name: d.Name.Name,
 		args: args,
 		rets: rets,
-		body: sh.parseBlock(block, d.Body),
+		body: cs.parseBlock(block, d.Body),
 	}
 }
 
-func (sh *Shader) parseBlock(outer *block, b *ast.BlockStmt) *block {
+func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt) *block {
 	block := &block{
 		outer: outer,
 	}
@@ -321,7 +289,7 @@ func (sh *Shader) parseBlock(outer *block, b *ast.BlockStmt) *block {
 						name: s.(*ast.Ident).Name,
 					}
 					if len(l.Rhs) > 0 {
-						v.typ = sh.detectType(block, l.Rhs[i])
+						v.typ = cs.detectType(block, l.Rhs[i])
 					}
 					block.vars = append(block.vars, v)
 				}
@@ -343,10 +311,10 @@ func (sh *Shader) parseBlock(outer *block, b *ast.BlockStmt) *block {
 		case *ast.BlockStmt:
 			block.stmts = append(block.stmts, stmt{
 				stmtType: stmtBlock,
-				block:    sh.parseBlock(block, l),
+				block:    cs.parseBlock(block, l),
 			})
 		case *ast.DeclStmt:
-			sh.parseDecl(block, l.Decl, false)
+			cs.parseDecl(block, l.Decl, false)
 		case *ast.ReturnStmt:
 			var exprs []ast.Expr
 			for _, r := range l.Results {
@@ -369,12 +337,12 @@ func (sh *Shader) parseBlock(outer *block, b *ast.BlockStmt) *block {
 	return block
 }
 
-func (s *Shader) detectType(b *block, expr ast.Expr) typ {
+func (s *compileState) detectType(b *block, expr ast.Expr) typ {
 	switch e := expr.(type) {
 	case *ast.BasicLit:
 		if e.Kind == token.FLOAT {
 			return typ{
-				basic: basicTypeFloat,
+				ir: shaderir.Type{Main: shaderir.Float},
 			}
 		}
 		if e.Kind == token.INT {
@@ -410,23 +378,4 @@ func (s *Shader) detectType(b *block, expr ast.Expr) typ {
 		s.addError(expr.Pos(), fmt.Sprintf("detecting type not implemented: %#v", expr))
 		return typ{}
 	}
-}
-
-// Dump dumps the shader state in an intermediate language.
-func (s *Shader) Dump() string {
-	var lines []string
-
-	if s.position.name != "" {
-		lines = append(lines, fmt.Sprintf("var %s varying %s // position", s.position.name, s.position.typ))
-	}
-	for _, v := range s.varyings {
-		lines = append(lines, fmt.Sprintf("var %s varying %s", v.name, v.typ))
-	}
-	for _, u := range s.uniforms {
-		lines = append(lines, fmt.Sprintf("var %s uniform %s", u.name, u.typ))
-	}
-
-	lines = append(lines, s.global.dump(0)...)
-
-	return strings.Join(lines, "\n") + "\n"
 }
