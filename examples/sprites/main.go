@@ -40,6 +40,30 @@ var (
 	ebitenImage *ebiten.Image
 )
 
+func init() {
+	// Decode image from a byte slice instead of a file so that
+	// this example works in any working directory.
+	// If you want to use a file, there are some options:
+	// 1) Use os.Open and pass the file to the image decoder.
+	//    This is a very regular way, but doesn't work on browsers.
+	// 2) Use ebitenutil.OpenFile and pass the file to the image decoder.
+	//    This works even on browsers.
+	// 3) Use ebitenutil.NewImageFromFile to create an ebiten.Image directly from a file.
+	//    This also works on browsers.
+	img, _, err := image.Decode(bytes.NewReader(images.Ebiten_png))
+	if err != nil {
+		log.Fatal(err)
+	}
+	origEbitenImage, _ := ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+
+	w, h := origEbitenImage.Size()
+	ebitenImage, _ = ebiten.NewImage(w, h, ebiten.FilterDefault)
+
+	op := &ebiten.DrawImageOptions{}
+	op.ColorM.Scale(1, 1, 1, 0.5)
+	ebitenImage.DrawImage(origEbitenImage, op)
+}
+
 type Sprite struct {
 	imageWidth  int
 	imageHeight int
@@ -89,40 +113,25 @@ const (
 	MaxSprites = 50000
 )
 
-var (
-	sprites = &Sprites{make([]*Sprite, MaxSprites), 500}
-	op      = &ebiten.DrawImageOptions{}
-)
+type Game struct {
+	sprites Sprites
+	op      ebiten.DrawImageOptions
+	inited  bool
+}
 
-func init() {
-	// Decode image from a byte slice instead of a file so that
-	// this example works in any working directory.
-	// If you want to use a file, there are some options:
-	// 1) Use os.Open and pass the file to the image decoder.
-	//    This is a very regular way, but doesn't work on browsers.
-	// 2) Use ebitenutil.OpenFile and pass the file to the image decoder.
-	//    This works even on browsers.
-	// 3) Use ebitenutil.NewImageFromFile to create an ebiten.Image directly from a file.
-	//    This also works on browsers.
-	img, _, err := image.Decode(bytes.NewReader(images.Ebiten_png))
-	if err != nil {
-		log.Fatal(err)
-	}
-	origEbitenImage, _ := ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+func (g *Game) init() {
+	defer func() {
+		g.inited = true
+	}()
 
-	w, h := origEbitenImage.Size()
-	ebitenImage, _ = ebiten.NewImage(w, h, ebiten.FilterDefault)
-
-	op := &ebiten.DrawImageOptions{}
-	op.ColorM.Scale(1, 1, 1, 0.5)
-	ebitenImage.DrawImage(origEbitenImage, op)
-
-	for i := range sprites.sprites {
+	g.sprites.sprites = make([]*Sprite, MaxSprites)
+	g.sprites.num = 500
+	for i := range g.sprites.sprites {
 		w, h := ebitenImage.Size()
 		x, y := rand.Intn(screenWidth-w), rand.Intn(screenHeight-h)
 		vx, vy := 2*rand.Intn(2)-1, 2*rand.Intn(2)-1
 		a := rand.Intn(maxAngle)
-		sprites.sprites[i] = &Sprite{
+		g.sprites.sprites[i] = &Sprite{
 			imageWidth:  w,
 			imageHeight: h,
 			x:           x,
@@ -154,29 +163,32 @@ func rightTouched() bool {
 	return false
 }
 
-func update(screen *ebiten.Image) error {
+func (g *Game) Update(screen *ebiten.Image) error {
+	if !g.inited {
+		g.init()
+	}
+
 	// Decrease the nubmer of the sprites.
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) || leftTouched() {
-		sprites.num -= 20
-		if sprites.num < MinSprites {
-			sprites.num = MinSprites
+		g.sprites.num -= 20
+		if g.sprites.num < MinSprites {
+			g.sprites.num = MinSprites
 		}
 	}
 
 	// Increase the nubmer of the sprites.
 	if ebiten.IsKeyPressed(ebiten.KeyRight) || rightTouched() {
-		sprites.num += 20
-		if MaxSprites < sprites.num {
-			sprites.num = MaxSprites
+		g.sprites.num += 20
+		if MaxSprites < g.sprites.num {
+			g.sprites.num = MaxSprites
 		}
 	}
 
-	sprites.Update()
+	g.sprites.Update()
+	return nil
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
+func (g *Game) Draw(screen *ebiten.Image) {
 	// Draw each sprite.
 	// DrawImage can be called many many times, but in the implementation,
 	// the actual draw call to GPU is very few since these calls satisfy
@@ -184,25 +196,30 @@ func update(screen *ebiten.Image) error {
 	// For more detail, see:
 	// https://pkg.go.dev/github.com/hajimehoshi/ebiten#Image.DrawImage
 	w, h := ebitenImage.Size()
-	for i := 0; i < sprites.num; i++ {
-		s := sprites.sprites[i]
-		op.GeoM.Reset()
-		op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
-		op.GeoM.Rotate(2 * math.Pi * float64(s.angle) / maxAngle)
-		op.GeoM.Translate(float64(w)/2, float64(h)/2)
-		op.GeoM.Translate(float64(s.x), float64(s.y))
-		screen.DrawImage(ebitenImage, op)
+	for i := 0; i < g.sprites.num; i++ {
+		s := g.sprites.sprites[i]
+		g.op.GeoM.Reset()
+		g.op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
+		g.op.GeoM.Rotate(2 * math.Pi * float64(s.angle) / maxAngle)
+		g.op.GeoM.Translate(float64(w)/2, float64(h)/2)
+		g.op.GeoM.Translate(float64(s.x), float64(s.y))
+		screen.DrawImage(ebitenImage, &g.op)
 	}
 	msg := fmt.Sprintf(`TPS: %0.2f
 FPS: %0.2f
 Num of sprites: %d
-Press <- or -> to change the number of sprites`, ebiten.CurrentTPS(), ebiten.CurrentFPS(), sprites.num)
+Press <- or -> to change the number of sprites`, ebiten.CurrentTPS(), ebiten.CurrentFPS(), g.sprites.num)
 	ebitenutil.DebugPrint(screen, msg)
-	return nil
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Sprites (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Sprites (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }
