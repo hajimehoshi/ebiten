@@ -115,10 +115,9 @@ func (q *commandQueue) appendVertices(vertices []float32, src *Image) {
 	n := len(vertices) / graphics.VertexFloatNum
 	base := q.nvertices / graphics.VertexFloatNum
 
-	// TODO: If src is nil, elements for texels (the index in between 2 and 7) in the vertices are used for the
-	// first image's information. Fix this.
 	width := float32(1)
 	height := float32(1)
+	// src is nil when a shader is used and there are no images in the uniform variables.
 	if src != nil {
 		w, h := src.InternalSize()
 		width = float32(w)
@@ -156,21 +155,14 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst, src *Image, vertices []f
 		split = true
 	}
 
-	const (
-		maxUint = ^uint(0)
-		maxInt  = int(maxUint >> 1)
-	)
-
 	if src != nil {
 		q.appendVertices(vertices, src)
 	} else {
 		var img *Image
-		id := maxInt
-		for k, v := range uniforms {
-			if i, ok := v.(*Image); ok && id > k {
+		for _, v := range uniforms {
+			if i, ok := v.(*Image); ok {
 				img = i
-				id = k
-				continue
+				break
 			}
 		}
 		q.appendVertices(vertices, img)
