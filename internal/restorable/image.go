@@ -249,7 +249,10 @@ func fillImage(i *graphicscommand.Image, clr color.RGBA) {
 		compositemode = driver.CompositeModeCopy
 	}
 
-	// TODO: Integrate with clearColor
+	// This needs to use 'InternalSize' to render the whole region, or edges are unexpectedly cleared on some
+	// devices.
+	//
+	// TODO: Can we unexport InternalSize()?
 	dw, dh := i.InternalSize()
 	sw, sh := emptyImage.image.InternalSize()
 	vs := quadVertices(0, 0, float32(dw), float32(dh), 0, 0, float32(sw), float32(sh), rf, gf, bf, af)
