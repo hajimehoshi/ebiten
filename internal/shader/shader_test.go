@@ -88,6 +88,11 @@ func Foo(foo vec2) vec4 {
 			var foo vec4
 			r.z = foo.z
 		}
+		{
+			r.y = foo.y
+			var foo vec4
+			r.z = foo.z
+		}
 	}
 	return r
 }`,
@@ -96,6 +101,11 @@ func Foo(foo vec2) vec4 {
 	{
 		vec3 l3 = vec3(0.0);
 		(l2).x = (l0).x;
+		{
+			vec4 l4 = vec4(0.0);
+			(l2).y = (l3).y;
+			(l2).z = (l4).z;
+		}
 		{
 			vec4 l4 = vec4(0.0);
 			(l2).y = (l3).y;
