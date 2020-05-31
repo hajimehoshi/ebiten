@@ -28,7 +28,7 @@ import (
 type variable struct {
 	name string
 	typ  typ
-	init ast.Expr
+	init shaderir.Expr
 }
 
 type constant struct {
@@ -66,6 +66,22 @@ type block struct {
 	outer  *block
 
 	ir shaderir.Block
+}
+
+func (b *block) findLocalVariable(name string) (int, bool) {
+	idx := 0
+	for outer := b.outer; outer != nil; outer = outer.outer {
+		idx += len(outer.vars)
+	}
+	for i, v := range b.vars {
+		if v.name == name {
+			return idx + i, true
+		}
+	}
+	if b.outer != nil {
+		return b.outer.findLocalVariable(name)
+	}
+	return 0, false
 }
 
 type ParseError struct {
@@ -106,7 +122,7 @@ func (s *compileState) addError(pos token.Pos, str string) {
 
 func (cs *compileState) parse(f *ast.File) {
 	for _, d := range f.Decls {
-		cs.parseDecl(&cs.global, d, true)
+		cs.parseDecl(&cs.global, d)
 	}
 
 	if len(cs.errs) > 0 {
@@ -118,7 +134,7 @@ func (cs *compileState) parse(f *ast.File) {
 	}
 }
 
-func (cs *compileState) parseDecl(b *block, d ast.Decl, global bool) {
+func (cs *compileState) parseDecl(b *block, d ast.Decl) {
 	switch d := d.(type) {
 	case *ast.GenDecl:
 		switch d.Tok {
@@ -140,17 +156,20 @@ func (cs *compileState) parseDecl(b *block, d ast.Decl, global bool) {
 			for _, s := range d.Specs {
 				s := s.(*ast.ValueSpec)
 				vs := cs.parseVariable(b, s)
-				if !global {
-					b.vars = append(b.vars, vs...)
+				if b == &cs.global {
+					for i, v := range vs {
+						if v.name[0] < 'A' || 'Z' < v.name[0] {
+							cs.addError(s.Names[i].Pos(), fmt.Sprintf("global variables must be exposed: %s", v.name))
+						}
+						// TODO: Check init
+						cs.uniforms = append(cs.uniforms, v.name)
+						cs.ir.Uniforms = append(cs.ir.Uniforms, v.typ.ir)
+					}
 					continue
 				}
-				for i, v := range vs {
-					if v.name[0] < 'A' || 'Z' < v.name[0] {
-						cs.addError(s.Names[i].Pos(), fmt.Sprintf("global variables must be exposed: %s", v.name))
-					}
-					// TODO: Check RHS
-					cs.uniforms = append(cs.uniforms, v.name)
-					cs.ir.Uniforms = append(cs.ir.Uniforms, v.typ.ir)
+				for _, v := range vs {
+					b.vars = append(b.vars, v)
+					b.ir.LocalVars = append(b.ir.LocalVars, v.typ.ir)
 				}
 			}
 		case token.IMPORT:
@@ -181,10 +200,14 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) []variable
 			}
 		}
 		name := n.Name
+		var e shaderir.Expr
+		if init != nil {
+			e = s.parseExpr(block, init)
+		}
 		vars = append(vars, variable{
 			name: name,
 			typ:  t,
-			init: init,
+			init: e,
 		})
 	}
 	return vars
@@ -298,20 +321,26 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 				}
 			case token.ASSIGN:
 				// TODO: What about the statement `a,b = b,a?`
-				for range l.Rhs {
-					/*block.stmts = append(block.stmts, stmt{
-						stmtType: stmtAssign,
-						exprs:    []ast.Expr{l.Lhs[i], l.Rhs[i]},
-					})*/
+				for i := range l.Rhs {
+					block.ir.Stmts = append(block.ir.Stmts, shaderir.Stmt{
+						Type: shaderir.Assign,
+						Exprs: []shaderir.Expr{
+							cs.parseExpr(block, l.Lhs[i]),
+							cs.parseExpr(block, l.Rhs[i]),
+						},
+					})
 				}
 			}
 		case *ast.BlockStmt:
-			/*block.stmts = append(block.stmts, stmt{
-				stmtType: stmtBlock,
-				block:    cs.parseBlock(block, l),
-			})*/
+			b := cs.parseBlock(block, l, nil, nil)
+			block.ir.Stmts = append(block.ir.Stmts, shaderir.Stmt{
+				Type: shaderir.BlockStmt,
+				Blocks: []shaderir.Block{
+					b.ir,
+				},
+			})
 		case *ast.DeclStmt:
-			cs.parseDecl(block, l.Decl, false)
+			cs.parseDecl(block, l.Decl)
 		case *ast.ReturnStmt:
 			for i, r := range l.Results {
 				e := cs.parseExpr(block, r)
@@ -377,18 +406,6 @@ func (s *compileState) detectType(b *block, expr ast.Expr) typ {
 		s.addError(expr.Pos(), fmt.Sprintf("detecting type not implemented: %#v", expr))
 		return typ{}
 	}
-}
-
-func (b *block) findLocalVariable(name string) (int, bool) {
-	for i, v := range b.vars {
-		if v.name == name {
-			return i, true
-		}
-	}
-	if b.outer != nil {
-		return b.outer.findLocalVariable(name)
-	}
-	return 0, false
 }
 
 func (cs *compileState) parseExpr(block *block, expr ast.Expr) shaderir.Expr {

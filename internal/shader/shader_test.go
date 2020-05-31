@@ -37,8 +37,6 @@ var (
 )`,
 			VS: `uniform vec2 U0;
 uniform vec4 U1;`,
-			FS: `uniform vec2 U0;
-uniform vec4 U1;`,
 		},
 		{
 			Name: "func",
@@ -47,8 +45,6 @@ uniform vec4 U1;`,
 func Foo(foo vec2) vec4 {
 }`,
 			VS: `void F0(in vec2 l0, out vec4 l1) {
-}`,
-			FS: `void F0(in vec2 l0, out vec4 l1) {
 }`,
 		},
 		{
@@ -59,10 +55,6 @@ func Foo(foo vec2) vec4 {
 	return vec4(foo, 0, 1)
 }`,
 			VS: `void F0(in vec2 l0, out vec4 l1) {
-	l1 = vec4(l0, 0, 1);
-	return;
-}`,
-			FS: `void F0(in vec2 l0, out vec4 l1) {
 	l1 = vec4(l0, 0, 1);
 	return;
 }`,
@@ -81,11 +73,36 @@ func Foo(foo vec4) (float, float, float, float) {
 	l4 = (l0).w;
 	return;
 }`,
-			FS: `void F0(in vec4 l0, out float l1, out float l2, out float l3, out float l4) {
-	l1 = (l0).x;
-	l2 = (l0).y;
-	l3 = (l0).z;
-	l4 = (l0).w;
+		},
+		{
+			Name: "blocks",
+			Src: `package main
+
+func Foo(foo vec2) vec4 {
+	var r vec4
+	{
+		r.x = foo.x
+		var foo vec3
+		{
+			r.y = foo.y
+			var foo vec4
+			r.z = foo.z
+		}
+	}
+	return r
+}`,
+			VS: `void F0(in vec2 l0, out vec4 l1) {
+	vec4 l2 = vec4(0.0);
+	{
+		vec3 l3 = vec3(0.0);
+		(l2).x = (l0).x;
+		{
+			vec4 l4 = vec4(0.0);
+			(l2).y = (l3).y;
+			(l2).z = (l4).z;
+		}
+	}
+	l1 = l2;
 	return;
 }`,
 		},
@@ -100,8 +117,10 @@ func Foo(foo vec4) (float, float, float, float) {
 		if got, want := vs, tc.VS+"\n"; got != want {
 			t.Errorf("%s: got: %v, want: %v", tc.Name, got, want)
 		}
-		if got, want := fs, tc.FS+"\n"; got != want {
-			t.Errorf("%s: got: %v, want: %v", tc.Name, got, want)
+		if tc.FS != "" {
+			if got, want := fs, tc.FS+"\n"; got != want {
+				t.Errorf("%s: got: %v, want: %v", tc.Name, got, want)
+			}
 		}
 	}
 }

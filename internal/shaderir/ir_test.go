@@ -296,12 +296,12 @@ varying vec3 V0;`,
 				},
 			},
 			GlslVS: `void F0(in float l0, inout float l1, out float l2) {
-	mat4 l3;
-	mat4 l4;
+	mat4 l3 = mat4(0.0);
+	mat4 l4 = mat4(0.0);
 }`,
 			GlslFS: `void F0(in float l0, inout float l1, out float l2) {
-	mat4 l3;
-	mat4 l4;
+	mat4 l3 = mat4(0.0);
+	mat4 l4 = mat4(0.0);
 }`,
 		},
 		{
@@ -337,19 +337,19 @@ varying vec3 V0;`,
 				},
 			},
 			GlslVS: `void F0(in float l0, inout float l1, out float l2) {
-	mat4 l3;
-	mat4 l4;
+	mat4 l3 = mat4(0.0);
+	mat4 l4 = mat4(0.0);
 	{
-		mat4 l5;
-		mat4 l6;
+		mat4 l5 = mat4(0.0);
+		mat4 l6 = mat4(0.0);
 	}
 }`,
 			GlslFS: `void F0(in float l0, inout float l1, out float l2) {
-	mat4 l3;
-	mat4 l4;
+	mat4 l3 = mat4(0.0);
+	mat4 l4 = mat4(0.0);
 	{
-		mat4 l5;
-		mat4 l6;
+		mat4 l5 = mat4(0.0);
+		mat4 l6 = mat4(0.0);
 	}
 }`,
 		},
@@ -747,9 +747,9 @@ varying float V0;
 varying vec2 V1;
 
 void main(void) {
-	vec2 l0;
-	vec4 l1;
-	float l2;
+	vec2 l0 = vec2(0.0);
+	vec4 l1 = vec4(0.0);
+	float l2 = 0.0;
 	l1 = V0;
 	gl_FragColor = V1;
 	l0 = gl_FragCoord;

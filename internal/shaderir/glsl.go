@@ -162,6 +162,37 @@ func (p *Program) glslVarDecl(t *Type, varname string) string {
 	}
 }
 
+func (p *Program) glslVarInit(t *Type) string {
+	switch t.Main {
+	case None:
+		return "?(none)"
+	case Array:
+		panic("not implemented")
+	case Struct:
+		panic("not implemented")
+	case Bool:
+		return "false"
+	case Int:
+		return "0"
+	case Float:
+		return "0.0"
+	case Vec2:
+		return "vec2(0.0)"
+	case Vec3:
+		return "vec3(0.0)"
+	case Vec4:
+		return "vec4(0.0)"
+	case Mat2:
+		return "mat2(0.0)"
+	case Mat3:
+		return "mat3(0.0)"
+	case Mat4:
+		return "mat4(0.0)"
+	default:
+		panic(fmt.Sprintf("?(unexpected type: %s)", p.glslType(t)))
+	}
+}
+
 func (p *Program) glslFunc(f *Func) []string {
 	var args []string
 	var idx int
@@ -195,7 +226,7 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 
 	var lines []string
 	for _, t := range b.LocalVars {
-		lines = append(lines, fmt.Sprintf("%s%s;", idt, p.glslVarDecl(&t, fmt.Sprintf("l%d", localVarIndex))))
+		lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, p.glslVarDecl(&t, fmt.Sprintf("l%d", localVarIndex)), p.glslVarInit(&t)))
 		localVarIndex++
 	}
 
