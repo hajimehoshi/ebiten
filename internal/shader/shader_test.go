@@ -40,6 +40,17 @@ uniform vec4 U1;`,
 			FS: `uniform vec2 U0;
 uniform vec4 U1;`,
 		},
+		{
+			Name: "func",
+			Src: `package main
+
+func Foo(foo vec2) vec4 {
+}`,
+			VS: `void F0(in vec2 l0, out vec4 l1) {
+}`,
+			FS: `void F0(in vec2 l0, out vec4 l1) {
+}`,
+		},
 	}
 	for _, tc := range tests {
 		s, err := Compile([]byte(tc.Src))

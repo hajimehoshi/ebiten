@@ -38,11 +38,9 @@ type constant struct {
 
 type function struct {
 	name  string
-	args  []variable
-	rets  []variable
+	in    []string
+	out   []string
 	block *block
-
-	ir shaderir.Func
 }
 
 type compileState struct {
@@ -208,42 +206,44 @@ func (cs *compileState) parseFunc(d *ast.FuncDecl, block *block) function {
 		return function{}
 	}
 
-	var args []variable
+	var in []string
+	var inT []shaderir.Type
 	for _, f := range d.Type.Params.List {
 		t := cs.parseType(f.Type)
 		for _, n := range f.Names {
-			args = append(args, variable{
-				name: n.Name,
-				typ:  t,
-			})
+			in = append(in, n.Name)
+			inT = append(inT, t.ir)
 		}
 	}
 
-	var rets []variable
+	var out []string
+	var outT []shaderir.Type
 	if d.Type.Results != nil {
 		for _, f := range d.Type.Results.List {
 			t := cs.parseType(f.Type)
 			if len(f.Names) == 0 {
-				rets = append(rets, variable{
-					name: "",
-					typ:  t,
-				})
+				out = append(out, "")
+				outT = append(outT, t.ir)
 			} else {
 				for _, n := range f.Names {
-					rets = append(rets, variable{
-						name: n.Name,
-						typ:  t,
-					})
+					out = append(out, n.Name)
+					outT = append(outT, t.ir)
 				}
 			}
 		}
 	}
 
+	cs.ir.Funcs = append(cs.ir.Funcs, shaderir.Func{
+		Index:     len(cs.ir.Funcs),
+		InParams:  inT,
+		OutParams: outT,
+	})
+
 	return function{
 		name: d.Name.Name,
-		args: args,
-		rets: rets,
-		//body: cs.parseBlock(block, d.Body),
+		in:   in,
+		out:  out,
+		//block: cs.parseBlock(block, d.Body),
 	}
 }
 
