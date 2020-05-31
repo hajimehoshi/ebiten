@@ -41,6 +41,8 @@ type function struct {
 	in    []string
 	out   []string
 	block *block
+
+	ir shaderir.Func
 }
 
 type compileState struct {
@@ -63,6 +65,8 @@ type block struct {
 	funcs  []function
 	pos    token.Pos
 	outer  *block
+
+	ir shaderir.Block
 }
 
 type ParseError struct {
@@ -104,6 +108,14 @@ func (s *compileState) addError(pos token.Pos, str string) {
 func (cs *compileState) parse(f *ast.File) {
 	for _, d := range f.Decls {
 		cs.parseDecl(&cs.global, d, true)
+	}
+
+	if len(cs.errs) > 0 {
+		return
+	}
+
+	for _, f := range cs.global.funcs {
+		cs.ir.Funcs = append(cs.ir.Funcs, f.ir)
 	}
 }
 
@@ -233,17 +245,19 @@ func (cs *compileState) parseFunc(d *ast.FuncDecl, block *block) function {
 		}
 	}
 
-	cs.ir.Funcs = append(cs.ir.Funcs, shaderir.Func{
-		Index:     len(cs.ir.Funcs),
-		InParams:  inT,
-		OutParams: outT,
-	})
+	b := cs.parseBlock(block, d.Body)
 
 	return function{
-		name: d.Name.Name,
-		in:   in,
-		out:  out,
-		//block: cs.parseBlock(block, d.Body),
+		name:  d.Name.Name,
+		in:    in,
+		out:   out,
+		block: b,
+		ir: shaderir.Func{
+			Index:     len(cs.ir.Funcs),
+			InParams:  inT,
+			OutParams: outT,
+			Block:     b.ir,
+		},
 	}
 }
 
@@ -289,14 +303,22 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt) *block {
 		case *ast.DeclStmt:
 			cs.parseDecl(block, l.Decl, false)
 		case *ast.ReturnStmt:
-			var exprs []ast.Expr
 			for _, r := range l.Results {
-				exprs = append(exprs, r)
+				e := cs.parseExpr(r)
+				block.ir.Stmts = append(block.ir.Stmts, shaderir.Stmt{
+					Type: shaderir.Assign,
+					Exprs: []shaderir.Expr{
+						{
+							Type:  shaderir.LocalVariable,
+							Index: 1, // TODO: Fix this
+						},
+						e,
+					},
+				})
 			}
-			/*block.stmts = append(block.stmts, stmt{
-				stmtType: stmtReturn,
-				exprs:    exprs,
-			})*/
+			block.ir.Stmts = append(block.ir.Stmts, shaderir.Stmt{
+				Type: shaderir.Return,
+			})
 		}
 	}
 
@@ -345,4 +367,24 @@ func (s *compileState) detectType(b *block, expr ast.Expr) typ {
 		s.addError(expr.Pos(), fmt.Sprintf("detecting type not implemented: %#v", expr))
 		return typ{}
 	}
+}
+
+func (cs *compileState) parseExpr(expr ast.Expr) shaderir.Expr {
+	switch e := expr.(type) {
+	case *ast.CallExpr:
+		return shaderir.Expr{
+			Type: shaderir.Call,
+			Exprs: []shaderir.Expr{
+				cs.parseExpr(e.Fun),
+			},
+		}
+	case *ast.Ident:
+		return shaderir.Expr{
+			Type:        shaderir.BuiltinFuncExpr,
+			BuiltinFunc: shaderir.BuiltinFunc(e.Name),
+		}
+	default:
+		cs.addError(expr.Pos(), fmt.Sprintf("detecting expression not implemented: %#v", e))
+	}
+	return shaderir.Expr{}
 }

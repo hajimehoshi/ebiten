@@ -51,6 +51,22 @@ func Foo(foo vec2) vec4 {
 			FS: `void F0(in vec2 l0, out vec4 l1) {
 }`,
 		},
+		{
+			Name: "func body",
+			Src: `package main
+
+func Foo(foo vec2) vec4 {
+	return vec4(foo, 0, 1);
+}`,
+			VS: `void F0(in vec2 l0, out vec4 l1) {
+	l1 = vec4(l0, 0, 1);
+	return;
+}`,
+			FS: `void F0(in vec2 l0, out vec4 l1) {
+	l1 = vec4(l0, 0, 1);
+	return;
+}`,
+		},
 	}
 	for _, tc := range tests {
 		s, err := Compile([]byte(tc.Src))
