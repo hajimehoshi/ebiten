@@ -60,7 +60,7 @@ func Foo(foo vec2) vec4 {
 }`,
 		},
 		{
-			Name: "func multiple out params",
+			Name: "multiple out params",
 			Src: `package main
 
 func Foo(foo vec4) (float, float, float, float) {
@@ -106,21 +106,39 @@ func Foo(foo vec2) vec4 {
 	return;
 }`,
 		},
+		{
+			Name: "define",
+			Src: `package main
+
+func Foo(foo vec2) vec4 {
+	r := vec4(foo, 0, 1)
+	return r
+}`,
+			// TODO: number literals must be floats.
+			VS: `void F0(in vec2 l0, out vec4 l1) {
+	vec4 l2 = vec4(0.0);
+	l2 = vec4(l0, 0, 1);
+	l1 = l2;
+	return;
+}`,
+		},
 	}
 	for _, tc := range tests {
-		s, err := Compile([]byte(tc.Src))
-		if err != nil {
-			t.Error(err)
-			continue
-		}
-		vs, fs := s.Glsl()
-		if got, want := vs, tc.VS+"\n"; got != want {
-			t.Errorf("%s: got: %v, want: %v", tc.Name, got, want)
-		}
-		if tc.FS != "" {
-			if got, want := fs, tc.FS+"\n"; got != want {
-				t.Errorf("%s: got: %v, want: %v", tc.Name, got, want)
+		t.Run(tc.Name, func(t *testing.T) {
+			s, err := Compile([]byte(tc.Src))
+			if err != nil {
+				t.Error(err)
+				return
 			}
-		}
+			vs, fs := s.Glsl()
+			if got, want := vs, tc.VS+"\n"; got != want {
+				t.Errorf("got: %v, want: %v", got, want)
+			}
+			if tc.FS != "" {
+				if got, want := fs, tc.FS+"\n"; got != want {
+					t.Errorf("got: %v, want: %v", got, want)
+				}
+			}
+		})
 	}
 }

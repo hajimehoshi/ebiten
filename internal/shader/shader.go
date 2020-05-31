@@ -304,20 +304,21 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 		case *ast.AssignStmt:
 			switch l.Tok {
 			case token.DEFINE:
-				for i, s := range l.Lhs {
+				for i, e := range l.Lhs {
 					v := variable{
-						name: s.(*ast.Ident).Name,
+						name: e.(*ast.Ident).Name,
 					}
-					if len(l.Rhs) > 0 {
-						v.typ = cs.detectType(block, l.Rhs[i])
-					}
+					v.typ = cs.detectType(block, l.Rhs[i])
+					v.init = cs.parseExpr(block, l.Rhs[i])
 					block.vars = append(block.vars, v)
-				}
-				for range l.Rhs {
-					/*block.stmts = append(block.stmts, stmt{
-						stmtType: stmtAssign,
-						exprs:    []ast.Expr{l.Lhs[i], l.Rhs[i]},
-					})*/
+					block.ir.LocalVars = append(block.ir.LocalVars, v.typ.ir)
+					block.ir.Stmts = append(block.ir.Stmts, shaderir.Stmt{
+						Type: shaderir.Assign,
+						Exprs: []shaderir.Expr{
+							cs.parseExpr(block, l.Lhs[i]),
+							v.init,
+						},
+					})
 				}
 			case token.ASSIGN:
 				// TODO: What about the statement `a,b = b,a?`
@@ -367,17 +368,39 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 func (s *compileState) detectType(b *block, expr ast.Expr) typ {
 	switch e := expr.(type) {
 	case *ast.BasicLit:
-		if e.Kind == token.FLOAT {
+		switch e.Kind {
+		case token.FLOAT:
 			return typ{
 				ir: shaderir.Type{Main: shaderir.Float},
 			}
-		}
-		if e.Kind == token.INT {
+		case token.INT:
 			return typ{
 				ir: shaderir.Type{Main: shaderir.Int},
 			}
 		}
 		s.addError(expr.Pos(), fmt.Sprintf("unexpected literal: %s", e.Value))
+		return typ{}
+	case *ast.CallExpr:
+		n := e.Fun.(*ast.Ident).Name
+		f, ok := shaderir.ParseBuiltinFunc(n)
+		if ok {
+			switch f {
+			case shaderir.Vec2F:
+				return typ{ir: shaderir.Type{Main: shaderir.Vec2}}
+			case shaderir.Vec3F:
+				return typ{ir: shaderir.Type{Main: shaderir.Vec3}}
+			case shaderir.Vec4F:
+				return typ{ir: shaderir.Type{Main: shaderir.Vec4}}
+			case shaderir.Mat2F:
+				return typ{ir: shaderir.Type{Main: shaderir.Mat2}}
+			case shaderir.Mat3F:
+				return typ{ir: shaderir.Type{Main: shaderir.Mat3}}
+			case shaderir.Mat4F:
+				return typ{ir: shaderir.Type{Main: shaderir.Mat4}}
+				// TODO: Add more functions
+			}
+		}
+		s.addError(expr.Pos(), fmt.Sprintf("unexpected call: %s", n))
 		return typ{}
 	case *ast.CompositeLit:
 		return s.parseType(e.Type)
@@ -440,7 +463,9 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) shaderir.Expr {
 			cs.parseExpr(block, e.Fun),
 		}
 		for _, a := range e.Args {
-			exprs = append(exprs, cs.parseExpr(block, a))
+			e := cs.parseExpr(block, a)
+			// TODO: Convert integer literals to float literals if necessary.
+			exprs = append(exprs, e)
 		}
 		return shaderir.Expr{
 			Type:  shaderir.Call,
