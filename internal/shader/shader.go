@@ -217,13 +217,12 @@ func (cs *compileState) parseFunc(d *ast.FuncDecl, block *block) function {
 		return function{}
 	}
 
-	var vars []variable
-
 	var inT []shaderir.Type
+	var inParams []variable
 	for _, f := range d.Type.Params.List {
 		t := cs.parseType(f.Type)
 		for _, n := range f.Names {
-			vars = append(vars, variable{
+			inParams = append(inParams, variable{
 				name: n.Name,
 				typ:  t,
 			})
@@ -232,18 +231,19 @@ func (cs *compileState) parseFunc(d *ast.FuncDecl, block *block) function {
 	}
 
 	var outT []shaderir.Type
+	var outParams []variable
 	if d.Type.Results != nil {
 		for _, f := range d.Type.Results.List {
 			t := cs.parseType(f.Type)
 			if len(f.Names) == 0 {
-				vars = append(vars, variable{
+				outParams = append(outParams, variable{
 					name: "",
 					typ:  t,
 				})
 				outT = append(outT, t.ir)
 			} else {
 				for _, n := range f.Names {
-					vars = append(vars, variable{
+					outParams = append(outParams, variable{
 						name: n.Name,
 						typ:  t,
 					})
@@ -253,7 +253,7 @@ func (cs *compileState) parseFunc(d *ast.FuncDecl, block *block) function {
 		}
 	}
 
-	b := cs.parseBlock(block, d.Body, vars)
+	b := cs.parseBlock(block, d.Body, inParams, outParams)
 
 	return function{
 		name:  d.Name.Name,
@@ -267,9 +267,12 @@ func (cs *compileState) parseFunc(d *ast.FuncDecl, block *block) function {
 	}
 }
 
-func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, locals []variable) *block {
+func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, outParams []variable) *block {
+	vars := make([]variable, 0, len(inParams)+len(outParams))
+	vars = append(vars, inParams...)
+	vars = append(vars, outParams...)
 	block := &block{
-		vars:  locals,
+		vars:  vars,
 		outer: outer,
 	}
 
@@ -310,14 +313,14 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, locals []vari
 		case *ast.DeclStmt:
 			cs.parseDecl(block, l.Decl, false)
 		case *ast.ReturnStmt:
-			for _, r := range l.Results {
+			for i, r := range l.Results {
 				e := cs.parseExpr(block, r)
 				block.ir.Stmts = append(block.ir.Stmts, shaderir.Stmt{
 					Type: shaderir.Assign,
 					Exprs: []shaderir.Expr{
 						{
 							Type:  shaderir.LocalVariable,
-							Index: 1, // TODO: Fix this
+							Index: len(inParams) + i,
 						},
 						e,
 					},
@@ -442,6 +445,17 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) shaderir.Expr {
 			}
 		}
 		cs.addError(e.Pos(), fmt.Sprintf("unexpected identifier: %s", e.Name))
+	case *ast.SelectorExpr:
+		return shaderir.Expr{
+			Type: shaderir.FieldSelector,
+			Exprs: []shaderir.Expr{
+				cs.parseExpr(block, e.X),
+				{
+					Type:      shaderir.SwizzlingExpr,
+					Swizzling: e.Sel.Name,
+				},
+			},
+		}
 	default:
 		cs.addError(e.Pos(), fmt.Sprintf("expression not implemented: %#v", e))
 	}

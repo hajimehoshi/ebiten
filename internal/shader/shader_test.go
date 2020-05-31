@@ -56,7 +56,7 @@ func Foo(foo vec2) vec4 {
 			Src: `package main
 
 func Foo(foo vec2) vec4 {
-	return vec4(foo, 0, 1);
+	return vec4(foo, 0, 1)
 }`,
 			VS: `void F0(in vec2 l0, out vec4 l1) {
 	l1 = vec4(l0, 0, 1);
@@ -64,6 +64,28 @@ func Foo(foo vec2) vec4 {
 }`,
 			FS: `void F0(in vec2 l0, out vec4 l1) {
 	l1 = vec4(l0, 0, 1);
+	return;
+}`,
+		},
+		{
+			Name: "func multiple out params",
+			Src: `package main
+
+func Foo(foo vec4) (float, float, float, float) {
+	return foo.x, foo.y, foo.z, foo.w
+}`,
+			VS: `void F0(in vec4 l0, out float l1, out float l2, out float l3, out float l4) {
+	l1 = (l0).x;
+	l2 = (l0).y;
+	l3 = (l0).z;
+	l4 = (l0).w;
+	return;
+}`,
+			FS: `void F0(in vec4 l0, out float l1, out float l2, out float l3, out float l4) {
+	l1 = (l0).x;
+	l2 = (l0).y;
+	l3 = (l0).z;
+	l4 = (l0).w;
 	return;
 }`,
 		},
