@@ -192,3 +192,63 @@ const (
 	Not              BuiltinFunc = "not"
 	Texture2DF       BuiltinFunc = "texture2D"
 )
+
+func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
+	switch BuiltinFunc(str) {
+	case Vec2F,
+		Vec3F,
+		Vec4F,
+		Mat2F,
+		Mat3F,
+		Mat4F,
+		Radians,
+		Degrees,
+		Sin,
+		Cos,
+		Tan,
+		Asin,
+		Acos,
+		Atan,
+		Pow,
+		Exp,
+		Log,
+		Exp2,
+		Log2,
+		Sqrt,
+		Inversesqrt,
+		Abs,
+		Sign,
+		Floor,
+		Ceil,
+		Fract,
+		Mod,
+		Min,
+		Max,
+		Clamp,
+		Mix,
+		Step,
+		Smoothstep,
+		Length,
+		Distance,
+		Dot,
+		Cross,
+		Normalize,
+		Faceforward,
+		Reflect,
+		MatrixCompMult,
+		OuterProduct,
+		Transpose,
+		LessThan,
+		LessThanEqual,
+		GreaterThan,
+		GreaterThanEqual,
+		Equal,
+		NotEqual,
+		Any,
+		All,
+		Not,
+		Texture2DF:
+		return BuiltinFunc(str), true
+	}
+	return "", false
+}
