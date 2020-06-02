@@ -288,8 +288,8 @@ func ShaderProgramImages(imageNum int) shaderir.Program {
 
 	// In the fragment shader, local variables are:
 	//
-	//   0: Varying variables (vec2)
-	//   1: gl_FragCoord
+	//   0: gl_FragCoord
+	//   1: Varying variables (vec2)
 	//   2: gl_FragColor
 	//   3: Actual local variables in the main function
 
@@ -303,7 +303,7 @@ func ShaderProgramImages(imageNum int) shaderir.Program {
 	}
 	texPos := shaderir.Expr{
 		Type:  shaderir.LocalVariable,
-		Index: 0,
+		Index: 1,
 	}
 
 	var stmts []shaderir.Stmt

@@ -262,10 +262,10 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 			case &p.FragmentFunc.Block:
 				nv := len(p.Varyings)
 				switch {
-				case idx < nv:
-					return fmt.Sprintf("V%d", idx)
-				case idx == nv:
+				case idx == 0:
 					return "gl_FragCoord"
+				case idx < nv+1:
+					return fmt.Sprintf("V%d", idx-1)
 				case idx == nv+1:
 					return "gl_FragColor"
 				default:

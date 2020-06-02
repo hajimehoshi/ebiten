@@ -711,20 +711,19 @@ varying vec2 V1;`,
 				FragmentFunc: FragmentFunc{
 					Block: block(
 						[]Type{
-							{Main: Vec2},
-							{Main: Vec4},
 							{Main: Float},
+							{Main: Vec2},
 						},
 						assignStmt(
-							localVariableExpr(5),
+							localVariableExpr(3),
 							localVariableExpr(0),
 						),
 						assignStmt(
-							localVariableExpr(3),
+							localVariableExpr(4),
 							localVariableExpr(1),
 						),
 						assignStmt(
-							localVariableExpr(4),
+							localVariableExpr(5),
 							localVariableExpr(2),
 						),
 					),
@@ -747,12 +746,11 @@ varying float V0;
 varying vec2 V1;
 
 void main(void) {
-	vec2 l0 = vec2(0.0);
-	vec4 l1 = vec4(0.0);
-	float l2 = 0.0;
-	l1 = V0;
-	gl_FragColor = V1;
-	l0 = gl_FragCoord;
+	float l0 = 0.0;
+	vec2 l1 = vec2(0.0);
+	gl_FragColor = gl_FragCoord;
+	l0 = V0;
+	l1 = V1;
 }`,
 		},
 	}
