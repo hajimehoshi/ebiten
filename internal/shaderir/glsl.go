@@ -249,10 +249,10 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 				switch {
 				case idx < na:
 					return fmt.Sprintf("A%d", idx)
-				case idx < na+nv:
-					return fmt.Sprintf("V%d", idx-na)
-				case idx == na+nv:
+				case idx == na:
 					return "gl_Position"
+				case idx < na+nv+1:
+					return fmt.Sprintf("V%d", idx-na-1)
 				default:
 					return fmt.Sprintf("l%d", idx-(na+nv+1))
 				}

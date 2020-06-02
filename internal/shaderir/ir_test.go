@@ -646,15 +646,15 @@ varying vec3 V0;`,
 					Block: block(
 						nil,
 						assignStmt(
-							localVariableExpr(5),
+							localVariableExpr(3),
 							localVariableExpr(0),
 						),
 						assignStmt(
-							localVariableExpr(3),
+							localVariableExpr(4),
 							localVariableExpr(1),
 						),
 						assignStmt(
-							localVariableExpr(4),
+							localVariableExpr(5),
 							localVariableExpr(2),
 						),
 					),
@@ -695,15 +695,15 @@ varying vec2 V1;`,
 					Block: block(
 						nil,
 						assignStmt(
-							localVariableExpr(5),
+							localVariableExpr(3),
 							localVariableExpr(0),
 						),
 						assignStmt(
-							localVariableExpr(3),
+							localVariableExpr(4),
 							localVariableExpr(1),
 						),
 						assignStmt(
-							localVariableExpr(4),
+							localVariableExpr(5),
 							localVariableExpr(2),
 						),
 					),

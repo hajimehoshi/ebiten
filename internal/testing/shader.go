@@ -159,7 +159,7 @@ var (
 					Exprs: []shaderir.Expr{
 						{
 							Type:  shaderir.LocalVariable,
-							Index: 4, // the varying variable
+							Index: 5, // the varying variable
 						},
 						{
 							Type:  shaderir.LocalVariable,
@@ -172,7 +172,7 @@ var (
 					Exprs: []shaderir.Expr{
 						{
 							Type:  shaderir.LocalVariable,
-							Index: 5, // gl_Position in GLSL
+							Index: 4, // gl_Position in GLSL
 						},
 						{
 							Type: shaderir.Binary,

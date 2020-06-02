@@ -37,10 +37,10 @@ type Func struct {
 }
 
 // VertexFunc takes pseudo params, and the number if len(attributes) + len(varyings) + 1.
-// If 0 <= index < len(attributes), the params are in-params and treated as attribute variables.
-// If len(attributes) <= index < len(attributes) + len(varyings), the params are out-params and treated as varying
-// variables.
-// The last param represents the position in vec4 (gl_Position in GLSL).
+// If 0 <= index < len(attributes), the params are in-params and represent attribute variables.
+// If index == len(attributes), the param is an out-param and repesents the position in vec4 (gl_Position in GLSL)
+// If len(attributes) + 1 <= index < len(attributes) + len(varyings) + 1, the params are out-params and represent
+// varying variables.
 type VertexFunc struct {
 	Block Block
 }
