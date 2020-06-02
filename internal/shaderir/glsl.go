@@ -86,6 +86,9 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 		for i, t := range p.Varyings {
 			vslines = append(vslines, fmt.Sprintf("varying %s;", p.glslVarDecl(&t, fmt.Sprintf("V%d", i))))
 		}
+		if len(vslines) > 0 && len(p.Funcs) > 0 {
+			vslines = append(vslines, "")
+		}
 		for _, f := range p.Funcs {
 			vslines = append(vslines, p.glslFunc(&f)...)
 		}
@@ -285,7 +288,7 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 		case Unary:
 			var op string
 			switch e.Op {
-			case Add, Sub, Neg:
+			case Add, Sub, NotOp:
 				op = string(e.Op)
 			default:
 				op = fmt.Sprintf("?(unexpected op: %s)", string(e.Op))

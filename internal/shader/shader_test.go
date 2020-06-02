@@ -131,6 +131,37 @@ func Foo(foo vec2) vec4 {
 	return;
 }`,
 		},
+		{
+			Name: "vertex",
+			Src: `package main
+
+var ScreenSize vec2
+
+func Vertex(position vec2, texCoord vec2, color vec4) (position vec4, texCoord vec2, color vec4) {
+	projectionMatrix := mat4(
+		2 / ScreenSize.x, 0, 0, 0,
+		0, 2 / ScreenSize.y, 0, 0,
+		0, 0, 1, 0,
+		-1, -1, 0, 1,
+	)
+	return projectionMatrix * vec4(position, 0, 1), texCoord, color
+}`,
+			VS: `uniform vec2 U0;
+attribute vec2 A0;
+attribute vec2 A1;
+attribute vec4 A2;
+varying vec2 V0;
+varying vec4 V1;
+
+void main(void) {
+	mat4 l0 = mat4(0.0);
+	l0 = mat4((2.0) / ((U0).x), 0.0, 0.0, 0.0, 0.0, (2.0) / ((U0).y), 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -(1.0), -(1.0), 0.0, 1.0);
+	gl_Position = (l0) * (vec4(A0, 0.0, 1.0));
+	V0 = A1;
+	V1 = A2;
+	return;
+}`,
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {

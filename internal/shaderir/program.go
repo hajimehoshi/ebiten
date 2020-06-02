@@ -116,7 +116,7 @@ type Op string
 const (
 	Add                Op = "+"
 	Sub                Op = "-"
-	Neg                Op = "!"
+	NotOp              Op = "!"
 	Mul                Op = "*"
 	Div                Op = "/"
 	ModOp              Op = "%"

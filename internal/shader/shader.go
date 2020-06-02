@@ -25,6 +25,10 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
+const (
+	vertexEntry = "Vertex"
+)
+
 type variable struct {
 	name string
 	typ  typ
@@ -52,9 +56,24 @@ type compileState struct {
 	// uniforms is a collection of uniform variable names.
 	uniforms []string
 
+	// attributes is a collection of attribute variable names.
+	attributes []string
+
+	// varyings is a collection of varying variable names.
+	varyings []string
+
 	global block
 
 	errs []string
+}
+
+func (cs *compileState) findUniformVariable(name string) (int, bool) {
+	for i, u := range cs.uniforms {
+		if u == name {
+			return i, true
+		}
+	}
+	return 0, false
 }
 
 type block struct {
@@ -178,7 +197,12 @@ func (cs *compileState) parseDecl(b *block, d ast.Decl) {
 			cs.addError(d.Pos(), "unexpected token")
 		}
 	case *ast.FuncDecl:
-		b.funcs = append(b.funcs, cs.parseFunc(d, b))
+		f := cs.parseFunc(b, d)
+		if b == &cs.global && d.Name.Name == vertexEntry {
+			cs.ir.VertexFunc.Block = f.ir.Block
+		} else {
+			b.funcs = append(b.funcs, f)
+		}
 	default:
 		cs.addError(d.Pos(), "unexpected decl")
 	}
@@ -230,7 +254,7 @@ func (s *compileState) parseConstant(vs *ast.ValueSpec) []constant {
 	return cs
 }
 
-func (cs *compileState) parseFunc(d *ast.FuncDecl, block *block) function {
+func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) function {
 	if d.Name == nil {
 		cs.addError(d.Pos(), "function must have a name")
 		return function{}
@@ -242,6 +266,7 @@ func (cs *compileState) parseFunc(d *ast.FuncDecl, block *block) function {
 
 	var inT []shaderir.Type
 	var inParams []variable
+
 	for _, f := range d.Type.Params.List {
 		t := cs.parseType(f.Type)
 		for _, n := range f.Names {
@@ -255,6 +280,7 @@ func (cs *compileState) parseFunc(d *ast.FuncDecl, block *block) function {
 
 	var outT []shaderir.Type
 	var outParams []variable
+
 	if d.Type.Results != nil {
 		for _, f := range d.Type.Results.List {
 			t := cs.parseType(f.Type)
@@ -273,6 +299,32 @@ func (cs *compileState) parseFunc(d *ast.FuncDecl, block *block) function {
 					outT = append(outT, t.ir)
 				}
 			}
+		}
+	}
+
+	if block == &cs.global && d.Name.Name == vertexEntry {
+		for _, v := range inParams {
+			cs.attributes = append(cs.attributes, v.name)
+		}
+		for _, t := range inT {
+			cs.ir.Attributes = append(cs.ir.Attributes, t)
+		}
+
+		// The first out-param is treated as gl_Position in GLSL.
+		if len(outParams) == 0 {
+			cs.addError(d.Pos(), fmt.Sprintf("vertex entry point must have at least one return vec4 value for a positoin"))
+			return function{}
+		}
+		if outT[0].Main != shaderir.Vec4 {
+			cs.addError(d.Pos(), fmt.Sprintf("vertex entry point must have at least one return vec4 value for a positoin"))
+			return function{}
+		}
+
+		for _, v := range outParams[1:] {
+			cs.varyings = append(cs.varyings, v.name)
+		}
+		for _, t := range outT[1:] {
+			cs.ir.Varyings = append(cs.ir.Varyings, t)
 		}
 	}
 
@@ -458,6 +510,59 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) shaderir.Expr {
 		default:
 			cs.addError(e.Pos(), fmt.Sprintf("literal not implemented: %#v", e))
 		}
+	case *ast.BinaryExpr:
+		var op shaderir.Op
+		switch e.Op {
+		case token.ADD:
+			op = shaderir.Add
+		case token.SUB:
+			op = shaderir.Sub
+		case token.NOT:
+			op = shaderir.NotOp
+		case token.MUL:
+			op = shaderir.Mul
+		case token.QUO:
+			op = shaderir.Div
+		case token.REM:
+			op = shaderir.ModOp
+		case token.SHL:
+			op = shaderir.LeftShift
+		case token.SHR:
+			op = shaderir.RightShift
+		case token.LSS:
+			op = shaderir.LessThanOp
+		case token.LEQ:
+			op = shaderir.LessThanEqualOp
+		case token.GTR:
+			op = shaderir.GreaterThanOp
+		case token.GEQ:
+			op = shaderir.GreaterThanEqualOp
+		case token.EQL:
+			op = shaderir.EqualOp
+		case token.NEQ:
+			op = shaderir.NotEqualOp
+		case token.AND:
+			op = shaderir.And
+		case token.XOR:
+			op = shaderir.Xor
+		case token.OR:
+			op = shaderir.Or
+		case token.LAND:
+			op = shaderir.AndAnd
+		case token.LOR:
+			op = shaderir.OrOr
+		default:
+			cs.addError(e.Pos(), fmt.Sprintf("unexpected operator: %s", e.Op))
+			return shaderir.Expr{}
+		}
+		return shaderir.Expr{
+			Type: shaderir.Binary,
+			Op:   op,
+			Exprs: []shaderir.Expr{
+				cs.parseExpr(block, e.X),
+				cs.parseExpr(block, e.Y),
+			},
+		}
 	case *ast.CallExpr:
 		exprs := []shaderir.Expr{
 			cs.parseExpr(block, e.Fun),
@@ -472,15 +577,19 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) shaderir.Expr {
 			Exprs: exprs,
 		}
 	case *ast.Ident:
-		i, ok := block.findLocalVariable(e.Name)
-		if ok {
+		if i, ok := block.findLocalVariable(e.Name); ok {
 			return shaderir.Expr{
 				Type:  shaderir.LocalVariable,
 				Index: i,
 			}
 		}
-		f, ok := shaderir.ParseBuiltinFunc(e.Name)
-		if ok {
+		if i, ok := cs.findUniformVariable(e.Name); ok {
+			return shaderir.Expr{
+				Type:  shaderir.UniformVariable,
+				Index: i,
+			}
+		}
+		if f, ok := shaderir.ParseBuiltinFunc(e.Name); ok {
 			return shaderir.Expr{
 				Type:        shaderir.BuiltinFuncExpr,
 				BuiltinFunc: f,
@@ -496,6 +605,26 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) shaderir.Expr {
 					Type:      shaderir.SwizzlingExpr,
 					Swizzling: e.Sel.Name,
 				},
+			},
+		}
+	case *ast.UnaryExpr:
+		var op shaderir.Op
+		switch e.Op {
+		case token.ADD:
+			op = shaderir.Add
+		case token.SUB:
+			op = shaderir.Sub
+		case token.NOT:
+			op = shaderir.NotOp
+		default:
+			cs.addError(e.Pos(), fmt.Sprintf("unexpected operator: %s", e.Op))
+			return shaderir.Expr{}
+		}
+		return shaderir.Expr{
+			Type: shaderir.Unary,
+			Op:   op,
+			Exprs: []shaderir.Expr{
+				cs.parseExpr(block, e.X),
 			},
 		}
 	default:
