@@ -234,7 +234,8 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 	glslExpr = func(e *Expr) string {
 		switch e.Type {
 		case IntExpr:
-			return fmt.Sprintf("%d", e.Int)
+			// TODO: Cast to int if the context requries integers.
+			return fmt.Sprintf("%d.0", e.Int)
 		case FloatExpr:
 			return fmt.Sprintf("%.9e", e.Float)
 		case UniformVariable:
