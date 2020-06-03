@@ -26,7 +26,8 @@ import (
 )
 
 const (
-	vertexEntry = "Vertex"
+	vertexEntry   = "Vertex"
+	fragmentEntry = "Fragment"
 )
 
 type variable struct {
@@ -56,13 +57,9 @@ type compileState struct {
 	// uniforms is a collection of uniform variable names.
 	uniforms []string
 
-	// attributes is a collection of attribute variable names.
-	attributes []string
-
-	// varyings is a collection of varying variable names.
-	varyings []string
-
 	global block
+
+	varyingParsed bool
 
 	errs []string
 }
@@ -206,8 +203,15 @@ func (cs *compileState) parseDecl(b *block, d ast.Decl) {
 		}
 	case *ast.FuncDecl:
 		f := cs.parseFunc(b, d)
-		if b == &cs.global && d.Name.Name == vertexEntry {
-			cs.ir.VertexFunc.Block = f.ir.Block
+		if b == &cs.global {
+			switch d.Name.Name {
+			case vertexEntry:
+				cs.ir.VertexFunc.Block = f.ir.Block
+			case fragmentEntry:
+				cs.ir.FragmentFunc.Block = f.ir.Block
+			default:
+				b.funcs = append(b.funcs, f)
+			}
 		} else {
 			b.funcs = append(b.funcs, f)
 		}
@@ -310,29 +314,71 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) function {
 		}
 	}
 
-	if block == &cs.global && d.Name.Name == vertexEntry {
-		for _, v := range inParams {
-			cs.attributes = append(cs.attributes, v.name)
+	checkVaryings := func(types []shaderir.Type) {
+		if len(cs.ir.Varyings) != len(types) {
+			cs.addError(d.Pos(), fmt.Sprintf("the number of vertex entry point's returning values and the number of framgent entry point's params must be the same"))
+			return
 		}
-		for _, t := range inT {
-			cs.ir.Attributes = append(cs.ir.Attributes, t)
+		for i, t := range cs.ir.Varyings {
+			if t.Main != types[i].Main {
+				cs.addError(d.Pos(), fmt.Sprintf("vertex entry point's returning value types and framgent entry point's param types must match"))
+			}
 		}
+	}
 
-		// The first out-param is treated as gl_Position in GLSL.
-		if len(outParams) == 0 {
-			cs.addError(d.Pos(), fmt.Sprintf("vertex entry point must have at least one return vec4 value for a positoin"))
-			return function{}
-		}
-		if outT[0].Main != shaderir.Vec4 {
-			cs.addError(d.Pos(), fmt.Sprintf("vertex entry point must have at least one return vec4 value for a positoin"))
-			return function{}
-		}
+	if block == &cs.global {
+		switch d.Name.Name {
+		case vertexEntry:
+			for _, t := range inT {
+				cs.ir.Attributes = append(cs.ir.Attributes, t)
+			}
 
-		for _, v := range outParams[1:] {
-			cs.varyings = append(cs.varyings, v.name)
-		}
-		for _, t := range outT[1:] {
-			cs.ir.Varyings = append(cs.ir.Varyings, t)
+			// The first out-param is treated as gl_Position in GLSL.
+			if len(outParams) == 0 {
+				cs.addError(d.Pos(), fmt.Sprintf("vertex entry point must have at least one returning vec4 value for a position"))
+				return function{}
+			}
+			if outT[0].Main != shaderir.Vec4 {
+				cs.addError(d.Pos(), fmt.Sprintf("vertex entry point must have at least one returning vec4 value for a position"))
+				return function{}
+			}
+
+			if cs.varyingParsed {
+				checkVaryings(outT[1:])
+			} else {
+				for _, t := range outT[1:] {
+					// TODO: Check that these params are not arrays or structs
+					cs.ir.Varyings = append(cs.ir.Varyings, t)
+				}
+			}
+			cs.varyingParsed = true
+		case fragmentEntry:
+			if len(inParams) == 0 {
+				cs.addError(d.Pos(), fmt.Sprintf("fragment entry point must have at least one vec4 parameter for a position"))
+				return function{}
+			}
+			if inT[0].Main != shaderir.Vec4 {
+				cs.addError(d.Pos(), fmt.Sprintf("fragment entry point must have at least one vec4 parameter for a position"))
+				return function{}
+			}
+
+			if len(outParams) != 1 {
+				cs.addError(d.Pos(), fmt.Sprintf("fragment entry point must have one returning vec4 value for a color"))
+				return function{}
+			}
+			if outT[0].Main != shaderir.Vec4 {
+				cs.addError(d.Pos(), fmt.Sprintf("fragment entry point must have one returning vec4 value for a color"))		
+				return function{}
+			}
+
+			if cs.varyingParsed {
+				checkVaryings(inT[1:])
+			} else {
+				for _, t := range inT[1:] {
+					cs.ir.Varyings = append(cs.ir.Varyings, t)
+				}
+			}
+			cs.varyingParsed = true
 		}
 	}
 
