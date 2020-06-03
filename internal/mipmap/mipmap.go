@@ -200,7 +200,12 @@ func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16
 		}
 	}
 
-	m.orig.DrawTriangles(src.orig, vertices, indices, colorm, mode, filter, address, s, us)
+	var srcOrig *shareable.Image
+	if src != nil {
+		srcOrig = src.orig
+	}
+
+	m.orig.DrawTriangles(srcOrig, vertices, indices, colorm, mode, filter, address, s, us)
 	m.disposeMipmaps()
 }
 

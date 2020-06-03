@@ -288,8 +288,20 @@ func (i *Image) drawImage(src *Image, bounds image.Rectangle, g mipmap.GeoM, col
 //
 // Copying vertices and indices is the caller's responsibility.
 func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, shader *Shader, uniforms []interface{}) {
-	if i == src {
-		panic("buffered: Image.DrawTriangles: src must be different from the receiver")
+	var srcs []*Image
+	if src != nil {
+		srcs = append(srcs, src)
+	}
+	for _, u := range uniforms {
+		if src, ok := u.(*Image); ok {
+			srcs = append(srcs, src)
+		}
+	}
+
+	for _, src := range srcs {
+		if i == src {
+			panic("buffered: Image.DrawTriangles: src must be different from the receiver")
+		}
 	}
 
 	delayedCommandsM.Lock()
@@ -304,7 +316,9 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 		return
 	}
 
-	src.resolvePendingPixels(true)
+	for _, src := range srcs {
+		src.resolvePendingPixels(true)
+	}
 	i.resolvePendingPixels(false)
 
 	var s *mipmap.Shader
@@ -322,7 +336,11 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 		}
 	}
 
-	i.img.DrawTriangles(src.img, vertices, indices, colorm, mode, filter, address, s, us)
+	var srcImg *mipmap.Mipmap
+	if src != nil {
+		srcImg = src.img
+	}
+	i.img.DrawTriangles(srcImg, vertices, indices, colorm, mode, filter, address, s, us)
 }
 
 type Shader struct {

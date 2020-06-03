@@ -384,7 +384,26 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 	}
 	theImages.makeStaleIfDependingOn(i)
 
-	if (img != nil && (img.stale || img.volatile)) || i.screen || !needsRestoring() || i.volatile {
+	var srcs []*Image
+	if img != nil {
+		srcs = append(srcs, img)
+	}
+	for _, u := range uniforms {
+		if src, ok := u.(*Image); ok {
+			srcs = append(srcs, src)
+		}
+	}
+
+	// TODO: Add tests to confirm this logic.
+	var srcstale bool
+	for _, src := range srcs {
+		if src.stale || src.volatile {
+			srcstale = true
+			break
+		}
+	}
+
+	if srcstale || i.screen || !needsRestoring() || i.volatile {
 		i.makeStale()
 	} else {
 		i.appendDrawTrianglesHistory(img, vertices, indices, colorm, mode, filter, address, shader, uniforms)

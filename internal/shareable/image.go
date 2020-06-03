@@ -286,34 +286,54 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 	backendsM.Lock()
 	// Do not use defer for performance.
 
-	if img.disposed {
-		panic("shareable: the drawing source image must not be disposed (DrawTriangles)")
+	var srcs []*Image
+	if img != nil {
+		srcs = append(srcs, img)
+	}
+	for _, u := range uniforms {
+		if src, ok := u.(*Image); ok {
+			srcs = append(srcs, src)
+		}
+	}
+
+	for _, src := range srcs {
+		if src.disposed {
+			panic("shareable: the drawing source image must not be disposed (DrawTriangles)")
+		}
 	}
 	if i.disposed {
 		panic("shareable: the drawing target image must not be disposed (DrawTriangles)")
 	}
-	if img.backend == nil {
-		img.allocate(true)
+
+	for _, src := range srcs {
+		if src.backend == nil {
+			src.allocate(true)
+		}
 	}
 
 	i.ensureNotShared()
 
-	// Compare i and img after ensuring i is not shared, or
-	// i and img might share the same texture even though i != img.
-	if i.backend.restorable == img.backend.restorable {
-		panic("shareable: Image.DrawTriangles: img must be different from the receiver")
+	// Compare i and source images after ensuring i is not shared, or
+	// i and a source image might share the same texture even though i != src.
+	for _, src := range srcs {
+		if i.backend.restorable == src.backend.restorable {
+			panic("shareable: Image.DrawTriangles: source must be different from the receiver")
+		}
 	}
 
-	ox, oy, _, _ := img.region()
-	oxf, oyf := float32(ox), float32(oy)
-	n := len(vertices) / graphics.VertexFloatNum
-	for i := 0; i < n; i++ {
-		vertices[i*graphics.VertexFloatNum+2] += oxf
-		vertices[i*graphics.VertexFloatNum+3] += oyf
-		vertices[i*graphics.VertexFloatNum+4] += oxf
-		vertices[i*graphics.VertexFloatNum+5] += oyf
-		vertices[i*graphics.VertexFloatNum+6] += oxf
-		vertices[i*graphics.VertexFloatNum+7] += oyf
+	var oxf, oyf float32
+	if len(srcs) > 0 {
+		ox, oy, _, _ := srcs[0].region()
+		oxf, oyf = float32(ox), float32(oy)
+		n := len(vertices) / graphics.VertexFloatNum
+		for i := 0; i < n; i++ {
+			vertices[i*graphics.VertexFloatNum+2] += oxf
+			vertices[i*graphics.VertexFloatNum+3] += oyf
+			vertices[i*graphics.VertexFloatNum+4] += oxf
+			vertices[i*graphics.VertexFloatNum+5] += oyf
+			vertices[i*graphics.VertexFloatNum+6] += oxf
+			vertices[i*graphics.VertexFloatNum+7] += oyf
+		}
 	}
 
 	var s *restorable.Shader
@@ -343,13 +363,19 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 		}
 	}
 
-	i.backend.restorable.DrawTriangles(img.backend.restorable, vertices, indices, colorm, mode, filter, address, s, us)
+	var r *restorable.Image
+	if img != nil {
+		r = img.backend.restorable
+	}
+	i.backend.restorable.DrawTriangles(r, vertices, indices, colorm, mode, filter, address, s, us)
 
 	i.nonUpdatedCount = 0
 	delete(imagesToMakeShared, i)
 
-	if !img.isShared() && img.shareable() {
-		imagesToMakeShared[img] = struct{}{}
+	for _, src := range srcs {
+		if !src.isShared() && src.shareable() {
+			imagesToMakeShared[src] = struct{}{}
+		}
 	}
 
 	backendsM.Unlock()
