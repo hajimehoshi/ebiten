@@ -140,8 +140,16 @@ func (s *compileState) addError(pos token.Pos, str string) {
 }
 
 func (cs *compileState) parse(f *ast.File) {
+	// Parse GenDecl for global variables, and then parse functions.
 	for _, d := range f.Decls {
-		cs.parseDecl(&cs.global, d)
+		if _, ok := d.(*ast.FuncDecl); !ok {
+			cs.parseDecl(&cs.global, d)
+		}
+	}
+	for _, d := range f.Decls {
+		if _, ok := d.(*ast.FuncDecl); ok {
+			cs.parseDecl(&cs.global, d)
+		}
 	}
 
 	if len(cs.errs) > 0 {
