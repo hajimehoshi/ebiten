@@ -367,7 +367,7 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) function {
 				return function{}
 			}
 			if outT[0].Main != shaderir.Vec4 {
-				cs.addError(d.Pos(), fmt.Sprintf("fragment entry point must have one returning vec4 value for a color"))		
+				cs.addError(d.Pos(), fmt.Sprintf("fragment entry point must have one returning vec4 value for a color"))
 				return function{}
 			}
 
