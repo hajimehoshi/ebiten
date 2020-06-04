@@ -15,16 +15,25 @@
 package ebiten
 
 import (
+	"bytes"
+
 	"github.com/hajimehoshi/ebiten/internal/buffered"
 	"github.com/hajimehoshi/ebiten/internal/shader"
 )
+
+const shaderSuffix = `
+var Internal_ViewportSize vec2`
 
 type Shader struct {
 	shader *buffered.Shader
 }
 
 func NewShader(src []byte) (*Shader, error) {
-	s, err := shader.Compile(src, "Vertex", "Fragment")
+	var b bytes.Buffer
+	b.Write(src)
+	b.Write([]byte(shaderSuffix))
+
+	s, err := shader.Compile(b.Bytes(), "Vertex", "Fragment")
 	if err != nil {
 		return nil, err
 	}
