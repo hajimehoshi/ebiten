@@ -15,11 +15,21 @@
 package ebiten
 
 import (
+	"sync"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 )
+
+var (
+	deviceScaleFactorReady chan struct{} = make(chan struct{})
+	deviceScaleFactorOnce  sync.Once
+)
+
+func unlockDeviceScaleFactor() {
+	close(deviceScaleFactorReady)
+}
 
 // Game defines necessary functions for a game.
 type Game interface {
@@ -510,12 +520,17 @@ func SetRunnableInBackground(runnableInBackground bool) {
 // DeviceScaleFactor returns a meaningful value on high-DPI display environment,
 // otherwise DeviceScaleFactor returns 1.
 //
-// DeviceScaleFactor might panic on init function on some devices like Android.
+// DeviceScaleFactor return an incorrect value on init function on some devices like Android.
 // Then, it is not recommended to call DeviceScaleFactor from init functions.
 //
 // DeviceScaleFactor must be called on the main thread before the main loop, and is concurrent-safe after the main loop.
 func DeviceScaleFactor() float64 {
-	return uiDriver().DeviceScaleFactor()
+	select {
+	case <-deviceScaleFactorReady:
+		return uiDriver().DeviceScaleFactor()
+	default:
+		return 1
+	}
 }
 
 // IsVsyncEnabled returns a boolean value indicating whether

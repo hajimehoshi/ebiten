@@ -238,6 +238,9 @@ func (c *uiContext) Update() error {
 	if err := buffered.BeginFrame(); err != nil {
 		return err
 	}
+	// closes deviceScaleFactorReady so DeviceScaleFactor can be called without crashing
+	// android devices
+	deviceScaleFactorOnce.Do(unlockDeviceScaleFactor)
 	if err := c.update(); err != nil {
 		return err
 	}
