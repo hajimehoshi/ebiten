@@ -136,6 +136,26 @@ func (cs *compileState) parse(f *ast.File) {
 			cs.parseDecl(&cs.global, d)
 		}
 	}
+
+	// Sort the uniform variable so that special variable starting with __ should come first.
+	var unames []string
+	var utypes []shaderir.Type
+	for i, u := range cs.uniforms {
+		if strings.HasPrefix(u, "__") {
+			unames = append(unames, u)
+			utypes = append(utypes, cs.ir.Uniforms[i])
+		}
+	}
+	for i, u := range cs.uniforms {
+		if !strings.HasPrefix(u, "__") {
+			unames = append(unames, u)
+			utypes = append(utypes, cs.ir.Uniforms[i])
+		}
+	}
+	cs.uniforms = unames
+	cs.ir.Uniforms = utypes
+
+	// Parse functions.
 	for _, d := range f.Decls {
 		if _, ok := d.(*ast.FuncDecl); ok {
 			cs.parseDecl(&cs.global, d)
@@ -175,10 +195,12 @@ func (cs *compileState) parseDecl(b *block, d ast.Decl) {
 				vs := cs.parseVariable(b, s)
 				if b == &cs.global {
 					for i, v := range vs {
-						if v.name[0] < 'A' || 'Z' < v.name[0] {
-							cs.addError(s.Names[i].Pos(), fmt.Sprintf("global variables must be exposed: %s", v.name))
+						if !strings.HasPrefix(v.name, "__") {
+							if v.name[0] < 'A' || 'Z' < v.name[0] {
+								cs.addError(s.Names[i].Pos(), fmt.Sprintf("global variables must be exposed: %s", v.name))
+							}
 						}
-						// TODO: Check init
+						// TODO: Check rhs
 						cs.uniforms = append(cs.uniforms, v.name)
 						cs.ir.Uniforms = append(cs.ir.Uniforms, v.typ.ir)
 					}

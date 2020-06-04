@@ -36,7 +36,7 @@ func TestShader(t *testing.T) {
 	ir := etesting.ShaderProgramFill(0xff, 0, 0, 0xff)
 	s := NewShader(&ir)
 	us := []interface{}{
-		0: []float32{1, 1},
+		[]float32{0, 0},
 	}
 	img.DrawTriangles(nil, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero, s, us)
 
@@ -73,7 +73,7 @@ func TestShaderChain(t *testing.T) {
 	s := NewShader(&ir)
 	for i := 0; i < num-1; i++ {
 		us := []interface{}{
-			[]float32{1, 1},
+			[]float32{0, 0},
 			imgs[i],
 		}
 		imgs[i+1].DrawTriangles(nil, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero, s, us)
@@ -113,7 +113,7 @@ func TestShaderMultipleSources(t *testing.T) {
 	ir := etesting.ShaderProgramImages(3)
 	s := NewShader(&ir)
 	us := []interface{}{
-		[]float32{1, 1},
+		[]float32{0, 0},
 		srcs[0],
 		srcs[1],
 		[]float32{0, 0, 1, 1},
@@ -150,7 +150,7 @@ func TestShaderDispose(t *testing.T) {
 	ir := etesting.ShaderProgramFill(0xff, 0, 0, 0xff)
 	s := NewShader(&ir)
 	us := []interface{}{
-		[]float32{1, 1},
+		[]float32{0, 0},
 	}
 	img.DrawTriangles(nil, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero, s, us)
 

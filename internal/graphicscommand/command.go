@@ -453,6 +453,13 @@ func (c *drawTrianglesCommand) Exec(indexOffset int) error {
 				us[i] = v
 			}
 		}
+
+		// The last uniform variables are added at /shader.go and represents a viewport size.
+		w, h := c.dst.InternalSize()
+		viewport := us[0].([]float32)
+		viewport[0] = float32(w)
+		viewport[1] = float32(h)
+
 		return theGraphicsDriver.DrawShader(c.dst.image.ID(), c.shader.shader.ID(), c.nindices, indexOffset, c.mode, us)
 	}
 	return theGraphicsDriver.Draw(c.dst.image.ID(), c.src.image.ID(), c.nindices, indexOffset, c.mode, c.color, c.filter, c.address)

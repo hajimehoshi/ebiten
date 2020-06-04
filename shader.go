@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"bytes"
 	"go/parser"
 	"go/token"
 
@@ -22,13 +23,20 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/shader"
 )
 
+const shaderSuffix = `
+var __viewportSize vec2`
+
 type Shader struct {
 	shader *buffered.Shader
 }
 
 func NewShader(src []byte) (*Shader, error) {
+	var buf bytes.Buffer
+	buf.Write(src)
+	buf.WriteString(shaderSuffix)
+
 	fs := token.NewFileSet()
-	f, err := parser.ParseFile(fs, "", src, parser.AllErrors)
+	f, err := parser.ParseFile(fs, "", buf.Bytes(), parser.AllErrors)
 	if err != nil {
 		return nil, err
 	}

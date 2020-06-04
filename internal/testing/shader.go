@@ -192,7 +192,7 @@ var (
 func defaultProgram() shaderir.Program {
 	return shaderir.Program{
 		Uniforms: []shaderir.Type{
-			{Main: shaderir.Vec2},
+			{Main: shaderir.Vec2}, // Viewport size. This must be the first uniform variable, and the values are set at graphicscommand driver.
 		},
 		Attributes: []shaderir.Type{
 			{Main: shaderir.Vec2}, // Local var (0) in the vertex shader
