@@ -211,7 +211,7 @@ void main(void) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
-			s, err := Compile([]byte(tc.Src))
+			s, err := Compile([]byte(tc.Src), "Vertex", "Fragment")
 			if err != nil {
 				t.Error(err)
 				return

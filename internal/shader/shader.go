@@ -25,11 +25,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
-const (
-	vertexEntry   = "Vertex"
-	fragmentEntry = "Fragment"
-)
-
 type variable struct {
 	name string
 	typ  typ
@@ -51,6 +46,9 @@ type function struct {
 
 type compileState struct {
 	fs *token.FileSet
+
+	vertexEntry   string
+	fragmentEntry string
 
 	ir shaderir.Program
 
@@ -108,7 +106,7 @@ func (p *ParseError) Error() string {
 	return strings.Join(p.errs, "\n")
 }
 
-func Compile(src []byte) (*shaderir.Program, error) {
+func Compile(src []byte, vertexEntry, fragmentEntry string) (*shaderir.Program, error) {
 	fs := token.NewFileSet()
 	f, err := parser.ParseFile(fs, "", src, parser.AllErrors)
 	if err != nil {
@@ -116,7 +114,9 @@ func Compile(src []byte) (*shaderir.Program, error) {
 	}
 
 	s := &compileState{
-		fs: fs,
+		fs:            fs,
+		vertexEntry:   vertexEntry,
+		fragmentEntry: fragmentEntry,
 	}
 	s.parse(f)
 
@@ -205,9 +205,9 @@ func (cs *compileState) parseDecl(b *block, d ast.Decl) {
 		f := cs.parseFunc(b, d)
 		if b == &cs.global {
 			switch d.Name.Name {
-			case vertexEntry:
+			case cs.vertexEntry:
 				cs.ir.VertexFunc.Block = f.ir.Block
-			case fragmentEntry:
+			case cs.fragmentEntry:
 				cs.ir.FragmentFunc.Block = f.ir.Block
 			default:
 				b.funcs = append(b.funcs, f)
@@ -328,7 +328,7 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) function {
 
 	if block == &cs.global {
 		switch d.Name.Name {
-		case vertexEntry:
+		case cs.vertexEntry:
 			for _, t := range inT {
 				cs.ir.Attributes = append(cs.ir.Attributes, t)
 			}
@@ -352,7 +352,7 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) function {
 				}
 			}
 			cs.varyingParsed = true
-		case fragmentEntry:
+		case cs.fragmentEntry:
 			if len(inParams) == 0 {
 				cs.addError(d.Pos(), fmt.Sprintf("fragment entry point must have at least one vec4 parameter for a position"))
 				return function{}

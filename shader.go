@@ -24,7 +24,7 @@ type Shader struct {
 }
 
 func NewShader(src []byte) (*Shader, error) {
-	s, err := shader.Compile(src)
+	s, err := shader.Compile(src, "Vertex", "Fragment")
 	if err != nil {
 		return nil, err
 	}
