@@ -384,10 +384,6 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 		}
 	}
 
-	// The last uniform variable is Internal_ViewportSize.
-	// The actual value is set at graphicscommand package.
-	us = append(us, []float32{0, 0})
-
 	var bx0, by0, bx1, by1 float32
 	if firstImage != nil {
 		b := firstImage.Bounds()
