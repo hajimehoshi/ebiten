@@ -206,7 +206,6 @@ uniform S0 U0;`,
 attribute vec2 A0;
 varying vec3 V0;`,
 			GlslFS: `uniform float U0;
-attribute vec2 A0;
 varying vec3 V0;`,
 		},
 		{
@@ -297,12 +296,12 @@ varying vec3 V0;`,
 				},
 			},
 			GlslVS: `void F0(in float l0, inout float l1, out float l2) {
-	mat4 l3;
-	mat4 l4;
+	mat4 l3 = mat4(0.0);
+	mat4 l4 = mat4(0.0);
 }`,
 			GlslFS: `void F0(in float l0, inout float l1, out float l2) {
-	mat4 l3;
-	mat4 l4;
+	mat4 l3 = mat4(0.0);
+	mat4 l4 = mat4(0.0);
 }`,
 		},
 		{
@@ -338,19 +337,19 @@ varying vec3 V0;`,
 				},
 			},
 			GlslVS: `void F0(in float l0, inout float l1, out float l2) {
-	mat4 l3;
-	mat4 l4;
+	mat4 l3 = mat4(0.0);
+	mat4 l4 = mat4(0.0);
 	{
-		mat4 l5;
-		mat4 l6;
+		mat4 l5 = mat4(0.0);
+		mat4 l6 = mat4(0.0);
 	}
 }`,
 			GlslFS: `void F0(in float l0, inout float l1, out float l2) {
-	mat4 l3;
-	mat4 l4;
+	mat4 l3 = mat4(0.0);
+	mat4 l4 = mat4(0.0);
 	{
-		mat4 l5;
-		mat4 l6;
+		mat4 l5 = mat4(0.0);
+		mat4 l6 = mat4(0.0);
 	}
 }`,
 		},
@@ -456,12 +455,12 @@ varying vec3 V0;`,
 				},
 			},
 			GlslVS: `void F0(in float l0, in float l1, out vec2 l2) {
-	(F1)();
-	l2 = (F2)(l0, l1);
+	F1();
+	l2 = F2(l0, l1);
 }`,
 			GlslFS: `void F0(in float l0, in float l1, out vec2 l2) {
-	(F1)();
-	l2 = (F2)(l0, l1);
+	F1();
+	l2 = F2(l0, l1);
 }`,
 		},
 		{
@@ -492,10 +491,10 @@ varying vec3 V0;`,
 				},
 			},
 			GlslVS: `void F0(in float l0, in float l1, out float l2) {
-	l2 = (min)(l0, l1);
+	l2 = min(l0, l1);
 }`,
 			GlslFS: `void F0(in float l0, in float l1, out float l2) {
-	l2 = (min)(l0, l1);
+	l2 = min(l0, l1);
 }`,
 		},
 		{
@@ -647,15 +646,15 @@ varying vec3 V0;`,
 					Block: block(
 						nil,
 						assignStmt(
-							localVariableExpr(5),
+							localVariableExpr(3),
 							localVariableExpr(0),
 						),
 						assignStmt(
-							localVariableExpr(3),
+							localVariableExpr(4),
 							localVariableExpr(1),
 						),
 						assignStmt(
-							localVariableExpr(4),
+							localVariableExpr(5),
 							localVariableExpr(2),
 						),
 					),
@@ -674,9 +673,6 @@ void main(void) {
 	V1 = A2;
 }`,
 			GlslFS: `uniform float U0;
-attribute vec4 A0;
-attribute float A1;
-attribute vec2 A2;
 varying float V0;
 varying vec2 V1;`,
 		},
@@ -699,15 +695,15 @@ varying vec2 V1;`,
 					Block: block(
 						nil,
 						assignStmt(
-							localVariableExpr(5),
+							localVariableExpr(3),
 							localVariableExpr(0),
 						),
 						assignStmt(
-							localVariableExpr(3),
+							localVariableExpr(4),
 							localVariableExpr(1),
 						),
 						assignStmt(
-							localVariableExpr(4),
+							localVariableExpr(5),
 							localVariableExpr(2),
 						),
 					),
@@ -715,20 +711,19 @@ varying vec2 V1;`,
 				FragmentFunc: FragmentFunc{
 					Block: block(
 						[]Type{
-							{Main: Vec2},
-							{Main: Vec4},
 							{Main: Float},
+							{Main: Vec2},
 						},
 						assignStmt(
-							localVariableExpr(5),
+							localVariableExpr(3),
 							localVariableExpr(0),
 						),
 						assignStmt(
-							localVariableExpr(3),
+							localVariableExpr(4),
 							localVariableExpr(1),
 						),
 						assignStmt(
-							localVariableExpr(4),
+							localVariableExpr(5),
 							localVariableExpr(2),
 						),
 					),
@@ -747,19 +742,15 @@ void main(void) {
 	V1 = A2;
 }`,
 			GlslFS: `uniform float U0;
-attribute vec4 A0;
-attribute float A1;
-attribute vec2 A2;
 varying float V0;
 varying vec2 V1;
 
 void main(void) {
-	vec2 l0;
-	vec4 l1;
-	float l2;
-	l2 = V0;
-	l0 = V1;
-	l1 = gl_FragCoord;
+	float l0 = 0.0;
+	vec2 l1 = vec2(0.0);
+	gl_FragColor = gl_FragCoord;
+	l0 = V0;
+	l1 = V1;
 }`,
 		},
 	}

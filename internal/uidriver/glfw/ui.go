@@ -758,7 +758,10 @@ func (u *UserInterface) updateSize() {
 				ww = v.Width
 				wh = v.Height
 			} else {
-				ww, wh = u.windowWidth, u.windowHeight
+				// Instead of u.windowWidth and u.windowHeight, use the actual window size here.
+				// On Windows, the specified size at SetSize and the actual window size might not
+				// match (#1163).
+				ww, wh = u.window.GetSize()
 			}
 			w = u.toDeviceIndependentPixel(float64(ww))
 			h = u.toDeviceIndependentPixel(float64(wh))

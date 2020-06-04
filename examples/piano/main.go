@@ -201,7 +201,10 @@ var (
 	}
 )
 
-func update(screen *ebiten.Image) error {
+type Game struct {
+}
+
+func (g *Game) Update(screen *ebiten.Image) error {
 	// The piano data is still being initialized.
 	// Get the progress if available.
 	if !pianoNoteSamplesInited {
@@ -220,20 +223,24 @@ func update(screen *ebiten.Image) error {
 			playNote(baseFreq * math.Exp2(float64(i-1)/12.0))
 		}
 	}
+	return nil
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
+func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{0x80, 0x80, 0xc0, 0xff})
 	screen.DrawImage(pianoImage, nil)
 
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
-	return nil
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Piano (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Piano (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }

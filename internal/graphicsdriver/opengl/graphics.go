@@ -20,6 +20,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/internal/thread"
 )
 
@@ -30,10 +31,14 @@ func Get() *Graphics {
 }
 
 type Graphics struct {
+	state   openGLState
+	context context
+
 	nextImageID driver.ImageID
-	state       openGLState
-	context     context
 	images      map[driver.ImageID]*Image
+
+	nextShaderID driver.ShaderID
+	shaders      map[driver.ShaderID]*Shader
 
 	// drawCalled is true just after Draw is called. This holds true until ReplacePixels is called.
 	drawCalled bool
@@ -76,6 +81,12 @@ func (g *Graphics) checkSize(width, height int) {
 func (g *Graphics) genNextImageID() driver.ImageID {
 	id := g.nextImageID
 	g.nextImageID++
+	return id
+}
+
+func (g *Graphics) genNextShaderID() driver.ShaderID {
+	id := g.nextShaderID
+	g.nextShaderID++
 	return id
 }
 
@@ -155,32 +166,50 @@ func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, 
 		address:   address,
 	}]
 
-	uniforms := map[string]interface{}{}
+	uniforms := []uniformVariable{}
 
 	vw := destination.framebuffer.width
 	vh := destination.framebuffer.height
-	uniforms["viewport_size"] = []float32{float32(vw), float32(vh)}
+	uniforms = append(uniforms, uniformVariable{
+		name:  "viewport_size",
+		value: []float32{float32(vw), float32(vh)},
+	})
 
 	if colorM != nil {
 		// ColorM's elements are immutable. It's OK to hold the reference without copying.
 		esBody, esTranslate := colorM.UnsafeElements()
-		uniforms["color_matrix_body"] = esBody
-		uniforms["color_matrix_translation"] = esTranslate
+		uniforms = append(uniforms, uniformVariable{
+			name:  "color_matrix_body",
+			value: esBody,
+		}, uniformVariable{
+			name:  "color_matrix_translation",
+			value: esTranslate,
+		})
 	}
 
 	if filter != driver.FilterNearest {
 		srcW, srcH := source.width, source.height
 		sw := graphics.InternalImageSize(srcW)
 		sh := graphics.InternalImageSize(srcH)
-		uniforms["source_size"] = []float32{float32(sw), float32(sh)}
+		uniforms = append(uniforms, uniformVariable{
+			name:  "source_size",
+			value: []float32{float32(sw), float32(sh)},
+		})
 	}
 
 	if filter == driver.FilterScreen {
 		scale := float32(destination.width) / float32(source.width)
-		uniforms["scale"] = scale
+		uniforms = append(uniforms, uniformVariable{
+			name:  "scale",
+			value: scale,
+		})
 	}
 
-	uniforms["texture/0"] = source.textureNative
+	uniforms = append(uniforms, uniformVariable{
+		name:         "texture",
+		value:        source.textureNative,
+		textureIndex: 0,
+	})
 
 	if err := g.useProgram(program, uniforms); err != nil {
 		return err
@@ -217,4 +246,59 @@ func (g *Graphics) HasHighPrecisionFloat() bool {
 
 func (g *Graphics) MaxImageSize() int {
 	return g.context.getMaxTextureSize()
+}
+
+func (g *Graphics) NewShader(program *shaderir.Program) (driver.Shader, error) {
+	s, err := NewShader(g.genNextShaderID(), g, program)
+	if err != nil {
+		return nil, err
+	}
+	g.addShader(s)
+	return s, nil
+}
+
+func (g *Graphics) addShader(shader *Shader) {
+	if g.shaders == nil {
+		g.shaders = map[driver.ShaderID]*Shader{}
+	}
+	if _, ok := g.shaders[shader.id]; ok {
+		panic(fmt.Sprintf("opengl: shader ID %d was already registered", shader.id))
+	}
+	g.shaders[shader.id] = shader
+}
+
+func (g *Graphics) removeShader(shader *Shader) {
+	delete(g.shaders, shader.id)
+}
+
+func (g *Graphics) DrawShader(dst driver.ImageID, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms []interface{}) error {
+	d := g.images[dst]
+	s := g.shaders[shader]
+
+	g.drawCalled = true
+
+	if err := d.setViewport(); err != nil {
+		return err
+	}
+	g.context.blendFunc(mode)
+
+	us := make([]uniformVariable, len(uniforms))
+	tidx := 0
+	for k, v := range uniforms {
+		us[k].name = fmt.Sprintf("U%d", k)
+		switch v := v.(type) {
+		case driver.ImageID:
+			us[k].value = g.images[v].textureNative
+			us[k].textureIndex = tidx
+			tidx++
+		default:
+			us[k].value = v
+		}
+	}
+	if err := g.useProgram(s.p, us); err != nil {
+		return err
+	}
+	g.context.drawElements(indexLen, indexOffset*2) // 2 is uint16 size in bytes
+
+	return nil
 }

@@ -110,7 +110,7 @@ func (i *Image) resolveBufferedReplacePixels() {
 }
 
 func (i *Image) Dispose() {
-	c := &disposeCommand{
+	c := &disposeImageCommand{
 		target: i,
 	}
 	theCommandQueue.Enqueue(c)
@@ -142,9 +142,30 @@ func (i *Image) InternalSize() (int, int) {
 //   9:  Color G
 //   10: Color B
 //   11: Color Y
-func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, clr *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
-	if src.screen {
-		panic("graphicscommand: the screen image cannot be the rendering source")
+//
+// src and shader are exclusive and only either is non-nil.
+//
+// The elements that index is in between 2 and 7 are used for the source images.
+// The source image is 1) src argument if non-nil, or 2) an image value in the uniform variables if it exists.
+// If there are multiple images in the uniform variables, the smallest ID's value is adopted.
+//
+// If the source image is not specified, i.e., src is nil and there is no image in the uniform variables, the
+// elements for the source image are not used.
+func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, clr *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, shader *Shader, uniforms []interface{}) {
+	var srcs []*Image
+	if src != nil {
+		srcs = append(srcs, src)
+	}
+	for _, u := range uniforms {
+		if src, ok := u.(*Image); ok {
+			srcs = append(srcs, src)
+		}
+	}
+
+	for _, src := range srcs {
+		if src.screen {
+			panic("graphicscommand: the screen image cannot be the rendering source")
+		}
 	}
 
 	if i.lastCommand == lastCommandNone {
@@ -153,10 +174,12 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 		}
 	}
 
-	src.resolveBufferedReplacePixels()
+	for _, src := range srcs {
+		src.resolveBufferedReplacePixels()
+	}
 	i.resolveBufferedReplacePixels()
 
-	theCommandQueue.EnqueueDrawTrianglesCommand(i, src, vertices, indices, clr, mode, filter, address)
+	theCommandQueue.EnqueueDrawTrianglesCommand(i, src, vertices, indices, clr, mode, filter, address, shader, uniforms)
 
 	if i.lastCommand == lastCommandNone && !i.screen {
 		i.lastCommand = lastCommandClear

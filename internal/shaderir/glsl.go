@@ -74,51 +74,66 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 	p.structNames = map[string]string{}
 	p.structTypes = nil
 
-	var lines []string
-	for i, t := range p.Uniforms {
-		lines = append(lines, fmt.Sprintf("uniform %s;", p.glslVarDecl(&t, fmt.Sprintf("U%d", i))))
-	}
-	for i, t := range p.Attributes {
-		lines = append(lines, fmt.Sprintf("attribute %s;", p.glslVarDecl(&t, fmt.Sprintf("A%d", i))))
-	}
-	for i, t := range p.Varyings {
-		lines = append(lines, fmt.Sprintf("varying %s;", p.glslVarDecl(&t, fmt.Sprintf("V%d", i))))
-	}
-	for _, f := range p.Funcs {
-		lines = append(lines, p.glslFunc(&f)...)
-	}
-
 	// Vertex func
 	var vslines []string
-	if len(p.VertexFunc.Block.Stmts) > 0 {
-		vslines = append(vslines, "")
-		vslines = append(vslines, "void main(void) {")
-		vslines = append(vslines, p.glslBlock(&p.VertexFunc.Block, 0, 0)...)
-		vslines = append(vslines, "}")
+	{
+		for i, t := range p.Uniforms {
+			vslines = append(vslines, fmt.Sprintf("uniform %s;", p.glslVarDecl(&t, fmt.Sprintf("U%d", i))))
+		}
+		for i, t := range p.Attributes {
+			vslines = append(vslines, fmt.Sprintf("attribute %s;", p.glslVarDecl(&t, fmt.Sprintf("A%d", i))))
+		}
+		for i, t := range p.Varyings {
+			vslines = append(vslines, fmt.Sprintf("varying %s;", p.glslVarDecl(&t, fmt.Sprintf("V%d", i))))
+		}
+		if len(vslines) > 0 && len(p.Funcs) > 0 {
+			vslines = append(vslines, "")
+		}
+		for _, f := range p.Funcs {
+			vslines = append(vslines, p.glslFunc(&f)...)
+		}
+
+		if len(p.VertexFunc.Block.Stmts) > 0 {
+			vslines = append(vslines, "")
+			vslines = append(vslines, "void main(void) {")
+			vslines = append(vslines, p.glslBlock(&p.VertexFunc.Block, 0, 0)...)
+			vslines = append(vslines, "}")
+		}
 	}
 
 	// Fragment func
 	var fslines []string
-	if len(p.FragmentFunc.Block.Stmts) > 0 {
-		fslines = append(fslines, "")
-		fslines = append(fslines, "void main(void) {")
-		fslines = append(fslines, p.glslBlock(&p.FragmentFunc.Block, 0, 0)...)
-		fslines = append(fslines, "}")
-	}
-
-	var stLines []string
-	for i, t := range p.structTypes {
-		stLines = append(stLines, fmt.Sprintf("struct S%d {", i))
-		for j, st := range t.Sub {
-			stLines = append(stLines, fmt.Sprintf("\t%s;", p.glslVarDecl(&st, fmt.Sprintf("M%d", j))))
+	{
+		for i, t := range p.Uniforms {
+			fslines = append(fslines, fmt.Sprintf("uniform %s;", p.glslVarDecl(&t, fmt.Sprintf("U%d", i))))
 		}
-		stLines = append(stLines, "};")
-	}
-	lines = append(stLines, lines...)
+		for i, t := range p.Varyings {
+			fslines = append(fslines, fmt.Sprintf("varying %s;", p.glslVarDecl(&t, fmt.Sprintf("V%d", i))))
+		}
+		for _, f := range p.Funcs {
+			fslines = append(fslines, p.glslFunc(&f)...)
+		}
 
-	vslines = append(lines, vslines...)
-	tmp := make([]string, len(lines))
-	copy(tmp, lines)
+		if len(p.FragmentFunc.Block.Stmts) > 0 {
+			fslines = append(fslines, "")
+			fslines = append(fslines, "void main(void) {")
+			fslines = append(fslines, p.glslBlock(&p.FragmentFunc.Block, 0, 0)...)
+			fslines = append(fslines, "}")
+		}
+	}
+
+	var stlines []string
+	for i, t := range p.structTypes {
+		stlines = append(stlines, fmt.Sprintf("struct S%d {", i))
+		for j, st := range t.Sub {
+			stlines = append(stlines, fmt.Sprintf("\t%s;", p.glslVarDecl(&st, fmt.Sprintf("M%d", j))))
+		}
+		stlines = append(stlines, "};")
+	}
+
+	vslines = append(stlines, vslines...)
+	tmp := make([]string, len(stlines))
+	copy(tmp, stlines)
 	fslines = append(tmp, fslines...)
 
 	return strings.Join(vslines, "\n") + "\n", strings.Join(fslines, "\n") + "\n"
@@ -147,6 +162,37 @@ func (p *Program) glslVarDecl(t *Type, varname string) string {
 		return fmt.Sprintf("%s %s", p.structName(t), varname)
 	default:
 		return fmt.Sprintf("%s %s", t.Main.Glsl(), varname)
+	}
+}
+
+func (p *Program) glslVarInit(t *Type) string {
+	switch t.Main {
+	case None:
+		return "?(none)"
+	case Array:
+		panic("not implemented")
+	case Struct:
+		panic("not implemented")
+	case Bool:
+		return "false"
+	case Int:
+		return "0"
+	case Float:
+		return "0.0"
+	case Vec2:
+		return "vec2(0.0)"
+	case Vec3:
+		return "vec3(0.0)"
+	case Vec4:
+		return "vec4(0.0)"
+	case Mat2:
+		return "mat2(0.0)"
+	case Mat3:
+		return "mat3(0.0)"
+	case Mat4:
+		return "mat4(0.0)"
+	default:
+		panic(fmt.Sprintf("?(unexpected type: %s)", p.glslType(t)))
 	}
 }
 
@@ -183,7 +229,7 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 
 	var lines []string
 	for _, t := range b.LocalVars {
-		lines = append(lines, fmt.Sprintf("%s%s;", idt, p.glslVarDecl(&t, fmt.Sprintf("l%d", localVarIndex))))
+		lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, p.glslVarDecl(&t, fmt.Sprintf("l%d", localVarIndex)), p.glslVarInit(&t)))
 		localVarIndex++
 	}
 
@@ -191,7 +237,8 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 	glslExpr = func(e *Expr) string {
 		switch e.Type {
 		case IntExpr:
-			return fmt.Sprintf("%d", e.Int)
+			// TODO: Cast to int if the context requries integers.
+			return fmt.Sprintf("%d.0", e.Int)
 		case FloatExpr:
 			return fmt.Sprintf("%.9e", e.Float)
 		case UniformVariable:
@@ -205,22 +252,24 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 				switch {
 				case idx < na:
 					return fmt.Sprintf("A%d", idx)
-				case idx < na+nv:
-					return fmt.Sprintf("V%d", idx-na)
-				case idx == na+nv:
+				case idx == na:
 					return "gl_Position"
+				case idx < na+nv+1:
+					return fmt.Sprintf("V%d", idx-na-1)
 				default:
 					return fmt.Sprintf("l%d", idx-(na+nv+1))
 				}
 			case &p.FragmentFunc.Block:
 				nv := len(p.Varyings)
 				switch {
-				case idx < nv:
-					return fmt.Sprintf("V%d", idx)
-				case idx == nv:
+				case idx == 0:
 					return "gl_FragCoord"
+				case idx < nv+1:
+					return fmt.Sprintf("V%d", idx-1)
+				case idx == nv+1:
+					return "gl_FragColor"
 				default:
-					return fmt.Sprintf("l%d", idx-(nv+1))
+					return fmt.Sprintf("l%d", idx-(nv+2))
 				}
 			default:
 				return fmt.Sprintf("l%d", idx)
@@ -239,7 +288,7 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 		case Unary:
 			var op string
 			switch e.Op {
-			case Add, Sub, Neg:
+			case Add, Sub, NotOp:
 				op = string(e.Op)
 			default:
 				op = fmt.Sprintf("?(unexpected op: %s)", string(e.Op))
@@ -254,7 +303,8 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 			for _, exp := range e.Exprs[1:] {
 				args = append(args, glslExpr(&exp))
 			}
-			return fmt.Sprintf("(%s)(%s)", glslExpr(&e.Exprs[0]), strings.Join(args, ", "))
+			// Using parentheses at the callee is illegal.
+			return fmt.Sprintf("%s(%s)", glslExpr(&e.Exprs[0]), strings.Join(args, ", "))
 		case FieldSelector:
 			return fmt.Sprintf("(%s).%s", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]))
 		case Index:

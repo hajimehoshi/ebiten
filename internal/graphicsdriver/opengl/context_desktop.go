@@ -71,6 +71,7 @@ type programID uint32
 const (
 	invalidTexture     = 0
 	invalidFramebuffer = (1 << 32) - 1
+	invalidUniform     = -1
 )
 
 func getProgramID(p program) programID {
@@ -227,12 +228,7 @@ func (c *context) deleteTexture(t textureNative) {
 }
 
 func (c *context) isTexture(t textureNative) bool {
-	r := false
-	_ = c.t.Call(func() error {
-		r = gl.IsTexture(uint32(t))
-		return nil
-	})
-	return r
+	panic("opengl: isTexture is not implemented")
 }
 
 func (c *context) newFramebuffer(texture textureNative) (framebufferNative, error) {
@@ -383,31 +379,45 @@ func (c *context) getUniformLocationImpl(p program, location string) uniformLoca
 	l, free := gl.Strs(location + "\x00")
 	uniform := uniformLocation(gl.GetUniformLocation(uint32(p), *l))
 	free()
-	if uniform == -1 {
-		panic("opengl: invalid uniform location: " + location)
-	}
 	return uniform
 }
 
-func (c *context) uniformInt(p program, location string, v int) {
+func (c *context) uniformInt(p program, location string, v int) bool {
+	var r bool
 	_ = c.t.Call(func() error {
 		l := int32(c.locationCache.GetUniformLocation(c, p, location))
+		if l == invalidUniform {
+			return nil
+		}
+		r = true
 		gl.Uniform1i(l, int32(v))
 		return nil
 	})
+	return r
 }
 
-func (c *context) uniformFloat(p program, location string, v float32) {
+func (c *context) uniformFloat(p program, location string, v float32) bool {
+	var r bool
 	_ = c.t.Call(func() error {
 		l := int32(c.locationCache.GetUniformLocation(c, p, location))
+		if l == invalidUniform {
+			return nil
+		}
+		r = true
 		gl.Uniform1f(l, v)
 		return nil
 	})
+	return r
 }
 
-func (c *context) uniformFloats(p program, location string, v []float32) {
+func (c *context) uniformFloats(p program, location string, v []float32) bool {
+	var r bool
 	_ = c.t.Call(func() error {
 		l := int32(c.locationCache.GetUniformLocation(c, p, location))
+		if l == invalidUniform {
+			return nil
+		}
+		r = true
 		switch len(v) {
 		case 2:
 			gl.Uniform2fv(l, 1, (*float32)(gl.Ptr(v)))
@@ -420,6 +430,7 @@ func (c *context) uniformFloats(p program, location string, v []float32) {
 		}
 		return nil
 	})
+	return r
 }
 
 func (c *context) vertexAttribPointer(p program, index int, size int, dataType dataType, stride int, offset int) {

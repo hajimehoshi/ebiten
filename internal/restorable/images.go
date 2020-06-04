@@ -39,13 +39,16 @@ func EnableRestoringForTesting() {
 
 // images is a set of Image objects.
 type images struct {
-	images     map[*Image]struct{}
-	lastTarget *Image
+	images      map[*Image]struct{}
+	shaders     map[*Shader]struct{}
+	lastTarget  *Image
+	contextLost bool
 }
 
 // theImages represents the images for the current process.
 var theImages = &images{
-	images: map[*Image]struct{}{},
+	images:  map[*Image]struct{}{},
+	shaders: map[*Shader]struct{}{},
 }
 
 // ResolveStaleImages flushes the queued draw commands and resolves
@@ -71,21 +74,27 @@ func RestoreIfNeeded() error {
 	}
 
 	if !forceRestoring {
-		r := false
-		// As isInvalidated() is expensive, call this only for one image.
-		// This assumes that if there is one image that is invalidated, all images are invalidated.
-		for img := range theImages.images {
-			// The screen image might not have a texture. Skip this.
-			if img.screen {
-				continue
+		var r bool
+
+		if canDetectContextLostExplicitly {
+			r = theImages.contextLost
+		} else {
+			// As isInvalidated() is expensive, call this only for one image.
+			// This assumes that if there is one image that is invalidated, all images are invalidated.
+			for img := range theImages.images {
+				// The screen image might not have a texture. Skip this.
+				if img.screen {
+					continue
+				}
+				var err error
+				r, err = img.isInvalidated()
+				if err != nil {
+					return err
+				}
+				break
 			}
-			var err error
-			r, err = img.isInvalidated()
-			if err != nil {
-				return err
-			}
-			break
 		}
+
 		if !r {
 			return nil
 		}
@@ -118,10 +127,19 @@ func (i *images) add(img *Image) {
 	i.images[img] = struct{}{}
 }
 
+func (i *images) addShader(shader *Shader) {
+	i.shaders[shader] = struct{}{}
+}
+
 // remove removes img from the images.
 func (i *images) remove(img *Image) {
-	i.makeStaleIfDependingOnImpl(img)
+	i.makeStaleIfDependingOn(img)
 	delete(i.images, img)
+}
+
+func (i *images) removeShader(shader *Shader) {
+	i.makeStaleIfDependingOnShader(shader)
+	delete(i.shaders, shader)
 }
 
 // resolveStaleImages resolves stale images.
@@ -137,16 +155,11 @@ func (i *images) resolveStaleImages() error {
 
 // makeStaleIfDependingOn makes all the images stale that depend on target.
 //
-// When target is changed, all images depending on target can't be restored with target.
+// When target is modified, all images depending on target can't be restored with target.
 // makeStaleIfDependingOn is called in such situation.
 func (i *images) makeStaleIfDependingOn(target *Image) {
-	// Avoid defer for performance
-	i.makeStaleIfDependingOnImpl(target)
-}
-
-func (i *images) makeStaleIfDependingOnImpl(target *Image) {
 	if target == nil {
-		panic("restorable: target must not be nil at makeStaleIfDependingOnImpl")
+		panic("restorable: target must not be nil at makeStaleIfDependingOn")
 	}
 	if i.lastTarget == target {
 		return
@@ -154,6 +167,16 @@ func (i *images) makeStaleIfDependingOnImpl(target *Image) {
 	i.lastTarget = target
 	for img := range i.images {
 		img.makeStaleIfDependingOn(target)
+	}
+}
+
+// makeStaleIfDependingOn makes all the images stale that depend on shader.
+func (i *images) makeStaleIfDependingOnShader(shader *Shader) {
+	if shader == nil {
+		panic("restorable: shader must not be nil at makeStaleIfDependingOnShader")
+	}
+	for img := range i.images {
+		img.makeStaleIfDependingOnShader(shader)
 	}
 }
 
@@ -165,10 +188,23 @@ func (i *images) restore() error {
 		panic("restorable: restore cannot be called when restoring is disabled")
 	}
 
+	// Dispose all the shaders ahead of restoring. A current shader ID and a new shader ID can be duplicated.
+	for s := range i.shaders {
+		if needsDisposingWhenRestoring {
+			s.shader.Dispose()
+		}
+		s.shader = nil
+	}
+	for s := range i.shaders {
+		s.restore()
+	}
+
 	// Dispose all the images ahead of restoring. A current texture ID and a new texture ID can be duplicated.
 	// TODO: Write a test to confirm that ID duplication never happens.
 	for i := range i.images {
-		i.image.Dispose()
+		if needsDisposingWhenRestoring {
+			i.image.Dispose()
+		}
 		i.image = nil
 	}
 
@@ -228,10 +264,21 @@ func (i *images) restore() error {
 			return err
 		}
 	}
+
+	i.contextLost = false
+
 	return nil
 }
 
 // InitializeGraphicsDriverState initializes the graphics driver state.
 func InitializeGraphicsDriverState() error {
 	return graphicscommand.ResetGraphicsDriverState()
+}
+
+// OnContextLost is called when the context lost is detected in an explicit way.
+func OnContextLost() {
+	if !canDetectContextLostExplicitly {
+		panic("restorable: OnContextLost cannot be called in this environment")
+	}
+	theImages.contextLost = true
 }

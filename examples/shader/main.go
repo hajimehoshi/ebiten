@@ -1,4 +1,4 @@
-// Copyright 2019 The Ebiten Authors
+// Copyright 2020 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,51 +17,68 @@
 package main
 
 import (
-	"fmt"
-	"image/color"
 	"log"
-	"math/rand"
-	"time"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
 )
 
 const (
-	screenWidth  = 320
-	screenHeight = 240
+	screenWidth  = 640
+	screenHeight = 480
 )
 
-func init() {
-	rand.Seed(time.Now().UnixNano())
+const shaderSrc = `package main
+
+func Vertex(position vec2, texCoord vec2, color vec4) vec4 {
+	return mat4(
+		2.0/640, 0, 0, 0,
+		0, 2.0/480, 0, 0,
+		0, 0, 1, 0,
+		-1, -1, 0, 1,
+	) * vec4(position, 0, 1)
 }
 
-var offscreen *ebiten.Image
-
-func init() {
-	offscreen, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterDefault)
-}
+func Fragment(position vec4) vec4 {
+	return vec4(position.x/640, position.y/480, 0, 1)
+}`
 
 type Game struct {
+	shader *ebiten.Shader
 }
 
 func (g *Game) Update(screen *ebiten.Image) error {
-	w, h := offscreen.Size()
-	x := rand.Intn(w)
-	y := rand.Intn(h)
-	c := color.RGBA{
-		byte(rand.Intn(256)),
-		byte(rand.Intn(256)),
-		byte(rand.Intn(256)),
-		byte(0xff),
+	if g.shader == nil {
+		var err error
+		g.shader, err = ebiten.NewShader([]byte(shaderSrc))
+		if err != nil {
+			return err
+		}
 	}
-	offscreen.Set(x, y, c)
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	screen.DrawImage(offscreen, nil)
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f", ebiten.CurrentTPS(), ebiten.CurrentFPS()))
+	w, h := screen.Size()
+	vs := []ebiten.Vertex{
+		{
+			DstX: 0,
+			DstY: 0,
+		},
+		{
+			DstX: float32(w),
+			DstY: 0,
+		},
+		{
+			DstX: 0,
+			DstY: float32(h),
+		},
+		{
+			DstX: float32(w),
+			DstY: float32(h),
+		},
+	}
+	is := []uint16{0, 1, 2, 1, 2, 3}
+	screen.DrawTrianglesWithShader(vs, is, g.shader, nil)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -69,8 +86,8 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
-	ebiten.SetWindowTitle("Set (Ebiten Demo)")
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("Shader (Ebiten Demo)")
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}

@@ -21,11 +21,11 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	. "github.com/hajimehoshi/ebiten/internal/graphicscommand"
-	t "github.com/hajimehoshi/ebiten/internal/testing"
+	etesting "github.com/hajimehoshi/ebiten/internal/testing"
 )
 
 func TestMain(m *testing.M) {
-	t.MainWithRunLoop(m)
+	etesting.MainWithRunLoop(m)
 }
 
 func quadVertices(w, h float32) []float32 {
@@ -44,7 +44,7 @@ func TestClear(t *testing.T) {
 
 	vs := quadVertices(w/2, h/2)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressClampToZero)
+	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressClampToZero, nil, nil)
 
 	pix, err := dst.Pixels()
 	if err != nil {
@@ -74,7 +74,42 @@ func TestReplacePixelsPartAfterDrawTriangles(t *testing.T) {
 	dst := NewImage(w, h)
 	vs := quadVertices(w/2, h/2)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles(clr, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressClampToZero)
-	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero)
+	dst.DrawTriangles(clr, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressClampToZero, nil, nil)
+	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero, nil, nil)
 	dst.ReplacePixels(make([]byte, 4), 0, 0, 1, 1)
+}
+
+func TestShader(t *testing.T) {
+	if !IsShaderAvailable() {
+		t.Skip("shader is not implemented on this environment")
+	}
+
+	const w, h = 16, 16
+	clr := NewImage(w, h)
+	dst := NewImage(w, h)
+	vs := quadVertices(w, h)
+	is := graphics.QuadIndices()
+	dst.DrawTriangles(clr, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressClampToZero, nil, nil)
+
+	ir := etesting.ShaderProgramFill(0xff, 0, 0, 0xff)
+	s := NewShader(&ir)
+	us := []interface{}{
+		[]float32{w, h},
+	}
+	dst.DrawTriangles(nil, vs, is, nil, driver.CompositeModeSourceOver, 0, 0, s, us)
+
+	pix, err := dst.Pixels()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			idx := 4 * (i + w*j)
+			got := color.RGBA{pix[idx], pix[idx+1], pix[idx+2], pix[idx+3]}
+			want := color.RGBA{0xff, 0, 0, 0xff}
+			if got != want {
+				t.Errorf("dst.At(%d, %d) after DrawTriangles: got %v, want: %v", i, j, got, want)
+			}
+		}
+	}
 }

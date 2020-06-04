@@ -35,11 +35,13 @@ var (
 	gophersImage *ebiten.Image
 )
 
-func update(screen *ebiten.Image) error {
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
+type Game struct{}
 
+func (g *Game) Update(screen *ebiten.Image) error {
+	return nil
+}
+
+func (g *Game) Draw(screen *ebiten.Image) {
 	// Split the image into horizontal lines and draw them with different scales.
 	op := &ebiten.DrawImageOptions{}
 	w, h := gophersImage.Size()
@@ -60,7 +62,10 @@ func update(screen *ebiten.Image) error {
 
 		screen.DrawImage(gophersImage.SubImage(image.Rect(0, i, w, i+1)).(*ebiten.Image), op)
 	}
-	return nil
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
@@ -79,7 +84,9 @@ func main() {
 	}
 	gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Perspective (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Perspective (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }

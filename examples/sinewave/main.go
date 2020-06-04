@@ -93,29 +93,37 @@ func (s *stream) Close() error {
 	return nil
 }
 
-var player *audio.Player
+type Game struct {
+	player *audio.Player
+}
 
-func update(screen *ebiten.Image) error {
-	if player == nil {
+func (g *Game) Update(screen *ebiten.Image) error {
+	if g.player == nil {
 		// Pass the (infinite) stream to audio.NewPlayer.
 		// After calling Play, the stream never ends as long as the player object lives.
 		var err error
-		player, err = audio.NewPlayer(audioContext, &stream{})
+		g.player, err = audio.NewPlayer(audioContext, &stream{})
 		if err != nil {
 			return err
 		}
-		player.Play()
+		g.player.Play()
 	}
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-	msg := fmt.Sprintf("TPS: %0.2f\nThis is an example using infinite audio stream.", ebiten.CurrentTPS())
-	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }
 
+func (g *Game) Draw(screen *ebiten.Image) {
+	msg := fmt.Sprintf("TPS: %0.2f\nThis is an example using infinite audio stream.", ebiten.CurrentTPS())
+	ebitenutil.DebugPrint(screen, msg)
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
+}
+
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Sine Wave (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Sine Wave (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }

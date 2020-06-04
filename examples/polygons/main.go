@@ -40,13 +40,6 @@ func init() {
 	emptyImage.Fill(color.White)
 }
 
-var (
-	vertices []ebiten.Vertex
-
-	ngon     = 10
-	prevNgon = 0
-)
-
 func genVertices(num int) []ebiten.Vertex {
 	const (
 		centerX = screenWidth / 2
@@ -98,43 +91,54 @@ func genVertices(num int) []ebiten.Vertex {
 	return vs
 }
 
-func update(screen *ebiten.Image) error {
+type Game struct {
+	vertices []ebiten.Vertex
+
+	ngon     int
+	prevNgon int
+}
+
+func (g *Game) Update(screen *ebiten.Image) error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
-		ngon--
-		if ngon < 1 {
-			ngon = 1
+		g.ngon--
+		if g.ngon < 1 {
+			g.ngon = 1
 		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
-		ngon++
-		if ngon > 120 {
-			ngon = 120
+		g.ngon++
+		if g.ngon > 120 {
+			g.ngon = 120
 		}
 	}
 
-	if prevNgon != ngon || len(vertices) == 0 {
-		vertices = genVertices(ngon)
-		prevNgon = ngon
+	if g.prevNgon != g.ngon || len(g.vertices) == 0 {
+		g.vertices = genVertices(g.ngon)
+		g.prevNgon = g.ngon
 	}
-
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
-	op := &ebiten.DrawTrianglesOptions{}
-	indices := []uint16{}
-	for i := 0; i < ngon; i++ {
-		indices = append(indices, uint16(i), uint16(i+1)%uint16(ngon), uint16(ngon))
-	}
-	screen.DrawTriangles(vertices, indices, emptyImage, op)
-
-	msg := fmt.Sprintf("TPS: %0.2f\n%d-gon\nPress <- or -> to change the number of the vertices", ebiten.CurrentTPS(), ngon)
-	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }
 
+func (g *Game) Draw(screen *ebiten.Image) {
+	op := &ebiten.DrawTrianglesOptions{}
+	indices := []uint16{}
+	for i := 0; i < g.ngon; i++ {
+		indices = append(indices, uint16(i), uint16(i+1)%uint16(g.ngon), uint16(g.ngon))
+	}
+	screen.DrawTriangles(g.vertices, indices, emptyImage, op)
+
+	msg := fmt.Sprintf("TPS: %0.2f\n%d-gon\nPress <- or -> to change the number of the vertices", ebiten.CurrentTPS(), g.ngon)
+	ebitenutil.DebugPrint(screen, msg)
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
+}
+
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 1, "Polygons (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("Polygons (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{ngon: 10}); err != nil {
 		log.Fatal(err)
 	}
 }

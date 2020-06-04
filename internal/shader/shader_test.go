@@ -24,127 +24,207 @@ func TestDump(t *testing.T) {
 	tests := []struct {
 		Name string
 		Src  string
-		Dump string
+		VS   string
+		FS   string
 	}{
 		{
-			Name: "general",
+			Name: "uniforms",
 			Src: `package main
 
-type VertexOut struct {
-	Position vec4 ` + "`kage:\"position\"`" + `
-	TexCoord vec2
-	Color    vec4
-}
-
-var Foo float
 var (
-	Bar       vec2
-	Baz, Quux vec3
-)
-
-const C1 float = 1
-const C2, C3 float = 2, 3
-
-func F1(a, b vec2) vec4 {
-	var c0 vec2 = a
-	var c1, c2 = c0, 1.0
-	c1.x = c2.x
-	c3 := vec4{c0, c1}
-	return c2
-}
-`,
-			Dump: `var Bar uniform vec2
-var Baz uniform vec3
-var Foo uniform float
-var Quux uniform vec3
-type VertexOut struct {
-	Position vec4
-	TexCoord vec2
-	Color vec4
-}
-const C1 float = 1
-const C2 float = 2
-const C3 float = 3
-func F1(a vec2, b vec2) (_ vec4) {
-	var c0 vec2 = a
-	var c1 vec2 = c0
-	var c2 vec2 = 1.0
-	var c3 vec4
-	c1.x = c2.x
-	c3 = vec4{c0, c1}
-	return c2
-}
-`,
+	Foo vec2
+	Boo vec4
+)`,
+			VS: `uniform vec2 U0;
+uniform vec4 U1;`,
 		},
 		{
-			Name: "AutoType",
+			Name: "func",
 			Src: `package main
 
-var V0 = 0.0
-func F() {
-	v1 := V0
-}
-`,
-			Dump: `var V0 uniform float
-func F() {
-	var v1 float
-	v1 = V0
-}
-`,
+func Foo(foo vec2) vec4 {
+}`,
+			VS: `void F0(in vec2 l0, out vec4 l1) {
+}`,
 		},
 		{
-			Name: "AutoType2",
+			Name: "func body",
 			Src: `package main
 
-var V0 = 0.0
-func F() {
-	v1 := V0
-	{
-		v2 := v1
-	}
-}
-`,
-			Dump: `var V0 uniform float
-func F() {
-	var v1 float
-	v1 = V0
-	{
-		var v2 float
-		v2 = v1
-	}
-}
-`,
+func Foo(foo vec2) vec4 {
+	return vec4(foo, 0, 1)
+}`,
+			VS: `void F0(in vec2 l0, out vec4 l1) {
+	l1 = vec4(l0, 0.0, 1.0);
+	return;
+}`,
 		},
-		/*{
-					Name: "Struct",
-					Src: `package main
+		{
+			Name: "multiple out params",
+			Src: `package main
 
-		type S struct {
-			M0 float
-			M1, M2 vec2
-			M3, M4, M5 vec3
+func Foo(foo vec4) (float, float, float, float) {
+	return foo.x, foo.y, foo.z, foo.w
+}`,
+			VS: `void F0(in vec4 l0, out float l1, out float l2, out float l3, out float l4) {
+	l1 = (l0).x;
+	l2 = (l0).y;
+	l3 = (l0).z;
+	l4 = (l0).w;
+	return;
+}`,
+		},
+		{
+			Name: "blocks",
+			Src: `package main
+
+func Foo(foo vec2) vec4 {
+	var r vec4
+	{
+		r.x = foo.x
+		var foo vec3
+		{
+			r.y = foo.y
+			var foo vec4
+			r.z = foo.z
 		}
-		`,
-					Dump: `var V0 uniform float
-		type S struct {
-			M0 float
-			M1 vec2
-			M2 vec2
-			M3 vec3
-			M4 vec3
-			M5 vec3
+		{
+			r.y = foo.y
+			var foo vec4
+			r.z = foo.z
 		}
-		`,
-				},*/
+	}
+	return r
+}`,
+			VS: `void F0(in vec2 l0, out vec4 l1) {
+	vec4 l2 = vec4(0.0);
+	{
+		vec3 l3 = vec3(0.0);
+		(l2).x = (l0).x;
+		{
+			vec4 l4 = vec4(0.0);
+			(l2).y = (l3).y;
+			(l2).z = (l4).z;
+		}
+		{
+			vec4 l4 = vec4(0.0);
+			(l2).y = (l3).y;
+			(l2).z = (l4).z;
+		}
+	}
+	l1 = l2;
+	return;
+}`,
+		},
+		{
+			Name: "define",
+			Src: `package main
+
+func Foo(foo vec2) vec4 {
+	r := vec4(foo, 0, 1)
+	return r
+}`,
+			VS: `void F0(in vec2 l0, out vec4 l1) {
+	vec4 l2 = vec4(0.0);
+	l2 = vec4(l0, 0.0, 1.0);
+	l1 = l2;
+	return;
+}`,
+		},
+		{
+			Name: "vertex",
+			Src: `package main
+
+func Vertex(position vec2, texCoord vec2, color vec4) (position vec4, texCoord vec2, color vec4) {
+	projectionMatrix := mat4(
+		2 / ScreenSize.x, 0, 0, 0,
+		0, 2 / ScreenSize.y, 0, 0,
+		0, 0, 1, 0,
+		-1, -1, 0, 1,
+	)
+	return projectionMatrix * vec4(position, 0, 1), texCoord, color
+}
+
+var ScreenSize vec2`,
+			VS: `uniform vec2 U0;
+attribute vec2 A0;
+attribute vec2 A1;
+attribute vec4 A2;
+varying vec2 V0;
+varying vec4 V1;
+
+void main(void) {
+	mat4 l0 = mat4(0.0);
+	l0 = mat4((2.0) / ((U0).x), 0.0, 0.0, 0.0, 0.0, (2.0) / ((U0).y), 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -(1.0), -(1.0), 0.0, 1.0);
+	gl_Position = (l0) * (vec4(A0, 0.0, 1.0));
+	V0 = A1;
+	V1 = A2;
+	return;
+}`,
+			FS: `uniform vec2 U0;
+varying vec2 V0;
+varying vec4 V1;`,
+		},
+		{
+			Name: "vertex and fragment",
+			Src: `package main
+
+func Vertex(position vec2, texCoord vec2, color vec4) (position vec4, texCoord vec2, color vec4) {
+	projectionMatrix := mat4(
+		2 / ScreenSize.x, 0, 0, 0,
+		0, 2 / ScreenSize.y, 0, 0,
+		0, 0, 1, 0,
+		-1, -1, 0, 1,
+	)
+	return projectionMatrix * vec4(position, 0, 1), texCoord, color
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(1, 0, 0, 1)
+}
+
+var ScreenSize vec2`,
+			VS: `uniform vec2 U0;
+attribute vec2 A0;
+attribute vec2 A1;
+attribute vec4 A2;
+varying vec2 V0;
+varying vec4 V1;
+
+void main(void) {
+	mat4 l0 = mat4(0.0);
+	l0 = mat4((2.0) / ((U0).x), 0.0, 0.0, 0.0, 0.0, (2.0) / ((U0).y), 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -(1.0), -(1.0), 0.0, 1.0);
+	gl_Position = (l0) * (vec4(A0, 0.0, 1.0));
+	V0 = A1;
+	V1 = A2;
+	return;
+}`,
+			FS: `uniform vec2 U0;
+varying vec2 V0;
+varying vec4 V1;
+
+void main(void) {
+	gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+	return;
+}`,
+		},
 	}
 	for _, tc := range tests {
-		s, err := NewShader([]byte(tc.Src))
-		if err != nil {
-			t.Error(err)
-			continue
-		}
-		if got, want := s.Dump(), tc.Dump; got != want {
-			t.Errorf("%s: got: %v, want: %v", tc.Name, got, want)
-		}
+		t.Run(tc.Name, func(t *testing.T) {
+			s, err := Compile([]byte(tc.Src))
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			vs, fs := s.Glsl()
+			if got, want := vs, tc.VS+"\n"; got != want {
+				t.Errorf("got: %v, want: %v", got, want)
+			}
+			if tc.FS != "" {
+				if got, want := fs, tc.FS+"\n"; got != want {
+					t.Errorf("got: %v, want: %v", got, want)
+				}
+			}
+		})
 	}
 }

@@ -26,6 +26,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/ca"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/mtl"
+	"github.com/hajimehoshi/ebiten/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/internal/thread"
 )
 
@@ -756,6 +757,14 @@ func (g *Graphics) MaxImageSize() int {
 		return nil
 	})
 	return m
+}
+
+func (g *Graphics) NewShader(program *shaderir.Program) (driver.Shader, error) {
+	panic("metal: NewShader is not implemented")
+}
+
+func (g *Graphics) DrawShader(dst driver.ImageID, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms []interface{}) error {
+	panic("metal: DrawShader is not implemented")
 }
 
 type Image struct {

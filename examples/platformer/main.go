@@ -86,7 +86,7 @@ func (c *char) tryJump() {
 	//
 	//     if gopher.y == groundY * unit {
 	//         ...
-	gopher.vy = -10 * unit
+	c.vy = -10 * unit
 }
 
 func (c *char) update() {
@@ -120,41 +120,50 @@ func (c *char) draw(screen *ebiten.Image) {
 	screen.DrawImage(s, op)
 }
 
-var gopher = &char{x: 50 * unit, y: groundY * unit}
+type Game struct {
+	gopher *char
+}
 
-func update(screen *ebiten.Image) error {
+func (g *Game) Update(screen *ebiten.Image) error {
+	if g.gopher == nil {
+		g.gopher = &char{x: 50 * unit, y: groundY * unit}
+	}
+
 	// Controls
 	if ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyLeft) {
-		gopher.vx = -4 * unit
+		g.gopher.vx = -4 * unit
 	} else if ebiten.IsKeyPressed(ebiten.KeyD) || ebiten.IsKeyPressed(ebiten.KeyRight) {
-		gopher.vx = 4 * unit
+		g.gopher.vx = 4 * unit
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-		gopher.tryJump()
+		g.gopher.tryJump()
 	}
-	gopher.update()
+	g.gopher.update()
+	return nil
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
+func (g *Game) Draw(screen *ebiten.Image) {
 	// Draws Background Image
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Scale(0.5, 0.5)
 	screen.DrawImage(backgroundImage, op)
 
 	// Draws the Gopher
-	gopher.draw(screen)
+	g.gopher.draw(screen)
 
 	// Show the message
 	msg := fmt.Sprintf("TPS: %0.2f\nPress the space key to jump.", ebiten.CurrentTPS())
 	ebitenutil.DebugPrint(screen, msg)
+}
 
-	return nil
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 1, "Platformer (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("Platformer (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		panic(err)
 	}
 }

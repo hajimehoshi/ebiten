@@ -27,6 +27,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/jsutil"
+	"github.com/hajimehoshi/ebiten/internal/restorable"
 )
 
 type UserInterface struct {
@@ -400,6 +401,7 @@ func init() {
 		e := args[0]
 		e.Call("preventDefault")
 		theUI.contextLost = true
+		restorable.OnContextLost()
 		return nil
 	}))
 	canvas.Call("addEventListener", "webglcontextrestored", js.FuncOf(func(this js.Value, args []js.Value) interface{} {

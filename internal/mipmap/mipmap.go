@@ -23,6 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/internal/shareable"
 )
 
@@ -150,7 +151,7 @@ func (m *Mipmap) DrawImage(src *Mipmap, bounds image.Rectangle, geom GeoM, color
 	if level == 0 {
 		vs := quadVertices(bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y, a, b, c, d, tx, ty, cr, cg, cb, ca, screen)
 		is := graphics.QuadIndices()
-		m.orig.DrawTriangles(src.orig, vs, is, colorm, mode, filter, driver.AddressClampToZero)
+		m.orig.DrawTriangles(src.orig, vs, is, colorm, mode, filter, driver.AddressClampToZero, nil, nil)
 	} else if buf := src.level(bounds, level); buf != nil {
 		w, h := sizeForLevel(bounds.Dx(), bounds.Dy(), level)
 		s := pow2(level)
@@ -160,12 +161,12 @@ func (m *Mipmap) DrawImage(src *Mipmap, bounds image.Rectangle, geom GeoM, color
 		d *= s
 		vs := quadVertices(0, 0, w, h, a, b, c, d, tx, ty, cr, cg, cb, ca, false)
 		is := graphics.QuadIndices()
-		m.orig.DrawTriangles(buf, vs, is, colorm, mode, filter, driver.AddressClampToZero)
+		m.orig.DrawTriangles(buf, vs, is, colorm, mode, filter, driver.AddressClampToZero, nil, nil)
 	}
 	m.disposeMipmaps()
 }
 
-func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
+func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, shader *Shader, uniforms []interface{}) {
 	// TODO: Use a mipmap? (#909)
 
 	if colorm != nil && colorm.ScaleOnly() {
@@ -183,7 +184,28 @@ func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16
 			vertices[i*n+11] *= ca
 		}
 	}
-	m.orig.DrawTriangles(src.orig, vertices, indices, colorm, mode, filter, address)
+
+	var s *shareable.Shader
+	if shader != nil {
+		s = shader.shader
+	}
+
+	us := make([]interface{}, len(uniforms))
+	for k, v := range uniforms {
+		switch v := v.(type) {
+		case *Mipmap:
+			us[k] = v.orig
+		default:
+			us[k] = v
+		}
+	}
+
+	var srcOrig *shareable.Image
+	if src != nil {
+		srcOrig = src.orig
+	}
+
+	m.orig.DrawTriangles(srcOrig, vertices, indices, colorm, mode, filter, address, s, us)
 	m.disposeMipmaps()
 }
 
@@ -246,7 +268,7 @@ func (m *Mipmap) level(r image.Rectangle, level int) *shareable.Image {
 		return nil
 	}
 	s := shareable.NewImage(w2, h2, m.volatile)
-	s.DrawTriangles(src, vs, is, nil, driver.CompositeModeCopy, filter, driver.AddressClampToZero)
+	s.DrawTriangles(src, vs, is, nil, driver.CompositeModeCopy, filter, driver.AddressClampToZero, nil, nil)
 	imgs[level] = s
 
 	return imgs[level]
@@ -427,4 +449,19 @@ func geomScaleSize(geom *GeoM) (sx, sy float32) {
 	miny := minf32(0, y0, y1, y2)
 
 	return maxx - minx, maxy - miny
+}
+
+type Shader struct {
+	shader *shareable.Shader
+}
+
+func NewShader(program *shaderir.Program) *Shader {
+	return &Shader{
+		shader: shareable.NewShader(program),
+	}
+}
+
+func (s *Shader) MarkDisposed() {
+	s.shader.MarkDisposed()
+	s.shader = nil
 }
