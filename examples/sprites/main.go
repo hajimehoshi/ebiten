@@ -155,7 +155,7 @@ func rightTouched() bool {
 }
 
 func update(screen *ebiten.Image) error {
-	// Decrease the nubmer of the sprites.
+	// Decrease the number of the sprites.
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) || leftTouched() {
 		sprites.num -= 20
 		if sprites.num < MinSprites {
@@ -163,7 +163,7 @@ func update(screen *ebiten.Image) error {
 		}
 	}
 
-	// Increase the nubmer of the sprites.
+	// Increase the number of the sprites.
 	if ebiten.IsKeyPressed(ebiten.KeyRight) || rightTouched() {
 		sprites.num += 20
 		if MaxSprites < sprites.num {
