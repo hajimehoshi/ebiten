@@ -186,6 +186,28 @@ func Foo(foo vec2) vec4 {
 }`,
 		},
 		{
+			Name: "call",
+			Src: `package main
+
+func Foo(x vec2) vec2 {
+	return Bar(x)
+}
+
+func Bar(x vec2) vec2 {
+	return x
+}`,
+			VS: `void F0(in vec2 l0, out vec2 l1) {
+	vec2 l2 = vec2(0.0);
+	F1(l0, l2);
+	l1 = l2;
+	return;
+}
+void F1(in vec2 l0, out vec2 l1) {
+	l1 = l0;
+	return;
+}`,
+		},
+		{
 			Name: "vertex",
 			Src: `package main
 
