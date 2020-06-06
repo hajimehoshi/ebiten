@@ -27,7 +27,6 @@ import (
 type variable struct {
 	name string
 	typ  typ
-	init shaderir.Expr
 }
 
 type constant struct {
@@ -255,10 +254,11 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) []variable
 		if init != nil {
 			e = s.parseExpr(block, init)
 		}
+		// TODO: Add an assign statement for e.
+		_ = e
 		vars = append(vars, variable{
 			name: name,
 			typ:  t,
-			init: e,
 		})
 	}
 	return vars
@@ -430,14 +430,13 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 						name: e.(*ast.Ident).Name,
 					}
 					v.typ = cs.detectType(block, l.Rhs[i])
-					v.init = cs.parseExpr(block, l.Rhs[i])
 					block.vars = append(block.vars, v)
 					block.ir.LocalVars = append(block.ir.LocalVars, v.typ.ir)
 					block.ir.Stmts = append(block.ir.Stmts, shaderir.Stmt{
 						Type: shaderir.Assign,
 						Exprs: []shaderir.Expr{
 							cs.parseExpr(block, l.Lhs[i]),
-							v.init,
+							cs.parseExpr(block, l.Rhs[i]),
 						},
 					})
 				}
