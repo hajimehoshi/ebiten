@@ -15,6 +15,8 @@
 package shader_test
 
 import (
+	"go/parser"
+	"go/token"
 	"testing"
 
 	. "github.com/hajimehoshi/ebiten/internal/shader"
@@ -211,7 +213,14 @@ void main(void) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
-			s, err := Compile([]byte(tc.Src), "Vertex", "Fragment")
+			fset := token.NewFileSet()
+			f, err := parser.ParseFile(fset, "", []byte(tc.Src), parser.AllErrors)
+			if err != nil {
+				t.Fatal(err)
+				return
+			}
+
+			s, err := Compile(fset, f, "Vertex", "Fragment")
 			if err != nil {
 				t.Error(err)
 				return
