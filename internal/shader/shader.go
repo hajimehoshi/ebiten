@@ -17,7 +17,6 @@ package shader
 import (
 	"fmt"
 	"go/ast"
-	"go/parser"
 	"go/token"
 	"strconv"
 	"strings"
@@ -106,13 +105,7 @@ func (p *ParseError) Error() string {
 	return strings.Join(p.errs, "\n")
 }
 
-func Compile(src []byte, vertexEntry, fragmentEntry string) (*shaderir.Program, error) {
-	fs := token.NewFileSet()
-	f, err := parser.ParseFile(fs, "", src, parser.AllErrors)
-	if err != nil {
-		return nil, err
-	}
-
+func Compile(fs *token.FileSet, f *ast.File, vertexEntry, fragmentEntry string) (*shaderir.Program, error) {
 	s := &compileState{
 		fs:            fs,
 		vertexEntry:   vertexEntry,

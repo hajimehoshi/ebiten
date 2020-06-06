@@ -15,6 +15,9 @@
 package ebiten
 
 import (
+	"go/parser"
+	"go/token"
+
 	"github.com/hajimehoshi/ebiten/internal/buffered"
 	"github.com/hajimehoshi/ebiten/internal/shader"
 )
@@ -24,7 +27,13 @@ type Shader struct {
 }
 
 func NewShader(src []byte) (*Shader, error) {
-	s, err := shader.Compile(src, "Vertex", "Fragment")
+	fs := token.NewFileSet()
+	f, err := parser.ParseFile(fs, "", src, parser.AllErrors)
+	if err != nil {
+		return nil, err
+	}
+
+	s, err := shader.Compile(fs, f, "Vertex", "Fragment")
 	if err != nil {
 		return nil, err
 	}
