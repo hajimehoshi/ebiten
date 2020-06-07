@@ -582,68 +582,6 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 	return block
 }
 
-func (s *compileState) detectType(b *block, expr ast.Expr) []shaderir.Type {
-	switch e := expr.(type) {
-	case *ast.BasicLit:
-		switch e.Kind {
-		case token.FLOAT:
-			return []shaderir.Type{{Main: shaderir.Float}}
-		case token.INT:
-			return []shaderir.Type{{Main: shaderir.Int}}
-		}
-		s.addError(expr.Pos(), fmt.Sprintf("unexpected literal: %s", e.Value))
-		return nil
-	case *ast.CallExpr:
-		n := e.Fun.(*ast.Ident).Name
-		f, ok := shaderir.ParseBuiltinFunc(n)
-		if ok {
-			switch f {
-			case shaderir.Vec2F:
-				return []shaderir.Type{{Main: shaderir.Vec2}}
-			case shaderir.Vec3F:
-				return []shaderir.Type{{Main: shaderir.Vec3}}
-			case shaderir.Vec4F:
-				return []shaderir.Type{{Main: shaderir.Vec4}}
-			case shaderir.Mat2F:
-				return []shaderir.Type{{Main: shaderir.Mat2}}
-			case shaderir.Mat3F:
-				return []shaderir.Type{{Main: shaderir.Mat3}}
-			case shaderir.Mat4F:
-				return []shaderir.Type{{Main: shaderir.Mat4}}
-				// TODO: Add more functions
-			}
-		}
-		s.addError(expr.Pos(), fmt.Sprintf("unexpected call: %s", n))
-		return nil
-	case *ast.CompositeLit:
-		return []shaderir.Type{s.parseType(e.Type)}
-	case *ast.Ident:
-		n := e.Name
-		for _, v := range b.vars {
-			if v.name == n {
-				return []shaderir.Type{v.typ}
-			}
-		}
-		if b == &s.global {
-			for i, v := range s.uniforms {
-				if v == n {
-					return []shaderir.Type{s.ir.Uniforms[i]}
-				}
-			}
-		}
-		if b.outer != nil {
-			return s.detectType(b.outer, e)
-		}
-		s.addError(expr.Pos(), fmt.Sprintf("unexpected identifier: %s", n))
-		return nil
-	//case *ast.SelectorExpr:
-	//return fmt.Sprintf("%s.%s", dumpExpr(e.X), dumpExpr(e.Sel))
-	default:
-		s.addError(expr.Pos(), fmt.Sprintf("detecting type not implemented: %#v", expr))
-		return nil
-	}
-}
-
 func (cs *compileState) parseExpr(block *block, expr ast.Expr) (shaderir.Expr, []shaderir.Stmt) {
 	switch e := expr.(type) {
 	case *ast.BasicLit:
