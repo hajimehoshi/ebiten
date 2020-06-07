@@ -37,33 +37,38 @@ const (
 	screenHeight = 240
 )
 
-var (
-	x = 0.0
-	y = 0.0
-)
+type Game struct {
+	x float64
+	y float64
+}
 
-func update(screen *ebiten.Image) error {
+func (g *Game) Update(screen *ebiten.Image) error {
 	dx, dy := ebiten.Wheel()
-	x += dx
-	y += dy
+	g.x += dx
+	g.y += dy
+	return nil
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
+func (g *Game) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(x, y)
+	op.GeoM.Translate(g.x, g.y)
 	op.GeoM.Translate(screenWidth/2, screenHeight/2)
 	screen.DrawImage(pointerImage, op)
 
 	ebitenutil.DebugPrint(screen,
-		fmt.Sprintf("Move the red point by mouse wheel\n(%0.2f, %0.2f)", x, y))
+		fmt.Sprintf("Move the red point by mouse wheel\n(%0.2f, %0.2f)", g.x, g.y))
+}
 
-	return nil
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Wheel (Ebiten Demo)"); err != nil {
+	g := &Game{x: 0.0, y: 0.0}
+
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Wheel (Ebiten Demo)")
+	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
 }
