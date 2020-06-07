@@ -555,7 +555,7 @@ func (s *compileState) detectType(b *block, expr ast.Expr) typ {
 		if b.outer != nil {
 			return s.detectType(b.outer, e)
 		}
-		s.addError(expr.Pos(), fmt.Sprintf("unexpected identity: %s", n))
+		s.addError(expr.Pos(), fmt.Sprintf("unexpected identifier: %s", n))
 		return typ{}
 	//case *ast.SelectorExpr:
 	//return fmt.Sprintf("%s.%s", dumpExpr(e.X), dumpExpr(e.Sel))
