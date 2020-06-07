@@ -23,64 +23,39 @@ import (
 
 // TODO: What about array types?
 
-type typ struct {
-	ir   shaderir.Type
-	name string
-}
-
-func (cs *compileState) parseType(expr ast.Expr) typ {
+func (cs *compileState) parseType(expr ast.Expr) shaderir.Type {
 	switch t := expr.(type) {
 	case *ast.Ident:
 		switch t.Name {
 		case "bool":
-			return typ{
-				ir: shaderir.Type{Main: shaderir.Bool},
-			}
+			return shaderir.Type{Main: shaderir.Bool}
 		case "int":
-			return typ{
-				ir: shaderir.Type{Main: shaderir.Int},
-			}
+			return shaderir.Type{Main: shaderir.Int}
 		case "float":
-			return typ{
-				ir: shaderir.Type{Main: shaderir.Float},
-			}
+			return shaderir.Type{Main: shaderir.Float}
 		case "vec2":
-			return typ{
-				ir: shaderir.Type{Main: shaderir.Vec2},
-			}
+			return shaderir.Type{Main: shaderir.Vec2}
 		case "vec3":
-			return typ{
-				ir: shaderir.Type{Main: shaderir.Vec3},
-			}
+			return shaderir.Type{Main: shaderir.Vec3}
 		case "vec4":
-			return typ{
-				ir: shaderir.Type{Main: shaderir.Vec4},
-			}
+			return shaderir.Type{Main: shaderir.Vec4}
 		case "mat2":
-			return typ{
-				ir: shaderir.Type{Main: shaderir.Mat2},
-			}
+			return shaderir.Type{Main: shaderir.Mat2}
 		case "mat3":
-			return typ{
-				ir: shaderir.Type{Main: shaderir.Mat3},
-			}
+			return shaderir.Type{Main: shaderir.Mat3}
 		case "mat4":
-			return typ{
-				ir: shaderir.Type{Main: shaderir.Mat4},
-			}
+			return shaderir.Type{Main: shaderir.Mat4}
 		case "texture2d":
-			return typ{
-				ir: shaderir.Type{Main: shaderir.Texture2D},
-			}
+			return shaderir.Type{Main: shaderir.Texture2D}
 		default:
 			cs.addError(t.Pos(), fmt.Sprintf("unexpected type: %s", t.Name))
-			return typ{}
+			return shaderir.Type{}
 		}
 	case *ast.StructType:
 		cs.addError(t.Pos(), "struct is not implemented")
-		return typ{}
+		return shaderir.Type{}
 	default:
 		cs.addError(t.Pos(), fmt.Sprintf("unepxected type: %v", t))
-		return typ{}
+		return shaderir.Type{}
 	}
 }
