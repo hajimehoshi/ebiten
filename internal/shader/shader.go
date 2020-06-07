@@ -616,6 +616,20 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 			block.ir.Stmts = append(block.ir.Stmts, shaderir.Stmt{
 				Type: shaderir.Return,
 			})
+		case *ast.ExprStmt:
+			exprs, stmts := cs.parseExpr(block, l.X)
+			block.ir.Stmts = append(block.ir.Stmts, stmts...)
+			for _, expr := range exprs {
+				if expr.Type != shaderir.Call {
+					continue
+				}
+				block.ir.Stmts = append(block.ir.Stmts, shaderir.Stmt{
+					Type:  shaderir.ExprStmt,
+					Exprs: []shaderir.Expr{expr},
+				})
+			}
+		default:
+			cs.addError(l.Pos(), fmt.Sprintf("unexpected statement: %#v", l))
 		}
 	}
 
