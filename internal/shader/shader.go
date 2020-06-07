@@ -191,23 +191,35 @@ func (cs *compileState) parseDecl(b *block, d ast.Decl) {
 		case token.VAR:
 			for _, s := range d.Specs {
 				s := s.(*ast.ValueSpec)
-				vs := cs.parseVariable(b, s)
+				vs, inits := cs.parseVariable(b, s)
 				if b == &cs.global {
+					// TODO: Should rhs be ignored?
 					for i, v := range vs {
 						if !strings.HasPrefix(v.name, "__") {
 							if v.name[0] < 'A' || 'Z' < v.name[0] {
 								cs.addError(s.Names[i].Pos(), fmt.Sprintf("global variables must be exposed: %s", v.name))
 							}
 						}
-						// TODO: Check rhs
 						cs.uniforms = append(cs.uniforms, v.name)
 						cs.ir.Uniforms = append(cs.ir.Uniforms, v.typ.ir)
 					}
 					continue
 				}
-				for _, v := range vs {
+				for i, v := range vs {
 					b.vars = append(b.vars, v)
 					b.ir.LocalVars = append(b.ir.LocalVars, v.typ.ir)
+					if inits[i] != nil {
+						b.ir.Stmts = append(b.ir.Stmts, shaderir.Stmt{
+							Type: shaderir.Assign,
+							Exprs: []shaderir.Expr{
+								{
+									Type:  shaderir.LocalVariable,
+									Index: len(b.vars) - 1,
+								},
+								*inits[i],
+							},
+						})
+					}
 				}
 			}
 		case token.IMPORT:
@@ -234,13 +246,14 @@ func (cs *compileState) parseDecl(b *block, d ast.Decl) {
 	}
 }
 
-func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) []variable {
+func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variable, []*shaderir.Expr) {
 	var t typ
 	if vs.Type != nil {
 		t = s.parseType(vs.Type)
 	}
 
 	var vars []variable
+	var inits []*shaderir.Expr
 	for i, n := range vs.Names {
 		var init ast.Expr
 		if len(vs.Values) > 0 {
@@ -250,18 +263,19 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) []variable
 			}
 		}
 		name := n.Name
-		var e shaderir.Expr
-		if init != nil {
-			e = s.parseExpr(block, init)
-		}
-		// TODO: Add an assign statement for e.
-		_ = e
 		vars = append(vars, variable{
 			name: name,
 			typ:  t,
 		})
+
+		var expr *shaderir.Expr
+		if init != nil {
+			e := s.parseExpr(block, init)
+			expr = &e
+		}
+		inits = append(inits, expr)
 	}
-	return vars
+	return vars, inits
 }
 
 func (s *compileState) parseConstant(vs *ast.ValueSpec) []constant {

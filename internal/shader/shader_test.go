@@ -62,6 +62,58 @@ func Foo(foo vec2) vec4 {
 }`,
 		},
 		{
+			Name: "var init",
+			Src: `package main
+
+func Foo(foo vec2) vec4 {
+	var ret vec4 = vec4(foo, 0, 1)
+	return ret
+}`,
+			VS: `void F0(in vec2 l0, out vec4 l1) {
+	vec4 l2 = vec4(0.0);
+	l2 = vec4(l0, 0.0, 1.0);
+	l1 = l2;
+	return;
+}`,
+		},
+		{
+			Name: "var init 2",
+			Src: `package main
+
+func Foo(foo vec2) vec4 {
+	var bar1 vec4 = vec4(foo, 0, 1)
+	bar1.x = bar1.x
+	var bar2 vec4 = bar1
+	return bar2
+}`,
+			VS: `void F0(in vec2 l0, out vec4 l1) {
+	vec4 l2 = vec4(0.0);
+	vec4 l3 = vec4(0.0);
+	l2 = vec4(l0, 0.0, 1.0);
+	(l2).x = (l2).x;
+	l3 = l2;
+	l1 = l3;
+	return;
+}`,
+		},
+		{
+			Name: "var multiple init",
+			Src: `package main
+
+func Foo(foo vec2) vec4 {
+	var bar1, bar2 vec2 = foo, foo
+	return vec4(bar1, bar2)
+}`,
+			VS: `void F0(in vec2 l0, out vec4 l1) {
+	vec2 l2 = vec2(0.0);
+	vec2 l3 = vec2(0.0);
+	l2 = l0;
+	l3 = l0;
+	l1 = vec4(l2, l3);
+	return;
+}`,
+		},
+		{
 			Name: "multiple out params",
 			Src: `package main
 
