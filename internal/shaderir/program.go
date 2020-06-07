@@ -28,12 +28,11 @@ type Program struct {
 }
 
 type Func struct {
-	Index       int
-	InParams    []Type
-	InOutParams []Type
-	OutParams   []Type
-	Return      Type
-	Block       Block
+	Index     int
+	InParams  []Type
+	OutParams []Type
+	Return    Type
+	Block     Block
 }
 
 // VertexFunc takes pseudo params, and the number if len(attributes) + len(varyings) + 1.
