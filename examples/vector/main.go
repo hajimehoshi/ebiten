@@ -171,25 +171,34 @@ func drawWave(screen *ebiten.Image, counter int) {
 	path.Fill(screen, op)
 }
 
-var counter = 0
+type Game struct {
+	counter int
+}
 
-func update(screen *ebiten.Image) error {
-	counter++
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
-	screen.Fill(color.White)
-	drawEbitenText(screen)
-	drawEbitenLogo(screen, 20, 90)
-	drawWave(screen, counter)
-
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f", ebiten.CurrentTPS(), ebiten.CurrentFPS()))
+func (g *Game) Update(screen *ebiten.Image) error {
+	g.counter++
 	return nil
 }
 
+func (g *Game) Draw(screen *ebiten.Image) {
+	screen.Fill(color.White)
+	drawEbitenText(screen)
+	drawEbitenLogo(screen, 20, 90)
+	drawWave(screen, g.counter)
+
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f", ebiten.CurrentTPS(), ebiten.CurrentFPS()))
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
+}
+
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 1, "Vector (Ebiten Demo)"); err != nil {
+	g := &Game{counter: 0}
+
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("Vector (Ebiten Demo)")
+	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
 }

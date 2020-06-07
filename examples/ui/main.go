@@ -443,63 +443,74 @@ func (c *CheckBox) SetOnCheckChanged(f func(c *CheckBox)) {
 	c.onCheckChanged = f
 }
 
-var (
-	button1 = &Button{
+type Game struct {
+	button1    *Button
+	button2    *Button
+	checkBox   *CheckBox
+	textBoxLog *TextBox
+}
+
+var g Game
+
+func init() {
+	g.button1 = &Button{
 		Rect: image.Rect(16, 16, 144, 48),
 		Text: "Button 1",
 	}
-	button2 = &Button{
+	g.button2 = &Button{
 		Rect: image.Rect(160, 16, 288, 48),
 		Text: "Button 2",
 	}
-	checkBox = &CheckBox{
+	g.checkBox = &CheckBox{
 		X:    16,
 		Y:    64,
 		Text: "Check Box!",
 	}
-	textBoxLog = &TextBox{
+	g.textBoxLog = &TextBox{
 		Rect: image.Rect(16, 96, 624, 464),
 	}
-)
 
-func init() {
-	button1.SetOnPressed(func(b *Button) {
-		textBoxLog.AppendLine("Button 1 Pressed")
+	g.button1.SetOnPressed(func(b *Button) {
+		g.textBoxLog.AppendLine("Button 1 Pressed")
 	})
-	button2.SetOnPressed(func(b *Button) {
-		textBoxLog.AppendLine("Button 2 Pressed")
+	g.button2.SetOnPressed(func(b *Button) {
+		g.textBoxLog.AppendLine("Button 2 Pressed")
 	})
-	checkBox.SetOnCheckChanged(func(c *CheckBox) {
+	g.checkBox.SetOnCheckChanged(func(c *CheckBox) {
 		msg := "Check box check changed"
 		if c.Checked() {
 			msg += " (Checked)"
 		} else {
 			msg += " (Unchecked)"
 		}
-		textBoxLog.AppendLine(msg)
+		g.textBoxLog.AppendLine(msg)
 	})
 }
 
-func update(screen *ebiten.Image) error {
-	button1.Update()
-	button2.Update()
-	checkBox.Update()
-	textBoxLog.Update()
-
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
-	screen.Fill(color.RGBA{0xeb, 0xeb, 0xeb, 0xff})
-	button1.Draw(screen)
-	button2.Draw(screen)
-	checkBox.Draw(screen)
-	textBoxLog.Draw(screen)
+func (g *Game) Update(screen *ebiten.Image) error {
+	g.button1.Update()
+	g.button2.Update()
+	g.checkBox.Update()
+	g.textBoxLog.Update()
 	return nil
 }
 
+func (g *Game) Draw(screen *ebiten.Image) {
+	screen.Fill(color.RGBA{0xeb, 0xeb, 0xeb, 0xff})
+	g.button1.Draw(screen)
+	g.button2.Draw(screen)
+	g.checkBox.Draw(screen)
+	g.textBoxLog.Draw(screen)
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
+}
+
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 1, "UI (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("UI (Ebiten Demo)")
+	if err := ebiten.RunGame(&g); err != nil {
 		log.Fatal(err)
 	}
 }
