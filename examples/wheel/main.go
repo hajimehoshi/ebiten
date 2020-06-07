@@ -68,7 +68,6 @@ func main() {
 
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
 	ebiten.SetWindowTitle("Wheel (Ebiten Demo)")
-
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
