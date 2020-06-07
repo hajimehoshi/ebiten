@@ -202,6 +202,7 @@ func Bar(x vec2) vec2 {
 	l1 = l2;
 	return;
 }
+
 void F1(in vec2 l0, out vec2 l1) {
 	l1 = l0;
 	return;
@@ -230,6 +231,7 @@ func Bar(x float) (float, float) {
 	l1 = vec2(l4, l5);
 	return;
 }
+
 void F1(in float l0, out float l1, out float l2) {
 	l1 = l0;
 	l2 = l0;

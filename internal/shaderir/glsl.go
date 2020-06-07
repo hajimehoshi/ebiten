@@ -86,15 +86,17 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 		for i, t := range p.Varyings {
 			vslines = append(vslines, fmt.Sprintf("varying %s;", p.glslVarDecl(&t, fmt.Sprintf("V%d", i))))
 		}
-		if len(vslines) > 0 && len(p.Funcs) > 0 {
-			vslines = append(vslines, "")
-		}
 		for _, f := range p.Funcs {
+			if len(vslines) > 0 {
+				vslines = append(vslines, "")
+			}
 			vslines = append(vslines, p.glslFunc(&f)...)
 		}
 
 		if len(p.VertexFunc.Block.Stmts) > 0 {
-			vslines = append(vslines, "")
+			if len(vslines) > 0 {
+				vslines = append(vslines, "")
+			}
 			vslines = append(vslines, "void main(void) {")
 			vslines = append(vslines, p.glslBlock(&p.VertexFunc.Block, 0, 0)...)
 			vslines = append(vslines, "}")
