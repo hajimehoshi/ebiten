@@ -259,7 +259,6 @@ func (cs *compileState) parseDecl(b *block, d ast.Decl) {
 				}
 				for i, v := range vs {
 					b.vars = append(b.vars, v)
-					b.ir.LocalVars = append(b.ir.LocalVars, v.typ)
 					if inits[i] != nil {
 						b.ir.Stmts = append(b.ir.Stmts, shaderir.Stmt{
 							Type: shaderir.Assign,
@@ -504,6 +503,11 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 		vars:  vars,
 		outer: outer,
 	}
+	defer func() {
+		for _, v := range block.vars[len(inParams)+len(outParams):] {
+			block.ir.LocalVars = append(block.ir.LocalVars, v.typ)
+		}
+	}()
 
 	for _, l := range b.List {
 		switch l := l.(type) {
@@ -520,7 +524,6 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 					}
 					v.typ = ts[0]
 					block.vars = append(block.vars, v)
-					block.ir.LocalVars = append(block.ir.LocalVars, v.typ)
 
 					// Prase RHS first for the order of the statements.
 					rhs, stmts := cs.parseExpr(block, l.Rhs[i])
@@ -708,7 +711,6 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) (shaderir.Expr, [
 			block.vars = append(block.vars, variable{
 				typ: p,
 			})
-			block.ir.LocalVars = append(block.ir.LocalVars, p)
 			args = append(args, shaderir.Expr{
 				Type:  shaderir.LocalVariable,
 				Index: idx,
