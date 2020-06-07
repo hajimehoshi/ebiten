@@ -203,10 +203,6 @@ func (p *Program) glslFunc(f *Func) []string {
 		args = append(args, "in "+p.glslVarDecl(&t, fmt.Sprintf("l%d", idx)))
 		idx++
 	}
-	for _, t := range f.InOutParams {
-		args = append(args, "inout "+p.glslVarDecl(&t, fmt.Sprintf("l%d", idx)))
-		idx++
-	}
 	for _, t := range f.OutParams {
 		args = append(args, "out "+p.glslVarDecl(&t, fmt.Sprintf("l%d", idx)))
 		idx++

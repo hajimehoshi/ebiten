@@ -233,18 +233,15 @@ varying vec3 V0;`,
 							{Main: Vec2},
 							{Main: Vec4},
 						},
-						InOutParams: []Type{
-							{Main: Mat2},
-						},
 						OutParams: []Type{
 							{Main: Mat4},
 						},
 					},
 				},
 			},
-			GlslVS: `void F0(in float l0, in vec2 l1, in vec4 l2, inout mat2 l3, out mat4 l4) {
+			GlslVS: `void F0(in float l0, in vec2 l1, in vec4 l2, out mat4 l3) {
 }`,
-			GlslFS: `void F0(in float l0, in vec2 l1, in vec4 l2, inout mat2 l3, out mat4 l4) {
+			GlslFS: `void F0(in float l0, in vec2 l1, in vec4 l2, out mat4 l3) {
 }`,
 		},
 		{
@@ -282,9 +279,6 @@ varying vec3 V0;`,
 						InParams: []Type{
 							{Main: Float},
 						},
-						InOutParams: []Type{
-							{Main: Float},
-						},
 						OutParams: []Type{
 							{Main: Float},
 						},
@@ -295,13 +289,13 @@ varying vec3 V0;`,
 					},
 				},
 			},
-			GlslVS: `void F0(in float l0, inout float l1, out float l2) {
+			GlslVS: `void F0(in float l0, out float l1) {
+	mat4 l2 = mat4(0.0);
 	mat4 l3 = mat4(0.0);
-	mat4 l4 = mat4(0.0);
 }`,
-			GlslFS: `void F0(in float l0, inout float l1, out float l2) {
+			GlslFS: `void F0(in float l0, out float l1) {
+	mat4 l2 = mat4(0.0);
 	mat4 l3 = mat4(0.0);
-	mat4 l4 = mat4(0.0);
 }`,
 		},
 		{
@@ -311,9 +305,6 @@ varying vec3 V0;`,
 					{
 						Index: 0,
 						InParams: []Type{
-							{Main: Float},
-						},
-						InOutParams: []Type{
 							{Main: Float},
 						},
 						OutParams: []Type{
@@ -336,20 +327,20 @@ varying vec3 V0;`,
 					},
 				},
 			},
-			GlslVS: `void F0(in float l0, inout float l1, out float l2) {
+			GlslVS: `void F0(in float l0, out float l1) {
+	mat4 l2 = mat4(0.0);
 	mat4 l3 = mat4(0.0);
-	mat4 l4 = mat4(0.0);
 	{
+		mat4 l4 = mat4(0.0);
 		mat4 l5 = mat4(0.0);
-		mat4 l6 = mat4(0.0);
 	}
 }`,
-			GlslFS: `void F0(in float l0, inout float l1, out float l2) {
+			GlslFS: `void F0(in float l0, out float l1) {
+	mat4 l2 = mat4(0.0);
 	mat4 l3 = mat4(0.0);
-	mat4 l4 = mat4(0.0);
 	{
+		mat4 l4 = mat4(0.0);
 		mat4 l5 = mat4(0.0);
-		mat4 l6 = mat4(0.0);
 	}
 }`,
 		},
