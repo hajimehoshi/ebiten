@@ -257,17 +257,20 @@ func (cs *compileState) parseDecl(b *block, d ast.Decl) {
 					}
 					continue
 				}
-				for i, v := range vs {
-					b.vars = append(b.vars, v)
-					if inits[i] != nil {
+
+				base := len(b.vars)
+				b.vars = append(b.vars, vs...)
+
+				if len(inits) > 0 {
+					for i := range vs {
 						b.ir.Stmts = append(b.ir.Stmts, shaderir.Stmt{
 							Type: shaderir.Assign,
 							Exprs: []shaderir.Expr{
 								{
 									Type:  shaderir.LocalVariable,
-									Index: len(b.vars) - 1,
+									Index: base + i,
 								},
-								*inits[i],
+								inits[i],
 							},
 						})
 					}
@@ -305,18 +308,38 @@ func (cs *compileState) parseDecl(b *block, d ast.Decl) {
 	}
 }
 
-func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variable, []*shaderir.Expr, []shaderir.Stmt) {
+func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variable, []shaderir.Expr, []shaderir.Stmt) {
+	if len(vs.Names) != len(vs.Values) && len(vs.Values) != 1 && len(vs.Values) != 0 {
+		s.addError(vs.Pos(), fmt.Sprintf("the numbers of lhs and rhs don't match"))
+		return nil, nil, nil
+	}
+
 	var t shaderir.Type
 	if vs.Type != nil {
 		t = s.parseType(vs.Type)
 	}
 
-	var vars []variable
-	var inits []*shaderir.Expr
-	var stmts []shaderir.Stmt
+	var (
+		vars  []variable
+		inits []shaderir.Expr
+		stmts []shaderir.Stmt
+	)
+
 	for i, n := range vs.Names {
 		var init ast.Expr
-		if len(vs.Values) > 0 {
+		switch len(vs.Values) {
+		case 0:
+		case 1:
+			init = vs.Values[0]
+			if t.Main == shaderir.None {
+				ts := s.detectType(block, init)
+				if len(ts) != len(vs.Names) {
+					s.addError(vs.Pos(), fmt.Sprintf("the numbers of lhs and rhs don't match"))
+					continue
+				}
+				t = ts[i]
+			}
+		default:
 			init = vs.Values[i]
 			if t.Main == shaderir.None {
 				ts := s.detectType(block, init)
@@ -326,20 +349,25 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 				t = ts[0]
 			}
 		}
+
 		name := n.Name
 		vars = append(vars, variable{
 			name: name,
 			typ:  t,
 		})
 
-		var expr *shaderir.Expr
-		if init != nil {
-			e, ss := s.parseExpr(block, init)
-			expr = &e[0]
+		if len(vs.Values) > 1 || (len(vs.Values) == 1 && len(inits) == 0) {
+			es, ss := s.parseExpr(block, init)
+			inits = append(inits, es...)
 			stmts = append(stmts, ss...)
 		}
-		inits = append(inits, expr)
 	}
+
+	if len(inits) > 0 && len(vars) != len(inits) {
+		s.addError(vs.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
+		return nil, nil, nil
+	}
+
 	return vars, inits, stmts
 }
 
@@ -755,6 +783,11 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		}
 
 		if t := f.ir.Return; t.Main != shaderir.None {
+			if len(outParams) == 0 {
+				cs.addError(e.Pos(), fmt.Sprintf("a function returning value cannot have out-params so far: %s", e.Fun))
+				return nil, nil
+			}
+
 			idx := len(block.vars)
 			block.vars = append(block.vars, variable{
 				typ: t,
@@ -797,18 +830,18 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 			},
 		})
 
-		// TODO: What about the other params?
-		if len(outParams) > 0 {
-			return []shaderir.Expr{
-				{
-					Type:  shaderir.LocalVariable,
-					Index: outParams[0],
-				},
-			}, stmts
+		if len(outParams) == 0 {
+			// TODO: Is this an error?
 		}
 
-		// TODO: Is an empty expression work?
-		return nil, stmts
+		var exprs []shaderir.Expr
+		for _, p := range outParams {
+			exprs = append(exprs, shaderir.Expr{
+				Type:  shaderir.LocalVariable,
+				Index: p,
+			})
+		}
+		return exprs, stmts
 	case *ast.Ident:
 		if i, ok := block.findLocalVariable(e.Name); ok {
 			return []shaderir.Expr{
