@@ -89,7 +89,19 @@ func (cs *compileState) detectType(b *block, expr ast.Expr) []shaderir.Type {
 				return []shaderir.Type{{Main: shaderir.Mat3}}
 			case shaderir.Mat4F:
 				return []shaderir.Type{{Main: shaderir.Mat4}}
+			default:
 				// TODO: Add more functions
+				cs.addError(expr.Pos(), fmt.Sprintf("detecting types is not implemented for: %s", n))
+			}
+		}
+		for _, f := range cs.funcs {
+			if f.name == n {
+				// TODO: Is it correct to combine out-params and return param?
+				ts := f.ir.OutParams
+				if f.ir.Return.Main != shaderir.None {
+					ts = append(ts, f.ir.Return)
+				}
+				return ts
 			}
 		}
 		cs.addError(expr.Pos(), fmt.Sprintf("unexpected call: %s", n))
