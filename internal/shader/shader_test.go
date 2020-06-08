@@ -19,6 +19,7 @@ import (
 	"go/token"
 	"io/ioutil"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -26,6 +27,10 @@ import (
 )
 
 func TestCompile(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("file open might not be implemented in this environment")
+	}
+
 	files, err := ioutil.ReadDir("testdata")
 	if err != nil {
 		t.Fatal(err)
