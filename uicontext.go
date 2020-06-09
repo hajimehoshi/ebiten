@@ -50,6 +50,8 @@ type uiContext struct {
 	offscreen *Image
 	screen    *Image
 
+	updateCalled bool
+
 	// scaleForWindow is the scale of a window. This doesn't represent the scale on fullscreen. This value works
 	// only on desktops.
 	//
@@ -248,6 +250,12 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 
 func (c *uiContext) update(afterFrameUpdate func()) error {
 	updateCount := clock.Update(MaxTPS())
+
+	// Ensure that Update is called once before Draw so that Update can be used for initialization.
+	if !c.updateCalled && updateCount == 0 {
+		updateCount = 1
+		c.updateCalled = true
+	}
 
 	if game, ok := c.game.(interface{ Draw(*Image) }); ok {
 		for i := 0; i < updateCount; i++ {
