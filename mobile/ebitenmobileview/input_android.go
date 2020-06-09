@@ -315,7 +315,9 @@ func OnGamepadAdded(deviceID int, name string, buttonNum int, axisNum int, descr
 	}
 }
 
-func OnGamepadRemoved(deviceID int) {
-	id := gamepadIDFromDeviceID(deviceID)
-	delete(gamepads, id)
+func OnInputDeviceRemoved(deviceID int) {
+	if id, ok := deviceIDToGamepadID[deviceID]; ok {
+		delete(gamepads, id)
+		delete(deviceIDToGamepadID, deviceID)
+	}
 }
