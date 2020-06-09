@@ -675,13 +675,8 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
 
     @Override
     public void onInputDeviceRemoved(int deviceId) {
-        InputDevice inputDevice = this.inputManager.getInputDevice(deviceId);
-        int sources = inputDevice.getSources();
-        if ((sources & InputDevice.SOURCE_GAMEPAD) != InputDevice.SOURCE_GAMEPAD &&
-            (sources & InputDevice.SOURCE_JOYSTICK) != InputDevice.SOURCE_JOYSTICK) {
-            return;
-        }
-        Ebitenmobileview.onGamepadRemoved(deviceId);
+        // Do not call inputManager.getInputDevice(), which returns null (#1185).
+        Ebitenmobileview.onInputDeviceRemoved(deviceId);
     }
 
     // suspendGame suspends the game.
