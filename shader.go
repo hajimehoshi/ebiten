@@ -24,7 +24,11 @@ import (
 )
 
 const shaderSuffix = `
-var __viewportSize vec2`
+var __viewportSize vec2
+
+func viewportSize() vec2 {
+	return __viewportSize
+}`
 
 type Shader struct {
 	shader *buffered.Shader

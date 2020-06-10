@@ -29,20 +29,19 @@ const (
 
 const shaderSrc = `package main
 
-// __viewportSize is a predefined uniform variable.
-// TODO: Hide this by a function.
+// viewportSize is a predefined function.
 
 func Vertex(position vec2, texCoord vec2, color vec4) vec4 {
 	return mat4(
-		2.0/__viewportSize.x, 0, 0, 0,
-		0, 2.0/__viewportSize.y, 0, 0,
+		2.0/viewportSize().x, 0, 0, 0,
+		0, 2.0/viewportSize().y, 0, 0,
 		0, 0, 1, 0,
 		-1, -1, 0, 1,
 	) * vec4(position, 0, 1)
 }
 
 func Fragment(position vec4) vec4 {
-	return vec4(position.x/__viewportSize.x, position.y/__viewportSize.y, 0, 1)
+	return vec4(position.x/viewportSize().x, position.y/viewportSize().y, 0, 1)
 }`
 
 type Game struct {
