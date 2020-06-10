@@ -1,4 +1,4 @@
-// Copyright 2018 The Ebiten Authors
+// Copyright 2020 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,6 +22,9 @@ import (
 	"image"
 	_ "image/png"
 	"log"
+	"math"
+
+	"golang.org/x/image/math/f64"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
@@ -64,14 +67,10 @@ func init() {
 	tilesImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 }
 
-type vec2 struct {
-	X, Y float64
-}
-
 type Camera struct {
-	ViewPort    vec2
-	Position    vec2
-	Zoom        vec2
+	ViewPort    f64.Vec2
+	Position    f64.Vec2
+	Zoom        f64.Vec2
 	Rotation    float64
 	worldMatrix ebiten.GeoM
 }
@@ -83,21 +82,21 @@ func (c *Camera) String() string {
 	)
 }
 
-func (c *Camera) viewportCenter() vec2 {
-	return vec2{
-		c.ViewPort.X * 0.5,
-		c.ViewPort.Y * 0.5,
+func (c *Camera) viewportCenter() f64.Vec2 {
+	return f64.Vec2{
+		c.ViewPort[0] * 0.5,
+		c.ViewPort[1] * 0.5,
 	}
 }
 
 func (c *Camera) updateMatrix() {
 	c.worldMatrix.Reset()
-	c.worldMatrix.Translate(-c.Position.X, -c.Position.Y)
+	c.worldMatrix.Translate(-c.Position[0], -c.Position[1])
 	// We want to scale and rotate around center of image / screen
-	c.worldMatrix.Translate(-c.viewportCenter().X, -c.viewportCenter().Y)
-	c.worldMatrix.Scale(c.Zoom.X, c.Zoom.Y)
+	c.worldMatrix.Translate(-c.viewportCenter()[0], -c.viewportCenter()[1])
+	c.worldMatrix.Scale(c.Zoom[0], c.Zoom[1])
 	c.worldMatrix.Rotate(c.Rotation)
-	c.worldMatrix.Translate(c.viewportCenter().X, c.viewportCenter().Y)
+	c.worldMatrix.Translate(c.viewportCenter()[0], c.viewportCenter()[1])
 }
 
 func (c *Camera) Render(world, screen *ebiten.Image) error {
@@ -110,16 +109,22 @@ func (c *Camera) Render(world, screen *ebiten.Image) error {
 func (c *Camera) ScreenToWorld(posX, posY int) (float64, float64) {
 	c.updateMatrix()
 	inverseMatrix := c.worldMatrix
-	inverseMatrix.Invert()
-	return inverseMatrix.Apply(float64(posX), float64(posY))
+	if inverseMatrix.IsInvertible() {
+		inverseMatrix.Invert()
+		return inverseMatrix.Apply(float64(posX), float64(posY))
+	} else {
+		// When scaling it can happend that matrix is not invertable
+		return math.NaN(), math.NaN()
+	}
 }
 
 func (c *Camera) Reset() {
-	c.Position.X = 0
-	c.Position.Y = 0
+	c.Position[0] = 0
+	c.Position[1] = 0
 	c.Rotation = 0
-	c.Zoom.X = 1
-	c.Zoom.Y = 1
+	c.Zoom[0] = 1
+	c.Zoom[1] = 1
+
 	c.updateMatrix()
 }
 
@@ -130,26 +135,26 @@ type Game struct {
 }
 
 func (g *Game) Update(screen *ebiten.Image) error {
-	if ebiten.IsKeyPressed(ebiten.KeyA) {
-		g.camera.Position.X -= 1
+	if ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyLeft) {
+		g.camera.Position[0] -= 1
 	}
-	if ebiten.IsKeyPressed(ebiten.KeyD) {
-		g.camera.Position.X += 1
+	if ebiten.IsKeyPressed(ebiten.KeyD) || ebiten.IsKeyPressed(ebiten.KeyRight) {
+		g.camera.Position[0] += 1
 	}
-	if ebiten.IsKeyPressed(ebiten.KeyW) {
-		g.camera.Position.Y -= 1
+	if ebiten.IsKeyPressed(ebiten.KeyW) || ebiten.IsKeyPressed(ebiten.KeyUp) {
+		g.camera.Position[1] -= 1
 	}
-	if ebiten.IsKeyPressed(ebiten.KeyS) {
-		g.camera.Position.Y += 1
+	if ebiten.IsKeyPressed(ebiten.KeyS) || ebiten.IsKeyPressed(ebiten.KeyDown) {
+		g.camera.Position[1] += 1
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyQ) {
-		g.camera.Zoom.X -= .1
-		g.camera.Zoom.Y -= .1
+		g.camera.Zoom[0] -= .1
+		g.camera.Zoom[1] -= .1
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyE) {
-		g.camera.Zoom.X += .1
-		g.camera.Zoom.Y += .1
+		g.camera.Zoom[0] += .1
+		g.camera.Zoom[1] += .1
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyR) {
@@ -181,7 +186,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.camera.Render(g.world, screen)
 
 	worldX, worldY := g.camera.ScreenToWorld(ebiten.CursorPosition())
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f\n%s\nCursor World Pos: %.2f%.2f", ebiten.CurrentTPS(), g.camera.String(), worldX, worldY))
+	ebitenutil.DebugPrint(
+		screen,
+		fmt.Sprintf("TPS: %0.2f\n%s\nCursor World Pos: %.2f,%.2f",
+			ebiten.CurrentTPS(),
+			g.camera.String(),
+			worldX, worldY),
+	)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -231,10 +242,10 @@ func main() {
 			},
 		},
 		camera: Camera{
-			ViewPort: vec2{screenWidth, screenHeight},
-			Position: vec2{0, 0},
+			ViewPort: f64.Vec2{screenWidth, screenHeight},
+			Position: f64.Vec2{0, 0},
 			Rotation: 0,
-			Zoom:     vec2{1, 1},
+			Zoom:     f64.Vec2{1, 1},
 		},
 	}
 	var err error
