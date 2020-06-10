@@ -69,11 +69,10 @@ func init() {
 }
 
 type Camera struct {
-	ViewPort    f64.Vec2
-	Position    f64.Vec2
-	Zoom        f64.Vec2
-	Rotation    float64
-	worldMatrix ebiten.GeoM
+	ViewPort f64.Vec2
+	Position f64.Vec2
+	Zoom     f64.Vec2
+	Rotation float64
 }
 
 func (c *Camera) String() string {
@@ -90,26 +89,25 @@ func (c *Camera) viewportCenter() f64.Vec2 {
 	}
 }
 
-func (c *Camera) updateMatrix() {
-	c.worldMatrix.Reset()
-	c.worldMatrix.Translate(-c.Position[0], -c.Position[1])
+func (c *Camera) worldMatrix() ebiten.GeoM {
+	m := ebiten.GeoM{}
+	m.Translate(-c.Position[0], -c.Position[1])
 	// We want to scale and rotate around center of image / screen
-	c.worldMatrix.Translate(-c.viewportCenter()[0], -c.viewportCenter()[1])
-	c.worldMatrix.Scale(c.Zoom[0], c.Zoom[1])
-	c.worldMatrix.Rotate(c.Rotation)
-	c.worldMatrix.Translate(c.viewportCenter()[0], c.viewportCenter()[1])
+	m.Translate(-c.viewportCenter()[0], -c.viewportCenter()[1])
+	m.Scale(c.Zoom[0], c.Zoom[1])
+	m.Rotate(c.Rotation)
+	m.Translate(c.viewportCenter()[0], c.viewportCenter()[1])
+	return m
 }
 
 func (c *Camera) Render(world, screen *ebiten.Image) error {
-	c.updateMatrix()
 	return screen.DrawImage(world, &ebiten.DrawImageOptions{
-		GeoM: c.worldMatrix,
+		GeoM: c.worldMatrix(),
 	})
 }
 
 func (c *Camera) ScreenToWorld(posX, posY int) (float64, float64) {
-	c.updateMatrix()
-	inverseMatrix := c.worldMatrix
+	inverseMatrix := c.worldMatrix()
 	if inverseMatrix.IsInvertible() {
 		inverseMatrix.Invert()
 		return inverseMatrix.Apply(float64(posX), float64(posY))
@@ -125,8 +123,6 @@ func (c *Camera) Reset() {
 	c.Rotation = 0
 	c.Zoom[0] = 1
 	c.Zoom[1] = 1
-
-	c.updateMatrix()
 }
 
 type Game struct {
