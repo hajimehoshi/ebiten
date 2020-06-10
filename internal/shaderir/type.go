@@ -25,6 +25,24 @@ type Type struct {
 	Length int
 }
 
+func (t *Type) Equal(rhs *Type) bool {
+	if t.Main != rhs.Main {
+		return false
+	}
+	if t.Length != rhs.Length {
+		return false
+	}
+	if len(t.Sub) != len(rhs.Sub) {
+		return false
+	}
+	for i, s := range t.Sub {
+		if !s.Equal(&rhs.Sub[i]) {
+			return false
+		}
+	}
+	return true
+}
+
 func (t *Type) serialize() string {
 	switch t.Main {
 	case None:

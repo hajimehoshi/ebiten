@@ -29,6 +29,8 @@ const (
 
 const shaderSrc = `package main
 
+var Time float
+
 // viewportSize is a predefined function.
 
 func Vertex(position vec2, texCoord vec2, color vec4) vec4 {
@@ -41,14 +43,22 @@ func Vertex(position vec2, texCoord vec2, color vec4) vec4 {
 }
 
 func Fragment(position vec4) vec4 {
-	return vec4(position.x/viewportSize().x, position.y/viewportSize().y, 0, 1)
+	pos := position.xy / viewportSize()
+	color := 0.0
+	color += sin(pos.x * cos(Time / 15.0) * 80.0) + cos(pos.y * cos(Time / 15.0) * 10.0)
+	color += sin(pos.y * sin(Time / 10.0) * 40.0) + cos(pos.x * sin(Time / 25.0) * 40.0)
+	color += sin(pos.x * sin(Time / 5.0) * 10.0) + sin(pos.y * sin(Time / 35.0) * 80.0)
+	color *= sin(Time / 10.0) * 0.5
+	return vec4(color, color * 0.5, sin(color + Time / 3.0 ) * 0.75, 1.0)
 }`
 
 type Game struct {
 	shader *ebiten.Shader
+	time   int
 }
 
 func (g *Game) Update(screen *ebiten.Image) error {
+	g.time++
 	if g.shader == nil {
 		var err error
 		g.shader, err = ebiten.NewShader([]byte(shaderSrc))
@@ -80,7 +90,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		},
 	}
 	is := []uint16{0, 1, 2, 1, 2, 3}
-	screen.DrawTrianglesWithShader(vs, is, g.shader, nil)
+
+	op := &ebiten.DrawTrianglesWithShaderOptions{}
+	op.Uniforms = []interface{}{
+		float32(g.time) / 60, // time
+	}
+	screen.DrawTrianglesWithShader(vs, is, g.shader, op)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

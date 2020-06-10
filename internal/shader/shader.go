@@ -557,7 +557,9 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 						if len(ts) > 1 {
 							cs.addError(l.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
 						}
-						v.typ = ts[0]
+						if len(ts) == 1 {
+							v.typ = ts[0]
+						}
 					} else {
 						if i == 0 {
 							rhsTypes = cs.detectType(block, l.Rhs[0])
@@ -578,6 +580,40 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 					return nil
 				}
 				cs.assign(block, l.Pos(), l.Lhs, l.Rhs)
+			case token.ADD_ASSIGN, token.SUB_ASSIGN, token.MUL_ASSIGN, token.QUO_ASSIGN, token.REM_ASSIGN:
+				var op shaderir.Op
+				switch l.Tok {
+				case token.ADD_ASSIGN:
+					op = shaderir.Add
+				case token.SUB_ASSIGN:
+					op = shaderir.Sub
+				case token.MUL_ASSIGN:
+					op = shaderir.Mul
+				case token.QUO_ASSIGN:
+					op = shaderir.Div
+				case token.REM_ASSIGN:
+					op = shaderir.ModOp
+				}
+				rhs, stmts := cs.parseExpr(block, l.Rhs[0])
+				block.ir.Stmts = append(block.ir.Stmts, stmts...)
+				lhs, stmts := cs.parseExpr(block, l.Lhs[0])
+				block.ir.Stmts = append(block.ir.Stmts, stmts...)
+				block.ir.Stmts = append(block.ir.Stmts, shaderir.Stmt{
+					Type: shaderir.Assign,
+					Exprs: []shaderir.Expr{
+						lhs[0],
+						{
+							Type: shaderir.Binary,
+							Op:   op,
+							Exprs: []shaderir.Expr{
+								lhs[0],
+								rhs[0],
+							},
+						},
+					},
+				})
+			default:
+				cs.addError(l.Pos(), fmt.Sprintf("unexpected token: %s", l.Tok))
 			}
 		case *ast.BlockStmt:
 			b := cs.parseBlock(block, l, nil, nil)

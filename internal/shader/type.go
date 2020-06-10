@@ -72,6 +72,30 @@ func (cs *compileState) detectType(b *block, expr ast.Expr) []shaderir.Type {
 		}
 		cs.addError(expr.Pos(), fmt.Sprintf("unexpected literal: %s", e.Value))
 		return nil
+	case *ast.BinaryExpr:
+		t1, t2 := cs.detectType(b, e.X), cs.detectType(b, e.Y)
+		if len(t1) != 1 || len(t2) != 1 {
+			cs.addError(expr.Pos(), fmt.Sprintf("binary operator cannot be used for multiple-value context: %v", expr))
+			return nil
+		}
+		if !t1[0].Equal(&t2[0]) {
+			// TODO: Move this checker to shaderir
+			if t1[0].Main == shaderir.Float {
+				switch t2[0].Main {
+				case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
+					return t2
+				}
+			}
+			if t2[0].Main == shaderir.Float {
+				switch t1[0].Main {
+				case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
+					return t1
+				}
+			}
+			cs.addError(expr.Pos(), fmt.Sprintf("types between a binary operator don't match"))
+			return nil
+		}
+		return t1
 	case *ast.CallExpr:
 		n := e.Fun.(*ast.Ident).Name
 		f, ok := shaderir.ParseBuiltinFunc(n)
@@ -127,8 +151,34 @@ func (cs *compileState) detectType(b *block, expr ast.Expr) []shaderir.Type {
 		}
 		cs.addError(expr.Pos(), fmt.Sprintf("unexpected identifier: %s", n))
 		return nil
-	//case *ast.SelectorExpr:
-	//return fmt.Sprintf("%cs.%s", dumpExpr(e.X), dumpExpr(e.Sel))
+	case *ast.SelectorExpr:
+		t := cs.detectType(b, e.X)
+		if len(t) != 1 {
+			cs.addError(expr.Pos(), fmt.Sprintf("selector is not available in multiple-value context: %v", e.X))
+			return nil
+		}
+		switch t[0].Main {
+		case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
+			switch len(e.Sel.Name) {
+			case 1:
+				return []shaderir.Type{{Main: shaderir.Float}}
+			case 2:
+				return []shaderir.Type{{Main: shaderir.Vec2}}
+			case 3:
+				return []shaderir.Type{{Main: shaderir.Float}}
+			case 4:
+				return []shaderir.Type{{Main: shaderir.Float}}
+			default:
+				cs.addError(expr.Pos(), fmt.Sprintf("invalid selector: %s", e.Sel.Name))
+			}
+			return nil
+		case shaderir.Struct:
+			cs.addError(expr.Pos(), fmt.Sprintf("selector for a struct is not implemented yet"))
+			return nil
+		default:
+			cs.addError(expr.Pos(), fmt.Sprintf("selector is not available for: %v", expr))
+			return nil
+		}
 	default:
 		cs.addError(expr.Pos(), fmt.Sprintf("detecting type not implemented: %#v", expr))
 		return nil

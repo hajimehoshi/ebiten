@@ -285,7 +285,7 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable) error
 			}
 			g.context.bindTexture(v)
 		default:
-			return fmt.Errorf("opengl: unexpected uniform value: %v", u.value)
+			return fmt.Errorf("opengl: unexpected uniform value: %v (type: %T)", u.value, u.value)
 		}
 	}
 	return nil
