@@ -124,7 +124,7 @@ func (c *Camera) Reset() {
 	c.Position[0] = 0
 	c.Position[1] = 0
 	c.Rotation = 0
-	c.ZoomFactor = 1
+	c.ZoomFactor = 0
 }
 
 type Game struct {
@@ -250,12 +250,7 @@ func main() {
 				0, 0, 0, 0, 0, 0, 0, 245, 242, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 			},
 		},
-		camera: Camera{
-			ViewPort:   f64.Vec2{screenWidth, screenHeight},
-			Position:   f64.Vec2{0, 0},
-			Rotation:   0,
-			ZoomFactor: 1,
-		},
+		camera: Camera{ViewPort: f64.Vec2{screenWidth, screenHeight}},
 	}
 	var err error
 	g.world, err = ebiten.NewImage(worldWidth, worldHeight, ebiten.FilterDefault)
