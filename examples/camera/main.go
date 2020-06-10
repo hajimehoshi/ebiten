@@ -72,12 +72,12 @@ type Camera struct {
 	ViewPort   f64.Vec2
 	Position   f64.Vec2
 	ZoomFactor int
-	Rotation   float64
+	Rotation   int
 }
 
 func (c *Camera) String() string {
 	return fmt.Sprintf(
-		"T: %.1f, R: %.1f, S: %d",
+		"T: %.1f, R: %d, S: %d",
 		c.Position, c.Rotation, c.ZoomFactor,
 	)
 }
@@ -98,7 +98,7 @@ func (c *Camera) worldMatrix() ebiten.GeoM {
 		math.Pow(1.01, float64(c.ZoomFactor)),
 		math.Pow(1.01, float64(c.ZoomFactor)),
 	)
-	m.Rotate(c.Rotation)
+	m.Rotate(float64(c.Rotation) * 2 * math.Pi / 360)
 	m.Translate(c.viewportCenter()[0], c.viewportCenter()[1])
 	return m
 }
@@ -155,7 +155,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyR) {
-		g.camera.Rotation += .1
+		g.camera.Rotation += 1
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeySpace) {
