@@ -570,57 +570,14 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 					block.vars = append(block.vars, v)
 				}
 
-				var rhsExprs []shaderir.Expr
-				for i := range l.Lhs {
-					// Prase RHS first for the order of the statements.
-					if len(l.Lhs) == len(l.Rhs) {
-						rhs, stmts := cs.parseExpr(block, l.Rhs[i])
-						if len(rhs) > 1 {
-							cs.addError(l.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
-						}
-						block.ir.Stmts = append(block.ir.Stmts, stmts...)
-
-						lhs, stmts := cs.parseExpr(block, l.Lhs[i])
-						block.ir.Stmts = append(block.ir.Stmts, stmts...)
-
-						block.ir.Stmts = append(block.ir.Stmts, shaderir.Stmt{
-							Type:  shaderir.Assign,
-							Exprs: []shaderir.Expr{lhs[0], rhs[0]},
-						})
-					} else {
-						if i == 0 {
-							var stmts []shaderir.Stmt
-							rhsExprs, stmts = cs.parseExpr(block, l.Rhs[0])
-							if len(rhsExprs) != len(l.Lhs) {
-								cs.addError(l.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
-							}
-							block.ir.Stmts = append(block.ir.Stmts, stmts...)
-						}
-
-						lhs, stmts := cs.parseExpr(block, l.Lhs[i])
-						block.ir.Stmts = append(block.ir.Stmts, stmts...)
-
-						block.ir.Stmts = append(block.ir.Stmts, shaderir.Stmt{
-							Type:  shaderir.Assign,
-							Exprs: []shaderir.Expr{lhs[0], rhsExprs[i]},
-						})
-					}
-				}
+				cs.assign(block, l.Pos(), l.Lhs, l.Rhs)
 			case token.ASSIGN:
 				// TODO: What about the statement `a,b = b,a?`
-				for i := range l.Rhs {
-					// Prase RHS first for the order of the statements.
-					rhs, stmts := cs.parseExpr(block, l.Rhs[i])
-					block.ir.Stmts = append(block.ir.Stmts, stmts...)
-					lhs, stmts := cs.parseExpr(block, l.Lhs[i])
-					block.ir.Stmts = append(block.ir.Stmts, stmts...)
-
-					// TODO: Treat multiple expressions
-					block.ir.Stmts = append(block.ir.Stmts, shaderir.Stmt{
-						Type:  shaderir.Assign,
-						Exprs: []shaderir.Expr{lhs[0], rhs[0]},
-					})
+				if len(l.Lhs) != len(l.Rhs) && len(l.Rhs) != 1 {
+					cs.addError(l.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
+					return nil
 				}
+				cs.assign(block, l.Pos(), l.Lhs, l.Rhs)
 			}
 		case *ast.BlockStmt:
 			b := cs.parseBlock(block, l, nil, nil)
@@ -675,6 +632,45 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 	}
 
 	return block
+}
+
+func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr) {
+	var rhsExprs []shaderir.Expr
+	for i := range lhs {
+		// Prase RHS first for the order of the statements.
+		if len(lhs) == len(rhs) {
+			rhs, stmts := cs.parseExpr(block, rhs[i])
+			if len(rhs) > 1 {
+				cs.addError(pos, fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
+			}
+			block.ir.Stmts = append(block.ir.Stmts, stmts...)
+
+			lhs, stmts := cs.parseExpr(block, lhs[i])
+			block.ir.Stmts = append(block.ir.Stmts, stmts...)
+
+			block.ir.Stmts = append(block.ir.Stmts, shaderir.Stmt{
+				Type:  shaderir.Assign,
+				Exprs: []shaderir.Expr{lhs[0], rhs[0]},
+			})
+		} else {
+			if i == 0 {
+				var stmts []shaderir.Stmt
+				rhsExprs, stmts = cs.parseExpr(block, rhs[0])
+				if len(rhsExprs) != len(lhs) {
+					cs.addError(pos, fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
+				}
+				block.ir.Stmts = append(block.ir.Stmts, stmts...)
+			}
+
+			lhs, stmts := cs.parseExpr(block, lhs[i])
+			block.ir.Stmts = append(block.ir.Stmts, stmts...)
+
+			block.ir.Stmts = append(block.ir.Stmts, shaderir.Stmt{
+				Type:  shaderir.Assign,
+				Exprs: []shaderir.Expr{lhs[0], rhsExprs[i]},
+			})
+		}
+	}
 }
 
 func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr, []shaderir.Stmt) {
