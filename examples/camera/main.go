@@ -257,11 +257,7 @@ func main() {
 		},
 		camera: Camera{ViewPort: f64.Vec2{screenWidth, screenHeight}},
 	}
-	var err error
-	g.world, err = ebiten.NewImage(worldWidth, worldHeight, ebiten.FilterDefault)
-	if err != nil {
-		log.Fatal(err)
-	}
+	g.world, _ = ebiten.NewImage(worldWidth, worldHeight, ebiten.FilterDefault)
 
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
 	ebiten.SetWindowTitle("Tiles (Ebiten Demo)")
