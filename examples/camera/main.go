@@ -185,10 +185,15 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	worldX, worldY := g.camera.ScreenToWorld(ebiten.CursorPosition())
 	ebitenutil.DebugPrint(
 		screen,
-		fmt.Sprintf("TPS: %0.2f\n%s\nCursor World Pos: %.2f,%.2f",
-			ebiten.CurrentTPS(),
+		fmt.Sprintf("TPS: %0.2f\nMove (WASD/Arrows)\nZoom (QE)\nRotate (R)\nReset (Space)", ebiten.CurrentTPS()),
+	)
+
+	ebitenutil.DebugPrintAt(
+		screen,
+		fmt.Sprintf("%s\nCursor World Pos: %.2f,%.2f",
 			g.camera.String(),
 			worldX, worldY),
+		0, screenHeight-32,
 	)
 }
 
