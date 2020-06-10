@@ -69,16 +69,16 @@ func init() {
 }
 
 type Camera struct {
-	ViewPort f64.Vec2
-	Position f64.Vec2
-	Zoom     f64.Vec2
-	Rotation float64
+	ViewPort   f64.Vec2
+	Position   f64.Vec2
+	ZoomFactor int
+	Rotation   float64
 }
 
 func (c *Camera) String() string {
 	return fmt.Sprintf(
-		"T: %.1f, R: %.1f, S: %.1f",
-		c.Position, c.Rotation, c.Zoom,
+		"T: %.1f, R: %.1f, S: %d",
+		c.Position, c.Rotation, c.ZoomFactor,
 	)
 }
 
@@ -94,7 +94,10 @@ func (c *Camera) worldMatrix() ebiten.GeoM {
 	m.Translate(-c.Position[0], -c.Position[1])
 	// We want to scale and rotate around center of image / screen
 	m.Translate(-c.viewportCenter()[0], -c.viewportCenter()[1])
-	m.Scale(c.Zoom[0], c.Zoom[1])
+	m.Scale(
+		math.Pow(1.01, float64(c.ZoomFactor)),
+		math.Pow(1.01, float64(c.ZoomFactor)),
+	)
 	m.Rotate(c.Rotation)
 	m.Translate(c.viewportCenter()[0], c.viewportCenter()[1])
 	return m
@@ -121,8 +124,7 @@ func (c *Camera) Reset() {
 	c.Position[0] = 0
 	c.Position[1] = 0
 	c.Rotation = 0
-	c.Zoom[0] = 1
-	c.Zoom[1] = 1
+	c.ZoomFactor = 1
 }
 
 type Game struct {
@@ -146,12 +148,10 @@ func (g *Game) Update(screen *ebiten.Image) error {
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyQ) {
-		g.camera.Zoom[0] -= .1
-		g.camera.Zoom[1] -= .1
+		g.camera.ZoomFactor -= 1
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyE) {
-		g.camera.Zoom[0] += .1
-		g.camera.Zoom[1] += .1
+		g.camera.ZoomFactor += 1
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyR) {
@@ -251,10 +251,10 @@ func main() {
 			},
 		},
 		camera: Camera{
-			ViewPort: f64.Vec2{screenWidth, screenHeight},
-			Position: f64.Vec2{0, 0},
-			Rotation: 0,
-			Zoom:     f64.Vec2{1, 1},
+			ViewPort:   f64.Vec2{screenWidth, screenHeight},
+			Position:   f64.Vec2{0, 0},
+			Rotation:   0,
+			ZoomFactor: 1,
 		},
 	}
 	var err error
