@@ -6,7 +6,7 @@ void F0(in vec2 l0, out vec4 l1) {
 	F1(l4, l5);
 	l2 = l4;
 	l3 = l5;
-	l1 = vec4(l0, l2, l2);
+	l1 = vec4(l0, l2, l3);
 	return;
 }
 
