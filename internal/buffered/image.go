@@ -201,13 +201,13 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
 		return nil
 	}
 
-	i.resolvePendingFill()
-
 	if x == 0 && y == 0 && width == i.width && height == i.height {
 		i.invalidatePendingPixels()
 		i.img.ReplacePixels(pix)
 		return nil
 	}
+
+	i.resolvePendingFill()
 
 	// TODO: Can we use (*restorable.Image).ReplacePixels?
 	if i.pixels == nil {
