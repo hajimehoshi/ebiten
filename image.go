@@ -492,11 +492,12 @@ func (i *Image) At(x, y int) color.Color {
 	if i.isSubImage() && !image.Pt(x, y).In(i.bounds) {
 		return color.RGBA{}
 	}
-	r, g, b, a, err := i.buffered.At(x, y)
+	pix, err := i.buffered.Pixels(x, y, 1, 1)
 	if err != nil {
 		theUIContext.setError(err)
+		return color.RGBA{}
 	}
-	return color.RGBA{r, g, b, a}
+	return color.RGBA{pix[0], pix[1], pix[2], pix[3]}
 }
 
 // Set sets the color at (x, y).

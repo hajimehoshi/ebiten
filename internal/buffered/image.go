@@ -136,33 +136,43 @@ func (i *Image) MarkDisposed() {
 	i.img.MarkDisposed()
 }
 
-func (i *Image) At(x, y int) (r, g, b, a byte, err error) {
+func (img *Image) Pixels(x, y, width, height int) (pix []byte, err error) {
 	delayedCommandsM.Lock()
 	defer delayedCommandsM.Unlock()
 	if needsToDelayCommands {
 		panic("buffered: the command queue is not available yet at At")
 	}
 
-	if x < 0 || y < 0 || x >= i.width || y >= i.height {
-		return 0, 0, 0, 0, nil
+	if !image.Rect(x, y, x+width, y+height).In(image.Rect(0, 0, img.width, img.height)) {
+		return nil, fmt.Errorf("buffered: out of range")
 	}
+
+	pix = make([]byte, 4*width*height)
 
 	// If there are pixels or pending fillling that needs to be resolved, use this rather than resolving.
 	// Resolving them needs to access GPU and is expensive (#1137).
-	if i.hasFill {
-		return i.fillColor.R, i.fillColor.G, i.fillColor.B, i.fillColor.A, nil
-	}
-
-	if i.pixels == nil {
-		pix, err := i.img.Pixels(0, 0, i.width, i.height)
-		if err != nil {
-			return 0, 0, 0, 0, err
+	if img.hasFill {
+		for i := 0; i < len(pix)/4; i++ {
+			pix[4*i] = img.fillColor.R
+			pix[4*i+1] = img.fillColor.G
+			pix[4*i+2] = img.fillColor.B
+			pix[4*i+3] = img.fillColor.A
 		}
-		i.pixels = pix
+		return pix, nil
 	}
 
-	idx := i.width*y + x
-	return i.pixels[4*idx], i.pixels[4*idx+1], i.pixels[4*idx+2], i.pixels[4*idx+3], nil
+	if img.pixels == nil {
+		pix, err := img.img.Pixels(0, 0, img.width, img.height)
+		if err != nil {
+			return nil, err
+		}
+		img.pixels = pix
+	}
+
+	for j := 0; j < height; j++ {
+		copy(pix[4*j*width:4*(j+1)*width], img.pixels[4*((j+y)*img.width+x):])
+	}
+	return pix, nil
 }
 
 func (i *Image) Dump(name string, blackbg bool) error {
