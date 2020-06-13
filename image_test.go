@@ -2028,3 +2028,31 @@ func TestImageDrawOver(t *testing.T) {
 		}
 	}
 }
+
+func TestImageDrawDisposedImage(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("DrawImage must panic but not")
+		}
+	}()
+
+	dst, _ := NewImage(16, 16, FilterNearest)
+	src, _ := NewImage(16, 16, FilterNearest)
+	src.Dispose()
+	dst.DrawImage(src, nil)
+}
+
+func TestImageDrawTrianglesDisposedImage(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("DrawTriangles must panic but not")
+		}
+	}()
+
+	dst, _ := NewImage(16, 16, FilterNearest)
+	src, _ := NewImage(16, 16, FilterNearest)
+	src.Dispose()
+	vs := make([]Vertex, 4)
+	is := []uint16{0, 1, 2, 1, 2, 3}
+	dst.DrawTriangles(vs, is, src, nil)
+}

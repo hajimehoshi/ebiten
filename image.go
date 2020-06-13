@@ -277,6 +277,9 @@ const MaxIndicesNum = graphics.IndicesNum
 func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, options *DrawTrianglesOptions) {
 	i.copyCheck()
 
+	if img.isDisposed() {
+		panic("ebiten: the given image to DrawTriangles must not be disposed")
+	}
 	if i.isDisposed() {
 		return
 	}
@@ -338,6 +341,7 @@ type DrawTrianglesWithShaderOptions struct {
 	CompositeMode CompositeMode
 }
 
+// TODO: Add comments and tests
 func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, shader *Shader, options *DrawTrianglesWithShaderOptions) {
 	i.copyCheck()
 
@@ -367,6 +371,9 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 	for _, v := range options.Uniforms {
 		switch v := v.(type) {
 		case *Image:
+			if v.isDisposed() {
+				panic("ebiten: the given image to DrawTriangles must not be disposed")
+			}
 			us = append(us, v.buffered)
 			if firstImage == nil {
 				firstImage = v
