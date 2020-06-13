@@ -55,10 +55,7 @@ func NewImage(width, height int, volatile bool) *Image {
 }
 
 func (i *Image) initialize(width, height int, volatile bool) {
-	delayedCommandsM.Lock()
-	defer delayedCommandsM.Unlock()
-
-	if needsToDelayCommands {
+	if needsToDelayCommands() {
 		delayedCommands = append(delayedCommands, func() error {
 			i.initialize(width, height, volatile)
 			return nil
@@ -77,10 +74,7 @@ func NewScreenFramebufferImage(width, height int) *Image {
 }
 
 func (i *Image) initializeAsScreenFramebuffer(width, height int) {
-	delayedCommandsM.Lock()
-	defer delayedCommandsM.Unlock()
-
-	if needsToDelayCommands {
+	if needsToDelayCommands() {
 		delayedCommands = append(delayedCommands, func() error {
 			i.initializeAsScreenFramebuffer(width, height)
 			return nil
@@ -122,10 +116,7 @@ func (i *Image) resolvePendingFill() {
 }
 
 func (i *Image) MarkDisposed() {
-	delayedCommandsM.Lock()
-	defer delayedCommandsM.Unlock()
-
-	if needsToDelayCommands {
+	if needsToDelayCommands() {
 		delayedCommands = append(delayedCommands, func() error {
 			i.MarkDisposed()
 			return nil
@@ -137,9 +128,7 @@ func (i *Image) MarkDisposed() {
 }
 
 func (img *Image) Pixels(x, y, width, height int) (pix []byte, err error) {
-	delayedCommandsM.Lock()
-	defer delayedCommandsM.Unlock()
-	if needsToDelayCommands {
+	if needsToDelayCommands() {
 		panic("buffered: the command queue is not available yet at At")
 	}
 
@@ -176,19 +165,14 @@ func (img *Image) Pixels(x, y, width, height int) (pix []byte, err error) {
 }
 
 func (i *Image) Dump(name string, blackbg bool) error {
-	delayedCommandsM.Lock()
-	defer delayedCommandsM.Unlock()
-	if needsToDelayCommands {
+	if needsToDelayCommands() {
 		panic("buffered: the command queue is not available yet at Dump")
 	}
 	return i.img.Dump(name, blackbg)
 }
 
 func (i *Image) Fill(clr color.RGBA) {
-	delayedCommandsM.Lock()
-	defer delayedCommandsM.Unlock()
-
-	if needsToDelayCommands {
+	if needsToDelayCommands() {
 		delayedCommands = append(delayedCommands, func() error {
 			i.Fill(clr)
 			return nil
@@ -207,23 +191,7 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
 		panic(fmt.Sprintf("buffered: len(pix) was %d but must be %d", len(pix), l))
 	}
 
-	// This is an optimization to avoid mutex for the case when ReplacePixels is called very often (e.g., Set).
-	// If i.pixels is not nil, delayed commands have already been flushed.
-	// needsToDelayCommands should be false, but we don't check it because this is out of the mutex lock.
-	// (#1137)
-	if i.pixels != nil {
-		// If the region is the whole image, don't use this optimization, or more memory is consumed by
-		// keeping pixels.
-		if !(x == 0 && y == 0 && width == i.width && height == i.height) {
-			i.replacePendingPixels(pix, x, y, width, height)
-			return nil
-		}
-	}
-
-	delayedCommandsM.Lock()
-	defer delayedCommandsM.Unlock()
-
-	if needsToDelayCommands {
+	if needsToDelayCommands() {
 		copied := make([]byte, len(pix))
 		copy(copied, pix)
 		delayedCommands = append(delayedCommands, func() error {
@@ -274,10 +242,7 @@ func (i *Image) DrawImage(src *Image, bounds image.Rectangle, a, b, c, d, tx, ty
 		Ty: ty,
 	}
 
-	delayedCommandsM.Lock()
-	defer delayedCommandsM.Unlock()
-
-	if needsToDelayCommands {
+	if needsToDelayCommands() {
 		delayedCommands = append(delayedCommands, func() error {
 			i.drawImage(src, bounds, g, colorm, mode, filter)
 			return nil
@@ -314,10 +279,7 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 		}
 	}
 
-	delayedCommandsM.Lock()
-	defer delayedCommandsM.Unlock()
-
-	if needsToDelayCommands {
+	if needsToDelayCommands() {
 		delayedCommands = append(delayedCommands, func() error {
 			// Arguments are not copied. Copying is the caller's responsibility.
 			i.DrawTriangles(src, vertices, indices, colorm, mode, filter, address, shader, uniforms)

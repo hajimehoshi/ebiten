@@ -15,17 +15,16 @@
 package buffered
 
 import (
-	"sync"
+	"sync/atomic"
 )
 
 var (
-	needsToDelayCommands = true
+	needsToDelayCommandsV int32 = 1
 
 	// delayedCommands represents a queue for image operations that are ordered before the game starts
 	// (BeginFrame). Before the game starts, the package shareable doesn't determine the minimum/maximum texture
 	// sizes (#879).
-	delayedCommands  []func() error
-	delayedCommandsM sync.Mutex
+	delayedCommands []func() error
 )
 
 func flushDelayedCommands() error {
@@ -40,12 +39,14 @@ func flushDelayedCommands() error {
 }
 
 func getDelayedFuncsAndClear() []func() error {
-	delayedCommandsM.Lock()
-	defer delayedCommandsM.Unlock()
+	atomic.StoreInt32(&needsToDelayCommandsV, 0)
 
 	fs := make([]func() error, len(delayedCommands))
 	copy(fs, delayedCommands)
 	delayedCommands = nil
-	needsToDelayCommands = false
 	return fs
+}
+
+func needsToDelayCommands() bool {
+	return atomic.LoadInt32(&needsToDelayCommandsV) != 0
 }

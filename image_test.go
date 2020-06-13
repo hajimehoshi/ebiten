@@ -2056,3 +2056,12 @@ func TestImageDrawTrianglesDisposedImage(t *testing.T) {
 	is := []uint16{0, 1, 2, 1, 2, 3}
 	dst.DrawTriangles(vs, is, src, nil)
 }
+
+// #1137
+func BenchmarkImageDrawOver(b *testing.B) {
+	dst, _ := NewImage(16, 16, FilterDefault)
+	src := image.NewUniform(color.Black)
+	for n := 0; n < b.N; n++ {
+		draw.Draw(dst, dst.Bounds(), src, image.ZP, draw.Over)
+	}
+}
