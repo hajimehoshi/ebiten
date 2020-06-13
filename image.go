@@ -489,7 +489,7 @@ func (i *Image) At(x, y int) color.Color {
 	if i.isDisposed() {
 		return color.RGBA{}
 	}
-	if i.isSubImage() && !image.Pt(x, y).In(i.bounds) {
+	if !image.Pt(x, y).In(i.Bounds()) {
 		return color.RGBA{}
 	}
 	pix, err := i.buffered.Pixels(x, y, 1, 1)
