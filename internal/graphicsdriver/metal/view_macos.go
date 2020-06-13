@@ -25,7 +25,9 @@ import (
 )
 
 func (v *view) setWindow(window unsafe.Pointer) {
+	// NSView can be updated e.g., fullscreen-state is switched.
 	v.window = window
+	v.windowChanged = true
 }
 
 func (v *view) setUIView(uiview uintptr) {
@@ -33,10 +35,14 @@ func (v *view) setUIView(uiview uintptr) {
 }
 
 func (v *view) update() {
-	// NSView can be changed anytime (probably). Set this everyframe.
+	if !v.windowChanged {
+		return
+	}
+
 	cocoaWindow := ns.NewWindow(v.window)
 	cocoaWindow.ContentView().SetLayer(v.ml)
 	cocoaWindow.ContentView().SetWantsLayer(true)
+	v.windowChanged = false
 }
 
 const (
