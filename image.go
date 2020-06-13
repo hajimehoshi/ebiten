@@ -418,7 +418,8 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 	i.buffered.DrawTriangles(nil, vs, is, nil, mode, driver.FilterNearest, driver.AddressClampToZero, shader.shader, us)
 }
 
-// SubImage returns an image representing the portion of the image p visible through r. The returned value shares pixels with the original image.
+// SubImage returns an image representing the portion of the image p visible through r.
+// The returned value shares pixels with the original image.
 //
 // The returned value is always *ebiten.Image.
 //
@@ -431,26 +432,26 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 		return nil
 	}
 
-	img := &Image{
-		buffered: i.buffered,
-		filter:   i.filter,
-	}
-
-	// Keep the original image's reference not to dispose that by GC.
-	if i.isSubImage() {
-		img.original = i.original
-	} else {
-		img.original = i
-	}
-	img.addr = img
-
 	r = r.Intersect(i.Bounds())
 	// Need to check Empty explicitly. See the standard image package implementations.
 	if r.Empty() {
-		img.bounds = image.ZR
-	} else {
-		img.bounds = r
+		r = image.ZR
 	}
+
+	// Keep the original image's reference not to dispose that by GC.
+	var orig = i
+	if i.isSubImage() {
+		orig = i.original
+	}
+
+	img := &Image{
+		buffered: i.buffered,
+		filter:   i.filter,
+		bounds:   r,
+		original: orig,
+	}
+	img.addr = img
+
 	return img
 }
 
@@ -517,7 +518,8 @@ func (i *Image) Set(x, y int, clr color.Color) {
 	}
 }
 
-// Dispose disposes the image data. After disposing, most of image functions do nothing and returns meaningless values.
+// Dispose disposes the image data.
+// After disposing, most of image functions do nothing and returns meaningless values.
 //
 // Calling Dispose is not mandatory. GC automatically collects internal resources that no objects refer to.
 // However, calling Dispose explicitly is helpful if memory usage matters.
@@ -541,7 +543,8 @@ func (i *Image) Dispose() error {
 
 // ReplacePixels replaces the pixels of the image with p.
 //
-// The given p must represent RGBA pre-multiplied alpha values. len(p) must equal to 4 * (bounds width) * (bounds height).
+// The given p must represent RGBA pre-multiplied alpha values.
+// len(p) must equal to 4 * (bounds width) * (bounds height).
 //
 // ReplacePixels works on a sub-image.
 //
