@@ -552,23 +552,23 @@ func (i *Image) Dispose() error {
 // ReplacePixels replaces the pixels of the image with p.
 //
 // The given p must represent RGBA pre-multiplied alpha values.
-// len(p) must equal to 4 * (bounds width) * (bounds height).
+// len(pix) must equal to 4 * (bounds width) * (bounds height).
 //
 // ReplacePixels works on a sub-image.
 //
-// When len(p) is not appropriate, ReplacePixels panics.
+// When len(pix) is not appropriate, ReplacePixels panics.
 //
 // When the image is disposed, ReplacePixels does nothing.
 //
 // ReplacePixels always returns nil as of 1.5.0-alpha.
-func (i *Image) ReplacePixels(p []byte) error {
+func (i *Image) ReplacePixels(pix []byte) error {
 	i.copyCheck()
 
 	if i.isDisposed() {
 		return nil
 	}
 	r := i.Bounds()
-	if err := i.buffered.ReplacePixels(p, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
+	if err := i.buffered.ReplacePixels(pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
 		theUIContext.setError(err)
 	}
 	return nil
