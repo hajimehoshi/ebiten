@@ -203,7 +203,13 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
 
 	if x == 0 && y == 0 && width == i.width && height == i.height {
 		i.invalidatePendingPixels()
-		i.img.ReplacePixels(pix)
+
+		// Don't call (*mipmap.Mipmap).ReplacePixels here. Let's defer it to reduce GPU operations as much as
+		// posssible.
+		copied := make([]byte, len(pix))
+		copy(copied, pix)
+		i.pixels = copied
+		i.needsToResolvePixels = true
 		return nil
 	}
 
