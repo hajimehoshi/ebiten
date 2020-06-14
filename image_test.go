@@ -2065,3 +2065,27 @@ func BenchmarkImageDrawOver(b *testing.B) {
 		draw.Draw(dst, dst.Bounds(), src, image.ZP, draw.Over)
 	}
 }
+
+// Issue #1171
+func TestImageFloatTranslate(t *testing.T) {
+	const w, h = 32, 32
+
+	dst, _ := NewImage(320, 240, FilterDefault)
+	src, _ := NewImage(w, h, FilterDefault)
+	src.Fill(color.RGBA{0xff, 0, 0, 0xff})
+
+	op := &DrawImageOptions{}
+	op.GeoM.Scale(2, 2)
+	op.GeoM.Translate(0, 0.501)
+	dst.DrawImage(src, op)
+
+	for j := 1; j < h*2+1; j++ {
+		for i := 0; i < w*2; i++ {
+			got := dst.At(i, j)
+			want := color.RGBA{0xff, 0, 0, 0xff}
+			if got != want {
+				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}

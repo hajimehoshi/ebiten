@@ -208,8 +208,7 @@ func fract(x float32) float32 {
 }
 
 const (
-	dstAdjustmentFactor   = 1.0 / 256.0
-	texelAdjustmentFactor = 1.0 / 512.0
+	dstAdjustmentFactor = 1.0 / 256.0
 )
 
 // Flush flushes the command queue.
@@ -254,10 +253,6 @@ func (q *commandQueue) Flush() error {
 			case 0.5 <= f && f < 0.5+dstAdjustmentFactor:
 				vs[i*graphics.VertexFloatNum+1] += (0.5 + dstAdjustmentFactor) - f
 			}
-
-			// Adjust regions not to violate neighborhoods (#317, #558, #724).
-			vs[i*graphics.VertexFloatNum+6] -= 1.0 / s.width * texelAdjustmentFactor
-			vs[i*graphics.VertexFloatNum+7] -= 1.0 / s.height * texelAdjustmentFactor
 		}
 	} else {
 		n := q.nvertices / graphics.VertexFloatNum
@@ -440,12 +435,6 @@ func (c *drawTrianglesCommand) Exec(indexOffset int) error {
 					region[1] / float32(h),
 					region[2] / float32(w),
 					region[3] / float32(h),
-				}
-
-				// Adjust regions not to violate neighborhoods (#317, #558, #724).
-				if theGraphicsDriver.HasHighPrecisionFloat() {
-					vs[2] -= 1.0 / float32(w) * texelAdjustmentFactor
-					vs[3] -= 1.0 / float32(h) * texelAdjustmentFactor
 				}
 
 				us[i] = vs

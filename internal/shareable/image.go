@@ -28,6 +28,12 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 )
 
+const (
+	// borderSize represents the size of border around an image.
+	// Every image or node except for a screen image has its border.
+	borderSize = 1
+)
+
 var graphicsDriver driver.Graphics
 
 func SetGraphicsDriver(graphics driver.Graphics) {
@@ -197,7 +203,7 @@ func (i *Image) ensureNotShared() {
 		return
 	}
 
-	ox, oy, w, h := i.region()
+	ox, oy, w, h := i.regionWithBorder()
 	dx0 := float32(0)
 	dy0 := float32(0)
 	dx1 := float32(w)
@@ -240,7 +246,7 @@ func (i *Image) makeShared() error {
 	pixels := make([]byte, 4*i.width*i.height)
 	for y := 0; y < i.height; y++ {
 		for x := 0; x < i.width; x++ {
-			r, g, b, a, err := i.at(x, y)
+			r, g, b, a, err := i.at(x+borderSize, y+borderSize)
 			if err != nil {
 				return err
 			}
@@ -256,12 +262,12 @@ func (i *Image) makeShared() error {
 	return nil
 }
 
-func (i *Image) region() (x, y, width, height int) {
+func (i *Image) regionWithBorder() (x, y, width, height int) {
 	if i.backend == nil {
 		panic("shareable: backend must not be nil: not allocated yet?")
 	}
 	if !i.isShared() {
-		return 0, 0, i.width, i.height
+		return 0, 0, i.width + 2*borderSize, i.height + 2*borderSize
 	}
 	return i.node.Region()
 }
@@ -321,12 +327,22 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 		}
 	}
 
+	var dx, dy float32
+	// A screen image doesn't have its border.
+	if !i.screen {
+		dx = borderSize
+		dy = borderSize
+	}
 	var oxf, oyf float32
 	if len(srcs) > 0 {
-		ox, oy, _, _ := srcs[0].region()
+		ox, oy, _, _ := srcs[0].regionWithBorder()
+		ox += borderSize
+		oy += borderSize
 		oxf, oyf = float32(ox), float32(oy)
 		n := len(vertices) / graphics.VertexFloatNum
 		for i := 0; i < n; i++ {
+			vertices[i*graphics.VertexFloatNum+0] += dx
+			vertices[i*graphics.VertexFloatNum+1] += dy
 			vertices[i*graphics.VertexFloatNum+2] += oxf
 			vertices[i*graphics.VertexFloatNum+3] += oyf
 			vertices[i*graphics.VertexFloatNum+4] += oxf
@@ -420,18 +436,32 @@ func (i *Image) replacePixels(pix []byte) {
 		i.allocate(true)
 	}
 
-	x, y, w, h := i.region()
-	if pix != nil {
-		if l := 4 * w * h; len(pix) != l {
-			panic(fmt.Sprintf("shareable: len(p) must be %d but %d", l, len(pix)))
-		}
+	x, y, w, h := i.regionWithBorder()
+	if pix == nil {
+		i.backend.restorable.ReplacePixels(nil, x, y, w, h)
+		return
 	}
-	i.backend.restorable.ReplacePixels(pix, x, y, w, h)
+
+	ow, oh := w-2*borderSize, h-2*borderSize
+	if l := 4 * ow * oh; len(pix) != l {
+		panic(fmt.Sprintf("shareable: len(p) must be %d but %d", l, len(pix)))
+	}
+
+	// Add a border around the image.
+	pixb := make([]byte, 4*w*h)
+	for j := 0; j < oh; j++ {
+		copy(pixb[4*((j+borderSize)*w+borderSize):], pix[4*j*ow:4*(j+1)*ow])
+	}
+
+	i.backend.restorable.ReplacePixels(pixb, x, y, w, h)
 }
 
 func (img *Image) Pixels(x, y, width, height int) ([]byte, error) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
+
+	x += borderSize
+	y += borderSize
 
 	bs := make([]byte, 4*width*height)
 	idx := 0
@@ -456,7 +486,7 @@ func (i *Image) at(x, y int) (byte, byte, byte, byte, error) {
 		return 0, 0, 0, 0, nil
 	}
 
-	ox, oy, w, h := i.region()
+	ox, oy, w, h := i.regionWithBorder()
 	if x < 0 || y < 0 || x >= w || y >= h {
 		return 0, 0, 0, 0, nil
 	}
@@ -506,7 +536,7 @@ func (i *Image) dispose(markDisposed bool) {
 	i.backend.page.Free(i.node)
 	if !i.backend.page.IsEmpty() {
 		// As this part can be reused, this should be cleared explicitly.
-		i.backend.restorable.ClearPixels(i.region())
+		i.backend.restorable.ClearPixels(i.regionWithBorder())
 		return
 	}
 
@@ -554,6 +584,7 @@ func (i *Image) allocate(shareable bool) {
 	runtime.SetFinalizer(i, (*Image).MarkDisposed)
 
 	if i.screen {
+		// A screen image doesn't have a border.
 		i.backend = &backend{
 			restorable: restorable.NewScreenFramebufferImage(i.width, i.height),
 		}
@@ -562,13 +593,13 @@ func (i *Image) allocate(shareable bool) {
 
 	if !shareable || !i.shareable() {
 		i.backend = &backend{
-			restorable: restorable.NewImage(i.width, i.height, i.volatile),
+			restorable: restorable.NewImage(i.width+2*borderSize, i.height+2*borderSize, i.volatile),
 		}
 		return
 	}
 
 	for _, b := range theBackends {
-		if n, ok := b.TryAlloc(i.width, i.height); ok {
+		if n, ok := b.TryAlloc(i.width+2*borderSize, i.height+2*borderSize); ok {
 			i.backend = b
 			i.node = n
 			return
@@ -588,7 +619,7 @@ func (i *Image) allocate(shareable bool) {
 	}
 	theBackends = append(theBackends, b)
 
-	n := b.page.Alloc(i.width, i.height)
+	n := b.page.Alloc(i.width+2*borderSize, i.height+2*borderSize)
 	if n == nil {
 		panic("shareable: Alloc result must not be nil at allocate")
 	}

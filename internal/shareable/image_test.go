@@ -191,7 +191,7 @@ func TestReshared(t *testing.T) {
 			a := pix[4*(size*j+i)+3]
 			got := color.RGBA{r, g, b, a}
 			if got != want {
-				t.Errorf("got: %v, want: %v", got, want)
+				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}
 	}
@@ -214,7 +214,7 @@ func TestReshared(t *testing.T) {
 			a := pix[4*(size*j+i)+3]
 			got := color.RGBA{r, g, b, a}
 			if got != want {
-				t.Errorf("got: %v, want: %v", got, want)
+				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}
 	}
