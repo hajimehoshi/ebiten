@@ -244,10 +244,10 @@ func (i *Image) makeShared() error {
 			if err != nil {
 				return err
 			}
-			pixels[4*(x+i.width*y)] = r
-			pixels[4*(x+i.width*y)+1] = g
-			pixels[4*(x+i.width*y)+2] = b
-			pixels[4*(x+i.width*y)+3] = a
+			pixels[4*(i.width*y+x)] = r
+			pixels[4*(i.width*y+x)+1] = g
+			pixels[4*(i.width*y+x)+2] = b
+			pixels[4*(i.width*y+x)+3] = a
 		}
 	}
 	newI.replacePixels(pixels)
@@ -403,30 +403,30 @@ func (i *Image) Fill(clr color.RGBA) {
 	delete(imagesToMakeShared, i)
 }
 
-func (i *Image) ReplacePixels(p []byte) {
+func (i *Image) ReplacePixels(pix []byte) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	i.replacePixels(p)
+	i.replacePixels(pix)
 }
 
-func (i *Image) replacePixels(p []byte) {
+func (i *Image) replacePixels(pix []byte) {
 	if i.disposed {
 		panic("shareable: the image must not be disposed at replacePixels")
 	}
 	if i.backend == nil {
-		if p == nil {
+		if pix == nil {
 			return
 		}
 		i.allocate(true)
 	}
 
 	x, y, w, h := i.region()
-	if p != nil {
-		if l := 4 * w * h; len(p) != l {
-			panic(fmt.Sprintf("shareable: len(p) must be %d but %d", l, len(p)))
+	if pix != nil {
+		if l := 4 * w * h; len(pix) != l {
+			panic(fmt.Sprintf("shareable: len(p) must be %d but %d", l, len(pix)))
 		}
 	}
-	i.backend.restorable.ReplacePixels(p, x, y, w, h)
+	i.backend.restorable.ReplacePixels(pix, x, y, w, h)
 }
 
 func (img *Image) Pixels(x, y, width, height int) ([]byte, error) {
