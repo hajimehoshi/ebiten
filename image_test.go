@@ -2067,8 +2067,8 @@ func BenchmarkImageDrawOver(b *testing.B) {
 }
 
 // Issue #1171
-func TestImageFloatTranslate(t *testing.T) {
-	const w, h = 32, 32
+func Disabled_TestImageFloatTranslate(t *testing.T) {
+	const w, h = 16, 16
 
 	dst, _ := NewImage(320, 240, FilterDefault)
 	src, _ := NewImage(w, h, FilterDefault)
