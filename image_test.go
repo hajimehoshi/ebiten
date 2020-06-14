@@ -2072,7 +2072,14 @@ func Disabled_TestImageFloatTranslate(t *testing.T) {
 
 	dst, _ := NewImage(320, 240, FilterDefault)
 	src, _ := NewImage(w, h, FilterDefault)
-	src.Fill(color.RGBA{0xff, 0, 0, 0xff})
+	pix := make([]byte, 4*w*h)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			pix[4*(j*w+i)] = byte(j)
+			pix[4*(j*w+i)+3] = 0xff
+		}
+	}
+	src.ReplacePixels(pix)
 
 	op := &DrawImageOptions{}
 	op.GeoM.Scale(2, 2)
@@ -2082,7 +2089,38 @@ func Disabled_TestImageFloatTranslate(t *testing.T) {
 	for j := 1; j < h*2+1; j++ {
 		for i := 0; i < w*2; i++ {
 			got := dst.At(i, j)
-			want := color.RGBA{0xff, 0, 0, 0xff}
+			want := color.RGBA{(byte(j) - 1) / 2, 0, 0, 0xff}
+			if got != want {
+				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+// Issue #1171
+func Disabled_TestImageSubImageFloatTranslate(t *testing.T) {
+	const w, h = 16, 16
+
+	dst, _ := NewImage(320, 240, FilterDefault)
+	src, _ := NewImage(w*2, h*2, FilterDefault)
+	pix := make([]byte, 4*(w*2)*(h*2))
+	for j := 0; j < h*2; j++ {
+		for i := 0; i < w*2; i++ {
+			pix[4*(j*(w*2)+i)] = byte(j)
+			pix[4*(j*(w*2)+i)+3] = 0xff
+		}
+	}
+	src.ReplacePixels(pix)
+
+	op := &DrawImageOptions{}
+	op.GeoM.Scale(2, 2)
+	op.GeoM.Translate(0, 0.501)
+	dst.DrawImage(src.SubImage(image.Rect(0, 0, w, h)).(*Image), op)
+
+	for j := 1; j < h*2+1; j++ {
+		for i := 0; i < w*2; i++ {
+			got := dst.At(i, j)
+			want := color.RGBA{(byte(j) - 1) / 2, 0, 0, 0xff}
 			if got != want {
 				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
