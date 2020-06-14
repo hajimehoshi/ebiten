@@ -61,6 +61,7 @@ var (
 	flagAutoAdjusting     = flag.Bool("autoadjusting", false, "make the game screen auto-adjusting")
 	flagFloating          = flag.Bool("floating", false, "make the window floating")
 	flagMaximize          = flag.Bool("maximize", false, "maximize the window")
+	flagVsync             = flag.Bool("vsync", true, "enable vsync")
 )
 
 func init() {
@@ -409,6 +410,7 @@ func main() {
 		ebiten.SetWindowResizable(true)
 		ebiten.MaximizeWindow()
 	}
+	ebiten.SetVsyncEnabled(*flagVsync)
 	if *flagAutoAdjusting {
 		if *flagLegacy {
 			log.Println("-autoadjusting flag cannot work with -legacy flag")

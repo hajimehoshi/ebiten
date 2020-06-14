@@ -238,7 +238,7 @@ func (w *window) SetSize(width, height int) {
 	}
 	ww := int(w.ui.toDeviceDependentPixel(float64(width)))
 	wh := int(w.ui.toDeviceDependentPixel(float64(height)))
-	w.ui.setWindowSize(ww, wh, w.ui.isFullscreen(), w.ui.vsync)
+	w.ui.setWindowSize(ww, wh, w.ui.isFullscreen())
 }
 
 func (w *window) SetIcon(iconImages []image.Image) {
