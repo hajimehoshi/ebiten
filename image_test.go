@@ -16,6 +16,7 @@ package ebiten_test
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -2067,63 +2068,61 @@ func BenchmarkImageDrawOver(b *testing.B) {
 }
 
 // Issue #1171
-func Disabled_TestImageFloatTranslate(t *testing.T) {
-	const w, h = 16, 16
+func TestImageFloatTranslate(t *testing.T) {
+	const w, h = 32, 32
 
-	dst, _ := NewImage(320, 240, FilterDefault)
-	src, _ := NewImage(w, h, FilterDefault)
-	pix := make([]byte, 4*w*h)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
-			pix[4*(j*w+i)] = byte(j)
-			pix[4*(j*w+i)+3] = 0xff
-		}
-	}
-	src.ReplacePixels(pix)
+	for s := 2; s <= 8; s++ {
+		s := s
+		t.Run(fmt.Sprintf("scale%d", s), func(t *testing.T) {
+			check := func(src *Image) {
+				dst, _ := NewImage(w*(s+1), h*(s+1), FilterDefault)
+				dst.Fill(color.RGBA{0xff, 0, 0, 0xff})
 
-	op := &DrawImageOptions{}
-	op.GeoM.Scale(2, 2)
-	op.GeoM.Translate(0, 0.501)
-	dst.DrawImage(src, op)
+				op := &DrawImageOptions{}
+				op.GeoM.Scale(float64(s), float64(s))
+				op.GeoM.Translate(0, 0.501)
+				dst.DrawImage(src, op)
 
-	for j := 1; j < h*2+1; j++ {
-		for i := 0; i < w*2; i++ {
-			got := dst.At(i, j)
-			want := color.RGBA{(byte(j) - 1) / 2, 0, 0, 0xff}
-			if got != want {
-				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
+				for j := 0; j < h*s+1; j++ {
+					for i := 0; i < w*s; i++ {
+						got := dst.At(i, j)
+						x := byte(0xff)
+						if j > 0 {
+							x = (byte(j) - 1) / byte(s)
+						}
+						want := color.RGBA{x, 0, 0, 0xff}
+						if got != want {
+							t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
+						}
+					}
+				}
 			}
-		}
-	}
-}
 
-// Issue #1171
-func Disabled_TestImageSubImageFloatTranslate(t *testing.T) {
-	const w, h = 16, 16
+			t.Run("image", func(t *testing.T) {
+				src, _ := NewImage(w, h, FilterDefault)
+				pix := make([]byte, 4*w*h)
+				for j := 0; j < h; j++ {
+					for i := 0; i < w; i++ {
+						pix[4*(j*w+i)] = byte(j)
+						pix[4*(j*w+i)+3] = 0xff
+					}
+				}
+				src.ReplacePixels(pix)
+				check(src)
+			})
 
-	dst, _ := NewImage(320, 240, FilterDefault)
-	src, _ := NewImage(w*2, h*2, FilterDefault)
-	pix := make([]byte, 4*(w*2)*(h*2))
-	for j := 0; j < h*2; j++ {
-		for i := 0; i < w*2; i++ {
-			pix[4*(j*(w*2)+i)] = byte(j)
-			pix[4*(j*(w*2)+i)+3] = 0xff
-		}
-	}
-	src.ReplacePixels(pix)
-
-	op := &DrawImageOptions{}
-	op.GeoM.Scale(2, 2)
-	op.GeoM.Translate(0, 0.501)
-	dst.DrawImage(src.SubImage(image.Rect(0, 0, w, h)).(*Image), op)
-
-	for j := 1; j < h*2+1; j++ {
-		for i := 0; i < w*2; i++ {
-			got := dst.At(i, j)
-			want := color.RGBA{(byte(j) - 1) / 2, 0, 0, 0xff}
-			if got != want {
-				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
-			}
-		}
+			t.Run("subimage", func(t *testing.T) {
+				src, _ := NewImage(w*s, h*s, FilterDefault)
+				pix := make([]byte, 4*(w*s)*(h*s))
+				for j := 0; j < h*s; j++ {
+					for i := 0; i < w*s; i++ {
+						pix[4*(j*(w*s)+i)] = byte(j)
+						pix[4*(j*(w*s)+i)+3] = 0xff
+					}
+				}
+				src.ReplacePixels(pix)
+				check(src.SubImage(image.Rect(0, 0, w, h)).(*Image))
+			})
+		})
 	}
 }

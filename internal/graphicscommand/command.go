@@ -203,14 +203,6 @@ func (q *commandQueue) Enqueue(command command) {
 	q.commands = append(q.commands, command)
 }
 
-func fract(x float32) float32 {
-	return x - float32(math.Floor(float64(x)))
-}
-
-const (
-	dstAdjustmentFactor = 1.0 / 256.0
-)
-
 // Flush flushes the command queue.
 func (q *commandQueue) Flush() error {
 	if len(q.commands) == 0 {
@@ -236,22 +228,22 @@ func (q *commandQueue) Flush() error {
 			vs[i*graphics.VertexFloatNum+6] /= s.width
 			vs[i*graphics.VertexFloatNum+7] /= s.height
 
-			// Adjust the destination position to avoid jaggy (#929).
-			// This is not a perfect solution since texels on a texture can take a position on borders
-			// which can cause jaggy. But adjusting only edges should work in most cases.
-			// The ideal solution is to fix shaders, but this makes the applications slow by adding 'if'
-			// branches.
-			switch f := fract(vs[i*graphics.VertexFloatNum+0]); {
-			case 0.5-dstAdjustmentFactor <= f && f < 0.5:
-				vs[i*graphics.VertexFloatNum+0] -= f - (0.5 - dstAdjustmentFactor)
-			case 0.5 <= f && f < 0.5+dstAdjustmentFactor:
-				vs[i*graphics.VertexFloatNum+0] += (0.5 + dstAdjustmentFactor) - f
-			}
-			switch f := fract(vs[i*graphics.VertexFloatNum+1]); {
-			case 0.5-dstAdjustmentFactor <= f && f < 0.5:
-				vs[i*graphics.VertexFloatNum+1] -= f - (0.5 - dstAdjustmentFactor)
-			case 0.5 <= f && f < 0.5+dstAdjustmentFactor:
-				vs[i*graphics.VertexFloatNum+1] += (0.5 + dstAdjustmentFactor) - f
+			// Avoid the center of the pixel, which is problematic (#929, #1171).
+			// Instead, align the vertices with about 1/3 pixels.
+			for idx := 0; idx < 2; idx++ {
+				x := vs[i*graphics.VertexFloatNum+idx]
+				int := float32(math.Floor(float64(x)))
+				frac := x - int
+				switch {
+				case frac < 3.0/16.0:
+					vs[i*graphics.VertexFloatNum+idx] = int
+				case frac < 8.0/16.0:
+					vs[i*graphics.VertexFloatNum+idx] = int + 5.0/16.0
+				case frac < 13.0/16.0:
+					vs[i*graphics.VertexFloatNum+idx] = int + 11.0/16.0
+				default:
+					vs[i*graphics.VertexFloatNum+idx] = int + 16.0/16.0
+				}
 			}
 		}
 	} else {
