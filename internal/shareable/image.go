@@ -29,9 +29,9 @@ import (
 )
 
 const (
-	// borderSize represents the size of border around an image.
-	// Every image or node except for a screen image has its border.
-	borderSize = 1
+	// paddingSize represents the size of padding around an image.
+	// Every image or node except for a screen image has its padding.
+	paddingSize = 1
 )
 
 var graphicsDriver driver.Graphics
@@ -203,7 +203,7 @@ func (i *Image) ensureNotShared() {
 		return
 	}
 
-	ox, oy, w, h := i.regionWithBorder()
+	ox, oy, w, h := i.regionWithPadding()
 	dx0 := float32(0)
 	dy0 := float32(0)
 	dx1 := float32(w)
@@ -246,7 +246,7 @@ func (i *Image) makeShared() error {
 	pixels := make([]byte, 4*i.width*i.height)
 	for y := 0; y < i.height; y++ {
 		for x := 0; x < i.width; x++ {
-			r, g, b, a, err := i.at(x+borderSize, y+borderSize)
+			r, g, b, a, err := i.at(x+paddingSize, y+paddingSize)
 			if err != nil {
 				return err
 			}
@@ -262,12 +262,12 @@ func (i *Image) makeShared() error {
 	return nil
 }
 
-func (i *Image) regionWithBorder() (x, y, width, height int) {
+func (i *Image) regionWithPadding() (x, y, width, height int) {
 	if i.backend == nil {
 		panic("shareable: backend must not be nil: not allocated yet?")
 	}
 	if !i.isShared() {
-		return 0, 0, i.width + 2*borderSize, i.height + 2*borderSize
+		return 0, 0, i.width + 2*paddingSize, i.height + 2*paddingSize
 	}
 	return i.node.Region()
 }
@@ -328,16 +328,16 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 	}
 
 	var dx, dy float32
-	// A screen image doesn't have its border.
+	// A screen image doesn't have its padding.
 	if !i.screen {
-		dx = borderSize
-		dy = borderSize
+		dx = paddingSize
+		dy = paddingSize
 	}
 	var oxf, oyf float32
 	if len(srcs) > 0 {
-		ox, oy, _, _ := srcs[0].regionWithBorder()
-		ox += borderSize
-		oy += borderSize
+		ox, oy, _, _ := srcs[0].regionWithPadding()
+		ox += paddingSize
+		oy += paddingSize
 		oxf, oyf = float32(ox), float32(oy)
 		n := len(vertices) / graphics.VertexFloatNum
 		for i := 0; i < n; i++ {
@@ -436,21 +436,21 @@ func (i *Image) replacePixels(pix []byte) {
 		i.allocate(true)
 	}
 
-	x, y, w, h := i.regionWithBorder()
+	x, y, w, h := i.regionWithPadding()
 	if pix == nil {
 		i.backend.restorable.ReplacePixels(nil, x, y, w, h)
 		return
 	}
 
-	ow, oh := w-2*borderSize, h-2*borderSize
+	ow, oh := w-2*paddingSize, h-2*paddingSize
 	if l := 4 * ow * oh; len(pix) != l {
 		panic(fmt.Sprintf("shareable: len(p) must be %d but %d", l, len(pix)))
 	}
 
-	// Add a border around the image.
+	// Add a padding around the image.
 	pixb := make([]byte, 4*w*h)
 	for j := 0; j < oh; j++ {
-		copy(pixb[4*((j+borderSize)*w+borderSize):], pix[4*j*ow:4*(j+1)*ow])
+		copy(pixb[4*((j+paddingSize)*w+paddingSize):], pix[4*j*ow:4*(j+1)*ow])
 	}
 
 	i.backend.restorable.ReplacePixels(pixb, x, y, w, h)
@@ -460,8 +460,8 @@ func (img *Image) Pixels(x, y, width, height int) ([]byte, error) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
-	x += borderSize
-	y += borderSize
+	x += paddingSize
+	y += paddingSize
 
 	bs := make([]byte, 4*width*height)
 	idx := 0
@@ -486,7 +486,7 @@ func (i *Image) at(x, y int) (byte, byte, byte, byte, error) {
 		return 0, 0, 0, 0, nil
 	}
 
-	ox, oy, w, h := i.regionWithBorder()
+	ox, oy, w, h := i.regionWithPadding()
 	if x < 0 || y < 0 || x >= w || y >= h {
 		return 0, 0, 0, 0, nil
 	}
@@ -536,7 +536,7 @@ func (i *Image) dispose(markDisposed bool) {
 	i.backend.page.Free(i.node)
 	if !i.backend.page.IsEmpty() {
 		// As this part can be reused, this should be cleared explicitly.
-		i.backend.restorable.ClearPixels(i.regionWithBorder())
+		i.backend.restorable.ClearPixels(i.regionWithPadding())
 		return
 	}
 
@@ -584,7 +584,7 @@ func (i *Image) allocate(shareable bool) {
 	runtime.SetFinalizer(i, (*Image).MarkDisposed)
 
 	if i.screen {
-		// A screen image doesn't have a border.
+		// A screen image doesn't have a padding.
 		i.backend = &backend{
 			restorable: restorable.NewScreenFramebufferImage(i.width, i.height),
 		}
@@ -593,13 +593,13 @@ func (i *Image) allocate(shareable bool) {
 
 	if !shareable || !i.shareable() {
 		i.backend = &backend{
-			restorable: restorable.NewImage(i.width+2*borderSize, i.height+2*borderSize, i.volatile),
+			restorable: restorable.NewImage(i.width+2*paddingSize, i.height+2*paddingSize, i.volatile),
 		}
 		return
 	}
 
 	for _, b := range theBackends {
-		if n, ok := b.TryAlloc(i.width+2*borderSize, i.height+2*borderSize); ok {
+		if n, ok := b.TryAlloc(i.width+2*paddingSize, i.height+2*paddingSize); ok {
 			i.backend = b
 			i.node = n
 			return
@@ -619,7 +619,7 @@ func (i *Image) allocate(shareable bool) {
 	}
 	theBackends = append(theBackends, b)
 
-	n := b.page.Alloc(i.width+2*borderSize, i.height+2*borderSize)
+	n := b.page.Alloc(i.width+2*paddingSize, i.height+2*paddingSize)
 	if n == nil {
 		panic("shareable: Alloc result must not be nil at allocate")
 	}
