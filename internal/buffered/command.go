@@ -67,14 +67,13 @@ func getDelayedFuncsAndClearSlow() []func() error {
 func tryAddDelayedCommand(f func(obj interface{}) error, ondelayed func() interface{}) bool {
 	if atomic.LoadUint32(&delayedCommandsFlushed) == 0 {
 		// Outline the slow-path to expect the fast-path is inlined.
-		tryAddDelayedCommandSlow(f, ondelayed)
-		return true
+		return tryAddDelayedCommandSlow(f, ondelayed)
 	}
 
 	return false
 }
 
-func tryAddDelayedCommandSlow(f func(obj interface{}) error, ondelayed func() interface{}) {
+func tryAddDelayedCommandSlow(f func(obj interface{}) error, ondelayed func() interface{}) bool {
 	delayedCommandsM.Lock()
 	defer delayedCommandsM.Unlock()
 
@@ -86,7 +85,10 @@ func tryAddDelayedCommandSlow(f func(obj interface{}) error, ondelayed func() in
 		delayedCommands = append(delayedCommands, func() error {
 			return f(obj)
 		})
+		return true
 	}
+
+	return false
 }
 
 func checkDelayedCommandsFlushed(fname string) {
