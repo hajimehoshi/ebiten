@@ -441,8 +441,11 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 	// The actual value is set at graphicscommand package.
 	us = append([]interface{}{[]float32{0, 0}}, us...)
 
-	var bx0, by0, bx1, by1 float32
+	var dx, dy, bx0, by0, bx1, by1 float32
 	if firstImage != nil {
+		dx = float32(firstImage.Bounds().Min.X)
+		dy = float32(firstImage.Bounds().Min.Y)
+
 		w, h := firstImage.Size()
 		bx0 = float32(0)
 		by0 = float32(0)
@@ -450,7 +453,6 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 		by1 = float32(h)
 	}
 
-	dx, dy := float32(firstImage.Bounds().Min.X), float32(firstImage.Bounds().Min.Y)
 	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
 	for i, v := range vertices {
 		vs[i*graphics.VertexFloatNum] = v.DstX
