@@ -1,8 +1,8 @@
 void F0(in vec2 l0) {
-	float l1 = 0.0;
-	float l2 = 0.0;
-	float l3 = 0.0;
-	float l4 = 0.0;
+	float l1 = float(0);
+	float l2 = float(0);
+	float l3 = float(0);
+	float l4 = float(0);
 	F1((l0).x, (l0).y, l1, l2);
 	F1(l1, l2, l3, l4);
 }

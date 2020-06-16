@@ -180,19 +180,19 @@ func (p *Program) glslVarInit(t *Type) string {
 	case Int:
 		return "0"
 	case Float:
-		return "0.0"
+		return "float(0)"
 	case Vec2:
-		return "vec2(0.0)"
+		return "vec2(0)"
 	case Vec3:
-		return "vec3(0.0)"
+		return "vec3(0)"
 	case Vec4:
-		return "vec4(0.0)"
+		return "vec4(0)"
 	case Mat2:
-		return "mat2(0.0)"
+		return "mat2(0)"
 	case Mat3:
-		return "mat3(0.0)"
+		return "mat3(0)"
 	case Mat4:
-		return "mat4(0.0)"
+		return "mat4(0)"
 	default:
 		panic(fmt.Sprintf("?(unexpected type: %s)", p.glslType(t)))
 	}
