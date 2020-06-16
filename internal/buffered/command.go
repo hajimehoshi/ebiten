@@ -15,16 +15,18 @@
 package buffered
 
 import (
+	"sync"
 	"sync/atomic"
 )
 
 var (
-	needsToDelayCommandsV int32 = 1
-
 	// delayedCommands represents a queue for image operations that are ordered before the game starts
 	// (BeginFrame). Before the game starts, the package shareable doesn't determine the minimum/maximum texture
 	// sizes (#879).
-	delayedCommands []func() error
+	delayedCommands = []func() error{}
+
+	delayedCommandsM       sync.Mutex
+	delayedCommandsFlushed uint32
 )
 
 func flushDelayedCommands() error {
@@ -39,14 +41,56 @@ func flushDelayedCommands() error {
 }
 
 func getDelayedFuncsAndClear() []func() error {
-	atomic.StoreInt32(&needsToDelayCommandsV, 0)
-
-	fs := make([]func() error, len(delayedCommands))
-	copy(fs, delayedCommands)
-	delayedCommands = nil
-	return fs
+	if atomic.LoadUint32(&delayedCommandsFlushed) == 0 {
+		// Outline the slow-path to expect the fast-path is inlined.
+		return getDelayedFuncsAndClearSlow()
+	}
+	return nil
 }
 
-func needsToDelayCommands() bool {
-	return atomic.LoadInt32(&needsToDelayCommandsV) != 0
+func getDelayedFuncsAndClearSlow() []func() error {
+	delayedCommandsM.Lock()
+	defer delayedCommandsM.Unlock()
+
+	if delayedCommandsFlushed == 0 {
+		defer atomic.StoreUint32(&delayedCommandsFlushed, 1)
+
+		fs := make([]func() error, len(delayedCommands))
+		copy(fs, delayedCommands)
+		delayedCommands = nil
+		return fs
+	}
+
+	return nil
+}
+
+func tryAddDelayedCommand(f func(obj interface{}) error, ondelayed func() interface{}) bool {
+	if atomic.LoadUint32(&delayedCommandsFlushed) == 0 {
+		// Outline the slow-path to expect the fast-path is inlined.
+		tryAddDelayedCommandSlow(f, ondelayed)
+		return true
+	}
+
+	return false
+}
+
+func tryAddDelayedCommandSlow(f func(obj interface{}) error, ondelayed func() interface{}) {
+	delayedCommandsM.Lock()
+	defer delayedCommandsM.Unlock()
+
+	if delayedCommandsFlushed == 0 {
+		var obj interface{}
+		if ondelayed != nil {
+			obj = ondelayed()
+		}
+		delayedCommands = append(delayedCommands, func() error {
+			return f(obj)
+		})
+	}
+}
+
+func checkDelayedCommandsNil(fname string) {
+	if delayedCommands != nil {
+		panic("buffered: the command queue is not available yet at " + fname)
+	}
 }

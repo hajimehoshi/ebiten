@@ -55,11 +55,10 @@ func NewImage(width, height int, volatile bool) *Image {
 }
 
 func (i *Image) initialize(width, height int, volatile bool) {
-	if needsToDelayCommands() {
-		delayedCommands = append(delayedCommands, func() error {
-			i.initialize(width, height, volatile)
-			return nil
-		})
+	if tryAddDelayedCommand(func(obj interface{}) error {
+		i.initialize(width, height, volatile)
+		return nil
+	}, nil) {
 		return
 	}
 	i.img = mipmap.New(width, height, volatile)
@@ -74,11 +73,10 @@ func NewScreenFramebufferImage(width, height int) *Image {
 }
 
 func (i *Image) initializeAsScreenFramebuffer(width, height int) {
-	if needsToDelayCommands() {
-		delayedCommands = append(delayedCommands, func() error {
-			i.initializeAsScreenFramebuffer(width, height)
-			return nil
-		})
+	if tryAddDelayedCommand(func(obj interface{}) error {
+		i.initializeAsScreenFramebuffer(width, height)
+		return nil
+	}, nil) {
 		return
 	}
 
@@ -116,11 +114,10 @@ func (i *Image) resolvePendingFill() {
 }
 
 func (i *Image) MarkDisposed() {
-	if needsToDelayCommands() {
-		delayedCommands = append(delayedCommands, func() error {
-			i.MarkDisposed()
-			return nil
-		})
+	if tryAddDelayedCommand(func(obj interface{}) error {
+		i.MarkDisposed()
+		return nil
+	}, nil) {
 		return
 	}
 	i.invalidatePendingPixels()
@@ -128,9 +125,7 @@ func (i *Image) MarkDisposed() {
 }
 
 func (img *Image) Pixels(x, y, width, height int) (pix []byte, err error) {
-	if needsToDelayCommands() {
-		panic("buffered: the command queue is not available yet at At")
-	}
+	checkDelayedCommandsNil("Pixels")
 
 	if !image.Rect(x, y, x+width, y+height).In(image.Rect(0, 0, img.width, img.height)) {
 		return nil, fmt.Errorf("buffered: out of range")
@@ -165,18 +160,15 @@ func (img *Image) Pixels(x, y, width, height int) (pix []byte, err error) {
 }
 
 func (i *Image) Dump(name string, blackbg bool) error {
-	if needsToDelayCommands() {
-		panic("buffered: the command queue is not available yet at Dump")
-	}
+	checkDelayedCommandsNil("Dump")
 	return i.img.Dump(name, blackbg)
 }
 
 func (i *Image) Fill(clr color.RGBA) {
-	if needsToDelayCommands() {
-		delayedCommands = append(delayedCommands, func() error {
-			i.Fill(clr)
-			return nil
-		})
+	if tryAddDelayedCommand(func(obj interface{}) error {
+		i.Fill(clr)
+		return nil
+	}, nil) {
 		return
 	}
 
@@ -191,13 +183,14 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
 		panic(fmt.Sprintf("buffered: len(pix) was %d but must be %d", len(pix), l))
 	}
 
-	if needsToDelayCommands() {
+	if tryAddDelayedCommand(func(copied interface{}) error {
+		i.ReplacePixels(copied.([]byte), x, y, width, height)
+		return nil
+	}, func() interface{} {
 		copied := make([]byte, len(pix))
 		copy(copied, pix)
-		delayedCommands = append(delayedCommands, func() error {
-			i.ReplacePixels(copied, x, y, width, height)
-			return nil
-		})
+		return copied
+	}) {
 		return nil
 	}
 
@@ -237,11 +230,10 @@ func (i *Image) replacePendingPixels(pix []byte, x, y, width, height int) {
 }
 
 func (i *Image) CopyPixels(img *Image, x, y, width, height int) error {
-	if needsToDelayCommands() {
-		delayedCommands = append(delayedCommands, func() error {
-			i.CopyPixels(img, x, y, width, height)
-			return nil
-		})
+	if tryAddDelayedCommand(func(obj interface{}) error {
+		i.CopyPixels(img, x, y, width, height)
+		return nil
+	}, nil) {
 		return nil
 	}
 
@@ -269,11 +261,10 @@ func (i *Image) DrawImage(src *Image, bounds image.Rectangle, a, b, c, d, tx, ty
 		Ty: ty,
 	}
 
-	if needsToDelayCommands() {
-		delayedCommands = append(delayedCommands, func() error {
-			i.drawImage(src, bounds, g, colorm, mode, filter)
-			return nil
-		})
+	if tryAddDelayedCommand(func(obj interface{}) error {
+		i.drawImage(src, bounds, g, colorm, mode, filter)
+		return nil
+	}, nil) {
 		return
 	}
 
@@ -306,12 +297,11 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 		}
 	}
 
-	if needsToDelayCommands() {
-		delayedCommands = append(delayedCommands, func() error {
-			// Arguments are not copied. Copying is the caller's responsibility.
-			i.DrawTriangles(src, vertices, indices, colorm, mode, filter, address, shader, uniforms)
-			return nil
-		})
+	if tryAddDelayedCommand(func(obj interface{}) error {
+		// Arguments are not copied. Copying is the caller's responsibility.
+		i.DrawTriangles(src, vertices, indices, colorm, mode, filter, address, shader, uniforms)
+		return nil
+	}, nil) {
 		return
 	}
 
