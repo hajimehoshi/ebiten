@@ -89,8 +89,8 @@ func tryAddDelayedCommandSlow(f func(obj interface{}) error, ondelayed func() in
 	}
 }
 
-func checkDelayedCommandsNil(fname string) {
-	if delayedCommands != nil {
+func checkDelayedCommandsFlushed(fname string) {
+	if atomic.LoadUint32(&delayedCommandsFlushed) == 0 {
 		panic("buffered: the command queue is not available yet at " + fname)
 	}
 }

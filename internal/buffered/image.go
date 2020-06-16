@@ -125,7 +125,7 @@ func (i *Image) MarkDisposed() {
 }
 
 func (img *Image) Pixels(x, y, width, height int) (pix []byte, err error) {
-	checkDelayedCommandsNil("Pixels")
+	checkDelayedCommandsFlushed("Pixels")
 
 	if !image.Rect(x, y, x+width, y+height).In(image.Rect(0, 0, img.width, img.height)) {
 		return nil, fmt.Errorf("buffered: out of range")
@@ -160,7 +160,7 @@ func (img *Image) Pixels(x, y, width, height int) (pix []byte, err error) {
 }
 
 func (i *Image) Dump(name string, blackbg bool) error {
-	checkDelayedCommandsNil("Dump")
+	checkDelayedCommandsFlushed("Dump")
 	return i.img.Dump(name, blackbg)
 }
 
