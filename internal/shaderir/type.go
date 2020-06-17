@@ -112,7 +112,7 @@ func (t BasicType) Glsl() string {
 	case Bool:
 		return "bool"
 	case Int:
-		return "Int"
+		return "int"
 	case Float:
 		return "float"
 	case Vec2:
