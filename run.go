@@ -244,7 +244,7 @@ func (i *imageDumperGameWithDraw) Draw(screen *Image) {
 }
 
 // RunGame starts the main loop and runs the game.
-// game's Update function is called every tick to update the gmae logic.
+// game's Update function is called every tick to update the game logic.
 // game's Draw function is, if it exists, called every frame to draw the screen.
 // game's Layout function is called when necessary, and you can specify the logical screen size by the function.
 //
