@@ -308,15 +308,42 @@ func (cs *compileState) parseDecl(b *block, d ast.Decl) {
 	}
 }
 
+// functionReturnTypes returns the original returning value types, if the given expression is call.
+//
+// Note that parseExpr returns the returning types for IR, not the original function.
+func (cs *compileState) functionReturnTypes(block *block, expr ast.Expr) ([]shaderir.Type, bool) {
+	call, ok := expr.(*ast.CallExpr)
+	if !ok {
+		return nil, false
+	}
+
+	ident, ok := call.Fun.(*ast.Ident)
+	if !ok {
+		return nil, false
+	}
+
+	for _, f := range cs.funcs {
+		if f.name == ident.Name {
+			// TODO: Is it correct to combine out-params and return param?
+			ts := f.ir.OutParams
+			if f.ir.Return.Main != shaderir.None {
+				ts = append(ts, f.ir.Return)
+			}
+			return ts, true
+		}
+	}
+	return nil, false
+}
+
 func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variable, []shaderir.Expr, []shaderir.Stmt) {
 	if len(vs.Names) != len(vs.Values) && len(vs.Values) != 1 && len(vs.Values) != 0 {
 		s.addError(vs.Pos(), fmt.Sprintf("the numbers of lhs and rhs don't match"))
 		return nil, nil, nil
 	}
 
-	var t shaderir.Type
+	var declt shaderir.Type
 	if vs.Type != nil {
-		t = s.parseType(vs.Type)
+		declt = s.parseType(vs.Type)
 	}
 
 	var (
@@ -326,13 +353,19 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 	)
 
 	for i, n := range vs.Names {
+		// TODO: Reduce calls of parseExpr
+
 		var init ast.Expr
+		t := declt
 		switch len(vs.Values) {
 		case 0:
 		case 1:
 			init = vs.Values[0]
 			if t.Main == shaderir.None {
-				ts := s.detectType(block, init)
+				ts, ok := s.functionReturnTypes(block, init)
+				if !ok {
+					_, ts, _ = s.parseExpr(block, init)
+				}
 				if len(ts) != len(vs.Names) {
 					s.addError(vs.Pos(), fmt.Sprintf("the numbers of lhs and rhs don't match"))
 					continue
@@ -342,7 +375,10 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 		default:
 			init = vs.Values[i]
 			if t.Main == shaderir.None {
-				ts := s.detectType(block, init)
+				ts, ok := s.functionReturnTypes(block, init)
+				if !ok {
+					_, ts, _ = s.parseExpr(block, init)
+				}
 				if len(ts) > 1 {
 					s.addError(vs.Pos(), fmt.Sprintf("the numbers of lhs and rhs don't match"))
 				}
@@ -547,13 +583,18 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 					return nil
 				}
 
+				// TODO: Reduce calls of parseExpr
+
 				var rhsTypes []shaderir.Type
 				for i, e := range l.Lhs {
 					v := variable{
 						name: e.(*ast.Ident).Name,
 					}
 					if len(l.Lhs) == len(l.Rhs) {
-						ts := cs.detectType(block, l.Rhs[i])
+						ts, ok := cs.functionReturnTypes(block, l.Rhs[i])
+						if !ok {
+							_, ts, _ = cs.parseExpr(block, l.Rhs[i])
+						}
 						if len(ts) > 1 {
 							cs.addError(l.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
 						}
@@ -562,7 +603,11 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 						}
 					} else {
 						if i == 0 {
-							rhsTypes = cs.detectType(block, l.Rhs[0])
+							var ok bool
+							rhsTypes, ok = cs.functionReturnTypes(block, l.Rhs[0])
+							if !ok {
+								_, rhsTypes, _ = cs.parseExpr(block, l.Rhs[0])
+							}
 							if len(rhsTypes) != len(l.Lhs) {
 								cs.addError(l.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
 							}
@@ -817,18 +862,19 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		var (
 			callee shaderir.Expr
 			args   []shaderir.Expr
+			argts  []shaderir.Type
 			stmts  []shaderir.Stmt
 		)
 
 		// Parse the argument first for the order of the statements.
 		for _, a := range e.Args {
-			es, _, ss := cs.parseExpr(block, a)
+			es, ts, ss := cs.parseExpr(block, a)
 			if len(es) > 1 && len(e.Args) > 1 {
 				cs.addError(e.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed: %s", e.Fun))
 				return nil, nil, nil
 			}
-			// TODO: Convert integer literals to float literals if necessary.
 			args = append(args, es...)
+			argts = append(argts, ts...)
 			stmts = append(stmts, ss...)
 		}
 
@@ -845,7 +891,32 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		// call.
 		if callee.Type == shaderir.BuiltinFuncExpr {
 			var t shaderir.Type
-			// TODO: Decude the type based on the arguments.
+			switch callee.BuiltinFunc {
+			case shaderir.Vec2F:
+				t = shaderir.Type{Main: shaderir.Vec2}
+			case shaderir.Vec3F:
+				t = shaderir.Type{Main: shaderir.Vec3}
+			case shaderir.Vec4F:
+				t = shaderir.Type{Main: shaderir.Vec4}
+			case shaderir.Mat2F:
+				t = shaderir.Type{Main: shaderir.Mat2}
+			case shaderir.Mat3F:
+				t = shaderir.Type{Main: shaderir.Mat3}
+			case shaderir.Mat4F:
+				t = shaderir.Type{Main: shaderir.Mat4}
+			case shaderir.Step:
+				t = argts[1]
+			case shaderir.Smoothstep:
+				t = argts[2]
+			case shaderir.Length, shaderir.Distance, shaderir.Dot:
+				t = shaderir.Type{Main: shaderir.Float}
+			case shaderir.Cross:
+				t = shaderir.Type{Main: shaderir.Vec3}
+			case shaderir.Texture2DF:
+				t = shaderir.Type{Main: shaderir.Vec4}
+			default:
+				t = argts[0]
+			}
 			return []shaderir.Expr{
 				{
 					Type:  shaderir.Call,
@@ -875,7 +946,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		}
 
 		if t := f.ir.Return; t.Main != shaderir.None {
-			if len(outParams) == 0 {
+			if len(outParams) != 0 {
 				cs.addError(e.Pos(), fmt.Sprintf("a function returning value cannot have out-params so far: %s", e.Fun))
 				return nil, nil, nil
 			}
@@ -933,7 +1004,8 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 				Index: p,
 			})
 		}
-		return exprs, nil, stmts
+		return exprs, f.ir.OutParams, stmts
+
 	case *ast.Ident:
 		if i, t, ok := block.findLocalVariable(e.Name); ok {
 			return []shaderir.Expr{

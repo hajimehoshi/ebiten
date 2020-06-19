@@ -11,7 +11,7 @@ func Vertex(position vec2, texCoord vec2, color vec4) (position vec4, texCoord v
 }
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	return vec4(1, 0, 0, 1)
+	return vec4(position.x, texCoord.y, color.z, 1)
 }
 
 var ScreenSize vec2
