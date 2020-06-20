@@ -16,6 +16,7 @@ package shaderir
 
 import (
 	"fmt"
+	"go/constant"
 	"strings"
 )
 
@@ -234,11 +235,24 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 	var glslExpr func(e *Expr) string
 	glslExpr = func(e *Expr) string {
 		switch e.Type {
-		case IntExpr:
-			// TODO: Cast to int if the context requries integers.
-			return fmt.Sprintf("%d.0", e.Int)
-		case FloatExpr:
-			return fmt.Sprintf("%.9e", e.Float)
+		case NumberExpr:
+			switch e.ConstType {
+			case ConstTypeNone, ConstTypeFloat:
+				if i := constant.ToInt(e.Const); i.Kind() == constant.Int {
+					x, _ := constant.Int64Val(i)
+					return fmt.Sprintf("%d.0", x)
+				}
+				if i := constant.ToFloat(e.Const); i.Kind() == constant.Float {
+					x, _ := constant.Float64Val(i)
+					return fmt.Sprintf("%.9e", x)
+				}
+			case ConstTypeInt:
+				if i := constant.ToInt(e.Const); i.Kind() == constant.Int {
+					x, _ := constant.Int64Val(i)
+					return fmt.Sprintf("%d", x)
+				}
+			}
+			return fmt.Sprintf("?(unexpected literal: %s)", e.Const)
 		case UniformVariable:
 			return fmt.Sprintf("U%d", e.Index)
 		case LocalVariable:
@@ -321,6 +335,7 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 			lines = append(lines, p.glslBlock(&s.Blocks[0], level+1, localVarIndex)...)
 			lines = append(lines, idt+"}")
 		case Assign:
+			// TODO: Give an appropriate context
 			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, glslExpr(&s.Exprs[0]), glslExpr(&s.Exprs[1])))
 		case If:
 			lines = append(lines, fmt.Sprintf("%sif (%s) {", idt, glslExpr(&s.Exprs[0])))
@@ -366,6 +381,7 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 			if len(s.Exprs) == 0 {
 				lines = append(lines, idt+"return;")
 			} else {
+				// TODO: Give an appropriate context.
 				lines = append(lines, fmt.Sprintf("%sreturn %s;", idt, glslExpr(&s.Exprs[0])))
 			}
 		case Discard:

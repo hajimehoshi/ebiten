@@ -15,6 +15,7 @@
 package shaderir_test
 
 import (
+	"go/constant"
 	"testing"
 
 	. "github.com/hajimehoshi/ebiten/internal/shaderir"
@@ -76,8 +77,8 @@ func forStmt(init, end int, op Op, delta int, block Block) Stmt {
 
 func floatExpr(value float32) Expr {
 	return Expr{
-		Type:  FloatExpr,
-		Float: value,
+		Type:  NumberExpr,
+		Const: constant.MakeFloat64(float64(value)),
 	}
 }
 
@@ -561,14 +562,14 @@ varying vec3 V0;`,
 				},
 			},
 			GlslVS: `void F0(in float l0, in float l1, out float l2) {
-	if ((l0) == (0.000000000e+00)) {
+	if ((l0) == (0.0)) {
 		l2 = l0;
 	} else {
 		l2 = l1;
 	}
 }`,
 			GlslFS: `void F0(in float l0, in float l1, out float l2) {
-	if ((l0) == (0.000000000e+00)) {
+	if ((l0) == (0.0)) {
 		l2 = l0;
 	} else {
 		l2 = l1;

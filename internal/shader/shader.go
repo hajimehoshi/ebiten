@@ -17,8 +17,8 @@ package shader
 import (
 	"fmt"
 	"go/ast"
+	gconstant "go/constant"
 	"go/token"
-	"strconv"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
@@ -759,27 +759,17 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 	case *ast.BasicLit:
 		switch e.Kind {
 		case token.INT:
-			v, err := strconv.ParseInt(e.Value, 10, 32)
-			if err != nil {
-				cs.addError(e.Pos(), fmt.Sprintf("unexpected literal: %s", e.Value))
-				return nil, nil, nil
-			}
 			return []shaderir.Expr{
 				{
-					Type: shaderir.IntExpr,
-					Int:  int32(v),
+					Type:  shaderir.NumberExpr,
+					Const: gconstant.MakeFromLiteral(e.Value, e.Kind, 0),
 				},
 			}, []shaderir.Type{{Main: shaderir.Int}}, nil
 		case token.FLOAT:
-			v, err := strconv.ParseFloat(e.Value, 32)
-			if err != nil {
-				cs.addError(e.Pos(), fmt.Sprintf("unexpected literal: %s", e.Value))
-				return nil, nil, nil
-			}
 			return []shaderir.Expr{
 				{
-					Type:  shaderir.FloatExpr,
-					Float: float32(v),
+					Type:  shaderir.NumberExpr,
+					Const: gconstant.MakeFromLiteral(e.Value, e.Kind, 0),
 				},
 			}, []shaderir.Type{{Main: shaderir.Float}}, nil
 		default:

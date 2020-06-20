@@ -16,6 +16,7 @@
 package shaderir
 
 import (
+	"go/constant"
 	"go/token"
 )
 
@@ -85,11 +86,20 @@ const (
 	Discard
 )
 
+type ConstType int
+
+const (
+	ConstTypeNone ConstType = iota
+	ConstTypeBool
+	ConstTypeInt
+	ConstTypeFloat
+)
+
 type Expr struct {
 	Type        ExprType
 	Exprs       []Expr
-	Int         int32
-	Float       float32
+	Const       constant.Value
+	ConstType   ConstType
 	BuiltinFunc BuiltinFunc
 	Swizzling   string
 	Index       int
@@ -99,8 +109,7 @@ type Expr struct {
 type ExprType int
 
 const (
-	IntExpr ExprType = iota
-	FloatExpr
+	NumberExpr ExprType = iota
 	UniformVariable
 	LocalVariable
 	StructMember
