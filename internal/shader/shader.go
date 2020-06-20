@@ -879,6 +879,8 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 			t = lhst
 		} else if lhst.Main == shaderir.Float || lhst.Main == shaderir.Int {
 			switch rhst.Main {
+			case shaderir.Int:
+				t = lhst
 			case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
 				t = rhst
 			default:
@@ -887,6 +889,8 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 			}
 		} else if rhst.Main == shaderir.Float || rhst.Main == shaderir.Int {
 			switch lhst.Main {
+			case shaderir.Int:
+				t = rhst
 			case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
 				t = lhst
 			default:
