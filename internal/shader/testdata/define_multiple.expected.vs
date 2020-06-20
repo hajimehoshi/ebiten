@@ -3,10 +3,10 @@ void F0(in vec2 l0, out vec4 l1) {
 	float l3 = float(0);
 	float l4 = float(0);
 	float l5 = float(0);
-	F1(l4, l5);
-	l2 = l4;
-	l3 = l5;
-	l1 = vec4(l0, l2, l2);
+	F1(l2, l3);
+	l4 = l2;
+	l5 = l3;
+	l1 = vec4(l0, l4, l4);
 	return;
 }
 
