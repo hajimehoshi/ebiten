@@ -43,7 +43,7 @@ func (t *Type) Equal(rhs *Type) bool {
 	return true
 }
 
-func (t *Type) serialize() string {
+func (t *Type) String() string {
 	switch t.Main {
 	case None:
 		return "none"
@@ -68,12 +68,12 @@ func (t *Type) serialize() string {
 	case Texture2D:
 		return "sampler2D"
 	case Array:
-		return fmt.Sprintf("%s[%d]", t.Sub[0].serialize(), t.Length)
+		return fmt.Sprintf("%s[%d]", t.Sub[0].String(), t.Length)
 	case Struct:
 		str := "struct{"
 		sub := make([]string, 0, len(t.Sub))
 		for _, st := range t.Sub {
-			sub = append(sub, st.serialize())
+			sub = append(sub, st.String())
 		}
 		str += strings.Join(sub, ",")
 		str += "}"

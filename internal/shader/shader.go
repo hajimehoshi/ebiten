@@ -855,18 +855,18 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 			t = lhst
 		} else if lhst.Main == shaderir.Float || lhst.Main == shaderir.Int {
 			switch rhst.Main {
-			case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
+			case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
 				t = rhst
 			default:
-				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", e.X, e.Op, e.Y))
+				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 				return nil, nil, nil
 			}
 		} else if rhst.Main == shaderir.Float || rhst.Main == shaderir.Int {
 			switch lhst.Main {
-			case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
+			case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
 				t = lhst
 			default:
-				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", e.X, e.Op, e.Y))
+				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 				return nil, nil, nil
 			}
 		}

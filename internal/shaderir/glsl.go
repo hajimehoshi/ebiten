@@ -60,7 +60,7 @@ func (p *Program) structName(t *Type) string {
 	if t.Main != Struct {
 		panic("shaderir: the given type at structName must be a struct")
 	}
-	s := t.serialize()
+	s := t.String()
 	if n, ok := p.structNames[s]; ok {
 		return n
 	}
