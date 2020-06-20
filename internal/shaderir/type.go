@@ -66,7 +66,7 @@ func (t *Type) String() string {
 	case Mat4:
 		return "mat4"
 	case Texture2D:
-		return "sampler2D"
+		return "texture2D"
 	case Array:
 		return fmt.Sprintf("%s[%d]", t.Sub[0].String(), t.Length)
 	case Struct:
@@ -81,6 +81,10 @@ func (t *Type) String() string {
 	default:
 		return fmt.Sprintf("?(unknown type: %d)", t)
 	}
+}
+
+func (t *Type) serialize() string {
+	return t.String()
 }
 
 type BasicType int
