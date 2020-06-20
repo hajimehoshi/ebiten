@@ -147,7 +147,9 @@ func (cs *compileState) parse(f *ast.File) {
 	// Parse GenDecl for global variables, and then parse functions.
 	for _, d := range f.Decls {
 		if _, ok := d.(*ast.FuncDecl); !ok {
-			cs.parseDecl(&cs.global, d)
+			if !cs.parseDecl(&cs.global, d) {
+				return
+			}
 		}
 	}
 
@@ -206,7 +208,9 @@ func (cs *compileState) parse(f *ast.File) {
 	// Parse functions.
 	for _, d := range f.Decls {
 		if _, ok := d.(*ast.FuncDecl); ok {
-			cs.parseDecl(&cs.global, d)
+			if !cs.parseDecl(&cs.global, d) {
+				return
+			}
 		}
 	}
 
@@ -219,7 +223,7 @@ func (cs *compileState) parse(f *ast.File) {
 	}
 }
 
-func (cs *compileState) parseDecl(b *block, d ast.Decl) {
+func (cs *compileState) parseDecl(b *block, d ast.Decl) bool {
 	switch d := d.(type) {
 	case *ast.GenDecl:
 		switch d.Tok {
@@ -242,7 +246,10 @@ func (cs *compileState) parseDecl(b *block, d ast.Decl) {
 		case token.VAR:
 			for _, s := range d.Specs {
 				s := s.(*ast.ValueSpec)
-				vs, inits, stmts := cs.parseVariable(b, s)
+				vs, inits, stmts, ok := cs.parseVariable(b, s)
+				if !ok {
+					return false
+				}
 				b.ir.Stmts = append(b.ir.Stmts, stmts...)
 				if b == &cs.global {
 					// TODO: Should rhs be ignored?
@@ -282,10 +289,13 @@ func (cs *compileState) parseDecl(b *block, d ast.Decl) {
 			cs.addError(d.Pos(), "unexpected token")
 		}
 	case *ast.FuncDecl:
-		f := cs.parseFunc(b, d)
+		f, ok := cs.parseFunc(b, d)
+		if !ok {
+			return false
+		}
 		if b != &cs.global {
 			cs.addError(d.Pos(), "non-global function is not implemented")
-			return
+			return false
 		}
 		switch d.Name.Name {
 		case cs.vertexEntry:
@@ -305,7 +315,10 @@ func (cs *compileState) parseDecl(b *block, d ast.Decl) {
 		}
 	default:
 		cs.addError(d.Pos(), "unexpected decl")
+		return false
 	}
+
+	return true
 }
 
 // functionReturnTypes returns the original returning value types, if the given expression is call.
@@ -335,10 +348,10 @@ func (cs *compileState) functionReturnTypes(block *block, expr ast.Expr) ([]shad
 	return nil, false
 }
 
-func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variable, []shaderir.Expr, []shaderir.Stmt) {
+func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variable, []shaderir.Expr, []shaderir.Stmt, bool) {
 	if len(vs.Names) != len(vs.Values) && len(vs.Values) != 1 && len(vs.Values) != 0 {
 		s.addError(vs.Pos(), fmt.Sprintf("the numbers of lhs and rhs don't match"))
-		return nil, nil, nil
+		return nil, nil, nil, false
 	}
 
 	var declt shaderir.Type
@@ -364,7 +377,10 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 			if t.Main == shaderir.None {
 				ts, ok := s.functionReturnTypes(block, init)
 				if !ok {
-					_, ts, _ = s.parseExpr(block, init)
+					_, ts, _, ok = s.parseExpr(block, init)
+					if !ok {
+						return nil, nil, nil, false
+					}
 				}
 				if len(ts) != len(vs.Names) {
 					s.addError(vs.Pos(), fmt.Sprintf("the numbers of lhs and rhs don't match"))
@@ -377,7 +393,10 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 			if t.Main == shaderir.None {
 				ts, ok := s.functionReturnTypes(block, init)
 				if !ok {
-					_, ts, _ = s.parseExpr(block, init)
+					_, ts, _, ok = s.parseExpr(block, init)
+					if !ok {
+						return nil, nil, nil, false
+					}
 				}
 				if len(ts) > 1 {
 					s.addError(vs.Pos(), fmt.Sprintf("the numbers of lhs and rhs don't match"))
@@ -393,7 +412,10 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 		})
 
 		if len(vs.Values) > 1 || (len(vs.Values) == 1 && len(inits) == 0) {
-			es, _, ss := s.parseExpr(block, init)
+			es, _, ss, ok := s.parseExpr(block, init)
+			if !ok {
+				return nil, nil, nil, false
+			}
 			inits = append(inits, es...)
 			stmts = append(stmts, ss...)
 		}
@@ -401,10 +423,10 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 
 	if len(inits) > 0 && len(vars) != len(inits) {
 		s.addError(vs.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
-		return nil, nil, nil
+		return nil, nil, nil, false
 	}
 
-	return vars, inits, stmts
+	return vars, inits, stmts, true
 }
 
 func (s *compileState) parseConstant(vs *ast.ValueSpec) []constant {
@@ -458,14 +480,14 @@ func (cs *compileState) parseFuncParams(d *ast.FuncDecl) (in, out []variable) {
 	return
 }
 
-func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) function {
+func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool) {
 	if d.Name == nil {
 		cs.addError(d.Pos(), "function must have a name")
-		return function{}
+		return function{}, false
 	}
 	if d.Body == nil {
 		cs.addError(d.Pos(), "function must have a body")
-		return function{}
+		return function{}, false
 	}
 
 	inParams, outParams := cs.parseFuncParams(d)
@@ -492,11 +514,11 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) function {
 			// The first out-param is treated as gl_Position in GLSL.
 			if len(outParams) == 0 {
 				cs.addError(d.Pos(), fmt.Sprintf("vertex entry point must have at least one returning vec4 value for a position"))
-				return function{}
+				return function{}, false
 			}
 			if outParams[0].typ.Main != shaderir.Vec4 {
 				cs.addError(d.Pos(), fmt.Sprintf("vertex entry point must have at least one returning vec4 value for a position"))
-				return function{}
+				return function{}, false
 			}
 
 			if cs.varyingParsed {
@@ -511,20 +533,20 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) function {
 		case cs.fragmentEntry:
 			if len(inParams) == 0 {
 				cs.addError(d.Pos(), fmt.Sprintf("fragment entry point must have at least one vec4 parameter for a position"))
-				return function{}
+				return function{}, false
 			}
 			if inParams[0].typ.Main != shaderir.Vec4 {
 				cs.addError(d.Pos(), fmt.Sprintf("fragment entry point must have at least one vec4 parameter for a position"))
-				return function{}
+				return function{}, false
 			}
 
 			if len(outParams) != 1 {
 				cs.addError(d.Pos(), fmt.Sprintf("fragment entry point must have one returning vec4 value for a color"))
-				return function{}
+				return function{}, false
 			}
 			if outParams[0].typ.Main != shaderir.Vec4 {
 				cs.addError(d.Pos(), fmt.Sprintf("fragment entry point must have one returning vec4 value for a color"))
-				return function{}
+				return function{}, false
 			}
 
 			if cs.varyingParsed {
@@ -538,7 +560,10 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) function {
 		}
 	}
 
-	b := cs.parseBlock(block, d.Body, inParams, outParams)
+	b, ok := cs.parseBlock(block, d.Body, inParams, outParams)
+	if !ok {
+		return function{}, false
+	}
 
 	var inT, outT []shaderir.Type
 	for _, v := range inParams {
@@ -556,10 +581,10 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) function {
 			OutParams: outT,
 			Block:     b.ir,
 		},
-	}
+	}, true
 }
 
-func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, outParams []variable) *block {
+func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, outParams []variable) (*block, bool) {
 	vars := make([]variable, 0, len(inParams)+len(outParams))
 	vars = append(vars, inParams...)
 	vars = append(vars, outParams...)
@@ -580,7 +605,7 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 			case token.DEFINE:
 				if len(l.Lhs) != len(l.Rhs) && len(l.Rhs) != 1 {
 					cs.addError(l.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
-					return nil
+					return nil, false
 				}
 
 				// TODO: Reduce calls of parseExpr
@@ -593,7 +618,10 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 					if len(l.Lhs) == len(l.Rhs) {
 						ts, ok := cs.functionReturnTypes(block, l.Rhs[i])
 						if !ok {
-							_, ts, _ = cs.parseExpr(block, l.Rhs[i])
+							_, ts, _, ok = cs.parseExpr(block, l.Rhs[i])
+							if !ok {
+								return nil, false
+							}
 						}
 						if len(ts) > 1 {
 							cs.addError(l.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
@@ -606,7 +634,10 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 							var ok bool
 							rhsTypes, ok = cs.functionReturnTypes(block, l.Rhs[0])
 							if !ok {
-								_, rhsTypes, _ = cs.parseExpr(block, l.Rhs[0])
+								_, rhsTypes, _, ok = cs.parseExpr(block, l.Rhs[0])
+								if !ok {
+									return nil, false
+								}
 							}
 							if len(rhsTypes) != len(l.Lhs) {
 								cs.addError(l.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
@@ -617,14 +648,18 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 					block.vars = append(block.vars, v)
 				}
 
-				cs.assign(block, l.Pos(), l.Lhs, l.Rhs)
+				if !cs.assign(block, l.Pos(), l.Lhs, l.Rhs) {
+					return nil, false
+				}
 			case token.ASSIGN:
 				// TODO: What about the statement `a,b = b,a?`
 				if len(l.Lhs) != len(l.Rhs) && len(l.Rhs) != 1 {
 					cs.addError(l.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
-					return nil
+					return nil, false
 				}
-				cs.assign(block, l.Pos(), l.Lhs, l.Rhs)
+				if !cs.assign(block, l.Pos(), l.Lhs, l.Rhs) {
+					return nil, false
+				}
 			case token.ADD_ASSIGN, token.SUB_ASSIGN, token.MUL_ASSIGN, token.QUO_ASSIGN, token.REM_ASSIGN:
 				var op shaderir.Op
 				switch l.Tok {
@@ -639,9 +674,15 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 				case token.REM_ASSIGN:
 					op = shaderir.ModOp
 				}
-				rhs, _, stmts := cs.parseExpr(block, l.Rhs[0])
+				rhs, _, stmts, ok := cs.parseExpr(block, l.Rhs[0])
+				if !ok {
+					return nil, false
+				}
 				block.ir.Stmts = append(block.ir.Stmts, stmts...)
-				lhs, _, stmts := cs.parseExpr(block, l.Lhs[0])
+				lhs, _, stmts, ok := cs.parseExpr(block, l.Lhs[0])
+				if !ok {
+					return nil, false
+				}
 				block.ir.Stmts = append(block.ir.Stmts, stmts...)
 				block.ir.Stmts = append(block.ir.Stmts, shaderir.Stmt{
 					Type: shaderir.Assign,
@@ -661,7 +702,10 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 				cs.addError(l.Pos(), fmt.Sprintf("unexpected token: %s", l.Tok))
 			}
 		case *ast.BlockStmt:
-			b := cs.parseBlock(block, l, nil, nil)
+			b, ok := cs.parseBlock(block, l, nil, nil)
+			if !ok {
+				return nil, false
+			}
 			block.ir.Stmts = append(block.ir.Stmts, shaderir.Stmt{
 				Type: shaderir.BlockStmt,
 				Blocks: []shaderir.Block{
@@ -669,10 +713,15 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 				},
 			})
 		case *ast.DeclStmt:
-			cs.parseDecl(block, l.Decl)
+			if !cs.parseDecl(block, l.Decl) {
+				return nil, false
+			}
 		case *ast.ReturnStmt:
 			for i, r := range l.Results {
-				exprs, _, stmts := cs.parseExpr(block, r)
+				exprs, _, stmts, ok := cs.parseExpr(block, r)
+				if !ok {
+					return nil, false
+				}
 				block.ir.Stmts = append(block.ir.Stmts, stmts...)
 				if len(exprs) == 0 {
 					continue
@@ -696,7 +745,10 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 				Type: shaderir.Return,
 			})
 		case *ast.ExprStmt:
-			exprs, _, stmts := cs.parseExpr(block, l.X)
+			exprs, _, stmts, ok := cs.parseExpr(block, l.X)
+			if !ok {
+				return nil, false
+			}
 			block.ir.Stmts = append(block.ir.Stmts, stmts...)
 			for _, expr := range exprs {
 				if expr.Type != shaderir.Call {
@@ -709,24 +761,31 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 			}
 		default:
 			cs.addError(l.Pos(), fmt.Sprintf("unexpected statement: %#v", l))
+			return nil, false
 		}
 	}
 
-	return block
+	return block, true
 }
 
-func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr) {
+func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr) bool {
 	var rhsExprs []shaderir.Expr
 	for i := range lhs {
 		// Prase RHS first for the order of the statements.
 		if len(lhs) == len(rhs) {
-			rhs, _, stmts := cs.parseExpr(block, rhs[i])
+			rhs, _, stmts, ok := cs.parseExpr(block, rhs[i])
+			if !ok {
+				return false
+			}
 			if len(rhs) > 1 {
 				cs.addError(pos, fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
 			}
 			block.ir.Stmts = append(block.ir.Stmts, stmts...)
 
-			lhs, _, stmts := cs.parseExpr(block, lhs[i])
+			lhs, _, stmts, ok := cs.parseExpr(block, lhs[i])
+			if !ok {
+				return false
+			}
 			block.ir.Stmts = append(block.ir.Stmts, stmts...)
 
 			block.ir.Stmts = append(block.ir.Stmts, shaderir.Stmt{
@@ -736,14 +795,21 @@ func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr)
 		} else {
 			if i == 0 {
 				var stmts []shaderir.Stmt
-				rhsExprs, _, stmts = cs.parseExpr(block, rhs[0])
+				var ok bool
+				rhsExprs, _, stmts, ok = cs.parseExpr(block, rhs[0])
+				if !ok {
+					return false
+				}
 				if len(rhsExprs) != len(lhs) {
 					cs.addError(pos, fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
 				}
 				block.ir.Stmts = append(block.ir.Stmts, stmts...)
 			}
 
-			lhs, _, stmts := cs.parseExpr(block, lhs[i])
+			lhs, _, stmts, ok := cs.parseExpr(block, lhs[i])
+			if !ok {
+				return false
+			}
 			block.ir.Stmts = append(block.ir.Stmts, stmts...)
 
 			block.ir.Stmts = append(block.ir.Stmts, shaderir.Stmt{
@@ -752,9 +818,10 @@ func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr)
 			})
 		}
 	}
+	return true
 }
 
-func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr, []shaderir.Type, []shaderir.Stmt) {
+func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr, []shaderir.Type, []shaderir.Stmt, bool) {
 	switch e := expr.(type) {
 	case *ast.BasicLit:
 		switch e.Kind {
@@ -764,14 +831,14 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 					Type:  shaderir.NumberExpr,
 					Const: gconstant.MakeFromLiteral(e.Value, e.Kind, 0),
 				},
-			}, []shaderir.Type{{Main: shaderir.Int}}, nil
+			}, []shaderir.Type{{Main: shaderir.Int}}, nil, true
 		case token.FLOAT:
 			return []shaderir.Expr{
 				{
 					Type:  shaderir.NumberExpr,
 					Const: gconstant.MakeFromLiteral(e.Value, e.Kind, 0),
 				},
-			}, []shaderir.Type{{Main: shaderir.Float}}, nil
+			}, []shaderir.Type{{Main: shaderir.Float}}, nil, true
 		default:
 			cs.addError(e.Pos(), fmt.Sprintf("literal not implemented: %#v", e))
 		}
@@ -779,24 +846,30 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		op, ok := shaderir.OpFromToken(e.Op)
 		if !ok {
 			cs.addError(e.Pos(), fmt.Sprintf("unexpected operator: %s", e.Op))
-			return nil, nil, nil
+			return nil, nil, nil, false
 		}
 
 		var stmts []shaderir.Stmt
 
 		// Prase LHS first for the order of the statements.
-		lhs, ts, ss := cs.parseExpr(block, e.X)
+		lhs, ts, ss, ok := cs.parseExpr(block, e.X)
+		if !ok {
+			return nil, nil, nil, false
+		}
 		if len(lhs) != 1 {
 			cs.addError(e.Pos(), fmt.Sprintf("multiple-value context is not available at a binary operator: %s", e.X))
-			return nil, nil, nil
+			return nil, nil, nil, false
 		}
 		stmts = append(stmts, ss...)
 		lhst := ts[0]
 
-		rhs, ts, ss := cs.parseExpr(block, e.Y)
+		rhs, ts, ss, ok := cs.parseExpr(block, e.Y)
+		if !ok {
+			return nil, nil, nil, false
+		}
 		if len(rhs) != 1 {
 			cs.addError(e.Pos(), fmt.Sprintf("multiple-value context is not available at a binary operator: %s", e.Y))
-			return nil, nil, nil
+			return nil, nil, nil, false
 		}
 		stmts = append(stmts, ss...)
 		rhst := ts[0]
@@ -810,7 +883,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 				t = rhst
 			default:
 				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
-				return nil, nil, nil
+				return nil, nil, nil, false
 			}
 		} else if rhst.Main == shaderir.Float || rhst.Main == shaderir.Int {
 			switch lhst.Main {
@@ -818,7 +891,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 				t = lhst
 			default:
 				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
-				return nil, nil, nil
+				return nil, nil, nil, false
 			}
 		}
 
@@ -828,7 +901,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 				Op:    op,
 				Exprs: []shaderir.Expr{lhs[0], rhs[0]},
 			},
-		}, []shaderir.Type{t}, stmts
+		}, []shaderir.Type{t}, stmts, true
 	case *ast.CallExpr:
 		var (
 			callee shaderir.Expr
@@ -839,10 +912,13 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 
 		// Parse the argument first for the order of the statements.
 		for _, a := range e.Args {
-			es, ts, ss := cs.parseExpr(block, a)
+			es, ts, ss, ok := cs.parseExpr(block, a)
+			if !ok {
+				return nil, nil, nil, false
+			}
 			if len(es) > 1 && len(e.Args) > 1 {
 				cs.addError(e.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed: %s", e.Fun))
-				return nil, nil, nil
+				return nil, nil, nil, false
 			}
 			args = append(args, es...)
 			argts = append(argts, ts...)
@@ -850,10 +926,13 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		}
 
 		// TODO: When len(ss) is not 0?
-		es, _, ss := cs.parseExpr(block, e.Fun)
+		es, _, ss, ok := cs.parseExpr(block, e.Fun)
+		if !ok {
+			return nil, nil, nil, false
+		}
 		if len(es) != 1 {
 			cs.addError(e.Pos(), fmt.Sprintf("multiple-value context is not available at a callee: %s", e.Fun))
-			return nil, nil, nil
+			return nil, nil, nil, false
 		}
 		callee = es[0]
 		stmts = append(stmts, ss...)
@@ -893,12 +972,12 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 					Type:  shaderir.Call,
 					Exprs: append([]shaderir.Expr{callee}, args...),
 				},
-			}, []shaderir.Type{t}, stmts
+			}, []shaderir.Type{t}, stmts, true
 		}
 
 		if callee.Type != shaderir.FunctionExpr {
 			cs.addError(e.Pos(), fmt.Sprintf("function callee must be a funciton name but %s", e.Fun))
-			return nil, nil, nil
+			return nil, nil, nil, false
 		}
 
 		f := cs.funcs[callee.Index]
@@ -919,7 +998,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		if t := f.ir.Return; t.Main != shaderir.None {
 			if len(outParams) != 0 {
 				cs.addError(e.Pos(), fmt.Sprintf("a function returning value cannot have out-params so far: %s", e.Fun))
-				return nil, nil, nil
+				return nil, nil, nil, false
 			}
 
 			idx := len(block.vars)
@@ -949,7 +1028,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 					Type:  shaderir.LocalVariable,
 					Index: idx,
 				},
-			}, []shaderir.Type{t}, stmts
+			}, []shaderir.Type{t}, stmts, true
 		}
 
 		// Even if the function doesn't return anything, calling the function should be done eariler to keep
@@ -975,7 +1054,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 				Index: p,
 			})
 		}
-		return exprs, f.ir.OutParams, stmts
+		return exprs, f.ir.OutParams, stmts, true
 
 	case *ast.Ident:
 		if i, t, ok := block.findLocalVariable(e.Name); ok {
@@ -984,7 +1063,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 					Type:  shaderir.LocalVariable,
 					Index: i,
 				},
-			}, []shaderir.Type{t}, nil
+			}, []shaderir.Type{t}, nil, true
 		}
 		if i, ok := cs.findFunction(e.Name); ok {
 			return []shaderir.Expr{
@@ -992,7 +1071,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 					Type:  shaderir.FunctionExpr,
 					Index: i,
 				},
-			}, nil, nil
+			}, nil, nil, true
 		}
 		if i, ok := cs.findUniformVariable(e.Name); ok {
 			return []shaderir.Expr{
@@ -1000,7 +1079,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 					Type:  shaderir.UniformVariable,
 					Index: i,
 				},
-			}, []shaderir.Type{cs.ir.Uniforms[i]}, nil
+			}, []shaderir.Type{cs.ir.Uniforms[i]}, nil, true
 		}
 		if f, ok := shaderir.ParseBuiltinFunc(e.Name); ok {
 			return []shaderir.Expr{
@@ -1008,14 +1087,17 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 					Type:        shaderir.BuiltinFuncExpr,
 					BuiltinFunc: f,
 				},
-			}, nil, nil
+			}, nil, nil, true
 		}
 		cs.addError(e.Pos(), fmt.Sprintf("unexpected identifier: %s", e.Name))
 	case *ast.SelectorExpr:
-		exprs, _, stmts := cs.parseExpr(block, e.X)
+		exprs, _, stmts, ok := cs.parseExpr(block, e.X)
+		if !ok {
+			return nil, nil, nil, false
+		}
 		if len(exprs) != 1 {
 			cs.addError(e.Pos(), fmt.Sprintf("multiple-value context is not available at a selector: %s", e.X))
-			return nil, nil, nil
+			return nil, nil, nil, false
 		}
 		var t shaderir.Type
 		switch len(e.Sel.Name) {
@@ -1029,7 +1111,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 			t.Main = shaderir.Vec4
 		default:
 			cs.addError(e.Pos(), fmt.Sprintf("unexpected swizzling: %s", e.Sel.Name))
-			return nil, nil, nil
+			return nil, nil, nil, false
 		}
 		return []shaderir.Expr{
 			{
@@ -1042,7 +1124,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 					},
 				},
 			},
-		}, []shaderir.Type{t}, stmts
+		}, []shaderir.Type{t}, stmts, true
 	case *ast.UnaryExpr:
 		var op shaderir.Op
 		switch e.Op {
@@ -1054,12 +1136,15 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 			op = shaderir.NotOp
 		default:
 			cs.addError(e.Pos(), fmt.Sprintf("unexpected operator: %s", e.Op))
-			return nil, nil, nil
+			return nil, nil, nil, false
 		}
-		exprs, t, stmts := cs.parseExpr(block, e.X)
+		exprs, t, stmts, ok := cs.parseExpr(block, e.X)
+		if !ok {
+			return nil, nil, nil, false
+		}
 		if len(exprs) != 1 {
 			cs.addError(e.Pos(), fmt.Sprintf("multiple-value context is not available at a unary operator: %s", e.X))
-			return nil, nil, nil
+			return nil, nil, nil, false
 		}
 		return []shaderir.Expr{
 			{
@@ -1067,9 +1152,9 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 				Op:    op,
 				Exprs: exprs,
 			},
-		}, t, stmts
+		}, t, stmts, true
 	default:
 		cs.addError(e.Pos(), fmt.Sprintf("expression not implemented: %#v", e))
 	}
-	return nil, nil, nil
+	return nil, nil, nil, false
 }
