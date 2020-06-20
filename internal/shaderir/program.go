@@ -15,6 +15,10 @@
 // Package shaderir offers intermediate representation for shader programs.
 package shaderir
 
+import (
+	"go/token"
+)
+
 type Program struct {
 	Uniforms     []Type
 	Attributes   []Type
@@ -134,6 +138,50 @@ const (
 	AndAnd             Op = "&&"
 	OrOr               Op = "||"
 )
+
+func OpFromToken(t token.Token) (Op, bool) {
+	switch t {
+	case token.ADD:
+		return Add, true
+	case token.SUB:
+		return Sub, true
+	case token.NOT:
+		return NotOp, true
+	case token.MUL:
+		return Mul, true
+	case token.QUO:
+		return Div, true
+	case token.REM:
+		return ModOp, true
+	case token.SHL:
+		return LeftShift, true
+	case token.SHR:
+		return RightShift, true
+	case token.LSS:
+		return LessThanOp, true
+	case token.LEQ:
+		return LessThanEqualOp, true
+	case token.GTR:
+		return GreaterThanOp, true
+	case token.GEQ:
+		return GreaterThanEqualOp, true
+	case token.EQL:
+		return EqualOp, true
+	case token.NEQ:
+		return NotEqualOp, true
+	case token.AND:
+		return And, true
+	case token.XOR:
+		return Xor, true
+	case token.OR:
+		return Or, true
+	case token.LAND:
+		return AndAnd, true
+	case token.LOR:
+		return OrOr, true
+	}
+	return "", false
+}
 
 type BuiltinFunc string
 

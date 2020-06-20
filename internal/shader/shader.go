@@ -786,47 +786,8 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 			cs.addError(e.Pos(), fmt.Sprintf("literal not implemented: %#v", e))
 		}
 	case *ast.BinaryExpr:
-		var op shaderir.Op
-		switch e.Op {
-		case token.ADD:
-			op = shaderir.Add
-		case token.SUB:
-			op = shaderir.Sub
-		case token.NOT:
-			op = shaderir.NotOp
-		case token.MUL:
-			op = shaderir.Mul
-		case token.QUO:
-			op = shaderir.Div
-		case token.REM:
-			op = shaderir.ModOp
-		case token.SHL:
-			op = shaderir.LeftShift
-		case token.SHR:
-			op = shaderir.RightShift
-		case token.LSS:
-			op = shaderir.LessThanOp
-		case token.LEQ:
-			op = shaderir.LessThanEqualOp
-		case token.GTR:
-			op = shaderir.GreaterThanOp
-		case token.GEQ:
-			op = shaderir.GreaterThanEqualOp
-		case token.EQL:
-			op = shaderir.EqualOp
-		case token.NEQ:
-			op = shaderir.NotEqualOp
-		case token.AND:
-			op = shaderir.And
-		case token.XOR:
-			op = shaderir.Xor
-		case token.OR:
-			op = shaderir.Or
-		case token.LAND:
-			op = shaderir.AndAnd
-		case token.LOR:
-			op = shaderir.OrOr
-		default:
+		op, ok := shaderir.OpFromToken(e.Op)
+		if !ok {
 			cs.addError(e.Pos(), fmt.Sprintf("unexpected operator: %s", e.Op))
 			return nil, nil, nil
 		}
