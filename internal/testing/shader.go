@@ -15,6 +15,8 @@
 package testing
 
 import (
+	"go/constant"
+
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
@@ -31,8 +33,9 @@ var (
 				Op:   shaderir.Div,
 				Exprs: []shaderir.Expr{
 					{
-						Type:  shaderir.FloatExpr,
-						Float: 2,
+						Type:      shaderir.NumberExpr,
+						Const:     constant.MakeFloat64(2),
+						ConstType: shaderir.ConstTypeFloat,
 					},
 					{
 						Type: shaderir.FieldSelector,
@@ -50,28 +53,33 @@ var (
 				},
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 0,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(0),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 0,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(0),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 0,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(0),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 0,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(0),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
 				Type: shaderir.Binary,
 				Op:   shaderir.Div,
 				Exprs: []shaderir.Expr{
 					{
-						Type:  shaderir.FloatExpr,
-						Float: 2,
+						Type:      shaderir.NumberExpr,
+						Const:     constant.MakeFloat64(2),
+						ConstType: shaderir.ConstTypeFloat,
 					},
 					{
 						Type: shaderir.FieldSelector,
@@ -89,44 +97,54 @@ var (
 				},
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 0,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(0),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 0,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(0),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 0,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(0),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 0,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(0),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 1,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(1),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 0,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(0),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: -1,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(-1),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: -1,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(-1),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 0,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(0),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 1,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(1),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 		},
 	}
@@ -142,12 +160,14 @@ var (
 				Index: 0,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 0,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(0),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 1,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(1),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 		},
 	}
@@ -221,20 +241,24 @@ func ShaderProgramFill(r, g, b, a byte) shaderir.Program {
 				BuiltinFunc: shaderir.Vec4F,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: float32(r) / 0xff,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(float64(r) / 0xff),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: float32(g) / 0xff,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(float64(g) / 0xff),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: float32(b) / 0xff,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(float64(b) / 0xff),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: float32(a) / 0xff,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(float64(a) / 0xff),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 		},
 	}
