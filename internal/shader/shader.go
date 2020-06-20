@@ -833,23 +833,43 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 
 		var stmts []shaderir.Stmt
 
-		// Prase RHS first for the order of the statements.
-		rhs, t0, ss := cs.parseExpr(block, e.Y)
-		if len(rhs) != 1 {
-			cs.addError(e.Pos(), fmt.Sprintf("multiple-value context is not available at a binary operator: %s", e.Y))
-			return nil, nil, nil
-		}
-		stmts = append(stmts, ss...)
-
-		lhs, t1, ss := cs.parseExpr(block, e.X)
+		// Prase LHS first for the order of the statements.
+		lhs, ts, ss := cs.parseExpr(block, e.X)
 		if len(lhs) != 1 {
 			cs.addError(e.Pos(), fmt.Sprintf("multiple-value context is not available at a binary operator: %s", e.X))
 			return nil, nil, nil
 		}
 		stmts = append(stmts, ss...)
+		lhst := ts[0]
 
-		// TODO: Check the compatibility of t0 and t1
-		_ = t1
+		rhs, ts, ss := cs.parseExpr(block, e.Y)
+		if len(rhs) != 1 {
+			cs.addError(e.Pos(), fmt.Sprintf("multiple-value context is not available at a binary operator: %s", e.Y))
+			return nil, nil, nil
+		}
+		stmts = append(stmts, ss...)
+		rhst := ts[0]
+
+		var t shaderir.Type
+		if lhst.Equal(&rhst) {
+			t = lhst
+		} else if lhst.Main == shaderir.Float || lhst.Main == shaderir.Int {
+			switch rhst.Main {
+			case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
+				t = rhst
+			default:
+				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", e.X, e.Op, e.Y))
+				return nil, nil, nil
+			}
+		} else if rhst.Main == shaderir.Float || rhst.Main == shaderir.Int {
+			switch lhst.Main {
+			case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
+				t = lhst
+			default:
+				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", e.X, e.Op, e.Y))
+				return nil, nil, nil
+			}
+		}
 
 		return []shaderir.Expr{
 			{
@@ -857,7 +877,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 				Op:    op,
 				Exprs: []shaderir.Expr{lhs[0], rhs[0]},
 			},
-		}, t0, stmts
+		}, []shaderir.Type{t}, stmts
 	case *ast.CallExpr:
 		var (
 			callee shaderir.Expr
