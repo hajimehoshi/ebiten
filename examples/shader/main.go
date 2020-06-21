@@ -27,50 +27,37 @@ const (
 	screenHeight = 480
 )
 
-const shaderSrc = `package main
-
-var Time  float
-var Mouse vec2
-
-// viewportSize is a predefined function.
-
-func Vertex(position vec2, texCoord vec2, color vec4) vec4 {
-	return mat4(
-		2/viewportSize().x, 0, 0, 0,
-		0, 2/viewportSize().y, 0, 0,
-		0, 0, 1, 0,
-		-1, -1, 0, 1,
-	) * vec4(position, 0, 1)
+var shaderSrcs = [][]byte{
+	default_go,
 }
 
-func Fragment(position vec4) vec4 {
-	pos := position.xy / viewportSize() + Mouse / viewportSize() / 4
-	color := 0.0
-	color += sin(pos.x * cos(Time / 15) * 80) + cos(pos.y * cos(Time / 15) * 10)
-	color += sin(pos.y * sin(Time / 10) * 40) + cos(pos.x * sin(Time / 25) * 40)
-	color += sin(pos.x * sin(Time / 5) * 10) + sin(pos.y * sin(Time / 35) * 80)
-	color *= sin(Time / 10) * 0.5
-	return vec4(color, color * 0.5, sin(color + Time / 3 ) * 0.75, 1)
-}`
-
 type Game struct {
-	shader *ebiten.Shader
-	time   int
+	shaders map[int]*ebiten.Shader
+	idx     int
+	time    int
 }
 
 func (g *Game) Update(screen *ebiten.Image) error {
 	g.time++
-	if g.shader == nil {
-		var err error
-		g.shader, err = ebiten.NewShader([]byte(shaderSrc))
+	if g.shaders == nil {
+		g.shaders = map[int]*ebiten.Shader{}
+	}
+	if _, ok := g.shaders[g.idx]; !ok {
+		s, err := ebiten.NewShader([]byte(shaderSrcs[g.idx]))
 		if err != nil {
 			return err
 		}
+		g.shaders[g.idx] = s
 	}
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+	s, ok := g.shaders[g.idx]
+	if !ok {
+		return
+	}
+
 	w, h := screen.Size()
 	vs := []ebiten.Vertex{
 		{
@@ -99,7 +86,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		float32(g.time) / 60,                // time
 		[]float32{float32(cx), float32(cy)}, // cursor
 	}
-	screen.DrawTrianglesWithShader(vs, is, g.shader, op)
+	screen.DrawTrianglesWithShader(vs, is, s, op)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
