@@ -139,6 +139,9 @@ func IsRunningSlowly() bool {
 }
 
 // Run starts the main loop and runs the game.
+//
+// Deprecated: (as of 1.12.0) Use RunGame instead.
+//
 // f is a function which is called at every frame.
 // The argument (*Image) is the render target that represents the screen.
 // The screen size is based on the given values (width and height).

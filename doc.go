@@ -49,32 +49,6 @@
 //         }
 //     }
 //
-// For backward compatibility, you can use a shorthand style Run.
-//
-//     // update proceeds the game state.
-//     // update is called every frame (1/60 [s]).
-//     func update(screen *ebiten.Image) error {
-//
-//         // Write your game's logical update.
-//
-//         if ebiten.IsDrawingSkipped() {
-//             // When the game is running slowly, the rendering result
-//             // will not be adopted.
-//             return nil
-//         }
-//
-//         // Write your game's rendering.
-//
-//         return nil
-//     }
-//
-//     func main() {
-//         // Call ebiten.Run to start your game loop.
-//         if err := ebiten.Run(update, 320, 240, 2, "Your game's title"); err != nil {
-//             log.Fatal(err)
-//         }
-//     }
-//
 // In the API document, 'the main thread' means the goroutine in init(), main() and their callees without 'go'
 // statement. It is assured that 'the main thread' runs on the OS main thread. There are some Ebiten functions that
 // must be called on the main thread under some conditions (typically, before ebiten.RunGame is called).
