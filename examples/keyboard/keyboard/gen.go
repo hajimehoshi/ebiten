@@ -319,19 +319,32 @@ func outputKeyRectsGo(k map[ebiten.Key]image.Rectangle) error {
 
 var regularTermination = errors.New("regular termination")
 
+type game struct {
+	rects map[ebiten.Key]image.Rectangle
+}
+
+func (g *game) Update(_ *ebiten.Image) error {
+	var err error
+	g.rects, err = outputKeyboardImage()
+	if err != nil {
+		return err
+	}
+	return regularTermination
+}
+
+func (g *game) Draw(_ *ebiten.Image) {
+}
+
+func (g *game) Layout(outw, outh int) (int, int) {
+	return 256, 256
+}
+
 func main() {
-	var rects map[ebiten.Key]image.Rectangle
-	if err := ebiten.Run(func(_ *ebiten.Image) error {
-		var err error
-		rects, err = outputKeyboardImage()
-		if err != nil {
-			return err
-		}
-		return regularTermination
-	}, 256, 256, 1, ""); err != regularTermination {
+	g := &game{}
+	if err := ebiten.RunGame(g); err != regularTermination {
 		log.Fatal(err)
 	}
-	if err := outputKeyRectsGo(rects); err != nil {
+	if err := outputKeyRectsGo(g.rects); err != nil {
 		log.Fatal(err)
 	}
 }
