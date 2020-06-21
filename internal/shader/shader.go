@@ -1136,6 +1136,10 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 			}, nil, nil, true
 		}
 		cs.addError(e.Pos(), fmt.Sprintf("unexpected identifier: %s", e.Name))
+
+	case *ast.ParenExpr:
+		return cs.parseExpr(block, e.X)
+
 	case *ast.SelectorExpr:
 		exprs, _, stmts, ok := cs.parseExpr(block, e.X)
 		if !ok {
@@ -1171,7 +1175,31 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 				},
 			},
 		}, []shaderir.Type{t}, stmts, true
+
 	case *ast.UnaryExpr:
+		exprs, t, stmts, ok := cs.parseExpr(block, e.X)
+		if !ok {
+			return nil, nil, nil, false
+		}
+		if len(exprs) != 1 {
+			cs.addError(e.Pos(), fmt.Sprintf("multiple-value context is not available at a unary operator: %s", e.X))
+			return nil, nil, nil, false
+		}
+
+		if exprs[0].Type == shaderir.NumberExpr {
+			v := gconstant.UnaryOp(e.Op, exprs[0].Const, 0)
+			t := shaderir.Type{Main: shaderir.Int}
+			if v.Kind() == gconstant.Float {
+				t = shaderir.Type{Main: shaderir.Float}
+			}
+			return []shaderir.Expr{
+				{
+					Type:  shaderir.NumberExpr,
+					Const: v,
+				},
+			}, []shaderir.Type{t}, stmts, true
+		}
+
 		var op shaderir.Op
 		switch e.Op {
 		case token.ADD:
@@ -1182,14 +1210,6 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 			op = shaderir.NotOp
 		default:
 			cs.addError(e.Pos(), fmt.Sprintf("unexpected operator: %s", e.Op))
-			return nil, nil, nil, false
-		}
-		exprs, t, stmts, ok := cs.parseExpr(block, e.X)
-		if !ok {
-			return nil, nil, nil, false
-		}
-		if len(exprs) != 1 {
-			cs.addError(e.Pos(), fmt.Sprintf("multiple-value context is not available at a unary operator: %s", e.X))
 			return nil, nil, nil, false
 		}
 		return []shaderir.Expr{
