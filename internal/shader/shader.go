@@ -384,8 +384,6 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 			if !ok {
 				return nil, nil, nil, false
 			}
-			inits = append(inits, es...)
-			stmts = append(stmts, ss...)
 
 			if t.Main == shaderir.None {
 				ts, ok := s.functionReturnTypes(block, init)
@@ -397,6 +395,18 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 				}
 				t = ts[0]
 			}
+
+			if es[0].Type == shaderir.NumberExpr {
+				switch t.Main {
+				case shaderir.Int:
+					es[0].ConstType = shaderir.ConstTypeInt
+				case shaderir.Float:
+					es[0].ConstType = shaderir.ConstTypeFloat
+				}
+			}
+
+			inits = append(inits, es...)
+			stmts = append(stmts, ss...)
 
 		default:
 			// Multiple-value context
@@ -745,8 +755,8 @@ func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr,
 	var rhsTypes []shaderir.Type
 
 	for i, e := range lhs {
-		// Prase RHS first for the order of the statements.
 		if len(lhs) == len(rhs) {
+			// Prase RHS first for the order of the statements.
 			r, origts, stmts, ok := cs.parseExpr(block, rhs[i])
 			if !ok {
 				return false
@@ -781,6 +791,15 @@ func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr,
 				return false
 			}
 			block.ir.Stmts = append(block.ir.Stmts, stmts...)
+
+			if r[0].Type == shaderir.NumberExpr {
+				switch block.vars[l[0].Index].typ.Main {
+				case shaderir.Int:
+					r[0].ConstType = shaderir.ConstTypeInt
+				case shaderir.Float:
+					r[0].ConstType = shaderir.ConstTypeFloat
+				}
+			}
 
 			block.ir.Stmts = append(block.ir.Stmts, shaderir.Stmt{
 				Type:  shaderir.Assign,
@@ -845,12 +864,6 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 			cs.addError(e.Pos(), fmt.Sprintf("literal not implemented: %#v", e))
 		}
 	case *ast.BinaryExpr:
-		op, ok := shaderir.OpFromToken(e.Op)
-		if !ok {
-			cs.addError(e.Pos(), fmt.Sprintf("unexpected operator: %s", e.Op))
-			return nil, nil, nil, false
-		}
-
 		var stmts []shaderir.Stmt
 
 		// Prase LHS first for the order of the statements.
@@ -876,6 +889,27 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		stmts = append(stmts, ss...)
 		rhst := ts[0]
 
+		if lhs[0].Type == shaderir.NumberExpr && rhs[0].Type == shaderir.NumberExpr {
+			op := e.Op
+			// https://golang.org/pkg/go/constant/#BinaryOp
+			// "To force integer division of Int operands, use op == token.QUO_ASSIGN instead of
+			// token.QUO; the result is guaranteed to be Int in this case."
+			if op == token.QUO && lhs[0].Const.Kind() == gconstant.Int && rhs[0].Const.Kind() == gconstant.Int {
+				op = token.QUO_ASSIGN
+			}
+			v := gconstant.BinaryOp(lhs[0].Const, op, rhs[0].Const)
+			t := shaderir.Type{Main: shaderir.Int}
+			if v.Kind() == gconstant.Float {
+				t = shaderir.Type{Main: shaderir.Float}
+			}
+			return []shaderir.Expr{
+				{
+					Type:  shaderir.NumberExpr,
+					Const: v,
+				},
+			}, []shaderir.Type{t}, stmts, true
+		}
+
 		var t shaderir.Type
 		if lhst.Equal(&rhst) {
 			t = lhst
@@ -899,6 +933,12 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 				return nil, nil, nil, false
 			}
+		}
+
+		op, ok := shaderir.OpFromToken(e.Op)
+		if !ok {
+			cs.addError(e.Pos(), fmt.Sprintf("unexpected operator: %s", e.Op))
+			return nil, nil, nil, false
 		}
 
 		return []shaderir.Expr{
