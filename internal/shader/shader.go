@@ -365,44 +365,70 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 		stmts []shaderir.Stmt
 	)
 
-	for i, n := range vs.Names {
-		// TODO: Reduce calls of parseExpr
+	// These variables are used only in multiple-value context.
+	var inittypes []shaderir.Type
+	var initexprs []shaderir.Expr
 
-		var init ast.Expr
+	for i, n := range vs.Names {
 		t := declt
-		switch len(vs.Values) {
-		case 0:
-		case 1:
-			init = vs.Values[0]
-			if t.Main == shaderir.None {
-				ts, ok := s.functionReturnTypes(block, init)
-				if !ok {
-					_, ts, _, ok = s.parseExpr(block, init)
-					if !ok {
-						return nil, nil, nil, false
-					}
-				}
-				if len(ts) != len(vs.Names) {
-					s.addError(vs.Pos(), fmt.Sprintf("the numbers of lhs and rhs don't match"))
-					continue
-				}
-				t = ts[i]
+		switch {
+		case len(vs.Values) == 0:
+			// No initialization
+
+		case len(vs.Names) == len(vs.Values):
+			// Single-value context
+
+			init := vs.Values[i]
+
+			es, origts, ss, ok := s.parseExpr(block, init)
+			if !ok {
+				return nil, nil, nil, false
 			}
-		default:
-			init = vs.Values[i]
+			inits = append(inits, es...)
+			stmts = append(stmts, ss...)
+
 			if t.Main == shaderir.None {
 				ts, ok := s.functionReturnTypes(block, init)
 				if !ok {
-					_, ts, _, ok = s.parseExpr(block, init)
-					if !ok {
-						return nil, nil, nil, false
-					}
+					ts = origts
 				}
 				if len(ts) > 1 {
 					s.addError(vs.Pos(), fmt.Sprintf("the numbers of lhs and rhs don't match"))
 				}
 				t = ts[0]
 			}
+
+		default:
+			// Multiple-value context
+
+			if i == 0 {
+				init := vs.Values[0]
+
+				var ss []shaderir.Stmt
+				var ok bool
+				initexprs, inittypes, ss, ok = s.parseExpr(block, init)
+				if !ok {
+					return nil, nil, nil, false
+				}
+				stmts = append(stmts, ss...)
+
+				if t.Main == shaderir.None {
+					ts, ok := s.functionReturnTypes(block, init)
+					if ok {
+						inittypes = ts
+					}
+					if len(ts) != len(vs.Names) {
+						s.addError(vs.Pos(), fmt.Sprintf("the numbers of lhs and rhs don't match"))
+						continue
+					}
+				}
+			}
+			if len(inittypes) > 0 {
+				t = inittypes[i]
+			}
+
+			// Add the same initexprs for each variable.
+			inits = append(inits, initexprs...)
 		}
 
 		name := n.Name
@@ -410,20 +436,6 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 			name: name,
 			typ:  t,
 		})
-
-		if len(vs.Values) > 1 || (len(vs.Values) == 1 && len(inits) == 0) {
-			es, _, ss, ok := s.parseExpr(block, init)
-			if !ok {
-				return nil, nil, nil, false
-			}
-			inits = append(inits, es...)
-			stmts = append(stmts, ss...)
-		}
-	}
-
-	if len(inits) > 0 && len(vars) != len(inits) {
-		s.addError(vs.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
-		return nil, nil, nil, false
 	}
 
 	return vars, inits, stmts, true
