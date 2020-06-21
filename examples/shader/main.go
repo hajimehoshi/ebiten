@@ -29,7 +29,8 @@ const (
 
 const shaderSrc = `package main
 
-var Time float
+var Time  float
+var Mouse vec2
 
 // viewportSize is a predefined function.
 
@@ -43,7 +44,7 @@ func Vertex(position vec2, texCoord vec2, color vec4) vec4 {
 }
 
 func Fragment(position vec4) vec4 {
-	pos := position.xy / viewportSize()
+	pos := position.xy / viewportSize() + Mouse / viewportSize() / 4
 	color := 0.0
 	color += sin(pos.x * cos(Time / 15) * 80) + cos(pos.y * cos(Time / 15) * 10)
 	color += sin(pos.y * sin(Time / 10) * 40) + cos(pos.x * sin(Time / 25) * 40)
@@ -91,9 +92,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 	is := []uint16{0, 1, 2, 1, 2, 3}
 
+	cx, cy := ebiten.CursorPosition()
+
 	op := &ebiten.DrawTrianglesWithShaderOptions{}
 	op.Uniforms = []interface{}{
-		float32(g.time) / 60, // time
+		float32(g.time) / 60,                // time
+		[]float32{float32(cx), float32(cy)}, // cursor
 	}
 	screen.DrawTrianglesWithShader(vs, is, g.shader, op)
 }
