@@ -16,6 +16,8 @@
 
 package main
 
+var Time float
+var Cursor vec2
 var Image texture2d
 
 func Vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2) {
@@ -27,7 +29,7 @@ func Vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2) {
 	) * vec4(position, 0, 1), texCoord
 }
 
-func Fragment(position vec4, tex vec2) vec4 {
+func Fragment(position vec4, texCoord vec2) vec4 {
 	// TODO: Instead of using texture2D directly, define and use special functions for Ebiten images.
-	return texture2D(Image, tex)
+	return texture2D(Image, texCoord)
 }

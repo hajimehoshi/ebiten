@@ -125,16 +125,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	cx, cy := ebiten.CursorPosition()
 
 	op := &ebiten.DrawTrianglesWithShaderOptions{}
-	switch g.idx {
-	case 0:
-		op.Uniforms = []interface{}{
-			float32(g.time) / 60,                // Time
-			[]float32{float32(cx), float32(cy)}, // Cursor
-		}
-	default:
-		op.Uniforms = []interface{}{
+	op.Uniforms = []interface{}{
+		float32(g.time) / 60,                // Time
+		[]float32{float32(cx), float32(cy)}, // Cursor
+	}
+	if g.idx != 0 {
+		op.Uniforms = append(op.Uniforms,
 			gophersImage, // Image
-		}
+		)
 	}
 	screen.DrawTrianglesWithShader(vs, is, s, op)
 
