@@ -135,6 +135,7 @@ func Compile(fs *token.FileSet, f *ast.File, vertexEntry, fragmentEntry string) 
 	// TODO: Resolve constants
 
 	// TODO: Make a call graph and reorder the elements.
+
 	return &s.ir, nil
 }
 

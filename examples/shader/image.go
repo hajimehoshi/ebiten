@@ -12,7 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build ignore
+
 package main
 
-//go:generate file2byteslice -package=main -input=default.go -output=default_go.go -var=default_go
-//go:generate file2byteslice -package=main -input=image.go -output=image_go.go -var=image_go
+var Image texture2d
+
+func Vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2) {
+	return mat4(
+		2/viewportSize().x, 0, 0, 0,
+		0, 2/viewportSize().y, 0, 0,
+		0, 0, 1, 0,
+		-1, -1, 0, 1,
+	) * vec4(position, 0, 1), texCoord
+}
+
+func Fragment(position vec4, tex vec2) vec4 {
+	// TODO: Instead of using texture2D directly, define and use special functions for Ebiten images.
+	return texture2D(Image, tex)
+}

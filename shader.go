@@ -28,7 +28,8 @@ var __viewportSize vec2
 
 func viewportSize() vec2 {
 	return __viewportSize
-}`
+}
+`
 
 type Shader struct {
 	shader *buffered.Shader
@@ -45,6 +46,7 @@ func NewShader(src []byte) (*Shader, error) {
 		return nil, err
 	}
 
+	// TODO: Create a pseudo vertex entrypoint to treat the attribute values correctly.
 	s, err := shader.Compile(fs, f, "Vertex", "Fragment")
 	if err != nil {
 		return nil, err
