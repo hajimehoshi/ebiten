@@ -200,7 +200,7 @@ void main(void) {
     color = vec4(0, 0, 0, 0);
   }
 # endif  // defined(ADDRESS_UNSAFE)
-#endif
+#endif  // defined(FILTER_NEAREST)
 
 #if defined(FILTER_LINEAR)
   vec4 color;
@@ -241,7 +241,7 @@ void main(void) {
 
   vec2 rate = fract(p0 * source_size);
   color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
-#endif
+#endif  // defined(FILTER_LINEAR)
 
 #if defined(FILTER_SCREEN)
   highp vec2 texel_size = 1.0 / source_size;
@@ -259,11 +259,12 @@ void main(void) {
   vec2 rate_center = vec2(1.0, 1.0) - half_scaled_texel_size;
   vec2 rate = clamp(((fract(p0 * source_size) - rate_center) * scale) + rate_center, 0.0, 1.0);
   gl_FragColor = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
+
   // Assume that a color matrix and color vector values are not used with FILTER_SCREEN.
 
 #else
 
-#if defined(USE_COLOR_MATRIX)
+# if defined(USE_COLOR_MATRIX)
   // Un-premultiply alpha.
   // When the alpha is 0, 1.0 - sign(alpha) is 1.0, which means division does nothing.
   color.rgb /= color.a + (1.0 - sign(color.a));
@@ -272,16 +273,16 @@ void main(void) {
   color *= varying_color_scale;
   // Premultiply alpha
   color.rgb *= color.a;
-#else
+# else
   vec4 s = varying_color_scale;
   color *= vec4(s.r, s.g, s.b, 1.0) * s.a;
-#endif
+# endif  // defined(USE_COLOR_MATRIX)
 
   color = min(color, color.a);
 
   gl_FragColor = color;
 
-#endif
+#endif  // defined(FILTER_SCREEN)
 
 }
 `
