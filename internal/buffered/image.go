@@ -318,7 +318,6 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 	for k, v := range uniforms {
 		switch v := v.(type) {
 		case *Image:
-			i.resolvePendingPixels(true)
 			us[k] = v.img
 		default:
 			us[k] = v
