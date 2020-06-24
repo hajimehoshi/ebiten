@@ -139,8 +139,10 @@ struct ColorFromTexel<FILTER_LINEAR, address> {
     constexpr sampler texture_sampler(filter::nearest);
     const float2 texel_size = 1 / source_size;
 
-    float2 p0 = v.tex - texel_size / 2.0;
-    float2 p1 = v.tex + texel_size / 2.0;
+    // Shift 1/512 [texel] to avoid the tie-breaking issue.
+    // As all the vertex positions are aligned to 1/16 [pixel], this shiting should work in most cases.
+    float2 p0 = v.tex - texel_size / 2.0 + (texel_size / 512.0);
+    float2 p1 = v.tex + texel_size / 2.0 + (texel_size / 512.0);
     p0 = AdjustTexelByAddress<address>(p0, v.tex_region);
     p1 = AdjustTexelByAddress<address>(p1, v.tex_region);
 
@@ -177,8 +179,8 @@ struct ColorFromTexel<FILTER_SCREEN, address> {
     constexpr sampler texture_sampler(filter::nearest);
     const float2 texel_size = 1 / source_size;
 
-    float2 p0 = v.tex - texel_size / 2.0 / scale;
-    float2 p1 = v.tex + texel_size / 2.0 / scale;
+    float2 p0 = v.tex - texel_size / 2.0 / scale + (texel_size / 512.0);
+    float2 p1 = v.tex + texel_size / 2.0 / scale + (texel_size / 512.0);
 
     float4 c0 = texture.sample(texture_sampler, p0);
     float4 c1 = texture.sample(texture_sampler, float2(p1.x, p0.y));

@@ -1327,8 +1327,54 @@ func TestImageLinearFilterGlitch(t *testing.T) {
 					want = color.RGBA{0, 0, 0, 0xff}
 				}
 				if got != want {
-					t.Errorf("src.At(%d, %d): filter: %d, got: %v, want: %v", i, j, f, got, want)
+					t.Errorf("dst.At(%d, %d): filter: %d, got: %v, want: %v", i, j, f, got, want)
 				}
+			}
+		}
+	}
+}
+
+// Issue #1212
+func TestImageLinearFilterGlitch2(t *testing.T) {
+	const w, h = 100, 100
+	src, _ := NewImage(w, h, FilterDefault)
+	dst, _ := NewImage(w, h, FilterDefault)
+
+	idx := 0
+	pix := make([]byte, 4*w*h)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			if i+j < 100 {
+				pix[4*idx] = 0
+				pix[4*idx+1] = 0
+				pix[4*idx+2] = 0
+				pix[4*idx+3] = 0xff
+			} else {
+				pix[4*idx] = 0xff
+				pix[4*idx+1] = 0xff
+				pix[4*idx+2] = 0xff
+				pix[4*idx+3] = 0xff
+			}
+			idx++
+		}
+	}
+	src.ReplacePixels(pix)
+
+	op := &DrawImageOptions{}
+	op.Filter = FilterLinear
+	dst.DrawImage(src, op)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			var want color.RGBA
+			if i+j < 100 {
+				want = color.RGBA{0, 0, 0, 0xff}
+			} else {
+				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
+			}
+			if !sameColors(got, want, 1) {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}
 	}
