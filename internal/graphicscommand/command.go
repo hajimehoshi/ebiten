@@ -386,6 +386,8 @@ func (c *drawTrianglesCommand) String() string {
 		address = "clamp_to_zero"
 	case driver.AddressRepeat:
 		address = "repeat"
+	case driver.AddressUnsafe:
+		address = "unsafe"
 	default:
 		panic(fmt.Sprintf("graphicscommand: invalid address: %d", c.address))
 	}

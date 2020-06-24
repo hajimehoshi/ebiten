@@ -258,7 +258,7 @@ func fillImage(i *graphicscommand.Image, clr color.RGBA) {
 	vs := quadVertices(0, 0, float32(dw), float32(dh), 0, 0, float32(sw), float32(sh), rf, gf, bf, af)
 	is := graphics.QuadIndices()
 
-	i.DrawTriangles(emptyImage.image, vs, is, nil, compositemode, driver.FilterNearest, driver.AddressClampToZero, nil, nil)
+	i.DrawTriangles(emptyImage.image, vs, is, nil, compositemode, driver.FilterNearest, driver.AddressUnsafe, nil, nil)
 }
 
 // BasePixelsForTesting returns the image's basePixels for testing.

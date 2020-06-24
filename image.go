@@ -471,7 +471,7 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
-	i.buffered.DrawTriangles(nil, vs, is, nil, mode, driver.FilterNearest, driver.AddressClampToZero, shader.shader, us)
+	i.buffered.DrawTriangles(nil, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, shader.shader, us)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.

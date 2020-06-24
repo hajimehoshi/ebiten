@@ -220,7 +220,7 @@ func (i *Image) ensureNotShared() {
 		dx1, dy1, sx1, sy1, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
 	}
 	is := graphics.QuadIndices()
-	newImg.DrawTriangles(i.backend.restorable, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero, nil, nil)
+	newImg.DrawTriangles(i.backend.restorable, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, nil, nil)
 
 	i.dispose(false)
 	i.backend = &backend{

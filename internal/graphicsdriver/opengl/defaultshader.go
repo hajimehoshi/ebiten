@@ -65,6 +65,7 @@ func fragmentShaderStr(useColorM bool, filter driver.Filter, address driver.Addr
 	replaces := map[string]string{
 		"{{.AddressClampToZero}}": fmt.Sprintf("%d", driver.AddressClampToZero),
 		"{{.AddressRepeat}}":      fmt.Sprintf("%d", driver.AddressRepeat),
+		"{{.AddressUnsafe}}":      fmt.Sprintf("%d", driver.AddressUnsafe),
 	}
 	src := shaderStrFragment
 	for k, v := range replaces {
@@ -93,6 +94,8 @@ func fragmentShaderStr(useColorM bool, filter driver.Filter, address driver.Addr
 		defs = append(defs, "#define ADDRESS_CLAMP_TO_ZERO")
 	case driver.AddressRepeat:
 		defs = append(defs, "#define ADDRESS_REPEAT")
+	case driver.AddressUnsafe:
+		defs = append(defs, "#define ADDRESS_UNSAFE")
 	default:
 		panic(fmt.Sprintf("opengl: invalid address: %d", address))
 	}
@@ -173,6 +176,10 @@ highp vec2 adjustTexelByAddress(highp vec2 p, highp vec4 tex_region) {
   highp vec2 size = vec2(tex_region[2] - tex_region[0], tex_region[3] - tex_region[1]);
   return vec2(floorMod((p.x - o.x), size.x) + o.x, floorMod((p.y - o.y), size.y) + o.y);
 #endif
+
+#if defined(ADDRESS_UNSAFE)
+  return p;
+#endif
 }
 
 void main(void) {
@@ -180,6 +187,9 @@ void main(void) {
 
 #if defined(FILTER_NEAREST)
   vec4 color;
+# if defined(ADDRESS_UNSAFE)
+  color = texture2D(texture, pos);
+# else
   pos = adjustTexelByAddress(pos, varying_tex_region);
   if (varying_tex_region[0] <= pos.x &&
       varying_tex_region[1] <= pos.y &&
@@ -189,6 +199,7 @@ void main(void) {
   } else {
     color = vec4(0, 0, 0, 0);
   }
+# endif  // defined(ADDRESS_UNSAFE)
 #endif
 
 #if defined(FILTER_LINEAR)
@@ -200,13 +211,16 @@ void main(void) {
   highp vec2 p0 = pos - (texel_size) / 2.0 + (texel_size / 512.0);
   highp vec2 p1 = pos + (texel_size) / 2.0 + (texel_size / 512.0);
 
+# if !defined(ADDRESS_UNSAFE)
   p0 = adjustTexelByAddress(p0, varying_tex_region);
   p1 = adjustTexelByAddress(p1, varying_tex_region);
+# endif  // defined(ADDRESS_UNSAFE)
 
   vec4 c0 = texture2D(texture, p0);
   vec4 c1 = texture2D(texture, vec2(p1.x, p0.y));
   vec4 c2 = texture2D(texture, vec2(p0.x, p1.y));
   vec4 c3 = texture2D(texture, p1);
+# if !defined(ADDRESS_UNSAFE)
   if (p0.x < varying_tex_region[0]) {
     c0 = vec4(0, 0, 0, 0);
     c2 = vec4(0, 0, 0, 0);
@@ -223,6 +237,7 @@ void main(void) {
     c2 = vec4(0, 0, 0, 0);
     c3 = vec4(0, 0, 0, 0);
   }
+# endif  // defined(ADDRESS_UNSAFE)
 
   vec2 rate = fract(p0 * source_size);
   color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);

@@ -53,6 +53,7 @@ const source = `#include <metal_stdlib>
 
 #define ADDRESS_CLAMP_TO_ZERO {{.AddressClampToZero}}
 #define ADDRESS_REPEAT {{.AddressRepeat}}
+#define ADDRESS_UNSAFE {{.AddressUnsafe}}
 
 using namespace metal;
 
@@ -72,7 +73,7 @@ struct VertexOut {
 
 vertex VertexOut VertexShader(
   uint vid [[vertex_id]],
-  device VertexIn* vertices [[buffer(0)]],
+  const device VertexIn* vertices [[buffer(0)]],
   constant float2& viewport_size [[buffer(1)]]
 ) {
   float4x4 projectionMatrix = float4x4(
@@ -118,6 +119,15 @@ inline float2 AdjustTexelByAddress<ADDRESS_REPEAT>(float2 p, float4 tex_region) 
 template<uint8_t filter, uint8_t address>
 struct ColorFromTexel;
 
+template<>
+struct ColorFromTexel<FILTER_NEAREST, ADDRESS_UNSAFE> {
+  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale) {
+    float2 p = v.tex;
+    constexpr sampler texture_sampler(filter::nearest);
+    return texture.sample(texture_sampler, p);
+  }
+};
+
 template<uint8_t address>
 struct ColorFromTexel<FILTER_NEAREST, address> {
   inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale) {
@@ -130,6 +140,27 @@ struct ColorFromTexel<FILTER_NEAREST, address> {
       return texture.sample(texture_sampler, p);
     }
     return 0.0;
+  }
+};
+
+template<>
+struct ColorFromTexel<FILTER_LINEAR, ADDRESS_UNSAFE> {
+  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale) {
+    constexpr sampler texture_sampler(filter::nearest);
+    const float2 texel_size = 1 / source_size;
+
+    // Shift 1/512 [texel] to avoid the tie-breaking issue.
+    // As all the vertex positions are aligned to 1/16 [pixel], this shiting should work in most cases.
+    float2 p0 = v.tex - texel_size / 2.0 + (texel_size / 512.0);
+    float2 p1 = v.tex + texel_size / 2.0 + (texel_size / 512.0);
+
+    float4 c0 = texture.sample(texture_sampler, p0);
+    float4 c1 = texture.sample(texture_sampler, float2(p1.x, p0.y));
+    float4 c2 = texture.sample(texture_sampler, float2(p0.x, p1.y));
+    float4 c3 = texture.sample(texture_sampler, p1);
+
+    float2 rate = fract(p0 * source_size);
+    return mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
   }
 };
 
@@ -252,12 +283,16 @@ FragmentShaderFunc(0, FILTER_NEAREST, ADDRESS_CLAMP_TO_ZERO)
 FragmentShaderFunc(0, FILTER_LINEAR, ADDRESS_CLAMP_TO_ZERO)
 FragmentShaderFunc(0, FILTER_NEAREST, ADDRESS_REPEAT)
 FragmentShaderFunc(0, FILTER_LINEAR, ADDRESS_REPEAT)
+FragmentShaderFunc(0, FILTER_NEAREST, ADDRESS_UNSAFE)
+FragmentShaderFunc(0, FILTER_LINEAR, ADDRESS_UNSAFE)
 FragmentShaderFunc(1, FILTER_NEAREST, ADDRESS_CLAMP_TO_ZERO)
 FragmentShaderFunc(1, FILTER_LINEAR, ADDRESS_CLAMP_TO_ZERO)
 FragmentShaderFunc(1, FILTER_NEAREST, ADDRESS_REPEAT)
 FragmentShaderFunc(1, FILTER_LINEAR, ADDRESS_REPEAT)
+FragmentShaderFunc(1, FILTER_NEAREST, ADDRESS_UNSAFE)
+FragmentShaderFunc(1, FILTER_LINEAR, ADDRESS_UNSAFE)
 
-FragmentShaderFunc(0, FILTER_SCREEN, ADDRESS_CLAMP_TO_ZERO)
+FragmentShaderFunc(0, FILTER_SCREEN, ADDRESS_UNSAFE)
 
 #undef FragmentShaderFuncName
 `
@@ -481,6 +516,7 @@ func (g *Graphics) Reset() error {
 			"{{.FilterScreen}}":       fmt.Sprintf("%d", driver.FilterScreen),
 			"{{.AddressClampToZero}}": fmt.Sprintf("%d", driver.AddressClampToZero),
 			"{{.AddressRepeat}}":      fmt.Sprintf("%d", driver.AddressRepeat),
+			"{{.AddressUnsafe}}":      fmt.Sprintf("%d", driver.AddressUnsafe),
 		}
 		src := source
 		for k, v := range replaces {
@@ -496,7 +532,7 @@ func (g *Graphics) Reset() error {
 			return err
 		}
 		fs, err := lib.MakeFunction(
-			fmt.Sprintf("FragmentShader_%d_%d_%d", 0, driver.FilterScreen, driver.AddressClampToZero))
+			fmt.Sprintf("FragmentShader_%d_%d_%d", 0, driver.FilterScreen, driver.AddressUnsafe))
 		if err != nil {
 			return err
 		}
@@ -540,6 +576,7 @@ func (g *Graphics) Reset() error {
 				for _, a := range []driver.Address{
 					driver.AddressClampToZero,
 					driver.AddressRepeat,
+					driver.AddressUnsafe,
 				} {
 					for _, f := range []driver.Filter{
 						driver.FilterNearest,

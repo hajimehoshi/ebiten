@@ -184,6 +184,7 @@ func (s *openGLState) reset(context *context) error {
 		for _, a := range []driver.Address{
 			driver.AddressClampToZero,
 			driver.AddressRepeat,
+			driver.AddressUnsafe,
 		} {
 			for _, f := range []driver.Filter{
 				driver.FilterNearest,
