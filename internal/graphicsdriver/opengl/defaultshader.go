@@ -194,6 +194,9 @@ void main(void) {
 #if defined(FILTER_LINEAR)
   vec4 color;
   highp vec2 texel_size = 1.0 / source_size;
+
+  // Shift 1/512 [texel] to avoid the tie-breaking issue.
+  // As all the vertex positions are aligned to 1/16 [pixel], this shiting should work in most cases.
   highp vec2 p0 = pos - (texel_size) / 2.0 + (texel_size / 512.0);
   highp vec2 p1 = pos + (texel_size) / 2.0 + (texel_size / 512.0);
 
@@ -229,8 +232,6 @@ void main(void) {
   highp vec2 texel_size = 1.0 / source_size;
   highp vec2 half_scaled_texel_size = texel_size / 2.0 / scale;
 
-  // Shift 1/512 [texel] to avoid the tie-breaking issue.
-  // As all the vertex positions are aligned to 1/16 [pixel], this shiting should work in most cases.
   highp vec2 p0 = pos - half_scaled_texel_size + (texel_size / 512.0);
   highp vec2 p1 = pos + half_scaled_texel_size + (texel_size / 512.0);
 
