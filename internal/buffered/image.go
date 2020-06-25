@@ -275,6 +275,7 @@ func (i *Image) drawImage(src *Image, bounds image.Rectangle, g mipmap.GeoM, col
 	src.resolvePendingPixels(true)
 	i.resolvePendingPixels(false)
 	i.img.DrawImage(src.img, bounds, g, colorm, mode, filter)
+	i.invalidatePendingPixels()
 }
 
 // DrawTriangles draws the src image with the given vertices.
@@ -329,6 +330,7 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 		srcImg = src.img
 	}
 	i.img.DrawTriangles(srcImg, vertices, indices, colorm, mode, filter, address, s, us)
+	i.invalidatePendingPixels()
 }
 
 type Shader struct {

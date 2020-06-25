@@ -2172,3 +2172,27 @@ func TestImageFloatTranslate(t *testing.T) {
 		})
 	}
 }
+
+// Issue #1213
+func TestImageColorMCopy(t *testing.T) {
+	const w, h = 16, 16
+	dst, _ := NewImage(w, h, FilterDefault)
+	src, _ := NewImage(w, h, FilterDefault)
+
+	for k := 0; k < 256; k++ {
+		op := &DrawImageOptions{}
+		op.ColorM.Translate(float64(k)/0xff, 1, 1, 1)
+		op.CompositeMode = CompositeModeCopy
+		dst.DrawImage(src, op)
+
+		for j := 0; j < h; j++ {
+			for i := 0; i < w; i++ {
+				got := dst.At(i, j).(color.RGBA)
+				want := color.RGBA{byte(k), 0xff, 0xff, 0xff}
+				if !sameColors(got, want, 1) {
+					t.Fatalf("dst.At(%d, %d), k: %d: got %v, want %v", i, j, k, got, want)
+				}
+			}
+		}
+	}
+}
