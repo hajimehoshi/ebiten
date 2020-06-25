@@ -2181,14 +2181,14 @@ func TestImageColorMCopy(t *testing.T) {
 
 	for k := 0; k < 256; k++ {
 		op := &DrawImageOptions{}
-		op.ColorM.Translate(float64(k)/0xff, 1, 1, 1)
+		op.ColorM.Translate(1, 1, 1, float64(k)/0xff)
 		op.CompositeMode = CompositeModeCopy
 		dst.DrawImage(src, op)
 
 		for j := 0; j < h; j++ {
 			for i := 0; i < w; i++ {
 				got := dst.At(i, j).(color.RGBA)
-				want := color.RGBA{byte(k), 0xff, 0xff, 0xff}
+				want := color.RGBA{byte(k), byte(k), byte(k), byte(k)}
 				if !sameColors(got, want, 1) {
 					t.Fatalf("dst.At(%d, %d), k: %d: got %v, want %v", i, j, k, got, want)
 				}
