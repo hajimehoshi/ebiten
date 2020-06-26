@@ -868,15 +868,31 @@ func (i *Image) Pixels() ([]byte, error) {
 	return b, nil
 }
 
+// needsToSyncBeforeReplaceRegion reports whether syncTexture is needed before calling ReplaceRegion.
+//
+// Before a part region is updated, the texture data needs to be loaded to CPU. Otherwise, the remaining region will
+// be uninitialized (#1213).
+func (i *Image) needsToSyncBeforeReplaceRegion(args []*driver.ReplacePixelsArgs) bool {
+	if len(args) == 0 {
+		return false
+	}
+	if len(args) > 1 {
+		return true
+	}
+	if a := args[0]; a.X == 0 && a.Y == 0 && a.Width == i.width && a.Height == i.height {
+		return false
+	}
+	return true
+}
+
 func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	g := i.graphics
 	if g.drawCalled {
 		g.flush(true, false)
 		g.drawCalled = false
-
-		// When mtl.TextureUsageRenderTarget is specified, synchronizing the texture memory before replacing
-		// a region seems necessary (#1213).
-		i.syncTexture()
+		if i.needsToSyncBeforeReplaceRegion(args) {
+			i.syncTexture()
+		}
 	}
 
 	g.t.Call(func() error {
