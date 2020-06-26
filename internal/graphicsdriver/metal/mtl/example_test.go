@@ -150,6 +150,7 @@ fragment float4 FragmentShader(Vertex in [[stage_in]]) {
 
 	// Create an output texture to render into.
 	td := mtl.TextureDescriptor{
+		TextureType: mtl.TextureType2D,
 		PixelFormat: mtl.PixelFormatRGBA8UNorm,
 		Width:       80,
 		Height:      20,

@@ -87,6 +87,16 @@ const (
 	FeatureSet_macOS_ReadWriteTextureTier2 FeatureSet = 10002
 )
 
+// TextureType defines The dimension of each image, including whether multiple images are arranged into an array or
+// a cube.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtltexturetype
+type TextureType uint16
+
+const (
+	TextureType2D TextureType = 2
+)
+
 // PixelFormat defines data formats that describe the organization
 // and characteristics of individual pixels in a texture.
 //
@@ -362,6 +372,7 @@ type ClearColor struct {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtltexturedescriptor.
 type TextureDescriptor struct {
+	TextureType TextureType
 	PixelFormat PixelFormat
 	Width       int
 	Height      int
@@ -481,6 +492,7 @@ func (d Device) MakeBufferWithLength(length uintptr, opt ResourceOptions) Buffer
 // Reference: https://developer.apple.com/documentation/metal/mtldevice/1433425-maketexture.
 func (d Device) MakeTexture(td TextureDescriptor) Texture {
 	descriptor := C.struct_TextureDescriptor{
+		TextureType: C.uint16_t(td.TextureType),
 		PixelFormat: C.uint16_t(td.PixelFormat),
 		Width:       C.uint_t(td.Width),
 		Height:      C.uint_t(td.Height),

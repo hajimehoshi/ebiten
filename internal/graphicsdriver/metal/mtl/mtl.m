@@ -113,6 +113,7 @@ void *Device_MakeBufferWithLength(void *device, size_t length,
 
 void *Device_MakeTexture(void *device, struct TextureDescriptor descriptor) {
   MTLTextureDescriptor *textureDescriptor = [[MTLTextureDescriptor alloc] init];
+  textureDescriptor.textureType = descriptor.TextureType;
   textureDescriptor.pixelFormat = descriptor.PixelFormat;
   textureDescriptor.width = descriptor.Width;
   textureDescriptor.height = descriptor.Height;

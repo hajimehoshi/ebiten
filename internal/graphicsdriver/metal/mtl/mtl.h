@@ -69,6 +69,7 @@ struct RenderPassDescriptor {
 };
 
 struct TextureDescriptor {
+  uint16_t TextureType;
   uint16_t PixelFormat;
   uint_t Width;
   uint_t Height;
