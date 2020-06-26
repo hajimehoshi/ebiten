@@ -440,7 +440,7 @@ func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
 		Width:       graphics.InternalImageSize(width),
 		Height:      graphics.InternalImageSize(height),
 		StorageMode: storageMode,
-		Usage:       textureUsage,
+		Usage:       mtl.TextureUsageShaderRead | mtl.TextureUsageRenderTarget,
 	}
 	var t mtl.Texture
 	g.t.Call(func() error {
@@ -873,6 +873,10 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	if g.drawCalled {
 		g.flush(true, false)
 		g.drawCalled = false
+
+		// When mtl.TextureUsageRenderTarget is specified, synchronizing the texture memory before replacing
+		// a region seems necessary (#1213).
+		i.syncTexture()
 	}
 
 	g.t.Call(func() error {
