@@ -666,6 +666,8 @@ func BeginFrame() error {
 			minSize = 1024
 			// Use 4096 as a maximum size whatever size the graphics driver accepts. There are
 			// not enough evidences that bigger textures works correctly.
+			//
+			// TODO: Now we can remove this limitation?
 			maxSize = min(4096, graphicsDriver.MaxImageSize())
 		} else {
 			minSize = 512
