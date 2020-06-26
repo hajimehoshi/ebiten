@@ -832,6 +832,13 @@ func (i *Image) IsInvalidated() bool {
 }
 
 func (i *Image) syncTexture() {
+	// The texture's storage must be 'managed' to synchronize.
+	//
+	// https://developer.apple.com/documentation/metal/mtlblitcommandencoder/1400757-synchronize
+	if storageMode == mtl.StorageModeShared {
+		return
+	}
+
 	i.graphics.t.Call(func() error {
 		if i.graphics.cb != (mtl.CommandBuffer{}) {
 			panic("metal: command buffer must be empty at syncTexture: flush is not called yet?")
