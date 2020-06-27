@@ -573,7 +573,7 @@ func (i *Image) shareable() bool {
 	if i.screen {
 		return false
 	}
-	return i.width <= maxSize && i.height <= maxSize
+	return i.width+2*paddingSize <= maxSize && i.height+2*paddingSize <= maxSize
 }
 
 func (i *Image) allocate(shareable bool) {
@@ -606,7 +606,7 @@ func (i *Image) allocate(shareable bool) {
 		}
 	}
 	size := minSize
-	for i.width > size || i.height > size {
+	for i.width+2*paddingSize > size || i.height+2*paddingSize > size {
 		if size == maxSize {
 			panic(fmt.Sprintf("shareable: the image being shared is too big: width: %d, height: %d", i.width, i.height))
 		}

@@ -18,6 +18,29 @@ func MakeImagesSharedForTesting() error {
 	return makeImagesShared()
 }
 
+var (
+	oldMinSize int
+	oldMaxSize int
+)
+
+func SetImageSizeForTesting(min, max int) {
+	oldMinSize = min
+	oldMaxSize = max
+	minSize = min
+	maxSize = max
+}
+
+func ResetImageSizeForTesting() {
+	minSize = oldMinSize
+	maxSize = oldMaxSize
+}
+
+func ResetBackendsForTesting() {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+	theBackends = nil
+}
+
 func (i *Image) IsSharedForTesting() bool {
 	backendsM.Lock()
 	defer backendsM.Unlock()

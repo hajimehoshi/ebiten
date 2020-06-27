@@ -25,7 +25,14 @@ import (
 	t "github.com/hajimehoshi/ebiten/internal/testing"
 )
 
+const (
+	minImageSizeForTesting = 1024
+	maxImageSizeForTesting = 4096
+)
+
 func TestMain(m *testing.M) {
+	SetImageSizeForTesting(minImageSizeForTesting, maxImageSizeForTesting)
+	defer ResetImageSizeForTesting()
 	t.MainWithRunLoop(m)
 }
 
@@ -449,6 +456,27 @@ func TestExtendWithBigImage(t *testing.T) {
 	defer img1.MarkDisposed()
 
 	img1.ReplacePixels(make([]byte, 4*1025*1025))
+}
+
+// Issue #1217
+func TestMaxImageSize(t *testing.T) {
+	// This tests that a too-big image is allocated correctly.
+	s := maxImageSizeForTesting
+	img := NewImage(s, s, false)
+	defer img.MarkDisposed()
+	img.ReplacePixels(make([]byte, 4*s*s))
+}
+
+// Issue #1217
+func TestMinImageSize(t *testing.T) {
+	ResetBackendsForTesting()
+
+	// This tests that extending a backend works correctly.
+	// Though the image size is minimum size of the backend, extending the backend happens due to the paddings.
+	s := minImageSizeForTesting
+	img := NewImage(s, s, false)
+	defer img.MarkDisposed()
+	img.ReplacePixels(make([]byte, 4*s*s))
 }
 
 // TODO: Add tests to extend shareable image out of the main loop
