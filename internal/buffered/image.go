@@ -198,9 +198,7 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
 		i.invalidatePendingPixels()
 
 		// Don't call (*mipmap.Mipmap).ReplacePixels here. Let's defer it to reduce GPU operations as much as
-		// posssible. This is a necessary optimization for sub-images: as sub-images are actually used and,
-		// have to allocate their region on a texture atlas, while their original image doesn't have to
-		// allocate its region on a texture atlas (#896).
+		// posssible.
 		copied := make([]byte, len(pix))
 		copy(copied, pix)
 		i.pixels = copied
@@ -227,24 +225,6 @@ func (i *Image) replacePendingPixels(pix []byte, x, y, width, height int) {
 		copy(i.pixels[4*((j+y)*i.width+x):], pix[4*j*width:4*(j+1)*width])
 	}
 	i.needsToResolvePixels = true
-}
-
-func (i *Image) CopyPixels(img *Image, x, y, width, height int) error {
-	if tryAddDelayedCommand(func(obj interface{}) error {
-		i.CopyPixels(img, x, y, width, height)
-		return nil
-	}, nil) {
-		return nil
-	}
-
-	pix, err := img.Pixels(x, y, width, height)
-	if err != nil {
-		return err
-	}
-	if err := i.ReplacePixels(pix, 0, 0, width, height); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (i *Image) DrawImage(src *Image, bounds image.Rectangle, a, b, c, d, tx, ty float32, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter) {
