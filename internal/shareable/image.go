@@ -45,8 +45,8 @@ var (
 	maxSize = 0
 )
 
-func min(a, b int) int {
-	if a < b {
+func max(a, b int) int {
+	if a > b {
 		return a
 	}
 	return b
@@ -662,17 +662,8 @@ func BeginFrame() error {
 		if len(theBackends) != 0 {
 			panic("shareable: all the images must be not-shared before the game starts")
 		}
-		if graphicsDriver.HasHighPrecisionFloat() {
-			minSize = 1024
-			// Use 4096 as a maximum size whatever size the graphics driver accepts. There are
-			// not enough evidences that bigger textures works correctly.
-			//
-			// TODO: Now we can remove this limitation?
-			maxSize = min(4096, graphicsDriver.MaxImageSize())
-		} else {
-			minSize = 512
-			maxSize = 512
-		}
+		minSize = 1024
+		maxSize = max(minSize, graphicsDriver.MaxImageSize())
 	})
 	if err != nil {
 		return err
