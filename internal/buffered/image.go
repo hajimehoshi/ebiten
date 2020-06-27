@@ -197,12 +197,9 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
 	if x == 0 && y == 0 && width == i.width && height == i.height {
 		i.invalidatePendingPixels()
 
-		// Don't call (*mipmap.Mipmap).ReplacePixels here. Let's defer it to reduce GPU operations as much as
-		// posssible.
-		copied := make([]byte, len(pix))
-		copy(copied, pix)
-		i.pixels = copied
-		i.needsToResolvePixels = true
+		// Call ReplacePixels immediately. If a lot of new images are created but they are used at different
+		// timings, pixels are sent to GPU at different timings, which is very inefficient.
+		i.img.ReplacePixels(pix)
 		return nil
 	}
 
