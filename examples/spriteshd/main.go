@@ -154,7 +154,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 		return regularTermination
 	}
 
-	// Decrease the nubmer of the sprites.
+	// Decrease the number of the sprites.
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
 		g.sprites.num -= 20
 		if g.sprites.num < MinSprites {
@@ -162,7 +162,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 		}
 	}
 
-	// Increase the nubmer of the sprites.
+	// Increase the number of the sprites.
 	if ebiten.IsKeyPressed(ebiten.KeyRight) {
 		g.sprites.num += 20
 		if MaxSprites < g.sprites.num {
