@@ -326,7 +326,7 @@ type Graphics struct {
 
 	transparent  bool
 	maxImageSize int
-	drawCalled   bool
+	tmpTexture   mtl.Texture
 
 	t *thread.Thread
 
@@ -353,7 +353,7 @@ func (g *Graphics) Begin() {
 }
 
 func (g *Graphics) End() {
-	g.flush(false, true)
+	g.flushIfNeeded(false, true)
 	g.t.Call(func() error {
 		g.screenDrawable = ca.MetalDrawable{}
 		C.releaseAutoreleasePool(g.pool)
@@ -390,7 +390,7 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) {
 	})
 }
 
-func (g *Graphics) flush(wait bool, present bool) {
+func (g *Graphics) flushIfNeeded(wait bool, present bool) {
 	g.t.Call(func() error {
 		if g.cb == (mtl.CommandBuffer{}) {
 			return nil
@@ -639,8 +639,6 @@ func (g *Graphics) Draw(dstID, srcID driver.ImageID, indexLen int, indexOffset i
 	dst := g.images[dstID]
 	src := g.images[srcID]
 
-	g.drawCalled = true
-
 	if err := g.t.Call(func() error {
 		g.view.update()
 
@@ -841,7 +839,7 @@ func (i *Image) syncTexture() {
 
 	i.graphics.t.Call(func() error {
 		if i.graphics.cb != (mtl.CommandBuffer{}) {
-			panic("metal: command buffer must be empty at syncTexture: flush is not called yet?")
+			panic("metal: command buffer must be empty at syncTexture: flushIfNeeded is not called yet?")
 		}
 
 		cb := i.graphics.cq.MakeCommandBuffer()
@@ -855,7 +853,7 @@ func (i *Image) syncTexture() {
 }
 
 func (i *Image) Pixels() ([]byte, error) {
-	i.graphics.flush(true, false)
+	i.graphics.flushIfNeeded(true, false)
 	i.syncTexture()
 
 	b := make([]byte, 4*i.width*i.height)
@@ -868,40 +866,62 @@ func (i *Image) Pixels() ([]byte, error) {
 	return b, nil
 }
 
-// needsToSyncBeforeReplaceRegion reports whether syncTexture is needed before calling ReplaceRegion.
-//
-// Before a part region is updated, the texture data needs to be loaded to CPU. Otherwise, the remaining region will
-// be uninitialized (#1213).
-func (i *Image) needsToSyncBeforeReplaceRegion(args []*driver.ReplacePixelsArgs) bool {
-	if len(args) == 0 {
-		return false
-	}
-	if len(args) > 1 {
-		return true
-	}
-	if a := args[0]; a.X == 0 && a.Y == 0 && a.Width == i.width && a.Height == i.height {
-		return false
-	}
-	return true
-}
-
 func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	g := i.graphics
-	if g.drawCalled {
-		g.flush(true, false)
-		g.drawCalled = false
-		if i.needsToSyncBeforeReplaceRegion(args) {
-			i.syncTexture()
-		}
+	g.flushIfNeeded(true, false)
+
+	// If the memory is shared (e.g., iOS), texture data doen't have to be synced. Send the data directly.
+	if storageMode == mtl.StorageModeShared {
+		g.t.Call(func() error {
+			for _, a := range args {
+				i.texture.ReplaceRegion(mtl.Region{
+					Origin: mtl.Origin{X: a.X, Y: a.Y, Z: 0},
+					Size:   mtl.Size{Width: a.Width, Height: a.Height, Depth: 1},
+				}, 0, unsafe.Pointer(&a.Pixels[0]), 4*a.Width)
+			}
+			return nil
+		})
+		return
 	}
 
+	// If the memory is managed (e.g., macOS), texture data cannot be sent to the destination directly because
+	// this requires synchronizing data between CPU and GPU. As synchronizing is inefficient, let's send the
+	// data to a temporary texture once, and then copy it in GPU.
 	g.t.Call(func() error {
+		w, h := i.texture.Width(), i.texture.Height()
+		if g.tmpTexture == (mtl.Texture{}) || w > g.tmpTexture.Width() || h > g.tmpTexture.Height() {
+			if g.tmpTexture != (mtl.Texture{}) {
+				g.tmpTexture.Release()
+			}
+			td := mtl.TextureDescriptor{
+				TextureType: mtl.TextureType2D,
+				PixelFormat: mtl.PixelFormatRGBA8UNorm,
+				Width:       w,
+				Height:      h,
+				StorageMode: storageMode,
+				Usage:       mtl.TextureUsageShaderRead | mtl.TextureUsageRenderTarget,
+			}
+			g.tmpTexture = g.view.getMTLDevice().MakeTexture(td)
+		}
+
 		for _, a := range args {
-			i.texture.ReplaceRegion(mtl.Region{
+			g.tmpTexture.ReplaceRegion(mtl.Region{
 				Origin: mtl.Origin{X: a.X, Y: a.Y, Z: 0},
 				Size:   mtl.Size{Width: a.Width, Height: a.Height, Depth: 1},
 			}, 0, unsafe.Pointer(&a.Pixels[0]), 4*a.Width)
 		}
+
+		if g.cb == (mtl.CommandBuffer{}) {
+			g.cb = i.graphics.cq.MakeCommandBuffer()
+		}
+		bce := g.cb.MakeBlitCommandEncoder()
+		for _, a := range args {
+			o := mtl.Origin{X: a.X, Y: a.Y, Z: 0}
+			s := mtl.Size{Width: a.Width, Height: a.Height, Depth: 1}
+			bce.CopyFromTexture(g.tmpTexture, 0, 0, o, s, i.texture, 0, 0, o)
+		}
+		bce.EndEncoding()
+
 		return nil
 	})
 }

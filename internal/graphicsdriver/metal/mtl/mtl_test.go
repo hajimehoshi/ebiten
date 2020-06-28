@@ -125,9 +125,9 @@ fragment float4 FragmentShader(Vertex in [[stage_in]]) {
 	cb.WaitUntilCompleted()
 
 	// Read pixels from output texture into an image.
-	got := image.NewNRGBA(image.Rect(0, 0, texture.Width, texture.Height))
-	bytesPerRow := 4 * texture.Width
-	region := mtl.RegionMake2D(0, 0, texture.Width, texture.Height)
+	got := image.NewNRGBA(image.Rect(0, 0, texture.Width(), texture.Height()))
+	bytesPerRow := 4 * texture.Width()
+	region := mtl.RegionMake2D(0, 0, texture.Width(), texture.Height())
 	texture.GetBytes(&got.Pix[0], uintptr(bytesPerRow), region, 0)
 
 	// TODO: Embed this file?
