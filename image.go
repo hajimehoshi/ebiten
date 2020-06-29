@@ -367,7 +367,6 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 	mode := driver.CompositeMode(options.CompositeMode)
 
 	us := []interface{}{}
-	var firstImage *Image
 	for _, v := range options.Uniforms {
 		switch v := v.(type) {
 		case *Image:
@@ -375,17 +374,6 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 				panic("ebiten: the given image to DrawTriangles must not be disposed")
 			}
 			us = append(us, v.buffered)
-			if firstImage == nil {
-				firstImage = v
-			} else {
-				b := v.Bounds()
-				us = append(us, []float32{
-					float32(b.Min.X),
-					float32(b.Min.Y),
-					float32(b.Max.X),
-					float32(b.Max.Y),
-				})
-			}
 		default:
 			us = append(us, v)
 		}
@@ -395,25 +383,17 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 	// The actual value is set at graphicscommand package.
 	us = append([]interface{}{[]float32{0, 0}}, us...)
 
-	var bx0, by0, bx1, by1 float32
-	if firstImage != nil {
-		b := firstImage.Bounds()
-		bx0 = float32(b.Min.X)
-		by0 = float32(b.Min.Y)
-		bx1 = float32(b.Max.X)
-		by1 = float32(b.Max.Y)
-	}
-
 	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
 	for i, v := range vertices {
 		vs[i*graphics.VertexFloatNum] = v.DstX
 		vs[i*graphics.VertexFloatNum+1] = v.DstY
 		vs[i*graphics.VertexFloatNum+2] = v.SrcX
 		vs[i*graphics.VertexFloatNum+3] = v.SrcY
-		vs[i*graphics.VertexFloatNum+4] = bx0
-		vs[i*graphics.VertexFloatNum+5] = by0
-		vs[i*graphics.VertexFloatNum+6] = bx1
-		vs[i*graphics.VertexFloatNum+7] = by1
+		// TODO: Remove these values for the source region.
+		vs[i*graphics.VertexFloatNum+4] = 0
+		vs[i*graphics.VertexFloatNum+5] = 0
+		vs[i*graphics.VertexFloatNum+6] = 0
+		vs[i*graphics.VertexFloatNum+7] = 0
 		vs[i*graphics.VertexFloatNum+8] = v.ColorR
 		vs[i*graphics.VertexFloatNum+9] = v.ColorG
 		vs[i*graphics.VertexFloatNum+10] = v.ColorB

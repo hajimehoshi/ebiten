@@ -116,9 +116,7 @@ func TestShaderMultipleSources(t *testing.T) {
 		[]float32{0, 0},
 		srcs[0],
 		srcs[1],
-		[]float32{0, 0, 1, 1},
 		srcs[2],
-		[]float32{0, 0, 1, 1},
 	}
 	dst.DrawTriangles(nil, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, s, us)
 

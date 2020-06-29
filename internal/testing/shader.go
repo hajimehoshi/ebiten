@@ -288,10 +288,8 @@ func ShaderProgramFill(r, g, b, a byte) shaderir.Program {
 //
 // Uniform variables's indices and their values are:
 //
-//   0:    the framebuffer size (Vec2)
-//   1:    the first images (Texture2D)
-//   2n:   the n-th image (Texture2D)
-//   2n+1: the n-th image's region (Vec4)
+//   0:  the framebuffer size (Vec2)
+//   1-: the images (Texture2D)
 //
 // The first image's size and region are represented in attribute variables.
 //
@@ -363,7 +361,7 @@ func ShaderProgramImages(imageNum int) shaderir.Program {
 							},
 							{
 								Type:  shaderir.UniformVariable,
-								Index: 2 * i,
+								Index: i + 1,
 							},
 							texPos,
 						},

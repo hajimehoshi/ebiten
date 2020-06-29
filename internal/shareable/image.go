@@ -357,23 +357,11 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 		s = shader.shader
 	}
 
-	firstImage := true
 	us := make([]interface{}, len(uniforms))
 	for i := 0; i < len(uniforms); i++ {
 		switch v := uniforms[i].(type) {
 		case *Image:
 			us[i] = v.backend.restorable
-			if !firstImage {
-				i++
-				region := uniforms[i].([]float32)
-				us[i] = []float32{
-					region[0] + oxf,
-					region[1] + oyf,
-					region[2] + oxf,
-					region[3] + oyf,
-				}
-			}
-			firstImage = false
 		default:
 			us[i] = v
 		}
