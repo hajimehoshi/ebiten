@@ -38,7 +38,7 @@ func TestShader(t *testing.T) {
 	us := []interface{}{
 		[]float32{0, 0},
 	}
-	img.DrawTriangles(nil, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, s, us)
+	img.DrawTriangles(nil, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, s, us)
 
 	if err := ResolveStaleImages(); err != nil {
 		t.Fatal(err)
@@ -76,7 +76,7 @@ func TestShaderChain(t *testing.T) {
 			[]float32{0, 0},
 			imgs[i],
 		}
-		imgs[i+1].DrawTriangles(nil, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, s, us)
+		imgs[i+1].DrawTriangles(nil, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, s, us)
 	}
 
 	if err := ResolveStaleImages(); err != nil {
@@ -118,7 +118,7 @@ func TestShaderMultipleSources(t *testing.T) {
 		srcs[1],
 		srcs[2],
 	}
-	dst.DrawTriangles(nil, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, s, us)
+	dst.DrawTriangles(nil, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, s, us)
 
 	// Clear one of the sources after DrawTriangles. dst should not be affected.
 	srcs[0].Fill(color.RGBA{})
@@ -150,7 +150,7 @@ func TestShaderDispose(t *testing.T) {
 	us := []interface{}{
 		[]float32{0, 0},
 	}
-	img.DrawTriangles(nil, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, s, us)
+	img.DrawTriangles(nil, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, s, us)
 
 	// Dispose the shader. This should invalidates all the images using this shader i.e., all the images become
 	// stale.

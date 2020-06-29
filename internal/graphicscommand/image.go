@@ -158,7 +158,7 @@ func processSrc(src *Image) {
 //
 // If the source image is not specified, i.e., src is nil and there is no image in the uniform variables, the
 // elements for the source image are not used.
-func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, clr *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, shader *Shader, uniforms []interface{}) {
+func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, clr *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
 	if i.lastCommand == lastCommandNone {
 		if !i.screen && mode != driver.CompositeModeClear {
 			panic("graphicscommand: the image must be cleared first")
@@ -175,7 +175,7 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 	}
 	i.resolveBufferedReplacePixels()
 
-	theCommandQueue.EnqueueDrawTrianglesCommand(i, src, vertices, indices, clr, mode, filter, address, shader, uniforms)
+	theCommandQueue.EnqueueDrawTrianglesCommand(i, src, vertices, indices, clr, mode, filter, address, sourceRegion, shader, uniforms)
 
 	if i.lastCommand == lastCommandNone && !i.screen {
 		i.lastCommand = lastCommandClear

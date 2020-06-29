@@ -114,12 +114,10 @@ attribute vec2 tex;
 attribute vec4 tex_region;
 attribute vec4 color_scale;
 varying vec2 varying_tex;
-varying vec4 varying_tex_region;
 varying vec4 varying_color_scale;
 
 void main(void) {
   varying_tex = tex;
-  varying_tex_region = tex_region;
   varying_color_scale = color_scale;
 
   mat4 projection_matrix = mat4(
@@ -143,6 +141,7 @@ precision mediump float;
 {{.Definitions}}
 
 uniform sampler2D texture;
+uniform vec4 source_region;
 
 #if defined(USE_COLOR_MATRIX)
 uniform mat4 color_matrix_body;
@@ -156,7 +155,6 @@ uniform highp float scale;
 #endif
 
 varying highp vec2 varying_tex;
-varying highp vec4 varying_tex_region;
 varying highp vec4 varying_color_scale;
 
 highp float floorMod(highp float x, highp float y) {
@@ -190,11 +188,11 @@ void main(void) {
 # if defined(ADDRESS_UNSAFE)
   color = texture2D(texture, pos);
 # else
-  pos = adjustTexelByAddress(pos, varying_tex_region);
-  if (varying_tex_region[0] <= pos.x &&
-      varying_tex_region[1] <= pos.y &&
-      pos.x < varying_tex_region[2] &&
-      pos.y < varying_tex_region[3]) {
+  pos = adjustTexelByAddress(pos, source_region);
+  if (source_region[0] <= pos.x &&
+      source_region[1] <= pos.y &&
+      pos.x < source_region[2] &&
+      pos.y < source_region[3]) {
     color = texture2D(texture, pos);
   } else {
     color = vec4(0, 0, 0, 0);
@@ -212,8 +210,8 @@ void main(void) {
   highp vec2 p1 = pos + (texel_size) / 2.0 + (texel_size / 512.0);
 
 # if !defined(ADDRESS_UNSAFE)
-  p0 = adjustTexelByAddress(p0, varying_tex_region);
-  p1 = adjustTexelByAddress(p1, varying_tex_region);
+  p0 = adjustTexelByAddress(p0, source_region);
+  p1 = adjustTexelByAddress(p1, source_region);
 # endif  // defined(ADDRESS_UNSAFE)
 
   vec4 c0 = texture2D(texture, p0);
@@ -221,19 +219,19 @@ void main(void) {
   vec4 c2 = texture2D(texture, vec2(p0.x, p1.y));
   vec4 c3 = texture2D(texture, p1);
 # if !defined(ADDRESS_UNSAFE)
-  if (p0.x < varying_tex_region[0]) {
+  if (p0.x < source_region[0]) {
     c0 = vec4(0, 0, 0, 0);
     c2 = vec4(0, 0, 0, 0);
   }
-  if (p0.y < varying_tex_region[1]) {
+  if (p0.y < source_region[1]) {
     c0 = vec4(0, 0, 0, 0);
     c1 = vec4(0, 0, 0, 0);
   }
-  if (varying_tex_region[2] <= p1.x) {
+  if (source_region[2] <= p1.x) {
     c1 = vec4(0, 0, 0, 0);
     c3 = vec4(0, 0, 0, 0);
   }
-  if (varying_tex_region[3] <= p1.y) {
+  if (source_region[3] <= p1.y) {
     c2 = vec4(0, 0, 0, 0);
     c3 = vec4(0, 0, 0, 0);
   }

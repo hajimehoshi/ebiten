@@ -220,7 +220,7 @@ func (i *Image) ensureNotShared() {
 		dx1, dy1, sx1, sy1, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
 	}
 	is := graphics.QuadIndices()
-	newImg.DrawTriangles(i.backend.restorable, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, nil, nil)
+	newImg.DrawTriangles(i.backend.restorable, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
 
 	i.dispose(false)
 	i.backend = &backend{
@@ -309,7 +309,7 @@ func makeSharedIfNeeded(src *Image) {
 //   9:  Color G
 //   10: Color B
 //   11: Color Y
-func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, shader *Shader, uniforms []interface{}) {
+func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
 	backendsM.Lock()
 	// Do not use defer for performance.
 
@@ -355,6 +355,10 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 			vertices[i*graphics.VertexFloatNum+6] += oxf
 			vertices[i*graphics.VertexFloatNum+7] += oyf
 		}
+		if address != driver.AddressUnsafe {
+			sourceRegion.X += oxf
+			sourceRegion.Y += oyf
+		}
 	}
 
 	var s *restorable.Shader
@@ -376,7 +380,7 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 	if img != nil {
 		r = img.backend.restorable
 	}
-	i.backend.restorable.DrawTriangles(r, vertices, indices, colorm, mode, filter, address, s, us)
+	i.backend.restorable.DrawTriangles(r, vertices, indices, colorm, mode, filter, address, sourceRegion, s, us)
 
 	i.nonUpdatedCount = 0
 	delete(imagesToMakeShared, i)

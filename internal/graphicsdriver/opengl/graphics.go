@@ -149,7 +149,9 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) {
 	g.context.elementArrayBufferSubData(indices)
 }
 
-func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address) error {
+func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, sourceRegion driver.Region) error {
+	// TODO: Use sourceRegion.
+
 	destination := g.images[dst]
 	source := g.images[src]
 
@@ -173,6 +175,14 @@ func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, 
 	uniforms = append(uniforms, uniformVariable{
 		name:  "viewport_size",
 		value: []float32{float32(vw), float32(vh)},
+	}, uniformVariable{
+		name: "source_region",
+		value: []float32{
+			sourceRegion.X,
+			sourceRegion.Y,
+			sourceRegion.X + sourceRegion.Width,
+			sourceRegion.Y + sourceRegion.Height,
+		},
 	})
 
 	if colorM != nil {

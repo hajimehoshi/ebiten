@@ -333,7 +333,14 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
-	i.buffered.DrawTriangles(img.buffered, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), nil, nil)
+	sr := driver.Region{
+		X:      float32(b.Min.X),
+		Y:      float32(b.Min.Y),
+		Width:  float32(b.Dx()),
+		Height: float32(b.Dy()),
+	}
+
+	i.buffered.DrawTriangles(img.buffered, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), sr, nil, nil)
 }
 
 type DrawTrianglesWithShaderOptions struct {
@@ -402,7 +409,7 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
-	i.buffered.DrawTriangles(nil, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, shader.shader, us)
+	i.buffered.DrawTriangles(nil, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, shader.shader, us)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.

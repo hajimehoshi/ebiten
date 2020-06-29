@@ -67,7 +67,6 @@ struct VertexIn {
 struct VertexOut {
   float4 position [[position]];
   float2 tex;
-  float4 tex_region;
   float4 color;
 };
 
@@ -87,7 +86,6 @@ vertex VertexOut VertexShader(
   VertexOut out = {
     .position = projectionMatrix * float4(in.position, 0, 1),
     .tex = in.tex,
-    .tex_region = in.tex_region,
     .color = in.color,
   };
 
@@ -102,17 +100,17 @@ float FloorMod(float x, float y) {
 }
 
 template<uint8_t address>
-float2 AdjustTexelByAddress(float2 p, float4 tex_region);
+float2 AdjustTexelByAddress(float2 p, float4 source_region);
 
 template<>
-inline float2 AdjustTexelByAddress<ADDRESS_CLAMP_TO_ZERO>(float2 p, float4 tex_region) {
+inline float2 AdjustTexelByAddress<ADDRESS_CLAMP_TO_ZERO>(float2 p, float4 source_region) {
   return p;
 }
 
 template<>
-inline float2 AdjustTexelByAddress<ADDRESS_REPEAT>(float2 p, float4 tex_region) {
-  float2 o = float2(tex_region[0], tex_region[1]);
-  float2 size = float2(tex_region[2] - tex_region[0], tex_region[3] - tex_region[1]);
+inline float2 AdjustTexelByAddress<ADDRESS_REPEAT>(float2 p, float4 source_region) {
+  float2 o = float2(source_region[0], source_region[1]);
+  float2 size = float2(source_region[2] - source_region[0], source_region[3] - source_region[1]);
   return float2(FloorMod((p.x - o.x), size.x) + o.x, FloorMod((p.y - o.y), size.y) + o.y);
 }
 
@@ -121,7 +119,7 @@ struct ColorFromTexel;
 
 template<>
 struct ColorFromTexel<FILTER_NEAREST, ADDRESS_UNSAFE> {
-  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale) {
+  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale, constant float4& source_region) {
     float2 p = v.tex;
     constexpr sampler texture_sampler(filter::nearest);
     return texture.sample(texture_sampler, p);
@@ -130,12 +128,12 @@ struct ColorFromTexel<FILTER_NEAREST, ADDRESS_UNSAFE> {
 
 template<uint8_t address>
 struct ColorFromTexel<FILTER_NEAREST, address> {
-  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale) {
-    float2 p = AdjustTexelByAddress<address>(v.tex, v.tex_region);
-    if (v.tex_region[0] <= p.x &&
-        v.tex_region[1] <= p.y &&
-        p.x < v.tex_region[2] &&
-        p.y < v.tex_region[3]) {
+  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale, constant float4& source_region) {
+    float2 p = AdjustTexelByAddress<address>(v.tex, source_region);
+    if (source_region[0] <= p.x &&
+        source_region[1] <= p.y &&
+        p.x < source_region[2] &&
+        p.y < source_region[3]) {
       constexpr sampler texture_sampler(filter::nearest);
       return texture.sample(texture_sampler, p);
     }
@@ -145,7 +143,7 @@ struct ColorFromTexel<FILTER_NEAREST, address> {
 
 template<>
 struct ColorFromTexel<FILTER_LINEAR, ADDRESS_UNSAFE> {
-  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale) {
+  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale, constant float4& source_region) {
     constexpr sampler texture_sampler(filter::nearest);
     const float2 texel_size = 1 / source_size;
 
@@ -166,7 +164,7 @@ struct ColorFromTexel<FILTER_LINEAR, ADDRESS_UNSAFE> {
 
 template<uint8_t address>
 struct ColorFromTexel<FILTER_LINEAR, address> {
-  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale) {
+  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale, constant float4& source_region) {
     constexpr sampler texture_sampler(filter::nearest);
     const float2 texel_size = 1 / source_size;
 
@@ -174,27 +172,27 @@ struct ColorFromTexel<FILTER_LINEAR, address> {
     // As all the vertex positions are aligned to 1/16 [pixel], this shiting should work in most cases.
     float2 p0 = v.tex - texel_size / 2.0 + (texel_size / 512.0);
     float2 p1 = v.tex + texel_size / 2.0 + (texel_size / 512.0);
-    p0 = AdjustTexelByAddress<address>(p0, v.tex_region);
-    p1 = AdjustTexelByAddress<address>(p1, v.tex_region);
+    p0 = AdjustTexelByAddress<address>(p0, source_region);
+    p1 = AdjustTexelByAddress<address>(p1, source_region);
 
     float4 c0 = texture.sample(texture_sampler, p0);
     float4 c1 = texture.sample(texture_sampler, float2(p1.x, p0.y));
     float4 c2 = texture.sample(texture_sampler, float2(p0.x, p1.y));
     float4 c3 = texture.sample(texture_sampler, p1);
 
-    if (p0.x < v.tex_region[0]) {
+    if (p0.x < source_region[0]) {
       c0 = 0;
       c2 = 0;
     }
-    if (p0.y < v.tex_region[1]) {
+    if (p0.y < source_region[1]) {
       c0 = 0;
       c1 = 0;
     }
-    if (v.tex_region[2] <= p1.x) {
+    if (source_region[2] <= p1.x) {
       c1 = 0;
       c3 = 0;
     }
-    if (v.tex_region[3] <= p1.y) {
+    if (source_region[3] <= p1.y) {
       c2 = 0;
       c3 = 0;
     }
@@ -206,7 +204,7 @@ struct ColorFromTexel<FILTER_LINEAR, address> {
 
 template<uint8_t address>
 struct ColorFromTexel<FILTER_SCREEN, address> {
-  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale) {
+  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale, constant float4& source_region) {
     constexpr sampler texture_sampler(filter::nearest);
     const float2 texel_size = 1 / source_size;
 
@@ -232,8 +230,9 @@ struct FragmentShaderImpl {
       constant float2& source_size,
       constant float4x4& color_matrix_body,
       constant float4& color_matrix_translation,
-      constant float& scale) {
-    float4 c = ColorFromTexel<filter, address>().Do(v, texture, source_size, scale);
+      constant float& scale,
+      constant float4& source_region) {
+    float4 c = ColorFromTexel<filter, address>().Do(v, texture, source_size, scale, source_region);
     if (useColorM) {
       c.rgb /= c.a + (1.0 - sign(c.a));
       c = (color_matrix_body * c) + color_matrix_translation;
@@ -256,8 +255,9 @@ struct FragmentShaderImpl<useColorM, FILTER_SCREEN, address> {
       constant float2& source_size,
       constant float4x4& color_matrix_body,
       constant float4& color_matrix_translation,
-      constant float& scale) {
-    return ColorFromTexel<FILTER_SCREEN, address>().Do(v, texture, source_size, scale);
+      constant float& scale,
+      constant float4& source_region) {
+    return ColorFromTexel<FILTER_SCREEN, address>().Do(v, texture, source_size, scale, source_region);
   }
 };
 
@@ -274,9 +274,10 @@ struct FragmentShaderImpl<useColorM, FILTER_SCREEN, address> {
       constant float2& source_size [[buffer(2)]], \
       constant float4x4& color_matrix_body [[buffer(3)]], \
       constant float4& color_matrix_translation [[buffer(4)]], \
-      constant float& scale [[buffer(5)]]) { \
+      constant float& scale [[buffer(5)]], \
+      constant float4& source_region [[buffer(6)]]) { \
     return FragmentShaderImpl<useColorM, filter, address>().Do( \
-        v, texture, source_size, color_matrix_body, color_matrix_translation, scale); \
+        v, texture, source_size, color_matrix_body, color_matrix_translation, scale, source_region); \
   }
 
 FragmentShaderFunc(0, FILTER_NEAREST, ADDRESS_CLAMP_TO_ZERO)
@@ -635,7 +636,9 @@ func (g *Graphics) Reset() error {
 	return nil
 }
 
-func (g *Graphics) Draw(dstID, srcID driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address) error {
+func (g *Graphics) Draw(dstID, srcID driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, sourceRegion driver.Region) error {
+	// TODO: Use sourceRegion.
+
 	dst := g.images[dstID]
 	src := g.images[srcID]
 
@@ -708,6 +711,14 @@ func (g *Graphics) Draw(dstID, srcID driver.ImageID, indexLen int, indexOffset i
 
 		scale := float32(dst.width) / float32(src.width)
 		rce.SetFragmentBytes(unsafe.Pointer(&scale), unsafe.Sizeof(scale), 5)
+
+		sr := [...]float32{
+			sourceRegion.X,
+			sourceRegion.Y,
+			sourceRegion.X + sourceRegion.Width,
+			sourceRegion.Y + sourceRegion.Height,
+		}
+		rce.SetFragmentBytes(unsafe.Pointer(&sr[0]), unsafe.Sizeof(sr), 6)
 
 		if src != nil {
 			rce.SetFragmentTexture(src.texture, 0)
