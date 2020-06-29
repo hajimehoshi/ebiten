@@ -56,10 +56,10 @@ func NewImage(width, height int, volatile bool) *Image {
 
 func (i *Image) initialize(width, height int, volatile bool) {
 	if maybeCanAddDelayedCommand() {
-		if tryAddDelayedCommand(func(obj interface{}) error {
+		if tryAddDelayedCommand(func() error {
 			i.initialize(width, height, volatile)
 			return nil
-		}, nil) {
+		}) {
 			return
 		}
 	}
@@ -76,10 +76,10 @@ func NewScreenFramebufferImage(width, height int) *Image {
 
 func (i *Image) initializeAsScreenFramebuffer(width, height int) {
 	if maybeCanAddDelayedCommand() {
-		if tryAddDelayedCommand(func(obj interface{}) error {
+		if tryAddDelayedCommand(func() error {
 			i.initializeAsScreenFramebuffer(width, height)
 			return nil
-		}, nil) {
+		}) {
 			return
 		}
 	}
@@ -119,10 +119,10 @@ func (i *Image) resolvePendingFill() {
 
 func (i *Image) MarkDisposed() {
 	if maybeCanAddDelayedCommand() {
-		if tryAddDelayedCommand(func(obj interface{}) error {
+		if tryAddDelayedCommand(func() error {
 			i.MarkDisposed()
 			return nil
-		}, nil) {
+		}) {
 			return
 		}
 	}
@@ -172,10 +172,10 @@ func (i *Image) Dump(name string, blackbg bool) error {
 
 func (i *Image) Fill(clr color.RGBA) {
 	if maybeCanAddDelayedCommand() {
-		if tryAddDelayedCommand(func(obj interface{}) error {
+		if tryAddDelayedCommand(func() error {
 			i.Fill(clr)
 			return nil
-		}, nil) {
+		}) {
 			return
 		}
 	}
@@ -192,13 +192,11 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
 	}
 
 	if maybeCanAddDelayedCommand() {
-		if tryAddDelayedCommand(func(copied interface{}) error {
-			i.ReplacePixels(copied.([]byte), x, y, width, height)
+		copied := make([]byte, len(pix))
+		copy(copied, pix)
+		if tryAddDelayedCommand(func() error {
+			i.ReplacePixels(copied, x, y, width, height)
 			return nil
-		}, func() interface{} {
-			copied := make([]byte, len(pix))
-			copy(copied, pix)
-			return copied
 		}) {
 			return nil
 		}
@@ -249,10 +247,10 @@ func (i *Image) DrawImage(src *Image, bounds image.Rectangle, a, b, c, d, tx, ty
 	}
 
 	if maybeCanAddDelayedCommand() {
-		if tryAddDelayedCommand(func(obj interface{}) error {
+		if tryAddDelayedCommand(func() error {
 			i.drawImage(src, bounds, g, colorm, mode, filter)
 			return nil
-		}, nil) {
+		}) {
 			return
 		}
 	}
@@ -288,11 +286,11 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 	}
 
 	if maybeCanAddDelayedCommand() {
-		if tryAddDelayedCommand(func(obj interface{}) error {
+		if tryAddDelayedCommand(func() error {
 			// Arguments are not copied. Copying is the caller's responsibility.
 			i.DrawTriangles(src, vertices, indices, colorm, mode, filter, address, shader, uniforms)
 			return nil
-		}, nil) {
+		}) {
 			return
 		}
 	}

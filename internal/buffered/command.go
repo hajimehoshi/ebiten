@@ -71,17 +71,13 @@ func maybeCanAddDelayedCommand() bool {
 	return atomic.LoadUint32(&delayedCommandsFlushed) == 0
 }
 
-func tryAddDelayedCommand(f func(obj interface{}) error, ondelayed func() interface{}) bool {
+func tryAddDelayedCommand(f func() error) bool {
 	delayedCommandsM.Lock()
 	defer delayedCommandsM.Unlock()
 
 	if delayedCommandsFlushed == 0 {
-		var obj interface{}
-		if ondelayed != nil {
-			obj = ondelayed()
-		}
 		delayedCommands = append(delayedCommands, func() error {
-			return f(obj)
+			return f()
 		})
 		return true
 	}
