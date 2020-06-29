@@ -321,8 +321,12 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 	if img != nil {
 		i.processSrc(img)
 	}
+	firstImg := img
 	for _, u := range uniforms {
 		if src, ok := u.(*Image); ok {
+			if firstImg == nil {
+				firstImg = src
+			}
 			i.processSrc(src)
 		}
 	}
@@ -333,9 +337,10 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 		dx = paddingSize
 		dy = paddingSize
 	}
+
 	var oxf, oyf float32
-	if img != nil {
-		ox, oy, _, _ := img.regionWithPadding()
+	if firstImg != nil {
+		ox, oy, _, _ := firstImg.regionWithPadding()
 		ox += paddingSize
 		oy += paddingSize
 		oxf, oyf = float32(ox), float32(oy)
