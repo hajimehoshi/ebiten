@@ -64,16 +64,14 @@ func getDelayedFuncsAndClearSlow() []func() error {
 	return nil
 }
 
-func tryAddDelayedCommand(f func(obj interface{}) error, ondelayed func() interface{}) bool {
-	if atomic.LoadUint32(&delayedCommandsFlushed) == 0 {
-		// Outline the slow-path to expect the fast-path is inlined.
-		return tryAddDelayedCommandSlow(f, ondelayed)
-	}
-
-	return false
+// maybeCanAddDelayedCommand returns false if the delayed commands cannot be added.
+// Otherwise, maybeCanAddDelayedCommand's returning value is not determined.
+// For example, maybeCanAddDelayedCommand can return true even when flusing is being processed.
+func maybeCanAddDelayedCommand() bool {
+	return atomic.LoadUint32(&delayedCommandsFlushed) == 0
 }
 
-func tryAddDelayedCommandSlow(f func(obj interface{}) error, ondelayed func() interface{}) bool {
+func tryAddDelayedCommand(f func(obj interface{}) error, ondelayed func() interface{}) bool {
 	delayedCommandsM.Lock()
 	defer delayedCommandsM.Unlock()
 
