@@ -303,9 +303,6 @@ func ShaderProgramImages(imageNum int) shaderir.Program {
 
 	for i := 0; i < imageNum; i++ {
 		p.Uniforms = append(p.Uniforms, shaderir.Type{Main: shaderir.Texture2D})
-		if i > 0 {
-			p.Uniforms = append(p.Uniforms, shaderir.Type{Main: shaderir.Vec4})
-		}
 	}
 
 	// In the fragment shader, local variables are:
