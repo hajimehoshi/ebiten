@@ -272,6 +272,27 @@ func (i *Image) regionWithPadding() (x, y, width, height int) {
 	return i.node.Region()
 }
 
+func (i *Image) processSrc(src *Image) {
+	if src.disposed {
+		panic("shareable: the drawing source image must not be disposed (DrawTriangles)")
+	}
+	if src.backend == nil {
+		src.allocate(true)
+	}
+
+	// Compare i and source images after ensuring i is not shared, or
+	// i and a source image might share the same texture even though i != src.
+	if i.backend.restorable == src.backend.restorable {
+		panic("shareable: Image.DrawTriangles: source must be different from the receiver")
+	}
+}
+
+func makeSharedIfNeeded(src *Image) {
+	if !src.isShared() && src.shareable() {
+		imagesToMakeShared[src] = struct{}{}
+	}
+}
+
 // DrawTriangles draws triangles with the given image.
 //
 // The vertex floats are:
@@ -292,38 +313,17 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 	backendsM.Lock()
 	// Do not use defer for performance.
 
-	var srcs []*Image
-	if img != nil {
-		srcs = append(srcs, img)
-	}
-	for _, u := range uniforms {
-		if src, ok := u.(*Image); ok {
-			srcs = append(srcs, src)
-		}
-	}
-
-	for _, src := range srcs {
-		if src.disposed {
-			panic("shareable: the drawing source image must not be disposed (DrawTriangles)")
-		}
-	}
 	if i.disposed {
 		panic("shareable: the drawing target image must not be disposed (DrawTriangles)")
 	}
-
-	for _, src := range srcs {
-		if src.backend == nil {
-			src.allocate(true)
-		}
-	}
-
 	i.ensureNotShared()
 
-	// Compare i and source images after ensuring i is not shared, or
-	// i and a source image might share the same texture even though i != src.
-	for _, src := range srcs {
-		if i.backend.restorable == src.backend.restorable {
-			panic("shareable: Image.DrawTriangles: source must be different from the receiver")
+	if img != nil {
+		i.processSrc(img)
+	}
+	for _, u := range uniforms {
+		if src, ok := u.(*Image); ok {
+			i.processSrc(src)
 		}
 	}
 
@@ -334,8 +334,8 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 		dy = paddingSize
 	}
 	var oxf, oyf float32
-	if len(srcs) > 0 {
-		ox, oy, _, _ := srcs[0].regionWithPadding()
+	if img != nil {
+		ox, oy, _, _ := img.regionWithPadding()
 		ox += paddingSize
 		oy += paddingSize
 		oxf, oyf = float32(ox), float32(oy)
@@ -388,9 +388,12 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 	i.nonUpdatedCount = 0
 	delete(imagesToMakeShared, i)
 
-	for _, src := range srcs {
-		if !src.isShared() && src.shareable() {
-			imagesToMakeShared[src] = struct{}{}
+	if img != nil {
+		makeSharedIfNeeded(img)
+	}
+	for _, u := range uniforms {
+		if src, ok := u.(*Image); ok {
+			makeSharedIfNeeded(src)
 		}
 	}
 
