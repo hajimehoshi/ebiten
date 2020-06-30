@@ -161,19 +161,20 @@ type StereoPanStream struct {
 	pan float64 // -1: left; 0: center; 1: right
 }
 
+const sqrt2div2 = 0.7071067811865476 // math.sqrt(2)/2.0
+const rad45 = math.Pi / 4            // 45º
+
 func (s *StereoPanStream) Read(p []byte) (n int, err error) {
 	n, err = s.Reader.Read(p)
 	if err != nil {
 		return
 	}
 
-	// This panning implementation uses a simpler algorithm that doesn't
-	// mix the left and right channels. For a more accurate implementation,
-	// there's a method called "constant power panning":
-	// https://dsp.stackexchange.com/questions/21691/algorithm-to-pan-audio/21736
-
-	ls := math.Min(s.pan*-1+1, 1)
-	rs := math.Min(s.pan+1, 1)
+	angle := rad45 * s.pan
+	acos := math.Cos(angle)
+	asin := math.Sin(angle)
+	ls := sqrt2div2 * (acos - asin)
+	rs := sqrt2div2 * (acos + asin)
 	for i := 0; i < len(p); i += 4 {
 		lc := int16(float64(int16(p[i])|int16(p[i+1])<<8) * ls)
 		rc := int16(float64(int16(p[i+2])|int16(p[i+3])<<8) * rs)
