@@ -166,6 +166,12 @@ func (s *StereoPanStream) Read(p []byte) (n int, err error) {
 	if err != nil {
 		return
 	}
+
+	// This panning implementation uses a simpler algorithm that doesn't
+	// mix the left and right channels. For a more accurate implementation,
+	// there's a method called "constant power panning":
+	// https://dsp.stackexchange.com/questions/21691/algorithm-to-pan-audio/21736
+
 	ls := math.Min(s.pan*-1+1, 1)
 	rs := math.Min(s.pan+1, 1)
 	for i := 0; i < len(p); i += 4 {
