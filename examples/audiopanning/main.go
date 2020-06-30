@@ -85,7 +85,7 @@ func (g *Game) initAudio() {
 	g.panstream = NewStereoPanStreamFromReader(oggS)
 
 	// Create an infinite loop stream from the decoded bytes.
-	// g.panstream is still an io.ReadCloser and io.Seeker.
+	// s is still an io.ReadCloser and io.Seeker.
 	s := audio.NewInfiniteLoopWithIntro(g.panstream, introLengthInSecond*4*sampleRate, loopLengthInSecond*4*sampleRate)
 
 	g.player, err = audio.NewPlayer(audioContext, s)
