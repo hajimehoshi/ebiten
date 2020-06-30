@@ -285,8 +285,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 
 	ebitenutil.DebugPrintAt(screen, "WASD: move", 160, 0)
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Rays: 2*%d", len(rays)/2), padding, 16)
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()), 51, 51)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Rays: 2*%d", len(rays)/2), padding, 222)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
