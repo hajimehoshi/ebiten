@@ -28,7 +28,7 @@ type Game = ebiten.Game
 
 // SetGame sets a mobile game.
 //
-// SetGame is epxected to be called only once.
+// SetGame is expected to be called only once.
 //
 // SetGame can be called anytime. Until SetGame is called, the game does not start.
 func SetGame(game Game) {
