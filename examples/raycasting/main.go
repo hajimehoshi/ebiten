@@ -84,7 +84,10 @@ func (o object) points() [][2]float64 {
 	for _, wall := range o.walls {
 		points = append(points, [2]float64{wall.X2, wall.Y2})
 	}
-	points = append(points, [2]float64{o.walls[0].X1, o.walls[0].Y1})
+	p := [2]float64{o.walls[0].X1, o.walls[0].Y1}
+	if p[0] != points[len(points)-1][0] && p[1] != points[len(points)-1][1] {
+		points = append(points, [2]float64{o.walls[0].X1, o.walls[0].Y1})
+	}
 	return points
 }
 
@@ -282,6 +285,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 
 	ebitenutil.DebugPrintAt(screen, "WASD: move", 160, 0)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Rays: 2*%d", len(rays)/2), padding, 16)
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()), 51, 51)
 }
 
