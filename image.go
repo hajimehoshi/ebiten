@@ -548,7 +548,13 @@ func (i *Image) ReplacePixels(pix []byte) error {
 		return nil
 	}
 	r := i.Bounds()
-	if err := i.buffered.ReplacePixels(pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
+
+	// Copy the pixels as restorable package might reuse the pixels later.
+	// TODO: Would it be possible to avoid copying? (#1222)
+	copied := make([]byte, len(pix))
+	copy(copied, pix)
+
+	if err := i.buffered.ReplacePixels(copied, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
 		theUIContext.setError(err)
 	}
 	return nil
@@ -632,7 +638,10 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	}
 	i.addr = i
 
-	_ = i.ReplacePixels(copyImage(source))
+	// Call (*buffered.Image).ReplacePixels directly to avoid copying.
+	if err := i.buffered.ReplacePixels(copyImage(source), 0, 0, width, height); err != nil {
+		theUIContext.setError(err)
+	}
 	return i, nil
 }
 
