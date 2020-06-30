@@ -27,7 +27,7 @@ import (
 // The pixel format is alpha-premultiplied RGBA.
 // Image implements image.Image and draw.Image.
 //
-// Functions of Image never returns error as of 1.5.0-alpha, and error values are always nil.
+// Functions of Image never returns error as of 1.5.0, and error values are always nil.
 type Image struct {
 	// addr holds self to check copying.
 	// See strings.Builder for similar examples.
@@ -65,7 +65,7 @@ func (i *Image) isSubImage() bool {
 //
 // When the image is disposed, Clear does nothing.
 //
-// Clear always returns nil as of 1.5.0-alpha.
+// Clear always returns nil as of 1.5.0.
 func (i *Image) Clear() error {
 	i.Fill(color.Transparent)
 	return nil
@@ -75,7 +75,7 @@ func (i *Image) Clear() error {
 //
 // When the image is disposed, Fill does nothing.
 //
-// Fill always returns nil as of 1.5.0-alpha.
+// Fill always returns nil as of 1.5.0.
 func (i *Image) Fill(clr color.Color) error {
 	i.copyCheck()
 
@@ -128,7 +128,7 @@ func (i *Image) Fill(clr color.Color) error {
 //
 // For more performance tips, see https://ebiten.org/documents/performancetips.html
 //
-// DrawImage always returns nil as of 1.5.0-alpha.
+// DrawImage always returns nil as of 1.5.0.
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	i.copyCheck()
 
@@ -464,7 +464,7 @@ func (i *Image) ColorModel() color.Model {
 // Note that important logic should not rely on values returned by At, since
 // the returned values can include very slight differences between some machines.
 //
-// At can't be called outside the main loop (ebiten.Run's updating function) starts (as of version 1.4.0-alpha).
+// At can't be called outside the main loop (ebiten.Run's updating function) starts (as of version 1.4.0).
 func (i *Image) At(x, y int) color.Color {
 	if i.isDisposed() {
 		return color.RGBA{}
@@ -514,7 +514,7 @@ func (i *Image) Set(x, y int, clr color.Color) {
 //
 // When the image is disposed, Dipose does nothing.
 //
-// Dipose always return nil as of 1.5.0-alpha.
+// Dipose always return nil as of 1.5.0.
 func (i *Image) Dispose() error {
 	i.copyCheck()
 
@@ -540,7 +540,7 @@ func (i *Image) Dispose() error {
 //
 // When the image is disposed, ReplacePixels does nothing.
 //
-// ReplacePixels always returns nil as of 1.5.0-alpha.
+// ReplacePixels always returns nil as of 1.5.0.
 func (i *Image) ReplacePixels(pix []byte) error {
 	i.copyCheck()
 
@@ -572,7 +572,7 @@ type DrawImageOptions struct {
 	// The default (zero) value is FilterDefault.
 	//
 	// Filter can also be specified at NewImage* functions, but
-	// specifying filter at DrawImageOptions is recommended (as of 1.7.0-alpha).
+	// specifying filter at DrawImageOptions is recommended (as of 1.7.0).
 	//
 	// If both Filter specified at NewImage* and DrawImageOptions are FilterDefault,
 	// FilterNearest is used.
@@ -597,7 +597,7 @@ type DrawImageOptions struct {
 // filter argument is just for backward compatibility.
 // If you are not sure, specify FilterDefault.
 //
-// Error returned by NewImage is always nil as of 1.5.0-alpha.
+// Error returned by NewImage is always nil as of 1.5.0.
 func NewImage(width, height int, filter Filter) (*Image, error) {
 	return newImage(width, height, filter, false), nil
 }
@@ -619,7 +619,7 @@ func newImage(width, height int, filter Filter, volatile bool) *Image {
 // filter argument is just for backward compatibility.
 // If you are not sure, specify FilterDefault.
 //
-// Error returned by NewImageFromImage is always nil as of 1.5.0-alpha.
+// Error returned by NewImageFromImage is always nil as of 1.5.0.
 func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	size := source.Bounds().Size()
 
