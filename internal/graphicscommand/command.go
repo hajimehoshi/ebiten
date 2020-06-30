@@ -410,28 +410,10 @@ func (c *drawTrianglesCommand) Exec(indexOffset int) error {
 	if c.shader != nil {
 		us := make([]interface{}, len(c.uniforms))
 
-		firstImage := true
 		for i := 0; i < len(c.uniforms); i++ {
 			switch v := c.uniforms[i].(type) {
 			case *Image:
 				us[i] = v.image.ID()
-				if firstImage {
-					firstImage = false
-					continue
-				}
-
-				// Convert pixels to texels.
-				w, h := v.InternalSize()
-				i++
-				region := c.uniforms[i].([]float32)
-				vs := []float32{
-					region[0] / float32(w),
-					region[1] / float32(h),
-					region[2] / float32(w),
-					region[3] / float32(h),
-				}
-
-				us[i] = vs
 			default:
 				us[i] = v
 			}

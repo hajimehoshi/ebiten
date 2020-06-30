@@ -58,8 +58,6 @@ func (v *view) update() {
 }
 
 const (
-	textureUsage = mtl.TextureUsageShaderRead | mtl.TextureUsageRenderTarget
-
 	storageMode         = mtl.StorageModeShared
 	resourceStorageMode = mtl.ResourceStorageModeShared
 )

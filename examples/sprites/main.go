@@ -168,7 +168,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 		g.init()
 	}
 
-	// Decrease the nubmer of the sprites.
+	// Decrease the number of the sprites.
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) || leftTouched() {
 		g.sprites.num -= 20
 		if g.sprites.num < MinSprites {
@@ -176,7 +176,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 		}
 	}
 
-	// Increase the nubmer of the sprites.
+	// Increase the number of the sprites.
 	if ebiten.IsKeyPressed(ebiten.KeyRight) || rightTouched() {
 		g.sprites.num += 20
 		if MaxSprites < g.sprites.num {

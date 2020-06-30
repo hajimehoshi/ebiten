@@ -45,8 +45,8 @@ var (
 	maxSize = 0
 )
 
-func min(a, b int) int {
-	if a < b {
+func max(a, b int) int {
+	if a > b {
 		return a
 	}
 	return b
@@ -272,6 +272,27 @@ func (i *Image) regionWithPadding() (x, y, width, height int) {
 	return i.node.Region()
 }
 
+func (i *Image) processSrc(src *Image) {
+	if src.disposed {
+		panic("shareable: the drawing source image must not be disposed (DrawTriangles)")
+	}
+	if src.backend == nil {
+		src.allocate(true)
+	}
+
+	// Compare i and source images after ensuring i is not shared, or
+	// i and a source image might share the same texture even though i != src.
+	if i.backend.restorable == src.backend.restorable {
+		panic("shareable: Image.DrawTriangles: source must be different from the receiver")
+	}
+}
+
+func makeSharedIfNeeded(src *Image) {
+	if !src.isShared() && src.shareable() {
+		imagesToMakeShared[src] = struct{}{}
+	}
+}
+
 // DrawTriangles draws triangles with the given image.
 //
 // The vertex floats are:
@@ -292,38 +313,21 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 	backendsM.Lock()
 	// Do not use defer for performance.
 
-	var srcs []*Image
-	if img != nil {
-		srcs = append(srcs, img)
-	}
-	for _, u := range uniforms {
-		if src, ok := u.(*Image); ok {
-			srcs = append(srcs, src)
-		}
-	}
-
-	for _, src := range srcs {
-		if src.disposed {
-			panic("shareable: the drawing source image must not be disposed (DrawTriangles)")
-		}
-	}
 	if i.disposed {
 		panic("shareable: the drawing target image must not be disposed (DrawTriangles)")
 	}
-
-	for _, src := range srcs {
-		if src.backend == nil {
-			src.allocate(true)
-		}
-	}
-
 	i.ensureNotShared()
 
-	// Compare i and source images after ensuring i is not shared, or
-	// i and a source image might share the same texture even though i != src.
-	for _, src := range srcs {
-		if i.backend.restorable == src.backend.restorable {
-			panic("shareable: Image.DrawTriangles: source must be different from the receiver")
+	if img != nil {
+		i.processSrc(img)
+	}
+	firstImg := img
+	for _, u := range uniforms {
+		if src, ok := u.(*Image); ok {
+			if firstImg == nil {
+				firstImg = src
+			}
+			i.processSrc(src)
 		}
 	}
 
@@ -333,9 +337,10 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 		dx = paddingSize
 		dy = paddingSize
 	}
+
 	var oxf, oyf float32
-	if len(srcs) > 0 {
-		ox, oy, _, _ := srcs[0].regionWithPadding()
+	if firstImg != nil {
+		ox, oy, _, _ := firstImg.regionWithPadding()
 		ox += paddingSize
 		oy += paddingSize
 		oxf, oyf = float32(ox), float32(oy)
@@ -357,23 +362,11 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 		s = shader.shader
 	}
 
-	firstImage := true
 	us := make([]interface{}, len(uniforms))
 	for i := 0; i < len(uniforms); i++ {
 		switch v := uniforms[i].(type) {
 		case *Image:
 			us[i] = v.backend.restorable
-			if !firstImage {
-				i++
-				region := uniforms[i].([]float32)
-				us[i] = []float32{
-					region[0] + oxf,
-					region[1] + oyf,
-					region[2] + oxf,
-					region[3] + oyf,
-				}
-			}
-			firstImage = false
 		default:
 			us[i] = v
 		}
@@ -388,9 +381,12 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 	i.nonUpdatedCount = 0
 	delete(imagesToMakeShared, i)
 
-	for _, src := range srcs {
-		if !src.isShared() && src.shareable() {
-			imagesToMakeShared[src] = struct{}{}
+	if img != nil {
+		makeSharedIfNeeded(img)
+	}
+	for _, u := range uniforms {
+		if src, ok := u.(*Image); ok {
+			makeSharedIfNeeded(src)
 		}
 	}
 
@@ -573,7 +569,7 @@ func (i *Image) shareable() bool {
 	if i.screen {
 		return false
 	}
-	return i.width <= maxSize && i.height <= maxSize
+	return i.width+2*paddingSize <= maxSize && i.height+2*paddingSize <= maxSize
 }
 
 func (i *Image) allocate(shareable bool) {
@@ -606,7 +602,7 @@ func (i *Image) allocate(shareable bool) {
 		}
 	}
 	size := minSize
-	for i.width > size || i.height > size {
+	for i.width+2*paddingSize > size || i.height+2*paddingSize > size {
 		if size == maxSize {
 			panic(fmt.Sprintf("shareable: the image being shared is too big: width: %d, height: %d", i.width, i.height))
 		}
@@ -662,15 +658,8 @@ func BeginFrame() error {
 		if len(theBackends) != 0 {
 			panic("shareable: all the images must be not-shared before the game starts")
 		}
-		if graphicsDriver.HasHighPrecisionFloat() {
-			minSize = 1024
-			// Use 4096 as a maximum size whatever size the graphics driver accepts. There are
-			// not enough evidences that bigger textures works correctly.
-			maxSize = min(4096, graphicsDriver.MaxImageSize())
-		} else {
-			minSize = 512
-			maxSize = 512
-		}
+		minSize = 1024
+		maxSize = max(minSize, graphicsDriver.MaxImageSize())
 	})
 	if err != nil {
 		return err

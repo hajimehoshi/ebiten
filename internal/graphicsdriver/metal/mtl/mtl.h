@@ -69,6 +69,7 @@ struct RenderPassDescriptor {
 };
 
 struct TextureDescriptor {
+  uint16_t TextureType;
   uint16_t PixelFormat;
   uint_t Width;
   uint_t Height;
@@ -162,6 +163,11 @@ void BlitCommandEncoder_Synchronize(void *blitCommandEncoder, void *resource);
 void BlitCommandEncoder_SynchronizeTexture(void *blitCommandEncoder,
                                            void *texture, uint_t slice,
                                            uint_t level);
+void BlitCommandEncoder_CopyFromTexture(
+    void *blitCommandEncoder, void *sourceTexture, uint_t sourceSlice,
+    uint_t sourceLevel, struct Origin sourceOrigin, struct Size sourceSize,
+    void *destinationTexture, uint_t destinationSlice, uint_t destinationLevel,
+    struct Origin destinationOrigin);
 
 void *Library_MakeFunction(void *library, const char *name);
 
@@ -170,6 +176,8 @@ void Texture_GetBytes(void *texture, void *pixelBytes, size_t bytesPerRow,
                       struct Region region, uint_t level);
 void Texture_ReplaceRegion(void *texture, struct Region region, uint_t level,
                            void *pixelBytes, uint_t bytesPerRow);
+int Texture_Width(void *texture);
+int Texture_Height(void *texture);
 
 void Buffer_CopyToContents(void *buffer, void *data, size_t lengthInBytes);
 void Buffer_Retain(void *buffer);

@@ -27,7 +27,7 @@ import (
 // The pixel format is alpha-premultiplied RGBA.
 // Image implements image.Image and draw.Image.
 //
-// Functions of Image never returns error as of 1.5.0-alpha, and error values are always nil.
+// Functions of Image never returns error as of 1.5.0, and error values are always nil.
 type Image struct {
 	// addr holds self to check copying.
 	// See strings.Builder for similar examples.
@@ -37,11 +37,8 @@ type Image struct {
 
 	bounds   image.Rectangle
 	original *Image
-	subs     map[image.Rectangle]*Image
 
 	filter Filter
-
-	disposed bool
 }
 
 func (i *Image) copyCheck() {
@@ -57,11 +54,7 @@ func (i *Image) Size() (width, height int) {
 }
 
 func (i *Image) isDisposed() bool {
-	return i.disposed
-}
-
-func (i *Image) isEmpty() bool {
-	return i.bounds.Dx() == 0 || i.bounds.Dy() == 0
+	return i.buffered == nil
 }
 
 func (i *Image) isSubImage() bool {
@@ -72,7 +65,7 @@ func (i *Image) isSubImage() bool {
 //
 // When the image is disposed, Clear does nothing.
 //
-// Clear always returns nil as of 1.5.0-alpha.
+// Clear always returns nil as of 1.5.0.
 func (i *Image) Clear() error {
 	i.Fill(color.Transparent)
 	return nil
@@ -82,14 +75,11 @@ func (i *Image) Clear() error {
 //
 // When the image is disposed, Fill does nothing.
 //
-// Fill always returns nil as of 1.5.0-alpha.
+// Fill always returns nil as of 1.5.0.
 func (i *Image) Fill(clr color.Color) error {
 	i.copyCheck()
 
 	if i.isDisposed() {
-		return nil
-	}
-	if i.isEmpty() {
 		return nil
 	}
 
@@ -98,9 +88,7 @@ func (i *Image) Fill(clr color.Color) error {
 		panic("ebiten: render to a subimage is not implemented (Fill)")
 	}
 
-	i.desyncSubImages()
 	i.buffered.Fill(color.RGBAModel.Convert(clr).(color.RGBA))
-
 	return nil
 }
 
@@ -140,20 +128,14 @@ func (i *Image) Fill(clr color.Color) error {
 //
 // For more performance tips, see https://ebiten.org/documents/performancetips.html
 //
-// DrawImage always returns nil as of 1.5.0-alpha.
+// DrawImage always returns nil as of 1.5.0.
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	i.copyCheck()
 
 	if img.isDisposed() {
 		panic("ebiten: the given image to DrawImage must not be disposed")
 	}
-	if img.isEmpty() {
-		return nil
-	}
 	if i.isDisposed() {
-		return nil
-	}
-	if i.isEmpty() {
 		return nil
 	}
 
@@ -161,12 +143,6 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	if i.isSubImage() {
 		panic("ebiten: render to a subimage is not implemented (drawImage)")
 	}
-
-	if err := img.syncWithOriginalIfNeeded(); err != nil {
-		theUIContext.setError(err)
-		return nil
-	}
-	i.desyncSubImages()
 
 	// Calculate vertices before locking because the user can do anything in
 	// options.ImageParts interface without deadlock (e.g. Call Image functions).
@@ -222,9 +198,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	}
 
 	a, b, c, d, tx, ty := geom.elements32()
-	w, h := img.Size()
-	i.buffered.DrawImage(img.buffered, image.Rect(0, 0, w, h), a, b, c, d, tx, ty, options.ColorM.impl, mode, filter)
-
+	i.buffered.DrawImage(img.buffered, img.Bounds(), a, b, c, d, tx, ty, options.ColorM.impl, mode, filter)
 	return nil
 }
 
@@ -306,12 +280,10 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	if img.isDisposed() {
 		panic("ebiten: the given image to DrawTriangles must not be disposed")
 	}
-	if img.isEmpty() {
-		return
-	}
 	if i.isDisposed() {
 		return
 	}
+
 	if i.isSubImage() {
 		panic("ebiten: render to a subimage is not implemented (DrawTriangles)")
 	}
@@ -323,12 +295,6 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		panic("ebiten: len(indices) must be <= MaxIndicesNum")
 	}
 	// TODO: Check the maximum value of indices and len(vertices)?
-
-	if err := img.syncWithOriginalIfNeeded(); err != nil {
-		theUIContext.setError(err)
-		return
-	}
-	i.desyncSubImages()
 
 	if options == nil {
 		options = &DrawTrianglesOptions{}
@@ -343,19 +309,18 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		filter = driver.Filter(img.filter)
 	}
 
-	w, h := img.Size()
-	bx0 := float32(0)
-	by0 := float32(0)
-	bx1 := float32(w)
-	by1 := float32(h)
+	b := img.Bounds()
+	bx0 := float32(b.Min.X)
+	by0 := float32(b.Min.Y)
+	bx1 := float32(b.Max.X)
+	by1 := float32(b.Max.Y)
 
-	dx, dy := float32(img.Bounds().Min.X), float32(img.Bounds().Min.Y)
 	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
 	for i, v := range vertices {
 		vs[i*graphics.VertexFloatNum] = v.DstX
 		vs[i*graphics.VertexFloatNum+1] = v.DstY
-		vs[i*graphics.VertexFloatNum+2] = v.SrcX - dx
-		vs[i*graphics.VertexFloatNum+3] = v.SrcY - dy
+		vs[i*graphics.VertexFloatNum+2] = v.SrcX
+		vs[i*graphics.VertexFloatNum+3] = v.SrcY
 		vs[i*graphics.VertexFloatNum+4] = bx0
 		vs[i*graphics.VertexFloatNum+5] = by0
 		vs[i*graphics.VertexFloatNum+6] = bx1
@@ -395,8 +360,6 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 		panic("ebiten: len(indices) must be <= MaxIndicesNum")
 	}
 
-	i.desyncSubImages()
-
 	if options == nil {
 		options = &DrawTrianglesWithShaderOptions{}
 	}
@@ -404,34 +367,13 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 	mode := driver.CompositeMode(options.CompositeMode)
 
 	us := []interface{}{}
-	var firstImage *Image
 	for _, v := range options.Uniforms {
 		switch v := v.(type) {
 		case *Image:
 			if v.isDisposed() {
 				panic("ebiten: the given image to DrawTriangles must not be disposed")
 			}
-			if v.isEmpty() {
-				// TODO: Fix this
-				panic("ebiten: zero-sized image for DrawTrianglesWithShader is not implemented so far")
-			}
-			if err := v.syncWithOriginalIfNeeded(); err != nil {
-				theUIContext.setError(err)
-				return
-			}
-
 			us = append(us, v.buffered)
-			if firstImage == nil {
-				firstImage = v
-			} else {
-				w, h := v.Size()
-				us = append(us, []float32{
-					0,
-					0,
-					float32(w),
-					float32(h),
-				})
-			}
 		default:
 			us = append(us, v)
 		}
@@ -441,28 +383,17 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 	// The actual value is set at graphicscommand package.
 	us = append([]interface{}{[]float32{0, 0}}, us...)
 
-	var dx, dy, bx0, by0, bx1, by1 float32
-	if firstImage != nil {
-		dx = float32(firstImage.Bounds().Min.X)
-		dy = float32(firstImage.Bounds().Min.Y)
-
-		w, h := firstImage.Size()
-		bx0 = float32(0)
-		by0 = float32(0)
-		bx1 = float32(w)
-		by1 = float32(h)
-	}
-
 	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
 	for i, v := range vertices {
 		vs[i*graphics.VertexFloatNum] = v.DstX
 		vs[i*graphics.VertexFloatNum+1] = v.DstY
-		vs[i*graphics.VertexFloatNum+2] = v.SrcX - dx
-		vs[i*graphics.VertexFloatNum+3] = v.SrcY - dy
-		vs[i*graphics.VertexFloatNum+4] = bx0
-		vs[i*graphics.VertexFloatNum+5] = by0
-		vs[i*graphics.VertexFloatNum+6] = bx1
-		vs[i*graphics.VertexFloatNum+7] = by1
+		vs[i*graphics.VertexFloatNum+2] = v.SrcX
+		vs[i*graphics.VertexFloatNum+3] = v.SrcY
+		// TODO: Remove these values for the source region.
+		vs[i*graphics.VertexFloatNum+4] = 0
+		vs[i*graphics.VertexFloatNum+5] = 0
+		vs[i*graphics.VertexFloatNum+6] = 0
+		vs[i*graphics.VertexFloatNum+7] = 0
 		vs[i*graphics.VertexFloatNum+8] = v.ColorR
 		vs[i*graphics.VertexFloatNum+9] = v.ColorG
 		vs[i*graphics.VertexFloatNum+10] = v.ColorB
@@ -488,8 +419,6 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 		return nil
 	}
 
-	// TODO: Check that SubImage cannot be called on a screen image.
-
 	r = r.Intersect(i.Bounds())
 	// Need to check Empty explicitly. See the standard image package implementations.
 	if r.Empty() {
@@ -502,51 +431,15 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 		orig = i.original
 	}
 
-	if sub, ok := orig.subs[r]; ok {
-		return sub
-	}
-
-	// In the initial state, the image doesn't have its own pixels.
-	// Sync with its original image when necessary.
 	img := &Image{
+		buffered: i.buffered,
 		filter:   i.filter,
 		bounds:   r,
 		original: orig,
 	}
 	img.addr = img
-	orig.subs[img.Bounds()] = img
 
 	return img
-}
-
-func (i *Image) desyncSubImages() {
-	if i.isSubImage() {
-		panic("ebiten: desyncSubImages must be called on an original image")
-	}
-
-	for _, s := range i.subs {
-		if s.buffered == nil {
-			continue
-		}
-		s.buffered.MarkDisposed()
-		s.buffered = nil
-	}
-}
-
-func (i *Image) syncWithOriginalIfNeeded() error {
-	if !i.isSubImage() {
-		return nil
-	}
-	if i.buffered != nil {
-		return nil
-	}
-
-	x, y, width, height := i.bounds.Min.X, i.bounds.Min.Y, i.bounds.Dx(), i.bounds.Dy()
-	i.buffered = buffered.NewImage(width, height, false)
-	if err := i.buffered.CopyPixels(i.original.buffered, x, y, width, height); err != nil {
-		return err
-	}
-	return nil
 }
 
 // Bounds returns the bounds of the image.
@@ -571,7 +464,7 @@ func (i *Image) ColorModel() color.Model {
 // Note that important logic should not rely on values returned by At, since
 // the returned values can include very slight differences between some machines.
 //
-// At can't be called outside the main loop (ebiten.Run's updating function) starts (as of version 1.4.0-alpha).
+// At can't be called outside the main loop (ebiten.Run's updating function) starts (as of version 1.4.0).
 func (i *Image) At(x, y int) color.Color {
 	if i.isDisposed() {
 		return color.RGBA{}
@@ -579,11 +472,6 @@ func (i *Image) At(x, y int) color.Color {
 	if !image.Pt(x, y).In(i.Bounds()) {
 		return color.RGBA{}
 	}
-
-	if i.isSubImage() {
-		return i.original.At(x, y)
-	}
-
 	pix, err := i.buffered.Pixels(x, y, 1, 1)
 	if err != nil {
 		theUIContext.setError(err)
@@ -607,58 +495,37 @@ func (i *Image) Set(x, y int, clr color.Color) {
 	if !image.Pt(x, y).In(i.Bounds()) {
 		return
 	}
-
 	if i.isSubImage() {
-		i.original.Set(x, y, clr)
-		return
+		i = i.original
 	}
 
 	r, g, b, a := clr.RGBA()
 	pix := []byte{byte(r >> 8), byte(g >> 8), byte(b >> 8), byte(a >> 8)}
 	if err := i.buffered.ReplacePixels(pix, x, y, 1, 1); err != nil {
 		theUIContext.setError(err)
-		return
 	}
-	i.desyncSubImages()
 }
 
 // Dispose disposes the image data.
 // After disposing, most of image functions do nothing and returns meaningless values.
-//
-// If the callee is a sub-image, Dispose disposes only the callee.
-// If the callee is not a sub-image, Dispose also diposes all its related sub-images.
 //
 // Calling Dispose is not mandatory. GC automatically collects internal resources that no objects refer to.
 // However, calling Dispose explicitly is helpful if memory usage matters.
 //
 // When the image is disposed, Dipose does nothing.
 //
-// Dipose always return nil as of 1.5.0-alpha.
+// Dipose always return nil as of 1.5.0.
 func (i *Image) Dispose() error {
 	i.copyCheck()
 
 	if i.isDisposed() {
 		return nil
 	}
-
-	// Get the bound before the image is disposed.
-	b := i.Bounds()
-
-	if i.buffered != nil {
-		i.buffered.MarkDisposed()
-		i.buffered = nil
-	}
-	i.disposed = true
-
-	// If a sub-image is disposed, dispose only this image.
 	if i.isSubImage() {
-		delete(i.original.subs, b)
 		return nil
 	}
-
-	for _, s := range i.subs {
-		s.Dispose()
-	}
+	i.buffered.MarkDisposed()
+	i.buffered = nil
 	return nil
 }
 
@@ -673,37 +540,18 @@ func (i *Image) Dispose() error {
 //
 // When the image is disposed, ReplacePixels does nothing.
 //
-// ReplacePixels always returns nil as of 1.5.0-alpha.
+// ReplacePixels always returns nil as of 1.5.0.
 func (i *Image) ReplacePixels(pix []byte) error {
-	// TODO: This is not very efficient. Fix this.
-	if i.isSubImage() {
-		i.original.replacePixels(pix, i.Bounds().Min.X, i.Bounds().Min.Y, i.Bounds().Dx(), i.Bounds().Dy())
-		return nil
-	}
-
-	w, h := i.Size()
-	i.replacePixels(pix, 0, 0, w, h)
-	return nil
-}
-
-func (i *Image) replacePixels(pix []byte, x, y, width, height int) {
 	i.copyCheck()
 
 	if i.isDisposed() {
-		return
+		return nil
 	}
-	if i.isEmpty() {
-		return
-	}
-	if i.isSubImage() {
-		panic("ebiten: replacePixels must be called on an original image")
-	}
-
-	if err := i.buffered.ReplacePixels(pix, x, y, width, height); err != nil {
+	r := i.Bounds()
+	if err := i.buffered.ReplacePixels(pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
 		theUIContext.setError(err)
-		return
 	}
-	i.desyncSubImages()
+	return nil
 }
 
 // A DrawImageOptions represents options to render an image on an image.
@@ -724,7 +572,7 @@ type DrawImageOptions struct {
 	// The default (zero) value is FilterDefault.
 	//
 	// Filter can also be specified at NewImage* functions, but
-	// specifying filter at DrawImageOptions is recommended (as of 1.7.0-alpha).
+	// specifying filter at DrawImageOptions is recommended (as of 1.7.0).
 	//
 	// If both Filter specified at NewImage* and DrawImageOptions are FilterDefault,
 	// FilterNearest is used.
@@ -749,7 +597,7 @@ type DrawImageOptions struct {
 // filter argument is just for backward compatibility.
 // If you are not sure, specify FilterDefault.
 //
-// Error returned by NewImage is always nil as of 1.5.0-alpha.
+// Error returned by NewImage is always nil as of 1.5.0.
 func NewImage(width, height int, filter Filter) (*Image, error) {
 	return newImage(width, height, filter, false), nil
 }
@@ -759,7 +607,6 @@ func newImage(width, height int, filter Filter, volatile bool) *Image {
 		buffered: buffered.NewImage(width, height, volatile),
 		filter:   filter,
 		bounds:   image.Rect(0, 0, width, height),
-		subs:     map[image.Rectangle]*Image{},
 	}
 	i.addr = i
 	return i
@@ -772,7 +619,7 @@ func newImage(width, height int, filter Filter, volatile bool) *Image {
 // filter argument is just for backward compatibility.
 // If you are not sure, specify FilterDefault.
 //
-// Error returned by NewImageFromImage is always nil as of 1.5.0-alpha.
+// Error returned by NewImageFromImage is always nil as of 1.5.0.
 func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	size := source.Bounds().Size()
 
@@ -782,7 +629,6 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 		buffered: buffered.NewImage(width, height, false),
 		filter:   filter,
 		bounds:   image.Rect(0, 0, width, height),
-		subs:     map[image.Rectangle]*Image{},
 	}
 	i.addr = i
 

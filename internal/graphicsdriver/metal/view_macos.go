@@ -46,9 +46,6 @@ func (v *view) update() {
 }
 
 const (
-	// MTLTextureUsageRenderTarget might cause a problematic render result. Not sure the reason.
-	textureUsage = mtl.TextureUsageShaderRead
-
 	storageMode         = mtl.StorageModeManaged
 	resourceStorageMode = mtl.ResourceStorageModeManaged
 )
