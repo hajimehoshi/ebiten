@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"image"
 	_ "image/png"
-	"io"
 	"log"
 	"math"
 	"time"
@@ -157,7 +156,7 @@ func main() {
 // StereoPanStream is an audio buffer that changes the stereo channel's signal
 // based on the Panning.
 type StereoPanStream struct {
-	*bytes.Reader
+	audio.ReadSeekCloser
 	pan float64 // -1: left; 0: center; 1: right
 }
 
@@ -165,7 +164,7 @@ const sqrt2div2 = 0.7071067811865476 // math.sqrt(2)/2.0
 const rad45 = math.Pi / 4            // 45º
 
 func (s *StereoPanStream) Read(p []byte) (n int, err error) {
-	n, err = s.Reader.Read(p)
+	n, err = s.ReadSeekCloser.Read(p)
 	if err != nil {
 		return
 	}
@@ -187,10 +186,6 @@ func (s *StereoPanStream) Read(p []byte) (n int, err error) {
 	return
 }
 
-func (s *StereoPanStream) Close() error {
-	return nil
-}
-
 func (s *StereoPanStream) SetPan(pan float64) {
 	s.pan = math.Min(math.Max(-1, pan), 1)
 }
@@ -207,23 +202,18 @@ func (s *StereoPanStream) Pan() float64 {
 // The src can be shared by multiple buffers.
 func NewStereoPanStream(src []byte) *StereoPanStream {
 	return &StereoPanStream{
-		Reader: bytes.NewReader(src),
+		ReadSeekCloser: audio.BytesReadSeekCloser(src),
 	}
 }
 
 // NewStereoPanStreamFromReader returns a new StereoPanStream with a copied buffer src.
-// The buffer needs to be copied because the pan algorithm changes the wave
-// amplitude as the bytes are read.
 //
 // The src's format must be linear PCM (16bits little endian, 2 channel stereo)
 // without a header (e.g. RIFF header). The sample rate must be same as that
 // of the audio context.
 func NewStereoPanStreamFromReader(src audio.ReadSeekCloser) *StereoPanStream {
-	src.Seek(0, io.SeekStart)
-	buf := new(bytes.Buffer)
-	io.Copy(buf, src)
 	return &StereoPanStream{
-		Reader: bytes.NewReader(buf.Bytes()),
+		ReadSeekCloser: src,
 	}
 }
 
