@@ -172,7 +172,7 @@ func (s *StereoPanStream) Read(p []byte) (n int, err error) {
 		return
 	}
 
-	// This implementation uses a linear scale, for stereo or mono sounds.
+	// This implementation uses a linear scale, ranging from -1 to 1, for stereo or mono sounds.
 	// If pan = 0.0, the balance for the sound in each speaker is at 100% left and 100% right.
 	// When pan is -1.0, only the left channel of the stereo sound is audible, when pan is 1.0,
 	// only the right channel of the stereo sound is audible.
