@@ -166,20 +166,14 @@ type StereoPanStream struct {
 	pan float64 // -1: left; 0: center; 1: right
 }
 
-const sqrt2div2 = 1 / math.Sqrt2 // math.sqrt(2)/2.0
-const deg45 = math.Pi / 4        // 45º
-
 func (s *StereoPanStream) Read(p []byte) (n int, err error) {
 	n, err = s.ReadSeekCloser.Read(p)
 	if err != nil {
 		return
 	}
 
-	angle := deg45 * s.pan
-	acos := math.Cos(angle)
-	asin := math.Sin(angle)
-	ls := sqrt2div2 * (acos - asin)
-	rs := sqrt2div2 * (acos + asin)
+	ls := math.Min(s.pan*-1+1, 1)
+	rs := math.Min(s.pan+1, 1)
 	for i := 0; i < len(p); i += 4 {
 		lc := int16(float64(int16(p[i])|int16(p[i+1])<<8) * ls)
 		rc := int16(float64(int16(p[i+2])|int16(p[i+3])<<8) * rs)
