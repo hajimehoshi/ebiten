@@ -37,9 +37,6 @@ const (
 	screenWidth  = 320
 	screenHeight = 240
 	sampleRate   = 22050
-
-	introLengthInSecond = 5
-	loopLengthInSecond  = 4
 )
 
 var img *ebiten.Image
@@ -83,11 +80,7 @@ func (g *Game) initAudio() {
 	// Wrap the raw audio with the StereoPanStream
 	g.panstream = NewStereoPanStreamFromReader(oggS)
 
-	// Create an infinite loop stream from the decoded bytes.
-	// s is still an io.ReadCloser and io.Seeker.
-	s := audio.NewInfiniteLoopWithIntro(g.panstream, introLengthInSecond*4*sampleRate, loopLengthInSecond*4*sampleRate)
-
-	g.player, err = audio.NewPlayer(audioContext, s)
+	g.player, err = audio.NewPlayer(audioContext, g.panstream)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -119,10 +112,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	msg := fmt.Sprintf(`TPS: %0.2f
 This is an example using
 stereo audio panning.
-Intro:   0[s] - %[2]d[s]
-Loop:    %[2]d[s] - %[3]d[s]
-Current: %0.2[4]f[s]
-Panning: %.2f`, ebiten.CurrentTPS(), introLengthInSecond, introLengthInSecond+loopLengthInSecond, float64(pos)/float64(time.Second), g.panning)
+Current: %0.2f[s]
+Panning: %.2f`, ebiten.CurrentTPS(), float64(pos)/float64(time.Second), g.panning)
 	ebitenutil.DebugPrint(screen, msg)
 
 	// draw image to show where the sound is at related to the screen
