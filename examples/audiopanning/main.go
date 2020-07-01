@@ -64,8 +64,8 @@ type Game struct {
 	// 1: 0% left channel, 100% right channel
 	panning float64
 
-	r    float64
-	xpos float64
+	count int
+	xpos  float64
 }
 
 func (g *Game) initAudio() {
@@ -96,10 +96,16 @@ func (g *Game) initAudio() {
 	g.player.Play()
 }
 
+// time is whithin the 0 ... 1 range
+func lerp(a, b, t float64) float64 {
+	return a*(1-t) + b*t
+}
+
 func (g *Game) Update(screen *ebiten.Image) error {
 	g.initAudio()
-	g.r += ((1.0 / 60.0) * 2 * math.Pi) * 0.1 // full cycle every 10 seconds
-	g.xpos = (float64(screenWidth) / 2) + math.Cos(g.r)*(float64(screenWidth)/2)
+	g.count++
+	r := float64(g.count) * ((1.0 / 60.0) * 2 * math.Pi) * 0.1 // full cycle every 10 seconds
+	g.xpos = (float64(screenWidth) / 2) + math.Cos(r)*(float64(screenWidth)/2)
 	g.panning = lerp(-1, 1, g.xpos/float64(screenWidth))
 	g.panstream.SetPan(g.panning)
 	return nil
@@ -160,8 +166,8 @@ type StereoPanStream struct {
 	pan float64 // -1: left; 0: center; 1: right
 }
 
-const sqrt2div2 = 0.7071067811865476 // math.sqrt(2)/2.0
-const rad45 = math.Pi / 4            // 45º
+const sqrt2div2 = 1 / math.Sqrt2 // math.sqrt(2)/2.0
+const deg45 = math.Pi / 4        // 45º
 
 func (s *StereoPanStream) Read(p []byte) (n int, err error) {
 	n, err = s.ReadSeekCloser.Read(p)
@@ -169,7 +175,7 @@ func (s *StereoPanStream) Read(p []byte) (n int, err error) {
 		return
 	}
 
-	angle := rad45 * s.pan
+	angle := deg45 * s.pan
 	acos := math.Cos(angle)
 	asin := math.Sin(angle)
 	ls := sqrt2div2 * (acos - asin)
@@ -194,19 +200,7 @@ func (s *StereoPanStream) Pan() float64 {
 	return s.pan
 }
 
-// NewStereoPanStream returns a new StereoPanStream with a shared buffer src.
-// The src's format must be linear PCM (16bits little endian, 2 channel stereo)
-// without a header (e.g. RIFF header). The sample rate must be same as that
-// of the audio context.
-//
-// The src can be shared by multiple buffers.
-func NewStereoPanStream(src []byte) *StereoPanStream {
-	return &StereoPanStream{
-		ReadSeekCloser: audio.BytesReadSeekCloser(src),
-	}
-}
-
-// NewStereoPanStreamFromReader returns a new StereoPanStream with a copied buffer src.
+// NewStereoPanStreamFromReader returns a new StereoPanStream with a buffered src.
 //
 // The src's format must be linear PCM (16bits little endian, 2 channel stereo)
 // without a header (e.g. RIFF header). The sample rate must be same as that
@@ -215,8 +209,4 @@ func NewStereoPanStreamFromReader(src audio.ReadSeekCloser) *StereoPanStream {
 	return &StereoPanStream{
 		ReadSeekCloser: src,
 	}
-}
-
-func lerp(a, b, t float64) float64 {
-	return a*(1-t) + b*t
 }
