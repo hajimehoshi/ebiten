@@ -172,6 +172,11 @@ func (s *StereoPanStream) Read(p []byte) (n int, err error) {
 		return
 	}
 
+	// This implementation uses a linear scale, for stereo or mono sounds.
+	// If pan = 0.0, the balance for the sound in each speaker is at 100% left and 100% right.
+	// When pan is -1.0, only the left channel of the stereo sound is audible, when pan is 1.0,
+	// only the right channel of the stereo sound is audible.
+	// https://docs.unity3d.com/ScriptReference/AudioSource-panStereo.html
 	ls := math.Min(s.pan*-1+1, 1)
 	rs := math.Min(s.pan+1, 1)
 	for i := 0; i < len(p); i += 4 {
