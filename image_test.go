@@ -2161,3 +2161,47 @@ func TestImageColorMCopy(t *testing.T) {
 		}
 	}
 }
+
+// TODO: Do we have to guarantee this behavior? See #1222
+func TestImageReplacePixelsAndModifyPixels(t *testing.T) {
+	const w, h = 16, 16
+	dst, _ := NewImage(w, h, FilterDefault)
+	src, _ := NewImage(w, h, FilterDefault)
+
+	pix := make([]byte, 4*w*h)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			idx := 4 * (i + j*w)
+			pix[idx] = 0xff
+			pix[idx+1] = 0
+			pix[idx+2] = 0
+			pix[idx+3] = 0xff
+		}
+	}
+
+	src.ReplacePixels(pix)
+
+	// Modify pix after ReplacePixels
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			idx := 4 * (i + j*w)
+			pix[idx] = 0
+			pix[idx+1] = 0xff
+			pix[idx+2] = 0
+			pix[idx+3] = 0xff
+		}
+	}
+
+	// Ensure that src's pixels are actually used
+	dst.DrawImage(src, nil)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := src.At(i, j).(color.RGBA)
+			want := color.RGBA{0xff, 0, 0, 0xff}
+			if got != want {
+				t.Errorf("src.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
