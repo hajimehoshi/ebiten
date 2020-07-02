@@ -79,3 +79,50 @@ func TestColorMScaleOnly(t *testing.T) {
 		}
 	}
 }
+
+func TestColorMIsInvert(t *testing.T) {
+	m := &ColorM{}
+	m = m.SetElement(1, 0, .5)
+	m = m.SetElement(1, 1, .5)
+	m = m.SetElement(1, 2, .5)
+	m = m.SetElement(1, 3, .5)
+	m = m.SetElement(1, 4, .5)
+	cidentity := &ColorM{}
+	//
+	cinvalid := &ColorM{}
+	cinvalid = cinvalid.SetElement(0, 0, 0)
+	cinvalid = cinvalid.SetElement(1, 1, 0)
+	cinvalid = cinvalid.SetElement(2, 2, 0)
+	cinvalid = cinvalid.SetElement(3, 3, 0)
+	//
+	cases := []struct {
+		In  *ColorM
+		Out bool
+	}{
+		{
+			nil,
+			false,
+		},
+		{
+			cidentity,
+			true,
+		},
+		{
+			m,
+			true,
+		},
+		{
+			cinvalid,
+			false,
+		},
+	}
+	for _, c := range cases {
+		got := c.In.IsInvertible()
+		want := c.Out
+		if got != want {
+			t.Errorf("%v.IsInvertible(): got: %t, want: %t", c.In, got, want)
+		}
+	}
+	m.Invert()
+	m.IsInvertible()
+}
