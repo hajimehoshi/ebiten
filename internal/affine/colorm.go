@@ -240,7 +240,7 @@ func (c *ColorM) det() float32 {
 }
 
 // IsInvertible returns a boolean value indicating
-// whether the matrix g is invertible or not.
+// whether the matrix c is invertible or not.
 func (c *ColorM) IsInvertible() bool {
 	return c.det() != 0
 }
