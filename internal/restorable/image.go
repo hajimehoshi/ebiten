@@ -207,10 +207,10 @@ func NewScreenFramebufferImage(width, height int) *Image {
 // quadVertices returns vertices to render a quad. These values are passed to graphicscommand.Image.
 func quadVertices(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca float32) []float32 {
 	return []float32{
-		dx0, dy0, sx0, sy0, sx0, sy0, sx1, sy1, cr, cg, cb, ca,
-		dx1, dy0, sx1, sy0, sx0, sy0, sx1, sy1, cr, cg, cb, ca,
-		dx0, dy1, sx0, sy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca,
-		dx1, dy1, sx1, sy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca,
+		dx0, dy0, sx0, sy0, cr, cg, cb, ca,
+		dx1, dy0, sx1, sy0, cr, cg, cb, ca,
+		dx0, dy1, sx0, sy1, cr, cg, cb, ca,
+		dx1, dy1, sx1, sy1, cr, cg, cb, ca,
 	}
 }
 
@@ -357,18 +357,14 @@ func convertUniformVariables(uniforms []interface{}) []interface{} {
 //
 // The vertex floats are:
 //
-//   0:  Destination X in pixels
-//   1:  Destination Y in pixels
-//   2:  Source X in pixels (not texels!)
-//   3:  Source Y in pixels
-//   4:  Bounds of the source min X in pixels
-//   5:  Bounds of the source min Y in pixels
-//   6:  Bounds of the source max X in pixels
-//   7:  Bounds of the source max Y in pixels
-//   8:  Color R [0.0-1.0]
-//   9:  Color G
-//   10: Color B
-//   11: Color Y
+//   0: Destination X in pixels
+//   1: Destination Y in pixels
+//   2: Source X in pixels (not texels!)
+//   3: Source Y in pixels
+//   4: Color R [0.0-1.0]
+//   5: Color G
+//   6: Color B
+//   7: Color Y
 func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
 	if i.priority {
 		panic("restorable: DrawTriangles cannot be called on a priority image")

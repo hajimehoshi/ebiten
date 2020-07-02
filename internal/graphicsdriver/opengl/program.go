@@ -98,10 +98,6 @@ var theArrayBufferLayout = arrayBufferLayout{
 			num:  2,
 		},
 		{
-			name: "tex_region",
-			num:  4,
-		},
-		{
 			name: "color_scale",
 			num:  4,
 		},

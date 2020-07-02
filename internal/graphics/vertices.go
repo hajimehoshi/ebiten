@@ -16,7 +16,7 @@ package graphics
 
 const (
 	IndicesNum     = (1 << 16) / 3 * 3 // Adjust num for triangles.
-	VertexFloatNum = 12
+	VertexFloatNum = 8
 )
 
 var (

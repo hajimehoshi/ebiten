@@ -111,7 +111,6 @@ const (
 uniform vec2 viewport_size;
 attribute vec2 vertex;
 attribute vec2 tex;
-attribute vec4 tex_region;
 attribute vec4 color_scale;
 varying vec2 varying_tex;
 varying vec4 varying_color_scale;
@@ -164,14 +163,14 @@ highp float floorMod(highp float x, highp float y) {
   return x - y * floor(x/y);
 }
 
-highp vec2 adjustTexelByAddress(highp vec2 p, highp vec4 tex_region) {
+highp vec2 adjustTexelByAddress(highp vec2 p, highp vec4 source_region) {
 #if defined(ADDRESS_CLAMP_TO_ZERO)
   return p;
 #endif
 
 #if defined(ADDRESS_REPEAT)
-  highp vec2 o = vec2(tex_region[0], tex_region[1]);
-  highp vec2 size = vec2(tex_region[2] - tex_region[0], tex_region[3] - tex_region[1]);
+  highp vec2 o = vec2(source_region[0], source_region[1]);
+  highp vec2 size = vec2(source_region[2] - source_region[0], source_region[3] - source_region[1]);
   return vec2(floorMod((p.x - o.x), size.x) + o.x, floorMod((p.y - o.y), size.y) + o.y);
 #endif
 

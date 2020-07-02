@@ -309,30 +309,21 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		filter = driver.Filter(img.filter)
 	}
 
-	b := img.Bounds()
-	bx0 := float32(b.Min.X)
-	by0 := float32(b.Min.Y)
-	bx1 := float32(b.Max.X)
-	by1 := float32(b.Max.Y)
-
 	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
 	for i, v := range vertices {
 		vs[i*graphics.VertexFloatNum] = v.DstX
 		vs[i*graphics.VertexFloatNum+1] = v.DstY
 		vs[i*graphics.VertexFloatNum+2] = v.SrcX
 		vs[i*graphics.VertexFloatNum+3] = v.SrcY
-		vs[i*graphics.VertexFloatNum+4] = bx0
-		vs[i*graphics.VertexFloatNum+5] = by0
-		vs[i*graphics.VertexFloatNum+6] = bx1
-		vs[i*graphics.VertexFloatNum+7] = by1
-		vs[i*graphics.VertexFloatNum+8] = v.ColorR
-		vs[i*graphics.VertexFloatNum+9] = v.ColorG
-		vs[i*graphics.VertexFloatNum+10] = v.ColorB
-		vs[i*graphics.VertexFloatNum+11] = v.ColorA
+		vs[i*graphics.VertexFloatNum+4] = v.ColorR
+		vs[i*graphics.VertexFloatNum+5] = v.ColorG
+		vs[i*graphics.VertexFloatNum+6] = v.ColorB
+		vs[i*graphics.VertexFloatNum+7] = v.ColorA
 	}
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
+	b := img.Bounds()
 	sr := driver.Region{
 		X:      float32(b.Min.X),
 		Y:      float32(b.Min.Y),
@@ -396,15 +387,10 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 		vs[i*graphics.VertexFloatNum+1] = v.DstY
 		vs[i*graphics.VertexFloatNum+2] = v.SrcX
 		vs[i*graphics.VertexFloatNum+3] = v.SrcY
-		// TODO: Remove these values for the source region.
-		vs[i*graphics.VertexFloatNum+4] = 0
-		vs[i*graphics.VertexFloatNum+5] = 0
-		vs[i*graphics.VertexFloatNum+6] = 0
-		vs[i*graphics.VertexFloatNum+7] = 0
-		vs[i*graphics.VertexFloatNum+8] = v.ColorR
-		vs[i*graphics.VertexFloatNum+9] = v.ColorG
-		vs[i*graphics.VertexFloatNum+10] = v.ColorB
-		vs[i*graphics.VertexFloatNum+11] = v.ColorA
+		vs[i*graphics.VertexFloatNum+4] = v.ColorR
+		vs[i*graphics.VertexFloatNum+5] = v.ColorG
+		vs[i*graphics.VertexFloatNum+6] = v.ColorB
+		vs[i*graphics.VertexFloatNum+7] = v.ColorA
 	}
 	is := make([]uint16, len(indices))
 	copy(is, indices)

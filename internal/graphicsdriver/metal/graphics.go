@@ -60,7 +60,6 @@ using namespace metal;
 struct VertexIn {
   packed_float2 position;
   packed_float2 tex;
-  packed_float4 tex_region;
   packed_float4 color;
 };
 

@@ -232,10 +232,6 @@ func (q *commandQueue) Flush() error {
 			// Convert pixels to texels.
 			vs[i*graphics.VertexFloatNum+2] /= s.width
 			vs[i*graphics.VertexFloatNum+3] /= s.height
-			vs[i*graphics.VertexFloatNum+4] /= s.width
-			vs[i*graphics.VertexFloatNum+5] /= s.height
-			vs[i*graphics.VertexFloatNum+6] /= s.width
-			vs[i*graphics.VertexFloatNum+7] /= s.height
 
 			// Avoid the center of the pixel, which is problematic (#929, #1171).
 			// Instead, align the vertices with about 1/3 pixels.
@@ -263,10 +259,6 @@ func (q *commandQueue) Flush() error {
 			// Convert pixels to texels.
 			vs[i*graphics.VertexFloatNum+2] /= s.width
 			vs[i*graphics.VertexFloatNum+3] /= s.height
-			vs[i*graphics.VertexFloatNum+4] /= s.width
-			vs[i*graphics.VertexFloatNum+5] /= s.height
-			vs[i*graphics.VertexFloatNum+6] /= s.width
-			vs[i*graphics.VertexFloatNum+7] /= s.height
 		}
 	}
 

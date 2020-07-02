@@ -214,10 +214,10 @@ func (i *Image) ensureNotShared() {
 	sy1 := float32(oy + h)
 	newImg := restorable.NewImage(w, h, i.volatile)
 	vs := []float32{
-		dx0, dy0, sx0, sy0, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
-		dx1, dy0, sx1, sy0, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
-		dx0, dy1, sx0, sy1, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
-		dx1, dy1, sx1, sy1, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
+		dx0, dy0, sx0, sy0, 1, 1, 1, 1,
+		dx1, dy0, sx1, sy0, 1, 1, 1, 1,
+		dx0, dy1, sx0, sy1, 1, 1, 1, 1,
+		dx1, dy1, sx1, sy1, 1, 1, 1, 1,
 	}
 	is := graphics.QuadIndices()
 	newImg.DrawTriangles(i.backend.restorable, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
@@ -297,18 +297,14 @@ func makeSharedIfNeeded(src *Image) {
 //
 // The vertex floats are:
 //
-//   0:  Destination X in pixels
-//   1:  Destination Y in pixels
-//   2:  Source X in pixels (the upper-left is (0, 0))
-//   3:  Source Y in pixels
-//   4:  Bounds of the source min X in pixels
-//   5:  Bounds of the source min Y in pixels
-//   6:  Bounds of the source max X in pixels
-//   7:  Bounds of the source max Y in pixels
-//   8:  Color R [0.0-1.0]
-//   9:  Color G
-//   10: Color B
-//   11: Color Y
+//   0: Destination X in pixels
+//   1: Destination Y in pixels
+//   2: Source X in pixels (the upper-left is (0, 0))
+//   3: Source Y in pixels
+//   4: Color R [0.0-1.0]
+//   5: Color G
+//   6: Color B
+//   7: Color Y
 func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
 	backendsM.Lock()
 	// Do not use defer for performance.
@@ -350,10 +346,6 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 			vertices[i*graphics.VertexFloatNum+1] += dy
 			vertices[i*graphics.VertexFloatNum+2] += oxf
 			vertices[i*graphics.VertexFloatNum+3] += oyf
-			vertices[i*graphics.VertexFloatNum+4] += oxf
-			vertices[i*graphics.VertexFloatNum+5] += oyf
-			vertices[i*graphics.VertexFloatNum+6] += oxf
-			vertices[i*graphics.VertexFloatNum+7] += oyf
 		}
 		if address != driver.AddressUnsafe {
 			sourceRegion.X += oxf

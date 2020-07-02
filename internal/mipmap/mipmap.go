@@ -178,10 +178,10 @@ func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16
 		colorm = nil
 		const n = graphics.VertexFloatNum
 		for i := 0; i < len(vertices)/n; i++ {
-			vertices[i*n+8] *= cr
-			vertices[i*n+9] *= cg
-			vertices[i*n+10] *= cb
-			vertices[i*n+11] *= ca
+			vertices[i*n+4] *= cr
+			vertices[i*n+5] *= cg
+			vertices[i*n+6] *= cb
+			vertices[i*n+7] *= ca
 		}
 	}
 

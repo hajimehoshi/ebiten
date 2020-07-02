@@ -30,10 +30,10 @@ func TestMain(m *testing.M) {
 
 func quadVertices(w, h float32) []float32 {
 	return []float32{
-		0, 0, 0, 0, 0, 0, w, h, 1, 1, 1, 1,
-		w, 0, w, 0, 0, 0, w, h, 1, 1, 1, 1,
-		0, w, 0, h, 0, 0, w, h, 1, 1, 1, 1,
-		w, h, w, h, 0, 0, w, h, 1, 1, 1, 1,
+		0, 0, 0, 0, 1, 1, 1, 1,
+		w, 0, w, 0, 1, 1, 1, 1,
+		0, w, 0, h, 1, 1, 1, 1,
+		w, h, w, h, 1, 1, 1, 1,
 	}
 }
 
