@@ -234,6 +234,9 @@ const (
 
 	// AddressRepeat means that texture coordinates wrap to the other side of the texture.
 	AddressRepeat Address = Address(driver.AddressRepeat)
+
+	// AddressUnsafe means there is no guarantee when the texture coodinates are out of range.
+	AddressUnsafe Address = Address(driver.AddressUnsafe)
 )
 
 // DrawTrianglesOptions represents options to render triangles on an image.
@@ -323,12 +326,15 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
-	b := img.Bounds()
-	sr := driver.Region{
-		X:      float32(b.Min.X),
-		Y:      float32(b.Min.Y),
-		Width:  float32(b.Dx()),
-		Height: float32(b.Dy()),
+	var sr driver.Region
+	if options.Address != AddressUnsafe {
+		b := img.Bounds()
+		sr = driver.Region{
+			X:      float32(b.Min.X),
+			Y:      float32(b.Min.Y),
+			Width:  float32(b.Dx()),
+			Height: float32(b.Dy()),
+		}
 	}
 
 	i.buffered.DrawTriangles(img.buffered, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), sr, nil, nil)

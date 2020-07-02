@@ -121,6 +121,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawTrianglesOptions{}
+	op.Address = ebiten.AddressUnsafe
 	indices := []uint16{}
 	for i := 0; i < g.ngon; i++ {
 		indices = append(indices, uint16(i), uint16(i+1)%uint16(g.ngon), uint16(g.ngon))
