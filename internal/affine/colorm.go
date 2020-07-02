@@ -362,31 +362,31 @@ func (c *ColorM) Invert() {
 	c.body[1] = det * -(m01*b234234 - m02*b134234 + m03*b124234 - m04*b123234)
 	c.body[2] = det * (m01*b234134 - m02*b134134 + m03*b124134 - m04*b123134)
 	c.body[3] = det * -(m01*b234124 - m02*b134124 + m03*b124124 - m04*b123124)
-	// the fifth row is discarded because it's not used by colorm:
+	// the fifth column is discarded because it's not used by colorm:
 	// xm04 = det *   ( m01 * b234123 - m02 * b134123 + m03 * b124123 - m04 * b123123 )
 	c.body[4] = det * -(m10*b234234 - m12*b034234 + m13*b024234 - m14*b023234)
 	c.body[5] = det * (m00*b234234 - m02*b034234 + m03*b024234 - m04*b023234)
 	c.body[6] = det * -(m00*b234134 - m02*b034134 + m03*b024134 - m04*b023134)
 	c.body[7] = det * (m00*b234124 - m02*b034124 + m03*b024124 - m04*b023124)
-	// the fifth row is discarded because it's not used by colorm:
+	// the fifth column is discarded because it's not used by colorm:
 	// xm14 = det * - ( m00 * b234123 - m02 * b034123 + m03 * b024123 - m04 * b023123 )
 	c.body[8] = det * (m10*b134234 - m11*b034234 + m13*b014234 - m14*b013234)
 	c.body[9] = det * -(m00*b134234 - m01*b034234 + m03*b014234 - m04*b013234)
 	c.body[10] = det * (m00*b134134 - m01*b034134 + m03*b014134 - m04*b013134)
 	c.body[11] = det * -(m00*b134124 - m01*b034124 + m03*b014124 - m04*b013124)
-	// the fifth row is discarded because it's not used by colorm:
+	// the fifth column is discarded because it's not used by colorm:
 	// xm24 = det *   ( m00 * b134123 - m01 * b034123 + m03 * b014123 - m04 * b013123 )
 	c.body[12] = det * -(m10*b124234 - m11*b024234 + m12*b014234 - m14*b012234)
 	c.body[13] = det * (m00*b124234 - m01*b024234 + m02*b014234 - m04*b012234)
 	c.body[14] = det * -(m00*b124134 - m01*b024134 + m02*b014134 - m04*b012134)
 	c.body[15] = det * (m00*b124124 - m01*b024124 + m02*b014124 - m04*b012124)
-	// the fifth row is discarded because it's not used by colorm:
+	// the fifth column is discarded because it's not used by colorm:
 	// xm34 = det * - ( m00 * b124123 - m01 * b024123 + m02 * b014123 - m04 * b012123 )
 	c.translate[0] = det * (m10*b123234 - m11*b023234 + m12*b013234 - m13*b012234)
 	c.translate[1] = det * -(m00*b123234 - m01*b023234 + m02*b013234 - m03*b012234)
 	c.translate[2] = det * (m00*b123134 - m01*b023134 + m02*b013134 - m03*b012134)
 	c.translate[3] = det * -(m00*b123124 - m01*b023124 + m02*b013124 - m03*b012124)
-	// the fifth row is discarded because it's not used by colorm:
+	// the fifth column is discarded because it's not used by colorm:
 	// xm44 = det *   ( m00 * b123123 - m01 * b023123 + m02 * b013123 - m03 * b012123 )
 }
 
