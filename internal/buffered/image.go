@@ -192,8 +192,10 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
 	}
 
 	if maybeCanAddDelayedCommand() {
+		copied := make([]byte, len(pix))
+		copy(copied, pix)
 		if tryAddDelayedCommand(func() error {
-			i.ReplacePixels(pix, x, y, width, height)
+			i.ReplacePixels(copied, x, y, width, height)
 			return nil
 		}) {
 			return nil

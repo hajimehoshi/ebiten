@@ -20,17 +20,20 @@ import (
 	"image/draw"
 )
 
-// copyImage copies img to a new RGBA image.
+// imageToBytes gets RGBA bytes from img.
 //
-// Basically copyImage just calls draw.Draw.
+// Basically imageToBytes just calls draw.Draw.
 // If img is a paletted image, an optimized copying method is used.
-func copyImage(img image.Image) []byte {
+//
+// If img is *image.RGBA and its length is same as 4*width*height, imageToBytes returns its Pix.
+func imageToBytes(img image.Image) []byte {
 	size := img.Bounds().Size()
 	w, h := size.X, size.Y
-	bs := make([]byte, 4*w*h)
 
 	switch img := img.(type) {
 	case *image.Paletted:
+		bs := make([]byte, 4*w*h)
+
 		b := img.Bounds()
 		x0 := b.Min.X
 		y0 := b.Min.Y
@@ -61,13 +64,27 @@ func copyImage(img image.Image) []byte {
 			}
 			idx0 += d
 		}
-	default:
-		dstImg := &image.RGBA{
-			Pix:    bs,
-			Stride: 4 * w,
-			Rect:   image.Rect(0, 0, w, h),
+		return bs
+	case *image.RGBA:
+		if len(img.Pix) == 4*w*h {
+			return img.Pix
 		}
-		draw.Draw(dstImg, image.Rect(0, 0, w, h), img, img.Bounds().Min, draw.Src)
+		return imageToBytesSlow(img)
+	default:
+		return imageToBytesSlow(img)
 	}
+}
+
+func imageToBytesSlow(img image.Image) []byte {
+	size := img.Bounds().Size()
+	w, h := size.X, size.Y
+	bs := make([]byte, 4*w*h)
+
+	dstImg := &image.RGBA{
+		Pix:    bs,
+		Stride: 4 * w,
+		Rect:   image.Rect(0, 0, w, h),
+	}
+	draw.Draw(dstImg, image.Rect(0, 0, w, h), img, img.Bounds().Min, draw.Src)
 	return bs
 }

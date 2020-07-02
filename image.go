@@ -540,7 +540,7 @@ func (i *Image) Dispose() error {
 // When the image is disposed, ReplacePixels does nothing.
 //
 // ReplacePixels always returns nil as of 1.5.0.
-func (i *Image) ReplacePixels(pix []byte) error {
+func (i *Image) ReplacePixels(pixels []byte) error {
 	i.copyCheck()
 
 	if i.isDisposed() {
@@ -548,12 +548,10 @@ func (i *Image) ReplacePixels(pix []byte) error {
 	}
 	r := i.Bounds()
 
-	// Copy the pixels as restorable package might reuse the pixels later.
-	// TODO: Would it be possible to avoid copying? (#1222)
-	copied := make([]byte, len(pix))
-	copy(copied, pix)
-
-	if err := i.buffered.ReplacePixels(copied, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
+	// Do not need to copy pixels here.
+	// * In internal/buffered, pixels are copied when necessary.
+	// * In internal/shareable, pixels are copied to make its paddings.
+	if err := i.buffered.ReplacePixels(pixels, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
 		theUIContext.setError(err)
 	}
 	return nil
@@ -637,10 +635,7 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	}
 	i.addr = i
 
-	// Call (*buffered.Image).ReplacePixels directly to avoid copying.
-	if err := i.buffered.ReplacePixels(copyImage(source), 0, 0, width, height); err != nil {
-		theUIContext.setError(err)
-	}
+	i.ReplacePixels(imageToBytes(source))
 	return i, nil
 }
 
