@@ -123,6 +123,4 @@ func TestColorMIsInvert(t *testing.T) {
 			t.Errorf("%v.IsInvertible(): got: %t, want: %t", c.In, got, want)
 		}
 	}
-	m.Invert()
-	m.IsInvertible()
 }
