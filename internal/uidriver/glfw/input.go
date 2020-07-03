@@ -74,9 +74,6 @@ func (i *Input) GamepadIDs() []int {
 	}
 	var r []int
 	_ = i.ui.t.Call(func() error {
-		if len(i.gamepads) == 0 {
-			return nil
-		}
 		for id, g := range i.gamepads {
 			if g.valid {
 				r = append(r, id)
