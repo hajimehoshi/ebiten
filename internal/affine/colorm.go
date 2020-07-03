@@ -217,7 +217,7 @@ func (c *ColorM) Invert() *ColorM {
 
 	det := c.det()
 	if det == 0 {
-		panic("ebiten: c is not invertible")
+		panic("affine: c is not invertible")
 	}
 
 	m00 := c.body[0]
