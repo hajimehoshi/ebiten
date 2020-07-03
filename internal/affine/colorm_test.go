@@ -88,14 +88,14 @@ func TestColorMIsInvertible(t *testing.T) {
 	m = m.SetElement(1, 2, .5)
 	m = m.SetElement(1, 3, .5)
 	m = m.SetElement(1, 4, .5)
+
 	cidentity := &ColorM{}
-	//
 	cinvalid := &ColorM{}
 	cinvalid = cinvalid.SetElement(0, 0, 0)
 	cinvalid = cinvalid.SetElement(1, 1, 0)
 	cinvalid = cinvalid.SetElement(2, 2, 0)
 	cinvalid = cinvalid.SetElement(3, 3, 0)
-	//
+
 	cases := []struct {
 		In  *ColorM
 		Out bool
@@ -126,66 +126,64 @@ func TestColorMIsInvertible(t *testing.T) {
 	}
 }
 
+func arrayToColorM(es [4][5]float32) *ColorM {
+	var a = &ColorM{}
+	for j := 0; j < 5; j++ {
+		for i := 0; i < 4; i++ {
+			a = a.SetElement(i, j, es[i][j])
+		}
+	}
+	return a
+}
+
 func TestColorMInvert(t *testing.T) {
-	var m [5][4]float32
-
-	m = [5][4]float32{
-		{1, 8, -9, 7},
-		{0, 1, 0, 4},
-		{0, 0, 1, 2},
-		{0, 0, 0, 1},
-		{0, 0, 0, 0},
+	cases := []struct {
+		In  *ColorM
+		Out *ColorM
+	}{
+		{
+			In:  nil,
+			Out: nil,
+		},
+		{
+			In: arrayToColorM([4][5]float32{
+				{1, 0, 0, 0, 0},
+				{8, 1, 0, 0, 0},
+				{-9, 0, 1, 0, 0},
+				{7, 4, 2, 1, 0},
+			}),
+			Out: arrayToColorM([4][5]float32{
+				{1, 0, 0, 0, 0},
+				{-8, 1, 0, 0, 0},
+				{9, 0, 1, 0, 0},
+				{7, -4, -2, 1, 0},
+			}),
+		},
 	}
-	a := &ColorM{}
-	for j := 0; j < 5; j++ {
-		for i := 0; i < 4; i++ {
-			a = a.SetElement(i, j, m[j][i])
+
+	for _, c := range cases {
+		if got, want := c.In.Invert(), c.Out; !got.Equals(want) {
+			t.Errorf("got: %v, want: %v", got, want)
 		}
-	}
-
-	m = [5][4]float32{
-		{1, -8, 9, 7},
-		{0, 1, 0, -4},
-		{0, 0, 1, -2},
-		{0, 0, 0, 1},
-		{0, 0, 0, 0},
-	}
-	ia := &ColorM{}
-	for j := 0; j < 5; j++ {
-		for i := 0; i < 4; i++ {
-			ia = ia.SetElement(i, j, m[j][i])
-		}
-	}
-
-	ia2 := a.Invert()
-	if !ia.Equals(ia2) {
-		t.Fail()
 	}
 }
 
 func BenchmarkColorMInvert(b *testing.B) {
+	r := rand.Float32
+
 	b.StopTimer()
-	m := &ColorM{}
-	m = m.SetElement(1, 0, rand.Float32())
-	m = m.SetElement(2, 0, rand.Float32())
-	m = m.SetElement(3, 0, rand.Float32())
-	m = m.SetElement(0, 1, rand.Float32())
-	m = m.SetElement(2, 1, rand.Float32())
-	m = m.SetElement(3, 1, rand.Float32())
-	m = m.SetElement(0, 2, rand.Float32())
-	m = m.SetElement(1, 2, rand.Float32())
-	m = m.SetElement(3, 2, rand.Float32())
-	m = m.SetElement(0, 3, rand.Float32())
-	m = m.SetElement(1, 3, rand.Float32())
-	m = m.SetElement(2, 3, rand.Float32())
-	m = m.SetElement(0, 4, rand.Float32()*10)
-	m = m.SetElement(1, 4, rand.Float32()*10)
-	m = m.SetElement(2, 4, rand.Float32()*10)
-	m = m.SetElement(3, 4, rand.Float32()*10)
+	var m *ColorM
+	for m == nil || !m.IsInvertible() {
+		m = arrayToColorM([4][5]float32{
+			{r(), r(), r(), r(), r() * 10},
+			{r(), r(), r(), r(), r() * 10},
+			{r(), r(), r(), r(), r() * 10},
+			{r(), r(), r(), r(), r() * 10},
+		})
+	}
 	b.StartTimer()
+
 	for i := 0; i < b.N; i++ {
-		if m.IsInvertible() {
-			m = m.Invert()
-		}
+		m = m.Invert()
 	}
 }
