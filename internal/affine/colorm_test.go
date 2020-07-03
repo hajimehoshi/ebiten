@@ -127,17 +127,35 @@ func TestColorMIsInvertible(t *testing.T) {
 }
 
 func TestColorMInvert(t *testing.T) {
-	a := (&ColorM{}).SetElement(0, 0, 1).SetElement(1, 0, 8).SetElement(2, 0, -9).SetElement(3, 0, 7)
-	a = a.SetElement(0, 1, 0).SetElement(1, 1, 1).SetElement(2, 1, 0).SetElement(3, 1, 4)
-	a = a.SetElement(0, 2, 0).SetElement(1, 2, 0).SetElement(2, 2, 1).SetElement(3, 2, 2)
-	a = a.SetElement(0, 3, 0).SetElement(1, 3, 0).SetElement(2, 3, 0).SetElement(3, 3, 1)
-	a = a.SetElement(0, 4, 0).SetElement(1, 4, 0).SetElement(2, 4, 0).SetElement(3, 4, 0)
+	var m [5][4]float32
 
-	ia := (&ColorM{}).SetElement(0, 0, 1).SetElement(1, 0, -8).SetElement(2, 0, 9).SetElement(3, 0, 7)
-	ia = ia.SetElement(0, 1, 0).SetElement(1, 1, 1).SetElement(2, 1, 0).SetElement(3, 1, -4)
-	ia = ia.SetElement(0, 2, 0).SetElement(1, 2, 0).SetElement(2, 2, 1).SetElement(3, 2, -2)
-	ia = ia.SetElement(0, 3, 0).SetElement(1, 3, 0).SetElement(2, 3, 0).SetElement(3, 3, 1)
-	ia = ia.SetElement(0, 4, 0).SetElement(1, 4, 0).SetElement(2, 4, 0).SetElement(3, 4, 0)
+	m = [5][4]float32{
+		{1, 8, -9, 7},
+		{0, 1, 0, 4},
+		{0, 0, 1, 2},
+		{0, 0, 0, 1},
+		{0, 0, 0, 0},
+	}
+	a := &ColorM{}
+	for j := 0; j < 5; j++ {
+		for i := 0; i < 4; i++ {
+			a = a.SetElement(i, j, m[j][i])
+		}
+	}
+
+	m = [5][4]float32{
+		{1, -8, 9, 7},
+		{0, 1, 0, -4},
+		{0, 0, 1, -2},
+		{0, 0, 0, 1},
+		{0, 0, 0, 0},
+	}
+	ia := &ColorM{}
+	for j := 0; j < 5; j++ {
+		for i := 0; i < 4; i++ {
+			ia = ia.SetElement(i, j, m[j][i])
+		}
+	}
 
 	ia2 := a.Invert()
 	if !ia.Equals(ia2) {
