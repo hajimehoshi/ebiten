@@ -167,7 +167,7 @@ func (c *ColorM) UnsafeElements() ([]float32, []float32) {
 	return eb, et
 }
 
-func (c *ColorM) det() float32 {
+func (c *ColorM) det4x4() float32 {
 	if !c.isInited() {
 		return 1
 	}
@@ -205,7 +205,7 @@ func (c *ColorM) det() float32 {
 // IsInvertible returns a boolean value indicating
 // whether the matrix c is invertible or not.
 func (c *ColorM) IsInvertible() bool {
-	return c.det() != 0
+	return c.det4x4() != 0
 }
 
 // Invert inverts the matrix.
@@ -215,7 +215,7 @@ func (c *ColorM) Invert() *ColorM {
 		return nil
 	}
 
-	det := c.det()
+	det := c.det4x4()
 	if det == 0 {
 		panic("affine: c is not invertible")
 	}
