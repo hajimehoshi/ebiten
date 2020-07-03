@@ -136,6 +136,26 @@ func arrayToColorM(es [4][5]float32) *ColorM {
 	return a
 }
 
+func abs(x float32) float32 {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+func equalWithDelta(a, b *ColorM, delta float32) bool {
+	for j := 0; j < 5; j++ {
+		for i := 0; i < 4; i++ {
+			ea := a.Element(i, j)
+			eb := b.Element(i, j)
+			if abs(ea-eb) > delta {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func TestColorMInvert(t *testing.T) {
 	cases := []struct {
 		In  *ColorM
@@ -159,10 +179,24 @@ func TestColorMInvert(t *testing.T) {
 				{7, -4, -2, 1, 0},
 			}),
 		},
+		{
+			In: arrayToColorM([4][5]float32{
+				{1, 2, 3, 4, 5},
+				{5, 1, 2, 3, 4},
+				{4, 5, 1, 2, 3},
+				{3, 4, 5, 1, 2},
+			}),
+			Out: arrayToColorM([4][5]float32{
+				{-6 / 35.0, 3 / 14.0, 1 / 70.0, 1 / 70.0, -1 / 14.0},
+				{1 / 35.0, -13 / 70.0, 3 / 14.0, 1 / 70.0, -1 / 14.0},
+				{1 / 35.0, 1 / 70.0, -13 / 70.0, 3 / 14.0, -1 / 14.0},
+				{9 / 35.0, 1 / 35.0, 1 / 35.0, -6 / 35.0, -8 / 7.0},
+			}),
+		},
 	}
 
 	for _, c := range cases {
-		if got, want := c.In.Invert(), c.Out; !got.Equals(want) {
+		if got, want := c.In.Invert(), c.Out; !equalWithDelta(got, want, 1e-6) {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
 	}

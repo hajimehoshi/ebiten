@@ -319,6 +319,15 @@ func (c *ColorM) Invert() *ColorM {
 	return m
 }
 
+// Element returns a value of a matrix at (i, j).
+func (c *ColorM) Element(i, j int) float32 {
+	b, t := c.UnsafeElements()
+	if j < ColorMDim-1 {
+		return b[i+j*(ColorMDim-1)]
+	}
+	return t[i]
+}
+
 // SetElement sets an element at (i, j).
 func (c *ColorM) SetElement(i, j int, element float32) *ColorM {
 	newC := &ColorM{
