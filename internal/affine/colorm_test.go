@@ -16,6 +16,7 @@ package affine_test
 
 import (
 	"math"
+	"math/rand"
 	"testing"
 
 	. "github.com/hajimehoshi/ebiten/internal/affine"
@@ -76,6 +77,115 @@ func TestColorMScaleOnly(t *testing.T) {
 		want := c.Out
 		if got != want {
 			t.Errorf("%v.ScaleOnly(): got: %t, want: %t", c.In, got, want)
+		}
+	}
+}
+
+func TestColorMIsInvertible(t *testing.T) {
+	m := &ColorM{}
+	m = m.SetElement(1, 0, .5)
+	m = m.SetElement(1, 1, .5)
+	m = m.SetElement(1, 2, .5)
+	m = m.SetElement(1, 3, .5)
+	m = m.SetElement(1, 4, .5)
+	cidentity := &ColorM{}
+	//
+	cinvalid := &ColorM{}
+	cinvalid = cinvalid.SetElement(0, 0, 0)
+	cinvalid = cinvalid.SetElement(1, 1, 0)
+	cinvalid = cinvalid.SetElement(2, 2, 0)
+	cinvalid = cinvalid.SetElement(3, 3, 0)
+	//
+	cases := []struct {
+		In  *ColorM
+		Out bool
+	}{
+		{
+			nil,
+			true,
+		},
+		{
+			cidentity,
+			true,
+		},
+		{
+			m,
+			true,
+		},
+		{
+			cinvalid,
+			false,
+		},
+	}
+	for _, c := range cases {
+		got := c.In.IsInvertible()
+		want := c.Out
+		if got != want {
+			t.Errorf("%v.IsInvertible(): got: %t, want: %t", c.In, got, want)
+		}
+	}
+}
+
+func TestColorMInvert(t *testing.T) {
+	var m [5][4]float32
+
+	m = [5][4]float32{
+		{1, 8, -9, 7},
+		{0, 1, 0, 4},
+		{0, 0, 1, 2},
+		{0, 0, 0, 1},
+		{0, 0, 0, 0},
+	}
+	a := &ColorM{}
+	for j := 0; j < 5; j++ {
+		for i := 0; i < 4; i++ {
+			a = a.SetElement(i, j, m[j][i])
+		}
+	}
+
+	m = [5][4]float32{
+		{1, -8, 9, 7},
+		{0, 1, 0, -4},
+		{0, 0, 1, -2},
+		{0, 0, 0, 1},
+		{0, 0, 0, 0},
+	}
+	ia := &ColorM{}
+	for j := 0; j < 5; j++ {
+		for i := 0; i < 4; i++ {
+			ia = ia.SetElement(i, j, m[j][i])
+		}
+	}
+
+	ia2 := a.Invert()
+	if !ia.Equals(ia2) {
+		t.Fail()
+	}
+}
+
+func BenchmarkColorMInvert(b *testing.B) {
+	b.StopTimer()
+	m := &ColorM{}
+	m = m.SetElement(1, 0, rand.Float32())
+	m = m.SetElement(2, 0, rand.Float32())
+	m = m.SetElement(3, 0, rand.Float32())
+	m = m.SetElement(0, 1, rand.Float32())
+	m = m.SetElement(2, 1, rand.Float32())
+	m = m.SetElement(3, 1, rand.Float32())
+	m = m.SetElement(0, 2, rand.Float32())
+	m = m.SetElement(1, 2, rand.Float32())
+	m = m.SetElement(3, 2, rand.Float32())
+	m = m.SetElement(0, 3, rand.Float32())
+	m = m.SetElement(1, 3, rand.Float32())
+	m = m.SetElement(2, 3, rand.Float32())
+	m = m.SetElement(0, 4, rand.Float32()*10)
+	m = m.SetElement(1, 4, rand.Float32()*10)
+	m = m.SetElement(2, 4, rand.Float32()*10)
+	m = m.SetElement(3, 4, rand.Float32()*10)
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		if m.IsInvertible() {
+			m = m.Invert()
 		}
 	}
 }
