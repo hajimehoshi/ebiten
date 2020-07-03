@@ -179,20 +179,20 @@ func (g *GeoM) Skew(skewX, skewY float64) {
 	g.ty = ty
 }
 
-func (g *GeoM) det() float64 {
+func (g *GeoM) det2x2() float64 {
 	return (g.a_1+1)*(g.d_1+1) - g.b*g.c
 }
 
 // IsInvertible returns a boolean value indicating
 // whether the matrix g is invertible or not.
 func (g *GeoM) IsInvertible() bool {
-	return g.det() != 0
+	return g.det2x2() != 0
 }
 
 // Invert inverts the matrix.
 // If g is not invertible, Invert panics.
 func (g *GeoM) Invert() {
-	det := g.det()
+	det := g.det2x2()
 	if det == 0 {
 		panic("ebiten: g is not invertible")
 	}
