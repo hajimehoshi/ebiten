@@ -16,6 +16,7 @@ package affine_test
 
 import (
 	"math"
+	"math/rand"
 	"testing"
 
 	. "github.com/hajimehoshi/ebiten/internal/affine"
@@ -121,6 +122,33 @@ func TestColorMIsInvert(t *testing.T) {
 		want := c.Out
 		if got != want {
 			t.Errorf("%v.IsInvertible(): got: %t, want: %t", c.In, got, want)
+		}
+	}
+}
+
+func BenchmarkColorMInvert(b *testing.B) {
+	b.StopTimer()
+	m := &ColorM{}
+	m = m.SetElement(1, 0, rand.Float32())
+	m = m.SetElement(2, 0, rand.Float32())
+	m = m.SetElement(3, 0, rand.Float32())
+	m = m.SetElement(0, 1, rand.Float32())
+	m = m.SetElement(2, 1, rand.Float32())
+	m = m.SetElement(3, 1, rand.Float32())
+	m = m.SetElement(0, 2, rand.Float32())
+	m = m.SetElement(1, 2, rand.Float32())
+	m = m.SetElement(3, 2, rand.Float32())
+	m = m.SetElement(0, 3, rand.Float32())
+	m = m.SetElement(1, 3, rand.Float32())
+	m = m.SetElement(2, 3, rand.Float32())
+	m = m.SetElement(0, 4, rand.Float32()*10)
+	m = m.SetElement(1, 4, rand.Float32()*10)
+	m = m.SetElement(2, 4, rand.Float32()*10)
+	m = m.SetElement(3, 4, rand.Float32()*10)
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		if m.IsInvertible() {
+			m = m.Invert()
 		}
 	}
 }
