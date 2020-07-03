@@ -125,7 +125,7 @@ func (c *ColorM) IsInvertible() bool {
 // Invert inverts the matrix.
 // If c is not invertible, Invert panics.
 func (c *ColorM) Invert() {
-	c.impl.Invert()
+	c.impl = c.impl.Invert()
 }
 
 // Monochrome returns a color matrix for monochrome.
