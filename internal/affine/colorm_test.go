@@ -81,7 +81,7 @@ func TestColorMScaleOnly(t *testing.T) {
 	}
 }
 
-func TestColorMIsInvert(t *testing.T) {
+func TestColorMIsInvertible(t *testing.T) {
 	m := &ColorM{}
 	m = m.SetElement(1, 0, .5)
 	m = m.SetElement(1, 1, .5)
@@ -123,6 +123,25 @@ func TestColorMIsInvert(t *testing.T) {
 		if got != want {
 			t.Errorf("%v.IsInvertible(): got: %t, want: %t", c.In, got, want)
 		}
+	}
+}
+
+func TestColorMInvert(t *testing.T) {
+	a := (&ColorM{}).SetElement(0, 0, 1).SetElement(1, 0, 8).SetElement(2, 0, -9).SetElement(3, 0, 7)
+	a = a.SetElement(0, 1, 0).SetElement(1, 1, 1).SetElement(2, 1, 0).SetElement(3, 1, 4)
+	a = a.SetElement(0, 2, 0).SetElement(1, 2, 0).SetElement(2, 2, 1).SetElement(3, 2, 2)
+	a = a.SetElement(0, 3, 0).SetElement(1, 3, 0).SetElement(2, 3, 0).SetElement(3, 3, 1)
+	a = a.SetElement(0, 4, 0).SetElement(1, 4, 0).SetElement(2, 4, 0).SetElement(3, 4, 0)
+
+	ia := (&ColorM{}).SetElement(0, 0, 1).SetElement(1, 0, -8).SetElement(2, 0, 9).SetElement(3, 0, 7)
+	ia = ia.SetElement(0, 1, 0).SetElement(1, 1, 1).SetElement(2, 1, 0).SetElement(3, 1, -4)
+	ia = ia.SetElement(0, 2, 0).SetElement(1, 2, 0).SetElement(2, 2, 1).SetElement(3, 2, -2)
+	ia = ia.SetElement(0, 3, 0).SetElement(1, 3, 0).SetElement(2, 3, 0).SetElement(3, 3, 1)
+	ia = ia.SetElement(0, 4, 0).SetElement(1, 4, 0).SetElement(2, 4, 0).SetElement(3, 4, 0)
+
+	ia2 := a.Invert()
+	if !ia.Equals(ia2) {
+		t.Fail()
 	}
 }
 
