@@ -101,7 +101,7 @@ func TestColorMIsInvert(t *testing.T) {
 	}{
 		{
 			nil,
-			false,
+			true,
 		},
 		{
 			cidentity,

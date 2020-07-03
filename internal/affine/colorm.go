@@ -176,60 +176,34 @@ func (c *ColorM) det() float32 {
 	m01 := c.body[1]
 	m02 := c.body[2]
 	m03 := c.body[3]
-	m04 := float32(0)
 	m10 := c.body[4]
 	m11 := c.body[5]
 	m12 := c.body[6]
 	m13 := c.body[7]
-	m14 := float32(0)
 	m20 := c.body[8]
 	m21 := c.body[9]
 	m22 := c.body[10]
 	m23 := c.body[11]
-	m24 := float32(0)
 	m30 := c.body[12]
 	m31 := c.body[13]
 	m32 := c.body[14]
 	m33 := c.body[15]
-	m34 := float32(0)
-	m40 := c.translate[0]
-	m41 := c.translate[1]
-	m42 := c.translate[2]
-	m43 := c.translate[3]
-	m44 := float32(1)
 
-	a3434 := m33*m44 - m34*m43
-	a2434 := m32*m44 - m34*m42
-	a2334 := m32*m43 - m33*m42
-	a1434 := m31*m44 - m34*m41
-	a1334 := m31*m43 - m33*m41
-	a1234 := m31*m42 - m32*m41
-	a0434 := m30*m44 - m34*m40
-	a0334 := m30*m43 - m33*m40
-	a0234 := m30*m42 - m32*m40
-	a0134 := m30*m41 - m31*m40
-
-	b234234 := m22*a3434 - m23*a2434 + m24*a2334
-	b134234 := m21*a3434 - m23*a1434 + m24*a1334
-	b124234 := m21*a2434 - m22*a1434 + m24*a1234
-	b123234 := m21*a2334 - m22*a1334 + m23*a1234
-	b034234 := m20*a3434 - m23*a0434 + m24*a0334
-	b024234 := m20*a2434 - m22*a0434 + m24*a0234
-	b023234 := m20*a2334 - m22*a0334 + m23*a0234
-	b014234 := m20*a1434 - m21*a0434 + m24*a0134
-	b013234 := m20*a1334 - m21*a0334 + m23*a0134
-	b012234 := m20*a1234 - m21*a0234 + m22*a0134
+	b234234 := m22*m33 - m23*m32
+	b134234 := m21*m33 - m23*m31
+	b124234 := m21*m32 - m22*m31
+	b034234 := m20*m33 - m23*m30
+	b024234 := m20*m32 - m22*m30
+	b014234 := m20*m31 - m21*m30
 
 	det := m00*(m11*b234234-m12*b134234+
-		m13*b124234-m14*b123234) -
+		m13*b124234) -
 		m01*(m10*b234234-m12*b034234+
-			m13*b024234-m14*b023234) +
+			m13*b024234) +
 		m02*(m10*b134234-m11*b034234+
-			m13*b014234-m14*b013234) -
+			m13*b014234) -
 		m03*(m10*b124234-m11*b024234+
-			m12*b014234-m14*b012234) +
-		m04*(m10*b123234-m11*b023234+
-			m12*b013234-m13*b012234)
+			m12*b014234)
 	if det == 0 {
 		return 0
 	}
@@ -258,135 +232,96 @@ func (c *ColorM) Invert() *ColorM {
 	m01 := c.body[1]
 	m02 := c.body[2]
 	m03 := c.body[3]
-	m04 := float32(0)
+
 	m10 := c.body[4]
 	m11 := c.body[5]
 	m12 := c.body[6]
 	m13 := c.body[7]
-	m14 := float32(0)
+
 	m20 := c.body[8]
 	m21 := c.body[9]
 	m22 := c.body[10]
 	m23 := c.body[11]
-	m24 := float32(0)
+
 	m30 := c.body[12]
 	m31 := c.body[13]
 	m32 := c.body[14]
 	m33 := c.body[15]
-	m34 := float32(0)
+
 	m40 := c.translate[0]
 	m41 := c.translate[1]
 	m42 := c.translate[2]
 	m43 := c.translate[3]
-	m44 := float32(1)
 
-	a3434 := m33*m44 - m34*m43
-	a2434 := m32*m44 - m34*m42
 	a2334 := m32*m43 - m33*m42
-	a1434 := m31*m44 - m34*m41
 	a1334 := m31*m43 - m33*m41
 	a1234 := m31*m42 - m32*m41
-	a0434 := m30*m44 - m34*m40
 	a0334 := m30*m43 - m33*m40
 	a0234 := m30*m42 - m32*m40
 	a0134 := m30*m41 - m31*m40
-	a3424 := m23*m44 - m24*m43
-	a2424 := m22*m44 - m24*m42
 	a2324 := m22*m43 - m23*m42
-	a1424 := m21*m44 - m24*m41
 	a1324 := m21*m43 - m23*m41
 	a1224 := m21*m42 - m22*m41
-	// a3423 := m23*m34 - m24*m33 // unused (due to virtual column [j=4])
-	// a2423 := m22*m34 - m24*m32 // unused (due to virtual column [j=4])
-	// a2323 := m22*m33 - m23*m32 // unused (due to virtual column [j=4])
-	// a1423 := m21*m34 - m24*m31 // unused (due to virtual column [j=4])
-	// a1323 := m21*m33 - m23*m31 // unused (due to virtual column [j=4])
-	// a1223 := m21*m32 - m22*m31 // unused (due to virtual column [j=4])
-	a0424 := m20*m44 - m24*m40
 	a0324 := m20*m43 - m23*m40
 	a0224 := m20*m42 - m22*m40
-	// a0423 := m20*m34 - m24*m30 // unused (due to virtual column [j=4])
-	// a0323 := m20*m33 - m23*m30 // unused (due to virtual column [j=4])
-	// a0223 := m20*m32 - m22*m30 // unused (due to virtual column [j=4])
 	a0124 := m20*m41 - m21*m40
-	// a0123 := m20*m31 - m21*m30 // unused (due to virtual column [j=4])
 
-	b234234 := m22*a3434 - m23*a2434 + m24*a2334
-	b134234 := m21*a3434 - m23*a1434 + m24*a1334
-	b124234 := m21*a2434 - m22*a1434 + m24*a1234
+	b234234 := m22*m33 - m23*m32
+	b134234 := m21*m33 - m23*m31
+	b124234 := m21*m32 - m22*m31
 	b123234 := m21*a2334 - m22*a1334 + m23*a1234
-	b034234 := m20*a3434 - m23*a0434 + m24*a0334
-	b024234 := m20*a2434 - m22*a0434 + m24*a0234
+	b034234 := m20*m33 - m23*m30
+	b024234 := m20*m32 - m22*m30
 	b023234 := m20*a2334 - m22*a0334 + m23*a0234
-	b014234 := m20*a1434 - m21*a0434 + m24*a0134
+	b014234 := m20*m31 - m21*m30
 	b013234 := m20*a1334 - m21*a0334 + m23*a0134
 	b012234 := m20*a1234 - m21*a0234 + m22*a0134
-	b234134 := m12*a3434 - m13*a2434 + m14*a2334
-	b134134 := m11*a3434 - m13*a1434 + m14*a1334
-	b124134 := m11*a2434 - m12*a1434 + m14*a1234
+	b234134 := m12*m33 - m13*m32
+	b134134 := m11*m33 - m13*m31
+	b124134 := m11*m32 - m12*m31
 	b123134 := m11*a2334 - m12*a1334 + m13*a1234
-	b234124 := m12*a3424 - m13*a2424 + m14*a2324
-	b134124 := m11*a3424 - m13*a1424 + m14*a1324
-	b124124 := m11*a2424 - m12*a1424 + m14*a1224
+	b234124 := m12*m23 - m13*m22
+	b134124 := m11*m23 - m13*m21
+	b124124 := m11*m22 - m12*m21
 	b123124 := m11*a2324 - m12*a1324 + m13*a1224
-	//b234123 := m12*a3423 - m13*a2423 + m14*a2323 // unused (virtual column)
-	//b134123 := m11*a3423 - m13*a1423 + m14*a1323 // unused (virtual column)
-	//b124123 := m11*a2423 - m12*a1423 + m14*a1223 // unused (virtual column)
-	//b123123 := m11*a2323 - m12*a1323 + m13*a1223 // unused (virtual column)
-	b034134 := m10*a3434 - m13*a0434 + m14*a0334
-	b024134 := m10*a2434 - m12*a0434 + m14*a0234
+	b034134 := m10*m33 - m13*m30
+	b024134 := m10*m32 - m12*m30
 	b023134 := m10*a2334 - m12*a0334 + m13*a0234
-	b034124 := m10*a3424 - m13*a0424 + m14*a0324
-	b024124 := m10*a2424 - m12*a0424 + m14*a0224
+	b034124 := m10*m23 - m13*m20
+	b024124 := m10*m22 - m12*m20
 	b023124 := m10*a2324 - m12*a0324 + m13*a0224
-	// b034123 := m10*a3423 - m13*a0423 + m14*a0323 // unused (virtual column)
-	// b024123 := m10*a2423 - m12*a0423 + m14*a0223 // unused (virtual column)
-	// b023123 := m10*a2323 - m12*a0323 + m13*a0223 // unused (virtual column)
-	b014134 := m10*a1434 - m11*a0434 + m14*a0134
+	b014134 := m10*m31 - m11*m30
 	b013134 := m10*a1334 - m11*a0334 + m13*a0134
-	b014124 := m10*a1424 - m11*a0424 + m14*a0124
+	b014124 := m10*m21 - m11*m20
 	b013124 := m10*a1324 - m11*a0324 + m13*a0124
-	// b014123 := m10*a1423 - m11*a0423 + m14*a0123 // unused (virtual column)
-	// b013123 := m10*a1323 - m11*a0323 + m13*a0123 // unused (virtual column)
 	b012134 := m10*a1234 - m11*a0234 + m12*a0134
 	b012124 := m10*a1224 - m11*a0224 + m12*a0124
-	// b012123 := m10*a1223 - m11*a0223 + m12*a0123 // unused (virtual column)
 
 	m := &ColorM{
 		body:      make([]float32, 16),
 		translate: make([]float32, 4),
 	}
 
-	m.body[0] = det * (m11*b234234 - m12*b134234 + m13*b124234 - m14*b123234)
-	m.body[1] = det * -(m01*b234234 - m02*b134234 + m03*b124234 - m04*b123234)
-	m.body[2] = det * (m01*b234134 - m02*b134134 + m03*b124134 - m04*b123134)
-	m.body[3] = det * -(m01*b234124 - m02*b134124 + m03*b124124 - m04*b123124)
-	// the fifth column is discarded because it's not used by colorm:
-	// xm04 = det *   ( m01 * b234123 - m02 * b134123 + m03 * b124123 - m04 * b123123 )
-	m.body[4] = det * -(m10*b234234 - m12*b034234 + m13*b024234 - m14*b023234)
-	m.body[5] = det * (m00*b234234 - m02*b034234 + m03*b024234 - m04*b023234)
-	m.body[6] = det * -(m00*b234134 - m02*b034134 + m03*b024134 - m04*b023134)
-	m.body[7] = det * (m00*b234124 - m02*b034124 + m03*b024124 - m04*b023124)
-	// the fifth column is discarded because it's not used by colorm:
-	// xm14 = det * - ( m00 * b234123 - m02 * b034123 + m03 * b024123 - m04 * b023123 )
-	m.body[8] = det * (m10*b134234 - m11*b034234 + m13*b014234 - m14*b013234)
-	m.body[9] = det * -(m00*b134234 - m01*b034234 + m03*b014234 - m04*b013234)
-	m.body[10] = det * (m00*b134134 - m01*b034134 + m03*b014134 - m04*b013134)
-	m.body[11] = det * -(m00*b134124 - m01*b034124 + m03*b014124 - m04*b013124)
-	// the fifth column is discarded because it's not used by colorm:
-	// xm24 = det *   ( m00 * b134123 - m01 * b034123 + m03 * b014123 - m04 * b013123 )
-	m.body[12] = det * -(m10*b124234 - m11*b024234 + m12*b014234 - m14*b012234)
-	m.body[13] = det * (m00*b124234 - m01*b024234 + m02*b014234 - m04*b012234)
-	m.body[14] = det * -(m00*b124134 - m01*b024134 + m02*b014134 - m04*b012134)
-	m.body[15] = det * (m00*b124124 - m01*b024124 + m02*b014124 - m04*b012124)
-	// the fifth column is discarded because it's not used by colorm:
-	// xm34 = det * - ( m00 * b124123 - m01 * b024123 + m02 * b014123 - m04 * b012123 )
+	m.body[0] = det * (m11*b234234 - m12*b134234 + m13*b124234)
+	m.body[1] = det * -(m01*b234234 - m02*b134234 + m03*b124234)
+	m.body[2] = det * (m01*b234134 - m02*b134134 + m03*b124134)
+	m.body[3] = det * -(m01*b234124 - m02*b134124 + m03*b124124)
+	m.body[4] = det * -(m10*b234234 - m12*b034234 + m13*b024234)
+	m.body[5] = det * (m00*b234234 - m02*b034234 + m03*b024234)
+	m.body[6] = det * -(m00*b234134 - m02*b034134 + m03*b024134)
+	m.body[7] = det * (m00*b234124 - m02*b034124 + m03*b024124)
+	m.body[8] = det * (m10*b134234 - m11*b034234 + m13*b014234)
+	m.body[9] = det * -(m00*b134234 - m01*b034234 + m03*b014234)
+	m.body[10] = det * (m00*b134134 - m01*b034134 + m03*b014134)
+	m.body[11] = det * -(m00*b134124 - m01*b034124 + m03*b014124)
+	m.body[12] = det * -(m10*b124234 - m11*b024234 + m12*b014234)
+	m.body[13] = det * (m00*b124234 - m01*b024234 + m02*b014234)
+	m.body[14] = det * -(m00*b124134 - m01*b024134 + m02*b014134)
+	m.body[15] = det * (m00*b124124 - m01*b024124 + m02*b014124)
 	m.translate[0] = det * (m10*b123234 - m11*b023234 + m12*b013234 - m13*b012234)
 	m.translate[1] = det * -(m00*b123234 - m01*b023234 + m02*b013234 - m03*b012234)
 	m.translate[2] = det * (m00*b123134 - m01*b023134 + m02*b013134 - m03*b012134)
 	m.translate[3] = det * -(m00*b123124 - m01*b023124 + m02*b013124 - m03*b012124)
-	// the fifth column is discarded because it's not used by colorm:
-	// xm44 = det *   ( m00 * b123123 - m01 * b023123 + m02 * b013123 - m03 * b012123 )
 	return m
 }
 
