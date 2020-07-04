@@ -91,8 +91,16 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 			}, []shaderir.Type{t}, stmts, true
 		}
 
+		op, ok := shaderir.OpFromToken(e.Op)
+		if !ok {
+			cs.addError(e.Pos(), fmt.Sprintf("unexpected operator: %s", e.Op))
+			return nil, nil, nil, false
+		}
+
 		var t shaderir.Type
 		switch {
+		case op == shaderir.LessThanOp || op == shaderir.LessThanEqualOp || op == shaderir.GreaterThanOp || op == shaderir.GreaterThanEqualOp || op == shaderir.EqualOp || op == shaderir.NotEqualOp || op == shaderir.AndAnd || op == shaderir.OrOr:
+			t = shaderir.Type{Main: shaderir.Bool}
 		case lhst.Equal(&rhst):
 			t = lhst
 		case lhst.Main == shaderir.Float || lhst.Main == shaderir.Int:
@@ -126,12 +134,6 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 			t = shaderir.Type{Main: shaderir.Vec4}
 		default:
 			cs.addError(e.Pos(), fmt.Sprintf("invalid expression: %s %s %s", lhst.String(), e.Op, rhst.String()))
-			return nil, nil, nil, false
-		}
-
-		op, ok := shaderir.OpFromToken(e.Op)
-		if !ok {
-			cs.addError(e.Pos(), fmt.Sprintf("unexpected operator: %s", e.Op))
 			return nil, nil, nil, false
 		}
 
