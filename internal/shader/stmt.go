@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
@@ -117,7 +118,11 @@ func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variab
 			return nil, false
 		}
 		if len(ts) != 1 || ts[0].Main != shaderir.Bool {
-			cs.addError(stmt.Pos(), fmt.Sprintf("if-condition must be bool but: %#v", ts))
+			var tss []string
+			for _, t := range ts {
+				tss = append(tss, t.String())
+			}
+			cs.addError(stmt.Pos(), fmt.Sprintf("if-condition must be bool but: %s", strings.Join(tss, ", ")))
 			return nil, false
 		}
 		stmts = append(stmts, ss...)
