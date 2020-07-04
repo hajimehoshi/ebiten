@@ -607,15 +607,22 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 }
 
 func (cs *compileState) parseBlock(outer *block, stmts []ast.Stmt, inParams, outParams []variable) (*block, bool) {
-	vars := make([]variable, 0, len(inParams)+len(outParams))
-	vars = append(vars, inParams...)
-	vars = append(vars, outParams...)
+	var vars []variable
+	if outer == &cs.global {
+		vars = make([]variable, 0, len(inParams)+len(outParams))
+		vars = append(vars, inParams...)
+		vars = append(vars, outParams...)
+	}
 	block := &block{
 		vars:  vars,
 		outer: outer,
 	}
 	defer func() {
-		for _, v := range block.vars[len(inParams)+len(outParams):] {
+		var offset int
+		if outer == &cs.global {
+			offset = len(inParams) + len(outParams)
+		}
+		for _, v := range block.vars[offset:] {
 			block.ir.LocalVars = append(block.ir.LocalVars, v.typ)
 		}
 	}()

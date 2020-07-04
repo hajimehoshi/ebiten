@@ -96,7 +96,7 @@ func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variab
 			cs.addError(stmt.Pos(), fmt.Sprintf("unexpected token: %s", stmt.Tok))
 		}
 	case *ast.BlockStmt:
-		b, ok := cs.parseBlock(block, stmt.List, nil, nil)
+		b, ok := cs.parseBlock(block, stmt.List, inParams, nil)
 		if !ok {
 			return nil, false
 		}
@@ -114,7 +114,7 @@ func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variab
 		if stmt.Init != nil {
 			init := stmt.Init
 			stmt.Init = nil
-			b, ok := cs.parseBlock(block, []ast.Stmt{init, stmt}, nil, nil)
+			b, ok := cs.parseBlock(block, []ast.Stmt{init, stmt}, inParams, nil)
 			if !ok {
 				return nil, false
 			}
@@ -143,7 +143,7 @@ func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variab
 		stmts = append(stmts, ss...)
 
 		var bs []shaderir.Block
-		b, ok := cs.parseBlock(block, stmt.Body.List, nil, nil)
+		b, ok := cs.parseBlock(block, stmt.Body.List, inParams, nil)
 		if !ok {
 			return nil, false
 		}
@@ -152,13 +152,13 @@ func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variab
 		if stmt.Else != nil {
 			switch s := stmt.Else.(type) {
 			case *ast.BlockStmt:
-				b, ok := cs.parseBlock(block, s.List, nil, nil)
+				b, ok := cs.parseBlock(block, s.List, inParams, nil)
 				if !ok {
 					return nil, false
 				}
 				bs = append(bs, b.ir)
 			default:
-				b, ok := cs.parseBlock(block, []ast.Stmt{s}, nil, nil)
+				b, ok := cs.parseBlock(block, []ast.Stmt{s}, inParams, nil)
 				if !ok {
 					return nil, false
 				}
