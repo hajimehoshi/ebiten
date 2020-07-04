@@ -912,9 +912,10 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		}
 
 		var t shaderir.Type
-		if lhst.Equal(&rhst) {
+		switch {
+		case lhst.Equal(&rhst):
 			t = lhst
-		} else if lhst.Main == shaderir.Float || lhst.Main == shaderir.Int {
+		case lhst.Main == shaderir.Float || lhst.Main == shaderir.Int:
 			switch rhst.Main {
 			case shaderir.Int:
 				t = lhst
@@ -924,7 +925,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 				return nil, nil, nil, false
 			}
-		} else if rhst.Main == shaderir.Float || rhst.Main == shaderir.Int {
+		case rhst.Main == shaderir.Float || rhst.Main == shaderir.Int:
 			switch lhst.Main {
 			case shaderir.Int:
 				t = rhst
@@ -934,6 +935,15 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 				return nil, nil, nil, false
 			}
+		case lhst.Main == shaderir.Vec2 && rhst.Main == shaderir.Mat2 ||
+			lhst.Main == shaderir.Mat2 && rhst.Main == shaderir.Vec2:
+			t = shaderir.Type{Main: shaderir.Vec2}
+		case lhst.Main == shaderir.Vec3 && rhst.Main == shaderir.Mat3 ||
+			lhst.Main == shaderir.Mat3 && rhst.Main == shaderir.Vec3:
+			t = shaderir.Type{Main: shaderir.Vec3}
+		case lhst.Main == shaderir.Vec4 && rhst.Main == shaderir.Mat4 ||
+			lhst.Main == shaderir.Mat4 && rhst.Main == shaderir.Vec4:
+			t = shaderir.Type{Main: shaderir.Vec4}
 		}
 
 		op, ok := shaderir.OpFromToken(e.Op)
