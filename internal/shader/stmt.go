@@ -111,7 +111,22 @@ func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variab
 			return nil, false
 		}
 	case *ast.IfStmt:
-		// TODO: Parse stmt.Init
+		if stmt.Init != nil {
+			init := stmt.Init
+			stmt.Init = nil
+			b, ok := cs.parseBlock(block, []ast.Stmt{init, stmt}, nil, nil)
+			if !ok {
+				return nil, false
+			}
+
+			stmts = append(stmts, shaderir.Stmt{
+				Type: shaderir.BlockStmt,
+				Blocks: []shaderir.Block{
+					b.ir,
+				},
+			})
+			return stmts, true
+		}
 
 		exprs, ts, ss, ok := cs.parseExpr(block, stmt.Cond)
 		if !ok {
