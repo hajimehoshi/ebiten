@@ -944,6 +944,9 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		case lhst.Main == shaderir.Vec4 && rhst.Main == shaderir.Mat4 ||
 			lhst.Main == shaderir.Mat4 && rhst.Main == shaderir.Vec4:
 			t = shaderir.Type{Main: shaderir.Vec4}
+		default:
+			cs.addError(e.Pos(), fmt.Sprintf("invalid expression: %s %s %s", lhst.String(), e.Op, rhst.String()))
+			return nil, nil, nil, false
 		}
 
 		op, ok := shaderir.OpFromToken(e.Op)
