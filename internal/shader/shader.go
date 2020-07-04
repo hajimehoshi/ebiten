@@ -621,9 +621,11 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 	}()
 
 	for _, l := range b.List {
-		if !cs.parseStmt(block, l, inParams) {
+		stmts, ok := cs.parseStmt(block, l, inParams)
+		if !ok {
 			return nil, false
 		}
+		block.ir.Stmts = append(block.ir.Stmts, stmts...)
 	}
 
 	return block, true
