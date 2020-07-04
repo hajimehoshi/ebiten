@@ -95,7 +95,7 @@ func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variab
 			cs.addError(stmt.Pos(), fmt.Sprintf("unexpected token: %s", stmt.Tok))
 		}
 	case *ast.BlockStmt:
-		b, ok := cs.parseBlock(block, stmt, nil, nil)
+		b, ok := cs.parseBlock(block, stmt.List, nil, nil)
 		if !ok {
 			return nil, false
 		}
@@ -109,6 +109,48 @@ func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variab
 		if !cs.parseDecl(block, stmt.Decl) {
 			return nil, false
 		}
+	case *ast.IfStmt:
+		// TODO: Parse stmt.Init
+
+		exprs, ts, ss, ok := cs.parseExpr(block, stmt.Cond)
+		if !ok {
+			return nil, false
+		}
+		if len(ts) != 1 || ts[0].Main != shaderir.Bool {
+			cs.addError(stmt.Pos(), fmt.Sprintf("if-condition must be bool but: %#v", ts))
+			return nil, false
+		}
+		stmts = append(stmts, ss...)
+
+		var bs []shaderir.Block
+		b, ok := cs.parseBlock(block, stmt.Body.List, nil, nil)
+		if !ok {
+			return nil, false
+		}
+		bs = append(bs, b.ir)
+
+		if stmt.Else != nil {
+			switch s := stmt.Else.(type) {
+			case *ast.BlockStmt:
+				b, ok := cs.parseBlock(block, s.List, nil, nil)
+				if !ok {
+					return nil, false
+				}
+				bs = append(bs, b.ir)
+			default:
+				b, ok := cs.parseBlock(block, []ast.Stmt{s}, nil, nil)
+				if !ok {
+					return nil, false
+				}
+				bs = append(bs, b.ir)
+			}
+		}
+
+		stmts = append(stmts, shaderir.Stmt{
+			Type:   shaderir.If,
+			Exprs:  exprs,
+			Blocks: bs,
+		})
 	case *ast.ReturnStmt:
 		for i, r := range stmt.Results {
 			exprs, _, ss, ok := cs.parseExpr(block, r)

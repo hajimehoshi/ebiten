@@ -582,7 +582,7 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 		}
 	}
 
-	b, ok := cs.parseBlock(block, d.Body, inParams, outParams)
+	b, ok := cs.parseBlock(block, d.Body.List, inParams, outParams)
 	if !ok {
 		return function{}, false
 	}
@@ -606,7 +606,7 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 	}, true
 }
 
-func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, outParams []variable) (*block, bool) {
+func (cs *compileState) parseBlock(outer *block, stmts []ast.Stmt, inParams, outParams []variable) (*block, bool) {
 	vars := make([]variable, 0, len(inParams)+len(outParams))
 	vars = append(vars, inParams...)
 	vars = append(vars, outParams...)
@@ -620,12 +620,12 @@ func (cs *compileState) parseBlock(outer *block, b *ast.BlockStmt, inParams, out
 		}
 	}()
 
-	for _, l := range b.List {
-		stmts, ok := cs.parseStmt(block, l, inParams)
+	for _, stmt := range stmts {
+		ss, ok := cs.parseStmt(block, stmt, inParams)
 		if !ok {
 			return nil, false
 		}
-		block.ir.Stmts = append(block.ir.Stmts, stmts...)
+		block.ir.Stmts = append(block.ir.Stmts, ss...)
 	}
 
 	return block, true

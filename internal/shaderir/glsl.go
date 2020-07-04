@@ -237,7 +237,15 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 		switch e.Type {
 		case NumberExpr:
 			switch e.ConstType {
-			case ConstTypeNone, ConstTypeFloat:
+			case ConstTypeNone:
+				if e.Const.Kind() == constant.Bool {
+					if constant.BoolVal(e.Const) {
+						return "true"
+					}
+					return "false"
+				}
+				fallthrough
+			case ConstTypeFloat:
 				if i := constant.ToInt(e.Const); i.Kind() == constant.Int {
 					x, _ := constant.Int64Val(i)
 					return fmt.Sprintf("%d.0", x)

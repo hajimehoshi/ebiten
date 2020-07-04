@@ -297,6 +297,14 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		return exprs, f.ir.OutParams, stmts, true
 
 	case *ast.Ident:
+		if e.Name == "true" || e.Name == "false" {
+			return []shaderir.Expr{
+				{
+					Type:  shaderir.NumberExpr,
+					Const: gconstant.MakeBool(e.Name == "true"),
+				},
+			}, []shaderir.Type{{Main: shaderir.Bool}}, nil, true
+		}
 		if i, t, ok := block.findLocalVariable(e.Name); ok {
 			return []shaderir.Expr{
 				{
