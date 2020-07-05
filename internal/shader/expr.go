@@ -78,11 +78,21 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 			if op == token.QUO && lhs[0].Const.Kind() == gconstant.Int && rhs[0].Const.Kind() == gconstant.Int {
 				op = token.QUO_ASSIGN
 			}
-			v := gconstant.BinaryOp(lhs[0].Const, op, rhs[0].Const)
-			t := shaderir.Type{Main: shaderir.Int}
-			if v.Kind() == gconstant.Float {
-				t = shaderir.Type{Main: shaderir.Float}
+			var v gconstant.Value
+			var t shaderir.Type
+			switch op {
+			case token.EQL, token.NEQ, token.LSS, token.LEQ, token.GTR, token.GEQ:
+				v = gconstant.MakeBool(gconstant.Compare(lhs[0].Const, op, rhs[0].Const))
+				t = shaderir.Type{Main: shaderir.Bool}
+			default:
+				v = gconstant.BinaryOp(lhs[0].Const, op, rhs[0].Const)
+				if v.Kind() == gconstant.Float {
+					t = shaderir.Type{Main: shaderir.Float}
+				} else {
+					t = shaderir.Type{Main: shaderir.Int}
+				}
 			}
+
 			return []shaderir.Expr{
 				{
 					Type:  shaderir.NumberExpr,
