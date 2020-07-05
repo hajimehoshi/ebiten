@@ -220,7 +220,7 @@ func (i *Image) ensureNotShared() {
 		dx1, dy1, sx1, sy1, 1, 1, 1, 1,
 	}
 	is := graphics.QuadIndices()
-	newImg.DrawTriangles(i.backend.restorable, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	newImg.DrawTriangles(i.backend.restorable, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil, nil)
 
 	i.dispose(false)
 	i.backend = &backend{
@@ -305,7 +305,7 @@ func makeSharedIfNeeded(src *Image) {
 //   5: Color G
 //   6: Color B
 //   7: Color Y
-func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
+func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}, textures []*Image) {
 	backendsM.Lock()
 	// Do not use defer for performance.
 
@@ -318,13 +318,11 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 		i.processSrc(img)
 	}
 	firstImg := img
-	for _, u := range uniforms {
-		if src, ok := u.(*Image); ok {
-			if firstImg == nil {
-				firstImg = src
-			}
-			i.processSrc(src)
+	for _, src := range textures {
+		if firstImg == nil {
+			firstImg = src
 		}
+		i.processSrc(src)
 	}
 
 	var dx, dy float32
@@ -358,21 +356,16 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 		s = shader.shader
 	}
 
-	us := make([]interface{}, len(uniforms))
-	for i := 0; i < len(uniforms); i++ {
-		switch v := uniforms[i].(type) {
-		case *Image:
-			us[i] = v.backend.restorable
-		default:
-			us[i] = v
-		}
+	var ts []*restorable.Image
+	for _, t := range textures {
+		ts = append(ts, t.backend.restorable)
 	}
 
 	var r *restorable.Image
 	if img != nil {
 		r = img.backend.restorable
 	}
-	i.backend.restorable.DrawTriangles(r, vertices, indices, colorm, mode, filter, address, sourceRegion, s, us)
+	i.backend.restorable.DrawTriangles(r, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms, ts)
 
 	i.nonUpdatedCount = 0
 	delete(imagesToMakeShared, i)

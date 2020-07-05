@@ -143,7 +143,7 @@ func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
 }
 
 // EnqueueDrawTrianglesCommand enqueues a drawing-image command.
-func (q *commandQueue) EnqueueDrawTrianglesCommand(dst, src *Image, vertices []float32, indices []uint16, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
+func (q *commandQueue) EnqueueDrawTrianglesCommand(dst, src *Image, vertices []float32, indices []uint16, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}, textures []*Image) {
 	if len(indices) > graphics.IndicesNum {
 		panic(fmt.Sprintf("graphicscommand: len(indices) must be <= graphics.IndicesNum but not at EnqueueDrawTrianglesCommand: len(indices): %d, graphics.IndicesNum: %d", len(indices), graphics.IndicesNum))
 	}
@@ -157,15 +157,10 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst, src *Image, vertices []f
 
 	if src != nil {
 		q.appendVertices(vertices, src)
+	} else if len(textures) > 0 {
+		q.appendVertices(vertices, textures[0])
 	} else {
-		var img *Image
-		for _, v := range uniforms {
-			if i, ok := v.(*Image); ok {
-				img = i
-				break
-			}
-		}
-		q.appendVertices(vertices, img)
+		q.appendVertices(vertices, nil)
 	}
 	q.appendIndices(indices, uint16(q.nextIndex))
 	q.nextIndex += len(vertices) / graphics.VertexFloatNum
@@ -200,6 +195,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst, src *Image, vertices []f
 		sourceRegion: sourceRegion,
 		shader:       shader,
 		uniforms:     uniforms,
+		textures:     textures,
 	}
 	q.commands = append(q.commands, c)
 }
@@ -326,6 +322,7 @@ type drawTrianglesCommand struct {
 	sourceRegion driver.Region
 	shader       *Shader
 	uniforms     []interface{}
+	textures     []*Image
 }
 
 func (c *drawTrianglesCommand) String() string {
@@ -410,23 +407,18 @@ func (c *drawTrianglesCommand) Exec(indexOffset int) error {
 	}
 
 	if c.shader != nil {
-		us := make([]interface{}, len(c.uniforms))
-		for i := 0; i < len(c.uniforms); i++ {
-			switch v := c.uniforms[i].(type) {
-			case *Image:
-				us[i] = v.image.ID()
-			default:
-				us[i] = v
-			}
+		var ts []driver.ImageID
+		for _, t := range c.textures {
+			ts = append(ts, t.image.ID())
 		}
 
 		// The last uniform variables are added at /shader.go and represents a viewport size.
 		w, h := c.dst.InternalSize()
-		viewport := us[0].([]float32)
+		viewport := c.uniforms[0].([]float32)
 		viewport[0] = float32(w)
 		viewport[1] = float32(h)
 
-		return theGraphicsDriver.DrawShader(c.dst.image.ID(), c.shader.shader.ID(), c.nindices, indexOffset, c.mode, us)
+		return theGraphicsDriver.DrawShader(c.dst.image.ID(), c.shader.shader.ID(), c.nindices, indexOffset, c.mode, c.uniforms, ts)
 	}
 	return theGraphicsDriver.Draw(c.dst.image.ID(), c.src.image.ID(), c.nindices, indexOffset, c.mode, c.color, c.filter, c.address, c.sourceRegion)
 }

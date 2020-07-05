@@ -151,7 +151,7 @@ func (m *Mipmap) DrawImage(src *Mipmap, bounds image.Rectangle, geom GeoM, color
 	if level == 0 {
 		vs := quadVertices(bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y, a, b, c, d, tx, ty, cr, cg, cb, ca, screen)
 		is := graphics.QuadIndices()
-		m.orig.DrawTriangles(src.orig, vs, is, colorm, mode, filter, driver.AddressUnsafe, driver.Region{}, nil, nil)
+		m.orig.DrawTriangles(src.orig, vs, is, colorm, mode, filter, driver.AddressUnsafe, driver.Region{}, nil, nil, nil)
 	} else if buf := src.level(bounds, level); buf != nil {
 		w, h := sizeForLevel(bounds.Dx(), bounds.Dy(), level)
 		s := pow2(level)
@@ -161,12 +161,12 @@ func (m *Mipmap) DrawImage(src *Mipmap, bounds image.Rectangle, geom GeoM, color
 		d *= s
 		vs := quadVertices(0, 0, w, h, a, b, c, d, tx, ty, cr, cg, cb, ca, false)
 		is := graphics.QuadIndices()
-		m.orig.DrawTriangles(buf, vs, is, colorm, mode, filter, driver.AddressUnsafe, driver.Region{}, nil, nil)
+		m.orig.DrawTriangles(buf, vs, is, colorm, mode, filter, driver.AddressUnsafe, driver.Region{}, nil, nil, nil)
 	}
 	m.disposeMipmaps()
 }
 
-func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
+func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}, textures []*Mipmap) {
 	// TODO: Use a mipmap? (#909)
 
 	if colorm != nil && colorm.ScaleOnly() {
@@ -190,22 +190,17 @@ func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16
 		s = shader.shader
 	}
 
-	us := make([]interface{}, len(uniforms))
-	for k, v := range uniforms {
-		switch v := v.(type) {
-		case *Mipmap:
-			us[k] = v.orig
-		default:
-			us[k] = v
-		}
-	}
-
 	var srcOrig *shareable.Image
 	if src != nil {
 		srcOrig = src.orig
 	}
 
-	m.orig.DrawTriangles(srcOrig, vertices, indices, colorm, mode, filter, address, sourceRegion, s, us)
+	var ts []*shareable.Image
+	for _, t := range textures {
+		ts = append(ts, t.orig)
+	}
+
+	m.orig.DrawTriangles(srcOrig, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms, ts)
 	m.disposeMipmaps()
 }
 
@@ -268,7 +263,7 @@ func (m *Mipmap) level(r image.Rectangle, level int) *shareable.Image {
 		return nil
 	}
 	s := shareable.NewImage(w2, h2, m.volatile)
-	s.DrawTriangles(src, vs, is, nil, driver.CompositeModeCopy, filter, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	s.DrawTriangles(src, vs, is, nil, driver.CompositeModeCopy, filter, driver.AddressUnsafe, driver.Region{}, nil, nil, nil)
 	imgs[level] = s
 
 	return imgs[level]

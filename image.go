@@ -337,11 +337,12 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		}
 	}
 
-	i.buffered.DrawTriangles(img.buffered, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), sr, nil, nil)
+	i.buffered.DrawTriangles(img.buffered, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), sr, nil, nil, nil)
 }
 
 type DrawTrianglesWithShaderOptions struct {
 	Uniforms      []interface{}
+	Textures      []*Image
 	CompositeMode CompositeMode
 }
 
@@ -370,22 +371,17 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 
 	mode := driver.CompositeMode(options.CompositeMode)
 
-	us := []interface{}{}
-	for _, v := range options.Uniforms {
-		switch v := v.(type) {
-		case *Image:
-			if v.isDisposed() {
-				panic("ebiten: the given image to DrawTriangles must not be disposed")
-			}
-			us = append(us, v.buffered)
-		default:
-			us = append(us, v)
-		}
-	}
-
 	// The first uniform variable is Internal_ViewportSize.
 	// The actual value is set at graphicscommand package.
-	us = append([]interface{}{[]float32{0, 0}}, us...)
+	us := append([]interface{}{[]float32{0, 0}}, options.Uniforms...)
+
+	var ts []*buffered.Image
+	for _, t := range options.Textures {
+		if t.isDisposed() {
+			panic("ebiten: the given image to DrawTriangles must not be disposed")
+		}
+		ts = append(ts, t.buffered)
+	}
 
 	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
 	for i, v := range vertices {
@@ -401,7 +397,7 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
-	i.buffered.DrawTriangles(nil, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, shader.shader, us)
+	i.buffered.DrawTriangles(nil, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, shader.shader, us, ts)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.

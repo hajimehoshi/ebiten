@@ -286,5 +286,6 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 		// Apparently, a texture must be bound every time. The cache is not used here.
 		g.context.bindTexture(t)
 	}
+
 	return nil
 }

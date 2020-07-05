@@ -275,7 +275,7 @@ func (g *Graphics) removeShader(shader *Shader) {
 	delete(g.shaders, shader.id)
 }
 
-func (g *Graphics) DrawShader(dst driver.ImageID, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms []interface{}) error {
+func (g *Graphics) DrawShader(dst driver.ImageID, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms []interface{}, textures []driver.ImageID) error {
 	d := g.images[dst]
 	s := g.shaders[shader]
 
@@ -286,20 +286,17 @@ func (g *Graphics) DrawShader(dst driver.ImageID, shader driver.ShaderID, indexL
 	}
 	g.context.blendFunc(mode)
 
-	// TODO: Accept texture variables at another slice than uniforms.
-	us := make([]uniformVariable, 0, len(uniforms))
-	ts := []textureNative{}
+	us := make([]uniformVariable, len(uniforms))
 	for k, v := range uniforms {
-		switch v := v.(type) {
-		case driver.ImageID:
-			ts = append(ts, g.images[v].textureNative)
-		default:
-			us = append(us, uniformVariable{
-				name:  fmt.Sprintf("U%d", k),
-				value: v,
-			})
-		}
+		us[k].name = fmt.Sprintf("U%d", k)
+		us[k].value = v
 	}
+
+	ts := make([]textureNative, len(textures))
+	for k, v := range textures {
+		ts[k] = g.images[v].textureNative
+	}
+
 	if err := g.useProgram(s.p, us, ts); err != nil {
 		return err
 	}

@@ -268,7 +268,7 @@ func (i *Image) drawImage(src *Image, bounds image.Rectangle, g mipmap.GeoM, col
 // DrawTriangles draws the src image with the given vertices.
 //
 // Copying vertices and indices is the caller's responsibility.
-func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
+func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}, textures []*Image) {
 	var srcs []*Image
 	if src != nil {
 		srcs = append(srcs, src)
@@ -288,7 +288,7 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 	if maybeCanAddDelayedCommand() {
 		if tryAddDelayedCommand(func() error {
 			// Arguments are not copied. Copying is the caller's responsibility.
-			i.DrawTriangles(src, vertices, indices, colorm, mode, filter, address, sourceRegion, shader, uniforms)
+			i.DrawTriangles(src, vertices, indices, colorm, mode, filter, address, sourceRegion, shader, uniforms, textures)
 			return nil
 		}) {
 			return
@@ -304,21 +304,18 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 	if shader != nil {
 		s = shader.shader
 	}
-	us := make([]interface{}, len(uniforms))
-	for k, v := range uniforms {
-		switch v := v.(type) {
-		case *Image:
-			us[k] = v.img
-		default:
-			us[k] = v
-		}
-	}
 
 	var srcImg *mipmap.Mipmap
 	if src != nil {
 		srcImg = src.img
 	}
-	i.img.DrawTriangles(srcImg, vertices, indices, colorm, mode, filter, address, sourceRegion, s, us)
+
+	var ts []*mipmap.Mipmap
+	for _, t := range textures {
+		ts = append(ts, t.img)
+	}
+
+	i.img.DrawTriangles(srcImg, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms, ts)
 	i.invalidatePendingPixels()
 }
 
