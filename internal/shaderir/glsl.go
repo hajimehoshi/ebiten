@@ -81,6 +81,9 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 		for i, t := range p.Uniforms {
 			vslines = append(vslines, fmt.Sprintf("uniform %s;", p.glslVarDecl(&t, fmt.Sprintf("U%d", i))))
 		}
+		for i := 0; i < p.TextureNum; i++ {
+			vslines = append(vslines, fmt.Sprintf("uniform sampler2D T%d;", i))
+		}
 		for i, t := range p.Attributes {
 			vslines = append(vslines, fmt.Sprintf("attribute %s;", p.glslVarDecl(&t, fmt.Sprintf("A%d", i))))
 		}
@@ -109,6 +112,9 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 	{
 		for i, t := range p.Uniforms {
 			fslines = append(fslines, fmt.Sprintf("uniform %s;", p.glslVarDecl(&t, fmt.Sprintf("U%d", i))))
+		}
+		for i := 0; i < p.TextureNum; i++ {
+			fslines = append(fslines, fmt.Sprintf("uniform sampler2D T%d;", i))
 		}
 		for i, t := range p.Varyings {
 			fslines = append(fslines, fmt.Sprintf("varying %s;", p.glslVarDecl(&t, fmt.Sprintf("V%d", i))))
@@ -265,6 +271,8 @@ func (p *Program) glslBlock(topBlock, block *Block, level int, localVarIndex int
 			return fmt.Sprintf("?(unexpected literal: %s)", e.Const)
 		case UniformVariable:
 			return fmt.Sprintf("U%d", e.Index)
+		case TextureVariable:
+			return fmt.Sprintf("T%d", e.Index)
 		case LocalVariable:
 			idx := e.Index
 			switch topBlock {

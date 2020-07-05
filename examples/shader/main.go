@@ -78,7 +78,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 		g.shaders = map[int]*ebiten.Shader{}
 	}
 	if _, ok := g.shaders[g.idx]; !ok {
-		s, err := ebiten.NewShader([]byte(shaderSrcs[g.idx]))
+		s, err := ebiten.NewShader([]byte(shaderSrcs[g.idx]), 1)
 		if err != nil {
 			return err
 		}

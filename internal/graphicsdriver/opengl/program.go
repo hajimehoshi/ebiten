@@ -235,13 +235,12 @@ func areSameFloat32Array(a, b []float32) bool {
 }
 
 type uniformVariable struct {
-	name         string
-	value        interface{}
-	textureIndex int
+	name  string
+	value interface{}
 }
 
 // useProgram uses the program (programTexture).
-func (g *Graphics) useProgram(program program, uniforms []uniformVariable) error {
+func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textures []textureNative) error {
 	if !g.state.lastProgram.equal(program) {
 		g.context.useProgram(program)
 		if g.state.lastProgram.equal(zeroProgram) {
@@ -273,17 +272,19 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable) error
 			}
 			g.context.uniformFloats(program, u.name, v)
 			g.state.lastUniforms[u.name] = v
-		case textureNative:
-			// Apparently, a texture must be bound every time. The cache is not used here.
-			g.context.uniformInt(program, u.name, u.textureIndex)
-			if g.state.lastActiveTexture != u.textureIndex {
-				g.context.activeTexture(u.textureIndex)
-				g.state.lastActiveTexture = u.textureIndex
-			}
-			g.context.bindTexture(v)
 		default:
 			return fmt.Errorf("opengl: unexpected uniform value: %v (type: %T)", u.value, u.value)
 		}
+	}
+
+	for i, t := range textures {
+		g.context.uniformInt(program, fmt.Sprintf("T%d", i), i)
+		if g.state.lastActiveTexture != i {
+			g.context.activeTexture(i)
+			g.state.lastActiveTexture = i
+		}
+		// Apparently, a texture must be bound every time. The cache is not used here.
+		g.context.bindTexture(t)
 	}
 	return nil
 }

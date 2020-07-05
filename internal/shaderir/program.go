@@ -22,6 +22,7 @@ import (
 
 type Program struct {
 	Uniforms     []Type
+	TextureNum   int
 	Attributes   []Type
 	Varyings     []Type
 	Funcs        []Func
@@ -111,6 +112,7 @@ type ExprType int
 const (
 	NumberExpr ExprType = iota
 	UniformVariable
+	TextureVariable
 	LocalVariable
 	StructMember
 	BuiltinFuncExpr

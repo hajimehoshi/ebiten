@@ -289,7 +289,6 @@ func ShaderProgramFill(r, g, b, a byte) shaderir.Program {
 // Uniform variables's indices and their values are:
 //
 //   0:  the framebuffer size (Vec2)
-//   1-: the images (Texture2D)
 //
 // The first image's size and region are represented in attribute variables.
 //
@@ -300,10 +299,7 @@ func ShaderProgramImages(imageNum int) shaderir.Program {
 	}
 
 	p := defaultProgram()
-
-	for i := 0; i < imageNum; i++ {
-		p.Uniforms = append(p.Uniforms, shaderir.Type{Main: shaderir.Texture2D})
-	}
+	p.TextureNum = imageNum
 
 	// In the fragment shader, local variables are:
 	//
@@ -337,8 +333,8 @@ func ShaderProgramImages(imageNum int) shaderir.Program {
 						BuiltinFunc: shaderir.Texture2DF,
 					},
 					{
-						Type:  shaderir.UniformVariable,
-						Index: 1,
+						Type:  shaderir.TextureVariable,
+						Index: 0,
 					},
 					texPos,
 				},
@@ -357,8 +353,8 @@ func ShaderProgramImages(imageNum int) shaderir.Program {
 								BuiltinFunc: shaderir.Texture2DF,
 							},
 							{
-								Type:  shaderir.UniformVariable,
-								Index: i + 1,
+								Type:  shaderir.TextureVariable,
+								Index: i,
 							},
 							texPos,
 						},

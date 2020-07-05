@@ -19,9 +19,13 @@ import (
 	"go/ast"
 	gconstant "go/constant"
 	"go/token"
+	"regexp"
+	"strconv"
 
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
+
+var textureAtRe = regexp.MustCompile(`\Atexture(\d+)At\z`)
 
 func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr, []shaderir.Type, []shaderir.Stmt, bool) {
 	switch e := expr.(type) {
@@ -216,6 +220,12 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 				t = shaderir.Type{Main: shaderir.Vec3}
 			case shaderir.Texture2DF:
 				t = shaderir.Type{Main: shaderir.Vec4}
+				args = append([]shaderir.Expr{
+					{
+						Type:  shaderir.TextureVariable,
+						Index: callee.Index,
+					},
+				}, args...)
 			default:
 				t = argts[0]
 			}
@@ -346,6 +356,16 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 				{
 					Type:        shaderir.BuiltinFuncExpr,
 					BuiltinFunc: f,
+				},
+			}, nil, nil, true
+		}
+		if m := textureAtRe.FindStringSubmatch(e.Name); m != nil {
+			i, _ := strconv.Atoi(m[1])
+			return []shaderir.Expr{
+				{
+					Type:        shaderir.BuiltinFuncExpr,
+					BuiltinFunc: shaderir.Texture2DF,
+					Index:       i, // Index is used as a texture ID later.
 				},
 			}, nil, nil, true
 		}

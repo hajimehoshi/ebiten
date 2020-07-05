@@ -215,13 +215,7 @@ func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, 
 		})
 	}
 
-	uniforms = append(uniforms, uniformVariable{
-		name:         "texture",
-		value:        source.textureNative,
-		textureIndex: 0,
-	})
-
-	if err := g.useProgram(program, uniforms); err != nil {
+	if err := g.useProgram(program, uniforms, []textureNative{source.textureNative}); err != nil {
 		return err
 	}
 
@@ -292,20 +286,21 @@ func (g *Graphics) DrawShader(dst driver.ImageID, shader driver.ShaderID, indexL
 	}
 	g.context.blendFunc(mode)
 
-	us := make([]uniformVariable, len(uniforms))
-	tidx := 0
+	// TODO: Accept texture variables at another slice than uniforms.
+	us := make([]uniformVariable, 0, len(uniforms))
+	ts := []textureNative{}
 	for k, v := range uniforms {
-		us[k].name = fmt.Sprintf("U%d", k)
 		switch v := v.(type) {
 		case driver.ImageID:
-			us[k].value = g.images[v].textureNative
-			us[k].textureIndex = tidx
-			tidx++
+			ts = append(ts, g.images[v].textureNative)
 		default:
-			us[k].value = v
+			us = append(us, uniformVariable{
+				name:  fmt.Sprintf("U%d", k),
+				value: v,
+			})
 		}
 	}
-	if err := g.useProgram(s.p, us); err != nil {
+	if err := g.useProgram(s.p, us, ts); err != nil {
 		return err
 	}
 	g.context.drawElements(indexLen, indexOffset*2) // 2 is uint16 size in bytes

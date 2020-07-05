@@ -45,8 +45,6 @@ func (cs *compileState) parseType(expr ast.Expr) shaderir.Type {
 			return shaderir.Type{Main: shaderir.Mat3}
 		case "mat4":
 			return shaderir.Type{Main: shaderir.Mat4}
-		case "texture2d":
-			return shaderir.Type{Main: shaderir.Texture2D}
 		default:
 			cs.addError(t.Pos(), fmt.Sprintf("unexpected type: %s", t.Name))
 			return shaderir.Type{}

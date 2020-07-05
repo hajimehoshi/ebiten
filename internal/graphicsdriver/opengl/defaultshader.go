@@ -139,7 +139,7 @@ precision mediump float;
 
 {{.Definitions}}
 
-uniform sampler2D texture;
+uniform sampler2D T0;
 uniform vec4 source_region;
 
 #if defined(USE_COLOR_MATRIX)
@@ -185,14 +185,14 @@ void main(void) {
 #if defined(FILTER_NEAREST)
   vec4 color;
 # if defined(ADDRESS_UNSAFE)
-  color = texture2D(texture, pos);
+  color = texture2D(T0, pos);
 # else
   pos = adjustTexelByAddress(pos, source_region);
   if (source_region[0] <= pos.x &&
       source_region[1] <= pos.y &&
       pos.x < source_region[2] &&
       pos.y < source_region[3]) {
-    color = texture2D(texture, pos);
+    color = texture2D(T0, pos);
   } else {
     color = vec4(0, 0, 0, 0);
   }
@@ -213,10 +213,10 @@ void main(void) {
   p1 = adjustTexelByAddress(p1, source_region);
 # endif  // defined(ADDRESS_UNSAFE)
 
-  vec4 c0 = texture2D(texture, p0);
-  vec4 c1 = texture2D(texture, vec2(p1.x, p0.y));
-  vec4 c2 = texture2D(texture, vec2(p0.x, p1.y));
-  vec4 c3 = texture2D(texture, p1);
+  vec4 c0 = texture2D(T0, p0);
+  vec4 c1 = texture2D(T0, vec2(p1.x, p0.y));
+  vec4 c2 = texture2D(T0, vec2(p0.x, p1.y));
+  vec4 c3 = texture2D(T0, p1);
 # if !defined(ADDRESS_UNSAFE)
   if (p0.x < source_region[0]) {
     c0 = vec4(0, 0, 0, 0);
@@ -247,10 +247,10 @@ void main(void) {
   highp vec2 p0 = pos - half_scaled_texel_size + (texel_size / 512.0);
   highp vec2 p1 = pos + half_scaled_texel_size + (texel_size / 512.0);
 
-  vec4 c0 = texture2D(texture, p0);
-  vec4 c1 = texture2D(texture, vec2(p1.x, p0.y));
-  vec4 c2 = texture2D(texture, vec2(p0.x, p1.y));
-  vec4 c3 = texture2D(texture, p1);
+  vec4 c0 = texture2D(T0, p0);
+  vec4 c1 = texture2D(T0, vec2(p1.x, p0.y));
+  vec4 c2 = texture2D(T0, vec2(p0.x, p1.y));
+  vec4 c3 = texture2D(T0, p1);
   // Texels must be in the source rect, so it is not necessary to check that like linear filter.
 
   vec2 rate_center = vec2(1.0, 1.0) - half_scaled_texel_size;

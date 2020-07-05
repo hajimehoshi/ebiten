@@ -35,7 +35,7 @@ type Shader struct {
 	shader *buffered.Shader
 }
 
-func NewShader(src []byte) (*Shader, error) {
+func NewShader(src []byte, textureNum int) (*Shader, error) {
 	var buf bytes.Buffer
 	buf.Write(src)
 	buf.WriteString(shaderSuffix)
@@ -47,7 +47,7 @@ func NewShader(src []byte) (*Shader, error) {
 	}
 
 	// TODO: Create a pseudo vertex entrypoint to treat the attribute values correctly.
-	s, err := shader.Compile(fs, f, "Vertex", "Fragment")
+	s, err := shader.Compile(fs, f, "Vertex", "Fragment", textureNum)
 	if err != nil {
 		return nil, err
 	}
