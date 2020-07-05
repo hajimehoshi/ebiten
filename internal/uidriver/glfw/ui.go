@@ -129,6 +129,7 @@ func initialize() error {
 		return err
 	}
 	glfw.WindowHint(glfw.Visible, glfw.False)
+	glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
 
 	// Create a window to set the initial monitor.
 	w, err := glfw.CreateWindow(16, 16, "", nil, nil)
@@ -657,6 +658,7 @@ func (u *UserInterface) run(context driver.UIContext) error {
 		u.window = nil
 
 		if u.Graphics().IsGL() {
+			glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLAPI)
 			glfw.WindowHint(glfw.ContextVersionMajor, 2)
 			glfw.WindowHint(glfw.ContextVersionMinor, 1)
 		} else {
