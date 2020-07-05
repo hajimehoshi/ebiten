@@ -99,7 +99,7 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 				vslines = append(vslines, "")
 			}
 			vslines = append(vslines, "void main(void) {")
-			vslines = append(vslines, p.glslBlock(&p.VertexFunc.Block, 0, 0)...)
+			vslines = append(vslines, p.glslBlock(&p.VertexFunc.Block, &p.VertexFunc.Block, 0, 0)...)
 			vslines = append(vslines, "}")
 		}
 	}
@@ -118,9 +118,11 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 		}
 
 		if len(p.FragmentFunc.Block.Stmts) > 0 {
-			fslines = append(fslines, "")
+			if len(fslines) > 0 {
+				fslines = append(fslines, "")
+			}
 			fslines = append(fslines, "void main(void) {")
-			fslines = append(fslines, p.glslBlock(&p.FragmentFunc.Block, 0, 0)...)
+			fslines = append(fslines, p.glslBlock(&p.FragmentFunc.Block, &p.FragmentFunc.Block, 0, 0)...)
 			fslines = append(fslines, "}")
 		}
 	}
@@ -217,17 +219,17 @@ func (p *Program) glslFunc(f *Func) []string {
 
 	var lines []string
 	lines = append(lines, fmt.Sprintf("%s F%d(%s) {", p.glslType(&f.Return), f.Index, argsstr))
-	lines = append(lines, p.glslBlock(&f.Block, 0, idx)...)
+	lines = append(lines, p.glslBlock(&f.Block, &f.Block, 0, idx)...)
 	lines = append(lines, "}")
 
 	return lines
 }
 
-func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
+func (p *Program) glslBlock(topBlock, block *Block, level int, localVarIndex int) []string {
 	idt := strings.Repeat("\t", level+1)
 
 	var lines []string
-	for _, t := range b.LocalVars {
+	for _, t := range block.LocalVars {
 		lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, p.glslVarDecl(&t, fmt.Sprintf("l%d", localVarIndex)), p.glslVarInit(&t)))
 		localVarIndex++
 	}
@@ -265,7 +267,7 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 			return fmt.Sprintf("U%d", e.Index)
 		case LocalVariable:
 			idx := e.Index
-			switch b {
+			switch topBlock {
 			case &p.VertexFunc.Block:
 				na := len(p.Attributes)
 				nv := len(p.Varyings)
@@ -334,23 +336,23 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 		}
 	}
 
-	for _, s := range b.Stmts {
+	for _, s := range block.Stmts {
 		switch s.Type {
 		case ExprStmt:
 			lines = append(lines, fmt.Sprintf("%s%s;", idt, glslExpr(&s.Exprs[0])))
 		case BlockStmt:
 			lines = append(lines, idt+"{")
-			lines = append(lines, p.glslBlock(&s.Blocks[0], level+1, localVarIndex)...)
+			lines = append(lines, p.glslBlock(topBlock, &s.Blocks[0], level+1, localVarIndex)...)
 			lines = append(lines, idt+"}")
 		case Assign:
 			// TODO: Give an appropriate context
 			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, glslExpr(&s.Exprs[0]), glslExpr(&s.Exprs[1])))
 		case If:
 			lines = append(lines, fmt.Sprintf("%sif (%s) {", idt, glslExpr(&s.Exprs[0])))
-			lines = append(lines, p.glslBlock(&s.Blocks[0], level+1, localVarIndex)...)
+			lines = append(lines, p.glslBlock(topBlock, &s.Blocks[0], level+1, localVarIndex)...)
 			if len(s.Blocks) > 1 {
 				lines = append(lines, fmt.Sprintf("%s} else {", idt))
-				lines = append(lines, p.glslBlock(&s.Blocks[1], level+1, localVarIndex)...)
+				lines = append(lines, p.glslBlock(topBlock, &s.Blocks[1], level+1, localVarIndex)...)
 			}
 			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case For:
@@ -379,7 +381,7 @@ func (p *Program) glslBlock(b *Block, level int, localVarIndex int) []string {
 				op = fmt.Sprintf("?(unexpected op: %s)", string(s.ForOp))
 			}
 			lines = append(lines, fmt.Sprintf("%sfor (int l%d = %d; l%d %s %d; %s) {", idt, v, s.ForInit, v, op, s.ForEnd, delta))
-			lines = append(lines, p.glslBlock(&s.Blocks[0], level+1, localVarIndex)...)
+			lines = append(lines, p.glslBlock(topBlock, &s.Blocks[0], level+1, localVarIndex)...)
 			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case Continue:
 			lines = append(lines, idt+"continue;")
