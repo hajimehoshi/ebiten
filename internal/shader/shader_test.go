@@ -101,7 +101,7 @@ func TestCompile(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			s, err := Compile(fset, f, "Vertex", "Fragment")
+			s, err := Compile(fset, f, "Vertex", "Fragment", 0)
 			if err != nil {
 				t.Error(err)
 				return
