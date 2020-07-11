@@ -248,6 +248,9 @@ const (
 	All              BuiltinFunc = "all"
 	Not              BuiltinFunc = "not"
 	Texture2DF       BuiltinFunc = "texture2D"
+	Dfdx             BuiltinFunc = "dfdx"
+	Dfdy             BuiltinFunc = "dfdy"
+	Fwidth           BuiltinFunc = "fwidth"
 )
 
 func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
@@ -302,7 +305,10 @@ func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
 		Any,
 		All,
 		Not,
-		Texture2DF:
+		Texture2DF,
+		Dfdx,
+		Dfdy,
+		Fwidth:
 		return BuiltinFunc(str), true
 	}
 	return "", false
@@ -320,6 +326,10 @@ func (f BuiltinFunc) Glsl() string {
 		return "greaterThanEqual"
 	case NotEqual:
 		return "notEqual"
+	case Dfdx:
+		return "dFdx"
+	case Dfdy:
+		return "dFdy"
 	default:
 		return string(f)
 	}
