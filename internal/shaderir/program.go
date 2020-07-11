@@ -237,15 +237,13 @@ const (
 	Normalize        BuiltinFunc = "normalize"
 	Faceforward      BuiltinFunc = "faceforward"
 	Reflect          BuiltinFunc = "reflect"
-	MatrixCompMult   BuiltinFunc = "matrixCompMult"
-	OuterProduct     BuiltinFunc = "outerProduct"
 	Transpose        BuiltinFunc = "transpose"
-	LessThan         BuiltinFunc = "lessThan"
-	LessThanEqual    BuiltinFunc = "lessThanEqual"
-	GreaterThan      BuiltinFunc = "greaterThan"
-	GreaterThanEqual BuiltinFunc = "greaterThanEqual"
+	LessThan         BuiltinFunc = "lessthan"
+	LessThanEqual    BuiltinFunc = "lessthanequal"
+	GreaterThan      BuiltinFunc = "greaterthan"
+	GreaterThanEqual BuiltinFunc = "greaterthanequal"
 	Equal            BuiltinFunc = "equal"
-	NotEqual         BuiltinFunc = "notEqual"
+	NotEqual         BuiltinFunc = "notequal"
 	Any              BuiltinFunc = "any"
 	All              BuiltinFunc = "all"
 	Not              BuiltinFunc = "not"
@@ -294,8 +292,6 @@ func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
 		Normalize,
 		Faceforward,
 		Reflect,
-		MatrixCompMult,
-		OuterProduct,
 		Transpose,
 		LessThan,
 		LessThanEqual,
