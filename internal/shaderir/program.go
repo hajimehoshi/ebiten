@@ -307,3 +307,20 @@ func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
 	}
 	return "", false
 }
+
+func (f BuiltinFunc) Glsl() string {
+	switch f {
+	case LessThan:
+		return "lessThan"
+	case LessThanEqual:
+		return "lessThanEqual"
+	case GreaterThan:
+		return "greaterThan"
+	case GreaterThanEqual:
+		return "greaterThanEqual"
+	case NotEqual:
+		return "notEqual"
+	default:
+		return string(f)
+	}
+}

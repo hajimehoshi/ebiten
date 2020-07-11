@@ -307,7 +307,7 @@ func (p *Program) glslBlock(topBlock, block *Block, level int, localVarIndex int
 		case StructMember:
 			return fmt.Sprintf("M%d", e.Index)
 		case BuiltinFuncExpr:
-			return string(e.BuiltinFunc)
+			return e.BuiltinFunc.Glsl()
 		case SwizzlingExpr:
 			if !isValidSwizzling(e.Swizzling) {
 				return fmt.Sprintf("?(unexpected swizzling: %s)", e.Swizzling)
