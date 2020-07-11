@@ -342,7 +342,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 type DrawTrianglesWithShaderOptions struct {
 	Uniforms      []interface{}
-	Textures      []*Image
+	Textures      []*Image // TODO: Rename to Images?
 	CompositeMode CompositeMode
 }
 
