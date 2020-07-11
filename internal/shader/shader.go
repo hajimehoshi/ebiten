@@ -24,8 +24,9 @@ import (
 )
 
 type variable struct {
-	name string
-	typ  shaderir.Type
+	name           string
+	typ            shaderir.Type
+	forLoopCounter bool
 }
 
 type constant struct {
@@ -645,6 +646,10 @@ func (cs *compileState) parseBlock(outer *block, stmts []ast.Stmt, inParams, out
 			offset = len(inParams) + len(outParams)
 		}
 		for _, v := range block.vars[offset:] {
+			if v.forLoopCounter {
+				block.ir.LocalVars = append(block.ir.LocalVars, shaderir.Type{})
+				continue
+			}
 			block.ir.LocalVars = append(block.ir.LocalVars, v.typ)
 		}
 	}()

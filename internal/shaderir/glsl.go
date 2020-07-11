@@ -265,7 +265,10 @@ func (p *Program) glslBlock(topBlock, block *Block, level int, localVarIndex int
 
 	var lines []string
 	for _, t := range block.LocalVars {
-		lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, p.glslVarDecl(&t, fmt.Sprintf("l%d", localVarIndex)), p.glslVarInit(&t)))
+		// The type is None e.g., when the variable is a for-loop counter.
+		if t.Main != None {
+			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, p.glslVarDecl(&t, fmt.Sprintf("l%d", localVarIndex)), p.glslVarInit(&t)))
+		}
 		localVarIndex++
 	}
 
