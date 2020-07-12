@@ -364,8 +364,7 @@ func (p *Program) glslBlock(topBlock, block *Block, level int, localVarIndex int
 			}
 			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case For:
-			v := localVarIndex
-			localVarIndex++
+			v := s.ForVarIndex
 			var delta string
 			switch s.ForDelta {
 			case 0:

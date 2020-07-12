@@ -64,14 +64,15 @@ func ifStmt(cond Expr, block Block, elseBlock Block) Stmt {
 	}
 }
 
-func forStmt(init, end int, op Op, delta int, block Block) Stmt {
+func forStmt(index, init, end int, op Op, delta int, block Block) Stmt {
 	return Stmt{
-		Type:     For,
-		Blocks:   []Block{block},
-		ForInit:  init,
-		ForEnd:   end,
-		ForOp:    op,
-		ForDelta: delta,
+		Type:        For,
+		Blocks:      []Block{block},
+		ForVarIndex: index,
+		ForInit:     init,
+		ForEnd:      end,
+		ForOp:       op,
+		ForDelta:    delta,
 	}
 }
 
@@ -592,6 +593,7 @@ varying vec3 V0;`,
 						Block: block(
 							nil,
 							forStmt(
+								3,
 								0,
 								100,
 								LessThanOp,

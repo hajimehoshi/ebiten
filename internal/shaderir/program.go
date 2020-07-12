@@ -64,13 +64,14 @@ type Block struct {
 }
 
 type Stmt struct {
-	Type     StmtType
-	Exprs    []Expr
-	Blocks   []Block
-	ForInit  int
-	ForEnd   int
-	ForOp    Op
-	ForDelta int
+	Type        StmtType
+	Exprs       []Expr
+	Blocks      []Block
+	ForVarIndex int
+	ForInit     int
+	ForEnd      int
+	ForOp       Op
+	ForDelta    int
 }
 
 type StmtType int
