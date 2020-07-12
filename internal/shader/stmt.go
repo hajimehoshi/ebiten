@@ -391,6 +391,21 @@ func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variab
 			Type: shaderir.Return,
 		})
 
+	case *ast.BranchStmt:
+		switch stmt.Tok {
+		case token.BREAK:
+			stmts = append(stmts, shaderir.Stmt{
+				Type: shaderir.Break,
+			})
+		case token.CONTINUE:
+			stmts = append(stmts, shaderir.Stmt{
+				Type: shaderir.Continue,
+			})
+		default:
+			cs.addError(stmt.Pos(), fmt.Sprintf("invalid token: %s", stmt.Tok))
+			return nil, false
+		}
+
 	case *ast.ExprStmt:
 		exprs, _, ss, ok := cs.parseExpr(block, stmt.X)
 		if !ok {
