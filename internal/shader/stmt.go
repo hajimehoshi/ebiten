@@ -17,6 +17,7 @@ package shader
 import (
 	"fmt"
 	"go/ast"
+	gconstant "go/constant"
 	"go/token"
 	"strings"
 
@@ -172,6 +173,37 @@ func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variab
 			Type:   shaderir.If,
 			Exprs:  exprs,
 			Blocks: bs,
+		})
+	case *ast.IncDecStmt:
+		exprs, _, ss, ok := cs.parseExpr(block, stmt.X)
+		if !ok {
+			return nil, false
+		}
+		stmts = append(stmts, ss...)
+		var op shaderir.Op
+		switch stmt.Tok {
+		case token.INC:
+			op = shaderir.Add
+		case token.DEC:
+			op = shaderir.Sub
+		}
+		stmts = append(stmts, shaderir.Stmt{
+			Type: shaderir.Assign,
+			Exprs: []shaderir.Expr{
+				exprs[0],
+				{
+					Type: shaderir.Binary,
+					Op:   op,
+					Exprs: []shaderir.Expr{
+						exprs[0],
+						{
+							Type:      shaderir.NumberExpr,
+							Const:     gconstant.MakeInt64(1),
+							ConstType: shaderir.ConstTypeInt,
+						},
+					},
+				},
+			},
 		})
 	case *ast.ReturnStmt:
 		for i, r := range stmt.Results {
