@@ -268,7 +268,12 @@ func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr,
 			stmts = append(stmts, ss...)
 
 			if r[0].Type == shaderir.NumberExpr {
-				switch block.vars[l[0].Index].typ.Main {
+				t, ok := block.findLocalVariableByIndex(l[0].Index)
+				if !ok {
+					cs.addError(pos, fmt.Sprintf("unexpected local variable index: %d", l[0].Index))
+					return nil, false
+				}
+				switch t.Main {
 				case shaderir.Int:
 					r[0].ConstType = shaderir.ConstTypeInt
 				case shaderir.Float:
