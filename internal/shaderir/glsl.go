@@ -17,6 +17,7 @@ package shaderir
 import (
 	"fmt"
 	"go/constant"
+	"go/token"
 	"strings"
 )
 
@@ -231,6 +232,34 @@ func (p *Program) glslFunc(f *Func) []string {
 	return lines
 }
 
+func constantToNumberLiteral(t ConstType, v constant.Value) string {
+	switch t {
+	case ConstTypeNone:
+		if v.Kind() == constant.Bool {
+			if constant.BoolVal(v) {
+				return "true"
+			}
+			return "false"
+		}
+		fallthrough
+	case ConstTypeFloat:
+		if i := constant.ToInt(v); i.Kind() == constant.Int {
+			x, _ := constant.Int64Val(i)
+			return fmt.Sprintf("%d.0", x)
+		}
+		if i := constant.ToFloat(v); i.Kind() == constant.Float {
+			x, _ := constant.Float64Val(i)
+			return fmt.Sprintf("%.9e", x)
+		}
+	case ConstTypeInt:
+		if i := constant.ToInt(v); i.Kind() == constant.Int {
+			x, _ := constant.Int64Val(i)
+			return fmt.Sprintf("%d", x)
+		}
+	}
+	return fmt.Sprintf("?(unexpected literal: %s)", v)
+}
+
 func (p *Program) glslBlock(topBlock, block *Block, level int, localVarIndex int) []string {
 	idt := strings.Repeat("\t", level+1)
 
@@ -244,31 +273,7 @@ func (p *Program) glslBlock(topBlock, block *Block, level int, localVarIndex int
 	glslExpr = func(e *Expr) string {
 		switch e.Type {
 		case NumberExpr:
-			switch e.ConstType {
-			case ConstTypeNone:
-				if e.Const.Kind() == constant.Bool {
-					if constant.BoolVal(e.Const) {
-						return "true"
-					}
-					return "false"
-				}
-				fallthrough
-			case ConstTypeFloat:
-				if i := constant.ToInt(e.Const); i.Kind() == constant.Int {
-					x, _ := constant.Int64Val(i)
-					return fmt.Sprintf("%d.0", x)
-				}
-				if i := constant.ToFloat(e.Const); i.Kind() == constant.Float {
-					x, _ := constant.Float64Val(i)
-					return fmt.Sprintf("%.9e", x)
-				}
-			case ConstTypeInt:
-				if i := constant.ToInt(e.Const); i.Kind() == constant.Int {
-					x, _ := constant.Int64Val(i)
-					return fmt.Sprintf("%d", x)
-				}
-			}
-			return fmt.Sprintf("?(unexpected literal: %s)", e.Const)
+			return constantToNumberLiteral(e.ConstType, e.Const)
 		case UniformVariable:
 			return fmt.Sprintf("U%d", e.Index)
 		case TextureVariable:
@@ -364,20 +369,30 @@ func (p *Program) glslBlock(topBlock, block *Block, level int, localVarIndex int
 			}
 			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case For:
+			var ct ConstType
+			switch s.ForVarType.Main {
+			case Int:
+				ct = ConstTypeInt
+			case Float:
+				ct = ConstTypeFloat
+			}
+
 			v := s.ForVarIndex
 			var delta string
-			switch s.ForDelta {
+			switch val, _ := constant.Float64Val(s.ForDelta); val {
 			case 0:
-				delta = fmt.Sprintf("?(unexpected delta: %d)", s.ForDelta)
+				delta = fmt.Sprintf("?(unexpected delta: %v)", s.ForDelta)
 			case 1:
 				delta = fmt.Sprintf("l%d++", v)
 			case -1:
 				delta = fmt.Sprintf("l%d--", v)
 			default:
-				if s.ForDelta > 0 {
-					delta = fmt.Sprintf("l%d += %d", v, s.ForDelta)
+				d := s.ForDelta
+				if val > 0 {
+					delta = fmt.Sprintf("l%d += %s", v, constantToNumberLiteral(ct, d))
 				} else {
-					delta = fmt.Sprintf("l%d -= %d", v, -s.ForDelta)
+					d = constant.UnaryOp(token.SUB, d, 0)
+					delta = fmt.Sprintf("l%d -= %s", v, constantToNumberLiteral(ct, d))
 				}
 			}
 			var op string
@@ -387,7 +402,11 @@ func (p *Program) glslBlock(topBlock, block *Block, level int, localVarIndex int
 			default:
 				op = fmt.Sprintf("?(unexpected op: %s)", string(s.ForOp))
 			}
-			lines = append(lines, fmt.Sprintf("%sfor (int l%d = %d; l%d %s %d; %s) {", idt, v, s.ForInit, v, op, s.ForEnd, delta))
+
+			t := s.ForVarType.Main
+			init := constantToNumberLiteral(ct, s.ForInit)
+			end := constantToNumberLiteral(ct, s.ForEnd)
+			lines = append(lines, fmt.Sprintf("%sfor (%s l%d = %s; l%d %s %s; %s) {", idt, t.Glsl(), v, init, v, op, end, delta))
 			lines = append(lines, p.glslBlock(topBlock, &s.Blocks[0], level+1, localVarIndex)...)
 			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case Continue:

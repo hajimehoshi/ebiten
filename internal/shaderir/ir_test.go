@@ -68,11 +68,12 @@ func forStmt(index, init, end int, op Op, delta int, block Block) Stmt {
 	return Stmt{
 		Type:        For,
 		Blocks:      []Block{block},
+		ForVarType:  Type{Main: Int},
 		ForVarIndex: index,
-		ForInit:     init,
-		ForEnd:      end,
+		ForInit:     constant.MakeInt64(int64(init)),
+		ForEnd:      constant.MakeInt64(int64(end)),
 		ForOp:       op,
-		ForDelta:    delta,
+		ForDelta:    constant.MakeInt64(int64(delta)),
 	}
 }
 

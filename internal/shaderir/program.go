@@ -67,11 +67,12 @@ type Stmt struct {
 	Type        StmtType
 	Exprs       []Expr
 	Blocks      []Block
+	ForVarType  Type
 	ForVarIndex int
-	ForInit     int
-	ForEnd      int
+	ForInit     constant.Value
+	ForEnd      constant.Value
 	ForOp       Op
-	ForDelta    int
+	ForDelta    constant.Value
 }
 
 type StmtType int
