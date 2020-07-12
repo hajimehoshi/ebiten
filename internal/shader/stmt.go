@@ -107,9 +107,11 @@ func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variab
 			},
 		})
 	case *ast.DeclStmt:
-		if !cs.parseDecl(block, stmt.Decl) {
+		ss, ok := cs.parseDecl(block, stmt.Decl)
+		if !ok {
 			return nil, false
 		}
+		stmts = append(stmts, ss...)
 	case *ast.IfStmt:
 		if stmt.Init != nil {
 			init := stmt.Init
