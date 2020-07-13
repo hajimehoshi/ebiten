@@ -260,6 +260,38 @@ func constantToNumberLiteral(t ConstType, v constant.Value) string {
 	return fmt.Sprintf("?(unexpected literal: %s)", v)
 }
 
+func (p *Program) localVariableName(topBlock *Block, idx int) string {
+	switch topBlock {
+	case &p.VertexFunc.Block:
+		na := len(p.Attributes)
+		nv := len(p.Varyings)
+		switch {
+		case idx < na:
+			return fmt.Sprintf("A%d", idx)
+		case idx == na:
+			return "gl_Position"
+		case idx < na+nv+1:
+			return fmt.Sprintf("V%d", idx-na-1)
+		default:
+			return fmt.Sprintf("l%d", idx-(na+nv+1))
+		}
+	case &p.FragmentFunc.Block:
+		nv := len(p.Varyings)
+		switch {
+		case idx == 0:
+			return "gl_FragCoord"
+		case idx < nv+1:
+			return fmt.Sprintf("V%d", idx-1)
+		case idx == nv+1:
+			return "gl_FragColor"
+		default:
+			return fmt.Sprintf("l%d", idx-(nv+2))
+		}
+	default:
+		return fmt.Sprintf("l%d", idx)
+	}
+}
+
 func (p *Program) glslBlock(topBlock, block *Block, level int, localVarIndex int) []string {
 	idt := strings.Repeat("\t", level+1)
 
@@ -282,36 +314,7 @@ func (p *Program) glslBlock(topBlock, block *Block, level int, localVarIndex int
 		case TextureVariable:
 			return fmt.Sprintf("T%d", e.Index)
 		case LocalVariable:
-			idx := e.Index
-			switch topBlock {
-			case &p.VertexFunc.Block:
-				na := len(p.Attributes)
-				nv := len(p.Varyings)
-				switch {
-				case idx < na:
-					return fmt.Sprintf("A%d", idx)
-				case idx == na:
-					return "gl_Position"
-				case idx < na+nv+1:
-					return fmt.Sprintf("V%d", idx-na-1)
-				default:
-					return fmt.Sprintf("l%d", idx-(na+nv+1))
-				}
-			case &p.FragmentFunc.Block:
-				nv := len(p.Varyings)
-				switch {
-				case idx == 0:
-					return "gl_FragCoord"
-				case idx < nv+1:
-					return fmt.Sprintf("V%d", idx-1)
-				case idx == nv+1:
-					return "gl_FragColor"
-				default:
-					return fmt.Sprintf("l%d", idx-(nv+2))
-				}
-			default:
-				return fmt.Sprintf("l%d", idx)
-			}
+			return p.localVariableName(topBlock, e.Index)
 		case StructMember:
 			return fmt.Sprintf("M%d", e.Index)
 		case BuiltinFuncExpr:
@@ -380,22 +383,22 @@ func (p *Program) glslBlock(topBlock, block *Block, level int, localVarIndex int
 				ct = ConstTypeFloat
 			}
 
-			v := s.ForVarIndex
+			v := p.localVariableName(topBlock, s.ForVarIndex)
 			var delta string
 			switch val, _ := constant.Float64Val(s.ForDelta); val {
 			case 0:
 				delta = fmt.Sprintf("?(unexpected delta: %v)", s.ForDelta)
 			case 1:
-				delta = fmt.Sprintf("l%d++", v)
+				delta = fmt.Sprintf("%s++", v)
 			case -1:
-				delta = fmt.Sprintf("l%d--", v)
+				delta = fmt.Sprintf("%s--", v)
 			default:
 				d := s.ForDelta
 				if val > 0 {
-					delta = fmt.Sprintf("l%d += %s", v, constantToNumberLiteral(ct, d))
+					delta = fmt.Sprintf("%s += %s", v, constantToNumberLiteral(ct, d))
 				} else {
 					d = constant.UnaryOp(token.SUB, d, 0)
-					delta = fmt.Sprintf("l%d -= %s", v, constantToNumberLiteral(ct, d))
+					delta = fmt.Sprintf("%s -= %s", v, constantToNumberLiteral(ct, d))
 				}
 			}
 			var op string
@@ -409,7 +412,7 @@ func (p *Program) glslBlock(topBlock, block *Block, level int, localVarIndex int
 			t := s.ForVarType.Main
 			init := constantToNumberLiteral(ct, s.ForInit)
 			end := constantToNumberLiteral(ct, s.ForEnd)
-			lines = append(lines, fmt.Sprintf("%sfor (%s l%d = %s; l%d %s %s; %s) {", idt, t.Glsl(), v, init, v, op, end, delta))
+			lines = append(lines, fmt.Sprintf("%sfor (%s %s = %s; %s %s %s; %s) {", idt, t.Glsl(), v, init, v, op, end, delta))
 			lines = append(lines, p.glslBlock(topBlock, &s.Blocks[0], level+1, localVarIndex)...)
 			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case Continue:
