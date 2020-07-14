@@ -60,9 +60,9 @@ func vertexSlice(n int, last bool) []float32 {
 	return make([]float32, n*graphics.VertexFloatNum)
 }
 
-func quadVertices(sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32, last bool) []float32 {
-	x := float32(sx1 - sx0)
-	y := float32(sy1 - sy0)
+func quadVertices(sx0, sy0, sx1, sy1 float32, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32, last bool) []float32 {
+	x := sx1 - sx0
+	y := sy1 - sy0
 	ax, by, cx, dy := a*x, b*y, c*x, d*y
 	u0, v0, u1, v1 := float32(sx0), float32(sy0), float32(sx1), float32(sy1)
 

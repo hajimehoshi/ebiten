@@ -54,28 +54,32 @@ func (g *GeoM) det() float32 {
 	return g.A*g.D - g.B*g.C
 }
 
-type levelToImage map[int]*shareable.Image
-
 // Mipmap is a set of shareable.Image sorted by the order of mipmap level.
 // The level 0 image is a regular image and higher-level images are used for mipmap.
 type Mipmap struct {
+	width    int
+	height   int
 	volatile bool
 	orig     *shareable.Image
-	imgs     map[image.Rectangle]levelToImage
+	imgs     map[int]*shareable.Image
 }
 
 func New(width, height int, volatile bool) *Mipmap {
 	return &Mipmap{
+		width:    width,
+		height:   height,
 		volatile: volatile,
 		orig:     shareable.NewImage(width, height, volatile),
-		imgs:     map[image.Rectangle]levelToImage{},
+		imgs:     map[int]*shareable.Image{},
 	}
 }
 
 func NewScreenFramebufferMipmap(width, height int) *Mipmap {
 	return &Mipmap{
-		orig: shareable.NewScreenFramebufferImage(width, height),
-		imgs: map[image.Rectangle]levelToImage{},
+		width:  width,
+		height: height,
+		orig:   shareable.NewScreenFramebufferImage(width, height),
+		imgs:   map[int]*shareable.Image{},
 	}
 }
 
@@ -149,17 +153,24 @@ func (m *Mipmap) DrawImage(src *Mipmap, bounds image.Rectangle, geom GeoM, color
 
 	a, b, c, d, tx, ty := geom.A, geom.B, geom.C, geom.D, geom.Tx, geom.Ty
 	if level == 0 {
-		vs := quadVertices(bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y, a, b, c, d, tx, ty, cr, cg, cb, ca, screen)
+		sx0 := float32(bounds.Min.X)
+		sy0 := float32(bounds.Min.Y)
+		sx1 := float32(bounds.Max.X)
+		sy1 := float32(bounds.Max.Y)
+		vs := quadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, cr, cg, cb, ca, screen)
 		is := graphics.QuadIndices()
 		m.orig.DrawTriangles(src.orig, vs, is, colorm, mode, filter, driver.AddressUnsafe, driver.Region{}, nil, nil, nil)
-	} else if buf := src.level(bounds, level); buf != nil {
-		w, h := sizeForLevel(bounds.Dx(), bounds.Dy(), level)
+	} else if buf := src.level(level); buf != nil {
 		s := pow2(level)
+		sx0 := float32(sizeForLevel(bounds.Min.X, level))
+		sy0 := float32(sizeForLevel(bounds.Min.Y, level))
+		sx1 := float32(sizeForLevel(bounds.Max.X, level))
+		sy1 := float32(sizeForLevel(bounds.Max.Y, level))
 		a *= s
 		b *= s
 		c *= s
 		d *= s
-		vs := quadVertices(0, 0, w, h, a, b, c, d, tx, ty, cr, cg, cb, ca, false)
+		vs := quadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, cr, cg, cb, ca, false)
 		is := graphics.QuadIndices()
 		m.orig.DrawTriangles(buf, vs, is, colorm, mode, filter, driver.AddressUnsafe, driver.Region{}, nil, nil, nil)
 	}
@@ -204,7 +215,7 @@ func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16
 	m.disposeMipmaps()
 }
 
-func (m *Mipmap) level(r image.Rectangle, level int) *shareable.Image {
+func (m *Mipmap) level(level int) *shareable.Image {
 	if level == 0 {
 		panic("ebiten: level must be non-zero at level")
 	}
@@ -213,12 +224,7 @@ func (m *Mipmap) level(r image.Rectangle, level int) *shareable.Image {
 		panic("ebiten: mipmap images for a volatile image is not implemented yet")
 	}
 
-	if _, ok := m.imgs[r]; !ok {
-		m.imgs[r] = levelToImage{}
-	}
-	imgs := m.imgs[r]
-
-	if img, ok := imgs[level]; ok {
+	if img, ok := m.imgs[level]; ok {
 		return img
 	}
 
@@ -228,65 +234,64 @@ func (m *Mipmap) level(r image.Rectangle, level int) *shareable.Image {
 	switch {
 	case level == 1:
 		src = m.orig
-		vs = quadVertices(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1, false)
+		vs = quadVertices(0, 0, float32(m.width), float32(m.height), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1, false)
 		filter = driver.FilterLinear
 	case level > 1:
-		src = m.level(r, level-1)
+		src = m.level(level - 1)
 		if src == nil {
-			imgs[level] = nil
+			m.imgs[level] = nil
 			return nil
 		}
-		w, h := sizeForLevel(r.Dx(), r.Dy(), level-1)
-		vs = quadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1, false)
+		w := sizeForLevel(m.width, level-1)
+		h := sizeForLevel(m.height, level-1)
+		vs = quadVertices(0, 0, float32(w), float32(h), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1, false)
 		filter = driver.FilterLinear
 	case level == -1:
 		src = m.orig
-		vs = quadVertices(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y, 2, 0, 0, 2, 0, 0, 1, 1, 1, 1, false)
+		vs = quadVertices(0, 0, float32(m.width), float32(m.height), 2, 0, 0, 2, 0, 0, 1, 1, 1, 1, false)
 		filter = driver.FilterNearest
 	case level < -1:
-		src = m.level(r, level+1)
+		src = m.level(level + 1)
 		if src == nil {
-			imgs[level] = nil
+			m.imgs[level] = nil
 			return nil
 		}
-		w, h := sizeForLevel(r.Dx(), r.Dy(), level+1)
-		vs = quadVertices(0, 0, w, h, 2, 0, 0, 2, 0, 0, 1, 1, 1, 1, false)
+		w := sizeForLevel(m.width, level-1)
+		h := sizeForLevel(m.height, level-1)
+		vs = quadVertices(0, 0, float32(w), float32(h), 2, 0, 0, 2, 0, 0, 1, 1, 1, 1, false)
 		filter = driver.FilterNearest
 	default:
 		panic(fmt.Sprintf("ebiten: invalid level: %d", level))
 	}
 	is := graphics.QuadIndices()
 
-	w2, h2 := sizeForLevel(r.Dx(), r.Dy(), level)
+	w2 := sizeForLevel(m.width, level-1)
+	h2 := sizeForLevel(m.height, level-1)
 	if w2 == 0 || h2 == 0 {
-		imgs[level] = nil
+		m.imgs[level] = nil
 		return nil
 	}
 	s := shareable.NewImage(w2, h2, m.volatile)
 	s.DrawTriangles(src, vs, is, nil, driver.CompositeModeCopy, filter, driver.AddressUnsafe, driver.Region{}, nil, nil, nil)
-	imgs[level] = s
+	m.imgs[level] = s
 
-	return imgs[level]
+	return m.imgs[level]
 }
 
-func sizeForLevel(origWidth, origHeight int, level int) (width, height int) {
-	width = origWidth
-	height = origHeight
+func sizeForLevel(x int, level int) int {
 	if level > 0 {
 		for i := 0; i < level; i++ {
-			width /= 2
-			height /= 2
-			if width == 0 || height == 0 {
-				return 0, 0
+			x /= 2
+			if x == 0 {
+				return 0
 			}
 		}
 	} else {
 		for i := 0; i < -level; i++ {
-			width *= 2
-			height *= 2
+			x *= 2
 		}
 	}
-	return
+	return x
 }
 
 func (m *Mipmap) MarkDisposed() {
@@ -296,10 +301,8 @@ func (m *Mipmap) MarkDisposed() {
 }
 
 func (m *Mipmap) disposeMipmaps() {
-	for _, a := range m.imgs {
-		for _, img := range a {
-			img.MarkDisposed()
-		}
+	for _, img := range m.imgs {
+		img.MarkDisposed()
 	}
 	for k := range m.imgs {
 		delete(m.imgs, k)
