@@ -269,19 +269,14 @@ func (i *Image) drawImage(src *Image, bounds image.Rectangle, g mipmap.GeoM, col
 //
 // Copying vertices and indices is the caller's responsibility.
 func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}, textures []*Image) {
-	var srcs []*Image
 	if src != nil {
-		srcs = append(srcs, src)
-	}
-	for _, u := range uniforms {
-		if src, ok := u.(*Image); ok {
-			srcs = append(srcs, src)
-		}
-	}
-
-	for _, src := range srcs {
 		if i == src {
 			panic("buffered: Image.DrawTriangles: src must be different from the receiver")
+		}
+	}
+	for _, src := range textures {
+		if i == src {
+			panic("buffered: Image.DrawTriangles: source images must be different from the receiver")
 		}
 	}
 
@@ -295,7 +290,10 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 		}
 	}
 
-	for _, src := range srcs {
+	if src != nil {
+		src.resolvePendingPixels(true)
+	}
+	for _, src := range textures {
 		src.resolvePendingPixels(true)
 	}
 	i.resolvePendingPixels(false)

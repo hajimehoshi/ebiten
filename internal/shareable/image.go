@@ -373,10 +373,8 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 	if img != nil {
 		makeSharedIfNeeded(img)
 	}
-	for _, u := range uniforms {
-		if src, ok := u.(*Image); ok {
-			makeSharedIfNeeded(src)
-		}
+	for _, src := range textures {
+		makeSharedIfNeeded(src)
 	}
 
 	backendsM.Unlock()
