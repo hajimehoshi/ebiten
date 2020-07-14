@@ -58,7 +58,7 @@ type Graphics interface {
 	//
 	//   * float32
 	//   * []float32
-	DrawShader(dst ImageID, shader ShaderID, indexLen int, indexOffset int, mode CompositeMode, uniforms []interface{}, textures []ImageID) error
+	DrawShader(dst ImageID, shader ShaderID, indexLen int, indexOffset int, mode CompositeMode, uniforms []interface{}, srcs []ImageID) error
 }
 
 // GraphicsNotReady represents that the graphics driver is not ready for recovering from the context lost.

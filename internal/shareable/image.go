@@ -305,7 +305,7 @@ func makeSharedIfNeeded(src *Image) {
 //   5: Color G
 //   6: Color B
 //   7: Color Y
-func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}, textures []*Image) {
+func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}, images []*Image) {
 	backendsM.Lock()
 	// Do not use defer for performance.
 
@@ -318,7 +318,7 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 		i.processSrc(img)
 	}
 	firstImg := img
-	for _, src := range textures {
+	for _, src := range images {
 		if firstImg == nil {
 			firstImg = src
 		}
@@ -356,16 +356,16 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 		s = shader.shader
 	}
 
-	var ts []*restorable.Image
-	for _, t := range textures {
-		ts = append(ts, t.backend.restorable)
+	var imgs []*restorable.Image
+	for _, img := range images {
+		imgs = append(imgs, img.backend.restorable)
 	}
 
 	var r *restorable.Image
 	if img != nil {
 		r = img.backend.restorable
 	}
-	i.backend.restorable.DrawTriangles(r, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms, ts)
+	i.backend.restorable.DrawTriangles(r, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms, imgs)
 
 	i.nonUpdatedCount = 0
 	delete(imagesToMakeShared, i)
@@ -373,7 +373,7 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 	if img != nil {
 		makeSharedIfNeeded(img)
 	}
-	for _, src := range textures {
+	for _, src := range images {
 		makeSharedIfNeeded(src)
 	}
 

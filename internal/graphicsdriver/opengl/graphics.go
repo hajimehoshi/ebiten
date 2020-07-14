@@ -275,7 +275,7 @@ func (g *Graphics) removeShader(shader *Shader) {
 	delete(g.shaders, shader.id)
 }
 
-func (g *Graphics) DrawShader(dst driver.ImageID, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms []interface{}, textures []driver.ImageID) error {
+func (g *Graphics) DrawShader(dst driver.ImageID, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms []interface{}, srcs []driver.ImageID) error {
 	d := g.images[dst]
 	s := g.shaders[shader]
 
@@ -292,8 +292,8 @@ func (g *Graphics) DrawShader(dst driver.ImageID, shader driver.ShaderID, indexL
 		us[k].value = v
 	}
 
-	ts := make([]textureNative, len(textures))
-	for k, v := range textures {
+	ts := make([]textureNative, len(srcs))
+	for k, v := range srcs {
 		ts[k] = g.images[v].textureNative
 	}
 

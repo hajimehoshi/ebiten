@@ -130,7 +130,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		[]float32{float32(cx), float32(cy)}, // Cursor
 	}
 	if g.idx != 0 {
-		op.Textures = append(op.Textures, gophersImage)
+		op.Images = append(op.Images, gophersImage)
 	}
 	screen.DrawTrianglesWithShader(vs, is, s, op)
 

@@ -342,7 +342,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 type DrawTrianglesWithShaderOptions struct {
 	Uniforms      []interface{}
-	Textures      []*Image // TODO: Rename to Images?
+	Images        []*Image
 	CompositeMode CompositeMode
 }
 
@@ -375,12 +375,12 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 	// The actual value is set at graphicscommand package.
 	us := append([]interface{}{[]float32{0, 0}}, options.Uniforms...)
 
-	var ts []*buffered.Image
-	for _, t := range options.Textures {
-		if t.isDisposed() {
+	var imgs []*buffered.Image
+	for _, img := range options.Images {
+		if img.isDisposed() {
 			panic("ebiten: the given image to DrawTriangles must not be disposed")
 		}
-		ts = append(ts, t.buffered)
+		imgs = append(imgs, img.buffered)
 	}
 
 	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
@@ -397,7 +397,7 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
-	i.buffered.DrawTriangles(nil, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, shader.shader, us, ts)
+	i.buffered.DrawTriangles(nil, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, shader.shader, us, imgs)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.

@@ -177,7 +177,7 @@ func (m *Mipmap) DrawImage(src *Mipmap, bounds image.Rectangle, geom GeoM, color
 	m.disposeMipmaps()
 }
 
-func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}, textures []*Mipmap) {
+func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}, images []*Mipmap) {
 	// TODO: Use a mipmap? (#909)
 
 	if colorm != nil && colorm.ScaleOnly() {
@@ -206,12 +206,12 @@ func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16
 		srcOrig = src.orig
 	}
 
-	var ts []*shareable.Image
-	for _, t := range textures {
-		ts = append(ts, t.orig)
+	var imgs []*shareable.Image
+	for _, img := range images {
+		imgs = append(imgs, img.orig)
 	}
 
-	m.orig.DrawTriangles(srcOrig, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms, ts)
+	m.orig.DrawTriangles(srcOrig, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms, imgs)
 	m.disposeMipmaps()
 }
 

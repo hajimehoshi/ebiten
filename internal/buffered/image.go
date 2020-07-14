@@ -268,13 +268,13 @@ func (i *Image) drawImage(src *Image, bounds image.Rectangle, g mipmap.GeoM, col
 // DrawTriangles draws the src image with the given vertices.
 //
 // Copying vertices and indices is the caller's responsibility.
-func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}, textures []*Image) {
+func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}, images []*Image) {
 	if src != nil {
 		if i == src {
 			panic("buffered: Image.DrawTriangles: src must be different from the receiver")
 		}
 	}
-	for _, src := range textures {
+	for _, src := range images {
 		if i == src {
 			panic("buffered: Image.DrawTriangles: source images must be different from the receiver")
 		}
@@ -283,7 +283,7 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 	if maybeCanAddDelayedCommand() {
 		if tryAddDelayedCommand(func() error {
 			// Arguments are not copied. Copying is the caller's responsibility.
-			i.DrawTriangles(src, vertices, indices, colorm, mode, filter, address, sourceRegion, shader, uniforms, textures)
+			i.DrawTriangles(src, vertices, indices, colorm, mode, filter, address, sourceRegion, shader, uniforms, images)
 			return nil
 		}) {
 			return
@@ -293,7 +293,7 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 	if src != nil {
 		src.resolvePendingPixels(true)
 	}
-	for _, src := range textures {
+	for _, src := range images {
 		src.resolvePendingPixels(true)
 	}
 	i.resolvePendingPixels(false)
@@ -308,12 +308,12 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 		srcImg = src.img
 	}
 
-	var ts []*mipmap.Mipmap
-	for _, t := range textures {
-		ts = append(ts, t.img)
+	var imgs []*mipmap.Mipmap
+	for _, img := range images {
+		imgs = append(imgs, img.img)
 	}
 
-	i.img.DrawTriangles(srcImg, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms, ts)
+	i.img.DrawTriangles(srcImg, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms, imgs)
 	i.invalidatePendingPixels()
 }
 
