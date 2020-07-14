@@ -15,9 +15,8 @@
 package mipmap
 
 import (
-	"sync"
-
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
 var (
@@ -29,11 +28,10 @@ var (
 type verticesBackend struct {
 	backend []float32
 	head    int
-	m       sync.Mutex
 }
 
 func (v *verticesBackend) slice(n int, last bool) []float32 {
-	v.m.Lock()
+	// As this is called only from GopherJS, mutex is not required.
 
 	need := n * graphics.VertexFloatNum
 	if l := len(v.backend); v.head+need > l {
@@ -51,13 +49,15 @@ func (v *verticesBackend) slice(n int, last bool) []float32 {
 	} else {
 		v.head += need
 	}
-
-	v.m.Unlock()
 	return s
 }
 
 func vertexSlice(n int, last bool) []float32 {
-	return theVerticesBackend.slice(n, last)
+	if web.IsGopherJS() {
+		// In GopherJS, allocating memory by make is expensive. Use the backend instead.
+		return theVerticesBackend.slice(n, last)
+	}
+	return make([]float32, n*graphics.VertexFloatNum)
 }
 
 func quadVertices(sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32, last bool) []float32 {

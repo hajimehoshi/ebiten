@@ -68,10 +68,6 @@ func sameColors(c1, c2 color.RGBA, delta int) bool {
 		abs(int(c1.A)-int(c2.A)) <= delta
 }
 
-func isGopherJS() bool {
-	return web.IsBrowser() && runtime.GOOS != "js"
-}
-
 func TestImagePixels(t *testing.T) {
 	img0, img, err := openEbitenImage()
 	if err != nil {
@@ -549,7 +545,7 @@ func TestImageClear(t *testing.T) {
 func TestImageEdge(t *testing.T) {
 	// TODO: This test is not so meaningful after #1218. Do we remove this?
 
-	if isGopherJS() {
+	if web.IsGopherJS() {
 		t.Skip("too slow on GopherJS")
 		return
 	}
@@ -903,7 +899,7 @@ func TestImageCopy(t *testing.T) {
 
 // Issue #611, #907
 func TestImageStretch(t *testing.T) {
-	if isGopherJS() {
+	if web.IsGopherJS() {
 		t.Skip("too slow on GopherJS")
 		return
 	}
