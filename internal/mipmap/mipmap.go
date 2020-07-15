@@ -108,7 +108,7 @@ func (m *Mipmap) DrawImage(src *Mipmap, bounds image.Rectangle, geom GeoM, color
 		return
 	}
 
-	level := src.mipmapLevel(geom, filter)
+	level := src.mipmapLevel(geom, bounds.Dx(), bounds.Dy(), filter)
 
 	if level > 0 {
 		// If the image can be scaled into 0 size, adjust the level. (#839)
@@ -312,7 +312,7 @@ func (m *Mipmap) disposeMipmaps() {
 // mipmapLevel returns an appropriate mipmap level for the given determinant of a geometry matrix.
 //
 // mipmapLevel panics if det is NaN or 0.
-func (m *Mipmap) mipmapLevel(geom GeoM, filter driver.Filter) int {
+func (m *Mipmap) mipmapLevel(geom GeoM, width, height int, filter driver.Filter) int {
 	det := geom.det()
 	if math.IsNaN(float64(det)) {
 		panic("ebiten: det must be finite at mipmapLevel")
@@ -338,7 +338,7 @@ func (m *Mipmap) mipmapLevel(geom GeoM, filter driver.Filter) int {
 		}
 
 		const mipmapMaxSize = 1024
-		w, h := m.width, m.height
+		w, h := width, height
 		if w >= mipmapMaxSize || h >= mipmapMaxSize {
 			return 0
 		}
