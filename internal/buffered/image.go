@@ -232,39 +232,6 @@ func (i *Image) replacePendingPixels(pix []byte, x, y, width, height int) {
 	i.needsToResolvePixels = true
 }
 
-func (i *Image) DrawImage(src *Image, bounds image.Rectangle, a, b, c, d, tx, ty float32, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter) {
-	if i == src {
-		panic("buffered: Image.DrawImage: src must be different from the receiver")
-	}
-
-	g := mipmap.GeoM{
-		A:  a,
-		B:  b,
-		C:  c,
-		D:  d,
-		Tx: tx,
-		Ty: ty,
-	}
-
-	if maybeCanAddDelayedCommand() {
-		if tryAddDelayedCommand(func() error {
-			i.drawImage(src, bounds, g, colorm, mode, filter)
-			return nil
-		}) {
-			return
-		}
-	}
-
-	i.drawImage(src, bounds, g, colorm, mode, filter)
-}
-
-func (i *Image) drawImage(src *Image, bounds image.Rectangle, g mipmap.GeoM, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter) {
-	src.resolvePendingPixels(true)
-	i.resolvePendingPixels(false)
-	i.img.DrawImage(src.img, bounds, g, colorm, mode, filter)
-	i.invalidatePendingPixels()
-}
-
 // DrawTriangles draws the src image with the given vertices.
 //
 // Copying vertices and indices is the caller's responsibility.

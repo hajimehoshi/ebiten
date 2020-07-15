@@ -198,7 +198,14 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	}
 
 	a, b, c, d, tx, ty := geom.elements32()
-	i.buffered.DrawImage(img.buffered, img.Bounds(), a, b, c, d, tx, ty, options.ColorM.impl, mode, filter)
+
+	sx0 := float32(bounds.Min.X)
+	sy0 := float32(bounds.Min.Y)
+	sx1 := float32(bounds.Max.X)
+	sy1 := float32(bounds.Max.Y)
+	vs := graphics.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, 1, 1, 1, 1, filter == driver.FilterScreen)
+	is := graphics.QuadIndices()
+	i.buffered.DrawTriangles(img.buffered, vs, is, options.ColorM.impl, mode, filter, driver.AddressUnsafe, driver.Region{}, nil, nil, nil)
 	return nil
 }
 

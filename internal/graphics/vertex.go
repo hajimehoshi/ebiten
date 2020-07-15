@@ -12,16 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mipmap
+package graphics
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
+const (
+	IndicesNum     = (1 << 16) / 3 * 3 // Adjust num for triangles.
+	VertexFloatNum = 8
+)
+
+var (
+	quadIndices = []uint16{0, 1, 2, 1, 2, 3}
+)
+
+func QuadIndices() []uint16 {
+	return quadIndices
+}
+
 var (
 	theVerticesBackend = &verticesBackend{
-		backend: make([]float32, graphics.VertexFloatNum*1024),
+		backend: make([]float32, VertexFloatNum*1024),
 	}
 )
 
@@ -33,7 +45,7 @@ type verticesBackend struct {
 func (v *verticesBackend) slice(n int, last bool) []float32 {
 	// As this is called only from GopherJS, mutex is not required.
 
-	need := n * graphics.VertexFloatNum
+	need := n * VertexFloatNum
 	if l := len(v.backend); v.head+need > l {
 		for v.head+need > l {
 			l *= 2
@@ -57,10 +69,10 @@ func vertexSlice(n int, last bool) []float32 {
 		// In GopherJS, allocating memory by make is expensive. Use the backend instead.
 		return theVerticesBackend.slice(n, last)
 	}
-	return make([]float32, n*graphics.VertexFloatNum)
+	return make([]float32, n*VertexFloatNum)
 }
 
-func quadVertices(sx0, sy0, sx1, sy1 float32, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32, last bool) []float32 {
+func QuadVertices(sx0, sy0, sx1, sy1 float32, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32, last bool) []float32 {
 	x := sx1 - sx0
 	y := sy1 - sy0
 	ax, by, cx, dy := a*x, b*y, c*x, d*y

@@ -978,7 +978,8 @@ func TestImageSprites(t *testing.T) {
 	}
 }
 
-func TestImageMipmap(t *testing.T) {
+// Disabled: it does not make sense to expect deterministic mipmap results (#909).
+func Disabled_TestImageMipmap(t *testing.T) {
 	src, _, err := openEbitenImage()
 	if err != nil {
 		t.Fatal(err)
@@ -1022,7 +1023,8 @@ func TestImageMipmap(t *testing.T) {
 	}
 }
 
-func TestImageMipmapNegativeDet(t *testing.T) {
+// Disabled: it does not make sense to expect deterministic mipmap results (#909).
+func Disabled_TestImageMipmapNegativeDet(t *testing.T) {
 	src, _, err := openEbitenImage()
 	if err != nil {
 		t.Fatal(err)

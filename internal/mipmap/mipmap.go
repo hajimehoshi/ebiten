@@ -16,7 +16,6 @@ package mipmap
 
 import (
 	"fmt"
-	"image"
 	"image/color"
 	"math"
 
@@ -39,19 +38,6 @@ func BeginFrame() error {
 
 func EndFrame() error {
 	return shareable.EndFrame()
-}
-
-type GeoM struct {
-	A  float32
-	B  float32
-	C  float32
-	D  float32
-	Tx float32
-	Ty float32
-}
-
-func (g *GeoM) det() float32 {
-	return g.A*g.D - g.B*g.C
 }
 
 // Mipmap is a set of shareable.Image sorted by the order of mipmap level.
@@ -99,56 +85,6 @@ func (m *Mipmap) ReplacePixels(pix []byte) {
 
 func (m *Mipmap) Pixels(x, y, width, height int) ([]byte, error) {
 	return m.orig.Pixels(x, y, width, height)
-}
-
-func (m *Mipmap) DrawImage(src *Mipmap, bounds image.Rectangle, geom GeoM, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter) {
-	if det := geom.det(); det == 0 {
-		return
-	} else if math.IsNaN(float64(det)) {
-		return
-	}
-
-	level := src.mipmapLevelFromGeoM(&geom, float32(bounds.Dx()), float32(bounds.Dy()), filter)
-
-	cr, cg, cb, ca := float32(1), float32(1), float32(1), float32(1)
-	if colorm != nil && colorm.ScaleOnly() {
-		body, _ := colorm.UnsafeElements()
-		cr = body[0]
-		cg = body[5]
-		cb = body[10]
-		ca = body[15]
-		colorm = nil
-	}
-
-	screen := filter == driver.FilterScreen
-	if screen && level != 0 {
-		panic("ebiten: Mipmap must not be used when the filter is FilterScreen")
-	}
-
-	a, b, c, d, tx, ty := geom.A, geom.B, geom.C, geom.D, geom.Tx, geom.Ty
-	if level == 0 {
-		sx0 := float32(bounds.Min.X)
-		sy0 := float32(bounds.Min.Y)
-		sx1 := float32(bounds.Max.X)
-		sy1 := float32(bounds.Max.Y)
-		vs := quadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, cr, cg, cb, ca, screen)
-		is := graphics.QuadIndices()
-		m.orig.DrawTriangles(src.orig, vs, is, colorm, mode, filter, driver.AddressUnsafe, driver.Region{}, nil, nil, nil)
-	} else if buf := src.level(level); buf != nil {
-		s := pow2(level)
-		sx0 := float32(sizeForLevel(bounds.Min.X, level))
-		sy0 := float32(sizeForLevel(bounds.Min.Y, level))
-		sx1 := float32(sizeForLevel(bounds.Max.X, level))
-		sy1 := float32(sizeForLevel(bounds.Max.Y, level))
-		a *= s
-		b *= s
-		c *= s
-		d *= s
-		vs := quadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, cr, cg, cb, ca, false)
-		is := graphics.QuadIndices()
-		m.orig.DrawTriangles(buf, vs, is, colorm, mode, filter, driver.AddressUnsafe, driver.Region{}, nil, nil, nil)
-	}
-	m.disposeMipmaps()
 }
 
 func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}, images []*Mipmap) {
@@ -245,7 +181,7 @@ func (m *Mipmap) level(level int) *shareable.Image {
 	switch {
 	case level == 1:
 		src = m.orig
-		vs = quadVertices(0, 0, float32(m.width), float32(m.height), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1, false)
+		vs = graphics.QuadVertices(0, 0, float32(m.width), float32(m.height), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1, false)
 		filter = driver.FilterLinear
 	case level > 1:
 		src = m.level(level - 1)
@@ -255,11 +191,11 @@ func (m *Mipmap) level(level int) *shareable.Image {
 		}
 		w := sizeForLevel(m.width, level-1)
 		h := sizeForLevel(m.height, level-1)
-		vs = quadVertices(0, 0, float32(w), float32(h), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1, false)
+		vs = graphics.QuadVertices(0, 0, float32(w), float32(h), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1, false)
 		filter = driver.FilterLinear
 	case level == -1:
 		src = m.orig
-		vs = quadVertices(0, 0, float32(m.width), float32(m.height), 2, 0, 0, 2, 0, 0, 1, 1, 1, 1, false)
+		vs = graphics.QuadVertices(0, 0, float32(m.width), float32(m.height), 2, 0, 0, 2, 0, 0, 1, 1, 1, 1, false)
 		filter = driver.FilterNearest
 	case level < -1:
 		src = m.level(level + 1)
@@ -269,7 +205,7 @@ func (m *Mipmap) level(level int) *shareable.Image {
 		}
 		w := sizeForLevel(m.width, level-1)
 		h := sizeForLevel(m.height, level-1)
-		vs = quadVertices(0, 0, float32(w), float32(h), 2, 0, 0, 2, 0, 0, 1, 1, 1, 1, false)
+		vs = graphics.QuadVertices(0, 0, float32(w), float32(h), 2, 0, 0, 2, 0, 0, 1, 1, 1, 1, false)
 		filter = driver.FilterNearest
 	default:
 		panic(fmt.Sprintf("ebiten: invalid level: %d", level))
@@ -318,31 +254,6 @@ func (m *Mipmap) disposeMipmaps() {
 	for k := range m.imgs {
 		delete(m.imgs, k)
 	}
-}
-
-func (m *Mipmap) mipmapLevelFromGeoM(geom *GeoM, sw, sh float32, filter driver.Filter) int {
-	sx0 := float32(0)
-	sy0 := float32(0)
-	sx1 := sw
-	sy1 := float32(0)
-	sx2 := float32(0)
-	sy2 := sh
-
-	a, b, c, d := geom.A, geom.B, geom.C, geom.D
-	dx0 := float32(0)
-	dy0 := float32(0)
-	dx1 := sx1*a + sy1*b
-	dy1 := sx1*c + sy1*d
-	dx2 := sx2*a + sy2*b
-	dy2 := sx2*c + sy2*d
-
-	l0 := m.mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, filter)
-	l1 := m.mipmapLevelFromDistance(dx0, dy0, dx2, dy2, sx0, sy0, sx2, sy2, filter)
-
-	if l0 < l1 {
-		return l0
-	}
-	return l1
 }
 
 // mipmapLevel returns an appropriate mipmap level for the given distance.
