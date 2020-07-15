@@ -267,6 +267,9 @@ func (m *Mipmap) mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 
 
 	d := (dx1-dx0)*(dx1-dx0) + (dy1-dy0)*(dy1-dy0)
 	s := (sx1-sx0)*(sx1-sx0) + (sy1-sy0)*(sy1-sy0)
+	if s == 0 {
+		return 0
+	}
 	scale := d / s
 
 	// Use 'negative' mipmap to render edges correctly (#611, #907).
