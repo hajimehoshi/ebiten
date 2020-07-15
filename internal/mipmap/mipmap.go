@@ -103,13 +103,13 @@ func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16
 		dy2 := vertices[n*indices[3*i+2]+1]
 		sx2 := vertices[n*indices[3*i+2]+2]
 		sy2 := vertices[n*indices[3*i+2]+3]
-		if l := m.mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, filter); level > l {
+		if l := src.mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, filter); level > l {
 			level = l
 		}
-		if l := m.mipmapLevelFromDistance(dx1, dy1, dx2, dy2, sx1, sy1, sx2, sy2, filter); level > l {
+		if l := src.mipmapLevelFromDistance(dx1, dy1, dx2, dy2, sx1, sy1, sx2, sy2, filter); level > l {
 			level = l
 		}
-		if l := m.mipmapLevelFromDistance(dx2, dy2, dx0, dy0, sx2, sy2, sx0, sy0, filter); level > l {
+		if l := src.mipmapLevelFromDistance(dx2, dy2, dx0, dy0, sx2, sy2, sx0, sy0, filter); level > l {
 			level = l
 		}
 	}
