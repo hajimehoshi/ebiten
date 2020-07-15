@@ -108,7 +108,7 @@ func (m *Mipmap) DrawImage(src *Mipmap, bounds image.Rectangle, geom GeoM, color
 		return
 	}
 
-	level := src.mipmapLevel(geom, bounds.Dx(), bounds.Dy(), filter)
+	level := src.mipmapLevelFromGeoM(&geom, float32(bounds.Dx()), float32(bounds.Dy()), filter)
 
 	cr, cg, cb, ca := float32(1), float32(1), float32(1), float32(1)
 	if colorm != nil && colorm.ScaleOnly() {
@@ -152,7 +152,31 @@ func (m *Mipmap) DrawImage(src *Mipmap, bounds image.Rectangle, geom GeoM, color
 }
 
 func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}, images []*Mipmap) {
-	// TODO: Use a mipmap? (#909)
+	level := math.MaxInt32
+	for i := 0; i < len(indices)/3; i++ {
+		const n = graphics.VertexFloatNum
+		dx0 := vertices[n*indices[3*i]+0]
+		dy0 := vertices[n*indices[3*i]+1]
+		sx0 := vertices[n*indices[3*i]+2]
+		sy0 := vertices[n*indices[3*i]+3]
+		dx1 := vertices[n*indices[3*i+1]+0]
+		dy1 := vertices[n*indices[3*i+1]+1]
+		sx1 := vertices[n*indices[3*i+1]+2]
+		sy1 := vertices[n*indices[3*i+1]+3]
+		dx2 := vertices[n*indices[3*i+2]+0]
+		dy2 := vertices[n*indices[3*i+2]+1]
+		sx2 := vertices[n*indices[3*i+2]+2]
+		sy2 := vertices[n*indices[3*i+2]+3]
+		if l := m.mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, filter); level > l {
+			level = l
+		}
+		if l := m.mipmapLevelFromDistance(dx1, dy1, dx2, dy2, sx1, sy1, sx2, sy2, filter); level > l {
+			level = l
+		}
+		if l := m.mipmapLevelFromDistance(dx2, dy2, dx0, dy0, sx2, sy2, sx0, sy0, filter); level > l {
+			level = l
+		}
+	}
 
 	if colorm != nil && colorm.ScaleOnly() {
 		body, _ := colorm.UnsafeElements()
@@ -175,17 +199,30 @@ func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16
 		s = shader.shader
 	}
 
-	var srcOrig *shareable.Image
+	var srcimg *shareable.Image
 	if src != nil {
-		srcOrig = src.orig
+		srcimg = src.orig
 	}
 
+	if level != 0 {
+		if img := src.level(level); img != nil {
+			srcimg = img
+			const n = graphics.VertexFloatNum
+			s := float32(pow2(level))
+			for i := 0; i < len(vertices)/n; i++ {
+				vertices[i*n+2] /= s
+				vertices[i*n+3] /= s
+			}
+		}
+	}
+
+	// TODO: Do we need to consider mipmaps here?
 	var imgs []*shareable.Image
 	for _, img := range images {
 		imgs = append(imgs, img.orig)
 	}
 
-	m.orig.DrawTriangles(srcOrig, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms, imgs)
+	m.orig.DrawTriangles(srcimg, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms, imgs)
 	m.disposeMipmaps()
 }
 
@@ -283,24 +320,43 @@ func (m *Mipmap) disposeMipmaps() {
 	}
 }
 
-// mipmapLevel returns an appropriate mipmap level for the given determinant of a geometry matrix.
-//
-// mipmapLevel panics if det is NaN or 0.
-func (m *Mipmap) mipmapLevel(geom GeoM, width, height int, filter driver.Filter) int {
-	det := geom.det()
-	if math.IsNaN(float64(det)) {
-		panic("ebiten: det must be finite at mipmapLevel")
-	}
-	if det == 0 {
-		panic("ebiten: dst must be non zero at mipmapLevel")
-	}
+func (m *Mipmap) mipmapLevelFromGeoM(geom *GeoM, sw, sh float32, filter driver.Filter) int {
+	sx0 := float32(0)
+	sy0 := float32(0)
+	sx1 := sw
+	sy1 := float32(0)
+	sx2 := float32(0)
+	sy2 := sh
 
+	a, b, c, d := geom.A, geom.B, geom.C, geom.D
+	dx0 := float32(0)
+	dy0 := float32(0)
+	dx1 := sx1*a + sy1*b
+	dy1 := sx1*c + sy1*d
+	dx2 := sx2*a + sy2*b
+	dy2 := sx2*c + sy2*d
+
+	l0 := m.mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, filter)
+	l1 := m.mipmapLevelFromDistance(dx0, dy0, dx2, dy2, sx0, sy0, sx2, sy2, filter)
+
+	if l0 < l1 {
+		return l0
+	}
+	return l1
+}
+
+// mipmapLevel returns an appropriate mipmap level for the given distance.
+func (m *Mipmap) mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, filter driver.Filter) int {
 	if filter == driver.FilterScreen {
 		return 0
 	}
 	if m.volatile {
 		return 0
 	}
+
+	d := (dx1-dx0)*(dx1-dx0) + (dy1-dy0)*(dy1-dy0)
+	s := (sx1-sx0)*(sx1-sx0) + (sy1-sy0)*(sy1-sy0)
+	scale := d / s
 
 	// Use 'negative' mipmap to render edges correctly (#611, #907).
 	// It looks like 128 is the enlargement factor that causes edge missings to pass the test TestImageStretch.
@@ -309,23 +365,22 @@ func (m *Mipmap) mipmapLevel(geom GeoM, width, height int, filter driver.Filter)
 		tooBigScale = 4
 	}
 
-	if sx, sy := geomScaleSize(&geom); sx >= tooBigScale || sy >= tooBigScale {
+	if scale >= tooBigScale*tooBigScale {
 		// If the filter is not nearest, the target needs to be rendered with graduation. Don't use mipmaps.
 		if filter != driver.FilterNearest {
 			return 0
 		}
 
 		const mipmapMaxSize = 1024
-		w, h := width, height
+		w, h := sx1-sx0, sy1-sy0
 		if w >= mipmapMaxSize || h >= mipmapMaxSize {
 			return 0
 		}
 
 		level := 0
-		for sx >= tooBigScale || sy >= tooBigScale {
+		for scale >= tooBigScale*tooBigScale {
 			level--
-			sx /= 2
-			sy /= 2
+			scale /= 4
 			w *= 2
 			h *= 2
 			if w >= mipmapMaxSize || h >= mipmapMaxSize {
@@ -345,14 +400,18 @@ func (m *Mipmap) mipmapLevel(geom GeoM, width, height int, filter driver.Filter)
 		return 0
 	}
 
-	// This is a separate function for testing.
-	level := MipmapLevelForDownscale(det)
+	level := 0
+	for scale < 0.25 {
+		level++
+		scale *= 4
+	}
+
 	if level > 0 {
 		// If the image can be scaled into 0 size, adjust the level. (#839)
-		w, h := width, height
+		w, h := int(sx1-sx0), int(sy1-sy0)
 		for level >= 0 {
 			s := 1 << uint(level)
-			if w/s == 0 || h/s == 0 {
+			if (w > 0 && w/s == 0) || (h > 0 && h/s == 0) {
 				level--
 				continue
 			}
@@ -372,24 +431,6 @@ func (m *Mipmap) mipmapLevel(geom GeoM, width, height int, filter driver.Filter)
 	return level
 }
 
-func MipmapLevelForDownscale(det float32) int {
-	if math.IsNaN(float64(det)) {
-		panic("ebiten: det must be finite at mipmapLevelForDownscale")
-	}
-	if det == 0 {
-		panic("ebiten: dst must be non zero at mipmapLevelForDownscale")
-	}
-
-	// TODO: Should this be determined by x/y scales instead of det?
-	d := math.Abs(float64(det))
-	level := 0
-	for d < 0.25 {
-		level++
-		d *= 4
-	}
-	return level
-}
-
 func pow2(power int) float32 {
 	if power >= 0 {
 		x := 1
@@ -401,56 +442,6 @@ func pow2(power int) float32 {
 		x /= 2
 	}
 	return x
-}
-
-func maxf32(a, b, c, d float32) float32 {
-	max := a
-	if max < b {
-		max = b
-	}
-	if max < c {
-		max = c
-	}
-	if max < d {
-		max = d
-	}
-	return max
-}
-
-func minf32(a, b, c, d float32) float32 {
-	min := a
-	if min > b {
-		min = b
-	}
-	if min > c {
-		min = c
-	}
-	if min > d {
-		min = d
-	}
-	return min
-}
-
-func geomScaleSize(geom *GeoM) (sx, sy float32) {
-	a, b, c, d := geom.A, geom.B, geom.C, geom.D
-	// (0, 1)
-	x0 := 0*a + 1*b
-	y0 := 0*c + 1*d
-
-	// (1, 0)
-	x1 := 1*a + 0*b
-	y1 := 1*c + 0*d
-
-	// (1, 1)
-	x2 := 1*a + 1*b
-	y2 := 1*c + 1*d
-
-	maxx := maxf32(0, x0, x1, x2)
-	maxy := maxf32(0, y0, y1, y2)
-	minx := minf32(0, x0, x1, x2)
-	miny := minf32(0, y0, y1, y2)
-
-	return maxx - minx, maxy - miny
 }
 
 type Shader struct {
