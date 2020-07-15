@@ -298,6 +298,9 @@ func (m *Mipmap) mipmapLevel(geom GeoM, width, height int, filter driver.Filter)
 	if filter == driver.FilterScreen {
 		return 0
 	}
+	if m.volatile {
+		return 0
+	}
 
 	// Use 'negative' mipmap to render edges correctly (#611, #907).
 	// It looks like 128 is the enlargement factor that causes edge missings to pass the test TestImageStretch.
@@ -339,9 +342,6 @@ func (m *Mipmap) mipmapLevel(geom GeoM, width, height int, filter driver.Filter)
 	}
 
 	if filter != driver.FilterLinear {
-		return 0
-	}
-	if m.volatile {
 		return 0
 	}
 
