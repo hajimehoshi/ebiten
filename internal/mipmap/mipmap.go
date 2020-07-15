@@ -110,32 +110,6 @@ func (m *Mipmap) DrawImage(src *Mipmap, bounds image.Rectangle, geom GeoM, color
 
 	level := src.mipmapLevel(geom, bounds.Dx(), bounds.Dy(), filter)
 
-	if level > 0 {
-		// If the image can be scaled into 0 size, adjust the level. (#839)
-		w, h := bounds.Dx(), bounds.Dy()
-		for level >= 0 {
-			s := 1 << uint(level)
-			if w/s == 0 || h/s == 0 {
-				level--
-				continue
-			}
-			break
-		}
-
-		if level < 0 {
-			// As the render source is too small, nothing is rendered.
-			return
-		}
-	}
-
-	if level > 6 {
-		level = 6
-	}
-	// If tooBigScale is 4, level -10 means that the maximum scale is 4 * 2^10 = 4096. This should be enough.
-	if level < -10 {
-		level = -10
-	}
-
 	cr, cg, cb, ca := float32(1), float32(1), float32(1), float32(1)
 	if colorm != nil && colorm.ScaleOnly() {
 		body, _ := colorm.UnsafeElements()
@@ -331,6 +305,7 @@ func (m *Mipmap) mipmapLevel(geom GeoM, width, height int, filter driver.Filter)
 	if !graphicsDriver.HasHighPrecisionFloat() {
 		tooBigScale = 4
 	}
+
 	if sx, sy := geomScaleSize(&geom); sx >= tooBigScale || sy >= tooBigScale {
 		// If the filter is not nearest, the target needs to be rendered with graduation. Don't use mipmaps.
 		if filter != driver.FilterNearest {
@@ -354,6 +329,12 @@ func (m *Mipmap) mipmapLevel(geom GeoM, width, height int, filter driver.Filter)
 				break
 			}
 		}
+
+		// If tooBigScale is 4, level -10 means that the maximum scale is 4 * 2^10 = 4096. This should be
+		// enough.
+		if level < -10 {
+			level = -10
+		}
 		return level
 	}
 
@@ -365,7 +346,30 @@ func (m *Mipmap) mipmapLevel(geom GeoM, width, height int, filter driver.Filter)
 	}
 
 	// This is a separate function for testing.
-	return MipmapLevelForDownscale(det)
+	level := MipmapLevelForDownscale(det)
+	if level > 0 {
+		// If the image can be scaled into 0 size, adjust the level. (#839)
+		w, h := width, height
+		for level >= 0 {
+			s := 1 << uint(level)
+			if w/s == 0 || h/s == 0 {
+				level--
+				continue
+			}
+			break
+		}
+
+		if level < 0 {
+			// As the render source is too small, nothing is rendered.
+			return 0
+		}
+	}
+
+	if level > 6 {
+		level = 6
+	}
+
+	return level
 }
 
 func MipmapLevelForDownscale(det float32) int {
