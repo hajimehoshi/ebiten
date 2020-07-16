@@ -88,29 +88,32 @@ func (m *Mipmap) Pixels(x, y, width, height int) ([]byte, error) {
 }
 
 func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}, images []*Mipmap) {
-	level := math.MaxInt32
-	for i := 0; i < len(indices)/3; i++ {
-		const n = graphics.VertexFloatNum
-		dx0 := vertices[n*indices[3*i]+0]
-		dy0 := vertices[n*indices[3*i]+1]
-		sx0 := vertices[n*indices[3*i]+2]
-		sy0 := vertices[n*indices[3*i]+3]
-		dx1 := vertices[n*indices[3*i+1]+0]
-		dy1 := vertices[n*indices[3*i+1]+1]
-		sx1 := vertices[n*indices[3*i+1]+2]
-		sy1 := vertices[n*indices[3*i+1]+3]
-		dx2 := vertices[n*indices[3*i+2]+0]
-		dy2 := vertices[n*indices[3*i+2]+1]
-		sx2 := vertices[n*indices[3*i+2]+2]
-		sy2 := vertices[n*indices[3*i+2]+3]
-		if l := src.mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, filter); level > l {
-			level = l
-		}
-		if l := src.mipmapLevelFromDistance(dx1, dy1, dx2, dy2, sx1, sy1, sx2, sy2, filter); level > l {
-			level = l
-		}
-		if l := src.mipmapLevelFromDistance(dx2, dy2, dx0, dy0, sx2, sy2, sx0, sy0, filter); level > l {
-			level = l
+	level := 0
+	if src != nil && !src.volatile && filter != driver.FilterScreen {
+		level = math.MaxInt32
+		for i := 0; i < len(indices)/3; i++ {
+			const n = graphics.VertexFloatNum
+			dx0 := vertices[n*indices[3*i]+0]
+			dy0 := vertices[n*indices[3*i]+1]
+			sx0 := vertices[n*indices[3*i]+2]
+			sy0 := vertices[n*indices[3*i]+3]
+			dx1 := vertices[n*indices[3*i+1]+0]
+			dy1 := vertices[n*indices[3*i+1]+1]
+			sx1 := vertices[n*indices[3*i+1]+2]
+			sy1 := vertices[n*indices[3*i+1]+3]
+			dx2 := vertices[n*indices[3*i+2]+0]
+			dy2 := vertices[n*indices[3*i+2]+1]
+			sx2 := vertices[n*indices[3*i+2]+2]
+			sy2 := vertices[n*indices[3*i+2]+3]
+			if l := mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, filter); level > l {
+				level = l
+			}
+			if l := mipmapLevelFromDistance(dx1, dy1, dx2, dy2, sx1, sy1, sx2, sy2, filter); level > l {
+				level = l
+			}
+			if l := mipmapLevelFromDistance(dx2, dy2, dx0, dy0, sx2, sy2, sx0, sy0, filter); level > l {
+				level = l
+			}
 		}
 	}
 
@@ -257,11 +260,8 @@ func (m *Mipmap) disposeMipmaps() {
 }
 
 // mipmapLevel returns an appropriate mipmap level for the given distance.
-func (m *Mipmap) mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, filter driver.Filter) int {
+func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, filter driver.Filter) int {
 	if filter == driver.FilterScreen {
-		return 0
-	}
-	if m.volatile {
 		return 0
 	}
 
