@@ -19,12 +19,12 @@ package main
 import (
 	"bytes"
 	"image"
-	_ "image/jpeg"
+	_ "image/png"
 	"log"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"github.com/hajimehoshi/ebiten/examples/resources/images"
+	resources "github.com/hajimehoshi/ebiten/examples/resources/images/shader"
 	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
@@ -33,7 +33,10 @@ const (
 	screenHeight = 480
 )
 
-var gophersImage *ebiten.Image
+var (
+	gopherImage *ebiten.Image
+	normalImage *ebiten.Image
+)
 
 func init() {
 	// Decode image from a byte slice instead of a file so that
@@ -45,16 +48,24 @@ func init() {
 	//    This works even on browsers.
 	// 3) Use ebitenutil.NewImageFromFile to create an ebiten.Image directly from a file.
 	//    This also works on browsers.
-	img, _, err := image.Decode(bytes.NewReader(images.Gophers_jpg))
+	img, _, err := image.Decode(bytes.NewReader(resources.Gopher_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	gopherImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+}
+
+func init() {
+	img, _, err := image.Decode(bytes.NewReader(resources.Normal_png))
+	if err != nil {
+		log.Fatal(err)
+	}
+	normalImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 }
 
 var shaderSrcs = [][]byte{
 	default_go,
-	image_go,
+	lighting_go,
 }
 
 type Game struct {
@@ -93,6 +104,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		return
 	}
 
+	sw, sh := gopherImage.Size()
 	w, h := screen.Size()
 	vs := []ebiten.Vertex{
 		{
@@ -104,20 +116,20 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		{
 			DstX: float32(w),
 			DstY: 0,
-			SrcX: float32(w),
+			SrcX: float32(sw),
 			SrcY: 0,
 		},
 		{
 			DstX: 0,
 			DstY: float32(h),
 			SrcX: 0,
-			SrcY: float32(h),
+			SrcY: float32(sh),
 		},
 		{
 			DstX: float32(w),
 			DstY: float32(h),
-			SrcX: float32(w),
-			SrcY: float32(h),
+			SrcX: float32(sw),
+			SrcY: float32(sh),
 		},
 	}
 	is := []uint16{0, 1, 2, 1, 2, 3}
@@ -130,7 +142,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		[]float32{float32(cx), float32(cy)}, // Cursor
 	}
 	if g.idx != 0 {
-		op.Images[0] = gophersImage
+		op.Images[0] = gopherImage
+		op.Images[1] = normalImage
 	}
 	screen.DrawTrianglesWithShader(vs, is, s, op)
 
