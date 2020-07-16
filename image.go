@@ -380,10 +380,16 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 	// The actual value is set at graphicscommand package.
 	us := append([]interface{}{[]float32{0, 0}}, options.Uniforms...)
 
+	var imgw, imgh int
 	var imgs []*buffered.Image
 	for _, img := range options.Images {
 		if img.isDisposed() {
 			panic("ebiten: the given image to DrawTriangles must not be disposed")
+		}
+		if imgw == 0 || imgh == 0 {
+			imgw, imgh = img.Size()
+		} else if w, h := img.Size(); imgw != w || imgh != h {
+			panic("ebiten: all the source images must be the same size")
 		}
 		imgs = append(imgs, img.buffered)
 	}
