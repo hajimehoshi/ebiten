@@ -17,6 +17,7 @@ package graphicscommand
 import (
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
@@ -65,7 +66,7 @@ type command interface {
 	NumIndices() int
 	AddNumVertices(n int)
 	AddNumIndices(n int)
-	CanMergeWithDrawTrianglesCommand(dst, src *Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader) bool
+	CanMergeWithDrawTrianglesCommand(dst *Image, src [graphics.ShaderImageNum]*Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader) bool
 }
 
 type size struct {
@@ -143,7 +144,7 @@ func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
 }
 
 // EnqueueDrawTrianglesCommand enqueues a drawing-image command.
-func (q *commandQueue) EnqueueDrawTrianglesCommand(dst, src *Image, vertices []float32, indices []uint16, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}, images []*Image) {
+func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
 	if len(indices) > graphics.IndicesNum {
 		panic(fmt.Sprintf("graphicscommand: len(indices) must be <= graphics.IndicesNum but not at EnqueueDrawTrianglesCommand: len(indices): %d, graphics.IndicesNum: %d", len(indices), graphics.IndicesNum))
 	}
@@ -155,28 +156,30 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst, src *Image, vertices []f
 		split = true
 	}
 
-	if src != nil {
-		q.appendVertices(vertices, src)
-	} else if len(images) > 0 {
-		q.appendVertices(vertices, images[0])
-	} else {
-		q.appendVertices(vertices, nil)
+	// Assume that all the image sizes are same.
+	var firstSrc *Image
+	for _, src := range srcs {
+		if src != nil {
+			firstSrc = src
+			break
+		}
 	}
+	q.appendVertices(vertices, firstSrc)
 	q.appendIndices(indices, uint16(q.nextIndex))
 	q.nextIndex += len(vertices) / graphics.VertexFloatNum
 	q.tmpNumIndices += len(indices)
 
 	// TODO: If dst is the screen, reorder the command to be the last.
 	if !split && 0 < len(q.commands) {
-		if last := q.commands[len(q.commands)-1]; last.CanMergeWithDrawTrianglesCommand(dst, src, color, mode, filter, address, sourceRegion, shader) {
+		if last := q.commands[len(q.commands)-1]; last.CanMergeWithDrawTrianglesCommand(dst, srcs, color, mode, filter, address, sourceRegion, shader) {
 			last.AddNumVertices(len(vertices))
 			last.AddNumIndices(len(indices))
 			return
 		}
 	}
 
-	if address != driver.AddressUnsafe {
-		w, h := src.InternalSize()
+	if firstSrc != nil && address != driver.AddressUnsafe {
+		w, h := firstSrc.InternalSize()
 		sourceRegion.X /= float32(w)
 		sourceRegion.Y /= float32(h)
 		sourceRegion.Width /= float32(w)
@@ -185,7 +188,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst, src *Image, vertices []f
 
 	c := &drawTrianglesCommand{
 		dst:          dst,
-		src:          src,
+		srcs:         srcs,
 		nvertices:    len(vertices),
 		nindices:     len(indices),
 		color:        color,
@@ -195,7 +198,6 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst, src *Image, vertices []f
 		sourceRegion: sourceRegion,
 		shader:       shader,
 		uniforms:     uniforms,
-		images:       images,
 	}
 	q.commands = append(q.commands, c)
 }
@@ -312,7 +314,7 @@ func FlushCommands() error {
 // drawTrianglesCommand represents a drawing command to draw an image on another image.
 type drawTrianglesCommand struct {
 	dst          *Image
-	src          *Image
+	srcs         [graphics.ShaderImageNum]*Image
 	nvertices    int
 	nindices     int
 	color        *affine.ColorM
@@ -322,7 +324,6 @@ type drawTrianglesCommand struct {
 	sourceRegion driver.Region
 	shader       *Shader
 	uniforms     []interface{}
-	images       []*Image
 }
 
 func (c *drawTrianglesCommand) String() string {
@@ -391,12 +392,19 @@ func (c *drawTrianglesCommand) String() string {
 		panic(fmt.Sprintf("graphicscommand: invalid address: %d", c.address))
 	}
 
-	src := fmt.Sprintf("%d", c.src.id)
-	if c.src.screen {
-		src += " (screen)"
+	var srcstrs [graphics.ShaderImageNum]string
+	for i, src := range c.srcs {
+		if src == nil {
+			srcstrs[i] = "(nil)"
+			continue
+		}
+		srcstrs[i] = fmt.Sprintf("%d", src.id)
+		if src.screen {
+			srcstrs[i] += " (screen)"
+		}
 	}
 
-	return fmt.Sprintf("draw-triangles: dst: %s <- src: %s, num of indices: %d, colorm: %v, mode %s, filter: %s, address: %s", dst, src, c.nindices, c.color, mode, filter, address)
+	return fmt.Sprintf("draw-triangles: dst: %s <- src: [%s], num of indices: %d, colorm: %v, mode %s, filter: %s, address: %s", dst, strings.Join(srcstrs[:], ", "), c.nindices, c.color, mode, filter, address)
 }
 
 // Exec executes the drawTrianglesCommand.
@@ -407,9 +415,13 @@ func (c *drawTrianglesCommand) Exec(indexOffset int) error {
 	}
 
 	if c.shader != nil {
-		var imgs []driver.ImageID
-		for _, img := range c.images {
-			imgs = append(imgs, img.image.ID())
+		var imgs [graphics.ShaderImageNum]driver.ImageID
+		for i, src := range c.srcs {
+			if src == nil {
+				imgs[i] = theGraphicsDriver.InvalidImageID()
+				continue
+			}
+			imgs[i] = src.image.ID()
 		}
 
 		// The last uniform variables are added at /shader.go and represents a viewport size.
@@ -418,9 +430,9 @@ func (c *drawTrianglesCommand) Exec(indexOffset int) error {
 		viewport[0] = float32(w)
 		viewport[1] = float32(h)
 
-		return theGraphicsDriver.DrawShader(c.dst.image.ID(), c.shader.shader.ID(), c.nindices, indexOffset, c.mode, c.uniforms, imgs)
+		return theGraphicsDriver.DrawShader(c.dst.image.ID(), imgs, c.shader.shader.ID(), c.nindices, indexOffset, c.mode, c.uniforms)
 	}
-	return theGraphicsDriver.Draw(c.dst.image.ID(), c.src.image.ID(), c.nindices, indexOffset, c.mode, c.color, c.filter, c.address, c.sourceRegion)
+	return theGraphicsDriver.Draw(c.dst.image.ID(), c.srcs[0].image.ID(), c.nindices, indexOffset, c.mode, c.color, c.filter, c.address, c.sourceRegion)
 }
 
 func (c *drawTrianglesCommand) NumVertices() int {
@@ -441,7 +453,7 @@ func (c *drawTrianglesCommand) AddNumIndices(n int) {
 
 // CanMergeWithDrawTrianglesCommand returns a boolean value indicating whether the other drawTrianglesCommand can be merged
 // with the drawTrianglesCommand c.
-func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst, src *Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader) bool {
+func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageNum]*Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader) bool {
 	// If a shader is used, commands are not merged.
 	//
 	// TODO: Merge shader commands considering uniform variables.
@@ -451,7 +463,7 @@ func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst, src *Image,
 	if c.dst != dst {
 		return false
 	}
-	if c.src != src {
+	if c.srcs != srcs {
 		return false
 	}
 	if !c.color.Equals(color) {
@@ -502,7 +514,7 @@ func (c *replacePixelsCommand) AddNumVertices(n int) {
 func (c *replacePixelsCommand) AddNumIndices(n int) {
 }
 
-func (c *replacePixelsCommand) CanMergeWithDrawTrianglesCommand(dst, src *Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader) bool {
+func (c *replacePixelsCommand) CanMergeWithDrawTrianglesCommand(dst *Image, src [graphics.ShaderImageNum]*Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader) bool {
 	return false
 }
 
@@ -539,7 +551,7 @@ func (c *pixelsCommand) AddNumVertices(n int) {
 func (c *pixelsCommand) AddNumIndices(n int) {
 }
 
-func (c *pixelsCommand) CanMergeWithDrawTrianglesCommand(dst, src *Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader) bool {
+func (c *pixelsCommand) CanMergeWithDrawTrianglesCommand(dst *Image, src [graphics.ShaderImageNum]*Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader) bool {
 	return false
 }
 
@@ -572,7 +584,7 @@ func (c *disposeImageCommand) AddNumVertices(n int) {
 func (c *disposeImageCommand) AddNumIndices(n int) {
 }
 
-func (c *disposeImageCommand) CanMergeWithDrawTrianglesCommand(dst, src *Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader) bool {
+func (c *disposeImageCommand) CanMergeWithDrawTrianglesCommand(dst *Image, src [graphics.ShaderImageNum]*Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader) bool {
 	return false
 }
 
@@ -605,7 +617,7 @@ func (c *disposeShaderCommand) AddNumVertices(n int) {
 func (c *disposeShaderCommand) AddNumIndices(n int) {
 }
 
-func (c *disposeShaderCommand) CanMergeWithDrawTrianglesCommand(dst, src *Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader) bool {
+func (c *disposeShaderCommand) CanMergeWithDrawTrianglesCommand(dst *Image, src [graphics.ShaderImageNum]*Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader) bool {
 	return false
 }
 
@@ -644,7 +656,7 @@ func (c *newImageCommand) AddNumVertices(n int) {
 func (c *newImageCommand) AddNumIndices(n int) {
 }
 
-func (c *newImageCommand) CanMergeWithDrawTrianglesCommand(dst, src *Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader) bool {
+func (c *newImageCommand) CanMergeWithDrawTrianglesCommand(dst *Image, src [graphics.ShaderImageNum]*Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader) bool {
 	return false
 }
 
@@ -680,7 +692,7 @@ func (c *newScreenFramebufferImageCommand) AddNumVertices(n int) {
 func (c *newScreenFramebufferImageCommand) AddNumIndices(n int) {
 }
 
-func (c *newScreenFramebufferImageCommand) CanMergeWithDrawTrianglesCommand(dst, src *Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader) bool {
+func (c *newScreenFramebufferImageCommand) CanMergeWithDrawTrianglesCommand(dst *Image, src [graphics.ShaderImageNum]*Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader) bool {
 	return false
 }
 
@@ -715,7 +727,7 @@ func (c *newShaderCommand) AddNumVertices(n int) {
 func (c *newShaderCommand) AddNumIndices(n int) {
 }
 
-func (c *newShaderCommand) CanMergeWithDrawTrianglesCommand(dst, src *Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader) bool {
+func (c *newShaderCommand) CanMergeWithDrawTrianglesCommand(dst *Image, src [graphics.ShaderImageNum]*Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader) bool {
 	return false
 }
 

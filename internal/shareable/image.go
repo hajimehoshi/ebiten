@@ -220,7 +220,7 @@ func (i *Image) ensureNotShared() {
 		dx1, dy1, sx1, sy1, 1, 1, 1, 1,
 	}
 	is := graphics.QuadIndices()
-	newImg.DrawTriangles(i.backend.restorable, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil, nil)
+	newImg.DrawTriangles([graphics.ShaderImageNum]*restorable.Image{i.backend.restorable}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
 
 	i.dispose(false)
 	i.backend = &backend{
@@ -273,6 +273,9 @@ func (i *Image) regionWithPadding() (x, y, width, height int) {
 }
 
 func (i *Image) processSrc(src *Image) {
+	if src == nil {
+		return
+	}
 	if src.disposed {
 		panic("shareable: the drawing source image must not be disposed (DrawTriangles)")
 	}
@@ -284,12 +287,6 @@ func (i *Image) processSrc(src *Image) {
 	// i and a source image might share the same texture even though i != src.
 	if i.backend.restorable == src.backend.restorable {
 		panic("shareable: Image.DrawTriangles: source must be different from the receiver")
-	}
-}
-
-func makeSharedIfNeeded(src *Image) {
-	if !src.isShared() && src.shareable() {
-		imagesToMakeShared[src] = struct{}{}
 	}
 }
 
@@ -305,7 +302,7 @@ func makeSharedIfNeeded(src *Image) {
 //   5: Color G
 //   6: Color B
 //   7: Color Y
-func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}, images []*Image) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
 	backendsM.Lock()
 	// Do not use defer for performance.
 
@@ -314,14 +311,7 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 	}
 	i.ensureNotShared()
 
-	if img != nil {
-		i.processSrc(img)
-	}
-	firstImg := img
-	for _, src := range images {
-		if firstImg == nil {
-			firstImg = src
-		}
+	for _, src := range srcs {
 		i.processSrc(src)
 	}
 
@@ -332,9 +322,10 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 		dy = paddingSize
 	}
 
+	// TODO: Pass the offsets as uniform variables for second and following images.
 	var oxf, oyf float32
-	if firstImg != nil {
-		ox, oy, _, _ := firstImg.regionWithPadding()
+	if srcs[0] != nil {
+		ox, oy, _, _ := srcs[0].regionWithPadding()
 		ox += paddingSize
 		oy += paddingSize
 		oxf, oyf = float32(ox), float32(oy)
@@ -356,25 +347,26 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 		s = shader.shader
 	}
 
-	var imgs []*restorable.Image
-	for _, img := range images {
-		imgs = append(imgs, img.backend.restorable)
+	var imgs [graphics.ShaderImageNum]*restorable.Image
+	for i, src := range srcs {
+		if src == nil {
+			continue
+		}
+		imgs[i] = src.backend.restorable
 	}
 
-	var r *restorable.Image
-	if img != nil {
-		r = img.backend.restorable
-	}
-	i.backend.restorable.DrawTriangles(r, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms, imgs)
+	i.backend.restorable.DrawTriangles(imgs, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms)
 
 	i.nonUpdatedCount = 0
 	delete(imagesToMakeShared, i)
 
-	if img != nil {
-		makeSharedIfNeeded(img)
-	}
-	for _, src := range images {
-		makeSharedIfNeeded(src)
+	for _, src := range srcs {
+		if src == nil {
+			continue
+		}
+		if !src.isShared() && src.shareable() {
+			imagesToMakeShared[src] = struct{}{}
+		}
 	}
 
 	backendsM.Unlock()

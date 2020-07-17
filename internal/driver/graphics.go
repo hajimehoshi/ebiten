@@ -18,6 +18,7 @@ import (
 	"errors"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/internal/thread"
 )
@@ -44,6 +45,7 @@ type Graphics interface {
 	IsGL() bool
 	HasHighPrecisionFloat() bool
 	MaxImageSize() int
+	InvalidImageID() ImageID
 
 	NewShader(program *shaderir.Program) (Shader, error)
 
@@ -58,7 +60,7 @@ type Graphics interface {
 	//
 	//   * float32
 	//   * []float32
-	DrawShader(dst ImageID, shader ShaderID, indexLen int, indexOffset int, mode CompositeMode, uniforms []interface{}, srcs []ImageID) error
+	DrawShader(dst ImageID, srcs [graphics.ShaderImageNum]ImageID, shader ShaderID, indexLen int, indexOffset int, mode CompositeMode, uniforms []interface{}) error
 }
 
 // GraphicsNotReady represents that the graphics driver is not ready for recovering from the context lost.

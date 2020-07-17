@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 
@@ -205,7 +206,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	sy1 := float32(bounds.Max.Y)
 	vs := graphics.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, 1, 1, 1, 1, filter == driver.FilterScreen)
 	is := graphics.QuadIndices()
-	i.buffered.DrawTriangles(img.buffered, vs, is, options.ColorM.impl, mode, filter, driver.AddressUnsafe, driver.Region{}, nil, nil, nil)
+	i.buffered.DrawTriangles([graphics.ShaderImageNum]*buffered.Image{img.buffered}, vs, is, options.ColorM.impl, mode, filter, driver.AddressUnsafe, driver.Region{}, nil, nil)
 	return nil
 }
 
@@ -342,13 +343,20 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		}
 	}
 
-	i.buffered.DrawTriangles(img.buffered, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), sr, nil, nil, nil)
+	i.buffered.DrawTriangles([graphics.ShaderImageNum]*buffered.Image{img.buffered}, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), sr, nil, nil)
 }
 
 type DrawTrianglesWithShaderOptions struct {
 	Uniforms      []interface{}
-	Images        []*Image
+	Images        [4]*Image
 	CompositeMode CompositeMode
+}
+
+func init() {
+	var op DrawTrianglesWithShaderOptions
+	if got, want := len(op.Images), graphics.ShaderImageNum; got != want {
+		panic(fmt.Sprintf("ebiten: len((DrawTrianglesWithShaderOptions{}).Images) must be %d but %d", want, got))
+	}
 }
 
 // TODO: Add comments and tests
@@ -381,8 +389,11 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 	us := append([]interface{}{[]float32{0, 0}}, options.Uniforms...)
 
 	var imgw, imgh int
-	var imgs []*buffered.Image
-	for _, img := range options.Images {
+	var imgs [graphics.ShaderImageNum]*buffered.Image
+	for i, img := range options.Images {
+		if img == nil {
+			continue
+		}
 		if img.isDisposed() {
 			panic("ebiten: the given image to DrawTriangles must not be disposed")
 		}
@@ -391,7 +402,7 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 		} else if w, h := img.Size(); imgw != w || imgh != h {
 			panic("ebiten: all the source images must be the same size")
 		}
-		imgs = append(imgs, img.buffered)
+		imgs[i] = img.buffered
 	}
 
 	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
@@ -408,7 +419,7 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
-	i.buffered.DrawTriangles(nil, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, shader.shader, us, imgs)
+	i.buffered.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, shader.shader, us)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.

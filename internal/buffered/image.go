@@ -21,6 +21,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/mipmap"
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
@@ -235,13 +236,8 @@ func (i *Image) replacePendingPixels(pix []byte, x, y, width, height int) {
 // DrawTriangles draws the src image with the given vertices.
 //
 // Copying vertices and indices is the caller's responsibility.
-func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}, images []*Image) {
-	if src != nil {
-		if i == src {
-			panic("buffered: Image.DrawTriangles: src must be different from the receiver")
-		}
-	}
-	for _, src := range images {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
+	for _, src := range srcs {
 		if i == src {
 			panic("buffered: Image.DrawTriangles: source images must be different from the receiver")
 		}
@@ -250,17 +246,17 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 	if maybeCanAddDelayedCommand() {
 		if tryAddDelayedCommand(func() error {
 			// Arguments are not copied. Copying is the caller's responsibility.
-			i.DrawTriangles(src, vertices, indices, colorm, mode, filter, address, sourceRegion, shader, uniforms, images)
+			i.DrawTriangles(srcs, vertices, indices, colorm, mode, filter, address, sourceRegion, shader, uniforms)
 			return nil
 		}) {
 			return
 		}
 	}
 
-	if src != nil {
-		src.resolvePendingPixels(true)
-	}
-	for _, src := range images {
+	for _, src := range srcs {
+		if src == nil {
+			continue
+		}
 		src.resolvePendingPixels(true)
 	}
 	i.resolvePendingPixels(false)
@@ -270,17 +266,15 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 		s = shader.shader
 	}
 
-	var srcImg *mipmap.Mipmap
-	if src != nil {
-		srcImg = src.img
+	var imgs [graphics.ShaderImageNum]*mipmap.Mipmap
+	for i, img := range srcs {
+		if img == nil {
+			continue
+		}
+		imgs[i] = img.img
 	}
 
-	var imgs []*mipmap.Mipmap
-	for _, img := range images {
-		imgs = append(imgs, img.img)
-	}
-
-	i.img.DrawTriangles(srcImg, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms, imgs)
+	i.img.DrawTriangles(imgs, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms)
 	i.invalidatePendingPixels()
 }
 

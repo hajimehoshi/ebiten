@@ -44,7 +44,7 @@ func TestClear(t *testing.T) {
 
 	vs := quadVertices(w/2, h/2)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil, nil)
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
 
 	pix, err := dst.Pixels()
 	if err != nil {
@@ -74,8 +74,8 @@ func TestReplacePixelsPartAfterDrawTriangles(t *testing.T) {
 	dst := NewImage(w, h)
 	vs := quadVertices(w/2, h/2)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles(clr, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil, nil)
-	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil, nil)
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{clr}, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
 	dst.ReplacePixels(make([]byte, 4), 0, 0, 1, 1)
 }
 
@@ -89,14 +89,14 @@ func TestShader(t *testing.T) {
 	dst := NewImage(w, h)
 	vs := quadVertices(w, h)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles(clr, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil, nil)
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{clr}, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
 
 	ir := etesting.ShaderProgramFill(0xff, 0, 0, 0xff)
 	s := NewShader(&ir)
 	us := []interface{}{
 		[]float32{0, 0},
 	}
-	dst.DrawTriangles(nil, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, s, us, nil)
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{}, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, s, us)
 
 	pix, err := dst.Pixels()
 	if err != nil {

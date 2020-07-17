@@ -78,7 +78,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 		g.shaders = map[int]*ebiten.Shader{}
 	}
 	if _, ok := g.shaders[g.idx]; !ok {
-		s, err := ebiten.NewShader([]byte(shaderSrcs[g.idx]), 1)
+		s, err := ebiten.NewShader([]byte(shaderSrcs[g.idx]))
 		if err != nil {
 			return err
 		}
@@ -130,7 +130,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		[]float32{float32(cx), float32(cy)}, // Cursor
 	}
 	if g.idx != 0 {
-		op.Images = append(op.Images, gophersImage)
+		op.Images[0] = gophersImage
 	}
 	screen.DrawTrianglesWithShader(vs, is, s, op)
 

@@ -239,8 +239,13 @@ type uniformVariable struct {
 	value interface{}
 }
 
+type textureVariable struct {
+	valid  bool
+	native textureNative
+}
+
 // useProgram uses the program (programTexture).
-func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textures []textureNative) error {
+func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textures [graphics.ShaderImageNum]textureVariable) error {
 	if !g.state.lastProgram.equal(program) {
 		g.context.useProgram(program)
 		if g.state.lastProgram.equal(zeroProgram) {
@@ -278,13 +283,16 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 	}
 
 	for i, t := range textures {
+		if !t.valid {
+			continue
+		}
 		g.context.uniformInt(program, fmt.Sprintf("T%d", i), i)
 		if g.state.lastActiveTexture != i {
 			g.context.activeTexture(i)
 			g.state.lastActiveTexture = i
 		}
 		// Apparently, a texture must be bound every time. The cache is not used here.
-		g.context.bindTexture(t)
+		g.context.bindTexture(t.native)
 	}
 
 	return nil

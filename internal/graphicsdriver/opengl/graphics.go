@@ -84,6 +84,10 @@ func (g *Graphics) genNextImageID() driver.ImageID {
 	return id
 }
 
+func (g *Graphics) InvalidImageID() driver.ImageID {
+	return -1
+}
+
 func (g *Graphics) genNextShaderID() driver.ShaderID {
 	id := g.nextShaderID
 	g.nextShaderID++
@@ -215,7 +219,15 @@ func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, 
 		})
 	}
 
-	if err := g.useProgram(program, uniforms, []textureNative{source.textureNative}); err != nil {
+	var imgs [graphics.ShaderImageNum]textureVariable
+	for i := range imgs {
+		if i == 0 {
+			imgs[i].valid = true
+			imgs[i].native = source.textureNative
+		}
+	}
+
+	if err := g.useProgram(program, uniforms, imgs); err != nil {
 		return err
 	}
 
@@ -275,7 +287,7 @@ func (g *Graphics) removeShader(shader *Shader) {
 	delete(g.shaders, shader.id)
 }
 
-func (g *Graphics) DrawShader(dst driver.ImageID, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms []interface{}, srcs []driver.ImageID) error {
+func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]driver.ImageID, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms []interface{}) error {
 	d := g.images[dst]
 	s := g.shaders[shader]
 
@@ -292,9 +304,13 @@ func (g *Graphics) DrawShader(dst driver.ImageID, shader driver.ShaderID, indexL
 		us[k].value = v
 	}
 
-	ts := make([]textureNative, len(srcs))
-	for k, v := range srcs {
-		ts[k] = g.images[v].textureNative
+	var ts [graphics.ShaderImageNum]textureVariable
+	for i, src := range srcs {
+		if src == g.InvalidImageID() {
+			continue
+		}
+		ts[i].valid = true
+		ts[i].native = g.images[src].textureNative
 	}
 
 	if err := g.useProgram(s.p, us, ts); err != nil {

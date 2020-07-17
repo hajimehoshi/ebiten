@@ -20,6 +20,7 @@ import (
 	"go/token"
 
 	"github.com/hajimehoshi/ebiten/internal/buffered"
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/shader"
 )
 
@@ -35,7 +36,7 @@ type Shader struct {
 	shader *buffered.Shader
 }
 
-func NewShader(src []byte, textureNum int) (*Shader, error) {
+func NewShader(src []byte) (*Shader, error) {
 	var buf bytes.Buffer
 	buf.Write(src)
 	buf.WriteString(shaderSuffix)
@@ -47,7 +48,7 @@ func NewShader(src []byte, textureNum int) (*Shader, error) {
 	}
 
 	// TODO: Create a pseudo vertex entrypoint to treat the attribute values correctly.
-	s, err := shader.Compile(fs, f, "Vertex", "Fragment", textureNum)
+	s, err := shader.Compile(fs, f, "Vertex", "Fragment", graphics.ShaderImageNum)
 	if err != nil {
 		return nil, err
 	}

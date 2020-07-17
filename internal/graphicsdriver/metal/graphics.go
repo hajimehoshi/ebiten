@@ -432,6 +432,10 @@ func (g *Graphics) genNextImageID() driver.ImageID {
 	return id
 }
 
+func (g *Graphics) InvalidImageID() driver.ImageID {
+	return -1
+}
+
 func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
 	g.checkSize(width, height)
 	td := mtl.TextureDescriptor{
@@ -796,7 +800,7 @@ func (g *Graphics) NewShader(program *shaderir.Program) (driver.Shader, error) {
 	panic("metal: NewShader is not implemented")
 }
 
-func (g *Graphics) DrawShader(dst driver.ImageID, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms []interface{}, srcs []driver.ImageID) error {
+func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]driver.ImageID, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms []interface{}) error {
 	panic("metal: DrawShader is not implemented")
 }
 

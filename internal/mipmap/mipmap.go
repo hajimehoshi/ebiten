@@ -87,9 +87,10 @@ func (m *Mipmap) Pixels(x, y, width, height int) ([]byte, error) {
 	return m.orig.Pixels(x, y, width, height)
 }
 
-func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}, images []*Mipmap) {
+func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
 	level := 0
-	if src != nil && !src.volatile && filter != driver.FilterScreen {
+	// TODO: Do we need to check all the sources' states of being volatile?
+	if srcs[0] != nil && !srcs[0].volatile && filter != driver.FilterScreen {
 		level = math.MaxInt32
 		for i := 0; i < len(indices)/3; i++ {
 			const n = graphics.VertexFloatNum
@@ -138,30 +139,27 @@ func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16
 		s = shader.shader
 	}
 
-	var srcimg *shareable.Image
-	if src != nil {
-		srcimg = src.orig
-	}
-
-	if level != 0 {
-		if img := src.level(level); img != nil {
-			srcimg = img
-			const n = graphics.VertexFloatNum
-			s := float32(pow2(level))
-			for i := 0; i < len(vertices)/n; i++ {
-				vertices[i*n+2] /= s
-				vertices[i*n+3] /= s
+	var imgs [graphics.ShaderImageNum]*shareable.Image
+	for i, src := range srcs {
+		if src == nil {
+			continue
+		}
+		if level != 0 {
+			if img := src.level(level); img != nil {
+				const n = graphics.VertexFloatNum
+				s := float32(pow2(level))
+				for i := 0; i < len(vertices)/n; i++ {
+					vertices[i*n+2] /= s
+					vertices[i*n+3] /= s
+				}
+				imgs[i] = img
+				continue
 			}
 		}
+		imgs[i] = src.orig
 	}
 
-	// TODO: Do we need to consider mipmaps here?
-	var imgs []*shareable.Image
-	for _, img := range images {
-		imgs = append(imgs, img.orig)
-	}
-
-	m.orig.DrawTriangles(srcimg, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms, imgs)
+	m.orig.DrawTriangles(imgs, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms)
 	m.disposeMipmaps()
 }
 
@@ -222,7 +220,7 @@ func (m *Mipmap) level(level int) *shareable.Image {
 		return nil
 	}
 	s := shareable.NewImage(w2, h2, m.volatile)
-	s.DrawTriangles(src, vs, is, nil, driver.CompositeModeCopy, filter, driver.AddressUnsafe, driver.Region{}, nil, nil, nil)
+	s.DrawTriangles([graphics.ShaderImageNum]*shareable.Image{src}, vs, is, nil, driver.CompositeModeCopy, filter, driver.AddressUnsafe, driver.Region{}, nil, nil)
 	m.imgs[level] = s
 
 	return m.imgs[level]

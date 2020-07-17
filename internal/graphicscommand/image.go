@@ -126,13 +126,6 @@ func (i *Image) InternalSize() (int, int) {
 	return i.internalWidth, i.internalHeight
 }
 
-func processSrc(src *Image) {
-	if src.screen {
-		panic("graphicscommand: the screen image cannot be the rendering source")
-	}
-	src.resolveBufferedReplacePixels()
-}
-
 // DrawTriangles draws triangles with the given image.
 //
 // The vertex floats are:
@@ -154,22 +147,25 @@ func processSrc(src *Image) {
 //
 // If the source image is not specified, i.e., src is nil and there is no image in the uniform variables, the
 // elements for the source image are not used.
-func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, clr *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}, images []*Image) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, clr *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
 	if i.lastCommand == lastCommandNone {
 		if !i.screen && mode != driver.CompositeModeClear {
 			panic("graphicscommand: the image must be cleared first")
 		}
 	}
 
-	if src != nil {
-		processSrc(src)
-	}
-	for _, src := range images {
-		processSrc(src)
+	for _, src := range srcs {
+		if src == nil {
+			continue
+		}
+		if src.screen {
+			panic("graphicscommand: the screen image cannot be the rendering source")
+		}
+		src.resolveBufferedReplacePixels()
 	}
 	i.resolveBufferedReplacePixels()
 
-	theCommandQueue.EnqueueDrawTrianglesCommand(i, src, vertices, indices, clr, mode, filter, address, sourceRegion, shader, uniforms, images)
+	theCommandQueue.EnqueueDrawTrianglesCommand(i, srcs, vertices, indices, clr, mode, filter, address, sourceRegion, shader, uniforms)
 
 	if i.lastCommand == lastCommandNone && !i.screen {
 		i.lastCommand = lastCommandClear
