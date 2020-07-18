@@ -85,4 +85,8 @@ const (
 	// Sum of source and destination (a.k.a. 'plus' or 'additive')
 	// c_out = c_src + c_dst
 	CompositeModeLighter CompositeMode = CompositeMode(driver.CompositeModeLighter)
+
+	// The product of source and destination (a.k.a 'multiply blend mode')
+	// c_out = c_src * c_dst
+	CompositeModeMultiply CompositeMode = CompositeMode(driver.CompositeModeMultiply)
 )

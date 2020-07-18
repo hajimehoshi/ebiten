@@ -31,6 +31,7 @@ const (
 	DST_ALPHA           = 0x0304
 	ONE_MINUS_SRC_ALPHA = 0x0303
 	ONE_MINUS_DST_ALPHA = 0x0305
+	DST_COLOR           = 0x0306
 
 	FALSE = 0
 	TRUE  = 1
