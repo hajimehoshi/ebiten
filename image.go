@@ -384,10 +384,6 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 
 	mode := driver.CompositeMode(options.CompositeMode)
 
-	// The first uniform variable is Internal_ViewportSize.
-	// The actual value is set at graphicscommand package.
-	us := append([]interface{}{[]float32{0, 0}}, options.Uniforms...)
-
 	var imgw, imgh int
 	var imgs [graphics.ShaderImageNum]*buffered.Image
 	for i, img := range options.Images {
@@ -419,7 +415,7 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
-	i.buffered.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, shader.shader, us)
+	i.buffered.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, shader.shader, options.Uniforms)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.

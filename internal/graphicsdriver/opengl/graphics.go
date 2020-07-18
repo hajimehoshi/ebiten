@@ -298,10 +298,14 @@ func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]
 	}
 	g.context.blendFunc(mode)
 
-	us := make([]uniformVariable, len(uniforms))
+	us := make([]uniformVariable, 1+len(uniforms))
+	vw := graphics.InternalImageSize(d.width)
+	vh := graphics.InternalImageSize(d.height)
+	us[0].name = "U0"
+	us[0].value = []float32{float32(vw), float32(vh)}
 	for k, v := range uniforms {
-		us[k].name = fmt.Sprintf("U%d", k)
-		us[k].value = v
+		us[k+1].name = fmt.Sprintf("U%d", k+1)
+		us[k+1].value = v
 	}
 
 	var ts [graphics.ShaderImageNum]textureVariable
