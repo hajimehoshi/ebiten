@@ -571,6 +571,8 @@ func (g *Graphics) Reset() error {
 				return mtl.BlendFactorOneMinusSourceAlpha
 			case driver.OneMinusDstAlpha:
 				return mtl.BlendFactorOneMinusDestinationAlpha
+			case driver.DstColor:
+				return mtl.BlendFactorDestinationColor
 			default:
 				panic(fmt.Sprintf("metal: invalid operation: %d", c))
 			}

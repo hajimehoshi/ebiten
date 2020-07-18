@@ -2199,3 +2199,31 @@ func TestImageReplacePixelsAndModifyPixels(t *testing.T) {
 		}
 	}
 }
+
+func TestImageCompositeModeMultiply(t *testing.T) {
+	const w, h = 16, 16
+	dst, _ := NewImage(w, h, FilterDefault)
+	src, _ := NewImage(w, h, FilterDefault)
+
+	dst.Fill(color.RGBA{0x01, 0x02, 0x03, 0x04})
+	src.Fill(color.RGBA{0x05, 0x06, 0x07, 0x08})
+
+	op := &DrawImageOptions{}
+	op.CompositeMode = CompositeModeMultiply
+	dst.DrawImage(src, op)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{
+				R: byte(math.Floor((0x01 / 255.0) * (0x05 / 255.0) * 255)),
+				G: byte(math.Floor((0x02 / 255.0) * (0x06 / 255.0) * 255)),
+				B: byte(math.Floor((0x03 / 255.0) * (0x07 / 255.0) * 255)),
+				A: byte(math.Floor((0x04 / 255.0) * (0x08 / 255.0) * 255)),
+			}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
