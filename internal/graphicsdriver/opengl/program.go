@@ -262,6 +262,8 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 
 	for _, u := range uniforms {
 		switch v := u.value.(type) {
+		case nil:
+			// Do nothing.
 		case float32:
 			cached, ok := g.state.lastUniforms[u.name].(float32)
 			if ok && cached == v {

@@ -220,7 +220,9 @@ func (i *Image) ensureNotShared() {
 		dx1, dy1, sx1, sy1, 1, 1, 1, 1,
 	}
 	is := graphics.QuadIndices()
-	newImg.DrawTriangles([graphics.ShaderImageNum]*restorable.Image{i.backend.restorable}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	srcs := [graphics.ShaderImageNum]*restorable.Image{i.backend.restorable}
+	var offsets [graphics.ShaderImageNum - 1][2]float32
+	newImg.DrawTriangles(srcs, offsets, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
 
 	i.dispose(false)
 	i.backend = &backend{
@@ -322,7 +324,6 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		dy = paddingSize
 	}
 
-	// TODO: Pass the offsets as uniform variables for second and following images.
 	var oxf, oyf float32
 	if srcs[0] != nil {
 		ox, oy, _, _ := srcs[0].regionWithPadding()
@@ -342,6 +343,19 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		}
 	}
 
+	var offsets [graphics.ShaderImageNum - 1][2]float32
+	for i := range offsets {
+		src := srcs[i+1]
+		if src == nil {
+			continue
+		}
+		ox, oy, _, _ := src.regionWithPadding()
+		ox += paddingSize
+		oy += paddingSize
+		offsets[i][0] = float32(ox) - oxf
+		offsets[i][1] = float32(oy) - oyf
+	}
+
 	var s *restorable.Shader
 	if shader != nil {
 		s = shader.shader
@@ -355,7 +369,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		imgs[i] = src.backend.restorable
 	}
 
-	i.backend.restorable.DrawTriangles(imgs, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms)
+	i.backend.restorable.DrawTriangles(imgs, offsets, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms)
 
 	i.nonUpdatedCount = 0
 	delete(imagesToMakeShared, i)

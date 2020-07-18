@@ -287,7 +287,7 @@ func (g *Graphics) removeShader(shader *Shader) {
 	delete(g.shaders, shader.id)
 }
 
-func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]driver.ImageID, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms []interface{}) error {
+func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms []interface{}) error {
 	d := g.images[dst]
 	s := g.shaders[shader]
 
@@ -298,14 +298,22 @@ func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]
 	}
 	g.context.blendFunc(mode)
 
-	us := make([]uniformVariable, 1+len(uniforms))
+	us := make([]uniformVariable, graphics.PreservedUniformVariablesNum+len(uniforms))
 	vw := graphics.InternalImageSize(d.width)
 	vh := graphics.InternalImageSize(d.height)
 	us[0].name = "U0"
 	us[0].value = []float32{float32(vw), float32(vh)}
-	for k, v := range uniforms {
-		us[k+1].name = fmt.Sprintf("U%d", k+1)
-		us[k+1].value = v
+
+	for i, o := range offsets {
+		o := o
+		us[i+1].name = fmt.Sprintf("U%d", i+1)
+		us[i+1].value = o[:]
+	}
+
+	for i, v := range uniforms {
+		const offset = graphics.PreservedUniformVariablesNum
+		us[i+offset].name = fmt.Sprintf("U%d", i+offset)
+		us[i+offset].value = v
 	}
 
 	var ts [graphics.ShaderImageNum]textureVariable

@@ -18,7 +18,18 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
-const ShaderImageNum = 4
+const (
+	ShaderImageNum = 4
+
+	// PreservedUniformVariablesNum represents the number of preserved uniform variables.
+	// Any shaders in Ebiten must have these uniform variables.
+	//
+	// The first one is for the viewport size.
+	// The second and the followings are for offsets of the second and the following images.
+	//
+	// All the preversed uniform variables are vec2 so far.
+	PreservedUniformVariablesNum = 1 + (ShaderImageNum - 1)
+)
 
 const (
 	IndicesNum     = (1 << 16) / 3 * 3 // Adjust num for triangles.

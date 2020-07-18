@@ -17,6 +17,7 @@ package testing
 import (
 	"go/constant"
 
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
@@ -210,10 +211,7 @@ var (
 )
 
 func defaultProgram() shaderir.Program {
-	return shaderir.Program{
-		Uniforms: []shaderir.Type{
-			{Main: shaderir.Vec2}, // Viewport size. This must be the first uniform variable, and the values are set at graphicscommand driver.
-		},
+	p := shaderir.Program{
 		Attributes: []shaderir.Type{
 			{Main: shaderir.Vec2}, // Local var (0) in the vertex shader
 			{Main: shaderir.Vec2}, // Local var (1) in the vertex shader
@@ -225,6 +223,12 @@ func defaultProgram() shaderir.Program {
 		},
 		VertexFunc: defaultVertexFunc,
 	}
+
+	p.Uniforms = make([]shaderir.Type, graphics.PreservedUniformVariablesNum)
+	for i := range p.Uniforms {
+		p.Uniforms[i] = shaderir.Type{Main: shaderir.Vec2}
+	}
+	return p
 }
 
 // ShaderProgramFill returns a shader intermediate representation to fill the frambuffer.
@@ -340,6 +344,17 @@ func ShaderProgramImages(imageNum int) shaderir.Program {
 				},
 			}
 		} else {
+			texPos2 := shaderir.Expr{
+				Type: shaderir.Binary,
+				Op:   shaderir.Add,
+				Exprs: []shaderir.Expr{
+					texPos,
+					{
+						Type:  shaderir.UniformVariable,
+						Index: 1 + i - 1,
+					},
+				},
+			}
 			rhs = shaderir.Expr{
 				Type: shaderir.Binary,
 				Op:   shaderir.Add,
@@ -356,7 +371,7 @@ func ShaderProgramImages(imageNum int) shaderir.Program {
 								Type:  shaderir.TextureVariable,
 								Index: i,
 							},
-							texPos,
+							texPos2,
 						},
 					},
 				},

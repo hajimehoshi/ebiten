@@ -70,6 +70,7 @@ func (p *Pixels) At(i, j int) (byte, byte, byte, byte) {
 // drawTrianglesHistoryItem is an item for history of draw-image commands.
 type drawTrianglesHistoryItem struct {
 	images       [graphics.ShaderImageNum]*Image
+	offsets      [graphics.ShaderImageNum - 1][2]float32
 	vertices     []float32
 	indices      []uint16
 	colorm       *affine.ColorM
@@ -259,7 +260,9 @@ func fillImage(i *graphicscommand.Image, clr color.RGBA) {
 	// Add 1 pixels for paddings.
 	vs := quadVertices(0, 0, float32(dw), float32(dh), 1, 1, float32(sw-1), float32(sh-1), rf, gf, bf, af)
 	is := graphics.QuadIndices()
-	i.DrawTriangles([graphics.ShaderImageNum]*graphicscommand.Image{emptyImage.image}, vs, is, nil, compositemode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	srcs := [graphics.ShaderImageNum]*graphicscommand.Image{emptyImage.image}
+	var offsets [graphics.ShaderImageNum - 1][2]float32
+	i.DrawTriangles(srcs, offsets, vs, is, nil, compositemode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
 }
 
 // BasePixelsForTesting returns the image's basePixels for testing.
@@ -351,7 +354,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 //   5: Color G
 //   6: Color B
 //   7: Color Y
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
 	if i.priority {
 		panic("restorable: DrawTriangles cannot be called on a priority image")
 	}
@@ -375,7 +378,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 	if srcstale || i.screen || !needsRestoring() || i.volatile {
 		i.makeStale()
 	} else {
-		i.appendDrawTrianglesHistory(srcs, vertices, indices, colorm, mode, filter, address, sourceRegion, shader, uniforms)
+		i.appendDrawTrianglesHistory(srcs, offsets, vertices, indices, colorm, mode, filter, address, sourceRegion, shader, uniforms)
 	}
 	var s *graphicscommand.Shader
 	if shader != nil {
@@ -389,11 +392,11 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		}
 		imgs[i] = src.image
 	}
-	i.image.DrawTriangles(imgs, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms)
+	i.image.DrawTriangles(imgs, offsets, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms)
 }
 
 // appendDrawTrianglesHistory appends a draw-image history item to the image.
-func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
+func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
 	if i.stale || i.volatile || i.screen {
 		return
 	}
@@ -413,6 +416,7 @@ func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageNum]*Image,
 
 	item := &drawTrianglesHistoryItem{
 		images:       srcs,
+		offsets:      offsets,
 		vertices:     vs,
 		indices:      is,
 		colorm:       colorm,
@@ -602,7 +606,7 @@ func (i *Image) restore() error {
 			}
 			imgs[i] = img.image
 		}
-		gimg.DrawTriangles(imgs, c.vertices, c.indices, c.colorm, c.mode, c.filter, c.address, c.sourceRegion, s, c.uniforms)
+		gimg.DrawTriangles(imgs, c.offsets, c.vertices, c.indices, c.colorm, c.mode, c.filter, c.address, c.sourceRegion, s, c.uniforms)
 	}
 
 	if len(i.drawTrianglesHistory) > 0 {

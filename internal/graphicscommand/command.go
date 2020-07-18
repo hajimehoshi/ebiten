@@ -144,7 +144,7 @@ func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
 }
 
 // EnqueueDrawTrianglesCommand enqueues a drawing-image command.
-func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
+func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
 	if len(indices) > graphics.IndicesNum {
 		panic(fmt.Sprintf("graphicscommand: len(indices) must be <= graphics.IndicesNum but not at EnqueueDrawTrianglesCommand: len(indices): %d, graphics.IndicesNum: %d", len(indices), graphics.IndicesNum))
 	}
@@ -171,6 +171,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 
 	// TODO: If dst is the screen, reorder the command to be the last.
 	if !split && 0 < len(q.commands) {
+		// TODO: Pass offsets and uniforms when merging considers the shader.
 		if last := q.commands[len(q.commands)-1]; last.CanMergeWithDrawTrianglesCommand(dst, srcs, color, mode, filter, address, sourceRegion, shader) {
 			last.AddNumVertices(len(vertices))
 			last.AddNumIndices(len(indices))
@@ -178,17 +179,24 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 		}
 	}
 
-	if firstSrc != nil && address != driver.AddressUnsafe {
+	if firstSrc != nil {
 		w, h := firstSrc.InternalSize()
-		sourceRegion.X /= float32(w)
-		sourceRegion.Y /= float32(h)
-		sourceRegion.Width /= float32(w)
-		sourceRegion.Height /= float32(h)
+		if address != driver.AddressUnsafe {
+			sourceRegion.X /= float32(w)
+			sourceRegion.Y /= float32(h)
+			sourceRegion.Width /= float32(w)
+			sourceRegion.Height /= float32(h)
+		}
+		for i := range offsets {
+			offsets[i][0] /= float32(w)
+			offsets[i][1] /= float32(h)
+		}
 	}
 
 	c := &drawTrianglesCommand{
 		dst:          dst,
 		srcs:         srcs,
+		offsets:      offsets,
 		nvertices:    len(vertices),
 		nindices:     len(indices),
 		color:        color,
@@ -315,6 +323,7 @@ func FlushCommands() error {
 type drawTrianglesCommand struct {
 	dst          *Image
 	srcs         [graphics.ShaderImageNum]*Image
+	offsets      [graphics.ShaderImageNum - 1][2]float32
 	nvertices    int
 	nindices     int
 	color        *affine.ColorM
@@ -424,7 +433,7 @@ func (c *drawTrianglesCommand) Exec(indexOffset int) error {
 			imgs[i] = src.image.ID()
 		}
 
-		return theGraphicsDriver.DrawShader(c.dst.image.ID(), imgs, c.shader.shader.ID(), c.nindices, indexOffset, c.mode, c.uniforms)
+		return theGraphicsDriver.DrawShader(c.dst.image.ID(), imgs, c.offsets, c.shader.shader.ID(), c.nindices, indexOffset, c.mode, c.uniforms)
 	}
 	return theGraphicsDriver.Draw(c.dst.image.ID(), c.srcs[0].image.ID(), c.nindices, indexOffset, c.mode, c.color, c.filter, c.address, c.sourceRegion)
 }

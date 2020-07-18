@@ -181,6 +181,12 @@ func (cs *compileState) parse(f *ast.File) {
 			utypes = append(utypes, cs.ir.Uniforms[i])
 		}
 	}
+	// TODO: Check len(unames) == graphics.PreservedUniformVariablesNum. Unfortunately this is not true on tests.
+	for _, t := range utypes {
+		if got, want := t.Main, shaderir.Vec2; got != want {
+			panic(fmt.Sprintf("shader: all the preserved uniform variables' types must be %v but %v", want, got))
+		}
+	}
 	for i, u := range cs.uniforms {
 		if !strings.HasPrefix(u, "__") {
 			unames = append(unames, u)

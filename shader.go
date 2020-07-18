@@ -19,14 +19,16 @@ import (
 	"fmt"
 	"go/parser"
 	"go/token"
-	"strings"
 
 	"github.com/hajimehoshi/ebiten/internal/buffered"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/shader"
 )
 
-var shaderSuffix = `
+var shaderSuffix string
+
+func init() {
+	shaderSuffix = `
 var __viewportSize vec2
 
 func viewportSize() vec2 {
@@ -34,18 +36,24 @@ func viewportSize() vec2 {
 }
 `
 
-func init() {
-	// __t%d is a special variable for a texture variable.
-	// TODO: Add appropriate offsets for second and following images.
-
-	var fs []string
-	for i := 0; i < graphics.ShaderImageNum; i++ {
-		fs = append(fs, fmt.Sprintf(`func texture%[1]dAt(pos vec2) vec4 {
-	return texture2D(__t%[1]d, pos)
-}
-`, i))
+	for i := 1; i < graphics.ShaderImageNum; i++ {
+		shaderSuffix += fmt.Sprintf(`
+var __offset%d vec2
+`, i)
 	}
-	shaderSuffix += "\n" + strings.Join(fs, "\n")
+
+	for i := 0; i < graphics.ShaderImageNum; i++ {
+		var offset string
+		if i >= 1 {
+			offset = fmt.Sprintf(" + __offset%d", i)
+		}
+		// __t%d is a special variable for a texture variable.
+		shaderSuffix += fmt.Sprintf(`
+func texture%[1]dAt(pos vec2) vec4 {
+	return texture2D(__t%[1]d, pos%[2]s)
+}
+`, i, offset)
+	}
 }
 
 type Shader struct {
