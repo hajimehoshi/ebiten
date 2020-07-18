@@ -91,6 +91,7 @@ const (
 	dstAlpha         = operation(mgl.DST_ALPHA)
 	oneMinusSrcAlpha = operation(mgl.ONE_MINUS_SRC_ALPHA)
 	oneMinusDstAlpha = operation(mgl.ONE_MINUS_DST_ALPHA)
+	dstColor         = operation(mgl.DST_COLOR)
 )
 
 type contextImpl struct {

@@ -90,6 +90,7 @@ var (
 	dstAlpha         operation
 	oneMinusSrcAlpha operation
 	oneMinusDstAlpha operation
+	dstColor         operation
 
 	blend               js.Value
 	clampToEdge         js.Value
@@ -144,6 +145,7 @@ func init() {
 	dstAlpha = operation(contextPrototype.Get("DST_ALPHA").Int())
 	oneMinusSrcAlpha = operation(contextPrototype.Get("ONE_MINUS_SRC_ALPHA").Int())
 	oneMinusDstAlpha = operation(contextPrototype.Get("ONE_MINUS_DST_ALPHA").Int())
+	dstColor = operation(contextPrototype.Get("DST_COLOR").Int())
 
 	blend = contextPrototype.Get("BLEND")
 	clampToEdge = contextPrototype.Get("CLAMP_TO_EDGE")

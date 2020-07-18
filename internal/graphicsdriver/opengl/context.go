@@ -36,6 +36,8 @@ func convertOperation(op driver.Operation) operation {
 		return oneMinusSrcAlpha
 	case driver.OneMinusDstAlpha:
 		return oneMinusDstAlpha
+	case driver.DstColor:
+		return dstColor
 	default:
 		panic(fmt.Sprintf("opengl: invalid operation %d at convertOperation", op))
 	}
