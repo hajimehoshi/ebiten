@@ -130,13 +130,13 @@ func TestShaderMultipleSourcesOnOneTexture(t *testing.T) {
 		t.Skip("shader is not available on this environment")
 	}
 
-	var srcs [graphics.ShaderImageNum]*Image
-	srcs[0] = NewImage(3, 1, false)
-	srcs[0].ReplacePixels([]byte{
+	src := NewImage(3, 1, false)
+	src.ReplacePixels([]byte{
 		0x40, 0, 0, 0xff,
 		0, 0x80, 0, 0xff,
 		0, 0, 0xc0, 0xff,
 	}, 0, 0, 3, 1)
+	srcs := [graphics.ShaderImageNum]*Image{src, src, src}
 
 	dst := NewImage(1, 1, false)
 
