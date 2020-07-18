@@ -35,10 +35,7 @@ func TestShader(t *testing.T) {
 
 	ir := etesting.ShaderProgramFill(0xff, 0, 0, 0xff)
 	s := NewShader(&ir)
-	us := []interface{}{
-		[]float32{0, 0},
-	}
-	img.DrawTriangles([graphics.ShaderImageNum]*Image{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, s, us)
+	img.DrawTriangles([graphics.ShaderImageNum]*Image{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, s, nil)
 
 	if err := ResolveStaleImages(); err != nil {
 		t.Fatal(err)
@@ -72,10 +69,7 @@ func TestShaderChain(t *testing.T) {
 	ir := etesting.ShaderProgramImages(1)
 	s := NewShader(&ir)
 	for i := 0; i < num-1; i++ {
-		us := []interface{}{
-			[]float32{0, 0},
-		}
-		imgs[i+1].DrawTriangles([graphics.ShaderImageNum]*Image{imgs[i]}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, s, us)
+		imgs[i+1].DrawTriangles([graphics.ShaderImageNum]*Image{imgs[i]}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, s, nil)
 	}
 
 	if err := ResolveStaleImages(); err != nil {
@@ -111,10 +105,7 @@ func TestShaderMultipleSources(t *testing.T) {
 
 	ir := etesting.ShaderProgramImages(3)
 	s := NewShader(&ir)
-	us := []interface{}{
-		[]float32{0, 0},
-	}
-	dst.DrawTriangles(srcs, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, s, us)
+	dst.DrawTriangles(srcs, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, s, nil)
 
 	// Clear one of the sources after DrawTriangles. dst should not be affected.
 	srcs[0].Fill(color.RGBA{})
@@ -143,10 +134,7 @@ func TestShaderDispose(t *testing.T) {
 
 	ir := etesting.ShaderProgramFill(0xff, 0, 0, 0xff)
 	s := NewShader(&ir)
-	us := []interface{}{
-		[]float32{0, 0},
-	}
-	img.DrawTriangles([graphics.ShaderImageNum]*Image{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, s, us)
+	img.DrawTriangles([graphics.ShaderImageNum]*Image{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, s, nil)
 
 	// Dispose the shader. This should invalidates all the images using this shader i.e., all the images become
 	// stale.
