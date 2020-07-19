@@ -1,5 +1,6 @@
 # Ebiten
 
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/hajimehoshi/ebiten)](https://pkg.go.dev/github.com/hajimehoshi/ebiten)
 [![Build Status](https://travis-ci.org/hajimehoshi/ebiten.svg?branch=master)](https://travis-ci.org/hajimehoshi/ebiten)
 [![Go Report Card](https://goreportcard.com/badge/github.com/hajimehoshi/ebiten)](https://goreportcard.com/report/github.com/hajimehoshi/ebiten)
 
