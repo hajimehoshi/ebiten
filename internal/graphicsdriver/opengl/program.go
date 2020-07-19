@@ -90,15 +90,15 @@ var theArrayBufferLayout = arrayBufferLayout{
 	// Note that GL_MAX_VERTEX_ATTRIBS is at least 16.
 	parts: []arrayBufferLayoutPart{
 		{
-			name: "vertex",
+			name: "A0",
 			num:  2,
 		},
 		{
-			name: "tex",
+			name: "A1",
 			num:  2,
 		},
 		{
-			name: "color_scale",
+			name: "A2",
 			num:  4,
 		},
 	},
