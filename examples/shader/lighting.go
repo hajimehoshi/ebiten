@@ -19,16 +19,7 @@ package main
 var Time float
 var Cursor vec2
 
-func Vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2) {
-	return mat4(
-		2/viewportSize().x, 0, 0, 0,
-		0, 2/viewportSize().y, 0, 0,
-		0, 0, 1, 0,
-		-1, -1, 0, 1,
-	) * vec4(position, 0, 1), texCoord
-}
-
-func Fragment(position vec4, texCoord vec2) vec4 {
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	lightpos := vec3(Cursor, 50)
 	lightdir := normalize(lightpos - position.xyz)
 	normal := normalize(texture1At(texCoord) - 0.5)

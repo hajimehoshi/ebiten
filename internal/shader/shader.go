@@ -95,6 +95,9 @@ type block struct {
 	ir shaderir.Block
 }
 
+// TODO: Consider variable/attrbutes!
+// Probably creating a local variable for them automatically would be nice!
+// However, what if the name is shadowing arguments? -> cause the error!
 func (b *block) findLocalVariable(name string) (int, shaderir.Type, bool) {
 	idx := 0
 	for outer := b.outer; outer != nil; outer = outer.outer {

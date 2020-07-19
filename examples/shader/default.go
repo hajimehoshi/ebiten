@@ -21,21 +21,12 @@ var Cursor vec2
 
 // viewportSize is a predefined function.
 
-func Vertex(position vec2, texCoord vec2, color vec4) vec4 {
-	return mat4(
-		2/viewportSize().x, 0, 0, 0,
-		0, 2/viewportSize().y, 0, 0,
-		0, 0, 1, 0,
-		-1, -1, 0, 1,
-	) * vec4(position, 0, 1)
-}
-
-func Fragment(position vec4) vec4 {
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	pos := position.xy/viewportSize() + Cursor/viewportSize()/4
-	color := 0.0
-	color += sin(pos.x*cos(Time/15)*80) + cos(pos.y*cos(Time/15)*10)
-	color += sin(pos.y*sin(Time/10)*40) + cos(pos.x*sin(Time/25)*40)
-	color += sin(pos.x*sin(Time/5)*10) + sin(pos.y*sin(Time/35)*80)
-	color *= sin(Time/10) * 0.5
-	return vec4(color, color*0.5, sin(color+Time/3)*0.75, 1)
+	clr := 0.0
+	clr += sin(pos.x*cos(Time/15)*80) + cos(pos.y*cos(Time/15)*10)
+	clr += sin(pos.y*sin(Time/10)*40) + cos(pos.x*sin(Time/25)*40)
+	clr += sin(pos.x*sin(Time/5)*10) + sin(pos.y*sin(Time/35)*80)
+	clr *= sin(Time/10) * 0.5
+	return vec4(clr, clr*0.5, sin(clr+Time/3)*0.75, 1)
 }

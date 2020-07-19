@@ -34,6 +34,15 @@ var __viewportSize vec2
 func viewportSize() vec2 {
 	return __viewportSize
 }
+
+func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
+	return mat4(
+		2/viewportSize().x, 0, 0, 0,
+		0, 2/viewportSize().y, 0, 0,
+		0, 0, 1, 0,
+		-1, -1, 0, 1,
+	) * vec4(position, 0, 1), texCoord, color
+}
 `
 
 	for i := 1; i < graphics.ShaderImageNum; i++ {
@@ -72,7 +81,7 @@ func NewShader(src []byte) (*Shader, error) {
 	}
 
 	// TODO: Create a pseudo vertex entrypoint to treat the attribute values correctly.
-	s, err := shader.Compile(fs, f, "Vertex", "Fragment", graphics.ShaderImageNum)
+	s, err := shader.Compile(fs, f, "__vertex", "Fragment", graphics.ShaderImageNum)
 	if err != nil {
 		return nil, err
 	}
