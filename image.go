@@ -142,7 +142,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 
 	// TODO: Implement this.
 	if i.isSubImage() {
-		panic("ebiten: render to a subimage is not implemented (drawImage)")
+		panic("ebiten: render to a subimage is not implemented (DrawImage)")
 	}
 
 	// Calculate vertices before locking because the user can do anything in
@@ -188,7 +188,6 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		}
 	}
 
-	geom := &options.GeoM
 	mode := driver.CompositeMode(options.CompositeMode)
 
 	filter := driver.FilterNearest
@@ -198,7 +197,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		filter = driver.Filter(img.filter)
 	}
 
-	a, b, c, d, tx, ty := geom.elements32()
+	a, b, c, d, tx, ty := options.GeoM.elements32()
 
 	sx0 := float32(bounds.Min.X)
 	sy0 := float32(bounds.Min.Y)
@@ -245,7 +244,7 @@ const (
 	AddressUnsafe Address = Address(driver.AddressUnsafe)
 )
 
-// DrawTrianglesOptions represents options to render triangles on an image.
+// DrawTrianglesOptions represents options for DrawTriangles.
 type DrawTrianglesOptions struct {
 	// ColorM is a color matrix to draw.
 	// The default (zero) value is identity, which doesn't change any color.
@@ -275,6 +274,8 @@ const MaxIndicesNum = graphics.IndicesNum
 // If len(indices) is more than MaxIndicesNum, DrawTriangles panics.
 //
 // The rule in which DrawTriangles works effectively is same as DrawImage's.
+//
+// When the given image is disposed, DrawTriangles panics.
 //
 // When the image i is disposed, DrawTriangles does nothing.
 func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, options *DrawTrianglesOptions) {
@@ -340,20 +341,93 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	i.buffered.DrawTriangles([graphics.ShaderImageNum]*buffered.Image{img.buffered}, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), sr, nil, nil)
 }
 
-// DrawTrianglesOptionsWithShaderOptions represents options to render triangles on an image with a shader.
+// DrawRectangleOptionsWithShaderOptions represents options for DrawRectangleOptionsWithShader
 //
-// Note that this API is experimental.
+// This API is experimental.
+type DrawRectangleWithShaderOptions struct {
+	// GeoM is a geometry matrix to draw.
+	// The default (zero) value is identify, which draws the rectangle at (0, 0).
+	GeoM GeoM
+
+	// CompositeMode is a composite mode to draw.
+	// The default (zero) value is regular alpha blending.
+	CompositeMode CompositeMode
+
+	// Uniforms is a set of uniform variables for the shader.
+	Uniforms []interface{}
+
+	// Images is a set of the source images.
+	// All the image must be the same size with the rectangle.
+	Images [4]*Image
+}
+
+func init() {
+	var op DrawRectangleWithShaderOptions
+	if got, want := len(op.Images), graphics.ShaderImageNum; got != want {
+		panic(fmt.Sprintf("ebiten: len((DrawRectangleWithShaderOptions{}).Images) must be %d but %d", want, got))
+	}
+}
+
+// DrawRectangleWithShader draws a rectangle with the specified width and height with the specified shader.
+//
+// When one of the specified image is non-nil and is disposed, DrawRectangleWithShader panics.
+//
+// When the image i is disposed, DrawRectangleWithShader does nothing.
+//
+// This API is experimental.
+func (i *Image) DrawRectangleWithShader(width, height int, shader *Shader, options *DrawRectangleWithShaderOptions) {
+	i.copyCheck()
+
+	if i.isDisposed() {
+		return
+	}
+
+	// TODO: Implement this.
+	if i.isSubImage() {
+		panic("ebiten: render to a subimage is not implemented (DrawRectangleWithShader)")
+	}
+
+	if options == nil {
+		options = &DrawRectangleWithShaderOptions{}
+	}
+
+	mode := driver.CompositeMode(options.CompositeMode)
+
+	var imgs [graphics.ShaderImageNum]*buffered.Image
+	for i, img := range options.Images {
+		if img == nil {
+			continue
+		}
+		if img.isDisposed() {
+			panic("ebiten: the given image to DrawRectangleWithShader must not be disposed")
+		}
+		if w, h := img.Size(); width != w || height != h {
+			panic("ebiten: all the source images must be the same size with the rectangle")
+		}
+		imgs[i] = img.buffered
+	}
+
+	a, b, c, d, tx, ty := options.GeoM.elements32()
+	vs := graphics.QuadVertices(0, 0, float32(width), float32(height), a, b, c, d, tx, ty, 1, 1, 1, 1, false)
+	is := graphics.QuadIndices()
+
+	i.buffered.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, shader.shader, options.Uniforms)
+}
+
+// DrawTrianglesOptionsWithShaderOptions represents options for DrawTrianglesOptionsWithShader
+//
+// This API is experimental.
 type DrawTrianglesWithShaderOptions struct {
-	// Uniforms is a set of uniform variables for a shader.
+	// CompositeMode is a composite mode to draw.
+	// The default (zero) value is regular alpha blending.
+	CompositeMode CompositeMode
+
+	// Uniforms is a set of uniform variables for the shader.
 	Uniforms []interface{}
 
 	// Images is a set of the source images.
 	// All the image must be the same size.
 	Images [4]*Image
-
-	// CompositeMode is a composite mode to draw.
-	// The default (zero) value is regular alpha blending.
-	CompositeMode CompositeMode
 }
 
 func init() {
@@ -371,7 +445,9 @@ func init() {
 //
 // When a specified image is non-nil and is disposed, DrawTrianglesWithShader panics.
 //
-// Note that this API is experimental.
+// When the image i is disposed, DrawTrianglesWithShader does nothing.
+//
+// This API is experimental.
 func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, shader *Shader, options *DrawTrianglesWithShaderOptions) {
 	i.copyCheck()
 
@@ -380,7 +456,7 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 	}
 
 	if i.isSubImage() {
-		panic("ebiten: render to a subimage is not implemented (DrawTriangles)")
+		panic("ebiten: render to a subimage is not implemented (DrawTrianglesWithShader)")
 	}
 
 	if len(indices)%3 != 0 {
@@ -403,7 +479,7 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 			continue
 		}
 		if img.isDisposed() {
-			panic("ebiten: the given image to DrawTriangles must not be disposed")
+			panic("ebiten: the given image to DrawTrianglesWithShader must not be disposed")
 		}
 		if imgw == 0 || imgh == 0 {
 			imgw, imgh = img.Size()
@@ -486,7 +562,7 @@ func (i *Image) ColorModel() color.Model {
 //
 // At always returns a transparent color if the image is disposed.
 //
-// Note that important logic should not rely on values returned by At, since
+// Note that an important logic should not rely on values returned by At, since
 // the returned values can include very slight differences between some machines.
 //
 // At can't be called outside the main loop (ebiten.Run's updating function) starts (as of version 1.4.0).
@@ -583,7 +659,7 @@ func (i *Image) ReplacePixels(pixels []byte) error {
 	return nil
 }
 
-// A DrawImageOptions represents options to render an image on an image.
+// DrawImageOptions represents options for DrawImage.
 type DrawImageOptions struct {
 	// GeoM is a geometry matrix to draw.
 	// The default (zero) value is identify, which draws the image at (0, 0).

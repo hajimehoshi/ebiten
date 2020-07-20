@@ -104,64 +104,17 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		return
 	}
 
-	sw, sh := gopherImage.Size()
 	w, h := screen.Size()
-	vs := []ebiten.Vertex{
-		{
-			DstX:   0,
-			DstY:   0,
-			SrcX:   0,
-			SrcY:   0,
-			ColorR: 1,
-			ColorG: 1,
-			ColorB: 1,
-			ColorA: 1,
-		},
-		{
-			DstX:   float32(w),
-			DstY:   0,
-			SrcX:   float32(sw),
-			SrcY:   0,
-			ColorR: 1,
-			ColorG: 1,
-			ColorB: 1,
-			ColorA: 1,
-		},
-		{
-			DstX:   0,
-			DstY:   float32(h),
-			SrcX:   0,
-			SrcY:   float32(sh),
-			ColorR: 1,
-			ColorG: 1,
-			ColorB: 1,
-			ColorA: 1,
-		},
-		{
-			DstX:   float32(w),
-			DstY:   float32(h),
-			SrcX:   float32(sw),
-			SrcY:   float32(sh),
-			ColorR: 1,
-			ColorG: 1,
-			ColorB: 1,
-			ColorA: 1,
-		},
-	}
-	is := []uint16{0, 1, 2, 1, 2, 3}
-
 	cx, cy := ebiten.CursorPosition()
 
-	op := &ebiten.DrawTrianglesWithShaderOptions{}
+	op := &ebiten.DrawRectangleWithShaderOptions{}
 	op.Uniforms = []interface{}{
 		float32(g.time) / 60,                // Time
 		[]float32{float32(cx), float32(cy)}, // Cursor
 	}
-	if g.idx != 0 {
-		op.Images[0] = gopherImage
-		op.Images[1] = normalImage
-	}
-	screen.DrawTrianglesWithShader(vs, is, s, op)
+	op.Images[0] = gopherImage
+	op.Images[1] = normalImage
+	screen.DrawRectangleWithShader(w, h, s, op)
 
 	msg := "Press Up/Down to switch the shader."
 	ebitenutil.DebugPrint(screen, msg)
