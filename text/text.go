@@ -246,6 +246,7 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 
 // MeasureString returns the measured size of a given string using a given font.
 // This method will return the exact size in pixels that a string drawn by Draw will be.
+// text can include multiple lines.
 //
 // text is the string that's being measured.
 // face is the font for text rendering.
