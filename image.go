@@ -346,9 +346,19 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	i.buffered.DrawTriangles([graphics.ShaderImageNum]*buffered.Image{img.buffered}, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), sr, nil, nil)
 }
 
+// DrawTrianglesOptionsWithShaderOptions represents options to render triangles on an image with a shader.
+//
+// Note that this API is experimental.
 type DrawTrianglesWithShaderOptions struct {
-	Uniforms      []interface{}
-	Images        [4]*Image
+	// Uniforms is a set of uniform variables for a shader.
+	Uniforms []interface{}
+
+	// Images is a set of the source images.
+	// All the image must be the same size.
+	Images [4]*Image
+
+	// CompositeMode is a composite mode to draw.
+	// The default (zero) value is regular alpha blending.
 	CompositeMode CompositeMode
 }
 
@@ -359,7 +369,15 @@ func init() {
 	}
 }
 
-// TODO: Add comments and tests
+// DrawTrianglesWithShader draws a triangle with the specified vertices and their indices with the specified shader.
+//
+// If len(indices) is not multiple of 3, DrawTrianglesWithShader panics.
+//
+// If len(indices) is more than MaxIndicesNum, DrawTrianglesWithShader panics.
+//
+// When a specified image is non-nil and is disposed, DrawTrianglesWithShader panics.
+//
+// Note that this API is experimental.
 func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, shader *Shader, options *DrawTrianglesWithShaderOptions) {
 	i.copyCheck()
 
