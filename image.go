@@ -364,7 +364,7 @@ type DrawImageWithShaderOptions struct {
 // When the image i is disposed, DrawImageWithShader does nothing.
 //
 // This API is experimental.
-func (i *Image) DrawImageWithShader(img *Image, shader *Shader, options *DrawRectangleWithShaderOptions) {
+func (i *Image) DrawImageWithShader(img *Image, shader *Shader, options *DrawImageWithShaderOptions) {
 	w, h := img.Size()
 	op := &DrawRectangleWithShaderOptions{
 		Images: [4]*Image{img},
