@@ -341,6 +341,42 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	i.buffered.DrawTriangles([graphics.ShaderImageNum]*buffered.Image{img.buffered}, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), sr, nil, nil)
 }
 
+// DrawImageOptionsWithShaderOptions represents options for DrawImageOptionsWithShader
+//
+// This API is experimental.
+type DrawImageWithShaderOptions struct {
+	// GeoM is a geometry matrix to draw.
+	// The default (zero) value is identify, which draws the rectangle at (0, 0).
+	GeoM GeoM
+
+	// CompositeMode is a composite mode to draw.
+	// The default (zero) value is regular alpha blending.
+	CompositeMode CompositeMode
+
+	// Uniforms is a set of uniform variables for the shader.
+	Uniforms []interface{}
+}
+
+// DrawImageWithShader draws the specified image with the specified shader.
+//
+// When the specified image is disposed, DrawImageWithShader panics.
+//
+// When the image i is disposed, DrawImageWithShader does nothing.
+//
+// This API is experimental.
+func (i *Image) DrawImageWithShader(img *Image, shader *Shader, options *DrawRectangleWithShaderOptions) {
+	w, h := img.Size()
+	op := &DrawRectangleWithShaderOptions{
+		Images: [4]*Image{img},
+	}
+	if options != nil {
+		op.GeoM = options.GeoM
+		op.CompositeMode = options.CompositeMode
+		op.Uniforms = options.Uniforms
+	}
+	i.DrawRectangleWithShader(w, h, shader, op)
+}
+
 // DrawRectangleOptionsWithShaderOptions represents options for DrawRectangleOptionsWithShader
 //
 // This API is experimental.
