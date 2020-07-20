@@ -211,8 +211,6 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
-//
-// Note that this API is experimental.
 type Vertex struct {
 	// DstX and DstY represents a point on a destination image.
 	DstX float32
@@ -248,8 +246,6 @@ const (
 )
 
 // DrawTrianglesOptions represents options to render triangles on an image.
-//
-// Note that this API is experimental.
 type DrawTrianglesOptions struct {
 	// ColorM is a color matrix to draw.
 	// The default (zero) value is identity, which doesn't change any color.
@@ -281,8 +277,6 @@ const MaxIndicesNum = graphics.IndicesNum
 // The rule in which DrawTriangles works effectively is same as DrawImage's.
 //
 // When the image i is disposed, DrawTriangles does nothing.
-//
-// Note that this API is experimental.
 func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, options *DrawTrianglesOptions) {
 	i.copyCheck()
 
