@@ -437,6 +437,10 @@ func (i *Image) DrawRectangleWithShader(width, height int, shader *Shader, optio
 		if img.isDisposed() {
 			panic("ebiten: the given image to DrawRectangleWithShader must not be disposed")
 		}
+		if img.isSubImage() {
+			// TODO: Implement this.
+			panic("ebiten: rendering a sub-image is not implemented (DrawRectangleWithShader)")
+		}
 		if w, h := img.Size(); width != w || height != h {
 			panic("ebiten: all the source images must be the same size with the rectangle")
 		}
@@ -516,6 +520,10 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 		}
 		if img.isDisposed() {
 			panic("ebiten: the given image to DrawTrianglesWithShader must not be disposed")
+		}
+		if img.isSubImage() {
+			// TODO: Implement this.
+			panic("ebiten: rendering a sub-image is not implemented (DrawTrianglesWithShader)")
 		}
 		if imgw == 0 || imgh == 0 {
 			imgw, imgh = img.Size()
