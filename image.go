@@ -268,7 +268,7 @@ type DrawTrianglesOptions struct {
 // MaxIndicesNum is the maximum number of indices for DrawTriangles.
 const MaxIndicesNum = graphics.IndicesNum
 
-// DrawTriangles draws a triangle with the specified vertices and their indices.
+// DrawTriangles draws triangles with the specified vertices and their indices.
 //
 // If len(indices) is not multiple of 3, DrawTriangles panics.
 //
@@ -363,7 +363,7 @@ func init() {
 	}
 }
 
-// DrawTrianglesWithShader draws a triangle with the specified vertices and their indices with the specified shader.
+// DrawTrianglesWithShader draws triangles with the specified vertices and their indices with the specified shader.
 //
 // If len(indices) is not multiple of 3, DrawTrianglesWithShader panics.
 //
