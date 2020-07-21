@@ -166,7 +166,11 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 	}
 	cfg.BuildFlags = []string{"-tags", tags}
 
-	pkgs, err := packages.Load(cfg, flagset.Args()[0])
+	flagsetArgs := flagset.Args()
+	if len(flagsetArgs) == 0 {
+		flagsetArgs = []string{"."}
+	}
+	pkgs, err := packages.Load(cfg, flagsetArgs[0])
 	if err != nil {
 		return err
 	}
