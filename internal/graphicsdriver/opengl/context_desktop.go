@@ -527,11 +527,23 @@ func (c *context) needsRestoring() bool {
 }
 
 func (c *context) canUsePBO() bool {
-	return true
+	var available bool
+	_ = c.t.Call(func() error {
+		available = isPBOAvailable()
+		return nil
+	})
+
+	return available
 }
 
 func (c *context) texSubImage2D(t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
-	panic("opengl: texSubImage2D is not implemented on this environment")
+	c.bindTexture(t)
+	_ = c.t.Call(func() error {
+		for _, a := range args {
+			gl.TexSubImage2D(gl.TEXTURE_2D, 0, int32(a.X), int32(a.Y), int32(a.Width), int32(a.Height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(a.Pixels))
+		}
+		return nil
+	})
 }
 
 func (c *context) newPixelBufferObject(width, height int) buffer {
