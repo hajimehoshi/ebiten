@@ -86,7 +86,7 @@ func (i *Image) Fill(clr color.Color) error {
 
 	// TODO: Implement this.
 	if i.isSubImage() {
-		panic("ebiten: render to a subimage is not implemented (Fill)")
+		panic("ebiten: render to a sub-image is not implemented (Fill)")
 	}
 
 	i.buffered.Fill(color.RGBAModel.Convert(clr).(color.RGBA))
@@ -193,7 +193,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 
 	// TODO: Implement this.
 	if i.isSubImage() {
-		panic("ebiten: render to a subimage is not implemented (DrawImage)")
+		panic("ebiten: render to a sub-image is not implemented (DrawImage)")
 	}
 
 	// Calculate vertices before locking because the user can do anything in
@@ -347,7 +347,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	}
 
 	if i.isSubImage() {
-		panic("ebiten: render to a subimage is not implemented (DrawTriangles)")
+		panic("ebiten: render to a sub-image is not implemented (DrawTriangles)")
 	}
 
 	if len(indices)%3 != 0 {
@@ -442,7 +442,7 @@ func (i *Image) DrawRectangleWithShader(width, height int, shader *Shader, optio
 
 	// TODO: Implement this.
 	if i.isSubImage() {
-		panic("ebiten: render to a subimage is not implemented (DrawRectangleWithShader)")
+		panic("ebiten: render to a sub-image is not implemented (DrawRectangleWithShader)")
 	}
 
 	if options == nil {
@@ -518,7 +518,7 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 	}
 
 	if i.isSubImage() {
-		panic("ebiten: render to a subimage is not implemented (DrawTrianglesWithShader)")
+		panic("ebiten: render to a sub-image is not implemented (DrawTrianglesWithShader)")
 	}
 
 	if len(indices)%3 != 0 {
