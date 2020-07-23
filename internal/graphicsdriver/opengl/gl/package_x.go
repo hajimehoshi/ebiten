@@ -17,7 +17,7 @@ package gl
 //
 //   static const char* rendererDevice;
 //   if (!rendererDevice) {
-//     rendererDevice = queryString(GLX_RENDERER_VENDOR_ID_MESA);
+//     rendererDevice = queryString(GLX_RENDERER_DEVICE_ID_MESA);
 //   }
 //
 //   return rendererDevice;
