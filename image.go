@@ -93,6 +93,54 @@ func (i *Image) Fill(clr color.Color) error {
 	return nil
 }
 
+// DrawImageOptions represents options for DrawImage.
+type DrawImageOptions struct {
+	// GeoM is a geometry matrix to draw.
+	// The default (zero) value is identify, which draws the image at (0, 0).
+	GeoM GeoM
+
+	// ColorM is a color matrix to draw.
+	// The default (zero) value is identity, which doesn't change any color.
+	//
+	// If Shader is not nil, ColorM is ignored.
+	ColorM ColorM
+
+	// CompositeMode is a composite mode to draw.
+	// The default (zero) value is regular alpha blending.
+	CompositeMode CompositeMode
+
+	// Filter is a type of texture filter.
+	// The default (zero) value is FilterDefault.
+	//
+	// Filter can also be specified at NewImage* functions, but
+	// specifying filter at DrawImageOptions is recommended (as of 1.7.0).
+	//
+	// If both Filter specified at NewImage* and DrawImageOptions are FilterDefault,
+	// FilterNearest is used.
+	// If either is FilterDefault and the other is not, the latter is used.
+	// Otherwise, Filter specified at DrawImageOptions is used.
+	//
+	// If Shader is not nil, Filter is ignored.
+	Filter Filter
+
+	// Shader is a shader.
+	Shader *Shader
+
+	// Uniforms is a set of uniform variables for the shader.
+	//
+	// Uniforms is used only when Shader is not nil.
+	Uniforms []interface{}
+
+	// Deprecated: (as of 1.5.0) Use SubImage instead.
+	ImageParts ImageParts
+
+	// Deprecated: (as of 1.1.0) Use SubImage instead.
+	Parts []ImagePart
+
+	// Deprecated: (as of 1.9.0) Use SubImage instead.
+	SourceRect *image.Rectangle
+}
+
 // DrawImage draws the given image on the image i.
 //
 // DrawImage accepts the options. For details, see the document of
@@ -675,54 +723,6 @@ func (i *Image) ReplacePixels(pixels []byte) error {
 		theUIContext.setError(err)
 	}
 	return nil
-}
-
-// DrawImageOptions represents options for DrawImage.
-type DrawImageOptions struct {
-	// GeoM is a geometry matrix to draw.
-	// The default (zero) value is identify, which draws the image at (0, 0).
-	GeoM GeoM
-
-	// ColorM is a color matrix to draw.
-	// The default (zero) value is identity, which doesn't change any color.
-	//
-	// If Shader is not nil, ColorM is ignored.
-	ColorM ColorM
-
-	// CompositeMode is a composite mode to draw.
-	// The default (zero) value is regular alpha blending.
-	CompositeMode CompositeMode
-
-	// Filter is a type of texture filter.
-	// The default (zero) value is FilterDefault.
-	//
-	// Filter can also be specified at NewImage* functions, but
-	// specifying filter at DrawImageOptions is recommended (as of 1.7.0).
-	//
-	// If both Filter specified at NewImage* and DrawImageOptions are FilterDefault,
-	// FilterNearest is used.
-	// If either is FilterDefault and the other is not, the latter is used.
-	// Otherwise, Filter specified at DrawImageOptions is used.
-	//
-	// If Shader is not nil, Filter is ignored.
-	Filter Filter
-
-	// Shader is a shader.
-	Shader *Shader
-
-	// Uniforms is a set of uniform variables for the shader.
-	//
-	// Uniforms is used only when Shader is not nil.
-	Uniforms []interface{}
-
-	// Deprecated: (as of 1.5.0) Use SubImage instead.
-	ImageParts ImageParts
-
-	// Deprecated: (as of 1.1.0) Use SubImage instead.
-	Parts []ImagePart
-
-	// Deprecated: (as of 1.9.0) Use SubImage instead.
-	SourceRect *image.Rectangle
 }
 
 // NewImage returns an empty image.
