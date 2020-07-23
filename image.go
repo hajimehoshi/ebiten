@@ -205,7 +205,14 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	sy1 := float32(bounds.Max.Y)
 	vs := graphics.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, 1, 1, 1, 1, filter == driver.FilterScreen)
 	is := graphics.QuadIndices()
-	i.buffered.DrawTriangles([graphics.ShaderImageNum]*buffered.Image{img.buffered}, vs, is, options.ColorM.impl, mode, filter, driver.AddressUnsafe, driver.Region{}, nil, nil)
+
+	srcs := [graphics.ShaderImageNum]*buffered.Image{img.buffered}
+	if options.Shader == nil {
+		i.buffered.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.AddressUnsafe, driver.Region{}, nil, nil)
+		return nil
+	}
+
+	i.buffered.DrawTriangles(srcs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, options.Shader.shader, options.Uniforms)
 	return nil
 }
 
@@ -339,42 +346,6 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	}
 
 	i.buffered.DrawTriangles([graphics.ShaderImageNum]*buffered.Image{img.buffered}, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), sr, nil, nil)
-}
-
-// DrawImageOptionsWithShaderOptions represents options for DrawImageOptionsWithShader
-//
-// This API is experimental.
-type DrawImageWithShaderOptions struct {
-	// GeoM is a geometry matrix to draw.
-	// The default (zero) value is identify, which draws the rectangle at (0, 0).
-	GeoM GeoM
-
-	// CompositeMode is a composite mode to draw.
-	// The default (zero) value is regular alpha blending.
-	CompositeMode CompositeMode
-
-	// Uniforms is a set of uniform variables for the shader.
-	Uniforms []interface{}
-}
-
-// DrawImageWithShader draws the specified image with the specified shader.
-//
-// When the specified image is disposed, DrawImageWithShader panics.
-//
-// When the image i is disposed, DrawImageWithShader does nothing.
-//
-// This API is experimental.
-func (i *Image) DrawImageWithShader(img *Image, shader *Shader, options *DrawImageWithShaderOptions) {
-	w, h := img.Size()
-	op := &DrawRectangleWithShaderOptions{
-		Images: [4]*Image{img},
-	}
-	if options != nil {
-		op.GeoM = options.GeoM
-		op.CompositeMode = options.CompositeMode
-		op.Uniforms = options.Uniforms
-	}
-	i.DrawRectangleWithShader(w, h, shader, op)
 }
 
 // DrawRectangleOptionsWithShaderOptions represents options for DrawRectangleOptionsWithShader
@@ -711,6 +682,8 @@ type DrawImageOptions struct {
 
 	// ColorM is a color matrix to draw.
 	// The default (zero) value is identity, which doesn't change any color.
+	//
+	// If Shader is not nil, ColorM is ignored.
 	ColorM ColorM
 
 	// CompositeMode is a composite mode to draw.
@@ -727,7 +700,17 @@ type DrawImageOptions struct {
 	// FilterNearest is used.
 	// If either is FilterDefault and the other is not, the latter is used.
 	// Otherwise, Filter specified at DrawImageOptions is used.
+	//
+	// If Shader is not nil, Filter is ignored.
 	Filter Filter
+
+	// Shader is a shader.
+	Shader *Shader
+
+	// Uniforms is a set of uniform variables for the shader.
+	//
+	// Uniforms is used only when Shader is not nil.
+	Uniforms []interface{}
 
 	// Deprecated: (as of 1.5.0) Use SubImage instead.
 	ImageParts ImageParts
