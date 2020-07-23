@@ -118,6 +118,7 @@ func (i *Image) Fill(clr color.Color) error {
 //       elements.
 //   * All CompositeMode values are same
 //   * All Filter values are same
+//   * All Shader values are nil
 //
 // Even when all the above conditions are satisfied, multiple draw commands can
 // be used in really rare cases. Ebiten images usually share an internal
@@ -128,6 +129,8 @@ func (i *Image) Fill(clr color.Color) error {
 // share the texture atlas with high probability.
 //
 // For more performance tips, see https://ebiten.org/documents/performancetips.html
+//
+// ColorM and Filter are ignored when Shader is not nil.
 //
 // DrawImage always returns nil as of 1.5.0.
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
