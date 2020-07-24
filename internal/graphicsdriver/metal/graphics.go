@@ -31,7 +31,7 @@ import (
 )
 
 // #cgo CFLAGS: -x objective-c
-// #cgo !ios CFLAGS: -mmacosx-version-min=10.11
+// #cgo !ios CFLAGS: -mmacosx-version-min=10.12
 // #cgo LDFLAGS: -framework Foundation
 //
 // #import <Foundation/Foundation.h>

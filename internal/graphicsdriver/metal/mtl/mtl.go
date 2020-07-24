@@ -30,7 +30,7 @@ import (
 	"unsafe"
 )
 
-// #cgo !ios CFLAGS: -mmacosx-version-min=10.11
+// #cgo !ios CFLAGS: -mmacosx-version-min=10.12
 // #cgo LDFLAGS: -framework Metal -framework CoreGraphics -framework Foundation
 //
 // #include <stdlib.h>

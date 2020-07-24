@@ -27,7 +27,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/ca"
 )
 
-// #cgo !ios CFLAGS: -mmacosx-version-min=10.11
+// #cgo !ios CFLAGS: -mmacosx-version-min=10.12
 //
 // #include "ns.h"
 import "C"

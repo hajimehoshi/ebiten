@@ -32,7 +32,7 @@ import (
 // It is because old Xcode (8 or older?) does not accept @available syntax.
 
 // #cgo CFLAGS: -Wno-unguarded-availability-new
-// #cgo !ios CFLAGS: -mmacosx-version-min=10.11
+// #cgo !ios CFLAGS: -mmacosx-version-min=10.12
 // #cgo LDFLAGS: -framework QuartzCore -framework Foundation -framework CoreGraphics
 //
 // #include "ca.h"
