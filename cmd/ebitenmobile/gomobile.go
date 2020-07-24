@@ -106,6 +106,14 @@ func prepareGomobileCommands() error {
 	if err := runGo("get", "golang.org/x/mobile@"+gomobileHash); err != nil {
 		return err
 	}
+	if localgm := os.Getenv("EBITENMOBILE_GOMOBILE"); localgm != "" {
+		if !filepath.IsAbs(localgm) {
+			localgm = filepath.Join(pwd, localgm)
+		}
+		if err := runGo("mod", "edit", "-replace=golang.org/x/mobile="+localgm); err != nil {
+			return err
+		}
+	}
 	if err := runGo("build", "-o", exe(filepath.Join("bin", "gomobile")), "golang.org/x/mobile/cmd/gomobile"); err != nil {
 		return err
 	}
