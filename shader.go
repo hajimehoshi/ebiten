@@ -29,16 +29,16 @@ var shaderSuffix string
 
 func init() {
 	shaderSuffix = `
-var __viewportSize vec2
+var __textureDstSize vec2
 
-func viewportSize() vec2 {
-	return __viewportSize
+func textureDstSize() vec2 {
+	return __textureDstSize
 }
 
 func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
 	return mat4(
-		2/viewportSize().x, 0, 0, 0,
-		0, 2/viewportSize().y, 0, 0,
+		2/textureDstSize().x, 0, 0, 0,
+		0, 2/textureDstSize().y, 0, 0,
 		0, 0, 1, 0,
 		-1, -1, 0, 1,
 	) * vec4(position, 0, 1), texCoord, color
