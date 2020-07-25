@@ -399,10 +399,10 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	i.buffered.DrawTriangles([graphics.ShaderImageNum]*buffered.Image{img.buffered}, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), sr, nil, nil)
 }
 
-// DrawRectangleOptionsWithShaderOptions represents options for DrawRectangleOptionsWithShader
+// DrawRectShaderOptions represents options for DrawRectShader
 //
 // This API is experimental.
-type DrawRectangleWithShaderOptions struct {
+type DrawRectShaderOptions struct {
 	// GeoM is a geometry matrix to draw.
 	// The default (zero) value is identify, which draws the rectangle at (0, 0).
 	GeoM GeoM
@@ -420,20 +420,20 @@ type DrawRectangleWithShaderOptions struct {
 }
 
 func init() {
-	var op DrawRectangleWithShaderOptions
+	var op DrawRectShaderOptions
 	if got, want := len(op.Images), graphics.ShaderImageNum; got != want {
-		panic(fmt.Sprintf("ebiten: len((DrawRectangleWithShaderOptions{}).Images) must be %d but %d", want, got))
+		panic(fmt.Sprintf("ebiten: len((DrawRectShaderOptions{}).Images) must be %d but %d", want, got))
 	}
 }
 
-// DrawRectangleWithShader draws a rectangle with the specified width and height with the specified shader.
+// DrawRectShader draws a rectangle with the specified width and height with the specified shader.
 //
-// When one of the specified image is non-nil and is disposed, DrawRectangleWithShader panics.
+// When one of the specified image is non-nil and is disposed, DrawRectShader panics.
 //
-// When the image i is disposed, DrawRectangleWithShader does nothing.
+// When the image i is disposed, DrawRectShader does nothing.
 //
 // This API is experimental.
-func (i *Image) DrawRectangleWithShader(width, height int, shader *Shader, options *DrawRectangleWithShaderOptions) {
+func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawRectShaderOptions) {
 	i.copyCheck()
 
 	if i.isDisposed() {
@@ -442,11 +442,11 @@ func (i *Image) DrawRectangleWithShader(width, height int, shader *Shader, optio
 
 	// TODO: Implement this.
 	if i.isSubImage() {
-		panic("ebiten: render to a sub-image is not implemented (DrawRectangleWithShader)")
+		panic("ebiten: render to a sub-image is not implemented (DrawRectShader)")
 	}
 
 	if options == nil {
-		options = &DrawRectangleWithShaderOptions{}
+		options = &DrawRectShaderOptions{}
 	}
 
 	mode := driver.CompositeMode(options.CompositeMode)
@@ -457,11 +457,11 @@ func (i *Image) DrawRectangleWithShader(width, height int, shader *Shader, optio
 			continue
 		}
 		if img.isDisposed() {
-			panic("ebiten: the given image to DrawRectangleWithShader must not be disposed")
+			panic("ebiten: the given image to DrawRectShader must not be disposed")
 		}
 		if img.isSubImage() {
 			// TODO: Implement this.
-			panic("ebiten: rendering a sub-image is not implemented (DrawRectangleWithShader)")
+			panic("ebiten: rendering a sub-image is not implemented (DrawRectShader)")
 		}
 		if w, h := img.Size(); width != w || height != h {
 			panic("ebiten: all the source images must be the same size with the rectangle")
@@ -476,10 +476,10 @@ func (i *Image) DrawRectangleWithShader(width, height int, shader *Shader, optio
 	i.buffered.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, shader.shader, options.Uniforms)
 }
 
-// DrawTrianglesOptionsWithShaderOptions represents options for DrawTrianglesOptionsWithShader
+// DrawTrianglesShaderOptions represents options for DrawTrianglesShader
 //
 // This API is experimental.
-type DrawTrianglesWithShaderOptions struct {
+type DrawTrianglesShaderOptions struct {
 	// CompositeMode is a composite mode to draw.
 	// The default (zero) value is regular alpha blending.
 	CompositeMode CompositeMode
@@ -493,24 +493,24 @@ type DrawTrianglesWithShaderOptions struct {
 }
 
 func init() {
-	var op DrawTrianglesWithShaderOptions
+	var op DrawTrianglesShaderOptions
 	if got, want := len(op.Images), graphics.ShaderImageNum; got != want {
-		panic(fmt.Sprintf("ebiten: len((DrawTrianglesWithShaderOptions{}).Images) must be %d but %d", want, got))
+		panic(fmt.Sprintf("ebiten: len((DrawTrianglesShaderOptions{}).Images) must be %d but %d", want, got))
 	}
 }
 
-// DrawTrianglesWithShader draws triangles with the specified vertices and their indices with the specified shader.
+// DrawTrianglesShader draws triangles with the specified vertices and their indices with the specified shader.
 //
-// If len(indices) is not multiple of 3, DrawTrianglesWithShader panics.
+// If len(indices) is not multiple of 3, DrawTrianglesShader panics.
 //
-// If len(indices) is more than MaxIndicesNum, DrawTrianglesWithShader panics.
+// If len(indices) is more than MaxIndicesNum, DrawTrianglesShader panics.
 //
-// When a specified image is non-nil and is disposed, DrawTrianglesWithShader panics.
+// When a specified image is non-nil and is disposed, DrawTrianglesShader panics.
 //
-// When the image i is disposed, DrawTrianglesWithShader does nothing.
+// When the image i is disposed, DrawTrianglesShader does nothing.
 //
 // This API is experimental.
-func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, shader *Shader, options *DrawTrianglesWithShaderOptions) {
+func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader *Shader, options *DrawTrianglesShaderOptions) {
 	i.copyCheck()
 
 	if i.isDisposed() {
@@ -518,7 +518,7 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 	}
 
 	if i.isSubImage() {
-		panic("ebiten: render to a sub-image is not implemented (DrawTrianglesWithShader)")
+		panic("ebiten: render to a sub-image is not implemented (DrawTrianglesShader)")
 	}
 
 	if len(indices)%3 != 0 {
@@ -529,7 +529,7 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 	}
 
 	if options == nil {
-		options = &DrawTrianglesWithShaderOptions{}
+		options = &DrawTrianglesShaderOptions{}
 	}
 
 	mode := driver.CompositeMode(options.CompositeMode)
@@ -541,11 +541,11 @@ func (i *Image) DrawTrianglesWithShader(vertices []Vertex, indices []uint16, sha
 			continue
 		}
 		if img.isDisposed() {
-			panic("ebiten: the given image to DrawTrianglesWithShader must not be disposed")
+			panic("ebiten: the given image to DrawTrianglesShader must not be disposed")
 		}
 		if img.isSubImage() {
 			// TODO: Implement this.
-			panic("ebiten: rendering a sub-image is not implemented (DrawTrianglesWithShader)")
+			panic("ebiten: rendering a sub-image is not implemented (DrawTrianglesShader)")
 		}
 		if imgw == 0 || imgh == 0 {
 			imgw, imgh = img.Size()

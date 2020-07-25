@@ -107,14 +107,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	w, h := screen.Size()
 	cx, cy := ebiten.CursorPosition()
 
-	op := &ebiten.DrawRectangleWithShaderOptions{}
+	op := &ebiten.DrawRectShaderOptions{}
 	op.Uniforms = []interface{}{
 		float32(g.time) / 60,                // Time
 		[]float32{float32(cx), float32(cy)}, // Cursor
 	}
 	op.Images[0] = gopherImage
 	op.Images[1] = normalImage
-	screen.DrawRectangleWithShader(w, h, s, op)
+	screen.DrawRectShader(w, h, s, op)
 
 	msg := "Press Up/Down to switch the shader."
 	ebitenutil.DebugPrint(screen, msg)
