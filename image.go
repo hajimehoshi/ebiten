@@ -86,7 +86,7 @@ func (i *Image) Fill(clr color.Color) error {
 
 	// TODO: Implement this.
 	if i.isSubImage() {
-		panic("ebiten: render to a sub-image is not implemented (Fill)")
+		panic("ebiten: rendering to a sub-image is not implemented (Fill)")
 	}
 
 	i.buffered.Fill(color.RGBAModel.Convert(clr).(color.RGBA))
@@ -307,6 +307,8 @@ type DrawTrianglesOptions struct {
 	// ColorM is a color matrix to draw.
 	// The default (zero) value is identity, which doesn't change any color.
 	// ColorM is applied before vertex color scale is applied.
+	//
+	// If Shader is not nil, ColorM is ignored.
 	ColorM ColorM
 
 	// CompositeMode is a composite mode to draw.
@@ -315,11 +317,23 @@ type DrawTrianglesOptions struct {
 
 	// Filter is a type of texture filter.
 	// The default (zero) value is FilterDefault.
+	//
+	// If Shader is not nil, Filter is ignored.
 	Filter Filter
 
 	// Address is a sampler address mode.
 	// The default (zero) value is AddressClampToZero.
+	//
+	// If Shader is not nil, Address is ignored.
 	Address Address
+
+	// Shader is a shader.
+	Shader *Shader
+
+	// Uniforms is a set of uniform variables for the shader.
+	//
+	// Uniforms is used only when Shader is not nil.
+	Uniforms []interface{}
 }
 
 // MaxIndicesNum is the maximum number of indices for DrawTriangles.
@@ -336,10 +350,12 @@ const MaxIndicesNum = graphics.IndicesNum
 // When the given image is disposed, DrawTriangles panics.
 //
 // When the image i is disposed, DrawTriangles does nothing.
+//
+// img can be nil only when options.Shader is not nil.
 func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, options *DrawTrianglesOptions) {
 	i.copyCheck()
 
-	if img.isDisposed() {
+	if img != nil && img.isDisposed() {
 		panic("ebiten: the given image to DrawTriangles must not be disposed")
 	}
 	if i.isDisposed() {
@@ -362,13 +378,19 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		options = &DrawTrianglesOptions{}
 	}
 
+	if options.Shader != nil && img != nil && img.isSubImage() {
+		panic("ebiten: rendering a sub-image with a shader is not implemented (DrawTriangles)")
+	}
+
 	mode := driver.CompositeMode(options.CompositeMode)
 
 	filter := driver.FilterNearest
-	if options.Filter != FilterDefault {
-		filter = driver.Filter(options.Filter)
-	} else if img.filter != FilterDefault {
-		filter = driver.Filter(img.filter)
+	if options.Shader == nil {
+		if options.Filter != FilterDefault {
+			filter = driver.Filter(options.Filter)
+		} else if img.filter != FilterDefault {
+			filter = driver.Filter(img.filter)
+		}
 	}
 
 	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
@@ -386,7 +408,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	copy(is, indices)
 
 	var sr driver.Region
-	if options.Address != AddressUnsafe {
+	if options.Shader == nil && options.Address != AddressUnsafe {
 		b := img.Bounds()
 		sr = driver.Region{
 			X:      float32(b.Min.X),
@@ -396,7 +418,16 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		}
 	}
 
-	i.buffered.DrawTriangles([graphics.ShaderImageNum]*buffered.Image{img.buffered}, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), sr, nil, nil)
+	var srcs [graphics.ShaderImageNum]*buffered.Image
+	if img != nil {
+		srcs[0] = img.buffered
+	}
+
+	if options.Shader == nil {
+		i.buffered.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), sr, nil, nil)
+		return
+	}
+	i.buffered.DrawTriangles(srcs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, options.Shader.shader, options.Uniforms)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader
@@ -442,7 +473,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 
 	// TODO: Implement this.
 	if i.isSubImage() {
-		panic("ebiten: render to a sub-image is not implemented (DrawRectShader)")
+		panic("ebiten: rendering to a sub-image is not implemented (DrawRectShader)")
 	}
 
 	if options == nil {
