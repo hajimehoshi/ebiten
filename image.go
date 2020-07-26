@@ -93,6 +93,17 @@ func (i *Image) Fill(clr color.Color) error {
 	return nil
 }
 
+func canSkipMipmap(geom GeoM, filter driver.Filter) bool {
+	det := geom.det2x2()
+	if filter == driver.FilterNearest && det <= 1.1 {
+		return true
+	}
+	if filter == driver.FilterLinear && det >= 0.9 {
+		return true
+	}
+	return false
+}
+
 // DrawImageOptions represents options for DrawImage.
 type DrawImageOptions struct {
 	// GeoM is a geometry matrix to draw.
@@ -242,10 +253,12 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	mode := driver.CompositeMode(options.CompositeMode)
 
 	filter := driver.FilterNearest
-	if options.Filter != FilterDefault {
-		filter = driver.Filter(options.Filter)
-	} else if img.filter != FilterDefault {
-		filter = driver.Filter(img.filter)
+	if options.Shader == nil {
+		if options.Filter != FilterDefault {
+			filter = driver.Filter(options.Filter)
+		} else if img.filter != FilterDefault {
+			filter = driver.Filter(img.filter)
+		}
 	}
 
 	a, b, c, d, tx, ty := options.GeoM.elements32()
@@ -259,11 +272,11 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 
 	srcs := [graphics.ShaderImageNum]*mipmap.Mipmap{img.mipmap}
 	if options.Shader == nil {
-		i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.AddressUnsafe, driver.Region{}, nil, nil)
+		i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.AddressUnsafe, driver.Region{}, nil, nil, canSkipMipmap(options.GeoM, filter))
 		return nil
 	}
 
-	i.mipmap.DrawTriangles(srcs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, options.Shader.shader, options.Uniforms)
+	i.mipmap.DrawTriangles(srcs, vs, is, nil, mode, filter, driver.AddressUnsafe, driver.Region{}, options.Shader.shader, options.Uniforms, canSkipMipmap(options.GeoM, filter))
 	return nil
 }
 
@@ -424,10 +437,10 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	}
 
 	if options.Shader == nil {
-		i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), sr, nil, nil)
+		i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), sr, nil, nil, false)
 		return
 	}
-	i.mipmap.DrawTriangles(srcs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, options.Shader.shader, options.Uniforms)
+	i.mipmap.DrawTriangles(srcs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, options.Shader.shader, options.Uniforms, false)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader
@@ -504,7 +517,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	vs := graphics.QuadVertices(0, 0, float32(width), float32(height), a, b, c, d, tx, ty, 1, 1, 1, 1, false)
 	is := graphics.QuadIndices()
 
-	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, shader.shader, options.Uniforms)
+	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, shader.shader, options.Uniforms, canSkipMipmap(options.GeoM, driver.FilterNearest))
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader
@@ -600,7 +613,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
-	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, shader.shader, options.Uniforms)
+	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, shader.shader, options.Uniforms, false)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.
