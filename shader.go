@@ -34,7 +34,25 @@ var __textureDstSize vec2
 func textureDstSize() vec2 {
 	return __textureDstSize
 }
+`
 
+	for i := 0; i < graphics.ShaderImageNum; i++ {
+		var offset string
+		if i >= 1 {
+			shaderSuffix += fmt.Sprintf(`
+var __textureOffset%[1]d vec2
+`, i)
+			offset = fmt.Sprintf(" + __textureOffset%d", i)
+		}
+		// __t%d is a special variable for a texture variable.
+		shaderSuffix += fmt.Sprintf(`
+func texture%[1]dAt(pos vec2) vec4 {
+	return texture2D(__t%[1]d, pos%[2]s)
+}
+`, i, offset)
+	}
+
+	shaderSuffix += `
 func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
 	return mat4(
 		2/textureDstSize().x, 0, 0, 0,
@@ -44,25 +62,6 @@ func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
 	) * vec4(position, 0, 1), texCoord, color
 }
 `
-
-	for i := 1; i < graphics.ShaderImageNum; i++ {
-		shaderSuffix += fmt.Sprintf(`
-var __offset%d vec2
-`, i)
-	}
-
-	for i := 0; i < graphics.ShaderImageNum; i++ {
-		var offset string
-		if i >= 1 {
-			offset = fmt.Sprintf(" + __offset%d", i)
-		}
-		// __t%d is a special variable for a texture variable.
-		shaderSuffix += fmt.Sprintf(`
-func texture%[1]dAt(pos vec2) vec4 {
-	return texture2D(__t%[1]d, pos%[2]s)
-}
-`, i, offset)
-	}
 }
 
 type Shader struct {

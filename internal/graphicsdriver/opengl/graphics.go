@@ -305,9 +305,10 @@ func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]
 	us[0].value = []float32{float32(vw), float32(vh)}
 
 	for i, o := range offsets {
+		const offset = 1
 		o := o
-		us[i+1].name = fmt.Sprintf("U%d", i+1)
-		us[i+1].value = o[:]
+		us[i+offset].name = fmt.Sprintf("U%d", i+offset)
+		us[i+offset].value = o[:]
 	}
 
 	for i, v := range uniforms {
