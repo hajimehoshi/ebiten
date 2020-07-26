@@ -19,9 +19,9 @@ import (
 	"image"
 	"image/color"
 
-	"github.com/hajimehoshi/ebiten/internal/buffered"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/mipmap"
 )
 
 // Image represents a rectangle set of pixels.
@@ -34,7 +34,7 @@ type Image struct {
 	// See strings.Builder for similar examples.
 	addr *Image
 
-	buffered *buffered.Image
+	mipmap *mipmap.Mipmap
 
 	bounds   image.Rectangle
 	original *Image
@@ -55,7 +55,7 @@ func (i *Image) Size() (width, height int) {
 }
 
 func (i *Image) isDisposed() bool {
-	return i.buffered == nil
+	return i.mipmap == nil
 }
 
 func (i *Image) isSubImage() bool {
@@ -89,7 +89,7 @@ func (i *Image) Fill(clr color.Color) error {
 		panic("ebiten: rendering to a sub-image is not implemented (Fill)")
 	}
 
-	i.buffered.Fill(color.RGBAModel.Convert(clr).(color.RGBA))
+	i.mipmap.Fill(color.RGBAModel.Convert(clr).(color.RGBA))
 	return nil
 }
 
@@ -257,13 +257,13 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	vs := graphics.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, 1, 1, 1, 1, filter == driver.FilterScreen)
 	is := graphics.QuadIndices()
 
-	srcs := [graphics.ShaderImageNum]*buffered.Image{img.buffered}
+	srcs := [graphics.ShaderImageNum]*mipmap.Mipmap{img.mipmap}
 	if options.Shader == nil {
-		i.buffered.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.AddressUnsafe, driver.Region{}, nil, nil)
+		i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.AddressUnsafe, driver.Region{}, nil, nil)
 		return nil
 	}
 
-	i.buffered.DrawTriangles(srcs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, options.Shader.shader, options.Uniforms)
+	i.mipmap.DrawTriangles(srcs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, options.Shader.shader, options.Uniforms)
 	return nil
 }
 
@@ -418,16 +418,16 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		}
 	}
 
-	var srcs [graphics.ShaderImageNum]*buffered.Image
+	var srcs [graphics.ShaderImageNum]*mipmap.Mipmap
 	if img != nil {
-		srcs[0] = img.buffered
+		srcs[0] = img.mipmap
 	}
 
 	if options.Shader == nil {
-		i.buffered.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), sr, nil, nil)
+		i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), sr, nil, nil)
 		return
 	}
-	i.buffered.DrawTriangles(srcs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, options.Shader.shader, options.Uniforms)
+	i.mipmap.DrawTriangles(srcs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, options.Shader.shader, options.Uniforms)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader
@@ -482,7 +482,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 
 	mode := driver.CompositeMode(options.CompositeMode)
 
-	var imgs [graphics.ShaderImageNum]*buffered.Image
+	var imgs [graphics.ShaderImageNum]*mipmap.Mipmap
 	for i, img := range options.Images {
 		if img == nil {
 			continue
@@ -497,14 +497,14 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		if w, h := img.Size(); width != w || height != h {
 			panic("ebiten: all the source images must be the same size with the rectangle")
 		}
-		imgs[i] = img.buffered
+		imgs[i] = img.mipmap
 	}
 
 	a, b, c, d, tx, ty := options.GeoM.elements32()
 	vs := graphics.QuadVertices(0, 0, float32(width), float32(height), a, b, c, d, tx, ty, 1, 1, 1, 1, false)
 	is := graphics.QuadIndices()
 
-	i.buffered.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, shader.shader, options.Uniforms)
+	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, shader.shader, options.Uniforms)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader
@@ -566,7 +566,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	mode := driver.CompositeMode(options.CompositeMode)
 
 	var imgw, imgh int
-	var imgs [graphics.ShaderImageNum]*buffered.Image
+	var imgs [graphics.ShaderImageNum]*mipmap.Mipmap
 	for i, img := range options.Images {
 		if img == nil {
 			continue
@@ -583,7 +583,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		} else if w, h := img.Size(); imgw != w || imgh != h {
 			panic("ebiten: all the source images must be the same size")
 		}
-		imgs[i] = img.buffered
+		imgs[i] = img.mipmap
 	}
 
 	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
@@ -600,7 +600,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
-	i.buffered.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, shader.shader, options.Uniforms)
+	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, shader.shader, options.Uniforms)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.
@@ -630,7 +630,7 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 	}
 
 	img := &Image{
-		buffered: i.buffered,
+		mipmap:   i.mipmap,
 		filter:   i.filter,
 		bounds:   r,
 		original: orig,
@@ -670,7 +670,7 @@ func (i *Image) At(x, y int) color.Color {
 	if !image.Pt(x, y).In(i.Bounds()) {
 		return color.RGBA{}
 	}
-	pix, err := i.buffered.Pixels(x, y, 1, 1)
+	pix, err := i.mipmap.Pixels(x, y, 1, 1)
 	if err != nil {
 		theUIContext.setError(err)
 		return color.RGBA{}
@@ -699,7 +699,7 @@ func (i *Image) Set(x, y int, clr color.Color) {
 
 	r, g, b, a := clr.RGBA()
 	pix := []byte{byte(r >> 8), byte(g >> 8), byte(b >> 8), byte(a >> 8)}
-	if err := i.buffered.ReplacePixels(pix, x, y, 1, 1); err != nil {
+	if err := i.mipmap.ReplacePixels(pix, x, y, 1, 1); err != nil {
 		theUIContext.setError(err)
 	}
 }
@@ -722,8 +722,8 @@ func (i *Image) Dispose() error {
 	if i.isSubImage() {
 		return nil
 	}
-	i.buffered.MarkDisposed()
-	i.buffered = nil
+	i.mipmap.MarkDisposed()
+	i.mipmap = nil
 	return nil
 }
 
@@ -748,9 +748,9 @@ func (i *Image) ReplacePixels(pixels []byte) error {
 	r := i.Bounds()
 
 	// Do not need to copy pixels here.
-	// * In internal/buffered, pixels are copied when necessary.
+	// * In internal/mipmap, pixels are copied when necessary.
 	// * In internal/shareable, pixels are copied to make its paddings.
-	if err := i.buffered.ReplacePixels(pixels, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
+	if err := i.mipmap.ReplacePixels(pixels, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
 		theUIContext.setError(err)
 	}
 	return nil
@@ -770,9 +770,9 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 
 func newImage(width, height int, filter Filter, volatile bool) *Image {
 	i := &Image{
-		buffered: buffered.NewImage(width, height, volatile),
-		filter:   filter,
-		bounds:   image.Rect(0, 0, width, height),
+		mipmap: mipmap.New(width, height, volatile),
+		filter: filter,
+		bounds: image.Rect(0, 0, width, height),
 	}
 	i.addr = i
 	return i
@@ -792,9 +792,9 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	width, height := size.X, size.Y
 
 	i := &Image{
-		buffered: buffered.NewImage(width, height, false),
-		filter:   filter,
-		bounds:   image.Rect(0, 0, width, height),
+		mipmap: mipmap.New(width, height, false),
+		filter: filter,
+		bounds: image.Rect(0, 0, width, height),
 	}
 	i.addr = i
 
@@ -804,9 +804,9 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 
 func newScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
-		buffered: buffered.NewScreenFramebufferImage(width, height),
-		filter:   FilterDefault,
-		bounds:   image.Rect(0, 0, width, height),
+		mipmap: mipmap.NewScreenFramebufferMipmap(width, height),
+		filter: FilterDefault,
+		bounds: image.Rect(0, 0, width, height),
 	}
 	i.addr = i
 	return i

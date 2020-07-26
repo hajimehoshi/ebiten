@@ -22,12 +22,12 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/mipmap"
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/internal/shareable"
 )
 
 type Image struct {
-	img    *mipmap.Mipmap
+	img    *shareable.Image
 	width  int
 	height int
 
@@ -39,14 +39,14 @@ type Image struct {
 }
 
 func BeginFrame() error {
-	if err := mipmap.BeginFrame(); err != nil {
+	if err := shareable.BeginFrame(); err != nil {
 		return err
 	}
 	return flushDelayedCommands()
 }
 
 func EndFrame() error {
-	return mipmap.EndFrame()
+	return shareable.EndFrame()
 }
 
 func NewImage(width, height int, volatile bool) *Image {
@@ -64,7 +64,7 @@ func (i *Image) initialize(width, height int, volatile bool) {
 			return
 		}
 	}
-	i.img = mipmap.New(width, height, volatile)
+	i.img = shareable.NewImage(width, height, volatile)
 	i.width = width
 	i.height = height
 }
@@ -85,7 +85,7 @@ func (i *Image) initializeAsScreenFramebuffer(width, height int) {
 		}
 	}
 
-	i.img = mipmap.NewScreenFramebufferMipmap(width, height)
+	i.img = shareable.NewScreenFramebufferImage(width, height)
 	i.width = width
 	i.height = height
 }
@@ -261,12 +261,12 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 	}
 	i.resolvePendingPixels(false)
 
-	var s *mipmap.Shader
+	var s *shareable.Shader
 	if shader != nil {
 		s = shader.shader
 	}
 
-	var imgs [graphics.ShaderImageNum]*mipmap.Mipmap
+	var imgs [graphics.ShaderImageNum]*shareable.Image
 	for i, img := range srcs {
 		if img == nil {
 			continue
@@ -279,12 +279,12 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 }
 
 type Shader struct {
-	shader *mipmap.Shader
+	shader *shareable.Shader
 }
 
 func NewShader(program *shaderir.Program) *Shader {
 	return &Shader{
-		shader: mipmap.NewShader(program),
+		shader: shareable.NewShader(program),
 	}
 }
 

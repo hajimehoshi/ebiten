@@ -20,8 +20,8 @@ import (
 	"go/parser"
 	"go/token"
 
-	"github.com/hajimehoshi/ebiten/internal/buffered"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/mipmap"
 	"github.com/hajimehoshi/ebiten/internal/shader"
 )
 
@@ -66,7 +66,7 @@ func texture%[1]dAt(pos vec2) vec4 {
 }
 
 type Shader struct {
-	shader *buffered.Shader
+	shader *mipmap.Shader
 }
 
 func NewShader(src []byte) (*Shader, error) {
@@ -87,7 +87,7 @@ func NewShader(src []byte) (*Shader, error) {
 	}
 
 	return &Shader{
-		shader: buffered.NewShader(s),
+		shader: mipmap.NewShader(s),
 	}, nil
 }
 

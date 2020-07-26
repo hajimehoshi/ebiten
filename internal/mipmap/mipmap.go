@@ -20,10 +20,10 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
+	"github.com/hajimehoshi/ebiten/internal/buffered"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
-	"github.com/hajimehoshi/ebiten/internal/shareable"
 )
 
 var graphicsDriver driver.Graphics
@@ -33,21 +33,21 @@ func SetGraphicsDriver(graphics driver.Graphics) {
 }
 
 func BeginFrame() error {
-	return shareable.BeginFrame()
+	return buffered.BeginFrame()
 }
 
 func EndFrame() error {
-	return shareable.EndFrame()
+	return buffered.EndFrame()
 }
 
-// Mipmap is a set of shareable.Image sorted by the order of mipmap level.
+// Mipmap is a set of buffered.Image sorted by the order of mipmap level.
 // The level 0 image is a regular image and higher-level images are used for mipmap.
 type Mipmap struct {
 	width    int
 	height   int
 	volatile bool
-	orig     *shareable.Image
-	imgs     map[int]*shareable.Image
+	orig     *buffered.Image
+	imgs     map[int]*buffered.Image
 }
 
 func New(width, height int, volatile bool) *Mipmap {
@@ -55,8 +55,8 @@ func New(width, height int, volatile bool) *Mipmap {
 		width:    width,
 		height:   height,
 		volatile: volatile,
-		orig:     shareable.NewImage(width, height, volatile),
-		imgs:     map[int]*shareable.Image{},
+		orig:     buffered.NewImage(width, height, volatile),
+		imgs:     map[int]*buffered.Image{},
 	}
 }
 
@@ -64,8 +64,8 @@ func NewScreenFramebufferMipmap(width, height int) *Mipmap {
 	return &Mipmap{
 		width:  width,
 		height: height,
-		orig:   shareable.NewScreenFramebufferImage(width, height),
-		imgs:   map[int]*shareable.Image{},
+		orig:   buffered.NewScreenFramebufferImage(width, height),
+		imgs:   map[int]*buffered.Image{},
 	}
 }
 
@@ -78,9 +78,12 @@ func (m *Mipmap) Fill(clr color.RGBA) {
 	m.disposeMipmaps()
 }
 
-func (m *Mipmap) ReplacePixels(pix []byte) {
-	m.orig.ReplacePixels(pix)
+func (m *Mipmap) ReplacePixels(pix []byte, x, y, width, height int) error {
+	if err := m.orig.ReplacePixels(pix, x, y, width, height); err != nil {
+		return err
+	}
 	m.disposeMipmaps()
+	return nil
 }
 
 func (m *Mipmap) Pixels(x, y, width, height int) ([]byte, error) {
@@ -134,12 +137,12 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices [
 		}
 	}
 
-	var s *shareable.Shader
+	var s *buffered.Shader
 	if shader != nil {
 		s = shader.shader
 	}
 
-	var imgs [graphics.ShaderImageNum]*shareable.Image
+	var imgs [graphics.ShaderImageNum]*buffered.Image
 	for i, src := range srcs {
 		if src == nil {
 			continue
@@ -163,7 +166,7 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices [
 	m.disposeMipmaps()
 }
 
-func (m *Mipmap) level(level int) *shareable.Image {
+func (m *Mipmap) level(level int) *buffered.Image {
 	if level == 0 {
 		panic("ebiten: level must be non-zero at level")
 	}
@@ -176,7 +179,7 @@ func (m *Mipmap) level(level int) *shareable.Image {
 		return img
 	}
 
-	var src *shareable.Image
+	var src *buffered.Image
 	var vs []float32
 	var filter driver.Filter
 	switch {
@@ -219,8 +222,8 @@ func (m *Mipmap) level(level int) *shareable.Image {
 		m.imgs[level] = nil
 		return nil
 	}
-	s := shareable.NewImage(w2, h2, m.volatile)
-	s.DrawTriangles([graphics.ShaderImageNum]*shareable.Image{src}, vs, is, nil, driver.CompositeModeCopy, filter, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	s := buffered.NewImage(w2, h2, m.volatile)
+	s.DrawTriangles([graphics.ShaderImageNum]*buffered.Image{src}, vs, is, nil, driver.CompositeModeCopy, filter, driver.AddressUnsafe, driver.Region{}, nil, nil)
 	m.imgs[level] = s
 
 	return m.imgs[level]
@@ -357,12 +360,12 @@ func pow2(power int) float32 {
 }
 
 type Shader struct {
-	shader *shareable.Shader
+	shader *buffered.Shader
 }
 
 func NewShader(program *shaderir.Program) *Shader {
 	return &Shader{
-		shader: shareable.NewShader(program),
+		shader: buffered.NewShader(program),
 	}
 }
 
