@@ -71,20 +71,26 @@ func (i *Image) Pixels() ([]byte, error) {
 	return p, nil
 }
 
+func (i *Image) framebufferSize() (int, int) {
+	if i.screen {
+		// The (default) framebuffer size can't be converted to a power of 2.
+		// On browsers, i.width and i.height are used as viewport size and
+		// Edge can't treat a bigger viewport than the drawing area (#71).
+		return i.width, i.height
+	}
+	return graphics.InternalImageSize(i.width), graphics.InternalImageSize(i.height)
+}
+
 func (i *Image) ensureFramebuffer() error {
 	if i.framebuffer != nil {
 		return nil
 	}
 
+	w, h := i.framebufferSize()
 	if i.screen {
-		// The (default) framebuffer size can't be converted to a power of 2.
-		// On browsers, c.width and c.height are used as viewport size and
-		// Edge can't treat a bigger viewport than the drawing area (#71).
-		i.framebuffer = newScreenFramebuffer(&i.graphics.context, i.width, i.height)
+		i.framebuffer = newScreenFramebuffer(&i.graphics.context, w, h)
 		return nil
 	}
-
-	w, h := graphics.InternalImageSize(i.width), graphics.InternalImageSize(i.height)
 	f, err := newFramebufferFromTexture(&i.graphics.context, i.textureNative, w, h)
 	if err != nil {
 		return err

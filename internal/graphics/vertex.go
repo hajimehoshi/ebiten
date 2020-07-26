@@ -26,8 +26,16 @@ const (
 	//
 	// All the preversed uniform variables are vec2 so far.
 	PreservedUniformVariablesNum = 1 + // the destination texture size
+		ShaderImageNum + // the texture sizes
 		(ShaderImageNum - 1) // the offsets of the second and the following images
 )
+
+func TextureOffsetUniformVariableIndex(i int) int {
+	if i == 0 {
+		panic("graphics: the texture 0 doesn't have its offset")
+	}
+	return 1 + ShaderImageNum + i - 1
+}
 
 const (
 	IndicesNum     = (1 << 16) / 3 * 3 // Adjust num for triangles.

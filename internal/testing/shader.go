@@ -351,7 +351,7 @@ func ShaderProgramImages(imageNum int) shaderir.Program {
 					texPos,
 					{
 						Type:  shaderir.UniformVariable,
-						Index: 1 + i - 1,
+						Index: graphics.TextureOffsetUniformVariableIndex(i),
 					},
 				},
 			}

@@ -304,8 +304,19 @@ func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]
 	us[0].name = "U0"
 	us[0].value = []float32{float32(vw), float32(vh)}
 
-	for i, o := range offsets {
+	for i, src := range srcs {
+		img := g.images[src]
+		var w, h int
+		if img != nil {
+			w, h = img.framebufferSize()
+		}
 		const offset = 1
+		us[i+offset].name = fmt.Sprintf("U%d", i+offset)
+		us[i+offset].value = []float32{float32(w), float32(h)}
+	}
+
+	for i, o := range offsets {
+		const offset = 1 + graphics.ShaderImageNum
 		o := o
 		us[i+offset].name = fmt.Sprintf("U%d", i+offset)
 		us[i+offset].value = o[:]

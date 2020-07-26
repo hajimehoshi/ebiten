@@ -37,6 +37,16 @@ func textureDstSize() vec2 {
 `
 
 	for i := 0; i < graphics.ShaderImageNum; i++ {
+		shaderSuffix += fmt.Sprintf(`
+var __textureSize%[1]d vec2
+
+func texture%[1]dSize() vec2 {
+	return __textureSize%[1]d
+}
+`, i)
+	}
+
+	for i := 0; i < graphics.ShaderImageNum; i++ {
 		var offset string
 		if i >= 1 {
 			shaderSuffix += fmt.Sprintf(`
