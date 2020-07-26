@@ -95,10 +95,10 @@ func (i *Image) Fill(clr color.Color) error {
 
 func canSkipMipmap(geom GeoM, filter driver.Filter) bool {
 	det := geom.det2x2()
-	if filter == driver.FilterNearest && det <= 1.1 {
+	if filter == driver.FilterNearest && det <= 1.001 {
 		return true
 	}
-	if filter == driver.FilterLinear && det >= 0.9 {
+	if filter == driver.FilterLinear && det >= 0.999 {
 		return true
 	}
 	return false
