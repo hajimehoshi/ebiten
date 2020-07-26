@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build js !freebsd,!linux
+// +build android js !freebsd,!linux
 
 package opengl
 
