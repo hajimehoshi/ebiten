@@ -1,0 +1,16 @@
+image: archlinux
+packages:
+  - alsa-lib
+  - mesa
+  - libxrandr
+  - libxcursor
+  - libxinerama
+  - libxi
+  - pkg-config
+  - go
+sources:
+  - https://github.com/hajimehoshi/ebiten
+tasks:
+  - build: |
+      cd ebiten
+      go build . ./audio
