@@ -1,3 +1,6 @@
+void F0(out vec2 l0);
+void F1(out vec2 l0);
+
 void F0(out vec2 l0) {
 	vec2 l1 = vec2(0);
 	vec2 l2 = vec2(0);

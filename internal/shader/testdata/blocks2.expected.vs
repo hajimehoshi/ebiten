@@ -1,3 +1,5 @@
+void F0(out vec2 l0);
+
 void F0(out vec2 l0) {
 	bool l1 = false;
 	l1 = true;

@@ -1,3 +1,6 @@
+void F0(in vec2 l0);
+void F1(in float l0, in float l1, out float l2, out float l3);
+
 void F0(in vec2 l0) {
 	float l1 = float(0);
 	float l2 = float(0);

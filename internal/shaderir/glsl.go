@@ -91,11 +91,19 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 		for i, t := range p.Varyings {
 			vslines = append(vslines, fmt.Sprintf("varying %s;", p.glslVarDecl(&t, fmt.Sprintf("V%d", i))))
 		}
+		if len(p.Funcs) > 0 {
+			if len(vslines) > 0 {
+				vslines = append(vslines, "")
+			}
+		}
+		for _, f := range p.Funcs {
+			vslines = append(vslines, p.glslFunc(&f, true)...)
+		}
 		for _, f := range p.Funcs {
 			if len(vslines) > 0 {
 				vslines = append(vslines, "")
 			}
-			vslines = append(vslines, p.glslFunc(&f)...)
+			vslines = append(vslines, p.glslFunc(&f, false)...)
 		}
 
 		if len(p.VertexFunc.Block.Stmts) > 0 {
@@ -124,7 +132,13 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 			if len(fslines) > 0 {
 				fslines = append(fslines, "")
 			}
-			fslines = append(fslines, p.glslFunc(&f)...)
+			fslines = append(fslines, p.glslFunc(&f, true)...)
+		}
+		for _, f := range p.Funcs {
+			if len(fslines) > 0 {
+				fslines = append(fslines, "")
+			}
+			fslines = append(fslines, p.glslFunc(&f, false)...)
 		}
 
 		if len(p.FragmentFunc.Block.Stmts) > 0 {
@@ -211,7 +225,7 @@ func (p *Program) glslVarInit(t *Type) string {
 	}
 }
 
-func (p *Program) glslFunc(f *Func) []string {
+func (p *Program) glslFunc(f *Func, prototype bool) []string {
 	var args []string
 	var idx int
 	for _, t := range f.InParams {
@@ -227,8 +241,14 @@ func (p *Program) glslFunc(f *Func) []string {
 		argsstr = strings.Join(args, ", ")
 	}
 
+	sig := fmt.Sprintf("%s F%d(%s)", p.glslType(&f.Return), f.Index, argsstr)
+
 	var lines []string
-	lines = append(lines, fmt.Sprintf("%s F%d(%s) {", p.glslType(&f.Return), f.Index, argsstr))
+	if prototype {
+		lines = append(lines, fmt.Sprintf("%s;", sig))
+		return lines
+	}
+	lines = append(lines, fmt.Sprintf("%s {", sig))
 	lines = append(lines, p.glslBlock(&f.Block, &f.Block, 0, idx)...)
 	lines = append(lines, "}")
 

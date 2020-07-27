@@ -1,3 +1,7 @@
+void F0(in vec2 l0, out vec4 l1);
+void F1(in vec2 l0, out vec4 l1);
+void F2(out vec2 l0, out vec2 l1);
+
 void F0(in vec2 l0, out vec4 l1) {
 	vec2 l2 = vec2(0);
 	vec2 l3 = vec2(0);
