@@ -2229,7 +2229,7 @@ func TestImageCompositeModeMultiply(t *testing.T) {
 }
 
 // Issue #1269
-func TestImageEmptyTriangle(t *testing.T) {
+func TestImageZeroTriangle(t *testing.T) {
 	const w, h = 16, 16
 	dst, _ := NewImage(w, h, FilterDefault)
 	src, _ := NewImage(1, 1, FilterDefault)
