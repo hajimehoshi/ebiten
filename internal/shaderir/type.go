@@ -85,6 +85,17 @@ func (t *Type) serialize() string {
 	return t.String()
 }
 
+func (t *Type) Glsl() string {
+	switch t.Main {
+	case Array:
+		return fmt.Sprintf("%s[%d]", t.Sub[0].Glsl(), t.Length)
+	case Struct:
+		panic("shaderir: a struct is not implemented")
+	default:
+		return t.Main.glsl()
+	}
+}
+
 type BasicType int
 
 const (
@@ -102,7 +113,7 @@ const (
 	Struct
 )
 
-func (t BasicType) Glsl() string {
+func (t BasicType) glsl() string {
 	switch t {
 	case None:
 		return "?(none)"
@@ -125,7 +136,6 @@ func (t BasicType) Glsl() string {
 	case Mat4:
 		return "mat4"
 	case Array:
-		// First-class array is not available on GLSL ES 2.
 		return "?(array)"
 	case Struct:
 		return "?(struct)"

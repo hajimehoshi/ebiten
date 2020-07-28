@@ -17,13 +17,12 @@ package shader
 import (
 	"fmt"
 	"go/ast"
+	gconstant "go/constant"
 
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
-// TODO: What about array types?
-
-func (cs *compileState) parseType(expr ast.Expr) shaderir.Type {
+func (cs *compileState) parseType(block *block, expr ast.Expr) shaderir.Type {
 	switch t := expr.(type) {
 	case *ast.Ident:
 		switch t.Name {
@@ -48,6 +47,41 @@ func (cs *compileState) parseType(expr ast.Expr) shaderir.Type {
 		default:
 			cs.addError(t.Pos(), fmt.Sprintf("unexpected type: %s", t.Name))
 			return shaderir.Type{}
+		}
+	case *ast.ArrayType:
+		if t.Len == nil {
+			cs.addError(t.Pos(), fmt.Sprintf("array length must be specified"))
+			return shaderir.Type{}
+		}
+		// TODO: Parse ellipsis
+
+		exprs, _, _, ok := cs.parseExpr(block, t.Len)
+		if !ok {
+			return shaderir.Type{}
+		}
+		if len(exprs) != 1 {
+			cs.addError(t.Pos(), fmt.Sprintf("invalid length of array"))
+			return shaderir.Type{}
+		}
+		if exprs[0].Type != shaderir.NumberExpr {
+			cs.addError(t.Pos(), fmt.Sprintf("length of array must be a constant number"))
+			return shaderir.Type{}
+		}
+		len, ok := gconstant.Int64Val(exprs[0].Const)
+		if !ok {
+			cs.addError(t.Pos(), fmt.Sprintf("length of array must be an integer"))
+			return shaderir.Type{}
+		}
+
+		elm := cs.parseType(block, t.Elt)
+		if elm.Main == shaderir.Array {
+			cs.addError(t.Pos(), fmt.Sprintf("array of array is forbidden"))
+			return shaderir.Type{}
+		}
+		return shaderir.Type{
+			Main:   shaderir.Array,
+			Sub:    []shaderir.Type{elm},
+			Length: int(len),
 		}
 	case *ast.StructType:
 		cs.addError(t.Pos(), "struct is not implemented")

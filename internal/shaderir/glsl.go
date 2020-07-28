@@ -172,12 +172,10 @@ func (p *Program) glslType(t *Type) string {
 	switch t.Main {
 	case None:
 		return "void"
-	case Array:
-		panic("not implemented")
 	case Struct:
 		return p.structName(t)
 	default:
-		return t.Main.Glsl()
+		return t.Glsl()
 	}
 }
 
@@ -185,12 +183,10 @@ func (p *Program) glslVarDecl(t *Type, varname string) string {
 	switch t.Main {
 	case None:
 		return "?(none)"
-	case Array:
-		panic("not implemented")
 	case Struct:
 		return fmt.Sprintf("%s %s", p.structName(t), varname)
 	default:
-		return fmt.Sprintf("%s %s", t.Main.Glsl(), varname)
+		return fmt.Sprintf("%s %s", t.Glsl(), varname)
 	}
 }
 
@@ -432,7 +428,7 @@ func (p *Program) glslBlock(topBlock, block *Block, level int, localVarIndex int
 				op = fmt.Sprintf("?(unexpected op: %s)", string(s.ForOp))
 			}
 
-			t := s.ForVarType.Main
+			t := s.ForVarType
 			init := constantToNumberLiteral(ct, s.ForInit)
 			end := constantToNumberLiteral(ct, s.ForEnd)
 			lines = append(lines, fmt.Sprintf("%sfor (%s %s = %s; %s %s %s; %s) {", idt, t.Glsl(), v, init, v, op, end, delta))
