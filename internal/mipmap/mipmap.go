@@ -91,6 +91,10 @@ func (m *Mipmap) Pixels(x, y, width, height int) ([]byte, error) {
 }
 
 func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}, canSkipMipmap bool) {
+	if len(indices) == 0 {
+		return
+	}
+
 	level := 0
 	// TODO: Do we need to check all the sources' states of being volatile?
 	if !canSkipMipmap && srcs[0] != nil && !srcs[0].volatile && filter != driver.FilterScreen {
@@ -118,6 +122,9 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices [
 			if l := mipmapLevelFromDistance(dx2, dy2, dx0, dy0, sx2, sy2, sx0, sy0, filter); level > l {
 				level = l
 			}
+		}
+		if level == math.MaxInt32 {
+			panic("mipmap: level must be calculated at least once but not")
 		}
 	}
 
