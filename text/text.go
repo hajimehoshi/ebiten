@@ -60,7 +60,7 @@ func drawGlyph(dst *ebiten.Image, face font.Face, r rune, img *glyphImage, x, y 
 }
 
 var (
-	// Use pointers to avoid copying on browsers.
+	// Use pointers as copying is expensive on GopherJS.
 	glyphBoundsCache = map[font.Face]map[rune]*fixed.Rectangle26_6{}
 )
 
