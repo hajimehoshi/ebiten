@@ -254,12 +254,14 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 
 // BoundString returns the measured size of a given string using a given font.
 // This method will return the exact size in pixels that a string drawn by Draw will be.
+// The bound's origin point indicates the dot (period) position.
+// This means that if the text consists of one character '.', this dot is rendered at (0, 0).
 //
 // This is very similar to golang.org/x/image/font's BoundString,
 // but this BoundString calculates the actual rendered area considering multiple lines and space characters.
 //
-// text is the string that's being measured.
 // face is the font for text rendering.
+// text is the string that's being measured.
 //
 // Be careful that the passed font face is held by this package and is never released.
 // This is a known issue (#498).
