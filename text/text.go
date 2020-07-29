@@ -208,9 +208,8 @@ var textM sync.Mutex
 //
 // If you want to adjust the position of the text, these functions are useful:
 //
+//     * text.BoundString:                     the rendered bounds of the given text.
 //     * golang.org/x/image/font.Face.Metrics: the metrics of the face.
-//     * text.MeasureString:                   the size of the given text.
-//     * golang.org/x/image/font.BoundString:  the bound rectangle of the given text.
 //
 // The '\n' newline character puts the following text on the next line.
 // Line height is based on Metrics().Height of the font.
@@ -253,10 +252,11 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 	}
 }
 
-// MeasureString returns the measured size of a given string using a given font.
+// BoundString returns the measured size of a given string using a given font.
 // This method will return the exact size in pixels that a string drawn by Draw will be.
 //
-// This is very similar to golang.org/x/image/font's MeasureString, but this MeasureString considers multiple lines.
+// This is very similar to golang.org/x/image/font's BoundString,
+// but this BoundString calculates the actual rendered area considering multiple lines and space characters.
 //
 // text is the string that's being measured.
 // face is the font for text rendering.
@@ -264,23 +264,19 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 // Be careful that the passed font face is held by this package and is never released.
 // This is a known issue (#498).
 //
-// MeasureString is concurrent-safe.
-func MeasureString(text string, face font.Face) image.Point {
+// BoundString is concurrent-safe.
+func BoundString(face font.Face, text string) image.Rectangle {
 	textM.Lock()
 	defer textM.Unlock()
 
-	var w, h fixed.Int26_6
-
 	m := face.Metrics()
 	faceHeight := m.Height
-	faceDescent := m.Descent
 
 	fx, fy := fixed.I(0), fixed.I(0)
 	prevR := rune(-1)
 
-	runes := []rune(text)
-
-	for _, r := range runes {
+	var bounds fixed.Rectangle26_6
+	for _, r := range []rune(text) {
 		if prevR >= 0 {
 			fx += face.Kern(prevR, r)
 		}
@@ -291,22 +287,22 @@ func MeasureString(text string, face font.Face) image.Point {
 			continue
 		}
 
+		bp := getGlyphBounds(face, r)
+		b := *bp
+		b.Min.X += fx
+		b.Max.X += fx
+		b.Min.Y += fy
+		b.Max.Y += fy
+		bounds = bounds.Union(b)
+
 		fx += glyphAdvance(face, r)
-
-		if fx > w {
-			w = fx
-		}
-		if (fy + faceHeight) > h {
-			h = fy + faceHeight
-		}
-
 		prevR = r
 	}
 
-	bounds := image.Point{
-		X: int(math.Ceil(fixed26_6ToFloat64(w))),
-		Y: int(math.Ceil(fixed26_6ToFloat64(h + faceDescent))),
-	}
-
-	return bounds
+	return image.Rect(
+		int(math.Floor(fixed26_6ToFloat64(bounds.Min.X))),
+		int(math.Floor(fixed26_6ToFloat64(bounds.Min.Y))),
+		int(math.Ceil(fixed26_6ToFloat64(bounds.Max.X))),
+		int(math.Ceil(fixed26_6ToFloat64(bounds.Max.Y))),
+	)
 }
