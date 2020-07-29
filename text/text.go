@@ -200,8 +200,17 @@ var textM sync.Mutex
 //
 // face is the font for text rendering.
 // (x, y) represents a 'dot' (period) position.
+// This means that if the given text consisted of a single character ".",
+// it would be positioned at the given position (x, y).
 // Be careful that this doesn't represent left-upper corner position.
+//
 // clr is the color for text rendering.
+//
+// If you want to adjust the position of the text, these functions are useful:
+//
+//     * golang.org/x/image/font.Face.Metrics: the metrics of the face.
+//     * text.MeasureString:                   the size of the given text.
+//     * golang.org/x/image/font.BoundString:  the bound rectangle of the given text.
 //
 // The '\n' newline character puts the following text on the next line.
 // Line height is based on Metrics().Height of the font.
@@ -246,7 +255,8 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 
 // MeasureString returns the measured size of a given string using a given font.
 // This method will return the exact size in pixels that a string drawn by Draw will be.
-// text can include multiple lines.
+//
+// This is very similar to golang.org/x/image/font's MeasureString, but this MeasureString considers multiple lines.
 //
 // text is the string that's being measured.
 // face is the font for text rendering.
