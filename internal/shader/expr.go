@@ -499,6 +499,66 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 			},
 		}, []shaderir.Type{t}, stmts, true
 
+	case *ast.IndexExpr:
+		var stmts []shaderir.Stmt
+
+		// Parse the index first
+		exprs, _, ss, ok := cs.parseExpr(block, e.Index)
+		if !ok {
+			return nil, nil, nil, false
+		}
+		stmts = append(stmts, ss...)
+
+		if len(exprs) != 1 {
+			cs.addError(e.Pos(), fmt.Sprintf("multiple-value context is not available at an index expression"))
+			return nil, nil, nil, false
+		}
+		idx := exprs[0]
+		if idx.Type != shaderir.NumberExpr {
+			cs.addError(e.Pos(), fmt.Sprintf("an index must be a constant number"))
+			return nil, nil, nil, false
+		}
+		idx.ConstType = shaderir.ConstTypeInt
+
+		exprs, ts, ss, ok := cs.parseExpr(block, e.X)
+		if !ok {
+			return nil, nil, nil, false
+		}
+		stmts = append(stmts, ss...)
+		if len(exprs) != 1 {
+			cs.addError(e.Pos(), fmt.Sprintf("multiple-value context is not available at an index expression"))
+			return nil, nil, nil, false
+		}
+		x := exprs[0]
+		t := ts[0]
+
+		var typ shaderir.Type
+		switch t.Main {
+		case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
+			typ = shaderir.Type{Main: shaderir.Float}
+		case shaderir.Mat2:
+			typ = shaderir.Type{Main: shaderir.Vec2}
+		case shaderir.Mat3:
+			typ = shaderir.Type{Main: shaderir.Vec3}
+		case shaderir.Mat4:
+			typ = shaderir.Type{Main: shaderir.Vec4}
+		case shaderir.Array:
+			typ = t.Sub[0]
+		default:
+			cs.addError(e.Pos(), fmt.Sprintf("index operator cannot be applied to the type %s", t.String()))
+			return nil, nil, nil, false
+		}
+
+		return []shaderir.Expr{
+			{
+				Type: shaderir.Index,
+				Exprs: []shaderir.Expr{
+					x,
+					idx,
+				},
+			},
+		}, []shaderir.Type{typ}, stmts, true
+
 	default:
 		cs.addError(e.Pos(), fmt.Sprintf("expression not implemented: %#v", e))
 	}

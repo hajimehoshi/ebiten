@@ -9,5 +9,6 @@ func Foo() [2]vec2 {
 
 func Bar() [2]vec2 {
 	x := [2]vec2{vec2(1)}
+	x[1].y = vec2(2)
 	return x
 }
