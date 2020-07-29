@@ -22,72 +22,75 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
-func (cs *compileState) parseType(block *block, expr ast.Expr) shaderir.Type {
+func (cs *compileState) parseType(block *block, expr ast.Expr) (shaderir.Type, bool) {
 	switch t := expr.(type) {
 	case *ast.Ident:
 		switch t.Name {
 		case "bool":
-			return shaderir.Type{Main: shaderir.Bool}
+			return shaderir.Type{Main: shaderir.Bool}, true
 		case "int":
-			return shaderir.Type{Main: shaderir.Int}
+			return shaderir.Type{Main: shaderir.Int}, true
 		case "float":
-			return shaderir.Type{Main: shaderir.Float}
+			return shaderir.Type{Main: shaderir.Float}, true
 		case "vec2":
-			return shaderir.Type{Main: shaderir.Vec2}
+			return shaderir.Type{Main: shaderir.Vec2}, true
 		case "vec3":
-			return shaderir.Type{Main: shaderir.Vec3}
+			return shaderir.Type{Main: shaderir.Vec3}, true
 		case "vec4":
-			return shaderir.Type{Main: shaderir.Vec4}
+			return shaderir.Type{Main: shaderir.Vec4}, true
 		case "mat2":
-			return shaderir.Type{Main: shaderir.Mat2}
+			return shaderir.Type{Main: shaderir.Mat2}, true
 		case "mat3":
-			return shaderir.Type{Main: shaderir.Mat3}
+			return shaderir.Type{Main: shaderir.Mat3}, true
 		case "mat4":
-			return shaderir.Type{Main: shaderir.Mat4}
+			return shaderir.Type{Main: shaderir.Mat4}, true
 		default:
 			cs.addError(t.Pos(), fmt.Sprintf("unexpected type: %s", t.Name))
-			return shaderir.Type{}
+			return shaderir.Type{}, false
 		}
 	case *ast.ArrayType:
 		if t.Len == nil {
 			cs.addError(t.Pos(), fmt.Sprintf("array length must be specified"))
-			return shaderir.Type{}
+			return shaderir.Type{}, false
 		}
 		// TODO: Parse ellipsis
 
 		exprs, _, _, ok := cs.parseExpr(block, t.Len)
 		if !ok {
-			return shaderir.Type{}
+			return shaderir.Type{}, false
 		}
 		if len(exprs) != 1 {
 			cs.addError(t.Pos(), fmt.Sprintf("invalid length of array"))
-			return shaderir.Type{}
+			return shaderir.Type{}, false
 		}
 		if exprs[0].Type != shaderir.NumberExpr {
 			cs.addError(t.Pos(), fmt.Sprintf("length of array must be a constant number"))
-			return shaderir.Type{}
+			return shaderir.Type{}, false
 		}
 		len, ok := gconstant.Int64Val(exprs[0].Const)
 		if !ok {
 			cs.addError(t.Pos(), fmt.Sprintf("length of array must be an integer"))
-			return shaderir.Type{}
+			return shaderir.Type{}, false
 		}
 
-		elm := cs.parseType(block, t.Elt)
+		elm, ok := cs.parseType(block, t.Elt)
+		if !ok {
+			return shaderir.Type{}, false
+		}
 		if elm.Main == shaderir.Array {
 			cs.addError(t.Pos(), fmt.Sprintf("array of array is forbidden"))
-			return shaderir.Type{}
+			return shaderir.Type{}, false
 		}
 		return shaderir.Type{
 			Main:   shaderir.Array,
 			Sub:    []shaderir.Type{elm},
 			Length: int(len),
-		}
+		}, true
 	case *ast.StructType:
 		cs.addError(t.Pos(), "struct is not implemented")
-		return shaderir.Type{}
+		return shaderir.Type{}, false
 	default:
 		cs.addError(t.Pos(), fmt.Sprintf("unepxected type: %v", t))
-		return shaderir.Type{}
+		return shaderir.Type{}, false
 	}
 }

@@ -260,7 +260,10 @@ func (cs *compileState) parseDecl(b *block, d ast.Decl) ([]shaderir.Stmt, bool) 
 			// TODO: Parse other types
 			for _, s := range d.Specs {
 				s := s.(*ast.TypeSpec)
-				t := cs.parseType(b, s.Type)
+				t, ok := cs.parseType(b, s.Type)
+				if !ok {
+					return nil, false
+				}
 				b.types = append(b.types, typ{
 					name: s.Name.Name,
 					ir:   t,
@@ -385,7 +388,11 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 
 	var declt shaderir.Type
 	if vs.Type != nil {
-		declt = s.parseType(block, vs.Type)
+		var ok bool
+		declt, ok = s.parseType(block, vs.Type)
+		if !ok {
+			return nil, nil, nil, false
+		}
 	}
 
 	var (
@@ -483,7 +490,11 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 func (s *compileState) parseConstant(block *block, vs *ast.ValueSpec) []constant {
 	var t shaderir.Type
 	if vs.Type != nil {
-		t = s.parseType(block, vs.Type)
+		var ok bool
+		t, ok = s.parseType(block, vs.Type)
+		if !ok {
+			return nil
+		}
 	}
 
 	var cs []constant
@@ -499,7 +510,10 @@ func (s *compileState) parseConstant(block *block, vs *ast.ValueSpec) []constant
 
 func (cs *compileState) parseFuncParams(block *block, d *ast.FuncDecl) (in, out []variable) {
 	for _, f := range d.Type.Params.List {
-		t := cs.parseType(block, f.Type)
+		t, ok := cs.parseType(block, f.Type)
+		if !ok {
+			return
+		}
 		for _, n := range f.Names {
 			in = append(in, variable{
 				name: n.Name,
@@ -513,7 +527,10 @@ func (cs *compileState) parseFuncParams(block *block, d *ast.FuncDecl) (in, out 
 	}
 
 	for _, f := range d.Type.Results.List {
-		t := cs.parseType(block, f.Type)
+		t, ok := cs.parseType(block, f.Type)
+		if !ok {
+			return
+		}
 		if len(f.Names) == 0 {
 			out = append(out, variable{
 				name: "",
