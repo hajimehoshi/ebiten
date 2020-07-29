@@ -446,6 +446,59 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 				Exprs: exprs,
 			},
 		}, t, stmts, true
+
+	case *ast.CompositeLit:
+		t, ok := cs.parseType(block, e.Type)
+		if !ok {
+			return nil, nil, nil, false
+		}
+		fmt.Println(t)
+
+		idx := len(block.vars)
+		block.vars = append(block.vars, variable{
+			typ: t,
+		})
+
+		var stmts []shaderir.Stmt
+		for i, e := range e.Elts {
+			exprs, _, ss, ok := cs.parseExpr(block, e)
+			if !ok {
+				return nil, nil, nil, false
+			}
+			if len(exprs) != 1 {
+				cs.addError(e.Pos(), fmt.Sprintf("multiple-value context is not available at a composite literal"))
+				return nil, nil, nil, false
+			}
+			stmts = append(stmts, ss...)
+			stmts = append(stmts, shaderir.Stmt{
+				Type: shaderir.Assign,
+				Exprs: []shaderir.Expr{
+					{
+						Type: shaderir.Index,
+						Exprs: []shaderir.Expr{
+							{
+								Type:  shaderir.LocalVariable,
+								Index: idx,
+							},
+							{
+								Type:      shaderir.NumberExpr,
+								Const:     gconstant.MakeInt64(int64(i)),
+								ConstType: shaderir.ConstTypeInt,
+							},
+						},
+					},
+					exprs[0],
+				},
+			})
+		}
+
+		return []shaderir.Expr{
+			{
+				Type:  shaderir.LocalVariable,
+				Index: idx,
+			},
+		}, []shaderir.Type{t}, stmts, true
+
 	default:
 		cs.addError(e.Pos(), fmt.Sprintf("expression not implemented: %#v", e))
 	}

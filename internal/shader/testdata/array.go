@@ -6,3 +6,8 @@ func Foo() [2]vec2 {
 	var x [2]vec2
 	return x
 }
+
+func Bar() [2]vec2 {
+	x := [2]vec2{vec2(1)}
+	return x
+}
