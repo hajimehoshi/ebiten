@@ -195,7 +195,12 @@ func (p *Program) glslVarInit(t *Type) string {
 	case None:
 		return "?(none)"
 	case Array:
-		panic("not implemented")
+		init := p.glslVarInit(&t.Sub[0])
+		es := make([]string, 0, t.Length)
+		for i := 0; i < t.Length; i++ {
+			es = append(es, init)
+		}
+		return fmt.Sprintf("%s[%d](%s)", t.Sub[0].Glsl(), t.Length, strings.Join(es, ", "))
 	case Struct:
 		panic("not implemented")
 	case Bool:
