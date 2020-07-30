@@ -43,7 +43,7 @@ type Game struct {
 	moveDirection int8
 	appleX        int64
 	appleY        int64
-	scalesLoc     map[int64]*Scale
+	snakeBody     []Scale
 	timer         uint64
 	speed         int8
 	score         int64
@@ -53,38 +53,36 @@ type Game struct {
 }
 
 func (g *Game) collides() bool {
-	return g.scalesLoc[0].X < g.appleX+10 &&
-		g.scalesLoc[0].X+10 > g.appleX &&
-		g.scalesLoc[0].Y < g.appleY+10 &&
-		g.scalesLoc[0].Y+10 > g.appleY
+	return g.snakeBody[0].X < g.appleX+10 &&
+		g.snakeBody[0].X+10 > g.appleX &&
+		g.snakeBody[0].Y < g.appleY+10 &&
+		g.snakeBody[0].Y+10 > g.appleY
 }
 
 func (g *Game) nearApple() bool {
-	return g.scalesLoc[0].X < (g.appleX-30)+60 &&
-		g.scalesLoc[0].X+10 > g.appleX-30 &&
-		g.scalesLoc[0].Y < (g.appleY-30)+50 &&
-		g.scalesLoc[0].Y+10 > g.appleY-30
+	return g.snakeBody[0].X < (g.appleX-30)+60 &&
+		g.snakeBody[0].X+10 > g.appleX-30 &&
+		g.snakeBody[0].Y < (g.appleY-30)+50 &&
+		g.snakeBody[0].Y+10 > g.appleY-30
 }
 
 func (g *Game) collidesWithSelf() bool {
-	for i, v := range g.scalesLoc {
-		if i > 0 {
-			if g.scalesLoc[0].X < v.X+10 &&
-				g.scalesLoc[0].X+10 > v.X &&
-				g.scalesLoc[0].Y < v.Y+10 &&
-				g.scalesLoc[0].Y+10 > v.Y {
-				return true
-			}
+	for _, v := range g.snakeBody[1:] {
+		if g.snakeBody[0].X < v.X+10 &&
+			g.snakeBody[0].X+10 > v.X &&
+			g.snakeBody[0].Y < v.Y+10 &&
+			g.snakeBody[0].Y+10 > v.Y {
+			return true
 		}
 	}
 	return false
 }
 
 func (g *Game) collidesWithWall() bool {
-	return g.scalesLoc[0].X > screenWidth/2 ||
-		g.scalesLoc[0].X < -(screenWidth/2) ||
-		g.scalesLoc[0].Y > screenHeight/2 ||
-		g.scalesLoc[0].Y < -(screenHeight/2)
+	return g.snakeBody[0].X > screenWidth/2 ||
+		g.snakeBody[0].X < -(screenWidth/2) ||
+		g.snakeBody[0].Y > screenHeight/2 ||
+		g.snakeBody[0].Y < -(screenHeight/2)
 }
 
 func (g *Game) updateTimer() {
@@ -99,12 +97,9 @@ func (g *Game) reset() {
 	g.appleX = 30
 	g.appleY = 30
 	g.speed = 5 // means 83.33 ms
-	l := len(g.scalesLoc)
-	for i := int64(1); i < int64(l); i++ {
-		delete(g.scalesLoc, i)
-	}
-	g.scalesLoc[0].X = 0
-	g.scalesLoc[0].Y = 0
+	g.snakeBody = g.snakeBody[:1]
+	g.snakeBody[0].X = 0
+	g.snakeBody[0].Y = 0
 	g.score = 0
 	g.level = 1
 	g.moveDirection = 0
@@ -142,20 +137,20 @@ func (g *Game) Update(screen *ebiten.Image) error {
 		if g.collides() {
 			g.appleX = rand.Int63n(screenWidth-20) + -(screenWidth / 2)
 			g.appleY = rand.Int63n(screenHeight-20) + -(screenHeight / 2)
-			g.scalesLoc[int64(len(g.scalesLoc))] = &Scale{
-				X: g.scalesLoc[int64(len(g.scalesLoc)-1)].X,
-				Y: g.scalesLoc[int64(len(g.scalesLoc)-1)].Y,
-			}
-			if len(g.scalesLoc) > 7 && len(g.scalesLoc) < 15 {
+			g.snakeBody = append(g.snakeBody, Scale{
+				X: g.snakeBody[int64(len(g.snakeBody)-1)].X,
+				Y: g.snakeBody[int64(len(g.snakeBody)-1)].Y,
+			})
+			if len(g.snakeBody) > 7 && len(g.snakeBody) < 15 {
 				g.level = 2
 				g.speed = 4
-			} else if len(g.scalesLoc) > 14 && len(g.scalesLoc) < 21 {
+			} else if len(g.snakeBody) > 14 && len(g.snakeBody) < 21 {
 				g.level = 3
 				g.speed = 3
-			} else if len(g.scalesLoc) > 20 && len(g.scalesLoc) < 30 {
+			} else if len(g.snakeBody) > 20 && len(g.snakeBody) < 30 {
 				g.level = 4
 				g.speed = 2
-			} else if len(g.scalesLoc) > 29 {
+			} else if len(g.snakeBody) > 29 {
 				g.level = 5
 				g.speed = 1
 			} else {
@@ -167,19 +162,19 @@ func (g *Game) Update(screen *ebiten.Image) error {
 			}
 		}
 
-		for i := int64(len(g.scalesLoc)) - 1; i > 0; i-- {
-			g.scalesLoc[i].X = g.scalesLoc[i-1].X
-			g.scalesLoc[i].Y = g.scalesLoc[i-1].Y
+		for i := int64(len(g.snakeBody)) - 1; i > 0; i-- {
+			g.snakeBody[i].X = g.snakeBody[i-1].X
+			g.snakeBody[i].Y = g.snakeBody[i-1].Y
 		}
 		switch g.moveDirection {
 		case 1:
-			g.scalesLoc[0].X = g.scalesLoc[0].X - 10
+			g.snakeBody[0].X = g.snakeBody[0].X - 10
 		case 2:
-			g.scalesLoc[0].X += 10
+			g.snakeBody[0].X += 10
 		case 3:
-			g.scalesLoc[0].Y += 10
+			g.snakeBody[0].Y += 10
 		case 4:
-			g.scalesLoc[0].Y -= 10
+			g.snakeBody[0].Y -= 10
 		}
 	}
 
@@ -192,7 +187,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 func (g *Game) Draw(screen *ebiten.Image) {
 
 	if g.moveDirection == 0 {
-		ebitenutil.DebugPrint(screen, fmt.Sprintf("Press up/down/left/right to start, M to Enable/Disable Sound"))
+		ebitenutil.DebugPrint(screen, fmt.Sprintf("Press up/down/left/right to start"))
 	} else {
 		if g.nearapple {
 			ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f Level: %d Score: %d Best Score: %d Near", ebiten.CurrentFPS(), g.level, g.score, g.bestScore))
@@ -201,7 +196,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 	}
 
-	for _, v := range g.scalesLoc {
+	for _, v := range g.snakeBody {
 		ebitenutil.DrawRect(screen, (screenWidth/2)+float64(v.X), (screenHeight/2)+float64(v.Y), 10, 10, color.RGBA{0x80, 0xa0, 0xc0, 0xff})
 	}
 	ebitenutil.DrawRect(screen, (screenWidth/2)+float64(g.appleX), (screenHeight/2)+float64(g.appleY), 10, 10, color.RGBA{0xFF, 0x00, 0x00, 0xff})
@@ -217,13 +212,13 @@ func newGame() *Game {
 		appleX:    30,
 		appleY:    30,
 		speed:     5,
-		scalesLoc: map[int64]*Scale{0: &Scale{}},
+		snakeBody: make([]Scale, 1),
 	}
 }
 
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("Snake")
+	ebiten.SetWindowTitle("Snake (Ebiten Demo)")
 	if err := ebiten.RunGame(newGame()); err != nil {
 		log.Fatal(err)
 	}
