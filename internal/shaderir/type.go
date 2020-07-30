@@ -96,6 +96,29 @@ func (t *Type) Glsl() string {
 	}
 }
 
+func (t *Type) FloatNum() int {
+	switch t.Main {
+	case Float:
+		return 1
+	case Vec2:
+		return 2
+	case Vec3:
+		return 3
+	case Vec4:
+		return 4
+	case Mat2:
+		return 4
+	case Mat3:
+		return 9
+	case Mat4:
+		return 16
+	case Array:
+		return t.Length * t.Sub[0].FloatNum()
+	default: // TODO: Parse a struct correctly
+		return -1
+	}
+}
+
 type BasicType int
 
 const (

@@ -179,6 +179,7 @@ func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, 
 	uniforms = append(uniforms, uniformVariable{
 		name:  "viewport_size",
 		value: []float32{float32(vw), float32(vh)},
+		typ:   shaderir.Type{Main: shaderir.Vec2},
 	}, uniformVariable{
 		name: "source_region",
 		value: []float32{
@@ -187,6 +188,7 @@ func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, 
 			sourceRegion.X + sourceRegion.Width,
 			sourceRegion.Y + sourceRegion.Height,
 		},
+		typ: shaderir.Type{Main: shaderir.Vec4},
 	})
 
 	if colorM != nil {
@@ -195,9 +197,11 @@ func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, 
 		uniforms = append(uniforms, uniformVariable{
 			name:  "color_matrix_body",
 			value: esBody,
+			typ:   shaderir.Type{Main: shaderir.Mat4},
 		}, uniformVariable{
 			name:  "color_matrix_translation",
 			value: esTranslate,
+			typ:   shaderir.Type{Main: shaderir.Vec4},
 		})
 	}
 
@@ -208,6 +212,7 @@ func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, 
 		uniforms = append(uniforms, uniformVariable{
 			name:  "source_size",
 			value: []float32{float32(sw), float32(sh)},
+			typ:   shaderir.Type{Main: shaderir.Vec2},
 		})
 	}
 
@@ -216,6 +221,7 @@ func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, 
 		uniforms = append(uniforms, uniformVariable{
 			name:  "scale",
 			value: scale,
+			typ:   shaderir.Type{Main: shaderir.Float},
 		})
 	}
 
@@ -303,6 +309,7 @@ func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]
 	vh := graphics.InternalImageSize(d.height)
 	us[0].name = "U0"
 	us[0].value = []float32{float32(vw), float32(vh)}
+	us[0].typ = s.ir.Uniforms[0]
 
 	for i, src := range srcs {
 		img := g.images[src]
@@ -313,6 +320,7 @@ func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]
 		const offset = 1
 		us[i+offset].name = fmt.Sprintf("U%d", i+offset)
 		us[i+offset].value = []float32{float32(w), float32(h)}
+		us[i+offset].typ = s.ir.Uniforms[i+offset]
 	}
 
 	for i, o := range offsets {
@@ -320,12 +328,14 @@ func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]
 		o := o
 		us[i+offset].name = fmt.Sprintf("U%d", i+offset)
 		us[i+offset].value = o[:]
+		us[i+offset].typ = s.ir.Uniforms[i+offset]
 	}
 
 	for i, v := range uniforms {
 		const offset = graphics.PreservedUniformVariablesNum
 		us[i+offset].name = fmt.Sprintf("U%d", i+offset)
 		us[i+offset].value = v
+		us[i+offset].typ = s.ir.Uniforms[i+offset]
 	}
 
 	var ts [graphics.ShaderImageNum]textureVariable

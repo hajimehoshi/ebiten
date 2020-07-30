@@ -19,6 +19,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
@@ -237,6 +238,7 @@ func areSameFloat32Array(a, b []float32) bool {
 type uniformVariable struct {
 	name  string
 	value interface{}
+	typ   shaderir.Type
 }
 
 type textureVariable struct {
@@ -265,6 +267,10 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 		case nil:
 			// Do nothing.
 		case float32:
+			if got, expected := (&shaderir.Type{Main: shaderir.Float}), &u.typ; !got.Equal(expected) {
+				return fmt.Errorf("opengl: uniform variable type doesn't match: expected %s but %s", expected.String(), got.String())
+			}
+
 			cached, ok := g.state.lastUniforms[u.name].(float32)
 			if ok && cached == v {
 				continue
@@ -273,6 +279,10 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 			g.context.uniformFloat(program, u.name, v)
 			g.state.lastUniforms[u.name] = v
 		case []float32:
+			if got, expected := u.typ.FloatNum(), len(v); got != expected {
+				return fmt.Errorf("opengl: length of a uniform variables doesn't match: expected %d but %d", expected, got)
+			}
+
 			cached, ok := g.state.lastUniforms[u.name].([]float32)
 			if ok && areSameFloat32Array(cached, v) {
 				continue
