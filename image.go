@@ -448,7 +448,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 // This API is experimental.
 type DrawRectShaderOptions struct {
 	// GeoM is a geometry matrix to draw.
-	// The default (zero) value is identify, which draws the rectangle at (0, 0).
+	// The default (zero) value is identity, which draws the rectangle at (0, 0).
 	GeoM GeoM
 
 	// CompositeMode is a composite mode to draw.
