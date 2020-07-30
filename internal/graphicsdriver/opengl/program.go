@@ -264,8 +264,6 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 
 	for _, u := range uniforms {
 		switch v := u.value.(type) {
-		case nil:
-			// Do nothing.
 		case float32:
 			if got, expected := (&shaderir.Type{Main: shaderir.Float}), &u.typ; !got.Equal(expected) {
 				return fmt.Errorf("opengl: uniform variable type doesn't match: expected %s but %s", expected.String(), got.String())
