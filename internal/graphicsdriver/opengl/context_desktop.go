@@ -25,6 +25,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl/gl"
+	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
 type (
@@ -411,7 +412,7 @@ func (c *context) uniformFloat(p program, location string, v float32) bool {
 	return r
 }
 
-func (c *context) uniformFloats(p program, location string, v []float32) bool {
+func (c *context) uniformFloats(p program, location string, v []float32, typ shaderir.Type) bool {
 	var r bool
 	_ = c.t.Call(func() error {
 		l := int32(c.locationCache.GetUniformLocation(c, p, location))
@@ -419,15 +420,31 @@ func (c *context) uniformFloats(p program, location string, v []float32) bool {
 			return nil
 		}
 		r = true
-		switch len(v) {
-		case 2:
-			gl.Uniform2fv(l, 1, (*float32)(gl.Ptr(v)))
-		case 4:
-			gl.Uniform4fv(l, 1, (*float32)(gl.Ptr(v)))
-		case 16:
-			gl.UniformMatrix4fv(l, 1, false, (*float32)(gl.Ptr(v)))
+
+		base := typ.Main
+		len := int32(1)
+		if base == shaderir.Array {
+			base = typ.Sub[0].Main
+			len = int32(typ.Length)
+		}
+
+		switch base {
+		case shaderir.Float:
+			gl.Uniform1fv(l, len, (*float32)(gl.Ptr(v)))
+		case shaderir.Vec2:
+			gl.Uniform2fv(l, len, (*float32)(gl.Ptr(v)))
+		case shaderir.Vec3:
+			gl.Uniform3fv(l, len, (*float32)(gl.Ptr(v)))
+		case shaderir.Vec4:
+			gl.Uniform4fv(l, len, (*float32)(gl.Ptr(v)))
+		case shaderir.Mat2:
+			gl.UniformMatrix2fv(l, len, false, (*float32)(gl.Ptr(v)))
+		case shaderir.Mat3:
+			gl.UniformMatrix3fv(l, len, false, (*float32)(gl.Ptr(v)))
+		case shaderir.Mat4:
+			gl.UniformMatrix4fv(l, len, false, (*float32)(gl.Ptr(v)))
 		default:
-			panic(fmt.Sprintf("opengl: invalid uniform floats num: %d", len(v)))
+			panic(fmt.Sprintf("opengl: unexpected type: %s", typ.String()))
 		}
 		return nil
 	})

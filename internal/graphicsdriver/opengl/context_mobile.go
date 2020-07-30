@@ -23,6 +23,7 @@ import (
 	mgl "golang.org/x/mobile/gl"
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
 type (
@@ -311,21 +312,35 @@ func (c *context) uniformFloat(p program, location string, v float32) bool {
 	return true
 }
 
-func (c *context) uniformFloats(p program, location string, v []float32) bool {
+func (c *context) uniformFloats(p program, location string, v []float32, typ shaderir.Type) bool {
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
 	if l == invalidUniform {
 		return false
 	}
-	switch len(v) {
-	case 2:
+
+	base := typ.Main
+	if base == shaderir.Array {
+		base = typ.Sub[0].Main
+	}
+
+	switch base {
+	case shaderir.Float:
+		gl.Uniform1fv(mgl.Uniform(l), v)
+	case shaderir.Vec2:
 		gl.Uniform2fv(mgl.Uniform(l), v)
-	case 4:
+	case shaderir.Vec3:
+		gl.Uniform3fv(mgl.Uniform(l), v)
+	case shaderir.Vec4:
 		gl.Uniform4fv(mgl.Uniform(l), v)
-	case 16:
+	case shaderir.Mat2:
+		gl.UniformMatrix2fv(mgl.Uniform(l), v)
+	case shaderir.Mat3:
+		gl.UniformMatrix3fv(mgl.Uniform(l), v)
+	case shaderir.Mat4:
 		gl.UniformMatrix4fv(mgl.Uniform(l), v)
 	default:
-		panic(fmt.Sprintf("opengl: invalid uniform floats num: %d", len(v)))
+		panic(fmt.Sprintf("opengl: unexpected type: %s", typ.String()))
 	}
 	return true
 }

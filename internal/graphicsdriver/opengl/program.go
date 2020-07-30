@@ -285,7 +285,7 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 			if ok && areSameFloat32Array(cached, v) {
 				continue
 			}
-			g.context.uniformFloats(program, u.name, v)
+			g.context.uniformFloats(program, u.name, v, u.typ)
 			g.state.lastUniforms[u.name] = v
 		default:
 			return fmt.Errorf("opengl: unexpected uniform value: %v (type: %T)", u.value, u.value)

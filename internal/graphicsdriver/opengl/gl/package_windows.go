@@ -67,8 +67,12 @@ var (
 	gpTexSubImage2D               uintptr
 	gpUniform1f                   uintptr
 	gpUniform1i                   uintptr
+	gpUniform1fv                  uintptr
 	gpUniform2fv                  uintptr
+	gpUniform3fv                  uintptr
 	gpUniform4fv                  uintptr
+	gpUniformMatrix2fv            uintptr
+	gpUniformMatrix3fv            uintptr
 	gpUniformMatrix4fv            uintptr
 	gpUseProgram                  uintptr
 	gpVertexAttribPointer         uintptr
@@ -310,12 +314,28 @@ func Uniform1i(location int32, v0 int32) {
 	syscall.Syscall(gpUniform1i, 2, uintptr(location), uintptr(v0), 0)
 }
 
+func Uniform1fv(location int32, count int32, value *float32) {
+	syscall.Syscall(gpUniform1fv, 3, uintptr(location), uintptr(count), uintptr(unsafe.Pointer(value)))
+}
+
 func Uniform2fv(location int32, count int32, value *float32) {
 	syscall.Syscall(gpUniform2fv, 3, uintptr(location), uintptr(count), uintptr(unsafe.Pointer(value)))
 }
 
+func Uniform3fv(location int32, count int32, value *float32) {
+	syscall.Syscall(gpUniform3fv, 3, uintptr(location), uintptr(count), uintptr(unsafe.Pointer(value)))
+}
+
 func Uniform4fv(location int32, count int32, value *float32) {
 	syscall.Syscall(gpUniform4fv, 3, uintptr(location), uintptr(count), uintptr(unsafe.Pointer(value)))
+}
+
+func UniformMatrix2fv(location int32, count int32, transpose bool, value *float32) {
+	syscall.Syscall6(gpUniformMatrix2fv, 4, uintptr(location), uintptr(count), boolToUintptr(transpose), uintptr(unsafe.Pointer(value)), 0, 0)
+}
+
+func UniformMatrix3fv(location int32, count int32, transpose bool, value *float32) {
+	syscall.Syscall6(gpUniformMatrix3fv, 4, uintptr(location), uintptr(count), boolToUintptr(transpose), uintptr(unsafe.Pointer(value)), 0, 0)
 }
 
 func UniformMatrix4fv(location int32, count int32, transpose bool, value *float32) {
@@ -511,13 +531,29 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	if gpUniform1i == 0 {
 		return errors.New("glUniform1i")
 	}
+	gpUniform1fv = getProcAddr("glUniform1fv")
+	if gpUniform1fv == 0 {
+		return errors.New("glUniform1fv")
+	}
 	gpUniform2fv = getProcAddr("glUniform2fv")
 	if gpUniform2fv == 0 {
 		return errors.New("glUniform2fv")
 	}
+	gpUniform3fv = getProcAddr("glUniform3fv")
+	if gpUniform3fv == 0 {
+		return errors.New("glUniform3fv")
+	}
 	gpUniform4fv = getProcAddr("glUniform4fv")
 	if gpUniform4fv == 0 {
 		return errors.New("glUniform4fv")
+	}
+	gpUniformMatrix2fv = getProcAddr("glUniformMatrix2fv")
+	if gpUniformMatrix2fv == 0 {
+		return errors.New("glUniformMatrix2fv")
+	}
+	gpUniformMatrix3fv = getProcAddr("glUniformMatrix3fv")
+	if gpUniformMatrix3fv == 0 {
+		return errors.New("glUniformMatrix3fv")
 	}
 	gpUniformMatrix4fv = getProcAddr("glUniformMatrix4fv")
 	if gpUniformMatrix4fv == 0 {
