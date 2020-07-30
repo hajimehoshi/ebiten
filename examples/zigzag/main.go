@@ -1,4 +1,4 @@
-// Copyright 2017 The Ebiten Authors
+// Copyright 2020 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package main
 import (
 	"fmt"
 	"image/color"
-	_ "image/jpeg"
 	"log"
 	"math/rand"
 
@@ -31,6 +30,7 @@ import (
 const (
 	screenWidth  = 640
 	screenHeight = 480
+	Bit32Max     = 0xFFFFFFFF
 )
 
 var (
@@ -62,36 +62,27 @@ func init() {
 	_ = emptyImage.Fill(color.White)
 }
 
-func (g *Game) collision() bool {
-	if g.scalesLoc[0].X < g.AppleX+10 &&
+func (g *Game) collides() bool {
+	return g.scalesLoc[0].X < g.AppleX+10 &&
 		g.scalesLoc[0].X+10 > g.AppleX &&
 		g.scalesLoc[0].Y < g.AppleY+10 &&
-		g.scalesLoc[0].Y+10 > g.AppleY {
-		// collision detected!
-		return true
-	}
-	return false
+		g.scalesLoc[0].Y+10 > g.AppleY
 }
 
 func (g *Game) nearApple() bool {
-	if g.scalesLoc[0].X < (g.AppleX-30)+60 &&
+	return g.scalesLoc[0].X < (g.AppleX-30)+60 &&
 		g.scalesLoc[0].X+10 > g.AppleX-30 &&
 		g.scalesLoc[0].Y < (g.AppleY-30)+50 &&
-		g.scalesLoc[0].Y+10 > g.AppleY-30 {
-		// collision detected!
-		return true
-	}
-	return false
+		g.scalesLoc[0].Y+10 > g.AppleY-30
 }
 
-func (g *Game) selfCollision() bool {
+func (g *Game) collidesWithSelf() bool {
 	for i, v := range g.scalesLoc {
 		if i > 0 {
 			if g.scalesLoc[0].X < v.X+10 &&
 				g.scalesLoc[0].X+10 > v.X &&
 				g.scalesLoc[0].Y < v.Y+10 &&
 				g.scalesLoc[0].Y+10 > v.Y {
-				// collision detected!
 				return true
 			}
 		}
@@ -100,23 +91,20 @@ func (g *Game) selfCollision() bool {
 }
 
 func (g *Game) wallCollision() bool {
-	if g.scalesLoc[0].X > screenWidth/2 ||
+	return g.scalesLoc[0].X > screenWidth/2 ||
 		g.scalesLoc[0].X < -(screenWidth/2) ||
 		g.scalesLoc[0].Y > screenHeight/2 ||
-		g.scalesLoc[0].Y < -(screenHeight/2) {
-		return true
-	}
-	return false
+		g.scalesLoc[0].Y < -(screenHeight/2)
 }
 
 func (g *Game) updateTimer() {
-	if g.timer > 0xFFFFFFFFFFFFFFFE {
+	if g.timer > Bit32Max {
 		g.timer = 0
 	}
 	g.timer++
 }
 
-func (g *Game) moveSnakeTimer() bool {
+func (g *Game) controlSpeed() bool {
 	if g.timer%uint64(g.speed) == 0 {
 		return true
 	}
@@ -161,16 +149,13 @@ func (g *Game) Update(screen *ebiten.Image) error {
 		g.reset()
 	}
 
-	if g.moveSnakeTimer() {
-		if g.selfCollision() {
-			g.reset()
-		}
-		if g.wallCollision() {
+	if g.controlSpeed() {
+		if g.collidesWithSelf() || g.wallCollision() {
 			g.reset()
 		}
 		g.nearapple = g.nearApple()
 
-		if g.collision() {
+		if g.collides() {
 			g.AppleX = rand.Int63n(screenWidth-20) + -(screenWidth / 2)
 			g.AppleY = rand.Int63n(screenHeight-20) + -(screenHeight / 2)
 			g.scalesLoc[int64(len(g.scalesLoc))] = &Scale{
@@ -221,7 +206,6 @@ func (g *Game) Update(screen *ebiten.Image) error {
 
 // Draw ...
 func (g *Game) Draw(screen *ebiten.Image) {
-	screen.Fill(color.RGBA{0x00, 0x00, 0x00, 0xFF})
 
 	if g.moveDirection == 0 {
 		ebitenutil.DebugPrint(screen, fmt.Sprintf("Press up/down/left/right to start, M to Enable/Disable Sound"))
@@ -232,22 +216,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f Level: %d Score: %d Best Score: %d", ebiten.CurrentFPS(), g.Level, g.Score, g.bestScore))
 		}
 	}
-	op := &ebiten.DrawImageOptions{}
-	for _, v := range g.scalesLoc {
-		op.GeoM.Reset()
-		op.ColorM.Reset()
-		op.GeoM.Scale(10, 10)
-		op.GeoM.Translate((screenWidth/2)+float64(v.X), (screenHeight/2)+float64(v.Y))
-		op.ColorM.Scale(0x80, 0xa0, 0xc0, 0xff)
-		screen.DrawImage(emptyImage, op)
-	}
 
-	op.GeoM.Reset()
-	op.ColorM.Reset()
-	op.GeoM.Scale(10, 10)
-	op.GeoM.Translate((screenWidth/2)+float64(g.AppleX), (screenHeight/2)+float64(g.AppleY))
-	op.ColorM.Scale(0xFF, 0x00, 0x00, 0xff)
-	screen.DrawImage(emptyImage, op)
+	for _, v := range g.scalesLoc {
+		ebitenutil.DrawRect(screen, (screenWidth/2)+float64(v.X), (screenHeight/2)+float64(v.Y), 10, 10, color.RGBA{0x80, 0xa0, 0xc0, 0xff})
+	}
+	ebitenutil.DrawRect(screen, (screenWidth/2)+float64(g.AppleX), (screenHeight/2)+float64(g.AppleY), 10, 10, color.RGBA{0xFF, 0x00, 0x00, 0xff})
 }
 
 // Layout ...
