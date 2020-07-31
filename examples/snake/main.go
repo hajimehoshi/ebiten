@@ -36,7 +36,7 @@ const (
 )
 
 const (
-	notMoving = iota
+	dirNone = iota
 	dirLeft
 	dirRight
 	dirDown
@@ -94,7 +94,7 @@ func (g *Game) reset() {
 	g.snakeBody[0].Y = yNumInScreen / 2
 	g.score = 0
 	g.level = 1
-	g.moveDirection = notMoving
+	g.moveDirection = dirNone
 }
 
 func (g *Game) Update(screen *ebiten.Image) error {
@@ -168,7 +168,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	if g.moveDirection == notMoving {
+	if g.moveDirection == dirNone {
 		ebitenutil.DebugPrint(screen, fmt.Sprintf("Press up/down/left/right to start"))
 	} else {
 		ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f Level: %d Score: %d Best Score: %d", ebiten.CurrentFPS(), g.level, g.score, g.bestScore))
