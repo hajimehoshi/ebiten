@@ -1,3 +1,19 @@
+// Copyright 2020 The Ebiten Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// +build example jsgo
+
 package main
 
 import (
@@ -20,32 +36,32 @@ const (
 )
 
 const (
-	dirLeft = iota + 1
+	notMoving = iota
+	dirLeft
 	dirRight
 	dirDown
 	dirUp
 )
 
 type Position struct {
-	X int64
-	Y int64
+	X int
+	Y int
 }
 
 type Game struct {
-	moveDirection int8
-	appleX        int64
-	appleY        int64
+	moveDirection int
 	snakeBody     []Position
-	timer         uint64
-	speed         int8
-	score         int64
-	bestScore     int64
-	level         int8
+	apple         Position
+	timer         int
+	moveTime      int
+	score         int
+	bestScore     int
+	level         int
 }
 
 func (g *Game) collidesWithApple() bool {
-	return g.snakeBody[0].X == g.appleX &&
-		g.snakeBody[0].Y == g.appleY
+	return g.snakeBody[0].X == g.apple.X &&
+		g.snakeBody[0].Y == g.apple.Y
 }
 
 func (g *Game) collidesWithSelf() bool {
@@ -65,24 +81,20 @@ func (g *Game) collidesWithWall() bool {
 		g.snakeBody[0].Y >= yNumInScreen
 }
 
-func (g *Game) updateTimer() {
-	g.timer++
-}
-
 func (g *Game) needsToMoveSnake() bool {
-	return g.timer%uint64(g.speed) == 0
+	return g.timer%g.moveTime == 0
 }
 
 func (g *Game) reset() {
-	g.appleX = 3 * gridSize
-	g.appleY = 3 * gridSize
-	g.speed = 4
+	g.apple.X = 3 * gridSize
+	g.apple.Y = 3 * gridSize
+	g.moveTime = 4
 	g.snakeBody = g.snakeBody[:1]
 	g.snakeBody[0].X = xNumInScreen / 2
 	g.snakeBody[0].Y = yNumInScreen / 2
 	g.score = 0
 	g.level = 1
-	g.moveDirection = 0
+	g.moveDirection = notMoving
 }
 
 func (g *Game) Update(screen *ebiten.Image) error {
@@ -113,18 +125,18 @@ func (g *Game) Update(screen *ebiten.Image) error {
 		}
 
 		if g.collidesWithApple() {
-			g.appleX = rand.Int63n(xNumInScreen - 1)
-			g.appleY = rand.Int63n(yNumInScreen - 1)
+			g.apple.X = rand.Intn(xNumInScreen - 1)
+			g.apple.Y = rand.Intn(yNumInScreen - 1)
 			g.snakeBody = append(g.snakeBody, Position{
-				X: g.snakeBody[int64(len(g.snakeBody)-1)].X,
-				Y: g.snakeBody[int64(len(g.snakeBody)-1)].Y,
+				X: g.snakeBody[len(g.snakeBody)-1].X,
+				Y: g.snakeBody[len(g.snakeBody)-1].Y,
 			})
 			if len(g.snakeBody) > 10 && len(g.snakeBody) < 20 {
 				g.level = 2
-				g.speed = 3
+				g.moveTime = 3
 			} else if len(g.snakeBody) > 20 {
 				g.level = 3
-				g.speed = 2
+				g.moveTime = 2
 			} else {
 				g.level = 1
 			}
@@ -150,13 +162,13 @@ func (g *Game) Update(screen *ebiten.Image) error {
 		}
 	}
 
-	g.updateTimer()
+	g.timer++
 
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	if g.moveDirection == 0 {
+	if g.moveDirection == notMoving {
 		ebitenutil.DebugPrint(screen, fmt.Sprintf("Press up/down/left/right to start"))
 	} else {
 		ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f Level: %d Score: %d Best Score: %d", ebiten.CurrentFPS(), g.level, g.score, g.bestScore))
@@ -165,7 +177,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for _, v := range g.snakeBody {
 		ebitenutil.DrawRect(screen, float64(v.X*gridSize), float64(v.Y*gridSize), gridSize, gridSize, color.RGBA{0x80, 0xa0, 0xc0, 0xff})
 	}
-	ebitenutil.DrawRect(screen, float64(g.appleX*gridSize), float64(g.appleY*gridSize), gridSize, gridSize, color.RGBA{0xFF, 0x00, 0x00, 0xff})
+	ebitenutil.DrawRect(screen, float64(g.apple.X*gridSize), float64(g.apple.Y*gridSize), gridSize, gridSize, color.RGBA{0xFF, 0x00, 0x00, 0xff})
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -174,9 +186,8 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func newGame() *Game {
 	g := &Game{
-		appleX:    3 * gridSize,
-		appleY:    3 * gridSize,
-		speed:     4,
+		apple:     Position{X: 3 * gridSize, Y: 3 * gridSize},
+		moveTime:  4,
 		snakeBody: make([]Position, 1),
 	}
 	g.snakeBody[0].X = xNumInScreen / 2
