@@ -1,19 +1,3 @@
-// Copyright 2020 The Ebiten Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-// +build example jsgo
-
 package main
 
 import (
@@ -30,10 +14,12 @@ import (
 const (
 	screenWidth  = 640
 	screenHeight = 480
+	nx           = screenWidth / 10
+	ny           = screenHeight / 10
 )
 
-// Scale ...
-type Scale struct {
+// SnakePositionOnGrid ...
+type SnakePositionOnGrid struct {
 	X int64
 	Y int64
 }
@@ -43,35 +29,23 @@ type Game struct {
 	moveDirection int8
 	appleX        int64
 	appleY        int64
-	snakeBody     []Scale
+	snakeBody     []SnakePositionOnGrid
 	timer         uint64
 	speed         int8
 	score         int64
 	bestScore     int64
 	level         int8
-	nearapple     bool
 }
 
-func (g *Game) collides() bool {
-	return g.snakeBody[0].X < g.appleX+10 &&
-		g.snakeBody[0].X+10 > g.appleX &&
-		g.snakeBody[0].Y < g.appleY+10 &&
-		g.snakeBody[0].Y+10 > g.appleY
-}
-
-func (g *Game) nearApple() bool {
-	return g.snakeBody[0].X < (g.appleX-30)+60 &&
-		g.snakeBody[0].X+10 > g.appleX-30 &&
-		g.snakeBody[0].Y < (g.appleY-30)+50 &&
-		g.snakeBody[0].Y+10 > g.appleY-30
+func (g *Game) collidesWithApple() bool {
+	return g.snakeBody[0].X == g.appleX &&
+		g.snakeBody[0].Y == g.appleY
 }
 
 func (g *Game) collidesWithSelf() bool {
 	for _, v := range g.snakeBody[1:] {
-		if g.snakeBody[0].X < v.X+10 &&
-			g.snakeBody[0].X+10 > v.X &&
-			g.snakeBody[0].Y < v.Y+10 &&
-			g.snakeBody[0].Y+10 > v.Y {
+		if g.snakeBody[0].X == v.X &&
+			g.snakeBody[0].Y == v.Y {
 			return true
 		}
 	}
@@ -79,10 +53,10 @@ func (g *Game) collidesWithSelf() bool {
 }
 
 func (g *Game) collidesWithWall() bool {
-	return g.snakeBody[0].X > screenWidth/2 ||
-		g.snakeBody[0].X < -(screenWidth/2) ||
-		g.snakeBody[0].Y > screenHeight/2 ||
-		g.snakeBody[0].Y < -(screenHeight/2)
+	return g.snakeBody[0].X < 0 ||
+		g.snakeBody[0].Y < 0 ||
+		g.snakeBody[0].X >= nx ||
+		g.snakeBody[0].Y >= ny
 }
 
 func (g *Game) updateTimer() {
@@ -96,10 +70,10 @@ func (g *Game) needsToMoveSnake() bool {
 func (g *Game) reset() {
 	g.appleX = 30
 	g.appleY = 30
-	g.speed = 5 // means 83.33 ms
+	g.speed = 4 // means 83.33 ms
 	g.snakeBody = g.snakeBody[:1]
-	g.snakeBody[0].X = 0
-	g.snakeBody[0].Y = 0
+	g.snakeBody[0].X = nx / 2
+	g.snakeBody[0].Y = ny / 2
 	g.score = 0
 	g.level = 1
 	g.moveDirection = 0
@@ -129,30 +103,23 @@ func (g *Game) Update(screen *ebiten.Image) error {
 	}
 
 	if g.needsToMoveSnake() {
-		if g.collidesWithSelf() || g.collidesWithWall() {
+		if g.collidesWithWall() || g.collidesWithSelf() {
 			g.reset()
 		}
-		g.nearapple = g.nearApple()
 
-		if g.collides() {
-			g.appleX = rand.Int63n(screenWidth-20) + -(screenWidth / 2)
-			g.appleY = rand.Int63n(screenHeight-20) + -(screenHeight / 2)
-			g.snakeBody = append(g.snakeBody, Scale{
+		if g.collidesWithApple() {
+			g.appleX = rand.Int63n(nx - 1)
+			g.appleY = rand.Int63n(ny - 1)
+			g.snakeBody = append(g.snakeBody, SnakePositionOnGrid{
 				X: g.snakeBody[int64(len(g.snakeBody)-1)].X,
 				Y: g.snakeBody[int64(len(g.snakeBody)-1)].Y,
 			})
-			if len(g.snakeBody) > 7 && len(g.snakeBody) < 15 {
+			if len(g.snakeBody) > 10 && len(g.snakeBody) < 20 {
 				g.level = 2
-				g.speed = 4
-			} else if len(g.snakeBody) > 14 && len(g.snakeBody) < 21 {
-				g.level = 3
 				g.speed = 3
-			} else if len(g.snakeBody) > 20 && len(g.snakeBody) < 30 {
-				g.level = 4
+			} else if len(g.snakeBody) > 20 {
+				g.level = 3
 				g.speed = 2
-			} else if len(g.snakeBody) > 29 {
-				g.level = 5
-				g.speed = 1
 			} else {
 				g.level = 1
 			}
@@ -168,13 +135,13 @@ func (g *Game) Update(screen *ebiten.Image) error {
 		}
 		switch g.moveDirection {
 		case 1:
-			g.snakeBody[0].X = g.snakeBody[0].X - 10
+			g.snakeBody[0].X--
 		case 2:
-			g.snakeBody[0].X += 10
+			g.snakeBody[0].X++
 		case 3:
-			g.snakeBody[0].Y += 10
+			g.snakeBody[0].Y++
 		case 4:
-			g.snakeBody[0].Y -= 10
+			g.snakeBody[0].Y--
 		}
 	}
 
@@ -185,21 +152,16 @@ func (g *Game) Update(screen *ebiten.Image) error {
 
 // Draw ...
 func (g *Game) Draw(screen *ebiten.Image) {
-
 	if g.moveDirection == 0 {
 		ebitenutil.DebugPrint(screen, fmt.Sprintf("Press up/down/left/right to start"))
 	} else {
-		if g.nearapple {
-			ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f Level: %d Score: %d Best Score: %d Near", ebiten.CurrentFPS(), g.level, g.score, g.bestScore))
-		} else {
-			ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f Level: %d Score: %d Best Score: %d", ebiten.CurrentFPS(), g.level, g.score, g.bestScore))
-		}
+		ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f Level: %d Score: %d Best Score: %d", ebiten.CurrentFPS(), g.level, g.score, g.bestScore))
 	}
 
 	for _, v := range g.snakeBody {
-		ebitenutil.DrawRect(screen, (screenWidth/2)+float64(v.X), (screenHeight/2)+float64(v.Y), 10, 10, color.RGBA{0x80, 0xa0, 0xc0, 0xff})
+		ebitenutil.DrawRect(screen, float64(v.X*10), float64(v.Y*10), 10, 10, color.RGBA{0x80, 0xa0, 0xc0, 0xff})
 	}
-	ebitenutil.DrawRect(screen, (screenWidth/2)+float64(g.appleX), (screenHeight/2)+float64(g.appleY), 10, 10, color.RGBA{0xFF, 0x00, 0x00, 0xff})
+	ebitenutil.DrawRect(screen, float64(g.appleX*10), float64(g.appleY*10), 10, 10, color.RGBA{0xFF, 0x00, 0x00, 0xff})
 }
 
 // Layout ...
@@ -208,12 +170,15 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func newGame() *Game {
-	return &Game{
+	g := &Game{
 		appleX:    30,
 		appleY:    30,
-		speed:     5,
-		snakeBody: make([]Scale, 1),
+		speed:     4,
+		snakeBody: make([]SnakePositionOnGrid, 1),
 	}
+	g.snakeBody[0].X = nx / 2
+	g.snakeBody[0].Y = ny / 2
+	return g
 }
 
 func main() {
