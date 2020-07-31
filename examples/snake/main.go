@@ -21,6 +21,7 @@ import (
 	"image/color"
 	"log"
 	"math/rand"
+	"time"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
@@ -57,6 +58,10 @@ type Game struct {
 	score         int
 	bestScore     int
 	level         int
+}
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
 }
 
 func (g *Game) collidesWithApple() bool {
