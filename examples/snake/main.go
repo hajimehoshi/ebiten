@@ -30,9 +30,9 @@ import (
 const (
 	screenWidth  = 640
 	screenHeight = 480
+	gridSize     = 10
 	xNumInScreen = screenWidth / gridSize
 	yNumInScreen = screenHeight / gridSize
-	gridSize     = 10
 )
 
 const (
@@ -168,16 +168,16 @@ func (g *Game) Update(screen *ebiten.Image) error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+	for _, v := range g.snakeBody {
+		ebitenutil.DrawRect(screen, float64(v.X*gridSize), float64(v.Y*gridSize), gridSize, gridSize, color.RGBA{0x80, 0xa0, 0xc0, 0xff})
+	}
+	ebitenutil.DrawRect(screen, float64(g.apple.X*gridSize), float64(g.apple.Y*gridSize), gridSize, gridSize, color.RGBA{0xFF, 0x00, 0x00, 0xff})
+
 	if g.moveDirection == dirNone {
 		ebitenutil.DebugPrint(screen, fmt.Sprintf("Press up/down/left/right to start"))
 	} else {
 		ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f Level: %d Score: %d Best Score: %d", ebiten.CurrentFPS(), g.level, g.score, g.bestScore))
 	}
-
-	for _, v := range g.snakeBody {
-		ebitenutil.DrawRect(screen, float64(v.X*gridSize), float64(v.Y*gridSize), gridSize, gridSize, color.RGBA{0x80, 0xa0, 0xc0, 0xff})
-	}
-	ebitenutil.DrawRect(screen, float64(g.apple.X*gridSize), float64(g.apple.Y*gridSize), gridSize, gridSize, color.RGBA{0xFF, 0x00, 0x00, 0xff})
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
