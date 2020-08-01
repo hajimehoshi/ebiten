@@ -168,12 +168,12 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 	return strings.Join(vslines, "\n") + "\n", strings.Join(fslines, "\n") + "\n"
 }
 
-func (p *Program) glslType(t *Type) string {
+func (p *Program) glslType(t *Type) (string, string) {
 	switch t.Main {
 	case None:
-		return "void"
+		return "void", ""
 	case Struct:
-		return p.structName(t)
+		return p.structName(t), ""
 	default:
 		return t.Glsl()
 	}
@@ -186,7 +186,8 @@ func (p *Program) glslVarDecl(t *Type, varname string) string {
 	case Struct:
 		return fmt.Sprintf("%s %s", p.structName(t), varname)
 	default:
-		return fmt.Sprintf("%s %s", t.Glsl(), varname)
+		t0, t1 := t.Glsl()
+		return fmt.Sprintf("%s %s%s", t0, varname, t1)
 	}
 }
 
@@ -200,7 +201,8 @@ func (p *Program) glslVarInit(t *Type) string {
 		for i := 0; i < t.Length; i++ {
 			es = append(es, init)
 		}
-		return fmt.Sprintf("%s[%d](%s)", t.Sub[0].Glsl(), t.Length, strings.Join(es, ", "))
+		t0, t1 := t.Glsl()
+		return fmt.Sprintf("%s%s(%s)", t0, t1, strings.Join(es, ", "))
 	case Struct:
 		panic("not implemented")
 	case Bool:
@@ -222,7 +224,8 @@ func (p *Program) glslVarInit(t *Type) string {
 	case Mat4:
 		return "mat4(0)"
 	default:
-		panic(fmt.Sprintf("?(unexpected type: %s)", p.glslType(t)))
+		t0, t1 := p.glslType(t)
+		panic(fmt.Sprintf("?(unexpected type: %s%s)", t0, t1))
 	}
 }
 
@@ -242,7 +245,8 @@ func (p *Program) glslFunc(f *Func, prototype bool) []string {
 		argsstr = strings.Join(args, ", ")
 	}
 
-	sig := fmt.Sprintf("%s F%d(%s)", p.glslType(&f.Return), f.Index, argsstr)
+	t0, t1 := p.glslType(&f.Return)
+	sig := fmt.Sprintf("%s%s F%d(%s)", t0, t1, f.Index, argsstr)
 
 	var lines []string
 	if prototype {
@@ -436,7 +440,8 @@ func (p *Program) glslBlock(topBlock, block *Block, level int, localVarIndex int
 			t := s.ForVarType
 			init := constantToNumberLiteral(ct, s.ForInit)
 			end := constantToNumberLiteral(ct, s.ForEnd)
-			lines = append(lines, fmt.Sprintf("%sfor (%s %s = %s; %s %s %s; %s) {", idt, t.Glsl(), v, init, v, op, end, delta))
+			t0, t1 := t.Glsl()
+			lines = append(lines, fmt.Sprintf("%sfor (%s %s%s = %s; %s %s %s; %s) {", idt, t0, v, t1, init, v, op, end, delta))
 			lines = append(lines, p.glslBlock(topBlock, &s.Blocks[0], level+1, localVarIndex)...)
 			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case Continue:

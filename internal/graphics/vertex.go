@@ -23,19 +23,14 @@ const (
 
 	// PreservedUniformVariablesNum represents the number of preserved uniform variables.
 	// Any shaders in Ebiten must have these uniform variables.
-	//
-	// All the preversed uniform variables are vec2 so far.
 	PreservedUniformVariablesNum = 1 + // the destination texture size
-		ShaderImageNum + // the texture sizes
-		(ShaderImageNum - 1) // the offsets of the second and the following images
-)
+		1 + // the texture sizes array
+		1 // the offsets array of the second and the following images
 
-func TextureOffsetUniformVariableIndex(i int) int {
-	if i == 0 {
-		panic("graphics: the texture 0 doesn't have its offset")
-	}
-	return 1 + ShaderImageNum + i - 1
-}
+	DestinationTextureSizeUniformVariableIndex = 0
+	TextureSizesUniformVariableIndex           = 1
+	TextureOffsetsUniformVariableIndex         = 2
+)
 
 const (
 	IndicesNum     = (1 << 16) / 3 * 3 // Adjust num for triangles.

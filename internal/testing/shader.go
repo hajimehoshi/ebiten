@@ -225,8 +225,19 @@ func defaultProgram() shaderir.Program {
 	}
 
 	p.Uniforms = make([]shaderir.Type, graphics.PreservedUniformVariablesNum)
-	for i := range p.Uniforms {
-		p.Uniforms[i] = shaderir.Type{Main: shaderir.Vec2}
+	// Destination texture size
+	p.Uniforms[0] = shaderir.Type{Main: shaderir.Vec2}
+	// Source texture sizes
+	p.Uniforms[1] = shaderir.Type{
+		Main:   shaderir.Array,
+		Length: graphics.ShaderImageNum,
+		Sub:    []shaderir.Type{{Main: shaderir.Vec2}},
+	}
+	// Source texture offsets
+	p.Uniforms[2] = shaderir.Type{
+		Main:   shaderir.Array,
+		Length: graphics.ShaderImageNum - 1,
+		Sub:    []shaderir.Type{{Main: shaderir.Vec2}},
 	}
 	return p
 }
@@ -350,8 +361,18 @@ func ShaderProgramImages(imageNum int) shaderir.Program {
 				Exprs: []shaderir.Expr{
 					texPos,
 					{
-						Type:  shaderir.UniformVariable,
-						Index: graphics.TextureOffsetUniformVariableIndex(i),
+						Type: shaderir.Index,
+						Exprs: []shaderir.Expr{
+							{
+								Type:  shaderir.UniformVariable,
+								Index: graphics.TextureOffsetsUniformVariableIndex,
+							},
+							{
+								Type:      shaderir.NumberExpr,
+								Const:     constant.MakeInt64(int64(i - 1)),
+								ConstType: shaderir.ConstTypeInt,
+							},
+						},
 					},
 				},
 			}

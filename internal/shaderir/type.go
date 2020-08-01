@@ -85,14 +85,15 @@ func (t *Type) serialize() string {
 	return t.String()
 }
 
-func (t *Type) Glsl() string {
+func (t *Type) Glsl() (string, string) {
 	switch t.Main {
 	case Array:
-		return fmt.Sprintf("%s[%d]", t.Sub[0].Glsl(), t.Length)
+		t0, t1 := t.Sub[0].Glsl()
+		return t0 + t1, fmt.Sprintf("[%d]", t.Length)
 	case Struct:
 		panic("shaderir: a struct is not implemented")
 	default:
-		return t.Main.glsl()
+		return t.Main.glsl(), ""
 	}
 }
 

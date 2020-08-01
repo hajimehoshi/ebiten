@@ -311,24 +311,32 @@ func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]
 	us[0].value = []float32{float32(vw), float32(vh)}
 	us[0].typ = s.ir.Uniforms[0]
 
+	vsizes := make([]float32, 2*len(srcs))
 	for i, src := range srcs {
-		img := g.images[src]
-		var w, h int
-		if img != nil {
-			w, h = img.framebufferSize()
+		if img := g.images[src]; img != nil {
+			w, h := img.framebufferSize()
+			vsizes[2*i] = float32(w)
+			vsizes[2*i+1] = float32(h)
 		}
-		const offset = 1
-		us[i+offset].name = fmt.Sprintf("U%d", i+offset)
-		us[i+offset].value = []float32{float32(w), float32(h)}
-		us[i+offset].typ = s.ir.Uniforms[i+offset]
+
+	}
+	{
+		const idx = 1
+		us[idx].name = fmt.Sprintf("U%d", idx)
+		us[idx].value = vsizes
+		us[idx].typ = s.ir.Uniforms[idx]
 	}
 
+	voffsets := make([]float32, 2*len(offsets))
 	for i, o := range offsets {
-		const offset = 1 + graphics.ShaderImageNum
-		o := o
-		us[i+offset].name = fmt.Sprintf("U%d", i+offset)
-		us[i+offset].value = o[:]
-		us[i+offset].typ = s.ir.Uniforms[i+offset]
+		voffsets[2*i] = o[0]
+		voffsets[2*i+1] = o[1]
+	}
+	{
+		const idx = 1 + 1
+		us[idx].name = fmt.Sprintf("U%d", idx)
+		us[idx].value = voffsets
+		us[idx].typ = s.ir.Uniforms[idx]
 	}
 
 	for i, v := range uniforms {
