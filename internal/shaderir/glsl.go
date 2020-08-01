@@ -128,10 +128,10 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 		for i, t := range p.Varyings {
 			fslines = append(fslines, fmt.Sprintf("varying %s;", p.glslVarDecl(&t, fmt.Sprintf("V%d", i))))
 		}
+		if len(fslines) > 0 {
+			fslines = append(fslines, "")
+		}
 		for _, f := range p.Funcs {
-			if len(fslines) > 0 {
-				fslines = append(fslines, "")
-			}
 			fslines = append(fslines, p.glslFunc(&f, true)...)
 		}
 		for _, f := range p.Funcs {
