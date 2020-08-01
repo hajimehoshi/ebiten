@@ -27,8 +27,7 @@ precision highp float;
 #define lowp
 #define mediump
 #define highp
-#endif
-`
+#endif`
 
 func isValidSwizzling(s string) bool {
 	if len(s) < 1 || 4 < len(s) {
@@ -88,17 +87,22 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 	// Vertex func
 	var vslines []string
 	{
-		for i, t := range p.Uniforms {
-			vslines = append(vslines, fmt.Sprintf("uniform %s;", p.glslVarDecl(&t, fmt.Sprintf("U%d", i))))
-		}
-		for i := 0; i < p.TextureNum; i++ {
-			vslines = append(vslines, fmt.Sprintf("uniform sampler2D T%d;", i))
-		}
-		for i, t := range p.Attributes {
-			vslines = append(vslines, fmt.Sprintf("attribute %s;", p.glslVarDecl(&t, fmt.Sprintf("A%d", i))))
-		}
-		for i, t := range p.Varyings {
-			vslines = append(vslines, fmt.Sprintf("varying %s;", p.glslVarDecl(&t, fmt.Sprintf("V%d", i))))
+		if len(p.Uniforms) > 0 || p.TextureNum > 0 || len(p.Attributes) > 0 || len(p.Varyings) > 0 {
+			if len(vslines) > 0 && vslines[len(vslines)-1] != "" {
+				vslines = append(vslines, "")
+			}
+			for i, t := range p.Uniforms {
+				vslines = append(vslines, fmt.Sprintf("uniform %s;", p.glslVarDecl(&t, fmt.Sprintf("U%d", i))))
+			}
+			for i := 0; i < p.TextureNum; i++ {
+				vslines = append(vslines, fmt.Sprintf("uniform sampler2D T%d;", i))
+			}
+			for i, t := range p.Attributes {
+				vslines = append(vslines, fmt.Sprintf("attribute %s;", p.glslVarDecl(&t, fmt.Sprintf("A%d", i))))
+			}
+			for i, t := range p.Varyings {
+				vslines = append(vslines, fmt.Sprintf("varying %s;", p.glslVarDecl(&t, fmt.Sprintf("V%d", i))))
+			}
 		}
 		if len(p.Funcs) > 0 {
 			if len(vslines) > 0 && vslines[len(vslines)-1] != "" {
@@ -128,14 +132,19 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 	// Fragment func
 	var fslines []string
 	{
-		for i, t := range p.Uniforms {
-			fslines = append(fslines, fmt.Sprintf("uniform %s;", p.glslVarDecl(&t, fmt.Sprintf("U%d", i))))
-		}
-		for i := 0; i < p.TextureNum; i++ {
-			fslines = append(fslines, fmt.Sprintf("uniform sampler2D T%d;", i))
-		}
-		for i, t := range p.Varyings {
-			fslines = append(fslines, fmt.Sprintf("varying %s;", p.glslVarDecl(&t, fmt.Sprintf("V%d", i))))
+		if len(p.Uniforms) > 0 || p.TextureNum > 0 || len(p.Varyings) > 0 {
+			if len(fslines) > 0 && fslines[len(fslines)-1] != "" {
+				fslines = append(fslines, "")
+			}
+			for i, t := range p.Uniforms {
+				fslines = append(fslines, fmt.Sprintf("uniform %s;", p.glslVarDecl(&t, fmt.Sprintf("U%d", i))))
+			}
+			for i := 0; i < p.TextureNum; i++ {
+				fslines = append(fslines, fmt.Sprintf("uniform sampler2D T%d;", i))
+			}
+			for i, t := range p.Varyings {
+				fslines = append(fslines, fmt.Sprintf("varying %s;", p.glslVarDecl(&t, fmt.Sprintf("V%d", i))))
+			}
 		}
 		if len(p.Funcs) > 0 {
 			if len(fslines) > 0 && fslines[len(fslines)-1] != "" {
@@ -162,22 +171,42 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 		}
 	}
 
+	var tmpvslines []string
+	tmpfslines := strings.Split(GlslFragmentPrelude, "\n")
+
+	// Struct types are determined after converting the program.
 	var stlines []string
-	for i, t := range p.structTypes {
-		stlines = append(stlines, fmt.Sprintf("struct S%d {", i))
-		for j, st := range t.Sub {
-			stlines = append(stlines, fmt.Sprintf("\t%s;", p.glslVarDecl(&st, fmt.Sprintf("M%d", j))))
+	if len(p.structTypes) > 0 {
+		for i, t := range p.structTypes {
+			stlines = append(stlines, fmt.Sprintf("struct S%d {", i))
+			for j, st := range t.Sub {
+				stlines = append(stlines, fmt.Sprintf("\t%s;", p.glslVarDecl(&st, fmt.Sprintf("M%d", j))))
+			}
+			stlines = append(stlines, "};")
 		}
-		stlines = append(stlines, "};")
+
+		if len(tmpvslines) > 0 {
+			tmpvslines = append(tmpvslines, "")
+		}
+		tmpvslines = append(stlines, tmpvslines...)
+
+		if len(tmpfslines) > 0 {
+			tmpfslines = append(tmpfslines, "")
+		}
+		copied := make([]string, len(stlines))
+		copy(copied, stlines)
+		tmpfslines = append(tmpfslines, copied...)
 	}
 
-	vslines = append(stlines, vslines...)
+	if len(tmpvslines) > 0 && len(vslines) > 0 {
+		tmpvslines = append(tmpvslines, "")
+	}
+	vslines = append(tmpvslines, vslines...)
 
-	tmp := make([]string, len(stlines))
-	copy(tmp, stlines)
-	fslines = append(tmp, fslines...)
-
-	fslines = append(strings.Split(GlslFragmentPrelude, "\n"), fslines...)
+	if len(tmpfslines) > 0 && len(fslines) > 0 {
+		tmpfslines = append(tmpfslines, "")
+	}
+	fslines = append(tmpfslines, fslines...)
 
 	return strings.Join(vslines, "\n") + "\n", strings.Join(fslines, "\n") + "\n"
 }
