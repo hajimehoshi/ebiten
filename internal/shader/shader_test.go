@@ -24,20 +24,14 @@ import (
 	"testing"
 
 	. "github.com/hajimehoshi/ebiten/internal/shader"
+	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
 func normalize(str string) string {
-	ls := strings.Split(strings.TrimSpace(str), "\n")
-	var start int
-	for i, l := range ls {
-		if !strings.HasPrefix(l, "#endif") {
-			continue
-		}
-		start = i + 1
-		break
+	if strings.HasPrefix(str, shaderir.GlslFragmentPrelude) {
+		str = str[len(shaderir.GlslFragmentPrelude):]
 	}
-	ls = ls[start:]
-	return strings.TrimSpace(strings.Join(ls, "\n"))
+	return strings.TrimSpace(str)
 }
 
 func TestCompile(t *testing.T) {

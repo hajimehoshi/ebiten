@@ -21,6 +21,15 @@ import (
 	"strings"
 )
 
+const GlslFragmentPrelude = `#if defined(GL_ES)
+precision highp float;
+#else
+#define lowp
+#define mediump
+#define highp
+#endif
+`
+
 func isValidSwizzling(s string) bool {
 	if len(s) < 1 || 4 < len(s) {
 		return false
@@ -95,15 +104,15 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 			if len(vslines) > 0 && vslines[len(vslines)-1] != "" {
 				vslines = append(vslines, "")
 			}
-		}
-		for _, f := range p.Funcs {
-			vslines = append(vslines, p.glslFunc(&f, true)...)
-		}
-		for _, f := range p.Funcs {
-			if len(vslines) > 0 && vslines[len(vslines)-1] != "" {
-				vslines = append(vslines, "")
+			for _, f := range p.Funcs {
+				vslines = append(vslines, p.glslFunc(&f, true)...)
 			}
-			vslines = append(vslines, p.glslFunc(&f, false)...)
+			for _, f := range p.Funcs {
+				if len(vslines) > 0 && vslines[len(vslines)-1] != "" {
+					vslines = append(vslines, "")
+				}
+				vslines = append(vslines, p.glslFunc(&f, false)...)
+			}
 		}
 
 		if len(p.VertexFunc.Block.Stmts) > 0 {
@@ -119,16 +128,6 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 	// Fragment func
 	var fslines []string
 	{
-		fslines = append(fslines,
-			"#if defined(GL_ES)",
-			"precision highp float;",
-			"#else",
-			"#define lowp",
-			"#define mediump",
-			"#define highp",
-			"#endif",
-			"")
-
 		for i, t := range p.Uniforms {
 			fslines = append(fslines, fmt.Sprintf("uniform %s;", p.glslVarDecl(&t, fmt.Sprintf("U%d", i))))
 		}
@@ -138,17 +137,19 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 		for i, t := range p.Varyings {
 			fslines = append(fslines, fmt.Sprintf("varying %s;", p.glslVarDecl(&t, fmt.Sprintf("V%d", i))))
 		}
-		if len(fslines) > 0 && fslines[len(fslines)-1] != "" {
-			fslines = append(fslines, "")
-		}
-		for _, f := range p.Funcs {
-			fslines = append(fslines, p.glslFunc(&f, true)...)
-		}
-		for _, f := range p.Funcs {
+		if len(p.Funcs) > 0 {
 			if len(fslines) > 0 && fslines[len(fslines)-1] != "" {
 				fslines = append(fslines, "")
 			}
-			fslines = append(fslines, p.glslFunc(&f, false)...)
+			for _, f := range p.Funcs {
+				fslines = append(fslines, p.glslFunc(&f, true)...)
+			}
+			for _, f := range p.Funcs {
+				if len(fslines) > 0 && fslines[len(fslines)-1] != "" {
+					fslines = append(fslines, "")
+				}
+				fslines = append(fslines, p.glslFunc(&f, false)...)
+			}
 		}
 
 		if len(p.FragmentFunc.Block.Stmts) > 0 {
@@ -171,9 +172,12 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 	}
 
 	vslines = append(stlines, vslines...)
+
 	tmp := make([]string, len(stlines))
 	copy(tmp, stlines)
 	fslines = append(tmp, fslines...)
+
+	fslines = append(strings.Split(GlslFragmentPrelude, "\n"), fslines...)
 
 	return strings.Join(vslines, "\n") + "\n", strings.Join(fslines, "\n") + "\n"
 }

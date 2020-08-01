@@ -159,7 +159,7 @@ func TestOutput(t *testing.T) {
 			Name:    "Empty",
 			Program: Program{},
 			GlslVS:  ``,
-			GlslFS:  ``,
+			GlslFS:  GlslFragmentPrelude,
 		},
 		{
 			Name: "Uniform",
@@ -169,7 +169,8 @@ func TestOutput(t *testing.T) {
 				},
 			},
 			GlslVS: `uniform float U0;`,
-			GlslFS: `uniform float U0;`,
+			GlslFS: GlslFragmentPrelude + `
+uniform float U0;`,
 		},
 		{
 			Name: "UniformStruct",
@@ -187,7 +188,8 @@ func TestOutput(t *testing.T) {
 	float M0;
 };
 uniform S0 U0;`,
-			GlslFS: `struct S0 {
+			GlslFS: GlslFragmentPrelude + `
+struct S0 {
 	float M0;
 };
 uniform S0 U0;`,
@@ -208,7 +210,8 @@ uniform S0 U0;`,
 			GlslVS: `uniform float U0;
 attribute vec2 A0;
 varying vec3 V0;`,
-			GlslFS: `uniform float U0;
+			GlslFS: GlslFragmentPrelude + `
+uniform float U0;
 varying vec3 V0;`,
 		},
 		{
@@ -224,7 +227,8 @@ varying vec3 V0;`,
 
 void F0(void) {
 }`,
-			GlslFS: `void F0(void);
+			GlslFS: GlslFragmentPrelude + `
+void F0(void);
 
 void F0(void) {
 }`,
@@ -250,7 +254,8 @@ void F0(void) {
 
 void F0(in float l0, in vec2 l1, in vec4 l2, out mat4 l3) {
 }`,
-			GlslFS: `void F0(in float l0, in vec2 l1, in vec4 l2, out mat4 l3);
+			GlslFS: GlslFragmentPrelude + `
+void F0(in float l0, in vec2 l1, in vec4 l2, out mat4 l3);
 
 void F0(in float l0, in vec2 l1, in vec4 l2, out mat4 l3) {
 }`,
@@ -279,7 +284,8 @@ void F0(in float l0, in vec2 l1, in vec4 l2, out mat4 l3) {
 float F0(in float l0) {
 	return l0;
 }`,
-			GlslFS: `float F0(in float l0);
+			GlslFS: GlslFragmentPrelude + `
+float F0(in float l0);
 
 float F0(in float l0) {
 	return l0;
@@ -310,7 +316,8 @@ void F0(in float l0, out float l1) {
 	mat4 l2 = mat4(0);
 	mat4 l3 = mat4(0);
 }`,
-			GlslFS: `void F0(in float l0, out float l1);
+			GlslFS: GlslFragmentPrelude + `
+void F0(in float l0, out float l1);
 
 void F0(in float l0, out float l1) {
 	mat4 l2 = mat4(0);
@@ -356,7 +363,8 @@ void F0(in float l0, out float l1) {
 		mat4 l5 = mat4(0);
 	}
 }`,
-			GlslFS: `void F0(in float l0, out float l1);
+			GlslFS: GlslFragmentPrelude + `
+void F0(in float l0, out float l1);
 
 void F0(in float l0, out float l1) {
 	mat4 l2 = mat4(0);
@@ -399,7 +407,8 @@ void F0(in float l0, out float l1) {
 void F0(in float l0, in float l1, out float l2) {
 	l2 = (l0) + (l1);
 }`,
-			GlslFS: `void F0(in float l0, in float l1, out float l2);
+			GlslFS: GlslFragmentPrelude + `
+void F0(in float l0, in float l1, out float l2);
 
 void F0(in float l0, in float l1, out float l2) {
 	l2 = (l0) + (l1);
@@ -438,7 +447,8 @@ void F0(in float l0, in float l1, out float l2) {
 void F0(in bool l0, in float l1, in float l2, out float l3) {
 	l3 = (l0) ? (l1) : (l2);
 }`,
-			GlslFS: `void F0(in bool l0, in float l1, in float l2, out float l3);
+			GlslFS: GlslFragmentPrelude + `
+void F0(in bool l0, in float l1, in float l2, out float l3);
 
 void F0(in bool l0, in float l1, in float l2, out float l3) {
 	l3 = (l0) ? (l1) : (l2);
@@ -482,7 +492,8 @@ void F0(in float l0, in float l1, out vec2 l2) {
 	F1();
 	l2 = F2(l0, l1);
 }`,
-			GlslFS: `void F0(in float l0, in float l1, out vec2 l2);
+			GlslFS: GlslFragmentPrelude + `
+void F0(in float l0, in float l1, out vec2 l2);
 
 void F0(in float l0, in float l1, out vec2 l2) {
 	F1();
@@ -521,7 +532,8 @@ void F0(in float l0, in float l1, out vec2 l2) {
 void F0(in float l0, in float l1, out float l2) {
 	l2 = min(l0, l1);
 }`,
-			GlslFS: `void F0(in float l0, in float l1, out float l2);
+			GlslFS: GlslFragmentPrelude + `
+void F0(in float l0, in float l1, out float l2);
 
 void F0(in float l0, in float l1, out float l2) {
 	l2 = min(l0, l1);
@@ -557,7 +569,8 @@ void F0(in float l0, in float l1, out float l2) {
 void F0(in vec4 l0, out vec2 l1) {
 	l1 = (l0).xz;
 }`,
-			GlslFS: `void F0(in vec4 l0, out vec2 l1);
+			GlslFS: GlslFragmentPrelude + `
+void F0(in vec4 l0, out vec2 l1);
 
 void F0(in vec4 l0, out vec2 l1) {
 	l1 = (l0).xz;
@@ -612,7 +625,8 @@ void F0(in float l0, in float l1, out float l2) {
 		l2 = l1;
 	}
 }`,
-			GlslFS: `void F0(in float l0, in float l1, out float l2);
+			GlslFS: GlslFragmentPrelude + `
+void F0(in float l0, in float l1, out float l2);
 
 void F0(in float l0, in float l1, out float l2) {
 	if ((l0) == (0.0)) {
@@ -662,7 +676,8 @@ void F0(in float l0, in float l1, out float l2) {
 		l2 = l0;
 	}
 }`,
-			GlslFS: `void F0(in float l0, in float l1, out float l2);
+			GlslFS: GlslFragmentPrelude + `
+void F0(in float l0, in float l1, out float l2);
 
 void F0(in float l0, in float l1, out float l2) {
 	for (int l3 = 0; l3 < 100; l3++) {
@@ -715,7 +730,8 @@ void main(void) {
 	V0 = A1;
 	V1 = A2;
 }`,
-			GlslFS: `uniform float U0;
+			GlslFS: GlslFragmentPrelude + `
+uniform float U0;
 varying float V0;
 varying vec2 V1;`,
 		},
@@ -784,7 +800,8 @@ void main(void) {
 	V0 = A1;
 	V1 = A2;
 }`,
-			GlslFS: `uniform float U0;
+			GlslFS: GlslFragmentPrelude + `
+uniform float U0;
 varying float V0;
 varying vec2 V1;
 
