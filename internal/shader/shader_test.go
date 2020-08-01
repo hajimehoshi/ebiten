@@ -26,6 +26,20 @@ import (
 	. "github.com/hajimehoshi/ebiten/internal/shader"
 )
 
+func normalize(str string) string {
+	ls := strings.Split(strings.TrimSpace(str), "\n")
+	var start int
+	for i, l := range ls {
+		if !strings.HasPrefix(l, "#endif") {
+			continue
+		}
+		start = i + 1
+		break
+	}
+	ls = ls[start:]
+	return strings.TrimSpace(strings.Join(ls, "\n"))
+}
+
 func TestCompile(t *testing.T) {
 	if runtime.GOOS == "js" {
 		t.Skip("file open might not be implemented in this environment")
@@ -107,11 +121,11 @@ func TestCompile(t *testing.T) {
 				return
 			}
 			vs, fs := s.Glsl()
-			if got, want := vs, string(tc.VS); got != want {
+			if got, want := normalize(vs), normalize(string(tc.VS)); got != want {
 				t.Errorf("got: %v, want: %v", got, want)
 			}
 			if tc.FS != nil {
-				if got, want := fs, string(tc.FS); got != want {
+				if got, want := normalize(fs), normalize(string(tc.FS)); got != want {
 					t.Errorf("got: %v, want: %v", got, want)
 				}
 			}
