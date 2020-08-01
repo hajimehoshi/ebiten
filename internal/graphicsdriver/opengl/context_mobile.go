@@ -268,7 +268,8 @@ func (c *context) newProgram(shaders []shader, attributes []string) (program, er
 	gl.LinkProgram(p)
 	v := gl.GetProgrami(p, mgl.LINK_STATUS)
 	if v == mgl.FALSE {
-		return program{}, errors.New("opengl: program error")
+		info := gl.GetProgramInfoLog(p)
+		return program{}, fmt.Errorf("opengl: program error: %s", info)
 	}
 	return program(p), nil
 }

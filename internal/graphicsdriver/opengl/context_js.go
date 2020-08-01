@@ -395,7 +395,8 @@ func (c *context) newProgram(shaders []shader, attributes []string) (program, er
 
 	gl.Call("linkProgram", v)
 	if !gl.Call("getProgramParameter", v, linkStatus).Bool() {
-		return program{}, errors.New("opengl: program error")
+		info := gl.Call("getProgramInfoLog", v).String()
+		return program{}, fmt.Errorf("opengl: program error: %s", info)
 	}
 
 	id := c.lastProgramID

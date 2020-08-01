@@ -305,11 +305,12 @@ func (c *context) newShader(shaderType shaderType, source string) (shader, error
 		var v int32
 		gl.GetShaderiv(s, gl.COMPILE_STATUS, &v)
 		if v == gl.FALSE {
-			log := []byte{}
-			gl.GetShaderiv(uint32(s), gl.INFO_LOG_LENGTH, &v)
-			if v != 0 {
-				log = make([]byte, int(v))
-				gl.GetShaderInfoLog(uint32(s), v, nil, (*uint8)(gl.Ptr(log)))
+			var l int32
+			var log []byte
+			gl.GetShaderiv(uint32(s), gl.INFO_LOG_LENGTH, &l)
+			if l != 0 {
+				log = make([]byte, l)
+				gl.GetShaderInfoLog(s, l, nil, (*uint8)(gl.Ptr(log)))
 			}
 			return fmt.Errorf("opengl: shader compile failed: %s", log)
 		}
@@ -350,7 +351,14 @@ func (c *context) newProgram(shaders []shader, attributes []string) (program, er
 		var v int32
 		gl.GetProgramiv(p, gl.LINK_STATUS, &v)
 		if v == gl.FALSE {
-			return errors.New("opengl: program error")
+			var l int32
+			var log []byte
+			gl.GetProgramiv(p, gl.INFO_LOG_LENGTH, &l)
+			if l != 0 {
+				log = make([]byte, l)
+				gl.GetProgramInfoLog(p, l, nil, (*uint8)(gl.Ptr(log)))
+			}
+			return fmt.Errorf("opengl: program error: %s", log)
 		}
 		pr = program(p)
 		return nil

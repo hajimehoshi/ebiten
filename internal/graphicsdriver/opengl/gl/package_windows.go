@@ -46,6 +46,7 @@ var (
 	gpGetIntegerui64i_vNV         uintptr
 	gpGetIntegerv                 uintptr
 	gpGetPointeri_vEXT            uintptr
+	gpGetProgramInfoLog           uintptr
 	gpGetProgramiv                uintptr
 	gpGetShaderInfoLog            uintptr
 	gpGetShaderiv                 uintptr
@@ -227,6 +228,10 @@ func GetIntegerv(pname uint32, data *int32) {
 
 func GetPointeri_vEXT(pname uint32, index uint32, params *unsafe.Pointer) {
 	syscall.Syscall(gpGetPointeri_vEXT, 3, uintptr(pname), uintptr(index), uintptr(unsafe.Pointer(params)))
+}
+
+func GetProgramInfoLog(program uint32, bufSize int32, length *int32, infoLog *uint8) {
+	syscall.Syscall6(gpGetProgramInfoLog, 4, uintptr(program), uintptr(bufSize), uintptr(unsafe.Pointer(length)), uintptr(unsafe.Pointer(infoLog)), 0, 0)
 }
 
 func GetProgramiv(program uint32, pname uint32, params *int32) {
@@ -465,6 +470,10 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 		return errors.New("glGetIntegerv")
 	}
 	gpGetPointeri_vEXT = getProcAddr("glGetPointeri_vEXT")
+	gpGetProgramInfoLog = getProcAddr("glGetProgramInfoLog")
+	if gpGetProgramInfoLog == 0 {
+		return errors.New("glGetProgramInfoLog")
+	}
 	gpGetProgramiv = getProcAddr("glGetProgramiv")
 	if gpGetProgramiv == 0 {
 		return errors.New("glGetProgramiv")

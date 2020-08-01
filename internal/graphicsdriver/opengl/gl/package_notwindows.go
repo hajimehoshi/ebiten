@@ -132,6 +132,7 @@ package gl
 // typedef void  (APIENTRYP GPGETINTEGERUI64I_VNV)(GLenum  value, GLuint  index, GLuint64EXT * result);
 // typedef void  (APIENTRYP GPGETINTEGERV)(GLenum  pname, GLint * data);
 // typedef void  (APIENTRYP GPGETPOINTERI_VEXT)(GLenum  pname, GLuint  index, void ** params);
+// typedef void  (APIENTRYP GPGETPROGRAMINFOLOG)(GLuint  program, GLsizei  bufSize, GLsizei * length, GLchar * infoLog);
 // typedef void  (APIENTRYP GPGETPROGRAMIV)(GLuint  program, GLenum  pname, GLint * params);
 // typedef void  (APIENTRYP GPGETSHADERINFOLOG)(GLuint  shader, GLsizei  bufSize, GLsizei * length, GLchar * infoLog);
 // typedef void  (APIENTRYP GPGETSHADERIV)(GLuint  shader, GLenum  pname, GLint * params);
@@ -272,6 +273,9 @@ package gl
 // static void  glowGetPointeri_vEXT(GPGETPOINTERI_VEXT fnptr, GLenum  pname, GLuint  index, void ** params) {
 //   (*fnptr)(pname, index, params);
 // }
+// static void  glowGetProgramInfoLog(GPGETPROGRAMINFOLOG fnptr, GLuint  program, GLsizei  bufSize, GLsizei * length, GLchar * infoLog) {
+//   (*fnptr)(program, bufSize, length, infoLog);
+// }
 // static void  glowGetProgramiv(GPGETPROGRAMIV fnptr, GLuint  program, GLenum  pname, GLint * params) {
 //   (*fnptr)(program, pname, params);
 // }
@@ -409,6 +413,7 @@ var (
 	gpGetIntegerui64i_vNV         C.GPGETINTEGERUI64I_VNV
 	gpGetIntegerv                 C.GPGETINTEGERV
 	gpGetPointeri_vEXT            C.GPGETPOINTERI_VEXT
+	gpGetProgramInfoLog           C.GPGETPROGRAMINFOLOG
 	gpGetProgramiv                C.GPGETPROGRAMIV
 	gpGetShaderInfoLog            C.GPGETSHADERINFOLOG
 	gpGetShaderiv                 C.GPGETSHADERIV
@@ -590,6 +595,10 @@ func GetIntegerv(pname uint32, data *int32) {
 
 func GetPointeri_vEXT(pname uint32, index uint32, params *unsafe.Pointer) {
 	C.glowGetPointeri_vEXT(gpGetPointeri_vEXT, (C.GLenum)(pname), (C.GLuint)(index), params)
+}
+
+func GetProgramInfoLog(program uint32, bufSize int32, length *int32, infoLog *uint8) {
+	C.glowGetProgramInfoLog(gpGetProgramInfoLog, (C.GLuint)(program), (C.GLsizei)(bufSize), (*C.GLsizei)(unsafe.Pointer(length)), (*C.GLchar)(unsafe.Pointer(infoLog)))
 }
 
 func GetProgramiv(program uint32, pname uint32, params *int32) {
@@ -828,6 +837,10 @@ func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
 		return errors.New("glGetIntegerv")
 	}
 	gpGetPointeri_vEXT = (C.GPGETPOINTERI_VEXT)(getProcAddr("glGetPointeri_vEXT"))
+	gpGetProgramInfoLog = (C.GPGETPROGRAMINFOLOG)(getProcAddr("glGetProgramInfoLog"))
+	if gpGetProgramInfoLog == nil {
+		return errors.New("glGetProgramInfoLog")
+	}
 	gpGetProgramiv = (C.GPGETPROGRAMIV)(getProcAddr("glGetProgramiv"))
 	if gpGetProgramiv == nil {
 		return errors.New("glGetProgramiv")
