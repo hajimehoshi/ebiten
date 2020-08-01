@@ -452,7 +452,6 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		if !ok {
 			return nil, nil, nil, false
 		}
-		fmt.Println(t)
 
 		idx := len(block.vars)
 		block.vars = append(block.vars, variable{
