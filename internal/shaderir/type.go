@@ -81,22 +81,6 @@ func (t *Type) String() string {
 	}
 }
 
-func (t *Type) serialize() string {
-	return t.String()
-}
-
-func (t *Type) Glsl() (string, string) {
-	switch t.Main {
-	case Array:
-		t0, t1 := t.Sub[0].Glsl()
-		return t0 + t1, fmt.Sprintf("[%d]", t.Length)
-	case Struct:
-		panic("shaderir: a struct is not implemented")
-	default:
-		return t.Main.glsl(), ""
-	}
-}
-
 func (t *Type) FloatNum() int {
 	switch t.Main {
 	case Float:
@@ -136,34 +120,3 @@ const (
 	Array
 	Struct
 )
-
-func (t BasicType) glsl() string {
-	switch t {
-	case None:
-		return "?(none)"
-	case Bool:
-		return "bool"
-	case Int:
-		return "int"
-	case Float:
-		return "float"
-	case Vec2:
-		return "vec2"
-	case Vec3:
-		return "vec3"
-	case Vec4:
-		return "vec4"
-	case Mat2:
-		return "mat2"
-	case Mat3:
-		return "mat3"
-	case Mat4:
-		return "mat4"
-	case Array:
-		return "?(array)"
-	case Struct:
-		return "?(struct)"
-	default:
-		return fmt.Sprintf("?(unknown type: %d)", t)
-	}
-}

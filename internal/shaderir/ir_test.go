@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	. "github.com/hajimehoshi/ebiten/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/internal/shaderir/glsl"
 )
 
 func block(localVars []Type, stmts ...Stmt) Block {
@@ -149,7 +150,7 @@ func fieldSelectorExpr(a, b Expr) Expr {
 }
 
 func TestOutput(t *testing.T) {
-	prelude := GlslFragmentPrelude + "\n"
+	prelude := glsl.FragmentPrelude + "\n"
 
 	tests := []struct {
 		Name    string
@@ -161,7 +162,7 @@ func TestOutput(t *testing.T) {
 			Name:    "Empty",
 			Program: Program{},
 			GlslVS:  ``,
-			GlslFS:  GlslFragmentPrelude,
+			GlslFS:  glsl.FragmentPrelude,
 		},
 		{
 			Name: "Uniform",
@@ -821,7 +822,7 @@ void main(void) {
 	for _, tc := range tests {
 		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
-			vs, fs := tc.Program.Glsl()
+			vs, fs := glsl.Compile(&tc.Program)
 			{
 				got := vs
 				want := tc.GlslVS + "\n"

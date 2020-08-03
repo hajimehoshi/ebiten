@@ -28,9 +28,6 @@ type Program struct {
 	Funcs        []Func
 	VertexFunc   VertexFunc
 	FragmentFunc FragmentFunc
-
-	structNames map[string]string
-	structTypes []Type
 }
 
 type Func struct {
@@ -314,25 +311,4 @@ func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
 		return BuiltinFunc(str), true
 	}
 	return "", false
-}
-
-func (f BuiltinFunc) Glsl() string {
-	switch f {
-	case LessThan:
-		return "lessThan"
-	case LessThanEqual:
-		return "lessThanEqual"
-	case GreaterThan:
-		return "greaterThan"
-	case GreaterThanEqual:
-		return "greaterThanEqual"
-	case NotEqual:
-		return "notEqual"
-	case Dfdx:
-		return "dFdx"
-	case Dfdy:
-		return "dFdy"
-	default:
-		return string(f)
-	}
 }

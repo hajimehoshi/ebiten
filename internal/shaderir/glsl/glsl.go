@@ -12,16 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package shaderir
+package glsl
 
 import (
 	"fmt"
 	"go/constant"
 	"go/token"
 	"strings"
+
+	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
-const GlslFragmentPrelude = `#if defined(GL_ES)
+const FragmentPrelude = `#if defined(GL_ES)
 precision highp float;
 #else
 #define lowp
@@ -66,23 +68,29 @@ func isValidSwizzling(s string) bool {
 	return false
 }
 
-func (p *Program) structName(t *Type) string {
-	if t.Main != Struct {
+type compileContext struct {
+	structNames map[string]string
+	structTypes []shaderir.Type
+}
+
+func (c *compileContext) structName(p *shaderir.Program, t *shaderir.Type) string {
+	if t.Main != shaderir.Struct {
 		panic("shaderir: the given type at structName must be a struct")
 	}
-	s := t.serialize()
-	if n, ok := p.structNames[s]; ok {
+	s := t.String()
+	if n, ok := c.structNames[s]; ok {
 		return n
 	}
-	n := fmt.Sprintf("S%d", len(p.structNames))
-	p.structNames[s] = n
-	p.structTypes = append(p.structTypes, *t)
+	n := fmt.Sprintf("S%d", len(c.structNames))
+	c.structNames[s] = n
+	c.structTypes = append(c.structTypes, *t)
 	return n
 }
 
-func (p *Program) Glsl() (vertexShader, fragmentShader string) {
-	p.structNames = map[string]string{}
-	p.structTypes = nil
+func Compile(p *shaderir.Program) (vertexShader, fragmentShader string) {
+	c := &compileContext{
+		structNames: map[string]string{},
+	}
 
 	// Vertex func
 	var vslines []string
@@ -92,16 +100,16 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 				vslines = append(vslines, "")
 			}
 			for i, t := range p.Uniforms {
-				vslines = append(vslines, fmt.Sprintf("uniform %s;", p.glslVarDecl(&t, fmt.Sprintf("U%d", i))))
+				vslines = append(vslines, fmt.Sprintf("uniform %s;", c.glslVarDecl(p, &t, fmt.Sprintf("U%d", i))))
 			}
 			for i := 0; i < p.TextureNum; i++ {
 				vslines = append(vslines, fmt.Sprintf("uniform sampler2D T%d;", i))
 			}
 			for i, t := range p.Attributes {
-				vslines = append(vslines, fmt.Sprintf("attribute %s;", p.glslVarDecl(&t, fmt.Sprintf("A%d", i))))
+				vslines = append(vslines, fmt.Sprintf("attribute %s;", c.glslVarDecl(p, &t, fmt.Sprintf("A%d", i))))
 			}
 			for i, t := range p.Varyings {
-				vslines = append(vslines, fmt.Sprintf("varying %s;", p.glslVarDecl(&t, fmt.Sprintf("V%d", i))))
+				vslines = append(vslines, fmt.Sprintf("varying %s;", c.glslVarDecl(p, &t, fmt.Sprintf("V%d", i))))
 			}
 		}
 		if len(p.Funcs) > 0 {
@@ -109,13 +117,13 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 				vslines = append(vslines, "")
 			}
 			for _, f := range p.Funcs {
-				vslines = append(vslines, p.glslFunc(&f, true)...)
+				vslines = append(vslines, c.glslFunc(p, &f, true)...)
 			}
 			for _, f := range p.Funcs {
 				if len(vslines) > 0 && vslines[len(vslines)-1] != "" {
 					vslines = append(vslines, "")
 				}
-				vslines = append(vslines, p.glslFunc(&f, false)...)
+				vslines = append(vslines, c.glslFunc(p, &f, false)...)
 			}
 		}
 
@@ -124,7 +132,7 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 				vslines = append(vslines, "")
 			}
 			vslines = append(vslines, "void main(void) {")
-			vslines = append(vslines, p.glslBlock(&p.VertexFunc.Block, &p.VertexFunc.Block, 0, 0)...)
+			vslines = append(vslines, c.glslBlock(p, &p.VertexFunc.Block, &p.VertexFunc.Block, 0, 0)...)
 			vslines = append(vslines, "}")
 		}
 	}
@@ -137,13 +145,13 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 				fslines = append(fslines, "")
 			}
 			for i, t := range p.Uniforms {
-				fslines = append(fslines, fmt.Sprintf("uniform %s;", p.glslVarDecl(&t, fmt.Sprintf("U%d", i))))
+				fslines = append(fslines, fmt.Sprintf("uniform %s;", c.glslVarDecl(p, &t, fmt.Sprintf("U%d", i))))
 			}
 			for i := 0; i < p.TextureNum; i++ {
 				fslines = append(fslines, fmt.Sprintf("uniform sampler2D T%d;", i))
 			}
 			for i, t := range p.Varyings {
-				fslines = append(fslines, fmt.Sprintf("varying %s;", p.glslVarDecl(&t, fmt.Sprintf("V%d", i))))
+				fslines = append(fslines, fmt.Sprintf("varying %s;", c.glslVarDecl(p, &t, fmt.Sprintf("V%d", i))))
 			}
 		}
 		if len(p.Funcs) > 0 {
@@ -151,13 +159,13 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 				fslines = append(fslines, "")
 			}
 			for _, f := range p.Funcs {
-				fslines = append(fslines, p.glslFunc(&f, true)...)
+				fslines = append(fslines, c.glslFunc(p, &f, true)...)
 			}
 			for _, f := range p.Funcs {
 				if len(fslines) > 0 && fslines[len(fslines)-1] != "" {
 					fslines = append(fslines, "")
 				}
-				fslines = append(fslines, p.glslFunc(&f, false)...)
+				fslines = append(fslines, c.glslFunc(p, &f, false)...)
 			}
 		}
 
@@ -166,21 +174,21 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 				fslines = append(fslines, "")
 			}
 			fslines = append(fslines, "void main(void) {")
-			fslines = append(fslines, p.glslBlock(&p.FragmentFunc.Block, &p.FragmentFunc.Block, 0, 0)...)
+			fslines = append(fslines, c.glslBlock(p, &p.FragmentFunc.Block, &p.FragmentFunc.Block, 0, 0)...)
 			fslines = append(fslines, "}")
 		}
 	}
 
 	var tmpvslines []string
-	tmpfslines := strings.Split(GlslFragmentPrelude, "\n")
+	tmpfslines := strings.Split(FragmentPrelude, "\n")
 
 	// Struct types are determined after converting the program.
 	var stlines []string
-	if len(p.structTypes) > 0 {
-		for i, t := range p.structTypes {
+	if len(c.structTypes) > 0 {
+		for i, t := range c.structTypes {
 			stlines = append(stlines, fmt.Sprintf("struct S%d {", i))
 			for j, st := range t.Sub {
-				stlines = append(stlines, fmt.Sprintf("\t%s;", p.glslVarDecl(&st, fmt.Sprintf("M%d", j))))
+				stlines = append(stlines, fmt.Sprintf("\t%s;", c.glslVarDecl(p, &st, fmt.Sprintf("M%d", j))))
 			}
 			stlines = append(stlines, "};")
 		}
@@ -211,76 +219,76 @@ func (p *Program) Glsl() (vertexShader, fragmentShader string) {
 	return strings.Join(vslines, "\n") + "\n", strings.Join(fslines, "\n") + "\n"
 }
 
-func (p *Program) glslType(t *Type) (string, string) {
+func (c *compileContext) glslType(p *shaderir.Program, t *shaderir.Type) (string, string) {
 	switch t.Main {
-	case None:
+	case shaderir.None:
 		return "void", ""
-	case Struct:
-		return p.structName(t), ""
+	case shaderir.Struct:
+		return c.structName(p, t), ""
 	default:
-		return t.Glsl()
+		return typeString(t)
 	}
 }
 
-func (p *Program) glslVarDecl(t *Type, varname string) string {
+func (c *compileContext) glslVarDecl(p *shaderir.Program, t *shaderir.Type, varname string) string {
 	switch t.Main {
-	case None:
+	case shaderir.None:
 		return "?(none)"
-	case Struct:
-		return fmt.Sprintf("%s %s", p.structName(t), varname)
+	case shaderir.Struct:
+		return fmt.Sprintf("%s %s", c.structName(p, t), varname)
 	default:
-		t0, t1 := t.Glsl()
+		t0, t1 := typeString(t)
 		return fmt.Sprintf("%s %s%s", t0, varname, t1)
 	}
 }
 
-func (p *Program) glslVarInit(t *Type) string {
+func (c *compileContext) glslVarInit(p *shaderir.Program, t *shaderir.Type) string {
 	switch t.Main {
-	case None:
+	case shaderir.None:
 		return "?(none)"
-	case Array:
-		init := p.glslVarInit(&t.Sub[0])
+	case shaderir.Array:
+		init := c.glslVarInit(p, &t.Sub[0])
 		es := make([]string, 0, t.Length)
 		for i := 0; i < t.Length; i++ {
 			es = append(es, init)
 		}
-		t0, t1 := t.Glsl()
+		t0, t1 := typeString(t)
 		return fmt.Sprintf("%s%s(%s)", t0, t1, strings.Join(es, ", "))
-	case Struct:
+	case shaderir.Struct:
 		panic("not implemented")
-	case Bool:
+	case shaderir.Bool:
 		return "false"
-	case Int:
+	case shaderir.Int:
 		return "0"
-	case Float:
+	case shaderir.Float:
 		return "float(0)"
-	case Vec2:
+	case shaderir.Vec2:
 		return "vec2(0)"
-	case Vec3:
+	case shaderir.Vec3:
 		return "vec3(0)"
-	case Vec4:
+	case shaderir.Vec4:
 		return "vec4(0)"
-	case Mat2:
+	case shaderir.Mat2:
 		return "mat2(0)"
-	case Mat3:
+	case shaderir.Mat3:
 		return "mat3(0)"
-	case Mat4:
+	case shaderir.Mat4:
 		return "mat4(0)"
 	default:
-		t0, t1 := p.glslType(t)
+		t0, t1 := c.glslType(p, t)
 		panic(fmt.Sprintf("?(unexpected type: %s%s)", t0, t1))
 	}
 }
 
-func (p *Program) glslFunc(f *Func, prototype bool) []string {
+func (c *compileContext) glslFunc(p *shaderir.Program, f *shaderir.Func, prototype bool) []string {
 	var args []string
 	var idx int
 	for _, t := range f.InParams {
-		args = append(args, "in "+p.glslVarDecl(&t, fmt.Sprintf("l%d", idx)))
+		args = append(args, "in "+c.glslVarDecl(p, &t, fmt.Sprintf("l%d", idx)))
 		idx++
 	}
 	for _, t := range f.OutParams {
-		args = append(args, "out "+p.glslVarDecl(&t, fmt.Sprintf("l%d", idx)))
+		args = append(args, "out "+c.glslVarDecl(p, &t, fmt.Sprintf("l%d", idx)))
 		idx++
 	}
 	argsstr := "void"
@@ -288,7 +296,7 @@ func (p *Program) glslFunc(f *Func, prototype bool) []string {
 		argsstr = strings.Join(args, ", ")
 	}
 
-	t0, t1 := p.glslType(&f.Return)
+	t0, t1 := c.glslType(p, &f.Return)
 	sig := fmt.Sprintf("%s%s F%d(%s)", t0, t1, f.Index, argsstr)
 
 	var lines []string
@@ -297,15 +305,15 @@ func (p *Program) glslFunc(f *Func, prototype bool) []string {
 		return lines
 	}
 	lines = append(lines, fmt.Sprintf("%s {", sig))
-	lines = append(lines, p.glslBlock(&f.Block, &f.Block, 0, idx)...)
+	lines = append(lines, c.glslBlock(p, &f.Block, &f.Block, 0, idx)...)
 	lines = append(lines, "}")
 
 	return lines
 }
 
-func constantToNumberLiteral(t ConstType, v constant.Value) string {
+func constantToNumberLiteral(t shaderir.ConstType, v constant.Value) string {
 	switch t {
-	case ConstTypeNone:
+	case shaderir.ConstTypeNone:
 		if v.Kind() == constant.Bool {
 			if constant.BoolVal(v) {
 				return "true"
@@ -313,7 +321,7 @@ func constantToNumberLiteral(t ConstType, v constant.Value) string {
 			return "false"
 		}
 		fallthrough
-	case ConstTypeFloat:
+	case shaderir.ConstTypeFloat:
 		if i := constant.ToInt(v); i.Kind() == constant.Int {
 			x, _ := constant.Int64Val(i)
 			return fmt.Sprintf("%d.0", x)
@@ -322,7 +330,7 @@ func constantToNumberLiteral(t ConstType, v constant.Value) string {
 			x, _ := constant.Float64Val(i)
 			return fmt.Sprintf("%.9e", x)
 		}
-	case ConstTypeInt:
+	case shaderir.ConstTypeInt:
 		if i := constant.ToInt(v); i.Kind() == constant.Int {
 			x, _ := constant.Int64Val(i)
 			return fmt.Sprintf("%d", x)
@@ -331,7 +339,7 @@ func constantToNumberLiteral(t ConstType, v constant.Value) string {
 	return fmt.Sprintf("?(unexpected literal: %s)", v)
 }
 
-func (p *Program) localVariableName(topBlock *Block, idx int) string {
+func localVariableName(p *shaderir.Program, topBlock *shaderir.Block, idx int) string {
 	switch topBlock {
 	case &p.VertexFunc.Block:
 		na := len(p.Attributes)
@@ -363,63 +371,63 @@ func (p *Program) localVariableName(topBlock *Block, idx int) string {
 	}
 }
 
-func (p *Program) glslBlock(topBlock, block *Block, level int, localVarIndex int) []string {
+func (c *compileContext) glslBlock(p *shaderir.Program, topBlock, block *shaderir.Block, level int, localVarIndex int) []string {
 	idt := strings.Repeat("\t", level+1)
 
 	var lines []string
 	for _, t := range block.LocalVars {
 		// The type is None e.g., when the variable is a for-loop counter.
-		if t.Main != None {
-			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, p.glslVarDecl(&t, fmt.Sprintf("l%d", localVarIndex)), p.glslVarInit(&t)))
+		if t.Main != shaderir.None {
+			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, c.glslVarDecl(p, &t, fmt.Sprintf("l%d", localVarIndex)), c.glslVarInit(p, &t)))
 		}
 		localVarIndex++
 	}
 
-	var glslExpr func(e *Expr) string
-	glslExpr = func(e *Expr) string {
+	var glslExpr func(e *shaderir.Expr) string
+	glslExpr = func(e *shaderir.Expr) string {
 		switch e.Type {
-		case NumberExpr:
+		case shaderir.NumberExpr:
 			return constantToNumberLiteral(e.ConstType, e.Const)
-		case UniformVariable:
+		case shaderir.UniformVariable:
 			return fmt.Sprintf("U%d", e.Index)
-		case TextureVariable:
+		case shaderir.TextureVariable:
 			return fmt.Sprintf("T%d", e.Index)
-		case LocalVariable:
-			return p.localVariableName(topBlock, e.Index)
-		case StructMember:
+		case shaderir.LocalVariable:
+			return localVariableName(p, topBlock, e.Index)
+		case shaderir.StructMember:
 			return fmt.Sprintf("M%d", e.Index)
-		case BuiltinFuncExpr:
-			return e.BuiltinFunc.Glsl()
-		case SwizzlingExpr:
+		case shaderir.BuiltinFuncExpr:
+			return builtinFuncString(e.BuiltinFunc)
+		case shaderir.SwizzlingExpr:
 			if !isValidSwizzling(e.Swizzling) {
 				return fmt.Sprintf("?(unexpected swizzling: %s)", e.Swizzling)
 			}
 			return e.Swizzling
-		case FunctionExpr:
+		case shaderir.FunctionExpr:
 			return fmt.Sprintf("F%d", e.Index)
-		case Unary:
+		case shaderir.Unary:
 			var op string
 			switch e.Op {
-			case Add, Sub, NotOp:
+			case shaderir.Add, shaderir.Sub, shaderir.NotOp:
 				op = string(e.Op)
 			default:
 				op = fmt.Sprintf("?(unexpected op: %s)", string(e.Op))
 			}
 			return fmt.Sprintf("%s(%s)", op, glslExpr(&e.Exprs[0]))
-		case Binary:
+		case shaderir.Binary:
 			return fmt.Sprintf("(%s) %s (%s)", glslExpr(&e.Exprs[0]), e.Op, glslExpr(&e.Exprs[1]))
-		case Selection:
+		case shaderir.Selection:
 			return fmt.Sprintf("(%s) ? (%s) : (%s)", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]), glslExpr(&e.Exprs[2]))
-		case Call:
+		case shaderir.Call:
 			var args []string
 			for _, exp := range e.Exprs[1:] {
 				args = append(args, glslExpr(&exp))
 			}
 			// Using parentheses at the callee is illegal.
 			return fmt.Sprintf("%s(%s)", glslExpr(&e.Exprs[0]), strings.Join(args, ", "))
-		case FieldSelector:
+		case shaderir.FieldSelector:
 			return fmt.Sprintf("(%s).%s", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]))
-		case Index:
+		case shaderir.Index:
 			return fmt.Sprintf("(%s)[%s]", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]))
 		default:
 			return fmt.Sprintf("?(unexpected expr: %d)", e.Type)
@@ -428,33 +436,33 @@ func (p *Program) glslBlock(topBlock, block *Block, level int, localVarIndex int
 
 	for _, s := range block.Stmts {
 		switch s.Type {
-		case ExprStmt:
+		case shaderir.ExprStmt:
 			lines = append(lines, fmt.Sprintf("%s%s;", idt, glslExpr(&s.Exprs[0])))
-		case BlockStmt:
+		case shaderir.BlockStmt:
 			lines = append(lines, idt+"{")
-			lines = append(lines, p.glslBlock(topBlock, &s.Blocks[0], level+1, localVarIndex)...)
+			lines = append(lines, c.glslBlock(p, topBlock, &s.Blocks[0], level+1, localVarIndex)...)
 			lines = append(lines, idt+"}")
-		case Assign:
+		case shaderir.Assign:
 			// TODO: Give an appropriate context
 			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, glslExpr(&s.Exprs[0]), glslExpr(&s.Exprs[1])))
-		case If:
+		case shaderir.If:
 			lines = append(lines, fmt.Sprintf("%sif (%s) {", idt, glslExpr(&s.Exprs[0])))
-			lines = append(lines, p.glslBlock(topBlock, &s.Blocks[0], level+1, localVarIndex)...)
+			lines = append(lines, c.glslBlock(p, topBlock, &s.Blocks[0], level+1, localVarIndex)...)
 			if len(s.Blocks) > 1 {
 				lines = append(lines, fmt.Sprintf("%s} else {", idt))
-				lines = append(lines, p.glslBlock(topBlock, &s.Blocks[1], level+1, localVarIndex)...)
+				lines = append(lines, c.glslBlock(p, topBlock, &s.Blocks[1], level+1, localVarIndex)...)
 			}
 			lines = append(lines, fmt.Sprintf("%s}", idt))
-		case For:
-			var ct ConstType
+		case shaderir.For:
+			var ct shaderir.ConstType
 			switch s.ForVarType.Main {
-			case Int:
-				ct = ConstTypeInt
-			case Float:
-				ct = ConstTypeFloat
+			case shaderir.Int:
+				ct = shaderir.ConstTypeInt
+			case shaderir.Float:
+				ct = shaderir.ConstTypeFloat
 			}
 
-			v := p.localVariableName(topBlock, s.ForVarIndex)
+			v := localVariableName(p, topBlock, s.ForVarIndex)
 			var delta string
 			switch val, _ := constant.Float64Val(s.ForDelta); val {
 			case 0:
@@ -474,7 +482,7 @@ func (p *Program) glslBlock(topBlock, block *Block, level int, localVarIndex int
 			}
 			var op string
 			switch s.ForOp {
-			case LessThanOp, LessThanEqualOp, GreaterThanOp, GreaterThanEqualOp, EqualOp, NotEqualOp:
+			case shaderir.LessThanOp, shaderir.LessThanEqualOp, shaderir.GreaterThanOp, shaderir.GreaterThanEqualOp, shaderir.EqualOp, shaderir.NotEqualOp:
 				op = string(s.ForOp)
 			default:
 				op = fmt.Sprintf("?(unexpected op: %s)", string(s.ForOp))
@@ -483,22 +491,22 @@ func (p *Program) glslBlock(topBlock, block *Block, level int, localVarIndex int
 			t := s.ForVarType
 			init := constantToNumberLiteral(ct, s.ForInit)
 			end := constantToNumberLiteral(ct, s.ForEnd)
-			t0, t1 := t.Glsl()
+			t0, t1 := typeString(&t)
 			lines = append(lines, fmt.Sprintf("%sfor (%s %s%s = %s; %s %s %s; %s) {", idt, t0, v, t1, init, v, op, end, delta))
-			lines = append(lines, p.glslBlock(topBlock, &s.Blocks[0], level+1, localVarIndex)...)
+			lines = append(lines, c.glslBlock(p, topBlock, &s.Blocks[0], level+1, localVarIndex)...)
 			lines = append(lines, fmt.Sprintf("%s}", idt))
-		case Continue:
+		case shaderir.Continue:
 			lines = append(lines, idt+"continue;")
-		case Break:
+		case shaderir.Break:
 			lines = append(lines, idt+"break;")
-		case Return:
+		case shaderir.Return:
 			if len(s.Exprs) == 0 {
 				lines = append(lines, idt+"return;")
 			} else {
 				// TODO: Give an appropriate context.
 				lines = append(lines, fmt.Sprintf("%sreturn %s;", idt, glslExpr(&s.Exprs[0])))
 			}
-		case Discard:
+		case shaderir.Discard:
 			lines = append(lines, idt+"discard;")
 		default:
 			lines = append(lines, fmt.Sprintf("%s?(unexpected stmt: %d)", idt, s.Type))

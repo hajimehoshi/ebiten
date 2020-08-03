@@ -24,12 +24,12 @@ import (
 	"testing"
 
 	. "github.com/hajimehoshi/ebiten/internal/shader"
-	"github.com/hajimehoshi/ebiten/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/internal/shaderir/glsl"
 )
 
 func normalize(str string) string {
-	if strings.HasPrefix(str, shaderir.GlslFragmentPrelude) {
-		str = str[len(shaderir.GlslFragmentPrelude):]
+	if strings.HasPrefix(str, glsl.FragmentPrelude) {
+		str = str[len(glsl.FragmentPrelude):]
 	}
 	return strings.TrimSpace(str)
 }
@@ -114,7 +114,7 @@ func TestCompile(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			vs, fs := s.Glsl()
+			vs, fs := glsl.Compile(s)
 			if got, want := normalize(vs), normalize(string(tc.VS)); got != want {
 				t.Errorf("got: %v, want: %v", got, want)
 			}

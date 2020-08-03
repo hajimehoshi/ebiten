@@ -19,6 +19,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/internal/shaderir/glsl"
 )
 
 type Shader struct {
@@ -51,7 +52,7 @@ func (s *Shader) Dispose() {
 }
 
 func (s *Shader) compile() error {
-	vssrc, fssrc := s.ir.Glsl()
+	vssrc, fssrc := glsl.Compile(s.ir)
 
 	vs, err := s.graphics.context.newShader(vertexShader, vssrc)
 	if err != nil {
