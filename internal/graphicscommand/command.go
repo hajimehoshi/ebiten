@@ -23,7 +23,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
-	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
 var theGraphicsDriver driver.Graphics
