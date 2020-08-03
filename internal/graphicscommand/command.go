@@ -46,9 +46,6 @@ func IsShaderAvailable() bool {
 	if !theGraphicsDriver.IsGL() {
 		return false
 	}
-	if web.IsBrowser() {
-		return false
-	}
 	return true
 }
 
