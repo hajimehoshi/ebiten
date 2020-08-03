@@ -803,12 +803,20 @@ type Function struct {
 	function unsafe.Pointer
 }
 
+func (f Function) Release() {
+	C.Function_Release(f.function)
+}
+
 // RenderPipelineState contains the graphics functions
 // and configuration state used in a render pass.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlrenderpipelinestate.
 type RenderPipelineState struct {
 	renderPipelineState unsafe.Pointer
+}
+
+func (r RenderPipelineState) Release() {
+	C.RenderPipelineState_Release(r.renderPipelineState)
 }
 
 // Region is a rectangular block of pixels in an image or texture,

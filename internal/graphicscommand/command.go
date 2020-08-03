@@ -40,14 +40,6 @@ func NeedsRestoring() bool {
 	return theGraphicsDriver.NeedsRestoring()
 }
 
-// IsShaderAvailable reports whether shaders are available. This function is only for testing.
-func IsShaderAvailable() bool {
-	if !theGraphicsDriver.IsGL() {
-		return false
-	}
-	return true
-}
-
 // command represents a drawing command.
 //
 // A command for drawing that is created when Image functions are called like DrawTriangles,

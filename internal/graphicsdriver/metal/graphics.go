@@ -318,6 +318,9 @@ type Graphics struct {
 	images      map[driver.ImageID]*Image
 	nextImageID driver.ImageID
 
+	shaders      map[driver.ShaderID]*Shader
+	nextShaderID driver.ShaderID
+
 	src *Image
 	dst *Image
 
@@ -433,6 +436,12 @@ func (g *Graphics) InvalidImageID() driver.ImageID {
 	return -1
 }
 
+func (g *Graphics) genNextShaderID() driver.ShaderID {
+	id := g.nextShaderID
+	g.nextShaderID++
+	return id
+}
+
 func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
 	g.checkSize(width, height)
 	td := mtl.TextureDescriptor{
@@ -491,6 +500,27 @@ func (g *Graphics) removeImage(img *Image) {
 
 func (g *Graphics) SetTransparent(transparent bool) {
 	g.transparent = transparent
+}
+
+func operationToBlendFactor(c driver.Operation) mtl.BlendFactor {
+	switch c {
+	case driver.Zero:
+		return mtl.BlendFactorZero
+	case driver.One:
+		return mtl.BlendFactorOne
+	case driver.SrcAlpha:
+		return mtl.BlendFactorSourceAlpha
+	case driver.DstAlpha:
+		return mtl.BlendFactorDestinationAlpha
+	case driver.OneMinusSrcAlpha:
+		return mtl.BlendFactorOneMinusSourceAlpha
+	case driver.OneMinusDstAlpha:
+		return mtl.BlendFactorOneMinusDestinationAlpha
+	case driver.DstColor:
+		return mtl.BlendFactorDestinationColor
+	default:
+		panic(fmt.Sprintf("metal: invalid operation: %d", c))
+	}
 }
 
 func (g *Graphics) Reset() error {
@@ -554,27 +584,6 @@ func (g *Graphics) Reset() error {
 		}
 		g.screenRPS = rps
 
-		conv := func(c driver.Operation) mtl.BlendFactor {
-			switch c {
-			case driver.Zero:
-				return mtl.BlendFactorZero
-			case driver.One:
-				return mtl.BlendFactorOne
-			case driver.SrcAlpha:
-				return mtl.BlendFactorSourceAlpha
-			case driver.DstAlpha:
-				return mtl.BlendFactorDestinationAlpha
-			case driver.OneMinusSrcAlpha:
-				return mtl.BlendFactorOneMinusSourceAlpha
-			case driver.OneMinusDstAlpha:
-				return mtl.BlendFactorOneMinusDestinationAlpha
-			case driver.DstColor:
-				return mtl.BlendFactorDestinationColor
-			default:
-				panic(fmt.Sprintf("metal: invalid operation: %d", c))
-			}
-		}
-
 		for _, screen := range []bool{false, true} {
 			for _, cm := range []bool{false, true} {
 				for _, a := range []driver.Address{
@@ -608,10 +617,10 @@ func (g *Graphics) Reset() error {
 							rpld.ColorAttachments[0].BlendingEnabled = true
 
 							src, dst := c.Operations()
-							rpld.ColorAttachments[0].DestinationAlphaBlendFactor = conv(dst)
-							rpld.ColorAttachments[0].DestinationRGBBlendFactor = conv(dst)
-							rpld.ColorAttachments[0].SourceAlphaBlendFactor = conv(src)
-							rpld.ColorAttachments[0].SourceRGBBlendFactor = conv(src)
+							rpld.ColorAttachments[0].DestinationAlphaBlendFactor = operationToBlendFactor(dst)
+							rpld.ColorAttachments[0].DestinationRGBBlendFactor = operationToBlendFactor(dst)
+							rpld.ColorAttachments[0].SourceAlphaBlendFactor = operationToBlendFactor(src)
+							rpld.ColorAttachments[0].SourceRGBBlendFactor = operationToBlendFactor(src)
 							rps, err := g.view.getMTLDevice().MakeRenderPipelineState(rpld)
 							if err != nil {
 								return err
@@ -818,11 +827,33 @@ func (g *Graphics) MaxImageSize() int {
 }
 
 func (g *Graphics) NewShader(program *shaderir.Program) (driver.Shader, error) {
-	panic("metal: NewShader is not implemented")
+	var s *Shader
+	if err := g.t.Call(func() error {
+		var err error
+		s, err = newShader(g.view.getMTLDevice(), g.genNextShaderID(), program)
+		if err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	g.addShader(s)
+	return s, nil
 }
 
-func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms []interface{}) error {
-	panic("metal: DrawShader is not implemented")
+func (g *Graphics) addShader(shader *Shader) {
+	if g.shaders == nil {
+		g.shaders = map[driver.ShaderID]*Shader{}
+	}
+	if _, ok := g.shaders[shader.id]; ok {
+		panic(fmt.Sprintf("metal: shader ID %d was already registered", shader.id))
+	}
+	g.shaders[shader.id] = shader
+}
+
+func (g *Graphics) removeShader(shader *Shader) {
+	delete(g.shaders, shader.id)
 }
 
 type Image struct {
@@ -958,4 +989,58 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 
 		return nil
 	})
+}
+
+func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms []interface{}) error {
+	dst := g.images[dstID]
+	var srcs [graphics.ShaderImageNum]*Image
+	for i, srcID := range srcIDs {
+		srcs[i] = g.images[srcID]
+	}
+
+	if err := g.t.Call(func() error {
+		rps, err := g.shaders[shader].RenderPipelineState(g.view.getMTLDevice(), mode)
+		if err != nil {
+			return err
+		}
+
+		us := make([]interface{}, graphics.PreservedUniformVariablesNum+len(uniforms))
+
+		// Set the destination texture size.
+		dw, dh := dst.internalSize()
+		us[0] = []float32{float32(dw), float32(dh)}
+
+		// Set the source texture sizes.
+		usizes := make([]float32, 2*len(srcs))
+		for i, src := range srcs {
+			if src != nil {
+				w, h := src.internalSize()
+				usizes[2*i] = float32(w)
+				usizes[2*i+1] = float32(h)
+			}
+		}
+		us[1] = usizes
+
+		// Set the source offsets.
+		uoffsets := make([]float32, 2*len(offsets))
+		for i, offset := range offsets {
+			uoffsets[2*i] = offset[0]
+			uoffsets[2*i+1] = offset[1]
+		}
+		us[2] = uoffsets
+
+		// Set the additional uniform variables.
+		for i, v := range uniforms {
+			const offset = graphics.PreservedUniformVariablesNum
+			us[offset+i] = v
+		}
+
+		if err := g.draw(rps, dst, srcs, indexLen, indexOffset, us); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	return nil
 }

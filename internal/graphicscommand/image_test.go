@@ -80,10 +80,6 @@ func TestReplacePixelsPartAfterDrawTriangles(t *testing.T) {
 }
 
 func TestShader(t *testing.T) {
-	if !IsShaderAvailable() {
-		t.Skip("shader is not implemented on this environment")
-	}
-
 	const w, h = 16, 16
 	clr := NewImage(w, h)
 	dst := NewImage(w, h)

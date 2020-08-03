@@ -20,16 +20,11 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
 	. "github.com/hajimehoshi/ebiten/internal/restorable"
 	etesting "github.com/hajimehoshi/ebiten/internal/testing"
 )
 
 func TestShader(t *testing.T) {
-	if !graphicscommand.IsShaderAvailable() {
-		t.Skip("shader is not available on this environment")
-	}
-
 	img := NewImage(1, 1, false)
 	defer img.Dispose()
 
@@ -52,10 +47,6 @@ func TestShader(t *testing.T) {
 }
 
 func TestShaderChain(t *testing.T) {
-	if !graphicscommand.IsShaderAvailable() {
-		t.Skip("shader is not available on this environment")
-	}
-
 	const num = 10
 	imgs := []*Image{}
 	for i := 0; i < num; i++ {
@@ -89,10 +80,6 @@ func TestShaderChain(t *testing.T) {
 }
 
 func TestShaderMultipleSources(t *testing.T) {
-	if !graphicscommand.IsShaderAvailable() {
-		t.Skip("shader is not available on this environment")
-	}
-
 	var srcs [graphics.ShaderImageNum]*Image
 	for i := range srcs {
 		srcs[i] = NewImage(1, 1, false)
@@ -126,10 +113,6 @@ func TestShaderMultipleSources(t *testing.T) {
 }
 
 func TestShaderMultipleSourcesOnOneTexture(t *testing.T) {
-	if !graphicscommand.IsShaderAvailable() {
-		t.Skip("shader is not available on this environment")
-	}
-
 	src := NewImage(3, 1, false)
 	src.ReplacePixels([]byte{
 		0x40, 0, 0, 0xff,
@@ -166,10 +149,6 @@ func TestShaderMultipleSourcesOnOneTexture(t *testing.T) {
 }
 
 func TestShaderDispose(t *testing.T) {
-	if !graphicscommand.IsShaderAvailable() {
-		t.Skip("shader is not available on this environment")
-	}
-
 	img := NewImage(1, 1, false)
 	defer img.Dispose()
 

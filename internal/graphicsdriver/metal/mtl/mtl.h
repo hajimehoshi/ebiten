@@ -182,3 +182,5 @@ int Texture_Height(void *texture);
 void Buffer_CopyToContents(void *buffer, void *data, size_t lengthInBytes);
 void Buffer_Retain(void *buffer);
 void Buffer_Release(void *buffer);
+void Function_Release(void *function);
+void RenderPipelineState_Release(void *renderPipelineState);

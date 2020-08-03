@@ -343,3 +343,9 @@ void Buffer_CopyToContents(void *buffer, void *data, size_t lengthInBytes) {
 void Buffer_Retain(void *buffer) { [(id<MTLBuffer>)buffer retain]; }
 
 void Buffer_Release(void *buffer) { [(id<MTLBuffer>)buffer release]; }
+
+void Function_Release(void *function) { [(id<MTLFunction>)function release]; }
+
+void RenderPipelineState_Release(void *renderPipelineState) {
+  [(id<MTLRenderPipelineState>)renderPipelineState release];
+}
