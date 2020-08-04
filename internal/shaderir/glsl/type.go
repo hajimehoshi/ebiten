@@ -26,7 +26,7 @@ func typeString(t *shaderir.Type) (string, string) {
 		t0, t1 := typeString(&t.Sub[0])
 		return t0 + t1, fmt.Sprintf("[%d]", t.Length)
 	case shaderir.Struct:
-		panic("shaderir: a struct is not implemented")
+		panic("glsl: a struct is not implemented")
 	default:
 		return basicTypeString(t.Main), ""
 	}

@@ -75,7 +75,7 @@ type compileContext struct {
 
 func (c *compileContext) structName(p *shaderir.Program, t *shaderir.Type) string {
 	if t.Main != shaderir.Struct {
-		panic("shaderir: the given type at structName must be a struct")
+		panic("glsl: the given type at structName must be a struct")
 	}
 	s := t.String()
 	if n, ok := c.structNames[s]; ok {
