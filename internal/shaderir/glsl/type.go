@@ -65,16 +65,6 @@ func basicTypeString(t shaderir.BasicType) string {
 
 func builtinFuncString(f shaderir.BuiltinFunc) string {
 	switch f {
-	case shaderir.LessThan:
-		return "lessThan"
-	case shaderir.LessThanEqual:
-		return "lessThanEqual"
-	case shaderir.GreaterThan:
-		return "greaterThan"
-	case shaderir.GreaterThanEqual:
-		return "greaterThanEqual"
-	case shaderir.NotEqual:
-		return "notEqual"
 	case shaderir.Dfdx:
 		return "dFdx"
 	case shaderir.Dfdy:
