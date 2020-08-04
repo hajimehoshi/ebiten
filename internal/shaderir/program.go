@@ -251,8 +251,6 @@ func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
 		Mat2F,
 		Mat3F,
 		Mat4F,
-		Radians,
-		Degrees,
 		Sin,
 		Cos,
 		Tan,
