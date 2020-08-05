@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"go/constant"
 	"go/token"
+	"regexp"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
@@ -95,10 +96,9 @@ func Compile(p *shaderir.Program) (vertexShader, fragmentShader string) {
 	// Vertex func
 	var vslines []string
 	{
+		vslines = append(vslines, "{{.Structs}}")
 		if len(p.Uniforms) > 0 || p.TextureNum > 0 || len(p.Attributes) > 0 || len(p.Varyings) > 0 {
-			if len(vslines) > 0 && vslines[len(vslines)-1] != "" {
-				vslines = append(vslines, "")
-			}
+			vslines = append(vslines, "")
 			for i, t := range p.Uniforms {
 				vslines = append(vslines, fmt.Sprintf("uniform %s;", c.glslVarDecl(p, &t, fmt.Sprintf("U%d", i))))
 			}
@@ -113,9 +113,7 @@ func Compile(p *shaderir.Program) (vertexShader, fragmentShader string) {
 			}
 		}
 		if len(p.Funcs) > 0 {
-			if len(vslines) > 0 && vslines[len(vslines)-1] != "" {
-				vslines = append(vslines, "")
-			}
+			vslines = append(vslines, "")
 			for _, f := range p.Funcs {
 				vslines = append(vslines, c.glslFunc(p, &f, true)...)
 			}
@@ -128,9 +126,7 @@ func Compile(p *shaderir.Program) (vertexShader, fragmentShader string) {
 		}
 
 		if len(p.VertexFunc.Block.Stmts) > 0 {
-			if len(vslines) > 0 && vslines[len(vslines)-1] != "" {
-				vslines = append(vslines, "")
-			}
+			vslines = append(vslines, "")
 			vslines = append(vslines, "void main(void) {")
 			vslines = append(vslines, c.glslBlock(p, &p.VertexFunc.Block, &p.VertexFunc.Block, 0, 0)...)
 			vslines = append(vslines, "}")
@@ -140,10 +136,10 @@ func Compile(p *shaderir.Program) (vertexShader, fragmentShader string) {
 	// Fragment func
 	var fslines []string
 	{
+		fslines = append(fslines, strings.Split(FragmentPrelude, "\n")...)
+		fslines = append(fslines, "", "{{.Structs}}")
 		if len(p.Uniforms) > 0 || p.TextureNum > 0 || len(p.Varyings) > 0 {
-			if len(fslines) > 0 && fslines[len(fslines)-1] != "" {
-				fslines = append(fslines, "")
-			}
+			fslines = append(fslines, "")
 			for i, t := range p.Uniforms {
 				fslines = append(fslines, fmt.Sprintf("uniform %s;", c.glslVarDecl(p, &t, fmt.Sprintf("U%d", i))))
 			}
@@ -155,9 +151,7 @@ func Compile(p *shaderir.Program) (vertexShader, fragmentShader string) {
 			}
 		}
 		if len(p.Funcs) > 0 {
-			if len(fslines) > 0 && fslines[len(fslines)-1] != "" {
-				fslines = append(fslines, "")
-			}
+			fslines = append(fslines, "")
 			for _, f := range p.Funcs {
 				fslines = append(fslines, c.glslFunc(p, &f, true)...)
 			}
@@ -170,17 +164,15 @@ func Compile(p *shaderir.Program) (vertexShader, fragmentShader string) {
 		}
 
 		if len(p.FragmentFunc.Block.Stmts) > 0 {
-			if len(fslines) > 0 && fslines[len(fslines)-1] != "" {
-				fslines = append(fslines, "")
-			}
+			fslines = append(fslines, "")
 			fslines = append(fslines, "void main(void) {")
 			fslines = append(fslines, c.glslBlock(p, &p.FragmentFunc.Block, &p.FragmentFunc.Block, 0, 0)...)
 			fslines = append(fslines, "}")
 		}
 	}
 
-	var tmpvslines []string
-	tmpfslines := strings.Split(FragmentPrelude, "\n")
+	vs := strings.Join(vslines, "\n")
+	fs := strings.Join(fslines, "\n")
 
 	// Struct types are determined after converting the program.
 	var stlines []string
@@ -192,31 +184,22 @@ func Compile(p *shaderir.Program) (vertexShader, fragmentShader string) {
 			}
 			stlines = append(stlines, "};")
 		}
-
-		if len(tmpvslines) > 0 {
-			tmpvslines = append(tmpvslines, "")
-		}
-		tmpvslines = append(stlines, tmpvslines...)
-
-		if len(tmpfslines) > 0 {
-			tmpfslines = append(tmpfslines, "")
-		}
-		copied := make([]string, len(stlines))
-		copy(copied, stlines)
-		tmpfslines = append(tmpfslines, copied...)
+		st := strings.Join(stlines, "\n")
+		vs = strings.ReplaceAll(vs, "{{.Structs}}", st)
+		fs = strings.ReplaceAll(fs, "{{.Structs}}", st)
+	} else {
+		vs = strings.ReplaceAll(vs, "{{.Structs}}", "")
+		fs = strings.ReplaceAll(fs, "{{.Structs}}", "")
 	}
 
-	if len(tmpvslines) > 0 && len(vslines) > 0 {
-		tmpvslines = append(tmpvslines, "")
-	}
-	vslines = append(tmpvslines, vslines...)
+	nls := regexp.MustCompile(`\n\n+`)
+	vs = nls.ReplaceAllString(vs, "\n\n")
+	fs = nls.ReplaceAllString(fs, "\n\n")
 
-	if len(tmpfslines) > 0 && len(fslines) > 0 {
-		tmpfslines = append(tmpfslines, "")
-	}
-	fslines = append(tmpfslines, fslines...)
+	vs = strings.TrimSpace(vs) + "\n"
+	fs = strings.TrimSpace(fs) + "\n"
 
-	return strings.Join(vslines, "\n") + "\n", strings.Join(fslines, "\n") + "\n"
+	return vs, fs
 }
 
 func (c *compileContext) glslType(p *shaderir.Program, t *shaderir.Type) (string, string) {
