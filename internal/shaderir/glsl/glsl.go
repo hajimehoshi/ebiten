@@ -243,20 +243,8 @@ func (c *compileContext) glslVarInit(p *shaderir.Program, t *shaderir.Type) stri
 		return "false"
 	case shaderir.Int:
 		return "0"
-	case shaderir.Float:
-		return "float(0)"
-	case shaderir.Vec2:
-		return "vec2(0)"
-	case shaderir.Vec3:
-		return "vec3(0)"
-	case shaderir.Vec4:
-		return "vec4(0)"
-	case shaderir.Mat2:
-		return "mat2(0)"
-	case shaderir.Mat3:
-		return "mat3(0)"
-	case shaderir.Mat4:
-		return "mat4(0)"
+	case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
+		return fmt.Sprintf("%s(0)", basicTypeString(t.Main))
 	default:
 		t0, t1 := c.glslType(p, t)
 		panic(fmt.Sprintf("?(unexpected type: %s%s)", t0, t1))
