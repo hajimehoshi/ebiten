@@ -641,103 +641,124 @@ func (g *Graphics) Reset() error {
 	return nil
 }
 
-func (g *Graphics) Draw(dstID, srcID driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, sourceRegion driver.Region) error {
-	// TODO: Use sourceRegion.
+func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, srcs [graphics.ShaderImageNum]*Image, indexLen int, indexOffset int, uniforms []interface{}) error {
+	g.view.update()
 
+	rpd := mtl.RenderPassDescriptor{}
+	// Even though the destination pixels are not used, mtl.LoadActionDontCare might cause glitches
+	// (#1019). Always using mtl.LoadActionLoad is safe.
+	rpd.ColorAttachments[0].LoadAction = mtl.LoadActionLoad
+	rpd.ColorAttachments[0].StoreAction = mtl.StoreActionStore
+
+	var t mtl.Texture
+	if dst.screen {
+		if g.screenDrawable == (ca.MetalDrawable{}) {
+			drawable := g.view.drawable()
+			if drawable == (ca.MetalDrawable{}) {
+				return nil
+			}
+			g.screenDrawable = drawable
+		}
+		t = g.screenDrawable.Texture()
+	} else {
+		t = dst.texture
+	}
+	rpd.ColorAttachments[0].Texture = t
+	rpd.ColorAttachments[0].ClearColor = mtl.ClearColor{}
+
+	if g.cb == (mtl.CommandBuffer{}) {
+		g.cb = g.cq.MakeCommandBuffer()
+	}
+	rce := g.cb.MakeRenderCommandEncoder(rpd)
+	rce.SetRenderPipelineState(rps)
+
+	// In Metal, the NDC's Y direction (upward) and the framebuffer's Y direction (downward) don't
+	// match. Then, the Y direction must be inverted.
+	w, h := dst.viewportSize()
+	rce.SetViewport(mtl.Viewport{
+		OriginX: 0,
+		OriginY: float64(h),
+		Width:   float64(w),
+		Height:  -float64(h),
+		ZNear:   -1,
+		ZFar:    1,
+	})
+	rce.SetVertexBuffer(g.vb, 0, 0)
+
+	for i, u := range uniforms {
+		switch u := u.(type) {
+		case float32:
+			rce.SetVertexBytes(unsafe.Pointer(&u), unsafe.Sizeof(u), i+1)
+			rce.SetFragmentBytes(unsafe.Pointer(&u), unsafe.Sizeof(u), i+1)
+		case []float32:
+			rce.SetVertexBytes(unsafe.Pointer(&u[0]), unsafe.Sizeof(u[0])*uintptr(len(u)), i+1)
+			rce.SetFragmentBytes(unsafe.Pointer(&u[0]), unsafe.Sizeof(u[0])*uintptr(len(u)), i+1)
+		default:
+			return fmt.Errorf("metal: unexpected uniform value: %[1]v (type: %[1]T)", u)
+		}
+	}
+
+	for i, src := range srcs {
+		if src != nil {
+			rce.SetFragmentTexture(src.texture, i)
+		} else {
+			rce.SetFragmentTexture(mtl.Texture{}, i)
+		}
+	}
+	rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, indexLen, mtl.IndexTypeUInt16, g.ib, indexOffset*2)
+	rce.EndEncoding()
+	return nil
+}
+
+func (g *Graphics) Draw(dstID, srcID driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, sourceRegion driver.Region) error {
 	dst := g.images[dstID]
-	src := g.images[srcID]
+	srcs := [graphics.ShaderImageNum]*Image{g.images[srcID]}
+
+	var rps mtl.RenderPipelineState
+	if dst.screen && filter == driver.FilterScreen {
+		rps = g.screenRPS
+	} else {
+		rps = g.rpss[rpsKey{
+			screen:        dst.screen,
+			useColorM:     colorM != nil,
+			filter:        filter,
+			address:       address,
+			compositeMode: mode,
+		}]
+	}
 
 	if err := g.t.Call(func() error {
-		g.view.update()
-
-		rpd := mtl.RenderPassDescriptor{}
-		// Even though the destination pixels are not used, mtl.LoadActionDontCare might cause glitches
-		// (#1019). Always using mtl.LoadActionLoad is safe.
-		rpd.ColorAttachments[0].LoadAction = mtl.LoadActionLoad
-		rpd.ColorAttachments[0].StoreAction = mtl.StoreActionStore
-
-		var t mtl.Texture
-		if dst.screen {
-			if g.screenDrawable == (ca.MetalDrawable{}) {
-				drawable := g.view.drawable()
-				if drawable == (ca.MetalDrawable{}) {
-					return nil
-				}
-				g.screenDrawable = drawable
-			}
-			t = g.screenDrawable.Texture()
-		} else {
-			t = dst.texture
-		}
-		rpd.ColorAttachments[0].Texture = t
-		rpd.ColorAttachments[0].ClearColor = mtl.ClearColor{}
-
-		if g.cb == (mtl.CommandBuffer{}) {
-			g.cb = g.cq.MakeCommandBuffer()
-		}
-		rce := g.cb.MakeRenderCommandEncoder(rpd)
-
-		if dst.screen && filter == driver.FilterScreen {
-			rce.SetRenderPipelineState(g.screenRPS)
-		} else {
-			rce.SetRenderPipelineState(g.rpss[rpsKey{
-				screen:        dst.screen,
-				useColorM:     colorM != nil,
-				filter:        filter,
-				address:       address,
-				compositeMode: mode,
-			}])
-		}
-		// In Metal, the NDC's Y direction (upward) and the framebuffer's Y direction (downward) don't
-		// match. Then, the Y direction must be inverted.
 		w, h := dst.viewportSize()
-		rce.SetViewport(mtl.Viewport{
-			OriginX: 0,
-			OriginY: float64(h),
-			Width:   float64(w),
-			Height:  -float64(h),
-			ZNear:   -1,
-			ZFar:    1,
-		})
-		rce.SetVertexBuffer(g.vb, 0, 0)
-
-		viewportSize := [...]float32{float32(w), float32(h)}
-		rce.SetVertexBytes(unsafe.Pointer(&viewportSize[0]), unsafe.Sizeof(viewportSize), 1)
-
-		sourceSize := [...]float32{
-			float32(graphics.InternalImageSize(src.width)),
-			float32(graphics.InternalImageSize(src.height)),
+		sourceSize := []float32{0, 0}
+		if filter != driver.FilterNearest {
+			sourceSize[0] = float32(graphics.InternalImageSize(srcs[0].width))
+			sourceSize[1] = float32(graphics.InternalImageSize(srcs[0].height))
 		}
-		rce.SetFragmentBytes(unsafe.Pointer(&sourceSize[0]), unsafe.Sizeof(sourceSize), 2)
-
 		esBody, esTranslate := colorM.UnsafeElements()
-		rce.SetFragmentBytes(unsafe.Pointer(&esBody[0]), unsafe.Sizeof(esBody[0])*uintptr(len(esBody)), 3)
-		rce.SetFragmentBytes(unsafe.Pointer(&esTranslate[0]), unsafe.Sizeof(esTranslate[0])*uintptr(len(esTranslate)), 4)
-
-		scale := float32(dst.width) / float32(src.width)
-		rce.SetFragmentBytes(unsafe.Pointer(&scale), unsafe.Sizeof(scale), 5)
-
-		sr := [...]float32{
-			sourceRegion.X,
-			sourceRegion.Y,
-			sourceRegion.X + sourceRegion.Width,
-			sourceRegion.Y + sourceRegion.Height,
+		scale := float32(0)
+		if filter == driver.FilterScreen {
+			scale = float32(dst.width) / float32(srcs[0].width)
 		}
-		rce.SetFragmentBytes(unsafe.Pointer(&sr[0]), unsafe.Sizeof(sr), 6)
-
-		if src != nil {
-			rce.SetFragmentTexture(src.texture, 0)
-		} else {
-			rce.SetFragmentTexture(mtl.Texture{}, 0)
+		uniforms := []interface{}{
+			[]float32{float32(w), float32(h)},
+			sourceSize,
+			esBody,
+			esTranslate,
+			scale,
+			[]float32{
+				sourceRegion.X,
+				sourceRegion.Y,
+				sourceRegion.X + sourceRegion.Width,
+				sourceRegion.Y + sourceRegion.Height,
+			},
 		}
-		rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, indexLen, mtl.IndexTypeUInt16, g.ib, indexOffset*2)
-		rce.EndEncoding()
-
+		if err := g.draw(rps, dst, srcs, indexLen, indexOffset, uniforms); err != nil {
+			return err
+		}
 		return nil
 	}); err != nil {
 		return err
 	}
-
 	return nil
 }
 
