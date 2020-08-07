@@ -769,42 +769,6 @@ func (i *Image) ReplacePixels(pixels []byte) error {
 	return nil
 }
 
-// A DrawImageOptions represents options to render an image on an image.
-type DrawImageOptions struct {
-	// GeoM is a geometry matrix to draw.
-	// The default (zero) value is identity, which draws the image at (0, 0).
-	GeoM GeoM
-
-	// ColorM is a color matrix to draw.
-	// The default (zero) value is identity, which doesn't change any color.
-	ColorM ColorM
-
-	// CompositeMode is a composite mode to draw.
-	// The default (zero) value is regular alpha blending.
-	CompositeMode CompositeMode
-
-	// Filter is a type of texture filter.
-	// The default (zero) value is FilterDefault.
-	//
-	// Filter can also be specified at NewImage* functions, but
-	// specifying filter at DrawImageOptions is recommended (as of 1.7.0-alpha).
-	//
-	// If both Filter specified at NewImage* and DrawImageOptions are FilterDefault,
-	// FilterNearest is used.
-	// If either is FilterDefault and the other is not, the latter is used.
-	// Otherwise, Filter specified at DrawImageOptions is used.
-	Filter Filter
-
-	// Deprecated: (as of 1.5.0) Use SubImage instead.
-	ImageParts ImageParts
-
-	// Deprecated: (as of 1.1.0) Use SubImage instead.
-	Parts []ImagePart
-
-	// Deprecated: (as of 1.9.0) Use SubImage instead.
-	SourceRect *image.Rectangle
-}
-
 // NewImage returns an empty image.
 //
 // If width or height is less than 1 or more than device-dependent maximum size, NewImage panics.
