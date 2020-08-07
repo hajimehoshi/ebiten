@@ -482,7 +482,7 @@ func (i *Image) ReplacePixels(p []byte) error {
 // A DrawImageOptions represents options to render an image on an image.
 type DrawImageOptions struct {
 	// GeoM is a geometry matrix to draw.
-	// The default (zero) value is identify, which draws the image at (0, 0).
+	// The default (zero) value is identity, which draws the image at (0, 0).
 	GeoM GeoM
 
 	// ColorM is a color matrix to draw.
