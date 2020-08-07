@@ -271,7 +271,7 @@ func (g *Graphics) MaxImageSize() int {
 }
 
 func (g *Graphics) NewShader(program *shaderir.Program) (driver.Shader, error) {
-	s, err := NewShader(g.genNextShaderID(), g, program)
+	s, err := newShader(g.genNextShaderID(), g, program)
 	if err != nil {
 		return nil, err
 	}

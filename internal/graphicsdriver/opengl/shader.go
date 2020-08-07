@@ -30,7 +30,7 @@ type Shader struct {
 	p  program
 }
 
-func NewShader(id driver.ShaderID, graphics *Graphics, program *shaderir.Program) (*Shader, error) {
+func newShader(id driver.ShaderID, graphics *Graphics, program *shaderir.Program) (*Shader, error) {
 	s := &Shader{
 		id:       id,
 		graphics: graphics,
