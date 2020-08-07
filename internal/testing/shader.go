@@ -219,7 +219,7 @@ func defaultProgram() shaderir.Program {
 			{Main: shaderir.Vec4}, // Local var (3) in the vertex shader
 		},
 		Varyings: []shaderir.Type{
-			{Main: shaderir.Vec2}, // Local var (4) in the vertex shader, (0) in the fragment shader
+			{Main: shaderir.Vec2}, // Local var (4) in the vertex shader, (1) in the fragment shader
 		},
 		VertexFunc: defaultVertexFunc,
 	}
