@@ -1,0 +1,18 @@
+image: fedora/rawhide
+packages:
+  - mesa-libGLU-devel
+  - mesa-libGLES-devel
+  - libXrandr-devel
+  - libXcursor-devel
+  - libXinerama-devel
+  - libXi-devel
+  - libXxf86vm-devel
+  - alsa-lib-devel
+  - pkg-config
+  - go
+sources:
+  - https://github.com/hajimehoshi/ebiten
+tasks:
+  - build: |
+      cd ebiten
+      go build . ./audio

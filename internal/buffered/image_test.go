@@ -306,3 +306,5 @@ func TestReplacePixelsAndModifyBeforeMain(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+// TODO: Add tests for shaders and ReplacePixels to check resolvePendingPiexles works correctly.

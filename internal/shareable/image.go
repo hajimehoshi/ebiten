@@ -28,6 +28,12 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 )
 
+const (
+	// paddingSize represents the size of padding around an image.
+	// Every image or node except for a screen image has its padding.
+	paddingSize = 1
+)
+
 var graphicsDriver driver.Graphics
 
 func SetGraphicsDriver(graphics driver.Graphics) {
@@ -39,8 +45,8 @@ var (
 	maxSize = 0
 )
 
-func min(a, b int) int {
-	if a < b {
+func max(a, b int) int {
+	if a > b {
 		return a
 	}
 	return b
@@ -197,7 +203,7 @@ func (i *Image) ensureNotShared() {
 		return
 	}
 
-	ox, oy, w, h := i.region()
+	ox, oy, w, h := i.regionWithPadding()
 	dx0 := float32(0)
 	dy0 := float32(0)
 	dx1 := float32(w)
@@ -208,13 +214,15 @@ func (i *Image) ensureNotShared() {
 	sy1 := float32(oy + h)
 	newImg := restorable.NewImage(w, h, i.volatile)
 	vs := []float32{
-		dx0, dy0, sx0, sy0, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
-		dx1, dy0, sx1, sy0, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
-		dx0, dy1, sx0, sy1, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
-		dx1, dy1, sx1, sy1, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
+		dx0, dy0, sx0, sy0, 1, 1, 1, 1,
+		dx1, dy0, sx1, sy0, 1, 1, 1, 1,
+		dx0, dy1, sx0, sy1, 1, 1, 1, 1,
+		dx1, dy1, sx1, sy1, 1, 1, 1, 1,
 	}
 	is := graphics.QuadIndices()
-	newImg.DrawTriangles(i.backend.restorable, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero, nil, nil)
+	srcs := [graphics.ShaderImageNum]*restorable.Image{i.backend.restorable}
+	var offsets [graphics.ShaderImageNum - 1][2]float32
+	newImg.DrawTriangles(srcs, offsets, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
 
 	i.dispose(false)
 	i.backend = &backend{
@@ -240,14 +248,14 @@ func (i *Image) makeShared() error {
 	pixels := make([]byte, 4*i.width*i.height)
 	for y := 0; y < i.height; y++ {
 		for x := 0; x < i.width; x++ {
-			r, g, b, a, err := i.at(x, y)
+			r, g, b, a, err := i.at(x+paddingSize, y+paddingSize)
 			if err != nil {
 				return err
 			}
-			pixels[4*(x+i.width*y)] = r
-			pixels[4*(x+i.width*y)+1] = g
-			pixels[4*(x+i.width*y)+2] = b
-			pixels[4*(x+i.width*y)+3] = a
+			pixels[4*(i.width*y+x)] = r
+			pixels[4*(i.width*y+x)+1] = g
+			pixels[4*(i.width*y+x)+2] = b
+			pixels[4*(i.width*y+x)+3] = a
 		}
 	}
 	newI.replacePixels(pixels)
@@ -256,73 +264,123 @@ func (i *Image) makeShared() error {
 	return nil
 }
 
-func (i *Image) region() (x, y, width, height int) {
+func (i *Image) regionWithPadding() (x, y, width, height int) {
 	if i.backend == nil {
 		panic("shareable: backend must not be nil: not allocated yet?")
 	}
 	if !i.isShared() {
-		return 0, 0, i.width, i.height
+		return 0, 0, i.width + 2*paddingSize, i.height + 2*paddingSize
 	}
 	return i.node.Region()
+}
+
+func (i *Image) processSrc(src *Image) {
+	if src == nil {
+		return
+	}
+	if src.disposed {
+		panic("shareable: the drawing source image must not be disposed (DrawTriangles)")
+	}
+	if src.backend == nil {
+		src.allocate(true)
+	}
+
+	// Compare i and source images after ensuring i is not shared, or
+	// i and a source image might share the same texture even though i != src.
+	if i.backend.restorable == src.backend.restorable {
+		panic("shareable: Image.DrawTriangles: source must be different from the receiver")
+	}
 }
 
 // DrawTriangles draws triangles with the given image.
 //
 // The vertex floats are:
 //
-//   0:  Destination X in pixels
-//   1:  Destination Y in pixels
-//   2:  Source X in pixels (the upper-left is (0, 0))
-//   3:  Source Y in pixels
-//   4:  Bounds of the source min X in pixels
-//   5:  Bounds of the source min Y in pixels
-//   6:  Bounds of the source max X in pixels
-//   7:  Bounds of the source max Y in pixels
-//   8:  Color R [0.0-1.0]
-//   9:  Color G
-//   10: Color B
-//   11: Color Y
-func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
+//   0: Destination X in pixels
+//   1: Destination Y in pixels
+//   2: Source X in pixels (the upper-left is (0, 0))
+//   3: Source Y in pixels
+//   4: Color R [0.0-1.0]
+//   5: Color G
+//   6: Color B
+//   7: Color Y
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
 	backendsM.Lock()
 	// Do not use defer for performance.
 
-	if img.disposed {
-		panic("shareable: the drawing source image must not be disposed (DrawTriangles)")
-	}
 	if i.disposed {
 		panic("shareable: the drawing target image must not be disposed (DrawTriangles)")
 	}
-	if img.backend == nil {
-		img.allocate(true)
-	}
-
 	i.ensureNotShared()
 
-	// Compare i and img after ensuring i is not shared, or
-	// i and img might share the same texture even though i != img.
-	if i.backend.restorable == img.backend.restorable {
-		panic("shareable: Image.DrawTriangles: img must be different from the receiver")
+	for _, src := range srcs {
+		i.processSrc(src)
 	}
 
-	ox, oy, _, _ := img.region()
-	oxf, oyf := float32(ox), float32(oy)
-	n := len(vertices) / graphics.VertexFloatNum
-	for i := 0; i < n; i++ {
-		vertices[i*graphics.VertexFloatNum+2] += oxf
-		vertices[i*graphics.VertexFloatNum+3] += oyf
-		vertices[i*graphics.VertexFloatNum+4] += oxf
-		vertices[i*graphics.VertexFloatNum+5] += oyf
-		vertices[i*graphics.VertexFloatNum+6] += oxf
-		vertices[i*graphics.VertexFloatNum+7] += oyf
+	var dx, dy float32
+	// A screen image doesn't have its padding.
+	if !i.screen {
+		dx = paddingSize
+		dy = paddingSize
 	}
 
-	i.backend.restorable.DrawTriangles(img.backend.restorable, vertices, indices, colorm, mode, filter, address, nil, nil)
+	var oxf, oyf float32
+	if srcs[0] != nil {
+		ox, oy, _, _ := srcs[0].regionWithPadding()
+		ox += paddingSize
+		oy += paddingSize
+		oxf, oyf = float32(ox), float32(oy)
+		n := len(vertices) / graphics.VertexFloatNum
+		for i := 0; i < n; i++ {
+			vertices[i*graphics.VertexFloatNum+0] += dx
+			vertices[i*graphics.VertexFloatNum+1] += dy
+			vertices[i*graphics.VertexFloatNum+2] += oxf
+			vertices[i*graphics.VertexFloatNum+3] += oyf
+		}
+		if address != driver.AddressUnsafe {
+			sourceRegion.X += oxf
+			sourceRegion.Y += oyf
+		}
+	}
+
+	var offsets [graphics.ShaderImageNum - 1][2]float32
+	for i := range offsets {
+		src := srcs[i+1]
+		if src == nil {
+			continue
+		}
+		ox, oy, _, _ := src.regionWithPadding()
+		ox += paddingSize
+		oy += paddingSize
+		offsets[i][0] = float32(ox) - oxf
+		offsets[i][1] = float32(oy) - oyf
+	}
+
+	var s *restorable.Shader
+	if shader != nil {
+		s = shader.shader
+	}
+
+	var imgs [graphics.ShaderImageNum]*restorable.Image
+	for i, src := range srcs {
+		if src == nil {
+			continue
+		}
+		imgs[i] = src.backend.restorable
+	}
+
+	i.backend.restorable.DrawTriangles(imgs, offsets, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms)
 
 	i.nonUpdatedCount = 0
 	delete(imagesToMakeShared, i)
 
-	if !img.isShared() && img.shareable() {
-		imagesToMakeShared[img] = struct{}{}
+	for _, src := range srcs {
+		if src == nil {
+			continue
+		}
+		if !src.isShared() && src.shareable() {
+			imagesToMakeShared[src] = struct{}{}
+		}
 	}
 
 	backendsM.Unlock()
@@ -350,35 +408,49 @@ func (i *Image) Fill(clr color.RGBA) {
 	delete(imagesToMakeShared, i)
 }
 
-func (i *Image) ReplacePixels(p []byte) {
+func (i *Image) ReplacePixels(pix []byte) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	i.replacePixels(p)
+	i.replacePixels(pix)
 }
 
-func (i *Image) replacePixels(p []byte) {
+func (i *Image) replacePixels(pix []byte) {
 	if i.disposed {
 		panic("shareable: the image must not be disposed at replacePixels")
 	}
 	if i.backend == nil {
-		if p == nil {
+		if pix == nil {
 			return
 		}
 		i.allocate(true)
 	}
 
-	x, y, w, h := i.region()
-	if p != nil {
-		if l := 4 * w * h; len(p) != l {
-			panic(fmt.Sprintf("shareable: len(p) must be %d but %d", l, len(p)))
-		}
+	x, y, w, h := i.regionWithPadding()
+	if pix == nil {
+		i.backend.restorable.ReplacePixels(nil, x, y, w, h)
+		return
 	}
-	i.backend.restorable.ReplacePixels(p, x, y, w, h)
+
+	ow, oh := w-2*paddingSize, h-2*paddingSize
+	if l := 4 * ow * oh; len(pix) != l {
+		panic(fmt.Sprintf("shareable: len(p) must be %d but %d", l, len(pix)))
+	}
+
+	// Add a padding around the image.
+	pixb := make([]byte, 4*w*h)
+	for j := 0; j < oh; j++ {
+		copy(pixb[4*((j+paddingSize)*w+paddingSize):], pix[4*j*ow:4*(j+1)*ow])
+	}
+
+	i.backend.restorable.ReplacePixels(pixb, x, y, w, h)
 }
 
 func (img *Image) Pixels(x, y, width, height int) ([]byte, error) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
+
+	x += paddingSize
+	y += paddingSize
 
 	bs := make([]byte, 4*width*height)
 	idx := 0
@@ -403,7 +475,7 @@ func (i *Image) at(x, y int) (byte, byte, byte, byte, error) {
 		return 0, 0, 0, 0, nil
 	}
 
-	ox, oy, w, h := i.region()
+	ox, oy, w, h := i.regionWithPadding()
 	if x < 0 || y < 0 || x >= w || y >= h {
 		return 0, 0, 0, 0, nil
 	}
@@ -453,7 +525,7 @@ func (i *Image) dispose(markDisposed bool) {
 	i.backend.page.Free(i.node)
 	if !i.backend.page.IsEmpty() {
 		// As this part can be reused, this should be cleared explicitly.
-		i.backend.restorable.ClearPixels(i.region())
+		i.backend.restorable.ClearPixels(i.regionWithPadding())
 		return
 	}
 
@@ -490,7 +562,7 @@ func (i *Image) shareable() bool {
 	if i.screen {
 		return false
 	}
-	return i.width <= maxSize && i.height <= maxSize
+	return i.width+2*paddingSize <= maxSize && i.height+2*paddingSize <= maxSize
 }
 
 func (i *Image) allocate(shareable bool) {
@@ -501,6 +573,7 @@ func (i *Image) allocate(shareable bool) {
 	runtime.SetFinalizer(i, (*Image).MarkDisposed)
 
 	if i.screen {
+		// A screen image doesn't have a padding.
 		i.backend = &backend{
 			restorable: restorable.NewScreenFramebufferImage(i.width, i.height),
 		}
@@ -509,20 +582,20 @@ func (i *Image) allocate(shareable bool) {
 
 	if !shareable || !i.shareable() {
 		i.backend = &backend{
-			restorable: restorable.NewImage(i.width, i.height, i.volatile),
+			restorable: restorable.NewImage(i.width+2*paddingSize, i.height+2*paddingSize, i.volatile),
 		}
 		return
 	}
 
 	for _, b := range theBackends {
-		if n, ok := b.TryAlloc(i.width, i.height); ok {
+		if n, ok := b.TryAlloc(i.width+2*paddingSize, i.height+2*paddingSize); ok {
 			i.backend = b
 			i.node = n
 			return
 		}
 	}
 	size := minSize
-	for i.width > size || i.height > size {
+	for i.width+2*paddingSize > size || i.height+2*paddingSize > size {
 		if size == maxSize {
 			panic(fmt.Sprintf("shareable: the image being shared is too big: width: %d, height: %d", i.width, i.height))
 		}
@@ -535,7 +608,7 @@ func (i *Image) allocate(shareable bool) {
 	}
 	theBackends = append(theBackends, b)
 
-	n := b.page.Alloc(i.width, i.height)
+	n := b.page.Alloc(i.width+2*paddingSize, i.height+2*paddingSize)
 	if n == nil {
 		panic("shareable: Alloc result must not be nil at allocate")
 	}
@@ -578,15 +651,8 @@ func BeginFrame() error {
 		if len(theBackends) != 0 {
 			panic("shareable: all the images must be not-shared before the game starts")
 		}
-		if graphicsDriver.HasHighPrecisionFloat() {
-			minSize = 1024
-			// Use 4096 as a maximum size whatever size the graphics driver accepts. There are
-			// not enough evidences that bigger textures works correctly.
-			maxSize = min(4096, graphicsDriver.MaxImageSize())
-		} else {
-			minSize = 512
-			maxSize = 512
-		}
+		minSize = 1024
+		maxSize = max(minSize, graphicsDriver.MaxImageSize())
 	})
 	if err != nil {
 		return err

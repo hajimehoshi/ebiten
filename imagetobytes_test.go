@@ -24,7 +24,7 @@ import (
 	. "github.com/hajimehoshi/ebiten"
 )
 
-func TestCopyImage(t *testing.T) {
+func TestImageToBytes(t *testing.T) {
 	pal := make(color.Palette, 256)
 	for i := range pal {
 		pal[i] = color.White
@@ -93,7 +93,7 @@ func TestCopyImage(t *testing.T) {
 		},
 	}
 	for i, c := range cases {
-		got := CopyImage(c.In)
+		got := ImageToBytes(c.In)
 		want := c.Out
 		if !bytes.Equal(got, want) {
 			t.Errorf("Test %d: got: %v, want: %v", i, got, want)
@@ -101,26 +101,26 @@ func TestCopyImage(t *testing.T) {
 	}
 }
 
-func BenchmarkCopyImageRGBA(b *testing.B) {
+func BenchmarkImageToBytesRGBA(b *testing.B) {
 	img := image.NewRGBA(image.Rect(0, 0, 4096, 4096))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		CopyImage(img)
+		ImageToBytes(img)
 	}
 }
 
-func BenchmarkCopyImageNRGBA(b *testing.B) {
+func BenchmarkImageToBytesNRGBA(b *testing.B) {
 	img := image.NewNRGBA(image.Rect(0, 0, 4096, 4096))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		CopyImage(img)
+		ImageToBytes(img)
 	}
 }
 
-func BenchmarkCopyImagePaletted(b *testing.B) {
+func BenchmarkImageToBytesPaletted(b *testing.B) {
 	img := image.NewPaletted(image.Rect(0, 0, 4096, 4096), palette.Plan9)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		CopyImage(img)
+		ImageToBytes(img)
 	}
 }

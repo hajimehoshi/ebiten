@@ -25,9 +25,9 @@ import (
 	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
-var (
-	text    = "Type on the keyboard:\n"
-	counter = 0
+const (
+	screenWidth  = 320
+	screenHeight = 240
 )
 
 // repeatingKeyPressed return true when key is pressed considering the repeat state.
@@ -46,47 +46,61 @@ func repeatingKeyPressed(key ebiten.Key) bool {
 	return false
 }
 
-func update(screen *ebiten.Image) error {
+type Game struct {
+	text    string
+	counter int
+}
+
+func (g *Game) Update(screen *ebiten.Image) error {
 	// Add a string from InputChars, that returns string input by users.
 	// Note that InputChars result changes every frame, so you need to call this
 	// every frame.
-	text += string(ebiten.InputChars())
+	g.text += string(ebiten.InputChars())
 
 	// Adjust the string to be at most 10 lines.
-	ss := strings.Split(text, "\n")
+	ss := strings.Split(g.text, "\n")
 	if len(ss) > 10 {
-		text = strings.Join(ss[len(ss)-10:], "\n")
+		g.text = strings.Join(ss[len(ss)-10:], "\n")
 	}
 
 	// If the enter key is pressed, add a line break.
 	if repeatingKeyPressed(ebiten.KeyEnter) || repeatingKeyPressed(ebiten.KeyKPEnter) {
-		text += "\n"
+		g.text += "\n"
 	}
 
 	// If the backspace key is pressed, remove one character.
 	if repeatingKeyPressed(ebiten.KeyBackspace) {
-		if len(text) >= 1 {
-			text = text[:len(text)-1]
+		if len(g.text) >= 1 {
+			g.text = g.text[:len(g.text)-1]
 		}
 	}
 
-	counter++
-
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
-	// Blink the cursor.
-	t := text
-	if counter%60 < 30 {
-		t += "_"
-	}
-	ebitenutil.DebugPrint(screen, t)
+	g.counter++
 	return nil
 }
 
+func (g *Game) Draw(screen *ebiten.Image) {
+	// Blink the cursor.
+	t := g.text
+	if g.counter%60 < 30 {
+		t += "_"
+	}
+	ebitenutil.DebugPrint(screen, t)
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
+}
+
 func main() {
-	if err := ebiten.Run(update, 320, 240, 2.0, "Typewriter (Ebiten Demo)"); err != nil {
+	g := &Game{
+		text:    "Type on the keyboard:\n",
+		counter: 0,
+	}
+
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("TypeWriter (Ebiten Demo)")
+	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -12,6 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// ebitenmobile is a wrapper of gomobile for Ebiten.
+//
+// For the usage, see https://ebiten.org/documents/mobile.html.
+//
+// gomobile's version is fixed by ebitenmobile.
+// You can specify gomobile's version by EBITENMOBILE_GOMOBILE environment variable.
 package main
 
 import (
@@ -166,7 +172,11 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 	}
 	cfg.BuildFlags = []string{"-tags", tags}
 
-	pkgs, err := packages.Load(cfg, flagset.Args()[0])
+	flagsetArgs := flagset.Args()
+	if len(flagsetArgs) == 0 {
+		flagsetArgs = []string{"."}
+	}
+	pkgs, err := packages.Load(cfg, flagsetArgs[0])
 	if err != nil {
 		return err
 	}

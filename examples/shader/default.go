@@ -1,4 +1,4 @@
-// Copyright 2017 The Ebiten Authors
+// Copyright 2020 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,17 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package graphics
+// +build ignore
 
-const (
-	IndicesNum     = (1 << 16) / 3 * 3 // Adjust num for triangles.
-	VertexFloatNum = 12
-)
+package main
 
-var (
-	quadIndices = []uint16{0, 1, 2, 1, 2, 3}
-)
+var Time float
+var Cursor vec2
 
-func QuadIndices() []uint16 {
-	return quadIndices
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	pos := position.xy/textureDstSize() + Cursor/textureDstSize()/4
+	clr := 0.0
+	clr += sin(pos.x*cos(Time/15)*80) + cos(pos.y*cos(Time/15)*10)
+	clr += sin(pos.y*sin(Time/10)*40) + cos(pos.x*sin(Time/25)*40)
+	clr += sin(pos.x*sin(Time/5)*10) + sin(pos.y*sin(Time/35)*80)
+	clr *= sin(Time/10) * 0.5
+	return vec4(clr, clr*0.5, sin(clr+Time/3)*0.75, 1)
 }

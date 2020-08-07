@@ -130,18 +130,14 @@ func (i *Image) InternalSize() (int, int) {
 //
 // The vertex floats are:
 //
-//   0:  Destination X in pixels
-//   1:  Destination Y in pixels
-//   2:  Source X in pixels (not texels!)
-//   3:  Source Y in pixels
-//   4:  Bounds of the source min X in pixels
-//   5:  Bounds of the source min Y in pixels
-//   6:  Bounds of the source max X in pixels
-//   7:  Bounds of the source max Y in pixels
-//   8:  Color R [0.0-1.0]
-//   9:  Color G
-//   10: Color B
-//   11: Color Y
+//   0: Destination X in pixels
+//   1: Destination Y in pixels
+//   2: Source X in pixels (not texels!)
+//   3: Source Y in pixels
+//   4: Color R [0.0-1.0]
+//   5: Color G
+//   6: Color B
+//   7: Color Y
 //
 // src and shader are exclusive and only either is non-nil.
 //
@@ -151,28 +147,25 @@ func (i *Image) InternalSize() (int, int) {
 //
 // If the source image is not specified, i.e., src is nil and there is no image in the uniform variables, the
 // elements for the source image are not used.
-func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, clr *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, shader *Shader, uniforms map[int]interface{}) {
-	if src != nil && src.screen {
-		panic("graphicscommand: the screen image cannot be the rendering source")
-	}
-
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, clr *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
 	if i.lastCommand == lastCommandNone {
 		if !i.screen && mode != driver.CompositeModeClear {
 			panic("graphicscommand: the image must be cleared first")
 		}
 	}
 
-	if src != nil {
-		src.resolveBufferedReplacePixels()
-	}
-	for _, v := range uniforms {
-		if img, ok := v.(*Image); ok {
-			img.resolveBufferedReplacePixels()
+	for _, src := range srcs {
+		if src == nil {
+			continue
 		}
+		if src.screen {
+			panic("graphicscommand: the screen image cannot be the rendering source")
+		}
+		src.resolveBufferedReplacePixels()
 	}
 	i.resolveBufferedReplacePixels()
 
-	theCommandQueue.EnqueueDrawTrianglesCommand(i, src, vertices, indices, clr, mode, filter, address, shader, uniforms)
+	theCommandQueue.EnqueueDrawTrianglesCommand(i, srcs, offsets, vertices, indices, clr, mode, filter, address, sourceRegion, shader, uniforms)
 
 	if i.lastCommand == lastCommandNone && !i.screen {
 		i.lastCommand = lastCommandClear

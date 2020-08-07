@@ -15,5 +15,5 @@
 package ebiten
 
 var (
-	CopyImage = copyImage
+	ImageToBytes = imageToBytes
 )

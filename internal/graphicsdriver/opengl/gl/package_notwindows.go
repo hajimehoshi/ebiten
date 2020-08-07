@@ -132,6 +132,7 @@ package gl
 // typedef void  (APIENTRYP GPGETINTEGERUI64I_VNV)(GLenum  value, GLuint  index, GLuint64EXT * result);
 // typedef void  (APIENTRYP GPGETINTEGERV)(GLenum  pname, GLint * data);
 // typedef void  (APIENTRYP GPGETPOINTERI_VEXT)(GLenum  pname, GLuint  index, void ** params);
+// typedef void  (APIENTRYP GPGETPROGRAMINFOLOG)(GLuint  program, GLsizei  bufSize, GLsizei * length, GLchar * infoLog);
 // typedef void  (APIENTRYP GPGETPROGRAMIV)(GLuint  program, GLenum  pname, GLint * params);
 // typedef void  (APIENTRYP GPGETSHADERINFOLOG)(GLuint  shader, GLsizei  bufSize, GLsizei * length, GLchar * infoLog);
 // typedef void  (APIENTRYP GPGETSHADERIV)(GLuint  shader, GLenum  pname, GLint * params);
@@ -153,8 +154,12 @@ package gl
 // typedef void  (APIENTRYP GPTEXSUBIMAGE2D)(GLenum  target, GLint  level, GLint  xoffset, GLint  yoffset, GLsizei  width, GLsizei  height, GLenum  format, GLenum  type, const void * pixels);
 // typedef void  (APIENTRYP GPUNIFORM1F)(GLint  location, GLfloat  v0);
 // typedef void  (APIENTRYP GPUNIFORM1I)(GLint  location, GLint  v0);
+// typedef void  (APIENTRYP GPUNIFORM1FV)(GLint  location, GLsizei  count, const GLfloat * value);
 // typedef void  (APIENTRYP GPUNIFORM2FV)(GLint  location, GLsizei  count, const GLfloat * value);
+// typedef void  (APIENTRYP GPUNIFORM3FV)(GLint  location, GLsizei  count, const GLfloat * value);
 // typedef void  (APIENTRYP GPUNIFORM4FV)(GLint  location, GLsizei  count, const GLfloat * value);
+// typedef void  (APIENTRYP GPUNIFORMMATRIX2FV)(GLint  location, GLsizei  count, GLboolean  transpose, const GLfloat * value);
+// typedef void  (APIENTRYP GPUNIFORMMATRIX3FV)(GLint  location, GLsizei  count, GLboolean  transpose, const GLfloat * value);
 // typedef void  (APIENTRYP GPUNIFORMMATRIX4FV)(GLint  location, GLsizei  count, GLboolean  transpose, const GLfloat * value);
 // typedef void  (APIENTRYP GPUSEPROGRAM)(GLuint  program);
 // typedef void  (APIENTRYP GPVERTEXATTRIBPOINTER)(GLuint  index, GLint  size, GLenum  type, GLboolean  normalized, GLsizei  stride, const uintptr_t pointer);
@@ -268,6 +273,9 @@ package gl
 // static void  glowGetPointeri_vEXT(GPGETPOINTERI_VEXT fnptr, GLenum  pname, GLuint  index, void ** params) {
 //   (*fnptr)(pname, index, params);
 // }
+// static void  glowGetProgramInfoLog(GPGETPROGRAMINFOLOG fnptr, GLuint  program, GLsizei  bufSize, GLsizei * length, GLchar * infoLog) {
+//   (*fnptr)(program, bufSize, length, infoLog);
+// }
 // static void  glowGetProgramiv(GPGETPROGRAMIV fnptr, GLuint  program, GLenum  pname, GLint * params) {
 //   (*fnptr)(program, pname, params);
 // }
@@ -331,11 +339,23 @@ package gl
 // static void  glowUniform1i(GPUNIFORM1I fnptr, GLint  location, GLint  v0) {
 //   (*fnptr)(location, v0);
 // }
+// static void  glowUniform1fv(GPUNIFORM1FV fnptr, GLint  location, GLsizei  count, const GLfloat * value) {
+//   (*fnptr)(location, count, value);
+// }
 // static void  glowUniform2fv(GPUNIFORM2FV fnptr, GLint  location, GLsizei  count, const GLfloat * value) {
+//   (*fnptr)(location, count, value);
+// }
+// static void  glowUniform3fv(GPUNIFORM3FV fnptr, GLint  location, GLsizei  count, const GLfloat * value) {
 //   (*fnptr)(location, count, value);
 // }
 // static void  glowUniform4fv(GPUNIFORM4FV fnptr, GLint  location, GLsizei  count, const GLfloat * value) {
 //   (*fnptr)(location, count, value);
+// }
+// static void  glowUniformMatrix2fv(GPUNIFORMMATRIX2FV fnptr, GLint  location, GLsizei  count, GLboolean  transpose, const GLfloat * value) {
+//   (*fnptr)(location, count, transpose, value);
+// }
+// static void  glowUniformMatrix3fv(GPUNIFORMMATRIX3FV fnptr, GLint  location, GLsizei  count, GLboolean  transpose, const GLfloat * value) {
+//   (*fnptr)(location, count, transpose, value);
 // }
 // static void  glowUniformMatrix4fv(GPUNIFORMMATRIX4FV fnptr, GLint  location, GLsizei  count, GLboolean  transpose, const GLfloat * value) {
 //   (*fnptr)(location, count, transpose, value);
@@ -393,6 +413,7 @@ var (
 	gpGetIntegerui64i_vNV         C.GPGETINTEGERUI64I_VNV
 	gpGetIntegerv                 C.GPGETINTEGERV
 	gpGetPointeri_vEXT            C.GPGETPOINTERI_VEXT
+	gpGetProgramInfoLog           C.GPGETPROGRAMINFOLOG
 	gpGetProgramiv                C.GPGETPROGRAMIV
 	gpGetShaderInfoLog            C.GPGETSHADERINFOLOG
 	gpGetShaderiv                 C.GPGETSHADERIV
@@ -414,8 +435,12 @@ var (
 	gpTexSubImage2D               C.GPTEXSUBIMAGE2D
 	gpUniform1f                   C.GPUNIFORM1F
 	gpUniform1i                   C.GPUNIFORM1I
+	gpUniform1fv                  C.GPUNIFORM1FV
 	gpUniform2fv                  C.GPUNIFORM2FV
+	gpUniform3fv                  C.GPUNIFORM3FV
 	gpUniform4fv                  C.GPUNIFORM4FV
+	gpUniformMatrix2fv            C.GPUNIFORMMATRIX2FV
+	gpUniformMatrix3fv            C.GPUNIFORMMATRIX3FV
 	gpUniformMatrix4fv            C.GPUNIFORMMATRIX4FV
 	gpUseProgram                  C.GPUSEPROGRAM
 	gpVertexAttribPointer         C.GPVERTEXATTRIBPOINTER
@@ -572,6 +597,10 @@ func GetPointeri_vEXT(pname uint32, index uint32, params *unsafe.Pointer) {
 	C.glowGetPointeri_vEXT(gpGetPointeri_vEXT, (C.GLenum)(pname), (C.GLuint)(index), params)
 }
 
+func GetProgramInfoLog(program uint32, bufSize int32, length *int32, infoLog *uint8) {
+	C.glowGetProgramInfoLog(gpGetProgramInfoLog, (C.GLuint)(program), (C.GLsizei)(bufSize), (*C.GLsizei)(unsafe.Pointer(length)), (*C.GLchar)(unsafe.Pointer(infoLog)))
+}
+
 func GetProgramiv(program uint32, pname uint32, params *int32) {
 	C.glowGetProgramiv(gpGetProgramiv, (C.GLuint)(program), (C.GLenum)(pname), (*C.GLint)(unsafe.Pointer(params)))
 }
@@ -657,12 +686,28 @@ func Uniform1i(location int32, v0 int32) {
 	C.glowUniform1i(gpUniform1i, (C.GLint)(location), (C.GLint)(v0))
 }
 
+func Uniform1fv(location int32, count int32, value *float32) {
+	C.glowUniform1fv(gpUniform1fv, (C.GLint)(location), (C.GLsizei)(count), (*C.GLfloat)(unsafe.Pointer(value)))
+}
+
 func Uniform2fv(location int32, count int32, value *float32) {
 	C.glowUniform2fv(gpUniform2fv, (C.GLint)(location), (C.GLsizei)(count), (*C.GLfloat)(unsafe.Pointer(value)))
 }
 
+func Uniform3fv(location int32, count int32, value *float32) {
+	C.glowUniform3fv(gpUniform3fv, (C.GLint)(location), (C.GLsizei)(count), (*C.GLfloat)(unsafe.Pointer(value)))
+}
+
 func Uniform4fv(location int32, count int32, value *float32) {
 	C.glowUniform4fv(gpUniform4fv, (C.GLint)(location), (C.GLsizei)(count), (*C.GLfloat)(unsafe.Pointer(value)))
+}
+
+func UniformMatrix2fv(location int32, count int32, transpose bool, value *float32) {
+	C.glowUniformMatrix2fv(gpUniformMatrix2fv, (C.GLint)(location), (C.GLsizei)(count), (C.GLboolean)(boolToInt(transpose)), (*C.GLfloat)(unsafe.Pointer(value)))
+}
+
+func UniformMatrix3fv(location int32, count int32, transpose bool, value *float32) {
+	C.glowUniformMatrix3fv(gpUniformMatrix3fv, (C.GLint)(location), (C.GLsizei)(count), (C.GLboolean)(boolToInt(transpose)), (*C.GLfloat)(unsafe.Pointer(value)))
 }
 
 func UniformMatrix4fv(location int32, count int32, transpose bool, value *float32) {
@@ -792,6 +837,10 @@ func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
 		return errors.New("glGetIntegerv")
 	}
 	gpGetPointeri_vEXT = (C.GPGETPOINTERI_VEXT)(getProcAddr("glGetPointeri_vEXT"))
+	gpGetProgramInfoLog = (C.GPGETPROGRAMINFOLOG)(getProcAddr("glGetProgramInfoLog"))
+	if gpGetProgramInfoLog == nil {
+		return errors.New("glGetProgramInfoLog")
+	}
 	gpGetProgramiv = (C.GPGETPROGRAMIV)(getProcAddr("glGetProgramiv"))
 	if gpGetProgramiv == nil {
 		return errors.New("glGetProgramiv")
@@ -858,13 +907,29 @@ func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
 	if gpUniform1i == nil {
 		return errors.New("glUniform1i")
 	}
+	gpUniform1fv = (C.GPUNIFORM1FV)(getProcAddr("glUniform1fv"))
+	if gpUniform1fv == nil {
+		return errors.New("glUniform1fv")
+	}
 	gpUniform2fv = (C.GPUNIFORM2FV)(getProcAddr("glUniform2fv"))
 	if gpUniform2fv == nil {
 		return errors.New("glUniform2fv")
 	}
+	gpUniform3fv = (C.GPUNIFORM3FV)(getProcAddr("glUniform3fv"))
+	if gpUniform3fv == nil {
+		return errors.New("glUniform3fv")
+	}
 	gpUniform4fv = (C.GPUNIFORM4FV)(getProcAddr("glUniform4fv"))
 	if gpUniform4fv == nil {
 		return errors.New("glUniform4fv")
+	}
+	gpUniformMatrix2fv = (C.GPUNIFORMMATRIX2FV)(getProcAddr("glUniformMatrix2fv"))
+	if gpUniformMatrix2fv == nil {
+		return errors.New("glUniformMatrix2fv")
+	}
+	gpUniformMatrix3fv = (C.GPUNIFORMMATRIX3FV)(getProcAddr("glUniformMatrix3fv"))
+	if gpUniformMatrix3fv == nil {
+		return errors.New("glUniformMatrix3fv")
 	}
 	gpUniformMatrix4fv = (C.GPUNIFORMMATRIX4FV)(getProcAddr("glUniformMatrix4fv"))
 	if gpUniformMatrix4fv == nil {

@@ -74,9 +74,6 @@ func (i *Input) GamepadIDs() []int {
 	}
 	var r []int
 	_ = i.ui.t.Call(func() error {
-		if len(i.gamepads) == 0 {
-			return nil
-		}
 		for id, g := range i.gamepads {
 			if g.valid {
 				r = append(r, id)
@@ -351,10 +348,26 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) {
 			if !id.Present() {
 				continue
 			}
+
+			buttons := id.GetButtons()
+
+			// A gamepad can be detected even though there are not. Apparently, some special devices are
+			// recognized as gamepads by GLFW. In this case, the number of the 'buttons' can exceeds the
+			// maximum. Skip such devices as a tentative solution (#1173).
+			if len(buttons) > driver.GamepadButtonNum {
+				continue
+			}
+
 			i.gamepads[id].valid = true
-			// Note that GLFW's gamepad GUID follows SDL's GUID.
-			i.gamepads[id].guid = id.GetGUID()
-			i.gamepads[id].name = id.GetName()
+
+			i.gamepads[id].buttonNum = len(buttons)
+			for b := 0; b < len(i.gamepads[id].buttonPressed); b++ {
+				if len(buttons) <= b {
+					i.gamepads[id].buttonPressed[b] = false
+					continue
+				}
+				i.gamepads[id].buttonPressed[b] = glfw.Action(buttons[b]) == glfw.Press
+			}
 
 			axes32 := id.GetAxes()
 			i.gamepads[id].axisNum = len(axes32)
@@ -365,15 +378,10 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) {
 				}
 				i.gamepads[id].axes[a] = float64(axes32[a])
 			}
-			buttons := id.GetButtons()
-			i.gamepads[id].buttonNum = len(buttons)
-			for b := 0; b < len(i.gamepads[id].buttonPressed); b++ {
-				if len(buttons) <= b {
-					i.gamepads[id].buttonPressed[b] = false
-					continue
-				}
-				i.gamepads[id].buttonPressed[b] = glfw.Action(buttons[b]) == glfw.Press
-			}
+
+			// Note that GLFW's gamepad GUID follows SDL's GUID.
+			i.gamepads[id].guid = id.GetGUID()
+			i.gamepads[id].name = id.GetName()
 		}
 		return nil
 	})

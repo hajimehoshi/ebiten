@@ -25,7 +25,25 @@ type Type struct {
 	Length int
 }
 
-func (t *Type) serialize() string {
+func (t *Type) Equal(rhs *Type) bool {
+	if t.Main != rhs.Main {
+		return false
+	}
+	if t.Length != rhs.Length {
+		return false
+	}
+	if len(t.Sub) != len(rhs.Sub) {
+		return false
+	}
+	for i, s := range t.Sub {
+		if !s.Equal(&rhs.Sub[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func (t *Type) String() string {
 	switch t.Main {
 	case None:
 		return "none"
@@ -47,21 +65,42 @@ func (t *Type) serialize() string {
 		return "mat3"
 	case Mat4:
 		return "mat4"
-	case Sampler2D:
-		return "sampler2D"
 	case Array:
-		return fmt.Sprintf("%s[%d]", t.Sub[0].serialize(), t.Length)
+		return fmt.Sprintf("%s[%d]", t.Sub[0].String(), t.Length)
 	case Struct:
 		str := "struct{"
 		sub := make([]string, 0, len(t.Sub))
 		for _, st := range t.Sub {
-			sub = append(sub, st.serialize())
+			sub = append(sub, st.String())
 		}
 		str += strings.Join(sub, ",")
 		str += "}"
 		return str
 	default:
 		return fmt.Sprintf("?(unknown type: %d)", t)
+	}
+}
+
+func (t *Type) FloatNum() int {
+	switch t.Main {
+	case Float:
+		return 1
+	case Vec2:
+		return 2
+	case Vec3:
+		return 3
+	case Vec4:
+		return 4
+	case Mat2:
+		return 4
+	case Mat3:
+		return 9
+	case Mat4:
+		return 16
+	case Array:
+		return t.Length * t.Sub[0].FloatNum()
+	default: // TODO: Parse a struct correctly
+		return -1
 	}
 }
 
@@ -78,41 +117,6 @@ const (
 	Mat2
 	Mat3
 	Mat4
-	Sampler2D
 	Array
 	Struct
 )
-
-func (t BasicType) Glsl() string {
-	switch t {
-	case None:
-		return "?(none)"
-	case Bool:
-		return "bool"
-	case Int:
-		return "Int"
-	case Float:
-		return "float"
-	case Vec2:
-		return "vec2"
-	case Vec3:
-		return "vec3"
-	case Vec4:
-		return "vec4"
-	case Mat2:
-		return "mat2"
-	case Mat3:
-		return "mat3"
-	case Mat4:
-		return "mat4"
-	case Sampler2D:
-		return "sampler2D"
-	case Array:
-		// First-class array is not available on GLSL ES 2.
-		return "?(array)"
-	case Struct:
-		return "?(struct)"
-	default:
-		return fmt.Sprintf("?(unknown type: %d)", t)
-	}
-}

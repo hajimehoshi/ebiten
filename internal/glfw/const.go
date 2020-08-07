@@ -97,6 +97,7 @@ const (
 	CursorHidden   = 0x00034002
 	CursorNormal   = 0x00034001
 	NoAPI          = 0
+	OpenGLAPI      = 0x00030001
 )
 
 const (

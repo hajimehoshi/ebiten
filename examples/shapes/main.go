@@ -39,7 +39,9 @@ func init() {
 	emptyImage.Fill(color.White)
 }
 
-var count = 0
+type Game struct {
+	count int
+}
 
 func line(x0, y0, x1, y1 float32, clr color.RGBA) ([]ebiten.Vertex, []uint16) {
 	const width = 1
@@ -152,15 +154,14 @@ func rect(x, y, w, h float32, clr color.RGBA) ([]ebiten.Vertex, []uint16) {
 	}, []uint16{0, 1, 2, 1, 2, 3}
 }
 
-func update(screen *ebiten.Image) error {
-	count++
-	count %= 240
+func (g *Game) Update(screen *ebiten.Image) error {
+	g.count++
+	g.count %= 240
+	return nil
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
-	cf := float64(count)
+func (g *Game) Draw(screen *ebiten.Image) {
+	cf := float64(g.count)
 	v, i := line(100, 100, 300, 100, color.RGBA{0xff, 0xff, 0xff, 0xff})
 	screen.DrawTriangles(v, i, emptyImage, nil)
 	v, i = line(50, 150, 50, 350, color.RGBA{0xff, 0xff, 0x00, 0xff})
@@ -174,11 +175,16 @@ func update(screen *ebiten.Image) error {
 	screen.DrawTriangles(v, i, emptyImage, nil)
 
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
-	return nil
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 1, "Shapes (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("Shapes (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }

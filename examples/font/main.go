@@ -37,12 +37,13 @@ const (
 	screenHeight = 480
 )
 
+const sampleText = `The quick brown fox jumps over the lazy dog.`
+
 var (
-	sampleText      = `The quick brown fox jumps over the lazy dog.`
 	mplusNormalFont font.Face
 	mplusBigFont    font.Face
+	jaKanjis        = []rune{}
 )
-var jaKanjis = []rune{}
 
 func init() {
 	// table is the list of Japanese Kanji characters in a part of JIS X 0208.

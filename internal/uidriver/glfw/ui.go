@@ -57,6 +57,7 @@ type UserInterface struct {
 
 	initMonitor              *glfw.Monitor
 	initTitle                string
+	initVsync                bool
 	initFullscreenWidthInDP  int
 	initFullscreenHeightInDP int
 	initFullscreen           bool
@@ -71,6 +72,8 @@ type UserInterface struct {
 	initWindowMaximized      bool
 	initScreenTransparent    bool
 	initIconImages           []image.Image
+
+	vsyncInited bool
 
 	reqWidth  int
 	reqHeight int
@@ -92,13 +95,13 @@ var (
 	theUI = &UserInterface{
 		origPosX:                invalidPos,
 		origPosY:                invalidPos,
+		initVsync:               true,
 		initCursorMode:          driver.CursorModeVisible,
 		initWindowDecorated:     true,
 		initWindowPositionXInDP: invalidPos,
 		initWindowPositionYInDP: invalidPos,
 		initWindowWidthInDP:     640,
 		initWindowHeightInDP:    480,
-		vsync:                   true,
 	}
 )
 
@@ -127,6 +130,7 @@ func initialize() error {
 		return err
 	}
 	glfw.WindowHint(glfw.Visible, glfw.False)
+	glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
 
 	// Create a window to set the initial monitor.
 	w, err := glfw.CreateWindow(16, 16, "", nil, nil)
@@ -214,6 +218,13 @@ func (u *UserInterface) setInitTitle(title string) {
 	u.m.RLock()
 	u.initTitle = title
 	u.m.RUnlock()
+}
+
+func (u *UserInterface) isInitVsyncEnabled() bool {
+	u.m.RLock()
+	v := u.initVsync
+	u.m.RUnlock()
+	return v
 }
 
 func (u *UserInterface) isInitFullscreen() bool {
@@ -428,7 +439,7 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 		w, h = u.windowWidth, u.windowHeight
 		return nil
 	})
-	u.setWindowSize(w, h, fullscreen, u.vsync)
+	u.setWindowSize(w, h, fullscreen)
 }
 
 func (u *UserInterface) IsFocused() bool {
@@ -459,23 +470,37 @@ func (u *UserInterface) SetVsyncEnabled(enabled bool) {
 		// it should be OK since any goroutines can't reach here when
 		// the game already starts and setWindowSize can be called.
 		u.m.Lock()
-		u.vsync = enabled
+		u.initVsync = enabled
 		u.m.Unlock()
 		return
 	}
-	var w, h int
 	_ = u.t.Call(func() error {
-		w, h = u.windowWidth, u.windowHeight
+		if !u.vsyncInited {
+			u.m.Lock()
+			u.initVsync = enabled
+			u.m.Unlock()
+			return nil
+		}
+		u.vsync = enabled
+		u.updateVsync()
 		return nil
 	})
-	u.setWindowSize(w, h, u.isFullscreen(), enabled)
 }
 
 func (u *UserInterface) IsVsyncEnabled() bool {
-	u.m.RLock()
-	r := u.vsync
-	u.m.RUnlock()
-	return r
+	if !u.isRunning() {
+		return u.isInitVsyncEnabled()
+	}
+	var v bool
+	_ = u.t.Call(func() error {
+		if !u.vsyncInited {
+			v = u.isInitVsyncEnabled()
+			return nil
+		}
+		v = u.vsync
+		return nil
+	})
+	return v
 }
 
 func (u *UserInterface) CursorMode() driver.CursorMode {
@@ -636,6 +661,7 @@ func (u *UserInterface) run() error {
 		u.window = nil
 
 		if u.Graphics().IsGL() {
+			glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLAPI)
 			glfw.WindowHint(glfw.ContextVersionMajor, 2)
 			glfw.WindowHint(glfw.ContextVersionMinor, 1)
 		} else {
@@ -691,7 +717,7 @@ func (u *UserInterface) run() error {
 		ww, wh := u.getInitWindowSize()
 		ww = int(u.toDeviceDependentPixel(float64(ww)))
 		wh = int(u.toDeviceDependentPixel(float64(wh)))
-		u.setWindowSize(ww, wh, u.isFullscreen(), u.vsync)
+		u.setWindowSize(ww, wh, u.isFullscreen())
 	}
 
 	// Set the window size and the window position in this order on Linux or other UNIX using X (#1118),
@@ -737,7 +763,7 @@ func (u *UserInterface) updateSize() {
 		w, h = u.windowWidth, u.windowHeight
 		return nil
 	})
-	u.setWindowSize(w, h, u.isFullscreen(), u.vsync)
+	u.setWindowSize(w, h, u.isFullscreen())
 
 	sizeChanged := false
 	_ = u.t.Call(func() error {
@@ -787,7 +813,7 @@ func (u *UserInterface) update() error {
 			w, h = u.window.GetSize()
 			return nil
 		})
-		u.setWindowSize(w, h, true, u.vsync)
+		u.setWindowSize(w, h, true)
 		u.setInitFullscreen(false)
 	}
 
@@ -827,7 +853,7 @@ func (u *UserInterface) update() error {
 		return nil
 	})
 	if w != 0 || h != 0 {
-		u.setWindowSize(w, h, u.isFullscreen(), u.vsync)
+		u.setWindowSize(w, h, u.isFullscreen())
 	}
 	_ = u.t.Call(func() error {
 		u.reqWidth = 0
@@ -890,11 +916,11 @@ func (u *UserInterface) swapBuffers() {
 	}
 }
 
-func (u *UserInterface) setWindowSize(width, height int, fullscreen bool, vsync bool) {
+func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 	windowRecreated := false
 
 	_ = u.t.Call(func() error {
-		if u.windowWidth == width && u.windowHeight == height && u.isFullscreen() == fullscreen && u.vsync == vsync && u.lastDeviceScaleFactor == u.deviceScaleFactor() {
+		if u.windowWidth == width && u.windowHeight == height && u.isFullscreen() == fullscreen && u.lastDeviceScaleFactor == u.deviceScaleFactor() {
 			return nil
 		}
 
@@ -905,7 +931,6 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool, vsync 
 			height = 1
 		}
 
-		u.vsync = vsync
 		u.lastDeviceScaleFactor = u.deviceScaleFactor()
 
 		// To make sure the current existing framebuffers are rendered,
@@ -1007,21 +1032,12 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool, vsync 
 		u.windowWidth = width
 		u.windowHeight = height
 
-		if u.Graphics().IsGL() {
-			// SwapInterval is affected by the current monitor of the window.
-			// This needs to be called at least after SetMonitor.
-			// Without SwapInterval after SetMonitor, vsynch doesn't work (#375).
-			//
-			// TODO: (#405) If triple buffering is needed, SwapInterval(0) should be called,
-			// but is this correct? If glfw.SwapInterval(0) and the driver doesn't support triple
-			// buffering, what will happen?
-			if u.vsync {
-				glfw.SwapInterval(1)
-			} else {
-				glfw.SwapInterval(0)
-			}
+		if !u.vsyncInited {
+			// Initialize vsync after SetMonitor is called. See the comment in updateVsync.
+			u.vsync = u.isInitVsyncEnabled()
+			u.updateVsync()
+			u.vsyncInited = true
 		}
-		u.Graphics().SetVsyncEnabled(vsync)
 
 		u.toChangeSize = true
 		return nil
@@ -1032,6 +1048,25 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool, vsync 
 			g.SetWindow(u.nativeWindow())
 		}
 	}
+}
+
+// updateVsync must be called on the main thread.
+func (u *UserInterface) updateVsync() {
+	if u.Graphics().IsGL() {
+		// SwapInterval is affected by the current monitor of the window.
+		// This needs to be called at least after SetMonitor.
+		// Without SwapInterval after SetMonitor, vsynch doesn't work (#375).
+		//
+		// TODO: (#405) If triple buffering is needed, SwapInterval(0) should be called,
+		// but is this correct? If glfw.SwapInterval(0) and the driver doesn't support triple
+		// buffering, what will happen?
+		if u.vsync {
+			glfw.SwapInterval(1)
+		} else {
+			glfw.SwapInterval(0)
+		}
+	}
+	u.Graphics().SetVsyncEnabled(u.vsync)
 }
 
 // currentMonitor returns the monitor most suitable with the current window.

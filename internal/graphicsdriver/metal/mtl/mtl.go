@@ -30,7 +30,7 @@ import (
 	"unsafe"
 )
 
-// #cgo !ios CFLAGS: -mmacosx-version-min=10.11
+// #cgo !ios CFLAGS: -mmacosx-version-min=10.12
 // #cgo LDFLAGS: -framework Metal -framework CoreGraphics -framework Foundation
 //
 // #include <stdlib.h>
@@ -85,6 +85,16 @@ const (
 	FeatureSet_macOS_GPUFamily1_v4         FeatureSet = 10004
 	FeatureSet_macOS_GPUFamily2_v1         FeatureSet = 10005
 	FeatureSet_macOS_ReadWriteTextureTier2 FeatureSet = 10002
+)
+
+// TextureType defines The dimension of each image, including whether multiple images are arranged into an array or
+// a cube.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtltexturetype
+type TextureType uint16
+
+const (
+	TextureType2D TextureType = 2
 )
 
 // PixelFormat defines data formats that describe the organization
@@ -362,6 +372,7 @@ type ClearColor struct {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtltexturedescriptor.
 type TextureDescriptor struct {
+	TextureType TextureType
 	PixelFormat PixelFormat
 	Width       int
 	Height      int
@@ -481,6 +492,7 @@ func (d Device) MakeBufferWithLength(length uintptr, opt ResourceOptions) Buffer
 // Reference: https://developer.apple.com/documentation/metal/mtldevice/1433425-maketexture.
 func (d Device) MakeTexture(td TextureDescriptor) Texture {
 	descriptor := C.struct_TextureDescriptor{
+		TextureType: C.uint16_t(td.TextureType),
 		PixelFormat: C.uint16_t(td.PixelFormat),
 		Width:       C.uint_t(td.Width),
 		Height:      C.uint_t(td.Height),
@@ -489,8 +501,6 @@ func (d Device) MakeTexture(td TextureDescriptor) Texture {
 	}
 	return Texture{
 		texture: C.Device_MakeTexture(d.device, descriptor),
-		Width:   td.Width,  // TODO: Fetch dimensions of actually created texture.
-		Height:  td.Height, // TODO: Fetch dimensions of actually created texture.
 	}
 }
 
@@ -688,6 +698,10 @@ func (bce BlitCommandEncoder) SynchronizeTexture(texture Texture, slice int, lev
 	C.BlitCommandEncoder_SynchronizeTexture(bce.commandEncoder, texture.texture, C.uint_t(slice), C.uint_t(level))
 }
 
+func (bce BlitCommandEncoder) CopyFromTexture(sourceTexture Texture, sourceSlice int, sourceLevel int, sourceOrigin Origin, sourceSize Size, destinationTexture Texture, destinationSlice int, destinationLevel int, destinationOrigin Origin) {
+	C.BlitCommandEncoder_CopyFromTexture(bce.commandEncoder, sourceTexture.texture, C.uint_t(sourceSlice), C.uint_t(sourceLevel), sourceOrigin.c(), sourceSize.c(), destinationTexture.texture, C.uint_t(destinationSlice), C.uint_t(destinationLevel), destinationOrigin.c())
+}
+
 // Library is a collection of compiled graphics or compute functions.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtllibrary.
@@ -713,14 +727,6 @@ func (l Library) MakeFunction(name string) (Function, error) {
 // Reference: https://developer.apple.com/documentation/metal/mtltexture.
 type Texture struct {
 	texture unsafe.Pointer
-
-	// TODO: Change these fields into methods.
-
-	// Width is the width of the texture image for the base level mipmap, in pixels.
-	Width int
-
-	// Height is the height of the texture image for the base level mipmap, in pixels.
-	Height int
 }
 
 // NewTexture returns a Texture that wraps an existing id<MTLTexture> pointer.
@@ -750,6 +756,20 @@ func (t Texture) GetBytes(pixelBytes *byte, bytesPerRow uintptr, region Region, 
 func (t Texture) ReplaceRegion(region Region, level int, pixelBytes unsafe.Pointer, bytesPerRow int) {
 	r := region.c()
 	C.Texture_ReplaceRegion(t.texture, r, C.uint_t(level), pixelBytes, C.uint_t(bytesPerRow))
+}
+
+// Width is the width of the texture image for the base level mipmap, in pixels.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtltexture/1515339-width
+func (t Texture) Width() int {
+	return int(C.Texture_Width(t.texture))
+}
+
+// Height is the height of the texture image for the base level mipmap, in pixels.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtltexture/1515938-height
+func (t Texture) Height() int {
+	return int(C.Texture_Height(t.texture))
 }
 
 // Buffer is a memory allocation for storing unformatted data
@@ -802,16 +822,8 @@ type Region struct {
 
 func (r *Region) c() C.struct_Region {
 	return C.struct_Region{
-		Origin: C.struct_Origin{
-			X: C.uint_t(r.Origin.X),
-			Y: C.uint_t(r.Origin.Y),
-			Z: C.uint_t(r.Origin.Z),
-		},
-		Size: C.struct_Size{
-			Width:  C.uint_t(r.Size.Width),
-			Height: C.uint_t(r.Size.Height),
-			Depth:  C.uint_t(r.Size.Depth),
-		},
+		Origin: r.Origin.c(),
+		Size:   r.Size.c(),
 	}
 }
 
@@ -821,11 +833,27 @@ func (r *Region) c() C.struct_Region {
 // Reference: https://developer.apple.com/documentation/metal/mtlorigin.
 type Origin struct{ X, Y, Z int }
 
+func (o *Origin) c() C.struct_Origin {
+	return C.struct_Origin{
+		X: C.uint_t(o.X),
+		Y: C.uint_t(o.Y),
+		Z: C.uint_t(o.Z),
+	}
+}
+
 // Size represents the set of dimensions that declare the size of an object,
 // such as an image, texture, threadgroup, or grid.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlsize.
 type Size struct{ Width, Height, Depth int }
+
+func (s *Size) c() C.struct_Size {
+	return C.struct_Size{
+		Width:  C.uint_t(s.Width),
+		Height: C.uint_t(s.Height),
+		Depth:  C.uint_t(s.Depth),
+	}
+}
 
 // RegionMake2D returns a 2D, rectangular region for image or texture data.
 //

@@ -150,6 +150,7 @@ fragment float4 FragmentShader(Vertex in [[stage_in]]) {
 
 	// Create an output texture to render into.
 	td := mtl.TextureDescriptor{
+		TextureType: mtl.TextureType2D,
 		PixelFormat: mtl.PixelFormatRGBA8UNorm,
 		Width:       80,
 		Height:      20,
@@ -181,9 +182,9 @@ fragment float4 FragmentShader(Vertex in [[stage_in]]) {
 	cb.WaitUntilCompleted()
 
 	// Read pixels from output texture into an image.
-	img := image.NewNRGBA(image.Rect(0, 0, texture.Width, texture.Height))
-	bytesPerRow := 4 * texture.Width
-	region := mtl.RegionMake2D(0, 0, texture.Width, texture.Height)
+	img := image.NewNRGBA(image.Rect(0, 0, texture.Width(), texture.Height()))
+	bytesPerRow := 4 * texture.Width()
+	region := mtl.RegionMake2D(0, 0, texture.Width(), texture.Height())
 	texture.GetBytes(&img.Pix[0], uintptr(bytesPerRow), region, 0)
 
 	// Output image to stdout as grayscale ASCII art.

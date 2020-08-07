@@ -16,14 +16,14 @@ package mipmap
 
 import (
 	"fmt"
-	"image"
 	"image/color"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
+	"github.com/hajimehoshi/ebiten/internal/buffered"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/shareable"
+	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
 var graphicsDriver driver.Graphics
@@ -33,48 +33,39 @@ func SetGraphicsDriver(graphics driver.Graphics) {
 }
 
 func BeginFrame() error {
-	return shareable.BeginFrame()
+	return buffered.BeginFrame()
 }
 
 func EndFrame() error {
-	return shareable.EndFrame()
+	return buffered.EndFrame()
 }
 
-type GeoM struct {
-	A  float32
-	B  float32
-	C  float32
-	D  float32
-	Tx float32
-	Ty float32
-}
-
-func (g *GeoM) det() float32 {
-	return g.A*g.D - g.B*g.C
-}
-
-type levelToImage map[int]*shareable.Image
-
-// Mipmap is a set of shareable.Image sorted by the order of mipmap level.
+// Mipmap is a set of buffered.Image sorted by the order of mipmap level.
 // The level 0 image is a regular image and higher-level images are used for mipmap.
 type Mipmap struct {
+	width    int
+	height   int
 	volatile bool
-	orig     *shareable.Image
-	imgs     map[image.Rectangle]levelToImage
+	orig     *buffered.Image
+	imgs     map[int]*buffered.Image
 }
 
 func New(width, height int, volatile bool) *Mipmap {
 	return &Mipmap{
+		width:    width,
+		height:   height,
 		volatile: volatile,
-		orig:     shareable.NewImage(width, height, volatile),
-		imgs:     map[image.Rectangle]levelToImage{},
+		orig:     buffered.NewImage(width, height, volatile),
+		imgs:     map[int]*buffered.Image{},
 	}
 }
 
 func NewScreenFramebufferMipmap(width, height int) *Mipmap {
 	return &Mipmap{
-		orig: shareable.NewScreenFramebufferImage(width, height),
-		imgs: map[image.Rectangle]levelToImage{},
+		width:  width,
+		height: height,
+		orig:   buffered.NewScreenFramebufferImage(width, height),
+		imgs:   map[int]*buffered.Image{},
 	}
 }
 
@@ -87,86 +78,55 @@ func (m *Mipmap) Fill(clr color.RGBA) {
 	m.disposeMipmaps()
 }
 
-func (m *Mipmap) ReplacePixels(pix []byte) {
-	m.orig.ReplacePixels(pix)
+func (m *Mipmap) ReplacePixels(pix []byte, x, y, width, height int) error {
+	if err := m.orig.ReplacePixels(pix, x, y, width, height); err != nil {
+		return err
+	}
 	m.disposeMipmaps()
+	return nil
 }
 
 func (m *Mipmap) Pixels(x, y, width, height int) ([]byte, error) {
 	return m.orig.Pixels(x, y, width, height)
 }
 
-func (m *Mipmap) DrawImage(src *Mipmap, bounds image.Rectangle, geom GeoM, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter) {
-	if det := geom.det(); det == 0 {
-		return
-	} else if math.IsNaN(float64(det)) {
+func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}, canSkipMipmap bool) {
+	if len(indices) == 0 {
 		return
 	}
 
-	level := src.mipmapLevel(geom, bounds.Dx(), bounds.Dy(), filter)
-
-	if level > 0 {
-		// If the image can be scaled into 0 size, adjust the level. (#839)
-		w, h := bounds.Dx(), bounds.Dy()
-		for level >= 0 {
-			s := 1 << uint(level)
-			if w/s == 0 || h/s == 0 {
-				level--
-				continue
+	level := 0
+	// TODO: Do we need to check all the sources' states of being volatile?
+	if !canSkipMipmap && srcs[0] != nil && !srcs[0].volatile && filter != driver.FilterScreen {
+		level = math.MaxInt32
+		for i := 0; i < len(indices)/3; i++ {
+			const n = graphics.VertexFloatNum
+			dx0 := vertices[n*indices[3*i]+0]
+			dy0 := vertices[n*indices[3*i]+1]
+			sx0 := vertices[n*indices[3*i]+2]
+			sy0 := vertices[n*indices[3*i]+3]
+			dx1 := vertices[n*indices[3*i+1]+0]
+			dy1 := vertices[n*indices[3*i+1]+1]
+			sx1 := vertices[n*indices[3*i+1]+2]
+			sy1 := vertices[n*indices[3*i+1]+3]
+			dx2 := vertices[n*indices[3*i+2]+0]
+			dy2 := vertices[n*indices[3*i+2]+1]
+			sx2 := vertices[n*indices[3*i+2]+2]
+			sy2 := vertices[n*indices[3*i+2]+3]
+			if l := mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, filter); level > l {
+				level = l
 			}
-			break
+			if l := mipmapLevelFromDistance(dx1, dy1, dx2, dy2, sx1, sy1, sx2, sy2, filter); level > l {
+				level = l
+			}
+			if l := mipmapLevelFromDistance(dx2, dy2, dx0, dy0, sx2, sy2, sx0, sy0, filter); level > l {
+				level = l
+			}
 		}
-
-		if level < 0 {
-			// As the render source is too small, nothing is rendered.
-			return
+		if level == math.MaxInt32 {
+			panic("mipmap: level must be calculated at least once but not")
 		}
 	}
-
-	if level > 6 {
-		level = 6
-	}
-	// If tooBigScale is 4, level -10 means that the maximum scale is 4 * 2^10 = 4096. This should be enough.
-	if level < -10 {
-		level = -10
-	}
-
-	cr, cg, cb, ca := float32(1), float32(1), float32(1), float32(1)
-	if colorm != nil && colorm.ScaleOnly() {
-		body, _ := colorm.UnsafeElements()
-		cr = body[0]
-		cg = body[5]
-		cb = body[10]
-		ca = body[15]
-		colorm = nil
-	}
-
-	screen := filter == driver.FilterScreen
-	if screen && level != 0 {
-		panic("ebiten: Mipmap must not be used when the filter is FilterScreen")
-	}
-
-	a, b, c, d, tx, ty := geom.A, geom.B, geom.C, geom.D, geom.Tx, geom.Ty
-	if level == 0 {
-		vs := quadVertices(bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y, a, b, c, d, tx, ty, cr, cg, cb, ca, screen)
-		is := graphics.QuadIndices()
-		m.orig.DrawTriangles(src.orig, vs, is, colorm, mode, filter, driver.AddressClampToZero)
-	} else if buf := src.level(bounds, level); buf != nil {
-		w, h := sizeForLevel(bounds.Dx(), bounds.Dy(), level)
-		s := pow2(level)
-		a *= s
-		b *= s
-		c *= s
-		d *= s
-		vs := quadVertices(0, 0, w, h, a, b, c, d, tx, ty, cr, cg, cb, ca, false)
-		is := graphics.QuadIndices()
-		m.orig.DrawTriangles(buf, vs, is, colorm, mode, filter, driver.AddressClampToZero)
-	}
-	m.disposeMipmaps()
-}
-
-func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
-	// TODO: Use a mipmap? (#909)
 
 	if colorm != nil && colorm.ScaleOnly() {
 		body, _ := colorm.UnsafeElements()
@@ -177,17 +137,43 @@ func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16
 		colorm = nil
 		const n = graphics.VertexFloatNum
 		for i := 0; i < len(vertices)/n; i++ {
-			vertices[i*n+8] *= cr
-			vertices[i*n+9] *= cg
-			vertices[i*n+10] *= cb
-			vertices[i*n+11] *= ca
+			vertices[i*n+4] *= cr
+			vertices[i*n+5] *= cg
+			vertices[i*n+6] *= cb
+			vertices[i*n+7] *= ca
 		}
 	}
-	m.orig.DrawTriangles(src.orig, vertices, indices, colorm, mode, filter, address)
+
+	var s *buffered.Shader
+	if shader != nil {
+		s = shader.shader
+	}
+
+	var imgs [graphics.ShaderImageNum]*buffered.Image
+	for i, src := range srcs {
+		if src == nil {
+			continue
+		}
+		if level != 0 {
+			if img := src.level(level); img != nil {
+				const n = graphics.VertexFloatNum
+				s := float32(pow2(level))
+				for i := 0; i < len(vertices)/n; i++ {
+					vertices[i*n+2] /= s
+					vertices[i*n+3] /= s
+				}
+				imgs[i] = img
+				continue
+			}
+		}
+		imgs[i] = src.orig
+	}
+
+	m.orig.DrawTriangles(imgs, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms)
 	m.disposeMipmaps()
 }
 
-func (m *Mipmap) level(r image.Rectangle, level int) *shareable.Image {
+func (m *Mipmap) level(level int) *buffered.Image {
 	if level == 0 {
 		panic("ebiten: level must be non-zero at level")
 	}
@@ -196,80 +182,74 @@ func (m *Mipmap) level(r image.Rectangle, level int) *shareable.Image {
 		panic("ebiten: mipmap images for a volatile image is not implemented yet")
 	}
 
-	if _, ok := m.imgs[r]; !ok {
-		m.imgs[r] = levelToImage{}
-	}
-	imgs := m.imgs[r]
-
-	if img, ok := imgs[level]; ok {
+	if img, ok := m.imgs[level]; ok {
 		return img
 	}
 
-	var src *shareable.Image
+	var src *buffered.Image
 	var vs []float32
 	var filter driver.Filter
 	switch {
 	case level == 1:
 		src = m.orig
-		vs = quadVertices(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1, false)
+		vs = graphics.QuadVertices(0, 0, float32(m.width), float32(m.height), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1, false)
 		filter = driver.FilterLinear
 	case level > 1:
-		src = m.level(r, level-1)
+		src = m.level(level - 1)
 		if src == nil {
-			imgs[level] = nil
+			m.imgs[level] = nil
 			return nil
 		}
-		w, h := sizeForLevel(r.Dx(), r.Dy(), level-1)
-		vs = quadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1, false)
+		w := sizeForLevel(m.width, level-1)
+		h := sizeForLevel(m.height, level-1)
+		vs = graphics.QuadVertices(0, 0, float32(w), float32(h), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1, false)
 		filter = driver.FilterLinear
 	case level == -1:
 		src = m.orig
-		vs = quadVertices(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y, 2, 0, 0, 2, 0, 0, 1, 1, 1, 1, false)
+		vs = graphics.QuadVertices(0, 0, float32(m.width), float32(m.height), 2, 0, 0, 2, 0, 0, 1, 1, 1, 1, false)
 		filter = driver.FilterNearest
 	case level < -1:
-		src = m.level(r, level+1)
+		src = m.level(level + 1)
 		if src == nil {
-			imgs[level] = nil
+			m.imgs[level] = nil
 			return nil
 		}
-		w, h := sizeForLevel(r.Dx(), r.Dy(), level+1)
-		vs = quadVertices(0, 0, w, h, 2, 0, 0, 2, 0, 0, 1, 1, 1, 1, false)
+		w := sizeForLevel(m.width, level-1)
+		h := sizeForLevel(m.height, level-1)
+		vs = graphics.QuadVertices(0, 0, float32(w), float32(h), 2, 0, 0, 2, 0, 0, 1, 1, 1, 1, false)
 		filter = driver.FilterNearest
 	default:
 		panic(fmt.Sprintf("ebiten: invalid level: %d", level))
 	}
 	is := graphics.QuadIndices()
 
-	w2, h2 := sizeForLevel(r.Dx(), r.Dy(), level)
+	w2 := sizeForLevel(m.width, level-1)
+	h2 := sizeForLevel(m.height, level-1)
 	if w2 == 0 || h2 == 0 {
-		imgs[level] = nil
+		m.imgs[level] = nil
 		return nil
 	}
-	s := shareable.NewImage(w2, h2, m.volatile)
-	s.DrawTriangles(src, vs, is, nil, driver.CompositeModeCopy, filter, driver.AddressClampToZero)
-	imgs[level] = s
+	s := buffered.NewImage(w2, h2, m.volatile)
+	s.DrawTriangles([graphics.ShaderImageNum]*buffered.Image{src}, vs, is, nil, driver.CompositeModeCopy, filter, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	m.imgs[level] = s
 
-	return imgs[level]
+	return m.imgs[level]
 }
 
-func sizeForLevel(origWidth, origHeight int, level int) (width, height int) {
-	width = origWidth
-	height = origHeight
+func sizeForLevel(x int, level int) int {
 	if level > 0 {
 		for i := 0; i < level; i++ {
-			width /= 2
-			height /= 2
-			if width == 0 || height == 0 {
-				return 0, 0
+			x /= 2
+			if x == 0 {
+				return 0
 			}
 		}
 	} else {
 		for i := 0; i < -level; i++ {
-			width *= 2
-			height *= 2
+			x *= 2
 		}
 	}
-	return
+	return x
 }
 
 func (m *Mipmap) MarkDisposed() {
@@ -279,60 +259,59 @@ func (m *Mipmap) MarkDisposed() {
 }
 
 func (m *Mipmap) disposeMipmaps() {
-	for _, a := range m.imgs {
-		for _, img := range a {
-			img.MarkDisposed()
-		}
+	for _, img := range m.imgs {
+		img.MarkDisposed()
 	}
 	for k := range m.imgs {
 		delete(m.imgs, k)
 	}
 }
 
-// mipmapLevel returns an appropriate mipmap level for the given determinant of a geometry matrix.
-//
-// mipmapLevel panics if det is NaN or 0.
-func (m *Mipmap) mipmapLevel(geom GeoM, width, height int, filter driver.Filter) int {
-	det := geom.det()
-	if math.IsNaN(float64(det)) {
-		panic("ebiten: det must be finite at mipmapLevel")
-	}
-	if det == 0 {
-		panic("ebiten: dst must be non zero at mipmapLevel")
-	}
-
+// mipmapLevel returns an appropriate mipmap level for the given distance.
+func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, filter driver.Filter) int {
 	if filter == driver.FilterScreen {
 		return 0
 	}
 
-	// Use 'negative' mipmap to render edges correctly (#611, #907).
-	// It looks like 128 is the enlargement factor that causes edge missings to pass the test TestImageStretch.
-	var tooBigScale float32 = 128
-	if !graphicsDriver.HasHighPrecisionFloat() {
-		tooBigScale = 4
+	d := (dx1-dx0)*(dx1-dx0) + (dy1-dy0)*(dy1-dy0)
+	s := (sx1-sx0)*(sx1-sx0) + (sy1-sy0)*(sy1-sy0)
+	if s == 0 {
+		return 0
 	}
-	if sx, sy := geomScaleSize(&geom); sx >= tooBigScale || sy >= tooBigScale {
+	scale := d / s
+
+	// Use 'negative' mipmap to render edges correctly (#611, #907).
+	// It looks like 128 is the enlargement factor that causes edge missings to pass the test TestImageStretch,
+	// but we use 64 here for environments where the float precision is low (#1044, #1270).
+	var tooBigScale float32 = 64
+
+	if scale >= tooBigScale*tooBigScale {
 		// If the filter is not nearest, the target needs to be rendered with graduation. Don't use mipmaps.
 		if filter != driver.FilterNearest {
 			return 0
 		}
 
 		const mipmapMaxSize = 1024
-		w, h := width, height
+		w, h := sx1-sx0, sy1-sy0
 		if w >= mipmapMaxSize || h >= mipmapMaxSize {
 			return 0
 		}
 
 		level := 0
-		for sx >= tooBigScale || sy >= tooBigScale {
+		for scale >= tooBigScale*tooBigScale {
 			level--
-			sx /= 2
-			sy /= 2
+			scale /= 4
 			w *= 2
 			h *= 2
 			if w >= mipmapMaxSize || h >= mipmapMaxSize {
 				break
 			}
+		}
+
+		// If tooBigScale is 64, level -6 means that the maximum scale is 64 * 2^6 = 4096. This should be
+		// enough.
+		if level < -6 {
+			level = -6
 		}
 		return level
 	}
@@ -340,29 +319,35 @@ func (m *Mipmap) mipmapLevel(geom GeoM, width, height int, filter driver.Filter)
 	if filter != driver.FilterLinear {
 		return 0
 	}
-	if m.volatile {
-		return 0
-	}
 
-	// This is a separate function for testing.
-	return MipmapLevelForDownscale(det)
-}
-
-func MipmapLevelForDownscale(det float32) int {
-	if math.IsNaN(float64(det)) {
-		panic("ebiten: det must be finite at mipmapLevelForDownscale")
-	}
-	if det == 0 {
-		panic("ebiten: dst must be non zero at mipmapLevelForDownscale")
-	}
-
-	// TODO: Should this be determined by x/y scales instead of det?
-	d := math.Abs(float64(det))
 	level := 0
-	for d < 0.25 {
+	for scale < 0.25 {
 		level++
-		d *= 4
+		scale *= 4
 	}
+
+	if level > 0 {
+		// If the image can be scaled into 0 size, adjust the level. (#839)
+		w, h := int(sx1-sx0), int(sy1-sy0)
+		for level >= 0 {
+			s := 1 << uint(level)
+			if (w > 0 && w/s == 0) || (h > 0 && h/s == 0) {
+				level--
+				continue
+			}
+			break
+		}
+
+		if level < 0 {
+			// As the render source is too small, nothing is rendered.
+			return 0
+		}
+	}
+
+	if level > 6 {
+		level = 6
+	}
+
 	return level
 }
 
@@ -379,52 +364,17 @@ func pow2(power int) float32 {
 	return x
 }
 
-func maxf32(a, b, c, d float32) float32 {
-	max := a
-	if max < b {
-		max = b
-	}
-	if max < c {
-		max = c
-	}
-	if max < d {
-		max = d
-	}
-	return max
+type Shader struct {
+	shader *buffered.Shader
 }
 
-func minf32(a, b, c, d float32) float32 {
-	min := a
-	if min > b {
-		min = b
+func NewShader(program *shaderir.Program) *Shader {
+	return &Shader{
+		shader: buffered.NewShader(program),
 	}
-	if min > c {
-		min = c
-	}
-	if min > d {
-		min = d
-	}
-	return min
 }
 
-func geomScaleSize(geom *GeoM) (sx, sy float32) {
-	a, b, c, d := geom.A, geom.B, geom.C, geom.D
-	// (0, 1)
-	x0 := 0*a + 1*b
-	y0 := 0*c + 1*d
-
-	// (1, 0)
-	x1 := 1*a + 0*b
-	y1 := 1*c + 0*d
-
-	// (1, 1)
-	x2 := 1*a + 1*b
-	y2 := 1*c + 1*d
-
-	maxx := maxf32(0, x0, x1, x2)
-	maxy := maxf32(0, y0, y1, y2)
-	minx := minf32(0, x0, x1, x2)
-	miny := minf32(0, y0, y1, y2)
-
-	return maxx - minx, maxy - miny
+func (s *Shader) MarkDisposed() {
+	s.shader.MarkDisposed()
+	s.shader = nil
 }

@@ -16,7 +16,6 @@ package opengl
 
 import (
 	"fmt"
-	"sort"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
@@ -85,6 +84,10 @@ func (g *Graphics) genNextImageID() driver.ImageID {
 	return id
 }
 
+func (g *Graphics) InvalidImageID() driver.ImageID {
+	return -1
+}
+
 func (g *Graphics) genNextShaderID() driver.ShaderID {
 	id := g.nextShaderID
 	g.nextShaderID++
@@ -150,7 +153,9 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) {
 	g.context.elementArrayBufferSubData(indices)
 }
 
-func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address) error {
+func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, sourceRegion driver.Region) error {
+	// TODO: Use sourceRegion.
+
 	destination := g.images[dst]
 	source := g.images[src]
 
@@ -167,34 +172,68 @@ func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, 
 		address:   address,
 	}]
 
-	uniforms := map[string]interface{}{}
+	uniforms := []uniformVariable{}
 
 	vw := destination.framebuffer.width
 	vh := destination.framebuffer.height
-	uniforms["viewport_size"] = []float32{float32(vw), float32(vh)}
+	uniforms = append(uniforms, uniformVariable{
+		name:  "viewport_size",
+		value: []float32{float32(vw), float32(vh)},
+		typ:   shaderir.Type{Main: shaderir.Vec2},
+	}, uniformVariable{
+		name: "source_region",
+		value: []float32{
+			sourceRegion.X,
+			sourceRegion.Y,
+			sourceRegion.X + sourceRegion.Width,
+			sourceRegion.Y + sourceRegion.Height,
+		},
+		typ: shaderir.Type{Main: shaderir.Vec4},
+	})
 
 	if colorM != nil {
 		// ColorM's elements are immutable. It's OK to hold the reference without copying.
 		esBody, esTranslate := colorM.UnsafeElements()
-		uniforms["color_matrix_body"] = esBody
-		uniforms["color_matrix_translation"] = esTranslate
+		uniforms = append(uniforms, uniformVariable{
+			name:  "color_matrix_body",
+			value: esBody,
+			typ:   shaderir.Type{Main: shaderir.Mat4},
+		}, uniformVariable{
+			name:  "color_matrix_translation",
+			value: esTranslate,
+			typ:   shaderir.Type{Main: shaderir.Vec4},
+		})
 	}
 
 	if filter != driver.FilterNearest {
 		srcW, srcH := source.width, source.height
 		sw := graphics.InternalImageSize(srcW)
 		sh := graphics.InternalImageSize(srcH)
-		uniforms["source_size"] = []float32{float32(sw), float32(sh)}
+		uniforms = append(uniforms, uniformVariable{
+			name:  "source_size",
+			value: []float32{float32(sw), float32(sh)},
+			typ:   shaderir.Type{Main: shaderir.Vec2},
+		})
 	}
 
 	if filter == driver.FilterScreen {
 		scale := float32(destination.width) / float32(source.width)
-		uniforms["scale"] = scale
+		uniforms = append(uniforms, uniformVariable{
+			name:  "scale",
+			value: scale,
+			typ:   shaderir.Type{Main: shaderir.Float},
+		})
 	}
 
-	uniforms["texture/0"] = source.textureNative
+	var imgs [graphics.ShaderImageNum]textureVariable
+	for i := range imgs {
+		if i == 0 {
+			imgs[i].valid = true
+			imgs[i].native = source.textureNative
+		}
+	}
 
-	if err := g.useProgram(program, uniforms); err != nil {
+	if err := g.useProgram(program, uniforms, imgs); err != nil {
 		return err
 	}
 
@@ -254,7 +293,7 @@ func (g *Graphics) removeShader(shader *Shader) {
 	delete(g.shaders, shader.id)
 }
 
-func (g *Graphics) DrawShader(dst driver.ImageID, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms map[int]interface{}) error {
+func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms []interface{}) error {
 	d := g.images[dst]
 	s := g.shaders[shader]
 
@@ -265,24 +304,58 @@ func (g *Graphics) DrawShader(dst driver.ImageID, shader driver.ShaderID, indexL
 	}
 	g.context.blendFunc(mode)
 
-	us := map[string]interface{}{}
-	var keys []int
-	for k := range uniforms {
-		keys = append(keys, k)
-	}
-	sort.Ints(keys)
-	tidx := 0
-	for _, k := range keys {
-		v := uniforms[k]
-		switch v := v.(type) {
-		case driver.ImageID:
-			us[fmt.Sprintf("U%d/%d", k, tidx)] = g.images[v].textureNative
-			tidx++
-		default:
-			us[fmt.Sprintf("U%d", k)] = v
+	us := make([]uniformVariable, graphics.PreservedUniformVariablesNum+len(uniforms))
+	vw := graphics.InternalImageSize(d.width)
+	vh := graphics.InternalImageSize(d.height)
+	us[0].name = "U0"
+	us[0].value = []float32{float32(vw), float32(vh)}
+	us[0].typ = s.ir.Uniforms[0]
+
+	vsizes := make([]float32, 2*len(srcs))
+	for i, src := range srcs {
+		if img := g.images[src]; img != nil {
+			w, h := img.framebufferSize()
+			vsizes[2*i] = float32(w)
+			vsizes[2*i+1] = float32(h)
 		}
+
 	}
-	if err := g.useProgram(s.p, us); err != nil {
+	{
+		const idx = 1
+		us[idx].name = fmt.Sprintf("U%d", idx)
+		us[idx].value = vsizes
+		us[idx].typ = s.ir.Uniforms[idx]
+	}
+
+	voffsets := make([]float32, 2*len(offsets))
+	for i, o := range offsets {
+		voffsets[2*i] = o[0]
+		voffsets[2*i+1] = o[1]
+	}
+	{
+		const idx = 1 + 1
+		us[idx].name = fmt.Sprintf("U%d", idx)
+		us[idx].value = voffsets
+		us[idx].typ = s.ir.Uniforms[idx]
+	}
+
+	for i, v := range uniforms {
+		const offset = graphics.PreservedUniformVariablesNum
+		us[i+offset].name = fmt.Sprintf("U%d", i+offset)
+		us[i+offset].value = v
+		us[i+offset].typ = s.ir.Uniforms[i+offset]
+	}
+
+	var ts [graphics.ShaderImageNum]textureVariable
+	for i, src := range srcs {
+		if src == g.InvalidImageID() {
+			continue
+		}
+		ts[i].valid = true
+		ts[i].native = g.images[src].textureNative
+	}
+
+	if err := g.useProgram(s.p, us, ts); err != nil {
 		return err
 	}
 	g.context.drawElements(indexLen, indexOffset*2) // 2 is uint16 size in bytes

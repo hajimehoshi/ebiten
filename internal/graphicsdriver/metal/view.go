@@ -28,6 +28,8 @@ type view struct {
 	window unsafe.Pointer
 	uiview uintptr
 
+	windowChanged bool
+
 	device mtl.Device
 	ml     ca.MetalLayer
 

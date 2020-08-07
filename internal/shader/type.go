@@ -17,184 +17,80 @@ package shader
 import (
 	"fmt"
 	"go/ast"
-	"strings"
+	gconstant "go/constant"
+
+	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
-type basicType int
-
-// TODO: What about array types?
-
-const (
-	basicTypeNone basicType = iota
-	basicTypeFloat
-	basicTypeVec2
-	basicTypeVec3
-	basicTypeVec4
-	basicTypeMat2
-	basicTypeMat3
-	basicTypeMat4
-	basicTypeSampler2d
-	basicTypeStruct
-)
-
-type structMember struct {
-	name string
-	typ  typ
-	tag  string
-}
-
-type typ struct {
-	basic         basicType
-	name          string
-	structMembers []structMember
-}
-
-func (t *typ) isNone() bool {
-	return t.basic == basicTypeNone
-}
-
-func (sh *Shader) parseType(expr ast.Expr) typ {
+func (cs *compileState) parseType(block *block, expr ast.Expr) (shaderir.Type, bool) {
 	switch t := expr.(type) {
 	case *ast.Ident:
 		switch t.Name {
+		case "bool":
+			return shaderir.Type{Main: shaderir.Bool}, true
+		case "int":
+			return shaderir.Type{Main: shaderir.Int}, true
 		case "float":
-			return typ{
-				basic: basicTypeFloat,
-			}
+			return shaderir.Type{Main: shaderir.Float}, true
 		case "vec2":
-			return typ{
-				basic: basicTypeVec2,
-			}
+			return shaderir.Type{Main: shaderir.Vec2}, true
 		case "vec3":
-			return typ{
-				basic: basicTypeVec3,
-			}
+			return shaderir.Type{Main: shaderir.Vec3}, true
 		case "vec4":
-			return typ{
-				basic: basicTypeVec4,
-			}
+			return shaderir.Type{Main: shaderir.Vec4}, true
 		case "mat2":
-			return typ{
-				basic: basicTypeMat2,
-			}
+			return shaderir.Type{Main: shaderir.Mat2}, true
 		case "mat3":
-			return typ{
-				basic: basicTypeMat3,
-			}
+			return shaderir.Type{Main: shaderir.Mat3}, true
 		case "mat4":
-			return typ{
-				basic: basicTypeMat4,
-			}
-		case "sampler2d":
-			return typ{
-				basic: basicTypeSampler2d,
-			}
+			return shaderir.Type{Main: shaderir.Mat4}, true
 		default:
-			sh.addError(t.Pos(), fmt.Sprintf("unexpected type: %s", t.Name))
-			return typ{}
+			cs.addError(t.Pos(), fmt.Sprintf("unexpected type: %s", t.Name))
+			return shaderir.Type{}, false
 		}
+	case *ast.ArrayType:
+		if t.Len == nil {
+			cs.addError(t.Pos(), fmt.Sprintf("array length must be specified"))
+			return shaderir.Type{}, false
+		}
+		// TODO: Parse ellipsis
+
+		exprs, _, _, ok := cs.parseExpr(block, t.Len)
+		if !ok {
+			return shaderir.Type{}, false
+		}
+		if len(exprs) != 1 {
+			cs.addError(t.Pos(), fmt.Sprintf("invalid length of array"))
+			return shaderir.Type{}, false
+		}
+		if exprs[0].Type != shaderir.NumberExpr {
+			cs.addError(t.Pos(), fmt.Sprintf("length of array must be a constant number"))
+			return shaderir.Type{}, false
+		}
+		len, ok := gconstant.Int64Val(exprs[0].Const)
+		if !ok {
+			cs.addError(t.Pos(), fmt.Sprintf("length of array must be an integer"))
+			return shaderir.Type{}, false
+		}
+
+		elm, ok := cs.parseType(block, t.Elt)
+		if !ok {
+			return shaderir.Type{}, false
+		}
+		if elm.Main == shaderir.Array {
+			cs.addError(t.Pos(), fmt.Sprintf("array of array is forbidden"))
+			return shaderir.Type{}, false
+		}
+		return shaderir.Type{
+			Main:   shaderir.Array,
+			Sub:    []shaderir.Type{elm},
+			Length: int(len),
+		}, true
 	case *ast.StructType:
-		str := typ{
-			basic: basicTypeStruct,
-		}
-		for _, f := range t.Fields.List {
-			typ := sh.parseType(f.Type)
-			var tag string
-			if f.Tag != nil {
-				tag = f.Tag.Value
-			}
-			for _, n := range f.Names {
-				str.structMembers = append(str.structMembers, structMember{
-					name: n.Name,
-					typ:  typ,
-					tag:  tag,
-				})
-			}
-		}
-		return str
+		cs.addError(t.Pos(), "struct is not implemented")
+		return shaderir.Type{}, false
 	default:
-		sh.addError(t.Pos(), fmt.Sprintf("unepxected type: %v", t))
-		return typ{}
-	}
-}
-
-func (t typ) dump(indent int) []string {
-	idt := strings.Repeat("\t", indent)
-
-	switch t.basic {
-	case basicTypeStruct:
-		ls := []string{
-			fmt.Sprintf("%sstruct {", idt),
-		}
-		for _, m := range t.structMembers {
-			ls = append(ls, fmt.Sprintf("%s\t%s %s", idt, m.name, m.typ))
-		}
-		ls = append(ls, fmt.Sprintf("%s}", idt))
-		return ls
-	default:
-		return []string{t.basic.String()}
-	}
-}
-
-func (t typ) String() string {
-	if t.name != "" {
-		return t.name
-	}
-	return t.basic.String()
-}
-
-func (t basicType) String() string {
-	switch t {
-	case basicTypeNone:
-		return "(none)"
-	case basicTypeFloat:
-		return "float"
-	case basicTypeVec2:
-		return "vec2"
-	case basicTypeVec3:
-		return "vec3"
-	case basicTypeVec4:
-		return "vec4"
-	case basicTypeMat2:
-		return "mat2"
-	case basicTypeMat3:
-		return "mat3"
-	case basicTypeMat4:
-		return "mat4"
-	case basicTypeSampler2d:
-		return "sampler2d"
-	case basicTypeStruct:
-		return "(struct)"
-	default:
-		return fmt.Sprintf("unknown(%d)", t)
-	}
-}
-
-func (t basicType) numeric() bool {
-	return t != basicTypeNone && t != basicTypeSampler2d
-}
-
-func (t basicType) glslString() string {
-	switch t {
-	case basicTypeNone:
-		return "?(none)"
-	case basicTypeFloat:
-		return "float"
-	case basicTypeVec2:
-		return "vec2"
-	case basicTypeVec3:
-		return "vec3"
-	case basicTypeVec4:
-		return "vec4"
-	case basicTypeMat2:
-		return "mat2"
-	case basicTypeMat3:
-		return "mat3"
-	case basicTypeMat4:
-		return "mat4"
-	case basicTypeSampler2d:
-		return "?(sampler2d)"
-	default:
-		return fmt.Sprintf("?(%d)", t)
+		cs.addError(t.Pos(), fmt.Sprintf("unepxected type: %v", t))
+		return shaderir.Type{}, false
 	}
 }

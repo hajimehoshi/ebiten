@@ -25,6 +25,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl/gl"
+	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
 type (
@@ -71,6 +72,7 @@ type programID uint32
 const (
 	invalidTexture     = 0
 	invalidFramebuffer = (1 << 32) - 1
+	invalidUniform     = -1
 )
 
 func getProgramID(p program) programID {
@@ -92,6 +94,7 @@ const (
 	dstAlpha         = operation(gl.DST_ALPHA)
 	oneMinusSrcAlpha = operation(gl.ONE_MINUS_SRC_ALPHA)
 	oneMinusDstAlpha = operation(gl.ONE_MINUS_DST_ALPHA)
+	dstColor         = operation(gl.DST_COLOR)
 )
 
 type contextImpl struct {
@@ -227,12 +230,7 @@ func (c *context) deleteTexture(t textureNative) {
 }
 
 func (c *context) isTexture(t textureNative) bool {
-	r := false
-	_ = c.t.Call(func() error {
-		r = gl.IsTexture(uint32(t))
-		return nil
-	})
-	return r
+	panic("opengl: isTexture is not implemented")
 }
 
 func (c *context) newFramebuffer(texture textureNative) (framebufferNative, error) {
@@ -307,11 +305,12 @@ func (c *context) newShader(shaderType shaderType, source string) (shader, error
 		var v int32
 		gl.GetShaderiv(s, gl.COMPILE_STATUS, &v)
 		if v == gl.FALSE {
-			log := []byte{}
-			gl.GetShaderiv(uint32(s), gl.INFO_LOG_LENGTH, &v)
-			if v != 0 {
-				log = make([]byte, int(v))
-				gl.GetShaderInfoLog(uint32(s), v, nil, (*uint8)(gl.Ptr(log)))
+			var l int32
+			var log []byte
+			gl.GetShaderiv(uint32(s), gl.INFO_LOG_LENGTH, &l)
+			if l != 0 {
+				log = make([]byte, l)
+				gl.GetShaderInfoLog(s, l, nil, (*uint8)(gl.Ptr(log)))
 			}
 			return fmt.Errorf("opengl: shader compile failed: %s", log)
 		}
@@ -352,7 +351,14 @@ func (c *context) newProgram(shaders []shader, attributes []string) (program, er
 		var v int32
 		gl.GetProgramiv(p, gl.LINK_STATUS, &v)
 		if v == gl.FALSE {
-			return errors.New("opengl: program error")
+			var l int32
+			var log []byte
+			gl.GetProgramiv(p, gl.INFO_LOG_LENGTH, &l)
+			if l != 0 {
+				log = make([]byte, l)
+				gl.GetProgramInfoLog(p, l, nil, (*uint8)(gl.Ptr(log)))
+			}
+			return fmt.Errorf("opengl: program error: %s", log)
 		}
 		pr = program(p)
 		return nil
@@ -383,43 +389,74 @@ func (c *context) getUniformLocationImpl(p program, location string) uniformLoca
 	l, free := gl.Strs(location + "\x00")
 	uniform := uniformLocation(gl.GetUniformLocation(uint32(p), *l))
 	free()
-	if uniform == -1 {
-		panic("opengl: invalid uniform location: " + location)
-	}
 	return uniform
 }
 
-func (c *context) uniformInt(p program, location string, v int) {
+func (c *context) uniformInt(p program, location string, v int) bool {
+	var r bool
 	_ = c.t.Call(func() error {
 		l := int32(c.locationCache.GetUniformLocation(c, p, location))
+		if l == invalidUniform {
+			return nil
+		}
+		r = true
 		gl.Uniform1i(l, int32(v))
 		return nil
 	})
+	return r
 }
 
-func (c *context) uniformFloat(p program, location string, v float32) {
+func (c *context) uniformFloat(p program, location string, v float32) bool {
+	var r bool
 	_ = c.t.Call(func() error {
 		l := int32(c.locationCache.GetUniformLocation(c, p, location))
+		if l == invalidUniform {
+			return nil
+		}
+		r = true
 		gl.Uniform1f(l, v)
 		return nil
 	})
+	return r
 }
 
-func (c *context) uniformFloats(p program, location string, v []float32) {
+func (c *context) uniformFloats(p program, location string, v []float32, typ shaderir.Type) bool {
+	var r bool
 	_ = c.t.Call(func() error {
 		l := int32(c.locationCache.GetUniformLocation(c, p, location))
-		switch len(v) {
-		case 2:
-			gl.Uniform2fv(l, 1, (*float32)(gl.Ptr(v)))
-		case 4:
-			gl.Uniform4fv(l, 1, (*float32)(gl.Ptr(v)))
-		case 16:
-			gl.UniformMatrix4fv(l, 1, false, (*float32)(gl.Ptr(v)))
+		if l == invalidUniform {
+			return nil
+		}
+		r = true
+
+		base := typ.Main
+		len := int32(1)
+		if base == shaderir.Array {
+			base = typ.Sub[0].Main
+			len = int32(typ.Length)
+		}
+
+		switch base {
+		case shaderir.Float:
+			gl.Uniform1fv(l, len, (*float32)(gl.Ptr(v)))
+		case shaderir.Vec2:
+			gl.Uniform2fv(l, len, (*float32)(gl.Ptr(v)))
+		case shaderir.Vec3:
+			gl.Uniform3fv(l, len, (*float32)(gl.Ptr(v)))
+		case shaderir.Vec4:
+			gl.Uniform4fv(l, len, (*float32)(gl.Ptr(v)))
+		case shaderir.Mat2:
+			gl.UniformMatrix2fv(l, len, false, (*float32)(gl.Ptr(v)))
+		case shaderir.Mat3:
+			gl.UniformMatrix3fv(l, len, false, (*float32)(gl.Ptr(v)))
+		case shaderir.Mat4:
+			gl.UniformMatrix4fv(l, len, false, (*float32)(gl.Ptr(v)))
 		default:
-			panic(fmt.Sprintf("opengl: invalid uniform floats num: %d", len(v)))
+			panic(fmt.Sprintf("opengl: unexpected type: %s", typ.String()))
 		}
 		return nil
 	})
+	return r
 }
 
 func (c *context) vertexAttribPointer(p program, index int, size int, dataType dataType, stride int, offset int) {
@@ -534,11 +571,23 @@ func (c *context) needsRestoring() bool {
 }
 
 func (c *context) canUsePBO() bool {
-	return true
+	var available bool
+	_ = c.t.Call(func() error {
+		available = isPBOAvailable()
+		return nil
+	})
+
+	return available
 }
 
 func (c *context) texSubImage2D(t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
-	panic("opengl: texSubImage2D is not implemented on this environment")
+	c.bindTexture(t)
+	_ = c.t.Call(func() error {
+		for _, a := range args {
+			gl.TexSubImage2D(gl.TEXTURE_2D, 0, int32(a.X), int32(a.Y), int32(a.Width), int32(a.Height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(a.Pixels))
+		}
+		return nil
+	})
 }
 
 func (c *context) newPixelBufferObject(width, height int) buffer {

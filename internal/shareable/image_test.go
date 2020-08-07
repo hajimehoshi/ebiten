@@ -25,7 +25,14 @@ import (
 	t "github.com/hajimehoshi/ebiten/internal/testing"
 )
 
+const (
+	minImageSizeForTesting = 1024
+	maxImageSizeForTesting = 4096
+)
+
 func TestMain(m *testing.M) {
+	SetImageSizeForTesting(minImageSizeForTesting, maxImageSizeForTesting)
+	defer ResetImageSizeForTesting()
 	t.MainWithRunLoop(m)
 }
 
@@ -39,10 +46,10 @@ func quadVertices(sw, sh, x, y int, scalex float32) []float32 {
 	sx1 := float32(sw)
 	sy1 := float32(sh)
 	return []float32{
-		dx0, dy0, sx0, sy0, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
-		dx1, dy0, sx1, sy0, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
-		dx0, dy1, sx0, sy1, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
-		dx1, dy1, sx1, sy1, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
+		dx0, dy0, sx0, sy0, 1, 1, 1, 1,
+		dx1, dy0, sx1, sy0, 1, 1, 1, 1,
+		dx0, dy1, sx0, sy1, 1, 1, 1, 1,
+		dx1, dy1, sx1, sy1, 1, 1, 1, 1,
 	}
 }
 
@@ -89,7 +96,7 @@ func TestEnsureNotShared(t *testing.T) {
 	// img4.ensureNotShared() should be called.
 	vs := quadVertices(size/2, size/2, size/4, size/4, 1)
 	is := graphics.QuadIndices()
-	img4.DrawTriangles(img3, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
+	img4.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
 	want := false
 	if got := img4.IsSharedForTesting(); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
@@ -119,7 +126,7 @@ func TestEnsureNotShared(t *testing.T) {
 
 	// Check further drawing doesn't cause panic.
 	// This bug was fixed by 03dcd948.
-	img4.DrawTriangles(img3, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
+	img4.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
 }
 
 func TestReshared(t *testing.T) {
@@ -159,7 +166,7 @@ func TestReshared(t *testing.T) {
 	// Use img1 as a render target.
 	vs := quadVertices(size, size, 0, 0, 1)
 	is := graphics.QuadIndices()
-	img1.DrawTriangles(img2, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
+	img1.DrawTriangles([graphics.ShaderImageNum]*Image{img2}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
 	if got, want := img1.IsSharedForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -169,7 +176,7 @@ func TestReshared(t *testing.T) {
 		if err := MakeImagesSharedForTesting(); err != nil {
 			t.Fatal(err)
 		}
-		img0.DrawTriangles(img1, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
+		img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
 		if got, want := img1.IsSharedForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
@@ -191,12 +198,12 @@ func TestReshared(t *testing.T) {
 			a := pix[4*(size*j+i)+3]
 			got := color.RGBA{r, g, b, a}
 			if got != want {
-				t.Errorf("got: %v, want: %v", got, want)
+				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}
 	}
 
-	img0.DrawTriangles(img1, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
+	img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
 	if got, want := img1.IsSharedForTesting(), true; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -214,7 +221,7 @@ func TestReshared(t *testing.T) {
 			a := pix[4*(size*j+i)+3]
 			got := color.RGBA{r, g, b, a}
 			if got != want {
-				t.Errorf("got: %v, want: %v", got, want)
+				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}
 	}
@@ -224,7 +231,7 @@ func TestReshared(t *testing.T) {
 		if err := MakeImagesSharedForTesting(); err != nil {
 			t.Fatal(err)
 		}
-		img0.DrawTriangles(img3, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
+		img0.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
 		if got, want := img3.IsSharedForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
@@ -319,7 +326,7 @@ func TestReplacePixelsAfterDrawTriangles(t *testing.T) {
 
 	vs := quadVertices(w, h, 0, 0, 1)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
 	dst.ReplacePixels(pix)
 
 	pix, err := dst.Pixels(0, 0, w, h)
@@ -361,7 +368,7 @@ func TestSmallImages(t *testing.T) {
 
 	vs := quadVertices(w, h, 0, 0, 1)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero)
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
 
 	pix, err := dst.Pixels(0, 0, w, h)
 	if err != nil {
@@ -403,7 +410,7 @@ func TestLongImages(t *testing.T) {
 	const scale = 120
 	vs := quadVertices(w, h, 0, 0, scale)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero)
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
 
 	pix, err := dst.Pixels(0, 0, dstW, dstH)
 	if err != nil {
@@ -449,6 +456,27 @@ func TestExtendWithBigImage(t *testing.T) {
 	defer img1.MarkDisposed()
 
 	img1.ReplacePixels(make([]byte, 4*1025*1025))
+}
+
+// Issue #1217
+func TestMaxImageSize(t *testing.T) {
+	// This tests that a too-big image is allocated correctly.
+	s := maxImageSizeForTesting
+	img := NewImage(s, s, false)
+	defer img.MarkDisposed()
+	img.ReplacePixels(make([]byte, 4*s*s))
+}
+
+// Issue #1217
+func TestMinImageSize(t *testing.T) {
+	ResetBackendsForTesting()
+
+	// This tests that extending a backend works correctly.
+	// Though the image size is minimum size of the backend, extending the backend happens due to the paddings.
+	s := minImageSizeForTesting
+	img := NewImage(s, s, false)
+	defer img.MarkDisposed()
+	img.ReplacePixels(make([]byte, 4*s*s))
 }
 
 // TODO: Add tests to extend shareable image out of the main loop

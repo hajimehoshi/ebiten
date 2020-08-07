@@ -21,6 +21,7 @@ package main
 import (
 	"fmt"
 	"image/color"
+	"log"
 	"math/rand"
 	"time"
 
@@ -286,7 +287,9 @@ func init() {
 	auto.init()
 }
 
-func update(screen *ebiten.Image) error {
+type Game struct{}
+
+func (g *Game) Update(screen *ebiten.Image) error {
 	reset := false
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyB) {
@@ -310,16 +313,10 @@ func update(screen *ebiten.Image) error {
 
 	auto.step()
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
-	draw(screen)
-
 	return nil
 }
 
-func draw(screen *ebiten.Image) {
+func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(canvas, nil)
 	ebitenutil.DebugPrintAt(
 		screen,
@@ -343,9 +340,15 @@ func draw(screen *ebiten.Image) {
 	)
 }
 
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return width, height
+}
+
 func main() {
 	ebiten.SetMaxTPS(250)
-	if err := ebiten.Run(update, width, height, scale, "Squirals (Ebiten Demo)"); err != nil {
-		panic(err)
+	ebiten.SetWindowSize(width*scale, height*scale)
+	ebiten.SetWindowTitle("Squirals (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
+		log.Fatal(err)
 	}
 }

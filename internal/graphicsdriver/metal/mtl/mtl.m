@@ -113,6 +113,7 @@ void *Device_MakeBufferWithLength(void *device, size_t length,
 
 void *Device_MakeTexture(void *device, struct TextureDescriptor descriptor) {
   MTLTextureDescriptor *textureDescriptor = [[MTLTextureDescriptor alloc] init];
+  textureDescriptor.textureType = descriptor.TextureType;
   textureDescriptor.pixelFormat = descriptor.PixelFormat;
   textureDescriptor.width = descriptor.Width;
   textureDescriptor.height = descriptor.Height;
@@ -279,6 +280,26 @@ void BlitCommandEncoder_SynchronizeTexture(void *blitCommandEncoder,
 #endif
 }
 
+void BlitCommandEncoder_CopyFromTexture(
+    void *blitCommandEncoder, void *sourceTexture, uint_t sourceSlice,
+    uint_t sourceLevel, struct Origin sourceOrigin, struct Size sourceSize,
+    void *destinationTexture, uint_t destinationSlice, uint_t destinationLevel,
+    struct Origin destinationOrigin) {
+  [(id<MTLBlitCommandEncoder>)blitCommandEncoder
+        copyFromTexture:(id<MTLTexture>)sourceTexture
+            sourceSlice:(NSUInteger)sourceSlice
+            sourceLevel:(NSUInteger)sourceLevel
+           sourceOrigin:(MTLOrigin){sourceOrigin.X, sourceOrigin.Y,
+                                    sourceOrigin.Z}
+             sourceSize:(MTLSize){sourceSize.Width, sourceSize.Height,
+                                  sourceSize.Depth}
+              toTexture:(id<MTLTexture>)destinationTexture
+       destinationSlice:(NSUInteger)destinationSlice
+       destinationLevel:(NSUInteger)destinationLevel
+      destinationOrigin:(MTLOrigin){destinationOrigin.X, destinationOrigin.Y,
+                                    destinationOrigin.Z}];
+}
+
 void *Library_MakeFunction(void *library, const char *name) {
   return [(id<MTLLibrary>)library
       newFunctionWithName:[NSString stringWithUTF8String:name]];
@@ -310,6 +331,10 @@ void Texture_ReplaceRegion(void *texture, struct Region region, uint_t level,
                                withBytes:bytes
                              bytesPerRow:(NSUInteger)bytesPerRow];
 }
+
+int Texture_Width(void *texture) { return [(id<MTLTexture>)texture width]; }
+
+int Texture_Height(void *texture) { return [(id<MTLTexture>)texture height]; }
 
 void Buffer_CopyToContents(void *buffer, void *data, size_t lengthInBytes) {
   memcpy(((id<MTLBuffer>)buffer).contents, data, lengthInBytes);

@@ -16,16 +16,17 @@ package buffered
 
 import (
 	"sync"
+	"sync/atomic"
 )
 
 var (
-	needsToDelayCommands = true
-
 	// delayedCommands represents a queue for image operations that are ordered before the game starts
 	// (BeginFrame). Before the game starts, the package shareable doesn't determine the minimum/maximum texture
 	// sizes (#879).
-	delayedCommands  []func() error
-	delayedCommandsM sync.Mutex
+	delayedCommands = []func() error{}
+
+	delayedCommandsM       sync.Mutex
+	delayedCommandsFlushed uint32
 )
 
 func flushDelayedCommands() error {
@@ -40,12 +41,52 @@ func flushDelayedCommands() error {
 }
 
 func getDelayedFuncsAndClear() []func() error {
+	if atomic.LoadUint32(&delayedCommandsFlushed) == 0 {
+		// Outline the slow-path to expect the fast-path is inlined.
+		return getDelayedFuncsAndClearSlow()
+	}
+	return nil
+}
+
+func getDelayedFuncsAndClearSlow() []func() error {
 	delayedCommandsM.Lock()
 	defer delayedCommandsM.Unlock()
 
-	fs := make([]func() error, len(delayedCommands))
-	copy(fs, delayedCommands)
-	delayedCommands = nil
-	needsToDelayCommands = false
-	return fs
+	if delayedCommandsFlushed == 0 {
+		defer atomic.StoreUint32(&delayedCommandsFlushed, 1)
+
+		fs := make([]func() error, len(delayedCommands))
+		copy(fs, delayedCommands)
+		delayedCommands = nil
+		return fs
+	}
+
+	return nil
+}
+
+// maybeCanAddDelayedCommand returns false if the delayed commands cannot be added.
+// Otherwise, maybeCanAddDelayedCommand's returning value is not determined.
+// For example, maybeCanAddDelayedCommand can return true even when flusing is being processed.
+func maybeCanAddDelayedCommand() bool {
+	return atomic.LoadUint32(&delayedCommandsFlushed) == 0
+}
+
+func tryAddDelayedCommand(f func() error) bool {
+	delayedCommandsM.Lock()
+	defer delayedCommandsM.Unlock()
+
+	if delayedCommandsFlushed == 0 {
+		delayedCommands = append(delayedCommands, func() error {
+			return f()
+		})
+		return true
+	}
+
+	return false
+}
+
+func checkDelayedCommandsFlushed(fname string) {
+	if atomic.LoadUint32(&delayedCommandsFlushed) == 0 {
+		panic("buffered: the command queue is not available yet at " + fname)
+	}
 }

@@ -71,12 +71,14 @@ func (g *game) Update(screen *ebiten.Image) error {
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
 		switch g.scale {
+		case 0.5:
+			g.scale = 1
 		case 1:
 			g.scale = 1.5
 		case 1.5:
 			g.scale = 2
 		case 2:
-			g.scale = 1
+			g.scale = 0.5
 		default:
 			panic("not reached")
 		}

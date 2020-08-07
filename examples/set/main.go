@@ -42,7 +42,10 @@ func init() {
 	offscreen, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterDefault)
 }
 
-func update(screen *ebiten.Image) error {
+type Game struct {
+}
+
+func (g *Game) Update(screen *ebiten.Image) error {
 	w, h := offscreen.Size()
 	x := rand.Intn(w)
 	y := rand.Intn(h)
@@ -53,18 +56,22 @@ func update(screen *ebiten.Image) error {
 		byte(0xff),
 	}
 	offscreen.Set(x, y, c)
-
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
-	screen.DrawImage(offscreen, nil)
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f", ebiten.CurrentTPS(), ebiten.CurrentFPS()))
 	return nil
 }
 
+func (g *Game) Draw(screen *ebiten.Image) {
+	screen.DrawImage(offscreen, nil)
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f", ebiten.CurrentTPS(), ebiten.CurrentFPS()))
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
+}
+
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Test"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Set (Ebiten Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }

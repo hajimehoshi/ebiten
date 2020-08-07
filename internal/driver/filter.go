@@ -27,4 +27,5 @@ type Address int
 const (
 	AddressClampToZero Address = iota
 	AddressRepeat
+	AddressUnsafe
 )

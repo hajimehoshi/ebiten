@@ -15,6 +15,9 @@
 package testing
 
 import (
+	"go/constant"
+
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
@@ -31,8 +34,9 @@ var (
 				Op:   shaderir.Div,
 				Exprs: []shaderir.Expr{
 					{
-						Type:  shaderir.FloatExpr,
-						Float: 2,
+						Type:      shaderir.NumberExpr,
+						Const:     constant.MakeFloat64(2),
+						ConstType: shaderir.ConstTypeFloat,
 					},
 					{
 						Type: shaderir.FieldSelector,
@@ -50,28 +54,33 @@ var (
 				},
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 0,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(0),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 0,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(0),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 0,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(0),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 0,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(0),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
 				Type: shaderir.Binary,
 				Op:   shaderir.Div,
 				Exprs: []shaderir.Expr{
 					{
-						Type:  shaderir.FloatExpr,
-						Float: 2,
+						Type:      shaderir.NumberExpr,
+						Const:     constant.MakeFloat64(2),
+						ConstType: shaderir.ConstTypeFloat,
 					},
 					{
 						Type: shaderir.FieldSelector,
@@ -89,44 +98,54 @@ var (
 				},
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 0,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(0),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 0,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(0),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 0,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(0),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 0,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(0),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 1,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(1),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 0,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(0),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: -1,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(-1),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: -1,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(-1),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 0,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(0),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 1,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(1),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 		},
 	}
@@ -142,12 +161,14 @@ var (
 				Index: 0,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 0,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(0),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: 1,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(1),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 		},
 	}
@@ -159,7 +180,7 @@ var (
 					Exprs: []shaderir.Expr{
 						{
 							Type:  shaderir.LocalVariable,
-							Index: 4, // the varying variable
+							Index: 5, // the varying variable
 						},
 						{
 							Type:  shaderir.LocalVariable,
@@ -172,7 +193,7 @@ var (
 					Exprs: []shaderir.Expr{
 						{
 							Type:  shaderir.LocalVariable,
-							Index: 5, // gl_Position in GLSL
+							Index: 4, // gl_Position in GLSL
 						},
 						{
 							Type: shaderir.Binary,
@@ -190,10 +211,7 @@ var (
 )
 
 func defaultProgram() shaderir.Program {
-	return shaderir.Program{
-		Uniforms: []shaderir.Type{
-			{Main: shaderir.Vec2},
-		},
+	p := shaderir.Program{
 		Attributes: []shaderir.Type{
 			{Main: shaderir.Vec2}, // Local var (0) in the vertex shader
 			{Main: shaderir.Vec2}, // Local var (1) in the vertex shader
@@ -201,15 +219,32 @@ func defaultProgram() shaderir.Program {
 			{Main: shaderir.Vec4}, // Local var (3) in the vertex shader
 		},
 		Varyings: []shaderir.Type{
-			{Main: shaderir.Vec2}, // Local var (4) in the vertex shader, (0) in the fragment shader
+			{Main: shaderir.Vec2}, // Local var (4) in the vertex shader, (1) in the fragment shader
 		},
 		VertexFunc: defaultVertexFunc,
 	}
+
+	p.Uniforms = make([]shaderir.Type, graphics.PreservedUniformVariablesNum)
+	// Destination texture size
+	p.Uniforms[0] = shaderir.Type{Main: shaderir.Vec2}
+	// Source texture sizes
+	p.Uniforms[1] = shaderir.Type{
+		Main:   shaderir.Array,
+		Length: graphics.ShaderImageNum,
+		Sub:    []shaderir.Type{{Main: shaderir.Vec2}},
+	}
+	// Source texture offsets
+	p.Uniforms[2] = shaderir.Type{
+		Main:   shaderir.Array,
+		Length: graphics.ShaderImageNum - 1,
+		Sub:    []shaderir.Type{{Main: shaderir.Vec2}},
+	}
+	return p
 }
 
 // ShaderProgramFill returns a shader intermediate representation to fill the frambuffer.
 //
-// Uniform variables:
+// Uniform variable's index and its value are:
 //
 //   0: the framebuffer size (Vec2)
 func ShaderProgramFill(r, g, b, a byte) shaderir.Program {
@@ -221,20 +256,24 @@ func ShaderProgramFill(r, g, b, a byte) shaderir.Program {
 				BuiltinFunc: shaderir.Vec4F,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: float32(r) / 0xff,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(float64(r) / 0xff),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: float32(g) / 0xff,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(float64(g) / 0xff),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: float32(b) / 0xff,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(float64(b) / 0xff),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
-				Type:  shaderir.FloatExpr,
-				Float: float32(a) / 0xff,
+				Type:      shaderir.NumberExpr,
+				Const:     constant.MakeFloat64(float64(a) / 0xff),
+				ConstType: shaderir.ConstTypeFloat,
 			},
 		},
 	}
@@ -262,13 +301,9 @@ func ShaderProgramFill(r, g, b, a byte) shaderir.Program {
 
 // ShaderProgramImages returns a shader intermediate representation to render the frambuffer with the given images.
 //
-// Uniform variables:
+// Uniform variables's indices and their values are:
 //
-//   0:    the framebuffer size (Vec2)
-//   1:    the first images (Sampler2D)
-//   3n-1: the (n+1)th image (Sampler2D)
-//   3n:   the (n+1)th image's size (Vec2)
-//   3n+1: the (n+1)th image's region (Vec4)
+//   0:  the framebuffer size (Vec2)
 //
 // The first image's size and region are represented in attribute variables.
 //
@@ -279,19 +314,12 @@ func ShaderProgramImages(imageNum int) shaderir.Program {
 	}
 
 	p := defaultProgram()
-
-	for i := 0; i < imageNum; i++ {
-		p.Uniforms = append(p.Uniforms, shaderir.Type{Main: shaderir.Sampler2D})
-		if i > 0 {
-			p.Uniforms = append(p.Uniforms, shaderir.Type{Main: shaderir.Vec2})
-			p.Uniforms = append(p.Uniforms, shaderir.Type{Main: shaderir.Vec4})
-		}
-	}
+	p.TextureNum = imageNum
 
 	// In the fragment shader, local variables are:
 	//
-	//   0: Varying variables (vec2)
-	//   1: gl_FragCoord
+	//   0: gl_FragCoord
+	//   1: Varying variables (vec2)
 	//   2: gl_FragColor
 	//   3: Actual local variables in the main function
 
@@ -305,7 +333,7 @@ func ShaderProgramImages(imageNum int) shaderir.Program {
 	}
 	texPos := shaderir.Expr{
 		Type:  shaderir.LocalVariable,
-		Index: 0,
+		Index: 1,
 	}
 
 	var stmts []shaderir.Stmt
@@ -317,16 +345,37 @@ func ShaderProgramImages(imageNum int) shaderir.Program {
 				Exprs: []shaderir.Expr{
 					{
 						Type:        shaderir.BuiltinFuncExpr,
-						BuiltinFunc: shaderir.Texture2D,
+						BuiltinFunc: shaderir.Texture2DF,
 					},
 					{
-						Type:  shaderir.UniformVariable,
-						Index: 1,
+						Type:  shaderir.TextureVariable,
+						Index: 0,
 					},
 					texPos,
 				},
 			}
 		} else {
+			texPos2 := shaderir.Expr{
+				Type: shaderir.Binary,
+				Op:   shaderir.Add,
+				Exprs: []shaderir.Expr{
+					texPos,
+					{
+						Type: shaderir.Index,
+						Exprs: []shaderir.Expr{
+							{
+								Type:  shaderir.UniformVariable,
+								Index: graphics.TextureOffsetsUniformVariableIndex,
+							},
+							{
+								Type:      shaderir.NumberExpr,
+								Const:     constant.MakeInt64(int64(i - 1)),
+								ConstType: shaderir.ConstTypeInt,
+							},
+						},
+					},
+				},
+			}
 			rhs = shaderir.Expr{
 				Type: shaderir.Binary,
 				Op:   shaderir.Add,
@@ -337,13 +386,13 @@ func ShaderProgramImages(imageNum int) shaderir.Program {
 						Exprs: []shaderir.Expr{
 							{
 								Type:        shaderir.BuiltinFuncExpr,
-								BuiltinFunc: shaderir.Texture2D,
+								BuiltinFunc: shaderir.Texture2DF,
 							},
 							{
-								Type:  shaderir.UniformVariable,
-								Index: 3*i - 1,
+								Type:  shaderir.TextureVariable,
+								Index: i,
 							},
-							texPos,
+							texPos2,
 						},
 					},
 				},

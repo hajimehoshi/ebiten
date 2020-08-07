@@ -15,25 +15,26 @@
 package ebiten
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 
-	"github.com/hajimehoshi/ebiten/internal/buffered"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/mipmap"
 )
 
 // Image represents a rectangle set of pixels.
 // The pixel format is alpha-premultiplied RGBA.
 // Image implements image.Image and draw.Image.
 //
-// Functions of Image never returns error as of 1.5.0-alpha, and error values are always nil.
+// Functions of Image never returns error as of 1.5.0, and error values are always nil.
 type Image struct {
 	// addr holds self to check copying.
 	// See strings.Builder for similar examples.
 	addr *Image
 
-	buffered *buffered.Image
+	mipmap *mipmap.Mipmap
 
 	bounds   image.Rectangle
 	original *Image
@@ -54,7 +55,7 @@ func (i *Image) Size() (width, height int) {
 }
 
 func (i *Image) isDisposed() bool {
-	return i.buffered == nil
+	return i.mipmap == nil
 }
 
 func (i *Image) isSubImage() bool {
@@ -65,7 +66,7 @@ func (i *Image) isSubImage() bool {
 //
 // When the image is disposed, Clear does nothing.
 //
-// Clear always returns nil as of 1.5.0-alpha.
+// Clear always returns nil as of 1.5.0.
 func (i *Image) Clear() error {
 	i.Fill(color.Transparent)
 	return nil
@@ -75,7 +76,7 @@ func (i *Image) Clear() error {
 //
 // When the image is disposed, Fill does nothing.
 //
-// Fill always returns nil as of 1.5.0-alpha.
+// Fill always returns nil as of 1.5.0.
 func (i *Image) Fill(clr color.Color) error {
 	i.copyCheck()
 
@@ -85,11 +86,70 @@ func (i *Image) Fill(clr color.Color) error {
 
 	// TODO: Implement this.
 	if i.isSubImage() {
-		panic("ebiten: render to a subimage is not implemented (Fill)")
+		panic("ebiten: rendering to a sub-image is not implemented (Fill)")
 	}
 
-	i.buffered.Fill(color.RGBAModel.Convert(clr).(color.RGBA))
+	i.mipmap.Fill(color.RGBAModel.Convert(clr).(color.RGBA))
 	return nil
+}
+
+func canSkipMipmap(geom GeoM, filter driver.Filter) bool {
+	det := geom.det2x2()
+	if filter == driver.FilterNearest && det <= 1.001 {
+		return true
+	}
+	if filter == driver.FilterLinear && det >= 0.999 {
+		return true
+	}
+	return false
+}
+
+// DrawImageOptions represents options for DrawImage.
+type DrawImageOptions struct {
+	// GeoM is a geometry matrix to draw.
+	// The default (zero) value is identify, which draws the image at (0, 0).
+	GeoM GeoM
+
+	// ColorM is a color matrix to draw.
+	// The default (zero) value is identity, which doesn't change any color.
+	//
+	// If Shader is not nil, ColorM is ignored.
+	ColorM ColorM
+
+	// CompositeMode is a composite mode to draw.
+	// The default (zero) value is regular alpha blending.
+	CompositeMode CompositeMode
+
+	// Filter is a type of texture filter.
+	// The default (zero) value is FilterDefault.
+	//
+	// Filter can also be specified at NewImage* functions, but
+	// specifying filter at DrawImageOptions is recommended (as of 1.7.0).
+	//
+	// If both Filter specified at NewImage* and DrawImageOptions are FilterDefault,
+	// FilterNearest is used.
+	// If either is FilterDefault and the other is not, the latter is used.
+	// Otherwise, Filter specified at DrawImageOptions is used.
+	//
+	// If Shader is not nil, Filter is ignored.
+	Filter Filter
+
+	// Shader is a shader.
+	Shader *Shader
+
+	// Uniforms is a set of uniform variables for the shader.
+	//
+	// Uniforms is used only when Shader is not nil.
+	Uniforms []interface{}
+
+	// Deprecated: (as of 1.5.0) Use SubImage instead.
+	ImageParts ImageParts
+
+	// Deprecated: (as of 1.1.0) Use SubImage instead.
+	Parts []ImagePart
+
+	// Deprecated: (as of 1.9.0) Use SubImage instead.
+	SourceRect *image.Rectangle
 }
 
 // DrawImage draws the given image on the image i.
@@ -117,6 +177,7 @@ func (i *Image) Fill(clr color.Color) error {
 //       elements.
 //   * All CompositeMode values are same
 //   * All Filter values are same
+//   * All Shader values are nil
 //
 // Even when all the above conditions are satisfied, multiple draw commands can
 // be used in really rare cases. Ebiten images usually share an internal
@@ -128,7 +189,9 @@ func (i *Image) Fill(clr color.Color) error {
 //
 // For more performance tips, see https://ebiten.org/documents/performancetips.html
 //
-// DrawImage always returns nil as of 1.5.0-alpha.
+// ColorM and Filter are ignored when Shader is not nil.
+//
+// DrawImage always returns nil as of 1.5.0.
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	i.copyCheck()
 
@@ -141,7 +204,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 
 	// TODO: Implement this.
 	if i.isSubImage() {
-		panic("ebiten: render to a subimage is not implemented (drawImage)")
+		panic("ebiten: render to a sub-image is not implemented (DrawImage)")
 	}
 
 	// Calculate vertices before locking because the user can do anything in
@@ -187,24 +250,37 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		}
 	}
 
-	geom := &options.GeoM
 	mode := driver.CompositeMode(options.CompositeMode)
 
 	filter := driver.FilterNearest
-	if options.Filter != FilterDefault {
-		filter = driver.Filter(options.Filter)
-	} else if img.filter != FilterDefault {
-		filter = driver.Filter(img.filter)
+	if options.Shader == nil {
+		if options.Filter != FilterDefault {
+			filter = driver.Filter(options.Filter)
+		} else if img.filter != FilterDefault {
+			filter = driver.Filter(img.filter)
+		}
 	}
 
-	a, b, c, d, tx, ty := geom.elements32()
-	i.buffered.DrawImage(img.buffered, img.Bounds(), a, b, c, d, tx, ty, options.ColorM.impl, mode, filter)
+	a, b, c, d, tx, ty := options.GeoM.elements32()
+
+	sx0 := float32(bounds.Min.X)
+	sy0 := float32(bounds.Min.Y)
+	sx1 := float32(bounds.Max.X)
+	sy1 := float32(bounds.Max.Y)
+	vs := graphics.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, 1, 1, 1, 1, filter == driver.FilterScreen)
+	is := graphics.QuadIndices()
+
+	srcs := [graphics.ShaderImageNum]*mipmap.Mipmap{img.mipmap}
+	if options.Shader == nil {
+		i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.AddressUnsafe, driver.Region{}, nil, nil, canSkipMipmap(options.GeoM, filter))
+		return nil
+	}
+
+	i.mipmap.DrawTriangles(srcs, vs, is, nil, mode, filter, driver.AddressUnsafe, driver.Region{}, options.Shader.shader, options.Uniforms, canSkipMipmap(options.GeoM, filter))
 	return nil
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
-//
-// Note that this API is experimental.
 type Vertex struct {
 	// DstX and DstY represents a point on a destination image.
 	DstX float32
@@ -234,15 +310,18 @@ const (
 
 	// AddressRepeat means that texture coordinates wrap to the other side of the texture.
 	AddressRepeat Address = Address(driver.AddressRepeat)
+
+	// AddressUnsafe means there is no guarantee when the texture coodinates are out of range.
+	AddressUnsafe Address = Address(driver.AddressUnsafe)
 )
 
-// DrawTrianglesOptions represents options to render triangles on an image.
-//
-// Note that this API is experimental.
+// DrawTrianglesOptions represents options for DrawTriangles.
 type DrawTrianglesOptions struct {
 	// ColorM is a color matrix to draw.
 	// The default (zero) value is identity, which doesn't change any color.
 	// ColorM is applied before vertex color scale is applied.
+	//
+	// If Shader is not nil, ColorM is ignored.
 	ColorM ColorM
 
 	// CompositeMode is a composite mode to draw.
@@ -251,17 +330,29 @@ type DrawTrianglesOptions struct {
 
 	// Filter is a type of texture filter.
 	// The default (zero) value is FilterDefault.
+	//
+	// If Shader is not nil, Filter is ignored.
 	Filter Filter
 
 	// Address is a sampler address mode.
 	// The default (zero) value is AddressClampToZero.
+	//
+	// If Shader is not nil, Address is ignored.
 	Address Address
+
+	// Shader is a shader.
+	Shader *Shader
+
+	// Uniforms is a set of uniform variables for the shader.
+	//
+	// Uniforms is used only when Shader is not nil.
+	Uniforms []interface{}
 }
 
 // MaxIndicesNum is the maximum number of indices for DrawTriangles.
 const MaxIndicesNum = graphics.IndicesNum
 
-// DrawTriangles draws a triangle with the specified vertices and their indices.
+// DrawTriangles draws triangles with the specified vertices and their indices.
 //
 // If len(indices) is not multiple of 3, DrawTriangles panics.
 //
@@ -269,20 +360,23 @@ const MaxIndicesNum = graphics.IndicesNum
 //
 // The rule in which DrawTriangles works effectively is same as DrawImage's.
 //
+// When the given image is disposed, DrawTriangles panics.
+//
 // When the image i is disposed, DrawTriangles does nothing.
 //
-// Internal mipmap is not used on DrawTriangles.
-//
-// Note that this API is experimental.
+// img can be nil only when options.Shader is not nil.
 func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, options *DrawTrianglesOptions) {
 	i.copyCheck()
 
+	if img != nil && img.isDisposed() {
+		panic("ebiten: the given image to DrawTriangles must not be disposed")
+	}
 	if i.isDisposed() {
 		return
 	}
 
 	if i.isSubImage() {
-		panic("ebiten: render to a subimage is not implemented (DrawTriangles)")
+		panic("ebiten: render to a sub-image is not implemented (DrawTriangles)")
 	}
 
 	if len(indices)%3 != 0 {
@@ -297,44 +391,233 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		options = &DrawTrianglesOptions{}
 	}
 
+	if options.Shader != nil && img != nil && img.isSubImage() {
+		panic("ebiten: rendering a sub-image with a shader is not implemented (DrawTriangles)")
+	}
+
 	mode := driver.CompositeMode(options.CompositeMode)
 
 	filter := driver.FilterNearest
-	if options.Filter != FilterDefault {
-		filter = driver.Filter(options.Filter)
-	} else if img.filter != FilterDefault {
-		filter = driver.Filter(img.filter)
+	if options.Shader == nil {
+		if options.Filter != FilterDefault {
+			filter = driver.Filter(options.Filter)
+		} else if img.filter != FilterDefault {
+			filter = driver.Filter(img.filter)
+		}
 	}
 
-	b := img.Bounds()
-	bx0 := float32(b.Min.X)
-	by0 := float32(b.Min.Y)
-	bx1 := float32(b.Max.X)
-	by1 := float32(b.Max.Y)
-
-	// TODO: Should we use mipmap.verticesBackend?
 	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
 	for i, v := range vertices {
 		vs[i*graphics.VertexFloatNum] = v.DstX
 		vs[i*graphics.VertexFloatNum+1] = v.DstY
 		vs[i*graphics.VertexFloatNum+2] = v.SrcX
 		vs[i*graphics.VertexFloatNum+3] = v.SrcY
-		vs[i*graphics.VertexFloatNum+4] = bx0
-		vs[i*graphics.VertexFloatNum+5] = by0
-		vs[i*graphics.VertexFloatNum+6] = bx1
-		vs[i*graphics.VertexFloatNum+7] = by1
-		vs[i*graphics.VertexFloatNum+8] = v.ColorR
-		vs[i*graphics.VertexFloatNum+9] = v.ColorG
-		vs[i*graphics.VertexFloatNum+10] = v.ColorB
-		vs[i*graphics.VertexFloatNum+11] = v.ColorA
+		vs[i*graphics.VertexFloatNum+4] = v.ColorR
+		vs[i*graphics.VertexFloatNum+5] = v.ColorG
+		vs[i*graphics.VertexFloatNum+6] = v.ColorB
+		vs[i*graphics.VertexFloatNum+7] = v.ColorA
 	}
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
-	i.buffered.DrawTriangles(img.buffered, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address))
+	var sr driver.Region
+	if options.Shader == nil && options.Address != AddressUnsafe {
+		b := img.Bounds()
+		sr = driver.Region{
+			X:      float32(b.Min.X),
+			Y:      float32(b.Min.Y),
+			Width:  float32(b.Dx()),
+			Height: float32(b.Dy()),
+		}
+	}
+
+	var srcs [graphics.ShaderImageNum]*mipmap.Mipmap
+	if img != nil {
+		srcs[0] = img.mipmap
+	}
+
+	if options.Shader == nil {
+		i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), sr, nil, nil, false)
+		return
+	}
+	i.mipmap.DrawTriangles(srcs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, options.Shader.shader, options.Uniforms, false)
 }
 
-// SubImage returns an image representing the portion of the image p visible through r. The returned value shares pixels with the original image.
+// DrawRectShaderOptions represents options for DrawRectShader
+//
+// This API is experimental.
+type DrawRectShaderOptions struct {
+	// GeoM is a geometry matrix to draw.
+	// The default (zero) value is identity, which draws the rectangle at (0, 0).
+	GeoM GeoM
+
+	// CompositeMode is a composite mode to draw.
+	// The default (zero) value is regular alpha blending.
+	CompositeMode CompositeMode
+
+	// Uniforms is a set of uniform variables for the shader.
+	Uniforms []interface{}
+
+	// Images is a set of the source images.
+	// All the image must be the same size with the rectangle.
+	Images [4]*Image
+}
+
+func init() {
+	var op DrawRectShaderOptions
+	if got, want := len(op.Images), graphics.ShaderImageNum; got != want {
+		panic(fmt.Sprintf("ebiten: len((DrawRectShaderOptions{}).Images) must be %d but %d", want, got))
+	}
+}
+
+// DrawRectShader draws a rectangle with the specified width and height with the specified shader.
+//
+// When one of the specified image is non-nil and is disposed, DrawRectShader panics.
+//
+// When the image i is disposed, DrawRectShader does nothing.
+//
+// This API is experimental.
+func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawRectShaderOptions) {
+	i.copyCheck()
+
+	if i.isDisposed() {
+		return
+	}
+
+	// TODO: Implement this.
+	if i.isSubImage() {
+		panic("ebiten: rendering to a sub-image is not implemented (DrawRectShader)")
+	}
+
+	if options == nil {
+		options = &DrawRectShaderOptions{}
+	}
+
+	mode := driver.CompositeMode(options.CompositeMode)
+
+	var imgs [graphics.ShaderImageNum]*mipmap.Mipmap
+	for i, img := range options.Images {
+		if img == nil {
+			continue
+		}
+		if img.isDisposed() {
+			panic("ebiten: the given image to DrawRectShader must not be disposed")
+		}
+		if img.isSubImage() {
+			// TODO: Implement this.
+			panic("ebiten: rendering a sub-image is not implemented (DrawRectShader)")
+		}
+		if w, h := img.Size(); width != w || height != h {
+			panic("ebiten: all the source images must be the same size with the rectangle")
+		}
+		imgs[i] = img.mipmap
+	}
+
+	a, b, c, d, tx, ty := options.GeoM.elements32()
+	vs := graphics.QuadVertices(0, 0, float32(width), float32(height), a, b, c, d, tx, ty, 1, 1, 1, 1, false)
+	is := graphics.QuadIndices()
+
+	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, shader.shader, options.Uniforms, canSkipMipmap(options.GeoM, driver.FilterNearest))
+}
+
+// DrawTrianglesShaderOptions represents options for DrawTrianglesShader
+//
+// This API is experimental.
+type DrawTrianglesShaderOptions struct {
+	// CompositeMode is a composite mode to draw.
+	// The default (zero) value is regular alpha blending.
+	CompositeMode CompositeMode
+
+	// Uniforms is a set of uniform variables for the shader.
+	Uniforms []interface{}
+
+	// Images is a set of the source images.
+	// All the image must be the same size.
+	Images [4]*Image
+}
+
+func init() {
+	var op DrawTrianglesShaderOptions
+	if got, want := len(op.Images), graphics.ShaderImageNum; got != want {
+		panic(fmt.Sprintf("ebiten: len((DrawTrianglesShaderOptions{}).Images) must be %d but %d", want, got))
+	}
+}
+
+// DrawTrianglesShader draws triangles with the specified vertices and their indices with the specified shader.
+//
+// If len(indices) is not multiple of 3, DrawTrianglesShader panics.
+//
+// If len(indices) is more than MaxIndicesNum, DrawTrianglesShader panics.
+//
+// When a specified image is non-nil and is disposed, DrawTrianglesShader panics.
+//
+// When the image i is disposed, DrawTrianglesShader does nothing.
+//
+// This API is experimental.
+func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader *Shader, options *DrawTrianglesShaderOptions) {
+	i.copyCheck()
+
+	if i.isDisposed() {
+		return
+	}
+
+	if i.isSubImage() {
+		panic("ebiten: render to a sub-image is not implemented (DrawTrianglesShader)")
+	}
+
+	if len(indices)%3 != 0 {
+		panic("ebiten: len(indices) % 3 must be 0")
+	}
+	if len(indices) > MaxIndicesNum {
+		panic("ebiten: len(indices) must be <= MaxIndicesNum")
+	}
+
+	if options == nil {
+		options = &DrawTrianglesShaderOptions{}
+	}
+
+	mode := driver.CompositeMode(options.CompositeMode)
+
+	var imgw, imgh int
+	var imgs [graphics.ShaderImageNum]*mipmap.Mipmap
+	for i, img := range options.Images {
+		if img == nil {
+			continue
+		}
+		if img.isDisposed() {
+			panic("ebiten: the given image to DrawTrianglesShader must not be disposed")
+		}
+		if img.isSubImage() {
+			// TODO: Implement this.
+			panic("ebiten: rendering a sub-image is not implemented (DrawTrianglesShader)")
+		}
+		if imgw == 0 || imgh == 0 {
+			imgw, imgh = img.Size()
+		} else if w, h := img.Size(); imgw != w || imgh != h {
+			panic("ebiten: all the source images must be the same size")
+		}
+		imgs[i] = img.mipmap
+	}
+
+	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
+	for i, v := range vertices {
+		vs[i*graphics.VertexFloatNum] = v.DstX
+		vs[i*graphics.VertexFloatNum+1] = v.DstY
+		vs[i*graphics.VertexFloatNum+2] = v.SrcX
+		vs[i*graphics.VertexFloatNum+3] = v.SrcY
+		vs[i*graphics.VertexFloatNum+4] = v.ColorR
+		vs[i*graphics.VertexFloatNum+5] = v.ColorG
+		vs[i*graphics.VertexFloatNum+6] = v.ColorB
+		vs[i*graphics.VertexFloatNum+7] = v.ColorA
+	}
+	is := make([]uint16, len(indices))
+	copy(is, indices)
+
+	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, shader.shader, options.Uniforms, false)
+}
+
+// SubImage returns an image representing the portion of the image p visible through r.
+// The returned value shares pixels with the original image.
 //
 // The returned value is always *ebiten.Image.
 //
@@ -347,26 +630,26 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 		return nil
 	}
 
-	img := &Image{
-		buffered: i.buffered,
-		filter:   i.filter,
-	}
-
-	// Keep the original image's reference not to dispose that by GC.
-	if i.isSubImage() {
-		img.original = i.original
-	} else {
-		img.original = i
-	}
-	img.addr = img
-
 	r = r.Intersect(i.Bounds())
 	// Need to check Empty explicitly. See the standard image package implementations.
 	if r.Empty() {
-		img.bounds = image.ZR
-	} else {
-		img.bounds = r
+		r = image.ZR
 	}
+
+	// Keep the original image's reference not to dispose that by GC.
+	var orig = i
+	if i.isSubImage() {
+		orig = i.original
+	}
+
+	img := &Image{
+		mipmap:   i.mipmap,
+		filter:   i.filter,
+		bounds:   r,
+		original: orig,
+	}
+	img.addr = img
+
 	return img
 }
 
@@ -389,22 +672,23 @@ func (i *Image) ColorModel() color.Model {
 //
 // At always returns a transparent color if the image is disposed.
 //
-// Note that important logic should not rely on values returned by At, since
+// Note that an important logic should not rely on values returned by At, since
 // the returned values can include very slight differences between some machines.
 //
-// At can't be called outside the main loop (ebiten.Run's updating function) starts (as of version 1.4.0-alpha).
+// At can't be called outside the main loop (ebiten.Run's updating function) starts (as of version 1.4.0).
 func (i *Image) At(x, y int) color.Color {
 	if i.isDisposed() {
 		return color.RGBA{}
 	}
-	if i.isSubImage() && !image.Pt(x, y).In(i.bounds) {
+	if !image.Pt(x, y).In(i.Bounds()) {
 		return color.RGBA{}
 	}
-	r, g, b, a, err := i.buffered.At(x, y)
+	pix, err := i.mipmap.Pixels(x, y, 1, 1)
 	if err != nil {
 		theUIContext.setError(err)
+		return color.RGBA{}
 	}
-	return color.RGBA{r, g, b, a}
+	return color.RGBA{pix[0], pix[1], pix[2], pix[3]}
 }
 
 // Set sets the color at (x, y).
@@ -428,19 +712,20 @@ func (i *Image) Set(x, y int, clr color.Color) {
 
 	r, g, b, a := clr.RGBA()
 	pix := []byte{byte(r >> 8), byte(g >> 8), byte(b >> 8), byte(a >> 8)}
-	if err := i.buffered.ReplacePixels(pix, x, y, 1, 1); err != nil {
+	if err := i.mipmap.ReplacePixels(pix, x, y, 1, 1); err != nil {
 		theUIContext.setError(err)
 	}
 }
 
-// Dispose disposes the image data. After disposing, most of image functions do nothing and returns meaningless values.
+// Dispose disposes the image data.
+// After disposing, most of image functions do nothing and returns meaningless values.
 //
 // Calling Dispose is not mandatory. GC automatically collects internal resources that no objects refer to.
 // However, calling Dispose explicitly is helpful if memory usage matters.
 //
 // When the image is disposed, Dipose does nothing.
 //
-// Dipose always return nil as of 1.5.0-alpha.
+// Dipose always return nil as of 1.5.0.
 func (i *Image) Dispose() error {
 	i.copyCheck()
 
@@ -450,30 +735,35 @@ func (i *Image) Dispose() error {
 	if i.isSubImage() {
 		return nil
 	}
-	i.buffered.MarkDisposed()
-	i.buffered = nil
+	i.mipmap.MarkDisposed()
+	i.mipmap = nil
 	return nil
 }
 
 // ReplacePixels replaces the pixels of the image with p.
 //
-// The given p must represent RGBA pre-multiplied alpha values. len(p) must equal to 4 * (bounds width) * (bounds height).
+// The given p must represent RGBA pre-multiplied alpha values.
+// len(pix) must equal to 4 * (bounds width) * (bounds height).
 //
 // ReplacePixels works on a sub-image.
 //
-// When len(p) is not appropriate, ReplacePixels panics.
+// When len(pix) is not appropriate, ReplacePixels panics.
 //
 // When the image is disposed, ReplacePixels does nothing.
 //
-// ReplacePixels always returns nil as of 1.5.0-alpha.
-func (i *Image) ReplacePixels(p []byte) error {
+// ReplacePixels always returns nil as of 1.5.0.
+func (i *Image) ReplacePixels(pixels []byte) error {
 	i.copyCheck()
 
 	if i.isDisposed() {
 		return nil
 	}
 	r := i.Bounds()
-	if err := i.buffered.ReplacePixels(p, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
+
+	// Do not need to copy pixels here.
+	// * In internal/mipmap, pixels are copied when necessary.
+	// * In internal/shareable, pixels are copied to make its paddings.
+	if err := i.mipmap.ReplacePixels(pixels, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
 		theUIContext.setError(err)
 	}
 	return nil
@@ -522,16 +812,16 @@ type DrawImageOptions struct {
 // filter argument is just for backward compatibility.
 // If you are not sure, specify FilterDefault.
 //
-// Error returned by NewImage is always nil as of 1.5.0-alpha.
+// Error returned by NewImage is always nil as of 1.5.0.
 func NewImage(width, height int, filter Filter) (*Image, error) {
 	return newImage(width, height, filter, false), nil
 }
 
 func newImage(width, height int, filter Filter, volatile bool) *Image {
 	i := &Image{
-		buffered: buffered.NewImage(width, height, volatile),
-		filter:   filter,
-		bounds:   image.Rect(0, 0, width, height),
+		mipmap: mipmap.New(width, height, volatile),
+		filter: filter,
+		bounds: image.Rect(0, 0, width, height),
 	}
 	i.addr = i
 	return i
@@ -544,28 +834,28 @@ func newImage(width, height int, filter Filter, volatile bool) *Image {
 // filter argument is just for backward compatibility.
 // If you are not sure, specify FilterDefault.
 //
-// Error returned by NewImageFromImage is always nil as of 1.5.0-alpha.
+// Error returned by NewImageFromImage is always nil as of 1.5.0.
 func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	size := source.Bounds().Size()
 
 	width, height := size.X, size.Y
 
 	i := &Image{
-		buffered: buffered.NewImage(width, height, false),
-		filter:   filter,
-		bounds:   image.Rect(0, 0, width, height),
+		mipmap: mipmap.New(width, height, false),
+		filter: filter,
+		bounds: image.Rect(0, 0, width, height),
 	}
 	i.addr = i
 
-	_ = i.ReplacePixels(copyImage(source))
+	i.ReplacePixels(imageToBytes(source))
 	return i, nil
 }
 
 func newScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
-		buffered: buffered.NewScreenFramebufferImage(width, height),
-		filter:   FilterDefault,
-		bounds:   image.Rect(0, 0, width, height),
+		mipmap: mipmap.NewScreenFramebufferMipmap(width, height),
+		filter: FilterDefault,
+		bounds: image.Rect(0, 0, width, height),
 	}
 	i.addr = i
 	return i

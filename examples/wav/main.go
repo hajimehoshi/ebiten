@@ -32,15 +32,17 @@ const (
 	sampleRate   = 44100
 )
 
-var (
+type Game struct {
 	audioContext *audio.Context
 	audioPlayer  *audio.Player
-)
+}
+
+var g Game
 
 func init() {
 	var err error
 	// Initialize audio context.
-	audioContext, err = audio.NewContext(sampleRate)
+	g.audioContext, err = audio.NewContext(sampleRate)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -56,42 +58,48 @@ func init() {
 	//         return err
 	//     }
 	//
-	//     d, err := wav.Decode(audioContext, f)
+	//     d, err := wav.Decode(g.audioContext, f)
 	//     ...
 
 	// Decode wav-formatted data and retrieve decoded PCM stream.
-	d, err := wav.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Jab_wav))
+	d, err := wav.Decode(g.audioContext, audio.BytesReadSeekCloser(raudio.Jab_wav))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Create an audio.Player that has one stream.
-	audioPlayer, err = audio.NewPlayer(audioContext, d)
+	g.audioPlayer, err = audio.NewPlayer(g.audioContext, d)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-func update(screen *ebiten.Image) error {
-	if ebiten.IsKeyPressed(ebiten.KeyP) && !audioPlayer.IsPlaying() {
+func (g *Game) Update(screen *ebiten.Image) error {
+	if ebiten.IsKeyPressed(ebiten.KeyP) && !g.audioPlayer.IsPlaying() {
 		// As audioPlayer has one stream and remembers the playing position,
 		// rewinding is needed before playing when reusing audioPlayer.
-		audioPlayer.Rewind()
-		audioPlayer.Play()
-	}
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-	if audioPlayer.IsPlaying() {
-		ebitenutil.DebugPrint(screen, "Bump!")
-	} else {
-		ebitenutil.DebugPrint(screen, "Press P to play the wav")
+		g.audioPlayer.Rewind()
+		g.audioPlayer.Play()
 	}
 	return nil
 }
 
+func (g *Game) Draw(screen *ebiten.Image) {
+	if g.audioPlayer.IsPlaying() {
+		ebitenutil.DebugPrint(screen, "Bump!")
+	} else {
+		ebitenutil.DebugPrint(screen, "Press P to play the wav")
+	}
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
+}
+
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "WAV (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("WAV (Ebiten Demo)")
+	if err := ebiten.RunGame(&g); err != nil {
 		log.Fatal(err)
 	}
 }

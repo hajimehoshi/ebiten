@@ -104,16 +104,24 @@ func (c *ColorM) ChangeHSV(hueTheta float64, saturationScale float64, valueScale
 
 // Element returns a value of a matrix at (i, j).
 func (c *ColorM) Element(i, j int) float64 {
-	b, t := c.impl.UnsafeElements()
-	if j < ColorMDim-1 {
-		return float64(b[i+j*(ColorMDim-1)])
-	}
-	return float64(t[i])
+	return float64(c.impl.Element(i, j))
 }
 
 // SetElement sets an element at (i, j).
 func (c *ColorM) SetElement(i, j int, element float64) {
 	c.impl = c.impl.SetElement(i, j, float32(element))
+}
+
+// IsInvertible returns a boolean value indicating
+// whether the matrix c is invertible or not.
+func (c *ColorM) IsInvertible() bool {
+	return c.impl.IsInvertible()
+}
+
+// Invert inverts the matrix.
+// If c is not invertible, Invert panics.
+func (c *ColorM) Invert() {
+	c.impl = c.impl.Invert()
 }
 
 // Monochrome returns a color matrix for monochrome.

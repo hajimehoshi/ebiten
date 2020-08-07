@@ -30,10 +30,10 @@ func TestMain(m *testing.M) {
 
 func quadVertices(w, h float32) []float32 {
 	return []float32{
-		0, 0, 0, 0, 0, 0, w, h, 1, 1, 1, 1,
-		w, 0, w, 0, 0, 0, w, h, 1, 1, 1, 1,
-		0, w, 0, h, 0, 0, w, h, 1, 1, 1, 1,
-		w, h, w, h, 0, 0, w, h, 1, 1, 1, 1,
+		0, 0, 0, 0, 1, 1, 1, 1,
+		w, 0, w, 0, 1, 1, 1, 1,
+		0, w, 0, h, 1, 1, 1, 1,
+		w, h, w, h, 1, 1, 1, 1,
 	}
 }
 
@@ -44,7 +44,7 @@ func TestClear(t *testing.T) {
 
 	vs := quadVertices(w/2, h/2)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressClampToZero, nil, nil)
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
 
 	pix, err := dst.Pixels()
 	if err != nil {
@@ -74,8 +74,8 @@ func TestReplacePixelsPartAfterDrawTriangles(t *testing.T) {
 	dst := NewImage(w, h)
 	vs := quadVertices(w/2, h/2)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles(clr, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressClampToZero, nil, nil)
-	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero, nil, nil)
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{clr}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
 	dst.ReplacePixels(make([]byte, 4), 0, 0, 1, 1)
 }
 
@@ -89,14 +89,11 @@ func TestShader(t *testing.T) {
 	dst := NewImage(w, h)
 	vs := quadVertices(w, h)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles(clr, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressClampToZero, nil, nil)
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{clr}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
 
 	ir := etesting.ShaderProgramFill(0xff, 0, 0, 0xff)
 	s := NewShader(&ir)
-	us := map[int]interface{}{
-		0: []float32{w, h},
-	}
-	dst.DrawTriangles(nil, vs, is, nil, driver.CompositeModeSourceOver, 0, 0, s, us)
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, s, nil)
 
 	pix, err := dst.Pixels()
 	if err != nil {

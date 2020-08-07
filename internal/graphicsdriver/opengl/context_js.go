@@ -23,6 +23,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/jsutil"
+	"github.com/hajimehoshi/ebiten/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
@@ -67,6 +68,8 @@ func (p program) equal(rhs program) bool {
 
 var InvalidTexture = textureNative(js.Null())
 
+var invalidUniform = uniformLocation(js.Null())
+
 func getProgramID(p program) programID {
 	return p.id
 }
@@ -88,6 +91,7 @@ var (
 	dstAlpha         operation
 	oneMinusSrcAlpha operation
 	oneMinusDstAlpha operation
+	dstColor         operation
 
 	blend               js.Value
 	clampToEdge         js.Value
@@ -142,6 +146,7 @@ func init() {
 	dstAlpha = operation(contextPrototype.Get("DST_ALPHA").Int())
 	oneMinusSrcAlpha = operation(contextPrototype.Get("ONE_MINUS_SRC_ALPHA").Int())
 	oneMinusDstAlpha = operation(contextPrototype.Get("ONE_MINUS_DST_ALPHA").Int())
+	dstColor = operation(contextPrototype.Get("DST_COLOR").Int())
 
 	blend = contextPrototype.Get("BLEND")
 	clampToEdge = contextPrototype.Get("CLAMP_TO_EDGE")
@@ -307,9 +312,8 @@ func (c *context) deleteTexture(t textureNative) {
 }
 
 func (c *context) isTexture(t textureNative) bool {
-	c.ensureGL()
-	gl := c.gl
-	return gl.Call("isTexture", js.Value(t)).Bool()
+	// isTexture should not be called to detect context-lost since this performance is not good (#1175).
+	panic("opengl: isTexture is not implemented")
 }
 
 func (c *context) newFramebuffer(t textureNative) (framebufferNative, error) {
@@ -391,7 +395,8 @@ func (c *context) newProgram(shaders []shader, attributes []string) (program, er
 
 	gl.Call("linkProgram", v)
 	if !gl.Call("getProgramParameter", v, linkStatus).Bool() {
-		return program{}, errors.New("opengl: program error")
+		info := gl.Call("getProgramInfoLog", v).String()
+		return program{}, fmt.Errorf("opengl: program error: %s", info)
 	}
 
 	id := c.lastProgramID
@@ -423,37 +428,65 @@ func (c *context) getUniformLocationImpl(p program, location string) uniformLoca
 	return uniformLocation(gl.Call("getUniformLocation", p.value, location))
 }
 
-func (c *context) uniformInt(p program, location string, v int) {
+func (c *context) uniformInt(p program, location string, v int) bool {
 	c.ensureGL()
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
+	if l.equal(invalidUniform) {
+		return false
+	}
 	gl.Call("uniform1i", js.Value(l), v)
+	return true
 }
 
-func (c *context) uniformFloat(p program, location string, v float32) {
+func (c *context) uniformFloat(p program, location string, v float32) bool {
 	c.ensureGL()
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
+	if l.equal(invalidUniform) {
+		return false
+	}
 	gl.Call("uniform1f", js.Value(l), v)
+	return true
 }
 
-func (c *context) uniformFloats(p program, location string, v []float32) {
+func (c *context) uniformFloats(p program, location string, v []float32, typ shaderir.Type) bool {
 	c.ensureGL()
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
-	switch len(v) {
-	case 2:
-		gl.Call("uniform2f", js.Value(l), v[0], v[1])
-	case 4:
-		gl.Call("uniform4f", js.Value(l), v[0], v[1], v[2], v[3])
-	case 16:
-		arr8 := jsutil.TemporaryUint8Array(len(v) * 4)
-		arr := js.Global().Get("Float32Array").New(arr8.Get("buffer"), arr8.Get("byteOffset"), len(v))
-		jsutil.CopySliceToJS(arr, v)
+	if l.equal(invalidUniform) {
+		return false
+	}
+
+	base := typ.Main
+	if base == shaderir.Array {
+		base = typ.Sub[0].Main
+	}
+
+	arr8 := jsutil.TemporaryUint8Array(len(v) * 4)
+	arr := js.Global().Get("Float32Array").New(arr8.Get("buffer"), arr8.Get("byteOffset"), len(v))
+	jsutil.CopySliceToJS(arr, v)
+
+	switch base {
+	case shaderir.Float:
+		gl.Call("uniform1fv", js.Value(l), arr)
+	case shaderir.Vec2:
+		gl.Call("uniform2fv", js.Value(l), arr)
+	case shaderir.Vec3:
+		gl.Call("uniform3fv", js.Value(l), arr)
+	case shaderir.Vec4:
+		gl.Call("uniform4fv", js.Value(l), arr)
+	case shaderir.Mat2:
+		gl.Call("uniformMatrix2fv", js.Value(l), false, arr)
+	case shaderir.Mat3:
+		gl.Call("uniformMatrix3fv", js.Value(l), false, arr)
+	case shaderir.Mat4:
 		gl.Call("uniformMatrix4fv", js.Value(l), false, arr)
 	default:
-		panic(fmt.Sprintf("opengl: invalid uniform floats num: %d", len(v)))
+		panic(fmt.Sprintf("opengl: unexpected type: %s", typ.String()))
 	}
+
+	return true
 }
 
 func (c *context) vertexAttribPointer(p program, index int, size int, dataType dataType, stride int, offset int) {

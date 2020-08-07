@@ -167,6 +167,167 @@ func (c *ColorM) UnsafeElements() ([]float32, []float32) {
 	return eb, et
 }
 
+func (c *ColorM) det() float32 {
+	if !c.isInited() {
+		return 1
+	}
+
+	m00 := c.body[0]
+	m01 := c.body[1]
+	m02 := c.body[2]
+	m03 := c.body[3]
+	m10 := c.body[4]
+	m11 := c.body[5]
+	m12 := c.body[6]
+	m13 := c.body[7]
+	m20 := c.body[8]
+	m21 := c.body[9]
+	m22 := c.body[10]
+	m23 := c.body[11]
+	m30 := c.body[12]
+	m31 := c.body[13]
+	m32 := c.body[14]
+	m33 := c.body[15]
+
+	b234234 := m22*m33 - m23*m32
+	b134234 := m21*m33 - m23*m31
+	b124234 := m21*m32 - m22*m31
+	b034234 := m20*m33 - m23*m30
+	b024234 := m20*m32 - m22*m30
+	b014234 := m20*m31 - m21*m30
+
+	return m00*(m11*b234234-m12*b134234+m13*b124234) -
+		m01*(m10*b234234-m12*b034234+m13*b024234) +
+		m02*(m10*b134234-m11*b034234+m13*b014234) -
+		m03*(m10*b124234-m11*b024234+m12*b014234)
+}
+
+// IsInvertible returns a boolean value indicating
+// whether the matrix c is invertible or not.
+func (c *ColorM) IsInvertible() bool {
+	return c.det() != 0
+}
+
+// Invert inverts the matrix.
+// If c is not invertible, Invert panics.
+func (c *ColorM) Invert() *ColorM {
+	if !c.isInited() {
+		return nil
+	}
+
+	det := c.det()
+	if det == 0 {
+		panic("affine: c is not invertible")
+	}
+
+	m00 := c.body[0]
+	m01 := c.body[1]
+	m02 := c.body[2]
+	m03 := c.body[3]
+
+	m10 := c.body[4]
+	m11 := c.body[5]
+	m12 := c.body[6]
+	m13 := c.body[7]
+
+	m20 := c.body[8]
+	m21 := c.body[9]
+	m22 := c.body[10]
+	m23 := c.body[11]
+
+	m30 := c.body[12]
+	m31 := c.body[13]
+	m32 := c.body[14]
+	m33 := c.body[15]
+
+	m40 := c.translate[0]
+	m41 := c.translate[1]
+	m42 := c.translate[2]
+	m43 := c.translate[3]
+
+	a2334 := m32*m43 - m33*m42
+	a1334 := m31*m43 - m33*m41
+	a1234 := m31*m42 - m32*m41
+	a0334 := m30*m43 - m33*m40
+	a0234 := m30*m42 - m32*m40
+	a0134 := m30*m41 - m31*m40
+	a2324 := m22*m43 - m23*m42
+	a1324 := m21*m43 - m23*m41
+	a1224 := m21*m42 - m22*m41
+	a0324 := m20*m43 - m23*m40
+	a0224 := m20*m42 - m22*m40
+	a0124 := m20*m41 - m21*m40
+
+	b234234 := m22*m33 - m23*m32
+	b134234 := m21*m33 - m23*m31
+	b124234 := m21*m32 - m22*m31
+	b123234 := m21*a2334 - m22*a1334 + m23*a1234
+	b034234 := m20*m33 - m23*m30
+	b024234 := m20*m32 - m22*m30
+	b023234 := m20*a2334 - m22*a0334 + m23*a0234
+	b014234 := m20*m31 - m21*m30
+	b013234 := m20*a1334 - m21*a0334 + m23*a0134
+	b012234 := m20*a1234 - m21*a0234 + m22*a0134
+	b234134 := m12*m33 - m13*m32
+	b134134 := m11*m33 - m13*m31
+	b124134 := m11*m32 - m12*m31
+	b123134 := m11*a2334 - m12*a1334 + m13*a1234
+	b234124 := m12*m23 - m13*m22
+	b134124 := m11*m23 - m13*m21
+	b124124 := m11*m22 - m12*m21
+	b123124 := m11*a2324 - m12*a1324 + m13*a1224
+	b034134 := m10*m33 - m13*m30
+	b024134 := m10*m32 - m12*m30
+	b023134 := m10*a2334 - m12*a0334 + m13*a0234
+	b034124 := m10*m23 - m13*m20
+	b024124 := m10*m22 - m12*m20
+	b023124 := m10*a2324 - m12*a0324 + m13*a0224
+	b014134 := m10*m31 - m11*m30
+	b013134 := m10*a1334 - m11*a0334 + m13*a0134
+	b014124 := m10*m21 - m11*m20
+	b013124 := m10*a1324 - m11*a0324 + m13*a0124
+	b012134 := m10*a1234 - m11*a0234 + m12*a0134
+	b012124 := m10*a1224 - m11*a0224 + m12*a0124
+
+	m := &ColorM{
+		body:      make([]float32, 16),
+		translate: make([]float32, 4),
+	}
+
+	idet := 1 / det
+
+	m.body[0] = idet * (m11*b234234 - m12*b134234 + m13*b124234)
+	m.body[1] = idet * -(m01*b234234 - m02*b134234 + m03*b124234)
+	m.body[2] = idet * (m01*b234134 - m02*b134134 + m03*b124134)
+	m.body[3] = idet * -(m01*b234124 - m02*b134124 + m03*b124124)
+	m.body[4] = idet * -(m10*b234234 - m12*b034234 + m13*b024234)
+	m.body[5] = idet * (m00*b234234 - m02*b034234 + m03*b024234)
+	m.body[6] = idet * -(m00*b234134 - m02*b034134 + m03*b024134)
+	m.body[7] = idet * (m00*b234124 - m02*b034124 + m03*b024124)
+	m.body[8] = idet * (m10*b134234 - m11*b034234 + m13*b014234)
+	m.body[9] = idet * -(m00*b134234 - m01*b034234 + m03*b014234)
+	m.body[10] = idet * (m00*b134134 - m01*b034134 + m03*b014134)
+	m.body[11] = idet * -(m00*b134124 - m01*b034124 + m03*b014124)
+	m.body[12] = idet * -(m10*b124234 - m11*b024234 + m12*b014234)
+	m.body[13] = idet * (m00*b124234 - m01*b024234 + m02*b014234)
+	m.body[14] = idet * -(m00*b124134 - m01*b024134 + m02*b014134)
+	m.body[15] = idet * (m00*b124124 - m01*b024124 + m02*b014124)
+	m.translate[0] = idet * (m10*b123234 - m11*b023234 + m12*b013234 - m13*b012234)
+	m.translate[1] = idet * -(m00*b123234 - m01*b023234 + m02*b013234 - m03*b012234)
+	m.translate[2] = idet * (m00*b123134 - m01*b023134 + m02*b013134 - m03*b012134)
+	m.translate[3] = idet * -(m00*b123124 - m01*b023124 + m02*b013124 - m03*b012124)
+	return m
+}
+
+// Element returns a value of a matrix at (i, j).
+func (c *ColorM) Element(i, j int) float32 {
+	b, t := c.UnsafeElements()
+	if j < ColorMDim-1 {
+		return b[i+j*(ColorMDim-1)]
+	}
+	return t[i]
+}
+
 // SetElement sets an element at (i, j).
 func (c *ColorM) SetElement(i, j int, element float32) *ColorM {
 	newC := &ColorM{

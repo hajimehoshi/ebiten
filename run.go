@@ -139,6 +139,9 @@ func IsRunningSlowly() bool {
 }
 
 // Run starts the main loop and runs the game.
+//
+// Deprecated: (as of 1.12.0) Use RunGame instead.
+//
 // f is a function which is called at every frame.
 // The argument (*Image) is the render target that represents the screen.
 // The screen size is based on the given values (width and height).
@@ -244,7 +247,7 @@ func (i *imageDumperGameWithDraw) Draw(screen *Image) {
 }
 
 // RunGame starts the main loop and runs the game.
-// game's Update function is called every tick to update the gmae logic.
+// game's Update function is called every tick to update the game logic.
 // game's Draw function is, if it exists, called every frame to draw the screen.
 // game's Layout function is called when necessary, and you can specify the logical screen size by the function.
 //

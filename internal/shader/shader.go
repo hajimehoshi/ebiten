@@ -17,56 +17,113 @@ package shader
 import (
 	"fmt"
 	"go/ast"
-	"go/parser"
 	"go/token"
-	"regexp"
-	"sort"
 	"strings"
-)
 
-const (
-	// TODO: Remove this. This struct is a user-defined struct.
-	varyingStructName = "VertexOut"
-)
-
-var (
-	kageTagRe = regexp.MustCompile("^`" + `kage:\"(.+)\"` + "`$")
+	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
 type variable struct {
-	name string
-	typ  typ
-	init ast.Expr
+	name           string
+	typ            shaderir.Type
+	forLoopCounter bool
 }
 
 type constant struct {
 	name string
-	typ  typ
+	typ  shaderir.Type
 	init ast.Expr
 }
 
 type function struct {
-	name string
-	args []variable
-	rets []variable
-	body *block
+	name  string
+	block *block
+
+	ir shaderir.Func
 }
 
-type Shader struct {
+type compileState struct {
 	fs *token.FileSet
 
-	// position is the field name of VertexOut that represents a vertex position (gl_Position in GLSL).
-	position variable
+	vertexEntry   string
+	fragmentEntry string
 
-	// varyings is a collection of varying variables.
-	varyings []variable
+	ir shaderir.Program
 
-	// uniforms is a collection of uniform variables.
-	uniforms []variable
+	// uniforms is a collection of uniform variable names.
+	uniforms []string
+
+	funcs []function
 
 	global block
 
+	varyingParsed bool
+
 	errs []string
+}
+
+func (cs *compileState) findFunction(name string) (int, bool) {
+	for i, f := range cs.funcs {
+		if f.name == name {
+			return i, true
+		}
+	}
+	return 0, false
+}
+
+func (cs *compileState) findUniformVariable(name string) (int, bool) {
+	for i, u := range cs.uniforms {
+		if u == name {
+			return i, true
+		}
+	}
+	return 0, false
+}
+
+type typ struct {
+	name string
+	ir   shaderir.Type
+}
+
+type block struct {
+	types  []typ
+	vars   []variable
+	consts []constant
+	pos    token.Pos
+	outer  *block
+
+	ir shaderir.Block
+}
+
+func (b *block) findLocalVariable(name string) (int, shaderir.Type, bool) {
+	idx := 0
+	for outer := b.outer; outer != nil; outer = outer.outer {
+		idx += len(outer.vars)
+	}
+	for i, v := range b.vars {
+		if v.name == name {
+			return idx + i, v.typ, true
+		}
+	}
+	if b.outer != nil {
+		return b.outer.findLocalVariable(name)
+	}
+	return 0, shaderir.Type{}, false
+}
+
+func (b *block) findLocalVariableByIndex(idx int) (shaderir.Type, bool) {
+	bs := []*block{b}
+	for outer := b.outer; outer != nil; outer = outer.outer {
+		bs = append(bs, outer)
+	}
+	for i := len(bs) - 1; i >= 0; i-- {
+		if len(bs[i].vars) <= idx {
+			idx -= len(bs[i].vars)
+			continue
+		}
+		return bs[i].vars[idx].typ, true
+	}
+	return shaderir.Type{}, false
 }
 
 type ParseError struct {
@@ -77,15 +134,11 @@ func (p *ParseError) Error() string {
 	return strings.Join(p.errs, "\n")
 }
 
-func NewShader(src []byte) (*Shader, error) {
-	fs := token.NewFileSet()
-	f, err := parser.ParseFile(fs, "", src, parser.AllErrors)
-	if err != nil {
-		return nil, err
-	}
-
-	s := &Shader{
-		fs: fs,
+func Compile(fs *token.FileSet, f *ast.File, vertexEntry, fragmentEntry string, textureNum int) (*shaderir.Program, error) {
+	s := &compileState{
+		fs:            fs,
+		vertexEntry:   vertexEntry,
+		fragmentEntry: fragmentEntry,
 	}
 	s.parse(f)
 
@@ -97,35 +150,104 @@ func NewShader(src []byte) (*Shader, error) {
 	// TODO: Resolve constants
 
 	// TODO: Make a call graph and reorder the elements.
-	return s, nil
+
+	s.ir.TextureNum = textureNum
+	return &s.ir, nil
 }
 
-func (s *Shader) addError(pos token.Pos, str string) {
+func (s *compileState) addError(pos token.Pos, str string) {
 	p := s.fs.Position(pos)
 	s.errs = append(s.errs, fmt.Sprintf("%s: %s", p, str))
 }
 
-func (sh *Shader) parse(f *ast.File) {
+func (cs *compileState) parse(f *ast.File) {
+	// Parse GenDecl for global variables, and then parse functions.
 	for _, d := range f.Decls {
-		sh.parseDecl(&sh.global, d, true)
+		if _, ok := d.(*ast.FuncDecl); !ok {
+			ss, ok := cs.parseDecl(&cs.global, d)
+			if !ok {
+				return
+			}
+			cs.global.ir.Stmts = append(cs.global.ir.Stmts, ss...)
+		}
 	}
 
-	// TODO: This is duplicated with parseBlock.
-	sort.Slice(sh.global.consts, func(a, b int) bool {
-		return sh.global.consts[a].name < sh.global.consts[b].name
-	})
-	sort.Slice(sh.global.funcs, func(a, b int) bool {
-		return sh.global.funcs[a].name < sh.global.funcs[b].name
-	})
-	sort.Slice(sh.varyings, func(a, b int) bool {
-		return sh.varyings[a].name < sh.varyings[b].name
-	})
-	sort.Slice(sh.uniforms, func(a, b int) bool {
-		return sh.uniforms[a].name < sh.uniforms[b].name
-	})
+	// Sort the uniform variable so that special variable starting with __ should come first.
+	var unames []string
+	var utypes []shaderir.Type
+	for i, u := range cs.uniforms {
+		if strings.HasPrefix(u, "__") {
+			unames = append(unames, u)
+			utypes = append(utypes, cs.ir.Uniforms[i])
+		}
+	}
+	// TODO: Check len(unames) == graphics.PreservedUniformVariablesNum. Unfortunately this is not true on tests.
+	for i, u := range cs.uniforms {
+		if !strings.HasPrefix(u, "__") {
+			unames = append(unames, u)
+			utypes = append(utypes, cs.ir.Uniforms[i])
+		}
+	}
+	cs.uniforms = unames
+	cs.ir.Uniforms = utypes
+
+	// Parse function names so that any other function call the others.
+	// The function data is provisional and will be updated soon.
+	for _, d := range f.Decls {
+		fd, ok := d.(*ast.FuncDecl)
+		if !ok {
+			continue
+		}
+		n := fd.Name.Name
+		if n == cs.vertexEntry {
+			continue
+		}
+		if n == cs.fragmentEntry {
+			continue
+		}
+
+		inParams, outParams := cs.parseFuncParams(&cs.global, fd)
+		var inT, outT []shaderir.Type
+		for _, v := range inParams {
+			inT = append(inT, v.typ)
+		}
+		for _, v := range outParams {
+			outT = append(outT, v.typ)
+		}
+
+		cs.funcs = append(cs.funcs, function{
+			name: n,
+			ir: shaderir.Func{
+				Index:     len(cs.funcs),
+				InParams:  inT,
+				OutParams: outT,
+			},
+		})
+	}
+
+	// Parse functions.
+	for _, d := range f.Decls {
+		if _, ok := d.(*ast.FuncDecl); ok {
+			ss, ok := cs.parseDecl(&cs.global, d)
+			if !ok {
+				return
+			}
+			cs.global.ir.Stmts = append(cs.global.ir.Stmts, ss...)
+		}
+	}
+
+	if len(cs.errs) > 0 {
+		return
+	}
+
+	for _, f := range cs.funcs {
+		cs.ir.Funcs = append(cs.ir.Funcs, f.ir)
+	}
 }
 
-func (sh *Shader) parseDecl(b *block, d ast.Decl, global bool) {
+func (cs *compileState) parseDecl(b *block, d ast.Decl) ([]shaderir.Stmt, bool) {
+	var stmts []shaderir.Stmt
+
 	switch d := d.(type) {
 	case *ast.GenDecl:
 		switch d.Tok {
@@ -133,117 +255,241 @@ func (sh *Shader) parseDecl(b *block, d ast.Decl, global bool) {
 			// TODO: Parse other types
 			for _, s := range d.Specs {
 				s := s.(*ast.TypeSpec)
-				t := sh.parseType(s.Type)
-				t.name = s.Name.Name
-				b.types = append(b.types, t)
+				t, ok := cs.parseType(b, s.Type)
+				if !ok {
+					return nil, false
+				}
+				b.types = append(b.types, typ{
+					name: s.Name.Name,
+					ir:   t,
+				})
 			}
 		case token.CONST:
 			for _, s := range d.Specs {
 				s := s.(*ast.ValueSpec)
-				cs := sh.parseConstant(s)
+				cs := cs.parseConstant(b, s)
 				b.consts = append(b.consts, cs...)
 			}
 		case token.VAR:
 			for _, s := range d.Specs {
 				s := s.(*ast.ValueSpec)
-				vs := sh.parseVariable(b, s)
-				if !global {
-					b.vars = append(b.vars, vs...)
+				vs, inits, ss, ok := cs.parseVariable(b, s)
+				if !ok {
+					return nil, false
+				}
+				stmts = append(stmts, ss...)
+				if b == &cs.global {
+					// TODO: Should rhs be ignored?
+					for i, v := range vs {
+						if !strings.HasPrefix(v.name, "__") {
+							if v.name[0] < 'A' || 'Z' < v.name[0] {
+								cs.addError(s.Names[i].Pos(), fmt.Sprintf("global variables must be exposed: %s", v.name))
+							}
+						}
+						cs.uniforms = append(cs.uniforms, v.name)
+						cs.ir.Uniforms = append(cs.ir.Uniforms, v.typ)
+					}
 					continue
 				}
-				for i, v := range vs {
-					if v.name[0] < 'A' || 'Z' < v.name[0] {
-						sh.addError(s.Names[i].Pos(), fmt.Sprintf("global variables must be exposed: %s", v.name))
+
+				base := len(b.vars)
+				b.vars = append(b.vars, vs...)
+
+				if len(inits) > 0 {
+					for i := range vs {
+						stmts = append(stmts, shaderir.Stmt{
+							Type: shaderir.Assign,
+							Exprs: []shaderir.Expr{
+								{
+									Type:  shaderir.LocalVariable,
+									Index: base + i,
+								},
+								inits[i],
+							},
+						})
 					}
-					// TODO: Check RHS
-					sh.uniforms = append(sh.uniforms, v)
 				}
 			}
 		case token.IMPORT:
-			sh.addError(d.Pos(), "import is forbidden")
+			cs.addError(d.Pos(), "import is forbidden")
 		default:
-			sh.addError(d.Pos(), "unexpected token")
+			cs.addError(d.Pos(), "unexpected token")
 		}
 	case *ast.FuncDecl:
-		b.funcs = append(b.funcs, sh.parseFunc(d, b))
+		f, ok := cs.parseFunc(b, d)
+		if !ok {
+			return nil, false
+		}
+		if b != &cs.global {
+			cs.addError(d.Pos(), "non-global function is not implemented")
+			return nil, false
+		}
+		switch d.Name.Name {
+		case cs.vertexEntry:
+			cs.ir.VertexFunc.Block = f.ir.Block
+		case cs.fragmentEntry:
+			cs.ir.FragmentFunc.Block = f.ir.Block
+		default:
+			// The function is already registered for their names.
+			for i := range cs.funcs {
+				if cs.funcs[i].name == d.Name.Name {
+					// Index is already determined by the provisional parsing.
+					f.ir.Index = cs.funcs[i].ir.Index
+					cs.funcs[i] = f
+					break
+				}
+			}
+		}
 	default:
-		sh.addError(d.Pos(), "unexpected decl")
+		cs.addError(d.Pos(), "unexpected decl")
+		return nil, false
 	}
+
+	return stmts, true
 }
 
-func (sh *Shader) parseStruct(t *ast.TypeSpec) {
-	s, ok := t.Type.(*ast.StructType)
+// functionReturnTypes returns the original returning value types, if the given expression is call.
+//
+// Note that parseExpr returns the returning types for IR, not the original function.
+func (cs *compileState) functionReturnTypes(block *block, expr ast.Expr) ([]shaderir.Type, bool) {
+	call, ok := expr.(*ast.CallExpr)
 	if !ok {
-		sh.addError(t.Type.Pos(), fmt.Sprintf("%s must be a struct but not", t.Name))
-		return
+		return nil, false
 	}
 
-	for _, f := range s.Fields.List {
-		if f.Tag != nil {
-			tag := f.Tag.Value
-			m := kageTagRe.FindStringSubmatch(tag)
-			if m == nil {
-				sh.addError(f.Tag.Pos(), fmt.Sprintf("invalid struct tag: %s", tag))
-				continue
+	ident, ok := call.Fun.(*ast.Ident)
+	if !ok {
+		return nil, false
+	}
+
+	for _, f := range cs.funcs {
+		if f.name == ident.Name {
+			// TODO: Is it correct to combine out-params and return param?
+			ts := f.ir.OutParams
+			if f.ir.Return.Main != shaderir.None {
+				ts = append(ts, f.ir.Return)
 			}
-			if m[1] != "position" {
-				sh.addError(f.Tag.Pos(), fmt.Sprintf("struct tag value must be position in %s but %s", varyingStructName, m[1]))
-				continue
-			}
-			if len(f.Names) != 1 {
-				sh.addError(f.Pos(), fmt.Sprintf("position members must be one"))
-				continue
-			}
-			t := sh.parseType(f.Type)
-			if t.basic != basicTypeVec4 {
-				sh.addError(f.Type.Pos(), fmt.Sprintf("position must be vec4 but %s", t))
-				continue
-			}
-			sh.position = variable{
-				name: f.Names[0].Name,
-				typ:  t,
-			}
-			continue
-		}
-		t := sh.parseType(f.Type)
-		for _, n := range f.Names {
-			sh.varyings = append(sh.varyings, variable{
-				name: n.Name,
-				typ:  t,
-			})
+			return ts, true
 		}
 	}
+	return nil, false
 }
 
-func (s *Shader) parseVariable(block *block, vs *ast.ValueSpec) []variable {
-	var t typ
-	if vs.Type != nil {
-		t = s.parseType(vs.Type)
+func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variable, []shaderir.Expr, []shaderir.Stmt, bool) {
+	if len(vs.Names) != len(vs.Values) && len(vs.Values) != 1 && len(vs.Values) != 0 {
+		s.addError(vs.Pos(), fmt.Sprintf("the numbers of lhs and rhs don't match"))
+		return nil, nil, nil, false
 	}
 
-	var vars []variable
-	for i, n := range vs.Names {
-		var init ast.Expr
-		if len(vs.Values) > 0 {
-			init = vs.Values[i]
-			if t.isNone() {
-				t = s.detectType(block, init)
-			}
+	var declt shaderir.Type
+	if vs.Type != nil {
+		var ok bool
+		declt, ok = s.parseType(block, vs.Type)
+		if !ok {
+			return nil, nil, nil, false
 		}
+	}
+
+	var (
+		vars  []variable
+		inits []shaderir.Expr
+		stmts []shaderir.Stmt
+	)
+
+	// These variables are used only in multiple-value context.
+	var inittypes []shaderir.Type
+	var initexprs []shaderir.Expr
+
+	for i, n := range vs.Names {
+		t := declt
+		switch {
+		case len(vs.Values) == 0:
+			// No initialization
+
+		case len(vs.Names) == len(vs.Values):
+			// Single-value context
+
+			init := vs.Values[i]
+
+			es, origts, ss, ok := s.parseExpr(block, init)
+			if !ok {
+				return nil, nil, nil, false
+			}
+
+			if t.Main == shaderir.None {
+				ts, ok := s.functionReturnTypes(block, init)
+				if !ok {
+					ts = origts
+				}
+				if len(ts) > 1 {
+					s.addError(vs.Pos(), fmt.Sprintf("the numbers of lhs and rhs don't match"))
+				}
+				t = ts[0]
+			}
+
+			if es[0].Type == shaderir.NumberExpr {
+				switch t.Main {
+				case shaderir.Int:
+					es[0].ConstType = shaderir.ConstTypeInt
+				case shaderir.Float:
+					es[0].ConstType = shaderir.ConstTypeFloat
+				}
+			}
+
+			inits = append(inits, es...)
+			stmts = append(stmts, ss...)
+
+		default:
+			// Multiple-value context
+
+			if i == 0 {
+				init := vs.Values[0]
+
+				var ss []shaderir.Stmt
+				var ok bool
+				initexprs, inittypes, ss, ok = s.parseExpr(block, init)
+				if !ok {
+					return nil, nil, nil, false
+				}
+				stmts = append(stmts, ss...)
+
+				if t.Main == shaderir.None {
+					ts, ok := s.functionReturnTypes(block, init)
+					if ok {
+						inittypes = ts
+					}
+					if len(ts) != len(vs.Names) {
+						s.addError(vs.Pos(), fmt.Sprintf("the numbers of lhs and rhs don't match"))
+						continue
+					}
+				}
+			}
+			if len(inittypes) > 0 {
+				t = inittypes[i]
+			}
+
+			// Add the same initexprs for each variable.
+			inits = append(inits, initexprs...)
+		}
+
 		name := n.Name
 		vars = append(vars, variable{
 			name: name,
 			typ:  t,
-			init: init,
 		})
 	}
-	return vars
+
+	return vars, inits, stmts, true
 }
 
-func (s *Shader) parseConstant(vs *ast.ValueSpec) []constant {
-	var t typ
+func (s *compileState) parseConstant(block *block, vs *ast.ValueSpec) []constant {
+	var t shaderir.Type
 	if vs.Type != nil {
-		t = s.parseType(vs.Type)
+		var ok bool
+		t, ok = s.parseType(block, vs.Type)
+		if !ok {
+			return nil
+		}
 	}
 
 	var cs []constant
@@ -257,176 +503,182 @@ func (s *Shader) parseConstant(vs *ast.ValueSpec) []constant {
 	return cs
 }
 
-func (sh *Shader) parseFunc(d *ast.FuncDecl, block *block) function {
-	if d.Name == nil {
-		sh.addError(d.Pos(), "function must have a name")
-		return function{}
-	}
-	if d.Body == nil {
-		sh.addError(d.Pos(), "function must have a body")
-		return function{}
-	}
-
-	var args []variable
+func (cs *compileState) parseFuncParams(block *block, d *ast.FuncDecl) (in, out []variable) {
 	for _, f := range d.Type.Params.List {
-		t := sh.parseType(f.Type)
+		t, ok := cs.parseType(block, f.Type)
+		if !ok {
+			return
+		}
 		for _, n := range f.Names {
-			args = append(args, variable{
+			in = append(in, variable{
 				name: n.Name,
 				typ:  t,
 			})
 		}
 	}
 
-	var rets []variable
-	if d.Type.Results != nil {
-		for _, f := range d.Type.Results.List {
-			t := sh.parseType(f.Type)
-			if len(f.Names) == 0 {
-				rets = append(rets, variable{
-					name: "",
+	if d.Type.Results == nil {
+		return
+	}
+
+	for _, f := range d.Type.Results.List {
+		t, ok := cs.parseType(block, f.Type)
+		if !ok {
+			return
+		}
+		if len(f.Names) == 0 {
+			out = append(out, variable{
+				name: "",
+				typ:  t,
+			})
+		} else {
+			for _, n := range f.Names {
+				out = append(out, variable{
+					name: n.Name,
 					typ:  t,
 				})
-			} else {
-				for _, n := range f.Names {
-					rets = append(rets, variable{
-						name: n.Name,
-						typ:  t,
-					})
-				}
 			}
 		}
+	}
+	return
+}
+
+func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool) {
+	if d.Name == nil {
+		cs.addError(d.Pos(), "function must have a name")
+		return function{}, false
+	}
+	if d.Body == nil {
+		cs.addError(d.Pos(), "function must have a body")
+		return function{}, false
+	}
+
+	inParams, outParams := cs.parseFuncParams(block, d)
+
+	checkVaryings := func(vs []variable) {
+		if len(cs.ir.Varyings) != len(vs) {
+			cs.addError(d.Pos(), fmt.Sprintf("the number of vertex entry point's returning values and the number of framgent entry point's params must be the same"))
+			return
+		}
+		for i, t := range cs.ir.Varyings {
+			if t.Main != vs[i].typ.Main {
+				cs.addError(d.Pos(), fmt.Sprintf("vertex entry point's returning value types and framgent entry point's param types must match"))
+			}
+		}
+	}
+
+	if block == &cs.global {
+		switch d.Name.Name {
+		case cs.vertexEntry:
+			for _, v := range inParams {
+				cs.ir.Attributes = append(cs.ir.Attributes, v.typ)
+			}
+
+			// The first out-param is treated as gl_Position in GLSL.
+			if len(outParams) == 0 {
+				cs.addError(d.Pos(), fmt.Sprintf("vertex entry point must have at least one returning vec4 value for a position"))
+				return function{}, false
+			}
+			if outParams[0].typ.Main != shaderir.Vec4 {
+				cs.addError(d.Pos(), fmt.Sprintf("vertex entry point must have at least one returning vec4 value for a position"))
+				return function{}, false
+			}
+
+			if cs.varyingParsed {
+				checkVaryings(outParams[1:])
+			} else {
+				for _, v := range outParams[1:] {
+					// TODO: Check that these params are not arrays or structs
+					cs.ir.Varyings = append(cs.ir.Varyings, v.typ)
+				}
+			}
+			cs.varyingParsed = true
+		case cs.fragmentEntry:
+			if len(inParams) == 0 {
+				cs.addError(d.Pos(), fmt.Sprintf("fragment entry point must have at least one vec4 parameter for a position"))
+				return function{}, false
+			}
+			if inParams[0].typ.Main != shaderir.Vec4 {
+				cs.addError(d.Pos(), fmt.Sprintf("fragment entry point must have at least one vec4 parameter for a position"))
+				return function{}, false
+			}
+
+			if len(outParams) != 1 {
+				cs.addError(d.Pos(), fmt.Sprintf("fragment entry point must have one returning vec4 value for a color"))
+				return function{}, false
+			}
+			if outParams[0].typ.Main != shaderir.Vec4 {
+				cs.addError(d.Pos(), fmt.Sprintf("fragment entry point must have one returning vec4 value for a color"))
+				return function{}, false
+			}
+
+			if cs.varyingParsed {
+				checkVaryings(inParams[1:])
+			} else {
+				for _, v := range inParams[1:] {
+					cs.ir.Varyings = append(cs.ir.Varyings, v.typ)
+				}
+			}
+			cs.varyingParsed = true
+		}
+	}
+
+	b, ok := cs.parseBlock(block, d.Body.List, inParams, outParams)
+	if !ok {
+		return function{}, false
+	}
+
+	var inT, outT []shaderir.Type
+	for _, v := range inParams {
+		inT = append(inT, v.typ)
+	}
+	for _, v := range outParams {
+		outT = append(outT, v.typ)
 	}
 
 	return function{
-		name: d.Name.Name,
-		args: args,
-		rets: rets,
-		body: sh.parseBlock(block, d.Body),
-	}
+		name:  d.Name.Name,
+		block: b,
+		ir: shaderir.Func{
+			InParams:  inT,
+			OutParams: outT,
+			Block:     b.ir,
+		},
+	}, true
 }
 
-func (sh *Shader) parseBlock(outer *block, b *ast.BlockStmt) *block {
+func (cs *compileState) parseBlock(outer *block, stmts []ast.Stmt, inParams, outParams []variable) (*block, bool) {
+	var vars []variable
+	if outer == &cs.global {
+		vars = make([]variable, 0, len(inParams)+len(outParams))
+		vars = append(vars, inParams...)
+		vars = append(vars, outParams...)
+	}
 	block := &block{
+		vars:  vars,
 		outer: outer,
 	}
-
-	for _, l := range b.List {
-		switch l := l.(type) {
-		case *ast.AssignStmt:
-			switch l.Tok {
-			case token.DEFINE:
-				for i, s := range l.Lhs {
-					v := variable{
-						name: s.(*ast.Ident).Name,
-					}
-					if len(l.Rhs) > 0 {
-						v.typ = sh.detectType(block, l.Rhs[i])
-					}
-					block.vars = append(block.vars, v)
-				}
-				for i := range l.Rhs {
-					block.stmts = append(block.stmts, stmt{
-						stmtType: stmtAssign,
-						exprs:    []ast.Expr{l.Lhs[i], l.Rhs[i]},
-					})
-				}
-			case token.ASSIGN:
-				// TODO: What about the statement `a,b = b,a?`
-				for i := range l.Rhs {
-					block.stmts = append(block.stmts, stmt{
-						stmtType: stmtAssign,
-						exprs:    []ast.Expr{l.Lhs[i], l.Rhs[i]},
-					})
-				}
-			}
-		case *ast.BlockStmt:
-			block.stmts = append(block.stmts, stmt{
-				stmtType: stmtBlock,
-				block:    sh.parseBlock(block, l),
-			})
-		case *ast.DeclStmt:
-			sh.parseDecl(block, l.Decl, false)
-		case *ast.ReturnStmt:
-			var exprs []ast.Expr
-			for _, r := range l.Results {
-				exprs = append(exprs, r)
-			}
-			block.stmts = append(block.stmts, stmt{
-				stmtType: stmtReturn,
-				exprs:    exprs,
-			})
+	defer func() {
+		var offset int
+		if outer == &cs.global {
+			offset = len(inParams) + len(outParams)
 		}
+		for _, v := range block.vars[offset:] {
+			if v.forLoopCounter {
+				block.ir.LocalVars = append(block.ir.LocalVars, shaderir.Type{})
+				continue
+			}
+			block.ir.LocalVars = append(block.ir.LocalVars, v.typ)
+		}
+	}()
+
+	for _, stmt := range stmts {
+		ss, ok := cs.parseStmt(block, stmt, inParams)
+		if !ok {
+			return nil, false
+		}
+		block.ir.Stmts = append(block.ir.Stmts, ss...)
 	}
 
-	sort.Slice(block.consts, func(a, b int) bool {
-		return block.consts[a].name < block.consts[b].name
-	})
-	sort.Slice(block.funcs, func(a, b int) bool {
-		return block.funcs[a].name < block.funcs[b].name
-	})
-
-	return block
-}
-
-func (s *Shader) detectType(b *block, expr ast.Expr) typ {
-	switch e := expr.(type) {
-	case *ast.BasicLit:
-		if e.Kind == token.FLOAT {
-			return typ{
-				basic: basicTypeFloat,
-			}
-		}
-		if e.Kind == token.INT {
-			s.addError(expr.Pos(), fmt.Sprintf("integer literal is not implemented yet: %s", e.Value))
-		} else {
-			s.addError(expr.Pos(), fmt.Sprintf("unexpected literal: %s", e.Value))
-		}
-		return typ{}
-	case *ast.CompositeLit:
-		return s.parseType(e.Type)
-	case *ast.Ident:
-		n := e.Name
-		for _, v := range b.vars {
-			if v.name == n {
-				return v.typ
-			}
-		}
-		if b == &s.global {
-			for _, v := range s.uniforms {
-				if v.name == n {
-					return v.typ
-				}
-			}
-		}
-		if b.outer != nil {
-			return s.detectType(b.outer, e)
-		}
-		s.addError(expr.Pos(), fmt.Sprintf("unexpected identity: %s", n))
-		return typ{}
-	//case *ast.SelectorExpr:
-	//return fmt.Sprintf("%s.%s", dumpExpr(e.X), dumpExpr(e.Sel))
-	default:
-		s.addError(expr.Pos(), fmt.Sprintf("detecting type not implemented: %#v", expr))
-		return typ{}
-	}
-}
-
-// Dump dumps the shader state in an intermediate language.
-func (s *Shader) Dump() string {
-	var lines []string
-
-	if s.position.name != "" {
-		lines = append(lines, fmt.Sprintf("var %s varying %s // position", s.position.name, s.position.typ))
-	}
-	for _, v := range s.varyings {
-		lines = append(lines, fmt.Sprintf("var %s varying %s", v.name, v.typ))
-	}
-	for _, u := range s.uniforms {
-		lines = append(lines, fmt.Sprintf("var %s uniform %s", u.name, u.typ))
-	}
-
-	lines = append(lines, s.global.dump(0)...)
-
-	return strings.Join(lines, "\n") + "\n"
+	return block, true
 }

@@ -18,9 +18,17 @@ import (
 	"errors"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/internal/thread"
 )
+
+type Region struct {
+	X      float32
+	Y      float32
+	Width  float32
+	Height float32
+}
 
 type Graphics interface {
 	SetThread(thread *thread.Thread)
@@ -31,21 +39,28 @@ type Graphics interface {
 	NewImage(width, height int) (Image, error)
 	NewScreenFramebufferImage(width, height int) (Image, error)
 	Reset() error
-	Draw(dst, src ImageID, indexLen int, indexOffset int, mode CompositeMode, colorM *affine.ColorM, filter Filter, address Address) error
 	SetVsyncEnabled(enabled bool)
 	FramebufferYDirection() YDirection
 	NeedsRestoring() bool
 	IsGL() bool
 	HasHighPrecisionFloat() bool
 	MaxImageSize() int
+	InvalidImageID() ImageID
 
 	NewShader(program *shaderir.Program) (Shader, error)
+
+	// Draw draws an image onto another image.
+	//
+	// TODO: Merge this into DrawShader.
+	Draw(dst, src ImageID, indexLen int, indexOffset int, mode CompositeMode, colorM *affine.ColorM, filter Filter, address Address, sourceRegion Region) error
 
 	// DrawShader draws the shader.
 	//
 	// uniforms represents a colletion of uniform variables. The values must be one of these types:
-	// float32, []float32, or ImageID.
-	DrawShader(dst ImageID, shader ShaderID, indexLen int, indexOffset int, mode CompositeMode, uniforms map[int]interface{}) error
+	//
+	//   * float32
+	//   * []float32
+	DrawShader(dst ImageID, srcs [graphics.ShaderImageNum]ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader ShaderID, indexLen int, indexOffset int, mode CompositeMode, uniforms []interface{}) error
 }
 
 // GraphicsNotReady represents that the graphics driver is not ready for recovering from the context lost.

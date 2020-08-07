@@ -65,6 +65,7 @@ func fragmentShaderStr(useColorM bool, filter driver.Filter, address driver.Addr
 	replaces := map[string]string{
 		"{{.AddressClampToZero}}": fmt.Sprintf("%d", driver.AddressClampToZero),
 		"{{.AddressRepeat}}":      fmt.Sprintf("%d", driver.AddressRepeat),
+		"{{.AddressUnsafe}}":      fmt.Sprintf("%d", driver.AddressUnsafe),
 	}
 	src := shaderStrFragment
 	for k, v := range replaces {
@@ -93,6 +94,8 @@ func fragmentShaderStr(useColorM bool, filter driver.Filter, address driver.Addr
 		defs = append(defs, "#define ADDRESS_CLAMP_TO_ZERO")
 	case driver.AddressRepeat:
 		defs = append(defs, "#define ADDRESS_REPEAT")
+	case driver.AddressUnsafe:
+		defs = append(defs, "#define ADDRESS_UNSAFE")
 	default:
 		panic(fmt.Sprintf("opengl: invalid address: %d", address))
 	}
@@ -106,18 +109,15 @@ func fragmentShaderStr(useColorM bool, filter driver.Filter, address driver.Addr
 const (
 	shaderStrVertex = `
 uniform vec2 viewport_size;
-attribute vec2 vertex;
-attribute vec2 tex;
-attribute vec4 tex_region;
-attribute vec4 color_scale;
+attribute vec2 A0;
+attribute vec2 A1;
+attribute vec4 A2;
 varying vec2 varying_tex;
-varying vec4 varying_tex_region;
 varying vec4 varying_color_scale;
 
 void main(void) {
-  varying_tex = tex;
-  varying_tex_region = tex_region;
-  varying_color_scale = color_scale;
+  varying_tex = A1;
+  varying_color_scale = A2;
 
   mat4 projection_matrix = mat4(
     vec4(2.0 / viewport_size.x, 0, 0, 0),
@@ -125,7 +125,7 @@ void main(void) {
     vec4(0, 0, 1, 0),
     vec4(-1, -1, 0, 1)
   );
-  gl_Position = projection_matrix * vec4(vertex, 0, 1);
+  gl_Position = projection_matrix * vec4(A0, 0, 1);
 }
 `
 	shaderStrFragment = `
@@ -139,7 +139,8 @@ precision mediump float;
 
 {{.Definitions}}
 
-uniform sampler2D texture;
+uniform sampler2D T0;
+uniform vec4 source_region;
 
 #if defined(USE_COLOR_MATRIX)
 uniform mat4 color_matrix_body;
@@ -153,22 +154,7 @@ uniform highp float scale;
 #endif
 
 varying highp vec2 varying_tex;
-varying highp vec4 varying_tex_region;
 varying highp vec4 varying_color_scale;
-
-// adjustTexel adjusts the two texels and returns the adjusted second texel.
-// When p1 - p0 is exactly equal to the texel size, jaggy can happen on macOS (#669).
-// In order to avoid this jaggy, subtract a little bit from the second texel.
-highp vec2 adjustTexel(highp vec2 p0, highp vec2 p1) {
-  highp vec2 texel_size = 1.0 / source_size;
-  if (fract((p1.x-p0.x)*source_size.x) == 0.0) {
-    p1.x -= texel_size.x / 512.0;
-  }
-  if (fract((p1.y-p0.y)*source_size.y) == 0.0) {
-    p1.y -= texel_size.y / 512.0;
-  }
-  return p1;
-}
 
 highp float floorMod(highp float x, highp float y) {
   if (x < 0.0) {
@@ -177,15 +163,19 @@ highp float floorMod(highp float x, highp float y) {
   return x - y * floor(x/y);
 }
 
-highp vec2 adjustTexelByAddress(highp vec2 p, highp vec4 tex_region) {
+highp vec2 adjustTexelByAddress(highp vec2 p, highp vec4 source_region) {
 #if defined(ADDRESS_CLAMP_TO_ZERO)
   return p;
 #endif
 
 #if defined(ADDRESS_REPEAT)
-  highp vec2 o = vec2(tex_region[0], tex_region[1]);
-  highp vec2 size = vec2(tex_region[2] - tex_region[0], tex_region[3] - tex_region[1]);
+  highp vec2 o = vec2(source_region[0], source_region[1]);
+  highp vec2 size = vec2(source_region[2] - source_region[0], source_region[3] - source_region[1]);
   return vec2(floorMod((p.x - o.x), size.x) + o.x, floorMod((p.y - o.y), size.y) + o.y);
+#endif
+
+#if defined(ADDRESS_UNSAFE)
+  return p;
 #endif
 }
 
@@ -194,74 +184,84 @@ void main(void) {
 
 #if defined(FILTER_NEAREST)
   vec4 color;
-  pos = adjustTexelByAddress(pos, varying_tex_region);
-  if (varying_tex_region[0] <= pos.x &&
-      varying_tex_region[1] <= pos.y &&
-      pos.x < varying_tex_region[2] &&
-      pos.y < varying_tex_region[3]) {
-    color = texture2D(texture, pos);
+# if defined(ADDRESS_UNSAFE)
+  color = texture2D(T0, pos);
+# else
+  pos = adjustTexelByAddress(pos, source_region);
+  if (source_region[0] <= pos.x &&
+      source_region[1] <= pos.y &&
+      pos.x < source_region[2] &&
+      pos.y < source_region[3]) {
+    color = texture2D(T0, pos);
   } else {
     color = vec4(0, 0, 0, 0);
   }
-#endif
+# endif  // defined(ADDRESS_UNSAFE)
+#endif  // defined(FILTER_NEAREST)
 
 #if defined(FILTER_LINEAR)
   vec4 color;
   highp vec2 texel_size = 1.0 / source_size;
-  highp vec2 p0 = pos - texel_size / 2.0;
-  highp vec2 p1 = pos + texel_size / 2.0;
 
-  p1 = adjustTexel(p0, p1);
-  p0 = adjustTexelByAddress(p0, varying_tex_region);
-  p1 = adjustTexelByAddress(p1, varying_tex_region);
+  // Shift 1/512 [texel] to avoid the tie-breaking issue.
+  // As all the vertex positions are aligned to 1/16 [pixel], this shiting should work in most cases.
+  highp vec2 p0 = pos - (texel_size) / 2.0 + (texel_size / 512.0);
+  highp vec2 p1 = pos + (texel_size) / 2.0 + (texel_size / 512.0);
 
-  vec4 c0 = texture2D(texture, p0);
-  vec4 c1 = texture2D(texture, vec2(p1.x, p0.y));
-  vec4 c2 = texture2D(texture, vec2(p0.x, p1.y));
-  vec4 c3 = texture2D(texture, p1);
-  if (p0.x < varying_tex_region[0]) {
+# if !defined(ADDRESS_UNSAFE)
+  p0 = adjustTexelByAddress(p0, source_region);
+  p1 = adjustTexelByAddress(p1, source_region);
+# endif  // defined(ADDRESS_UNSAFE)
+
+  vec4 c0 = texture2D(T0, p0);
+  vec4 c1 = texture2D(T0, vec2(p1.x, p0.y));
+  vec4 c2 = texture2D(T0, vec2(p0.x, p1.y));
+  vec4 c3 = texture2D(T0, p1);
+# if !defined(ADDRESS_UNSAFE)
+  if (p0.x < source_region[0]) {
     c0 = vec4(0, 0, 0, 0);
     c2 = vec4(0, 0, 0, 0);
   }
-  if (p0.y < varying_tex_region[1]) {
+  if (p0.y < source_region[1]) {
     c0 = vec4(0, 0, 0, 0);
     c1 = vec4(0, 0, 0, 0);
   }
-  if (varying_tex_region[2] <= p1.x) {
+  if (source_region[2] <= p1.x) {
     c1 = vec4(0, 0, 0, 0);
     c3 = vec4(0, 0, 0, 0);
   }
-  if (varying_tex_region[3] <= p1.y) {
+  if (source_region[3] <= p1.y) {
     c2 = vec4(0, 0, 0, 0);
     c3 = vec4(0, 0, 0, 0);
   }
+# endif  // defined(ADDRESS_UNSAFE)
 
   vec2 rate = fract(p0 * source_size);
   color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
-#endif
+#endif  // defined(FILTER_LINEAR)
 
 #if defined(FILTER_SCREEN)
   highp vec2 texel_size = 1.0 / source_size;
   highp vec2 half_scaled_texel_size = texel_size / 2.0 / scale;
-  highp vec2 p0 = pos - half_scaled_texel_size;
-  highp vec2 p1 = pos + half_scaled_texel_size;
 
-  p1 = adjustTexel(p0, p1);
+  highp vec2 p0 = pos - half_scaled_texel_size + (texel_size / 512.0);
+  highp vec2 p1 = pos + half_scaled_texel_size + (texel_size / 512.0);
 
-  vec4 c0 = texture2D(texture, p0);
-  vec4 c1 = texture2D(texture, vec2(p1.x, p0.y));
-  vec4 c2 = texture2D(texture, vec2(p0.x, p1.y));
-  vec4 c3 = texture2D(texture, p1);
+  vec4 c0 = texture2D(T0, p0);
+  vec4 c1 = texture2D(T0, vec2(p1.x, p0.y));
+  vec4 c2 = texture2D(T0, vec2(p0.x, p1.y));
+  vec4 c3 = texture2D(T0, p1);
   // Texels must be in the source rect, so it is not necessary to check that like linear filter.
 
   vec2 rate_center = vec2(1.0, 1.0) - half_scaled_texel_size;
   vec2 rate = clamp(((fract(p0 * source_size) - rate_center) * scale) + rate_center, 0.0, 1.0);
   gl_FragColor = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
+
   // Assume that a color matrix and color vector values are not used with FILTER_SCREEN.
 
 #else
 
-#if defined(USE_COLOR_MATRIX)
+# if defined(USE_COLOR_MATRIX)
   // Un-premultiply alpha.
   // When the alpha is 0, 1.0 - sign(alpha) is 1.0, which means division does nothing.
   color.rgb /= color.a + (1.0 - sign(color.a));
@@ -270,16 +270,16 @@ void main(void) {
   color *= varying_color_scale;
   // Premultiply alpha
   color.rgb *= color.a;
-#else
+# else
   vec4 s = varying_color_scale;
   color *= vec4(s.r, s.g, s.b, 1.0) * s.a;
-#endif
+# endif  // defined(USE_COLOR_MATRIX)
 
   color = min(color, color.a);
 
   gl_FragColor = color;
 
-#endif
+#endif  // defined(FILTER_SCREEN)
 
 }
 `

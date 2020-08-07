@@ -27,6 +27,7 @@ import (
 	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/internal/colormcache"
 )
 
 var (
@@ -46,13 +47,6 @@ const (
 	cacheLimit = 512 // This is an arbitrary number.
 )
 
-type colorMCacheKey uint32
-
-type colorMCacheEntry struct {
-	m     ebiten.ColorM
-	atime int64
-}
-
 func drawGlyph(dst *ebiten.Image, face font.Face, r rune, img *glyphImage, x, y fixed.Int26_6, clr ebiten.ColorM) {
 	if img == nil {
 		return
@@ -66,7 +60,7 @@ func drawGlyph(dst *ebiten.Image, face font.Face, r rune, img *glyphImage, x, y 
 }
 
 var (
-	// Use pointers to avoid copying on browsers.
+	// Use pointers as copying is expensive on GopherJS.
 	glyphBoundsCache = map[font.Face]map[rune]*fixed.Rectangle26_6{}
 )
 
@@ -202,64 +196,20 @@ func getGlyphImages(face font.Face, runes []rune) []*glyphImage {
 
 var textM sync.Mutex
 
-var (
-	colorMCache = map[colorMCacheKey]*colorMCacheEntry{}
-	emptyColorM ebiten.ColorM
-)
-
-func init() {
-	emptyColorM.Scale(0, 0, 0, 0)
-}
-
-func colorToColorM(clr color.Color) ebiten.ColorM {
-	// RGBA() is in [0 - 0xffff]. Adjust them in [0 - 0xff].
-	cr, cg, cb, ca := clr.RGBA()
-	cr >>= 8
-	cg >>= 8
-	cb >>= 8
-	ca >>= 8
-	if ca == 0 {
-		return emptyColorM
-	}
-	key := colorMCacheKey(uint32(cr) | (uint32(cg) << 8) | (uint32(cb) << 16) | (uint32(ca) << 24))
-	e, ok := colorMCache[key]
-	if ok {
-		e.atime = now()
-		return e.m
-	}
-	if len(colorMCache) > cacheLimit {
-		oldest := int64(math.MaxInt64)
-		oldestKey := colorMCacheKey(0)
-		for key, c := range colorMCache {
-			if c.atime < oldest {
-				oldestKey = key
-				oldest = c.atime
-			}
-		}
-		delete(colorMCache, oldestKey)
-	}
-
-	cm := ebiten.ColorM{}
-	rf := float64(cr) / float64(ca)
-	gf := float64(cg) / float64(ca)
-	bf := float64(cb) / float64(ca)
-	af := float64(ca) / 0xff
-	cm.Scale(rf, gf, bf, af)
-	e = &colorMCacheEntry{
-		m:     cm,
-		atime: now(),
-	}
-	colorMCache[key] = e
-
-	return e.m
-}
-
 // Draw draws a given text on a given destination image dst.
 //
 // face is the font for text rendering.
 // (x, y) represents a 'dot' (period) position.
+// This means that if the given text consisted of a single character ".",
+// it would be positioned at the given position (x, y).
 // Be careful that this doesn't represent left-upper corner position.
+//
 // clr is the color for text rendering.
+//
+// If you want to adjust the position of the text, these functions are useful:
+//
+//     * text.BoundString:                     the rendered bounds of the given text.
+//     * golang.org/x/image/font.Face.Metrics: the metrics of the face.
 //
 // The '\n' newline character puts the following text on the next line.
 // Line height is based on Metrics().Height of the font.
@@ -282,7 +232,7 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 
 	runes := []rune(text)
 	glyphImgs := getGlyphImages(face, runes)
-	colorm := colorToColorM(clr)
+	colorm := colormcache.ColorToColorM(clr)
 
 	for i, r := range runes {
 		if prevR >= 0 {
@@ -302,32 +252,33 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 	}
 }
 
-// MeasureString returns the measured size of a given string using a given font.
+// BoundString returns the measured size of a given string using a given font.
 // This method will return the exact size in pixels that a string drawn by Draw will be.
+// The bound's origin point indicates the dot (period) position.
+// This means that if the text consists of one character '.', this dot is rendered at (0, 0).
 //
-// text is the string that's being measured.
+// This is very similar to golang.org/x/image/font's BoundString,
+// but this BoundString calculates the actual rendered area considering multiple lines and space characters.
+//
 // face is the font for text rendering.
+// text is the string that's being measured.
 //
 // Be careful that the passed font face is held by this package and is never released.
 // This is a known issue (#498).
 //
-// MeasureString is concurrent-safe.
-func MeasureString(text string, face font.Face) image.Point {
+// BoundString is concurrent-safe.
+func BoundString(face font.Face, text string) image.Rectangle {
 	textM.Lock()
 	defer textM.Unlock()
 
-	var w, h fixed.Int26_6
-
 	m := face.Metrics()
 	faceHeight := m.Height
-	faceDescent := m.Descent
 
 	fx, fy := fixed.I(0), fixed.I(0)
 	prevR := rune(-1)
 
-	runes := []rune(text)
-
-	for _, r := range runes {
+	var bounds fixed.Rectangle26_6
+	for _, r := range []rune(text) {
 		if prevR >= 0 {
 			fx += face.Kern(prevR, r)
 		}
@@ -338,22 +289,22 @@ func MeasureString(text string, face font.Face) image.Point {
 			continue
 		}
 
+		bp := getGlyphBounds(face, r)
+		b := *bp
+		b.Min.X += fx
+		b.Max.X += fx
+		b.Min.Y += fy
+		b.Max.Y += fy
+		bounds = bounds.Union(b)
+
 		fx += glyphAdvance(face, r)
-
-		if fx > w {
-			w = fx
-		}
-		if (fy + faceHeight) > h {
-			h = fy + faceHeight
-		}
-
 		prevR = r
 	}
 
-	bounds := image.Point{
-		X: int(math.Ceil(fixed26_6ToFloat64(w))),
-		Y: int(math.Ceil(fixed26_6ToFloat64(h + faceDescent))),
-	}
-
-	return bounds
+	return image.Rect(
+		int(math.Floor(fixed26_6ToFloat64(bounds.Min.X))),
+		int(math.Floor(fixed26_6ToFloat64(bounds.Min.Y))),
+		int(math.Ceil(fixed26_6ToFloat64(bounds.Max.X))),
+		int(math.Ceil(fixed26_6ToFloat64(bounds.Max.Y))),
+	)
 }

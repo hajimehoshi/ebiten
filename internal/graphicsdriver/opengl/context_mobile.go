@@ -23,6 +23,7 @@ import (
 	mgl "golang.org/x/mobile/gl"
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
 type (
@@ -69,6 +70,7 @@ type programID uint32
 var (
 	invalidTexture     = textureNative(mgl.Texture{})
 	invalidFramebuffer = framebufferNative(mgl.Framebuffer{(1 << 32) - 1})
+	invalidUniform     = uniformLocation(mgl.Uniform{-1})
 )
 
 func getProgramID(p program) programID {
@@ -90,6 +92,7 @@ const (
 	dstAlpha         = operation(mgl.DST_ALPHA)
 	oneMinusSrcAlpha = operation(mgl.ONE_MINUS_SRC_ALPHA)
 	oneMinusDstAlpha = operation(mgl.ONE_MINUS_DST_ALPHA)
+	dstColor         = operation(mgl.DST_COLOR)
 )
 
 type contextImpl struct {
@@ -265,7 +268,8 @@ func (c *context) newProgram(shaders []shader, attributes []string) (program, er
 	gl.LinkProgram(p)
 	v := gl.GetProgrami(p, mgl.LINK_STATUS)
 	if v == mgl.FALSE {
-		return program{}, errors.New("opengl: program error")
+		info := gl.GetProgramInfoLog(p)
+		return program{}, fmt.Errorf("opengl: program error: %s", info)
 	}
 	return program(p), nil
 }
@@ -286,35 +290,60 @@ func (c *context) deleteProgram(p program) {
 func (c *context) getUniformLocationImpl(p program, location string) uniformLocation {
 	gl := c.gl
 	u := uniformLocation(gl.GetUniformLocation(mgl.Program(p), location))
-	if u.Value == -1 {
-		panic("invalid uniform location: " + location)
-	}
 	return u
 }
 
-func (c *context) uniformInt(p program, location string, v int) {
+func (c *context) uniformInt(p program, location string, v int) bool {
 	gl := c.gl
-	gl.Uniform1i(mgl.Uniform(c.locationCache.GetUniformLocation(c, p, location)), v)
-}
-
-func (c *context) uniformFloat(p program, location string, v float32) {
-	gl := c.gl
-	gl.Uniform1f(mgl.Uniform(c.locationCache.GetUniformLocation(c, p, location)), v)
-}
-
-func (c *context) uniformFloats(p program, location string, v []float32) {
-	gl := c.gl
-	l := mgl.Uniform(c.locationCache.GetUniformLocation(c, p, location))
-	switch len(v) {
-	case 2:
-		gl.Uniform2fv(l, v)
-	case 4:
-		gl.Uniform4fv(l, v)
-	case 16:
-		gl.UniformMatrix4fv(l, v)
-	default:
-		panic(fmt.Sprintf("opengl: invalid uniform floats num: %d", len(v)))
+	l := c.locationCache.GetUniformLocation(c, p, location)
+	if l == invalidUniform {
+		return false
 	}
+	gl.Uniform1i(mgl.Uniform(l), v)
+	return true
+}
+
+func (c *context) uniformFloat(p program, location string, v float32) bool {
+	gl := c.gl
+	l := c.locationCache.GetUniformLocation(c, p, location)
+	if l == invalidUniform {
+		return false
+	}
+	gl.Uniform1f(mgl.Uniform(l), v)
+	return true
+}
+
+func (c *context) uniformFloats(p program, location string, v []float32, typ shaderir.Type) bool {
+	gl := c.gl
+	l := c.locationCache.GetUniformLocation(c, p, location)
+	if l == invalidUniform {
+		return false
+	}
+
+	base := typ.Main
+	if base == shaderir.Array {
+		base = typ.Sub[0].Main
+	}
+
+	switch base {
+	case shaderir.Float:
+		gl.Uniform1fv(mgl.Uniform(l), v)
+	case shaderir.Vec2:
+		gl.Uniform2fv(mgl.Uniform(l), v)
+	case shaderir.Vec3:
+		gl.Uniform3fv(mgl.Uniform(l), v)
+	case shaderir.Vec4:
+		gl.Uniform4fv(mgl.Uniform(l), v)
+	case shaderir.Mat2:
+		gl.UniformMatrix2fv(mgl.Uniform(l), v)
+	case shaderir.Mat3:
+		gl.UniformMatrix3fv(mgl.Uniform(l), v)
+	case shaderir.Mat4:
+		gl.UniformMatrix4fv(mgl.Uniform(l), v)
+	default:
+		panic(fmt.Sprintf("opengl: unexpected type: %s", typ.String()))
+	}
+	return true
 }
 
 func (c *context) vertexAttribPointer(p program, index int, size int, dataType dataType, stride int, offset int) {
