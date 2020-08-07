@@ -107,7 +107,7 @@ func canSkipMipmap(geom GeoM, filter driver.Filter) bool {
 // DrawImageOptions represents options for DrawImage.
 type DrawImageOptions struct {
 	// GeoM is a geometry matrix to draw.
-	// The default (zero) value is identify, which draws the image at (0, 0).
+	// The default (zero) value is identity, which draws the image at (0, 0).
 	GeoM GeoM
 
 	// ColorM is a color matrix to draw.
