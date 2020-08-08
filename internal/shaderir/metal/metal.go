@@ -196,15 +196,9 @@ func (c *compileContext) metalVarInit(p *shaderir.Program, t *shaderir.Type) str
 	case shaderir.None:
 		return "?(none)"
 	case shaderir.Array:
-		init := c.metalVarInit(p, &t.Sub[0])
-		es := make([]string, 0, t.Length)
-		for i := 0; i < t.Length; i++ {
-			es = append(es, init)
-		}
-		t := typeString(t, false, false)
-		return fmt.Sprintf("%s{%s}", t, strings.Join(es, ", "))
+		return "{}"
 	case shaderir.Struct:
-		panic("not implemented")
+		return "{}"
 	case shaderir.Bool:
 		return "false"
 	case shaderir.Int:
