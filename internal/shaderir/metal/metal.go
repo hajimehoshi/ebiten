@@ -202,7 +202,7 @@ func (c *compileContext) metalVarInit(p *shaderir.Program, t *shaderir.Type) str
 			es = append(es, init)
 		}
 		t := typeString(t, false, false)
-		return fmt.Sprintf("%s(%s)", t, strings.Join(es, ", "))
+		return fmt.Sprintf("%s{%s}", t, strings.Join(es, ", "))
 	case shaderir.Struct:
 		panic("not implemented")
 	case shaderir.Bool:
