@@ -674,7 +674,7 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, srcs [graphics.
 
 	// In Metal, the NDC's Y direction (upward) and the framebuffer's Y direction (downward) don't
 	// match. Then, the Y direction must be inverted.
-	w, h := dst.viewportSize()
+	w, h := dst.internalSize()
 	rce.SetViewport(mtl.Viewport{
 		OriginX: 0,
 		OriginY: float64(h),
@@ -728,11 +728,12 @@ func (g *Graphics) Draw(dstID, srcID driver.ImageID, indexLen int, indexOffset i
 	}
 
 	if err := g.t.Call(func() error {
-		w, h := dst.viewportSize()
+		w, h := dst.internalSize()
 		sourceSize := []float32{0, 0}
 		if filter != driver.FilterNearest {
-			sourceSize[0] = float32(graphics.InternalImageSize(srcs[0].width))
-			sourceSize[1] = float32(graphics.InternalImageSize(srcs[0].height))
+			w, h := srcs[0].internalSize()
+			sourceSize[0] = float32(w)
+			sourceSize[1] = float32(h)
 		}
 		esBody, esTranslate := colorM.UnsafeElements()
 		scale := float32(0)
@@ -840,8 +841,7 @@ func (i *Image) ID() driver.ImageID {
 	return i.id
 }
 
-// viewportSize must be called from the main thread.
-func (i *Image) viewportSize() (int, int) {
+func (i *Image) internalSize() (int, int) {
 	if i.screen {
 		return i.width, i.height
 	}
