@@ -32,43 +32,6 @@ precision highp float;
 #define highp
 #endif`
 
-func isValidSwizzling(s string) bool {
-	if len(s) < 1 || 4 < len(s) {
-		return false
-	}
-
-	const (
-		xyzw = "xyzw"
-		rgba = "rgba"
-		strq = "strq"
-	)
-
-	switch {
-	case strings.IndexByte(xyzw, s[0]) >= 0:
-		for _, c := range s {
-			if strings.IndexRune(xyzw, c) == -1 {
-				return false
-			}
-		}
-		return true
-	case strings.IndexByte(rgba, s[0]) >= 0:
-		for _, c := range s {
-			if strings.IndexRune(rgba, c) == -1 {
-				return false
-			}
-		}
-		return true
-	case strings.IndexByte(strq, s[0]) >= 0:
-		for _, c := range s {
-			if strings.IndexRune(strq, c) == -1 {
-				return false
-			}
-		}
-		return true
-	}
-	return false
-}
-
 type compileContext struct {
 	structNames map[string]string
 	structTypes []shaderir.Type
@@ -175,8 +138,8 @@ func Compile(p *shaderir.Program) (vertexShader, fragmentShader string) {
 	fs := strings.Join(fslines, "\n")
 
 	// Struct types are determined after converting the program.
-	var stlines []string
 	if len(c.structTypes) > 0 {
+		var stlines []string
 		for i, t := range c.structTypes {
 			stlines = append(stlines, fmt.Sprintf("struct S%d {", i))
 			for j, st := range t.Sub {
@@ -370,7 +333,7 @@ func (c *compileContext) glslBlock(p *shaderir.Program, topBlock, block *shaderi
 		case shaderir.BuiltinFuncExpr:
 			return builtinFuncString(e.BuiltinFunc)
 		case shaderir.SwizzlingExpr:
-			if !isValidSwizzling(e.Swizzling) {
+			if !shaderir.IsValidSwizzling(e.Swizzling) {
 				return fmt.Sprintf("?(unexpected swizzling: %s)", e.Swizzling)
 			}
 			return e.Swizzling

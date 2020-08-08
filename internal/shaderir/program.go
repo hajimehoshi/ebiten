@@ -18,6 +18,7 @@ package shaderir
 import (
 	"go/constant"
 	"go/token"
+	"strings"
 )
 
 type Program struct {
@@ -291,4 +292,41 @@ func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
 		return BuiltinFunc(str), true
 	}
 	return "", false
+}
+
+func IsValidSwizzling(s string) bool {
+	if len(s) < 1 || 4 < len(s) {
+		return false
+	}
+
+	const (
+		xyzw = "xyzw"
+		rgba = "rgba"
+		strq = "strq"
+	)
+
+	switch {
+	case strings.IndexByte(xyzw, s[0]) >= 0:
+		for _, c := range s {
+			if strings.IndexRune(xyzw, c) == -1 {
+				return false
+			}
+		}
+		return true
+	case strings.IndexByte(rgba, s[0]) >= 0:
+		for _, c := range s {
+			if strings.IndexRune(rgba, c) == -1 {
+				return false
+			}
+		}
+		return true
+	case strings.IndexByte(strq, s[0]) >= 0:
+		for _, c := range s {
+			if strings.IndexRune(strq, c) == -1 {
+				return false
+			}
+		}
+		return true
+	}
+	return false
 }
