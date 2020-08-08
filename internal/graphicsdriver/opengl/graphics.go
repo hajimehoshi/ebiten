@@ -154,8 +154,6 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) {
 }
 
 func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, sourceRegion driver.Region) error {
-	// TODO: Use sourceRegion.
-
 	destination := g.images[dst]
 	source := g.images[src]
 
@@ -206,9 +204,7 @@ func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, 
 	}
 
 	if filter != driver.FilterNearest {
-		srcW, srcH := source.width, source.height
-		sw := graphics.InternalImageSize(srcW)
-		sh := graphics.InternalImageSize(srcH)
+		sw, sh := source.framebufferSize()
 		uniforms = append(uniforms, uniformVariable{
 			name:  "source_size",
 			value: []float32{float32(sw), float32(sh)},
@@ -305,8 +301,7 @@ func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]
 	g.context.blendFunc(mode)
 
 	us := make([]uniformVariable, graphics.PreservedUniformVariablesNum+len(uniforms))
-	vw := graphics.InternalImageSize(d.width)
-	vh := graphics.InternalImageSize(d.height)
+	vw, vh := d.framebufferSize()
 	us[0].name = "U0"
 	us[0].value = []float32{float32(vw), float32(vh)}
 	us[0].typ = s.ir.Uniforms[0]

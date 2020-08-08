@@ -117,6 +117,9 @@ func (i *Image) Dispose() {
 }
 
 func (i *Image) InternalSize() (int, int) {
+	if i.screen {
+		return i.width, i.height
+	}
 	if i.internalWidth == 0 {
 		i.internalWidth = graphics.InternalImageSize(i.width)
 	}
