@@ -25,6 +25,7 @@ import (
 
 	. "github.com/hajimehoshi/ebiten/internal/shader"
 	"github.com/hajimehoshi/ebiten/internal/shaderir/glsl"
+	"github.com/hajimehoshi/ebiten/internal/shaderir/metal"
 )
 
 func normalize(str string) string {
@@ -123,6 +124,10 @@ func TestCompile(t *testing.T) {
 					t.Errorf("got: %v, want: %v", got, want)
 				}
 			}
+
+			// Just check that Compile doesn't cause panic.
+			// TODO: Should the results be tested?
+			metal.Compile(s, "Vertex", "Fragmentp")
 		})
 	}
 }
