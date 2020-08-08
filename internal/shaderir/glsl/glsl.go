@@ -310,9 +310,18 @@ func (c *compileContext) glslBlock(p *shaderir.Program, topBlock, block *shaderi
 
 	var lines []string
 	for _, t := range block.LocalVars {
-		// The type is None e.g., when the variable is a for-loop counter.
-		if t.Main != shaderir.None {
-			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, c.glslVarDecl(p, &t, fmt.Sprintf("l%d", localVarIndex)), c.glslVarInit(p, &t)))
+		name := fmt.Sprintf("l%d", localVarIndex)
+		switch t.Main {
+		case shaderir.Array:
+			lines = append(lines, fmt.Sprintf("%s%s;", idt, c.glslVarDecl(p, &t, name)))
+			init := c.glslVarInit(p, &t.Sub[0])
+			for i := 0; i < t.Length; i++ {
+				lines = append(lines, fmt.Sprintf("%s%s[%d] = %s;", idt, name, i, init))
+			}
+		case shaderir.None:
+			// The type is None e.g., when the variable is a for-loop counter.
+		default:
+			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, c.glslVarDecl(p, &t, name), c.glslVarInit(p, &t)))
 		}
 		localVarIndex++
 	}
