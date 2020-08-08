@@ -180,7 +180,7 @@ var (
 					Exprs: []shaderir.Expr{
 						{
 							Type:  shaderir.LocalVariable,
-							Index: 5, // the varying variable
+							Index: 4, // the varying variable
 						},
 						{
 							Type:  shaderir.LocalVariable,
@@ -193,7 +193,7 @@ var (
 					Exprs: []shaderir.Expr{
 						{
 							Type:  shaderir.LocalVariable,
-							Index: 4, // gl_Position in GLSL
+							Index: 3, // gl_Position in GLSL
 						},
 						{
 							Type: shaderir.Binary,
@@ -216,7 +216,6 @@ func defaultProgram() shaderir.Program {
 			{Main: shaderir.Vec2}, // Local var (0) in the vertex shader
 			{Main: shaderir.Vec2}, // Local var (1) in the vertex shader
 			{Main: shaderir.Vec4}, // Local var (2) in the vertex shader
-			{Main: shaderir.Vec4}, // Local var (3) in the vertex shader
 		},
 		Varyings: []shaderir.Type{
 			{Main: shaderir.Vec2}, // Local var (4) in the vertex shader, (1) in the fragment shader
@@ -304,8 +303,6 @@ func ShaderProgramFill(r, g, b, a byte) shaderir.Program {
 // Uniform variables's indices and their values are:
 //
 //   0:  the framebuffer size (Vec2)
-//
-// The first image's size and region are represented in attribute variables.
 //
 // The size and region values are actually not used in this shader so far.
 func ShaderProgramImages(imageNum int) shaderir.Program {
