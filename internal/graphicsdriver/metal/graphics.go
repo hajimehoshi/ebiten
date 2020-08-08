@@ -116,11 +116,12 @@ inline float2 AdjustTexelByAddress<ADDRESS_REPEAT>(float2 p, float4 source_regio
 template<uint8_t filter, uint8_t address>
 struct ColorFromTexel;
 
+constexpr sampler texture_sampler{filter::nearest};
+
 template<>
 struct ColorFromTexel<FILTER_NEAREST, ADDRESS_UNSAFE> {
   inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale, constant float4& source_region) {
     float2 p = v.tex;
-    constexpr sampler texture_sampler(filter::nearest);
     return texture.sample(texture_sampler, p);
   }
 };
@@ -133,7 +134,6 @@ struct ColorFromTexel<FILTER_NEAREST, address> {
         source_region[1] <= p.y &&
         p.x < source_region[2] &&
         p.y < source_region[3]) {
-      constexpr sampler texture_sampler(filter::nearest);
       return texture.sample(texture_sampler, p);
     }
     return 0.0;
@@ -143,7 +143,6 @@ struct ColorFromTexel<FILTER_NEAREST, address> {
 template<>
 struct ColorFromTexel<FILTER_LINEAR, ADDRESS_UNSAFE> {
   inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale, constant float4& source_region) {
-    constexpr sampler texture_sampler(filter::nearest);
     const float2 texel_size = 1 / source_size;
 
     // Shift 1/512 [texel] to avoid the tie-breaking issue.
@@ -164,7 +163,6 @@ struct ColorFromTexel<FILTER_LINEAR, ADDRESS_UNSAFE> {
 template<uint8_t address>
 struct ColorFromTexel<FILTER_LINEAR, address> {
   inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale, constant float4& source_region) {
-    constexpr sampler texture_sampler(filter::nearest);
     const float2 texel_size = 1 / source_size;
 
     // Shift 1/512 [texel] to avoid the tie-breaking issue.
@@ -204,7 +202,6 @@ struct ColorFromTexel<FILTER_LINEAR, address> {
 template<uint8_t address>
 struct ColorFromTexel<FILTER_SCREEN, address> {
   inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale, constant float4& source_region) {
-    constexpr sampler texture_sampler(filter::nearest);
     const float2 texel_size = 1 / source_size;
 
     float2 p0 = v.tex - texel_size / 2.0 / scale + (texel_size / 512.0);
