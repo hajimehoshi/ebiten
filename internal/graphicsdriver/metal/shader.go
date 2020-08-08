@@ -17,6 +17,8 @@
 package metal
 
 import (
+	"fmt"
+
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/mtl"
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
@@ -65,15 +67,15 @@ func (s *Shader) init(device mtl.Device) error {
 	src := metal.Compile(s.ir, v, f)
 	lib, err := device.MakeLibrary(src, mtl.CompileOptions{})
 	if err != nil {
-		return err
+		return fmt.Errorf("metal: device.MakeLibrary failed: %v, source: %s", err, src)
 	}
 	vs, err := lib.MakeFunction(v)
 	if err != nil {
-		return err
+		return fmt.Errorf("metal: lib.MakeFunction for vertex failed: %v, source: %s", err, src)
 	}
 	fs, err := lib.MakeFunction(f)
 	if err != nil {
-		return err
+		return fmt.Errorf("metal: lib.MakeFunction for fragment failed: %v, source: %s", err, src)
 	}
 	s.fs = fs
 	s.vs = vs
