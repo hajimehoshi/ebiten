@@ -513,11 +513,9 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 			return nil, nil, nil, false
 		}
 		idx := exprs[0]
-		if idx.Type != shaderir.NumberExpr {
-			cs.addError(e.Pos(), fmt.Sprintf("an index must be a constant number"))
-			return nil, nil, nil, false
+		if idx.Type == shaderir.NumberExpr {
+			idx.ConstType = shaderir.ConstTypeInt
 		}
-		idx.ConstType = shaderir.ConstTypeInt
 
 		exprs, ts, ss, ok := cs.parseExpr(block, e.X)
 		if !ok {
