@@ -398,7 +398,6 @@ func (c *compileContext) metalBlock(p *shaderir.Program, topBlock, block *shader
 			lines = append(lines, c.metalBlock(p, topBlock, s.Blocks[0], level+1, localVarIndex)...)
 			lines = append(lines, idt+"}")
 		case shaderir.Assign:
-			// TODO: Give an appropriate context
 			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, metalExpr(&s.Exprs[0]), metalExpr(&s.Exprs[1])))
 		case shaderir.If:
 			lines = append(lines, fmt.Sprintf("%sif (%s) {", idt, metalExpr(&s.Exprs[0])))
@@ -463,7 +462,6 @@ func (c *compileContext) metalBlock(p *shaderir.Program, topBlock, block *shader
 			case len(s.Exprs) == 0:
 				lines = append(lines, idt+"return;")
 			default:
-				// TODO: Give an appropriate context.
 				lines = append(lines, fmt.Sprintf("%sreturn %s;", idt, metalExpr(&s.Exprs[0])))
 			}
 		case shaderir.Discard:
