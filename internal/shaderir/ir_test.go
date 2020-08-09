@@ -66,11 +66,11 @@ func ifStmt(cond Expr, block *Block, elseBlock *Block) Stmt {
 	}
 }
 
-func forStmt(index, init, end int, op Op, delta int, block *Block) Stmt {
+func forStmt(t Type, index, init, end int, op Op, delta int, block *Block) Stmt {
 	return Stmt{
 		Type:        For,
 		Blocks:      []*Block{block},
-		ForVarType:  Type{Main: Int},
+		ForVarType:  t,
 		ForVarIndex: index,
 		ForInit:     constant.MakeInt64(int64(init)),
 		ForEnd:      constant.MakeInt64(int64(end)),
@@ -659,6 +659,7 @@ void F0(in float l0, in float l1, out float l2) {
 						Block: block(
 							nil,
 							forStmt(
+								Type{Main: Int},
 								3,
 								0,
 								100,
@@ -708,6 +709,7 @@ void F0(in float l0, in float l1, out float l2) {
 						Block: block(
 							nil,
 							forStmt(
+								Type{Main: Int},
 								3,
 								0,
 								100,
@@ -775,6 +777,7 @@ void F0(float l0, float l1, thread float& l2) {
 						Block: block(
 							nil,
 							forStmt(
+								Type{Main: Int},
 								3,
 								0,
 								100,
@@ -791,6 +794,7 @@ void F0(float l0, float l1, thread float& l2) {
 								),
 							),
 							forStmt(
+								Type{Main: Float},
 								3,
 								0,
 								100,
@@ -817,7 +821,7 @@ void F0(in float l0, in float l1, out float l2) {
 		int l4 = 0;
 		l2 = l4;
 	}
-	for (int l3 = 0; l3 < 100; l3++) {
+	for (float l3 = 0.0; l3 < 100.0; l3++) {
 		int l4 = 0;
 		l2 = l4;
 	}
@@ -830,7 +834,7 @@ void F0(in float l0, in float l1, out float l2) {
 		int l4 = 0;
 		l2 = l4;
 	}
-	for (int l3 = 0; l3 < 100; l3++) {
+	for (float l3 = 0.0; l3 < 100.0; l3++) {
 		int l4 = 0;
 		l2 = l4;
 	}
@@ -848,7 +852,7 @@ void F0(float l0, float l1, thread float& l2) {
 		int l4 = 0;
 		l2 = l4;
 	}
-	for (int l3 = 0; l3 < 100; l3++) {
+	for (float l3 = 0.0; l3 < 100.0; l3++) {
 		int l4 = 0;
 		l2 = l4;
 	}
