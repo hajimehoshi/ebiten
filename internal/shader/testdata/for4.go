@@ -10,5 +10,7 @@ func Foo() int {
 		x := Ident(i)
 		sum += x
 	}
+	y := 0
+	sum += y
 	return sum
 }
