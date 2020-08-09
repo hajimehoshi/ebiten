@@ -330,6 +330,13 @@ func (c *compileContext) glslBlock(p *shaderir.Program, topBlock, block *shaderi
 		localVarIndex++
 	}
 
+	// For's variable is special and defiend in the for statement.
+	for _, s := range block.Stmts {
+		if s.Type == shaderir.For {
+			localVarIndex++
+		}
+	}
+
 	var glslExpr func(e *shaderir.Expr) string
 	glslExpr = func(e *shaderir.Expr) string {
 		switch e.Type {

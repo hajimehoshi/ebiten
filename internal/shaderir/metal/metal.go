@@ -327,6 +327,13 @@ func (c *compileContext) metalBlock(p *shaderir.Program, topBlock, block *shader
 		localVarIndex++
 	}
 
+	// For's variable is special and defiend in the for statement.
+	for _, s := range block.Stmts {
+		if s.Type == shaderir.For {
+			localVarIndex++
+		}
+	}
+
 	var metalExpr func(e *shaderir.Expr) string
 	metalExpr = func(e *shaderir.Expr) string {
 		switch e.Type {

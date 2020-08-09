@@ -151,13 +151,14 @@ func fieldSelectorExpr(a, b Expr) Expr {
 }
 
 func TestOutput(t *testing.T) {
-	prelude := glsl.FragmentPrelude + "\n"
+	glslPrelude := glsl.FragmentPrelude + "\n"
 
 	tests := []struct {
 		Name    string
 		Program Program
 		GlslVS  string
 		GlslFS  string
+		Metal   string
 	}{
 		{
 			Name:    "Empty",
@@ -173,7 +174,7 @@ func TestOutput(t *testing.T) {
 				},
 			},
 			GlslVS: `uniform float U0;`,
-			GlslFS: prelude + `
+			GlslFS: glslPrelude + `
 uniform float U0;`,
 		},
 		{
@@ -193,7 +194,7 @@ uniform float U0;`,
 };
 
 uniform S0 U0;`,
-			GlslFS: prelude + `
+			GlslFS: glslPrelude + `
 struct S0 {
 	float M0;
 };
@@ -216,7 +217,7 @@ uniform S0 U0;`,
 			GlslVS: `uniform float U0;
 attribute vec2 A0;
 varying vec3 V0;`,
-			GlslFS: prelude + `
+			GlslFS: glslPrelude + `
 uniform float U0;
 varying vec3 V0;`,
 		},
@@ -233,7 +234,7 @@ varying vec3 V0;`,
 
 void F0(void) {
 }`,
-			GlslFS: prelude + `
+			GlslFS: glslPrelude + `
 void F0(void);
 
 void F0(void) {
@@ -260,7 +261,7 @@ void F0(void) {
 
 void F0(in float l0, in vec2 l1, in vec4 l2, out mat4 l3) {
 }`,
-			GlslFS: prelude + `
+			GlslFS: glslPrelude + `
 void F0(in float l0, in vec2 l1, in vec4 l2, out mat4 l3);
 
 void F0(in float l0, in vec2 l1, in vec4 l2, out mat4 l3) {
@@ -290,7 +291,7 @@ void F0(in float l0, in vec2 l1, in vec4 l2, out mat4 l3) {
 float F0(in float l0) {
 	return l0;
 }`,
-			GlslFS: prelude + `
+			GlslFS: glslPrelude + `
 float F0(in float l0);
 
 float F0(in float l0) {
@@ -322,7 +323,7 @@ void F0(in float l0, out float l1) {
 	mat4 l2 = mat4(0);
 	mat4 l3 = mat4(0);
 }`,
-			GlslFS: prelude + `
+			GlslFS: glslPrelude + `
 void F0(in float l0, out float l1);
 
 void F0(in float l0, out float l1) {
@@ -369,7 +370,7 @@ void F0(in float l0, out float l1) {
 		mat4 l5 = mat4(0);
 	}
 }`,
-			GlslFS: prelude + `
+			GlslFS: glslPrelude + `
 void F0(in float l0, out float l1);
 
 void F0(in float l0, out float l1) {
@@ -413,7 +414,7 @@ void F0(in float l0, out float l1) {
 void F0(in float l0, in float l1, out float l2) {
 	l2 = (l0) + (l1);
 }`,
-			GlslFS: prelude + `
+			GlslFS: glslPrelude + `
 void F0(in float l0, in float l1, out float l2);
 
 void F0(in float l0, in float l1, out float l2) {
@@ -453,7 +454,7 @@ void F0(in float l0, in float l1, out float l2) {
 void F0(in bool l0, in float l1, in float l2, out float l3) {
 	l3 = (l0) ? (l1) : (l2);
 }`,
-			GlslFS: prelude + `
+			GlslFS: glslPrelude + `
 void F0(in bool l0, in float l1, in float l2, out float l3);
 
 void F0(in bool l0, in float l1, in float l2, out float l3) {
@@ -498,7 +499,7 @@ void F0(in float l0, in float l1, out vec2 l2) {
 	F1();
 	l2 = F2(l0, l1);
 }`,
-			GlslFS: prelude + `
+			GlslFS: glslPrelude + `
 void F0(in float l0, in float l1, out vec2 l2);
 
 void F0(in float l0, in float l1, out vec2 l2) {
@@ -538,7 +539,7 @@ void F0(in float l0, in float l1, out vec2 l2) {
 void F0(in float l0, in float l1, out float l2) {
 	l2 = min(l0, l1);
 }`,
-			GlslFS: prelude + `
+			GlslFS: glslPrelude + `
 void F0(in float l0, in float l1, out float l2);
 
 void F0(in float l0, in float l1, out float l2) {
@@ -575,7 +576,7 @@ void F0(in float l0, in float l1, out float l2) {
 void F0(in vec4 l0, out vec2 l1) {
 	l1 = (l0).xz;
 }`,
-			GlslFS: prelude + `
+			GlslFS: glslPrelude + `
 void F0(in vec4 l0, out vec2 l1);
 
 void F0(in vec4 l0, out vec2 l1) {
@@ -631,7 +632,7 @@ void F0(in float l0, in float l1, out float l2) {
 		l2 = l1;
 	}
 }`,
-			GlslFS: prelude + `
+			GlslFS: glslPrelude + `
 void F0(in float l0, in float l1, out float l2);
 
 void F0(in float l0, in float l1, out float l2) {
@@ -682,12 +683,79 @@ void F0(in float l0, in float l1, out float l2) {
 		l2 = l0;
 	}
 }`,
-			GlslFS: prelude + `
+			GlslFS: glslPrelude + `
 void F0(in float l0, in float l1, out float l2);
 
 void F0(in float l0, in float l1, out float l2) {
 	for (int l3 = 0; l3 < 100; l3++) {
 		l2 = l0;
+	}
+}`,
+		},
+		{
+			Name: "For2",
+			Program: Program{
+				Funcs: []Func{
+					{
+						Index: 0,
+						InParams: []Type{
+							{Main: Float},
+							{Main: Float},
+						},
+						OutParams: []Type{
+							{Main: Float},
+						},
+						Block: block(
+							nil,
+							forStmt(
+								3,
+								0,
+								100,
+								LessThanOp,
+								1,
+								block(
+									[]Type{
+										{Main: Int},
+									},
+									assignStmt(
+										localVariableExpr(2),
+										localVariableExpr(4),
+									),
+								),
+							),
+						),
+					},
+				},
+			},
+			GlslVS: `void F0(in float l0, in float l1, out float l2);
+
+void F0(in float l0, in float l1, out float l2) {
+	for (int l3 = 0; l3 < 100; l3++) {
+		int l4 = 0;
+		l2 = l4;
+	}
+}`,
+			GlslFS: glslPrelude + `
+void F0(in float l0, in float l1, out float l2);
+
+void F0(in float l0, in float l1, out float l2) {
+	for (int l3 = 0; l3 < 100; l3++) {
+		int l4 = 0;
+		l2 = l4;
+	}
+}`,
+			Metal: `#include <metal_stdlib>
+
+using namespace metal;
+
+constexpr sampler texture_sampler{filter::nearest};
+
+void F0(float l0, float l1, thread float& l2);
+
+void F0(float l0, float l1, thread float& l2) {
+	for (int l3 = 0; l3 < 100; l3++) {
+		int l4 = 0;
+		l2 = l4;
 	}
 }`,
 		},
@@ -736,7 +804,7 @@ void main(void) {
 	V0 = A1;
 	V1 = A2;
 }`,
-			GlslFS: prelude + `
+			GlslFS: glslPrelude + `
 uniform float U0;
 varying float V0;
 varying vec2 V1;`,
@@ -806,7 +874,7 @@ void main(void) {
 	V0 = A1;
 	V1 = A2;
 }`,
-			GlslFS: prelude + `
+			GlslFS: glslPrelude + `
 uniform float U0;
 varying float V0;
 varying vec2 V1;
@@ -838,7 +906,14 @@ void main(void) {
 					t.Errorf("%s fragment: got: %s, want: %s", tc.Name, got, want)
 				}
 			}
-			metal.Compile(&tc.Program, "Vertex", "Fragment")
+			m := metal.Compile(&tc.Program, "Vertex", "Fragment")
+			if tc.Metal != "" {
+				got := m
+				want := tc.Metal + "\n"
+				if got != want {
+					t.Errorf("%s metal: got: %s, want: %s", tc.Name, got, want)
+				}
+			}
 		})
 	}
 }
