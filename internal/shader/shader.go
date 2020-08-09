@@ -677,6 +677,15 @@ func (cs *compileState) parseBlock(outer *block, fname string, stmts []ast.Stmt,
 		for b := outer; b != nil; b = b.outer {
 			offset += len(b.vars)
 		}
+		if fname == cs.vertexEntry {
+			offset -= len(cs.ir.Attributes)
+			offset-- // position
+			offset -= len(cs.ir.Varyings)
+		}
+		if fname == cs.fragmentEntry {
+			offset-- // position
+			offset -= len(cs.ir.Varyings)
+		}
 	}
 
 	block := &block{
