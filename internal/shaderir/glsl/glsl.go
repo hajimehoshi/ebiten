@@ -330,13 +330,6 @@ func (c *compileContext) glslBlock(p *shaderir.Program, topBlock, block *shaderi
 		localVarIndex++
 	}
 
-	// For's variable is special and defiend in the for statement.
-	for _, s := range block.Stmts {
-		if s.Type == shaderir.For {
-			localVarIndex++
-		}
-	}
-
 	var glslExpr func(e *shaderir.Expr) string
 	glslExpr = func(e *shaderir.Expr) string {
 		switch e.Type {
@@ -447,7 +440,9 @@ func (c *compileContext) glslBlock(p *shaderir.Program, topBlock, block *shaderi
 			end := constantToNumberLiteral(ct, s.ForEnd)
 			t0, t1 := typeString(&t)
 			lines = append(lines, fmt.Sprintf("%sfor (%s %s%s = %s; %s %s %s; %s) {", idt, t0, v, t1, init, v, op, end, delta))
-			lines = append(lines, c.glslBlock(p, topBlock, s.Blocks[0], level+1, localVarIndex)...)
+			// For's variable is special and defiend in the for statement.
+			// Add 1 to the number of the local variables.
+			lines = append(lines, c.glslBlock(p, topBlock, s.Blocks[0], level+1, localVarIndex+1)...)
 			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case shaderir.Continue:
 			lines = append(lines, idt+"continue;")

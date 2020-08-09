@@ -760,6 +760,101 @@ void F0(float l0, float l1, thread float& l2) {
 }`,
 		},
 		{
+			Name: "For3",
+			Program: Program{
+				Funcs: []Func{
+					{
+						Index: 0,
+						InParams: []Type{
+							{Main: Float},
+							{Main: Float},
+						},
+						OutParams: []Type{
+							{Main: Float},
+						},
+						Block: block(
+							nil,
+							forStmt(
+								3,
+								0,
+								100,
+								LessThanOp,
+								1,
+								block(
+									[]Type{
+										{Main: Int},
+									},
+									assignStmt(
+										localVariableExpr(2),
+										localVariableExpr(4),
+									),
+								),
+							),
+							forStmt(
+								3,
+								0,
+								100,
+								LessThanOp,
+								1,
+								block(
+									[]Type{
+										{Main: Int},
+									},
+									assignStmt(
+										localVariableExpr(2),
+										localVariableExpr(4),
+									),
+								),
+							),
+						),
+					},
+				},
+			},
+			GlslVS: `void F0(in float l0, in float l1, out float l2);
+
+void F0(in float l0, in float l1, out float l2) {
+	for (int l3 = 0; l3 < 100; l3++) {
+		int l4 = 0;
+		l2 = l4;
+	}
+	for (int l3 = 0; l3 < 100; l3++) {
+		int l4 = 0;
+		l2 = l4;
+	}
+}`,
+			GlslFS: glslPrelude + `
+void F0(in float l0, in float l1, out float l2);
+
+void F0(in float l0, in float l1, out float l2) {
+	for (int l3 = 0; l3 < 100; l3++) {
+		int l4 = 0;
+		l2 = l4;
+	}
+	for (int l3 = 0; l3 < 100; l3++) {
+		int l4 = 0;
+		l2 = l4;
+	}
+}`,
+			Metal: `#include <metal_stdlib>
+
+using namespace metal;
+
+constexpr sampler texture_sampler{filter::nearest};
+
+void F0(float l0, float l1, thread float& l2);
+
+void F0(float l0, float l1, thread float& l2) {
+	for (int l3 = 0; l3 < 100; l3++) {
+		int l4 = 0;
+		l2 = l4;
+	}
+	for (int l3 = 0; l3 < 100; l3++) {
+		int l4 = 0;
+		l2 = l4;
+	}
+}`,
+		},
+		{
 			Name: "VertexFunc",
 			Program: Program{
 				Uniforms: []Type{
