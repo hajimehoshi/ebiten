@@ -57,8 +57,9 @@ type FragmentFunc struct {
 }
 
 type Block struct {
-	LocalVars []Type
-	Stmts     []Stmt
+	LocalVars           []Type
+	LocalVarIndexOffset int
+	Stmts               []Stmt
 }
 
 type Stmt struct {

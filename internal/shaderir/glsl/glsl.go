@@ -91,7 +91,7 @@ func Compile(p *shaderir.Program) (vertexShader, fragmentShader string) {
 		if p.VertexFunc.Block != nil && len(p.VertexFunc.Block.Stmts) > 0 {
 			vslines = append(vslines, "")
 			vslines = append(vslines, "void main(void) {")
-			vslines = append(vslines, c.glslBlock(p, p.VertexFunc.Block, p.VertexFunc.Block, 0, 0)...)
+			vslines = append(vslines, c.glslBlock(p, p.VertexFunc.Block, p.VertexFunc.Block, 0)...)
 			vslines = append(vslines, "}")
 		}
 	}
@@ -129,7 +129,7 @@ func Compile(p *shaderir.Program) (vertexShader, fragmentShader string) {
 		if p.FragmentFunc.Block != nil && len(p.FragmentFunc.Block.Stmts) > 0 {
 			fslines = append(fslines, "")
 			fslines = append(fslines, "void main(void) {")
-			fslines = append(fslines, c.glslBlock(p, p.FragmentFunc.Block, p.FragmentFunc.Block, 0, 0)...)
+			fslines = append(fslines, c.glslBlock(p, p.FragmentFunc.Block, p.FragmentFunc.Block, 0)...)
 			fslines = append(fslines, "}")
 		}
 	}
@@ -239,7 +239,7 @@ func (c *compileContext) glslFunc(p *shaderir.Program, f *shaderir.Func, prototy
 		return lines
 	}
 	lines = append(lines, fmt.Sprintf("%s {", sig))
-	lines = append(lines, c.glslBlock(p, f.Block, f.Block, 0, idx)...)
+	lines = append(lines, c.glslBlock(p, f.Block, f.Block, 0)...)
 	lines = append(lines, "}")
 
 	return lines
@@ -337,7 +337,7 @@ func localVariable(p *shaderir.Program, topBlock, block *shaderir.Block, idx int
 	}
 }
 
-func (c *compileContext) glslBlock(p *shaderir.Program, topBlock, block *shaderir.Block, level int, localVarIndex int) []string {
+func (c *compileContext) glslBlock(p *shaderir.Program, topBlock, block *shaderir.Block, level int) []string {
 	if block == nil {
 		return nil
 	}
@@ -345,8 +345,8 @@ func (c *compileContext) glslBlock(p *shaderir.Program, topBlock, block *shaderi
 	idt := strings.Repeat("\t", level+1)
 
 	var lines []string
-	for _, t := range block.LocalVars {
-		name := fmt.Sprintf("l%d", localVarIndex)
+	for i, t := range block.LocalVars {
+		name := fmt.Sprintf("l%d", block.LocalVarIndexOffset+i)
 		switch t.Main {
 		case shaderir.Array:
 			lines = append(lines, fmt.Sprintf("%s%s;", idt, c.glslVarDecl(p, &t, name)))
@@ -359,7 +359,6 @@ func (c *compileContext) glslBlock(p *shaderir.Program, topBlock, block *shaderi
 		default:
 			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, c.glslVarDecl(p, &t, name), c.glslVarInit(p, &t)))
 		}
-		localVarIndex++
 	}
 
 	var glslExpr func(e *shaderir.Expr) string
@@ -420,7 +419,7 @@ func (c *compileContext) glslBlock(p *shaderir.Program, topBlock, block *shaderi
 			lines = append(lines, fmt.Sprintf("%s%s;", idt, glslExpr(&s.Exprs[0])))
 		case shaderir.BlockStmt:
 			lines = append(lines, idt+"{")
-			lines = append(lines, c.glslBlock(p, topBlock, s.Blocks[0], level+1, localVarIndex)...)
+			lines = append(lines, c.glslBlock(p, topBlock, s.Blocks[0], level+1)...)
 			lines = append(lines, idt+"}")
 		case shaderir.Assign:
 			lhs := s.Exprs[0]
@@ -436,10 +435,10 @@ func (c *compileContext) glslBlock(p *shaderir.Program, topBlock, block *shaderi
 			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, glslExpr(&lhs), glslExpr(&rhs)))
 		case shaderir.If:
 			lines = append(lines, fmt.Sprintf("%sif (%s) {", idt, glslExpr(&s.Exprs[0])))
-			lines = append(lines, c.glslBlock(p, topBlock, s.Blocks[0], level+1, localVarIndex)...)
+			lines = append(lines, c.glslBlock(p, topBlock, s.Blocks[0], level+1)...)
 			if len(s.Blocks) > 1 {
 				lines = append(lines, fmt.Sprintf("%s} else {", idt))
-				lines = append(lines, c.glslBlock(p, topBlock, s.Blocks[1], level+1, localVarIndex)...)
+				lines = append(lines, c.glslBlock(p, topBlock, s.Blocks[1], level+1)...)
 			}
 			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case shaderir.For:
@@ -482,7 +481,7 @@ func (c *compileContext) glslBlock(p *shaderir.Program, topBlock, block *shaderi
 			end := constantToNumberLiteral(ct, s.ForEnd)
 			t0, t1 := typeString(&t)
 			lines = append(lines, fmt.Sprintf("%sfor (%s %s%s = %s; %s %s %s; %s) {", idt, t0, v, t1, init, v, op, end, delta))
-			lines = append(lines, c.glslBlock(p, topBlock, s.Blocks[0], level+1, localVarIndex)...)
+			lines = append(lines, c.glslBlock(p, topBlock, s.Blocks[0], level+1)...)
 			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case shaderir.Continue:
 			lines = append(lines, idt+"continue;")

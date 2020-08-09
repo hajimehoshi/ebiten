@@ -111,7 +111,7 @@ func Compile(p *shaderir.Program, vertex, fragment string) (shader string) {
 		}
 		lines[len(lines)-1] += ") {"
 		lines = append(lines, fmt.Sprintf("\tVaryings %s = {};", vertexOut))
-		lines = append(lines, c.metalBlock(p, p.VertexFunc.Block, p.VertexFunc.Block, 0, 0)...)
+		lines = append(lines, c.metalBlock(p, p.VertexFunc.Block, p.VertexFunc.Block, 0)...)
 		if last := fmt.Sprintf("\treturn %s;", vertexOut); lines[len(lines)-1] != last {
 			lines = append(lines, last)
 		}
@@ -133,7 +133,7 @@ func Compile(p *shaderir.Program, vertex, fragment string) (shader string) {
 		}
 		lines[len(lines)-1] += ") {"
 		lines = append(lines, fmt.Sprintf("\tfloat4 %s = float4(0);", fragmentOut))
-		lines = append(lines, c.metalBlock(p, p.FragmentFunc.Block, p.FragmentFunc.Block, 0, 0)...)
+		lines = append(lines, c.metalBlock(p, p.FragmentFunc.Block, p.FragmentFunc.Block, 0)...)
 		if last := fmt.Sprintf("\treturn %s;", fragmentOut); lines[len(lines)-1] != last {
 			lines = append(lines, last)
 		}
@@ -245,7 +245,7 @@ func (c *compileContext) metalFunc(p *shaderir.Program, f *shaderir.Func, protot
 		return lines
 	}
 	lines = append(lines, fmt.Sprintf("%s {", sig))
-	lines = append(lines, c.metalBlock(p, f.Block, f.Block, 0, idx)...)
+	lines = append(lines, c.metalBlock(p, f.Block, f.Block, 0)...)
 	lines = append(lines, "}")
 
 	return lines
@@ -311,7 +311,7 @@ func localVariableName(p *shaderir.Program, topBlock *shaderir.Block, idx int) s
 	}
 }
 
-func (c *compileContext) metalBlock(p *shaderir.Program, topBlock, block *shaderir.Block, level int, localVarIndex int) []string {
+func (c *compileContext) metalBlock(p *shaderir.Program, topBlock, block *shaderir.Block, level int) []string {
 	if block == nil {
 		return nil
 	}
@@ -319,12 +319,11 @@ func (c *compileContext) metalBlock(p *shaderir.Program, topBlock, block *shader
 	idt := strings.Repeat("\t", level+1)
 
 	var lines []string
-	for _, t := range block.LocalVars {
+	for i, t := range block.LocalVars {
 		// The type is None e.g., when the variable is a for-loop counter.
 		if t.Main != shaderir.None {
-			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, c.metalVarDecl(p, &t, fmt.Sprintf("l%d", localVarIndex), false, false), c.metalVarInit(p, &t)))
+			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, c.metalVarDecl(p, &t, fmt.Sprintf("l%d", block.LocalVarIndexOffset+i), false, false), c.metalVarInit(p, &t)))
 		}
-		localVarIndex++
 	}
 
 	var metalExpr func(e *shaderir.Expr) string
@@ -395,16 +394,16 @@ func (c *compileContext) metalBlock(p *shaderir.Program, topBlock, block *shader
 			lines = append(lines, fmt.Sprintf("%s%s;", idt, metalExpr(&s.Exprs[0])))
 		case shaderir.BlockStmt:
 			lines = append(lines, idt+"{")
-			lines = append(lines, c.metalBlock(p, topBlock, s.Blocks[0], level+1, localVarIndex)...)
+			lines = append(lines, c.metalBlock(p, topBlock, s.Blocks[0], level+1)...)
 			lines = append(lines, idt+"}")
 		case shaderir.Assign:
 			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, metalExpr(&s.Exprs[0]), metalExpr(&s.Exprs[1])))
 		case shaderir.If:
 			lines = append(lines, fmt.Sprintf("%sif (%s) {", idt, metalExpr(&s.Exprs[0])))
-			lines = append(lines, c.metalBlock(p, topBlock, s.Blocks[0], level+1, localVarIndex)...)
+			lines = append(lines, c.metalBlock(p, topBlock, s.Blocks[0], level+1)...)
 			if len(s.Blocks) > 1 {
 				lines = append(lines, fmt.Sprintf("%s} else {", idt))
-				lines = append(lines, c.metalBlock(p, topBlock, s.Blocks[1], level+1, localVarIndex)...)
+				lines = append(lines, c.metalBlock(p, topBlock, s.Blocks[1], level+1)...)
 			}
 			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case shaderir.For:
@@ -447,7 +446,7 @@ func (c *compileContext) metalBlock(p *shaderir.Program, topBlock, block *shader
 			end := constantToNumberLiteral(ct, s.ForEnd)
 			ts := typeString(&t, false, false)
 			lines = append(lines, fmt.Sprintf("%sfor (%s %s = %s; %s %s %s; %s) {", idt, ts, v, init, v, op, end, delta))
-			lines = append(lines, c.metalBlock(p, topBlock, s.Blocks[0], level+1, localVarIndex)...)
+			lines = append(lines, c.metalBlock(p, topBlock, s.Blocks[0], level+1)...)
 			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case shaderir.Continue:
 			lines = append(lines, idt+"continue;")

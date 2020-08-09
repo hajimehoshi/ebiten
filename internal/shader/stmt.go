@@ -24,7 +24,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
-func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variable) ([]shaderir.Stmt, bool) {
+func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inParams []variable) ([]shaderir.Stmt, bool) {
 	var stmts []shaderir.Stmt
 
 	switch stmt := stmt.(type) {
@@ -97,7 +97,7 @@ func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variab
 			cs.addError(stmt.Pos(), fmt.Sprintf("unexpected token: %s", stmt.Tok))
 		}
 	case *ast.BlockStmt:
-		b, ok := cs.parseBlock(block, stmt.List, inParams, nil)
+		b, ok := cs.parseBlock(block, fname, stmt.List, inParams, nil)
 		if !ok {
 			return nil, false
 		}
@@ -132,7 +132,7 @@ func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variab
 		// Create a new pseudo block for the initial statement, so that the counter variable belongs to the
 		// new pseudo block for each for-loop. Without this, the samely named counter variables in different
 		// for-loops confuses the parser.
-		pseudoBlock, ok := cs.parseBlock(block, []ast.Stmt{stmt.Init}, inParams, nil)
+		pseudoBlock, ok := cs.parseBlock(block, fname, []ast.Stmt{stmt.Init}, inParams, nil)
 		if !ok {
 			return nil, false
 		}
@@ -198,7 +198,7 @@ func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variab
 		}
 		end := exprs[0].Exprs[1].Const
 
-		postSs, ok := cs.parseStmt(pseudoBlock, stmt.Post, inParams)
+		postSs, ok := cs.parseStmt(pseudoBlock, fname, stmt.Post, inParams)
 		if !ok {
 			return nil, false
 		}
@@ -244,7 +244,7 @@ func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variab
 			return nil, false
 		}
 
-		b, ok := cs.parseBlock(pseudoBlock, []ast.Stmt{stmt.Body}, inParams, nil)
+		b, ok := cs.parseBlock(pseudoBlock, fname, []ast.Stmt{stmt.Body}, inParams, nil)
 		if !ok {
 			return nil, false
 		}
@@ -256,8 +256,9 @@ func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variab
 		// As the pseudo block is not actually used, copy the variable part to the actual block.
 		// This must be done after parsing the for-loop is done, or the duplicated variables confuses the
 		// parsing.
-		block.vars = append(block.vars, pseudoBlock.vars[0])
-		block.vars[len(block.vars)-1].forLoopCounter = true
+		v := pseudoBlock.vars[0]
+		v.forLoopCounter = true
+		block.vars = append(block.vars, v)
 
 		stmts = append(stmts, shaderir.Stmt{
 			Type:        shaderir.For,
@@ -274,7 +275,7 @@ func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variab
 		if stmt.Init != nil {
 			init := stmt.Init
 			stmt.Init = nil
-			b, ok := cs.parseBlock(block, []ast.Stmt{init, stmt}, inParams, nil)
+			b, ok := cs.parseBlock(block, fname, []ast.Stmt{init, stmt}, inParams, nil)
 			if !ok {
 				return nil, false
 			}
@@ -301,7 +302,7 @@ func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variab
 		stmts = append(stmts, ss...)
 
 		var bs []*shaderir.Block
-		b, ok := cs.parseBlock(block, stmt.Body.List, inParams, nil)
+		b, ok := cs.parseBlock(block, fname, stmt.Body.List, inParams, nil)
 		if !ok {
 			return nil, false
 		}
@@ -310,13 +311,13 @@ func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variab
 		if stmt.Else != nil {
 			switch s := stmt.Else.(type) {
 			case *ast.BlockStmt:
-				b, ok := cs.parseBlock(block, s.List, inParams, nil)
+				b, ok := cs.parseBlock(block, fname, s.List, inParams, nil)
 				if !ok {
 					return nil, false
 				}
 				bs = append(bs, b.ir)
 			default:
-				b, ok := cs.parseBlock(block, []ast.Stmt{s}, inParams, nil)
+				b, ok := cs.parseBlock(block, fname, []ast.Stmt{s}, inParams, nil)
 				if !ok {
 					return nil, false
 				}

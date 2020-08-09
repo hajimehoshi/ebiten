@@ -633,7 +633,7 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 		}
 	}
 
-	b, ok := cs.parseBlock(block, d.Body.List, inParams, outParams)
+	b, ok := cs.parseBlock(block, d.Name.Name, d.Body.List, inParams, outParams)
 	if !ok {
 		return function{}, false
 	}
@@ -657,17 +657,34 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 	}, true
 }
 
-func (cs *compileState) parseBlock(outer *block, stmts []ast.Stmt, inParams, outParams []variable) (*block, bool) {
+func (cs *compileState) parseBlock(outer *block, fname string, stmts []ast.Stmt, inParams, outParams []variable) (*block, bool) {
 	var vars []variable
 	if outer == &cs.global {
 		vars = make([]variable, 0, len(inParams)+len(outParams))
 		vars = append(vars, inParams...)
 		vars = append(vars, outParams...)
 	}
+
+	var offset int
+	switch {
+	case outer.outer == nil && fname == cs.vertexEntry:
+		offset = 0
+	case outer.outer == nil && fname == cs.fragmentEntry:
+		offset = 0
+	case outer.outer == nil:
+		offset = len(inParams) + len(outParams)
+	case outer.outer.outer == nil:
+		offset = len(outer.outer.vars) + len(outer.vars)
+	default:
+		offset = outer.ir.LocalVarIndexOffset + len(outer.vars)
+	}
+
 	block := &block{
 		vars:  vars,
 		outer: outer,
-		ir:    &shaderir.Block{},
+		ir: &shaderir.Block{
+			LocalVarIndexOffset: offset,
+		},
 	}
 
 	defer func() {
@@ -685,7 +702,7 @@ func (cs *compileState) parseBlock(outer *block, stmts []ast.Stmt, inParams, out
 	}()
 
 	for _, stmt := range stmts {
-		ss, ok := cs.parseStmt(block, stmt, inParams)
+		ss, ok := cs.parseStmt(block, fname, stmt, inParams)
 		if !ok {
 			return nil, false
 		}
