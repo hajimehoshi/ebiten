@@ -448,9 +448,7 @@ func (c *compileContext) metalBlock(p *shaderir.Program, topBlock, block *shader
 			end := constantToNumberLiteral(ct, s.ForEnd)
 			ts := typeString(&t, false, false)
 			lines = append(lines, fmt.Sprintf("%sfor (%s %s = %s; %s %s %s; %s) {", idt, ts, v, init, v, op, end, delta))
-			// For's variable is special and defiend in the for statement.
-			// Add 1 to the number of the local variables.
-			lines = append(lines, c.metalBlock(p, topBlock, s.Blocks[0], level+1, localVarIndex+1)...)
+			lines = append(lines, c.metalBlock(p, topBlock, s.Blocks[0], level+1, localVarIndex)...)
 			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case shaderir.Continue:
 			lines = append(lines, idt+"continue;")

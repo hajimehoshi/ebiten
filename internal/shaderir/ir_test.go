@@ -657,7 +657,9 @@ void F0(in float l0, in float l1, out float l2) {
 							{Main: Float},
 						},
 						Block: block(
-							nil,
+							[]Type{
+								{},
+							},
 							forStmt(
 								Type{Main: Int},
 								3,
@@ -707,7 +709,9 @@ void F0(in float l0, in float l1, out float l2) {
 							{Main: Float},
 						},
 						Block: block(
-							nil,
+							[]Type{
+								{},
+							},
 							forStmt(
 								Type{Main: Int},
 								3,
@@ -775,7 +779,10 @@ void F0(float l0, float l1, thread float& l2) {
 							{Main: Float},
 						},
 						Block: block(
-							nil,
+							[]Type{
+								{},
+								{},
+							},
 							forStmt(
 								Type{Main: Int},
 								3,
@@ -789,13 +796,13 @@ void F0(float l0, float l1, thread float& l2) {
 									},
 									assignStmt(
 										localVariableExpr(2),
-										localVariableExpr(4),
+										localVariableExpr(5),
 									),
 								),
 							),
 							forStmt(
 								Type{Main: Float},
-								3,
+								4,
 								0,
 								100,
 								LessThanOp,
@@ -806,7 +813,7 @@ void F0(float l0, float l1, thread float& l2) {
 									},
 									assignStmt(
 										localVariableExpr(2),
-										localVariableExpr(4),
+										localVariableExpr(5),
 									),
 								),
 							),
@@ -818,12 +825,12 @@ void F0(float l0, float l1, thread float& l2) {
 
 void F0(in float l0, in float l1, out float l2) {
 	for (int l3 = 0; l3 < 100; l3++) {
-		int l4 = 0;
-		l2 = l4;
+		int l5 = 0;
+		l2 = l5;
 	}
-	for (float l3 = 0.0; l3 < 100.0; l3++) {
-		int l4 = 0;
-		l2 = l4;
+	for (float l4 = 0.0; l4 < 100.0; l4++) {
+		int l5 = 0;
+		l2 = l5;
 	}
 }`,
 			GlslFS: glslPrelude + `
@@ -831,12 +838,12 @@ void F0(in float l0, in float l1, out float l2);
 
 void F0(in float l0, in float l1, out float l2) {
 	for (int l3 = 0; l3 < 100; l3++) {
-		int l4 = 0;
-		l2 = l4;
+		int l5 = 0;
+		l2 = l5;
 	}
-	for (float l3 = 0.0; l3 < 100.0; l3++) {
-		int l4 = 0;
-		l2 = l4;
+	for (float l4 = 0.0; l4 < 100.0; l4++) {
+		int l5 = 0;
+		l2 = l5;
 	}
 }`,
 			Metal: `#include <metal_stdlib>
@@ -849,12 +856,12 @@ void F0(float l0, float l1, thread float& l2);
 
 void F0(float l0, float l1, thread float& l2) {
 	for (int l3 = 0; l3 < 100; l3++) {
-		int l4 = 0;
-		l2 = l4;
+		int l5 = 0;
+		l2 = l5;
 	}
-	for (float l3 = 0.0; l3 < 100.0; l3++) {
-		int l4 = 0;
-		l2 = l4;
+	for (float l4 = 0.0; l4 < 100.0; l4++) {
+		int l5 = 0;
+		l2 = l5;
 	}
 }`,
 		},
