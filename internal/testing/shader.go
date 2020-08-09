@@ -173,7 +173,7 @@ var (
 		},
 	}
 	defaultVertexFunc = shaderir.VertexFunc{
-		Block: shaderir.Block{
+		Block: &shaderir.Block{
 			Stmts: []shaderir.Stmt{
 				{
 					Type: shaderir.Assign,
@@ -279,7 +279,7 @@ func ShaderProgramFill(r, g, b, a byte) shaderir.Program {
 
 	p := defaultProgram()
 	p.FragmentFunc = shaderir.FragmentFunc{
-		Block: shaderir.Block{
+		Block: &shaderir.Block{
 			Stmts: []shaderir.Stmt{
 				{
 					Type: shaderir.Assign,
@@ -413,7 +413,7 @@ func ShaderProgramImages(imageNum int) shaderir.Program {
 	})
 
 	p.FragmentFunc = shaderir.FragmentFunc{
-		Block: shaderir.Block{
+		Block: &shaderir.Block{
 			LocalVars: []shaderir.Type{
 				{Main: shaderir.Vec4},
 			},

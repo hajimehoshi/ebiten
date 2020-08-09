@@ -20,10 +20,11 @@ import (
 
 	. "github.com/hajimehoshi/ebiten/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/internal/shaderir/glsl"
+	"github.com/hajimehoshi/ebiten/internal/shaderir/metal"
 )
 
-func block(localVars []Type, stmts ...Stmt) Block {
-	return Block{
+func block(localVars []Type, stmts ...Stmt) *Block {
+	return &Block{
 		LocalVars: localVars,
 		Stmts:     stmts,
 	}
@@ -36,10 +37,10 @@ func exprStmt(expr Expr) Stmt {
 	}
 }
 
-func blockStmt(block Block) Stmt {
+func blockStmt(block *Block) Stmt {
 	return Stmt{
 		Type:   BlockStmt,
-		Blocks: []Block{block},
+		Blocks: []*Block{block},
 	}
 }
 
@@ -57,18 +58,18 @@ func assignStmt(lhs Expr, rhs Expr) Stmt {
 	}
 }
 
-func ifStmt(cond Expr, block Block, elseBlock Block) Stmt {
+func ifStmt(cond Expr, block *Block, elseBlock *Block) Stmt {
 	return Stmt{
 		Type:   If,
 		Exprs:  []Expr{cond},
-		Blocks: []Block{block, elseBlock},
+		Blocks: []*Block{block, elseBlock},
 	}
 }
 
-func forStmt(index, init, end int, op Op, delta int, block Block) Stmt {
+func forStmt(index, init, end int, op Op, delta int, block *Block) Stmt {
 	return Stmt{
 		Type:        For,
-		Blocks:      []Block{block},
+		Blocks:      []*Block{block},
 		ForVarType:  Type{Main: Int},
 		ForVarIndex: index,
 		ForInit:     constant.MakeInt64(int64(init)),
@@ -837,6 +838,7 @@ void main(void) {
 					t.Errorf("%s fragment: got: %s, want: %s", tc.Name, got, want)
 				}
 			}
+			metal.Compile(&tc.Program, "Vertex", "Fragment")
 		})
 	}
 }

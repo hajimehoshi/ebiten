@@ -92,7 +92,7 @@ type block struct {
 	pos    token.Pos
 	outer  *block
 
-	ir shaderir.Block
+	ir *shaderir.Block
 }
 
 func (b *block) findLocalVariable(name string) (int, shaderir.Type, bool) {
@@ -140,6 +140,7 @@ func Compile(fs *token.FileSet, f *ast.File, vertexEntry, fragmentEntry string, 
 		vertexEntry:   vertexEntry,
 		fragmentEntry: fragmentEntry,
 	}
+	s.global.ir = &shaderir.Block{}
 	s.parse(f)
 
 	if len(s.errs) > 0 {
@@ -221,6 +222,7 @@ func (cs *compileState) parse(f *ast.File) {
 				Index:     len(cs.funcs),
 				InParams:  inT,
 				OutParams: outT,
+				Block:     &shaderir.Block{},
 			},
 		})
 	}
@@ -657,7 +659,9 @@ func (cs *compileState) parseBlock(outer *block, stmts []ast.Stmt, inParams, out
 	block := &block{
 		vars:  vars,
 		outer: outer,
+		ir:    &shaderir.Block{},
 	}
+
 	defer func() {
 		var offset int
 		if outer == &cs.global {

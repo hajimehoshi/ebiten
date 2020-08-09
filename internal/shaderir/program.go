@@ -36,7 +36,7 @@ type Func struct {
 	InParams  []Type
 	OutParams []Type
 	Return    Type
-	Block     Block
+	Block     *Block
 }
 
 // VertexFunc takes pseudo params, and the number if len(attributes) + len(varyings) + 1.
@@ -45,7 +45,7 @@ type Func struct {
 // If len(attributes) + 1 <= index < len(attributes) + len(varyings) + 1, the params are out-params and represent
 // varying variables.
 type VertexFunc struct {
-	Block Block
+	Block *Block
 }
 
 // FragmentFunc takes pseudo params, and the number is len(varyings) + 2.
@@ -53,7 +53,7 @@ type VertexFunc struct {
 // If index == len(varyings), the param represents (index-1)th verying variable.
 // If index == len(varyings)+1, the param is an out-param representing the color of the pixel (gl_FragColor in GLSL).
 type FragmentFunc struct {
-	Block Block
+	Block *Block
 }
 
 type Block struct {
@@ -64,7 +64,7 @@ type Block struct {
 type Stmt struct {
 	Type        StmtType
 	Exprs       []Expr
-	Blocks      []Block
+	Blocks      []*Block
 	ForVarType  Type
 	ForVarIndex int
 	ForInit     constant.Value

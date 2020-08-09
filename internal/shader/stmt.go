@@ -103,7 +103,7 @@ func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variab
 		}
 		stmts = append(stmts, shaderir.Stmt{
 			Type: shaderir.BlockStmt,
-			Blocks: []shaderir.Block{
+			Blocks: []*shaderir.Block{
 				b.ir,
 			},
 		})
@@ -261,7 +261,7 @@ func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variab
 
 		stmts = append(stmts, shaderir.Stmt{
 			Type:        shaderir.For,
-			Blocks:      []shaderir.Block{bodyir},
+			Blocks:      []*shaderir.Block{bodyir},
 			ForVarType:  vartype,
 			ForVarIndex: varidx,
 			ForInit:     init,
@@ -281,7 +281,7 @@ func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variab
 
 			stmts = append(stmts, shaderir.Stmt{
 				Type:   shaderir.BlockStmt,
-				Blocks: []shaderir.Block{b.ir},
+				Blocks: []*shaderir.Block{b.ir},
 			})
 			return stmts, true
 		}
@@ -300,7 +300,7 @@ func (cs *compileState) parseStmt(block *block, stmt ast.Stmt, inParams []variab
 		}
 		stmts = append(stmts, ss...)
 
-		var bs []shaderir.Block
+		var bs []*shaderir.Block
 		b, ok := cs.parseBlock(block, stmt.Body.List, inParams, nil)
 		if !ok {
 			return nil, false
