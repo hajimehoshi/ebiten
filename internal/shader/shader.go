@@ -95,6 +95,14 @@ type block struct {
 	ir *shaderir.Block
 }
 
+func (b *block) totalLocalVariableNum() int {
+	c := len(b.vars)
+	if b.outer != nil {
+		c += b.outer.totalLocalVariableNum()
+	}
+	return c
+}
+
 func (b *block) findLocalVariable(name string) (int, shaderir.Type, bool) {
 	idx := 0
 	for outer := b.outer; outer != nil; outer = outer.outer {

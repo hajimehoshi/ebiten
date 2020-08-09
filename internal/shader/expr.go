@@ -240,7 +240,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 
 		var outParams []int
 		for _, p := range f.ir.OutParams {
-			idx := len(block.vars)
+			idx := block.totalLocalVariableNum()
 			block.vars = append(block.vars, variable{
 				typ: p,
 			})
@@ -257,7 +257,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 				return nil, nil, nil, false
 			}
 
-			idx := len(block.vars)
+			idx := block.totalLocalVariableNum()
 			block.vars = append(block.vars, variable{
 				typ: t,
 			})
@@ -453,7 +453,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 			return nil, nil, nil, false
 		}
 
-		idx := len(block.vars)
+		idx := block.totalLocalVariableNum()
 		block.vars = append(block.vars, variable{
 			typ: t,
 		})
