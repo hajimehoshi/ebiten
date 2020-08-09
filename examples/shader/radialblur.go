@@ -12,8 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build ignore
+
 package main
 
-//go:generate file2byteslice -package=main -input=default.go -output=default_go.go -var=default_go
-//go:generate file2byteslice -package=main -input=lighting.go -output=lighting_go.go -var=lighting_go
-//go:generate file2byteslice -package=main -input=radialblur.go -output=radialblur_go.go -var=radialblur_go
+var Time float
+var Cursor vec2
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	dir := normalize(position.xy - Cursor)
+	clr := texture2At(texCoord)
+
+	samples := [10]float{
+		-22, -14, -8, -4, -2, 2, 4, 8, 14, 22,
+	}
+	// TODO: Add len(samples)
+	sum := clr
+	for i := 0; i < 10; i++ {
+		// TODO: Consider the source region not to violate the region.
+		sum += texture2At(texCoord + dir*samples[i]/texture2Size())
+	}
+	sum /= 10 + 1
+
+	dist := distance(position.xy, Cursor)
+	t := clamp(dist/256, 0, 1)
+	return mix(clr, sum, t)
+}

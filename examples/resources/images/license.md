@@ -99,6 +99,24 @@ Read this article for more details: https://blog.golang.org/gopher
 https://corvussg.itch.io/2d-game-backgrounds
 ```
 
+## shader/gopher.png
+
+```
+The Go gopher was designed by Renee French. (http://reneefrench.blogspot.com/)
+The design is licensed under the Creative Commons 3.0 Attributions license.
+Read this article for more details: https://blog.golang.org/gopher
+```
+
+## shader/gopherbg.png
+
+```
+https://commons.wikimedia.org/wiki/File:Solna_Brick_wall_vilt_forband.jpg
+
+By Håkan Svensson Xauxa
+
+The Creative Commons Attribution-Share Alike 3.0 Unported license
+```
+
 ## Other image files
 
 ```

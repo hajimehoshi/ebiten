@@ -34,6 +34,7 @@
 //go:generate file2byteslice -package=mascot -input=./images/mascot/out02.png -output=./images/mascot/out02.go -var=Out02_png
 //go:generate file2byteslice -package=mascot -input=./images/mascot/out03.png -output=./images/mascot/out03.go -var=Out03_png
 //go:generate file2byteslice -package=shader -input=./images/shader/gopher.png -output=./images/shader/gopher.go -var=Gopher_png
+//go:generate file2byteslice -package=shader -input=./images/shader/gopherbg.png -output=./images/shader/gopherbg.go -var=GopherBg_png
 //go:generate file2byteslice -package=shader -input=./images/shader/normal.png -output=./images/shader/normal.go -var=Normal_png
 //go:generate file2byteslice -package=platformer -input=./images/platformer/background.png -output=./images/platformer/background.go -var=Background_png
 //go:generate file2byteslice -package=platformer -input=./images/platformer/left.png -output=./images/platformer/left.go -var=Left_png
