@@ -685,6 +685,7 @@ func (cs *compileState) parseBlock(outer *block, fname string, stmts []ast.Stmt,
 		if fname == cs.fragmentEntry {
 			offset-- // position
 			offset -= len(cs.ir.Varyings)
+			offset-- // color
 		}
 	}
 
