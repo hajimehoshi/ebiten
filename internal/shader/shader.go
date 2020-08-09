@@ -673,10 +673,10 @@ func (cs *compileState) parseBlock(outer *block, fname string, stmts []ast.Stmt,
 		offset = 0
 	case outer.outer == nil:
 		offset = len(inParams) + len(outParams)
-	case outer.outer.outer == nil:
-		offset = len(outer.outer.vars) + len(outer.vars)
 	default:
-		offset = outer.ir.LocalVarIndexOffset + len(outer.vars)
+		for b := outer; b != nil; b = b.outer {
+			offset += len(b.vars)
+		}
 	}
 
 	block := &block{
