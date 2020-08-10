@@ -21,7 +21,7 @@ var Cursor vec2
 var ScreenSize vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	center := vec2(ScreenSize.x/2, ScreenSize.y/2)
+	center := ScreenSize / 2
 	amount := normalize(center-Cursor).x / 100
 	var clr vec3
 	clr.r = texture2At(vec2(texCoord.x+amount, texCoord.y)).r
