@@ -37,6 +37,7 @@ var (
 	gopherImage   *ebiten.Image
 	gopherBgImage *ebiten.Image
 	normalImage   *ebiten.Image
+	noiseImage    *ebiten.Image
 )
 
 func init() {
@@ -72,11 +73,20 @@ func init() {
 	normalImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 }
 
+func init() {
+	img, _, err := image.Decode(bytes.NewReader(resources.Noise_png))
+	if err != nil {
+		log.Fatal(err)
+	}
+	noiseImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+}
+
 var shaderSrcs = [][]byte{
 	default_go,
 	lighting_go,
 	radialblur_go,
 	chromaticaberration_go,
+	dissolve_go,
 }
 
 type Game struct {
@@ -127,6 +137,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op.Images[0] = gopherImage
 	op.Images[1] = normalImage
 	op.Images[2] = gopherBgImage
+	op.Images[3] = noiseImage
 	screen.DrawRectShader(w, h, s, op)
 
 	msg := "Press Up/Down to switch the shader."
