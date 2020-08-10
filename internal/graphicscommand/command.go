@@ -106,7 +106,7 @@ func (q *commandQueue) appendVertices(vertices []float32, src *Image) {
 
 	width := float32(1)
 	height := float32(1)
-	// src is nil when a shader is used and there are no images in the uniform variables.
+	// src is nil when a shader is used and there are no specified images.
 	if src != nil {
 		w, h := src.InternalSize()
 		width = float32(w)
@@ -145,14 +145,8 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	}
 
 	// Assume that all the image sizes are same.
-	var firstSrc *Image
-	for _, src := range srcs {
-		if src != nil {
-			firstSrc = src
-			break
-		}
-	}
-	q.appendVertices(vertices, firstSrc)
+	// Assume that the images are packed from the front in the slice srcs.
+	q.appendVertices(vertices, srcs[0])
 	q.appendIndices(indices, uint16(q.nextIndex))
 	q.nextIndex += len(vertices) / graphics.VertexFloatNum
 	q.tmpNumIndices += len(indices)
@@ -167,8 +161,8 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 		}
 	}
 
-	if firstSrc != nil {
-		w, h := firstSrc.InternalSize()
+	if srcs[0] != nil {
+		w, h := srcs[0].InternalSize()
 		if address != driver.AddressUnsafe {
 			sourceRegion.X /= float32(w)
 			sourceRegion.Y /= float32(h)
