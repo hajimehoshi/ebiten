@@ -24,8 +24,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	center := ScreenSize / 2
 	amount := (center - Cursor) / image2TextureSize() / 10
 	var clr vec3
-	clr.r = image2TextureAt(vec2(texCoord.x+amount.x, texCoord.y)).r
+	clr.r = image2TextureBoundsAt(texCoord + amount).r
 	clr.g = image2TextureAt(texCoord).g
-	clr.b = image2TextureAt(vec2(texCoord.x-amount.x, texCoord.y)).b
+	clr.b = image2TextureBoundsAt(texCoord - amount).b
 	return vec4(clr, 1.0)
 }

@@ -270,13 +270,21 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	vs := graphics.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, 1, 1, 1, 1, filter == driver.FilterScreen)
 	is := graphics.QuadIndices()
 
+	var sr driver.Region
+	sr = driver.Region{
+		X:      float32(bounds.Min.X),
+		Y:      float32(bounds.Min.Y),
+		Width:  float32(bounds.Dx()),
+		Height: float32(bounds.Dy()),
+	}
+
 	srcs := [graphics.ShaderImageNum]*mipmap.Mipmap{img.mipmap}
 	if options.Shader == nil {
-		i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.AddressUnsafe, driver.Region{}, nil, nil, canSkipMipmap(options.GeoM, filter))
+		i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.AddressUnsafe, sr, nil, nil, canSkipMipmap(options.GeoM, filter))
 		return nil
 	}
 
-	i.mipmap.DrawTriangles(srcs, vs, is, nil, mode, filter, driver.AddressUnsafe, driver.Region{}, options.Shader.shader, options.Uniforms, canSkipMipmap(options.GeoM, filter))
+	i.mipmap.DrawTriangles(srcs, vs, is, nil, mode, filter, driver.AddressUnsafe, sr, options.Shader.shader, options.Uniforms, canSkipMipmap(options.GeoM, filter))
 	return nil
 }
 
@@ -421,14 +429,12 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	copy(is, indices)
 
 	var sr driver.Region
-	if options.Shader == nil && options.Address != AddressUnsafe {
-		b := img.Bounds()
-		sr = driver.Region{
-			X:      float32(b.Min.X),
-			Y:      float32(b.Min.Y),
-			Width:  float32(b.Dx()),
-			Height: float32(b.Dy()),
-		}
+	b := img.Bounds()
+	sr = driver.Region{
+		X:      float32(b.Min.X),
+		Y:      float32(b.Min.Y),
+		Width:  float32(b.Dx()),
+		Height: float32(b.Dy()),
 	}
 
 	var srcs [graphics.ShaderImageNum]*mipmap.Mipmap
@@ -440,7 +446,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), sr, nil, nil, false)
 		return
 	}
-	i.mipmap.DrawTriangles(srcs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, options.Shader.shader, options.Uniforms, false)
+	i.mipmap.DrawTriangles(srcs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, sr, options.Shader.shader, options.Uniforms, false)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader
@@ -517,7 +523,18 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	vs := graphics.QuadVertices(0, 0, float32(width), float32(height), a, b, c, d, tx, ty, 1, 1, 1, 1, false)
 	is := graphics.QuadIndices()
 
-	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, shader.shader, options.Uniforms, canSkipMipmap(options.GeoM, driver.FilterNearest))
+	var sr driver.Region
+	if img := options.Images[0]; img != nil {
+		b := img.Bounds()
+		sr = driver.Region{
+			X:      float32(b.Min.X),
+			Y:      float32(b.Min.Y),
+			Width:  float32(b.Dx()),
+			Height: float32(b.Dy()),
+		}
+	}
+
+	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, sr, shader.shader, options.Uniforms, canSkipMipmap(options.GeoM, driver.FilterNearest))
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader
@@ -613,7 +630,18 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
-	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, shader.shader, options.Uniforms, false)
+	var sr driver.Region
+	if img := options.Images[0]; img != nil {
+		b := img.Bounds()
+		sr = driver.Region{
+			X:      float32(b.Min.X),
+			Y:      float32(b.Min.Y),
+			Width:  float32(b.Dx()),
+			Height: float32(b.Dy()),
+		}
+	}
+
+	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, sr, shader.shader, options.Uniforms, false)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.

@@ -30,8 +30,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// TODO: Add len(samples)
 	sum := clr
 	for i := 0; i < 10; i++ {
-		// TODO: Consider the source region not to violate the region.
-		sum += image2TextureAt(texCoord + dir*samples[i]/image2TextureSize())
+		pos := texCoord + dir*samples[i]/image2TextureSize()
+		sum += image2TextureBoundsAt(pos)
 	}
 	sum /= 10 + 1
 

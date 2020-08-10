@@ -337,10 +337,8 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 			vertices[i*graphics.VertexFloatNum+2] += oxf
 			vertices[i*graphics.VertexFloatNum+3] += oyf
 		}
-		if address != driver.AddressUnsafe {
-			sourceRegion.X += oxf
-			sourceRegion.Y += oyf
-		}
+		sourceRegion.X += oxf
+		sourceRegion.Y += oyf
 	}
 
 	var offsets [graphics.ShaderImageNum - 1][2]float32

@@ -289,7 +289,7 @@ func (g *Graphics) removeShader(shader *Shader) {
 	delete(g.shaders, shader.id)
 }
 
-func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms []interface{}) error {
+func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, sourceRegion driver.Region, mode driver.CompositeMode, uniforms []interface{}) error {
 	d := g.images[dst]
 	s := g.shaders[shader]
 
@@ -301,36 +301,72 @@ func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]
 	g.context.blendFunc(mode)
 
 	us := make([]uniformVariable, graphics.PreservedUniformVariablesNum+len(uniforms))
-	vw, vh := d.framebufferSize()
-	us[0].name = "U0"
-	us[0].value = []float32{float32(vw), float32(vh)}
-	us[0].typ = s.ir.Uniforms[0]
 
-	vsizes := make([]float32, 2*len(srcs))
-	for i, src := range srcs {
-		if img := g.images[src]; img != nil {
-			w, h := img.framebufferSize()
-			vsizes[2*i] = float32(w)
-			vsizes[2*i+1] = float32(h)
-		}
-
+	{
+		const idx = graphics.DestinationTextureSizeUniformVariableIndex
+		w, h := d.framebufferSize()
+		us[idx].name = "U0"
+		us[idx].value = []float32{float32(w), float32(h)}
+		us[idx].typ = s.ir.Uniforms[0]
 	}
 	{
-		const idx = 1
+		sizes := make([]float32, 2*len(srcs))
+		for i, src := range srcs {
+			if img := g.images[src]; img != nil {
+				w, h := img.framebufferSize()
+				sizes[2*i] = float32(w)
+				sizes[2*i+1] = float32(h)
+			}
+
+		}
+		const idx = graphics.TextureSizesUniformVariableIndex
 		us[idx].name = fmt.Sprintf("U%d", idx)
-		us[idx].value = vsizes
+		us[idx].value = sizes
 		us[idx].typ = s.ir.Uniforms[idx]
 	}
-
-	voffsets := make([]float32, 2*len(offsets))
-	for i, o := range offsets {
-		voffsets[2*i] = o[0]
-		voffsets[2*i+1] = o[1]
-	}
 	{
-		const idx = 1 + 1
+		voffsets := make([]float32, 2*len(offsets))
+		for i, o := range offsets {
+			voffsets[2*i] = o[0]
+			voffsets[2*i+1] = o[1]
+		}
+		const idx = graphics.TextureSourceOffsetsUniformVariableIndex
 		us[idx].name = fmt.Sprintf("U%d", idx)
 		us[idx].value = voffsets
+		us[idx].typ = s.ir.Uniforms[idx]
+	}
+	{
+		origin := make([]float32, 2)
+		origin[0] = sourceRegion.X
+		origin[1] = sourceRegion.Y
+		const idx = graphics.TextureSourceOriginUniformVariableIndex
+		us[idx].name = fmt.Sprintf("U%d", idx)
+		us[idx].value = origin
+		us[idx].typ = s.ir.Uniforms[idx]
+	}
+	{
+		sizes := make([]float32, 2*len(srcs))
+		if baseimg := g.images[srcs[0]]; baseimg != nil {
+			w, h := sourceRegion.Width, sourceRegion.Height
+			bw, bh := baseimg.framebufferSize()
+			for i, src := range srcs {
+				if i == 0 {
+					sizes[2*i] = float32(w)
+					sizes[2*i+1] = float32(h)
+					continue
+				}
+				img := g.images[src]
+				if img == nil {
+					continue
+				}
+				tw, th := img.framebufferSize()
+				sizes[2*i] = float32(w) * float32(bw) / float32(tw)
+				sizes[2*i+1] = float32(h) * float32(bh) / float32(th)
+			}
+		}
+		const idx = graphics.TextureSourceSizesUniformVariableIndex
+		us[idx].name = fmt.Sprintf("U%d", idx)
+		us[idx].value = sizes
 		us[idx].typ = s.ir.Uniforms[idx]
 	}
 

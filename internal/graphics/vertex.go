@@ -25,11 +25,15 @@ const (
 	// Any shaders in Ebiten must have these uniform variables.
 	PreservedUniformVariablesNum = 1 + // the destination texture size
 		1 + // the texture sizes array
-		1 // the offsets array of the second and the following images
+		1 + // the offsets array of the second and the following images
+		1 + // the texture source origin
+		1 // the texture source sizes
 
 	DestinationTextureSizeUniformVariableIndex = 0
 	TextureSizesUniformVariableIndex           = 1
-	TextureOffsetsUniformVariableIndex         = 2
+	TextureSourceOffsetsUniformVariableIndex   = 2
+	TextureSourceOriginUniformVariableIndex    = 3
+	TextureSourceSizesUniformVariableIndex     = 4
 )
 
 const (

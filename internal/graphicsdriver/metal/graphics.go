@@ -991,7 +991,7 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	})
 }
 
-func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms []interface{}) error {
+func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, sourceRegion driver.Region, mode driver.CompositeMode, uniforms []interface{}) error {
 	dst := g.images[dstID]
 	var srcs [graphics.ShaderImageNum]*Image
 	for i, srcID := range srcIDs {
@@ -1008,7 +1008,7 @@ func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImage
 
 		// Set the destination texture size.
 		dw, dh := dst.internalSize()
-		us[0] = []float32{float32(dw), float32(dh)}
+		us[graphics.DestinationTextureSizeUniformVariableIndex] = []float32{float32(dw), float32(dh)}
 
 		// Set the source texture sizes.
 		usizes := make([]float32, 2*len(srcs))
@@ -1019,7 +1019,7 @@ func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImage
 				usizes[2*i+1] = float32(h)
 			}
 		}
-		us[1] = usizes
+		us[graphics.TextureSizesUniformVariableIndex] = usizes
 
 		// Set the source offsets.
 		uoffsets := make([]float32, 2*len(offsets))
@@ -1027,7 +1027,32 @@ func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImage
 			uoffsets[2*i] = offset[0]
 			uoffsets[2*i+1] = offset[1]
 		}
-		us[2] = uoffsets
+		us[graphics.TextureSourceOffsetsUniformVariableIndex] = uoffsets
+
+		// Set the source origin of the first image.
+		uorigin := []float32{float32(sourceRegion.X), float32(sourceRegion.Y)}
+		us[graphics.TextureSourceOriginUniformVariableIndex] = uorigin
+
+		// Set the source sizes.
+		ussizes := make([]float32, 2*len(srcs))
+		if srcs[0] != nil {
+			w, h := sourceRegion.Width, sourceRegion.Height
+			bw, bh := srcs[0].internalSize()
+			for i, src := range srcs {
+				if i == 0 {
+					ussizes[2*i] = float32(w)
+					ussizes[2*i+1] = float32(h)
+					continue
+				}
+				if src == nil {
+					continue
+				}
+				tw, th := src.internalSize()
+				ussizes[2*i] = float32(w) * float32(bw) / float32(tw)
+				ussizes[2*i+1] = float32(h) * float32(bh) / float32(th)
+			}
+		}
+		us[graphics.TextureSourceSizesUniformVariableIndex] = ussizes
 
 		// Set the additional uniform variables.
 		for i, v := range uniforms {

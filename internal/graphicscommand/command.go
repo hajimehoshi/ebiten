@@ -163,12 +163,10 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 
 	if srcs[0] != nil {
 		w, h := srcs[0].InternalSize()
-		if address != driver.AddressUnsafe {
-			sourceRegion.X /= float32(w)
-			sourceRegion.Y /= float32(h)
-			sourceRegion.Width /= float32(w)
-			sourceRegion.Height /= float32(h)
-		}
+		sourceRegion.X /= float32(w)
+		sourceRegion.Y /= float32(h)
+		sourceRegion.Width /= float32(w)
+		sourceRegion.Height /= float32(h)
 		// TODO: This doesn't work when the src image sizes are different.
 		for i := range offsets {
 			offsets[i][0] /= float32(w)
@@ -416,7 +414,7 @@ func (c *drawTrianglesCommand) Exec(indexOffset int) error {
 			imgs[i] = src.image.ID()
 		}
 
-		return theGraphicsDriver.DrawShader(c.dst.image.ID(), imgs, c.offsets, c.shader.shader.ID(), c.nindices, indexOffset, c.mode, c.uniforms)
+		return theGraphicsDriver.DrawShader(c.dst.image.ID(), imgs, c.offsets, c.shader.shader.ID(), c.nindices, indexOffset, c.sourceRegion, c.mode, c.uniforms)
 	}
 	return theGraphicsDriver.Draw(c.dst.image.ID(), c.srcs[0].image.ID(), c.nindices, indexOffset, c.mode, c.color, c.filter, c.address, c.sourceRegion)
 }
