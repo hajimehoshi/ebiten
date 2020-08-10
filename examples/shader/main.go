@@ -76,6 +76,7 @@ var shaderSrcs = [][]byte{
 	default_go,
 	lighting_go,
 	radialblur_go,
+	chromaticaberration_go,
 }
 
 type Game struct {

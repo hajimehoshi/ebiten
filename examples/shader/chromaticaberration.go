@@ -12,9 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build ignore
+
 package main
 
-//go:generate file2byteslice -package=main -input=default.go -output=default_go.go -var=default_go
-//go:generate file2byteslice -package=main -input=lighting.go -output=lighting_go.go -var=lighting_go
-//go:generate file2byteslice -package=main -input=radialblur.go -output=radialblur_go.go -var=radialblur_go
-//go:generate file2byteslice -package=main -input=chromaticaberration.go -output=chromaticaberration_go.go -var=chromaticaberration_go
+var Time float
+var Cursor vec2
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	center := vec2(320, 240)
+	amount := normalize(center-Cursor).x / 100
+	clr := vec3(0, 0, 0)
+	clr.r = texture2At(vec2(texCoord.x+amount, texCoord.y)).r
+	clr.g = texture2At(texCoord).g
+	clr.b = texture2At(vec2(texCoord.x-amount, texCoord.y)).b
+	return vec4(clr, 1.0)
+}
