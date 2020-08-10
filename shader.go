@@ -37,27 +37,21 @@ func imageDstTextureSize() vec2 {
 `
 
 	shaderSuffix += fmt.Sprintf(`
-var __textureSizes [%d]vec2
-`, graphics.ShaderImageNum)
+var __textureSizes [%[1]d]vec2
 
-	for i := 0; i < graphics.ShaderImageNum; i++ {
-		shaderSuffix += fmt.Sprintf(`
-func image%[1]dTextureSize() vec2 {
-	return __textureSizes[%[1]d]
+func imageSrcTextureSize() vec2 {
+	return __textureSizes[0]
 }
-`, i)
-	}
 
-	shaderSuffix += fmt.Sprintf(`
 // The unit is texture0's texels.
-var __textureSourceOffsets [%[1]d]vec2
+var __textureSourceOffsets [%[2]d]vec2
 
 // The unit is texture0's texels.
 var __textureSourceOrigin vec2
 
 // The unit is texture0's texels.
 var __textureSourceSize vec2
-`, graphics.ShaderImageNum-1, graphics.ShaderImageNum)
+`, graphics.ShaderImageNum, graphics.ShaderImageNum-1)
 
 	for i := 0; i < graphics.ShaderImageNum; i++ {
 		pos := "pos"

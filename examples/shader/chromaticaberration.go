@@ -22,9 +22,7 @@ var ScreenSize vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	center := ScreenSize / 2
-	// As texel coodinates should be image0's texture texels, image0TextureSize should be used.
-	// TODO: This seems too tricky. Improve the API.
-	amount := (center - Cursor) / image0TextureSize() / 10
+	amount := (center - Cursor) / 10 / imageSrcTextureSize()
 	var clr vec3
 	clr.r = image2TextureBoundsAt(texCoord + amount).r
 	clr.g = image2TextureAt(texCoord).g
