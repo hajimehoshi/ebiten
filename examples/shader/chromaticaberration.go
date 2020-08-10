@@ -22,10 +22,10 @@ var ImageSize vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	center := ImageSize / 2
-	amount := (center - Cursor) / texture2Size() / 10
+	amount := (center - Cursor) / image2TextureSize() / 10
 	var clr vec3
-	clr.r = texture2At(vec2(texCoord.x+amount.x, texCoord.y)).r
-	clr.g = texture2At(texCoord).g
-	clr.b = texture2At(vec2(texCoord.x-amount.x, texCoord.y)).b
+	clr.r = image2TextureAt(vec2(texCoord.x+amount.x, texCoord.y)).r
+	clr.g = image2TextureAt(texCoord).g
+	clr.b = image2TextureAt(vec2(texCoord.x-amount.x, texCoord.y)).b
 	return vec4(clr, 1.0)
 }

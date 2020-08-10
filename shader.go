@@ -29,10 +29,10 @@ var shaderSuffix string
 
 func init() {
 	shaderSuffix = `
-var __textureDstSize vec2
+var __imageDstTextureSize vec2
 
-func textureDstSize() vec2 {
-	return __textureDstSize
+func imageDstTextureSize() vec2 {
+	return __imageDstTextureSize
 }
 `
 
@@ -42,7 +42,7 @@ var __textureSizes [%d]vec2
 
 	for i := 0; i < graphics.ShaderImageNum; i++ {
 		shaderSuffix += fmt.Sprintf(`
-func texture%[1]dSize() vec2 {
+func image%[1]dTextureSize() vec2 {
 	return __textureSizes[%[1]d]
 }
 `, i)
@@ -59,7 +59,7 @@ var __textureOffsets [%d]vec2
 		}
 		// __t%d is a special variable for a texture variable.
 		shaderSuffix += fmt.Sprintf(`
-func texture%[1]dAt(pos vec2) vec4 {
+func image%[1]dTextureAt(pos vec2) vec4 {
 	return texture2D(__t%[1]d, pos%[2]s)
 }
 `, i, offset)
@@ -68,8 +68,8 @@ func texture%[1]dAt(pos vec2) vec4 {
 	shaderSuffix += `
 func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
 	return mat4(
-		2/textureDstSize().x, 0, 0, 0,
-		0, 2/textureDstSize().y, 0, 0,
+		2/imageDstTextureSize().x, 0, 0, 0,
+		0, 2/imageDstTextureSize().y, 0, 0,
 		0, 0, 1, 0,
 		-1, -1, 0, 1,
 	) * vec4(position, 0, 1), texCoord, color
