@@ -47,10 +47,10 @@ func imageSrcTextureSize() vec2 {
 var __textureSourceOffsets [%[2]d]vec2
 
 // The unit is texture0's texels.
-var __textureSourceOrigin vec2
+var __textureSourceRegionOrigin vec2
 
 // The unit is texture0's texels.
-var __textureSourceSize vec2
+var __textureSourceRegionSize vec2
 `, graphics.ShaderImageNum, graphics.ShaderImageNum-1)
 
 	for i := 0; i < graphics.ShaderImageNum; i++ {
@@ -69,10 +69,10 @@ func image%[1]dTextureAt(pos vec2) vec4 {
 func image%[1]dTextureBoundsAt(pos vec2) vec4 {
 	// pos is the position in texture0's texels.
 	return texture2D(__t%[1]d, %[2]s) *
-		step(__textureSourceOrigin.x, pos.x) *
-		(1 - step(__textureSourceOrigin.x + __textureSourceSize.x, pos.x)) *
-		step(__textureSourceOrigin.y, pos.y) *
-		(1 - step(__textureSourceOrigin.y + __textureSourceSize.y, pos.y))
+		step(__textureSourceRegionOrigin.x, pos.x) *
+		(1 - step(__textureSourceRegionOrigin.x + __textureSourceRegionSize.x, pos.x)) *
+		step(__textureSourceRegionOrigin.y, pos.y) *
+		(1 - step(__textureSourceRegionOrigin.y + __textureSourceRegionSize.y, pos.y))
 }
 `, i, pos)
 	}
