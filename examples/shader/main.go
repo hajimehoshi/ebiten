@@ -76,6 +76,7 @@ var shaderSrcs = [][]byte{
 	default_go,
 	lighting_go,
 	radialblur_go,
+	chromaticaberration_go,
 }
 
 type Game struct {
@@ -121,6 +122,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op.Uniforms = []interface{}{
 		float32(g.time) / 60,                // Time
 		[]float32{float32(cx), float32(cy)}, // Cursor
+		[]float32{float32(w), float32(h)},   // ScreenSize
 	}
 	op.Images[0] = gopherImage
 	op.Images[1] = normalImage

@@ -21,21 +21,11 @@ var Cursor vec2
 var ScreenSize vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	dir := normalize(position.xy - Cursor)
-	clr := texture2At(texCoord)
-
-	samples := [10]float{
-		-22, -14, -8, -4, -2, 2, 4, 8, 14, 22,
-	}
-	// TODO: Add len(samples)
-	sum := clr
-	for i := 0; i < 10; i++ {
-		// TODO: Consider the source region not to violate the region.
-		sum += texture2At(texCoord + dir*samples[i]/texture2Size())
-	}
-	sum /= 10 + 1
-
-	dist := distance(position.xy, Cursor)
-	t := clamp(dist/256, 0, 1)
-	return mix(clr, sum, t)
+	center := ScreenSize / 2
+	amount := normalize(center-Cursor).x / 100
+	var clr vec3
+	clr.r = texture2At(vec2(texCoord.x+amount, texCoord.y)).r
+	clr.g = texture2At(texCoord).g
+	clr.b = texture2At(vec2(texCoord.x-amount, texCoord.y)).b
+	return vec4(clr, 1.0)
 }
