@@ -49,30 +49,38 @@ func image%[1]dTextureSize() vec2 {
 	}
 
 	shaderSuffix += fmt.Sprintf(`
+// The unit is texture0's texels.
 var __textureSourceOffsets [%[1]d]vec2
+
+// The unit is texture0's texels.
 var __textureSourceOrigin vec2
-var __textureSourceSizes [%[2]d]vec2
+
+// The unit is texture0's texels.
+var __textureSourceSize vec2
 `, graphics.ShaderImageNum-1, graphics.ShaderImageNum)
 
 	for i := 0; i < graphics.ShaderImageNum; i++ {
-		var offset string
+		pos := "pos"
 		if i >= 1 {
-			offset = fmt.Sprintf(" + __textureSourceOffsets[%d]", i-1)
+			// Convert the position in texture0's texels to the target texture texels.
+			pos = fmt.Sprintf("(pos + __textureSourceOffsets[%d]) * __textureSizes[0] / __textureSizes[%d]", i-1, i)
 		}
 		// __t%d is a special variable for a texture variable.
 		shaderSuffix += fmt.Sprintf(`
 func image%[1]dTextureAt(pos vec2) vec4 {
-	return texture2D(__t%[1]d, pos%[2]s)
+	// pos is the position in texture0's texels.
+	return texture2D(__t%[1]d, %[2]s)
 }
 
 func image%[1]dTextureBoundsAt(pos vec2) vec4 {
-	return texture2D(__t%[1]d, pos%[2]s) *
+	// pos is the position in texture0's texels.
+	return texture2D(__t%[1]d, %[2]s) *
 		step(__textureSourceOrigin.x, pos.x) *
-		(1 - step(__textureSourceOrigin.x + __textureSourceSizes[%[1]d].x, pos.x)) *
+		(1 - step(__textureSourceOrigin.x + __textureSourceSize.x, pos.x)) *
 		step(__textureSourceOrigin.y, pos.y) *
-		(1 - step(__textureSourceOrigin.y + __textureSourceSizes[%[1]d].y, pos.y))
+		(1 - step(__textureSourceOrigin.y + __textureSourceSize.y, pos.y))
 }
-`, i, offset)
+`, i, pos)
 	}
 
 	shaderSuffix += `

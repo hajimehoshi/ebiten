@@ -1029,30 +1029,13 @@ func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImage
 		}
 		us[graphics.TextureSourceOffsetsUniformVariableIndex] = uoffsets
 
-		// Set the source origin of the first image.
+		// Set the source region's origin of texture0.
 		uorigin := []float32{float32(sourceRegion.X), float32(sourceRegion.Y)}
-		us[graphics.TextureSourceOriginUniformVariableIndex] = uorigin
+		us[graphics.TextureSourceRegionOriginUniformVariableIndex] = uorigin
 
-		// Set the source sizes.
-		ussizes := make([]float32, 2*len(srcs))
-		if srcs[0] != nil {
-			w, h := sourceRegion.Width, sourceRegion.Height
-			bw, bh := srcs[0].internalSize()
-			for i, src := range srcs {
-				if i == 0 {
-					ussizes[2*i] = float32(w)
-					ussizes[2*i+1] = float32(h)
-					continue
-				}
-				if src == nil {
-					continue
-				}
-				tw, th := src.internalSize()
-				ussizes[2*i] = float32(w) * float32(bw) / float32(tw)
-				ussizes[2*i+1] = float32(h) * float32(bh) / float32(th)
-			}
-		}
-		us[graphics.TextureSourceSizesUniformVariableIndex] = ussizes
+		// Set the source region's size of texture0.
+		ussize := []float32{float32(sourceRegion.Width), float32(sourceRegion.Height)}
+		us[graphics.TextureSourceRegionSizeUniformVariableIndex] = ussize
 
 		// Set the additional uniform variables.
 		for i, v := range uniforms {
