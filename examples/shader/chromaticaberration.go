@@ -20,7 +20,7 @@ var Time float
 var Cursor vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	center := vec2(textureDstSize().x/2, textureDstSize().y/2)
+	center := vec2(textureDstSize().x/4, textureDstSize().y/4)
 	amount := normalize(center-Cursor).x / 100
 	clr := vec3(0, 0, 0)
 	clr.r = texture2At(vec2(texCoord.x+amount, texCoord.y)).r
