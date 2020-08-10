@@ -30,7 +30,9 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// TODO: Add len(samples)
 	sum := clr
 	for i := 0; i < 10; i++ {
-		pos := texCoord + dir*samples[i]/image2TextureSize()
+		// As texCoord is image0's texture texels, use image0TextureSize.
+		// TODO: This seems too tricky. Improve the API.
+		pos := texCoord + dir*samples[i]/image0TextureSize()
 		sum += image2TextureBoundsAt(pos)
 	}
 	sum /= 10 + 1
