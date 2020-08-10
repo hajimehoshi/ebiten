@@ -18,10 +18,10 @@ package main
 
 var Time float
 var Cursor vec2
-var ImageSize vec2
+var ScreenSize vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	center := ImageSize / 2
+	center := ScreenSize / 2
 	amount := (center - Cursor) / image2TextureSize() / 10
 	var clr vec3
 	clr.r = image2TextureAt(vec2(texCoord.x+amount.x, texCoord.y)).r
