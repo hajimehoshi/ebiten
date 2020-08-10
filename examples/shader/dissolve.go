@@ -22,12 +22,14 @@ var ImageSize vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// Triangle wave to go 0-->1-->0...
-	Level := abs(2*fract(Time/3) - 1)
+	Limit := abs(2*fract(Time/3) - 1)
+	Level := image3TextureAt(texCoord).x
 
-	a := step(Level, image3TextureAt(texCoord).x)
-	if image3TextureAt(texCoord).x < Level && image3TextureAt(texCoord).x > Level-0.1 {
-		return vec4(1) * image0TextureAt(texCoord).w
+	// Add a white border
+	if Level < Limit && Level > Limit-0.1 {
+		Alpha := image0TextureAt(texCoord).w
+		return vec4(1) * Alpha
 	}
 
-	return vec4(a) * image0TextureAt(texCoord)
+	return step(Limit, Level) * image0TextureAt(texCoord)
 }
