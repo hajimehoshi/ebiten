@@ -169,6 +169,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 			sourceRegion.Width /= float32(w)
 			sourceRegion.Height /= float32(h)
 		}
+		// TODO: This doesn't work when the src image sizes are different.
 		for i := range offsets {
 			offsets[i][0] /= float32(w)
 			offsets[i][1] /= float32(h)
