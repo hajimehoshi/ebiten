@@ -14,11 +14,6 @@
 
 // +build example jsgo
 
-//go:generate file2byteslice -package=main -input=default.go -output=default_go.go -var=default_go
-//go:generate file2byteslice -package=main -input=lighting.go -output=lighting_go.go -var=lighting_go
-//go:generate file2byteslice -package=main -input=radialblur.go -output=radialblur_go.go -var=radialblur_go
-//go:generate file2byteslice -package=main -input=chromaticaberration.go -output=chromaticaberration_go.go -var=chromaticaberration_go
-
 package main
 
 import (
