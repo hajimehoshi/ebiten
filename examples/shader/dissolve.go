@@ -18,18 +18,18 @@ package main
 
 var Time float
 var Cursor vec2
-var ImageSize vec2
+var ScreenImage vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// Triangle wave to go 0-->1-->0...
-	Limit := abs(2*fract(Time/3) - 1)
-	Level := image3TextureAt(texCoord).x
+	limit := abs(2*fract(Time/3) - 1)
+	level := image3TextureAt(texCoord).x
 
 	// Add a white border
-	if Level < Limit && Level > Limit-0.1 {
-		Alpha := image0TextureAt(texCoord).w
-		return vec4(1) * Alpha
+	if limit-0.1 < level && level < limit {
+		alpha := image0TextureAt(texCoord).w
+		return vec4(alpha)
 	}
 
-	return step(Limit, Level) * image0TextureAt(texCoord)
+	return step(limit, level) * image0TextureAt(texCoord)
 }
