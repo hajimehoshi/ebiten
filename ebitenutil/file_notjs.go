@@ -20,6 +20,8 @@
 package ebitenutil
 
 import (
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 )
@@ -31,4 +33,13 @@ import (
 // Note that this doesn't work on mobiles.
 func OpenFile(path string) (ReadSeekCloser, error) {
 	return os.Open(filepath.FromSlash(path))
+}
+
+// OpenNetFile retrives a file over the network and returns a stream for its data.
+func OpenNetFile(url string) (io.ReadCloser, error) {
+	res, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
 }
