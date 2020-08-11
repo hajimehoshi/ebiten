@@ -337,8 +337,12 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 			vertices[i*graphics.VertexFloatNum+2] += oxf
 			vertices[i*graphics.VertexFloatNum+3] += oyf
 		}
-		sourceRegion.X += oxf
-		sourceRegion.Y += oyf
+		// sourceRegion can be delibarately empty when this is not needed in order to avoid unexpected
+		// performance issue (#1293).
+		if sourceRegion.Width != 0 && sourceRegion.Height != 0 {
+			sourceRegion.X += oxf
+			sourceRegion.Y += oyf
+		}
 	}
 
 	var offsets [graphics.ShaderImageNum - 1][2]float32

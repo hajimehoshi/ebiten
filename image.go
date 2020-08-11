@@ -271,11 +271,15 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	is := graphics.QuadIndices()
 
 	var sr driver.Region
-	sr = driver.Region{
-		X:      float32(bounds.Min.X),
-		Y:      float32(bounds.Min.Y),
-		Width:  float32(bounds.Dx()),
-		Height: float32(bounds.Dy()),
+	// Pass the source region only when the shader is used, since this affects the condition of merging graphics
+	// commands (#1293).
+	if options.Shader != nil {
+		sr = driver.Region{
+			X:      float32(bounds.Min.X),
+			Y:      float32(bounds.Min.Y),
+			Width:  float32(bounds.Dx()),
+			Height: float32(bounds.Dy()),
+		}
 	}
 
 	srcs := [graphics.ShaderImageNum]*mipmap.Mipmap{img.mipmap}
@@ -430,11 +434,15 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	var sr driver.Region
 	b := img.Bounds()
-	sr = driver.Region{
-		X:      float32(b.Min.X),
-		Y:      float32(b.Min.Y),
-		Width:  float32(b.Dx()),
-		Height: float32(b.Dy()),
+	// Pass the source region only when the shader is used, since this affects the condition of merging graphics
+	// commands (#1293).
+	if options.Shader != nil || options.Address != AddressUnsafe {
+		sr = driver.Region{
+			X:      float32(b.Min.X),
+			Y:      float32(b.Min.Y),
+			Width:  float32(b.Dx()),
+			Height: float32(b.Dy()),
+		}
 	}
 
 	var srcs [graphics.ShaderImageNum]*mipmap.Mipmap
