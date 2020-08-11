@@ -106,7 +106,7 @@ func (q *commandQueue) appendVertices(vertices []float32, src *Image) {
 
 	width := float32(1)
 	height := float32(1)
-	// src is nil when a shader is used and there are no images in the uniform variables.
+	// src is nil when a shader is used and there are no specified images.
 	if src != nil {
 		w, h := src.InternalSize()
 		width = float32(w)
@@ -145,14 +145,8 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	}
 
 	// Assume that all the image sizes are same.
-	var firstSrc *Image
-	for _, src := range srcs {
-		if src != nil {
-			firstSrc = src
-			break
-		}
-	}
-	q.appendVertices(vertices, firstSrc)
+	// Assume that the images are packed from the front in the slice srcs.
+	q.appendVertices(vertices, srcs[0])
 	q.appendIndices(indices, uint16(q.nextIndex))
 	q.nextIndex += len(vertices) / graphics.VertexFloatNum
 	q.tmpNumIndices += len(indices)
@@ -167,14 +161,12 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 		}
 	}
 
-	if firstSrc != nil {
-		w, h := firstSrc.InternalSize()
-		if address != driver.AddressUnsafe {
-			sourceRegion.X /= float32(w)
-			sourceRegion.Y /= float32(h)
-			sourceRegion.Width /= float32(w)
-			sourceRegion.Height /= float32(h)
-		}
+	if srcs[0] != nil {
+		w, h := srcs[0].InternalSize()
+		sourceRegion.X /= float32(w)
+		sourceRegion.Y /= float32(h)
+		sourceRegion.Width /= float32(w)
+		sourceRegion.Height /= float32(h)
 		for i := range offsets {
 			offsets[i][0] /= float32(w)
 			offsets[i][1] /= float32(h)
@@ -421,7 +413,7 @@ func (c *drawTrianglesCommand) Exec(indexOffset int) error {
 			imgs[i] = src.image.ID()
 		}
 
-		return theGraphicsDriver.DrawShader(c.dst.image.ID(), imgs, c.offsets, c.shader.shader.ID(), c.nindices, indexOffset, c.mode, c.uniforms)
+		return theGraphicsDriver.DrawShader(c.dst.image.ID(), imgs, c.offsets, c.shader.shader.ID(), c.nindices, indexOffset, c.sourceRegion, c.mode, c.uniforms)
 	}
 	return theGraphicsDriver.Draw(c.dst.image.ID(), c.srcs[0].image.ID(), c.nindices, indexOffset, c.mode, c.color, c.filter, c.address, c.sourceRegion)
 }

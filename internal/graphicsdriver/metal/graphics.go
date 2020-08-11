@@ -991,7 +991,7 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	})
 }
 
-func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, uniforms []interface{}) error {
+func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, sourceRegion driver.Region, mode driver.CompositeMode, uniforms []interface{}) error {
 	dst := g.images[dstID]
 	var srcs [graphics.ShaderImageNum]*Image
 	for i, srcID := range srcIDs {
@@ -1008,7 +1008,7 @@ func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImage
 
 		// Set the destination texture size.
 		dw, dh := dst.internalSize()
-		us[0] = []float32{float32(dw), float32(dh)}
+		us[graphics.DestinationTextureSizeUniformVariableIndex] = []float32{float32(dw), float32(dh)}
 
 		// Set the source texture sizes.
 		usizes := make([]float32, 2*len(srcs))
@@ -1019,7 +1019,7 @@ func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImage
 				usizes[2*i+1] = float32(h)
 			}
 		}
-		us[1] = usizes
+		us[graphics.TextureSizesUniformVariableIndex] = usizes
 
 		// Set the source offsets.
 		uoffsets := make([]float32, 2*len(offsets))
@@ -1027,7 +1027,15 @@ func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImage
 			uoffsets[2*i] = offset[0]
 			uoffsets[2*i+1] = offset[1]
 		}
-		us[2] = uoffsets
+		us[graphics.TextureSourceOffsetsUniformVariableIndex] = uoffsets
+
+		// Set the source region's origin of texture0.
+		uorigin := []float32{float32(sourceRegion.X), float32(sourceRegion.Y)}
+		us[graphics.TextureSourceRegionOriginUniformVariableIndex] = uorigin
+
+		// Set the source region's size of texture0.
+		ussize := []float32{float32(sourceRegion.Width), float32(sourceRegion.Height)}
+		us[graphics.TextureSourceRegionSizeUniformVariableIndex] = ussize
 
 		// Set the additional uniform variables.
 		for i, v := range uniforms {

@@ -239,6 +239,10 @@ func defaultProgram() shaderir.Program {
 		Length: graphics.ShaderImageNum - 1,
 		Sub:    []shaderir.Type{{Main: shaderir.Vec2}},
 	}
+	// Source region origin
+	p.Uniforms[3] = shaderir.Type{Main: shaderir.Vec2}
+	// Source region size
+	p.Uniforms[4] = shaderir.Type{Main: shaderir.Vec2}
 	return p
 }
 
@@ -364,7 +368,7 @@ func ShaderProgramImages(imageNum int) shaderir.Program {
 						Exprs: []shaderir.Expr{
 							{
 								Type:  shaderir.UniformVariable,
-								Index: graphics.TextureOffsetsUniformVariableIndex,
+								Index: graphics.TextureSourceOffsetsUniformVariableIndex,
 							},
 							{
 								Type:      shaderir.NumberExpr,

@@ -29,47 +29,71 @@ var shaderSuffix string
 
 func init() {
 	shaderSuffix = `
-var __textureDstSize vec2
+var __imageDstTextureSize vec2
 
-func textureDstSize() vec2 {
-	return __textureDstSize
+// imageSrcTextureSize returns the destination image's texture size in pixels.
+func imageDstTextureSize() vec2 {
+	return __imageDstTextureSize
 }
 `
 
 	shaderSuffix += fmt.Sprintf(`
-var __textureSizes [%d]vec2
-`, graphics.ShaderImageNum)
+var __textureSizes [%[1]d]vec2
 
-	for i := 0; i < graphics.ShaderImageNum; i++ {
-		shaderSuffix += fmt.Sprintf(`
-func texture%[1]dSize() vec2 {
-	return __textureSizes[%[1]d]
+// imageSrcTextureSize returns the source image's texture size in pixels.
+// As an image is a part of internal texture, the texture is usually bigger than the image.
+// The texture's size is useful when you want to calculate pixels from texels.
+func imageSrcTextureSize() vec2 {
+	return __textureSizes[0]
 }
-`, i)
-	}
 
-	shaderSuffix += fmt.Sprintf(`
-var __textureOffsets [%d]vec2
-`, graphics.ShaderImageNum-1)
+// The unit is the source texture's texel.
+var __textureSourceOffsets [%[2]d]vec2
+
+// The unit is the source texture's texel.
+var __textureSourceRegionOrigin vec2
+
+// The unit is the source texture's texel.
+var __textureSourceRegionSize vec2
+
+// imageSrcTextureSourceRegion returns the source image's region (the origin and the size) on its texture.
+// The unit is the source texture's texel.
+//
+// As an image is a part of internal texture, the image can be located at an arbitrary position on the texture.
+func imageSrcTextureSourceRegion() (vec2, vec2) {
+	return __textureSourceRegionOrigin, __textureSourceRegionSize
+}
+`, graphics.ShaderImageNum, graphics.ShaderImageNum-1)
 
 	for i := 0; i < graphics.ShaderImageNum; i++ {
-		var offset string
+		pos := "pos"
 		if i >= 1 {
-			offset = fmt.Sprintf(" + __textureOffsets[%d]", i-1)
+			// Convert the position in texture0's texels to the target texture texels.
+			pos = fmt.Sprintf("(pos + __textureSourceOffsets[%d]) * __textureSizes[0] / __textureSizes[%d]", i-1, i)
 		}
 		// __t%d is a special variable for a texture variable.
 		shaderSuffix += fmt.Sprintf(`
-func texture%[1]dAt(pos vec2) vec4 {
-	return texture2D(__t%[1]d, pos%[2]s)
+func image%[1]dTextureAt(pos vec2) vec4 {
+	// pos is the position in texels of the source texture (= 0th image's texture).
+	return texture2D(__t%[1]d, %[2]s)
 }
-`, i, offset)
+
+func image%[1]dTextureBoundsAt(pos vec2) vec4 {
+	// pos is the position in texels of the source texture (= 0th image's texture).
+	return texture2D(__t%[1]d, %[2]s) *
+		step(__textureSourceRegionOrigin.x, pos.x) *
+		(1 - step(__textureSourceRegionOrigin.x + __textureSourceRegionSize.x, pos.x)) *
+		step(__textureSourceRegionOrigin.y, pos.y) *
+		(1 - step(__textureSourceRegionOrigin.y + __textureSourceRegionSize.y, pos.y))
+}
+`, i, pos)
 	}
 
 	shaderSuffix += `
 func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
 	return mat4(
-		2/textureDstSize().x, 0, 0, 0,
-		0, 2/textureDstSize().y, 0, 0,
+		2/imageDstTextureSize().x, 0, 0, 0,
+		0, 2/imageDstTextureSize().y, 0, 0,
 		0, 0, 1, 0,
 		-1, -1, 0, 1,
 	) * vec4(position, 0, 1), texCoord, color

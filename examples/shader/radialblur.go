@@ -22,16 +22,16 @@ var ScreenSize vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	dir := normalize(position.xy - Cursor)
-	clr := texture2At(texCoord)
+	clr := image2TextureAt(texCoord)
 
-	samples := [10]float{
+	samples := [...]float{
 		-22, -14, -8, -4, -2, 2, 4, 8, 14, 22,
 	}
 	// TODO: Add len(samples)
 	sum := clr
 	for i := 0; i < 10; i++ {
-		// TODO: Consider the source region not to violate the region.
-		sum += texture2At(texCoord + dir*samples[i]/texture2Size())
+		pos := texCoord + dir*samples[i]/imageSrcTextureSize()
+		sum += image2TextureBoundsAt(pos)
 	}
 	sum /= 10 + 1
 
