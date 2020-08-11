@@ -452,6 +452,9 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		if !ok {
 			return nil, nil, nil, false
 		}
+		if t.Main == shaderir.Array && t.Length == -1 {
+			t.Length = len(e.Elts)
+		}
 
 		idx := block.totalLocalVariableNum()
 		block.vars = append(block.vars, variable{

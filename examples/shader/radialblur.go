@@ -24,7 +24,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	dir := normalize(position.xy - Cursor)
 	clr := image2TextureAt(texCoord)
 
-	samples := [10]float{
+	samples := [...]float{
 		-22, -14, -8, -4, -2, 2, 4, 8, 14, 22,
 	}
 	// TODO: Add len(samples)
