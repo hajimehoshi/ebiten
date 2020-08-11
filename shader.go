@@ -31,6 +31,7 @@ func init() {
 	shaderSuffix = `
 var __imageDstTextureSize vec2
 
+// imageSrcTextureSize returns the destination image's texture size in pixels.
 func imageDstTextureSize() vec2 {
 	return __imageDstTextureSize
 }
@@ -39,18 +40,29 @@ func imageDstTextureSize() vec2 {
 	shaderSuffix += fmt.Sprintf(`
 var __textureSizes [%[1]d]vec2
 
+// imageSrcTextureSize returns the source image's texture size in pixels.
+// As an image is a part of internal texture, the texture is usually bigger than the image.
+// The texture's size is useful when you want to calculate pixels from texels.
 func imageSrcTextureSize() vec2 {
 	return __textureSizes[0]
 }
 
-// The unit is texture0's texels.
+// The unit is the source texture's texel.
 var __textureSourceOffsets [%[2]d]vec2
 
-// The unit is texture0's texels.
+// The unit is the source texture's texel.
 var __textureSourceRegionOrigin vec2
 
-// The unit is texture0's texels.
+// The unit is the source texture's texel.
 var __textureSourceRegionSize vec2
+
+// imageSrcTextureSourceRegion returns the source image's region (the origin and the size) on its texture.
+// The unit is the source texture's texel.
+//
+// As an image is a part of internal texture, the image can be located at an arbitrary position on the texture.
+func imageSrcTextureSourceRegion() (vec2, vec2) {
+	return __textureSourceRegionOrigin, __textureSourceRegionSize
+}
 `, graphics.ShaderImageNum, graphics.ShaderImageNum-1)
 
 	for i := 0; i < graphics.ShaderImageNum; i++ {
@@ -62,12 +74,12 @@ var __textureSourceRegionSize vec2
 		// __t%d is a special variable for a texture variable.
 		shaderSuffix += fmt.Sprintf(`
 func image%[1]dTextureAt(pos vec2) vec4 {
-	// pos is the position in texture0's texels.
+	// pos is the position in texels of the source texture (= 0th image's texture).
 	return texture2D(__t%[1]d, %[2]s)
 }
 
 func image%[1]dTextureBoundsAt(pos vec2) vec4 {
-	// pos is the position in texture0's texels.
+	// pos is the position in texels of the source texture (= 0th image's texture).
 	return texture2D(__t%[1]d, %[2]s) *
 		step(__textureSourceRegionOrigin.x, pos.x) *
 		(1 - step(__textureSourceRegionOrigin.x + __textureSourceRegionSize.x, pos.x)) *
