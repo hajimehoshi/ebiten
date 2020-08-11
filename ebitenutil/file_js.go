@@ -19,7 +19,6 @@ package ebitenutil
 import (
 	"bytes"
 	"io/ioutil"
-	"log"
 	"net/http"
 )
 
@@ -38,7 +37,7 @@ func OpenFile(path string) (ReadSeekCloser, error) {
 	}
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	f := &file{bytes.NewReader(body)}
 	return f, nil
