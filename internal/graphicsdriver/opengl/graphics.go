@@ -336,37 +336,17 @@ func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]
 		us[idx].typ = s.ir.Uniforms[idx]
 	}
 	{
-		origin := make([]float32, 2)
-		origin[0] = sourceRegion.X
-		origin[1] = sourceRegion.Y
-		const idx = graphics.TextureSourceOriginUniformVariableIndex
+		origin := []float32{float32(sourceRegion.X), float32(sourceRegion.Y)}
+		const idx = graphics.TextureSourceRegionOriginUniformVariableIndex
 		us[idx].name = fmt.Sprintf("U%d", idx)
 		us[idx].value = origin
 		us[idx].typ = s.ir.Uniforms[idx]
 	}
 	{
-		sizes := make([]float32, 2*len(srcs))
-		if baseimg := g.images[srcs[0]]; baseimg != nil {
-			w, h := sourceRegion.Width, sourceRegion.Height
-			bw, bh := baseimg.framebufferSize()
-			for i, src := range srcs {
-				if i == 0 {
-					sizes[2*i] = float32(w)
-					sizes[2*i+1] = float32(h)
-					continue
-				}
-				img := g.images[src]
-				if img == nil {
-					continue
-				}
-				tw, th := img.framebufferSize()
-				sizes[2*i] = float32(w) * float32(bw) / float32(tw)
-				sizes[2*i+1] = float32(h) * float32(bh) / float32(th)
-			}
-		}
-		const idx = graphics.TextureSourceSizesUniformVariableIndex
+		size := []float32{float32(sourceRegion.Width), float32(sourceRegion.Height)}
+		const idx = graphics.TextureSourceRegionSizeUniformVariableIndex
 		us[idx].name = fmt.Sprintf("U%d", idx)
-		us[idx].value = sizes
+		us[idx].value = size
 		us[idx].typ = s.ir.Uniforms[idx]
 	}
 

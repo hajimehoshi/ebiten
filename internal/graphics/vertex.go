@@ -26,14 +26,14 @@ const (
 	PreservedUniformVariablesNum = 1 + // the destination texture size
 		1 + // the texture sizes array
 		1 + // the offsets array of the second and the following images
-		1 + // the texture source origin
-		1 // the texture source sizes
+		1 + // the texture source region's origin
+		1 // the texture source region's size
 
-	DestinationTextureSizeUniformVariableIndex = 0
-	TextureSizesUniformVariableIndex           = 1
-	TextureSourceOffsetsUniformVariableIndex   = 2
-	TextureSourceOriginUniformVariableIndex    = 3
-	TextureSourceSizesUniformVariableIndex     = 4
+	DestinationTextureSizeUniformVariableIndex    = 0
+	TextureSizesUniformVariableIndex              = 1
+	TextureSourceOffsetsUniformVariableIndex      = 2
+	TextureSourceRegionOriginUniformVariableIndex = 3
+	TextureSourceRegionSizeUniformVariableIndex   = 4
 )
 
 const (

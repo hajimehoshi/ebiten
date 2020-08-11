@@ -241,12 +241,8 @@ func defaultProgram() shaderir.Program {
 	}
 	// Source region origin
 	p.Uniforms[3] = shaderir.Type{Main: shaderir.Vec2}
-	// Source region sizes
-	p.Uniforms[4] = shaderir.Type{
-		Main:   shaderir.Array,
-		Length: graphics.ShaderImageNum,
-		Sub:    []shaderir.Type{{Main: shaderir.Vec2}},
-	}
+	// Source region size
+	p.Uniforms[4] = shaderir.Type{Main: shaderir.Vec2}
 	return p
 }
 

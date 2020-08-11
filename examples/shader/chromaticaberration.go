@@ -22,7 +22,7 @@ var ScreenSize vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	center := ScreenSize / 2
-	amount := (center - Cursor) / image2TextureSize() / 10
+	amount := (center - Cursor) / 10 / imageSrcTextureSize()
 	var clr vec3
 	clr.r = image2TextureBoundsAt(texCoord + amount).r
 	clr.g = image2TextureAt(texCoord).g
