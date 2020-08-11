@@ -53,24 +53,28 @@ func (cs *compileState) parseType(block *block, expr ast.Expr) (shaderir.Type, b
 			cs.addError(t.Pos(), fmt.Sprintf("array length must be specified"))
 			return shaderir.Type{}, false
 		}
-		// TODO: Parse ellipsis
-
-		exprs, _, _, ok := cs.parseExpr(block, t.Len)
-		if !ok {
-			return shaderir.Type{}, false
-		}
-		if len(exprs) != 1 {
-			cs.addError(t.Pos(), fmt.Sprintf("invalid length of array"))
-			return shaderir.Type{}, false
-		}
-		if exprs[0].Type != shaderir.NumberExpr {
-			cs.addError(t.Pos(), fmt.Sprintf("length of array must be a constant number"))
-			return shaderir.Type{}, false
-		}
-		len, ok := gconstant.Int64Val(exprs[0].Const)
-		if !ok {
-			cs.addError(t.Pos(), fmt.Sprintf("length of array must be an integer"))
-			return shaderir.Type{}, false
+		var length int
+		if _, ok := t.Len.(*ast.Ellipsis); ok {
+			length = -1 // Determine the length later.
+		} else {
+			exprs, _, _, ok := cs.parseExpr(block, t.Len)
+			if !ok {
+				return shaderir.Type{}, false
+			}
+			if len(exprs) != 1 {
+				cs.addError(t.Pos(), fmt.Sprintf("invalid length of array"))
+				return shaderir.Type{}, false
+			}
+			if exprs[0].Type != shaderir.NumberExpr {
+				cs.addError(t.Pos(), fmt.Sprintf("length of array must be a constant number"))
+				return shaderir.Type{}, false
+			}
+			l, ok := gconstant.Int64Val(exprs[0].Const)
+			if !ok {
+				cs.addError(t.Pos(), fmt.Sprintf("length of array must be an integer"))
+				return shaderir.Type{}, false
+			}
+			length = int(l)
 		}
 
 		elm, ok := cs.parseType(block, t.Elt)
@@ -84,7 +88,7 @@ func (cs *compileState) parseType(block *block, expr ast.Expr) (shaderir.Type, b
 		return shaderir.Type{
 			Main:   shaderir.Array,
 			Sub:    []shaderir.Type{elm},
-			Length: int(len),
+			Length: length,
 		}, true
 	case *ast.StructType:
 		cs.addError(t.Pos(), "struct is not implemented")
