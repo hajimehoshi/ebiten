@@ -12,10 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build ignore
+
 package main
 
-//go:generate file2byteslice -package=main -input=default.go -output=default_go.go -var=default_go
-//go:generate file2byteslice -package=main -input=lighting.go -output=lighting_go.go -var=lighting_go
-//go:generate file2byteslice -package=main -input=radialblur.go -output=radialblur_go.go -var=radialblur_go
-//go:generate file2byteslice -package=main -input=chromaticaberration.go -output=chromaticaberration_go.go -var=chromaticaberration_go
-//go:generate file2byteslice -package=main -input=dissolve.go -output=dissolve_go.go -var=dissolve_go
+var Time float
+var Cursor vec2
+var ScreenImage vec2
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	// Triangle wave to go 0-->1-->0...
+	limit := abs(2*fract(Time/3) - 1)
+	level := image3TextureAt(texCoord).x
+
+	// Add a white border
+	if limit-0.1 < level && level < limit {
+		alpha := image0TextureAt(texCoord).w
+		return vec4(alpha)
+	}
+
+	return step(limit, level) * image0TextureAt(texCoord)
+}
