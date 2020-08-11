@@ -82,6 +82,12 @@ func basicTypeString(t shaderir.BasicType, packed bool) string {
 
 func builtinFuncString(f shaderir.BuiltinFunc) string {
 	switch f {
+	case shaderir.BoolF:
+		return "static_cast<bool>"
+	case shaderir.IntF:
+		return "static_cast<int>"
+	case shaderir.FloatF:
+		return "static_cast<float>"
 	case shaderir.Vec2F:
 		return "float2"
 	case shaderir.Vec3F:
