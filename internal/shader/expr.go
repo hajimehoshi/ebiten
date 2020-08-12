@@ -25,6 +25,10 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
+func canTruncateToInteger(v gconstant.Value) bool {
+	return gconstant.ToInt(v).Kind() != gconstant.Unknown
+}
+
 var textureVariableRe = regexp.MustCompile(`\A__t(\d+)\z`)
 
 func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr, []shaderir.Type, []shaderir.Stmt, bool) {
@@ -523,6 +527,10 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		}
 		idx := exprs[0]
 		if idx.Type == shaderir.NumberExpr {
+			if !canTruncateToInteger(idx.Const) {
+				cs.addError(e.Pos(), fmt.Sprintf("constant %s truncated to integer", idx.Const.String()))
+				return nil, nil, nil, false
+			}
 			idx.ConstType = shaderir.ConstTypeInt
 		}
 
