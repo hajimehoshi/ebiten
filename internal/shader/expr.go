@@ -52,6 +52,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		default:
 			cs.addError(e.Pos(), fmt.Sprintf("literal not implemented: %#v", e))
 		}
+
 	case *ast.BinaryExpr:
 		var stmts []shaderir.Stmt
 
@@ -119,6 +120,24 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		switch {
 		case op == shaderir.LessThanOp || op == shaderir.LessThanEqualOp || op == shaderir.GreaterThanOp || op == shaderir.GreaterThanEqualOp || op == shaderir.EqualOp || op == shaderir.NotEqualOp || op == shaderir.AndAnd || op == shaderir.OrOr:
 			t = shaderir.Type{Main: shaderir.Bool}
+		case lhs[0].Type == shaderir.NumberExpr && rhs[0].Type != shaderir.NumberExpr:
+			if rhst.Main == shaderir.Int {
+				if !canTruncateToInteger(lhs[0].Const) {
+					cs.addError(e.Pos(), fmt.Sprintf("constant %s truncated to integer", lhs[0].Const.String()))
+					return nil, nil, nil, false
+				}
+				lhs[0].ConstType = shaderir.ConstTypeInt
+			}
+			t = rhst
+		case lhs[0].Type != shaderir.NumberExpr && rhs[0].Type == shaderir.NumberExpr:
+			if lhst.Main == shaderir.Int {
+				if !canTruncateToInteger(rhs[0].Const) {
+					cs.addError(e.Pos(), fmt.Sprintf("constant %s truncated to integer", rhs[0].Const.String()))
+					return nil, nil, nil, false
+				}
+				rhs[0].ConstType = shaderir.ConstTypeInt
+			}
+			t = lhst
 		case lhst.Equal(&rhst):
 			t = lhst
 		case lhst.Main == shaderir.Float || lhst.Main == shaderir.Int:
@@ -162,6 +181,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 				Exprs: []shaderir.Expr{lhs[0], rhs[0]},
 			},
 		}, []shaderir.Type{t}, stmts, true
+
 	case *ast.CallExpr:
 		var (
 			callee shaderir.Expr
