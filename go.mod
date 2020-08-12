@@ -14,7 +14,7 @@ require (
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	golang.org/x/image v0.0.0-20200618115811-c13761719519
 	golang.org/x/mobile v0.0.0-20200721161523-bcce01171201
-	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
+	golang.org/x/sys v0.0.0-20200812155832-6a926be9bd1d
 	golang.org/x/tools v0.0.0-20200708183856-df98bc6d456c
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 )
