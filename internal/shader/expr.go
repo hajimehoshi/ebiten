@@ -198,6 +198,12 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		if callee.Type == shaderir.BuiltinFuncExpr {
 			var t shaderir.Type
 			switch callee.BuiltinFunc {
+			case shaderir.BoolF:
+				t = shaderir.Type{Main: shaderir.Bool}
+			case shaderir.IntF:
+				t = shaderir.Type{Main: shaderir.Int}
+			case shaderir.FloatF:
+				t = shaderir.Type{Main: shaderir.Float}
 			case shaderir.Vec2F:
 				t = shaderir.Type{Main: shaderir.Vec2}
 			case shaderir.Vec3F:
