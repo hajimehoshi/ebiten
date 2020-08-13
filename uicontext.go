@@ -290,7 +290,9 @@ func (c *uiContext) update() error {
 
 		// Multiple successive Clear call should be integrated into one graphics command, then
 		// calling Clear on every Update should not affect the performance.
-		c.offscreen.Clear()
+		if !IsClearingScreenSkipped() {
+			c.offscreen.Clear()
+		}
 		if err := c.game.Update(c.offscreen); err != nil {
 			return err
 		}
@@ -306,7 +308,9 @@ func (c *uiContext) draw() {
 	}
 
 	if game, ok := c.game.(interface{ Draw(*Image) }); ok {
-		c.offscreen.Clear()
+		if !IsClearingScreenSkipped() {
+			c.offscreen.Clear()
+		}
 		game.Draw(c.offscreen)
 	}
 
