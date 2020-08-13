@@ -73,11 +73,21 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			}
 			stmts = append(stmts, ss...)
 
-			lhs, _, ss, ok := cs.parseExpr(block, stmt.Lhs[0])
+			lhs, ts, ss, ok := cs.parseExpr(block, stmt.Lhs[0])
 			if !ok {
 				return nil, false
 			}
 			stmts = append(stmts, ss...)
+
+			if rhs[0].Type == shaderir.NumberExpr {
+				if ts[0].Main == shaderir.Int {
+					if !canTruncateToInteger(rhs[0].Const) {
+						cs.addError(stmt.Pos(), fmt.Sprintf("constant %s truncated to integer", rhs[0].Const.String()))
+						return nil, false
+					}
+					rhs[0].ConstType = shaderir.ConstTypeInt
+				}
+			}
 
 			stmts = append(stmts, shaderir.Stmt{
 				Type: shaderir.Assign,

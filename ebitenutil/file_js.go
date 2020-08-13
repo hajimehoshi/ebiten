@@ -18,11 +18,8 @@ package ebitenutil
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
-	"syscall/js"
-
-	"github.com/hajimehoshi/ebiten/internal/jsutil"
+	"io/ioutil"
+	"net/http"
 )
 
 type file struct {
@@ -34,37 +31,14 @@ func (f *file) Close() error {
 }
 
 func OpenFile(path string) (ReadSeekCloser, error) {
-	var err error
-	var content js.Value
-	ch := make(chan struct{})
-	req := js.Global().Get("XMLHttpRequest").New()
-	req.Call("open", "GET", path, true)
-	req.Set("responseType", "arraybuffer")
-	loadf := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		defer close(ch)
-		status := req.Get("status").Int()
-		if 200 <= status && status < 400 {
-			content = req.Get("response")
-			return nil
-		}
-		err = errors.New(fmt.Sprintf("http error: %d", status))
-		return nil
-	})
-	defer loadf.Release()
-	req.Call("addEventListener", "load", loadf)
-	errorf := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		defer close(ch)
-		err = errors.New(fmt.Sprintf("XMLHttpRequest error: %s", req.Get("statusText").String()))
-		return nil
-	})
-	req.Call("addEventListener", "error", errorf)
-	defer errorf.Release()
-	req.Call("send")
-	<-ch
+	res, err := http.Get(path)
 	if err != nil {
 		return nil, err
 	}
-
-	f := &file{bytes.NewReader(jsutil.ArrayBufferToSlice(content))}
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	f := &file{bytes.NewReader(body)}
 	return f, nil
 }

@@ -268,7 +268,7 @@ func constantToNumberLiteral(t shaderir.ConstType, v constant.Value) string {
 		}
 		if i := constant.ToFloat(v); i.Kind() == constant.Float {
 			x, _ := constant.Float64Val(i)
-			return fmt.Sprintf("%.9e", x)
+			return fmt.Sprintf("%.10e", x)
 		}
 	case shaderir.ConstTypeInt:
 		if i := constant.ToInt(v); i.Kind() == constant.Int {
