@@ -17,6 +17,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"image"
 	"image/color"
@@ -24,11 +25,11 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"text/template"
 
 	"github.com/golang/freetype/truetype"
+	"github.com/hajimehoshi/file2byteslice"
 	"golang.org/x/image/font"
 
 	"github.com/hajimehoshi/ebiten"
@@ -237,26 +238,20 @@ func outputKeyboardImage() (map[ebiten.Key]image.Rectangle, error) {
 		y += height
 	}
 
-	f, err := ioutil.TempFile("", "ebiten")
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		return nil, err
+	}
+
+	out, err := os.Create("../../resources/images/keyboard/keyboard.go")
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer out.Close()
 
-	if err := png.Encode(f, img); err != nil {
+	if err := file2byteslice.Write(out, &buf, false, "", "keyboard", "Keyboard_png"); err != nil {
 		return nil, err
 	}
-
-	args := []string{
-		"-package=keyboard",
-		"-input=" + f.Name(),
-		"-output=../../resources/images/keyboard/keyboard.go",
-		"-var=Keyboard_png",
-	}
-	if err := exec.Command("file2byteslice", args...).Run(); err != nil {
-		return nil, err
-	}
-
 	return keyMap, nil
 }
 
