@@ -103,6 +103,9 @@ func setDrawingSkipped(skipped bool) {
 }
 
 // SetClearingScreenSkipped enables or disables the clearing of the screen at the beginning of each frame.
+// The default value is false and the screen is cleared each frame by default.
+//
+// SetClearingScreenSkipped is concurrent-safe.
 func SetClearingScreenSkipped(skipped bool) {
 	v := int32(0)
 	if skipped {
