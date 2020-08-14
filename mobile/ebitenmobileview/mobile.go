@@ -30,6 +30,7 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/internal/restorable"
 	"github.com/hajimehoshi/ebiten/internal/uidriver/mobile"
 )
 
@@ -88,4 +89,8 @@ func Suspend() {
 
 func Resume() {
 	mobile.Get().SetForeground(true)
+}
+
+func OnContextLost() {
+	restorable.OnContextLost()
 }

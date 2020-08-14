@@ -751,6 +751,7 @@ class EbitenSurfaceView extends GLSurfaceView {
 
         @Override
         public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+            Ebitenmobileview.onContextLost();
         }
 
         @Override
