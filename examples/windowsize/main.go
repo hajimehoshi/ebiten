@@ -21,7 +21,6 @@ import (
 	"flag"
 	"fmt"
 	"image"
-	"image/color"
 	_ "image/jpeg"
 	"log"
 	"math"
@@ -144,6 +143,7 @@ func (g *game) Update(screen *ebiten.Image) error {
 	g.transparent = ebiten.IsScreenTransparent()
 	floating := ebiten.IsWindowFloating()
 	resizable := ebiten.IsWindowResizable()
+	clearingScreenSkipped := ebiten.IsClearingScreenSkipped()
 
 	const d = 16
 	toUpdateWindowSize := false
@@ -230,6 +230,9 @@ func (g *game) Update(screen *ebiten.Image) error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
 		resizable = !resizable
 	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyW) {
+		clearingScreenSkipped = !clearingScreenSkipped
+	}
 	maximize := inpututil.IsKeyJustPressed(ebiten.KeyM)
 	minimize := inpututil.IsKeyJustPressed(ebiten.KeyN)
 	restore := false
@@ -255,6 +258,7 @@ func (g *game) Update(screen *ebiten.Image) error {
 	ebiten.SetWindowDecorated(decorated)
 	ebiten.SetWindowPosition(positionX, positionY)
 	ebiten.SetWindowFloating(floating)
+	ebiten.SetClearingScreenSkipped(clearingScreenSkipped)
 	if maximize && ebiten.IsWindowResizable() {
 		ebiten.MaximizeWindow()
 	}
@@ -278,15 +282,12 @@ func (g *game) Update(screen *ebiten.Image) error {
 }
 
 func (g *game) Draw(screen *ebiten.Image) {
-	if !g.transparent {
-		screen.Fill(color.RGBA{0x80, 0x80, 0xc0, 0xff})
-	}
 	w, h := gophersImage.Size()
 	w2, h2 := screen.Size()
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(-w+w2)/2, float64(-h+h2)/2)
-	dx := math.Cos(2*math.Pi*float64(count)/360) * 10
-	dy := math.Sin(2*math.Pi*float64(count)/360) * 10
+	dx := math.Cos(2*math.Pi*float64(count)/360) * 20
+	dy := math.Sin(2*math.Pi*float64(count)/360) * 20
 	op.GeoM.Translate(dx, dy)
 	screen.DrawImage(gophersImage, op)
 
@@ -331,6 +332,7 @@ func (g *game) Draw(screen *ebiten.Image) {
 [T] Switch TPS (ticks per second)
 [D] Switch the window decoration (only for desktops)
 [L] Switch the window floating state (only for desktops)
+[W] Switch whether to skip clearing the screen
 %s
 %s
 IsFocused?: %s
