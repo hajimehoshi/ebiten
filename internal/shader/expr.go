@@ -220,6 +220,24 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		// For built-in functions, we can call this in this position. Return an expression for the function
 		// call.
 		if callee.Type == shaderir.BuiltinFuncExpr {
+			if callee.BuiltinFunc == shaderir.Len {
+				if len(args) != 1 {
+					cs.addError(e.Pos(), fmt.Sprintf("number of len's arguments must be 1 but %d", len(args)))
+					return nil, nil, nil, false
+				}
+				if argts[0].Main != shaderir.Array {
+					cs.addError(e.Pos(), fmt.Sprintf("len takes an array but %s", argts[0].String()))
+					return nil, nil, nil, false
+				}
+				return []shaderir.Expr{
+					{
+						Type:      shaderir.NumberExpr,
+						Const:     gconstant.MakeInt64(int64(argts[0].Length)),
+						ConstType: shaderir.ConstTypeInt,
+					},
+				}, []shaderir.Type{{Main: shaderir.Int}}, stmts, true
+			}
+
 			var t shaderir.Type
 			switch callee.BuiltinFunc {
 			case shaderir.BoolF:

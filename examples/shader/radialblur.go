@@ -27,9 +27,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	samples := [...]float{
 		-22, -14, -8, -4, -2, 2, 4, 8, 14, 22,
 	}
-	// TODO: Add len(samples)
 	sum := clr
-	for i := 0; i < 10; i++ {
+	for i := 0; i < len(samples); i++ {
 		pos := texCoord + dir*samples[i]/imageSrcTextureSize()
 		sum += image2TextureBoundsAt(pos)
 	}
