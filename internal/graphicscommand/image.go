@@ -26,15 +26,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/png"
 )
 
-type lastCommand int
-
-const (
-	lastCommandNone lastCommand = iota
-	lastCommandClear
-	lastCommandDrawTriangles
-	lastCommandReplacePixels
-)
-
 // Image represents an image that is implemented with OpenGL.
 type Image struct {
 	image          driver.Image
@@ -51,8 +42,6 @@ type Image struct {
 	id int
 
 	bufferedRP []*driver.ReplacePixelsArgs
-
-	lastCommand lastCommand
 }
 
 var nextID = 1
@@ -151,12 +140,6 @@ func (i *Image) InternalSize() (int, int) {
 // If the source image is not specified, i.e., src is nil and there is no image in the uniform variables, the
 // elements for the source image are not used.
 func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, clr *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, shader *Shader, uniforms []interface{}) {
-	if i.lastCommand == lastCommandNone {
-		if !i.screen && mode != driver.CompositeModeClear {
-			panic("graphicscommand: the image must be cleared first")
-		}
-	}
-
 	if shader == nil {
 		// Fast path for rendering without a shader (#1355).
 		img := srcs[0]
@@ -178,12 +161,6 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [gra
 	i.resolveBufferedReplacePixels()
 
 	theCommandQueue.EnqueueDrawTrianglesCommand(i, srcs, offsets, vertices, indices, clr, mode, filter, address, dstRegion, srcRegion, shader, uniforms)
-
-	if i.lastCommand == lastCommandNone && !i.screen {
-		i.lastCommand = lastCommandClear
-	} else {
-		i.lastCommand = lastCommandDrawTriangles
-	}
 }
 
 // Sync syncs the texture data in CPU and GPU so that Pixels can return the texture data immediately.
@@ -218,12 +195,6 @@ func (i *Image) Pixels() ([]byte, error) {
 }
 
 func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
-	// ReplacePixels for a part might invalidate the current image that are drawn by DrawTriangles (#593, #738).
-	if i.lastCommand == lastCommandDrawTriangles {
-		if x != 0 || y != 0 || i.width != width || i.height != height {
-			panic("graphicscommand: ReplacePixels for a part after DrawTriangles is forbidden")
-		}
-	}
 	i.bufferedRP = append(i.bufferedRP, &driver.ReplacePixelsArgs{
 		Pixels: pixels,
 		X:      x,
@@ -231,7 +202,6 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		Width:  width,
 		Height: height,
 	})
-	i.lastCommand = lastCommandReplacePixels
 }
 
 func (i *Image) IsInvalidated() bool {

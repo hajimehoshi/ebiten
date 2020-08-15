@@ -219,6 +219,17 @@ func (c *context) framebufferPixels(f *framebuffer, width, height int) []byte {
 	return jsutil.Uint8ArrayToSlice(p)
 }
 
+func (c *context) framebufferPixelsToBuffer(f *framebuffer, buffer buffer, width, height int) {
+	c.ensureGL()
+	gl := c.gl
+
+	c.bindFramebuffer(f.native)
+	gl.Call("bindBuffer", gles.PIXEL_PACK_BUFFER, js.Value(buffer))
+	// void gl.readPixels(x, y, width, height, format, type, GLintptr offset);
+	gl.Call("readPixels", 0, 0, width, height, gles.RGBA, gles.UNSIGNED_BYTE, 0)
+	gl.Call("bindBuffer", gles.PIXEL_PACK_BUFFER, nil)
+}
+
 func (c *context) activeTexture(idx int) {
 	c.ensureGL()
 	gl := c.gl

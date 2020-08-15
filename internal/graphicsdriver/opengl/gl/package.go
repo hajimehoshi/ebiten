@@ -21,6 +21,7 @@ const (
 	ELEMENT_ARRAY_BUFFER = 0x8893
 	DYNAMIC_DRAW         = 0x88E8
 	STREAM_DRAW          = 0x88E0
+	PIXEL_PACK_BUFFER    = 0x88EB
 	PIXEL_UNPACK_BUFFER  = 0x88EC
 	SHORT                = 0x1402
 	FLOAT                = 0x1406

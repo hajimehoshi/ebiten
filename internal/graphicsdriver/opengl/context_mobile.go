@@ -160,6 +160,16 @@ func (c *context) framebufferPixels(f *framebuffer, width, height int) []byte {
 	return pixels
 }
 
+func (c *context) framebufferPixelsToBuffer(f *framebuffer, buffer buffer, width, height int) {
+	c.ctx.Flush()
+
+	c.bindFramebuffer(f.native)
+
+	c.ctx.BindBuffer(gles.PIXEL_PACK_BUFFER, uint32(buffer))
+	c.ctx.ReadPixels(nil, 0, 0, int32(width), int32(height), gles.RGBA, gles.UNSIGNED_BYTE)
+	c.ctx.BindBuffer(gles.PIXEL_PACK_BUFFER, 0)
+}
+
 func (c *context) activeTexture(idx int) {
 	c.ctx.ActiveTexture(uint32(gles.TEXTURE0 + idx))
 }

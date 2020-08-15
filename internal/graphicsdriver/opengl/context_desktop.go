@@ -173,6 +173,14 @@ func (c *context) framebufferPixels(f *framebuffer, width, height int) []byte {
 	return pixels
 }
 
+func (c *context) framebufferPixelsToBuffer(f *framebuffer, buffer buffer, width, height int) {
+	gl.Flush()
+	c.bindFramebuffer(f.native)
+	gl.BindBuffer(gl.PIXEL_PACK_BUFFER, uint32(buffer))
+	gl.ReadPixels(0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, nil)
+	gl.BindBuffer(gl.PIXEL_PACK_BUFFER, 0)
+}
+
 func (c *context) activeTexture(idx int) {
 	gl.ActiveTexture(gl.TEXTURE0 + uint32(idx))
 }

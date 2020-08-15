@@ -135,6 +135,12 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 
 	if i.pbo.equal(*new(buffer)) {
 		i.pbo = i.graphics.context.newPixelBufferObject(w, h)
+		if i.pbo.equal(*new(buffer)) {
+			panic("opengl: newPixelBufferObject failed")
+		}
+		if i.framebuffer != nil {
+			i.graphics.context.framebufferPixelsToBuffer(i.framebuffer, i.pbo, i.width, i.height)
+		}
 	}
 	if i.pbo.equal(*new(buffer)) {
 		panic("opengl: newPixelBufferObject failed")

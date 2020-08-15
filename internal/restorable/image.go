@@ -170,19 +170,29 @@ func (i *Image) Extend(width, height int) *Image {
 		panic(fmt.Sprintf("restorable: the original size (%d, %d) cannot be extended to (%d, %d)", i.width, i.height, width, height))
 	}
 
-	if i.stale {
-		panic("restorable: Extend at a stale image is forbidden")
-	}
-
-	if len(i.drawTrianglesHistory) > 0 {
-		panic("restorable: Extend after DrawTriangles is forbidden")
-	}
-
 	newImg := NewImage(width, height)
 	newImg.SetVolatile(i.volatile)
-	i.basePixels.Apply(newImg.image)
 
+	// Use DrawTriangles instead of ReplacePixels because the image i might be stale and not have its pixels
+	// information.
+	srcs := [graphics.ShaderImageNum]*Image{i}
+	var offsets [graphics.ShaderImageNum - 1][2]float32
+	sw, sh := i.image.InternalSize()
+	vs := quadVertices(0, 0, float32(sw), float32(sh), 0, 0, float32(sw), float32(sh), 1, 1, 1, 1)
+	is := graphics.QuadIndices()
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  float32(sw),
+		Height: float32(sh),
+	}
+	newImg.DrawTriangles(srcs, offsets, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
+
+	// Overwrite the history as if the image newImg is created only by ReplacePixels. Now drawTrianglesHistory
+	// and basePixels cannot be mixed.
+	newImg.drawTrianglesHistory = nil
 	newImg.basePixels = i.basePixels
+	newImg.stale = i.stale
 
 	i.Dispose()
 
@@ -287,6 +297,11 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		i.image.ReplacePixels(make([]byte, 4*width*height), x, y, width, height)
 	}
 
+	if !needsRestoring() || i.screen || i.volatile {
+		i.makeStale()
+		return
+	}
+
 	if x == 0 && y == 0 && width == w && height == h {
 		if pixels != nil {
 			i.basePixels.AddOrReplace(pixels, 0, 0, w, h)
@@ -298,9 +313,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		return
 	}
 
-	// It looked like ReplacePixels on a part of image deletes other region that are rendered by DrawTriangles
-	// (#593, #758).
-
+	// drawTrianglesHistory and basePixels cannot be mixed.
 	if len(i.drawTrianglesHistory) > 0 {
 		panic("restorable: ReplacePixels for a part after DrawTriangles is forbidden")
 	}
