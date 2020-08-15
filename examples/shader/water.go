@@ -32,11 +32,11 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	xoffset := (4 / srcsize.x) * cos(Time*3+texCoord.y*200)
 	yoffset := (20 / srcsize.y) * (1.0 + cos(Time*3+texCoord.y*50))
 	bordertex := border / srcsize.y
-	clr := vec4(image2TextureBoundsAt(vec2(
+	clr := image2TextureBoundsAt(vec2(
 		texCoord.x+xoffset,
 		-(texCoord.y+yoffset-rorigin.y)+bordertex*2+rorigin.y,
-	)))
+	)).rgb
 
-	overlay := vec4(0.5, 1, 1, 1)
-	return mix(clr, overlay, 0.25)
+	overlay := vec3(0.5, 1, 1)
+	return vec4(mix(clr, overlay, 0.25), 1)
 }
