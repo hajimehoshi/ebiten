@@ -282,8 +282,8 @@ func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, fil
 
 	// Use 'negative' mipmap to render edges correctly (#611, #907).
 	// It looks like 128 is the enlargement factor that causes edge missings to pass the test TestImageStretch,
-	// but we use 64 here for environments where the float precision is low (#1044, #1270).
-	var tooBigScale float32 = 64
+	// but we use 32 here for environments where the float precision is low (#1044, #1270).
+	var tooBigScale float32 = 32
 
 	if scale >= tooBigScale*tooBigScale {
 		// If the filter is not nearest, the target needs to be rendered with graduation. Don't use mipmaps.
