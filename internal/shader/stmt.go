@@ -42,7 +42,6 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			}
 			stmts = append(stmts, ss...)
 		case token.ASSIGN:
-			// TODO: What about the statement `a,b = b,a?`
 			if len(stmt.Lhs) != len(stmt.Rhs) && len(stmt.Rhs) != 1 {
 				cs.addError(stmt.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
 				return nil, false
@@ -498,10 +497,39 @@ func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr,
 				}
 			}
 
-			stmts = append(stmts, shaderir.Stmt{
-				Type:  shaderir.Assign,
-				Exprs: []shaderir.Expr{l[0], r[0]},
-			})
+			if len(lhs) == 1 {
+				stmts = append(stmts, shaderir.Stmt{
+					Type:  shaderir.Assign,
+					Exprs: []shaderir.Expr{l[0], r[0]},
+				})
+			} else {
+				// For variable swapping, use temporary variables.
+				block.vars = append(block.vars, variable{
+					typ: origts[0],
+				})
+				idx := len(block.vars) - 1
+				stmts = append(stmts,
+					shaderir.Stmt{
+						Type: shaderir.Assign,
+						Exprs: []shaderir.Expr{
+							{
+								Type:  shaderir.LocalVariable,
+								Index: idx,
+							},
+							r[0],
+						},
+					},
+					shaderir.Stmt{
+						Type: shaderir.Assign,
+						Exprs: []shaderir.Expr{
+							l[0],
+							{
+								Type:  shaderir.LocalVariable,
+								Index: idx,
+							},
+						},
+					})
+			}
 		} else {
 			if i == 0 {
 				var ss []shaderir.Stmt
