@@ -9,8 +9,8 @@ github.com/hajimehoshi/bitmapfont v1.2.0 h1:hw6OjRGdgmHUe56BPju/KU/QD/KLOiTQ+6t+
 github.com/hajimehoshi/bitmapfont v1.2.0/go.mod h1:h9QrPk6Ktb2neObTlAbma6Ini1xgMjbJ3w7ysmD7IOU=
 github.com/hajimehoshi/file2byteslice v0.0.0-20200812174855-0e5e8a80490e h1:4IP7CPObI35+mQShFOYg2JMHDJKciLTW5599inhFfkA=
 github.com/hajimehoshi/file2byteslice v0.0.0-20200812174855-0e5e8a80490e/go.mod h1:CqqAHp7Dk/AqQiwuhV1yT2334qbA/tFWQW0MD2dGqUE=
-github.com/hajimehoshi/go-mp3 v0.3.0 h1:fTM5DXjp/DL2G74HHAs/aBGiS9Tg7wnp+jkU38bHy4g=
-github.com/hajimehoshi/go-mp3 v0.3.0/go.mod h1:qMJj/CSDxx6CGHiZeCgbiq2DSUkbK0UbtXShQcnfyMM=
+github.com/hajimehoshi/go-mp3 v0.3.1-0.20200816104415-cc618d12977d h1:8iitM0AzKpehmkfwbQrlSsD2pewofthGKmb6qu4dO9A=
+github.com/hajimehoshi/go-mp3 v0.3.1-0.20200816104415-cc618d12977d/go.mod h1:qMJj/CSDxx6CGHiZeCgbiq2DSUkbK0UbtXShQcnfyMM=
 github.com/hajimehoshi/oto v0.6.1 h1:7cJz/zRQV4aJvMSSRqzN2TImoVVMpE0BCY4nrNJaDOM=
 github.com/hajimehoshi/oto v0.6.1/go.mod h1:0QXGEkbuJRohbJaxr7ZQSxnju7hEhseiPx2hrh6raOI=
 github.com/hajimehoshi/oto v0.6.3 h1:NfrHdINv+7J8JhfkbHBROlWCzFSWc9PaHm2lS90KNzY=
