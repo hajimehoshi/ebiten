@@ -1,0 +1,47 @@
+name: test
+
+on: [push, pull_request]
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: ['1.12.17', '1.13.15', '1.14.7', '1.15']
+    name: Test with Go ${{ matrix.go }} on Linux
+    env:
+      DISPLAY: ':99.0'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install libasound2-dev libgl1-mesa-dev libalut-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev
+          env GO111MODULE=off go get github.com/agnivade/wasmbrowsertest
+          mv $(go env GOPATH)/bin/wasmbrowsertest $(go env GOPATH)/bin/go_js_wasm_exec
+
+      - name: Start X
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+
+      - name: go vet
+        run: |
+          go vet -tags=example -v ./...
+
+      - name: go build
+        run: |
+          go build -tags=example -v ./...
+          env GOOS=windows GOARCH=amd64 go build -tags=example -v ./...
+          env GOOS=windows GOARCH=386 go build -tags=example -v ./...
+
+      - name: go test
+        run: |
+          go test -tags=example -v ./...
+          env GOOS=js GOARCH=wasm go test -tags=example -v ./...
