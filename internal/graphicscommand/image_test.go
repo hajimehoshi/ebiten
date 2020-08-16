@@ -63,6 +63,11 @@ func TestClear(t *testing.T) {
 }
 
 func TestReplacePixelsPartAfterDrawTriangles(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("ReplacePixels must panic but not")
+		}
+	}()
 	const w, h = 32, 32
 	clr := NewImage(w, h)
 	src := NewImage(w/2, h/2)
@@ -72,8 +77,6 @@ func TestReplacePixelsPartAfterDrawTriangles(t *testing.T) {
 	dst.DrawTriangles([graphics.ShaderImageNum]*Image{clr}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
 	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
 	dst.ReplacePixels(make([]byte, 4), 0, 0, 1, 1)
-
-	// TODO: Check the result.
 }
 
 func TestShader(t *testing.T) {
