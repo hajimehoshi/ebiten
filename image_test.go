@@ -48,7 +48,7 @@ func skipTooSlowTests(t *testing.T) bool {
 			// In Go1.12, converting JS arrays from/to slices uses TypedArrayOf, and this might allocates
 			// too many ArrayBuffers.
 			if major == 1 && minor <= 12 {
-				t.Skip(fmt.Sprintf("too slow on Go%d.%dWasm", major, minor))
+				t.Skipf("too slow on Go%d.%dWasm", major, minor)
 				return true
 			}
 		}
