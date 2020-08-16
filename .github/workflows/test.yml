@@ -45,3 +45,77 @@ jobs:
         run: |
           go test -tags=example -v ./...
           env GOOS=js GOARCH=wasm go test -tags=example -v ./...
+
+  macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        go: ['1.15']
+    name: Test with Go ${{ matrix.go }} on macOS
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Install dependencies
+        run: |
+          env GO111MODULE=off go get github.com/agnivade/wasmbrowsertest
+          mv $(go env GOPATH)/bin/wasmbrowsertest $(go env GOPATH)/bin/go_js_wasm_exec
+
+      - name: go vet
+        run: |
+          go vet -tags=example -v ./...
+
+      - name: go build
+        run: |
+          go build -tags=example -v ./...
+          env GOOS=windows GOARCH=amd64 go build -tags=example -v ./...
+          env GOOS=windows GOARCH=386 go build -tags=example -v ./...
+
+      - name: go test
+        run: |
+          # Using OpenGL fails on a VM. (#1305)
+          # go test -tags=example -v ./...
+          env GOOS=js GOARCH=wasm go test -tags=example -v ./...
+
+  windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        go: ['1.15']
+    name: Test with Go ${{ matrix.go }} on Windows
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Install dependencies
+        run: |
+          env GO111MODULE=off go get github.com/agnivade/wasmbrowsertest
+          mv $(go env GOPATH)/bin/wasmbrowsertest $(go env GOPATH)/bin/go_js_wasm_exec
+
+      - name: go vet
+        run: |
+          # go vet fails on Windows. (#1306)
+          # go vet -tags=example -v ./...
+
+      - name: go build
+        run: |
+          go build -tags=example -v ./...
+
+      - name: go test
+        run: |
+          # Getting OpenGL context fails on a VM. (#1305)
+          # go test -tags=example -v ./...
+          env GOOS=js GOARCH=wasm go test -tags=example -v ./...
