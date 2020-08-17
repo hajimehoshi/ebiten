@@ -14,6 +14,9 @@ package gl
 //     queryString = (PFNGLXQUERYCURRENTRENDERERSTRINGMESAPROC)
 //       glXGetProcAddressARB((const GLubyte *)"glXQueryCurrentRendererStringMESA");
 //   }
+//   if (!queryString) {
+//     return "";
+//   }
 //
 //   static const char* rendererDevice;
 //   if (!rendererDevice) {
