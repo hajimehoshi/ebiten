@@ -112,6 +112,7 @@ func SetClearingScreenSkipped(skipped bool) {
 		v = 1
 	}
 	atomic.StoreInt32(&isClearingScreenSkipped, v)
+	theUIContext.setClearingScreenSkipped(skipped)
 }
 
 // IsClearingScreenSkipped returns true if the frame isn't cleared at the beginning.

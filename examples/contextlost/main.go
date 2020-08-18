@@ -93,6 +93,10 @@ func (g *Game) Update(screen *ebiten.Image) error {
 		return nil
 	}
 
+	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
+		ebiten.SetClearingScreenSkipped(!ebiten.IsClearingScreenSkipped())
+	}
+
 	g.count++
 	return nil
 }
@@ -107,7 +111,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op.GeoM.Translate(screenWidth/2, screenHeight/2)
 	screen.DrawImage(gophersImage, op)
 
-	ebitenutil.DebugPrint(screen, "Press Space to force to lose/restore the GL context!\n(Browser only)")
+	msg := `Press Space to force to lose/restore the GL context!
+(Browser only)
+
+Press S to switch clearing the screen
+at the beginning of each frame.`
+	ebitenutil.DebugPrint(screen, msg)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

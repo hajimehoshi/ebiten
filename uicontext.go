@@ -176,7 +176,7 @@ func (c *uiContext) updateOffscreen() {
 	}
 	if c.offscreen == nil {
 		c.offscreen = newImage(sw, sh, FilterDefault)
-		c.offscreen.mipmap.SetVolatile(true)
+		c.offscreen.mipmap.SetVolatile(!IsClearingScreenSkipped())
 	}
 
 	// The window size is automatically adjusted when Run is used.
@@ -191,6 +191,15 @@ func (c *uiContext) updateOffscreen() {
 	// Do not have to update scaleForWindow since this is used only for backward compatibility.
 	// Then, if a window is resizable, scaleForWindow (= ebiten.ScreenScale) might not match with the actual
 	// scale. This is fine since ebiten.ScreenScale will be deprecated.
+}
+
+func (c *uiContext) setClearingScreenSkipped(skipped bool) {
+	c.m.Lock()
+	defer c.m.Unlock()
+
+	if c.offscreen != nil {
+		c.offscreen.mipmap.SetVolatile(!skipped)
+	}
 }
 
 func (c *uiContext) setWindowResizable(resizable bool) {
