@@ -212,7 +212,8 @@ func (i *Image) ensureNotShared() {
 	sy0 := float32(oy)
 	sx1 := float32(ox + w)
 	sy1 := float32(oy + h)
-	newImg := restorable.NewImage(w, h, i.volatile)
+	newImg := restorable.NewImage(w, h)
+	newImg.SetVolatile(i.volatile)
 	vs := []float32{
 		dx0, dy0, sx0, sy0, 1, 1, 1, 1,
 		dx1, dy0, sx1, sy0, 1, 1, 1, 1,
@@ -244,7 +245,8 @@ func (i *Image) makeShared() error {
 		panic("shareable: makeShared cannot be called on a non-shareable image")
 	}
 
-	newI := NewImage(i.width, i.height, i.volatile)
+	newI := NewImage(i.width, i.height)
+	newI.SetVolatile(i.volatile)
 	pixels := make([]byte, 4*i.width*i.height)
 	for y := 0; y < i.height; y++ {
 		for x := 0; x < i.width; x++ {
@@ -545,13 +547,23 @@ func (i *Image) dispose(markDisposed bool) {
 	theBackends = append(theBackends[:index], theBackends[index+1:]...)
 }
 
-func NewImage(width, height int, volatile bool) *Image {
+func NewImage(width, height int) *Image {
 	// Actual allocation is done lazily, and the lock is not needed.
 	return &Image{
-		width:    width,
-		height:   height,
-		volatile: volatile,
+		width:  width,
+		height: height,
 	}
+}
+
+func (i *Image) SetVolatile(volatile bool) {
+	i.volatile = volatile
+	if i.backend == nil {
+		return
+	}
+	if i.volatile {
+		i.ensureNotShared()
+	}
+	i.backend.restorable.SetVolatile(i.volatile)
 }
 
 func (i *Image) shareable() bool {
@@ -584,8 +596,9 @@ func (i *Image) allocate(shareable bool) {
 
 	if !shareable || !i.shareable() {
 		i.backend = &backend{
-			restorable: restorable.NewImage(i.width+2*paddingSize, i.height+2*paddingSize, i.volatile),
+			restorable: restorable.NewImage(i.width+2*paddingSize, i.height+2*paddingSize),
 		}
+		i.backend.restorable.SetVolatile(i.volatile)
 		return
 	}
 
@@ -605,9 +618,10 @@ func (i *Image) allocate(shareable bool) {
 	}
 
 	b := &backend{
-		restorable: restorable.NewImage(size, size, i.volatile),
+		restorable: restorable.NewImage(size, size),
 		page:       packing.NewPage(size, maxSize),
 	}
+	b.restorable.SetVolatile(i.volatile)
 	theBackends = append(theBackends, b)
 
 	n := b.page.Alloc(i.width+2*paddingSize, i.height+2*paddingSize)

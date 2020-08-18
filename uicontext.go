@@ -175,7 +175,8 @@ func (c *uiContext) updateOffscreen() {
 		}
 	}
 	if c.offscreen == nil {
-		c.offscreen = newImage(sw, sh, FilterDefault, true)
+		c.offscreen = newImage(sw, sh, FilterDefault)
+		c.offscreen.mipmap.SetVolatile(true)
 	}
 
 	// The window size is automatically adjusted when Run is used.

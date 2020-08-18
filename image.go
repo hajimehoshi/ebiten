@@ -814,12 +814,12 @@ func (i *Image) ReplacePixels(pixels []byte) error {
 //
 // Error returned by NewImage is always nil as of 1.5.0.
 func NewImage(width, height int, filter Filter) (*Image, error) {
-	return newImage(width, height, filter, false), nil
+	return newImage(width, height, filter), nil
 }
 
-func newImage(width, height int, filter Filter, volatile bool) *Image {
+func newImage(width, height int, filter Filter) *Image {
 	i := &Image{
-		mipmap: mipmap.New(width, height, volatile),
+		mipmap: mipmap.New(width, height),
 		filter: filter,
 		bounds: image.Rect(0, 0, width, height),
 	}
@@ -841,7 +841,7 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	width, height := size.X, size.Y
 
 	i := &Image{
-		mipmap: mipmap.New(width, height, false),
+		mipmap: mipmap.New(width, height),
 		filter: filter,
 		bounds: image.Rect(0, 0, width, height),
 	}
