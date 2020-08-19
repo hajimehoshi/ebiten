@@ -35,6 +35,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
+	"github.com/hajimehoshi/ebiten/internal/restorable"
 	"github.com/hajimehoshi/ebiten/internal/thread"
 )
 
@@ -159,6 +160,7 @@ func (u *UserInterface) appMain(a app.App) {
 			switch e.Crosses(lifecycle.StageVisible) {
 			case lifecycle.CrossOn:
 				u.SetForeground(true)
+				restorable.OnContextLost()
 				glctx, _ = e.DrawContext.(gl.Context)
 				// Assume that glctx is always a same instance.
 				// Then, only once initializing should be enough.
