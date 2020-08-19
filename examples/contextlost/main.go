@@ -104,7 +104,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	if g.lost {
 		// When the context is lost, skip rendering. Usually this logic should not be required, but when the
-		// context lost happens by the API explicitly, Draw can be called even after the data in GPU is
+		// context lost happens by the API explicitly, Draw can be called even after the data in GPU
 		// disappered.
 		return
 	}
