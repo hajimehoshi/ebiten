@@ -154,7 +154,11 @@ func NewImage(width, height int) *Image {
 // reading pixels from GPU are expensive operations. Volatile images can skip such oprations, but the image content
 // is cleared every frame instead.
 func (i *Image) SetVolatile(volatile bool) {
+	changed := i.volatile != volatile
 	i.volatile = volatile
+	if changed {
+		i.makeStale()
+	}
 }
 
 // Extend extends the image by the given size.
