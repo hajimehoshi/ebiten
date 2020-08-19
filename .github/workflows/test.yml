@@ -51,7 +51,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        go: ['1.15']
+        go: ['1.12.17', '1.13.15', '1.14.7', '1.15']
     name: Test with Go ${{ matrix.go }} on macOS
     steps:
       - name: Checkout
@@ -88,7 +88,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        go: ['1.15']
+        go: ['1.12.17', '1.13.15', '1.14.7', '1.15']
     name: Test with Go ${{ matrix.go }} on Windows
     defaults:
       run:
