@@ -15,4 +15,4 @@ sources:
 tasks:
   - build: |
       cd ebiten
-      go build . ./audio
+      go build -tags=example ./...
