@@ -35,6 +35,10 @@ import (
 )
 
 func skipTooSlowTests(t *testing.T) bool {
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+		return true
+	}
 	if web.IsGopherJS() {
 		t.Skip("too slow on GopherJS")
 		return true
