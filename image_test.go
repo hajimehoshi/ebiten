@@ -41,7 +41,7 @@ func skipTooSlowTests(t *testing.T) bool {
 	}
 	if runtime.GOOS == "js" {
 		v := runtime.Version()
-		if m := regexp.MustCompile(`^go(\d+)\.(\d+)$`).FindStringSubmatch(v); m != nil {
+		if m := regexp.MustCompile(`^go(\d+)\.(\d+)`).FindStringSubmatch(v); m != nil {
 			major, _ := strconv.Atoi(m[1])
 			minor, _ := strconv.Atoi(m[2])
 
