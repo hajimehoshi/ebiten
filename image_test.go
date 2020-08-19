@@ -22,9 +22,7 @@ import (
 	"image/draw"
 	_ "image/png"
 	"math"
-	"regexp"
 	"runtime"
-	"strconv"
 	"testing"
 
 	. "github.com/hajimehoshi/ebiten"
