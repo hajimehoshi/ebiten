@@ -22,7 +22,9 @@ import (
 	"image/draw"
 	_ "image/png"
 	"math"
+	"regexp"
 	"runtime"
+	"strconv"
 	"testing"
 
 	. "github.com/hajimehoshi/ebiten"
@@ -38,12 +40,18 @@ func skipTooSlowTests(t *testing.T) bool {
 		return true
 	}
 	if runtime.GOOS == "js" {
-		// In Go1.12, converting JS arrays from/to slices uses TypedArrayOf, and this might allocates too
-		// many ArrayBuffers.
-		//
-		// Even in the latest versions, timeout often happens especially on Windows/Wasm (#1313).
-		t.Skip("too slow on Wasm")
-		return true
+		v := runtime.Version()
+		if m := regexp.MustCompile(`^go(\d+)\.(\d+)`).FindStringSubmatch(v); m != nil {
+			major, _ := strconv.Atoi(m[1])
+			minor, _ := strconv.Atoi(m[2])
+
+			// In Go1.12, converting JS arrays from/to slices uses TypedArrayOf, and this might allocates
+			// too many ArrayBuffers.
+			if major == 1 && minor <= 12 {
+				t.Skipf("too slow on Go%d.%dWasm", major, minor)
+				return true
+			}
+		}
 	}
 	return false
 }
