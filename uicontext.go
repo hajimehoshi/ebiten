@@ -193,12 +193,12 @@ func (c *uiContext) updateOffscreen() {
 	// scale. This is fine since ebiten.ScreenScale will be deprecated.
 }
 
-func (c *uiContext) setScreenClearedEveryFrame(skipped bool) {
+func (c *uiContext) setScreenClearedEveryFrame(cleared bool) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
 	if c.offscreen != nil {
-		c.offscreen.mipmap.SetVolatile(!skipped)
+		c.offscreen.mipmap.SetVolatile(!cleared)
 	}
 }
 
