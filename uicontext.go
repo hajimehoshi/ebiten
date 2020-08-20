@@ -198,7 +198,7 @@ func (c *uiContext) setScreenClearedEveryFrame(cleared bool) {
 	defer c.m.Unlock()
 
 	if c.offscreen != nil {
-		c.offscreen.mipmap.SetVolatile(!cleared)
+		c.offscreen.mipmap.SetVolatile(cleared)
 	}
 }
 
