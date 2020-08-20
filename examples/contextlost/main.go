@@ -94,7 +94,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 	}
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
-		ebiten.SetClearingScreenSkipped(!ebiten.IsClearingScreenSkipped())
+		ebiten.SetScreenClearedEveryFrame(!ebiten.IsScreenClearedEveryFrame())
 	}
 
 	g.count++

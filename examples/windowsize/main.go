@@ -143,7 +143,7 @@ func (g *game) Update(screen *ebiten.Image) error {
 	g.transparent = ebiten.IsScreenTransparent()
 	floating := ebiten.IsWindowFloating()
 	resizable := ebiten.IsWindowResizable()
-	clearingScreenSkipped := ebiten.IsClearingScreenSkipped()
+	isScreenCleared := ebiten.IsScreenClearedEveryFrame()
 
 	const d = 16
 	toUpdateWindowSize := false
@@ -231,7 +231,7 @@ func (g *game) Update(screen *ebiten.Image) error {
 		resizable = !resizable
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyW) {
-		clearingScreenSkipped = !clearingScreenSkipped
+		isScreenCleared = !isScreenCleared
 	}
 	maximize := inpututil.IsKeyJustPressed(ebiten.KeyM)
 	minimize := inpututil.IsKeyJustPressed(ebiten.KeyN)
@@ -258,7 +258,7 @@ func (g *game) Update(screen *ebiten.Image) error {
 	ebiten.SetWindowDecorated(decorated)
 	ebiten.SetWindowPosition(positionX, positionY)
 	ebiten.SetWindowFloating(floating)
-	ebiten.SetClearingScreenSkipped(clearingScreenSkipped)
+	ebiten.SetScreenClearedEveryFrame(isScreenCleared)
 	if maximize && ebiten.IsWindowResizable() {
 		ebiten.MaximizeWindow()
 	}
