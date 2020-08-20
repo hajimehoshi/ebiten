@@ -89,9 +89,9 @@ func CurrentFPS() float64 {
 }
 
 var (
-	isDrawingSkipped        = int32(0)
-	isClearingScreenSkipped = int32(0)
-	currentMaxTPS           = int32(DefaultTPS)
+	isDrawingSkipped          = int32(0)
+	isScreenClearedEveryFrame = int32(1)
+	currentMaxTPS             = int32(DefaultTPS)
 )
 
 func setDrawingSkipped(skipped bool) {
@@ -102,24 +102,24 @@ func setDrawingSkipped(skipped bool) {
 	atomic.StoreInt32(&isDrawingSkipped, v)
 }
 
-// SetClearingScreenSkipped enables or disables the clearing of the screen at the beginning of each frame.
+// SetScreenClearedEveryFrame enables or disables the clearing of the screen at the beginning of each frame.
 // The default value is false and the screen is cleared each frame by default.
 //
-// SetClearingScreenSkipped is concurrent-safe.
-func SetClearingScreenSkipped(skipped bool) {
+// SetScreenClearedEveryFrame is concurrent-safe.
+func SetScreenClearedEveryFrame(cleared bool) {
 	v := int32(0)
-	if skipped {
+	if cleared {
 		v = 1
 	}
-	atomic.StoreInt32(&isClearingScreenSkipped, v)
-	theUIContext.setClearingScreenSkipped(skipped)
+	atomic.StoreInt32(&isScreenClearedEveryFrame, v)
+	theUIContext.setScreenClearedEveryFrame(cleared)
 }
 
-// IsClearingScreenSkipped returns true if the frame isn't cleared at the beginning.
+// IsScreenClearedEveryFrame returns true if the frame isn't cleared at the beginning.
 //
-// IsClearingScreenSkipped is concurrent-safe.
-func IsClearingScreenSkipped() bool {
-	return atomic.LoadInt32(&isClearingScreenSkipped) != 0
+// IsScreenClearedEveryFrame is concurrent-safe.
+func IsScreenClearedEveryFrame() bool {
+	return atomic.LoadInt32(&isScreenClearedEveryFrame) != 0
 }
 
 // IsDrawingSkipped returns true if rendering result is not adopted.
