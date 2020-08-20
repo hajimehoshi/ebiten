@@ -49,24 +49,36 @@ func EndFrame() error {
 	return shareable.EndFrame()
 }
 
-func NewImage(width, height int, volatile bool) *Image {
+func NewImage(width, height int) *Image {
 	i := &Image{}
-	i.initialize(width, height, volatile)
+	i.initialize(width, height)
 	return i
 }
 
-func (i *Image) initialize(width, height int, volatile bool) {
+func (i *Image) initialize(width, height int) {
 	if maybeCanAddDelayedCommand() {
 		if tryAddDelayedCommand(func() error {
-			i.initialize(width, height, volatile)
+			i.initialize(width, height)
 			return nil
 		}) {
 			return
 		}
 	}
-	i.img = shareable.NewImage(width, height, volatile)
+	i.img = shareable.NewImage(width, height)
 	i.width = width
 	i.height = height
+}
+
+func (i *Image) SetVolatile(volatile bool) {
+	if maybeCanAddDelayedCommand() {
+		if tryAddDelayedCommand(func() error {
+			i.SetVolatile(volatile)
+			return nil
+		}) {
+			return
+		}
+	}
+	i.img.SetVolatile(volatile)
 }
 
 func NewScreenFramebufferImage(width, height int) *Image {

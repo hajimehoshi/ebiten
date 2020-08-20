@@ -198,6 +198,7 @@ func OpFromToken(t token.Token) (Op, bool) {
 type BuiltinFunc string
 
 const (
+	Len         BuiltinFunc = "len"
 	BoolF       BuiltinFunc = "bool"
 	IntF        BuiltinFunc = "int"
 	FloatF      BuiltinFunc = "float"
@@ -250,7 +251,8 @@ const (
 
 func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
 	switch BuiltinFunc(str) {
-	case BoolF,
+	case Len,
+		BoolF,
 		IntF,
 		FloatF,
 		Vec2F,

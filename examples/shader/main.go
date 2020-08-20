@@ -87,6 +87,7 @@ var shaderSrcs = [][]byte{
 	radialblur_go,
 	chromaticaberration_go,
 	dissolve_go,
+	water_go,
 }
 
 type Game struct {

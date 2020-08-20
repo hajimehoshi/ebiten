@@ -25,7 +25,7 @@ import (
 )
 
 func TestShader(t *testing.T) {
-	img := NewImage(1, 1, false)
+	img := NewImage(1, 1)
 	defer img.Dispose()
 
 	ir := etesting.ShaderProgramFill(0xff, 0, 0, 0xff)
@@ -50,7 +50,7 @@ func TestShaderChain(t *testing.T) {
 	const num = 10
 	imgs := []*Image{}
 	for i := 0; i < num; i++ {
-		img := NewImage(1, 1, false)
+		img := NewImage(1, 1)
 		defer img.Dispose()
 		imgs = append(imgs, img)
 	}
@@ -82,13 +82,13 @@ func TestShaderChain(t *testing.T) {
 func TestShaderMultipleSources(t *testing.T) {
 	var srcs [graphics.ShaderImageNum]*Image
 	for i := range srcs {
-		srcs[i] = NewImage(1, 1, false)
+		srcs[i] = NewImage(1, 1)
 	}
 	srcs[0].ReplacePixels([]byte{0x40, 0, 0, 0xff}, 0, 0, 1, 1)
 	srcs[1].ReplacePixels([]byte{0, 0x80, 0, 0xff}, 0, 0, 1, 1)
 	srcs[2].ReplacePixels([]byte{0, 0, 0xc0, 0xff}, 0, 0, 1, 1)
 
-	dst := NewImage(1, 1, false)
+	dst := NewImage(1, 1)
 
 	ir := etesting.ShaderProgramImages(3)
 	s := NewShader(&ir)
@@ -113,7 +113,7 @@ func TestShaderMultipleSources(t *testing.T) {
 }
 
 func TestShaderMultipleSourcesOnOneTexture(t *testing.T) {
-	src := NewImage(3, 1, false)
+	src := NewImage(3, 1)
 	src.ReplacePixels([]byte{
 		0x40, 0, 0, 0xff,
 		0, 0x80, 0, 0xff,
@@ -121,7 +121,7 @@ func TestShaderMultipleSourcesOnOneTexture(t *testing.T) {
 	}, 0, 0, 3, 1)
 	srcs := [graphics.ShaderImageNum]*Image{src, src, src}
 
-	dst := NewImage(1, 1, false)
+	dst := NewImage(1, 1)
 
 	ir := etesting.ShaderProgramImages(3)
 	s := NewShader(&ir)
@@ -149,7 +149,7 @@ func TestShaderMultipleSourcesOnOneTexture(t *testing.T) {
 }
 
 func TestShaderDispose(t *testing.T) {
-	img := NewImage(1, 1, false)
+	img := NewImage(1, 1)
 	defer img.Dispose()
 
 	ir := etesting.ShaderProgramFill(0xff, 0, 0, 0xff)

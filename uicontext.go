@@ -175,7 +175,8 @@ func (c *uiContext) updateOffscreen() {
 		}
 	}
 	if c.offscreen == nil {
-		c.offscreen = newImage(sw, sh, FilterDefault, true)
+		c.offscreen = newImage(sw, sh, FilterDefault)
+		c.offscreen.mipmap.SetVolatile(!IsClearingScreenSkipped())
 	}
 
 	// The window size is automatically adjusted when Run is used.
@@ -190,6 +191,15 @@ func (c *uiContext) updateOffscreen() {
 	// Do not have to update scaleForWindow since this is used only for backward compatibility.
 	// Then, if a window is resizable, scaleForWindow (= ebiten.ScreenScale) might not match with the actual
 	// scale. This is fine since ebiten.ScreenScale will be deprecated.
+}
+
+func (c *uiContext) setClearingScreenSkipped(skipped bool) {
+	c.m.Lock()
+	defer c.m.Unlock()
+
+	if c.offscreen != nil {
+		c.offscreen.mipmap.SetVolatile(!skipped)
+	}
 }
 
 func (c *uiContext) setWindowResizable(resizable bool) {
@@ -290,7 +300,9 @@ func (c *uiContext) update() error {
 
 		// Multiple successive Clear call should be integrated into one graphics command, then
 		// calling Clear on every Update should not affect the performance.
-		c.offscreen.Clear()
+		if !IsClearingScreenSkipped() {
+			c.offscreen.Clear()
+		}
 		if err := c.game.Update(c.offscreen); err != nil {
 			return err
 		}
@@ -306,7 +318,9 @@ func (c *uiContext) draw() {
 	}
 
 	if game, ok := c.game.(interface{ Draw(*Image) }); ok {
-		c.offscreen.Clear()
+		if !IsClearingScreenSkipped() {
+			c.offscreen.Clear()
+		}
 		game.Draw(c.offscreen)
 	}
 

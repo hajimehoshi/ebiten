@@ -19,3 +19,4 @@ package main
 //go:generate file2byteslice -package=main -input=radialblur.go -output=radialblur_go.go -var=radialblur_go
 //go:generate file2byteslice -package=main -input=chromaticaberration.go -output=chromaticaberration_go.go -var=chromaticaberration_go
 //go:generate file2byteslice -package=main -input=dissolve.go -output=dissolve_go.go -var=dissolve_go
+//go:generate file2byteslice -package=main -input=water.go -output=water_go.go -var=water_go

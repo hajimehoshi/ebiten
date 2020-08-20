@@ -22,7 +22,9 @@ import (
 	"image/draw"
 	_ "image/png"
 	"math"
+	"regexp"
 	"runtime"
+	"strconv"
 	"testing"
 
 	. "github.com/hajimehoshi/ebiten"
@@ -31,6 +33,32 @@ import (
 	t "github.com/hajimehoshi/ebiten/internal/testing"
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
+
+func skipTooSlowTests(t *testing.T) bool {
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+		return true
+	}
+	if web.IsGopherJS() {
+		t.Skip("too slow on GopherJS")
+		return true
+	}
+	if runtime.GOOS == "js" {
+		v := runtime.Version()
+		if m := regexp.MustCompile(`^go(\d+)\.(\d+)`).FindStringSubmatch(v); m != nil {
+			major, _ := strconv.Atoi(m[1])
+			minor, _ := strconv.Atoi(m[2])
+
+			// In Go1.12, converting JS arrays from/to slices uses TypedArrayOf, and this might allocates
+			// too many ArrayBuffers.
+			if major == 1 && minor <= 12 {
+				t.Skipf("too slow on Go%d.%dWasm", major, minor)
+				return true
+			}
+		}
+	}
+	return false
+}
 
 func TestMain(m *testing.M) {
 	t.MainWithRunLoop(m)
@@ -545,8 +573,7 @@ func TestImageClear(t *testing.T) {
 func TestImageEdge(t *testing.T) {
 	// TODO: This test is not so meaningful after #1218. Do we remove this?
 
-	if web.IsGopherJS() {
-		t.Skip("too slow on GopherJS")
+	if skipTooSlowTests(t) {
 		return
 	}
 
@@ -899,8 +926,7 @@ func TestImageCopy(t *testing.T) {
 
 // Issue #611, #907
 func TestImageStretch(t *testing.T) {
-	if web.IsGopherJS() {
-		t.Skip("too slow on GopherJS")
+	if skipTooSlowTests(t) {
 		return
 	}
 

@@ -24,6 +24,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hajimehoshi/file2byteslice"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -106,18 +107,20 @@ func run() error {
 			return err
 		}
 
-		args = []string{
-			"-input",
-			dll,
-			"-output",
-			fmt.Sprintf("glfwdll_windows_%s.go", arch),
-			"-package",
-			"glfw",
-			"-var",
-			"glfwDLLCompressed",
-			"-compress",
+		in, err := os.Open(dll)
+		if err != nil {
+			return err
 		}
-		if err := execCommand("file2byteslice", args...); err != nil {
+		defer in.Close()
+
+		out, err := os.Create(fmt.Sprintf("glfwdll_windows_%s.go", arch))
+		if err != nil {
+			return err
+		}
+		defer out.Close()
+
+		// As the file name already specified the build environment, buildtags are not requried.
+		if err := file2byteslice.Write(out, in, true, "", "glfw", "glfwDLLCompressed"); err != nil {
 			return err
 		}
 

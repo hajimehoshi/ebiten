@@ -50,13 +50,12 @@ type Mipmap struct {
 	imgs     map[int]*buffered.Image
 }
 
-func New(width, height int, volatile bool) *Mipmap {
+func New(width, height int) *Mipmap {
 	return &Mipmap{
-		width:    width,
-		height:   height,
-		volatile: volatile,
-		orig:     buffered.NewImage(width, height, volatile),
-		imgs:     map[int]*buffered.Image{},
+		width:  width,
+		height: height,
+		orig:   buffered.NewImage(width, height),
+		imgs:   map[int]*buffered.Image{},
 	}
 }
 
@@ -67,6 +66,14 @@ func NewScreenFramebufferMipmap(width, height int) *Mipmap {
 		orig:   buffered.NewScreenFramebufferImage(width, height),
 		imgs:   map[int]*buffered.Image{},
 	}
+}
+
+func (m *Mipmap) SetVolatile(volatile bool) {
+	m.volatile = volatile
+	if m.volatile {
+		m.disposeMipmaps()
+	}
+	m.orig.SetVolatile(volatile)
 }
 
 func (m *Mipmap) Dump(name string, blackbg bool) error {
@@ -229,7 +236,8 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		m.imgs[level] = nil
 		return nil
 	}
-	s := buffered.NewImage(w2, h2, m.volatile)
+	s := buffered.NewImage(w2, h2)
+	s.SetVolatile(m.volatile)
 	s.DrawTriangles([graphics.ShaderImageNum]*buffered.Image{src}, vs, is, nil, driver.CompositeModeCopy, filter, driver.AddressUnsafe, driver.Region{}, nil, nil)
 	m.imgs[level] = s
 
@@ -282,8 +290,8 @@ func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, fil
 
 	// Use 'negative' mipmap to render edges correctly (#611, #907).
 	// It looks like 128 is the enlargement factor that causes edge missings to pass the test TestImageStretch,
-	// but we use 64 here for environments where the float precision is low (#1044, #1270).
-	var tooBigScale float32 = 64
+	// but we use 32 here for environments where the float precision is low (#1044, #1270).
+	var tooBigScale float32 = 32
 
 	if scale >= tooBigScale*tooBigScale {
 		// If the filter is not nearest, the target needs to be rendered with graduation. Don't use mipmaps.

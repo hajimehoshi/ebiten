@@ -21,20 +21,22 @@ var Cursor vec2
 var ScreenSize vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	dir := normalize(position.xy - Cursor)
-	clr := image2TextureAt(texCoord)
-
-	samples := [...]float{
-		-22, -14, -8, -4, -2, 2, 4, 8, 14, 22,
+	border := ScreenSize.y*0.6 + 4*cos(Time*3+texCoord.y*200)
+	if position.y < border {
+		return image2TextureAt(texCoord)
 	}
-	sum := clr
-	for i := 0; i < len(samples); i++ {
-		pos := texCoord + dir*samples[i]/imageSrcTextureSize()
-		sum += image2TextureBoundsAt(pos)
-	}
-	sum /= 10 + 1
 
-	dist := distance(position.xy, Cursor)
-	t := clamp(dist/256, 0, 1)
-	return mix(clr, sum, t)
+	srcsize := imageSrcTextureSize()
+	rorigin, rsize := imageSrcTextureSourceRegion()
+
+	xoffset := (4 / srcsize.x) * cos(Time*3+texCoord.y*200)
+	yoffset := (20 / srcsize.y) * (1.0 + cos(Time*3+texCoord.y*50))
+	bordertex := border / srcsize.y
+	clr := image2TextureBoundsAt(vec2(
+		texCoord.x+xoffset,
+		-(texCoord.y+yoffset-rorigin.y)+bordertex*2+rorigin.y,
+	)).rgb
+
+	overlay := vec3(0.5, 1, 1)
+	return vec4(mix(clr, overlay, 0.25), 1)
 }

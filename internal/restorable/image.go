@@ -133,24 +133,32 @@ func init() {
 
 // NewImage creates an empty image with the given size.
 //
-// volatile indicates whether the image is volatile. Regular non-volatile images need to record drawing history or
-// read its pixels from GPU if necessary so that all the images can be restored automatically from the context lost.
-// However, such recording the drawing history or reading pixels from GPU are expensive operations. Volatile images
-// can skip such oprations, but the image content is cleared every frame instead.
-//
 // The returned image is cleared.
 //
 // Note that Dispose is not called automatically.
-func NewImage(width, height int, volatile bool) *Image {
+func NewImage(width, height int) *Image {
 	i := &Image{
-		image:    graphicscommand.NewImage(width, height),
-		width:    width,
-		height:   height,
-		volatile: volatile,
+		image:  graphicscommand.NewImage(width, height),
+		width:  width,
+		height: height,
 	}
 	fillImage(i.image, color.RGBA{})
 	theImages.add(i)
 	return i
+}
+
+// SetVolatile sets the volatile state of the image.
+//
+// Regular non-volatile images need to record drawing history or read its pixels from GPU if necessary so that all
+// the images can be restored automatically from the context lost. However, such recording the drawing history or
+// reading pixels from GPU are expensive operations. Volatile images can skip such oprations, but the image content
+// is cleared every frame instead.
+func (i *Image) SetVolatile(volatile bool) {
+	changed := i.volatile != volatile
+	i.volatile = volatile
+	if changed {
+		i.makeStale()
+	}
 }
 
 // Extend extends the image by the given size.
@@ -175,7 +183,8 @@ func (i *Image) Extend(width, height int) *Image {
 		panic("restorable: Extend after DrawTriangles is forbidden")
 	}
 
-	newImg := NewImage(width, height, i.volatile)
+	newImg := NewImage(width, height)
+	newImg.SetVolatile(i.volatile)
 	i.basePixels.Apply(newImg.image)
 
 	if i.basePixels.baseColor != (color.RGBA{}) {

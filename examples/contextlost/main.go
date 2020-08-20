@@ -56,7 +56,7 @@ func (g *Game) loseAndRestoreContext(context js.Value) {
 	// Edge might not support the extension. See
 	// https://developer.mozilla.org/en-US/docs/Web/API/WEBGL_lose_context
 	ext := context.Call("getExtension", "WEBGL_lose_context")
-	if ext.IsNull() {
+	if !ext.Truthy() {
 		fmt.Println("Fail to force context lost. Edge might not support the extension yet.")
 		return
 	}
@@ -83,9 +83,9 @@ func (g *Game) Update(screen *ebiten.Image) error {
 		doc := js.Global().Get("document")
 		canvas := doc.Call("getElementsByTagName", "canvas").Index(0)
 		context := canvas.Call("getContext", "webgl2")
-		if context.IsNull() {
+		if !context.Truthy() {
 			context = canvas.Call("getContext", "webgl")
-			if context.IsNull() {
+			if !context.Truthy() {
 				context = canvas.Call("getContext", "experimental-webgl")
 			}
 		}
@@ -93,11 +93,22 @@ func (g *Game) Update(screen *ebiten.Image) error {
 		return nil
 	}
 
+	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
+		ebiten.SetClearingScreenSkipped(!ebiten.IsClearingScreenSkipped())
+	}
+
 	g.count++
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+	if g.lost {
+		// When the context is lost, skip rendering. Usually this logic should not be required, but when the
+		// context lost happens by the API explicitly, Draw can be called even after the data in GPU
+		// disappered.
+		return
+	}
+
 	w, h := gophersImage.Size()
 	op := &ebiten.DrawImageOptions{}
 
@@ -107,7 +118,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op.GeoM.Translate(screenWidth/2, screenHeight/2)
 	screen.DrawImage(gophersImage, op)
 
-	ebitenutil.DebugPrint(screen, "Press Space to force to lose/restore the GL context!\n(Browser only)")
+	msg := `Press Space to force to lose/restore the GL context!
+(Browser only)
+
+Press S to switch clearing the screen
+at the beginning of each frame.`
+	ebitenutil.DebugPrint(screen, msg)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

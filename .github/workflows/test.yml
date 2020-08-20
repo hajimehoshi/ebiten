@@ -1,0 +1,63 @@
+name: test
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go: ['1.12.17', '1.13.15', '1.14.7', '1.15']
+    name: Test with Go ${{ matrix.go }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    env:
+      DISPLAY: ':99.0'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Install dependencies
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install libasound2-dev libgl1-mesa-dev libalut-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev
+
+      - name: Install wasmbrowsertest
+        run: |
+          env GO111MODULE=off go get github.com/agnivade/wasmbrowsertest
+          mv $(go env GOPATH)/bin/wasmbrowsertest $(go env GOPATH)/bin/go_js_wasm_exec
+
+      - name: Xvfb
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+
+      - name: go vet
+        if: ${{ matrix.os != 'windows-latest' }} # TODO: Fix go vet errors on Windows. (#1306)
+        run: |
+          go vet -tags=example -v ./...
+
+      - name: go build
+        run: |
+          go build -tags=example -v ./...
+          env GOOS=js GOARCH=wasm go build -tags=example -v ./...
+          env GOOS=windows GOARCH=amd64 go build -tags=example -v ./...
+          env GOOS=windows GOARCH=386 go build -tags=example -v ./...
+
+      - name: go test
+        if: ${{ matrix.os == 'ubuntu-latest' }} # TODO: Add more test environments (#1305)
+        run: |
+          go test -tags=example -v ./...
+
+      - name: go test (Wasm)
+        if: ${{ matrix.os != 'windows-latest' }} # TODO: Investigate times out on Windows. (#1313)
+        run: |
+          env GOOS=js GOARCH=wasm go test -tags=example -v ./...
