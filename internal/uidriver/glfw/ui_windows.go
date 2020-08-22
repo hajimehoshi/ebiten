@@ -145,7 +145,8 @@ func (u *UserInterface) currentMonitorFromPosition() *glfw.Monitor {
 
 	m, err := monitorFromWindow(w, monitorDefaultToNearest)
 	if err != nil {
-		panic(err)
+		// monitorFromWindow can return error on Wine. Ignore this.
+		return glfw.GetPrimaryMonitor()
 	}
 
 	mi := monitorInfo{}
