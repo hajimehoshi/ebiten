@@ -292,13 +292,6 @@ func init() {
 	bodyStyle.Set("margin", "0")
 	bodyStyle.Set("padding", "0")
 
-	// TODO: This is OK as long as the game is in an independent iframe.
-	// What if the canvas is embedded in a HTML directly?
-	document.Get("body").Call("addEventListener", "click", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		canvas.Call("focus")
-		return nil
-	}))
-
 	canvasStyle := canvas.Get("style")
 	canvasStyle.Set("width", "100%")
 	canvasStyle.Set("height", "100%")
