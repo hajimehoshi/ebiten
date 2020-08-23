@@ -39,8 +39,6 @@ func (s *Stream) Read(p []byte) (int, error) {
 // Seek is implementation of io.Seeker's Seek.
 //
 // Note that Seek can take long since decoding is a relatively heavy task.
-//
-// If the underlying source is not io.Seeker, Seek panics.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	return s.inner.Seek(offset, whence)
 }
@@ -64,7 +62,7 @@ func (s *Stream) Size() int64 {
 }
 
 type stream struct {
-	src        io.ReadCloser
+	src        audio.ReadSeekCloser
 	headerSize int64
 	dataSize   int64
 	remaining  int64
@@ -85,11 +83,6 @@ func (s *stream) Read(p []byte) (int, error) {
 
 // Seek is implementation of io.Seeker's Seek.
 func (s *stream) Seek(offset int64, whence int) (int64, error) {
-	seeker, ok := s.src.(io.Seeker)
-	if !ok {
-		panic("wav: the underlying source is not io.Seeker")
-	}
-
 	switch whence {
 	case io.SeekStart:
 		offset = offset + s.headerSize
@@ -98,7 +91,7 @@ func (s *stream) Seek(offset int64, whence int) (int64, error) {
 		offset = s.headerSize + s.dataSize + offset
 		whence = io.SeekStart
 	}
-	n, err := seeker.Seek(offset, whence)
+	n, err := s.src.Seek(offset, whence)
 	if err != nil {
 		return 0, err
 	}
@@ -135,7 +128,7 @@ func (s *stream) Length() int64 {
 // Decode automatically resamples the stream to fit with the audio context if necessary.
 //
 // Decode takes the ownership of src, and Stream's Close function closes src.
-func Decode(context *audio.Context, src io.ReadCloser) (*Stream, error) {
+func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	buf := make([]byte, 12)
 	n, err := io.ReadFull(src, buf)
 	if n != len(buf) {
