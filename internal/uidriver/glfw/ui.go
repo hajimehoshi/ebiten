@@ -1103,7 +1103,7 @@ func currentMonitor(window *glfw.Window) *glfw.Monitor {
 	// Getting a monitor from a window position is not reliable in general (e.g., when a window is put across
 	// multiple monitors, or, before SetWindowPosition is called.).
 	// Get the monitor which the current window belongs to. This requires OS API.
-	if m := currentMonitorByOS(); m != nil {
+	if m := currentMonitorByOS(window); m != nil {
 		return m
 	}
 

@@ -32,7 +32,7 @@ func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
 
-func currentMonitorByOS() *glfw.Monitor {
+func currentMonitorByOS(_ *glfw.Window) *glfw.Monitor {
 	// TODO: Implement this correctly. (#1119).
 	return nil
 }
