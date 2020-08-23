@@ -128,7 +128,7 @@ func currentMonitorByOS(_ *glfw.Window) *glfw.Monitor {
 	}
 
 	if w == 0 {
-		// There is no window at launching, but there is a hidden initialized window.
+		// The active window doesn't exist when launching, or the application is runnable on unfocused.
 		// Get the foreground window, that is common among multiple processes.
 		w, err = getForegroundWindow()
 		if err != nil {
