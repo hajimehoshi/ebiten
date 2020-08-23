@@ -55,7 +55,7 @@ func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
 
-func currentMonitorByOS(w *glfw.Window) *glfw.Monitor {
+func currentMonitorByOS() *glfw.Monitor {
 	x := C.int(0)
 	y := C.int(0)
 	// Note: [NSApp mainWindow] is nil when it doesn't have its border. Use w here.
@@ -67,11 +67,7 @@ func currentMonitorByOS(w *glfw.Window) *glfw.Monitor {
 			return m
 		}
 	}
-
-	if m := getCachedMonitor(w.GetPos()); m != nil {
-		return m.m
-	}
-	return glfw.GetPrimaryMonitor()
+	return nil
 }
 
 func (u *UserInterface) nativeWindow() unsafe.Pointer {

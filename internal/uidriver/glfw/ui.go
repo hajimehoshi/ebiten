@@ -147,7 +147,7 @@ func initialize() error {
 
 	// Create a window and set it: this affects toDeviceIndependentPixel and deviceScaleFactor.
 	theUI.window = w
-	theUI.initMonitor = currentMonitorByOS(w)
+	theUI.initMonitor = currentMonitor(w)
 	v := theUI.initMonitor.GetVideoMode()
 	theUI.initFullscreenWidthInDP = int(theUI.toDeviceIndependentPixel(float64(v.Width)))
 	theUI.initFullscreenHeightInDP = int(theUI.toDeviceIndependentPixel(float64(v.Height)))
@@ -409,7 +409,7 @@ func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 
 	var w, h int
 	_ = u.t.Call(func() error {
-		v := u.currentMonitor().GetVideoMode()
+		v := currentMonitor(u.window).GetVideoMode()
 		w = int(u.toDeviceIndependentPixel(float64(v.Width)))
 		h = int(u.toDeviceIndependentPixel(float64(v.Height)))
 		return nil
@@ -587,7 +587,7 @@ func (u *UserInterface) deviceScaleFactor() float64 {
 			return devicescale.GetAt(cm.x, cm.y)
 		}
 	}
-	return devicescale.GetAt(u.currentMonitor().GetPos())
+	return devicescale.GetAt(currentMonitor(u.window).GetPos())
 }
 
 func init() {
@@ -800,7 +800,7 @@ func (u *UserInterface) updateSize() {
 		_ = u.t.Call(func() error {
 			var ww, wh int
 			if u.isFullscreen() {
-				v := u.currentMonitor().GetVideoMode()
+				v := currentMonitor(u.window).GetVideoMode()
 				ww = v.Width
 				wh = v.Height
 			} else {
@@ -961,7 +961,7 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 			if u.origPosX == invalidPos || u.origPosY == invalidPos {
 				u.origPosX, u.origPosY = u.window.GetPos()
 			}
-			m := u.currentMonitor()
+			m := currentMonitor(u.window)
 			v := m.GetVideoMode()
 			u.window.SetMonitor(m, 0, 0, v.Width, v.Height, v.RefreshRate)
 
@@ -1089,19 +1089,29 @@ func (u *UserInterface) updateVsync() {
 	u.Graphics().SetVsyncEnabled(u.vsync)
 }
 
-// currentMonitor returns the monitor most suitable with the current window.
+// currentMonitor returns the current active monitor.
+//
+// The given window might or might not be used to detect the monitor.
 //
 // currentMonitor must be called on the main thread.
-func (u *UserInterface) currentMonitor() *glfw.Monitor {
+func currentMonitor(window *glfw.Window) *glfw.Monitor {
 	// GetMonitor is available only on fullscreen.
-	if m := u.window.GetMonitor(); m != nil {
+	if m := window.GetMonitor(); m != nil {
 		return m
 	}
 
 	// Getting a monitor from a window position is not reliable in general (e.g., when a window is put across
 	// multiple monitors, or, before SetWindowPosition is called.).
 	// Get the monitor which the current window belongs to. This requires OS API.
-	return currentMonitorByOS(u.window)
+	if m := currentMonitorByOS(); m != nil {
+		return m
+	}
+
+	// As the fallback, detect the monitor from the window.
+	if m := getCachedMonitor(window.GetPos()); m != nil {
+		return m.m
+	}
+	return glfw.GetPrimaryMonitor()
 }
 
 func (u *UserInterface) SetScreenTransparent(transparent bool) {
@@ -1151,7 +1161,7 @@ func (u *UserInterface) SetInitFocused(focused bool) {
 
 func (u *UserInterface) monitorPosition() (int, int) {
 	// TODO: toDeviceIndependentPixel might be required.
-	return u.currentMonitor().GetPos()
+	return currentMonitor(u.window).GetPos()
 }
 
 func (u *UserInterface) Input() driver.Input {

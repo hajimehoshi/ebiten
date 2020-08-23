@@ -189,7 +189,7 @@ func (w *window) Position() (int, int) {
 		} else {
 			wx, wy = w.ui.window.GetPos()
 		}
-		mx, my := w.ui.currentMonitor().GetPos()
+		mx, my := currentMonitor(w.ui.window).GetPos()
 		wx -= mx
 		wy -= my
 		xf := w.ui.toDeviceIndependentPixel(float64(wx))
@@ -209,7 +209,7 @@ func (w *window) SetPosition(x, y int) {
 		defer func() {
 			w.setPositionCalled = true
 		}()
-		mx, my := w.ui.currentMonitor().GetPos()
+		mx, my := currentMonitor(w.ui.window).GetPos()
 		xf := w.ui.toDeviceDependentPixel(float64(x))
 		yf := w.ui.toDeviceDependentPixel(float64(y))
 		x, y := w.ui.adjustWindowPosition(mx+int(xf), my+int(yf))

@@ -120,19 +120,13 @@ func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
 
-func currentMonitorByOS(glfww *glfw.Window) *glfw.Monitor {
-	fallback := func() *glfw.Monitor {
-		if m := getCachedMonitor(glfww.GetPos()); m != nil {
-			return m.m
-		}
-		return glfw.GetPrimaryMonitor()
-	}
-
-	// TODO: Should we use glfww.GetWin32Window() here?
+func currentMonitorByOS() *glfw.Monitor {
+	// TODO: Should we return nil here?
 	w, err := getActiveWindow()
 	if err != nil {
 		panic(err)
 	}
+
 	if w == 0 {
 		// There is no window at launching, but there is a hidden initialized window.
 		// Get the foreground window, that is common among multiple processes.
@@ -142,7 +136,7 @@ func currentMonitorByOS(glfww *glfw.Window) *glfw.Monitor {
 		}
 		if w == 0 {
 			// GetForegroundWindow can return null according to the document.
-			return fallback()
+			return nil
 		}
 	}
 
@@ -152,7 +146,7 @@ func currentMonitorByOS(glfww *glfw.Window) *glfw.Monitor {
 	m, err := monitorFromWindow(w, monitorDefaultToNearest)
 	if err != nil {
 		// monitorFromWindow can return error on Wine. Ignore this.
-		return fallback()
+		return nil
 	}
 
 	mi := monitorInfo{}
@@ -168,7 +162,7 @@ func currentMonitorByOS(glfww *glfw.Window) *glfw.Monitor {
 			return m
 		}
 	}
-	return fallback()
+	return nil
 }
 
 func (u *UserInterface) nativeWindow() unsafe.Pointer {

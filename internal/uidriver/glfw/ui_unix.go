@@ -32,12 +32,9 @@ func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
 
-func currentMonitorByOS(w *glfw.Window) *glfw.Monitor {
+func currentMonitorByOS() *glfw.Monitor {
 	// TODO: Implement this correctly. (#1119).
-	if cm := getCachedMonitor(w.GetPos()); cm != nil {
-		return cm.m
-	}
-	return glfw.GetPrimaryMonitor()
+	return nil
 }
 
 func (u *UserInterface) nativeWindow() unsafe.Pointer {
