@@ -1098,7 +1098,7 @@ func (u *UserInterface) currentMonitor() *glfw.Monitor {
 	}
 
 	// Getting a monitor from a window position is not reliable in general (e.g., when a window is put across
-	// multiple monitors. A window position is not reliable before SetWindowPosition is called.).
+	// multiple monitors, or, before SetWindowPosition is called.).
 	// Get the monitor which the current window belongs to. This requires OS API.
 	return currentMonitorByOS(u.window)
 }
