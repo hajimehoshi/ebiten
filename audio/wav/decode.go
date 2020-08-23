@@ -113,11 +113,6 @@ func (s *stream) Close() error {
 	return s.src.Close()
 }
 
-// Length returns the size of decoded stream in bytes.
-func (s *stream) Length() int64 {
-	return s.dataSize
-}
-
 // Decode decodes WAV (RIFF) data to playable stream.
 //
 // The format must be 1 or 2 channels, 8bit or 16bit little endian PCM.
