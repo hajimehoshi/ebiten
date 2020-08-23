@@ -376,6 +376,7 @@ func (u *UserInterface) isInitWindowMaximized() bool {
 func (u *UserInterface) setInitWindowMaximized(floating bool) {
 	u.m.Lock()
 	u.initWindowMaximized = floating
+	u.m.Unlock()
 }
 
 func (u *UserInterface) isInitFocused() bool {
