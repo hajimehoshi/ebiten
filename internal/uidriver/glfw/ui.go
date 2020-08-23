@@ -1094,12 +1094,13 @@ func (u *UserInterface) updateVsync() {
 //
 // currentMonitor must be called on the main thread.
 func (u *UserInterface) currentMonitor() *glfw.Monitor {
-	if w := u.window; w != nil {
-		// GetMonitor is available only on fullscreen.
-		if m := w.GetMonitor(); m != nil {
-			return m
-		}
+	// GetMonitor is available only on fullscreen.
+	if m := u.window.GetMonitor(); m != nil {
+		return m
 	}
+
+	// Getting a monitor from a window position is not reliable in general (e.g., when a window is put across
+	// multiple monitors).
 	// Get the monitor which the current window belongs to. This requires OS API.
 	return u.currentMonitorFromPosition()
 }

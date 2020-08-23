@@ -59,15 +59,17 @@ func (u *UserInterface) currentMonitorFromPosition() *glfw.Monitor {
 	x := C.int(0)
 	y := C.int(0)
 	// Note: [NSApp mainWindow] is nil when it doesn't have its border. Use u.window here.
-	if u.window != nil {
-		win := u.window.GetCocoaWindow()
-		C.currentMonitorPos(win, &x, &y)
-		for _, m := range glfw.GetMonitors() {
-			mx, my := m.GetPos()
-			if int(x) == mx && int(y) == my {
-				return m
-			}
+	win := u.window.GetCocoaWindow()
+	C.currentMonitorPos(win, &x, &y)
+	for _, m := range glfw.GetMonitors() {
+		mx, my := m.GetPos()
+		if int(x) == mx && int(y) == my {
+			return m
 		}
+	}
+
+	if m, ok := getCachedMonitor(u.window.GetPos()); ok {
+		return m.m
 	}
 	return glfw.GetPrimaryMonitor()
 }

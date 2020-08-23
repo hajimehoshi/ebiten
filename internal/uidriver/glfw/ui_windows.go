@@ -121,6 +121,13 @@ func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 }
 
 func (u *UserInterface) currentMonitorFromPosition() *glfw.Monitor {
+	fallback := func() *glfw.Monitor {
+		if m, ok := getCachedMonitor(u.window.GetPos()); ok {
+			return m.m
+		}
+		return glfw.GetPrimaryMonitor()
+	}
+
 	// TODO: Should we use u.window.GetWin32Window() here?
 	w, err := getActiveWindow()
 	if err != nil {
@@ -134,9 +141,8 @@ func (u *UserInterface) currentMonitorFromPosition() *glfw.Monitor {
 			panic(err)
 		}
 		if w == 0 {
-			// GetForegroundWindow can return null according to the document. Use
-			// the primary monitor instead.
-			return glfw.GetPrimaryMonitor()
+			// GetForegroundWindow can return null according to the document.
+			return fallback()
 		}
 	}
 
@@ -146,7 +152,7 @@ func (u *UserInterface) currentMonitorFromPosition() *glfw.Monitor {
 	m, err := monitorFromWindow(w, monitorDefaultToNearest)
 	if err != nil {
 		// monitorFromWindow can return error on Wine. Ignore this.
-		return glfw.GetPrimaryMonitor()
+		return fallback()
 	}
 
 	mi := monitorInfo{}
@@ -162,7 +168,7 @@ func (u *UserInterface) currentMonitorFromPosition() *glfw.Monitor {
 			return m
 		}
 	}
-	return glfw.GetPrimaryMonitor()
+	return fallback()
 }
 
 func (u *UserInterface) nativeWindow() unsafe.Pointer {
