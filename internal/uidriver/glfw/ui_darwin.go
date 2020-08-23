@@ -68,7 +68,7 @@ func currentMonitorByOS(w *glfw.Window) *glfw.Monitor {
 		}
 	}
 
-	if m, ok := getCachedMonitor(w.GetPos()); ok {
+	if m := getCachedMonitor(w.GetPos()); m != nil {
 		return m.m
 	}
 	return glfw.GetPrimaryMonitor()

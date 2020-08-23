@@ -186,17 +186,17 @@ func cacheMonitors() {
 	}
 }
 
-// getCachedMonitor returns a monitor for the given window x/y
-// returns false if monitor is not found.
+// getCachedMonitor returns a monitor for the given window x/y,
+// or returns nil if monitor is not found.
 //
 // getCachedMonitor must be called on the main thread.
-func getCachedMonitor(wx, wy int) (*cachedMonitor, bool) {
+func getCachedMonitor(wx, wy int) *cachedMonitor {
 	for _, m := range monitors {
 		if m.x <= wx && wx < m.x+m.vm.Width && m.y <= wy && wy < m.y+m.vm.Height {
-			return m, true
+			return m
 		}
 	}
-	return nil, false
+	return nil
 }
 
 func (u *UserInterface) isRunning() bool {
@@ -583,7 +583,7 @@ func (u *UserInterface) deviceScaleFactor() float64 {
 	// Before calling SetWindowPosition, the window's position is not reliable.
 	if u.iwindow.setPositionCalled {
 		// Avoid calling monitor.GetPos if we have the monitor position cached already.
-		if cm, ok := getCachedMonitor(u.window.GetPos()); ok {
+		if cm := getCachedMonitor(u.window.GetPos()); cm != nil {
 			return devicescale.GetAt(cm.x, cm.y)
 		}
 	}

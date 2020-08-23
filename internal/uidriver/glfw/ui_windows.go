@@ -122,7 +122,7 @@ func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 
 func currentMonitorByOS(glfww *glfw.Window) *glfw.Monitor {
 	fallback := func() *glfw.Monitor {
-		if m, ok := getCachedMonitor(glfww.GetPos()); ok {
+		if m := getCachedMonitor(glfww.GetPos()); m != nil {
 			return m.m
 		}
 		return glfw.GetPrimaryMonitor()
