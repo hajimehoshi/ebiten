@@ -120,15 +120,15 @@ func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
 
-func (u *UserInterface) currentMonitorFromPosition() *glfw.Monitor {
+func currentMonitorByOS(glfww *glfw.Window) *glfw.Monitor {
 	fallback := func() *glfw.Monitor {
-		if m, ok := getCachedMonitor(u.window.GetPos()); ok {
+		if m, ok := getCachedMonitor(glfww.GetPos()); ok {
 			return m.m
 		}
 		return glfw.GetPrimaryMonitor()
 	}
 
-	// TODO: Should we use u.window.GetWin32Window() here?
+	// TODO: Should we use glfww.GetWin32Window() here?
 	w, err := getActiveWindow()
 	if err != nil {
 		panic(err)

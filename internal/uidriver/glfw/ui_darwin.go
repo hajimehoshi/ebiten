@@ -55,11 +55,11 @@ func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
 
-func (u *UserInterface) currentMonitorFromPosition() *glfw.Monitor {
+func currentMonitorByOS(w *glfw.Window) *glfw.Monitor {
 	x := C.int(0)
 	y := C.int(0)
-	// Note: [NSApp mainWindow] is nil when it doesn't have its border. Use u.window here.
-	win := u.window.GetCocoaWindow()
+	// Note: [NSApp mainWindow] is nil when it doesn't have its border. Use w here.
+	win := w.GetCocoaWindow()
 	C.currentMonitorPos(win, &x, &y)
 	for _, m := range glfw.GetMonitors() {
 		mx, my := m.GetPos()
@@ -68,7 +68,7 @@ func (u *UserInterface) currentMonitorFromPosition() *glfw.Monitor {
 		}
 	}
 
-	if m, ok := getCachedMonitor(u.window.GetPos()); ok {
+	if m, ok := getCachedMonitor(w.GetPos()); ok {
 		return m.m
 	}
 	return glfw.GetPrimaryMonitor()

@@ -145,12 +145,14 @@ func initialize() error {
 		panic("glfw: glfw.CreateWindow must not return nil")
 	}
 
-	// Create a window and leave it as it is: this affects the result of currentMonitorFromPosition.
+	// Create a window and set it: this affects toDeviceIndependentPixel and deviceScaleFactor.
 	theUI.window = w
-	theUI.initMonitor = theUI.currentMonitor()
+	theUI.initMonitor = currentMonitorByOS(w)
 	v := theUI.initMonitor.GetVideoMode()
 	theUI.initFullscreenWidthInDP = int(theUI.toDeviceIndependentPixel(float64(v.Width)))
 	theUI.initFullscreenHeightInDP = int(theUI.toDeviceIndependentPixel(float64(v.Height)))
+	theUI.window.Destroy()
+	theUI.window = nil
 
 	return nil
 }
@@ -671,10 +673,6 @@ func (u *UserInterface) createWindow() error {
 
 func (u *UserInterface) run() error {
 	if err := u.t.Call(func() error {
-		// The window is created at initialize().
-		u.window.Destroy()
-		u.window = nil
-
 		if u.Graphics().IsGL() {
 			glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLAPI)
 			glfw.WindowHint(glfw.ContextVersionMajor, 2)
@@ -1100,9 +1098,9 @@ func (u *UserInterface) currentMonitor() *glfw.Monitor {
 	}
 
 	// Getting a monitor from a window position is not reliable in general (e.g., when a window is put across
-	// multiple monitors).
+	// multiple monitors. A window position is not reliable before SetWindowPosition is called.).
 	// Get the monitor which the current window belongs to. This requires OS API.
-	return u.currentMonitorFromPosition()
+	return currentMonitorByOS(u.window)
 }
 
 func (u *UserInterface) SetScreenTransparent(transparent bool) {
