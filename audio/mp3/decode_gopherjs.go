@@ -35,6 +35,7 @@ type Stream struct {
 	leftData   []float32
 	rightData  []float32
 	posInBytes int
+	seekable   bool
 }
 
 var (
@@ -77,6 +78,11 @@ func (s *Stream) Read(b []byte) (int, error) {
 }
 
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
+	if !s.seekable {
+		// Forbide seeking for consistency with the other platforms.
+		panic("audio/mp3: the underlying source is not io.Seeker")
+	}
+
 	next := int64(0)
 	switch whence {
 	case io.SeekStart:
@@ -129,7 +135,7 @@ func seekNextFrame(buf []byte) ([]byte, bool) {
 	return buf, true
 }
 
-func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
+func Decode(context *audio.Context, src io.ReadCloser) (*Stream, error) {
 	b, err := ioutil.ReadAll(src)
 	if err != nil {
 		return nil, err
@@ -158,6 +164,9 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 			}
 		}
 		break
+	}
+	if _, ok := src.(io.Seeker); ok {
+		s.seekable = true
 	}
 	return s, nil
 }

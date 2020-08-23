@@ -46,6 +46,8 @@ func (s *Stream) Read(buf []byte) (int, error) {
 }
 
 // Seek is implementation of io.Seeker's Seek.
+//
+// If the underlying source is not io.Seeker, Seek panics.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	if s.resampling != nil {
 		return s.resampling.Seek(offset, whence)
@@ -81,7 +83,7 @@ func (s *Stream) Size() int64 {
 // Decode automatically resamples the stream to fit with the audio context if necessary.
 //
 // Decode takes the ownership of src, and Stream's Close function closes src.
-func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
+func Decode(context *audio.Context, src io.ReadCloser) (*Stream, error) {
 	d, err := mp3.NewDecoder(src)
 	if err != nil {
 		return nil, err
