@@ -38,8 +38,8 @@ type Stream struct {
 }
 
 var (
-	errTryAgain = errors.New("audio/mp3: try again")
-	errTimeout  = errors.New("audio/mp3: timeout")
+	errTryAgain = errors.New("mp3: try again")
+	errTimeout  = errors.New("mp3: timeout")
 )
 
 func (s *Stream) Read(b []byte) (int, error) {
@@ -145,7 +145,7 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 		case errTryAgain:
 			buf, ok := seekNextFrame(b)
 			if !ok {
-				return nil, fmt.Errorf("audio/mp3: Decode failed: invalid format?")
+				return nil, fmt.Errorf("mp3: Decode failed: invalid format?")
 			}
 			b = buf
 			continue
@@ -185,7 +185,7 @@ func float32ArrayToSlice(arr js.Value) []float32 {
 
 func decode(context *audio.Context, buf []byte, try int) (*Stream, error) {
 	if offlineAudioContextClass == js.Null() {
-		return nil, errors.New("audio/mp3: OfflineAudioContext is not available")
+		return nil, errors.New("mp3: OfflineAudioContext is not available")
 	}
 
 	s := &Stream{}
@@ -213,7 +213,7 @@ func decode(context *audio.Context, buf []byte, try int) (*Stream, error) {
 			s.rightData = float32ArrayToSlice(buf.Call("getChannelData", 1))
 			close(ch)
 		default:
-			ch <- fmt.Errorf("audio/mp3: number of channels must be 1 or 2 but %d", n)
+			ch <- fmt.Errorf("mp3: number of channels must be 1 or 2 but %d", n)
 		}
 		return nil
 	})
@@ -222,7 +222,7 @@ func decode(context *audio.Context, buf []byte, try int) (*Stream, error) {
 	failed := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		err := args[0]
 		if err != js.Null() || err != js.Undefined() {
-			ch <- fmt.Errorf("audio/mp3: decodeAudioData failed: %v", err)
+			ch <- fmt.Errorf("mp3: decodeAudioData failed: %v", err)
 		} else {
 			// On Safari, error value might be null and it is needed to retry decoding
 			// from the next frame (#438).
