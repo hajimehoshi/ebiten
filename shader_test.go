@@ -24,7 +24,7 @@ import (
 func TestShaderFill(t *testing.T) {
 	const w, h = 16, 16
 
-	dst, _ := NewImage(8, 8, FilterDefault)
+	dst, _ := NewImage(w, h, FilterDefault)
 	s, err := NewShader([]byte(`package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
@@ -35,13 +35,13 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		t.Fatal(err)
 	}
 
-	dst.DrawRectShader(16, 16, s, nil)
+	dst.DrawRectShader(w/2, h/2, s, nil)
 
 	if got, want := dst.At(0, 0).(color.RGBA), (color.RGBA{0xff, 0, 0, 0xff}); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
-	if got, want := dst.At(w-1, h-1).(color.RGBA), (color.RGBA{}); got != want {
+	if got, want := dst.At(w/2, h/2).(color.RGBA), (color.RGBA{}); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
