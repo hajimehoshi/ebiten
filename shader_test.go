@@ -83,3 +83,34 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestShaderFunction(t *testing.T) {
+	const w, h = 16, 16
+
+	dst, _ := NewImage(w, h, FilterDefault)
+	s, err := NewShader([]byte(`package main
+
+func clr(red float) (float, float, float, float) {
+	return red, 0, 0, 1
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(clr(1))
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dst.DrawRectShader(w, h, s, nil)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{0xff, 0, 0, 0xff}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
