@@ -345,6 +345,12 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 			sourceRegion.X += oxf
 			sourceRegion.Y += oyf
 		}
+	} else {
+		n := len(vertices) / graphics.VertexFloatNum
+		for i := 0; i < n; i++ {
+			vertices[i*graphics.VertexFloatNum+0] += dx
+			vertices[i*graphics.VertexFloatNum+1] += dy
+		}
 	}
 
 	var offsets [graphics.ShaderImageNum - 1][2]float32

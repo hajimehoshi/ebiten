@@ -37,11 +37,49 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 	dst.DrawRectShader(w/2, h/2, s, nil)
 
-	if got, want := dst.At(0, 0).(color.RGBA), (color.RGBA{0xff, 0, 0, 0xff}); got != want {
-		t.Errorf("got: %v, want: %v", got, want)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			var want color.RGBA
+			if i < w/2 && j < h/2 {
+				want = color.RGBA{0xff, 0, 0, 0xff}
+			}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestShaderFillWithDrawImage(t *testing.T) {
+	const w, h = 16, 16
+
+	dst, _ := NewImage(w, h, FilterDefault)
+	s, err := NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(1, 0, 0, 1)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	if got, want := dst.At(w/2, h/2).(color.RGBA), (color.RGBA{}); got != want {
-		t.Errorf("got: %v, want: %v", got, want)
+	src, _ := NewImage(w/2, h/2, FilterDefault)
+	op := &DrawImageOptions{}
+	op.Shader = s
+	dst.DrawImage(src, op)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			var want color.RGBA
+			if i < w/2 && j < h/2 {
+				want = color.RGBA{0xff, 0, 0, 0xff}
+			}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
 	}
 }
