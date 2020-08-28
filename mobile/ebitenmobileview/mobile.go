@@ -27,7 +27,7 @@ import "C"
 
 import (
 	"runtime"
-	"sync"
+	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
@@ -37,33 +37,26 @@ import (
 var theState state
 
 type state struct {
-	started bool
-
-	// m is a mutex required for each function.
-	// For example, on Android, Update can be called from a different thread:
-	// https://developer.android.com/reference/android/opengl/GLSurfaceView.Renderer
-	m sync.Mutex
+	running int32
 }
 
 func (s *state) isRunning() bool {
-	return s.started
+	return atomic.LoadInt32(&s.running) != 0
+}
+
+func (s *state) run() {
+	atomic.StoreInt32(&s.running, 1)
 }
 
 func SetGame(game ebiten.Game) {
-	theState.m.Lock()
-	defer theState.m.Unlock()
-
-	if theState.started {
+	if theState.isRunning() {
 		panic("ebitenmobileview: SetGame cannot be called twice or more")
 	}
 	ebiten.RunGameWithoutMainLoop(game)
-	theState.started = true
+	theState.run()
 }
 
 func Layout(viewWidth, viewHeight float64) {
-	theState.m.Lock()
-	defer theState.m.Unlock()
-
 	mobile.Get().SetOutsideSize(viewWidth, viewHeight)
 }
 
@@ -72,9 +65,7 @@ func Update() error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	theState.m.Lock()
-	defer theState.m.Unlock()
-	if !theState.started {
+	if !theState.isRunning() {
 		// start is not called yet, but as update can be called from another thread, it is OK. Just ignore
 		// this.
 		return nil

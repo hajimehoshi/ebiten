@@ -68,6 +68,8 @@ func Get() *UserInterface {
 }
 
 // Update is called from mobile/ebitenmobileview.
+//
+// Update must be called on the rendering thread.
 func (u *UserInterface) Update() error {
 	select {
 	case err := <-u.errCh:
@@ -358,6 +360,8 @@ func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 }
 
 // SetOutsideSize is called from mobile/ebitenmobileview.
+//
+// SetOutsideSize is concurrent safe.
 func (u *UserInterface) SetOutsideSize(outsideWidth, outsideHeight float64) {
 	// Called from ebitenmobileview.
 	u.m.Lock()
