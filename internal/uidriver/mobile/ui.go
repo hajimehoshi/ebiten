@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"runtime/debug"
 	"sync"
+	"sync/atomic"
 	"unicode"
 
 	"golang.org/x/mobile/app"
@@ -49,7 +50,7 @@ var (
 	renderEndCh = make(chan struct{})
 
 	theUI = &UserInterface{
-		foreground: true,
+		foreground: 1,
 		errCh:      make(chan error),
 
 		// Give a default outside size so that the game can start without initializing them.
@@ -122,7 +123,7 @@ type UserInterface struct {
 	outsideHeight float64
 
 	sizeChanged bool
-	foreground  bool
+	foreground  int32
 	errCh       chan error
 
 	// Used for gomobile-build
@@ -239,9 +240,11 @@ func (u *UserInterface) appMain(a app.App) {
 }
 
 func (u *UserInterface) SetForeground(foreground bool) {
-	u.m.Lock()
-	u.foreground = foreground
-	u.m.Unlock()
+	var v int32
+	if foreground {
+		v = 1
+	}
+	atomic.StoreInt32(&u.foreground, v)
 
 	if foreground {
 		hooks.ResumeAudio()
@@ -363,7 +366,6 @@ func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 //
 // SetOutsideSize is concurrent safe.
 func (u *UserInterface) SetOutsideSize(outsideWidth, outsideHeight float64) {
-	// Called from ebitenmobileview.
 	u.m.Lock()
 	if u.outsideWidth != outsideWidth || u.outsideHeight != outsideHeight {
 		u.outsideWidth = outsideWidth
@@ -406,10 +408,7 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 }
 
 func (u *UserInterface) IsFocused() bool {
-	u.m.Lock()
-	fg := u.foreground
-	u.m.Unlock()
-	return fg
+	return atomic.LoadInt32(&u.foreground) != 0
 }
 
 func (u *UserInterface) IsRunnableOnUnfocused() bool {
