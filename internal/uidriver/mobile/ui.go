@@ -287,8 +287,9 @@ func (u *UserInterface) run(context driver.UIContext, mainloop bool) (err error)
 
 	u.m.Lock()
 	u.sizeChanged = true
-	u.context = context
 	u.m.Unlock()
+
+	u.context = context
 
 	if u.Graphics().IsGL() {
 		var ctx gl.Context
@@ -321,7 +322,7 @@ func (u *UserInterface) run(context driver.UIContext, mainloop bool) (err error)
 func (u *UserInterface) layoutIfNeeded() {
 	var outsideWidth, outsideHeight float64
 
-	u.m.Lock()
+	u.m.RLock()
 	sizeChanged := u.sizeChanged
 	if sizeChanged {
 		if u.gbuildWidthPx == 0 || u.gbuildHeightPx == 0 {
@@ -335,7 +336,7 @@ func (u *UserInterface) layoutIfNeeded() {
 		}
 	}
 	u.sizeChanged = false
-	u.m.Unlock()
+	u.m.RUnlock()
 
 	if sizeChanged {
 		u.context.Layout(outsideWidth, outsideHeight)
