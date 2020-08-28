@@ -309,7 +309,7 @@ func (u *UserInterface) run(context driver.UIContext, mainloop bool) (err error)
 	}
 
 	// Force to set the screen size
-	u.updateSize()
+	u.layoutIfNeeded()
 	for {
 		if err := u.update(); err != nil {
 			return err
@@ -317,7 +317,8 @@ func (u *UserInterface) run(context driver.UIContext, mainloop bool) (err error)
 	}
 }
 
-func (u *UserInterface) updateSize() {
+// layoutIfNeeded must be called on the same goroutine as update().
+func (u *UserInterface) layoutIfNeeded() {
 	var outsideWidth, outsideHeight float64
 
 	u.m.Lock()
@@ -380,10 +381,11 @@ func (u *UserInterface) setGBuildSize(widthPx, heightPx int) {
 	u.gbuildWidthPx = widthPx
 	u.gbuildHeightPx = heightPx
 	u.sizeChanged = true
+	u.m.Unlock()
+
 	u.once.Do(func() {
 		close(u.setGBuildSizeCh)
 	})
-	u.m.Unlock()
 }
 
 func (u *UserInterface) adjustPosition(x, y int) (int, int) {
@@ -440,7 +442,7 @@ func (u *UserInterface) IsScreenTransparent() bool {
 }
 
 func (u *UserInterface) ResetForFrame() {
-	u.updateSize()
+	u.layoutIfNeeded()
 	u.input.resetForFrame()
 }
 
