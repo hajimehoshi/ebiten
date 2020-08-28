@@ -698,7 +698,7 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
     }
 
     // onErrorOnGameUpdate is called on the main thread when an error happens when updating a game.
-    // You can define your own error handler, e.g., using Crashlytics, by overwriting this method.
+    // You can define your own error handler, e.g., using Crashlytics, by overriding this method.
     protected void onErrorOnGameUpdate(Exception e) {
         Log.e("Go", e.toString());
     }
