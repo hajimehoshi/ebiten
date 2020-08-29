@@ -20,7 +20,6 @@
 package glfw
 
 import (
-	"context"
 	"fmt"
 	"image"
 	"os"
@@ -602,14 +601,11 @@ func (u *UserInterface) Run(uicontext driver.UIContext) error {
 	u.t = thread.New()
 	u.Graphics().SetThread(u.t)
 
-	ctx, cancel := context.WithCancel(context.Background())
-
 	ch := make(chan error, 1)
 	go func() {
 		defer func() {
 			_ = u.t.Call(func() error {
-				cancel()
-				return nil
+				return thread.BreakLoop
 			})
 		}()
 
@@ -620,7 +616,7 @@ func (u *UserInterface) Run(uicontext driver.UIContext) error {
 	}()
 
 	u.setRunning(true)
-	u.t.Loop(ctx)
+	u.t.Loop()
 	u.setRunning(false)
 	return <-ch
 }

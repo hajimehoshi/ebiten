@@ -15,7 +15,7 @@
 package thread
 
 import (
-	"context"
+	"errors"
 )
 
 // Thread represents an OS thread.
@@ -34,26 +34,28 @@ func New() *Thread {
 	}
 }
 
-// Loop starts the thread loop.
+// BreakLoop represents an termination of the loop.
+var BreakLoop = errors.New("break loop")
+
+// Loop starts the thread loop until a posted function returns BreakLoop.
 //
 // Loop must be called on the thread.
-//
-// Loop can be called multiple times.
-func (t *Thread) Loop(context context.Context) {
-loop:
-	for {
-		select {
-		case f := <-t.funcs:
-			t.results <- f()
-		case <-context.Done():
-			break loop
+func (t *Thread) Loop() {
+	for f := range t.funcs {
+		err := f()
+		if err == BreakLoop {
+			t.results <- nil
+			return
 		}
+		t.results <- err
 	}
 }
 
 // Call calls f on the thread.
 //
 // Do not call this from the same thread. This would block forever.
+//
+// If f returns BreakLoop, Loop returns.
 //
 // Call blocks if Loop is not called.
 func (t *Thread) Call(f func() error) error {

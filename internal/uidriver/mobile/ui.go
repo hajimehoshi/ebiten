@@ -84,24 +84,17 @@ func (u *UserInterface) Update() error {
 	}
 
 	renderCh <- struct{}{}
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		<-renderEndCh
-		if u.t != nil {
-			// If there is a (main) thread, ensure that cancel is called after every other task is done.
-			u.t.Call(func() error {
-				cancel()
-				return nil
-			})
-		} else {
-			cancel()
-		}
-	}()
-
 	if u.Graphics().IsGL() {
 		if u.glWorker == nil {
 			panic("mobile: glWorker must be initialized but not")
 		}
+
+		ctx, cancel := context.WithCancel(context.Background())
+		go func() {
+			<-renderEndCh
+			cancel()
+		}()
+
 		workAvailable := u.glWorker.WorkAvailable()
 	loop:
 		for {
@@ -118,9 +111,15 @@ func (u *UserInterface) Update() error {
 			}
 		}
 		return nil
-	} else {
-		u.t.Loop(ctx)
 	}
+
+	go func() {
+		<-renderEndCh
+		u.t.Call(func() error {
+			return thread.BreakLoop
+		})
+	}()
+	u.t.Loop()
 	return nil
 }
 
