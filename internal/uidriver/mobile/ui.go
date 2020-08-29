@@ -19,6 +19,7 @@ package mobile
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
@@ -107,6 +108,11 @@ func (u *UserInterface) Update() error {
 			select {
 			case <-workAvailable:
 				u.glWorker.DoWork()
+
+				// This is a dirty hack to avoid freezing on Pixel 4 (#1322).
+				// Apprently there is an issue in the usage of Worker in gomobile or gomobile itself.
+				// At least, freezing doesn't happen with this Gosched.
+				runtime.Gosched()
 			case <-ctx.Done():
 				break loop
 			}
