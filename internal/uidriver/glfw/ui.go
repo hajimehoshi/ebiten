@@ -606,7 +606,13 @@ func (u *UserInterface) Run(uicontext driver.UIContext) error {
 
 	ch := make(chan error, 1)
 	go func() {
-		defer cancel()
+		defer func() {
+			_ = u.t.Call(func() error {
+				cancel()
+				return nil
+			})
+		}()
+
 		defer close(ch)
 		if err := u.run(); err != nil {
 			ch <- err
