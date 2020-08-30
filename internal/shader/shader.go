@@ -483,6 +483,12 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 		}
 
 		name := n.Name
+		for _, v := range append(block.vars, vars...) {
+			if v.name == name {
+				s.addError(vs.Pos(), fmt.Sprintf("duplicated local variable name: %s", name))
+				return nil, nil, nil, false
+			}
+		}
 		vars = append(vars, variable{
 			name: name,
 			typ:  t,

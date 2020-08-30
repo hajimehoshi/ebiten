@@ -455,8 +455,15 @@ func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr,
 			stmts = append(stmts, ss...)
 
 			if define {
+				name := e.(*ast.Ident).Name
+				for _, v := range block.vars {
+					if v.name == name {
+						cs.addError(pos, fmt.Sprintf("duplicated local variable name: %s", name))
+						return nil, false
+					}
+				}
 				v := variable{
-					name: e.(*ast.Ident).Name,
+					name: name,
 				}
 				ts, ok := cs.functionReturnTypes(block, rhs[i])
 				if !ok {
@@ -545,8 +552,15 @@ func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr,
 			}
 
 			if define {
+				name := e.(*ast.Ident).Name
+				for _, v := range block.vars {
+					if v.name == name {
+						cs.addError(pos, fmt.Sprintf("duplicated local variable name: %s", name))
+						return nil, false
+					}
+				}
 				v := variable{
-					name: e.(*ast.Ident).Name,
+					name: name,
 				}
 				v.typ = rhsTypes[i]
 				block.vars = append(block.vars, v)
