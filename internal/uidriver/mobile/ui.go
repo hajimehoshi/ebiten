@@ -17,7 +17,6 @@
 package mobile
 
 import (
-	"context"
 	"fmt"
 	"runtime"
 	"runtime/debug"
@@ -89,14 +88,13 @@ func (u *UserInterface) Update() error {
 			panic("mobile: glWorker must be initialized but not")
 		}
 
-		ctx, cancel := context.WithCancel(context.Background())
+		done := make(chan struct{})
 		go func() {
 			<-renderEndCh
-			cancel()
+			close(done)
 		}()
 
 		workAvailable := u.glWorker.WorkAvailable()
-	loop:
 		for {
 			select {
 			case <-workAvailable:
@@ -106,11 +104,10 @@ func (u *UserInterface) Update() error {
 				// Apprently there is an issue in the usage of Worker in gomobile or gomobile itself.
 				// At least, freezing doesn't happen with this Gosched.
 				runtime.Gosched()
-			case <-ctx.Done():
-				break loop
+			case <-done:
+				return nil
 			}
 		}
-		return nil
 	}
 
 	go func() {
