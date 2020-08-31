@@ -116,55 +116,51 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 }
 
 func TestShaderShadowing(t *testing.T) {
-	_, err := NewShader([]byte(`package main
+	if _, err := NewShader([]byte(`package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	var position vec4
 	return position
 }
-`))
-	if err == nil {
+`)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
 	}
 }
 
 func TestShaderDuplicatedVariables(t *testing.T) {
-	_, err := NewShader([]byte(`package main
+	if _, err := NewShader([]byte(`package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	var foo vec4
 	var foo vec4
 	return foo
 }
-`))
-	if err == nil {
+`)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
 	}
 
-	_, err = NewShader([]byte(`package main
+	if _, err := NewShader([]byte(`package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	var foo, foo vec4
 	return foo
 }
-`))
-	if err == nil {
+`)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
 	}
 
-	_, err = NewShader([]byte(`package main
+	if _, err := NewShader([]byte(`package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	var foo vec4
 	foo := vec4(0)
 	return foo
 }
-`))
-	if err == nil {
+`)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
 	}
 
-	_, err = NewShader([]byte(`package main
+	if _, err := NewShader([]byte(`package main
 
 func Foo() (vec4, vec4) {
 	return vec4(0), vec4(0)
@@ -174,8 +170,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	foo, foo := Foo()
 	return foo
 }
-`))
-	if err == nil {
+`)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
 	}
 }
