@@ -88,12 +88,6 @@ func (u *UserInterface) Update() error {
 			panic("mobile: glWorker must be initialized but not")
 		}
 
-		done := make(chan struct{})
-		go func() {
-			<-renderEndCh
-			close(done)
-		}()
-
 		workAvailable := u.glWorker.WorkAvailable()
 		for {
 			select {
@@ -104,7 +98,7 @@ func (u *UserInterface) Update() error {
 				// Apprently there is an issue in the usage of Worker in gomobile or gomobile itself.
 				// At least, freezing doesn't happen with this Gosched.
 				runtime.Gosched()
-			case <-done:
+			case <-renderEndCh:
 				return nil
 			}
 		}
