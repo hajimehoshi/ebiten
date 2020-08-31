@@ -116,10 +116,20 @@ func NewShader(src []byte) (*Shader, error) {
 		return nil, err
 	}
 
-	// TODO: Create a pseudo vertex entrypoint to treat the attribute values correctly.
-	s, err := shader.Compile(fs, f, "__vertex", "Fragment", graphics.ShaderImageNum)
+	const (
+		vert = "__vertex"
+		frag = "Fragment"
+	)
+	s, err := shader.Compile(fs, f, vert, frag, graphics.ShaderImageNum)
 	if err != nil {
 		return nil, err
+	}
+
+	if s.VertexFunc.Block == nil {
+		return nil, fmt.Errorf("ebiten: vertex shader entry point '%s' is missing", vert)
+	}
+	if s.FragmentFunc.Block == nil {
+		return nil, fmt.Errorf("ebiten: fragment shader entry point '%s' is missing", frag)
 	}
 
 	return &Shader{
