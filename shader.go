@@ -56,11 +56,11 @@ var __textureSourceRegionOrigin vec2
 // The unit is the source texture's texel.
 var __textureSourceRegionSize vec2
 
-// imageSrcTextureSourceRegion returns the source image's region (the origin and the size) on its texture.
+// imageSrcTextureRegion returns the source image's region (the origin and the size) on its texture.
 // The unit is the source texture's texel.
 //
 // As an image is a part of internal texture, the image can be located at an arbitrary position on the texture.
-func imageSrcTextureSourceRegion() (vec2, vec2) {
+func imageSrcTextureRegion() (vec2, vec2) {
 	return __textureSourceRegionOrigin, __textureSourceRegionSize
 }
 `, graphics.ShaderImageNum, graphics.ShaderImageNum-1)
@@ -73,12 +73,12 @@ func imageSrcTextureSourceRegion() (vec2, vec2) {
 		}
 		// __t%d is a special variable for a texture variable.
 		shaderSuffix += fmt.Sprintf(`
-func image%[1]dTextureAt(pos vec2) vec4 {
+func imageSrc%[1]dAt(pos vec2) vec4 {
 	// pos is the position in texels of the source texture (= 0th image's texture).
 	return texture2D(__t%[1]d, %[2]s)
 }
 
-func image%[1]dTextureBoundsAt(pos vec2) vec4 {
+func imageSrc%[1]dBoundsAt(pos vec2) vec4 {
 	// pos is the position in texels of the source texture (= 0th image's texture).
 	return texture2D(__t%[1]d, %[2]s) *
 		step(__textureSourceRegionOrigin.x, pos.x) *
