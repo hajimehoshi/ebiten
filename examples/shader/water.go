@@ -27,7 +27,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 
 	srcsize := imageSrcTextureSize()
-	rorigin, rsize := imageSrcTextureRegion()
+	rorigin, _ := imageSrcTextureRegion()
 
 	xoffset := (4 / srcsize.x) * cos(Time*3+texCoord.y*200)
 	yoffset := (20 / srcsize.y) * (1.0 + cos(Time*3+texCoord.y*50))
