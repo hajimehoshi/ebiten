@@ -470,10 +470,12 @@ func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr,
 
 			if define {
 				name := e.(*ast.Ident).Name
-				for _, v := range block.vars {
-					if v.name == name {
-						cs.addError(pos, fmt.Sprintf("duplicated local variable name: %s", name))
-						return nil, false
+				if name != "_" {
+					for _, v := range block.vars {
+						if v.name == name {
+							cs.addError(pos, fmt.Sprintf("duplicated local variable name: %s", name))
+							return nil, false
+						}
 					}
 				}
 				ts, ok := cs.functionReturnTypes(block, rhs[i])
@@ -573,10 +575,12 @@ func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr,
 
 			if define {
 				name := e.(*ast.Ident).Name
-				for _, v := range block.vars {
-					if v.name == name {
-						cs.addError(pos, fmt.Sprintf("duplicated local variable name: %s", name))
-						return nil, false
+				if name != "_" {
+					for _, v := range block.vars {
+						if v.name == name {
+							cs.addError(pos, fmt.Sprintf("duplicated local variable name: %s", name))
+							return nil, false
+						}
 					}
 				}
 				v := variable{
