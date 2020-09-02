@@ -17,9 +17,9 @@ services:
   - xvfb
 
 install:
-  # Install Go 1.15 manualy
+  # Install Go 1.15.1 manualy
   # See https://travis-ci.community/t/goos-js-goarch-wasm-go-run-fails-panic-newosproc-not-implemented/1651
-  - wget -O go.tar.gz https://dl.google.com/go/go1.15.linux-amd64.tar.gz
+  - wget -O go.tar.gz https://dl.google.com/go/go1.15.1.linux-amd64.tar.gz
   - tar -C ~ -xzf go.tar.gz
   - rm go.tar.gz
   - export GOROOT=~/go
