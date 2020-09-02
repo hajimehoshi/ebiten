@@ -43,6 +43,6 @@ void F2(out float l0) {
 }
 
 void F3(out int l0) {
-	l0 = 1.0;
+	l0 = 1;
 	return;
 }

@@ -722,7 +722,7 @@ func (cs *compileState) parseBlock(outer *block, fname string, stmts []ast.Stmt,
 	}()
 
 	for _, stmt := range stmts {
-		ss, ok := cs.parseStmt(block, fname, stmt, inParams)
+		ss, ok := cs.parseStmt(block, fname, stmt, inParams, outParams)
 		if !ok {
 			return nil, false
 		}

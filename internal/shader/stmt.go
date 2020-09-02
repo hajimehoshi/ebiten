@@ -24,7 +24,16 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
-func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inParams []variable) ([]shaderir.Stmt, bool) {
+func (cs *compileState) forceToInt(stmt ast.Stmt, expr *shaderir.Expr) bool {
+	if !canTruncateToInteger(expr.Const) {
+		cs.addError(stmt.Pos(), fmt.Sprintf("constant %s truncated to integer", expr.Const.String()))
+		return false
+	}
+	expr.ConstType = shaderir.ConstTypeInt
+	return true
+}
+
+func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inParams, outParams []variable) ([]shaderir.Stmt, bool) {
 	var stmts []shaderir.Stmt
 
 	switch stmt := stmt.(type) {
@@ -78,13 +87,9 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			}
 			stmts = append(stmts, ss...)
 
-			if rhs[0].Type == shaderir.NumberExpr {
-				if ts[0].Main == shaderir.Int {
-					if !canTruncateToInteger(rhs[0].Const) {
-						cs.addError(stmt.Pos(), fmt.Sprintf("constant %s truncated to integer", rhs[0].Const.String()))
-						return nil, false
-					}
-					rhs[0].ConstType = shaderir.ConstTypeInt
+			if rhs[0].Type == shaderir.NumberExpr && ts[0].Main == shaderir.Int {
+				if !cs.forceToInt(stmt, &rhs[0]) {
+					return nil, false
 				}
 			}
 
@@ -207,7 +212,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		}
 		end := exprs[0].Exprs[1].Const
 
-		postSs, ok := cs.parseStmt(pseudoBlock, fname, stmt.Post, inParams)
+		postSs, ok := cs.parseStmt(pseudoBlock, fname, stmt.Post, inParams, outParams)
 		if !ok {
 			return nil, false
 		}
@@ -386,6 +391,14 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				cs.addError(r.Pos(), "multiple-context with return is not implemented yet")
 				continue
 			}
+
+			expr := exprs[0]
+			if expr.Type == shaderir.NumberExpr && outParams[i].typ.Main == shaderir.Int {
+				if !cs.forceToInt(stmt, &expr) {
+					return nil, false
+				}
+			}
+
 			stmts = append(stmts, shaderir.Stmt{
 				Type: shaderir.Assign,
 				Exprs: []shaderir.Expr{
@@ -393,7 +406,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 						Type:  shaderir.LocalVariable,
 						Index: len(inParams) + i,
 					},
-					exprs[0],
+					expr,
 				},
 			})
 		}
