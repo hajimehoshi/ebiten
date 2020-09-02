@@ -24,9 +24,9 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/shaderir"
 )
 
-func (cs *compileState) forceToInt(stmt ast.Stmt, expr *shaderir.Expr) bool {
+func (cs *compileState) forceToInt(node ast.Node, expr *shaderir.Expr) bool {
 	if !canTruncateToInteger(expr.Const) {
-		cs.addError(stmt.Pos(), fmt.Sprintf("constant %s truncated to integer", expr.Const.String()))
+		cs.addError(node.Pos(), fmt.Sprintf("constant %s truncated to integer", expr.Const.String()))
 		return false
 	}
 	expr.ConstType = shaderir.ConstTypeInt

@@ -15,6 +15,7 @@
 package shader_test
 
 import (
+	"fmt"
 	"go/parser"
 	"go/token"
 	"io/ioutil"
@@ -117,7 +118,24 @@ func TestCompile(t *testing.T) {
 			}
 			vs, fs := glsl.Compile(s)
 			if got, want := normalize(vs), normalize(string(tc.VS)); got != want {
-				t.Errorf("got: %v, want: %v", got, want)
+				var msg string
+				gotlines := strings.Split(got, "\n")
+				wantlines := strings.Split(want, "\n")
+				for i := range gotlines {
+					if len(wantlines) <= i {
+						msg = fmt.Sprintf(`lines %d:
+got:  %s
+want: (out of range)`, i+1, gotlines[i])
+						break
+					}
+					if gotlines[i] != wantlines[i] {
+						msg = fmt.Sprintf(`lines %d:
+got:  %s
+want: %s`, i+1, gotlines[i], wantlines[i])
+						break
+					}
+				}
+				t.Errorf("got: %v, want: %v\n\n%s", got, want, msg)
 			}
 			if tc.FS != nil {
 				if got, want := normalize(fs), normalize(string(tc.FS)); got != want {

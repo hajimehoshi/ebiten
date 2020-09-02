@@ -286,6 +286,14 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 
 		f := cs.funcs[callee.Index]
 
+		for i, p := range f.ir.InParams {
+			if args[i].Type == shaderir.NumberExpr && p.Main == shaderir.Int {
+				if !cs.forceToInt(e, &args[i]) {
+					return nil, nil, nil, false
+				}
+			}
+		}
+
 		var outParams []int
 		for _, p := range f.ir.OutParams {
 			idx := block.totalLocalVariableNum()

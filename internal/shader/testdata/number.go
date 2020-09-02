@@ -17,5 +17,16 @@ func Float() float {
 }
 
 func Int() int {
-	return 1
+	return 1.0
+}
+
+func TakeFloat(x float) {
+}
+
+func TakeInt(x int) {
+}
+
+func Foo3() {
+	TakeFloat(1.0)
+	TakeInt(1.0)
 }
