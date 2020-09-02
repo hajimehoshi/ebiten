@@ -104,6 +104,10 @@ func (b *block) totalLocalVariableNum() int {
 }
 
 func (b *block) findLocalVariable(name string) (int, shaderir.Type, bool) {
+	if name == "" || name == "_" {
+		panic("shader: variable name must be non-empty and non-underscore")
+	}
+
 	idx := 0
 	for outer := b.outer; outer != nil; outer = outer.outer {
 		idx += len(outer.vars)

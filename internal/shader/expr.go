@@ -369,6 +369,13 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 				},
 			}, []shaderir.Type{{Main: shaderir.Bool}}, nil, true
 		}
+		if e.Name == "_" {
+			return []shaderir.Expr{
+				{
+					Type: shaderir.Blank,
+				},
+			}, nil, nil, true
+		}
 		if i, t, ok := block.findLocalVariable(e.Name); ok {
 			return []shaderir.Expr{
 				{

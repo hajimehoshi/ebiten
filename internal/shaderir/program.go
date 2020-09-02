@@ -111,7 +111,8 @@ type Expr struct {
 type ExprType int
 
 const (
-	NumberExpr ExprType = iota
+	Blank ExprType = iota
+	NumberExpr
 	UniformVariable
 	TextureVariable
 	LocalVariable

@@ -444,6 +444,7 @@ func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr,
 	var stmts []shaderir.Stmt
 	var rhsExprs []shaderir.Expr
 	var rhsTypes []shaderir.Type
+	allblank := true
 
 	for i, e := range lhs {
 		if len(lhs) == len(rhs) {
@@ -462,9 +463,6 @@ func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr,
 						return nil, false
 					}
 				}
-				v := variable{
-					name: name,
-				}
 				ts, ok := cs.functionReturnTypes(block, rhs[i])
 				if !ok {
 					ts = origts
@@ -472,6 +470,10 @@ func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr,
 				if len(ts) > 1 {
 					cs.addError(pos, fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
 					return nil, false
+				}
+
+				v := variable{
+					name: name,
 				}
 				if len(ts) == 1 {
 					v.typ = ts[0]
@@ -489,6 +491,11 @@ func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr,
 				return nil, false
 			}
 			stmts = append(stmts, ss...)
+
+			if l[0].Type == shaderir.Blank {
+				continue
+			}
+			allblank = false
 
 			if r[0].Type == shaderir.NumberExpr {
 				t, ok := block.findLocalVariableByIndex(l[0].Index)
@@ -572,11 +579,22 @@ func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr,
 			}
 			stmts = append(stmts, ss...)
 
+			if l[0].Type == shaderir.Blank {
+				continue
+			}
+			allblank = false
+
 			stmts = append(stmts, shaderir.Stmt{
 				Type:  shaderir.Assign,
 				Exprs: []shaderir.Expr{l[0], rhsExprs[i]},
 			})
 		}
 	}
+
+	if define && allblank {
+		cs.addError(pos, fmt.Sprintf("no new variables on left side of :="))
+		return nil, false
+	}
+
 	return stmts, true
 }

@@ -181,3 +181,56 @@ func TestShaderNoMain(t *testing.T) {
 		t.Errorf("error must be non-nil but was nil")
 	}
 }
+
+func TestShaderNoNewVariables(t *testing.T) {
+	if _, err := NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	_ := 1
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	_, _ := 1, 1
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := NewShader([]byte(`package main
+
+func Foo() (int, int) {
+	return 1, 1
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	_, _ := Foo()
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a, _ := 1, 1
+	_ = a
+}
+`)); err != nil {
+		t.Errorf("error must be nil but non-nil: %v", err)
+	}
+
+	if _, err := NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	_, a := 1, 1
+	_ = a
+}
+`)); err != nil {
+		t.Errorf("error must be nil but non-nil: %v", err)
+	}
+}
