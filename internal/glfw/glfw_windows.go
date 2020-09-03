@@ -24,15 +24,6 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-type glfwVidMode struct {
-	width       int32
-	height      int32
-	redBits     int32
-	greenBits   int32
-	blueBits    int32
-	refreshRate int32
-}
-
 type glfwImage struct {
 	width  int32
 	height int32
@@ -87,14 +78,13 @@ func (m *Monitor) GetPos() (int, int) {
 func (m *Monitor) GetVideoMode() *VidMode {
 	v := glfwDLL.call("glfwGetVideoMode", m.m)
 	panicError()
-	vv := (*glfwVidMode)(unsafe.Pointer(v))
 	return &VidMode{
-		Width:       int(vv.width),
-		Height:      int(vv.height),
-		RedBits:     int(vv.redBits),
-		GreenBits:   int(vv.greenBits),
-		BlueBits:    int(vv.blueBits),
-		RefreshRate: int(vv.refreshRate),
+		Width:       int(*(*int32)(unsafe.Pointer(v))),
+		Height:      int(*(*int32)(unsafe.Pointer(v + 4))),
+		RedBits:     int(*(*int32)(unsafe.Pointer(v + 8))),
+		GreenBits:   int(*(*int32)(unsafe.Pointer(v + 12))),
+		BlueBits:    int(*(*int32)(unsafe.Pointer(v + 16))),
+		RefreshRate: int(*(*int32)(unsafe.Pointer(v + 20))),
 	}
 }
 
