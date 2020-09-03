@@ -26,7 +26,6 @@ import (
 	"runtime"
 	"sync"
 	"time"
-	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/driver"
@@ -768,12 +767,12 @@ func (u *UserInterface) run() error {
 		return nil
 	})
 
-	var w unsafe.Pointer
+	var w uintptr
 	_ = u.t.Call(func() error {
 		w = u.nativeWindow()
 		return nil
 	})
-	if g, ok := u.Graphics().(interface{ SetWindow(unsafe.Pointer) }); ok {
+	if g, ok := u.Graphics().(interface{ SetWindow(uintptr) }); ok {
 		g.SetWindow(w)
 	}
 	return u.loop()
@@ -1066,7 +1065,7 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 	})
 
 	if windowRecreated {
-		if g, ok := u.Graphics().(interface{ SetWindow(unsafe.Pointer) }); ok {
+		if g, ok := u.Graphics().(interface{ SetWindow(uintptr) }); ok {
 			g.SetWindow(u.nativeWindow())
 		}
 	}

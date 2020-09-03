@@ -362,7 +362,7 @@ func (g *Graphics) End() {
 	})
 }
 
-func (g *Graphics) SetWindow(window unsafe.Pointer) {
+func (g *Graphics) SetWindow(window uintptr) {
 	g.t.Call(func() error {
 		// Note that [NSApp mainWindow] returns nil when the window is borderless.
 		// Then the window is needed to be given explicitly.

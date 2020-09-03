@@ -19,8 +19,6 @@
 package glfw
 
 import (
-	"unsafe"
-
 	"github.com/hajimehoshi/ebiten/internal/glfw"
 )
 
@@ -37,7 +35,7 @@ func currentMonitorByOS(_ *glfw.Window) *glfw.Monitor {
 	return nil
 }
 
-func (u *UserInterface) nativeWindow() unsafe.Pointer {
+func (u *UserInterface) nativeWindow() uintptr {
 	// TODO: Implement this.
-	return nil
+	return 0
 }
