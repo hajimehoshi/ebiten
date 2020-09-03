@@ -17,6 +17,7 @@ package glfw
 import (
 	"image"
 	"image/draw"
+	"math/bits"
 	"runtime"
 	"sync"
 	"unsafe"
@@ -384,7 +385,7 @@ func GetMonitors() []*Monitor {
 		if m != nil {
 			ms[i] = &Monitor{uintptr(m)}
 		}
-		ptr += unsafe.Sizeof(unsafe.Pointer(uintptr(0)))
+		ptr += bits.UintSize / 8
 	}
 	return ms
 }
