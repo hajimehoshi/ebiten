@@ -69,8 +69,8 @@ type programID uint32
 
 var (
 	invalidTexture     = textureNative(mgl.Texture{})
-	invalidFramebuffer = framebufferNative(mgl.Framebuffer{(1 << 32) - 1})
-	invalidUniform     = uniformLocation(mgl.Uniform{-1})
+	invalidFramebuffer = framebufferNative(mgl.Framebuffer{Value: (1 << 32) - 1})
+	invalidUniform     = uniformLocation(mgl.Uniform{Value: -1})
 )
 
 func getProgramID(p program) programID {
