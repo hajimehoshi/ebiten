@@ -151,16 +151,6 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	q.nextIndex += len(vertices) / graphics.VertexFloatNum
 	q.tmpNumIndices += len(indices)
 
-	// TODO: If dst is the screen, reorder the command to be the last.
-	if !split && 0 < len(q.commands) {
-		// TODO: Pass offsets and uniforms when merging considers the shader.
-		if last := q.commands[len(q.commands)-1]; last.CanMergeWithDrawTrianglesCommand(dst, srcs, color, mode, filter, address, sourceRegion, shader) {
-			last.AddNumVertices(len(vertices))
-			last.AddNumIndices(len(indices))
-			return
-		}
-	}
-
 	if srcs[0] != nil {
 		w, h := srcs[0].InternalSize()
 		sourceRegion.X /= float32(w)
@@ -170,6 +160,16 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 		for i := range offsets {
 			offsets[i][0] /= float32(w)
 			offsets[i][1] /= float32(h)
+		}
+	}
+
+	// TODO: If dst is the screen, reorder the command to be the last.
+	if !split && 0 < len(q.commands) {
+		// TODO: Pass offsets and uniforms when merging considers the shader.
+		if last := q.commands[len(q.commands)-1]; last.CanMergeWithDrawTrianglesCommand(dst, srcs, color, mode, filter, address, sourceRegion, shader) {
+			last.AddNumVertices(len(vertices))
+			last.AddNumIndices(len(indices))
+			return
 		}
 	}
 
