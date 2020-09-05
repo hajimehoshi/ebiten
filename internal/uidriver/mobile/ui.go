@@ -18,10 +18,10 @@ package mobile
 
 import (
 	"fmt"
-	"runtime"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
+	"time"
 	"unicode"
 
 	"golang.org/x/mobile/app"
@@ -90,16 +90,34 @@ func (u *UserInterface) Update() error {
 
 		workAvailable := u.glWorker.WorkAvailable()
 		for {
+			// When the two channels don't receive for a while, call DoWork forcibly to avoid freeze
+			// (#1322, #1332).
+			//
+			// In theory, this timeout should not be necessary. However, it looks like this 'select'
+			// statement sometimes blocks forever on some Android devices like Pixel 4(a). Apparently
+			// workAvailable sometimes not receives even though there are queued OpenGL functions.
+			// Call DoWork for such case as a symptomatic treatment.
+			//
+			// Calling DoWork without waiting for workAvailable is safe. If there are no tasks, DoWork
+			// should return immediately.
+			//
+			// TODO: Fix the root cause. Note that this is pretty hard since e.g., logging affects the
+			// scheduling and freezing might not happen with logging.
+			t := time.NewTimer(100 * time.Millisecond)
+
 			select {
 			case <-workAvailable:
+				if !t.Stop() {
+					<-t.C
+				}
 				u.glWorker.DoWork()
-
-				// This is a dirty hack to avoid freezing on Pixel 4 (#1322).
-				// Apprently there is an issue in the usage of Worker in gomobile or gomobile itself.
-				// At least, freezing doesn't happen with this Gosched.
-				runtime.Gosched()
 			case <-renderEndCh:
+				if !t.Stop() {
+					<-t.C
+				}
 				return nil
+			case <-t.C:
+				u.glWorker.DoWork()
 			}
 		}
 	}
