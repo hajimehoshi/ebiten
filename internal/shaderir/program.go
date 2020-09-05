@@ -22,6 +22,7 @@ import (
 )
 
 type Program struct {
+	UniformNames []string
 	Uniforms     []Type
 	TextureNum   int
 	Attributes   []Type

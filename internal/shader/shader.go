@@ -50,9 +50,6 @@ type compileState struct {
 
 	ir shaderir.Program
 
-	// uniforms is a collection of uniform variable names.
-	uniforms []string
-
 	funcs []function
 
 	global block
@@ -72,7 +69,7 @@ func (cs *compileState) findFunction(name string) (int, bool) {
 }
 
 func (cs *compileState) findUniformVariable(name string) (int, bool) {
-	for i, u := range cs.uniforms {
+	for i, u := range cs.ir.UniformNames {
 		if u == name {
 			return i, true
 		}
@@ -188,20 +185,20 @@ func (cs *compileState) parse(f *ast.File) {
 	// Sort the uniform variable so that special variable starting with __ should come first.
 	var unames []string
 	var utypes []shaderir.Type
-	for i, u := range cs.uniforms {
+	for i, u := range cs.ir.UniformNames {
 		if strings.HasPrefix(u, "__") {
 			unames = append(unames, u)
 			utypes = append(utypes, cs.ir.Uniforms[i])
 		}
 	}
 	// TODO: Check len(unames) == graphics.PreservedUniformVariablesNum. Unfortunately this is not true on tests.
-	for i, u := range cs.uniforms {
+	for i, u := range cs.ir.UniformNames {
 		if !strings.HasPrefix(u, "__") {
 			unames = append(unames, u)
 			utypes = append(utypes, cs.ir.Uniforms[i])
 		}
 	}
-	cs.uniforms = unames
+	cs.ir.UniformNames = unames
 	cs.ir.Uniforms = utypes
 
 	// Parse function names so that any other function call the others.
@@ -300,7 +297,7 @@ func (cs *compileState) parseDecl(b *block, d ast.Decl) ([]shaderir.Stmt, bool) 
 								cs.addError(s.Names[i].Pos(), fmt.Sprintf("global variables must be exposed: %s", v.name))
 							}
 						}
-						cs.uniforms = append(cs.uniforms, v.name)
+						cs.ir.UniformNames = append(cs.ir.UniformNames, v.name)
 						cs.ir.Uniforms = append(cs.ir.Uniforms, v.typ)
 					}
 					continue
