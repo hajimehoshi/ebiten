@@ -14,7 +14,7 @@ require (
 	github.com/jfreymuth/vorbis v1.0.0 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	golang.org/x/image v0.0.0-20191009234506-e7c1f5e7dbb8
-	golang.org/x/mobile v0.0.0-20200222142934-3c8601c510d0
+	golang.org/x/mobile v0.0.0-20200721161523-bcce01171201
 	golang.org/x/sys v0.0.0-20191026070338-33540a1f6037
 	golang.org/x/tools v0.0.0-20200117220505-0cba7a3a9ee9
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
