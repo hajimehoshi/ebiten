@@ -414,6 +414,8 @@ func (c *compileContext) glslBlock(p *shaderir.Program, topBlock, block *shaderi
 				}
 			}
 			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, glslExpr(&lhs), glslExpr(&rhs)))
+		case shaderir.Init:
+			lines = append(lines, c.initVariable(p, topBlock, block, s.InitIndex, false, level)...)
 		case shaderir.If:
 			lines = append(lines, fmt.Sprintf("%sif (%s) {", idt, glslExpr(&s.Exprs[0])))
 			lines = append(lines, c.glslBlock(p, topBlock, s.Blocks[0], level+1)...)

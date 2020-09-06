@@ -73,6 +73,7 @@ type Stmt struct {
 	ForEnd      constant.Value
 	ForOp       Op
 	ForDelta    constant.Value
+	InitIndex   int
 }
 
 type StmtType int
@@ -81,6 +82,7 @@ const (
 	ExprStmt StmtType = iota
 	BlockStmt
 	Assign
+	Init
 	If
 	For
 	Continue

@@ -313,10 +313,10 @@ func localVariableName(p *shaderir.Program, topBlock *shaderir.Block, idx int) s
 
 func (c *compileContext) initVariable(p *shaderir.Program, topBlock, block *shaderir.Block, index int, decl bool, level int) []string {
 	idt := strings.Repeat("\t", level+1)
+	name := localVariableName(p, topBlock, index)
 	t := p.LocalVariableType(topBlock, block, index)
 
 	var lines []string
-	name := localVariableName(p, topBlock, index)
 	if decl {
 		lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, c.metalVarDecl(p, &t, name, false, false), c.metalVarInit(p, &t)))
 	} else {
@@ -412,6 +412,20 @@ func (c *compileContext) metalBlock(p *shaderir.Program, topBlock, block *shader
 			lines = append(lines, idt+"}")
 		case shaderir.Assign:
 			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, metalExpr(&s.Exprs[0]), metalExpr(&s.Exprs[1])))
+		case shaderir.Init:
+			init := true
+			if topBlock == p.VertexFunc.Block {
+				// In the vertex function, varying values are the output parameters.
+				// These values are represented as a struct and not needed to be initialized.
+				na := len(p.Attributes)
+				nv := len(p.Varyings)
+				if s.InitIndex < na+nv+1 {
+					init = false
+				}
+			}
+			if init {
+				lines = append(lines, c.initVariable(p, topBlock, block, s.InitIndex, false, level)...)
+			}
 		case shaderir.If:
 			lines = append(lines, fmt.Sprintf("%sif (%s) {", idt, metalExpr(&s.Exprs[0])))
 			lines = append(lines, c.metalBlock(p, topBlock, s.Blocks[0], level+1)...)

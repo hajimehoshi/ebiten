@@ -379,9 +379,11 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 
 	case *ast.ReturnStmt:
 		if len(stmt.Results) != len(outParams) {
-			// TODO: Implenet multiple-value context.
-			cs.addError(stmt.Pos(), fmt.Sprintf("the number of returning variables must be %d but %d", len(outParams), len(stmt.Results)))
-			return nil, false
+			if !(len(stmt.Results) == 0 && len(outParams) > 0 && outParams[0].name != "") {
+				// TODO: Implenet multiple-value context.
+				cs.addError(stmt.Pos(), fmt.Sprintf("the number of returning variables must be %d but %d", len(outParams), len(stmt.Results)))
+				return nil, false
+			}
 		}
 
 		for i, r := range stmt.Results {

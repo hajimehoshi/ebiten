@@ -724,6 +724,15 @@ func (cs *compileState) parseBlock(outer *block, fname string, stmts []ast.Stmt,
 		}
 	}()
 
+	if outer.outer == nil && len(outParams) > 0 && outParams[0].name != "" {
+		for i := range outParams {
+			block.ir.Stmts = append(block.ir.Stmts, shaderir.Stmt{
+				Type:      shaderir.Init,
+				InitIndex: len(inParams) + i,
+			})
+		}
+	}
+
 	for _, stmt := range stmts {
 		ss, ok := cs.parseStmt(block, fname, stmt, inParams, outParams)
 		if !ok {
