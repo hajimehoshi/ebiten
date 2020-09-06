@@ -187,6 +187,7 @@ func TestShaderNoNewVariables(t *testing.T) {
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	_ := 1
+	return vec4(0)
 }
 `)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
@@ -196,6 +197,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	_, _ := 1, 1
+	return vec4(0)
 }
 `)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
@@ -209,6 +211,7 @@ func Foo() (int, int) {
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	_, _ := Foo()
+	return vec4(0)
 }
 `)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
@@ -219,6 +222,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	a, _ := 1, 1
 	_ = a
+	return vec4(0)
 }
 `)); err != nil {
 		t.Errorf("error must be nil but non-nil: %v", err)
@@ -229,6 +233,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	_, a := 1, 1
 	_ = a
+	return vec4(0)
 }
 `)); err != nil {
 		t.Errorf("error must be nil but non-nil: %v", err)
