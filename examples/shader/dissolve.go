@@ -18,7 +18,7 @@ package main
 
 var Time float
 var Cursor vec2
-var ScreenImage vec2
+var ScreenSize vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// Triangle wave to go 0-->1-->0...

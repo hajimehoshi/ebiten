@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"go/parser"
 	"go/token"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/mipmap"
@@ -102,7 +103,8 @@ func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
 }
 
 type Shader struct {
-	shader *mipmap.Shader
+	shader       *mipmap.Shader
+	uniformNames []string
 }
 
 func NewShader(src []byte) (*Shader, error) {
@@ -133,11 +135,37 @@ func NewShader(src []byte) (*Shader, error) {
 	}
 
 	return &Shader{
-		shader: mipmap.NewShader(s),
+		shader:       mipmap.NewShader(s),
+		uniformNames: s.UniformNames,
 	}, nil
 }
 
 func (s *Shader) Dispose() {
 	s.shader.MarkDisposed()
 	s.shader = nil
+}
+
+func (s *Shader) convertUniforms(uniforms map[string]interface{}) []interface{} {
+	names := map[string]int{}
+	var idx int
+	for _, n := range s.uniformNames {
+		if strings.HasPrefix(n, "__") {
+			continue
+		}
+		names[n] = idx
+		idx++
+	}
+
+	us := make([]interface{}, len(names))
+	for n, u := range uniforms {
+		idx, ok := names[n]
+		if !ok {
+			// TODO: Panic here?
+			continue
+		}
+		us[idx] = u
+	}
+
+	// TODO: Check the uniform variable types?
+	return us
 }

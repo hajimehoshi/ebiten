@@ -140,7 +140,7 @@ type DrawImageOptions struct {
 	// Uniforms is a set of uniform variables for the shader.
 	//
 	// Uniforms is used only when Shader is not nil.
-	Uniforms []interface{}
+	Uniforms map[string]interface{}
 
 	// Deprecated: (as of 1.5.0) Use SubImage instead.
 	ImageParts ImageParts
@@ -288,7 +288,8 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		return nil
 	}
 
-	i.mipmap.DrawTriangles(srcs, vs, is, nil, mode, filter, driver.AddressUnsafe, sr, options.Shader.shader, options.Uniforms, canSkipMipmap(options.GeoM, filter))
+	us := options.Shader.convertUniforms(options.Uniforms)
+	i.mipmap.DrawTriangles(srcs, vs, is, nil, mode, filter, driver.AddressUnsafe, sr, options.Shader.shader, us, canSkipMipmap(options.GeoM, filter))
 	return nil
 }
 
@@ -358,7 +359,7 @@ type DrawTrianglesOptions struct {
 	// Uniforms is a set of uniform variables for the shader.
 	//
 	// Uniforms is used only when Shader is not nil.
-	Uniforms []interface{}
+	Uniforms map[string]interface{}
 }
 
 // MaxIndicesNum is the maximum number of indices for DrawTriangles.
@@ -454,7 +455,9 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), sr, nil, nil, false)
 		return
 	}
-	i.mipmap.DrawTriangles(srcs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, sr, options.Shader.shader, options.Uniforms, false)
+
+	us := options.Shader.convertUniforms(options.Uniforms)
+	i.mipmap.DrawTriangles(srcs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, sr, options.Shader.shader, us, false)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader
@@ -470,7 +473,7 @@ type DrawRectShaderOptions struct {
 	CompositeMode CompositeMode
 
 	// Uniforms is a set of uniform variables for the shader.
-	Uniforms []interface{}
+	Uniforms map[string]interface{}
 
 	// Images is a set of the source images.
 	// All the image must be the same size with the rectangle.
@@ -542,7 +545,8 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		}
 	}
 
-	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, sr, shader.shader, options.Uniforms, canSkipMipmap(options.GeoM, driver.FilterNearest))
+	us := shader.convertUniforms(options.Uniforms)
+	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, sr, shader.shader, us, canSkipMipmap(options.GeoM, driver.FilterNearest))
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader
@@ -554,7 +558,7 @@ type DrawTrianglesShaderOptions struct {
 	CompositeMode CompositeMode
 
 	// Uniforms is a set of uniform variables for the shader.
-	Uniforms []interface{}
+	Uniforms map[string]interface{}
 
 	// Images is a set of the source images.
 	// All the image must be the same size.
@@ -649,7 +653,8 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		}
 	}
 
-	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, sr, shader.shader, options.Uniforms, false)
+	us := shader.convertUniforms(options.Uniforms)
+	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, sr, shader.shader, us, false)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.
