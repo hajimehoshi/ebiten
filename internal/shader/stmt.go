@@ -111,7 +111,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			cs.addError(stmt.Pos(), fmt.Sprintf("unexpected token: %s", stmt.Tok))
 		}
 	case *ast.BlockStmt:
-		b, ok := cs.parseBlock(block, fname, stmt.List, inParams, nil)
+		b, ok := cs.parseBlock(block, fname, stmt.List, inParams, outParams)
 		if !ok {
 			return nil, false
 		}
@@ -146,7 +146,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		// Create a new pseudo block for the initial statement, so that the counter variable belongs to the
 		// new pseudo block for each for-loop. Without this, the samely named counter variables in different
 		// for-loops confuses the parser.
-		pseudoBlock, ok := cs.parseBlock(block, fname, []ast.Stmt{stmt.Init}, inParams, nil)
+		pseudoBlock, ok := cs.parseBlock(block, fname, []ast.Stmt{stmt.Init}, inParams, outParams)
 		if !ok {
 			return nil, false
 		}
@@ -258,7 +258,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			return nil, false
 		}
 
-		b, ok := cs.parseBlock(pseudoBlock, fname, []ast.Stmt{stmt.Body}, inParams, nil)
+		b, ok := cs.parseBlock(pseudoBlock, fname, []ast.Stmt{stmt.Body}, inParams, outParams)
 		if !ok {
 			return nil, false
 		}
@@ -289,7 +289,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		if stmt.Init != nil {
 			init := stmt.Init
 			stmt.Init = nil
-			b, ok := cs.parseBlock(block, fname, []ast.Stmt{init, stmt}, inParams, nil)
+			b, ok := cs.parseBlock(block, fname, []ast.Stmt{init, stmt}, inParams, outParams)
 			if !ok {
 				return nil, false
 			}
@@ -316,7 +316,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		stmts = append(stmts, ss...)
 
 		var bs []*shaderir.Block
-		b, ok := cs.parseBlock(block, fname, stmt.Body.List, inParams, nil)
+		b, ok := cs.parseBlock(block, fname, stmt.Body.List, inParams, outParams)
 		if !ok {
 			return nil, false
 		}
@@ -325,13 +325,13 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		if stmt.Else != nil {
 			switch s := stmt.Else.(type) {
 			case *ast.BlockStmt:
-				b, ok := cs.parseBlock(block, fname, s.List, inParams, nil)
+				b, ok := cs.parseBlock(block, fname, s.List, inParams, outParams)
 				if !ok {
 					return nil, false
 				}
 				bs = append(bs, b.ir)
 			default:
-				b, ok := cs.parseBlock(block, fname, []ast.Stmt{s}, inParams, nil)
+				b, ok := cs.parseBlock(block, fname, []ast.Stmt{s}, inParams, outParams)
 				if !ok {
 					return nil, false
 				}
@@ -378,8 +378,14 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		})
 
 	case *ast.ReturnStmt:
+		if len(stmt.Results) != len(outParams) {
+			// TODO: Implenet multiple-context.
+			cs.addError(stmt.Pos(), fmt.Sprintf("the number of returning variables must be %d but %d", len(outParams), len(stmt.Results)))
+			return nil, false
+		}
+
 		for i, r := range stmt.Results {
-			exprs, _, ss, ok := cs.parseExpr(block, r)
+			exprs, ts, ss, ok := cs.parseExpr(block, r)
 			if !ok {
 				return nil, false
 			}
@@ -392,11 +398,23 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				continue
 			}
 
+			t := ts[0]
 			expr := exprs[0]
-			if expr.Type == shaderir.NumberExpr && outParams[i].typ.Main == shaderir.Int {
-				if !cs.forceToInt(stmt, &expr) {
-					return nil, false
+			if expr.Type == shaderir.NumberExpr {
+				switch outParams[i].typ.Main {
+				case shaderir.Int:
+					if !cs.forceToInt(stmt, &expr) {
+						return nil, false
+					}
+					t = shaderir.Type{Main: shaderir.Int}
+				case shaderir.Float:
+					t = shaderir.Type{Main: shaderir.Float}
 				}
+			}
+
+			if !t.Equal(&outParams[i].typ) {
+				cs.addError(stmt.Pos(), fmt.Sprintf("cannot use type %s as type %s in return argument", &t, &outParams[i].typ))
+				return nil, false
 			}
 
 			stmts = append(stmts, shaderir.Stmt{

@@ -239,3 +239,14 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		t.Errorf("error must be nil but non-nil: %v", err)
 	}
 }
+
+func TestShaderWrongReturn(t *testing.T) {
+	if _, err := NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return 0.0;
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+}
