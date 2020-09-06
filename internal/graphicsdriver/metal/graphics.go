@@ -895,8 +895,8 @@ func (i *Image) IsInvalidated() bool {
 }
 
 func (i *Image) syncTexture() {
-	// Calling SynchronizeTexturein mtl.m is ignored on iOS, but it looks like committing BliCommandEncoder is
-	// necessary (#1337).
+	// Calling SynchronizeTexture is ignored on iOS (see mtl.m), but it looks like committing BliCommandEncoder
+	// is necessary (#1337).
 	i.graphics.t.Call(func() error {
 		if i.graphics.cb != (mtl.CommandBuffer{}) {
 			panic("metal: command buffer must be empty at syncTexture: flushIfNeeded is not called yet?")
