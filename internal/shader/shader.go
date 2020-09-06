@@ -645,6 +645,28 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 		return function{}, false
 	}
 
+	if len(outParams) > 0 {
+		var hasReturn func(stmts []shaderir.Stmt) bool
+		hasReturn = func(stmts []shaderir.Stmt) bool {
+			for _, stmt := range stmts {
+				if stmt.Type == shaderir.Return {
+					return true
+				}
+				for _, b := range stmt.Blocks {
+					if hasReturn(b.Stmts) {
+						return true
+					}
+				}
+			}
+			return false
+		}
+
+		if !hasReturn(b.ir.Stmts) {
+			cs.addError(d.Pos(), fmt.Sprintf("function %s must have a return statement but not", d.Name))
+			return function{}, false
+		}
+	}
+
 	var inT, outT []shaderir.Type
 	for _, v := range inParams {
 		inT = append(inT, v.typ)
