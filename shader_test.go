@@ -249,4 +249,17 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 `)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
 	}
+
+	if _, err := NewShader([]byte(`package main
+
+func Foo() (float, float) {
+	return 0;
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(0);
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
 }
