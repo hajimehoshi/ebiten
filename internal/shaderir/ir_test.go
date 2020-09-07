@@ -902,7 +902,7 @@ void F0(float l0, float l1, thread float& l2) {
 				VertexFunc: VertexFunc{
 					Block: block(
 						nil,
-						5,
+						4+1,
 						assignStmt(
 							localVariableExpr(3),
 							localVariableExpr(0),
