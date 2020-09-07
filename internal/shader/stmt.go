@@ -379,7 +379,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 
 	case *ast.ReturnStmt:
 		if len(stmt.Results) != len(outParams) {
-			// TODO: Implenet multiple-context.
+			// TODO: Implenet multiple-value context.
 			cs.addError(stmt.Pos(), fmt.Sprintf("the number of returning variables must be %d but %d", len(outParams), len(stmt.Results)))
 			return nil, false
 		}
@@ -394,7 +394,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				continue
 			}
 			if len(exprs) > 1 {
-				cs.addError(r.Pos(), "multiple-context with return is not implemented yet")
+				cs.addError(r.Pos(), "multiple-value context with return is not implemented yet")
 				continue
 			}
 
