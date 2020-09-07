@@ -346,8 +346,8 @@ func (c *compileContext) glslBlock(p *shaderir.Program, topBlock, block *shaderi
 	idt := strings.Repeat("\t", level+1)
 
 	var lines []string
-	for i, t := range block.LocalVars {
-		name := fmt.Sprintf("l%d", block.LocalVarIndexOffset+i)
+	for i := range block.LocalVars {
+		name, t := localVariable(p, topBlock, block, block.LocalVarIndexOffset+i)
 		switch t.Main {
 		case shaderir.Array:
 			lines = append(lines, fmt.Sprintf("%s%s;", idt, c.glslVarDecl(p, &t, name)))

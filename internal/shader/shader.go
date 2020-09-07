@@ -695,27 +695,11 @@ func (cs *compileState) parseBlock(outer *block, fname string, stmts []ast.Stmt,
 	}
 
 	var offset int
-	switch {
-	case outer.outer == nil && fname == cs.vertexEntry:
-		offset = 0
-	case outer.outer == nil && fname == cs.fragmentEntry:
-		offset = 0
-	case outer.outer == nil:
-		offset = len(inParams) + len(outParams)
-	default:
-		for b := outer; b != nil; b = b.outer {
-			offset += len(b.vars)
-		}
-		if fname == cs.vertexEntry {
-			offset -= len(cs.ir.Attributes)
-			offset-- // position
-			offset -= len(cs.ir.Varyings)
-		}
-		if fname == cs.fragmentEntry {
-			offset-- // position
-			offset -= len(cs.ir.Varyings)
-			offset-- // color
-		}
+	for b := outer; b != nil; b = b.outer {
+		offset += len(b.vars)
+	}
+	if outer == &cs.global {
+		offset += len(inParams) + len(outParams)
 	}
 
 	block := &block{

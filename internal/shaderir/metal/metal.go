@@ -321,8 +321,9 @@ func (c *compileContext) metalBlock(p *shaderir.Program, topBlock, block *shader
 	var lines []string
 	for i, t := range block.LocalVars {
 		// The type is None e.g., when the variable is a for-loop counter.
+		name := localVariableName(p, topBlock, block.LocalVarIndexOffset+i)
 		if t.Main != shaderir.None {
-			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, c.metalVarDecl(p, &t, fmt.Sprintf("l%d", block.LocalVarIndexOffset+i), false, false), c.metalVarInit(p, &t)))
+			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, c.metalVarDecl(p, &t, name, false, false), c.metalVarInit(p, &t)))
 		}
 	}
 
