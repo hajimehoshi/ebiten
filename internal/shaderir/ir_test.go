@@ -280,7 +280,7 @@ void F0(in float l0, in vec2 l1, in vec4 l2, out mat4 l3) {
 						Return: Type{Main: Float},
 						Block: block(
 							nil,
-							0,
+							1,
 							returnStmt(
 								localVariableExpr(0),
 							),
@@ -401,7 +401,7 @@ void F0(in float l0, out float l1) {
 						},
 						Block: block(
 							nil,
-							0,
+							3,
 							assignStmt(
 								localVariableExpr(2),
 								binaryExpr(
@@ -442,7 +442,7 @@ void F0(in float l0, in float l1, out float l2) {
 						},
 						Block: block(
 							nil,
-							0,
+							4,
 							assignStmt(
 								localVariableExpr(3),
 								selectionExpr(
@@ -482,7 +482,7 @@ void F0(in bool l0, in float l1, in float l2, out float l3) {
 						},
 						Block: block(
 							nil,
-							0,
+							3,
 							exprStmt(
 								callExpr(
 									functionExpr(1),
@@ -529,7 +529,7 @@ void F0(in float l0, in float l1, out vec2 l2) {
 						},
 						Block: block(
 							nil,
-							0,
+							3,
 							assignStmt(
 								localVariableExpr(2),
 								callExpr(
@@ -568,7 +568,7 @@ void F0(in float l0, in float l1, out float l2) {
 						},
 						Block: block(
 							nil,
-							0,
+							2,
 							assignStmt(
 								localVariableExpr(1),
 								fieldSelectorExpr(
@@ -607,7 +607,7 @@ void F0(in vec4 l0, out vec2 l1) {
 						},
 						Block: block(
 							nil,
-							0,
+							3,
 							ifStmt(
 								binaryExpr(
 									EqualOp,
@@ -616,7 +616,7 @@ void F0(in vec4 l0, out vec2 l1) {
 								),
 								block(
 									nil,
-									0,
+									3,
 									assignStmt(
 										localVariableExpr(2),
 										localVariableExpr(0),
@@ -624,7 +624,7 @@ void F0(in vec4 l0, out vec2 l1) {
 								),
 								block(
 									nil,
-									0,
+									3,
 									assignStmt(
 										localVariableExpr(2),
 										localVariableExpr(1),
@@ -672,7 +672,7 @@ void F0(in float l0, in float l1, out float l2) {
 							[]Type{
 								{},
 							},
-							0,
+							3,
 							forStmt(
 								Type{Main: Int},
 								3,
@@ -682,7 +682,7 @@ void F0(in float l0, in float l1, out float l2) {
 								1,
 								block(
 									nil,
-									4,
+									3,
 									assignStmt(
 										localVariableExpr(2),
 										localVariableExpr(0),
@@ -726,7 +726,7 @@ void F0(in float l0, in float l1, out float l2) {
 							[]Type{
 								{},
 							},
-							0,
+							3,
 							forStmt(
 								Type{Main: Int},
 								3,
@@ -799,7 +799,7 @@ void F0(float l0, float l1, thread float& l2) {
 								{},
 								{},
 							},
-							0,
+							3,
 							forStmt(
 								Type{Main: Int},
 								3,
@@ -902,7 +902,7 @@ void F0(float l0, float l1, thread float& l2) {
 				VertexFunc: VertexFunc{
 					Block: block(
 						nil,
-						0,
+						5,
 						assignStmt(
 							localVariableExpr(3),
 							localVariableExpr(0),
@@ -953,7 +953,7 @@ varying vec2 V1;`,
 				VertexFunc: VertexFunc{
 					Block: block(
 						nil,
-						0,
+						5+1,
 						assignStmt(
 							localVariableExpr(3),
 							localVariableExpr(0),
@@ -974,7 +974,7 @@ varying vec2 V1;`,
 							{Main: Float},
 							{Main: Vec2},
 						},
-						0,
+						3+1,
 						assignStmt(
 							localVariableExpr(3),
 							localVariableExpr(0),

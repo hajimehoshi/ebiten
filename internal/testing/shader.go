@@ -174,7 +174,7 @@ var (
 	}
 	defaultVertexFunc = shaderir.VertexFunc{
 		Block: &shaderir.Block{
-			LocalVarIndexOffset: 0,
+			LocalVarIndexOffset: 4 + 1,
 			Stmts: []shaderir.Stmt{
 				{
 					Type: shaderir.Assign,
@@ -285,7 +285,7 @@ func ShaderProgramFill(r, g, b, a byte) shaderir.Program {
 	p := defaultProgram()
 	p.FragmentFunc = shaderir.FragmentFunc{
 		Block: &shaderir.Block{
-			LocalVarIndexOffset: 0,
+			LocalVarIndexOffset: 2 + 1,
 			Stmts: []shaderir.Stmt{
 				{
 					Type: shaderir.Assign,
@@ -423,7 +423,7 @@ func ShaderProgramImages(imageNum int) shaderir.Program {
 			LocalVars: []shaderir.Type{
 				{Main: shaderir.Vec4},
 			},
-			LocalVarIndexOffset: 0,
+			LocalVarIndexOffset: 2 + 1,
 			Stmts:               stmts,
 		},
 	}
