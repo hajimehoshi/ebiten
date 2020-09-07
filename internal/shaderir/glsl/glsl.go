@@ -282,7 +282,8 @@ func descendantLocalVars(block, target *shaderir.Block) ([]shaderir.Type, bool) 
 	for _, s := range block.Stmts {
 		for _, b := range s.Blocks {
 			if ts2, found := descendantLocalVars(b, target); found {
-				ts = append(ts, block.LocalVars...)
+				n := b.LocalVarIndexOffset - block.LocalVarIndexOffset
+				ts = append(ts, block.LocalVars[:n]...)
 				ts = append(ts, ts2...)
 				return ts, true
 			}
