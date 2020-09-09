@@ -311,6 +311,20 @@ func localVariableName(p *shaderir.Program, topBlock *shaderir.Block, idx int) s
 	}
 }
 
+func (c *compileContext) initVariable(p *shaderir.Program, topBlock, block *shaderir.Block, index int, decl bool, level int) []string {
+	idt := strings.Repeat("\t", level+1)
+	t := p.LocalVariableType(topBlock, block, index)
+
+	var lines []string
+	name := localVariableName(p, topBlock, index)
+	if decl {
+		lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, c.metalVarDecl(p, &t, name, false, false), c.metalVarInit(p, &t)))
+	} else {
+		lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, name, c.metalVarInit(p, &t)))
+	}
+	return lines
+}
+
 func (c *compileContext) metalBlock(p *shaderir.Program, topBlock, block *shaderir.Block, level int) []string {
 	if block == nil {
 		return nil
@@ -322,8 +336,7 @@ func (c *compileContext) metalBlock(p *shaderir.Program, topBlock, block *shader
 	for i, t := range block.LocalVars {
 		// The type is None e.g., when the variable is a for-loop counter.
 		if t.Main != shaderir.None {
-			name := localVariableName(p, topBlock, block.LocalVarIndexOffset+i)
-			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, c.metalVarDecl(p, &t, name, false, false), c.metalVarInit(p, &t)))
+			lines = append(lines, c.initVariable(p, topBlock, block, block.LocalVarIndexOffset+i, true, level)...)
 		}
 	}
 
