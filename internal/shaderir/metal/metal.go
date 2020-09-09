@@ -48,20 +48,20 @@ func (c *compileContext) structName(p *shaderir.Program, t *shaderir.Type) strin
 	return n
 }
 
+const Prelude = `#include <metal_stdlib>
+
+using namespace metal;
+
+constexpr sampler texture_sampler{filter::nearest};`
+
 func Compile(p *shaderir.Program, vertex, fragment string) (shader string) {
 	c := &compileContext{
 		structNames: map[string]string{},
 	}
 
 	var lines []string
-	lines = append(lines,
-		"#include <metal_stdlib>",
-		"",
-		"using namespace metal;",
-		"",
-		"{{.Structs}}",
-		"",
-		"constexpr sampler texture_sampler{filter::nearest};")
+	lines = append(lines, strings.Split(Prelude, "\n")...)
+	lines = append(lines, "", "{{.Structs}}")
 
 	if len(p.Attributes) > 0 {
 		lines = append(lines, "")
