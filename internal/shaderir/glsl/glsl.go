@@ -305,29 +305,41 @@ func localVariableName(p *shaderir.Program, topBlock, block *shaderir.Block, idx
 	}
 }
 
+func (c *compileContext) initVariable(p *shaderir.Program, topBlock, block *shaderir.Block, index int, decl bool, level int) []string {
+	idt := strings.Repeat("\t", level+1)
+	name := localVariableName(p, topBlock, block, index)
+	t := p.LocalVariableType(topBlock, block, index)
+
+	var lines []string
+	switch t.Main {
+	case shaderir.Array:
+		if decl {
+			lines = append(lines, fmt.Sprintf("%s%s;", idt, c.glslVarDecl(p, &t, name)))
+		}
+		init := c.glslVarInit(p, &t.Sub[0])
+		for i := 0; i < t.Length; i++ {
+			lines = append(lines, fmt.Sprintf("%s%s[%d] = %s;", idt, name, i, init))
+		}
+	case shaderir.None:
+		// The type is None e.g., when the variable is a for-loop counter.
+	default:
+		if decl {
+			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, c.glslVarDecl(p, &t, name), c.glslVarInit(p, &t)))
+		} else {
+			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, name, c.glslVarInit(p, &t)))
+		}
+	}
+	return lines
+}
+
 func (c *compileContext) glslBlock(p *shaderir.Program, topBlock, block *shaderir.Block, level int) []string {
 	if block == nil {
 		return nil
 	}
 
-	idt := strings.Repeat("\t", level+1)
-
 	var lines []string
 	for i := range block.LocalVars {
-		name := localVariableName(p, topBlock, block, block.LocalVarIndexOffset+i)
-		t := p.LocalVariableType(topBlock, block, block.LocalVarIndexOffset+i)
-		switch t.Main {
-		case shaderir.Array:
-			lines = append(lines, fmt.Sprintf("%s%s;", idt, c.glslVarDecl(p, &t, name)))
-			init := c.glslVarInit(p, &t.Sub[0])
-			for i := 0; i < t.Length; i++ {
-				lines = append(lines, fmt.Sprintf("%s%s[%d] = %s;", idt, name, i, init))
-			}
-		case shaderir.None:
-			// The type is None e.g., when the variable is a for-loop counter.
-		default:
-			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, c.glslVarDecl(p, &t, name), c.glslVarInit(p, &t)))
-		}
+		lines = append(lines, c.initVariable(p, topBlock, block, block.LocalVarIndexOffset+i, true, level)...)
 	}
 
 	var glslExpr func(e *shaderir.Expr) string
@@ -381,6 +393,7 @@ func (c *compileContext) glslBlock(p *shaderir.Program, topBlock, block *shaderi
 		}
 	}
 
+	idt := strings.Repeat("\t", level+1)
 	for _, s := range block.Stmts {
 		switch s.Type {
 		case shaderir.ExprStmt:
