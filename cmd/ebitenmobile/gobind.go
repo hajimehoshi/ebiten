@@ -509,6 +509,10 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
     @Override
     public void onInputDeviceAdded(int deviceId) {
         InputDevice inputDevice = this.inputManager.getInputDevice(deviceId);
+        // The InputDevice can be null on some deivces (#1342).
+        if (inputDevice == null) {
+            return;
+        }
         int sources = inputDevice.getSources();
         if ((sources & InputDevice.SOURCE_GAMEPAD) != InputDevice.SOURCE_GAMEPAD &&
             (sources & InputDevice.SOURCE_JOYSTICK) != InputDevice.SOURCE_JOYSTICK) {
