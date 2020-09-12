@@ -45,7 +45,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				return nil, false
 			}
 
-			ss, ok := cs.assign(block, stmt.Pos(), stmt.Lhs, stmt.Rhs, true)
+			ss, ok := cs.assign(block, fname, stmt.Pos(), stmt.Lhs, stmt.Rhs, inParams, true)
 			if !ok {
 				return nil, false
 			}
@@ -55,7 +55,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				cs.addError(stmt.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
 				return nil, false
 			}
-			ss, ok := cs.assign(block, stmt.Pos(), stmt.Lhs, stmt.Rhs, false)
+			ss, ok := cs.assign(block, fname, stmt.Pos(), stmt.Lhs, stmt.Rhs, inParams, false)
 			if !ok {
 				return nil, false
 			}
@@ -486,7 +486,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 	return stmts, true
 }
 
-func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr, define bool) ([]shaderir.Stmt, bool) {
+func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, rhs []ast.Expr, inParams []variable, define bool) ([]shaderir.Stmt, bool) {
 	var stmts []shaderir.Stmt
 	var rhsExprs []shaderir.Expr
 	var rhsTypes []shaderir.Type
@@ -542,6 +542,28 @@ func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr,
 
 			if l[0].Type == shaderir.Blank {
 				continue
+			}
+
+			var isAssignmentForbidden func(e *shaderir.Expr) bool
+			isAssignmentForbidden = func(e *shaderir.Expr) bool {
+				switch e.Type {
+				case shaderir.UniformVariable:
+					return true
+				case shaderir.LocalVariable:
+					if fname == cs.vertexEntry || fname == cs.fragmentEntry {
+						return e.Index < len(inParams)
+					}
+				case shaderir.FieldSelector:
+					return isAssignmentForbidden(&e.Exprs[0])
+				case shaderir.Index:
+					return isAssignmentForbidden(&e.Exprs[0])
+				}
+				return false
+			}
+
+			if isAssignmentForbidden(&l[0]) {
+				cs.addError(pos, fmt.Sprintf("a uniform variable cannot be assigned"))
+				return nil, false
 			}
 			allblank = false
 

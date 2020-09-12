@@ -448,3 +448,61 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestShaderForbidAssigningSpecialVariables(t *testing.T) {
+	if _, err := NewShader([]byte(`package main
+
+var U vec4
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	U = vec4(0)
+	return vec4(0)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := NewShader([]byte(`package main
+
+var U vec4
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	U.x = 0
+	return vec4(0)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := NewShader([]byte(`package main
+
+var U [2]vec4
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	U[0] = vec4(0)
+	return vec4(0)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	texCoord = vec2(0)
+	return vec4(0)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	texCoord.x = 0
+	return vec4(0)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+}
