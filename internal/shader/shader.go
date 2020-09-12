@@ -565,6 +565,10 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 		cs.addError(d.Pos(), "function must have a name")
 		return function{}, false
 	}
+	if d.Name.Name == "init" {
+		cs.addError(d.Pos(), "init function is not implemented")
+		return function{}, false
+	}
 	if d.Body == nil {
 		cs.addError(d.Pos(), "function must have a body")
 		return function{}, false

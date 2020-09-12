@@ -358,3 +358,17 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		t.Error(err)
 	}
 }
+
+func TestShaderInit(t *testing.T) {
+	if _, err := NewShader([]byte(`package main
+
+func init() {
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(0)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+}
