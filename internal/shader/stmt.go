@@ -404,8 +404,12 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 					cs.addError(r.Pos(), "single-value context and multiple-value context cannot be mixed")
 					return nil, false
 				}
-				if len(exprs) != len(outParams) {
+			}
+			// TODO: Is this logic really true?
+			if len(exprs) > 1 || len(outParams) > 1 {
+				if len(exprs) != len(outParams) && len(stmt.Results) != len(outParams) {
 					cs.addError(stmt.Pos(), fmt.Sprintf("the number of returning variables must be %d but %d", len(outParams), len(stmt.Results)))
+					return nil, false
 				}
 			}
 
