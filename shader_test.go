@@ -419,3 +419,32 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		t.Errorf("error must be non-nil but was nil")
 	}
 }
+
+func TestShaderUninitializedUniformVariables(t *testing.T) {
+	const w, h = 16, 16
+
+	dst, _ := NewImage(w, h, FilterDefault)
+	s, err := NewShader([]byte(`package main
+
+var U vec4
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return U
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dst.DrawRectShader(w, h, s, nil)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			var want color.RGBA
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
