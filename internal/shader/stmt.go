@@ -81,7 +81,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			}
 			stmts = append(stmts, ss...)
 
-			lhs, ts, ss, ok := cs.parseExpr(block, stmt.Lhs[0], false)
+			lhs, ts, ss, ok := cs.parseExpr(block, stmt.Lhs[0], true)
 			if !ok {
 				return nil, false
 			}
