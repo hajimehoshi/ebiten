@@ -369,14 +369,6 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		return exprs, f.ir.OutParams, stmts, true
 
 	case *ast.Ident:
-		if e.Name == "true" || e.Name == "false" {
-			return []shaderir.Expr{
-				{
-					Type:  shaderir.NumberExpr,
-					Const: gconstant.MakeBool(e.Name == "true"),
-				},
-			}, []shaderir.Type{{Main: shaderir.Bool}}, nil, true
-		}
 		if e.Name == "_" {
 			return []shaderir.Expr{
 				{
@@ -424,6 +416,14 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 					Index: i,
 				},
 			}, nil, nil, true
+		}
+		if e.Name == "true" || e.Name == "false" {
+			return []shaderir.Expr{
+				{
+					Type:  shaderir.NumberExpr,
+					Const: gconstant.MakeBool(e.Name == "true"),
+				},
+			}, []shaderir.Type{{Main: shaderir.Bool}}, nil, true
 		}
 		cs.addError(e.Pos(), fmt.Sprintf("unexpected identifier: %s", e.Name))
 
