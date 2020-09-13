@@ -563,3 +563,50 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		t.Errorf("error must be non-nil but was nil")
 	}
 }
+
+func TestShaderBlankRhs(t *testing.T) {
+	if _, err := NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	x := _
+	_ = x
+	return vec4(0)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var x int = _
+	_ = x
+	return vec4(0)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	x := 1
+	x = _
+	_ = x
+	return vec4(0)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	x := 1 + _
+	_ = x
+	return vec4(0)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+}

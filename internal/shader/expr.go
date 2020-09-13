@@ -370,11 +370,17 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 
 	case *ast.Ident:
 		if e.Name == "_" {
+			// In the context where a local variable is marked as used, any expressions must have its
+			// meaning. Then, a blank identifier is not available there.
+			if markLocalVariableUsed {
+				cs.addError(e.Pos(), fmt.Sprintf("cannot use _ as value"))
+				return nil, nil, nil, false
+			}
 			return []shaderir.Expr{
 				{
 					Type: shaderir.Blank,
 				},
-			}, nil, nil, true
+			}, []shaderir.Type{{}}, nil, true
 		}
 		if i, t, ok := block.findLocalVariable(e.Name, markLocalVariableUsed); ok {
 			return []shaderir.Expr{

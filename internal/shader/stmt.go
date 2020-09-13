@@ -520,11 +520,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 					return nil, false
 				}
 
-				var t shaderir.Type
-				if len(ts) == 1 {
-					t = ts[0]
-				}
-				block.addNamedLocalVariable(name, t, e.Pos())
+				block.addNamedLocalVariable(name, ts[0], e.Pos())
 			}
 
 			if len(r) > 1 {
