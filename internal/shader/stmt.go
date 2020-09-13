@@ -346,7 +346,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		})
 
 	case *ast.IncDecStmt:
-		exprs, _, ss, ok := cs.parseExpr(block, stmt.X, false)
+		exprs, _, ss, ok := cs.parseExpr(block, stmt.X, true)
 		if !ok {
 			return nil, false
 		}

@@ -225,7 +225,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	return vec4(0)
 }
 `)); err != nil {
-		t.Errorf("error must be nil but non-nil: %v", err)
+		t.Error(err)
 	}
 
 	if _, err := NewShader([]byte(`package main
@@ -236,7 +236,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	return vec4(0)
 }
 `)); err != nil {
-		t.Errorf("error must be nil but non-nil: %v", err)
+		t.Error(err)
 	}
 }
 
@@ -576,6 +576,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		t.Errorf("error must be non-nil but was nil")
 	}
 
+	// Increment statement treats a variable 'used'.
+	// https://play.golang.org/p/2RuYMrSLjt3
 	if _, err := NewShader([]byte(`package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
@@ -583,8 +585,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	x++
 	return vec4(0)
 }
-`)); err == nil {
-		t.Errorf("error must be non-nil but was nil")
+`)); err != nil {
+		t.Error(err)
 	}
 }
 
@@ -628,6 +630,16 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	x := 1 + _
 	_ = x
+	return vec4(0)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	_++
 	return vec4(0)
 }
 `)); err == nil {
