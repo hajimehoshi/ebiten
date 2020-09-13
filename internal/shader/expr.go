@@ -31,7 +31,7 @@ func canTruncateToInteger(v gconstant.Value) bool {
 
 var textureVariableRe = regexp.MustCompile(`\A__t(\d+)\z`)
 
-func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr, []shaderir.Type, []shaderir.Stmt, bool) {
+func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariableUsed bool) ([]shaderir.Expr, []shaderir.Type, []shaderir.Stmt, bool) {
 	switch e := expr.(type) {
 	case *ast.BasicLit:
 		switch e.Kind {
@@ -57,7 +57,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		var stmts []shaderir.Stmt
 
 		// Prase LHS first for the order of the statements.
-		lhs, ts, ss, ok := cs.parseExpr(block, e.X)
+		lhs, ts, ss, ok := cs.parseExpr(block, e.X, markLocalVariableUsed)
 		if !ok {
 			return nil, nil, nil, false
 		}
@@ -68,7 +68,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		stmts = append(stmts, ss...)
 		lhst := ts[0]
 
-		rhs, ts, ss, ok := cs.parseExpr(block, e.Y)
+		rhs, ts, ss, ok := cs.parseExpr(block, e.Y, markLocalVariableUsed)
 		if !ok {
 			return nil, nil, nil, false
 		}
@@ -192,7 +192,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 
 		// Parse the argument first for the order of the statements.
 		for _, a := range e.Args {
-			es, ts, ss, ok := cs.parseExpr(block, a)
+			es, ts, ss, ok := cs.parseExpr(block, a, markLocalVariableUsed)
 			if !ok {
 				return nil, nil, nil, false
 			}
@@ -206,7 +206,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		}
 
 		// TODO: When len(ss) is not 0?
-		es, _, ss, ok := cs.parseExpr(block, e.Fun)
+		es, _, ss, ok := cs.parseExpr(block, e.Fun, markLocalVariableUsed)
 		if !ok {
 			return nil, nil, nil, false
 		}
@@ -376,7 +376,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 				},
 			}, nil, nil, true
 		}
-		if i, t, ok := block.findLocalVariable(e.Name); ok {
+		if i, t, ok := block.findLocalVariable(e.Name, markLocalVariableUsed); ok {
 			return []shaderir.Expr{
 				{
 					Type:  shaderir.LocalVariable,
@@ -428,10 +428,10 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		cs.addError(e.Pos(), fmt.Sprintf("unexpected identifier: %s", e.Name))
 
 	case *ast.ParenExpr:
-		return cs.parseExpr(block, e.X)
+		return cs.parseExpr(block, e.X, markLocalVariableUsed)
 
 	case *ast.SelectorExpr:
-		exprs, _, stmts, ok := cs.parseExpr(block, e.X)
+		exprs, _, stmts, ok := cs.parseExpr(block, e.X, markLocalVariableUsed)
 		if !ok {
 			return nil, nil, nil, false
 		}
@@ -467,7 +467,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		}, []shaderir.Type{t}, stmts, true
 
 	case *ast.UnaryExpr:
-		exprs, t, stmts, ok := cs.parseExpr(block, e.X)
+		exprs, t, stmts, ok := cs.parseExpr(block, e.X, markLocalVariableUsed)
 		if !ok {
 			return nil, nil, nil, false
 		}
@@ -526,7 +526,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 
 		var stmts []shaderir.Stmt
 		for i, e := range e.Elts {
-			exprs, _, ss, ok := cs.parseExpr(block, e)
+			exprs, _, ss, ok := cs.parseExpr(block, e, markLocalVariableUsed)
 			if !ok {
 				return nil, nil, nil, false
 			}
@@ -568,7 +568,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 		var stmts []shaderir.Stmt
 
 		// Parse the index first
-		exprs, _, ss, ok := cs.parseExpr(block, e.Index)
+		exprs, _, ss, ok := cs.parseExpr(block, e.Index, markLocalVariableUsed)
 		if !ok {
 			return nil, nil, nil, false
 		}
@@ -587,7 +587,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr) ([]shaderir.Expr,
 			idx.ConstType = shaderir.ConstTypeInt
 		}
 
-		exprs, ts, ss, ok := cs.parseExpr(block, e.X)
+		exprs, ts, ss, ok := cs.parseExpr(block, e.X, markLocalVariableUsed)
 		if !ok {
 			return nil, nil, nil, false
 		}

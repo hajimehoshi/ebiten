@@ -6,5 +6,6 @@ func Foo() vec2 {
 		x := 0
 		return vec2(x)
 	}
+	_ = x
 	return vec2(1)
 }

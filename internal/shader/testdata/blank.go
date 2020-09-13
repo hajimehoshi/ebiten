@@ -8,4 +8,5 @@ func Bar() {
 	_, _ = Foo()
 	a, _ := Foo()
 	_, b := Foo()
+	_, _ = a, b
 }

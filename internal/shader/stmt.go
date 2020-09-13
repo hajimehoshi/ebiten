@@ -75,13 +75,13 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				op = shaderir.ModOp
 			}
 
-			rhs, _, ss, ok := cs.parseExpr(block, stmt.Rhs[0])
+			rhs, _, ss, ok := cs.parseExpr(block, stmt.Rhs[0], true)
 			if !ok {
 				return nil, false
 			}
 			stmts = append(stmts, ss...)
 
-			lhs, ts, ss, ok := cs.parseExpr(block, stmt.Lhs[0])
+			lhs, ts, ss, ok := cs.parseExpr(block, stmt.Lhs[0], false)
 			if !ok {
 				return nil, false
 			}
@@ -111,7 +111,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			cs.addError(stmt.Pos(), fmt.Sprintf("unexpected token: %s", stmt.Tok))
 		}
 	case *ast.BlockStmt:
-		b, ok := cs.parseBlock(block, fname, stmt.List, inParams, outParams)
+		b, ok := cs.parseBlock(block, fname, stmt.List, inParams, outParams, true)
 		if !ok {
 			return nil, false
 		}
@@ -146,7 +146,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		// Create a new pseudo block for the initial statement, so that the counter variable belongs to the
 		// new pseudo block for each for-loop. Without this, the samely named counter variables in different
 		// for-loops confuses the parser.
-		pseudoBlock, ok := cs.parseBlock(block, fname, []ast.Stmt{stmt.Init}, inParams, outParams)
+		pseudoBlock, ok := cs.parseBlock(block, fname, []ast.Stmt{stmt.Init}, inParams, outParams, false)
 		if !ok {
 			return nil, false
 		}
@@ -173,7 +173,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		vartype := pseudoBlock.vars[0].typ
 		init := ss[0].Exprs[1].Const
 
-		exprs, ts, ss, ok := cs.parseExpr(pseudoBlock, stmt.Cond)
+		exprs, ts, ss, ok := cs.parseExpr(pseudoBlock, stmt.Cond, true)
 		if !ok {
 			return nil, false
 		}
@@ -258,7 +258,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			return nil, false
 		}
 
-		b, ok := cs.parseBlock(pseudoBlock, fname, []ast.Stmt{stmt.Body}, inParams, outParams)
+		b, ok := cs.parseBlock(pseudoBlock, fname, []ast.Stmt{stmt.Body}, inParams, outParams, true)
 		if !ok {
 			return nil, false
 		}
@@ -289,7 +289,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		if stmt.Init != nil {
 			init := stmt.Init
 			stmt.Init = nil
-			b, ok := cs.parseBlock(block, fname, []ast.Stmt{init, stmt}, inParams, outParams)
+			b, ok := cs.parseBlock(block, fname, []ast.Stmt{init, stmt}, inParams, outParams, true)
 			if !ok {
 				return nil, false
 			}
@@ -301,7 +301,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			return stmts, true
 		}
 
-		exprs, ts, ss, ok := cs.parseExpr(block, stmt.Cond)
+		exprs, ts, ss, ok := cs.parseExpr(block, stmt.Cond, true)
 		if !ok {
 			return nil, false
 		}
@@ -316,7 +316,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		stmts = append(stmts, ss...)
 
 		var bs []*shaderir.Block
-		b, ok := cs.parseBlock(block, fname, stmt.Body.List, inParams, outParams)
+		b, ok := cs.parseBlock(block, fname, stmt.Body.List, inParams, outParams, true)
 		if !ok {
 			return nil, false
 		}
@@ -325,13 +325,13 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		if stmt.Else != nil {
 			switch s := stmt.Else.(type) {
 			case *ast.BlockStmt:
-				b, ok := cs.parseBlock(block, fname, s.List, inParams, outParams)
+				b, ok := cs.parseBlock(block, fname, s.List, inParams, outParams, true)
 				if !ok {
 					return nil, false
 				}
 				bs = append(bs, b.ir)
 			default:
-				b, ok := cs.parseBlock(block, fname, []ast.Stmt{s}, inParams, outParams)
+				b, ok := cs.parseBlock(block, fname, []ast.Stmt{s}, inParams, outParams, true)
 				if !ok {
 					return nil, false
 				}
@@ -346,7 +346,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		})
 
 	case *ast.IncDecStmt:
-		exprs, _, ss, ok := cs.parseExpr(block, stmt.X)
+		exprs, _, ss, ok := cs.parseExpr(block, stmt.X, false)
 		if !ok {
 			return nil, false
 		}
@@ -388,7 +388,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		}
 
 		for i, r := range stmt.Results {
-			exprs, ts, ss, ok := cs.parseExpr(block, r)
+			exprs, ts, ss, ok := cs.parseExpr(block, r, true)
 			if !ok {
 				return nil, false
 			}
@@ -463,7 +463,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		}
 
 	case *ast.ExprStmt:
-		exprs, _, ss, ok := cs.parseExpr(block, stmt.X)
+		exprs, _, ss, ok := cs.parseExpr(block, stmt.X, true)
 		if !ok {
 			return nil, false
 		}
@@ -495,7 +495,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 	for i, e := range lhs {
 		if len(lhs) == len(rhs) {
 			// Prase RHS first for the order of the statements.
-			r, origts, ss, ok := cs.parseExpr(block, rhs[i])
+			r, origts, ss, ok := cs.parseExpr(block, rhs[i], true)
 			if !ok {
 				return nil, false
 			}
@@ -520,13 +520,11 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 					return nil, false
 				}
 
-				v := variable{
-					name: name,
-				}
+				var t shaderir.Type
 				if len(ts) == 1 {
-					v.typ = ts[0]
+					t = ts[0]
 				}
-				block.vars = append(block.vars, v)
+				block.addNamedLocalVariable(name, t, e.Pos())
 			}
 
 			if len(r) > 1 {
@@ -534,7 +532,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				return nil, false
 			}
 
-			l, _, ss, ok := cs.parseExpr(block, lhs[i])
+			l, _, ss, ok := cs.parseExpr(block, lhs[i], false)
 			if !ok {
 				return nil, false
 			}
@@ -618,7 +616,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 			if i == 0 {
 				var ss []shaderir.Stmt
 				var ok bool
-				rhsExprs, rhsTypes, ss, ok = cs.parseExpr(block, rhs[0])
+				rhsExprs, rhsTypes, ss, ok = cs.parseExpr(block, rhs[0], true)
 				if !ok {
 					return nil, false
 				}
@@ -638,14 +636,10 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 						}
 					}
 				}
-				v := variable{
-					name: name,
-				}
-				v.typ = rhsTypes[i]
-				block.vars = append(block.vars, v)
+				block.addNamedLocalVariable(name, rhsTypes[i], e.Pos())
 			}
 
-			l, _, ss, ok := cs.parseExpr(block, lhs[i])
+			l, _, ss, ok := cs.parseExpr(block, lhs[i], false)
 			if !ok {
 				return nil, false
 			}

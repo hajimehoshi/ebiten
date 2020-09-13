@@ -83,11 +83,12 @@ type typ struct {
 }
 
 type block struct {
-	types  []typ
-	vars   []variable
-	consts []constant
-	pos    token.Pos
-	outer  *block
+	types      []typ
+	vars       []variable
+	unusedVars map[int]token.Pos
+	consts     []constant
+	pos        token.Pos
+	outer      *block
 
 	ir *shaderir.Block
 }
@@ -100,7 +101,22 @@ func (b *block) totalLocalVariableNum() int {
 	return c
 }
 
-func (b *block) findLocalVariable(name string) (int, shaderir.Type, bool) {
+func (b *block) addNamedLocalVariable(name string, typ shaderir.Type, pos token.Pos) {
+	b.vars = append(b.vars, variable{
+		name: name,
+		typ:  typ,
+	})
+	if name == "_" {
+		return
+	}
+	idx := len(b.vars) - 1
+	if b.unusedVars == nil {
+		b.unusedVars = map[int]token.Pos{}
+	}
+	b.unusedVars[idx] = pos
+}
+
+func (b *block) findLocalVariable(name string, markLocalVariableUsed bool) (int, shaderir.Type, bool) {
 	if name == "" || name == "_" {
 		panic("shader: variable name must be non-empty and non-underscore")
 	}
@@ -111,11 +127,14 @@ func (b *block) findLocalVariable(name string) (int, shaderir.Type, bool) {
 	}
 	for i, v := range b.vars {
 		if v.name == name {
+			if markLocalVariableUsed {
+				delete(b.unusedVars, i)
+			}
 			return idx + i, v.typ, true
 		}
 	}
 	if b.outer != nil {
-		return b.outer.findLocalVariable(name)
+		return b.outer.findLocalVariable(name, markLocalVariableUsed)
 	}
 	return 0, shaderir.Type{}, false
 }
@@ -422,7 +441,7 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 
 			init := vs.Values[i]
 
-			es, origts, ss, ok := s.parseExpr(block, init)
+			es, origts, ss, ok := s.parseExpr(block, init, true)
 			if !ok {
 				return nil, nil, nil, false
 			}
@@ -458,7 +477,7 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 
 				var ss []shaderir.Stmt
 				var ok bool
-				initexprs, inittypes, ss, ok = s.parseExpr(block, init)
+				initexprs, inittypes, ss, ok = s.parseExpr(block, init, true)
 				if !ok {
 					return nil, nil, nil, false
 				}
@@ -644,7 +663,7 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 		}
 	}
 
-	b, ok := cs.parseBlock(block, d.Name.Name, d.Body.List, inParams, outParams)
+	b, ok := cs.parseBlock(block, d.Name.Name, d.Body.List, inParams, outParams, true)
 	if !ok {
 		return function{}, false
 	}
@@ -690,7 +709,7 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 	}, true
 }
 
-func (cs *compileState) parseBlock(outer *block, fname string, stmts []ast.Stmt, inParams, outParams []variable) (*block, bool) {
+func (cs *compileState) parseBlock(outer *block, fname string, stmts []ast.Stmt, inParams, outParams []variable, checkLocalVariableUsage bool) (*block, bool) {
 	var vars []variable
 	if outer == &cs.global {
 		vars = make([]variable, 0, len(inParams)+len(outParams))
@@ -743,6 +762,13 @@ func (cs *compileState) parseBlock(outer *block, fname string, stmts []ast.Stmt,
 			return nil, false
 		}
 		block.ir.Stmts = append(block.ir.Stmts, ss...)
+	}
+
+	if checkLocalVariableUsage && len(block.unusedVars) > 0 {
+		for idx, pos := range block.unusedVars {
+			cs.addError(pos, fmt.Sprintf("local variable %s is not used", block.vars[idx].name))
+		}
+		return nil, false
 	}
 
 	return block, true

@@ -57,7 +57,7 @@ func (cs *compileState) parseType(block *block, expr ast.Expr) (shaderir.Type, b
 		if _, ok := t.Len.(*ast.Ellipsis); ok {
 			length = -1 // Determine the length later.
 		} else {
-			exprs, _, _, ok := cs.parseExpr(block, t.Len)
+			exprs, _, _, ok := cs.parseExpr(block, t.Len, true)
 			if !ok {
 				return shaderir.Type{}, false
 			}
