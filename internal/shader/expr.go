@@ -437,7 +437,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 		return cs.parseExpr(block, e.X, markLocalVariableUsed)
 
 	case *ast.SelectorExpr:
-		exprs, _, stmts, ok := cs.parseExpr(block, e.X, markLocalVariableUsed)
+		exprs, _, stmts, ok := cs.parseExpr(block, e.X, true)
 		if !ok {
 			return nil, nil, nil, false
 		}

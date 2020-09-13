@@ -572,8 +572,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	x.x = 1
 	return vec4(0)
 }
-`)); err == nil {
-		t.Errorf("error must be non-nil but was nil")
+`)); err != nil {
+		t.Error(err)
 	}
 
 	// Increment statement treats a variable 'used'.
@@ -590,7 +590,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 }
 
-func TestShaderBlankRhs(t *testing.T) {
+func TestShaderBlankLhs(t *testing.T) {
 	if _, err := NewShader([]byte(`package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
@@ -650,6 +650,16 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	_ += 1
+	return vec4(0)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	_.x = 1
 	return vec4(0)
 }
 `)); err == nil {
