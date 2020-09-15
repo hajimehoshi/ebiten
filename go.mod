@@ -9,7 +9,7 @@ require (
 	github.com/hajimehoshi/bitmapfont v1.2.0
 	github.com/hajimehoshi/file2byteslice v0.0.0-20200812174855-0e5e8a80490e
 	github.com/hajimehoshi/go-mp3 v0.3.1
-	github.com/hajimehoshi/oto v0.6.4
+	github.com/hajimehoshi/oto v0.6.5-0.20200915044857-f0e637901881
 	github.com/jakecoffman/cp v1.0.0
 	github.com/jfreymuth/oggvorbis v1.0.1
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
