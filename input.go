@@ -38,6 +38,9 @@ func InputChars() []rune {
 
 // IsKeyPressed returns a boolean indicating whether key is pressed.
 //
+// If you want to know whether the key started being pressed in the current frame,
+// use inpututil.IsKeyJustPressed
+//
 // Known issue: On Edge browser, some keys don't work well:
 //
 //   - KeyKPEnter and KeyKPEqual are recognized as KeyEnter and KeyEqual.
@@ -91,6 +94,9 @@ func Wheel() (xoff, yoff float64) {
 }
 
 // IsMouseButtonPressed returns a boolean indicating whether mouseButton is pressed.
+//
+// If you want to know whether the mouseButton started being pressed in the current frame,
+// use inpututil.IsMouseButtonJustPressed
 //
 // IsMouseButtonPressed is concurrent-safe.
 //
@@ -163,6 +169,9 @@ func GamepadButtonNum(id int) int {
 
 // IsGamepadButtonPressed returns the boolean indicating the given button of the gamepad (id) is pressed or not.
 //
+// If you want to know whether the given button of gamepad (id) started being pressed in the current frame,
+// use inpututil.IsGamepadButtonJustPressed
+//
 // IsGamepadButtonPressed is concurrent-safe.
 //
 // The relationships between physical buttons and buttion IDs depend on environments.
@@ -174,6 +183,9 @@ func IsGamepadButtonPressed(id int, button GamepadButton) bool {
 }
 
 // TouchIDs returns the current touch states.
+//
+// If you want to know whether a touch started being pressed in the current frame,
+// use inpututil.JustPressedTouchIDs
 //
 // TouchIDs returns nil when there are no touches.
 // TouchIDs always returns nil on desktops.
