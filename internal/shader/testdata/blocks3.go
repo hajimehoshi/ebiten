@@ -15,6 +15,7 @@ func Foo(foo vec2) vec4 {
 			r.y = foo.y
 			var foo vec4
 			r.z = bar.z
+			_ = foo
 		}
 	}
 	return r

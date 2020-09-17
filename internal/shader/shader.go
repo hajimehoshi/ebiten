@@ -322,8 +322,11 @@ func (cs *compileState) parseDecl(b *block, d ast.Decl) ([]shaderir.Stmt, bool) 
 					continue
 				}
 
+				// base must be obtained before adding the variables.
 				base := b.totalLocalVariableNum()
-				b.vars = append(b.vars, vs...)
+				for _, v := range vs {
+					b.addNamedLocalVariable(v.name, v.typ, d.Pos())
+				}
 
 				if len(inits) > 0 {
 					for i := range vs {
