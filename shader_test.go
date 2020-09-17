@@ -588,26 +588,6 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 `)); err != nil {
 		t.Error(err)
 	}
-
-	if _, err := NewShader([]byte(`package main
-
-func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	var a int
-	return vec4(0)
-}
-`)); err == nil {
-		t.Errorf("error must be non-nil but was nil")
-	}
-
-	if _, err := NewShader([]byte(`package main
-
-func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	var a, b int
-	return vec4(0)
-}
-`)); err == nil {
-		t.Errorf("error must be non-nil but was nil")
-	}
 }
 
 func TestShaderBlankLhs(t *testing.T) {
