@@ -41,7 +41,7 @@ func cinnamonScaleFromXML() (float64, error) {
 	type cinnamonMonitors struct {
 		XMLName       xml.Name `xml:"monitors"`
 		Version       string   `xml:"version,attr"`
-		Configuration struct {
+		Configuration []struct {
 			BaseScale float64 `xml:"base_scale"`
 			Output    []struct {
 				Scale   float64 `xml:"scale"`
@@ -67,17 +67,15 @@ func cinnamonScaleFromXML() (float64, error) {
 		return 0, err
 	}
 
-	scale := monitors.Configuration.BaseScale
-	for _, v := range monitors.Configuration.Output {
+	// TODO: Choose the correct configuration.
+	c := monitors.Configuration[0]
+	for _, v := range c.Output {
 		// TODO: Get the monitor at the specified position.
-		if v.Primary {
-			if v.Scale != 0.0 {
-				scale = v.Scale
-			}
-			break
+		if v.Primary && v.Scale != 0.0 {
+			return c.BaseScale * v.Scale, nil
 		}
 	}
-	return scale, nil
+	return c.BaseScale, nil
 }
 
 func cinnamonScale() float64 {
