@@ -49,6 +49,7 @@ func skipTooSlowTests(t *testing.T) bool {
 }
 
 func TestMain(m *testing.M) {
+	PanicOnErrorAtImageAt()
 	t.MainWithRunLoop(m)
 }
 

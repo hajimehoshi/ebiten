@@ -149,13 +149,21 @@ func (s *Shader) Dispose() {
 }
 
 func (s *Shader) convertUniforms(uniforms map[string]interface{}) []interface{} {
-	names := map[string]int{}
+	type index struct {
+		resultIndex        int
+		shaderUniformIndex int
+	}
+
+	names := map[string]index{}
 	var idx int
-	for _, n := range s.uniformNames {
+	for i, n := range s.uniformNames {
 		if strings.HasPrefix(n, "__") {
 			continue
 		}
-		names[n] = idx
+		names[n] = index{
+			resultIndex:        idx,
+			shaderUniformIndex: i,
+		}
 		idx++
 	}
 
@@ -163,16 +171,16 @@ func (s *Shader) convertUniforms(uniforms map[string]interface{}) []interface{} 
 	for name, idx := range names {
 		if v, ok := uniforms[name]; ok {
 			// TODO: Check the uniform variable types?
-			us[idx] = v
+			us[idx.resultIndex] = v
 			continue
 		}
 
-		t := s.uniformTypes[idx]
+		t := s.uniformTypes[idx.shaderUniformIndex]
 		v := zeroUniformValue(t)
 		if v == nil {
 			panic(fmt.Sprintf("ebiten: unexpected uniform variable type: %s", t.String()))
 		}
-		us[idx] = v
+		us[idx.resultIndex] = v
 	}
 
 	// TODO: Panic if uniforms include an invalid name
@@ -188,39 +196,17 @@ func zeroUniformValue(t shaderir.Type) interface{} {
 		return 0
 	case shaderir.Float:
 		return float32(0)
-	case shaderir.Vec2:
-		return make([]float32, 2)
-	case shaderir.Vec3:
-		return make([]float32, 3)
-	case shaderir.Vec4:
-		return make([]float32, 4)
-	case shaderir.Mat2:
-		return make([]float32, 4)
-	case shaderir.Mat3:
-		return make([]float32, 9)
-	case shaderir.Mat4:
-		return make([]float32, 16)
 	case shaderir.Array:
 		switch t.Sub[0].Main {
 		case shaderir.Bool:
 			return make([]bool, t.Length)
 		case shaderir.Int:
 			return make([]int, t.Length)
-		case shaderir.Float:
-			return make([]float32, t.Length)
-		case shaderir.Vec2:
-			return make([]float32, t.Length*2)
-		case shaderir.Vec3:
-			return make([]float32, t.Length*3)
-		case shaderir.Vec4:
-			return make([]float32, t.Length*4)
-		case shaderir.Mat2:
-			return make([]float32, t.Length*4)
-		case shaderir.Mat3:
-			return make([]float32, t.Length*9)
-		case shaderir.Mat4:
-			return make([]float32, t.Length*16)
+		default:
+			return make([]float32, t.FloatNum())
 		}
+	default:
+		return make([]float32, t.FloatNum())
 	}
 	return nil
 }

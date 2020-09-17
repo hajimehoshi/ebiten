@@ -24,6 +24,10 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/mipmap"
 )
 
+// panicOnErrorAtImageAt indicates whether (*Image).At panics on an error or not.
+// This value is set only on testing.
+var panicOnErrorAtImageAt bool
+
 // Image represents a rectangle set of pixels.
 // The pixel format is alpha-premultiplied RGBA.
 // Image implements image.Image and draw.Image.
@@ -726,6 +730,9 @@ func (i *Image) At(x, y int) color.Color {
 	}
 	pix, err := i.mipmap.Pixels(x, y, 1, 1)
 	if err != nil {
+		if panicOnErrorAtImageAt {
+			panic(err)
+		}
 		theUIContext.setError(err)
 		return color.RGBA{}
 	}
