@@ -24,6 +24,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+
+	"github.com/hajimehoshi/ebiten/internal/glfw"
 )
 
 type xmlBool bool
@@ -37,19 +39,63 @@ func (b *xmlBool) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	return nil
 }
 
-func cinnamonScaleFromXML() (float64, error) {
-	type cinnamonMonitors struct {
-		XMLName       xml.Name `xml:"monitors"`
-		Version       string   `xml:"version,attr"`
-		Configuration []struct {
-			BaseScale float64 `xml:"base_scale"`
-			Output    []struct {
-				Scale   float64 `xml:"scale"`
-				Primary xmlBool `xml:"primary"`
-			} `xml:"output"`
-		} `xml:"configuration"`
+type cinnamonMonitors struct {
+	XMLName       xml.Name                        `xml:"monitors"`
+	Version       string                          `xml:"version,attr"`
+	Configuration []cinnamonMonitorsConfiguration `xml:"configuration"`
+}
+
+type cinnamonMonitorsConfiguration struct {
+	BaseScale float64 `xml:"base_scale"`
+	Output    []struct {
+		X       int     `xml:"x"`
+		Y       int     `xml:"y"`
+		Width   int     `xml:"width"`
+		Height  int     `xml:"height"`
+		Scale   float64 `xml:"scale"`
+		Primary xmlBool `xml:"primary"`
+	} `xml:"output"`
+}
+
+func (c *cinnamonMonitorsConfiguration) matchesWithGLFWMonitors(monitors []*glfw.Monitor) bool {
+	type area struct {
+		X, Y, Width, Height int
+	}
+	areas := map[area]struct{}{}
+
+	for _, o := range c.Output {
+		if o.Width == 0 || o.Height == 0 {
+			continue
+		}
+		areas[area{
+			X:      o.X,
+			Y:      o.Y,
+			Width:  o.Width,
+			Height: o.Height,
+		}] = struct{}{}
 	}
 
+	if len(areas) != len(monitors) {
+		return false
+	}
+
+	for _, m := range monitors {
+		x, y := m.GetPos()
+		v := m.GetVideoMode()
+		a := area{
+			X:      x,
+			Y:      y,
+			Width:  v.Width,
+			Height: v.Height,
+		}
+		if _, ok := areas[a]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func cinnamonScaleFromXML() (float64, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return 0, err
@@ -67,15 +113,18 @@ func cinnamonScaleFromXML() (float64, error) {
 		return 0, err
 	}
 
-	// TODO: Choose the correct configuration.
-	c := monitors.Configuration[0]
-	for _, v := range c.Output {
-		// TODO: Get the monitor at the specified position.
-		if v.Primary && v.Scale != 0.0 {
-			return c.BaseScale * v.Scale, nil
+	for _, c := range monitors.Configuration {
+		if !c.matchesWithGLFWMonitors(glfw.GetMonitors()) {
+			continue
+		}
+		for _, v := range c.Output {
+			// TODO: Get the monitor at the specified position.
+			if v.Primary && v.Scale != 0.0 {
+				return c.BaseScale * v.Scale, nil
+			}
 		}
 	}
-	return c.BaseScale, nil
+	return 0, nil
 }
 
 func cinnamonScale() float64 {
