@@ -208,5 +208,4 @@ func zeroUniformValue(t shaderir.Type) interface{} {
 	default:
 		return make([]float32, t.FloatNum())
 	}
-	return nil
 }
