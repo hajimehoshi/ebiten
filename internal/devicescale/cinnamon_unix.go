@@ -119,8 +119,9 @@ func cinnamonScaleFromXML() (float64, error) {
 		}
 		for _, v := range c.Output {
 			// TODO: Get the monitor at the specified position.
+			// TODO: Consider the base scale?
 			if v.Primary && v.Scale != 0.0 {
-				return c.BaseScale * v.Scale, nil
+				return v.Scale, nil
 			}
 		}
 	}
