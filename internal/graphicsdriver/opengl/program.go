@@ -266,7 +266,7 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 		switch v := u.value.(type) {
 		case float32:
 			if got, expected := (&shaderir.Type{Main: shaderir.Float}), &u.typ; !got.Equal(expected) {
-				return fmt.Errorf("opengl: uniform variable type doesn't match: expected %s but %s", expected.String(), got.String())
+				return fmt.Errorf("opengl: uniform variable %s type doesn't match: expected %s but %s", u.name, expected.String(), got.String())
 			}
 
 			cached, ok := g.state.lastUniforms[u.name].(float32)
@@ -277,8 +277,8 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 			g.context.uniformFloat(program, u.name, v)
 			g.state.lastUniforms[u.name] = v
 		case []float32:
-			if got, expected := u.typ.FloatNum(), len(v); got != expected {
-				return fmt.Errorf("opengl: length of a uniform variables doesn't match: expected %d but %d", expected, got)
+			if got, expected := len(v), u.typ.FloatNum(); got != expected {
+				return fmt.Errorf("opengl: length of a uniform variables %s (%s) doesn't match: expected %d but %d", u.name, u.typ.String(), expected, got)
 			}
 
 			cached, ok := g.state.lastUniforms[u.name].([]float32)
