@@ -686,3 +686,42 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		t.Errorf("error must be non-nil but was nil")
 	}
 }
+
+func TestShaderMatrix(t *testing.T) {
+	const w, h = 16, 16
+
+	dst, _ := NewImage(w, h, FilterDefault)
+	s, err := NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var a, b mat4
+	a[0] = vec4(0.125, 0.0625, 0.0625, 0.0625)
+	a[1] = vec4(0.25, 0.25, 0.0625, 0.1875)
+	a[2] = vec4(0.1875, 0.125, 0.25, 0.25)
+	a[3] = vec4(0.0625, 0.1875, 0.125, 0.25)
+	b[0] = vec4(0.0625, 0.125, 0.0625, 0.125)
+	b[1] = vec4(0.125, 0.1875, 0.25, 0.0625)
+	b[2] = vec4(0.125, 0.125, 0.1875, 0.1875)
+	b[3] = vec4(0.25, 0.0625, 0.125, 0.0625)
+	return vec4((a * b * vec4(1, 1, 1, 1)).xyz, 1)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	src, _ := NewImage(w, h, FilterDefault)
+	op := &DrawImageOptions{}
+	op.Shader = s
+	dst.DrawImage(src, op)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{87, 82, 71, 255}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
