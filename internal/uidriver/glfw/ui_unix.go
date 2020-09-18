@@ -27,6 +27,11 @@ func (u *UserInterface) toDeviceIndependentPixel(x float64) float64 {
 	return x / u.deviceScaleFactor()
 }
 
+// fromGLFWPixel must be called from the main thread.
+func (u *UserInterface) fromGLFWPixel(x float64) float64 {
+	return x
+}
+
 // toGLFWPixel must be called from the main thread.
 func (u *UserInterface) toGLFWPixel(x float64) float64 {
 	return x

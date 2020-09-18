@@ -49,6 +49,10 @@ func (u *UserInterface) toDeviceIndependentPixel(x float64) float64 {
 	return x
 }
 
+func (u *UserInterface) fromGLFWPixel(x float64) float64 {
+	return x
+}
+
 func (u *UserInterface) toGLFWPixel(x float64) float64 {
 	return x
 }

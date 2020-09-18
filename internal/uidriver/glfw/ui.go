@@ -789,19 +789,20 @@ func (u *UserInterface) updateSize() {
 	if sizeChanged {
 		var w, h float64
 		_ = u.t.Call(func() error {
-			var ww, wh int
 			if u.isFullscreen() {
 				v := currentMonitor(u.window).GetVideoMode()
-				ww = v.Width
-				wh = v.Height
+				ww, wh := v.Width, v.Height
+				w = u.toDeviceIndependentPixel(float64(ww))
+				h = u.toDeviceIndependentPixel(float64(wh))
 			} else {
 				// Instead of u.windowWidth and u.windowHeight, use the actual window size here.
 				// On Windows, the specified size at SetSize and the actual window size might not
 				// match (#1163).
-				ww, wh = u.window.GetSize()
+				ww, wh := u.window.GetSize()
+				// TODO: Is this correct?
+				w = u.toDeviceIndependentPixel(float64(ww))
+				h = u.toDeviceIndependentPixel(float64(wh))
 			}
-			w = u.toDeviceIndependentPixel(float64(ww))
-			h = u.toDeviceIndependentPixel(float64(wh))
 			return nil
 		})
 		u.context.Layout(w, h)

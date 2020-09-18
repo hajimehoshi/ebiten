@@ -192,8 +192,8 @@ func (w *window) Position() (int, int) {
 		mx, my := currentMonitor(w.ui.window).GetPos()
 		wx -= mx
 		wy -= my
-		xf := w.ui.toDeviceIndependentPixel(float64(wx))
-		yf := w.ui.toDeviceIndependentPixel(float64(wy))
+		xf := w.ui.fromGLFWPixel(float64(wx))
+		yf := w.ui.fromGLFWPixel(float64(wy))
 		x, y = int(xf), int(yf)
 		return nil
 	})
@@ -226,8 +226,8 @@ func (w *window) Size() (int, int) {
 	if !w.ui.isRunning() {
 		return w.ui.getInitWindowSize()
 	}
-	ww := int(w.ui.toDeviceIndependentPixel(float64(w.ui.windowWidth)))
-	wh := int(w.ui.toDeviceIndependentPixel(float64(w.ui.windowHeight)))
+	ww := int(w.ui.fromGLFWPixel(float64(w.ui.windowWidth)))
+	wh := int(w.ui.fromGLFWPixel(float64(w.ui.windowHeight)))
 	return ww, wh
 }
 
