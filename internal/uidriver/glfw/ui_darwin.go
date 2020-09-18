@@ -57,6 +57,10 @@ func (u *UserInterface) toGLFWPixel(x float64) float64 {
 	return x
 }
 
+func (u *UserInterface) toFramebufferPixel(x float64) float64 {
+	return x
+}
+
 func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
