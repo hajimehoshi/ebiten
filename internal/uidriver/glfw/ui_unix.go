@@ -22,8 +22,8 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/glfw"
 )
 
-// toDeviceIndependentPixel must be called from the main thread.
-func (u *UserInterface) toDeviceIndependentPixel(x float64) float64 {
+// fromGLFWMonitorPixel must be called from the main thread.
+func (u *UserInterface) fromGLFWMonitorPixel(x float64) float64 {
 	return x / u.deviceScaleFactor()
 }
 
@@ -35,6 +35,11 @@ func (u *UserInterface) fromGLFWPixel(x float64) float64 {
 // toGLFWPixel must be called from the main thread.
 func (u *UserInterface) toGLFWPixel(x float64) float64 {
 	return x
+}
+
+// toFramebufferPixel must be called from the main thread.
+func (u *UserInterface) toFramebufferPixel(x float64) float64 {
+	return x / u.deviceScaleFactor()
 }
 
 func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {

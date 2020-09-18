@@ -22,6 +22,7 @@ package glfw
 import (
 	"fmt"
 	"image"
+	"math"
 	"os"
 	"runtime"
 	"sync"
@@ -143,12 +144,12 @@ func initialize() error {
 		panic("glfw: glfw.CreateWindow must not return nil")
 	}
 
-	// Create a window and set it: this affects toDeviceIndependentPixel and deviceScaleFactor.
+	// Create a window and set it: this affects fromGLFWMonitorPixel and deviceScaleFactor.
 	theUI.window = w
 	theUI.initMonitor = currentMonitor(w)
 	v := theUI.initMonitor.GetVideoMode()
-	theUI.initFullscreenWidthInDP = int(theUI.toDeviceIndependentPixel(float64(v.Width)))
-	theUI.initFullscreenHeightInDP = int(theUI.toDeviceIndependentPixel(float64(v.Height)))
+	theUI.initFullscreenWidthInDP = int(theUI.fromGLFWMonitorPixel(float64(v.Width)))
+	theUI.initFullscreenHeightInDP = int(theUI.fromGLFWMonitorPixel(float64(v.Height)))
 	theUI.window.Destroy()
 	theUI.window = nil
 
@@ -398,8 +399,8 @@ func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 	var w, h int
 	_ = u.t.Call(func() error {
 		v := currentMonitor(u.window).GetVideoMode()
-		w = int(u.toDeviceIndependentPixel(float64(v.Width)))
-		h = int(u.toDeviceIndependentPixel(float64(v.Height)))
+		w = int(u.fromGLFWMonitorPixel(float64(v.Width)))
+		h = int(u.fromGLFWMonitorPixel(float64(v.Height)))
 		return nil
 	})
 	return w, h
@@ -792,17 +793,19 @@ func (u *UserInterface) updateSize() {
 			if u.isFullscreen() {
 				v := currentMonitor(u.window).GetVideoMode()
 				ww, wh := v.Width, v.Height
-				w = u.toDeviceIndependentPixel(float64(ww))
-				h = u.toDeviceIndependentPixel(float64(wh))
+				w = u.fromGLFWMonitorPixel(float64(ww))
+				h = u.fromGLFWMonitorPixel(float64(wh))
 			} else {
 				// Instead of u.windowWidth and u.windowHeight, use the actual window size here.
 				// On Windows, the specified size at SetSize and the actual window size might not
 				// match (#1163).
 				ww, wh := u.window.GetSize()
-				// TODO: Is this correct?
-				w = u.toDeviceIndependentPixel(float64(ww))
-				h = u.toDeviceIndependentPixel(float64(wh))
+				w = u.fromGLFWPixel(float64(ww))
+				h = u.fromGLFWPixel(float64(wh))
 			}
+			// On Linux/UNIX, further adjusting is required (#1307).
+			w = math.Ceil(u.toFramebufferPixel(w))
+			h = math.Ceil(u.toFramebufferPixel(h))
 			return nil
 		})
 		u.context.Layout(w, h)
@@ -1152,7 +1155,7 @@ func (u *UserInterface) SetInitFocused(focused bool) {
 }
 
 func (u *UserInterface) monitorPosition() (int, int) {
-	// TODO: toDeviceIndependentPixel might be required.
+	// TODO: fromGLFWMonitorPixel might be required.
 	return currentMonitor(u.window).GetPos()
 }
 

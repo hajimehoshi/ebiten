@@ -45,7 +45,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/glfw"
 )
 
-func (u *UserInterface) toDeviceIndependentPixel(x float64) float64 {
+func (u *UserInterface) fromGLFWMonitorPixel(x float64) float64 {
 	return x
 }
 

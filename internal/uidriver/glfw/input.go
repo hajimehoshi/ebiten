@@ -333,8 +333,9 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) {
 			i.mouseButtonPressed[gb] = window.GetMouseButton(gb) == glfw.Press
 		}
 		cx, cy = window.GetCursorPos()
-		cx = i.ui.toDeviceIndependentPixel(cx)
-		cy = i.ui.toDeviceIndependentPixel(cy)
+		// TODO: This is tricky. Rename the function?
+		cx = i.ui.fromGLFWMonitorPixel(cx)
+		cy = i.ui.fromGLFWMonitorPixel(cy)
 		return nil
 	})
 
