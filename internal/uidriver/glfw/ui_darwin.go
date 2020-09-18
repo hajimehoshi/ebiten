@@ -45,8 +45,12 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/glfw"
 )
 
-func (u *UserInterface) glfwScale() float64 {
-	return 1
+func (u *UserInterface) toDeviceIndependentPixel(x float64) float64 {
+	return x
+}
+
+func (u *UserInterface) toGLFWPixel(x float64) float64 {
+	return x
 }
 
 func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {

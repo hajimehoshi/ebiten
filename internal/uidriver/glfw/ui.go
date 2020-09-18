@@ -390,16 +390,6 @@ func (u *UserInterface) setInitFocused(focused bool) {
 	u.m.Unlock()
 }
 
-// toDeviceIndependentPixel must be called from the main thread.
-func (u *UserInterface) toDeviceIndependentPixel(x float64) float64 {
-	return x / u.glfwScale()
-}
-
-// toDeviceDependentPixel must be called from the main thread.
-func (u *UserInterface) toDeviceDependentPixel(x float64) float64 {
-	return x * u.glfwScale()
-}
-
 func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 	if !u.isRunning() {
 		return u.initFullscreenWidthInDP, u.initFullscreenHeightInDP
@@ -736,8 +726,8 @@ func (u *UserInterface) run() error {
 	}
 	setSize := func() {
 		ww, wh := u.getInitWindowSize()
-		ww = int(u.toDeviceDependentPixel(float64(ww)))
-		wh = int(u.toDeviceDependentPixel(float64(wh)))
+		ww = int(u.toGLFWPixel(float64(ww)))
+		wh = int(u.toGLFWPixel(float64(wh)))
 		u.setWindowSize(ww, wh, u.isFullscreen())
 	}
 
@@ -1000,7 +990,7 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 			// On Windows, giving a too small width doesn't call a callback (#165).
 			// To prevent hanging up, return asap if the width is too small.
 			// 126 is an arbitrary number and I guess this is small enough.
-			minWindowWidth := int(u.toDeviceDependentPixel(126))
+			minWindowWidth := int(u.toGLFWPixel(126))
 			if u.window.GetAttrib(glfw.Decorated) == glfw.False {
 				minWindowWidth = 1
 			}

@@ -210,8 +210,8 @@ func (w *window) SetPosition(x, y int) {
 			w.setPositionCalled = true
 		}()
 		mx, my := currentMonitor(w.ui.window).GetPos()
-		xf := w.ui.toDeviceDependentPixel(float64(x))
-		yf := w.ui.toDeviceDependentPixel(float64(y))
+		xf := w.ui.toGLFWPixel(float64(x))
+		yf := w.ui.toGLFWPixel(float64(y))
 		x, y := w.ui.adjustWindowPosition(mx+int(xf), my+int(yf))
 		if w.ui.isFullscreen() {
 			w.ui.origPosX, w.ui.origPosY = x, y
@@ -236,8 +236,8 @@ func (w *window) SetSize(width, height int) {
 		w.ui.setInitWindowSize(width, height)
 		return
 	}
-	ww := int(w.ui.toDeviceDependentPixel(float64(width)))
-	wh := int(w.ui.toDeviceDependentPixel(float64(height)))
+	ww := int(w.ui.toGLFWPixel(float64(width)))
+	wh := int(w.ui.toGLFWPixel(float64(height)))
 	w.ui.setWindowSize(ww, wh, w.ui.isFullscreen())
 }
 
