@@ -62,6 +62,10 @@ type Monitor struct {
 	m *glfw.Monitor
 }
 
+func (m *Monitor) GetContentScale() (float32, float32) {
+	return m.m.GetContentScale()
+}
+
 func (m *Monitor) GetPos() (x, y int) {
 	return m.m.GetPos()
 }

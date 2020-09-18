@@ -29,17 +29,22 @@ func (u *UserInterface) fromGLFWMonitorPixel(x float64) float64 {
 
 // fromGLFWPixel must be called from the main thread.
 func (u *UserInterface) fromGLFWPixel(x float64) float64 {
-	return x
+	// deviceScaleFactor() is a scale by desktop environment (e.g., Cinnamon), while GetContentScale() is X's scale.
+	// They are different things and then need to be treated different ways (#1350).
+	s, _ := currentMonitor(u.window).GetContentScale()
+	return x / float64(s)
 }
 
 // toGLFWPixel must be called from the main thread.
 func (u *UserInterface) toGLFWPixel(x float64) float64 {
-	return x
+	s, _ := currentMonitor(u.window).GetContentScale()
+	return x * float64(s)
 }
 
 // toFramebufferPixel must be called from the main thread.
 func (u *UserInterface) toFramebufferPixel(x float64) float64 {
-	return x / u.deviceScaleFactor()
+	s, _ := currentMonitor(u.window).GetContentScale()
+	return x / u.deviceScaleFactor() * float64(s)
 }
 
 func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
