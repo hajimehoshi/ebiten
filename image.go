@@ -392,6 +392,8 @@ const MaxIndicesNum = graphics.IndicesNum
 //
 // When the given image is disposed, DrawTriangles panics.
 //
+// The given image can be nil only when a shader is specified at the given options.
+//
 // When the image i is disposed, DrawTriangles does nothing.
 //
 // img can be nil only when options.Shader is not nil.
