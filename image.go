@@ -367,6 +367,8 @@ type DrawTrianglesOptions struct {
 
 	// Images is a set of the additional source images.
 	// All the image must be the same size as the img argument at DrawTriangles.
+	//
+	// If Shader is nil, Imagse is ignored.
 	Images [3]*Image
 }
 
