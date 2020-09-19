@@ -58,11 +58,11 @@ var __textureSourceRegionOrigin vec2
 // The unit is the source texture's texel.
 var __textureSourceRegionSize vec2
 
-// imageSrcTextureRegion returns the source image's region (the origin and the size) on its texture.
+// imageSrcRegionOnTexture returns the source image's region (the origin and the size) on its texture.
 // The unit is the source texture's texel.
 //
 // As an image is a part of internal texture, the image can be located at an arbitrary position on the texture.
-func imageSrcTextureRegion() (vec2, vec2) {
+func imageSrcRegionOnTexture() (vec2, vec2) {
 	return __textureSourceRegionOrigin, __textureSourceRegionSize
 }
 `, graphics.ShaderImageNum, graphics.ShaderImageNum-1)
