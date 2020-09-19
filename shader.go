@@ -94,8 +94,8 @@ func imageSrc%[1]dBoundsAt(pos vec2) vec4 {
 	shaderSuffix += `
 func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
 	return mat4(
-		2/imageDstTextureSize().x, 0, 0, 0,
-		0, 2/imageDstTextureSize().y, 0, 0,
+		2/__imageDstTextureSize.x, 0, 0, 0,
+		0, 2/__imageDstTextureSize.y, 0, 0,
 		0, 0, 1, 0,
 		-1, -1, 0, 1,
 	) * vec4(position, 0, 1), texCoord, color
