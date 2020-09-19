@@ -75,12 +75,12 @@ func imageSrcTextureRegion() (vec2, vec2) {
 		}
 		// __t%d is a special variable for a texture variable.
 		shaderSuffix += fmt.Sprintf(`
-func imageSrc%[1]dAt(pos vec2) vec4 {
+func imageSrc%[1]dUnsafeAt(pos vec2) vec4 {
 	// pos is the position in texels of the source texture (= 0th image's texture).
 	return texture2D(__t%[1]d, %[2]s)
 }
 
-func imageSrc%[1]dBoundsAt(pos vec2) vec4 {
+func imageSrc%[1]dAt(pos vec2) vec4 {
 	// pos is the position in texels of the source texture (= 0th image's texture).
 	return texture2D(__t%[1]d, %[2]s) *
 		step(__textureSourceRegionOrigin.x, pos.x) *

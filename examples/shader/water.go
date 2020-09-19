@@ -23,7 +23,7 @@ var ScreenSize vec2
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	border := ScreenSize.y*0.6 + 4*cos(Time*3+texCoord.y*200)
 	if position.y < border {
-		return imageSrc2At(texCoord)
+		return imageSrc2UnsafeAt(texCoord)
 	}
 
 	srcsize := imageSrcTextureSize()
@@ -32,7 +32,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	xoffset := (4 / srcsize.x) * cos(Time*3+texCoord.y*200)
 	yoffset := (20 / srcsize.y) * (1.0 + cos(Time*3+texCoord.y*50))
 	bordertex := border / srcsize.y
-	clr := imageSrc2BoundsAt(vec2(
+	clr := imageSrc2At(vec2(
 		texCoord.x+xoffset,
 		-(texCoord.y+yoffset-rorigin.y)+bordertex*2+rorigin.y,
 	)).rgb
