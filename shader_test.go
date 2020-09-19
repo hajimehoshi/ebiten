@@ -15,6 +15,7 @@
 package ebiten_test
 
 import (
+	"image"
 	"image/color"
 	"testing"
 
@@ -792,6 +793,69 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
 			want := color.RGBA{87, 82, 71, 255}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestShaderSubImage(t *testing.T) {
+	const w, h = 16, 16
+
+	dst, _ := NewImage(w, h, FilterDefault)
+	s, err := NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	r := imageSrc0At(texCoord).r
+	g := imageSrc1At(texCoord).g
+	return vec4(r, g, 0, 1)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	src0, _ := NewImage(w, h, FilterDefault)
+	pix0 := make([]byte, 4*w*h)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			if 2 <= i && i < 10 && 2 <= j && j < 10 {
+				pix0[4*(j*w+i)] = 0xff
+				pix0[4*(j*w+i)+1] = 0
+				pix0[4*(j*w+i)+2] = 0
+				pix0[4*(j*w+i)+3] = 0xff
+			}
+		}
+	}
+	src0.ReplacePixels(pix0)
+
+	src1, _ := NewImage(w, h, FilterDefault)
+	pix1 := make([]byte, 4*w*h)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			if 6 <= i && i < 14 && 6 <= j && j < 14 {
+				pix1[4*(j*w+i)] = 0
+				pix1[4*(j*w+i)+1] = 0xff
+				pix1[4*(j*w+i)+2] = 0
+				pix1[4*(j*w+i)+3] = 0xff
+			}
+		}
+	}
+	src1.ReplacePixels(pix1)
+
+	op := &DrawRectShaderOptions{}
+	op.Images[0] = src0.SubImage(image.Rect(2, 2, 10, 10)).(*Image)
+	op.Images[1] = src1.SubImage(image.Rect(6, 6, 14, 14)).(*Image)
+	dst.DrawRectShader(w/2, h/2, s, op)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			var want color.RGBA
+			if i < w/2 && j < h/2 {
+				want = color.RGBA{0xff, 0xff, 0, 0xff}
+			}
 			if got != want {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}

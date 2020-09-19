@@ -274,26 +274,23 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	vs := graphics.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, 1, 1, 1, 1, filter == driver.FilterScreen)
 	is := graphics.QuadIndices()
 
-	var sr driver.Region
-	// Pass the source region only when the shader is used, since this affects the condition of merging graphics
-	// commands (#1293).
-	if options.Shader != nil {
-		sr = driver.Region{
-			X:      float32(bounds.Min.X),
-			Y:      float32(bounds.Min.Y),
-			Width:  float32(bounds.Dx()),
-			Height: float32(bounds.Dy()),
-		}
-	}
-
 	srcs := [graphics.ShaderImageNum]*mipmap.Mipmap{img.mipmap}
 	if options.Shader == nil {
-		i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.AddressUnsafe, sr, nil, nil, canSkipMipmap(options.GeoM, filter))
+		i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.AddressUnsafe, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, canSkipMipmap(options.GeoM, filter))
 		return nil
 	}
 
+	// Pass the source region only when the shader is used, since this affects the condition of merging graphics
+	// commands (#1293).
+	sr := driver.Region{
+		X:      float32(bounds.Min.X),
+		Y:      float32(bounds.Min.Y),
+		Width:  float32(bounds.Dx()),
+		Height: float32(bounds.Dy()),
+	}
+
 	us := options.Shader.convertUniforms(options.Uniforms)
-	i.mipmap.DrawTriangles(srcs, vs, is, nil, mode, filter, driver.AddressUnsafe, sr, options.Shader.shader, us, canSkipMipmap(options.GeoM, filter))
+	i.mipmap.DrawTriangles(srcs, vs, is, nil, mode, filter, driver.AddressUnsafe, sr, [graphics.ShaderImageNum - 1][2]float32{}, options.Shader.shader, us, canSkipMipmap(options.GeoM, filter))
 	return nil
 }
 
@@ -489,12 +486,12 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	}
 
 	if options.Shader == nil {
-		i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), sr, nil, nil, false)
+		i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), sr, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 		return
 	}
 
 	us := options.Shader.convertUniforms(options.Uniforms)
-	i.mipmap.DrawTriangles(srcs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, sr, options.Shader.shader, us, false)
+	i.mipmap.DrawTriangles(srcs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, sr, [graphics.ShaderImageNum - 1][2]float32{}, options.Shader.shader, us, false)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader
@@ -557,18 +554,21 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		if img.isDisposed() {
 			panic("ebiten: the given image to DrawRectShader must not be disposed")
 		}
-		if img.isSubImage() {
-			// TODO: Implement this.
-			panic("ebiten: rendering a sub-image is not implemented (DrawRectShader)")
-		}
 		if w, h := img.Size(); width != w || height != h {
 			panic("ebiten: all the source images must be the same size with the rectangle")
 		}
 		imgs[i] = img.mipmap
 	}
 
+	sx, sy := float32(0), float32(0)
+	if options.Images[0] != nil {
+		b := options.Images[0].Bounds()
+		sx = float32(b.Min.X)
+		sy = float32(b.Min.Y)
+	}
+
 	a, b, c, d, tx, ty := options.GeoM.elements32()
-	vs := graphics.QuadVertices(0, 0, float32(width), float32(height), a, b, c, d, tx, ty, 1, 1, 1, 1, false)
+	vs := graphics.QuadVertices(sx, sy, sx+float32(width), sy+float32(height), a, b, c, d, tx, ty, 1, 1, 1, 1, false)
 	is := graphics.QuadIndices()
 
 	var sr driver.Region
@@ -582,8 +582,18 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		}
 	}
 
+	var offsets [graphics.ShaderImageNum - 1][2]float32
+	for i, img := range options.Images[1:] {
+		if img == nil {
+			continue
+		}
+		b := img.Bounds()
+		offsets[i][0] = -sx + float32(b.Min.X)
+		offsets[i][1] = -sy + float32(b.Min.Y)
+	}
+
 	us := shader.convertUniforms(options.Uniforms)
-	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, sr, shader.shader, us, canSkipMipmap(options.GeoM, driver.FilterNearest))
+	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, sr, offsets, shader.shader, us, canSkipMipmap(options.GeoM, driver.FilterNearest))
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.

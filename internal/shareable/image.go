@@ -306,7 +306,7 @@ func (i *Image) processSrc(src *Image) {
 //   5: Color G
 //   6: Color B
 //   7: Color Y
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms []interface{}) {
 	backendsM.Lock()
 	// Do not use defer for performance.
 
@@ -362,8 +362,8 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		ox, oy, _, _ := src.regionWithPadding()
 		ox += paddingSize
 		oy += paddingSize
-		offsets[i][0] = float32(ox) - oxf
-		offsets[i][1] = float32(oy) - oyf
+		offsets[i][0] = float32(ox) - oxf + subimageOffsets[i][0]
+		offsets[i][1] = float32(oy) - oyf + subimageOffsets[i][0]
 	}
 
 	var s *restorable.Shader
