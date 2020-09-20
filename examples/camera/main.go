@@ -148,10 +148,14 @@ func (g *Game) Update(screen *ebiten.Image) error {
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyQ) {
-		g.camera.ZoomFactor -= 1
+		if g.camera.ZoomFactor > -240 {
+			g.camera.ZoomFactor -= 1
+		}
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyE) {
-		g.camera.ZoomFactor += 1
+		if g.camera.ZoomFactor < 240 {
+			g.camera.ZoomFactor += 1
+		}
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyR) {
