@@ -67,9 +67,9 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 
 	src, _ := NewImage(w/2, h/2, FilterDefault)
-	op := &DrawImageOptions{}
-	op.Shader = s
-	dst.DrawImage(src, op)
+	op := &DrawRectShaderOptions{}
+	op.Images[0] = src
+	dst.DrawRectShader(w/2, h/2, s, op)
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
@@ -785,9 +785,9 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 
 	src, _ := NewImage(w, h, FilterDefault)
-	op := &DrawImageOptions{}
-	op.Shader = s
-	dst.DrawImage(src, op)
+	op := &DrawRectShaderOptions{}
+	op.Images[0] = src
+	dst.DrawRectShader(w, h, s, op)
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {

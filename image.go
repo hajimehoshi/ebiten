@@ -116,8 +116,6 @@ type DrawImageOptions struct {
 
 	// ColorM is a color matrix to draw.
 	// The default (zero) value is identity, which doesn't change any color.
-	//
-	// If Shader is not nil, ColorM is ignored.
 	ColorM ColorM
 
 	// CompositeMode is a composite mode to draw.
@@ -134,17 +132,7 @@ type DrawImageOptions struct {
 	// FilterNearest is used.
 	// If either is FilterDefault and the other is not, the latter is used.
 	// Otherwise, Filter specified at DrawImageOptions is used.
-	//
-	// If Shader is not nil, Filter is ignored.
 	Filter Filter
-
-	// Shader is a shader.
-	Shader *Shader
-
-	// Uniforms is a set of uniform variables for the shader.
-	//
-	// Uniforms is used only when Shader is not nil.
-	Uniforms map[string]interface{}
 
 	// Deprecated: (as of 1.5.0) Use SubImage instead.
 	ImageParts ImageParts
@@ -181,7 +169,6 @@ type DrawImageOptions struct {
 //       elements.
 //   * All CompositeMode values are same
 //   * All Filter values are same
-//   * All Shader values are nil
 //
 // Even when all the above conditions are satisfied, multiple draw commands can
 // be used in really rare cases. Ebiten images usually share an internal
@@ -192,8 +179,6 @@ type DrawImageOptions struct {
 // share the texture atlas with high probability.
 //
 // For more performance tips, see https://ebiten.org/documents/performancetips.html
-//
-// ColorM and Filter are ignored when Shader is not nil.
 //
 // DrawImage always returns nil as of 1.5.0.
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
@@ -257,12 +242,10 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	mode := driver.CompositeMode(options.CompositeMode)
 
 	filter := driver.FilterNearest
-	if options.Shader == nil {
-		if options.Filter != FilterDefault {
-			filter = driver.Filter(options.Filter)
-		} else if img.filter != FilterDefault {
-			filter = driver.Filter(img.filter)
-		}
+	if options.Filter != FilterDefault {
+		filter = driver.Filter(options.Filter)
+	} else if img.filter != FilterDefault {
+		filter = driver.Filter(img.filter)
 	}
 
 	a, b, c, d, tx, ty := options.GeoM.elements32()
@@ -275,22 +258,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	is := graphics.QuadIndices()
 
 	srcs := [graphics.ShaderImageNum]*mipmap.Mipmap{img.mipmap}
-	if options.Shader == nil {
-		i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.AddressUnsafe, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, canSkipMipmap(options.GeoM, filter))
-		return nil
-	}
-
-	// Pass the source region only when the shader is used, since this affects the condition of merging graphics
-	// commands (#1293).
-	sr := driver.Region{
-		X:      float32(bounds.Min.X),
-		Y:      float32(bounds.Min.Y),
-		Width:  float32(bounds.Dx()),
-		Height: float32(bounds.Dy()),
-	}
-
-	us := options.Shader.convertUniforms(options.Uniforms)
-	i.mipmap.DrawTriangles(srcs, vs, is, nil, mode, filter, driver.AddressUnsafe, sr, [graphics.ShaderImageNum - 1][2]float32{}, options.Shader.shader, us, canSkipMipmap(options.GeoM, filter))
+	i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.AddressUnsafe, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, canSkipMipmap(options.GeoM, filter))
 	return nil
 }
 
@@ -365,7 +333,7 @@ type DrawTrianglesOptions struct {
 	// Images is a set of the additional source images.
 	// All the image must be the same size as the img argument at DrawTriangles.
 	//
-	// If Shader is nil, Imagse is ignored.
+	// Images is used only when Shader is not nil.
 	Images [3]*Image
 }
 
