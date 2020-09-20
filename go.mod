@@ -17,5 +17,5 @@ require (
 	golang.org/x/mobile v0.0.0-20200801112145-973feb4309de
 	golang.org/x/sys v0.0.0-20200918174421-af09f7315aff
 	golang.org/x/tools v0.0.0-20200918232735-d647fc253266
-	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
+	gopkg.in/check.v1 v1.0.0-20200902074654-038fdea0a05b // indirect
 )
