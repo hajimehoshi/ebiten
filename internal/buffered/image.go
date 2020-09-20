@@ -265,26 +265,24 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		}
 	}
 
-	for _, src := range srcs {
-		if src == nil {
-			continue
-		}
-		src.resolvePendingPixels(true)
-	}
-	i.resolvePendingPixels(false)
-
 	var s *shareable.Shader
-	if shader != nil {
+	var imgs [graphics.ShaderImageNum]*shareable.Image
+	if shader == nil {
+		// Fast path for rendering without a shader (#1355).
+		img := srcs[0]
+		img.resolvePendingPixels(true)
+		imgs[0] = img.img
+	} else {
+		for i, img := range srcs {
+			if img == nil {
+				continue
+			}
+			img.resolvePendingPixels(true)
+			imgs[i] = img.img
+		}
 		s = shader.shader
 	}
-
-	var imgs [graphics.ShaderImageNum]*shareable.Image
-	for i, img := range srcs {
-		if img == nil {
-			continue
-		}
-		imgs[i] = img.img
-	}
+	i.resolvePendingPixels(false)
 
 	i.img.DrawTriangles(imgs, vertices, indices, colorm, mode, filter, address, sourceRegion, subimageOffsets, s, uniforms)
 	i.invalidatePendingPixels()

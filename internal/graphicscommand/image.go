@@ -157,14 +157,23 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [gra
 		}
 	}
 
-	for _, src := range srcs {
-		if src == nil {
-			continue
-		}
-		if src.screen {
+	if shader == nil {
+		// Fast path for rendering without a shader (#1355).
+		img := srcs[0]
+		if img.screen {
 			panic("graphicscommand: the screen image cannot be the rendering source")
 		}
-		src.resolveBufferedReplacePixels()
+		img.resolveBufferedReplacePixels()
+	} else {
+		for _, src := range srcs {
+			if src == nil {
+				continue
+			}
+			if src.screen {
+				panic("graphicscommand: the screen image cannot be the rendering source")
+			}
+			src.resolveBufferedReplacePixels()
+		}
 	}
 	i.resolveBufferedReplacePixels()
 

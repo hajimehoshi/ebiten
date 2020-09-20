@@ -389,17 +389,20 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [gra
 	} else {
 		i.appendDrawTrianglesHistory(srcs, offsets, vertices, indices, colorm, mode, filter, address, sourceRegion, shader, uniforms)
 	}
-	var s *graphicscommand.Shader
-	if shader != nil {
-		s = shader.shader
-	}
 
+	var s *graphicscommand.Shader
 	var imgs [graphics.ShaderImageNum]*graphicscommand.Image
-	for i, src := range srcs {
-		if src == nil {
-			continue
+	if shader == nil {
+		// Fast path for rendering without a shader (#1355).
+		imgs[0] = srcs[0].image
+	} else {
+		for i, src := range srcs {
+			if src == nil {
+				continue
+			}
+			imgs[i] = src.image
 		}
-		imgs[i] = src.image
+		s = shader.shader
 	}
 	i.image.DrawTriangles(imgs, offsets, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms)
 }
