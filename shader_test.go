@@ -821,7 +821,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	pix0 := make([]byte, 4*w*h)
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
-			if 2 <= i && i < 10 && 2 <= j && j < 10 {
+			if 2 <= i && i < 10 && 3 <= j && j < 11 {
 				pix0[4*(j*w+i)] = 0xff
 				pix0[4*(j*w+i)+1] = 0
 				pix0[4*(j*w+i)+2] = 0
@@ -830,13 +830,13 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 	src0.ReplacePixels(pix0)
-	src0 = src0.SubImage(image.Rect(2, 2, 10, 10)).(*Image)
+	src0 = src0.SubImage(image.Rect(2, 3, 10, 11)).(*Image)
 
 	src1, _ := NewImage(w, h, FilterDefault)
 	pix1 := make([]byte, 4*w*h)
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
-			if 6 <= i && i < 14 && 6 <= j && j < 14 {
+			if 6 <= i && i < 14 && 8 <= j && j < 16 {
 				pix1[4*(j*w+i)] = 0
 				pix1[4*(j*w+i)+1] = 0xff
 				pix1[4*(j*w+i)+2] = 0
@@ -845,7 +845,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 	src1.ReplacePixels(pix1)
-	src1 = src1.SubImage(image.Rect(6, 6, 14, 14)).(*Image)
+	src1 = src1.SubImage(image.Rect(6, 8, 14, 16)).(*Image)
 
 	testPixels := func(testname string, dst *Image) {
 		for j := 0; j < h; j++ {
@@ -878,7 +878,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 				DstX:   0,
 				DstY:   0,
 				SrcX:   2,
-				SrcY:   2,
+				SrcY:   3,
 				ColorR: 1,
 				ColorG: 1,
 				ColorB: 1,
@@ -888,7 +888,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 				DstX:   w / 2,
 				DstY:   0,
 				SrcX:   10,
-				SrcY:   2,
+				SrcY:   3,
 				ColorR: 1,
 				ColorG: 1,
 				ColorB: 1,
@@ -898,7 +898,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 				DstX:   0,
 				DstY:   h / 2,
 				SrcX:   2,
-				SrcY:   10,
+				SrcY:   11,
 				ColorR: 1,
 				ColorG: 1,
 				ColorB: 1,
@@ -908,7 +908,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 				DstX:   w / 2,
 				DstY:   h / 2,
 				SrcX:   10,
-				SrcY:   10,
+				SrcY:   11,
 				ColorR: 1,
 				ColorG: 1,
 				ColorB: 1,
