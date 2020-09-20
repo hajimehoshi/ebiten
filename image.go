@@ -312,36 +312,11 @@ type DrawTrianglesOptions struct {
 
 	// Filter is a type of texture filter.
 	// The default (zero) value is FilterDefault.
-	//
-	// If Shader is not nil, Filter is ignored.
 	Filter Filter
 
 	// Address is a sampler address mode.
 	// The default (zero) value is AddressClampToZero.
-	//
-	// If Shader is not nil, Address is ignored.
 	Address Address
-
-	// Shader is a shader.
-	Shader *Shader
-
-	// Uniforms is a set of uniform variables for the shader.
-	//
-	// Uniforms is used only when Shader is not nil.
-	Uniforms map[string]interface{}
-
-	// Images is a set of the additional source images.
-	// All the image must be the same size as the img argument at DrawTriangles.
-	//
-	// Images is used only when Shader is not nil.
-	Images [3]*Image
-}
-
-func init() {
-	var op DrawTrianglesOptions
-	if got, want := len(op.Images), graphics.ShaderImageNum-1; got != want {
-		panic(fmt.Sprintf("ebiten: len((DrawTrianglesOptions{}).Images) must be %d but %d", want, got))
-	}
 }
 
 // MaxIndicesNum is the maximum number of indices for DrawTriangles.
@@ -357,11 +332,7 @@ const MaxIndicesNum = graphics.IndicesNum
 //
 // When the given image is disposed, DrawTriangles panics.
 //
-// The given image can be nil only when a shader is specified at the given options.
-//
 // When the image i is disposed, DrawTriangles does nothing.
-//
-// img can be nil only when options.Shader is not nil.
 func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, options *DrawTrianglesOptions) {
 	i.copyCheck()
 
@@ -390,13 +361,23 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	mode := driver.CompositeMode(options.CompositeMode)
 
-	filter := driver.FilterNearest
-	if options.Shader == nil {
-		if options.Filter != FilterDefault {
-			filter = driver.Filter(options.Filter)
-		} else if img.filter != FilterDefault {
-			filter = driver.Filter(img.filter)
+	address := driver.Address(options.Address)
+	var sr driver.Region
+	if address != driver.AddressUnsafe {
+		b := img.Bounds()
+		sr = driver.Region{
+			X:      float32(b.Min.X),
+			Y:      float32(b.Min.Y),
+			Width:  float32(b.Dx()),
+			Height: float32(b.Dy()),
 		}
+	}
+
+	filter := driver.FilterNearest
+	if options.Filter != FilterDefault {
+		filter = driver.Filter(options.Filter)
+	} else if img.filter != FilterDefault {
+		filter = driver.Filter(img.filter)
 	}
 
 	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
@@ -413,15 +394,114 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
-	var sr driver.Region
-	var b image.Rectangle
-	if img != nil {
-		b = img.Bounds()
+	srcs := [graphics.ShaderImageNum]*mipmap.Mipmap{img.mipmap}
+
+	i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, address, sr, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+}
+
+// DrawTrianglesShaderOptions represents options for DrawTrianglesShader
+//
+// This API is experimental.
+type DrawTrianglesShaderOptions struct {
+	// CompositeMode is a composite mode to draw.
+	// The default (zero) value is regular alpha blending.
+	CompositeMode CompositeMode
+
+	// Uniforms is a set of uniform variables for the shader.
+	Uniforms map[string]interface{}
+
+	// Images is a set of the source images.
+	// All the image must be the same size.
+	Images [4]*Image
+}
+
+func init() {
+	var op DrawTrianglesShaderOptions
+	if got, want := len(op.Images), graphics.ShaderImageNum; got != want {
+		panic(fmt.Sprintf("ebiten: len((DrawTrianglesShaderOptions{}).Images) must be %d but %d", want, got))
+	}
+}
+
+// DrawTrianglesShader draws triangles with the specified vertices and their indices with the specified shader.
+//
+// If len(indices) is not multiple of 3, DrawTrianglesShader panics.
+//
+// If len(indices) is more than MaxIndicesNum, DrawTrianglesShader panics.
+//
+// When a specified image is non-nil and is disposed, DrawTrianglesShader panics.
+//
+// When the image i is disposed, DrawTrianglesShader does nothing.
+//
+// This API is experimental.
+func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader *Shader, options *DrawTrianglesShaderOptions) {
+	i.copyCheck()
+
+	if i.isDisposed() {
+		return
 	}
 
-	// Pass the source region only when the shader is used, since this affects the condition of merging graphics
-	// commands (#1293).
-	if options.Shader != nil || options.Address != AddressUnsafe {
+	if i.isSubImage() {
+		panic("ebiten: render to a sub-image is not implemented (DrawTrianglesShader)")
+	}
+
+	if len(indices)%3 != 0 {
+		panic("ebiten: len(indices) % 3 must be 0")
+	}
+	if len(indices) > MaxIndicesNum {
+		panic("ebiten: len(indices) must be <= MaxIndicesNum")
+	}
+	// TODO: Check the maximum value of indices and len(vertices)?
+
+	if options == nil {
+		options = &DrawTrianglesShaderOptions{}
+	}
+
+	mode := driver.CompositeMode(options.CompositeMode)
+
+	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
+	for i, v := range vertices {
+		vs[i*graphics.VertexFloatNum] = v.DstX
+		vs[i*graphics.VertexFloatNum+1] = v.DstY
+		vs[i*graphics.VertexFloatNum+2] = v.SrcX
+		vs[i*graphics.VertexFloatNum+3] = v.SrcY
+		vs[i*graphics.VertexFloatNum+4] = v.ColorR
+		vs[i*graphics.VertexFloatNum+5] = v.ColorG
+		vs[i*graphics.VertexFloatNum+6] = v.ColorB
+		vs[i*graphics.VertexFloatNum+7] = v.ColorA
+	}
+	is := make([]uint16, len(indices))
+	copy(is, indices)
+
+	var imgs [graphics.ShaderImageNum]*mipmap.Mipmap
+	var imgw, imgh int
+	for i, img := range options.Images {
+		if img == nil {
+			continue
+		}
+		if img.isDisposed() {
+			panic("ebiten: the given image to DrawRectShader must not be disposed")
+		}
+		if i == 0 {
+			imgw, imgh = img.Size()
+		} else {
+			// TODO: Check imgw > 0 && imgh > 0
+			if w, h := img.Size(); imgw != w || imgh != h {
+				panic("ebiten: all the source images must be the same size with the rectangle")
+			}
+		}
+		imgs[i] = img.mipmap
+	}
+
+	var sx, sy float32
+	if options.Images[0] != nil {
+		b := options.Images[0].Bounds()
+		sx = float32(b.Min.X)
+		sy = float32(b.Min.Y)
+	}
+
+	var sr driver.Region
+	if img := options.Images[0]; img != nil {
+		b := img.Bounds()
 		sr = driver.Region{
 			X:      float32(b.Min.X),
 			Y:      float32(b.Min.Y),
@@ -430,42 +510,18 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		}
 	}
 
-	var srcs [graphics.ShaderImageNum]*mipmap.Mipmap
-
-	var imgw, imgh int
-	var sx, sy float32
-	if img != nil {
-		srcs[0] = img.mipmap
-		imgw, imgh = img.Size()
-		sx = float32(b.Min.X)
-		sy = float32(b.Min.Y)
-	}
-
 	var offsets [graphics.ShaderImageNum - 1][2]float32
-	for i, img := range options.Images {
+	for i, img := range options.Images[1:] {
 		if img == nil {
 			continue
 		}
-		if img.isDisposed() {
-			panic("ebiten: the given image to DrawTriangles must not be disposed")
-		}
-		if w, h := img.Size(); imgw != w || imgh != h {
-			panic("ebiten: all the source images must be the same size")
-		}
-		srcs[i+1] = img.mipmap
-
 		b := img.Bounds()
 		offsets[i][0] = -sx + float32(b.Min.X)
 		offsets[i][1] = -sy + float32(b.Min.Y)
 	}
 
-	if options.Shader == nil {
-		i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address), sr, offsets, nil, nil, false)
-		return
-	}
-
-	us := options.Shader.convertUniforms(options.Uniforms)
-	i.mipmap.DrawTriangles(srcs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, sr, offsets, options.Shader.shader, us, false)
+	us := shader.convertUniforms(options.Uniforms)
+	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, sr, offsets, shader.shader, us, false)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader
@@ -534,7 +590,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		imgs[i] = img.mipmap
 	}
 
-	sx, sy := float32(0), float32(0)
+	var sx, sy float32
 	if options.Images[0] != nil {
 		b := options.Images[0].Bounds()
 		sx = float32(b.Min.X)

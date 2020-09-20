@@ -100,8 +100,9 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 
 	src, _ := NewImage(w/2, h/2, FilterDefault)
-	op := &DrawTrianglesOptions{}
-	op.Shader = s
+	op := &DrawTrianglesShaderOptions{}
+	op.Images[0] = src
+
 	vs := []Vertex{
 		{
 			DstX:   0,
@@ -145,7 +146,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		},
 	}
 	is := []uint16{0, 1, 2, 1, 2, 3}
-	dst.DrawTriangles(vs, is, src, op)
+
+	dst.DrawTrianglesShader(vs, is, s, op)
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
@@ -869,7 +871,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		testPixels("DrawRectShader", dst)
 	})
 
-	t.Run("DrawTriangles", func(t *testing.T) {
+	t.Run("DrawTrianglesShader", func(t *testing.T) {
 		dst, _ := NewImage(w, h, FilterDefault)
 		vs := []Vertex{
 			{
@@ -915,10 +917,10 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 		is := []uint16{0, 1, 2, 1, 2, 3}
 
-		op := &DrawTrianglesOptions{}
-		op.Shader = s
-		op.Images[0] = src1
-		dst.DrawTriangles(vs, is, src0, op)
-		testPixels("DrawTriangles", dst)
+		op := &DrawTrianglesShaderOptions{}
+		op.Images[0] = src0
+		op.Images[1] = src1
+		dst.DrawTrianglesShader(vs, is, s, op)
+		testPixels("DrawTrianglesShader", dst)
 	})
 }
