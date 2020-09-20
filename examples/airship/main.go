@@ -206,7 +206,8 @@ func (g *Game) drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
 		// z is in [2, -1]
 		rate := float64(j) / float64(ph)
 		z := (1-rate)*2 + rate*-1
-		if z <= 1e-3 {
+		// Avoid too small z, or the scale (1/z) can be too big.
+		if z <= 0.1 {
 			break
 		}
 		op := &ebiten.DrawImageOptions{}
