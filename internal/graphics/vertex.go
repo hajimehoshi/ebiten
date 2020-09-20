@@ -83,8 +83,8 @@ func (v *verticesBackend) slice(n int, last bool) []float32 {
 }
 
 func vertexSlice(n int, last bool) []float32 {
-	if web.IsGopherJS() {
-		// In GopherJS, allocating memory by make is expensive. Use the backend instead.
+	if web.IsBrowser() {
+		// In GopherJS and Wasm, allocating memory by make is expensive. Use the backend instead.
 		return theVerticesBackend.slice(n, last)
 	}
 	return make([]float32, n*VertexFloatNum)
