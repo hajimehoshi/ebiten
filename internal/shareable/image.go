@@ -354,16 +354,14 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 	}
 
 	var offsets [graphics.ShaderImageNum - 1][2]float32
-	for i := range offsets {
+	for i, subimageOffset := range subimageOffsets {
 		src := srcs[i+1]
 		if src == nil {
 			continue
 		}
 		ox, oy, _, _ := src.regionWithPadding()
-		ox += paddingSize
-		oy += paddingSize
-		offsets[i][0] = float32(ox) - oxf + subimageOffsets[i][0]
-		offsets[i][1] = float32(oy) - oyf + subimageOffsets[i][1]
+		offsets[i][0] = float32(ox) + paddingSize - oxf + subimageOffset[0]
+		offsets[i][1] = float32(oy) + paddingSize - oyf + subimageOffset[1]
 	}
 
 	var s *restorable.Shader
