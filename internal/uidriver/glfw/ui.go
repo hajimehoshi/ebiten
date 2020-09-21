@@ -966,12 +966,23 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 				u.swapBuffers()
 			}
 		} else {
+			// On Windows, giving a too small width doesn't call a callback (#165).
+			// To prevent hanging up, return asap if the width is too small.
+			// 126 is an arbitrary number and I guess this is small enough.
+			minWindowWidth := int(u.toGLFWPixel(126))
+			if u.window.GetAttrib(glfw.Decorated) == glfw.False {
+				minWindowWidth = 1
+			}
+			if width < minWindowWidth {
+				width = minWindowWidth
+			}
+
 			if u.window.GetMonitor() != nil {
 				if u.Graphics().IsGL() {
 					// When OpenGL is used, swapping buffer is enough to solve the image-lag
 					// issue (#1004). Rather, recreating window destroys GPU resources.
 					// TODO: This might not work when vsync is disabled.
-					u.window.SetMonitor(nil, 0, 0, 16, 16, 0)
+					u.window.SetMonitor(nil, 0, 0, width, height, 0)
 					glfw.PollEvents()
 					u.swapBuffers()
 				} else {
@@ -988,17 +999,6 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 					u.window.Show()
 					windowRecreated = true
 				}
-			}
-
-			// On Windows, giving a too small width doesn't call a callback (#165).
-			// To prevent hanging up, return asap if the width is too small.
-			// 126 is an arbitrary number and I guess this is small enough.
-			minWindowWidth := int(u.toGLFWPixel(126))
-			if u.window.GetAttrib(glfw.Decorated) == glfw.False {
-				minWindowWidth = 1
-			}
-			if width < minWindowWidth {
-				width = minWindowWidth
 			}
 
 			if u.origPosX != invalidPos && u.origPosY != invalidPos {
