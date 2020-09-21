@@ -19,6 +19,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -85,7 +86,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Draw the current gamepad status.
 	str := ""
 	if len(g.gamepadIDs) > 0 {
+		ids := make([]int, 0, len(g.gamepadIDs))
 		for id := range g.gamepadIDs {
+			ids = append(ids, id)
+		}
+		sort.Ints(ids)
+		for id := range ids {
 			str += fmt.Sprintf("Gamepad (ID: %d, SDL ID: %s):\n", id, ebiten.GamepadSDLID(id))
 			str += fmt.Sprintf("  Axes:    %s\n", strings.Join(g.axes[id], ", "))
 			str += fmt.Sprintf("  Buttons: %s\n", strings.Join(g.pressedButtons[id], ", "))
