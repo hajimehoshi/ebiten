@@ -220,6 +220,7 @@ const (
 	Asin        BuiltinFunc = "asin"
 	Acos        BuiltinFunc = "acos"
 	Atan        BuiltinFunc = "atan"
+	Atan2       BuiltinFunc = "atan2"
 	Pow         BuiltinFunc = "pow"
 	Exp         BuiltinFunc = "exp"
 	Log         BuiltinFunc = "log"
@@ -271,6 +272,7 @@ func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
 		Asin,
 		Acos,
 		Atan,
+		Atan2,
 		Pow,
 		Exp,
 		Log,

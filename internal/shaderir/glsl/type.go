@@ -65,6 +65,8 @@ func basicTypeString(t shaderir.BasicType) string {
 
 func builtinFuncString(f shaderir.BuiltinFunc) string {
 	switch f {
+	case shaderir.Atan2:
+		return "atan"
 	case shaderir.Dfdx:
 		return "dFdx"
 	case shaderir.Dfdy:
