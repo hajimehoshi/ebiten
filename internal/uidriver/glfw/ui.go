@@ -22,7 +22,6 @@ package glfw
 import (
 	"fmt"
 	"image"
-	"math"
 	"os"
 	"runtime"
 	"sync"
@@ -804,8 +803,8 @@ func (u *UserInterface) updateSize() {
 				h = u.fromGLFWPixel(float64(wh))
 			}
 			// On Linux/UNIX, further adjusting is required (#1307).
-			w = math.Ceil(u.toFramebufferPixel(w))
-			h = math.Ceil(u.toFramebufferPixel(h))
+			w = u.toFramebufferPixel(w)
+			h = u.toFramebufferPixel(h)
 			return nil
 		})
 		u.context.Layout(w, h)

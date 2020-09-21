@@ -19,12 +19,14 @@
 package glfw
 
 import (
+	"math"
+
 	"github.com/hajimehoshi/ebiten/internal/glfw"
 )
 
 // fromGLFWMonitorPixel must be called from the main thread.
 func (u *UserInterface) fromGLFWMonitorPixel(x float64) float64 {
-	return x / u.deviceScaleFactor()
+	return math.Ceil(x / u.deviceScaleFactor())
 }
 
 // fromGLFWPixel must be called from the main thread.
@@ -44,7 +46,7 @@ func (u *UserInterface) toGLFWPixel(x float64) float64 {
 // toFramebufferPixel must be called from the main thread.
 func (u *UserInterface) toFramebufferPixel(x float64) float64 {
 	s, _ := currentMonitor(u.window).GetContentScale()
-	return x / u.deviceScaleFactor() * float64(s)
+	return math.Ceil(x * float64(s) / u.deviceScaleFactor())
 }
 
 func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
