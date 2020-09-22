@@ -811,6 +811,17 @@ func (u *UserInterface) update(context driver.UIContext) error {
 		u.setInitFullscreen(false)
 	}
 
+	// Initialize vsync after SetMonitor is called. See the comment in updateVsync.
+	// Calling this inside setWindowSize didn't work (#1363).
+	_ = u.t.Call(func() error {
+		if !u.vsyncInited {
+			u.vsync = u.isInitVsyncEnabled()
+			u.updateVsync()
+			u.vsyncInited = true
+		}
+		return nil
+	})
+
 	// This call is needed for initialization.
 	u.updateSize(context)
 
@@ -1025,13 +1036,6 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 		// As width might be updated, update windowWidth/Height here.
 		u.windowWidth = width
 		u.windowHeight = height
-
-		if !u.vsyncInited {
-			// Initialize vsync after SetMonitor is called. See the comment in updateVsync.
-			u.vsync = u.isInitVsyncEnabled()
-			u.updateVsync()
-			u.vsyncInited = true
-		}
 
 		u.toChangeSize = true
 		return nil
