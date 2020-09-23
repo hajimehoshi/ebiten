@@ -408,6 +408,11 @@ type DrawTrianglesShaderOptions struct {
 	CompositeMode CompositeMode
 
 	// Uniforms is a set of uniform variables for the shader.
+	// The keys are the names of the uniform variables.
+	// The values must be float or []float.
+	// If the uniform variable type is an array, a vector or a matrix,
+	// you have to specify linearly flattened values as a slice.
+	// For example, if the uniform variable type is [4]vec4, the number of the slice values will be 16.
 	Uniforms map[string]interface{}
 
 	// Images is a set of the source images.
@@ -537,6 +542,11 @@ type DrawRectShaderOptions struct {
 	CompositeMode CompositeMode
 
 	// Uniforms is a set of uniform variables for the shader.
+	// The keys are the names of the uniform variables.
+	// The values must be float or []float.
+	// If the uniform variable type is an array, a vector or a matrix,
+	// you have to specify linearly flattened values as a slice.
+	// For example, if the uniform variable type is [4]vec4, the number of the slice values will be 16.
 	Uniforms map[string]interface{}
 
 	// Images is a set of the source images.
