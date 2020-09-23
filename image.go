@@ -429,6 +429,8 @@ func init() {
 
 // DrawTrianglesShader draws triangles with the specified vertices and their indices with the specified shader.
 //
+// For the details about the shader, see https://ebiten.org/documents/shader.html.
+//
 // If len(indices) is not multiple of 3, DrawTrianglesShader panics.
 //
 // If len(indices) is more than MaxIndicesNum, DrawTrianglesShader panics.
@@ -562,6 +564,8 @@ func init() {
 }
 
 // DrawRectShader draws a rectangle with the specified width and height with the specified shader.
+//
+// For the details about the shader, see https://ebiten.org/documents/shader.html.
 //
 // When one of the specified image is non-nil and is disposed, DrawRectShader panics.
 //
