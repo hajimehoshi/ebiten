@@ -19,8 +19,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/examples/resources/fonts"
@@ -37,7 +37,7 @@ var (
 
 func getArcadeFonts(scale int) font.Face {
 	if arcadeFonts == nil {
-		tt, err := truetype.Parse(fonts.ArcadeN_ttf)
+		tt, err := opentype.Parse(fonts.PressStart2P_ttf)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -45,11 +45,14 @@ func getArcadeFonts(scale int) font.Face {
 		arcadeFonts = map[int]font.Face{}
 		for i := 1; i <= 4; i++ {
 			const dpi = 72
-			arcadeFonts[i] = truetype.NewFace(tt, &truetype.Options{
+			arcadeFonts[i], err = opentype.NewFace(tt, &opentype.FaceOptions{
 				Size:    float64(arcadeFontBaseSize * i),
 				DPI:     dpi,
 				Hinting: font.HintingFull,
 			})
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 	return arcadeFonts[scale]
