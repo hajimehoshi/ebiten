@@ -22,8 +22,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
@@ -45,22 +45,28 @@ var (
 )
 
 func init() {
-	tt, err := truetype.Parse(fonts.MPlus1pRegular_ttf)
+	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	const dpi = 72
-	mplusNormalFont = truetype.NewFace(tt, &truetype.Options{
+	mplusNormalFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    24,
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
-	mplusBigFont = truetype.NewFace(tt, &truetype.Options{
+	if err != nil {
+		log.Fatal(err)
+	}
+	mplusBigFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    32,
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func init() {
