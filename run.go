@@ -366,7 +366,7 @@ func ScreenSizeInFullscreen() (int, int) {
 	return uiDriver().ScreenSizeInFullscreen()
 }
 
-// MonitorSize is an old name for ScreenSizeInFullscreen
+// MonitorSize is an old name for ScreenSizeInFullscreen.
 //
 // Deprecated: (as of 1.8.0) Use ScreenSizeInFullscreen instead.
 func MonitorSize() (int, int) {
