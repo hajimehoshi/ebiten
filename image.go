@@ -399,7 +399,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, address, sr, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 }
 
-// DrawTrianglesShaderOptions represents options for DrawTrianglesShader
+// DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
 //
 // This API is experimental.
 type DrawTrianglesShaderOptions struct {
@@ -531,7 +531,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, sr, offsets, shader.shader, us, false)
 }
 
-// DrawRectShaderOptions represents options for DrawRectShader
+// DrawRectShaderOptions represents options for DrawRectShader.
 //
 // This API is experimental.
 type DrawRectShaderOptions struct {
