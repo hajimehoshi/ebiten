@@ -360,7 +360,9 @@ func Viewport(x int32, y int32, width int32, height int32) {
 }
 
 // InitWithProcAddrFunc intializes the package using the specified OpenGL
-// function pointer loading function. For more cases Init should be used
+// function pointer loading function.
+//
+// For more cases Init should be used.
 func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	gpActiveTexture = getProcAddr("glActiveTexture")
 	if gpActiveTexture == 0 {
