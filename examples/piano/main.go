@@ -22,8 +22,8 @@ import (
 	"log"
 	"math"
 
-	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/audio"
@@ -38,7 +38,7 @@ var (
 )
 
 func init() {
-	tt, err := truetype.Parse(fonts.ArcadeN_ttf)
+	tt, err := opentype.Parse(fonts.PressStart2P_ttf)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -47,11 +47,14 @@ func init() {
 		arcadeFontSize = 8
 		dpi            = 72
 	)
-	arcadeFont = truetype.NewFace(tt, &truetype.Options{
+	arcadeFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    arcadeFontSize,
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 const (
