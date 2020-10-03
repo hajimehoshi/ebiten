@@ -24,9 +24,9 @@ import (
 	"log"
 	"strings"
 
-	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
+	"golang.org/x/image/font/opentype"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/examples/resources/images"
@@ -60,15 +60,18 @@ func init() {
 	}
 	uiImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 
-	tt, err := truetype.Parse(goregular.TTF)
+	tt, err := opentype.Parse(goregular.TTF)
 	if err != nil {
 		log.Fatal(err)
 	}
-	uiFont = truetype.NewFace(tt, &truetype.Options{
+	uiFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    12,
 		DPI:     72,
 		Hinting: font.HintingFull,
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 	b, _, _ := uiFont.GlyphBounds('M')
 	uiFontMHeight = (b.Max.Y - b.Min.Y).Ceil()
 }
