@@ -851,10 +851,3 @@ func newScreenFramebufferImage(width, height int) *Image {
 	i.addr = i
 	return i
 }
-
-// MaxImageSize represented the maximum size of an image, but now this constant is deprecated.
-//
-// Deprecated: (as of 1.7.0) No replacement so far.
-//
-// TODO: Make this replacement (#541)
-var MaxImageSize = 4096

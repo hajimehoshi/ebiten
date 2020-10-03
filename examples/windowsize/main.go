@@ -36,23 +36,6 @@ import (
 )
 
 var (
-	// flagLegacy represents whether the legacy APIs are used or not.
-	// If flagLegacy is true, these legacy APIs are used:
-	//
-	//   * ebiten.Run
-	//   * ebiten.ScreenScale
-	//   * ebiten.SetScreenScale
-	//   * ebiten.SetScreenSize
-	//
-	// If flagLegacy is false, these APIs are used:
-	//
-	//   * ebiten.RunGame
-	//   * ebiten.SetWindowSize
-	//   * ebiten.WindowSize
-	//
-	// A resizable window is available only when flagLegacy is false.
-	flagLegacy = flag.Bool("legacy", false, "use the legacy API")
-
 	flagFullscreen        = flag.Bool("fullscreen", false, "fullscreen")
 	flagResizable         = flag.Bool("resizable", false, "make the window resizable")
 	flagWindowPosition    = flag.String("windowposition", "", "window position (e.g., 100,200)")
@@ -120,23 +103,18 @@ func (g *game) Update(screen *ebiten.Image) error {
 		screenHeight int
 		screenScale  float64
 	)
-	if *flagLegacy {
-		screenWidth, screenHeight = screen.Size()
-		screenScale = ebiten.ScreenScale()
+	screenWidth = g.width
+	screenHeight = g.height
+	if ww, wh := ebiten.WindowSize(); ww > 0 && wh > 0 {
+		screenScale = math.Min(float64(ww)/float64(g.width), float64(wh)/float64(g.height))
 	} else {
-		screenWidth = g.width
-		screenHeight = g.height
-		if ww, wh := ebiten.WindowSize(); ww > 0 && wh > 0 {
-			screenScale = math.Min(float64(ww)/float64(g.width), float64(wh)/float64(g.height))
-		} else {
-			// ebiten.WindowSize can return (0, 0) on browsers or mobiles.
-			screenScale = 1
-		}
+		// ebiten.WindowSize can return (0, 0) on browsers or mobiles.
+		screenScale = 1
 	}
 
 	fullscreen := ebiten.IsFullscreen()
 	runnableOnUnfocused := ebiten.IsRunnableOnUnfocused()
-	cursorVisible := ebiten.IsCursorVisible()
+	cursorVisible := ebiten.CursorMode() == ebiten.CursorModeVisible
 	vsyncEnabled := ebiten.IsVsyncEnabled()
 	tps := ebiten.MaxTPS()
 	decorated := ebiten.IsWindowDecorated()
@@ -242,18 +220,17 @@ func (g *game) Update(screen *ebiten.Image) error {
 	}
 
 	if toUpdateWindowSize {
-		if *flagLegacy {
-			ebiten.SetScreenSize(screenWidth, screenHeight)
-			ebiten.SetScreenScale(screenScale)
-		} else {
-			g.width = screenWidth
-			g.height = screenHeight
-			ebiten.SetWindowSize(int(float64(screenWidth)*screenScale), int(float64(screenHeight)*screenScale))
-		}
+		g.width = screenWidth
+		g.height = screenHeight
+		ebiten.SetWindowSize(int(float64(screenWidth)*screenScale), int(float64(screenHeight)*screenScale))
 	}
 	ebiten.SetFullscreen(fullscreen)
 	ebiten.SetRunnableOnUnfocused(runnableOnUnfocused)
-	ebiten.SetCursorVisible(cursorVisible)
+	if cursorVisible {
+		ebiten.SetCursorMode(ebiten.CursorModeVisible)
+	} else {
+		ebiten.SetCursorMode(ebiten.CursorModeHidden)
+	}
 	ebiten.SetVsyncEnabled(vsyncEnabled)
 	ebiten.SetMaxTPS(tps)
 	ebiten.SetWindowDecorated(decorated)
@@ -269,10 +246,7 @@ func (g *game) Update(screen *ebiten.Image) error {
 	if restore {
 		ebiten.RestoreWindow()
 	}
-	if !*flagLegacy {
-		// A resizable window is available only with RunGame.
-		ebiten.SetWindowResizable(resizable)
-	}
+	ebiten.SetWindowResizable(resizable)
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyI) {
 		ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
@@ -311,13 +285,7 @@ func (g *game) Draw(screen *ebiten.Image) {
 	}
 	msgM := strings.Join(lines, "\n")
 
-	var msgS string
-	var msgR string
-	if *flagLegacy {
-		msgS = "[S] Change the window scale (only for desktops)\n"
-	} else {
-		msgR = "[R] Switch the window resizable state (only for desktops)\n"
-	}
+	msgR := "[R] Switch the window resizable state (only for desktops)\n"
 	fg := "Yes"
 	if !ebiten.IsFocused() {
 		fg = "No"
@@ -335,13 +303,12 @@ func (g *game) Draw(screen *ebiten.Image) {
 [L] Switch the window floating state (only for desktops)
 [W] Switch whether to skip clearing the screen
 %s
-%s
 IsFocused?: %s
 Windows Position: (%d, %d)
 Cursor: (%d, %d)
 TPS: Current: %0.2f / Max: %s
 FPS: %0.2f
-Device Scale Factor: %0.2f`, msgS, msgM, msgR, fg, wx, wy, cx, cy, ebiten.CurrentTPS(), tpsStr, ebiten.CurrentFPS(), ebiten.DeviceScaleFactor())
+Device Scale Factor: %0.2f`, msgM, msgR, fg, wx, wy, cx, cy, ebiten.CurrentTPS(), tpsStr, ebiten.CurrentFPS(), ebiten.DeviceScaleFactor())
 	ebitenutil.DebugPrint(screen, msg)
 }
 
@@ -368,10 +335,6 @@ func main() {
 	fmt.Printf("Device scale factor: %0.2f\n", ebiten.DeviceScaleFactor())
 	w, h := ebiten.ScreenSizeInFullscreen()
 	fmt.Printf("Screen size in fullscreen: %d, %d\n", w, h)
-
-	if !*flagLegacy {
-		fmt.Println("Tip: With -autoadjusting flag, you can make an adjustable game screen.")
-	}
 
 	// Decode image from a byte slice instead of a file so that
 	// this example works in any working directory.
@@ -415,9 +378,6 @@ func main() {
 	}
 	ebiten.SetVsyncEnabled(*flagVsync)
 	if *flagAutoAdjusting {
-		if *flagLegacy {
-			log.Println("-autoadjusting flag cannot work with -legacy flag")
-		}
 		ebiten.SetWindowResizable(true)
 	}
 
@@ -427,27 +387,11 @@ func main() {
 	}
 
 	const title = "Window Size (Ebiten Demo)"
-	if *flagLegacy {
-		update := func(screen *ebiten.Image) error {
-			if err := g.Update(screen); err != nil {
-				return err
-			}
-			if ebiten.IsDrawingSkipped() {
-				return nil
-			}
-			g.Draw(screen)
-			return nil
-		}
-		if err := ebiten.Run(update, g.width, g.height, initScreenScale, title); err != nil {
-			log.Fatal(err)
-		}
-	} else {
-		w := int(float64(g.width) * initScreenScale)
-		h := int(float64(g.height) * initScreenScale)
-		ebiten.SetWindowSize(w, h)
-		ebiten.SetWindowTitle(title)
-		if err := ebiten.RunGame(g); err != nil {
-			log.Fatal(err)
-		}
+	ww := int(float64(g.width) * initScreenScale)
+	wh := int(float64(g.height) * initScreenScale)
+	ebiten.SetWindowSize(ww, wh)
+	ebiten.SetWindowTitle(title)
+	if err := ebiten.RunGame(g); err != nil {
+		log.Fatal(err)
 	}
 }

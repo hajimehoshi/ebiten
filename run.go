@@ -72,11 +72,6 @@ type Game interface {
 // TPS represents a default ticks per second, that represents how many times game updating happens in a second.
 const DefaultTPS = 60
 
-// FPS represents the default TPS (tick per second). This is for backward compatibility.
-//
-// Deprecated: (as of 1.8.0) Use DefaultTPS instead.
-const FPS = DefaultTPS
-
 // CurrentFPS returns the current number of FPS (frames per second), that represents
 // how many swapping buffer happens per second.
 //
@@ -150,79 +145,6 @@ func IsScreenClearedEveryFrame() bool {
 // IsDrawingSkipped is concurrent-safe.
 func IsDrawingSkipped() bool {
 	return atomic.LoadInt32(&isDrawingSkipped) != 0
-}
-
-// IsRunningSlowly is an old name for IsDrawingSkipped.
-//
-// Deprecated: (as of 1.8.0) Use Game's Draw function instead.
-func IsRunningSlowly() bool {
-	return IsDrawingSkipped()
-}
-
-// Run starts the main loop and runs the game.
-//
-// Deprecated: (as of 1.12.0) Use RunGame instead.
-//
-// f is a function which is called at every frame.
-// The argument (*Image) is the render target that represents the screen.
-// The screen size is based on the given values (width and height).
-//
-// Run is a shorthand for RunGame, but there are some restrictions.
-// If you want to resize the window by dragging, use RunGame instead.
-//
-// A window size is based on the given values (width, height and scale).
-//
-// scale is used to enlarge the screen on desktops.
-// scale is ignored on browsers or mobiles.
-// Note that the actual screen is multiplied not only by the given scale but also
-// by the device scale on high-DPI display.
-// If you pass inverse of the device scale,
-// you can disable this automatical device scaling as a result.
-// You can get the device scale by DeviceScaleFactor function.
-//
-// On browsers, the scale is automatically adjusted.
-// It is strongly recommended to use iframe if you embed an Ebiten application in your website.
-// scale works as this as of 1.10.0-alpha.
-// Before that, scale affected the rendering scale.
-//
-// On mobiles, if you use ebitenmobile command, the scale is automatically adjusted.
-//
-// Run must be called on the main thread.
-// Note that Ebiten bounds the main goroutine to the main OS thread by runtime.LockOSThread.
-//
-// Ebiten tries to call f 60 times a second by default. In other words,
-// TPS (ticks per second) is 60 by default.
-// This is not related to framerate (display's refresh rate).
-//
-// f is not called when the window is in background by default.
-// This setting is configurable with SetRunnableOnUnfocused.
-//
-// The given scale is ignored on fullscreen mode or gomobile-build mode.
-//
-// On non-GopherJS environments, Run returns error when 1) OpenGL error happens, 2) audio error happens or
-// 3) f returns error. In the case of 3), Run returns the same error.
-//
-// On GopherJS, Run returns immediately.
-// It is because the 'main' goroutine cannot be blocked on GopherJS due to the bug (gopherjs/gopherjs#826).
-// When an error happens, this is shown as an error on the console.
-//
-// The size unit is device-independent pixel.
-//
-// Don't call Run twice or more in one process.
-func Run(f func(*Image) error, width, height int, scale float64, title string) error {
-	if IsWindowResizable() {
-		panic("ebiten: a resizable window works with RunGame, not Run")
-	}
-	game := &defaultGame{
-		update: (&imageDumper{f: f}).update,
-		width:  width,
-		height: height,
-	}
-	ww, wh := int(float64(width)*scale), int(float64(height)*scale)
-	fixWindowPosition(ww, wh)
-	SetWindowSize(ww, wh)
-	SetWindowTitle(title)
-	return runGame(game, scale)
 }
 
 type imageDumperGame struct {
@@ -366,40 +288,6 @@ func ScreenSizeInFullscreen() (int, int) {
 	return uiDriver().ScreenSizeInFullscreen()
 }
 
-// MonitorSize is an old name for ScreenSizeInFullscreen.
-//
-// Deprecated: (as of 1.8.0) Use ScreenSizeInFullscreen instead.
-func MonitorSize() (int, int) {
-	return ScreenSizeInFullscreen()
-}
-
-// SetScreenSize sets the game screen size and resizes the window.
-//
-// Deprecated: (as of 1.11.0) Use SetWindowSize and RunGame (Game's Layout) instead.
-func SetScreenSize(width, height int) {
-	if width <= 0 || height <= 0 {
-		panic("ebiten: width and height must be positive")
-	}
-	theUIContext.setScreenSize(width, height)
-}
-
-// SetScreenScale sets the game screen scale and resizes the window.
-//
-// Deprecated: (as of 1.11.0-alpha). Use SetWindowSize instead.
-func SetScreenScale(scale float64) {
-	if scale <= 0 {
-		panic("ebiten: scale must be positive")
-	}
-	theUIContext.setScaleForWindow(scale)
-}
-
-// ScreenScale returns the game screen scale.
-//
-// Deprecated: (as of 1.11.0-alpha) Use WindowSize instead.
-func ScreenScale() float64 {
-	return theUIContext.getScaleForWindow()
-}
-
 // CursorMode returns the current cursor mode.
 //
 // On browsers, only CursorModeVisible and CursorModeHidden are supported.
@@ -423,31 +311,6 @@ func CursorMode() CursorModeType {
 // SetCursorMode is concurrent-safe.
 func SetCursorMode(mode CursorModeType) {
 	uiDriver().SetCursorMode(driver.CursorMode(mode))
-}
-
-// IsCursorVisible reports whether the cursor is visible or not.
-//
-// Deprecated: (as of 1.11.0-alpha) Use CursorMode instead.
-func IsCursorVisible() bool {
-	return CursorMode() == CursorModeVisible
-}
-
-// SetCursorVisible sets the cursor visibility.
-//
-// Deprecated: (as of 1.11.0-alpha) Use SetCursorMode instead.
-func SetCursorVisible(visible bool) {
-	if visible {
-		SetCursorMode(CursorModeVisible)
-	} else {
-		SetCursorMode(CursorModeHidden)
-	}
-}
-
-// SetCursorVisibility sets the cursor visibility.
-//
-// Deprecated: (as of 1.6.0-alpha) Use SetCursorMode instead.
-func SetCursorVisibility(visible bool) {
-	SetCursorVisible(visible)
 }
 
 // IsFullscreen reports whether the current mode is fullscreen or not.
@@ -500,13 +363,6 @@ func IsRunnableOnUnfocused() bool {
 	return uiDriver().IsRunnableOnUnfocused()
 }
 
-// IsRunnableInBackground is an old name for IsRunnableOnUnfocused.
-//
-// Deprecated: (as of 1.11.0) Use IsRunnableOnUnfocused instead.
-func IsRunnableInBackground() bool {
-	return IsRunnableOnUnfocused()
-}
-
 // SetRunnableOnUnfocused sets the state if the game runs even in background.
 //
 // If the given value is true, the game runs in background e.g. when losing focus.
@@ -520,13 +376,6 @@ func IsRunnableInBackground() bool {
 // SetRunnableOnUnfocused is concurrent-safe.
 func SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 	uiDriver().SetRunnableOnUnfocused(runnableOnUnfocused)
-}
-
-// SetRunnableInBackground is an old name for SetRunnableOnUnfocused.
-//
-// Deprecated: (as of 1.11.0-alpha) Use SetRunnableOnUnfocused instead.
-func SetRunnableInBackground(runnableInBackground bool) {
-	SetRunnableOnUnfocused(runnableInBackground)
 }
 
 // DeviceScaleFactor returns a device scale factor value of the current monitor which the window belongs to.

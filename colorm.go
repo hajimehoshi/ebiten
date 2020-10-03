@@ -67,15 +67,6 @@ func (c *ColorM) Concat(other ColorM) {
 	c.impl = c.impl.Concat(other.impl)
 }
 
-// Add adds a matrix, but in a wrong way.
-//
-// Deprecated: (as of 1.5.0) Do not use this.
-//
-// Note that this doesn't make sense as an operation for affine matrices.
-func (c *ColorM) Add(other ColorM) {
-	c.impl = c.impl.Add(other.impl)
-}
-
 // Scale scales the matrix by (r, g, b, a).
 func (c *ColorM) Scale(r, g, b, a float64) {
 	c.impl = c.impl.Scale(float32(r), float32(g), float32(b), float32(a))
@@ -122,40 +113,4 @@ func (c *ColorM) IsInvertible() bool {
 // If c is not invertible, Invert panics.
 func (c *ColorM) Invert() {
 	c.impl = c.impl.Invert()
-}
-
-// Monochrome returns a color matrix for monochrome.
-//
-// Deprecated: (as of 1.6.0) Use ChangeHSV(0, 0, 1) instead.
-func Monochrome() ColorM {
-	c := ColorM{}
-	c.ChangeHSV(0, 0, 1)
-	return c
-}
-
-// ScaleColor returns a color matrix for scaling.
-//
-// Deprecated: (as of 1.2.0) Use Scale instead.
-func ScaleColor(r, g, b, a float64) ColorM {
-	c := ColorM{}
-	c.Scale(r, g, b, a)
-	return c
-}
-
-// TranslateColor returns a color matrix for translating.
-//
-// Deprecated: (as of 1.2.0) Use Translate instead.
-func TranslateColor(r, g, b, a float64) ColorM {
-	c := ColorM{}
-	c.Translate(r, g, b, a)
-	return c
-}
-
-// RotateHue returns a color matrix for chanting the hue.
-//
-// Deprecated: (as of 1.2.0-alpha) Use RotateHue member function instead.
-func RotateHue(theta float64) ColorM {
-	c := ColorM{}
-	c.RotateHue(theta)
-	return c
 }
