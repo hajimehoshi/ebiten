@@ -22,8 +22,8 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
-	"golang.org/x/image/font/opentype"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/examples/resources/fonts"
@@ -37,36 +37,27 @@ var (
 )
 
 func init() {
-	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
+	tt, err := truetype.Parse(fonts.MPlus1pRegular_ttf)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	const dpi = 72
-	mplusSmallFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
+	mplusSmallFont = truetype.NewFace(tt, &truetype.Options{
 		Size:    24,
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
-	if err != nil {
-		log.Fatal(err)
-	}
-	mplusNormalFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
+	mplusNormalFont = truetype.NewFace(tt, &truetype.Options{
 		Size:    32,
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
-	if err != nil {
-		log.Fatal(err)
-	}
-	mplusBigFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
+	mplusBigFont = truetype.NewFace(tt, &truetype.Options{
 		Size:    48,
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
-	if err != nil {
-		log.Fatal(err)
-	}
 }
 
 // TileData represents a tile information like a value and a position.
