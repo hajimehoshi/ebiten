@@ -54,7 +54,7 @@ func drawGlyph(dst *ebiten.Image, face font.Face, r rune, img *ebiten.Image, x, 
 
 	b := getGlyphBounds(face, r)
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(fixed26_6ToFloat64((x + b.Min.X)), fixed26_6ToFloat64((y + b.Min.Y)))
+	op.GeoM.Translate(float64((x+b.Min.X)>>6), float64((y+b.Min.Y)>>6))
 	op.ColorM = clr
 	_ = dst.DrawImage(img, op)
 }
@@ -136,6 +136,12 @@ func getGlyphImages(face font.Face, runes []rune) []*ebiten.Image {
 		for i, r := range neededGlyphIndices {
 			b := glyphBounds[r]
 			w, h := (b.Max.X - b.Min.X).Ceil(), (b.Max.Y - b.Min.Y).Ceil()
+			if b.Min.X&((1<<6)-1) != 0 {
+				w++
+			}
+			if b.Min.Y&((1<<6)-1) != 0 {
+				h++
+			}
 			rgba := image.NewRGBA(image.Rect(0, 0, w, h))
 
 			d := font.Drawer{
@@ -143,7 +149,9 @@ func getGlyphImages(face font.Face, runes []rune) []*ebiten.Image {
 				Src:  image.White,
 				Face: face,
 			}
-			d.Dot = fixed.Point26_6{X: -b.Min.X, Y: -b.Min.Y}
+			x, y := -b.Min.X, -b.Min.Y
+			x, y = fixed.I(x.Ceil()), fixed.I(y.Ceil())
+			d.Dot = fixed.Point26_6{X: x, Y: y}
 			d.DrawString(string(r))
 
 			img, _ := ebiten.NewImageFromImage(rgba, ebiten.FilterDefault)
