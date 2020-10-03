@@ -28,9 +28,9 @@ import (
 	"path/filepath"
 	"text/template"
 
-	"github.com/golang/freetype/truetype"
 	"github.com/hajimehoshi/file2byteslice"
 	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/text"
@@ -45,7 +45,7 @@ var (
 )
 
 func init() {
-	f, err := os.Open(filepath.Join("..", "..", "resources", "fonts", "arcade_n.ttf"))
+	f, err := os.Open(filepath.Join("..", "..", "resources", "fonts", "pressstart2p.ttf"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -56,17 +56,20 @@ func init() {
 		log.Fatal(err)
 	}
 
-	tt, err := truetype.Parse(b)
+	tt, err := opentype.Parse(b)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	const dpi = 72
-	arcadeFont = truetype.NewFace(tt, &truetype.Options{
+	arcadeFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    arcadeFontSize,
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 var keyboardKeys = [][]string{
@@ -184,7 +187,7 @@ func drawKey(t *ebiten.Image, name string, x, y, width int) {
 	}
 	img.ReplacePixels(p)
 	const offset = 4
-	text.Draw(img, name, arcadeFont, offset, arcadeFontSize+offset, color.White)
+	text.Draw(img, name, arcadeFont, offset, arcadeFontSize+offset+1, color.White)
 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(x), float64(y))
