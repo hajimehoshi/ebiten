@@ -133,15 +133,6 @@ type DrawImageOptions struct {
 	// If either is FilterDefault and the other is not, the latter is used.
 	// Otherwise, Filter specified at DrawImageOptions is used.
 	Filter Filter
-
-	// Deprecated: (as of 1.5.0) Use SubImage instead.
-	ImageParts ImageParts
-
-	// Deprecated: (as of 1.1.0) Use SubImage instead.
-	Parts []ImagePart
-
-	// Deprecated: (as of 1.9.0) Use SubImage instead.
-	SourceRect *image.Rectangle
 }
 
 // DrawImage draws the given image on the image i.
@@ -202,43 +193,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		options = &DrawImageOptions{}
 	}
 
-	parts := options.ImageParts
-	// Parts is deprecated. This implementations is for backward compatibility.
-	if parts == nil && options.Parts != nil {
-		parts = imageParts(options.Parts)
-	}
-
-	// ImageParts is deprecated. This implementations is for backward compatibility.
-	if parts != nil {
-		l := parts.Len()
-		for idx := 0; idx < l; idx++ {
-			sx0, sy0, sx1, sy1 := parts.Src(idx)
-			dx0, dy0, dx1, dy1 := parts.Dst(idx)
-			op := &DrawImageOptions{
-				ColorM:        options.ColorM,
-				CompositeMode: options.CompositeMode,
-				Filter:        options.Filter,
-			}
-			op.GeoM.Scale(
-				float64(dx1-dx0)/float64(sx1-sx0),
-				float64(dy1-dy0)/float64(sy1-sy0))
-			op.GeoM.Translate(float64(dx0), float64(dy0))
-			op.GeoM.Concat(options.GeoM)
-			i.DrawImage(img.SubImage(image.Rect(sx0, sy0, sx1, sy1)).(*Image), op)
-		}
-		return nil
-	}
-
 	bounds := img.Bounds()
-
-	// SourceRect is deprecated. This implementation is for backward compatibility.
-	if options.SourceRect != nil {
-		bounds = bounds.Intersect(*options.SourceRect)
-		if bounds.Empty() {
-			return nil
-		}
-	}
-
 	mode := driver.CompositeMode(options.CompositeMode)
 
 	filter := driver.FilterNearest
