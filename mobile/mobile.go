@@ -20,7 +20,7 @@
 package mobile
 
 import (
-	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 // Game defines necessary functions for a mobile game.

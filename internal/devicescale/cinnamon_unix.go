@@ -25,7 +25,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/hajimehoshi/ebiten/internal/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
 type xmlBool bool

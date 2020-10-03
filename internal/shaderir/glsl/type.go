@@ -17,7 +17,7 @@ package glsl
 import (
 	"fmt"
 
-	"github.com/hajimehoshi/ebiten/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
 func typeString(t *shaderir.Type) (string, string) {

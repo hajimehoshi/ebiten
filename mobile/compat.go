@@ -17,8 +17,8 @@
 package mobile
 
 import (
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/mobile/ebitenmobileview"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/mobile/ebitenmobileview"
 )
 
 type game struct {
@@ -113,7 +113,7 @@ func Update() error {
 //
 // UpdateTouchesOnAndroid is concurrent-safe.
 //
-// For more details, see https://github.com/hajimehoshi/ebiten/wiki/Android.
+// For more details, see https://github.com/hajimehoshi/ebiten/v2/wiki/Android.
 func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 	ebitenmobileview.UpdateTouchesOnAndroid(action, id, x, y)
 }
@@ -156,7 +156,7 @@ func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 //
 // UpdateTouchesOnIOS is concurrent-safe.
 //
-// For more details, see https://github.com/hajimehoshi/ebiten/wiki/iOS.
+// For more details, see https://github.com/hajimehoshi/ebiten/v2/wiki/iOS.
 func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
 	ebitenmobileview.UpdateTouchesOnIOS(phase, ptr, x, y)
 }

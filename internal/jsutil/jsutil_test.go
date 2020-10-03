@@ -20,7 +20,7 @@ import (
 	"syscall/js"
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/internal/jsutil"
+	. "github.com/hajimehoshi/ebiten/v2/internal/jsutil"
 )
 
 func TestArrayBufferToSlice(t *testing.T) {

@@ -17,7 +17,7 @@ package convert
 import (
 	"io"
 
-	"github.com/hajimehoshi/ebiten/audio"
+	"github.com/hajimehoshi/ebiten/v2/audio"
 )
 
 type Stereo16 struct {

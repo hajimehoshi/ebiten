@@ -17,8 +17,8 @@
 package ebiten
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/uidriver/js"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/uidriver/js"
 )
 
 func uiDriver() driver.UI {

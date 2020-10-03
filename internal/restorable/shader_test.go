@@ -18,10 +18,10 @@ import (
 	"image/color"
 	"testing"
 
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
-	. "github.com/hajimehoshi/ebiten/internal/restorable"
-	etesting "github.com/hajimehoshi/ebiten/internal/testing"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	. "github.com/hajimehoshi/ebiten/v2/internal/restorable"
+	etesting "github.com/hajimehoshi/ebiten/v2/internal/testing"
 )
 
 func TestShader(t *testing.T) {

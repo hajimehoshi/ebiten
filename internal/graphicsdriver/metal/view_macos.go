@@ -18,8 +18,8 @@
 package metal
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/mtl"
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/ns"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ns"
 )
 
 func (v *view) setWindow(window uintptr) {

@@ -17,8 +17,8 @@ package restorable
 import (
 	"path/filepath"
 
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 )
 
 // forceRestoring reports whether restoring forcely happens or not.

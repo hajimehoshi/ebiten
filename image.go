@@ -19,9 +19,9 @@ import (
 	"image"
 	"image/color"
 
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/mipmap"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 )
 
 // panicOnErrorAtImageAt indicates whether (*Image).At panics on an error or not.

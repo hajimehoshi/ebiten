@@ -22,8 +22,8 @@ import (
 
 	mgl "golang.org/x/mobile/gl"
 
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
 type (

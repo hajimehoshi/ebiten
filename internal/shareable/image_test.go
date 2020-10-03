@@ -19,10 +19,10 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
-	. "github.com/hajimehoshi/ebiten/internal/shareable"
-	t "github.com/hajimehoshi/ebiten/internal/testing"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	. "github.com/hajimehoshi/ebiten/v2/internal/shareable"
+	t "github.com/hajimehoshi/ebiten/v2/internal/testing"
 )
 
 const (

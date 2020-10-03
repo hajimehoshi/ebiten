@@ -18,9 +18,9 @@ import (
 	"go/constant"
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/internal/shaderir"
-	"github.com/hajimehoshi/ebiten/internal/shaderir/glsl"
-	"github.com/hajimehoshi/ebiten/internal/shaderir/metal"
+	. "github.com/hajimehoshi/ebiten/v2/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/metal"
 )
 
 func block(localVars []Type, offset int, stmts ...Stmt) *Block {

@@ -23,9 +23,9 @@ import (
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
 
-	"github.com/hajimehoshi/ebiten"
-	t "github.com/hajimehoshi/ebiten/internal/testing"
-	. "github.com/hajimehoshi/ebiten/text"
+	"github.com/hajimehoshi/ebiten/v2"
+	t "github.com/hajimehoshi/ebiten/v2/internal/testing"
+	. "github.com/hajimehoshi/ebiten/v2/text"
 )
 
 func TestMain(m *testing.M) {

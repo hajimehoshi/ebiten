@@ -19,7 +19,7 @@ package vorbis
 import (
 	"github.com/jfreymuth/oggvorbis"
 
-	"github.com/hajimehoshi/ebiten/audio"
+	"github.com/hajimehoshi/ebiten/v2/audio"
 )
 
 func newDecoder(in audio.ReadSeekCloser) (decoder, error) {

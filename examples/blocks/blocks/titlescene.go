@@ -20,9 +20,9 @@ import (
 	"image/color"
 	_ "image/png"
 
-	"github.com/hajimehoshi/ebiten"
-	rblocks "github.com/hajimehoshi/ebiten/examples/resources/images/blocks"
-	"github.com/hajimehoshi/ebiten/inpututil"
+	"github.com/hajimehoshi/ebiten/v2"
+	rblocks "github.com/hajimehoshi/ebiten/v2/examples/resources/images/blocks"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 var imageBackground *ebiten.Image
