@@ -26,8 +26,8 @@ import (
 	"log"
 	"math"
 
+	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
-	"golang.org/x/image/font/opentype"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/examples/resources/fonts"
@@ -59,20 +59,17 @@ func init() {
 }
 
 func initFont() {
-	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
+	tt, err := truetype.Parse(fonts.MPlus1pRegular_ttf)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	const dpi = 72
-	mplusFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
+	mplusFont = truetype.NewFace(tt, &truetype.Options{
 		Size:    12 * ebiten.DeviceScaleFactor(),
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
-	if err != nil {
-		log.Fatal(err)
-	}
 }
 
 type Game struct {
