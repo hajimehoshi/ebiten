@@ -98,13 +98,6 @@ func (s *Stream) Length() int64 {
 	return int64(len(s.leftData) * 4)
 }
 
-// Size returns the size of decoded stream in bytes.
-//
-// Deprecated: (as of 1.6.0) Use Length instead.
-func (s *Stream) Size() int64 {
-	return s.Length()
-}
-
 // seekNextFrame seeks the next frame and returns the new buffer with the new position.
 // seekNextFrame also returns true when seeking is successful, or false otherwise.
 //

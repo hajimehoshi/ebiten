@@ -56,13 +56,6 @@ func (s *Stream) Length() int64 {
 	return s.size
 }
 
-// Size returns the size of decoded stream in bytes.
-//
-// Deprecated: (as of 1.6.0) Use Length instead.
-func (s *Stream) Size() int64 {
-	return s.Length()
-}
-
 type decoder interface {
 	Read([]float32) (int, error)
 	SetPosition(int64) error

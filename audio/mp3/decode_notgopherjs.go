@@ -67,13 +67,6 @@ func (s *Stream) Length() int64 {
 	return s.orig.Length()
 }
 
-// Size returns the size of decoded stream in bytes.
-//
-// Deprecated: (as of 1.6.0) Use Length instead.
-func (s *Stream) Size() int64 {
-	return s.Length()
-}
-
 // Decode decodes MP3 source and returns a decoded stream.
 //
 // Decode returns error when decoding fails or IO error happens.
