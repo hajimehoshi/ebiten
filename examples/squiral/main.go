@@ -279,7 +279,7 @@ func setpix(xy vec2, col color.Color) {
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
-	c, _ := ebiten.NewImage(width, height, ebiten.FilterDefault)
+	c, _ := ebiten.NewImage(width, height)
 	canvas = c
 	canvas.Fill(background)
 

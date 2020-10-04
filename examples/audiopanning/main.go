@@ -140,7 +140,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	img, _ = ebiten.NewImageFromImage(rawimg, ebiten.FilterDefault)
+	img, _ = ebiten.NewImageFromImage(rawimg)
 
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
 	ebiten.SetWindowTitle("Audio Panning Loop (Ebiten Demo)")

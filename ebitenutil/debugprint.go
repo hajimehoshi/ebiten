@@ -28,7 +28,7 @@ var (
 
 func init() {
 	img := assets.CreateTextImage()
-	debugPrintTextImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	debugPrintTextImage, _ = ebiten.NewImageFromImage(img)
 }
 
 // DebugPrint draws the string str on the image on left top corner.

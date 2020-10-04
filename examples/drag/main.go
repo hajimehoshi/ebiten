@@ -203,7 +203,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ebitenImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	ebitenImage, _ = ebiten.NewImageFromImage(img)
 }
 
 func NewGame() *Game {

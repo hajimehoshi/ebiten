@@ -54,15 +54,15 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	bgImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	bgImage, _ = ebiten.NewImageFromImage(img)
 
 	img, _, err = image.Decode(bytes.NewReader(images.FiveYears_jpg))
 	if err != nil {
 		log.Fatal(err)
 	}
-	fgImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	fgImage, _ = ebiten.NewImageFromImage(img)
 
-	maskedFgImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterDefault)
+	maskedFgImage, _ = ebiten.NewImage(screenWidth, screenHeight)
 
 	// Initialize the spot light image.
 	const r = 64
@@ -77,7 +77,7 @@ func init() {
 			a.SetAlpha(i, j, color.Alpha{b})
 		}
 	}
-	spotLightImage, _ = ebiten.NewImageFromImage(a, ebiten.FilterDefault)
+	spotLightImage, _ = ebiten.NewImageFromImage(a)
 }
 
 type Game struct {

@@ -32,7 +32,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	imageBackground, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	imageBackground, _ = ebiten.NewImageFromImage(img)
 }
 
 type TitleScene struct {

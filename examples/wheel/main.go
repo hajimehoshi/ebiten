@@ -28,7 +28,7 @@ import (
 var pointerImage *ebiten.Image
 
 func init() {
-	pointerImage, _ = ebiten.NewImage(4, 4, ebiten.FilterDefault)
+	pointerImage, _ = ebiten.NewImage(4, 4)
 	pointerImage.Fill(color.RGBA{0xff, 0, 0, 0xff})
 }
 

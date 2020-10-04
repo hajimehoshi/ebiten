@@ -30,7 +30,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	imageBlocks, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	imageBlocks, _ = ebiten.NewImageFromImage(img)
 
 }
 

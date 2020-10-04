@@ -42,8 +42,6 @@ type Image struct {
 
 	bounds   image.Rectangle
 	original *Image
-
-	filter Filter
 }
 
 func (i *Image) copyCheck() {
@@ -199,8 +197,6 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	filter := driver.FilterNearest
 	if options.Filter != FilterDefault {
 		filter = driver.Filter(options.Filter)
-	} else if img.filter != FilterDefault {
-		filter = driver.Filter(img.filter)
 	}
 
 	a, b, c, d, tx, ty := options.GeoM.elements32()
@@ -331,8 +327,6 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	filter := driver.FilterNearest
 	if options.Filter != FilterDefault {
 		filter = driver.Filter(options.Filter)
-	} else if img.filter != FilterDefault {
-		filter = driver.Filter(img.filter)
 	}
 
 	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
@@ -623,7 +617,6 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 
 	img := &Image{
 		mipmap:   i.mipmap,
-		filter:   i.filter,
 		bounds:   r,
 		original: orig,
 	}
@@ -755,18 +748,14 @@ func (i *Image) ReplacePixels(pixels []byte) error {
 //
 // If width or height is less than 1 or more than device-dependent maximum size, NewImage panics.
 //
-// filter argument is just for backward compatibility.
-// If you are not sure, specify FilterDefault.
-//
 // Error returned by NewImage is always nil as of 1.5.0.
-func NewImage(width, height int, filter Filter) (*Image, error) {
-	return newImage(width, height, filter), nil
+func NewImage(width, height int) (*Image, error) {
+	return newImage(width, height), nil
 }
 
-func newImage(width, height int, filter Filter) *Image {
+func newImage(width, height int) *Image {
 	i := &Image{
 		mipmap: mipmap.New(width, height),
-		filter: filter,
 		bounds: image.Rect(0, 0, width, height),
 	}
 	i.addr = i
@@ -777,18 +766,14 @@ func newImage(width, height int, filter Filter) *Image {
 //
 // If source's width or height is less than 1 or more than device-dependent maximum size, NewImageFromImage panics.
 //
-// filter argument is just for backward compatibility.
-// If you are not sure, specify FilterDefault.
-//
 // Error returned by NewImageFromImage is always nil as of 1.5.0.
-func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
+func NewImageFromImage(source image.Image) (*Image, error) {
 	size := source.Bounds().Size()
 
 	width, height := size.X, size.Y
 
 	i := &Image{
 		mipmap: mipmap.New(width, height),
-		filter: filter,
 		bounds: image.Rect(0, 0, width, height),
 	}
 	i.addr = i
@@ -800,7 +785,6 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 func newScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
 		mipmap: mipmap.NewScreenFramebufferMipmap(width, height),
-		filter: FilterDefault,
 		bounds: image.Rect(0, 0, width, height),
 	}
 	i.addr = i

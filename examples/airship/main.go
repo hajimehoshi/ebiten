@@ -61,14 +61,14 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	gophersImage, _ = ebiten.NewImageFromImage(img)
 
-	groundImage, _ = ebiten.NewImage(screenWidth*2, screenHeight*2/3+50, ebiten.FilterDefault)
-	perspectiveGroundImage, _ = ebiten.NewImage(screenWidth*2, screenHeight, ebiten.FilterDefault)
+	groundImage, _ = ebiten.NewImage(screenWidth*2, screenHeight*2/3+50)
+	perspectiveGroundImage, _ = ebiten.NewImage(screenWidth*2, screenHeight)
 
 	const repeat = 5
 	w, h := gophersImage.Size()
-	repeatedGophersImage, _ = ebiten.NewImage(w*repeat, h*repeat, ebiten.FilterDefault)
+	repeatedGophersImage, _ = ebiten.NewImage(w*repeat, h*repeat)
 	for j := 0; j < repeat; j++ {
 		for i := 0; i < repeat; i++ {
 			op := &ebiten.DrawImageOptions{}
@@ -92,7 +92,7 @@ func init() {
 			fogRGBA.SetRGBA(i, j, clr)
 		}
 	}
-	fogImage, _ = ebiten.NewImageFromImage(fogRGBA, ebiten.FilterDefault)
+	fogImage, _ = ebiten.NewImageFromImage(fogRGBA)
 }
 
 // player represents the current airship's position.

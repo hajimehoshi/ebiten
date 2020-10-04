@@ -59,9 +59,9 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	bgImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
-	shadowImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterDefault)
-	triangleImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterDefault)
+	bgImage, _ = ebiten.NewImageFromImage(img)
+	shadowImage, _ = ebiten.NewImage(screenWidth, screenHeight)
+	triangleImage, _ = ebiten.NewImage(screenWidth, screenHeight)
 	triangleImage.Fill(color.White)
 }
 

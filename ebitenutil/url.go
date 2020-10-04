@@ -25,8 +25,6 @@ import (
 //
 // Image decoders must be imported when using NewImageFromURL. For example,
 // if you want to load a PNG image, you'd need to add `_ "image/png"` to the import section.
-//
-// FilterDefault is used at NewImgeFromImage internally.
 func NewImageFromURL(url string) (*ebiten.Image, error) {
 	res, err := http.Get(url)
 	if err != nil {
@@ -39,6 +37,6 @@ func NewImageFromURL(url string) (*ebiten.Image, error) {
 		return nil, err
 	}
 
-	eimg, _ := ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	eimg, _ := ebiten.NewImageFromImage(img)
 	return eimg, nil
 }

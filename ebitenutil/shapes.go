@@ -27,7 +27,7 @@ var (
 )
 
 func init() {
-	emptyImage, _ = ebiten.NewImage(1, 1, ebiten.FilterDefault)
+	emptyImage, _ = ebiten.NewImage(1, 1)
 	_ = emptyImage.Fill(color.White)
 }
 

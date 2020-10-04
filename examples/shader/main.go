@@ -54,7 +54,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	gopherImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	gopherImage, _ = ebiten.NewImageFromImage(img)
 }
 
 func init() {
@@ -62,7 +62,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	gopherBgImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	gopherBgImage, _ = ebiten.NewImageFromImage(img)
 }
 
 func init() {
@@ -70,7 +70,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	normalImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	normalImage, _ = ebiten.NewImageFromImage(img)
 }
 
 func init() {
@@ -78,7 +78,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	noiseImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	noiseImage, _ = ebiten.NewImageFromImage(img)
 }
 
 var shaderSrcs = [][]byte{

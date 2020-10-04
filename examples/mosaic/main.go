@@ -52,7 +52,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	gophersImage, _ = ebiten.NewImageFromImage(img)
 }
 
 type Game struct {
@@ -81,7 +81,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func main() {
 	w, h := gophersImage.Size()
-	gophersRenderTarget, _ = ebiten.NewImage(w/mosaicRatio, h/mosaicRatio, ebiten.FilterDefault)
+	gophersRenderTarget, _ = ebiten.NewImage(w/mosaicRatio, h/mosaicRatio)
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
 	ebiten.SetWindowTitle("Mosaic (Ebiten Demo)")
 	if err := ebiten.RunGame(&Game{}); err != nil {

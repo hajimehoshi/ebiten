@@ -65,7 +65,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	tilesImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	tilesImage, _ = ebiten.NewImageFromImage(img)
 }
 
 type Camera struct {
@@ -261,7 +261,7 @@ func main() {
 		},
 		camera: Camera{ViewPort: f64.Vec2{screenWidth, screenHeight}},
 	}
-	g.world, _ = ebiten.NewImage(worldWidth, worldHeight, ebiten.FilterDefault)
+	g.world, _ = ebiten.NewImage(worldWidth, worldHeight)
 
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
 	ebiten.SetWindowTitle("Tiles (Ebiten Demo)")

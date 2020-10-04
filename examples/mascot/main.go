@@ -55,19 +55,19 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	gopher1, _ = ebiten.NewImageFromImage(img1, ebiten.FilterDefault)
+	gopher1, _ = ebiten.NewImageFromImage(img1)
 
 	img2, _, err := image.Decode(bytes.NewReader(rmascot.Out02_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	gopher2, _ = ebiten.NewImageFromImage(img2, ebiten.FilterDefault)
+	gopher2, _ = ebiten.NewImageFromImage(img2)
 
 	img3, _, err := image.Decode(bytes.NewReader(rmascot.Out03_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	gopher3, _ = ebiten.NewImageFromImage(img3, ebiten.FilterDefault)
+	gopher3, _ = ebiten.NewImageFromImage(img3)
 }
 
 func init() {

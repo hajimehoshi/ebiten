@@ -39,7 +39,7 @@ func init() {
 var offscreen *ebiten.Image
 
 func init() {
-	offscreen, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterDefault)
+	offscreen, _ = ebiten.NewImage(screenWidth, screenHeight)
 }
 
 type Game struct {

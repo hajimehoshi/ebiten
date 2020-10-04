@@ -25,7 +25,7 @@ import (
 func TestShaderFill(t *testing.T) {
 	const w, h = 16, 16
 
-	dst, _ := NewImage(w, h, FilterDefault)
+	dst, _ := NewImage(w, h)
 	s, err := NewShader([]byte(`package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
@@ -55,7 +55,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 func TestShaderFillWithDrawImage(t *testing.T) {
 	const w, h = 16, 16
 
-	dst, _ := NewImage(w, h, FilterDefault)
+	dst, _ := NewImage(w, h)
 	s, err := NewShader([]byte(`package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
@@ -66,7 +66,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		t.Fatal(err)
 	}
 
-	src, _ := NewImage(w/2, h/2, FilterDefault)
+	src, _ := NewImage(w/2, h/2)
 	op := &DrawRectShaderOptions{}
 	op.Images[0] = src
 	dst.DrawRectShader(w/2, h/2, s, op)
@@ -88,7 +88,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 func TestShaderFillWithDrawTriangles(t *testing.T) {
 	const w, h = 16, 16
 
-	dst, _ := NewImage(w, h, FilterDefault)
+	dst, _ := NewImage(w, h)
 	s, err := NewShader([]byte(`package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
@@ -99,7 +99,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		t.Fatal(err)
 	}
 
-	src, _ := NewImage(w/2, h/2, FilterDefault)
+	src, _ := NewImage(w/2, h/2)
 	op := &DrawTrianglesShaderOptions{}
 	op.Images[0] = src
 
@@ -163,7 +163,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 func TestShaderFunction(t *testing.T) {
 	const w, h = 16, 16
 
-	dst, _ := NewImage(w, h, FilterDefault)
+	dst, _ := NewImage(w, h)
 	s, err := NewShader([]byte(`package main
 
 func clr(red float) (float, float, float, float) {
@@ -523,7 +523,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 func TestShaderUninitializedUniformVariables(t *testing.T) {
 	const w, h = 16, 16
 
-	dst, _ := NewImage(w, h, FilterDefault)
+	dst, _ := NewImage(w, h)
 	s, err := NewShader([]byte(`package main
 
 var U vec4
@@ -766,7 +766,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 func TestShaderMatrix(t *testing.T) {
 	const w, h = 16, 16
 
-	dst, _ := NewImage(w, h, FilterDefault)
+	dst, _ := NewImage(w, h)
 	s, err := NewShader([]byte(`package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
@@ -786,7 +786,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		t.Fatal(err)
 	}
 
-	src, _ := NewImage(w, h, FilterDefault)
+	src, _ := NewImage(w, h)
 	op := &DrawRectShaderOptions{}
 	op.Images[0] = src
 	dst.DrawRectShader(w, h, s, op)
@@ -817,7 +817,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		t.Fatal(err)
 	}
 
-	src0, _ := NewImage(w, h, FilterDefault)
+	src0, _ := NewImage(w, h)
 	pix0 := make([]byte, 4*w*h)
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
@@ -832,7 +832,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	src0.ReplacePixels(pix0)
 	src0 = src0.SubImage(image.Rect(2, 3, 10, 11)).(*Image)
 
-	src1, _ := NewImage(w, h, FilterDefault)
+	src1, _ := NewImage(w, h)
 	pix1 := make([]byte, 4*w*h)
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
@@ -863,7 +863,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 
 	t.Run("DrawRectShader", func(t *testing.T) {
-		dst, _ := NewImage(w, h, FilterDefault)
+		dst, _ := NewImage(w, h)
 		op := &DrawRectShaderOptions{}
 		op.Images[0] = src0
 		op.Images[1] = src1
@@ -872,7 +872,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	})
 
 	t.Run("DrawTrianglesShader", func(t *testing.T) {
-		dst, _ := NewImage(w, h, FilterDefault)
+		dst, _ := NewImage(w, h)
 		vs := []Vertex{
 			{
 				DstX:   0,

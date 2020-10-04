@@ -156,7 +156,7 @@ var (
 )
 
 func init() {
-	pianoImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterDefault)
+	pianoImage, _ = ebiten.NewImage(screenWidth, screenHeight)
 
 	const (
 		keyWidth = 24

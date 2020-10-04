@@ -53,9 +53,9 @@ func init() {
 		Pix:    pixels,
 		Stride: 4,
 		Rect:   image.Rect(0, 0, 4, 4),
-	}, ebiten.FilterDefault)
+	})
 
-	canvasImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterDefault)
+	canvasImage, _ = ebiten.NewImage(screenWidth, screenHeight)
 	canvasImage.Fill(color.White)
 }
 

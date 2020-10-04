@@ -34,7 +34,7 @@ func TestMain(m *testing.M) {
 
 func TestTextColor(t *testing.T) {
 	clr := color.RGBA{0x80, 0x80, 0x80, 0x80}
-	img, _ := ebiten.NewImage(30, 30, ebiten.FilterNearest)
+	img, _ := ebiten.NewImage(30, 30)
 	Draw(img, "Hello", bitmapfont.Face, 12, 12, clr)
 
 	w, h := img.Size()
@@ -119,7 +119,7 @@ func (f *testFace) Metrics() font.Metrics {
 
 func TestTextOverlap(t *testing.T) {
 	f := &testFace{}
-	dst, _ := ebiten.NewImage(testFaceSize*2, testFaceSize, ebiten.FilterDefault)
+	dst, _ := ebiten.NewImage(testFaceSize*2, testFaceSize)
 
 	// With testFace, 'b' is rendered at the previous position as 0xff.
 	// 'a' is rendered at the current position as 0x80.

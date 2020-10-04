@@ -33,7 +33,7 @@ import (
 // Note that this doesn't work on mobiles.
 //
 // For productions, instead of using NewImageFromFile, it is safer to embed your resources, e.g., with github.com/rakyll/statik .
-func NewImageFromFile(path string, filter ebiten.Filter) (*ebiten.Image, image.Image, error) {
+func NewImageFromFile(path string) (*ebiten.Image, image.Image, error) {
 	file, err := OpenFile(path)
 	if err != nil {
 		return nil, nil, err
@@ -45,7 +45,7 @@ func NewImageFromFile(path string, filter ebiten.Filter) (*ebiten.Image, image.I
 	if err != nil {
 		return nil, nil, err
 	}
-	img2, err := ebiten.NewImageFromImage(img, filter)
+	img2, err := ebiten.NewImageFromImage(img)
 	if err != nil {
 		return nil, nil, err
 	}

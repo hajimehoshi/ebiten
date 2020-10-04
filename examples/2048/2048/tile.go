@@ -355,7 +355,7 @@ var (
 )
 
 func init() {
-	tileImage, _ = ebiten.NewImage(tileSize, tileSize, ebiten.FilterDefault)
+	tileImage, _ = ebiten.NewImage(tileSize, tileSize)
 	tileImage.Fill(color.White)
 }
 
