@@ -209,12 +209,6 @@ func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 	}
 }
 
-// UpdateTouchesOnIOS is a dummy function for backward compatibility.
-// UpdateTouchesOnIOS is called from ebiten/mobile package.
-func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
-	panic("ebitenmobileview: updateTouchesOnIOSImpl must not be called on Android")
-}
-
 func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int) {
 	switch {
 	case source&sourceGamepad == sourceGamepad:

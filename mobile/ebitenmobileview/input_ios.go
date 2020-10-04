@@ -43,12 +43,6 @@ func getIDFromPtr(ptr int64) int {
 	return id
 }
 
-// UpdateTouchesOnAndroid is a dummy function for backward compatibility.
-// UpdateTouchesOnAndroid is called from ebiten/mobile package.
-func UpdateTouchesOnAndroid(action int, id int, x, y int) {
-	panic("ebitenmobileview: updateTouchesOnAndroid must not be called on iOS")
-}
-
 func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
 	switch phase {
 	case C.UITouchPhaseBegan, C.UITouchPhaseMoved, C.UITouchPhaseStationary:
