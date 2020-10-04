@@ -25,7 +25,7 @@ const (
 type Address int
 
 const (
-	AddressClampToZero Address = iota
+	AddressUnsafe Address = iota
+	AddressClampToZero
 	AddressRepeat
-	AddressUnsafe
 )

@@ -242,14 +242,14 @@ type Vertex struct {
 type Address int
 
 const (
+	// AddressUnsafe means there is no guarantee when the texture coodinates are out of range.
+	AddressUnsafe Address = Address(driver.AddressUnsafe)
+
 	// AddressClampToZero means that out-of-range texture coordinates return 0 (transparent).
 	AddressClampToZero Address = Address(driver.AddressClampToZero)
 
 	// AddressRepeat means that texture coordinates wrap to the other side of the texture.
 	AddressRepeat Address = Address(driver.AddressRepeat)
-
-	// AddressUnsafe means there is no guarantee when the texture coodinates are out of range.
-	AddressUnsafe Address = Address(driver.AddressUnsafe)
 )
 
 // DrawTrianglesOptions represents options for DrawTriangles.
@@ -270,7 +270,7 @@ type DrawTrianglesOptions struct {
 	Filter Filter
 
 	// Address is a sampler address mode.
-	// The default (zero) value is AddressClampToZero.
+	// The default (zero) value is AddressUnsafe.
 	Address Address
 }
 
