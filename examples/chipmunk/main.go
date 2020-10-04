@@ -90,7 +90,7 @@ func NewGame() *Game {
 	}
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	g.space.Step(1.0 / float64(ebiten.MaxTPS()))
 	return nil
 }

@@ -145,7 +145,7 @@ func (g *Game) init() {
 
 var regularTermination = errors.New("regular termination")
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if !g.inited {
 		g.init()
 	}

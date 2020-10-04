@@ -194,13 +194,7 @@ func (c *uiContext) update() error {
 		if err := hooks.RunBeforeUpdateHooks(); err != nil {
 			return err
 		}
-
-		// Multiple successive Clear call should be integrated into one graphics command, then
-		// calling Clear on every Update should not affect the performance.
-		if IsScreenClearedEveryFrame() {
-			c.offscreen.Clear()
-		}
-		if err := c.game.Update(c.offscreen); err != nil {
+		if err := c.game.Update(); err != nil {
 			return err
 		}
 		uiDriver().ResetForFrame()

@@ -97,7 +97,7 @@ func (g *game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return g.width, g.height
 }
 
-func (g *game) Update(screen *ebiten.Image) error {
+func (g *game) Update() error {
 	var (
 		screenWidth  int
 		screenHeight int

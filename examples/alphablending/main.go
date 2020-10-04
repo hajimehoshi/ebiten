@@ -40,7 +40,7 @@ type Game struct {
 	count int
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	g.count++
 	g.count %= ebiten.MaxTPS() * 10
 	return nil

@@ -42,7 +42,7 @@ type game struct {
 	code  int
 }
 
-func (g *game) Update(*ebiten.Image) error {
+func (g *game) Update() error {
 	select {
 	case f := <-mainCh:
 		f()

@@ -21,7 +21,7 @@
 //
 //     // Update proceeds the game state.
 //     // Update is called every tick (1/60 [s] by default).
-//     func (g *Game) Update(screen *ebiten.Image) error {
+//     func (g *Game) Update() error {
 //         // Write your game's logical update.
 //         return nil
 //     }

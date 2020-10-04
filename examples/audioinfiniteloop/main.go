@@ -51,7 +51,7 @@ type Game struct {
 	player *audio.Player
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if g.player != nil {
 		return nil
 	}

@@ -241,7 +241,7 @@ func NewGame() *Game {
 	}
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	// Manipulate the player by the input.
 	if ebiten.IsKeyPressed(ebiten.KeySpace) {
 		g.player.MoveForward()

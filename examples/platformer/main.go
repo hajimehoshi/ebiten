@@ -124,7 +124,7 @@ type Game struct {
 	gopher *char
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if g.gopher == nil {
 		g.gopher = &char{x: 50 * unit, y: groundY * unit}
 	}

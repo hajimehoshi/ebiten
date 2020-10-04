@@ -96,7 +96,7 @@ func NewGame() *Game {
 	}
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if g.spotLightVX == 0 {
 		g.spotLightVX = 1
 	}

@@ -266,7 +266,7 @@ func (g *Game) updateStroke(stroke *Stroke) {
 	stroke.SetDraggingObject(nil)
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		s := NewStroke(&MouseStrokeSource{})
 		s.SetDraggingObject(g.spriteAt(s.Position()))

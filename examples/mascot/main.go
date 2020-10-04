@@ -87,7 +87,7 @@ func (m *mascot) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return width, height
 }
 
-func (m *mascot) Update(screen *ebiten.Image) error {
+func (m *mascot) Update() error {
 	m.count++
 
 	sw, sh := ebiten.ScreenSizeInFullscreen()

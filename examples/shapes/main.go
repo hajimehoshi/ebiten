@@ -154,7 +154,7 @@ func rect(x, y, w, h float32, clr color.RGBA) ([]ebiten.Vertex, []uint16) {
 	}, []uint16{0, 1, 2, 1, 2, 3}
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	g.count++
 	g.count %= 240
 	return nil

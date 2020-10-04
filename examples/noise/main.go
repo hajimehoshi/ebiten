@@ -49,7 +49,7 @@ type Game struct {
 	noiseImage *image.RGBA
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	// Generate the noise with random RGB values.
 	const l = screenWidth * screenHeight
 	for i := 0; i < l; i++ {

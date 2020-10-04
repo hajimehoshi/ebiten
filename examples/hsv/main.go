@@ -68,7 +68,7 @@ func NewGame() *Game {
 	}
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	// Adjust HSV values along with the user's input.
 	if ebiten.IsKeyPressed(ebiten.KeyQ) {
 		g.hue128--

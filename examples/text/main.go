@@ -79,7 +79,7 @@ type Game struct {
 	kanjiTextColor color.RGBA
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	return nil
 }
 

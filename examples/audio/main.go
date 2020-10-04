@@ -284,7 +284,7 @@ func NewGame() (*Game, error) {
 	}, nil
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	select {
 	case p := <-g.musicPlayerCh:
 		g.musicPlayer = p

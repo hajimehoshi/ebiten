@@ -63,7 +63,7 @@ type Game struct {
 	count int
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	drawn := false
 
 	// Paint the brush by mouse dragging

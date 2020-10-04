@@ -49,7 +49,7 @@ type Game struct {
 	highDPIImage *ebiten.Image
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	// TODO: DeviceScaleFactor() might return different values for different monitors.
 	// Add a mode to adjust the screen size along with the current device scale (#705).
 	// Now this example uses the device scale initialized at the beginning of this application.

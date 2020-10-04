@@ -102,7 +102,7 @@ func (g *Game) reset() {
 	g.moveDirection = dirNone
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) || inpututil.IsKeyJustPressed(ebiten.KeyA) {
 		if g.moveDirection != dirRight {
 			g.moveDirection = dirLeft

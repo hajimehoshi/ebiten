@@ -30,7 +30,7 @@ type game struct {
 	code int
 }
 
-func (g *game) Update(*ebiten.Image) error {
+func (g *game) Update() error {
 	g.code = g.m.Run()
 	return regularTermination
 }

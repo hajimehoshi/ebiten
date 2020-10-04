@@ -39,7 +39,7 @@ type Game struct {
 	pressedButtons map[int][]string
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if g.gamepadIDs == nil {
 		g.gamepadIDs = map[int]struct{}{}
 	}

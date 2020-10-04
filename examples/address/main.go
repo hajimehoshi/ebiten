@@ -104,7 +104,7 @@ func drawRect(screen *ebiten.Image, img *ebiten.Image, x, y, width, height float
 
 type Game struct{}
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	return nil
 }
 

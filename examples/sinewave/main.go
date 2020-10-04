@@ -97,7 +97,7 @@ type Game struct {
 	player *audio.Player
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if g.player == nil {
 		// Pass the (infinite) stream to audio.NewPlayer.
 		// After calling Play, the stream never ends as long as the player object lives.

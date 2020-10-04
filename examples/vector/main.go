@@ -175,7 +175,7 @@ type Game struct {
 	counter int
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	g.counter++
 	return nil
 }

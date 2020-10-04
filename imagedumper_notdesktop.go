@@ -17,11 +17,11 @@
 package ebiten
 
 type imageDumper struct {
-	f func(screen *Image) error
+	g Game
 }
 
-func (i *imageDumper) update(screen *Image) error {
-	return i.f(screen)
+func (i *imageDumper) update() error {
+	return i.g.Update()
 }
 
 func (i *imageDumper) dump(screen *Image) error {

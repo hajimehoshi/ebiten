@@ -125,7 +125,7 @@ func (g *Game) renderFire() {
 	}
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	g.updateFirePixels()
 	return nil
 }

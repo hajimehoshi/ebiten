@@ -78,7 +78,7 @@ type Game struct {
 	viewport viewport
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	g.viewport.Move()
 	return nil
 }

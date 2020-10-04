@@ -490,7 +490,7 @@ func init() {
 	})
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	g.button1.Update()
 	g.button2.Update()
 	g.checkBox.Update()

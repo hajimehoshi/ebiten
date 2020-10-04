@@ -94,7 +94,7 @@ func lerp(a, b, t float64) float64 {
 	return a*(1-t) + b*t
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	g.initAudio()
 	g.count++
 	r := float64(g.count) * ((1.0 / 60.0) * 2 * math.Pi) * 0.1 // full cycle every 10 seconds

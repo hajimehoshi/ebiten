@@ -207,7 +207,7 @@ var (
 type Game struct {
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	// The piano data is still being initialized.
 	// Get the progress if available.
 	if !pianoNoteSamplesInited {

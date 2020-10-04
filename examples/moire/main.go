@@ -66,7 +66,7 @@ func (g *game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return screenWidth, screenHeight
 }
 
-func (g *game) Update(screen *ebiten.Image) error {
+func (g *game) Update() error {
 	fullscreen := ebiten.IsFullscreen()
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyS) {

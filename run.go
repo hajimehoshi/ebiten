@@ -25,20 +25,14 @@ import (
 type Game interface {
 	// Update updates a game by one tick. The given argument represents a screen image.
 	//
-	// Basically Update updates the game logic. Whether Update also draws the screen or not depends on the
-	// existence of Draw implementation.
-	//
-	// The Draw function's definition is:
-	//
-	//     Draw(screen *Image)
-	//
 	// Update updates only the game logic and Draw draws the screen.
-	// In this case, the argument screen's updated content by Update is not adopted for the actual game screen,
-	// and the screen's updated content by Draw is adopted instead.
+	//
 	// In the first frame, it is ensured that Update is called at least once before Draw. You can use Update
-	// to initialize the game state. After the first frame, Update might not be called or might be called once
+	// to initialize the game state.
+	//
+	// After the first frame, Update might not be called or might be called once
 	// or more for one frame. The frequency is determined by the current TPS (tick-per-second).
-	Update(screen *Image) error
+	Update() error
 
 	// Draw draws the game screen by one frame.
 	//
@@ -102,32 +96,20 @@ func IsScreenClearedEveryFrame() bool {
 	return atomic.LoadInt32(&isScreenClearedEveryFrame) != 0
 }
 
-type imageDumperGame struct {
+type imageDumperGameWithDraw struct {
 	game Game
 	d    *imageDumper
+	err  error
 }
 
-func (i *imageDumperGame) Update(screen *Image) error {
-	if i.d == nil {
-		i.d = &imageDumper{f: i.game.Update}
-	}
-	return i.d.update(screen)
-}
-
-func (i *imageDumperGame) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return i.game.Layout(outsideWidth, outsideHeight)
-}
-
-type imageDumperGameWithDraw struct {
-	imageDumperGame
-	err error
-}
-
-func (i *imageDumperGameWithDraw) Update(screen *Image) error {
+func (i *imageDumperGameWithDraw) Update() error {
 	if i.err != nil {
 		return i.err
 	}
-	return i.imageDumperGame.Update(screen)
+	if i.d == nil {
+		i.d = &imageDumper{g: i.game}
+	}
+	return i.d.update()
 }
 
 func (i *imageDumperGameWithDraw) Draw(screen *Image) {
@@ -136,12 +118,11 @@ func (i *imageDumperGameWithDraw) Draw(screen *Image) {
 	}
 
 	i.game.Draw(screen)
-
-	// Call dump explicitly. IsDrawingSkipped always returns true when Draw is defined.
-	if i.d == nil {
-		i.d = &imageDumper{f: i.game.Update}
-	}
 	i.err = i.d.dump(screen)
+}
+
+func (i *imageDumperGameWithDraw) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
+	return i.game.Layout(outsideWidth, outsideHeight)
 }
 
 // RunGame starts the main loop and runs the game.
@@ -188,7 +169,7 @@ func (i *imageDumperGameWithDraw) Draw(screen *Image) {
 func RunGame(game Game) error {
 	fixWindowPosition(WindowSize())
 	return runGame(&imageDumperGameWithDraw{
-		imageDumperGame: imageDumperGame{game: game},
+		game: game,
 	}, 0)
 }
 
@@ -211,7 +192,7 @@ func runGame(game Game, scale float64) error {
 func RunGameWithoutMainLoop(game Game) {
 	fixWindowPosition(WindowSize())
 	game = &imageDumperGameWithDraw{
-		imageDumperGame: imageDumperGame{game: game},
+		game: game,
 	}
 	theUIContext.set(game, 0)
 	uiDriver().RunWithoutMainLoop(theUIContext)

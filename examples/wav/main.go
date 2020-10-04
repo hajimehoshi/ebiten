@@ -74,7 +74,7 @@ func init() {
 	}
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if ebiten.IsKeyPressed(ebiten.KeyP) && !g.audioPlayer.IsPlaying() {
 		// As audioPlayer has one stream and remembers the playing position,
 		// rewinding is needed before playing when reusing audioPlayer.

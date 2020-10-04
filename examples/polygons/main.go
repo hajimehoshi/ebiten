@@ -98,7 +98,7 @@ type Game struct {
 	prevNgon int
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
 		g.ngon--
 		if g.ngon < 1 {

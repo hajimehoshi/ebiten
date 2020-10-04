@@ -124,7 +124,7 @@ type Game struct {
 	kanjiTextColor color.RGBA
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	// Change the text color for each second.
 	if g.counter%ebiten.MaxTPS() == 0 {
 		g.kanjiText = nil

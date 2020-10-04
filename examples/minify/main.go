@@ -48,7 +48,7 @@ type Game struct {
 	counter int
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	g.counter++
 	if g.counter == 480 {
 		g.counter = 0

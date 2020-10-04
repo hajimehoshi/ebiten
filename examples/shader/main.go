@@ -96,7 +96,7 @@ type Game struct {
 	time    int
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	g.time++
 	if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
 		g.idx++

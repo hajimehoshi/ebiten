@@ -221,7 +221,7 @@ type Game struct {
 	objects  []object
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		return errors.New("game ended by player")
 	}

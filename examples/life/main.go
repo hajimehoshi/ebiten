@@ -160,7 +160,7 @@ type Game struct {
 	pixels []byte
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	g.world.Update()
 	return nil
 }

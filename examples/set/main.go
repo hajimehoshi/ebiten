@@ -45,7 +45,7 @@ func init() {
 type Game struct {
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	w, h := offscreen.Size()
 	x := rand.Intn(w)
 	y := rand.Intn(h)

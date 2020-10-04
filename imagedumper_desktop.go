@@ -84,7 +84,7 @@ func dumpInternalImages() error {
 }
 
 type imageDumper struct {
-	f func(screen *Image) error
+	g Game
 
 	keyState map[Key]int
 
@@ -95,15 +95,21 @@ type imageDumper struct {
 	hasDumpInternalImagesKey bool
 	dumpInternalImagesKey    Key
 	toDumpInternalImages     bool
+
+	err error
 }
 
-func (i *imageDumper) update(screen *Image) error {
+func (i *imageDumper) update() error {
+	if i.err != nil {
+		return i.err
+	}
+
 	const (
 		envScreenshotKey     = "EBITEN_SCREENSHOT_KEY"
 		envInternalImagesKey = "EBITEN_INTERNAL_IMAGES_KEY"
 	)
 
-	if err := i.f(screen); err != nil {
+	if err := i.g.Update(); err != nil {
 		return err
 	}
 
@@ -153,9 +159,7 @@ func (i *imageDumper) update(screen *Image) error {
 			i.keyState[key] = 0
 		}
 	}
-
-	// TODO: As the screen will be available only from Draw, move this to a drawing function.
-	return i.dump(screen)
+	return nil
 }
 
 func (i *imageDumper) dump(screen *Image) error {

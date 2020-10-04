@@ -42,7 +42,7 @@ type Game struct {
 	y float64
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	dx, dy := ebiten.Wheel()
 	g.x += dx
 	g.y += dy

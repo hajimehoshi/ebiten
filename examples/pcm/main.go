@@ -137,7 +137,7 @@ type Game struct {
 	currentNote rune
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	// Play notes for each half second.
 	if g.frames%30 == 0 && audioContext.IsReady() {
 		g.currentNote = playNote(g.scoreIndex)

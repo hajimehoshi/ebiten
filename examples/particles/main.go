@@ -141,7 +141,7 @@ type Game struct {
 	sprites *list.List
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if g.sprites == nil {
 		g.sprites = list.New()
 	}

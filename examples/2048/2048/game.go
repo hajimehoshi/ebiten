@@ -57,7 +57,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 // Update updates the current game state.
-func (g *Game) Update(*ebiten.Image) error {
+func (g *Game) Update() error {
 	g.input.Update()
 	if err := g.board.Update(g.input); err != nil {
 		return err
