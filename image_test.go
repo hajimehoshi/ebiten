@@ -1676,6 +1676,7 @@ func TestImageDrawTrianglesWithSubImage(t *testing.T) {
 	}
 	is := []uint16{0, 1, 2, 1, 2, 3}
 	op := &DrawTrianglesOptions{}
+	op.Address = AddressClampToZero
 	dst.DrawTriangles(vs, is, src.SubImage(image.Rect(4, 4, 8, 8)).(*Image), op)
 
 	for j := 0; j < h; j++ {
