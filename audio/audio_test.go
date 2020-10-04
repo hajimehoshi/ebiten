@@ -25,11 +25,7 @@ import (
 var context *Context
 
 func setup() {
-	var err error
-	context, err = NewContext(44100)
-	if err != nil {
-		panic(err)
-	}
+	context = NewContext(44100)
 }
 
 func teardown() {

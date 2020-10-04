@@ -116,14 +116,12 @@ func init() {
 }
 
 var (
-	audioContext *audio.Context
+	audioContext = audio.NewContext(44100)
 	jumpPlayer   *audio.Player
 	hitPlayer    *audio.Player
 )
 
 func init() {
-	audioContext, _ = audio.NewContext(44100)
-
 	jumpD, err := vorbis.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Jump_ogg))
 	if err != nil {
 		log.Fatal(err)

@@ -42,10 +42,7 @@ var g Game
 func init() {
 	var err error
 	// Initialize audio context.
-	g.audioContext, err = audio.NewContext(sampleRate)
-	if err != nil {
-		log.Fatal(err)
-	}
+	g.audioContext = audio.NewContext(sampleRate)
 
 	// In this example, embedded resource "Jab_wav" is used.
 	//

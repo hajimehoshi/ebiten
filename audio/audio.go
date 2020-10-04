@@ -84,10 +84,8 @@ var (
 // Other values might not work.
 // For example, 22050 causes error on Safari when decoding MP3.
 //
-// Error returned by NewContext is always nil as of 1.5.0-alpha.
-//
 // NewContext panics when an audio context is already created.
-func NewContext(sampleRate int) (*Context, error) {
+func NewContext(sampleRate int) *Context {
 	theContextLock.Lock()
 	defer theContextLock.Unlock()
 	if theContext != nil {
@@ -127,7 +125,7 @@ func NewContext(sampleRate int) (*Context, error) {
 		return err
 	})
 
-	return c, nil
+	return c
 }
 
 // CurrentContext returns the current context or nil if there is no context.

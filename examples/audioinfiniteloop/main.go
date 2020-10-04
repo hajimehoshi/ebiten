@@ -37,15 +37,7 @@ const (
 	loopLengthInSecond  = 4
 )
 
-var audioContext *audio.Context
-
-func init() {
-	var err error
-	audioContext, err = audio.NewContext(sampleRate)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
+var audioContext = audio.NewContext(sampleRate)
 
 type Game struct {
 	player *audio.Player

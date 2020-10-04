@@ -23,15 +23,7 @@ import (
 	. "github.com/hajimehoshi/ebiten/v2/audio/vorbis"
 )
 
-var audioContext *audio.Context
-
-func init() {
-	var err error
-	audioContext, err = audio.NewContext(44100)
-	if err != nil {
-		panic(err)
-	}
-}
+var audioContext = audio.NewContext(44100)
 
 func TestMono(t *testing.T) {
 	bs := test_mono_ogg

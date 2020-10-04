@@ -64,15 +64,7 @@ const (
 	baseFreq     = 220
 )
 
-var audioContext *audio.Context
-
-func init() {
-	var err error
-	audioContext, err = audio.NewContext(sampleRate)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
+var audioContext = audio.NewContext(sampleRate)
 
 // pianoAt returns an i-th sample of piano with the given frequency.
 func pianoAt(i int, freq float64) float64 {

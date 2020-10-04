@@ -267,10 +267,7 @@ type Game struct {
 }
 
 func NewGame() (*Game, error) {
-	audioContext, err := audio.NewContext(sampleRate)
-	if err != nil {
-		return nil, err
-	}
+	audioContext := audio.NewContext(sampleRate)
 
 	m, err := NewPlayer(audioContext, typeOgg)
 	if err != nil {
