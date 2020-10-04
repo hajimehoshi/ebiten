@@ -208,17 +208,6 @@ func (c *Context) IsReady() bool {
 	return r
 }
 
-// Update does nothing.
-//
-// Deprecated: (as of 1.6.0) Do not use this.
-//
-// As of 1.6.0-alpha, Update always returns nil and does nothing related to updating the state.
-// You don't have to call Update any longer.
-// The internal audio error is returned at ebiten.Run instead.
-func (c *Context) Update() error {
-	return nil
-}
-
 // SampleRate returns the sample rate.
 func (c *Context) SampleRate() int {
 	return c.sampleRate
