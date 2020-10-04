@@ -154,10 +154,7 @@ func (i *imageDumper) update(screen *Image) error {
 		}
 	}
 
-	if IsDrawingSkipped() {
-		return nil
-	}
-
+	// TODO: As the screen will be available only from Draw, move this to a drawing function.
 	return i.dump(screen)
 }
 

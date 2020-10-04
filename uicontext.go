@@ -179,6 +179,7 @@ func (c *uiContext) Draw() error {
 }
 
 func (c *uiContext) update() error {
+	// TODO: Move the clock usage to the UI driver side.
 	updateCount := clock.Update(MaxTPS())
 
 	// Ensure that Update is called once before Draw so that Update can be used for initialization.
@@ -189,9 +190,6 @@ func (c *uiContext) update() error {
 
 	for i := 0; i < updateCount; i++ {
 		c.updateOffscreen()
-
-		// TODO: Move the clock usage to the UI driver side.
-		setDrawingSkipped(i < updateCount-1)
 
 		if err := hooks.RunBeforeUpdateHooks(); err != nil {
 			return err

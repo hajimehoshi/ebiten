@@ -78,18 +78,9 @@ func CurrentFPS() float64 {
 }
 
 var (
-	isDrawingSkipped          = int32(0)
 	isScreenClearedEveryFrame = int32(1)
 	currentMaxTPS             = int32(DefaultTPS)
 )
-
-func setDrawingSkipped(skipped bool) {
-	v := int32(0)
-	if skipped {
-		v = 1
-	}
-	atomic.StoreInt32(&isDrawingSkipped, v)
-}
 
 // SetScreenClearedEveryFrame enables or disables the clearing of the screen at the beginning of each frame.
 // The default value is false and the screen is cleared each frame by default.
@@ -109,36 +100,6 @@ func SetScreenClearedEveryFrame(cleared bool) {
 // IsScreenClearedEveryFrame is concurrent-safe.
 func IsScreenClearedEveryFrame() bool {
 	return atomic.LoadInt32(&isScreenClearedEveryFrame) != 0
-}
-
-// IsDrawingSkipped returns true if rendering result is not adopted.
-// It is recommended to skip drawing images or screen
-// when IsDrawingSkipped is true.
-//
-// The typical code with IsDrawingSkipped is this:
-//
-//    func update(screen *ebiten.Image) error {
-//
-//        // Update the state.
-//
-//        // When IsDrawingSkipped is true, the rendered result is not adopted.
-//        // Skip rendering then.
-//        if ebiten.IsDrawingSkipped() {
-//            return nil
-//        }
-//
-//        // Draw something to the screen.
-//
-//        return nil
-//    }
-//
-// IsDrawingSkipped is useful if you use Run function or RunGame function without implementing Game's Draw.
-// Otherwise, i.e., if you use RunGame function with implementing Game's Draw, IsDrawingSkipped should not be used.
-// If you use RunGame and Draw, IsDrawingSkipped always returns true.
-//
-// IsDrawingSkipped is concurrent-safe.
-func IsDrawingSkipped() bool {
-	return atomic.LoadInt32(&isDrawingSkipped) != 0
 }
 
 type imageDumperGame struct {
