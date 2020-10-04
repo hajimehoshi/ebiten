@@ -74,9 +74,7 @@ func SetWindowResizable(resizable bool) {
 
 // SetWindowTitle sets the title of the window.
 //
-// SetWindowTitle updated the title on browsers, but now does nothing on browsers as of 1.11.0-alpha.
-//
-// SetWindowTitle does nothing on mobiles.
+// SetWindowTitle does nothing on browsers or mobiles.
 //
 // SetWindowTitle is concurrent-safe.
 func SetWindowTitle(title string) {

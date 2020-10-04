@@ -244,11 +244,7 @@ func SetCursorMode(mode CursorModeType) {
 
 // IsFullscreen reports whether the current mode is fullscreen or not.
 //
-// IsFullscreen always returns false on browsers.
-// IsFullscreen works as this as of 1.10.0-alpha.
-// Before that, IsFullscreen reported whether the current mode is fullscreen or not.
-//
-// IsFullscreen always returns false on mobiles.
+// IsFullscreen always returns false on browsers or mobiles.
 //
 // IsFullscreen is concurrent-safe.
 func IsFullscreen() bool {
@@ -263,11 +259,7 @@ func IsFullscreen() bool {
 // On desktops, Ebiten uses 'windowed' fullscreen mode, which doesn't change
 // your monitor's resolution.
 //
-// SetFullscreen does nothing on browsers.
-// SetFullscreen works as this as of 1.10.0-alpha.
-// Before that, SetFullscreen affected the fullscreen mode.
-//
-// SetFullscreen does nothing on mobiles.
+// SetFullscreen does nothing on browsers or mobiles.
 //
 // SetFullscreen is concurrent-safe.
 func SetFullscreen(fullscreen bool) {

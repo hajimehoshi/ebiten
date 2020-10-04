@@ -122,9 +122,6 @@ type DrawImageOptions struct {
 
 	// Filter is a type of texture filter.
 	// The default (zero) value is FilterNearest.
-	//
-	// Filter can also be specified at NewImage* functions, but
-	// specifying filter at DrawImageOptions is recommended (as of 1.7.0).
 	Filter Filter
 }
 
@@ -635,7 +632,7 @@ func (i *Image) ColorModel() color.Model {
 // Note that an important logic should not rely on values returned by At, since
 // the returned values can include very slight differences between some machines.
 //
-// At can't be called outside the main loop (ebiten.Run's updating function) starts (as of version 1.4.0).
+// At can't be called outside the main loop (ebiten.Run's updating function) starts.
 func (i *Image) At(x, y int) color.Color {
 	if i.isDisposed() {
 		return color.RGBA{}

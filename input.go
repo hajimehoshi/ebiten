@@ -99,9 +99,6 @@ func Wheel() (xoff, yoff float64) {
 // use inpututil.IsMouseButtonJustPressed
 //
 // IsMouseButtonPressed is concurrent-safe.
-//
-// Note that touch events not longer affect IsMouseButtonPressed's result as of 1.4.0-alpha.
-// Use Touches instead.
 func IsMouseButtonPressed(mouseButton MouseButton) bool {
 	return uiDriver().Input().IsMouseButtonPressed(driver.MouseButton(mouseButton))
 }

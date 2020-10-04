@@ -816,9 +816,6 @@ func TestImageOutsideUpperLeft(t *testing.T) {
 	dst1.DrawImage(src.SubImage(image.Rect(-4, -4, 8, 8)).(*Image), op)
 
 	op = &DrawImageOptions{}
-	// The outside part of the source rect is just ignored.
-	// This behavior was changed as of 1.9.0-alpha.
-	// op.GeoM.Translate(4, 4)
 	op.GeoM.Rotate(math.Pi / 4)
 	dst2.DrawImage(src, op)
 
