@@ -201,7 +201,7 @@ func (c *Context) IsReady() bool {
 		// problematic when a user tries to play audio after the context is ready.
 		// Play a dummy player to avoid the blocking (#969).
 		// Use a long enough buffer so that writing doesn't finish immediately (#970).
-		p, _ := NewPlayerFromBytes(c, make([]byte, bufferSize()*2))
+		p := NewPlayerFromBytes(c, make([]byte, bufferSize()*2))
 		p.Play()
 	}()
 
@@ -309,16 +309,14 @@ func NewPlayer(context *Context, src io.ReadCloser) (*Player, error) {
 // src can be shared by multiple players.
 //
 // The format of src should be same as noted at NewPlayer.
-//
-// NewPlayerFromBytes's error is always nil as of 1.5.0-alpha.
-func NewPlayerFromBytes(context *Context, src []byte) (*Player, error) {
+func NewPlayerFromBytes(context *Context, src []byte) *Player {
 	b := BytesReadSeekCloser(src)
 	p, err := NewPlayer(context, b)
 	if err != nil {
 		// Errors should never happen.
 		panic(fmt.Sprintf("audio: %v at NewPlayerFromBytes", err))
 	}
-	return p, nil
+	return p
 }
 
 func (p *Player) finalize() {

@@ -125,7 +125,7 @@ func playNote(scoreIndex int) rune {
 	square(l, vol, freq, 0.25)
 	square(r, vol, freq, 0.25)
 
-	p, _ := audio.NewPlayerFromBytes(audioContext, toBytes(l, r))
+	p := audio.NewPlayerFromBytes(audioContext, toBytes(l, r))
 	p.Play()
 
 	return rune(note)

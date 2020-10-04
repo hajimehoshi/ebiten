@@ -179,7 +179,7 @@ func (p *Player) playSEIfNeeded() {
 	if !inpututil.IsKeyJustPressed(ebiten.KeyP) {
 		return
 	}
-	sePlayer, _ := audio.NewPlayerFromBytes(p.audioContext, p.seBytes)
+	sePlayer := audio.NewPlayerFromBytes(p.audioContext, p.seBytes)
 	sePlayer.Play()
 }
 

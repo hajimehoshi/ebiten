@@ -147,7 +147,7 @@ func init() {
 // playNote plays piano sound with the given frequency.
 func playNote(freq float64) {
 	f := int(freq)
-	p, _ := audio.NewPlayerFromBytes(audioContext, pianoNoteSamples[f])
+	p := audio.NewPlayerFromBytes(audioContext, pianoNoteSamples[f])
 	p.Play()
 }
 
