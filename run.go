@@ -32,24 +32,18 @@ type Game interface {
 	//
 	//     Draw(screen *Image)
 	//
-	// With Draw (the recommended way), Update updates only the game logic and Draw draws the screen.
+	// Update updates only the game logic and Draw draws the screen.
 	// In this case, the argument screen's updated content by Update is not adopted for the actual game screen,
 	// and the screen's updated content by Draw is adopted instead.
 	// In the first frame, it is ensured that Update is called at least once before Draw. You can use Update
 	// to initialize the game state. After the first frame, Update might not be called or might be called once
 	// or more for one frame. The frequency is determined by the current TPS (tick-per-second).
-	//
-	// Without Draw (the legacy way), Update updates the game logic and also draws the screen.
-	// In this case, the argument screen's updated content by Update is adopted for the actual game screen.
 	Update(screen *Image) error
 
 	// Draw draws the game screen by one frame.
 	//
 	// The give argument represents a screen image. The updated content is adopted as the game screen.
-	//
-	// Draw is an optional function for backward compatibility.
-	//
-	// Draw(screen *Image)
+	Draw(screen *Image)
 
 	// Layout accepts a native outside size in device-independent pixels and returns the game's logical screen
 	// size.
@@ -180,7 +174,7 @@ func (i *imageDumperGameWithDraw) Draw(screen *Image) {
 		return
 	}
 
-	i.game.(interface{ Draw(*Image) }).Draw(screen)
+	i.game.Draw(screen)
 
 	// Call dump explicitly. IsDrawingSkipped always returns true when Draw is defined.
 	if i.d == nil {
@@ -232,12 +226,9 @@ func (i *imageDumperGameWithDraw) Draw(screen *Image) {
 // Don't call RunGame twice or more in one process.
 func RunGame(game Game) error {
 	fixWindowPosition(WindowSize())
-	if _, ok := game.(interface{ Draw(*Image) }); ok {
-		return runGame(&imageDumperGameWithDraw{
-			imageDumperGame: imageDumperGame{game: game},
-		}, 0)
-	}
-	return runGame(&imageDumperGame{game: game}, 0)
+	return runGame(&imageDumperGameWithDraw{
+		imageDumperGame: imageDumperGame{game: game},
+	}, 0)
 }
 
 func runGame(game Game, scale float64) error {
@@ -258,12 +249,8 @@ func runGame(game Game, scale float64) error {
 // Instead, functions in github.com/hajimehoshi/ebiten/v2/mobile package calls this.
 func RunGameWithoutMainLoop(game Game) {
 	fixWindowPosition(WindowSize())
-	if _, ok := game.(interface{ Draw(*Image) }); ok {
-		game = &imageDumperGameWithDraw{
-			imageDumperGame: imageDumperGame{game: game},
-		}
-	} else {
-		game = &imageDumperGame{game: game}
+	game = &imageDumperGameWithDraw{
+		imageDumperGame: imageDumperGame{game: game},
 	}
 	theUIContext.set(game, 0)
 	uiDriver().RunWithoutMainLoop(theUIContext)
