@@ -79,9 +79,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Specifying filter on NewImage[FromImage] is just for backward compatibility.
-	// Now specifying filter at DrawImageOptions is recommended.
-	// Specify FilterDefault here, that means to prefer filter specified at DrawImageOptions.
 	ebitenImage, _ = ebiten.NewImageFromImage(img)
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)

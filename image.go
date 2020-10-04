@@ -121,15 +121,10 @@ type DrawImageOptions struct {
 	CompositeMode CompositeMode
 
 	// Filter is a type of texture filter.
-	// The default (zero) value is FilterDefault.
+	// The default (zero) value is FilterNearest.
 	//
 	// Filter can also be specified at NewImage* functions, but
 	// specifying filter at DrawImageOptions is recommended (as of 1.7.0).
-	//
-	// If both Filter specified at NewImage* and DrawImageOptions are FilterDefault,
-	// FilterNearest is used.
-	// If either is FilterDefault and the other is not, the latter is used.
-	// Otherwise, Filter specified at DrawImageOptions is used.
 	Filter Filter
 }
 
@@ -193,11 +188,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 
 	bounds := img.Bounds()
 	mode := driver.CompositeMode(options.CompositeMode)
-
-	filter := driver.FilterNearest
-	if options.Filter != FilterDefault {
-		filter = driver.Filter(options.Filter)
-	}
+	filter := driver.Filter(options.Filter)
 
 	a, b, c, d, tx, ty := options.GeoM.elements32()
 
@@ -262,7 +253,7 @@ type DrawTrianglesOptions struct {
 	CompositeMode CompositeMode
 
 	// Filter is a type of texture filter.
-	// The default (zero) value is FilterDefault.
+	// The default (zero) value is FilterNearest.
 	Filter Filter
 
 	// Address is a sampler address mode.
@@ -324,10 +315,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		}
 	}
 
-	filter := driver.FilterNearest
-	if options.Filter != FilterDefault {
-		filter = driver.Filter(options.Filter)
-	}
+	filter := driver.Filter(options.Filter)
 
 	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
 	for i, v := range vertices {

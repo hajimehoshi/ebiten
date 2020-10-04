@@ -17,7 +17,7 @@ package driver
 type Filter int
 
 const (
-	FilterNearest Filter = iota + 1 // TODO: Remove '+ 1' when ebiten.FilterDefault can be removed.
+	FilterNearest Filter = iota
 	FilterLinear
 	FilterScreen
 )
