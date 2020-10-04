@@ -23,14 +23,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-// Game defines necessary functions for a mobile game.
-type Game = ebiten.Game
-
 // SetGame sets a mobile game.
 //
 // SetGame is expected to be called only once.
 //
 // SetGame can be called anytime. Until SetGame is called, the game does not start.
-func SetGame(game Game) {
+func SetGame(game ebiten.Game) {
 	setGame(game)
 }
