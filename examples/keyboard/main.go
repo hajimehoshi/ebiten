@@ -42,7 +42,7 @@ func init() {
 		log.Fatal(err)
 	}
 
-	keyboardImage, _ = ebiten.NewImageFromImage(img)
+	keyboardImage = ebiten.NewImageFromImage(img)
 }
 
 type Game struct {

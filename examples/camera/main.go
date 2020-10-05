@@ -65,7 +65,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	tilesImage, _ = ebiten.NewImageFromImage(img)
+	tilesImage = ebiten.NewImageFromImage(img)
 }
 
 type Camera struct {

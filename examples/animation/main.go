@@ -77,7 +77,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	runnerImage, _ = ebiten.NewImageFromImage(img)
+	runnerImage = ebiten.NewImageFromImage(img)
 
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
 	ebiten.SetWindowTitle("Animation (Ebiten Demo)")

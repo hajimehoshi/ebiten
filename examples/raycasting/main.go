@@ -59,7 +59,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	bgImage, _ = ebiten.NewImageFromImage(img)
+	bgImage = ebiten.NewImageFromImage(img)
 	triangleImage.Fill(color.White)
 }
 

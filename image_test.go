@@ -59,10 +59,7 @@ func openEbitenImage() (*Image, image.Image, error) {
 		return nil, nil, err
 	}
 
-	eimg, err := NewImageFromImage(img)
-	if err != nil {
-		return nil, nil, err
-	}
+	eimg := NewImageFromImage(img)
 	return eimg, img, nil
 }
 
@@ -248,7 +245,7 @@ func TestImageDotByDotInversion(t *testing.T) {
 
 func TestImageReplacePixels(t *testing.T) {
 	// Create a dummy image so that the shared texture is used and origImg's position is shfited.
-	dummyImg, _ := NewImageFromImage(image.NewRGBA(image.Rect(0, 0, 16, 16)))
+	dummyImg := NewImageFromImage(image.NewRGBA(image.Rect(0, 0, 16, 16)))
 	defer dummyImg.Dispose()
 
 	_, origImg, err := openEbitenImage()
@@ -361,9 +358,7 @@ func TestNewImageFromEbitenImage(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-	if _, err := NewImageFromImage(img); err != nil {
-		t.Errorf("NewImageFromImage returns error: %v", err)
-	}
+	_ = NewImageFromImage(img)
 }
 
 func TestNewImageFromSubImage(t *testing.T) {
@@ -374,11 +369,7 @@ func TestNewImageFromSubImage(t *testing.T) {
 	}
 	w, h := img.Bounds().Dx(), img.Bounds().Dy()
 	subImg := img.(*image.NRGBA).SubImage(image.Rect(1, 1, w-1, h-1))
-	eimg, err := NewImageFromImage(subImg)
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
+	eimg := NewImageFromImage(subImg)
 	sw, sh := subImg.Bounds().Dx(), subImg.Bounds().Dy()
 	w2, h2 := eimg.Size()
 	if w2 != sw {

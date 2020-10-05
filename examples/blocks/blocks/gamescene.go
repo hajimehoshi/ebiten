@@ -76,7 +76,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	imageGameBG, _ = ebiten.NewImageFromImage(img)
+	imageGameBG = ebiten.NewImageFromImage(img)
 
 	// Windows: Field
 	x, y := fieldWindowPosition()

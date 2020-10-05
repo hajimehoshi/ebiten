@@ -22,14 +22,9 @@ import (
 )
 
 var (
-	debugPrintTextImage     *ebiten.Image
+	debugPrintTextImage     = ebiten.NewImageFromImage(assets.CreateTextImage())
 	debugPrintTextSubImages = map[rune]*ebiten.Image{}
 )
-
-func init() {
-	img := assets.CreateTextImage()
-	debugPrintTextImage, _ = ebiten.NewImageFromImage(img)
-}
 
 // DebugPrint draws the string str on the image on left top corner.
 //

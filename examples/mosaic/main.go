@@ -52,7 +52,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	gophersImage, _ = ebiten.NewImageFromImage(img)
+	gophersImage = ebiten.NewImageFromImage(img)
 }
 
 type Game struct {

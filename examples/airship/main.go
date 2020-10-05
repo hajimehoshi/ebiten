@@ -61,7 +61,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	gophersImage, _ = ebiten.NewImageFromImage(img)
+	gophersImage = ebiten.NewImageFromImage(img)
 
 	const repeat = 5
 	w, h := gophersImage.Size()
@@ -89,7 +89,7 @@ func init() {
 			fogRGBA.SetRGBA(i, j, clr)
 		}
 	}
-	fogImage, _ = ebiten.NewImageFromImage(fogRGBA)
+	fogImage = ebiten.NewImageFromImage(fogRGBA)
 }
 
 // player represents the current airship's position.

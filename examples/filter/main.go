@@ -79,7 +79,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ebitenImage, _ = ebiten.NewImageFromImage(img)
+	ebitenImage = ebiten.NewImageFromImage(img)
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Filter (Ebiten Demo)")

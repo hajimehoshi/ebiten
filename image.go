@@ -31,8 +31,6 @@ var panicOnErrorAtImageAt bool
 // Image represents a rectangle set of pixels.
 // The pixel format is alpha-premultiplied RGBA.
 // Image implements image.Image and draw.Image.
-//
-// Functions of Image never returns error as of 1.5.0, and error values are always nil.
 type Image struct {
 	// addr holds self to check copying.
 	// See strings.Builder for similar examples.
@@ -729,9 +727,7 @@ func NewImage(width, height int) *Image {
 // NewImageFromImage creates a new image with the given image (source).
 //
 // If source's width or height is less than 1 or more than device-dependent maximum size, NewImageFromImage panics.
-//
-// Error returned by NewImageFromImage is always nil as of 1.5.0.
-func NewImageFromImage(source image.Image) (*Image, error) {
+func NewImageFromImage(source image.Image) *Image {
 	size := source.Bounds().Size()
 
 	width, height := size.X, size.Y
@@ -743,7 +739,7 @@ func NewImageFromImage(source image.Image) (*Image, error) {
 	i.addr = i
 
 	i.ReplacePixels(imageToBytes(source))
-	return i, nil
+	return i
 }
 
 func newScreenFramebufferImage(width, height int) *Image {

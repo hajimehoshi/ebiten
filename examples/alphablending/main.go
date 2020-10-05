@@ -91,7 +91,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ebitenImage, _ = ebiten.NewImageFromImage(img)
+	ebitenImage = ebiten.NewImageFromImage(img)
 
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
 	ebiten.SetWindowTitle("Alpha Blending (Ebiten Demo)")

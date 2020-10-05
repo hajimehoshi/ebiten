@@ -56,7 +56,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	origEbitenImage, _ := ebiten.NewImageFromImage(img)
+	origEbitenImage := ebiten.NewImageFromImage(img)
 
 	w, h := origEbitenImage.Size()
 	ebitenImage = ebiten.NewImage(w, h)

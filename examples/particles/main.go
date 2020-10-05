@@ -58,7 +58,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	smokeImage, _ = ebiten.NewImageFromImage(img)
+	smokeImage = ebiten.NewImageFromImage(img)
 }
 
 type sprite struct {

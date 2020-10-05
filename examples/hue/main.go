@@ -75,7 +75,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	gophersImage, _ = ebiten.NewImageFromImage(img)
+	gophersImage = ebiten.NewImageFromImage(img)
 
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
 	ebiten.SetWindowTitle("Hue (Ebiten Demo)")

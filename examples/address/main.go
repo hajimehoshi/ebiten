@@ -48,7 +48,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ebitenImage, _ = ebiten.NewImageFromImage(img)
+	ebitenImage = ebiten.NewImageFromImage(img)
 }
 
 func drawRect(screen *ebiten.Image, img *ebiten.Image, x, y, width, height float32, address ebiten.Address, msg string) {

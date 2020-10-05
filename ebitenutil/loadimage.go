@@ -45,9 +45,6 @@ func NewImageFromFile(path string) (*ebiten.Image, image.Image, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	img2, err := ebiten.NewImageFromImage(img)
-	if err != nil {
-		return nil, nil, err
-	}
+	img2 := ebiten.NewImageFromImage(img)
 	return img2, img, err
 }

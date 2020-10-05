@@ -47,25 +47,25 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	rightSprite, _ = ebiten.NewImageFromImage(img)
+	rightSprite = ebiten.NewImageFromImage(img)
 
 	img, _, err = image.Decode(bytes.NewReader(rplatformer.Left_png))
 	if err != nil {
 		panic(err)
 	}
-	leftSprite, _ = ebiten.NewImageFromImage(img)
+	leftSprite = ebiten.NewImageFromImage(img)
 
 	img, _, err = image.Decode(bytes.NewReader(rplatformer.MainChar_png))
 	if err != nil {
 		panic(err)
 	}
-	idleSprite, _ = ebiten.NewImageFromImage(img)
+	idleSprite = ebiten.NewImageFromImage(img)
 
 	img, _, err = image.Decode(bytes.NewReader(rplatformer.Background_png))
 	if err != nil {
 		panic(err)
 	}
-	backgroundImage, _ = ebiten.NewImageFromImage(img)
+	backgroundImage = ebiten.NewImageFromImage(img)
 }
 
 const (

@@ -82,13 +82,13 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	gopherImage, _ = ebiten.NewImageFromImage(img)
+	gopherImage = ebiten.NewImageFromImage(img)
 
 	img, _, err = image.Decode(bytes.NewReader(resources.Tiles_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	tilesImage, _ = ebiten.NewImageFromImage(img)
+	tilesImage = ebiten.NewImageFromImage(img)
 }
 
 func init() {

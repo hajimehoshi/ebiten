@@ -111,7 +111,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	gophersImage, _ = ebiten.NewImageFromImage(img)
+	gophersImage = ebiten.NewImageFromImage(img)
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Minify (Ebiten Demo)")
