@@ -25,10 +25,9 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector/internal/triangulate"
 )
 
-var emptyImage *ebiten.Image
+var emptyImage = ebiten.NewImage(1, 1)
 
 func init() {
-	emptyImage, _ = ebiten.NewImage(1, 1)
 	emptyImage.Fill(color.White)
 }
 

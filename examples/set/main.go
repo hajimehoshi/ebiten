@@ -36,11 +36,7 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-var offscreen *ebiten.Image
-
-func init() {
-	offscreen, _ = ebiten.NewImage(screenWidth, screenHeight)
-}
+var offscreen = ebiten.NewImage(screenWidth, screenHeight)
 
 type Game struct {
 }

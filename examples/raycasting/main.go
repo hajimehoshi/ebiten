@@ -41,8 +41,8 @@ const (
 
 var (
 	bgImage       *ebiten.Image
-	shadowImage   *ebiten.Image
-	triangleImage *ebiten.Image
+	shadowImage   = ebiten.NewImage(screenWidth, screenHeight)
+	triangleImage = ebiten.NewImage(screenWidth, screenHeight)
 )
 
 func init() {
@@ -60,8 +60,6 @@ func init() {
 		log.Fatal(err)
 	}
 	bgImage, _ = ebiten.NewImageFromImage(img)
-	shadowImage, _ = ebiten.NewImage(screenWidth, screenHeight)
-	triangleImage, _ = ebiten.NewImage(screenWidth, screenHeight)
 	triangleImage.Fill(color.White)
 }
 

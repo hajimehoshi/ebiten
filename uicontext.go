@@ -92,7 +92,7 @@ func (c *uiContext) updateOffscreen() {
 		}
 	}
 	if c.offscreen == nil {
-		c.offscreen = newImage(sw, sh)
+		c.offscreen = NewImage(sw, sh)
 		c.offscreen.mipmap.SetVolatile(IsScreenClearedEveryFrame())
 	}
 

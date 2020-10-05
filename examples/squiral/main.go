@@ -79,7 +79,7 @@ var (
 	}
 	selectedPalette = 0
 	colorCycle      = 0
-	canvas          *ebiten.Image
+	canvas          = ebiten.NewImage(width, height)
 	auto            *automaton
 	// blocker is an arbitrary color used to prevent the
 	// squirals from leaving the canvas.
@@ -279,8 +279,6 @@ func setpix(xy vec2, col color.Color) {
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
-	c, _ := ebiten.NewImage(width, height)
-	canvas = c
 	canvas.Fill(background)
 
 	auto = &automaton{}

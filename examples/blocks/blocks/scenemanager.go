@@ -19,14 +19,9 @@ import (
 )
 
 var (
-	transitionFrom *ebiten.Image
-	transitionTo   *ebiten.Image
+	transitionFrom = ebiten.NewImage(ScreenWidth, ScreenHeight)
+	transitionTo   = ebiten.NewImage(ScreenWidth, ScreenHeight)
 )
-
-func init() {
-	transitionFrom, _ = ebiten.NewImage(ScreenWidth, ScreenHeight)
-	transitionTo, _ = ebiten.NewImage(ScreenWidth, ScreenHeight)
-}
 
 type Scene interface {
 	Update(state *GameState) error

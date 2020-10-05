@@ -33,11 +33,10 @@ const (
 )
 
 var (
-	dot *ebiten.Image
+	dot = ebiten.NewImage(1, 1)
 )
 
 func init() {
-	dot, _ = ebiten.NewImage(1, 1)
 	dot.Fill(color.White)
 }
 

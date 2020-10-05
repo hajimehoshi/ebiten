@@ -57,7 +57,7 @@ func init() {
 	origEbitenImage, _ := ebiten.NewImageFromImage(img)
 
 	w, h := origEbitenImage.Size()
-	ebitenImage, _ = ebiten.NewImage(w, h)
+	ebitenImage = ebiten.NewImage(w, h)
 
 	op := &ebiten.DrawImageOptions{}
 	op.ColorM.Scale(1, 1, 1, 0.5)

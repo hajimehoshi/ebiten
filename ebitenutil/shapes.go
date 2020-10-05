@@ -23,11 +23,10 @@ import (
 )
 
 var (
-	emptyImage *ebiten.Image
+	emptyImage = ebiten.NewImage(1, 1)
 )
 
 func init() {
-	emptyImage, _ = ebiten.NewImage(1, 1)
 	emptyImage.Fill(color.White)
 }
 

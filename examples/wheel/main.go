@@ -25,10 +25,9 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
-var pointerImage *ebiten.Image
+var pointerImage = ebiten.NewImage(4, 4)
 
 func init() {
-	pointerImage, _ = ebiten.NewImage(4, 4)
 	pointerImage.Fill(color.RGBA{0xff, 0, 0, 0xff})
 }
 

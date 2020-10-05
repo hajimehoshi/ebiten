@@ -36,7 +36,7 @@ const (
 var (
 	bgImage        *ebiten.Image
 	fgImage        *ebiten.Image
-	maskedFgImage  *ebiten.Image
+	maskedFgImage  = ebiten.NewImage(screenWidth, screenHeight)
 	spotLightImage *ebiten.Image
 )
 
@@ -61,8 +61,6 @@ func init() {
 		log.Fatal(err)
 	}
 	fgImage, _ = ebiten.NewImageFromImage(img)
-
-	maskedFgImage, _ = ebiten.NewImage(screenWidth, screenHeight)
 
 	// Initialize the spot light image.
 	const r = 64

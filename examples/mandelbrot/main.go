@@ -30,7 +30,7 @@ const (
 )
 
 var (
-	offscreen    *ebiten.Image
+	offscreen    = ebiten.NewImage(screenWidth, screenHeight)
 	offscreenPix []byte
 	palette      [maxIt]byte
 )
@@ -69,7 +69,6 @@ func updateOffscreen(centerX, centerY, size float64) {
 }
 
 func init() {
-	offscreen, _ = ebiten.NewImage(screenWidth, screenHeight)
 	offscreenPix = make([]byte, screenWidth*screenHeight*4)
 	for i := range palette {
 		palette[i] = byte(math.Sqrt(float64(i)/float64(len(palette))) * 0x80)

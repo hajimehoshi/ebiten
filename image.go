@@ -717,13 +717,7 @@ func (i *Image) ReplacePixels(pixels []byte) {
 // NewImage returns an empty image.
 //
 // If width or height is less than 1 or more than device-dependent maximum size, NewImage panics.
-//
-// Error returned by NewImage is always nil as of 1.5.0.
-func NewImage(width, height int) (*Image, error) {
-	return newImage(width, height), nil
-}
-
-func newImage(width, height int) *Image {
+func NewImage(width, height int) *Image {
 	i := &Image{
 		mipmap: mipmap.New(width, height),
 		bounds: image.Rect(0, 0, width, height),

@@ -33,7 +33,7 @@ const (
 )
 
 var (
-	emptyImage, _ = ebiten.NewImage(16, 16)
+	emptyImage = ebiten.NewImage(16, 16)
 )
 
 func init() {

@@ -34,7 +34,7 @@ const (
 
 var (
 	brushImage  *ebiten.Image
-	canvasImage *ebiten.Image
+	canvasImage = ebiten.NewImage(screenWidth, screenHeight)
 )
 
 func init() {
@@ -55,7 +55,6 @@ func init() {
 		Rect:   image.Rect(0, 0, 4, 4),
 	})
 
-	canvasImage, _ = ebiten.NewImage(screenWidth, screenHeight)
 	canvasImage.Fill(color.White)
 }
 
