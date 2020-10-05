@@ -701,13 +701,11 @@ func (i *Image) Dispose() {
 // When len(pix) is not appropriate, ReplacePixels panics.
 //
 // When the image is disposed, ReplacePixels does nothing.
-//
-// ReplacePixels always returns nil as of 1.5.0.
-func (i *Image) ReplacePixels(pixels []byte) error {
+func (i *Image) ReplacePixels(pixels []byte) {
 	i.copyCheck()
 
 	if i.isDisposed() {
-		return nil
+		return
 	}
 	r := i.Bounds()
 
@@ -717,7 +715,6 @@ func (i *Image) ReplacePixels(pixels []byte) error {
 	if err := i.mipmap.ReplacePixels(pixels, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
 		theUIContext.setError(err)
 	}
-	return nil
 }
 
 // NewImage returns an empty image.

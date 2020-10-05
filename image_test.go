@@ -323,10 +323,7 @@ func TestImageReplacePixels(t *testing.T) {
 		return
 	}
 
-	if err := img0.ReplacePixels(img.Pix); err != nil {
-		t.Fatal(err)
-		return
-	}
+	img0.ReplacePixels(img.Pix)
 	for j := 0; j < img0.Bounds().Size().Y; j++ {
 		for i := 0; i < img0.Bounds().Size().X; i++ {
 			got := img0.At(i, j)
@@ -341,10 +338,7 @@ func TestImageReplacePixels(t *testing.T) {
 	for i := range p {
 		p[i] = 0x80
 	}
-	if err := img0.ReplacePixels(p); err != nil {
-		t.Fatal(err)
-		return
-	}
+	img0.ReplacePixels(p)
 	// Even if p is changed after calling ReplacePixel, img0 uses the original values.
 	for i := range p {
 		p[i] = 0
