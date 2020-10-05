@@ -81,13 +81,13 @@ func (c *uiContext) updateOffscreen() {
 	c.outsideSizeUpdated = false
 
 	if c.screen != nil {
-		_ = c.screen.Dispose()
+		c.screen.Dispose()
 		c.screen = nil
 	}
 
 	if c.offscreen != nil {
 		if w, h := c.offscreen.Size(); w != sw || h != sh {
-			_ = c.offscreen.Dispose()
+			c.offscreen.Dispose()
 			c.offscreen = nil
 		}
 	}

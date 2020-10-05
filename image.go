@@ -678,20 +678,17 @@ func (i *Image) Set(x, y int, clr color.Color) {
 // However, calling Dispose explicitly is helpful if memory usage matters.
 //
 // When the image is disposed, Dipose does nothing.
-//
-// Dipose always return nil as of 1.5.0.
-func (i *Image) Dispose() error {
+func (i *Image) Dispose() {
 	i.copyCheck()
 
 	if i.isDisposed() {
-		return nil
+		return
 	}
 	if i.isSubImage() {
-		return nil
+		return
 	}
 	i.mipmap.MarkDisposed()
 	i.mipmap = nil
-	return nil
 }
 
 // ReplacePixels replaces the pixels of the image with p.
