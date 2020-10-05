@@ -47,7 +47,7 @@ func DrawLine(dst *ebiten.Image, x1, y1, x2, y2 float64, clr color.Color) {
 	op.ColorM = colormcache.ColorToColorM(clr)
 	// Filter must be 'nearest' filter (default).
 	// Linear filtering would make edges blurred.
-	_ = dst.DrawImage(emptyImage, op)
+	dst.DrawImage(emptyImage, op)
 }
 
 // DrawRect draws a rectangle on the given destination dst.
@@ -64,5 +64,5 @@ func DrawRect(dst *ebiten.Image, x, y, width, height float64, clr color.Color) {
 	op.ColorM = colormcache.ColorToColorM(clr)
 	// Filter must be 'nearest' filter (default).
 	// Linear filtering would make edges blurred.
-	_ = dst.DrawImage(emptyImage, op)
+	dst.DrawImage(emptyImage, op)
 }

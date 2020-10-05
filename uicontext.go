@@ -240,7 +240,7 @@ func (c *uiContext) draw() {
 	} else {
 		op.Filter = FilterLinear
 	}
-	_ = c.screen.DrawImage(c.offscreen, op)
+	c.screen.DrawImage(c.offscreen, op)
 }
 
 func (c *uiContext) AdjustPosition(x, y float64) (float64, float64) {

@@ -154,16 +154,14 @@ type DrawImageOptions struct {
 // share the texture atlas with high probability.
 //
 // For more performance tips, see https://ebiten.org/documents/performancetips.html
-//
-// DrawImage always returns nil as of 1.5.0.
-func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
+func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	i.copyCheck()
 
 	if img.isDisposed() {
 		panic("ebiten: the given image to DrawImage must not be disposed")
 	}
 	if i.isDisposed() {
-		return nil
+		return
 	}
 
 	// TODO: Implement this.
@@ -192,7 +190,6 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 
 	srcs := [graphics.ShaderImageNum]*mipmap.Mipmap{img.mipmap}
 	i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.AddressUnsafe, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, canSkipMipmap(options.GeoM, filter))
-	return nil
 }
 
 // Vertex represents a vertex passed to DrawTriangles.

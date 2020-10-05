@@ -103,8 +103,8 @@ func (c *Camera) worldMatrix() ebiten.GeoM {
 	return m
 }
 
-func (c *Camera) Render(world, screen *ebiten.Image) error {
-	return screen.DrawImage(world, &ebiten.DrawImageOptions{
+func (c *Camera) Render(world, screen *ebiten.Image) {
+	screen.DrawImage(world, &ebiten.DrawImageOptions{
 		GeoM: c.worldMatrix(),
 	})
 }

@@ -142,18 +142,9 @@ func TestImageComposition(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-	if err := img2.DrawImage(img1, nil); err != nil {
-		t.Fatal(err)
-		return
-	}
-	if err := img3.DrawImage(img2, nil); err != nil {
-		t.Fatal(err)
-		return
-	}
-	if err := img_12_3.DrawImage(img3, nil); err != nil {
-		t.Fatal(err)
-		return
-	}
+	img2.DrawImage(img1, nil)
+	img3.DrawImage(img2, nil)
+	img_12_3.DrawImage(img3, nil)
 
 	img2.Fill(img2Color)
 	img3.Fill(img3Color)
@@ -162,18 +153,9 @@ func TestImageComposition(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-	if err := img3.DrawImage(img2, nil); err != nil {
-		t.Fatal(err)
-		return
-	}
-	if err := img3.DrawImage(img1, nil); err != nil {
-		t.Fatal(err)
-		return
-	}
-	if err := img_1_23.DrawImage(img3, nil); err != nil {
-		t.Fatal(err)
-		return
-	}
+	img3.DrawImage(img2, nil)
+	img3.DrawImage(img1, nil)
+	img_1_23.DrawImage(img3, nil)
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
@@ -223,10 +205,7 @@ func TestImageScale(t *testing.T) {
 		op := &DrawImageOptions{}
 		op.GeoM.Scale(float64(scale), float64(scale))
 
-		if err := img1.DrawImage(img0, op); err != nil {
-			t.Fatal(err)
-			return
-		}
+		img1.DrawImage(img0, op)
 
 		for j := 0; j < h*scale; j++ {
 			for i := 0; i < w*scale; i++ {
@@ -255,10 +234,7 @@ func TestImage90DegreeRotate(t *testing.T) {
 	op := &DrawImageOptions{}
 	op.GeoM.Rotate(math.Pi / 2)
 	op.GeoM.Translate(float64(h), 0)
-	if err := img1.DrawImage(img0, op); err != nil {
-		t.Fatal(err)
-		return
-	}
+	img1.DrawImage(img0, op)
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
@@ -286,10 +262,7 @@ func TestImageDotByDotInversion(t *testing.T) {
 	op := &DrawImageOptions{}
 	op.GeoM.Rotate(math.Pi)
 	op.GeoM.Translate(float64(w), float64(h))
-	if err := img1.DrawImage(img0, op); err != nil {
-		t.Fatal(err)
-		return
-	}
+	img1.DrawImage(img0, op)
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
@@ -411,10 +384,7 @@ func TestImageCompositeModeLighter(t *testing.T) {
 	img1.Fill(color.RGBA{0x01, 0x02, 0x03, 0x04})
 	op := &DrawImageOptions{}
 	op.CompositeMode = CompositeModeLighter
-	if err := img1.DrawImage(img0, op); err != nil {
-		t.Fatal(err)
-		return
-	}
+	img1.DrawImage(img0, op)
 	for j := 0; j < img1.Bounds().Size().Y; j++ {
 		for i := 0; i < img1.Bounds().Size().X; i++ {
 			got := img1.At(i, j).(color.RGBA)

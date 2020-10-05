@@ -56,7 +56,7 @@ func drawGlyph(dst *ebiten.Image, face font.Face, r rune, img *ebiten.Image, x, 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64((x+b.Min.X)>>6), float64((y+b.Min.Y)>>6))
 	op.ColorM = clr
-	_ = dst.DrawImage(img, op)
+	dst.DrawImage(img, op)
 }
 
 var (
