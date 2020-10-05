@@ -29,11 +29,8 @@ var (
 // DebugPrint draws the string str on the image on left top corner.
 //
 // The available runes are in U+0000 to U+00FF, which is C0 Controls and Basic Latin and C1 Controls and Latin-1 Supplement.
-//
-// DebugPrint always returns nil as of 1.5.0-alpha.
-func DebugPrint(image *ebiten.Image, str string) error {
+func DebugPrint(image *ebiten.Image, str string) {
 	DebugPrintAt(image, str, 0, 0)
-	return nil
 }
 
 // DebugPrintAt draws the string str on the image at (x, y) position.
