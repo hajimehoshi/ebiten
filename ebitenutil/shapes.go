@@ -28,7 +28,7 @@ var (
 
 func init() {
 	emptyImage, _ = ebiten.NewImage(1, 1)
-	_ = emptyImage.Fill(color.White)
+	emptyImage.Fill(color.White)
 }
 
 // DrawLine draws a line segment on the given destination dst.

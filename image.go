@@ -67,23 +67,18 @@ func (i *Image) isSubImage() bool {
 // Clear resets the pixels of the image into 0.
 //
 // When the image is disposed, Clear does nothing.
-//
-// Clear always returns nil as of 1.5.0.
-func (i *Image) Clear() error {
+func (i *Image) Clear() {
 	i.Fill(color.Transparent)
-	return nil
 }
 
 // Fill fills the image with a solid color.
 //
 // When the image is disposed, Fill does nothing.
-//
-// Fill always returns nil as of 1.5.0.
-func (i *Image) Fill(clr color.Color) error {
+func (i *Image) Fill(clr color.Color) {
 	i.copyCheck()
 
 	if i.isDisposed() {
-		return nil
+		return
 	}
 
 	// TODO: Implement this.
@@ -92,7 +87,6 @@ func (i *Image) Fill(clr color.Color) error {
 	}
 
 	i.mipmap.Fill(color.RGBAModel.Convert(clr).(color.RGBA))
-	return nil
 }
 
 func canSkipMipmap(geom GeoM, filter driver.Filter) bool {

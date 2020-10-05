@@ -135,14 +135,8 @@ func TestImageComposition(t *testing.T) {
 		return
 	}
 
-	if err := img2.Fill(img2Color); err != nil {
-		t.Fatal(err)
-		return
-	}
-	if err := img3.Fill(img3Color); err != nil {
-		t.Fatal(err)
-		return
-	}
+	img2.Fill(img2Color)
+	img3.Fill(img3Color)
 	img_12_3, err := NewImage(w, h)
 	if err != nil {
 		t.Fatal(err)
@@ -161,14 +155,8 @@ func TestImageComposition(t *testing.T) {
 		return
 	}
 
-	if err := img2.Fill(img2Color); err != nil {
-		t.Fatal(err)
-		return
-	}
-	if err := img3.Fill(img3Color); err != nil {
-		t.Fatal(err)
-		return
-	}
+	img2.Fill(img2Color)
+	img3.Fill(img3Color)
 	img_1_23, err := NewImage(w, h)
 	if err != nil {
 		t.Fatal(err)
@@ -428,10 +416,7 @@ func TestImageCompositeModeLighter(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-	if err := img1.Fill(color.RGBA{0x01, 0x02, 0x03, 0x04}); err != nil {
-		t.Fatal(err)
-		return
-	}
+	img1.Fill(color.RGBA{0x01, 0x02, 0x03, 0x04})
 	op := &DrawImageOptions{}
 	op.CompositeMode = CompositeModeLighter
 	if err := img1.DrawImage(img0, op); err != nil {
@@ -512,10 +497,7 @@ func TestImageFill(t *testing.T) {
 		return
 	}
 	clr := &mutableRGBA{0x80, 0x80, 0x80, 0x80}
-	if err := img.Fill(clr); err != nil {
-		t.Fatal(err)
-		return
-	}
+	img.Fill(clr)
 	clr.r = 0
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
