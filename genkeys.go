@@ -684,7 +684,7 @@ func main() {
 		filepath.Join("internal", "glfw", "keys.go"):                   glfwKeysTmpl,
 		filepath.Join("internal", "uidriver", "glfw", "keys.go"):       uidriverGlfwKeysTmpl,
 		filepath.Join("internal", "uidriver", "mobile", "keys.go"):     mobileGBuildKeysTmpl,
-		filepath.Join("internal", "uidriver", "js", "keys.go"):         uidriverJsKeysTmpl,
+		filepath.Join("internal", "uidriver", "js", "keys_js.go"):      uidriverJsKeysTmpl,
 		filepath.Join("keys.go"):                                       ebitenKeysTmpl,
 		filepath.Join("mobile", "ebitenmobileview", "keys_android.go"): mobileAndroidKeysTmpl,
 	} {
@@ -711,8 +711,6 @@ func main() {
 				"\n// +build !js" +
 				"\n// +build !android" +
 				"\n// +build !ios"
-		case "internal/uidriver/js/keys.go":
-			buildTag = "// +build js"
 		}
 		// NOTE: According to godoc, maps are automatically sorted by key.
 		if err := tmpl.Execute(f, struct {
