@@ -15,5 +15,5 @@
 // This can be compiled in non-JS environments to avoid a mysterious error: 'no Go source files'
 // See https://travis-ci.org/hajimehoshi/ebiten/builds/603539948
 
-// Package jsutil offers utility functions for GopherJS and Wasm.
+// Package jsutil offers utility functions for Wasm.
 package jsutil

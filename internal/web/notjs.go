@@ -20,10 +20,6 @@ func IsBrowser() bool {
 	return false
 }
 
-func IsGopherJS() bool {
-	return false
-}
-
 func IsIOSSafari() bool {
 	return false
 }

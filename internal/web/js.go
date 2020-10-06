@@ -17,17 +17,12 @@
 package web
 
 import (
-	"runtime"
 	"strings"
 	"syscall/js"
 )
 
 func IsBrowser() bool {
 	return true
-}
-
-func IsGopherJS() bool {
-	return IsBrowser() && runtime.GOOS != "js"
 }
 
 var (

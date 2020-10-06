@@ -29,16 +29,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	t "github.com/hajimehoshi/ebiten/v2/internal/testing"
-	"github.com/hajimehoshi/ebiten/v2/internal/web"
 )
 
 func skipTooSlowTests(t *testing.T) bool {
 	if testing.Short() {
 		t.Skip("skipping test in short mode")
-		return true
-	}
-	if web.IsGopherJS() {
-		t.Skip("too slow on GopherJS")
 		return true
 	}
 	if runtime.GOOS == "js" {

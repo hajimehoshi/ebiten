@@ -153,12 +153,8 @@ func (i *imageDumperGameWithDraw) Layout(outsideWidth, outsideHeight int) (scree
 // TPS (ticks per second) is 60 by default.
 // This is not related to framerate (display's refresh rate).
 //
-// On non-GopherJS environments, RunGame returns error when 1) OpenGL error happens, 2) audio error happens or
+// RunGame returns error when 1) OpenGL error happens, 2) audio error happens or
 // 3) f returns error. In the case of 3), RunGame returns the same error.
-//
-// On GopherJS, RunGame returns immediately.
-// It is because the 'main' goroutine cannot be blocked on GopherJS due to the bug (gopherjs/gopherjs#826).
-// When an error happens, this is shown as an error on the console.
 //
 // The size unit is device-independent pixel.
 //

@@ -61,7 +61,7 @@ type verticesBackend struct {
 }
 
 func (v *verticesBackend) slice(n int, last bool) []float32 {
-	// As this is called only from GopherJS, mutex is not required.
+	// As this is called only on browsers, mutex is not required.
 
 	need := n * VertexFloatNum
 	if l := len(v.backend); v.head+need > l {
@@ -84,7 +84,7 @@ func (v *verticesBackend) slice(n int, last bool) []float32 {
 
 func vertexSlice(n int, last bool) []float32 {
 	if web.IsBrowser() {
-		// In GopherJS and Wasm, allocating memory by make is expensive. Use the backend instead.
+		// In Wasm, allocating memory by make is expensive. Use the backend instead.
 		return theVerticesBackend.slice(n, last)
 	}
 	return make([]float32, n*VertexFloatNum)

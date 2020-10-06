@@ -17,8 +17,6 @@
 package js
 
 import (
-	"log"
-	"runtime"
 	"syscall/js"
 	"time"
 
@@ -411,22 +409,7 @@ func (u *UserInterface) Run(context driver.UIContext) error {
 		canvas.Call("focus")
 	}
 	u.running = true
-	ch := u.loop(context)
-	if runtime.GOARCH == "wasm" {
-		return <-ch
-	}
-
-	// On GopherJS, the main goroutine cannot be blocked due to the bug (gopherjs/gopherjs#826).
-	// Return immediately.
-	go func() {
-		defer func() {
-			u.running = false
-		}()
-		if err := <-ch; err != nil {
-			log.Fatal(err)
-		}
-	}()
-	return nil
+	return <-u.loop(context)
 }
 
 func (u *UserInterface) RunWithoutMainLoop(context driver.UIContext) {
