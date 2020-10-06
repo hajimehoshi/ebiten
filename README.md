@@ -23,9 +23,7 @@ Ebiten is an open source game library for the Go programming language. Ebiten's 
 * [FreeBSD](https://ebiten.org/documents/install.html?os=freebsd)
 * [Android](https://ebiten.org/documents/mobile.html)
 * [iOS](https://ebiten.org/documents/mobile.html)
-* Web browsers (Chrome, Firefox, Safari and Edge)
-  * [WebAssembly](https://ebiten.org/documents/webassembly.html)
-  * [GopherJS](https://ebiten.org/documents/gopherjs.html)
+* [WebAssembly](https://ebiten.org/documents/webassembly.html)
 
 Note: Gamepad and keyboard are not available on Android/iOS.
 
