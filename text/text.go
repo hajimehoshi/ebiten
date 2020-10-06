@@ -60,20 +60,19 @@ func drawGlyph(dst *ebiten.Image, face font.Face, r rune, img *ebiten.Image, x, 
 }
 
 var (
-	// Use pointers as copying is expensive on GopherJS.
-	glyphBoundsCache = map[font.Face]map[rune]*fixed.Rectangle26_6{}
+	glyphBoundsCache = map[font.Face]map[rune]fixed.Rectangle26_6{}
 )
 
-func getGlyphBounds(face font.Face, r rune) *fixed.Rectangle26_6 {
+func getGlyphBounds(face font.Face, r rune) fixed.Rectangle26_6 {
 	if _, ok := glyphBoundsCache[face]; !ok {
-		glyphBoundsCache[face] = map[rune]*fixed.Rectangle26_6{}
+		glyphBoundsCache[face] = map[rune]fixed.Rectangle26_6{}
 	}
 	if b, ok := glyphBoundsCache[face][r]; ok {
 		return b
 	}
 	b, _, _ := face.GlyphBounds(r)
-	glyphBoundsCache[face][r] = &b
-	return &b
+	glyphBoundsCache[face][r] = b
+	return b
 }
 
 type glyphImageCacheEntry struct {
@@ -95,7 +94,7 @@ func getGlyphImages(face font.Face, runes []rune) []*ebiten.Image {
 	}
 
 	imgs := make([]*ebiten.Image, len(runes))
-	glyphBounds := map[rune]*fixed.Rectangle26_6{}
+	glyphBounds := map[rune]fixed.Rectangle26_6{}
 	neededGlyphIndices := map[int]rune{}
 	for i, r := range runes {
 		if _, ok := emptyGlyphs[face][r]; ok {
@@ -262,8 +261,7 @@ func BoundString(face font.Face, text string) image.Rectangle {
 			continue
 		}
 
-		bp := getGlyphBounds(face, r)
-		b := *bp
+		b := getGlyphBounds(face, r)
 		b.Min.X += fx
 		b.Max.X += fx
 		b.Min.Y += fy
