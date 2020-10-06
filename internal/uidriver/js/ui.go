@@ -46,9 +46,10 @@ type UserInterface struct {
 }
 
 var theUI = &UserInterface{
-	sizeChanged: true,
-	vsync:       true,
-	initFocused: true,
+	runnableOnUnfocused: true,
+	sizeChanged:         true,
+	vsync:               true,
+	initFocused:         true,
 }
 
 func init() {

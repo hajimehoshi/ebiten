@@ -92,6 +92,7 @@ const (
 
 var (
 	theUI = &UserInterface{
+		runnableOnUnfocused:     true,
 		origPosX:                invalidPos,
 		origPosY:                invalidPos,
 		initVsync:               true,

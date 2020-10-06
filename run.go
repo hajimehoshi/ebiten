@@ -153,9 +153,6 @@ func (i *imageDumperGameWithDraw) Layout(outsideWidth, outsideHeight int) (scree
 // TPS (ticks per second) is 60 by default.
 // This is not related to framerate (display's refresh rate).
 //
-// game's Update is not called when the window is in background by default.
-// This setting is configurable with SetRunnableOnUnfocused.
-//
 // On non-GopherJS environments, RunGame returns error when 1) OpenGL error happens, 2) audio error happens or
 // 3) f returns error. In the case of 3), RunGame returns the same error.
 //
@@ -286,8 +283,8 @@ func IsRunnableOnUnfocused() bool {
 
 // SetRunnableOnUnfocused sets the state if the game runs even in background.
 //
-// If the given value is true, the game runs in background e.g. when losing focus.
-// The initial state is false.
+// If the given value is true, the game runs even in background e.g. when losing focus.
+// The initial state is true.
 //
 // Known issue: On browsers, even if the state is on, the game doesn't run in background tabs.
 // This is because browsers throttles background tabs not to often update.

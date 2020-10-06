@@ -151,7 +151,6 @@ func (m *mascot) Draw(screen *ebiten.Image) {
 func main() {
 	ebiten.SetScreenTransparent(true)
 	ebiten.SetWindowDecorated(false)
-	ebiten.SetRunnableOnUnfocused(true)
 	ebiten.SetWindowFloating(true)
 	ebiten.SetWindowSize(width, height)
 	if err := ebiten.RunGame(&mascot{}); err != nil {
