@@ -706,6 +706,8 @@ func main() {
 		// Pass the build tag and extract this in the template to make `go vet` happy.
 		buildTag := ""
 		switch path {
+		case "internal/glfw/keys.go":
+			buildTag = "// +build !js"
 		case "internal/uidriver/glfw/keys.go":
 			buildTag = "// +build darwin freebsd linux windows" +
 				"\n// +build !android" +

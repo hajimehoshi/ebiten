@@ -9,6 +9,8 @@
 // This document is licensed under the SGI Free Software B License.
 // For details, see http://oss.sgi.com/projects/FreeB.
 
+// +build !js
+
 // Package gl implements Go bindings to OpenGL.
 package gl
 
