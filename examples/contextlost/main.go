@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // +build js
-// +build example jsgo
+// +build example
 
 package main
 

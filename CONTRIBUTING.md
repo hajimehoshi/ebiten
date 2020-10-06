@@ -36,12 +36,10 @@ You don't have to update existing files' license comments.
 ## Adding build tags for examples
 
 ```go
-// +build example jsgo
+// +build example
 ```
 
 `example` is to prevent from installing executions by `go get github.com/hajimehoshi/ebiten/v2/...`.
-
-`jsgo` is to make the examples work on [jsgo.io](https://jsgo.io/).
 
 ## Documentation
 
