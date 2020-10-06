@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !js wasm
-
 // Package mp3 provides MP3 decoder.
 //
 // On desktops and mobiles, a pure Go decoder is used.
