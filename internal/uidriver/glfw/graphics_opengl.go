@@ -13,7 +13,6 @@
 // limitations under the License.
 
 // +build freebsd linux windows ebitengl
-// +build !js
 
 package glfw
 

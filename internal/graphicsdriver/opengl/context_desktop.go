@@ -13,7 +13,6 @@
 // limitations under the License.
 
 // +build darwin freebsd linux windows
-// +build !js
 // +build !android
 // +build !ios
 

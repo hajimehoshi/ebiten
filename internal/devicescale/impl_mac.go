@@ -13,7 +13,6 @@
 // limitations under the License.
 
 // +build darwin
-// +build !js
 // +build !ios
 
 package devicescale

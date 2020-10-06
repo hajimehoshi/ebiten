@@ -13,7 +13,6 @@
 // limitations under the License.
 
 // +build !windows
-// +build !js
 
 package glfw
 

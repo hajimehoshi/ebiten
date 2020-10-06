@@ -708,7 +708,6 @@ func main() {
 		switch path {
 		case "internal/uidriver/glfw/keys.go":
 			buildTag = "// +build darwin freebsd linux windows" +
-				"\n// +build !js" +
 				"\n// +build !android" +
 				"\n// +build !ios"
 		}
