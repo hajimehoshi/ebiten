@@ -20,6 +20,8 @@ import (
 	"io"
 	"runtime"
 
+	"github.com/jfreymuth/oggvorbis"
+
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/convert"
 )
@@ -136,7 +138,7 @@ func (d *decoded) Length() int64 {
 
 // decode accepts an ogg stream and returns a decorded stream.
 func decode(in audio.ReadSeekCloser) (*decoded, int, int, error) {
-	r, err := newDecoder(in)
+	r, err := oggvorbis.NewReader(in)
 	if err != nil {
 		return nil, 0, 0, err
 	}
