@@ -19,7 +19,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/convert"
@@ -27,7 +26,7 @@ import (
 
 // Stream is a decoded audio stream.
 type Stream struct {
-	inner audio.ReadSeekCloser
+	inner io.ReadSeeker
 	size  int64
 }
 
@@ -43,19 +42,13 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	return s.inner.Seek(offset, whence)
 }
 
-// Read is implementation of io.Closer's Close.
-func (s *Stream) Close() error {
-	runtime.SetFinalizer(s, nil)
-	return s.inner.Close()
-}
-
 // Length returns the size of decoded stream in bytes.
 func (s *Stream) Length() int64 {
 	return s.size
 }
 
 type stream struct {
-	src        audio.ReadSeekCloser
+	src        io.ReadSeeker
 	headerSize int64
 	dataSize   int64
 	remaining  int64
@@ -100,12 +93,6 @@ func (s *stream) Seek(offset int64, whence int) (int64, error) {
 	return n - s.headerSize, nil
 }
 
-// Close is implementation of io.Closer's Close.
-func (s *stream) Close() error {
-	runtime.SetFinalizer(s, nil)
-	return s.src.Close()
-}
-
 // Decode decodes WAV (RIFF) data to playable stream.
 //
 // The format must be 1 or 2 channels, 8bit or 16bit little endian PCM.
@@ -115,8 +102,9 @@ func (s *stream) Close() error {
 //
 // Decode automatically resamples the stream to fit with the audio context if necessary.
 //
-// Decode takes the ownership of src, and Stream's Close function closes src.
-func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
+// A Stream doesn't close src even if src implements io.Closer.
+// Closing the source is src owner's responsibility.
+func Decode(context *audio.Context, src io.ReadSeeker) (*Stream, error) {
 	buf := make([]byte, 12)
 	n, err := io.ReadFull(src, buf)
 	if n != len(buf) {
@@ -203,13 +191,12 @@ chunks:
 			headerSize += size
 		}
 	}
-	var s audio.ReadSeekCloser = &stream{
+	var s io.ReadSeeker = &stream{
 		src:        src,
 		headerSize: headerSize,
 		dataSize:   dataSize,
 		remaining:  dataSize,
 	}
-	runtime.SetFinalizer(s, (*stream).Close)
 
 	if mono || bitsPerSample != 16 {
 		s = convert.NewStereo16(s, mono, bitsPerSample != 16)
@@ -226,6 +213,5 @@ chunks:
 		dataSize = r.Length()
 	}
 	ss := &Stream{inner: s, size: dataSize}
-	runtime.SetFinalizer(ss, (*Stream).Close)
 	return ss, nil
 }

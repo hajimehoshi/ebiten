@@ -20,8 +20,10 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"image/color"
+	"io"
 	"io/ioutil"
 	"log"
 	"time"
@@ -87,7 +89,7 @@ func playerBarRect() (x, y, w, h int) {
 
 func NewPlayer(audioContext *audio.Context, musicType musicType) (*Player, error) {
 	type audioStream interface {
-		audio.ReadSeekCloser
+		io.ReadSeeker
 		Length() int64
 	}
 
@@ -98,13 +100,13 @@ func NewPlayer(audioContext *audio.Context, musicType musicType) (*Player, error
 	switch musicType {
 	case typeOgg:
 		var err error
-		s, err = vorbis.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Ragtime_ogg))
+		s, err = vorbis.Decode(audioContext, bytes.NewReader(raudio.Ragtime_ogg))
 		if err != nil {
 			return nil, err
 		}
 	case typeMP3:
 		var err error
-		s, err = mp3.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Classic_mp3))
+		s, err = mp3.Decode(audioContext, bytes.NewReader(raudio.Classic_mp3))
 		if err != nil {
 			return nil, err
 		}
@@ -128,7 +130,7 @@ func NewPlayer(audioContext *audio.Context, musicType musicType) (*Player, error
 	}
 	player.audioPlayer.Play()
 	go func() {
-		s, err := wav.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Jab_wav))
+		s, err := wav.Decode(audioContext, bytes.NewReader(raudio.Jab_wav))
 		if err != nil {
 			log.Fatal(err)
 			return

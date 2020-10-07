@@ -18,7 +18,6 @@ package vorbis
 import (
 	"fmt"
 	"io"
-	"runtime"
 
 	"github.com/jfreymuth/oggvorbis"
 
@@ -28,7 +27,7 @@ import (
 
 // Stream is a decoded audio stream.
 type Stream struct {
-	decoded audio.ReadSeekCloser
+	decoded io.ReadSeeker
 	size    int64
 }
 
@@ -42,15 +41,6 @@ func (s *Stream) Read(p []byte) (int, error) {
 // Note that Seek can take long since decoding is a relatively heavy task.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	return s.decoded.Seek(offset, whence)
-}
-
-// Close is implementation of io.Closer's Close.
-func (s *Stream) Close() error {
-	runtime.SetFinalizer(s, nil)
-	if err := s.decoded.Close(); err != nil {
-		return err
-	}
-	return nil
 }
 
 // Length returns the size of decoded stream in bytes.
@@ -69,7 +59,6 @@ type decoder interface {
 type decoded struct {
 	totalBytes int
 	posInBytes int
-	source     io.Closer
 	decoder    decoder
 	decoderr   io.Reader
 }
@@ -122,22 +111,12 @@ func (d *decoded) Seek(offset int64, whence int) (int64, error) {
 	return next, nil
 }
 
-func (d *decoded) Close() error {
-	runtime.SetFinalizer(d, nil)
-	if err := d.source.Close(); err != nil {
-		return err
-	}
-	d.decoder = nil
-	d.decoderr = nil
-	return nil
-}
-
 func (d *decoded) Length() int64 {
 	return int64(d.totalBytes)
 }
 
 // decode accepts an ogg stream and returns a decorded stream.
-func decode(in audio.ReadSeekCloser) (*decoded, int, int, error) {
+func decode(in io.ReadSeeker) (*decoded, int, int, error) {
 	r, err := oggvorbis.NewReader(in)
 	if err != nil {
 		return nil, 0, 0, err
@@ -147,10 +126,8 @@ func decode(in audio.ReadSeekCloser) (*decoded, int, int, error) {
 		// Should we check that?
 		totalBytes: int(r.Length()) * r.Channels() * 2, // 2 means 16bit per sample.
 		posInBytes: 0,
-		source:     in,
 		decoder:    r,
 	}
-	runtime.SetFinalizer(d, (*decoded).Close)
 	if _, err := d.Read(make([]byte, 65536)); err != nil && err != io.EOF {
 		return nil, 0, 0, err
 	}
@@ -166,8 +143,9 @@ func decode(in audio.ReadSeekCloser) (*decoded, int, int, error) {
 //
 // Decode automatically resamples the stream to fit with the audio context if necessary.
 //
-// Decode takes the ownership of src, and Stream's Close function closes src.
-func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
+// A Stream doesn't close src even if src implements io.Closer.
+// Closing the source is src owner's responsibility.
+func Decode(context *audio.Context, src io.ReadSeeker) (*Stream, error) {
 	decoded, channelNum, sampleRate, err := decode(src)
 	if err != nil {
 		return nil, err
@@ -175,7 +153,7 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	if channelNum != 1 && channelNum != 2 {
 		return nil, fmt.Errorf("vorbis: number of channels must be 1 or 2 but was %d", channelNum)
 	}
-	var s audio.ReadSeekCloser = decoded
+	var s io.ReadSeeker = decoded
 	size := decoded.Length()
 	if channelNum == 1 {
 		s = convert.NewStereo16(s, true, false)
@@ -187,6 +165,5 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 		size = r.Length()
 	}
 	stream := &Stream{decoded: s, size: size}
-	runtime.SetFinalizer(stream, (*Stream).Close)
 	return stream, nil
 }

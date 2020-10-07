@@ -162,7 +162,7 @@ func (c *Context) addPlayer(p *playerImpl) {
 	c.players[p] = struct{}{}
 
 	// Check the source duplication
-	srcs := map[io.ReadCloser]struct{}{}
+	srcs := map[io.Reader]struct{}{}
 	for p := range c.players {
 		if _, ok := srcs[p.src]; ok {
 			c.err = errors.New("audio: a same source is used by multiple Player")
@@ -211,34 +211,6 @@ func (c *Context) SampleRate() int {
 	return c.sampleRate
 }
 
-// ReadSeekCloser is an io.ReadSeeker and io.Closer.
-type ReadSeekCloser interface {
-	io.ReadSeeker
-	io.Closer
-}
-
-type bytesReadSeekCloser struct {
-	reader *bytes.Reader
-}
-
-func (b *bytesReadSeekCloser) Read(buf []byte) (int, error) {
-	return b.reader.Read(buf)
-}
-
-func (b *bytesReadSeekCloser) Seek(offset int64, whence int) (int64, error) {
-	return b.reader.Seek(offset, whence)
-}
-
-func (b *bytesReadSeekCloser) Close() error {
-	b.reader = nil
-	return nil
-}
-
-// BytesReadSeekCloser creates ReadSeekCloser from bytes.
-func BytesReadSeekCloser(b []byte) ReadSeekCloser {
-	return &bytesReadSeekCloser{reader: bytes.NewReader(b)}
-}
-
 // Player is an audio player which has one stream.
 //
 // Even when all references to a Player object is gone,
@@ -251,7 +223,7 @@ type Player struct {
 
 type playerImpl struct {
 	context          *Context
-	src              io.ReadCloser
+	src              io.Reader
 	sampleRate       int
 	playing          bool
 	closedExplicitly bool
@@ -278,8 +250,9 @@ type playerImpl struct {
 // NewPlayer tries to call Seek of src to get the current position.
 // NewPlayer returns error when the Seek returns error.
 //
-// NewPlayer takes the ownership of src. Player's Close calls src's Close.
-func NewPlayer(context *Context, src io.ReadCloser) (*Player, error) {
+// A Player doesn't close src even if src implements io.Closer.
+// Closing the source is src owner's responsibility.
+func NewPlayer(context *Context, src io.Reader) (*Player, error) {
 	p := &Player{
 		&playerImpl{
 			context:    context,
@@ -308,7 +281,7 @@ func NewPlayer(context *Context, src io.ReadCloser) (*Player, error) {
 //
 // The format of src should be same as noted at NewPlayer.
 func NewPlayerFromBytes(context *Context, src []byte) *Player {
-	b := BytesReadSeekCloser(src)
+	b := bytes.NewReader(src)
 	p, err := NewPlayer(context, b)
 	if err != nil {
 		// Errors should never happen.
@@ -329,7 +302,7 @@ func (p *Player) finalize() {
 // When closing, the stream owned by the player will also be closed by calling its Close.
 // This means that the source stream passed via NewPlayer will also be closed.
 //
-// Close returns error when closing the source returns error.
+// Close returns error when the player is already closed.
 func (p *Player) Close() error {
 	runtime.SetFinalizer(p, nil)
 	return p.p.Close()
@@ -344,11 +317,6 @@ func (p *playerImpl) Close() error {
 		return fmt.Errorf("audio: the player is already closed")
 	}
 	p.closedExplicitly = true
-	// src.Close is called only when Player's Close is called.
-	// TODO: Is it ok not to call src.Close when GCed?
-	if err := p.src.Close(); err != nil {
-		return err
-	}
 	return nil
 }
 

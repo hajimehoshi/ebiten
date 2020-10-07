@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"image"
 	_ "image/png"
+	"io"
 	"log"
 	"math"
 	"time"
@@ -64,7 +65,7 @@ func (g *Game) initAudio() {
 
 	// Decode an Ogg file.
 	// oggS is a decoded io.ReadCloser and io.Seeker.
-	oggS, err := vorbis.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Ragtime_ogg))
+	oggS, err := vorbis.Decode(audioContext, bytes.NewReader(raudio.Ragtime_ogg))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -145,12 +146,12 @@ func main() {
 // StereoPanStream is an audio buffer that changes the stereo channel's signal
 // based on the Panning.
 type StereoPanStream struct {
-	audio.ReadSeekCloser
+	io.ReadSeeker
 	pan float64 // -1: left; 0: center; 1: right
 }
 
 func (s *StereoPanStream) Read(p []byte) (n int, err error) {
-	n, err = s.ReadSeekCloser.Read(p)
+	n, err = s.ReadSeeker.Read(p)
 	if err != nil {
 		return
 	}
@@ -187,8 +188,8 @@ func (s *StereoPanStream) Pan() float64 {
 // The src's format must be linear PCM (16bits little endian, 2 channel stereo)
 // without a header (e.g. RIFF header). The sample rate must be same as that
 // of the audio context.
-func NewStereoPanStreamFromReader(src audio.ReadSeekCloser) *StereoPanStream {
+func NewStereoPanStreamFromReader(src io.ReadSeeker) *StereoPanStream {
 	return &StereoPanStream{
-		ReadSeekCloser: src,
+		ReadSeeker: src,
 	}
 }

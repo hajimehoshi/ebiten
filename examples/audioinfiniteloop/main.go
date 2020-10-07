@@ -17,6 +17,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"time"
@@ -50,7 +51,7 @@ func (g *Game) Update() error {
 
 	// Decode an Ogg file.
 	// oggS is a decoded io.ReadCloser and io.Seeker.
-	oggS, err := vorbis.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Ragtime_ogg))
+	oggS, err := vorbis.Decode(audioContext, bytes.NewReader(raudio.Ragtime_ogg))
 	if err != nil {
 		return err
 	}

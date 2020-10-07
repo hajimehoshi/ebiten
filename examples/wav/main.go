@@ -17,6 +17,7 @@
 package main
 
 import (
+	"bytes"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -59,7 +60,7 @@ func init() {
 	//     ...
 
 	// Decode wav-formatted data and retrieve decoded PCM stream.
-	d, err := wav.Decode(g.audioContext, audio.BytesReadSeekCloser(raudio.Jab_wav))
+	d, err := wav.Decode(g.audioContext, bytes.NewReader(raudio.Jab_wav))
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -20,7 +20,6 @@ package mp3
 
 import (
 	"io"
-	"runtime"
 
 	"github.com/hajimehoshi/go-mp3"
 
@@ -32,7 +31,6 @@ import (
 type Stream struct {
 	orig       *mp3.Decoder
 	resampling *convert.Resampling
-	toClose    io.Closer
 }
 
 // Read is implementation of io.Reader's Read.
@@ -51,12 +49,6 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	return s.orig.Seek(offset, whence)
 }
 
-// Close is implementation of io.Closer's Close.
-func (s *Stream) Close() error {
-	runtime.SetFinalizer(s, nil)
-	return s.toClose.Close()
-}
-
 // Length returns the size of decoded stream in bytes.
 func (s *Stream) Length() int64 {
 	if s.resampling != nil {
@@ -71,8 +63,9 @@ func (s *Stream) Length() int64 {
 //
 // Decode automatically resamples the stream to fit with the audio context if necessary.
 //
-// Decode takes the ownership of src, and Stream's Close function closes src.
-func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
+// A Stream doesn't close src even if src implements io.Closer.
+// Closing the source is src owner's responsibility.
+func Decode(context *audio.Context, src io.ReadSeeker) (*Stream, error) {
 	d, err := mp3.NewDecoder(src)
 	if err != nil {
 		return nil, err
@@ -85,8 +78,6 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	s := &Stream{
 		orig:       d,
 		resampling: r,
-		toClose:    src,
 	}
-	runtime.SetFinalizer(s, (*Stream).Close)
 	return s, nil
 }

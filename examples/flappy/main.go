@@ -122,7 +122,7 @@ var (
 )
 
 func init() {
-	jumpD, err := vorbis.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Jump_ogg))
+	jumpD, err := vorbis.Decode(audioContext, bytes.NewReader(raudio.Jump_ogg))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -131,7 +131,7 @@ func init() {
 		log.Fatal(err)
 	}
 
-	jabD, err := wav.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Jab_wav))
+	jabD, err := wav.Decode(audioContext, bytes.NewReader(raudio.Jab_wav))
 	if err != nil {
 		log.Fatal(err)
 	}
