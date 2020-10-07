@@ -43,7 +43,7 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	return s.inner.Seek(offset, whence)
 }
 
-// Read is implementation of io.Closer's Close.
+// Close is implementation of io.Closer's Close.
 func (s *Stream) Close() error {
 	runtime.SetFinalizer(s, nil)
 	return s.inner.Close()
