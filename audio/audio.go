@@ -299,8 +299,8 @@ func (p *Player) finalize() {
 
 // Close closes the stream.
 //
-// When closing, the stream owned by the player will also be closed by calling its Close.
-// This means that the source stream passed via NewPlayer will also be closed.
+// When Close is called, the stream owned by the player is NOT closed,
+// even if the stream implements io.Closer.
 //
 // Close returns error when the player is already closed.
 func (p *Player) Close() error {
