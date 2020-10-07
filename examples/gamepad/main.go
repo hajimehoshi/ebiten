@@ -91,7 +91,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			ids = append(ids, id)
 		}
 		sort.Ints(ids)
-		for id := range ids {
+		for _, id := range ids {
 			str += fmt.Sprintf("Gamepad (ID: %d, SDL ID: %s):\n", id, ebiten.GamepadSDLID(id))
 			str += fmt.Sprintf("  Axes:    %s\n", strings.Join(g.axes[id], ", "))
 			str += fmt.Sprintf("  Buttons: %s\n", strings.Join(g.pressedButtons[id], ", "))
