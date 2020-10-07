@@ -41,18 +41,18 @@ func (i *Input) CursorPosition() (x, y int) {
 	return i.ui.adjustPosition(i.cursorX, i.cursorY)
 }
 
-func (i *Input) GamepadIDs() []int {
+func (i *Input) GamepadIDs() []driver.GamepadID {
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
 
-	ids := make([]int, 0, len(i.gamepads))
+	ids := make([]driver.GamepadID, 0, len(i.gamepads))
 	for _, g := range i.gamepads {
 		ids = append(ids, g.ID)
 	}
 	return ids
 }
 
-func (i *Input) GamepadSDLID(id int) string {
+func (i *Input) GamepadSDLID(id driver.GamepadID) string {
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
 
@@ -65,7 +65,7 @@ func (i *Input) GamepadSDLID(id int) string {
 	return ""
 }
 
-func (i *Input) GamepadName(id int) string {
+func (i *Input) GamepadName(id driver.GamepadID) string {
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
 
@@ -78,7 +78,7 @@ func (i *Input) GamepadName(id int) string {
 	return ""
 }
 
-func (i *Input) GamepadAxisNum(id int) int {
+func (i *Input) GamepadAxisNum(id driver.GamepadID) int {
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
 
@@ -91,7 +91,7 @@ func (i *Input) GamepadAxisNum(id int) int {
 	return 0
 }
 
-func (i *Input) GamepadAxis(id int, axis int) float64 {
+func (i *Input) GamepadAxis(id driver.GamepadID, axis int) float64 {
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
 
@@ -107,7 +107,7 @@ func (i *Input) GamepadAxis(id int, axis int) float64 {
 	return 0
 }
 
-func (i *Input) GamepadButtonNum(id int) int {
+func (i *Input) GamepadButtonNum(id driver.GamepadID) int {
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
 
@@ -120,7 +120,7 @@ func (i *Input) GamepadButtonNum(id int) int {
 	return 0
 }
 
-func (i *Input) IsGamepadButtonPressed(id int, button driver.GamepadButton) bool {
+func (i *Input) IsGamepadButtonPressed(id driver.GamepadID, button driver.GamepadButton) bool {
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
 

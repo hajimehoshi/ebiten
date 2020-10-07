@@ -27,7 +27,7 @@ type Input struct {
 
 // GamepadIDButtonPressed returns a gamepad ID where at least one button is pressed.
 // If no button is pressed, GamepadIDButtonPressed returns -1.
-func (i *Input) GamepadIDButtonPressed() int {
+func (i *Input) GamepadIDButtonPressed() ebiten.GamepadID {
 	for _, id := range ebiten.GamepadIDs() {
 		for b := ebiten.GamepadButton(0); b <= ebiten.GamepadButtonMax; b++ {
 			if ebiten.IsGamepadButtonPressed(id, b) {

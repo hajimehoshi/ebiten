@@ -56,10 +56,10 @@ func (i *Input) CursorPosition() (x, y int) {
 	return int(xf), int(yf)
 }
 
-func (i *Input) GamepadSDLID(id int) string {
+func (i *Input) GamepadSDLID(id driver.GamepadID) string {
 	// This emulates the implementation of EMSCRIPTEN_JoystickGetDeviceGUID.
 	// https://hg.libsdl.org/SDL/file/bc90ce38f1e2/src/joystick/emscripten/SDL_sysjoystick.c#l385
-	if len(i.gamepads) <= id {
+	if len(i.gamepads) <= int(id) {
 		return ""
 	}
 	var sdlid [16]byte
@@ -70,49 +70,49 @@ func (i *Input) GamepadSDLID(id int) string {
 // GamepadName returns a string containing some information about the controller.
 // A PS2 controller returned "810-3-USB Gamepad" on Firefox
 // A Xbox 360 controller returned "xinput" on Firefox and "Xbox 360 Controller (XInput STANDARD GAMEPAD)" on Chrome
-func (i *Input) GamepadName(id int) string {
-	if len(i.gamepads) <= id {
+func (i *Input) GamepadName(id driver.GamepadID) string {
+	if len(i.gamepads) <= int(id) {
 		return ""
 	}
 	return i.gamepads[id].name
 }
 
-func (i *Input) GamepadIDs() []int {
+func (i *Input) GamepadIDs() []driver.GamepadID {
 	if len(i.gamepads) == 0 {
 		return nil
 	}
-	r := []int{}
+	var r []driver.GamepadID
 	for id, g := range i.gamepads {
 		if g.valid {
-			r = append(r, id)
+			r = append(r, driver.GamepadID(id))
 		}
 	}
 	return r
 }
 
-func (i *Input) GamepadAxisNum(id int) int {
-	if len(i.gamepads) <= id {
+func (i *Input) GamepadAxisNum(id driver.GamepadID) int {
+	if len(i.gamepads) <= int(id) {
 		return 0
 	}
 	return i.gamepads[id].axisNum
 }
 
-func (i *Input) GamepadAxis(id int, axis int) float64 {
-	if len(i.gamepads) <= id {
+func (i *Input) GamepadAxis(id driver.GamepadID, axis int) float64 {
+	if len(i.gamepads) <= int(id) {
 		return 0
 	}
 	return i.gamepads[id].axes[axis]
 }
 
-func (i *Input) GamepadButtonNum(id int) int {
-	if len(i.gamepads) <= id {
+func (i *Input) GamepadButtonNum(id driver.GamepadID) int {
+	if len(i.gamepads) <= int(id) {
 		return 0
 	}
 	return i.gamepads[id].buttonNum
 }
 
-func (i *Input) IsGamepadButtonPressed(id int, button driver.GamepadButton) bool {
-	if len(i.gamepads) <= id {
+func (i *Input) IsGamepadButtonPressed(id driver.GamepadID, button driver.GamepadButton) bool {
+	if len(i.gamepads) <= int(id) {
 		return false
 	}
 	return i.gamepads[id].buttonPressed[button]

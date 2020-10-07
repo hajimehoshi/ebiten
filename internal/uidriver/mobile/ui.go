@@ -480,7 +480,7 @@ type Touch struct {
 }
 
 type Gamepad struct {
-	ID        int
+	ID        driver.GamepadID
 	SDLID     string
 	Name      string
 	Buttons   [driver.GamepadButtonNum]bool

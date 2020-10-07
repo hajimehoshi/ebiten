@@ -67,15 +67,15 @@ func (i *Input) CursorPosition() (x, y int) {
 	return cx, cy
 }
 
-func (i *Input) GamepadIDs() []int {
+func (i *Input) GamepadIDs() []driver.GamepadID {
 	if !i.ui.isRunning() {
 		return nil
 	}
-	var r []int
+	var r []driver.GamepadID
 	_ = i.ui.t.Call(func() error {
 		for id, g := range i.gamepads {
 			if g.valid {
-				r = append(r, id)
+				r = append(r, driver.GamepadID(id))
 			}
 		}
 		return nil
@@ -83,13 +83,13 @@ func (i *Input) GamepadIDs() []int {
 	return r
 }
 
-func (i *Input) GamepadSDLID(id int) string {
+func (i *Input) GamepadSDLID(id driver.GamepadID) string {
 	if !i.ui.isRunning() {
 		return ""
 	}
 	var r string
 	_ = i.ui.t.Call(func() error {
-		if len(i.gamepads) <= id {
+		if len(i.gamepads) <= int(id) {
 			return nil
 		}
 		r = i.gamepads[id].guid
@@ -98,13 +98,13 @@ func (i *Input) GamepadSDLID(id int) string {
 	return r
 }
 
-func (i *Input) GamepadName(id int) string {
+func (i *Input) GamepadName(id driver.GamepadID) string {
 	if !i.ui.isRunning() {
 		return ""
 	}
 	var r string
 	_ = i.ui.t.Call(func() error {
-		if len(i.gamepads) <= id {
+		if len(i.gamepads) <= int(id) {
 			return nil
 		}
 		r = i.gamepads[id].name
@@ -113,13 +113,13 @@ func (i *Input) GamepadName(id int) string {
 	return r
 }
 
-func (i *Input) GamepadAxisNum(id int) int {
+func (i *Input) GamepadAxisNum(id driver.GamepadID) int {
 	if !i.ui.isRunning() {
 		return 0
 	}
 	var r int
 	_ = i.ui.t.Call(func() error {
-		if len(i.gamepads) <= id {
+		if len(i.gamepads) <= int(id) {
 			return nil
 		}
 		r = i.gamepads[id].axisNum
@@ -128,13 +128,13 @@ func (i *Input) GamepadAxisNum(id int) int {
 	return r
 }
 
-func (i *Input) GamepadAxis(id int, axis int) float64 {
+func (i *Input) GamepadAxis(id driver.GamepadID, axis int) float64 {
 	if !i.ui.isRunning() {
 		return 0
 	}
 	var r float64
 	_ = i.ui.t.Call(func() error {
-		if len(i.gamepads) <= id {
+		if len(i.gamepads) <= int(id) {
 			return nil
 		}
 		r = i.gamepads[id].axes[axis]
@@ -143,13 +143,13 @@ func (i *Input) GamepadAxis(id int, axis int) float64 {
 	return r
 }
 
-func (i *Input) GamepadButtonNum(id int) int {
+func (i *Input) GamepadButtonNum(id driver.GamepadID) int {
 	if !i.ui.isRunning() {
 		return 0
 	}
 	var r int
 	_ = i.ui.t.Call(func() error {
-		if len(i.gamepads) <= id {
+		if len(i.gamepads) <= int(id) {
 			return nil
 		}
 		r = i.gamepads[id].buttonNum
@@ -158,13 +158,13 @@ func (i *Input) GamepadButtonNum(id int) int {
 	return r
 }
 
-func (i *Input) IsGamepadButtonPressed(id int, button driver.GamepadButton) bool {
+func (i *Input) IsGamepadButtonPressed(id driver.GamepadID, button driver.GamepadButton) bool {
 	if !i.ui.isRunning() {
 		return false
 	}
 	var r bool
 	_ = i.ui.t.Call(func() error {
-		if len(i.gamepads) <= id {
+		if len(i.gamepads) <= int(id) {
 			return nil
 		}
 		r = i.gamepads[id].buttonPressed[button]

@@ -177,18 +177,18 @@ var androidAxisIDToAxisID = map[int]int{
 var (
 	// deviceIDToGamepadID is a map from Android device IDs to Ebiten gamepad IDs.
 	// As convention, Ebiten gamepad IDs start with 0, and many applications depend on this fact.
-	deviceIDToGamepadID = map[int]int{}
+	deviceIDToGamepadID = map[int]driver.GamepadID{}
 )
 
-func gamepadIDFromDeviceID(deviceID int) int {
+func gamepadIDFromDeviceID(deviceID int) driver.GamepadID {
 	if id, ok := deviceIDToGamepadID[deviceID]; ok {
 		return id
 	}
-	ids := map[int]struct{}{}
+	ids := map[driver.GamepadID]struct{}{}
 	for _, id := range deviceIDToGamepadID {
 		ids[id] = struct{}{}
 	}
-	for i := 0; ; i++ {
+	for i := driver.GamepadID(0); ; i++ {
 		if _, ok := ids[i]; ok {
 			continue
 		}

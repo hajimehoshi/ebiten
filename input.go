@@ -103,18 +103,21 @@ func IsMouseButtonPressed(mouseButton MouseButton) bool {
 	return uiDriver().Input().IsMouseButtonPressed(driver.MouseButton(mouseButton))
 }
 
+// GamepadID represents a gamepad's identifier.
+type GamepadID = driver.GamepadID
+
 // GamepadSDLID returns a string with the GUID generated in the same way as SDL.
 // To detect devices, see also the community project of gamepad devices database: https://github.com/gabomdq/SDL_GameControllerDB
 //
 // GamepadSDLID always returns an empty string on browsers and mobiles.
 //
 // GamepadSDLID is concurrent-safe.
-func GamepadSDLID(id int) string {
+func GamepadSDLID(id GamepadID) string {
 	return uiDriver().Input().GamepadSDLID(id)
 }
 
 // GamepadName returns a string with the name.
-// This function may vary in how it returns descriptions for the same device across platforms
+// This function may vary in how it returns descriptions for the same device across platforms.
 // for example the following drivers/platforms see a Xbox One controller as the following:
 //
 //   - Windows: "Xbox Controller"
@@ -124,7 +127,7 @@ func GamepadSDLID(id int) string {
 // GamepadName always returns an empty string on mobiles.
 //
 // GamepadName is concurrent-safe.
-func GamepadName(id int) string {
+func GamepadName(id GamepadID) string {
 	return uiDriver().Input().GamepadName(id)
 }
 
@@ -133,7 +136,7 @@ func GamepadName(id int) string {
 // GamepadIDs is concurrent-safe.
 //
 // GamepadIDs always returns an empty slice on mobiles.
-func GamepadIDs() []int {
+func GamepadIDs() []GamepadID {
 	return uiDriver().Input().GamepadIDs()
 }
 
@@ -142,7 +145,7 @@ func GamepadIDs() []int {
 // GamepadAxisNum is concurrent-safe.
 //
 // GamepadAxisNum always returns 0 on mobiles.
-func GamepadAxisNum(id int) int {
+func GamepadAxisNum(id GamepadID) int {
 	return uiDriver().Input().GamepadAxisNum(id)
 }
 
@@ -151,7 +154,7 @@ func GamepadAxisNum(id int) int {
 // GamepadAxis is concurrent-safe.
 //
 // GamepadAxis always returns 0 on mobiles.
-func GamepadAxis(id int, axis int) float64 {
+func GamepadAxis(id GamepadID, axis int) float64 {
 	return uiDriver().Input().GamepadAxis(id, axis)
 }
 
@@ -160,7 +163,7 @@ func GamepadAxis(id int, axis int) float64 {
 // GamepadButtonNum is concurrent-safe.
 //
 // GamepadButtonNum always returns 0 on mobiles.
-func GamepadButtonNum(id int) int {
+func GamepadButtonNum(id GamepadID) int {
 	return uiDriver().Input().GamepadButtonNum(id)
 }
 
@@ -175,7 +178,7 @@ func GamepadButtonNum(id int) int {
 // There can be differences even between Chrome and Firefox.
 //
 // IsGamepadButtonPressed always returns false on mobiles.
-func IsGamepadButtonPressed(id int, button GamepadButton) bool {
+func IsGamepadButtonPressed(id GamepadID, button GamepadButton) bool {
 	return uiDriver().Input().IsGamepadButtonPressed(id, driver.GamepadButton(button))
 }
 

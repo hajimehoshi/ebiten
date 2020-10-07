@@ -30,7 +30,7 @@ var (
 	keys     = map[driver.Key]struct{}{}
 	runes    []rune
 	touches  = map[int]position{}
-	gamepads = map[int]*mobile.Gamepad{}
+	gamepads = map[driver.GamepadID]*mobile.Gamepad{}
 )
 
 func updateInput() {

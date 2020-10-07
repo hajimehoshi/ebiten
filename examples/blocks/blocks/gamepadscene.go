@@ -24,7 +24,7 @@ import (
 )
 
 type GamepadScene struct {
-	gamepadID         int
+	gamepadID         ebiten.GamepadID
 	currentIndex      int
 	countAfterSetting int
 	buttonStates      []string
