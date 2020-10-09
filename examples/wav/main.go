@@ -25,6 +25,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/audio/wav"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	raudio "github.com/hajimehoshi/ebiten/v2/examples/resources/audio"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 const (
@@ -73,7 +74,7 @@ func init() {
 }
 
 func (g *Game) Update() error {
-	if ebiten.IsKeyPressed(ebiten.KeyP) && !g.audioPlayer.IsPlaying() {
+	if inpututil.IsKeyJustPressed(ebiten.KeyP) {
 		// As audioPlayer has one stream and remembers the playing position,
 		// rewinding is needed before playing when reusing audioPlayer.
 		g.audioPlayer.Rewind()
