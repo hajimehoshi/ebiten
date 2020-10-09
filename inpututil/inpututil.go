@@ -36,8 +36,8 @@ type inputState struct {
 	gamepadButtonDurations     map[ebiten.GamepadID][]int
 	prevGamepadButtonDurations map[ebiten.GamepadID][]int
 
-	touchDurations     map[int]int
-	prevTouchDurations map[int]int
+	touchDurations     map[ebiten.TouchID]int
+	prevTouchDurations map[ebiten.TouchID]int
 
 	m sync.RWMutex
 }
@@ -55,8 +55,8 @@ var theInputState = &inputState{
 	gamepadButtonDurations:     map[ebiten.GamepadID][]int{},
 	prevGamepadButtonDurations: map[ebiten.GamepadID][]int{},
 
-	touchDurations:     map[int]int{},
-	prevTouchDurations: map[int]int{},
+	touchDurations:     map[ebiten.TouchID]int{},
+	prevTouchDurations: map[ebiten.TouchID]int{},
 }
 
 func init() {
@@ -134,10 +134,10 @@ func (i *inputState) update() {
 	}
 
 	// Touches
-	ids := map[int]struct{}{}
+	ids := map[ebiten.TouchID]struct{}{}
 
 	// Copy the touch durations.
-	i.prevTouchDurations = map[int]int{}
+	i.prevTouchDurations = map[ebiten.TouchID]int{}
 	for id := range i.touchDurations {
 		i.prevTouchDurations[id] = i.touchDurations[id]
 	}
@@ -146,7 +146,7 @@ func (i *inputState) update() {
 		ids[id] = struct{}{}
 		i.touchDurations[id]++
 	}
-	touchIDsToDelete := []int{}
+	touchIDsToDelete := []ebiten.TouchID{}
 	for id := range i.touchDurations {
 		if _, ok := ids[id]; !ok {
 			touchIDsToDelete = append(touchIDsToDelete, id)
@@ -292,8 +292,8 @@ func GamepadButtonPressDuration(id ebiten.GamepadID, button ebiten.GamepadButton
 // JustPressedTouchIDs might return nil when there is not touch.
 //
 // JustPressedTouchIDs is concurrent safe.
-func JustPressedTouchIDs() []int {
-	var ids []int
+func JustPressedTouchIDs() []ebiten.TouchID {
+	var ids []ebiten.TouchID
 	theInputState.m.RLock()
 	for id, s := range theInputState.touchDurations {
 		if s == 1 {
@@ -301,7 +301,9 @@ func JustPressedTouchIDs() []int {
 		}
 	}
 	theInputState.m.RUnlock()
-	sort.Ints(ids)
+	sort.Slice(ids, func(a, b int) bool {
+		return ids[a] < ids[b]
+	})
 	return ids
 }
 
@@ -309,7 +311,7 @@ func JustPressedTouchIDs() []int {
 // whether the given touch is released just in the current frame.
 //
 // IsTouchJustReleased is concurrent safe.
-func IsTouchJustReleased(id int) bool {
+func IsTouchJustReleased(id ebiten.TouchID) bool {
 	theInputState.m.RLock()
 	r := theInputState.touchDurations[id] == 0 && theInputState.prevTouchDurations[id] > 0
 	theInputState.m.RUnlock()
@@ -319,7 +321,7 @@ func IsTouchJustReleased(id int) bool {
 // TouchPressDuration returns how long the touch remains in frames.
 //
 // TouchPressDuration is concurrent safe.
-func TouchPressDuration(id int) int {
+func TouchPressDuration(id ebiten.TouchID) int {
 	theInputState.m.RLock()
 	s := theInputState.touchDurations[id]
 	theInputState.m.RUnlock()

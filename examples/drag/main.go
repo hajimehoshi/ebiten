@@ -106,7 +106,7 @@ func (m *MouseStrokeSource) IsJustReleased() bool {
 
 // TouchStrokeSource is a StrokeSource implementation of touch.
 type TouchStrokeSource struct {
-	ID int
+	ID ebiten.TouchID
 }
 
 func (t *TouchStrokeSource) Position() (int, int) {

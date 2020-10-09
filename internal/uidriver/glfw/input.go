@@ -45,7 +45,7 @@ type Input struct {
 	cursorX            int
 	cursorY            int
 	gamepads           [16]gamePad
-	touches            map[int]pos // TODO: Implement this (#417)
+	touches            map[driver.TouchID]pos // TODO: Implement this (#417)
 	runeBuffer         []rune
 	ui                 *UserInterface
 }
@@ -173,11 +173,11 @@ func (i *Input) IsGamepadButtonPressed(id driver.GamepadID, button driver.Gamepa
 	return r
 }
 
-func (i *Input) TouchIDs() []int {
+func (i *Input) TouchIDs() []driver.TouchID {
 	if !i.ui.isRunning() {
 		return nil
 	}
-	var ids []int
+	var ids []driver.TouchID
 	_ = i.ui.t.Call(func() error {
 		if len(i.touches) == 0 {
 			return nil
@@ -190,7 +190,7 @@ func (i *Input) TouchIDs() []int {
 	return ids
 }
 
-func (i *Input) TouchPosition(id int) (x, y int) {
+func (i *Input) TouchPosition(id driver.TouchID) (x, y int) {
 	if !i.ui.isRunning() {
 		return 0, 0
 	}

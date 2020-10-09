@@ -30,7 +30,7 @@ type Input struct {
 	cursorY  int
 	keys     map[driver.Key]struct{}
 	runes    []rune
-	touches  map[int]pos
+	touches  map[driver.TouchID]pos
 	gamepads []Gamepad
 	ui       *UserInterface
 }
@@ -136,7 +136,7 @@ func (i *Input) IsGamepadButtonPressed(id driver.GamepadID, button driver.Gamepa
 	return false
 }
 
-func (i *Input) TouchIDs() []int {
+func (i *Input) TouchIDs() []driver.TouchID {
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
 
@@ -144,14 +144,14 @@ func (i *Input) TouchIDs() []int {
 		return nil
 	}
 
-	var ids []int
+	var ids []driver.TouchID
 	for id := range i.touches {
 		ids = append(ids, id)
 	}
 	return ids
 }
 
-func (i *Input) TouchPosition(id int) (x, y int) {
+func (i *Input) TouchPosition(id driver.TouchID) (x, y int) {
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
 
@@ -198,7 +198,7 @@ func (i *Input) update(keys map[driver.Key]struct{}, runes []rune, touches []*To
 	i.runes = make([]rune, len(runes))
 	copy(i.runes, runes)
 
-	i.touches = map[int]pos{}
+	i.touches = map[driver.TouchID]pos{}
 	for _, t := range touches {
 		i.touches[t.ID] = pos{
 			X: t.X,

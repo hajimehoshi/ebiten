@@ -215,7 +215,7 @@ func (u *UserInterface) appMain(a app.App) {
 				x, y := float64(e.X)/s, float64(e.Y)/s
 				// TODO: Is it ok to cast from int64 to int here?
 				touches[e.Sequence] = &Touch{
-					ID: int(e.Sequence),
+					ID: driver.TouchID(e.Sequence),
 					X:  int(x),
 					Y:  int(y),
 				}
@@ -474,7 +474,7 @@ func (u *UserInterface) Window() driver.Window {
 }
 
 type Touch struct {
-	ID int
+	ID driver.TouchID
 	X  int
 	Y  int
 }

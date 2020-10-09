@@ -84,7 +84,7 @@ type Input struct {
 	mouseDir      Dir
 
 	touchState    touchState
-	touchID       int
+	touchID       ebiten.TouchID
 	touchInitPosX int
 	touchInitPosY int
 	touchLastPosX int

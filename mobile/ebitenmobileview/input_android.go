@@ -201,10 +201,10 @@ func gamepadIDFromDeviceID(deviceID int) driver.GamepadID {
 func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 	switch action {
 	case 0x00, 0x05, 0x02: // ACTION_DOWN, ACTION_POINTER_DOWN, ACTION_MOVE
-		touches[id] = position{x, y}
+		touches[driver.TouchID(id)] = position{x, y}
 		updateInput()
 	case 0x01, 0x06: // ACTION_UP, ACTION_POINTER_UP
-		delete(touches, id)
+		delete(touches, driver.TouchID(id))
 		updateInput()
 	}
 }

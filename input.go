@@ -182,6 +182,9 @@ func IsGamepadButtonPressed(id GamepadID, button GamepadButton) bool {
 	return uiDriver().Input().IsGamepadButtonPressed(id, driver.GamepadButton(button))
 }
 
+// TouchID represents a touch's identifier.
+type TouchID = driver.TouchID
+
 // TouchIDs returns the current touch states.
 //
 // If you want to know whether a touch started being pressed in the current frame,
@@ -191,7 +194,7 @@ func IsGamepadButtonPressed(id GamepadID, button GamepadButton) bool {
 // TouchIDs always returns nil on desktops.
 //
 // TouchIDs is concurrent-safe.
-func TouchIDs() []int {
+func TouchIDs() []TouchID {
 	return uiDriver().Input().TouchIDs()
 }
 
@@ -200,7 +203,7 @@ func TouchIDs() []int {
 // If the touch of the specified ID is not present, TouchPosition returns (0, 0).
 //
 // TouchPosition is cuncurrent-safe.
-func TouchPosition(id int) (int, int) {
+func TouchPosition(id TouchID) (int, int) {
 	found := false
 	for _, i := range uiDriver().Input().TouchIDs() {
 		if id == i {

@@ -16,6 +16,8 @@ package driver
 
 type GamepadID int
 
+type TouchID int
+
 type Input interface {
 	CursorPosition() (x, y int)
 	GamepadSDLID(id GamepadID) string
@@ -28,7 +30,7 @@ type Input interface {
 	IsKeyPressed(key Key) bool
 	IsMouseButtonPressed(button MouseButton) bool
 	RuneBuffer() []rune
-	TouchIDs() []int
-	TouchPosition(id int) (x, y int)
+	TouchIDs() []TouchID
+	TouchPosition(id TouchID) (x, y int)
 	Wheel() (xoff, yoff float64)
 }

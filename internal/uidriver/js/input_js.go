@@ -46,7 +46,7 @@ type Input struct {
 	wheelX             float64
 	wheelY             float64
 	gamepads           [16]gamePad
-	touches            map[int]pos
+	touches            map[driver.TouchID]pos
 	runeBuffer         []rune
 	ui                 *UserInterface
 }
@@ -118,19 +118,19 @@ func (i *Input) IsGamepadButtonPressed(id driver.GamepadID, button driver.Gamepa
 	return i.gamepads[id].buttonPressed[button]
 }
 
-func (i *Input) TouchIDs() []int {
+func (i *Input) TouchIDs() []driver.TouchID {
 	if len(i.touches) == 0 {
 		return nil
 	}
 
-	var ids []int
+	var ids []driver.TouchID
 	for id := range i.touches {
 		ids = append(ids, id)
 	}
 	return ids
 }
 
-func (i *Input) TouchPosition(id int) (x, y int) {
+func (i *Input) TouchPosition(id driver.TouchID) (x, y int) {
 	for tid, pos := range i.touches {
 		if id == tid {
 			x, y := i.ui.context.AdjustPosition(float64(pos.X), float64(pos.Y))
@@ -346,10 +346,10 @@ func (i *Input) setMouseCursorFromEvent(e js.Value) {
 
 func (i *Input) updateTouches(e js.Value) {
 	j := e.Get("targetTouches")
-	ts := map[int]pos{}
+	ts := map[driver.TouchID]pos{}
 	for i := 0; i < j.Length(); i++ {
 		jj := j.Call("item", i)
-		id := jj.Get("identifier").Int()
+		id := driver.TouchID(jj.Get("identifier").Int())
 		ts[id] = pos{
 			X: jj.Get("clientX").Int(),
 			Y: jj.Get("clientY").Int(),

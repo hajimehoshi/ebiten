@@ -29,7 +29,7 @@ type position struct {
 var (
 	keys     = map[driver.Key]struct{}{}
 	runes    []rune
-	touches  = map[int]position{}
+	touches  = map[driver.TouchID]position{}
 	gamepads = map[driver.GamepadID]*mobile.Gamepad{}
 )
 
