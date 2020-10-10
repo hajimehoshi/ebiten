@@ -321,11 +321,8 @@ func (p *playerImpl) Close() error {
 }
 
 // Play plays the stream.
-//
-// Play always returns nil.
-func (p *Player) Play() error {
+func (p *Player) Play() {
 	p.p.Play()
-	return nil
 }
 
 func (p *playerImpl) Play() {
@@ -501,11 +498,8 @@ func (p *playerImpl) Seek(offset time.Duration) error {
 }
 
 // Pause pauses the playing.
-//
-// Pause always returns nil.
-func (p *Player) Pause() error {
+func (p *Player) Pause() {
 	p.p.Pause()
-	return nil
 }
 
 func (p *playerImpl) Pause() {
