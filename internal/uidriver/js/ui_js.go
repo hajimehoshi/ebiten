@@ -404,7 +404,12 @@ func init() {
 
 func (u *UserInterface) Run(context driver.UIContext) error {
 	if u.initFocused {
-		canvas.Call("focus")
+		// Do not focus the canvas when the current document is in an iframe.
+		// Otherwise, the parent page tries to focus the iframe on every loading, which is annoying (#1373).
+		isInIframe := !jsutil.Equal(window.Get("location"), window.Get("parent").Get("location"))
+		if !isInIframe {
+			canvas.Call("focus")
+		}
 	}
 	u.running = true
 	return <-u.loop(context)
