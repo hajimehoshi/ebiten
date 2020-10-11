@@ -144,6 +144,8 @@ func init() {
 		157: "KPAdd",
 		160: "KPEnter",
 		161: "KPEqual",
+		117: "LeftSuper",  // KEYCODE_META_LEFT
+		118: "RightSuper", // KEYCODE_META_RIGHT
 	}
 
 	gbuildKeyToDriverKeyName = map[key.Code]string{
@@ -189,6 +191,8 @@ func init() {
 		key.CodeKeypadPlusSign:     "KPAdd",
 		key.CodeKeypadEnter:        "KPEnter",
 		key.CodeKeypadEqualSign:    "KPEqual",
+		key.CodeLeftGUI:            "LeftSuper",
+		key.CodeRightGUI:           "RightSuper",
 
 		// Missing keys:
 		//   driver.KeyPrintScreen
@@ -242,6 +246,8 @@ func init() {
 		"KPAdd":        "NumpadAdd",
 		"KPEnter":      "NumpadEnter",
 		"KPEqual":      "NumpadEqual",
+		"LeftSuper":    "MetaLeft",
+		"RightSuper":   "MetaRight",
 	}
 
 	// ASCII: 0 - 9
@@ -290,6 +296,7 @@ func init() {
 }
 
 func init() {
+	// https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode
 	// TODO: How should we treat modifier keys? Now 'left' modifier keys are available.
 	edgeKeyCodeToName = map[int]string{
 		0xbc: "Comma",
@@ -331,6 +338,8 @@ func init() {
 		0x13: "Pause",
 		0x91: "ScrollLock",
 		0x5d: "Menu",
+		0x5b: "LeftSuper", // "OSLeft" for macOS 10.10 or newer
+		0xe0: "LeftSuper", // "DOM_VK_META" for macOS 10.9 or older
 
 		// On Edge, this key does not work. PrintScreen works only on keyup event.
 		// 0x2C: "PrintScreen",
@@ -380,7 +389,8 @@ const (
 {{end}}	KeyAlt Key = Key(driver.KeyReserved0)
 	KeyControl Key = Key(driver.KeyReserved1)
 	KeyShift Key = Key(driver.KeyReserved2)
-	KeyMax Key = KeyShift
+	KeySuper Key = Key(driver.KeyReserved3)
+	KeyMax Key = KeySuper
 )
 
 func (k Key) isValid() bool {
@@ -430,6 +440,7 @@ const (
 {{end}}	KeyReserved0
 	KeyReserved1
 	KeyReserved2
+	KeyReserved3
 )
 
 func (k Key) String() string {
@@ -652,7 +663,7 @@ func main() {
 	driverKeyNames := []string{}
 	for name := range driverKeyNameToJSKey {
 		driverKeyNames = append(driverKeyNames, name)
-		if !strings.HasSuffix(name, "Alt") && !strings.HasSuffix(name, "Control") && !strings.HasSuffix(name, "Shift") {
+		if !strings.HasSuffix(name, "Alt") && !strings.HasSuffix(name, "Control") && !strings.HasSuffix(name, "Shift") && !strings.HasSuffix(name, "Super") {
 			ebitenKeyNames = append(ebitenKeyNames, name)
 			ebitenKeyNamesWithoutMods = append(ebitenKeyNamesWithoutMods, name)
 			continue
@@ -667,6 +678,10 @@ func main() {
 		}
 		if name == "LeftShift" {
 			ebitenKeyNames = append(ebitenKeyNames, "Shift")
+			continue
+		}
+		if name == "LeftSuper" {
+			ebitenKeyNames = append(ebitenKeyNames, "Super")
 			continue
 		}
 	}

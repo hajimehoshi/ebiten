@@ -120,7 +120,9 @@ var gbuildKeyToDriverKey = map[key.Code]driver.Key{
 	key.CodeLeftControl:        driver.KeyLeftControl,
 	key.CodeLeftShift:          driver.KeyLeftShift,
 	key.CodeLeftAlt:            driver.KeyLeftAlt,
+	key.CodeLeftGUI:            driver.KeyLeftSuper,
 	key.CodeRightControl:       driver.KeyRightControl,
 	key.CodeRightShift:         driver.KeyRightShift,
 	key.CodeRightAlt:           driver.KeyRightAlt,
+	key.CodeRightGUI:           driver.KeyRightSuper,
 }

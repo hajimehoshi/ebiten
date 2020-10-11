@@ -107,6 +107,7 @@ const (
 	KeyLeftBracket
 	KeyLeftControl
 	KeyLeftShift
+	KeyLeftSuper
 	KeyMenu
 	KeyMinus
 	KeyNumLock
@@ -120,6 +121,7 @@ const (
 	KeyRightBracket
 	KeyRightControl
 	KeyRightShift
+	KeyRightSuper
 	KeyScrollLock
 	KeySemicolon
 	KeySlash
@@ -129,6 +131,7 @@ const (
 	KeyReserved0
 	KeyReserved1
 	KeyReserved2
+	KeyReserved3
 )
 
 func (k Key) String() string {
@@ -301,6 +304,8 @@ func (k Key) String() string {
 		return "KeyLeftControl"
 	case KeyLeftShift:
 		return "KeyLeftShift"
+	case KeyLeftSuper:
+		return "KeyLeftSuper"
 	case KeyMenu:
 		return "KeyMenu"
 	case KeyMinus:
@@ -327,6 +332,8 @@ func (k Key) String() string {
 		return "KeyRightControl"
 	case KeyRightShift:
 		return "KeyRightShift"
+	case KeyRightSuper:
+		return "KeyRightSuper"
 	case KeyScrollLock:
 		return "KeyScrollLock"
 	case KeySemicolon:

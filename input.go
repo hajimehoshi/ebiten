@@ -66,6 +66,8 @@ func IsKeyPressed(key Key) bool {
 		keys = []driver.Key{driver.KeyLeftControl, driver.KeyRightControl}
 	case KeyShift:
 		keys = []driver.Key{driver.KeyLeftShift, driver.KeyRightShift}
+	case KeySuper:
+		keys = []driver.Key{driver.KeyLeftSuper, driver.KeyRightSuper}
 	default:
 		keys = []driver.Key{driver.Key(key)}
 	}
