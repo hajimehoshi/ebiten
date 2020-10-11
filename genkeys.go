@@ -338,8 +338,8 @@ func init() {
 		0x13: "Pause",
 		0x91: "ScrollLock",
 		0x5d: "Menu",
-		0x5b: "LeftSuper", // "OSLeft" for macOS 10.10 or newer
-		0xe0: "LeftSuper", // "DOM_VK_META" for macOS 10.9 or older
+		0x5b: "LeftSuper",
+		0x5c: "RightSuper",
 
 		// On Edge, this key does not work. PrintScreen works only on keyup event.
 		// 0x2C: "PrintScreen",

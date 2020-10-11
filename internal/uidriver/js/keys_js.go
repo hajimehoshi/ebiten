@@ -186,6 +186,7 @@ var edgeKeyCodeToDriverKey = map[int]driver.Key{
 	89:  driver.KeyY,
 	90:  driver.KeyZ,
 	91:  driver.KeyLeftSuper,
+	92:  driver.KeyRightSuper,
 	93:  driver.KeyMenu,
 	96:  driver.KeyKP0,
 	97:  driver.KeyKP1,
@@ -227,5 +228,4 @@ var edgeKeyCodeToDriverKey = map[int]driver.Key{
 	220: driver.KeyBackslash,
 	221: driver.KeyRightBracket,
 	222: driver.KeyApostrophe,
-	224: driver.KeyLeftSuper,
 }
