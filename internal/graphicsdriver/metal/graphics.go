@@ -27,7 +27,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
-	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 // #cgo CFLAGS: -x objective-c
@@ -328,8 +327,6 @@ type Graphics struct {
 	maxImageSize int
 	tmpTexture   mtl.Texture
 
-	t *thread.Thread
-
 	pool unsafe.Pointer
 }
 
@@ -339,36 +336,23 @@ func Get() *Graphics {
 	return &theGraphics
 }
 
-func (g *Graphics) SetThread(thread *thread.Thread) {
-	g.t = thread
-}
-
 func (g *Graphics) Begin() {
-	g.t.Call(func() error {
-		// NSAutoreleasePool is required to release drawable correctly (#847).
-		// https://developer.apple.com/library/archive/documentation/3DDrawing/Conceptual/MTLBestPracticesGuide/Drawables.html
-		g.pool = C.allocAutoreleasePool()
-		return nil
-	})
+	// NSAutoreleasePool is required to release drawable correctly (#847).
+	// https://developer.apple.com/library/archive/documentation/3DDrawing/Conceptual/MTLBestPracticesGuide/Drawables.html
+	g.pool = C.allocAutoreleasePool()
 }
 
 func (g *Graphics) End() {
 	g.flushIfNeeded(false, true)
-	g.t.Call(func() error {
-		g.screenDrawable = ca.MetalDrawable{}
-		C.releaseAutoreleasePool(g.pool)
-		g.pool = nil
-		return nil
-	})
+	g.screenDrawable = ca.MetalDrawable{}
+	C.releaseAutoreleasePool(g.pool)
+	g.pool = nil
 }
 
 func (g *Graphics) SetWindow(window uintptr) {
-	g.t.Call(func() error {
-		// Note that [NSApp mainWindow] returns nil when the window is borderless.
-		// Then the window is needed to be given explicitly.
-		g.view.setWindow(window)
-		return nil
-	})
+	// Note that [NSApp mainWindow] returns nil when the window is borderless.
+	// Then the window is needed to be given explicitly.
+	g.view.setWindow(window)
 }
 
 func (g *Graphics) SetUIView(uiview uintptr) {
@@ -377,37 +361,30 @@ func (g *Graphics) SetUIView(uiview uintptr) {
 }
 
 func (g *Graphics) SetVertices(vertices []float32, indices []uint16) {
-	g.t.Call(func() error {
-		if g.vb != (mtl.Buffer{}) {
-			g.vb.Release()
-		}
-		if g.ib != (mtl.Buffer{}) {
-			g.ib.Release()
-		}
-		g.vb = g.view.getMTLDevice().MakeBufferWithBytes(unsafe.Pointer(&vertices[0]), unsafe.Sizeof(vertices[0])*uintptr(len(vertices)), resourceStorageMode)
-		g.ib = g.view.getMTLDevice().MakeBufferWithBytes(unsafe.Pointer(&indices[0]), unsafe.Sizeof(indices[0])*uintptr(len(indices)), resourceStorageMode)
-		return nil
-	})
+	if g.vb != (mtl.Buffer{}) {
+		g.vb.Release()
+	}
+	if g.ib != (mtl.Buffer{}) {
+		g.ib.Release()
+	}
+	g.vb = g.view.getMTLDevice().MakeBufferWithBytes(unsafe.Pointer(&vertices[0]), unsafe.Sizeof(vertices[0])*uintptr(len(vertices)), resourceStorageMode)
+	g.ib = g.view.getMTLDevice().MakeBufferWithBytes(unsafe.Pointer(&indices[0]), unsafe.Sizeof(indices[0])*uintptr(len(indices)), resourceStorageMode)
 }
 
 func (g *Graphics) flushIfNeeded(wait bool, present bool) {
-	g.t.Call(func() error {
-		if g.cb == (mtl.CommandBuffer{}) {
-			return nil
-		}
+	if g.cb == (mtl.CommandBuffer{}) {
+		return
+	}
 
-		if present && g.screenDrawable != (ca.MetalDrawable{}) {
-			g.cb.PresentDrawable(g.screenDrawable)
-		}
-		g.cb.Commit()
-		if wait {
-			g.cb.WaitUntilCompleted()
-		}
+	if present && g.screenDrawable != (ca.MetalDrawable{}) {
+		g.cb.PresentDrawable(g.screenDrawable)
+	}
+	g.cb.Commit()
+	if wait {
+		g.cb.WaitUntilCompleted()
+	}
 
-		g.cb = mtl.CommandBuffer{}
-
-		return nil
-	})
+	g.cb = mtl.CommandBuffer{}
 }
 
 func (g *Graphics) checkSize(width, height int) {
@@ -452,11 +429,7 @@ func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
 		StorageMode: storageMode,
 		Usage:       mtl.TextureUsageShaderRead | mtl.TextureUsageRenderTarget,
 	}
-	var t mtl.Texture
-	g.t.Call(func() error {
-		t = g.view.getMTLDevice().MakeTexture(td)
-		return nil
-	})
+	t := g.view.getMTLDevice().MakeTexture(td)
 	i := &Image{
 		id:       g.genNextImageID(),
 		graphics: g,
@@ -469,10 +442,7 @@ func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
 }
 
 func (g *Graphics) NewScreenFramebufferImage(width, height int) (driver.Image, error) {
-	g.t.Call(func() error {
-		g.view.setDrawableSize(width, height)
-		return nil
-	})
+	g.view.setDrawableSize(width, height)
 	i := &Image{
 		id:       g.genNextImageID(),
 		graphics: g,
@@ -524,126 +494,120 @@ func operationToBlendFactor(c driver.Operation) mtl.BlendFactor {
 }
 
 func (g *Graphics) Reset() error {
-	if err := g.t.Call(func() error {
-		if g.cq != (mtl.CommandQueue{}) {
-			g.cq.Release()
-			g.cq = mtl.CommandQueue{}
-		}
+	if g.cq != (mtl.CommandQueue{}) {
+		g.cq.Release()
+		g.cq = mtl.CommandQueue{}
+	}
 
-		// TODO: Release existing rpss
-		if g.rpss == nil {
-			g.rpss = map[rpsKey]mtl.RenderPipelineState{}
-		}
+	// TODO: Release existing rpss
+	if g.rpss == nil {
+		g.rpss = map[rpsKey]mtl.RenderPipelineState{}
+	}
 
-		if err := g.view.reset(); err != nil {
-			return err
-		}
-		if g.transparent {
-			g.view.ml.SetOpaque(false)
-		}
+	if err := g.view.reset(); err != nil {
+		return err
+	}
+	if g.transparent {
+		g.view.ml.SetOpaque(false)
+	}
 
-		replaces := map[string]string{
-			"{{.FilterNearest}}":      fmt.Sprintf("%d", driver.FilterNearest),
-			"{{.FilterLinear}}":       fmt.Sprintf("%d", driver.FilterLinear),
-			"{{.FilterScreen}}":       fmt.Sprintf("%d", driver.FilterScreen),
-			"{{.AddressClampToZero}}": fmt.Sprintf("%d", driver.AddressClampToZero),
-			"{{.AddressRepeat}}":      fmt.Sprintf("%d", driver.AddressRepeat),
-			"{{.AddressUnsafe}}":      fmt.Sprintf("%d", driver.AddressUnsafe),
-		}
-		src := source
-		for k, v := range replaces {
-			src = strings.Replace(src, k, v, -1)
-		}
+	replaces := map[string]string{
+		"{{.FilterNearest}}":      fmt.Sprintf("%d", driver.FilterNearest),
+		"{{.FilterLinear}}":       fmt.Sprintf("%d", driver.FilterLinear),
+		"{{.FilterScreen}}":       fmt.Sprintf("%d", driver.FilterScreen),
+		"{{.AddressClampToZero}}": fmt.Sprintf("%d", driver.AddressClampToZero),
+		"{{.AddressRepeat}}":      fmt.Sprintf("%d", driver.AddressRepeat),
+		"{{.AddressUnsafe}}":      fmt.Sprintf("%d", driver.AddressUnsafe),
+	}
+	src := source
+	for k, v := range replaces {
+		src = strings.Replace(src, k, v, -1)
+	}
 
-		lib, err := g.view.getMTLDevice().MakeLibrary(src, mtl.CompileOptions{})
-		if err != nil {
-			return err
-		}
-		vs, err := lib.MakeFunction("VertexShader")
-		if err != nil {
-			return err
-		}
-		fs, err := lib.MakeFunction(
-			fmt.Sprintf("FragmentShader_%d_%d_%d", 0, driver.FilterScreen, driver.AddressUnsafe))
-		if err != nil {
-			return err
-		}
-		rpld := mtl.RenderPipelineDescriptor{
-			VertexFunction:   vs,
-			FragmentFunction: fs,
-		}
-		rpld.ColorAttachments[0].PixelFormat = g.view.colorPixelFormat()
-		rpld.ColorAttachments[0].BlendingEnabled = true
-		rpld.ColorAttachments[0].DestinationAlphaBlendFactor = mtl.BlendFactorZero
-		rpld.ColorAttachments[0].DestinationRGBBlendFactor = mtl.BlendFactorZero
-		rpld.ColorAttachments[0].SourceAlphaBlendFactor = mtl.BlendFactorOne
-		rpld.ColorAttachments[0].SourceRGBBlendFactor = mtl.BlendFactorOne
-		rps, err := g.view.getMTLDevice().MakeRenderPipelineState(rpld)
-		if err != nil {
-			return err
-		}
-		g.screenRPS = rps
+	lib, err := g.view.getMTLDevice().MakeLibrary(src, mtl.CompileOptions{})
+	if err != nil {
+		return err
+	}
+	vs, err := lib.MakeFunction("VertexShader")
+	if err != nil {
+		return err
+	}
+	fs, err := lib.MakeFunction(
+		fmt.Sprintf("FragmentShader_%d_%d_%d", 0, driver.FilterScreen, driver.AddressUnsafe))
+	if err != nil {
+		return err
+	}
+	rpld := mtl.RenderPipelineDescriptor{
+		VertexFunction:   vs,
+		FragmentFunction: fs,
+	}
+	rpld.ColorAttachments[0].PixelFormat = g.view.colorPixelFormat()
+	rpld.ColorAttachments[0].BlendingEnabled = true
+	rpld.ColorAttachments[0].DestinationAlphaBlendFactor = mtl.BlendFactorZero
+	rpld.ColorAttachments[0].DestinationRGBBlendFactor = mtl.BlendFactorZero
+	rpld.ColorAttachments[0].SourceAlphaBlendFactor = mtl.BlendFactorOne
+	rpld.ColorAttachments[0].SourceRGBBlendFactor = mtl.BlendFactorOne
+	rps, err := g.view.getMTLDevice().MakeRenderPipelineState(rpld)
+	if err != nil {
+		return err
+	}
+	g.screenRPS = rps
 
-		for _, screen := range []bool{false, true} {
-			for _, cm := range []bool{false, true} {
-				for _, a := range []driver.Address{
-					driver.AddressClampToZero,
-					driver.AddressRepeat,
-					driver.AddressUnsafe,
+	for _, screen := range []bool{false, true} {
+		for _, cm := range []bool{false, true} {
+			for _, a := range []driver.Address{
+				driver.AddressClampToZero,
+				driver.AddressRepeat,
+				driver.AddressUnsafe,
+			} {
+				for _, f := range []driver.Filter{
+					driver.FilterNearest,
+					driver.FilterLinear,
 				} {
-					for _, f := range []driver.Filter{
-						driver.FilterNearest,
-						driver.FilterLinear,
-					} {
-						for c := driver.CompositeModeSourceOver; c <= driver.CompositeModeMax; c++ {
-							cmi := 0
-							if cm {
-								cmi = 1
-							}
-							fs, err := lib.MakeFunction(fmt.Sprintf("FragmentShader_%d_%d_%d", cmi, f, a))
-							if err != nil {
-								return err
-							}
-							rpld := mtl.RenderPipelineDescriptor{
-								VertexFunction:   vs,
-								FragmentFunction: fs,
-							}
-
-							pix := mtl.PixelFormatRGBA8UNorm
-							if screen {
-								pix = g.view.colorPixelFormat()
-							}
-							rpld.ColorAttachments[0].PixelFormat = pix
-							rpld.ColorAttachments[0].BlendingEnabled = true
-
-							src, dst := c.Operations()
-							rpld.ColorAttachments[0].DestinationAlphaBlendFactor = operationToBlendFactor(dst)
-							rpld.ColorAttachments[0].DestinationRGBBlendFactor = operationToBlendFactor(dst)
-							rpld.ColorAttachments[0].SourceAlphaBlendFactor = operationToBlendFactor(src)
-							rpld.ColorAttachments[0].SourceRGBBlendFactor = operationToBlendFactor(src)
-							rps, err := g.view.getMTLDevice().MakeRenderPipelineState(rpld)
-							if err != nil {
-								return err
-							}
-							g.rpss[rpsKey{
-								screen:        screen,
-								useColorM:     cm,
-								filter:        f,
-								address:       a,
-								compositeMode: c,
-							}] = rps
+					for c := driver.CompositeModeSourceOver; c <= driver.CompositeModeMax; c++ {
+						cmi := 0
+						if cm {
+							cmi = 1
 						}
+						fs, err := lib.MakeFunction(fmt.Sprintf("FragmentShader_%d_%d_%d", cmi, f, a))
+						if err != nil {
+							return err
+						}
+						rpld := mtl.RenderPipelineDescriptor{
+							VertexFunction:   vs,
+							FragmentFunction: fs,
+						}
+
+						pix := mtl.PixelFormatRGBA8UNorm
+						if screen {
+							pix = g.view.colorPixelFormat()
+						}
+						rpld.ColorAttachments[0].PixelFormat = pix
+						rpld.ColorAttachments[0].BlendingEnabled = true
+
+						src, dst := c.Operations()
+						rpld.ColorAttachments[0].DestinationAlphaBlendFactor = operationToBlendFactor(dst)
+						rpld.ColorAttachments[0].DestinationRGBBlendFactor = operationToBlendFactor(dst)
+						rpld.ColorAttachments[0].SourceAlphaBlendFactor = operationToBlendFactor(src)
+						rpld.ColorAttachments[0].SourceRGBBlendFactor = operationToBlendFactor(src)
+						rps, err := g.view.getMTLDevice().MakeRenderPipelineState(rpld)
+						if err != nil {
+							return err
+						}
+						g.rpss[rpsKey{
+							screen:        screen,
+							useColorM:     cm,
+							filter:        f,
+							address:       a,
+							compositeMode: c,
+						}] = rps
 					}
 				}
 			}
 		}
-
-		g.cq = g.view.getMTLDevice().MakeCommandQueue()
-		return nil
-	}); err != nil {
-		return err
 	}
 
+	g.cq = g.view.getMTLDevice().MakeCommandQueue()
 	return nil
 }
 
@@ -733,37 +697,32 @@ func (g *Graphics) Draw(dstID, srcID driver.ImageID, indexLen int, indexOffset i
 		}]
 	}
 
-	if err := g.t.Call(func() error {
-		w, h := dst.internalSize()
-		sourceSize := []float32{0, 0}
-		if filter != driver.FilterNearest {
-			w, h := srcs[0].internalSize()
-			sourceSize[0] = float32(w)
-			sourceSize[1] = float32(h)
-		}
-		esBody, esTranslate := colorM.UnsafeElements()
-		scale := float32(0)
-		if filter == driver.FilterScreen {
-			scale = float32(dst.width) / float32(srcs[0].width)
-		}
-		uniforms := []interface{}{
-			[]float32{float32(w), float32(h)},
-			sourceSize,
-			esBody,
-			esTranslate,
-			scale,
-			[]float32{
-				sourceRegion.X,
-				sourceRegion.Y,
-				sourceRegion.X + sourceRegion.Width,
-				sourceRegion.Y + sourceRegion.Height,
-			},
-		}
-		if err := g.draw(rps, dst, srcs, indexLen, indexOffset, uniforms); err != nil {
-			return err
-		}
-		return nil
-	}); err != nil {
+	w, h := dst.internalSize()
+	sourceSize := []float32{0, 0}
+	if filter != driver.FilterNearest {
+		w, h := srcs[0].internalSize()
+		sourceSize[0] = float32(w)
+		sourceSize[1] = float32(h)
+	}
+	esBody, esTranslate := colorM.UnsafeElements()
+	scale := float32(0)
+	if filter == driver.FilterScreen {
+		scale = float32(dst.width) / float32(srcs[0].width)
+	}
+	uniforms := []interface{}{
+		[]float32{float32(w), float32(h)},
+		sourceSize,
+		esBody,
+		esTranslate,
+		scale,
+		[]float32{
+			sourceRegion.X,
+			sourceRegion.Y,
+			sourceRegion.X + sourceRegion.Width,
+			sourceRegion.Y + sourceRegion.Height,
+		},
+	}
+	if err := g.draw(rps, dst, srcs, indexLen, indexOffset, uniforms); err != nil {
 		return err
 	}
 	return nil
@@ -790,52 +749,40 @@ func (g *Graphics) HasHighPrecisionFloat() bool {
 }
 
 func (g *Graphics) MaxImageSize() int {
-	m := 0
-	g.t.Call(func() error {
-		if g.maxImageSize == 0 {
+	if g.maxImageSize == 0 {
+		g.maxImageSize = 4096
+		// https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
+		switch {
+		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily5_v1):
+			g.maxImageSize = 16384
+		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily4_v1):
+			g.maxImageSize = 16384
+		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily3_v1):
+			g.maxImageSize = 16384
+		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v2):
+			g.maxImageSize = 8192
+		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v1):
 			g.maxImageSize = 4096
-			// https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
-			switch {
-			case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily5_v1):
-				g.maxImageSize = 16384
-			case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily4_v1):
-				g.maxImageSize = 16384
-			case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily3_v1):
-				g.maxImageSize = 16384
-			case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v2):
-				g.maxImageSize = 8192
-			case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v1):
-				g.maxImageSize = 4096
-			case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v2):
-				g.maxImageSize = 8192
-			case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v1):
-				g.maxImageSize = 4096
-			case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily2_v1):
-				g.maxImageSize = 16384
-			case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily1_v1):
-				g.maxImageSize = 8192
-			case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_macOS_GPUFamily1_v1):
-				g.maxImageSize = 16384
-			default:
-				panic("metal: there is no supported feature set")
-			}
+		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v2):
+			g.maxImageSize = 8192
+		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v1):
+			g.maxImageSize = 4096
+		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily2_v1):
+			g.maxImageSize = 16384
+		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily1_v1):
+			g.maxImageSize = 8192
+		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_macOS_GPUFamily1_v1):
+			g.maxImageSize = 16384
+		default:
+			panic("metal: there is no supported feature set")
 		}
-		m = g.maxImageSize
-		return nil
-	})
-	return m
+	}
+	return g.maxImageSize
 }
 
 func (g *Graphics) NewShader(program *shaderir.Program) (driver.Shader, error) {
-	var s *Shader
-	if err := g.t.Call(func() error {
-		var err error
-		s, err = newShader(g.view.getMTLDevice(), g.genNextShaderID(), program)
-		if err != nil {
-			return err
-		}
-		return nil
-	}); err != nil {
+	s, err := newShader(g.view.getMTLDevice(), g.genNextShaderID(), program)
+	if err != nil {
 		return nil, err
 	}
 	g.addShader(s)
@@ -877,13 +824,10 @@ func (i *Image) internalSize() (int, int) {
 }
 
 func (i *Image) Dispose() {
-	i.graphics.t.Call(func() error {
-		if i.texture != (mtl.Texture{}) {
-			i.texture.Release()
-			i.texture = mtl.Texture{}
-		}
-		return nil
-	})
+	if i.texture != (mtl.Texture{}) {
+		i.texture.Release()
+		i.texture = mtl.Texture{}
+	}
 	i.graphics.removeImage(i)
 }
 
@@ -897,19 +841,16 @@ func (i *Image) IsInvalidated() bool {
 func (i *Image) syncTexture() {
 	// Calling SynchronizeTexture is ignored on iOS (see mtl.m), but it looks like committing BliCommandEncoder
 	// is necessary (#1337).
-	i.graphics.t.Call(func() error {
-		if i.graphics.cb != (mtl.CommandBuffer{}) {
-			panic("metal: command buffer must be empty at syncTexture: flushIfNeeded is not called yet?")
-		}
+	if i.graphics.cb != (mtl.CommandBuffer{}) {
+		panic("metal: command buffer must be empty at syncTexture: flushIfNeeded is not called yet?")
+	}
 
-		cb := i.graphics.cq.MakeCommandBuffer()
-		bce := cb.MakeBlitCommandEncoder()
-		bce.SynchronizeTexture(i.texture, 0, 0)
-		bce.EndEncoding()
-		cb.Commit()
-		cb.WaitUntilCompleted()
-		return nil
-	})
+	cb := i.graphics.cq.MakeCommandBuffer()
+	bce := cb.MakeBlitCommandEncoder()
+	bce.SynchronizeTexture(i.texture, 0, 0)
+	bce.EndEncoding()
+	cb.Commit()
+	cb.WaitUntilCompleted()
 }
 
 func (i *Image) Pixels() ([]byte, error) {
@@ -917,12 +858,9 @@ func (i *Image) Pixels() ([]byte, error) {
 	i.syncTexture()
 
 	b := make([]byte, 4*i.width*i.height)
-	i.graphics.t.Call(func() error {
-		i.texture.GetBytes(&b[0], uintptr(4*i.width), mtl.Region{
-			Size: mtl.Size{Width: i.width, Height: i.height, Depth: 1},
-		}, 0)
-		return nil
-	})
+	i.texture.GetBytes(&b[0], uintptr(4*i.width), mtl.Region{
+		Size: mtl.Size{Width: i.width, Height: i.height, Depth: 1},
+	}, 0)
 	return b, nil
 }
 
@@ -932,58 +870,50 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 
 	// If the memory is shared (e.g., iOS), texture data doen't have to be synced. Send the data directly.
 	if storageMode == mtl.StorageModeShared {
-		g.t.Call(func() error {
-			for _, a := range args {
-				i.texture.ReplaceRegion(mtl.Region{
-					Origin: mtl.Origin{X: a.X, Y: a.Y, Z: 0},
-					Size:   mtl.Size{Width: a.Width, Height: a.Height, Depth: 1},
-				}, 0, unsafe.Pointer(&a.Pixels[0]), 4*a.Width)
-			}
-			return nil
-		})
-		return
+		for _, a := range args {
+			i.texture.ReplaceRegion(mtl.Region{
+				Origin: mtl.Origin{X: a.X, Y: a.Y, Z: 0},
+				Size:   mtl.Size{Width: a.Width, Height: a.Height, Depth: 1},
+			}, 0, unsafe.Pointer(&a.Pixels[0]), 4*a.Width)
+		}
 	}
 
 	// If the memory is managed (e.g., macOS), texture data cannot be sent to the destination directly because
 	// this requires synchronizing data between CPU and GPU. As synchronizing is inefficient, let's send the
 	// data to a temporary texture once, and then copy it in GPU.
-	g.t.Call(func() error {
-		w, h := i.texture.Width(), i.texture.Height()
-		if g.tmpTexture == (mtl.Texture{}) || w > g.tmpTexture.Width() || h > g.tmpTexture.Height() {
-			if g.tmpTexture != (mtl.Texture{}) {
-				g.tmpTexture.Release()
-			}
-			td := mtl.TextureDescriptor{
-				TextureType: mtl.TextureType2D,
-				PixelFormat: mtl.PixelFormatRGBA8UNorm,
-				Width:       w,
-				Height:      h,
-				StorageMode: storageMode,
-				Usage:       mtl.TextureUsageShaderRead | mtl.TextureUsageRenderTarget,
-			}
-			g.tmpTexture = g.view.getMTLDevice().MakeTexture(td)
+	w, h := i.texture.Width(), i.texture.Height()
+	if g.tmpTexture == (mtl.Texture{}) || w > g.tmpTexture.Width() || h > g.tmpTexture.Height() {
+		if g.tmpTexture != (mtl.Texture{}) {
+			g.tmpTexture.Release()
 		}
+		td := mtl.TextureDescriptor{
+			TextureType: mtl.TextureType2D,
+			PixelFormat: mtl.PixelFormatRGBA8UNorm,
+			Width:       w,
+			Height:      h,
+			StorageMode: storageMode,
+			Usage:       mtl.TextureUsageShaderRead | mtl.TextureUsageRenderTarget,
+		}
+		g.tmpTexture = g.view.getMTLDevice().MakeTexture(td)
+	}
 
-		for _, a := range args {
-			g.tmpTexture.ReplaceRegion(mtl.Region{
-				Origin: mtl.Origin{X: a.X, Y: a.Y, Z: 0},
-				Size:   mtl.Size{Width: a.Width, Height: a.Height, Depth: 1},
-			}, 0, unsafe.Pointer(&a.Pixels[0]), 4*a.Width)
-		}
+	for _, a := range args {
+		g.tmpTexture.ReplaceRegion(mtl.Region{
+			Origin: mtl.Origin{X: a.X, Y: a.Y, Z: 0},
+			Size:   mtl.Size{Width: a.Width, Height: a.Height, Depth: 1},
+		}, 0, unsafe.Pointer(&a.Pixels[0]), 4*a.Width)
+	}
 
-		if g.cb == (mtl.CommandBuffer{}) {
-			g.cb = i.graphics.cq.MakeCommandBuffer()
-		}
-		bce := g.cb.MakeBlitCommandEncoder()
-		for _, a := range args {
-			o := mtl.Origin{X: a.X, Y: a.Y, Z: 0}
-			s := mtl.Size{Width: a.Width, Height: a.Height, Depth: 1}
-			bce.CopyFromTexture(g.tmpTexture, 0, 0, o, s, i.texture, 0, 0, o)
-		}
-		bce.EndEncoding()
-
-		return nil
-	})
+	if g.cb == (mtl.CommandBuffer{}) {
+		g.cb = i.graphics.cq.MakeCommandBuffer()
+	}
+	bce := g.cb.MakeBlitCommandEncoder()
+	for _, a := range args {
+		o := mtl.Origin{X: a.X, Y: a.Y, Z: 0}
+		s := mtl.Size{Width: a.Width, Height: a.Height, Depth: 1}
+		bce.CopyFromTexture(g.tmpTexture, 0, 0, o, s, i.texture, 0, 0, o)
+	}
+	bce.EndEncoding()
 }
 
 func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, sourceRegion driver.Region, mode driver.CompositeMode, uniforms []interface{}) error {
@@ -993,56 +923,51 @@ func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImage
 		srcs[i] = g.images[srcID]
 	}
 
-	if err := g.t.Call(func() error {
-		rps, err := g.shaders[shader].RenderPipelineState(g.view.getMTLDevice(), mode)
-		if err != nil {
-			return err
+	rps, err := g.shaders[shader].RenderPipelineState(g.view.getMTLDevice(), mode)
+	if err != nil {
+		return err
+	}
+
+	us := make([]interface{}, graphics.PreservedUniformVariablesNum+len(uniforms))
+
+	// Set the destination texture size.
+	dw, dh := dst.internalSize()
+	us[graphics.DestinationTextureSizeUniformVariableIndex] = []float32{float32(dw), float32(dh)}
+
+	// Set the source texture sizes.
+	usizes := make([]float32, 2*len(srcs))
+	for i, src := range srcs {
+		if src != nil {
+			w, h := src.internalSize()
+			usizes[2*i] = float32(w)
+			usizes[2*i+1] = float32(h)
 		}
+	}
+	us[graphics.TextureSizesUniformVariableIndex] = usizes
 
-		us := make([]interface{}, graphics.PreservedUniformVariablesNum+len(uniforms))
+	// Set the source offsets.
+	uoffsets := make([]float32, 2*len(offsets))
+	for i, offset := range offsets {
+		uoffsets[2*i] = offset[0]
+		uoffsets[2*i+1] = offset[1]
+	}
+	us[graphics.TextureSourceOffsetsUniformVariableIndex] = uoffsets
 
-		// Set the destination texture size.
-		dw, dh := dst.internalSize()
-		us[graphics.DestinationTextureSizeUniformVariableIndex] = []float32{float32(dw), float32(dh)}
+	// Set the source region's origin of texture0.
+	uorigin := []float32{float32(sourceRegion.X), float32(sourceRegion.Y)}
+	us[graphics.TextureSourceRegionOriginUniformVariableIndex] = uorigin
 
-		// Set the source texture sizes.
-		usizes := make([]float32, 2*len(srcs))
-		for i, src := range srcs {
-			if src != nil {
-				w, h := src.internalSize()
-				usizes[2*i] = float32(w)
-				usizes[2*i+1] = float32(h)
-			}
-		}
-		us[graphics.TextureSizesUniformVariableIndex] = usizes
+	// Set the source region's size of texture0.
+	ussize := []float32{float32(sourceRegion.Width), float32(sourceRegion.Height)}
+	us[graphics.TextureSourceRegionSizeUniformVariableIndex] = ussize
 
-		// Set the source offsets.
-		uoffsets := make([]float32, 2*len(offsets))
-		for i, offset := range offsets {
-			uoffsets[2*i] = offset[0]
-			uoffsets[2*i+1] = offset[1]
-		}
-		us[graphics.TextureSourceOffsetsUniformVariableIndex] = uoffsets
+	// Set the additional uniform variables.
+	for i, v := range uniforms {
+		const offset = graphics.PreservedUniformVariablesNum
+		us[offset+i] = v
+	}
 
-		// Set the source region's origin of texture0.
-		uorigin := []float32{float32(sourceRegion.X), float32(sourceRegion.Y)}
-		us[graphics.TextureSourceRegionOriginUniformVariableIndex] = uorigin
-
-		// Set the source region's size of texture0.
-		ussize := []float32{float32(sourceRegion.Width), float32(sourceRegion.Height)}
-		us[graphics.TextureSourceRegionSizeUniformVariableIndex] = ussize
-
-		// Set the additional uniform variables.
-		for i, v := range uniforms {
-			const offset = graphics.PreservedUniformVariablesNum
-			us[offset+i] = v
-		}
-
-		if err := g.draw(rps, dst, srcs, indexLen, indexOffset, us); err != nil {
-			return err
-		}
-		return nil
-	}); err != nil {
+	if err := g.draw(rps, dst, srcs, indexLen, indexOffset, us); err != nil {
 		return err
 	}
 	return nil

@@ -20,7 +20,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
-	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 type Region struct {
@@ -31,7 +30,6 @@ type Region struct {
 }
 
 type Graphics interface {
-	SetThread(thread *thread.Thread)
 	Begin()
 	End()
 	SetTransparent(transparent bool)
