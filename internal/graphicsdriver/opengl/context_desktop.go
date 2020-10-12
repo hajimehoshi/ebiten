@@ -101,90 +101,131 @@ type contextImpl struct {
 }
 
 func (c *context) reset() error {
-	if !c.init {
+	if err := c.t.Call(func() error {
+		if c.init {
+			return nil
+		}
 		// Note that this initialization must be done after Loop is called.
 		if err := gl.Init(); err != nil {
 			return fmt.Errorf("opengl: initializing error %v", err)
 		}
 		c.init = true
+		return nil
+	}); err != nil {
+		return err
 	}
-
 	c.locationCache = newLocationCache()
 	c.lastTexture = invalidTexture
 	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
 	c.lastCompositeMode = driver.CompositeModeUnknown
-	gl.Enable(gl.BLEND)
-
+	_ = c.t.Call(func() error {
+		gl.Enable(gl.BLEND)
+		return nil
+	})
 	c.blendFunc(driver.CompositeModeSourceOver)
-
-	f := int32(0)
-	gl.GetIntegerv(gl.FRAMEBUFFER_BINDING, &f)
-	c.screenFramebuffer = framebufferNative(f)
+	_ = c.t.Call(func() error {
+		f := int32(0)
+		gl.GetIntegerv(gl.FRAMEBUFFER_BINDING, &f)
+		c.screenFramebuffer = framebufferNative(f)
+		return nil
+	})
 	return nil
 }
 
 func (c *context) blendFunc(mode driver.CompositeMode) {
-	if c.lastCompositeMode == mode {
-		return
-	}
-	c.lastCompositeMode = mode
-	s, d := mode.Operations()
-	s2, d2 := convertOperation(s), convertOperation(d)
-	gl.BlendFunc(uint32(s2), uint32(d2))
+	_ = c.t.Call(func() error {
+		if c.lastCompositeMode == mode {
+			return nil
+		}
+		c.lastCompositeMode = mode
+		s, d := mode.Operations()
+		s2, d2 := convertOperation(s), convertOperation(d)
+		gl.BlendFunc(uint32(s2), uint32(d2))
+		return nil
+	})
 }
 
 func (c *context) newTexture(width, height int) (textureNative, error) {
-	var t uint32
-	gl.GenTextures(1, &t)
-	// TODO: Use gl.IsTexture
-	if t <= 0 {
-		return 0, errors.New("opengl: creating texture failed")
+	var texture textureNative
+	if err := c.t.Call(func() error {
+		var t uint32
+		gl.GenTextures(1, &t)
+		// TODO: Use gl.IsTexture
+		if t <= 0 {
+			return errors.New("opengl: creating texture failed")
+		}
+		gl.PixelStorei(gl.UNPACK_ALIGNMENT, 4)
+		texture = textureNative(t)
+		return nil
+	}); err != nil {
+		return 0, err
 	}
-	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 4)
-	texture := textureNative(t)
-
 	c.bindTexture(texture)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-	// If data is nil, this just allocates memory and the content is undefined.
-	// https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glTexImage2D.xhtml
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(width), int32(height), 0, gl.RGBA, gl.UNSIGNED_BYTE, nil)
+	_ = c.t.Call(func() error {
+		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+		// If data is nil, this just allocates memory and the content is undefined.
+		// https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glTexImage2D.xhtml
+		gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(width), int32(height), 0, gl.RGBA, gl.UNSIGNED_BYTE, nil)
+		return nil
+	})
 	return texture, nil
 }
 
 func (c *context) bindFramebufferImpl(f framebufferNative) {
-	gl.BindFramebufferEXT(gl.FRAMEBUFFER, uint32(f))
+	_ = c.t.Call(func() error {
+		gl.BindFramebufferEXT(gl.FRAMEBUFFER, uint32(f))
+		return nil
+	})
 }
 
-func (c *context) framebufferPixels(f *framebuffer, width, height int) []byte {
-	gl.Flush()
+func (c *context) framebufferPixels(f *framebuffer, width, height int) ([]byte, error) {
+	var pixels []byte
+	_ = c.t.Call(func() error {
+		gl.Flush()
+		return nil
+	})
 	c.bindFramebuffer(f.native)
-	pixels := make([]byte, 4*width*height)
-	gl.ReadPixels(0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(pixels))
-	return pixels
+	if err := c.t.Call(func() error {
+		pixels = make([]byte, 4*width*height)
+		gl.ReadPixels(0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(pixels))
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return pixels, nil
 }
 
 func (c *context) activeTexture(idx int) {
-	gl.ActiveTexture(gl.TEXTURE0 + uint32(idx))
+	_ = c.t.Call(func() error {
+		gl.ActiveTexture(gl.TEXTURE0 + uint32(idx))
+		return nil
+	})
 }
 
 func (c *context) bindTextureImpl(t textureNative) {
-	gl.BindTexture(gl.TEXTURE_2D, uint32(t))
+	_ = c.t.Call(func() error {
+		gl.BindTexture(gl.TEXTURE_2D, uint32(t))
+		return nil
+	})
 }
 
 func (c *context) deleteTexture(t textureNative) {
-	tt := uint32(t)
-	if !gl.IsTexture(tt) {
-		return
-	}
-	if c.lastTexture == t {
-		c.lastTexture = invalidTexture
-	}
-	gl.DeleteTextures(1, &tt)
+	_ = c.t.Call(func() error {
+		tt := uint32(t)
+		if !gl.IsTexture(tt) {
+			return nil
+		}
+		if c.lastTexture == t {
+			c.lastTexture = invalidTexture
+		}
+		gl.DeleteTextures(1, &tt)
+		return nil
+	})
 }
 
 func (c *context) isTexture(t textureNative) bool {
@@ -192,114 +233,155 @@ func (c *context) isTexture(t textureNative) bool {
 }
 
 func (c *context) newFramebuffer(texture textureNative) (framebufferNative, error) {
+	var framebuffer framebufferNative
 	var f uint32
-	gl.GenFramebuffersEXT(1, &f)
-	// TODO: Use gl.IsFramebuffer
-	if f <= 0 {
-		return 0, errors.New("opengl: creating framebuffer failed: gl.IsFramebuffer returns false")
+	if err := c.t.Call(func() error {
+		gl.GenFramebuffersEXT(1, &f)
+		// TODO: Use gl.IsFramebuffer
+		if f <= 0 {
+			return errors.New("opengl: creating framebuffer failed: gl.IsFramebuffer returns false")
+		}
+		return nil
+	}); err != nil {
+		return 0, err
 	}
 	c.bindFramebuffer(framebufferNative(f))
-	gl.FramebufferTexture2DEXT(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, uint32(texture), 0)
-	s := gl.CheckFramebufferStatusEXT(gl.FRAMEBUFFER)
-	if s != gl.FRAMEBUFFER_COMPLETE {
-		if s != 0 {
-			return 0, fmt.Errorf("opengl: creating framebuffer failed: %v", s)
+	if err := c.t.Call(func() error {
+		gl.FramebufferTexture2DEXT(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, uint32(texture), 0)
+		s := gl.CheckFramebufferStatusEXT(gl.FRAMEBUFFER)
+		if s != gl.FRAMEBUFFER_COMPLETE {
+			if s != 0 {
+				return fmt.Errorf("opengl: creating framebuffer failed: %v", s)
+			}
+			if e := gl.GetError(); e != gl.NO_ERROR {
+				return fmt.Errorf("opengl: creating framebuffer failed: (glGetError) %d", e)
+			}
+			return fmt.Errorf("opengl: creating framebuffer failed: unknown error")
 		}
-		if e := gl.GetError(); e != gl.NO_ERROR {
-			return 0, fmt.Errorf("opengl: creating framebuffer failed: (glGetError) %d", e)
-		}
-		return 0, fmt.Errorf("opengl: creating framebuffer failed: unknown error")
+		framebuffer = framebufferNative(f)
+		return nil
+	}); err != nil {
+		return 0, err
 	}
-	return framebufferNative(f), nil
+	return framebuffer, nil
 }
 
 func (c *context) setViewportImpl(width, height int) {
-	gl.Viewport(0, 0, int32(width), int32(height))
+	_ = c.t.Call(func() error {
+		gl.Viewport(0, 0, int32(width), int32(height))
+		return nil
+	})
 }
 
 func (c *context) deleteFramebuffer(f framebufferNative) {
-	ff := uint32(f)
-	if !gl.IsFramebufferEXT(ff) {
-		return
-	}
-	if c.lastFramebuffer == f {
-		c.lastFramebuffer = invalidFramebuffer
-		c.lastViewportWidth = 0
-		c.lastViewportHeight = 0
-	}
-	gl.DeleteFramebuffersEXT(1, &ff)
+	_ = c.t.Call(func() error {
+		ff := uint32(f)
+		if !gl.IsFramebufferEXT(ff) {
+			return nil
+		}
+		if c.lastFramebuffer == f {
+			c.lastFramebuffer = invalidFramebuffer
+			c.lastViewportWidth = 0
+			c.lastViewportHeight = 0
+		}
+		gl.DeleteFramebuffersEXT(1, &ff)
+		return nil
+	})
 }
 
 func (c *context) newShader(shaderType shaderType, source string) (shader, error) {
-	s := gl.CreateShader(uint32(shaderType))
-	if s == 0 {
-		return 0, fmt.Errorf("opengl: glCreateShader failed: shader type: %d", shaderType)
-	}
-	cSources, free := gl.Strs(source + "\x00")
-	gl.ShaderSource(uint32(s), 1, cSources, nil)
-	free()
-	gl.CompileShader(s)
-
-	var v int32
-	gl.GetShaderiv(s, gl.COMPILE_STATUS, &v)
-	if v == gl.FALSE {
-		var l int32
-		var log []byte
-		gl.GetShaderiv(uint32(s), gl.INFO_LOG_LENGTH, &l)
-		if l != 0 {
-			log = make([]byte, l)
-			gl.GetShaderInfoLog(s, l, nil, (*uint8)(gl.Ptr(log)))
+	var sh shader
+	if err := c.t.Call(func() error {
+		s := gl.CreateShader(uint32(shaderType))
+		if s == 0 {
+			return fmt.Errorf("opengl: glCreateShader failed: shader type: %d", shaderType)
 		}
-		return 0, fmt.Errorf("opengl: shader compile failed: %s", log)
+		cSources, free := gl.Strs(source + "\x00")
+		gl.ShaderSource(uint32(s), 1, cSources, nil)
+		free()
+		gl.CompileShader(s)
+
+		var v int32
+		gl.GetShaderiv(s, gl.COMPILE_STATUS, &v)
+		if v == gl.FALSE {
+			var l int32
+			var log []byte
+			gl.GetShaderiv(uint32(s), gl.INFO_LOG_LENGTH, &l)
+			if l != 0 {
+				log = make([]byte, l)
+				gl.GetShaderInfoLog(s, l, nil, (*uint8)(gl.Ptr(log)))
+			}
+			return fmt.Errorf("opengl: shader compile failed: %s", log)
+		}
+		sh = shader(s)
+		return nil
+	}); err != nil {
+		return 0, err
 	}
-	return shader(s), nil
+	return sh, nil
 }
 
 func (c *context) deleteShader(s shader) {
-	gl.DeleteShader(uint32(s))
+	_ = c.t.Call(func() error {
+		gl.DeleteShader(uint32(s))
+		return nil
+	})
 }
 
 func (c *context) newProgram(shaders []shader, attributes []string) (program, error) {
-	p := gl.CreateProgram()
-	if p == 0 {
-		return 0, errors.New("opengl: glCreateProgram failed")
-	}
-
-	for _, shader := range shaders {
-		gl.AttachShader(p, uint32(shader))
-	}
-
-	for i, name := range attributes {
-		l, free := gl.Strs(name + "\x00")
-		gl.BindAttribLocation(p, uint32(i), *l)
-		free()
-	}
-
-	gl.LinkProgram(p)
-	var v int32
-	gl.GetProgramiv(p, gl.LINK_STATUS, &v)
-	if v == gl.FALSE {
-		var l int32
-		var log []byte
-		gl.GetProgramiv(p, gl.INFO_LOG_LENGTH, &l)
-		if l != 0 {
-			log = make([]byte, l)
-			gl.GetProgramInfoLog(p, l, nil, (*uint8)(gl.Ptr(log)))
+	var pr program
+	if err := c.t.Call(func() error {
+		p := gl.CreateProgram()
+		if p == 0 {
+			return errors.New("opengl: glCreateProgram failed")
 		}
-		return 0, fmt.Errorf("opengl: program error: %s", log)
+
+		for _, shader := range shaders {
+			gl.AttachShader(p, uint32(shader))
+		}
+
+		for i, name := range attributes {
+			l, free := gl.Strs(name + "\x00")
+			gl.BindAttribLocation(p, uint32(i), *l)
+			free()
+		}
+
+		gl.LinkProgram(p)
+		var v int32
+		gl.GetProgramiv(p, gl.LINK_STATUS, &v)
+		if v == gl.FALSE {
+			var l int32
+			var log []byte
+			gl.GetProgramiv(p, gl.INFO_LOG_LENGTH, &l)
+			if l != 0 {
+				log = make([]byte, l)
+				gl.GetProgramInfoLog(p, l, nil, (*uint8)(gl.Ptr(log)))
+			}
+			return fmt.Errorf("opengl: program error: %s", log)
+		}
+		pr = program(p)
+		return nil
+	}); err != nil {
+		return 0, err
 	}
-	return program(p), nil
+	return pr, nil
 }
 
 func (c *context) useProgram(p program) {
-	gl.UseProgram(uint32(p))
+	_ = c.t.Call(func() error {
+		gl.UseProgram(uint32(p))
+		return nil
+	})
 }
 
 func (c *context) deleteProgram(p program) {
-	if !gl.IsProgram(uint32(p)) {
-		return
-	}
-	gl.DeleteProgram(uint32(p))
+	_ = c.t.Call(func() error {
+		if !gl.IsProgram(uint32(p)) {
+			return nil
+		}
+		gl.DeleteProgram(uint32(p))
+		return nil
+	})
 }
 
 func (c *context) getUniformLocationImpl(p program, location string) uniformLocation {
@@ -310,110 +392,164 @@ func (c *context) getUniformLocationImpl(p program, location string) uniformLoca
 }
 
 func (c *context) uniformInt(p program, location string, v int) bool {
-	l := int32(c.locationCache.GetUniformLocation(c, p, location))
-	if l == invalidUniform {
-		return false
-	}
-	gl.Uniform1i(l, int32(v))
-	return true
+	var r bool
+	_ = c.t.Call(func() error {
+		l := int32(c.locationCache.GetUniformLocation(c, p, location))
+		if l == invalidUniform {
+			return nil
+		}
+		r = true
+		gl.Uniform1i(l, int32(v))
+		return nil
+	})
+	return r
 }
 
 func (c *context) uniformFloat(p program, location string, v float32) bool {
-	l := int32(c.locationCache.GetUniformLocation(c, p, location))
-	if l == invalidUniform {
-		return false
-	}
-	gl.Uniform1f(l, v)
-	return true
+	var r bool
+	_ = c.t.Call(func() error {
+		l := int32(c.locationCache.GetUniformLocation(c, p, location))
+		if l == invalidUniform {
+			return nil
+		}
+		r = true
+		gl.Uniform1f(l, v)
+		return nil
+	})
+	return r
 }
 
 func (c *context) uniformFloats(p program, location string, v []float32, typ shaderir.Type) bool {
-	l := int32(c.locationCache.GetUniformLocation(c, p, location))
-	if l == invalidUniform {
-		return false
-	}
+	var r bool
+	_ = c.t.Call(func() error {
+		l := int32(c.locationCache.GetUniformLocation(c, p, location))
+		if l == invalidUniform {
+			return nil
+		}
+		r = true
 
-	base := typ.Main
-	len := int32(1)
-	if base == shaderir.Array {
-		base = typ.Sub[0].Main
-		len = int32(typ.Length)
-	}
+		base := typ.Main
+		len := int32(1)
+		if base == shaderir.Array {
+			base = typ.Sub[0].Main
+			len = int32(typ.Length)
+		}
 
-	switch base {
-	case shaderir.Float:
-		gl.Uniform1fv(l, len, (*float32)(gl.Ptr(v)))
-	case shaderir.Vec2:
-		gl.Uniform2fv(l, len, (*float32)(gl.Ptr(v)))
-	case shaderir.Vec3:
-		gl.Uniform3fv(l, len, (*float32)(gl.Ptr(v)))
-	case shaderir.Vec4:
-		gl.Uniform4fv(l, len, (*float32)(gl.Ptr(v)))
-	case shaderir.Mat2:
-		gl.UniformMatrix2fv(l, len, false, (*float32)(gl.Ptr(v)))
-	case shaderir.Mat3:
-		gl.UniformMatrix3fv(l, len, false, (*float32)(gl.Ptr(v)))
-	case shaderir.Mat4:
-		gl.UniformMatrix4fv(l, len, false, (*float32)(gl.Ptr(v)))
-	default:
-		panic(fmt.Sprintf("opengl: unexpected type: %s", typ.String()))
-	}
-	return true
+		switch base {
+		case shaderir.Float:
+			gl.Uniform1fv(l, len, (*float32)(gl.Ptr(v)))
+		case shaderir.Vec2:
+			gl.Uniform2fv(l, len, (*float32)(gl.Ptr(v)))
+		case shaderir.Vec3:
+			gl.Uniform3fv(l, len, (*float32)(gl.Ptr(v)))
+		case shaderir.Vec4:
+			gl.Uniform4fv(l, len, (*float32)(gl.Ptr(v)))
+		case shaderir.Mat2:
+			gl.UniformMatrix2fv(l, len, false, (*float32)(gl.Ptr(v)))
+		case shaderir.Mat3:
+			gl.UniformMatrix3fv(l, len, false, (*float32)(gl.Ptr(v)))
+		case shaderir.Mat4:
+			gl.UniformMatrix4fv(l, len, false, (*float32)(gl.Ptr(v)))
+		default:
+			panic(fmt.Sprintf("opengl: unexpected type: %s", typ.String()))
+		}
+		return nil
+	})
+	return r
 }
 
 func (c *context) vertexAttribPointer(p program, index int, size int, dataType dataType, stride int, offset int) {
-	gl.VertexAttribPointer(uint32(index), int32(size), uint32(dataType), false, int32(stride), uintptr(offset))
+	_ = c.t.Call(func() error {
+		gl.VertexAttribPointer(uint32(index), int32(size), uint32(dataType), false, int32(stride), uintptr(offset))
+		return nil
+	})
 }
 
 func (c *context) enableVertexAttribArray(p program, index int) {
-	gl.EnableVertexAttribArray(uint32(index))
+	_ = c.t.Call(func() error {
+		gl.EnableVertexAttribArray(uint32(index))
+		return nil
+	})
 }
 
 func (c *context) disableVertexAttribArray(p program, index int) {
-	gl.DisableVertexAttribArray(uint32(index))
+	_ = c.t.Call(func() error {
+		gl.DisableVertexAttribArray(uint32(index))
+		return nil
+	})
 }
 
 func (c *context) newArrayBuffer(size int) buffer {
-	var b uint32
-	gl.GenBuffers(1, &b)
-	gl.BindBuffer(uint32(arrayBuffer), b)
-	gl.BufferData(uint32(arrayBuffer), size, nil, uint32(dynamicDraw))
-	return buffer(b)
+	var bf buffer
+	_ = c.t.Call(func() error {
+		var b uint32
+		gl.GenBuffers(1, &b)
+		gl.BindBuffer(uint32(arrayBuffer), b)
+		gl.BufferData(uint32(arrayBuffer), size, nil, uint32(dynamicDraw))
+		bf = buffer(b)
+		return nil
+	})
+	return bf
 }
 
 func (c *context) newElementArrayBuffer(size int) buffer {
-	var b uint32
-	gl.GenBuffers(1, &b)
-	gl.BindBuffer(uint32(elementArrayBuffer), b)
-	gl.BufferData(uint32(elementArrayBuffer), size, nil, uint32(dynamicDraw))
-	return buffer(b)
+	var bf buffer
+	_ = c.t.Call(func() error {
+		var b uint32
+		gl.GenBuffers(1, &b)
+		gl.BindBuffer(uint32(elementArrayBuffer), b)
+		gl.BufferData(uint32(elementArrayBuffer), size, nil, uint32(dynamicDraw))
+		bf = buffer(b)
+		return nil
+	})
+	return bf
 }
 
 func (c *context) bindBuffer(bufferType bufferType, b buffer) {
-	gl.BindBuffer(uint32(bufferType), uint32(b))
+	_ = c.t.Call(func() error {
+		gl.BindBuffer(uint32(bufferType), uint32(b))
+		return nil
+	})
 }
 
 func (c *context) arrayBufferSubData(data []float32) {
-	gl.BufferSubData(uint32(arrayBuffer), 0, len(data)*4, gl.Ptr(data))
+	_ = c.t.Call(func() error {
+		gl.BufferSubData(uint32(arrayBuffer), 0, len(data)*4, gl.Ptr(data))
+		return nil
+	})
 }
 
 func (c *context) elementArrayBufferSubData(data []uint16) {
-	gl.BufferSubData(uint32(elementArrayBuffer), 0, len(data)*2, gl.Ptr(data))
+	_ = c.t.Call(func() error {
+		gl.BufferSubData(uint32(elementArrayBuffer), 0, len(data)*2, gl.Ptr(data))
+		return nil
+	})
 }
 
 func (c *context) deleteBuffer(b buffer) {
-	bb := uint32(b)
-	gl.DeleteBuffers(1, &bb)
+	_ = c.t.Call(func() error {
+		bb := uint32(b)
+		gl.DeleteBuffers(1, &bb)
+		return nil
+	})
 }
 
 func (c *context) drawElements(len int, offsetInBytes int) {
-	gl.DrawElements(gl.TRIANGLES, int32(len), gl.UNSIGNED_SHORT, uintptr(offsetInBytes))
+	_ = c.t.Call(func() error {
+		gl.DrawElements(gl.TRIANGLES, int32(len), gl.UNSIGNED_SHORT, uintptr(offsetInBytes))
+		return nil
+	})
 }
 
 func (c *context) maxTextureSizeImpl() int {
-	s := int32(0)
-	gl.GetIntegerv(gl.MAX_TEXTURE_SIZE, &s)
-	return int(s)
+	size := 0
+	_ = c.t.Call(func() error {
+		s := int32(0)
+		gl.GetIntegerv(gl.MAX_TEXTURE_SIZE, &s)
+		size = int(s)
+		return nil
+	})
+	return size
 }
 
 func (c *context) getShaderPrecisionFormatPrecision() int {
@@ -423,7 +559,10 @@ func (c *context) getShaderPrecisionFormatPrecision() int {
 }
 
 func (c *context) flush() {
-	gl.Flush()
+	_ = c.t.Call(func() error {
+		gl.Flush()
+		return nil
+	})
 }
 
 func (c *context) needsRestoring() bool {
@@ -431,37 +570,54 @@ func (c *context) needsRestoring() bool {
 }
 
 func (c *context) canUsePBO() bool {
-	return isPBOAvailable()
+	var available bool
+	_ = c.t.Call(func() error {
+		available = isPBOAvailable()
+		return nil
+	})
+
+	return available
 }
 
 func (c *context) texSubImage2D(t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
 	c.bindTexture(t)
-	for _, a := range args {
-		gl.TexSubImage2D(gl.TEXTURE_2D, 0, int32(a.X), int32(a.Y), int32(a.Width), int32(a.Height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(a.Pixels))
-	}
+	_ = c.t.Call(func() error {
+		for _, a := range args {
+			gl.TexSubImage2D(gl.TEXTURE_2D, 0, int32(a.X), int32(a.Y), int32(a.Width), int32(a.Height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(a.Pixels))
+		}
+		return nil
+	})
 }
 
 func (c *context) newPixelBufferObject(width, height int) buffer {
-	var b uint32
-	gl.GenBuffers(1, &b)
-	gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, b)
-	gl.BufferData(gl.PIXEL_UNPACK_BUFFER, 4*width*height, nil, gl.STREAM_DRAW)
-	gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, 0)
-	return buffer(b)
+	var bf buffer
+	_ = c.t.Call(func() error {
+		var b uint32
+		gl.GenBuffers(1, &b)
+		gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, b)
+		gl.BufferData(gl.PIXEL_UNPACK_BUFFER, 4*width*height, nil, gl.STREAM_DRAW)
+		gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, 0)
+		bf = buffer(b)
+		return nil
+	})
+	return bf
 }
 
 func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
 	c.bindTexture(t)
-	gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, uint32(buffer))
+	_ = c.t.Call(func() error {
+		gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, uint32(buffer))
 
-	stride := 4 * width
-	for _, a := range args {
-		offset := 4 * (a.Y*width + a.X)
-		for j := 0; j < a.Height; j++ {
-			gl.BufferSubData(gl.PIXEL_UNPACK_BUFFER, offset+stride*j, 4*a.Width, gl.Ptr(a.Pixels[4*a.Width*j:4*a.Width*(j+1)]))
+		stride := 4 * width
+		for _, a := range args {
+			offset := 4 * (a.Y*width + a.X)
+			for j := 0; j < a.Height; j++ {
+				gl.BufferSubData(gl.PIXEL_UNPACK_BUFFER, offset+stride*j, 4*a.Width, gl.Ptr(a.Pixels[4*a.Width*j:4*a.Width*(j+1)]))
+			}
 		}
-	}
 
-	gl.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, nil)
-	gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, 0)
+		gl.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, nil)
+		gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, 0)
+		return nil
+	})
 }

@@ -19,6 +19,7 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 func convertOperation(op driver.Operation) operation {
@@ -54,6 +55,8 @@ type context struct {
 	maxTextureSizeOnce sync.Once
 	highp              bool
 	highpOnce          sync.Once
+
+	t *thread.Thread
 
 	contextImpl
 }

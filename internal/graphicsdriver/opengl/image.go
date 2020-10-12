@@ -64,7 +64,10 @@ func (i *Image) Pixels() ([]byte, error) {
 	if err := i.ensureFramebuffer(); err != nil {
 		return nil, err
 	}
-	p := i.graphics.context.framebufferPixels(i.framebuffer, i.width, i.height)
+	p, err := i.graphics.context.framebufferPixels(i.framebuffer, i.width, i.height)
+	if err != nil {
+		return nil, err
+	}
 	return p, nil
 }
 

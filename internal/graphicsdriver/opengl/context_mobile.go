@@ -148,7 +148,7 @@ func (c *context) bindFramebufferImpl(f framebufferNative) {
 	gl.BindFramebuffer(mgl.FRAMEBUFFER, mgl.Framebuffer(f))
 }
 
-func (c *context) framebufferPixels(f *framebuffer, width, height int) []byte {
+func (c *context) framebufferPixels(f *framebuffer, width, height int) ([]byte, error) {
 	gl := c.gl
 	gl.Flush()
 
@@ -156,7 +156,7 @@ func (c *context) framebufferPixels(f *framebuffer, width, height int) []byte {
 
 	pixels := make([]byte, 4*width*height)
 	gl.ReadPixels(pixels, 0, 0, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE)
-	return pixels
+	return pixels, nil
 }
 
 func (c *context) activeTexture(idx int) {

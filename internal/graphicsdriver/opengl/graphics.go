@@ -21,6 +21,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 var theGraphics Graphics
@@ -41,6 +42,10 @@ type Graphics struct {
 
 	// drawCalled is true just after Draw is called. This holds true until ReplacePixels is called.
 	drawCalled bool
+}
+
+func (g *Graphics) SetThread(thread *thread.Thread) {
+	g.context.t = thread
 }
 
 func (g *Graphics) Begin() {

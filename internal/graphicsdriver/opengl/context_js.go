@@ -273,7 +273,7 @@ func (c *context) bindFramebufferImpl(f framebufferNative) {
 	gl.Call("bindFramebuffer", framebuffer_, js.Value(f))
 }
 
-func (c *context) framebufferPixels(f *framebuffer, width, height int) []byte {
+func (c *context) framebufferPixels(f *framebuffer, width, height int) ([]byte, error) {
 	c.ensureGL()
 	gl := c.gl
 
@@ -282,7 +282,7 @@ func (c *context) framebufferPixels(f *framebuffer, width, height int) []byte {
 	p := jsutil.TemporaryUint8Array(4 * width * height)
 	gl.Call("readPixels", 0, 0, width, height, rgba, unsignedByte, p)
 
-	return jsutil.Uint8ArrayToSlice(p)
+	return jsutil.Uint8ArrayToSlice(p), nil
 }
 
 func (c *context) activeTexture(idx int) {

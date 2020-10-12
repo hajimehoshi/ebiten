@@ -23,17 +23,12 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
-	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 var theGraphicsDriver driver.Graphics
 
 func SetGraphicsDriver(driver driver.Graphics) {
 	theGraphicsDriver = driver
-}
-
-func SetThread(thread *thread.Thread) {
-	theCommandQueue.thread = thread
 }
 
 func NeedsRestoring() bool {
@@ -90,8 +85,6 @@ type commandQueue struct {
 
 	tmpNumIndices int
 	nextIndex     int
-
-	thread *thread.Thread
 
 	err error
 }
@@ -207,18 +200,9 @@ func (q *commandQueue) Enqueue(command command) {
 
 // Flush flushes the command queue.
 func (q *commandQueue) Flush() error {
-	return q.thread.Call(func() error {
-		return q.flush()
-	})
-}
-
-// flush must be called the main thread.
-func (q *commandQueue) flush() error {
 	if len(q.commands) == 0 {
 		return nil
 	}
-
-	// TODO: Use thread.Call here!
 
 	es := q.indices
 	vs := q.vertices
@@ -732,17 +716,10 @@ func (c *newShaderCommand) CanMergeWithDrawTrianglesCommand(dst *Image, src [gra
 
 // ResetGraphicsDriverState resets or initializes the current graphics driver state.
 func ResetGraphicsDriverState() error {
-	return theCommandQueue.thread.Call(func() error {
-		return theGraphicsDriver.Reset()
-	})
+	return theGraphicsDriver.Reset()
 }
 
 // MaxImageSize returns the maximum size of an image.
 func MaxImageSize() int {
-	var size int
-	_ = theCommandQueue.thread.Call(func() error {
-		size = theGraphicsDriver.MaxImageSize()
-		return nil
-	})
-	return size
+	return theGraphicsDriver.MaxImageSize()
 }
