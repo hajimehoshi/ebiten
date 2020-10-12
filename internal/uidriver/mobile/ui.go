@@ -34,6 +34,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
@@ -315,7 +316,7 @@ func (u *UserInterface) run(context driver.UIContext, mainloop bool) (err error)
 		u.Graphics().(*opengl.Graphics).SetMobileGLContext(ctx)
 	} else {
 		u.t = thread.New()
-		u.Graphics().SetThread(u.t)
+		graphicscommand.SetMainThread(u.t)
 	}
 
 	// If gomobile-build is used, wait for the outside size fixed.

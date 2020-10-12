@@ -200,9 +200,18 @@ func (q *commandQueue) Enqueue(command command) {
 
 // Flush flushes the command queue.
 func (q *commandQueue) Flush() error {
+	return RunOnMainThread(func() error {
+		return q.flush()
+	})
+}
+
+// flush must be called the main thread.
+func (q *commandQueue) flush() error {
 	if len(q.commands) == 0 {
 		return nil
 	}
+
+	// TODO: Use thread.Call here!
 
 	es := q.indices
 	vs := q.vertices
@@ -716,10 +725,17 @@ func (c *newShaderCommand) CanMergeWithDrawTrianglesCommand(dst *Image, src [gra
 
 // ResetGraphicsDriverState resets or initializes the current graphics driver state.
 func ResetGraphicsDriverState() error {
-	return theGraphicsDriver.Reset()
+	return RunOnMainThread(func() error {
+		return theGraphicsDriver.Reset()
+	})
 }
 
 // MaxImageSize returns the maximum size of an image.
 func MaxImageSize() int {
-	return theGraphicsDriver.MaxImageSize()
+	var size int
+	_ = RunOnMainThread(func() error {
+		size = theGraphicsDriver.MaxImageSize()
+		return nil
+	})
+	return size
 }

@@ -29,6 +29,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
@@ -588,7 +589,7 @@ func (u *UserInterface) Run(uicontext driver.UIContext) error {
 
 	// Initialize the main thread first so the thread is available at u.run (#809).
 	u.t = thread.New()
-	u.Graphics().SetThread(u.t)
+	graphicscommand.SetMainThread(u.t)
 
 	ch := make(chan error, 1)
 	go func() {
