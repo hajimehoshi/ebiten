@@ -34,12 +34,6 @@ const (
 	paddingSize = 1
 )
 
-var graphicsDriver driver.Graphics
-
-func SetGraphicsDriver(graphics driver.Graphics) {
-	graphicsDriver = graphics
-}
-
 var (
 	minSize = 0
 	maxSize = 0
@@ -673,7 +667,7 @@ func BeginFrame() error {
 			panic("shareable: all the images must be not-shared before the game starts")
 		}
 		minSize = 1024
-		maxSize = max(minSize, graphicsDriver.MaxImageSize())
+		maxSize = max(minSize, restorable.MaxImageSize())
 	})
 	if err != nil {
 		return err

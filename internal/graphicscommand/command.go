@@ -718,3 +718,8 @@ func (c *newShaderCommand) CanMergeWithDrawTrianglesCommand(dst *Image, src [gra
 func ResetGraphicsDriverState() error {
 	return theGraphicsDriver.Reset()
 }
+
+// MaxImageSize returns the maximum size of an image.
+func MaxImageSize() int {
+	return theGraphicsDriver.MaxImageSize()
+}

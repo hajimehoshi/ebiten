@@ -26,12 +26,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
-var graphicsDriver driver.Graphics
-
-func SetGraphicsDriver(graphics driver.Graphics) {
-	graphicsDriver = graphics
-}
-
 func BeginFrame() error {
 	return buffered.BeginFrame()
 }

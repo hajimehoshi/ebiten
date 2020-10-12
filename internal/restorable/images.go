@@ -275,6 +275,11 @@ func InitializeGraphicsDriverState() error {
 	return graphicscommand.ResetGraphicsDriverState()
 }
 
+// MaxImageSize returns the maximum size of an image.
+func MaxImageSize() int {
+	return graphicscommand.MaxImageSize()
+}
+
 // OnContextLost is called when the context lost is detected in an explicit way.
 func OnContextLost() {
 	if !canDetectContextLostExplicitly {
