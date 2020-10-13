@@ -231,7 +231,12 @@ func (g *game) Update() error {
 	} else {
 		ebiten.SetCursorMode(ebiten.CursorModeHidden)
 	}
-	ebiten.SetVsyncEnabled(vsyncEnabled)
+
+	// Set vsync enabled only when this is needed.
+	// This makes a bug around vsync initialization more explicit (#1364).
+	if vsyncEnabled != ebiten.IsVsyncEnabled() {
+		ebiten.SetVsyncEnabled(vsyncEnabled)
+	}
 	ebiten.SetMaxTPS(tps)
 	ebiten.SetWindowDecorated(decorated)
 	ebiten.SetWindowPosition(positionX, positionY)
