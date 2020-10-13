@@ -28,6 +28,7 @@ type view struct {
 	uiview uintptr
 
 	windowChanged bool
+	vsync         bool
 
 	device mtl.Device
 	ml     ca.MetalLayer
@@ -48,6 +49,7 @@ func (v *view) setDisplaySyncEnabled(enabled bool) {
 	// recursive function call via Run is forbidden.
 	// Fix this to use d.t.Run to avoid confusion.
 	v.ml.SetDisplaySyncEnabled(enabled)
+	v.vsync = enabled
 }
 
 func (v *view) colorPixelFormat() mtl.PixelFormat {
@@ -70,6 +72,9 @@ func (v *view) reset() error {
 	// MTLPixelFormatBGRA10_XR_sRGB.
 	v.ml.SetPixelFormat(mtl.PixelFormatBGRA8UNorm)
 	v.ml.SetMaximumDrawableCount(3)
+
+	// The vsync state might be reset. Set the state again (#1364).
+	v.ml.SetDisplaySyncEnabled(v.vsync)
 	return nil
 }
 
