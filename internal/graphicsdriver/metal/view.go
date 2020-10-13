@@ -44,9 +44,6 @@ func (v *view) getMTLDevice() mtl.Device {
 }
 
 func (v *view) setDisplaySyncEnabled(enabled bool) {
-	// TODO: Now SetVsyncEnabled is called only from the main thread, and d.t.Run is not available since
-	// recursive function call via Run is forbidden.
-	// Fix this to use d.t.Run to avoid confusion.
 	v.ml.SetDisplaySyncEnabled(enabled)
 }
 
