@@ -175,8 +175,6 @@ func (c *uiContext) update() error {
 	}
 
 	for i := 0; i < updateCount; i++ {
-		c.updateOffscreen()
-
 		if err := hooks.RunBeforeUpdateHooks(); err != nil {
 			return err
 		}
@@ -186,10 +184,7 @@ func (c *uiContext) update() error {
 		uiDriver().ResetForFrame()
 	}
 
-	// c.screen might be nil when updateCount is 0 in the initial state (#1039).
-	if c.screen == nil {
-		return nil
-	}
+	c.updateOffscreen()
 
 	if IsScreenClearedEveryFrame() {
 		c.offscreen.Clear()
