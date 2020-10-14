@@ -21,7 +21,6 @@ import (
 
 type UIContext interface {
 	Update() error
-	Draw() error
 	Layout(outsideWidth, outsideHeight float64)
 	AdjustPosition(x, y float64) (float64, float64)
 }

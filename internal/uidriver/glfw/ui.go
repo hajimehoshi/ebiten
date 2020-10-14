@@ -868,9 +868,6 @@ func (u *UserInterface) update() error {
 	if err := u.context.Update(); err != nil {
 		return err
 	}
-	if err := u.context.Draw(); err != nil {
-		return err
-	}
 
 	// Update the screen size when the window is resizable.
 	var w, h int

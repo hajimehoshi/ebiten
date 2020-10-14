@@ -164,20 +164,6 @@ func (c *uiContext) Update() error {
 	return nil
 }
 
-func (c *uiContext) Draw() error {
-	if err, ok := c.err.Load().(error); ok && err != nil {
-		return err
-	}
-	if err := buffered.BeginFrame(); err != nil {
-		return err
-	}
-	c.draw()
-	if err := buffered.EndFrame(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (c *uiContext) update() error {
 	// TODO: Move the clock usage to the UI driver side.
 	updateCount := clock.Update(MaxTPS())
@@ -199,13 +185,10 @@ func (c *uiContext) update() error {
 		}
 		uiDriver().ResetForFrame()
 	}
-	return nil
-}
 
-func (c *uiContext) draw() {
 	// c.screen might be nil when updateCount is 0 in the initial state (#1039).
 	if c.screen == nil {
-		return
+		return nil
 	}
 
 	if IsScreenClearedEveryFrame() {
@@ -241,6 +224,7 @@ func (c *uiContext) draw() {
 		op.Filter = FilterLinear
 	}
 	c.screen.DrawImage(c.offscreen, op)
+	return nil
 }
 
 func (c *uiContext) AdjustPosition(x, y float64) (float64, float64) {

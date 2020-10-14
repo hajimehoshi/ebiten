@@ -367,9 +367,6 @@ func (u *UserInterface) update() error {
 	if err := u.context.Update(); err != nil {
 		return err
 	}
-	if err := u.context.Draw(); err != nil {
-		return err
-	}
 	return nil
 }
 
