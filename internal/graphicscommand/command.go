@@ -200,7 +200,7 @@ func (q *commandQueue) Enqueue(command command) {
 
 // Flush flushes the command queue.
 func (q *commandQueue) Flush() error {
-	return RunOnMainThread(func() error {
+	return runOnMainThread(func() error {
 		return q.flush()
 	})
 }
@@ -725,7 +725,7 @@ func (c *newShaderCommand) CanMergeWithDrawTrianglesCommand(dst *Image, src [gra
 
 // ResetGraphicsDriverState resets or initializes the current graphics driver state.
 func ResetGraphicsDriverState() error {
-	return RunOnMainThread(func() error {
+	return runOnMainThread(func() error {
 		return theGraphicsDriver.Reset()
 	})
 }
@@ -733,7 +733,7 @@ func ResetGraphicsDriverState() error {
 // MaxImageSize returns the maximum size of an image.
 func MaxImageSize() int {
 	var size int
-	_ = RunOnMainThread(func() error {
+	_ = runOnMainThread(func() error {
 		size = theGraphicsDriver.MaxImageSize()
 		return nil
 	})
