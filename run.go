@@ -161,13 +161,9 @@ func (i *imageDumperGameWithDraw) Layout(outsideWidth, outsideHeight int) (scree
 // Don't call RunGame twice or more in one process.
 func RunGame(game Game) error {
 	fixWindowPosition(WindowSize())
-	return runGame(&imageDumperGameWithDraw{
+	theUIContext.set(&imageDumperGameWithDraw{
 		game: game,
-	}, 0)
-}
-
-func runGame(game Game, scale float64) error {
-	theUIContext.set(game, scale)
+	})
 	if err := uiDriver().Run(theUIContext); err != nil {
 		if err == driver.RegularTermination {
 			return nil
@@ -184,10 +180,9 @@ func runGame(game Game, scale float64) error {
 // Instead, functions in github.com/hajimehoshi/ebiten/v2/mobile package calls this.
 func RunGameWithoutMainLoop(game Game) {
 	fixWindowPosition(WindowSize())
-	game = &imageDumperGameWithDraw{
+	theUIContext.set(&imageDumperGameWithDraw{
 		game: game,
-	}
-	theUIContext.set(game, 0)
+	})
 	uiDriver().RunWithoutMainLoop(theUIContext)
 }
 
