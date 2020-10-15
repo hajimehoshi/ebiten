@@ -1,4 +1,4 @@
-# Ebiten
+# Ebiten (v2)
 
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/hajimehoshi/ebiten/v2)](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2)
 [![Build Status](https://github.com/hajimehoshi/ebiten/workflows/test/badge.svg)](https://github.com/hajimehoshi/ebiten/actions?query=workflow%3Atest)
