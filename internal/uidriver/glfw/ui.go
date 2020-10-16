@@ -854,14 +854,11 @@ func (u *UserInterface) update() error {
 	_ = u.t.Call(func() error {
 		defer hooks.ResumeAudio()
 
-		for !u.isRunnableOnUnfocused() && u.window.GetAttrib(glfw.Focused) == 0 {
+		for !u.isRunnableOnUnfocused() && u.window.GetAttrib(glfw.Focused) == 0 && !u.window.ShouldClose() {
 			hooks.SuspendAudio()
 			// Wait for an arbitrary period to avoid busy loop.
 			time.Sleep(time.Second / 60)
 			glfw.PollEvents()
-			if u.window.ShouldClose() {
-				return nil
-			}
 		}
 		return nil
 	})
