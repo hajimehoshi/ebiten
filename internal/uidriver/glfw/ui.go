@@ -761,46 +761,34 @@ func (u *UserInterface) init() error {
 	return nil
 }
 
-func (u *UserInterface) updateSize() {
-	_ = u.t.Call(func() error {
-		w, h := u.windowWidth, u.windowHeight
-		u.setWindowSize(w, h, u.isFullscreen())
-		return nil
-	})
+func (u *UserInterface) updateSize() (float64, float64, bool) {
+	ww, wh := u.windowWidth, u.windowHeight
+	u.setWindowSize(ww, wh, u.isFullscreen())
 
-	sizeChanged := false
-	_ = u.t.Call(func() error {
-		if !u.toChangeSize {
-			return nil
-		}
-
-		u.toChangeSize = false
-		sizeChanged = true
-		return nil
-	})
-	if sizeChanged {
-		var w, h float64
-		_ = u.t.Call(func() error {
-			if u.isFullscreen() {
-				v := currentMonitor(u.window).GetVideoMode()
-				ww, wh := v.Width, v.Height
-				w = u.fromGLFWMonitorPixel(float64(ww))
-				h = u.fromGLFWMonitorPixel(float64(wh))
-			} else {
-				// Instead of u.windowWidth and u.windowHeight, use the actual window size here.
-				// On Windows, the specified size at SetSize and the actual window size might not
-				// match (#1163).
-				ww, wh := u.window.GetSize()
-				w = u.fromGLFWPixel(float64(ww))
-				h = u.fromGLFWPixel(float64(wh))
-			}
-			// On Linux/UNIX, further adjusting is required (#1307).
-			w = u.toFramebufferPixel(w)
-			h = u.toFramebufferPixel(h)
-			return nil
-		})
-		u.context.Layout(w, h)
+	if !u.toChangeSize {
+		return 0, 0, false
 	}
+	u.toChangeSize = false
+
+	var w, h float64
+	if u.isFullscreen() {
+		v := currentMonitor(u.window).GetVideoMode()
+		ww, wh := v.Width, v.Height
+		w = u.fromGLFWMonitorPixel(float64(ww))
+		h = u.fromGLFWMonitorPixel(float64(wh))
+	} else {
+		// Instead of u.windowWidth and u.windowHeight, use the actual window size here.
+		// On Windows, the specified size at SetSize and the actual window size might not
+		// match (#1163).
+		ww, wh := u.window.GetSize()
+		w = u.fromGLFWPixel(float64(ww))
+		h = u.fromGLFWPixel(float64(wh))
+	}
+	// On Linux/UNIX, further adjusting is required (#1307).
+	w = u.toFramebufferPixel(w)
+	h = u.toFramebufferPixel(h)
+
+	return w, h, true
 }
 
 func (u *UserInterface) update() error {
@@ -836,8 +824,18 @@ func (u *UserInterface) update() error {
 		return err
 	}
 
+	var w, h float64
+	var changed bool
+
 	// This call is needed for initialization.
-	u.updateSize()
+	_ = u.t.Call(func() error {
+		w, h, changed = u.updateSize()
+		return nil
+	})
+
+	if changed {
+		u.context.Layout(w, h)
+	}
 
 	_ = u.t.Call(func() error {
 		glfw.PollEvents()
@@ -1103,7 +1101,15 @@ func (u *UserInterface) IsScreenTransparent() bool {
 
 func (u *UserInterface) ResetForFrame() {
 	// The offscreens must be updated every frame (#490).
-	u.updateSize()
+	var w, h float64
+	var changed bool
+	_ = u.t.Call(func() error {
+		w, h, changed = u.updateSize()
+		return nil
+	})
+	if changed {
+		u.context.Layout(w, h)
+	}
 	u.input.resetForFrame()
 }
 
