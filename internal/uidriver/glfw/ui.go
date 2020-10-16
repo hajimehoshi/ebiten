@@ -874,10 +874,16 @@ func (u *UserInterface) loop() error {
 		if err := u.context.Update(); err != nil {
 			return err
 		}
-		_ = u.t.Call(func() error {
-			u.swapBuffers()
-			return nil
-		})
+
+		// swapBuffers also checks IsGL, so this condition is redundant.
+		// However, (*thread).Call is not good for performance due to channels.
+		// Let's avoid this whenever possible (#1367).
+		if u.Graphics().IsGL() {
+			_ = u.t.Call(func() error {
+				u.swapBuffers()
+				return nil
+			})
+		}
 
 		if unfocused {
 			t2 = time.Now()
