@@ -441,12 +441,11 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 		return
 	}
 
-	var w, h int
 	_ = u.t.Call(func() error {
-		w, h = u.windowWidth, u.windowHeight
+		w, h := u.windowWidth, u.windowHeight
+		u.setWindowSize(w, h, fullscreen)
 		return nil
 	})
-	u.setWindowSize(w, h, fullscreen)
 }
 
 func (u *UserInterface) IsFocused() bool {
@@ -600,7 +599,15 @@ func (u *UserInterface) Run(uicontext driver.UIContext) error {
 		}()
 
 		defer close(ch)
-		if err := u.run(); err != nil {
+
+		_ = u.t.Call(func() error {
+			if err := u.init(); err != nil {
+				ch <- err
+			}
+			return nil
+		})
+
+		if err := u.loop(); err != nil {
 			ch <- err
 		}
 	}()
@@ -664,66 +671,61 @@ func (u *UserInterface) createWindow() error {
 	return nil
 }
 
-func (u *UserInterface) run() error {
-	if err := u.t.Call(func() error {
-		if u.Graphics().IsGL() {
-			glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLAPI)
-			glfw.WindowHint(glfw.ContextVersionMajor, 2)
-			glfw.WindowHint(glfw.ContextVersionMinor, 1)
-		} else {
-			glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
-		}
+func (u *UserInterface) init() error {
+	if u.Graphics().IsGL() {
+		glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLAPI)
+		glfw.WindowHint(glfw.ContextVersionMajor, 2)
+		glfw.WindowHint(glfw.ContextVersionMinor, 1)
+	} else {
+		glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
+	}
 
-		decorated := glfw.False
-		if u.isInitWindowDecorated() {
-			decorated = glfw.True
-		}
-		glfw.WindowHint(glfw.Decorated, decorated)
+	decorated := glfw.False
+	if u.isInitWindowDecorated() {
+		decorated = glfw.True
+	}
+	glfw.WindowHint(glfw.Decorated, decorated)
 
-		transparent := glfw.False
-		if u.isInitScreenTransparent() {
-			transparent = glfw.True
-		}
-		glfw.WindowHint(glfw.TransparentFramebuffer, transparent)
-		u.Graphics().SetTransparent(u.isInitScreenTransparent())
+	transparent := glfw.False
+	if u.isInitScreenTransparent() {
+		transparent = glfw.True
+	}
+	glfw.WindowHint(glfw.TransparentFramebuffer, transparent)
+	u.Graphics().SetTransparent(u.isInitScreenTransparent())
 
-		resizable := glfw.False
-		if u.isInitWindowResizable() {
-			resizable = glfw.True
-		}
-		glfw.WindowHint(glfw.Resizable, resizable)
+	resizable := glfw.False
+	if u.isInitWindowResizable() {
+		resizable = glfw.True
+	}
+	glfw.WindowHint(glfw.Resizable, resizable)
 
-		floating := glfw.False
-		if u.isInitWindowFloating() {
-			floating = glfw.True
-		}
-		glfw.WindowHint(glfw.Floating, floating)
+	floating := glfw.False
+	if u.isInitWindowFloating() {
+		floating = glfw.True
+	}
+	glfw.WindowHint(glfw.Floating, floating)
 
-		focused := glfw.False
-		if u.isInitFocused() {
-			focused = glfw.True
-		}
-		glfw.WindowHint(glfw.FocusOnShow, focused)
+	focused := glfw.False
+	if u.isInitFocused() {
+		focused = glfw.True
+	}
+	glfw.WindowHint(glfw.FocusOnShow, focused)
 
-		// Set the window visible explicitly or the application freezes on Wayland (#974).
-		if os.Getenv("WAYLAND_DISPLAY") != "" {
-			glfw.WindowHint(glfw.Visible, glfw.True)
-		}
+	// Set the window visible explicitly or the application freezes on Wayland (#974).
+	if os.Getenv("WAYLAND_DISPLAY") != "" {
+		glfw.WindowHint(glfw.Visible, glfw.True)
+	}
 
-		if err := u.createWindow(); err != nil {
-			return err
-		}
-
-		if i := u.getInitIconImages(); i != nil {
-			u.window.SetIcon(i)
-		}
-		return nil
-	}); err != nil {
+	if err := u.createWindow(); err != nil {
 		return err
 	}
 
+	if i := u.getInitIconImages(); i != nil {
+		u.window.SetIcon(i)
+	}
+
 	setPosition := func() {
-		u.iwindow.SetPosition(u.getInitWindowPosition())
+		u.iwindow.setPosition(u.getInitWindowPosition())
 	}
 	setSize := func() {
 		ww, wh := u.getInitWindowSize()
@@ -733,8 +735,8 @@ func (u *UserInterface) run() error {
 	}
 
 	// Set the window size and the window position in this order on Linux or other UNIX using X (#1118),
-	// but this should be inverted on Windows. This is very tricky, but there is no obvious way to solve this.
-	// This doesn't matter on macOS.
+	// but this should be inverted on Windows. This is very tricky, but there is no obvious way to solve
+	// this. This doesn't matter on macOS.
 	if runtime.GOOS == "windows" {
 		setPosition()
 		setSize()
@@ -745,37 +747,26 @@ func (u *UserInterface) run() error {
 
 	// Maximizing a window requires a proper size and position. Call Maximize here (#1117).
 	if u.isInitWindowMaximized() {
-		_ = u.t.Call(func() error {
-			u.window.Maximize()
-			return nil
-		})
+		u.window.Maximize()
 	}
 
-	_ = u.t.Call(func() error {
-		u.title = u.getInitTitle()
-		u.window.SetTitle(u.title)
-		u.window.Show()
-		return nil
-	})
+	u.title = u.getInitTitle()
+	u.window.SetTitle(u.title)
+	u.window.Show()
 
-	var w uintptr
-	_ = u.t.Call(func() error {
-		w = u.nativeWindow()
-		return nil
-	})
 	if g, ok := u.Graphics().(interface{ SetWindow(uintptr) }); ok {
-		g.SetWindow(w)
+		g.SetWindow(u.nativeWindow())
 	}
-	return u.loop()
+
+	return nil
 }
 
 func (u *UserInterface) updateSize() {
-	var w, h int
 	_ = u.t.Call(func() error {
-		w, h = u.windowWidth, u.windowHeight
+		w, h := u.windowWidth, u.windowHeight
+		u.setWindowSize(w, h, u.isFullscreen())
 		return nil
 	})
-	u.setWindowSize(w, h, u.isFullscreen())
 
 	sizeChanged := false
 	_ = u.t.Call(func() error {
@@ -823,12 +814,11 @@ func (u *UserInterface) update() error {
 	}
 
 	if u.isInitFullscreen() {
-		var w, h int
 		_ = u.t.Call(func() error {
-			w, h = u.window.GetSize()
+			w, h := u.window.GetSize()
+			u.setWindowSize(w, h, true)
 			return nil
 		})
-		u.setWindowSize(w, h, true)
 		u.setInitFullscreen(false)
 	}
 
@@ -867,14 +857,13 @@ func (u *UserInterface) update() error {
 	}
 
 	// Update the screen size when the window is resizable.
-	var w, h int
 	_ = u.t.Call(func() error {
-		w, h = u.reqWidth, u.reqHeight
+		if w, h := u.reqWidth, u.reqHeight; w != 0 || h != 0 {
+			u.setWindowSize(w, h, u.isFullscreen())
+		}
 		return nil
 	})
-	if w != 0 || h != 0 {
-		u.setWindowSize(w, h, u.isFullscreen())
-	}
+
 	_ = u.t.Call(func() error {
 		u.reqWidth = 0
 		u.reqHeight = 0
@@ -936,125 +925,123 @@ func (u *UserInterface) swapBuffers() {
 	}
 }
 
+// setWindowSize must be called from the main thread.
 func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
-	windowRecreated := false
+	if u.windowWidth == width && u.windowHeight == height && u.isFullscreen() == fullscreen && u.lastDeviceScaleFactor == u.deviceScaleFactor() {
+		return
+	}
 
-	_ = u.t.Call(func() error {
-		if u.windowWidth == width && u.windowHeight == height && u.isFullscreen() == fullscreen && u.lastDeviceScaleFactor == u.deviceScaleFactor() {
-			return nil
+	if width < 1 {
+		width = 1
+	}
+	if height < 1 {
+		height = 1
+	}
+
+	u.lastDeviceScaleFactor = u.deviceScaleFactor()
+
+	// To make sure the current existing framebuffers are rendered,
+	// swap buffers here before SetSize is called.
+	u.swapBuffers()
+
+	var windowRecreated bool
+
+	if fullscreen {
+		if u.origPosX == invalidPos || u.origPosY == invalidPos {
+			u.origPosX, u.origPosY = u.window.GetPos()
+		}
+		m := currentMonitor(u.window)
+		v := m.GetVideoMode()
+		u.window.SetMonitor(m, 0, 0, v.Width, v.Height, v.RefreshRate)
+
+		// Swapping buffer is necesary to prevent the image lag (#1004).
+		// TODO: This might not work when vsync is disabled.
+		if u.Graphics().IsGL() {
+			glfw.PollEvents()
+			u.swapBuffers()
+		}
+	} else {
+		// On Windows, giving a too small width doesn't call a callback (#165).
+		// To prevent hanging up, return asap if the width is too small.
+		// 126 is an arbitrary number and I guess this is small enough.
+		minWindowWidth := int(u.toGLFWPixel(126))
+		if u.window.GetAttrib(glfw.Decorated) == glfw.False {
+			minWindowWidth = 1
+		}
+		if width < minWindowWidth {
+			width = minWindowWidth
 		}
 
-		if width < 1 {
-			width = 1
-		}
-		if height < 1 {
-			height = 1
-		}
-
-		u.lastDeviceScaleFactor = u.deviceScaleFactor()
-
-		// To make sure the current existing framebuffers are rendered,
-		// swap buffers here before SetSize is called.
-		u.swapBuffers()
-
-		if fullscreen {
-			if u.origPosX == invalidPos || u.origPosY == invalidPos {
-				u.origPosX, u.origPosY = u.window.GetPos()
-			}
-			m := currentMonitor(u.window)
-			v := m.GetVideoMode()
-			u.window.SetMonitor(m, 0, 0, v.Width, v.Height, v.RefreshRate)
-
-			// Swapping buffer is necesary to prevent the image lag (#1004).
-			// TODO: This might not work when vsync is disabled.
+		if u.window.GetMonitor() != nil {
 			if u.Graphics().IsGL() {
+				// When OpenGL is used, swapping buffer is enough to solve the image-lag
+				// issue (#1004). Rather, recreating window destroys GPU resources.
+				// TODO: This might not work when vsync is disabled.
+				u.window.SetMonitor(nil, 0, 0, width, height, 0)
 				glfw.PollEvents()
 				u.swapBuffers()
-			}
-		} else {
-			// On Windows, giving a too small width doesn't call a callback (#165).
-			// To prevent hanging up, return asap if the width is too small.
-			// 126 is an arbitrary number and I guess this is small enough.
-			minWindowWidth := int(u.toGLFWPixel(126))
-			if u.window.GetAttrib(glfw.Decorated) == glfw.False {
-				minWindowWidth = 1
-			}
-			if width < minWindowWidth {
-				width = minWindowWidth
-			}
-
-			if u.window.GetMonitor() != nil {
-				if u.Graphics().IsGL() {
-					// When OpenGL is used, swapping buffer is enough to solve the image-lag
-					// issue (#1004). Rather, recreating window destroys GPU resources.
-					// TODO: This might not work when vsync is disabled.
-					u.window.SetMonitor(nil, 0, 0, width, height, 0)
-					glfw.PollEvents()
-					u.swapBuffers()
-				} else {
-					// Recreate the window since an image lag remains after coming back from
-					// fullscreen (#1004).
-					if u.window != nil {
-						u.window.Destroy()
-						u.window = nil
-					}
-					if err := u.createWindow(); err != nil {
-						// TODO: This should return an error.
-						panic(fmt.Sprintf("glfw: failed to recreate window: %v", err))
-					}
-					u.window.Show()
-					windowRecreated = true
+			} else {
+				// Recreate the window since an image lag remains after coming back from
+				// fullscreen (#1004).
+				if u.window != nil {
+					u.window.Destroy()
+					u.window = nil
 				}
-			}
-
-			if u.origPosX != invalidPos && u.origPosY != invalidPos {
-				x := u.origPosX
-				y := u.origPosY
-				u.window.SetPos(x, y)
-				// Dirty hack for macOS (#703). Rendering doesn't work correctly with one SetPos, but
-				// work with two or more SetPos.
-				if runtime.GOOS == "darwin" {
-					u.window.SetPos(x+1, y)
-					u.window.SetPos(x, y)
+				if err := u.createWindow(); err != nil {
+					// TODO: This should return an error.
+					panic(fmt.Sprintf("glfw: failed to recreate window: %v", err))
 				}
-				u.origPosX = invalidPos
-				u.origPosY = invalidPos
+				u.window.Show()
+				windowRecreated = true
 			}
-
-			// Set the window size after the position. The order matters.
-			// In the opposite order, the window size might not be correct when going back from fullscreen with multi monitors.
-			oldW, oldH := u.window.GetSize()
-			newW := width
-			newH := height
-			if oldW != newW || oldH != newH {
-				ch := make(chan struct{})
-				u.window.SetFramebufferSizeCallback(func(_ *glfw.Window, _, _ int) {
-					u.window.SetFramebufferSizeCallback(nil)
-					close(ch)
-				})
-				u.window.SetSize(newW, newH)
-			event:
-				for {
-					glfw.PollEvents()
-					select {
-					case <-ch:
-						break event
-					default:
-					}
-				}
-			}
-
-			// Window title might be lost on macOS after coming back from fullscreen.
-			u.window.SetTitle(u.title)
 		}
 
-		// As width might be updated, update windowWidth/Height here.
-		u.windowWidth = width
-		u.windowHeight = height
+		if u.origPosX != invalidPos && u.origPosY != invalidPos {
+			x := u.origPosX
+			y := u.origPosY
+			u.window.SetPos(x, y)
+			// Dirty hack for macOS (#703). Rendering doesn't work correctly with one SetPos, but
+			// work with two or more SetPos.
+			if runtime.GOOS == "darwin" {
+				u.window.SetPos(x+1, y)
+				u.window.SetPos(x, y)
+			}
+			u.origPosX = invalidPos
+			u.origPosY = invalidPos
+		}
 
-		u.toChangeSize = true
-		return nil
-	})
+		// Set the window size after the position. The order matters.
+		// In the opposite order, the window size might not be correct when going back from fullscreen with multi monitors.
+		oldW, oldH := u.window.GetSize()
+		newW := width
+		newH := height
+		if oldW != newW || oldH != newH {
+			ch := make(chan struct{})
+			u.window.SetFramebufferSizeCallback(func(_ *glfw.Window, _, _ int) {
+				u.window.SetFramebufferSizeCallback(nil)
+				close(ch)
+			})
+			u.window.SetSize(newW, newH)
+		event:
+			for {
+				glfw.PollEvents()
+				select {
+				case <-ch:
+					break event
+				default:
+				}
+			}
+		}
+
+		// Window title might be lost on macOS after coming back from fullscreen.
+		u.window.SetTitle(u.title)
+	}
+
+	// As width might be updated, update windowWidth/Height here.
+	u.windowWidth = width
+	u.windowHeight = height
+
+	u.toChangeSize = true
 
 	if windowRecreated {
 		if g, ok := u.Graphics().(interface{ SetWindow(uintptr) }); ok {
