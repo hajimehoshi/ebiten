@@ -402,7 +402,7 @@ func (u *UserInterface) setGBuildSize(widthPx, heightPx int) {
 }
 
 func (u *UserInterface) adjustPosition(x, y int) (int, int) {
-	xf, yf := u.context.AdjustPosition(float64(x), float64(y))
+	xf, yf := u.context.AdjustPosition(float64(x), float64(y), deviceScale())
 	return int(xf), int(yf)
 }
 

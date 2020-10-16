@@ -308,81 +308,73 @@ func (i *Input) setWheel(xoff, yoff float64) {
 	i.scrollY = yoff
 }
 
+// update must be called from the main thread.
 func (i *Input) update(window *glfw.Window, context driver.UIContext) {
-	var cx, cy float64
-	_ = i.ui.t.Call(func() error {
-		i.onceCallback.Do(func() {
-			window.SetCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
-				i.appendRuneBuffer(char)
-			})
-			window.SetScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
-				i.setWheel(xoff, yoff)
-			})
+	i.onceCallback.Do(func() {
+		window.SetCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
+			i.appendRuneBuffer(char)
 		})
-		if i.keyPressed == nil {
-			i.keyPressed = map[glfw.Key]bool{}
-		}
-		for gk := range glfwKeyToDriverKey {
-			i.keyPressed[gk] = window.GetKey(gk) == glfw.Press
-		}
-		if i.mouseButtonPressed == nil {
-			i.mouseButtonPressed = map[glfw.MouseButton]bool{}
-		}
-		for gb := range glfwMouseButtonToMouseButton {
-			i.mouseButtonPressed[gb] = window.GetMouseButton(gb) == glfw.Press
-		}
-		cx, cy = window.GetCursorPos()
-		// TODO: This is tricky. Rename the function?
-		cx = i.ui.fromGLFWMonitorPixel(cx)
-		cy = i.ui.fromGLFWMonitorPixel(cy)
-		return nil
+		window.SetScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
+			i.setWheel(xoff, yoff)
+		})
 	})
+	if i.keyPressed == nil {
+		i.keyPressed = map[glfw.Key]bool{}
+	}
+	for gk := range glfwKeyToDriverKey {
+		i.keyPressed[gk] = window.GetKey(gk) == glfw.Press
+	}
+	if i.mouseButtonPressed == nil {
+		i.mouseButtonPressed = map[glfw.MouseButton]bool{}
+	}
+	for gb := range glfwMouseButtonToMouseButton {
+		i.mouseButtonPressed[gb] = window.GetMouseButton(gb) == glfw.Press
+	}
+	cx, cy := window.GetCursorPos()
+	// TODO: This is tricky. Rename the function?
+	cx = i.ui.fromGLFWMonitorPixel(cx)
+	cy = i.ui.fromGLFWMonitorPixel(cy)
+	cx, cy = context.AdjustPosition(cx, cy, i.ui.deviceScaleFactor())
+	i.cursorX, i.cursorY = int(cx), int(cy)
 
-	cx, cy = context.AdjustPosition(cx, cy)
+	for id := glfw.Joystick(0); id < glfw.Joystick(len(i.gamepads)); id++ {
+		i.gamepads[id].valid = false
+		if !id.Present() {
+			continue
+		}
 
-	_ = i.ui.t.Call(func() error {
-		i.cursorX, i.cursorY = int(cx), int(cy)
+		buttons := id.GetButtons()
 
-		for id := glfw.Joystick(0); id < glfw.Joystick(len(i.gamepads)); id++ {
-			i.gamepads[id].valid = false
-			if !id.Present() {
+		// A gamepad can be detected even though there are not. Apparently, some special devices are
+		// recognized as gamepads by GLFW. In this case, the number of the 'buttons' can exceeds the
+		// maximum. Skip such devices as a tentative solution (#1173).
+		if len(buttons) > driver.GamepadButtonNum {
+			continue
+		}
+
+		i.gamepads[id].valid = true
+
+		i.gamepads[id].buttonNum = len(buttons)
+		for b := 0; b < len(i.gamepads[id].buttonPressed); b++ {
+			if len(buttons) <= b {
+				i.gamepads[id].buttonPressed[b] = false
 				continue
 			}
+			i.gamepads[id].buttonPressed[b] = glfw.Action(buttons[b]) == glfw.Press
+		}
 
-			buttons := id.GetButtons()
-
-			// A gamepad can be detected even though there are not. Apparently, some special devices are
-			// recognized as gamepads by GLFW. In this case, the number of the 'buttons' can exceeds the
-			// maximum. Skip such devices as a tentative solution (#1173).
-			if len(buttons) > driver.GamepadButtonNum {
+		axes32 := id.GetAxes()
+		i.gamepads[id].axisNum = len(axes32)
+		for a := 0; a < len(i.gamepads[id].axes); a++ {
+			if len(axes32) <= a {
+				i.gamepads[id].axes[a] = 0
 				continue
 			}
-
-			i.gamepads[id].valid = true
-
-			i.gamepads[id].buttonNum = len(buttons)
-			for b := 0; b < len(i.gamepads[id].buttonPressed); b++ {
-				if len(buttons) <= b {
-					i.gamepads[id].buttonPressed[b] = false
-					continue
-				}
-				i.gamepads[id].buttonPressed[b] = glfw.Action(buttons[b]) == glfw.Press
-			}
-
-			axes32 := id.GetAxes()
-			i.gamepads[id].axisNum = len(axes32)
-			for a := 0; a < len(i.gamepads[id].axes); a++ {
-				if len(axes32) <= a {
-					i.gamepads[id].axes[a] = 0
-					continue
-				}
-				i.gamepads[id].axes[a] = float64(axes32[a])
-			}
-
-			// Note that GLFW's gamepad GUID follows SDL's GUID.
-			i.gamepads[id].guid = id.GetGUID()
-			i.gamepads[id].name = id.GetName()
+			i.gamepads[id].axes[a] = float64(axes32[a])
 		}
-		return nil
-	})
+
+		// Note that GLFW's gamepad GUID follows SDL's GUID.
+		i.gamepads[id].guid = id.GetGUID()
+		i.gamepads[id].name = id.GetName()
+	}
 }

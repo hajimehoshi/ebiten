@@ -834,12 +834,9 @@ func (u *UserInterface) update() error {
 
 	_ = u.t.Call(func() error {
 		glfw.PollEvents()
-		return nil
-	})
-	u.input.update(u.window, u.context)
-	_ = u.t.Call(func() error {
-		defer hooks.ResumeAudio()
+		u.input.update(u.window, u.context)
 
+		defer hooks.ResumeAudio()
 		for !u.isRunnableOnUnfocused() && u.window.GetAttrib(glfw.Focused) == 0 && !u.window.ShouldClose() {
 			hooks.SuspendAudio()
 			// Wait for an arbitrary period to avoid busy loop.

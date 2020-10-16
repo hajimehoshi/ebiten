@@ -112,27 +112,27 @@ func (c *uiContext) setWindowResizable(resizable bool) {
 	}
 }
 
-func (c *uiContext) screenScale() float64 {
+func (c *uiContext) screenScale(deviceScaleFactor float64) float64 {
 	if c.offscreen == nil {
 		return 0
 	}
 	sw, sh := c.offscreen.Size()
-	d := uiDriver().DeviceScaleFactor()
-	scaleX := c.outsideWidth / float64(sw) * d
-	scaleY := c.outsideHeight / float64(sh) * d
+	scaleX := c.outsideWidth / float64(sw) * deviceScaleFactor
+	scaleY := c.outsideHeight / float64(sh) * deviceScaleFactor
 	return math.Min(scaleX, scaleY)
 }
 
-func (c *uiContext) offsets() (float64, float64) {
+func (c *uiContext) offsets(deviceScaleFactor float64) (float64, float64) {
 	if c.offscreen == nil {
 		return 0, 0
 	}
 	sw, sh := c.offscreen.Size()
-	d := uiDriver().DeviceScaleFactor()
-	s := c.screenScale()
+	s := c.screenScale(deviceScaleFactor)
 	width := float64(sw) * s
 	height := float64(sh) * s
-	return (c.outsideWidth*d - width) / 2, (c.outsideHeight*d - height) / 2
+	x := (c.outsideWidth*deviceScaleFactor - width) / 2
+	y := (c.outsideHeight*deviceScaleFactor - height) / 2
+	return x, y
 }
 
 func (c *uiContext) Update() error {
@@ -185,7 +185,7 @@ func (c *uiContext) update() error {
 
 	op := &DrawImageOptions{}
 
-	s := c.screenScale()
+	s := c.screenScale(uiDriver().DeviceScaleFactor())
 	switch vd := uiDriver().Graphics().FramebufferYDirection(); vd {
 	case driver.Upward:
 		op.GeoM.Scale(s, -s)
@@ -197,7 +197,7 @@ func (c *uiContext) update() error {
 		panic(fmt.Sprintf("ebiten: invalid v-direction: %d", vd))
 	}
 
-	op.GeoM.Translate(c.offsets())
+	op.GeoM.Translate(c.offsets(uiDriver().DeviceScaleFactor()))
 	op.CompositeMode = CompositeModeCopy
 
 	// filterScreen works with >=1 scale, but does not well with <1 scale.
@@ -211,9 +211,8 @@ func (c *uiContext) update() error {
 	return nil
 }
 
-func (c *uiContext) AdjustPosition(x, y float64) (float64, float64) {
-	d := uiDriver().DeviceScaleFactor()
-	ox, oy := c.offsets()
-	s := c.screenScale()
-	return (x*d - ox) / s, (y*d - oy) / s
+func (c *uiContext) AdjustPosition(x, y float64, deviceScaleFactor float64) (float64, float64) {
+	ox, oy := c.offsets(deviceScaleFactor)
+	s := c.screenScale(deviceScaleFactor)
+	return (x*deviceScaleFactor - ox) / s, (y*deviceScaleFactor - oy) / s
 }

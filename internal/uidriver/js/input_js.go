@@ -52,7 +52,7 @@ type Input struct {
 }
 
 func (i *Input) CursorPosition() (x, y int) {
-	xf, yf := i.ui.context.AdjustPosition(float64(i.cursorX), float64(i.cursorY))
+	xf, yf := i.ui.context.AdjustPosition(float64(i.cursorX), float64(i.cursorY), i.ui.DeviceScaleFactor())
 	return int(xf), int(yf)
 }
 
@@ -131,9 +131,10 @@ func (i *Input) TouchIDs() []driver.TouchID {
 }
 
 func (i *Input) TouchPosition(id driver.TouchID) (x, y int) {
+	d := i.ui.DeviceScaleFactor()
 	for tid, pos := range i.touches {
 		if id == tid {
-			x, y := i.ui.context.AdjustPosition(float64(pos.X), float64(pos.Y))
+			x, y := i.ui.context.AdjustPosition(float64(pos.X), float64(pos.Y), d)
 			return int(x), int(y)
 		}
 	}

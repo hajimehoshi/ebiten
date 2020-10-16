@@ -22,7 +22,9 @@ import (
 type UIContext interface {
 	Update() error
 	Layout(outsideWidth, outsideHeight float64)
-	AdjustPosition(x, y float64) (float64, float64)
+
+	// AdjustPosition can be called from a different goroutine from Update's or Layout's.
+	AdjustPosition(x, y float64, deviceScaleFactor float64) (float64, float64)
 }
 
 // RegularTermination represents a regular termination.
