@@ -824,6 +824,13 @@ func (u *UserInterface) update() error {
 			u.vsyncInited = true
 		}
 
+		// Update the screen size when the window is resizable.
+		if w, h := u.reqWidth, u.reqHeight; w != 0 || h != 0 {
+			u.setWindowSize(w, h, u.isFullscreen())
+		}
+		u.reqWidth = 0
+		u.reqHeight = 0
+
 		return nil
 	}); err != nil {
 		return err
@@ -845,19 +852,7 @@ func (u *UserInterface) update() error {
 		}
 		return nil
 	})
-	if err := u.context.Update(); err != nil {
-		return err
-	}
 
-	// Update the screen size when the window is resizable.
-	_ = u.t.Call(func() error {
-		if w, h := u.reqWidth, u.reqHeight; w != 0 || h != 0 {
-			u.setWindowSize(w, h, u.isFullscreen())
-		}
-		u.reqWidth = 0
-		u.reqHeight = 0
-		return nil
-	})
 	return nil
 }
 
@@ -886,11 +881,14 @@ func (u *UserInterface) loop() error {
 		if err := u.update(); err != nil {
 			return err
 		}
-
+		if err := u.context.Update(); err != nil {
+			return err
+		}
 		_ = u.t.Call(func() error {
 			u.swapBuffers()
 			return nil
 		})
+
 		if unfocused {
 			t2 = time.Now()
 		}
