@@ -791,67 +791,48 @@ func (u *UserInterface) updateSize() (float64, float64, bool) {
 	return w, h, true
 }
 
-func (u *UserInterface) update() error {
-	if err := u.t.Call(func() error {
-		shouldClose := u.window.ShouldClose()
-		if shouldClose {
-			return driver.RegularTermination
-		}
-
-		if u.isInitFullscreen() {
-			w, h := u.window.GetSize()
-			u.setWindowSize(w, h, true)
-			u.setInitFullscreen(false)
-		}
-
-		// Initialize vsync after SetMonitor is called. See the comment in updateVsync.
-		// Calling this inside setWindowSize didn't work (#1363).
-		if !u.vsyncInited {
-			u.vsync = u.isInitVsyncEnabled()
-			u.updateVsync()
-			u.vsyncInited = true
-		}
-
-		// Update the screen size when the window is resizable.
-		if w, h := u.reqWidth, u.reqHeight; w != 0 || h != 0 {
-			u.setWindowSize(w, h, u.isFullscreen())
-		}
-		u.reqWidth = 0
-		u.reqHeight = 0
-
-		return nil
-	}); err != nil {
-		return err
+// update must be called from the main thread.
+func (u *UserInterface) update() (float64, float64, bool, error) {
+	shouldClose := u.window.ShouldClose()
+	if shouldClose {
+		return 0, 0, false, driver.RegularTermination
 	}
 
-	var w, h float64
-	var changed bool
-
-	// This call is needed for initialization.
-	_ = u.t.Call(func() error {
-		w, h, changed = u.updateSize()
-		return nil
-	})
-
-	if changed {
-		u.context.Layout(w, h)
+	if u.isInitFullscreen() {
+		w, h := u.window.GetSize()
+		u.setWindowSize(w, h, true)
+		u.setInitFullscreen(false)
 	}
 
-	_ = u.t.Call(func() error {
+	// Initialize vsync after SetMonitor is called. See the comment in updateVsync.
+	// Calling this inside setWindowSize didn't work (#1363).
+	if !u.vsyncInited {
+		u.vsync = u.isInitVsyncEnabled()
+		u.updateVsync()
+		u.vsyncInited = true
+	}
+
+	// Update the screen size when the window is resizable.
+	if w, h := u.reqWidth, u.reqHeight; w != 0 || h != 0 {
+		u.setWindowSize(w, h, u.isFullscreen())
+	}
+	u.reqWidth = 0
+	u.reqHeight = 0
+
+	outsideWidth, outsideHeight, outsideSizeChanged := u.updateSize()
+
+	glfw.PollEvents()
+	u.input.update(u.window, u.context)
+
+	defer hooks.ResumeAudio()
+	for !u.isRunnableOnUnfocused() && u.window.GetAttrib(glfw.Focused) == 0 && !u.window.ShouldClose() {
+		hooks.SuspendAudio()
+		// Wait for an arbitrary period to avoid busy loop.
+		time.Sleep(time.Second / 60)
 		glfw.PollEvents()
-		u.input.update(u.window, u.context)
+	}
 
-		defer hooks.ResumeAudio()
-		for !u.isRunnableOnUnfocused() && u.window.GetAttrib(glfw.Focused) == 0 && !u.window.ShouldClose() {
-			hooks.SuspendAudio()
-			// Wait for an arbitrary period to avoid busy loop.
-			time.Sleep(time.Second / 60)
-			glfw.PollEvents()
-		}
-		return nil
-	})
-
-	return nil
+	return outsideWidth, outsideHeight, outsideSizeChanged, nil
 }
 
 func (u *UserInterface) loop() error {
@@ -876,9 +857,20 @@ func (u *UserInterface) loop() error {
 		if unfocused {
 			t1 = time.Now()
 		}
-		if err := u.update(); err != nil {
+
+		var outsideWidth, outsideHeight float64
+		var outsideSizeChanged bool
+		if err := u.t.Call(func() error {
+			var err error
+			outsideWidth, outsideHeight, outsideSizeChanged, err = u.update()
+			return err
+		}); err != nil {
 			return err
 		}
+		if outsideSizeChanged {
+			u.context.Layout(outsideWidth, outsideHeight)
+		}
+
 		if err := u.context.Update(); err != nil {
 			return err
 		}
