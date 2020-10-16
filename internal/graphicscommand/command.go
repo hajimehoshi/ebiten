@@ -211,8 +211,6 @@ func (q *commandQueue) flush() error {
 		return nil
 	}
 
-	// TODO: Use thread.Call here!
-
 	es := q.indices
 	vs := q.vertices
 	if recordLog() {
