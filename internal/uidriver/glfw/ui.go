@@ -804,34 +804,30 @@ func (u *UserInterface) updateSize() {
 }
 
 func (u *UserInterface) update() error {
-	shouldClose := false
-	_ = u.t.Call(func() error {
-		shouldClose = u.window.ShouldClose()
-		return nil
-	})
-	if shouldClose {
-		return driver.RegularTermination
-	}
+	if err := u.t.Call(func() error {
+		shouldClose := u.window.ShouldClose()
+		if shouldClose {
+			return driver.RegularTermination
+		}
 
-	if u.isInitFullscreen() {
-		_ = u.t.Call(func() error {
+		if u.isInitFullscreen() {
 			w, h := u.window.GetSize()
 			u.setWindowSize(w, h, true)
-			return nil
-		})
-		u.setInitFullscreen(false)
-	}
+			u.setInitFullscreen(false)
+		}
 
-	// Initialize vsync after SetMonitor is called. See the comment in updateVsync.
-	// Calling this inside setWindowSize didn't work (#1363).
-	_ = u.t.Call(func() error {
+		// Initialize vsync after SetMonitor is called. See the comment in updateVsync.
+		// Calling this inside setWindowSize didn't work (#1363).
 		if !u.vsyncInited {
 			u.vsync = u.isInitVsyncEnabled()
 			u.updateVsync()
 			u.vsyncInited = true
 		}
+
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
 
 	// This call is needed for initialization.
 	u.updateSize()
@@ -861,10 +857,6 @@ func (u *UserInterface) update() error {
 		if w, h := u.reqWidth, u.reqHeight; w != 0 || h != 0 {
 			u.setWindowSize(w, h, u.isFullscreen())
 		}
-		return nil
-	})
-
-	_ = u.t.Call(func() error {
 		u.reqWidth = 0
 		u.reqHeight = 0
 		return nil
