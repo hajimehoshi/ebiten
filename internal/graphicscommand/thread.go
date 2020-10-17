@@ -14,13 +14,13 @@
 
 package graphicscommand
 
-import (
-	"github.com/hajimehoshi/ebiten/v2/internal/thread"
-)
+var theThread Thread
 
-var theThread *thread.Thread
+type Thread interface {
+	Call(f func() error) error
+}
 
-func SetMainThread(thread *thread.Thread) {
+func SetMainThread(thread Thread) {
 	theThread = thread
 }
 
