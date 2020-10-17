@@ -820,16 +820,17 @@ func (u *UserInterface) update() (float64, float64, bool, error) {
 
 	outsideWidth, outsideHeight, outsideSizeChanged := u.updateSize()
 
+	// TODO: Updating the input can be skipped when clock.Update returns 0 (#1367).
 	glfw.PollEvents()
 	u.input.update(u.window, u.context)
 
-	defer hooks.ResumeAudio()
 	for !u.isRunnableOnUnfocused() && u.window.GetAttrib(glfw.Focused) == 0 && !u.window.ShouldClose() {
 		hooks.SuspendAudio()
 		// Wait for an arbitrary period to avoid busy loop.
 		time.Sleep(time.Second / 60)
 		glfw.PollEvents()
 	}
+	hooks.ResumeAudio()
 
 	return outsideWidth, outsideHeight, outsideSizeChanged, nil
 }
