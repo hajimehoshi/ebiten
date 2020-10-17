@@ -793,8 +793,7 @@ func (u *UserInterface) updateSize() (float64, float64, bool) {
 
 // update must be called from the main thread.
 func (u *UserInterface) update() (float64, float64, bool, error) {
-	shouldClose := u.window.ShouldClose()
-	if shouldClose {
+	if u.window.ShouldClose() {
 		return 0, 0, false, driver.RegularTermination
 	}
 
