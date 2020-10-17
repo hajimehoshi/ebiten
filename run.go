@@ -96,13 +96,13 @@ func IsScreenClearedEveryFrame() bool {
 	return atomic.LoadInt32(&isScreenClearedEveryFrame) != 0
 }
 
-type imageDumperGameWithDraw struct {
+type imageDumperGame struct {
 	game Game
 	d    *imageDumper
 	err  error
 }
 
-func (i *imageDumperGameWithDraw) Update() error {
+func (i *imageDumperGame) Update() error {
 	if i.err != nil {
 		return i.err
 	}
@@ -112,7 +112,7 @@ func (i *imageDumperGameWithDraw) Update() error {
 	return i.d.update()
 }
 
-func (i *imageDumperGameWithDraw) Draw(screen *Image) {
+func (i *imageDumperGame) Draw(screen *Image) {
 	if i.err != nil {
 		return
 	}
@@ -121,7 +121,7 @@ func (i *imageDumperGameWithDraw) Draw(screen *Image) {
 	i.err = i.d.dump(screen)
 }
 
-func (i *imageDumperGameWithDraw) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
+func (i *imageDumperGame) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
 	return i.game.Layout(outsideWidth, outsideHeight)
 }
 
@@ -161,7 +161,7 @@ func (i *imageDumperGameWithDraw) Layout(outsideWidth, outsideHeight int) (scree
 // Don't call RunGame twice or more in one process.
 func RunGame(game Game) error {
 	fixWindowPosition(WindowSize())
-	theUIContext.set(&imageDumperGameWithDraw{
+	theUIContext.set(&imageDumperGame{
 		game: game,
 	})
 	if err := uiDriver().Run(theUIContext); err != nil {
@@ -178,9 +178,11 @@ func RunGame(game Game) error {
 //
 // Ebiten users should NOT call RunGameWithoutMainLoop.
 // Instead, functions in github.com/hajimehoshi/ebiten/v2/mobile package calls this.
+//
+// TODO: Remove this. In order to remove this, the uiContext should be in another package.
 func RunGameWithoutMainLoop(game Game) {
 	fixWindowPosition(WindowSize())
-	theUIContext.set(&imageDumperGameWithDraw{
+	theUIContext.set(&imageDumperGame{
 		game: game,
 	})
 	uiDriver().RunWithoutMainLoop(theUIContext)
