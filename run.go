@@ -57,7 +57,7 @@ type Game interface {
 	Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int)
 }
 
-// TPS represents a default ticks per second, that represents how many times game updating happens in a second.
+// DefaultTPS represents a default ticks per second, that represents how many times game updating happens in a second.
 const DefaultTPS = 60
 
 // CurrentFPS returns the current number of FPS (frames per second), that represents
