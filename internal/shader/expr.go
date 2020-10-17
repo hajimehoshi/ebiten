@@ -220,13 +220,13 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 		// For built-in functions, we can call this in this position. Return an expression for the function
 		// call.
 		if callee.Type == shaderir.BuiltinFuncExpr {
-			if callee.BuiltinFunc == shaderir.Len {
+			if callee.BuiltinFunc == shaderir.Len || callee.BuiltinFunc == shaderir.Cap {
 				if len(args) != 1 {
-					cs.addError(e.Pos(), fmt.Sprintf("number of len's arguments must be 1 but %d", len(args)))
+					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 1 but %d", callee.BuiltinFunc, len(args)))
 					return nil, nil, nil, false
 				}
 				if argts[0].Main != shaderir.Array {
-					cs.addError(e.Pos(), fmt.Sprintf("len takes an array but %s", argts[0].String()))
+					cs.addError(e.Pos(), fmt.Sprintf("%s takes an array but %s", callee.BuiltinFunc, argts[0].String()))
 					return nil, nil, nil, false
 				}
 				return []shaderir.Expr{

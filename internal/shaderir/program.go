@@ -203,6 +203,7 @@ type BuiltinFunc string
 
 const (
 	Len         BuiltinFunc = "len"
+	Cap         BuiltinFunc = "cap"
 	BoolF       BuiltinFunc = "bool"
 	IntF        BuiltinFunc = "int"
 	FloatF      BuiltinFunc = "float"
@@ -257,6 +258,7 @@ const (
 func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
 	switch BuiltinFunc(str) {
 	case Len,
+		Cap,
 		BoolF,
 		IntF,
 		FloatF,
