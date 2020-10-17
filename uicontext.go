@@ -154,7 +154,6 @@ func (c *uiContext) Update() error {
 }
 
 func (c *uiContext) update() error {
-	// TODO: Move the clock usage to the UI driver side.
 	updateCount := clock.Update(MaxTPS())
 
 	// Ensure that Update is called once before Draw so that Update can be used for initialization.
