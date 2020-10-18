@@ -23,14 +23,13 @@ import (
 	"image"
 	"os"
 	"runtime"
-	"sync"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
+	"github.com/hajimehoshi/ebiten/v2/internal/sync"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
@@ -581,41 +580,6 @@ func (u *UserInterface) deviceScaleFactor() float64 {
 func init() {
 	// Lock the main thread.
 	runtime.LockOSThread()
-}
-
-func (u *UserInterface) Run(uicontext driver.UIContext) error {
-	u.context = uicontext
-
-	// Initialize the main thread first so the thread is available at u.run (#809).
-	u.t = thread.New()
-	graphicscommand.SetMainThread(u.t)
-
-	ch := make(chan error, 1)
-	go func() {
-		defer func() {
-			_ = u.t.Call(func() error {
-				return thread.BreakLoop
-			})
-		}()
-
-		defer close(ch)
-
-		_ = u.t.Call(func() error {
-			if err := u.init(); err != nil {
-				ch <- err
-			}
-			return nil
-		})
-
-		if err := u.loop(); err != nil {
-			ch <- err
-		}
-	}()
-
-	u.setRunning(true)
-	u.t.Loop()
-	u.setRunning(false)
-	return <-ch
 }
 
 func (u *UserInterface) RunWithoutMainLoop(context driver.UIContext) {

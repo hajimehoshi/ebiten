@@ -1,4 +1,4 @@
-// Copyright 2018 The Ebiten Authors
+// Copyright 2020 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,28 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package devicescale
+// +build ebitensinglethread
 
-import (
-	"github.com/hajimehoshi/ebiten/v2/internal/sync"
-)
+package sync
 
-type pos struct {
-	x, y int
-}
+import "sync"
 
-var (
-	m     sync.Mutex
-	cache = map[pos]float64{}
-)
+type Mutex struct{}
 
-func GetAt(x, y int) float64 {
-	m.Lock()
-	defer m.Unlock()
-	if s, ok := cache[pos{x, y}]; ok {
-		return s
-	}
-	s := impl(x, y)
-	cache[pos{x, y}] = s
-	return s
-}
+func (m *Mutex) Lock()   {}
+func (m *Mutex) Unlock() {}
+
+type RWMutex struct{}
+
+func (m *RWMutex) Lock()    {}
+func (m *RWMutex) Unlock()  {}
+func (m *RWMutex) RLock()   {}
+func (m *RWMutex) RUnlock() {}
+
+type Once = sync.Once

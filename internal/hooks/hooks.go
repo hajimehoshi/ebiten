@@ -15,7 +15,7 @@
 package hooks
 
 import (
-	"sync"
+	"github.com/hajimehoshi/ebiten/v2/internal/sync"
 )
 
 var m sync.Mutex

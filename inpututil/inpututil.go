@@ -17,10 +17,10 @@ package inpututil
 
 import (
 	"sort"
-	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
+	"github.com/hajimehoshi/ebiten/v2/internal/sync"
 )
 
 type inputState struct {
