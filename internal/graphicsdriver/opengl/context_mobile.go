@@ -191,7 +191,7 @@ func (c *context) newFramebuffer(texture textureNative) (framebufferNative, erro
 	gl := c.gl
 	f := gl.CreateFramebuffer()
 	if f.Value <= 0 {
-		return framebufferNative{}, errors.New("opengl: creating framebuffer failed: the returned value is negative")
+		return framebufferNative{}, fmt.Errorf("opengl: creating framebuffer failed: the returned value is not positive but %d", f.Value)
 	}
 	c.bindFramebuffer(framebufferNative(f))
 
