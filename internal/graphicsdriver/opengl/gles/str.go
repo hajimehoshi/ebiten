@@ -1,4 +1,4 @@
-// Copyright 2018 The Ebiten Authors
+// Copyright 2020 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,18 +14,26 @@
 
 // +build android ios
 
-package opengl
+package gles
+
+// #include <stdlib.h>
+import "C"
 
 import (
-	"golang.org/x/mobile/gl"
-
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gles"
+	"unsafe"
 )
 
-func init() {
-	theGraphics.context.ctx = gles.DefaultContext{}
+func cString(str string) (uintptr, func()) {
+	ptr := C.CString(str)
+	return uintptr(unsafe.Pointer(ptr)), func() { C.free(unsafe.Pointer(ptr)) }
 }
 
-func (g *Graphics) SetGomobileGLContext(context gl.Context) {
-	g.context.ctx = gles.NewGomobileContext(context)
+func cStringPtr(str string) (uintptr, func()) {
+	s, free := cString(str)
+	ptr := C.malloc(C.size_t(unsafe.Sizeof((*int)(nil))))
+	*(*uintptr)(ptr) = s
+	return uintptr(ptr), func() {
+		free()
+		C.free(ptr)
+	}
 }

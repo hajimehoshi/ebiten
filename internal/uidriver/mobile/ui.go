@@ -21,7 +21,6 @@ import (
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
-	"time"
 	"unicode"
 
 	"golang.org/x/mobile/app"
@@ -84,45 +83,6 @@ func (u *UserInterface) Update() error {
 	}
 
 	renderCh <- struct{}{}
-	if u.Graphics().IsGL() {
-		if u.glWorker == nil {
-			panic("mobile: glWorker must be initialized but not")
-		}
-
-		workAvailable := u.glWorker.WorkAvailable()
-		for {
-			// When the two channels don't receive for a while, call DoWork forcibly to avoid freeze
-			// (#1322, #1332).
-			//
-			// In theory, this timeout should not be necessary. However, it looks like this 'select'
-			// statement sometimes blocks forever on some Android devices like Pixel 4(a). Apparently
-			// workAvailable sometimes not receives even though there are queued OpenGL functions.
-			// Call DoWork for such case as a symptomatic treatment.
-			//
-			// Calling DoWork without waiting for workAvailable is safe. If there are no tasks, DoWork
-			// should return immediately.
-			//
-			// TODO: Fix the root cause. Note that this is pretty hard since e.g., logging affects the
-			// scheduling and freezing might not happen with logging.
-			t := time.NewTimer(100 * time.Millisecond)
-
-			select {
-			case <-workAvailable:
-				if !t.Stop() {
-					<-t.C
-				}
-				u.glWorker.DoWork()
-			case <-renderEndCh:
-				if !t.Stop() {
-					<-t.C
-				}
-				return nil
-			case <-t.C:
-				u.glWorker.DoWork()
-			}
-		}
-	}
-
 	go func() {
 		<-renderEndCh
 		u.t.Call(func() error {
@@ -151,8 +111,7 @@ type UserInterface struct {
 
 	input Input
 
-	t        *thread.Thread
-	glWorker gl.Worker
+	t *thread.Thread
 
 	m sync.RWMutex
 }
@@ -306,14 +265,11 @@ func (u *UserInterface) run(context driver.UIContext, mainloop bool) (err error)
 
 	u.context = context
 
-	if u.Graphics().IsGL() {
-		var ctx gl.Context
-		if mainloop {
-			ctx = <-glContextCh
-		} else {
-			ctx, u.glWorker = gl.NewContext()
-		}
-		u.Graphics().(*opengl.Graphics).SetMobileGLContext(ctx)
+	if mainloop {
+		// When mainloop is true, gomobile-build is used. In this case, GL functions must be called via
+		// gl.Context so that they are called on the appropriate thread.
+		ctx := <-glContextCh
+		u.Graphics().(*opengl.Graphics).SetGomobileGLContext(ctx)
 	} else {
 		u.t = thread.New()
 		graphicscommand.SetMainThread(u.t)
