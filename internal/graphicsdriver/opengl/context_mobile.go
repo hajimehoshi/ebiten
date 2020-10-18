@@ -20,9 +20,11 @@ import (
 	"errors"
 	"fmt"
 
+	// TODO: Remove this dependency (#1387)
 	mgl "golang.org/x/mobile/gl"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gles"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
@@ -78,21 +80,21 @@ func getProgramID(p program) programID {
 }
 
 const (
-	vertexShader       = shaderType(mgl.VERTEX_SHADER)
-	fragmentShader     = shaderType(mgl.FRAGMENT_SHADER)
-	arrayBuffer        = bufferType(mgl.ARRAY_BUFFER)
-	elementArrayBuffer = bufferType(mgl.ELEMENT_ARRAY_BUFFER)
-	dynamicDraw        = bufferUsage(mgl.DYNAMIC_DRAW)
-	short              = dataType(mgl.SHORT)
-	float              = dataType(mgl.FLOAT)
+	vertexShader       = shaderType(gles.VERTEX_SHADER)
+	fragmentShader     = shaderType(gles.FRAGMENT_SHADER)
+	arrayBuffer        = bufferType(gles.ARRAY_BUFFER)
+	elementArrayBuffer = bufferType(gles.ELEMENT_ARRAY_BUFFER)
+	dynamicDraw        = bufferUsage(gles.DYNAMIC_DRAW)
+	short              = dataType(gles.SHORT)
+	float              = dataType(gles.FLOAT)
 
-	zero             = operation(mgl.ZERO)
-	one              = operation(mgl.ONE)
-	srcAlpha         = operation(mgl.SRC_ALPHA)
-	dstAlpha         = operation(mgl.DST_ALPHA)
-	oneMinusSrcAlpha = operation(mgl.ONE_MINUS_SRC_ALPHA)
-	oneMinusDstAlpha = operation(mgl.ONE_MINUS_DST_ALPHA)
-	dstColor         = operation(mgl.DST_COLOR)
+	zero             = operation(gles.ZERO)
+	one              = operation(gles.ONE)
+	srcAlpha         = operation(gles.SRC_ALPHA)
+	dstAlpha         = operation(gles.DST_ALPHA)
+	oneMinusSrcAlpha = operation(gles.ONE_MINUS_SRC_ALPHA)
+	oneMinusDstAlpha = operation(gles.ONE_MINUS_DST_ALPHA)
+	dstColor         = operation(gles.DST_COLOR)
 )
 
 type contextImpl struct {
@@ -106,9 +108,9 @@ func (c *context) reset() error {
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
 	c.lastCompositeMode = driver.CompositeModeUnknown
-	c.gl.Enable(mgl.BLEND)
+	c.gl.Enable(gles.BLEND)
 	c.blendFunc(driver.CompositeModeSourceOver)
-	f := c.gl.GetInteger(mgl.FRAMEBUFFER_BINDING)
+	f := c.gl.GetInteger(gles.FRAMEBUFFER_BINDING)
 	c.screenFramebuffer = framebufferNative(mgl.Framebuffer{uint32(f)})
 	// TODO: Need to update screenFramebufferWidth/Height?
 	return nil
@@ -131,21 +133,21 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 	if t.Value <= 0 {
 		return textureNative{}, errors.New("opengl: creating texture failed")
 	}
-	gl.PixelStorei(mgl.UNPACK_ALIGNMENT, 4)
+	gl.PixelStorei(gles.UNPACK_ALIGNMENT, 4)
 	c.bindTexture(textureNative(t))
 
-	gl.TexParameteri(mgl.TEXTURE_2D, mgl.TEXTURE_MAG_FILTER, mgl.NEAREST)
-	gl.TexParameteri(mgl.TEXTURE_2D, mgl.TEXTURE_MIN_FILTER, mgl.NEAREST)
-	gl.TexParameteri(mgl.TEXTURE_2D, mgl.TEXTURE_WRAP_S, mgl.CLAMP_TO_EDGE)
-	gl.TexParameteri(mgl.TEXTURE_2D, mgl.TEXTURE_WRAP_T, mgl.CLAMP_TO_EDGE)
-	gl.TexImage2D(mgl.TEXTURE_2D, 0, mgl.RGBA, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE, nil)
+	gl.TexParameteri(gles.TEXTURE_2D, gles.TEXTURE_MAG_FILTER, gles.NEAREST)
+	gl.TexParameteri(gles.TEXTURE_2D, gles.TEXTURE_MIN_FILTER, gles.NEAREST)
+	gl.TexParameteri(gles.TEXTURE_2D, gles.TEXTURE_WRAP_S, gles.CLAMP_TO_EDGE)
+	gl.TexParameteri(gles.TEXTURE_2D, gles.TEXTURE_WRAP_T, gles.CLAMP_TO_EDGE)
+	gl.TexImage2D(gles.TEXTURE_2D, 0, gles.RGBA, width, height, gles.RGBA, gles.UNSIGNED_BYTE, nil)
 
 	return textureNative(t), nil
 }
 
 func (c *context) bindFramebufferImpl(f framebufferNative) {
 	gl := c.gl
-	gl.BindFramebuffer(mgl.FRAMEBUFFER, mgl.Framebuffer(f))
+	gl.BindFramebuffer(gles.FRAMEBUFFER, mgl.Framebuffer(f))
 }
 
 func (c *context) framebufferPixels(f *framebuffer, width, height int) []byte {
@@ -155,18 +157,18 @@ func (c *context) framebufferPixels(f *framebuffer, width, height int) []byte {
 	c.bindFramebuffer(f.native)
 
 	pixels := make([]byte, 4*width*height)
-	gl.ReadPixels(pixels, 0, 0, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE)
+	gl.ReadPixels(pixels, 0, 0, width, height, gles.RGBA, gles.UNSIGNED_BYTE)
 	return pixels
 }
 
 func (c *context) activeTexture(idx int) {
 	gl := c.gl
-	gl.ActiveTexture(mgl.Enum(mgl.TEXTURE0 + idx))
+	gl.ActiveTexture(mgl.Enum(gles.TEXTURE0 + idx))
 }
 
 func (c *context) bindTextureImpl(t textureNative) {
 	gl := c.gl
-	gl.BindTexture(mgl.TEXTURE_2D, mgl.Texture(t))
+	gl.BindTexture(gles.TEXTURE_2D, mgl.Texture(t))
 }
 
 func (c *context) deleteTexture(t textureNative) {
@@ -193,13 +195,13 @@ func (c *context) newFramebuffer(texture textureNative) (framebufferNative, erro
 	}
 	c.bindFramebuffer(framebufferNative(f))
 
-	gl.FramebufferTexture2D(mgl.FRAMEBUFFER, mgl.COLOR_ATTACHMENT0, mgl.TEXTURE_2D, mgl.Texture(texture), 0)
-	s := gl.CheckFramebufferStatus(mgl.FRAMEBUFFER)
-	if s != mgl.FRAMEBUFFER_COMPLETE {
+	gl.FramebufferTexture2D(gles.FRAMEBUFFER, gles.COLOR_ATTACHMENT0, gles.TEXTURE_2D, mgl.Texture(texture), 0)
+	s := gl.CheckFramebufferStatus(gles.FRAMEBUFFER)
+	if s != gles.FRAMEBUFFER_COMPLETE {
 		if s != 0 {
 			return framebufferNative{}, fmt.Errorf("opengl: creating framebuffer failed: %v", s)
 		}
-		if e := gl.GetError(); e != mgl.NO_ERROR {
+		if e := gl.GetError(); e != gles.NO_ERROR {
 			return framebufferNative{}, fmt.Errorf("opengl: creating framebuffer failed: (glGetError) %d", e)
 		}
 		return framebufferNative{}, fmt.Errorf("opengl: creating framebuffer failed: unknown error")
@@ -237,8 +239,8 @@ func (c *context) newShader(shaderType shaderType, source string) (shader, error
 	gl.ShaderSource(s, source)
 	gl.CompileShader(s)
 
-	v := gl.GetShaderi(s, mgl.COMPILE_STATUS)
-	if v == mgl.FALSE {
+	v := gl.GetShaderi(s, gles.COMPILE_STATUS)
+	if v == gles.FALSE {
 		log := gl.GetShaderInfoLog(s)
 		return shader{}, fmt.Errorf("opengl: shader compile failed: %s", log)
 	}
@@ -266,8 +268,8 @@ func (c *context) newProgram(shaders []shader, attributes []string) (program, er
 	}
 
 	gl.LinkProgram(p)
-	v := gl.GetProgrami(p, mgl.LINK_STATUS)
-	if v == mgl.FALSE {
+	v := gl.GetProgrami(p, gles.LINK_STATUS)
+	if v == gles.FALSE {
 		info := gl.GetProgramInfoLog(p)
 		return program{}, fmt.Errorf("opengl: program error: %s", info)
 	}
@@ -399,17 +401,17 @@ func (c *context) deleteBuffer(b buffer) {
 
 func (c *context) drawElements(len int, offsetInBytes int) {
 	gl := c.gl
-	gl.DrawElements(mgl.TRIANGLES, len, mgl.UNSIGNED_SHORT, offsetInBytes)
+	gl.DrawElements(gles.TRIANGLES, len, gles.UNSIGNED_SHORT, offsetInBytes)
 }
 
 func (c *context) maxTextureSizeImpl() int {
 	gl := c.gl
-	return gl.GetInteger(mgl.MAX_TEXTURE_SIZE)
+	return gl.GetInteger(gles.MAX_TEXTURE_SIZE)
 }
 
 func (c *context) getShaderPrecisionFormatPrecision() int {
 	gl := c.gl
-	_, _, p := gl.GetShaderPrecisionFormat(mgl.FRAGMENT_SHADER, mgl.HIGH_FLOAT)
+	_, _, p := gl.GetShaderPrecisionFormat(gles.FRAGMENT_SHADER, gles.HIGH_FLOAT)
 	return p
 }
 
@@ -432,16 +434,16 @@ func (c *context) texSubImage2D(t textureNative, width, height int, args []*driv
 	c.bindTexture(t)
 	gl := c.gl
 	for _, a := range args {
-		gl.TexSubImage2D(mgl.TEXTURE_2D, 0, a.X, a.Y, a.Width, a.Height, mgl.RGBA, mgl.UNSIGNED_BYTE, a.Pixels)
+		gl.TexSubImage2D(gles.TEXTURE_2D, 0, a.X, a.Y, a.Width, a.Height, gles.RGBA, gles.UNSIGNED_BYTE, a.Pixels)
 	}
 }
 
 func (c *context) newPixelBufferObject(width, height int) buffer {
 	gl := c.gl
 	b := gl.CreateBuffer()
-	gl.BindBuffer(mgl.PIXEL_UNPACK_BUFFER, b)
-	gl.BufferInit(mgl.PIXEL_UNPACK_BUFFER, 4*width*height, mgl.STREAM_DRAW)
-	gl.BindBuffer(mgl.PIXEL_UNPACK_BUFFER, mgl.Buffer{0})
+	gl.BindBuffer(gles.PIXEL_UNPACK_BUFFER, b)
+	gl.BufferInit(gles.PIXEL_UNPACK_BUFFER, 4*width*height, gles.STREAM_DRAW)
+	gl.BindBuffer(gles.PIXEL_UNPACK_BUFFER, mgl.Buffer{0})
 	return buffer(b)
 }
 
@@ -450,16 +452,16 @@ func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, he
 
 	c.bindTexture(t)
 	gl := c.gl
-	gl.BindBuffer(mgl.PIXEL_UNPACK_BUFFER, mgl.Buffer(buffer))
+	gl.BindBuffer(gles.PIXEL_UNPACK_BUFFER, mgl.Buffer(buffer))
 
 	stride := 4 * width
 	for _, a := range args {
 		offset := 4 * (a.Y*width + a.X)
 		for j := 0; j < a.Height; j++ {
-			gl.BufferSubData(mgl.PIXEL_UNPACK_BUFFER, offset+stride*j, a.Pixels[4*a.Width*j:4*a.Width*(j+1)])
+			gl.BufferSubData(gles.PIXEL_UNPACK_BUFFER, offset+stride*j, a.Pixels[4*a.Width*j:4*a.Width*(j+1)])
 		}
 	}
 
-	gl.TexSubImage2D(mgl.TEXTURE_2D, 0, 0, 0, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE, nil)
-	gl.BindBuffer(mgl.PIXEL_UNPACK_BUFFER, mgl.Buffer{0})
+	gl.TexSubImage2D(gles.TEXTURE_2D, 0, 0, 0, width, height, gles.RGBA, gles.UNSIGNED_BYTE, nil)
+	gl.BindBuffer(gles.PIXEL_UNPACK_BUFFER, mgl.Buffer{0})
 }
