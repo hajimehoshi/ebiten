@@ -50,8 +50,9 @@
 //     }
 //
 // In the API document, 'the main thread' means the goroutine in init(), main() and their callees without 'go'
-// statement. It is assured that 'the main thread' runs on the OS main thread. There are some Ebiten functions that
-// must be called on the main thread under some conditions (typically, before ebiten.RunGame is called).
+// statement. It is assured that 'the main thread' runs on the OS main thread. There are some Ebiten functions (e.g.,
+// DeviceScaleFactor) that must be called on the main thread under some conditions (typically, before ebiten.RunGame
+// is called).
 //
 // Environment variables
 //
@@ -72,5 +73,6 @@
 // `ebitengl` forces to use OpenGL in any environments.
 //
 // `ebitensinglethread` disables Ebiten's thread safety to unlock maximum performance. If you use this you will have
-// to manage threads yourself. Functions like IsKeyPressed will no longer be concurrent-safe with this build tag.
+// to manage threads yourself. Functions like IsKeyPressed will no longer be concurrent-safe with this build tag and
+// must be called from the main thread.
 package ebiten

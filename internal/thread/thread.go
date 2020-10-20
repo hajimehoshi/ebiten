@@ -18,7 +18,7 @@ import (
 	"errors"
 )
 
-// Thread defines threading behavior in ebiten.
+// Thread defines threading behavior in Ebiten.
 type Thread interface {
 	Call(func() error) error
 	Loop()
