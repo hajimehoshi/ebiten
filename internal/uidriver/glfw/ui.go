@@ -23,13 +23,13 @@ import (
 	"image"
 	"os"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
-	"github.com/hajimehoshi/ebiten/v2/internal/sync"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 

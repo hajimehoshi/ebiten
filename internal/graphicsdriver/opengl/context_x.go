@@ -19,9 +19,9 @@ package opengl
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
-	"github.com/hajimehoshi/ebiten/v2/internal/sync"
 )
 
 var (

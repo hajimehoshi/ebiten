@@ -37,9 +37,8 @@ import (
 	"fmt"
 	"io"
 	"runtime"
+	"sync"
 	"time"
-
-	"github.com/hajimehoshi/ebiten/v2/internal/sync"
 )
 
 const (

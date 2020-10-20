@@ -16,9 +16,9 @@ package opengl
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
-	"github.com/hajimehoshi/ebiten/v2/internal/sync"
 )
 
 func convertOperation(op driver.Operation) operation {

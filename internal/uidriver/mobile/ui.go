@@ -19,6 +19,7 @@ package mobile
 import (
 	"fmt"
 	"runtime/debug"
+	"sync"
 	"sync/atomic"
 	"unicode"
 
@@ -36,7 +37,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
-	"github.com/hajimehoshi/ebiten/v2/internal/sync"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 

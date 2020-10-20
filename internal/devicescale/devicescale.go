@@ -15,7 +15,7 @@
 package devicescale
 
 import (
-	"github.com/hajimehoshi/ebiten/v2/internal/sync"
+	"sync"
 )
 
 type pos struct {

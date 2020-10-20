@@ -16,9 +16,8 @@
 package clock
 
 import (
+	"sync"
 	"time"
-
-	"github.com/hajimehoshi/ebiten/v2/internal/sync"
 )
 
 var (

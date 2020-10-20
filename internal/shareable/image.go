@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"image/color"
 	"runtime"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
@@ -25,7 +26,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 	"github.com/hajimehoshi/ebiten/v2/internal/packing"
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
-	"github.com/hajimehoshi/ebiten/v2/internal/sync"
 )
 
 const (

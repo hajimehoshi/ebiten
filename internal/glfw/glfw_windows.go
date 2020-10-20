@@ -19,9 +19,9 @@ import (
 	"image/draw"
 	"math/bits"
 	"runtime"
+	"sync"
 	"unsafe"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/sync"
 	"golang.org/x/sys/windows"
 )
 
