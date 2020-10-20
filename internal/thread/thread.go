@@ -69,18 +69,18 @@ func (t *OSThread) Call(f func() error) error {
 	return <-t.results
 }
 
-// NoOpThread is used to disable threading.
-type NoOpThread struct{}
+// NoopThread is used to disable threading.
+type NoopThread struct{}
 
-// NewNoOpThread creates a new thread that does no threading.
-func NewNoOpThread() Thread {
-	return &NoOpThread{}
+// NewNoopThread creates a new thread that does no threading.
+func NewNoopThread() Thread {
+	return &NoopThread{}
 }
 
 // Loop does nothing
-func (t *NoOpThread) Loop() {}
+func (t *NoopThread) Loop() {}
 
 // Call executes the func immediately
-func (t *NoOpThread) Call(f func() error) error {
+func (t *NoopThread) Call(f func() error) error {
 	return f()
 }
