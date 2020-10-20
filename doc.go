@@ -70,4 +70,7 @@
 // number of graphics commands affects the performance of your game.
 //
 // `ebitengl` forces to use OpenGL in any environments.
+//
+// `ebitensinglethread` disables Ebiten's thread safety to unlock maximum performance. If you use this you will have
+// to manage threads yourself. Functions like IsKeyPressed will no longer be concurrent-safe with this build tag.
 package ebiten
