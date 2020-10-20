@@ -79,7 +79,7 @@ type UserInterface struct {
 	input   Input
 	iwindow window
 
-	t *thread.Thread
+	t thread.Thread
 	m sync.RWMutex
 }
 

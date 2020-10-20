@@ -111,7 +111,7 @@ type UserInterface struct {
 
 	input Input
 
-	t *thread.Thread
+	t *thread.OSThread
 
 	m sync.RWMutex
 }
@@ -271,7 +271,7 @@ func (u *UserInterface) run(context driver.UIContext, mainloop bool) (err error)
 		ctx := <-glContextCh
 		u.Graphics().(*opengl.Graphics).SetGomobileGLContext(ctx)
 	} else {
-		u.t = thread.New()
+		u.t = thread.NewOSThread()
 		graphicscommand.SetMainThread(u.t)
 	}
 

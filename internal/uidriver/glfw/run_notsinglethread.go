@@ -29,7 +29,7 @@ func (u *UserInterface) Run(uicontext driver.UIContext) error {
 	u.context = uicontext
 
 	// Initialize the main thread first so the thread is available at u.run (#809).
-	u.t = thread.New()
+	u.t = thread.NewOSThread()
 	graphicscommand.SetMainThread(u.t)
 
 	ch := make(chan error, 1)
