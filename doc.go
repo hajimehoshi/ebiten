@@ -72,5 +72,5 @@
 // `ebitengl` forces to use OpenGL in any environments.
 //
 // `ebitensinglethread` disables Ebiten's thread safety to unlock maximum performance. If you use this you will have
-// to manage threads yourself.
+// to manage threads yourself. Functions like IsKeyPressed will no longer be concurrent-safe with this build tag.
 package ebiten
