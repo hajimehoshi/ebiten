@@ -236,6 +236,13 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		m.imgs[level] = nil
 		return nil
 	}
+	// buffered.NewImage panics with a too big size when actual allocation happens.
+	// 4096 should be a safe size in most environments (#1399).
+	// Unfortunately a precise max image size cannot be obtained here since this requires GPU access.
+	if w2 > 4096 || h2 > 4096 {
+		m.imgs[level] = nil
+		return nil
+	}
 	s := buffered.NewImage(w2, h2)
 	s.SetVolatile(m.volatile)
 	s.DrawTriangles([graphics.ShaderImageNum]*buffered.Image{src}, vs, is, nil, driver.CompositeModeCopy, filter, driver.AddressUnsafe, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
@@ -268,7 +275,9 @@ func (m *Mipmap) MarkDisposed() {
 
 func (m *Mipmap) disposeMipmaps() {
 	for _, img := range m.imgs {
-		img.MarkDisposed()
+		if img != nil {
+			img.MarkDisposed()
+		}
 	}
 	for k := range m.imgs {
 		delete(m.imgs, k)
@@ -277,7 +286,7 @@ func (m *Mipmap) disposeMipmaps() {
 
 // mipmapLevel returns an appropriate mipmap level for the given distance.
 func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, filter driver.Filter) int {
-	const maxScale = 6
+	const maxLevel = 6
 
 	if filter == driver.FilterScreen {
 		return 0
@@ -293,7 +302,7 @@ func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, fil
 	// Scale can be infinite when the specified scale is extremely big (#1398).
 	if math.IsInf(float64(scale), 0) {
 		if filter == driver.FilterNearest {
-			return -maxScale
+			return -maxLevel
 		}
 		return 0
 	}
@@ -333,8 +342,8 @@ func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, fil
 
 		// If tooBigScale is 32, level -6 means that the maximum scale is 32 * 2^6 = 2048. This should be
 		// enough.
-		if level < -maxScale {
-			level = -maxScale
+		if level < -maxLevel {
+			level = -maxLevel
 		}
 		return level
 	}
@@ -367,8 +376,8 @@ func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, fil
 		}
 	}
 
-	if level > maxScale {
-		level = maxScale
+	if level > maxLevel {
+		level = maxLevel
 	}
 
 	return level

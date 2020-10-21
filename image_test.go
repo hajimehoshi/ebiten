@@ -2149,3 +2149,14 @@ func TestImageDrawImageTooSmallScale(t *testing.T) {
 	op.GeoM.Scale(1e-10, 1e-10)
 	dst.DrawImage(src, op)
 }
+
+// Issue #1399
+func TestImageDrawImageCannotAllocateImageForMipmap(t *testing.T) {
+	dst := NewImage(1, 1)
+	src := NewImage(4096, 4096)
+
+	op := &DrawImageOptions{}
+	op.GeoM.Scale(64, 64)
+	dst.DrawImage(src, op)
+	dst.At(0, 0)
+}
