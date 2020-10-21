@@ -2151,7 +2151,7 @@ func TestImageDrawImageTooSmallScale(t *testing.T) {
 }
 
 // Issue #1399
-func TestImageDrawImageCannotCreateMiamap(t *testing.T) {
+func TestImageDrawImageCannotAllocateImageForMipmap(t *testing.T) {
 	dst := NewImage(1, 1)
 	src := NewImage(4096, 4096)
 
