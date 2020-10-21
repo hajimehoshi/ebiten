@@ -277,6 +277,8 @@ func (m *Mipmap) disposeMipmaps() {
 
 // mipmapLevel returns an appropriate mipmap level for the given distance.
 func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, filter driver.Filter) int {
+	const maxScale = 6
+
 	if filter == driver.FilterScreen {
 		return 0
 	}
@@ -287,6 +289,19 @@ func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, fil
 		return 0
 	}
 	scale := d / s
+
+	// Scale can be infinite when the specified scale is extremely big (#1398).
+	if math.IsInf(float64(scale), 0) {
+		if filter == driver.FilterNearest {
+			return -maxScale
+		}
+		return 0
+	}
+
+	// Scale can be zero when the specified scale is extremely small (#1398).
+	if scale == 0 {
+		return 0
+	}
 
 	// Use 'negative' mipmap to render edges correctly (#611, #907).
 	// It looks like 128 is the enlargement factor that causes edge missings to pass the test TestImageStretch,
@@ -316,10 +331,10 @@ func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, fil
 			}
 		}
 
-		// If tooBigScale is 64, level -6 means that the maximum scale is 64 * 2^6 = 4096. This should be
+		// If tooBigScale is 32, level -6 means that the maximum scale is 32 * 2^6 = 2048. This should be
 		// enough.
-		if level < -6 {
-			level = -6
+		if level < -maxScale {
+			level = -maxScale
 		}
 		return level
 	}
@@ -352,8 +367,8 @@ func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, fil
 		}
 	}
 
-	if level > 6 {
-		level = 6
+	if level > maxScale {
+		level = maxScale
 	}
 
 	return level

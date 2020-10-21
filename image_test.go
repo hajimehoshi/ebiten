@@ -2128,3 +2128,24 @@ func TestImageZeroTriangle(t *testing.T) {
 	is := []uint16{}
 	dst.DrawTriangles(vs, is, src, nil)
 }
+
+// Issue #1398
+func TestImageDrawImageTooBigScale(t *testing.T) {
+	dst := NewImage(1, 1)
+	src := NewImage(1, 1)
+
+	op := &DrawImageOptions{}
+	op.GeoM.Scale(1e20, 1e20)
+	dst.DrawImage(src, op)
+}
+
+// Issue #1398
+func TestImageDrawImageTooSmallScale(t *testing.T) {
+	dst := NewImage(1, 1)
+	src := NewImage(1, 1)
+
+	op := &DrawImageOptions{}
+	op.Filter = FilterLinear
+	op.GeoM.Scale(1e-10, 1e-10)
+	dst.DrawImage(src, op)
+}
