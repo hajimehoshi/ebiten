@@ -716,6 +716,12 @@ func (i *Image) ReplacePixels(pixels []byte) {
 //
 // If width or height is less than 1 or more than device-dependent maximum size, NewImage panics.
 func NewImage(width, height int) *Image {
+	if width <= 0 {
+		panic(fmt.Sprintf("ebiten: width at NewImage must be positive but %d", width))
+	}
+	if height <= 0 {
+		panic(fmt.Sprintf("ebiten: height at NewImage must be positive but %d", height))
+	}
 	i := &Image{
 		mipmap: mipmap.New(width, height),
 		bounds: image.Rect(0, 0, width, height),
@@ -731,6 +737,12 @@ func NewImageFromImage(source image.Image) *Image {
 	size := source.Bounds().Size()
 
 	width, height := size.X, size.Y
+	if width <= 0 {
+		panic(fmt.Sprintf("ebiten: source width at NewImageFromImage must be positive but %d", width))
+	}
+	if height <= 0 {
+		panic(fmt.Sprintf("ebiten: source height at NewImageFromImage must be positive but %d", height))
+	}
 
 	i := &Image{
 		mipmap: mipmap.New(width, height),

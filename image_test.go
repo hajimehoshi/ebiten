@@ -2160,3 +2160,24 @@ func TestImageDrawImageCannotAllocateImageForMipmap(t *testing.T) {
 	dst.DrawImage(src, op)
 	dst.At(0, 0)
 }
+
+func TestImageNewImageWithZeroSize(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("DrawImage must panic but not")
+		}
+	}()
+
+	_ = NewImage(0, 1)
+}
+
+func TestImageNewImageFromImageWithZeroSize(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("DrawImage must panic but not")
+		}
+	}()
+
+	img := image.NewRGBA(image.Rect(0, 0, 0, 1))
+	_ = NewImageFromImage(img)
+}
