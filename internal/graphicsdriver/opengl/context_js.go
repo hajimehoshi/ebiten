@@ -94,7 +94,7 @@ const (
 )
 
 var (
-	isWebGL2Available = js.Global().Get("WebGL2RenderingContext").Truthy()
+	isWebGL2Available = !forceWebGL1 && js.Global().Get("WebGL2RenderingContext").Truthy()
 )
 
 type contextImpl struct {
@@ -148,6 +148,10 @@ func (c *context) reset() error {
 	c.blendFunc(driver.CompositeModeSourceOver)
 	f := gl.Call("getParameter", gles.FRAMEBUFFER_BINDING)
 	c.screenFramebuffer = framebufferNative(f)
+
+	if !isWebGL2Available {
+		gl.Call("getExtension", "OES_standard_derivatives")
+	}
 	return nil
 }
 

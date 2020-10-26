@@ -24,15 +24,40 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
-const FragmentPrelude = `#if defined(GL_ES)
+type GLSLVersion int
+
+const (
+	GLSLVersionDefault GLSLVersion = iota
+	GLSLVersionWebGL1
+	GLSLVersionES300
+)
+
+func VertexPrelude(version GLSLVersion) string {
+	if version == GLSLVersionES300 {
+		return `#version 300 es`
+	}
+	return ""
+}
+
+func FragmentPrelude(version GLSLVersion) string {
+	var prefix string
+	switch version {
+	case GLSLVersionWebGL1:
+		prefix = `#extension GL_OES_standard_derivatives : enable` + "\n\n"
+	case GLSLVersionES300:
+		prefix = `#version 300 es` + "\n\n"
+	}
+	return prefix + `#if defined(GL_ES)
 precision highp float;
 #else
 #define lowp
 #define mediump
 #define highp
 #endif`
+}
 
 type compileContext struct {
+	version     GLSLVersion
 	structNames map[string]string
 	structTypes []shaderir.Type
 }
@@ -51,14 +76,16 @@ func (c *compileContext) structName(p *shaderir.Program, t *shaderir.Type) strin
 	return n
 }
 
-func Compile(p *shaderir.Program) (vertexShader, fragmentShader string) {
+func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentShader string) {
 	c := &compileContext{
+		version:     version,
 		structNames: map[string]string{},
 	}
 
 	// Vertex func
 	var vslines []string
 	{
+		vslines = append(vslines, strings.Split(VertexPrelude(version), "\n")...)
 		vslines = append(vslines, "{{.Structs}}")
 		if len(p.Uniforms) > 0 || p.TextureNum > 0 || len(p.Attributes) > 0 || len(p.Varyings) > 0 {
 			vslines = append(vslines, "")
@@ -69,10 +96,18 @@ func Compile(p *shaderir.Program) (vertexShader, fragmentShader string) {
 				vslines = append(vslines, fmt.Sprintf("uniform sampler2D T%d;", i))
 			}
 			for i, t := range p.Attributes {
-				vslines = append(vslines, fmt.Sprintf("attribute %s;", c.glslVarDecl(p, &t, fmt.Sprintf("A%d", i))))
+				keyword := "attribute"
+				if version == GLSLVersionES300 {
+					keyword = "in"
+				}
+				vslines = append(vslines, fmt.Sprintf("%s %s;", keyword, c.glslVarDecl(p, &t, fmt.Sprintf("A%d", i))))
 			}
 			for i, t := range p.Varyings {
-				vslines = append(vslines, fmt.Sprintf("varying %s;", c.glslVarDecl(p, &t, fmt.Sprintf("V%d", i))))
+				keyword := "varying"
+				if version == GLSLVersionES300 {
+					keyword = "out"
+				}
+				vslines = append(vslines, fmt.Sprintf("%s %s;", keyword, c.glslVarDecl(p, &t, fmt.Sprintf("V%d", i))))
 			}
 		}
 		if len(p.Funcs) > 0 {
@@ -99,7 +134,7 @@ func Compile(p *shaderir.Program) (vertexShader, fragmentShader string) {
 	// Fragment func
 	var fslines []string
 	{
-		fslines = append(fslines, strings.Split(FragmentPrelude, "\n")...)
+		fslines = append(fslines, strings.Split(FragmentPrelude(version), "\n")...)
 		fslines = append(fslines, "", "{{.Structs}}")
 		if len(p.Uniforms) > 0 || p.TextureNum > 0 || len(p.Varyings) > 0 {
 			fslines = append(fslines, "")
@@ -110,9 +145,17 @@ func Compile(p *shaderir.Program) (vertexShader, fragmentShader string) {
 				fslines = append(fslines, fmt.Sprintf("uniform sampler2D T%d;", i))
 			}
 			for i, t := range p.Varyings {
-				fslines = append(fslines, fmt.Sprintf("varying %s;", c.glslVarDecl(p, &t, fmt.Sprintf("V%d", i))))
+				keyword := "varying"
+				if version == GLSLVersionES300 {
+					keyword = "in"
+				}
+				fslines = append(fslines, fmt.Sprintf("%s %s;", keyword, c.glslVarDecl(p, &t, fmt.Sprintf("V%d", i))))
 			}
 		}
+		if version == GLSLVersionES300 {
+			fslines = append(fslines, "out vec4 fragColor;")
+		}
+
 		if len(p.Funcs) > 0 {
 			fslines = append(fslines, "")
 			for _, f := range p.Funcs {
@@ -273,7 +316,7 @@ func constantToNumberLiteral(t shaderir.ConstType, v constant.Value) string {
 	return fmt.Sprintf("?(unexpected literal: %s)", v)
 }
 
-func localVariableName(p *shaderir.Program, topBlock, block *shaderir.Block, idx int) string {
+func (c *compileContext) localVariableName(p *shaderir.Program, topBlock, block *shaderir.Block, idx int) string {
 	switch topBlock {
 	case p.VertexFunc.Block:
 		na := len(p.Attributes)
@@ -296,6 +339,9 @@ func localVariableName(p *shaderir.Program, topBlock, block *shaderir.Block, idx
 		case idx < nv+1:
 			return fmt.Sprintf("V%d", idx-1)
 		case idx == nv+1:
+			if c.version == GLSLVersionES300 {
+				return "fragColor"
+			}
 			return "gl_FragColor"
 		default:
 			return fmt.Sprintf("l%d", idx-(nv+2))
@@ -307,7 +353,7 @@ func localVariableName(p *shaderir.Program, topBlock, block *shaderir.Block, idx
 
 func (c *compileContext) initVariable(p *shaderir.Program, topBlock, block *shaderir.Block, index int, decl bool, level int) []string {
 	idt := strings.Repeat("\t", level+1)
-	name := localVariableName(p, topBlock, block, index)
+	name := c.localVariableName(p, topBlock, block, index)
 	t := p.LocalVariableType(topBlock, block, index)
 
 	var lines []string
@@ -352,11 +398,11 @@ func (c *compileContext) glslBlock(p *shaderir.Program, topBlock, block *shaderi
 		case shaderir.TextureVariable:
 			return fmt.Sprintf("T%d", e.Index)
 		case shaderir.LocalVariable:
-			return localVariableName(p, topBlock, block, e.Index)
+			return c.localVariableName(p, topBlock, block, e.Index)
 		case shaderir.StructMember:
 			return fmt.Sprintf("M%d", e.Index)
 		case shaderir.BuiltinFuncExpr:
-			return builtinFuncString(e.BuiltinFunc)
+			return c.builtinFuncString(e.BuiltinFunc)
 		case shaderir.SwizzlingExpr:
 			if !shaderir.IsValidSwizzling(e.Swizzling) {
 				return fmt.Sprintf("?(unexpected swizzling: %s)", e.Swizzling)
@@ -433,7 +479,7 @@ func (c *compileContext) glslBlock(p *shaderir.Program, topBlock, block *shaderi
 				ct = shaderir.ConstTypeFloat
 			}
 
-			v := localVariableName(p, topBlock, block, s.ForVarIndex)
+			v := c.localVariableName(p, topBlock, block, s.ForVarIndex)
 			var delta string
 			switch val, _ := constant.Float64Val(s.ForDelta); val {
 			case 0:

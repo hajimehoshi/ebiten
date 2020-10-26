@@ -72,6 +72,8 @@
 //
 // `ebitengl` forces to use OpenGL in any environments.
 //
+// `ebitenwebgl1` forces to use WebGL 1 on browsers.
+//
 // `ebitensinglethread` disables Ebiten's thread safety to unlock maximum performance. If you use this you will have
 // to manage threads yourself. Functions like IsKeyPressed will no longer be concurrent-safe with this build tag.
 // They must be called from the main thread or the same goroutine as the given game's callback functions like Update
