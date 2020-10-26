@@ -75,6 +75,7 @@ const (
 )
 
 const (
+	AutoIconify            = Hint(0x00020006)
 	ClientAPI              = Hint(0x00022001)
 	ContextVersionMajor    = Hint(0x00022002)
 	ContextVersionMinor    = Hint(0x00022003)
