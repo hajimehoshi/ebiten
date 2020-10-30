@@ -88,14 +88,10 @@ func (i *Image) Fill(clr color.Color) {
 }
 
 func canSkipMipmap(geom GeoM, filter driver.Filter) bool {
-	det := geom.det2x2()
-	if filter == driver.FilterNearest && det <= 1.001 {
+	if filter != driver.FilterLinear {
 		return true
 	}
-	if filter == driver.FilterLinear && det >= 0.999 {
-		return true
-	}
-	return false
+	return geom.det2x2() >= 0.999
 }
 
 // DrawImageOptions represents options for DrawImage.
