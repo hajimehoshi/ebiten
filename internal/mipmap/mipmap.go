@@ -205,20 +205,6 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		h := sizeForLevel(m.height, level-1)
 		vs = graphics.QuadVertices(0, 0, float32(w), float32(h), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1, false)
 		filter = driver.FilterLinear
-	case level == -1:
-		src = m.orig
-		vs = graphics.QuadVertices(0, 0, float32(m.width), float32(m.height), 2, 0, 0, 2, 0, 0, 1, 1, 1, 1, false)
-		filter = driver.FilterNearest
-	case level < -1:
-		src = m.level(level + 1)
-		if src == nil {
-			m.imgs[level] = nil
-			return nil
-		}
-		w := sizeForLevel(m.width, level-1)
-		h := sizeForLevel(m.height, level-1)
-		vs = graphics.QuadVertices(0, 0, float32(w), float32(h), 2, 0, 0, 2, 0, 0, 1, 1, 1, 1, false)
-		filter = driver.FilterNearest
 	default:
 		panic(fmt.Sprintf("ebiten: invalid level: %d", level))
 	}
@@ -246,16 +232,10 @@ func (m *Mipmap) level(level int) *buffered.Image {
 }
 
 func sizeForLevel(x int, level int) int {
-	if level > 0 {
-		for i := 0; i < level; i++ {
-			x /= 2
-			if x == 0 {
-				return 0
-			}
-		}
-	} else {
-		for i := 0; i < -level; i++ {
-			x *= 2
+	for i := 0; i < level; i++ {
+		x /= 2
+		if x == 0 {
+			return 0
 		}
 	}
 	return x
@@ -295,51 +275,12 @@ func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, fil
 
 	// Scale can be infinite when the specified scale is extremely big (#1398).
 	if math.IsInf(float64(scale), 0) {
-		if filter == driver.FilterNearest {
-			return -maxLevel
-		}
 		return 0
 	}
 
 	// Scale can be zero when the specified scale is extremely small (#1398).
 	if scale == 0 {
 		return 0
-	}
-
-	// Use 'negative' mipmap to render edges correctly (#611, #907).
-	// It looks like 128 is the enlargement factor that causes edge missings to pass the test TestImageStretch,
-	// but we use 32 here for environments where the float precision is low (#1044, #1270).
-	var tooBigScale float32 = 32
-
-	if scale >= tooBigScale*tooBigScale {
-		// If the filter is not nearest, the target needs to be rendered with graduation. Don't use mipmaps.
-		if filter != driver.FilterNearest {
-			return 0
-		}
-
-		const mipmapMaxSize = 1024
-		w, h := sx1-sx0, sy1-sy0
-		if w >= mipmapMaxSize || h >= mipmapMaxSize {
-			return 0
-		}
-
-		level := 0
-		for scale >= tooBigScale*tooBigScale {
-			level--
-			scale /= 4
-			w *= 2
-			h *= 2
-			if w >= mipmapMaxSize || h >= mipmapMaxSize {
-				break
-			}
-		}
-
-		// If tooBigScale is 32, level -6 means that the maximum scale is 32 * 2^6 = 2048. This should be
-		// enough.
-		if level < -maxLevel {
-			level = -maxLevel
-		}
-		return level
 	}
 
 	if filter != driver.FilterLinear {
@@ -378,16 +319,8 @@ func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, fil
 }
 
 func pow2(power int) float32 {
-	if power >= 0 {
-		x := 1
-		return float32(x << uint(power))
-	}
-
-	x := float32(1)
-	for i := 0; i < -power; i++ {
-		x /= 2
-	}
-	return x
+	x := 1
+	return float32(x << uint(power))
 }
 
 type Shader struct {

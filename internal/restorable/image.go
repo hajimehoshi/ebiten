@@ -113,6 +113,7 @@ var emptyImage *Image
 func init() {
 	// Use a big-enough image as an rendering source. By enlarging with x128, this can reach to 16384.
 	// See #907 for details.
+	// TODO: This doesn't have to be 128 due to the 1px padding. 3x3 should be enough.
 	const w, h = 128, 128
 	emptyImage = &Image{
 		image:    graphicscommand.NewImage(w, h),

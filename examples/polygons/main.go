@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 	"log"
 	"math"
@@ -33,7 +34,7 @@ const (
 )
 
 var (
-	emptyImage = ebiten.NewImage(16, 16)
+	emptyImage = ebiten.NewImage(3, 3)
 )
 
 func init() {
@@ -126,7 +127,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for i := 0; i < g.ngon; i++ {
 		indices = append(indices, uint16(i), uint16(i+1)%uint16(g.ngon), uint16(g.ngon))
 	}
-	screen.DrawTriangles(g.vertices, indices, emptyImage, op)
+	screen.DrawTriangles(g.vertices, indices, emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image), op)
 
 	msg := fmt.Sprintf("TPS: %0.2f\n%d-gon\nPress <- or -> to change the number of the vertices", ebiten.CurrentTPS(), g.ngon)
 	ebitenutil.DebugPrint(screen, msg)

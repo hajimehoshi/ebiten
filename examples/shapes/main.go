@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 	"log"
 	"math"
@@ -32,7 +33,7 @@ const (
 )
 
 var (
-	emptyImage = ebiten.NewImage(16, 16)
+	emptyImage = ebiten.NewImage(3, 3)
 )
 
 func init() {
@@ -161,18 +162,20 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+	src := emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
+
 	cf := float64(g.count)
 	v, i := line(100, 100, 300, 100, color.RGBA{0xff, 0xff, 0xff, 0xff})
-	screen.DrawTriangles(v, i, emptyImage, nil)
+	screen.DrawTriangles(v, i, src, nil)
 	v, i = line(50, 150, 50, 350, color.RGBA{0xff, 0xff, 0x00, 0xff})
-	screen.DrawTriangles(v, i, emptyImage, nil)
+	screen.DrawTriangles(v, i, src, nil)
 	v, i = line(50, 100+float32(cf), 200+float32(cf), 250, color.RGBA{0x00, 0xff, 0xff, 0xff})
-	screen.DrawTriangles(v, i, emptyImage, nil)
+	screen.DrawTriangles(v, i, src, nil)
 
 	v, i = rect(50+float32(cf), 50+float32(cf), 100+float32(cf), 100+float32(cf), color.RGBA{0x80, 0x80, 0x80, 0x80})
-	screen.DrawTriangles(v, i, emptyImage, nil)
+	screen.DrawTriangles(v, i, src, nil)
 	v, i = rect(300-float32(cf), 50, 120, 120, color.RGBA{0x00, 0x80, 0x00, 0x80})
-	screen.DrawTriangles(v, i, emptyImage, nil)
+	screen.DrawTriangles(v, i, src, nil)
 
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
 }

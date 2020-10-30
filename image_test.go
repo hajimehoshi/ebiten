@@ -798,10 +798,10 @@ func TestImageStretch(t *testing.T) {
 	dst := NewImage(w, 4096)
 loop:
 	for h := 1; h <= 32; h++ {
-		src := NewImage(w, h)
+		src := NewImage(w+2, h+2)
 
-		pix := make([]byte, 4*w*h)
-		for i := 0; i < w*h; i++ {
+		pix := make([]byte, 4*(w+2)*(h+2))
+		for i := 0; i < (w+2)*(h+2); i++ {
 			pix[4*i] = 0xff
 			pix[4*i+3] = 0xff
 		}
@@ -812,7 +812,7 @@ loop:
 			dst.Clear()
 			op := &DrawImageOptions{}
 			op.GeoM.Scale(1, float64(i)/float64(h))
-			dst.DrawImage(src, op)
+			dst.DrawImage(src.SubImage(image.Rect(1, 1, w+1, h+1)).(*Image), op)
 			for j := -1; j <= 1; j++ {
 				if i+j < 0 {
 					continue

@@ -15,6 +15,7 @@
 package ebitenutil
 
 import (
+	"image"
 	"image/color"
 	"math"
 
@@ -23,7 +24,7 @@ import (
 )
 
 var (
-	emptyImage = ebiten.NewImage(1, 1)
+	emptyImage = ebiten.NewImage(3, 3)
 )
 
 func init() {
@@ -36,17 +37,16 @@ func init() {
 //
 // DrawLine is not concurrent-safe.
 func DrawLine(dst *ebiten.Image, x1, y1, x2, y2 float64, clr color.Color) {
-	ew, eh := emptyImage.Size()
 	length := math.Hypot(x2-x1, y2-y1)
 
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Scale(length/float64(ew), 1/float64(eh))
+	op.GeoM.Scale(length, 1)
 	op.GeoM.Rotate(math.Atan2(y2-y1, x2-x1))
 	op.GeoM.Translate(x1, y1)
 	op.ColorM = colormcache.ColorToColorM(clr)
 	// Filter must be 'nearest' filter (default).
 	// Linear filtering would make edges blurred.
-	dst.DrawImage(emptyImage, op)
+	dst.DrawImage(emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image), op)
 }
 
 // DrawRect draws a rectangle on the given destination dst.
@@ -55,13 +55,11 @@ func DrawLine(dst *ebiten.Image, x1, y1, x2, y2 float64, clr color.Color) {
 //
 // DrawRect is not concurrent-safe.
 func DrawRect(dst *ebiten.Image, x, y, width, height float64, clr color.Color) {
-	ew, eh := emptyImage.Size()
-
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Scale(width/float64(ew), height/float64(eh))
+	op.GeoM.Scale(width, height)
 	op.GeoM.Translate(x, y)
 	op.ColorM = colormcache.ColorToColorM(clr)
 	// Filter must be 'nearest' filter (default).
 	// Linear filtering would make edges blurred.
-	dst.DrawImage(emptyImage, op)
+	dst.DrawImage(emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image), op)
 }
