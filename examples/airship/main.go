@@ -31,8 +31,8 @@ import (
 )
 
 const (
-	screenWidth  = 320
-	screenHeight = 240
+	screenWidth  = 640
+	screenHeight = 480
 	maxAngle     = 256
 	maxLean      = 16
 )
@@ -42,8 +42,8 @@ var (
 
 	gophersImage           *ebiten.Image
 	repeatedGophersImage   *ebiten.Image
-	groundImage            = ebiten.NewImage(screenWidth*2, screenHeight*2/3+50)
-	perspectiveGroundImage = ebiten.NewImage(screenWidth*2, screenHeight)
+	groundImage            = ebiten.NewImage(screenWidth*3, screenHeight*2/3+200)
+	perspectiveGroundImage = ebiten.NewImage(screenWidth*3, screenHeight)
 	fogImage               *ebiten.Image
 )
 
@@ -63,18 +63,21 @@ func init() {
 	}
 	gophersImage = ebiten.NewImageFromImage(img)
 
-	const repeat = 5
+	const (
+		xrepeat = 7
+		yrepeat = 8
+	)
 	w, h := gophersImage.Size()
-	repeatedGophersImage = ebiten.NewImage(w*repeat, h*repeat)
-	for j := 0; j < repeat; j++ {
-		for i := 0; i < repeat; i++ {
+	repeatedGophersImage = ebiten.NewImage(w*xrepeat, h*yrepeat)
+	for j := 0; j < yrepeat; j++ {
+		for i := 0; i < xrepeat; i++ {
 			op := &ebiten.DrawImageOptions{}
 			op.GeoM.Translate(float64(w*i), float64(h*j))
 			repeatedGophersImage.DrawImage(gophersImage, op)
 		}
 	}
 
-	const fogHeight = 8
+	const fogHeight = 16
 	w, _ = perspectiveGroundImage.Size()
 	fogRGBA := image.NewRGBA(image.Rect(0, 0, w, fogHeight))
 	for j := 0; j < fogHeight; j++ {
@@ -184,13 +187,13 @@ func (g *Game) updateGroundImage(ground *ebiten.Image) {
 
 	x16, y16 := g.player.Position()
 	a := g.player.Angle()
+	rw, rh := repeatedGophersImage.Size()
 	gw, gh := ground.Size()
-	w, h := gophersImage.Size()
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(-x16)/16, float64(-y16)/16)
-	op.GeoM.Translate(float64(-w*2), float64(-h*2))
+	op.GeoM.Translate(float64(-rw)/2, float64(-rh)/2)
 	op.GeoM.Rotate(float64(-a)*2*math.Pi/maxAngle + math.Pi*3.0/2.0)
-	op.GeoM.Translate(float64(gw)/2, float64(gh)-32)
+	op.GeoM.Translate(float64(gw)/2, float64(gh)/2)
 	ground.DrawImage(repeatedGophersImage, op)
 }
 
@@ -275,7 +278,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Air Ship (Ebiten Demo)")
 	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
