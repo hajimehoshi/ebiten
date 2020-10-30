@@ -39,8 +39,8 @@ import (
 )
 
 const (
-	screenWidth  = 320
-	screenHeight = 240
+	screenWidth  = 640
+	screenHeight = 480
 
 	sampleRate = 22050
 )
@@ -81,7 +81,7 @@ type Player struct {
 }
 
 func playerBarRect() (x, y, w, h int) {
-	w, h = 300, 4
+	w, h = 600, 8
 	x = (screenWidth - w) / 2
 	y = screenHeight - h - 16
 	return
@@ -239,7 +239,7 @@ func (p *Player) draw(screen *ebiten.Image) {
 
 	// Draw the cursor on the bar.
 	c := p.current
-	cw, ch := 4, 10
+	cw, ch := 8, 20
 	cx := int(time.Duration(w)*c/p.total) + x - cw/2
 	cy := y - (ch-h)/2
 	ebitenutil.DrawRect(screen, float64(cx), float64(cy), float64(cw), float64(ch), playerCurrentColor)
@@ -335,7 +335,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Audio (Ebiten Demo)")
 	g, err := NewGame()
 	if err != nil {

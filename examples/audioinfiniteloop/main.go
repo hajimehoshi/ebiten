@@ -30,8 +30,8 @@ import (
 )
 
 const (
-	screenWidth  = 320
-	screenHeight = 240
+	screenWidth  = 640
+	screenHeight = 480
 	sampleRate   = 22050
 
 	introLengthInSecond = 5
@@ -90,7 +90,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Audio Infinite Loop (Ebiten Demo)")
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)

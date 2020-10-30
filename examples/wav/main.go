@@ -29,8 +29,8 @@ import (
 )
 
 const (
-	screenWidth  = 320
-	screenHeight = 240
+	screenWidth  = 640
+	screenHeight = 480
 	sampleRate   = 44100
 )
 
@@ -96,7 +96,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("WAV (Ebiten Demo)")
 	if err := ebiten.RunGame(&g); err != nil {
 		log.Fatal(err)

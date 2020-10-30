@@ -35,8 +35,8 @@ import (
 )
 
 const (
-	screenWidth  = 320
-	screenHeight = 240
+	screenWidth  = 640
+	screenHeight = 480
 	sampleRate   = 22050
 )
 
@@ -135,7 +135,7 @@ func main() {
 	}
 	img = ebiten.NewImageFromImage(rawimg)
 
-	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Audio Panning Loop (Ebiten Demo)")
 	g := &Game{}
 	if err := ebiten.RunGame(g); err != nil {

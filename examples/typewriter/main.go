@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	screenWidth  = 320
-	screenHeight = 240
+	screenWidth  = 640
+	screenHeight = 480
 )
 
 // repeatingKeyPressed return true when key is pressed considering the repeat state.
@@ -98,7 +98,7 @@ func main() {
 		counter: 0,
 	}
 
-	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("TypeWriter (Ebiten Demo)")
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)

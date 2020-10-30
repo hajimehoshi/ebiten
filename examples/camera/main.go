@@ -32,8 +32,8 @@ import (
 )
 
 const (
-	screenWidth  = 320
-	screenHeight = 240
+	screenWidth  = 640
+	screenHeight = 480
 )
 
 const (
@@ -263,7 +263,7 @@ func main() {
 	}
 	g.world = ebiten.NewImage(worldWidth, worldHeight)
 
-	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Tiles (Ebiten Demo)")
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
