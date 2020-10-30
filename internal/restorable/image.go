@@ -111,10 +111,8 @@ type Image struct {
 var emptyImage *Image
 
 func init() {
-	// Use a big-enough image as an rendering source. By enlarging with x128, this can reach to 16384.
-	// See #907 for details.
-	// TODO: This doesn't have to be 128 due to the 1px padding. 3x3 should be enough.
-	const w, h = 128, 128
+	// w and h are the empty image's size. They indicate the 1x1 image with 1px padding around.
+	const w, h = 3, 3
 	emptyImage = &Image{
 		image:    graphicscommand.NewImage(w, h),
 		width:    w,
@@ -266,8 +264,7 @@ func fillImage(i *graphicscommand.Image, clr color.RGBA) {
 	//
 	// TODO: Can we unexport InternalSize()?
 	dw, dh := i.InternalSize()
-	sw, sh := emptyImage.image.InternalSize()
-	// Add 1 pixels for paddings.
+	sw, sh := emptyImage.width, emptyImage.height
 	vs := quadVertices(0, 0, float32(dw), float32(dh), 1, 1, float32(sw-1), float32(sh-1), rf, gf, bf, af)
 	is := graphics.QuadIndices()
 	srcs := [graphics.ShaderImageNum]*graphicscommand.Image{emptyImage.image}
