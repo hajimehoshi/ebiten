@@ -46,6 +46,25 @@ func (d *dll) call(name string, args ...uintptr) uintptr {
 	return r
 }
 
+func writeDLLFile(name string) error {
+	f, err := gzip.NewReader(bytes.NewReader(glfwDLLCompressed))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	out, err := os.Create(name)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, f); err != nil {
+		return err
+	}
+	return nil
+}
+
 func loadDLL() (*dll, error) {
 	cachedir, err := os.UserCacheDir()
 	if err != nil {
@@ -63,22 +82,14 @@ func loadDLL() (*dll, error) {
 			return nil, err
 		}
 
-		f, err := gzip.NewReader(bytes.NewReader(glfwDLLCompressed))
-		if err != nil {
+		// Create a DLL as a temporary file and then rename it later.
+		// Without the temporary file, writing a DLL might fail in the process of writing and Ebiten cannot
+		// notice that the DLL file is incomplete.
+		if err := writeDLLFile(fn + ".tmp"); err != nil {
 			return nil, err
 		}
-		defer f.Close()
 
-		out, err := os.Create(fn)
-		if err != nil {
-			return nil, err
-		}
-		defer out.Close()
-
-		if _, err := io.Copy(out, f); err != nil {
-			return nil, err
-		}
-		if err := out.Sync(); err != nil {
+		if err := os.Rename(fn+".tmp", fn); err != nil {
 			return nil, err
 		}
 	}
