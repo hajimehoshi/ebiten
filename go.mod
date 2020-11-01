@@ -1,6 +1,6 @@
 module github.com/hajimehoshi/ebiten/v2
 
-go 1.12
+go 1.13
 
 require (
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20200707082815-5321531c36a2

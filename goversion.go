@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build go1.12
+// +build go1.13
 
 package ebiten
 
-// Ebiten forces to use Go 1.12 or later, since
+// Ebiten forces to use Go 1.13 or later, since
 // 1) Between Go 1.10 and Go 1.11, ioutil.TempFile's behavior is different. Ebiten forces the Go version in order to avoid confusion. (#777)
 // 2) FuncOf in syscall/js is defined as of Go 1.12.
+// 3) os.UserConfigDir is defined as of Go 1.13.
 
-const __EBITEN_REQUIRES_GO_VERSION_1_12_OR_LATER__ = true
+const __EBITEN_REQUIRES_GO_VERSION_1_13_OR_LATER__ = true

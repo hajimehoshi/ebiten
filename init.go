@@ -18,7 +18,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 )
 
-var _ = __EBITEN_REQUIRES_GO_VERSION_1_12_OR_LATER__
+var _ = __EBITEN_REQUIRES_GO_VERSION_1_13_OR_LATER__
 
 func init() {
 	graphicscommand.SetGraphicsDriver(uiDriver().Graphics())

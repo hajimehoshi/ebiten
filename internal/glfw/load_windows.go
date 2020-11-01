@@ -19,8 +19,8 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
+	"path/filepath"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -28,7 +28,6 @@ import (
 
 type dll struct {
 	d     *windows.LazyDLL
-	path  string
 	procs map[string]*windows.LazyProc
 }
 
@@ -47,45 +46,50 @@ func (d *dll) call(name string, args ...uintptr) uintptr {
 	return r
 }
 
-func createTempDLL(content io.Reader) (string, error) {
-	f, err := ioutil.TempFile("", "glfw.*.dll")
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
-	fn := f.Name()
-
-	if _, err := io.Copy(f, content); err != nil {
-		return "", err
-	}
-
-	return fn, nil
-}
-
 func loadDLL() (*dll, error) {
-	f, err := gzip.NewReader(bytes.NewReader(glfwDLLCompressed))
+	cachedir, err := os.UserCacheDir()
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
 
-	fn, err := createTempDLL(f)
-	if err != nil {
+	dir := filepath.Join(cachedir, "ebiten")
+	if err := os.MkdirAll(dir, 0755); err != nil {
 		return nil, err
+	}
+
+	fn := filepath.Join(dir, glfwDLLHash+".dll")
+	if _, err := os.Stat(fn); err != nil {
+		if !os.IsNotExist(err) {
+			return nil, err
+		}
+
+		f, err := gzip.NewReader(bytes.NewReader(glfwDLLCompressed))
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+
+		out, err := os.Create(fn)
+		if err != nil {
+			return nil, err
+		}
+		defer out.Close()
+
+		if _, err := io.Copy(out, f); err != nil {
+			return nil, err
+		}
+		if err := out.Sync(); err != nil {
+			return nil, err
+		}
 	}
 
 	return &dll{
-		d:    windows.NewLazyDLL(fn),
-		path: fn,
+		d: windows.NewLazyDLL(fn),
 	}, nil
 }
 
 func (d *dll) unload() error {
 	if err := windows.FreeLibrary(windows.Handle(d.d.Handle())); err != nil {
-		return err
-	}
-	if err := os.Remove(d.path); err != nil {
 		return err
 	}
 	return nil
