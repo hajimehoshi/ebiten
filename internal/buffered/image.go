@@ -218,8 +218,9 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
 	if x == 0 && y == 0 && width == i.width && height == i.height {
 		i.invalidatePendingPixels()
 
-		// Call ReplacePixels immediately. If a lot of new images are created but they are used at different
-		// timings, pixels are sent to GPU at different timings, which is very inefficient.
+		// Call ReplacePixels immediately. Do not buffer the command.
+		// If a lot of new images are created but they are used at different timings,
+		// pixels are sent to GPU at different timings, which is very inefficient.
 		i.img.ReplacePixels(pix)
 		return nil
 	}
