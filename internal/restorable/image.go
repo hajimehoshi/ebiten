@@ -452,6 +452,17 @@ func (i *Image) readPixelsFromGPUIfNeeded() error {
 	return nil
 }
 
+func (i *Image) Sync() (<-chan struct{}, error) {
+	if err := graphicscommand.FlushCommands(); err != nil {
+		return nil, err
+	}
+	ch, err := i.image.Sync()
+	if err != nil {
+		return nil, err
+	}
+	return ch, nil
+}
+
 // At returns a color value at (x, y).
 //
 // Note that this must not be called until context is available.

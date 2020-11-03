@@ -186,13 +186,29 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [gra
 	}
 }
 
+// Sync syncs the texture data in CPU and GPU so that Pixels can return the texture data immediately.
+// In most cases, Sync doesn't have to be called explicitly.
+// Even without Sync, Pixels should does Sync automatically, but this might take long.
+//
+// Sync returns a channel that is closed when syncing finishes.
+func (i *Image) Sync() (<-chan struct{}, error) {
+	i.resolveBufferedReplacePixels()
+	c := &syncCommand{
+		img: i,
+	}
+	theCommandQueue.Enqueue(c)
+	if err := theCommandQueue.Flush(); err != nil {
+		return nil, err
+	}
+	return c.result, nil
+}
+
 // Pixels returns the image's pixels.
 // Pixels might return nil when OpenGL error happens.
 func (i *Image) Pixels() ([]byte, error) {
 	i.resolveBufferedReplacePixels()
 	c := &pixelsCommand{
-		result: nil,
-		img:    i,
+		img: i,
 	}
 	theCommandQueue.Enqueue(c)
 	if err := theCommandQueue.Flush(); err != nil {

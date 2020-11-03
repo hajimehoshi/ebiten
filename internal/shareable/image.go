@@ -75,11 +75,25 @@ const MaxCountForShare = 10
 func makeImagesShared() error {
 	for i := range imagesToMakeShared {
 		i.nonUpdatedCount++
+		if i.nonUpdatedCount >= MaxCountForShare/2 && i.syncing == nil {
+			// Sync the pixel data on CPU and GPU sides explicitly in order not to block this process.
+			ch, err := i.backend.restorable.Sync()
+			if err != nil {
+				return err
+			}
+			i.syncing = ch
+		}
 		if i.nonUpdatedCount >= MaxCountForShare {
+			// TODO: Instead of waiting for the channel, use select-case and continue the loop if this
+			// channel is blocking. However, this might make the tests difficult.
+			<-i.syncing
+
 			if err := i.makeShared(); err != nil {
 				return err
 			}
+			i.nonUpdatedCount = 0
 			delete(imagesToMakeShared, i)
+			i.syncing = nil
 		}
 	}
 	return nil
@@ -172,6 +186,8 @@ type Image struct {
 	//
 	// ReplacePixels doesn't affect this value since ReplacePixels can be done on shared images.
 	nonUpdatedCount int
+
+	syncing <-chan struct{}
 }
 
 func (i *Image) moveTo(dst *Image) {
@@ -190,6 +206,7 @@ func (i *Image) isShared() bool {
 func (i *Image) resetNonUpdatedCount() {
 	i.nonUpdatedCount = 0
 	delete(imagesToMakeShared, i)
+	i.syncing = nil
 }
 
 func (i *Image) ensureNotShared() {
@@ -264,6 +281,7 @@ func (i *Image) makeShared() error {
 	newI.replacePixels(pixels)
 	newI.moveTo(i)
 	i.nonUpdatedCount = 0
+	i.syncing = nil
 	return nil
 }
 

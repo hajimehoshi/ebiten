@@ -682,6 +682,8 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, srcs [graphics.
 
 func (g *Graphics) Draw(dstID, srcID driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, sourceRegion driver.Region) error {
 	dst := g.images[dstID]
+	dst.waitUntilSyncFinishes()
+
 	srcs := [graphics.ShaderImageNum]*Image{g.images[srcID]}
 
 	var rps mtl.RenderPipelineState
@@ -810,6 +812,15 @@ type Image struct {
 	height   int
 	screen   bool
 	texture  mtl.Texture
+	sync     <-chan struct{}
+}
+
+func (i *Image) waitUntilSyncFinishes() {
+	if i.sync == nil {
+		return
+	}
+	<-i.sync
+	i.sync = nil
 }
 
 func (i *Image) ID() driver.ImageID {
@@ -824,6 +835,9 @@ func (i *Image) internalSize() (int, int) {
 }
 
 func (i *Image) Dispose() {
+	// TODO: Is it necessary to wait for syncing?
+	i.waitUntilSyncFinishes()
+
 	if i.texture != (mtl.Texture{}) {
 		i.texture.Release()
 		i.texture = mtl.Texture{}
@@ -838,7 +852,13 @@ func (i *Image) IsInvalidated() bool {
 	return false
 }
 
-func (i *Image) syncTexture() {
+func (i *Image) Sync() <-chan struct{} {
+	if i.sync != nil {
+		return i.sync
+	}
+
+	i.graphics.flushIfNeeded(true, false)
+
 	// Calling SynchronizeTexture is ignored on iOS (see mtl.m), but it looks like committing BlitCommandEncoder
 	// is necessary (#1337).
 	if i.graphics.cb != (mtl.CommandBuffer{}) {
@@ -849,13 +869,22 @@ func (i *Image) syncTexture() {
 	bce := cb.MakeBlitCommandEncoder()
 	bce.SynchronizeTexture(i.texture, 0, 0)
 	bce.EndEncoding()
+
+	ch := make(chan struct{})
+	cb.AddCompletedHandler(func() {
+		close(ch)
+	})
 	cb.Commit()
-	cb.WaitUntilCompleted()
+
+	i.sync = ch
+	return i.sync
 }
 
 func (i *Image) Pixels() ([]byte, error) {
-	i.graphics.flushIfNeeded(true, false)
-	i.syncTexture()
+	// Call Sync just in case when the user doesn't call Sync.
+	// If the image is already synced, the channel should be closed immediately.
+	<-i.Sync()
+	i.sync = nil
 
 	b := make([]byte, 4*i.width*i.height)
 	i.texture.GetBytes(&b[0], uintptr(4*i.width), mtl.Region{
@@ -865,6 +894,8 @@ func (i *Image) Pixels() ([]byte, error) {
 }
 
 func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
+	i.waitUntilSyncFinishes()
+
 	g := i.graphics
 	g.flushIfNeeded(true, false)
 
@@ -918,6 +949,8 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 
 func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, sourceRegion driver.Region, mode driver.CompositeMode, uniforms []interface{}) error {
 	dst := g.images[dstID]
+	dst.waitUntilSyncFinishes()
+
 	var srcs [graphics.ShaderImageNum]*Image
 	for i, srcID := range srcIDs {
 		srcs[i] = g.images[srcID]

@@ -68,6 +68,18 @@ type Image interface {
 	ID() ImageID
 	Dispose()
 	IsInvalidated() bool
+
+	// Sync syncs the texture data in CPU and GPU so that Pixels can return the texture data immediately.
+	// In most cases, Sync doesn't have to be called explicitly.
+	// Even without Sync, Pixels should does Sync automatically, but this might take long.
+	//
+	// Sync returns a channel that is closed when syncing finishes.
+	//
+	// Whatever the syncing state is, the other function should work correctly.
+	//
+	// TODO: Should the other functions be blocked during syncing?
+	Sync() <-chan struct{}
+
 	Pixels() ([]byte, error)
 	ReplacePixels(args []*ReplacePixelsArgs)
 }

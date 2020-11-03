@@ -568,6 +568,23 @@ func (cb CommandBuffer) WaitUntilCompleted() {
 	C.CommandBuffer_WaitUntilCompleted(cb.commandBuffer)
 }
 
+var commandBufferCompletedHandlers = map[unsafe.Pointer]func(){}
+
+// AddCompletedHandler registers a block of code that Metal calls immediately after the GPU finishes executing the commands in the command buffer.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtlcommandbuffer/1442997-addcompletedhandler
+func (cb CommandBuffer) AddCompletedHandler(f func()) {
+	commandBufferCompletedHandlers[cb.commandBuffer] = f
+	C.CommandBuffer_AddCompletedHandler(cb.commandBuffer)
+}
+
+//export commandBufferCompletedCallback
+func commandBufferCompletedCallback(commandBuffer unsafe.Pointer) {
+	f := commandBufferCompletedHandlers[commandBuffer]
+	delete(commandBufferCompletedHandlers, commandBuffer)
+	f()
+}
+
 // MakeRenderCommandEncoder creates an encoder object that can
 // encode graphics rendering commands into this command buffer.
 //
