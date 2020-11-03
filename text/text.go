@@ -81,7 +81,7 @@ var (
 	emptyGlyphs     = map[font.Face]map[rune]struct{}{}
 )
 
-func getGlyphImages(face font.Face, runes []rune, cacheLimit int) []*ebiten.Image {
+func getGlyphImages(face font.Face, runes []rune) []*ebiten.Image {
 	if _, ok := emptyGlyphs[face]; !ok {
 		emptyGlyphs[face] = map[rune]struct{}{}
 	}
@@ -183,9 +183,8 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 
 	faceHeight := face.Metrics().Height
 
-	const cacheLimit = 512 // This is an arbitrary number.
 	runes := []rune(text)
-	glyphImgs := getGlyphImages(face, runes, cacheLimit)
+	glyphImgs := getGlyphImages(face, runes)
 	colorm := colormcache.ColorToColorM(clr)
 
 	for i, r := range runes {
@@ -205,6 +204,9 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 		prevR = r
 	}
 
+	const cacheLimit = 512
+
+	// Clean up the cache.
 	for len(glyphImageCache[face]) > cacheLimit {
 		oldest := int64(math.MaxInt64)
 		oldestKey := rune(-1)
