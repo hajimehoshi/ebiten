@@ -28,6 +28,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/internal/colormcache"
+	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
 var (
@@ -35,8 +36,14 @@ var (
 )
 
 func now() int64 {
-	monotonicClock++
 	return monotonicClock
+}
+
+func init() {
+	hooks.AppendHookOnBeforeUpdate(func() error {
+		monotonicClock++
+		return nil
+	})
 }
 
 func fixed26_6ToFloat64(x fixed.Int26_6) float64 {
@@ -204,19 +211,20 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 		prevR = r
 	}
 
-	const cacheLimit = 512
+	// cacheSoftLimit indicates the soft limit of the number of glyphs in the cache.
+	// If the number of glyphs exceeds this soft limits, old glyphs are removed.
+	// Even after clearning up the cache, the number of glyphs might still exceeds the soft limit, but
+	// this is fine.
+	const cacheSoftLimit = 512
 
 	// Clean up the cache.
-	for len(glyphImageCache[face]) > cacheLimit {
-		oldest := int64(math.MaxInt64)
-		oldestKey := rune(-1)
+	if len(glyphImageCache[face]) > cacheSoftLimit {
 		for r, e := range glyphImageCache[face] {
-			if e.atime < oldest {
-				oldestKey = r
-				oldest = e.atime
+			// 60 is an arbitrary number.
+			if e.atime < now()-60 {
+				delete(glyphImageCache[face], r)
 			}
 		}
-		delete(glyphImageCache[face], oldestKey)
 	}
 }
 
@@ -274,4 +282,18 @@ func BoundString(face font.Face, text string) image.Rectangle {
 		int(math.Ceil(fixed26_6ToFloat64(bounds.Max.X))),
 		int(math.Ceil(fixed26_6ToFloat64(bounds.Max.Y))),
 	)
+}
+
+// CacheGlyphs precaches the glyphs for the given text and the given font face into the cache.
+//
+// Draw automatically creates and caches necessary glyphs, so usually you don't have to call CacheGlyphs
+// explicitly. However, for example, when you call Draw for each rune of one big text, Draw tries to create the glyph
+// cache and render it for each rune. This is very innefficient because creating a glyph image and rendering it are
+// different operations and can never be merged as one draw calls. CacheGlyphs creates necessary glyphs without
+// rendering them, and these operations are likely merged into one draw call.
+func CacheGlyphs(face font.Face, text string) {
+	textM.Lock()
+	defer textM.Unlock()
+
+	getGlyphImages(face, []rune(text))
 }
