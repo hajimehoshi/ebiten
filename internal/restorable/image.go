@@ -448,8 +448,6 @@ func (i *Image) readPixelsFromGPUIfNeeded() error {
 		if err := i.readPixelsFromGPU(); err != nil {
 			return err
 		}
-		i.drawTrianglesHistory = nil
-		i.stale = false
 	}
 	return nil
 }
