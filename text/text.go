@@ -288,9 +288,9 @@ func BoundString(face font.Face, text string) image.Rectangle {
 //
 // Draw automatically creates and caches necessary glyphs, so usually you don't have to call CacheGlyphs
 // explicitly. However, for example, when you call Draw for each rune of one big text, Draw tries to create the glyph
-// cache and render it for each rune. This is very innefficient because creating a glyph image and rendering it are
-// different operations and can never be merged as one draw calls. CacheGlyphs creates necessary glyphs without
-// rendering them, and these operations are likely merged into one draw call.
+// cache and render it for each rune. This is very inefficient because creating a glyph image and rendering it are
+// different operations and can never be merged as one draw call. CacheGlyphs creates necessary glyphs without
+// rendering them so that these operations are likely merged into one draw call.
 func CacheGlyphs(face font.Face, text string) {
 	textM.Lock()
 	defer textM.Unlock()
