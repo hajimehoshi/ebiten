@@ -79,8 +79,8 @@ func makeImagesShared() error {
 			if err := i.makeShared(); err != nil {
 				return err
 			}
+			delete(imagesToMakeShared, i)
 		}
-		delete(imagesToMakeShared, i)
 	}
 	return nil
 }
@@ -382,6 +382,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 			continue
 		}
 		if !src.isShared() && src.shareable() {
+			// src might already registered, but assiging it again is not harmful.
 			imagesToMakeShared[src] = struct{}{}
 		}
 	}
