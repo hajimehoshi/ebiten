@@ -188,6 +188,9 @@ func (i *Image) isShared() bool {
 }
 
 func (i *Image) ensureNotShared() {
+	i.nonUpdatedCount = 0
+	delete(imagesToMakeShared, i)
+
 	if i.backend == nil {
 		i.allocate(false)
 		return
@@ -374,9 +377,6 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 
 	i.backend.restorable.DrawTriangles(imgs, offsets, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms)
 
-	i.nonUpdatedCount = 0
-	delete(imagesToMakeShared, i)
-
 	for _, src := range srcs {
 		if src == nil {
 			continue
@@ -407,9 +407,6 @@ func (i *Image) Fill(clr color.RGBA) {
 
 	// As *restorable.Image is an independent image, it is fine to fill the entire image.
 	i.backend.restorable.Fill(clr)
-
-	i.nonUpdatedCount = 0
-	delete(imagesToMakeShared, i)
 }
 
 func (i *Image) ReplacePixels(pix []byte) {
