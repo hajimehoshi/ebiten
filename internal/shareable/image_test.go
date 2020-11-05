@@ -204,6 +204,7 @@ func TestReshared(t *testing.T) {
 		}
 	}
 
+	// img1 is on a shared image again.
 	img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
 	if got, want := img1.IsSharedForTesting(), true; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
@@ -227,7 +228,34 @@ func TestReshared(t *testing.T) {
 		}
 	}
 
-	// Use img3 as a render source. img3 never uses a shared texture.
+	// Use img1 as a render target again.
+	img1.DrawTriangles([graphics.ShaderImageNum]*Image{img2}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
+	if got, want := img1.IsSharedForTesting(), false; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	// Use img1 as a render source, but call ReplacePixels.
+	for i := 0; i < MaxCountForShare; i++ {
+		if err := MakeImagesSharedForTesting(); err != nil {
+			t.Fatal(err)
+		}
+		img1.ReplacePixels(make([]byte, 4*size*size))
+		img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
+		if got, want := img1.IsSharedForTesting(), false; got != want {
+			t.Errorf("got: %v, want: %v", got, want)
+		}
+	}
+	if err := MakeImagesSharedForTesting(); err != nil {
+		t.Fatal(err)
+	}
+
+	// img1 is not on a shared image due to ReplacePixels.
+	img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
+	if got, want := img1.IsSharedForTesting(), false; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	// Use img3 as a render source. As img3 is volatile, img3 never uses a shared texture.
 	for i := 0; i < MaxCountForShare*2; i++ {
 		if err := MakeImagesSharedForTesting(); err != nil {
 			t.Fatal(err)

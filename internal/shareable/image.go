@@ -187,9 +187,13 @@ func (i *Image) isShared() bool {
 	return i.node != nil
 }
 
-func (i *Image) ensureNotShared() {
+func (i *Image) resetNonUpdatedCount() {
 	i.nonUpdatedCount = 0
 	delete(imagesToMakeShared, i)
+}
+
+func (i *Image) ensureNotShared() {
+	i.resetNonUpdatedCount()
 
 	if i.backend == nil {
 		i.allocate(false)
@@ -419,6 +423,9 @@ func (i *Image) replacePixels(pix []byte) {
 	if i.disposed {
 		panic("shareable: the image must not be disposed at replacePixels")
 	}
+
+	i.resetNonUpdatedCount()
+
 	if i.backend == nil {
 		if pix == nil {
 			return
