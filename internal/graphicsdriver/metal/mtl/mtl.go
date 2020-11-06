@@ -33,11 +33,8 @@ import (
 // #cgo !ios CFLAGS: -mmacosx-version-min=10.12
 // #cgo LDFLAGS: -framework Metal -framework CoreGraphics -framework Foundation
 //
-// #include <stdlib.h>
 // #include "mtl.h"
-// struct Library Go_Device_MakeLibrary(void * device, _GoString_ source) {
-//     return Device_MakeLibrary(device, _GoStringPtr(source), _GoStringLen(source));
-// }
+// #include <stdlib.h>
 import "C"
 
 // FeatureSet defines a specific platform, hardware, and software configuration.
@@ -436,7 +433,10 @@ func (d Device) MakeCommandQueue() CommandQueue {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtldevice/1433431-makelibrary.
 func (d Device) MakeLibrary(source string, opt CompileOptions) (Library, error) {
-	l := C.Go_Device_MakeLibrary(d.device, source) // TODO: opt.
+	cs := C.CString(source)
+	defer C.free(unsafe.Pointer(cs))
+
+	l := C.Device_MakeLibrary(d.device, cs, C.size_t(len(source)))
 	if l.Library == nil {
 		return Library{}, errors.New(C.GoString(l.Error))
 	}
