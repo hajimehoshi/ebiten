@@ -200,12 +200,12 @@ void RenderCommandEncoder_SetViewport(void *renderCommandEncoder,
                                       struct Viewport viewport) {
   [(id<MTLRenderCommandEncoder>)renderCommandEncoder
       setViewport:(MTLViewport){
-                      viewport.OriginX,
-                      viewport.OriginY,
-                      viewport.Width,
-                      viewport.Height,
-                      viewport.ZNear,
-                      viewport.ZFar,
+                      .originX = viewport.OriginX,
+                      .originY = viewport.OriginY,
+                      .width = viewport.Width,
+                      .height = viewport.Height,
+                      .znear = viewport.ZNear,
+                      .zfar = viewport.ZFar,
                   }];
 }
 
@@ -299,15 +299,18 @@ void BlitCommandEncoder_CopyFromTexture(
         copyFromTexture:(id<MTLTexture>)sourceTexture
             sourceSlice:(NSUInteger)sourceSlice
             sourceLevel:(NSUInteger)sourceLevel
-           sourceOrigin:(MTLOrigin){sourceOrigin.X, sourceOrigin.Y,
-                                    sourceOrigin.Z}
-             sourceSize:(MTLSize){sourceSize.Width, sourceSize.Height,
-                                  sourceSize.Depth}
+           sourceOrigin:(MTLOrigin){.x = sourceOrigin.X,
+                                    .y = sourceOrigin.Y,
+                                    .z = sourceOrigin.Z}
+             sourceSize:(MTLSize){.width = sourceSize.Width,
+                                  .height = sourceSize.Height,
+                                  .depth = sourceSize.Depth}
               toTexture:(id<MTLTexture>)destinationTexture
        destinationSlice:(NSUInteger)destinationSlice
        destinationLevel:(NSUInteger)destinationLevel
-      destinationOrigin:(MTLOrigin){destinationOrigin.X, destinationOrigin.Y,
-                                    destinationOrigin.Z}];
+      destinationOrigin:(MTLOrigin){.x = destinationOrigin.X,
+                                    .y = destinationOrigin.Y,
+                                    .z = destinationOrigin.Z}];
 }
 
 void *Library_MakeFunction(void *library, const char *name) {
@@ -319,22 +322,31 @@ void Texture_Release(void *texture) { [(id<MTLTexture>)texture release]; }
 
 void Texture_GetBytes(void *texture, void *pixelBytes, size_t bytesPerRow,
                       struct Region region, uint_t level) {
-  [(id<MTLTexture>)texture
-         getBytes:(void *)pixelBytes
-      bytesPerRow:(NSUInteger)bytesPerRow
-       fromRegion:(MTLRegion) {
-         {region.Origin.X, region.Origin.Y, region.Origin.Z}, {
-           region.Size.Width, region.Size.Height, region.Size.Depth
-         }
-       }
-      mipmapLevel:(NSUInteger)level];
+  [(id<MTLTexture>)texture getBytes:(void *)pixelBytes
+                        bytesPerRow:(NSUInteger)bytesPerRow
+                         fromRegion:(MTLRegion) {
+                           .origin = {.x = region.Origin.X,
+                                      .y = region.Origin.Y,
+                                      .z = region.Origin.Z},
+                           .size = {
+                             .width = region.Size.Width,
+                             .height = region.Size.Height,
+                             .depth = region.Size.Depth
+                           }
+                         }
+                        mipmapLevel:(NSUInteger)level];
 }
 
 void Texture_ReplaceRegion(void *texture, struct Region region, uint_t level,
                            void *bytes, uint_t bytesPerRow) {
   [(id<MTLTexture>)texture replaceRegion:(MTLRegion) {
-    {region.Origin.X, region.Origin.Y, region.Origin.Z}, {
-      region.Size.Width, region.Size.Height, region.Size.Depth
+    .origin = {.x = region.Origin.X,
+               .y = region.Origin.Y,
+               .z = region.Origin.Z},
+    .size = {
+      .width = region.Size.Width,
+      .height = region.Size.Height,
+      .depth = region.Size.Depth
     }
   }
                              mipmapLevel:(NSUInteger)level
