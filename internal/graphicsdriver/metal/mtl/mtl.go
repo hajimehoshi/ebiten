@@ -587,9 +587,8 @@ func (cb CommandBuffer) AddCompletedHandler(f func()) {
 
 //export commandBufferCompletedCallback
 func commandBufferCompletedCallback(commandBuffer unsafe.Pointer) {
-	f := commandBufferCompletedHandlers[commandBuffer]
-
 	commandBufferCompletedHandlersM.Lock()
+	f := commandBufferCompletedHandlers[commandBuffer]
 	delete(commandBufferCompletedHandlers, commandBuffer)
 	commandBufferCompletedHandlersM.Unlock()
 
