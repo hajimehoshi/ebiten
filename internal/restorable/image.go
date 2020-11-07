@@ -16,7 +16,6 @@ package restorable
 
 import (
 	"fmt"
-	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
@@ -25,16 +24,12 @@ import (
 )
 
 type Pixels struct {
-	baseColor    color.RGBA
 	rectToPixels *rectToPixels
 }
 
 // Apply applies the Pixels state to the given image especially for restoring.
 func (p *Pixels) Apply(img *graphicscommand.Image) {
 	// Pixels doesn't clear the image. This is a caller's responsibility.
-	if p.baseColor != (color.RGBA{}) {
-		fillImage(img, p.baseColor)
-	}
 
 	if p.rectToPixels == nil {
 		return
@@ -64,7 +59,7 @@ func (p *Pixels) At(i, j int) (byte, byte, byte, byte) {
 			return r, g, b, a
 		}
 	}
-	return p.baseColor.R, p.baseColor.G, p.baseColor.B, p.baseColor.A
+	return 0, 0, 0, 0
 }
 
 // drawTrianglesHistoryItem is an item for history of draw-image commands.
@@ -142,7 +137,7 @@ func NewImage(width, height int) *Image {
 		width:  width,
 		height: height,
 	}
-	fillImage(i.image, color.RGBA{})
+	clearImage(i.image)
 	theImages.add(i)
 	return i
 }
@@ -187,9 +182,6 @@ func (i *Image) Extend(width, height int) *Image {
 	newImg.SetVolatile(i.volatile)
 	i.basePixels.Apply(newImg.image)
 
-	if i.basePixels.baseColor != (color.RGBA{}) {
-		panic("restorable: baseColor must be empty at Extend")
-	}
 	newImg.basePixels = i.basePixels
 
 	i.Dispose()
@@ -209,7 +201,7 @@ func NewScreenFramebufferImage(width, height int) *Image {
 		height: height,
 		screen: true,
 	}
-	fillImage(i.image, color.RGBA{})
+	clearImage(i.image)
 	theImages.add(i)
 	return i
 }
@@ -224,40 +216,9 @@ func quadVertices(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca float32
 	}
 }
 
-// Fill fills the specified part of the image with a solid color.
-func (i *Image) Fill(clr color.RGBA) {
-	theImages.makeStaleIfDependingOn(i)
-	i.basePixels = Pixels{
-		baseColor: clr,
-	}
-	i.drawTrianglesHistory = nil
-	i.stale = false
-
-	// Do not call i.DrawTriangles as emptyImage is special (#928).
-	// baseColor is updated instead.
-	fillImage(i.image, i.basePixels.baseColor)
-}
-
-func fillImage(i *graphicscommand.Image, clr color.RGBA) {
+func clearImage(i *graphicscommand.Image) {
 	if i == emptyImage.image {
 		panic("restorable: fillImage cannot be called on emptyImage")
-	}
-
-	var rf, gf, bf, af float32
-	if clr.A > 0 {
-		rf = float32(clr.R) / float32(clr.A)
-		gf = float32(clr.G) / float32(clr.A)
-		bf = float32(clr.B) / float32(clr.A)
-		af = float32(clr.A) / 0xff
-	}
-
-	// TODO: Use the previous composite mode if possible.
-	compositemode := driver.CompositeModeSourceOver
-	switch {
-	case af == 0.0:
-		compositemode = driver.CompositeModeClear
-	case af < 1.0:
-		compositemode = driver.CompositeModeCopy
 	}
 
 	// This needs to use 'InternalSize' to render the whole region, or edges are unexpectedly cleared on some
@@ -266,7 +227,7 @@ func fillImage(i *graphicscommand.Image, clr color.RGBA) {
 	// TODO: Can we unexport InternalSize()?
 	dw, dh := i.InternalSize()
 	sw, sh := emptyImage.width, emptyImage.height
-	vs := quadVertices(0, 0, float32(dw), float32(dh), 1, 1, float32(sw-1), float32(sh-1), rf, gf, bf, af)
+	vs := quadVertices(0, 0, float32(dw), float32(dh), 1, 1, float32(sw-1), float32(sh-1), 0, 0, 0, 0)
 	is := graphics.QuadIndices()
 	srcs := [graphics.ShaderImageNum]*graphicscommand.Image{emptyImage.image}
 	var offsets [graphics.ShaderImageNum - 1][2]float32
@@ -276,7 +237,7 @@ func fillImage(i *graphicscommand.Image, clr color.RGBA) {
 		Width:  float32(dw),
 		Height: float32(dh),
 	}
-	i.DrawTriangles(srcs, offsets, vs, is, nil, compositemode, driver.FilterNearest, driver.AddressUnsafe, dstRegion, driver.Region{}, nil, nil)
+	i.DrawTriangles(srcs, offsets, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, dstRegion, driver.Region{}, nil, nil)
 }
 
 // BasePixelsForTesting returns the image's basePixels for testing.
@@ -601,7 +562,7 @@ func (i *Image) restore() error {
 	}
 	if i.volatile {
 		i.image = graphicscommand.NewImage(w, h)
-		fillImage(i.image, color.RGBA{})
+		clearImage(i.image)
 		return nil
 	}
 	if i.stale {
@@ -611,9 +572,9 @@ func (i *Image) restore() error {
 	gimg := graphicscommand.NewImage(w, h)
 	// Clear the image explicitly.
 	if i != emptyImage {
-		// As fillImage uses emptyImage, fillImage cannot be called on emptyImage.
+		// As clearImage uses emptyImage, clearImage cannot be called on emptyImage.
 		// It is OK to skip this since emptyImage has its entire pixel information.
-		fillImage(gimg, color.RGBA{})
+		clearImage(gimg)
 	}
 	i.basePixels.Apply(gimg)
 

@@ -24,6 +24,33 @@ import (
 	etesting "github.com/hajimehoshi/ebiten/v2/internal/testing"
 )
 
+var emptyImage = NewImage(3, 3)
+
+func clearImage(img *Image, w, h int) {
+	dx0 := float32(0)
+	dy0 := float32(0)
+	dx1 := float32(w)
+	dy1 := float32(h)
+	sx0 := float32(1)
+	sy0 := float32(1)
+	sx1 := float32(2)
+	sy1 := float32(2)
+	vs := []float32{
+		dx0, dy0, sx0, sy0, 0, 0, 0, 0,
+		dx1, dy0, sx1, sy0, 0, 0, 0, 0,
+		dx0, dy1, sx0, sy1, 0, 0, 0, 0,
+		dx1, dy1, sx1, sy1, 0, 0, 0, 0,
+	}
+	is := graphics.QuadIndices()
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  float32(w),
+		Height: float32(h),
+	}
+	img.DrawTriangles([graphics.ShaderImageNum]*Image{emptyImage}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
+}
+
 func TestShader(t *testing.T) {
 	img := NewImage(1, 1)
 	defer img.Dispose()
@@ -114,7 +141,7 @@ func TestShaderMultipleSources(t *testing.T) {
 	dst.DrawTriangles(srcs, offsets, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, s, nil)
 
 	// Clear one of the sources after DrawTriangles. dst should not be affected.
-	srcs[0].Fill(color.RGBA{})
+	clearImage(srcs[0], 1, 1)
 
 	if err := ResolveStaleImages(); err != nil {
 		t.Fatal(err)
@@ -156,7 +183,7 @@ func TestShaderMultipleSourcesOnOneTexture(t *testing.T) {
 	dst.DrawTriangles(srcs, offsets, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, s, nil)
 
 	// Clear one of the sources after DrawTriangles. dst should not be affected.
-	srcs[0].Fill(color.RGBA{})
+	clearImage(srcs[0], 3, 1)
 
 	if err := ResolveStaleImages(); err != nil {
 		t.Fatal(err)

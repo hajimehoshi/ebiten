@@ -16,7 +16,6 @@ package mipmap
 
 import (
 	"fmt"
-	"image/color"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
@@ -72,11 +71,6 @@ func (m *Mipmap) SetVolatile(volatile bool) {
 
 func (m *Mipmap) Dump(name string, blackbg bool) error {
 	return m.orig.Dump(name, blackbg)
-}
-
-func (m *Mipmap) Fill(clr color.RGBA) {
-	m.orig.Fill(clr)
-	m.disposeMipmaps()
 }
 
 func (m *Mipmap) ReplacePixels(pix []byte, x, y, width, height int) error {

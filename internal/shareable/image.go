@@ -16,7 +16,6 @@ package shareable
 
 import (
 	"fmt"
-	"image/color"
 	"runtime"
 	"sync"
 
@@ -419,26 +418,6 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 	}
 
 	backendsM.Unlock()
-}
-
-func (i *Image) Fill(clr color.RGBA) {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-
-	if i.disposed {
-		panic("shareable: the drawing target image must not be disposed (Fill)")
-	}
-	if i.backend == nil {
-		if _, _, _, a := clr.RGBA(); a == 0 {
-			return
-		}
-	}
-
-	i.ensureNotShared()
-
-	// As *restorable.Image is an independent image, it is fine to fill the entire image.
-	// TODO: Is it OK not to consider paddings?
-	i.backend.restorable.Fill(clr)
 }
 
 func (i *Image) ReplacePixels(pix []byte) {

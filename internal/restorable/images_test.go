@@ -862,69 +862,6 @@ func TestClearPixels(t *testing.T) {
 	img.ReplacePixels(make([]byte, 4*8*4), 0, 0, 8, 4)
 }
 
-func TestFill(t *testing.T) {
-	const w, h = 16, 16
-	img := NewImage(w, h)
-	img.Fill(color.RGBA{0xff, 0, 0, 0xff})
-	if err := ResolveStaleImages(); err != nil {
-		t.Fatal(err)
-	}
-	if err := RestoreIfNeeded(); err != nil {
-		t.Fatal(err)
-	}
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
-			r, g, b, a, err := img.At(i, j)
-			if err != nil {
-				t.Fatal(err)
-			}
-			got := color.RGBA{r, g, b, a}
-			want := color.RGBA{0xff, 0, 0, 0xff}
-			if got != want {
-				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
-			}
-		}
-	}
-}
-
-// Issue #1170
-func TestFill2(t *testing.T) {
-	const w, h = 16, 16
-	src := NewImage(w, h)
-	src.Fill(color.RGBA{0xff, 0, 0, 0xff})
-
-	dst := NewImage(w, h)
-	vs := quadVertices(w, h, 0, 0)
-	is := graphics.QuadIndices()
-	dr := driver.Region{
-		X:      0,
-		Y:      0,
-		Width:  w,
-		Height: h,
-	}
-	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
-
-	// Fill src with a different color. This should not affect dst.
-	src.Fill(color.RGBA{0, 0xff, 0, 0xff})
-
-	if err := ResolveStaleImages(); err != nil {
-		t.Fatal(err)
-	}
-	if err := RestoreIfNeeded(); err != nil {
-		t.Fatal(err)
-	}
-
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
-			got := pixelsToColor(dst.BasePixelsForTesting(), i, j)
-			want := color.RGBA{0xff, 0, 0, 0xff}
-			if got != want {
-				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
-			}
-		}
-	}
-}
-
 func TestMutateSlices(t *testing.T) {
 	const w, h = 16, 16
 	dst := NewImage(w, h)

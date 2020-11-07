@@ -17,7 +17,6 @@ package buffered
 import (
 	"fmt"
 	"image"
-	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
@@ -30,9 +29,6 @@ type Image struct {
 	img    *shareable.Image
 	width  int
 	height int
-
-	hasFill   bool
-	fillColor color.RGBA
 
 	pixels               []byte
 	needsToResolvePixels bool
@@ -105,13 +101,9 @@ func (i *Image) initializeAsScreenFramebuffer(width, height int) {
 func (i *Image) invalidatePendingPixels() {
 	i.pixels = nil
 	i.needsToResolvePixels = false
-	i.hasFill = false
 }
 
 func (i *Image) resolvePendingPixels(keepPendingPixels bool) {
-	if i.needsToResolvePixels && i.hasFill {
-		panic("buffered: needsToResolvePixels and hasFill must not be true at the same time")
-	}
 	if i.needsToResolvePixels {
 		i.img.ReplacePixels(i.pixels)
 		if !keepPendingPixels {
@@ -119,15 +111,6 @@ func (i *Image) resolvePendingPixels(keepPendingPixels bool) {
 		}
 		i.needsToResolvePixels = false
 	}
-	i.resolvePendingFill()
-}
-
-func (i *Image) resolvePendingFill() {
-	if !i.hasFill {
-		return
-	}
-	i.img.Fill(i.fillColor)
-	i.hasFill = false
 }
 
 func (i *Image) MarkDisposed() {
@@ -152,18 +135,6 @@ func (img *Image) Pixels(x, y, width, height int) (pix []byte, err error) {
 
 	pix = make([]byte, 4*width*height)
 
-	// If there are pixels or pending fillling that needs to be resolved, use this rather than resolving.
-	// Resolving them needs to access GPU and is expensive (#1137).
-	if img.hasFill {
-		for i := 0; i < len(pix)/4; i++ {
-			pix[4*i] = img.fillColor.R
-			pix[4*i+1] = img.fillColor.G
-			pix[4*i+2] = img.fillColor.B
-			pix[4*i+3] = img.fillColor.A
-		}
-		return pix, nil
-	}
-
 	if img.pixels == nil {
 		pix, err := img.img.Pixels(0, 0, img.width, img.height)
 		if err != nil {
@@ -181,22 +152,6 @@ func (img *Image) Pixels(x, y, width, height int) (pix []byte, err error) {
 func (i *Image) Dump(name string, blackbg bool) error {
 	checkDelayedCommandsFlushed("Dump")
 	return i.img.Dump(name, blackbg)
-}
-
-func (i *Image) Fill(clr color.RGBA) {
-	if maybeCanAddDelayedCommand() {
-		if tryAddDelayedCommand(func() error {
-			i.Fill(clr)
-			return nil
-		}) {
-			return
-		}
-	}
-
-	// Defer filling the image so that successive fillings will be merged into one (#1134).
-	i.invalidatePendingPixels()
-	i.fillColor = clr
-	i.hasFill = true
 }
 
 func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
@@ -224,8 +179,6 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
 		i.img.ReplacePixels(pix)
 		return nil
 	}
-
-	i.resolvePendingFill()
 
 	// TODO: Can we use (*restorable.Image).ReplacePixels?
 	if i.pixels == nil {

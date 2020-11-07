@@ -69,22 +69,39 @@ func (i *Image) Clear() {
 	i.Fill(color.Transparent)
 }
 
+var emptyImage = NewImage(3, 3)
+
+func init() {
+	w, h := emptyImage.Size()
+	pix := make([]byte, 4*w*h)
+	for i := range pix {
+		pix[i] = 0xff
+	}
+	// As emptyImage is used at Fill, use ReplacePixels instead.
+	emptyImage.ReplacePixels(pix)
+}
+
 // Fill fills the image with a solid color.
 //
 // When the image is disposed, Fill does nothing.
 func (i *Image) Fill(clr color.Color) {
-	i.copyCheck()
+	w, h := i.Size()
 
-	if i.isDisposed() {
-		return
+	op := &DrawImageOptions{}
+	op.GeoM.Scale(float64(w), float64(h))
+
+	r, g, b, a := clr.RGBA()
+	var rf, gf, bf, af float64
+	if a > 0 {
+		rf = float64(r) / float64(a)
+		gf = float64(g) / float64(a)
+		bf = float64(b) / float64(a)
+		af = float64(a) / 0xffff
 	}
+	op.ColorM.Scale(rf, gf, bf, af)
+	op.CompositeMode = CompositeModeCopy
 
-	// TODO: Implement this.
-	if i.isSubImage() {
-		panic("ebiten: rendering to a sub-image is not implemented (Fill)")
-	}
-
-	i.mipmap.Fill(color.RGBAModel.Convert(clr).(color.RGBA))
+	i.DrawImage(emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*Image), op)
 }
 
 func canSkipMipmap(geom GeoM, filter driver.Filter) bool {
