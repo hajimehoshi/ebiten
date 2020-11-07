@@ -209,6 +209,17 @@ void RenderCommandEncoder_SetViewport(void *renderCommandEncoder,
                   }];
 }
 
+void RenderCommandEncoder_SetScissorRect(void *renderCommandEncoder,
+                                         struct ScissorRect scissorRect) {
+  [(id<MTLRenderCommandEncoder>)renderCommandEncoder
+      setScissorRect:(MTLScissorRect){
+                         .x = scissorRect.X,
+                         .y = scissorRect.Y,
+                         .width = scissorRect.Width,
+                         .height = scissorRect.Height,
+                     }];
+}
+
 void RenderCommandEncoder_SetVertexBuffer(void *renderCommandEncoder,
                                           void *buffer, uint_t offset,
                                           uint_t index) {

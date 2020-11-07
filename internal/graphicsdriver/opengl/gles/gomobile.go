@@ -224,6 +224,10 @@ func (g *GomobileContext) ReadPixels(dst []byte, x int32, y int32, width int32, 
 	g.ctx.ReadPixels(dst, int(x), int(y), int(width), int(height), gl.Enum(format), gl.Enum(xtype))
 }
 
+func (g *GomobileContext) Scissor(x, y, width, height int32) {
+	g.ctx.Scissor(x, y, width, height)
+}
+
 func (g *GomobileContext) ShaderSource(shader uint32, xstring string) {
 	g.ctx.ShaderSource(gl.Shader{Value: shader}, xstring)
 }

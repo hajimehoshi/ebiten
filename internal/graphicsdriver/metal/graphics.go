@@ -611,7 +611,7 @@ func (g *Graphics) Reset() error {
 	return nil
 }
 
-func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, srcs [graphics.ShaderImageNum]*Image, indexLen int, indexOffset int, uniforms []interface{}) error {
+func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion driver.Region, srcs [graphics.ShaderImageNum]*Image, indexLen int, indexOffset int, uniforms []interface{}) error {
 	g.view.update()
 
 	rpd := mtl.RenderPassDescriptor{}
@@ -653,6 +653,12 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, srcs [graphics.
 		ZNear:   -1,
 		ZFar:    1,
 	})
+	rce.SetScissorRect(mtl.ScissorRect{
+		X:      int(dstRegion.X),
+		Y:      int(dstRegion.Y),
+		Width:  int(dstRegion.Width),
+		Height: int(dstRegion.Height),
+	})
 	rce.SetVertexBuffer(g.vb, 0, 0)
 
 	for i, u := range uniforms {
@@ -680,7 +686,7 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, srcs [graphics.
 	return nil
 }
 
-func (g *Graphics) Draw(dstID, srcID driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, sourceRegion driver.Region) error {
+func (g *Graphics) Draw(dstID, srcID driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region) error {
 	dst := g.images[dstID]
 	dst.waitUntilSyncFinishes()
 
@@ -718,13 +724,13 @@ func (g *Graphics) Draw(dstID, srcID driver.ImageID, indexLen int, indexOffset i
 		esTranslate,
 		scale,
 		[]float32{
-			sourceRegion.X,
-			sourceRegion.Y,
-			sourceRegion.X + sourceRegion.Width,
-			sourceRegion.Y + sourceRegion.Height,
+			srcRegion.X,
+			srcRegion.Y,
+			srcRegion.X + srcRegion.Width,
+			srcRegion.Y + srcRegion.Height,
 		},
 	}
-	if err := g.draw(rps, dst, srcs, indexLen, indexOffset, uniforms); err != nil {
+	if err := g.draw(rps, dst, dstRegion, srcs, indexLen, indexOffset, uniforms); err != nil {
 		return err
 	}
 	return nil
@@ -947,7 +953,7 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	bce.EndEncoding()
 }
 
-func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, sourceRegion driver.Region, mode driver.CompositeMode, uniforms []interface{}) error {
+func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, dstRegion, srcRegion driver.Region, mode driver.CompositeMode, uniforms []interface{}) error {
 	dst := g.images[dstID]
 	dst.waitUntilSyncFinishes()
 
@@ -987,11 +993,11 @@ func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImage
 	us[graphics.TextureSourceOffsetsUniformVariableIndex] = uoffsets
 
 	// Set the source region's origin of texture0.
-	uorigin := []float32{float32(sourceRegion.X), float32(sourceRegion.Y)}
+	uorigin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
 	us[graphics.TextureSourceRegionOriginUniformVariableIndex] = uorigin
 
 	// Set the source region's size of texture0.
-	ussize := []float32{float32(sourceRegion.Width), float32(sourceRegion.Height)}
+	ussize := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
 	us[graphics.TextureSourceRegionSizeUniformVariableIndex] = ussize
 
 	// Set the additional uniform variables.
@@ -1000,7 +1006,7 @@ func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImage
 		us[offset+i] = v
 	}
 
-	if err := g.draw(rps, dst, srcs, indexLen, indexOffset, us); err != nil {
+	if err := g.draw(rps, dst, dstRegion, srcs, indexLen, indexOffset, us); err != nil {
 		return err
 	}
 	return nil

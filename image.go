@@ -158,9 +158,12 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		return
 	}
 
-	// TODO: Implement this.
-	if i.isSubImage() {
-		panic("ebiten: render to a sub-image is not implemented (DrawImage)")
+	dstBounds := i.Bounds()
+	dstRegion := driver.Region{
+		X:      float32(dstBounds.Min.X),
+		Y:      float32(dstBounds.Min.Y),
+		Width:  float32(dstBounds.Dx()),
+		Height: float32(dstBounds.Dy()),
 	}
 
 	// Calculate vertices before locking because the user can do anything in
@@ -183,7 +186,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	is := graphics.QuadIndices()
 
 	srcs := [graphics.ShaderImageNum]*mipmap.Mipmap{img.mipmap}
-	i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.AddressUnsafe, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, canSkipMipmap(options.GeoM, filter))
+	i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.AddressUnsafe, dstRegion, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, canSkipMipmap(options.GeoM, filter))
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -267,10 +270,6 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		return
 	}
 
-	if i.isSubImage() {
-		panic("ebiten: render to a sub-image is not implemented (DrawTriangles)")
-	}
-
 	if len(indices)%3 != 0 {
 		panic("ebiten: len(indices) % 3 must be 0")
 	}
@@ -278,6 +277,14 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		panic("ebiten: len(indices) must be <= MaxIndicesNum")
 	}
 	// TODO: Check the maximum value of indices and len(vertices)?
+
+	dstBounds := i.Bounds()
+	dstRegion := driver.Region{
+		X:      float32(dstBounds.Min.X),
+		Y:      float32(dstBounds.Min.Y),
+		Width:  float32(dstBounds.Dx()),
+		Height: float32(dstBounds.Dy()),
+	}
 
 	if options == nil {
 		options = &DrawTrianglesOptions{}
@@ -315,7 +322,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	srcs := [graphics.ShaderImageNum]*mipmap.Mipmap{img.mipmap}
 
-	i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, address, sr, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+	i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, address, dstRegion, sr, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
@@ -366,10 +373,6 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		return
 	}
 
-	if i.isSubImage() {
-		panic("ebiten: render to a sub-image is not implemented (DrawTrianglesShader)")
-	}
-
 	if len(indices)%3 != 0 {
 		panic("ebiten: len(indices) % 3 must be 0")
 	}
@@ -377,6 +380,14 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		panic("ebiten: len(indices) must be <= MaxIndicesNum")
 	}
 	// TODO: Check the maximum value of indices and len(vertices)?
+
+	dstBounds := i.Bounds()
+	dstRegion := driver.Region{
+		X:      float32(dstBounds.Min.X),
+		Y:      float32(dstBounds.Min.Y),
+		Width:  float32(dstBounds.Dx()),
+		Height: float32(dstBounds.Dy()),
+	}
 
 	if options == nil {
 		options = &DrawTrianglesShaderOptions{}
@@ -447,7 +458,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	}
 
 	us := shader.convertUniforms(options.Uniforms)
-	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, sr, offsets, shader.shader, us, false)
+	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, us, false)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
@@ -498,9 +509,12 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		return
 	}
 
-	// TODO: Implement this.
-	if i.isSubImage() {
-		panic("ebiten: rendering to a sub-image is not implemented (DrawRectShader)")
+	dstBounds := i.Bounds()
+	dstRegion := driver.Region{
+		X:      float32(dstBounds.Min.X),
+		Y:      float32(dstBounds.Min.Y),
+		Width:  float32(dstBounds.Dx()),
+		Height: float32(dstBounds.Dy()),
 	}
 
 	if options == nil {
@@ -556,7 +570,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	}
 
 	us := shader.convertUniforms(options.Uniforms)
-	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, sr, offsets, shader.shader, us, canSkipMipmap(options.GeoM, driver.FilterNearest))
+	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, us, canSkipMipmap(options.GeoM, driver.FilterNearest))
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.

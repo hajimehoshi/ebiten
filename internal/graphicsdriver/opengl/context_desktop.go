@@ -116,6 +116,7 @@ func (c *context) reset() error {
 	c.lastViewportHeight = 0
 	c.lastCompositeMode = driver.CompositeModeUnknown
 	gl.Enable(gl.BLEND)
+	gl.Enable(gl.SCISSOR_TEST)
 
 	c.blendFunc(driver.CompositeModeSourceOver)
 
@@ -133,6 +134,10 @@ func (c *context) blendFunc(mode driver.CompositeMode) {
 	s, d := mode.Operations()
 	s2, d2 := convertOperation(s), convertOperation(d)
 	gl.BlendFunc(uint32(s2), uint32(d2))
+}
+
+func (c *context) scissor(x, y, width, height int) {
+	gl.Scissor(int32(x), int32(y), int32(width), int32(height))
 }
 
 func (c *context) newTexture(width, height int) (textureNative, error) {

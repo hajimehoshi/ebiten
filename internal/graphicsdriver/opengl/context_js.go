@@ -104,6 +104,7 @@ var (
 	nearest             js.Value
 	noError             js.Value
 	rgba                js.Value
+	scissorTest         js.Value
 	texture2d           js.Value
 	textureMagFilter    js.Value
 	textureMinFilter    js.Value
@@ -159,6 +160,7 @@ func init() {
 	nearest = contextPrototype.Get("NEAREST")
 	noError = contextPrototype.Get("NO_ERROR")
 	rgba = contextPrototype.Get("RGBA")
+	scissorTest = contextPrototype.Get("SCISSOR_TEST")
 	texture0 = contextPrototype.Get("TEXTURE0").Int()
 	texture2d = contextPrototype.Get("TEXTURE_2D")
 	textureMagFilter = contextPrototype.Get("TEXTURE_MAG_FILTER")
@@ -222,6 +224,7 @@ func (c *context) reset() error {
 	}
 	gl := c.gl
 	gl.Call("enable", blend)
+	gl.Call("enable", scissorTest)
 	c.blendFunc(driver.CompositeModeSourceOver)
 	f := gl.Call("getParameter", framebufferBinding)
 	c.screenFramebuffer = framebufferNative(f)
@@ -238,6 +241,11 @@ func (c *context) blendFunc(mode driver.CompositeMode) {
 	c.ensureGL()
 	gl := c.gl
 	gl.Call("blendFunc", int(s2), int(d2))
+}
+
+func (c *context) scissor(x, y, width, height int) {
+	gl := c.gl
+	gl.Call("scissor", x, y, width, height)
 }
 
 func (c *context) newTexture(width, height int) (textureNative, error) {

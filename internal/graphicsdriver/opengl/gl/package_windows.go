@@ -62,6 +62,7 @@ var (
 	gpLinkProgram                 uintptr
 	gpPixelStorei                 uintptr
 	gpReadPixels                  uintptr
+	gpScissor                     uintptr
 	gpShaderSource                uintptr
 	gpTexImage2D                  uintptr
 	gpTexParameteri               uintptr
@@ -295,6 +296,10 @@ func ReadPixels(x int32, y int32, width int32, height int32, format uint32, xtyp
 	syscall.Syscall9(gpReadPixels, 7, uintptr(x), uintptr(y), uintptr(width), uintptr(height), uintptr(format), uintptr(xtype), uintptr(pixels), 0, 0)
 }
 
+func Scissor(x int32, y int32, width int32, height int32) {
+	syscall.Syscall6(gpScissor, 4, uintptr(x), uintptr(y), uintptr(width), uintptr(height), 0, 0)
+}
+
 func ShaderSource(shader uint32, count int32, xstring **uint8, length *int32) {
 	syscall.Syscall6(gpShaderSource, 4, uintptr(shader), uintptr(count), uintptr(unsafe.Pointer(xstring)), uintptr(unsafe.Pointer(length)), 0, 0)
 }
@@ -517,6 +522,10 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	gpReadPixels = getProcAddr("glReadPixels")
 	if gpReadPixels == 0 {
 		return errors.New("glReadPixels")
+	}
+	gpScissor = getProcAddr("glScissor")
+	if gpScissor == 0 {
+		return errors.New("glScissor")
 	}
 	gpShaderSource = getProcAddr("glShaderSource")
 	if gpShaderSource == 0 {

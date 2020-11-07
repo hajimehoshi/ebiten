@@ -57,6 +57,7 @@ const (
 	TEXTURE_WRAP_S       = 0x2802
 	TEXTURE_WRAP_T       = 0x2803
 	TRIANGLES            = 0x0004
+	SCISSOR_TEST         = 0x0C11
 	UNPACK_ALIGNMENT     = 0x0CF5
 	UNSIGNED_BYTE        = 0x1401
 	UNSIGNED_SHORT       = 0x1403

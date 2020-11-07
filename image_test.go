@@ -2181,3 +2181,29 @@ func TestImageNewImageFromImageWithZeroSize(t *testing.T) {
 	img := image.NewRGBA(image.Rect(0, 0, 0, 1))
 	_ = NewImageFromImage(img)
 }
+
+func TestImageClip(t *testing.T) {
+	const (
+		w = 16
+		h = 16
+	)
+	dst := NewImage(w, h)
+	src := NewImage(w, h)
+
+	dst.Fill(color.RGBA{0xff, 0, 0, 0xff})
+	src.Fill(color.RGBA{0, 0xff, 0, 0xff})
+
+	dst.SubImage(image.Rect(4, 5, 12, 14)).(*Image).DrawImage(src, nil)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{0xff, 0, 0, 0xff}
+			if 4 <= i && i < 12 && 5 <= j && j < 14 {
+				want = color.RGBA{0, 0xff, 0, 0xff}
+			}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}

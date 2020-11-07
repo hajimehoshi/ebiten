@@ -106,6 +106,7 @@ func (c *context) reset() error {
 	c.lastViewportHeight = 0
 	c.lastCompositeMode = driver.CompositeModeUnknown
 	c.ctx.Enable(gles.BLEND)
+	c.ctx.Enable(gles.SCISSOR_TEST)
 	c.blendFunc(driver.CompositeModeSourceOver)
 	f := make([]int32, 1)
 	c.ctx.GetIntegerv(f, gles.FRAMEBUFFER_BINDING)
@@ -122,6 +123,10 @@ func (c *context) blendFunc(mode driver.CompositeMode) {
 	s, d := mode.Operations()
 	s2, d2 := convertOperation(s), convertOperation(d)
 	c.ctx.BlendFunc(uint32(s2), uint32(d2))
+}
+
+func (c *context) scissor(x, y, width, height int) {
+	c.ctx.Scissor(int32(x), int32(y), int32(width), int32(height))
 }
 
 func (c *context) newTexture(width, height int) (textureNative, error) {

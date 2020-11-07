@@ -103,6 +103,13 @@ struct Viewport {
   double ZFar;
 };
 
+struct ScissorRect {
+  uint_t X;
+  uint_t Y;
+  uint_t Width;
+  uint_t Height;
+};
+
 struct Device CreateSystemDefaultDevice();
 struct Devices CopyAllDevices();
 
@@ -139,6 +146,8 @@ void RenderCommandEncoder_SetRenderPipelineState(void *renderCommandEncoder,
                                                  void *renderPipelineState);
 void RenderCommandEncoder_SetViewport(void *renderCommandEncoder,
                                       struct Viewport viewport);
+void RenderCommandEncoder_SetScissorRect(void *renderCommandEncoder,
+                                         struct ScissorRect scissorRect);
 void RenderCommandEncoder_SetVertexBuffer(void *renderCommandEncoder,
                                           void *buffer, uint_t offset,
                                           uint_t index);

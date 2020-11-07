@@ -242,6 +242,10 @@ func (DefaultContext) ReadPixels(dst []byte, x int32, y int32, width int32, heig
 	C.glReadPixels(C.GLint(x), C.GLint(y), C.GLsizei(width), C.GLsizei(height), C.GLenum(format), C.GLenum(xtype), unsafe.Pointer(&dst[0]))
 }
 
+func (DefaultContext) Scissor(x, y, width, height int32) {
+	C.glScissor(C.GLint(x), C.GLint(y), C.GLsizei(width), C.GLsizei(height))
+}
+
 func (DefaultContext) ShaderSource(shader uint32, xstring string) {
 	s, free := cStringPtr(xstring)
 	defer free()

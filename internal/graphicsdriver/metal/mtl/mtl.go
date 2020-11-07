@@ -650,6 +650,13 @@ func (rce RenderCommandEncoder) SetViewport(viewport Viewport) {
 	C.RenderCommandEncoder_SetViewport(rce.commandEncoder, viewport.c())
 }
 
+// SetScissorRect sets the scissor rectangle for a fragment scissor test.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtlrendercommandencoder/1515583-setscissorrect
+func (rce RenderCommandEncoder) SetScissorRect(scissorRect ScissorRect) {
+	C.RenderCommandEncoder_SetScissorRect(rce.commandEncoder, scissorRect.c())
+}
+
 // SetVertexBuffer sets a buffer for the vertex shader function at an index
 // in the buffer argument table with an offset that specifies the start of the data.
 //
@@ -907,5 +914,24 @@ func (v *Viewport) c() C.struct_Viewport {
 		Height:  C.double(v.Height),
 		ZNear:   C.double(v.ZNear),
 		ZFar:    C.double(v.ZFar),
+	}
+}
+
+// ScissorRect represents a rectangle for the scissor fragment test.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtlscissorrect
+type ScissorRect struct {
+	X      int
+	Y      int
+	Width  int
+	Height int
+}
+
+func (s *ScissorRect) c() C.struct_ScissorRect {
+	return C.struct_ScissorRect{
+		X:      C.uint_t(s.X),
+		Y:      C.uint_t(s.Y),
+		Width:  C.uint_t(s.Width),
+		Height: C.uint_t(s.Height),
 	}
 }

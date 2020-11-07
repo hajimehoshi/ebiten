@@ -241,7 +241,13 @@ func (i *Image) ensureNotShared() {
 	is := graphics.QuadIndices()
 	srcs := [graphics.ShaderImageNum]*restorable.Image{i.backend.restorable}
 	var offsets [graphics.ShaderImageNum - 1][2]float32
-	newImg.DrawTriangles(srcs, offsets, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	dstRegion := driver.Region{
+		X:      paddingSize,
+		Y:      paddingSize,
+		Width:  float32(w - 2*paddingSize),
+		Height: float32(h - 2*paddingSize),
+	}
+	newImg.DrawTriangles(srcs, offsets, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dstRegion, driver.Region{}, nil, nil)
 
 	i.dispose(false)
 	i.backend = &backend{
@@ -325,7 +331,7 @@ func (i *Image) processSrc(src *Image) {
 //   5: Color G
 //   6: Color B
 //   7: Color Y
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms []interface{}) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms []interface{}) {
 	backendsM.Lock()
 	// Do not use defer for performance.
 
@@ -345,6 +351,9 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		dy = paddingSize
 	}
 
+	dstRegion.X += dx
+	dstRegion.Y += dx
+
 	var oxf, oyf float32
 	if srcs[0] != nil {
 		ox, oy, _, _ := srcs[0].regionWithPadding()
@@ -358,11 +367,11 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 			vertices[i*graphics.VertexFloatNum+2] += oxf
 			vertices[i*graphics.VertexFloatNum+3] += oyf
 		}
-		// sourceRegion can be delibarately empty when this is not needed in order to avoid unexpected
+		// srcRegion can be delibarately empty when this is not needed in order to avoid unexpected
 		// performance issue (#1293).
-		if sourceRegion.Width != 0 && sourceRegion.Height != 0 {
-			sourceRegion.X += oxf
-			sourceRegion.Y += oyf
+		if srcRegion.Width != 0 && srcRegion.Height != 0 {
+			srcRegion.X += oxf
+			srcRegion.Y += oyf
 		}
 	} else {
 		n := len(vertices) / graphics.VertexFloatNum
@@ -397,7 +406,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		}
 	}
 
-	i.backend.restorable.DrawTriangles(imgs, offsets, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms)
+	i.backend.restorable.DrawTriangles(imgs, offsets, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, s, uniforms)
 
 	for _, src := range srcs {
 		if src == nil {
@@ -428,6 +437,7 @@ func (i *Image) Fill(clr color.RGBA) {
 	i.ensureNotShared()
 
 	// As *restorable.Image is an independent image, it is fine to fill the entire image.
+	// TODO: Is it OK not to consider paddings?
 	i.backend.restorable.Fill(clr)
 }
 

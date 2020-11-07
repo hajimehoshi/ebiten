@@ -58,6 +58,7 @@ type Context interface {
 	LinkProgram(program uint32)
 	PixelStorei(pname uint32, param int32)
 	ReadPixels(dst []byte, x int32, y int32, width int32, height int32, format uint32, xtype uint32)
+	Scissor(x, y, width, height int32)
 	ShaderSource(shader uint32, xstring string)
 	TexImage2D(target uint32, level int32, internalformat int32, width int32, height int32, format uint32, xtype uint32, pixels []byte)
 	TexParameteri(target uint32, pname uint32, param int32)
