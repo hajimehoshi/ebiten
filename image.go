@@ -699,6 +699,8 @@ func (i *Image) Set(x, y int, clr color.Color) {
 // Calling Dispose is not mandatory. GC automatically collects internal resources that no objects refer to.
 // However, calling Dispose explicitly is helpful if memory usage matters.
 //
+// If the image is a sub-image, Dispose does nothing.
+//
 // When the image is disposed, Dipose does nothing.
 func (i *Image) Dispose() {
 	i.copyCheck()
