@@ -20,6 +20,7 @@ import (
 	"syscall/js"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gles"
 	"github.com/hajimehoshi/ebiten/v2/internal/jsutil"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/web"
@@ -72,108 +73,33 @@ func getProgramID(p program) programID {
 	return p.id
 }
 
+const (
+	vertexShader       = shaderType(gles.VERTEX_SHADER)
+	fragmentShader     = shaderType(gles.FRAGMENT_SHADER)
+	arrayBuffer        = bufferType(gles.ARRAY_BUFFER)
+	elementArrayBuffer = bufferType(gles.ELEMENT_ARRAY_BUFFER)
+	dynamicDraw        = bufferUsage(gles.DYNAMIC_DRAW)
+	streamDraw         = bufferUsage(gles.STREAM_DRAW)
+	pixelUnpackBuffer  = bufferType(gles.PIXEL_UNPACK_BUFFER)
+	short              = dataType(gles.SHORT)
+	float              = dataType(gles.FLOAT)
+
+	zero             = operation(gles.ZERO)
+	one              = operation(gles.ONE)
+	srcAlpha         = operation(gles.SRC_ALPHA)
+	dstAlpha         = operation(gles.DST_ALPHA)
+	oneMinusSrcAlpha = operation(gles.ONE_MINUS_SRC_ALPHA)
+	oneMinusDstAlpha = operation(gles.ONE_MINUS_DST_ALPHA)
+	dstColor         = operation(gles.DST_COLOR)
+)
+
 var (
-	vertexShader       shaderType
-	fragmentShader     shaderType
-	arrayBuffer        bufferType
-	elementArrayBuffer bufferType
-	dynamicDraw        bufferUsage
-	streamDraw         bufferUsage
-	pixelUnpackBuffer  bufferType
-	short              dataType
-	float              dataType
-
-	zero             operation
-	one              operation
-	srcAlpha         operation
-	dstAlpha         operation
-	oneMinusSrcAlpha operation
-	oneMinusDstAlpha operation
-	dstColor         operation
-
-	blend               js.Value
-	clampToEdge         js.Value
-	compileStatus       js.Value
-	colorAttachment0    js.Value
-	framebuffer_        js.Value
-	framebufferBinding  js.Value
-	framebufferComplete js.Value
-	highFloat           js.Value
-	linkStatus          js.Value
-	maxTextureSize      js.Value
-	nearest             js.Value
-	noError             js.Value
-	rgba                js.Value
-	scissorTest         js.Value
-	texture2d           js.Value
-	textureMagFilter    js.Value
-	textureMinFilter    js.Value
-	textureWrapS        js.Value
-	textureWrapT        js.Value
-	triangles           js.Value
-	unpackAlignment     js.Value
-	unsignedByte        js.Value
-	unsignedShort       js.Value
-
-	texture0 int
-
 	isWebGL2Available bool
 )
 
 func init() {
-	// Accessing the prototype is rquired on Safari.
-	var contextPrototype js.Value
 	if !jsutil.Equal(js.Global().Get("WebGL2RenderingContext"), js.Undefined()) {
-		contextPrototype = js.Global().Get("WebGL2RenderingContext").Get("prototype")
 		isWebGL2Available = true
-	} else {
-		contextPrototype = js.Global().Get("WebGLRenderingContext").Get("prototype")
-	}
-
-	vertexShader = shaderType(contextPrototype.Get("VERTEX_SHADER").Int())
-	fragmentShader = shaderType(contextPrototype.Get("FRAGMENT_SHADER").Int())
-	arrayBuffer = bufferType(contextPrototype.Get("ARRAY_BUFFER").Int())
-	elementArrayBuffer = bufferType(contextPrototype.Get("ELEMENT_ARRAY_BUFFER").Int())
-	dynamicDraw = bufferUsage(contextPrototype.Get("DYNAMIC_DRAW").Int())
-	streamDraw = bufferUsage(contextPrototype.Get("STREAM_DRAW").Int())
-	short = dataType(contextPrototype.Get("SHORT").Int())
-	float = dataType(contextPrototype.Get("FLOAT").Int())
-
-	zero = operation(contextPrototype.Get("ZERO").Int())
-	one = operation(contextPrototype.Get("ONE").Int())
-	srcAlpha = operation(contextPrototype.Get("SRC_ALPHA").Int())
-	dstAlpha = operation(contextPrototype.Get("DST_ALPHA").Int())
-	oneMinusSrcAlpha = operation(contextPrototype.Get("ONE_MINUS_SRC_ALPHA").Int())
-	oneMinusDstAlpha = operation(contextPrototype.Get("ONE_MINUS_DST_ALPHA").Int())
-	dstColor = operation(contextPrototype.Get("DST_COLOR").Int())
-
-	blend = contextPrototype.Get("BLEND")
-	clampToEdge = contextPrototype.Get("CLAMP_TO_EDGE")
-	compileStatus = contextPrototype.Get("COMPILE_STATUS")
-	colorAttachment0 = contextPrototype.Get("COLOR_ATTACHMENT0")
-	framebuffer_ = contextPrototype.Get("FRAMEBUFFER")
-	framebufferBinding = contextPrototype.Get("FRAMEBUFFER_BINDING")
-	framebufferComplete = contextPrototype.Get("FRAMEBUFFER_COMPLETE")
-	highFloat = contextPrototype.Get("HIGH_FLOAT")
-	linkStatus = contextPrototype.Get("LINK_STATUS")
-	maxTextureSize = contextPrototype.Get("MAX_TEXTURE_SIZE")
-	nearest = contextPrototype.Get("NEAREST")
-	noError = contextPrototype.Get("NO_ERROR")
-	rgba = contextPrototype.Get("RGBA")
-	scissorTest = contextPrototype.Get("SCISSOR_TEST")
-	texture0 = contextPrototype.Get("TEXTURE0").Int()
-	texture2d = contextPrototype.Get("TEXTURE_2D")
-	textureMagFilter = contextPrototype.Get("TEXTURE_MAG_FILTER")
-	textureMinFilter = contextPrototype.Get("TEXTURE_MIN_FILTER")
-	textureWrapS = contextPrototype.Get("TEXTURE_WRAP_S")
-	textureWrapT = contextPrototype.Get("TEXTURE_WRAP_T")
-	triangles = contextPrototype.Get("TRIANGLES")
-	unpackAlignment = contextPrototype.Get("UNPACK_ALIGNMENT")
-	unsignedByte = contextPrototype.Get("UNSIGNED_BYTE")
-	unsignedShort = contextPrototype.Get("UNSIGNED_SHORT")
-
-	if isWebGL2Available {
-		pixelUnpackBuffer = bufferType(contextPrototype.Get("PIXEL_UNPACK_BUFFER").Int())
 	}
 }
 
@@ -223,10 +149,10 @@ func (c *context) reset() error {
 		return driver.GraphicsNotReady
 	}
 	gl := c.gl
-	gl.Call("enable", blend)
-	gl.Call("enable", scissorTest)
+	gl.Call("enable", gles.BLEND)
+	gl.Call("enable", gles.SCISSOR_TEST)
 	c.blendFunc(driver.CompositeModeSourceOver)
-	f := gl.Call("getParameter", framebufferBinding)
+	f := gl.Call("getParameter", gles.FRAMEBUFFER_BINDING)
 	c.screenFramebuffer = framebufferNative(f)
 	return nil
 }
@@ -255,13 +181,13 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 	if jsutil.Equal(t, js.Null()) {
 		return textureNative(js.Null()), errors.New("opengl: glGenTexture failed")
 	}
-	gl.Call("pixelStorei", unpackAlignment, 4)
+	gl.Call("pixelStorei", gles.UNPACK_ALIGNMENT, 4)
 	c.bindTexture(textureNative(t))
 
-	gl.Call("texParameteri", texture2d, textureMagFilter, nearest)
-	gl.Call("texParameteri", texture2d, textureMinFilter, nearest)
-	gl.Call("texParameteri", texture2d, textureWrapS, clampToEdge)
-	gl.Call("texParameteri", texture2d, textureWrapT, clampToEdge)
+	gl.Call("texParameteri", gles.TEXTURE_2D, gles.TEXTURE_MAG_FILTER, gles.NEAREST)
+	gl.Call("texParameteri", gles.TEXTURE_2D, gles.TEXTURE_MIN_FILTER, gles.NEAREST)
+	gl.Call("texParameteri", gles.TEXTURE_2D, gles.TEXTURE_WRAP_S, gles.CLAMP_TO_EDGE)
+	gl.Call("texParameteri", gles.TEXTURE_2D, gles.TEXTURE_WRAP_T, gles.CLAMP_TO_EDGE)
 
 	// Firefox warns the usage of textures without specifying pixels (#629)
 	//
@@ -270,7 +196,7 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 	// In Ebiten, textures are filled with pixels laster by the filter that ignores destination, so it is fine
 	// to leave textures as uninitialized here. Rather, extra memory allocating for initialization should be
 	// avoided.
-	gl.Call("texImage2D", texture2d, 0, rgba, width, height, 0, rgba, unsignedByte, nil)
+	gl.Call("texImage2D", gles.TEXTURE_2D, 0, gles.RGBA, width, height, 0, gles.RGBA, gles.UNSIGNED_BYTE, nil)
 
 	return textureNative(t), nil
 }
@@ -278,7 +204,7 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 func (c *context) bindFramebufferImpl(f framebufferNative) {
 	c.ensureGL()
 	gl := c.gl
-	gl.Call("bindFramebuffer", framebuffer_, js.Value(f))
+	gl.Call("bindFramebuffer", gles.FRAMEBUFFER, js.Value(f))
 }
 
 func (c *context) framebufferPixels(f *framebuffer, width, height int) []byte {
@@ -288,7 +214,7 @@ func (c *context) framebufferPixels(f *framebuffer, width, height int) []byte {
 	c.bindFramebuffer(f.native)
 
 	p := jsutil.TemporaryUint8Array(4 * width * height)
-	gl.Call("readPixels", 0, 0, width, height, rgba, unsignedByte, p)
+	gl.Call("readPixels", 0, 0, width, height, gles.RGBA, gles.UNSIGNED_BYTE, p)
 
 	return jsutil.Uint8ArrayToSlice(p)
 }
@@ -296,13 +222,13 @@ func (c *context) framebufferPixels(f *framebuffer, width, height int) []byte {
 func (c *context) activeTexture(idx int) {
 	c.ensureGL()
 	gl := c.gl
-	gl.Call("activeTexture", texture0+idx)
+	gl.Call("activeTexture", gles.TEXTURE0+idx)
 }
 
 func (c *context) bindTextureImpl(t textureNative) {
 	c.ensureGL()
 	gl := c.gl
-	gl.Call("bindTexture", texture2d, js.Value(t))
+	gl.Call("bindTexture", gles.TEXTURE_2D, js.Value(t))
 }
 
 func (c *context) deleteTexture(t textureNative) {
@@ -328,8 +254,8 @@ func (c *context) newFramebuffer(t textureNative) (framebufferNative, error) {
 	f := gl.Call("createFramebuffer")
 	c.bindFramebuffer(framebufferNative(f))
 
-	gl.Call("framebufferTexture2D", framebuffer_, colorAttachment0, texture2d, js.Value(t), 0)
-	if s := gl.Call("checkFramebufferStatus", framebuffer_); s.Int() != framebufferComplete.Int() {
+	gl.Call("framebufferTexture2D", gles.FRAMEBUFFER, gles.COLOR_ATTACHMENT0, gles.TEXTURE_2D, js.Value(t), 0)
+	if s := gl.Call("checkFramebufferStatus", gles.FRAMEBUFFER); s.Int() != gles.FRAMEBUFFER_COMPLETE {
 		return framebufferNative(js.Null()), errors.New(fmt.Sprintf("opengl: creating framebuffer failed: %d", s.Int()))
 	}
 
@@ -370,7 +296,7 @@ func (c *context) newShader(shaderType shaderType, source string) (shader, error
 	gl.Call("shaderSource", js.Value(s), source)
 	gl.Call("compileShader", js.Value(s))
 
-	if !gl.Call("getShaderParameter", js.Value(s), compileStatus).Bool() {
+	if !gl.Call("getShaderParameter", js.Value(s), gles.COMPILE_STATUS).Bool() {
 		log := gl.Call("getShaderInfoLog", js.Value(s))
 		return shader(js.Null()), fmt.Errorf("opengl: shader compile failed: %s", log)
 	}
@@ -400,7 +326,7 @@ func (c *context) newProgram(shaders []shader, attributes []string) (program, er
 	}
 
 	gl.Call("linkProgram", v)
-	if !gl.Call("getProgramParameter", v, linkStatus).Bool() {
+	if !gl.Call("getProgramParameter", v, gles.LINK_STATUS).Bool() {
 		info := gl.Call("getProgramInfoLog", v).String()
 		return program{}, fmt.Errorf("opengl: program error: %s", info)
 	}
@@ -564,19 +490,19 @@ func (c *context) deleteBuffer(b buffer) {
 func (c *context) drawElements(len int, offsetInBytes int) {
 	c.ensureGL()
 	gl := c.gl
-	gl.Call("drawElements", triangles, len, unsignedShort, offsetInBytes)
+	gl.Call("drawElements", gles.TRIANGLES, len, gles.UNSIGNED_SHORT, offsetInBytes)
 }
 
 func (c *context) maxTextureSizeImpl() int {
 	c.ensureGL()
 	gl := c.gl
-	return gl.Call("getParameter", maxTextureSize).Int()
+	return gl.Call("getParameter", gles.MAX_TEXTURE_SIZE).Int()
 }
 
 func (c *context) getShaderPrecisionFormatPrecision() int {
 	c.ensureGL()
 	gl := c.gl
-	return gl.Call("getShaderPrecisionFormat", js.ValueOf(int(fragmentShader)), highFloat).Get("precision").Int()
+	return gl.Call("getShaderPrecisionFormat", js.ValueOf(int(fragmentShader)), gles.HIGH_FLOAT).Get("precision").Int()
 }
 
 func (c *context) flush() {
@@ -603,7 +529,7 @@ func (c *context) texSubImage2D(t textureNative, width, height int, args []*driv
 	for _, a := range args {
 		arr := jsutil.TemporaryUint8Array(len(a.Pixels))
 		jsutil.CopySliceToJS(arr, a.Pixels)
-		gl.Call("texSubImage2D", texture2d, 0, a.X, a.Y, a.Width, a.Height, rgba, unsignedByte, arr)
+		gl.Call("texSubImage2D", gles.TEXTURE_2D, 0, a.X, a.Y, a.Width, a.Height, gles.RGBA, gles.UNSIGNED_BYTE, arr)
 	}
 }
 
@@ -636,6 +562,6 @@ func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, he
 	// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
 	//                    GLsizei width, GLsizei height,
 	//                    GLenum format, GLenum type, GLintptr offset);
-	gl.Call("texSubImage2D", texture2d, 0, 0, 0, width, height, rgba, unsignedByte, 0)
+	gl.Call("texSubImage2D", gles.TEXTURE_2D, 0, 0, 0, width, height, gles.RGBA, gles.UNSIGNED_BYTE, 0)
 	gl.Call("bindBuffer", int(pixelUnpackBuffer), nil)
 }

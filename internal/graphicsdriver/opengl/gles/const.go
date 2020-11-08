@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build android ios
-
 // Package gles implements Go bindings to OpenGL ES.
 package gles
 
