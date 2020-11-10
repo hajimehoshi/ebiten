@@ -325,7 +325,7 @@ type Graphics struct {
 
 	transparent  bool
 	maxImageSize int
-	tmpTexture   mtl.Texture
+	tmpTextures  []mtl.Texture
 
 	pool unsafe.Pointer
 }
@@ -343,7 +343,7 @@ func (g *Graphics) Begin() {
 }
 
 func (g *Graphics) End() {
-	g.flushIfNeeded(false, true)
+	g.flushIfNeeded(true)
 	g.screenDrawable = ca.MetalDrawable{}
 	C.releaseAutoreleasePool(g.pool)
 	g.pool = nil
@@ -371,7 +371,7 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) {
 	g.ib = g.view.getMTLDevice().MakeBufferWithBytes(unsafe.Pointer(&indices[0]), unsafe.Sizeof(indices[0])*uintptr(len(indices)), resourceStorageMode)
 }
 
-func (g *Graphics) flushIfNeeded(wait bool, present bool) {
+func (g *Graphics) flushIfNeeded(present bool) {
 	if g.cb == (mtl.CommandBuffer{}) {
 		return
 	}
@@ -380,9 +380,11 @@ func (g *Graphics) flushIfNeeded(wait bool, present bool) {
 		g.cb.PresentDrawable(g.screenDrawable)
 	}
 	g.cb.Commit()
-	if wait {
-		g.cb.WaitUntilCompleted()
+
+	for _, t := range g.tmpTextures {
+		t.Release()
 	}
+	g.tmpTextures = nil
 
 	g.cb = mtl.CommandBuffer{}
 }
@@ -863,7 +865,7 @@ func (i *Image) Sync() <-chan struct{} {
 		return i.sync
 	}
 
-	i.graphics.flushIfNeeded(false, false)
+	i.graphics.flushIfNeeded(false)
 
 	// Calling SynchronizeTexture is ignored on iOS (see mtl.m), but it looks like committing BlitCommandEncoder
 	// is necessary (#1337).
@@ -903,39 +905,23 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	i.waitUntilSyncFinishes()
 
 	g := i.graphics
-	g.flushIfNeeded(true, false)
 
-	// If the memory is shared (e.g., iOS), texture data doen't have to be synced. Send the data directly.
-	if storageMode == mtl.StorageModeShared {
-		for _, a := range args {
-			i.texture.ReplaceRegion(mtl.Region{
-				Origin: mtl.Origin{X: a.X, Y: a.Y, Z: 0},
-				Size:   mtl.Size{Width: a.Width, Height: a.Height, Depth: 1},
-			}, 0, unsafe.Pointer(&a.Pixels[0]), 4*a.Width)
-		}
-	}
-
-	// If the memory is managed (e.g., macOS), texture data cannot be sent to the destination directly because
-	// this requires synchronizing data between CPU and GPU. As synchronizing is inefficient, let's send the
-	// data to a temporary texture once, and then copy it in GPU.
+	// Use a temporary texture to send pixels asynchrounsly, whichever the memory is shared (e.g., iOS) or
+	// managed (e.g., macOS). (#1418)
 	w, h := i.texture.Width(), i.texture.Height()
-	if g.tmpTexture == (mtl.Texture{}) || w > g.tmpTexture.Width() || h > g.tmpTexture.Height() {
-		if g.tmpTexture != (mtl.Texture{}) {
-			g.tmpTexture.Release()
-		}
-		td := mtl.TextureDescriptor{
-			TextureType: mtl.TextureType2D,
-			PixelFormat: mtl.PixelFormatRGBA8UNorm,
-			Width:       w,
-			Height:      h,
-			StorageMode: storageMode,
-			Usage:       mtl.TextureUsageShaderRead | mtl.TextureUsageRenderTarget,
-		}
-		g.tmpTexture = g.view.getMTLDevice().MakeTexture(td)
+	td := mtl.TextureDescriptor{
+		TextureType: mtl.TextureType2D,
+		PixelFormat: mtl.PixelFormatRGBA8UNorm,
+		Width:       w,
+		Height:      h,
+		StorageMode: storageMode,
+		Usage:       mtl.TextureUsageShaderRead | mtl.TextureUsageRenderTarget,
 	}
+	t := g.view.getMTLDevice().MakeTexture(td)
+	g.tmpTextures = append(g.tmpTextures, t)
 
 	for _, a := range args {
-		g.tmpTexture.ReplaceRegion(mtl.Region{
+		t.ReplaceRegion(mtl.Region{
 			Origin: mtl.Origin{X: a.X, Y: a.Y, Z: 0},
 			Size:   mtl.Size{Width: a.Width, Height: a.Height, Depth: 1},
 		}, 0, unsafe.Pointer(&a.Pixels[0]), 4*a.Width)
@@ -948,7 +934,7 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	for _, a := range args {
 		o := mtl.Origin{X: a.X, Y: a.Y, Z: 0}
 		s := mtl.Size{Width: a.Width, Height: a.Height, Depth: 1}
-		bce.CopyFromTexture(g.tmpTexture, 0, 0, o, s, i.texture, 0, 0, o)
+		bce.CopyFromTexture(t, 0, 0, o, s, i.texture, 0, 0, o)
 	}
 	bce.EndEncoding()
 }
