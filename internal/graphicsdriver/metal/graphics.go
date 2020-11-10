@@ -863,7 +863,7 @@ func (i *Image) Sync() <-chan struct{} {
 		return i.sync
 	}
 
-	i.graphics.flushIfNeeded(true, false)
+	i.graphics.flushIfNeeded(false, false)
 
 	// Calling SynchronizeTexture is ignored on iOS (see mtl.m), but it looks like committing BlitCommandEncoder
 	// is necessary (#1337).
