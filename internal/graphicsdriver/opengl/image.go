@@ -71,7 +71,16 @@ func (i *Image) Pixels() ([]byte, error) {
 	if err := i.ensureFramebuffer(); err != nil {
 		return nil, err
 	}
-	p := i.graphics.context.framebufferPixels(i.framebuffer, i.width, i.height)
+
+	// PBO is created only when PBO is enabled AND ReplacePixels is called.
+	// If PBO is enabled but the buffer doesn't exist, this means either ReplacePixels is not called or
+	// different draw calls than ReplacePixels were called.
+	if !i.graphics.context.canUsePBO() || i.pbo.equal(*new(buffer)) {
+		p := i.graphics.context.framebufferPixels(i.framebuffer, i.width, i.height)
+		return p, nil
+	}
+
+	p := i.graphics.context.getBufferSubData(i.pbo, i.width, i.height)
 	return p, nil
 }
 
@@ -123,12 +132,12 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 		i.graphics.context.texSubImage2D(i.textureNative, w, h, args)
 		return
 	}
+
 	if i.pbo.equal(*new(buffer)) {
 		i.pbo = i.graphics.context.newPixelBufferObject(w, h)
 	}
 	if i.pbo.equal(*new(buffer)) {
 		panic("opengl: newPixelBufferObject failed")
 	}
-
 	i.graphics.context.replacePixelsWithPBO(i.pbo, i.textureNative, w, h, args)
 }

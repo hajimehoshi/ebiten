@@ -436,3 +436,9 @@ func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, he
 	c.ctx.TexSubImage2D(gles.TEXTURE_2D, 0, 0, 0, int32(width), int32(height), gles.RGBA, gles.UNSIGNED_BYTE, nil)
 	c.ctx.BindBuffer(gles.PIXEL_UNPACK_BUFFER, 0)
 }
+
+func (c *context) getBufferSubData(buffer buffer, width, height int) []byte {
+	// gl.GetBufferSubData doesn't exist on OpenGL ES 2 and 3.
+	// As PBO is not used in mobiles, leave this unimplemented so far.
+	panic("opengl: getBufferSubData is not implemented for mobiles")
+}

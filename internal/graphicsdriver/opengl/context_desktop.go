@@ -470,3 +470,11 @@ func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, he
 	gl.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, nil)
 	gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, 0)
 }
+
+func (c *context) getBufferSubData(buffer buffer, width, height int) []byte {
+	gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, uint32(buffer))
+	pixels := make([]byte, 4*width*height)
+	gl.GetBufferSubData(gl.PIXEL_UNPACK_BUFFER, 0, 4*width*height, gl.Ptr(pixels))
+	gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, 0)
+	return pixels
+}

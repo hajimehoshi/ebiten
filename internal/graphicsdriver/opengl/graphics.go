@@ -152,6 +152,11 @@ func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, 
 	destination := g.images[dst]
 	source := g.images[src]
 
+	if !destination.pbo.equal(*new(buffer)) {
+		g.context.deleteBuffer(destination.pbo)
+		destination.pbo = *new(buffer)
+	}
+
 	g.drawCalled = true
 
 	if err := destination.setViewport(); err != nil {
@@ -293,6 +298,11 @@ func (g *Graphics) removeShader(shader *Shader) {
 func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, dstRegion, srcRegion driver.Region, mode driver.CompositeMode, uniforms []interface{}) error {
 	d := g.images[dst]
 	s := g.shaders[shader]
+
+	if !d.pbo.equal(*new(buffer)) {
+		g.context.deleteBuffer(d.pbo)
+		d.pbo = *new(buffer)
+	}
 
 	g.drawCalled = true
 

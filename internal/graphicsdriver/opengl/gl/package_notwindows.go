@@ -122,6 +122,7 @@ package gl
 // typedef void  (APIENTRYP GPGENBUFFERS)(GLsizei  n, GLuint * buffers);
 // typedef void  (APIENTRYP GPGENFRAMEBUFFERSEXT)(GLsizei  n, GLuint * framebuffers);
 // typedef void  (APIENTRYP GPGENTEXTURES)(GLsizei  n, GLuint * textures);
+// typedef void  (APIENTRYP GPGETBUFFERSUBDATA)(GLenum  target, GLintptr  offset, GLsizeiptr  size, void * data);
 // typedef void  (APIENTRYP GPGETDOUBLEI_V)(GLenum  target, GLuint  index, GLdouble * data);
 // typedef void  (APIENTRYP GPGETDOUBLEI_VEXT)(GLenum  pname, GLuint  index, GLdouble * params);
 // typedef GLenum  (APIENTRYP GPGETERROR)();
@@ -245,6 +246,9 @@ package gl
 // }
 // static void  glowGenTextures(GPGENTEXTURES fnptr, GLsizei  n, GLuint * textures) {
 //   (*fnptr)(n, textures);
+// }
+// static void  glowGetBufferSubData(GPGETBUFFERSUBDATA fnptr, GLenum  target, GLintptr  offset, GLsizeiptr  size, void * data) {
+//   (*fnptr)(target, offset, size, data);
 // }
 // static void  glowGetDoublei_v(GPGETDOUBLEI_V fnptr, GLenum  target, GLuint  index, GLdouble * data) {
 //   (*fnptr)(target, index, data);
@@ -407,6 +411,7 @@ var (
 	gpGenBuffers                  C.GPGENBUFFERS
 	gpGenFramebuffersEXT          C.GPGENFRAMEBUFFERSEXT
 	gpGenTextures                 C.GPGENTEXTURES
+	gpGetBufferSubData            C.GPGETBUFFERSUBDATA
 	gpGetDoublei_v                C.GPGETDOUBLEI_V
 	gpGetDoublei_vEXT             C.GPGETDOUBLEI_VEXT
 	gpGetError                    C.GPGETERROR
@@ -567,6 +572,10 @@ func GenFramebuffersEXT(n int32, framebuffers *uint32) {
 
 func GenTextures(n int32, textures *uint32) {
 	C.glowGenTextures(gpGenTextures, (C.GLsizei)(n), (*C.GLuint)(unsafe.Pointer(textures)))
+}
+
+func GetBufferSubData(target uint32, offset int, size int, data unsafe.Pointer) {
+	C.glowGetBufferSubData(gpGetBufferSubData, (C.GLenum)(target), (C.GLintptr)(offset), (C.GLsizeiptr)(size), data)
 }
 
 func GetDoublei_v(target uint32, index uint32, data *float64) {
@@ -831,6 +840,10 @@ func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
 	gpGenTextures = (C.GPGENTEXTURES)(getProcAddr("glGenTextures"))
 	if gpGenTextures == nil {
 		return errors.New("glGenTextures")
+	}
+	gpGetBufferSubData = (C.GPGETBUFFERSUBDATA)(getProcAddr("glGetBufferSubData"))
+	if gpGetBufferSubData == nil {
+		return errors.New("glGetBufferSubData")
 	}
 	gpGetDoublei_v = (C.GPGETDOUBLEI_V)(getProcAddr("glGetDoublei_v"))
 	gpGetDoublei_vEXT = (C.GPGETDOUBLEI_VEXT)(getProcAddr("glGetDoublei_vEXT"))
