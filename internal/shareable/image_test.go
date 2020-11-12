@@ -538,4 +538,52 @@ func TestMinImageSize(t *testing.T) {
 	img.ReplacePixels(make([]byte, 4*s*s))
 }
 
+// Issue #1421
+func TestDisposedAndReshared(t *testing.T) {
+	const size = 16
+
+	src := NewImage(size, size)
+	defer src.MarkDisposed()
+	src2 := NewImage(size, size)
+	defer src2.MarkDisposed()
+	dst := NewImage(size, size)
+	defer dst.MarkDisposed()
+
+	// Use src as a render target so that src is not on the shared image.
+	vs := quadVertices(size, size, 0, 0, 1)
+	is := graphics.QuadIndices()
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  size,
+		Height: size,
+	}
+	src.DrawTriangles([graphics.ShaderImageNum]*Image{src2}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
+	if got, want := src.IsSharedForTesting(), false; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	// Use src as a render source.
+	for i := 0; i < CountForStartSyncing; i++ {
+		if err := MakeImagesSharedForTesting(); err != nil {
+			t.Fatal(err)
+		}
+		dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
+		if got, want := src.IsSharedForTesting(), false; got != want {
+			t.Errorf("got: %v, want: %v", got, want)
+		}
+	}
+
+	// Before MakeImagesSharedForTesting, dispose the image.
+	src.MarkDisposed()
+
+	// Force to dispose the image.
+	ResolveDeferredForTesting()
+
+	// Confirm that MakeImagesSharedForTesting doesn't panic.
+	if err := MakeImagesSharedForTesting(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // TODO: Add tests to extend shareable image out of the main loop

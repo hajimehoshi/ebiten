@@ -71,10 +71,15 @@ func resolveDeferred() {
 // This value is exported for testing.
 const MaxCountForShare = 10
 
+// CountForStartSyncing represents the count that the image starts to sync pixels between GPU and CPU.
+//
+// This value is exported for testing.
+const CountForStartSyncing = MaxCountForShare / 2
+
 func makeImagesShared() error {
 	for i := range imagesToMakeShared {
 		i.nonUpdatedCount++
-		if i.nonUpdatedCount >= MaxCountForShare/2 && i.syncing == nil {
+		if i.nonUpdatedCount >= CountForStartSyncing && i.syncing == nil {
 			// Sync the pixel data on CPU and GPU sides explicitly in order not to block this process.
 			ch, err := i.backend.restorable.Sync()
 			if err != nil {
@@ -522,6 +527,8 @@ func (i *Image) dispose(markDisposed bool) {
 			runtime.SetFinalizer(i, nil)
 		}
 	}()
+
+	i.resetNonUpdatedCount()
 
 	if i.disposed {
 		return
