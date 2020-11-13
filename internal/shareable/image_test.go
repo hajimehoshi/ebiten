@@ -293,10 +293,12 @@ func TestExtend(t *testing.T) {
 		p0[4*i+3] = byte(i)
 	}
 	img0.ReplacePixels(p0)
+	defer img0.MarkDisposed()
 
-	const w1, h1 = 1025, 100
+	const w1, h1 = minImageSizeForTesting + 1, 100
 	img1 := NewImage(w1, h1)
 	defer img1.MarkDisposed()
+
 	p1 := make([]byte, 4*w1*h1)
 	for i := 0; i < w1*h1; i++ {
 		p1[4*i] = byte(i)
@@ -344,9 +346,6 @@ func TestExtend(t *testing.T) {
 			}
 		}
 	}
-
-	img0.MarkDisposed()
-	img1.MarkDisposed()
 }
 
 func TestReplacePixelsAfterDrawTriangles(t *testing.T) {
@@ -494,14 +493,13 @@ func TestDisposeImmediately(t *testing.T) {
 
 	img0 := NewImage(16, 16)
 	img0.EnsureNotSharedForTesting()
+	defer img0.MarkDisposed()
 
 	img1 := NewImage(16, 16)
 	img1.EnsureNotSharedForTesting()
+	defer img1.MarkDisposed()
 
 	// img0 and img1 should share the same backend in 99.9999% possibility.
-
-	img0.MarkDisposed()
-	img1.MarkDisposed()
 }
 
 // Issue #1028
@@ -511,10 +509,10 @@ func TestExtendWithBigImage(t *testing.T) {
 
 	img0.ReplacePixels(make([]byte, 4*1*1))
 
-	img1 := NewImage(1025, 1025)
+	img1 := NewImage(minImageSizeForTesting+1, minImageSizeForTesting+1)
 	defer img1.MarkDisposed()
 
-	img1.ReplacePixels(make([]byte, 4*1025*1025))
+	img1.ReplacePixels(make([]byte, 4*(minImageSizeForTesting+1)*(minImageSizeForTesting+1)))
 }
 
 // Issue #1217
