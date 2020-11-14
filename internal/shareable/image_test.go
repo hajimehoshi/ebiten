@@ -285,6 +285,7 @@ func TestExtend(t *testing.T) {
 	const w0, h0 = 100, 100
 	img0 := NewImage(w0, h0)
 	defer img0.MarkDisposed()
+
 	p0 := make([]byte, 4*w0*h0)
 	for i := 0; i < w0*h0; i++ {
 		p0[4*i] = byte(i)
@@ -293,7 +294,6 @@ func TestExtend(t *testing.T) {
 		p0[4*i+3] = byte(i)
 	}
 	img0.ReplacePixels(p0)
-	defer img0.MarkDisposed()
 
 	const w1, h1 = minImageSizeForTesting + 1, 100
 	img1 := NewImage(w1, h1)
