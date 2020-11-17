@@ -240,13 +240,13 @@ func impl(x, y int) float64 {
 	// do this with Cgo. Use MonitorFromRect instead.
 	m, err := monitorFromRect(&lprc, monitorDefaultToNearest)
 	if err != nil {
-		panic(err)
+		return getFromLogPixelSx()
 	}
 
 	dpiX := uint32(0)
 	dpiY := uint32(0) // Passing dpiY is needed even though this is not used, or GetDpiForMonitor returns an error.
 	if err := getDpiForMonitor(m, mdtEffectiveDpi, &dpiX, &dpiY); err != nil {
-		panic(err)
+		return getFromLogPixelSx()
 	}
 	runtime.KeepAlive(dpiY)
 
