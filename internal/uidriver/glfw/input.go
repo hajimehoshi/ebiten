@@ -218,7 +218,8 @@ func (i *Input) RuneBuffer() []rune {
 	}
 	var r []rune
 	_ = i.ui.t.Call(func() error {
-		r = i.runeBuffer
+		r = make([]rune, len(i.runeBuffer))
+		copy(r, i.runeBuffer)
 		return nil
 	})
 	return r

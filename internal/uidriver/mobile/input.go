@@ -164,7 +164,9 @@ func (i *Input) TouchPosition(id driver.TouchID) (x, y int) {
 }
 
 func (i *Input) RuneBuffer() []rune {
-	return i.runes
+	rs := make([]rune, len(i.runes))
+	copy(rs, i.runes)
+	return rs
 }
 
 func (i *Input) IsKeyPressed(key driver.Key) bool {

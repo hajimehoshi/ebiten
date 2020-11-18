@@ -32,8 +32,7 @@ import (
 //
 // Keyboards don't work on iOS yet (#1090).
 func InputChars() []rune {
-	rb := uiDriver().Input().RuneBuffer()
-	return append(make([]rune, 0, len(rb)), rb...)
+	return uiDriver().Input().RuneBuffer()
 }
 
 // IsKeyPressed returns a boolean indicating whether key is pressed.

@@ -142,7 +142,9 @@ func (i *Input) TouchPosition(id driver.TouchID) (x, y int) {
 }
 
 func (i *Input) RuneBuffer() []rune {
-	return i.runeBuffer
+	rs := make([]rune, len(i.runeBuffer))
+	copy(rs, i.runeBuffer)
+	return rs
 }
 
 func (i *Input) resetForFrame() {
