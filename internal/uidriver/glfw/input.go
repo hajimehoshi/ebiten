@@ -276,10 +276,15 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) {
 			if !unicode.IsPrint(char) {
 				return
 			}
+
+			i.ui.m.Lock()
+			defer i.ui.m.Unlock()
 			i.runeBuffer = append(i.runeBuffer, char)
 		})
 		window.SetScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
 			// As this function is called from GLFW callbacks, the current thread is main.
+			i.ui.m.Lock()
+			defer i.ui.m.Unlock()
 			i.scrollX = xoff
 			i.scrollY = yoff
 		})
