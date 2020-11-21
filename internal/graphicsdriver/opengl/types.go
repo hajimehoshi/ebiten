@@ -20,7 +20,6 @@ import (
 
 type (
 	shaderType int
-	bufferType int
 	operation  int
 )
 
