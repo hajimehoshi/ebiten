@@ -83,7 +83,6 @@ const (
 	fragmentShader     = shaderType(gl.FRAGMENT_SHADER)
 	arrayBuffer        = bufferType(gl.ARRAY_BUFFER)
 	elementArrayBuffer = bufferType(gl.ELEMENT_ARRAY_BUFFER)
-	dynamicDraw        = bufferUsage(gl.DYNAMIC_DRAW)
 	short              = dataType(gl.SHORT)
 	float              = dataType(gl.FLOAT)
 
@@ -390,7 +389,7 @@ func (c *context) newArrayBuffer(size int) buffer {
 	var b uint32
 	gl.GenBuffers(1, &b)
 	gl.BindBuffer(uint32(arrayBuffer), b)
-	gl.BufferData(uint32(arrayBuffer), size, nil, uint32(dynamicDraw))
+	gl.BufferData(uint32(arrayBuffer), size, nil, gl.DYNAMIC_DRAW)
 	return buffer(b)
 }
 
@@ -398,7 +397,7 @@ func (c *context) newElementArrayBuffer(size int) buffer {
 	var b uint32
 	gl.GenBuffers(1, &b)
 	gl.BindBuffer(uint32(elementArrayBuffer), b)
-	gl.BufferData(uint32(elementArrayBuffer), size, nil, uint32(dynamicDraw))
+	gl.BufferData(uint32(elementArrayBuffer), size, nil, gl.DYNAMIC_DRAW)
 	return buffer(b)
 }
 

@@ -19,10 +19,9 @@ import (
 )
 
 type (
-	shaderType  int
-	bufferType  int
-	bufferUsage int
-	operation   int
+	shaderType int
+	bufferType int
+	operation  int
 )
 
 type dataType int

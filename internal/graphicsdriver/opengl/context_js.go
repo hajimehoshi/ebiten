@@ -78,9 +78,6 @@ const (
 	fragmentShader     = shaderType(gles.FRAGMENT_SHADER)
 	arrayBuffer        = bufferType(gles.ARRAY_BUFFER)
 	elementArrayBuffer = bufferType(gles.ELEMENT_ARRAY_BUFFER)
-	dynamicDraw        = bufferUsage(gles.DYNAMIC_DRAW)
-	streamDraw         = bufferUsage(gles.STREAM_DRAW)
-	pixelUnpackBuffer  = bufferType(gles.PIXEL_UNPACK_BUFFER)
 	short              = dataType(gles.SHORT)
 	float              = dataType(gles.FLOAT)
 
@@ -431,7 +428,7 @@ func (c *context) newArrayBuffer(size int) buffer {
 	gl := c.gl
 	b := gl.Call("createBuffer")
 	gl.Call("bindBuffer", int(arrayBuffer), js.Value(b))
-	gl.Call("bufferData", int(arrayBuffer), size, int(dynamicDraw))
+	gl.Call("bufferData", int(arrayBuffer), size, gles.DYNAMIC_DRAW)
 	return buffer(b)
 }
 
@@ -439,7 +436,7 @@ func (c *context) newElementArrayBuffer(size int) buffer {
 	gl := c.gl
 	b := gl.Call("createBuffer")
 	gl.Call("bindBuffer", int(elementArrayBuffer), js.Value(b))
-	gl.Call("bufferData", int(elementArrayBuffer), size, int(dynamicDraw))
+	gl.Call("bufferData", int(elementArrayBuffer), size, gles.DYNAMIC_DRAW)
 	return buffer(b)
 }
 
@@ -513,16 +510,16 @@ func (c *context) texSubImage2D(t textureNative, width, height int, args []*driv
 func (c *context) newPixelBufferObject(width, height int) buffer {
 	gl := c.gl
 	b := gl.Call("createBuffer")
-	gl.Call("bindBuffer", int(pixelUnpackBuffer), js.Value(b))
-	gl.Call("bufferData", int(pixelUnpackBuffer), 4*width*height, int(streamDraw))
-	gl.Call("bindBuffer", int(pixelUnpackBuffer), nil)
+	gl.Call("bindBuffer", gles.PIXEL_UNPACK_BUFFER, js.Value(b))
+	gl.Call("bufferData", gles.PIXEL_UNPACK_BUFFER, 4*width*height, gles.STREAM_DRAW)
+	gl.Call("bindBuffer", gles.PIXEL_UNPACK_BUFFER, nil)
 	return buffer(b)
 }
 
 func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
 	c.bindTexture(t)
 	gl := c.gl
-	gl.Call("bindBuffer", int(pixelUnpackBuffer), js.Value(buffer))
+	gl.Call("bindBuffer", gles.PIXEL_UNPACK_BUFFER, js.Value(buffer))
 
 	stride := 4 * width
 	for _, a := range args {
@@ -530,7 +527,7 @@ func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, he
 		jsutil.CopySliceToJS(arr, a.Pixels)
 		offset := 4 * (a.Y*width + a.X)
 		for j := 0; j < a.Height; j++ {
-			gl.Call("bufferSubData", int(pixelUnpackBuffer), offset+stride*j, arr, 4*a.Width*j, 4*a.Width)
+			gl.Call("bufferSubData", gles.PIXEL_UNPACK_BUFFER, offset+stride*j, arr, 4*a.Width*j, 4*a.Width)
 		}
 	}
 
@@ -538,14 +535,14 @@ func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, he
 	//                    GLsizei width, GLsizei height,
 	//                    GLenum format, GLenum type, GLintptr offset);
 	gl.Call("texSubImage2D", gles.TEXTURE_2D, 0, 0, 0, width, height, gles.RGBA, gles.UNSIGNED_BYTE, 0)
-	gl.Call("bindBuffer", int(pixelUnpackBuffer), nil)
+	gl.Call("bindBuffer", gles.PIXEL_UNPACK_BUFFER, nil)
 }
 
 func (c *context) getBufferSubData(buffer buffer, width, height int) []byte {
 	gl := c.gl
-	gl.Call("bindBuffer", int(pixelUnpackBuffer), buffer)
+	gl.Call("bindBuffer", gles.PIXEL_UNPACK_BUFFER, buffer)
 	arr := jsutil.TemporaryUint8Array(4 * width * height)
-	gl.Call("getBufferSubData", int(pixelUnpackBuffer), 0, arr)
-	gl.Call("bindBuffer", int(pixelUnpackBuffer), 0)
+	gl.Call("getBufferSubData", gles.PIXEL_UNPACK_BUFFER, 0, arr)
+	gl.Call("bindBuffer", gles.PIXEL_UNPACK_BUFFER, 0)
 	return jsutil.Uint8ArrayToSlice(arr)
 }

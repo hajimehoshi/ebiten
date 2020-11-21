@@ -81,7 +81,6 @@ const (
 	fragmentShader     = shaderType(gles.FRAGMENT_SHADER)
 	arrayBuffer        = bufferType(gles.ARRAY_BUFFER)
 	elementArrayBuffer = bufferType(gles.ELEMENT_ARRAY_BUFFER)
-	dynamicDraw        = bufferUsage(gles.DYNAMIC_DRAW)
 	short              = dataType(gles.SHORT)
 	float              = dataType(gles.FLOAT)
 
@@ -358,14 +357,14 @@ func (c *context) disableVertexAttribArray(p program, index int) {
 func (c *context) newArrayBuffer(size int) buffer {
 	b := c.ctx.GenBuffers(1)[0]
 	c.ctx.BindBuffer(uint32(arrayBuffer), b)
-	c.ctx.BufferData(uint32(arrayBuffer), size, nil, uint32(dynamicDraw))
+	c.ctx.BufferData(uint32(arrayBuffer), size, nil, gles.DYNAMIC_DRAW)
 	return buffer(b)
 }
 
 func (c *context) newElementArrayBuffer(size int) buffer {
 	b := c.ctx.GenBuffers(1)[0]
 	c.ctx.BindBuffer(uint32(elementArrayBuffer), b)
-	c.ctx.BufferData(uint32(elementArrayBuffer), size, nil, uint32(dynamicDraw))
+	c.ctx.BufferData(uint32(elementArrayBuffer), size, nil, gles.DYNAMIC_DRAW)
 	return buffer(b)
 }
 
