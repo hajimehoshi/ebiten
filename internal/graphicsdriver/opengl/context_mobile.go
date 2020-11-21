@@ -79,8 +79,6 @@ func getProgramID(p program) programID {
 const (
 	vertexShader   = shaderType(gles.VERTEX_SHADER)
 	fragmentShader = shaderType(gles.FRAGMENT_SHADER)
-	short          = dataType(gles.SHORT)
-	float          = dataType(gles.FLOAT)
 
 	zero             = operation(gles.ZERO)
 	one              = operation(gles.ONE)
@@ -340,8 +338,8 @@ func (c *context) uniformFloats(p program, location string, v []float32, typ sha
 	return true
 }
 
-func (c *context) vertexAttribPointer(p program, index int, size int, dataType dataType, stride int, offset int) {
-	c.ctx.VertexAttribPointer(uint32(index), int32(size), uint32(dataType), false, int32(stride), offset)
+func (c *context) vertexAttribPointer(p program, index int, size int, stride int, offset int) {
+	c.ctx.VertexAttribPointer(uint32(index), int32(size), gles.FLOAT, false, int32(stride), offset)
 }
 
 func (c *context) enableVertexAttribArray(p program, index int) {

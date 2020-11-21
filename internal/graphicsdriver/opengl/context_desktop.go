@@ -81,8 +81,6 @@ func getProgramID(p program) programID {
 const (
 	vertexShader   = shaderType(gl.VERTEX_SHADER)
 	fragmentShader = shaderType(gl.FRAGMENT_SHADER)
-	short          = dataType(gl.SHORT)
-	float          = dataType(gl.FLOAT)
 
 	zero             = operation(gl.ZERO)
 	one              = operation(gl.ONE)
@@ -371,8 +369,8 @@ func (c *context) uniformFloats(p program, location string, v []float32, typ sha
 	return true
 }
 
-func (c *context) vertexAttribPointer(p program, index int, size int, dataType dataType, stride int, offset int) {
-	gl.VertexAttribPointer(uint32(index), int32(size), uint32(dataType), false, int32(stride), uintptr(offset))
+func (c *context) vertexAttribPointer(p program, index int, size int, stride int, offset int) {
+	gl.VertexAttribPointer(uint32(index), int32(size), gl.FLOAT, false, int32(stride), uintptr(offset))
 }
 
 func (c *context) enableVertexAttribArray(p program, index int) {

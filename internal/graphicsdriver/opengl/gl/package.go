@@ -17,8 +17,6 @@ package gl
 const (
 	VERTEX_SHADER   = 0x8B31
 	FRAGMENT_SHADER = 0x8B30
-	SHORT           = 0x1402
-	FLOAT           = 0x1406
 
 	ZERO                = 0
 	ONE                 = 1
@@ -36,6 +34,7 @@ const (
 	DYNAMIC_DRAW         = 0x88E8
 	ELEMENT_ARRAY_BUFFER = 0x8893
 	FALSE                = 0
+	FLOAT                = 0x1406
 	FRAMEBUFFER          = 0x8D40
 	FRAMEBUFFER_BINDING  = 0x8CA6
 	FRAMEBUFFER_COMPLETE = 0x8CD5
@@ -48,6 +47,7 @@ const (
 	PIXEL_UNPACK_BUFFER  = 0x88EC
 	READ_WRITE           = 0x88BA
 	RGBA                 = 0x1908
+	SHORT                = 0x1402
 	STREAM_DRAW          = 0x88E0
 	TEXTURE0             = 0x84C0
 	TEXTURE_2D           = 0x0DE1

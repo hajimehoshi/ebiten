@@ -23,6 +23,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/web"
 )
 
+const floatSizeInBytes = 4
+
 // arrayBufferLayoutPart is a part of an array buffer layout.
 type arrayBufferLayoutPart struct {
 	// TODO: This struct should belong to a program and know it.
@@ -54,7 +56,7 @@ func (a *arrayBufferLayout) totalBytes() int {
 	}
 	t := 0
 	for _, p := range a.parts {
-		t += float.SizeInBytes() * p.num
+		t += floatSizeInBytes * p.num
 	}
 	a.total = t
 	return a.total
@@ -73,8 +75,8 @@ func (a *arrayBufferLayout) enable(context *context, program program) {
 	total := a.totalBytes()
 	offset := 0
 	for i, p := range a.parts {
-		context.vertexAttribPointer(program, i, p.num, float, total, offset)
-		offset += float.SizeInBytes() * p.num
+		context.vertexAttribPointer(program, i, p.num, total, offset)
+		offset += floatSizeInBytes * p.num
 	}
 }
 
@@ -106,7 +108,7 @@ var theArrayBufferLayout = arrayBufferLayout{
 }
 
 func init() {
-	vertexFloatNum := theArrayBufferLayout.totalBytes() / float.SizeInBytes()
+	vertexFloatNum := theArrayBufferLayout.totalBytes() / floatSizeInBytes
 	if graphics.VertexFloatNum != vertexFloatNum {
 		panic(fmt.Sprintf("vertex float num must be %d but %d", graphics.VertexFloatNum, vertexFloatNum))
 	}

@@ -14,24 +14,7 @@
 
 package opengl
 
-import (
-	"fmt"
-)
-
 type (
 	shaderType int
 	operation  int
 )
-
-type dataType int
-
-func (d dataType) SizeInBytes() int {
-	switch d {
-	case short:
-		return 2
-	case float:
-		return 4
-	default:
-		panic(fmt.Sprintf("opengl: invalid data type: %d", d))
-	}
-}
