@@ -252,8 +252,8 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 		g.context.useProgram(program)
 		if g.state.lastProgram.equal(zeroProgram) {
 			theArrayBufferLayout.enable(&g.context, program)
-			g.context.bindBuffer(arrayBuffer, g.state.arrayBuffer)
-			g.context.bindBuffer(elementArrayBuffer, g.state.elementArrayBuffer)
+			g.context.bindArrayBuffer(g.state.arrayBuffer)
+			g.context.bindElementArrayBuffer(g.state.elementArrayBuffer)
 		}
 
 		g.state.lastProgram = program

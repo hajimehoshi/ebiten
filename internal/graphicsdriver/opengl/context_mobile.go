@@ -77,12 +77,10 @@ func getProgramID(p program) programID {
 }
 
 const (
-	vertexShader       = shaderType(gles.VERTEX_SHADER)
-	fragmentShader     = shaderType(gles.FRAGMENT_SHADER)
-	arrayBuffer        = bufferType(gles.ARRAY_BUFFER)
-	elementArrayBuffer = bufferType(gles.ELEMENT_ARRAY_BUFFER)
-	short              = dataType(gles.SHORT)
-	float              = dataType(gles.FLOAT)
+	vertexShader   = shaderType(gles.VERTEX_SHADER)
+	fragmentShader = shaderType(gles.FRAGMENT_SHADER)
+	short          = dataType(gles.SHORT)
+	float          = dataType(gles.FLOAT)
 
 	zero             = operation(gles.ZERO)
 	one              = operation(gles.ONE)
@@ -356,28 +354,32 @@ func (c *context) disableVertexAttribArray(p program, index int) {
 
 func (c *context) newArrayBuffer(size int) buffer {
 	b := c.ctx.GenBuffers(1)[0]
-	c.ctx.BindBuffer(uint32(arrayBuffer), b)
-	c.ctx.BufferData(uint32(arrayBuffer), size, nil, gles.DYNAMIC_DRAW)
+	c.ctx.BindBuffer(gles.ARRAY_BUFFER, b)
+	c.ctx.BufferData(gles.ARRAY_BUFFER, size, nil, gles.DYNAMIC_DRAW)
 	return buffer(b)
 }
 
 func (c *context) newElementArrayBuffer(size int) buffer {
 	b := c.ctx.GenBuffers(1)[0]
-	c.ctx.BindBuffer(uint32(elementArrayBuffer), b)
-	c.ctx.BufferData(uint32(elementArrayBuffer), size, nil, gles.DYNAMIC_DRAW)
+	c.ctx.BindBuffer(gles.ELEMENT_ARRAY_BUFFER, b)
+	c.ctx.BufferData(gles.ELEMENT_ARRAY_BUFFER, size, nil, gles.DYNAMIC_DRAW)
 	return buffer(b)
 }
 
-func (c *context) bindBuffer(bufferType bufferType, b buffer) {
-	c.ctx.BindBuffer(uint32(bufferType), uint32(b))
+func (c *context) bindArrayBuffer(b buffer) {
+	c.ctx.BindBuffer(gles.ARRAY_BUFFER, uint32(b))
+}
+
+func (c *context) bindElementArrayBuffer(b buffer) {
+	c.ctx.BindBuffer(gles.ELEMENT_ARRAY_BUFFER, uint32(b))
 }
 
 func (c *context) arrayBufferSubData(data []float32) {
-	c.ctx.BufferSubData(uint32(arrayBuffer), 0, float32sToBytes(data))
+	c.ctx.BufferSubData(gles.ARRAY_BUFFER, 0, float32sToBytes(data))
 }
 
 func (c *context) elementArrayBufferSubData(data []uint16) {
-	c.ctx.BufferSubData(uint32(elementArrayBuffer), 0, uint16sToBytes(data))
+	c.ctx.BufferSubData(gles.ELEMENT_ARRAY_BUFFER, 0, uint16sToBytes(data))
 }
 
 func (c *context) deleteBuffer(b buffer) {

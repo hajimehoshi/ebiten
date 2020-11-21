@@ -79,12 +79,10 @@ func getProgramID(p program) programID {
 }
 
 const (
-	vertexShader       = shaderType(gl.VERTEX_SHADER)
-	fragmentShader     = shaderType(gl.FRAGMENT_SHADER)
-	arrayBuffer        = bufferType(gl.ARRAY_BUFFER)
-	elementArrayBuffer = bufferType(gl.ELEMENT_ARRAY_BUFFER)
-	short              = dataType(gl.SHORT)
-	float              = dataType(gl.FLOAT)
+	vertexShader   = shaderType(gl.VERTEX_SHADER)
+	fragmentShader = shaderType(gl.FRAGMENT_SHADER)
+	short          = dataType(gl.SHORT)
+	float          = dataType(gl.FLOAT)
 
 	zero             = operation(gl.ZERO)
 	one              = operation(gl.ONE)
@@ -388,29 +386,33 @@ func (c *context) disableVertexAttribArray(p program, index int) {
 func (c *context) newArrayBuffer(size int) buffer {
 	var b uint32
 	gl.GenBuffers(1, &b)
-	gl.BindBuffer(uint32(arrayBuffer), b)
-	gl.BufferData(uint32(arrayBuffer), size, nil, gl.DYNAMIC_DRAW)
+	gl.BindBuffer(gl.ARRAY_BUFFER, b)
+	gl.BufferData(gl.ARRAY_BUFFER, size, nil, gl.DYNAMIC_DRAW)
 	return buffer(b)
 }
 
 func (c *context) newElementArrayBuffer(size int) buffer {
 	var b uint32
 	gl.GenBuffers(1, &b)
-	gl.BindBuffer(uint32(elementArrayBuffer), b)
-	gl.BufferData(uint32(elementArrayBuffer), size, nil, gl.DYNAMIC_DRAW)
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b)
+	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, size, nil, gl.DYNAMIC_DRAW)
 	return buffer(b)
 }
 
-func (c *context) bindBuffer(bufferType bufferType, b buffer) {
-	gl.BindBuffer(uint32(bufferType), uint32(b))
+func (c *context) bindArrayBuffer(b buffer) {
+	gl.BindBuffer(gl.ARRAY_BUFFER, uint32(b))
+}
+
+func (c *context) bindElementArrayBuffer(b buffer) {
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, uint32(b))
 }
 
 func (c *context) arrayBufferSubData(data []float32) {
-	gl.BufferSubData(uint32(arrayBuffer), 0, len(data)*4, gl.Ptr(data))
+	gl.BufferSubData(gl.ARRAY_BUFFER, 0, len(data)*4, gl.Ptr(data))
 }
 
 func (c *context) elementArrayBufferSubData(data []uint16) {
-	gl.BufferSubData(uint32(elementArrayBuffer), 0, len(data)*2, gl.Ptr(data))
+	gl.BufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, len(data)*2, gl.Ptr(data))
 }
 
 func (c *context) deleteBuffer(b buffer) {

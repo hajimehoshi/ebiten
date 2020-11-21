@@ -74,12 +74,10 @@ func getProgramID(p program) programID {
 }
 
 const (
-	vertexShader       = shaderType(gles.VERTEX_SHADER)
-	fragmentShader     = shaderType(gles.FRAGMENT_SHADER)
-	arrayBuffer        = bufferType(gles.ARRAY_BUFFER)
-	elementArrayBuffer = bufferType(gles.ELEMENT_ARRAY_BUFFER)
-	short              = dataType(gles.SHORT)
-	float              = dataType(gles.FLOAT)
+	vertexShader   = shaderType(gles.VERTEX_SHADER)
+	fragmentShader = shaderType(gles.FRAGMENT_SHADER)
+	short          = dataType(gles.SHORT)
+	float          = dataType(gles.FLOAT)
 
 	zero             = operation(gles.ZERO)
 	one              = operation(gles.ONE)
@@ -427,22 +425,27 @@ func (c *context) disableVertexAttribArray(p program, index int) {
 func (c *context) newArrayBuffer(size int) buffer {
 	gl := c.gl
 	b := gl.Call("createBuffer")
-	gl.Call("bindBuffer", int(arrayBuffer), js.Value(b))
-	gl.Call("bufferData", int(arrayBuffer), size, gles.DYNAMIC_DRAW)
+	gl.Call("bindBuffer", gles.ARRAY_BUFFER, js.Value(b))
+	gl.Call("bufferData", gles.ARRAY_BUFFER, size, gles.DYNAMIC_DRAW)
 	return buffer(b)
 }
 
 func (c *context) newElementArrayBuffer(size int) buffer {
 	gl := c.gl
 	b := gl.Call("createBuffer")
-	gl.Call("bindBuffer", int(elementArrayBuffer), js.Value(b))
-	gl.Call("bufferData", int(elementArrayBuffer), size, gles.DYNAMIC_DRAW)
+	gl.Call("bindBuffer", gles.ELEMENT_ARRAY_BUFFER, js.Value(b))
+	gl.Call("bufferData", gles.ELEMENT_ARRAY_BUFFER, size, gles.DYNAMIC_DRAW)
 	return buffer(b)
 }
 
-func (c *context) bindBuffer(bufferType bufferType, b buffer) {
+func (c *context) bindArrayBuffer(b buffer) {
 	gl := c.gl
-	gl.Call("bindBuffer", int(bufferType), js.Value(b))
+	gl.Call("bindBuffer", gles.ARRAY_BUFFER, js.Value(b))
+}
+
+func (c *context) bindElementArrayBuffer(b buffer) {
+	gl := c.gl
+	gl.Call("bindBuffer", gles.ELEMENT_ARRAY_BUFFER, js.Value(b))
 }
 
 func (c *context) arrayBufferSubData(data []float32) {
@@ -450,7 +453,7 @@ func (c *context) arrayBufferSubData(data []float32) {
 	arr8 := jsutil.TemporaryUint8Array(len(data) * 4)
 	arr := js.Global().Get("Float32Array").New(arr8.Get("buffer"), arr8.Get("byteOffset"), len(data))
 	jsutil.CopySliceToJS(arr, data)
-	gl.Call("bufferSubData", int(arrayBuffer), 0, arr)
+	gl.Call("bufferSubData", gles.ARRAY_BUFFER, 0, arr)
 }
 
 func (c *context) elementArrayBufferSubData(data []uint16) {
@@ -458,7 +461,7 @@ func (c *context) elementArrayBufferSubData(data []uint16) {
 	arr8 := jsutil.TemporaryUint8Array(len(data) * 2)
 	arr := js.Global().Get("Uint16Array").New(arr8.Get("buffer"), arr8.Get("byteOffset"), len(data))
 	jsutil.CopySliceToJS(arr, data)
-	gl.Call("bufferSubData", int(elementArrayBuffer), 0, arr)
+	gl.Call("bufferSubData", gles.ELEMENT_ARRAY_BUFFER, 0, arr)
 }
 
 func (c *context) deleteBuffer(b buffer) {

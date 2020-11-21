@@ -16,12 +16,10 @@
 package gles
 
 const (
-	VERTEX_SHADER        = 0x8B31
-	FRAGMENT_SHADER      = 0x8B30
-	ARRAY_BUFFER         = 0x8892
-	ELEMENT_ARRAY_BUFFER = 0x8893
-	SHORT                = 0x1402
-	FLOAT                = 0x1406
+	VERTEX_SHADER   = 0x8B31
+	FRAGMENT_SHADER = 0x8B30
+	SHORT           = 0x1402
+	FLOAT           = 0x1406
 
 	ZERO                = 0
 	ONE                 = 1
@@ -31,11 +29,13 @@ const (
 	ONE_MINUS_DST_ALPHA = 0x0305
 	DST_COLOR           = 0x0306
 
+	ARRAY_BUFFER         = 0x8892
 	BLEND                = 0x0BE2
 	CLAMP_TO_EDGE        = 0x812F
 	COLOR_ATTACHMENT0    = 0x8CE0
 	COMPILE_STATUS       = 0x8B81
 	DYNAMIC_DRAW         = 0x88E8
+	ELEMENT_ARRAY_BUFFER = 0x8893
 	FALSE                = 0
 	FRAMEBUFFER          = 0x8D40
 	FRAMEBUFFER_BINDING  = 0x8CA6
