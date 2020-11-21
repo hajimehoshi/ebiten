@@ -98,7 +98,7 @@ var (
 )
 
 func init() {
-	if !jsutil.Equal(js.Global().Get("WebGL2RenderingContext"), js.Undefined()) {
+	if js.Global().Get("WebGL2RenderingContext").Truthy() {
 		isWebGL2Available = true
 	}
 }
