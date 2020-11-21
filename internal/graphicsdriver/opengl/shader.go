@@ -54,13 +54,13 @@ func (s *Shader) Dispose() {
 func (s *Shader) compile() error {
 	vssrc, fssrc := glsl.Compile(s.ir, glslVersion())
 
-	vs, err := s.graphics.context.newShader(vertexShader, vssrc)
+	vs, err := s.graphics.context.newVertexShader(vssrc)
 	if err != nil {
 		return fmt.Errorf("opengl: vertex shader compile error: %v, source:\n%s", err, vssrc)
 	}
 	defer s.graphics.context.deleteShader(vs)
 
-	fs, err := s.graphics.context.newShader(fragmentShader, fssrc)
+	fs, err := s.graphics.context.newFragmentShader(fssrc)
 	if err != nil {
 		return fmt.Errorf("opengl: fragment shader compile error: %v, source:\n%s", err, fssrc)
 	}

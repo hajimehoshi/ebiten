@@ -77,9 +77,6 @@ func getProgramID(p program) programID {
 }
 
 const (
-	vertexShader   = shaderType(gles.VERTEX_SHADER)
-	fragmentShader = shaderType(gles.FRAGMENT_SHADER)
-
 	zero             = operation(gles.ZERO)
 	one              = operation(gles.ONE)
 	srcAlpha         = operation(gles.SRC_ALPHA)
@@ -227,8 +224,16 @@ func (c *context) deleteFramebuffer(f framebufferNative) {
 	c.ctx.DeleteFramebuffers([]uint32{uint32(f)})
 }
 
-func (c *context) newShader(shaderType shaderType, source string) (shader, error) {
-	s := c.ctx.CreateShader(uint32(shaderType))
+func (c *context) newVertexShader(source string) (shader, error) {
+	return c.newShader(gles.VERTEX_SHADER, source)
+}
+
+func (c *context) newFragmentShader(source string) (shader, error) {
+	return c.newShader(gles.FRAGMENT_SHADER, source)
+}
+
+func (c *context) newShader(shaderType uint32, source string) (shader, error) {
+	s := c.ctx.CreateShader(shaderType)
 	if s == 0 {
 		return 0, fmt.Errorf("opengl: glCreateShader failed: shader type: %d", shaderType)
 	}

@@ -173,7 +173,7 @@ func (s *openGLState) reset(context *context) error {
 		}
 	}
 
-	shaderVertexModelviewNative, err := context.newShader(vertexShader, vertexShaderStr())
+	shaderVertexModelviewNative, err := context.newVertexShader(vertexShaderStr())
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
@@ -190,7 +190,7 @@ func (s *openGLState) reset(context *context) error {
 				driver.FilterLinear,
 				driver.FilterScreen,
 			} {
-				shaderFragmentColorMatrixNative, err := context.newShader(fragmentShader, fragmentShaderStr(c, f, a))
+				shaderFragmentColorMatrixNative, err := context.newFragmentShader(fragmentShaderStr(c, f, a))
 				if err != nil {
 					panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 				}

@@ -74,9 +74,6 @@ func getProgramID(p program) programID {
 }
 
 const (
-	vertexShader   = shaderType(gles.VERTEX_SHADER)
-	fragmentShader = shaderType(gles.FRAGMENT_SHADER)
-
 	zero             = operation(gles.ZERO)
 	one              = operation(gles.ONE)
 	srcAlpha         = operation(gles.SRC_ALPHA)
@@ -278,7 +275,15 @@ func (c *context) deleteFramebuffer(f framebufferNative) {
 	gl.Call("deleteFramebuffer", js.Value(f))
 }
 
-func (c *context) newShader(shaderType shaderType, source string) (shader, error) {
+func (c *context) newVertexShader(source string) (shader, error) {
+	return c.newShader(gles.VERTEX_SHADER, source)
+}
+
+func (c *context) newFragmentShader(source string) (shader, error) {
+	return c.newShader(gles.FRAGMENT_SHADER, source)
+}
+
+func (c *context) newShader(shaderType int, source string) (shader, error) {
 	gl := c.gl
 	s := gl.Call("createShader", int(shaderType))
 	if jsutil.Equal(s, js.Null()) {
@@ -479,7 +484,7 @@ func (c *context) maxTextureSizeImpl() int {
 
 func (c *context) getShaderPrecisionFormatPrecision() int {
 	gl := c.gl
-	return gl.Call("getShaderPrecisionFormat", js.ValueOf(int(fragmentShader)), gles.HIGH_FLOAT).Get("precision").Int()
+	return gl.Call("getShaderPrecisionFormat", gles.FRAGMENT_SHADER, gles.HIGH_FLOAT).Get("precision").Int()
 }
 
 func (c *context) flush() {

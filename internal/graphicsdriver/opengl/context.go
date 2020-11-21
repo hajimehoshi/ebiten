@@ -21,6 +21,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 )
 
+type operation int
+
 func convertOperation(op driver.Operation) operation {
 	switch op {
 	case driver.Zero:

@@ -16,9 +16,6 @@
 package gles
 
 const (
-	VERTEX_SHADER   = 0x8B31
-	FRAGMENT_SHADER = 0x8B30
-
 	ZERO                = 0
 	ONE                 = 1
 	SRC_ALPHA           = 0x0302
@@ -36,6 +33,7 @@ const (
 	ELEMENT_ARRAY_BUFFER = 0x8893
 	FALSE                = 0
 	FLOAT                = 0x1406
+	FRAGMENT_SHADER      = 0x8B30
 	FRAMEBUFFER          = 0x8D40
 	FRAMEBUFFER_BINDING  = 0x8CA6
 	FRAMEBUFFER_COMPLETE = 0x8CD5
@@ -63,5 +61,6 @@ const (
 	UNPACK_ALIGNMENT     = 0x0CF5
 	UNSIGNED_BYTE        = 0x1401
 	UNSIGNED_SHORT       = 0x1403
+	VERTEX_SHADER        = 0x8B31
 	WRITE_ONLY           = 0x88B9
 )
