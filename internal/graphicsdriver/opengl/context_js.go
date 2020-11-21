@@ -94,14 +94,8 @@ const (
 )
 
 var (
-	isWebGL2Available bool
+	isWebGL2Available = js.Global().Get("WebGL2RenderingContext").Truthy()
 )
-
-func init() {
-	if js.Global().Get("WebGL2RenderingContext").Truthy() {
-		isWebGL2Available = true
-	}
-}
 
 type contextImpl struct {
 	gl            js.Value
