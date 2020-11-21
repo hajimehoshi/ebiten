@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !js
+// +build android ios
 
 package opengl
 
@@ -21,5 +21,5 @@ import (
 )
 
 func glslVersion() glsl.GLSLVersion {
-	return glsl.GLSLVersionDefault
+	return glsl.GLSLVersionES100
 }

@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build !android
+// +build !js
+// +build !ios
+
 package opengl
 
 import (
@@ -19,8 +23,5 @@ import (
 )
 
 func glslVersion() glsl.GLSLVersion {
-	if isWebGL2Available {
-		return glsl.GLSLVersionES300
-	}
-	return glsl.GLSLVersionES100
+	return glsl.GLSLVersionDefault
 }

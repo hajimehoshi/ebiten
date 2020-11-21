@@ -28,7 +28,7 @@ type GLSLVersion int
 
 const (
 	GLSLVersionDefault GLSLVersion = iota
-	GLSLVersionWebGL1
+	GLSLVersionES100
 	GLSLVersionES300
 )
 
@@ -42,7 +42,7 @@ func VertexPrelude(version GLSLVersion) string {
 func FragmentPrelude(version GLSLVersion) string {
 	var prefix string
 	switch version {
-	case GLSLVersionWebGL1:
+	case GLSLVersionES100:
 		prefix = `#extension GL_OES_standard_derivatives : enable` + "\n\n"
 	case GLSLVersionES300:
 		prefix = `#version 300 es` + "\n\n"
