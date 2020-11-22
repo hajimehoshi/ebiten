@@ -60,8 +60,8 @@ var (
 	window                = js.Global().Get("window")
 	document              = js.Global().Get("document")
 	canvas                js.Value
-	requestAnimationFrame = window.Get("requestAnimationFrame")
-	setTimeout            = window.Get("setTimeout")
+	requestAnimationFrame = js.Global().Get("requestAnimationFrame")
+	setTimeout            = js.Global().Get("setTimeout")
 )
 
 func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
@@ -134,10 +134,14 @@ func (u *UserInterface) updateSize() {
 
 	if u.sizeChanged {
 		u.sizeChanged = false
-		body := document.Get("body")
-		bw := body.Get("clientWidth").Float()
-		bh := body.Get("clientHeight").Float()
-		u.context.Layout(bw, bh)
+		if document.Truthy() {
+			body := document.Get("body")
+			bw := body.Get("clientWidth").Float()
+			bh := body.Get("clientHeight").Float()
+			u.context.Layout(bw, bh)
+		} else {
+			u.context.Layout(640, 480)
+		}
 	}
 }
 
@@ -250,7 +254,12 @@ func (u *UserInterface) loop(context driver.UIContext) <-chan error {
 }
 
 func init() {
-	if jsutil.Equal(document.Get("body"), js.Null()) {
+	// docuemnt is undefined on node.js
+	if !document.Truthy() {
+		return
+	}
+
+	if !document.Get("body").Truthy() {
 		ch := make(chan struct{})
 		window.Call("addEventListener", "load", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			close(ch)
@@ -400,7 +409,7 @@ func init() {
 }
 
 func (u *UserInterface) Run(context driver.UIContext) error {
-	if u.initFocused {
+	if u.initFocused && window.Truthy() {
 		// Do not focus the canvas when the current document is in an iframe.
 		// Otherwise, the parent page tries to focus the iframe on every loading, which is annoying (#1373).
 		isInIframe := !jsutil.Equal(window.Get("location"), window.Get("parent").Get("location"))
@@ -417,11 +426,13 @@ func (u *UserInterface) RunWithoutMainLoop(context driver.UIContext) {
 }
 
 func (u *UserInterface) updateScreenSize() {
-	body := document.Get("body")
-	bw := int(body.Get("clientWidth").Float() * u.DeviceScaleFactor())
-	bh := int(body.Get("clientHeight").Float() * u.DeviceScaleFactor())
-	canvas.Set("width", bw)
-	canvas.Set("height", bh)
+	if document.Truthy() {
+		body := document.Get("body")
+		bw := int(body.Get("clientWidth").Float() * u.DeviceScaleFactor())
+		bh := int(body.Get("clientHeight").Float() * u.DeviceScaleFactor())
+		canvas.Set("width", bw)
+		canvas.Set("height", bh)
+	}
 	u.sizeChanged = true
 }
 

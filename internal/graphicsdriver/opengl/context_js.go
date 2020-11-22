@@ -85,6 +85,7 @@ const (
 
 var (
 	isWebGL2Available = !forceWebGL1 && js.Global().Get("WebGL2RenderingContext").Truthy()
+	needsRestoring_   = !web.IsMobileBrowser() && !js.Global().Get("go2cpp").Truthy()
 )
 
 type contextImpl struct {
@@ -95,27 +96,28 @@ type contextImpl struct {
 func (c *context) initGL() {
 	c.gl = js.Value{}
 
-	// TODO: Define id?
-	doc := js.Global().Get("document")
-	if !doc.Truthy() {
-		return
-	}
-	canvas := doc.Call("querySelector", "canvas")
-	attr := js.Global().Get("Object").New()
-	attr.Set("alpha", true)
-	attr.Set("premultipliedAlpha", true)
-
 	var gl js.Value
-	if isWebGL2Available {
-		gl = canvas.Call("getContext", "webgl2", attr)
-	} else {
-		gl = canvas.Call("getContext", "webgl", attr)
-		if jsutil.Equal(gl, js.Null()) {
-			gl = canvas.Call("getContext", "experimental-webgl", attr)
+
+	// TODO: Define id?
+	if doc := js.Global().Get("document"); doc.Truthy() {
+		canvas := doc.Call("querySelector", "canvas")
+		attr := js.Global().Get("Object").New()
+		attr.Set("alpha", true)
+		attr.Set("premultipliedAlpha", true)
+
+		if isWebGL2Available {
+			gl = canvas.Call("getContext", "webgl2", attr)
+		} else {
+			gl = canvas.Call("getContext", "webgl", attr)
 			if jsutil.Equal(gl, js.Null()) {
-				panic("opengl: getContext failed")
+				gl = canvas.Call("getContext", "experimental-webgl", attr)
+				if jsutil.Equal(gl, js.Null()) {
+					panic("opengl: getContext failed")
+				}
 			}
 		}
+	} else if go2cpp := js.Global().Get("go2cpp"); go2cpp.Truthy() {
+		gl = go2cpp.Get("gl")
 	}
 
 	c.gl = gl
@@ -493,7 +495,7 @@ func (c *context) flush() {
 }
 
 func (c *context) needsRestoring() bool {
-	return !web.IsMobileBrowser()
+	return needsRestoring_
 }
 
 func (c *context) canUsePBO() bool {

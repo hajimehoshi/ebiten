@@ -29,7 +29,11 @@ var (
 )
 
 func init() {
-	userAgent := js.Global().Get("navigator").Get("userAgent").String()
+	nav := js.Global().Get("navigator")
+	if !nav.Truthy() {
+		return
+	}
+	userAgent := nav.Get("userAgent").String()
 	isIOSSafari = strings.Contains(userAgent, "iPhone") || strings.Contains(userAgent, "iPad")
 	isAndroidChrome = strings.Contains(userAgent, "Android") && strings.Contains(userAgent, "Chrome")
 }

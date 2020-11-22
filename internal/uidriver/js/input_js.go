@@ -244,6 +244,9 @@ func (i *Input) setMouseCursor(x, y int) {
 
 func (i *Input) UpdateGamepads() {
 	nav := js.Global().Get("navigator")
+	if !nav.Truthy() {
+		return
+	}
 	if !nav.Get("getGamepads").Truthy() {
 		return
 	}
