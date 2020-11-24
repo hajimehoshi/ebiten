@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
+	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -214,9 +215,7 @@ func (q *commandQueue) flush() error {
 
 	es := q.indices
 	vs := q.vertices
-	if recordLog() {
-		fmt.Println("--")
-	}
+	debug.Logf("--\nGraphics commands:\n")
 
 	if theGraphicsDriver.HasHighPrecisionFloat() {
 		n := q.nvertices / graphics.VertexFloatNum
@@ -283,9 +282,7 @@ func (q *commandQueue) flush() error {
 			if err := c.Exec(indexOffset); err != nil {
 				return err
 			}
-			if recordLog() {
-				fmt.Printf("%s\n", c)
-			}
+			debug.Logf("  %s\n", c)
 			// TODO: indexOffset should be reset if the command type is different
 			// from the previous one. This fix is needed when another drawing command is
 			// introduced than drawTrianglesCommand.

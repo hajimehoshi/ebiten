@@ -22,6 +22,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
+	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
@@ -161,6 +162,7 @@ func (c *uiContext) update() error {
 		updateCount = 1
 		c.updateCalled = true
 	}
+	debug.Logf("--\nUpdate count per frame: %d\n", updateCount)
 
 	for i := 0; i < updateCount; i++ {
 		if err := hooks.RunBeforeUpdateHooks(); err != nil {
