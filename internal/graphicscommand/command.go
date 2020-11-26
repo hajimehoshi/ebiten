@@ -399,7 +399,9 @@ func (c *drawTrianglesCommand) String() string {
 		}
 	}
 
-	return fmt.Sprintf("draw-triangles: dst: %s <- src: [%s], num of indices: %d, colorm: %v, mode %s, filter: %s, address: %s", dst, strings.Join(srcstrs[:], ", "), c.nindices, c.color, mode, filter, address)
+	r := fmt.Sprintf("(x:%d, y:%d, width:%d, height:%d)",
+		int(c.dstRegion.X), int(c.dstRegion.Y), int(c.dstRegion.Width), int(c.dstRegion.Height))
+	return fmt.Sprintf("draw-triangles: dst: %s <- src: [%s], dst region: %s, num of indices: %d, colorm: %v, mode %s, filter: %s, address: %s", dst, strings.Join(srcstrs[:], ", "), r, c.nindices, c.color, mode, filter, address)
 }
 
 // Exec executes the drawTrianglesCommand.
