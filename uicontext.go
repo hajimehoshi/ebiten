@@ -176,10 +176,12 @@ func (c *uiContext) update() error {
 
 	c.updateOffscreen()
 
-	if IsScreenClearedEveryFrame() {
-		c.offscreen.Clear()
+	if updateCount > 0 {
+		if IsScreenClearedEveryFrame() {
+			c.offscreen.Clear()
+		}
+		c.game.Draw(c.offscreen)
 	}
-	c.game.Draw(c.offscreen)
 
 	// This clear is needed for fullscreen mode or some mobile platforms (#622).
 	c.screen.Clear()
