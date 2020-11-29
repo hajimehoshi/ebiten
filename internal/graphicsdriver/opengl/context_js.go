@@ -410,17 +410,17 @@ func (c *context) uniformFloats(p program, location string, v []float32, typ sha
 	return true
 }
 
-func (c *context) vertexAttribPointer(p program, index int, size int, stride int, offset int) {
+func (c *context) vertexAttribPointer(index int, size int, stride int, offset int) {
 	gl := c.gl
 	gl.Call("vertexAttribPointer", index, size, gles.FLOAT, false, stride, offset)
 }
 
-func (c *context) enableVertexAttribArray(p program, index int) {
+func (c *context) enableVertexAttribArray(index int) {
 	gl := c.gl
 	gl.Call("enableVertexAttribArray", index)
 }
 
-func (c *context) disableVertexAttribArray(p program, index int) {
+func (c *context) disableVertexAttribArray(index int) {
 	gl := c.gl
 	gl.Call("disableVertexAttribArray", index)
 }
