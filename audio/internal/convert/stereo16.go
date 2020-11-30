@@ -16,17 +16,15 @@ package convert
 
 import (
 	"io"
-
-	"github.com/hajimehoshi/ebiten/audio"
 )
 
 type Stereo16 struct {
-	source audio.ReadSeekCloser
+	source io.ReadSeeker
 	mono   bool
 	eight  bool
 }
 
-func NewStereo16(source audio.ReadSeekCloser, mono, eight bool) *Stereo16 {
+func NewStereo16(source io.ReadSeeker, mono, eight bool) *Stereo16 {
 	return &Stereo16{
 		source: source,
 		mono:   mono,
@@ -90,8 +88,4 @@ func (s *Stereo16) Seek(offset int64, whence int) (int64, error) {
 		offset /= 2
 	}
 	return s.source.Seek(offset, whence)
-}
-
-func (s *Stereo16) Close() error {
-	return s.source.Close()
 }

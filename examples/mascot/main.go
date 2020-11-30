@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 // Mascot is a desktop mascot on cross platforms.
 // This is inspired by mattn's gopher (https://github.com/mattn/gopher).
@@ -26,8 +26,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/hajimehoshi/ebiten"
-	rmascot "github.com/hajimehoshi/ebiten/examples/resources/images/mascot"
+	"github.com/hajimehoshi/ebiten/v2"
+	rmascot "github.com/hajimehoshi/ebiten/v2/examples/resources/images/mascot"
 )
 
 const (
@@ -55,19 +55,19 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	gopher1, _ = ebiten.NewImageFromImage(img1, ebiten.FilterDefault)
+	gopher1 = ebiten.NewImageFromImage(img1)
 
 	img2, _, err := image.Decode(bytes.NewReader(rmascot.Out02_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	gopher2, _ = ebiten.NewImageFromImage(img2, ebiten.FilterDefault)
+	gopher2 = ebiten.NewImageFromImage(img2)
 
 	img3, _, err := image.Decode(bytes.NewReader(rmascot.Out03_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	gopher3, _ = ebiten.NewImageFromImage(img3, ebiten.FilterDefault)
+	gopher3 = ebiten.NewImageFromImage(img3)
 }
 
 func init() {
@@ -87,7 +87,7 @@ func (m *mascot) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return width, height
 }
 
-func (m *mascot) Update(screen *ebiten.Image) error {
+func (m *mascot) Update() error {
 	m.count++
 
 	sw, sh := ebiten.ScreenSizeInFullscreen()
@@ -151,7 +151,6 @@ func (m *mascot) Draw(screen *ebiten.Image) {
 func main() {
 	ebiten.SetScreenTransparent(true)
 	ebiten.SetWindowDecorated(false)
-	ebiten.SetRunnableOnUnfocused(true)
 	ebiten.SetWindowFloating(true)
 	ebiten.SetWindowSize(width, height)
 	if err := ebiten.RunGame(&mascot{}); err != nil {

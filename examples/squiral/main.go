@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 // This demo is inspired by the xscreensaver 'squirals'.
 
@@ -25,9 +25,9 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"github.com/hajimehoshi/ebiten/inpututil"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 const (
@@ -79,7 +79,7 @@ var (
 	}
 	selectedPalette = 0
 	colorCycle      = 0
-	canvas          *ebiten.Image
+	canvas          = ebiten.NewImage(width, height)
 	auto            *automaton
 	// blocker is an arbitrary color used to prevent the
 	// squirals from leaving the canvas.
@@ -279,8 +279,6 @@ func setpix(xy vec2, col color.Color) {
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
-	c, _ := ebiten.NewImage(width, height, ebiten.FilterDefault)
-	canvas = c
 	canvas.Fill(background)
 
 	auto = &automaton{}
@@ -289,7 +287,7 @@ func init() {
 
 type Game struct{}
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	reset := false
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyB) {

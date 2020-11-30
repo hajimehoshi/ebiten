@@ -52,3 +52,7 @@ func (i *Image) EnsureNotSharedForTesting() {
 	defer backendsM.Unlock()
 	i.ensureNotShared()
 }
+
+func ResolveDeferredForTesting() {
+	resolveDeferred()
+}

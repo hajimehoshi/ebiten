@@ -11,5 +11,6 @@ func Foo() vec2 {
 		v4 := vec2(0)
 		v3 = v4
 	}
+	_ = v3
 	return v
 }

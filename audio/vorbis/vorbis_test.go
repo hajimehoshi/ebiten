@@ -15,33 +15,26 @@
 package vorbis_test
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/jfreymuth/oggvorbis"
 
-	"github.com/hajimehoshi/ebiten/audio"
-	. "github.com/hajimehoshi/ebiten/audio/vorbis"
+	"github.com/hajimehoshi/ebiten/v2/audio"
+	. "github.com/hajimehoshi/ebiten/v2/audio/vorbis"
 )
 
-var audioContext *audio.Context
-
-func init() {
-	var err error
-	audioContext, err = audio.NewContext(44100)
-	if err != nil {
-		panic(err)
-	}
-}
+var audioContext = audio.NewContext(44100)
 
 func TestMono(t *testing.T) {
 	bs := test_mono_ogg
 
-	s, err := Decode(audioContext, audio.BytesReadSeekCloser(bs))
+	s, err := Decode(audioContext, bytes.NewReader(bs))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	r, err := oggvorbis.NewReader(audio.BytesReadSeekCloser(bs))
+	r, err := oggvorbis.NewReader(bytes.NewReader(bs))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +55,7 @@ func TestMono(t *testing.T) {
 func TestTooShort(t *testing.T) {
 	bs := test_tooshort_ogg
 
-	s, err := Decode(audioContext, audio.BytesReadSeekCloser(bs))
+	s, err := Decode(audioContext, bytes.NewReader(bs))
 	if err != nil {
 		t.Fatal(err)
 	}

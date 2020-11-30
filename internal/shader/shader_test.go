@@ -15,6 +15,7 @@
 package shader_test
 
 import (
+	"fmt"
 	"go/parser"
 	"go/token"
 	"io/ioutil"
@@ -23,16 +24,45 @@ import (
 	"strings"
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/internal/shader"
-	"github.com/hajimehoshi/ebiten/internal/shaderir/glsl"
-	"github.com/hajimehoshi/ebiten/internal/shaderir/metal"
+	. "github.com/hajimehoshi/ebiten/v2/internal/shader"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/metal"
 )
 
-func normalize(str string) string {
-	if strings.HasPrefix(str, glsl.FragmentPrelude) {
-		str = str[len(glsl.FragmentPrelude):]
+func glslNormalize(str string) string {
+	p := glsl.FragmentPrelude(glsl.GLSLVersionDefault)
+	if strings.HasPrefix(str, p) {
+		str = str[len(p):]
 	}
 	return strings.TrimSpace(str)
+}
+
+func metalNormalize(str string) string {
+	if strings.HasPrefix(str, metal.Prelude) {
+		str = str[len(metal.Prelude):]
+	}
+	return strings.TrimSpace(str)
+}
+
+func compare(t *testing.T, title, got, want string) {
+	var msg string
+	gotlines := strings.Split(got, "\n")
+	wantlines := strings.Split(want, "\n")
+	for i := range gotlines {
+		if len(wantlines) <= i {
+			msg = fmt.Sprintf(`lines %d:
+got:  %s
+want: (out of range)`, i+1, gotlines[i])
+			break
+		}
+		if gotlines[i] != wantlines[i] {
+			msg = fmt.Sprintf(`lines %d:
+got:  %s
+want: %s`, i+1, gotlines[i], wantlines[i])
+			break
+		}
+	}
+	t.Errorf("%s: got: %v, want: %v\n\n%s", title, got, want, msg)
 }
 
 func TestCompile(t *testing.T) {
@@ -46,10 +76,11 @@ func TestCompile(t *testing.T) {
 	}
 
 	type testcase struct {
-		Name string
-		Src  []byte
-		VS   []byte
-		FS   []byte
+		Name  string
+		Src   []byte
+		VS    []byte
+		FS    []byte
+		Metal []byte
 	}
 
 	fnames := map[string]struct{}{}
@@ -99,6 +130,15 @@ func TestCompile(t *testing.T) {
 			t.Fatalf("no expected file for %s", name)
 		}
 
+		metaln := name + ".expected.metal"
+		if _, ok := fnames[metaln]; ok {
+			metal, err := ioutil.ReadFile(filepath.Join("testdata", metaln))
+			if err != nil {
+				t.Fatal(err)
+			}
+			tc.Metal = metal
+		}
+
 		tests = append(tests, tc)
 	}
 
@@ -115,13 +155,22 @@ func TestCompile(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			vs, fs := glsl.Compile(s)
-			if got, want := normalize(vs), normalize(string(tc.VS)); got != want {
-				t.Errorf("got: %v, want: %v", got, want)
+
+			// GLSL
+			vs, fs := glsl.Compile(s, glsl.GLSLVersionDefault)
+			if got, want := glslNormalize(vs), glslNormalize(string(tc.VS)); got != want {
+				compare(t, "GLSL Vertex", got, want)
 			}
 			if tc.FS != nil {
-				if got, want := normalize(fs), normalize(string(tc.FS)); got != want {
-					t.Errorf("got: %v, want: %v", got, want)
+				if got, want := glslNormalize(fs), glslNormalize(string(tc.FS)); got != want {
+					compare(t, "GLSL Fragment", got, want)
+				}
+			}
+
+			if tc.Metal != nil {
+				m := metal.Compile(s, "Vertex", "Fragment")
+				if got, want := metalNormalize(m), metalNormalize(string(tc.Metal)); got != want {
+					compare(t, "Metal", got, want)
 				}
 			}
 

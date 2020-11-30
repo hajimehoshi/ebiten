@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
@@ -26,14 +26,14 @@ import (
 
 	"golang.org/x/image/math/f64"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"github.com/hajimehoshi/ebiten/examples/resources/images"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 )
 
 const (
-	screenWidth  = 320
-	screenHeight = 240
+	screenWidth  = 640
+	screenHeight = 480
 )
 
 const (
@@ -65,7 +65,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	tilesImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	tilesImage = ebiten.NewImageFromImage(img)
 }
 
 type Camera struct {
@@ -103,8 +103,8 @@ func (c *Camera) worldMatrix() ebiten.GeoM {
 	return m
 }
 
-func (c *Camera) Render(world, screen *ebiten.Image) error {
-	return screen.DrawImage(world, &ebiten.DrawImageOptions{
+func (c *Camera) Render(world, screen *ebiten.Image) {
+	screen.DrawImage(world, &ebiten.DrawImageOptions{
 		GeoM: c.worldMatrix(),
 	})
 }
@@ -133,7 +133,7 @@ type Game struct {
 	camera Camera
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyLeft) {
 		g.camera.Position[0] -= 1
 	}
@@ -148,10 +148,14 @@ func (g *Game) Update(screen *ebiten.Image) error {
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyQ) {
-		g.camera.ZoomFactor -= 1
+		if g.camera.ZoomFactor > -2400 {
+			g.camera.ZoomFactor -= 1
+		}
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyE) {
-		g.camera.ZoomFactor += 1
+		if g.camera.ZoomFactor < 2400 {
+			g.camera.ZoomFactor += 1
+		}
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyR) {
@@ -169,7 +173,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Draw each tile with each DrawImage call.
 	// As the source images of all DrawImage calls are always same,
 	// this rendering is done very effectively.
-	// For more detail, see https://pkg.go.dev/github.com/hajimehoshi/ebiten#Image.DrawImage
+	// For more detail, see https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2#Image.DrawImage
 	for _, l := range g.layers {
 		for i, t := range l {
 			op := &ebiten.DrawImageOptions{}
@@ -257,9 +261,9 @@ func main() {
 		},
 		camera: Camera{ViewPort: f64.Vec2{screenWidth, screenHeight}},
 	}
-	g.world, _ = ebiten.NewImage(worldWidth, worldHeight, ebiten.FilterDefault)
+	g.world = ebiten.NewImage(worldWidth, worldHeight)
 
-	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Tiles (Ebiten Demo)")
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)

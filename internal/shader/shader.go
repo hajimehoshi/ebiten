@@ -20,7 +20,7 @@ import (
 	"go/token"
 	"strings"
 
-	"github.com/hajimehoshi/ebiten/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
 type variable struct {
@@ -50,9 +50,6 @@ type compileState struct {
 
 	ir shaderir.Program
 
-	// uniforms is a collection of uniform variable names.
-	uniforms []string
-
 	funcs []function
 
 	global block
@@ -72,7 +69,7 @@ func (cs *compileState) findFunction(name string) (int, bool) {
 }
 
 func (cs *compileState) findUniformVariable(name string) (int, bool) {
-	for i, u := range cs.uniforms {
+	for i, u := range cs.ir.UniformNames {
 		if u == name {
 			return i, true
 		}
@@ -86,11 +83,12 @@ type typ struct {
 }
 
 type block struct {
-	types  []typ
-	vars   []variable
-	consts []constant
-	pos    token.Pos
-	outer  *block
+	types      []typ
+	vars       []variable
+	unusedVars map[int]token.Pos
+	consts     []constant
+	pos        token.Pos
+	outer      *block
 
 	ir *shaderir.Block
 }
@@ -103,18 +101,40 @@ func (b *block) totalLocalVariableNum() int {
 	return c
 }
 
-func (b *block) findLocalVariable(name string) (int, shaderir.Type, bool) {
+func (b *block) addNamedLocalVariable(name string, typ shaderir.Type, pos token.Pos) {
+	b.vars = append(b.vars, variable{
+		name: name,
+		typ:  typ,
+	})
+	if name == "_" {
+		return
+	}
+	idx := len(b.vars) - 1
+	if b.unusedVars == nil {
+		b.unusedVars = map[int]token.Pos{}
+	}
+	b.unusedVars[idx] = pos
+}
+
+func (b *block) findLocalVariable(name string, markLocalVariableUsed bool) (int, shaderir.Type, bool) {
+	if name == "" || name == "_" {
+		panic("shader: variable name must be non-empty and non-underscore")
+	}
+
 	idx := 0
 	for outer := b.outer; outer != nil; outer = outer.outer {
 		idx += len(outer.vars)
 	}
 	for i, v := range b.vars {
 		if v.name == name {
+			if markLocalVariableUsed {
+				delete(b.unusedVars, i)
+			}
 			return idx + i, v.typ, true
 		}
 	}
 	if b.outer != nil {
-		return b.outer.findLocalVariable(name)
+		return b.outer.findLocalVariable(name, markLocalVariableUsed)
 	}
 	return 0, shaderir.Type{}, false
 }
@@ -184,20 +204,20 @@ func (cs *compileState) parse(f *ast.File) {
 	// Sort the uniform variable so that special variable starting with __ should come first.
 	var unames []string
 	var utypes []shaderir.Type
-	for i, u := range cs.uniforms {
+	for i, u := range cs.ir.UniformNames {
 		if strings.HasPrefix(u, "__") {
 			unames = append(unames, u)
 			utypes = append(utypes, cs.ir.Uniforms[i])
 		}
 	}
 	// TODO: Check len(unames) == graphics.PreservedUniformVariablesNum. Unfortunately this is not true on tests.
-	for i, u := range cs.uniforms {
+	for i, u := range cs.ir.UniformNames {
 		if !strings.HasPrefix(u, "__") {
 			unames = append(unames, u)
 			utypes = append(utypes, cs.ir.Uniforms[i])
 		}
 	}
-	cs.uniforms = unames
+	cs.ir.UniformNames = unames
 	cs.ir.Uniforms = utypes
 
 	// Parse function names so that any other function call the others.
@@ -296,14 +316,17 @@ func (cs *compileState) parseDecl(b *block, d ast.Decl) ([]shaderir.Stmt, bool) 
 								cs.addError(s.Names[i].Pos(), fmt.Sprintf("global variables must be exposed: %s", v.name))
 							}
 						}
-						cs.uniforms = append(cs.uniforms, v.name)
+						cs.ir.UniformNames = append(cs.ir.UniformNames, v.name)
 						cs.ir.Uniforms = append(cs.ir.Uniforms, v.typ)
 					}
 					continue
 				}
 
+				// base must be obtained before adding the variables.
 				base := b.totalLocalVariableNum()
-				b.vars = append(b.vars, vs...)
+				for _, v := range vs {
+					b.addNamedLocalVariable(v.name, v.typ, d.Pos())
+				}
 
 				if len(inits) > 0 {
 					for i := range vs {
@@ -421,7 +444,7 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 
 			init := vs.Values[i]
 
-			es, origts, ss, ok := s.parseExpr(block, init)
+			es, origts, ss, ok := s.parseExpr(block, init, true)
 			if !ok {
 				return nil, nil, nil, false
 			}
@@ -457,7 +480,7 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 
 				var ss []shaderir.Stmt
 				var ok bool
-				initexprs, inittypes, ss, ok = s.parseExpr(block, init)
+				initexprs, inittypes, ss, ok = s.parseExpr(block, init, true)
 				if !ok {
 					return nil, nil, nil, false
 				}
@@ -483,6 +506,12 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 		}
 
 		name := n.Name
+		for _, v := range append(block.vars, vars...) {
+			if v.name == name {
+				s.addError(vs.Pos(), fmt.Sprintf("duplicated local variable name: %s", name))
+				return nil, nil, nil, false
+			}
+		}
 		vars = append(vars, variable{
 			name: name,
 			typ:  t,
@@ -556,6 +585,10 @@ func (cs *compileState) parseFuncParams(block *block, d *ast.FuncDecl) (in, out 
 func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool) {
 	if d.Name == nil {
 		cs.addError(d.Pos(), "function must have a name")
+		return function{}, false
+	}
+	if d.Name.Name == "init" {
+		cs.addError(d.Pos(), "init function is not implemented")
 		return function{}, false
 	}
 	if d.Body == nil {
@@ -633,9 +666,31 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 		}
 	}
 
-	b, ok := cs.parseBlock(block, d.Name.Name, d.Body.List, inParams, outParams)
+	b, ok := cs.parseBlock(block, d.Name.Name, d.Body.List, inParams, outParams, true)
 	if !ok {
 		return function{}, false
+	}
+
+	if len(outParams) > 0 {
+		var hasReturn func(stmts []shaderir.Stmt) bool
+		hasReturn = func(stmts []shaderir.Stmt) bool {
+			for _, stmt := range stmts {
+				if stmt.Type == shaderir.Return {
+					return true
+				}
+				for _, b := range stmt.Blocks {
+					if hasReturn(b.Stmts) {
+						return true
+					}
+				}
+			}
+			return false
+		}
+
+		if !hasReturn(b.ir.Stmts) {
+			cs.addError(d.Pos(), fmt.Sprintf("function %s must have a return statement but not", d.Name))
+			return function{}, false
+		}
 	}
 
 	var inT, outT []shaderir.Type
@@ -657,7 +712,7 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 	}, true
 }
 
-func (cs *compileState) parseBlock(outer *block, fname string, stmts []ast.Stmt, inParams, outParams []variable) (*block, bool) {
+func (cs *compileState) parseBlock(outer *block, fname string, stmts []ast.Stmt, inParams, outParams []variable, checkLocalVariableUsage bool) (*block, bool) {
 	var vars []variable
 	if outer == &cs.global {
 		vars = make([]variable, 0, len(inParams)+len(outParams))
@@ -666,27 +721,11 @@ func (cs *compileState) parseBlock(outer *block, fname string, stmts []ast.Stmt,
 	}
 
 	var offset int
-	switch {
-	case outer.outer == nil && fname == cs.vertexEntry:
-		offset = 0
-	case outer.outer == nil && fname == cs.fragmentEntry:
-		offset = 0
-	case outer.outer == nil:
-		offset = len(inParams) + len(outParams)
-	default:
-		for b := outer; b != nil; b = b.outer {
-			offset += len(b.vars)
-		}
-		if fname == cs.vertexEntry {
-			offset -= len(cs.ir.Attributes)
-			offset-- // position
-			offset -= len(cs.ir.Varyings)
-		}
-		if fname == cs.fragmentEntry {
-			offset-- // position
-			offset -= len(cs.ir.Varyings)
-			offset-- // color
-		}
+	for b := outer; b != nil; b = b.outer {
+		offset += len(b.vars)
+	}
+	if outer == &cs.global {
+		offset += len(inParams) + len(outParams)
 	}
 
 	block := &block{
@@ -711,12 +750,28 @@ func (cs *compileState) parseBlock(outer *block, fname string, stmts []ast.Stmt,
 		}
 	}()
 
+	if outer.outer == nil && len(outParams) > 0 && outParams[0].name != "" {
+		for i := range outParams {
+			block.ir.Stmts = append(block.ir.Stmts, shaderir.Stmt{
+				Type:      shaderir.Init,
+				InitIndex: len(inParams) + i,
+			})
+		}
+	}
+
 	for _, stmt := range stmts {
-		ss, ok := cs.parseStmt(block, fname, stmt, inParams)
+		ss, ok := cs.parseStmt(block, fname, stmt, inParams, outParams)
 		if !ok {
 			return nil, false
 		}
 		block.ir.Stmts = append(block.ir.Stmts, ss...)
+	}
+
+	if checkLocalVariableUsage && len(block.unusedVars) > 0 {
+		for idx, pos := range block.unusedVars {
+			cs.addError(pos, fmt.Sprintf("local variable %s is not used", block.vars[idx].name))
+		}
+		return nil, false
 	}
 
 	return block, true

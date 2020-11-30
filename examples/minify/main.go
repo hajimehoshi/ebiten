@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 // This example is an experiment to minify images with various filters.
 // When linear filter is used, mipmap images should be used for high-quality rendering (#578).
@@ -27,10 +27,10 @@ import (
 	"log"
 	"math"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"github.com/hajimehoshi/ebiten/examples/resources/images"
-	"github.com/hajimehoshi/ebiten/inpututil"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 const (
@@ -48,7 +48,7 @@ type Game struct {
 	counter int
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	g.counter++
 	if g.counter == 480 {
 		g.counter = 0
@@ -111,10 +111,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Specifying filter on NewImage[FromImage] is just for backward compatibility.
-	// Now specifying filter at DrawImageOptions is recommended.
-	// Specify FilterDefault here, that means to prefer filter specified at DrawImageOptions.
-	gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	gophersImage = ebiten.NewImageFromImage(img)
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Minify (Ebiten Demo)")

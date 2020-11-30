@@ -120,3 +120,69 @@ const (
 	Array
 	Struct
 )
+
+func descendantLocalVars(block, target *Block) ([]Type, bool) {
+	if block == target {
+		return block.LocalVars, true
+	}
+
+	var ts []Type
+	for _, s := range block.Stmts {
+		for _, b := range s.Blocks {
+			if ts2, found := descendantLocalVars(b, target); found {
+				n := b.LocalVarIndexOffset - block.LocalVarIndexOffset
+				ts = append(ts, block.LocalVars[:n]...)
+				ts = append(ts, ts2...)
+				return ts, true
+			}
+		}
+	}
+	return nil, false
+}
+
+func localVariableType(p *Program, topBlock, block *Block, absidx int) Type {
+	// TODO: Rename this function (truly-local variable?)
+	var ts []Type
+	for _, f := range p.Funcs {
+		if f.Block == topBlock {
+			ts = append(f.InParams, f.OutParams...)
+			break
+		}
+	}
+
+	ts2, _ := descendantLocalVars(topBlock, block)
+	ts = append(ts, ts2...)
+	return ts[absidx]
+}
+
+func (p *Program) LocalVariableType(topBlock, block *Block, idx int) Type {
+	switch topBlock {
+	case p.VertexFunc.Block:
+		na := len(p.Attributes)
+		nv := len(p.Varyings)
+		switch {
+		case idx < na:
+			return p.Attributes[idx]
+		case idx == na:
+			return Type{Main: Vec4}
+		case idx < na+nv+1:
+			return p.Varyings[idx-na-1]
+		default:
+			return localVariableType(p, topBlock, block, idx-(na+nv+1))
+		}
+	case p.FragmentFunc.Block:
+		nv := len(p.Varyings)
+		switch {
+		case idx == 0:
+			return Type{Main: Vec4}
+		case idx < nv+1:
+			return p.Varyings[idx-1]
+		case idx == nv+1:
+			return Type{Main: Vec4}
+		default:
+			return localVariableType(p, topBlock, block, idx-(nv+2))
+		}
+	default:
+		return localVariableType(p, topBlock, block, idx)
+	}
+}

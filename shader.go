@@ -19,10 +19,12 @@ import (
 	"fmt"
 	"go/parser"
 	"go/token"
+	"strings"
 
-	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/mipmap"
-	"github.com/hajimehoshi/ebiten/internal/shader"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
+	"github.com/hajimehoshi/ebiten/v2/internal/shader"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
 var shaderSuffix string
@@ -56,11 +58,11 @@ var __textureSourceRegionOrigin vec2
 // The unit is the source texture's texel.
 var __textureSourceRegionSize vec2
 
-// imageSrcTextureSourceRegion returns the source image's region (the origin and the size) on its texture.
+// imageSrcRegionOnTexture returns the source image's region (the origin and the size) on its texture.
 // The unit is the source texture's texel.
 //
 // As an image is a part of internal texture, the image can be located at an arbitrary position on the texture.
-func imageSrcTextureSourceRegion() (vec2, vec2) {
+func imageSrcRegionOnTexture() (vec2, vec2) {
 	return __textureSourceRegionOrigin, __textureSourceRegionSize
 }
 `, graphics.ShaderImageNum, graphics.ShaderImageNum-1)
@@ -73,12 +75,12 @@ func imageSrcTextureSourceRegion() (vec2, vec2) {
 		}
 		// __t%d is a special variable for a texture variable.
 		shaderSuffix += fmt.Sprintf(`
-func image%[1]dTextureAt(pos vec2) vec4 {
+func imageSrc%[1]dUnsafeAt(pos vec2) vec4 {
 	// pos is the position in texels of the source texture (= 0th image's texture).
 	return texture2D(__t%[1]d, %[2]s)
 }
 
-func image%[1]dTextureBoundsAt(pos vec2) vec4 {
+func imageSrc%[1]dAt(pos vec2) vec4 {
 	// pos is the position in texels of the source texture (= 0th image's texture).
 	return texture2D(__t%[1]d, %[2]s) *
 		step(__textureSourceRegionOrigin.x, pos.x) *
@@ -92,8 +94,8 @@ func image%[1]dTextureBoundsAt(pos vec2) vec4 {
 	shaderSuffix += `
 func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
 	return mat4(
-		2/imageDstTextureSize().x, 0, 0, 0,
-		0, 2/imageDstTextureSize().y, 0, 0,
+		2/__imageDstTextureSize.x, 0, 0, 0,
+		0, 2/__imageDstTextureSize.y, 0, 0,
 		0, 0, 1, 0,
 		-1, -1, 0, 1,
 	) * vec4(position, 0, 1), texCoord, color
@@ -101,10 +103,20 @@ func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
 `
 }
 
+// Shader represents a compiled shader program.
+//
+// For the details about the shader, see https://ebiten.org/documents/shader.html.
 type Shader struct {
-	shader *mipmap.Shader
+	shader       *mipmap.Shader
+	uniformNames []string
+	uniformTypes []shaderir.Type
 }
 
+// NewShader compiles a shader program in the shading language Kage, and retruns the result.
+//
+// If the compilation fails, NewShader returns an error.
+//
+// For the details about the shader, see https://ebiten.org/documents/shader.html.
 func NewShader(src []byte) (*Shader, error) {
 	var buf bytes.Buffer
 	buf.Write(src)
@@ -116,18 +128,94 @@ func NewShader(src []byte) (*Shader, error) {
 		return nil, err
 	}
 
-	// TODO: Create a pseudo vertex entrypoint to treat the attribute values correctly.
-	s, err := shader.Compile(fs, f, "__vertex", "Fragment", graphics.ShaderImageNum)
+	const (
+		vert = "__vertex"
+		frag = "Fragment"
+	)
+	s, err := shader.Compile(fs, f, vert, frag, graphics.ShaderImageNum)
 	if err != nil {
 		return nil, err
 	}
 
+	if s.VertexFunc.Block == nil {
+		return nil, fmt.Errorf("ebiten: vertex shader entry point '%s' is missing", vert)
+	}
+	if s.FragmentFunc.Block == nil {
+		return nil, fmt.Errorf("ebiten: fragment shader entry point '%s' is missing", frag)
+	}
+
 	return &Shader{
-		shader: mipmap.NewShader(s),
+		shader:       mipmap.NewShader(s),
+		uniformNames: s.UniformNames,
+		uniformTypes: s.Uniforms,
 	}, nil
 }
 
+// Dispose disposes the shader program.
+// After disposing, the shader is no longer available.
 func (s *Shader) Dispose() {
 	s.shader.MarkDisposed()
 	s.shader = nil
+}
+
+func (s *Shader) convertUniforms(uniforms map[string]interface{}) []interface{} {
+	type index struct {
+		resultIndex        int
+		shaderUniformIndex int
+	}
+
+	names := map[string]index{}
+	var idx int
+	for i, n := range s.uniformNames {
+		if strings.HasPrefix(n, "__") {
+			continue
+		}
+		names[n] = index{
+			resultIndex:        idx,
+			shaderUniformIndex: i,
+		}
+		idx++
+	}
+
+	us := make([]interface{}, len(names))
+	for name, idx := range names {
+		if v, ok := uniforms[name]; ok {
+			// TODO: Check the uniform variable types?
+			us[idx.resultIndex] = v
+			continue
+		}
+
+		t := s.uniformTypes[idx.shaderUniformIndex]
+		v := zeroUniformValue(t)
+		if v == nil {
+			panic(fmt.Sprintf("ebiten: unexpected uniform variable type: %s", t.String()))
+		}
+		us[idx.resultIndex] = v
+	}
+
+	// TODO: Panic if uniforms include an invalid name
+
+	return us
+}
+
+func zeroUniformValue(t shaderir.Type) interface{} {
+	switch t.Main {
+	case shaderir.Bool:
+		return false
+	case shaderir.Int:
+		return 0
+	case shaderir.Float:
+		return float32(0)
+	case shaderir.Array:
+		switch t.Sub[0].Main {
+		case shaderir.Bool:
+			return make([]bool, t.Length)
+		case shaderir.Int:
+			return make([]int, t.Length)
+		default:
+			return make([]float32, t.FloatNum())
+		}
+	default:
+		return make([]float32, t.FloatNum())
+	}
 }

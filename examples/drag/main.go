@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
@@ -25,10 +25,10 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"github.com/hajimehoshi/ebiten/examples/resources/images"
-	"github.com/hajimehoshi/ebiten/inpututil"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 func init() {
@@ -36,8 +36,8 @@ func init() {
 }
 
 const (
-	screenWidth  = 320
-	screenHeight = 240
+	screenWidth  = 640
+	screenHeight = 480
 )
 
 // Sprite represents an image.
@@ -106,7 +106,7 @@ func (m *MouseStrokeSource) IsJustReleased() bool {
 
 // TouchStrokeSource is a StrokeSource implementation of touch.
 type TouchStrokeSource struct {
-	ID int
+	ID ebiten.TouchID
 }
 
 func (t *TouchStrokeSource) Position() (int, int) {
@@ -203,7 +203,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ebitenImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	ebitenImage = ebiten.NewImageFromImage(img)
 }
 
 func NewGame() *Game {
@@ -266,7 +266,7 @@ func (g *Game) updateStroke(stroke *Stroke) {
 	stroke.SetDraggingObject(nil)
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		s := NewStroke(&MouseStrokeSource{})
 		s.SetDraggingObject(g.spriteAt(s.Position()))
@@ -316,7 +316,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Drag & Drop (Ebiten Demo)")
 	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)

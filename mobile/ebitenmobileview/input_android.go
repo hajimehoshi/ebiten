@@ -19,8 +19,8 @@ import (
 	"hash/crc32"
 	"unicode"
 
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/uidriver/mobile"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/uidriver/mobile"
 )
 
 // https://developer.android.com/reference/android/view/KeyEvent
@@ -177,18 +177,18 @@ var androidAxisIDToAxisID = map[int]int{
 var (
 	// deviceIDToGamepadID is a map from Android device IDs to Ebiten gamepad IDs.
 	// As convention, Ebiten gamepad IDs start with 0, and many applications depend on this fact.
-	deviceIDToGamepadID = map[int]int{}
+	deviceIDToGamepadID = map[int]driver.GamepadID{}
 )
 
-func gamepadIDFromDeviceID(deviceID int) int {
+func gamepadIDFromDeviceID(deviceID int) driver.GamepadID {
 	if id, ok := deviceIDToGamepadID[deviceID]; ok {
 		return id
 	}
-	ids := map[int]struct{}{}
+	ids := map[driver.GamepadID]struct{}{}
 	for _, id := range deviceIDToGamepadID {
 		ids[id] = struct{}{}
 	}
-	for i := 0; ; i++ {
+	for i := driver.GamepadID(0); ; i++ {
 		if _, ok := ids[i]; ok {
 			continue
 		}
@@ -201,18 +201,12 @@ func gamepadIDFromDeviceID(deviceID int) int {
 func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 	switch action {
 	case 0x00, 0x05, 0x02: // ACTION_DOWN, ACTION_POINTER_DOWN, ACTION_MOVE
-		touches[id] = position{x, y}
+		touches[driver.TouchID(id)] = position{x, y}
 		updateInput()
 	case 0x01, 0x06: // ACTION_UP, ACTION_POINTER_UP
-		delete(touches, id)
+		delete(touches, driver.TouchID(id))
 		updateInput()
 	}
-}
-
-// UpdateTouchesOnIOS is a dummy function for backward compatibility.
-// UpdateTouchesOnIOS is called from ebiten/mobile package.
-func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
-	panic("ebitenmobileview: updateTouchesOnIOSImpl must not be called on Android")
 }
 
 func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int) {

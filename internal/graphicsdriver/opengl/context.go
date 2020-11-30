@@ -18,9 +18,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/thread"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 )
+
+type operation int
 
 func convertOperation(op driver.Operation) operation {
 	switch op {
@@ -55,8 +56,6 @@ type context struct {
 	maxTextureSizeOnce sync.Once
 	highp              bool
 	highpOnce          sync.Once
-
-	t *thread.Thread
 
 	contextImpl
 }

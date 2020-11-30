@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 
-// +build !js
 // +build !windows
 
 package gl
@@ -123,6 +122,7 @@ package gl
 // typedef void  (APIENTRYP GPGENBUFFERS)(GLsizei  n, GLuint * buffers);
 // typedef void  (APIENTRYP GPGENFRAMEBUFFERSEXT)(GLsizei  n, GLuint * framebuffers);
 // typedef void  (APIENTRYP GPGENTEXTURES)(GLsizei  n, GLuint * textures);
+// typedef void  (APIENTRYP GPGETBUFFERSUBDATA)(GLenum  target, GLintptr  offset, GLsizeiptr  size, void * data);
 // typedef void  (APIENTRYP GPGETDOUBLEI_V)(GLenum  target, GLuint  index, GLdouble * data);
 // typedef void  (APIENTRYP GPGETDOUBLEI_VEXT)(GLenum  pname, GLuint  index, GLdouble * params);
 // typedef GLenum  (APIENTRYP GPGETERROR)();
@@ -148,6 +148,7 @@ package gl
 // typedef void  (APIENTRYP GPLINKPROGRAM)(GLuint  program);
 // typedef void  (APIENTRYP GPPIXELSTOREI)(GLenum  pname, GLint  param);
 // typedef void  (APIENTRYP GPREADPIXELS)(GLint  x, GLint  y, GLsizei  width, GLsizei  height, GLenum  format, GLenum  type, void * pixels);
+// typedef void  (APIENTRYP GPSCISSOR)(GLint  x, GLint  y, GLsizei  width, GLsizei  height);
 // typedef void  (APIENTRYP GPSHADERSOURCE)(GLuint  shader, GLsizei  count, const GLchar *const* string, const GLint * length);
 // typedef void  (APIENTRYP GPTEXIMAGE2D)(GLenum  target, GLint  level, GLint  internalformat, GLsizei  width, GLsizei  height, GLint  border, GLenum  format, GLenum  type, const void * pixels);
 // typedef void  (APIENTRYP GPTEXPARAMETERI)(GLenum  target, GLenum  pname, GLint  param);
@@ -246,6 +247,9 @@ package gl
 // static void  glowGenTextures(GPGENTEXTURES fnptr, GLsizei  n, GLuint * textures) {
 //   (*fnptr)(n, textures);
 // }
+// static void  glowGetBufferSubData(GPGETBUFFERSUBDATA fnptr, GLenum  target, GLintptr  offset, GLsizeiptr  size, void * data) {
+//   (*fnptr)(target, offset, size, data);
+// }
 // static void  glowGetDoublei_v(GPGETDOUBLEI_V fnptr, GLenum  target, GLuint  index, GLdouble * data) {
 //   (*fnptr)(target, index, data);
 // }
@@ -320,6 +324,9 @@ package gl
 // }
 // static void  glowReadPixels(GPREADPIXELS fnptr, GLint  x, GLint  y, GLsizei  width, GLsizei  height, GLenum  format, GLenum  type, void * pixels) {
 //   (*fnptr)(x, y, width, height, format, type, pixels);
+// }
+// static void  glowScissor(GPSCISSOR fnptr, GLint  x, GLint  y, GLsizei  width, GLsizei  height) {
+//   (*fnptr)(x, y, width, height);
 // }
 // static void  glowShaderSource(GPSHADERSOURCE fnptr, GLuint  shader, GLsizei  count, const GLchar *const* string, const GLint * length) {
 //   (*fnptr)(shader, count, string, length);
@@ -404,6 +411,7 @@ var (
 	gpGenBuffers                  C.GPGENBUFFERS
 	gpGenFramebuffersEXT          C.GPGENFRAMEBUFFERSEXT
 	gpGenTextures                 C.GPGENTEXTURES
+	gpGetBufferSubData            C.GPGETBUFFERSUBDATA
 	gpGetDoublei_v                C.GPGETDOUBLEI_V
 	gpGetDoublei_vEXT             C.GPGETDOUBLEI_VEXT
 	gpGetError                    C.GPGETERROR
@@ -429,6 +437,7 @@ var (
 	gpLinkProgram                 C.GPLINKPROGRAM
 	gpPixelStorei                 C.GPPIXELSTOREI
 	gpReadPixels                  C.GPREADPIXELS
+	gpScissor                     C.GPSCISSOR
 	gpShaderSource                C.GPSHADERSOURCE
 	gpTexImage2D                  C.GPTEXIMAGE2D
 	gpTexParameteri               C.GPTEXPARAMETERI
@@ -565,6 +574,10 @@ func GenTextures(n int32, textures *uint32) {
 	C.glowGenTextures(gpGenTextures, (C.GLsizei)(n), (*C.GLuint)(unsafe.Pointer(textures)))
 }
 
+func GetBufferSubData(target uint32, offset int, size int, data unsafe.Pointer) {
+	C.glowGetBufferSubData(gpGetBufferSubData, (C.GLenum)(target), (C.GLintptr)(offset), (C.GLsizeiptr)(size), data)
+}
+
 func GetDoublei_v(target uint32, index uint32, data *float64) {
 	C.glowGetDoublei_v(gpGetDoublei_v, (C.GLenum)(target), (C.GLuint)(index), (*C.GLdouble)(unsafe.Pointer(data)))
 }
@@ -662,6 +675,10 @@ func ReadPixels(x int32, y int32, width int32, height int32, format uint32, xtyp
 	C.glowReadPixels(gpReadPixels, (C.GLint)(x), (C.GLint)(y), (C.GLsizei)(width), (C.GLsizei)(height), (C.GLenum)(format), (C.GLenum)(xtype), pixels)
 }
 
+func Scissor(x int32, y int32, width int32, height int32) {
+	C.glowScissor(gpScissor, (C.GLint)(x), (C.GLint)(y), (C.GLsizei)(width), (C.GLsizei)(height))
+}
+
 func ShaderSource(shader uint32, count int32, xstring **uint8, length *int32) {
 	C.glowShaderSource(gpShaderSource, (C.GLuint)(shader), (C.GLsizei)(count), (**C.GLchar)(unsafe.Pointer(xstring)), (*C.GLint)(unsafe.Pointer(length)))
 }
@@ -727,7 +744,9 @@ func Viewport(x int32, y int32, width int32, height int32) {
 }
 
 // InitWithProcAddrFunc intializes the package using the specified OpenGL
-// function pointer loading function. For more cases Init should be used
+// function pointer loading function.
+//
+// For more cases Init should be used.
 func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
 	gpActiveTexture = (C.GPACTIVETEXTURE)(getProcAddr("glActiveTexture"))
 	if gpActiveTexture == nil {
@@ -822,6 +841,10 @@ func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
 	if gpGenTextures == nil {
 		return errors.New("glGenTextures")
 	}
+	gpGetBufferSubData = (C.GPGETBUFFERSUBDATA)(getProcAddr("glGetBufferSubData"))
+	if gpGetBufferSubData == nil {
+		return errors.New("glGetBufferSubData")
+	}
 	gpGetDoublei_v = (C.GPGETDOUBLEI_V)(getProcAddr("glGetDoublei_v"))
 	gpGetDoublei_vEXT = (C.GPGETDOUBLEI_VEXT)(getProcAddr("glGetDoublei_vEXT"))
 	gpGetError = (C.GPGETERROR)(getProcAddr("glGetError"))
@@ -882,6 +905,10 @@ func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
 	gpReadPixels = (C.GPREADPIXELS)(getProcAddr("glReadPixels"))
 	if gpReadPixels == nil {
 		return errors.New("glReadPixels")
+	}
+	gpScissor = (C.GPSCISSOR)(getProcAddr("glScissor"))
+	if gpScissor == nil {
+		return errors.New("glScissor")
 	}
 	gpShaderSource = (C.GPSHADERSOURCE)(getProcAddr("glShaderSource"))
 	if gpShaderSource == nil {

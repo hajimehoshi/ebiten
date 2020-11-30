@@ -1,21 +1,20 @@
-module github.com/hajimehoshi/ebiten
+module github.com/hajimehoshi/ebiten/v2
 
-go 1.12
+go 1.13
 
 require (
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20200707082815-5321531c36a2
-	github.com/gofrs/flock v0.7.1
-	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
-	github.com/hajimehoshi/bitmapfont v1.2.0
+	github.com/gofrs/flock v0.8.0
+	github.com/hajimehoshi/bitmapfont/v2 v2.1.2
 	github.com/hajimehoshi/file2byteslice v0.0.0-20200812174855-0e5e8a80490e
-	github.com/hajimehoshi/go-mp3 v0.3.1-0.20200816104415-cc618d12977d
-	github.com/hajimehoshi/oto v0.6.4-0.20200816184344-d50fea5bc4cc
+	github.com/hajimehoshi/go-mp3 v0.3.1
+	github.com/hajimehoshi/oto v0.6.8-0.20201122133406-2b7bad9ba66d
 	github.com/jakecoffman/cp v1.0.0
 	github.com/jfreymuth/oggvorbis v1.0.1
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
-	golang.org/x/image v0.0.0-20200801110659-972c09e46d76
+	golang.org/x/image v0.0.0-20200927104501-e162460cd6b5
 	golang.org/x/mobile v0.0.0-20200801112145-973feb4309de
-	golang.org/x/sys v0.0.0-20200812155832-6a926be9bd1d
-	golang.org/x/tools v0.0.0-20200811215021-48a8ffc5b207
-	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
+	golang.org/x/sys v0.0.0-20201009025420-dfb3f7c4e634
+	golang.org/x/tools v0.0.0-20201009162240-fcf82128ed91
+	gopkg.in/check.v1 v1.0.0-20200902074654-038fdea0a05b // indirect
 )

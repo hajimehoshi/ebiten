@@ -17,7 +17,7 @@ package glsl
 import (
 	"fmt"
 
-	"github.com/hajimehoshi/ebiten/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
 func typeString(t *shaderir.Type) (string, string) {
@@ -63,12 +63,19 @@ func basicTypeString(t shaderir.BasicType) string {
 	}
 }
 
-func builtinFuncString(f shaderir.BuiltinFunc) string {
+func (c *compileContext) builtinFuncString(f shaderir.BuiltinFunc) string {
 	switch f {
+	case shaderir.Atan2:
+		return "atan"
 	case shaderir.Dfdx:
 		return "dFdx"
 	case shaderir.Dfdy:
 		return "dFdy"
+	case shaderir.Texture2DF:
+		if c.version == GLSLVersionES300 {
+			return "texture"
+		}
+		return "texture2D"
 	default:
 		return string(f)
 	}

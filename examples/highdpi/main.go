@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
@@ -21,8 +21,8 @@ import (
 	_ "image/jpeg"
 	"log"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
 var (
@@ -49,7 +49,7 @@ type Game struct {
 	highDPIImage *ebiten.Image
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	// TODO: DeviceScaleFactor() might return different values for different monitors.
 	// Add a mode to adjust the screen size along with the current device scale (#705).
 	// Now this example uses the device scale initialized at the beginning of this application.

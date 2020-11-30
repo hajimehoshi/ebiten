@@ -9,5 +9,6 @@ func Foo() vec2 {
 	for i := 10.0; i >= 0; i -= 2 {
 		v2.x += i
 	}
+	_ = v2
 	return v
 }

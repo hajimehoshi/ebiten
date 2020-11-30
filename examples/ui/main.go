@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
@@ -24,14 +24,14 @@ import (
 	"log"
 	"strings"
 
-	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
+	"golang.org/x/image/font/opentype"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/examples/resources/images"
-	"github.com/hajimehoshi/ebiten/inpututil"
-	"github.com/hajimehoshi/ebiten/text"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/text"
 )
 
 const (
@@ -58,17 +58,20 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	uiImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	uiImage = ebiten.NewImageFromImage(img)
 
-	tt, err := truetype.Parse(goregular.TTF)
+	tt, err := opentype.Parse(goregular.TTF)
 	if err != nil {
 		log.Fatal(err)
 	}
-	uiFont = truetype.NewFace(tt, &truetype.Options{
+	uiFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    12,
 		DPI:     72,
 		Hinting: font.HintingFull,
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 	b, _, _ := uiFont.GlyphBounds('M')
 	uiFontMHeight = (b.Max.Y - b.Min.Y).Ceil()
 }
@@ -355,7 +358,7 @@ func (t *TextBox) Draw(dst *ebiten.Image) {
 	}
 	if t.contentBuf == nil {
 		w, h := t.viewSize()
-		t.contentBuf, _ = ebiten.NewImage(w, h, ebiten.FilterDefault)
+		t.contentBuf = ebiten.NewImage(w, h)
 	}
 
 	t.contentBuf.Clear()
@@ -487,7 +490,7 @@ func init() {
 	})
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	g.button1.Update()
 	g.button2.Update()
 	g.checkBox.Update()

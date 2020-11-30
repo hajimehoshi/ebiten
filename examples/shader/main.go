@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
@@ -22,10 +22,10 @@ import (
 	_ "image/png"
 	"log"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
-	resources "github.com/hajimehoshi/ebiten/examples/resources/images/shader"
-	"github.com/hajimehoshi/ebiten/inpututil"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	resources "github.com/hajimehoshi/ebiten/v2/examples/resources/images/shader"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 const (
@@ -54,7 +54,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	gopherImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	gopherImage = ebiten.NewImageFromImage(img)
 }
 
 func init() {
@@ -62,7 +62,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	gopherBgImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	gopherBgImage = ebiten.NewImageFromImage(img)
 }
 
 func init() {
@@ -70,7 +70,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	normalImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	normalImage = ebiten.NewImageFromImage(img)
 }
 
 func init() {
@@ -78,7 +78,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	noiseImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	noiseImage = ebiten.NewImageFromImage(img)
 }
 
 var shaderSrcs = [][]byte{
@@ -96,7 +96,7 @@ type Game struct {
 	time    int
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	g.time++
 	if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
 		g.idx++
@@ -130,10 +130,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	cx, cy := ebiten.CursorPosition()
 
 	op := &ebiten.DrawRectShaderOptions{}
-	op.Uniforms = []interface{}{
-		float32(g.time) / 60,                // Time
-		[]float32{float32(cx), float32(cy)}, // Cursor
-		[]float32{float32(w), float32(h)},   // ScreenSize
+	op.Uniforms = map[string]interface{}{
+		"Time":       float32(g.time) / 60,
+		"Cursor":     []float32{float32(cx), float32(cy)},
+		"ScreenSize": []float32{float32(w), float32(h)},
 	}
 	op.Images[0] = gopherImage
 	op.Images[1] = normalImage

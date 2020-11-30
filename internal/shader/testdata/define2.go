@@ -3,6 +3,7 @@ package main
 func Foo() vec2 {
 	x0 := 1 * Bar()
 	x1 := Bar() * 1
+	_ = x1
 	return x0
 }
 

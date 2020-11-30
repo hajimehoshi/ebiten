@@ -17,22 +17,18 @@ package buffered
 import (
 	"fmt"
 	"image"
-	"image/color"
 
-	"github.com/hajimehoshi/ebiten/internal/affine"
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/shaderir"
-	"github.com/hajimehoshi/ebiten/internal/shareable"
+	"github.com/hajimehoshi/ebiten/v2/internal/affine"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/v2/internal/shareable"
 )
 
 type Image struct {
 	img    *shareable.Image
 	width  int
 	height int
-
-	hasFill   bool
-	fillColor color.RGBA
 
 	pixels               []byte
 	needsToResolvePixels bool
@@ -105,13 +101,9 @@ func (i *Image) initializeAsScreenFramebuffer(width, height int) {
 func (i *Image) invalidatePendingPixels() {
 	i.pixels = nil
 	i.needsToResolvePixels = false
-	i.hasFill = false
 }
 
 func (i *Image) resolvePendingPixels(keepPendingPixels bool) {
-	if i.needsToResolvePixels && i.hasFill {
-		panic("buffered: needsToResolvePixels and hasFill must not be true at the same time")
-	}
 	if i.needsToResolvePixels {
 		i.img.ReplacePixels(i.pixels)
 		if !keepPendingPixels {
@@ -119,15 +111,6 @@ func (i *Image) resolvePendingPixels(keepPendingPixels bool) {
 		}
 		i.needsToResolvePixels = false
 	}
-	i.resolvePendingFill()
-}
-
-func (i *Image) resolvePendingFill() {
-	if !i.hasFill {
-		return
-	}
-	i.img.Fill(i.fillColor)
-	i.hasFill = false
 }
 
 func (i *Image) MarkDisposed() {
@@ -152,18 +135,6 @@ func (img *Image) Pixels(x, y, width, height int) (pix []byte, err error) {
 
 	pix = make([]byte, 4*width*height)
 
-	// If there are pixels or pending fillling that needs to be resolved, use this rather than resolving.
-	// Resolving them needs to access GPU and is expensive (#1137).
-	if img.hasFill {
-		for i := 0; i < len(pix)/4; i++ {
-			pix[4*i] = img.fillColor.R
-			pix[4*i+1] = img.fillColor.G
-			pix[4*i+2] = img.fillColor.B
-			pix[4*i+3] = img.fillColor.A
-		}
-		return pix, nil
-	}
-
 	if img.pixels == nil {
 		pix, err := img.img.Pixels(0, 0, img.width, img.height)
 		if err != nil {
@@ -181,22 +152,6 @@ func (img *Image) Pixels(x, y, width, height int) (pix []byte, err error) {
 func (i *Image) Dump(name string, blackbg bool) error {
 	checkDelayedCommandsFlushed("Dump")
 	return i.img.Dump(name, blackbg)
-}
-
-func (i *Image) Fill(clr color.RGBA) {
-	if maybeCanAddDelayedCommand() {
-		if tryAddDelayedCommand(func() error {
-			i.Fill(clr)
-			return nil
-		}) {
-			return
-		}
-	}
-
-	// Defer filling the image so that successive fillings will be merged into one (#1134).
-	i.invalidatePendingPixels()
-	i.fillColor = clr
-	i.hasFill = true
 }
 
 func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
@@ -218,13 +173,12 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
 	if x == 0 && y == 0 && width == i.width && height == i.height {
 		i.invalidatePendingPixels()
 
-		// Call ReplacePixels immediately. If a lot of new images are created but they are used at different
-		// timings, pixels are sent to GPU at different timings, which is very inefficient.
+		// Call ReplacePixels immediately. Do not buffer the command.
+		// If a lot of new images are created but they are used at different timings,
+		// pixels are sent to GPU at different timings, which is very inefficient.
 		i.img.ReplacePixels(pix)
 		return nil
 	}
-
-	i.resolvePendingFill()
 
 	// TODO: Can we use (*restorable.Image).ReplacePixels?
 	if i.pixels == nil {
@@ -248,7 +202,7 @@ func (i *Image) replacePendingPixels(pix []byte, x, y, width, height int) {
 // DrawTriangles draws the src image with the given vertices.
 //
 // Copying vertices and indices is the caller's responsibility.
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms []interface{}) {
 	for _, src := range srcs {
 		if i == src {
 			panic("buffered: Image.DrawTriangles: source images must be different from the receiver")
@@ -258,35 +212,33 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 	if maybeCanAddDelayedCommand() {
 		if tryAddDelayedCommand(func() error {
 			// Arguments are not copied. Copying is the caller's responsibility.
-			i.DrawTriangles(srcs, vertices, indices, colorm, mode, filter, address, sourceRegion, shader, uniforms)
+			i.DrawTriangles(srcs, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, shader, uniforms)
 			return nil
 		}) {
 			return
 		}
 	}
 
-	for _, src := range srcs {
-		if src == nil {
-			continue
+	var s *shareable.Shader
+	var imgs [graphics.ShaderImageNum]*shareable.Image
+	if shader == nil {
+		// Fast path for rendering without a shader (#1355).
+		img := srcs[0]
+		img.resolvePendingPixels(true)
+		imgs[0] = img.img
+	} else {
+		for i, img := range srcs {
+			if img == nil {
+				continue
+			}
+			img.resolvePendingPixels(true)
+			imgs[i] = img.img
 		}
-		src.resolvePendingPixels(true)
+		s = shader.shader
 	}
 	i.resolvePendingPixels(false)
 
-	var s *shareable.Shader
-	if shader != nil {
-		s = shader.shader
-	}
-
-	var imgs [graphics.ShaderImageNum]*shareable.Image
-	for i, img := range srcs {
-		if img == nil {
-			continue
-		}
-		imgs[i] = img.img
-	}
-
-	i.img.DrawTriangles(imgs, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms)
+	i.img.DrawTriangles(imgs, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, s, uniforms)
 	i.invalidatePendingPixels()
 }
 

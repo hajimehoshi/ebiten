@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build !js
+
 package glfw
 
 import (
@@ -73,12 +75,14 @@ const (
 )
 
 const (
+	AutoIconify            = Hint(0x00020006)
 	ClientAPI              = Hint(0x00022001)
 	ContextVersionMajor    = Hint(0x00022002)
 	ContextVersionMinor    = Hint(0x00022003)
 	Decorated              = Hint(0x00020005)
 	Floating               = Hint(0x00020007)
 	Focused                = Hint(0x00020001)
+	FocusOnShow            = Hint(0x0002000C)
 	Iconified              = Hint(0x00020002)
 	Maximized              = Hint(0x00020008)
 	Resizable              = Hint(0x00020003)

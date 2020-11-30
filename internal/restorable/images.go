@@ -17,8 +17,8 @@ package restorable
 import (
 	"path/filepath"
 
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 )
 
 // forceRestoring reports whether restoring forcely happens or not.
@@ -273,6 +273,11 @@ func (i *images) restore() error {
 // InitializeGraphicsDriverState initializes the graphics driver state.
 func InitializeGraphicsDriverState() error {
 	return graphicscommand.ResetGraphicsDriverState()
+}
+
+// MaxImageSize returns the maximum size of an image.
+func MaxImageSize() int {
+	return graphicscommand.MaxImageSize()
 }
 
 // OnContextLost is called when the context lost is detected in an explicit way.

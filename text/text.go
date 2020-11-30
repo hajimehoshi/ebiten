@@ -26,8 +26,9 @@ import (
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/internal/colormcache"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/internal/colormcache"
+	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
 var (
@@ -35,57 +36,50 @@ var (
 )
 
 func now() int64 {
-	monotonicClock++
 	return monotonicClock
+}
+
+func init() {
+	hooks.AppendHookOnBeforeUpdate(func() error {
+		monotonicClock++
+		return nil
+	})
 }
 
 func fixed26_6ToFloat64(x fixed.Int26_6) float64 {
 	return float64(x>>6) + float64(x&((1<<6)-1))/float64(1<<6)
 }
 
-const (
-	cacheLimit = 512 // This is an arbitrary number.
-)
-
-func drawGlyph(dst *ebiten.Image, face font.Face, r rune, img *glyphImage, x, y fixed.Int26_6, clr ebiten.ColorM) {
+func drawGlyph(dst *ebiten.Image, face font.Face, r rune, img *ebiten.Image, x, y fixed.Int26_6, clr ebiten.ColorM) {
 	if img == nil {
 		return
 	}
 
 	b := getGlyphBounds(face, r)
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(fixed26_6ToFloat64(x+b.Min.X), fixed26_6ToFloat64(y+b.Min.Y))
+	op.GeoM.Translate(float64((x+b.Min.X)>>6), float64((y+b.Min.Y)>>6))
 	op.ColorM = clr
-	_ = dst.DrawImage(img.image.SubImage(image.Rect(img.x, img.y, img.x+img.width, img.y+img.height)).(*ebiten.Image), op)
+	dst.DrawImage(img, op)
 }
 
 var (
-	// Use pointers as copying is expensive on GopherJS.
-	glyphBoundsCache = map[font.Face]map[rune]*fixed.Rectangle26_6{}
+	glyphBoundsCache = map[font.Face]map[rune]fixed.Rectangle26_6{}
 )
 
-func getGlyphBounds(face font.Face, r rune) *fixed.Rectangle26_6 {
+func getGlyphBounds(face font.Face, r rune) fixed.Rectangle26_6 {
 	if _, ok := glyphBoundsCache[face]; !ok {
-		glyphBoundsCache[face] = map[rune]*fixed.Rectangle26_6{}
+		glyphBoundsCache[face] = map[rune]fixed.Rectangle26_6{}
 	}
 	if b, ok := glyphBoundsCache[face][r]; ok {
 		return b
 	}
 	b, _, _ := face.GlyphBounds(r)
-	glyphBoundsCache[face][r] = &b
-	return &b
-}
-
-type glyphImage struct {
-	image  *ebiten.Image
-	x      int
-	y      int
-	width  int
-	height int
+	glyphBoundsCache[face][r] = b
+	return b
 }
 
 type glyphImageCacheEntry struct {
-	image *glyphImage
+	image *ebiten.Image
 	atime int64
 }
 
@@ -94,7 +88,7 @@ var (
 	emptyGlyphs     = map[font.Face]map[rune]struct{}{}
 )
 
-func getGlyphImages(face font.Face, runes []rune) []*glyphImage {
+func getGlyphImages(face font.Face, runes []rune) []*ebiten.Image {
 	if _, ok := emptyGlyphs[face]; !ok {
 		emptyGlyphs[face] = map[rune]struct{}{}
 	}
@@ -102,8 +96,8 @@ func getGlyphImages(face font.Face, runes []rune) []*glyphImage {
 		glyphImageCache[face] = map[rune]*glyphImageCacheEntry{}
 	}
 
-	imgs := make([]*glyphImage, len(runes))
-	glyphBounds := map[rune]*fixed.Rectangle26_6{}
+	imgs := make([]*ebiten.Image, len(runes))
+	glyphBounds := map[rune]fixed.Rectangle26_6{}
 	neededGlyphIndices := map[int]rune{}
 	for i, r := range runes {
 		if _, ok := emptyGlyphs[face][r]; ok {
@@ -123,73 +117,39 @@ func getGlyphImages(face font.Face, runes []rune) []*glyphImage {
 			continue
 		}
 
-		// TODO: What if len(runes) > cacheLimit?
-		if len(glyphImageCache[face]) > cacheLimit {
-			oldest := int64(math.MaxInt64)
-			oldestKey := rune(-1)
-			for r, e := range glyphImageCache[face] {
-				if e.atime < oldest {
-					oldestKey = r
-					oldest = e.atime
-				}
-			}
-			delete(glyphImageCache[face], oldestKey)
-		}
-
 		glyphBounds[r] = b
 		neededGlyphIndices[i] = r
 	}
 
-	if len(neededGlyphIndices) > 0 {
-		// TODO: What if w2 is too big (e.g. > 4096)?
-		w2 := 0
-		h2 := 0
-		for _, b := range glyphBounds {
-			w, h := (b.Max.X - b.Min.X).Ceil(), (b.Max.Y - b.Min.Y).Ceil()
-			w2 += w
-			if h2 < h {
-				h2 = h
+	for i, r := range neededGlyphIndices {
+		b := glyphBounds[r]
+		w, h := (b.Max.X - b.Min.X).Ceil(), (b.Max.Y - b.Min.Y).Ceil()
+		if b.Min.X&((1<<6)-1) != 0 {
+			w++
+		}
+		if b.Min.Y&((1<<6)-1) != 0 {
+			h++
+		}
+		rgba := image.NewRGBA(image.Rect(0, 0, w, h))
+
+		d := font.Drawer{
+			Dst:  rgba,
+			Src:  image.White,
+			Face: face,
+		}
+		x, y := -b.Min.X, -b.Min.Y
+		x, y = fixed.I(x.Ceil()), fixed.I(y.Ceil())
+		d.Dot = fixed.Point26_6{X: x, Y: y}
+		d.DrawString(string(r))
+
+		img := ebiten.NewImageFromImage(rgba)
+		if _, ok := glyphImageCache[face][r]; !ok {
+			glyphImageCache[face][r] = &glyphImageCacheEntry{
+				image: img,
+				atime: now(),
 			}
 		}
-		rgba := image.NewRGBA(image.Rect(0, 0, w2, h2))
-
-		x := 0
-		xs := map[rune]int{}
-		for r, b := range glyphBounds {
-			w := (b.Max.X - b.Min.X).Ceil()
-
-			d := font.Drawer{
-				Dst:  rgba,
-				Src:  image.White,
-				Face: face,
-			}
-			d.Dot = fixed.Point26_6{X: fixed.I(x) - b.Min.X, Y: -b.Min.Y}
-			d.DrawString(string(r))
-			xs[r] = x
-
-			x += w
-		}
-
-		img, _ := ebiten.NewImageFromImage(rgba, ebiten.FilterDefault)
-		for i, r := range neededGlyphIndices {
-			b := glyphBounds[r]
-			w, h := (b.Max.X - b.Min.X).Ceil(), (b.Max.Y - b.Min.Y).Ceil()
-
-			g := &glyphImage{
-				image:  img,
-				x:      xs[r],
-				y:      0,
-				width:  w,
-				height: h,
-			}
-			if _, ok := glyphImageCache[face][r]; !ok {
-				glyphImageCache[face][r] = &glyphImageCacheEntry{
-					image: g,
-					atime: now(),
-				}
-			}
-			imgs[i] = g
-		}
+		imgs[i] = img
 	}
 	return imgs
 }
@@ -250,6 +210,22 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 
 		prevR = r
 	}
+
+	// cacheSoftLimit indicates the soft limit of the number of glyphs in the cache.
+	// If the number of glyphs exceeds this soft limits, old glyphs are removed.
+	// Even after clearning up the cache, the number of glyphs might still exceeds the soft limit, but
+	// this is fine.
+	const cacheSoftLimit = 512
+
+	// Clean up the cache.
+	if len(glyphImageCache[face]) > cacheSoftLimit {
+		for r, e := range glyphImageCache[face] {
+			// 60 is an arbitrary number.
+			if e.atime < now()-60 {
+				delete(glyphImageCache[face], r)
+			}
+		}
+	}
 }
 
 // BoundString returns the measured size of a given string using a given font.
@@ -289,8 +265,7 @@ func BoundString(face font.Face, text string) image.Rectangle {
 			continue
 		}
 
-		bp := getGlyphBounds(face, r)
-		b := *bp
+		b := getGlyphBounds(face, r)
 		b.Min.X += fx
 		b.Max.X += fx
 		b.Min.Y += fy
@@ -307,4 +282,20 @@ func BoundString(face font.Face, text string) image.Rectangle {
 		int(math.Ceil(fixed26_6ToFloat64(bounds.Max.X))),
 		int(math.Ceil(fixed26_6ToFloat64(bounds.Max.Y))),
 	)
+}
+
+// CacheGlyphs precaches the glyphs for the given text and the given font face into the cache.
+//
+// Draw automatically creates and caches necessary glyphs, so usually you don't have to call CacheGlyphs
+// explicitly. However, for example, when you call Draw for each rune of one big text, Draw tries to create the glyph
+// cache and render it for each rune. This is very inefficient because creating a glyph image and rendering it are
+// different operations and can never be merged as one draw call. CacheGlyphs creates necessary glyphs without
+// rendering them so that these operations are likely merged into one draw call.
+//
+// If a rune's glyph is already cached, CacheGlyphs does nothing for the rune.
+func CacheGlyphs(face font.Face, text string) {
+	textM.Lock()
+	defer textM.Unlock()
+
+	getGlyphImages(face, []rune(text))
 }

@@ -22,6 +22,7 @@ import (
 )
 
 type Program struct {
+	UniformNames []string
 	Uniforms     []Type
 	TextureNum   int
 	Attributes   []Type
@@ -72,6 +73,7 @@ type Stmt struct {
 	ForEnd      constant.Value
 	ForOp       Op
 	ForDelta    constant.Value
+	InitIndex   int
 }
 
 type StmtType int
@@ -80,6 +82,7 @@ const (
 	ExprStmt StmtType = iota
 	BlockStmt
 	Assign
+	Init
 	If
 	For
 	Continue
@@ -111,7 +114,8 @@ type Expr struct {
 type ExprType int
 
 const (
-	NumberExpr ExprType = iota
+	Blank ExprType = iota
+	NumberExpr
 	UniformVariable
 	TextureVariable
 	LocalVariable
@@ -199,6 +203,7 @@ type BuiltinFunc string
 
 const (
 	Len         BuiltinFunc = "len"
+	Cap         BuiltinFunc = "cap"
 	BoolF       BuiltinFunc = "bool"
 	IntF        BuiltinFunc = "int"
 	FloatF      BuiltinFunc = "float"
@@ -216,6 +221,7 @@ const (
 	Asin        BuiltinFunc = "asin"
 	Acos        BuiltinFunc = "acos"
 	Atan        BuiltinFunc = "atan"
+	Atan2       BuiltinFunc = "atan2"
 	Pow         BuiltinFunc = "pow"
 	Exp         BuiltinFunc = "exp"
 	Log         BuiltinFunc = "log"
@@ -252,6 +258,7 @@ const (
 func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
 	switch BuiltinFunc(str) {
 	case Len,
+		Cap,
 		BoolF,
 		IntF,
 		FloatF,
@@ -267,6 +274,7 @@ func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
 		Asin,
 		Acos,
 		Atan,
+		Atan2,
 		Pow,
 		Exp,
 		Log,

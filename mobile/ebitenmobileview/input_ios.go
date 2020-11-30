@@ -18,6 +18,8 @@ package ebitenmobileview
 
 import (
 	"fmt"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 )
 
 // #cgo CFLAGS: -x objective-c
@@ -43,22 +45,16 @@ func getIDFromPtr(ptr int64) int {
 	return id
 }
 
-// UpdateTouchesOnAndroid is a dummy function for backward compatibility.
-// UpdateTouchesOnAndroid is called from ebiten/mobile package.
-func UpdateTouchesOnAndroid(action int, id int, x, y int) {
-	panic("ebitenmobileview: updateTouchesOnAndroid must not be called on iOS")
-}
-
 func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
 	switch phase {
 	case C.UITouchPhaseBegan, C.UITouchPhaseMoved, C.UITouchPhaseStationary:
 		id := getIDFromPtr(ptr)
-		touches[id] = position{x, y}
+		touches[driver.TouchID(id)] = position{x, y}
 		updateInput()
 	case C.UITouchPhaseEnded, C.UITouchPhaseCancelled:
 		id := getIDFromPtr(ptr)
 		delete(ptrToID, ptr)
-		delete(touches, id)
+		delete(touches, driver.TouchID(id))
 		updateInput()
 	default:
 		panic(fmt.Sprintf("ebitenmobileview: invalid phase: %d", phase))

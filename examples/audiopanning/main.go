@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
@@ -21,35 +21,28 @@ import (
 	"fmt"
 	"image"
 	_ "image/png"
+	"io"
 	"log"
 	"math"
 	"time"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/audio"
-	"github.com/hajimehoshi/ebiten/audio/vorbis"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
-	raudio "github.com/hajimehoshi/ebiten/examples/resources/audio"
-	"github.com/hajimehoshi/ebiten/examples/resources/images"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/audio"
+	"github.com/hajimehoshi/ebiten/v2/audio/vorbis"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	raudio "github.com/hajimehoshi/ebiten/v2/examples/resources/audio"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 )
 
 const (
-	screenWidth  = 320
-	screenHeight = 240
+	screenWidth  = 640
+	screenHeight = 480
 	sampleRate   = 22050
 )
 
 var img *ebiten.Image
 
-var audioContext *audio.Context
-
-func init() {
-	var err error
-	audioContext, err = audio.NewContext(sampleRate)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
+var audioContext = audio.NewContext(sampleRate)
 
 type Game struct {
 	player    *audio.Player
@@ -72,7 +65,7 @@ func (g *Game) initAudio() {
 
 	// Decode an Ogg file.
 	// oggS is a decoded io.ReadCloser and io.Seeker.
-	oggS, err := vorbis.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Ragtime_ogg))
+	oggS, err := vorbis.Decode(audioContext, bytes.NewReader(raudio.Ragtime_ogg))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -94,7 +87,7 @@ func lerp(a, b, t float64) float64 {
 	return a*(1-t) + b*t
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	g.initAudio()
 	g.count++
 	r := float64(g.count) * ((1.0 / 60.0) * 2 * math.Pi) * 0.1 // full cycle every 10 seconds
@@ -140,9 +133,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	img, _ = ebiten.NewImageFromImage(rawimg, ebiten.FilterDefault)
+	img = ebiten.NewImageFromImage(rawimg)
 
-	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Audio Panning Loop (Ebiten Demo)")
 	g := &Game{}
 	if err := ebiten.RunGame(g); err != nil {
@@ -153,12 +146,12 @@ func main() {
 // StereoPanStream is an audio buffer that changes the stereo channel's signal
 // based on the Panning.
 type StereoPanStream struct {
-	audio.ReadSeekCloser
+	io.ReadSeeker
 	pan float64 // -1: left; 0: center; 1: right
 }
 
 func (s *StereoPanStream) Read(p []byte) (n int, err error) {
-	n, err = s.ReadSeekCloser.Read(p)
+	n, err = s.ReadSeeker.Read(p)
 	if err != nil {
 		return
 	}
@@ -195,8 +188,8 @@ func (s *StereoPanStream) Pan() float64 {
 // The src's format must be linear PCM (16bits little endian, 2 channel stereo)
 // without a header (e.g. RIFF header). The sample rate must be same as that
 // of the audio context.
-func NewStereoPanStreamFromReader(src audio.ReadSeekCloser) *StereoPanStream {
+func NewStereoPanStreamFromReader(src io.ReadSeeker) *StereoPanStream {
 	return &StereoPanStream{
-		ReadSeekCloser: src,
+		ReadSeeker: src,
 	}
 }

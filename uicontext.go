@@ -20,30 +20,12 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/hajimehoshi/ebiten/internal/buffered"
-	"github.com/hajimehoshi/ebiten/internal/clock"
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/hooks"
+	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
+	"github.com/hajimehoshi/ebiten/v2/internal/clock"
+	"github.com/hajimehoshi/ebiten/v2/internal/debug"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
-
-type defaultGame struct {
-	update  func(screen *Image) error
-	width   int
-	height  int
-	context *uiContext
-}
-
-func (d *defaultGame) Update(screen *Image) error {
-	return d.update(screen)
-}
-
-func (d *defaultGame) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	// Ignore the outside size.
-	d.context.m.Lock()
-	w, h := d.width, d.height
-	d.context.m.Unlock()
-	return w, h
-}
 
 type uiContext struct {
 	game      Game
@@ -51,13 +33,6 @@ type uiContext struct {
 	screen    *Image
 
 	updateCalled bool
-
-	// scaleForWindow is the scale of a window. This doesn't represent the scale on fullscreen. This value works
-	// only on desktops.
-	//
-	// scaleForWindow is for backward compatibility and is used to calculate the window size when SetScreenSize
-	// is called.
-	scaleForWindow float64
 
 	outsideSizeUpdated bool
 	outsideWidth       float64
@@ -70,78 +45,14 @@ type uiContext struct {
 
 var theUIContext = &uiContext{}
 
-func (c *uiContext) set(game Game, scaleForWindow float64) {
+func (c *uiContext) set(game Game) {
 	c.m.Lock()
 	defer c.m.Unlock()
 	c.game = game
-
-	if g, ok := game.(*defaultGame); ok {
-		c.scaleForWindow = scaleForWindow
-		g.context = c
-	}
 }
 
 func (c *uiContext) setError(err error) {
 	c.err.Store(err)
-}
-
-func (c *uiContext) setScaleForWindow(scale float64) {
-	c.m.Lock()
-	defer c.m.Unlock()
-
-	if c.game == nil {
-		panic("ebiten: setScaleForWindow can be called only after the main loop starts")
-	}
-
-	g, ok := c.game.(*defaultGame)
-	if !ok {
-		panic("ebiten: setScaleForWindow can be called only when Run is used")
-	}
-
-	if w := uiDriver().Window(); w != nil {
-		ww, wh := g.width, g.height
-		c.scaleForWindow = scale
-		w.SetSize(int(float64(ww)*scale), int(float64(wh)*scale))
-	}
-}
-
-func (c *uiContext) getScaleForWindow() float64 {
-	c.m.Lock()
-	defer c.m.Unlock()
-
-	if c.game == nil {
-		panic("ebiten: getScaleForWindow can be called only after the main loop starts")
-	}
-
-	if _, ok := c.game.(*defaultGame); !ok {
-		panic("ebiten: getScaleForWindow can be called only when Run is used")
-	}
-	s := c.scaleForWindow
-	return s
-}
-
-// setScreenSize sets the (logical) screen size and adjusts the window size.
-//
-// setScreenSize is for backward compatibility. This is called from ebiten.SetScreenSize.
-func (c *uiContext) setScreenSize(width, height int) {
-	c.m.Lock()
-	defer c.m.Unlock()
-
-	if c.game == nil {
-		panic("ebiten: SetScreenSize can be called only after the main loop starts")
-	}
-
-	g, ok := c.game.(*defaultGame)
-	if !ok {
-		panic("ebiten: SetScreenSize can be called only when Run is used")
-	}
-
-	g.width = width
-	g.height = height
-	if w := uiDriver().Window(); w != nil {
-		s := c.scaleForWindow
-		w.SetSize(int(float64(width)*s), int(float64(height)*s))
-	}
 }
 
 func (c *uiContext) Layout(outsideWidth, outsideHeight float64) {
@@ -164,41 +75,32 @@ func (c *uiContext) updateOffscreen() {
 	c.outsideSizeUpdated = false
 
 	if c.screen != nil {
-		_ = c.screen.Dispose()
+		c.screen.Dispose()
 		c.screen = nil
 	}
 
 	if c.offscreen != nil {
 		if w, h := c.offscreen.Size(); w != sw || h != sh {
-			_ = c.offscreen.Dispose()
+			c.offscreen.Dispose()
 			c.offscreen = nil
 		}
 	}
 	if c.offscreen == nil {
-		c.offscreen = newImage(sw, sh, FilterDefault)
-		c.offscreen.mipmap.SetVolatile(!IsClearingScreenSkipped())
-	}
-
-	// The window size is automatically adjusted when Run is used.
-	if _, ok := c.game.(*defaultGame); ok {
-		c.setScreenSize(sw, sh)
+		c.offscreen = NewImage(sw, sh)
+		c.offscreen.mipmap.SetVolatile(IsScreenClearedEveryFrame())
 	}
 
 	// TODO: This is duplicated with mobile/ebitenmobileview/funcs.go. Refactor this.
 	d := uiDriver().DeviceScaleFactor()
 	c.screen = newScreenFramebufferImage(int(c.outsideWidth*d), int(c.outsideHeight*d))
-
-	// Do not have to update scaleForWindow since this is used only for backward compatibility.
-	// Then, if a window is resizable, scaleForWindow (= ebiten.ScreenScale) might not match with the actual
-	// scale. This is fine since ebiten.ScreenScale will be deprecated.
 }
 
-func (c *uiContext) setClearingScreenSkipped(skipped bool) {
+func (c *uiContext) setScreenClearedEveryFrame(cleared bool) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
 	if c.offscreen != nil {
-		c.offscreen.mipmap.SetVolatile(!skipped)
+		c.offscreen.mipmap.SetVolatile(cleared)
 	}
 }
 
@@ -206,37 +108,32 @@ func (c *uiContext) setWindowResizable(resizable bool) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
-	if resizable && c.game != nil {
-		if _, ok := c.game.(*defaultGame); ok {
-			panic("ebiten: a resizable window works with RunGame, not Run")
-		}
-	}
 	if w := uiDriver().Window(); w != nil {
 		w.SetResizable(resizable)
 	}
 }
 
-func (c *uiContext) screenScale() float64 {
+func (c *uiContext) screenScale(deviceScaleFactor float64) float64 {
 	if c.offscreen == nil {
 		return 0
 	}
 	sw, sh := c.offscreen.Size()
-	d := uiDriver().DeviceScaleFactor()
-	scaleX := c.outsideWidth / float64(sw) * d
-	scaleY := c.outsideHeight / float64(sh) * d
+	scaleX := c.outsideWidth / float64(sw) * deviceScaleFactor
+	scaleY := c.outsideHeight / float64(sh) * deviceScaleFactor
 	return math.Min(scaleX, scaleY)
 }
 
-func (c *uiContext) offsets() (float64, float64) {
+func (c *uiContext) offsets(deviceScaleFactor float64) (float64, float64) {
 	if c.offscreen == nil {
 		return 0, 0
 	}
 	sw, sh := c.offscreen.Size()
-	d := uiDriver().DeviceScaleFactor()
-	s := c.screenScale()
+	s := c.screenScale(deviceScaleFactor)
 	width := float64(sw) * s
 	height := float64(sh) * s
-	return (c.outsideWidth*d - width) / 2, (c.outsideHeight*d - height) / 2
+	x := (c.outsideWidth*deviceScaleFactor - width) / 2
+	y := (c.outsideHeight*deviceScaleFactor - height) / 2
+	return x, y
 }
 
 func (c *uiContext) Update() error {
@@ -257,23 +154,7 @@ func (c *uiContext) Update() error {
 	return nil
 }
 
-func (c *uiContext) Draw() error {
-	if err, ok := c.err.Load().(error); ok && err != nil {
-		return err
-	}
-	if err := buffered.BeginFrame(); err != nil {
-		return err
-	}
-	c.draw()
-	if err := buffered.EndFrame(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (c *uiContext) update() error {
-	_, hasDraw := c.game.(interface{ Draw(*Image) })
-
 	updateCount := clock.Update(MaxTPS())
 
 	// Ensure that Update is called once before Draw so that Update can be used for initialization.
@@ -281,47 +162,25 @@ func (c *uiContext) update() error {
 		updateCount = 1
 		c.updateCalled = true
 	}
+	debug.Logf("--\nUpdate count per frame: %d\n", updateCount)
 
 	for i := 0; i < updateCount; i++ {
-		c.updateOffscreen()
-
-		// When the game's Draw exists, rendering should be always skipped.
-		//
-		// When the game's Draw does not exist, the last Update call should process drawing.
-		// This assumes that (*uiContext).Update and (*uiContext).Draw are called successively.
-		//
-		// TODO: Make (Game).Draw mandatory and remove this assumption when we can update the major version.
-		// Move the clock usage to the UI driver side.
-		setDrawingSkipped(hasDraw || i < updateCount-1)
-
 		if err := hooks.RunBeforeUpdateHooks(); err != nil {
 			return err
 		}
-
-		// Multiple successive Clear call should be integrated into one graphics command, then
-		// calling Clear on every Update should not affect the performance.
-		if !IsClearingScreenSkipped() {
-			c.offscreen.Clear()
-		}
-		if err := c.game.Update(c.offscreen); err != nil {
+		if err := c.game.Update(); err != nil {
 			return err
 		}
 		uiDriver().ResetForFrame()
 	}
-	return nil
-}
 
-func (c *uiContext) draw() {
-	// c.screen might be nil when updateCount is 0 in the initial state (#1039).
-	if c.screen == nil {
-		return
-	}
+	c.updateOffscreen()
 
-	if game, ok := c.game.(interface{ Draw(*Image) }); ok {
-		if !IsClearingScreenSkipped() {
+	if updateCount > 0 {
+		if IsScreenClearedEveryFrame() {
 			c.offscreen.Clear()
 		}
-		game.Draw(c.offscreen)
+		c.game.Draw(c.offscreen)
 	}
 
 	// This clear is needed for fullscreen mode or some mobile platforms (#622).
@@ -329,7 +188,7 @@ func (c *uiContext) draw() {
 
 	op := &DrawImageOptions{}
 
-	s := c.screenScale()
+	s := c.screenScale(uiDriver().DeviceScaleFactor())
 	switch vd := uiDriver().Graphics().FramebufferYDirection(); vd {
 	case driver.Upward:
 		op.GeoM.Scale(s, -s)
@@ -341,7 +200,7 @@ func (c *uiContext) draw() {
 		panic(fmt.Sprintf("ebiten: invalid v-direction: %d", vd))
 	}
 
-	op.GeoM.Translate(c.offsets())
+	op.GeoM.Translate(c.offsets(uiDriver().DeviceScaleFactor()))
 	op.CompositeMode = CompositeModeCopy
 
 	// filterScreen works with >=1 scale, but does not well with <1 scale.
@@ -351,12 +210,12 @@ func (c *uiContext) draw() {
 	} else {
 		op.Filter = FilterLinear
 	}
-	_ = c.screen.DrawImage(c.offscreen, op)
+	c.screen.DrawImage(c.offscreen, op)
+	return nil
 }
 
-func (c *uiContext) AdjustPosition(x, y float64) (float64, float64) {
-	d := uiDriver().DeviceScaleFactor()
-	ox, oy := c.offsets()
-	s := c.screenScale()
-	return (x*d - ox) / s, (y*d - oy) / s
+func (c *uiContext) AdjustPosition(x, y float64, deviceScaleFactor float64) (float64, float64) {
+	ox, oy := c.offsets(deviceScaleFactor)
+	s := c.screenScale(deviceScaleFactor)
+	return (x*deviceScaleFactor - ox) / s, (y*deviceScaleFactor - oy) / s
 }

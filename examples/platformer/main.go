@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
@@ -22,10 +22,10 @@ import (
 	"image"
 	_ "image/png"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
-	rplatformer "github.com/hajimehoshi/ebiten/examples/resources/images/platformer"
-	"github.com/hajimehoshi/ebiten/inpututil"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	rplatformer "github.com/hajimehoshi/ebiten/v2/examples/resources/images/platformer"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 const (
@@ -47,25 +47,25 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	rightSprite, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	rightSprite = ebiten.NewImageFromImage(img)
 
 	img, _, err = image.Decode(bytes.NewReader(rplatformer.Left_png))
 	if err != nil {
 		panic(err)
 	}
-	leftSprite, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	leftSprite = ebiten.NewImageFromImage(img)
 
 	img, _, err = image.Decode(bytes.NewReader(rplatformer.MainChar_png))
 	if err != nil {
 		panic(err)
 	}
-	idleSprite, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	idleSprite = ebiten.NewImageFromImage(img)
 
 	img, _, err = image.Decode(bytes.NewReader(rplatformer.Background_png))
 	if err != nil {
 		panic(err)
 	}
-	backgroundImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	backgroundImage = ebiten.NewImageFromImage(img)
 }
 
 const (
@@ -124,7 +124,7 @@ type Game struct {
 	gopher *char
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if g.gopher == nil {
 		g.gopher = &char{x: 50 * unit, y: groundY * unit}
 	}

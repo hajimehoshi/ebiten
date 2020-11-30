@@ -19,7 +19,7 @@ package ebiten
 import (
 	"strings"
 
-	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 )
 
 // A Key represents a keyboard key.
@@ -129,7 +129,8 @@ const (
 	KeyAlt          Key = Key(driver.KeyReserved0)
 	KeyControl      Key = Key(driver.KeyReserved1)
 	KeyShift        Key = Key(driver.KeyReserved2)
-	KeyMax          Key = KeyShift
+	KeySuper        Key = Key(driver.KeyReserved3)
+	KeyMax          Key = KeySuper
 )
 
 func (k Key) isValid() bool {
@@ -329,6 +330,8 @@ func (k Key) isValid() bool {
 	case KeySlash:
 		return true
 	case KeySpace:
+		return true
+	case KeySuper:
 		return true
 	case KeyTab:
 		return true
@@ -541,6 +544,8 @@ func (k Key) String() string {
 		return "Slash"
 	case KeySpace:
 		return "Space"
+	case KeySuper:
+		return "Super"
 	case KeyTab:
 		return "Tab"
 	case KeyUp:
@@ -747,6 +752,8 @@ func keyNameToKeyCode(name string) (Key, bool) {
 		return KeySlash, true
 	case "space":
 		return KeySpace, true
+	case "super":
+		return KeySuper, true
 	case "tab":
 		return KeyTab, true
 	case "up":

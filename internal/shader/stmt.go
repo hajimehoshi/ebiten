@@ -21,10 +21,19 @@ import (
 	"go/token"
 	"strings"
 
-	"github.com/hajimehoshi/ebiten/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
-func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inParams []variable) ([]shaderir.Stmt, bool) {
+func (cs *compileState) forceToInt(node ast.Node, expr *shaderir.Expr) bool {
+	if !canTruncateToInteger(expr.Const) {
+		cs.addError(node.Pos(), fmt.Sprintf("constant %s truncated to integer", expr.Const.String()))
+		return false
+	}
+	expr.ConstType = shaderir.ConstTypeInt
+	return true
+}
+
+func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inParams, outParams []variable) ([]shaderir.Stmt, bool) {
 	var stmts []shaderir.Stmt
 
 	switch stmt := stmt.(type) {
@@ -36,7 +45,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				return nil, false
 			}
 
-			ss, ok := cs.assign(block, stmt.Pos(), stmt.Lhs, stmt.Rhs, true)
+			ss, ok := cs.assign(block, fname, stmt.Pos(), stmt.Lhs, stmt.Rhs, inParams, true)
 			if !ok {
 				return nil, false
 			}
@@ -46,7 +55,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				cs.addError(stmt.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
 				return nil, false
 			}
-			ss, ok := cs.assign(block, stmt.Pos(), stmt.Lhs, stmt.Rhs, false)
+			ss, ok := cs.assign(block, fname, stmt.Pos(), stmt.Lhs, stmt.Rhs, inParams, false)
 			if !ok {
 				return nil, false
 			}
@@ -66,25 +75,21 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				op = shaderir.ModOp
 			}
 
-			rhs, _, ss, ok := cs.parseExpr(block, stmt.Rhs[0])
+			rhs, _, ss, ok := cs.parseExpr(block, stmt.Rhs[0], true)
 			if !ok {
 				return nil, false
 			}
 			stmts = append(stmts, ss...)
 
-			lhs, ts, ss, ok := cs.parseExpr(block, stmt.Lhs[0])
+			lhs, ts, ss, ok := cs.parseExpr(block, stmt.Lhs[0], true)
 			if !ok {
 				return nil, false
 			}
 			stmts = append(stmts, ss...)
 
-			if rhs[0].Type == shaderir.NumberExpr {
-				if ts[0].Main == shaderir.Int {
-					if !canTruncateToInteger(rhs[0].Const) {
-						cs.addError(stmt.Pos(), fmt.Sprintf("constant %s truncated to integer", rhs[0].Const.String()))
-						return nil, false
-					}
-					rhs[0].ConstType = shaderir.ConstTypeInt
+			if rhs[0].Type == shaderir.NumberExpr && ts[0].Main == shaderir.Int {
+				if !cs.forceToInt(stmt, &rhs[0]) {
+					return nil, false
 				}
 			}
 
@@ -106,7 +111,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			cs.addError(stmt.Pos(), fmt.Sprintf("unexpected token: %s", stmt.Tok))
 		}
 	case *ast.BlockStmt:
-		b, ok := cs.parseBlock(block, fname, stmt.List, inParams, nil)
+		b, ok := cs.parseBlock(block, fname, stmt.List, inParams, outParams, true)
 		if !ok {
 			return nil, false
 		}
@@ -141,7 +146,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		// Create a new pseudo block for the initial statement, so that the counter variable belongs to the
 		// new pseudo block for each for-loop. Without this, the samely named counter variables in different
 		// for-loops confuses the parser.
-		pseudoBlock, ok := cs.parseBlock(block, fname, []ast.Stmt{stmt.Init}, inParams, nil)
+		pseudoBlock, ok := cs.parseBlock(block, fname, []ast.Stmt{stmt.Init}, inParams, outParams, false)
 		if !ok {
 			return nil, false
 		}
@@ -168,7 +173,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		vartype := pseudoBlock.vars[0].typ
 		init := ss[0].Exprs[1].Const
 
-		exprs, ts, ss, ok := cs.parseExpr(pseudoBlock, stmt.Cond)
+		exprs, ts, ss, ok := cs.parseExpr(pseudoBlock, stmt.Cond, true)
 		if !ok {
 			return nil, false
 		}
@@ -207,7 +212,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		}
 		end := exprs[0].Exprs[1].Const
 
-		postSs, ok := cs.parseStmt(pseudoBlock, fname, stmt.Post, inParams)
+		postSs, ok := cs.parseStmt(pseudoBlock, fname, stmt.Post, inParams, outParams)
 		if !ok {
 			return nil, false
 		}
@@ -253,7 +258,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			return nil, false
 		}
 
-		b, ok := cs.parseBlock(pseudoBlock, fname, []ast.Stmt{stmt.Body}, inParams, nil)
+		b, ok := cs.parseBlock(pseudoBlock, fname, []ast.Stmt{stmt.Body}, inParams, outParams, true)
 		if !ok {
 			return nil, false
 		}
@@ -284,7 +289,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		if stmt.Init != nil {
 			init := stmt.Init
 			stmt.Init = nil
-			b, ok := cs.parseBlock(block, fname, []ast.Stmt{init, stmt}, inParams, nil)
+			b, ok := cs.parseBlock(block, fname, []ast.Stmt{init, stmt}, inParams, outParams, true)
 			if !ok {
 				return nil, false
 			}
@@ -296,7 +301,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			return stmts, true
 		}
 
-		exprs, ts, ss, ok := cs.parseExpr(block, stmt.Cond)
+		exprs, ts, ss, ok := cs.parseExpr(block, stmt.Cond, true)
 		if !ok {
 			return nil, false
 		}
@@ -311,7 +316,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		stmts = append(stmts, ss...)
 
 		var bs []*shaderir.Block
-		b, ok := cs.parseBlock(block, fname, stmt.Body.List, inParams, nil)
+		b, ok := cs.parseBlock(block, fname, stmt.Body.List, inParams, outParams, true)
 		if !ok {
 			return nil, false
 		}
@@ -320,13 +325,13 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		if stmt.Else != nil {
 			switch s := stmt.Else.(type) {
 			case *ast.BlockStmt:
-				b, ok := cs.parseBlock(block, fname, s.List, inParams, nil)
+				b, ok := cs.parseBlock(block, fname, s.List, inParams, outParams, true)
 				if !ok {
 					return nil, false
 				}
 				bs = append(bs, b.ir)
 			default:
-				b, ok := cs.parseBlock(block, fname, []ast.Stmt{s}, inParams, nil)
+				b, ok := cs.parseBlock(block, fname, []ast.Stmt{s}, inParams, outParams, true)
 				if !ok {
 					return nil, false
 				}
@@ -341,7 +346,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		})
 
 	case *ast.IncDecStmt:
-		exprs, _, ss, ok := cs.parseExpr(block, stmt.X)
+		exprs, _, ss, ok := cs.parseExpr(block, stmt.X, true)
 		if !ok {
 			return nil, false
 		}
@@ -373,29 +378,70 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		})
 
 	case *ast.ReturnStmt:
+		if len(stmt.Results) != len(outParams) && len(stmt.Results) != 1 {
+			if !(len(stmt.Results) == 0 && len(outParams) > 0 && outParams[0].name != "") {
+				// TODO: Check variable shadowings.
+				// https://golang.org/ref/spec#Return_statements
+				cs.addError(stmt.Pos(), fmt.Sprintf("the number of returning variables must be %d but %d", len(outParams), len(stmt.Results)))
+				return nil, false
+			}
+		}
+
 		for i, r := range stmt.Results {
-			exprs, _, ss, ok := cs.parseExpr(block, r)
+			exprs, ts, ss, ok := cs.parseExpr(block, r, true)
 			if !ok {
 				return nil, false
 			}
 			stmts = append(stmts, ss...)
-			if len(exprs) == 0 {
-				continue
-			}
+
 			if len(exprs) > 1 {
-				cs.addError(r.Pos(), "multiple-context with return is not implemented yet")
-				continue
+				if len(stmt.Results) > 1 || len(outParams) == 1 {
+					cs.addError(r.Pos(), "single-value context and multiple-value context cannot be mixed")
+					return nil, false
+				}
 			}
-			stmts = append(stmts, shaderir.Stmt{
-				Type: shaderir.Assign,
-				Exprs: []shaderir.Expr{
-					{
-						Type:  shaderir.LocalVariable,
-						Index: len(inParams) + i,
+
+			if len(outParams) > 1 && len(stmt.Results) == 1 {
+				if len(exprs) == 1 {
+					cs.addError(stmt.Pos(), fmt.Sprintf("the number of returning variables must be %d but %d", len(outParams), len(stmt.Results)))
+					return nil, false
+				}
+				if len(exprs) > 1 && len(exprs) != len(outParams) {
+					cs.addError(stmt.Pos(), fmt.Sprintf("the number of returning variables must be %d but %d", len(outParams), len(exprs)))
+					return nil, false
+				}
+			}
+
+			for j, t := range ts {
+				expr := exprs[j]
+				if expr.Type == shaderir.NumberExpr {
+					switch outParams[i+j].typ.Main {
+					case shaderir.Int:
+						if !cs.forceToInt(stmt, &expr) {
+							return nil, false
+						}
+						t = shaderir.Type{Main: shaderir.Int}
+					case shaderir.Float:
+						t = shaderir.Type{Main: shaderir.Float}
+					}
+				}
+
+				if !t.Equal(&outParams[i+j].typ) {
+					cs.addError(stmt.Pos(), fmt.Sprintf("cannot use type %s as type %s in return argument", &t, &outParams[i].typ))
+					return nil, false
+				}
+
+				stmts = append(stmts, shaderir.Stmt{
+					Type: shaderir.Assign,
+					Exprs: []shaderir.Expr{
+						{
+							Type:  shaderir.LocalVariable,
+							Index: len(inParams) + i + j,
+						},
+						expr,
 					},
-					exprs[0],
-				},
-			})
+				})
+			}
 		}
 		stmts = append(stmts, shaderir.Stmt{
 			Type: shaderir.Return,
@@ -417,7 +463,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		}
 
 	case *ast.ExprStmt:
-		exprs, _, ss, ok := cs.parseExpr(block, stmt.X)
+		exprs, _, ss, ok := cs.parseExpr(block, stmt.X, true)
 		if !ok {
 			return nil, false
 		}
@@ -440,23 +486,30 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 	return stmts, true
 }
 
-func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr, define bool) ([]shaderir.Stmt, bool) {
+func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, rhs []ast.Expr, inParams []variable, define bool) ([]shaderir.Stmt, bool) {
 	var stmts []shaderir.Stmt
 	var rhsExprs []shaderir.Expr
 	var rhsTypes []shaderir.Type
+	allblank := true
 
 	for i, e := range lhs {
 		if len(lhs) == len(rhs) {
 			// Prase RHS first for the order of the statements.
-			r, origts, ss, ok := cs.parseExpr(block, rhs[i])
+			r, origts, ss, ok := cs.parseExpr(block, rhs[i], true)
 			if !ok {
 				return nil, false
 			}
 			stmts = append(stmts, ss...)
 
 			if define {
-				v := variable{
-					name: e.(*ast.Ident).Name,
+				name := e.(*ast.Ident).Name
+				if name != "_" {
+					for _, v := range block.vars {
+						if v.name == name {
+							cs.addError(pos, fmt.Sprintf("duplicated local variable name: %s", name))
+							return nil, false
+						}
+					}
 				}
 				ts, ok := cs.functionReturnTypes(block, rhs[i])
 				if !ok {
@@ -466,10 +519,8 @@ func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr,
 					cs.addError(pos, fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
 					return nil, false
 				}
-				if len(ts) == 1 {
-					v.typ = ts[0]
-				}
-				block.vars = append(block.vars, v)
+
+				block.addNamedLocalVariable(name, ts[0], e.Pos())
 			}
 
 			if len(r) > 1 {
@@ -477,11 +528,38 @@ func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr,
 				return nil, false
 			}
 
-			l, _, ss, ok := cs.parseExpr(block, lhs[i])
+			l, _, ss, ok := cs.parseExpr(block, lhs[i], false)
 			if !ok {
 				return nil, false
 			}
 			stmts = append(stmts, ss...)
+
+			if l[0].Type == shaderir.Blank {
+				continue
+			}
+
+			var isAssignmentForbidden func(e *shaderir.Expr) bool
+			isAssignmentForbidden = func(e *shaderir.Expr) bool {
+				switch e.Type {
+				case shaderir.UniformVariable:
+					return true
+				case shaderir.LocalVariable:
+					if fname == cs.vertexEntry || fname == cs.fragmentEntry {
+						return e.Index < len(inParams)
+					}
+				case shaderir.FieldSelector:
+					return isAssignmentForbidden(&e.Exprs[0])
+				case shaderir.Index:
+					return isAssignmentForbidden(&e.Exprs[0])
+				}
+				return false
+			}
+
+			if isAssignmentForbidden(&l[0]) {
+				cs.addError(pos, fmt.Sprintf("a uniform variable cannot be assigned"))
+				return nil, false
+			}
+			allblank = false
 
 			if r[0].Type == shaderir.NumberExpr {
 				t, ok := block.findLocalVariableByIndex(l[0].Index)
@@ -534,7 +612,7 @@ func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr,
 			if i == 0 {
 				var ss []shaderir.Stmt
 				var ok bool
-				rhsExprs, rhsTypes, ss, ok = cs.parseExpr(block, rhs[0])
+				rhsExprs, rhsTypes, ss, ok = cs.parseExpr(block, rhs[0], true)
 				if !ok {
 					return nil, false
 				}
@@ -545,18 +623,28 @@ func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr,
 			}
 
 			if define {
-				v := variable{
-					name: e.(*ast.Ident).Name,
+				name := e.(*ast.Ident).Name
+				if name != "_" {
+					for _, v := range block.vars {
+						if v.name == name {
+							cs.addError(pos, fmt.Sprintf("duplicated local variable name: %s", name))
+							return nil, false
+						}
+					}
 				}
-				v.typ = rhsTypes[i]
-				block.vars = append(block.vars, v)
+				block.addNamedLocalVariable(name, rhsTypes[i], e.Pos())
 			}
 
-			l, _, ss, ok := cs.parseExpr(block, lhs[i])
+			l, _, ss, ok := cs.parseExpr(block, lhs[i], false)
 			if !ok {
 				return nil, false
 			}
 			stmts = append(stmts, ss...)
+
+			if l[0].Type == shaderir.Blank {
+				continue
+			}
+			allblank = false
 
 			stmts = append(stmts, shaderir.Stmt{
 				Type:  shaderir.Assign,
@@ -564,5 +652,11 @@ func (cs *compileState) assign(block *block, pos token.Pos, lhs, rhs []ast.Expr,
 			})
 		}
 	}
+
+	if define && allblank {
+		cs.addError(pos, fmt.Sprintf("no new variables on left side of :="))
+		return nil, false
+	}
+
 	return stmts, true
 }

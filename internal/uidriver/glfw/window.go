@@ -13,7 +13,6 @@
 // limitations under the License.
 
 // +build darwin freebsd linux windows
-// +build !js
 // +build !android
 // +build !ios
 
@@ -22,7 +21,7 @@ package glfw
 import (
 	"image"
 
-	"github.com/hajimehoshi/ebiten/internal/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
 type window struct {
@@ -189,11 +188,11 @@ func (w *window) Position() (int, int) {
 		} else {
 			wx, wy = w.ui.window.GetPos()
 		}
-		mx, my := w.ui.currentMonitor().GetPos()
+		mx, my := currentMonitor(w.ui.window).GetPos()
 		wx -= mx
 		wy -= my
-		xf := w.ui.toDeviceIndependentPixel(float64(wx))
-		yf := w.ui.toDeviceIndependentPixel(float64(wy))
+		xf := w.ui.fromGLFWPixel(float64(wx))
+		yf := w.ui.fromGLFWPixel(float64(wy))
 		x, y = int(xf), int(yf)
 		return nil
 	})
@@ -206,28 +205,33 @@ func (w *window) SetPosition(x, y int) {
 		return
 	}
 	_ = w.ui.t.Call(func() error {
-		defer func() {
-			w.setPositionCalled = true
-		}()
-		mx, my := w.ui.currentMonitor().GetPos()
-		xf := w.ui.toDeviceDependentPixel(float64(x))
-		yf := w.ui.toDeviceDependentPixel(float64(y))
-		x, y := w.ui.adjustWindowPosition(mx+int(xf), my+int(yf))
-		if w.ui.isFullscreen() {
-			w.ui.origPosX, w.ui.origPosY = x, y
-		} else {
-			w.ui.window.SetPos(x, y)
-		}
+		w.setPosition(x, y)
 		return nil
 	})
+}
+
+// setPosition must be called from the main thread
+func (w *window) setPosition(x, y int) {
+	defer func() {
+		w.setPositionCalled = true
+	}()
+
+	mx, my := currentMonitor(w.ui.window).GetPos()
+	xf := w.ui.toGLFWPixel(float64(x))
+	yf := w.ui.toGLFWPixel(float64(y))
+	if x, y := w.ui.adjustWindowPosition(mx+int(xf), my+int(yf)); w.ui.isFullscreen() {
+		w.ui.origPosX, w.ui.origPosY = x, y
+	} else {
+		w.ui.window.SetPos(x, y)
+	}
 }
 
 func (w *window) Size() (int, int) {
 	if !w.ui.isRunning() {
 		return w.ui.getInitWindowSize()
 	}
-	ww := int(w.ui.toDeviceIndependentPixel(float64(w.ui.windowWidth)))
-	wh := int(w.ui.toDeviceIndependentPixel(float64(w.ui.windowHeight)))
+	ww := int(w.ui.fromGLFWPixel(float64(w.ui.windowWidth)))
+	wh := int(w.ui.fromGLFWPixel(float64(w.ui.windowHeight)))
 	return ww, wh
 }
 
@@ -236,9 +240,12 @@ func (w *window) SetSize(width, height int) {
 		w.ui.setInitWindowSize(width, height)
 		return
 	}
-	ww := int(w.ui.toDeviceDependentPixel(float64(width)))
-	wh := int(w.ui.toDeviceDependentPixel(float64(height)))
-	w.ui.setWindowSize(ww, wh, w.ui.isFullscreen())
+	ww := int(w.ui.toGLFWPixel(float64(width)))
+	wh := int(w.ui.toGLFWPixel(float64(height)))
+	_ = w.ui.t.Call(func() error {
+		w.ui.setWindowSize(ww, wh, w.ui.isFullscreen())
+		return nil
+	})
 }
 
 func (w *window) SetIcon(iconImages []image.Image) {

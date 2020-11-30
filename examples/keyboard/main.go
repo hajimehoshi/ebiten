@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
@@ -23,10 +23,10 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"github.com/hajimehoshi/ebiten/examples/keyboard/keyboard"
-	rkeyabord "github.com/hajimehoshi/ebiten/examples/resources/images/keyboard"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/examples/keyboard/keyboard"
+	rkeyabord "github.com/hajimehoshi/ebiten/v2/examples/resources/images/keyboard"
 )
 
 const (
@@ -42,14 +42,14 @@ func init() {
 		log.Fatal(err)
 	}
 
-	keyboardImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	keyboardImage = ebiten.NewImageFromImage(img)
 }
 
 type Game struct {
 	pressed []ebiten.Key
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	g.pressed = nil
 	for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {
 		if ebiten.IsKeyPressed(k) {

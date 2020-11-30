@@ -19,10 +19,10 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
-	. "github.com/hajimehoshi/ebiten/internal/shareable"
-	t "github.com/hajimehoshi/ebiten/internal/testing"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	. "github.com/hajimehoshi/ebiten/v2/internal/shareable"
+	t "github.com/hajimehoshi/ebiten/v2/internal/testing"
 )
 
 const (
@@ -96,7 +96,13 @@ func TestEnsureNotShared(t *testing.T) {
 	// img4.ensureNotShared() should be called.
 	vs := quadVertices(size/2, size/2, size/4, size/4, 1)
 	is := graphics.QuadIndices()
-	img4.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  size,
+		Height: size,
+	}
+	img4.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
 	want := false
 	if got := img4.IsSharedForTesting(); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
@@ -126,7 +132,7 @@ func TestEnsureNotShared(t *testing.T) {
 
 	// Check further drawing doesn't cause panic.
 	// This bug was fixed by 03dcd948.
-	img4.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	img4.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
 }
 
 func TestReshared(t *testing.T) {
@@ -167,7 +173,13 @@ func TestReshared(t *testing.T) {
 	// Use img1 as a render target.
 	vs := quadVertices(size, size, 0, 0, 1)
 	is := graphics.QuadIndices()
-	img1.DrawTriangles([graphics.ShaderImageNum]*Image{img2}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  size,
+		Height: size,
+	}
+	img1.DrawTriangles([graphics.ShaderImageNum]*Image{img2}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
 	if got, want := img1.IsSharedForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -177,7 +189,7 @@ func TestReshared(t *testing.T) {
 		if err := MakeImagesSharedForTesting(); err != nil {
 			t.Fatal(err)
 		}
-		img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+		img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
 		if got, want := img1.IsSharedForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
@@ -204,7 +216,8 @@ func TestReshared(t *testing.T) {
 		}
 	}
 
-	img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	// img1 is on a shared image again.
+	img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
 	if got, want := img1.IsSharedForTesting(), true; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -227,12 +240,39 @@ func TestReshared(t *testing.T) {
 		}
 	}
 
-	// Use img3 as a render source. img3 never uses a shared texture.
+	// Use img1 as a render target again.
+	img1.DrawTriangles([graphics.ShaderImageNum]*Image{img2}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
+	if got, want := img1.IsSharedForTesting(), false; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	// Use img1 as a render source, but call ReplacePixels.
+	for i := 0; i < MaxCountForShare; i++ {
+		if err := MakeImagesSharedForTesting(); err != nil {
+			t.Fatal(err)
+		}
+		img1.ReplacePixels(make([]byte, 4*size*size))
+		img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
+		if got, want := img1.IsSharedForTesting(), false; got != want {
+			t.Errorf("got: %v, want: %v", got, want)
+		}
+	}
+	if err := MakeImagesSharedForTesting(); err != nil {
+		t.Fatal(err)
+	}
+
+	// img1 is not on a shared image due to ReplacePixels.
+	img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
+	if got, want := img1.IsSharedForTesting(), false; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	// Use img3 as a render source. As img3 is volatile, img3 never uses a shared texture.
 	for i := 0; i < MaxCountForShare*2; i++ {
 		if err := MakeImagesSharedForTesting(); err != nil {
 			t.Fatal(err)
 		}
-		img0.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+		img0.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
 		if got, want := img3.IsSharedForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
@@ -245,6 +285,7 @@ func TestExtend(t *testing.T) {
 	const w0, h0 = 100, 100
 	img0 := NewImage(w0, h0)
 	defer img0.MarkDisposed()
+
 	p0 := make([]byte, 4*w0*h0)
 	for i := 0; i < w0*h0; i++ {
 		p0[4*i] = byte(i)
@@ -254,9 +295,10 @@ func TestExtend(t *testing.T) {
 	}
 	img0.ReplacePixels(p0)
 
-	const w1, h1 = 1025, 100
+	const w1, h1 = minImageSizeForTesting + 1, 100
 	img1 := NewImage(w1, h1)
 	defer img1.MarkDisposed()
+
 	p1 := make([]byte, 4*w1*h1)
 	for i := 0; i < w1*h1; i++ {
 		p1[4*i] = byte(i)
@@ -304,9 +346,6 @@ func TestExtend(t *testing.T) {
 			}
 		}
 	}
-
-	img0.MarkDisposed()
-	img1.MarkDisposed()
 }
 
 func TestReplacePixelsAfterDrawTriangles(t *testing.T) {
@@ -327,7 +366,13 @@ func TestReplacePixelsAfterDrawTriangles(t *testing.T) {
 
 	vs := quadVertices(w, h, 0, 0, 1)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  w,
+		Height: h,
+	}
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
 	dst.ReplacePixels(pix)
 
 	pix, err := dst.Pixels(0, 0, w, h)
@@ -369,7 +414,13 @@ func TestSmallImages(t *testing.T) {
 
 	vs := quadVertices(w, h, 0, 0, 1)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  w,
+		Height: h,
+	}
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
 
 	pix, err := dst.Pixels(0, 0, w, h)
 	if err != nil {
@@ -411,7 +462,13 @@ func TestLongImages(t *testing.T) {
 	const scale = 120
 	vs := quadVertices(w, h, 0, 0, scale)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  dstW,
+		Height: dstH,
+	}
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
 
 	pix, err := dst.Pixels(0, 0, dstW, dstH)
 	if err != nil {
@@ -436,14 +493,13 @@ func TestDisposeImmediately(t *testing.T) {
 
 	img0 := NewImage(16, 16)
 	img0.EnsureNotSharedForTesting()
+	defer img0.MarkDisposed()
 
 	img1 := NewImage(16, 16)
 	img1.EnsureNotSharedForTesting()
+	defer img1.MarkDisposed()
 
 	// img0 and img1 should share the same backend in 99.9999% possibility.
-
-	img0.MarkDisposed()
-	img1.MarkDisposed()
 }
 
 // Issue #1028
@@ -453,10 +509,10 @@ func TestExtendWithBigImage(t *testing.T) {
 
 	img0.ReplacePixels(make([]byte, 4*1*1))
 
-	img1 := NewImage(1025, 1025)
+	img1 := NewImage(minImageSizeForTesting+1, minImageSizeForTesting+1)
 	defer img1.MarkDisposed()
 
-	img1.ReplacePixels(make([]byte, 4*1025*1025))
+	img1.ReplacePixels(make([]byte, 4*(minImageSizeForTesting+1)*(minImageSizeForTesting+1)))
 }
 
 // Issue #1217
@@ -478,6 +534,54 @@ func TestMinImageSize(t *testing.T) {
 	img := NewImage(s, s)
 	defer img.MarkDisposed()
 	img.ReplacePixels(make([]byte, 4*s*s))
+}
+
+// Issue #1421
+func TestDisposedAndReshared(t *testing.T) {
+	const size = 16
+
+	src := NewImage(size, size)
+	defer src.MarkDisposed()
+	src2 := NewImage(size, size)
+	defer src2.MarkDisposed()
+	dst := NewImage(size, size)
+	defer dst.MarkDisposed()
+
+	// Use src as a render target so that src is not on the shared image.
+	vs := quadVertices(size, size, 0, 0, 1)
+	is := graphics.QuadIndices()
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  size,
+		Height: size,
+	}
+	src.DrawTriangles([graphics.ShaderImageNum]*Image{src2}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
+	if got, want := src.IsSharedForTesting(), false; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	// Use src as a render source.
+	for i := 0; i < CountForStartSyncing; i++ {
+		if err := MakeImagesSharedForTesting(); err != nil {
+			t.Fatal(err)
+		}
+		dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
+		if got, want := src.IsSharedForTesting(), false; got != want {
+			t.Errorf("got: %v, want: %v", got, want)
+		}
+	}
+
+	// Before MakeImagesSharedForTesting, dispose the image.
+	src.MarkDisposed()
+
+	// Force to dispose the image.
+	ResolveDeferredForTesting()
+
+	// Confirm that MakeImagesSharedForTesting doesn't panic.
+	if err := MakeImagesSharedForTesting(); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // TODO: Add tests to extend shareable image out of the main loop

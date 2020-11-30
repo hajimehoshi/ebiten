@@ -84,10 +84,8 @@ var (
 // Other values might not work.
 // For example, 22050 causes error on Safari when decoding MP3.
 //
-// Error returned by NewContext is always nil as of 1.5.0-alpha.
-//
 // NewContext panics when an audio context is already created.
-func NewContext(sampleRate int) (*Context, error) {
+func NewContext(sampleRate int) *Context {
 	theContextLock.Lock()
 	defer theContextLock.Unlock()
 	if theContext != nil {
@@ -127,7 +125,7 @@ func NewContext(sampleRate int) (*Context, error) {
 		return err
 	})
 
-	return c, nil
+	return c
 }
 
 // CurrentContext returns the current context or nil if there is no context.
@@ -164,7 +162,7 @@ func (c *Context) addPlayer(p *playerImpl) {
 	c.players[p] = struct{}{}
 
 	// Check the source duplication
-	srcs := map[io.ReadCloser]struct{}{}
+	srcs := map[io.Reader]struct{}{}
 	for p := range c.players {
 		if _, ok := srcs[p.src]; ok {
 			c.err = errors.New("audio: a same source is used by multiple Player")
@@ -201,55 +199,16 @@ func (c *Context) IsReady() bool {
 		// problematic when a user tries to play audio after the context is ready.
 		// Play a dummy player to avoid the blocking (#969).
 		// Use a long enough buffer so that writing doesn't finish immediately (#970).
-		p, _ := NewPlayerFromBytes(c, make([]byte, bufferSize()*2))
+		p := NewPlayerFromBytes(c, make([]byte, bufferSize()*2))
 		p.Play()
 	}()
 
 	return r
 }
 
-// Update does nothing.
-//
-// Deprecated: (as of 1.6.0) Do not use this.
-//
-// As of 1.6.0-alpha, Update always returns nil and does nothing related to updating the state.
-// You don't have to call Update any longer.
-// The internal audio error is returned at ebiten.Run instead.
-func (c *Context) Update() error {
-	return nil
-}
-
 // SampleRate returns the sample rate.
 func (c *Context) SampleRate() int {
 	return c.sampleRate
-}
-
-// ReadSeekCloser is an io.ReadSeeker and io.Closer.
-type ReadSeekCloser interface {
-	io.ReadSeeker
-	io.Closer
-}
-
-type bytesReadSeekCloser struct {
-	reader *bytes.Reader
-}
-
-func (b *bytesReadSeekCloser) Read(buf []byte) (int, error) {
-	return b.reader.Read(buf)
-}
-
-func (b *bytesReadSeekCloser) Seek(offset int64, whence int) (int64, error) {
-	return b.reader.Seek(offset, whence)
-}
-
-func (b *bytesReadSeekCloser) Close() error {
-	b.reader = nil
-	return nil
-}
-
-// BytesReadSeekCloser creates ReadSeekCloser from bytes.
-func BytesReadSeekCloser(b []byte) ReadSeekCloser {
-	return &bytesReadSeekCloser{reader: bytes.NewReader(b)}
 }
 
 // Player is an audio player which has one stream.
@@ -264,7 +223,7 @@ type Player struct {
 
 type playerImpl struct {
 	context          *Context
-	src              io.ReadCloser
+	src              io.Reader
 	sampleRate       int
 	playing          bool
 	closedExplicitly bool
@@ -291,8 +250,9 @@ type playerImpl struct {
 // NewPlayer tries to call Seek of src to get the current position.
 // NewPlayer returns error when the Seek returns error.
 //
-// NewPlayer takes the ownership of src. Player's Close calls src's Close.
-func NewPlayer(context *Context, src io.ReadCloser) (*Player, error) {
+// A Player doesn't close src even if src implements io.Closer.
+// Closing the source is src owner's responsibility.
+func NewPlayer(context *Context, src io.Reader) (*Player, error) {
 	p := &Player{
 		&playerImpl{
 			context:    context,
@@ -320,16 +280,14 @@ func NewPlayer(context *Context, src io.ReadCloser) (*Player, error) {
 // src can be shared by multiple players.
 //
 // The format of src should be same as noted at NewPlayer.
-//
-// NewPlayerFromBytes's error is always nil as of 1.5.0-alpha.
-func NewPlayerFromBytes(context *Context, src []byte) (*Player, error) {
-	b := BytesReadSeekCloser(src)
+func NewPlayerFromBytes(context *Context, src []byte) *Player {
+	b := bytes.NewReader(src)
 	p, err := NewPlayer(context, b)
 	if err != nil {
 		// Errors should never happen.
 		panic(fmt.Sprintf("audio: %v at NewPlayerFromBytes", err))
 	}
-	return p, nil
+	return p
 }
 
 func (p *Player) finalize() {
@@ -341,10 +299,10 @@ func (p *Player) finalize() {
 
 // Close closes the stream.
 //
-// When closing, the stream owned by the player will also be closed by calling its Close.
-// This means that the source stream passed via NewPlayer will also be closed.
+// When Close is called, the stream owned by the player is NOT closed,
+// even if the stream implements io.Closer.
 //
-// Close returns error when closing the source returns error.
+// Close returns error when the player is already closed.
 func (p *Player) Close() error {
 	runtime.SetFinalizer(p, nil)
 	return p.p.Close()
@@ -359,20 +317,12 @@ func (p *playerImpl) Close() error {
 		return fmt.Errorf("audio: the player is already closed")
 	}
 	p.closedExplicitly = true
-	// src.Close is called only when Player's Close is called.
-	// TODO: Is it ok not to call src.Close when GCed?
-	if err := p.src.Close(); err != nil {
-		return err
-	}
 	return nil
 }
 
 // Play plays the stream.
-//
-// Play always returns nil.
-func (p *Player) Play() error {
+func (p *Player) Play() {
 	p.p.Play()
-	return nil
 }
 
 func (p *playerImpl) Play() {
@@ -548,11 +498,8 @@ func (p *playerImpl) Seek(offset time.Duration) error {
 }
 
 // Pause pauses the playing.
-//
-// Pause always returns nil.
-func (p *Player) Pause() error {
+func (p *Player) Pause() {
 	p.p.Pause()
-	return nil
 }
 
 func (p *playerImpl) Pause() {

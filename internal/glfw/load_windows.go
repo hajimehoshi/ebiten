@@ -19,8 +19,8 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
+	"path/filepath"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -28,7 +28,6 @@ import (
 
 type dll struct {
 	d     *windows.LazyDLL
-	path  string
 	procs map[string]*windows.LazyProc
 }
 
@@ -47,45 +46,61 @@ func (d *dll) call(name string, args ...uintptr) uintptr {
 	return r
 }
 
-func createTempDLL(content io.Reader) (string, error) {
-	f, err := ioutil.TempFile("", "glfw.*.dll")
+func writeDLLFile(name string) error {
+	f, err := gzip.NewReader(bytes.NewReader(glfwDLLCompressed))
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer f.Close()
 
-	fn := f.Name()
-
-	if _, err := io.Copy(f, content); err != nil {
-		return "", err
+	out, err := os.Create(name)
+	if err != nil {
+		return err
 	}
+	defer out.Close()
 
-	return fn, nil
+	if _, err := io.Copy(out, f); err != nil {
+		return err
+	}
+	return nil
 }
 
 func loadDLL() (*dll, error) {
-	f, err := gzip.NewReader(bytes.NewReader(glfwDLLCompressed))
+	cachedir, err := os.UserCacheDir()
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
 
-	fn, err := createTempDLL(f)
-	if err != nil {
+	dir := filepath.Join(cachedir, "ebiten")
+	if err := os.MkdirAll(dir, 0755); err != nil {
 		return nil, err
+	}
+
+	fn := filepath.Join(dir, glfwDLLHash+".dll")
+	if _, err := os.Stat(fn); err != nil {
+		if !os.IsNotExist(err) {
+			return nil, err
+		}
+
+		// Create a DLL as a temporary file and then rename it later.
+		// Without the temporary file, writing a DLL might fail in the process of writing and Ebiten cannot
+		// notice that the DLL file is incomplete.
+		if err := writeDLLFile(fn + ".tmp"); err != nil {
+			return nil, err
+		}
+
+		if err := os.Rename(fn+".tmp", fn); err != nil {
+			return nil, err
+		}
 	}
 
 	return &dll{
-		d:    windows.NewLazyDLL(fn),
-		path: fn,
+		d: windows.NewLazyDLL(fn),
 	}, nil
 }
 
 func (d *dll) unload() error {
 	if err := windows.FreeLibrary(windows.Handle(d.d.Handle())); err != nil {
-		return err
-	}
-	if err := os.Remove(d.path); err != nil {
 		return err
 	}
 	return nil

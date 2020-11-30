@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
@@ -22,15 +22,15 @@ import (
 	"log"
 	"math"
 
-	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/audio"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"github.com/hajimehoshi/ebiten/examples/resources/fonts"
-	"github.com/hajimehoshi/ebiten/inpututil"
-	"github.com/hajimehoshi/ebiten/text"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/audio"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/text"
 )
 
 var (
@@ -38,7 +38,7 @@ var (
 )
 
 func init() {
-	tt, err := truetype.Parse(fonts.ArcadeN_ttf)
+	tt, err := opentype.Parse(fonts.PressStart2P_ttf)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -47,11 +47,14 @@ func init() {
 		arcadeFontSize = 8
 		dpi            = 72
 	)
-	arcadeFont = truetype.NewFace(tt, &truetype.Options{
+	arcadeFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    arcadeFontSize,
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 const (
@@ -61,15 +64,7 @@ const (
 	baseFreq     = 220
 )
 
-var audioContext *audio.Context
-
-func init() {
-	var err error
-	audioContext, err = audio.NewContext(sampleRate)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
+var audioContext = audio.NewContext(sampleRate)
 
 // pianoAt returns an i-th sample of piano with the given frequency.
 func pianoAt(i int, freq float64) float64 {
@@ -144,17 +139,15 @@ func init() {
 // playNote plays piano sound with the given frequency.
 func playNote(freq float64) {
 	f := int(freq)
-	p, _ := audio.NewPlayerFromBytes(audioContext, pianoNoteSamples[f])
+	p := audio.NewPlayerFromBytes(audioContext, pianoNoteSamples[f])
 	p.Play()
 }
 
 var (
-	pianoImage *ebiten.Image
+	pianoImage = ebiten.NewImage(screenWidth, screenHeight)
 )
 
 func init() {
-	pianoImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterDefault)
-
 	const (
 		keyWidth = 24
 		y        = 48
@@ -204,7 +197,7 @@ var (
 type Game struct {
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	// The piano data is still being initialized.
 	// Get the progress if available.
 	if !pianoNoteSamplesInited {

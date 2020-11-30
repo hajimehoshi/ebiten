@@ -15,39 +15,45 @@
 package thread
 
 import (
-	"context"
+	"errors"
 )
 
-// Thread represents an OS thread.
-type Thread struct {
+// Thread defines threading behavior in Ebiten.
+type Thread interface {
+	Call(func() error) error
+	Loop()
+}
+
+// OSThread represents an OS thread.
+type OSThread struct {
 	funcs   chan func() error
 	results chan error
 }
 
-// New creates a new thread.
+// NewOSThread creates a new thread.
 //
-// It is assumed that the OS thread is fixed by runtime.LockOSThread when New is called.
-func New() *Thread {
-	return &Thread{
+// It is assumed that the OS thread is fixed by runtime.LockOSThread when NewOSThread is called.
+func NewOSThread() *OSThread {
+	return &OSThread{
 		funcs:   make(chan func() error),
 		results: make(chan error),
 	}
 }
 
-// Loop starts the thread loop.
+// BreakLoop represents an termination of the loop.
+var BreakLoop = errors.New("break loop")
+
+// Loop starts the thread loop until a posted function returns BreakLoop.
 //
 // Loop must be called on the thread.
-//
-// Loop can be called multiple times.
-func (t *Thread) Loop(context context.Context) {
-loop:
-	for {
-		select {
-		case f := <-t.funcs:
-			t.results <- f()
-		case <-context.Done():
-			break loop
+func (t *OSThread) Loop() {
+	for f := range t.funcs {
+		err := f()
+		if err == BreakLoop {
+			t.results <- nil
+			return
 		}
+		t.results <- err
 	}
 }
 
@@ -55,8 +61,26 @@ loop:
 //
 // Do not call this from the same thread. This would block forever.
 //
+// If f returns BreakLoop, Loop returns.
+//
 // Call blocks if Loop is not called.
-func (t *Thread) Call(f func() error) error {
+func (t *OSThread) Call(f func() error) error {
 	t.funcs <- f
 	return <-t.results
+}
+
+// NoopThread is used to disable threading.
+type NoopThread struct{}
+
+// NewNoopThread creates a new thread that does no threading.
+func NewNoopThread() Thread {
+	return &NoopThread{}
+}
+
+// Loop does nothing
+func (t *NoopThread) Loop() {}
+
+// Call executes the func immediately
+func (t *NoopThread) Call(f func() error) error {
+	return f()
 }

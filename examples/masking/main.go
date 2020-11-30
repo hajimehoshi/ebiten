@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
@@ -24,8 +24,8 @@ import (
 	"log"
 	"math"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/examples/resources/images"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 )
 
 const (
@@ -36,7 +36,7 @@ const (
 var (
 	bgImage        *ebiten.Image
 	fgImage        *ebiten.Image
-	maskedFgImage  *ebiten.Image
+	maskedFgImage  = ebiten.NewImage(screenWidth, screenHeight)
 	spotLightImage *ebiten.Image
 )
 
@@ -54,15 +54,13 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	bgImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	bgImage = ebiten.NewImageFromImage(img)
 
 	img, _, err = image.Decode(bytes.NewReader(images.FiveYears_jpg))
 	if err != nil {
 		log.Fatal(err)
 	}
-	fgImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
-
-	maskedFgImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterDefault)
+	fgImage = ebiten.NewImageFromImage(img)
 
 	// Initialize the spot light image.
 	const r = 64
@@ -77,7 +75,7 @@ func init() {
 			a.SetAlpha(i, j, color.Alpha{b})
 		}
 	}
-	spotLightImage, _ = ebiten.NewImageFromImage(a, ebiten.FilterDefault)
+	spotLightImage = ebiten.NewImageFromImage(a)
 }
 
 type Game struct {
@@ -96,7 +94,7 @@ func NewGame() *Game {
 	}
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if g.spotLightVX == 0 {
 		g.spotLightVX = 1
 	}

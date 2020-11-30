@@ -20,7 +20,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 var mainCh = make(chan func())
@@ -42,7 +42,7 @@ type game struct {
 	code  int
 }
 
-func (g *game) Update(*ebiten.Image) error {
+func (g *game) Update() error {
 	select {
 	case f := <-mainCh:
 		f()
@@ -87,7 +87,7 @@ type testResult struct {
 
 var testSetBeforeMainResult = func() testResult {
 	clr := color.RGBA{1, 2, 3, 4}
-	img, _ := ebiten.NewImage(16, 16, ebiten.FilterDefault)
+	img := ebiten.NewImage(16, 16)
 	img.Set(0, 0, clr)
 
 	ch := make(chan color.RGBA, 1)
@@ -114,8 +114,8 @@ func TestSetBeforeMain(t *testing.T) {
 
 var testDrawImageBeforeMainResult = func() testResult {
 	const w, h = 16, 16
-	src, _ := ebiten.NewImage(w, h, ebiten.FilterDefault)
-	dst, _ := ebiten.NewImage(w, h, ebiten.FilterDefault)
+	src := ebiten.NewImage(w, h)
+	dst := ebiten.NewImage(w, h)
 	src.Set(0, 0, color.White)
 	dst.DrawImage(src, nil)
 
@@ -143,8 +143,8 @@ func TestDrawImageBeforeMain(t *testing.T) {
 
 var testDrawTrianglesBeforeMainResult = func() testResult {
 	const w, h = 16, 16
-	src, _ := ebiten.NewImage(w, h, ebiten.FilterDefault)
-	dst, _ := ebiten.NewImage(w, h, ebiten.FilterDefault)
+	src := ebiten.NewImage(w, h)
+	dst := ebiten.NewImage(w, h)
 	src.Set(0, 0, color.White)
 	vs := []ebiten.Vertex{
 		{
@@ -204,7 +204,7 @@ func TestDrawTrianglesBeforeMain(t *testing.T) {
 
 var testSetAndFillBeforeMainResult = func() testResult {
 	clr := color.RGBA{1, 2, 3, 4}
-	img, _ := ebiten.NewImage(16, 16, ebiten.FilterDefault)
+	img := ebiten.NewImage(16, 16)
 	img.Set(0, 0, clr)
 	img.Fill(color.RGBA{5, 6, 7, 8})
 	img.Set(1, 0, clr)
@@ -233,7 +233,7 @@ func TestSetAndFillBeforeMain(t *testing.T) {
 
 var testSetAndReplacePixelsBeforeMainResult = func() testResult {
 	clr := color.RGBA{1, 2, 3, 4}
-	img, _ := ebiten.NewImage(16, 16, ebiten.FilterDefault)
+	img := ebiten.NewImage(16, 16)
 	img.Set(0, 0, clr)
 	pix := make([]byte, 4*16*16)
 	for i := 0; i < len(pix)/4; i++ {
@@ -268,7 +268,7 @@ func TestSetAndReplacePixelsBeforeMain(t *testing.T) {
 }
 
 var testReplacePixelsAndModifyBeforeMainResult = func() testResult {
-	img, _ := ebiten.NewImage(16, 16, ebiten.FilterDefault)
+	img := ebiten.NewImage(16, 16)
 	pix := make([]byte, 4*16*16)
 	for i := 0; i < len(pix)/4; i++ {
 		pix[4*i] = 1

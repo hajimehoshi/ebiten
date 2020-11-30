@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !js
 // +build !ios
 
 package glfw
@@ -22,7 +21,7 @@ package glfw
 //
 // #import <AppKit/AppKit.h>
 //
-// static void currentMonitorPos(void* windowPtr, int* x, int* y) {
+// static void currentMonitorPos(uintptr_t windowPtr, int* x, int* y) {
 //   NSScreen* screen = [NSScreen mainScreen];
 //   if (windowPtr) {
 //     NSWindow* window = (NSWindow*)windowPtr;
@@ -42,36 +41,44 @@ package glfw
 import "C"
 
 import (
-	"unsafe"
-
-	"github.com/hajimehoshi/ebiten/internal/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
-func (u *UserInterface) glfwScale() float64 {
-	return 1
+func (u *UserInterface) fromGLFWMonitorPixel(x float64) float64 {
+	return x
+}
+
+func (u *UserInterface) fromGLFWPixel(x float64) float64 {
+	return x
+}
+
+func (u *UserInterface) toGLFWPixel(x float64) float64 {
+	return x
+}
+
+func (u *UserInterface) toFramebufferPixel(x float64) float64 {
+	return x
 }
 
 func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
 
-func (u *UserInterface) currentMonitorFromPosition() *glfw.Monitor {
+func currentMonitorByOS(w *glfw.Window) *glfw.Monitor {
 	x := C.int(0)
 	y := C.int(0)
-	// Note: [NSApp mainWindow] is nil when it doesn't have its border. Use u.window here.
-	if u.window != nil {
-		win := u.window.GetCocoaWindow()
-		C.currentMonitorPos(win, &x, &y)
-		for _, m := range glfw.GetMonitors() {
-			mx, my := m.GetPos()
-			if int(x) == mx && int(y) == my {
-				return m
-			}
+	// Note: [NSApp mainWindow] is nil when it doesn't have its border. Use w here.
+	win := w.GetCocoaWindow()
+	C.currentMonitorPos(C.uintptr_t(win), &x, &y)
+	for _, m := range glfw.GetMonitors() {
+		mx, my := m.GetPos()
+		if int(x) == mx && int(y) == my {
+			return m
 		}
 	}
-	return glfw.GetPrimaryMonitor()
+	return nil
 }
 
-func (u *UserInterface) nativeWindow() unsafe.Pointer {
+func (u *UserInterface) nativeWindow() uintptr {
 	return u.window.GetCocoaWindow()
 }

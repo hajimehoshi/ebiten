@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 // This example is just to check if Ebiten can draw fine checker pattern evenly.
 // If there is something wrong in the implementation, the result might include
@@ -22,8 +22,8 @@ package main
 import (
 	"log"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/inpututil"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 const (
@@ -66,7 +66,7 @@ func (g *game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return screenWidth, screenHeight
 }
 
-func (g *game) Update(screen *ebiten.Image) error {
+func (g *game) Update() error {
 	fullscreen := ebiten.IsFullscreen()
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyS) {

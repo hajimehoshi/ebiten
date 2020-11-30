@@ -81,7 +81,7 @@ func calcCountFromTPS(tps int64, now int64) int {
 		count = int(diff * tps / int64(time.Second))
 	}
 
-	// Stabilize FPS.
+	// Stabilize the count.
 	// Without this adjustment, count can be unstable like 0, 2, 0, 2, ...
 	if count == 0 && (int64(time.Second)/tps/2) < diff {
 		count = 1

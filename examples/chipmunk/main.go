@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
@@ -22,8 +22,8 @@ import (
 	"log"
 	"math/rand"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/jakecoffman/cp"
 )
 
@@ -33,11 +33,10 @@ const (
 )
 
 var (
-	dot *ebiten.Image
+	dot = ebiten.NewImage(1, 1)
 )
 
 func init() {
-	dot, _ = ebiten.NewImage(1, 1, ebiten.FilterDefault)
 	dot.Fill(color.White)
 }
 
@@ -90,7 +89,7 @@ func NewGame() *Game {
 	}
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	g.space.Step(1.0 / float64(ebiten.MaxTPS()))
 	return nil
 }

@@ -13,34 +13,51 @@
 // limitations under the License.
 
 // +build dragonfly freebsd linux netbsd openbsd solaris
-// +build !js
 // +build !android
 
 package glfw
 
 import (
-	"unsafe"
+	"math"
 
-	"github.com/hajimehoshi/ebiten/internal/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
-func (u *UserInterface) glfwScale() float64 {
-	return u.deviceScaleFactor()
+// fromGLFWMonitorPixel must be called from the main thread.
+func (u *UserInterface) fromGLFWMonitorPixel(x float64) float64 {
+	return math.Ceil(x / u.deviceScaleFactor())
+}
+
+// fromGLFWPixel must be called from the main thread.
+func (u *UserInterface) fromGLFWPixel(x float64) float64 {
+	// deviceScaleFactor() is a scale by desktop environment (e.g., Cinnamon), while GetContentScale() is X's scale.
+	// They are different things and then need to be treated different ways (#1350).
+	s, _ := currentMonitor(u.window).GetContentScale()
+	return x / float64(s)
+}
+
+// toGLFWPixel must be called from the main thread.
+func (u *UserInterface) toGLFWPixel(x float64) float64 {
+	s, _ := currentMonitor(u.window).GetContentScale()
+	return x * float64(s)
+}
+
+// toFramebufferPixel must be called from the main thread.
+func (u *UserInterface) toFramebufferPixel(x float64) float64 {
+	s, _ := currentMonitor(u.window).GetContentScale()
+	return math.Ceil(x * float64(s) / u.deviceScaleFactor())
 }
 
 func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
 
-func (u *UserInterface) currentMonitorFromPosition() *glfw.Monitor {
+func currentMonitorByOS(_ *glfw.Window) *glfw.Monitor {
 	// TODO: Implement this correctly. (#1119).
-	if cm, ok := getCachedMonitor(u.window.GetPos()); ok {
-		return cm.m
-	}
-	return glfw.GetPrimaryMonitor()
+	return nil
 }
 
-func (u *UserInterface) nativeWindow() unsafe.Pointer {
+func (u *UserInterface) nativeWindow() uintptr {
 	// TODO: Implement this.
-	return nil
+	return 0
 }

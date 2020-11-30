@@ -18,17 +18,17 @@
 package vector
 
 import (
+	"image"
 	"image/color"
 	"math"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/vector/internal/triangulate"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector/internal/triangulate"
 )
 
-var emptyImage *ebiten.Image
+var emptyImage = ebiten.NewImage(3, 3)
 
 func init() {
-	emptyImage, _ = ebiten.NewImage(1, 1, ebiten.FilterDefault)
 	emptyImage.Fill(color.White)
 }
 
@@ -139,5 +139,5 @@ func (p *Path) Fill(dst *ebiten.Image, op *FillOptions) {
 		}
 		base += uint16(len(seg))
 	}
-	dst.DrawTriangles(vertices, indices, emptyImage, nil)
+	dst.DrawTriangles(vertices, indices, emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image), nil)
 }

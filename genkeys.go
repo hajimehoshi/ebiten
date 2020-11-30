@@ -144,6 +144,8 @@ func init() {
 		157: "KPAdd",
 		160: "KPEnter",
 		161: "KPEqual",
+		117: "LeftSuper",  // KEYCODE_META_LEFT
+		118: "RightSuper", // KEYCODE_META_RIGHT
 	}
 
 	gbuildKeyToDriverKeyName = map[key.Code]string{
@@ -189,6 +191,8 @@ func init() {
 		key.CodeKeypadPlusSign:     "KPAdd",
 		key.CodeKeypadEnter:        "KPEnter",
 		key.CodeKeypadEqualSign:    "KPEqual",
+		key.CodeLeftGUI:            "LeftSuper",
+		key.CodeRightGUI:           "RightSuper",
 
 		// Missing keys:
 		//   driver.KeyPrintScreen
@@ -242,6 +246,8 @@ func init() {
 		"KPAdd":        "NumpadAdd",
 		"KPEnter":      "NumpadEnter",
 		"KPEqual":      "NumpadEqual",
+		"LeftSuper":    "MetaLeft",
+		"RightSuper":   "MetaRight",
 	}
 
 	// ASCII: 0 - 9
@@ -290,6 +296,7 @@ func init() {
 }
 
 func init() {
+	// https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode
 	// TODO: How should we treat modifier keys? Now 'left' modifier keys are available.
 	edgeKeyCodeToName = map[int]string{
 		0xbc: "Comma",
@@ -331,6 +338,8 @@ func init() {
 		0x13: "Pause",
 		0x91: "ScrollLock",
 		0x5d: "Menu",
+		0x5b: "LeftSuper",
+		0x5c: "RightSuper",
 
 		// On Edge, this key does not work. PrintScreen works only on keyup event.
 		// 0x2C: "PrintScreen",
@@ -366,7 +375,7 @@ package ebiten
 import (
 	"strings"
 
-	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 )
 
 // A Key represents a keyboard key.
@@ -380,7 +389,8 @@ const (
 {{end}}	KeyAlt Key = Key(driver.KeyReserved0)
 	KeyControl Key = Key(driver.KeyReserved1)
 	KeyShift Key = Key(driver.KeyReserved2)
-	KeyMax Key = KeyShift
+	KeySuper Key = Key(driver.KeyReserved3)
+	KeyMax Key = KeySuper
 )
 
 func (k Key) isValid() bool {
@@ -430,6 +440,7 @@ const (
 {{end}}	KeyReserved0
 	KeyReserved1
 	KeyReserved2
+	KeyReserved3
 )
 
 func (k Key) String() string {
@@ -448,7 +459,7 @@ const eventKeysTmpl = `{{.License}}
 package event
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 )
 
 type Key = driver.Key
@@ -468,8 +479,8 @@ const uidriverGlfwKeysTmpl = `{{.License}}
 package glfw
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
 var glfwKeyToDriverKey = map[glfw.Key]driver.Key{
@@ -492,7 +503,7 @@ const uidriverJsKeysTmpl = `{{.License}}
 package js
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 )
 
 var driverKeyToJSKey = map[driver.Key]string{
@@ -529,7 +540,7 @@ const mobileAndroidKeysTmpl = `{{.License}}
 package ebitenmobileview
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 )
 
 var androidKeyToDriverKey = map[int]driver.Key{
@@ -549,7 +560,7 @@ package mobile
 import (
 	"golang.org/x/mobile/event/key"
 
-	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 )
 
 var gbuildKeyToDriverKey = map[key.Code]driver.Key{
@@ -652,7 +663,7 @@ func main() {
 	driverKeyNames := []string{}
 	for name := range driverKeyNameToJSKey {
 		driverKeyNames = append(driverKeyNames, name)
-		if !strings.HasSuffix(name, "Alt") && !strings.HasSuffix(name, "Control") && !strings.HasSuffix(name, "Shift") {
+		if !strings.HasSuffix(name, "Alt") && !strings.HasSuffix(name, "Control") && !strings.HasSuffix(name, "Shift") && !strings.HasSuffix(name, "Super") {
 			ebitenKeyNames = append(ebitenKeyNames, name)
 			ebitenKeyNamesWithoutMods = append(ebitenKeyNamesWithoutMods, name)
 			continue
@@ -667,6 +678,10 @@ func main() {
 		}
 		if name == "LeftShift" {
 			ebitenKeyNames = append(ebitenKeyNames, "Shift")
+			continue
+		}
+		if name == "LeftSuper" {
+			ebitenKeyNames = append(ebitenKeyNames, "Super")
 			continue
 		}
 	}
@@ -684,7 +699,7 @@ func main() {
 		filepath.Join("internal", "glfw", "keys.go"):                   glfwKeysTmpl,
 		filepath.Join("internal", "uidriver", "glfw", "keys.go"):       uidriverGlfwKeysTmpl,
 		filepath.Join("internal", "uidriver", "mobile", "keys.go"):     mobileGBuildKeysTmpl,
-		filepath.Join("internal", "uidriver", "js", "keys.go"):         uidriverJsKeysTmpl,
+		filepath.Join("internal", "uidriver", "js", "keys_js.go"):      uidriverJsKeysTmpl,
 		filepath.Join("keys.go"):                                       ebitenKeysTmpl,
 		filepath.Join("mobile", "ebitenmobileview", "keys_android.go"): mobileAndroidKeysTmpl,
 	} {
@@ -706,13 +721,12 @@ func main() {
 		// Pass the build tag and extract this in the template to make `go vet` happy.
 		buildTag := ""
 		switch path {
-		case "internal/uidriver/glfw/keys.go":
+		case filepath.Join("internal", "glfw", "keys.go"):
+			buildTag = "// +build !js"
+		case filepath.Join("internal", "uidriver", "glfw", "keys.go"):
 			buildTag = "// +build darwin freebsd linux windows" +
-				"\n// +build !js" +
 				"\n// +build !android" +
 				"\n// +build !ios"
-		case "internal/uidriver/js/keys.go":
-			buildTag = "// +build js"
 		}
 		// NOTE: According to godoc, maps are automatically sorted by key.
 		if err := tmpl.Execute(f, struct {

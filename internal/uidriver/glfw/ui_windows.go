@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !js
-
 package glfw
 
 import (
@@ -22,7 +20,7 @@ import (
 
 	"golang.org/x/sys/windows"
 
-	"github.com/hajimehoshi/ebiten/internal/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
 const (
@@ -99,12 +97,28 @@ func getMonitorInfoW(hMonitor uintptr, lpmi *monitorInfo) error {
 	return nil
 }
 
-func (u *UserInterface) glfwScale() float64 {
-	return u.deviceScaleFactor()
+// fromGLFWMonitorPixel must be called from the main thread.
+func (u *UserInterface) fromGLFWMonitorPixel(x float64) float64 {
+	return x / u.deviceScaleFactor()
+}
+
+// fromGLFWPixel must be called from the main thread.
+func (u *UserInterface) fromGLFWPixel(x float64) float64 {
+	return x / u.deviceScaleFactor()
+}
+
+// toGLFWPixel must be called from the main thread.
+func (u *UserInterface) toGLFWPixel(x float64) float64 {
+	return x * u.deviceScaleFactor()
+}
+
+// toFramebufferPixel must be called from the main thread.
+func (u *UserInterface) toFramebufferPixel(x float64) float64 {
+	return x
 }
 
 func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
-	mx, my := u.currentMonitor().GetPos()
+	mx, my := currentMonitor(u.window).GetPos()
 	// As the video width/height might be wrong,
 	// adjust x/y at least to enable to handle the window (#328)
 	if x < mx {
@@ -120,23 +134,23 @@ func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
 
-func (u *UserInterface) currentMonitorFromPosition() *glfw.Monitor {
-	// TODO: Should we use u.window.GetWin32Window() here?
+func currentMonitorByOS(_ *glfw.Window) *glfw.Monitor {
+	// TODO: Should we return nil here?
 	w, err := getActiveWindow()
 	if err != nil {
 		panic(err)
 	}
+
 	if w == 0 {
-		// There is no window at launching, but there is a hidden initialized window.
+		// The active window doesn't exist when launching, or the application is runnable on unfocused.
 		// Get the foreground window, that is common among multiple processes.
 		w, err = getForegroundWindow()
 		if err != nil {
 			panic(err)
 		}
 		if w == 0 {
-			// GetForegroundWindow can return null according to the document. Use
-			// the primary monitor instead.
-			return glfw.GetPrimaryMonitor()
+			// GetForegroundWindow can return null according to the document.
+			return nil
 		}
 	}
 
@@ -145,7 +159,8 @@ func (u *UserInterface) currentMonitorFromPosition() *glfw.Monitor {
 
 	m, err := monitorFromWindow(w, monitorDefaultToNearest)
 	if err != nil {
-		panic(err)
+		// monitorFromWindow can return error on Wine. Ignore this.
+		return nil
 	}
 
 	mi := monitorInfo{}
@@ -161,9 +176,9 @@ func (u *UserInterface) currentMonitorFromPosition() *glfw.Monitor {
 			return m
 		}
 	}
-	return glfw.GetPrimaryMonitor()
+	return nil
 }
 
-func (u *UserInterface) nativeWindow() unsafe.Pointer {
+func (u *UserInterface) nativeWindow() uintptr {
 	return u.window.GetWin32Window()
 }

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
@@ -22,8 +22,8 @@ import (
 	_ "image/jpeg"
 	"log"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/examples/resources/images"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 )
 
 const (
@@ -37,7 +37,7 @@ var (
 
 type Game struct{}
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	return nil
 }
 
@@ -55,7 +55,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			// Alpha scale should be 1.0/49.0, but accumulating 1/49 49 times doesn't reach to 1, because
 			// the final color is affected by the destination alpha when CompositeModeSourceOver is used.
 			// This composite mode is the default mode. See how this is calculated at the doc:
-			// https://pkg.go.dev/github.com/hajimehoshi/ebiten#CompositeMode
+			// https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2#CompositeMode
 			//
 			// Use a higher value than 1.0/49.0. Here, 1.0/25.0 here to get a reasonable result.
 			op.ColorM.Scale(1, 1, 1, 1.0/25.0)
@@ -82,7 +82,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	gophersImage = ebiten.NewImageFromImage(img)
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Blur (Ebiten Demo)")

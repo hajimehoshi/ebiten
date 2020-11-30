@@ -16,25 +16,20 @@ package restorable
 
 import (
 	"fmt"
-	"image/color"
 
-	"github.com/hajimehoshi/ebiten/internal/affine"
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
+	"github.com/hajimehoshi/ebiten/v2/internal/affine"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 )
 
 type Pixels struct {
-	baseColor    color.RGBA
 	rectToPixels *rectToPixels
 }
 
 // Apply applies the Pixels state to the given image especially for restoring.
 func (p *Pixels) Apply(img *graphicscommand.Image) {
 	// Pixels doesn't clear the image. This is a caller's responsibility.
-	if p.baseColor != (color.RGBA{}) {
-		fillImage(img, p.baseColor)
-	}
 
 	if p.rectToPixels == nil {
 		return
@@ -64,22 +59,23 @@ func (p *Pixels) At(i, j int) (byte, byte, byte, byte) {
 			return r, g, b, a
 		}
 	}
-	return p.baseColor.R, p.baseColor.G, p.baseColor.B, p.baseColor.A
+	return 0, 0, 0, 0
 }
 
 // drawTrianglesHistoryItem is an item for history of draw-image commands.
 type drawTrianglesHistoryItem struct {
-	images       [graphics.ShaderImageNum]*Image
-	offsets      [graphics.ShaderImageNum - 1][2]float32
-	vertices     []float32
-	indices      []uint16
-	colorm       *affine.ColorM
-	mode         driver.CompositeMode
-	filter       driver.Filter
-	address      driver.Address
-	sourceRegion driver.Region
-	shader       *Shader
-	uniforms     []interface{}
+	images    [graphics.ShaderImageNum]*Image
+	offsets   [graphics.ShaderImageNum - 1][2]float32
+	vertices  []float32
+	indices   []uint16
+	colorm    *affine.ColorM
+	mode      driver.CompositeMode
+	filter    driver.Filter
+	address   driver.Address
+	dstRegion driver.Region
+	srcRegion driver.Region
+	shader    *Shader
+	uniforms  []interface{}
 }
 
 // Image represents an image that can be restored when GL context is lost.
@@ -111,9 +107,8 @@ type Image struct {
 var emptyImage *Image
 
 func init() {
-	// Use a big-enough image as an rendering source. By enlarging with x128, this can reach to 16384.
-	// See #907 for details.
-	const w, h = 128, 128
+	// w and h are the empty image's size. They indicate the 1x1 image with 1px padding around.
+	const w, h = 3, 3
 	emptyImage = &Image{
 		image:    graphicscommand.NewImage(w, h),
 		width:    w,
@@ -142,7 +137,7 @@ func NewImage(width, height int) *Image {
 		width:  width,
 		height: height,
 	}
-	fillImage(i.image, color.RGBA{})
+	clearImage(i.image)
 	theImages.add(i)
 	return i
 }
@@ -175,22 +170,29 @@ func (i *Image) Extend(width, height int) *Image {
 		panic(fmt.Sprintf("restorable: the original size (%d, %d) cannot be extended to (%d, %d)", i.width, i.height, width, height))
 	}
 
-	if i.stale {
-		panic("restorable: Extend at a stale image is forbidden")
-	}
-
-	if len(i.drawTrianglesHistory) > 0 {
-		panic("restorable: Extend after DrawTriangles is forbidden")
-	}
-
 	newImg := NewImage(width, height)
 	newImg.SetVolatile(i.volatile)
-	i.basePixels.Apply(newImg.image)
 
-	if i.basePixels.baseColor != (color.RGBA{}) {
-		panic("restorable: baseColor must be empty at Extend")
+	// Use DrawTriangles instead of ReplacePixels because the image i might be stale and not have its pixels
+	// information.
+	srcs := [graphics.ShaderImageNum]*Image{i}
+	var offsets [graphics.ShaderImageNum - 1][2]float32
+	sw, sh := i.image.InternalSize()
+	vs := quadVertices(0, 0, float32(sw), float32(sh), 0, 0, float32(sw), float32(sh), 1, 1, 1, 1)
+	is := graphics.QuadIndices()
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  float32(sw),
+		Height: float32(sh),
 	}
+	newImg.DrawTriangles(srcs, offsets, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
+
+	// Overwrite the history as if the image newImg is created only by ReplacePixels. Now drawTrianglesHistory
+	// and basePixels cannot be mixed.
+	newImg.drawTrianglesHistory = nil
 	newImg.basePixels = i.basePixels
+	newImg.stale = i.stale
 
 	i.Dispose()
 
@@ -209,7 +211,7 @@ func NewScreenFramebufferImage(width, height int) *Image {
 		height: height,
 		screen: true,
 	}
-	fillImage(i.image, color.RGBA{})
+	clearImage(i.image)
 	theImages.add(i)
 	return i
 }
@@ -224,40 +226,9 @@ func quadVertices(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca float32
 	}
 }
 
-// Fill fills the specified part of the image with a solid color.
-func (i *Image) Fill(clr color.RGBA) {
-	theImages.makeStaleIfDependingOn(i)
-	i.basePixels = Pixels{
-		baseColor: clr,
-	}
-	i.drawTrianglesHistory = nil
-	i.stale = false
-
-	// Do not call i.DrawTriangles as emptyImage is special (#928).
-	// baseColor is updated instead.
-	fillImage(i.image, i.basePixels.baseColor)
-}
-
-func fillImage(i *graphicscommand.Image, clr color.RGBA) {
+func clearImage(i *graphicscommand.Image) {
 	if i == emptyImage.image {
 		panic("restorable: fillImage cannot be called on emptyImage")
-	}
-
-	var rf, gf, bf, af float32
-	if clr.A > 0 {
-		rf = float32(clr.R) / float32(clr.A)
-		gf = float32(clr.G) / float32(clr.A)
-		bf = float32(clr.B) / float32(clr.A)
-		af = float32(clr.A) / 0xff
-	}
-
-	// TODO: Use the previous composite mode if possible.
-	compositemode := driver.CompositeModeSourceOver
-	switch {
-	case af == 0.0:
-		compositemode = driver.CompositeModeClear
-	case af < 1.0:
-		compositemode = driver.CompositeModeCopy
 	}
 
 	// This needs to use 'InternalSize' to render the whole region, or edges are unexpectedly cleared on some
@@ -265,13 +236,18 @@ func fillImage(i *graphicscommand.Image, clr color.RGBA) {
 	//
 	// TODO: Can we unexport InternalSize()?
 	dw, dh := i.InternalSize()
-	sw, sh := emptyImage.image.InternalSize()
-	// Add 1 pixels for paddings.
-	vs := quadVertices(0, 0, float32(dw), float32(dh), 1, 1, float32(sw-1), float32(sh-1), rf, gf, bf, af)
+	sw, sh := emptyImage.width, emptyImage.height
+	vs := quadVertices(0, 0, float32(dw), float32(dh), 1, 1, float32(sw-1), float32(sh-1), 0, 0, 0, 0)
 	is := graphics.QuadIndices()
 	srcs := [graphics.ShaderImageNum]*graphicscommand.Image{emptyImage.image}
 	var offsets [graphics.ShaderImageNum - 1][2]float32
-	i.DrawTriangles(srcs, offsets, vs, is, nil, compositemode, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	dstRegion := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  float32(dw),
+		Height: float32(dh),
+	}
+	i.DrawTriangles(srcs, offsets, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, dstRegion, driver.Region{}, nil, nil)
 }
 
 // BasePixelsForTesting returns the image's basePixels for testing.
@@ -321,6 +297,11 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		i.image.ReplacePixels(make([]byte, 4*width*height), x, y, width, height)
 	}
 
+	if !needsRestoring() || i.screen || i.volatile {
+		i.makeStale()
+		return
+	}
+
 	if x == 0 && y == 0 && width == w && height == h {
 		if pixels != nil {
 			i.basePixels.AddOrReplace(pixels, 0, 0, w, h)
@@ -332,9 +313,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		return
 	}
 
-	// It looked like ReplacePixels on a part of image deletes other region that are rendered by DrawTriangles
-	// (#593, #758).
-
+	// drawTrianglesHistory and basePixels cannot be mixed.
 	if len(i.drawTrianglesHistory) > 0 {
 		panic("restorable: ReplacePixels for a part after DrawTriangles is forbidden")
 	}
@@ -363,7 +342,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 //   5: Color G
 //   6: Color B
 //   7: Color Y
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, shader *Shader, uniforms []interface{}) {
 	if i.priority {
 		panic("restorable: DrawTriangles cannot be called on a priority image")
 	}
@@ -387,25 +366,28 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [gra
 	if srcstale || i.screen || !needsRestoring() || i.volatile {
 		i.makeStale()
 	} else {
-		i.appendDrawTrianglesHistory(srcs, offsets, vertices, indices, colorm, mode, filter, address, sourceRegion, shader, uniforms)
-	}
-	var s *graphicscommand.Shader
-	if shader != nil {
-		s = shader.shader
+		i.appendDrawTrianglesHistory(srcs, offsets, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, shader, uniforms)
 	}
 
+	var s *graphicscommand.Shader
 	var imgs [graphics.ShaderImageNum]*graphicscommand.Image
-	for i, src := range srcs {
-		if src == nil {
-			continue
+	if shader == nil {
+		// Fast path for rendering without a shader (#1355).
+		imgs[0] = srcs[0].image
+	} else {
+		for i, src := range srcs {
+			if src == nil {
+				continue
+			}
+			imgs[i] = src.image
 		}
-		imgs[i] = src.image
+		s = shader.shader
 	}
-	i.image.DrawTriangles(imgs, offsets, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms)
+	i.image.DrawTriangles(imgs, offsets, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, s, uniforms)
 }
 
 // appendDrawTrianglesHistory appends a draw-image history item to the image.
-func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, shader *Shader, uniforms []interface{}) {
+func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, shader *Shader, uniforms []interface{}) {
 	if i.stale || i.volatile || i.screen {
 		return
 	}
@@ -424,17 +406,18 @@ func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageNum]*Image,
 	copy(is, indices)
 
 	item := &drawTrianglesHistoryItem{
-		images:       srcs,
-		offsets:      offsets,
-		vertices:     vs,
-		indices:      is,
-		colorm:       colorm,
-		mode:         mode,
-		filter:       filter,
-		address:      address,
-		sourceRegion: sourceRegion,
-		shader:       shader,
-		uniforms:     uniforms,
+		images:    srcs,
+		offsets:   offsets,
+		vertices:  vs,
+		indices:   is,
+		colorm:    colorm,
+		mode:      mode,
+		filter:    filter,
+		address:   address,
+		dstRegion: dstRegion,
+		srcRegion: srcRegion,
+		shader:    shader,
+		uniforms:  uniforms,
 	}
 	i.drawTrianglesHistory = append(i.drawTrianglesHistory, item)
 }
@@ -447,10 +430,19 @@ func (i *Image) readPixelsFromGPUIfNeeded() error {
 		if err := i.readPixelsFromGPU(); err != nil {
 			return err
 		}
-		i.drawTrianglesHistory = nil
-		i.stale = false
 	}
 	return nil
+}
+
+func (i *Image) Sync() (<-chan struct{}, error) {
+	if err := graphicscommand.FlushCommands(); err != nil {
+		return nil, err
+	}
+	ch, err := i.image.Sync()
+	if err != nil {
+		return nil, err
+	}
+	return ch, nil
 }
 
 // At returns a color value at (x, y).
@@ -583,7 +575,7 @@ func (i *Image) restore() error {
 	}
 	if i.volatile {
 		i.image = graphicscommand.NewImage(w, h)
-		fillImage(i.image, color.RGBA{})
+		clearImage(i.image)
 		return nil
 	}
 	if i.stale {
@@ -593,9 +585,9 @@ func (i *Image) restore() error {
 	gimg := graphicscommand.NewImage(w, h)
 	// Clear the image explicitly.
 	if i != emptyImage {
-		// As fillImage uses emptyImage, fillImage cannot be called on emptyImage.
+		// As clearImage uses emptyImage, clearImage cannot be called on emptyImage.
 		// It is OK to skip this since emptyImage has its entire pixel information.
-		fillImage(gimg, color.RGBA{})
+		clearImage(gimg)
 	}
 	i.basePixels.Apply(gimg)
 
@@ -615,7 +607,7 @@ func (i *Image) restore() error {
 			}
 			imgs[i] = img.image
 		}
-		gimg.DrawTriangles(imgs, c.offsets, c.vertices, c.indices, c.colorm, c.mode, c.filter, c.address, c.sourceRegion, s, c.uniforms)
+		gimg.DrawTriangles(imgs, c.offsets, c.vertices, c.indices, c.colorm, c.mode, c.filter, c.address, c.dstRegion, c.srcRegion, s, c.uniforms)
 	}
 
 	if len(i.drawTrianglesHistory) > 0 {

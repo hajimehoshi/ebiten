@@ -18,13 +18,11 @@
 package metal
 
 import (
-	"unsafe"
-
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/mtl"
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/ns"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ns"
 )
 
-func (v *view) setWindow(window unsafe.Pointer) {
+func (v *view) setWindow(window uintptr) {
 	// NSView can be updated e.g., fullscreen-state is switched.
 	v.window = window
 	v.windowChanged = true

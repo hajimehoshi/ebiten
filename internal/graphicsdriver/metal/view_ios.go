@@ -36,10 +36,10 @@ import "C"
 import (
 	"unsafe"
 
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/mtl"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
 
-func (v *view) setWindow(window unsafe.Pointer) {
+func (v *view) setWindow(window uintptr) {
 	panic("metal: setWindow is not available on iOS")
 }
 
