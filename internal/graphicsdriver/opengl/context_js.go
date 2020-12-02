@@ -455,16 +455,14 @@ func (c *context) bindElementArrayBuffer(b buffer) {
 
 func (c *context) arrayBufferSubData(data []float32) {
 	gl := c.gl
-	arr8 := jsutil.TemporaryUint8Array(len(data) * 4)
-	arr := js.Global().Get("Float32Array").New(arr8.Get("buffer"), arr8.Get("byteOffset"), len(data))
+	arr := jsutil.TemporaryUint8Array(len(data) * 4)
 	jsutil.CopySliceToJS(arr, data)
 	gl.Call("bufferSubData", gles.ARRAY_BUFFER, 0, arr)
 }
 
 func (c *context) elementArrayBufferSubData(data []uint16) {
 	gl := c.gl
-	arr8 := jsutil.TemporaryUint8Array(len(data) * 2)
-	arr := js.Global().Get("Uint16Array").New(arr8.Get("buffer"), arr8.Get("byteOffset"), len(data))
+	arr := jsutil.TemporaryUint8Array(len(data) * 2)
 	jsutil.CopySliceToJS(arr, data)
 	gl.Call("bufferSubData", gles.ELEMENT_ARRAY_BUFFER, 0, arr)
 }
