@@ -386,24 +386,29 @@ func (c *context) uniformFloats(p program, location string, v []float32, typ sha
 		base = typ.Sub[0].Main
 	}
 
-	arr8 := jsutil.TemporaryUint8Array(len(v) * 4)
-	arr := js.Global().Get("Float32Array").New(arr8.Get("buffer"), arr8.Get("byteOffset"), len(v))
-	jsutil.CopySliceToJS(arr, v)
-
 	switch base {
 	case shaderir.Float:
-		gl.Call("uniform1fv", js.Value(l), arr)
+		gl.Call("uniform1f", js.Value(l), v[0])
 	case shaderir.Vec2:
-		gl.Call("uniform2fv", js.Value(l), arr)
+		gl.Call("uniform2f", js.Value(l), v[0], v[1])
 	case shaderir.Vec3:
-		gl.Call("uniform3fv", js.Value(l), arr)
+		gl.Call("uniform3f", js.Value(l), v[0], v[1], v[2])
 	case shaderir.Vec4:
-		gl.Call("uniform4fv", js.Value(l), arr)
+		gl.Call("uniform4f", js.Value(l), v[0], v[1], v[2], v[3])
 	case shaderir.Mat2:
+		arr8 := jsutil.TemporaryUint8Array(len(v) * 4)
+		arr := js.Global().Get("Float32Array").New(arr8.Get("buffer"), arr8.Get("byteOffset"), len(v))
+		jsutil.CopySliceToJS(arr, v)
 		gl.Call("uniformMatrix2fv", js.Value(l), false, arr)
 	case shaderir.Mat3:
+		arr8 := jsutil.TemporaryUint8Array(len(v) * 4)
+		arr := js.Global().Get("Float32Array").New(arr8.Get("buffer"), arr8.Get("byteOffset"), len(v))
+		jsutil.CopySliceToJS(arr, v)
 		gl.Call("uniformMatrix3fv", js.Value(l), false, arr)
 	case shaderir.Mat4:
+		arr8 := jsutil.TemporaryUint8Array(len(v) * 4)
+		arr := js.Global().Get("Float32Array").New(arr8.Get("buffer"), arr8.Get("byteOffset"), len(v))
+		jsutil.CopySliceToJS(arr, v)
 		gl.Call("uniformMatrix4fv", js.Value(l), false, arr)
 	default:
 		panic(fmt.Sprintf("opengl: unexpected type: %s", typ.String()))
