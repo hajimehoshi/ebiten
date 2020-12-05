@@ -30,7 +30,11 @@ type rectToPixels struct {
 
 func (rtp *rectToPixels) addOrReplace(pixels []byte, x, y, width, height int) {
 	if len(pixels) != 4*width*height {
-		panic(fmt.Sprintf("restorable: len(pixels) must be %d but %d", 4*width*height, len(pixels)))
+		msg := fmt.Sprintf("restorable: len(pixels) must be 4*%d*%d = %d but %d", width, height, 4*width*height, len(pixels))
+		if pixels == nil {
+			msg += " (nil)"
+		}
+		panic(msg)
 	}
 
 	if rtp.m == nil {
