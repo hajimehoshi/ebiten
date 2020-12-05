@@ -28,13 +28,17 @@ var isTypedArrayWritable = js.Global().Get("go2cpp").Truthy()
 // To avoid often allocating ArrayBuffer, reuse the buffer whenever possible.
 var temporaryBuffer = js.Global().Get("ArrayBuffer").New(16)
 
-func TemporaryUint8Array(byteLength int) js.Value {
+func ensureTemporaryBufferSize(byteLength int) {
 	if bufl := temporaryBuffer.Get("byteLength").Int(); bufl < byteLength {
 		for bufl < byteLength {
 			bufl *= 2
 		}
 		temporaryBuffer = js.Global().Get("ArrayBuffer").New(bufl)
 	}
+}
+
+func TemporaryUint8Array(byteLength int) js.Value {
+	ensureTemporaryBufferSize(byteLength)
 	return uint8Array(temporaryBuffer, 0, byteLength)
 }
 
@@ -51,4 +55,24 @@ func uint8Array(buffer js.Value, byteOffset, byteLength int) js.Value {
 		return uint8ArrayObj
 	}
 	return js.Global().Get("Uint8Array").New(buffer, byteOffset, byteLength)
+}
+
+func TemporaryFloat32Array(byteLength int) js.Value {
+	ensureTemporaryBufferSize(byteLength)
+	return float32Array(temporaryBuffer, 0, byteLength)
+}
+
+var float32ArrayObj js.Value
+
+func float32Array(buffer js.Value, byteOffset, byteLength int) js.Value {
+	if isTypedArrayWritable {
+		if Equal(float32ArrayObj, js.Undefined()) {
+			float32ArrayObj = js.Global().Get("Float32Array").New()
+		}
+		float32ArrayObj.Set("buffer", buffer)
+		float32ArrayObj.Set("byteOffset", byteOffset)
+		float32ArrayObj.Set("byteLength", byteLength)
+		return float32ArrayObj
+	}
+	return js.Global().Get("Float32Array").New(buffer, byteOffset/4, byteLength/4)
 }

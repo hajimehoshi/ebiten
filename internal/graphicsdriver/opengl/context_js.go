@@ -386,8 +386,9 @@ func (c *context) uniformFloats(p program, location string, v []float32, typ sha
 		base = typ.Sub[0].Main
 	}
 
-	arr8 := jsutil.TemporaryUint8Array(len(v) * 4)
-	arr := js.Global().Get("Float32Array").New(arr8.Get("buffer"), arr8.Get("byteOffset"), len(v))
+	//arr8 := jsutil.TemporaryUint8Array(len(v) * 4)
+	//arr := js.Global().Get("Float32Array").New(arr8.Get("buffer"), arr8.Get("byteOffset"), len(v))
+	arr := jsutil.TemporaryFloat32Array(len(v) * 4)
 	jsutil.CopySliceToJS(arr, v)
 
 	switch base {
