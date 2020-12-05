@@ -21,10 +21,6 @@ import (
 	. "github.com/hajimehoshi/ebiten/v2/internal/jsutil"
 )
 
-func TestArrayBufferToSlice(t *testing.T) {
-	// TODO
-}
-
 func TestCopySliceToJS(t *testing.T) {
 	tests := []struct {
 		in  interface{}

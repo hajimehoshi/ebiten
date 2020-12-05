@@ -28,10 +28,6 @@ func Uint8ArrayToSlice(value js.Value) []byte {
 	return s
 }
 
-func ArrayBufferToSlice(value js.Value) []byte {
-	return Uint8ArrayToSlice(js.Global().Get("Uint8Array").New(value))
-}
-
 func sliceToByteSlice(s interface{}) (bs []byte) {
 	switch s := s.(type) {
 	case []int8:
