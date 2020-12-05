@@ -95,7 +95,7 @@ func CopySliceToJS(dst js.Value, src interface{}) {
 	case []uint8:
 		js.CopyBytesToJS(dst, s)
 	case []int8, []int16, []int32, []uint16, []uint32, []float32, []float64:
-		a := js.Global().Get("Uint8Array").New(dst.Get("buffer"), dst.Get("byteOffset"), dst.Get("byteLength"))
+		a := uint8Array(dst.Get("buffer"), dst.Get("byteOffset").Int(), dst.Get("byteLength").Int())
 		js.CopyBytesToJS(a, sliceToByteSlice(s))
 	default:
 		panic(fmt.Sprintf("jsutil: unexpected value at CopySliceToJS: %T", s))
