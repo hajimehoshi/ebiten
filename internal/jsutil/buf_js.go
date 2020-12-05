@@ -42,7 +42,7 @@ var uint8ArrayObj js.Value
 
 func uint8Array(buffer js.Value, byteOffset, byteLength int) js.Value {
 	if isTypedArrayWritable {
-		if uint8ArrayObj.IsUndefined() {
+		if Equal(uint8ArrayObj, js.Undefined()) {
 			uint8ArrayObj = js.Global().Get("Uint8Array").New()
 		}
 		uint8ArrayObj.Set("buffer", buffer)
