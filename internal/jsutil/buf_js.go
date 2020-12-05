@@ -40,7 +40,6 @@ func TemporaryUint8Array(byteLength int) js.Value {
 	if isTypedArrayWritable {
 		if uint8ArrayObj.IsUndefined() {
 			uint8ArrayObj = js.Global().Get("Uint8Array").New()
-			println("h")
 		}
 		uint8ArrayObj.Set("buffer", temporaryBuffer)
 		uint8ArrayObj.Set("byteOffset", 0)
