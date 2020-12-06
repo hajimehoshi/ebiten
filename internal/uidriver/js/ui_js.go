@@ -268,10 +268,7 @@ func init() {
 		<-ch
 	}
 
-	window.Call("addEventListener", "resize", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		theUI.updateScreenSize()
-		return nil
-	}))
+	setWindowEventHandlers(window)
 
 	// Adjust the initial scale to 1.
 	// https://developer.mozilla.org/en/docs/Mozilla/Mobile/Viewport_meta_tag
@@ -307,23 +304,39 @@ func init() {
 	canvas.Call("setAttribute", "tabindex", 1)
 	canvas.Get("style").Set("outline", "none")
 
+	setCanvasEventHandlers(canvas)
+}
+
+func setWindowEventHandlers(v js.Value) {
+	v.Call("addEventListener", "resize", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		theUI.updateScreenSize()
+		return nil
+	}))
+
+	v.Call("addEventListener", "gamepadconnected", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		// Do nothing.
+		return nil
+	}))
+}
+
+func setCanvasEventHandlers(v js.Value) {
 	// Keyboard
-	canvas.Call("addEventListener", "keydown", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "keydown", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		// Focus the canvas explicitly to activate tha game (#961).
-		canvas.Call("focus")
+		v.Call("focus")
 
 		e := args[0]
 		// Don't 'preventDefault' on keydown events or keypress events wouldn't work (#715).
 		theUI.input.Update(e)
 		return nil
 	}))
-	canvas.Call("addEventListener", "keypress", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "keypress", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
 		theUI.input.Update(e)
 		return nil
 	}))
-	canvas.Call("addEventListener", "keyup", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "keyup", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
 		theUI.input.Update(e)
@@ -331,28 +344,28 @@ func init() {
 	}))
 
 	// Mouse
-	canvas.Call("addEventListener", "mousedown", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "mousedown", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		// Focus the canvas explicitly to activate tha game (#961).
-		canvas.Call("focus")
+		v.Call("focus")
 
 		e := args[0]
 		e.Call("preventDefault")
 		theUI.input.Update(e)
 		return nil
 	}))
-	canvas.Call("addEventListener", "mouseup", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "mouseup", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
 		theUI.input.Update(e)
 		return nil
 	}))
-	canvas.Call("addEventListener", "mousemove", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "mousemove", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
 		theUI.input.Update(e)
 		return nil
 	}))
-	canvas.Call("addEventListener", "wheel", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "wheel", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
 		theUI.input.Update(e)
@@ -360,22 +373,22 @@ func init() {
 	}))
 
 	// Touch
-	canvas.Call("addEventListener", "touchstart", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "touchstart", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		// Focus the canvas explicitly to activate tha game (#961).
-		canvas.Call("focus")
+		v.Call("focus")
 
 		e := args[0]
 		e.Call("preventDefault")
 		theUI.input.Update(e)
 		return nil
 	}))
-	canvas.Call("addEventListener", "touchend", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "touchend", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
 		theUI.input.Update(e)
 		return nil
 	}))
-	canvas.Call("addEventListener", "touchmove", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "touchmove", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
 		theUI.input.Update(e)
@@ -383,26 +396,21 @@ func init() {
 	}))
 
 	// Gamepad
-	window.Call("addEventListener", "gamepadconnected", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		// Do nothing.
-		return nil
-	}))
-
-	canvas.Call("addEventListener", "contextmenu", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "contextmenu", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
 		return nil
 	}))
 
 	// Context
-	canvas.Call("addEventListener", "webglcontextlost", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "webglcontextlost", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
 		theUI.contextLost = true
 		restorable.OnContextLost()
 		return nil
 	}))
-	canvas.Call("addEventListener", "webglcontextrestored", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "webglcontextrestored", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		theUI.contextLost = false
 		return nil
 	}))
