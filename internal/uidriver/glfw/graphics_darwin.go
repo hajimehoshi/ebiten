@@ -21,6 +21,11 @@ package glfw
 //
 // #import <Foundation/Foundation.h>
 //
+// static int getMacOSMajorVersion() {
+//   NSOperatingSystemVersion version = [[NSProcessInfo processInfo] operatingSystemVersion];
+//   return (int)version.majorVersion;
+// }
+//
 // static int getMacOSMinorVersion() {
 //   NSOperatingSystemVersion version = [[NSProcessInfo processInfo] operatingSystemVersion];
 //   return (int)version.minorVersion;
@@ -41,9 +46,10 @@ func supportsMetal() bool {
 	if _, err := mtl.CreateSystemDefaultDevice(); err != nil {
 		return false
 	}
+
 	// On macOS 10.11 El Capitan, there is a rendering issue on Metal (#781).
 	// Use the OpenGL in macOS 10.11 or older.
-	if C.getMacOSMinorVersion() <= 11 {
+	if C.getMacOSMajorVersion() <= 10 && C.getMacOSMinorVersion() <= 11 {
 		return false
 	}
 	return true
