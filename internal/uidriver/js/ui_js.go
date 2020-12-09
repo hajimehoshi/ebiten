@@ -62,6 +62,7 @@ var (
 	canvas                js.Value
 	requestAnimationFrame = js.Global().Get("requestAnimationFrame")
 	setTimeout            = js.Global().Get("setTimeout")
+	go2cpp                = js.Global().Get("go2cpp")
 )
 
 func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
@@ -134,12 +135,18 @@ func (u *UserInterface) updateSize() {
 
 	if u.sizeChanged {
 		u.sizeChanged = false
-		if document.Truthy() {
+		switch {
+		case document.Truthy():
 			body := document.Get("body")
 			bw := body.Get("clientWidth").Float()
 			bh := body.Get("clientHeight").Float()
 			u.context.Layout(bw, bh)
-		} else {
+		case go2cpp.Truthy():
+			w := go2cpp.Get("screenWidth").Float()
+			h := go2cpp.Get("screenHeight").Float()
+			u.context.Layout(w, h)
+		default:
+			// Node.js
 			u.context.Layout(640, 480)
 		}
 	}
@@ -434,12 +441,15 @@ func (u *UserInterface) RunWithoutMainLoop(context driver.UIContext) {
 }
 
 func (u *UserInterface) updateScreenSize() {
-	if document.Truthy() {
+	switch {
+	case document.Truthy():
 		body := document.Get("body")
 		bw := int(body.Get("clientWidth").Float() * u.DeviceScaleFactor())
 		bh := int(body.Get("clientHeight").Float() * u.DeviceScaleFactor())
 		canvas.Set("width", bw)
 		canvas.Set("height", bh)
+	case go2cpp.Truthy():
+		// TODO: Implement this
 	}
 	u.sizeChanged = true
 }
