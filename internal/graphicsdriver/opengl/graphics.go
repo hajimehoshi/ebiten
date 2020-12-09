@@ -341,6 +341,21 @@ func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]
 		us[idx].value = sizes
 		us[idx].typ = s.ir.Uniforms[idx]
 	}
+	dw, dh := d.framebufferSize()
+	{
+		origin := []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
+		const idx = graphics.TextureDestinationRegionOriginUniformVariableIndex
+		us[idx].name = fmt.Sprintf("U%d", idx)
+		us[idx].value = origin
+		us[idx].typ = s.ir.Uniforms[idx]
+	}
+	{
+		size := []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
+		const idx = graphics.TextureDestinationRegionSizeUniformVariableIndex
+		us[idx].name = fmt.Sprintf("U%d", idx)
+		us[idx].value = size
+		us[idx].typ = s.ir.Uniforms[idx]
+	}
 	{
 		voffsets := make([]float32, 2*len(offsets))
 		for i, o := range offsets {
