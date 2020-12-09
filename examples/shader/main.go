@@ -83,6 +83,7 @@ func init() {
 
 var shaderSrcs = [][]byte{
 	default_go,
+	texel_go,
 	lighting_go,
 	radialblur_go,
 	chromaticaberration_go,
