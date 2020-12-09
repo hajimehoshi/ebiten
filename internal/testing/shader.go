@@ -233,16 +233,20 @@ func defaultProgram() shaderir.Program {
 		Length: graphics.ShaderImageNum,
 		Sub:    []shaderir.Type{{Main: shaderir.Vec2}},
 	}
+	// Destination region origin
+	p.Uniforms[2] = shaderir.Type{Main: shaderir.Vec2}
+	// Destination region size
+	p.Uniforms[3] = shaderir.Type{Main: shaderir.Vec2}
 	// Source texture offsets
-	p.Uniforms[2] = shaderir.Type{
+	p.Uniforms[4] = shaderir.Type{
 		Main:   shaderir.Array,
 		Length: graphics.ShaderImageNum - 1,
 		Sub:    []shaderir.Type{{Main: shaderir.Vec2}},
 	}
 	// Source region origin
-	p.Uniforms[3] = shaderir.Type{Main: shaderir.Vec2}
+	p.Uniforms[5] = shaderir.Type{Main: shaderir.Vec2}
 	// Source region size
-	p.Uniforms[4] = shaderir.Type{Main: shaderir.Vec2}
+	p.Uniforms[6] = shaderir.Type{Main: shaderir.Vec2}
 	return p
 }
 
