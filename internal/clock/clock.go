@@ -73,7 +73,7 @@ func calcCountFromTPS(tps int64, now int64) int {
 	count := 0
 	syncWithSystemClock := false
 
-	if diff > int64(time.Second)*5/60 {
+	if diff > int64(time.Second)*5/int64(tps) {
 		// The previous time is too old.
 		// Let's force to sync the game time with the system clock.
 		syncWithSystemClock = true
