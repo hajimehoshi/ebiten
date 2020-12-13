@@ -84,7 +84,7 @@ const (
 )
 
 var (
-	isWebGL2Available = !forceWebGL1 && js.Global().Get("WebGL2RenderingContext").Truthy()
+	isWebGL2Available = !forceWebGL1 && (js.Global().Get("WebGL2RenderingContext").Truthy() || js.Global().Get("go2cpp").Truthy())
 	needsRestoring_   = !web.IsMobileBrowser() && !js.Global().Get("go2cpp").Truthy()
 )
 
