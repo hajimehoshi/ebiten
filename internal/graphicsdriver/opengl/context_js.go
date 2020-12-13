@@ -386,24 +386,52 @@ func (c *context) uniformFloats(p program, location string, v []float32, typ sha
 		base = typ.Sub[0].Main
 	}
 
-	arr := jsutil.TemporaryFloat32Array(len(v) * 4)
+	arr := jsutil.TemporaryFloat32Array(len(v))
 	jsutil.CopySliceToJS(arr, v)
 
 	switch base {
 	case shaderir.Float:
-		gl.Call("uniform1fv", js.Value(l), arr)
+		if isWebGL2Available {
+			gl.Call("uniform1fv", js.Value(l), arr, 0, len(v))
+		} else {
+			gl.Call("uniform1fv", js.Value(l), arr.Call("subarray", 0, len(v)))
+		}
 	case shaderir.Vec2:
-		gl.Call("uniform2fv", js.Value(l), arr)
+		if isWebGL2Available {
+			gl.Call("uniform2fv", js.Value(l), arr, 0, len(v))
+		} else {
+			gl.Call("uniform2fv", js.Value(l), arr.Call("subarray", 0, len(v)))
+		}
 	case shaderir.Vec3:
-		gl.Call("uniform3fv", js.Value(l), arr)
+		if isWebGL2Available {
+			gl.Call("uniform3fv", js.Value(l), arr, 0, len(v))
+		} else {
+			gl.Call("uniform3fv", js.Value(l), arr.Call("subarray", 0, len(v)))
+		}
 	case shaderir.Vec4:
-		gl.Call("uniform4fv", js.Value(l), arr)
+		if isWebGL2Available {
+			gl.Call("uniform4fv", js.Value(l), arr, 0, len(v))
+		} else {
+			gl.Call("uniform4fv", js.Value(l), arr.Call("subarray", 0, len(v)))
+		}
 	case shaderir.Mat2:
-		gl.Call("uniformMatrix2fv", js.Value(l), false, arr)
+		if isWebGL2Available {
+			gl.Call("uniformMatrix2fv", js.Value(l), false, arr, 0, len(v))
+		} else {
+			gl.Call("uniformMatrix2fv", js.Value(l), false, arr.Call("subarray", 0, len(v)))
+		}
 	case shaderir.Mat3:
-		gl.Call("uniformMatrix3fv", js.Value(l), false, arr)
+		if isWebGL2Available {
+			gl.Call("uniformMatrix3fv", js.Value(l), false, arr, 0, len(v))
+		} else {
+			gl.Call("uniformMatrix3fv", js.Value(l), false, arr.Call("subarray", 0, len(v)))
+		}
 	case shaderir.Mat4:
-		gl.Call("uniformMatrix4fv", js.Value(l), false, arr)
+		if isWebGL2Available {
+			gl.Call("uniformMatrix4fv", js.Value(l), false, arr, 0, len(v))
+		} else {
+			gl.Call("uniformMatrix4fv", js.Value(l), false, arr.Call("subarray", 0, len(v)))
+		}
 	default:
 		panic(fmt.Sprintf("opengl: unexpected type: %s", typ.String()))
 	}
