@@ -201,10 +201,11 @@ func (c *context) framebufferPixels(f *framebuffer, width, height int) []byte {
 
 	c.bindFramebuffer(f.native)
 
-	p := jsutil.TemporaryUint8Array(4 * width * height)
+	l := 4 * width * height
+	p := jsutil.TemporaryUint8Array(l)
 	gl.Call("readPixels", 0, 0, width, height, gles.RGBA, gles.UNSIGNED_BYTE, p)
 
-	return jsutil.Uint8ArrayToSlice(p)
+	return jsutil.Uint8ArrayToSlice(p, l)
 }
 
 func (c *context) framebufferPixelsToBuffer(f *framebuffer, buffer buffer, width, height int) {
@@ -574,8 +575,9 @@ func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, he
 func (c *context) getBufferSubData(buffer buffer, width, height int) []byte {
 	gl := c.gl
 	gl.Call("bindBuffer", gles.PIXEL_UNPACK_BUFFER, buffer)
-	arr := jsutil.TemporaryUint8Array(4 * width * height)
+	l := 4 * width * height
+	arr := jsutil.TemporaryUint8Array(l)
 	gl.Call("getBufferSubData", gles.PIXEL_UNPACK_BUFFER, 0, arr)
 	gl.Call("bindBuffer", gles.PIXEL_UNPACK_BUFFER, 0)
-	return jsutil.Uint8ArrayToSlice(arr)
+	return jsutil.Uint8ArrayToSlice(arr, l)
 }

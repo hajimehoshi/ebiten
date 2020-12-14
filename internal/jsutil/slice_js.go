@@ -22,8 +22,11 @@ import (
 	"unsafe"
 )
 
-func Uint8ArrayToSlice(value js.Value) []byte {
-	s := make([]byte, value.Get("byteLength").Int())
+func Uint8ArrayToSlice(value js.Value, length int) []byte {
+	if l := value.Get("byteLength").Int(); length > l {
+		length = l
+	}
+	s := make([]byte, length)
 	js.CopyBytesToGo(s, value)
 	return s
 }
