@@ -19,16 +19,22 @@ import (
 )
 
 var (
+	arrayBuffer  = js.Global().Get("ArrayBuffer")
+	uint8Array   = js.Global().Get("Uint8Array")
+	float32Array = js.Global().Get("Float32Array")
+)
+
+var (
 	// temporaryArrayBuffer is a temporary buffer used at gl.readPixels or gl.texSubImage2D.
 	// The read data is converted to Go's byte slice as soon as possible.
 	// To avoid often allocating ArrayBuffer, reuse the buffer whenever possible.
-	temporaryArrayBuffer = js.Global().Get("ArrayBuffer").New(16)
+	temporaryArrayBuffer = arrayBuffer.New(16)
 
 	// temporaryUint8Array is a Uint8ArrayBuffer whose underlying buffer is always temporaryArrayBuffer.
-	temporaryUint8Array = js.Global().Get("Uint8Array").New(temporaryArrayBuffer)
+	temporaryUint8Array = uint8Array.New(temporaryArrayBuffer)
 
 	// temporaryFloat32Array is a Float32ArrayBuffer whose underlying buffer is always temporaryArrayBuffer.
-	temporaryFloat32Array = js.Global().Get("Float32Array").New(temporaryArrayBuffer)
+	temporaryFloat32Array = float32Array.New(temporaryArrayBuffer)
 )
 
 func ensureTemporaryArrayBufferSize(byteLength int) {
@@ -36,13 +42,13 @@ func ensureTemporaryArrayBufferSize(byteLength int) {
 		for bufl < byteLength {
 			bufl *= 2
 		}
-		temporaryArrayBuffer = js.Global().Get("ArrayBuffer").New(bufl)
+		temporaryArrayBuffer = arrayBuffer.New(bufl)
 	}
 	if temporaryUint8Array.Get("byteLength").Int() < temporaryArrayBuffer.Get("byteLength").Int() {
-		temporaryUint8Array = js.Global().Get("Uint8Array").New(temporaryArrayBuffer)
+		temporaryUint8Array = uint8Array.New(temporaryArrayBuffer)
 	}
 	if temporaryFloat32Array.Get("byteLength").Int() < temporaryArrayBuffer.Get("byteLength").Int() {
-		temporaryFloat32Array = js.Global().Get("Float32Array").New(temporaryArrayBuffer)
+		temporaryFloat32Array = float32Array.New(temporaryArrayBuffer)
 	}
 }
 
