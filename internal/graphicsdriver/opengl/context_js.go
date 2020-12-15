@@ -202,7 +202,7 @@ func (c *context) framebufferPixels(f *framebuffer, width, height int) []byte {
 	c.bindFramebuffer(f.native)
 
 	l := 4 * width * height
-	p := jsutil.TemporaryUint8Array(l)
+	p := jsutil.TemporaryUint8Array(l, nil)
 	gl.Call("readPixels", 0, 0, width, height, gles.RGBA, gles.UNSIGNED_BYTE, p)
 
 	return jsutil.Uint8ArrayToSlice(p, l)
@@ -387,8 +387,7 @@ func (c *context) uniformFloats(p program, location string, v []float32, typ sha
 		base = typ.Sub[0].Main
 	}
 
-	arr := jsutil.TemporaryFloat32Array(len(v))
-	jsutil.CopySliceToJS(arr, v)
+	arr := jsutil.TemporaryFloat32Array(len(v), v)
 
 	switch base {
 	case shaderir.Float:
@@ -484,8 +483,7 @@ func (c *context) bindElementArrayBuffer(b buffer) {
 func (c *context) arrayBufferSubData(data []float32) {
 	gl := c.gl
 	l := len(data) * 4
-	arr := jsutil.TemporaryUint8Array(l)
-	jsutil.CopySliceToJS(arr, data)
+	arr := jsutil.TemporaryUint8Array(l, data)
 	if isWebGL2Available {
 		gl.Call("bufferSubData", gles.ARRAY_BUFFER, 0, arr, 0, l)
 	} else {
@@ -496,8 +494,7 @@ func (c *context) arrayBufferSubData(data []float32) {
 func (c *context) elementArrayBufferSubData(data []uint16) {
 	gl := c.gl
 	l := len(data) * 2
-	arr := jsutil.TemporaryUint8Array(l)
-	jsutil.CopySliceToJS(arr, data)
+	arr := jsutil.TemporaryUint8Array(l, data)
 	if isWebGL2Available {
 		gl.Call("bufferSubData", gles.ELEMENT_ARRAY_BUFFER, 0, arr, 0, l)
 	} else {
@@ -542,8 +539,7 @@ func (c *context) texSubImage2D(t textureNative, width, height int, args []*driv
 	c.bindTexture(t)
 	gl := c.gl
 	for _, a := range args {
-		arr := jsutil.TemporaryUint8Array(len(a.Pixels))
-		jsutil.CopySliceToJS(arr, a.Pixels)
+		arr := jsutil.TemporaryUint8Array(len(a.Pixels), a.Pixels)
 		if isWebGL2Available {
 			// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
 			//                    GLsizei width, GLsizei height,
@@ -578,8 +574,7 @@ func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, he
 
 	stride := 4 * width
 	for _, a := range args {
-		arr := jsutil.TemporaryUint8Array(len(a.Pixels))
-		jsutil.CopySliceToJS(arr, a.Pixels)
+		arr := jsutil.TemporaryUint8Array(len(a.Pixels), a.Pixels)
 		offset := 4 * (a.Y*width + a.X)
 		for j := 0; j < a.Height; j++ {
 			gl.Call("bufferSubData", gles.PIXEL_UNPACK_BUFFER, offset+stride*j, arr, 4*a.Width*j, 4*a.Width)
@@ -597,7 +592,7 @@ func (c *context) getBufferSubData(buffer buffer, width, height int) []byte {
 	gl := c.gl
 	gl.Call("bindBuffer", gles.PIXEL_UNPACK_BUFFER, buffer)
 	l := 4 * width * height
-	arr := jsutil.TemporaryUint8Array(l)
+	arr := jsutil.TemporaryUint8Array(l, nil)
 	if isWebGL2Available {
 		gl.Call("getBufferSubData", gles.PIXEL_UNPACK_BUFFER, 0, arr, 0, l)
 	} else {

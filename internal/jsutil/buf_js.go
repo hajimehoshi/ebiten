@@ -18,11 +18,6 @@ import (
 	"syscall/js"
 )
 
-// isTypedArrayWritable represents whether TypedArray is writable or not.
-// TypedArray's properties are not writable in the Web standard, but are writable with go2cpp.
-// This enables to avoid unnecessary allocations of js.Value.
-var isTypedArrayWritable = js.Global().Get("go2cpp").Truthy()
-
 var (
 	// temporaryArrayBuffer is a temporary buffer used at gl.readPixels or gl.texSubImage2D.
 	// The read data is converted to Go's byte slice as soon as possible.
@@ -43,40 +38,32 @@ func ensureTemporaryArrayBufferSize(byteLength int) {
 		}
 		temporaryArrayBuffer = js.Global().Get("ArrayBuffer").New(bufl)
 	}
+	if temporaryUint8Array.Get("byteLength").Int() < temporaryArrayBuffer.Get("byteLength").Int() {
+		temporaryUint8Array = js.Global().Get("Uint8Array").New(temporaryArrayBuffer)
+	}
+	if temporaryFloat32Array.Get("byteLength").Int() < temporaryArrayBuffer.Get("byteLength").Int() {
+		temporaryFloat32Array = js.Global().Get("Float32Array").New(temporaryArrayBuffer)
+	}
 }
 
 // TemporaryUint8Array returns a Uint8Array whose length is at least minLength.
 // Be careful that the length can exceed the given minLength.
-func TemporaryUint8Array(minLength int) js.Value {
+// data must be a slice of a numeric type for initialization, or nil if you don't need initialization.
+func TemporaryUint8Array(minLength int, data interface{}) js.Value {
 	ensureTemporaryArrayBufferSize(minLength)
-	if temporaryUint8Array.Get("byteLength").Int() < temporaryArrayBuffer.Get("byteLength").Int() {
-		temporaryUint8Array = js.Global().Get("Uint8Array").New(temporaryArrayBuffer)
+	if data != nil {
+		copySliceToTemporaryArrayBuffer(data)
 	}
 	return temporaryUint8Array
 }
 
 // TemporaryFloat32Array returns a Float32Array whose length is at least minLength.
 // Be careful that the length can exceed the given minLength.
-func TemporaryFloat32Array(minLength int) js.Value {
+// data must be a slice of a numeric type for initialization, or nil if you don't need initialization.
+func TemporaryFloat32Array(minLength int, data interface{}) js.Value {
 	ensureTemporaryArrayBufferSize(minLength * 4)
-	if temporaryFloat32Array.Get("byteLength").Int() < temporaryArrayBuffer.Get("byteLength").Int() {
-		temporaryFloat32Array = js.Global().Get("Float32Array").New(temporaryArrayBuffer)
+	if data != nil {
+		copySliceToTemporaryArrayBuffer(data)
 	}
 	return temporaryFloat32Array
-}
-
-var uint8ArrayObj js.Value
-
-// TODO: Remove this
-func uint8Array(buffer js.Value, byteOffset, byteLength int) js.Value {
-	if isTypedArrayWritable {
-		if Equal(uint8ArrayObj, js.Undefined()) {
-			uint8ArrayObj = js.Global().Get("Uint8Array").New()
-		}
-		uint8ArrayObj.Set("buffer", buffer)
-		uint8ArrayObj.Set("byteOffset", byteOffset)
-		uint8ArrayObj.Set("byteLength", byteLength)
-		return uint8ArrayObj
-	}
-	return js.Global().Get("Uint8Array").New(buffer, byteOffset, byteLength)
 }
