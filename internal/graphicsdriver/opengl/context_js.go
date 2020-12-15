@@ -483,16 +483,26 @@ func (c *context) bindElementArrayBuffer(b buffer) {
 
 func (c *context) arrayBufferSubData(data []float32) {
 	gl := c.gl
-	arr := jsutil.TemporaryUint8Array(len(data) * 4)
+	l := len(data) * 4
+	arr := jsutil.TemporaryUint8Array(l)
 	jsutil.CopySliceToJS(arr, data)
-	gl.Call("bufferSubData", gles.ARRAY_BUFFER, 0, arr)
+	if isWebGL2Available {
+		gl.Call("bufferSubData", gles.ARRAY_BUFFER, 0, arr, 0, l)
+	} else {
+		gl.Call("bufferSubData", gles.ARRAY_BUFFER, 0, arr.Call("subarray", 0, l))
+	}
 }
 
 func (c *context) elementArrayBufferSubData(data []uint16) {
 	gl := c.gl
-	arr := jsutil.TemporaryUint8Array(len(data) * 2)
+	l := len(data) * 2
+	arr := jsutil.TemporaryUint8Array(l)
 	jsutil.CopySliceToJS(arr, data)
-	gl.Call("bufferSubData", gles.ELEMENT_ARRAY_BUFFER, 0, arr)
+	if isWebGL2Available {
+		gl.Call("bufferSubData", gles.ELEMENT_ARRAY_BUFFER, 0, arr, 0, l)
+	} else {
+		gl.Call("bufferSubData", gles.ELEMENT_ARRAY_BUFFER, 0, arr.Call("subarray", 0, l))
+	}
 }
 
 func (c *context) deleteBuffer(b buffer) {
@@ -531,13 +541,20 @@ func (c *context) canUsePBO() bool {
 func (c *context) texSubImage2D(t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
 	c.bindTexture(t)
 	gl := c.gl
-	// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
-	//                    GLsizei width, GLsizei height,
-	//                    GLenum format, GLenum type, ArrayBufferView? pixels);
 	for _, a := range args {
 		arr := jsutil.TemporaryUint8Array(len(a.Pixels))
 		jsutil.CopySliceToJS(arr, a.Pixels)
-		gl.Call("texSubImage2D", gles.TEXTURE_2D, 0, a.X, a.Y, a.Width, a.Height, gles.RGBA, gles.UNSIGNED_BYTE, arr)
+		if isWebGL2Available {
+			// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+			//                    GLsizei width, GLsizei height,
+			//                    GLenum format, GLenum type, ArrayBufferView pixels, srcOffset);
+			gl.Call("texSubImage2D", gles.TEXTURE_2D, 0, a.X, a.Y, a.Width, a.Height, gles.RGBA, gles.UNSIGNED_BYTE, arr, 0)
+		} else {
+			// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+			//                    GLsizei width, GLsizei height,
+			//                    GLenum format, GLenum type, ArrayBufferView? pixels);
+			gl.Call("texSubImage2D", gles.TEXTURE_2D, 0, a.X, a.Y, a.Width, a.Height, gles.RGBA, gles.UNSIGNED_BYTE, arr)
+		}
 	}
 }
 
@@ -551,6 +568,10 @@ func (c *context) newPixelBufferObject(width, height int) buffer {
 }
 
 func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
+	if !isWebGL2Available {
+		panic("opengl: WebGL2 must be available when replacePixelsWithPBO is called")
+	}
+
 	c.bindTexture(t)
 	gl := c.gl
 	gl.Call("bindBuffer", gles.PIXEL_UNPACK_BUFFER, js.Value(buffer))
@@ -577,7 +598,11 @@ func (c *context) getBufferSubData(buffer buffer, width, height int) []byte {
 	gl.Call("bindBuffer", gles.PIXEL_UNPACK_BUFFER, buffer)
 	l := 4 * width * height
 	arr := jsutil.TemporaryUint8Array(l)
-	gl.Call("getBufferSubData", gles.PIXEL_UNPACK_BUFFER, 0, arr)
+	if isWebGL2Available {
+		gl.Call("getBufferSubData", gles.PIXEL_UNPACK_BUFFER, 0, arr, 0, l)
+	} else {
+		gl.Call("getBufferSubData", gles.PIXEL_UNPACK_BUFFER, 0, arr.Call("subarray", 0, l))
+	}
 	gl.Call("bindBuffer", gles.PIXEL_UNPACK_BUFFER, 0)
 	return jsutil.Uint8ArrayToSlice(arr, l)
 }

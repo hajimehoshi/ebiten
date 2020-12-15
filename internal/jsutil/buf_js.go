@@ -23,12 +23,18 @@ import (
 // This enables to avoid unnecessary allocations of js.Value.
 var isTypedArrayWritable = js.Global().Get("go2cpp").Truthy()
 
-// temporaryArrayBuffer is a temporary buffer used at gl.readPixels or gl.texSubImage2D.
-// The read data is converted to Go's byte slice as soon as possible.
-// To avoid often allocating ArrayBuffer, reuse the buffer whenever possible.
-var temporaryArrayBuffer = js.Global().Get("ArrayBuffer").New(16)
+var (
+	// temporaryArrayBuffer is a temporary buffer used at gl.readPixels or gl.texSubImage2D.
+	// The read data is converted to Go's byte slice as soon as possible.
+	// To avoid often allocating ArrayBuffer, reuse the buffer whenever possible.
+	temporaryArrayBuffer = js.Global().Get("ArrayBuffer").New(16)
 
-var temporaryFloat32Array = js.Global().Get("Float32Array").New(temporaryArrayBuffer)
+	// temporaryUint8Array is a Uint8ArrayBuffer whose underlying buffer is always temporaryArrayBuffer.
+	temporaryUint8Array = js.Global().Get("Uint8Array").New(temporaryArrayBuffer)
+
+	// temporaryFloat32Array is a Float32ArrayBuffer whose underlying buffer is always temporaryArrayBuffer.
+	temporaryFloat32Array = js.Global().Get("Float32Array").New(temporaryArrayBuffer)
+)
 
 func ensureTemporaryArrayBufferSize(byteLength int) {
 	if bufl := temporaryArrayBuffer.Get("byteLength").Int(); bufl < byteLength {
@@ -39,20 +45,29 @@ func ensureTemporaryArrayBufferSize(byteLength int) {
 	}
 }
 
-func ensureTemporaryFloat32ArraySize(length int) {
-	ensureTemporaryArrayBufferSize(length * 4)
+// TemporaryUint8Array returns a Uint8Array whose length is at least minLength.
+// Be careful that the length can exceed the given minLength.
+func TemporaryUint8Array(minLength int) js.Value {
+	ensureTemporaryArrayBufferSize(minLength)
+	if temporaryUint8Array.Get("byteLength").Int() < temporaryArrayBuffer.Get("byteLength").Int() {
+		temporaryUint8Array = js.Global().Get("Uint8Array").New(temporaryArrayBuffer)
+	}
+	return temporaryUint8Array
+}
+
+// TemporaryFloat32Array returns a Float32Array whose length is at least minLength.
+// Be careful that the length can exceed the given minLength.
+func TemporaryFloat32Array(minLength int) js.Value {
+	ensureTemporaryArrayBufferSize(minLength * 4)
 	if temporaryFloat32Array.Get("byteLength").Int() < temporaryArrayBuffer.Get("byteLength").Int() {
 		temporaryFloat32Array = js.Global().Get("Float32Array").New(temporaryArrayBuffer)
 	}
-}
-
-func TemporaryUint8Array(byteLength int) js.Value {
-	ensureTemporaryArrayBufferSize(byteLength)
-	return uint8Array(temporaryArrayBuffer, 0, byteLength)
+	return temporaryFloat32Array
 }
 
 var uint8ArrayObj js.Value
 
+// TODO: Remove this
 func uint8Array(buffer js.Value, byteOffset, byteLength int) js.Value {
 	if isTypedArrayWritable {
 		if Equal(uint8ArrayObj, js.Undefined()) {
@@ -64,11 +79,4 @@ func uint8Array(buffer js.Value, byteOffset, byteLength int) js.Value {
 		return uint8ArrayObj
 	}
 	return js.Global().Get("Uint8Array").New(buffer, byteOffset, byteLength)
-}
-
-// TemporaryFloat32Array returns a Float32Array whose length is at least minLength.
-// Be careful that the length can exceed the given minLength.
-func TemporaryFloat32Array(minLength int) js.Value {
-	ensureTemporaryFloat32ArraySize(minLength * 4)
-	return temporaryFloat32Array
 }
