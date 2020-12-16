@@ -168,7 +168,7 @@ func (i *Input) resetForFrame() {
 
 func (i *Input) IsKeyPressed(key driver.Key) bool {
 	if i.keyPressed != nil {
-		if i.keyPressed[driverKeyToJSKey[key]] {
+		if i.keyPressed[driverKeyToJSKey[key].String()] {
 			return true
 		}
 	}
@@ -210,18 +210,18 @@ func (i *Input) Wheel() (xoff, yoff float64) {
 	return i.wheelX, i.wheelY
 }
 
-func (i *Input) keyDown(code string) {
+func (i *Input) keyDown(code js.Value) {
 	if i.keyPressed == nil {
 		i.keyPressed = map[string]bool{}
 	}
-	i.keyPressed[code] = true
+	i.keyPressed[code.String()] = true
 }
 
-func (i *Input) keyUp(code string) {
+func (i *Input) keyUp(code js.Value) {
 	if i.keyPressed == nil {
 		i.keyPressed = map[string]bool{}
 	}
-	i.keyPressed[code] = false
+	i.keyPressed[code.String()] = false
 }
 
 func (i *Input) keyDownEdge(code int) {
@@ -318,16 +318,15 @@ func (i *Input) Update(e js.Value) {
 			i.keyDownEdge(code)
 			return
 		}
-		cs := c.String()
-		if cs == driverKeyToJSKey[driver.KeyUp] ||
-			cs == driverKeyToJSKey[driver.KeyDown] ||
-			cs == driverKeyToJSKey[driver.KeyLeft] ||
-			cs == driverKeyToJSKey[driver.KeyRight] ||
-			cs == driverKeyToJSKey[driver.KeyBackspace] ||
-			cs == driverKeyToJSKey[driver.KeyTab] {
+		if jsutil.Equal(c, driverKeyToJSKey[driver.KeyUp]) ||
+			jsutil.Equal(c, driverKeyToJSKey[driver.KeyDown]) ||
+			jsutil.Equal(c, driverKeyToJSKey[driver.KeyLeft]) ||
+			jsutil.Equal(c, driverKeyToJSKey[driver.KeyRight]) ||
+			jsutil.Equal(c, driverKeyToJSKey[driver.KeyBackspace]) ||
+			jsutil.Equal(c, driverKeyToJSKey[driver.KeyTab]) {
 			e.Call("preventDefault")
 		}
-		i.keyDown(cs)
+		i.keyDown(c)
 	case jsutil.Equal(t, stringKeypress):
 		if r := rune(e.Get("charCode").Int()); unicode.IsPrint(r) {
 			i.runeBuffer = append(i.runeBuffer, r)
@@ -339,8 +338,7 @@ func (i *Input) Update(e js.Value) {
 			i.keyUpEdge(code)
 			return
 		}
-		code := e.Get("code").String()
-		i.keyUp(code)
+		i.keyUp(e.Get("code"))
 	case jsutil.Equal(t, stringMousedown):
 		button := e.Get("button").Int()
 		i.mouseDown(button)
