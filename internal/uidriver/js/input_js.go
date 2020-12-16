@@ -36,6 +36,25 @@ var (
 	stringTouchmove  = js.ValueOf("touchmove")
 )
 
+var jsKeys []js.Value
+
+func init() {
+	for _, k := range driverKeyToJSKey {
+		jsKeys = append(jsKeys, k)
+	}
+}
+
+func jsKeyToID(key js.Value) int {
+	// js.Value cannot be used as a map key.
+	// As the number of keys is around 100, just a dumb loop should work.
+	for i, k := range jsKeys {
+		if jsutil.Equal(k, key) {
+			return i
+		}
+	}
+	return -1
+}
+
 type pos struct {
 	X int
 	Y int
@@ -51,7 +70,7 @@ type gamePad struct {
 }
 
 type Input struct {
-	keyPressed         map[string]bool
+	keyPressed         map[int]bool
 	keyPressedEdge     map[int]bool
 	mouseButtonPressed map[int]bool
 	cursorX            int
@@ -168,7 +187,7 @@ func (i *Input) resetForFrame() {
 
 func (i *Input) IsKeyPressed(key driver.Key) bool {
 	if i.keyPressed != nil {
-		if i.keyPressed[driverKeyToJSKey[key].String()] {
+		if i.keyPressed[jsKeyToID(driverKeyToJSKey[key])] {
 			return true
 		}
 	}
@@ -212,16 +231,16 @@ func (i *Input) Wheel() (xoff, yoff float64) {
 
 func (i *Input) keyDown(code js.Value) {
 	if i.keyPressed == nil {
-		i.keyPressed = map[string]bool{}
+		i.keyPressed = map[int]bool{}
 	}
-	i.keyPressed[code.String()] = true
+	i.keyPressed[jsKeyToID(code)] = true
 }
 
 func (i *Input) keyUp(code js.Value) {
 	if i.keyPressed == nil {
-		i.keyPressed = map[string]bool{}
+		i.keyPressed = map[int]bool{}
 	}
-	i.keyPressed[code.String()] = false
+	i.keyPressed[jsKeyToID(code)] = false
 }
 
 func (i *Input) keyDownEdge(code int) {
