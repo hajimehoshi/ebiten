@@ -20,6 +20,20 @@ import (
 	"unicode"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/jsutil"
+)
+
+var (
+	stringKeydown    = js.ValueOf("keydown")
+	stringKeypress   = js.ValueOf("keypress")
+	stringKeyup      = js.ValueOf("keyup")
+	stringMousedown  = js.ValueOf("mousedown")
+	stringMouseup    = js.ValueOf("mouseup")
+	stringMousemove  = js.ValueOf("mousemove")
+	stringWheel      = js.ValueOf("wheel")
+	stringTouchstart = js.ValueOf("touchstart")
+	stringTouchend   = js.ValueOf("touchend")
+	stringTouchmove  = js.ValueOf("touchmove")
 )
 
 type pos struct {
@@ -286,8 +300,10 @@ func (i *Input) UpdateGamepads() {
 }
 
 func (i *Input) Update(e js.Value) {
-	switch e.Get("type").String() {
-	case "keydown":
+	// Avoid using js.Value.String() as String creates a Uint8Array via a TextEncoder and causes a heavy
+	// overhead (#1437).
+	switch t := e.Get("type"); {
+	case jsutil.Equal(t, stringKeydown):
 		c := e.Get("code")
 		if c.Type() != js.TypeString {
 			code := e.Get("keyCode").Int()
@@ -312,11 +328,11 @@ func (i *Input) Update(e js.Value) {
 			e.Call("preventDefault")
 		}
 		i.keyDown(cs)
-	case "keypress":
+	case jsutil.Equal(t, stringKeypress):
 		if r := rune(e.Get("charCode").Int()); unicode.IsPrint(r) {
 			i.runeBuffer = append(i.runeBuffer, r)
 		}
-	case "keyup":
+	case jsutil.Equal(t, stringKeyup):
 		if e.Get("code").Type() != js.TypeString {
 			// Assume that UA is Edge.
 			code := e.Get("keyCode").Int()
@@ -325,21 +341,21 @@ func (i *Input) Update(e js.Value) {
 		}
 		code := e.Get("code").String()
 		i.keyUp(code)
-	case "mousedown":
+	case jsutil.Equal(t, stringMousedown):
 		button := e.Get("button").Int()
 		i.mouseDown(button)
 		i.setMouseCursorFromEvent(e)
-	case "mouseup":
+	case jsutil.Equal(t, stringMouseup):
 		button := e.Get("button").Int()
 		i.mouseUp(button)
 		i.setMouseCursorFromEvent(e)
-	case "mousemove":
+	case jsutil.Equal(t, stringMousemove):
 		i.setMouseCursorFromEvent(e)
-	case "wheel":
+	case jsutil.Equal(t, stringWheel):
 		// TODO: What if e.deltaMode is not DOM_DELTA_PIXEL?
 		i.wheelX = -e.Get("deltaX").Float()
 		i.wheelY = -e.Get("deltaY").Float()
-	case "touchstart", "touchend", "touchmove":
+	case jsutil.Equal(t, stringTouchstart) || jsutil.Equal(t, stringTouchend) || jsutil.Equal(t, stringTouchmove):
 		i.updateTouches(e)
 	}
 }

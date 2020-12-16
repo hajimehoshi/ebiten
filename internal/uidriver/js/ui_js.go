@@ -26,6 +26,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 )
 
+var (
+	stringNone        = js.ValueOf("none")
+	stringTransparent = js.ValueOf("transparent")
+)
+
 type UserInterface struct {
 	runnableOnUnfocused bool
 	vsync               bool
@@ -98,7 +103,7 @@ func (u *UserInterface) IsVsyncEnabled() bool {
 }
 
 func (u *UserInterface) CursorMode() driver.CursorMode {
-	if canvas.Get("style").Get("cursor").String() != "none" {
+	if jsutil.Equal(canvas.Get("style").Get("cursor"), stringNone) {
 		return driver.CursorModeVisible
 	}
 	return driver.CursorModeHidden
@@ -469,7 +474,7 @@ func (u *UserInterface) SetScreenTransparent(transparent bool) {
 
 func (u *UserInterface) IsScreenTransparent() bool {
 	bodyStyle := document.Get("body").Get("style")
-	return bodyStyle.Get("backgroundColor").String() == "transparent"
+	return jsutil.Equal(bodyStyle.Get("backgroundColor"), stringTransparent)
 }
 
 func (u *UserInterface) ResetForFrame() {
