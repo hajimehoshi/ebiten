@@ -373,7 +373,7 @@ func (i *Input) updateFromEvent(e js.Value) {
 		i.wheelX = -e.Get("deltaX").Float()
 		i.wheelY = -e.Get("deltaY").Float()
 	case jsutil.Equal(t, stringTouchstart) || jsutil.Equal(t, stringTouchend) || jsutil.Equal(t, stringTouchmove):
-		i.updateTouches(e)
+		i.updateTouchesFromEvent(e)
 	}
 }
 
@@ -382,7 +382,7 @@ func (i *Input) setMouseCursorFromEvent(e js.Value) {
 	i.setMouseCursor(x, y)
 }
 
-func (i *Input) updateTouches(e js.Value) {
+func (i *Input) updateTouchesFromEvent(e js.Value) {
 	j := e.Get("targetTouches")
 	ts := map[driver.TouchID]pos{}
 	for i := 0; i < j.Length(); i++ {
