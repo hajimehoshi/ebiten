@@ -395,3 +395,23 @@ func (i *Input) updateTouchesFromEvent(e js.Value) {
 	}
 	i.touches = ts
 }
+
+func (i *Input) updateForGo2Cpp() {
+	if !go2cpp.Truthy() {
+		return
+	}
+
+	i.touches = map[driver.TouchID]pos{}
+	maxID := go2cpp.Get("maxTouchId").Int()
+	for id := 0; id < maxID; id++ {
+		x := go2cpp.Call("getTouchPositionX", id)
+		y := go2cpp.Call("getTouchPositionY", id)
+		if x.Type() != js.TypeNumber || y.Type() != js.TypeNumber {
+			continue
+		}
+		i.touches[driver.TouchID(id)] = pos{
+			X: x.Int(),
+			Y: y.Int(),
+		}
+	}
+}

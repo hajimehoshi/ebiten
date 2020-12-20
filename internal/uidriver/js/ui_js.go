@@ -182,6 +182,7 @@ func (u *UserInterface) update() error {
 	hooks.ResumeAudio()
 
 	u.input.updateGamepads()
+	u.input.updateForGo2Cpp()
 	u.updateSize()
 	if err := u.context.Update(); err != nil {
 		return err
