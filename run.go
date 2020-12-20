@@ -50,6 +50,8 @@ type Game interface {
 	//
 	// Layout is called almost every frame.
 	//
+	// It is ensured that Layout is invoked before Update is called in the first frame.
+	//
 	// If Layout returns non-positive numbers, the caller can panic.
 	//
 	// You can return a fixed screen size if you don't care, or you can also return a calculated screen size

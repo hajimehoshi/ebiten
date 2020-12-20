@@ -155,6 +155,8 @@ func (c *uiContext) Update() error {
 }
 
 func (c *uiContext) update() error {
+	c.updateOffscreen()
+
 	updateCount := clock.Update(MaxTPS())
 
 	// Ensure that Update is called once before Draw so that Update can be used for initialization.
@@ -173,8 +175,6 @@ func (c *uiContext) update() error {
 		}
 		uiDriver().ResetForFrame()
 	}
-
-	c.updateOffscreen()
 
 	if updateCount > 0 {
 		if IsScreenClearedEveryFrame() {
