@@ -57,11 +57,11 @@ func CurrentTPS() float64 {
 	return v
 }
 
-func max(a, b int64) int64 {
+func min(a, b int64) int64 {
 	if a < b {
-		return b
+		return a
 	}
-	return a
+	return b
 }
 
 func calcCountFromTPS(tps int64, now int64) int {
@@ -82,7 +82,7 @@ func calcCountFromTPS(tps int64, now int64) int {
 
 	// When TPS is big (e.g. 300), the time gap can be small and diff might always exceeds the gap.
 	// To avoid this, prepare another gap assuming TPS was 60 and use the bigger one (#1443).
-	tooBigGap := max(int64(time.Second)*5/int64(tps), int64(time.Second)*5/60)
+	tooBigGap := int64(time.Second) * 5 / min(int64(tps), 60)
 	if diff > tooBigGap {
 		// The previous time is too old.
 		// Let's force to sync the game time with the system clock.
