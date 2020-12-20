@@ -275,7 +275,7 @@ func (i *Input) setMouseCursor(x, y int) {
 	i.cursorX, i.cursorY = x, y
 }
 
-func (i *Input) UpdateGamepads() {
+func (i *Input) updateGamepads() {
 	nav := js.Global().Get("navigator")
 	if !nav.Truthy() {
 		return
@@ -318,7 +318,7 @@ func (i *Input) UpdateGamepads() {
 	}
 }
 
-func (i *Input) Update(e js.Value) {
+func (i *Input) updateFromEvent(e js.Value) {
 	// Avoid using js.Value.String() as String creates a Uint8Array via a TextEncoder and causes a heavy
 	// overhead (#1437).
 	switch t := e.Get("type"); {

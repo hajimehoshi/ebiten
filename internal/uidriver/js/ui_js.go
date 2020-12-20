@@ -181,7 +181,7 @@ func (u *UserInterface) update() error {
 	}
 	hooks.ResumeAudio()
 
-	u.input.UpdateGamepads()
+	u.input.updateGamepads()
 	u.updateSize()
 	if err := u.context.Update(); err != nil {
 		return err
@@ -339,19 +339,19 @@ func setCanvasEventHandlers(v js.Value) {
 
 		e := args[0]
 		// Don't 'preventDefault' on keydown events or keypress events wouldn't work (#715).
-		theUI.input.Update(e)
+		theUI.input.updateFromEvent(e)
 		return nil
 	}))
 	v.Call("addEventListener", "keypress", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.Update(e)
+		theUI.input.updateFromEvent(e)
 		return nil
 	}))
 	v.Call("addEventListener", "keyup", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.Update(e)
+		theUI.input.updateFromEvent(e)
 		return nil
 	}))
 
@@ -362,25 +362,25 @@ func setCanvasEventHandlers(v js.Value) {
 
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.Update(e)
+		theUI.input.updateFromEvent(e)
 		return nil
 	}))
 	v.Call("addEventListener", "mouseup", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.Update(e)
+		theUI.input.updateFromEvent(e)
 		return nil
 	}))
 	v.Call("addEventListener", "mousemove", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.Update(e)
+		theUI.input.updateFromEvent(e)
 		return nil
 	}))
 	v.Call("addEventListener", "wheel", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.Update(e)
+		theUI.input.updateFromEvent(e)
 		return nil
 	}))
 
@@ -391,19 +391,19 @@ func setCanvasEventHandlers(v js.Value) {
 
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.Update(e)
+		theUI.input.updateFromEvent(e)
 		return nil
 	}))
 	v.Call("addEventListener", "touchend", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.Update(e)
+		theUI.input.updateFromEvent(e)
 		return nil
 	}))
 	v.Call("addEventListener", "touchmove", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.Update(e)
+		theUI.input.updateFromEvent(e)
 		return nil
 	}))
 
