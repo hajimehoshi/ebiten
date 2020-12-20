@@ -84,14 +84,17 @@ func (rtp *rectToPixels) at(i, j int) (byte, byte, byte, byte, bool) {
 
 	var pix []byte
 
-	var r *image.Rectangle
+	var r image.Rectangle
+	var found bool
 	if pt := image.Pt(i, j); pt.In(rtp.lastR) {
-		r = &rtp.lastR
+		r = rtp.lastR
+		found = true
 		pix = rtp.lastPix
 	} else {
 		for rr := range rtp.m {
 			if pt.In(rr) {
-				r = &rr
+				r = rr
+				found = true
 				rtp.lastR = rr
 				pix = rtp.m[rr]
 				rtp.lastPix = pix
@@ -100,7 +103,7 @@ func (rtp *rectToPixels) at(i, j int) (byte, byte, byte, byte, bool) {
 		}
 	}
 
-	if r == nil {
+	if !found {
 		return 0, 0, 0, 0, false
 	}
 
