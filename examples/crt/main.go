@@ -33,7 +33,6 @@ import (
 	"golang.org/x/image/font/opentype"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text"
@@ -221,12 +220,12 @@ var (
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
-	tt, err := truetype.Parse(fonts.PressStart2P_ttf)
+	tt, err := opentype.Parse(fonts.PressStart2P_ttf)
 	if err != nil {
 		log.Fatal(err)
 	}
 	const dpi = 72
-	mainFont = truetype.NewFace(tt, &truetype.Options{
+	mainFont, _ = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    20,
 		DPI:     dpi,
 		Hinting: font.HintingFull,
