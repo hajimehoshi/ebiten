@@ -21,12 +21,12 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"image/color"
+	_ "image/png"
 	"log"
 	"math"
 	"math/rand"
 	"time"
-	"image/color"
-	_ "image/png"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
@@ -45,9 +45,17 @@ type Game struct {
 	Score     int
 }
 
+type Name int
+
+const (
+	Player Name = iota
+	Ebiten Name = iota
+	Floor  Name = iota
+)
+
 // Object implements an object that the game loop modifies and the draw loop renders
 type Object struct {
-	Name          string
+	Name          Name
 	X, Y, Z, W, H int
 	VX, VY        float64
 	Flipped       bool
@@ -81,7 +89,7 @@ func (o *Object) Draw(screen *ebiten.Image, OffsetX, OffsetY float64) {
 
 func getPlayerIndex(objs []*Object) (int, error) {
 	for i, obj := range objs {
-		if obj.Name == "Player" {
+		if obj.Name == Player {
 			return i, nil
 		}
 	}
@@ -89,7 +97,10 @@ func getPlayerIndex(objs []*Object) (int, error) {
 }
 
 func handlePlayerInput(objs []*Object) {
-	i, _ := getPlayerIndex(objs)
+	i, err := getPlayerIndex(objs)
+	if err != nil {
+		return
+	}
 	if ebiten.IsKeyPressed(ebiten.KeyA) {
 		objs[i].VX -= 2
 	} else if ebiten.IsKeyPressed(ebiten.KeyD) {
@@ -104,7 +115,7 @@ func (g *Game) ebitenSpawner() {
 	t := int(g.Time) % 60
 	if t == 0 {
 		g.Objects = append(g.Objects, &Object{
-			Name:  "Ebiten",
+			Name:  Ebiten,
 			X:     0,
 			Y:     rand.Intn(160 + 1),
 			Z:     1,
@@ -134,17 +145,20 @@ func (g *Game) ebitenCollisionDetect(o *Object) bool {
 // Update proceeds the game state.
 // Update is called every tick (1/60 [s] by default).
 func (g *Game) Update() error {
+	g.Time++
 	handlePlayerInput(g.Objects)
 	g.ebitenSpawner()
 	for _, obj := range g.Objects {
-		if !obj.Hidden {
-			if obj.Name == "Ebiten" {
+		if obj.Hidden {
+			continue
+		} else {
+			if obj.Name == Ebiten {
 				if g.ebitenCollisionDetect(obj) {
 					obj.Hidden = true
 					g.Score++
 				}
 			}
-			if obj.Name == "Player" {
+			if obj.Name == Player {
 				if (obj.Y + obj.H) < 320 {
 					obj.VY += 8
 				}
@@ -170,7 +184,6 @@ func (g *Game) Update() error {
 // Draw draws the game screen.
 // Draw is called every frame (typically 1/60[s] for 60Hz display).
 func (g *Game) Draw(screen *ebiten.Image) {
-	g.Time++
 	// Write your game's rendering.
 	bgopts := &ebiten.DrawImageOptions{}
 	g.Offscreen.DrawImage(bgImage, bgopts)
@@ -187,10 +200,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			}
 		}
 	}
-	text.Draw(g.Offscreen, "COLLECT EBITEN!", mainFont, int(DrawOffsetX+340+math.Cos(float64(g.Time/10))*2), int(DrawOffsetY+40+math.Sin(float64(g.Time/10))*2), color.White)
-	text.Draw(g.Offscreen, fmt.Sprintf("%d", g.Score), mainFont, int(DrawOffsetX+50+math.Cos(float64(g.Time/10))*2), int(DrawOffsetY+40+math.Sin(float64(g.Time/10))*2), color.White)
+	xJitter, yJitter := math.Sincos(float64(g.Time / 10))
+	text.Draw(g.Offscreen, "COLLECT EBITEN!", mainFont, int(DrawOffsetX+340+xJitter*2), int(DrawOffsetY+40+yJitter*2), color.White)
+	text.Draw(g.Offscreen, fmt.Sprintf("%d", g.Score), mainFont, int(DrawOffsetX+50+xJitter*2), int(DrawOffsetY+40+yJitter*2), color.White)
 	opts := &ebiten.DrawImageOptions{}
-	opts.GeoM.Translate(DrawOffsetX+math.Cos(float64(g.Time/10))*2, DrawOffsetY+math.Sin(float64(g.Time/10))*2)
+	opts.GeoM.Translate(DrawOffsetX+xJitter*2, DrawOffsetY+yJitter*2)
 	g.Offscreen.DrawImage(ebitenImage, opts)
 	// These last few lines of the draw loop are of concern if you are looking to execute the crt shader.
 	op := &ebiten.DrawRectShaderOptions{}
@@ -251,7 +265,7 @@ func main() {
 	bgImage = ebiten.NewImageFromImage(imgtemp)
 	objs := make([]*Object, 0)
 	objs = append(objs, &Object{
-		Name:  "Player",
+		Name:  Player,
 		X:     160,
 		Y:     80,
 		Z:     1,
@@ -260,7 +274,7 @@ func main() {
 		Image: gopherImage,
 	})
 	objs = append(objs, &Object{
-		Name:  "Floor",
+		Name:  Floor,
 		X:     -64,
 		Y:     320,
 		Z:     1,
