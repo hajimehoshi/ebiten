@@ -45,7 +45,7 @@
 //         ebiten.SetWindowTitle("Your game's title")
 //         // Call ebiten.RunGame to start your game loop.
 //         if err := ebiten.RunGame(game); err != nil {
-//             panic(err)
+//             log.Fatal(err)
 //         }
 //     }
 //
