@@ -1,3 +1,19 @@
+// Copyright 2020 The Ebiten Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// +build example
+
 package main
 
 import (
@@ -12,11 +28,11 @@ import (
 	_ "image/png"
 
 	"github.com/golang/freetype/truetype"
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"github.com/hajimehoshi/ebiten/examples/resources/fonts"
-	"github.com/hajimehoshi/ebiten/inpututil"
-	"github.com/hajimehoshi/ebiten/text"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/text"
 	"golang.org/x/image/font"
 )
 
@@ -28,6 +44,7 @@ type Game struct {
 	Score     int
 }
 
+// Object implements an object that the game loop modifies and the draw loop renders
 type Object struct {
 	Name          string
 	X, Y, Z, W, H int
@@ -40,6 +57,7 @@ type Object struct {
 	Hidden        bool
 }
 
+// Draw executes graphical operations to draw a scene
 func (o *Object) Draw(screen *ebiten.Image, OffsetX, OffsetY float64) {
 	if !o.Tile {
 		opts := &ebiten.DrawImageOptions{}
@@ -114,7 +132,7 @@ func (g *Game) ebitenCollisionDetect(o *Object) bool {
 
 // Update proceeds the game state.
 // Update is called every tick (1/60 [s] by default).
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	handlePlayerInput(g.Objects)
 	g.ebitenSpawner()
 	for _, obj := range g.Objects {
@@ -168,11 +186,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			}
 		}
 	}
-	text.Draw(g.Offscreen, "Collect ebiten!", mainFont, int(DrawOffsetX+340+math.Cos(float64(g.Time/10))*2), int(DrawOffsetY+40+math.Sin(float64(g.Time/10))*2), color.White)
+	text.Draw(g.Offscreen, "COLLECT EBITEN!", mainFont, int(DrawOffsetX+340+math.Cos(float64(g.Time/10))*2), int(DrawOffsetY+40+math.Sin(float64(g.Time/10))*2), color.White)
 	text.Draw(g.Offscreen, fmt.Sprintf("%d", g.Score), mainFont, int(DrawOffsetX+50+math.Cos(float64(g.Time/10))*2), int(DrawOffsetY+40+math.Sin(float64(g.Time/10))*2), color.White)
 	opts := &ebiten.DrawImageOptions{}
 	opts.GeoM.Translate(DrawOffsetX+math.Cos(float64(g.Time/10))*2, DrawOffsetY+math.Sin(float64(g.Time/10))*2)
 	g.Offscreen.DrawImage(ebitenImage, opts)
+	// These last few lines of the draw loop are of concern if you are looking to execute the crt shader.
 	op := &ebiten.DrawRectShaderOptions{}
 	op.Uniforms = map[string]interface{}{
 		"Time": float32(g.Time) / 60,
@@ -199,7 +218,7 @@ var (
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
-	tt, err := truetype.Parse(fonts.ArcadeN_ttf)
+	tt, err := truetype.Parse(fonts.PressStart2P_ttf)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -209,22 +228,22 @@ func main() {
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
-	imgtemp, _, err := ebitenutil.NewImageFromFile("gopher.png", ebiten.FilterDefault)
+	imgtemp, _, err := ebitenutil.NewImageFromFile("gopher.png")
 	if err != nil {
 		log.Fatal(err)
 	}
 	gopherImage = imgtemp
-	imgtemp, _, err = ebitenutil.NewImageFromFile("floor.png", ebiten.FilterDefault)
+	imgtemp, _, err = ebitenutil.NewImageFromFile("floor.png")
 	if err != nil {
 		log.Fatal(err)
 	}
 	floorImage = imgtemp
-	imgtemp, _, err = ebitenutil.NewImageFromFile("ebiten.png", ebiten.FilterDefault)
+	imgtemp, _, err = ebitenutil.NewImageFromFile("ebiten.png")
 	if err != nil {
 		log.Fatal(err)
 	}
 	ebitenImage = imgtemp
-	imgtemp, _, err = ebitenutil.NewImageFromFile("bg.png", ebiten.FilterDefault)
+	imgtemp, _, err = ebitenutil.NewImageFromFile("bg.png")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -251,7 +270,7 @@ func main() {
 		TileY: 3,
 		Image: floorImage,
 	})
-	offscreen, _ := ebiten.NewImage(640, 480, ebiten.FilterDefault)
+	offscreen := ebiten.NewImage(640, 480)
 	game := &Game{
 		Objects:   objs,
 		Offscreen: offscreen,
@@ -263,7 +282,7 @@ func main() {
 	ntscShader = s
 	// Specify the window size as you like. Here, a doubled size is specified.
 	ebiten.SetWindowSize(640, 480)
-	ebiten.SetWindowTitle("Platformer")
+	ebiten.SetWindowTitle("CRT Shader Example")
 	// Call ebiten.RunGame to start your game loop.
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)

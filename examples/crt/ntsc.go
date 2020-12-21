@@ -1,16 +1,24 @@
-// +build shader
+// Copyright 2020 The Ebiten Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// +build ignore
+
 package main
 
 var Time float
 
 func Distort(p vec2) vec2 {
-	//theta := atan(p.y, p.x)
-	//radius := pow(length(p), 1.1)
-
-	//p.x = radius * cos(theta)
-	//p.y = radius * sin(theta)
-
-	//return 0.5 * (p + vec2(1.0, 1.0))
 	warpX := 0.031
 	warpY := 0.041
 	p = p*2.0 - 1.0
@@ -43,13 +51,6 @@ func get_color_scanline(uv vec2, c vec4, time float) vec4 {
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	xy := texCoord
 	xy = Distort(xy)
-
-	/*d := length(xy)
-	if d < 1.5 {
-		xy = Distort(xy)
-	} else {
-		xy = texCoord
-	}*/
 
 	bleeding_range_x := 2.0
 	bleeding_range_y := 2.0
