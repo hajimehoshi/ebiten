@@ -402,14 +402,12 @@ func (i *Input) updateForGo2Cpp() {
 	}
 
 	i.touches = map[driver.TouchID]pos{}
-	maxID := go2cpp.Get("maxTouchId").Int()
-	for id := 0; id < maxID; id++ {
-		x := go2cpp.Call("getTouchPositionX", id)
-		y := go2cpp.Call("getTouchPositionY", id)
-		if x.Type() != js.TypeNumber || y.Type() != js.TypeNumber {
-			continue
-		}
-		i.touches[driver.TouchID(id)] = pos{
+	maxID := go2cpp.Get("touchCount").Int()
+	for idx := 0; idx < maxID; idx++ {
+		id := go2cpp.Call("getTouchPositionId", idx)
+		x := go2cpp.Call("getTouchPositionX", idx)
+		y := go2cpp.Call("getTouchPositionY", idx)
+		i.touches[driver.TouchID(id.Int())] = pos{
 			X: x.Int(),
 			Y: y.Int(),
 		}
