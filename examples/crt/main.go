@@ -18,7 +18,6 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -33,6 +32,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
+	images "github.com/hajimehoshi/ebiten/v2/examples/resources/images/crt"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text"
 )
@@ -49,8 +49,8 @@ type Name int
 
 const (
 	Player Name = iota
-	Ebiten Name = iota
-	Floor  Name = iota
+	Ebiten
+	Floor
 )
 
 // Object implements an object that the game loop modifies and the draw loop renders
@@ -87,20 +87,17 @@ func (o *Object) Draw(screen *ebiten.Image, OffsetX, OffsetY float64) {
 	}
 }
 
-func getPlayerIndex(objs []*Object) (int, error) {
+func getPlayerIndex(objs []*Object) int {
 	for i, obj := range objs {
 		if obj.Name == Player {
-			return i, nil
+			return i
 		}
 	}
-	return 0, errors.New("Couldn't find player object")
+	return 0
 }
 
 func handlePlayerInput(objs []*Object) {
-	i, err := getPlayerIndex(objs)
-	if err != nil {
-		return
-	}
+	i := getPlayerIndex(objs)
 	if ebiten.IsKeyPressed(ebiten.KeyA) {
 		objs[i].VX -= 2
 	} else if ebiten.IsKeyPressed(ebiten.KeyD) {
@@ -173,9 +170,9 @@ func (g *Game) Update() error {
 				}
 			}
 			obj.X += int(obj.VX)
-			obj.VX -= (obj.VX / 8)
+			obj.VX /= 8
 			obj.Y += int(obj.VY)
-			obj.VY -= (obj.VY / 8)
+			obj.VY /= 8
 		}
 	}
 	return nil
@@ -189,22 +186,22 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.Offscreen.DrawImage(bgImage, bgopts)
 	i, _ := getPlayerIndex(g.Objects)
 	p := g.Objects[i]
-	DrawOffsetX := -(p.VX / 640) * 200
-	DrawOffsetY := -(p.VY / 480) * 50
+	drawOffsetX := -(p.VX / 640) * 200
+	drawOffsetY := -(p.VY / 480) * 50
 	for z := 0; z < 3; z++ {
 		for _, obj := range g.Objects {
 			if !obj.Hidden {
 				if obj.Z == z {
-					obj.Draw(g.Offscreen, DrawOffsetX, DrawOffsetY)
+					obj.Draw(g.Offscreen, drawOffsetX, drawOffsetY)
 				}
 			}
 		}
 	}
 	xJitter, yJitter := math.Sincos(float64(g.Time / 10))
-	text.Draw(g.Offscreen, "COLLECT EBITEN!", mainFont, int(DrawOffsetX+340+xJitter*2), int(DrawOffsetY+40+yJitter*2), color.White)
-	text.Draw(g.Offscreen, fmt.Sprintf("%d", g.Score), mainFont, int(DrawOffsetX+50+xJitter*2), int(DrawOffsetY+40+yJitter*2), color.White)
+	text.Draw(g.Offscreen, "COLLECT EBITEN!", mainFont, int(drawOffsetX+340+xJitter*2), int(drawOffsetY+40+yJitter*2), color.White)
+	text.Draw(g.Offscreen, fmt.Sprintf("%d", g.Score), mainFont, int(drawOffsetX+50+xJitter*2), int(drawOffsetY+40+yJitter*2), color.White)
 	opts := &ebiten.DrawImageOptions{}
-	opts.GeoM.Translate(DrawOffsetX+xJitter*2, DrawOffsetY+yJitter*2)
+	opts.GeoM.Translate(drawOffsetX+xJitter*2, drawOffsetY+yJitter*2)
 	g.Offscreen.DrawImage(ebitenImage, opts)
 	// These last few lines of the draw loop are of concern if you are looking to execute the crt shader.
 	op := &ebiten.DrawRectShaderOptions{}
@@ -238,27 +235,30 @@ func main() {
 		log.Fatal(err)
 	}
 	const dpi = 72
-	mainFont, _ = opentype.NewFace(tt, &opentype.FaceOptions{
+	mainFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    20,
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
-	imgtemp, _, err := image.Decode(bytes.NewReader(gopher_png))
+	if err != nil {
+		log.Fatal(err)
+	}
+	imgtemp, _, err := image.Decode(bytes.NewReader(images.Gopher_png))
 	if err != nil {
 		log.Fatal(err)
 	}
 	gopherImage = ebiten.NewImageFromImage(imgtemp)
-	imgtemp, _, err = image.Decode(bytes.NewReader(floor_png))
+	imgtemp, _, err = image.Decode(bytes.NewReader(images.Floor_png))
 	if err != nil {
 		log.Fatal(err)
 	}
 	floorImage = ebiten.NewImageFromImage(imgtemp)
-	imgtemp, _, err = image.Decode(bytes.NewReader(ebiten_png))
+	imgtemp, _, err = image.Decode(bytes.NewReader(images.Ebiten_png))
 	if err != nil {
 		log.Fatal(err)
 	}
 	ebitenImage = ebiten.NewImageFromImage(imgtemp)
-	imgtemp, _, err = image.Decode(bytes.NewReader(bg_png))
+	imgtemp, _, err = image.Decode(bytes.NewReader(images.Bg_png))
 	if err != nil {
 		log.Fatal(err)
 	}
