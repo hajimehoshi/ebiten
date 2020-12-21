@@ -17,8 +17,10 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"image"
 	"log"
 	"math"
 	"math/rand"
@@ -27,13 +29,14 @@ import (
 	"image/color"
 	_ "image/png"
 
-	"github.com/golang/freetype/truetype"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text"
-	"golang.org/x/image/font"
 )
 
 // Game implements ebiten.Game interface.
@@ -228,26 +231,26 @@ func main() {
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
-	imgtemp, _, err := ebitenutil.NewImageFromFile("gopher.png")
+	imgtemp, _, err := image.Decode(bytes.NewReader(gopher_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	gopherImage = imgtemp
-	imgtemp, _, err = ebitenutil.NewImageFromFile("floor.png")
+	gopherImage = ebiten.NewImageFromImage(imgtemp)
+	imgtemp, _, err = image.Decode(bytes.NewReader(floor_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	floorImage = imgtemp
-	imgtemp, _, err = ebitenutil.NewImageFromFile("ebiten.png")
+	floorImage = ebiten.NewImageFromImage(imgtemp)
+	imgtemp, _, err = image.Decode(bytes.NewReader(ebiten_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	ebitenImage = imgtemp
-	imgtemp, _, err = ebitenutil.NewImageFromFile("bg.png")
+	ebitenImage = ebiten.NewImageFromImage(imgtemp)
+	imgtemp, _, err = image.Decode(bytes.NewReader(bg_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	bgImage = imgtemp
+	bgImage = ebiten.NewImageFromImage(imgtemp)
 	objs := make([]*Object, 0)
 	objs = append(objs, &Object{
 		Name:  "Player",

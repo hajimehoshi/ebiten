@@ -18,7 +18,7 @@ package main
 
 var Time float
 
-func Distort(p vec2) vec2 {
+func distort(p vec2) vec2 {
 	warpX := 0.031
 	warpY := 0.041
 	p = p*2.0 - 1.0
@@ -28,14 +28,14 @@ func Distort(p vec2) vec2 {
 	return p*0.5 + 0.25
 }
 
-func get_color_bleeding(current_color vec4, color_left vec4) (vec4, vec4) {
+func colorBleeding(current_color vec4, color_left vec4) (vec4, vec4) {
 	color_bleeding := 1.2
 	current_color = current_color * vec4(color_bleeding, 0.5, 1.0-color_bleeding, 1)
 	color_left = color_left * vec4(1.0-color_bleeding, 0.5, color_bleeding, 1)
 	return current_color, color_left
 }
 
-func get_color_scanline(uv vec2, c vec4, time float) vec4 {
+func colorScanline(uv vec2, c vec4, time float) vec4 {
 	screen_height := 480.0
 	scan_size := 2.0
 	lines_velocity := 30.0
@@ -50,7 +50,7 @@ func get_color_scanline(uv vec2, c vec4, time float) vec4 {
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	xy := texCoord
-	xy = Distort(xy)
+	xy = distort(xy)
 
 	bleeding_range_x := 2.0
 	bleeding_range_y := 2.0
@@ -61,7 +61,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	pixel_size_y := 1.0 / screen_height * bleeding_range_y
 	color_left := imageSrc0At(xy - vec2(pixel_size_x, pixel_size_y))
 	current_color := imageSrc0At(xy)
-	color_left, current_color = get_color_bleeding(current_color, color_left)
+	color_left, current_color = colorBleeding(current_color, color_left)
 	c := current_color + color_left
-	return get_color_scanline(xy, c, Time)
+	return colorScanline(xy, c, Time)
 }
