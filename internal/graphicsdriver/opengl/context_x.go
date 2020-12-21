@@ -12,9 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !android
-// +build !js
 // +build freebsd linux
+// +build !android
 
 package opengl
 
@@ -22,7 +21,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl/gl"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 )
 
 var (

@@ -12,53 +12,46 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"time"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/audio"
-	"github.com/hajimehoshi/ebiten/audio/vorbis"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
-	raudio "github.com/hajimehoshi/ebiten/examples/resources/audio"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/audio"
+	"github.com/hajimehoshi/ebiten/v2/audio/vorbis"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	raudio "github.com/hajimehoshi/ebiten/v2/examples/resources/audio"
 )
 
 const (
-	screenWidth  = 320
-	screenHeight = 240
+	screenWidth  = 640
+	screenHeight = 480
 	sampleRate   = 22050
 
 	introLengthInSecond = 5
 	loopLengthInSecond  = 4
 )
 
-var audioContext *audio.Context
-
-func init() {
-	var err error
-	audioContext, err = audio.NewContext(sampleRate)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
+var audioContext = audio.NewContext(sampleRate)
 
 type Game struct {
 	player *audio.Player
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if g.player != nil {
 		return nil
 	}
 
 	// Decode an Ogg file.
 	// oggS is a decoded io.ReadCloser and io.Seeker.
-	oggS, err := vorbis.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Ragtime_ogg))
+	oggS, err := vorbis.Decode(audioContext, bytes.NewReader(raudio.Ragtime_ogg))
 	if err != nil {
 		return err
 	}
@@ -97,7 +90,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Audio Infinite Loop (Ebiten Demo)")
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)

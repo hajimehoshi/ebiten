@@ -19,10 +19,10 @@ import (
 	"image/color"
 	"testing"
 
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
-	. "github.com/hajimehoshi/ebiten/internal/restorable"
-	t "github.com/hajimehoshi/ebiten/internal/testing"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	. "github.com/hajimehoshi/ebiten/v2/internal/restorable"
+	t "github.com/hajimehoshi/ebiten/v2/internal/testing"
 )
 
 func TestMain(m *testing.M) {
@@ -131,7 +131,13 @@ func TestRestoreChain(t *testing.T) {
 	for i := 0; i < num-1; i++ {
 		vs := quadVertices(1, 1, 0, 0)
 		is := graphics.QuadIndices()
-		imgs[i+1].DrawTriangles([graphics.ShaderImageNum]*Image{imgs[i]}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+		dr := driver.Region{
+			X:      0,
+			Y:      0,
+			Width:  1,
+			Height: 1,
+		}
+		imgs[i+1].DrawTriangles([graphics.ShaderImageNum]*Image{imgs[i]}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 	}
 	if err := ResolveStaleImages(); err != nil {
 		t.Fatal(err)
@@ -173,10 +179,16 @@ func TestRestoreChain2(t *testing.T) {
 	imgs[8].ReplacePixels([]byte{clr8.R, clr8.G, clr8.B, clr8.A}, 0, 0, w, h)
 
 	is := graphics.QuadIndices()
-	imgs[8].DrawTriangles([graphics.ShaderImageNum]*Image{imgs[7]}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(w, h, 0, 0), is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
-	imgs[9].DrawTriangles([graphics.ShaderImageNum]*Image{imgs[8]}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(w, h, 0, 0), is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  w,
+		Height: h,
+	}
+	imgs[8].DrawTriangles([graphics.ShaderImageNum]*Image{imgs[7]}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(w, h, 0, 0), is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
+	imgs[9].DrawTriangles([graphics.ShaderImageNum]*Image{imgs[8]}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(w, h, 0, 0), is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 	for i := 0; i < 7; i++ {
-		imgs[i+1].DrawTriangles([graphics.ShaderImageNum]*Image{imgs[i]}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(w, h, 0, 0), is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+		imgs[i+1].DrawTriangles([graphics.ShaderImageNum]*Image{imgs[i]}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(w, h, 0, 0), is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 	}
 
 	if err := ResolveStaleImages(); err != nil {
@@ -216,10 +228,16 @@ func TestRestoreOverrideSource(t *testing.T) {
 	clr1 := color.RGBA{0x00, 0x00, 0x01, 0xff}
 	img1.ReplacePixels([]byte{clr0.R, clr0.G, clr0.B, clr0.A}, 0, 0, w, h)
 	is := graphics.QuadIndices()
-	img2.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(w, h, 0, 0), is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
-	img3.DrawTriangles([graphics.ShaderImageNum]*Image{img2}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(w, h, 0, 0), is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  w,
+		Height: h,
+	}
+	img2.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(w, h, 0, 0), is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
+	img3.DrawTriangles([graphics.ShaderImageNum]*Image{img2}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(w, h, 0, 0), is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 	img0.ReplacePixels([]byte{clr1.R, clr1.G, clr1.B, clr1.A}, 0, 0, w, h)
-	img1.DrawTriangles([graphics.ShaderImageNum]*Image{img0}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(w, h, 0, 0), is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	img1.DrawTriangles([graphics.ShaderImageNum]*Image{img0}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(w, h, 0, 0), is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 	if err := ResolveStaleImages(); err != nil {
 		t.Fatal(err)
 	}
@@ -298,24 +316,30 @@ func TestRestoreComplexGraph(t *testing.T) {
 	}()
 	vs := quadVertices(w, h, 0, 0)
 	is := graphics.QuadIndices()
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  w,
+		Height: h,
+	}
 	var offsets [graphics.ShaderImageNum - 1][2]float32
-	img3.DrawTriangles([graphics.ShaderImageNum]*Image{img0}, offsets, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	img3.DrawTriangles([graphics.ShaderImageNum]*Image{img0}, offsets, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 	vs = quadVertices(w, h, 1, 0)
-	img3.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, offsets, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	img3.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, offsets, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 	vs = quadVertices(w, h, 1, 0)
-	img4.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, offsets, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	img4.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, offsets, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 	vs = quadVertices(w, h, 2, 0)
-	img4.DrawTriangles([graphics.ShaderImageNum]*Image{img2}, offsets, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	img4.DrawTriangles([graphics.ShaderImageNum]*Image{img2}, offsets, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 	vs = quadVertices(w, h, 0, 0)
-	img5.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, offsets, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	img5.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, offsets, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 	vs = quadVertices(w, h, 0, 0)
-	img6.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, offsets, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	img6.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, offsets, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 	vs = quadVertices(w, h, 1, 0)
-	img6.DrawTriangles([graphics.ShaderImageNum]*Image{img4}, offsets, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	img6.DrawTriangles([graphics.ShaderImageNum]*Image{img4}, offsets, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 	vs = quadVertices(w, h, 0, 0)
-	img7.DrawTriangles([graphics.ShaderImageNum]*Image{img2}, offsets, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	img7.DrawTriangles([graphics.ShaderImageNum]*Image{img2}, offsets, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 	vs = quadVertices(w, h, 2, 0)
-	img7.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, offsets, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	img7.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, offsets, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 	if err := ResolveStaleImages(); err != nil {
 		t.Fatal(err)
 	}
@@ -407,8 +431,14 @@ func TestRestoreRecursive(t *testing.T) {
 		img0.Dispose()
 	}()
 	is := graphics.QuadIndices()
-	img1.DrawTriangles([graphics.ShaderImageNum]*Image{img0}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(w, h, 1, 0), is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
-	img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(w, h, 1, 0), is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  w,
+		Height: h,
+	}
+	img1.DrawTriangles([graphics.ShaderImageNum]*Image{img0}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(w, h, 1, 0), is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
+	img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(w, h, 1, 0), is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 	if err := ResolveStaleImages(); err != nil {
 		t.Fatal(err)
 	}
@@ -502,7 +532,13 @@ func TestDrawTrianglesAndReplacePixels(t *testing.T) {
 
 	vs := quadVertices(1, 1, 0, 0)
 	is := graphics.QuadIndices()
-	img1.DrawTriangles([graphics.ShaderImageNum]*Image{img0}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  2,
+		Height: 1,
+	}
+	img1.DrawTriangles([graphics.ShaderImageNum]*Image{img0}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 	img1.ReplacePixels([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 0, 0, 2, 1)
 
 	if err := ResolveStaleImages(); err != nil {
@@ -539,8 +575,14 @@ func TestDispose(t *testing.T) {
 	defer img2.Dispose()
 
 	is := graphics.QuadIndices()
-	img1.DrawTriangles([graphics.ShaderImageNum]*Image{img2}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(1, 1, 0, 0), is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
-	img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(1, 1, 0, 0), is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  1,
+		Height: 1,
+	}
+	img1.DrawTriangles([graphics.ShaderImageNum]*Image{img2}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(1, 1, 0, 0), is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
+	img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(1, 1, 0, 0), is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 	img1.Dispose()
 
 	if err := ResolveStaleImages(); err != nil {
@@ -648,7 +690,13 @@ func TestReplacePixelsOnly(t *testing.T) {
 
 	vs := quadVertices(1, 1, 0, 0)
 	is := graphics.QuadIndices()
-	img1.DrawTriangles([graphics.ShaderImageNum]*Image{img0}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  1,
+		Height: 1,
+	}
+	img1.DrawTriangles([graphics.ShaderImageNum]*Image{img0}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 	img0.ReplacePixels([]byte{5, 6, 7, 8}, 0, 0, 1, 1)
 
 	// BasePixelsForTesting is available without GPU accessing.
@@ -702,7 +750,13 @@ func TestReadPixelsFromVolatileImage(t *testing.T) {
 	src.ReplacePixels(pix, 0, 0, w, h)
 	vs := quadVertices(1, 1, 0, 0)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  w,
+		Height: h,
+	}
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 
 	// Read the pixels. If the implementation is correct, dst tries to read its pixels from GPU due to being
 	// stale.
@@ -723,7 +777,13 @@ func TestAllowReplacePixelsAfterDrawTriangles(t *testing.T) {
 
 	vs := quadVertices(w, h, 0, 0)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  w,
+		Height: h,
+	}
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 	dst.ReplacePixels(make([]byte, 4*w*h), 0, 0, w, h)
 	// ReplacePixels for a whole image doesn't panic.
 }
@@ -741,7 +801,13 @@ func TestDisallowReplacePixelsForPartAfterDrawTriangles(t *testing.T) {
 
 	vs := quadVertices(w, h, 0, 0)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  w,
+		Height: h,
+	}
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 	dst.ReplacePixels(make([]byte, 4), 0, 0, 1, 1)
 }
 
@@ -796,63 +862,6 @@ func TestClearPixels(t *testing.T) {
 	img.ReplacePixels(make([]byte, 4*8*4), 0, 0, 8, 4)
 }
 
-func TestFill(t *testing.T) {
-	const w, h = 16, 16
-	img := NewImage(w, h)
-	img.Fill(color.RGBA{0xff, 0, 0, 0xff})
-	if err := ResolveStaleImages(); err != nil {
-		t.Fatal(err)
-	}
-	if err := RestoreIfNeeded(); err != nil {
-		t.Fatal(err)
-	}
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
-			r, g, b, a, err := img.At(i, j)
-			if err != nil {
-				t.Fatal(err)
-			}
-			got := color.RGBA{r, g, b, a}
-			want := color.RGBA{0xff, 0, 0, 0xff}
-			if got != want {
-				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
-			}
-		}
-	}
-}
-
-// Issue #1170
-func TestFill2(t *testing.T) {
-	const w, h = 16, 16
-	src := NewImage(w, h)
-	src.Fill(color.RGBA{0xff, 0, 0, 0xff})
-
-	dst := NewImage(w, h)
-	vs := quadVertices(w, h, 0, 0)
-	is := graphics.QuadIndices()
-	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
-
-	// Fill src with a different color. This should not affect dst.
-	src.Fill(color.RGBA{0, 0xff, 0, 0xff})
-
-	if err := ResolveStaleImages(); err != nil {
-		t.Fatal(err)
-	}
-	if err := RestoreIfNeeded(); err != nil {
-		t.Fatal(err)
-	}
-
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
-			got := pixelsToColor(dst.BasePixelsForTesting(), i, j)
-			want := color.RGBA{0xff, 0, 0, 0xff}
-			if got != want {
-				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
-			}
-		}
-	}
-}
-
 func TestMutateSlices(t *testing.T) {
 	const w, h = 16, 16
 	dst := NewImage(w, h)
@@ -869,7 +878,13 @@ func TestMutateSlices(t *testing.T) {
 	vs := quadVertices(w, h, 0, 0)
 	is := make([]uint16, len(graphics.QuadIndices()))
 	copy(is, graphics.QuadIndices())
-	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  w,
+		Height: h,
+	}
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 	for i := range vs {
 		vs[i] = 0
 	}

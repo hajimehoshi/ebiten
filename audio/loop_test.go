@@ -15,11 +15,12 @@
 package audio_test
 
 import (
+	"bytes"
 	"io"
 	"math"
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/audio"
+	. "github.com/hajimehoshi/ebiten/v2/audio"
 )
 
 func TestInfiniteLoop(t *testing.T) {
@@ -31,7 +32,7 @@ func TestInfiniteLoop(t *testing.T) {
 	for i := range src {
 		src[i] = indexToByte(i)
 	}
-	l := NewInfiniteLoop(BytesReadSeekCloser(src), int64(len(src)))
+	l := NewInfiniteLoop(bytes.NewReader(src), int64(len(src)))
 
 	buf := make([]byte, len(src)*4)
 	if _, err := io.ReadFull(l, buf); err != nil {
@@ -93,7 +94,7 @@ func TestInfiniteLoopWithIntro(t *testing.T) {
 	for i := range src {
 		src[i] = indexToByte(i)
 	}
-	srcInf := NewInfiniteLoop(BytesReadSeekCloser(src), srcLength)
+	srcInf := NewInfiniteLoop(bytes.NewReader(src), srcLength)
 	l := NewInfiniteLoopWithIntro(srcInf, introLength, loopLength)
 
 	buf := make([]byte, srcLength*4)

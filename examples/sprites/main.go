@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
@@ -25,9 +25,9 @@ import (
 	"math"
 	"math/rand"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"github.com/hajimehoshi/ebiten/examples/resources/images"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 )
 
 const (
@@ -54,10 +54,10 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	origEbitenImage, _ := ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	origEbitenImage := ebiten.NewImageFromImage(img)
 
 	w, h := origEbitenImage.Size()
-	ebitenImage, _ = ebiten.NewImage(w, h, ebiten.FilterDefault)
+	ebitenImage = ebiten.NewImage(w, h)
 
 	op := &ebiten.DrawImageOptions{}
 	op.ColorM.Scale(1, 1, 1, 0.5)
@@ -163,7 +163,7 @@ func rightTouched() bool {
 	return false
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if !g.inited {
 		g.init()
 	}
@@ -194,7 +194,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// the actual draw call to GPU is very few since these calls satisfy
 	// some conditions e.g. all the rendering sources and targets are same.
 	// For more detail, see:
-	// https://pkg.go.dev/github.com/hajimehoshi/ebiten#Image.DrawImage
+	// https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2#Image.DrawImage
 	w, h := ebitenImage.Size()
 	for i := 0; i < g.sprites.num; i++ {
 		s := g.sprites.sprites[i]

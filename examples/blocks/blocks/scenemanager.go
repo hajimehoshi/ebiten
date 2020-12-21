@@ -15,18 +15,13 @@
 package blocks
 
 import (
-	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 var (
-	transitionFrom *ebiten.Image
-	transitionTo   *ebiten.Image
+	transitionFrom = ebiten.NewImage(ScreenWidth, ScreenHeight)
+	transitionTo   = ebiten.NewImage(ScreenWidth, ScreenHeight)
 )
-
-func init() {
-	transitionFrom, _ = ebiten.NewImage(ScreenWidth, ScreenHeight, ebiten.FilterDefault)
-	transitionTo, _ = ebiten.NewImage(ScreenWidth, ScreenHeight, ebiten.FilterDefault)
-}
 
 type Scene interface {
 	Update(state *GameState) error

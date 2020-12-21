@@ -17,11 +17,10 @@ package opengl
 import (
 	"fmt"
 
-	"github.com/hajimehoshi/ebiten/internal/affine"
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/shaderir"
-	"github.com/hajimehoshi/ebiten/internal/thread"
+	"github.com/hajimehoshi/ebiten/v2/internal/affine"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
 var theGraphics Graphics
@@ -42,10 +41,6 @@ type Graphics struct {
 
 	// drawCalled is true just after Draw is called. This holds true until ReplacePixels is called.
 	drawCalled bool
-}
-
-func (g *Graphics) SetThread(thread *thread.Thread) {
-	g.context.t = thread
 }
 
 func (g *Graphics) Begin() {
@@ -153,15 +148,26 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) {
 	g.context.elementArrayBufferSubData(indices)
 }
 
-func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, sourceRegion driver.Region) error {
+func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region) error {
 	destination := g.images[dst]
 	source := g.images[src]
+
+	if !destination.pbo.equal(*new(buffer)) {
+		g.context.deleteBuffer(destination.pbo)
+		destination.pbo = *new(buffer)
+	}
 
 	g.drawCalled = true
 
 	if err := destination.setViewport(); err != nil {
 		return err
 	}
+	g.context.scissor(
+		int(dstRegion.X),
+		int(dstRegion.Y),
+		int(dstRegion.Width),
+		int(dstRegion.Height),
+	)
 	g.context.blendFunc(mode)
 
 	program := g.state.programs[programKey{
@@ -181,10 +187,10 @@ func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, 
 	}, uniformVariable{
 		name: "source_region",
 		value: []float32{
-			sourceRegion.X,
-			sourceRegion.Y,
-			sourceRegion.X + sourceRegion.Width,
-			sourceRegion.Y + sourceRegion.Height,
+			srcRegion.X,
+			srcRegion.Y,
+			srcRegion.X + srcRegion.Width,
+			srcRegion.Y + srcRegion.Height,
 		},
 		typ: shaderir.Type{Main: shaderir.Vec4},
 	})
@@ -289,15 +295,26 @@ func (g *Graphics) removeShader(shader *Shader) {
 	delete(g.shaders, shader.id)
 }
 
-func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, sourceRegion driver.Region, mode driver.CompositeMode, uniforms []interface{}) error {
+func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, dstRegion, srcRegion driver.Region, mode driver.CompositeMode, uniforms []interface{}) error {
 	d := g.images[dst]
 	s := g.shaders[shader]
+
+	if !d.pbo.equal(*new(buffer)) {
+		g.context.deleteBuffer(d.pbo)
+		d.pbo = *new(buffer)
+	}
 
 	g.drawCalled = true
 
 	if err := d.setViewport(); err != nil {
 		return err
 	}
+	g.context.scissor(
+		int(dstRegion.X),
+		int(dstRegion.Y),
+		int(dstRegion.Width),
+		int(dstRegion.Height),
+	)
 	g.context.blendFunc(mode)
 
 	us := make([]uniformVariable, graphics.PreservedUniformVariablesNum+len(uniforms))
@@ -336,14 +353,14 @@ func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]
 		us[idx].typ = s.ir.Uniforms[idx]
 	}
 	{
-		origin := []float32{float32(sourceRegion.X), float32(sourceRegion.Y)}
+		origin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
 		const idx = graphics.TextureSourceRegionOriginUniformVariableIndex
 		us[idx].name = fmt.Sprintf("U%d", idx)
 		us[idx].value = origin
 		us[idx].typ = s.ir.Uniforms[idx]
 	}
 	{
-		size := []float32{float32(sourceRegion.Width), float32(sourceRegion.Height)}
+		size := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
 		const idx = graphics.TextureSourceRegionSizeUniformVariableIndex
 		us[idx].name = fmt.Sprintf("U%d", idx)
 		us[idx].value = size

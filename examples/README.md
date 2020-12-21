@@ -3,16 +3,8 @@
 ## Desktops
 
 ```sh
-go run -tags=example $GOPATH/src/github.com/hajimehoshi/ebiten/examples/rotate/main.go
+go run -tags=example github.com/hajimehoshi/ebiten/examples/rotate
 ```
-
-## Web Browsers
-
-```sh
-gopherjs serve --tags=example
-```
-
-and access `http://127.0.0.1:8080/github.com/hajimehoshi/ebiten/examples`.
 
 ## Android
 

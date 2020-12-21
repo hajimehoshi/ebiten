@@ -18,7 +18,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func init() {
@@ -57,7 +57,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 // Update updates the current game state.
-func (g *Game) Update(*ebiten.Image) error {
+func (g *Game) Update() error {
 	g.input.Update()
 	if err := g.board.Update(g.input); err != nil {
 		return err
@@ -69,7 +69,7 @@ func (g *Game) Update(*ebiten.Image) error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	if g.boardImage == nil {
 		w, h := g.board.Size()
-		g.boardImage, _ = ebiten.NewImage(w, h, ebiten.FilterDefault)
+		g.boardImage = ebiten.NewImage(w, h)
 	}
 	screen.Fill(backgroundColor)
 	g.board.Draw(g.boardImage)

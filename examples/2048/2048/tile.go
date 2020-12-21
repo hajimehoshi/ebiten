@@ -22,12 +22,12 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/examples/resources/fonts"
-	"github.com/hajimehoshi/ebiten/text"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
+	"github.com/hajimehoshi/ebiten/v2/text"
 )
 
 var (
@@ -37,27 +37,36 @@ var (
 )
 
 func init() {
-	tt, err := truetype.Parse(fonts.MPlus1pRegular_ttf)
+	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	const dpi = 72
-	mplusSmallFont = truetype.NewFace(tt, &truetype.Options{
+	mplusSmallFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    24,
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
-	mplusNormalFont = truetype.NewFace(tt, &truetype.Options{
+	if err != nil {
+		log.Fatal(err)
+	}
+	mplusNormalFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    32,
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
-	mplusBigFont = truetype.NewFace(tt, &truetype.Options{
+	if err != nil {
+		log.Fatal(err)
+	}
+	mplusBigFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    48,
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 // TileData represents a tile information like a value and a position.
@@ -342,11 +351,10 @@ const (
 )
 
 var (
-	tileImage *ebiten.Image
+	tileImage = ebiten.NewImage(tileSize, tileSize)
 )
 
 func init() {
-	tileImage, _ = ebiten.NewImage(tileSize, tileSize, ebiten.FilterDefault)
 	tileImage.Fill(color.White)
 }
 

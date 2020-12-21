@@ -21,10 +21,10 @@ import (
 	"go/token"
 	"strings"
 
-	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/mipmap"
-	"github.com/hajimehoshi/ebiten/internal/shader"
-	"github.com/hajimehoshi/ebiten/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
+	"github.com/hajimehoshi/ebiten/v2/internal/shader"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
 var shaderSuffix string
@@ -103,12 +103,20 @@ func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
 `
 }
 
+// Shader represents a compiled shader program.
+//
+// For the details about the shader, see https://ebiten.org/documents/shader.html.
 type Shader struct {
 	shader       *mipmap.Shader
 	uniformNames []string
 	uniformTypes []shaderir.Type
 }
 
+// NewShader compiles a shader program in the shading language Kage, and retruns the result.
+//
+// If the compilation fails, NewShader returns an error.
+//
+// For the details about the shader, see https://ebiten.org/documents/shader.html.
 func NewShader(src []byte) (*Shader, error) {
 	var buf bytes.Buffer
 	buf.Write(src)
@@ -143,6 +151,8 @@ func NewShader(src []byte) (*Shader, error) {
 	}, nil
 }
 
+// Dispose disposes the shader program.
+// After disposing, the shader is no longer available.
 func (s *Shader) Dispose() {
 	s.shader.MarkDisposed()
 	s.shader = nil

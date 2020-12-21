@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
@@ -24,12 +24,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/examples/resources/fonts"
-	"github.com/hajimehoshi/ebiten/text"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
+	"github.com/hajimehoshi/ebiten/v2/text"
 )
 
 const (
@@ -90,22 +90,28 @@ func init() {
 }
 
 func init() {
-	tt, err := truetype.Parse(fonts.MPlus1pRegular_ttf)
+	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	const dpi = 72
-	mplusNormalFont = truetype.NewFace(tt, &truetype.Options{
+	mplusNormalFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    24,
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
-	mplusBigFont = truetype.NewFace(tt, &truetype.Options{
+	if err != nil {
+		log.Fatal(err)
+	}
+	mplusBigFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    48,
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func init() {
@@ -118,7 +124,7 @@ type Game struct {
 	kanjiTextColor color.RGBA
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	// Change the text color for each second.
 	if g.counter%ebiten.MaxTPS() == 0 {
 		g.kanjiText = nil

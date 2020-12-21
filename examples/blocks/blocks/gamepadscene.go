@@ -19,12 +19,12 @@ import (
 	"image/color"
 	"strings"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/inpututil"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 type GamepadScene struct {
-	gamepadID         int
+	gamepadID         ebiten.GamepadID
 	currentIndex      int
 	countAfterSetting int
 	buttonStates      []string

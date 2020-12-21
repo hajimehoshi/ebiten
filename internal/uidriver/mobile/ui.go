@@ -21,7 +21,6 @@ import (
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
-	"time"
 	"unicode"
 
 	"golang.org/x/mobile/app"
@@ -32,12 +31,13 @@ import (
 	"golang.org/x/mobile/event/touch"
 	"golang.org/x/mobile/gl"
 
-	"github.com/hajimehoshi/ebiten/internal/devicescale"
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl"
-	"github.com/hajimehoshi/ebiten/internal/hooks"
-	"github.com/hajimehoshi/ebiten/internal/restorable"
-	"github.com/hajimehoshi/ebiten/internal/thread"
+	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
+	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
+	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
+	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 var (
@@ -83,45 +83,6 @@ func (u *UserInterface) Update() error {
 	}
 
 	renderCh <- struct{}{}
-	if u.Graphics().IsGL() {
-		if u.glWorker == nil {
-			panic("mobile: glWorker must be initialized but not")
-		}
-
-		workAvailable := u.glWorker.WorkAvailable()
-		for {
-			// When the two channels don't receive for a while, call DoWork forcibly to avoid freeze
-			// (#1322, #1332).
-			//
-			// In theory, this timeout should not be necessary. However, it looks like this 'select'
-			// statement sometimes blocks forever on some Android devices like Pixel 4(a). Apparently
-			// workAvailable sometimes not receives even though there are queued OpenGL functions.
-			// Call DoWork for such case as a symptomatic treatment.
-			//
-			// Calling DoWork without waiting for workAvailable is safe. If there are no tasks, DoWork
-			// should return immediately.
-			//
-			// TODO: Fix the root cause. Note that this is pretty hard since e.g., logging affects the
-			// scheduling and freezing might not happen with logging.
-			t := time.NewTimer(100 * time.Millisecond)
-
-			select {
-			case <-workAvailable:
-				if !t.Stop() {
-					<-t.C
-				}
-				u.glWorker.DoWork()
-			case <-renderEndCh:
-				if !t.Stop() {
-					<-t.C
-				}
-				return nil
-			case <-t.C:
-				u.glWorker.DoWork()
-			}
-		}
-	}
-
 	go func() {
 		<-renderEndCh
 		u.t.Call(func() error {
@@ -150,8 +111,7 @@ type UserInterface struct {
 
 	input Input
 
-	t        *thread.Thread
-	glWorker gl.Worker
+	t *thread.OSThread
 
 	m sync.RWMutex
 }
@@ -215,7 +175,7 @@ func (u *UserInterface) appMain(a app.App) {
 				x, y := float64(e.X)/s, float64(e.Y)/s
 				// TODO: Is it ok to cast from int64 to int here?
 				touches[e.Sequence] = &Touch{
-					ID: int(e.Sequence),
+					ID: driver.TouchID(e.Sequence),
 					X:  int(x),
 					Y:  int(y),
 				}
@@ -305,17 +265,14 @@ func (u *UserInterface) run(context driver.UIContext, mainloop bool) (err error)
 
 	u.context = context
 
-	if u.Graphics().IsGL() {
-		var ctx gl.Context
-		if mainloop {
-			ctx = <-glContextCh
-		} else {
-			ctx, u.glWorker = gl.NewContext()
-		}
-		u.Graphics().(*opengl.Graphics).SetMobileGLContext(ctx)
+	if mainloop {
+		// When mainloop is true, gomobile-build is used. In this case, GL functions must be called via
+		// gl.Context so that they are called on the appropriate thread.
+		ctx := <-glContextCh
+		u.Graphics().(*opengl.Graphics).SetGomobileGLContext(ctx)
 	} else {
-		u.t = thread.New()
-		u.Graphics().SetThread(u.t)
+		u.t = thread.NewOSThread()
+		graphicscommand.SetMainThread(u.t)
 	}
 
 	// If gomobile-build is used, wait for the outside size fixed.
@@ -366,9 +323,6 @@ func (u *UserInterface) update() error {
 	if err := u.context.Update(); err != nil {
 		return err
 	}
-	if err := u.context.Draw(); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -404,7 +358,7 @@ func (u *UserInterface) setGBuildSize(widthPx, heightPx int) {
 }
 
 func (u *UserInterface) adjustPosition(x, y int) (int, int) {
-	xf, yf := u.context.AdjustPosition(float64(x), float64(y))
+	xf, yf := u.context.AdjustPosition(float64(x), float64(y), deviceScale())
 	return int(xf), int(yf)
 }
 
@@ -474,13 +428,13 @@ func (u *UserInterface) Window() driver.Window {
 }
 
 type Touch struct {
-	ID int
+	ID driver.TouchID
 	X  int
 	Y  int
 }
 
 type Gamepad struct {
-	ID        int
+	ID        driver.GamepadID
 	SDLID     string
 	Name      string
 	Buttons   [driver.GamepadButtonNum]bool

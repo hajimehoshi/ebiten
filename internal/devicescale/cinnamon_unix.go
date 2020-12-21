@@ -13,7 +13,6 @@
 // limitations under the License.
 
 // +build dragonfly freebsd linux netbsd openbsd solaris
-// +build !js
 // +build !android
 
 package devicescale
@@ -25,7 +24,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/hajimehoshi/ebiten/internal/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
 type xmlBool bool

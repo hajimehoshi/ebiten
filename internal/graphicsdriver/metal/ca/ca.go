@@ -25,7 +25,7 @@ import (
 	"errors"
 	"unsafe"
 
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/mtl"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
 
 // Suppress the warnings about availability guard with -Wno-unguarded-availability-new.

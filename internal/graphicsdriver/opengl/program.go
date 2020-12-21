@@ -17,11 +17,13 @@ package opengl
 import (
 	"fmt"
 
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/shaderir"
-	"github.com/hajimehoshi/ebiten/internal/web"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/v2/internal/web"
 )
+
+const floatSizeInBytes = 4
 
 // arrayBufferLayoutPart is a part of an array buffer layout.
 type arrayBufferLayoutPart struct {
@@ -54,7 +56,7 @@ func (a *arrayBufferLayout) totalBytes() int {
 	}
 	t := 0
 	for _, p := range a.parts {
-		t += float.SizeInBytes() * p.num
+		t += floatSizeInBytes * p.num
 	}
 	a.total = t
 	return a.total
@@ -73,8 +75,8 @@ func (a *arrayBufferLayout) enable(context *context, program program) {
 	total := a.totalBytes()
 	offset := 0
 	for i, p := range a.parts {
-		context.vertexAttribPointer(program, i, p.num, float, total, offset)
-		offset += float.SizeInBytes() * p.num
+		context.vertexAttribPointer(program, i, p.num, total, offset)
+		offset += floatSizeInBytes * p.num
 	}
 }
 
@@ -106,7 +108,7 @@ var theArrayBufferLayout = arrayBufferLayout{
 }
 
 func init() {
-	vertexFloatNum := theArrayBufferLayout.totalBytes() / float.SizeInBytes()
+	vertexFloatNum := theArrayBufferLayout.totalBytes() / floatSizeInBytes
 	if graphics.VertexFloatNum != vertexFloatNum {
 		panic(fmt.Sprintf("vertex float num must be %d but %d", graphics.VertexFloatNum, vertexFloatNum))
 	}
@@ -171,7 +173,7 @@ func (s *openGLState) reset(context *context) error {
 		}
 	}
 
-	shaderVertexModelviewNative, err := context.newShader(vertexShader, vertexShaderStr())
+	shaderVertexModelviewNative, err := context.newVertexShader(vertexShaderStr())
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
@@ -188,7 +190,7 @@ func (s *openGLState) reset(context *context) error {
 				driver.FilterLinear,
 				driver.FilterScreen,
 			} {
-				shaderFragmentColorMatrixNative, err := context.newShader(fragmentShader, fragmentShaderStr(c, f, a))
+				shaderFragmentColorMatrixNative, err := context.newFragmentShader(fragmentShaderStr(c, f, a))
 				if err != nil {
 					panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 				}
@@ -252,8 +254,8 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 		g.context.useProgram(program)
 		if g.state.lastProgram.equal(zeroProgram) {
 			theArrayBufferLayout.enable(&g.context, program)
-			g.context.bindBuffer(arrayBuffer, g.state.arrayBuffer)
-			g.context.bindBuffer(elementArrayBuffer, g.state.elementArrayBuffer)
+			g.context.bindArrayBuffer(g.state.arrayBuffer)
+			g.context.bindElementArrayBuffer(g.state.elementArrayBuffer)
 		}
 
 		g.state.lastProgram = program

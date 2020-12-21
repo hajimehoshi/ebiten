@@ -12,23 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
 import (
+	"bytes"
 	"log"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/audio"
-	"github.com/hajimehoshi/ebiten/audio/wav"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
-	raudio "github.com/hajimehoshi/ebiten/examples/resources/audio"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/audio"
+	"github.com/hajimehoshi/ebiten/v2/audio/wav"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	raudio "github.com/hajimehoshi/ebiten/v2/examples/resources/audio"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 const (
-	screenWidth  = 320
-	screenHeight = 240
+	screenWidth  = 640
+	screenHeight = 480
 	sampleRate   = 44100
 )
 
@@ -42,10 +44,7 @@ var g Game
 func init() {
 	var err error
 	// Initialize audio context.
-	g.audioContext, err = audio.NewContext(sampleRate)
-	if err != nil {
-		log.Fatal(err)
-	}
+	g.audioContext = audio.NewContext(sampleRate)
 
 	// In this example, embedded resource "Jab_wav" is used.
 	//
@@ -62,7 +61,7 @@ func init() {
 	//     ...
 
 	// Decode wav-formatted data and retrieve decoded PCM stream.
-	d, err := wav.Decode(g.audioContext, audio.BytesReadSeekCloser(raudio.Jab_wav))
+	d, err := wav.Decode(g.audioContext, bytes.NewReader(raudio.Jab_wav))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -74,8 +73,8 @@ func init() {
 	}
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
-	if ebiten.IsKeyPressed(ebiten.KeyP) && !g.audioPlayer.IsPlaying() {
+func (g *Game) Update() error {
+	if inpututil.IsKeyJustPressed(ebiten.KeyP) {
 		// As audioPlayer has one stream and remembers the playing position,
 		// rewinding is needed before playing when reusing audioPlayer.
 		g.audioPlayer.Rewind()
@@ -97,7 +96,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("WAV (Ebiten Demo)")
 	if err := ebiten.RunGame(&g); err != nil {
 		log.Fatal(err)

@@ -1,4 +1,4 @@
-// Copyright 2014 Hajime Hoshi
+// Copyright 2020 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,25 +15,12 @@
 package opengl
 
 import (
-	"fmt"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
 )
 
-type (
-	shaderType  int
-	bufferType  int
-	bufferUsage int
-	operation   int
-)
-
-type dataType int
-
-func (d dataType) SizeInBytes() int {
-	switch d {
-	case short:
-		return 2
-	case float:
-		return 4
-	default:
-		panic(fmt.Sprintf("opengl: invalid data type: %d", d))
+func glslVersion() glsl.GLSLVersion {
+	if isWebGL2Available {
+		return glsl.GLSLVersionES300
 	}
+	return glsl.GLSLVersionES100
 }

@@ -12,22 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build js
-
 package js
 
 import (
-	"log"
-	"runtime"
 	"syscall/js"
 	"time"
 
-	"github.com/hajimehoshi/ebiten/internal/devicescale"
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl"
-	"github.com/hajimehoshi/ebiten/internal/hooks"
-	"github.com/hajimehoshi/ebiten/internal/jsutil"
-	"github.com/hajimehoshi/ebiten/internal/restorable"
+	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
+	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
+	"github.com/hajimehoshi/ebiten/v2/internal/jsutil"
+	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 )
 
 type UserInterface struct {
@@ -46,9 +42,10 @@ type UserInterface struct {
 }
 
 var theUI = &UserInterface{
-	sizeChanged: true,
-	vsync:       true,
-	initFocused: true,
+	runnableOnUnfocused: true,
+	sizeChanged:         true,
+	vsync:               true,
+	initFocused:         true,
 }
 
 func init() {
@@ -171,9 +168,6 @@ func (u *UserInterface) update() error {
 	u.input.UpdateGamepads()
 	u.updateSize()
 	if err := u.context.Update(); err != nil {
-		return err
-	}
-	if err := u.context.Draw(); err != nil {
 		return err
 	}
 	return nil
@@ -407,25 +401,15 @@ func init() {
 
 func (u *UserInterface) Run(context driver.UIContext) error {
 	if u.initFocused {
-		canvas.Call("focus")
+		// Do not focus the canvas when the current document is in an iframe.
+		// Otherwise, the parent page tries to focus the iframe on every loading, which is annoying (#1373).
+		isInIframe := !jsutil.Equal(window.Get("location"), window.Get("parent").Get("location"))
+		if !isInIframe {
+			canvas.Call("focus")
+		}
 	}
 	u.running = true
-	ch := u.loop(context)
-	if runtime.GOARCH == "wasm" {
-		return <-ch
-	}
-
-	// On GopherJS, the main goroutine cannot be blocked due to the bug (gopherjs/gopherjs#826).
-	// Return immediately.
-	go func() {
-		defer func() {
-			u.running = false
-		}()
-		if err := <-ch; err != nil {
-			log.Fatal(err)
-		}
-	}()
-	return nil
+	return <-u.loop(context)
 }
 
 func (u *UserInterface) RunWithoutMainLoop(context driver.UIContext) {

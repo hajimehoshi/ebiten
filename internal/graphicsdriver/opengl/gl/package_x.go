@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 
-// +build !js
 // +build freebsd linux
 
 package gl

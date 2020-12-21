@@ -1,4 +1,4 @@
-// Copyright 2018 The Ebiten Authors
+// Copyright 2017 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,11 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ebitenutil
+package web
 
 import (
-	// Import image/png for backward compatibility (#500, #516)
-	// TODO: Deprecate and remove this at the next major version (2.0).
-	_ "image/gif"
-	_ "image/png"
+	"strings"
+	"syscall/js"
 )
+
+func IsBrowser() bool {
+	return true
+}
+
+var (
+	isIOSSafari     bool
+	isAndroidChrome bool
+)
+
+func init() {
+	userAgent := js.Global().Get("navigator").Get("userAgent").String()
+	isIOSSafari = strings.Contains(userAgent, "iPhone") || strings.Contains(userAgent, "iPad")
+	isAndroidChrome = strings.Contains(userAgent, "Android") && strings.Contains(userAgent, "Chrome")
+}
+
+func IsMobileBrowser() bool {
+	return isIOSSafari || isAndroidChrome
+}

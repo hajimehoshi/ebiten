@@ -18,10 +18,10 @@ import (
 	"image/color"
 	"testing"
 
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
-	. "github.com/hajimehoshi/ebiten/internal/graphicscommand"
-	etesting "github.com/hajimehoshi/ebiten/internal/testing"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	. "github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
+	etesting "github.com/hajimehoshi/ebiten/v2/internal/testing"
 )
 
 func TestMain(m *testing.M) {
@@ -44,7 +44,13 @@ func TestClear(t *testing.T) {
 
 	vs := quadVertices(w/2, h/2)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  w,
+		Height: h,
+	}
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 
 	pix, err := dst.Pixels()
 	if err != nil {
@@ -63,20 +69,23 @@ func TestClear(t *testing.T) {
 }
 
 func TestReplacePixelsPartAfterDrawTriangles(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("ReplacePixels must panic but not")
-		}
-	}()
 	const w, h = 32, 32
 	clr := NewImage(w, h)
 	src := NewImage(w/2, h/2)
 	dst := NewImage(w, h)
 	vs := quadVertices(w/2, h/2)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles([graphics.ShaderImageNum]*Image{clr}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
-	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  w,
+		Height: h,
+	}
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{clr}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 	dst.ReplacePixels(make([]byte, 4), 0, 0, 1, 1)
+
+	// TODO: Check the result.
 }
 
 func TestShader(t *testing.T) {
@@ -85,11 +94,17 @@ func TestShader(t *testing.T) {
 	dst := NewImage(w, h)
 	vs := quadVertices(w, h)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles([graphics.ShaderImageNum]*Image{clr}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  w,
+		Height: h,
+	}
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{clr}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
 
 	ir := etesting.ShaderProgramFill(0xff, 0, 0, 0xff)
 	s := NewShader(&ir)
-	dst.DrawTriangles([graphics.ShaderImageNum]*Image{}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, s, nil)
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, s, nil)
 
 	pix, err := dst.Pixels()
 	if err != nil {

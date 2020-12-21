@@ -12,15 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build js
-
 package jsutil_test
 
 import (
 	"syscall/js"
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/internal/jsutil"
+	. "github.com/hajimehoshi/ebiten/v2/internal/jsutil"
 )
 
 func TestArrayBufferToSlice(t *testing.T) {

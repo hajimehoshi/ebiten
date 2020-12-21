@@ -13,7 +13,6 @@
 // limitations under the License.
 
 // +build darwin freebsd linux windows
-// +build !js
 // +build !android
 // +build !ios
 
@@ -22,7 +21,7 @@ package glfw
 import (
 	"image"
 
-	"github.com/hajimehoshi/ebiten/internal/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
 type window struct {
@@ -206,20 +205,25 @@ func (w *window) SetPosition(x, y int) {
 		return
 	}
 	_ = w.ui.t.Call(func() error {
-		defer func() {
-			w.setPositionCalled = true
-		}()
-		mx, my := currentMonitor(w.ui.window).GetPos()
-		xf := w.ui.toGLFWPixel(float64(x))
-		yf := w.ui.toGLFWPixel(float64(y))
-		x, y := w.ui.adjustWindowPosition(mx+int(xf), my+int(yf))
-		if w.ui.isFullscreen() {
-			w.ui.origPosX, w.ui.origPosY = x, y
-		} else {
-			w.ui.window.SetPos(x, y)
-		}
+		w.setPosition(x, y)
 		return nil
 	})
+}
+
+// setPosition must be called from the main thread
+func (w *window) setPosition(x, y int) {
+	defer func() {
+		w.setPositionCalled = true
+	}()
+
+	mx, my := currentMonitor(w.ui.window).GetPos()
+	xf := w.ui.toGLFWPixel(float64(x))
+	yf := w.ui.toGLFWPixel(float64(y))
+	if x, y := w.ui.adjustWindowPosition(mx+int(xf), my+int(yf)); w.ui.isFullscreen() {
+		w.ui.origPosX, w.ui.origPosY = x, y
+	} else {
+		w.ui.window.SetPos(x, y)
+	}
 }
 
 func (w *window) Size() (int, int) {
@@ -238,7 +242,10 @@ func (w *window) SetSize(width, height int) {
 	}
 	ww := int(w.ui.toGLFWPixel(float64(width)))
 	wh := int(w.ui.toGLFWPixel(float64(height)))
-	w.ui.setWindowSize(ww, wh, w.ui.isFullscreen())
+	_ = w.ui.t.Call(func() error {
+		w.ui.setWindowSize(ww, wh, w.ui.isFullscreen())
+		return nil
+	})
 }
 
 func (w *window) SetIcon(iconImages []image.Image) {

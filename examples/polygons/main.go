@@ -12,19 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 	"log"
 	"math"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"github.com/hajimehoshi/ebiten/inpututil"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 const (
@@ -33,7 +34,7 @@ const (
 )
 
 var (
-	emptyImage, _ = ebiten.NewImage(16, 16, ebiten.FilterDefault)
+	emptyImage = ebiten.NewImage(3, 3)
 )
 
 func init() {
@@ -98,7 +99,7 @@ type Game struct {
 	prevNgon int
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
 		g.ngon--
 		if g.ngon < 1 {
@@ -126,7 +127,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for i := 0; i < g.ngon; i++ {
 		indices = append(indices, uint16(i), uint16(i+1)%uint16(g.ngon), uint16(g.ngon))
 	}
-	screen.DrawTriangles(g.vertices, indices, emptyImage, op)
+	screen.DrawTriangles(g.vertices, indices, emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image), op)
 
 	msg := fmt.Sprintf("TPS: %0.2f\n%d-gon\nPress <- or -> to change the number of the vertices", ebiten.CurrentTPS(), g.ngon)
 	ebitenutil.DebugPrint(screen, msg)

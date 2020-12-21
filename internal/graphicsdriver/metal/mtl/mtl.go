@@ -27,17 +27,15 @@ package mtl
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"unsafe"
 )
 
 // #cgo !ios CFLAGS: -mmacosx-version-min=10.12
 // #cgo LDFLAGS: -framework Metal -framework CoreGraphics -framework Foundation
 //
-// #include <stdlib.h>
 // #include "mtl.h"
-// struct Library Go_Device_MakeLibrary(void * device, _GoString_ source) {
-//     return Device_MakeLibrary(device, _GoStringPtr(source), _GoStringLen(source));
-// }
+// #include <stdlib.h>
 import "C"
 
 // FeatureSet defines a specific platform, hardware, and software configuration.
@@ -436,7 +434,10 @@ func (d Device) MakeCommandQueue() CommandQueue {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtldevice/1433431-makelibrary.
 func (d Device) MakeLibrary(source string, opt CompileOptions) (Library, error) {
-	l := C.Go_Device_MakeLibrary(d.device, source) // TODO: opt.
+	cs := C.CString(source)
+	defer C.free(unsafe.Pointer(cs))
+
+	l := C.Device_MakeLibrary(d.device, cs, C.size_t(len(source)))
 	if l.Library == nil {
 		return Library{}, errors.New(C.GoString(l.Error))
 	}
@@ -568,6 +569,32 @@ func (cb CommandBuffer) WaitUntilCompleted() {
 	C.CommandBuffer_WaitUntilCompleted(cb.commandBuffer)
 }
 
+var (
+	commandBufferCompletedHandlers  = map[unsafe.Pointer]func(){}
+	commandBufferCompletedHandlersM sync.Mutex
+)
+
+// AddCompletedHandler registers a block of code that Metal calls immediately after the GPU finishes executing the commands in the command buffer.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtlcommandbuffer/1442997-addcompletedhandler
+func (cb CommandBuffer) AddCompletedHandler(f func()) {
+	commandBufferCompletedHandlersM.Lock()
+	commandBufferCompletedHandlers[cb.commandBuffer] = f
+	commandBufferCompletedHandlersM.Unlock()
+
+	C.CommandBuffer_AddCompletedHandler(cb.commandBuffer)
+}
+
+//export commandBufferCompletedCallback
+func commandBufferCompletedCallback(commandBuffer unsafe.Pointer) {
+	commandBufferCompletedHandlersM.Lock()
+	f := commandBufferCompletedHandlers[commandBuffer]
+	delete(commandBufferCompletedHandlers, commandBuffer)
+	commandBufferCompletedHandlersM.Unlock()
+
+	f()
+}
+
 // MakeRenderCommandEncoder creates an encoder object that can
 // encode graphics rendering commands into this command buffer.
 //
@@ -631,6 +658,13 @@ func (rce RenderCommandEncoder) SetRenderPipelineState(rps RenderPipelineState) 
 
 func (rce RenderCommandEncoder) SetViewport(viewport Viewport) {
 	C.RenderCommandEncoder_SetViewport(rce.commandEncoder, viewport.c())
+}
+
+// SetScissorRect sets the scissor rectangle for a fragment scissor test.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtlrendercommandencoder/1515583-setscissorrect
+func (rce RenderCommandEncoder) SetScissorRect(scissorRect ScissorRect) {
+	C.RenderCommandEncoder_SetScissorRect(rce.commandEncoder, scissorRect.c())
 }
 
 // SetVertexBuffer sets a buffer for the vertex shader function at an index
@@ -890,5 +924,24 @@ func (v *Viewport) c() C.struct_Viewport {
 		Height:  C.double(v.Height),
 		ZNear:   C.double(v.ZNear),
 		ZFar:    C.double(v.ZFar),
+	}
+}
+
+// ScissorRect represents a rectangle for the scissor fragment test.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtlscissorrect
+type ScissorRect struct {
+	X      int
+	Y      int
+	Width  int
+	Height int
+}
+
+func (s *ScissorRect) c() C.struct_ScissorRect {
+	return C.struct_ScissorRect{
+		X:      C.uint_t(s.X),
+		Y:      C.uint_t(s.Y),
+		Width:  C.uint_t(s.Width),
+		Height: C.uint_t(s.Height),
 	}
 }

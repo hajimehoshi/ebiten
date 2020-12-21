@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build js
-
 package js
 
 import (
@@ -21,8 +19,7 @@ import (
 	"syscall/js"
 	"unicode"
 
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/jsutil"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 )
 
 type pos struct {
@@ -48,20 +45,20 @@ type Input struct {
 	wheelX             float64
 	wheelY             float64
 	gamepads           [16]gamePad
-	touches            map[int]pos
+	touches            map[driver.TouchID]pos
 	runeBuffer         []rune
 	ui                 *UserInterface
 }
 
 func (i *Input) CursorPosition() (x, y int) {
-	xf, yf := i.ui.context.AdjustPosition(float64(i.cursorX), float64(i.cursorY))
+	xf, yf := i.ui.context.AdjustPosition(float64(i.cursorX), float64(i.cursorY), i.ui.DeviceScaleFactor())
 	return int(xf), int(yf)
 }
 
-func (i *Input) GamepadSDLID(id int) string {
+func (i *Input) GamepadSDLID(id driver.GamepadID) string {
 	// This emulates the implementation of EMSCRIPTEN_JoystickGetDeviceGUID.
 	// https://hg.libsdl.org/SDL/file/bc90ce38f1e2/src/joystick/emscripten/SDL_sysjoystick.c#l385
-	if len(i.gamepads) <= id {
+	if len(i.gamepads) <= int(id) {
 		return ""
 	}
 	var sdlid [16]byte
@@ -72,70 +69,71 @@ func (i *Input) GamepadSDLID(id int) string {
 // GamepadName returns a string containing some information about the controller.
 // A PS2 controller returned "810-3-USB Gamepad" on Firefox
 // A Xbox 360 controller returned "xinput" on Firefox and "Xbox 360 Controller (XInput STANDARD GAMEPAD)" on Chrome
-func (i *Input) GamepadName(id int) string {
-	if len(i.gamepads) <= id {
+func (i *Input) GamepadName(id driver.GamepadID) string {
+	if len(i.gamepads) <= int(id) {
 		return ""
 	}
 	return i.gamepads[id].name
 }
 
-func (i *Input) GamepadIDs() []int {
+func (i *Input) GamepadIDs() []driver.GamepadID {
 	if len(i.gamepads) == 0 {
 		return nil
 	}
-	r := []int{}
+	var r []driver.GamepadID
 	for id, g := range i.gamepads {
 		if g.valid {
-			r = append(r, id)
+			r = append(r, driver.GamepadID(id))
 		}
 	}
 	return r
 }
 
-func (i *Input) GamepadAxisNum(id int) int {
-	if len(i.gamepads) <= id {
+func (i *Input) GamepadAxisNum(id driver.GamepadID) int {
+	if len(i.gamepads) <= int(id) {
 		return 0
 	}
 	return i.gamepads[id].axisNum
 }
 
-func (i *Input) GamepadAxis(id int, axis int) float64 {
-	if len(i.gamepads) <= id {
+func (i *Input) GamepadAxis(id driver.GamepadID, axis int) float64 {
+	if len(i.gamepads) <= int(id) {
 		return 0
 	}
 	return i.gamepads[id].axes[axis]
 }
 
-func (i *Input) GamepadButtonNum(id int) int {
-	if len(i.gamepads) <= id {
+func (i *Input) GamepadButtonNum(id driver.GamepadID) int {
+	if len(i.gamepads) <= int(id) {
 		return 0
 	}
 	return i.gamepads[id].buttonNum
 }
 
-func (i *Input) IsGamepadButtonPressed(id int, button driver.GamepadButton) bool {
-	if len(i.gamepads) <= id {
+func (i *Input) IsGamepadButtonPressed(id driver.GamepadID, button driver.GamepadButton) bool {
+	if len(i.gamepads) <= int(id) {
 		return false
 	}
 	return i.gamepads[id].buttonPressed[button]
 }
 
-func (i *Input) TouchIDs() []int {
+func (i *Input) TouchIDs() []driver.TouchID {
 	if len(i.touches) == 0 {
 		return nil
 	}
 
-	var ids []int
+	var ids []driver.TouchID
 	for id := range i.touches {
 		ids = append(ids, id)
 	}
 	return ids
 }
 
-func (i *Input) TouchPosition(id int) (x, y int) {
+func (i *Input) TouchPosition(id driver.TouchID) (x, y int) {
+	d := i.ui.DeviceScaleFactor()
 	for tid, pos := range i.touches {
 		if id == tid {
-			x, y := i.ui.context.AdjustPosition(float64(pos.X), float64(pos.Y))
+			x, y := i.ui.context.AdjustPosition(float64(pos.X), float64(pos.Y), d)
 			return int(x), int(y)
 		}
 	}
@@ -143,7 +141,9 @@ func (i *Input) TouchPosition(id int) (x, y int) {
 }
 
 func (i *Input) RuneBuffer() []rune {
-	return i.runeBuffer
+	rs := make([]rune, len(i.runeBuffer))
+	copy(rs, i.runeBuffer)
+	return rs
 }
 
 func (i *Input) resetForFrame() {
@@ -244,7 +244,7 @@ func (i *Input) setMouseCursor(x, y int) {
 
 func (i *Input) UpdateGamepads() {
 	nav := js.Global().Get("navigator")
-	if jsutil.Equal(nav.Get("getGamepads"), js.Undefined()) {
+	if !nav.Get("getGamepads").Truthy() {
 		return
 	}
 	gamepads := nav.Call("getGamepads")
@@ -252,7 +252,7 @@ func (i *Input) UpdateGamepads() {
 	for id := 0; id < l; id++ {
 		i.gamepads[id].valid = false
 		gamepad := gamepads.Index(id)
-		if jsutil.Equal(gamepad, js.Undefined()) || jsutil.Equal(gamepad, js.Null()) {
+		if !gamepad.Truthy() {
 			continue
 		}
 		i.gamepads[id].valid = true
@@ -286,7 +286,7 @@ func (i *Input) Update(e js.Value) {
 	switch e.Get("type").String() {
 	case "keydown":
 		c := e.Get("code")
-		if jsutil.Equal(c, js.Undefined()) {
+		if c.Type() != js.TypeString {
 			code := e.Get("keyCode").Int()
 			if edgeKeyCodeToDriverKey[code] == driver.KeyUp ||
 				edgeKeyCodeToDriverKey[code] == driver.KeyDown ||
@@ -314,7 +314,7 @@ func (i *Input) Update(e js.Value) {
 			i.runeBuffer = append(i.runeBuffer, r)
 		}
 	case "keyup":
-		if jsutil.Equal(e.Get("code"), js.Undefined()) {
+		if e.Get("code").Type() != js.TypeString {
 			// Assume that UA is Edge.
 			code := e.Get("keyCode").Int()
 			i.keyUpEdge(code)
@@ -348,10 +348,10 @@ func (i *Input) setMouseCursorFromEvent(e js.Value) {
 
 func (i *Input) updateTouches(e js.Value) {
 	j := e.Get("targetTouches")
-	ts := map[int]pos{}
+	ts := map[driver.TouchID]pos{}
 	for i := 0; i < j.Length(); i++ {
 		jj := j.Call("item", i)
-		id := jj.Get("identifier").Int()
+		id := driver.TouchID(jj.Get("identifier").Int())
 		ts[id] = pos{
 			X: jj.Get("clientX").Int(),
 			Y: jj.Get("clientY").Int(),

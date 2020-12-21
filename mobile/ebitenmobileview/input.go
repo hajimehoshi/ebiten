@@ -17,8 +17,8 @@
 package ebitenmobileview
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/uidriver/mobile"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/uidriver/mobile"
 )
 
 type position struct {
@@ -29,8 +29,8 @@ type position struct {
 var (
 	keys     = map[driver.Key]struct{}{}
 	runes    []rune
-	touches  = map[int]position{}
-	gamepads = map[int]*mobile.Gamepad{}
+	touches  = map[driver.TouchID]position{}
+	gamepads = map[driver.GamepadID]*mobile.Gamepad{}
 )
 
 func updateInput() {

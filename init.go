@@ -15,15 +15,11 @@
 package ebiten
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
-	"github.com/hajimehoshi/ebiten/internal/mipmap"
-	"github.com/hajimehoshi/ebiten/internal/shareable"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 )
 
-var _ = __EBITEN_REQUIRES_GO_VERSION_1_12_OR_LATER__
+var _ = __EBITEN_REQUIRES_GO_VERSION_1_13_OR_LATER__
 
 func init() {
-	mipmap.SetGraphicsDriver(uiDriver().Graphics())
-	shareable.SetGraphicsDriver(uiDriver().Graphics())
 	graphicscommand.SetGraphicsDriver(uiDriver().Graphics())
 }

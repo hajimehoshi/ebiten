@@ -21,7 +21,7 @@ package ebitenutil
 import (
 	"image"
 
-	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 // NewImageFromFile loads the file with path and returns ebiten.Image and image.Image.
@@ -33,7 +33,7 @@ import (
 // Note that this doesn't work on mobiles.
 //
 // For productions, instead of using NewImageFromFile, it is safer to embed your resources, e.g., with github.com/rakyll/statik .
-func NewImageFromFile(path string, filter ebiten.Filter) (*ebiten.Image, image.Image, error) {
+func NewImageFromFile(path string) (*ebiten.Image, image.Image, error) {
 	file, err := OpenFile(path)
 	if err != nil {
 		return nil, nil, err
@@ -45,9 +45,6 @@ func NewImageFromFile(path string, filter ebiten.Filter) (*ebiten.Image, image.I
 	if err != nil {
 		return nil, nil, err
 	}
-	img2, err := ebiten.NewImageFromImage(img, filter)
-	if err != nil {
-		return nil, nil, err
-	}
+	img2 := ebiten.NewImageFromImage(img)
 	return img2, img, err
 }

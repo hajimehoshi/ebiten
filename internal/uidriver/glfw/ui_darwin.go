@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !js
 // +build !ios
 
 package glfw
@@ -42,7 +41,7 @@ package glfw
 import "C"
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
 func (u *UserInterface) fromGLFWMonitorPixel(x float64) float64 {

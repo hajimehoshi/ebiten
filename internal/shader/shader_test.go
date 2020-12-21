@@ -24,14 +24,15 @@ import (
 	"strings"
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/internal/shader"
-	"github.com/hajimehoshi/ebiten/internal/shaderir/glsl"
-	"github.com/hajimehoshi/ebiten/internal/shaderir/metal"
+	. "github.com/hajimehoshi/ebiten/v2/internal/shader"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/metal"
 )
 
 func glslNormalize(str string) string {
-	if strings.HasPrefix(str, glsl.FragmentPrelude) {
-		str = str[len(glsl.FragmentPrelude):]
+	p := glsl.FragmentPrelude(glsl.GLSLVersionDefault)
+	if strings.HasPrefix(str, p) {
+		str = str[len(p):]
 	}
 	return strings.TrimSpace(str)
 }
@@ -156,7 +157,7 @@ func TestCompile(t *testing.T) {
 			}
 
 			// GLSL
-			vs, fs := glsl.Compile(s)
+			vs, fs := glsl.Compile(s, glsl.GLSLVersionDefault)
 			if got, want := glslNormalize(vs), glslNormalize(string(tc.VS)); got != want {
 				compare(t, "GLSL Vertex", got, want)
 			}

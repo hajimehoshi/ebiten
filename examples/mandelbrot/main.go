@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
@@ -20,7 +20,7 @@ import (
 	"log"
 	"math"
 
-	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 const (
@@ -30,7 +30,7 @@ const (
 )
 
 var (
-	offscreen    *ebiten.Image
+	offscreen    = ebiten.NewImage(screenWidth, screenHeight)
 	offscreenPix []byte
 	palette      [maxIt]byte
 )
@@ -69,7 +69,6 @@ func updateOffscreen(centerX, centerY, size float64) {
 }
 
 func init() {
-	offscreen, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterDefault)
 	offscreenPix = make([]byte, screenWidth*screenHeight*4)
 	for i := range palette {
 		palette[i] = byte(math.Sqrt(float64(i)/float64(len(palette))) * 0x80)
@@ -81,7 +80,7 @@ func init() {
 type Game struct {
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	return nil
 }
 

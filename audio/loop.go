@@ -21,20 +21,20 @@ import (
 
 // InfiniteLoop represents a looped stream which never ends.
 type InfiniteLoop struct {
-	src     ReadSeekCloser
+	src     io.ReadSeeker
 	lstart  int64
 	llength int64
 	pos     int64
 }
 
 // NewInfiniteLoop creates a new infinite loop stream with a source stream and length in bytes.
-func NewInfiniteLoop(src ReadSeekCloser, length int64) *InfiniteLoop {
+func NewInfiniteLoop(src io.ReadSeeker, length int64) *InfiniteLoop {
 	return NewInfiniteLoopWithIntro(src, 0, length)
 }
 
 // NewInfiniteLoopWithIntro creates a new infinite loop stream with an intro part.
 // NewInfiniteLoopWithIntro accepts a source stream src, introLength in bytes and loopLength in bytes.
-func NewInfiniteLoopWithIntro(src ReadSeekCloser, introLength int64, loopLength int64) *InfiniteLoop {
+func NewInfiniteLoopWithIntro(src io.ReadSeeker, introLength int64, loopLength int64) *InfiniteLoop {
 	return &InfiniteLoop{
 		src:     src,
 		lstart:  introLength,
@@ -120,9 +120,4 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 	}
 	i.pos = next
 	return i.pos, nil
-}
-
-// Close is implementation of ReadSeekCloser's Close.
-func (l *InfiniteLoop) Close() error {
-	return l.src.Close()
 }

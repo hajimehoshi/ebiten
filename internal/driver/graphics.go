@@ -17,10 +17,9 @@ package driver
 import (
 	"errors"
 
-	"github.com/hajimehoshi/ebiten/internal/affine"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/shaderir"
-	"github.com/hajimehoshi/ebiten/internal/thread"
+	"github.com/hajimehoshi/ebiten/v2/internal/affine"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
 type Region struct {
@@ -31,7 +30,6 @@ type Region struct {
 }
 
 type Graphics interface {
-	SetThread(thread *thread.Thread)
 	Begin()
 	End()
 	SetTransparent(transparent bool)
@@ -52,7 +50,7 @@ type Graphics interface {
 	// Draw draws an image onto another image.
 	//
 	// TODO: Merge this into DrawShader.
-	Draw(dst, src ImageID, indexLen int, indexOffset int, mode CompositeMode, colorM *affine.ColorM, filter Filter, address Address, sourceRegion Region) error
+	Draw(dst, src ImageID, indexLen int, indexOffset int, mode CompositeMode, colorM *affine.ColorM, filter Filter, address Address, dstRegion, srcRegion Region) error
 
 	// DrawShader draws the shader.
 	//
@@ -60,7 +58,7 @@ type Graphics interface {
 	//
 	//   * float32
 	//   * []float32
-	DrawShader(dst ImageID, srcs [graphics.ShaderImageNum]ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader ShaderID, indexLen int, indexOffset int, sourceRegion Region, mode CompositeMode, uniforms []interface{}) error
+	DrawShader(dst ImageID, srcs [graphics.ShaderImageNum]ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader ShaderID, indexLen int, indexOffset int, dstRegion, srcRegion Region, mode CompositeMode, uniforms []interface{}) error
 }
 
 // GraphicsNotReady represents that the graphics driver is not ready for recovering from the context lost.
@@ -70,6 +68,18 @@ type Image interface {
 	ID() ImageID
 	Dispose()
 	IsInvalidated() bool
+
+	// Sync syncs the texture data in CPU and GPU so that Pixels can return the texture data immediately.
+	// In most cases, Sync doesn't have to be called explicitly.
+	// Even without Sync, Pixels should does Sync automatically, but this might take long.
+	//
+	// Sync returns a channel that is closed when syncing finishes.
+	//
+	// Whatever the syncing state is, the other function should work correctly.
+	//
+	// TODO: Should the other functions be blocked during syncing?
+	Sync() <-chan struct{}
+
 	Pixels() ([]byte, error)
 	ReplacePixels(args []*ReplacePixelsArgs)
 }

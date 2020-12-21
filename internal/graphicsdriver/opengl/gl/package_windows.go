@@ -37,6 +37,7 @@ var (
 	gpGenBuffers                  uintptr
 	gpGenFramebuffersEXT          uintptr
 	gpGenTextures                 uintptr
+	gpGetBufferSubData            uintptr
 	gpGetDoublei_v                uintptr
 	gpGetDoublei_vEXT             uintptr
 	gpGetError                    uintptr
@@ -62,6 +63,7 @@ var (
 	gpLinkProgram                 uintptr
 	gpPixelStorei                 uintptr
 	gpReadPixels                  uintptr
+	gpScissor                     uintptr
 	gpShaderSource                uintptr
 	gpTexImage2D                  uintptr
 	gpTexParameteri               uintptr
@@ -198,6 +200,10 @@ func GenTextures(n int32, textures *uint32) {
 	syscall.Syscall(gpGenTextures, 2, uintptr(n), uintptr(unsafe.Pointer(textures)), 0)
 }
 
+func GetBufferSubData(target uint32, offset int, size int, data unsafe.Pointer) {
+	syscall.Syscall6(gpGetBufferSubData, 4, uintptr(target), uintptr(offset), uintptr(size), uintptr(data), 0, 0)
+}
+
 func GetDoublei_v(target uint32, index uint32, data *float64) {
 	syscall.Syscall(gpGetDoublei_v, 3, uintptr(target), uintptr(index), uintptr(unsafe.Pointer(data)))
 }
@@ -295,6 +301,10 @@ func ReadPixels(x int32, y int32, width int32, height int32, format uint32, xtyp
 	syscall.Syscall9(gpReadPixels, 7, uintptr(x), uintptr(y), uintptr(width), uintptr(height), uintptr(format), uintptr(xtype), uintptr(pixels), 0, 0)
 }
 
+func Scissor(x int32, y int32, width int32, height int32) {
+	syscall.Syscall6(gpScissor, 4, uintptr(x), uintptr(y), uintptr(width), uintptr(height), 0, 0)
+}
+
 func ShaderSource(shader uint32, count int32, xstring **uint8, length *int32) {
 	syscall.Syscall6(gpShaderSource, 4, uintptr(shader), uintptr(count), uintptr(unsafe.Pointer(xstring)), uintptr(unsafe.Pointer(length)), 0, 0)
 }
@@ -360,7 +370,9 @@ func Viewport(x int32, y int32, width int32, height int32) {
 }
 
 // InitWithProcAddrFunc intializes the package using the specified OpenGL
-// function pointer loading function. For more cases Init should be used
+// function pointer loading function.
+//
+// For more cases Init should be used.
 func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	gpActiveTexture = getProcAddr("glActiveTexture")
 	if gpActiveTexture == 0 {
@@ -455,6 +467,10 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	if gpGenTextures == 0 {
 		return errors.New("glGenTextures")
 	}
+	gpGetBufferSubData = getProcAddr("glGetBufferSubData")
+	if gpGetBufferSubData == 0 {
+		return errors.New("glGetBufferSubData")
+	}
 	gpGetDoublei_v = getProcAddr("glGetDoublei_v")
 	gpGetDoublei_vEXT = getProcAddr("glGetDoublei_vEXT")
 	gpGetError = getProcAddr("glGetError")
@@ -515,6 +531,10 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	gpReadPixels = getProcAddr("glReadPixels")
 	if gpReadPixels == 0 {
 		return errors.New("glReadPixels")
+	}
+	gpScissor = getProcAddr("glScissor")
+	if gpScissor == 0 {
+		return errors.New("glScissor")
 	}
 	gpShaderSource = getProcAddr("glShaderSource")
 	if gpShaderSource == 0 {

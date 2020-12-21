@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
@@ -28,9 +28,9 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"github.com/hajimehoshi/ebiten/examples/resources/images"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 )
 
 func init() {
@@ -58,7 +58,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	smokeImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	smokeImage = ebiten.NewImageFromImage(img)
 }
 
 type sprite struct {
@@ -141,7 +141,7 @@ type Game struct {
 	sprites *list.List
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if g.sprites == nil {
 		g.sprites = list.New()
 	}

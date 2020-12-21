@@ -1,4 +1,4 @@
-// Copyright 2017 The Ebiten Authors
+// Copyright 2020 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,26 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !js
+// +build ebitendebug
 
-package web
+package debug
 
-func IsBrowser() bool {
-	return false
-}
+import (
+	"fmt"
+)
 
-func IsGopherJS() bool {
-	return false
-}
-
-func IsIOSSafari() bool {
-	return false
-}
-
-func IsAndroidChrome() bool {
-	return false
-}
-
-func IsMobileBrowser() bool {
-	return false
+func Logf(format string, args ...interface{}) {
+	fmt.Printf(format, args...)
 }

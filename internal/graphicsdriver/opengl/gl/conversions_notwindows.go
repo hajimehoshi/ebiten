@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 
-// +build !js
 // +build !windows
 
 package gl

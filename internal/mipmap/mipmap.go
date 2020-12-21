@@ -16,21 +16,14 @@ package mipmap
 
 import (
 	"fmt"
-	"image/color"
 	"math"
 
-	"github.com/hajimehoshi/ebiten/internal/affine"
-	"github.com/hajimehoshi/ebiten/internal/buffered"
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/v2/internal/affine"
+	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
-
-var graphicsDriver driver.Graphics
-
-func SetGraphicsDriver(graphics driver.Graphics) {
-	graphicsDriver = graphics
-}
 
 func BeginFrame() error {
 	return buffered.BeginFrame()
@@ -80,11 +73,6 @@ func (m *Mipmap) Dump(name string, blackbg bool) error {
 	return m.orig.Dump(name, blackbg)
 }
 
-func (m *Mipmap) Fill(clr color.RGBA) {
-	m.orig.Fill(clr)
-	m.disposeMipmaps()
-}
-
 func (m *Mipmap) ReplacePixels(pix []byte, x, y, width, height int) error {
 	if err := m.orig.ReplacePixels(pix, x, y, width, height); err != nil {
 		return err
@@ -97,7 +85,7 @@ func (m *Mipmap) Pixels(x, y, width, height int) ([]byte, error) {
 	return m.orig.Pixels(x, y, width, height)
 }
 
-func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms []interface{}, canSkipMipmap bool) {
+func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms []interface{}, canSkipMipmap bool) {
 	if len(indices) == 0 {
 		return
 	}
@@ -176,7 +164,7 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices [
 		imgs[i] = src.orig
 	}
 
-	m.orig.DrawTriangles(imgs, vertices, indices, colorm, mode, filter, address, sourceRegion, subimageOffsets, s, uniforms)
+	m.orig.DrawTriangles(imgs, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, s, uniforms)
 	m.disposeMipmaps()
 }
 
@@ -211,20 +199,6 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		h := sizeForLevel(m.height, level-1)
 		vs = graphics.QuadVertices(0, 0, float32(w), float32(h), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1, false)
 		filter = driver.FilterLinear
-	case level == -1:
-		src = m.orig
-		vs = graphics.QuadVertices(0, 0, float32(m.width), float32(m.height), 2, 0, 0, 2, 0, 0, 1, 1, 1, 1, false)
-		filter = driver.FilterNearest
-	case level < -1:
-		src = m.level(level + 1)
-		if src == nil {
-			m.imgs[level] = nil
-			return nil
-		}
-		w := sizeForLevel(m.width, level-1)
-		h := sizeForLevel(m.height, level-1)
-		vs = graphics.QuadVertices(0, 0, float32(w), float32(h), 2, 0, 0, 2, 0, 0, 1, 1, 1, 1, false)
-		filter = driver.FilterNearest
 	default:
 		panic(fmt.Sprintf("ebiten: invalid level: %d", level))
 	}
@@ -236,25 +210,33 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		m.imgs[level] = nil
 		return nil
 	}
+	// buffered.NewImage panics with a too big size when actual allocation happens.
+	// 4096 should be a safe size in most environments (#1399).
+	// Unfortunately a precise max image size cannot be obtained here since this requires GPU access.
+	if w2 > 4096 || h2 > 4096 {
+		m.imgs[level] = nil
+		return nil
+	}
 	s := buffered.NewImage(w2, h2)
 	s.SetVolatile(m.volatile)
-	s.DrawTriangles([graphics.ShaderImageNum]*buffered.Image{src}, vs, is, nil, driver.CompositeModeCopy, filter, driver.AddressUnsafe, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
+
+	dstRegion := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  float32(w2),
+		Height: float32(h2),
+	}
+	s.DrawTriangles([graphics.ShaderImageNum]*buffered.Image{src}, vs, is, nil, driver.CompositeModeCopy, filter, driver.AddressUnsafe, dstRegion, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
 	m.imgs[level] = s
 
 	return m.imgs[level]
 }
 
 func sizeForLevel(x int, level int) int {
-	if level > 0 {
-		for i := 0; i < level; i++ {
-			x /= 2
-			if x == 0 {
-				return 0
-			}
-		}
-	} else {
-		for i := 0; i < -level; i++ {
-			x *= 2
+	for i := 0; i < level; i++ {
+		x /= 2
+		if x == 0 {
+			return 0
 		}
 	}
 	return x
@@ -268,7 +250,9 @@ func (m *Mipmap) MarkDisposed() {
 
 func (m *Mipmap) disposeMipmaps() {
 	for _, img := range m.imgs {
-		img.MarkDisposed()
+		if img != nil {
+			img.MarkDisposed()
+		}
 	}
 	for k := range m.imgs {
 		delete(m.imgs, k)
@@ -277,6 +261,8 @@ func (m *Mipmap) disposeMipmaps() {
 
 // mipmapLevel returns an appropriate mipmap level for the given distance.
 func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, filter driver.Filter) int {
+	const maxLevel = 6
+
 	if filter == driver.FilterScreen {
 		return 0
 	}
@@ -288,40 +274,14 @@ func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, fil
 	}
 	scale := d / s
 
-	// Use 'negative' mipmap to render edges correctly (#611, #907).
-	// It looks like 128 is the enlargement factor that causes edge missings to pass the test TestImageStretch,
-	// but we use 32 here for environments where the float precision is low (#1044, #1270).
-	var tooBigScale float32 = 32
+	// Scale can be infinite when the specified scale is extremely big (#1398).
+	if math.IsInf(float64(scale), 0) {
+		return 0
+	}
 
-	if scale >= tooBigScale*tooBigScale {
-		// If the filter is not nearest, the target needs to be rendered with graduation. Don't use mipmaps.
-		if filter != driver.FilterNearest {
-			return 0
-		}
-
-		const mipmapMaxSize = 1024
-		w, h := sx1-sx0, sy1-sy0
-		if w >= mipmapMaxSize || h >= mipmapMaxSize {
-			return 0
-		}
-
-		level := 0
-		for scale >= tooBigScale*tooBigScale {
-			level--
-			scale /= 4
-			w *= 2
-			h *= 2
-			if w >= mipmapMaxSize || h >= mipmapMaxSize {
-				break
-			}
-		}
-
-		// If tooBigScale is 64, level -6 means that the maximum scale is 64 * 2^6 = 4096. This should be
-		// enough.
-		if level < -6 {
-			level = -6
-		}
-		return level
+	// Scale can be zero when the specified scale is extremely small (#1398).
+	if scale == 0 {
+		return 0
 	}
 
 	if filter != driver.FilterLinear {
@@ -352,24 +312,16 @@ func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, fil
 		}
 	}
 
-	if level > 6 {
-		level = 6
+	if level > maxLevel {
+		level = maxLevel
 	}
 
 	return level
 }
 
 func pow2(power int) float32 {
-	if power >= 0 {
-		x := 1
-		return float32(x << uint(power))
-	}
-
-	x := float32(1)
-	for i := 0; i < -power; i++ {
-		x /= 2
-	}
-	return x
+	x := 1
+	return float32(x << uint(power))
 }
 
 type Shader struct {

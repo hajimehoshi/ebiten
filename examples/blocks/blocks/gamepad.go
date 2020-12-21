@@ -17,8 +17,8 @@ package blocks
 import (
 	"fmt"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/inpututil"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 type virtualGamepadButton int
@@ -47,7 +47,7 @@ type axis struct {
 }
 
 type gamepadConfig struct {
-	gamepadID            int
+	gamepadID            ebiten.GamepadID
 	gamepadIDInitialized bool
 
 	current         virtualGamepadButton
@@ -59,7 +59,7 @@ type gamepadConfig struct {
 	defaultAxesValues map[int]float64
 }
 
-func (c *gamepadConfig) SetGamepadID(id int) {
+func (c *gamepadConfig) SetGamepadID(id ebiten.GamepadID) {
 	c.gamepadID = id
 	c.gamepadIDInitialized = true
 }

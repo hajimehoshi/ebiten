@@ -16,16 +16,15 @@ package shareable
 
 import (
 	"fmt"
-	"image/color"
 	"runtime"
 	"sync"
 
-	"github.com/hajimehoshi/ebiten/internal/affine"
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/hooks"
-	"github.com/hajimehoshi/ebiten/internal/packing"
-	"github.com/hajimehoshi/ebiten/internal/restorable"
+	"github.com/hajimehoshi/ebiten/v2/internal/affine"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
+	"github.com/hajimehoshi/ebiten/v2/internal/packing"
+	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 )
 
 const (
@@ -33,12 +32,6 @@ const (
 	// Every image or node except for a screen image has its padding.
 	paddingSize = 1
 )
-
-var graphicsDriver driver.Graphics
-
-func SetGraphicsDriver(graphics driver.Graphics) {
-	graphicsDriver = graphics
-}
 
 var (
 	minSize = 0
@@ -78,15 +71,34 @@ func resolveDeferred() {
 // This value is exported for testing.
 const MaxCountForShare = 10
 
+// CountForStartSyncing represents the count that the image starts to sync pixels between GPU and CPU.
+//
+// This value is exported for testing.
+const CountForStartSyncing = MaxCountForShare / 2
+
 func makeImagesShared() error {
 	for i := range imagesToMakeShared {
 		i.nonUpdatedCount++
+		if i.nonUpdatedCount >= CountForStartSyncing && i.syncing == nil {
+			// Sync the pixel data on CPU and GPU sides explicitly in order not to block this process.
+			ch, err := i.backend.restorable.Sync()
+			if err != nil {
+				return err
+			}
+			i.syncing = ch
+		}
 		if i.nonUpdatedCount >= MaxCountForShare {
+			// TODO: Instead of waiting for the channel, use select-case and continue the loop if this
+			// channel is blocking. However, this might make the tests difficult.
+			<-i.syncing
+
 			if err := i.makeShared(); err != nil {
 				return err
 			}
+			i.nonUpdatedCount = 0
+			delete(imagesToMakeShared, i)
+			i.syncing = nil
 		}
-		delete(imagesToMakeShared, i)
 	}
 	return nil
 }
@@ -178,6 +190,8 @@ type Image struct {
 	//
 	// ReplacePixels doesn't affect this value since ReplacePixels can be done on shared images.
 	nonUpdatedCount int
+
+	syncing <-chan struct{}
 }
 
 func (i *Image) moveTo(dst *Image) {
@@ -193,7 +207,15 @@ func (i *Image) isShared() bool {
 	return i.node != nil
 }
 
+func (i *Image) resetNonUpdatedCount() {
+	i.nonUpdatedCount = 0
+	delete(imagesToMakeShared, i)
+	i.syncing = nil
+}
+
 func (i *Image) ensureNotShared() {
+	i.resetNonUpdatedCount()
+
 	if i.backend == nil {
 		i.allocate(false)
 		return
@@ -223,7 +245,13 @@ func (i *Image) ensureNotShared() {
 	is := graphics.QuadIndices()
 	srcs := [graphics.ShaderImageNum]*restorable.Image{i.backend.restorable}
 	var offsets [graphics.ShaderImageNum - 1][2]float32
-	newImg.DrawTriangles(srcs, offsets, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, driver.Region{}, nil, nil)
+	dstRegion := driver.Region{
+		X:      paddingSize,
+		Y:      paddingSize,
+		Width:  float32(w - 2*paddingSize),
+		Height: float32(h - 2*paddingSize),
+	}
+	newImg.DrawTriangles(srcs, offsets, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dstRegion, driver.Region{}, nil, nil)
 
 	i.dispose(false)
 	i.backend = &backend{
@@ -263,6 +291,7 @@ func (i *Image) makeShared() error {
 	newI.replacePixels(pixels)
 	newI.moveTo(i)
 	i.nonUpdatedCount = 0
+	i.syncing = nil
 	return nil
 }
 
@@ -306,7 +335,7 @@ func (i *Image) processSrc(src *Image) {
 //   5: Color G
 //   6: Color B
 //   7: Color Y
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, sourceRegion driver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms []interface{}) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms []interface{}) {
 	backendsM.Lock()
 	// Do not use defer for performance.
 
@@ -326,6 +355,9 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		dy = paddingSize
 	}
 
+	dstRegion.X += dx
+	dstRegion.Y += dx
+
 	var oxf, oyf float32
 	if srcs[0] != nil {
 		ox, oy, _, _ := srcs[0].regionWithPadding()
@@ -339,11 +371,11 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 			vertices[i*graphics.VertexFloatNum+2] += oxf
 			vertices[i*graphics.VertexFloatNum+3] += oyf
 		}
-		// sourceRegion can be delibarately empty when this is not needed in order to avoid unexpected
+		// srcRegion can be delibarately empty when this is not needed in order to avoid unexpected
 		// performance issue (#1293).
-		if sourceRegion.Width != 0 && sourceRegion.Height != 0 {
-			sourceRegion.X += oxf
-			sourceRegion.Y += oyf
+		if srcRegion.Width != 0 && srcRegion.Height != 0 {
+			srcRegion.X += oxf
+			srcRegion.Y += oyf
 		}
 	} else {
 		n := len(vertices) / graphics.VertexFloatNum
@@ -378,43 +410,19 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		}
 	}
 
-	i.backend.restorable.DrawTriangles(imgs, offsets, vertices, indices, colorm, mode, filter, address, sourceRegion, s, uniforms)
-
-	i.nonUpdatedCount = 0
-	delete(imagesToMakeShared, i)
+	i.backend.restorable.DrawTriangles(imgs, offsets, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, s, uniforms)
 
 	for _, src := range srcs {
 		if src == nil {
 			continue
 		}
 		if !src.isShared() && src.shareable() {
+			// src might already registered, but assiging it again is not harmful.
 			imagesToMakeShared[src] = struct{}{}
 		}
 	}
 
 	backendsM.Unlock()
-}
-
-func (i *Image) Fill(clr color.RGBA) {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-
-	if i.disposed {
-		panic("shareable: the drawing target image must not be disposed (Fill)")
-	}
-	if i.backend == nil {
-		if _, _, _, a := clr.RGBA(); a == 0 {
-			return
-		}
-	}
-
-	i.ensureNotShared()
-
-	// As *restorable.Image is an independent image, it is fine to fill the entire image.
-	i.backend.restorable.Fill(clr)
-
-	i.nonUpdatedCount = 0
-	delete(imagesToMakeShared, i)
 }
 
 func (i *Image) ReplacePixels(pix []byte) {
@@ -427,6 +435,9 @@ func (i *Image) replacePixels(pix []byte) {
 	if i.disposed {
 		panic("shareable: the image must not be disposed at replacePixels")
 	}
+
+	i.resetNonUpdatedCount()
+
 	if i.backend == nil {
 		if pix == nil {
 			return
@@ -516,6 +527,8 @@ func (i *Image) dispose(markDisposed bool) {
 			runtime.SetFinalizer(i, nil)
 		}
 	}()
+
+	i.resetNonUpdatedCount()
 
 	if i.disposed {
 		return
@@ -673,7 +686,7 @@ func BeginFrame() error {
 			panic("shareable: all the images must be not-shared before the game starts")
 		}
 		minSize = 1024
-		maxSize = max(minSize, graphicsDriver.MaxImageSize())
+		maxSize = max(minSize, restorable.MaxImageSize())
 	})
 	if err != nil {
 		return err

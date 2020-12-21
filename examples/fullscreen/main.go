@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
@@ -26,13 +26,13 @@ import (
 	"log"
 	"math"
 
-	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/examples/resources/fonts"
-	"github.com/hajimehoshi/ebiten/examples/resources/images"
-	"github.com/hajimehoshi/ebiten/text"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
+	"github.com/hajimehoshi/ebiten/v2/text"
 )
 
 var (
@@ -55,28 +55,31 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	gophersImage = ebiten.NewImageFromImage(img)
 }
 
 func initFont() {
-	tt, err := truetype.Parse(fonts.MPlus1pRegular_ttf)
+	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	const dpi = 72
-	mplusFont = truetype.NewFace(tt, &truetype.Options{
+	mplusFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    12 * ebiten.DeviceScaleFactor(),
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 type Game struct {
 	count int
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	g.count++
 
 	if ebiten.IsKeyPressed(ebiten.KeyQ) {

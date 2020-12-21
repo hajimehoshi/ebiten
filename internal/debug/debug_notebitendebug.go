@@ -1,4 +1,4 @@
-// Copyright 2018 The Ebiten Authors
+// Copyright 2020 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,11 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package stb
+// +build !ebitendebug
 
-// stbvorbis.js
-// URL:     https://github.com/hajimehoshi/stbvorbis.js
-// License: Apache License 2.0
-// Commit:  ac1c2ee9d24eb6085eb1e968f55e0fb32cacc03a
+package debug
 
-//go:generate file2byteslice -package=stb -input=stbvorbis.js -output=stbvorbis.js.go -var=stbvorbis_js -buildtags "js,!wasm"
+func Logf(format string, args ...interface{}) {
+}

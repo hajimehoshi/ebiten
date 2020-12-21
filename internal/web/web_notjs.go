@@ -12,44 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build js
+// +build !js
 
 package web
 
-import (
-	"runtime"
-	"strings"
-	"syscall/js"
-)
-
 func IsBrowser() bool {
-	return true
-}
-
-func IsGopherJS() bool {
-	return IsBrowser() && runtime.GOOS != "js"
-}
-
-var (
-	userAgent = js.Global().Get("navigator").Get("userAgent").String()
-
-	isIOSSafari     bool
-	isAndroidChrome bool
-)
-
-func init() {
-	isIOSSafari = strings.Contains(userAgent, "iPhone") || strings.Contains(userAgent, "iPad")
-	isAndroidChrome = strings.Contains(userAgent, "Android") && strings.Contains(userAgent, "Chrome")
-}
-
-func IsIOSSafari() bool {
-	return isIOSSafari
-}
-
-func IsAndroidChrome() bool {
-	return isAndroidChrome
+	return false
 }
 
 func IsMobileBrowser() bool {
-	return IsIOSSafari() || IsAndroidChrome()
+	return false
 }

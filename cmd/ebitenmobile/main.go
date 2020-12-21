@@ -183,7 +183,7 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 	prefixLower := bindPrefix + pkgs[0].Name
 	prefixUpper := strings.Title(bindPrefix) + strings.Title(pkgs[0].Name)
 
-	args = append(args, "github.com/hajimehoshi/ebiten/mobile/ebitenmobileview")
+	args = append(args, "github.com/hajimehoshi/ebiten/v2/mobile/ebitenmobileview")
 
 	if buildO == "" {
 		fmt.Fprintln(os.Stderr, "-o must be specified.")

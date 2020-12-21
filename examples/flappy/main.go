@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
@@ -27,19 +27,19 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/audio"
-	"github.com/hajimehoshi/ebiten/audio/vorbis"
-	"github.com/hajimehoshi/ebiten/audio/wav"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
-	raudio "github.com/hajimehoshi/ebiten/examples/resources/audio"
-	"github.com/hajimehoshi/ebiten/examples/resources/fonts"
-	resources "github.com/hajimehoshi/ebiten/examples/resources/images/flappy"
-	"github.com/hajimehoshi/ebiten/inpututil"
-	"github.com/hajimehoshi/ebiten/text"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/audio"
+	"github.com/hajimehoshi/ebiten/v2/audio/vorbis"
+	"github.com/hajimehoshi/ebiten/v2/audio/wav"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	raudio "github.com/hajimehoshi/ebiten/v2/examples/resources/audio"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
+	resources "github.com/hajimehoshi/ebiten/v2/examples/resources/images/flappy"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/text"
 )
 
 func init() {
@@ -82,43 +82,47 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	gopherImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	gopherImage = ebiten.NewImageFromImage(img)
 
 	img, _, err = image.Decode(bytes.NewReader(resources.Tiles_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	tilesImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	tilesImage = ebiten.NewImageFromImage(img)
 }
 
 func init() {
-	tt, err := truetype.Parse(fonts.ArcadeN_ttf)
+	tt, err := opentype.Parse(fonts.PressStart2P_ttf)
 	if err != nil {
 		log.Fatal(err)
 	}
 	const dpi = 72
-	arcadeFont = truetype.NewFace(tt, &truetype.Options{
+	arcadeFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    fontSize,
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
-	smallArcadeFont = truetype.NewFace(tt, &truetype.Options{
+	if err != nil {
+		log.Fatal(err)
+	}
+	smallArcadeFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    smallFontSize,
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 var (
-	audioContext *audio.Context
+	audioContext = audio.NewContext(44100)
 	jumpPlayer   *audio.Player
 	hitPlayer    *audio.Player
 )
 
 func init() {
-	audioContext, _ = audio.NewContext(44100)
-
-	jumpD, err := vorbis.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Jump_ogg))
+	jumpD, err := vorbis.Decode(audioContext, bytes.NewReader(raudio.Jump_ogg))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -127,7 +131,7 @@ func init() {
 		log.Fatal(err)
 	}
 
-	jabD, err := wav.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Jab_wav))
+	jabD, err := wav.Decode(audioContext, bytes.NewReader(raudio.Jab_wav))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -197,7 +201,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return screenWidth, screenHeight
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	switch g.mode {
 	case ModeTitle:
 		if jump() {

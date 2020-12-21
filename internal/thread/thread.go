@@ -18,17 +18,23 @@ import (
 	"errors"
 )
 
-// Thread represents an OS thread.
-type Thread struct {
+// Thread defines threading behavior in Ebiten.
+type Thread interface {
+	Call(func() error) error
+	Loop()
+}
+
+// OSThread represents an OS thread.
+type OSThread struct {
 	funcs   chan func() error
 	results chan error
 }
 
-// New creates a new thread.
+// NewOSThread creates a new thread.
 //
-// It is assumed that the OS thread is fixed by runtime.LockOSThread when New is called.
-func New() *Thread {
-	return &Thread{
+// It is assumed that the OS thread is fixed by runtime.LockOSThread when NewOSThread is called.
+func NewOSThread() *OSThread {
+	return &OSThread{
 		funcs:   make(chan func() error),
 		results: make(chan error),
 	}
@@ -40,7 +46,7 @@ var BreakLoop = errors.New("break loop")
 // Loop starts the thread loop until a posted function returns BreakLoop.
 //
 // Loop must be called on the thread.
-func (t *Thread) Loop() {
+func (t *OSThread) Loop() {
 	for f := range t.funcs {
 		err := f()
 		if err == BreakLoop {
@@ -58,7 +64,23 @@ func (t *Thread) Loop() {
 // If f returns BreakLoop, Loop returns.
 //
 // Call blocks if Loop is not called.
-func (t *Thread) Call(f func() error) error {
+func (t *OSThread) Call(f func() error) error {
 	t.funcs <- f
 	return <-t.results
+}
+
+// NoopThread is used to disable threading.
+type NoopThread struct{}
+
+// NewNoopThread creates a new thread that does no threading.
+func NewNoopThread() Thread {
+	return &NoopThread{}
+}
+
+// Loop does nothing
+func (t *NoopThread) Loop() {}
+
+// Call executes the func immediately
+func (t *NoopThread) Call(f func() error) error {
+	return f()
 }

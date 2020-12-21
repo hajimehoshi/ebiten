@@ -17,7 +17,7 @@
 package ebitenmobileview
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 )
 
 var androidKeyToDriverKey = map[int]driver.Key{
@@ -89,6 +89,8 @@ var androidKeyToDriverKey = map[int]driver.Key{
 	114: driver.KeyRightControl,
 	115: driver.KeyCapsLock,
 	116: driver.KeyScrollLock,
+	117: driver.KeyLeftSuper,
+	118: driver.KeyRightSuper,
 	120: driver.KeyPrintScreen,
 	121: driver.KeyPause,
 	122: driver.KeyHome,

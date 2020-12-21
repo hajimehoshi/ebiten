@@ -12,30 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build js
-// +build example jsgo
+// +build example
 
 package main
 
 import (
 	"bytes"
-	"fmt"
 	"image"
 	_ "image/jpeg"
 	"log"
 	"math"
-	"syscall/js"
-	"time"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"github.com/hajimehoshi/ebiten/examples/resources/images"
-	"github.com/hajimehoshi/ebiten/inpututil"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 const (
-	screenWidth  = 320
-	screenHeight = 240
+	screenWidth  = 640
+	screenHeight = 480
 )
 
 var (
@@ -48,48 +44,9 @@ type Game struct {
 	lost  bool
 }
 
-func (g *Game) loseAndRestoreContext(context js.Value) {
-	if g.lost {
-		return
-	}
-
-	// Edge might not support the extension. See
-	// https://developer.mozilla.org/en-US/docs/Web/API/WEBGL_lose_context
-	ext := context.Call("getExtension", "WEBGL_lose_context")
-	if !ext.Truthy() {
-		fmt.Println("Fail to force context lost. Edge might not support the extension yet.")
-		return
-	}
-
-	ext.Call("loseContext")
-	fmt.Println("Lost the context!")
-	fmt.Println("The context is automatically restored after 3 seconds.")
-	g.lost = true
-
-	// If and only if the context is lost by loseContext, you need to call restoreContext. Note that in usual
-	// case of context lost, you cannot call restoreContext but the context should be restored automatically.
-	//
-	// After the context is lost, update will not be called. Instead, fire the goroutine to restore the context.
-	go func() {
-		time.Sleep(3 * time.Second)
-		ext.Call("restoreContext")
-		fmt.Println("Restored the context!")
-		g.lost = false
-	}()
-}
-
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-		doc := js.Global().Get("document")
-		canvas := doc.Call("getElementsByTagName", "canvas").Index(0)
-		context := canvas.Call("getContext", "webgl2")
-		if !context.Truthy() {
-			context = canvas.Call("getContext", "webgl")
-			if !context.Truthy() {
-				context = canvas.Call("getContext", "experimental-webgl")
-			}
-		}
-		g.loseAndRestoreContext(context)
+		g.loseAndRestoreContext()
 		return nil
 	}
 
@@ -144,15 +101,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	gophersImage = ebiten.NewImageFromImage(img)
 
 	// Extend the shared backend GL texture on purpose.
 	for i := 0; i < 20; i++ {
-		eimg, _ := ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+		eimg := ebiten.NewImageFromImage(img)
 		extraImages = append(extraImages, eimg)
 	}
 
-	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Context Lost (Ebiten Demo)")
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)

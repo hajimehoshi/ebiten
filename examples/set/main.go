@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
@@ -23,8 +23,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
 const (
@@ -36,16 +36,12 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-var offscreen *ebiten.Image
-
-func init() {
-	offscreen, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterDefault)
-}
+var offscreen = ebiten.NewImage(screenWidth, screenHeight)
 
 type Game struct {
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	w, h := offscreen.Size()
 	x := rand.Intn(w)
 	y := rand.Intn(h)

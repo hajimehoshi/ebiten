@@ -19,8 +19,8 @@ package metal
 import (
 	"sync"
 
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/ca"
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/mtl"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
 
 type view struct {
@@ -28,6 +28,7 @@ type view struct {
 	uiview uintptr
 
 	windowChanged bool
+	vsync         bool
 
 	device mtl.Device
 	ml     ca.MetalLayer
@@ -44,10 +45,8 @@ func (v *view) getMTLDevice() mtl.Device {
 }
 
 func (v *view) setDisplaySyncEnabled(enabled bool) {
-	// TODO: Now SetVsyncEnabled is called only from the main thread, and d.t.Run is not available since
-	// recursive function call via Run is forbidden.
-	// Fix this to use d.t.Run to avoid confusion.
 	v.ml.SetDisplaySyncEnabled(enabled)
+	v.vsync = enabled
 }
 
 func (v *view) colorPixelFormat() mtl.PixelFormat {
@@ -70,6 +69,9 @@ func (v *view) reset() error {
 	// MTLPixelFormatBGRA10_XR_sRGB.
 	v.ml.SetPixelFormat(mtl.PixelFormatBGRA8UNorm)
 	v.ml.SetMaximumDrawableCount(3)
+
+	// The vsync state might be reset. Set the state again (#1364).
+	v.ml.SetDisplaySyncEnabled(v.vsync)
 	return nil
 }
 

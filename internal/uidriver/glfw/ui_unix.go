@@ -13,7 +13,6 @@
 // limitations under the License.
 
 // +build dragonfly freebsd linux netbsd openbsd solaris
-// +build !js
 // +build !android
 
 package glfw
@@ -21,7 +20,7 @@ package glfw
 import (
 	"math"
 
-	"github.com/hajimehoshi/ebiten/internal/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
 // fromGLFWMonitorPixel must be called from the main thread.

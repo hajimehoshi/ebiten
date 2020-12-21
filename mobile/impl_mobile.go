@@ -17,9 +17,10 @@
 package mobile
 
 import (
-	"github.com/hajimehoshi/ebiten/mobile/ebitenmobileview"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/mobile/ebitenmobileview"
 )
 
-func setGame(game Game) {
+func setGame(game ebiten.Game) {
 	ebitenmobileview.SetGame(game)
 }

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
@@ -27,10 +27,10 @@ import (
 	"math"
 	"sort"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"github.com/hajimehoshi/ebiten/examples/resources/images"
-	"github.com/hajimehoshi/ebiten/inpututil"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 const (
@@ -41,8 +41,8 @@ const (
 
 var (
 	bgImage       *ebiten.Image
-	shadowImage   *ebiten.Image
-	triangleImage *ebiten.Image
+	shadowImage   = ebiten.NewImage(screenWidth, screenHeight)
+	triangleImage = ebiten.NewImage(screenWidth, screenHeight)
 )
 
 func init() {
@@ -59,9 +59,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	bgImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
-	shadowImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterDefault)
-	triangleImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterDefault)
+	bgImage = ebiten.NewImageFromImage(img)
 	triangleImage.Fill(color.White)
 }
 
@@ -221,7 +219,7 @@ type Game struct {
 	objects  []object
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		return errors.New("game ended by player")
 	}

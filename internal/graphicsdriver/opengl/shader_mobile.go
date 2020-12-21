@@ -1,4 +1,4 @@
-// Copyright 2018 The Ebiten Authors
+// Copyright 2020 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,16 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !js wasm
+// +build android ios
 
-package vorbis
+package opengl
 
 import (
-	"github.com/jfreymuth/oggvorbis"
-
-	"github.com/hajimehoshi/ebiten/audio"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
 )
 
-func newDecoder(in audio.ReadSeekCloser) (decoder, error) {
-	return oggvorbis.NewReader(in)
+func glslVersion() glsl.GLSLVersion {
+	return glsl.GLSLVersionES100
 }

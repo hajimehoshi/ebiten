@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
@@ -23,9 +23,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"github.com/hajimehoshi/ebiten/inpututil"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 const (
@@ -34,14 +34,14 @@ const (
 )
 
 type Game struct {
-	gamepadIDs     map[int]struct{}
-	axes           map[int][]string
-	pressedButtons map[int][]string
+	gamepadIDs     map[ebiten.GamepadID]struct{}
+	axes           map[ebiten.GamepadID][]string
+	pressedButtons map[ebiten.GamepadID][]string
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if g.gamepadIDs == nil {
-		g.gamepadIDs = map[int]struct{}{}
+		g.gamepadIDs = map[ebiten.GamepadID]struct{}{}
 	}
 
 	// Log the gamepad connection events.
@@ -56,8 +56,8 @@ func (g *Game) Update(screen *ebiten.Image) error {
 		}
 	}
 
-	g.axes = map[int][]string{}
-	g.pressedButtons = map[int][]string{}
+	g.axes = map[ebiten.GamepadID][]string{}
+	g.pressedButtons = map[ebiten.GamepadID][]string{}
 	for id := range g.gamepadIDs {
 		maxAxis := ebiten.GamepadAxisNum(id)
 		for a := 0; a < maxAxis; a++ {
@@ -86,12 +86,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Draw the current gamepad status.
 	str := ""
 	if len(g.gamepadIDs) > 0 {
-		ids := make([]int, 0, len(g.gamepadIDs))
+		ids := make([]ebiten.GamepadID, 0, len(g.gamepadIDs))
 		for id := range g.gamepadIDs {
 			ids = append(ids, id)
 		}
-		sort.Ints(ids)
-		for id := range ids {
+		sort.Slice(ids, func(a, b int) bool {
+			return ids[a] < ids[b]
+		})
+		for _, id := range ids {
 			str += fmt.Sprintf("Gamepad (ID: %d, SDL ID: %s):\n", id, ebiten.GamepadSDLID(id))
 			str += fmt.Sprintf("  Axes:    %s\n", strings.Join(g.axes[id], ", "))
 			str += fmt.Sprintf("  Buttons: %s\n", strings.Join(g.pressedButtons[id], ", "))

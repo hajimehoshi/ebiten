@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +bulid !js
+
 //go:generate sh ./gen.sh
 
 package glfw

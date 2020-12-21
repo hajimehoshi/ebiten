@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
@@ -23,9 +23,9 @@ import (
 	_ "image/png"
 	"log"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"github.com/hajimehoshi/ebiten/examples/resources/images"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 )
 
 const (
@@ -51,7 +51,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	bgImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	bgImage = ebiten.NewImageFromImage(img)
 }
 
 type viewport struct {
@@ -78,7 +78,7 @@ type Game struct {
 	viewport viewport
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	g.viewport.Move()
 	return nil
 }

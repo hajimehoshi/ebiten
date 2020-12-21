@@ -17,8 +17,8 @@ package shareable
 import (
 	"runtime"
 
-	"github.com/hajimehoshi/ebiten/internal/restorable"
-	"github.com/hajimehoshi/ebiten/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
 type Shader struct {

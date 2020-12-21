@@ -17,6 +17,10 @@
 
 package mobile
 
-func setGame(game Game) {
+import (
+	"github.com/hajimehoshi/ebiten/v2"
+)
+
+func setGame(game ebiten.Game) {
 	panic("mobile: setGame is not implemented in this environment")
 }

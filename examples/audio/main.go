@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 // This is an example to implement an audio player.
 // See examples/wav for a simpler example to play a sound file.
@@ -20,25 +20,27 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"image/color"
+	"io"
 	"io/ioutil"
 	"log"
 	"time"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/audio"
-	"github.com/hajimehoshi/ebiten/audio/mp3"
-	"github.com/hajimehoshi/ebiten/audio/vorbis"
-	"github.com/hajimehoshi/ebiten/audio/wav"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
-	raudio "github.com/hajimehoshi/ebiten/examples/resources/audio"
-	"github.com/hajimehoshi/ebiten/inpututil"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/audio"
+	"github.com/hajimehoshi/ebiten/v2/audio/mp3"
+	"github.com/hajimehoshi/ebiten/v2/audio/vorbis"
+	"github.com/hajimehoshi/ebiten/v2/audio/wav"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	raudio "github.com/hajimehoshi/ebiten/v2/examples/resources/audio"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 const (
-	screenWidth  = 320
-	screenHeight = 240
+	screenWidth  = 640
+	screenHeight = 480
 
 	sampleRate = 22050
 )
@@ -79,7 +81,7 @@ type Player struct {
 }
 
 func playerBarRect() (x, y, w, h int) {
-	w, h = 300, 4
+	w, h = 600, 8
 	x = (screenWidth - w) / 2
 	y = screenHeight - h - 16
 	return
@@ -87,7 +89,7 @@ func playerBarRect() (x, y, w, h int) {
 
 func NewPlayer(audioContext *audio.Context, musicType musicType) (*Player, error) {
 	type audioStream interface {
-		audio.ReadSeekCloser
+		io.ReadSeeker
 		Length() int64
 	}
 
@@ -98,13 +100,13 @@ func NewPlayer(audioContext *audio.Context, musicType musicType) (*Player, error
 	switch musicType {
 	case typeOgg:
 		var err error
-		s, err = vorbis.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Ragtime_ogg))
+		s, err = vorbis.Decode(audioContext, bytes.NewReader(raudio.Ragtime_ogg))
 		if err != nil {
 			return nil, err
 		}
 	case typeMP3:
 		var err error
-		s, err = mp3.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Classic_mp3))
+		s, err = mp3.Decode(audioContext, bytes.NewReader(raudio.Classic_mp3))
 		if err != nil {
 			return nil, err
 		}
@@ -128,7 +130,7 @@ func NewPlayer(audioContext *audio.Context, musicType musicType) (*Player, error
 	}
 	player.audioPlayer.Play()
 	go func() {
-		s, err := wav.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Jab_wav))
+		s, err := wav.Decode(audioContext, bytes.NewReader(raudio.Jab_wav))
 		if err != nil {
 			log.Fatal(err)
 			return
@@ -179,7 +181,7 @@ func (p *Player) playSEIfNeeded() {
 	if !inpututil.IsKeyJustPressed(ebiten.KeyP) {
 		return
 	}
-	sePlayer, _ := audio.NewPlayerFromBytes(p.audioContext, p.seBytes)
+	sePlayer := audio.NewPlayerFromBytes(p.audioContext, p.seBytes)
 	sePlayer.Play()
 }
 
@@ -237,7 +239,7 @@ func (p *Player) draw(screen *ebiten.Image) {
 
 	// Draw the cursor on the bar.
 	c := p.current
-	cw, ch := 4, 10
+	cw, ch := 8, 20
 	cx := int(time.Duration(w)*c/p.total) + x - cw/2
 	cy := y - (ch-h)/2
 	ebitenutil.DrawRect(screen, float64(cx), float64(cy), float64(cw), float64(ch), playerCurrentColor)
@@ -267,10 +269,7 @@ type Game struct {
 }
 
 func NewGame() (*Game, error) {
-	audioContext, err := audio.NewContext(sampleRate)
-	if err != nil {
-		return nil, err
-	}
+	audioContext := audio.NewContext(sampleRate)
 
 	m, err := NewPlayer(audioContext, typeOgg)
 	if err != nil {
@@ -284,7 +283,7 @@ func NewGame() (*Game, error) {
 	}, nil
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	select {
 	case p := <-g.musicPlayerCh:
 		g.musicPlayer = p
@@ -336,7 +335,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Audio (Ebiten Demo)")
 	g, err := NewGame()
 	if err != nil {

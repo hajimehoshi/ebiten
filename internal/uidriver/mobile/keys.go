@@ -19,7 +19,7 @@ package mobile
 import (
 	"golang.org/x/mobile/event/key"
 
-	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 )
 
 var gbuildKeyToDriverKey = map[key.Code]driver.Key{
@@ -120,7 +120,9 @@ var gbuildKeyToDriverKey = map[key.Code]driver.Key{
 	key.CodeLeftControl:        driver.KeyLeftControl,
 	key.CodeLeftShift:          driver.KeyLeftShift,
 	key.CodeLeftAlt:            driver.KeyLeftAlt,
+	key.CodeLeftGUI:            driver.KeyLeftSuper,
 	key.CodeRightControl:       driver.KeyRightControl,
 	key.CodeRightShift:         driver.KeyRightShift,
 	key.CodeRightAlt:           driver.KeyRightAlt,
+	key.CodeRightGUI:           driver.KeyRightSuper,
 }

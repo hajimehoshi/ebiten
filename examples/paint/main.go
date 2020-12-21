@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// +build example
 
 package main
 
@@ -23,18 +23,18 @@ import (
 	"log"
 	"math"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
 const (
-	screenWidth  = 320
-	screenHeight = 240
+	screenWidth  = 640
+	screenHeight = 480
 )
 
 var (
 	brushImage  *ebiten.Image
-	canvasImage *ebiten.Image
+	canvasImage = ebiten.NewImage(screenWidth, screenHeight)
 )
 
 func init() {
@@ -49,13 +49,12 @@ func init() {
 		a1, a2, a2, a1,
 		a0, a1, a1, a0,
 	}
-	brushImage, _ = ebiten.NewImageFromImage(&image.Alpha{
+	brushImage = ebiten.NewImageFromImage(&image.Alpha{
 		Pix:    pixels,
 		Stride: 4,
 		Rect:   image.Rect(0, 0, 4, 4),
-	}, ebiten.FilterDefault)
+	})
 
-	canvasImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterDefault)
 	canvasImage.Fill(color.White)
 }
 
@@ -63,7 +62,7 @@ type Game struct {
 	count int
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	drawn := false
 
 	// Paint the brush by mouse dragging
@@ -114,7 +113,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Paint (Ebiten Demo)")
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)

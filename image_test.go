@@ -25,20 +25,15 @@ import (
 	"runtime"
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/examples/resources/images"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
-	t "github.com/hajimehoshi/ebiten/internal/testing"
-	"github.com/hajimehoshi/ebiten/internal/web"
+	. "github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	t "github.com/hajimehoshi/ebiten/v2/internal/testing"
 )
 
 func skipTooSlowTests(t *testing.T) bool {
 	if testing.Short() {
 		t.Skip("skipping test in short mode")
-		return true
-	}
-	if web.IsGopherJS() {
-		t.Skip("too slow on GopherJS")
 		return true
 	}
 	if runtime.GOOS == "js" {
@@ -59,10 +54,7 @@ func openEbitenImage() (*Image, image.Image, error) {
 		return nil, nil, err
 	}
 
-	eimg, err := NewImageFromImage(img, FilterNearest)
-	if err != nil {
-		return nil, nil, err
-	}
+	eimg := NewImageFromImage(img)
 	return eimg, img, nil
 }
 
@@ -123,69 +115,22 @@ func TestImageComposition(t *testing.T) {
 
 	w, h := img1.Bounds().Size().X, img1.Bounds().Size().Y
 
-	img2, err := NewImage(w, h, FilterNearest)
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
+	img2 := NewImage(w, h)
+	img3 := NewImage(w, h)
 
-	img3, err := NewImage(w, h, FilterNearest)
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
+	img2.Fill(img2Color)
+	img3.Fill(img3Color)
+	img_12_3 := NewImage(w, h)
+	img2.DrawImage(img1, nil)
+	img3.DrawImage(img2, nil)
+	img_12_3.DrawImage(img3, nil)
 
-	if err := img2.Fill(img2Color); err != nil {
-		t.Fatal(err)
-		return
-	}
-	if err := img3.Fill(img3Color); err != nil {
-		t.Fatal(err)
-		return
-	}
-	img_12_3, err := NewImage(w, h, FilterNearest)
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
-	if err := img2.DrawImage(img1, nil); err != nil {
-		t.Fatal(err)
-		return
-	}
-	if err := img3.DrawImage(img2, nil); err != nil {
-		t.Fatal(err)
-		return
-	}
-	if err := img_12_3.DrawImage(img3, nil); err != nil {
-		t.Fatal(err)
-		return
-	}
-
-	if err := img2.Fill(img2Color); err != nil {
-		t.Fatal(err)
-		return
-	}
-	if err := img3.Fill(img3Color); err != nil {
-		t.Fatal(err)
-		return
-	}
-	img_1_23, err := NewImage(w, h, FilterNearest)
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
-	if err := img3.DrawImage(img2, nil); err != nil {
-		t.Fatal(err)
-		return
-	}
-	if err := img3.DrawImage(img1, nil); err != nil {
-		t.Fatal(err)
-		return
-	}
-	if err := img_1_23.DrawImage(img3, nil); err != nil {
-		t.Fatal(err)
-		return
-	}
+	img2.Fill(img2Color)
+	img3.Fill(img3Color)
+	img_1_23 := NewImage(w, h)
+	img3.DrawImage(img2, nil)
+	img3.DrawImage(img1, nil)
+	img_1_23.DrawImage(img3, nil)
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
@@ -227,18 +172,11 @@ func TestImageScale(t *testing.T) {
 			return
 		}
 		w, h := img0.Size()
-		img1, err := NewImage(w*scale, h*scale, FilterNearest)
-		if err != nil {
-			t.Fatal(err)
-			return
-		}
+		img1 := NewImage(w*scale, h*scale)
 		op := &DrawImageOptions{}
 		op.GeoM.Scale(float64(scale), float64(scale))
 
-		if err := img1.DrawImage(img0, op); err != nil {
-			t.Fatal(err)
-			return
-		}
+		img1.DrawImage(img0, op)
 
 		for j := 0; j < h*scale; j++ {
 			for i := 0; i < w*scale; i++ {
@@ -259,18 +197,11 @@ func TestImage90DegreeRotate(t *testing.T) {
 		return
 	}
 	w, h := img0.Size()
-	img1, err := NewImage(h, w, FilterNearest)
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
+	img1 := NewImage(h, w)
 	op := &DrawImageOptions{}
 	op.GeoM.Rotate(math.Pi / 2)
 	op.GeoM.Translate(float64(h), 0)
-	if err := img1.DrawImage(img0, op); err != nil {
-		t.Fatal(err)
-		return
-	}
+	img1.DrawImage(img0, op)
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
@@ -290,18 +221,11 @@ func TestImageDotByDotInversion(t *testing.T) {
 		return
 	}
 	w, h := img0.Size()
-	img1, err := NewImage(w, h, FilterNearest)
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
+	img1 := NewImage(w, h)
 	op := &DrawImageOptions{}
 	op.GeoM.Rotate(math.Pi)
 	op.GeoM.Translate(float64(w), float64(h))
-	if err := img1.DrawImage(img0, op); err != nil {
-		t.Fatal(err)
-		return
-	}
+	img1.DrawImage(img0, op)
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
@@ -316,7 +240,7 @@ func TestImageDotByDotInversion(t *testing.T) {
 
 func TestImageReplacePixels(t *testing.T) {
 	// Create a dummy image so that the shared texture is used and origImg's position is shfited.
-	dummyImg, _ := NewImageFromImage(image.NewRGBA(image.Rect(0, 0, 16, 16)), FilterDefault)
+	dummyImg := NewImageFromImage(image.NewRGBA(image.Rect(0, 0, 16, 16)))
 	defer dummyImg.Dispose()
 
 	_, origImg, err := openEbitenImage()
@@ -329,16 +253,9 @@ func TestImageReplacePixels(t *testing.T) {
 	draw.Draw(img, img.Bounds(), origImg, image.ZP, draw.Src)
 
 	size := img.Bounds().Size()
-	img0, err := NewImage(size.X, size.Y, FilterNearest)
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
+	img0 := NewImage(size.X, size.Y)
 
-	if err := img0.ReplacePixels(img.Pix); err != nil {
-		t.Fatal(err)
-		return
-	}
+	img0.ReplacePixels(img.Pix)
 	for j := 0; j < img0.Bounds().Size().Y; j++ {
 		for i := 0; i < img0.Bounds().Size().X; i++ {
 			got := img0.At(i, j)
@@ -353,10 +270,7 @@ func TestImageReplacePixels(t *testing.T) {
 	for i := range p {
 		p[i] = 0x80
 	}
-	if err := img0.ReplacePixels(p); err != nil {
-		t.Fatal(err)
-		return
-	}
+	img0.ReplacePixels(p)
 	// Even if p is changed after calling ReplacePixel, img0 uses the original values.
 	for i := range p {
 		p[i] = 0
@@ -379,25 +293,15 @@ func TestImageReplacePixelsNil(t *testing.T) {
 		}
 	}()
 
-	img, err := NewImage(16, 16, FilterNearest)
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
+	img := NewImage(16, 16)
 	img.Fill(color.White)
 	img.ReplacePixels(nil)
 }
 
 func TestImageDispose(t *testing.T) {
-	img, err := NewImage(16, 16, FilterNearest)
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
+	img := NewImage(16, 16)
 	img.Fill(color.White)
-	if err := img.Dispose(); err != nil {
-		t.Errorf("img.Dipose() returns error: %v", err)
-	}
+	img.Dispose()
 
 	// The color is transparent (color.RGBA{}).
 	// Note that the value's type must be color.RGBA.
@@ -423,21 +327,11 @@ func TestImageCompositeModeLighter(t *testing.T) {
 	}
 
 	w, h := img0.Size()
-	img1, err := NewImage(w, h, FilterNearest)
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
-	if err := img1.Fill(color.RGBA{0x01, 0x02, 0x03, 0x04}); err != nil {
-		t.Fatal(err)
-		return
-	}
+	img1 := NewImage(w, h)
+	img1.Fill(color.RGBA{0x01, 0x02, 0x03, 0x04})
 	op := &DrawImageOptions{}
 	op.CompositeMode = CompositeModeLighter
-	if err := img1.DrawImage(img0, op); err != nil {
-		t.Fatal(err)
-		return
-	}
+	img1.DrawImage(img0, op)
 	for j := 0; j < img1.Bounds().Size().Y; j++ {
 		for i := 0; i < img1.Bounds().Size().X; i++ {
 			got := img1.At(i, j).(color.RGBA)
@@ -459,9 +353,7 @@ func TestNewImageFromEbitenImage(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-	if _, err := NewImageFromImage(img, FilterNearest); err != nil {
-		t.Errorf("NewImageFromImage returns error: %v", err)
-	}
+	_ = NewImageFromImage(img)
 }
 
 func TestNewImageFromSubImage(t *testing.T) {
@@ -472,11 +364,7 @@ func TestNewImageFromSubImage(t *testing.T) {
 	}
 	w, h := img.Bounds().Dx(), img.Bounds().Dy()
 	subImg := img.(*image.NRGBA).SubImage(image.Rect(1, 1, w-1, h-1))
-	eimg, err := NewImageFromImage(subImg, FilterNearest)
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
+	eimg := NewImageFromImage(subImg)
 	sw, sh := subImg.Bounds().Dx(), subImg.Bounds().Dy()
 	w2, h2 := eimg.Size()
 	if w2 != sw {
@@ -506,16 +394,9 @@ func (c *mutableRGBA) RGBA() (r, g, b, a uint32) {
 
 func TestImageFill(t *testing.T) {
 	w, h := 10, 10
-	img, err := NewImage(w, h, FilterNearest)
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
+	img := NewImage(w, h)
 	clr := &mutableRGBA{0x80, 0x80, 0x80, 0x80}
-	if err := img.Fill(clr); err != nil {
-		t.Fatal(err)
-		return
-	}
+	img.Fill(clr)
 	clr.r = 0
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
@@ -531,11 +412,7 @@ func TestImageFill(t *testing.T) {
 // Issue #740
 func TestImageClear(t *testing.T) {
 	const w, h = 128, 256
-	img, err := NewImage(w, h, FilterNearest)
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
+	img := NewImage(w, h)
 	img.Fill(color.White)
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
@@ -575,7 +452,7 @@ func TestImageEdge(t *testing.T) {
 		img1Width  = 32
 		img1Height = 32
 	)
-	img0, _ := NewImage(img0Width, img0Height, FilterNearest)
+	img0 := NewImage(img0Width, img0Height)
 	pixels := make([]uint8, 4*img0Width*img0Height)
 	for j := 0; j < img0Height; j++ {
 		for i := 0; i < img0Width; i++ {
@@ -587,7 +464,7 @@ func TestImageEdge(t *testing.T) {
 		}
 	}
 	img0.ReplacePixels(pixels)
-	img1, _ := NewImage(img1Width, img1Height, FilterDefault)
+	img1 := NewImage(img1Width, img1Height)
 	red := color.RGBA{0xff, 0, 0, 0xff}
 	transparent := color.RGBA{0, 0, 0, 0}
 
@@ -707,8 +584,8 @@ func TestImageTooManyFill(t *testing.T) {
 		return uint8((17*index + 0x40) % 256)
 	}
 
-	src, _ := NewImage(1, 1, FilterNearest)
-	dst, _ := NewImage(width, 1, FilterNearest)
+	src := NewImage(1, 1)
+	dst := NewImage(width, 1)
 	for i := 0; i < width; i++ {
 		c := indexToColor(i)
 		src.Fill(color.RGBA{c, c, c, 0xff})
@@ -728,8 +605,8 @@ func TestImageTooManyFill(t *testing.T) {
 }
 
 func BenchmarkDrawImage(b *testing.B) {
-	img0, _ := NewImage(16, 16, FilterNearest)
-	img1, _ := NewImage(16, 16, FilterNearest)
+	img0 := NewImage(16, 16)
+	img1 := NewImage(16, 16)
 	op := &DrawImageOptions{}
 	for i := 0; i < b.N; i++ {
 		img0.DrawImage(img1, op)
@@ -737,7 +614,7 @@ func BenchmarkDrawImage(b *testing.B) {
 }
 
 func TestImageLinearGradiation(t *testing.T) {
-	img0, _ := NewImage(2, 2, FilterNearest)
+	img0 := NewImage(2, 2)
 	img0.ReplacePixels([]byte{
 		0xff, 0x00, 0x00, 0xff,
 		0x00, 0xff, 0x00, 0xff,
@@ -746,7 +623,7 @@ func TestImageLinearGradiation(t *testing.T) {
 	})
 
 	const w, h = 32, 32
-	img1, _ := NewImage(w, h, FilterNearest)
+	img1 := NewImage(w, h)
 	op := &DrawImageOptions{}
 	op.GeoM.Scale(w, h)
 	op.GeoM.Translate(-w/4, -h/4)
@@ -764,8 +641,8 @@ func TestImageLinearGradiation(t *testing.T) {
 }
 
 func TestImageOutside(t *testing.T) {
-	src, _ := NewImage(5, 10, FilterNearest) // internal texture size is 8x16.
-	dst, _ := NewImage(4, 4, FilterNearest)
+	src := NewImage(5, 10) // internal texture size is 8x16.
+	dst := NewImage(4, 4)
 	src.Fill(color.RGBA{0xff, 0, 0, 0xff})
 
 	cases := []struct {
@@ -806,9 +683,9 @@ func TestImageOutside(t *testing.T) {
 }
 
 func TestImageOutsideUpperLeft(t *testing.T) {
-	src, _ := NewImage(4, 4, FilterNearest)
-	dst1, _ := NewImage(16, 16, FilterNearest)
-	dst2, _ := NewImage(16, 16, FilterNearest)
+	src := NewImage(4, 4)
+	dst1 := NewImage(16, 16)
+	dst2 := NewImage(16, 16)
 	src.Fill(color.RGBA{0xff, 0, 0, 0xff})
 
 	op := &DrawImageOptions{}
@@ -816,9 +693,6 @@ func TestImageOutsideUpperLeft(t *testing.T) {
 	dst1.DrawImage(src.SubImage(image.Rect(-4, -4, 8, 8)).(*Image), op)
 
 	op = &DrawImageOptions{}
-	// The outside part of the source rect is just ignored.
-	// This behavior was changed as of 1.9.0-alpha.
-	// op.GeoM.Translate(4, 4)
 	op.GeoM.Rotate(math.Pi / 4)
 	dst2.DrawImage(src, op)
 
@@ -838,7 +712,7 @@ func TestImageSize(t *testing.T) {
 		w = 17
 		h = 31
 	)
-	img, _ := NewImage(w, h, FilterDefault)
+	img := NewImage(w, h)
 	gotW, gotH := img.Size()
 	if gotW != w {
 		t.Errorf("got: %d, want: %d", gotW, w)
@@ -849,8 +723,8 @@ func TestImageSize(t *testing.T) {
 }
 
 func TestImageSize1(t *testing.T) {
-	src, _ := NewImage(1, 1, FilterNearest)
-	dst, _ := NewImage(1, 1, FilterNearest)
+	src := NewImage(1, 1)
+	dst := NewImage(1, 1)
 	src.Fill(color.White)
 	dst.DrawImage(src, nil)
 	got := src.At(0, 0).(color.RGBA)
@@ -862,8 +736,8 @@ func TestImageSize1(t *testing.T) {
 
 // TODO: Enable this test again. This test fails after #1217 is fixed.
 func Skip_TestImageSize4096(t *testing.T) {
-	src, _ := NewImage(4096, 4096, FilterNearest)
-	dst, _ := NewImage(4096, 4096, FilterNearest)
+	src := NewImage(4096, 4096)
+	dst := NewImage(4096, 4096)
 	pix := make([]byte, 4096*4096*4)
 	for i := 0; i < 4096; i++ {
 		j := 4095
@@ -908,7 +782,7 @@ func TestImageCopy(t *testing.T) {
 		}
 	}()
 
-	img0, _ := NewImage(256, 256, FilterDefault)
+	img0 := NewImage(256, 256)
 	img1 := *img0
 	img1.Fill(color.Transparent)
 }
@@ -921,13 +795,13 @@ func TestImageStretch(t *testing.T) {
 
 	const w = 16
 
-	dst, _ := NewImage(w, 4096, FilterDefault)
+	dst := NewImage(w, 4096)
 loop:
 	for h := 1; h <= 32; h++ {
-		src, _ := NewImage(w, h, FilterDefault)
+		src := NewImage(w+2, h+2)
 
-		pix := make([]byte, 4*w*h)
-		for i := 0; i < w*h; i++ {
+		pix := make([]byte, 4*(w+2)*(h+2))
+		for i := 0; i < (w+2)*(h+2); i++ {
 			pix[4*i] = 0xff
 			pix[4*i+3] = 0xff
 		}
@@ -938,7 +812,7 @@ loop:
 			dst.Clear()
 			op := &DrawImageOptions{}
 			op.GeoM.Scale(1, float64(i)/float64(h))
-			dst.DrawImage(src, op)
+			dst.DrawImage(src.SubImage(image.Rect(1, 1, w+1, h+1)).(*Image), op)
 			for j := -1; j <= 1; j++ {
 				if i+j < 0 {
 					continue
@@ -971,9 +845,9 @@ func TestImageSprites(t *testing.T) {
 		height = 512
 	)
 
-	src, _ := NewImage(4, 4, FilterNearest)
+	src := NewImage(4, 4)
 	src.Fill(color.RGBA{0xff, 0xff, 0xff, 0xff})
-	dst, _ := NewImage(width, height, FilterNearest)
+	dst := NewImage(width, height)
 	for j := 0; j < height/4; j++ {
 		for i := 0; i < width/4; i++ {
 			op := &DrawImageOptions{}
@@ -1002,26 +876,26 @@ func Disabled_TestImageMipmap(t *testing.T) {
 	}
 	w, h := src.Size()
 
-	l1, _ := NewImage(w/2, h/2, FilterDefault)
+	l1 := NewImage(w/2, h/2)
 	op := &DrawImageOptions{}
 	op.GeoM.Scale(1/2.0, 1/2.0)
 	op.Filter = FilterLinear
 	l1.DrawImage(src, op)
 
 	l1w, l1h := l1.Size()
-	l2, _ := NewImage(l1w/2, l1h/2, FilterDefault)
+	l2 := NewImage(l1w/2, l1h/2)
 	op = &DrawImageOptions{}
 	op.GeoM.Scale(1/2.0, 1/2.0)
 	op.Filter = FilterLinear
 	l2.DrawImage(l1, op)
 
-	gotDst, _ := NewImage(w, h, FilterDefault)
+	gotDst := NewImage(w, h)
 	op = &DrawImageOptions{}
 	op.GeoM.Scale(1/5.0, 1/5.0)
 	op.Filter = FilterLinear
 	gotDst.DrawImage(src, op)
 
-	wantDst, _ := NewImage(w, h, FilterDefault)
+	wantDst := NewImage(w, h)
 	op = &DrawImageOptions{}
 	op.GeoM.Scale(4.0/5.0, 4.0/5.0)
 	op.Filter = FilterLinear
@@ -1047,27 +921,27 @@ func Disabled_TestImageMipmapNegativeDet(t *testing.T) {
 	}
 	w, h := src.Size()
 
-	l1, _ := NewImage(w/2, h/2, FilterDefault)
+	l1 := NewImage(w/2, h/2)
 	op := &DrawImageOptions{}
 	op.GeoM.Scale(1/2.0, 1/2.0)
 	op.Filter = FilterLinear
 	l1.DrawImage(src, op)
 
 	l1w, l1h := l1.Size()
-	l2, _ := NewImage(l1w/2, l1h/2, FilterDefault)
+	l2 := NewImage(l1w/2, l1h/2)
 	op = &DrawImageOptions{}
 	op.GeoM.Scale(1/2.0, 1/2.0)
 	op.Filter = FilterLinear
 	l2.DrawImage(l1, op)
 
-	gotDst, _ := NewImage(w, h, FilterDefault)
+	gotDst := NewImage(w, h)
 	op = &DrawImageOptions{}
 	op.GeoM.Scale(-1/5.0, -1/5.0)
 	op.GeoM.Translate(float64(w), float64(h))
 	op.Filter = FilterLinear
 	gotDst.DrawImage(src, op)
 
-	wantDst, _ := NewImage(w, h, FilterDefault)
+	wantDst := NewImage(w, h)
 	op = &DrawImageOptions{}
 	op.GeoM.Scale(-4.0/5.0, -4.0/5.0)
 	op.GeoM.Translate(float64(w), float64(h))
@@ -1095,8 +969,8 @@ func Disabled_TestImageMipmapNegativeDet(t *testing.T) {
 
 // Issue #710
 func TestImageMipmapColor(t *testing.T) {
-	img0, _ := NewImage(256, 256, FilterDefault)
-	img1, _ := NewImage(128, 128, FilterDefault)
+	img0 := NewImage(256, 256)
+	img1 := NewImage(128, 128)
 	img1.Fill(color.White)
 
 	for i := 0; i < 8; i++ {
@@ -1125,9 +999,9 @@ func TestImageMipmapColor(t *testing.T) {
 
 // Issue #725
 func TestImageMiamapAndDrawTriangle(t *testing.T) {
-	img0, _ := NewImage(32, 32, FilterDefault)
-	img1, _ := NewImage(128, 128, FilterDefault)
-	img2, _ := NewImage(128, 128, FilterDefault)
+	img0 := NewImage(32, 32)
+	img1 := NewImage(128, 128)
+	img2 := NewImage(128, 128)
 
 	// Fill img1 red and create img1's mipmap
 	img1.Fill(color.RGBA{0xff, 0, 0, 0xff})
@@ -1201,7 +1075,7 @@ func TestImageMiamapAndDrawTriangle(t *testing.T) {
 }
 
 func TestImageSubImageAt(t *testing.T) {
-	img, _ := NewImage(16, 16, FilterDefault)
+	img := NewImage(16, 16)
 	img.Fill(color.RGBA{0xff, 0, 0, 0xff})
 
 	got := img.SubImage(image.Rect(1, 1, 16, 16)).At(0, 0).(color.RGBA)
@@ -1218,7 +1092,7 @@ func TestImageSubImageAt(t *testing.T) {
 }
 
 func TestImageSubImageSize(t *testing.T) {
-	img, _ := NewImage(16, 16, FilterDefault)
+	img := NewImage(16, 16)
 	img.Fill(color.RGBA{0xff, 0, 0, 0xff})
 
 	got, _ := img.SubImage(image.Rect(1, 1, 16, 16)).(*Image).Size()
@@ -1230,8 +1104,8 @@ func TestImageSubImageSize(t *testing.T) {
 
 func TestImageDrawImmediately(t *testing.T) {
 	const w, h = 16, 16
-	img0, _ := NewImage(w, h, FilterDefault)
-	img1, _ := NewImage(w, h, FilterDefault)
+	img0 := NewImage(w, h)
+	img1 := NewImage(w, h)
 	// Do not manipulate img0 here.
 
 	img0.Fill(color.RGBA{0xff, 0, 0, 0xff})
@@ -1262,8 +1136,8 @@ func TestImageDrawImmediately(t *testing.T) {
 func TestImageLinearFilterGlitch(t *testing.T) {
 	const w, h = 200, 12
 	const scale = 1.2
-	src, _ := NewImage(w, h, FilterDefault)
-	dst, _ := NewImage(int(math.Floor(w*scale)), h, FilterDefault)
+	src := NewImage(w, h)
+	dst := NewImage(int(math.Floor(w*scale)), h)
 
 	pix := make([]byte, 4*w*h)
 	for j := 0; j < h; j++ {
@@ -1311,8 +1185,8 @@ func TestImageLinearFilterGlitch(t *testing.T) {
 // Issue #1212
 func TestImageLinearFilterGlitch2(t *testing.T) {
 	const w, h = 100, 100
-	src, _ := NewImage(w, h, FilterDefault)
-	dst, _ := NewImage(w, h, FilterDefault)
+	src := NewImage(w, h)
+	dst := NewImage(w, h)
 
 	idx := 0
 	pix := make([]byte, 4*w*h)
@@ -1356,8 +1230,8 @@ func TestImageLinearFilterGlitch2(t *testing.T) {
 
 func TestImageAddressRepeat(t *testing.T) {
 	const w, h = 16, 16
-	src, _ := NewImage(w, h, FilterDefault)
-	dst, _ := NewImage(w, h, FilterDefault)
+	src := NewImage(w, h)
+	dst := NewImage(w, h)
 	pix := make([]byte, 4*w*h)
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
@@ -1437,7 +1311,7 @@ func TestImageAddressRepeat(t *testing.T) {
 
 func TestImageReplacePixelsAfterClear(t *testing.T) {
 	const w, h = 256, 256
-	img, _ := NewImage(w, h, FilterDefault)
+	img := NewImage(w, h)
 	img.ReplacePixels(make([]byte, 4*w*h))
 	// Clear used to call DrawImage to clear the image, which was the cause of crash. It is because after
 	// DrawImage is called, ReplacePixels for a region is forbidden.
@@ -1455,7 +1329,7 @@ func TestImageSet(t *testing.T) {
 	}
 
 	const w, h = 16, 16
-	img, _ := NewImage(w, h, FilterDefault)
+	img := NewImage(w, h)
 	colors := map[Pt]color.RGBA{
 		{1, 2}:   {3, 4, 5, 6},
 		{7, 8}:   {9, 10, 11, 12},
@@ -1487,8 +1361,8 @@ func TestImageSetAndDraw(t *testing.T) {
 	}
 
 	const w, h = 16, 16
-	src, _ := NewImage(w, h, FilterDefault)
-	dst, _ := NewImage(w, h, FilterDefault)
+	src := NewImage(w, h)
+	dst := NewImage(w, h)
 	colors := map[Pt]color.RGBA{
 		{1, 2}:   {3, 4, 5, 6},
 		{7, 8}:   {9, 10, 11, 12},
@@ -1546,10 +1420,10 @@ func TestImageSetAndDraw(t *testing.T) {
 
 func TestImageAlphaOnBlack(t *testing.T) {
 	const w, h = 16, 16
-	src0, _ := NewImage(w, h, FilterDefault)
-	src1, _ := NewImage(w, h, FilterDefault)
-	dst0, _ := NewImage(w, h, FilterDefault)
-	dst1, _ := NewImage(w, h, FilterDefault)
+	src0 := NewImage(w, h)
+	src1 := NewImage(w, h)
+	dst0 := NewImage(w, h)
+	dst1 := NewImage(w, h)
 
 	pix0 := make([]byte, 4*w*h)
 	for j := 0; j < h; j++ {
@@ -1611,8 +1485,8 @@ func TestImageAlphaOnBlack(t *testing.T) {
 
 func TestImageDrawTrianglesWithSubImage(t *testing.T) {
 	const w, h = 16, 16
-	src, _ := NewImage(w, h, FilterDefault)
-	dst, _ := NewImage(w, h, FilterDefault)
+	src := NewImage(w, h)
+	dst := NewImage(w, h)
 
 	pix := make([]byte, 4*w*h)
 	for j := 0; j < h; j++ {
@@ -1676,6 +1550,7 @@ func TestImageDrawTrianglesWithSubImage(t *testing.T) {
 	}
 	is := []uint16{0, 1, 2, 1, 2, 3}
 	op := &DrawTrianglesOptions{}
+	op.Address = AddressClampToZero
 	dst.DrawTriangles(vs, is, src.SubImage(image.Rect(4, 4, 8, 8)).(*Image), op)
 
 	for j := 0; j < h; j++ {
@@ -1694,7 +1569,7 @@ func TestImageDrawTrianglesWithSubImage(t *testing.T) {
 
 // Issue #823
 func TestImageAtAfterDisposingSubImage(t *testing.T) {
-	img, _ := NewImage(16, 16, FilterDefault)
+	img := NewImage(16, 16)
 	img.Set(0, 0, color.White)
 	img.SubImage(image.Rect(0, 0, 16, 16))
 	runtime.GC()
@@ -1714,7 +1589,7 @@ func TestImageAtAfterDisposingSubImage(t *testing.T) {
 }
 
 func TestImageSubImageSubImage(t *testing.T) {
-	img, _ := NewImage(16, 16, FilterDefault)
+	img := NewImage(16, 16)
 	img.Fill(color.White)
 	sub0 := img.SubImage(image.Rect(0, 0, 12, 12)).(*Image)
 	sub1 := sub0.SubImage(image.Rect(4, 4, 16, 16)).(*Image)
@@ -1751,8 +1626,8 @@ func TestImageSubImageSubImage(t *testing.T) {
 // Issue #839
 func TestImageTooSmallMipmap(t *testing.T) {
 	const w, h = 16, 16
-	src, _ := NewImage(w, h, FilterDefault)
-	dst, _ := NewImage(w, h, FilterDefault)
+	src := NewImage(w, h)
+	dst := NewImage(w, h)
 
 	src.Fill(color.White)
 	op := &DrawImageOptions{}
@@ -1768,8 +1643,8 @@ func TestImageTooSmallMipmap(t *testing.T) {
 
 func TestImageZeroSizedMipmap(t *testing.T) {
 	const w, h = 16, 16
-	src, _ := NewImage(w, h, FilterDefault)
-	dst, _ := NewImage(w, h, FilterDefault)
+	src := NewImage(w, h)
+	dst := NewImage(w, h)
 
 	op := &DrawImageOptions{}
 	op.Filter = FilterLinear
@@ -1783,8 +1658,8 @@ func TestImageFillingAndEdges(t *testing.T) {
 		dstw, dsth = 256, 16
 	)
 
-	src, _ := NewImage(srcw, srch, FilterDefault)
-	dst, _ := NewImage(dstw, dsth, FilterDefault)
+	src := NewImage(srcw, srch)
+	dst := NewImage(dstw, dsth)
 
 	src.Fill(color.White)
 	dst.Fill(color.Black)
@@ -1810,8 +1685,8 @@ func TestImageFillingAndEdges(t *testing.T) {
 
 func TestImageDrawTrianglesAndMutateArgs(t *testing.T) {
 	const w, h = 16, 16
-	dst, _ := NewImage(w, h, FilterDefault)
-	src, _ := NewImage(w, h, FilterDefault)
+	dst := NewImage(w, h)
+	src := NewImage(w, h)
 	clr := color.RGBA{0xff, 0, 0, 0xff}
 	src.Fill(clr)
 
@@ -1875,7 +1750,7 @@ func TestImageDrawTrianglesAndMutateArgs(t *testing.T) {
 }
 
 func TestImageReplacePixelsOnSubImage(t *testing.T) {
-	dst, _ := NewImage(17, 31, FilterDefault)
+	dst := NewImage(17, 31)
 	dst.Fill(color.RGBA{0xff, 0, 0, 0xff})
 
 	pix0 := make([]byte, 4*5*3)
@@ -1926,9 +1801,9 @@ func TestImageReplacePixelsOnSubImage(t *testing.T) {
 
 func TestImageDrawTrianglesWithColorM(t *testing.T) {
 	const w, h = 16, 16
-	dst0, _ := NewImage(w, h, FilterDefault)
-	dst1, _ := NewImage(w, h, FilterDefault)
-	src, _ := NewImage(w, h, FilterDefault)
+	dst0 := NewImage(w, h)
+	dst1 := NewImage(w, h)
+	src := NewImage(w, h)
 	src.Fill(color.White)
 
 	vs0 := []Vertex{
@@ -2035,7 +1910,7 @@ func TestImageDrawTrianglesWithColorM(t *testing.T) {
 
 // Issue #1137
 func TestImageDrawOver(t *testing.T) {
-	dst, _ := NewImage(320, 240, FilterDefault)
+	dst := NewImage(320, 240)
 	src := image.NewUniform(color.RGBA{0xff, 0, 0, 0xff})
 	// This must not cause infinite-loop.
 	draw.Draw(dst, dst.Bounds(), src, image.ZP, draw.Over)
@@ -2057,8 +1932,8 @@ func TestImageDrawDisposedImage(t *testing.T) {
 		}
 	}()
 
-	dst, _ := NewImage(16, 16, FilterNearest)
-	src, _ := NewImage(16, 16, FilterNearest)
+	dst := NewImage(16, 16)
+	src := NewImage(16, 16)
 	src.Dispose()
 	dst.DrawImage(src, nil)
 }
@@ -2070,8 +1945,8 @@ func TestImageDrawTrianglesDisposedImage(t *testing.T) {
 		}
 	}()
 
-	dst, _ := NewImage(16, 16, FilterNearest)
-	src, _ := NewImage(16, 16, FilterNearest)
+	dst := NewImage(16, 16)
+	src := NewImage(16, 16)
 	src.Dispose()
 	vs := make([]Vertex, 4)
 	is := []uint16{0, 1, 2, 1, 2, 3}
@@ -2080,7 +1955,7 @@ func TestImageDrawTrianglesDisposedImage(t *testing.T) {
 
 // #1137
 func BenchmarkImageDrawOver(b *testing.B) {
-	dst, _ := NewImage(16, 16, FilterDefault)
+	dst := NewImage(16, 16)
 	src := image.NewUniform(color.Black)
 	for n := 0; n < b.N; n++ {
 		draw.Draw(dst, dst.Bounds(), src, image.ZP, draw.Over)
@@ -2095,7 +1970,7 @@ func TestImageFloatTranslate(t *testing.T) {
 		s := s
 		t.Run(fmt.Sprintf("scale%d", s), func(t *testing.T) {
 			check := func(src *Image) {
-				dst, _ := NewImage(w*(s+1), h*(s+1), FilterDefault)
+				dst := NewImage(w*(s+1), h*(s+1))
 				dst.Fill(color.RGBA{0xff, 0, 0, 0xff})
 
 				op := &DrawImageOptions{}
@@ -2119,7 +1994,7 @@ func TestImageFloatTranslate(t *testing.T) {
 			}
 
 			t.Run("image", func(t *testing.T) {
-				src, _ := NewImage(w, h, FilterDefault)
+				src := NewImage(w, h)
 				pix := make([]byte, 4*w*h)
 				for j := 0; j < h; j++ {
 					for i := 0; i < w; i++ {
@@ -2132,7 +2007,7 @@ func TestImageFloatTranslate(t *testing.T) {
 			})
 
 			t.Run("subimage", func(t *testing.T) {
-				src, _ := NewImage(w*s, h*s, FilterDefault)
+				src := NewImage(w*s, h*s)
 				pix := make([]byte, 4*(w*s)*(h*s))
 				for j := 0; j < h*s; j++ {
 					for i := 0; i < w*s; i++ {
@@ -2150,8 +2025,8 @@ func TestImageFloatTranslate(t *testing.T) {
 // Issue #1213
 func TestImageColorMCopy(t *testing.T) {
 	const w, h = 16, 16
-	dst, _ := NewImage(w, h, FilterDefault)
-	src, _ := NewImage(w, h, FilterDefault)
+	dst := NewImage(w, h)
+	src := NewImage(w, h)
 
 	for k := 0; k < 256; k++ {
 		op := &DrawImageOptions{}
@@ -2174,8 +2049,8 @@ func TestImageColorMCopy(t *testing.T) {
 // TODO: Do we have to guarantee this behavior? See #1222
 func TestImageReplacePixelsAndModifyPixels(t *testing.T) {
 	const w, h = 16, 16
-	dst, _ := NewImage(w, h, FilterDefault)
-	src, _ := NewImage(w, h, FilterDefault)
+	dst := NewImage(w, h)
+	src := NewImage(w, h)
 
 	pix := make([]byte, 4*w*h)
 	for j := 0; j < h; j++ {
@@ -2217,8 +2092,8 @@ func TestImageReplacePixelsAndModifyPixels(t *testing.T) {
 
 func TestImageCompositeModeMultiply(t *testing.T) {
 	const w, h = 16, 16
-	dst, _ := NewImage(w, h, FilterDefault)
-	src, _ := NewImage(w, h, FilterDefault)
+	dst := NewImage(w, h)
+	src := NewImage(w, h)
 
 	dst.Fill(color.RGBA{0x10, 0x20, 0x30, 0x40})
 	src.Fill(color.RGBA{0x50, 0x60, 0x70, 0x80})
@@ -2246,10 +2121,89 @@ func TestImageCompositeModeMultiply(t *testing.T) {
 // Issue #1269
 func TestImageZeroTriangle(t *testing.T) {
 	const w, h = 16, 16
-	dst, _ := NewImage(w, h, FilterDefault)
-	src, _ := NewImage(1, 1, FilterDefault)
+	dst := NewImage(w, h)
+	src := NewImage(1, 1)
 
 	vs := []Vertex{}
 	is := []uint16{}
 	dst.DrawTriangles(vs, is, src, nil)
+}
+
+// Issue #1398
+func TestImageDrawImageTooBigScale(t *testing.T) {
+	dst := NewImage(1, 1)
+	src := NewImage(1, 1)
+
+	op := &DrawImageOptions{}
+	op.GeoM.Scale(1e20, 1e20)
+	dst.DrawImage(src, op)
+}
+
+// Issue #1398
+func TestImageDrawImageTooSmallScale(t *testing.T) {
+	dst := NewImage(1, 1)
+	src := NewImage(1, 1)
+
+	op := &DrawImageOptions{}
+	op.Filter = FilterLinear
+	op.GeoM.Scale(1e-10, 1e-10)
+	dst.DrawImage(src, op)
+}
+
+// Issue #1399
+func TestImageDrawImageCannotAllocateImageForMipmap(t *testing.T) {
+	dst := NewImage(1, 1)
+	src := NewImage(4096, 4096)
+
+	op := &DrawImageOptions{}
+	op.GeoM.Scale(64, 64)
+	dst.DrawImage(src, op)
+	dst.At(0, 0)
+}
+
+func TestImageNewImageWithZeroSize(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("DrawImage must panic but not")
+		}
+	}()
+
+	_ = NewImage(0, 1)
+}
+
+func TestImageNewImageFromImageWithZeroSize(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("DrawImage must panic but not")
+		}
+	}()
+
+	img := image.NewRGBA(image.Rect(0, 0, 0, 1))
+	_ = NewImageFromImage(img)
+}
+
+func TestImageClip(t *testing.T) {
+	const (
+		w = 16
+		h = 16
+	)
+	dst := NewImage(w, h)
+	src := NewImage(w, h)
+
+	dst.Fill(color.RGBA{0xff, 0, 0, 0xff})
+	src.Fill(color.RGBA{0, 0xff, 0, 0xff})
+
+	dst.SubImage(image.Rect(4, 5, 12, 14)).(*Image).DrawImage(src, nil)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{0xff, 0, 0, 0xff}
+			if 4 <= i && i < 12 && 5 <= j && j < 14 {
+				want = color.RGBA{0, 0xff, 0, 0xff}
+			}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
 }
