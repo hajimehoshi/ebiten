@@ -184,7 +184,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Write your game's rendering.
 	bgopts := &ebiten.DrawImageOptions{}
 	g.Offscreen.DrawImage(bgImage, bgopts)
-	i, _ := getPlayerIndex(g.Objects)
+	i := getPlayerIndex(g.Objects)
 	p := g.Objects[i]
 	drawOffsetX := -(p.VX / 640) * 200
 	drawOffsetY := -(p.VY / 480) * 50
