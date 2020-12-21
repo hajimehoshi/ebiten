@@ -25,7 +25,6 @@ import (
 	"math"
 	"math/rand"
 	"time"
-
 	"image/color"
 	_ "image/png"
 
