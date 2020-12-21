@@ -128,7 +128,7 @@ func (g *Game) ebitenSpawner() {
 func (g *Game) ebitenCollisionDetect(o *Object) bool {
 	aw, ah := ebitenImage.Size()
 	gaw, gah := gopherImage.Size()
-	i, _ := getPlayerIndex(g.Objects)
+	i := getPlayerIndex(g.Objects)
 	p := g.Objects[i]
 	if p.X < o.X+aw &&
 		p.X+gaw > o.X &&
