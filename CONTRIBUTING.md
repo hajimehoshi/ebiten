@@ -1,6 +1,6 @@
 # Contributing to Ebiten
 
-Ebiten is an open source project and we would appricate your conributions!
+Ebiten is an open source project and we would appreciate your contributions!
 
 There are some rules for Ebiten contribution.
 
