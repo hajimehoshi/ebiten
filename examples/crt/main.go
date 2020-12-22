@@ -139,6 +139,13 @@ func (g *Game) ebitenCollisionDetect(o *Object) bool {
 	return false
 }
 
+func (o *Object) ApplyFriction() {
+	o.X += int(o.VX)
+	o.VX /= 8
+	o.Y += int(o.VY)
+	o.VY /= 8
+}
+
 // Update proceeds the game state.
 // Update is called every tick (1/60 [s] by default).
 func (g *Game) Update() error {
@@ -148,32 +155,28 @@ func (g *Game) Update() error {
 	for _, obj := range g.Objects {
 		if obj.Hidden {
 			continue
-		} else {
-			if obj.Name == Ebiten {
-				if g.ebitenCollisionDetect(obj) {
-					obj.Hidden = true
-					g.Score++
-				}
-			}
-			if obj.Name == Player {
-				if (obj.Y + obj.H) < 320 {
-					obj.VY += 8
-				}
-				if (obj.Y + obj.H) > 320 {
-					obj.Y = 319 - obj.H
-					obj.VY = 1 //subtle bounce effect
-				}
-				if obj.VX > 0 {
-					obj.Flipped = false
-				} else if obj.VX < 0 {
-					obj.Flipped = true
-				}
-			}
-			obj.X += int(obj.VX)
-			obj.VX /= 8
-			obj.Y += int(obj.VY)
-			obj.VY /= 8
 		}
+		if obj.Name == Ebiten {
+			if g.ebitenCollisionDetect(obj) {
+				obj.Hidden = true
+				g.Score++
+			}
+		}
+		if obj.Name == Player {
+			if (obj.Y + obj.H) < 320 {
+				obj.VY += 8
+			}
+			if (obj.Y + obj.H) > 320 {
+				obj.Y = 319 - obj.H
+				obj.VY = 1 //subtle bounce effect
+			}
+			if obj.VX > 0 {
+				obj.Flipped = false
+			} else if obj.VX < 0 {
+				obj.Flipped = true
+			}
+		}
+		obj.ApplyFriction()
 	}
 	return nil
 }
@@ -190,10 +193,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	drawOffsetY := -(p.VY / 480) * 50
 	for z := 0; z < 3; z++ {
 		for _, obj := range g.Objects {
-			if !obj.Hidden {
-				if obj.Z == z {
-					obj.Draw(g.Offscreen, drawOffsetX, drawOffsetY)
-				}
+			if obj.Hidden {
+				continue
+			}
+			if obj.Z == z {
+				obj.Draw(g.Offscreen, drawOffsetX, drawOffsetY)
 			}
 		}
 	}
