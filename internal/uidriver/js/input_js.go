@@ -417,9 +417,9 @@ func (i *Input) updateForGo2Cpp() {
 	i.touches = map[driver.TouchID]pos{}
 	touchCount := go2cpp.Get("touchCount").Int()
 	for idx := 0; idx < touchCount; idx++ {
-		id := go2cpp.Call("getTouchPositionId", idx)
-		x := go2cpp.Call("getTouchPositionX", idx)
-		y := go2cpp.Call("getTouchPositionY", idx)
+		id := go2cpp.Call("getTouchId", idx)
+		x := go2cpp.Call("getTouchX", idx)
+		y := go2cpp.Call("getTouchY", idx)
 		i.touches[driver.TouchID(id.Int())] = pos{
 			X: x.Int(),
 			Y: y.Int(),
