@@ -425,4 +425,35 @@ func (i *Input) updateForGo2Cpp() {
 			Y: y.Int(),
 		}
 	}
+
+	i.gamepads = map[driver.GamepadID]gamepad{}
+	gamepadCount := go2cpp.Get("gamepadCount").Int()
+	for idx := 0; idx < gamepadCount; idx++ {
+		g := gamepad{}
+
+		// Avoid buggy devices on GLFW (#1173).
+		buttonCount := go2cpp.Call("getGamepadButtonCount", idx).Int()
+		if buttonCount > len(g.buttonPressed) {
+			continue
+		}
+
+		axisCount := go2cpp.Call("getGamepadAxisCount", idx).Int()
+		if axisCount > len(g.axes) {
+			continue
+		}
+
+		id := driver.GamepadID(go2cpp.Call("getGamepadId", idx).Int())
+
+		g.buttonNum = buttonCount
+		for j := 0; j < buttonCount; j++ {
+			g.buttonPressed[j] = go2cpp.Call("isGamepadButtonPressed", idx, j).Bool()
+		}
+
+		g.axisNum = axisCount
+		for j := 0; j < axisCount; j++ {
+			g.axes[j] = go2cpp.Call("getGamepadAxis", idx, j).Float()
+		}
+
+		i.gamepads[id] = g
+	}
 }
