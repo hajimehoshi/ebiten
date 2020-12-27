@@ -60,8 +60,7 @@ type pos struct {
 	Y int
 }
 
-type gamePad struct {
-	valid         bool
+type gamepad struct {
 	name          string
 	axisNum       int
 	axes          [16]float64
@@ -77,7 +76,7 @@ type Input struct {
 	cursorY            int
 	wheelX             float64
 	wheelY             float64
-	gamepads           [16]gamePad
+	gamepads           map[driver.GamepadID]gamepad
 	touches            map[driver.TouchID]pos
 	runeBuffer         []rune
 	ui                 *UserInterface
@@ -113,41 +112,50 @@ func (i *Input) GamepadIDs() []driver.GamepadID {
 	if len(i.gamepads) == 0 {
 		return nil
 	}
+
 	var r []driver.GamepadID
-	for id, g := range i.gamepads {
-		if g.valid {
-			r = append(r, driver.GamepadID(id))
-		}
+	for id := range i.gamepads {
+		r = append(r, id)
 	}
 	return r
 }
 
 func (i *Input) GamepadAxisNum(id driver.GamepadID) int {
-	if len(i.gamepads) <= int(id) {
+	g, ok := i.gamepads[id]
+	if !ok {
 		return 0
 	}
-	return i.gamepads[id].axisNum
+	return g.axisNum
 }
 
 func (i *Input) GamepadAxis(id driver.GamepadID, axis int) float64 {
-	if len(i.gamepads) <= int(id) {
+	g, ok := i.gamepads[id]
+	if !ok {
 		return 0
 	}
-	return i.gamepads[id].axes[axis]
+	if g.axisNum <= axis {
+		return 0
+	}
+	return g.axes[axis]
 }
 
 func (i *Input) GamepadButtonNum(id driver.GamepadID) int {
-	if len(i.gamepads) <= int(id) {
+	g, ok := i.gamepads[id]
+	if !ok {
 		return 0
 	}
-	return i.gamepads[id].buttonNum
+	return g.buttonNum
 }
 
 func (i *Input) IsGamepadButtonPressed(id driver.GamepadID, button driver.GamepadButton) bool {
-	if len(i.gamepads) <= int(id) {
+	g, ok := i.gamepads[id]
+	if !ok {
 		return false
 	}
-	return i.gamepads[id].buttonPressed[button]
+	if g.buttonNum <= int(button) {
+		return false
+	}
+	return g.buttonPressed[button]
 }
 
 func (i *Input) TouchIDs() []driver.TouchID {
@@ -280,41 +288,46 @@ func (i *Input) updateGamepads() {
 	if !nav.Truthy() {
 		return
 	}
+
 	if !nav.Get("getGamepads").Truthy() {
 		return
 	}
+
+	i.gamepads = map[driver.GamepadID]gamepad{}
+
 	gamepads := nav.Call("getGamepads")
-	l := gamepads.Get("length").Int()
-	for id := 0; id < l; id++ {
-		i.gamepads[id].valid = false
-		gamepad := gamepads.Index(id)
-		if !gamepad.Truthy() {
+	l := gamepads.Length()
+	for idx := 0; idx < l; idx++ {
+		gp := gamepads.Index(idx)
+		if !gp.Truthy() {
 			continue
 		}
-		i.gamepads[id].valid = true
-		i.gamepads[id].name = gamepad.Get("id").String()
 
-		axes := gamepad.Get("axes")
+		id := driver.GamepadID(gp.Get("index").Int())
+		g := gamepad{}
+		g.name = gp.Get("id").String()
+
+		axes := gp.Get("axes")
 		axesNum := axes.Get("length").Int()
-		i.gamepads[id].axisNum = axesNum
-		for a := 0; a < len(i.gamepads[id].axes); a++ {
+		g.axisNum = axesNum
+		for a := 0; a < len(g.axes); a++ {
 			if axesNum <= a {
-				i.gamepads[id].axes[a] = 0
-				continue
+				break
 			}
-			i.gamepads[id].axes[a] = axes.Index(a).Float()
+			g.axes[a] = axes.Index(a).Float()
 		}
 
-		buttons := gamepad.Get("buttons")
+		buttons := gp.Get("buttons")
 		buttonsNum := buttons.Get("length").Int()
-		i.gamepads[id].buttonNum = buttonsNum
-		for b := 0; b < len(i.gamepads[id].buttonPressed); b++ {
+		g.buttonNum = buttonsNum
+		for b := 0; b < len(g.buttonPressed); b++ {
 			if buttonsNum <= b {
-				i.gamepads[id].buttonPressed[b] = false
-				continue
+				break
 			}
-			i.gamepads[id].buttonPressed[b] = buttons.Index(b).Get("pressed").Bool()
+			g.buttonPressed[b] = buttons.Index(b).Get("pressed").Bool()
 		}
+
+		i.gamepads[id] = g
 	}
 }
 
@@ -402,8 +415,8 @@ func (i *Input) updateForGo2Cpp() {
 	}
 
 	i.touches = map[driver.TouchID]pos{}
-	maxID := go2cpp.Get("touchCount").Int()
-	for idx := 0; idx < maxID; idx++ {
+	touchCount := go2cpp.Get("touchCount").Int()
+	for idx := 0; idx < touchCount; idx++ {
 		id := go2cpp.Call("getTouchPositionId", idx)
 		x := go2cpp.Call("getTouchPositionX", idx)
 		y := go2cpp.Call("getTouchPositionY", idx)
