@@ -49,38 +49,6 @@ const (
 	GamepadButton29
 	GamepadButton30
 	GamepadButton31
-	GamepadButton32
-	GamepadButton33
-	GamepadButton34
-	GamepadButton35
-	GamepadButton36
-	GamepadButton37
-	GamepadButton38
-	GamepadButton39
-	GamepadButton40
-	GamepadButton41
-	GamepadButton42
-	GamepadButton43
-	GamepadButton44
-	GamepadButton45
-	GamepadButton46
-	GamepadButton47
-	GamepadButton48
-	GamepadButton49
-	GamepadButton50
-	GamepadButton51
-	GamepadButton52
-	GamepadButton53
-	GamepadButton54
-	GamepadButton55
-	GamepadButton56
-	GamepadButton57
-	GamepadButton58
-	GamepadButton59
-	GamepadButton60
-	GamepadButton61
-	GamepadButton62
-	GamepadButton63
 )
 
-const GamepadButtonNum = 64
+const GamepadButtonNum = 32
