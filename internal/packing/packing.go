@@ -217,24 +217,33 @@ func (p *Page) Extend(count int) bool {
 	if p.size >= p.maxSize {
 		return false
 	}
+
 	newSize := p.size
 	for i := 0; i < count; i++ {
 		newSize *= 2
 	}
+
+	if newSize > p.maxSize {
+		return false
+	}
+
 	edgeNodes := []*Node{}
 	abort := errors.New("abort")
 	aborted := false
-	_ = walk(p.root, func(n *Node) error {
-		if n.x+n.width < p.size && n.y+n.height < p.size {
+	if p.root != nil {
+		_ = walk(p.root, func(n *Node) error {
+			if n.x+n.width < p.size && n.y+n.height < p.size {
+				return nil
+			}
+			if n.used {
+				aborted = true
+				return abort
+			}
+			edgeNodes = append(edgeNodes, n)
 			return nil
-		}
-		if n.used {
-			aborted = true
-			return abort
-		}
-		edgeNodes = append(edgeNodes, n)
-		return nil
-	})
+		})
+	}
+
 	if aborted {
 		origRoot := *p.root
 
@@ -306,6 +315,7 @@ func (p *Page) Extend(count int) bool {
 	}
 
 	p.size = newSize
+
 	return true
 }
 
