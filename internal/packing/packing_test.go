@@ -328,3 +328,34 @@ func TestExtend2(t *testing.T) {
 		t.Errorf("p.Alloc(%d, %d) must fail but not", s, s)
 	}
 }
+
+// Issue #1454
+func TestExtendTooMuch(t *testing.T) {
+	p := NewPage(1024, 4096)
+	p.Alloc(1, 1)
+	if got, want := p.Extend(3), false; got != want {
+		t.Errorf("got: %t, want: %t", got, want)
+	}
+}
+
+func TestExtendWithoutAllocation(t *testing.T) {
+	p := NewPage(1024, 4096)
+
+	if got, want := p.Extend(2), true; got != want {
+		t.Errorf("got: %t, want: %t", got, want)
+	}
+
+	p.RollbackExtension()
+	if got, want := p.Size(), 1024; got != want {
+		t.Errorf("p.Size(): got: %d, want: %d", got, want)
+	}
+
+	if got, want := p.Extend(2), true; got != want {
+		t.Errorf("got: %t, want: %t", got, want)
+	}
+
+	p.CommitExtension()
+	if got, want := p.Size(), 4096; got != want {
+		t.Errorf("p.Size(): got: %d, want: %d", got, want)
+	}
+}
