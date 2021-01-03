@@ -165,6 +165,10 @@ func (u *UserInterface) suspended() bool {
 }
 
 func (u *UserInterface) isFocused() bool {
+	if go2cpp.Truthy() {
+		return true
+	}
+
 	if !document.Call("hasFocus").Bool() {
 		return false
 	}
