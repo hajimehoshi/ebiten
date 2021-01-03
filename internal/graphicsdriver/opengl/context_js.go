@@ -590,7 +590,7 @@ func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, he
 
 func (c *context) getBufferSubData(buffer buffer, width, height int) []byte {
 	gl := c.gl
-	gl.Call("bindBuffer", gles.PIXEL_UNPACK_BUFFER, buffer)
+	gl.Call("bindBuffer", gles.PIXEL_UNPACK_BUFFER, js.Value(buffer))
 	l := 4 * width * height
 	arr := jsutil.TemporaryUint8Array(l, nil)
 	if isWebGL2Available {
@@ -598,6 +598,6 @@ func (c *context) getBufferSubData(buffer buffer, width, height int) []byte {
 	} else {
 		gl.Call("getBufferSubData", gles.PIXEL_UNPACK_BUFFER, 0, arr.Call("subarray", 0, l))
 	}
-	gl.Call("bindBuffer", gles.PIXEL_UNPACK_BUFFER, 0)
+	gl.Call("bindBuffer", gles.PIXEL_UNPACK_BUFFER, nil)
 	return jsutil.Uint8ArrayToSlice(arr, l)
 }
