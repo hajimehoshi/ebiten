@@ -85,7 +85,7 @@ const (
 
 var (
 	isWebGL2Available = !forceWebGL1 && (js.Global().Get("WebGL2RenderingContext").Truthy() || js.Global().Get("go2cpp").Truthy())
-	needsRestoring_   = !web.IsMobileBrowser() && !js.Global().Get("go2cpp").Truthy()
+	needsRestoring    = !web.IsMobileBrowser() && !js.Global().Get("go2cpp").Truthy()
 )
 
 type contextImpl struct {
@@ -528,7 +528,7 @@ func (c *context) flush() {
 }
 
 func (c *context) needsRestoring() bool {
-	return needsRestoring_
+	return needsRestoring
 }
 
 func (c *context) canUsePBO() bool {
