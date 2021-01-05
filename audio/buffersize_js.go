@@ -1,4 +1,4 @@
-// Copyright 2018 The Ebiten Authors
+// Copyright 2021 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,14 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !android
-// +build !ios
-// +build !js
-
 package audio
 
+import (
+	"syscall/js"
+)
+
+var isGo2Cpp bool = js.Global().Get("go2cpp").Truthy()
+
 func bufferSize() int {
-	// On most desktop environments, 4096 [bytes] is enough
-	// but there are some known environment that is too short (e.g. Windows on Parallels).
+	// On some devices targetted by go2cpp, 8192 is not enough. Use x2 bytes.
+	if isGo2Cpp {
+		return 16384
+	}
 	return 8192
 }
