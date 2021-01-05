@@ -85,19 +85,11 @@ type glyphImageCacheEntry struct {
 
 var (
 	glyphImageCache = map[font.Face]map[rune]*glyphImageCacheEntry{}
-	emptyGlyphs     = map[font.Face]map[rune]struct{}{}
 )
 
 func getGlyphImage(face font.Face, r rune) *ebiten.Image {
-	if _, ok := emptyGlyphs[face]; !ok {
-		emptyGlyphs[face] = map[rune]struct{}{}
-	}
 	if _, ok := glyphImageCache[face]; !ok {
 		glyphImageCache[face] = map[rune]*glyphImageCacheEntry{}
-	}
-
-	if _, ok := emptyGlyphs[face][r]; ok {
-		return nil
 	}
 
 	if e, ok := glyphImageCache[face][r]; ok {
@@ -108,7 +100,10 @@ func getGlyphImage(face font.Face, r rune) *ebiten.Image {
 	b := getGlyphBounds(face, r)
 	w, h := (b.Max.X - b.Min.X).Ceil(), (b.Max.Y - b.Min.Y).Ceil()
 	if w == 0 || h == 0 {
-		emptyGlyphs[face][r] = struct{}{}
+		glyphImageCache[face][r] = &glyphImageCacheEntry{
+			image: nil,
+			atime: now(),
+		}
 		return nil
 	}
 
