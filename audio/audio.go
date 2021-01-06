@@ -66,7 +66,7 @@ type Context struct {
 	err        error
 	ready      bool
 
-	players map[*playerImpl]struct{}
+	players map[*writerContextPlayerImpl]struct{}
 
 	m         sync.Mutex
 	semaphore chan struct{}
@@ -97,7 +97,7 @@ func NewContext(sampleRate int) *Context {
 	c := &Context{
 		sampleRate: sampleRate,
 		c:          newWriterContext(sampleRate),
-		players:    map[*playerImpl]struct{}{},
+		players:    map[*writerContextPlayerImpl]struct{}{},
 		inited:     make(chan struct{}),
 		semaphore:  make(chan struct{}, 1),
 	}
@@ -158,7 +158,7 @@ func (c *Context) setReady() {
 	c.m.Unlock()
 }
 
-func (c *Context) addPlayer(p *playerImpl) {
+func (c *Context) addPlayer(p *writerContextPlayerImpl) {
 	c.m.Lock()
 	defer c.m.Unlock()
 	c.players[p] = struct{}{}
@@ -166,15 +166,15 @@ func (c *Context) addPlayer(p *playerImpl) {
 	// Check the source duplication
 	srcs := map[io.Reader]struct{}{}
 	for p := range c.players {
-		if _, ok := srcs[p.src]; ok {
+		if _, ok := srcs[p.source()]; ok {
 			c.err = errors.New("audio: a same source is used by multiple Player")
 			return
 		}
-		srcs[p.src] = struct{}{}
+		srcs[p.source()] = struct{}{}
 	}
 }
 
-func (c *Context) removePlayer(p *playerImpl) {
+func (c *Context) removePlayer(p *writerContextPlayerImpl) {
 	c.m.Lock()
 	delete(c.players, p)
 	c.m.Unlock()
@@ -220,23 +220,7 @@ func (c *Context) SampleRate() int {
 // This means that if a Player plays an infinite stream,
 // the object is never GCed unless Close is called.
 type Player struct {
-	p *playerImpl
-}
-
-type playerImpl struct {
-	context          *Context
-	src              io.Reader
-	sampleRate       int
-	playing          bool
-	closedExplicitly bool
-	isLoopActive     bool
-
-	buf     []byte
-	readbuf []byte
-	pos     int64
-	volume  float64
-
-	m sync.Mutex
+	p *writerContextPlayerImpl
 }
 
 // NewPlayer creates a new player with the given stream.
@@ -257,7 +241,7 @@ type playerImpl struct {
 // Closing the source is src owner's responsibility.
 func NewPlayer(context *Context, src io.Reader) (*Player, error) {
 	p := &Player{
-		&playerImpl{
+		&writerContextPlayerImpl{
 			context:    context,
 			src:        src,
 			sampleRate: context.sampleRate,
@@ -311,149 +295,14 @@ func (p *Player) Close() error {
 	return p.p.Close()
 }
 
-func (p *playerImpl) Close() error {
-	p.m.Lock()
-	defer p.m.Unlock()
-
-	p.playing = false
-	if p.closedExplicitly {
-		return fmt.Errorf("audio: the player is already closed")
-	}
-	p.closedExplicitly = true
-	return nil
-}
-
 // Play plays the stream.
 func (p *Player) Play() {
 	p.p.Play()
 }
 
-func (p *playerImpl) Play() {
-	p.m.Lock()
-	defer p.m.Unlock()
-
-	if p.closedExplicitly {
-		p.context.setError(fmt.Errorf("audio: the player is already closed"))
-		return
-	}
-
-	p.playing = true
-	if p.isLoopActive {
-		return
-	}
-
-	// Set p.isLoopActive to true here, not in the loop. This prevents duplicated active loops.
-	p.isLoopActive = true
-	p.context.addPlayer(p)
-
-	go p.loop()
-	return
-}
-
-func (p *playerImpl) loop() {
-	<-p.context.inited
-
-	w := p.context.c.NewPlayer()
-	wclosed := make(chan struct{})
-	defer func() {
-		<-wclosed
-		w.Close()
-	}()
-
-	defer func() {
-		p.m.Lock()
-		p.playing = false
-		p.context.removePlayer(p)
-		p.isLoopActive = false
-		p.m.Unlock()
-	}()
-
-	ch := make(chan []byte)
-	defer close(ch)
-
-	go func() {
-		for buf := range ch {
-			if _, err := w.Write(buf); err != nil {
-				p.context.setError(err)
-				break
-			}
-			p.context.setReady()
-		}
-		close(wclosed)
-	}()
-
-	for {
-		buf, ok := p.read()
-		if !ok {
-			return
-		}
-		ch <- buf
-	}
-}
-
-func (p *playerImpl) read() ([]byte, bool) {
-	p.m.Lock()
-	defer p.m.Unlock()
-
-	if p.context.hasError() {
-		return nil, false
-	}
-
-	if p.closedExplicitly {
-		return nil, false
-	}
-
-	// playing can be false when pausing.
-	if !p.playing {
-		return nil, false
-	}
-
-	const bufSize = 2048
-
-	p.context.semaphore <- struct{}{}
-	defer func() {
-		<-p.context.semaphore
-	}()
-
-	if p.readbuf == nil {
-		p.readbuf = make([]byte, bufSize)
-	}
-	n, err := p.src.Read(p.readbuf[:bufSize-len(p.buf)])
-	if err != nil {
-		if err != io.EOF {
-			p.context.setError(err)
-			return nil, false
-		}
-		if n == 0 {
-			return nil, false
-		}
-	}
-	buf := append(p.buf, p.readbuf[:n]...)
-
-	n2 := len(buf) - len(buf)%bytesPerSample
-	buf, p.buf = buf[:n2], buf[n2:]
-
-	for i := 0; i < len(buf)/2; i++ {
-		v16 := int16(buf[2*i]) | (int16(buf[2*i+1]) << 8)
-		v16 = int16(float64(v16) * p.volume)
-		buf[2*i] = byte(v16)
-		buf[2*i+1] = byte(v16 >> 8)
-	}
-	p.pos += int64(len(buf))
-
-	return buf, true
-}
-
 // IsPlaying returns boolean indicating whether the player is playing.
 func (p *Player) IsPlaying() bool {
 	return p.p.IsPlaying()
-}
-
-func (p *playerImpl) IsPlaying() bool {
-	p.m.Lock()
-	r := p.playing
-	p.m.Unlock()
-	return r
 }
 
 // Rewind rewinds the current position to the start.
@@ -465,13 +314,6 @@ func (p *Player) Rewind() error {
 	return p.p.Rewind()
 }
 
-func (p *playerImpl) Rewind() error {
-	if _, ok := p.src.(io.Seeker); !ok {
-		panic("audio: player to be rewound must be io.Seeker")
-	}
-	return p.Seek(0)
-}
-
 // Seek seeks the position with the given offset.
 //
 // The passed source to NewPlayer must be io.Seeker, or Seek panics.
@@ -481,36 +323,9 @@ func (p *Player) Seek(offset time.Duration) error {
 	return p.p.Seek(offset)
 }
 
-func (p *playerImpl) Seek(offset time.Duration) error {
-	p.m.Lock()
-	defer p.m.Unlock()
-
-	o := int64(offset) * bytesPerSample * int64(p.sampleRate) / int64(time.Second)
-	o = o - (o % bytesPerSample)
-
-	seeker, ok := p.src.(io.Seeker)
-	if !ok {
-		panic("audio: the source must be io.Seeker when seeking")
-	}
-	pos, err := seeker.Seek(o, io.SeekStart)
-	if err != nil {
-		return err
-	}
-
-	p.buf = nil
-	p.pos = pos
-	return nil
-}
-
 // Pause pauses the playing.
 func (p *Player) Pause() {
 	p.p.Pause()
-}
-
-func (p *playerImpl) Pause() {
-	p.m.Lock()
-	p.playing = false
-	p.m.Unlock()
 }
 
 // Current returns the current position in time.
@@ -518,40 +333,15 @@ func (p *Player) Current() time.Duration {
 	return p.p.Current()
 }
 
-func (p *playerImpl) Current() time.Duration {
-	p.m.Lock()
-	sample := p.pos / bytesPerSample
-	p.m.Unlock()
-	return time.Duration(sample) * time.Second / time.Duration(p.sampleRate)
-}
-
 // Volume returns the current volume of this player [0-1].
 func (p *Player) Volume() float64 {
 	return p.p.Volume()
-}
-
-func (p *playerImpl) Volume() float64 {
-	p.m.Lock()
-	v := p.volume
-	p.m.Unlock()
-	return v
 }
 
 // SetVolume sets the volume of this player.
 // volume must be in between 0 and 1. SetVolume panics otherwise.
 func (p *Player) SetVolume(volume float64) {
 	p.p.SetVolume(volume)
-}
-
-func (p *playerImpl) SetVolume(volume float64) {
-	// The condition must be true when volume is NaN.
-	if !(0 <= volume && volume <= 1) {
-		panic("audio: volume must be in between 0 and 1")
-	}
-
-	p.m.Lock()
-	p.volume = volume
-	p.m.Unlock()
 }
 
 type hook interface {
