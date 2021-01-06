@@ -57,6 +57,31 @@ func (s *Stream) Length() int64 {
 	return s.orig.Length()
 }
 
+// DecodeWithSampleRate decodes MP3 source and returns a decoded stream.
+//
+// DecodeWithSampleRate returns error when decoding fails or IO error happens.
+//
+// DecodeWithSampleRate automatically resamples the stream to fit with sampleRate if necessary.
+//
+// A Stream doesn't close src even if src implements io.Closer.
+// Closing the source is src owner's responsibility.
+func DecodeWithSampleRate(sampleRate int, src io.ReadSeeker) (*Stream, error) {
+	d, err := mp3.NewDecoder(src)
+	if err != nil {
+		return nil, err
+	}
+
+	var r *convert.Resampling
+	if d.SampleRate() != sampleRate {
+		r = convert.NewResampling(d, d.Length(), d.SampleRate(), sampleRate)
+	}
+	s := &Stream{
+		orig:       d,
+		resampling: r,
+	}
+	return s, nil
+}
+
 // Decode decodes MP3 source and returns a decoded stream.
 //
 // Decode returns error when decoding fails or IO error happens.
@@ -65,19 +90,8 @@ func (s *Stream) Length() int64 {
 //
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
+//
+// Deprecated: as of v2.1. Use DecodeWithSampleRate instead.
 func Decode(context *audio.Context, src io.ReadSeeker) (*Stream, error) {
-	d, err := mp3.NewDecoder(src)
-	if err != nil {
-		return nil, err
-	}
-
-	var r *convert.Resampling
-	if d.SampleRate() != context.SampleRate() {
-		r = convert.NewResampling(d, d.Length(), d.SampleRate(), context.SampleRate())
-	}
-	s := &Stream{
-		orig:       d,
-		resampling: r,
-	}
-	return s, nil
+	return DecodeWithSampleRate(context.SampleRate(), src)
 }
