@@ -99,9 +99,16 @@ func NewContext(sampleRate int) *Context {
 		panic("audio: context is already created")
 	}
 
+	var np newPlayerImpler
+	if isReaderContextAvailable() {
+		np = newReaderPlayerFactory(sampleRate)
+	} else {
+		np = newWriterPlayerFactory(sampleRate)
+	}
+
 	c := &Context{
 		sampleRate: sampleRate,
-		np:         newWriterPlayerFactory(sampleRate),
+		np:         np,
 		players:    map[playerImpl]struct{}{},
 		inited:     make(chan struct{}),
 		semaphore:  make(chan struct{}, 1),
