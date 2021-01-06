@@ -64,6 +64,24 @@ type writerContextPlayerImpl struct {
 	m sync.Mutex
 }
 
+func newWriterContextPlayerImpl(context *Context, src io.Reader) (*writerContextPlayerImpl, error) {
+	p := &writerContextPlayerImpl{
+		context:    context,
+		src:        src,
+		sampleRate: context.sampleRate,
+		volume:     1,
+	}
+	if seeker, ok := p.src.(io.Seeker); ok {
+		// Get the current position of the source.
+		pos, err := seeker.Seek(0, io.SeekCurrent)
+		if err != nil {
+			return nil, err
+		}
+		p.pos = pos
+	}
+	return p, nil
+}
+
 func (p *writerContextPlayerImpl) Close() error {
 	p.m.Lock()
 	defer p.m.Unlock()

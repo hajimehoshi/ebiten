@@ -66,7 +66,7 @@ type Context struct {
 	err        error
 	ready      bool
 
-	players map[*writerContextPlayerImpl]struct{}
+	players map[playerImpl]struct{}
 
 	m         sync.Mutex
 	semaphore chan struct{}
@@ -97,7 +97,7 @@ func NewContext(sampleRate int) *Context {
 	c := &Context{
 		sampleRate: sampleRate,
 		c:          newWriterContext(sampleRate),
-		players:    map[*writerContextPlayerImpl]struct{}{},
+		players:    map[playerImpl]struct{}{},
 		inited:     make(chan struct{}),
 		semaphore:  make(chan struct{}, 1),
 	}
@@ -158,7 +158,7 @@ func (c *Context) setReady() {
 	c.m.Unlock()
 }
 
-func (c *Context) addPlayer(p *writerContextPlayerImpl) {
+func (c *Context) addPlayer(p playerImpl) {
 	c.m.Lock()
 	defer c.m.Unlock()
 	c.players[p] = struct{}{}
@@ -174,7 +174,7 @@ func (c *Context) addPlayer(p *writerContextPlayerImpl) {
 	}
 }
 
-func (c *Context) removePlayer(p *writerContextPlayerImpl) {
+func (c *Context) removePlayer(p playerImpl) {
 	c.m.Lock()
 	delete(c.players, p)
 	c.m.Unlock()
@@ -220,7 +220,22 @@ func (c *Context) SampleRate() int {
 // This means that if a Player plays an infinite stream,
 // the object is never GCed unless Close is called.
 type Player struct {
-	p *writerContextPlayerImpl
+	p playerImpl
+}
+
+type playerImpl interface {
+	io.Closer
+
+	Play()
+	IsPlaying() bool
+	Pause()
+	Volume() float64
+	SetVolume(volume float64)
+	Current() time.Duration
+	Rewind() error
+	Seek(offset time.Duration) error
+
+	source() io.Reader
 }
 
 // NewPlayer creates a new player with the given stream.
@@ -240,22 +255,13 @@ type Player struct {
 // A Player doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
 func NewPlayer(context *Context, src io.Reader) (*Player, error) {
-	p := &Player{
-		&writerContextPlayerImpl{
-			context:    context,
-			src:        src,
-			sampleRate: context.sampleRate,
-			volume:     1,
-		},
+	pi, err := newWriterContextPlayerImpl(context, src)
+	if err != nil {
+		return nil, err
 	}
-	if seeker, ok := p.p.src.(io.Seeker); ok {
-		// Get the current position of the source.
-		pos, err := seeker.Seek(0, io.SeekCurrent)
-		if err != nil {
-			return nil, err
-		}
-		p.p.pos = pos
-	}
+
+	p := &Player{pi}
+
 	runtime.SetFinalizer(p, (*Player).finalize)
 
 	return p, nil
