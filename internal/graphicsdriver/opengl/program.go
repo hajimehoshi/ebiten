@@ -67,24 +67,24 @@ func (a *arrayBufferLayout) newArrayBuffer(context *context) buffer {
 	return context.newArrayBuffer(a.totalBytes() * graphics.IndicesNum)
 }
 
-// enable binds the array buffer the given program to use the array buffer.
-func (a *arrayBufferLayout) enable(context *context, program program) {
+// enable starts using the array buffer.
+func (a *arrayBufferLayout) enable(context *context) {
 	for i := range a.parts {
-		context.enableVertexAttribArray(program, i)
+		context.enableVertexAttribArray(i)
 	}
 	total := a.totalBytes()
 	offset := 0
 	for i, p := range a.parts {
-		context.vertexAttribPointer(program, i, p.num, total, offset)
+		context.vertexAttribPointer(i, p.num, total, offset)
 		offset += floatSizeInBytes * p.num
 	}
 }
 
 // disable stops using the array buffer.
-func (a *arrayBufferLayout) disable(context *context, program program) {
+func (a *arrayBufferLayout) disable(context *context) {
 	// TODO: Disabling should be done in reversed order?
 	for i := range a.parts {
-		context.disableVertexAttribArray(program, i)
+		context.disableVertexAttribArray(i)
 	}
 }
 
@@ -253,7 +253,7 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 	if !g.state.lastProgram.equal(program) {
 		g.context.useProgram(program)
 		if g.state.lastProgram.equal(zeroProgram) {
-			theArrayBufferLayout.enable(&g.context, program)
+			theArrayBufferLayout.enable(&g.context)
 			g.context.bindArrayBuffer(g.state.arrayBuffer)
 			g.context.bindElementArrayBuffer(g.state.elementArrayBuffer)
 		}

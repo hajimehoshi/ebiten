@@ -21,7 +21,7 @@ import (
 	"github.com/hajimehoshi/oto"
 )
 
-func newContextImpl(sampleRate int, initCh chan struct{}) context {
+func newOtoContext(sampleRate int, initCh chan struct{}) *otoContext {
 	return &otoContext{
 		sampleRate: sampleRate,
 		initCh:     initCh,

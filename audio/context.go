@@ -41,7 +41,7 @@ func newContext(sampleRate int) context {
 		})
 		return nil
 	})
-	return newContextImpl(sampleRate, ch)
+	return newOtoContext(sampleRate, ch)
 }
 
 type hook interface {

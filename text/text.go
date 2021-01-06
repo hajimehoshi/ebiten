@@ -85,73 +85,55 @@ type glyphImageCacheEntry struct {
 
 var (
 	glyphImageCache = map[font.Face]map[rune]*glyphImageCacheEntry{}
-	emptyGlyphs     = map[font.Face]map[rune]struct{}{}
 )
 
-func getGlyphImages(face font.Face, runes []rune) []*ebiten.Image {
-	if _, ok := emptyGlyphs[face]; !ok {
-		emptyGlyphs[face] = map[rune]struct{}{}
-	}
+func getGlyphImage(face font.Face, r rune) *ebiten.Image {
 	if _, ok := glyphImageCache[face]; !ok {
 		glyphImageCache[face] = map[rune]*glyphImageCacheEntry{}
 	}
 
-	imgs := make([]*ebiten.Image, len(runes))
-	glyphBounds := map[rune]fixed.Rectangle26_6{}
-	neededGlyphIndices := map[int]rune{}
-	for i, r := range runes {
-		if _, ok := emptyGlyphs[face][r]; ok {
-			continue
-		}
-
-		if e, ok := glyphImageCache[face][r]; ok {
-			e.atime = now()
-			imgs[i] = e.image
-			continue
-		}
-
-		b := getGlyphBounds(face, r)
-		w, h := (b.Max.X - b.Min.X).Ceil(), (b.Max.Y - b.Min.Y).Ceil()
-		if w == 0 || h == 0 {
-			emptyGlyphs[face][r] = struct{}{}
-			continue
-		}
-
-		glyphBounds[r] = b
-		neededGlyphIndices[i] = r
+	if e, ok := glyphImageCache[face][r]; ok {
+		e.atime = now()
+		return e.image
 	}
 
-	for i, r := range neededGlyphIndices {
-		b := glyphBounds[r]
-		w, h := (b.Max.X - b.Min.X).Ceil(), (b.Max.Y - b.Min.Y).Ceil()
-		if b.Min.X&((1<<6)-1) != 0 {
-			w++
+	b := getGlyphBounds(face, r)
+	w, h := (b.Max.X - b.Min.X).Ceil(), (b.Max.Y - b.Min.Y).Ceil()
+	if w == 0 || h == 0 {
+		glyphImageCache[face][r] = &glyphImageCacheEntry{
+			image: nil,
+			atime: now(),
 		}
-		if b.Min.Y&((1<<6)-1) != 0 {
-			h++
-		}
-		rgba := image.NewRGBA(image.Rect(0, 0, w, h))
-
-		d := font.Drawer{
-			Dst:  rgba,
-			Src:  image.White,
-			Face: face,
-		}
-		x, y := -b.Min.X, -b.Min.Y
-		x, y = fixed.I(x.Ceil()), fixed.I(y.Ceil())
-		d.Dot = fixed.Point26_6{X: x, Y: y}
-		d.DrawString(string(r))
-
-		img := ebiten.NewImageFromImage(rgba)
-		if _, ok := glyphImageCache[face][r]; !ok {
-			glyphImageCache[face][r] = &glyphImageCacheEntry{
-				image: img,
-				atime: now(),
-			}
-		}
-		imgs[i] = img
+		return nil
 	}
-	return imgs
+
+	if b.Min.X&((1<<6)-1) != 0 {
+		w++
+	}
+	if b.Min.Y&((1<<6)-1) != 0 {
+		h++
+	}
+	rgba := image.NewRGBA(image.Rect(0, 0, w, h))
+
+	d := font.Drawer{
+		Dst:  rgba,
+		Src:  image.White,
+		Face: face,
+	}
+	x, y := -b.Min.X, -b.Min.Y
+	x, y = fixed.I(x.Ceil()), fixed.I(y.Ceil())
+	d.Dot = fixed.Point26_6{X: x, Y: y}
+	d.DrawString(string(r))
+
+	img := ebiten.NewImageFromImage(rgba)
+	if _, ok := glyphImageCache[face][r]; !ok {
+		glyphImageCache[face][r] = &glyphImageCacheEntry{
+			image: img,
+			atime: now(),
+		}
+	}
+
+	return img
 }
 
 var textM sync.Mutex
@@ -190,11 +172,9 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 
 	faceHeight := face.Metrics().Height
 
-	runes := []rune(text)
-	glyphImgs := getGlyphImages(face, runes)
 	colorm := colormcache.ColorToColorM(clr)
 
-	for i, r := range runes {
+	for _, r := range text {
 		if prevR >= 0 {
 			fx += face.Kern(prevR, r)
 		}
@@ -205,7 +185,8 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 			continue
 		}
 
-		drawGlyph(dst, face, r, glyphImgs[i], fx, fy, colorm)
+		img := getGlyphImage(face, r)
+		drawGlyph(dst, face, r, img, fx, fy, colorm)
 		fx += glyphAdvance(face, r)
 
 		prevR = r
@@ -254,7 +235,7 @@ func BoundString(face font.Face, text string) image.Rectangle {
 	prevR := rune(-1)
 
 	var bounds fixed.Rectangle26_6
-	for _, r := range []rune(text) {
+	for _, r := range text {
 		if prevR >= 0 {
 			fx += face.Kern(prevR, r)
 		}
@@ -297,5 +278,7 @@ func CacheGlyphs(face font.Face, text string) {
 	textM.Lock()
 	defer textM.Unlock()
 
-	getGlyphImages(face, []rune(text))
+	for _, r := range text {
+		getGlyphImage(face, r)
+	}
 }

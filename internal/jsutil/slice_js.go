@@ -22,14 +22,13 @@ import (
 	"unsafe"
 )
 
-func Uint8ArrayToSlice(value js.Value) []byte {
-	s := make([]byte, value.Get("byteLength").Int())
+func Uint8ArrayToSlice(value js.Value, length int) []byte {
+	if l := value.Get("byteLength").Int(); length > l {
+		length = l
+	}
+	s := make([]byte, length)
 	js.CopyBytesToGo(s, value)
 	return s
-}
-
-func ArrayBufferToSlice(value js.Value) []byte {
-	return Uint8ArrayToSlice(js.Global().Get("Uint8Array").New(value))
 }
 
 func sliceToByteSlice(s interface{}) (bs []byte) {
@@ -94,13 +93,12 @@ func sliceToByteSlice(s interface{}) (bs []byte) {
 	return
 }
 
-func CopySliceToJS(dst js.Value, src interface{}) {
+func copySliceToTemporaryArrayBuffer(src interface{}) {
 	switch s := src.(type) {
 	case []uint8:
-		js.CopyBytesToJS(dst, s)
+		js.CopyBytesToJS(temporaryUint8Array, s)
 	case []int8, []int16, []int32, []uint16, []uint32, []float32, []float64:
-		a := js.Global().Get("Uint8Array").New(dst.Get("buffer"), dst.Get("byteOffset"), dst.Get("byteLength"))
-		js.CopyBytesToJS(a, sliceToByteSlice(s))
+		js.CopyBytesToJS(temporaryUint8Array, sliceToByteSlice(s))
 	default:
 		panic(fmt.Sprintf("jsutil: unexpected value at CopySliceToJS: %T", s))
 	}

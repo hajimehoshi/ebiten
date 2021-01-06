@@ -970,6 +970,14 @@ func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImage
 	}
 	us[graphics.TextureSizesUniformVariableIndex] = usizes
 
+	// Set the destination region's origin.
+	udorigin := []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
+	us[graphics.TextureDestinationRegionOriginUniformVariableIndex] = udorigin
+
+	// Set the destination region's size.
+	udsize := []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
+	us[graphics.TextureDestinationRegionSizeUniformVariableIndex] = udsize
+
 	// Set the source offsets.
 	uoffsets := make([]float32, 2*len(offsets))
 	for i, offset := range offsets {
@@ -979,8 +987,8 @@ func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImage
 	us[graphics.TextureSourceOffsetsUniformVariableIndex] = uoffsets
 
 	// Set the source region's origin of texture0.
-	uorigin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
-	us[graphics.TextureSourceRegionOriginUniformVariableIndex] = uorigin
+	usorigin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
+	us[graphics.TextureSourceRegionOriginUniformVariableIndex] = usorigin
 
 	// Set the source region's size of texture0.
 	ussize := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}

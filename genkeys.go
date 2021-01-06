@@ -503,11 +503,13 @@ const uidriverJsKeysTmpl = `{{.License}}
 package js
 
 import (
+	"syscall/js"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 )
 
-var driverKeyToJSKey = map[driver.Key]string{
-{{range $name, $code := .DriverKeyNameToJSKey}}driver.Key{{$name}}: {{$code | printf "%q"}},
+var driverKeyToJSKey = map[driver.Key]js.Value{
+{{range $name, $code := .DriverKeyNameToJSKey}}driver.Key{{$name}}: js.ValueOf({{$code | printf "%q"}}),
 {{end}}
 }
 

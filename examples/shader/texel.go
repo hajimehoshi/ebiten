@@ -1,4 +1,4 @@
-// Copyright 2018 The Ebiten Authors
+// Copyright 2020 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !android
-// +build !ios
-// +build !js
+// +build ignore
 
-package audio
+package main
 
-func bufferSize() int {
-	// On most desktop environments, 4096 [bytes] is enough
-	// but there are some known environment that is too short (e.g. Windows on Parallels).
-	return 8192
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	pos := position.xy / imageDstTextureSize()
+	origin, size := imageDstRegionOnTexture()
+	pos -= origin
+	pos /= size
+	return vec4(pos.x, pos.y, 0, 1)
 }

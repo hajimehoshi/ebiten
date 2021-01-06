@@ -84,7 +84,8 @@ const (
 )
 
 var (
-	isWebGL2Available = !forceWebGL1 && js.Global().Get("WebGL2RenderingContext").Truthy()
+	isWebGL2Available = !forceWebGL1 && (js.Global().Get("WebGL2RenderingContext").Truthy() || js.Global().Get("go2cpp").Truthy())
+	needsRestoring    = !web.IsMobileBrowser() && !js.Global().Get("go2cpp").Truthy()
 )
 
 type contextImpl struct {
@@ -95,27 +96,28 @@ type contextImpl struct {
 func (c *context) initGL() {
 	c.gl = js.Value{}
 
-	// TODO: Define id?
-	doc := js.Global().Get("document")
-	if !doc.Truthy() {
-		return
-	}
-	canvas := doc.Call("querySelector", "canvas")
-	attr := js.Global().Get("Object").New()
-	attr.Set("alpha", true)
-	attr.Set("premultipliedAlpha", true)
-
 	var gl js.Value
-	if isWebGL2Available {
-		gl = canvas.Call("getContext", "webgl2", attr)
-	} else {
-		gl = canvas.Call("getContext", "webgl", attr)
-		if jsutil.Equal(gl, js.Null()) {
-			gl = canvas.Call("getContext", "experimental-webgl", attr)
+
+	// TODO: Define id?
+	if doc := js.Global().Get("document"); doc.Truthy() {
+		canvas := doc.Call("querySelector", "canvas")
+		attr := js.Global().Get("Object").New()
+		attr.Set("alpha", true)
+		attr.Set("premultipliedAlpha", true)
+
+		if isWebGL2Available {
+			gl = canvas.Call("getContext", "webgl2", attr)
+		} else {
+			gl = canvas.Call("getContext", "webgl", attr)
 			if jsutil.Equal(gl, js.Null()) {
-				panic("opengl: getContext failed")
+				gl = canvas.Call("getContext", "experimental-webgl", attr)
+				if jsutil.Equal(gl, js.Null()) {
+					panic("opengl: getContext failed")
+				}
 			}
 		}
+	} else if go2cpp := js.Global().Get("go2cpp"); go2cpp.Truthy() {
+		gl = go2cpp.Get("gl")
 	}
 
 	c.gl = gl
@@ -199,10 +201,11 @@ func (c *context) framebufferPixels(f *framebuffer, width, height int) []byte {
 
 	c.bindFramebuffer(f.native)
 
-	p := jsutil.TemporaryUint8Array(4 * width * height)
+	l := 4 * width * height
+	p := jsutil.TemporaryUint8Array(l, nil)
 	gl.Call("readPixels", 0, 0, width, height, gles.RGBA, gles.UNSIGNED_BYTE, p)
 
-	return jsutil.Uint8ArrayToSlice(p)
+	return jsutil.Uint8ArrayToSlice(p, l)
 }
 
 func (c *context) framebufferPixelsToBuffer(f *framebuffer, buffer buffer, width, height int) {
@@ -384,25 +387,51 @@ func (c *context) uniformFloats(p program, location string, v []float32, typ sha
 		base = typ.Sub[0].Main
 	}
 
-	arr8 := jsutil.TemporaryUint8Array(len(v) * 4)
-	arr := js.Global().Get("Float32Array").New(arr8.Get("buffer"), arr8.Get("byteOffset"), len(v))
-	jsutil.CopySliceToJS(arr, v)
+	arr := jsutil.TemporaryFloat32Array(len(v), v)
 
 	switch base {
 	case shaderir.Float:
-		gl.Call("uniform1fv", js.Value(l), arr)
+		if isWebGL2Available {
+			gl.Call("uniform1fv", js.Value(l), arr, 0, len(v))
+		} else {
+			gl.Call("uniform1fv", js.Value(l), arr.Call("subarray", 0, len(v)))
+		}
 	case shaderir.Vec2:
-		gl.Call("uniform2fv", js.Value(l), arr)
+		if isWebGL2Available {
+			gl.Call("uniform2fv", js.Value(l), arr, 0, len(v))
+		} else {
+			gl.Call("uniform2fv", js.Value(l), arr.Call("subarray", 0, len(v)))
+		}
 	case shaderir.Vec3:
-		gl.Call("uniform3fv", js.Value(l), arr)
+		if isWebGL2Available {
+			gl.Call("uniform3fv", js.Value(l), arr, 0, len(v))
+		} else {
+			gl.Call("uniform3fv", js.Value(l), arr.Call("subarray", 0, len(v)))
+		}
 	case shaderir.Vec4:
-		gl.Call("uniform4fv", js.Value(l), arr)
+		if isWebGL2Available {
+			gl.Call("uniform4fv", js.Value(l), arr, 0, len(v))
+		} else {
+			gl.Call("uniform4fv", js.Value(l), arr.Call("subarray", 0, len(v)))
+		}
 	case shaderir.Mat2:
-		gl.Call("uniformMatrix2fv", js.Value(l), false, arr)
+		if isWebGL2Available {
+			gl.Call("uniformMatrix2fv", js.Value(l), false, arr, 0, len(v))
+		} else {
+			gl.Call("uniformMatrix2fv", js.Value(l), false, arr.Call("subarray", 0, len(v)))
+		}
 	case shaderir.Mat3:
-		gl.Call("uniformMatrix3fv", js.Value(l), false, arr)
+		if isWebGL2Available {
+			gl.Call("uniformMatrix3fv", js.Value(l), false, arr, 0, len(v))
+		} else {
+			gl.Call("uniformMatrix3fv", js.Value(l), false, arr.Call("subarray", 0, len(v)))
+		}
 	case shaderir.Mat4:
-		gl.Call("uniformMatrix4fv", js.Value(l), false, arr)
+		if isWebGL2Available {
+			gl.Call("uniformMatrix4fv", js.Value(l), false, arr, 0, len(v))
+		} else {
+			gl.Call("uniformMatrix4fv", js.Value(l), false, arr.Call("subarray", 0, len(v)))
+		}
 	default:
 		panic(fmt.Sprintf("opengl: unexpected type: %s", typ.String()))
 	}
@@ -410,17 +439,17 @@ func (c *context) uniformFloats(p program, location string, v []float32, typ sha
 	return true
 }
 
-func (c *context) vertexAttribPointer(p program, index int, size int, stride int, offset int) {
+func (c *context) vertexAttribPointer(index int, size int, stride int, offset int) {
 	gl := c.gl
 	gl.Call("vertexAttribPointer", index, size, gles.FLOAT, false, stride, offset)
 }
 
-func (c *context) enableVertexAttribArray(p program, index int) {
+func (c *context) enableVertexAttribArray(index int) {
 	gl := c.gl
 	gl.Call("enableVertexAttribArray", index)
 }
 
-func (c *context) disableVertexAttribArray(p program, index int) {
+func (c *context) disableVertexAttribArray(index int) {
 	gl := c.gl
 	gl.Call("disableVertexAttribArray", index)
 }
@@ -453,18 +482,24 @@ func (c *context) bindElementArrayBuffer(b buffer) {
 
 func (c *context) arrayBufferSubData(data []float32) {
 	gl := c.gl
-	arr8 := jsutil.TemporaryUint8Array(len(data) * 4)
-	arr := js.Global().Get("Float32Array").New(arr8.Get("buffer"), arr8.Get("byteOffset"), len(data))
-	jsutil.CopySliceToJS(arr, data)
-	gl.Call("bufferSubData", gles.ARRAY_BUFFER, 0, arr)
+	l := len(data) * 4
+	arr := jsutil.TemporaryUint8Array(l, data)
+	if isWebGL2Available {
+		gl.Call("bufferSubData", gles.ARRAY_BUFFER, 0, arr, 0, l)
+	} else {
+		gl.Call("bufferSubData", gles.ARRAY_BUFFER, 0, arr.Call("subarray", 0, l))
+	}
 }
 
 func (c *context) elementArrayBufferSubData(data []uint16) {
 	gl := c.gl
-	arr8 := jsutil.TemporaryUint8Array(len(data) * 2)
-	arr := js.Global().Get("Uint16Array").New(arr8.Get("buffer"), arr8.Get("byteOffset"), len(data))
-	jsutil.CopySliceToJS(arr, data)
-	gl.Call("bufferSubData", gles.ELEMENT_ARRAY_BUFFER, 0, arr)
+	l := len(data) * 2
+	arr := jsutil.TemporaryUint8Array(l, data)
+	if isWebGL2Available {
+		gl.Call("bufferSubData", gles.ELEMENT_ARRAY_BUFFER, 0, arr, 0, l)
+	} else {
+		gl.Call("bufferSubData", gles.ELEMENT_ARRAY_BUFFER, 0, arr.Call("subarray", 0, l))
+	}
 }
 
 func (c *context) deleteBuffer(b buffer) {
@@ -493,7 +528,7 @@ func (c *context) flush() {
 }
 
 func (c *context) needsRestoring() bool {
-	return !web.IsMobileBrowser()
+	return needsRestoring
 }
 
 func (c *context) canUsePBO() bool {
@@ -503,13 +538,19 @@ func (c *context) canUsePBO() bool {
 func (c *context) texSubImage2D(t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
 	c.bindTexture(t)
 	gl := c.gl
-	// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
-	//                    GLsizei width, GLsizei height,
-	//                    GLenum format, GLenum type, ArrayBufferView? pixels);
 	for _, a := range args {
-		arr := jsutil.TemporaryUint8Array(len(a.Pixels))
-		jsutil.CopySliceToJS(arr, a.Pixels)
-		gl.Call("texSubImage2D", gles.TEXTURE_2D, 0, a.X, a.Y, a.Width, a.Height, gles.RGBA, gles.UNSIGNED_BYTE, arr)
+		arr := jsutil.TemporaryUint8Array(len(a.Pixels), a.Pixels)
+		if isWebGL2Available {
+			// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+			//                    GLsizei width, GLsizei height,
+			//                    GLenum format, GLenum type, ArrayBufferView pixels, srcOffset);
+			gl.Call("texSubImage2D", gles.TEXTURE_2D, 0, a.X, a.Y, a.Width, a.Height, gles.RGBA, gles.UNSIGNED_BYTE, arr, 0)
+		} else {
+			// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+			//                    GLsizei width, GLsizei height,
+			//                    GLenum format, GLenum type, ArrayBufferView? pixels);
+			gl.Call("texSubImage2D", gles.TEXTURE_2D, 0, a.X, a.Y, a.Width, a.Height, gles.RGBA, gles.UNSIGNED_BYTE, arr)
+		}
 	}
 }
 
@@ -523,14 +564,17 @@ func (c *context) newPixelBufferObject(width, height int) buffer {
 }
 
 func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
+	if !isWebGL2Available {
+		panic("opengl: WebGL2 must be available when replacePixelsWithPBO is called")
+	}
+
 	c.bindTexture(t)
 	gl := c.gl
 	gl.Call("bindBuffer", gles.PIXEL_UNPACK_BUFFER, js.Value(buffer))
 
 	stride := 4 * width
 	for _, a := range args {
-		arr := jsutil.TemporaryUint8Array(len(a.Pixels))
-		jsutil.CopySliceToJS(arr, a.Pixels)
+		arr := jsutil.TemporaryUint8Array(len(a.Pixels), a.Pixels)
 		offset := 4 * (a.Y*width + a.X)
 		for j := 0; j < a.Height; j++ {
 			gl.Call("bufferSubData", gles.PIXEL_UNPACK_BUFFER, offset+stride*j, arr, 4*a.Width*j, 4*a.Width)
@@ -546,9 +590,14 @@ func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, he
 
 func (c *context) getBufferSubData(buffer buffer, width, height int) []byte {
 	gl := c.gl
-	gl.Call("bindBuffer", gles.PIXEL_UNPACK_BUFFER, buffer)
-	arr := jsutil.TemporaryUint8Array(4 * width * height)
-	gl.Call("getBufferSubData", gles.PIXEL_UNPACK_BUFFER, 0, arr)
-	gl.Call("bindBuffer", gles.PIXEL_UNPACK_BUFFER, 0)
-	return jsutil.Uint8ArrayToSlice(arr)
+	gl.Call("bindBuffer", gles.PIXEL_UNPACK_BUFFER, js.Value(buffer))
+	l := 4 * width * height
+	arr := jsutil.TemporaryUint8Array(l, nil)
+	if isWebGL2Available {
+		gl.Call("getBufferSubData", gles.PIXEL_UNPACK_BUFFER, 0, arr, 0, l)
+	} else {
+		gl.Call("getBufferSubData", gles.PIXEL_UNPACK_BUFFER, 0, arr.Call("subarray", 0, l))
+	}
+	gl.Call("bindBuffer", gles.PIXEL_UNPACK_BUFFER, nil)
+	return jsutil.Uint8ArrayToSlice(arr, l)
 }

@@ -29,6 +29,8 @@ var (
 
 	currentFPS  float64
 	currentTPS  float64
+	lastTPS     int64
+	tpsCalcErr  int64
 	lastUpdated int64
 	fpsCount    = 0
 	tpsCount    = 0
@@ -57,6 +59,35 @@ func CurrentTPS() float64 {
 	return v
 }
 
+func min(a, b int64) int64 {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// calcTPSFactor calculates the TPS that is used for the timer and the factor for the count.
+// If tps is under the baseTPS, use tps as newTPS. The factor is 1. The timer precision should be enough.
+// If not, use baseTPS as newTPS and factor that can be more than 1.
+func calcTPSFactor(tps, baseTPS int64) (newTPS int64, factor int) {
+	if tps <= baseTPS {
+		return tps, 1
+	}
+
+	if lastTPS != tps {
+		tpsCalcErr = 0
+	}
+	lastTPS = tps
+
+	factor = int(tps / baseTPS)
+	tpsCalcErr += tps - baseTPS*int64(factor)
+
+	factor += int(tpsCalcErr / baseTPS)
+	tpsCalcErr %= baseTPS
+
+	return baseTPS, factor
+}
+
 func calcCountFromTPS(tps int64, now int64) int {
 	if tps == 0 {
 		return 0
@@ -73,7 +104,12 @@ func calcCountFromTPS(tps int64, now int64) int {
 	count := 0
 	syncWithSystemClock := false
 
-	if diff > int64(time.Second)*5/60 {
+	// When TPS is big (e.g. 300), the timer precision is no longer reliable.
+	// Multiply the factor later instead (#1444).
+	var tpsFactor int
+	tps, tpsFactor = calcTPSFactor(tps, 60) // TODO: 60 should be the current display's FPS.
+
+	if diff > int64(time.Second)*5/tps {
 		// The previous time is too old.
 		// Let's force to sync the game time with the system clock.
 		syncWithSystemClock = true
@@ -83,6 +119,7 @@ func calcCountFromTPS(tps int64, now int64) int {
 
 	// Stabilize the count.
 	// Without this adjustment, count can be unstable like 0, 2, 0, 2, ...
+	// TODO: Brush up this logic so that this will work with any FPS. Now this works only when FPS = TPS.
 	if count == 0 && (int64(time.Second)/tps/2) < diff {
 		count = 1
 	}
@@ -96,7 +133,7 @@ func calcCountFromTPS(tps int64, now int64) int {
 		lastSystemTime += int64(count) * int64(time.Second) / tps
 	}
 
-	return count
+	return count * tpsFactor
 }
 
 func updateFPSAndTPS(now int64, count int) {

@@ -32,6 +32,13 @@ type f32Reader struct {
 	buf *byte
 }
 
+func max(a, b int) int {
+	if a < b {
+		return b
+	}
+	return a
+}
+
 func (f *f32Reader) Read(buf []byte) (int, error) {
 	if f.eof {
 		return 0, io.EOF
@@ -45,10 +52,7 @@ func (f *f32Reader) Read(buf []byte) (int, error) {
 		return 1, nil
 	}
 
-	bf := make([]float32, len(buf)/2)
-	if len(buf) == 1 {
-		bf = make([]float32, 1)
-	}
+	bf := make([]float32, max(len(buf)/2, 1))
 
 	n, err := f.r.Read(bf)
 	if err != nil && err != io.EOF {

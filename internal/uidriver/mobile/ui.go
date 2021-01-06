@@ -255,7 +255,7 @@ func (u *UserInterface) run(context driver.UIContext, mainloop bool) (err error)
 	// TODO: Panic on other goroutines cannot be handled here.
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("%v\n%q", r, string(debug.Stack()))
+			err = fmt.Errorf("%v\n%s", r, string(debug.Stack()))
 		}
 	}()
 

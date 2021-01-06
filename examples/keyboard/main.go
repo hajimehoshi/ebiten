@@ -26,7 +26,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/keyboard/keyboard"
-	rkeyabord "github.com/hajimehoshi/ebiten/v2/examples/resources/images/keyboard"
+	rkeyboard "github.com/hajimehoshi/ebiten/v2/examples/resources/images/keyboard"
 )
 
 const (
@@ -37,7 +37,7 @@ const (
 var keyboardImage *ebiten.Image
 
 func init() {
-	img, _, err := image.Decode(bytes.NewReader(rkeyabord.Keyboard_png))
+	img, _, err := image.Decode(bytes.NewReader(rkeyboard.Keyboard_png))
 	if err != nil {
 		log.Fatal(err)
 	}

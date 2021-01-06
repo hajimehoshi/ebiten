@@ -50,6 +50,20 @@ func imageSrcTextureSize() vec2 {
 }
 
 // The unit is the source texture's texel.
+var __textureDestinationRegionOrigin vec2
+
+// The unit is the source texture's texel.
+var __textureDestinationRegionSize vec2
+
+// imageDstRegionOnTexture returns the destination image's region (the origin and the size) on its texture.
+// The unit is the source texture's texel.
+//
+// As an image is a part of internal texture, the image can be located at an arbitrary position on the texture.
+func imageDstRegionOnTexture() (vec2, vec2) {
+	return __textureDestinationRegionOrigin, __textureDestinationRegionSize
+}
+
+// The unit is the source texture's texel.
 var __textureSourceOffsets [%[2]d]vec2
 
 // The unit is the source texture's texel.

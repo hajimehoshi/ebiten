@@ -26,6 +26,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 )
 
+var (
+	stringNone        = js.ValueOf("none")
+	stringTransparent = js.ValueOf("transparent")
+)
+
 type UserInterface struct {
 	runnableOnUnfocused bool
 	vsync               bool
@@ -60,8 +65,9 @@ var (
 	window                = js.Global().Get("window")
 	document              = js.Global().Get("document")
 	canvas                js.Value
-	requestAnimationFrame = window.Get("requestAnimationFrame")
-	setTimeout            = window.Get("setTimeout")
+	requestAnimationFrame = js.Global().Get("requestAnimationFrame")
+	setTimeout            = js.Global().Get("setTimeout")
+	go2cpp                = js.Global().Get("go2cpp")
 )
 
 func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
@@ -97,7 +103,7 @@ func (u *UserInterface) IsVsyncEnabled() bool {
 }
 
 func (u *UserInterface) CursorMode() driver.CursorMode {
-	if canvas.Get("style").Get("cursor").String() != "none" {
+	if jsutil.Equal(canvas.Get("style").Get("cursor"), stringNone) {
 		return driver.CursorModeVisible
 	}
 	return driver.CursorModeHidden
@@ -134,10 +140,20 @@ func (u *UserInterface) updateSize() {
 
 	if u.sizeChanged {
 		u.sizeChanged = false
-		body := document.Get("body")
-		bw := body.Get("clientWidth").Float()
-		bh := body.Get("clientHeight").Float()
-		u.context.Layout(bw, bh)
+		switch {
+		case document.Truthy():
+			body := document.Get("body")
+			bw := body.Get("clientWidth").Float()
+			bh := body.Get("clientHeight").Float()
+			u.context.Layout(bw, bh)
+		case go2cpp.Truthy():
+			w := go2cpp.Get("screenWidth").Float()
+			h := go2cpp.Get("screenHeight").Float()
+			u.context.Layout(w, h)
+		default:
+			// Node.js
+			u.context.Layout(640, 480)
+		}
 	}
 }
 
@@ -149,6 +165,10 @@ func (u *UserInterface) suspended() bool {
 }
 
 func (u *UserInterface) isFocused() bool {
+	if go2cpp.Truthy() {
+		return true
+	}
+
 	if !document.Call("hasFocus").Bool() {
 		return false
 	}
@@ -165,7 +185,8 @@ func (u *UserInterface) update() error {
 	}
 	hooks.ResumeAudio()
 
-	u.input.UpdateGamepads()
+	u.input.updateGamepads()
+	u.input.updateForGo2Cpp()
 	u.updateSize()
 	if err := u.context.Update(); err != nil {
 		return err
@@ -250,7 +271,12 @@ func (u *UserInterface) loop(context driver.UIContext) <-chan error {
 }
 
 func init() {
-	if jsutil.Equal(document.Get("body"), js.Null()) {
+	// docuemnt is undefined on node.js
+	if !document.Truthy() {
+		return
+	}
+
+	if !document.Get("body").Truthy() {
 		ch := make(chan struct{})
 		window.Call("addEventListener", "load", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			close(ch)
@@ -259,10 +285,7 @@ func init() {
 		<-ch
 	}
 
-	window.Call("addEventListener", "resize", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		theUI.updateScreenSize()
-		return nil
-	}))
+	setWindowEventHandlers(window)
 
 	// Adjust the initial scale to 1.
 	// https://developer.mozilla.org/en/docs/Mozilla/Mobile/Viewport_meta_tag
@@ -298,109 +321,120 @@ func init() {
 	canvas.Call("setAttribute", "tabindex", 1)
 	canvas.Get("style").Set("outline", "none")
 
+	setCanvasEventHandlers(canvas)
+}
+
+func setWindowEventHandlers(v js.Value) {
+	v.Call("addEventListener", "resize", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		theUI.updateScreenSize()
+		return nil
+	}))
+
+	v.Call("addEventListener", "gamepadconnected", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		// Do nothing.
+		return nil
+	}))
+}
+
+func setCanvasEventHandlers(v js.Value) {
 	// Keyboard
-	canvas.Call("addEventListener", "keydown", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "keydown", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		// Focus the canvas explicitly to activate tha game (#961).
-		canvas.Call("focus")
+		v.Call("focus")
 
 		e := args[0]
 		// Don't 'preventDefault' on keydown events or keypress events wouldn't work (#715).
-		theUI.input.Update(e)
+		theUI.input.updateFromEvent(e)
 		return nil
 	}))
-	canvas.Call("addEventListener", "keypress", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "keypress", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.Update(e)
+		theUI.input.updateFromEvent(e)
 		return nil
 	}))
-	canvas.Call("addEventListener", "keyup", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "keyup", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.Update(e)
+		theUI.input.updateFromEvent(e)
 		return nil
 	}))
 
 	// Mouse
-	canvas.Call("addEventListener", "mousedown", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "mousedown", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		// Focus the canvas explicitly to activate tha game (#961).
-		canvas.Call("focus")
+		v.Call("focus")
 
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.Update(e)
+		theUI.input.updateFromEvent(e)
 		return nil
 	}))
-	canvas.Call("addEventListener", "mouseup", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "mouseup", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.Update(e)
+		theUI.input.updateFromEvent(e)
 		return nil
 	}))
-	canvas.Call("addEventListener", "mousemove", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "mousemove", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.Update(e)
+		theUI.input.updateFromEvent(e)
 		return nil
 	}))
-	canvas.Call("addEventListener", "wheel", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "wheel", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.Update(e)
+		theUI.input.updateFromEvent(e)
 		return nil
 	}))
 
 	// Touch
-	canvas.Call("addEventListener", "touchstart", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "touchstart", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		// Focus the canvas explicitly to activate tha game (#961).
-		canvas.Call("focus")
+		v.Call("focus")
 
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.Update(e)
+		theUI.input.updateFromEvent(e)
 		return nil
 	}))
-	canvas.Call("addEventListener", "touchend", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "touchend", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.Update(e)
+		theUI.input.updateFromEvent(e)
 		return nil
 	}))
-	canvas.Call("addEventListener", "touchmove", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "touchmove", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.Update(e)
+		theUI.input.updateFromEvent(e)
 		return nil
 	}))
 
 	// Gamepad
-	window.Call("addEventListener", "gamepadconnected", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		// Do nothing.
-		return nil
-	}))
-
-	canvas.Call("addEventListener", "contextmenu", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "contextmenu", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
 		return nil
 	}))
 
 	// Context
-	canvas.Call("addEventListener", "webglcontextlost", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "webglcontextlost", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
 		theUI.contextLost = true
 		restorable.OnContextLost()
 		return nil
 	}))
-	canvas.Call("addEventListener", "webglcontextrestored", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "webglcontextrestored", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		theUI.contextLost = false
 		return nil
 	}))
 }
 
 func (u *UserInterface) Run(context driver.UIContext) error {
-	if u.initFocused {
+	if u.initFocused && window.Truthy() {
 		// Do not focus the canvas when the current document is in an iframe.
 		// Otherwise, the parent page tries to focus the iframe on every loading, which is annoying (#1373).
 		isInIframe := !jsutil.Equal(window.Get("location"), window.Get("parent").Get("location"))
@@ -417,11 +451,16 @@ func (u *UserInterface) RunWithoutMainLoop(context driver.UIContext) {
 }
 
 func (u *UserInterface) updateScreenSize() {
-	body := document.Get("body")
-	bw := int(body.Get("clientWidth").Float() * u.DeviceScaleFactor())
-	bh := int(body.Get("clientHeight").Float() * u.DeviceScaleFactor())
-	canvas.Set("width", bw)
-	canvas.Set("height", bh)
+	switch {
+	case document.Truthy():
+		body := document.Get("body")
+		bw := int(body.Get("clientWidth").Float() * u.DeviceScaleFactor())
+		bh := int(body.Get("clientHeight").Float() * u.DeviceScaleFactor())
+		canvas.Set("width", bw)
+		canvas.Set("height", bh)
+	case go2cpp.Truthy():
+		// TODO: Implement this
+	}
 	u.sizeChanged = true
 }
 
@@ -440,7 +479,7 @@ func (u *UserInterface) SetScreenTransparent(transparent bool) {
 
 func (u *UserInterface) IsScreenTransparent() bool {
 	bodyStyle := document.Get("body").Get("style")
-	return bodyStyle.Get("backgroundColor").String() == "transparent"
+	return jsutil.Equal(bodyStyle.Get("backgroundColor"), stringTransparent)
 }
 
 func (u *UserInterface) ResetForFrame() {

@@ -229,9 +229,10 @@ type playerImpl struct {
 	closedExplicitly bool
 	isLoopActive     bool
 
-	buf    []byte
-	pos    int64
-	volume float64
+	buf     []byte
+	readbuf []byte
+	pos     int64
+	volume  float64
 
 	m sync.Mutex
 }
@@ -412,8 +413,10 @@ func (p *playerImpl) read() ([]byte, bool) {
 		<-p.context.semaphore
 	}()
 
-	newBuf := make([]byte, bufSize-len(p.buf))
-	n, err := p.src.Read(newBuf)
+	if p.readbuf == nil {
+		p.readbuf = make([]byte, bufSize)
+	}
+	n, err := p.src.Read(p.readbuf[:bufSize-len(p.buf)])
 	if err != nil {
 		if err != io.EOF {
 			p.context.setError(err)
@@ -423,7 +426,7 @@ func (p *playerImpl) read() ([]byte, bool) {
 			return nil, false
 		}
 	}
-	buf := append(p.buf, newBuf[:n]...)
+	buf := append(p.buf, p.readbuf[:n]...)
 
 	n2 := len(buf) - len(buf)%bytesPerSample
 	buf, p.buf = buf[:n2], buf[n2:]
