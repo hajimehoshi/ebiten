@@ -40,7 +40,7 @@ func (p *dummyPlayer) Close() error {
 }
 
 func init() {
-	contextForTesting = &dummyContext{}
+	writerContextForTesting = &dummyContext{}
 }
 
 type dummyHook struct {

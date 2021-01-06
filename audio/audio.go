@@ -39,6 +39,8 @@ import (
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
 const (
@@ -53,7 +55,7 @@ const (
 //
 // For a typical usage example, see examples/wav/main.go.
 type Context struct {
-	c context
+	c writerContext
 
 	// inited represents whether the audio device is initialized and available or not.
 	// On Android, audio loop cannot be started unless JVM is accessible. After updating one frame, JVM should exist.
@@ -94,7 +96,7 @@ func NewContext(sampleRate int) *Context {
 
 	c := &Context{
 		sampleRate: sampleRate,
-		c:          newContext(sampleRate),
+		c:          newWriterContext(sampleRate),
 		players:    map[*playerImpl]struct{}{},
 		inited:     make(chan struct{}),
 		semaphore:  make(chan struct{}, 1),
@@ -550,4 +552,33 @@ func (p *playerImpl) SetVolume(volume float64) {
 	p.m.Lock()
 	p.volume = volume
 	p.m.Unlock()
+}
+
+type hook interface {
+	OnSuspendAudio(f func())
+	OnResumeAudio(f func())
+	AppendHookOnBeforeUpdate(f func() error)
+}
+
+var hookForTesting hook
+
+func getHook() hook {
+	if hookForTesting != nil {
+		return hookForTesting
+	}
+	return &hookImpl{}
+}
+
+type hookImpl struct{}
+
+func (h *hookImpl) OnSuspendAudio(f func()) {
+	hooks.OnSuspendAudio(f)
+}
+
+func (h *hookImpl) OnResumeAudio(f func()) {
+	hooks.OnResumeAudio(f)
+}
+
+func (h *hookImpl) AppendHookOnBeforeUpdate(f func() error) {
+	hooks.AppendHookOnBeforeUpdate(f)
 }

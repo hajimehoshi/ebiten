@@ -21,16 +21,18 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
-type context interface {
+// writerContext represents a context represented as io.WriteClosers.
+// The actual implementation is oto.Context.
+type writerContext interface {
 	NewPlayer() io.WriteCloser
 	io.Closer
 }
 
-var contextForTesting context
+var writerContextForTesting writerContext
 
-func newContext(sampleRate int) context {
-	if contextForTesting != nil {
-		return contextForTesting
+func newWriterContext(sampleRate int) writerContext {
+	if writerContextForTesting != nil {
+		return writerContextForTesting
 	}
 
 	ch := make(chan struct{})
@@ -42,33 +44,4 @@ func newContext(sampleRate int) context {
 		return nil
 	})
 	return newOtoContext(sampleRate, ch)
-}
-
-type hook interface {
-	OnSuspendAudio(f func())
-	OnResumeAudio(f func())
-	AppendHookOnBeforeUpdate(f func() error)
-}
-
-var hookForTesting hook
-
-func getHook() hook {
-	if hookForTesting != nil {
-		return hookForTesting
-	}
-	return &hookImpl{}
-}
-
-type hookImpl struct{}
-
-func (h *hookImpl) OnSuspendAudio(f func()) {
-	hooks.OnSuspendAudio(f)
-}
-
-func (h *hookImpl) OnResumeAudio(f func()) {
-	hooks.OnResumeAudio(f)
-}
-
-func (h *hookImpl) AppendHookOnBeforeUpdate(f func() error) {
-	hooks.AppendHookOnBeforeUpdate(f)
 }
