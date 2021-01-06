@@ -21,14 +21,14 @@ import (
 	"github.com/hajimehoshi/oto"
 )
 
-func newOtoContext(sampleRate int, initCh chan struct{}) *otoContext {
-	return &otoContext{
+func newOtoDriver(sampleRate int, initCh chan struct{}) *otoDriver {
+	return &otoDriver{
 		sampleRate: sampleRate,
 		initCh:     initCh,
 	}
 }
 
-type otoContext struct {
+type otoDriver struct {
 	sampleRate int
 	initCh     <-chan struct{}
 
@@ -36,18 +36,18 @@ type otoContext struct {
 	once sync.Once
 }
 
-func (c *otoContext) NewPlayer() io.WriteCloser {
+func (c *otoDriver) NewPlayer() io.WriteCloser {
 	return &otoPlayer{c: c}
 }
 
-func (c *otoContext) Close() error {
+func (c *otoDriver) Close() error {
 	if c.c == nil {
 		return nil
 	}
 	return c.c.Close()
 }
 
-func (c *otoContext) ensureContext() error {
+func (c *otoDriver) ensureContext() error {
 	var err error
 	c.once.Do(func() {
 		<-c.initCh
@@ -57,7 +57,7 @@ func (c *otoContext) ensureContext() error {
 }
 
 type otoPlayer struct {
-	c    *otoContext
+	c    *otoDriver
 	p    *oto.Player
 	once sync.Once
 }

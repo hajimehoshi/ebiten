@@ -19,15 +19,15 @@ import (
 )
 
 type (
-	dummyContext struct{}
-	dummyPlayer  struct{}
+	dummyDriver struct{}
+	dummyPlayer struct{}
 )
 
-func (d *dummyContext) NewPlayer() io.WriteCloser {
+func (d *dummyDriver) NewPlayer() io.WriteCloser {
 	return &dummyPlayer{}
 }
 
-func (d *dummyContext) Close() error {
+func (d *dummyDriver) Close() error {
 	return nil
 }
 
@@ -40,7 +40,7 @@ func (p *dummyPlayer) Close() error {
 }
 
 func init() {
-	writerContextForTesting = &dummyContext{}
+	writerDriverForTesting = &dummyDriver{}
 }
 
 type dummyHook struct {

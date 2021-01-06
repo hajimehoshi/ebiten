@@ -23,18 +23,18 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
-// writerContext represents a context represented as io.WriteClosers.
-// The actual implementation is oto.Context.
-type writerContext interface {
+// writerDriver represents a driver using io.WriteClosers.
+// The actual implementation is otoDriver.
+type writerDriver interface {
 	NewPlayer() io.WriteCloser
 	io.Closer
 }
 
-var writerContextForTesting writerContext
+var writerDriverForTesting writerDriver
 
-func newWriterContext(sampleRate int) writerContext {
-	if writerContextForTesting != nil {
-		return writerContextForTesting
+func newWriterDriver(sampleRate int) writerDriver {
+	if writerDriverForTesting != nil {
+		return writerDriverForTesting
 	}
 
 	ch := make(chan struct{})
@@ -45,12 +45,22 @@ func newWriterContext(sampleRate int) writerContext {
 		})
 		return nil
 	})
-	return newOtoContext(sampleRate, ch)
+	return newOtoDriver(sampleRate, ch)
+}
+
+type writerContext struct {
+	driver writerDriver
+}
+
+func newWriterContext(sampleRate int) *writerContext {
+	return &writerContext{
+		driver: newWriterDriver(sampleRate),
+	}
 }
 
 type writerContextPlayerImpl struct {
 	context          *Context
-	writerContext    writerContext
+	driver           writerDriver
 	src              io.Reader
 	playing          bool
 	closedExplicitly bool
@@ -64,12 +74,12 @@ type writerContextPlayerImpl struct {
 	m sync.Mutex
 }
 
-func newWriterContextPlayerImpl(context *Context, writerContext writerContext, src io.Reader) (*writerContextPlayerImpl, error) {
+func (c *writerContext) newPlayerImpl(context *Context, src io.Reader) (playerImpl, error) {
 	p := &writerContextPlayerImpl{
-		context:       context,
-		writerContext: writerContext,
-		src:           src,
-		volume:        1,
+		context: context,
+		driver:  c.driver,
+		src:     src,
+		volume:  1,
 	}
 	if seeker, ok := p.src.(io.Seeker); ok {
 		// Get the current position of the source.
@@ -119,7 +129,7 @@ func (p *writerContextPlayerImpl) Play() {
 func (p *writerContextPlayerImpl) loop() {
 	p.context.waitUntilInited()
 
-	w := p.writerContext.NewPlayer()
+	w := p.driver.NewPlayer()
 	wclosed := make(chan struct{})
 	defer func() {
 		<-wclosed

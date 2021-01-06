@@ -48,6 +48,10 @@ const (
 	bytesPerSample = 2 * channelNum
 )
 
+type newPlayerImpler interface {
+	newPlayerImpl(context *Context, src io.Reader) (playerImpl, error)
+}
+
 // A Context represents a current state of audio.
 //
 // At most one Context object can exist in one process.
@@ -55,7 +59,7 @@ const (
 //
 // For a typical usage example, see examples/wav/main.go.
 type Context struct {
-	wc writerContext
+	np newPlayerImpler
 
 	// inited represents whether the audio device is initialized and available or not.
 	// On Android, audio loop cannot be started unless JVM is accessible. After updating one frame, JVM should exist.
@@ -97,7 +101,7 @@ func NewContext(sampleRate int) *Context {
 
 	c := &Context{
 		sampleRate: sampleRate,
-		wc:         newWriterContext(sampleRate),
+		np:         newWriterContext(sampleRate),
 		players:    map[playerImpl]struct{}{},
 		inited:     make(chan struct{}),
 		semaphore:  make(chan struct{}, 1),
@@ -268,7 +272,7 @@ type playerImpl interface {
 // A Player doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
 func NewPlayer(context *Context, src io.Reader) (*Player, error) {
-	pi, err := newWriterContextPlayerImpl(context, context.wc, src)
+	pi, err := context.np.newPlayerImpl(context, src)
 	if err != nil {
 		return nil, err
 	}
