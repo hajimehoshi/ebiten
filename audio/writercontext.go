@@ -50,8 +50,8 @@ func newWriterContext(sampleRate int) writerContext {
 
 type writerContextPlayerImpl struct {
 	context          *Context
+	writerContext    writerContext
 	src              io.Reader
-	sampleRate       int
 	playing          bool
 	closedExplicitly bool
 	isLoopActive     bool
@@ -64,12 +64,12 @@ type writerContextPlayerImpl struct {
 	m sync.Mutex
 }
 
-func newWriterContextPlayerImpl(context *Context, src io.Reader) (*writerContextPlayerImpl, error) {
+func newWriterContextPlayerImpl(context *Context, writerContext writerContext, src io.Reader) (*writerContextPlayerImpl, error) {
 	p := &writerContextPlayerImpl{
-		context:    context,
-		src:        src,
-		sampleRate: context.sampleRate,
-		volume:     1,
+		context:       context,
+		writerContext: writerContext,
+		src:           src,
+		volume:        1,
 	}
 	if seeker, ok := p.src.(io.Seeker); ok {
 		// Get the current position of the source.
@@ -117,9 +117,9 @@ func (p *writerContextPlayerImpl) Play() {
 }
 
 func (p *writerContextPlayerImpl) loop() {
-	<-p.context.inited
+	p.context.waitUntilInited()
 
-	w := p.context.c.NewPlayer()
+	w := p.writerContext.NewPlayer()
 	wclosed := make(chan struct{})
 	defer func() {
 		<-wclosed
@@ -176,9 +176,9 @@ func (p *writerContextPlayerImpl) read() ([]byte, bool) {
 
 	const bufSize = 2048
 
-	p.context.semaphore <- struct{}{}
+	p.context.acquireSemaphore()
 	defer func() {
-		<-p.context.semaphore
+		p.context.releaseSemaphore()
 	}()
 
 	if p.readbuf == nil {
@@ -228,7 +228,7 @@ func (p *writerContextPlayerImpl) Seek(offset time.Duration) error {
 	p.m.Lock()
 	defer p.m.Unlock()
 
-	o := int64(offset) * bytesPerSample * int64(p.sampleRate) / int64(time.Second)
+	o := int64(offset) * bytesPerSample * int64(p.context.SampleRate()) / int64(time.Second)
 	o = o - (o % bytesPerSample)
 
 	seeker, ok := p.src.(io.Seeker)
@@ -255,7 +255,7 @@ func (p *writerContextPlayerImpl) Current() time.Duration {
 	p.m.Lock()
 	sample := p.pos / bytesPerSample
 	p.m.Unlock()
-	return time.Duration(sample) * time.Second / time.Duration(p.sampleRate)
+	return time.Duration(sample) * time.Second / time.Duration(p.context.SampleRate())
 }
 
 func (p *writerContextPlayerImpl) Volume() float64 {

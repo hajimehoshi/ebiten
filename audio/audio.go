@@ -90,6 +90,7 @@ var (
 func NewContext(sampleRate int) *Context {
 	theContextLock.Lock()
 	defer theContextLock.Unlock()
+
 	if theContext != nil {
 		panic("audio: context is already created")
 	}
@@ -213,6 +214,18 @@ func (c *Context) SampleRate() int {
 	return c.sampleRate
 }
 
+func (c *Context) acquireSemaphore() {
+	c.semaphore <- struct{}{}
+}
+
+func (c *Context) releaseSemaphore() {
+	<-c.semaphore
+}
+
+func (c *Context) waitUntilInited() {
+	<-c.inited
+}
+
 // Player is an audio player which has one stream.
 //
 // Even when all references to a Player object is gone,
@@ -255,7 +268,7 @@ type playerImpl interface {
 // A Player doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
 func NewPlayer(context *Context, src io.Reader) (*Player, error) {
-	pi, err := newWriterContextPlayerImpl(context, src)
+	pi, err := newWriterContextPlayerImpl(context, context.c, src)
 	if err != nil {
 		return nil, err
 	}
