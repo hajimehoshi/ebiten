@@ -93,18 +93,18 @@ func (s *stream) Seek(offset int64, whence int) (int64, error) {
 	return n - s.headerSize, nil
 }
 
-// Decode decodes WAV (RIFF) data to playable stream.
+// DecodeWithSampleRate decodes WAV (RIFF) data to playable stream.
 //
 // The format must be 1 or 2 channels, 8bit or 16bit little endian PCM.
 // The format is converted into 2 channels and 16bit.
 //
-// Decode returns error when decoding fails or IO error happens.
+// DecodeWithSampleRate returns error when decoding fails or IO error happens.
 //
-// Decode automatically resamples the stream to fit with the audio context if necessary.
+// DecodeWithSampleRate automatically resamples the stream to fit with sampleRate if necessary.
 //
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
-func Decode(context *audio.Context, src io.ReadSeeker) (*Stream, error) {
+func DecodeWithSampleRate(sampleRate int, src io.ReadSeeker) (*Stream, error) {
 	buf := make([]byte, 12)
 	n, err := io.ReadFull(src, buf)
 	if n != len(buf) {
@@ -170,10 +170,10 @@ chunks:
 			if bitsPerSample != 8 && bitsPerSample != 16 {
 				return nil, fmt.Errorf("wav: bits per sample must be 8 or 16 but was %d", bitsPerSample)
 			}
-			sampleRate := int64(buf[4]) | int64(buf[5])<<8 | int64(buf[6])<<16 | int64(buf[7])<<24
-			if int64(context.SampleRate()) != sampleRate {
-				sampleRateFrom = int(sampleRate)
-				sampleRateTo = context.SampleRate()
+			origSampleRate := int64(buf[4]) | int64(buf[5])<<8 | int64(buf[6])<<16 | int64(buf[7])<<24
+			if int64(sampleRate) != origSampleRate {
+				sampleRateFrom = int(origSampleRate)
+				sampleRateTo = sampleRate
 			}
 			headerSize += size
 		case bytes.Equal(buf[0:4], []byte("data")):
@@ -214,4 +214,21 @@ chunks:
 	}
 	ss := &Stream{inner: s, size: dataSize}
 	return ss, nil
+}
+
+// Decode decodes WAV (RIFF) data to playable stream.
+//
+// The format must be 1 or 2 channels, 8bit or 16bit little endian PCM.
+// The format is converted into 2 channels and 16bit.
+//
+// Decode returns error when decoding fails or IO error happens.
+//
+// Decode automatically resamples the stream to fit with the audio context if necessary.
+//
+// A Stream doesn't close src even if src implements io.Closer.
+// Closing the source is src owner's responsibility.
+//
+// Deprecated: as of v2.1. Use DecodeWithSampleRate instead.
+func Decode(context *audio.Context, src io.ReadSeeker) (*Stream, error) {
+	return DecodeWithSampleRate(context.SampleRate(), src)
 }
