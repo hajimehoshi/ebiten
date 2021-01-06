@@ -69,3 +69,15 @@ func UpdateForTesting() error {
 	}
 	return nil
 }
+
+func PlayersNumForTesting() int {
+	c := CurrentContext()
+	c.m.Lock()
+	n := len(c.players)
+	c.m.Unlock()
+	return n
+}
+
+func ResetContext() {
+	theContext = nil
+}

@@ -55,7 +55,7 @@ const (
 //
 // For a typical usage example, see examples/wav/main.go.
 type Context struct {
-	c writerContext
+	wc writerContext
 
 	// inited represents whether the audio device is initialized and available or not.
 	// On Android, audio loop cannot be started unless JVM is accessible. After updating one frame, JVM should exist.
@@ -97,7 +97,7 @@ func NewContext(sampleRate int) *Context {
 
 	c := &Context{
 		sampleRate: sampleRate,
-		c:          newWriterContext(sampleRate),
+		wc:         newWriterContext(sampleRate),
 		players:    map[playerImpl]struct{}{},
 		inited:     make(chan struct{}),
 		semaphore:  make(chan struct{}, 1),
@@ -268,7 +268,7 @@ type playerImpl interface {
 // A Player doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
 func NewPlayer(context *Context, src io.Reader) (*Player, error) {
-	pi, err := newWriterContextPlayerImpl(context, context.c, src)
+	pi, err := newWriterContextPlayerImpl(context, context.wc, src)
 	if err != nil {
 		return nil, err
 	}
