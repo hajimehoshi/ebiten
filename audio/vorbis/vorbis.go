@@ -141,7 +141,7 @@ func decode(in io.ReadSeeker) (*decoded, int, int, error) {
 //
 // DecodeWithSampleRate returns error when decoding fails or IO error happens.
 //
-// DecodeWithSampleRate automatically resamples the stream to fit with the audio context if necessary.
+// DecodeWithSampleRate automatically resamples the stream to fit with sampleRate if necessary.
 //
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
