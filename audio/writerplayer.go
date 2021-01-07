@@ -48,17 +48,17 @@ func newWriterDriver(sampleRate int) writerDriver {
 	return newOtoDriver(sampleRate, ch)
 }
 
-type writerContext struct {
+type writerPlayerFactory struct {
 	driver writerDriver
 }
 
-func newWriterContext(sampleRate int) *writerContext {
-	return &writerContext{
+func newWriterPlayerFactory(sampleRate int) *writerPlayerFactory {
+	return &writerPlayerFactory{
 		driver: newWriterDriver(sampleRate),
 	}
 }
 
-type writerContextPlayerImpl struct {
+type writerPlayer struct {
 	context          *Context
 	driver           writerDriver
 	src              io.Reader
@@ -74,8 +74,8 @@ type writerContextPlayerImpl struct {
 	m sync.Mutex
 }
 
-func (c *writerContext) newPlayerImpl(context *Context, src io.Reader) (playerImpl, error) {
-	p := &writerContextPlayerImpl{
+func (c *writerPlayerFactory) newPlayerImpl(context *Context, src io.Reader) (playerImpl, error) {
+	p := &writerPlayer{
 		context: context,
 		driver:  c.driver,
 		src:     src,
@@ -92,7 +92,7 @@ func (c *writerContext) newPlayerImpl(context *Context, src io.Reader) (playerIm
 	return p, nil
 }
 
-func (p *writerContextPlayerImpl) Close() error {
+func (p *writerPlayer) Close() error {
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -104,7 +104,7 @@ func (p *writerContextPlayerImpl) Close() error {
 	return nil
 }
 
-func (p *writerContextPlayerImpl) Play() {
+func (p *writerPlayer) Play() {
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -126,7 +126,7 @@ func (p *writerContextPlayerImpl) Play() {
 	return
 }
 
-func (p *writerContextPlayerImpl) loop() {
+func (p *writerPlayer) loop() {
 	p.context.waitUntilInited()
 
 	w := p.driver.NewPlayer()
@@ -167,7 +167,7 @@ func (p *writerContextPlayerImpl) loop() {
 	}
 }
 
-func (p *writerContextPlayerImpl) read() ([]byte, bool) {
+func (p *writerPlayer) read() ([]byte, bool) {
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -220,21 +220,21 @@ func (p *writerContextPlayerImpl) read() ([]byte, bool) {
 	return buf, true
 }
 
-func (p *writerContextPlayerImpl) IsPlaying() bool {
+func (p *writerPlayer) IsPlaying() bool {
 	p.m.Lock()
 	r := p.playing
 	p.m.Unlock()
 	return r
 }
 
-func (p *writerContextPlayerImpl) Rewind() error {
+func (p *writerPlayer) Rewind() error {
 	if _, ok := p.src.(io.Seeker); !ok {
 		panic("audio: player to be rewound must be io.Seeker")
 	}
 	return p.Seek(0)
 }
 
-func (p *writerContextPlayerImpl) Seek(offset time.Duration) error {
+func (p *writerPlayer) Seek(offset time.Duration) error {
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -255,27 +255,27 @@ func (p *writerContextPlayerImpl) Seek(offset time.Duration) error {
 	return nil
 }
 
-func (p *writerContextPlayerImpl) Pause() {
+func (p *writerPlayer) Pause() {
 	p.m.Lock()
 	p.playing = false
 	p.m.Unlock()
 }
 
-func (p *writerContextPlayerImpl) Current() time.Duration {
+func (p *writerPlayer) Current() time.Duration {
 	p.m.Lock()
 	sample := p.pos / bytesPerSample
 	p.m.Unlock()
 	return time.Duration(sample) * time.Second / time.Duration(p.context.SampleRate())
 }
 
-func (p *writerContextPlayerImpl) Volume() float64 {
+func (p *writerPlayer) Volume() float64 {
 	p.m.Lock()
 	v := p.volume
 	p.m.Unlock()
 	return v
 }
 
-func (p *writerContextPlayerImpl) SetVolume(volume float64) {
+func (p *writerPlayer) SetVolume(volume float64) {
 	// The condition must be true when volume is NaN.
 	if !(0 <= volume && volume <= 1) {
 		panic("audio: volume must be in between 0 and 1")
@@ -286,6 +286,6 @@ func (p *writerContextPlayerImpl) SetVolume(volume float64) {
 	p.m.Unlock()
 }
 
-func (p *writerContextPlayerImpl) source() io.Reader {
+func (p *writerPlayer) source() io.Reader {
 	return p.src
 }

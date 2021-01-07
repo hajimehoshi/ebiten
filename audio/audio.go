@@ -101,7 +101,7 @@ func NewContext(sampleRate int) *Context {
 
 	c := &Context{
 		sampleRate: sampleRate,
-		np:         newWriterContext(sampleRate),
+		np:         newWriterPlayerFactory(sampleRate),
 		players:    map[playerImpl]struct{}{},
 		inited:     make(chan struct{}),
 		semaphore:  make(chan struct{}, 1),
