@@ -43,6 +43,7 @@ func newReaderPlayerFactory(sampleRate int) *readerPlayerFactory {
 	return &readerPlayerFactory{
 		driver: newReaderDriverImpl(sampleRate),
 	}
+	// TODO: Consider the hooks.
 }
 
 type readerPlayer struct {

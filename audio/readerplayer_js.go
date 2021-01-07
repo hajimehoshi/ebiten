@@ -15,7 +15,10 @@
 package audio
 
 import (
+	"io"
 	"syscall/js"
+
+	"github.com/hajimehoshi/ebiten/v2/audio/go2cpp"
 )
 
 func isReaderContextAvailable() bool {
@@ -23,6 +26,17 @@ func isReaderContextAvailable() bool {
 }
 
 func newReaderDriverImpl(sampleRate int) readerDriver {
-	// TODO: Implement this for go2cpp.
-	return nil
+	return &go2cppDriverWrapper{go2cpp.NewContext(sampleRate)}
+}
+
+type go2cppDriverWrapper struct {
+	c *go2cpp.Context
+}
+
+func (w *go2cppDriverWrapper) NewPlayer(r io.Reader) readerDriverPlayer {
+	return w.c.NewPlayer(r)
+}
+
+func (w *go2cppDriverWrapper) Close() error {
+	return w.c.Close()
 }
