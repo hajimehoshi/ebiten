@@ -49,16 +49,21 @@ func newReaderPlayerFactory(sampleRate int) *readerPlayerFactory {
 type readerPlayer struct {
 	context *Context
 	player  readerDriverPlayer
-	src     io.Reader
+	src     *timeStream
 	playing bool
 	m       sync.Mutex
 }
 
 func (c *readerPlayerFactory) newPlayerImpl(context *Context, src io.Reader) (playerImpl, error) {
+	s, err := newTimeStream(src, context.SampleRate())
+	if err != nil {
+		return nil, err
+	}
+
 	p := &readerPlayer{
 		context: context,
 		player:  c.driver.NewPlayer(src),
-		src:     src,
+		src:     s,
 	}
 	runtime.SetFinalizer(p, (*readerPlayer).Close)
 	return p, nil
@@ -113,17 +118,76 @@ func (p *readerPlayer) Close() error {
 }
 
 func (p *readerPlayer) Current() time.Duration {
-	panic("not implemented")
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	return p.src.Current()
 }
 
 func (p *readerPlayer) Rewind() error {
-	panic("not implemented")
+	return p.Seek(0)
 }
 
 func (p *readerPlayer) Seek(offset time.Duration) error {
-	panic("not implemented")
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	return p.src.Seek(offset)
 }
 
 func (p *readerPlayer) source() io.Reader {
 	return p.src
+}
+
+type timeStream struct {
+	r          io.Reader
+	sampleRate int
+	pos        int64
+}
+
+func newTimeStream(r io.Reader, sampleRate int) (*timeStream, error) {
+	s := &timeStream{
+		r:          r,
+		sampleRate: sampleRate,
+	}
+	if seeker, ok := s.r.(io.Seeker); ok {
+		// Get the current position of the source.
+		pos, err := seeker.Seek(0, io.SeekCurrent)
+		if err != nil {
+			return nil, err
+		}
+		s.pos = pos
+	}
+	return s, nil
+}
+
+func (s *timeStream) Read(buf []byte) (int, error) {
+	n, err := s.Read(buf)
+	s.pos += int64(n)
+	return n, err
+}
+
+func (s *timeStream) Seek(offset time.Duration) error {
+	o := int64(offset) * bytesPerSample * int64(s.sampleRate) / int64(time.Second)
+
+	// Align the byte position with the samples.
+	o -= o % bytesPerSample
+	o += s.pos % bytesPerSample
+
+	seeker, ok := s.r.(io.Seeker)
+	if !ok {
+		panic("audio: the source must be io.Seeker when seeking but not")
+	}
+	pos, err := seeker.Seek(o, io.SeekStart)
+	if err != nil {
+		return err
+	}
+
+	s.pos = pos
+	return nil
+}
+
+func (s *timeStream) Current() time.Duration {
+	sample := s.pos / bytesPerSample
+	return time.Duration(sample) * time.Second / time.Duration(s.sampleRate)
 }
