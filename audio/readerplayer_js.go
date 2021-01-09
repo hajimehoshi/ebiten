@@ -18,7 +18,7 @@ import (
 	"io"
 	"syscall/js"
 
-	"github.com/hajimehoshi/ebiten/v2/audio/go2cpp"
+	"github.com/hajimehoshi/ebiten/v2/audio/internal/go2cpp"
 )
 
 func isReaderContextAvailable() bool {
