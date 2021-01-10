@@ -3,8 +3,8 @@ github.com/go-gl/glfw/v3.3/glfw v0.0.0-20200707082815-5321531c36a2 h1:Ac1OEHHkbA
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20200707082815-5321531c36a2/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
 github.com/gofrs/flock v0.8.0 h1:MSdYClljsF3PbENUUEx85nkWfJSGfzYI9yEBZOJz6CY=
 github.com/gofrs/flock v0.8.0/go.mod h1:F1TvTiK9OcQqauNUHlbJvyl9Qa1QvF/gOUDKA14jxHU=
-github.com/hajimehoshi/bitmapfont/v2 v2.1.2 h1:pocVwRwAAuTBrUerTOIob0AIX5AHw1RbrJDQ99dHJ3o=
-github.com/hajimehoshi/bitmapfont/v2 v2.1.2/go.mod h1:2BnYrkTQGThpr/CY6LorYtt/zEPNzvE/ND69CRTaHMs=
+github.com/hajimehoshi/bitmapfont/v2 v2.1.3 h1:JefUkL0M4nrdVwVq7MMZxSTh6mSxOylm+C4Anoucbb0=
+github.com/hajimehoshi/bitmapfont/v2 v2.1.3/go.mod h1:2BnYrkTQGThpr/CY6LorYtt/zEPNzvE/ND69CRTaHMs=
 github.com/hajimehoshi/file2byteslice v0.0.0-20200812174855-0e5e8a80490e h1:4IP7CPObI35+mQShFOYg2JMHDJKciLTW5599inhFfkA=
 github.com/hajimehoshi/file2byteslice v0.0.0-20200812174855-0e5e8a80490e/go.mod h1:CqqAHp7Dk/AqQiwuhV1yT2334qbA/tFWQW0MD2dGqUE=
 github.com/hajimehoshi/go-mp3 v0.3.1 h1:pn/SKU1+/rfK8KaZXdGEC2G/KCB2aLRjbTCrwKcokao=
