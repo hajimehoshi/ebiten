@@ -99,6 +99,18 @@ func (p *Player) Play() {
 	p.cond.Signal()
 }
 
+func (p *Player) Reset() {
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
+
+	if p.state == playerStateClosed {
+		return
+	}
+
+	p.v.Call("reset")
+	p.cond.Signal()
+}
+
 func (p *Player) Volume() float64 {
 	return p.v.Get("volume").Float()
 }

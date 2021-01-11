@@ -30,6 +30,7 @@ type readerDriver interface {
 type readerDriverPlayer interface {
 	Pause()
 	Play()
+	Reset()
 	Volume() float64
 	SetVolume(volume float64)
 	io.Closer
@@ -121,6 +122,7 @@ func (p *readerPlayer) Current() time.Duration {
 	p.m.Lock()
 	defer p.m.Unlock()
 
+	// TODO: Add a new function to readerDriverPlayer and use it.
 	return p.src.Current()
 }
 
@@ -132,6 +134,7 @@ func (p *readerPlayer) Seek(offset time.Duration) error {
 	p.m.Lock()
 	defer p.m.Unlock()
 
+	p.player.Reset()
 	return p.src.Seek(offset)
 }
 
