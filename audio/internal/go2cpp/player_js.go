@@ -142,7 +142,7 @@ func (p *Player) waitUntilUnpaused() bool {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
 
-	for p.state == playerStatePaused || !p.v.Call("isWritable").Bool() {
+	for p.state == playerStatePaused || (p.state == playerStatePlaying && !p.v.Call("isWritable").Bool()) {
 		p.cond.Wait()
 	}
 	return p.state == playerStatePlaying
