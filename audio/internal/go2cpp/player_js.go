@@ -183,6 +183,7 @@ func (p *Player) loop() {
 		}
 
 		if err == io.EOF {
+			// TODO: This should be Pause instead of Close for Rewind
 			p.Close()
 			return
 		}
