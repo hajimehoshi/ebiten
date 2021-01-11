@@ -85,6 +85,7 @@ func (p *Player) Pause() {
 	}
 	p.v.Call("pause")
 	p.state = playerStatePaused
+	p.cond.Signal()
 }
 
 func (p *Player) Play() {
