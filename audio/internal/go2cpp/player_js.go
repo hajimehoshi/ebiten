@@ -166,7 +166,7 @@ func (p *Player) loop() {
 		}
 		if n > 0 {
 			js.CopyBytesToJS(dst, buf[:n])
-			p.v.Call("write", dst, size)
+			p.v.Call("write", dst, n)
 		}
 
 		if err == io.EOF {
