@@ -149,7 +149,7 @@ func (p *Player) waitUntilUnpaused() bool {
 }
 
 func (p *Player) loop() {
-	const size = 1024
+	const size = 4096
 
 	buf := make([]byte, size)
 	dst := js.Global().Get("Uint8Array").New(size)
