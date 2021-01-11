@@ -134,7 +134,7 @@ func (p *Player) setError(err error) {
 
 	p.v.Call("close")
 	p.err = err
-	p.state = playerStateError
+	p.state = playerStateClosed
 	p.cond.Signal()
 }
 
