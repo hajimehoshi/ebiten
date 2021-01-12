@@ -47,8 +47,6 @@ func (c *Context) NewPlayer(r io.Reader) *Player {
 	}
 	runtime.SetFinalizer(p, (*Player).Close)
 
-	p.v.Set("onWritten", p.onWritten)
-
 	go p.loop()
 	return p
 }
