@@ -38,16 +38,14 @@ func (c *Context) NewPlayer(r io.Reader) *Player {
 		cond.Signal()
 		return nil
 	})
-	v := c.v.Call("createPlayer", onwritten)
 	p := &Player{
+		context:   c,
 		src:       r,
-		v:         v,
+		volume:    1,
 		cond:      cond,
 		onWritten: onwritten,
 	}
 	runtime.SetFinalizer(p, (*Player).Close)
-
-	go p.loop()
 	return p
 }
 
@@ -61,15 +59,16 @@ const (
 	playerStatePaused playerState = iota
 	playerStatePlaying
 	playerStateClosed
-	playerStateError
 )
 
 type Player struct {
-	src   io.Reader
-	v     js.Value
-	state playerState
-	cond  *sync.Cond
-	err   error
+	context *Context
+	src     io.Reader
+	v       js.Value
+	state   playerState
+	volume  float64
+	cond    *sync.Cond
+	err     error
 
 	onWritten js.Func
 }
@@ -81,6 +80,10 @@ func (p *Player) Pause() {
 	if p.state == playerStateClosed {
 		return
 	}
+	if !p.v.Truthy() {
+		return
+	}
+
 	p.v.Call("pause")
 	p.state = playerStatePaused
 	p.cond.Signal()
@@ -93,6 +96,12 @@ func (p *Player) Play() {
 	if p.state == playerStateClosed {
 		return
 	}
+	if !p.v.Truthy() {
+		p.v = p.context.v.Call("createPlayer", p.onWritten)
+		p.v.Set("volume", p.volume)
+		go p.loop()
+	}
+
 	p.v.Call("play")
 	p.state = playerStatePlaying
 	p.cond.Signal()
@@ -105,45 +114,63 @@ func (p *Player) Reset() {
 	if p.state == playerStateClosed {
 		return
 	}
+	if !p.v.Truthy() {
+		return
+	}
 
-	p.v.Call("reset")
+	p.v.Call("close", true)
+	p.v = js.Undefined()
 	p.cond.Signal()
 }
 
 func (p *Player) Volume() float64 {
+	if !p.v.Truthy() {
+		return p.volume
+	}
 	return p.v.Get("volume").Float()
 }
 
 func (p *Player) SetVolume(volume float64) {
+	if !p.v.Truthy() {
+		return
+	}
 	p.v.Set("volume", volume)
+	p.volume = volume
 }
 
 func (p *Player) Close() error {
 	runtime.SetFinalizer(p, nil)
+	return p.close(true)
+}
 
+func (p *Player) close(remove bool) error {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
 
-	if p.state == playerStateError {
+	if p.state == playerStateClosed {
 		return p.err
 	}
 
-	p.v.Call("close")
-	p.state = playerStateClosed
+	p.v.Call("close", false)
+	p.v = js.Undefined()
+	if remove {
+		p.state = playerStateClosed
+		p.onWritten.Release()
+	} else {
+		p.state = playerStatePaused
+	}
 	p.cond.Signal()
-	p.onWritten.Release()
-	return nil
+	return p.err
 }
 
 func (p *Player) setError(err error) {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
 
-	if p.state == playerStateError {
-		return
+	if p.state != playerStateClosed && p.v.Truthy() {
+		p.v.Call("close", true)
+		p.v = js.Undefined()
 	}
-
-	p.v.Call("close")
 	p.err = err
 	p.state = playerStateClosed
 	p.cond.Signal()
@@ -153,10 +180,10 @@ func (p *Player) waitUntilUnpaused() bool {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
 
-	for p.state == playerStatePaused || (p.state == playerStatePlaying && !p.v.Call("isWritable").Bool()) {
+	for p.v.Truthy() && (p.state == playerStatePaused || (p.state == playerStatePlaying && !p.v.Call("isWritable").Bool())) {
 		p.cond.Wait()
 	}
-	return p.state == playerStatePlaying
+	return p.v.Truthy() && p.state == playerStatePlaying
 }
 
 func (p *Player) loop() {
@@ -181,8 +208,7 @@ func (p *Player) loop() {
 		}
 
 		if err == io.EOF {
-			// TODO: This should be Pause instead of Close for Rewind
-			p.Close()
+			p.close(false)
 			return
 		}
 	}
