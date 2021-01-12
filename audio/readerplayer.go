@@ -134,8 +134,11 @@ func (p *readerPlayer) Seek(offset time.Duration) error {
 	p.m.Lock()
 	defer p.m.Unlock()
 
+	if err := p.src.Seek(offset); err != nil {
+		return err
+	}
 	p.player.Reset()
-	return p.src.Seek(offset)
+	return nil
 }
 
 func (p *readerPlayer) source() io.Reader {
