@@ -186,6 +186,21 @@ func (p *Player) waitUntilUnpaused() bool {
 	return p.v.Truthy() && p.state == playerStatePlaying
 }
 
+func (p *Player) write(dst js.Value, src []byte) {
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
+
+	if p.state == playerStateClosed {
+		return
+	}
+	if !p.v.Truthy() {
+		return
+	}
+
+	js.CopyBytesToJS(dst, src)
+	p.v.Call("write", dst, len(src))
+}
+
 func (p *Player) loop() {
 	const size = 4096
 
@@ -203,8 +218,7 @@ func (p *Player) loop() {
 			return
 		}
 		if n > 0 {
-			js.CopyBytesToJS(dst, buf[:n])
-			p.v.Call("write", dst, n)
+			p.write(dst, buf[:n])
 		}
 
 		if err == io.EOF {
