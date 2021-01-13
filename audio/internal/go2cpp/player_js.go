@@ -26,7 +26,7 @@ type Context struct {
 }
 
 func NewContext(sampleRate int) *Context {
-	v := js.Global().Get("go2cpp").Call("createAudio", sampleRate, 2, 2, 8192)
+	v := js.Global().Get("go2cpp").Call("createAudio", sampleRate, 2, 2)
 	return &Context{
 		v: v,
 	}
