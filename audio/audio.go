@@ -321,7 +321,6 @@ func (p *Player) finalize() {
 //
 // Close returns error when the player is already closed.
 func (p *Player) Close() error {
-	runtime.SetFinalizer(p, nil)
 	return p.p.Close()
 }
 

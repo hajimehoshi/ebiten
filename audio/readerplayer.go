@@ -16,7 +16,6 @@ package audio
 
 import (
 	"io"
-	"runtime"
 	"sync"
 	"time"
 )
@@ -30,6 +29,7 @@ type readerDriver interface {
 type readerDriverPlayer interface {
 	Pause()
 	Play()
+	IsPlaying() bool
 	Reset()
 	Volume() float64
 	SetVolume(volume float64)
@@ -51,7 +51,6 @@ type readerPlayer struct {
 	context *Context
 	player  readerDriverPlayer
 	src     *timeStream
-	playing bool
 	m       sync.Mutex
 }
 
@@ -66,7 +65,6 @@ func (c *readerPlayerFactory) newPlayerImpl(context *Context, src io.Reader) (pl
 		player:  c.driver.NewPlayer(src),
 		src:     s,
 	}
-	runtime.SetFinalizer(p, (*readerPlayer).Close)
 	return p, nil
 }
 
@@ -75,7 +73,6 @@ func (p *readerPlayer) Play() {
 	defer p.m.Unlock()
 
 	p.player.Play()
-	p.playing = true
 	p.context.addPlayer(p)
 }
 
@@ -84,14 +81,13 @@ func (p *readerPlayer) Pause() {
 	defer p.m.Unlock()
 
 	p.player.Pause()
-	p.playing = false
 }
 
 func (p *readerPlayer) IsPlaying() bool {
 	p.m.Lock()
 	defer p.m.Unlock()
 
-	return p.playing
+	return p.player.IsPlaying()
 }
 
 func (p *readerPlayer) Volume() float64 {
@@ -112,9 +108,7 @@ func (p *readerPlayer) Close() error {
 	p.m.Lock()
 	defer p.m.Unlock()
 
-	runtime.SetFinalizer(p, nil)
 	p.context.removePlayer(p)
-	p.playing = false
 	return p.player.Close()
 }
 

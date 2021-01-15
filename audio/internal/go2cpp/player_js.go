@@ -107,6 +107,13 @@ func (p *Player) Play() {
 	p.cond.Signal()
 }
 
+func (p *Player) IsPlaying() bool {
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
+
+	return p.state == playerStatePlaying
+}
+
 func (p *Player) Reset() {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
@@ -151,8 +158,10 @@ func (p *Player) close(remove bool) error {
 		return p.err
 	}
 
-	p.v.Call("close", false)
-	p.v = js.Undefined()
+	if p.v.Truthy() {
+		p.v.Call("close", false)
+		p.v = js.Undefined()
+	}
 	if remove {
 		p.state = playerStateClosed
 		p.onWritten.Release()
