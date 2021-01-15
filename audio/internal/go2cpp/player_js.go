@@ -22,13 +22,19 @@ import (
 )
 
 type Context struct {
-	v js.Value
+	v               js.Value
+	sampleRate      int
+	channelNum      int
+	bitDepthInBytes int
 }
 
-func NewContext(sampleRate int) *Context {
-	v := js.Global().Get("go2cpp").Call("createAudio", sampleRate, 2, 2)
+func NewContext(sampleRate int, channelNum, bitDepthInBytes int) *Context {
+	v := js.Global().Get("go2cpp").Call("createAudio", sampleRate, channelNum, bitDepthInBytes)
 	return &Context{
-		v: v,
+		v:               v,
+		sampleRate:      sampleRate,
+		channelNum:      channelNum,
+		bitDepthInBytes: bitDepthInBytes,
 	}
 }
 
@@ -96,13 +102,32 @@ func (p *Player) Play() {
 	if p.state == playerStateClosed {
 		return
 	}
+
+	var runloop bool
 	if !p.v.Truthy() {
 		p.v = p.context.v.Call("createPlayer", p.onWritten)
 		p.v.Set("volume", p.volume)
-		go p.loop()
+		runloop = true
 	}
 
 	p.v.Call("play")
+
+	// Prepare the first data as soon as possible, or the audio can get stuck.
+	// TODO: Get the appropriate buffer size from the C++ side.
+	buf := make([]byte, p.context.sampleRate*p.context.channelNum*p.context.bitDepthInBytes/4)
+	n, err := p.src.Read(buf)
+	if err != nil && err != io.EOF {
+		p.setError(err)
+		return
+	}
+	if n > 0 {
+		dst := js.Global().Get("Uint8Array").New(n)
+		p.writeImpl(dst, buf[:n])
+	}
+
+	if runloop {
+		go p.loop()
+	}
 	p.state = playerStatePlaying
 	p.cond.Signal()
 }
@@ -198,7 +223,10 @@ func (p *Player) waitUntilUnpaused() bool {
 func (p *Player) write(dst js.Value, src []byte) {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
+	p.writeImpl(dst, src)
+}
 
+func (p *Player) writeImpl(dst js.Value, src []byte) {
 	if p.state == playerStateClosed {
 		return
 	}

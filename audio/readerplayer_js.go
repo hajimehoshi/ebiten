@@ -26,7 +26,7 @@ func isReaderContextAvailable() bool {
 }
 
 func newReaderDriverImpl(sampleRate int) readerDriver {
-	return &go2cppDriverWrapper{go2cpp.NewContext(sampleRate)}
+	return &go2cppDriverWrapper{go2cpp.NewContext(sampleRate, channelNum, bitDepthInBytes)}
 }
 
 type go2cppDriverWrapper struct {

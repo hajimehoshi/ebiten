@@ -44,8 +44,9 @@ import (
 )
 
 const (
-	channelNum     = 2
-	bytesPerSample = 2 * channelNum
+	channelNum      = 2
+	bitDepthInBytes = 2
+	bytesPerSample  = bitDepthInBytes * channelNum
 )
 
 type newPlayerImpler interface {
