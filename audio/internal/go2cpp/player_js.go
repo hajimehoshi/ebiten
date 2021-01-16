@@ -22,13 +22,19 @@ import (
 )
 
 type Context struct {
-	v js.Value
+	v               js.Value
+	sampleRate      int
+	channelNum      int
+	bitDepthInBytes int
 }
 
 func NewContext(sampleRate int, channelNum, bitDepthInBytes int) *Context {
 	v := js.Global().Get("go2cpp").Call("createAudio", sampleRate, channelNum, bitDepthInBytes)
 	return &Context{
-		v: v,
+		v:               v,
+		sampleRate:      sampleRate,
+		channelNum:      channelNum,
+		bitDepthInBytes: bitDepthInBytes,
 	}
 }
 
@@ -103,7 +109,22 @@ func (p *Player) Play() {
 		p.v.Set("volume", p.volume)
 		runloop = true
 	}
+
 	p.v.Call("play")
+
+	// Prepare the first data as soon as possible, or the audio can get stuck.
+	// TODO: Get the appropriate buffer size from the C++ side.
+	buf := make([]byte, p.context.sampleRate*p.context.channelNum*p.context.bitDepthInBytes/4)
+	n, err := p.src.Read(buf)
+	if err != nil && err != io.EOF {
+		p.setError(err)
+		return
+	}
+	if n > 0 {
+		dst := js.Global().Get("Uint8Array").New(n)
+		p.writeImpl(dst, buf[:n])
+	}
+
 	if runloop {
 		go p.loop()
 	}
