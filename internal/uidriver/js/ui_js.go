@@ -184,12 +184,21 @@ func (u *UserInterface) update() error {
 		return nil
 	}
 	hooks.ResumeAudio()
+	return u.updateImpl(false)
+}
 
+func (u *UserInterface) updateImpl(force bool) error {
 	u.input.updateGamepads()
 	u.input.updateForGo2Cpp()
 	u.updateSize()
-	if err := u.context.Update(); err != nil {
-		return err
+	if force {
+		if err := u.context.ForceUpdate(); err != nil {
+			return err
+		}
+	} else {
+		if err := u.context.Update(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -327,6 +336,9 @@ func init() {
 func setWindowEventHandlers(v js.Value) {
 	v.Call("addEventListener", "resize", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		theUI.updateScreenSize()
+		if err := theUI.updateImpl(true); err != nil {
+			panic(err)
+		}
 		return nil
 	}))
 

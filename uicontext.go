@@ -145,7 +145,7 @@ func (c *uiContext) Update() error {
 	if err := buffered.BeginFrame(); err != nil {
 		return err
 	}
-	if err := c.update(); err != nil {
+	if err := c.update(clock.Update(MaxTPS())); err != nil {
 		return err
 	}
 	if err := buffered.EndFrame(); err != nil {
@@ -154,10 +154,24 @@ func (c *uiContext) Update() error {
 	return nil
 }
 
-func (c *uiContext) update() error {
-	c.updateOffscreen()
+func (c *uiContext) ForceUpdate() error {
+	if err, ok := c.err.Load().(error); ok && err != nil {
+		return err
+	}
+	if err := buffered.BeginFrame(); err != nil {
+		return err
+	}
+	if err := c.update(1); err != nil {
+		return err
+	}
+	if err := buffered.EndFrame(); err != nil {
+		return err
+	}
+	return nil
+}
 
-	updateCount := clock.Update(MaxTPS())
+func (c *uiContext) update(updateCount int) error {
+	c.updateOffscreen()
 
 	// Ensure that Update is called once before Draw so that Update can be used for initialization.
 	if !c.updateCalled && updateCount == 0 {
