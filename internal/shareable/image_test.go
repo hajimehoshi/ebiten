@@ -584,4 +584,61 @@ func TestDisposedAndReshared(t *testing.T) {
 	}
 }
 
+// Issue #1456
+func TestImageIsNotResharedWithoutUsingAsSource(t *testing.T) {
+	const size = 16
+
+	src := NewImage(size, size)
+	defer src.MarkDisposed()
+	src2 := NewImage(size, size)
+	defer src2.MarkDisposed()
+	dst := NewImage(size, size)
+	defer dst.MarkDisposed()
+
+	// Use src as a render target so that src is not on the shared image.
+	vs := quadVertices(size, size, 0, 0, 1)
+	is := graphics.QuadIndices()
+	dr := driver.Region{
+		X:      0,
+		Y:      0,
+		Width:  size,
+		Height: size,
+	}
+
+	// Use src2 as a rendering target, and make src2 an independent image.
+	src2.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
+	if got, want := src2.IsSharedForTesting(), false; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	// Update the count without using src2 as a rendering source.
+	// This should not affect whether src2 is on a shareable image or not.
+	for i := 0; i < MaxCountForShare; i++ {
+		if err := MakeImagesSharedForTesting(); err != nil {
+			t.Fatal(err)
+		}
+		if got, want := src2.IsSharedForTesting(), false; got != want {
+			t.Errorf("got: %v, want: %v", got, want)
+		}
+	}
+
+	// Update the count with using src2 as a rendering source.
+	for i := 0; i < MaxCountForShare; i++ {
+		if err := MakeImagesSharedForTesting(); err != nil {
+			t.Fatal(err)
+		}
+		dst.DrawTriangles([graphics.ShaderImageNum]*Image{src2}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
+		if got, want := src2.IsSharedForTesting(), false; got != want {
+			t.Errorf("got: %v, want: %v", got, want)
+		}
+	}
+
+	if err := MakeImagesSharedForTesting(); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := src2.IsSharedForTesting(), true; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
 // TODO: Add tests to extend shareable image out of the main loop

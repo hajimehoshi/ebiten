@@ -85,8 +85,8 @@ const CountForStartSyncing = MaxCountForShare / 2
 
 func makeImagesShared() error {
 	for i := range imagesToMakeShared {
-		i.nonUpdatedCount++
-		if i.nonUpdatedCount >= CountForStartSyncing && i.syncing == nil {
+		i.usedAsSourceCount++
+		if i.usedAsSourceCount >= CountForStartSyncing && i.syncing == nil {
 			// Sync the pixel data on CPU and GPU sides explicitly in order not to block this process.
 			ch, err := i.backend.restorable.Sync()
 			if err != nil {
@@ -94,7 +94,7 @@ func makeImagesShared() error {
 			}
 			i.syncing = ch
 		}
-		if i.nonUpdatedCount >= MaxCountForShare {
+		if i.usedAsSourceCount >= MaxCountForShare {
 			// TODO: Instead of waiting for the channel, use select-case and continue the loop if this
 			// channel is blocking. However, this might make the tests difficult.
 			<-i.syncing
@@ -102,11 +102,14 @@ func makeImagesShared() error {
 			if err := i.makeShared(); err != nil {
 				return err
 			}
-			i.nonUpdatedCount = 0
+			i.usedAsSourceCount = 0
 			delete(imagesToMakeShared, i)
 			i.syncing = nil
 		}
 	}
+
+	// Reset the images. The images will be registered again when it is used as a rendering source.
+	imagesToMakeShared = map[*Image]struct{}{}
 	return nil
 }
 
@@ -188,15 +191,16 @@ type Image struct {
 
 	node *packing.Node
 
-	// nonUpdatedCount represents how long the image is kept not modified with DrawTriangles.
+	// usedAsSourceCount represents how long the image is used as a rendering source and kept not modified with
+	// DrawTriangles.
 	// In the current implementation, if an image is being modified by DrawTriangles, the image is separated from
 	// a shared (restorable) image by ensureNotShared.
 	//
-	// nonUpdatedCount is increased every frame if the image is not modified, or set to 0 if the image is
+	// usedAsSourceCount is increased if the image is used as a rendering source, or set to 0 if the image is
 	// modified.
 	//
 	// ReplacePixels doesn't affect this value since ReplacePixels can be done on shared images.
-	nonUpdatedCount int
+	usedAsSourceCount int
 
 	syncing <-chan struct{}
 }
@@ -214,14 +218,14 @@ func (i *Image) isShared() bool {
 	return i.node != nil
 }
 
-func (i *Image) resetNonUpdatedCount() {
-	i.nonUpdatedCount = 0
+func (i *Image) resetUsedAsSourceCount() {
+	i.usedAsSourceCount = 0
 	delete(imagesToMakeShared, i)
 	i.syncing = nil
 }
 
 func (i *Image) ensureNotShared() {
-	i.resetNonUpdatedCount()
+	i.resetUsedAsSourceCount()
 
 	if i.backend == nil {
 		i.allocate(false)
@@ -297,7 +301,7 @@ func (i *Image) makeShared() error {
 	}
 	newI.replacePixels(pixels)
 	newI.moveTo(i)
-	i.nonUpdatedCount = 0
+	i.usedAsSourceCount = 0
 	i.syncing = nil
 	return nil
 }
@@ -443,7 +447,7 @@ func (i *Image) replacePixels(pix []byte) {
 		panic("shareable: the image must not be disposed at replacePixels")
 	}
 
-	i.resetNonUpdatedCount()
+	i.resetUsedAsSourceCount()
 
 	if i.backend == nil {
 		if pix == nil {
@@ -535,7 +539,7 @@ func (i *Image) dispose(markDisposed bool) {
 		}
 	}()
 
-	i.resetNonUpdatedCount()
+	i.resetUsedAsSourceCount()
 
 	if i.disposed {
 		return
