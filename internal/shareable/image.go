@@ -73,20 +73,16 @@ func resolveDeferred() {
 	}
 }
 
-// MaxCountForShare represents the time duration when the image can become shared.
-//
-// This value is exported for testing.
-const MaxCountForShare = 10
+// maxCountForShare represents the time duration when the image can become shared.
+const maxCountForShare = 10
 
-// CountForStartSyncing represents the count that the image starts to sync pixels between GPU and CPU.
-//
-// This value is exported for testing.
-const CountForStartSyncing = MaxCountForShare / 2
+// countForStartSyncing represents the count that the image starts to sync pixels between GPU and CPU.
+const countForStartSyncing = maxCountForShare / 2
 
 func makeImagesShared() error {
 	for i := range imagesToMakeShared {
 		i.usedAsSourceCount++
-		if i.usedAsSourceCount >= CountForStartSyncing && i.syncing == nil {
+		if i.usedAsSourceCount >= countForStartSyncing && i.syncing == nil {
 			// Sync the pixel data on CPU and GPU sides explicitly in order not to block this process.
 			ch, err := i.backend.restorable.Sync()
 			if err != nil {
@@ -94,7 +90,7 @@ func makeImagesShared() error {
 			}
 			i.syncing = ch
 		}
-		if i.usedAsSourceCount >= MaxCountForShare {
+		if i.usedAsSourceCount >= maxCountForShare {
 			// TODO: Instead of waiting for the channel, use select-case and continue the loop if this
 			// channel is blocking. However, this might make the tests difficult.
 			<-i.syncing
