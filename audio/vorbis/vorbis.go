@@ -160,7 +160,7 @@ func DecodeWithSampleRate(sampleRate int, src io.ReadSeeker) (*Stream, error) {
 		size *= 2
 	}
 	if origSampleRate != sampleRate {
-		r := convert.NewResampling(s, size, sampleRate, sampleRate)
+		r := convert.NewResampling(s, size, origSampleRate, sampleRate)
 		s = r
 		size = r.Length()
 	}
