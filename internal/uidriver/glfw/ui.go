@@ -50,6 +50,9 @@ type UserInterface struct {
 	runnableOnUnfocused bool
 	vsync               bool
 
+	// err must be accessed from the main thread.
+	err error
+
 	lastDeviceScaleFactor float64
 
 	initMonitor              *glfw.Monitor
@@ -72,9 +75,6 @@ type UserInterface struct {
 	iconImages               []image.Image
 
 	vsyncInited bool
-
-	reqWidth  int
-	reqHeight int
 
 	input   Input
 	iwindow window
@@ -628,8 +628,35 @@ func (u *UserInterface) createWindow() error {
 		if u.isFullscreen() {
 			return
 		}
-		u.reqWidth = width
-		u.reqHeight = height
+
+		if err := u.runOnAnotherThreadFromMainThread(func() error {
+			var outsideWidth, outsideHeight float64
+			var outsideSizeChanged bool
+
+			_ = u.t.Call(func() error {
+				if width != 0 || height != 0 {
+					u.setWindowSize(width, height, u.isFullscreen())
+				}
+
+				outsideWidth, outsideHeight, outsideSizeChanged = u.updateSize()
+				return nil
+			})
+			if outsideSizeChanged {
+				u.context.Layout(outsideWidth, outsideHeight)
+			}
+			if err := u.context.ForceUpdate(); err != nil {
+				return err
+			}
+			if u.Graphics().IsGL() {
+				_ = u.t.Call(func() error {
+					u.swapBuffers()
+					return nil
+				})
+			}
+			return nil
+		}); err != nil {
+			u.err = err
+		}
 	})
 
 	return nil
@@ -754,6 +781,10 @@ func (u *UserInterface) updateSize() (float64, float64, bool) {
 
 // update must be called from the main thread.
 func (u *UserInterface) update() (float64, float64, bool, error) {
+	if u.err != nil {
+		return 0, 0, false, u.err
+	}
+
 	if u.window.ShouldClose() {
 		return 0, 0, false, driver.RegularTermination
 	}
@@ -771,13 +802,6 @@ func (u *UserInterface) update() (float64, float64, bool, error) {
 		u.updateVsync()
 		u.vsyncInited = true
 	}
-
-	// Update the screen size when the window is resizable.
-	if w, h := u.reqWidth, u.reqHeight; w != 0 || h != 0 {
-		u.setWindowSize(w, h, u.isFullscreen())
-	}
-	u.reqWidth = 0
-	u.reqHeight = 0
 
 	outsideWidth, outsideHeight, outsideSizeChanged := u.updateSize()
 

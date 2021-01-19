@@ -20,6 +20,7 @@ type Thread interface {
 	Call(f func() error) error
 }
 
+// SetMainThread must be called from the main thread (i.e, the goroutine where the thread is created).
 func SetMainThread(thread Thread) {
 	theThread = thread
 }
