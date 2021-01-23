@@ -439,9 +439,6 @@ func (p *playerImpl) loop() {
 }
 
 func (p *playerImpl) read() ([]byte, bool) {
-	p.m.Lock()
-	defer p.m.Unlock()
-
 	if p.context.hasError() {
 		return nil, false
 	}
@@ -450,18 +447,20 @@ func (p *playerImpl) read() ([]byte, bool) {
 		return nil, false
 	}
 
+	p.context.semaphore <- struct{}{}
+	defer func() {
+		<-p.context.semaphore
+	}()
+
+	p.m.Lock()
+	defer p.m.Unlock()
+
 	// playing can be false when pausing.
 	if !p.playing {
 		return nil, false
 	}
 
 	const bufSize = 2048
-
-	p.context.semaphore <- struct{}{}
-	defer func() {
-		<-p.context.semaphore
-	}()
-
 	newBuf := make([]byte, bufSize-len(p.buf))
 	n, err := p.src.Read(newBuf)
 	if err != nil {
