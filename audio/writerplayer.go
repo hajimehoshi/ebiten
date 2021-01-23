@@ -168,9 +168,6 @@ func (p *writerPlayer) loop() {
 }
 
 func (p *writerPlayer) read() ([]byte, bool) {
-	p.m.Lock()
-	defer p.m.Unlock()
-
 	if p.context.hasError() {
 		return nil, false
 	}
@@ -179,18 +176,20 @@ func (p *writerPlayer) read() ([]byte, bool) {
 		return nil, false
 	}
 
+	p.context.acquireSemaphore()
+	defer func() {
+		p.context.releaseSemaphore()
+	}()
+
+	p.m.Lock()
+	defer p.m.Unlock()
+
 	// playing can be false when pausing.
 	if !p.playing {
 		return nil, false
 	}
 
 	const bufSize = 2048
-
-	p.context.acquireSemaphore()
-	defer func() {
-		p.context.releaseSemaphore()
-	}()
-
 	if p.readbuf == nil {
 		p.readbuf = make([]byte, bufSize)
 	}
