@@ -69,7 +69,10 @@ func (i *Image) Clear() {
 	i.Fill(color.Transparent)
 }
 
-var emptyImage = NewImage(3, 3)
+var (
+	emptyImage    = NewImage(3, 3)
+	emptySubImage = emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*Image)
+)
 
 func init() {
 	w, h := emptyImage.Size()
@@ -101,7 +104,7 @@ func (i *Image) Fill(clr color.Color) {
 	op.ColorM.Scale(rf, gf, bf, af)
 	op.CompositeMode = CompositeModeCopy
 
-	i.DrawImage(emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*Image), op)
+	i.DrawImage(emptySubImage, op)
 }
 
 func canSkipMipmap(geom GeoM, filter driver.Filter) bool {

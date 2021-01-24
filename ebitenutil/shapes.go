@@ -24,7 +24,8 @@ import (
 )
 
 var (
-	emptyImage = ebiten.NewImage(3, 3)
+	emptyImage    = ebiten.NewImage(3, 3)
+	emptySubImage = emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
 )
 
 func init() {
@@ -46,7 +47,7 @@ func DrawLine(dst *ebiten.Image, x1, y1, x2, y2 float64, clr color.Color) {
 	op.ColorM = colormcache.ColorToColorM(clr)
 	// Filter must be 'nearest' filter (default).
 	// Linear filtering would make edges blurred.
-	dst.DrawImage(emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image), op)
+	dst.DrawImage(emptySubImage, op)
 }
 
 // DrawRect draws a rectangle on the given destination dst.
