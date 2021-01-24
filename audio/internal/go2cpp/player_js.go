@@ -75,6 +75,7 @@ type Player struct {
 	volume  float64
 	cond    *sync.Cond
 	err     error
+	buf     []byte
 
 	onWritten js.Func
 }
@@ -114,15 +115,17 @@ func (p *Player) Play() {
 
 	// Prepare the first data as soon as possible, or the audio can get stuck.
 	// TODO: Get the appropriate buffer size from the C++ side.
-	buf := make([]byte, p.context.sampleRate*p.context.channelNum*p.context.bitDepthInBytes/4)
-	n, err := p.src.Read(buf)
+	if p.buf == nil {
+		p.buf = make([]byte, p.context.sampleRate*p.context.channelNum*p.context.bitDepthInBytes/4)
+	}
+	n, err := p.src.Read(p.buf)
 	if err != nil && err != io.EOF {
 		p.setError(err)
 		return
 	}
 	if n > 0 {
 		dst := js.Global().Get("Uint8Array").New(n)
-		p.writeImpl(dst, buf[:n])
+		p.writeImpl(dst, p.buf[:n])
 	}
 
 	if runloop {
