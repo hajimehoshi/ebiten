@@ -293,7 +293,9 @@ func (i *Input) updateGamepads() {
 		return
 	}
 
-	i.gamepads = map[driver.GamepadID]gamepad{}
+	for k := range i.gamepads {
+		delete(i.gamepads, k)
+	}
 
 	gamepads := nav.Call("getGamepads")
 	l := gamepads.Length()
