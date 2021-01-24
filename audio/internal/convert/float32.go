@@ -61,7 +61,9 @@ func (f *f32Reader) Read(buf []byte) (int, error) {
 	for ll < l {
 		ll *= 2
 	}
-	f.fbuf = make([]float32, ll)
+	if len(f.fbuf) < ll {
+		f.fbuf = make([]float32, ll)
+	}
 
 	n, err := f.r.Read(f.fbuf[:l])
 	if err != nil && err != io.EOF {
