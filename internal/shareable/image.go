@@ -105,7 +105,9 @@ func makeImagesShared() error {
 	}
 
 	// Reset the images. The images will be registered again when it is used as a rendering source.
-	imagesToMakeShared = map[*Image]struct{}{}
+	for k := range imagesToMakeShared {
+		delete(imagesToMakeShared, k)
+	}
 	return nil
 }
 
