@@ -164,12 +164,12 @@ func (i *Input) TouchIDs() []driver.TouchID {
 		return nil
 	}
 
-	var ids []driver.TouchID
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
 	if len(i.touches) == 0 {
 		return nil
 	}
+	ids := make([]driver.TouchID, 0, len(i.touches))
 	for id := range i.touches {
 		ids = append(ids, id)
 	}

@@ -144,7 +144,7 @@ func (i *Input) TouchIDs() []driver.TouchID {
 		return nil
 	}
 
-	var ids []driver.TouchID
+	ids := make([]driver.TouchID, 0, len(i.touches))
 	for id := range i.touches {
 		ids = append(ids, id)
 	}
