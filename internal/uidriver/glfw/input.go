@@ -70,9 +70,9 @@ func (i *Input) GamepadIDs() []driver.GamepadID {
 		return nil
 	}
 
-	var r []driver.GamepadID
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
+	r := make([]driver.GamepadID, 0, len(i.gamepads))
 	for id, g := range i.gamepads {
 		if g.valid {
 			r = append(r, driver.GamepadID(id))

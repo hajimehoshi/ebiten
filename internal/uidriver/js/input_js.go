@@ -113,7 +113,7 @@ func (i *Input) GamepadIDs() []driver.GamepadID {
 		return nil
 	}
 
-	var r []driver.GamepadID
+	r := make([]driver.GamepadID, 0, i.gamepads)
 	for id := range i.gamepads {
 		r = append(r, id)
 	}
