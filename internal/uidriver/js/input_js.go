@@ -397,18 +397,19 @@ func (i *Input) setMouseCursorFromEvent(e js.Value) {
 	i.setMouseCursor(x, y)
 }
 
-func (i *Input) updateTouchesFromEvent(e js.Value) {
+func (in *Input) updateTouchesFromEvent(e js.Value) {
 	j := e.Get("targetTouches")
-	ts := map[driver.TouchID]pos{}
+	for k := range in.touches {
+		delete(in.touches, k)
+	}
 	for i := 0; i < j.Length(); i++ {
 		jj := j.Call("item", i)
 		id := driver.TouchID(jj.Get("identifier").Int())
-		ts[id] = pos{
+		in.touches[id] = pos{
 			X: jj.Get("clientX").Int(),
 			Y: jj.Get("clientY").Int(),
 		}
 	}
-	i.touches = ts
 }
 
 func (i *Input) updateForGo2Cpp() {
@@ -416,7 +417,9 @@ func (i *Input) updateForGo2Cpp() {
 		return
 	}
 
-	i.touches = map[driver.TouchID]pos{}
+	for k := range i.touches {
+		delete(i.touches, k)
+	}
 	touchCount := go2cpp.Get("touchCount").Int()
 	for idx := 0; idx < touchCount; idx++ {
 		id := go2cpp.Call("getTouchId", idx)
@@ -428,7 +431,9 @@ func (i *Input) updateForGo2Cpp() {
 		}
 	}
 
-	i.gamepads = map[driver.GamepadID]gamepad{}
+	for k := range i.gamepads {
+		delete(i.gamepads, k)
+	}
 	gamepadCount := go2cpp.Get("gamepadCount").Int()
 	for idx := 0; idx < gamepadCount; idx++ {
 		g := gamepad{}
