@@ -259,7 +259,9 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 		}
 
 		g.state.lastProgram = program
-		g.state.lastUniforms = map[string]interface{}{}
+		for k := range g.state.lastUniforms {
+			delete(g.state.lastUniforms, k)
+		}
 		g.state.lastActiveTexture = 0
 		g.context.activeTexture(0)
 	}
