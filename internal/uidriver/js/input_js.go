@@ -90,11 +90,12 @@ func (i *Input) CursorPosition() (x, y int) {
 func (i *Input) GamepadSDLID(id driver.GamepadID) string {
 	// This emulates the implementation of EMSCRIPTEN_JoystickGetDeviceGUID.
 	// https://hg.libsdl.org/SDL/file/bc90ce38f1e2/src/joystick/emscripten/SDL_sysjoystick.c#l385
-	if len(i.gamepads) <= int(id) {
+	g, ok := i.gamepads[id]
+	if !ok {
 		return ""
 	}
 	var sdlid [16]byte
-	copy(sdlid[:], []byte(i.gamepads[id].name))
+	copy(sdlid[:], []byte(g.name))
 	return hex.EncodeToString(sdlid[:])
 }
 
@@ -102,10 +103,11 @@ func (i *Input) GamepadSDLID(id driver.GamepadID) string {
 // A PS2 controller returned "810-3-USB Gamepad" on Firefox
 // A Xbox 360 controller returned "xinput" on Firefox and "Xbox 360 Controller (XInput STANDARD GAMEPAD)" on Chrome
 func (i *Input) GamepadName(id driver.GamepadID) string {
-	if len(i.gamepads) <= int(id) {
+	g, ok := i.gamepads[id]
+	if !ok {
 		return ""
 	}
-	return i.gamepads[id].name
+	return g.name
 }
 
 func (i *Input) GamepadIDs() []driver.GamepadID {
