@@ -329,6 +329,9 @@ func (i *Input) updateGamepads() {
 			g.buttonPressed[b] = buttons.Index(b).Get("pressed").Bool()
 		}
 
+		if i.gamepads == nil {
+			i.gamepads = map[driver.GamepadID]gamepad{}
+		}
 		i.gamepads[id] = g
 	}
 }
@@ -405,6 +408,9 @@ func (in *Input) updateTouchesFromEvent(e js.Value) {
 	for i := 0; i < j.Length(); i++ {
 		jj := j.Call("item", i)
 		id := driver.TouchID(jj.Get("identifier").Int())
+		if in.touches == nil {
+			in.touches = map[driver.TouchID]pos{}
+		}
 		in.touches[id] = pos{
 			X: jj.Get("clientX").Int(),
 			Y: jj.Get("clientY").Int(),
@@ -425,6 +431,9 @@ func (i *Input) updateForGo2Cpp() {
 		id := go2cpp.Call("getTouchId", idx)
 		x := go2cpp.Call("getTouchX", idx)
 		y := go2cpp.Call("getTouchY", idx)
+		if i.touches == nil {
+			i.touches = map[driver.TouchID]pos{}
+		}
 		i.touches[driver.TouchID(id.Int())] = pos{
 			X: x.Int(),
 			Y: y.Int(),
@@ -461,6 +470,9 @@ func (i *Input) updateForGo2Cpp() {
 			g.axes[j] = go2cpp.Call("getGamepadAxis", idx, j).Float()
 		}
 
+		if i.gamepads == nil {
+			i.gamepads = map[driver.GamepadID]gamepad{}
+		}
 		i.gamepads[id] = g
 	}
 }
