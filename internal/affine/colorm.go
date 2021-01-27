@@ -449,7 +449,7 @@ func (c *ColorM) Scale(r, g, b, a float32) *ColorM {
 		if c.body == nil {
 			return getCachedScalingColorM(r, g, b, a)
 		}
-		return getCachedScalingColorM(r * c.body[0], g * c.body[5], b * c.body[10], a * c.body[15])
+		return getCachedScalingColorM(r*c.body[0], g*c.body[5], b*c.body[10], a*c.body[15])
 	}
 
 	eb := make([]float32, len(colorMIdentityBody))
