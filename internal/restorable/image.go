@@ -190,7 +190,7 @@ func (i *Image) Extend(width, height int) *Image {
 
 	// Overwrite the history as if the image newImg is created only by ReplacePixels. Now drawTrianglesHistory
 	// and basePixels cannot be mixed.
-	newImg.drawTrianglesHistory = nil
+	newImg.drawTrianglesHistory = newImg.drawTrianglesHistory[:0]
 	newImg.basePixels = i.basePixels
 	newImg.stale = i.stale
 
@@ -258,7 +258,7 @@ func (i *Image) BasePixelsForTesting() *Pixels {
 // makeStale makes the image stale.
 func (i *Image) makeStale() {
 	i.basePixels = Pixels{}
-	i.drawTrianglesHistory = nil
+	i.drawTrianglesHistory = i.drawTrianglesHistory[:0]
 	i.stale = true
 
 	// Don't have to call makeStale recursively here.
@@ -308,7 +308,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		} else {
 			i.basePixels.Remove(0, 0, w, h)
 		}
-		i.drawTrianglesHistory = nil
+		i.drawTrianglesHistory = i.drawTrianglesHistory[:0]
 		i.stale = false
 		return
 	}
@@ -489,7 +489,7 @@ func (i *Image) readPixelsFromGPU() error {
 	}
 	i.basePixels = Pixels{}
 	i.basePixels.AddOrReplace(pix, 0, 0, i.width, i.height)
-	i.drawTrianglesHistory = nil
+	i.drawTrianglesHistory = i.drawTrianglesHistory[:0]
 	i.stale = false
 	return nil
 }
@@ -569,7 +569,7 @@ func (i *Image) restore() error {
 		// be changed.
 		i.image = graphicscommand.NewScreenFramebufferImage(w, h)
 		i.basePixels = Pixels{}
-		i.drawTrianglesHistory = nil
+		i.drawTrianglesHistory = i.drawTrianglesHistory[:0]
 		i.stale = false
 		return nil
 	}
@@ -620,7 +620,7 @@ func (i *Image) restore() error {
 	}
 
 	i.image = gimg
-	i.drawTrianglesHistory = nil
+	i.drawTrianglesHistory = i.drawTrianglesHistory[:0]
 	i.stale = false
 	return nil
 }
@@ -633,7 +633,7 @@ func (i *Image) Dispose() {
 	i.image.Dispose()
 	i.image = nil
 	i.basePixels = Pixels{}
-	i.drawTrianglesHistory = nil
+	i.drawTrianglesHistory = i.drawTrianglesHistory[:0]
 	i.stale = false
 }
 
