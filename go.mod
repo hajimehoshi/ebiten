@@ -11,6 +11,7 @@ require (
 	github.com/hajimehoshi/oto v0.7.1
 	github.com/jakecoffman/cp v1.0.0
 	github.com/jfreymuth/oggvorbis v1.0.2
+	github.com/jfreymuth/vorbis v1.0.2 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	golang.org/x/image v0.0.0-20200927104501-e162460cd6b5
 	golang.org/x/mobile v0.0.0-20200801112145-973feb4309de
