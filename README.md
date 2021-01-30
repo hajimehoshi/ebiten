@@ -55,4 +55,4 @@ For installation on desktops, see [the installation instruction](https://ebiten.
 
 ## License
 
-Ebiten is licensed under Apache license version 2.0. See LICENSE file.
+Ebiten is licensed under Apache license version 2.0. See [LICENSE](https://github.com/hajimehoshi/ebiten/blob/master/LICENSE) file.
