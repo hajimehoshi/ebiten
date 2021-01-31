@@ -45,7 +45,7 @@ type Image struct {
 
 	filter Filter
 
-	screen   bool
+	screen bool
 }
 
 func (i *Image) copyCheck() {
