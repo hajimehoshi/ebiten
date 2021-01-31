@@ -791,8 +791,8 @@ func newScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
 		mipmap: mipmap.NewScreenFramebufferMipmap(width, height),
 		bounds: image.Rect(0, 0, width, height),
+		screen: true,
 	}
 	i.addr = i
-	i.screen = true
 	return i
 }
