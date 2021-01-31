@@ -40,6 +40,7 @@ type Image struct {
 
 	bounds   image.Rectangle
 	original *Image
+	screen   bool
 }
 
 func (i *Image) copyCheck() {
@@ -183,7 +184,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	sy0 := float32(bounds.Min.Y)
 	sx1 := float32(bounds.Max.X)
 	sy1 := float32(bounds.Max.Y)
-	vs := graphics.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, 1, 1, 1, 1, filter == driver.FilterScreen)
+	vs := graphics.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, 1, 1, 1, 1, i.screen)
 	is := graphics.QuadIndices()
 
 	srcs := [graphics.ShaderImageNum]*mipmap.Mipmap{img.mipmap}
@@ -748,5 +749,6 @@ func newScreenFramebufferImage(width, height int) *Image {
 		bounds: image.Rect(0, 0, width, height),
 	}
 	i.addr = i
+	i.screen = true
 	return i
 }
