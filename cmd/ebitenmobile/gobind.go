@@ -338,18 +338,25 @@ import android.hardware.input.InputManager;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Display;
 import android.view.KeyEvent;
 import android.view.InputDevice;
 import android.view.MotionEvent;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 
 import {{.JavaPkg}}.ebitenmobileview.Ebitenmobileview;
 
 public class EbitenView extends ViewGroup implements InputManager.InputDeviceListener {
     private double getDeviceScale() {
         if (this.deviceScale == 0.0) {
-            this.deviceScale = getResources().getDisplayMetrics().density;
+            WindowManager windowManager = (WindowManager)getContext().getSystemService(Context.WINDOW_SERVICE);
+            Display display = windowManager.getDefaultDisplay();
+            DisplayMetrics displayMetrics = new DisplayMetrics();
+            display.getRealMetrics(displayMetrics);
+            this.deviceScale = displayMetrics.density;
         }
         return this.deviceScale;
     }
