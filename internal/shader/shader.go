@@ -235,6 +235,13 @@ func (cs *compileState) parse(f *ast.File) {
 			continue
 		}
 
+		for _, f := range cs.funcs {
+			if f.name == n {
+				cs.addError(d.Pos(), fmt.Sprintf("redeclared function: %s", n))
+				return
+			}
+		}
+
 		inParams, outParams := cs.parseFuncParams(&cs.global, fd)
 		var inT, outT []shaderir.Type
 		for _, v := range inParams {
