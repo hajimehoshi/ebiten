@@ -68,8 +68,8 @@ type UserInterface struct {
 	initWindowFloating       bool
 	initWindowMaximized      bool
 	initScreenTransparent    bool
-	initIconImages           []image.Image
 	initFocused              bool
+	iconImages               []image.Image
 
 	vsyncInited bool
 
@@ -308,16 +308,16 @@ func (u *UserInterface) setInitScreenTransparent(transparent bool) {
 	u.m.RUnlock()
 }
 
-func (u *UserInterface) getInitIconImages() []image.Image {
+func (u *UserInterface) getIconImages() []image.Image {
 	u.m.RLock()
-	i := u.initIconImages
+	i := u.iconImages
 	u.m.RUnlock()
 	return i
 }
 
-func (u *UserInterface) setInitIconImages(iconImages []image.Image) {
+func (u *UserInterface) setIconImages(iconImages []image.Image) {
 	u.m.Lock()
-	u.initIconImages = iconImages
+	u.iconImages = iconImages
 	u.m.Unlock()
 }
 
@@ -685,10 +685,6 @@ func (u *UserInterface) init() error {
 		return err
 	}
 
-	if i := u.getInitIconImages(); i != nil {
-		u.window.SetIcon(i)
-	}
-
 	setPosition := func() {
 		u.iwindow.setPosition(u.getInitWindowPosition())
 	}
@@ -807,6 +803,7 @@ func (u *UserInterface) loop() error {
 			return nil
 		})
 	}()
+
 	for {
 		var unfocused bool
 
@@ -838,6 +835,35 @@ func (u *UserInterface) loop() error {
 
 		if err := u.context.Update(); err != nil {
 			return err
+		}
+
+		if imgs := u.getIconImages(); imgs != nil {
+			u.setIconImages(nil)
+
+			// Convert the icons in the different goroutine, as (*ebiten.Image).At cannot be invoked
+			// from this goroutine. At works only in between BeginFrame and EndFrame.
+			go func() {
+				newImgs := make([]image.Image, len(imgs))
+				for i, img := range imgs {
+					// TODO: If img is not *ebiten.Image, this converting is not necessary.
+					// However, this package cannot refer *ebiten.Image due to the package
+					// dependencies.
+
+					b := img.Bounds()
+					rgba := image.NewRGBA(b)
+					for j := b.Min.Y; j < b.Max.Y; j++ {
+						for i := b.Min.X; i < b.Max.X; i++ {
+							rgba.Set(i, j, img.At(i, j))
+						}
+					}
+					newImgs[i] = rgba
+				}
+
+				_ = u.t.Call(func() error {
+					u.window.SetIcon(newImgs)
+					return nil
+				})
+			}()
 		}
 
 		// swapBuffers also checks IsGL, so this condition is redundant.

@@ -66,18 +66,23 @@ var (
 func createRandomIconImage() image.Image {
 	const size = 32
 
-	r := byte(rand.Intn(0x100))
-	g := byte(rand.Intn(0x100))
-	b := byte(rand.Intn(0x100))
-	img := image.NewNRGBA(image.Rect(0, 0, size, size))
+	rf := float64(rand.Intn(0x100))
+	gf := float64(rand.Intn(0x100))
+	bf := float64(rand.Intn(0x100))
+	img := ebiten.NewImage(size, size)
+	pix := make([]byte, 4*size*size)
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
-			img.Pix[j*img.Stride+4*i] = r
-			img.Pix[j*img.Stride+4*i+1] = g
-			img.Pix[j*img.Stride+4*i+2] = b
-			img.Pix[j*img.Stride+4*i+3] = byte(float64(i+j) / float64(2*size) * 0xff)
+			af := float64(i+j) / float64(2*size)
+			if af > 0 {
+				pix[4*(j*size+i)] = byte(rf * af)
+				pix[4*(j*size+i)+1] = byte(gf * af)
+				pix[4*(j*size+i)+2] = byte(bf * af)
+				pix[4*(j*size+i)+3] = byte(af * 0xff)
+			}
 		}
 	}
+	img.ReplacePixels(pix)
 
 	return img
 }

@@ -249,14 +249,8 @@ func (w *window) SetSize(width, height int) {
 }
 
 func (w *window) SetIcon(iconImages []image.Image) {
-	if !w.ui.isRunning() {
-		w.ui.setInitIconImages(iconImages)
-		return
-	}
-	_ = w.ui.t.Call(func() error {
-		w.ui.window.SetIcon(iconImages)
-		return nil
-	})
+	// The icons are actually set at (*UserInterface).loop.
+	w.ui.setIconImages(iconImages)
 }
 
 func (w *window) SetTitle(title string) {
