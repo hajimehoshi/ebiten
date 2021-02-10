@@ -57,23 +57,26 @@ type UserInterface struct {
 
 	lastDeviceScaleFactor float64
 
+	// These values are not changed after initialized.
+	// TODO: the fullscreen size should be updated when the initial window position is changed?
 	initMonitor              *glfw.Monitor
-	initTitle                string
-	initVsync                bool
 	initFullscreenWidthInDP  int
 	initFullscreenHeightInDP int
-	initFullscreen           bool
-	initCursorMode           driver.CursorMode
-	initWindowDecorated      bool
-	initWindowResizable      bool
-	initWindowPositionXInDP  int
-	initWindowPositionYInDP  int
-	initWindowWidthInDP      int
-	initWindowHeightInDP     int
-	initWindowFloating       bool
-	initWindowMaximized      bool
-	initScreenTransparent    bool
-	initFocused              bool
+
+	initTitle               string
+	initVsync               bool
+	initFullscreen          bool
+	initCursorMode          driver.CursorMode
+	initWindowDecorated     bool
+	initWindowResizable     bool
+	initWindowPositionXInDP int
+	initWindowPositionYInDP int
+	initWindowWidthInDP     int
+	initWindowHeightInDP    int
+	initWindowFloating      bool
+	initWindowMaximized     bool
+	initScreenTransparent   bool
+	initFocused             bool
 
 	vsyncInited bool
 
