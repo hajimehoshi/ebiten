@@ -24,6 +24,7 @@ import (
 	"os"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
@@ -43,7 +44,7 @@ type UserInterface struct {
 	windowWidth  int
 	windowHeight int
 
-	running             bool
+	running             uint32
 	toChangeSize        bool
 	origPosX            int
 	origPosY            int
@@ -198,16 +199,15 @@ func getCachedMonitor(wx, wy int) *cachedMonitor {
 }
 
 func (u *UserInterface) isRunning() bool {
-	u.m.RLock()
-	v := u.running
-	u.m.RUnlock()
-	return v
+	return atomic.LoadUint32(&u.running) != 0
 }
 
 func (u *UserInterface) setRunning(running bool) {
-	u.m.Lock()
-	u.running = running
-	u.m.Unlock()
+	if running {
+		atomic.StoreUint32(&u.running, 1)
+	} else {
+		atomic.StoreUint32(&u.running, 0)
+	}
 }
 
 func (u *UserInterface) getInitTitle() string {
