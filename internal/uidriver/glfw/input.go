@@ -303,8 +303,9 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) {
 	}
 	cx, cy := window.GetCursorPos()
 	// TODO: This is tricky. Rename the function?
-	cx = i.ui.fromGLFWMonitorPixel(cx)
-	cy = i.ui.fromGLFWMonitorPixel(cy)
+	s := i.ui.deviceScaleFactor()
+	cx = fromGLFWMonitorPixel(cx, s)
+	cy = fromGLFWMonitorPixel(cy, s)
 	cx, cy = context.AdjustPosition(cx, cy, i.ui.deviceScaleFactor())
 	i.cursorX, i.cursorY = int(cx), int(cy)
 

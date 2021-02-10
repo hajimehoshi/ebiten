@@ -24,14 +24,14 @@ import (
 )
 
 // fromGLFWMonitorPixel must be called from the main thread.
-func (u *UserInterface) fromGLFWMonitorPixel(x float64) float64 {
-	return math.Ceil(x / u.deviceScaleFactor())
+func fromGLFWMonitorPixel(x float64, deviceScale float64) float64 {
+	return math.Ceil(x / deviceScale)
 }
 
 // fromGLFWPixel must be called from the main thread.
 func (u *UserInterface) fromGLFWPixel(x float64) float64 {
 	// deviceScaleFactor() is a scale by desktop environment (e.g., Cinnamon), while GetContentScale() is X's scale.
-	// They are different things and then need to be treated different ways (#1350).
+	// They are different things and then need to be treated in different ways (#1350).
 	s, _ := currentMonitor(u.window).GetContentScale()
 	return x / float64(s)
 }

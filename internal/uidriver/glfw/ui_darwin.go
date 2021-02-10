@@ -44,7 +44,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
-func (u *UserInterface) fromGLFWMonitorPixel(x float64) float64 {
+func fromGLFWMonitorPixel(x float64, deviceScale float64) float64 {
 	return x
 }
 

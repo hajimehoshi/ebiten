@@ -98,8 +98,8 @@ func getMonitorInfoW(hMonitor uintptr, lpmi *monitorInfo) error {
 }
 
 // fromGLFWMonitorPixel must be called from the main thread.
-func (u *UserInterface) fromGLFWMonitorPixel(x float64) float64 {
-	return x / u.deviceScaleFactor()
+func fromGLFWMonitorPixel(x float64, deviceScale float64) float64 {
+	return x / deviceScale
 }
 
 // fromGLFWPixel must be called from the main thread.

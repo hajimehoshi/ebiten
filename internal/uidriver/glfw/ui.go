@@ -50,6 +50,7 @@ type UserInterface struct {
 	origPosY            int
 	runnableOnUnfocused bool
 	vsync               bool
+	iconImages          []image.Image
 
 	// err must be accessed from the main thread.
 	err error
@@ -73,7 +74,6 @@ type UserInterface struct {
 	initWindowMaximized      bool
 	initScreenTransparent    bool
 	initFocused              bool
-	iconImages               []image.Image
 
 	vsyncInited bool
 
@@ -143,15 +143,14 @@ func initialize() error {
 		// This can happen on Windows Remote Desktop (#903).
 		panic("glfw: glfw.CreateWindow must not return nil")
 	}
+	defer w.Destroy()
 
-	// Create a window and set it: this affects fromGLFWMonitorPixel and deviceScaleFactor.
-	theUI.window = w
-	theUI.initMonitor = currentMonitor(w)
-	v := theUI.initMonitor.GetVideoMode()
-	theUI.initFullscreenWidthInDP = int(theUI.fromGLFWMonitorPixel(float64(v.Width)))
-	theUI.initFullscreenHeightInDP = int(theUI.fromGLFWMonitorPixel(float64(v.Height)))
-	theUI.window.Destroy()
-	theUI.window = nil
+	m := currentMonitor(w)
+	theUI.initMonitor = m
+	v := m.GetVideoMode()
+	scale := devicescale.GetAt(currentMonitor(w).GetPos())
+	theUI.initFullscreenWidthInDP = int(fromGLFWMonitorPixel(float64(v.Width), scale))
+	theUI.initFullscreenHeightInDP = int(fromGLFWMonitorPixel(float64(v.Height), scale))
 
 	return nil
 }
@@ -398,8 +397,9 @@ func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 	var w, h int
 	_ = u.t.Call(func() error {
 		v := currentMonitor(u.window).GetVideoMode()
-		w = int(u.fromGLFWMonitorPixel(float64(v.Width)))
-		h = int(u.fromGLFWMonitorPixel(float64(v.Height)))
+		s := u.deviceScaleFactor()
+		w = int(fromGLFWMonitorPixel(float64(v.Width), s))
+		h = int(fromGLFWMonitorPixel(float64(v.Height), s))
 		return nil
 	})
 	return w, h
@@ -762,8 +762,9 @@ func (u *UserInterface) updateSize() (float64, float64, bool) {
 	if u.isFullscreen() {
 		v := currentMonitor(u.window).GetVideoMode()
 		ww, wh := v.Width, v.Height
-		w = u.fromGLFWMonitorPixel(float64(ww))
-		h = u.fromGLFWMonitorPixel(float64(wh))
+		s := u.deviceScaleFactor()
+		w = fromGLFWMonitorPixel(float64(ww), s)
+		h = fromGLFWMonitorPixel(float64(wh), s)
 	} else {
 		// Instead of u.windowWidth and u.windowHeight, use the actual window size here.
 		// On Windows, the specified size at SetSize and the actual window size might not
