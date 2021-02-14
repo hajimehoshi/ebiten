@@ -76,26 +76,15 @@ func Strs(strs ...string) (cstrs **uint8, free func()) {
 		panic("Strs: expected at least 1 string")
 	}
 
-	// Allocate a contiguous array large enough to hold all the strings' contents.
-	n := 0
-	for i := range strs {
-		n += len(strs[i])
-	}
-	data := C.malloc(C.size_t(n))
-
-	// Copy all the strings into data.
-	dataSlice := *(*[]byte)(unsafe.Pointer(&reflect.SliceHeader{
-		Data: uintptr(data),
-		Len:  n,
-		Cap:  n,
-	}))
-	css := make([]*uint8, len(strs)) // Populated with pointers to each string.
-	offset := 0
-	for i := range strs {
-		copy(dataSlice[offset:offset+len(strs[i])], strs[i][:]) // Copy strs[i] into proper data location.
-		css[i] = (*uint8)(unsafe.Pointer(&dataSlice[offset]))   // Set a pointer to it.
-		offset += len(strs[i])
+	css := make([]*uint8, 0, len(strs))
+	for _, str := range strs {
+		cs := C.CString(str)
+		css = append(css, (*uint8)(unsafe.Pointer(cs)))
 	}
 
-	return (**uint8)(&css[0]), func() { C.free(data) }
+	return (**uint8)(&css[0]), func() {
+		for _, cs := range css {
+			C.free(unsafe.Pointer(cs))
+		}
+	}
 }
