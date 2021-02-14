@@ -104,9 +104,11 @@ func prepareGomobileCommands() error {
 		return err
 	}
 
-	// To record gomobile and its dependencies to go.sum for Go 1.16 and later, go-get golang.org/x/mobile with `...` (#1487).
+	// To record gomobile to go.sum for Go 1.16 and later, go-get gomobile instaed of golang.org/x/mobile (#1487).
+	// This also records gobind as gomobile depends on gobind indirectly.
+	// Using `...` doesn't work on Windows since mobile/internal/mobileinit cannot be compiled on Windows w/o Cgo (#1493).
 	// Note that `go mod tidy` doesn't work since this removes all the indirect imports.
-	if err := runGo("get", "golang.org/x/mobile/...@"+gomobileHash); err != nil {
+	if err := runGo("get", "golang.org/x/mobile/cmd/gomobile@"+gomobileHash); err != nil {
 		return err
 	}
 	if localgm := os.Getenv("EBITENMOBILE_GOMOBILE"); localgm != "" {
