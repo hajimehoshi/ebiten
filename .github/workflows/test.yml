@@ -37,6 +37,7 @@ jobs:
           mkdir /tmp/wasmbrowsertest
           cd /tmp/wasmbrowsertest
           go mod init foo
+          go get github.com/agnivade/wasmbrowsertest
           go build -o wasmbrowsertest github.com/agnivade/wasmbrowsertest
           mv ./wasmbrowsertest $(go env GOPATH)/bin/go_js_wasm_exec
 
