@@ -25,6 +25,6 @@ func isReaderContextAvailable() bool {
 	return false
 }
 
-func newReaderDriverImpl(sampleRate int) readerDriver {
+func newReaderDriverImpl(context *Context) (readerDriver, error) {
 	panic(fmt.Sprintf("audio: newReaderDriver is not available on this environment: GOOS=%s", runtime.GOOS))
 }

@@ -15,10 +15,28 @@
 package audio
 
 import (
+	"fmt"
 	"io"
 	"sync"
 	"time"
 )
+
+// TODO: The term 'buffer' is confusing. Name each buffer with good terms.
+
+// oneBufferSize returns the size of one buffer in the player implementation.
+func oneBufferSize(sampleRate int) int {
+	return sampleRate * channelNum * bitDepthInBytes / 4
+}
+
+// maxBufferSize returns the maximum size of the buffer for the audio source.
+// This buffer is used when unreading on pausing the player.
+func maxBufferSize(sampleRate int) int {
+	// Actually *2 should be enough in most cases,
+	// but in some implementation (e.g, go2cpp), a player might have more UnplayedBufferSize values.
+	// As a safe margin, use *4 value.
+	// TODO: Ensure the maximum value of UnplayedBufferSize on all the platforms.
+	return oneBufferSize(sampleRate) * 4
+}
 
 // readerDriver represents a driver using io.ReadClosers.
 type readerDriver interface {
@@ -72,25 +90,32 @@ func (f *readerPlayerFactory) newPlayerImpl(context *Context, src io.Reader) (pl
 	return p, nil
 }
 
-func (p *readerPlayer) ensurePlayer() {
+func (p *readerPlayer) ensurePlayer() error {
 	// Initialize the underlying player lazily to enable calling NewContext in an 'init' function.
 	// Accessing the underlying player functions requires the environment to be already initialized,
 	// but if Ebiten is used for a shared library, the timing when init functions are called
 	// is unexpectable.
 	// e.g. a variable for JVM on Android might not be set.
 	if p.factory.driver == nil {
-		p.factory.driver = newReaderDriverImpl(p.factory.sampleRate)
+		d, err := newReaderDriverImpl(p.context)
+		if err != nil {
+			return err
+		}
+		p.factory.driver = d
 	}
 	if p.player == nil {
 		p.player = p.factory.driver.NewPlayer(p.src)
 	}
-	// TODO: If some error happens, call p.context.setError().
+	return nil
 }
 
 func (p *readerPlayer) Play() {
 	p.m.Lock()
 	defer p.m.Unlock()
-	p.ensurePlayer()
+	if err := p.ensurePlayer(); err != nil {
+		p.context.setError(err)
+		return
+	}
 
 	p.player.Play()
 	p.context.addPlayer(p)
@@ -99,15 +124,23 @@ func (p *readerPlayer) Play() {
 func (p *readerPlayer) Pause() {
 	p.m.Lock()
 	defer p.m.Unlock()
-	p.ensurePlayer()
+	if err := p.ensurePlayer(); err != nil {
+		p.context.setError(err)
+		return
+	}
 
+	n := p.player.UnplayedBufferSize()
 	p.player.Pause()
+	p.src.Unread(int(n))
 }
 
 func (p *readerPlayer) IsPlaying() bool {
 	p.m.Lock()
 	defer p.m.Unlock()
-	p.ensurePlayer()
+	if err := p.ensurePlayer(); err != nil {
+		p.context.setError(err)
+		return false
+	}
 
 	return p.player.IsPlaying()
 }
@@ -115,7 +148,10 @@ func (p *readerPlayer) IsPlaying() bool {
 func (p *readerPlayer) Volume() float64 {
 	p.m.Lock()
 	defer p.m.Unlock()
-	p.ensurePlayer()
+	if err := p.ensurePlayer(); err != nil {
+		p.context.setError(err)
+		return 0
+	}
 
 	return p.player.Volume()
 }
@@ -123,7 +159,10 @@ func (p *readerPlayer) Volume() float64 {
 func (p *readerPlayer) SetVolume(volume float64) {
 	p.m.Lock()
 	defer p.m.Unlock()
-	p.ensurePlayer()
+	if err := p.ensurePlayer(); err != nil {
+		p.context.setError(err)
+		return
+	}
 
 	p.player.SetVolume(volume)
 }
@@ -131,16 +170,21 @@ func (p *readerPlayer) SetVolume(volume float64) {
 func (p *readerPlayer) Close() error {
 	p.m.Lock()
 	defer p.m.Unlock()
-	p.ensurePlayer()
 
 	p.context.removePlayer(p)
-	return p.player.Close()
+	if p.player != nil {
+		return p.player.Close()
+	}
+	return nil
 }
 
 func (p *readerPlayer) Current() time.Duration {
 	p.m.Lock()
 	defer p.m.Unlock()
-	p.ensurePlayer()
+	if err := p.ensurePlayer(); err != nil {
+		p.context.setError(err)
+		return 0
+	}
 
 	sample := (p.src.Current() - p.player.UnplayedBufferSize()) / bytesPerSample
 	return time.Duration(sample) * time.Second / time.Duration(p.factory.sampleRate)
@@ -153,14 +197,15 @@ func (p *readerPlayer) Rewind() error {
 func (p *readerPlayer) Seek(offset time.Duration) error {
 	p.m.Lock()
 	defer p.m.Unlock()
-	p.ensurePlayer()
 
-	if p.player.IsPlaying() {
-		defer func() {
-			p.player.Play()
-		}()
+	if p.player != nil {
+		if p.player.IsPlaying() {
+			defer func() {
+				p.player.Play()
+			}()
+		}
+		p.player.Reset()
 	}
-	p.player.Reset()
 	return p.src.Seek(offset)
 }
 
@@ -172,6 +217,8 @@ type timeStream struct {
 	r          io.Reader
 	sampleRate int
 	pos        int64
+	buf        []byte
+	unread     int
 }
 
 func newTimeStream(r io.Reader, sampleRate int) (*timeStream, error) {
@@ -190,9 +237,28 @@ func newTimeStream(r io.Reader, sampleRate int) (*timeStream, error) {
 	return s, nil
 }
 
+func (s *timeStream) Unread(n int) {
+	if s.unread+n > len(s.buf) {
+		panic(fmt.Sprintf("audio: too much unreading: %d, the buffer size: %d, unreading position: %d", n, len(s.buf), s.unread))
+	}
+	s.unread += n
+	s.pos -= int64(n)
+}
+
 func (s *timeStream) Read(buf []byte) (int, error) {
+	if s.unread > 0 {
+		n := copy(buf, s.buf[len(s.buf)-s.unread:])
+		s.unread -= n
+		s.pos += int64(n)
+		return n, nil
+	}
+
 	n, err := s.r.Read(buf)
 	s.pos += int64(n)
+	s.buf = append(s.buf, buf[:n]...)
+	if m := maxBufferSize(s.sampleRate); len(s.buf) > m {
+		s.buf = s.buf[len(s.buf)-m:]
+	}
 	return n, err
 }
 
@@ -213,6 +279,8 @@ func (s *timeStream) Seek(offset time.Duration) error {
 	}
 
 	s.pos = pos
+	s.buf = s.buf[:0]
+	s.unread = 0
 	return nil
 }
 
