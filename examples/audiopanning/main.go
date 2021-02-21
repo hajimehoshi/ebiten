@@ -71,7 +71,7 @@ func (g *Game) initAudio() {
 	}
 
 	// Wrap the raw audio with the StereoPanStream
-	g.panstream = NewStereoPanStreamFromReader(oggS)
+	g.panstream = NewStereoPanStreamFromReader(audio.NewInfiniteLoop(oggS, oggS.Length()))
 
 	g.player, err = audio.NewPlayer(audioContext, g.panstream)
 	if err != nil {
@@ -99,9 +99,6 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	pos := g.player.Current()
-	if pos > 5*time.Second {
-		pos = (g.player.Current()-5*time.Second)%(4*time.Second) + 5*time.Second
-	}
 	msg := fmt.Sprintf(`TPS: %0.2f
 This is an example using
 stereo audio panning.
