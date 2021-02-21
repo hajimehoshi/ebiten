@@ -37,8 +37,8 @@ func NewInfiniteLoop(src io.ReadSeeker, length int64) *InfiniteLoop {
 func NewInfiniteLoopWithIntro(src io.ReadSeeker, introLength int64, loopLength int64) *InfiniteLoop {
 	return &InfiniteLoop{
 		src:     src,
-		lstart:  introLength,
-		llength: loopLength,
+		lstart:  introLength / bytesPerSample * bytesPerSample,
+		llength: loopLength / bytesPerSample * bytesPerSample,
 		pos:     -1,
 	}
 }
