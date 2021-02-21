@@ -62,7 +62,7 @@ func (c *readerPlayerFactory) newPlayerImpl(context *Context, src io.Reader) (pl
 
 	p := &readerPlayer{
 		context: context,
-		player:  c.driver.NewPlayer(src),
+		player:  c.driver.NewPlayer(s),
 		src:     s,
 	}
 	return p, nil
@@ -159,7 +159,7 @@ func newTimeStream(r io.Reader, sampleRate int) (*timeStream, error) {
 }
 
 func (s *timeStream) Read(buf []byte) (int, error) {
-	n, err := s.Read(buf)
+	n, err := s.r.Read(buf)
 	s.pos += int64(n)
 	return n, err
 }
