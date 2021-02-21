@@ -149,6 +149,8 @@ func (p *Player) Reset() {
 	if p.state == playerStateClosed {
 		return
 	}
+	p.state = playerStatePaused
+
 	if !p.v.Truthy() {
 		return
 	}

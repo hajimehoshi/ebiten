@@ -117,6 +117,7 @@ func (p *readerPlayer) Current() time.Duration {
 	defer p.m.Unlock()
 
 	// TODO: Add a new function to readerDriverPlayer and use it.
+	// src's position doesn't reflect the exact playing position.
 	return p.src.Current()
 }
 
@@ -128,6 +129,11 @@ func (p *readerPlayer) Seek(offset time.Duration) error {
 	p.m.Lock()
 	defer p.m.Unlock()
 
+	if p.player.IsPlaying() {
+		defer func() {
+			p.player.Play()
+		}()
+	}
 	p.player.Reset()
 	return p.src.Seek(offset)
 }
