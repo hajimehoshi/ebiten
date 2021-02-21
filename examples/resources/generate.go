@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate file2byteslice -package=audio -input=./audio/classic.mp3 -output=./audio/classic.go -var=Classic_mp3
 //go:generate file2byteslice -package=audio -input=./audio/jab.wav -output=./audio/jab.go -var=Jab_wav
 //go:generate file2byteslice -package=audio -input=./audio/jump.ogg -output=./audio/jump.go -var=Jump_ogg
-//go:generate file2byteslice -package=audio -input=./audio/ragtime.ogg -output=./audio/ragtime.go -var=Ragtime_ogg
+//go:generate file2byteslice -package=audio -input=./audio/ragtime.mp3 -output=./audio/ragtime.mp3.go -var=Ragtime_mp3
+//go:generate file2byteslice -package=audio -input=./audio/ragtime.ogg -output=./audio/ragtime.ogg.go -var=Ragtime_ogg
 //go:generate file2byteslice -package=fonts -input=./fonts/mplus-1p-regular.ttf -output=./fonts/mplus1pregular.go -var=MPlus1pRegular_ttf
 //go:generate file2byteslice -package=fonts -input=./fonts/pressstart2p.ttf -output=./fonts/pressstart2p.go -var=PressStart2P_ttf
 //go:generate file2byteslice -package=images -input=./images/ebiten.png -output=./images/ebiten.go -var=Ebiten_png

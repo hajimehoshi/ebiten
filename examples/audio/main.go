@@ -42,7 +42,7 @@ const (
 	screenWidth  = 640
 	screenHeight = 480
 
-	sampleRate = 22050
+	sampleRate = 32000
 )
 
 var (
@@ -106,7 +106,7 @@ func NewPlayer(audioContext *audio.Context, musicType musicType) (*Player, error
 		}
 	case typeMP3:
 		var err error
-		s, err = mp3.Decode(audioContext, bytes.NewReader(raudio.Classic_mp3))
+		s, err = mp3.Decode(audioContext, bytes.NewReader(raudio.Ragtime_mp3))
 		if err != nil {
 			return nil, err
 		}
@@ -255,10 +255,11 @@ Press S to toggle Play/Pause
 Press P to play SE
 Press Z or X to change volume of the music
 Press U to switch the runnable-on-unfocused state
-Press A to switch Ogg and MP3
+Press A to switch Ogg and MP3 (Current: %s)
 Current Time: %s
 Current Volume: %d/128
-Type: %s`, ebiten.CurrentTPS(), currentTimeStr, int(p.audioPlayer.Volume()*128), p.musicType)
+Type: %s`, ebiten.CurrentTPS(), p.musicType,
+		currentTimeStr, int(p.audioPlayer.Volume()*128), p.musicType)
 	ebitenutil.DebugPrint(screen, msg)
 }
 
