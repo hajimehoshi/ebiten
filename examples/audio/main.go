@@ -212,13 +212,26 @@ func (p *Player) switchPlayStateIfNeeded() {
 	p.audioPlayer.Play()
 }
 
-func (p *Player) seekBarIfNeeded() {
-	if !inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		return
+func justPressedPosition() (int, int, bool) {
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		x, y := ebiten.CursorPosition()
+		return x, y, true
 	}
 
+	if ts := inpututil.JustPressedTouchIDs(); len(ts) > 0 {
+		x, y := ebiten.TouchPosition(ts[0])
+		return x, y, true
+	}
+
+	return 0, 0, false
+}
+
+func (p *Player) seekBarIfNeeded() {
 	// Calculate the next seeking position from the current cursor position.
-	x, y := ebiten.CursorPosition()
+	x, y, ok := justPressedPosition()
+	if !ok {
+		return
+	}
 	bx, by, bw, bh := playerBarRect()
 	const padding = 4
 	if y < by-padding || by+bh+padding <= y {
