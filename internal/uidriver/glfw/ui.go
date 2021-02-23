@@ -672,7 +672,6 @@ func (u *UserInterface) run() error {
 		} else {
 			glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
 		}
-		glfw.WindowHint(glfw.AutoIconify, glfw.False)
 
 		decorated := glfw.False
 		if u.isInitWindowDecorated() {
