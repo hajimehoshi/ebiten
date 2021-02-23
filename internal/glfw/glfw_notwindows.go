@@ -35,7 +35,7 @@ func (w windows) add(win *glfw.Window) *Window {
 	if win == nil {
 		return nil
 	}
-	ww := &Window{win}
+	ww := &Window{w: win}
 	windowsM.Lock()
 	w[win] = ww
 	windowsM.Unlock()
@@ -87,6 +87,8 @@ func (m *Monitor) GetVideoMode() *VidMode {
 
 type Window struct {
 	w *glfw.Window
+
+	prevSizeCallback SizeCallback
 }
 
 func (w *Window) Destroy() {
@@ -191,7 +193,9 @@ func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous SizeCallback) {
 		}
 	}
 	w.w.SetSizeCallback(gcb)
-	return nil // TODO
+	prev := w.prevSizeCallback
+	w.prevSizeCallback = cbfun
+	return prev
 }
 
 func (w *Window) SetIcon(images []image.Image) {

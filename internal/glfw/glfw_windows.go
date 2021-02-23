@@ -42,7 +42,7 @@ func (w glfwWindows) add(win uintptr) *Window {
 	if win == 0 {
 		return nil
 	}
-	ww := &Window{win}
+	ww := &Window{w: win}
 	glfwWindowsM.Lock()
 	w[win] = ww
 	glfwWindowsM.Unlock()
@@ -91,6 +91,8 @@ func (m *Monitor) GetVideoMode() *VidMode {
 
 type Window struct {
 	w uintptr
+
+	prevSizeCallback SizeCallback
 }
 
 func (w *Window) Destroy() {
@@ -218,7 +220,7 @@ func (w *Window) SetScrollCallback(cbfun ScrollCallback) (previous ScrollCallbac
 	return nil // TODO
 }
 
-func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous FramebufferSizeCallback) {
+func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous SizeCallback) {
 	var gcb uintptr
 	if cbfun != nil {
 		gcb = windows.NewCallbackCDecl(func(window uintptr, width int, height int) uintptr {
@@ -228,7 +230,9 @@ func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous FramebufferSizeCa
 	}
 	glfwDLL.call("glfwSetWindowSizeCallback", w.w, gcb)
 	panicError()
-	return nil // TODO
+	prev := w.prevSizeCallback
+	w.prevSizeCallback = cbfun
+	return prev
 }
 
 func (w *Window) SetIcon(images []image.Image) {

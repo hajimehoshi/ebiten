@@ -946,6 +946,12 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 	// swap buffers here before SetSize is called.
 	u.swapBuffers()
 
+	// Do not fire the callback of SetSize. This callback can be invoked by SetMonitor or SetSize.
+	// ForceUpdate is called from the callback.
+	// While setWindowSize can be called from Update, calling ForceUpdate inside Update is illegal (#1505).
+	f := u.window.SetSizeCallback(nil)
+	defer u.window.SetSizeCallback(f)
+
 	var windowRecreated bool
 
 	if fullscreen {
