@@ -18,6 +18,7 @@ package metal
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"unsafe"
 
@@ -877,9 +878,31 @@ func (i *Image) Pixels() ([]byte, error) {
 func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	g := i.graphics
 
+	// Calculate the smallest texture size to include all the values in args.
+	minX := math.MaxInt32
+	minY := math.MaxInt32
+	maxX := 0
+	maxY := 0
+	for _, a := range args {
+		if minX > a.X {
+			minX = a.X
+		}
+		if maxX < a.X+a.Width {
+			maxX = a.X + a.Width
+		}
+		if minY > a.Y {
+			minY = a.Y
+		}
+		if maxY < a.Y+a.Height {
+			maxY = a.Y + a.Height
+		}
+	}
+	w := maxX - minX
+	h := maxY - minY
+
 	// Use a temporary texture to send pixels asynchrounsly, whichever the memory is shared (e.g., iOS) or
 	// managed (e.g., macOS). (#1418)
-	w, h := i.texture.Width(), i.texture.Height()
+	// The texture cannot be reused until sending the pixels finishes, then create new ones for each call.
 	td := mtl.TextureDescriptor{
 		TextureType: mtl.TextureType2D,
 		PixelFormat: mtl.PixelFormatRGBA8UNorm,
@@ -893,7 +916,7 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 
 	for _, a := range args {
 		t.ReplaceRegion(mtl.Region{
-			Origin: mtl.Origin{X: a.X, Y: a.Y, Z: 0},
+			Origin: mtl.Origin{X: a.X - minX, Y: a.Y - minY, Z: 0},
 			Size:   mtl.Size{Width: a.Width, Height: a.Height, Depth: 1},
 		}, 0, unsafe.Pointer(&a.Pixels[0]), 4*a.Width)
 	}
@@ -903,9 +926,10 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	}
 	bce := g.cb.MakeBlitCommandEncoder()
 	for _, a := range args {
-		o := mtl.Origin{X: a.X, Y: a.Y, Z: 0}
-		s := mtl.Size{Width: a.Width, Height: a.Height, Depth: 1}
-		bce.CopyFromTexture(t, 0, 0, o, s, i.texture, 0, 0, o)
+		so := mtl.Origin{X: a.X - minX, Y: a.Y - minY, Z: 0}
+		ss := mtl.Size{Width: a.Width, Height: a.Height, Depth: 1}
+		do := mtl.Origin{X: a.X, Y: a.Y, Z: 0}
+		bce.CopyFromTexture(t, 0, 0, so, ss, i.texture, 0, 0, do)
 	}
 	bce.EndEncoding()
 }
