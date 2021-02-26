@@ -82,7 +82,7 @@ const countForStartSyncing = maxCountForShare / 2
 func makeImagesShared() error {
 	for i := range imagesToMakeShared {
 		i.usedAsSourceCount++
-		if i.usedAsSourceCount >= countForStartSyncing && i.syncing == nil {
+		if restorable.NeedsRestoring() && i.usedAsSourceCount >= countForStartSyncing && i.syncing == nil {
 			// Sync the pixel data on CPU and GPU sides explicitly in order not to block this process.
 			ch, err := i.backend.restorable.Sync()
 			if err != nil {
@@ -91,9 +91,11 @@ func makeImagesShared() error {
 			i.syncing = ch
 		}
 		if i.usedAsSourceCount >= maxCountForShare {
-			// TODO: Instead of waiting for the channel, use select-case and continue the loop if this
-			// channel is blocking. However, this might make the tests difficult.
-			<-i.syncing
+			if restorable.NeedsRestoring() {
+				// TODO: Instead of waiting for the channel, use select-case and continue the loop
+				// if this channel is blocking. However, this might make the tests difficult.
+				<-i.syncing
+			}
 
 			if err := i.makeShared(); err != nil {
 				return err
@@ -284,20 +286,39 @@ func (i *Image) makeShared() error {
 
 	newI := NewImage(i.width, i.height)
 	newI.SetVolatile(i.volatile)
-	pixels := make([]byte, 4*i.width*i.height)
-	for y := 0; y < i.height; y++ {
-		for x := 0; x < i.width; x++ {
-			r, g, b, a, err := i.at(x+paddingSize, y+paddingSize)
-			if err != nil {
-				return err
+
+	if restorable.NeedsRestoring() {
+		// If the underlying graphics driver requires restoring from the context lost, the pixel data is
+		// needed. A shared image must have its complete pixel data in this case.
+		pixels := make([]byte, 4*i.width*i.height)
+		for y := 0; y < i.height; y++ {
+			for x := 0; x < i.width; x++ {
+				r, g, b, a, err := i.at(x+paddingSize, y+paddingSize)
+				if err != nil {
+					return err
+				}
+				pixels[4*(i.width*y+x)] = r
+				pixels[4*(i.width*y+x)+1] = g
+				pixels[4*(i.width*y+x)+2] = b
+				pixels[4*(i.width*y+x)+3] = a
 			}
-			pixels[4*(i.width*y+x)] = r
-			pixels[4*(i.width*y+x)+1] = g
-			pixels[4*(i.width*y+x)+2] = b
-			pixels[4*(i.width*y+x)+3] = a
 		}
+		newI.replacePixels(pixels)
+	} else {
+		// If the underlying graphics driver doesn't require restoring from the context lost, just a regular
+		// rendering works.
+		w, h := float32(i.width), float32(i.height)
+		vs := graphics.QuadVertices(0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, false)
+		is := graphics.QuadIndices()
+		dr := driver.Region{
+			X:      0,
+			Y:      0,
+			Width:  w,
+			Height: h,
+		}
+		newI.drawTriangles([graphics.ShaderImageNum]*Image{i}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, true)
 	}
-	newI.replacePixels(pixels)
+
 	newI.moveTo(i)
 	i.usedAsSourceCount = 0
 	i.syncing = nil
@@ -346,12 +367,21 @@ func (i *Image) processSrc(src *Image) {
 //   7: Color Y
 func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms []interface{}) {
 	backendsM.Lock()
-	// Do not use defer for performance.
+	defer backendsM.Unlock()
+	i.drawTriangles(srcs, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, shader, uniforms, false)
+}
 
+func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms []interface{}, keepShared bool) {
 	if i.disposed {
 		panic("shareable: the drawing target image must not be disposed (DrawTriangles)")
 	}
-	i.ensureNotShared()
+	if keepShared {
+		if i.backend == nil {
+			i.allocate(true)
+		}
+	} else {
+		i.ensureNotShared()
+	}
 
 	for _, src := range srcs {
 		i.processSrc(src)
@@ -360,12 +390,13 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 	var dx, dy float32
 	// A screen image doesn't have its padding.
 	if !i.screen {
-		dx = paddingSize
-		dy = paddingSize
+		x, y, _, _ := i.regionWithPadding()
+		dx = float32(x) + paddingSize
+		dy = float32(y) + paddingSize
+		// TODO: Check if dstRegion does not to violate the region.
 	}
-
 	dstRegion.X += dx
-	dstRegion.Y += dx
+	dstRegion.Y += dy
 
 	var oxf, oyf float32
 	if srcs[0] != nil {
@@ -430,8 +461,6 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 			imagesToMakeShared[src] = struct{}{}
 		}
 	}
-
-	backendsM.Unlock()
 }
 
 func (i *Image) ReplacePixels(pix []byte) {

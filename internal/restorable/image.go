@@ -297,7 +297,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		i.image.ReplacePixels(make([]byte, 4*width*height), x, y, width, height)
 	}
 
-	if !needsRestoring() || i.screen || i.volatile {
+	if !NeedsRestoring() || i.screen || i.volatile {
 		i.makeStale()
 		return
 	}
@@ -363,7 +363,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [gra
 		}
 	}
 
-	if srcstale || i.screen || !needsRestoring() || i.volatile {
+	if srcstale || i.screen || !NeedsRestoring() || i.volatile {
 		i.makeStale()
 	} else {
 		i.appendDrawTrianglesHistory(srcs, offsets, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, shader, uniforms)
@@ -496,7 +496,7 @@ func (i *Image) readPixelsFromGPU() error {
 
 // resolveStale resolves the image's 'stale' state.
 func (i *Image) resolveStale() error {
-	if !needsRestoring() {
+	if !NeedsRestoring() {
 		return nil
 	}
 
