@@ -901,7 +901,8 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	h := maxY - minY
 
 	// Use a temporary texture to send pixels asynchrounsly, whichever the memory is shared (e.g., iOS) or
-	// managed (e.g., macOS). (#1418)
+	// managed (e.g., macOS). A temporary texture is needed since ReplaceRegion tries to sync the pixel
+	// data between CPU and GPU, and doing it on the existing texture is inefficient (#1418).
 	// The texture cannot be reused until sending the pixels finishes, then create new ones for each call.
 	td := mtl.TextureDescriptor{
 		TextureType: mtl.TextureType2D,
