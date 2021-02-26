@@ -76,33 +76,15 @@ func resolveDeferred() {
 // maxCountForShare represents the time duration when the image can become shared.
 const maxCountForShare = 10
 
-// countForStartSyncing represents the count that the image starts to sync pixels between GPU and CPU.
-const countForStartSyncing = maxCountForShare / 2
-
 func makeImagesShared() error {
 	for i := range imagesToMakeShared {
 		i.usedAsSourceCount++
-		if restorable.NeedsRestoring() && i.usedAsSourceCount >= countForStartSyncing && i.syncing == nil {
-			// Sync the pixel data on CPU and GPU sides explicitly in order not to block this process.
-			ch, err := i.backend.restorable.Sync()
-			if err != nil {
-				return err
-			}
-			i.syncing = ch
-		}
 		if i.usedAsSourceCount >= maxCountForShare {
-			if restorable.NeedsRestoring() {
-				// TODO: Instead of waiting for the channel, use select-case and continue the loop
-				// if this channel is blocking. However, this might make the tests difficult.
-				<-i.syncing
-			}
-
 			if err := i.makeShared(); err != nil {
 				return err
 			}
 			i.usedAsSourceCount = 0
 			delete(imagesToMakeShared, i)
-			i.syncing = nil
 		}
 	}
 
@@ -201,8 +183,6 @@ type Image struct {
 	//
 	// ReplacePixels doesn't affect this value since ReplacePixels can be done on shared images.
 	usedAsSourceCount int
-
-	syncing <-chan struct{}
 }
 
 func (i *Image) moveTo(dst *Image) {
@@ -221,7 +201,6 @@ func (i *Image) isShared() bool {
 func (i *Image) resetUsedAsSourceCount() {
 	i.usedAsSourceCount = 0
 	delete(imagesToMakeShared, i)
-	i.syncing = nil
 }
 
 func (i *Image) ensureNotShared() {
@@ -321,7 +300,6 @@ func (i *Image) makeShared() error {
 
 	newI.moveTo(i)
 	i.usedAsSourceCount = 0
-	i.syncing = nil
 	return nil
 }
 

@@ -690,7 +690,6 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion drive
 
 func (g *Graphics) Draw(dstID, srcID driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region) error {
 	dst := g.images[dstID]
-	dst.waitUntilSyncFinishes()
 
 	srcs := [graphics.ShaderImageNum]*Image{g.images[srcID]}
 
@@ -820,15 +819,6 @@ type Image struct {
 	height   int
 	screen   bool
 	texture  mtl.Texture
-	sync     <-chan struct{}
-}
-
-func (i *Image) waitUntilSyncFinishes() {
-	if i.sync == nil {
-		return
-	}
-	<-i.sync
-	i.sync = nil
 }
 
 func (i *Image) ID() driver.ImageID {
@@ -843,9 +833,6 @@ func (i *Image) internalSize() (int, int) {
 }
 
 func (i *Image) Dispose() {
-	// TODO: Is it necessary to wait for syncing?
-	i.waitUntilSyncFinishes()
-
 	if i.texture != (mtl.Texture{}) {
 		i.texture.Release()
 		i.texture = mtl.Texture{}
@@ -860,13 +847,7 @@ func (i *Image) IsInvalidated() bool {
 	return false
 }
 
-func (i *Image) Sync() <-chan struct{} {
-	if i.sync != nil {
-		return i.sync
-	}
-
-	i.graphics.flushIfNeeded(false)
-
+func (i *Image) syncTexture() {
 	// Calling SynchronizeTexture is ignored on iOS (see mtl.m), but it looks like committing BlitCommandEncoder
 	// is necessary (#1337).
 	if i.graphics.cb != (mtl.CommandBuffer{}) {
@@ -878,21 +859,13 @@ func (i *Image) Sync() <-chan struct{} {
 	bce.SynchronizeTexture(i.texture, 0, 0)
 	bce.EndEncoding()
 
-	ch := make(chan struct{})
-	cb.AddCompletedHandler(func() {
-		close(ch)
-	})
 	cb.Commit()
-
-	i.sync = ch
-	return i.sync
+	cb.WaitUntilCompleted()
 }
 
 func (i *Image) Pixels() ([]byte, error) {
-	// Call Sync just in case when the user doesn't call Sync.
-	// If the image is already synced, the channel should be closed immediately.
-	<-i.Sync()
-	i.sync = nil
+	i.graphics.flushIfNeeded(false)
+	i.syncTexture()
 
 	b := make([]byte, 4*i.width*i.height)
 	i.texture.GetBytes(&b[0], uintptr(4*i.width), mtl.Region{
@@ -902,8 +875,6 @@ func (i *Image) Pixels() ([]byte, error) {
 }
 
 func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
-	i.waitUntilSyncFinishes()
-
 	g := i.graphics
 
 	// Use a temporary texture to send pixels asynchrounsly, whichever the memory is shared (e.g., iOS) or
@@ -941,7 +912,6 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 
 func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, dstRegion, srcRegion driver.Region, mode driver.CompositeMode, uniforms []interface{}) error {
 	dst := g.images[dstID]
-	dst.waitUntilSyncFinishes()
 
 	var srcs [graphics.ShaderImageNum]*Image
 	for i, srcID := range srcIDs {

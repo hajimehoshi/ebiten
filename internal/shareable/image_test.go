@@ -562,7 +562,7 @@ func TestDisposedAndReshared(t *testing.T) {
 	}
 
 	// Use src as a render source.
-	for i := 0; i < CountForStartSyncing; i++ {
+	for i := 0; i < MaxCountForShare/2; i++ {
 		if err := MakeImagesSharedForTesting(); err != nil {
 			t.Fatal(err)
 		}

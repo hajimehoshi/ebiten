@@ -27,7 +27,6 @@ package mtl
 import (
 	"errors"
 	"fmt"
-	"sync"
 	"unsafe"
 )
 
@@ -567,32 +566,6 @@ func (cb CommandBuffer) Commit() {
 // Reference: https://developer.apple.com/documentation/metal/mtlcommandbuffer/1443039-waituntilcompleted.
 func (cb CommandBuffer) WaitUntilCompleted() {
 	C.CommandBuffer_WaitUntilCompleted(cb.commandBuffer)
-}
-
-var (
-	commandBufferCompletedHandlers  = map[unsafe.Pointer]func(){}
-	commandBufferCompletedHandlersM sync.Mutex
-)
-
-// AddCompletedHandler registers a block of code that Metal calls immediately after the GPU finishes executing the commands in the command buffer.
-//
-// Reference: https://developer.apple.com/documentation/metal/mtlcommandbuffer/1442997-addcompletedhandler
-func (cb CommandBuffer) AddCompletedHandler(f func()) {
-	commandBufferCompletedHandlersM.Lock()
-	commandBufferCompletedHandlers[cb.commandBuffer] = f
-	commandBufferCompletedHandlersM.Unlock()
-
-	C.CommandBuffer_AddCompletedHandler(cb.commandBuffer)
-}
-
-//export commandBufferCompletedCallback
-func commandBufferCompletedCallback(commandBuffer unsafe.Pointer) {
-	commandBufferCompletedHandlersM.Lock()
-	f := commandBufferCompletedHandlers[commandBuffer]
-	delete(commandBufferCompletedHandlers, commandBuffer)
-	commandBufferCompletedHandlersM.Unlock()
-
-	f()
 }
 
 // MakeRenderCommandEncoder creates an encoder object that can
