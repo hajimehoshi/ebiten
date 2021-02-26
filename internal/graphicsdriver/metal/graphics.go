@@ -384,7 +384,7 @@ func (g *Graphics) flushIfNeeded(present bool) {
 	for _, t := range g.tmpTextures {
 		t.Release()
 	}
-	g.tmpTextures = nil
+	g.tmpTextures = g.tmpTextures[:0]
 
 	g.cb = mtl.CommandBuffer{}
 }
