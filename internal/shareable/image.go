@@ -45,13 +45,6 @@ func max(a, b int) int {
 	return b
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 func init() {
 	hooks.AppendHookOnBeforeUpdate(func() error {
 		backendsM.Lock()
@@ -702,9 +695,7 @@ func BeginFrame() error {
 			panic("shareable: all the images must be not-shared before the game starts")
 		}
 		minSize = 1024
-
-		// The maximum size is 8192 no matter what the available sizes are (#1453).
-		maxSize = min(max(minSize, restorable.MaxImageSize()), 8192)
+		maxSize = max(minSize, restorable.MaxImageSize())
 	})
 	if err != nil {
 		return err
