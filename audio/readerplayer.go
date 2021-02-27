@@ -33,6 +33,7 @@ type readerDriverPlayer interface {
 	Reset()
 	Volume() float64
 	SetVolume(volume float64)
+	UnwrittenBufferSize() int64
 	io.Closer
 }
 
@@ -48,22 +49,25 @@ func newReaderPlayerFactory(sampleRate int) *readerPlayerFactory {
 }
 
 type readerPlayer struct {
-	context *Context
-	player  readerDriverPlayer
-	src     *timeStream
-	m       sync.Mutex
+	context    *Context
+	player     readerDriverPlayer
+	src        *timeStream
+	sampleRate int
+	m          sync.Mutex
 }
 
 func (c *readerPlayerFactory) newPlayerImpl(context *Context, src io.Reader) (playerImpl, error) {
-	s, err := newTimeStream(src, context.SampleRate())
+	sampleRate := context.SampleRate()
+	s, err := newTimeStream(src, sampleRate)
 	if err != nil {
 		return nil, err
 	}
 
 	p := &readerPlayer{
-		context: context,
-		player:  c.driver.NewPlayer(s),
-		src:     s,
+		context:    context,
+		player:     c.driver.NewPlayer(s),
+		src:        s,
+		sampleRate: sampleRate,
 	}
 	return p, nil
 }
@@ -116,9 +120,8 @@ func (p *readerPlayer) Current() time.Duration {
 	p.m.Lock()
 	defer p.m.Unlock()
 
-	// TODO: Add a new function to readerDriverPlayer and use it.
-	// src's position doesn't reflect the exact playing position.
-	return p.src.Current()
+	sample := (p.src.Current() - p.player.UnwrittenBufferSize()) / bytesPerSample
+	return time.Duration(sample) * time.Second / time.Duration(p.sampleRate)
 }
 
 func (p *readerPlayer) Rewind() error {
@@ -190,7 +193,6 @@ func (s *timeStream) Seek(offset time.Duration) error {
 	return nil
 }
 
-func (s *timeStream) Current() time.Duration {
-	sample := s.pos / bytesPerSample
-	return time.Duration(sample) * time.Second / time.Duration(s.sampleRate)
+func (s *timeStream) Current() int64 {
+	return s.pos
 }
