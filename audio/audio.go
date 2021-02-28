@@ -102,8 +102,15 @@ func NewContext(sampleRate int) *Context {
 
 	var np newPlayerImpler
 	if isReaderContextAvailable() {
+		// 'Reader players' are players that implement io.Reader. This is the new way and
+		// not all the environments support reader players. Reader players can have enough
+		// buffers so that clicking noises can be avoided compared to writer players.
+		// Reder players will replace writer players in any platforms in the future.
 		np = newReaderPlayerFactory(sampleRate)
 	} else {
+		// 'Writer players' are players that implement io.Writer. This is the old way but
+		// all the environments support writer players. Writer players cannot have enough
+		// buffers and clicking noises are sometimes problematic (#1356, #1458).
 		np = newWriterPlayerFactory(sampleRate)
 	}
 
