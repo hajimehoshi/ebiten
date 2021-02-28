@@ -175,8 +175,8 @@ func (p *Player) SetVolume(volume float64) {
 	p.volume = volume
 }
 
-func (p *Player) UnwrittenBufferSize() int64 {
-	return int64(p.v.Get("unwrittenBufferSize").Int())
+func (p *Player) UnplayedBufferSize() int64 {
+	return int64(p.v.Get("unplayedBufferSize").Int())
 }
 
 func (p *Player) Close() error {

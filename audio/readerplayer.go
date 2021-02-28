@@ -33,7 +33,7 @@ type readerDriverPlayer interface {
 	Reset()
 	Volume() float64
 	SetVolume(volume float64)
-	UnwrittenBufferSize() int64
+	UnplayedBufferSize() int64
 	io.Closer
 }
 
@@ -142,7 +142,7 @@ func (p *readerPlayer) Current() time.Duration {
 	defer p.m.Unlock()
 	p.ensurePlayer()
 
-	sample := (p.src.Current() - p.player.UnwrittenBufferSize()) / bytesPerSample
+	sample := (p.src.Current() - p.player.UnplayedBufferSize()) / bytesPerSample
 	return time.Duration(sample) * time.Second / time.Duration(p.factory.sampleRate)
 }
 
