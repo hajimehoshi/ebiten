@@ -190,7 +190,7 @@ func (c *uiContext) update(updateCount int) error {
 		uiDriver().ResetForFrame()
 	}
 
-	// Even though updateCount == 0 and vsync is enabled, the offscreen is cleared and Draw is called.
+	// Even though updateCount == 0, the offscreen is cleared and Draw is called when vscync is enabled.
 	// Draw should not update the game state and then the screen should not be updated without Update, but
 	// users might want to process something at Draw with the time intervals of FPS.
 	// When vsync is disabled, as performance matters, skip calling Draw when possible (#1520).
