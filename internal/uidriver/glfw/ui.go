@@ -949,7 +949,11 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 	// ForceUpdate is called from the callback.
 	// While setWindowSize can be called from Update, calling ForceUpdate inside Update is illegal (#1505).
 	f := u.window.SetSizeCallback(nil)
-	defer u.window.SetSizeCallback(f)
+	defer func() {
+		// u.window can be changed before this deferred function is executed.
+		// Wrap this call by an anonymous function (#1522).
+		u.window.SetSizeCallback(f)
+	}()
 
 	var windowRecreated bool
 
