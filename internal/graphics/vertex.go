@@ -14,10 +14,6 @@
 
 package graphics
 
-import (
-	"github.com/hajimehoshi/ebiten/v2/internal/web"
-)
-
 const (
 	ShaderImageNum = 4
 
@@ -86,22 +82,16 @@ func (v *verticesBackend) slice(n int, last bool) []float32 {
 	return s
 }
 
-func vertexSlice(n int, last bool) []float32 {
-	if web.IsBrowser() {
-		// In Wasm, allocating memory by make is expensive. Use the backend instead.
-		return theVerticesBackend.slice(n, last)
-	}
-	return make([]float32, n*VertexFloatNum)
-}
-
 func QuadVertices(sx0, sy0, sx1, sy1 float32, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32, last bool) []float32 {
 	x := sx1 - sx0
 	y := sy1 - sy0
 	ax, by, cx, dy := a*x, b*y, c*x, d*y
 	u0, v0, u1, v1 := float32(sx0), float32(sy0), float32(sx1), float32(sy1)
 
+	// Use the vertex backend instead of calling make to reduce GCs (#1521).
+	vs := theVerticesBackend.slice(4, last)
+
 	// This function is very performance-sensitive and implement in a very dumb way.
-	vs := vertexSlice(4, last)
 	_ = vs[:32]
 
 	vs[0] = tx
