@@ -624,6 +624,16 @@ func (u *UserInterface) createWindow() error {
 	u.window.SetTitle(u.title)
 	// TODO: Set icons
 
+	return nil
+}
+
+// unregisterWindowSetSizeCallback must be called from the main thread.
+func (u *UserInterface) unregisterWindowSetSizeCallback() {
+	u.window.SetSizeCallback(nil)
+}
+
+// registerWindowSetSizeCallback must be called from the main thread.
+func (u *UserInterface) registerWindowSetSizeCallback() {
 	u.window.SetSizeCallback(func(_ *glfw.Window, width, height int) {
 		if u.window.GetAttrib(glfw.Resizable) == glfw.False {
 			return
@@ -661,8 +671,6 @@ func (u *UserInterface) createWindow() error {
 			u.err = err
 		}
 	})
-
-	return nil
 }
 
 func (u *UserInterface) init() error {
@@ -713,6 +721,7 @@ func (u *UserInterface) init() error {
 	if err := u.createWindow(); err != nil {
 		return err
 	}
+	u.registerWindowSetSizeCallback()
 
 	setPosition := func() {
 		u.iwindow.setPosition(u.getInitWindowPosition())
@@ -948,12 +957,8 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 	// Do not fire the callback of SetSize. This callback can be invoked by SetMonitor or SetSize.
 	// ForceUpdate is called from the callback.
 	// While setWindowSize can be called from Update, calling ForceUpdate inside Update is illegal (#1505).
-	f := u.window.SetSizeCallback(nil)
-	defer func() {
-		// u.window can be changed before this deferred function is executed.
-		// Wrap this call by an anonymous function (#1522).
-		u.window.SetSizeCallback(f)
-	}()
+	u.unregisterWindowSetSizeCallback()
+	defer u.registerWindowSetSizeCallback()
 
 	var windowRecreated bool
 
