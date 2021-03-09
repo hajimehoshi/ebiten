@@ -15,7 +15,7 @@
 package shareable
 
 const (
-	MaxCountForShare = maxCountForShare
+	BaseCountForShare = baseCountForShare
 )
 
 func MakeImagesSharedForTesting() error {

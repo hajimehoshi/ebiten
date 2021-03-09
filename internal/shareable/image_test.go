@@ -185,7 +185,9 @@ func TestReshared(t *testing.T) {
 	}
 
 	// Use img1 as a render source.
-	for i := 0; i < MaxCountForShare; i++ {
+	// Use the doubled count since img1 was on a texture atlas and became an isolated image once.
+	// Then, img1 requires longer time to recover to be on a textur atlas again.
+	for i := 0; i < BaseCountForShare*2; i++ {
 		if err := MakeImagesSharedForTesting(); err != nil {
 			t.Fatal(err)
 		}
@@ -247,7 +249,8 @@ func TestReshared(t *testing.T) {
 	}
 
 	// Use img1 as a render source, but call ReplacePixels.
-	for i := 0; i < MaxCountForShare; i++ {
+	// Now use 4x count as img1 became an isolated image again.
+	for i := 0; i < BaseCountForShare*4; i++ {
 		if err := MakeImagesSharedForTesting(); err != nil {
 			t.Fatal(err)
 		}
@@ -268,7 +271,7 @@ func TestReshared(t *testing.T) {
 	}
 
 	// Use img3 as a render source. As img3 is volatile, img3 never uses a shared texture.
-	for i := 0; i < MaxCountForShare*2; i++ {
+	for i := 0; i < BaseCountForShare*2; i++ {
 		if err := MakeImagesSharedForTesting(); err != nil {
 			t.Fatal(err)
 		}
@@ -562,7 +565,7 @@ func TestDisposedAndReshared(t *testing.T) {
 	}
 
 	// Use src as a render source.
-	for i := 0; i < MaxCountForShare/2; i++ {
+	for i := 0; i < BaseCountForShare/2; i++ {
 		if err := MakeImagesSharedForTesting(); err != nil {
 			t.Fatal(err)
 		}
@@ -613,7 +616,7 @@ func TestImageIsNotResharedWithoutUsingAsSource(t *testing.T) {
 
 	// Update the count without using src2 as a rendering source.
 	// This should not affect whether src2 is on a shareable image or not.
-	for i := 0; i < MaxCountForShare; i++ {
+	for i := 0; i < BaseCountForShare; i++ {
 		if err := MakeImagesSharedForTesting(); err != nil {
 			t.Fatal(err)
 		}
@@ -623,7 +626,7 @@ func TestImageIsNotResharedWithoutUsingAsSource(t *testing.T) {
 	}
 
 	// Update the count with using src2 as a rendering source.
-	for i := 0; i < MaxCountForShare; i++ {
+	for i := 0; i < BaseCountForShare; i++ {
 		if err := MakeImagesSharedForTesting(); err != nil {
 			t.Fatal(err)
 		}

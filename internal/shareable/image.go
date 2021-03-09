@@ -66,13 +66,21 @@ func resolveDeferred() {
 	}
 }
 
-// maxCountForShare represents the time duration when the image can become shared.
-const maxCountForShare = 10
+// baseCountForShare represents the base time duration when the image can become shared.
+// Actual time duration is increased in an exponential way for each usages as a rendering target.
+const baseCountForShare = 10
+
+func min(a, b uint) uint {
+	if a < b {
+		return a
+	}
+	return b
+}
 
 func makeImagesShared() error {
 	for i := range imagesToMakeShared {
 		i.usedAsSourceCount++
-		if i.usedAsSourceCount >= maxCountForShare {
+		if i.usedAsSourceCount >= baseCountForShare*(1<<min(uint(i.notSharedCount), 31)) {
 			if err := i.makeShared(); err != nil {
 				return err
 			}
@@ -176,6 +184,10 @@ type Image struct {
 	//
 	// ReplacePixels doesn't affect this value since ReplacePixels can be done on shared images.
 	usedAsSourceCount int
+
+	// notSharedCount represents how many times the image on a texture atlas is changed into an isolated image.
+	// notSharedCount affects the calculation when to make the image onto a texture atlas again.
+	notSharedCount int
 }
 
 func (i *Image) moveTo(dst *Image) {
@@ -240,6 +252,8 @@ func (i *Image) ensureNotShared() {
 	i.backend = &backend{
 		restorable: newImg,
 	}
+
+	i.notSharedCount++
 }
 
 func (i *Image) makeShared() error {
