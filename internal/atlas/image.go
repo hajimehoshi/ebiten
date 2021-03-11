@@ -193,6 +193,10 @@ type Image struct {
 	isolatedCount int
 }
 
+// moveTo moves its content to the given image dst.
+// After moveTo is called, the image i is no longer available.
+//
+// moveTo is smilar to C++'s move semantics.
 func (i *Image) moveTo(dst *Image) {
 	dst.dispose(false)
 	*dst = *i
