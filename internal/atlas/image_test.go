@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package shareable_test
+package atlas_test
 
 import (
 	"image/color"
 	"runtime"
 	"testing"
 
+	. "github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
-	. "github.com/hajimehoshi/ebiten/v2/internal/shareable"
 	t "github.com/hajimehoshi/ebiten/v2/internal/testing"
 )
 
@@ -55,7 +55,7 @@ func quadVertices(sw, sh, x, y int, scalex float32) []float32 {
 
 const bigSize = 2049
 
-func TestEnsureNotShared(t *testing.T) {
+func TestEnsureIsolated(t *testing.T) {
 	// Create img1 and img2 with this size so that the next images are allocated
 	// with non-upper-left location.
 	img1 := NewImage(bigSize, 100)
@@ -93,7 +93,7 @@ func TestEnsureNotShared(t *testing.T) {
 		dx1 = size * 3 / 4
 		dy1 = size * 3 / 4
 	)
-	// img4.ensureNotShared() should be called.
+	// img4.EnsureIsolated() should be called.
 	vs := quadVertices(size/2, size/2, size/4, size/4, 1)
 	is := graphics.QuadIndices()
 	dr := driver.Region{
@@ -104,7 +104,7 @@ func TestEnsureNotShared(t *testing.T) {
 	}
 	img4.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
 	want := false
-	if got := img4.IsSharedForTesting(); got != want {
+	if got := img4.IsOnAtlasForTesting(); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
@@ -135,7 +135,7 @@ func TestEnsureNotShared(t *testing.T) {
 	img4.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
 }
 
-func TestReshared(t *testing.T) {
+func TestReputOnAtlas(t *testing.T) {
 	const size = 16
 
 	img0 := NewImage(size, size)
@@ -145,7 +145,7 @@ func TestReshared(t *testing.T) {
 	img1 := NewImage(size, size)
 	defer img1.MarkDisposed()
 	img1.ReplacePixels(make([]byte, 4*size*size))
-	if got, want := img1.IsSharedForTesting(), true; got != want {
+	if got, want := img1.IsOnAtlasForTesting(), true; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
@@ -166,7 +166,7 @@ func TestReshared(t *testing.T) {
 	img3.SetVolatile(true)
 	defer img3.MarkDisposed()
 	img1.ReplacePixels(make([]byte, 4*size*size))
-	if got, want := img3.IsSharedForTesting(), false; got != want {
+	if got, want := img3.IsOnAtlasForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
@@ -180,23 +180,23 @@ func TestReshared(t *testing.T) {
 		Height: size,
 	}
 	img1.DrawTriangles([graphics.ShaderImageNum]*Image{img2}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
-	if got, want := img1.IsSharedForTesting(), false; got != want {
+	if got, want := img1.IsOnAtlasForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
 	// Use img1 as a render source.
 	// Use the doubled count since img1 was on a texture atlas and became an isolated image once.
 	// Then, img1 requires longer time to recover to be on a textur atlas again.
-	for i := 0; i < BaseCountForShare*2; i++ {
-		if err := MakeImagesSharedForTesting(); err != nil {
+	for i := 0; i < BaseCountToPutOnAtlas*2; i++ {
+		if err := PutImagesOnAtlasForTesting(); err != nil {
 			t.Fatal(err)
 		}
 		img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
-		if got, want := img1.IsSharedForTesting(), false; got != want {
+		if got, want := img1.IsOnAtlasForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
 	}
-	if err := MakeImagesSharedForTesting(); err != nil {
+	if err := PutImagesOnAtlasForTesting(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -218,9 +218,9 @@ func TestReshared(t *testing.T) {
 		}
 	}
 
-	// img1 is on a shared image again.
+	// img1 is on an atlas again.
 	img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
-	if got, want := img1.IsSharedForTesting(), true; got != want {
+	if got, want := img1.IsOnAtlasForTesting(), true; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
@@ -244,39 +244,39 @@ func TestReshared(t *testing.T) {
 
 	// Use img1 as a render target again.
 	img1.DrawTriangles([graphics.ShaderImageNum]*Image{img2}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
-	if got, want := img1.IsSharedForTesting(), false; got != want {
+	if got, want := img1.IsOnAtlasForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
 	// Use img1 as a render source, but call ReplacePixels.
 	// Now use 4x count as img1 became an isolated image again.
-	for i := 0; i < BaseCountForShare*4; i++ {
-		if err := MakeImagesSharedForTesting(); err != nil {
+	for i := 0; i < BaseCountToPutOnAtlas*4; i++ {
+		if err := PutImagesOnAtlasForTesting(); err != nil {
 			t.Fatal(err)
 		}
 		img1.ReplacePixels(make([]byte, 4*size*size))
 		img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
-		if got, want := img1.IsSharedForTesting(), false; got != want {
+		if got, want := img1.IsOnAtlasForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
 	}
-	if err := MakeImagesSharedForTesting(); err != nil {
+	if err := PutImagesOnAtlasForTesting(); err != nil {
 		t.Fatal(err)
 	}
 
-	// img1 is not on a shared image due to ReplacePixels.
+	// img1 is not on an atlas due to ReplacePixels.
 	img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
-	if got, want := img1.IsSharedForTesting(), false; got != want {
+	if got, want := img1.IsOnAtlasForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
-	// Use img3 as a render source. As img3 is volatile, img3 never uses a shared texture.
-	for i := 0; i < BaseCountForShare*2; i++ {
-		if err := MakeImagesSharedForTesting(); err != nil {
+	// Use img3 as a render source. As img3 is volatile, img3 is never on an atlas.
+	for i := 0; i < BaseCountToPutOnAtlas*2; i++ {
+		if err := PutImagesOnAtlasForTesting(); err != nil {
 			t.Fatal(err)
 		}
 		img0.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
-		if got, want := img3.IsSharedForTesting(), false; got != want {
+		if got, want := img3.IsOnAtlasForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
 	}
@@ -495,11 +495,11 @@ func TestDisposeImmediately(t *testing.T) {
 	// This tests restorable.Image.ClearPixels is called but ReplacePixels is not called.
 
 	img0 := NewImage(16, 16)
-	img0.EnsureNotSharedForTesting()
+	img0.EnsureIsolatedForTesting()
 	defer img0.MarkDisposed()
 
 	img1 := NewImage(16, 16)
-	img1.EnsureNotSharedForTesting()
+	img1.EnsureIsolatedForTesting()
 	defer img1.MarkDisposed()
 
 	// img0 and img1 should share the same backend in 99.9999% possibility.
@@ -540,7 +540,7 @@ func TestMinImageSize(t *testing.T) {
 }
 
 // Issue #1421
-func TestDisposedAndReshared(t *testing.T) {
+func TestDisposedAndReputOnAtlas(t *testing.T) {
 	const size = 16
 
 	src := NewImage(size, size)
@@ -550,7 +550,7 @@ func TestDisposedAndReshared(t *testing.T) {
 	dst := NewImage(size, size)
 	defer dst.MarkDisposed()
 
-	// Use src as a render target so that src is not on the shared image.
+	// Use src as a render target so that src is not on an atlas.
 	vs := quadVertices(size, size, 0, 0, 1)
 	is := graphics.QuadIndices()
 	dr := driver.Region{
@@ -560,35 +560,35 @@ func TestDisposedAndReshared(t *testing.T) {
 		Height: size,
 	}
 	src.DrawTriangles([graphics.ShaderImageNum]*Image{src2}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
-	if got, want := src.IsSharedForTesting(), false; got != want {
+	if got, want := src.IsOnAtlasForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
 	// Use src as a render source.
-	for i := 0; i < BaseCountForShare/2; i++ {
-		if err := MakeImagesSharedForTesting(); err != nil {
+	for i := 0; i < BaseCountToPutOnAtlas/2; i++ {
+		if err := PutImagesOnAtlasForTesting(); err != nil {
 			t.Fatal(err)
 		}
 		dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
-		if got, want := src.IsSharedForTesting(), false; got != want {
+		if got, want := src.IsOnAtlasForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
 	}
 
-	// Before MakeImagesSharedForTesting, dispose the image.
+	// Before PutImaegsOnAtlasForTesting, dispose the image.
 	src.MarkDisposed()
 
 	// Force to dispose the image.
 	ResolveDeferredForTesting()
 
-	// Confirm that MakeImagesSharedForTesting doesn't panic.
-	if err := MakeImagesSharedForTesting(); err != nil {
+	// Confirm that PutImagesOnAtlasForTesting doesn't panic.
+	if err := PutImagesOnAtlasForTesting(); err != nil {
 		t.Fatal(err)
 	}
 }
 
 // Issue #1456
-func TestImageIsNotResharedWithoutUsingAsSource(t *testing.T) {
+func TestImageIsNotReputOnAtlasWithoutUsingAsSource(t *testing.T) {
 	const size = 16
 
 	src := NewImage(size, size)
@@ -598,7 +598,7 @@ func TestImageIsNotResharedWithoutUsingAsSource(t *testing.T) {
 	dst := NewImage(size, size)
 	defer dst.MarkDisposed()
 
-	// Use src as a render target so that src is not on the shared image.
+	// Use src as a render target so that src is not on an atlas.
 	vs := quadVertices(size, size, 0, 0, 1)
 	is := graphics.QuadIndices()
 	dr := driver.Region{
@@ -610,38 +610,38 @@ func TestImageIsNotResharedWithoutUsingAsSource(t *testing.T) {
 
 	// Use src2 as a rendering target, and make src2 an independent image.
 	src2.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
-	if got, want := src2.IsSharedForTesting(), false; got != want {
+	if got, want := src2.IsOnAtlasForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
 	// Update the count without using src2 as a rendering source.
-	// This should not affect whether src2 is on a shareable image or not.
-	for i := 0; i < BaseCountForShare; i++ {
-		if err := MakeImagesSharedForTesting(); err != nil {
+	// This should not affect whether src2 is on an atlas or not.
+	for i := 0; i < BaseCountToPutOnAtlas; i++ {
+		if err := PutImagesOnAtlasForTesting(); err != nil {
 			t.Fatal(err)
 		}
-		if got, want := src2.IsSharedForTesting(), false; got != want {
+		if got, want := src2.IsOnAtlasForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
 	}
 
 	// Update the count with using src2 as a rendering source.
-	for i := 0; i < BaseCountForShare; i++ {
-		if err := MakeImagesSharedForTesting(); err != nil {
+	for i := 0; i < BaseCountToPutOnAtlas; i++ {
+		if err := PutImagesOnAtlasForTesting(); err != nil {
 			t.Fatal(err)
 		}
 		dst.DrawTriangles([graphics.ShaderImageNum]*Image{src2}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
-		if got, want := src2.IsSharedForTesting(), false; got != want {
+		if got, want := src2.IsOnAtlasForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
 	}
 
-	if err := MakeImagesSharedForTesting(); err != nil {
+	if err := PutImagesOnAtlasForTesting(); err != nil {
 		t.Fatal(err)
 	}
-	if got, want := src2.IsSharedForTesting(), true; got != want {
+	if got, want := src2.IsOnAtlasForTesting(), true; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
 
-// TODO: Add tests to extend shareable image out of the main loop
+// TODO: Add tests to extend image on an atlas out of the main loop

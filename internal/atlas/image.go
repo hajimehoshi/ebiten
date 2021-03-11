@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package shareable
+package atlas
 
 import (
 	"fmt"
@@ -51,7 +51,7 @@ func init() {
 		defer backendsM.Unlock()
 
 		resolveDeferred()
-		return makeImagesShared()
+		return putImagesOnAtlas()
 	})
 }
 
@@ -66,9 +66,9 @@ func resolveDeferred() {
 	}
 }
 
-// baseCountForShare represents the base time duration when the image can become shared.
+// baseCountToPutOnAtlas represents the base time duration when the image can be put onto an atlas.
 // Actual time duration is increased in an exponential way for each usages as a rendering target.
-const baseCountForShare = 10
+const baseCountToPutOnAtlas = 10
 
 func min(a, b uint) uint {
 	if a < b {
@@ -77,33 +77,35 @@ func min(a, b uint) uint {
 	return b
 }
 
-func makeImagesShared() error {
-	for i := range imagesToMakeShared {
+func putImagesOnAtlas() error {
+	for i := range imagesToPutOnAtlas {
 		i.usedAsSourceCount++
-		if i.usedAsSourceCount >= baseCountForShare*(1<<min(uint(i.notSharedCount), 31)) {
-			if err := i.makeShared(); err != nil {
+		if i.usedAsSourceCount >= baseCountToPutOnAtlas*(1<<min(uint(i.isolatedCount), 31)) {
+			if err := i.putOnAtlas(); err != nil {
 				return err
 			}
 			i.usedAsSourceCount = 0
-			delete(imagesToMakeShared, i)
+			delete(imagesToPutOnAtlas, i)
 		}
 	}
 
 	// Reset the images. The images will be registered again when it is used as a rendering source.
-	for k := range imagesToMakeShared {
-		delete(imagesToMakeShared, k)
+	for k := range imagesToPutOnAtlas {
+		delete(imagesToPutOnAtlas, k)
 	}
 	return nil
 }
 
 type backend struct {
+	// restorable is an atlas on which there might be multiple images.
 	restorable *restorable.Image
 
-	// If page is nil, the backend is not shared.
+	// page is an atlas map. Each part is called a node.
+	// If page is nil, the backend's image is isolated and not on an atlas.
 	page *packing.Page
 }
 
-func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
+func (b *backend) tryAlloc(width, height int) (*packing.Node, bool) {
 	// If the region is allocated without any extension, that's fine.
 	if n := b.page.Alloc(width, height); n != nil {
 		return n, true
@@ -129,7 +131,7 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 	b.restorable = b.restorable.Extend(s, s)
 
 	if n == nil {
-		panic("shareable: Alloc result must not be nil at TryAlloc")
+		panic("atlas: Alloc result must not be nil at TryAlloc")
 	}
 	return n, true
 }
@@ -140,10 +142,10 @@ var (
 
 	initOnce sync.Once
 
-	// theBackends is a set of actually shared images.
+	// theBackends is a set of atlases.
 	theBackends = []*backend{}
 
-	imagesToMakeShared = map[*Image]struct{}{}
+	imagesToPutOnAtlas = map[*Image]struct{}{}
 
 	deferred []func()
 
@@ -163,6 +165,7 @@ func init() {
 	backendsM.Lock()
 }
 
+// Image is a renctangle pixel set that might be on an atlas.
 type Image struct {
 	width    int
 	height   int
@@ -177,17 +180,17 @@ type Image struct {
 	// usedAsSourceCount represents how long the image is used as a rendering source and kept not modified with
 	// DrawTriangles.
 	// In the current implementation, if an image is being modified by DrawTriangles, the image is separated from
-	// a shared (restorable) image by ensureNotShared.
+	// a restorable image on an atlas by ensureIsolated.
 	//
 	// usedAsSourceCount is increased if the image is used as a rendering source, or set to 0 if the image is
 	// modified.
 	//
-	// ReplacePixels doesn't affect this value since ReplacePixels can be done on shared images.
+	// ReplacePixels doesn't affect this value since ReplacePixels can be done on images on an atlas.
 	usedAsSourceCount int
 
-	// notSharedCount represents how many times the image on a texture atlas is changed into an isolated image.
-	// notSharedCount affects the calculation when to make the image onto a texture atlas again.
-	notSharedCount int
+	// isolatedCount represents how many times the image on a texture atlas is changed into an isolated image.
+	// isolatedCount affects the calculation when to put the image onto a texture atlas again.
+	isolatedCount int
 }
 
 func (i *Image) moveTo(dst *Image) {
@@ -199,16 +202,16 @@ func (i *Image) moveTo(dst *Image) {
 	runtime.SetFinalizer(i, nil)
 }
 
-func (i *Image) isShared() bool {
+func (i *Image) isOnAtlas() bool {
 	return i.node != nil
 }
 
 func (i *Image) resetUsedAsSourceCount() {
 	i.usedAsSourceCount = 0
-	delete(imagesToMakeShared, i)
+	delete(imagesToPutOnAtlas, i)
 }
 
-func (i *Image) ensureNotShared() {
+func (i *Image) ensureIsolated() {
 	i.resetUsedAsSourceCount()
 
 	if i.backend == nil {
@@ -216,7 +219,7 @@ func (i *Image) ensureNotShared() {
 		return
 	}
 
-	if !i.isShared() {
+	if !i.isOnAtlas() {
 		return
 	}
 
@@ -253,21 +256,21 @@ func (i *Image) ensureNotShared() {
 		restorable: newImg,
 	}
 
-	i.notSharedCount++
+	i.isolatedCount++
 }
 
-func (i *Image) makeShared() error {
+func (i *Image) putOnAtlas() error {
 	if i.backend == nil {
 		i.allocate(true)
 		return nil
 	}
 
-	if i.isShared() {
+	if i.isOnAtlas() {
 		return nil
 	}
 
-	if !i.shareable() {
-		panic("shareable: makeShared cannot be called on a non-shareable image")
+	if !i.canBePutOnAtlas() {
+		panic("atlas: putOnAtlas cannot be called on a image that cannot be on an atlas")
 	}
 
 	newI := NewImage(i.width, i.height)
@@ -275,7 +278,7 @@ func (i *Image) makeShared() error {
 
 	if restorable.NeedsRestoring() {
 		// If the underlying graphics driver requires restoring from the context lost, the pixel data is
-		// needed. A shared image must have its complete pixel data in this case.
+		// needed. A image on an atlas must have its complete pixel data in this case.
 		pixels := make([]byte, 4*i.width*i.height)
 		for y := 0; y < i.height; y++ {
 			for x := 0; x < i.width; x++ {
@@ -312,9 +315,9 @@ func (i *Image) makeShared() error {
 
 func (i *Image) regionWithPadding() (x, y, width, height int) {
 	if i.backend == nil {
-		panic("shareable: backend must not be nil: not allocated yet?")
+		panic("atlas: backend must not be nil: not allocated yet?")
 	}
-	if !i.isShared() {
+	if !i.isOnAtlas() {
 		return 0, 0, i.width + 2*paddingSize, i.height + 2*paddingSize
 	}
 	return i.node.Region()
@@ -325,16 +328,16 @@ func (i *Image) processSrc(src *Image) {
 		return
 	}
 	if src.disposed {
-		panic("shareable: the drawing source image must not be disposed (DrawTriangles)")
+		panic("atlas: the drawing source image must not be disposed (DrawTriangles)")
 	}
 	if src.backend == nil {
 		src.allocate(true)
 	}
 
-	// Compare i and source images after ensuring i is not shared, or
-	// i and a source image might share the same texture even though i != src.
+	// Compare i and source images after ensuring i is not on an atlas, or
+	// i and a source image might share the same atlas even though i != src.
 	if i.backend.restorable == src.backend.restorable {
-		panic("shareable: Image.DrawTriangles: source must be different from the receiver")
+		panic("atlas: Image.DrawTriangles: source must be different from the receiver")
 	}
 }
 
@@ -356,16 +359,16 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 	i.drawTriangles(srcs, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, shader, uniforms, false)
 }
 
-func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms []interface{}, keepShared bool) {
+func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms []interface{}, keepOnAtlas bool) {
 	if i.disposed {
-		panic("shareable: the drawing target image must not be disposed (DrawTriangles)")
+		panic("atlas: the drawing target image must not be disposed (DrawTriangles)")
 	}
-	if keepShared {
+	if keepOnAtlas {
 		if i.backend == nil {
 			i.allocate(true)
 		}
 	} else {
-		i.ensureNotShared()
+		i.ensureIsolated()
 	}
 
 	for _, src := range srcs {
@@ -441,9 +444,9 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		if src == nil {
 			continue
 		}
-		if !src.isShared() && src.shareable() {
+		if !src.isOnAtlas() && src.canBePutOnAtlas() {
 			// src might already registered, but assiging it again is not harmful.
-			imagesToMakeShared[src] = struct{}{}
+			imagesToPutOnAtlas[src] = struct{}{}
 		}
 	}
 }
@@ -456,7 +459,7 @@ func (i *Image) ReplacePixels(pix []byte) {
 
 func (i *Image) replacePixels(pix []byte) {
 	if i.disposed {
-		panic("shareable: the image must not be disposed at replacePixels")
+		panic("atlas: the image must not be disposed at replacePixels")
 	}
 
 	i.resetUsedAsSourceCount()
@@ -476,7 +479,7 @@ func (i *Image) replacePixels(pix []byte) {
 
 	ow, oh := w-2*paddingSize, h-2*paddingSize
 	if l := 4 * ow * oh; len(pix) != l {
-		panic(fmt.Sprintf("shareable: len(p) must be %d but %d", l, len(pix)))
+		panic(fmt.Sprintf("atlas: len(p) must be %d but %d", l, len(pix)))
 	}
 
 	// Add a padding around the image.
@@ -562,7 +565,7 @@ func (i *Image) dispose(markDisposed bool) {
 		return
 	}
 
-	if !i.isShared() {
+	if !i.isOnAtlas() {
 		i.backend.restorable.Dispose()
 		return
 	}
@@ -583,7 +586,7 @@ func (i *Image) dispose(markDisposed bool) {
 		}
 	}
 	if index == -1 {
-		panic("shareable: backend not found at an image being disposed")
+		panic("atlas: backend not found at an image being disposed")
 	}
 	theBackends = append(theBackends[:index], theBackends[index+1:]...)
 }
@@ -602,14 +605,14 @@ func (i *Image) SetVolatile(volatile bool) {
 		return
 	}
 	if i.volatile {
-		i.ensureNotShared()
+		i.ensureIsolated()
 	}
 	i.backend.restorable.SetVolatile(i.volatile)
 }
 
-func (i *Image) shareable() bool {
+func (i *Image) canBePutOnAtlas() bool {
 	if minSize == 0 || maxSize == 0 {
-		panic("shareable: minSize or maxSize must be initialized")
+		panic("atlas: minSize or maxSize must be initialized")
 	}
 	if i.volatile {
 		return false
@@ -620,9 +623,9 @@ func (i *Image) shareable() bool {
 	return i.width+2*paddingSize <= maxSize && i.height+2*paddingSize <= maxSize
 }
 
-func (i *Image) allocate(shareable bool) {
+func (i *Image) allocate(putOnAtlas bool) {
 	if i.backend != nil {
-		panic("shareable: the image is already allocated")
+		panic("atlas: the image is already allocated")
 	}
 
 	runtime.SetFinalizer(i, (*Image).MarkDisposed)
@@ -635,7 +638,7 @@ func (i *Image) allocate(shareable bool) {
 		return
 	}
 
-	if !shareable || !i.shareable() {
+	if !putOnAtlas || !i.canBePutOnAtlas() {
 		i.backend = &backend{
 			restorable: restorable.NewImage(i.width+2*paddingSize, i.height+2*paddingSize),
 		}
@@ -644,7 +647,7 @@ func (i *Image) allocate(shareable bool) {
 	}
 
 	for _, b := range theBackends {
-		if n, ok := b.TryAlloc(i.width+2*paddingSize, i.height+2*paddingSize); ok {
+		if n, ok := b.tryAlloc(i.width+2*paddingSize, i.height+2*paddingSize); ok {
 			i.backend = b
 			i.node = n
 			return
@@ -653,7 +656,7 @@ func (i *Image) allocate(shareable bool) {
 	size := minSize
 	for i.width+2*paddingSize > size || i.height+2*paddingSize > size {
 		if size == maxSize {
-			panic(fmt.Sprintf("shareable: the image being shared is too big: width: %d, height: %d", i.width, i.height))
+			panic(fmt.Sprintf("atlas: the image being put on an atlas is too big: width: %d, height: %d", i.width, i.height))
 		}
 		size *= 2
 	}
@@ -667,7 +670,7 @@ func (i *Image) allocate(shareable bool) {
 
 	n := b.page.Alloc(i.width+2*paddingSize, i.height+2*paddingSize)
 	if n == nil {
-		panic("shareable: Alloc result must not be nil at allocate")
+		panic("atlas: Alloc result must not be nil at allocate")
 	}
 	i.backend = b
 	i.node = n
@@ -706,7 +709,7 @@ func BeginFrame() error {
 			return
 		}
 		if len(theBackends) != 0 {
-			panic("shareable: all the images must be not-shared before the game starts")
+			panic("atlas: all the images must be not on an atlas before the game starts")
 		}
 		minSize = 1024
 		maxSize = max(minSize, restorable.MaxImageSize())

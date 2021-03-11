@@ -19,14 +19,14 @@ import (
 	"image"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
+	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
-	"github.com/hajimehoshi/ebiten/v2/internal/shareable"
 )
 
 type Image struct {
-	img    *shareable.Image
+	img    *atlas.Image
 	width  int
 	height int
 
@@ -35,14 +35,14 @@ type Image struct {
 }
 
 func BeginFrame() error {
-	if err := shareable.BeginFrame(); err != nil {
+	if err := atlas.BeginFrame(); err != nil {
 		return err
 	}
 	return flushDelayedCommands()
 }
 
 func EndFrame() error {
-	return shareable.EndFrame()
+	return atlas.EndFrame()
 }
 
 func NewImage(width, height int) *Image {
@@ -60,7 +60,7 @@ func (i *Image) initialize(width, height int) {
 			return
 		}
 	}
-	i.img = shareable.NewImage(width, height)
+	i.img = atlas.NewImage(width, height)
 	i.width = width
 	i.height = height
 }
@@ -93,7 +93,7 @@ func (i *Image) initializeAsScreenFramebuffer(width, height int) {
 		}
 	}
 
-	i.img = shareable.NewScreenFramebufferImage(width, height)
+	i.img = atlas.NewScreenFramebufferImage(width, height)
 	i.width = width
 	i.height = height
 }
@@ -219,8 +219,8 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		}
 	}
 
-	var s *shareable.Shader
-	var imgs [graphics.ShaderImageNum]*shareable.Image
+	var s *atlas.Shader
+	var imgs [graphics.ShaderImageNum]*atlas.Image
 	if shader == nil {
 		// Fast path for rendering without a shader (#1355).
 		img := srcs[0]
@@ -243,12 +243,12 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 }
 
 type Shader struct {
-	shader *shareable.Shader
+	shader *atlas.Shader
 }
 
 func NewShader(program *shaderir.Program) *Shader {
 	return &Shader{
-		shader: shareable.NewShader(program),
+		shader: atlas.NewShader(program),
 	}
 }
 

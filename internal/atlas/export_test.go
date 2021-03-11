@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package shareable
+package atlas
 
 const (
-	BaseCountForShare = baseCountForShare
+	BaseCountToPutOnAtlas = baseCountToPutOnAtlas
 )
 
-func MakeImagesSharedForTesting() error {
-	return makeImagesShared()
+func PutImagesOnAtlasForTesting() error {
+	return putImagesOnAtlas()
 }
 
 var (
@@ -45,16 +45,16 @@ func ResetBackendsForTesting() {
 	theBackends = nil
 }
 
-func (i *Image) IsSharedForTesting() bool {
+func (i *Image) IsOnAtlasForTesting() bool {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	return i.isShared()
+	return i.isOnAtlas()
 }
 
-func (i *Image) EnsureNotSharedForTesting() {
+func (i *Image) EnsureIsolatedForTesting() {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	i.ensureNotShared()
+	i.ensureIsolated()
 }
 
 func ResolveDeferredForTesting() {
