@@ -344,6 +344,8 @@ func (c *drawTrianglesCommand) String() string {
 		mode = "xor"
 	case driver.CompositeModeLighter:
 		mode = "lighter"
+	case driver.CompositeModeMultiply:
+		mode = "multiply"
 	default:
 		panic(fmt.Sprintf("graphicscommand: invalid composite mode: %d", c.mode))
 	}
