@@ -124,7 +124,7 @@ func GamepadSDLID(id int) string {
 //   - Chrome: "Xbox 360 Controller (XInput STANDARD GAMEPAD)"
 //   - Firefox: "xinput"
 //
-// GamepadName always returns an empty string on mobiles.
+// GamepadName always returns an empty string on iOS.
 //
 // GamepadName is concurrent-safe.
 func GamepadName(id int) string {
@@ -135,7 +135,7 @@ func GamepadName(id int) string {
 //
 // GamepadIDs is concurrent-safe.
 //
-// GamepadIDs always returns an empty slice on mobiles.
+// GamepadIDs always returns an empty slice on iOS.
 func GamepadIDs() []int {
 	return uiDriver().Input().GamepadIDs()
 }
@@ -144,7 +144,7 @@ func GamepadIDs() []int {
 //
 // GamepadAxisNum is concurrent-safe.
 //
-// GamepadAxisNum always returns 0 on mobiles.
+// GamepadAxisNum always returns 0 on iOS.
 func GamepadAxisNum(id int) int {
 	return uiDriver().Input().GamepadAxisNum(id)
 }
@@ -153,7 +153,7 @@ func GamepadAxisNum(id int) int {
 //
 // GamepadAxis is concurrent-safe.
 //
-// GamepadAxis always returns 0 on mobiles.
+// GamepadAxis always returns 0 on iOS.
 func GamepadAxis(id int, axis int) float64 {
 	return uiDriver().Input().GamepadAxis(id, axis)
 }
@@ -162,7 +162,7 @@ func GamepadAxis(id int, axis int) float64 {
 //
 // GamepadButtonNum is concurrent-safe.
 //
-// GamepadButtonNum always returns 0 on mobiles.
+// GamepadButtonNum always returns 0 on iOS.
 func GamepadButtonNum(id int) int {
 	return uiDriver().Input().GamepadButtonNum(id)
 }
@@ -177,7 +177,7 @@ func GamepadButtonNum(id int) int {
 // The relationships between physical buttons and buttion IDs depend on environments.
 // There can be differences even between Chrome and Firefox.
 //
-// IsGamepadButtonPressed always returns false on mobiles.
+// IsGamepadButtonPressed always returns false on iOS.
 func IsGamepadButtonPressed(id int, button GamepadButton) bool {
 	return uiDriver().Input().IsGamepadButtonPressed(id, driver.GamepadButton(button))
 }
