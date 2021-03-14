@@ -34,7 +34,7 @@ var (
 )
 
 func updateInput() {
-	ts := []*mobile.Touch{}
+	ts := make([]*mobile.Touch, 0, len(touches))
 	for id, position := range touches {
 		ts = append(ts, &mobile.Touch{
 			ID: id,
