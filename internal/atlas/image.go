@@ -301,7 +301,7 @@ func (i *Image) putOnAtlas() error {
 		// If the underlying graphics driver doesn't require restoring from the context lost, just a regular
 		// rendering works.
 		w, h := float32(i.width), float32(i.height)
-		vs := graphics.QuadVertices(0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, false)
+		vs := graphics.QuadVertices(0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 		is := graphics.QuadIndices()
 		dr := driver.Region{
 			X:      0,
