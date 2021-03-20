@@ -63,9 +63,6 @@ type verticesBackend struct {
 	m       sync.Mutex
 }
 
-// slice returns a float32 slice for n vertices.
-// slice returns a slice that never overlaps with other slices returned this function,
-// and users can do optimization based on this fact.
 func (v *verticesBackend) slice(n int) []float32 {
 	v.m.Lock()
 	defer v.m.Unlock()
@@ -88,6 +85,16 @@ func (v *verticesBackend) slice(n int) []float32 {
 	return s
 }
 
+// Vertices returns a float32 slice for n vertices.
+// Vertices returns a slice that never overlaps with other slices returned this function,
+// and users can do optimization based on this fact.
+func Vertices(n int) []float32 {
+	return theVerticesBackend.slice(n)
+}
+
+// QuadVertices returns a float32 slice for a quadrangle.
+// QuadVertices returns a slice that never overlaps with other slices returned this function,
+// and users can do optimization based on this fact.
 func QuadVertices(sx0, sy0, sx1, sy1 float32, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32) []float32 {
 	x := sx1 - sx0
 	y := sy1 - sy0

@@ -327,8 +327,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	filter := driver.Filter(options.Filter)
 
-	// TODO: Use the same backend as graphics.QuadVertices.
-	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
+	vs := graphics.Vertices(len(vertices))
 	for i, v := range vertices {
 		vs[i*graphics.VertexFloatNum] = v.DstX
 		vs[i*graphics.VertexFloatNum+1] = v.DstY
@@ -417,7 +416,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 
 	mode := driver.CompositeMode(options.CompositeMode)
 
-	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
+	vs := graphics.Vertices(len(vertices))
 	for i, v := range vertices {
 		vs[i*graphics.VertexFloatNum] = v.DstX
 		vs[i*graphics.VertexFloatNum+1] = v.DstY
