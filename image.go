@@ -256,7 +256,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	sy0 := float32(bounds.Min.Y)
 	sx1 := float32(bounds.Max.X)
 	sy1 := float32(bounds.Max.Y)
-	vs := graphics.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, 1, 1, 1, 1, i.screen)
+	vs := graphics.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 
 	srcs := [graphics.ShaderImageNum]*mipmap.Mipmap{img.mipmap}
@@ -382,6 +382,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		filter = driver.Filter(img.filter)
 	}
 
+	// TODO: Use the same backend as graphics.QuadVertices.
 	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
 	for i, v := range vertices {
 		vs[i*graphics.VertexFloatNum] = v.DstX
@@ -614,7 +615,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	}
 
 	a, b, c, d, tx, ty := options.GeoM.elements32()
-	vs := graphics.QuadVertices(sx, sy, sx+float32(width), sy+float32(height), a, b, c, d, tx, ty, 1, 1, 1, 1, false)
+	vs := graphics.QuadVertices(sx, sy, sx+float32(width), sy+float32(height), a, b, c, d, tx, ty, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 
 	var sr driver.Region
