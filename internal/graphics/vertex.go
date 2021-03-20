@@ -63,6 +63,9 @@ type verticesBackend struct {
 	m       sync.Mutex
 }
 
+// slice returns a float32 slice for n vertices.
+// slice returns a slice that never overlaps with other slices returned this function,
+// and users can do optimization based on this fact.
 func (v *verticesBackend) slice(n int) []float32 {
 	v.m.Lock()
 	defer v.m.Unlock()
@@ -95,7 +98,7 @@ func QuadVertices(sx0, sy0, sx1, sy1 float32, a, b, c, d, tx, ty float32, cr, cg
 	vs := theVerticesBackend.slice(4)
 
 	// This function is very performance-sensitive and implement in a very dumb way.
-	_ = vs[:32]
+	_ = vs[:4*VertexFloatNum]
 
 	vs[0] = tx
 	vs[1] = ty
