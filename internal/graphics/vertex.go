@@ -15,6 +15,8 @@
 package graphics
 
 import (
+	"sync"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/web"
 )
 
@@ -50,54 +52,53 @@ func QuadIndices() []uint16 {
 }
 
 var (
-	theVerticesBackend = &verticesBackend{
-		backend: make([]float32, VertexFloatNum*1024),
-	}
+	theVerticesBackend = &verticesBackend{}
 )
 
 type verticesBackend struct {
 	backend []float32
 	head    int
+	m       sync.Mutex
 }
 
-func (v *verticesBackend) slice(n int, last bool) []float32 {
-	// As this is called only on browsers, mutex is not required.
+func (v *verticesBackend) slice(n int) []float32 {
+	v.m.Lock()
+	defer v.m.Unlock()
 
 	need := n * VertexFloatNum
-	if l := len(v.backend); v.head+need > l {
-		for v.head+need > l {
-			l *= 2
-		}
-		v.backend = make([]float32, l)
+	if v.head+need > len(v.backend) {
+		v.backend = nil
 		v.head = 0
+	}
+	if v.backend == nil {
+		l := 1024
+		if n > l {
+			l = n
+		}
+		v.backend = make([]float32, VertexFloatNum*l)
 	}
 
 	s := v.backend[v.head : v.head+need]
-	if last {
-		// If last is true, the vertices backend is sent to GPU and it is fine to reuse the slice.
-		v.head = 0
-	} else {
-		v.head += need
-	}
+	v.head += need
 	return s
 }
 
-func vertexSlice(n int, last bool) []float32 {
+func vertexSlice(n int) []float32 {
 	if web.IsBrowser() {
 		// In Wasm, allocating memory by make is expensive. Use the backend instead.
-		return theVerticesBackend.slice(n, last)
+		return theVerticesBackend.slice(n)
 	}
 	return make([]float32, n*VertexFloatNum)
 }
 
-func QuadVertices(sx0, sy0, sx1, sy1 float32, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32, last bool) []float32 {
+func QuadVertices(sx0, sy0, sx1, sy1 float32, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32) []float32 {
 	x := sx1 - sx0
 	y := sy1 - sy0
 	ax, by, cx, dy := a*x, b*y, c*x, d*y
 	u0, v0, u1, v1 := float32(sx0), float32(sy0), float32(sx1), float32(sy1)
 
 	// This function is very performance-sensitive and implement in a very dumb way.
-	vs := vertexSlice(4, last)
+	vs := vertexSlice(4)
 	_ = vs[:32]
 
 	vs[0] = tx
