@@ -103,6 +103,10 @@ func (u *UserInterface) IsVsyncEnabled() bool {
 }
 
 func (u *UserInterface) CursorMode() driver.CursorMode {
+	if !canvas.Truthy() {
+		return driver.CursorModeHidden
+	}
+
 	if jsutil.Equal(canvas.Get("style").Get("cursor"), stringNone) {
 		return driver.CursorModeVisible
 	}
@@ -110,6 +114,10 @@ func (u *UserInterface) CursorMode() driver.CursorMode {
 }
 
 func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
+	if !canvas.Truthy() {
+		return
+	}
+
 	var visible bool
 	switch mode {
 	case driver.CursorModeVisible:
