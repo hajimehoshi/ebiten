@@ -60,17 +60,23 @@ type readerPlayerFactory struct {
 	sampleRate int
 }
 
+var readerDriverForTesting readerDriver
+
 func newReaderPlayerFactory(sampleRate int) *readerPlayerFactory {
-	return &readerPlayerFactory{
+	f := &readerPlayerFactory{
 		sampleRate: sampleRate,
 	}
+	if readerDriverForTesting != nil {
+		f.driver = readerDriverForTesting
+	}
 	// TODO: Consider the hooks.
+	return f
 }
 
 type readerPlayer struct {
 	context *Context
 	player  readerDriverPlayer
-	src     *timeStream
+	stream  *timeStream
 	factory *readerPlayerFactory
 	m       sync.Mutex
 }
@@ -84,7 +90,7 @@ func (f *readerPlayerFactory) newPlayerImpl(context *Context, src io.Reader) (pl
 
 	p := &readerPlayer{
 		context: context,
-		src:     s,
+		stream:  s,
 		factory: f,
 	}
 	return p, nil
@@ -104,7 +110,7 @@ func (p *readerPlayer) ensurePlayer() error {
 		p.factory.driver = d
 	}
 	if p.player == nil {
-		p.player = p.factory.driver.NewPlayer(p.src)
+		p.player = p.factory.driver.NewPlayer(p.stream)
 	}
 	return nil
 }
@@ -131,7 +137,8 @@ func (p *readerPlayer) Pause() {
 
 	n := p.player.UnplayedBufferSize()
 	p.player.Pause()
-	p.src.Unread(int(n))
+	p.stream.Unread(int(n))
+	p.context.removePlayer(p)
 }
 
 func (p *readerPlayer) IsPlaying() bool {
@@ -171,8 +178,8 @@ func (p *readerPlayer) Close() error {
 	p.m.Lock()
 	defer p.m.Unlock()
 
-	p.context.removePlayer(p)
 	if p.player != nil {
+		p.player.Pause()
 		return p.player.Close()
 	}
 	return nil
@@ -186,7 +193,7 @@ func (p *readerPlayer) Current() time.Duration {
 		return 0
 	}
 
-	sample := (p.src.Current() - p.player.UnplayedBufferSize()) / bytesPerSample
+	sample := (p.stream.Current() - p.player.UnplayedBufferSize()) / bytesPerSample
 	return time.Duration(sample) * time.Second / time.Duration(p.factory.sampleRate)
 }
 
@@ -206,11 +213,11 @@ func (p *readerPlayer) Seek(offset time.Duration) error {
 		}
 		p.player.Reset()
 	}
-	return p.src.Seek(offset)
+	return p.stream.Seek(offset)
 }
 
 func (p *readerPlayer) source() io.Reader {
-	return p.src
+	return p.stream.r
 }
 
 type timeStream struct {

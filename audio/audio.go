@@ -144,7 +144,24 @@ func NewContext(sampleRate int) *Context {
 			theContext.m.Unlock()
 		}
 		theContextLock.Unlock()
-		return err
+		if err != nil {
+			return err
+		}
+
+		// Now reader players cannot call removePlayers from themselves in the current implementation.
+		// Underlying playering can be the pause state after fishing its playing,
+		// but there is no way to notify this to readerPlayers so far.
+		// Instead, let's check the states proactively every frame.
+		for p := range c.players {
+			rp, ok := p.(*readerPlayer)
+			if !ok {
+				break
+			}
+			if !rp.IsPlaying() {
+				delete(c.players, p)
+			}
+		}
+		return nil
 	})
 
 	return c

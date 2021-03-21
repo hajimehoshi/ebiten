@@ -16,31 +16,109 @@ package audio
 
 import (
 	"io"
+	"io/ioutil"
+	"sync"
 )
 
 type (
-	dummyDriver struct{}
-	dummyPlayer struct{}
+	dummyWriterPlayerDriver struct{}
+	dummyWriterPlayer       struct{}
 )
 
-func (d *dummyDriver) NewPlayer() io.WriteCloser {
-	return &dummyPlayer{}
+func (d *dummyWriterPlayerDriver) NewPlayer() io.WriteCloser {
+	return &dummyWriterPlayer{}
 }
 
-func (d *dummyDriver) Close() error {
+func (d *dummyWriterPlayerDriver) Close() error {
 	return nil
 }
 
-func (p *dummyPlayer) Write(b []byte) (int, error) {
+func (p *dummyWriterPlayer) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
-func (p *dummyPlayer) Close() error {
+func (p *dummyWriterPlayer) Close() error {
 	return nil
 }
 
 func init() {
-	writerDriverForTesting = &dummyDriver{}
+	writerDriverForTesting = &dummyWriterPlayerDriver{}
+}
+
+type (
+	dummyReaderPlayerDriver struct{}
+	dummyReaderPlayer       struct {
+		r       io.Reader
+		playing bool
+		volume  float64
+		m       sync.Mutex
+	}
+)
+
+func (d *dummyReaderPlayerDriver) NewPlayer(r io.Reader) readerDriverPlayer {
+	return &dummyReaderPlayer{
+		r:      r,
+		volume: 1,
+	}
+}
+
+func (d *dummyReaderPlayerDriver) Close() error {
+	return nil
+}
+
+func (p *dummyReaderPlayer) Pause() {
+	p.m.Lock()
+	p.playing = false
+	p.m.Unlock()
+}
+
+func (p *dummyReaderPlayer) Play() {
+	p.m.Lock()
+	p.playing = true
+	p.m.Unlock()
+	go func() {
+		if _, err := ioutil.ReadAll(p.r); err != nil {
+			panic(err)
+		}
+		p.m.Lock()
+		p.playing = false
+		p.m.Unlock()
+	}()
+}
+
+func (p *dummyReaderPlayer) IsPlaying() bool {
+	p.m.Lock()
+	defer p.m.Unlock()
+	return p.playing
+}
+
+func (p *dummyReaderPlayer) Reset() {
+	p.m.Lock()
+	defer p.m.Unlock()
+	p.playing = false
+}
+
+func (p *dummyReaderPlayer) Volume() float64 {
+	return p.volume
+}
+
+func (p *dummyReaderPlayer) SetVolume(volume float64) {
+	p.volume = volume
+}
+
+func (p *dummyReaderPlayer) UnplayedBufferSize() int64 {
+	return 0
+}
+
+func (p *dummyReaderPlayer) Close() error {
+	p.m.Lock()
+	defer p.m.Unlock()
+	p.playing = false
+	return nil
+}
+
+func init() {
+	readerDriverForTesting = &dummyReaderPlayerDriver{}
 }
 
 type dummyHook struct {
@@ -78,6 +156,6 @@ func PlayersNumForTesting() int {
 	return n
 }
 
-func ResetContext() {
+func ResetContextForTesting() {
 	theContext = nil
 }
