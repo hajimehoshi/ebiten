@@ -17,6 +17,7 @@ package audio
 import (
 	"fmt"
 	"io"
+	"runtime"
 	"sync"
 	"time"
 )
@@ -93,6 +94,7 @@ func (f *readerPlayerFactory) newPlayerImpl(context *Context, src io.Reader) (pl
 		stream:  s,
 		factory: f,
 	}
+	runtime.SetFinalizer(p, (*readerPlayer).Close)
 	return p, nil
 }
 
@@ -177,8 +179,12 @@ func (p *readerPlayer) SetVolume(volume float64) {
 func (p *readerPlayer) Close() error {
 	p.m.Lock()
 	defer p.m.Unlock()
+	runtime.SetFinalizer(p, nil)
 
 	if p.player != nil {
+		defer func() {
+			p.player = nil
+		}()
 		p.player.Pause()
 		return p.player.Close()
 	}
