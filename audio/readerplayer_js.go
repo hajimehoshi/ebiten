@@ -23,6 +23,7 @@ import (
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/go2cpp"
+	"github.com/hajimehoshi/ebiten/v2/internal/jsutil"
 )
 
 func isReaderContextAvailable() bool {
@@ -138,7 +139,7 @@ func (p *readerDriverPlayerImpl) appendBuffer(this js.Value, args []js.Value) in
 	// appendBuffer is called as the 'ended' callback of a buffer.
 	// 'this' is an AudioBufferSourceNode that already finishes its playing.
 	for i, n := range p.bufferSourceNodes {
-		if n.Equal(this) {
+		if jsutil.Equal(n, this) {
 			p.bufferSourceNodes = append(p.bufferSourceNodes[:i], p.bufferSourceNodes[i+1:]...)
 			break
 		}
