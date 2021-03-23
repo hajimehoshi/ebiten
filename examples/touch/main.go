@@ -17,9 +17,13 @@
 package main
 
 import (
+	"bytes"
+	"image"
+	_ "image/jpeg"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 )
 
 const (
@@ -27,7 +31,13 @@ const (
 	screenHeight = 480
 )
 
+var (
+	gophersImage *ebiten.Image
+)
+
 type Game struct {
+	x, y float64
+	zoom float64
 }
 
 func (g *Game) Update() error {
@@ -35,6 +45,14 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+	op := &ebiten.DrawImageOptions{}
+	w, h := gophersImage.Size()
+	op.GeoM.Translate(float64(-w)/2, float64(-h)/2)
+	op.GeoM.Translate(g.x, g.y)
+	op.GeoM.Scale(g.zoom, g.zoom)
+	screen.DrawImage(gophersImage, op)
+
+	ebitenutil.DebugPrint(screen, "Use a two finger pinch to zoom, swipe with one finger to pan, or tap to reset the view")
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -42,7 +60,26 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	g := &Game{}
+	// Decode image from a byte slice instead of a file so that
+	// this example works in any working directory.
+	// If you want to use a file, there are some options:
+	// 1) Use os.Open and pass the file to the image decoder.
+	//    This is a very regular way, but doesn't work on browsers.
+	// 2) Use ebitenutil.OpenFile and pass the file to the image decoder.
+	//    This works even on browsers.
+	// 3) Use ebitenutil.NewImageFromFile to create an ebiten.Image directly from a file.
+	//    This also works on browsers.
+	img, _, err := image.Decode(bytes.NewReader(images.Gophers_jpg))
+	if err != nil {
+		log.Fatal(err)
+	}
+	gophersImage = ebiten.NewImageFromImage(img)
+
+	g := &Game{
+		x:    screenWidth / 2,
+		y:    screenHeight / 2,
+		zoom: 1.0,
+	}
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Touch (Ebiten Demo)")
