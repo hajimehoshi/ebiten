@@ -117,11 +117,14 @@ func (p *readerPlayer) ensurePlayer() error {
 func (p *readerPlayer) Play() {
 	p.m.Lock()
 	defer p.m.Unlock()
+
 	if err := p.ensurePlayer(); err != nil {
 		p.context.setError(err)
 		return
 	}
-
+	if p.player.IsPlaying() {
+		return
+	}
 	p.player.Play()
 	p.context.addPlayer(p)
 }
@@ -129,8 +132,11 @@ func (p *readerPlayer) Play() {
 func (p *readerPlayer) Pause() {
 	p.m.Lock()
 	defer p.m.Unlock()
-	if err := p.ensurePlayer(); err != nil {
-		p.context.setError(err)
+
+	if p.player == nil {
+		return
+	}
+	if !p.player.IsPlaying() {
 		return
 	}
 
@@ -143,33 +149,32 @@ func (p *readerPlayer) Pause() {
 func (p *readerPlayer) IsPlaying() bool {
 	p.m.Lock()
 	defer p.m.Unlock()
-	if err := p.ensurePlayer(); err != nil {
-		p.context.setError(err)
+
+	if p.player == nil {
 		return false
 	}
-
 	return p.player.IsPlaying()
 }
 
 func (p *readerPlayer) Volume() float64 {
 	p.m.Lock()
 	defer p.m.Unlock()
+
 	if err := p.ensurePlayer(); err != nil {
 		p.context.setError(err)
 		return 0
 	}
-
 	return p.player.Volume()
 }
 
 func (p *readerPlayer) SetVolume(volume float64) {
 	p.m.Lock()
 	defer p.m.Unlock()
+
 	if err := p.ensurePlayer(); err != nil {
 		p.context.setError(err)
 		return
 	}
-
 	p.player.SetVolume(volume)
 }
 
