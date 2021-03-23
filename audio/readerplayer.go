@@ -32,11 +32,8 @@ func oneBufferSize(sampleRate int) int {
 // maxBufferSize returns the maximum size of the buffer for the audio source.
 // This buffer is used when unreading on pausing the player.
 func maxBufferSize(sampleRate int) int {
-	// Actually *2 should be enough in most cases,
-	// but in some implementation (e.g, go2cpp), a player might have more UnplayedBufferSize values.
-	// As a safe margin, use *4 value.
-	// TODO: Ensure the maximum value of UnplayedBufferSize on all the platforms.
-	return oneBufferSize(sampleRate) * 4
+	// The number of underlying buffers should be 2.
+	return oneBufferSize(sampleRate) * 2
 }
 
 // readerDriver represents a driver using io.ReadClosers.
