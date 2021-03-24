@@ -80,7 +80,8 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
-	g.taps = []tap{}
+	// Clear the previous frame's taps.
+	g.taps = g.taps[:0]
 
 	// What touches have just ended?
 	for id, t := range g.touches {
@@ -125,7 +126,8 @@ func (g *Game) Update() error {
 
 	// Interpret the raw touch data that's been collected into g.touches into
 	// gestures like two-finger pinch or single-finger pan.
-	if len(g.touches) == 2 {
+	switch len(g.touches) {
+	case 2:
 		// Potentially the user is making a pinch gesture with two fingers.
 		// If the diff between their origins is different to the diff between
 		// their currents and if these two are not already a pinch, then this is
@@ -144,7 +146,7 @@ func (g *Game) Update() error {
 				prevH:   originDiff,
 			}
 		}
-	} else if len(g.touches) == 1 {
+	case 1:
 		// Potentially this is a new pan.
 		id := ebiten.TouchIDs()[0]
 		t := g.touches[id]
@@ -208,7 +210,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Apply pan.
 	op.GeoM.Translate(g.x, g.y)
 
-	// Centre the image (corrected by the current zoom).
+	// Center the image (corrected by the current zoom).
 	w, h := gophersImage.Size()
 	op.GeoM.Translate(float64(-w)/2*g.zoom, float64(-h)/2*g.zoom)
 
