@@ -148,19 +148,7 @@ func NewContext(sampleRate int) *Context {
 			return err
 		}
 
-		// Now reader players cannot call removePlayers from themselves in the current implementation.
-		// Underlying playering can be the pause state after fishing its playing,
-		// but there is no way to notify this to readerPlayers so far.
-		// Instead, let's check the states proactively every frame.
-		for p := range c.players {
-			rp, ok := p.(*readerPlayer)
-			if !ok {
-				break
-			}
-			if !rp.IsPlaying() {
-				delete(c.players, p)
-			}
-		}
+		c.gcPlayers()
 		return nil
 	})
 
@@ -215,6 +203,25 @@ func (c *Context) removePlayer(p playerImpl) {
 	c.m.Lock()
 	delete(c.players, p)
 	c.m.Unlock()
+}
+
+func (c *Context) gcPlayers() {
+	c.m.Lock()
+	defer c.m.Unlock()
+
+	// Now reader players cannot call removePlayers from themselves in the current implementation.
+	// Underlying playering can be the pause state after fishing its playing,
+	// but there is no way to notify this to readerPlayers so far.
+	// Instead, let's check the states proactively every frame.
+	for p := range c.players {
+		rp, ok := p.(*readerPlayer)
+		if !ok {
+			return
+		}
+		if !rp.IsPlaying() {
+			delete(c.players, p)
+		}
+	}
 }
 
 // IsReady returns a boolean value indicating whether the audio is ready or not.
