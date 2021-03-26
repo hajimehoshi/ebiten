@@ -65,7 +65,7 @@ jobs:
 
       - name: go test (Wasm)
         # TODO: Investigate times out on Windows. (#1313)
-        # TODO: Now the tests fail on Ubuntu. Investigate and fix this.
+        # TODO: Now the tests fail on Ubuntu. Investigate and fix this. (#1550)
         if: ${{ matrix.os == 'macos-latest' }}
         run: |
           env GOOS=js GOARCH=wasm go test -tags=example -v ./...
