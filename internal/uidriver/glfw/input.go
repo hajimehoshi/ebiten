@@ -306,7 +306,7 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) {
 	s := i.ui.deviceScaleFactor()
 	cx = fromGLFWMonitorPixel(cx, s)
 	cy = fromGLFWMonitorPixel(cy, s)
-	cx, cy = context.AdjustPosition(cx, cy, i.ui.deviceScaleFactor())
+	cx, cy = context.AdjustPosition(cx, cy, s)
 	i.cursorX, i.cursorY = int(cx), int(cy)
 
 	for id := glfw.Joystick(0); id < glfw.Joystick(len(i.gamepads)); id++ {
