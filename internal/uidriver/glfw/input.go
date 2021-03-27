@@ -19,6 +19,7 @@
 package glfw
 
 import (
+	"math"
 	"sync"
 	"unicode"
 
@@ -307,7 +308,11 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) {
 	cx = fromGLFWMonitorPixel(cx, s)
 	cy = fromGLFWMonitorPixel(cy, s)
 	cx, cy = context.AdjustPosition(cx, cy, s)
-	i.cursorX, i.cursorY = int(cx), int(cy)
+
+	// AdjustPosition can return NaN at the initialization.
+	if !math.IsNaN(cx) && !math.IsNaN(cy) {
+		i.cursorX, i.cursorY = int(cx), int(cy)
+	}
 
 	for id := glfw.Joystick(0); id < glfw.Joystick(len(i.gamepads)); id++ {
 		i.gamepads[id].valid = false

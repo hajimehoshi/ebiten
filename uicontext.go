@@ -235,5 +235,10 @@ func (c *uiContext) update(updateCount int) error {
 func (c *uiContext) AdjustPosition(x, y float64, deviceScaleFactor float64) (float64, float64) {
 	ox, oy := c.offsets(deviceScaleFactor)
 	s := c.screenScale(deviceScaleFactor)
+	// The scale 0 indicates that the offscreen is not initialized yet.
+	// As any cursor values don't make sense, just return NaN.
+	if s == 0 {
+		return math.NaN(), math.NaN()
+	}
 	return (x*deviceScaleFactor - ox) / s, (y*deviceScaleFactor - oy) / s
 }
