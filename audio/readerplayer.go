@@ -20,52 +20,23 @@ import (
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2/audio/internal/readerdriver"
 )
 
-// TODO: The term 'buffer' is confusing. Name each buffer with good terms.
-
-// oneBufferSize returns the size of one buffer in the player implementation.
-func oneBufferSize(sampleRate int) int {
-	return sampleRate * channelNum * bitDepthInBytes / 4
-}
-
-// maxBufferSize returns the maximum size of the buffer for the audio source.
-// This buffer is used when unreading on pausing the player.
-func maxBufferSize(sampleRate int) int {
-	// The number of underlying buffers should be 2.
-	return oneBufferSize(sampleRate) * 2
-}
-
-// readerDriver represents a driver using io.ReadClosers.
-type readerDriver interface {
-	NewPlayer(io.Reader) readerDriverPlayer
-	io.Closer
-}
-
-type readerDriverPlayer interface {
-	Pause()
-	Play()
-	IsPlaying() bool
-	Reset()
-	Volume() float64
-	SetVolume(volume float64)
-	UnplayedBufferSize() int64
-	io.Closer
-}
-
 type readerPlayerFactory struct {
-	driver     readerDriver
+	context    readerdriver.Context
 	sampleRate int
 }
 
-var readerDriverForTesting readerDriver
+var readerDriverForTesting readerdriver.Context
 
 func newReaderPlayerFactory(sampleRate int) *readerPlayerFactory {
 	f := &readerPlayerFactory{
 		sampleRate: sampleRate,
 	}
 	if readerDriverForTesting != nil {
-		f.driver = readerDriverForTesting
+		f.context = readerDriverForTesting
 	}
 	// TODO: Consider the hooks.
 	return f
@@ -73,22 +44,17 @@ func newReaderPlayerFactory(sampleRate int) *readerPlayerFactory {
 
 type readerPlayer struct {
 	context *Context
-	player  readerDriverPlayer
+	player  readerdriver.Player
+	src     io.Reader
 	stream  *timeStream
 	factory *readerPlayerFactory
 	m       sync.Mutex
 }
 
 func (f *readerPlayerFactory) newPlayerImpl(context *Context, src io.Reader) (playerImpl, error) {
-	sampleRate := context.SampleRate()
-	s, err := newTimeStream(src, sampleRate)
-	if err != nil {
-		return nil, err
-	}
-
 	p := &readerPlayer{
+		src:     src,
 		context: context,
-		stream:  s,
 		factory: f,
 	}
 	runtime.SetFinalizer(p, (*readerPlayer).Close)
@@ -101,15 +67,22 @@ func (p *readerPlayer) ensurePlayer() error {
 	// but if Ebiten is used for a shared library, the timing when init functions are called
 	// is unexpectable.
 	// e.g. a variable for JVM on Android might not be set.
-	if p.factory.driver == nil {
-		d, err := newReaderDriverImpl(p.context)
+	if p.factory.context == nil {
+		c, err := readerdriver.NewContext(p.factory.sampleRate, channelNum, bitDepthInBytes)
 		if err != nil {
 			return err
 		}
-		p.factory.driver = d
+		p.factory.context = c
+	}
+	if p.stream == nil {
+		s, err := newTimeStream(p.src, p.factory.sampleRate, p.factory.context.MaxBufferSize())
+		if err != nil {
+			return err
+		}
+		p.stream = s
 	}
 	if p.player == nil {
-		p.player = p.factory.driver.NewPlayer(p.stream)
+		p.player = p.factory.context.NewPlayer(p.stream)
 	}
 	return nil
 }
@@ -213,33 +186,37 @@ func (p *readerPlayer) Seek(offset time.Duration) error {
 	p.m.Lock()
 	defer p.m.Unlock()
 
-	if p.player != nil {
-		if p.player.IsPlaying() {
-			defer func() {
-				p.player.Play()
-			}()
-		}
-		p.player.Reset()
+	if err := p.ensurePlayer(); err != nil {
+		return err
 	}
+
+	if p.player.IsPlaying() {
+		defer func() {
+			p.player.Play()
+		}()
+	}
+	p.player.Reset()
 	return p.stream.Seek(offset)
 }
 
 func (p *readerPlayer) source() io.Reader {
-	return p.stream.r
+	return p.src
 }
 
 type timeStream struct {
-	r          io.Reader
-	sampleRate int
-	pos        int64
-	buf        []byte
-	unread     int
+	r             io.Reader
+	sampleRate    int
+	pos           int64
+	buf           []byte
+	unread        int
+	maxBufferSize int
 }
 
-func newTimeStream(r io.Reader, sampleRate int) (*timeStream, error) {
+func newTimeStream(r io.Reader, sampleRate int, maxBufferSize int) (*timeStream, error) {
 	s := &timeStream{
-		r:          r,
-		sampleRate: sampleRate,
+		r:             r,
+		sampleRate:    sampleRate,
+		maxBufferSize: maxBufferSize,
 	}
 	if seeker, ok := s.r.(io.Seeker); ok {
 		// Get the current position of the source.
@@ -271,7 +248,7 @@ func (s *timeStream) Read(buf []byte) (int, error) {
 	n, err := s.r.Read(buf)
 	s.pos += int64(n)
 	s.buf = append(s.buf, buf[:n]...)
-	if m := maxBufferSize(s.sampleRate); len(s.buf) > m {
+	if m := s.maxBufferSize; len(s.buf) > m {
 		s.buf = s.buf[len(s.buf)-m:]
 	}
 	return n, err

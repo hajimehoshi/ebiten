@@ -14,17 +14,17 @@
 
 // +build !js
 
-package audio
+package readerdriver
 
 import (
 	"fmt"
 	"runtime"
 )
 
-func isReaderContextAvailable() bool {
+func IsAvailable() bool {
 	return false
 }
 
-func newReaderDriverImpl(context *Context) (readerDriver, error) {
-	panic(fmt.Sprintf("audio: newReaderDriver is not available on this environment: GOOS=%s", runtime.GOOS))
+func NewContext(sampleRate int, channelNum int, bitDepthInBytes int) (Context, error) {
+	panic(fmt.Sprintf("readerdriver: NewContext is not available on this environment: GOOS=%s", runtime.GOOS))
 }

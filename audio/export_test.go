@@ -18,18 +18,20 @@ import (
 	"io"
 	"io/ioutil"
 	"sync"
+
+	"github.com/hajimehoshi/ebiten/v2/audio/internal/readerdriver"
 )
 
 type (
-	dummyWriterPlayerDriver struct{}
-	dummyWriterPlayer       struct{}
+	dummyWriterContext struct{}
+	dummyWriterPlayer  struct{}
 )
 
-func (d *dummyWriterPlayerDriver) NewPlayer() io.WriteCloser {
+func (c *dummyWriterContext) NewPlayer() io.WriteCloser {
 	return &dummyWriterPlayer{}
 }
 
-func (d *dummyWriterPlayerDriver) Close() error {
+func (c *dummyWriterContext) Close() error {
 	return nil
 }
 
@@ -42,12 +44,12 @@ func (p *dummyWriterPlayer) Close() error {
 }
 
 func init() {
-	writerDriverForTesting = &dummyWriterPlayerDriver{}
+	writerDriverForTesting = &dummyWriterContext{}
 }
 
 type (
-	dummyReaderPlayerDriver struct{}
-	dummyReaderPlayer       struct {
+	dummyReaderContext struct{}
+	dummyReaderPlayer  struct {
 		r       io.Reader
 		playing bool
 		volume  float64
@@ -55,14 +57,18 @@ type (
 	}
 )
 
-func (d *dummyReaderPlayerDriver) NewPlayer(r io.Reader) readerDriverPlayer {
+func (c *dummyReaderContext) NewPlayer(r io.Reader) readerdriver.Player {
 	return &dummyReaderPlayer{
 		r:      r,
 		volume: 1,
 	}
 }
 
-func (d *dummyReaderPlayerDriver) Close() error {
+func (c *dummyReaderContext) MaxBufferSize() int {
+	return 48000 * channelNum * bitDepthInBytes / 4
+}
+
+func (c *dummyReaderContext) Close() error {
 	return nil
 }
 
@@ -118,7 +124,7 @@ func (p *dummyReaderPlayer) Close() error {
 }
 
 func init() {
-	readerDriverForTesting = &dummyReaderPlayerDriver{}
+	readerDriverForTesting = &dummyReaderContext{}
 }
 
 type dummyHook struct {

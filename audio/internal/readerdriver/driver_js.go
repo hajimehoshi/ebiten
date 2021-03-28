@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package audio
+package readerdriver
 
 import (
 	"errors"
@@ -26,20 +26,23 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/jsutil"
 )
 
-func isReaderContextAvailable() bool {
+func IsAvailable() bool {
 	return true
 }
 
-type readerDriverImpl struct {
-	context      *Context
+type contextImpl struct {
 	audioContext js.Value
 	ready        bool
 	callbacks    map[string]js.Func
+
+	sampleRate      int
+	channelNum      int
+	bitDepthInBytes int
 }
 
-func newReaderDriverImpl(context *Context) (readerDriver, error) {
+func NewContext(sampleRate int, channelNum int, bitDepthInBytes int) (Context, error) {
 	if js.Global().Get("go2cpp").Truthy() {
-		return &go2cppDriverWrapper{go2cpp.NewContext(context.sampleRate, channelNum, bitDepthInBytes)}, nil
+		return &go2cppDriverWrapper{go2cpp.NewContext(sampleRate, channelNum, bitDepthInBytes)}, nil
 	}
 
 	class := js.Global().Get("AudioContext")
@@ -47,14 +50,16 @@ func newReaderDriverImpl(context *Context) (readerDriver, error) {
 		class = js.Global().Get("webkitAudioContext")
 	}
 	if !class.Truthy() {
-		return nil, errors.New("audio: AudioContext or webkitAudioContext was not found")
+		return nil, errors.New("readerdriver: AudioContext or webkitAudioContext was not found")
 	}
 	options := js.Global().Get("Object").New()
-	options.Set("sampleRate", context.sampleRate)
+	options.Set("sampleRate", sampleRate)
 
-	d := &readerDriverImpl{
-		context:      context,
-		audioContext: class.New(options),
+	d := &contextImpl{
+		audioContext:    class.New(options),
+		sampleRate:      sampleRate,
+		channelNum:      channelNum,
+		bitDepthInBytes: bitDepthInBytes,
 	}
 
 	setCallback := func(event string) js.Func {
@@ -90,36 +95,51 @@ const (
 	readerPlayerClosed
 )
 
-type readerDriverPlayerImpl struct {
-	driver *readerDriverImpl
-	src    io.Reader
-	eof    bool
-	state  readerPlayerState
-	gain   js.Value
+type playerImpl struct {
+	context *contextImpl
+	src     io.Reader
+	eof     bool
+	state   readerPlayerState
+	gain    js.Value
+	err     error
 
 	nextPos           float64
 	bufferSourceNodes []js.Value
 	appendBufferFunc  js.Func
 }
 
-func (d *readerDriverImpl) NewPlayer(src io.Reader) readerDriverPlayer {
-	p := &readerDriverPlayerImpl{
-		driver: d,
-		src:    src,
-		gain:   d.audioContext.Call("createGain"),
+func (c *contextImpl) NewPlayer(src io.Reader) Player {
+	p := &playerImpl{
+		context: c,
+		src:     src,
+		gain:    c.audioContext.Call("createGain"),
 	}
 	p.appendBufferFunc = js.FuncOf(p.appendBuffer)
-	p.gain.Call("connect", d.audioContext.Get("destination"))
-	runtime.SetFinalizer(p, (*readerDriverPlayerImpl).Close)
+	p.gain.Call("connect", c.audioContext.Get("destination"))
+	runtime.SetFinalizer(p, (*playerImpl).Close)
 	return p
 }
 
-func (d *readerDriverImpl) Close() error {
+func (c *contextImpl) Close() error {
 	// TODO: Implement this
 	return nil
 }
 
-func (p *readerDriverPlayerImpl) Pause() {
+// TODO: The term 'buffer' is confusing. Name each buffer with good terms.
+
+// oneBufferSize returns the size of one buffer in the player implementation.
+func (c *contextImpl) oneBufferSize() int {
+	return c.sampleRate * c.channelNum * c.bitDepthInBytes / 4
+}
+
+// maxBufferSize returns the maximum size of the buffer for the audio source.
+// This buffer is used when unreading on pausing the player.
+func (c *contextImpl) MaxBufferSize() int {
+	// The number of underlying buffers should be 2.
+	return c.oneBufferSize() * 2
+}
+
+func (p *playerImpl) Pause() {
 	if p.state != readerPlayerPlay {
 		return
 	}
@@ -135,7 +155,7 @@ func (p *readerDriverPlayerImpl) Pause() {
 	p.nextPos = 0
 }
 
-func (p *readerDriverPlayerImpl) appendBuffer(this js.Value, args []js.Value) interface{} {
+func (p *playerImpl) appendBuffer(this js.Value, args []js.Value) interface{} {
 	// appendBuffer is called as the 'ended' callback of a buffer.
 	// 'this' is an AudioBufferSourceNode that already finishes its playing.
 	for i, n := range p.bufferSourceNodes {
@@ -156,17 +176,18 @@ func (p *readerDriverPlayerImpl) appendBuffer(this js.Value, args []js.Value) in
 		return nil
 	}
 
-	c := p.driver.audioContext.Get("currentTime").Float()
+	c := p.context.audioContext.Get("currentTime").Float()
 	if p.nextPos < c {
 		// The exact current time might be too early. Add some delay on purpose to avoid buffer overlapping.
 		p.nextPos = c + 1.0/60.0
 	}
 
-	bs := make([]byte, oneBufferSize(p.driver.context.sampleRate))
+	bs := make([]byte, p.context.oneBufferSize())
 	n, err := io.ReadFull(p.src, bs)
 	if err != nil {
 		if err != io.EOF && err != io.ErrUnexpectedEOF {
-			p.driver.context.setError(err)
+			p.err = err
+			p.Pause()
 			return nil
 		}
 		p.eof = true
@@ -178,7 +199,7 @@ func (p *readerDriverPlayerImpl) appendBuffer(this js.Value, args []js.Value) in
 	l, r := toLR(bs)
 	tl, tr := float32SliceToTypedArray(l), float32SliceToTypedArray(r)
 
-	buf := p.driver.audioContext.Call("createBuffer", channelNum, len(bs)/channelNum/bitDepthInBytes, p.driver.context.sampleRate)
+	buf := p.context.audioContext.Call("createBuffer", p.context.channelNum, len(bs)/p.context.channelNum/p.context.bitDepthInBytes, p.context.sampleRate)
 	if buf.Get("copyToChannel").Truthy() {
 		buf.Call("copyToChannel", tl, 0, 0)
 		buf.Call("copyToChannel", tr, 1, 0)
@@ -188,7 +209,7 @@ func (p *readerDriverPlayerImpl) appendBuffer(this js.Value, args []js.Value) in
 		buf.Call("getChannelData", 1).Call("set", tr)
 	}
 
-	s := p.driver.audioContext.Call("createBufferSource")
+	s := p.context.audioContext.Call("createBufferSource")
 	s.Set("buffer", buf)
 	s.Set("onended", p.appendBufferFunc)
 	s.Call("connect", p.gain)
@@ -199,7 +220,7 @@ func (p *readerDriverPlayerImpl) appendBuffer(this js.Value, args []js.Value) in
 	return nil
 }
 
-func (p *readerDriverPlayerImpl) Play() {
+func (p *playerImpl) Play() {
 	if p.state != readerPlayerPaused {
 		return
 	}
@@ -208,11 +229,11 @@ func (p *readerDriverPlayerImpl) Play() {
 	p.appendBuffer(js.Undefined(), nil)
 }
 
-func (p *readerDriverPlayerImpl) IsPlaying() bool {
+func (p *playerImpl) IsPlaying() bool {
 	return p.state == readerPlayerPlay
 }
 
-func (p *readerDriverPlayerImpl) Reset() {
+func (p *playerImpl) Reset() {
 	if p.state == readerPlayerClosed {
 		return
 	}
@@ -221,37 +242,41 @@ func (p *readerDriverPlayerImpl) Reset() {
 	p.eof = false
 }
 
-func (p *readerDriverPlayerImpl) Volume() float64 {
+func (p *playerImpl) Volume() float64 {
 	return p.gain.Get("gain").Get("value").Float()
 }
 
-func (p *readerDriverPlayerImpl) SetVolume(volume float64) {
+func (p *playerImpl) SetVolume(volume float64) {
 	p.gain.Get("gain").Set("value", volume)
 }
 
-func (p *readerDriverPlayerImpl) UnplayedBufferSize() int64 {
+func (p *playerImpl) UnplayedBufferSize() int64 {
 	// This is not an accurate buffer size as part of the buffers might already be consumed.
 	var sec float64
 	for _, n := range p.bufferSourceNodes {
 		sec += n.Get("buffer").Get("duration").Float()
 	}
-	return int64(sec * float64(p.driver.context.sampleRate*channelNum*bitDepthInBytes))
+	return int64(sec * float64(p.context.sampleRate*p.context.channelNum*p.context.bitDepthInBytes))
 }
 
-func (p *readerDriverPlayerImpl) Close() error {
+func (p *playerImpl) Close() error {
 	runtime.SetFinalizer(p, nil)
 	p.Reset()
 	p.state = readerPlayerClosed
 	p.appendBufferFunc.Release()
-	return nil
+	return p.err
 }
 
 type go2cppDriverWrapper struct {
 	c *go2cpp.Context
 }
 
-func (w *go2cppDriverWrapper) NewPlayer(r io.Reader) readerDriverPlayer {
+func (w *go2cppDriverWrapper) NewPlayer(r io.Reader) Player {
 	return w.c.NewPlayer(r)
+}
+
+func (w *go2cppDriverWrapper) MaxBufferSize() int {
+	return w.c.MaxBufferSize()
 }
 
 func (w *go2cppDriverWrapper) Close() error {

@@ -63,6 +63,16 @@ func (c *Context) Close() error {
 	return nil
 }
 
+func (c *Context) oneBufferSize() int {
+	// TODO: This must be audio.oneBufferSize(p.context.sampleRate). Avoid the duplication.
+	return c.sampleRate * c.channelNum * c.bitDepthInBytes / 4
+}
+
+func (c *Context) MaxBufferSize() int {
+	// TODO: This must be audio.maxBufferSize(p.context.sampleRate). Avoid the duplication.
+	return c.oneBufferSize() * 2
+}
+
 type playerState int
 
 const (
@@ -100,16 +110,6 @@ func (p *Player) Pause() {
 	p.cond.Signal()
 }
 
-func (p *Player) oneBufferSize() int {
-	// TODO: This must be audio.oneBufferSize(p.context.sampleRate). Avoid the duplication.
-	return p.context.sampleRate * p.context.channelNum * p.context.bitDepthInBytes / 4
-}
-
-func (p *Player) maxBufferSize() int {
-	// TODO: This must be audio.maxBufferSize(p.context.sampleRate). Avoid the duplication.
-	return p.oneBufferSize() * 2
-}
-
 func (p *Player) Play() {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
@@ -130,8 +130,8 @@ func (p *Player) Play() {
 	// Prepare the first data as soon as possible, or the audio can get stuck.
 	// TODO: Get the appropriate buffer size from the C++ side.
 	if p.buf == nil {
-		n := p.oneBufferSize()
-		if max := p.maxBufferSize() - int(p.UnplayedBufferSize()); n > max {
+		n := p.context.oneBufferSize()
+		if max := p.context.MaxBufferSize() - int(p.UnplayedBufferSize()); n > max {
 			n = max
 		}
 		p.buf = make([]byte, n)
@@ -248,7 +248,7 @@ func (p *Player) shouldWait() bool {
 	case playerStatePaused:
 		return true
 	case playerStatePlaying:
-		return p.v.Get("unplayedBufferSize").Int() >= p.maxBufferSize()
+		return p.v.Get("unplayedBufferSize").Int() >= p.context.MaxBufferSize()
 	}
 	return false
 }
@@ -291,7 +291,7 @@ func (p *Player) loop() {
 		}
 
 		n := readChunkSize
-		if max := p.maxBufferSize() - int(p.UnplayedBufferSize()); n > max {
+		if max := p.context.MaxBufferSize() - int(p.UnplayedBufferSize()); n > max {
 			n = max
 		}
 		n2, err := p.src.Read(buf[:n])

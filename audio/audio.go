@@ -40,6 +40,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hajimehoshi/ebiten/v2/audio/internal/readerdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
@@ -101,7 +102,7 @@ func NewContext(sampleRate int) *Context {
 	}
 
 	var np newPlayerImpler
-	if isReaderContextAvailable() {
+	if readerdriver.IsAvailable() {
 		// 'Reader players' are players that implement io.Reader. This is the new way and
 		// not all the environments support reader players. Reader players can have enough
 		// buffers so that clicking noises can be avoided compared to writer players.
