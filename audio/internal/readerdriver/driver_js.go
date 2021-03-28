@@ -259,12 +259,16 @@ func (p *playerImpl) UnplayedBufferSize() int64 {
 	return int64(sec * float64(p.context.sampleRate*p.context.channelNum*p.context.bitDepthInBytes))
 }
 
+func (p *playerImpl) Err() error {
+	return p.err
+}
+
 func (p *playerImpl) Close() error {
 	runtime.SetFinalizer(p, nil)
 	p.Reset()
 	p.state = readerPlayerClosed
 	p.appendBufferFunc.Release()
-	return p.err
+	return nil
 }
 
 type go2cppDriverWrapper struct {

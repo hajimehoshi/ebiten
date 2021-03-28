@@ -32,5 +32,6 @@ type Player interface {
 	Volume() float64
 	SetVolume(volume float64)
 	UnplayedBufferSize() int64
+	Err() error
 	io.Closer
 }

@@ -149,7 +149,9 @@ func NewContext(sampleRate int) *Context {
 			return err
 		}
 
-		c.gcPlayers()
+		if err := c.gcPlayers(); err != nil {
+			return err
+		}
 		return nil
 	})
 
@@ -206,7 +208,7 @@ func (c *Context) removePlayer(p playerImpl) {
 	c.m.Unlock()
 }
 
-func (c *Context) gcPlayers() {
+func (c *Context) gcPlayers() error {
 	c.m.Lock()
 	defer c.m.Unlock()
 
@@ -217,12 +219,17 @@ func (c *Context) gcPlayers() {
 	for p := range c.players {
 		rp, ok := p.(*readerPlayer)
 		if !ok {
-			return
+			return nil
+		}
+		if err := rp.Err(); err != nil {
+			return err
 		}
 		if !rp.IsPlaying() {
 			delete(c.players, p)
 		}
 	}
+
+	return nil
 }
 
 // IsReady returns a boolean value indicating whether the audio is ready or not.

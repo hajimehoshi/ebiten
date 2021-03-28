@@ -199,6 +199,16 @@ func (p *readerPlayer) Seek(offset time.Duration) error {
 	return p.stream.Seek(offset)
 }
 
+func (p *readerPlayer) Err() error {
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	if p.player == nil {
+		return nil
+	}
+	return p.player.Err()
+}
+
 func (p *readerPlayer) source() io.Reader {
 	return p.src
 }
