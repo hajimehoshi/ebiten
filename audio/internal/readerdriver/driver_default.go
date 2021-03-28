@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build !android
 // +build !js
 
 package readerdriver
@@ -20,6 +21,12 @@ import (
 	"fmt"
 	"runtime"
 )
+
+type context struct {
+	sampleRate      int
+	channelNum      int
+	bitDepthInBytes int
+}
 
 func IsAvailable() bool {
 	return false

@@ -43,3 +43,19 @@ const (
 	playerPlay
 	playerClosed
 )
+
+const oneBufferDurationInMilliseconds = 250
+
+// TODO: The term 'buffer' is confusing. Name each buffer with good terms.
+
+// oneBufferSize returns the size of one buffer in the player implementation.
+func (c *context) oneBufferSize() int {
+	return c.sampleRate * c.channelNum * c.bitDepthInBytes * oneBufferDurationInMilliseconds / 1000
+}
+
+// maxBufferSize returns the maximum size of the buffer for the audio source.
+// This buffer is used when unreading on pausing the player.
+func (c *context) MaxBufferSize() int {
+	// The number of underlying buffers should be 2.
+	return c.oneBufferSize() * 2
+}
