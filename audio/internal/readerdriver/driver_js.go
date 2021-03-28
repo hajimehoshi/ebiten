@@ -87,19 +87,11 @@ func NewContext(sampleRate int, channelNum int, bitDepthInBytes int) (Context, e
 	return d, nil
 }
 
-type readerPlayerState int
-
-const (
-	readerPlayerPaused readerPlayerState = iota
-	readerPlayerPlay
-	readerPlayerClosed
-)
-
 type playerImpl struct {
 	context *contextImpl
 	src     io.Reader
 	eof     bool
-	state   readerPlayerState
+	state   playerState
 	gain    js.Value
 	err     error
 
@@ -140,7 +132,7 @@ func (c *contextImpl) MaxBufferSize() int {
 }
 
 func (p *playerImpl) Pause() {
-	if p.state != readerPlayerPlay {
+	if p.state != playerPlay {
 		return
 	}
 
@@ -150,7 +142,7 @@ func (p *playerImpl) Pause() {
 		n.Call("stop")
 		n.Call("disconnect")
 	}
-	p.state = readerPlayerPaused
+	p.state = playerPaused
 	p.bufferSourceNodes = p.bufferSourceNodes[:0]
 	p.nextPos = 0
 }
@@ -165,7 +157,7 @@ func (p *playerImpl) appendBuffer(this js.Value, args []js.Value) interface{} {
 		}
 	}
 
-	if p.state != readerPlayerPlay {
+	if p.state != playerPlay {
 		return nil
 	}
 
@@ -221,20 +213,20 @@ func (p *playerImpl) appendBuffer(this js.Value, args []js.Value) interface{} {
 }
 
 func (p *playerImpl) Play() {
-	if p.state != readerPlayerPaused {
+	if p.state != playerPaused {
 		return
 	}
-	p.state = readerPlayerPlay
+	p.state = playerPlay
 	p.appendBuffer(js.Undefined(), nil)
 	p.appendBuffer(js.Undefined(), nil)
 }
 
 func (p *playerImpl) IsPlaying() bool {
-	return p.state == readerPlayerPlay
+	return p.state == playerPlay
 }
 
 func (p *playerImpl) Reset() {
-	if p.state == readerPlayerClosed {
+	if p.state == playerClosed {
 		return
 	}
 
@@ -266,7 +258,7 @@ func (p *playerImpl) Err() error {
 func (p *playerImpl) Close() error {
 	runtime.SetFinalizer(p, nil)
 	p.Reset()
-	p.state = readerPlayerClosed
+	p.state = playerClosed
 	p.appendBufferFunc.Release()
 	return nil
 }

@@ -35,3 +35,11 @@ type Player interface {
 	Err() error
 	io.Closer
 }
+
+type playerState int
+
+const (
+	playerPaused playerState = iota
+	playerPlay
+	playerClosed
+)
