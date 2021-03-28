@@ -179,6 +179,9 @@ func (p *Player) Reset() {
 }
 
 func (p *Player) Volume() float64 {
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
+
 	if !p.v.Truthy() {
 		return p.volume
 	}
@@ -186,6 +189,9 @@ func (p *Player) Volume() float64 {
 }
 
 func (p *Player) SetVolume(volume float64) {
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
+
 	if !p.v.Truthy() {
 		return
 	}
@@ -201,6 +207,9 @@ func (p *Player) UnplayedBufferSize() int64 {
 }
 
 func (p *Player) Err() error {
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
+
 	return p.err
 }
 
