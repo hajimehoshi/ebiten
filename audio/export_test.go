@@ -116,6 +116,10 @@ func (p *dummyReaderPlayer) UnplayedBufferSize() int64 {
 	return 0
 }
 
+func (p *dummyReaderPlayer) Err() error {
+	return nil
+}
+
 func (p *dummyReaderPlayer) Close() error {
 	p.m.Lock()
 	defer p.m.Unlock()
