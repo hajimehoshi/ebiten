@@ -59,7 +59,7 @@ static float deviceScale(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx) {
           (*env)->GetMethodID(env, android_view_WindowManager, "getDefaultDisplay", "()Landroid/view/Display;"));
   const jobject displayMetrics =
       (*env)->NewObject(
- 　       env, android_util_DisplayMetrics,
+          env, android_util_DisplayMetrics,
           (*env)->GetMethodID(env, android_util_DisplayMetrics, "<init>", "()V"));
   (*env)->CallVoidMethod(
       env, display,
