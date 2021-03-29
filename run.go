@@ -77,7 +77,7 @@ var (
 )
 
 // SetScreenClearedEveryFrame enables or disables the clearing of the screen at the beginning of each frame.
-// The default value is false and the screen is cleared each frame by default.
+// The default value is true and the screen is cleared each frame by default.
 //
 // SetScreenClearedEveryFrame is concurrent-safe.
 func SetScreenClearedEveryFrame(cleared bool) {
