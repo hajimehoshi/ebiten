@@ -50,9 +50,9 @@ For installation on desktops, see [the installation instruction](https://ebiten.
 
 ## Community
 
-### Slack
-
-`#ebiten` channel in [Gophers Slack](https://blog.gopheracademy.com/gophers-slack-community/)
+- `#ebiten` channel in [Gophers Slack](https://blog.gopheracademy.com/gophers-slack-community/)
+- [GitHub Discussion](https://github.com/hajimehoshi/ebiten/discussions)
+- [`r/ebiten` in Reddit](https://www.reddit.com/r/ebiten/)
 
 ## License
 
