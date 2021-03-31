@@ -398,6 +398,9 @@ func (p *Player) Pause() {
 }
 
 // Current returns the current position in time.
+//
+// As long as the player continues to play, Current's returning value is increased monotonically,
+// even though the source stream loops and its position goes back.
 func (p *Player) Current() time.Duration {
 	return p.p.Current()
 }
