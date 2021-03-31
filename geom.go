@@ -145,6 +145,31 @@ func (g *GeoM) Rotate(theta float64) {
 	g.ty = ty
 }
 
+// Anchor point (x,y)
+func (g *GeoM) RotateByPoint(x, y, theta float64) {
+	if theta == 0 {
+		return
+	}
+
+	sin, cos := math.Sincos(theta)
+
+	_tx, _ty := g.tx-x, g.ty-y
+
+	a := cos*(g.a_1+1) - sin*g.c
+	b := cos*g.b - sin*(g.d_1+1)
+	tx := cos*_tx - sin*_ty
+	c := sin*(g.a_1+1) + cos*g.c
+	d := sin*g.b + cos*(g.d_1+1)
+	ty := sin*_tx + cos*_ty
+
+	g.a_1 = a - 1
+	g.b = b
+	g.c = c
+	g.d_1 = d - 1
+	g.tx = tx + x
+	g.ty = ty + y
+}
+
 // Skew skews the matrix by (skewX, skewY). The unit is radian.
 func (g *GeoM) Skew(skewX, skewY float64) {
 	sx := math.Tan(skewX)
