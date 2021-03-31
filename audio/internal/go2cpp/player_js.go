@@ -121,10 +121,10 @@ func (p *Player) Play() {
 	var runloop bool
 	if !p.v.Truthy() {
 		p.v = p.context.v.Call("createPlayer", p.onWritten)
-		p.v.Set("volume", p.volume)
 		runloop = true
 	}
 
+	p.v.Set("volume", p.volume)
 	p.v.Call("play")
 
 	// Prepare the first data as soon as possible, or the audio can get stuck.
@@ -192,11 +192,11 @@ func (p *Player) SetVolume(volume float64) {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
 
+	p.volume = volume
 	if !p.v.Truthy() {
 		return
 	}
 	p.v.Set("volume", volume)
-	p.volume = volume
 }
 
 func (p *Player) UnplayedBufferSize() int64 {
