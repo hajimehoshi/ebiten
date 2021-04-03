@@ -748,7 +748,12 @@ func (i *Image) ReplacePixels(pixels []byte) {
 // NewImage returns an empty image.
 //
 // If width or height is less than 1 or more than device-dependent maximum size, NewImage panics.
+//
+// NewImage panics if RunGame already finishes.
 func NewImage(width, height int) *Image {
+	if isRunGameEnded() {
+		panic(fmt.Sprintf("ebiten: NewImage cannot be called after RunGame finishes"))
+	}
 	if width <= 0 {
 		panic(fmt.Sprintf("ebiten: width at NewImage must be positive but %d", width))
 	}
@@ -766,9 +771,14 @@ func NewImage(width, height int) *Image {
 // NewImageFromImage creates a new image with the given image (source).
 //
 // If source's width or height is less than 1 or more than device-dependent maximum size, NewImageFromImage panics.
+//
+// NewImageFromImage panics if RunGame already finishes.
 func NewImageFromImage(source image.Image) *Image {
-	size := source.Bounds().Size()
+	if isRunGameEnded() {
+		panic(fmt.Sprintf("ebiten: NewImage cannot be called after RunGame finishes"))
+	}
 
+	size := source.Bounds().Size()
 	width, height := size.X, size.Y
 	if width <= 0 {
 		panic(fmt.Sprintf("ebiten: source width at NewImageFromImage must be positive but %d", width))

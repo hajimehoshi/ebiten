@@ -75,6 +75,7 @@ func CurrentFPS() float64 {
 
 var (
 	isScreenClearedEveryFrame = int32(1)
+	isRunGameEnded_           = int32(0)
 	currentMaxTPS             = int32(DefaultTPS)
 )
 
@@ -162,6 +163,8 @@ func (i *imageDumperGame) Layout(outsideWidth, outsideHeight int) (screenWidth, 
 //
 // Don't call RunGame twice or more in one process.
 func RunGame(game Game) error {
+	defer atomic.StoreInt32(&isRunGameEnded_, 1)
+
 	fixWindowPosition(WindowSize())
 	theUIContext.set(&imageDumperGame{
 		game: game,
@@ -173,6 +176,10 @@ func RunGame(game Game) error {
 		return err
 	}
 	return nil
+}
+
+func isRunGameEnded() bool {
+	return atomic.LoadInt32(&isRunGameEnded_) != 0
 }
 
 // RunGameWithoutMainLoop runs the game, but doesn't call the loop on the main (UI) thread.
