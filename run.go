@@ -155,7 +155,7 @@ func (i *imageDumperGame) Layout(outsideWidth, outsideHeight int) (screenWidth, 
 // TPS (ticks per second) is 60 by default.
 // This is not related to framerate (display's refresh rate).
 //
-// RunGame returns error when 1) OpenGL error happens, 2) audio error happens or
+// RunGame returns error when 1) error happens in the underlying graphics driver, 2) audio error happens or
 // 3) f returns error. In the case of 3), RunGame returns the same error.
 //
 // The size unit is device-independent pixel.
