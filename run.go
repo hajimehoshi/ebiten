@@ -175,7 +175,7 @@ func RunGame(game Game) error {
 	return nil
 }
 
-// RunGameWithoutMainLoop runs the game, but don't call the loop on the main (UI) thread.
+// RunGameWithoutMainLoop runs the game, but doesn't call the loop on the main (UI) thread.
 // Different from Run, RunGameWithoutMainLoop returns immediately.
 //
 // Ebiten users should NOT call RunGameWithoutMainLoop.
