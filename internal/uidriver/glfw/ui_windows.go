@@ -44,11 +44,9 @@ type monitorInfo struct {
 
 var (
 	// user32 is defined at hideconsole_windows.go
-	procGetSystemMetrics    = user32.NewProc("GetSystemMetrics")
-	procGetActiveWindow     = user32.NewProc("GetActiveWindow")
-	procGetForegroundWindow = user32.NewProc("GetForegroundWindow")
-	procMonitorFromWindow   = user32.NewProc("MonitorFromWindow")
-	procGetMonitorInfoW     = user32.NewProc("GetMonitorInfoW")
+	procGetSystemMetrics  = user32.NewProc("GetSystemMetrics")
+	procMonitorFromWindow = user32.NewProc("MonitorFromWindow")
+	procGetMonitorInfoW   = user32.NewProc("GetMonitorInfoW")
 )
 
 func getSystemMetrics(nIndex int) (int, error) {
@@ -57,22 +55,6 @@ func getSystemMetrics(nIndex int) (int, error) {
 		return 0, fmt.Errorf("ui: GetSystemMetrics failed: error code: %d", e)
 	}
 	return int(r), nil
-}
-
-func getActiveWindow() (uintptr, error) {
-	r, _, e := procGetActiveWindow.Call()
-	if e != nil && e.(windows.Errno) != 0 {
-		return 0, fmt.Errorf("ui: GetActiveWindow failed: error code: %d", e)
-	}
-	return r, nil
-}
-
-func getForegroundWindow() (uintptr, error) {
-	r, _, e := procGetForegroundWindow.Call()
-	if e != nil && e.(windows.Errno) != 0 {
-		return 0, fmt.Errorf("ui: GetForegroundWindow failed: error code: %d", e)
-	}
-	return r, nil
 }
 
 func monitorFromWindow(hwnd uintptr, dwFlags uint32) (uintptr, error) {
@@ -134,30 +116,11 @@ func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
 
-func currentMonitorByOS(_ *glfw.Window) *glfw.Monitor {
-	// TODO: Should we return nil here?
-	w, err := getActiveWindow()
-	if err != nil {
-		panic(err)
-	}
-
-	if w == 0 {
-		// The active window doesn't exist when launching, or the application is runnable on unfocused.
-		// Get the foreground window, that is common among multiple processes.
-		w, err = getForegroundWindow()
-		if err != nil {
-			panic(err)
-		}
-		if w == 0 {
-			// GetForegroundWindow can return null according to the document.
-			return nil
-		}
-	}
-
+func currentMonitorByOS(w *glfw.Window) *glfw.Monitor {
 	// Get the current monitor by the window handle instead of the window position. It is because the window
 	// position is not relaiable in some cases e.g. when the window is put across multiple monitors.
 
-	m, err := monitorFromWindow(w, monitorDefaultToNearest)
+	m, err := monitorFromWindow(w.GetWin32Window(), monitorDefaultToNearest)
 	if err != nil {
 		// monitorFromWindow can return error on Wine. Ignore this.
 		return nil
