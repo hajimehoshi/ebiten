@@ -112,7 +112,6 @@ func newGL(v js.Value) *gl {
 		enableVertexAttribArray:  v.Get("enableVertexAttribArray").Call("bind", v),
 		framebufferTexture2D:     v.Get("framebufferTexture2D").Call("bind", v),
 		flush:                    v.Get("flush").Call("bind", v),
-		getBufferSubData:         v.Get("getBufferSubData").Call("bind", v),
 		getParameter:             v.Get("getParameter").Call("bind", v),
 		getProgramInfoLog:        v.Get("getProgramInfoLog").Call("bind", v),
 		getProgramParameter:      v.Get("getProgramParameter").Call("bind", v),
@@ -145,7 +144,9 @@ func newGL(v js.Value) *gl {
 		vertexAttribPointer:      v.Get("vertexAttribPointer").Call("bind", v),
 		viewport:                 v.Get("viewport").Call("bind", v),
 	}
-	if !isWebGL2Available {
+	if isWebGL2Available {
+		g.getExtension = v.Get("getBufferSubData").Call("bind", v)
+	} else {
 		g.getExtension = v.Get("getExtension").Call("bind", v)
 	}
 	return g
