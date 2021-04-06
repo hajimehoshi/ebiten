@@ -47,9 +47,11 @@ func init() {
 }
 
 type Game struct {
+	keys []ebiten.Key
 }
 
 func (g *Game) Update() error {
+	g.keys = inpututil.PressedKeys()
 	return nil
 }
 
@@ -67,8 +69,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	// Draw the highlighted keys.
 	op = &ebiten.DrawImageOptions{}
-	keys := inpututil.PressedKeys()
-	for _, p := range keys {
+	for _, p := range g.keys {
 		op.GeoM.Reset()
 		r, ok := keyboard.KeyRect(p)
 		if !ok {
@@ -80,7 +81,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 
 	keyStrs := []string{}
-	for _, p := range keys {
+	for _, p := range g.keys {
 		keyStrs = append(keyStrs, p.String())
 	}
 	ebitenutil.DebugPrint(screen, strings.Join(keyStrs, ", "))
