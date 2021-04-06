@@ -52,6 +52,9 @@ type Input struct {
 }
 
 func (i *Input) CursorPosition() (x, y int) {
+	if i.ui.context == nil {
+		return 0, 0
+	}
 	xf, yf := i.ui.context.AdjustPosition(float64(i.cursorX), float64(i.cursorY))
 	return int(xf), int(yf)
 }
