@@ -26,8 +26,6 @@ type pos struct {
 }
 
 type Input struct {
-	cursorX  int
-	cursorY  int
 	keys     map[driver.Key]struct{}
 	runes    []rune
 	touches  map[driver.TouchID]pos
@@ -36,9 +34,7 @@ type Input struct {
 }
 
 func (i *Input) CursorPosition() (x, y int) {
-	i.ui.m.RLock()
-	defer i.ui.m.RUnlock()
-	return i.ui.adjustPosition(i.cursorX, i.cursorY)
+	return 0, 0
 }
 
 func (i *Input) GamepadIDs() []driver.GamepadID {

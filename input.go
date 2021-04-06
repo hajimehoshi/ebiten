@@ -81,6 +81,10 @@ func IsKeyPressed(key Key) bool {
 // CursorPosition returns a position of a mouse cursor relative to the game screen (window). The cursor position is
 // 'logical' position and this considers the scale of the screen.
 //
+// CursorPosition returns (0, 0) before the main loop on desktops and browsers.
+//
+// CursorPosition always returns (0, 0) on mobiles.
+//
 // CursorPosition is concurrent-safe.
 func CursorPosition() (x, y int) {
 	return uiDriver().Input().CursorPosition()
