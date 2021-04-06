@@ -161,6 +161,23 @@ func (i *inputState) update() {
 	}
 }
 
+// PressedKeys returns a set of currently pressed keyboard keys.
+//
+// PressedKeys is concurrent safe.
+func PressedKeys() []ebiten.Key {
+	theInputState.m.RLock()
+	defer theInputState.m.RUnlock()
+
+	keys := make([]ebiten.Key, 0, len(theInputState.keyDurations))
+	for i, d := range theInputState.keyDurations {
+		if d == 0 {
+			continue
+		}
+		keys = append(keys, ebiten.Key(i))
+	}
+	return keys
+}
+
 // IsKeyJustPressed returns a boolean value indicating
 // whether the given key is pressed just in the current frame.
 //
