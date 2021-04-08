@@ -642,7 +642,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				}
 				t := rhsTypes[i]
 				if t.Main == shaderir.None {
-					// TODO: This is to determine a type when the rhs is a constant,
+					// TODO: This is to determine a type when the rhs values are constants (not literals),
 					// but there are no actual cases when len(lhs) != len(rhs). Is this correct?
 					t = toDefaultType(rhsExprs[i].Const)
 				}
