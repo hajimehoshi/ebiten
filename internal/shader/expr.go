@@ -390,6 +390,14 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 				},
 			}, []shaderir.Type{t}, nil, true
 		}
+		if c, ok := block.findConstant(e.Name); ok {
+			return []shaderir.Expr{
+				{
+					Type:  shaderir.NumberExpr,
+					Const: c.value,
+				},
+			}, []shaderir.Type{c.typ}, nil, true
+		}
 		if i, ok := cs.findFunction(e.Name); ok {
 			return []shaderir.Expr{
 				{
