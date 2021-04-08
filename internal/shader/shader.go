@@ -33,6 +33,7 @@ type variable struct {
 type constant struct {
 	name  string
 	typ   shaderir.Type
+	ctyp  shaderir.ConstType
 	value gconstant.Value
 }
 
@@ -581,7 +582,7 @@ func (s *compileState) parseConstant(block *block, vs *ast.ValueSpec) ([]constan
 			}
 		}
 
-		es, _, ss, ok := s.parseExpr(block, vs.Values[i], false)
+		es, ts, ss, ok := s.parseExpr(block, vs.Values[i], false)
 		if !ok {
 			return nil, false
 		}
@@ -589,7 +590,7 @@ func (s *compileState) parseConstant(block *block, vs *ast.ValueSpec) ([]constan
 			s.addError(vs.Pos(), fmt.Sprintf("invalid constant expression: %s", name))
 			return nil, false
 		}
-		if len(es) != 1 {
+		if len(ts) != 1 || len(es) != 1 {
 			s.addError(vs.Pos(), fmt.Sprintf("invalid constant expression: %s", n))
 			return nil, false
 		}
@@ -600,6 +601,7 @@ func (s *compileState) parseConstant(block *block, vs *ast.ValueSpec) ([]constan
 		cs = append(cs, constant{
 			name:  name,
 			typ:   t,
+			ctyp:  es[0].ConstType,
 			value: es[0].Const,
 		})
 	}

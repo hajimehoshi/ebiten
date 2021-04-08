@@ -520,7 +520,11 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 					return nil, false
 				}
 
-				block.addNamedLocalVariable(name, ts[0], e.Pos())
+				t := ts[0]
+				if t.Main == shaderir.None {
+					t = toDefaultType(r[0].Const)
+				}
+				block.addNamedLocalVariable(name, t, e.Pos())
 			}
 
 			if len(r) > 1 {
@@ -582,8 +586,12 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				})
 			} else {
 				// For variable swapping, use temporary variables.
+				t := origts[0]
+				if t.Main == shaderir.None {
+					t = toDefaultType(r[0].Const)
+				}
 				block.vars = append(block.vars, variable{
-					typ: origts[0],
+					typ: t,
 				})
 				idx := len(block.vars) - 1
 				stmts = append(stmts,
@@ -632,7 +640,13 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 						}
 					}
 				}
-				block.addNamedLocalVariable(name, rhsTypes[i], e.Pos())
+				t := rhsTypes[i]
+				if t.Main == shaderir.None {
+					// TODO: This is to determine a type when the rhs is a constant,
+					// but there are no actual cases when len(lhs) != len(rhs). Is this correct?
+					t = toDefaultType(rhsExprs[i].Const)
+				}
+				block.addNamedLocalVariable(name, t, e.Pos())
 			}
 
 			l, _, ss, ok := cs.parseExpr(block, lhs[i], false)
@@ -659,4 +673,17 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 	}
 
 	return stmts, true
+}
+
+func toDefaultType(v gconstant.Value) shaderir.Type {
+	switch v.Kind() {
+	case gconstant.Bool:
+		return shaderir.Type{Main: shaderir.Bool}
+	case gconstant.Int:
+		return shaderir.Type{Main: shaderir.Int}
+	case gconstant.Float:
+		return shaderir.Type{Main: shaderir.Float}
+	}
+	// TODO: Should this be an error?
+	return shaderir.Type{}
 }
