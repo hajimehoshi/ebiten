@@ -540,6 +540,12 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 				return nil, nil, nil, false
 			}
 		}
+		for _, c := range block.consts {
+			if c.name == name {
+				s.addError(vs.Pos(), fmt.Sprintf("duplicated local constant/variable name: %s", name))
+				return nil, nil, nil, false
+			}
+		}
 		vars = append(vars, variable{
 			name: name,
 			typ:  t,
@@ -561,12 +567,26 @@ func (s *compileState) parseConstant(block *block, vs *ast.ValueSpec) ([]constan
 
 	var cs []constant
 	for i, n := range vs.Names {
+		name := n.Name
+		for _, c := range block.consts {
+			if c.name == name {
+				s.addError(vs.Pos(), fmt.Sprintf("duplicated local constant name: %s", name))
+				return nil, false
+			}
+		}
+		for _, v := range block.vars {
+			if v.name == name {
+				s.addError(vs.Pos(), fmt.Sprintf("duplicated local constant/variable name: %s", name))
+				return nil, false
+			}
+		}
+
 		es, _, ss, ok := s.parseExpr(block, vs.Values[i], false)
 		if !ok {
 			return nil, false
 		}
 		if len(ss) > 0 {
-			s.addError(vs.Pos(), fmt.Sprintf("invalid constant expression: %s", n))
+			s.addError(vs.Pos(), fmt.Sprintf("invalid constant expression: %s", name))
 			return nil, false
 		}
 		if len(es) != 1 {
@@ -578,7 +598,7 @@ func (s *compileState) parseConstant(block *block, vs *ast.ValueSpec) ([]constan
 			return nil, false
 		}
 		cs = append(cs, constant{
-			name:  n.Name,
+			name:  name,
 			typ:   t,
 			value: es[0].Const,
 		})
