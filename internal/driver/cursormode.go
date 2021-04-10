@@ -17,7 +17,7 @@ package driver
 type CursorMode int
 
 const (
-	CursorModeVisible CursorMode = 1 << iota
+	CursorModeVisible CursorMode = iota
 	CursorModeHidden
 	CursorModeCaptured
 )
