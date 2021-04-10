@@ -350,22 +350,9 @@ import android.view.WindowManager;
 import {{.JavaPkg}}.ebitenmobileview.Ebitenmobileview;
 
 public class EbitenView extends ViewGroup implements InputManager.InputDeviceListener {
-    private double getDeviceScale() {
-        if (this.deviceScale == 0.0) {
-            WindowManager windowManager = (WindowManager)getContext().getSystemService(Context.WINDOW_SERVICE);
-            Display display = windowManager.getDefaultDisplay();
-            DisplayMetrics displayMetrics = new DisplayMetrics();
-            display.getRealMetrics(displayMetrics);
-            this.deviceScale = displayMetrics.density;
-        }
-        return this.deviceScale;
+    private static double pxToDp(double x) {
+        return x / Ebitenmobileview.deviceScale();
     }
-
-    private double pxToDp(double x) {
-        return x / getDeviceScale();
-    }
-
-    private double deviceScale = 0.0;
 
     public EbitenView(Context context) {
         super(context);
