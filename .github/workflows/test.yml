@@ -84,4 +84,4 @@ jobs:
       - name: ebitenmobile bind (iOS)
         if: ${{ matrix.os == 'macos-latest' }}
         run: |
-          go run ./cmd/ebitenmobile bind -target ios -o Inovation.framework github.com/hajimehoshi/go-inovation/mobile
+          go run ./cmd/ebitenmobile bind -target ios -o Inovation.framework -v github.com/hajimehoshi/go-inovation/mobile
