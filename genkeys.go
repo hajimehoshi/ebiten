@@ -663,30 +663,13 @@ func main() {
 	ebitenKeyNames := []string{}
 	ebitenKeyNamesWithoutMods := []string{}
 	driverKeyNames := []string{}
+
 	for name := range driverKeyNameToJSKey {
 		driverKeyNames = append(driverKeyNames, name)
-		if !strings.HasSuffix(name, "Alt") && !strings.HasSuffix(name, "Control") && !strings.HasSuffix(name, "Shift") && !strings.HasSuffix(name, "Super") {
-			ebitenKeyNames = append(ebitenKeyNames, name)
-			ebitenKeyNamesWithoutMods = append(ebitenKeyNamesWithoutMods, name)
-			continue
-		}
-		if name == "LeftAlt" {
-			ebitenKeyNames = append(ebitenKeyNames, "Alt")
-			continue
-		}
-		if name == "LeftControl" {
-			ebitenKeyNames = append(ebitenKeyNames, "Control")
-			continue
-		}
-		if name == "LeftShift" {
-			ebitenKeyNames = append(ebitenKeyNames, "Shift")
-			continue
-		}
-		if name == "LeftSuper" {
-			ebitenKeyNames = append(ebitenKeyNames, "Super")
-			continue
-		}
+		ebitenKeyNames = append(ebitenKeyNames, name)
+		ebitenKeyNamesWithoutMods = append(ebitenKeyNamesWithoutMods, name)
 	}
+	ebitenKeyNames = append(ebitenKeyNames, "Alt", "Control", "Shift", "Super")
 
 	sort.Slice(ebitenKeyNames, keyNamesLess(ebitenKeyNames))
 	sort.Slice(ebitenKeyNamesWithoutMods, keyNamesLess(ebitenKeyNamesWithoutMods))

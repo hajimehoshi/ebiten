@@ -109,7 +109,11 @@ const (
 	KeyKPMultiply   Key = Key(driver.KeyKPMultiply)
 	KeyKPSubtract   Key = Key(driver.KeyKPSubtract)
 	KeyLeft         Key = Key(driver.KeyLeft)
+	KeyLeftAlt      Key = Key(driver.KeyLeftAlt)
 	KeyLeftBracket  Key = Key(driver.KeyLeftBracket)
+	KeyLeftControl  Key = Key(driver.KeyLeftControl)
+	KeyLeftShift    Key = Key(driver.KeyLeftShift)
+	KeyLeftSuper    Key = Key(driver.KeyLeftSuper)
 	KeyMenu         Key = Key(driver.KeyMenu)
 	KeyMinus        Key = Key(driver.KeyMinus)
 	KeyNumLock      Key = Key(driver.KeyNumLock)
@@ -119,7 +123,11 @@ const (
 	KeyPeriod       Key = Key(driver.KeyPeriod)
 	KeyPrintScreen  Key = Key(driver.KeyPrintScreen)
 	KeyRight        Key = Key(driver.KeyRight)
+	KeyRightAlt     Key = Key(driver.KeyRightAlt)
 	KeyRightBracket Key = Key(driver.KeyRightBracket)
+	KeyRightControl Key = Key(driver.KeyRightControl)
+	KeyRightShift   Key = Key(driver.KeyRightShift)
+	KeyRightSuper   Key = Key(driver.KeyRightSuper)
 	KeyScrollLock   Key = Key(driver.KeyScrollLock)
 	KeySemicolon    Key = Key(driver.KeySemicolon)
 	KeySlash        Key = Key(driver.KeySlash)
@@ -299,7 +307,15 @@ func (k Key) isValid() bool {
 		return true
 	case KeyLeft:
 		return true
+	case KeyLeftAlt:
+		return true
 	case KeyLeftBracket:
+		return true
+	case KeyLeftControl:
+		return true
+	case KeyLeftShift:
+		return true
+	case KeyLeftSuper:
 		return true
 	case KeyMenu:
 		return true
@@ -319,7 +335,15 @@ func (k Key) isValid() bool {
 		return true
 	case KeyRight:
 		return true
+	case KeyRightAlt:
+		return true
 	case KeyRightBracket:
+		return true
+	case KeyRightControl:
+		return true
+	case KeyRightShift:
+		return true
+	case KeyRightSuper:
 		return true
 	case KeyScrollLock:
 		return true
@@ -512,8 +536,16 @@ func (k Key) String() string {
 		return "KPSubtract"
 	case KeyLeft:
 		return "Left"
+	case KeyLeftAlt:
+		return "LeftAlt"
 	case KeyLeftBracket:
 		return "LeftBracket"
+	case KeyLeftControl:
+		return "LeftControl"
+	case KeyLeftShift:
+		return "LeftShift"
+	case KeyLeftSuper:
+		return "LeftSuper"
 	case KeyMenu:
 		return "Menu"
 	case KeyMinus:
@@ -532,8 +564,16 @@ func (k Key) String() string {
 		return "PrintScreen"
 	case KeyRight:
 		return "Right"
+	case KeyRightAlt:
+		return "RightAlt"
 	case KeyRightBracket:
 		return "RightBracket"
+	case KeyRightControl:
+		return "RightControl"
+	case KeyRightShift:
+		return "RightShift"
+	case KeyRightSuper:
+		return "RightSuper"
 	case KeyScrollLock:
 		return "ScrollLock"
 	case KeySemicolon:
@@ -720,8 +760,16 @@ func keyNameToKeyCode(name string) (Key, bool) {
 		return KeyKPSubtract, true
 	case "left":
 		return KeyLeft, true
+	case "leftalt":
+		return KeyLeftAlt, true
 	case "leftbracket":
 		return KeyLeftBracket, true
+	case "leftcontrol":
+		return KeyLeftControl, true
+	case "leftshift":
+		return KeyLeftShift, true
+	case "leftsuper":
+		return KeyLeftSuper, true
 	case "menu":
 		return KeyMenu, true
 	case "minus":
@@ -740,8 +788,16 @@ func keyNameToKeyCode(name string) (Key, bool) {
 		return KeyPrintScreen, true
 	case "right":
 		return KeyRight, true
+	case "rightalt":
+		return KeyRightAlt, true
 	case "rightbracket":
 		return KeyRightBracket, true
+	case "rightcontrol":
+		return KeyRightControl, true
+	case "rightshift":
+		return KeyRightShift, true
+	case "rightsuper":
+		return KeyRightSuper, true
 	case "scrolllock":
 		return KeyScrollLock, true
 	case "semicolon":
