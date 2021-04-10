@@ -80,3 +80,7 @@ jobs:
         run: |
           go get github.com/hajimehoshi/go-inovation
           go run ./cmd/ebitenmobile bind -target android -javapkg com.hajimehoshi.goinovation -o inovation.aar -v github.com/hajimehoshi/go-inovation/mobile
+
+      - name: ebitenmobile bind (iOS)
+        run: |
+          go run ./cmd/ebitenmobile bind -target ios -o Inovation.framework github.com/hajimehoshi/go-inovation/mobile
