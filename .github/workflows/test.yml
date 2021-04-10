@@ -25,6 +25,12 @@ jobs:
           go-version: ${{ matrix.go }}
           stable: false
 
+      - name: Setup JDK
+        uses: actions/setup-java@v2
+        with:
+          java-version: '11'
+          distribution: 'adopt'
+
       - name: Install dependencies
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
@@ -69,3 +75,8 @@ jobs:
         run: |
           env GOOS=js GOARCH=wasm go test -tags=example -v ./...
           env GOOS=js GOARCH=wasm go test -tags=example,ebitenwebgl1 -v ./...
+
+      - name: ebitenmobile bind (Android)
+        run: |
+          go get github.com/hajimehoshi/go-inovation
+          go run ./cmd/ebitenmobile bind -target android -javapkg com.hajimehoshi.goinovation -o inovation.aar -v github.com/hajimehoshi/go-inovation/mobile
