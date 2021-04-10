@@ -119,7 +119,7 @@ func (g *game) Update() error {
 
 	fullscreen := ebiten.IsFullscreen()
 	runnableOnUnfocused := ebiten.IsRunnableOnUnfocused()
-	cursorVisible := ebiten.CursorMode() == ebiten.CursorModeVisible
+	cursorMode := ebiten.CursorMode()
 	vsyncEnabled := ebiten.IsVsyncEnabled()
 	tps := ebiten.MaxTPS()
 	decorated := ebiten.IsWindowDecorated()
@@ -186,7 +186,14 @@ func (g *game) Update() error {
 		runnableOnUnfocused = !runnableOnUnfocused
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyC) {
-		cursorVisible = !cursorVisible
+		switch cursorMode {
+		case ebiten.CursorModeVisible:
+			cursorMode = ebiten.CursorModeHidden
+		case ebiten.CursorModeHidden:
+			cursorMode = ebiten.CursorModeCaptured
+		case ebiten.CursorModeCaptured:
+			cursorMode = ebiten.CursorModeVisible
+		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyV) {
 		vsyncEnabled = !vsyncEnabled
@@ -231,11 +238,7 @@ func (g *game) Update() error {
 	}
 	ebiten.SetFullscreen(fullscreen)
 	ebiten.SetRunnableOnUnfocused(runnableOnUnfocused)
-	if cursorVisible {
-		ebiten.SetCursorMode(ebiten.CursorModeVisible)
-	} else {
-		ebiten.SetCursorMode(ebiten.CursorModeHidden)
-	}
+	ebiten.SetCursorMode(cursorMode)
 
 	// Set vsync enabled only when this is needed.
 	// This makes a bug around vsync initialization more explicit (#1364).
@@ -306,7 +309,7 @@ func (g *game) Draw(screen *ebiten.Image) {
 %s
 [F] Switch the fullscreen state (only for desktops)
 [U] Switch the runnable-on-unfocused state
-[C] Switch the cursor visibility
+[C] Switch the cursor mode (visible, hidden, or captured)
 [I] Change the window icon (only for desktops)
 [V] Switch vsync
 [T] Switch TPS (ticks per second)
