@@ -45,6 +45,9 @@ type UI interface {
 	CursorMode() CursorMode
 	SetCursorMode(mode CursorMode)
 
+	CursorShape() CursorShape
+	SetCursorShape(shape CursorShape)
+
 	IsFullscreen() bool
 	SetFullscreen(fullscreen bool)
 

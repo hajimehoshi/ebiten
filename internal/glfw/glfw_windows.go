@@ -65,6 +65,16 @@ func (w glfwWindows) get(win uintptr) *Window {
 	return ww
 }
 
+type Cursor struct {
+	c uintptr
+}
+
+func CreateStandardCursor(shape StandardCursor) *Cursor {
+	c := glfwDLL.call("glfwCreateStandardCursor", uintptr(shape))
+	panicError()
+	return &Cursor{c: c}
+}
+
 type Monitor struct {
 	m uintptr
 }
@@ -190,6 +200,14 @@ func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsC
 	glfwDLL.call("glfwSetCharModsCallback", w.w, gcb)
 	panicError()
 	return nil // TODO
+}
+
+func (w *Window) SetCursor(cursor *Cursor) {
+	var c uintptr
+	if cursor != nil {
+		c = cursor.c
+	}
+	glfwDLL.call("glfwSetCursor", w.w, c)
 }
 
 func (w *Window) SetFramebufferSizeCallback(cbfun FramebufferSizeCallback) (previous FramebufferSizeCallback) {

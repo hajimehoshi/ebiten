@@ -21,3 +21,12 @@ const (
 	CursorModeHidden
 	CursorModeCaptured
 )
+
+type CursorShape int
+
+const (
+	CursorShapeDefault CursorShape = iota
+	CursorShapeText
+	CursorShapeCrosshair
+	CursorShapePointer
+)

@@ -58,6 +58,15 @@ func (w windows) get(win *glfw.Window) *Window {
 	return ww
 }
 
+type Cursor struct {
+	c *glfw.Cursor
+}
+
+func CreateStandardCursor(shape StandardCursor) *Cursor {
+	c := glfw.CreateStandardCursor(glfw.StandardCursor(shape))
+	return &Cursor{c: c}
+}
+
 type Monitor struct {
 	m *glfw.Monitor
 }
@@ -161,6 +170,14 @@ func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsC
 	}
 	w.w.SetCharModsCallback(gcb)
 	return nil // TODO
+}
+
+func (w *Window) SetCursor(cursor *Cursor) {
+	var c *glfw.Cursor
+	if cursor != nil {
+		c = cursor.c
+	}
+	w.w.SetCursor(c)
 }
 
 func (w *Window) SetFramebufferSizeCallback(cbfun FramebufferSizeCallback) (previous FramebufferSizeCallback) {

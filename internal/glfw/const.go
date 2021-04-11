@@ -30,6 +30,7 @@ type (
 	ModifierKey     int
 	MouseButton     int
 	PeripheralEvent int
+	StandardCursor  int
 )
 
 const (
@@ -142,3 +143,12 @@ func (e ErrorCode) String() string {
 		return fmt.Sprintf("GLFW error code (%d)", e)
 	}
 }
+
+const (
+	ArrowCursor     = StandardCursor(0x00036001)
+	IBeamCursor     = StandardCursor(0x00036002)
+	CrosshairCursor = StandardCursor(0x00036003)
+	HandCursor      = StandardCursor(0x00036004)
+	HResizeCursor   = StandardCursor(0x00036005)
+	VResizeCursor   = StandardCursor(0x00036006)
+)

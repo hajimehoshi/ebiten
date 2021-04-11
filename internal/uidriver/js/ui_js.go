@@ -31,11 +31,27 @@ var (
 	stringTransparent = js.ValueOf("transparent")
 )
 
+func driverCursorShapeToCSSCursor(cursor driver.CursorShape) string {
+	switch cursor {
+	case driver.CursorShapeDefault:
+		return "default"
+	case driver.CursorShapeText:
+		return "text"
+	case driver.CursorShapeCrosshair:
+		return "crosshair"
+	case driver.CursorShapePointer:
+		return "pointer"
+	}
+	return "auto"
+}
+
 type UserInterface struct {
 	runnableOnUnfocused bool
 	vsync               bool
 	running             bool
 	initFocused         bool
+	cursorHidden        bool
+	cursorShape         driver.CursorShape
 
 	sizeChanged bool
 	contextLost bool
@@ -107,10 +123,10 @@ func (u *UserInterface) CursorMode() driver.CursorMode {
 		return driver.CursorModeHidden
 	}
 
-	if jsutil.Equal(canvas.Get("style").Get("cursor"), stringNone) {
-		return driver.CursorModeVisible
+	if u.cursorHidden {
+		return driver.CursorModeHidden
 	}
-	return driver.CursorModeHidden
+	return driver.CursorModeVisible
 }
 
 func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
@@ -118,20 +134,45 @@ func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
 		return
 	}
 
-	var visible bool
 	switch mode {
 	case driver.CursorModeVisible:
-		visible = true
+		if u.cursorHidden {
+			return
+		}
+		u.cursorHidden = false
 	case driver.CursorModeHidden:
-		visible = false
+		if !u.cursorHidden {
+			return
+		}
+		u.cursorHidden = true
 	default:
 		return
 	}
 
-	if visible {
-		canvas.Get("style").Set("cursor", "auto")
+	if u.cursorHidden {
+		canvas.Get("style").Set("cursor", stringNone)
 	} else {
-		canvas.Get("style").Set("cursor", "none")
+		canvas.Get("style").Set("cursor", driverCursorShapeToCSSCursor(u.cursorShape))
+	}
+}
+
+func (u *UserInterface) CursorShape() driver.CursorShape {
+	if !canvas.Truthy() {
+		return driver.CursorShapeDefault
+	}
+	return u.cursorShape
+}
+
+func (u *UserInterface) SetCursorShape(shape driver.CursorShape) {
+	if !canvas.Truthy() {
+		return
+	}
+	if u.cursorShape == shape {
+		return
+	}
+	u.cursorShape = shape
+	if !u.cursorHidden {
+		canvas.Get("style").Set("cursor", driverCursorShapeToCSSCursor(u.cursorShape))
 	}
 }
 

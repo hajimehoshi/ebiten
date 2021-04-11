@@ -64,6 +64,7 @@ type UserInterface struct {
 	runnableOnUnfocused bool
 	vsync               bool
 	iconImages          []image.Image
+	cursorShape         driver.CursorShape
 
 	// err must be accessed from the main thread.
 	err error
@@ -143,10 +144,13 @@ func init() {
 	cacheMonitors()
 }
 
+var glfwSystemCursors = map[driver.CursorShape]*glfw.Cursor{}
+
 func initialize() error {
 	if err := glfw.Init(); err != nil {
 		return err
 	}
+
 	glfw.WindowHint(glfw.Visible, glfw.False)
 	glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
 
@@ -167,6 +171,12 @@ func initialize() error {
 	scale := devicescale.GetAt(currentMonitor(w).GetPos())
 	theUI.initFullscreenWidthInDP = int(fromGLFWMonitorPixel(float64(v.Width), scale))
 	theUI.initFullscreenHeightInDP = int(fromGLFWMonitorPixel(float64(v.Height), scale))
+
+	// Create system cursors. These cursors are destroyed at glfw.Terminate().
+	glfwSystemCursors[driver.CursorShapeDefault] = nil
+	glfwSystemCursors[driver.CursorShapeText] = glfw.CreateStandardCursor(glfw.IBeamCursor)
+	glfwSystemCursors[driver.CursorShapeCrosshair] = glfw.CreateStandardCursor(glfw.CrosshairCursor)
+	glfwSystemCursors[driver.CursorShapePointer] = glfw.CreateStandardCursor(glfw.HandCursor)
 
 	return nil
 }
@@ -269,6 +279,21 @@ func (u *UserInterface) setInitCursorMode(mode driver.CursorMode) {
 	u.m.Lock()
 	u.initCursorMode = mode
 	u.m.Unlock()
+}
+
+func (u *UserInterface) getCursorShape() driver.CursorShape {
+	u.m.RLock()
+	v := u.cursorShape
+	u.m.RUnlock()
+	return v
+}
+
+func (u *UserInterface) setCursorShape(shape driver.CursorShape) driver.CursorShape {
+	u.m.Lock()
+	old := u.cursorShape
+	u.cursorShape = shape
+	u.m.Unlock()
+	return old
 }
 
 func (u *UserInterface) isInitWindowDecorated() bool {
@@ -557,6 +582,24 @@ func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
 	})
 }
 
+func (u *UserInterface) CursorShape() driver.CursorShape {
+	return u.getCursorShape()
+}
+
+func (u *UserInterface) SetCursorShape(shape driver.CursorShape) {
+	old := u.setCursorShape(shape)
+	if old == shape {
+		return
+	}
+	if !u.isRunning() {
+		return
+	}
+	_ = u.t.Call(func() error {
+		u.window.SetCursor(glfwSystemCursors[shape])
+		return nil
+	})
+}
+
 func (u *UserInterface) DeviceScaleFactor() float64 {
 	if !u.isRunning() {
 		return devicescale.GetAt(u.initMonitor.GetPos())
@@ -615,6 +658,7 @@ func (u *UserInterface) createWindow() error {
 	u.window.SetInputMode(glfw.StickyMouseButtonsMode, glfw.True)
 	u.window.SetInputMode(glfw.StickyKeysMode, glfw.True)
 	u.window.SetInputMode(glfw.CursorMode, driverCursorModeToGLFWCursorMode(u.getInitCursorMode()))
+	u.window.SetCursor(glfwSystemCursors[u.getCursorShape()])
 	u.window.SetTitle(u.title)
 	// TODO: Set icons
 

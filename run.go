@@ -241,6 +241,14 @@ func SetCursorMode(mode CursorModeType) {
 	uiDriver().SetCursorMode(driver.CursorMode(mode))
 }
 
+func CursorShape() CursorShapeType {
+	return CursorShapeType(uiDriver().CursorShape())
+}
+
+func SetCursorShape(shape CursorShapeType) {
+	uiDriver().SetCursorShape(driver.CursorShape(shape))
+}
+
 // IsFullscreen reports whether the current mode is fullscreen or not.
 //
 // IsFullscreen always returns false on browsers or mobiles.

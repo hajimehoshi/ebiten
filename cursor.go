@@ -16,12 +16,23 @@ package ebiten
 
 import "github.com/hajimehoshi/ebiten/v2/internal/driver"
 
-// CursorModeType represents
-// a render and coordinate mode of a mouse cursor.
+// CursorModeType represents a render and coordinate mode of a mouse cursor.
 type CursorModeType int
 
+// CursorModeTypes
 const (
 	CursorModeVisible  CursorModeType = CursorModeType(driver.CursorModeVisible)
 	CursorModeHidden   CursorModeType = CursorModeType(driver.CursorModeHidden)
 	CursorModeCaptured CursorModeType = CursorModeType(driver.CursorModeCaptured)
+)
+
+// CursorShapeType represents a shape of a mouse cursor.
+type CursorShapeType int
+
+// CursorShapeTypes
+const (
+	CursorShapeDefault   CursorShapeType = CursorShapeType(driver.CursorShapeDefault)
+	CursorShapeText      CursorShapeType = CursorShapeType(driver.CursorShapeText)
+	CursorShapeCrosshair CursorShapeType = CursorShapeType(driver.CursorShapeCrosshair)
+	CursorShapePointer   CursorShapeType = CursorShapeType(driver.CursorShapePointer)
 )
