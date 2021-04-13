@@ -51,8 +51,6 @@ func InputChars() []rune {
 //
 // Keyboards don't work on iOS yet (#1090).
 func IsKeyPressed(key Key) bool {
-	// There are keys that are invalid values as ebiten.Key (e.g., driver.KeyLeftAlt).
-	// Skip such values.
 	if !key.isValid() {
 		return false
 	}
