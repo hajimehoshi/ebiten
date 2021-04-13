@@ -35,7 +35,7 @@ import (
 )
 
 var (
-	nameToGLFWKey             map[string]glfw.Key
+	glfwKeyNameToGLFWKey      map[string]glfw.Key
 	androidKeyToDriverKeyName map[int]string
 	gbuildKeyToDriverKeyName  map[key.Code]string
 	driverKeyNameToJSKey      map[string]string
@@ -43,7 +43,7 @@ var (
 )
 
 func init() {
-	nameToGLFWKey = map[string]glfw.Key{
+	glfwKeyNameToGLFWKey = map[string]glfw.Key{
 		"Unknown":      glfw.KeyUnknown,
 		"Space":        glfw.KeySpace,
 		"Apostrophe":   glfw.KeyApostrophe,
@@ -252,7 +252,7 @@ func init() {
 
 	// ASCII: 0 - 9
 	for c := '0'; c <= '9'; c++ {
-		nameToGLFWKey[string(c)] = glfw.Key0 + glfw.Key(c) - '0'
+		glfwKeyNameToGLFWKey[string(c)] = glfw.Key0 + glfw.Key(c) - '0'
 		androidKeyToDriverKeyName[7+int(c)-'0'] = string(c)
 		// Gomobile's key code (= USB HID key codes) has successive key codes for 1, 2, ..., 9, 0
 		// in this order.
@@ -265,7 +265,7 @@ func init() {
 	}
 	// ASCII: A - Z
 	for c := 'A'; c <= 'Z'; c++ {
-		nameToGLFWKey[string(c)] = glfw.KeyA + glfw.Key(c) - 'A'
+		glfwKeyNameToGLFWKey[string(c)] = glfw.KeyA + glfw.Key(c) - 'A'
 		androidKeyToDriverKeyName[29+int(c)-'A'] = string(c)
 		gbuildKeyToDriverKeyName[key.CodeA+key.Code(c)-'A'] = string(c)
 		driverKeyNameToJSKey[string(c)] = "Key" + string(c)
@@ -273,7 +273,7 @@ func init() {
 	// Function keys
 	for i := 1; i <= 12; i++ {
 		name := "F" + strconv.Itoa(i)
-		nameToGLFWKey[name] = glfw.KeyF1 + glfw.Key(i) - 1
+		glfwKeyNameToGLFWKey[name] = glfw.KeyF1 + glfw.Key(i) - 1
 		androidKeyToDriverKeyName[131+i-1] = name
 		gbuildKeyToDriverKeyName[key.CodeF1+key.Code(i)-1] = name
 		driverKeyNameToJSKey[name] = name
@@ -282,7 +282,7 @@ func init() {
 	// https://www.w3.org/TR/uievents-code/#key-numpad-section
 	for c := '0'; c <= '9'; c++ {
 		name := "KP" + string(c)
-		nameToGLFWKey[name] = glfw.KeyKP0 + glfw.Key(c) - '0'
+		glfwKeyNameToGLFWKey[name] = glfw.KeyKP0 + glfw.Key(c) - '0'
 		androidKeyToDriverKeyName[144+int(c)-'0'] = name
 		// Gomobile's key code (= USB HID key codes) has successive key codes for 1, 2, ..., 9, 0
 		// in this order.
@@ -528,7 +528,7 @@ const glfwKeysTmpl = `{{.License}}
 package glfw
 
 const (
-{{range $name, $key := .NameToGLFWKey}}Key{{$name}} = Key({{$key}})
+{{range $name, $key := .GLFWKeyNameToGLFWKey}}Key{{$name}} = Key({{$key}})
 {{end}}
 )
 `
@@ -723,7 +723,7 @@ func main() {
 			EbitenKeyNames            []string
 			EbitenKeyNamesWithoutMods []string
 			DriverKeyNames            []string
-			NameToGLFWKey             map[string]glfw.Key
+			GLFWKeyNameToGLFWKey      map[string]glfw.Key
 			AndroidKeyToDriverKeyName map[int]string
 			GBuildKeyToDriverKeyName  map[key.Code]string
 		}{
@@ -735,7 +735,7 @@ func main() {
 			EbitenKeyNames:            ebitenKeyNames,
 			EbitenKeyNamesWithoutMods: ebitenKeyNamesWithoutMods,
 			DriverKeyNames:            driverKeyNames,
-			NameToGLFWKey:             nameToGLFWKey,
+			GLFWKeyNameToGLFWKey:      glfwKeyNameToGLFWKey,
 			AndroidKeyToDriverKeyName: androidKeyToDriverKeyName,
 			GBuildKeyToDriverKeyName:  gbuildKeyToDriverKeyName,
 		}); err != nil {
