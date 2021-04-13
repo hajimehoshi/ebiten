@@ -349,10 +349,10 @@ func (i *Input) updateFromEvent(e js.Value) {
 		c := e.Get("code")
 		if c.Type() != js.TypeString {
 			code := e.Get("keyCode").Int()
-			if edgeKeyCodeToDriverKey[code] == driver.KeyUp ||
-				edgeKeyCodeToDriverKey[code] == driver.KeyDown ||
-				edgeKeyCodeToDriverKey[code] == driver.KeyLeft ||
-				edgeKeyCodeToDriverKey[code] == driver.KeyRight ||
+			if edgeKeyCodeToDriverKey[code] == driver.KeyArrowUp ||
+				edgeKeyCodeToDriverKey[code] == driver.KeyArrowDown ||
+				edgeKeyCodeToDriverKey[code] == driver.KeyArrowLeft ||
+				edgeKeyCodeToDriverKey[code] == driver.KeyArrowRight ||
 				edgeKeyCodeToDriverKey[code] == driver.KeyBackspace ||
 				edgeKeyCodeToDriverKey[code] == driver.KeyTab {
 				e.Call("preventDefault")
@@ -360,10 +360,10 @@ func (i *Input) updateFromEvent(e js.Value) {
 			i.keyDownEdge(code)
 			return
 		}
-		if jsutil.Equal(c, driverKeyToJSKey[driver.KeyUp]) ||
-			jsutil.Equal(c, driverKeyToJSKey[driver.KeyDown]) ||
-			jsutil.Equal(c, driverKeyToJSKey[driver.KeyLeft]) ||
-			jsutil.Equal(c, driverKeyToJSKey[driver.KeyRight]) ||
+		if jsutil.Equal(c, driverKeyToJSKey[driver.KeyArrowUp]) ||
+			jsutil.Equal(c, driverKeyToJSKey[driver.KeyArrowDown]) ||
+			jsutil.Equal(c, driverKeyToJSKey[driver.KeyArrowLeft]) ||
+			jsutil.Equal(c, driverKeyToJSKey[driver.KeyArrowRight]) ||
 			jsutil.Equal(c, driverKeyToJSKey[driver.KeyBackspace]) ||
 			jsutil.Equal(c, driverKeyToJSKey[driver.KeyTab]) {
 			e.Call("preventDefault")

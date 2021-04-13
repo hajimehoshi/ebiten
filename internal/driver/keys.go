@@ -23,17 +23,7 @@ import (
 type Key int
 
 const (
-	Key0 Key = iota
-	Key1
-	Key2
-	Key3
-	Key4
-	Key5
-	Key6
-	Key7
-	Key8
-	Key9
-	KeyA
+	KeyA Key = iota
 	KeyB
 	KeyC
 	KeyD
@@ -59,13 +49,33 @@ const (
 	KeyX
 	KeyY
 	KeyZ
-	KeyApostrophe
+	KeyAltLeft
+	KeyAltRight
+	KeyArrowDown
+	KeyArrowLeft
+	KeyArrowRight
+	KeyArrowUp
+	KeyBackquote
 	KeyBackslash
 	KeyBackspace
+	KeyBracketLeft
+	KeyBracketRight
 	KeyCapsLock
 	KeyComma
+	KeyContextMenu
+	KeyControlLeft
+	KeyControlRight
 	KeyDelete
-	KeyDown
+	KeyDigit0
+	KeyDigit1
+	KeyDigit2
+	KeyDigit3
+	KeyDigit4
+	KeyDigit5
+	KeyDigit6
+	KeyDigit7
+	KeyDigit8
+	KeyDigit9
 	KeyEnd
 	KeyEnter
 	KeyEqual
@@ -82,52 +92,42 @@ const (
 	KeyF10
 	KeyF11
 	KeyF12
-	KeyGraveAccent
 	KeyHome
 	KeyInsert
-	KeyKP0
-	KeyKP1
-	KeyKP2
-	KeyKP3
-	KeyKP4
-	KeyKP5
-	KeyKP6
-	KeyKP7
-	KeyKP8
-	KeyKP9
-	KeyKPAdd
-	KeyKPDecimal
-	KeyKPDivide
-	KeyKPEnter
-	KeyKPEqual
-	KeyKPMultiply
-	KeyKPSubtract
-	KeyLeft
-	KeyLeftAlt
-	KeyLeftBracket
-	KeyLeftControl
-	KeyLeftShift
-	KeyLeftSuper
-	KeyMenu
+	KeyMetaLeft
+	KeyMetaRight
 	KeyMinus
 	KeyNumLock
+	KeyNumpad0
+	KeyNumpad1
+	KeyNumpad2
+	KeyNumpad3
+	KeyNumpad4
+	KeyNumpad5
+	KeyNumpad6
+	KeyNumpad7
+	KeyNumpad8
+	KeyNumpad9
+	KeyNumpadAdd
+	KeyNumpadDecimal
+	KeyNumpadDivide
+	KeyNumpadEnter
+	KeyNumpadEqual
+	KeyNumpadMultiply
+	KeyNumpadSubtract
 	KeyPageDown
 	KeyPageUp
 	KeyPause
 	KeyPeriod
 	KeyPrintScreen
-	KeyRight
-	KeyRightAlt
-	KeyRightBracket
-	KeyRightControl
-	KeyRightShift
-	KeyRightSuper
+	KeyQuote
 	KeyScrollLock
 	KeySemicolon
+	KeyShiftLeft
+	KeyShiftRight
 	KeySlash
 	KeySpace
 	KeyTab
-	KeyUp
 	KeyReserved0
 	KeyReserved1
 	KeyReserved2
@@ -136,26 +136,6 @@ const (
 
 func (k Key) String() string {
 	switch k {
-	case Key0:
-		return "Key0"
-	case Key1:
-		return "Key1"
-	case Key2:
-		return "Key2"
-	case Key3:
-		return "Key3"
-	case Key4:
-		return "Key4"
-	case Key5:
-		return "Key5"
-	case Key6:
-		return "Key6"
-	case Key7:
-		return "Key7"
-	case Key8:
-		return "Key8"
-	case Key9:
-		return "Key9"
 	case KeyA:
 		return "KeyA"
 	case KeyB:
@@ -208,20 +188,60 @@ func (k Key) String() string {
 		return "KeyY"
 	case KeyZ:
 		return "KeyZ"
-	case KeyApostrophe:
-		return "KeyApostrophe"
+	case KeyAltLeft:
+		return "KeyAltLeft"
+	case KeyAltRight:
+		return "KeyAltRight"
+	case KeyArrowDown:
+		return "KeyArrowDown"
+	case KeyArrowLeft:
+		return "KeyArrowLeft"
+	case KeyArrowRight:
+		return "KeyArrowRight"
+	case KeyArrowUp:
+		return "KeyArrowUp"
+	case KeyBackquote:
+		return "KeyBackquote"
 	case KeyBackslash:
 		return "KeyBackslash"
 	case KeyBackspace:
 		return "KeyBackspace"
+	case KeyBracketLeft:
+		return "KeyBracketLeft"
+	case KeyBracketRight:
+		return "KeyBracketRight"
 	case KeyCapsLock:
 		return "KeyCapsLock"
 	case KeyComma:
 		return "KeyComma"
+	case KeyContextMenu:
+		return "KeyContextMenu"
+	case KeyControlLeft:
+		return "KeyControlLeft"
+	case KeyControlRight:
+		return "KeyControlRight"
 	case KeyDelete:
 		return "KeyDelete"
-	case KeyDown:
-		return "KeyDown"
+	case KeyDigit0:
+		return "KeyDigit0"
+	case KeyDigit1:
+		return "KeyDigit1"
+	case KeyDigit2:
+		return "KeyDigit2"
+	case KeyDigit3:
+		return "KeyDigit3"
+	case KeyDigit4:
+		return "KeyDigit4"
+	case KeyDigit5:
+		return "KeyDigit5"
+	case KeyDigit6:
+		return "KeyDigit6"
+	case KeyDigit7:
+		return "KeyDigit7"
+	case KeyDigit8:
+		return "KeyDigit8"
+	case KeyDigit9:
+		return "KeyDigit9"
 	case KeyEnd:
 		return "KeyEnd"
 	case KeyEnter:
@@ -254,64 +274,52 @@ func (k Key) String() string {
 		return "KeyF11"
 	case KeyF12:
 		return "KeyF12"
-	case KeyGraveAccent:
-		return "KeyGraveAccent"
 	case KeyHome:
 		return "KeyHome"
 	case KeyInsert:
 		return "KeyInsert"
-	case KeyKP0:
-		return "KeyKP0"
-	case KeyKP1:
-		return "KeyKP1"
-	case KeyKP2:
-		return "KeyKP2"
-	case KeyKP3:
-		return "KeyKP3"
-	case KeyKP4:
-		return "KeyKP4"
-	case KeyKP5:
-		return "KeyKP5"
-	case KeyKP6:
-		return "KeyKP6"
-	case KeyKP7:
-		return "KeyKP7"
-	case KeyKP8:
-		return "KeyKP8"
-	case KeyKP9:
-		return "KeyKP9"
-	case KeyKPAdd:
-		return "KeyKPAdd"
-	case KeyKPDecimal:
-		return "KeyKPDecimal"
-	case KeyKPDivide:
-		return "KeyKPDivide"
-	case KeyKPEnter:
-		return "KeyKPEnter"
-	case KeyKPEqual:
-		return "KeyKPEqual"
-	case KeyKPMultiply:
-		return "KeyKPMultiply"
-	case KeyKPSubtract:
-		return "KeyKPSubtract"
-	case KeyLeft:
-		return "KeyLeft"
-	case KeyLeftAlt:
-		return "KeyLeftAlt"
-	case KeyLeftBracket:
-		return "KeyLeftBracket"
-	case KeyLeftControl:
-		return "KeyLeftControl"
-	case KeyLeftShift:
-		return "KeyLeftShift"
-	case KeyLeftSuper:
-		return "KeyLeftSuper"
-	case KeyMenu:
-		return "KeyMenu"
+	case KeyMetaLeft:
+		return "KeyMetaLeft"
+	case KeyMetaRight:
+		return "KeyMetaRight"
 	case KeyMinus:
 		return "KeyMinus"
 	case KeyNumLock:
 		return "KeyNumLock"
+	case KeyNumpad0:
+		return "KeyNumpad0"
+	case KeyNumpad1:
+		return "KeyNumpad1"
+	case KeyNumpad2:
+		return "KeyNumpad2"
+	case KeyNumpad3:
+		return "KeyNumpad3"
+	case KeyNumpad4:
+		return "KeyNumpad4"
+	case KeyNumpad5:
+		return "KeyNumpad5"
+	case KeyNumpad6:
+		return "KeyNumpad6"
+	case KeyNumpad7:
+		return "KeyNumpad7"
+	case KeyNumpad8:
+		return "KeyNumpad8"
+	case KeyNumpad9:
+		return "KeyNumpad9"
+	case KeyNumpadAdd:
+		return "KeyNumpadAdd"
+	case KeyNumpadDecimal:
+		return "KeyNumpadDecimal"
+	case KeyNumpadDivide:
+		return "KeyNumpadDivide"
+	case KeyNumpadEnter:
+		return "KeyNumpadEnter"
+	case KeyNumpadEqual:
+		return "KeyNumpadEqual"
+	case KeyNumpadMultiply:
+		return "KeyNumpadMultiply"
+	case KeyNumpadSubtract:
+		return "KeyNumpadSubtract"
 	case KeyPageDown:
 		return "KeyPageDown"
 	case KeyPageUp:
@@ -322,30 +330,22 @@ func (k Key) String() string {
 		return "KeyPeriod"
 	case KeyPrintScreen:
 		return "KeyPrintScreen"
-	case KeyRight:
-		return "KeyRight"
-	case KeyRightAlt:
-		return "KeyRightAlt"
-	case KeyRightBracket:
-		return "KeyRightBracket"
-	case KeyRightControl:
-		return "KeyRightControl"
-	case KeyRightShift:
-		return "KeyRightShift"
-	case KeyRightSuper:
-		return "KeyRightSuper"
+	case KeyQuote:
+		return "KeyQuote"
 	case KeyScrollLock:
 		return "KeyScrollLock"
 	case KeySemicolon:
 		return "KeySemicolon"
+	case KeyShiftLeft:
+		return "KeyShiftLeft"
+	case KeyShiftRight:
+		return "KeyShiftRight"
 	case KeySlash:
 		return "KeySlash"
 	case KeySpace:
 		return "KeySpace"
 	case KeyTab:
 		return "KeyTab"
-	case KeyUp:
-		return "KeyUp"
 	}
 	panic(fmt.Sprintf("driver: invalid key: %d", k))
 }
