@@ -34,6 +34,19 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
+func driverCursorModeToGLFWCursorMode(mode driver.CursorMode) int {
+	switch mode {
+	case driver.CursorModeVisible:
+		return glfw.CursorNormal
+	case driver.CursorModeHidden:
+		return glfw.CursorHidden
+	case driver.CursorModeCaptured:
+		return glfw.CursorDisabled
+	default:
+		panic(fmt.Sprintf("glfw: invalid driver.CursorMode: %d", mode))
+	}
+}
+
 type UserInterface struct {
 	context driver.UIContext
 	title   string
@@ -526,7 +539,7 @@ func (u *UserInterface) CursorMode() driver.CursorMode {
 		case glfw.CursorDisabled:
 			v = driver.CursorModeCaptured
 		default:
-			panic(fmt.Sprintf("invalid cursor mode: %d", mode))
+			panic(fmt.Sprintf("glfw: invalid GLFW cursor mode: %d", mode))
 		}
 		return nil
 	})
@@ -539,18 +552,7 @@ func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
 		return
 	}
 	_ = u.t.Call(func() error {
-		var c int
-		switch mode {
-		case driver.CursorModeVisible:
-			c = glfw.CursorNormal
-		case driver.CursorModeHidden:
-			c = glfw.CursorHidden
-		case driver.CursorModeCaptured:
-			c = glfw.CursorDisabled
-		default:
-			panic(fmt.Sprintf("invalid cursor mode: %d", mode))
-		}
-		u.window.SetInputMode(glfw.CursorMode, c)
+		u.window.SetInputMode(glfw.CursorMode, driverCursorModeToGLFWCursorMode(mode))
 		return nil
 	})
 }
@@ -612,15 +614,7 @@ func (u *UserInterface) createWindow() error {
 
 	u.window.SetInputMode(glfw.StickyMouseButtonsMode, glfw.True)
 	u.window.SetInputMode(glfw.StickyKeysMode, glfw.True)
-
-	mode := glfw.CursorNormal
-	switch u.getInitCursorMode() {
-	case driver.CursorModeHidden:
-		mode = glfw.CursorHidden
-	case driver.CursorModeCaptured:
-		mode = glfw.CursorDisabled
-	}
-	u.window.SetInputMode(glfw.CursorMode, mode)
+	u.window.SetInputMode(glfw.CursorMode, driverCursorModeToGLFWCursorMode(u.getInitCursorMode()))
 	u.window.SetTitle(u.title)
 	// TODO: Set icons
 
