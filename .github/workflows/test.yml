@@ -47,6 +47,15 @@ jobs:
           go build -o wasmbrowsertest github.com/agnivade/wasmbrowsertest
           mv ./wasmbrowsertest $(go env GOPATH)/bin/go_js_wasm_exec
 
+      - name: Prepare ebitenmobile test
+        run: |
+          local_ebiten=$(pwd)
+          cd /tmp
+          git clone --depth=1 https://github.com/hajimehoshi/go-inovation
+          cd go-inovation
+          go mod edit -replace=github.com/hajimehoshi/ebiten/v2=$local_ebiten
+          go mod tidy
+
       - name: Xvfb
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
@@ -76,12 +85,17 @@ jobs:
           env GOOS=js GOARCH=wasm go test -tags=example -v ./...
           env GOOS=js GOARCH=wasm go test -tags=example,ebitenwebgl1 -v ./...
 
+      - name: Install ebitenmobile
+        run: |
+          go install ./cmd/ebitenmobile
+
       - name: ebitenmobile bind (Android)
         run: |
-          go get github.com/hajimehoshi/go-inovation
-          go run ./cmd/ebitenmobile bind -target android -javapkg com.hajimehoshi.goinovation -o inovation.aar -v github.com/hajimehoshi/go-inovation/mobile
+          cd /tmp/go-inovation
+          ebitenmobile bind -target android -javapkg com.hajimehoshi.goinovation -o inovation.aar -v github.com/hajimehoshi/go-inovation/mobile
 
       - name: ebitenmobile bind (iOS)
         if: ${{ matrix.os == 'macos-latest' }}
         run: |
-          go run ./cmd/ebitenmobile bind -target ios -o Inovation.framework -v github.com/hajimehoshi/go-inovation/mobile
+          cd /tmp/go-inovation
+          ebitenmobile bind -target ios -o Inovation.framework -v github.com/hajimehoshi/go-inovation/mobile
