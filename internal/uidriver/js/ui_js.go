@@ -150,6 +150,9 @@ func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
 }
 
 func (u *UserInterface) recoverCursorMode() {
+	if theUI.cursorPrevMode == driver.CursorModeCaptured {
+		panic("js: cursorPrevMode must not be driver.CursorModeCaptured at recoverCursorMode")
+	}
 	u.SetCursorMode(u.cursorPrevMode)
 }
 
@@ -388,9 +391,6 @@ func init() {
 
 		// A user can exit the pointer lock by pressing ESC. In this case, sync the cursor mode state.
 		if theUI.cursorMode == driver.CursorModeCaptured {
-			if theUI.cursorPrevMode == driver.CursorModeCaptured {
-				panic("js: cursorPrevMode must not be driver.CursorModeCaptured")
-			}
 			theUI.recoverCursorMode()
 		}
 		theUI.input.recoverCursorPosition()
