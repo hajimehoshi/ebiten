@@ -136,12 +136,12 @@ func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
 
 	switch mode {
 	case driver.CursorModeVisible:
-		if u.cursorHidden {
+		if !u.cursorHidden {
 			return
 		}
 		u.cursorHidden = false
 	case driver.CursorModeHidden:
-		if !u.cursorHidden {
+		if u.cursorHidden {
 			return
 		}
 		u.cursorHidden = true
