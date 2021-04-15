@@ -133,7 +133,7 @@ func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
 	if u.cursorMode == mode {
 		return
 	}
-	// Remember the previous cursor mode in the case when the pointer lock exit by pressing ESC.
+	// Remember the previous cursor mode in the case when the pointer lock exits by pressing ESC.
 	u.cursorPrevMode = u.cursorMode
 	if u.cursorMode == driver.CursorModeCaptured {
 		document.Call("exitPointerLock")
@@ -387,7 +387,7 @@ func init() {
 		if document.Get("pointerLockElement").Truthy() {
 			return nil
 		}
-		// Recover the state correctly when exiting from the pointer lock.
+		// Recover the state correctly when the pointer lock exits.
 
 		// A user can exit the pointer lock by pressing ESC. In this case, sync the cursor mode state.
 		if theUI.cursorMode == driver.CursorModeCaptured {
