@@ -74,6 +74,8 @@ type Input struct {
 	mouseButtonPressed map[int]bool
 	cursorX            int
 	cursorY            int
+	origCursorX        int
+	origCursorY        int
 	wheelX             float64
 	wheelY             float64
 	gamepads           map[driver.GamepadID]gamepad
@@ -284,10 +286,6 @@ func (i *Input) mouseUp(code int) {
 	i.mouseButtonPressed[code] = false
 }
 
-func (i *Input) setMouseCursor(x, y int) {
-	i.cursorX, i.cursorY = x, y
-}
-
 func (i *Input) updateGamepads() {
 	nav := js.Global().Get("navigator")
 	if !nav.Truthy() {
@@ -401,8 +399,22 @@ func (i *Input) updateFromEvent(e js.Value) {
 }
 
 func (i *Input) setMouseCursorFromEvent(e js.Value) {
+	if i.ui.cursorMode == driver.CursorModeCaptured {
+		x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
+		i.origCursorX, i.origCursorY = x, y
+		dx, dy := e.Get("movementX").Int(), e.Get("movementY").Int()
+		i.cursorX += dx
+		i.cursorY += dy
+		return
+	}
+
 	x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
-	i.setMouseCursor(x, y)
+	i.cursorX, i.cursorY = x, y
+	i.origCursorX, i.origCursorY = x, y
+}
+
+func (i *Input) recoverCursorPosition() {
+	i.cursorX, i.cursorY = i.origCursorX, i.origCursorY
 }
 
 func (in *Input) updateTouchesFromEvent(e js.Value) {

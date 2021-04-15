@@ -50,7 +50,8 @@ type UserInterface struct {
 	vsync               bool
 	running             bool
 	initFocused         bool
-	cursorHidden        bool
+	cursorMode          driver.CursorMode
+	cursorPrevMode      driver.CursorMode
 	cursorShape         driver.CursorShape
 
 	sizeChanged bool
@@ -122,38 +123,34 @@ func (u *UserInterface) CursorMode() driver.CursorMode {
 	if !canvas.Truthy() {
 		return driver.CursorModeHidden
 	}
-
-	if u.cursorHidden {
-		return driver.CursorModeHidden
-	}
-	return driver.CursorModeVisible
+	return u.cursorMode
 }
 
 func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
 	if !canvas.Truthy() {
 		return
 	}
-
-	switch mode {
-	case driver.CursorModeVisible:
-		if !u.cursorHidden {
-			return
-		}
-		u.cursorHidden = false
-	case driver.CursorModeHidden:
-		if u.cursorHidden {
-			return
-		}
-		u.cursorHidden = true
-	default:
+	if u.cursorMode == mode {
 		return
 	}
-
-	if u.cursorHidden {
-		canvas.Get("style").Set("cursor", stringNone)
-	} else {
-		canvas.Get("style").Set("cursor", driverCursorShapeToCSSCursor(u.cursorShape))
+	// Remember the previous cursor mode in the case when the pointer lock exit by pressing ESC.
+	u.cursorPrevMode = u.cursorMode
+	if u.cursorMode == driver.CursorModeCaptured {
+		document.Call("exitPointerLock")
 	}
+	u.cursorMode = mode
+	switch mode {
+	case driver.CursorModeVisible:
+		canvas.Get("style").Set("cursor", driverCursorShapeToCSSCursor(u.cursorShape))
+	case driver.CursorModeHidden:
+		canvas.Get("style").Set("cursor", stringNone)
+	case driver.CursorModeCaptured:
+		canvas.Call("requestPointerLock")
+	}
+}
+
+func (u *UserInterface) recoverCursorMode() {
+	u.SetCursorMode(u.cursorPrevMode)
 }
 
 func (u *UserInterface) CursorShape() driver.CursorShape {
@@ -170,8 +167,9 @@ func (u *UserInterface) SetCursorShape(shape driver.CursorShape) {
 	if u.cursorShape == shape {
 		return
 	}
+
 	u.cursorShape = shape
-	if !u.cursorHidden {
+	if u.cursorMode == driver.CursorModeVisible {
 		canvas.Get("style").Set("cursor", driverCursorShapeToCSSCursor(u.cursorShape))
 	}
 }
@@ -380,6 +378,24 @@ func init() {
 	canvas.Get("style").Set("outline", "none")
 
 	setCanvasEventHandlers(canvas)
+
+	// Pointer Lock
+	document.Call("addEventListener", "pointerlockchange", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		if document.Get("pointerLockElement").Truthy() {
+			return nil
+		}
+		// Recover the state correctly when exiting from the pointer lock.
+
+		// A user can exit the pointer lock by pressing ESC. In this case, sync the cursor mode state.
+		if theUI.cursorMode == driver.CursorModeCaptured {
+			if theUI.cursorPrevMode == driver.CursorModeCaptured {
+				panic("js: cursorPrevMode must not be driver.CursorModeCaptured")
+			}
+			theUI.recoverCursorMode()
+		}
+		theUI.input.recoverCursorPosition()
+		return nil
+	}))
 }
 
 func setWindowEventHandlers(v js.Value) {
@@ -473,7 +489,7 @@ func setCanvasEventHandlers(v js.Value) {
 		return nil
 	}))
 
-	// Gamepad
+	// Context menu
 	v.Call("addEventListener", "contextmenu", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
