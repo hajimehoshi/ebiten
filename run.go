@@ -232,7 +232,9 @@ func CursorMode() CursorModeType {
 // CursorModeHidden hides the system cursor when over the window.
 // CursorModeCaptured hides the system cursor and locks it to the window.
 //
-// On browsers, only CursorModeVisible and CursorModeHidden are supported.
+// CursorModeCaptured also works on browsers.
+// When the user exits the captured mode not by SetCursorMode but by the UI (e.g., pressing ESC),
+// the previous cursor mode is set.
 //
 // SetCursorMode does nothing on mobiles.
 //
