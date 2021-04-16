@@ -53,13 +53,15 @@ type UserInterface struct {
 	window  *glfw.Window
 
 	// windowWidth and windowHeight represents a window size.
-	// The unit is device-dependent pixels.
-	windowWidth     int
-	windowHeight    int
-	minWindowWidth  int
-	minWindowHeight int
-	maxWindowWidth  int
-	maxWindowHeight int
+	// The units are device-dependent pixels.
+	windowWidth  int
+	windowHeight int
+
+	// The units are device-independent pixels.
+	minWindowWidthInDP  int
+	minWindowHeightInDP int
+	maxWindowWidthInDP  int
+	maxWindowHeightInDP int
 
 	running             uint32
 	toChangeSize        bool
@@ -114,10 +116,10 @@ const (
 var (
 	theUI = &UserInterface{
 		runnableOnUnfocused:     true,
-		minWindowWidth:          glfw.DontCare,
-		minWindowHeight:         glfw.DontCare,
-		maxWindowWidth:          glfw.DontCare,
-		maxWindowHeight:         glfw.DontCare,
+		minWindowWidthInDP:      glfw.DontCare,
+		minWindowHeightInDP:     glfw.DontCare,
+		maxWindowWidthInDP:      glfw.DontCare,
+		maxWindowHeightInDP:     glfw.DontCare,
 		origPosX:                invalidPos,
 		origPosY:                invalidPos,
 		initVsync:               true,
@@ -243,22 +245,22 @@ func (u *UserInterface) setRunning(running bool) {
 	}
 }
 
-func (u *UserInterface) getWindowSizeLimits() (minw, minh, maxw, maxh int) {
+func (u *UserInterface) getWindowSizeLimitsInDP() (minw, minh, maxw, maxh int) {
 	u.m.RLock()
 	defer u.m.RUnlock()
-	return u.minWindowWidth, u.minWindowHeight, u.maxWindowWidth, u.maxWindowHeight
+	return u.minWindowWidthInDP, u.minWindowHeightInDP, u.maxWindowWidthInDP, u.maxWindowHeightInDP
 }
 
-func (u *UserInterface) setWindowSizeLimits(minw, minh, maxw, maxh int) bool {
+func (u *UserInterface) setWindowSizeLimitsInDP(minw, minh, maxw, maxh int) bool {
 	u.m.RLock()
 	defer u.m.RUnlock()
-	if u.minWindowWidth == minw && u.minWindowHeight == minh && u.maxWindowWidth == maxw && u.maxWindowHeight == maxh {
+	if u.minWindowWidthInDP == minw && u.minWindowHeightInDP == minh && u.maxWindowWidthInDP == maxw && u.maxWindowHeightInDP == maxh {
 		return false
 	}
-	u.minWindowWidth = minw
-	u.minWindowHeight = minh
-	u.maxWindowWidth = maxw
-	u.maxWindowHeight = maxh
+	u.minWindowWidthInDP = minw
+	u.minWindowHeightInDP = minh
+	u.maxWindowWidthInDP = maxw
+	u.maxWindowHeightInDP = maxh
 	return true
 }
 
@@ -1008,24 +1010,34 @@ func (u *UserInterface) swapBuffers() {
 
 // updateWindowSizeLimits must be called from the main thread.
 func (u *UserInterface) updateWindowSizeLimits() {
-	minw, minh, maxw, maxh := u.getWindowSizeLimits()
+	minw, minh, maxw, maxh := u.getWindowSizeLimitsInDP()
 	if minw < 0 {
 		minw = glfw.DontCare
+	} else {
+		minw = int(u.toGLFWPixel(float64(minw)))
 	}
 	if minh < 0 {
 		minh = glfw.DontCare
+	} else {
+		minh = int(u.toGLFWPixel(float64(minh)))
 	}
 	if maxw < 0 {
 		maxw = glfw.DontCare
+	} else {
+		maxw = int(u.toGLFWPixel(float64(maxw)))
 	}
 	if maxh < 0 {
 		maxh = glfw.DontCare
+	} else {
+		maxh = int(u.toGLFWPixel(float64(maxh)))
 	}
 	u.window.SetSizeLimits(minw, minh, maxw, maxh)
 }
 
-func (u *UserInterface) adjustWindowSizeBasedOnSizeLimits(width, height int) (int, int) {
-	minw, minh, maxw, maxh := u.getWindowSizeLimits()
+// adjustWindowSizeBasedOnSizeLimitsInDP adjust the size based on the window size limits.
+// width and height are in device-independent pixels.
+func (u *UserInterface) adjustWindowSizeBasedOnSizeLimitsInDP(width, height int) (int, int) {
+	minw, minh, maxw, maxh := u.getWindowSizeLimitsInDP()
 	if minw >= 0 && width < minw {
 		width = minw
 	}
@@ -1043,7 +1055,11 @@ func (u *UserInterface) adjustWindowSizeBasedOnSizeLimits(width, height int) (in
 
 // setWindowSize must be called from the main thread.
 func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
-	width, height = u.adjustWindowSizeBasedOnSizeLimits(width, height)
+	wdp := int(u.fromGLFWPixel(float64(width)))
+	hdp := int(u.fromGLFWPixel(float64(height)))
+	wdp, hdp = u.adjustWindowSizeBasedOnSizeLimitsInDP(wdp, hdp)
+	width = int(u.toGLFWPixel(float64(wdp)))
+	height = int(u.toGLFWPixel(float64(hdp)))
 
 	if u.windowWidth == width && u.windowHeight == height && u.isFullscreen() == fullscreen && u.lastDeviceScaleFactor == u.deviceScaleFactor() {
 		return
