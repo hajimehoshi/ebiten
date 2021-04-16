@@ -234,7 +234,7 @@ func CursorMode() CursorModeType {
 //
 // CursorModeCaptured also works on browsers.
 // When the user exits the captured mode not by SetCursorMode but by the UI (e.g., pressing ESC),
-// the previous cursor mode is set.
+// the previous cursor mode is set automatically.
 //
 // SetCursorMode does nothing on mobiles.
 //
