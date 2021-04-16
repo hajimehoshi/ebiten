@@ -649,7 +649,11 @@ func (u *UserInterface) deviceScaleFactor() float64 {
 			return devicescale.GetAt(cm.x, cm.y)
 		}
 	}
-	return devicescale.GetAt(currentMonitor(u.window).GetPos())
+	m := u.initMonitor
+	if u.window != nil {
+		m = currentMonitor(u.window)
+	}
+	return devicescale.GetAt(m.GetPos())
 }
 
 func init() {

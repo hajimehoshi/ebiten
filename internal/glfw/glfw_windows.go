@@ -253,6 +253,11 @@ func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous SizeCallback) {
 	return prev
 }
 
+func (w *Window) SetSizeLimits(minw, minh, maxw, maxh int) {
+	glfwDLL.call("glfwSetWindowSizeLimits", w.w, uintptr(minw), uintptr(minh), uintptr(maxw), uintptr(maxh))
+	panicError()
+}
+
 func (w *Window) SetIcon(images []image.Image) {
 	gimgs := make([]glfwImage, len(images))
 	defer runtime.KeepAlive(gimgs)
