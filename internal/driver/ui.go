@@ -78,6 +78,8 @@ type Window interface {
 
 	Size() (int, int)
 	SetSize(width, height int)
+	SizeLimits() (minw, minh, maxw, maxh int)
+	SetSizeLimits(minw, minh, maxw, maxh int)
 
 	IsFloating() bool
 	SetFloating(floating bool)

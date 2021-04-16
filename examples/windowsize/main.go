@@ -25,6 +25,7 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -45,6 +46,8 @@ var (
 	flagMaximize          = flag.Bool("maximize", false, "maximize the window")
 	flagVsync             = flag.Bool("vsync", true, "enable vsync")
 	flagInitFocused       = flag.Bool("initfocused", true, "whether the window is focused on start")
+	flagMinWindowSize     = flag.String("minwindowsize", "", "minimum window size (e.g., 100x200)")
+	flagMaxWindowSize     = flag.String("maxwindowsize", "", "maximium window size (e.g., 1920x1080)")
 )
 
 func init() {
@@ -280,6 +283,7 @@ func (g *game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(gophersImage, op)
 
 	wx, wy := ebiten.WindowPosition()
+	minw, minh, maxw, maxh := ebiten.WindowSizeLimits()
 	cx, cy := ebiten.CursorPosition()
 	tpsStr := "Uncapped"
 	if t := ebiten.MaxTPS(); t != ebiten.UncappedTPS {
@@ -319,10 +323,11 @@ func (g *game) Draw(screen *ebiten.Image) {
 %s
 IsFocused?: %s
 Windows Position: (%d, %d)
+Window size limitation: (%d, %d) - (%d, %d)
 Cursor: (%d, %d)
 TPS: Current: %0.2f / Max: %s
 FPS: %0.2f
-Device Scale Factor: %0.2f`, msgM, msgR, fg, wx, wy, cx, cy, ebiten.CurrentTPS(), tpsStr, ebiten.CurrentFPS(), ebiten.DeviceScaleFactor())
+Device Scale Factor: %0.2f`, msgM, msgR, fg, wx, wy, minw, minh, maxw, maxh, cx, cy, ebiten.CurrentTPS(), tpsStr, ebiten.CurrentFPS(), ebiten.DeviceScaleFactor())
 	ebitenutil.DebugPrint(screen, msg)
 }
 
@@ -398,6 +403,21 @@ func main() {
 	ebiten.SetInitFocused(*flagInitFocused)
 	if !*flagInitFocused {
 		ebiten.SetRunnableOnUnfocused(true)
+	}
+
+	minw, minh, maxw, maxh := -1, -1, -1, -1
+	reSize := regexp.MustCompile(`^(\d+)x(\d+)$`)
+	if m := reSize.FindStringSubmatch(*flagMinWindowSize); m != nil {
+		minw, _ = strconv.Atoi(m[1])
+		minh, _ = strconv.Atoi(m[2])
+	}
+	if m := reSize.FindStringSubmatch(*flagMaxWindowSize); m != nil {
+		maxw, _ = strconv.Atoi(m[1])
+		maxh, _ = strconv.Atoi(m[2])
+	}
+	if minw >= 0 && minh >= 0 && maxw >= 0 && maxh >= 0 {
+		ebiten.SetWindowSizeLimits(minw, minh, maxw, maxh)
+		ebiten.SetWindowResizable(true)
 	}
 
 	const title = "Window Size (Ebiten Demo)"

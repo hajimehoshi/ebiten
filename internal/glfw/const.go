@@ -34,8 +34,9 @@ type (
 )
 
 const (
-	False = 0
-	True  = 1
+	DontCare = -1
+	False    = 0
+	True     = 1
 )
 
 const (

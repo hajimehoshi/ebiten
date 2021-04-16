@@ -109,10 +109,6 @@ func (w *Window) GetAttrib(attrib Hint) int {
 	return w.w.GetAttrib(glfw.Hint(attrib))
 }
 
-func (w *Window) SetAttrib(attrib Hint, value int) {
-	w.w.SetAttrib(glfw.Hint(attrib), value)
-}
-
 func (w *Window) GetCursorPos() (x, y float64) {
 	return w.w.GetCursorPos()
 }
@@ -159,6 +155,10 @@ func (w *Window) Maximize() {
 
 func (w *Window) Restore() {
 	w.w.Restore()
+}
+
+func (w *Window) SetAttrib(attrib Hint, value int) {
+	w.w.SetAttrib(glfw.Hint(attrib), value)
 }
 
 func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsCallback) {
@@ -213,6 +213,10 @@ func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous SizeCallback) {
 	prev := w.prevSizeCallback
 	w.prevSizeCallback = cbfun
 	return prev
+}
+
+func (w *Window) SetSizeLimits(minw, minh, maxw, maxh int) {
+	w.w.SetSizeLimits(minw, minh, maxw, maxh)
 }
 
 func (w *Window) SetIcon(images []image.Image) {

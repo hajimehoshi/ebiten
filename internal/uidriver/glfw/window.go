@@ -228,7 +228,8 @@ func (w *window) setPosition(x, y int) {
 
 func (w *window) Size() (int, int) {
 	if !w.ui.isRunning() {
-		return w.ui.getInitWindowSize()
+		ww, wh := w.ui.getInitWindowSize()
+		return w.ui.adjustWindowSizeBasedOnSizeLimits(ww, wh)
 	}
 	ww := int(w.ui.fromGLFWPixel(float64(w.ui.windowWidth)))
 	wh := int(w.ui.fromGLFWPixel(float64(w.ui.windowHeight)))
@@ -244,6 +245,49 @@ func (w *window) SetSize(width, height int) {
 	wh := int(w.ui.toGLFWPixel(float64(height)))
 	_ = w.ui.t.Call(func() error {
 		w.ui.setWindowSize(ww, wh, w.ui.isFullscreen())
+		return nil
+	})
+}
+
+func (w *window) SizeLimits() (minw, minh, maxw, maxh int) {
+	minw, minh, maxw, maxh = w.ui.getWindowSizeLimits()
+	if minw >= 0 {
+		minw = int(w.ui.fromGLFWPixel(float64(minw)))
+	}
+	if minh >= 0 {
+		minh = int(w.ui.fromGLFWPixel(float64(minh)))
+	}
+	if maxw >= 0 {
+		maxw = int(w.ui.fromGLFWPixel(float64(maxw)))
+	}
+	if maxh >= 0 {
+		maxh = int(w.ui.fromGLFWPixel(float64(maxh)))
+	}
+	return
+}
+
+func (w *window) SetSizeLimits(minw, minh, maxw, maxh int) {
+	if minw >= 0 {
+		minw = int(w.ui.toGLFWPixel(float64(minw)))
+	}
+	if minh >= 0 {
+		minh = int(w.ui.toGLFWPixel(float64(minh)))
+	}
+	if maxw >= 0 {
+		maxw = int(w.ui.toGLFWPixel(float64(maxw)))
+	}
+	if maxh >= 0 {
+		maxh = int(w.ui.toGLFWPixel(float64(maxh)))
+	}
+	if !w.ui.setWindowSizeLimits(minw, minh, maxw, maxh) {
+		return
+	}
+	if !w.ui.isRunning() {
+		return
+	}
+
+	_ = w.ui.t.Call(func() error {
+		w.ui.updateWindowSizeLimits()
 		return nil
 	})
 }

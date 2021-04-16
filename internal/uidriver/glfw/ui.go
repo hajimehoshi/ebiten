@@ -54,8 +54,12 @@ type UserInterface struct {
 
 	// windowWidth and windowHeight represents a window size.
 	// The unit is device-dependent pixels.
-	windowWidth  int
-	windowHeight int
+	windowWidth     int
+	windowHeight    int
+	minWindowWidth  int
+	minWindowHeight int
+	maxWindowWidth  int
+	maxWindowHeight int
 
 	running             uint32
 	toChangeSize        bool
@@ -110,6 +114,10 @@ const (
 var (
 	theUI = &UserInterface{
 		runnableOnUnfocused:     true,
+		minWindowWidth:          glfw.DontCare,
+		minWindowHeight:         glfw.DontCare,
+		maxWindowWidth:          glfw.DontCare,
+		maxWindowHeight:         glfw.DontCare,
 		origPosX:                invalidPos,
 		origPosY:                invalidPos,
 		initVsync:               true,
@@ -233,6 +241,25 @@ func (u *UserInterface) setRunning(running bool) {
 	} else {
 		atomic.StoreUint32(&u.running, 0)
 	}
+}
+
+func (u *UserInterface) getWindowSizeLimits() (minw, minh, maxw, maxh int) {
+	u.m.RLock()
+	defer u.m.RUnlock()
+	return u.minWindowWidth, u.minWindowHeight, u.maxWindowWidth, u.maxWindowHeight
+}
+
+func (u *UserInterface) setWindowSizeLimits(minw, minh, maxw, maxh int) bool {
+	u.m.RLock()
+	defer u.m.RUnlock()
+	if u.minWindowWidth == minw && u.minWindowHeight == minh && u.maxWindowWidth == maxw && u.maxWindowHeight == maxh {
+		return false
+	}
+	u.minWindowWidth = minw
+	u.minWindowHeight = minh
+	u.maxWindowWidth = maxw
+	u.maxWindowHeight = maxh
+	return true
 }
 
 func (u *UserInterface) getInitTitle() string {
@@ -782,6 +809,8 @@ func (u *UserInterface) init() error {
 		setPosition()
 	}
 
+	u.updateWindowSizeLimits()
+
 	// Maximizing a window requires a proper size and position. Call Maximize here (#1117).
 	if u.isInitWindowMaximized() {
 		u.window.Maximize()
@@ -973,8 +1002,45 @@ func (u *UserInterface) swapBuffers() {
 	}
 }
 
+// updateWindowSizeLimits must be called from the main thread.
+func (u *UserInterface) updateWindowSizeLimits() {
+	minw, minh, maxw, maxh := u.getWindowSizeLimits()
+	if minw < 0 {
+		minw = glfw.DontCare
+	}
+	if minh < 0 {
+		minh = glfw.DontCare
+	}
+	if maxw < 0 {
+		maxw = glfw.DontCare
+	}
+	if maxh < 0 {
+		maxh = glfw.DontCare
+	}
+	u.window.SetSizeLimits(minw, minh, maxw, maxh)
+}
+
+func (u *UserInterface) adjustWindowSizeBasedOnSizeLimits(width, height int) (int, int) {
+	minw, minh, maxw, maxh := u.getWindowSizeLimits()
+	if minw >= 0 && width < minw {
+		width = minw
+	}
+	if minh >= 0 && height < minh {
+		height = minh
+	}
+	if maxw >= 0 && width > maxw {
+		width = maxw
+	}
+	if maxh >= 0 && height > maxh {
+		height = maxh
+	}
+	return width, height
+}
+
 // setWindowSize must be called from the main thread.
 func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
+	width, height = u.adjustWindowSizeBasedOnSizeLimits(width, height)
+
 	if u.windowWidth == width && u.windowHeight == height && u.isFullscreen() == fullscreen && u.lastDeviceScaleFactor == u.deviceScaleFactor() {
 		return
 	}
@@ -1045,6 +1111,8 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 					// TODO: This should return an error.
 					panic(fmt.Sprintf("glfw: failed to recreate window: %v", err))
 				}
+				// Reset the size limits explicitly.
+				u.updateWindowSizeLimits()
 				u.window.Show()
 				windowRecreated = true
 			}
