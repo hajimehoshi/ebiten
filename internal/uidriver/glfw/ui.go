@@ -1298,7 +1298,7 @@ func (u *UserInterface) Window() driver.Window {
 }
 
 func (u *UserInterface) maximize() {
-	// Maximizing invokes the SetSize callback but the callback must not be called in Update.
+	// Maximizing invokes the SetSize callback but the callback must not be called in the game's Update (#1576).
 	if u.unregisterWindowSetSizeCallback() {
 		defer u.registerWindowSetSizeCallback()
 	}
