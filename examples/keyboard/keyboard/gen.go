@@ -148,7 +148,7 @@ func keyDisplayNameToKey(name string) ebiten.Key {
 func drawKey(t *ebiten.Image, name string, x, y, width int) {
 	const height = 16
 	width--
-	img, _ := ebiten.NewImage(width, height)
+	img := ebiten.NewImage(width, height)
 	p := make([]byte, width*height*4)
 	for j := 0; j < height; j++ {
 		for i := 0; i < width; i++ {
@@ -196,7 +196,7 @@ func drawKey(t *ebiten.Image, name string, x, y, width int) {
 
 func outputKeyboardImage() (map[ebiten.Key]image.Rectangle, error) {
 	keyMap := map[ebiten.Key]image.Rectangle{}
-	img, _ := ebiten.NewImage(320, 240)
+	img := ebiten.NewImage(320, 240)
 	x, y := 0, 0
 	for j, line := range keyboardKeys {
 		x = 0
@@ -321,7 +321,7 @@ type game struct {
 	rects map[ebiten.Key]image.Rectangle
 }
 
-func (g *game) Update(_ *ebiten.Image) error {
+func (g *game) Update() error {
 	var err error
 	g.rects, err = outputKeyboardImage()
 	if err != nil {
