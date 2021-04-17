@@ -13,6 +13,7 @@ require (
 	github.com/jfreymuth/oggvorbis v1.0.3
 	golang.org/x/image v0.0.0-20210220032944-ac19c3e999fb
 	golang.org/x/mobile v0.0.0-20210220033013-bdb1ca9a1e08
+	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	golang.org/x/sys v0.0.0-20210403161142-5e06dd20ab57
 	golang.org/x/tools v0.1.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
