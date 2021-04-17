@@ -159,7 +159,7 @@ func (w *window) Minimize() {
 		return
 	}
 	_ = w.ui.t.Call(func() error {
-		w.ui.window.Iconify()
+		w.ui.iconify()
 		return nil
 	})
 }

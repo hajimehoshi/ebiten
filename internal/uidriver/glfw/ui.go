@@ -1322,11 +1322,23 @@ func (u *UserInterface) Window() driver.Window {
 }
 
 func (u *UserInterface) maximize() {
-	// Maximizing invokes the SetSize callback but the callback must not be called in the game's Update (#1576).
+	// Maximize invokes the SetSize callback but the callback must not be called in the game's Update (#1576).
 	if u.unregisterWindowSetSizeCallback() {
 		defer u.registerWindowSetSizeCallback()
 	}
 	u.window.Maximize()
+
+	// Call setWindowSize explicitly in order to update the rendering since the callback is unregistered now.
+	w, h := u.window.GetSize()
+	u.setWindowSize(w, h, u.isFullscreen())
+}
+
+func (u *UserInterface) iconify() {
+	// Iconify invokes the SetSize callback but the callback must not be called in the game's Update (#1576).
+	if u.unregisterWindowSetSizeCallback() {
+		defer u.registerWindowSetSizeCallback()
+	}
+	u.window.Iconify()
 
 	// Call setWindowSize explicitly in order to update the rendering since the callback is unregistered now.
 	w, h := u.window.GetSize()
