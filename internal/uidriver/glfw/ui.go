@@ -245,6 +245,15 @@ func (u *UserInterface) setRunning(running bool) {
 	}
 }
 
+func (u *UserInterface) getWindowSizeLimits() (minw, minh, maxw, maxh int) {
+	u.m.RLock()
+	defer u.m.RUnlock()
+	return int(u.toGLFWPixel(float64(u.minWindowWidthInDP))),
+		int(u.toGLFWPixel(float64(u.minWindowHeightInDP))),
+		int(u.toGLFWPixel(float64(u.maxWindowWidthInDP))),
+		int(u.toGLFWPixel(float64(u.maxWindowHeightInDP)))
+}
+
 func (u *UserInterface) getWindowSizeLimitsInDP() (minw, minh, maxw, maxh int) {
 	u.m.RLock()
 	defer u.m.RUnlock()
@@ -1029,6 +1038,25 @@ func (u *UserInterface) updateWindowSizeLimits() {
 }
 
 // adjustWindowSizeBasedOnSizeLimitsInDP adjust the size based on the window size limits.
+// width and height are in device-dependent pixels.
+func (u *UserInterface) adjustWindowSizeBasedOnSizeLimits(width, height int) (int, int) {
+	minw, minh, maxw, maxh := u.getWindowSizeLimits()
+	if minw >= 0 && width < minw {
+		width = minw
+	}
+	if minh >= 0 && height < minh {
+		height = minh
+	}
+	if maxw >= 0 && width > maxw {
+		width = maxw
+	}
+	if maxh >= 0 && height > maxh {
+		height = maxh
+	}
+	return width, height
+}
+
+// adjustWindowSizeBasedOnSizeLimitsInDP adjust the size based on the window size limits.
 // width and height are in device-independent pixels.
 func (u *UserInterface) adjustWindowSizeBasedOnSizeLimitsInDP(width, height int) (int, int) {
 	minw, minh, maxw, maxh := u.getWindowSizeLimitsInDP()
@@ -1049,11 +1077,7 @@ func (u *UserInterface) adjustWindowSizeBasedOnSizeLimitsInDP(width, height int)
 
 // setWindowSize must be called from the main thread.
 func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
-	wdp := int(u.fromGLFWPixel(float64(width)))
-	hdp := int(u.fromGLFWPixel(float64(height)))
-	wdp, hdp = u.adjustWindowSizeBasedOnSizeLimitsInDP(wdp, hdp)
-	width = int(u.toGLFWPixel(float64(wdp)))
-	height = int(u.toGLFWPixel(float64(hdp)))
+	width, height = u.adjustWindowSizeBasedOnSizeLimits(width, height)
 
 	if u.windowWidth == width && u.windowHeight == height && u.isFullscreen() == fullscreen && u.lastDeviceScaleFactor == u.deviceScaleFactor() {
 		return
