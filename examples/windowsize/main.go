@@ -135,11 +135,11 @@ func (g *game) Update() error {
 	const d = 16
 	toUpdateWindowSize := false
 	if ebiten.IsKeyPressed(ebiten.KeyShift) {
-		if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
+		if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
 			screenHeight += d
 			toUpdateWindowSize = true
 		}
-		if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
+		if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
 			if 16 < screenHeight && d < screenHeight {
 				screenHeight -= d
 				toUpdateWindowSize = true
