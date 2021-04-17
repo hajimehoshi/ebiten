@@ -165,7 +165,7 @@ func (i *imageDumperGame) Layout(outsideWidth, outsideHeight int) (screenWidth, 
 func RunGame(game Game) error {
 	defer atomic.StoreInt32(&isRunGameEnded_, 1)
 
-	fixWindowPosition(WindowSize())
+	initializeWindowPositionIfNeeded(WindowSize())
 	theUIContext.set(&imageDumperGame{
 		game: game,
 	})
@@ -190,7 +190,7 @@ func isRunGameEnded() bool {
 //
 // TODO: Remove this. In order to remove this, the uiContext should be in another package.
 func RunGameWithoutMainLoop(game Game) {
-	fixWindowPosition(WindowSize())
+	initializeWindowPositionIfNeeded(WindowSize())
 	theUIContext.set(&imageDumperGame{
 		game: game,
 	})

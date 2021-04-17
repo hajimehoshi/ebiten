@@ -147,7 +147,7 @@ var (
 	windowPositionSetExplicitly uint32
 )
 
-func fixWindowPosition(width, height int) {
+func initializeWindowPositionIfNeeded(width, height int) {
 	w := uiDriver().Window()
 	if w == nil {
 		return
