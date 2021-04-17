@@ -202,7 +202,7 @@ func RunGameWithoutMainLoop(game Game) {
 // The returned value can be given to Run or SetSize function if the perfectly fit fullscreen is needed.
 //
 // On browsers, ScreenSizeInFullscreen returns the 'window' (global object) size, not 'screen' size since an Ebiten
-// game should not know the outside of the window object. For more details, see SetFullscreen API comment.
+// game should not know the outside of the window object.
 //
 // On mobiles, ScreenSizeInFullscreen returns (0, 0) so far.
 //
