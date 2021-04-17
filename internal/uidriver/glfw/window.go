@@ -245,8 +245,7 @@ func (w *window) SetSize(width, height int) {
 }
 
 func (w *window) SizeLimits() (minw, minh, maxw, maxh int) {
-	minw, minh, maxw, maxh = w.ui.getWindowSizeLimitsInDP()
-	return
+	return w.ui.getWindowSizeLimitsInDP()
 }
 
 func (w *window) SetSizeLimits(minw, minh, maxw, maxh int) {

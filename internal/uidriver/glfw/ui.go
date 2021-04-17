@@ -631,6 +631,7 @@ func (u *UserInterface) SetCursorShape(shape driver.CursorShape) {
 
 func (u *UserInterface) DeviceScaleFactor() float64 {
 	if !u.isRunning() {
+		// TODO: Use the initWindowPosition. This requires to convert the units correctly (#1575).
 		return devicescale.GetAt(u.initMonitor.GetPos())
 	}
 
