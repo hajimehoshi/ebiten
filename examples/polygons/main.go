@@ -100,13 +100,13 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
-	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
 		g.ngon--
 		if g.ngon < 1 {
 			g.ngon = 1
 		}
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
 		g.ngon++
 		if g.ngon > 120 {
 			g.ngon = 120

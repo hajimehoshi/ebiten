@@ -130,9 +130,9 @@ func (g *Game) Update() error {
 	}
 
 	// Controls
-	if ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyLeft) {
+	if ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
 		g.gopher.vx = -4 * unit
-	} else if ebiten.IsKeyPressed(ebiten.KeyD) || ebiten.IsKeyPressed(ebiten.KeyRight) {
+	} else if ebiten.IsKeyPressed(ebiten.KeyD) || ebiten.IsKeyPressed(ebiten.KeyArrowRight) {
 		g.gopher.vx = 4 * unit
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {

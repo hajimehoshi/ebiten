@@ -247,11 +247,11 @@ func (g *Game) Update() error {
 		g.player.MoveForward()
 	}
 	rotated := false
-	if ebiten.IsKeyPressed(ebiten.KeyRight) {
+	if ebiten.IsKeyPressed(ebiten.KeyArrowRight) {
 		g.player.RotateRight()
 		rotated = true
 	}
-	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
+	if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
 		g.player.RotateLeft()
 		rotated = true
 	}
