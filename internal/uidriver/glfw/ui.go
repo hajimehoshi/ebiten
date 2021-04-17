@@ -1308,3 +1308,15 @@ func (u *UserInterface) maximize() {
 	w, h := u.window.GetSize()
 	u.setWindowSize(w, h, u.isFullscreen())
 }
+
+func (u *UserInterface) restore() {
+	// Restore invokes the SetSize callback but the callback must not be called in the game's Update (#1576).
+	if u.unregisterWindowSetSizeCallback() {
+		defer u.registerWindowSetSizeCallback()
+	}
+	u.window.Restore()
+
+	// Call setWindowSize explicitly in order to update the rendering since the callback is unregistered now.
+	w, h := u.window.GetSize()
+	u.setWindowSize(w, h, u.isFullscreen())
+}

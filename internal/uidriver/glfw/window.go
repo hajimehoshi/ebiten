@@ -170,7 +170,7 @@ func (w *window) Restore() {
 		return
 	}
 	_ = w.ui.t.Call(func() error {
-		w.ui.window.Restore()
+		w.ui.restore()
 		return nil
 	})
 }
