@@ -136,7 +136,7 @@ func (w *window) Maximize() {
 		return
 	}
 	_ = w.ui.t.Call(func() error {
-		w.ui.window.Maximize()
+		w.ui.maximize()
 		return nil
 	})
 }
