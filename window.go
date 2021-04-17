@@ -16,7 +16,7 @@ package ebiten
 
 import (
 	"image"
-	"sync"
+	"sync/atomic"
 )
 
 const (
@@ -121,9 +121,6 @@ func SetWindowIcon(iconImages []image.Image) {
 //
 // WindowPosition is concurrent-safe.
 func WindowPosition() (x, y int) {
-	if x, y, ok := getInitWindowPosition(); ok {
-		return x, y
-	}
 	if w := uiDriver().Window(); w != nil {
 		return w.Position()
 	}
@@ -140,68 +137,27 @@ func WindowPosition() (x, y int) {
 //
 // SetWindowPosition is concurrent-safe.
 func SetWindowPosition(x, y int) {
-	if setInitWindowPosition(x, y) {
-		return
-	}
+	atomic.StoreUint32(&windowPositionSetExplicitly, 1)
 	if w := uiDriver().Window(); w != nil {
 		w.SetPosition(x, y)
 	}
 }
 
 var (
-	windowM            sync.Mutex
-	initWindowPosition = &struct {
-		x int
-		y int
-	}{
-		x: invalidPos,
-		y: invalidPos,
-	}
+	windowPositionSetExplicitly uint32
 )
 
-func getInitWindowPosition() (x, y int, ok bool) {
-	windowM.Lock()
-	defer windowM.Unlock()
-	if initWindowPosition == nil {
-		return 0, 0, false
-	}
-	if initWindowPosition.x == invalidPos || initWindowPosition.y == invalidPos {
-		return 0, 0, false
-	}
-	return initWindowPosition.x, initWindowPosition.y, true
-}
-
-func setInitWindowPosition(x, y int) bool {
-	windowM.Lock()
-	defer windowM.Unlock()
-	if initWindowPosition == nil {
-		return false
-	}
-	initWindowPosition.x = x
-	initWindowPosition.y = y
-	return true
-}
-
 func fixWindowPosition(width, height int) {
-	windowM.Lock()
-	defer windowM.Unlock()
-
-	defer func() {
-		initWindowPosition = nil
-	}()
-
 	w := uiDriver().Window()
 	if w == nil {
 		return
 	}
 
-	if initWindowPosition.x == invalidPos || initWindowPosition.y == invalidPos {
+	if atomic.LoadUint32(&windowPositionSetExplicitly) == 0 {
 		sw, sh := uiDriver().ScreenSizeInFullscreen()
 		x := (sw - width) / 2
 		y := (sh - height) / 3
 		w.SetPosition(x, y)
-	} else {
-		w.SetPosition(initWindowPosition.x, initWindowPosition.y)
 	}
 }
 
