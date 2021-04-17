@@ -25,6 +25,7 @@ import (
 
 // fromGLFWMonitorPixel must be called from the main thread.
 func fromGLFWMonitorPixel(x float64, deviceScale float64) float64 {
+	// deviceScaleFactor is sometimes an unnice value (e.g., 1.502361). Use math.Ceil to clean the vaule.
 	return math.Ceil(x / deviceScale)
 }
 
@@ -45,6 +46,7 @@ func (u *UserInterface) toGLFWPixel(x float64) float64 {
 // toFramebufferPixel must be called from the main thread.
 func (u *UserInterface) toFramebufferPixel(x float64) float64 {
 	s, _ := currentMonitor(u.window).GetContentScale()
+	// deviceScaleFactor is sometimes an unnice value (e.g., 1.502361). Use math.Ceil to clean the vaule.
 	return math.Ceil(x * float64(s) / u.deviceScaleFactor())
 }
 
