@@ -25,8 +25,7 @@ import (
 )
 
 type window struct {
-	ui                *UserInterface
-	setPositionCalled bool
+	ui *UserInterface
 }
 
 func (w *window) IsDecorated() bool {
@@ -212,10 +211,6 @@ func (w *window) SetPosition(x, y int) {
 
 // setPosition must be called from the main thread
 func (w *window) setPosition(x, y int) {
-	defer func() {
-		w.setPositionCalled = true
-	}()
-
 	mx, my := currentMonitor(w.ui.window).GetPos()
 	xf := w.ui.toGLFWPixel(float64(x))
 	yf := w.ui.toGLFWPixel(float64(y))
