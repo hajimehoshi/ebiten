@@ -17,9 +17,9 @@ services:
   - xvfb
 
 install:
-  # Install Go 1.15.2 manualy
+  # Install Go 1.16.3 manualy
   # See https://travis-ci.community/t/goos-js-goarch-wasm-go-run-fails-panic-newosproc-not-implemented/1651
-  - wget -O go.tar.gz https://dl.google.com/go/go1.15.2.linux-amd64.tar.gz
+  - wget -O go.tar.gz https://dl.google.com/go/go1.16.3.linux-amd64.tar.gz
   - tar -C ~ -xzf go.tar.gz
   - rm go.tar.gz
   - export GOROOT=~/go
@@ -27,10 +27,6 @@ install:
   - export PATH=$GOROOT/bin:$PATH
   - go version
   - go env
-
-  # Install Go 1.12.16
-  - go get golang.org/dl/go1.12.16
-  - go1.12.16 download
 
   # Make the working directory
   - mkdir /tmp/work
@@ -40,17 +36,21 @@ install:
   - wget -O ebiten.zip https://github.com/$TRAVIS_REPO_SLUG/archive/$TRAVIS_COMMIT.zip
   - unzip ebiten.zip
   - mv ./ebiten-$TRAVIS_COMMIT ebiten
+  - echo 'package main; import ( "github.com/hajimehoshi/ebiten"; "github.com/go-gl/glfw/v3.3/glfw"; "github.com/gofrs/flock"; "github.com/golang/freetype"; "github.com/hajimehoshi/bitmapfont"; "github.com/hajimehoshi/file2byteslice"; "github.com/hajimehoshi/go-mp3"; "github.com/hajimehoshi/oto"; "github.com/jakecoffman/cp"; "github.com/jfreymuth/oggvorbis"; "github.com/niemeyer/pretty"; "golang.org/x/image/font"; "golang.org/x/mobile/app"; "golang.org/x/sys/windows"; "golang.org/x/tools/go/packages"; "gopkg.in/check.v1" )' > main.go
+  - go get github.com/hajimehoshi/ebiten # go get github.com/hajimehoshi/ebiten/... failed. See #1581
   - go mod edit -replace=github.com/hajimehoshi/ebiten=./ebiten
+  - go mod tidy
 
   # wasmbrowsertest
   - mkdir /tmp/wasmbrowsertest
   - cd /tmp/wasmbrowsertest
   - go mod init foo
+  - go get github.com/agnivade/wasmbrowsertest
   - go build -o wasmbrowsertest github.com/agnivade/wasmbrowsertest
   - mv ./wasmbrowsertest $GOPATH/bin/go_js_wasm_exec
 
   # GopherJS
-  - GO111MODULE=off go1.12.16 get github.com/gopherjs/gopherjs
+  - GO111MODULE=off go get github.com/gopherjs/gopherjs
   - mkdir -p $GOPATH/src/github.com/hajimehoshi
   - cd $GOPATH/src/github.com/hajimehoshi
   - unzip /tmp/work/ebiten.zip
@@ -60,7 +60,7 @@ install:
   - cd /tmp/work
 
   # gjbt
-  - GO111MODULE=off go1.12.16 get myitcv.io/cmd/gjbt
+  - GO111MODULE=off go get myitcv.io/cmd/gjbt
 
   # Chrome
   - mkdir /tmp/google-chrome-bin
@@ -89,8 +89,8 @@ script:
   - GOOS=js GOARCH=wasm go test -v github.com/hajimehoshi/ebiten/...
 
   # GopherJS
-  - GO111MODULE=off go1.12.16 run github.com/gopherjs/gopherjs build --tags=example -v github.com/hajimehoshi/ebiten/examples/blocks
-  - GO111MODULE=off go1.12.16 run myitcv.io/cmd/gjbt github.com/hajimehoshi/ebiten # TODO: Test the subdirectories
+  - GO111MODULE=off go run github.com/gopherjs/gopherjs build --tags=example -v github.com/hajimehoshi/ebiten/examples/blocks
+  - GO111MODULE=off go run myitcv.io/cmd/gjbt github.com/hajimehoshi/ebiten # TODO: Test the subdirectories
 
 # - test -z $(gofmt -s -l $GOPATH/src/github.com/hajimehoshi/ebiten)
 
