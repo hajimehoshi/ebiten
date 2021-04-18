@@ -1032,21 +1032,24 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 			newW := width
 			newH := height
 			if oldW != newW || oldH != newH {
-				ch := make(chan struct{})
+				ch := make(chan struct{}, 1)
 				u.window.SetFramebufferSizeCallback(func(_ *glfw.Window, _, _ int) {
-					u.window.SetFramebufferSizeCallback(nil)
-					close(ch)
+					ch <- struct{}{}
 				})
 				u.window.SetSize(newW, newH)
-			event:
-				for {
-					glfw.PollEvents()
-					select {
-					case <-ch:
-						break event
-					default:
+				if w, h := u.window.GetSize(); w != oldW || h != oldH {
+				event:
+					for {
+						glfw.PollEvents()
+						select {
+						case <-ch:
+							break event
+						default:
+						}
 					}
 				}
+				u.window.SetFramebufferSizeCallback(nil)
+				close(ch)
 			}
 
 			// Window title might be lost on macOS after coming back from fullscreen.
