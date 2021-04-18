@@ -477,6 +477,9 @@ func IsFullscreen() bool {
 //
 // SetFullscreen does nothing on mobiles.
 //
+// SetFullscreen does nothing on macOS when the window is fullscreened natively by the macOS desktop
+// instead of SetFullscreen(true).
+//
 // SetFullscreen is concurrent-safe.
 func SetFullscreen(fullscreen bool) {
 	uiDriver().SetFullscreen(fullscreen)
