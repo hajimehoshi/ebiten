@@ -705,12 +705,13 @@ func (u *UserInterface) createWindow() error {
 	u.window.SetTitle(u.title)
 	// TODO: Set icons
 
+	u.registerWindowSetSizeCallback()
+
 	return nil
 }
 
 // registerWindowSetSizeCallback must be called from the main thread.
 func (u *UserInterface) registerWindowSetSizeCallback() {
-	u.setSizeCallbackEnabled = true
 	u.window.SetSizeCallback(func(_ *glfw.Window, width, height int) {
 		if !u.setSizeCallbackEnabled {
 			return
@@ -802,7 +803,7 @@ func (u *UserInterface) init() error {
 	if err := u.createWindow(); err != nil {
 		return err
 	}
-	u.registerWindowSetSizeCallback()
+	u.setSizeCallbackEnabled = true
 
 	setPosition := func() {
 		u.iwindow.setPosition(u.getInitWindowPosition())
