@@ -1347,9 +1347,8 @@ func (u *UserInterface) iconify() {
 	}
 	u.window.Iconify()
 
-	// Call setWindowSize explicitly in order to update the rendering since the callback is unregistered now.
-	w, h := u.window.GetSize()
-	u.setWindowSize(w, h, u.isFullscreen())
+	// After iconifiying, the window is invisible and setWindowSize doesn't have to be called.
+	// Rather, the window size might be (0, 0) and it might be impossible to call setWindowSize (#1585).
 }
 
 func (u *UserInterface) restore() {
