@@ -956,7 +956,9 @@ func (u *UserInterface) loop() error {
 			return err
 		}
 
-		if imgs := u.getIconImages(); imgs != nil {
+		// Create icon images in a different goroutine (#1478).
+		// On the fullscreen mode, SetIcon fails (#1578).
+		if imgs := u.getIconImages(); imgs != nil && !u.isFullscreen() {
 			u.setIconImages(nil)
 
 			// Convert the icons in the different goroutine, as (*ebiten.Image).At cannot be invoked
@@ -979,6 +981,11 @@ func (u *UserInterface) loop() error {
 				}
 
 				_ = u.t.Call(func() error {
+					// On the fullscreen mode, reset the icon images and try again later.
+					if u.isFullscreen() {
+						u.setIconImages(imgs)
+						return nil
+					}
 					u.window.SetIcon(newImgs)
 					return nil
 				})
