@@ -160,6 +160,11 @@ func (c *uiContext) Update() error {
 }
 
 func (c *uiContext) ForceUpdate() error {
+	// ForceUpdate can be invoked even if uiContext it not initialized yet (#1591).
+	if c.outsideWidth == 0 || c.outsideHeight == 0 {
+		return nil
+	}
+
 	if err, ok := c.err.Load().(error); ok && err != nil {
 		return err
 	}
