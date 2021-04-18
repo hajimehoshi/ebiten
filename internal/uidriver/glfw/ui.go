@@ -72,6 +72,9 @@ type UserInterface struct {
 	iconImages          []image.Image
 	cursorShape         driver.CursorShape
 
+	// setSizeCallbackEnabled must be accessed from the main thread.
+	setSizeCallbackEnabled bool
+
 	// err must be accessed from the main thread.
 	err error
 
@@ -705,14 +708,14 @@ func (u *UserInterface) createWindow() error {
 	return nil
 }
 
-// unregisterWindowSetSizeCallback must be called from the main thread.
-func (u *UserInterface) unregisterWindowSetSizeCallback() bool {
-	return u.window.SetSizeCallback(nil) != nil
-}
-
 // registerWindowSetSizeCallback must be called from the main thread.
 func (u *UserInterface) registerWindowSetSizeCallback() {
+	u.setSizeCallbackEnabled = true
 	u.window.SetSizeCallback(func(_ *glfw.Window, width, height int) {
+		if !u.setSizeCallbackEnabled {
+			return
+		}
+
 		if u.window.GetAttrib(glfw.Resizable) == glfw.False {
 			return
 		}
@@ -1100,11 +1103,14 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 	// swap buffers here before SetSize is called.
 	u.swapBuffers()
 
-	// Do not fire the callback of SetSize. This callback can be invoked by SetMonitor or SetSize.
+	// Disable the callback of SetSize. This callback can be invoked by SetMonitor or SetSize.
 	// ForceUpdate is called from the callback.
 	// While setWindowSize can be called from Update, calling ForceUpdate inside Update is illegal (#1505).
-	if u.unregisterWindowSetSizeCallback() {
-		defer u.registerWindowSetSizeCallback()
+	if u.setSizeCallbackEnabled {
+		u.setSizeCallbackEnabled = false
+		defer func() {
+			u.setSizeCallbackEnabled = true
+		}()
 	}
 
 	var windowRecreated bool
@@ -1330,20 +1336,26 @@ func (u *UserInterface) Window() driver.Window {
 
 func (u *UserInterface) maximize() {
 	// Maximize invokes the SetSize callback but the callback must not be called in the game's Update (#1576).
-	if u.unregisterWindowSetSizeCallback() {
-		defer u.registerWindowSetSizeCallback()
+	if u.setSizeCallbackEnabled {
+		u.setSizeCallbackEnabled = false
+		defer func() {
+			u.setSizeCallbackEnabled = true
+		}()
 	}
 	u.window.Maximize()
 
-	// Call setWindowSize explicitly in order to update the rendering since the callback is unregistered now.
+	// Call setWindowSize explicitly in order to update the rendering since the callback is disabled now.
 	w, h := u.window.GetSize()
 	u.setWindowSize(w, h, u.isFullscreen())
 }
 
 func (u *UserInterface) iconify() {
 	// Iconify invokes the SetSize callback but the callback must not be called in the game's Update (#1576).
-	if u.unregisterWindowSetSizeCallback() {
-		defer u.registerWindowSetSizeCallback()
+	if u.setSizeCallbackEnabled {
+		u.setSizeCallbackEnabled = false
+		defer func() {
+			u.setSizeCallbackEnabled = true
+		}()
 	}
 	u.window.Iconify()
 
@@ -1353,12 +1365,15 @@ func (u *UserInterface) iconify() {
 
 func (u *UserInterface) restore() {
 	// Restore invokes the SetSize callback but the callback must not be called in the game's Update (#1576).
-	if u.unregisterWindowSetSizeCallback() {
-		defer u.registerWindowSetSizeCallback()
+	if u.setSizeCallbackEnabled {
+		u.setSizeCallbackEnabled = false
+		defer func() {
+			u.setSizeCallbackEnabled = true
+		}()
 	}
 	u.window.Restore()
 
-	// Call setWindowSize explicitly in order to update the rendering since the callback is unregistered now.
+	// Call setWindowSize explicitly in order to update the rendering since the callback is disabled now.
 	w, h := u.window.GetSize()
 	u.setWindowSize(w, h, u.isFullscreen())
 }
@@ -1366,8 +1381,11 @@ func (u *UserInterface) restore() {
 func (u *UserInterface) setDecorated(decorated bool) {
 	// SetAttrib with glfw.Decorated invokes the SetSize callback but the callback must not be called in the game's Update (#1586).
 	// SetSize callback is invoked in the limited situations like just after restoring from the fullscreen mode.
-	if u.unregisterWindowSetSizeCallback() {
-		defer u.registerWindowSetSizeCallback()
+	if u.setSizeCallbackEnabled {
+		u.setSizeCallbackEnabled = false
+		defer func() {
+			u.setSizeCallbackEnabled = true
+		}()
 	}
 	v := glfw.False
 	if decorated {
