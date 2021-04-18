@@ -1362,3 +1362,20 @@ func (u *UserInterface) restore() {
 	w, h := u.window.GetSize()
 	u.setWindowSize(w, h, u.isFullscreen())
 }
+
+func (u *UserInterface) setDecorated(decorated bool) {
+	// SetAttrib with glfw.Decorated invokes the SetSize callback but the callback must not be called in the game's Update (#1586).
+	// SetSize callback is invoked in the limited situations like just after restoring from the fullscreen mode.
+	if u.unregisterWindowSetSizeCallback() {
+		defer u.registerWindowSetSizeCallback()
+	}
+	v := glfw.False
+	if decorated {
+		v = glfw.True
+	}
+	u.window.SetAttrib(glfw.Decorated, v)
+
+	// Just after restoring from the fullscreen mode, the window's size might be a wrong value on Windows.
+	// This was the cause to invoke SetSize callback unexpectedly. This sounds like a GLFW's issue, but this is not confirmed.
+	// As the window size should not be changed, setWindowSize doesn't have to be called anyway.
+}

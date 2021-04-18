@@ -51,14 +51,10 @@ func (w *window) SetDecorated(decorated bool) {
 			return nil
 		}
 
-		v := glfw.False
-		if decorated {
-			v = glfw.True
-		}
-		w.ui.window.SetAttrib(glfw.Decorated, v)
+		w.ui.setDecorated(decorated)
 
 		// The title can be lost when the decoration is gone. Recover this.
-		if v == glfw.True {
+		if decorated {
 			w.ui.window.SetTitle(w.ui.title)
 		}
 		return nil
