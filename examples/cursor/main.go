@@ -79,11 +79,16 @@ func main() {
 		gridColors: map[image.Rectangle]color.Color{},
 	}
 	for rect, c := range g.grids {
-		a := byte(0x40)
-		if c%2 == 0 {
-			a += 0x40
+		clr := color.RGBA{0x40, 0x40, 0x40, 0xff}
+		switch c % 3 {
+		case 0:
+			clr.R = 0x80
+		case 1:
+			clr.G = 0x80
+		case 2:
+			clr.B = 0x80
 		}
-		g.gridColors[rect] = color.Alpha{a}
+		g.gridColors[rect] = clr
 	}
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)
