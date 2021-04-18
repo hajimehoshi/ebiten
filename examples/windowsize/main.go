@@ -415,7 +415,7 @@ func main() {
 		maxw, _ = strconv.Atoi(m[1])
 		maxh, _ = strconv.Atoi(m[2])
 	}
-	if minw >= 0 && minh >= 0 && maxw >= 0 && maxh >= 0 {
+	if minw >= 0 || minh >= 0 || maxw >= 0 || maxh >= 0 {
 		ebiten.SetWindowSizeLimits(minw, minh, maxw, maxh)
 		ebiten.SetWindowResizable(true)
 	}
