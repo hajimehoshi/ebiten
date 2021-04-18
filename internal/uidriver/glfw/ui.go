@@ -432,11 +432,16 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 	}
 
 	var update bool
+	var nativeFullscreen bool
 	_ = u.t.Call(func() error {
 		update = u.isFullscreen() != fullscreen
+		nativeFullscreen = u.isNativeFullscreen()
 		return nil
 	})
 	if !update {
+		return
+	}
+	if nativeFullscreen {
 		return
 	}
 
