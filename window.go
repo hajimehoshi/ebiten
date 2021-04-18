@@ -42,6 +42,9 @@ func IsWindowDecorated() bool {
 // SetWindowDecorated works only on desktops.
 // SetWindowDecorated does nothing on other platforms.
 //
+// SetWindowDecorated does nothing on macOS when the window is fullscreened natively by the macOS desktop
+// instead of SetFullscreen(true).
+//
 // SetWindowDecorated is concurrent-safe.
 func SetWindowDecorated(decorated bool) {
 	if w := uiDriver().Window(); w != nil {
@@ -66,6 +69,9 @@ func IsWindowResizable() bool {
 // The window is not resizable by default.
 //
 // If SetWindowResizable is called with true and Run is used, SetWindowResizable panics. Use RunGame instead.
+//
+// SetWindowResizable does nothing on macOS when the window is fullscreened natively by the macOS desktop
+// instead of SetFullscreen(true).
 //
 // SetWindowResizable is concurrent-safe.
 func SetWindowResizable(resizable bool) {
@@ -227,6 +233,9 @@ func IsWindowFloating() bool {
 // SetWindowFloating sets the state whether the window is always shown above all the other windows.
 //
 // SetWindowFloating does nothing on browsers or mobiles.
+//
+// SetWindowFloating does nothing on macOS when the window is fullscreened natively by the macOS desktop
+// instead of SetFullscreen(true).
 //
 // SetWindowFloating is concurrent-safe.
 func SetWindowFloating(float bool) {

@@ -63,3 +63,7 @@ func (u *UserInterface) nativeWindow() uintptr {
 	// TODO: Implement this.
 	return 0
 }
+
+func (u *UserInterface) isNativeFullscreen() bool {
+	return false
+}

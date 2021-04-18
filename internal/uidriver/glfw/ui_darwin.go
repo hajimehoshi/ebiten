@@ -38,6 +38,11 @@ package glfw
 //   *x = bounds.origin.x;
 //   *y = bounds.origin.y;
 // }
+//
+// static bool isNativeFullscreen() {
+//   return [[NSApplication sharedApplication] currentSystemPresentationOptions] &
+//       NSApplicationPresentationFullScreen;
+// }
 import "C"
 
 import (
@@ -81,4 +86,8 @@ func currentMonitorByOS(w *glfw.Window) *glfw.Monitor {
 
 func (u *UserInterface) nativeWindow() uintptr {
 	return u.window.GetCocoaWindow()
+}
+
+func (u *UserInterface) isNativeFullscreen() bool {
+	return bool(C.isNativeFullscreen())
 }

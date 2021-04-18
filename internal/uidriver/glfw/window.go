@@ -47,6 +47,10 @@ func (w *window) SetDecorated(decorated bool) {
 	}
 
 	_ = w.ui.t.Call(func() error {
+		if w.ui.isNativeFullscreen() {
+			return nil
+		}
+
 		v := glfw.False
 		if decorated {
 			v = glfw.True
@@ -79,6 +83,10 @@ func (w *window) SetResizable(resizable bool) {
 		return
 	}
 	_ = w.ui.t.Call(func() error {
+		if w.ui.isNativeFullscreen() {
+			return nil
+		}
+
 		v := glfw.False
 		if resizable {
 			v = glfw.True
@@ -106,6 +114,10 @@ func (w *window) SetFloating(floating bool) {
 		return
 	}
 	_ = w.ui.t.Call(func() error {
+		if w.ui.isNativeFullscreen() {
+			return nil
+		}
+
 		v := glfw.False
 		if floating {
 			v = glfw.True

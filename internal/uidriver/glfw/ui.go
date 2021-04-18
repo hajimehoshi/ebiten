@@ -520,6 +520,10 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 	}
 
 	_ = u.t.Call(func() error {
+		if u.isNativeFullscreen() {
+			return nil
+		}
+
 		w, h := u.windowWidth, u.windowHeight
 		u.setWindowSize(w, h, fullscreen)
 		return nil

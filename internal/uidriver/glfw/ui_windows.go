@@ -145,3 +145,7 @@ func currentMonitorByOS(w *glfw.Window) *glfw.Monitor {
 func (u *UserInterface) nativeWindow() uintptr {
 	return u.window.GetWin32Window()
 }
+
+func (u *UserInterface) isNativeFullscreen() bool {
+	return false
+}
