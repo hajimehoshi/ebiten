@@ -96,6 +96,7 @@ type playerImpl struct {
 	state   playerState
 	gain    js.Value
 	err     error
+	buf     []byte
 
 	nextPos           float64
 	bufferSourceNodes []js.Value
@@ -176,20 +177,38 @@ func (p *playerImpl) appendBuffer(this js.Value, args []js.Value) interface{} {
 		p.nextPos = c + 1.0/60.0
 	}
 
-	bs := make([]byte, p.context.oneBufferSize())
-	n, err := io.ReadFull(p.src, bs)
-	if err != nil {
-		if err != io.EOF && err != io.ErrUnexpectedEOF {
+	tmp := make([]byte, 4096)
+	need := p.context.oneBufferSize()
+	bs := make([]byte, 0, need)
+	for need > 0 {
+		if len(p.buf) > 0 {
+			n := len(p.buf)
+			if n > need {
+				n = need
+			}
+			bs = append(bs, p.buf[:n]...)
+			p.buf = p.buf[n:]
+			need -= n
+			continue
+		}
+		n, err := p.src.Read(tmp)
+		if err != nil && err != io.EOF {
 			p.err = err
 			p.Pause()
 			return nil
 		}
-		p.eof = true
+		if n > need {
+			p.buf = append(p.buf, tmp[need:]...)
+			n = need
+		}
+		bs = append(bs, tmp[:n]...)
+		need -= n
+		if err == io.EOF {
+			p.eof = true
+			break
+		}
 	}
-	if n == 0 {
-		return nil
-	}
-	bs = bs[:n]
+
 	l, r := toLR(bs)
 	tl, tr := float32SliceToTypedArray(l), float32SliceToTypedArray(r)
 
@@ -234,6 +253,7 @@ func (p *playerImpl) Reset() {
 
 	p.Pause()
 	p.eof = false
+	p.buf = p.buf[:0]
 }
 
 func (p *playerImpl) Volume() float64 {

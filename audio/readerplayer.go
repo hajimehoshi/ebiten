@@ -15,7 +15,6 @@
 package audio
 
 import (
-	"fmt"
 	"io"
 	"runtime"
 	"sync"
@@ -243,7 +242,8 @@ func newTimeStream(r io.Reader, sampleRate int, maxBufferSize int) (*timeStream,
 
 func (s *timeStream) Unread(n int) {
 	if s.unread+n > len(s.buf) {
-		panic(fmt.Sprintf("audio: too much unreading: %d, the buffer size: %d, unreading position: %d", n, len(s.buf), s.unread))
+		// This should not happen usually, but the player's UnplayedBufferSize can include some errors.
+		n = len(s.buf) - s.unread
 	}
 	s.unread += n
 	s.pos -= int64(n)
