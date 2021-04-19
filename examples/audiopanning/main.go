@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"image"
 	_ "image/png"
+	"io"
 	"log"
 	"math"
 	"time"
@@ -152,13 +153,28 @@ func main() {
 type StereoPanStream struct {
 	audio.ReadSeekCloser
 	pan float64 // -1: left; 0: center; 1: right
+	buf []byte
 }
 
-func (s *StereoPanStream) Read(p []byte) (n int, err error) {
-	n, err = s.ReadSeekCloser.Read(p)
-	if err != nil {
-		return
+func (s *StereoPanStream) Read(p []byte) (int, error) {
+	// If the stream has a buffer that was read in the previous time, use this first.
+	var bufN int
+	if len(s.buf) > 0 {
+		bufN = copy(p, s.buf)
+		s.buf = s.buf[bufN:]
 	}
+
+	readN, err := s.ReadSeekCloser.Read(p[bufN:])
+	if err != nil && err != io.EOF {
+		return 0, err
+	}
+
+	// Align the buffer size in multiples of 4. The extra part is pushed to the buffer for the
+	// next time.
+	totalN := bufN + readN
+	extra := totalN - totalN/4*4
+	s.buf = append(s.buf, p[totalN-extra:totalN]...)
+	alignedN := totalN - extra
 
 	// This implementation uses a linear scale, ranging from -1 to 1, for stereo or mono sounds.
 	// If pan = 0.0, the balance for the sound in each speaker is at 100% left and 100% right.
@@ -167,7 +183,7 @@ func (s *StereoPanStream) Read(p []byte) (n int, err error) {
 	// https://docs.unity3d.com/ScriptReference/AudioSource-panStereo.html
 	ls := math.Min(s.pan*-1+1, 1)
 	rs := math.Min(s.pan+1, 1)
-	for i := 0; i < len(p); i += 4 {
+	for i := 0; i < alignedN; i += 4 {
 		lc := int16(float64(int16(p[i])|int16(p[i+1])<<8) * ls)
 		rc := int16(float64(int16(p[i+2])|int16(p[i+3])<<8) * rs)
 
@@ -176,7 +192,7 @@ func (s *StereoPanStream) Read(p []byte) (n int, err error) {
 		p[i+2] = byte(rc)
 		p[i+3] = byte(rc >> 8)
 	}
-	return
+	return alignedN, err
 }
 
 func (s *StereoPanStream) SetPan(pan float64) {
