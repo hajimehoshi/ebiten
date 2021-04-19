@@ -17,6 +17,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"image"
@@ -143,15 +144,27 @@ func main() {
 // StereoPanStream is an audio buffer that changes the stereo channel's signal
 // based on the Panning.
 type StereoPanStream struct {
-	io.ReadSeeker
+	src *bufio.Reader
 	pan float64 // -1: left; 0: center; 1: right
 }
 
 func (s *StereoPanStream) Read(p []byte) (n int, err error) {
-	n, err = s.ReadSeeker.Read(p)
-	if err != nil {
+	n, err = s.src.Read(p)
+	if err != nil && err != io.EOF {
 		return
 	}
+
+	// Align the read size to multiples of 4.
+	extra := n - n/4*4
+	for i := 0; i < extra; i++ {
+		if err := s.src.UnreadByte(); err != nil {
+			return 0, err
+		}
+		if err == io.EOF {
+			err = nil
+		}
+	}
+	n -= extra
 
 	// This implementation uses a linear scale, ranging from -1 to 1, for stereo or mono sounds.
 	// If pan = 0.0, the balance for the sound in each speaker is at 100% left and 100% right.
@@ -160,7 +173,7 @@ func (s *StereoPanStream) Read(p []byte) (n int, err error) {
 	// https://docs.unity3d.com/ScriptReference/AudioSource-panStereo.html
 	ls := math.Min(s.pan*-1+1, 1)
 	rs := math.Min(s.pan+1, 1)
-	for i := 0; i < len(p); i += 4 {
+	for i := 0; i < n; i += 4 {
 		lc := int16(float64(int16(p[i])|int16(p[i+1])<<8) * ls)
 		rc := int16(float64(int16(p[i+2])|int16(p[i+3])<<8) * rs)
 
@@ -185,8 +198,8 @@ func (s *StereoPanStream) Pan() float64 {
 // The src's format must be linear PCM (16bits little endian, 2 channel stereo)
 // without a header (e.g. RIFF header). The sample rate must be same as that
 // of the audio context.
-func NewStereoPanStreamFromReader(src io.ReadSeeker) *StereoPanStream {
+func NewStereoPanStreamFromReader(src io.Reader) *StereoPanStream {
 	return &StereoPanStream{
-		ReadSeeker: src,
+		src: bufio.NewReader(src),
 	}
 }
