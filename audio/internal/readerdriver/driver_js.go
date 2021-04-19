@@ -42,6 +42,7 @@ type contextImpl struct {
 
 func NewContext(sampleRate int, channelNum int, bitDepthInBytes int, onReady func()) (Context, error) {
 	if js.Global().Get("go2cpp").Truthy() {
+		defer onReady()
 		return &go2cppDriverWrapper{go2cpp.NewContext(sampleRate, channelNum, bitDepthInBytes)}, nil
 	}
 
