@@ -124,7 +124,11 @@ func (c *contextImpl) Close() error {
 
 // oneBufferSize returns the size of one buffer in the player implementation.
 func (c *contextImpl) oneBufferSize() int {
-	return c.sampleRate * c.channelNum * c.bitDepthInBytes / 4
+	bytesPerSample := c.channelNum * c.bitDepthInBytes
+	s := c.sampleRate * bytesPerSample / 4
+
+	// Align s in multiples of bytes per sample, or a buffer could have extra bytes.
+	return s / bytesPerSample * bytesPerSample
 }
 
 // maxBufferSize returns the maximum size of the buffer for the audio source.
