@@ -40,7 +40,7 @@ type contextImpl struct {
 	bitDepthInBytes int
 }
 
-func NewContext(sampleRate int, channelNum int, bitDepthInBytes int) (Context, error) {
+func NewContext(sampleRate int, channelNum int, bitDepthInBytes int, onReady func()) (Context, error) {
 	if js.Global().Get("go2cpp").Truthy() {
 		return &go2cppDriverWrapper{go2cpp.NewContext(sampleRate, channelNum, bitDepthInBytes)}, nil
 	}
@@ -68,6 +68,7 @@ func NewContext(sampleRate int, channelNum int, bitDepthInBytes int) (Context, e
 			if !d.ready {
 				d.audioContext.Call("resume")
 				d.ready = true
+				onReady()
 			}
 			js.Global().Get("document").Call("removeEventListener", event, f)
 			return nil

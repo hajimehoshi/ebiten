@@ -25,6 +25,6 @@ func IsAvailable() bool {
 	return false
 }
 
-func NewContext(sampleRate int, channelNum int, bitDepthInBytes int) (Context, error) {
+func NewContext(sampleRate int, channelNum int, bitDepthInBytes int, onReady func()) (Context, error) {
 	panic(fmt.Sprintf("readerdriver: NewContext is not available on this environment: GOOS=%s", runtime.GOOS))
 }

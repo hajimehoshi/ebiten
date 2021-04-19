@@ -68,7 +68,9 @@ func (p *readerPlayer) ensurePlayer() error {
 	// is unexpectable.
 	// e.g. a variable for JVM on Android might not be set.
 	if p.factory.context == nil {
-		c, err := readerdriver.NewContext(p.factory.sampleRate, channelNum, bitDepthInBytes)
+		c, err := readerdriver.NewContext(p.factory.sampleRate, channelNum, bitDepthInBytes, func() {
+			p.context.setReady()
+		})
 		if err != nil {
 			return err
 		}
