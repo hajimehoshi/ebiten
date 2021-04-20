@@ -134,6 +134,7 @@ func (g *game) Update() error {
 
 	const d = 16
 	toUpdateWindowSize := false
+	toUpdateWindowPosition := false
 	if ebiten.IsKeyPressed(ebiten.KeyShift) {
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
 			screenHeight += d
@@ -158,15 +159,19 @@ func (g *game) Update() error {
 	} else {
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) {
 			positionY -= d
+			toUpdateWindowPosition = true
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
 			positionY += d
+			toUpdateWindowPosition = true
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
 			positionX -= d
+			toUpdateWindowPosition = true
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
 			positionX += d
+			toUpdateWindowPosition = true
 		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyS) && !*flagAutoAdjusting {
@@ -250,7 +255,9 @@ func (g *game) Update() error {
 	}
 	ebiten.SetMaxTPS(tps)
 	ebiten.SetWindowDecorated(decorated)
-	ebiten.SetWindowPosition(positionX, positionY)
+	if toUpdateWindowPosition {
+		ebiten.SetWindowPosition(positionX, positionY)
+	}
 	ebiten.SetWindowFloating(floating)
 	ebiten.SetScreenClearedEveryFrame(screenCleared)
 	if maximize && ebiten.IsWindowResizable() {
