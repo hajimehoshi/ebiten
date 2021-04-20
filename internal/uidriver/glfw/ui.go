@@ -1365,8 +1365,12 @@ func (u *UserInterface) maximizeWindow() {
 	u.window.Maximize()
 
 	// Call setWindowSize explicitly in order to update the rendering since the callback is disabled now.
-	w, h := u.window.GetSize()
-	u.setWindowSize(w, h, u.isFullscreen())
+	// Do not call setWindowSize on the fullscreen mode since setWindowSize requires the window size
+	// before the fullscreen, while window.GetSize() returns the desktop screen size on the fullscreen mode.
+	if !u.isFullscreen() {
+		w, h := u.window.GetSize()
+		u.setWindowSize(w, h, u.isFullscreen())
+	}
 }
 
 // iconifyWindow must be called from the main thread.
@@ -1394,8 +1398,12 @@ func (u *UserInterface) restoreWindow() {
 	u.window.Restore()
 
 	// Call setWindowSize explicitly in order to update the rendering since the callback is disabled now.
-	w, h := u.window.GetSize()
-	u.setWindowSize(w, h, u.isFullscreen())
+	// Do not call setWindowSize on the fullscreen mode since setWindowSize requires the window size
+	// before the fullscreen, while window.GetSize() returns the desktop screen size on the fullscreen mode.
+	if !u.isFullscreen() {
+		w, h := u.window.GetSize()
+		u.setWindowSize(w, h, u.isFullscreen())
+	}
 }
 
 // setWindowDecorated must be called from the main thread.
@@ -1469,8 +1477,12 @@ func (u *UserInterface) setWindowPosition(x, y int) {
 
 	// Call setWindowSize explicitly in order to update the rendering since the callback is disabled now.
 	// This is necessary in some very limited cases (#1606).
-	w, h := u.window.GetSize()
-	u.setWindowSize(w, h, u.isFullscreen())
+	// Do not call setWindowSize on the fullscreen mode since setWindowSize requires the window size
+	// before the fullscreen, while window.GetSize() returns the desktop screen size on the fullscreen mode.
+	if !u.isFullscreen() {
+		w, h := u.window.GetSize()
+		u.setWindowSize(w, h, u.isFullscreen())
+	}
 }
 
 // setWindowTitle must be called from the main thread.
