@@ -251,10 +251,21 @@ func (u *UserInterface) setRunning(running bool) {
 func (u *UserInterface) getWindowSizeLimits() (minw, minh, maxw, maxh int) {
 	u.m.RLock()
 	defer u.m.RUnlock()
-	return int(u.toGLFWPixel(float64(u.minWindowWidthInDP))),
-		int(u.toGLFWPixel(float64(u.minWindowHeightInDP))),
-		int(u.toGLFWPixel(float64(u.maxWindowWidthInDP))),
-		int(u.toGLFWPixel(float64(u.maxWindowHeightInDP)))
+
+	minw, minh, maxw, maxh = -1, -1, -1, -1
+	if u.minWindowWidthInDP >= 0 {
+		minw = int(u.toGLFWPixel(float64(u.minWindowWidthInDP)))
+	}
+	if u.minWindowHeightInDP >= 0 {
+		minh = int(u.toGLFWPixel(float64(u.minWindowHeightInDP)))
+	}
+	if u.maxWindowWidthInDP >= 0 {
+		maxw = int(u.toGLFWPixel(float64(u.maxWindowWidthInDP)))
+	}
+	if u.maxWindowHeightInDP >= 0 {
+		maxh = int(u.toGLFWPixel(float64(u.maxWindowHeightInDP)))
+	}
+	return
 }
 
 func (u *UserInterface) getWindowSizeLimitsInDP() (minw, minh, maxw, maxh int) {
