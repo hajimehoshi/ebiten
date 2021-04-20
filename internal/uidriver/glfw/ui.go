@@ -816,9 +816,6 @@ func (u *UserInterface) init() error {
 	}
 	u.setSizeCallbackEnabled = true
 
-	setPosition := func() {
-		u.iwindow.setPosition(u.getInitWindowPosition())
-	}
 	setSize := func() {
 		ww, wh := u.getInitWindowSize()
 		ww = int(u.toGLFWPixel(float64(ww)))
@@ -830,11 +827,11 @@ func (u *UserInterface) init() error {
 	// but this should be inverted on Windows. This is very tricky, but there is no obvious way to solve
 	// this. This doesn't matter on macOS.
 	if runtime.GOOS == "windows" {
-		setPosition()
+		u.setWindowPosition(u.getInitWindowPosition())
 		setSize()
 	} else {
 		setSize()
-		setPosition()
+		u.setWindowPosition(u.getInitWindowPosition())
 	}
 
 	u.updateWindowSizeLimits()
@@ -1353,8 +1350,12 @@ func (u *UserInterface) Window() driver.Window {
 	return &u.iwindow
 }
 
-func (u *UserInterface) maximize() {
-	// Maximize invokes the SetSize callback but the callback must not be called in the game's Update (#1576).
+// GLFW's functions to manipulate a window can invoke the SetSize callback (#1576, #1585, #1606).
+// As the callback must not be called in the frame (between BeginFrame and EndFrame),
+// disable the callback temporarily.
+
+// maximizeWindow must be called from the main thread.
+func (u *UserInterface) maximizeWindow() {
 	if u.setSizeCallbackEnabled {
 		u.setSizeCallbackEnabled = false
 		defer func() {
@@ -1368,8 +1369,8 @@ func (u *UserInterface) maximize() {
 	u.setWindowSize(w, h, u.isFullscreen())
 }
 
-func (u *UserInterface) iconify() {
-	// Iconify invokes the SetSize callback but the callback must not be called in the game's Update (#1576).
+// iconifyWindow must be called from the main thread.
+func (u *UserInterface) iconifyWindow() {
 	if u.setSizeCallbackEnabled {
 		u.setSizeCallbackEnabled = false
 		defer func() {
@@ -1382,8 +1383,8 @@ func (u *UserInterface) iconify() {
 	// Rather, the window size might be (0, 0) and it might be impossible to call setWindowSize (#1585).
 }
 
-func (u *UserInterface) restore() {
-	// Restore invokes the SetSize callback but the callback must not be called in the game's Update (#1576).
+// restoreWindow must be called from the main thread.
+func (u *UserInterface) restoreWindow() {
 	if u.setSizeCallbackEnabled {
 		u.setSizeCallbackEnabled = false
 		defer func() {
@@ -1397,9 +1398,8 @@ func (u *UserInterface) restore() {
 	u.setWindowSize(w, h, u.isFullscreen())
 }
 
-func (u *UserInterface) setDecorated(decorated bool) {
-	// SetAttrib with glfw.Decorated invokes the SetSize callback but the callback must not be called in the game's Update (#1586).
-	// SetSize callback is invoked in the limited situations like just after restoring from the fullscreen mode.
+// setWindowDecorated must be called from the main thread.
+func (u *UserInterface) setWindowDecorated(decorated bool) {
 	if u.setSizeCallbackEnabled {
 		u.setSizeCallbackEnabled = false
 		defer func() {
@@ -1412,7 +1412,75 @@ func (u *UserInterface) setDecorated(decorated bool) {
 	}
 	u.window.SetAttrib(glfw.Decorated, v)
 
-	// Just after restoring from the fullscreen mode, the window's size might be a wrong value on Windows.
-	// This was the cause to invoke SetSize callback unexpectedly. This sounds like a GLFW's issue, but this is not confirmed.
-	// As the window size should not be changed, setWindowSize doesn't have to be called anyway.
+	// The title can be lost when the decoration is gone. Recover this.
+	if decorated {
+		u.window.SetTitle(u.title)
+	}
+}
+
+// setWindowFloating must be called from the main thread.
+func (u *UserInterface) setWindowFloating(floating bool) {
+	if u.setSizeCallbackEnabled {
+		u.setSizeCallbackEnabled = false
+		defer func() {
+			u.setSizeCallbackEnabled = true
+		}()
+	}
+	v := glfw.False
+	if floating {
+		v = glfw.True
+	}
+	u.window.SetAttrib(glfw.Floating, v)
+}
+
+// setWindowResizable must be called from the main thread.
+func (u *UserInterface) setWindowResizable(resizable bool) {
+	if u.setSizeCallbackEnabled {
+		u.setSizeCallbackEnabled = false
+		defer func() {
+			u.setSizeCallbackEnabled = true
+		}()
+	}
+
+	v := glfw.False
+	if resizable {
+		v = glfw.True
+	}
+	u.window.SetAttrib(glfw.Resizable, v)
+}
+
+// setWindowPosition must be called from the main thread.
+func (u *UserInterface) setWindowPosition(x, y int) {
+	if u.setSizeCallbackEnabled {
+		u.setSizeCallbackEnabled = false
+		defer func() {
+			u.setSizeCallbackEnabled = true
+		}()
+	}
+
+	mx, my := currentMonitor(u.window).GetPos()
+	xf := u.toGLFWPixel(float64(x))
+	yf := u.toGLFWPixel(float64(y))
+	if x, y := u.adjustWindowPosition(mx+int(xf), my+int(yf)); u.isFullscreen() {
+		u.origPosX, u.origPosY = x, y
+	} else {
+		u.window.SetPos(x, y)
+	}
+
+	// Call setWindowSize explicitly in order to update the rendering since the callback is disabled now.
+	// This is necessary in some very limited cases (#1606).
+	w, h := u.window.GetSize()
+	u.setWindowSize(w, h, u.isFullscreen())
+}
+
+// setWindowTitle must be called from the main thread.
+func (u *UserInterface) setWindowTitle(title string) {
+	if u.setSizeCallbackEnabled {
+		u.setSizeCallbackEnabled = false
+		defer func() {
+			u.setSizeCallbackEnabled = true
+		}()
+	}
+
+	u.window.SetTitle(title)
 }

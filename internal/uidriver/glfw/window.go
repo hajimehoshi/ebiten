@@ -51,12 +51,7 @@ func (w *window) SetDecorated(decorated bool) {
 			return nil
 		}
 
-		w.ui.setDecorated(decorated)
-
-		// The title can be lost when the decoration is gone. Recover this.
-		if decorated {
-			w.ui.window.SetTitle(w.ui.title)
-		}
+		w.ui.setWindowDecorated(decorated)
 		return nil
 	})
 }
@@ -82,12 +77,7 @@ func (w *window) SetResizable(resizable bool) {
 		if w.ui.isNativeFullscreen() {
 			return nil
 		}
-
-		v := glfw.False
-		if resizable {
-			v = glfw.True
-		}
-		w.ui.window.SetAttrib(glfw.Resizable, v)
+		w.ui.setWindowResizable(resizable)
 		return nil
 	})
 }
@@ -113,12 +103,7 @@ func (w *window) SetFloating(floating bool) {
 		if w.ui.isNativeFullscreen() {
 			return nil
 		}
-
-		v := glfw.False
-		if floating {
-			v = glfw.True
-		}
-		w.ui.window.SetAttrib(glfw.Floating, v)
+		w.ui.setWindowFloating(floating)
 		return nil
 	})
 }
@@ -144,7 +129,7 @@ func (w *window) Maximize() {
 		return
 	}
 	_ = w.ui.t.Call(func() error {
-		w.ui.maximize()
+		w.ui.maximizeWindow()
 		return nil
 	})
 }
@@ -167,7 +152,7 @@ func (w *window) Minimize() {
 		return
 	}
 	_ = w.ui.t.Call(func() error {
-		w.ui.iconify()
+		w.ui.iconifyWindow()
 		return nil
 	})
 }
@@ -178,7 +163,7 @@ func (w *window) Restore() {
 		return
 	}
 	_ = w.ui.t.Call(func() error {
-		w.ui.restore()
+		w.ui.restoreWindow()
 		return nil
 	})
 }
@@ -212,21 +197,9 @@ func (w *window) SetPosition(x, y int) {
 		return
 	}
 	_ = w.ui.t.Call(func() error {
-		w.setPosition(x, y)
+		w.ui.setWindowPosition(x, y)
 		return nil
 	})
-}
-
-// setPosition must be called from the main thread
-func (w *window) setPosition(x, y int) {
-	mx, my := currentMonitor(w.ui.window).GetPos()
-	xf := w.ui.toGLFWPixel(float64(x))
-	yf := w.ui.toGLFWPixel(float64(y))
-	if x, y := w.ui.adjustWindowPosition(mx+int(xf), my+int(yf)); w.ui.isFullscreen() {
-		w.ui.origPosX, w.ui.origPosY = x, y
-	} else {
-		w.ui.window.SetPos(x, y)
-	}
 }
 
 func (w *window) Size() (int, int) {
@@ -282,7 +255,7 @@ func (w *window) SetTitle(title string) {
 	}
 	w.ui.title = title
 	_ = w.ui.t.Call(func() error {
-		w.ui.window.SetTitle(title)
+		w.ui.setWindowTitle(title)
 		return nil
 	})
 }
