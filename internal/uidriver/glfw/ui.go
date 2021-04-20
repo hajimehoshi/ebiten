@@ -1476,10 +1476,13 @@ func (u *UserInterface) setWindowPosition(x, y int) {
 	}
 
 	// Call setWindowSize explicitly in order to update the rendering since the callback is disabled now.
-	// This is necessary in some very limited cases (#1606).
+	//
+	// There are cases when setWindowSize should be called (#1606) and should not be called (#1609).
+	// For the former, macOS seems enough so far.
+	//
 	// Do not call setWindowSize on the fullscreen mode since setWindowSize requires the window size
 	// before the fullscreen, while window.GetSize() returns the desktop screen size on the fullscreen mode.
-	if !u.isFullscreen() {
+	if !u.isFullscreen() && runtime.GOOS == "darwin" {
 		w, h := u.window.GetSize()
 		u.setWindowSize(w, h, u.isFullscreen())
 	}
