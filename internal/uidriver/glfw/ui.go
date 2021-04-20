@@ -814,6 +814,7 @@ func (u *UserInterface) init() error {
 	if err := u.createWindow(); err != nil {
 		return err
 	}
+	u.setSizeCallbackEnabled = true
 
 	setSize := func() {
 		ww, wh := u.getInitWindowSize()
@@ -847,10 +848,6 @@ func (u *UserInterface) init() error {
 	if g, ok := u.Graphics().(interface{ SetWindow(uintptr) }); ok {
 		g.SetWindow(u.nativeWindow())
 	}
-
-	// Enable the SetSize callback after all the initialization finishes. Or, unexpected the callback
-	// is fired unexpectedly at the initial phase with a very small size on Linux.
-	u.setSizeCallbackEnabled = true
 
 	return nil
 }
