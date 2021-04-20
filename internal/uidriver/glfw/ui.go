@@ -1364,6 +1364,11 @@ func (u *UserInterface) maximizeWindow() {
 	}
 	u.window.Maximize()
 
+	// On Linux/UNIX, maximizing might not finish even though Maximize returns. Just wait for its finish.
+	for u.window.GetAttrib(glfw.Maximized) != glfw.True {
+		glfw.PollEvents()
+	}
+
 	// Call setWindowSize explicitly in order to update the rendering since the callback is disabled now.
 	// Do not call setWindowSize on the fullscreen mode since setWindowSize requires the window size
 	// before the fullscreen, while window.GetSize() returns the desktop screen size on the fullscreen mode.
@@ -1383,6 +1388,11 @@ func (u *UserInterface) iconifyWindow() {
 	}
 	u.window.Iconify()
 
+	// On Linux/UNIX, iconifying might not finish even though Iconify returns. Just wait for its finish.
+	for u.window.GetAttrib(glfw.Iconified) != glfw.True {
+		glfw.PollEvents()
+	}
+
 	// After iconifiying, the window is invisible and setWindowSize doesn't have to be called.
 	// Rather, the window size might be (0, 0) and it might be impossible to call setWindowSize (#1585).
 }
@@ -1395,7 +1405,16 @@ func (u *UserInterface) restoreWindow() {
 			u.setSizeCallbackEnabled = true
 		}()
 	}
+
 	u.window.Restore()
+
+	// On Linux/UNIX, restoring might not finish even though Restore returns (#1608). Just wait for its finish.
+	// On macOS, the restoring state might be the same as the maximized state. Skip this.
+	if runtime.GOOS != "darwin" {
+		for u.window.GetAttrib(glfw.Maximized) == glfw.True || u.window.GetAttrib(glfw.Iconified) == glfw.True {
+			glfw.PollEvents()
+		}
+	}
 
 	// Call setWindowSize explicitly in order to update the rendering since the callback is disabled now.
 	// Do not call setWindowSize on the fullscreen mode since setWindowSize requires the window size
