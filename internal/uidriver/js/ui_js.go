@@ -396,6 +396,10 @@ func init() {
 		theUI.input.recoverCursorPosition()
 		return nil
 	}))
+	document.Call("addEventListener", "pointerlockerror", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		js.Global().Get("console").Call("error", "pointerlockerror event is fired. 'sandbox=\"allow-pointer-lock\"' might be required.")
+		return nil
+	}))
 }
 
 func setWindowEventHandlers(v js.Value) {
