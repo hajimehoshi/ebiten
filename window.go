@@ -121,7 +121,7 @@ func SetWindowIcon(iconImages []image.Image) {
 //
 // WindowPosition panics if the main loop does not start yet.
 //
-// WindowPosition returns the last window position on fullscreen mode.
+// WindowPosition returns the last window position in fullscreen mode.
 //
 // WindowPosition returns (0, 0) on browsers and mobiles.
 //
@@ -137,7 +137,7 @@ func WindowPosition() (x, y int) {
 // The origin position is the left-upper corner of the current monitor.
 // The unit is device-independent pixels.
 //
-// SetWindowPosition does nothing on fullscreen mode.
+// SetWindowPosition does nothing in fullscreen mode.
 //
 // SetWindowPosition does nothing on browsers and mobiles.
 //
@@ -170,7 +170,7 @@ func initializeWindowPositionIfNeeded(width, height int) {
 // WindowSize returns the window size on desktops.
 // WindowSize returns (0, 0) on other environments.
 //
-// On fullscreen mode, WindowSize returns the original window size.
+// In fullscreen mode, WindowSize returns the original window size.
 //
 // WindowSize is concurrent-safe.
 func WindowSize() (int, int) {
@@ -183,7 +183,7 @@ func WindowSize() (int, int) {
 // SetWindowSize sets the window size on desktops.
 // SetWindowSize does nothing on other environments.
 //
-// On fullscreen mode, SetWindowSize sets the original window size.
+// In fullscreen mode, SetWindowSize sets the original window size.
 //
 // SetWindowSize panics if width or height is not a positive number.
 //

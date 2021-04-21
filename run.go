@@ -262,7 +262,7 @@ func IsFullscreen() bool {
 
 // SetFullscreen changes the current mode to fullscreen or not on desktops.
 //
-// On fullscreen mode, the game screen is automatically enlarged
+// In fullscreen mode, the game screen is automatically enlarged
 // to fit with the monitor. The current scale value is ignored.
 //
 // On desktops, Ebiten uses 'windowed' fullscreen mode, which doesn't change

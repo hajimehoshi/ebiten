@@ -966,7 +966,7 @@ func (u *UserInterface) loop() error {
 		}
 
 		// Create icon images in a different goroutine (#1478).
-		// On the fullscreen mode, SetIcon fails (#1578).
+		// In the fullscreen mode, SetIcon fails (#1578).
 		if imgs := u.getIconImages(); imgs != nil && !u.isFullscreen() {
 			u.setIconImages(nil)
 
@@ -990,7 +990,7 @@ func (u *UserInterface) loop() error {
 				}
 
 				_ = u.t.Call(func() error {
-					// On the fullscreen mode, reset the icon images and try again later.
+					// In the fullscreen mode, reset the icon images and try again later.
 					if u.isFullscreen() {
 						u.setIconImages(imgs)
 						return nil
@@ -1265,7 +1265,7 @@ func (u *UserInterface) updateVsync() {
 //
 // currentMonitor must be called on the main thread.
 func currentMonitor(window *glfw.Window) *glfw.Monitor {
-	// GetMonitor is available only on fullscreen.
+	// GetMonitor is available only in fullscreen.
 	if m := window.GetMonitor(); m != nil {
 		return m
 	}
@@ -1366,14 +1366,14 @@ func (u *UserInterface) maximizeWindow() {
 
 	if !u.isFullscreen() {
 		// On Linux/UNIX, maximizing might not finish even though Maximize returns. Just wait for its finish.
-		// Do not check this on the fullscreen since apparently the condition can never be true.
+		// Do not check this in the fullscreen since apparently the condition can never be true.
 		for u.window.GetAttrib(glfw.Maximized) != glfw.True {
 			glfw.PollEvents()
 		}
 
 		// Call setWindowSize explicitly in order to update the rendering since the callback is disabled now.
-		// Do not call setWindowSize on the fullscreen mode since setWindowSize requires the window size
-		// before the fullscreen, while window.GetSize() returns the desktop screen size on the fullscreen mode.
+		// Do not call setWindowSize in the fullscreen mode since setWindowSize requires the window size
+		// before the fullscreen, while window.GetSize() returns the desktop screen size in the fullscreen mode.
 		w, h := u.window.GetSize()
 		u.setWindowSize(w, h, u.isFullscreen())
 	}
@@ -1418,8 +1418,8 @@ func (u *UserInterface) restoreWindow() {
 	}
 
 	// Call setWindowSize explicitly in order to update the rendering since the callback is disabled now.
-	// Do not call setWindowSize on the fullscreen mode since setWindowSize requires the window size
-	// before the fullscreen, while window.GetSize() returns the desktop screen size on the fullscreen mode.
+	// Do not call setWindowSize in the fullscreen mode since setWindowSize requires the window size
+	// before the fullscreen, while window.GetSize() returns the desktop screen size in the fullscreen mode.
 	if !u.isFullscreen() {
 		w, h := u.window.GetSize()
 		u.setWindowSize(w, h, u.isFullscreen())
@@ -1500,8 +1500,8 @@ func (u *UserInterface) setWindowPosition(x, y int) {
 	// There are cases when setWindowSize should be called (#1606) and should not be called (#1609).
 	// For the former, macOS seems enough so far.
 	//
-	// Do not call setWindowSize on the fullscreen mode since setWindowSize requires the window size
-	// before the fullscreen, while window.GetSize() returns the desktop screen size on the fullscreen mode.
+	// Do not call setWindowSize in the fullscreen mode since setWindowSize requires the window size
+	// before the fullscreen, while window.GetSize() returns the desktop screen size in the fullscreen mode.
 	if !u.isFullscreen() && runtime.GOOS == "darwin" {
 		w, h := u.window.GetSize()
 		u.setWindowSize(w, h, u.isFullscreen())
