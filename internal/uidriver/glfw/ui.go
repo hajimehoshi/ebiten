@@ -1366,7 +1366,7 @@ func (u *UserInterface) maximizeWindow() {
 
 	if !u.isFullscreen() {
 		// On Linux/UNIX, maximizing might not finish even though Maximize returns. Just wait for its finish.
-		// Do not check this on the fullscreen since apparently the condition never be true.
+		// Do not check this on the fullscreen since apparently the condition can never be true.
 		for u.window.GetAttrib(glfw.Maximized) != glfw.True {
 			glfw.PollEvents()
 		}
