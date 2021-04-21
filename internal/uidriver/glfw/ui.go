@@ -1364,15 +1364,16 @@ func (u *UserInterface) maximizeWindow() {
 	}
 	u.window.Maximize()
 
-	// On Linux/UNIX, maximizing might not finish even though Maximize returns. Just wait for its finish.
-	for u.window.GetAttrib(glfw.Maximized) != glfw.True {
-		glfw.PollEvents()
-	}
-
-	// Call setWindowSize explicitly in order to update the rendering since the callback is disabled now.
-	// Do not call setWindowSize on the fullscreen mode since setWindowSize requires the window size
-	// before the fullscreen, while window.GetSize() returns the desktop screen size on the fullscreen mode.
 	if !u.isFullscreen() {
+		// On Linux/UNIX, maximizing might not finish even though Maximize returns. Just wait for its finish.
+		// Do not check this on the fullscreen since apparently the condition never be true.
+		for u.window.GetAttrib(glfw.Maximized) != glfw.True {
+			glfw.PollEvents()
+		}
+
+		// Call setWindowSize explicitly in order to update the rendering since the callback is disabled now.
+		// Do not call setWindowSize on the fullscreen mode since setWindowSize requires the window size
+		// before the fullscreen, while window.GetSize() returns the desktop screen size on the fullscreen mode.
 		w, h := u.window.GetSize()
 		u.setWindowSize(w, h, u.isFullscreen())
 	}
