@@ -1042,7 +1042,7 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 					ch <- struct{}{}
 				})
 				u.window.SetSize(newW, newH)
-				// Just after SetSize, GetSize is not reliable especially on Linux/Windows.
+				// Just after SetSize, GetSize is not reliable especially on Linux/UNIX.
 				// Let's wait for FramebufferSize callback in any cases.
 
 				// Use the timeout as FramebufferSize event might not be fired (#1618).
