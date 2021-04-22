@@ -1042,15 +1042,21 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 					ch <- struct{}{}
 				})
 				u.window.SetSize(newW, newH)
-				if w, h := u.window.GetSize(); w != oldW || h != oldH {
-				event:
-					for {
-						glfw.PollEvents()
-						select {
-						case <-ch:
-							break event
-						default:
-						}
+				// Just after SetSize, GetSize is not reliable especially on Linux/Windows.
+				// Let's wait for FramebufferSize callback in any cases.
+
+				// Use the timeout as FramebufferSize event might not be fired (#1618).
+				t := time.NewTimer(time.Second)
+				defer t.Stop()
+			event:
+				for {
+					glfw.PollEvents()
+					select {
+					case <-ch:
+						break event
+					case <-t.C:
+						break event
+					default:
 					}
 				}
 				u.window.SetFramebufferSizeCallback(nil)
