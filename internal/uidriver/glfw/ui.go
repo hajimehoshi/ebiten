@@ -1062,6 +1062,7 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 					case <-t.C:
 						break event
 					default:
+						time.Sleep(time.Millisecond)
 					}
 				}
 				u.window.SetFramebufferSizeCallback(nil)
