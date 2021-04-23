@@ -1205,7 +1205,12 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 		if oldW != newW || oldH != newH {
 			ch := make(chan struct{}, 1)
 			u.window.SetFramebufferSizeCallback(func(_ *glfw.Window, _, _ int) {
-				ch <- struct{}{}
+				// This callback can be invoked multiple times by one PollEvents in theory (#1618).
+				// Allow the case when the channel is full.
+				select {
+				case ch <- struct{}{}:
+				default:
+				}
 			})
 			u.window.SetSize(newW, newH)
 			// Just after SetSize, GetSize is not reliable especially on Linux/UNIX.
