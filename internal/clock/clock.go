@@ -29,8 +29,6 @@ var (
 
 	currentFPS  float64
 	currentTPS  float64
-	lastTPS     int64
-	tpsCalcErr  int64
 	lastUpdated int64
 	fpsCount    = 0
 	tpsCount    = 0
@@ -59,35 +57,11 @@ func CurrentTPS() float64 {
 	return v
 }
 
-func min(a, b int64) int64 {
+func max(a, b int64) int64 {
 	if a < b {
-		return a
+		return b
 	}
-	return b
-}
-
-// calcTPSFactor calculates the TPS that is used for the timer and the factor for the count.
-// newTPS × factor should be equal to tps on average.
-// If tps is equal to or lower than the baseTPS, newTPS equals to tps. The factor is 1.
-// This means that the timer precision should be already enough.
-// Otherwise, newTPS is euqal to baseTPS. The factor can be more than 1.
-func calcTPSFactor(tps, baseTPS int64) (newTPS int64, factor int) {
-	if tps <= baseTPS {
-		return tps, 1
-	}
-
-	if lastTPS != tps {
-		tpsCalcErr = 0
-	}
-	lastTPS = tps
-
-	factor = int(tps / baseTPS)
-	tpsCalcErr += tps - baseTPS*int64(factor)
-
-	factor += int(tpsCalcErr / baseTPS)
-	tpsCalcErr %= baseTPS
-
-	return baseTPS, factor
+	return a
 }
 
 func calcCountFromTPS(tps int64, now int64) int {
@@ -106,12 +80,9 @@ func calcCountFromTPS(tps int64, now int64) int {
 	count := 0
 	syncWithSystemClock := false
 
-	// When TPS is big (e.g. 300), the timer precision is no longer reliable.
-	// Multiply the factor later instead (#1444).
-	var tpsFactor int
-	tps, tpsFactor = calcTPSFactor(tps, 60) // TODO: 60 should be the current display's FPS.
-
-	if diff > int64(time.Second)*5/tps {
+	// Detect whether the previous time is too old.
+	// Use either a 5 ticks or 5/60 sec in the case when TPS is too big like 300 (#1444).
+	if diff > max(int64(time.Second)*5/tps, int64(time.Second)*5/60) {
 		// The previous time is too old.
 		// Let's force to sync the game time with the system clock.
 		syncWithSystemClock = true
@@ -135,7 +106,7 @@ func calcCountFromTPS(tps int64, now int64) int {
 		lastSystemTime += int64(count) * int64(time.Second) / tps
 	}
 
-	return count * tpsFactor
+	return count
 }
 
 func updateFPSAndTPS(now int64, count int) {
