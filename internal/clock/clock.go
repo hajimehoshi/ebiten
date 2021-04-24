@@ -67,8 +67,10 @@ func min(a, b int64) int64 {
 }
 
 // calcTPSFactor calculates the TPS that is used for the timer and the factor for the count.
-// If tps is under the baseTPS, use tps as newTPS. The factor is 1. The timer precision should be enough.
-// If not, use baseTPS as newTPS and factor that can be more than 1.
+// newTPS × factor should be equal to tps on average.
+// If tps is equal to or lower than the baseTPS, newTPS equals to tps. The factor is 1.
+// This means that the timer precision should be already enough.
+// Otherwise, newTPS is euqal to baseTPS. The factor can be more than 1.
 func calcTPSFactor(tps, baseTPS int64) (newTPS int64, factor int) {
 	if tps <= baseTPS {
 		return tps, 1
