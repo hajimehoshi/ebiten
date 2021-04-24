@@ -967,8 +967,8 @@ func (u *UserInterface) loop() error {
 
 		// Create icon images in a different goroutine (#1478).
 		// In the fullscreen mode, SetIcon fails (#1578).
-		if imgs := u.getIconImages(); imgs != nil && !u.isFullscreen() {
-			u.setIconImages(nil)
+		if imgs := u.getIconImages(); len(imgs) > 0 && !u.isFullscreen() {
+			u.setIconImages(imgs[:0])
 
 			// Convert the icons in the different goroutine, as (*ebiten.Image).At cannot be invoked
 			// from this goroutine. At works only in between BeginFrame and EndFrame.
