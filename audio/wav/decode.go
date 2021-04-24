@@ -38,6 +38,8 @@ func (s *Stream) Read(p []byte) (int, error) {
 // Seek is implementation of io.Seeker's Seek.
 //
 // Note that Seek can take long since decoding is a relatively heavy task.
+//
+// If the underlying source is not an io.Seeker, Seek panics.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	return s.inner.Seek(offset, whence)
 }
@@ -48,7 +50,7 @@ func (s *Stream) Length() int64 {
 }
 
 type stream struct {
-	src        io.ReadSeeker
+	src        io.Reader
 	headerSize int64
 	dataSize   int64
 	remaining  int64
@@ -68,7 +70,14 @@ func (s *stream) Read(p []byte) (int, error) {
 }
 
 // Seek is implementation of io.Seeker's Seek.
+//
+// If the underlying source is not an io.Seeker, Seek panics.
 func (s *stream) Seek(offset int64, whence int) (int64, error) {
+	seeker, ok := s.src.(io.Seeker)
+	if !ok {
+		panic("wav: s.src must be io.Seeker but not")
+	}
+
 	switch whence {
 	case io.SeekStart:
 		offset = offset + s.headerSize
@@ -77,7 +86,7 @@ func (s *stream) Seek(offset int64, whence int) (int64, error) {
 		offset = s.headerSize + s.dataSize + offset
 		whence = io.SeekStart
 	}
-	n, err := s.src.Seek(offset, whence)
+	n, err := seeker.Seek(offset, whence)
 	if err != nil {
 		return 0, err
 	}
@@ -102,9 +111,11 @@ func (s *stream) Seek(offset int64, whence int) (int64, error) {
 //
 // DecodeWithSampleRate automatically resamples the stream to fit with sampleRate if necessary.
 //
+// The returned Stream's Seek is available only when src is an io.Seeker.
+//
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
-func DecodeWithSampleRate(sampleRate int, src io.ReadSeeker) (*Stream, error) {
+func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
 	buf := make([]byte, 12)
 	n, err := io.ReadFull(src, buf)
 	if n != len(buf) {
@@ -225,10 +236,12 @@ chunks:
 //
 // Decode automatically resamples the stream to fit with the audio context if necessary.
 //
+// The returned Stream's Seek is available only when src is an io.Seeker.
+//
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
 //
 // Deprecated: as of v2.1. Use DecodeWithSampleRate instead.
-func Decode(context *audio.Context, src io.ReadSeeker) (*Stream, error) {
+func Decode(context *audio.Context, src io.Reader) (*Stream, error) {
 	return DecodeWithSampleRate(context.SampleRate(), src)
 }
