@@ -81,7 +81,7 @@ func calcCountFromTPS(tps int64, now int64) int {
 	syncWithSystemClock := false
 
 	// Detect whether the previous time is too old.
-	// Use either a 5 ticks or 5/60 sec in the case when TPS is too big like 300 (#1444).
+	// Use either 5 ticks or 5/60 sec in the case when TPS is too big like 300 (#1444).
 	if diff > max(int64(time.Second)*5/tps, int64(time.Second)*5/60) {
 		// The previous time is too old.
 		// Let's force to sync the game time with the system clock.
