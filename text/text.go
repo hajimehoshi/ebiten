@@ -157,7 +157,7 @@ var textM sync.Mutex
 //
 // Glyphs used for rendering are cached in least-recently-used way.
 // Then old glyphs might be evicted from the cache.
-// It is not guaranteed that all the glyphs given at Draw are cached.
+// As the cache capacity has limit, it is not guaranteed that all the glyphs for runes given at Draw are cached.
 // The cache is shared with CacheGlyphs.
 //
 // It is OK to call Draw with a same text and a same face at every frame in terms of performance.
@@ -284,7 +284,7 @@ func BoundString(face font.Face, text string) image.Rectangle {
 //
 // Glyphs used for rendering are cached in least-recently-used way.
 // Then old glyphs might be evicted from the cache.
-// It is not guaranteed that all the glyphs given at CacheGlyphs are cached.
+// As the cache capacity has limit, it is not guaranteed that all the glyphs for runes given at CacheGlyphs are cached.
 // The cache is shared with Draw.
 //
 // Draw and CacheGlyphs are implemented like this:
