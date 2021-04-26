@@ -157,6 +157,13 @@ var textM sync.Mutex
 //
 // Glyphs used for rendering are cached in least-recently-used way.
 // It is OK to call Draw with a same text and a same face at every frame in terms of performance.
+// The cache is shared with CacheGlyphs.
+//
+// The two functions are implemented like this:
+//
+//   Draw        = Create glyphs by `ReplacePixels` and put them into the cache if necessary
+//               + Draw them onto the destination by `DrawImage`
+//   CacheGlyphs = Create glyphs by `ReplacePixels` and put them into the cache if necessary
 //
 // Be careful that the passed font face is held by this package and is never released.
 // This is a known issue (#498).
@@ -271,12 +278,20 @@ func BoundString(face font.Face, text string) image.Rectangle {
 }
 
 // CacheGlyphs precaches the glyphs for the given text and the given font face into the cache.
+// The cache is shared with Draw.
 //
 // Draw automatically creates and caches necessary glyphs, so usually you don't have to call CacheGlyphs
 // explicitly. However, for example, when you call Draw for each rune of one big text, Draw tries to create the glyph
 // cache and render it for each rune. This is very inefficient because creating a glyph image and rendering it are
-// different operations and can never be merged as one draw call. CacheGlyphs creates necessary glyphs without
-// rendering them so that these operations are likely merged into one draw call regardless of the size of the text.
+// different operations (ReplacePixels and DrawImage) and can never be merged as one draw call.
+// CacheGlyphs creates necessary glyphs without rendering them so that these operations are likely merged into one
+// draw call regardless of the size of the text.
+//
+// The two functions are implemented like this:
+//
+//   Draw        = Create glyphs by `ReplacePixels` and put them into the cache if necessary
+//               + Draw them onto the destination by `DrawImage`
+//   CacheGlyphs = Create glyphs by `ReplacePixels` and put them into the cache if necessary
 //
 // If a rune's glyph is already cached, CacheGlyphs does nothing for the rune.
 func CacheGlyphs(face font.Face, text string) {
