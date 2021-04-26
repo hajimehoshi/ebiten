@@ -156,10 +156,13 @@ var textM sync.Mutex
 // Line height is based on Metrics().Height of the font.
 //
 // Glyphs used for rendering are cached in least-recently-used way.
-// It is OK to call Draw with a same text and a same face at every frame in terms of performance.
+// Then old glyphs might be evicted from the cache.
+// It is not guaranteed that all the glyphs given at Draw are cached.
 // The cache is shared with CacheGlyphs.
 //
-// The two functions are implemented like this:
+// It is OK to call Draw with a same text and a same face at every frame in terms of performance.
+//
+// Draw and CacheGlyphs are implemented like this:
 //
 //     Draw        = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
 //                 + Draw them onto the destination by `(*ebiten.Image).DrawImage`
@@ -278,7 +281,17 @@ func BoundString(face font.Face, text string) image.Rectangle {
 }
 
 // CacheGlyphs precaches the glyphs for the given text and the given font face into the cache.
+//
+// Glyphs used for rendering are cached in least-recently-used way.
+// Then old glyphs might be evicted from the cache.
+// It is not guaranteed that all the glyphs given at CacheGlyphs are cached.
 // The cache is shared with Draw.
+//
+// Draw and CacheGlyphs are implemented like this:
+//
+//     Draw        = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
+//                 + Draw them onto the destination by `(*ebiten.Image).DrawImage`
+//     CacheGlyphs = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
 //
 // Draw automatically creates and caches necessary glyphs, so usually you don't have to call CacheGlyphs
 // explicitly. However, for example, when you call Draw for each rune of one big text, Draw tries to create the glyph
@@ -286,12 +299,6 @@ func BoundString(face font.Face, text string) image.Rectangle {
 // different operations (`(*ebiten.Image).ReplacePixels` and `(*ebiten.Image).DrawImage`) and can never be merged as
 // one draw call. CacheGlyphs creates necessary glyphs without rendering them so that these operations are likely
 // merged into one draw call regardless of the size of the text.
-//
-// The two functions are implemented like this:
-//
-//     Draw        = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
-//                 + Draw them onto the destination by `(*ebiten.Image).DrawImage`
-//     CacheGlyphs = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
 //
 // If a rune's glyph is already cached, CacheGlyphs does nothing for the rune.
 func CacheGlyphs(face font.Face, text string) {
