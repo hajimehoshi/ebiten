@@ -92,7 +92,15 @@ func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 }
 
 func (u *UserInterface) SetFullscreen(fullscreen bool) {
-	// Do nothing
+	if !canvas.Truthy() {
+		return
+	}
+	if fullscreen {
+		canvas.Call("requestFullscreen")
+		return
+	}
+	canvas.Call("exitFullscreen")
+	return
 }
 
 func (u *UserInterface) IsFullscreen() bool {
