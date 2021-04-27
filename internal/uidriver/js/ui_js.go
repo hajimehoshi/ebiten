@@ -104,7 +104,10 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 }
 
 func (u *UserInterface) IsFullscreen() bool {
-	return false
+	if document.Get("fullscreenElement").isNull() {
+		return false
+	}
+	return true
 }
 
 func (u *UserInterface) IsFocused() bool {
