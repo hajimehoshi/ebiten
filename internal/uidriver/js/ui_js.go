@@ -99,10 +99,19 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 		return
 	}
 	if fullscreen {
-		canvas.Call("requestFullscreen")
+		f := canvas.Get("requestFullscreen")
+		if !f.Truthy() {
+			f = canvas.Get("webkitRequestFullscreen")
+			return
+		}
+		f.Call("bind", canvas).Invoke()
 		return
 	}
-	document.Call("exitFullscreen")
+	f := document.Get("exitFullscreen")
+	if !f.Truthy() {
+		f = document.Get("webkitExitFullscreen")
+	}
+	f.Call("bind", document).Invoke()
 	return
 }
 
@@ -111,6 +120,9 @@ func (u *UserInterface) IsFullscreen() bool {
 		return false
 	}
 	if !document.Get("fullscreenElement").Truthy() {
+		if !document.Get("webkitFullscreenElement").Truthy() {
+			return false
+		}
 		return false
 	}
 	return true
