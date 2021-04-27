@@ -112,7 +112,6 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 		f = document.Get("webkitExitFullscreen")
 	}
 	f.Call("bind", document).Invoke()
-	return
 }
 
 func (u *UserInterface) IsFullscreen() bool {
