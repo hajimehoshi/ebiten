@@ -95,11 +95,14 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 	if !canvas.Truthy() {
 		return
 	}
+	if !document.Truthy() {
+		return
+	}
 	if fullscreen {
 		canvas.Call("requestFullscreen")
 		return
 	}
-	canvas.Call("exitFullscreen")
+	document.Call("exitFullscreen")
 	return
 }
 
@@ -107,7 +110,7 @@ func (u *UserInterface) IsFullscreen() bool {
 	if !document.Truthy() {
 		return false
 	}
-	if document.Get("fullscreenElement").isNull() {
+	if document.Get("fullscreenElement").IsNull() {
 		return false
 	}
 	return true
