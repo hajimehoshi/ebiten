@@ -92,11 +92,36 @@ func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 }
 
 func (u *UserInterface) SetFullscreen(fullscreen bool) {
-	// Do nothing
+	if !canvas.Truthy() {
+		return
+	}
+	if !document.Truthy() {
+		return
+	}
+	if fullscreen {
+		f := canvas.Get("requestFullscreen")
+		if !f.Truthy() {
+			f = canvas.Get("webkitRequestFullscreen")
+			return
+		}
+		f.Call("bind", canvas).Invoke()
+		return
+	}
+	f := document.Get("exitFullscreen")
+	if !f.Truthy() {
+		f = document.Get("webkitExitFullscreen")
+	}
+	f.Call("bind", document).Invoke()
 }
 
 func (u *UserInterface) IsFullscreen() bool {
-	return false
+	if !document.Truthy() {
+		return false
+	}
+	if !document.Get("fullscreenElement").Truthy() && !document.Get("webkitFullscreenElement").Truthy() {
+		return false
+	}
+	return true
 }
 
 func (u *UserInterface) IsFocused() bool {
@@ -398,6 +423,10 @@ func init() {
 	}))
 	document.Call("addEventListener", "pointerlockerror", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		js.Global().Get("console").Call("error", "pointerlockerror event is fired. 'sandbox=\"allow-pointer-lock\"' might be required. There is a known issue on Safari (hajimehoshi/ebiten#1604)")
+		return nil
+	}))
+	document.Call("addEventListener", "fullscreenerror", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		js.Global().Get("console").Call("error", "fullscreenerror event is fired. This function on browsers must be called as a result of a gestural interaction or orientation change.")
 		return nil
 	}))
 }

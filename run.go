@@ -253,14 +253,14 @@ func SetCursorShape(shape CursorShapeType) {
 
 // IsFullscreen reports whether the current mode is fullscreen or not.
 //
-// IsFullscreen always returns false on browsers or mobiles.
+// IsFullscreen always returns false on mobiles.
 //
 // IsFullscreen is concurrent-safe.
 func IsFullscreen() bool {
 	return uiDriver().IsFullscreen()
 }
 
-// SetFullscreen changes the current mode to fullscreen or not on desktops.
+// SetFullscreen changes the current mode to fullscreen or not on desktops and browsers.
 //
 // In fullscreen mode, the game screen is automatically enlarged
 // to fit with the monitor. The current scale value is ignored.
@@ -268,7 +268,10 @@ func IsFullscreen() bool {
 // On desktops, Ebiten uses 'windowed' fullscreen mode, which doesn't change
 // your monitor's resolution.
 //
-// SetFullscreen does nothing on browsers or mobiles.
+// On browsers, triggering fullscreen requires a user gesture otherwise SetFullscreen does nothing but leave an error message in console.
+// This behaviour varies across browser implementations, your mileage may vary.
+//
+// SetFullscreen does nothing on mobiles.
 //
 // SetFullscreen does nothing on macOS when the window is fullscreened natively by the macOS desktop
 // instead of SetFullscreen(true).
