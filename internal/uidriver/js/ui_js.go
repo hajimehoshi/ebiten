@@ -105,7 +105,7 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 
 func (u *UserInterface) IsFullscreen() bool {
 	if !document.Truthy() {
-		return
+		return false
 	}
 	if document.Get("fullscreenElement").isNull() {
 		return false
