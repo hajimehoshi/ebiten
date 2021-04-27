@@ -408,6 +408,10 @@ func init() {
 		js.Global().Get("console").Call("error", "pointerlockerror event is fired. 'sandbox=\"allow-pointer-lock\"' might be required. There is a known issue on Safari (hajimehoshi/ebiten#1604)")
 		return nil
 	}))
+	document.Call("addEventListener", "fullscreenerror", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		js.Global().Get("console").Call("error", "fullscreenerror event is fired. This function on browsers must be called as a result of a gestural interaction or orientation change.")
+		return nil
+	}))
 }
 
 func setWindowEventHandlers(v js.Value) {
