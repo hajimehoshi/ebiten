@@ -268,6 +268,9 @@ func IsFullscreen() bool {
 // On desktops, Ebiten uses 'windowed' fullscreen mode, which doesn't change
 // your monitor's resolution.
 //
+// On browsers, triggering fullscreen requires a user gesture otherwise SetFullscreen does nothing but leave an error message in console.
+// This behaviour varies across browser implementations, your mileage may vary.
+//
 // SetFullscreen does nothing on mobiles.
 //
 // SetFullscreen does nothing on macOS when the window is fullscreened natively by the macOS desktop
