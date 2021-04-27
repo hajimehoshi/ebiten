@@ -64,7 +64,7 @@ func (g *Game) Update() error {
 	}
 
 	// If the enter key is pressed, add a line break.
-	if repeatingKeyPressed(ebiten.KeyEnter) || repeatingKeyPressed(ebiten.KeyKPEnter) {
+	if repeatingKeyPressed(ebiten.KeyEnter) || repeatingKeyPressed(ebiten.KeyNumpadEnter) {
 		g.text += "\n"
 	}
 

@@ -197,16 +197,16 @@ func (i *Input) Update() {
 // Dir returns a currently pressed direction.
 // Dir returns false if no direction key is pressed.
 func (i *Input) Dir() (Dir, bool) {
-	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) {
 		return DirUp, true
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
 		return DirLeft, true
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
 		return DirRight, true
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
 		return DirDown, true
 	}
 	if i.mouseState == mouseStateSettled {

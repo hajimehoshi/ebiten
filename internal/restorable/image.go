@@ -190,7 +190,7 @@ func (i *Image) Extend(width, height int) *Image {
 
 	// Overwrite the history as if the image newImg is created only by ReplacePixels. Now drawTrianglesHistory
 	// and basePixels cannot be mixed.
-	newImg.drawTrianglesHistory = nil
+	newImg.drawTrianglesHistory = newImg.drawTrianglesHistory[:0]
 	newImg.basePixels = i.basePixels
 	newImg.stale = i.stale
 
@@ -258,7 +258,7 @@ func (i *Image) BasePixelsForTesting() *Pixels {
 // makeStale makes the image stale.
 func (i *Image) makeStale() {
 	i.basePixels = Pixels{}
-	i.drawTrianglesHistory = nil
+	i.drawTrianglesHistory = i.drawTrianglesHistory[:0]
 	i.stale = true
 
 	// Don't have to call makeStale recursively here.
@@ -297,7 +297,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		i.image.ReplacePixels(make([]byte, 4*width*height), x, y, width, height)
 	}
 
-	if !needsRestoring() || i.screen || i.volatile {
+	if !NeedsRestoring() || i.screen || i.volatile {
 		i.makeStale()
 		return
 	}
@@ -308,7 +308,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		} else {
 			i.basePixels.Remove(0, 0, w, h)
 		}
-		i.drawTrianglesHistory = nil
+		i.drawTrianglesHistory = i.drawTrianglesHistory[:0]
 		i.stale = false
 		return
 	}
@@ -363,7 +363,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [gra
 		}
 	}
 
-	if srcstale || i.screen || !needsRestoring() || i.volatile {
+	if srcstale || i.screen || !NeedsRestoring() || i.volatile {
 		i.makeStale()
 	} else {
 		i.appendDrawTrianglesHistory(srcs, offsets, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, shader, uniforms)
@@ -400,15 +400,16 @@ func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageNum]*Image,
 	// All images must be resolved and not stale each after frame.
 	// So we don't have to care if image is stale or not here.
 
-	vs := make([]float32, len(vertices))
-	copy(vs, vertices)
+	// vertices is generated at ebiten package and doesn't have to be copied so far.
+	// This depends on the implementation of graphics.QuadVertices.
+
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
 	item := &drawTrianglesHistoryItem{
 		images:    srcs,
 		offsets:   offsets,
-		vertices:  vs,
+		vertices:  vertices,
 		indices:   is,
 		colorm:    colorm,
 		mode:      mode,
@@ -432,17 +433,6 @@ func (i *Image) readPixelsFromGPUIfNeeded() error {
 		}
 	}
 	return nil
-}
-
-func (i *Image) Sync() (<-chan struct{}, error) {
-	if err := graphicscommand.FlushCommands(); err != nil {
-		return nil, err
-	}
-	ch, err := i.image.Sync()
-	if err != nil {
-		return nil, err
-	}
-	return ch, nil
 }
 
 // At returns a color value at (x, y).
@@ -489,14 +479,14 @@ func (i *Image) readPixelsFromGPU() error {
 	}
 	i.basePixels = Pixels{}
 	i.basePixels.AddOrReplace(pix, 0, 0, i.width, i.height)
-	i.drawTrianglesHistory = nil
+	i.drawTrianglesHistory = i.drawTrianglesHistory[:0]
 	i.stale = false
 	return nil
 }
 
 // resolveStale resolves the image's 'stale' state.
 func (i *Image) resolveStale() error {
-	if !needsRestoring() {
+	if !NeedsRestoring() {
 		return nil
 	}
 
@@ -569,7 +559,7 @@ func (i *Image) restore() error {
 		// be changed.
 		i.image = graphicscommand.NewScreenFramebufferImage(w, h)
 		i.basePixels = Pixels{}
-		i.drawTrianglesHistory = nil
+		i.drawTrianglesHistory = i.drawTrianglesHistory[:0]
 		i.stale = false
 		return nil
 	}
@@ -620,7 +610,7 @@ func (i *Image) restore() error {
 	}
 
 	i.image = gimg
-	i.drawTrianglesHistory = nil
+	i.drawTrianglesHistory = i.drawTrianglesHistory[:0]
 	i.stale = false
 	return nil
 }
@@ -633,7 +623,7 @@ func (i *Image) Dispose() {
 	i.image.Dispose()
 	i.image = nil
 	i.basePixels = Pixels{}
-	i.drawTrianglesHistory = nil
+	i.drawTrianglesHistory = i.drawTrianglesHistory[:0]
 	i.stale = false
 }
 

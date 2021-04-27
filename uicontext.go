@@ -56,6 +56,11 @@ func (c *uiContext) setError(err error) {
 }
 
 func (c *uiContext) Layout(outsideWidth, outsideHeight float64) {
+	// The given outside size can be 0 e.g. just after restoring from the fullscreen mode on Windows (#1589)
+	// Just ignore such cases. Otherwise, creating a zero-sized framebuffer causes a panic.
+	if outsideWidth == 0 || outsideHeight == 0 {
+		return
+	}
 	c.outsideSizeUpdated = true
 	c.outsideWidth = outsideWidth
 	c.outsideHeight = outsideHeight
@@ -145,7 +150,7 @@ func (c *uiContext) Update() error {
 	if err := buffered.BeginFrame(); err != nil {
 		return err
 	}
-	if err := c.update(); err != nil {
+	if err := c.update(clock.Update(MaxTPS())); err != nil {
 		return err
 	}
 	if err := buffered.EndFrame(); err != nil {
@@ -154,10 +159,29 @@ func (c *uiContext) Update() error {
 	return nil
 }
 
-func (c *uiContext) update() error {
-	c.updateOffscreen()
+func (c *uiContext) ForceUpdate() error {
+	// ForceUpdate can be invoked even if uiContext it not initialized yet (#1591).
+	if c.outsideWidth == 0 || c.outsideHeight == 0 {
+		return nil
+	}
 
-	updateCount := clock.Update(MaxTPS())
+	if err, ok := c.err.Load().(error); ok && err != nil {
+		return err
+	}
+	if err := buffered.BeginFrame(); err != nil {
+		return err
+	}
+	if err := c.update(1); err != nil {
+		return err
+	}
+	if err := buffered.EndFrame(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *uiContext) update(updateCount int) error {
+	c.updateOffscreen()
 
 	// Ensure that Update is called once before Draw so that Update can be used for initialization.
 	if !c.updateCalled && updateCount == 0 {
@@ -176,12 +200,13 @@ func (c *uiContext) update() error {
 		uiDriver().ResetForFrame()
 	}
 
-	if updateCount > 0 {
-		if IsScreenClearedEveryFrame() {
-			c.offscreen.Clear()
-		}
-		c.game.Draw(c.offscreen)
+	// Even though updateCount == 0, the offscreen is cleared and Draw is called.
+	// Draw should not update the game state and then the screen should not be updated without Update, but
+	// users might want to process something at Draw with the time intervals of FPS.
+	if IsScreenClearedEveryFrame() {
+		c.offscreen.Clear()
 	}
+	c.game.Draw(c.offscreen)
 
 	// This clear is needed for fullscreen mode or some mobile platforms (#622).
 	c.screen.Clear()
@@ -217,5 +242,10 @@ func (c *uiContext) update() error {
 func (c *uiContext) AdjustPosition(x, y float64, deviceScaleFactor float64) (float64, float64) {
 	ox, oy := c.offsets(deviceScaleFactor)
 	s := c.screenScale(deviceScaleFactor)
+	// The scale 0 indicates that the offscreen is not initialized yet.
+	// As any cursor values don't make sense, just return NaN.
+	if s == 0 {
+		return math.NaN(), math.NaN()
+	}
 	return (x*deviceScaleFactor - ox) / s, (y*deviceScaleFactor - oy) / s
 }

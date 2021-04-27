@@ -133,7 +133,6 @@ void CommandBuffer_Release(void *commandBuffer);
 void CommandBuffer_PresentDrawable(void *commandBuffer, void *drawable);
 void CommandBuffer_Commit(void *commandBuffer);
 void CommandBuffer_WaitUntilCompleted(void *commandBuffer);
-void CommandBuffer_AddCompletedHandler(void *commandBuffer);
 void *
 CommandBuffer_MakeRenderCommandEncoder(void *commandBuffer,
                                        struct RenderPassDescriptor descriptor);

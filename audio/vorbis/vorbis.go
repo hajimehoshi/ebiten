@@ -116,7 +116,7 @@ func (d *decoded) Length() int64 {
 }
 
 // decode accepts an ogg stream and returns a decorded stream.
-func decode(in io.ReadSeeker) (*decoded, int, int, error) {
+func decode(in io.Reader) (*decoded, int, int, error) {
 	r, err := oggvorbis.NewReader(in)
 	if err != nil {
 		return nil, 0, 0, err
@@ -137,16 +137,18 @@ func decode(in io.ReadSeeker) (*decoded, int, int, error) {
 	return d, r.Channels(), r.SampleRate(), nil
 }
 
-// Decode decodes Ogg/Vorbis data to playable stream.
+// DecodeWithSampleRate decodes Ogg/Vorbis data to playable stream.
 //
-// Decode returns error when decoding fails or IO error happens.
+// DecodeWithSampleRate returns error when decoding fails or IO error happens.
 //
-// Decode automatically resamples the stream to fit with the audio context if necessary.
+// DecodeWithSampleRate automatically resamples the stream to fit with sampleRate if necessary.
+//
+// The returned Stream's Seek is available only when src is an io.Seeker.
 //
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
-func Decode(context *audio.Context, src io.ReadSeeker) (*Stream, error) {
-	decoded, channelNum, sampleRate, err := decode(src)
+func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
+	decoded, channelNum, origSampleRate, err := decode(src)
 	if err != nil {
 		return nil, err
 	}
@@ -159,11 +161,27 @@ func Decode(context *audio.Context, src io.ReadSeeker) (*Stream, error) {
 		s = convert.NewStereo16(s, true, false)
 		size *= 2
 	}
-	if sampleRate != context.SampleRate() {
-		r := convert.NewResampling(s, size, sampleRate, context.SampleRate())
+	if origSampleRate != sampleRate {
+		r := convert.NewResampling(s, size, origSampleRate, sampleRate)
 		s = r
 		size = r.Length()
 	}
 	stream := &Stream{decoded: s, size: size}
 	return stream, nil
+}
+
+// Decode decodes Ogg/Vorbis data to playable stream.
+//
+// Decode returns error when decoding fails or IO error happens.
+//
+// Decode automatically resamples the stream to fit with the audio context if necessary.
+//
+// The returned Stream's Seek is available only when src is an io.Seeker.
+//
+// A Stream doesn't close src even if src implements io.Closer.
+// Closing the source is src owner's responsibility.
+//
+// Deprecated: as of v2.1. Use DecodeWithSampleRate instead.
+func Decode(context *audio.Context, src io.Reader) (*Stream, error) {
+	return DecodeWithSampleRate(context.SampleRate(), src)
 }

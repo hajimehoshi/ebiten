@@ -99,11 +99,11 @@ type Game struct {
 
 func (g *Game) Update() error {
 	g.time++
-	if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
 		g.idx++
 		g.idx %= len(shaderSrcs)
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) {
 		g.idx += len(shaderSrcs) - 1
 		g.idx %= len(shaderSrcs)
 	}

@@ -75,11 +75,12 @@ func CurrentFPS() float64 {
 
 var (
 	isScreenClearedEveryFrame = int32(1)
+	isRunGameEnded_           = int32(0)
 	currentMaxTPS             = int32(DefaultTPS)
 )
 
 // SetScreenClearedEveryFrame enables or disables the clearing of the screen at the beginning of each frame.
-// The default value is false and the screen is cleared each frame by default.
+// The default value is true and the screen is cleared each frame by default.
 //
 // SetScreenClearedEveryFrame is concurrent-safe.
 func SetScreenClearedEveryFrame(cleared bool) {
@@ -155,14 +156,16 @@ func (i *imageDumperGame) Layout(outsideWidth, outsideHeight int) (screenWidth, 
 // TPS (ticks per second) is 60 by default.
 // This is not related to framerate (display's refresh rate).
 //
-// RunGame returns error when 1) OpenGL error happens, 2) audio error happens or
+// RunGame returns error when 1) error happens in the underlying graphics driver, 2) audio error happens or
 // 3) f returns error. In the case of 3), RunGame returns the same error.
 //
 // The size unit is device-independent pixel.
 //
 // Don't call RunGame twice or more in one process.
 func RunGame(game Game) error {
-	fixWindowPosition(WindowSize())
+	defer atomic.StoreInt32(&isRunGameEnded_, 1)
+
+	initializeWindowPositionIfNeeded(WindowSize())
 	theUIContext.set(&imageDumperGame{
 		game: game,
 	})
@@ -175,7 +178,11 @@ func RunGame(game Game) error {
 	return nil
 }
 
-// RunGameWithoutMainLoop runs the game, but don't call the loop on the main (UI) thread.
+func isRunGameEnded() bool {
+	return atomic.LoadInt32(&isRunGameEnded_) != 0
+}
+
+// RunGameWithoutMainLoop runs the game, but doesn't call the loop on the main (UI) thread.
 // Different from Run, RunGameWithoutMainLoop returns immediately.
 //
 // Ebiten users should NOT call RunGameWithoutMainLoop.
@@ -183,7 +190,7 @@ func RunGame(game Game) error {
 //
 // TODO: Remove this. In order to remove this, the uiContext should be in another package.
 func RunGameWithoutMainLoop(game Game) {
-	fixWindowPosition(WindowSize())
+	initializeWindowPositionIfNeeded(WindowSize())
 	theUIContext.set(&imageDumperGame{
 		game: game,
 	})
@@ -195,7 +202,7 @@ func RunGameWithoutMainLoop(game Game) {
 // The returned value can be given to Run or SetSize function if the perfectly fit fullscreen is needed.
 //
 // On browsers, ScreenSizeInFullscreen returns the 'window' (global object) size, not 'screen' size since an Ebiten
-// game should not know the outside of the window object. For more details, see SetFullscreen API comment.
+// game should not know the outside of the window object.
 //
 // On mobiles, ScreenSizeInFullscreen returns (0, 0) so far.
 //
@@ -225,13 +232,23 @@ func CursorMode() CursorModeType {
 // CursorModeHidden hides the system cursor when over the window.
 // CursorModeCaptured hides the system cursor and locks it to the window.
 //
-// On browsers, only CursorModeVisible and CursorModeHidden are supported.
+// CursorModeCaptured also works on browsers.
+// When the user exits the captured mode not by SetCursorMode but by the UI (e.g., pressing ESC),
+// the previous cursor mode is set automatically.
 //
 // SetCursorMode does nothing on mobiles.
 //
 // SetCursorMode is concurrent-safe.
 func SetCursorMode(mode CursorModeType) {
 	uiDriver().SetCursorMode(driver.CursorMode(mode))
+}
+
+func CursorShape() CursorShapeType {
+	return CursorShapeType(uiDriver().CursorShape())
+}
+
+func SetCursorShape(shape CursorShapeType) {
+	uiDriver().SetCursorShape(driver.CursorShape(shape))
 }
 
 // IsFullscreen reports whether the current mode is fullscreen or not.
@@ -245,13 +262,16 @@ func IsFullscreen() bool {
 
 // SetFullscreen changes the current mode to fullscreen or not on desktops.
 //
-// On fullscreen mode, the game screen is automatically enlarged
+// In fullscreen mode, the game screen is automatically enlarged
 // to fit with the monitor. The current scale value is ignored.
 //
 // On desktops, Ebiten uses 'windowed' fullscreen mode, which doesn't change
 // your monitor's resolution.
 //
 // SetFullscreen does nothing on browsers or mobiles.
+//
+// SetFullscreen does nothing on macOS when the window is fullscreened natively by the macOS desktop
+// instead of SetFullscreen(true).
 //
 // SetFullscreen is concurrent-safe.
 func SetFullscreen(fullscreen bool) {
@@ -301,6 +321,10 @@ func SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 //
 // DeviceScaleFactor must be called on the main thread before the main loop, and is concurrent-safe after the main
 // loop.
+//
+// DeviceScaleFactor is concurrent-safe.
+//
+// BUG: DeviceScaleFactor value is not affected by SetWindowPosition before RunGame (#1575).
 func DeviceScaleFactor() float64 {
 	return uiDriver().DeviceScaleFactor()
 }

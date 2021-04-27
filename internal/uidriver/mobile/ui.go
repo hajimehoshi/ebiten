@@ -370,6 +370,14 @@ func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
 	// Do nothing
 }
 
+func (u *UserInterface) CursorShape() driver.CursorShape {
+	return driver.CursorShapeDefault
+}
+
+func (u *UserInterface) SetCursorShape(shape driver.CursorShape) {
+	// Do nothing
+}
+
 func (u *UserInterface) IsFullscreen() bool {
 	return false
 }

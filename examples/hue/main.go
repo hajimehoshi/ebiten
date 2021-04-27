@@ -28,8 +28,8 @@ import (
 )
 
 const (
-	screenWidth  = 320
-	screenHeight = 240
+	screenWidth  = 640
+	screenHeight = 480
 )
 
 var (
@@ -49,7 +49,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Center the image on the screen.
 	w, h := gophersImage.Size()
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(screenWidth-w)/2, float64(screenHeight-h)/2)
+	op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
+	op.GeoM.Scale(2, 2)
+	op.GeoM.Translate(float64(screenWidth)/2, float64(screenHeight)/2)
 
 	// Rotate the hue.
 	op.ColorM.RotateHue(float64(g.count%360) * 2 * math.Pi / 360)
@@ -77,7 +79,7 @@ func main() {
 	}
 	gophersImage = ebiten.NewImageFromImage(img)
 
-	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Hue (Ebiten Demo)")
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)

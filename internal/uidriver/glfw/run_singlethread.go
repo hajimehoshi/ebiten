@@ -45,3 +45,7 @@ func (u *UserInterface) Run(uicontext driver.UIContext) error {
 	u.setRunning(false)
 	return nil
 }
+
+func (u *UserInterface) runOnAnotherThreadFromMainThread(f func() error) error {
+	return f()
+}

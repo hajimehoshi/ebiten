@@ -51,8 +51,6 @@ func InputChars() []rune {
 //
 // Keyboards don't work on iOS yet (#1090).
 func IsKeyPressed(key Key) bool {
-	// There are keys that are invalid values as ebiten.Key (e.g., driver.KeyLeftAlt).
-	// Skip such values.
 	if !key.isValid() {
 		return false
 	}
@@ -60,13 +58,13 @@ func IsKeyPressed(key Key) bool {
 	var keys []driver.Key
 	switch key {
 	case KeyAlt:
-		keys = []driver.Key{driver.KeyLeftAlt, driver.KeyRightAlt}
+		keys = []driver.Key{driver.KeyAltLeft, driver.KeyAltRight}
 	case KeyControl:
-		keys = []driver.Key{driver.KeyLeftControl, driver.KeyRightControl}
+		keys = []driver.Key{driver.KeyControlLeft, driver.KeyControlRight}
 	case KeyShift:
-		keys = []driver.Key{driver.KeyLeftShift, driver.KeyRightShift}
-	case KeySuper:
-		keys = []driver.Key{driver.KeyLeftSuper, driver.KeyRightSuper}
+		keys = []driver.Key{driver.KeyShiftLeft, driver.KeyShiftRight}
+	case KeyMeta:
+		keys = []driver.Key{driver.KeyMetaLeft, driver.KeyMetaRight}
 	default:
 		keys = []driver.Key{driver.Key(key)}
 	}
@@ -80,6 +78,10 @@ func IsKeyPressed(key Key) bool {
 
 // CursorPosition returns a position of a mouse cursor relative to the game screen (window). The cursor position is
 // 'logical' position and this considers the scale of the screen.
+//
+// CursorPosition returns (0, 0) before the main loop on desktops and browsers.
+//
+// CursorPosition always returns (0, 0) on mobiles.
 //
 // CursorPosition is concurrent-safe.
 func CursorPosition() (x, y int) {
@@ -125,7 +127,7 @@ func GamepadSDLID(id GamepadID) string {
 //   - Chrome: "Xbox 360 Controller (XInput STANDARD GAMEPAD)"
 //   - Firefox: "xinput"
 //
-// GamepadName always returns an empty string on mobiles.
+// GamepadName always returns an empty string on iOS.
 //
 // GamepadName is concurrent-safe.
 func GamepadName(id GamepadID) string {
@@ -136,7 +138,7 @@ func GamepadName(id GamepadID) string {
 //
 // GamepadIDs is concurrent-safe.
 //
-// GamepadIDs always returns an empty slice on mobiles.
+// GamepadIDs always returns an empty slice on iOS.
 func GamepadIDs() []GamepadID {
 	return uiDriver().Input().GamepadIDs()
 }
@@ -145,7 +147,7 @@ func GamepadIDs() []GamepadID {
 //
 // GamepadAxisNum is concurrent-safe.
 //
-// GamepadAxisNum always returns 0 on mobiles.
+// GamepadAxisNum always returns 0 on iOS.
 func GamepadAxisNum(id GamepadID) int {
 	return uiDriver().Input().GamepadAxisNum(id)
 }
@@ -154,7 +156,7 @@ func GamepadAxisNum(id GamepadID) int {
 //
 // GamepadAxis is concurrent-safe.
 //
-// GamepadAxis always returns 0 on mobiles.
+// GamepadAxis always returns 0 on iOS.
 func GamepadAxis(id GamepadID, axis int) float64 {
 	return uiDriver().Input().GamepadAxis(id, axis)
 }
@@ -163,7 +165,7 @@ func GamepadAxis(id GamepadID, axis int) float64 {
 //
 // GamepadButtonNum is concurrent-safe.
 //
-// GamepadButtonNum always returns 0 on mobiles.
+// GamepadButtonNum always returns 0 on iOS.
 func GamepadButtonNum(id GamepadID) int {
 	return uiDriver().Input().GamepadButtonNum(id)
 }
@@ -178,7 +180,7 @@ func GamepadButtonNum(id GamepadID) int {
 // The relationships between physical buttons and buttion IDs depend on environments.
 // There can be differences even between Chrome and Firefox.
 //
-// IsGamepadButtonPressed always returns false on mobiles.
+// IsGamepadButtonPressed always returns false on iOS.
 func IsGamepadButtonPressed(id GamepadID, button GamepadButton) bool {
 	return uiDriver().Input().IsGamepadButtonPressed(id, driver.GamepadButton(button))
 }

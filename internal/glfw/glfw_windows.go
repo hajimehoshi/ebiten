@@ -42,7 +42,7 @@ func (w glfwWindows) add(win uintptr) *Window {
 	if win == 0 {
 		return nil
 	}
-	ww := &Window{win}
+	ww := &Window{w: win}
 	glfwWindowsM.Lock()
 	w[win] = ww
 	glfwWindowsM.Unlock()
@@ -63,6 +63,16 @@ func (w glfwWindows) get(win uintptr) *Window {
 	ww := w[win]
 	glfwWindowsM.Unlock()
 	return ww
+}
+
+type Cursor struct {
+	c uintptr
+}
+
+func CreateStandardCursor(shape StandardCursor) *Cursor {
+	c := glfwDLL.call("glfwCreateStandardCursor", uintptr(shape))
+	panicError()
+	return &Cursor{c: c}
 }
 
 type Monitor struct {
@@ -91,6 +101,8 @@ func (m *Monitor) GetVideoMode() *VidMode {
 
 type Window struct {
 	w uintptr
+
+	prevSizeCallback SizeCallback
 }
 
 func (w *Window) Destroy() {
@@ -190,6 +202,14 @@ func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsC
 	return nil // TODO
 }
 
+func (w *Window) SetCursor(cursor *Cursor) {
+	var c uintptr
+	if cursor != nil {
+		c = cursor.c
+	}
+	glfwDLL.call("glfwSetCursor", w.w, c)
+}
+
 func (w *Window) SetFramebufferSizeCallback(cbfun FramebufferSizeCallback) (previous FramebufferSizeCallback) {
 	var gcb uintptr
 	if cbfun != nil {
@@ -218,7 +238,7 @@ func (w *Window) SetScrollCallback(cbfun ScrollCallback) (previous ScrollCallbac
 	return nil // TODO
 }
 
-func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous FramebufferSizeCallback) {
+func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous SizeCallback) {
 	var gcb uintptr
 	if cbfun != nil {
 		gcb = windows.NewCallbackCDecl(func(window uintptr, width int, height int) uintptr {
@@ -228,7 +248,14 @@ func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous FramebufferSizeCa
 	}
 	glfwDLL.call("glfwSetWindowSizeCallback", w.w, gcb)
 	panicError()
-	return nil // TODO
+	prev := w.prevSizeCallback
+	w.prevSizeCallback = cbfun
+	return prev
+}
+
+func (w *Window) SetSizeLimits(minw, minh, maxw, maxh int) {
+	glfwDLL.call("glfwSetWindowSizeLimits", w.w, uintptr(minw), uintptr(minh), uintptr(maxw), uintptr(maxh))
+	panicError()
 }
 
 func (w *Window) SetIcon(images []image.Image) {

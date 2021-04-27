@@ -27,7 +27,6 @@ import (
 	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/internal/colormcache"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
@@ -157,7 +156,17 @@ var textM sync.Mutex
 // Line height is based on Metrics().Height of the font.
 //
 // Glyphs used for rendering are cached in least-recently-used way.
+// Then old glyphs might be evicted from the cache.
+// As the cache capacity has limit, it is not guaranteed that all the glyphs for runes given at Draw are cached.
+// The cache is shared with CacheGlyphs.
+//
 // It is OK to call Draw with a same text and a same face at every frame in terms of performance.
+//
+// Draw and CacheGlyphs are implemented like this:
+//
+//     Draw        = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
+//                 + Draw them onto the destination by `(*ebiten.Image).DrawImage`
+//     CacheGlyphs = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
 //
 // Be careful that the passed font face is held by this package and is never released.
 // This is a known issue (#498).
@@ -167,12 +176,18 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 	textM.Lock()
 	defer textM.Unlock()
 
+	cr, cg, cb, ca := clr.RGBA()
+	if ca == 0 {
+		return
+	}
+
+	var colorm ebiten.ColorM
+	colorm.Scale(float64(cr)/float64(ca), float64(cg)/float64(ca), float64(cb)/float64(ca), float64(ca)/0xffff)
+
 	fx, fy := fixed.I(x), fixed.I(y)
 	prevR := rune(-1)
 
 	faceHeight := face.Metrics().Height
-
-	colorm := colormcache.ColorToColorM(clr)
 
 	for _, r := range text {
 		if prevR >= 0 {
@@ -267,11 +282,23 @@ func BoundString(face font.Face, text string) image.Rectangle {
 
 // CacheGlyphs precaches the glyphs for the given text and the given font face into the cache.
 //
+// Glyphs used for rendering are cached in least-recently-used way.
+// Then old glyphs might be evicted from the cache.
+// As the cache capacity has limit, it is not guaranteed that all the glyphs for runes given at CacheGlyphs are cached.
+// The cache is shared with Draw.
+//
+// Draw and CacheGlyphs are implemented like this:
+//
+//     Draw        = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
+//                 + Draw them onto the destination by `(*ebiten.Image).DrawImage`
+//     CacheGlyphs = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
+//
 // Draw automatically creates and caches necessary glyphs, so usually you don't have to call CacheGlyphs
 // explicitly. However, for example, when you call Draw for each rune of one big text, Draw tries to create the glyph
 // cache and render it for each rune. This is very inefficient because creating a glyph image and rendering it are
-// different operations and can never be merged as one draw call. CacheGlyphs creates necessary glyphs without
-// rendering them so that these operations are likely merged into one draw call.
+// different operations (`(*ebiten.Image).ReplacePixels` and `(*ebiten.Image).DrawImage`) and can never be merged as
+// one draw call. CacheGlyphs creates necessary glyphs without rendering them so that these operations are likely
+// merged into one draw call regardless of the size of the text.
 //
 // If a rune's glyph is already cached, CacheGlyphs does nothing for the rune.
 func CacheGlyphs(face font.Face, text string) {

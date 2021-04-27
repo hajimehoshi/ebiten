@@ -77,21 +77,21 @@ func (i *Input) IsRotateLeftJustPressed() bool {
 }
 
 func (i *Input) StateForLeft() int {
-	if v := inpututil.KeyPressDuration(ebiten.KeyLeft); 0 < v {
+	if v := inpututil.KeyPressDuration(ebiten.KeyArrowLeft); 0 < v {
 		return v
 	}
 	return i.stateForVirtualGamepadButton(virtualGamepadButtonLeft)
 }
 
 func (i *Input) StateForRight() int {
-	if v := inpututil.KeyPressDuration(ebiten.KeyRight); 0 < v {
+	if v := inpututil.KeyPressDuration(ebiten.KeyArrowRight); 0 < v {
 		return v
 	}
 	return i.stateForVirtualGamepadButton(virtualGamepadButtonRight)
 }
 
 func (i *Input) StateForDown() int {
-	if v := inpututil.KeyPressDuration(ebiten.KeyDown); 0 < v {
+	if v := inpututil.KeyPressDuration(ebiten.KeyArrowDown); 0 < v {
 		return v
 	}
 	return i.stateForVirtualGamepadButton(virtualGamepadButtonDown)

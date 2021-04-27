@@ -17,6 +17,7 @@ package shader
 import (
 	"fmt"
 	"go/ast"
+	gconstant "go/constant"
 	"go/token"
 	"strings"
 
@@ -30,9 +31,10 @@ type variable struct {
 }
 
 type constant struct {
-	name string
-	typ  shaderir.Type
-	init ast.Expr
+	name  string
+	typ   shaderir.Type
+	ctyp  shaderir.ConstType
+	value gconstant.Value
 }
 
 type function struct {
@@ -154,6 +156,23 @@ func (b *block) findLocalVariableByIndex(idx int) (shaderir.Type, bool) {
 	return shaderir.Type{}, false
 }
 
+func (b *block) findConstant(name string) (constant, bool) {
+	if name == "" || name == "_" {
+		panic("shader: constant name must be non-empty and non-underscore")
+	}
+
+	for _, c := range b.consts {
+		if c.name == name {
+			return c, true
+		}
+	}
+	if b.outer != nil {
+		return b.outer.findConstant(name)
+	}
+
+	return constant{}, false
+}
+
 type ParseError struct {
 	errs []string
 }
@@ -235,6 +254,13 @@ func (cs *compileState) parse(f *ast.File) {
 			continue
 		}
 
+		for _, f := range cs.funcs {
+			if f.name == n {
+				cs.addError(d.Pos(), fmt.Sprintf("redeclared function: %s", n))
+				return
+			}
+		}
+
 		inParams, outParams := cs.parseFuncParams(&cs.global, fd)
 		var inT, outT []shaderir.Type
 		for _, v := range inParams {
@@ -297,7 +323,10 @@ func (cs *compileState) parseDecl(b *block, d ast.Decl) ([]shaderir.Stmt, bool) 
 		case token.CONST:
 			for _, s := range d.Specs {
 				s := s.(*ast.ValueSpec)
-				cs := cs.parseConstant(b, s)
+				cs, ok := cs.parseConstant(b, s)
+				if !ok {
+					return nil, false
+				}
 				b.consts = append(b.consts, cs...)
 			}
 		case token.VAR:
@@ -512,6 +541,12 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 				return nil, nil, nil, false
 			}
 		}
+		for _, c := range block.consts {
+			if c.name == name {
+				s.addError(vs.Pos(), fmt.Sprintf("duplicated local constant/variable name: %s", name))
+				return nil, nil, nil, false
+			}
+		}
 		vars = append(vars, variable{
 			name: name,
 			typ:  t,
@@ -521,25 +556,56 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 	return vars, inits, stmts, true
 }
 
-func (s *compileState) parseConstant(block *block, vs *ast.ValueSpec) []constant {
+func (s *compileState) parseConstant(block *block, vs *ast.ValueSpec) ([]constant, bool) {
 	var t shaderir.Type
 	if vs.Type != nil {
 		var ok bool
 		t, ok = s.parseType(block, vs.Type)
 		if !ok {
-			return nil
+			return nil, false
 		}
 	}
 
 	var cs []constant
 	for i, n := range vs.Names {
+		name := n.Name
+		for _, c := range block.consts {
+			if c.name == name {
+				s.addError(vs.Pos(), fmt.Sprintf("duplicated local constant name: %s", name))
+				return nil, false
+			}
+		}
+		for _, v := range block.vars {
+			if v.name == name {
+				s.addError(vs.Pos(), fmt.Sprintf("duplicated local constant/variable name: %s", name))
+				return nil, false
+			}
+		}
+
+		es, ts, ss, ok := s.parseExpr(block, vs.Values[i], false)
+		if !ok {
+			return nil, false
+		}
+		if len(ss) > 0 {
+			s.addError(vs.Pos(), fmt.Sprintf("invalid constant expression: %s", name))
+			return nil, false
+		}
+		if len(ts) != 1 || len(es) != 1 {
+			s.addError(vs.Pos(), fmt.Sprintf("invalid constant expression: %s", n))
+			return nil, false
+		}
+		if es[0].Type != shaderir.NumberExpr {
+			s.addError(vs.Pos(), fmt.Sprintf("constant expresion must be a number but not: %s", n))
+			return nil, false
+		}
 		cs = append(cs, constant{
-			name: n.Name,
-			typ:  t,
-			init: vs.Values[i],
+			name:  name,
+			typ:   t,
+			ctyp:  es[0].ConstType,
+			value: es[0].Const,
 		})
 	}
-	return cs
+	return cs, true
 }
 
 func (cs *compileState) parseFuncParams(block *block, d *ast.FuncDecl) (in, out []variable) {

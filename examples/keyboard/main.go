@@ -27,6 +27,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/keyboard/keyboard"
 	rkeyboard "github.com/hajimehoshi/ebiten/v2/examples/resources/images/keyboard"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 const (
@@ -46,16 +47,11 @@ func init() {
 }
 
 type Game struct {
-	pressed []ebiten.Key
+	keys []ebiten.Key
 }
 
 func (g *Game) Update() error {
-	g.pressed = nil
-	for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {
-		if ebiten.IsKeyPressed(k) {
-			g.pressed = append(g.pressed, k)
-		}
-	}
+	g.keys = inpututil.PressedKeys()
 	return nil
 }
 
@@ -73,7 +69,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	// Draw the highlighted keys.
 	op = &ebiten.DrawImageOptions{}
-	for _, p := range g.pressed {
+	for _, p := range g.keys {
 		op.GeoM.Reset()
 		r, ok := keyboard.KeyRect(p)
 		if !ok {
@@ -85,7 +81,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 
 	keyStrs := []string{}
-	for _, p := range g.pressed {
+	for _, p := range g.keys {
 		keyStrs = append(keyStrs, p.String())
 	}
 	ebitenutil.DebugPrint(screen, strings.Join(keyStrs, ", "))

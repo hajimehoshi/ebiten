@@ -40,6 +40,7 @@ type Image struct {
 
 	bounds   image.Rectangle
 	original *Image
+	screen   bool
 }
 
 func (i *Image) copyCheck() {
@@ -69,7 +70,10 @@ func (i *Image) Clear() {
 	i.Fill(color.Transparent)
 }
 
-var emptyImage = NewImage(3, 3)
+var (
+	emptyImage    = NewImage(3, 3)
+	emptySubImage = emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*Image)
+)
 
 func init() {
 	w, h := emptyImage.Size()
@@ -101,7 +105,7 @@ func (i *Image) Fill(clr color.Color) {
 	op.ColorM.Scale(rf, gf, bf, af)
 	op.CompositeMode = CompositeModeCopy
 
-	i.DrawImage(emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*Image), op)
+	i.DrawImage(emptySubImage, op)
 }
 
 func canSkipMipmap(geom GeoM, filter driver.Filter) bool {
@@ -199,7 +203,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	sy0 := float32(bounds.Min.Y)
 	sx1 := float32(bounds.Max.X)
 	sy1 := float32(bounds.Max.Y)
-	vs := graphics.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, 1, 1, 1, 1, filter == driver.FilterScreen)
+	vs := graphics.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 
 	srcs := [graphics.ShaderImageNum]*mipmap.Mipmap{img.mipmap}
@@ -323,7 +327,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	filter := driver.Filter(options.Filter)
 
-	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
+	vs := graphics.Vertices(len(vertices))
 	for i, v := range vertices {
 		vs[i*graphics.VertexFloatNum] = v.DstX
 		vs[i*graphics.VertexFloatNum+1] = v.DstY
@@ -412,7 +416,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 
 	mode := driver.CompositeMode(options.CompositeMode)
 
-	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
+	vs := graphics.Vertices(len(vertices))
 	for i, v := range vertices {
 		vs[i*graphics.VertexFloatNum] = v.DstX
 		vs[i*graphics.VertexFloatNum+1] = v.DstY
@@ -562,7 +566,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	}
 
 	a, b, c, d, tx, ty := options.GeoM.elements32()
-	vs := graphics.QuadVertices(sx, sy, sx+float32(width), sy+float32(height), a, b, c, d, tx, ty, 1, 1, 1, 1, false)
+	vs := graphics.QuadVertices(sx, sy, sx+float32(width), sy+float32(height), a, b, c, d, tx, ty, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 
 	var sr driver.Region
@@ -744,7 +748,12 @@ func (i *Image) ReplacePixels(pixels []byte) {
 // NewImage returns an empty image.
 //
 // If width or height is less than 1 or more than device-dependent maximum size, NewImage panics.
+//
+// NewImage panics if RunGame already finishes.
 func NewImage(width, height int) *Image {
+	if isRunGameEnded() {
+		panic(fmt.Sprintf("ebiten: NewImage cannot be called after RunGame finishes"))
+	}
 	if width <= 0 {
 		panic(fmt.Sprintf("ebiten: width at NewImage must be positive but %d", width))
 	}
@@ -762,9 +771,14 @@ func NewImage(width, height int) *Image {
 // NewImageFromImage creates a new image with the given image (source).
 //
 // If source's width or height is less than 1 or more than device-dependent maximum size, NewImageFromImage panics.
+//
+// NewImageFromImage panics if RunGame already finishes.
 func NewImageFromImage(source image.Image) *Image {
-	size := source.Bounds().Size()
+	if isRunGameEnded() {
+		panic(fmt.Sprintf("ebiten: NewImage cannot be called after RunGame finishes"))
+	}
 
+	size := source.Bounds().Size()
 	width, height := size.X, size.Y
 	if width <= 0 {
 		panic(fmt.Sprintf("ebiten: source width at NewImageFromImage must be positive but %d", width))
@@ -787,6 +801,7 @@ func newScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
 		mipmap: mipmap.NewScreenFramebufferMipmap(width, height),
 		bounds: image.Rect(0, 0, width, height),
+		screen: true,
 	}
 	i.addr = i
 	return i

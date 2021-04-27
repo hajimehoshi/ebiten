@@ -24,14 +24,15 @@ import (
 )
 
 // fromGLFWMonitorPixel must be called from the main thread.
-func (u *UserInterface) fromGLFWMonitorPixel(x float64) float64 {
-	return math.Ceil(x / u.deviceScaleFactor())
+func fromGLFWMonitorPixel(x float64, deviceScale float64) float64 {
+	// deviceScaleFactor is sometimes an unnice value (e.g., 1.502361). Use math.Ceil to clean the vaule.
+	return math.Ceil(x / deviceScale)
 }
 
 // fromGLFWPixel must be called from the main thread.
 func (u *UserInterface) fromGLFWPixel(x float64) float64 {
 	// deviceScaleFactor() is a scale by desktop environment (e.g., Cinnamon), while GetContentScale() is X's scale.
-	// They are different things and then need to be treated different ways (#1350).
+	// They are different things and then need to be treated in different ways (#1350).
 	s, _ := currentMonitor(u.window).GetContentScale()
 	return x / float64(s)
 }
@@ -45,6 +46,7 @@ func (u *UserInterface) toGLFWPixel(x float64) float64 {
 // toFramebufferPixel must be called from the main thread.
 func (u *UserInterface) toFramebufferPixel(x float64) float64 {
 	s, _ := currentMonitor(u.window).GetContentScale()
+	// deviceScaleFactor is sometimes an unnice value (e.g., 1.502361). Use math.Ceil to clean the vaule.
 	return math.Ceil(x * float64(s) / u.deviceScaleFactor())
 }
 
@@ -60,4 +62,8 @@ func currentMonitorByOS(_ *glfw.Window) *glfw.Monitor {
 func (u *UserInterface) nativeWindow() uintptr {
 	// TODO: Implement this.
 	return 0
+}
+
+func (u *UserInterface) isNativeFullscreen() bool {
+	return false
 }

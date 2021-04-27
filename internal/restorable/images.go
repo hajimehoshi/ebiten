@@ -24,8 +24,8 @@ import (
 // forceRestoring reports whether restoring forcely happens or not.
 var forceRestoring = false
 
-// needsRestoring reports whether restoring process works or not.
-func needsRestoring() bool {
+// NeedsRestoring reports whether restoring process works or not.
+func NeedsRestoring() bool {
 	if forceRestoring {
 		return true
 	}
@@ -59,7 +59,7 @@ func ResolveStaleImages() error {
 	if err := graphicscommand.FlushCommands(); err != nil {
 		return err
 	}
-	if !needsRestoring() {
+	if !NeedsRestoring() {
 		return nil
 	}
 	return theImages.resolveStaleImages()
@@ -69,7 +69,7 @@ func ResolveStaleImages() error {
 //
 // Restoring means to make all *graphicscommand.Image objects have their textures and framebuffers.
 func RestoreIfNeeded() error {
-	if !needsRestoring() {
+	if !NeedsRestoring() {
 		return nil
 	}
 
@@ -184,7 +184,7 @@ func (i *images) makeStaleIfDependingOnShader(shader *Shader) {
 //
 // Restoring means to make all *graphicscommand.Image objects have their textures and framebuffers.
 func (i *images) restore() error {
-	if !needsRestoring() {
+	if !NeedsRestoring() {
 		panic("restorable: restore cannot be called when restoring is disabled")
 	}
 

@@ -21,6 +21,7 @@ import (
 
 type UIContext interface {
 	Update() error
+	ForceUpdate() error
 	Layout(outsideWidth, outsideHeight float64)
 
 	// AdjustPosition can be called from a different goroutine from Update's or Layout's.
@@ -43,6 +44,9 @@ type UI interface {
 
 	CursorMode() CursorMode
 	SetCursorMode(mode CursorMode)
+
+	CursorShape() CursorShape
+	SetCursorShape(shape CursorShape)
 
 	IsFullscreen() bool
 	SetFullscreen(fullscreen bool)
@@ -74,6 +78,8 @@ type Window interface {
 
 	Size() (int, int)
 	SetSize(width, height int)
+	SizeLimits() (minw, minh, maxw, maxh int)
+	SetSizeLimits(minw, minh, maxw, maxh int)
 
 	IsFloating() bool
 	SetFloating(floating bool)

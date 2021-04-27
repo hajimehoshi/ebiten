@@ -29,7 +29,7 @@ var audioContext = audio.NewContext(44100)
 func TestMono(t *testing.T) {
 	bs := test_mono_ogg
 
-	s, err := Decode(audioContext, bytes.NewReader(bs))
+	s, err := DecodeWithSampleRate(audioContext.SampleRate(), bytes.NewReader(bs))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func TestMono(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Stream decoded by audio/vorbis.Decode() is always 16bit stereo.
+	// Stream decoded by audio/vorbis.DecodeWithSampleRate() is always 16bit stereo.
 	got := s.Length()
 
 	// On the other hand, the original vorbis package is monoral.
@@ -55,7 +55,7 @@ func TestMono(t *testing.T) {
 func TestTooShort(t *testing.T) {
 	bs := test_tooshort_ogg
 
-	s, err := Decode(audioContext, bytes.NewReader(bs))
+	s, err := DecodeWithSampleRate(audioContext.SampleRate(), bytes.NewReader(bs))
 	if err != nil {
 		t.Fatal(err)
 	}

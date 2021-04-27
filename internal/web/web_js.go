@@ -33,7 +33,11 @@ func init() {
 	if !nav.Truthy() {
 		return
 	}
-	userAgent := nav.Get("userAgent").String()
+	ua := nav.Get("userAgent")
+	if !ua.Truthy() {
+		return
+	}
+	userAgent := ua.String()
 	isIOSSafari = strings.Contains(userAgent, "iPhone") || strings.Contains(userAgent, "iPad")
 	isAndroidChrome = strings.Contains(userAgent, "Android") && strings.Contains(userAgent, "Chrome")
 }

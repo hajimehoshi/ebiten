@@ -25,8 +25,7 @@ import (
 )
 
 type window struct {
-	ui                *UserInterface
-	setPositionCalled bool
+	ui *UserInterface
 }
 
 func (w *window) IsDecorated() bool {
@@ -48,16 +47,11 @@ func (w *window) SetDecorated(decorated bool) {
 	}
 
 	_ = w.ui.t.Call(func() error {
-		v := glfw.False
-		if decorated {
-			v = glfw.True
+		if w.ui.isNativeFullscreen() {
+			return nil
 		}
-		w.ui.window.SetAttrib(glfw.Decorated, v)
 
-		// The title can be lost when the decoration is gone. Recover this.
-		if v == glfw.True {
-			w.ui.window.SetTitle(w.ui.title)
-		}
+		w.ui.setWindowDecorated(decorated)
 		return nil
 	})
 }
@@ -80,11 +74,10 @@ func (w *window) SetResizable(resizable bool) {
 		return
 	}
 	_ = w.ui.t.Call(func() error {
-		v := glfw.False
-		if resizable {
-			v = glfw.True
+		if w.ui.isNativeFullscreen() {
+			return nil
 		}
-		w.ui.window.SetAttrib(glfw.Resizable, v)
+		w.ui.setWindowResizable(resizable)
 		return nil
 	})
 }
@@ -107,11 +100,10 @@ func (w *window) SetFloating(floating bool) {
 		return
 	}
 	_ = w.ui.t.Call(func() error {
-		v := glfw.False
-		if floating {
-			v = glfw.True
+		if w.ui.isNativeFullscreen() {
+			return nil
 		}
-		w.ui.window.SetAttrib(glfw.Floating, v)
+		w.ui.setWindowFloating(floating)
 		return nil
 	})
 }
@@ -137,7 +129,7 @@ func (w *window) Maximize() {
 		return
 	}
 	_ = w.ui.t.Call(func() error {
-		w.ui.window.Maximize()
+		w.ui.maximizeWindow()
 		return nil
 	})
 }
@@ -160,7 +152,7 @@ func (w *window) Minimize() {
 		return
 	}
 	_ = w.ui.t.Call(func() error {
-		w.ui.window.Iconify()
+		w.ui.iconifyWindow()
 		return nil
 	})
 }
@@ -171,7 +163,7 @@ func (w *window) Restore() {
 		return
 	}
 	_ = w.ui.t.Call(func() error {
-		w.ui.window.Restore()
+		w.ui.restoreWindow()
 		return nil
 	})
 }
@@ -205,33 +197,22 @@ func (w *window) SetPosition(x, y int) {
 		return
 	}
 	_ = w.ui.t.Call(func() error {
-		w.setPosition(x, y)
+		w.ui.setWindowPosition(x, y)
 		return nil
 	})
 }
 
-// setPosition must be called from the main thread
-func (w *window) setPosition(x, y int) {
-	defer func() {
-		w.setPositionCalled = true
-	}()
-
-	mx, my := currentMonitor(w.ui.window).GetPos()
-	xf := w.ui.toGLFWPixel(float64(x))
-	yf := w.ui.toGLFWPixel(float64(y))
-	if x, y := w.ui.adjustWindowPosition(mx+int(xf), my+int(yf)); w.ui.isFullscreen() {
-		w.ui.origPosX, w.ui.origPosY = x, y
-	} else {
-		w.ui.window.SetPos(x, y)
-	}
-}
-
 func (w *window) Size() (int, int) {
 	if !w.ui.isRunning() {
-		return w.ui.getInitWindowSize()
+		ww, wh := w.ui.getInitWindowSize()
+		return w.ui.adjustWindowSizeBasedOnSizeLimitsInDP(ww, wh)
 	}
-	ww := int(w.ui.fromGLFWPixel(float64(w.ui.windowWidth)))
-	wh := int(w.ui.fromGLFWPixel(float64(w.ui.windowHeight)))
+	ww, wh := 0, 0
+	_ = w.ui.t.Call(func() error {
+		ww = int(w.ui.fromGLFWPixel(float64(w.ui.windowWidth)))
+		wh = int(w.ui.fromGLFWPixel(float64(w.ui.windowHeight)))
+		return nil
+	})
 	return ww, wh
 }
 
@@ -240,23 +221,35 @@ func (w *window) SetSize(width, height int) {
 		w.ui.setInitWindowSize(width, height)
 		return
 	}
-	ww := int(w.ui.toGLFWPixel(float64(width)))
-	wh := int(w.ui.toGLFWPixel(float64(height)))
 	_ = w.ui.t.Call(func() error {
+		ww := int(w.ui.toGLFWPixel(float64(width)))
+		wh := int(w.ui.toGLFWPixel(float64(height)))
 		w.ui.setWindowSize(ww, wh, w.ui.isFullscreen())
 		return nil
 	})
 }
 
-func (w *window) SetIcon(iconImages []image.Image) {
-	if !w.ui.isRunning() {
-		w.ui.setInitIconImages(iconImages)
+func (w *window) SizeLimits() (minw, minh, maxw, maxh int) {
+	return w.ui.getWindowSizeLimitsInDP()
+}
+
+func (w *window) SetSizeLimits(minw, minh, maxw, maxh int) {
+	if !w.ui.setWindowSizeLimitsInDP(minw, minh, maxw, maxh) {
 		return
 	}
+	if !w.ui.isRunning() {
+		return
+	}
+
 	_ = w.ui.t.Call(func() error {
-		w.ui.window.SetIcon(iconImages)
+		w.ui.updateWindowSizeLimits()
 		return nil
 	})
+}
+
+func (w *window) SetIcon(iconImages []image.Image) {
+	// The icons are actually set at (*UserInterface).loop.
+	w.ui.setIconImages(iconImages)
 }
 
 func (w *window) SetTitle(title string) {
@@ -266,7 +259,7 @@ func (w *window) SetTitle(title string) {
 	}
 	w.ui.title = title
 	_ = w.ui.t.Call(func() error {
-		w.ui.window.SetTitle(title)
+		w.ui.setWindowTitle(title)
 		return nil
 	})
 }

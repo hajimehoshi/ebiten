@@ -35,7 +35,7 @@ func (w windows) add(win *glfw.Window) *Window {
 	if win == nil {
 		return nil
 	}
-	ww := &Window{win}
+	ww := &Window{w: win}
 	windowsM.Lock()
 	w[win] = ww
 	windowsM.Unlock()
@@ -56,6 +56,15 @@ func (w windows) get(win *glfw.Window) *Window {
 	ww := w[win]
 	windowsM.Unlock()
 	return ww
+}
+
+type Cursor struct {
+	c *glfw.Cursor
+}
+
+func CreateStandardCursor(shape StandardCursor) *Cursor {
+	c := glfw.CreateStandardCursor(glfw.StandardCursor(shape))
+	return &Cursor{c: c}
 }
 
 type Monitor struct {
@@ -87,6 +96,8 @@ func (m *Monitor) GetVideoMode() *VidMode {
 
 type Window struct {
 	w *glfw.Window
+
+	prevSizeCallback SizeCallback
 }
 
 func (w *Window) Destroy() {
@@ -96,10 +107,6 @@ func (w *Window) Destroy() {
 
 func (w *Window) GetAttrib(attrib Hint) int {
 	return w.w.GetAttrib(glfw.Hint(attrib))
-}
-
-func (w *Window) SetAttrib(attrib Hint, value int) {
-	w.w.SetAttrib(glfw.Hint(attrib), value)
 }
 
 func (w *Window) GetCursorPos() (x, y float64) {
@@ -150,6 +157,10 @@ func (w *Window) Restore() {
 	w.w.Restore()
 }
 
+func (w *Window) SetAttrib(attrib Hint, value int) {
+	w.w.SetAttrib(glfw.Hint(attrib), value)
+}
+
 func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsCallback) {
 	var gcb glfw.CharModsCallback
 	if cbfun != nil {
@@ -159,6 +170,14 @@ func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsC
 	}
 	w.w.SetCharModsCallback(gcb)
 	return nil // TODO
+}
+
+func (w *Window) SetCursor(cursor *Cursor) {
+	var c *glfw.Cursor
+	if cursor != nil {
+		c = cursor.c
+	}
+	w.w.SetCursor(c)
 }
 
 func (w *Window) SetFramebufferSizeCallback(cbfun FramebufferSizeCallback) (previous FramebufferSizeCallback) {
@@ -191,7 +210,13 @@ func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous SizeCallback) {
 		}
 	}
 	w.w.SetSizeCallback(gcb)
-	return nil // TODO
+	prev := w.prevSizeCallback
+	w.prevSizeCallback = cbfun
+	return prev
+}
+
+func (w *Window) SetSizeLimits(minw, minh, maxw, maxh int) {
+	w.w.SetSizeLimits(minw, minh, maxw, maxh)
 }
 
 func (w *Window) SetIcon(images []image.Image) {

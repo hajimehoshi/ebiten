@@ -162,8 +162,7 @@ func (c *gamepadConfig) Scan(b virtualGamepadButton) bool {
 	return false
 }
 
-// IsButtonPressed returns a boolean value indicating whether
-// the given virtual button b is pressed.
+// IsButtonPressed reports whether the given virtual button b is pressed.
 func (c *gamepadConfig) IsButtonPressed(b virtualGamepadButton) bool {
 	if !c.gamepadIDInitialized {
 		panic("not reached")
@@ -184,6 +183,21 @@ func (c *gamepadConfig) IsButtonPressed(b virtualGamepadButton) bool {
 		} else {
 			return -1.0 <= v && v <= -axisThreshold
 		}
+	}
+	return false
+}
+
+// IsButtonJustPressed reports whether the given virtual button b started to be pressed now.
+func (c *gamepadConfig) IsButtonJustPressed(b virtualGamepadButton) bool {
+	if !c.gamepadIDInitialized {
+		panic("not reached")
+	}
+
+	c.initializeIfNeeded()
+
+	bb, ok := c.buttons[b]
+	if ok {
+		return inpututil.IsGamepadButtonJustPressed(c.gamepadID, bb)
 	}
 	return false
 }

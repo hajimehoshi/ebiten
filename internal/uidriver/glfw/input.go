@@ -19,6 +19,7 @@
 package glfw
 
 import (
+	"math"
 	"sync"
 	"unicode"
 
@@ -70,9 +71,9 @@ func (i *Input) GamepadIDs() []driver.GamepadID {
 		return nil
 	}
 
-	var r []driver.GamepadID
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
+	r := make([]driver.GamepadID, 0, len(i.gamepads))
 	for id, g := range i.gamepads {
 		if g.valid {
 			r = append(r, driver.GamepadID(id))
@@ -164,12 +165,12 @@ func (i *Input) TouchIDs() []driver.TouchID {
 		return nil
 	}
 
-	var ids []driver.TouchID
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
 	if len(i.touches) == 0 {
 		return nil
 	}
+	ids := make([]driver.TouchID, 0, len(i.touches))
 	for id := range i.touches {
 		ids = append(ids, id)
 	}
@@ -303,10 +304,15 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) {
 	}
 	cx, cy := window.GetCursorPos()
 	// TODO: This is tricky. Rename the function?
-	cx = i.ui.fromGLFWMonitorPixel(cx)
-	cy = i.ui.fromGLFWMonitorPixel(cy)
-	cx, cy = context.AdjustPosition(cx, cy, i.ui.deviceScaleFactor())
-	i.cursorX, i.cursorY = int(cx), int(cy)
+	s := i.ui.deviceScaleFactor()
+	cx = fromGLFWMonitorPixel(cx, s)
+	cy = fromGLFWMonitorPixel(cy, s)
+	cx, cy = context.AdjustPosition(cx, cy, s)
+
+	// AdjustPosition can return NaN at the initialization.
+	if !math.IsNaN(cx) && !math.IsNaN(cy) {
+		i.cursorX, i.cursorY = int(cx), int(cy)
+	}
 
 	for id := glfw.Joystick(0); id < glfw.Joystick(len(i.gamepads)); id++ {
 		i.gamepads[id].valid = false

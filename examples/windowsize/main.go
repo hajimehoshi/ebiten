@@ -25,6 +25,7 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -45,6 +46,8 @@ var (
 	flagMaximize          = flag.Bool("maximize", false, "maximize the window")
 	flagVsync             = flag.Bool("vsync", true, "enable vsync")
 	flagInitFocused       = flag.Bool("initfocused", true, "whether the window is focused on start")
+	flagMinWindowSize     = flag.String("minwindowsize", "", "minimum window size (e.g., 100x200)")
+	flagMaxWindowSize     = flag.String("maxwindowsize", "", "maximium window size (e.g., 1920x1080)")
 )
 
 func init() {
@@ -66,18 +69,23 @@ var (
 func createRandomIconImage() image.Image {
 	const size = 32
 
-	r := byte(rand.Intn(0x100))
-	g := byte(rand.Intn(0x100))
-	b := byte(rand.Intn(0x100))
-	img := image.NewNRGBA(image.Rect(0, 0, size, size))
+	rf := float64(rand.Intn(0x100))
+	gf := float64(rand.Intn(0x100))
+	bf := float64(rand.Intn(0x100))
+	img := ebiten.NewImage(size, size)
+	pix := make([]byte, 4*size*size)
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
-			img.Pix[j*img.Stride+4*i] = r
-			img.Pix[j*img.Stride+4*i+1] = g
-			img.Pix[j*img.Stride+4*i+2] = b
-			img.Pix[j*img.Stride+4*i+3] = byte(float64(i+j) / float64(2*size) * 0xff)
+			af := float64(i+j) / float64(2*size)
+			if af > 0 {
+				pix[4*(j*size+i)] = byte(rf * af)
+				pix[4*(j*size+i)+1] = byte(gf * af)
+				pix[4*(j*size+i)+2] = byte(bf * af)
+				pix[4*(j*size+i)+3] = byte(af * 0xff)
+			}
 		}
 	}
+	img.ReplacePixels(pix)
 
 	return img
 }
@@ -114,7 +122,7 @@ func (g *game) Update() error {
 
 	fullscreen := ebiten.IsFullscreen()
 	runnableOnUnfocused := ebiten.IsRunnableOnUnfocused()
-	cursorVisible := ebiten.CursorMode() == ebiten.CursorModeVisible
+	cursorMode := ebiten.CursorMode()
 	vsyncEnabled := ebiten.IsVsyncEnabled()
 	tps := ebiten.MaxTPS()
 	decorated := ebiten.IsWindowDecorated()
@@ -126,39 +134,44 @@ func (g *game) Update() error {
 
 	const d = 16
 	toUpdateWindowSize := false
+	toUpdateWindowPosition := false
 	if ebiten.IsKeyPressed(ebiten.KeyShift) {
-		if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
+		if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
 			screenHeight += d
 			toUpdateWindowSize = true
 		}
-		if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
+		if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) {
 			if 16 < screenHeight && d < screenHeight {
 				screenHeight -= d
 				toUpdateWindowSize = true
 			}
 		}
-		if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
+		if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
 			if 16 < screenWidth && d < screenWidth {
 				screenWidth -= d
 				toUpdateWindowSize = true
 			}
 		}
-		if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
+		if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
 			screenWidth += d
 			toUpdateWindowSize = true
 		}
 	} else {
-		if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
+		if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) {
 			positionY -= d
+			toUpdateWindowPosition = true
 		}
-		if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
+		if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
 			positionY += d
+			toUpdateWindowPosition = true
 		}
-		if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
+		if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
 			positionX -= d
+			toUpdateWindowPosition = true
 		}
-		if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
+		if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
 			positionX += d
+			toUpdateWindowPosition = true
 		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyS) && !*flagAutoAdjusting {
@@ -181,7 +194,14 @@ func (g *game) Update() error {
 		runnableOnUnfocused = !runnableOnUnfocused
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyC) {
-		cursorVisible = !cursorVisible
+		switch cursorMode {
+		case ebiten.CursorModeVisible:
+			cursorMode = ebiten.CursorModeHidden
+		case ebiten.CursorModeHidden:
+			cursorMode = ebiten.CursorModeCaptured
+		case ebiten.CursorModeCaptured:
+			cursorMode = ebiten.CursorModeVisible
+		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyV) {
 		vsyncEnabled = !vsyncEnabled
@@ -226,11 +246,7 @@ func (g *game) Update() error {
 	}
 	ebiten.SetFullscreen(fullscreen)
 	ebiten.SetRunnableOnUnfocused(runnableOnUnfocused)
-	if cursorVisible {
-		ebiten.SetCursorMode(ebiten.CursorModeVisible)
-	} else {
-		ebiten.SetCursorMode(ebiten.CursorModeHidden)
-	}
+	ebiten.SetCursorMode(cursorMode)
 
 	// Set vsync enabled only when this is needed.
 	// This makes a bug around vsync initialization more explicit (#1364).
@@ -239,7 +255,9 @@ func (g *game) Update() error {
 	}
 	ebiten.SetMaxTPS(tps)
 	ebiten.SetWindowDecorated(decorated)
-	ebiten.SetWindowPosition(positionX, positionY)
+	if toUpdateWindowPosition {
+		ebiten.SetWindowPosition(positionX, positionY)
+	}
 	ebiten.SetWindowFloating(floating)
 	ebiten.SetScreenClearedEveryFrame(screenCleared)
 	if maximize && ebiten.IsWindowResizable() {
@@ -272,6 +290,7 @@ func (g *game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(gophersImage, op)
 
 	wx, wy := ebiten.WindowPosition()
+	minw, minh, maxw, maxh := ebiten.WindowSizeLimits()
 	cx, cy := ebiten.CursorPosition()
 	tpsStr := "Uncapped"
 	if t := ebiten.MaxTPS(); t != ebiten.UncappedTPS {
@@ -301,7 +320,7 @@ func (g *game) Draw(screen *ebiten.Image) {
 %s
 [F] Switch the fullscreen state (only for desktops)
 [U] Switch the runnable-on-unfocused state
-[C] Switch the cursor visibility
+[C] Switch the cursor mode (visible, hidden, or captured)
 [I] Change the window icon (only for desktops)
 [V] Switch vsync
 [T] Switch TPS (ticks per second)
@@ -311,10 +330,11 @@ func (g *game) Draw(screen *ebiten.Image) {
 %s
 IsFocused?: %s
 Windows Position: (%d, %d)
+Window size limitation: (%d, %d) - (%d, %d)
 Cursor: (%d, %d)
 TPS: Current: %0.2f / Max: %s
 FPS: %0.2f
-Device Scale Factor: %0.2f`, msgM, msgR, fg, wx, wy, cx, cy, ebiten.CurrentTPS(), tpsStr, ebiten.CurrentFPS(), ebiten.DeviceScaleFactor())
+Device Scale Factor: %0.2f`, msgM, msgR, fg, wx, wy, minw, minh, maxw, maxh, cx, cy, ebiten.CurrentTPS(), tpsStr, ebiten.CurrentFPS(), ebiten.DeviceScaleFactor())
 	ebitenutil.DebugPrint(screen, msg)
 }
 
@@ -390,6 +410,21 @@ func main() {
 	ebiten.SetInitFocused(*flagInitFocused)
 	if !*flagInitFocused {
 		ebiten.SetRunnableOnUnfocused(true)
+	}
+
+	minw, minh, maxw, maxh := -1, -1, -1, -1
+	reSize := regexp.MustCompile(`^(\d+)x(\d+)$`)
+	if m := reSize.FindStringSubmatch(*flagMinWindowSize); m != nil {
+		minw, _ = strconv.Atoi(m[1])
+		minh, _ = strconv.Atoi(m[2])
+	}
+	if m := reSize.FindStringSubmatch(*flagMaxWindowSize); m != nil {
+		maxw, _ = strconv.Atoi(m[1])
+		maxh, _ = strconv.Atoi(m[2])
+	}
+	if minw >= 0 || minh >= 0 || maxw >= 0 || maxh >= 0 {
+		ebiten.SetWindowSizeLimits(minw, minh, maxw, maxh)
+		ebiten.SetWindowResizable(true)
 	}
 
 	const title = "Window Size (Ebiten Demo)"

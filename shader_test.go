@@ -251,6 +251,23 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 }
 
+func TestShaderDuplicatedFunctions(t *testing.T) {
+	if _, err := NewShader([]byte(`package main
+
+func Foo() {
+}
+
+func Foo() {
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(0)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+}
+
 func TestShaderNoMain(t *testing.T) {
 	if _, err := NewShader([]byte(`package main
 `)); err == nil {
@@ -757,6 +774,65 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	_.x = 1
 	return vec4(0)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+}
+
+func TestShaderDuplicatedVarsAndConstants(t *testing.T) {
+	if _, err := NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var a = 0
+	const a = 0
+	return vec4(a)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	const a = 0
+	var a = 0
+	return vec4(a)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	const a = 0
+	const a = 0
+	return vec4(a)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := NewShader([]byte(`package main
+
+const U0 = 0
+var U0 float
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(a)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := NewShader([]byte(`package main
+
+var U0 float
+const U0 = 0
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(a)
 }
 `)); err == nil {
 		t.Errorf("error must be non-nil but was nil")

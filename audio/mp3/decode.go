@@ -57,27 +57,45 @@ func (s *Stream) Length() int64 {
 	return s.orig.Length()
 }
 
-// Decode decodes MP3 source and returns a decoded stream.
+// DecodeWithSampleRate decodes MP3 source and returns a decoded stream.
 //
-// Decode returns error when decoding fails or IO error happens.
+// DecodeWithSampleRate returns error when decoding fails or IO error happens.
 //
-// Decode automatically resamples the stream to fit with the audio context if necessary.
+// DecodeWithSampleRate automatically resamples the stream to fit with sampleRate if necessary.
+//
+// The returned Stream's Seek is available only when src is an io.Seeker.
 //
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
-func Decode(context *audio.Context, src io.ReadSeeker) (*Stream, error) {
+func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
 	d, err := mp3.NewDecoder(src)
 	if err != nil {
 		return nil, err
 	}
 
 	var r *convert.Resampling
-	if d.SampleRate() != context.SampleRate() {
-		r = convert.NewResampling(d, d.Length(), d.SampleRate(), context.SampleRate())
+	if d.SampleRate() != sampleRate {
+		r = convert.NewResampling(d, d.Length(), d.SampleRate(), sampleRate)
 	}
 	s := &Stream{
 		orig:       d,
 		resampling: r,
 	}
 	return s, nil
+}
+
+// Decode decodes MP3 source and returns a decoded stream.
+//
+// Decode returns error when decoding fails or IO error happens.
+//
+// Decode automatically resamples the stream to fit with the audio context if necessary.
+//
+// The returned Stream's Seek is available only when src is an io.Seeker.
+//
+// A Stream doesn't close src even if src implements io.Closer.
+// Closing the source is src owner's responsibility.
+//
+// Deprecated: as of v2.1. Use DecodeWithSampleRate instead.
+func Decode(context *audio.Context, src io.Reader) (*Stream, error) {
+	return DecodeWithSampleRate(context.SampleRate(), src)
 }

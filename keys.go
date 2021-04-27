@@ -29,132 +29,158 @@ type Key int
 
 // Keys.
 const (
-	Key0            Key = Key(driver.Key0)
-	Key1            Key = Key(driver.Key1)
-	Key2            Key = Key(driver.Key2)
-	Key3            Key = Key(driver.Key3)
-	Key4            Key = Key(driver.Key4)
-	Key5            Key = Key(driver.Key5)
-	Key6            Key = Key(driver.Key6)
-	Key7            Key = Key(driver.Key7)
-	Key8            Key = Key(driver.Key8)
-	Key9            Key = Key(driver.Key9)
-	KeyA            Key = Key(driver.KeyA)
-	KeyB            Key = Key(driver.KeyB)
-	KeyC            Key = Key(driver.KeyC)
-	KeyD            Key = Key(driver.KeyD)
-	KeyE            Key = Key(driver.KeyE)
-	KeyF            Key = Key(driver.KeyF)
-	KeyG            Key = Key(driver.KeyG)
-	KeyH            Key = Key(driver.KeyH)
-	KeyI            Key = Key(driver.KeyI)
-	KeyJ            Key = Key(driver.KeyJ)
-	KeyK            Key = Key(driver.KeyK)
-	KeyL            Key = Key(driver.KeyL)
-	KeyM            Key = Key(driver.KeyM)
-	KeyN            Key = Key(driver.KeyN)
-	KeyO            Key = Key(driver.KeyO)
-	KeyP            Key = Key(driver.KeyP)
-	KeyQ            Key = Key(driver.KeyQ)
-	KeyR            Key = Key(driver.KeyR)
-	KeyS            Key = Key(driver.KeyS)
-	KeyT            Key = Key(driver.KeyT)
-	KeyU            Key = Key(driver.KeyU)
-	KeyV            Key = Key(driver.KeyV)
-	KeyW            Key = Key(driver.KeyW)
-	KeyX            Key = Key(driver.KeyX)
-	KeyY            Key = Key(driver.KeyY)
-	KeyZ            Key = Key(driver.KeyZ)
-	KeyApostrophe   Key = Key(driver.KeyApostrophe)
-	KeyBackslash    Key = Key(driver.KeyBackslash)
-	KeyBackspace    Key = Key(driver.KeyBackspace)
-	KeyCapsLock     Key = Key(driver.KeyCapsLock)
-	KeyComma        Key = Key(driver.KeyComma)
-	KeyDelete       Key = Key(driver.KeyDelete)
-	KeyDown         Key = Key(driver.KeyDown)
-	KeyEnd          Key = Key(driver.KeyEnd)
-	KeyEnter        Key = Key(driver.KeyEnter)
-	KeyEqual        Key = Key(driver.KeyEqual)
-	KeyEscape       Key = Key(driver.KeyEscape)
-	KeyF1           Key = Key(driver.KeyF1)
-	KeyF2           Key = Key(driver.KeyF2)
-	KeyF3           Key = Key(driver.KeyF3)
-	KeyF4           Key = Key(driver.KeyF4)
-	KeyF5           Key = Key(driver.KeyF5)
-	KeyF6           Key = Key(driver.KeyF6)
-	KeyF7           Key = Key(driver.KeyF7)
-	KeyF8           Key = Key(driver.KeyF8)
-	KeyF9           Key = Key(driver.KeyF9)
-	KeyF10          Key = Key(driver.KeyF10)
-	KeyF11          Key = Key(driver.KeyF11)
-	KeyF12          Key = Key(driver.KeyF12)
-	KeyGraveAccent  Key = Key(driver.KeyGraveAccent)
-	KeyHome         Key = Key(driver.KeyHome)
-	KeyInsert       Key = Key(driver.KeyInsert)
-	KeyKP0          Key = Key(driver.KeyKP0)
-	KeyKP1          Key = Key(driver.KeyKP1)
-	KeyKP2          Key = Key(driver.KeyKP2)
-	KeyKP3          Key = Key(driver.KeyKP3)
-	KeyKP4          Key = Key(driver.KeyKP4)
-	KeyKP5          Key = Key(driver.KeyKP5)
-	KeyKP6          Key = Key(driver.KeyKP6)
-	KeyKP7          Key = Key(driver.KeyKP7)
-	KeyKP8          Key = Key(driver.KeyKP8)
-	KeyKP9          Key = Key(driver.KeyKP9)
-	KeyKPAdd        Key = Key(driver.KeyKPAdd)
-	KeyKPDecimal    Key = Key(driver.KeyKPDecimal)
-	KeyKPDivide     Key = Key(driver.KeyKPDivide)
-	KeyKPEnter      Key = Key(driver.KeyKPEnter)
-	KeyKPEqual      Key = Key(driver.KeyKPEqual)
-	KeyKPMultiply   Key = Key(driver.KeyKPMultiply)
-	KeyKPSubtract   Key = Key(driver.KeyKPSubtract)
-	KeyLeft         Key = Key(driver.KeyLeft)
-	KeyLeftBracket  Key = Key(driver.KeyLeftBracket)
-	KeyMenu         Key = Key(driver.KeyMenu)
-	KeyMinus        Key = Key(driver.KeyMinus)
-	KeyNumLock      Key = Key(driver.KeyNumLock)
-	KeyPageDown     Key = Key(driver.KeyPageDown)
-	KeyPageUp       Key = Key(driver.KeyPageUp)
-	KeyPause        Key = Key(driver.KeyPause)
-	KeyPeriod       Key = Key(driver.KeyPeriod)
-	KeyPrintScreen  Key = Key(driver.KeyPrintScreen)
-	KeyRight        Key = Key(driver.KeyRight)
-	KeyRightBracket Key = Key(driver.KeyRightBracket)
-	KeyScrollLock   Key = Key(driver.KeyScrollLock)
-	KeySemicolon    Key = Key(driver.KeySemicolon)
-	KeySlash        Key = Key(driver.KeySlash)
-	KeySpace        Key = Key(driver.KeySpace)
-	KeyTab          Key = Key(driver.KeyTab)
-	KeyUp           Key = Key(driver.KeyUp)
-	KeyAlt          Key = Key(driver.KeyReserved0)
-	KeyControl      Key = Key(driver.KeyReserved1)
-	KeyShift        Key = Key(driver.KeyReserved2)
-	KeySuper        Key = Key(driver.KeyReserved3)
-	KeyMax          Key = KeySuper
+	KeyA              Key = Key(driver.KeyA)
+	KeyB              Key = Key(driver.KeyB)
+	KeyC              Key = Key(driver.KeyC)
+	KeyD              Key = Key(driver.KeyD)
+	KeyE              Key = Key(driver.KeyE)
+	KeyF              Key = Key(driver.KeyF)
+	KeyG              Key = Key(driver.KeyG)
+	KeyH              Key = Key(driver.KeyH)
+	KeyI              Key = Key(driver.KeyI)
+	KeyJ              Key = Key(driver.KeyJ)
+	KeyK              Key = Key(driver.KeyK)
+	KeyL              Key = Key(driver.KeyL)
+	KeyM              Key = Key(driver.KeyM)
+	KeyN              Key = Key(driver.KeyN)
+	KeyO              Key = Key(driver.KeyO)
+	KeyP              Key = Key(driver.KeyP)
+	KeyQ              Key = Key(driver.KeyQ)
+	KeyR              Key = Key(driver.KeyR)
+	KeyS              Key = Key(driver.KeyS)
+	KeyT              Key = Key(driver.KeyT)
+	KeyU              Key = Key(driver.KeyU)
+	KeyV              Key = Key(driver.KeyV)
+	KeyW              Key = Key(driver.KeyW)
+	KeyX              Key = Key(driver.KeyX)
+	KeyY              Key = Key(driver.KeyY)
+	KeyZ              Key = Key(driver.KeyZ)
+	KeyAltLeft        Key = Key(driver.KeyAltLeft)
+	KeyAltRight       Key = Key(driver.KeyAltRight)
+	KeyArrowDown      Key = Key(driver.KeyArrowDown)
+	KeyArrowLeft      Key = Key(driver.KeyArrowLeft)
+	KeyArrowRight     Key = Key(driver.KeyArrowRight)
+	KeyArrowUp        Key = Key(driver.KeyArrowUp)
+	KeyBackquote      Key = Key(driver.KeyBackquote)
+	KeyBackslash      Key = Key(driver.KeyBackslash)
+	KeyBackspace      Key = Key(driver.KeyBackspace)
+	KeyBracketLeft    Key = Key(driver.KeyBracketLeft)
+	KeyBracketRight   Key = Key(driver.KeyBracketRight)
+	KeyCapsLock       Key = Key(driver.KeyCapsLock)
+	KeyComma          Key = Key(driver.KeyComma)
+	KeyContextMenu    Key = Key(driver.KeyContextMenu)
+	KeyControlLeft    Key = Key(driver.KeyControlLeft)
+	KeyControlRight   Key = Key(driver.KeyControlRight)
+	KeyDelete         Key = Key(driver.KeyDelete)
+	KeyDigit0         Key = Key(driver.KeyDigit0)
+	KeyDigit1         Key = Key(driver.KeyDigit1)
+	KeyDigit2         Key = Key(driver.KeyDigit2)
+	KeyDigit3         Key = Key(driver.KeyDigit3)
+	KeyDigit4         Key = Key(driver.KeyDigit4)
+	KeyDigit5         Key = Key(driver.KeyDigit5)
+	KeyDigit6         Key = Key(driver.KeyDigit6)
+	KeyDigit7         Key = Key(driver.KeyDigit7)
+	KeyDigit8         Key = Key(driver.KeyDigit8)
+	KeyDigit9         Key = Key(driver.KeyDigit9)
+	KeyEnd            Key = Key(driver.KeyEnd)
+	KeyEnter          Key = Key(driver.KeyEnter)
+	KeyEqual          Key = Key(driver.KeyEqual)
+	KeyEscape         Key = Key(driver.KeyEscape)
+	KeyF1             Key = Key(driver.KeyF1)
+	KeyF2             Key = Key(driver.KeyF2)
+	KeyF3             Key = Key(driver.KeyF3)
+	KeyF4             Key = Key(driver.KeyF4)
+	KeyF5             Key = Key(driver.KeyF5)
+	KeyF6             Key = Key(driver.KeyF6)
+	KeyF7             Key = Key(driver.KeyF7)
+	KeyF8             Key = Key(driver.KeyF8)
+	KeyF9             Key = Key(driver.KeyF9)
+	KeyF10            Key = Key(driver.KeyF10)
+	KeyF11            Key = Key(driver.KeyF11)
+	KeyF12            Key = Key(driver.KeyF12)
+	KeyHome           Key = Key(driver.KeyHome)
+	KeyInsert         Key = Key(driver.KeyInsert)
+	KeyMetaLeft       Key = Key(driver.KeyMetaLeft)
+	KeyMetaRight      Key = Key(driver.KeyMetaRight)
+	KeyMinus          Key = Key(driver.KeyMinus)
+	KeyNumLock        Key = Key(driver.KeyNumLock)
+	KeyNumpad0        Key = Key(driver.KeyNumpad0)
+	KeyNumpad1        Key = Key(driver.KeyNumpad1)
+	KeyNumpad2        Key = Key(driver.KeyNumpad2)
+	KeyNumpad3        Key = Key(driver.KeyNumpad3)
+	KeyNumpad4        Key = Key(driver.KeyNumpad4)
+	KeyNumpad5        Key = Key(driver.KeyNumpad5)
+	KeyNumpad6        Key = Key(driver.KeyNumpad6)
+	KeyNumpad7        Key = Key(driver.KeyNumpad7)
+	KeyNumpad8        Key = Key(driver.KeyNumpad8)
+	KeyNumpad9        Key = Key(driver.KeyNumpad9)
+	KeyNumpadAdd      Key = Key(driver.KeyNumpadAdd)
+	KeyNumpadDecimal  Key = Key(driver.KeyNumpadDecimal)
+	KeyNumpadDivide   Key = Key(driver.KeyNumpadDivide)
+	KeyNumpadEnter    Key = Key(driver.KeyNumpadEnter)
+	KeyNumpadEqual    Key = Key(driver.KeyNumpadEqual)
+	KeyNumpadMultiply Key = Key(driver.KeyNumpadMultiply)
+	KeyNumpadSubtract Key = Key(driver.KeyNumpadSubtract)
+	KeyPageDown       Key = Key(driver.KeyPageDown)
+	KeyPageUp         Key = Key(driver.KeyPageUp)
+	KeyPause          Key = Key(driver.KeyPause)
+	KeyPeriod         Key = Key(driver.KeyPeriod)
+	KeyPrintScreen    Key = Key(driver.KeyPrintScreen)
+	KeyQuote          Key = Key(driver.KeyQuote)
+	KeyScrollLock     Key = Key(driver.KeyScrollLock)
+	KeySemicolon      Key = Key(driver.KeySemicolon)
+	KeyShiftLeft      Key = Key(driver.KeyShiftLeft)
+	KeyShiftRight     Key = Key(driver.KeyShiftRight)
+	KeySlash          Key = Key(driver.KeySlash)
+	KeySpace          Key = Key(driver.KeySpace)
+	KeyTab            Key = Key(driver.KeyTab)
+	KeyAlt            Key = Key(driver.KeyReserved0)
+	KeyControl        Key = Key(driver.KeyReserved1)
+	KeyShift          Key = Key(driver.KeyReserved2)
+	KeyMeta           Key = Key(driver.KeyReserved3)
+	KeyMax            Key = KeyMeta
+
+	// Keys for backward compatibility.
+	// Deprecated: as of 2.1.0.
+	Key0            Key = Key(driver.KeyDigit0)
+	Key1            Key = Key(driver.KeyDigit1)
+	Key2            Key = Key(driver.KeyDigit2)
+	Key3            Key = Key(driver.KeyDigit3)
+	Key4            Key = Key(driver.KeyDigit4)
+	Key5            Key = Key(driver.KeyDigit5)
+	Key6            Key = Key(driver.KeyDigit6)
+	Key7            Key = Key(driver.KeyDigit7)
+	Key8            Key = Key(driver.KeyDigit8)
+	Key9            Key = Key(driver.KeyDigit9)
+	KeyApostrophe   Key = Key(driver.KeyQuote)
+	KeyDown         Key = Key(driver.KeyArrowDown)
+	KeyGraveAccent  Key = Key(driver.KeyBackquote)
+	KeyKP0          Key = Key(driver.KeyNumpad0)
+	KeyKP1          Key = Key(driver.KeyNumpad1)
+	KeyKP2          Key = Key(driver.KeyNumpad2)
+	KeyKP3          Key = Key(driver.KeyNumpad3)
+	KeyKP4          Key = Key(driver.KeyNumpad4)
+	KeyKP5          Key = Key(driver.KeyNumpad5)
+	KeyKP6          Key = Key(driver.KeyNumpad6)
+	KeyKP7          Key = Key(driver.KeyNumpad7)
+	KeyKP8          Key = Key(driver.KeyNumpad8)
+	KeyKP9          Key = Key(driver.KeyNumpad9)
+	KeyKPDecimal    Key = Key(driver.KeyNumpadDecimal)
+	KeyKPDivide     Key = Key(driver.KeyNumpadDivide)
+	KeyKPEnter      Key = Key(driver.KeyNumpadEnter)
+	KeyKPEqual      Key = Key(driver.KeyNumpadEqual)
+	KeyKPMultiply   Key = Key(driver.KeyNumpadMultiply)
+	KeyKPSubtract   Key = Key(driver.KeyNumpadSubtract)
+	KeyLeft         Key = Key(driver.KeyArrowLeft)
+	KeyLeftBracket  Key = Key(driver.KeyBracketLeft)
+	KeyMenu         Key = Key(driver.KeyContextMenu)
+	KeyRight        Key = Key(driver.KeyArrowRight)
+	KeyRightBracket Key = Key(driver.KeyBracketRight)
+	KeyUp           Key = Key(driver.KeyArrowUp)
 )
 
 func (k Key) isValid() bool {
 	switch k {
-	case Key0:
-		return true
-	case Key1:
-		return true
-	case Key2:
-		return true
-	case Key3:
-		return true
-	case Key4:
-		return true
-	case Key5:
-		return true
-	case Key6:
-		return true
-	case Key7:
-		return true
-	case Key8:
-		return true
-	case Key9:
-		return true
 	case KeyA:
 		return true
 	case KeyB:
@@ -209,21 +235,61 @@ func (k Key) isValid() bool {
 		return true
 	case KeyAlt:
 		return true
-	case KeyApostrophe:
+	case KeyAltLeft:
+		return true
+	case KeyAltRight:
+		return true
+	case KeyArrowDown:
+		return true
+	case KeyArrowLeft:
+		return true
+	case KeyArrowRight:
+		return true
+	case KeyArrowUp:
+		return true
+	case KeyBackquote:
 		return true
 	case KeyBackslash:
 		return true
 	case KeyBackspace:
 		return true
+	case KeyBracketLeft:
+		return true
+	case KeyBracketRight:
+		return true
 	case KeyCapsLock:
 		return true
 	case KeyComma:
 		return true
+	case KeyContextMenu:
+		return true
 	case KeyControl:
+		return true
+	case KeyControlLeft:
+		return true
+	case KeyControlRight:
 		return true
 	case KeyDelete:
 		return true
-	case KeyDown:
+	case KeyDigit0:
+		return true
+	case KeyDigit1:
+		return true
+	case KeyDigit2:
+		return true
+	case KeyDigit3:
+		return true
+	case KeyDigit4:
+		return true
+	case KeyDigit5:
+		return true
+	case KeyDigit6:
+		return true
+	case KeyDigit7:
+		return true
+	case KeyDigit8:
+		return true
+	case KeyDigit9:
 		return true
 	case KeyEnd:
 		return true
@@ -257,55 +323,53 @@ func (k Key) isValid() bool {
 		return true
 	case KeyF12:
 		return true
-	case KeyGraveAccent:
-		return true
 	case KeyHome:
 		return true
 	case KeyInsert:
 		return true
-	case KeyKP0:
+	case KeyMeta:
 		return true
-	case KeyKP1:
+	case KeyMetaLeft:
 		return true
-	case KeyKP2:
-		return true
-	case KeyKP3:
-		return true
-	case KeyKP4:
-		return true
-	case KeyKP5:
-		return true
-	case KeyKP6:
-		return true
-	case KeyKP7:
-		return true
-	case KeyKP8:
-		return true
-	case KeyKP9:
-		return true
-	case KeyKPAdd:
-		return true
-	case KeyKPDecimal:
-		return true
-	case KeyKPDivide:
-		return true
-	case KeyKPEnter:
-		return true
-	case KeyKPEqual:
-		return true
-	case KeyKPMultiply:
-		return true
-	case KeyKPSubtract:
-		return true
-	case KeyLeft:
-		return true
-	case KeyLeftBracket:
-		return true
-	case KeyMenu:
+	case KeyMetaRight:
 		return true
 	case KeyMinus:
 		return true
 	case KeyNumLock:
+		return true
+	case KeyNumpad0:
+		return true
+	case KeyNumpad1:
+		return true
+	case KeyNumpad2:
+		return true
+	case KeyNumpad3:
+		return true
+	case KeyNumpad4:
+		return true
+	case KeyNumpad5:
+		return true
+	case KeyNumpad6:
+		return true
+	case KeyNumpad7:
+		return true
+	case KeyNumpad8:
+		return true
+	case KeyNumpad9:
+		return true
+	case KeyNumpadAdd:
+		return true
+	case KeyNumpadDecimal:
+		return true
+	case KeyNumpadDivide:
+		return true
+	case KeyNumpadEnter:
+		return true
+	case KeyNumpadEqual:
+		return true
+	case KeyNumpadMultiply:
+		return true
+	case KeyNumpadSubtract:
 		return true
 	case KeyPageDown:
 		return true
@@ -317,9 +381,7 @@ func (k Key) isValid() bool {
 		return true
 	case KeyPrintScreen:
 		return true
-	case KeyRight:
-		return true
-	case KeyRightBracket:
+	case KeyQuote:
 		return true
 	case KeyScrollLock:
 		return true
@@ -327,15 +389,15 @@ func (k Key) isValid() bool {
 		return true
 	case KeyShift:
 		return true
+	case KeyShiftLeft:
+		return true
+	case KeyShiftRight:
+		return true
 	case KeySlash:
 		return true
 	case KeySpace:
 		return true
-	case KeySuper:
-		return true
 	case KeyTab:
-		return true
-	case KeyUp:
 		return true
 
 	default:
@@ -348,26 +410,6 @@ func (k Key) isValid() bool {
 // If k is an undefined key, String returns an empty string.
 func (k Key) String() string {
 	switch k {
-	case Key0:
-		return "0"
-	case Key1:
-		return "1"
-	case Key2:
-		return "2"
-	case Key3:
-		return "3"
-	case Key4:
-		return "4"
-	case Key5:
-		return "5"
-	case Key6:
-		return "6"
-	case Key7:
-		return "7"
-	case Key8:
-		return "8"
-	case Key9:
-		return "9"
 	case KeyA:
 		return "A"
 	case KeyB:
@@ -422,22 +464,62 @@ func (k Key) String() string {
 		return "Z"
 	case KeyAlt:
 		return "Alt"
-	case KeyApostrophe:
-		return "Apostrophe"
+	case KeyAltLeft:
+		return "AltLeft"
+	case KeyAltRight:
+		return "AltRight"
+	case KeyArrowDown:
+		return "ArrowDown"
+	case KeyArrowLeft:
+		return "ArrowLeft"
+	case KeyArrowRight:
+		return "ArrowRight"
+	case KeyArrowUp:
+		return "ArrowUp"
+	case KeyBackquote:
+		return "Backquote"
 	case KeyBackslash:
 		return "Backslash"
 	case KeyBackspace:
 		return "Backspace"
+	case KeyBracketLeft:
+		return "BracketLeft"
+	case KeyBracketRight:
+		return "BracketRight"
 	case KeyCapsLock:
 		return "CapsLock"
 	case KeyComma:
 		return "Comma"
+	case KeyContextMenu:
+		return "ContextMenu"
 	case KeyControl:
 		return "Control"
+	case KeyControlLeft:
+		return "ControlLeft"
+	case KeyControlRight:
+		return "ControlRight"
 	case KeyDelete:
 		return "Delete"
-	case KeyDown:
-		return "Down"
+	case KeyDigit0:
+		return "Digit0"
+	case KeyDigit1:
+		return "Digit1"
+	case KeyDigit2:
+		return "Digit2"
+	case KeyDigit3:
+		return "Digit3"
+	case KeyDigit4:
+		return "Digit4"
+	case KeyDigit5:
+		return "Digit5"
+	case KeyDigit6:
+		return "Digit6"
+	case KeyDigit7:
+		return "Digit7"
+	case KeyDigit8:
+		return "Digit8"
+	case KeyDigit9:
+		return "Digit9"
 	case KeyEnd:
 		return "End"
 	case KeyEnter:
@@ -470,56 +552,54 @@ func (k Key) String() string {
 		return "F11"
 	case KeyF12:
 		return "F12"
-	case KeyGraveAccent:
-		return "GraveAccent"
 	case KeyHome:
 		return "Home"
 	case KeyInsert:
 		return "Insert"
-	case KeyKP0:
-		return "KP0"
-	case KeyKP1:
-		return "KP1"
-	case KeyKP2:
-		return "KP2"
-	case KeyKP3:
-		return "KP3"
-	case KeyKP4:
-		return "KP4"
-	case KeyKP5:
-		return "KP5"
-	case KeyKP6:
-		return "KP6"
-	case KeyKP7:
-		return "KP7"
-	case KeyKP8:
-		return "KP8"
-	case KeyKP9:
-		return "KP9"
-	case KeyKPAdd:
-		return "KPAdd"
-	case KeyKPDecimal:
-		return "KPDecimal"
-	case KeyKPDivide:
-		return "KPDivide"
-	case KeyKPEnter:
-		return "KPEnter"
-	case KeyKPEqual:
-		return "KPEqual"
-	case KeyKPMultiply:
-		return "KPMultiply"
-	case KeyKPSubtract:
-		return "KPSubtract"
-	case KeyLeft:
-		return "Left"
-	case KeyLeftBracket:
-		return "LeftBracket"
-	case KeyMenu:
-		return "Menu"
+	case KeyMeta:
+		return "Meta"
+	case KeyMetaLeft:
+		return "MetaLeft"
+	case KeyMetaRight:
+		return "MetaRight"
 	case KeyMinus:
 		return "Minus"
 	case KeyNumLock:
 		return "NumLock"
+	case KeyNumpad0:
+		return "Numpad0"
+	case KeyNumpad1:
+		return "Numpad1"
+	case KeyNumpad2:
+		return "Numpad2"
+	case KeyNumpad3:
+		return "Numpad3"
+	case KeyNumpad4:
+		return "Numpad4"
+	case KeyNumpad5:
+		return "Numpad5"
+	case KeyNumpad6:
+		return "Numpad6"
+	case KeyNumpad7:
+		return "Numpad7"
+	case KeyNumpad8:
+		return "Numpad8"
+	case KeyNumpad9:
+		return "Numpad9"
+	case KeyNumpadAdd:
+		return "NumpadAdd"
+	case KeyNumpadDecimal:
+		return "NumpadDecimal"
+	case KeyNumpadDivide:
+		return "NumpadDivide"
+	case KeyNumpadEnter:
+		return "NumpadEnter"
+	case KeyNumpadEqual:
+		return "NumpadEqual"
+	case KeyNumpadMultiply:
+		return "NumpadMultiply"
+	case KeyNumpadSubtract:
+		return "NumpadSubtract"
 	case KeyPageDown:
 		return "PageDown"
 	case KeyPageUp:
@@ -530,26 +610,24 @@ func (k Key) String() string {
 		return "Period"
 	case KeyPrintScreen:
 		return "PrintScreen"
-	case KeyRight:
-		return "Right"
-	case KeyRightBracket:
-		return "RightBracket"
+	case KeyQuote:
+		return "Quote"
 	case KeyScrollLock:
 		return "ScrollLock"
 	case KeySemicolon:
 		return "Semicolon"
 	case KeyShift:
 		return "Shift"
+	case KeyShiftLeft:
+		return "ShiftLeft"
+	case KeyShiftRight:
+		return "ShiftRight"
 	case KeySlash:
 		return "Slash"
 	case KeySpace:
 		return "Space"
-	case KeySuper:
-		return "Super"
 	case KeyTab:
 		return "Tab"
-	case KeyUp:
-		return "Up"
 	}
 	return ""
 }
@@ -630,20 +708,64 @@ func keyNameToKeyCode(name string) (Key, bool) {
 		return KeyZ, true
 	case "alt":
 		return KeyAlt, true
+	case "altleft":
+		return KeyAltLeft, true
+	case "altright":
+		return KeyAltRight, true
 	case "apostrophe":
 		return KeyApostrophe, true
+	case "arrowdown":
+		return KeyArrowDown, true
+	case "arrowleft":
+		return KeyArrowLeft, true
+	case "arrowright":
+		return KeyArrowRight, true
+	case "arrowup":
+		return KeyArrowUp, true
+	case "backquote":
+		return KeyBackquote, true
 	case "backslash":
 		return KeyBackslash, true
 	case "backspace":
 		return KeyBackspace, true
+	case "bracketleft":
+		return KeyBracketLeft, true
+	case "bracketright":
+		return KeyBracketRight, true
 	case "capslock":
 		return KeyCapsLock, true
 	case "comma":
 		return KeyComma, true
+	case "contextmenu":
+		return KeyContextMenu, true
 	case "control":
 		return KeyControl, true
+	case "controlleft":
+		return KeyControlLeft, true
+	case "controlright":
+		return KeyControlRight, true
 	case "delete":
 		return KeyDelete, true
+	case "digit0":
+		return KeyDigit0, true
+	case "digit1":
+		return KeyDigit1, true
+	case "digit2":
+		return KeyDigit2, true
+	case "digit3":
+		return KeyDigit3, true
+	case "digit4":
+		return KeyDigit4, true
+	case "digit5":
+		return KeyDigit5, true
+	case "digit6":
+		return KeyDigit6, true
+	case "digit7":
+		return KeyDigit7, true
+	case "digit8":
+		return KeyDigit8, true
+	case "digit9":
+		return KeyDigit9, true
 	case "down":
 		return KeyDown, true
 	case "end":
@@ -704,8 +826,6 @@ func keyNameToKeyCode(name string) (Key, bool) {
 		return KeyKP8, true
 	case "kp9":
 		return KeyKP9, true
-	case "kpadd":
-		return KeyKPAdd, true
 	case "kpdecimal":
 		return KeyKPDecimal, true
 	case "kpdivide":
@@ -724,10 +844,50 @@ func keyNameToKeyCode(name string) (Key, bool) {
 		return KeyLeftBracket, true
 	case "menu":
 		return KeyMenu, true
+	case "meta":
+		return KeyMeta, true
+	case "metaleft":
+		return KeyMetaLeft, true
+	case "metaright":
+		return KeyMetaRight, true
 	case "minus":
 		return KeyMinus, true
 	case "numlock":
 		return KeyNumLock, true
+	case "numpad0":
+		return KeyNumpad0, true
+	case "numpad1":
+		return KeyNumpad1, true
+	case "numpad2":
+		return KeyNumpad2, true
+	case "numpad3":
+		return KeyNumpad3, true
+	case "numpad4":
+		return KeyNumpad4, true
+	case "numpad5":
+		return KeyNumpad5, true
+	case "numpad6":
+		return KeyNumpad6, true
+	case "numpad7":
+		return KeyNumpad7, true
+	case "numpad8":
+		return KeyNumpad8, true
+	case "numpad9":
+		return KeyNumpad9, true
+	case "numpadadd":
+		return KeyNumpadAdd, true
+	case "numpaddecimal":
+		return KeyNumpadDecimal, true
+	case "numpaddivide":
+		return KeyNumpadDivide, true
+	case "numpadenter":
+		return KeyNumpadEnter, true
+	case "numpadequal":
+		return KeyNumpadEqual, true
+	case "numpadmultiply":
+		return KeyNumpadMultiply, true
+	case "numpadsubtract":
+		return KeyNumpadSubtract, true
 	case "pagedown":
 		return KeyPageDown, true
 	case "pageup":
@@ -738,6 +898,8 @@ func keyNameToKeyCode(name string) (Key, bool) {
 		return KeyPeriod, true
 	case "printscreen":
 		return KeyPrintScreen, true
+	case "quote":
+		return KeyQuote, true
 	case "right":
 		return KeyRight, true
 	case "rightbracket":
@@ -748,12 +910,14 @@ func keyNameToKeyCode(name string) (Key, bool) {
 		return KeySemicolon, true
 	case "shift":
 		return KeyShift, true
+	case "shiftleft":
+		return KeyShiftLeft, true
+	case "shiftright":
+		return KeyShiftRight, true
 	case "slash":
 		return KeySlash, true
 	case "space":
 		return KeySpace, true
-	case "super":
-		return KeySuper, true
 	case "tab":
 		return KeyTab, true
 	case "up":

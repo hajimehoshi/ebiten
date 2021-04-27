@@ -148,3 +148,25 @@ func TestInfiniteLoopWithIntro(t *testing.T) {
 		t.Errorf("got: %v, want: %v", err, nil)
 	}
 }
+
+func TestInfiniteLoopWithIncompleteSize(t *testing.T) {
+	// s1 should work as if 4092 is given.
+	s1 := NewInfiniteLoop(bytes.NewReader(make([]byte, 4096)), 4095)
+	n1, err := s1.Seek(4093, io.SeekStart)
+	if err != nil {
+		t.Error(err)
+	}
+	if got, want := n1, int64(4093-4092); got != want {
+		t.Errorf("got: %d, want: %d", got, want)
+	}
+
+	// s2 should work as if 2044 and 2044 are given.
+	s2 := NewInfiniteLoopWithIntro(bytes.NewReader(make([]byte, 4096)), 2047, 2046)
+	n2, err := s2.Seek(4093, io.SeekStart)
+	if err != nil {
+		t.Error(err)
+	}
+	if got, want := n2, int64(2044+(4093-(2044+2044))); got != want {
+		t.Errorf("got: %d, want: %d", got, want)
+	}
+}

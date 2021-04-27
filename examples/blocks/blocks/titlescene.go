@@ -39,13 +39,13 @@ type TitleScene struct {
 	count int
 }
 
-func anyGamepadAbstractButtonPressed(i *Input) bool {
+func anyGamepadAbstractButtonJustPressed(i *Input) bool {
 	if !i.gamepadConfig.IsInitialized() {
 		return false
 	}
 
 	for _, b := range virtualGamepadButtons {
-		if i.gamepadConfig.IsButtonPressed(b) {
+		if i.gamepadConfig.IsButtonJustPressed(b) {
 			return true
 		}
 	}
@@ -59,7 +59,7 @@ func (s *TitleScene) Update(state *GameState) error {
 		return nil
 	}
 
-	if anyGamepadAbstractButtonPressed(state.Input) {
+	if anyGamepadAbstractButtonJustPressed(state.Input) {
 		state.SceneManager.GoTo(NewGameScene())
 		return nil
 	}

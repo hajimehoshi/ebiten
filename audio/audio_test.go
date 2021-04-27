@@ -30,7 +30,7 @@ func setup() {
 }
 
 func teardown() {
-	ResetContext()
+	ResetContextForTesting()
 	context = nil
 }
 

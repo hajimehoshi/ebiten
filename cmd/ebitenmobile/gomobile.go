@@ -23,7 +23,7 @@ import (
 	"runtime"
 )
 
-const gomobileHash = "bcce01171201ce626fb4c107de21a56f310e33bf"
+const gomobileHash = "bdb1ca9a1e083af5929a8214e8a056d638ebbf2d"
 
 func runCommand(command string, args []string, env []string) error {
 	if buildX || buildN {
@@ -103,7 +103,12 @@ func prepareGomobileCommands() error {
 	if err := runGo("mod", "init", "ebitenmobiletemporary"); err != nil {
 		return err
 	}
-	if err := runGo("get", "golang.org/x/mobile@"+gomobileHash); err != nil {
+
+	// To record gomobile to go.sum for Go 1.16 and later, go-get gomobile instaed of golang.org/x/mobile (#1487).
+	// This also records gobind as gomobile depends on gobind indirectly.
+	// Using `...` doesn't work on Windows since mobile/internal/mobileinit cannot be compiled on Windows w/o Cgo (#1493).
+	// Note that `go mod tidy` doesn't work since this removes all the indirect imports.
+	if err := runGo("get", "golang.org/x/mobile/cmd/gomobile@"+gomobileHash); err != nil {
 		return err
 	}
 	if localgm := os.Getenv("EBITENMOBILE_GOMOBILE"); localgm != "" {

@@ -74,6 +74,8 @@ type Input struct {
 	mouseButtonPressed map[int]bool
 	cursorX            int
 	cursorY            int
+	origCursorX        int
+	origCursorY        int
 	wheelX             float64
 	wheelY             float64
 	gamepads           map[driver.GamepadID]gamepad
@@ -83,6 +85,9 @@ type Input struct {
 }
 
 func (i *Input) CursorPosition() (x, y int) {
+	if i.ui.context == nil {
+		return 0, 0
+	}
 	xf, yf := i.ui.context.AdjustPosition(float64(i.cursorX), float64(i.cursorY), i.ui.DeviceScaleFactor())
 	return int(xf), int(yf)
 }
@@ -90,11 +95,12 @@ func (i *Input) CursorPosition() (x, y int) {
 func (i *Input) GamepadSDLID(id driver.GamepadID) string {
 	// This emulates the implementation of EMSCRIPTEN_JoystickGetDeviceGUID.
 	// https://hg.libsdl.org/SDL/file/bc90ce38f1e2/src/joystick/emscripten/SDL_sysjoystick.c#l385
-	if len(i.gamepads) <= int(id) {
+	g, ok := i.gamepads[id]
+	if !ok {
 		return ""
 	}
 	var sdlid [16]byte
-	copy(sdlid[:], []byte(i.gamepads[id].name))
+	copy(sdlid[:], []byte(g.name))
 	return hex.EncodeToString(sdlid[:])
 }
 
@@ -102,10 +108,11 @@ func (i *Input) GamepadSDLID(id driver.GamepadID) string {
 // A PS2 controller returned "810-3-USB Gamepad" on Firefox
 // A Xbox 360 controller returned "xinput" on Firefox and "Xbox 360 Controller (XInput STANDARD GAMEPAD)" on Chrome
 func (i *Input) GamepadName(id driver.GamepadID) string {
-	if len(i.gamepads) <= int(id) {
+	g, ok := i.gamepads[id]
+	if !ok {
 		return ""
 	}
-	return i.gamepads[id].name
+	return g.name
 }
 
 func (i *Input) GamepadIDs() []driver.GamepadID {
@@ -113,7 +120,7 @@ func (i *Input) GamepadIDs() []driver.GamepadID {
 		return nil
 	}
 
-	var r []driver.GamepadID
+	r := make([]driver.GamepadID, 0, len(i.gamepads))
 	for id := range i.gamepads {
 		r = append(r, id)
 	}
@@ -163,7 +170,7 @@ func (i *Input) TouchIDs() []driver.TouchID {
 		return nil
 	}
 
-	var ids []driver.TouchID
+	ids := make([]driver.TouchID, 0, len(i.touches))
 	for id := range i.touches {
 		ids = append(ids, id)
 	}
@@ -279,10 +286,6 @@ func (i *Input) mouseUp(code int) {
 	i.mouseButtonPressed[code] = false
 }
 
-func (i *Input) setMouseCursor(x, y int) {
-	i.cursorX, i.cursorY = x, y
-}
-
 func (i *Input) updateGamepads() {
 	nav := js.Global().Get("navigator")
 	if !nav.Truthy() {
@@ -293,7 +296,9 @@ func (i *Input) updateGamepads() {
 		return
 	}
 
-	i.gamepads = map[driver.GamepadID]gamepad{}
+	for k := range i.gamepads {
+		delete(i.gamepads, k)
+	}
 
 	gamepads := nav.Call("getGamepads")
 	l := gamepads.Length()
@@ -327,6 +332,9 @@ func (i *Input) updateGamepads() {
 			g.buttonPressed[b] = buttons.Index(b).Get("pressed").Bool()
 		}
 
+		if i.gamepads == nil {
+			i.gamepads = map[driver.GamepadID]gamepad{}
+		}
 		i.gamepads[id] = g
 	}
 }
@@ -339,10 +347,10 @@ func (i *Input) updateFromEvent(e js.Value) {
 		c := e.Get("code")
 		if c.Type() != js.TypeString {
 			code := e.Get("keyCode").Int()
-			if edgeKeyCodeToDriverKey[code] == driver.KeyUp ||
-				edgeKeyCodeToDriverKey[code] == driver.KeyDown ||
-				edgeKeyCodeToDriverKey[code] == driver.KeyLeft ||
-				edgeKeyCodeToDriverKey[code] == driver.KeyRight ||
+			if edgeKeyCodeToDriverKey[code] == driver.KeyArrowUp ||
+				edgeKeyCodeToDriverKey[code] == driver.KeyArrowDown ||
+				edgeKeyCodeToDriverKey[code] == driver.KeyArrowLeft ||
+				edgeKeyCodeToDriverKey[code] == driver.KeyArrowRight ||
 				edgeKeyCodeToDriverKey[code] == driver.KeyBackspace ||
 				edgeKeyCodeToDriverKey[code] == driver.KeyTab {
 				e.Call("preventDefault")
@@ -350,10 +358,10 @@ func (i *Input) updateFromEvent(e js.Value) {
 			i.keyDownEdge(code)
 			return
 		}
-		if jsutil.Equal(c, driverKeyToJSKey[driver.KeyUp]) ||
-			jsutil.Equal(c, driverKeyToJSKey[driver.KeyDown]) ||
-			jsutil.Equal(c, driverKeyToJSKey[driver.KeyLeft]) ||
-			jsutil.Equal(c, driverKeyToJSKey[driver.KeyRight]) ||
+		if jsutil.Equal(c, driverKeyToJSKey[driver.KeyArrowUp]) ||
+			jsutil.Equal(c, driverKeyToJSKey[driver.KeyArrowDown]) ||
+			jsutil.Equal(c, driverKeyToJSKey[driver.KeyArrowLeft]) ||
+			jsutil.Equal(c, driverKeyToJSKey[driver.KeyArrowRight]) ||
 			jsutil.Equal(c, driverKeyToJSKey[driver.KeyBackspace]) ||
 			jsutil.Equal(c, driverKeyToJSKey[driver.KeyTab]) {
 			e.Call("preventDefault")
@@ -391,22 +399,40 @@ func (i *Input) updateFromEvent(e js.Value) {
 }
 
 func (i *Input) setMouseCursorFromEvent(e js.Value) {
+	if i.ui.cursorMode == driver.CursorModeCaptured {
+		x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
+		i.origCursorX, i.origCursorY = x, y
+		dx, dy := e.Get("movementX").Int(), e.Get("movementY").Int()
+		i.cursorX += dx
+		i.cursorY += dy
+		return
+	}
+
 	x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
-	i.setMouseCursor(x, y)
+	i.cursorX, i.cursorY = x, y
+	i.origCursorX, i.origCursorY = x, y
 }
 
-func (i *Input) updateTouchesFromEvent(e js.Value) {
+func (i *Input) recoverCursorPosition() {
+	i.cursorX, i.cursorY = i.origCursorX, i.origCursorY
+}
+
+func (in *Input) updateTouchesFromEvent(e js.Value) {
 	j := e.Get("targetTouches")
-	ts := map[driver.TouchID]pos{}
+	for k := range in.touches {
+		delete(in.touches, k)
+	}
 	for i := 0; i < j.Length(); i++ {
 		jj := j.Call("item", i)
 		id := driver.TouchID(jj.Get("identifier").Int())
-		ts[id] = pos{
+		if in.touches == nil {
+			in.touches = map[driver.TouchID]pos{}
+		}
+		in.touches[id] = pos{
 			X: jj.Get("clientX").Int(),
 			Y: jj.Get("clientY").Int(),
 		}
 	}
-	i.touches = ts
 }
 
 func (i *Input) updateForGo2Cpp() {
@@ -414,19 +440,26 @@ func (i *Input) updateForGo2Cpp() {
 		return
 	}
 
-	i.touches = map[driver.TouchID]pos{}
+	for k := range i.touches {
+		delete(i.touches, k)
+	}
 	touchCount := go2cpp.Get("touchCount").Int()
 	for idx := 0; idx < touchCount; idx++ {
 		id := go2cpp.Call("getTouchId", idx)
 		x := go2cpp.Call("getTouchX", idx)
 		y := go2cpp.Call("getTouchY", idx)
+		if i.touches == nil {
+			i.touches = map[driver.TouchID]pos{}
+		}
 		i.touches[driver.TouchID(id.Int())] = pos{
 			X: x.Int(),
 			Y: y.Int(),
 		}
 	}
 
-	i.gamepads = map[driver.GamepadID]gamepad{}
+	for k := range i.gamepads {
+		delete(i.gamepads, k)
+	}
 	gamepadCount := go2cpp.Get("gamepadCount").Int()
 	for idx := 0; idx < gamepadCount; idx++ {
 		g := gamepad{}
@@ -454,6 +487,9 @@ func (i *Input) updateForGo2Cpp() {
 			g.axes[j] = go2cpp.Call("getGamepadAxis", idx, j).Float()
 		}
 
+		if i.gamepads == nil {
+			i.gamepads = map[driver.GamepadID]gamepad{}
+		}
 		i.gamepads[id] = g
 	}
 }

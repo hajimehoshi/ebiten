@@ -14,10 +14,7 @@
 
 // +build ignore
 
-// Note:
-//   * Respect GLFW key names
-//   * https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent.keyCode
-//   * It is best to replace keyCode with code, but many browsers don't implement it.
+// The key name convention follows the Web standard: https://www.w3.org/TR/uievents-code/#keyboard-key-codes
 
 package main
 
@@ -35,15 +32,17 @@ import (
 )
 
 var (
-	nameToGLFWKey             map[string]glfw.Key
-	androidKeyToDriverKeyName map[int]string
-	gbuildKeyToDriverKeyName  map[key.Code]string
-	driverKeyNameToJSKey      map[string]string
-	edgeKeyCodeToName         map[int]string
+	glfwKeyNameToGLFWKey            map[string]glfw.Key
+	driverKeyNameToGLFWKeyName      map[string]string
+	androidKeyToDriverKeyName       map[int]string
+	gbuildKeyToDriverKeyName        map[key.Code]string
+	driverKeyNameToJSKey            map[string]string
+	edgeKeyCodeToName               map[int]string
+	oldEbitenKeyNameToDriverKeyName map[string]string
 )
 
 func init() {
-	nameToGLFWKey = map[string]glfw.Key{
+	glfwKeyNameToGLFWKey = map[string]glfw.Key{
 		"Unknown":      glfw.KeyUnknown,
 		"Space":        glfw.KeySpace,
 		"Apostrophe":   glfw.KeyApostrophe,
@@ -97,17 +96,67 @@ func init() {
 		"Last":         glfw.KeyLast,
 	}
 
+	driverKeyNameToGLFWKeyName = map[string]string{
+		"Space":          "Space",
+		"Quote":          "Apostrophe",
+		"Comma":          "Comma",
+		"Minus":          "Minus",
+		"Period":         "Period",
+		"Slash":          "Slash",
+		"Semicolon":      "Semicolon",
+		"Equal":          "Equal",
+		"BracketLeft":    "LeftBracket",
+		"Backslash":      "Backslash",
+		"BracketRight":   "RightBracket",
+		"Backquote":      "GraveAccent",
+		"Escape":         "Escape",
+		"Enter":          "Enter",
+		"Tab":            "Tab",
+		"Backspace":      "Backspace",
+		"Insert":         "Insert",
+		"Delete":         "Delete",
+		"ArrowRight":     "Right",
+		"ArrowLeft":      "Left",
+		"ArrowDown":      "Down",
+		"ArrowUp":        "Up",
+		"PageUp":         "PageUp",
+		"PageDown":       "PageDown",
+		"Home":           "Home",
+		"End":            "End",
+		"CapsLock":       "CapsLock",
+		"ScrollLock":     "ScrollLock",
+		"NumLock":        "NumLock",
+		"PrintScreen":    "PrintScreen",
+		"Pause":          "Pause",
+		"ShiftLeft":      "LeftShift",
+		"ControlLeft":    "LeftControl",
+		"AltLeft":        "LeftAlt",
+		"MetaLeft":       "LeftSuper",
+		"ShiftRight":     "RightShift",
+		"ControlRight":   "RightControl",
+		"AltRight":       "RightAlt",
+		"MetaRight":      "RightSuper",
+		"ContextMenu":    "Menu",
+		"NumpadAdd":      "KPAdd",
+		"NumpadDecimal":  "KPDecimal",
+		"NumpadDivide":   "KPDivide",
+		"NumpadMultiply": "KPMultiply",
+		"NumpadSubtract": "KPSubtract",
+		"NumpadEnter":    "KPEnter",
+		"NumpadEqual":    "KPEqual",
+	}
+
 	// https://developer.android.com/reference/android/view/KeyEvent
 	androidKeyToDriverKeyName = map[int]string{
 		55:  "Comma",
 		56:  "Period",
-		57:  "LeftAlt",
-		58:  "RightAlt",
+		57:  "AltLeft",
+		58:  "AltRight",
 		115: "CapsLock",
-		113: "LeftControl",
-		114: "RightControl",
-		59:  "LeftShift",
-		60:  "RightShift",
+		113: "ControlLeft",
+		114: "ControlRight",
+		59:  "ShiftLeft",
+		60:  "ShiftRight",
 		66:  "Enter",
 		62:  "Space",
 		61:  "Tab",
@@ -117,47 +166,47 @@ func init() {
 		124: "Insert",
 		93:  "PageDown",
 		92:  "PageUp",
-		20:  "Down",
-		21:  "Left",
-		22:  "Right",
-		19:  "Up",
+		20:  "ArrowDown",
+		21:  "ArrowLeft",
+		22:  "ArrowRight",
+		19:  "ArrowUp",
 		111: "Escape",
 		67:  "Backspace", // KEYCODE_DEL
-		75:  "Apostrophe",
+		75:  "Quote",
 		69:  "Minus",
 		76:  "Slash",
 		74:  "Semicolon",
 		70:  "Equal",
-		71:  "LeftBracket",
+		71:  "BracketLeft",
 		73:  "Backslash",
-		72:  "RightBracket",
-		68:  "GraveAccent",
+		72:  "BracketRight",
+		68:  "Backquote",
 		143: "NumLock",
 		121: "Pause",       // KEYCODE_BREAK
 		120: "PrintScreen", // KEYCODE_SYSRQ
 		116: "ScrollLock",
-		82:  "Menu",
-		158: "KPDecimal",
-		154: "KPDivide",
-		155: "KPMultiply",
-		156: "KPSubtract",
-		157: "KPAdd",
-		160: "KPEnter",
-		161: "KPEqual",
-		117: "LeftSuper",  // KEYCODE_META_LEFT
-		118: "RightSuper", // KEYCODE_META_RIGHT
+		82:  "ContextMenu",
+		157: "NumpadAdd",
+		158: "NumpadDecimal",
+		154: "NumpadDivide",
+		155: "NumpadMultiply",
+		156: "NumpadSubtract",
+		160: "NumpadEnter",
+		161: "NumpadEqual",
+		117: "MetaLeft",
+		118: "MetaRight",
 	}
 
 	gbuildKeyToDriverKeyName = map[key.Code]string{
 		key.CodeComma:              "Comma",
 		key.CodeFullStop:           "Period",
-		key.CodeLeftAlt:            "LeftAlt",
-		key.CodeRightAlt:           "RightAlt",
+		key.CodeLeftAlt:            "AltLeft",
+		key.CodeRightAlt:           "AltRight",
 		key.CodeCapsLock:           "CapsLock",
-		key.CodeLeftControl:        "LeftControl",
-		key.CodeRightControl:       "RightControl",
-		key.CodeLeftShift:          "LeftShift",
-		key.CodeRightShift:         "RightShift",
+		key.CodeLeftControl:        "ControlLeft",
+		key.CodeRightControl:       "ControlRight",
+		key.CodeLeftShift:          "ShiftLeft",
+		key.CodeRightShift:         "ShiftRight",
 		key.CodeReturnEnter:        "Enter",
 		key.CodeSpacebar:           "Space",
 		key.CodeTab:                "Tab",
@@ -167,32 +216,32 @@ func init() {
 		key.CodeInsert:             "Insert",
 		key.CodePageDown:           "PageDown",
 		key.CodePageUp:             "PageUp",
-		key.CodeDownArrow:          "Down",
-		key.CodeLeftArrow:          "Left",
-		key.CodeRightArrow:         "Right",
-		key.CodeUpArrow:            "Up",
+		key.CodeDownArrow:          "ArrowDown",
+		key.CodeLeftArrow:          "ArrowLeft",
+		key.CodeRightArrow:         "ArrowRight",
+		key.CodeUpArrow:            "ArrowUp",
 		key.CodeEscape:             "Escape",
 		key.CodeDeleteBackspace:    "Backspace",
-		key.CodeApostrophe:         "Apostrophe",
+		key.CodeApostrophe:         "Quote",
 		key.CodeHyphenMinus:        "Minus",
 		key.CodeSlash:              "Slash",
 		key.CodeSemicolon:          "Semicolon",
 		key.CodeEqualSign:          "Equal",
-		key.CodeLeftSquareBracket:  "LeftBracket",
+		key.CodeLeftSquareBracket:  "BracketLeft",
 		key.CodeBackslash:          "Backslash",
-		key.CodeRightSquareBracket: "RightBracket",
-		key.CodeGraveAccent:        "GraveAccent",
+		key.CodeRightSquareBracket: "BracketRight",
+		key.CodeGraveAccent:        "Backquote",
 		key.CodeKeypadNumLock:      "NumLock",
 		key.CodePause:              "Pause",
-		key.CodeKeypadFullStop:     "KPDecimal",
-		key.CodeKeypadSlash:        "KPDivide",
-		key.CodeKeypadAsterisk:     "KPMultiply",
-		key.CodeKeypadHyphenMinus:  "KPSubtract",
-		key.CodeKeypadPlusSign:     "KPAdd",
-		key.CodeKeypadEnter:        "KPEnter",
-		key.CodeKeypadEqualSign:    "KPEqual",
-		key.CodeLeftGUI:            "LeftSuper",
-		key.CodeRightGUI:           "RightSuper",
+		key.CodeKeypadPlusSign:     "NumpadAdd",
+		key.CodeKeypadFullStop:     "NumpadDecimal",
+		key.CodeKeypadSlash:        "NumpadDivide",
+		key.CodeKeypadAsterisk:     "NumpadMultiply",
+		key.CodeKeypadHyphenMinus:  "NumpadSubtract",
+		key.CodeKeypadEnter:        "NumpadEnter",
+		key.CodeKeypadEqualSign:    "NumpadEqual",
+		key.CodeLeftGUI:            "MetaLeft",
+		key.CodeRightGUI:           "MetaRight",
 
 		// Missing keys:
 		//   driver.KeyPrintScreen
@@ -200,72 +249,76 @@ func init() {
 		//   driver.KeyMenu
 	}
 
+	// The driver key and JS key are almost same but very slightly different (e.g., 'A' vs 'KeyA').
 	driverKeyNameToJSKey = map[string]string{
-		"Comma":        "Comma",
-		"Period":       "Period",
-		"LeftAlt":      "AltLeft",
-		"RightAlt":     "AltRight",
-		"CapsLock":     "CapsLock",
-		"LeftControl":  "ControlLeft",
-		"RightControl": "ControlRight",
-		"LeftShift":    "ShiftLeft",
-		"RightShift":   "ShiftRight",
-		"Enter":        "Enter",
-		"Space":        "Space",
-		"Tab":          "Tab",
-		"Delete":       "Delete",
-		"End":          "End",
-		"Home":         "Home",
-		"Insert":       "Insert",
-		"PageDown":     "PageDown",
-		"PageUp":       "PageUp",
-		"Down":         "ArrowDown",
-		"Left":         "ArrowLeft",
-		"Right":        "ArrowRight",
-		"Up":           "ArrowUp",
-		"Escape":       "Escape",
-		"Backspace":    "Backspace",
-		"Apostrophe":   "Quote",
-		"Minus":        "Minus",
-		"Slash":        "Slash",
-		"Semicolon":    "Semicolon",
-		"Equal":        "Equal",
-		"LeftBracket":  "BracketLeft",
-		"Backslash":    "Backslash",
-		"RightBracket": "BracketRight",
-		"GraveAccent":  "Backquote",
-		"NumLock":      "NumLock",
-		"Pause":        "Pause",
-		"PrintScreen":  "PrintScreen",
-		"ScrollLock":   "ScrollLock",
-		"Menu":         "ContextMenu",
-		"KPDecimal":    "NumpadDecimal",
-		"KPDivide":     "NumpadDivide",
-		"KPMultiply":   "NumpadMultiply",
-		"KPSubtract":   "NumpadSubtract",
-		"KPAdd":        "NumpadAdd",
-		"KPEnter":      "NumpadEnter",
-		"KPEqual":      "NumpadEqual",
-		"LeftSuper":    "MetaLeft",
-		"RightSuper":   "MetaRight",
+		"Comma":          "Comma",
+		"Period":         "Period",
+		"AltLeft":        "AltLeft",
+		"AltRight":       "AltRight",
+		"CapsLock":       "CapsLock",
+		"ControlLeft":    "ControlLeft",
+		"ControlRight":   "ControlRight",
+		"ShiftLeft":      "ShiftLeft",
+		"ShiftRight":     "ShiftRight",
+		"Enter":          "Enter",
+		"Space":          "Space",
+		"Tab":            "Tab",
+		"Delete":         "Delete",
+		"End":            "End",
+		"Home":           "Home",
+		"Insert":         "Insert",
+		"PageDown":       "PageDown",
+		"PageUp":         "PageUp",
+		"ArrowDown":      "ArrowDown",
+		"ArrowLeft":      "ArrowLeft",
+		"ArrowRight":     "ArrowRight",
+		"ArrowUp":        "ArrowUp",
+		"Escape":         "Escape",
+		"Backspace":      "Backspace",
+		"Quote":          "Quote",
+		"Minus":          "Minus",
+		"Slash":          "Slash",
+		"Semicolon":      "Semicolon",
+		"Equal":          "Equal",
+		"BracketLeft":    "BracketLeft",
+		"Backslash":      "Backslash",
+		"BracketRight":   "BracketRight",
+		"Backquote":      "Backquote",
+		"NumLock":        "NumLock",
+		"Pause":          "Pause",
+		"PrintScreen":    "PrintScreen",
+		"ScrollLock":     "ScrollLock",
+		"ContextMenu":    "ContextMenu",
+		"NumpadAdd":      "NumpadAdd",
+		"NumpadDecimal":  "NumpadDecimal",
+		"NumpadDivide":   "NumpadDivide",
+		"NumpadMultiply": "NumpadMultiply",
+		"NumpadSubtract": "NumpadSubtract",
+		"NumpadEnter":    "NumpadEnter",
+		"NumpadEqual":    "NumpadEqual",
+		"MetaLeft":       "MetaLeft",
+		"MetaRight":      "MetaRight",
 	}
 
 	// ASCII: 0 - 9
 	for c := '0'; c <= '9'; c++ {
-		nameToGLFWKey[string(c)] = glfw.Key0 + glfw.Key(c) - '0'
-		androidKeyToDriverKeyName[7+int(c)-'0'] = string(c)
+		glfwKeyNameToGLFWKey[string(c)] = glfw.Key0 + glfw.Key(c) - '0'
+		name := "Digit" + string(c)
+		driverKeyNameToGLFWKeyName[name] = string(c)
+		androidKeyToDriverKeyName[7+int(c)-'0'] = name
 		// Gomobile's key code (= USB HID key codes) has successive key codes for 1, 2, ..., 9, 0
 		// in this order.
 		if c == '0' {
-			gbuildKeyToDriverKeyName[key.Code0] = string(c)
+			gbuildKeyToDriverKeyName[key.Code0] = name
 		} else {
-			gbuildKeyToDriverKeyName[key.Code1+key.Code(c)-'1'] = string(c)
+			gbuildKeyToDriverKeyName[key.Code1+key.Code(c)-'1'] = name
 		}
-		driverKeyNameToJSKey[string(c)] = "Digit" + string(c)
+		driverKeyNameToJSKey[name] = name
 	}
 	// ASCII: A - Z
 	for c := 'A'; c <= 'Z'; c++ {
-		nameToGLFWKey[string(c)] = glfw.KeyA + glfw.Key(c) - 'A'
+		glfwKeyNameToGLFWKey[string(c)] = glfw.KeyA + glfw.Key(c) - 'A'
+		driverKeyNameToGLFWKeyName[string(c)] = string(c)
 		androidKeyToDriverKeyName[29+int(c)-'A'] = string(c)
 		gbuildKeyToDriverKeyName[key.CodeA+key.Code(c)-'A'] = string(c)
 		driverKeyNameToJSKey[string(c)] = "Key" + string(c)
@@ -273,7 +326,8 @@ func init() {
 	// Function keys
 	for i := 1; i <= 12; i++ {
 		name := "F" + strconv.Itoa(i)
-		nameToGLFWKey[name] = glfw.KeyF1 + glfw.Key(i) - 1
+		glfwKeyNameToGLFWKey[name] = glfw.KeyF1 + glfw.Key(i) - 1
+		driverKeyNameToGLFWKeyName[name] = name
 		androidKeyToDriverKeyName[131+i-1] = name
 		gbuildKeyToDriverKeyName[key.CodeF1+key.Code(i)-1] = name
 		driverKeyNameToJSKey[name] = name
@@ -281,8 +335,9 @@ func init() {
 	// Numpad
 	// https://www.w3.org/TR/uievents-code/#key-numpad-section
 	for c := '0'; c <= '9'; c++ {
-		name := "KP" + string(c)
-		nameToGLFWKey[name] = glfw.KeyKP0 + glfw.Key(c) - '0'
+		name := "Numpad" + string(c)
+		glfwKeyNameToGLFWKey["KP"+string(c)] = glfw.KeyKP0 + glfw.Key(c) - '0'
+		driverKeyNameToGLFWKeyName[name] = "KP" + string(c)
 		androidKeyToDriverKeyName[144+int(c)-'0'] = name
 		// Gomobile's key code (= USB HID key codes) has successive key codes for 1, 2, ..., 9, 0
 		// in this order.
@@ -291,7 +346,46 @@ func init() {
 		} else {
 			gbuildKeyToDriverKeyName[key.CodeKeypad1+key.Code(c)-'1'] = name
 		}
-		driverKeyNameToJSKey[name] = "Numpad" + string(c)
+		driverKeyNameToJSKey[name] = name
+	}
+
+	// Keys for backward compatibility
+	oldEbitenKeyNameToDriverKeyName = map[string]string{
+		"0":            "Digit0",
+		"1":            "Digit1",
+		"2":            "Digit2",
+		"3":            "Digit3",
+		"4":            "Digit4",
+		"5":            "Digit5",
+		"6":            "Digit6",
+		"7":            "Digit7",
+		"8":            "Digit8",
+		"9":            "Digit9",
+		"Apostrophe":   "Quote",
+		"Down":         "ArrowDown",
+		"GraveAccent":  "Backquote",
+		"KP0":          "Numpad0",
+		"KP1":          "Numpad1",
+		"KP2":          "Numpad2",
+		"KP3":          "Numpad3",
+		"KP4":          "Numpad4",
+		"KP5":          "Numpad5",
+		"KP6":          "Numpad6",
+		"KP7":          "Numpad7",
+		"KP8":          "Numpad8",
+		"KP9":          "Numpad9",
+		"KPDecimal":    "NumpadDecimal",
+		"KPDivide":     "NumpadDivide",
+		"KPMultiply":   "NumpadMultiply",
+		"KPSubtract":   "NumpadSubtract",
+		"KPEnter":      "NumpadEnter",
+		"KPEqual":      "NumpadEqual",
+		"Left":         "ArrowLeft",
+		"LeftBracket":  "BracketLeft",
+		"Menu":         "ContextMenu",
+		"Right":        "ArrowRight",
+		"RightBracket": "BracketRight",
+		"Up":           "ArrowUp",
 	}
 }
 
@@ -301,10 +395,10 @@ func init() {
 	edgeKeyCodeToName = map[int]string{
 		0xbc: "Comma",
 		0xbe: "Period",
-		0x12: "LeftAlt",
+		0x12: "AltLeft",
 		0x14: "CapsLock",
-		0x11: "LeftControl",
-		0x10: "LeftShift",
+		0x11: "ControlLeft",
+		0x10: "ShiftLeft",
 		0x0D: "Enter",
 		0x20: "Space",
 		0x09: "Tab",
@@ -314,43 +408,43 @@ func init() {
 		0x2D: "Insert",
 		0x22: "PageDown",
 		0x21: "PageUp",
-		0x28: "Down",
-		0x25: "Left",
-		0x27: "Right",
-		0x26: "Up",
+		0x28: "ArrowDown",
+		0x25: "ArrowLeft",
+		0x27: "ArrowRight",
+		0x26: "ArrowUp",
 		0x1B: "Escape",
-		0xde: "Apostrophe",
+		0xde: "Quote",
 		0xbd: "Minus",
 		0xbf: "Slash",
 		0xba: "Semicolon",
 		0xbb: "Equal",
-		0xdb: "LeftBracket",
+		0xdb: "BracketLeft",
 		0xdc: "Backslash",
-		0xdd: "RightBracket",
-		0xc0: "GraveAccent",
+		0xdd: "BracketRight",
+		0xc0: "Backquote",
 		0x08: "Backspace",
 		0x90: "NumLock",
-		0x6e: "KPDecimal",
-		0x6f: "KPDivide",
-		0x6a: "KPMultiply",
-		0x6d: "KPSubtract",
-		0x6b: "KPAdd",
+		0x6b: "NumpadAdd",
+		0x6e: "NumpadDecimal",
+		0x6f: "NumpadDivide",
+		0x6a: "NumpadMultiply",
+		0x6d: "NumpadSubtract",
 		0x13: "Pause",
 		0x91: "ScrollLock",
-		0x5d: "Menu",
-		0x5b: "LeftSuper",
-		0x5c: "RightSuper",
+		0x5d: "ContextMenu",
+		0x5b: "MetaLeft",
+		0x5c: "MetaRight",
 
 		// On Edge, this key does not work. PrintScreen works only on keyup event.
 		// 0x2C: "PrintScreen",
 
-		// On Edge, it is impossible to tell KPEnter and Enter / KPEqual and Equal.
-		// 0x0d: "KPEnter",
-		// 0x0c: "KPEqual",
+		// On Edge, it is impossible to tell NumpadEnter and Enter / NumpadEqual and Equal.
+		// 0x0d: "NumpadEnter",
+		// 0x0c: "NumpadEqual",
 	}
 	// ASCII: 0 - 9
 	for c := '0'; c <= '9'; c++ {
-		edgeKeyCodeToName[int(c)] = string(c)
+		edgeKeyCodeToName[int(c)] = "Digit" + string(c)
 	}
 	// ASCII: A - Z
 	for c := 'A'; c <= 'Z'; c++ {
@@ -362,7 +456,7 @@ func init() {
 	}
 	// Numpad keys
 	for c := '0'; c <= '9'; c++ {
-		edgeKeyCodeToName[0x60+int(c-'0')] = "KP" + string(c)
+		edgeKeyCodeToName[0x60+int(c-'0')] = "Numpad" + string(c)
 	}
 }
 
@@ -386,16 +480,21 @@ type Key int
 // Keys.
 const (
 {{range $index, $name := .EbitenKeyNamesWithoutMods}}Key{{$name}} Key = Key(driver.Key{{$name}})
-{{end}}	KeyAlt Key = Key(driver.KeyReserved0)
+{{end}}	KeyAlt     Key = Key(driver.KeyReserved0)
 	KeyControl Key = Key(driver.KeyReserved1)
-	KeyShift Key = Key(driver.KeyReserved2)
-	KeySuper Key = Key(driver.KeyReserved3)
-	KeyMax Key = KeySuper
+	KeyShift   Key = Key(driver.KeyReserved2)
+	KeyMeta    Key = Key(driver.KeyReserved3)
+	KeyMax     Key = KeyMeta
+
+	// Keys for backward compatibility.
+	// Deprecated: as of 2.1.0.
+{{range $old, $new := .OldEbitenKeyNameToDriverKeyName}}Key{{$old}} Key = Key(driver.Key{{$new}})
+{{end}}
 )
 
 func (k Key) isValid() bool {
 	switch k {
-	{{range $name := .EbitenKeyNames}}case Key{{$name}}:
+	{{range $name := .EbitenKeyNamesWithoutOld}}case Key{{$name}}:
 		return true
 	{{end}}
 	default:
@@ -408,7 +507,7 @@ func (k Key) isValid() bool {
 // If k is an undefined key, String returns an empty string.
 func (k Key) String() string {
 	switch k {
-	{{range $name := .EbitenKeyNames}}case Key{{$name}}:
+	{{range $name := .EbitenKeyNamesWithoutOld}}case Key{{$name}}:
 		return {{$name | printf "%q"}}
 	{{end}}}
 	return ""
@@ -484,12 +583,12 @@ import (
 )
 
 var glfwKeyToDriverKey = map[glfw.Key]driver.Key{
-{{range $index, $name := .DriverKeyNames}}glfw.Key{{$name}}: driver.Key{{$name}},
+{{range $dname, $gname := .DriverKeyNameToGLFWKeyName}}glfw.Key{{$gname}}: driver.Key{{$dname}},
 {{end}}
 }
 
 var driverKeyToGLFWKey = map[driver.Key]glfw.Key{
-{{range $index, $name := .DriverKeyNames}}driver.Key{{$name}}: glfw.Key{{$name}},
+{{range $dname, $gname := .DriverKeyNameToGLFWKeyName}}driver.Key{{$dname}}: glfw.Key{{$gname}},
 {{end}}
 }
 `
@@ -528,7 +627,7 @@ const glfwKeysTmpl = `{{.License}}
 package glfw
 
 const (
-{{range $name, $key := .NameToGLFWKey}}Key{{$name}} = Key({{$key}})
+{{range $name, $key := .GLFWKeyNameToGLFWKey}}Key{{$name}} = Key({{$key}})
 {{end}}
 )
 `
@@ -661,34 +760,25 @@ func main() {
 	doNotEdit := "// Code generated by genkeys.go using 'go generate'. DO NOT EDIT."
 
 	ebitenKeyNames := []string{}
+	ebitenKeyNamesWithoutOld := []string{}
 	ebitenKeyNamesWithoutMods := []string{}
 	driverKeyNames := []string{}
+
 	for name := range driverKeyNameToJSKey {
 		driverKeyNames = append(driverKeyNames, name)
-		if !strings.HasSuffix(name, "Alt") && !strings.HasSuffix(name, "Control") && !strings.HasSuffix(name, "Shift") && !strings.HasSuffix(name, "Super") {
-			ebitenKeyNames = append(ebitenKeyNames, name)
-			ebitenKeyNamesWithoutMods = append(ebitenKeyNamesWithoutMods, name)
-			continue
-		}
-		if name == "LeftAlt" {
-			ebitenKeyNames = append(ebitenKeyNames, "Alt")
-			continue
-		}
-		if name == "LeftControl" {
-			ebitenKeyNames = append(ebitenKeyNames, "Control")
-			continue
-		}
-		if name == "LeftShift" {
-			ebitenKeyNames = append(ebitenKeyNames, "Shift")
-			continue
-		}
-		if name == "LeftSuper" {
-			ebitenKeyNames = append(ebitenKeyNames, "Super")
-			continue
-		}
+		ebitenKeyNames = append(ebitenKeyNames, name)
+		ebitenKeyNamesWithoutOld = append(ebitenKeyNamesWithoutOld, name)
+		ebitenKeyNamesWithoutMods = append(ebitenKeyNamesWithoutMods, name)
 	}
+	for old := range oldEbitenKeyNameToDriverKeyName {
+		ebitenKeyNames = append(ebitenKeyNames, old)
+	}
+	// Keys for modifiers
+	ebitenKeyNames = append(ebitenKeyNames, "Alt", "Control", "Shift", "Meta")
+	ebitenKeyNamesWithoutOld = append(ebitenKeyNamesWithoutOld, "Alt", "Control", "Shift", "Meta")
 
 	sort.Slice(ebitenKeyNames, keyNamesLess(ebitenKeyNames))
+	sort.Slice(ebitenKeyNamesWithoutOld, keyNamesLess(ebitenKeyNamesWithoutOld))
 	sort.Slice(ebitenKeyNamesWithoutMods, keyNamesLess(ebitenKeyNamesWithoutMods))
 	sort.Slice(driverKeyNames, keyNamesLess(driverKeyNames))
 
@@ -732,29 +822,35 @@ func main() {
 		}
 		// NOTE: According to godoc, maps are automatically sorted by key.
 		if err := tmpl.Execute(f, struct {
-			License                   string
-			DoNotEdit                 string
-			BuildTag                  string
-			DriverKeyNameToJSKey      map[string]string
-			EdgeKeyCodeToName         map[int]string
-			EbitenKeyNames            []string
-			EbitenKeyNamesWithoutMods []string
-			DriverKeyNames            []string
-			NameToGLFWKey             map[string]glfw.Key
-			AndroidKeyToDriverKeyName map[int]string
-			GBuildKeyToDriverKeyName  map[key.Code]string
+			License                         string
+			DoNotEdit                       string
+			BuildTag                        string
+			DriverKeyNameToJSKey            map[string]string
+			EdgeKeyCodeToName               map[int]string
+			EbitenKeyNames                  []string
+			EbitenKeyNamesWithoutOld        []string
+			EbitenKeyNamesWithoutMods       []string
+			GLFWKeyNameToGLFWKey            map[string]glfw.Key
+			DriverKeyNames                  []string
+			DriverKeyNameToGLFWKeyName      map[string]string
+			AndroidKeyToDriverKeyName       map[int]string
+			GBuildKeyToDriverKeyName        map[key.Code]string
+			OldEbitenKeyNameToDriverKeyName map[string]string
 		}{
-			License:                   license,
-			DoNotEdit:                 doNotEdit,
-			BuildTag:                  buildTag,
-			DriverKeyNameToJSKey:      driverKeyNameToJSKey,
-			EdgeKeyCodeToName:         edgeKeyCodeToName,
-			EbitenKeyNames:            ebitenKeyNames,
-			EbitenKeyNamesWithoutMods: ebitenKeyNamesWithoutMods,
-			DriverKeyNames:            driverKeyNames,
-			NameToGLFWKey:             nameToGLFWKey,
-			AndroidKeyToDriverKeyName: androidKeyToDriverKeyName,
-			GBuildKeyToDriverKeyName:  gbuildKeyToDriverKeyName,
+			License:                         license,
+			DoNotEdit:                       doNotEdit,
+			BuildTag:                        buildTag,
+			DriverKeyNameToJSKey:            driverKeyNameToJSKey,
+			EdgeKeyCodeToName:               edgeKeyCodeToName,
+			EbitenKeyNames:                  ebitenKeyNames,
+			EbitenKeyNamesWithoutOld:        ebitenKeyNamesWithoutOld,
+			EbitenKeyNamesWithoutMods:       ebitenKeyNamesWithoutMods,
+			GLFWKeyNameToGLFWKey:            glfwKeyNameToGLFWKey,
+			DriverKeyNames:                  driverKeyNames,
+			DriverKeyNameToGLFWKeyName:      driverKeyNameToGLFWKeyName,
+			AndroidKeyToDriverKeyName:       androidKeyToDriverKeyName,
+			GBuildKeyToDriverKeyName:        gbuildKeyToDriverKeyName,
+			OldEbitenKeyNameToDriverKeyName: oldEbitenKeyNameToDriverKeyName,
 		}); err != nil {
 			log.Fatal(err)
 		}

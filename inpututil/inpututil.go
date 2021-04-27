@@ -36,6 +36,7 @@ type inputState struct {
 	gamepadButtonDurations     map[ebiten.GamepadID][]int
 	prevGamepadButtonDurations map[ebiten.GamepadID][]int
 
+	touchIDs           map[ebiten.TouchID]struct{}
 	touchDurations     map[ebiten.TouchID]int
 	prevTouchDurations map[ebiten.TouchID]int
 
@@ -55,6 +56,7 @@ var theInputState = &inputState{
 	gamepadButtonDurations:     map[ebiten.GamepadID][]int{},
 	prevGamepadButtonDurations: map[ebiten.GamepadID][]int{},
 
+	touchIDs:           map[ebiten.TouchID]struct{}{},
 	touchDurations:     map[ebiten.TouchID]int{},
 	prevTouchDurations: map[ebiten.TouchID]int{},
 }
@@ -97,18 +99,24 @@ func (i *inputState) update() {
 	// Gamepads
 
 	// Copy the gamepad IDs.
-	i.prevGamepadIDs = map[ebiten.GamepadID]struct{}{}
+	for id := range i.prevGamepadIDs {
+		delete(i.prevGamepadIDs, id)
+	}
 	for id := range i.gamepadIDs {
 		i.prevGamepadIDs[id] = struct{}{}
 	}
 
 	// Copy the gamepad button durations.
-	i.prevGamepadButtonDurations = map[ebiten.GamepadID][]int{}
+	for id := range i.prevGamepadButtonDurations {
+		delete(i.prevGamepadButtonDurations, id)
+	}
 	for id, ds := range i.gamepadButtonDurations {
 		i.prevGamepadButtonDurations[id] = append([]int{}, ds...)
 	}
 
-	i.gamepadIDs = map[ebiten.GamepadID]struct{}{}
+	for id := range i.gamepadIDs {
+		delete(i.gamepadIDs, id)
+	}
 	for _, id := range ebiten.GamepadIDs() {
 		i.gamepadIDs[id] = struct{}{}
 		if _, ok := i.gamepadButtonDurations[id]; !ok {
@@ -123,38 +131,51 @@ func (i *inputState) update() {
 			}
 		}
 	}
-	gamepadIDsToDelete := []ebiten.GamepadID{}
 	for id := range i.gamepadButtonDurations {
 		if _, ok := i.gamepadIDs[id]; !ok {
-			gamepadIDsToDelete = append(gamepadIDsToDelete, id)
+			delete(i.gamepadButtonDurations, id)
 		}
-	}
-	for _, id := range gamepadIDsToDelete {
-		delete(i.gamepadButtonDurations, id)
 	}
 
 	// Touches
-	ids := map[ebiten.TouchID]struct{}{}
 
 	// Copy the touch durations.
-	i.prevTouchDurations = map[ebiten.TouchID]int{}
+	for id := range i.prevTouchDurations {
+		delete(i.prevTouchDurations, id)
+	}
 	for id := range i.touchDurations {
 		i.prevTouchDurations[id] = i.touchDurations[id]
 	}
 
+	for id := range i.touchIDs {
+		delete(i.touchIDs, id)
+	}
 	for _, id := range ebiten.TouchIDs() {
-		ids[id] = struct{}{}
+		i.touchIDs[id] = struct{}{}
 		i.touchDurations[id]++
 	}
-	touchIDsToDelete := []ebiten.TouchID{}
 	for id := range i.touchDurations {
-		if _, ok := ids[id]; !ok {
-			touchIDsToDelete = append(touchIDsToDelete, id)
+		if _, ok := i.touchIDs[id]; !ok {
+			delete(i.touchDurations, id)
 		}
 	}
-	for _, id := range touchIDsToDelete {
-		delete(i.touchDurations, id)
+}
+
+// PressedKeys returns a set of currently pressed keyboard keys.
+//
+// PressedKeys is concurrent safe.
+func PressedKeys() []ebiten.Key {
+	theInputState.m.RLock()
+	defer theInputState.m.RUnlock()
+
+	keys := make([]ebiten.Key, 0, len(theInputState.keyDurations))
+	for i, d := range theInputState.keyDurations {
+		if d == 0 {
+			continue
+		}
+		keys = append(keys, ebiten.Key(i))
 	}
+	return keys
 }
 
 // IsKeyJustPressed returns a boolean value indicating

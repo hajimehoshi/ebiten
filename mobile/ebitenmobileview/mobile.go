@@ -30,6 +30,7 @@ import (
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 	"github.com/hajimehoshi/ebiten/v2/internal/uidriver/mobile"
 )
@@ -84,4 +85,8 @@ func Resume() {
 
 func OnContextLost() {
 	restorable.OnContextLost()
+}
+
+func DeviceScale() float64 {
+	return devicescale.GetAt(0, 0)
 }

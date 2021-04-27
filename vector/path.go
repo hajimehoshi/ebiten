@@ -26,7 +26,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector/internal/triangulate"
 )
 
-var emptyImage = ebiten.NewImage(3, 3)
+var (
+	emptyImage    = ebiten.NewImage(3, 3)
+	emptySubImage = emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
+)
 
 func init() {
 	emptyImage.Fill(color.White)
@@ -139,5 +142,5 @@ func (p *Path) Fill(dst *ebiten.Image, op *FillOptions) {
 		}
 		base += uint16(len(seg))
 	}
-	dst.DrawTriangles(vertices, indices, emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image), nil)
+	dst.DrawTriangles(vertices, indices, emptySubImage, nil)
 }

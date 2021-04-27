@@ -350,6 +350,8 @@ func (c *drawTrianglesCommand) String() string {
 		mode = "xor"
 	case driver.CompositeModeLighter:
 		mode = "lighter"
+	case driver.CompositeModeMultiply:
+		mode = "multiply"
 	default:
 		panic(fmt.Sprintf("graphicscommand: invalid composite mode: %d", c.mode))
 	}
@@ -510,38 +512,6 @@ func (c *replacePixelsCommand) AddNumIndices(n int) {
 
 func (c *replacePixelsCommand) CanMergeWithDrawTrianglesCommand(dst *Image, src [graphics.ShaderImageNum]*Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, shader *Shader) bool {
 	return false
-}
-
-type syncCommand struct {
-	result <-chan struct{}
-	img    *Image
-}
-
-func (c *syncCommand) Exec(indexOffset int) error {
-	c.result = c.img.image.Sync()
-	return nil
-}
-
-func (c *syncCommand) NumVertices() int {
-	return 0
-}
-
-func (c *syncCommand) NumIndices() int {
-	return 0
-}
-
-func (c *syncCommand) AddNumVertices(n int) {
-}
-
-func (c *syncCommand) AddNumIndices(n int) {
-}
-
-func (c *syncCommand) CanMergeWithDrawTrianglesCommand(dst *Image, src [graphics.ShaderImageNum]*Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, shader *Shader) bool {
-	return false
-}
-
-func (c *syncCommand) String() string {
-	return fmt.Sprintf("sync: image: %d", c.img.id)
 }
 
 type pixelsCommand struct {

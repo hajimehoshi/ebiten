@@ -1,14 +1,5 @@
 # License
 
-## classic.mp3
-
-```
-https://musopen.org/music/466/johann-sebastian-bach/air-on-the-g-string-from-orchestral-suite-no-3-bwv-1068/
-
-Air on the G String (from Orchestral Suite no. 3, BWV 1068)
-Public Domain
-```
-
 ## jab.wav
 
 ```
@@ -27,7 +18,7 @@ CC0
 ```
 
 
-## ragtime.ogg
+## ragtime.ogg / ragtime.mp3
 
 ```
 https://soundcloud.com/jacaranda-trilhas-sonoras/james-scott-01-frog-legs-rag

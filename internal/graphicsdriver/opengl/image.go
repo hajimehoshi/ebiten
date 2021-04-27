@@ -60,13 +60,6 @@ func (i *Image) setViewport() error {
 	return nil
 }
 
-func (i *Image) Sync() <-chan struct{} {
-	// There is no way to sync the textures data on the system memory and GPU.
-	ch := make(chan struct{})
-	close(ch)
-	return ch
-}
-
 func (i *Image) Pixels() ([]byte, error) {
 	if err := i.ensureFramebuffer(); err != nil {
 		return nil, err

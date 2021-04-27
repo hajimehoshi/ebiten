@@ -16,7 +16,7 @@ package ebiten
 
 import (
 	"image"
-	"sync"
+	"sync/atomic"
 )
 
 const (
@@ -42,6 +42,9 @@ func IsWindowDecorated() bool {
 // SetWindowDecorated works only on desktops.
 // SetWindowDecorated does nothing on other platforms.
 //
+// SetWindowDecorated does nothing on macOS when the window is fullscreened natively by the macOS desktop
+// instead of SetFullscreen(true).
+//
 // SetWindowDecorated is concurrent-safe.
 func SetWindowDecorated(decorated bool) {
 	if w := uiDriver().Window(); w != nil {
@@ -66,6 +69,9 @@ func IsWindowResizable() bool {
 // The window is not resizable by default.
 //
 // If SetWindowResizable is called with true and Run is used, SetWindowResizable panics. Use RunGame instead.
+//
+// SetWindowResizable does nothing on macOS when the window is fullscreened natively by the macOS desktop
+// instead of SetFullscreen(true).
 //
 // SetWindowResizable is concurrent-safe.
 func SetWindowResizable(resizable bool) {
@@ -115,15 +121,12 @@ func SetWindowIcon(iconImages []image.Image) {
 //
 // WindowPosition panics if the main loop does not start yet.
 //
-// WindowPosition returns the last window position on fullscreen mode.
+// WindowPosition returns the last window position in fullscreen mode.
 //
 // WindowPosition returns (0, 0) on browsers and mobiles.
 //
 // WindowPosition is concurrent-safe.
 func WindowPosition() (x, y int) {
-	if x, y, ok := getInitWindowPosition(); ok {
-		return x, y
-	}
 	if w := uiDriver().Window(); w != nil {
 		return w.Position()
 	}
@@ -134,81 +137,40 @@ func WindowPosition() (x, y int) {
 // The origin position is the left-upper corner of the current monitor.
 // The unit is device-independent pixels.
 //
-// SetWindowPosition does nothing on fullscreen mode.
+// SetWindowPosition does nothing in fullscreen mode.
 //
 // SetWindowPosition does nothing on browsers and mobiles.
 //
 // SetWindowPosition is concurrent-safe.
 func SetWindowPosition(x, y int) {
-	if setInitWindowPosition(x, y) {
-		return
-	}
+	atomic.StoreUint32(&windowPositionSetExplicitly, 1)
 	if w := uiDriver().Window(); w != nil {
 		w.SetPosition(x, y)
 	}
 }
 
 var (
-	windowM            sync.Mutex
-	initWindowPosition = &struct {
-		x int
-		y int
-	}{
-		x: invalidPos,
-		y: invalidPos,
-	}
+	windowPositionSetExplicitly uint32
 )
 
-func getInitWindowPosition() (x, y int, ok bool) {
-	windowM.Lock()
-	defer windowM.Unlock()
-	if initWindowPosition == nil {
-		return 0, 0, false
-	}
-	if initWindowPosition.x == invalidPos || initWindowPosition.y == invalidPos {
-		return 0, 0, false
-	}
-	return initWindowPosition.x, initWindowPosition.y, true
-}
-
-func setInitWindowPosition(x, y int) bool {
-	windowM.Lock()
-	defer windowM.Unlock()
-	if initWindowPosition == nil {
-		return false
-	}
-	initWindowPosition.x = x
-	initWindowPosition.y = y
-	return true
-}
-
-func fixWindowPosition(width, height int) {
-	windowM.Lock()
-	defer windowM.Unlock()
-
-	defer func() {
-		initWindowPosition = nil
-	}()
-
+func initializeWindowPositionIfNeeded(width, height int) {
 	w := uiDriver().Window()
 	if w == nil {
 		return
 	}
 
-	if initWindowPosition.x == invalidPos || initWindowPosition.y == invalidPos {
+	if atomic.LoadUint32(&windowPositionSetExplicitly) == 0 {
 		sw, sh := uiDriver().ScreenSizeInFullscreen()
 		x := (sw - width) / 2
 		y := (sh - height) / 3
 		w.SetPosition(x, y)
-	} else {
-		w.SetPosition(initWindowPosition.x, initWindowPosition.y)
 	}
 }
 
 // WindowSize returns the window size on desktops.
 // WindowSize returns (0, 0) on other environments.
 //
-// On fullscreen mode, WindowSize returns the original window size.
+// In fullscreen mode, WindowSize returns the original window size.
 //
 // WindowSize is concurrent-safe.
 func WindowSize() (int, int) {
@@ -221,7 +183,7 @@ func WindowSize() (int, int) {
 // SetWindowSize sets the window size on desktops.
 // SetWindowSize does nothing on other environments.
 //
-// On fullscreen mode, SetWindowSize sets the original window size.
+// In fullscreen mode, SetWindowSize sets the original window size.
 //
 // SetWindowSize panics if width or height is not a positive number.
 //
@@ -232,6 +194,27 @@ func SetWindowSize(width, height int) {
 	}
 	if w := uiDriver().Window(); w != nil {
 		w.SetSize(width, height)
+	}
+}
+
+// WindowSizeLimist returns the limitation of the window size on desktops.
+// A negative value indicates the size is not limited.
+//
+// WindowMaxSize is concurrent-safe.
+func WindowSizeLimits() (minw, minh, maxw, maxh int) {
+	if w := uiDriver().Window(); w != nil {
+		return w.SizeLimits()
+	}
+	return -1, -1, -1, -1
+}
+
+// SetWindowSizeLimits sets the limitation of the window size on desktops.
+// A negative value indicates the size is not limited.
+//
+// SetWindowMaxSize is concurrent-safe.
+func SetWindowSizeLimits(minw, minh, maxw, maxh int) {
+	if w := uiDriver().Window(); w != nil {
+		w.SetSizeLimits(minw, minh, maxw, maxh)
 	}
 }
 
@@ -250,6 +233,9 @@ func IsWindowFloating() bool {
 // SetWindowFloating sets the state whether the window is always shown above all the other windows.
 //
 // SetWindowFloating does nothing on browsers or mobiles.
+//
+// SetWindowFloating does nothing on macOS when the window is fullscreened natively by the macOS desktop
+// instead of SetFullscreen(true).
 //
 // SetWindowFloating is concurrent-safe.
 func SetWindowFloating(float bool) {

@@ -338,27 +338,21 @@ import android.hardware.input.InputManager;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Display;
 import android.view.KeyEvent;
 import android.view.InputDevice;
 import android.view.MotionEvent;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 
 import {{.JavaPkg}}.ebitenmobileview.Ebitenmobileview;
 
 public class EbitenView extends ViewGroup implements InputManager.InputDeviceListener {
-    private double getDeviceScale() {
-        if (this.deviceScale == 0.0) {
-            this.deviceScale = getResources().getDisplayMetrics().density;
-        }
-        return this.deviceScale;
+    private static double pxToDp(double x) {
+        return x / Ebitenmobileview.deviceScale();
     }
-
-    private double pxToDp(double x) {
-        return x / getDeviceScale();
-    }
-
-    private double deviceScale = 0.0;
 
     public EbitenView(Context context) {
         super(context);
@@ -513,6 +507,12 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         if (inputDevice == null) {
             return;
         }
+
+        // A fingerprint reader is unexpectedly recognized as a joystick. Skip this (#1542).
+        if (inputDevice.getName().equals("uinput-fpc")) {
+            return;
+        }
+
         int sources = inputDevice.getSources();
         if ((sources & InputDevice.SOURCE_GAMEPAD) != InputDevice.SOURCE_GAMEPAD &&
             (sources & InputDevice.SOURCE_JOYSTICK) != InputDevice.SOURCE_JOYSTICK) {

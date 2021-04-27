@@ -70,7 +70,7 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	// Draw each tile with each DrawImage call.
 	// As the source images of all DrawImage calls are always same,
-	// this rendering is done very effectively.
+	// this rendering is done very efficiently.
 	// For more detail, see https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2#Image.DrawImage
 	const xNum = screenWidth / tileSize
 	for _, l := range g.layers {
