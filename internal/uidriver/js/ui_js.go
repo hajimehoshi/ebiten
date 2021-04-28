@@ -102,7 +102,6 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 		f := canvas.Get("requestFullscreen")
 		if !f.Truthy() {
 			f = canvas.Get("webkitRequestFullscreen")
-			return
 		}
 		f.Call("bind", canvas).Invoke()
 		return
@@ -422,11 +421,15 @@ func init() {
 		return nil
 	}))
 	document.Call("addEventListener", "pointerlockerror", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		js.Global().Get("console").Call("error", "pointerlockerror event is fired. 'sandbox=\"allow-pointer-lock\"' might be required. There is a known issue on Safari (hajimehoshi/ebiten#1604)")
+		js.Global().Get("console").Call("error", "pointerlockerror event is fired. 'sandbox=\"allow-pointer-lock\"' might be required at an iframe. This function on browsers must be called as a result of a gestural interaction or orientation change.")
 		return nil
 	}))
 	document.Call("addEventListener", "fullscreenerror", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		js.Global().Get("console").Call("error", "fullscreenerror event is fired. This function on browsers must be called as a result of a gestural interaction or orientation change.")
+		js.Global().Get("console").Call("error", "fullscreenerror event is fired. 'sandbox=\"fullscreen\"' might be required at an iframe. This function on browsers must be called as a result of a gestural interaction or orientation change.")
+		return nil
+	}))
+	document.Call("addEventListener", "webkitfullscreenerror", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		js.Global().Get("console").Call("error", "webkitfullscreenerror event is fired. 'sandbox=\"fullscreen\"' might be required at an iframe. This function on browsers must be called as a result of a gestural interaction or orientation change.")
 		return nil
 	}))
 }
