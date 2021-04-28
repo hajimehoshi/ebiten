@@ -29,4 +29,6 @@ const (
 	CursorShapeText
 	CursorShapeCrosshair
 	CursorShapePointer
+	CursorShapeHorizontalResize
+	CursorShapeVerticalResize
 )

@@ -31,8 +31,10 @@ type CursorShapeType int
 
 // CursorShapeTypes
 const (
-	CursorShapeDefault   CursorShapeType = CursorShapeType(driver.CursorShapeDefault)
-	CursorShapeText      CursorShapeType = CursorShapeType(driver.CursorShapeText)
-	CursorShapeCrosshair CursorShapeType = CursorShapeType(driver.CursorShapeCrosshair)
-	CursorShapePointer   CursorShapeType = CursorShapeType(driver.CursorShapePointer)
+	CursorShapeDefault          CursorShapeType = CursorShapeType(driver.CursorShapeDefault)
+	CursorShapeText             CursorShapeType = CursorShapeType(driver.CursorShapeText)
+	CursorShapeCrosshair        CursorShapeType = CursorShapeType(driver.CursorShapeCrosshair)
+	CursorShapePointer          CursorShapeType = CursorShapeType(driver.CursorShapePointer)
+	CursorShapeHorizontalResize CursorShapeType = CursorShapeType(driver.CursorShapeHorizontalResize)
+	CursorShapeVerticalResize   CursorShapeType = CursorShapeType(driver.CursorShapeVerticalResize)
 )

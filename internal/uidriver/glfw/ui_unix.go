@@ -20,6 +20,7 @@ package glfw
 import (
 	"math"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
@@ -66,4 +67,9 @@ func (u *UserInterface) nativeWindow() uintptr {
 
 func (u *UserInterface) isNativeFullscreen() bool {
 	return false
+}
+
+func (u *UserInterface) setNativeCursor(shape driver.CursorShape) {
+	// TODO: Use native API in the future (issue #1571)
+	u.window.SetCursor(glfwSystemCursors[shape])
 }
