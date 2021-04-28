@@ -190,8 +190,8 @@ func initialize() error {
 	glfwSystemCursors[driver.CursorShapeText] = glfw.CreateStandardCursor(glfw.IBeamCursor)
 	glfwSystemCursors[driver.CursorShapeCrosshair] = glfw.CreateStandardCursor(glfw.CrosshairCursor)
 	glfwSystemCursors[driver.CursorShapePointer] = glfw.CreateStandardCursor(glfw.HandCursor)
-	glfwSystemCursors[driver.CursorShapeHorizontalResize] = glfw.CreateStandardCursor(glfw.HResizeCursor)
-	glfwSystemCursors[driver.CursorShapeVerticalResize] = glfw.CreateStandardCursor(glfw.VResizeCursor)
+	glfwSystemCursors[driver.CursorShapeEWResize] = glfw.CreateStandardCursor(glfw.HResizeCursor)
+	glfwSystemCursors[driver.CursorShapeNSResize] = glfw.CreateStandardCursor(glfw.VResizeCursor)
 
 	return nil
 }
