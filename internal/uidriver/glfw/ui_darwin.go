@@ -47,24 +47,24 @@ package glfw
 // static void setNativeCursor(int cursorID) {
 //   id cursor = [[NSCursor class] performSelector:@selector(arrowCursor)];
 //   switch(cursorID){
-//     case 0:
-//       cursor = [[NSCursor class] performSelector:@selector(arrowCursor)];
-//       break;
-//     case 1:
-//       cursor = [[NSCursor class] performSelector:@selector(IBeamCursor)];
-//       break;
-//     case 2:
-//       cursor = [[NSCursor class] performSelector:@selector(crosshairCursor)];
-//       break;
-//     case 3:
-//       cursor = [[NSCursor class] performSelector:@selector(pointingHandCursor)];
-//       break;
-//     case 4:
-//       cursor = [[NSCursor class] performSelector:@selector(_windowResizeEastWestCursor)];
-//       break;
-//     case 5:
-//       cursor = [[NSCursor class] performSelector:@selector(_windowResizeNorthSouthCursor)];
-//       break;
+//   case 0:
+//     cursor = [[NSCursor class] performSelector:@selector(arrowCursor)];
+//     break;
+//   case 1:
+//     cursor = [[NSCursor class] performSelector:@selector(IBeamCursor)];
+//     break;
+//   case 2:
+//     cursor = [[NSCursor class] performSelector:@selector(crosshairCursor)];
+//     break;
+//   case 3:
+//     cursor = [[NSCursor class] performSelector:@selector(pointingHandCursor)];
+//     break;
+//   case 4:
+//     cursor = [[NSCursor class] performSelector:@selector(_windowResizeEastWestCursor)];
+//     break;
+//   case 5:
+//     cursor = [[NSCursor class] performSelector:@selector(_windowResizeNorthSouthCursor)];
+//     break;
 //   }
 //   [cursor push];
 // }
