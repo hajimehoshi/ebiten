@@ -189,6 +189,6 @@ func (u *UserInterface) isNativeFullscreen() bool {
 }
 
 func (u *UserInterface) setNativeCursor(shape driver.CursorShape) {
-	// TODO: Use native API in the future (issue #1571)
+	// TODO: Use native API in the future #1571
 	u.window.SetCursor(glfwSystemCursors[shape])
 }
