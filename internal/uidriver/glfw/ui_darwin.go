@@ -46,7 +46,7 @@ package glfw
 //
 // static void setNativeCursor(int cursorID) {
 //   id cursor = [[NSCursor class] performSelector:@selector(arrowCursor)];
-//   switch(cursorID){
+//   switch (cursorID) {
 //   case 0:
 //     cursor = [[NSCursor class] performSelector:@selector(arrowCursor)];
 //     break;
