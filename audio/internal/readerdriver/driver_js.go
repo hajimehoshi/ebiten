@@ -40,10 +40,11 @@ type contextImpl struct {
 	bitDepthInBytes int
 }
 
-func NewContext(sampleRate int, channelNum int, bitDepthInBytes int, onReady func()) (Context, error) {
+func NewContext(sampleRate int, channelNum int, bitDepthInBytes int) (Context, chan struct{}, error) {
+	ready := make(chan struct{})
 	if js.Global().Get("go2cpp").Truthy() {
-		defer onReady()
-		return &go2cppDriverWrapper{go2cpp.NewContext(sampleRate, channelNum, bitDepthInBytes)}, nil
+		close(ready)
+		return &go2cppDriverWrapper{go2cpp.NewContext(sampleRate, channelNum, bitDepthInBytes)}, ready, nil
 	}
 
 	class := js.Global().Get("AudioContext")
@@ -51,7 +52,7 @@ func NewContext(sampleRate int, channelNum int, bitDepthInBytes int, onReady fun
 		class = js.Global().Get("webkitAudioContext")
 	}
 	if !class.Truthy() {
-		return nil, errors.New("readerdriver: AudioContext or webkitAudioContext was not found")
+		return nil, nil, errors.New("readerdriver: AudioContext or webkitAudioContext was not found")
 	}
 	options := js.Global().Get("Object").New()
 	options.Set("sampleRate", sampleRate)
@@ -69,7 +70,7 @@ func NewContext(sampleRate int, channelNum int, bitDepthInBytes int, onReady fun
 			if !d.ready {
 				d.audioContext.Call("resume")
 				d.ready = true
-				onReady()
+				close(ready)
 			}
 			js.Global().Get("document").Call("removeEventListener", event, f)
 			return nil
@@ -86,7 +87,7 @@ func NewContext(sampleRate int, channelNum int, bitDepthInBytes int, onReady fun
 	setCallback("keyup")
 	setCallback("mouseup")
 
-	return d, nil
+	return d, ready, nil
 }
 
 type playerImpl struct {
