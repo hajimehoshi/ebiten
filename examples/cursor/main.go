@@ -75,12 +75,12 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func main() {
 	g := &Game{
 		grids: map[image.Rectangle]ebiten.CursorShapeType{
-			image.Rect(70, 100, 170, 300):  ebiten.CursorShapeDefault,
-			image.Rect(170, 100, 270, 300): ebiten.CursorShapeText,
-			image.Rect(270, 100, 370, 300): ebiten.CursorShapeCrosshair,
-			image.Rect(370, 100, 470, 200): ebiten.CursorShapeEWResize,
-			image.Rect(370, 200, 470, 300): ebiten.CursorShapeNSResize,
-			image.Rect(470, 100, 570, 300): ebiten.CursorShapePointer,
+			image.Rect(100, 100, 200, 200): ebiten.CursorShapeDefault,
+			image.Rect(200, 100, 300, 200): ebiten.CursorShapeText,
+			image.Rect(300, 100, 400, 200): ebiten.CursorShapeCrosshair,
+			image.Rect(100, 200, 200, 300): ebiten.CursorShapeEWResize,
+			image.Rect(200, 200, 300, 300): ebiten.CursorShapeNSResize,
+			image.Rect(300, 200, 400, 300): ebiten.CursorShapePointer,
 		},
 		gridColors: map[image.Rectangle]color.Color{},
 	}
