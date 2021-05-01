@@ -12,26 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !android
-// +build !js
+// +build generate
 
-package readerdriver
+//go:generate go run gen.go
 
-import (
-	"fmt"
-	"runtime"
-)
-
-func IsAvailable() bool {
-	return false
-}
-
-type context struct {
-	sampleRate      int
-	channelNum      int
-	bitDepthInBytes int
-}
-
-func NewContext(sampleRate int, channelNum int, bitDepthInBytes int) (Context, chan struct{}, error) {
-	panic(fmt.Sprintf("readerdriver: NewContext is not available on this environment: GOOS=%s", runtime.GOOS))
-}
+package oboe

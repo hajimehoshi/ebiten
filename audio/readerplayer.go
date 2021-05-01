@@ -237,6 +237,10 @@ type timeStream struct {
 	buf           []byte
 	unread        int
 	maxBufferSize int
+
+	// m is a mutex for this stream.
+	// All the exported functions are protected by this mutex as Read can be read from a different goroutine than Seek.
+	m sync.Mutex
 }
 
 func newTimeStream(r io.Reader, sampleRate int, maxBufferSize int) (*timeStream, error) {
@@ -257,6 +261,9 @@ func newTimeStream(r io.Reader, sampleRate int, maxBufferSize int) (*timeStream,
 }
 
 func (s *timeStream) Unread(n int) {
+	s.m.Lock()
+	defer s.m.Unlock()
+
 	if s.unread+n > len(s.buf) {
 		// This should not happen usually, but the player's UnplayedBufferSize can include some errors.
 		n = len(s.buf) - s.unread
@@ -266,6 +273,9 @@ func (s *timeStream) Unread(n int) {
 }
 
 func (s *timeStream) Read(buf []byte) (int, error) {
+	s.m.Lock()
+	defer s.m.Unlock()
+
 	if s.unread > 0 {
 		n := copy(buf, s.buf[len(s.buf)-s.unread:])
 		s.unread -= n
@@ -283,6 +293,9 @@ func (s *timeStream) Read(buf []byte) (int, error) {
 }
 
 func (s *timeStream) Seek(offset time.Duration) error {
+	s.m.Lock()
+	defer s.m.Unlock()
+
 	o := int64(offset) * bytesPerSample * int64(s.sampleRate) / int64(time.Second)
 
 	// Align the byte position with the samples.
@@ -305,5 +318,8 @@ func (s *timeStream) Seek(offset time.Duration) error {
 }
 
 func (s *timeStream) Current() int64 {
+	s.m.Lock()
+	defer s.m.Unlock()
+
 	return s.pos
 }
