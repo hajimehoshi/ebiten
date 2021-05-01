@@ -59,12 +59,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		ebitenutil.DebugPrint(screen, "CursorShape: Text")
 	case ebiten.CursorShapeCrosshair:
 		ebitenutil.DebugPrint(screen, "CursorShape: Crosshair")
+	case ebiten.CursorShapePointer:
+		ebitenutil.DebugPrint(screen, "CursorShape: Pointer")
 	case ebiten.CursorShapeEWResize:
 		ebitenutil.DebugPrint(screen, "CursorShape: EW Resize")
 	case ebiten.CursorShapeNSResize:
 		ebitenutil.DebugPrint(screen, "CursorShape: NS Resize")
-	case ebiten.CursorShapePointer:
-		ebitenutil.DebugPrint(screen, "CursorShape: Pointer")
 	}
 }
 
@@ -78,15 +78,15 @@ func main() {
 			image.Rect(100, 100, 200, 200): ebiten.CursorShapeDefault,
 			image.Rect(200, 100, 300, 200): ebiten.CursorShapeText,
 			image.Rect(300, 100, 400, 200): ebiten.CursorShapeCrosshair,
-			image.Rect(100, 200, 200, 300): ebiten.CursorShapeEWResize,
-			image.Rect(200, 200, 300, 300): ebiten.CursorShapeNSResize,
-			image.Rect(300, 200, 400, 300): ebiten.CursorShapePointer,
+			image.Rect(100, 200, 200, 300): ebiten.CursorShapePointer,
+			image.Rect(200, 200, 300, 300): ebiten.CursorShapeEWResize,
+			image.Rect(300, 200, 400, 300): ebiten.CursorShapeNSResize,
 		},
 		gridColors: map[image.Rectangle]color.Color{},
 	}
 	for rect, c := range g.grids {
 		clr := color.RGBA{0x40, 0x40, 0x40, 0xff}
-		if c == 0 {
+		if c%2 == 0 {
 			clr.R = 0x80
 		} else {
 			clr.G = 0x80
