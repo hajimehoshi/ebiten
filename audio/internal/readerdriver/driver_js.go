@@ -30,7 +30,7 @@ func IsAvailable() bool {
 	return true
 }
 
-type contextImpl struct {
+type context struct {
 	audioContext js.Value
 	ready        bool
 	callbacks    map[string]js.Func
@@ -57,7 +57,7 @@ func NewContext(sampleRate int, channelNum int, bitDepthInBytes int) (Context, c
 	options := js.Global().Get("Object").New()
 	options.Set("sampleRate", sampleRate)
 
-	d := &contextImpl{
+	d := &context{
 		audioContext:    class.New(options),
 		sampleRate:      sampleRate,
 		channelNum:      channelNum,
@@ -90,8 +90,8 @@ func NewContext(sampleRate int, channelNum int, bitDepthInBytes int) (Context, c
 	return d, ready, nil
 }
 
-type playerImpl struct {
-	context *contextImpl
+type player struct {
+	context *context
 	src     io.Reader
 	eof     bool
 	state   playerState
@@ -104,19 +104,19 @@ type playerImpl struct {
 	appendBufferFunc  js.Func
 }
 
-func (c *contextImpl) NewPlayer(src io.Reader) Player {
-	p := &playerImpl{
+func (c *context) NewPlayer(src io.Reader) Player {
+	p := &player{
 		context: c,
 		src:     src,
 		gain:    c.audioContext.Call("createGain"),
 	}
 	p.appendBufferFunc = js.FuncOf(p.appendBuffer)
 	p.gain.Call("connect", c.audioContext.Get("destination"))
-	runtime.SetFinalizer(p, (*playerImpl).Close)
+	runtime.SetFinalizer(p, (*player).Close)
 	return p
 }
 
-func (c *contextImpl) Close() error {
+func (c *context) Close() error {
 	// TODO: Implement this
 	return nil
 }
@@ -124,7 +124,7 @@ func (c *contextImpl) Close() error {
 // TODO: The term 'buffer' is confusing. Name each buffer with good terms.
 
 // oneBufferSize returns the size of one buffer in the player implementation.
-func (c *contextImpl) oneBufferSize() int {
+func (c *context) oneBufferSize() int {
 	bytesPerSample := c.channelNum * c.bitDepthInBytes
 	s := c.sampleRate * bytesPerSample / 4
 
@@ -134,12 +134,12 @@ func (c *contextImpl) oneBufferSize() int {
 
 // maxBufferSize returns the maximum size of the buffer for the audio source.
 // This buffer is used when unreading on pausing the player.
-func (c *contextImpl) MaxBufferSize() int {
+func (c *context) MaxBufferSize() int {
 	// The number of underlying buffers should be 2.
 	return c.oneBufferSize() * 2
 }
 
-func (p *playerImpl) Pause() {
+func (p *player) Pause() {
 	if p.state != playerPlay {
 		return
 	}
@@ -155,7 +155,7 @@ func (p *playerImpl) Pause() {
 	p.nextPos = 0
 }
 
-func (p *playerImpl) appendBuffer(this js.Value, args []js.Value) interface{} {
+func (p *player) appendBuffer(this js.Value, args []js.Value) interface{} {
 	// appendBuffer is called as the 'ended' callback of a buffer.
 	// 'this' is an AudioBufferSourceNode that already finishes its playing.
 	for i, n := range p.bufferSourceNodes {
@@ -235,7 +235,7 @@ func (p *playerImpl) appendBuffer(this js.Value, args []js.Value) interface{} {
 	return nil
 }
 
-func (p *playerImpl) Play() {
+func (p *player) Play() {
 	if p.state != playerPaused {
 		return
 	}
@@ -244,11 +244,11 @@ func (p *playerImpl) Play() {
 	p.appendBuffer(js.Undefined(), nil)
 }
 
-func (p *playerImpl) IsPlaying() bool {
+func (p *player) IsPlaying() bool {
 	return p.state == playerPlay
 }
 
-func (p *playerImpl) Reset() {
+func (p *player) Reset() {
 	if p.state == playerClosed {
 		return
 	}
@@ -258,15 +258,15 @@ func (p *playerImpl) Reset() {
 	p.buf = p.buf[:0]
 }
 
-func (p *playerImpl) Volume() float64 {
+func (p *player) Volume() float64 {
 	return p.gain.Get("gain").Get("value").Float()
 }
 
-func (p *playerImpl) SetVolume(volume float64) {
+func (p *player) SetVolume(volume float64) {
 	p.gain.Get("gain").Set("value", volume)
 }
 
-func (p *playerImpl) UnplayedBufferSize() int64 {
+func (p *player) UnplayedBufferSize() int64 {
 	// This is not an accurate buffer size as part of the buffers might already be consumed.
 	var sec float64
 	for _, n := range p.bufferSourceNodes {
@@ -275,11 +275,11 @@ func (p *playerImpl) UnplayedBufferSize() int64 {
 	return int64(sec * float64(p.context.sampleRate*p.context.channelNum*p.context.bitDepthInBytes))
 }
 
-func (p *playerImpl) Err() error {
+func (p *player) Err() error {
 	return p.err
 }
 
-func (p *playerImpl) Close() error {
+func (p *player) Close() error {
 	runtime.SetFinalizer(p, nil)
 	p.Reset()
 	p.state = playerClosed
