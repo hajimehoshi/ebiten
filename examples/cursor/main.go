@@ -61,6 +61,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		ebitenutil.DebugPrint(screen, "CursorShape: Crosshair")
 	case ebiten.CursorShapePointer:
 		ebitenutil.DebugPrint(screen, "CursorShape: Pointer")
+	case ebiten.CursorShapeEWResize:
+		ebitenutil.DebugPrint(screen, "CursorShape: EW Resize")
+	case ebiten.CursorShapeNSResize:
+		ebitenutil.DebugPrint(screen, "CursorShape: NS Resize")
 	}
 }
 
@@ -71,22 +75,21 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func main() {
 	g := &Game{
 		grids: map[image.Rectangle]ebiten.CursorShapeType{
-			image.Rect(100, 100, 200, 300): ebiten.CursorShapeDefault,
-			image.Rect(200, 100, 300, 300): ebiten.CursorShapeText,
-			image.Rect(300, 100, 400, 300): ebiten.CursorShapeCrosshair,
-			image.Rect(400, 100, 500, 300): ebiten.CursorShapePointer,
+			image.Rect(100, 100, 200, 200): ebiten.CursorShapeDefault,
+			image.Rect(200, 100, 300, 200): ebiten.CursorShapeText,
+			image.Rect(300, 100, 400, 200): ebiten.CursorShapeCrosshair,
+			image.Rect(100, 200, 200, 300): ebiten.CursorShapePointer,
+			image.Rect(200, 200, 300, 300): ebiten.CursorShapeEWResize,
+			image.Rect(300, 200, 400, 300): ebiten.CursorShapeNSResize,
 		},
 		gridColors: map[image.Rectangle]color.Color{},
 	}
 	for rect, c := range g.grids {
 		clr := color.RGBA{0x40, 0x40, 0x40, 0xff}
-		switch c % 3 {
-		case 0:
+		if c%2 == 0 {
 			clr.R = 0x80
-		case 1:
+		} else {
 			clr.G = 0x80
-		case 2:
-			clr.B = 0x80
 		}
 		g.gridColors[rect] = clr
 	}

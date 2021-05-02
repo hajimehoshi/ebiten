@@ -190,6 +190,8 @@ func initialize() error {
 	glfwSystemCursors[driver.CursorShapeText] = glfw.CreateStandardCursor(glfw.IBeamCursor)
 	glfwSystemCursors[driver.CursorShapeCrosshair] = glfw.CreateStandardCursor(glfw.CrosshairCursor)
 	glfwSystemCursors[driver.CursorShapePointer] = glfw.CreateStandardCursor(glfw.HandCursor)
+	glfwSystemCursors[driver.CursorShapeEWResize] = glfw.CreateStandardCursor(glfw.HResizeCursor)
+	glfwSystemCursors[driver.CursorShapeNSResize] = glfw.CreateStandardCursor(glfw.VResizeCursor)
 
 	return nil
 }
@@ -651,7 +653,7 @@ func (u *UserInterface) SetCursorShape(shape driver.CursorShape) {
 		return
 	}
 	_ = u.t.Call(func() error {
-		u.window.SetCursor(glfwSystemCursors[shape])
+		u.setNativeCursor(shape)
 		return nil
 	})
 }

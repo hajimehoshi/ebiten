@@ -41,6 +41,10 @@ func driverCursorShapeToCSSCursor(cursor driver.CursorShape) string {
 		return "crosshair"
 	case driver.CursorShapePointer:
 		return "pointer"
+	case driver.CursorShapeEWResize:
+		return "ew-resize"
+	case driver.CursorShapeNSResize:
+		return "ns-resize"
 	}
 	return "auto"
 }

@@ -35,4 +35,6 @@ const (
 	CursorShapeText      CursorShapeType = CursorShapeType(driver.CursorShapeText)
 	CursorShapeCrosshair CursorShapeType = CursorShapeType(driver.CursorShapeCrosshair)
 	CursorShapePointer   CursorShapeType = CursorShapeType(driver.CursorShapePointer)
+	CursorShapeEWResize  CursorShapeType = CursorShapeType(driver.CursorShapeEWResize)
+	CursorShapeNSResize  CursorShapeType = CursorShapeType(driver.CursorShapeNSResize)
 )
