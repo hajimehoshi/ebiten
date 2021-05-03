@@ -22,7 +22,9 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"image"
 	"image/color"
+	_ "image/png"
 	"io"
 	"io/ioutil"
 	"log"
@@ -35,6 +37,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/audio/wav"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	raudio "github.com/hajimehoshi/ebiten/v2/examples/resources/audio"
+	riaudio "github.com/hajimehoshi/ebiten/v2/examples/resources/images/audio"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
@@ -49,6 +52,44 @@ var (
 	playerBarColor     = color.RGBA{0x80, 0x80, 0x80, 0xff}
 	playerCurrentColor = color.RGBA{0xff, 0xff, 0xff, 0xff}
 )
+
+var (
+	playButtonPosition  image.Point
+	alertButtonPosition image.Point
+
+	playButtonImage  *ebiten.Image
+	pauseButtonImage *ebiten.Image
+	alertButtonImage *ebiten.Image
+)
+
+func init() {
+	img, _, err := image.Decode(bytes.NewReader(riaudio.Play_png))
+	if err != nil {
+		panic(err)
+	}
+	playButtonImage = ebiten.NewImageFromImage(img)
+
+	img, _, err = image.Decode(bytes.NewReader(riaudio.Pause_png))
+	if err != nil {
+		panic(err)
+	}
+	pauseButtonImage = ebiten.NewImageFromImage(img)
+
+	img, _, err = image.Decode(bytes.NewReader(riaudio.Alert_png))
+	if err != nil {
+		panic(err)
+	}
+	alertButtonImage = ebiten.NewImageFromImage(img)
+
+	const buttonPadding = 16
+
+	w, _ := playButtonImage.Size()
+	playButtonPosition.X = (screenWidth - w*2 + buttonPadding*1) / 2
+	playButtonPosition.Y = screenHeight - 160
+
+	alertButtonPosition.X = playButtonPosition.X + w + buttonPadding
+	alertButtonPosition.Y = playButtonPosition.Y
+}
 
 type musicType int
 
@@ -172,13 +213,34 @@ func (p *Player) update() error {
 	return nil
 }
 
-func (p *Player) playSEIfNeeded() {
+func (p *Player) shouldPlaySE() bool {
 	if p.seBytes == nil {
 		// Bytes for the SE is not loaded yet.
-		return
+		return false
 	}
 
-	if !inpututil.IsKeyJustPressed(ebiten.KeyP) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyP) {
+		return true
+	}
+	r := image.Rectangle{
+		Min: alertButtonPosition,
+		Max: alertButtonPosition.Add(image.Pt(alertButtonImage.Size())),
+	}
+	if image.Pt(ebiten.CursorPosition()).In(r) {
+		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+			return true
+		}
+	}
+	for _, id := range inpututil.JustPressedTouchIDs() {
+		if image.Pt(ebiten.TouchPosition(id)).In(r) {
+			return true
+		}
+	}
+	return false
+}
+
+func (p *Player) playSEIfNeeded() {
+	if !p.shouldPlaySE() {
 		return
 	}
 	sePlayer := audio.NewPlayerFromBytes(p.audioContext, p.seBytes)
@@ -201,8 +263,29 @@ func (p *Player) updateVolumeIfNeeded() {
 	p.audioPlayer.SetVolume(float64(p.volume128) / 128)
 }
 
+func (p *Player) shouldSwitchPlayStateIfNeeded() bool {
+	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
+		return true
+	}
+	r := image.Rectangle{
+		Min: playButtonPosition,
+		Max: playButtonPosition.Add(image.Pt(playButtonImage.Size())),
+	}
+	if image.Pt(ebiten.CursorPosition()).In(r) {
+		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+			return true
+		}
+	}
+	for _, id := range inpututil.JustPressedTouchIDs() {
+		if image.Pt(ebiten.TouchPosition(id)).In(r) {
+			return true
+		}
+	}
+	return false
+}
+
 func (p *Player) switchPlayStateIfNeeded() {
-	if !inpututil.IsKeyJustPressed(ebiten.KeyS) {
+	if !p.shouldSwitchPlayStateIfNeeded() {
 		return
 	}
 	if p.audioPlayer.IsPlaying() {
@@ -261,6 +344,18 @@ func (p *Player) draw(screen *ebiten.Image) {
 	m := (c / time.Minute) % 100
 	s := (c / time.Second) % 60
 	currentTimeStr := fmt.Sprintf("%02d:%02d", m, s)
+
+	// Draw buttons
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(float64(playButtonPosition.X), float64(playButtonPosition.Y))
+	if p.audioPlayer.IsPlaying() {
+		screen.DrawImage(pauseButtonImage, op)
+	} else {
+		screen.DrawImage(playButtonImage, op)
+	}
+	op.GeoM.Reset()
+	op.GeoM.Translate(float64(alertButtonPosition.X), float64(alertButtonPosition.Y))
+	screen.DrawImage(alertButtonImage, op)
 
 	// Draw the debug message.
 	msg := fmt.Sprintf(`TPS: %0.2f
