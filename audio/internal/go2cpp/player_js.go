@@ -138,7 +138,7 @@ func (p *Player) Play() {
 	}
 	n, err := p.src.Read(p.buf)
 	if err != nil && err != io.EOF {
-		p.setError(err)
+		p.setErrorImpl(err)
 		return
 	}
 	if n > 0 {
@@ -243,7 +243,10 @@ func (p *Player) close(remove bool) error {
 func (p *Player) setError(err error) {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
+	p.setErrorImpl(err)
+}
 
+func (p *Player) setErrorImpl(err error) {
 	if p.state != playerStateClosed && p.v.Truthy() {
 		p.v.Call("close", true)
 		p.v = js.Undefined()
