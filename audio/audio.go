@@ -127,9 +127,15 @@ func NewContext(sampleRate int) *Context {
 	h := getHook()
 	h.OnSuspendAudio(func() {
 		c.semaphore <- struct{}{}
+		if s, ok := np.(interface{ suspend() }); ok {
+			s.suspend()
+		}
 	})
 	h.OnResumeAudio(func() {
 		<-c.semaphore
+		if s, ok := np.(interface{ resume() }); ok {
+			s.resume()
+		}
 	})
 
 	h.AppendHookOnBeforeUpdate(func() error {
