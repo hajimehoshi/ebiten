@@ -21,8 +21,8 @@ import (
 type Context interface {
 	NewPlayer(io.Reader) Player
 	MaxBufferSize() int
-	Suspend()
-	Resume()
+	Suspend() error
+	Resume() error
 	io.Closer
 }
 

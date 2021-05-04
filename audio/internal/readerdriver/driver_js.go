@@ -139,12 +139,14 @@ func (c *context) MaxBufferSize() int {
 	return c.oneBufferSize() * 2
 }
 
-func (c *context) Suspend() {
+func (c *context) Suspend() error {
 	c.audioContext.Call("suspend")
+	return nil
 }
 
-func (c *context) Resume() {
+func (c *context) Resume() error {
 	c.audioContext.Call("resume")
+	return nil
 }
 
 func (p *player) Pause() {
@@ -307,12 +309,14 @@ func (w *go2cppDriverWrapper) MaxBufferSize() int {
 	return w.c.MaxBufferSize()
 }
 
-func (w *go2cppDriverWrapper) Suspend() {
+func (w *go2cppDriverWrapper) Suspend() error {
 	// Do nothing so far.
+	return nil
 }
 
-func (w *go2cppDriverWrapper) Resume() {
+func (w *go2cppDriverWrapper) Resume() error {
 	// Do nothing so far.
+	return nil
 }
 
 func (w *go2cppDriverWrapper) Close() error {

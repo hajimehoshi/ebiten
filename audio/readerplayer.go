@@ -60,18 +60,18 @@ func (f *readerPlayerFactory) newPlayerImpl(context *Context, src io.Reader) (pl
 	return p, nil
 }
 
-func (f *readerPlayerFactory) suspend() {
+func (f *readerPlayerFactory) suspend() error {
 	if f.context == nil {
-		return
+		return nil
 	}
-	f.context.Suspend()
+	return f.context.Suspend()
 }
 
-func (f *readerPlayerFactory) resume() {
+func (f *readerPlayerFactory) resume() error {
 	if f.context == nil {
-		return
+		return nil
 	}
-	f.context.Resume()
+	return f.context.Resume()
 }
 
 func (p *readerPlayer) ensurePlayer() error {
