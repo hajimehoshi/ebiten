@@ -195,7 +195,8 @@ func (p *player) closeImpl() error {
 		return p.err
 	}
 	if err := p.p.Close(); err != nil && p.err == nil {
-		p.setErrorImpl(err)
+		// Do not call setErrorImpl, or this can cause infinite recursive.
+		p.err = err
 		return p.err
 	}
 	p.p = nil
