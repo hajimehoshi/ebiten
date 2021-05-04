@@ -60,6 +60,20 @@ func (f *readerPlayerFactory) newPlayerImpl(context *Context, src io.Reader) (pl
 	return p, nil
 }
 
+func (f *readerPlayerFactory) suspend() {
+	if f.context == nil {
+		return
+	}
+	f.context.Suspend()
+}
+
+func (f *readerPlayerFactory) resume() {
+	if f.context == nil {
+		return
+	}
+	f.context.Resume()
+}
+
 func (p *readerPlayer) ensurePlayer() error {
 	// Initialize the underlying player lazily to enable calling NewContext in an 'init' function.
 	// Accessing the underlying player functions requires the environment to be already initialized,
