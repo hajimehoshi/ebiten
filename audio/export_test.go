@@ -68,6 +68,12 @@ func (c *dummyReaderContext) MaxBufferSize() int {
 	return 48000 * channelNum * bitDepthInBytes / 4
 }
 
+func (c *dummyReaderContext) Suspend() {
+}
+
+func (c *dummyReaderContext) Resume() {
+}
+
 func (c *dummyReaderContext) Close() error {
 	return nil
 }
