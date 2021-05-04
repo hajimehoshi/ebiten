@@ -55,6 +55,14 @@ https://opengameart.org/content/orthographic-outdoor-tiles
 CC0 1.0
 ```
 
+## audio/alert.png
+
+```
+https://fonts.google.com/icons
+
+Apache License 2.0
+```
+
 ## audio/play.png
 
 ```
