@@ -93,17 +93,30 @@ func (p *player) Play() {
 		return
 	}
 	defer p.cond.Signal()
+	var runLoop bool
 	if p.p == nil {
 		p.p = oboe.NewPlayer(p.context.sampleRate, p.context.channelNum, p.context.bitDepthInBytes, p.volume, func() {
 			p.cond.Signal()
 		})
-		go p.loop()
+		runLoop = true
+
+		// Fill the first part before playing to reduce noises (#1632).
+		buf := make([]byte, p.context.oneBufferSize())
+		n, err := p.src.Read(buf)
+		if err != nil && err != io.EOF {
+			p.setErrorImpl(err)
+			return
+		}
+		p.p.AppendBuffer(buf[:n])
 	}
 	if err := p.p.Play(); err != nil {
 		p.setErrorImpl(err)
 		return
 	}
 	p.state = playerPlay
+	if runLoop {
+		go p.loop()
+	}
 }
 
 func (p *player) IsPlaying() bool {
