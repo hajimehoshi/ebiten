@@ -26,7 +26,10 @@ namespace {
 class Player : public oboe::AudioStreamDataCallback {
 public:
   static const char* Suspend() {
+    std::lock_guard<std::mutex> lock(GetPlayersMutex());
     for (Player* player : GetPlayers()) {
+      // Close should be called rather than Pause for onPause.
+      // https://github.com/google/oboe/blob/master/docs/GettingStarted.md
       if (const char* msg = player->Close(); msg) {
         return msg;
       }
@@ -35,6 +38,7 @@ public:
   }
 
   static const char* Resume() {
+    std::lock_guard<std::mutex> lock(GetPlayersMutex());
     for (Player* player : GetPlayers()) {
       if (const char* msg = player->Play(); msg) {
         return msg;
@@ -49,11 +53,10 @@ public:
       bit_depth_in_bytes_{bit_depth_in_bytes},
       go_player_{go_player} {
     std::atomic_store(&volume_, volume);
-    GetPlayers().insert(this);
-  }
-
-  ~Player() {
-    GetPlayers().erase(this);
+    {
+      std::lock_guard<std::mutex> lock(GetPlayersMutex());
+      GetPlayers().insert(this);
+    }
   }
 
   void SetVolume(double volume) {
@@ -66,7 +69,7 @@ public:
     const size_t one_buffer_size = sample_rate_ * channel_num_ * bit_depth_in_bytes_ / 4 / bytes_per_sample * bytes_per_sample;
     const size_t max_buffer_size = one_buffer_size * 2;
 
-    std::lock_guard<std::mutex> lock(lock_);
+    std::lock_guard<std::mutex> lock(mutex_);
     buf_.insert(buf_.end(), data, data + length);
   }
 
@@ -123,8 +126,17 @@ public:
     return nullptr;
   }
 
+  const char* CloseAndRemove() {
+    // Close and remove self from the players atomically.
+    // Otherwise, a removed player might be resumed at Resume unexpectedly.
+    std::lock_guard<std::mutex> lock(GetPlayersMutex());
+    const char* msg = Close();
+    GetPlayers().erase(this);
+    return msg;
+  }
+
   int GetUnplayedBufferSize() {
-    std::lock_guard<std::mutex> lock(lock_);
+    std::lock_guard<std::mutex> lock(mutex_);
     return buf_.size();
   }
 
@@ -134,7 +146,7 @@ public:
     {
       // TODO: Do not use a lock in onAudioReady.
       // https://google.github.io/oboe/reference/classoboe_1_1_audio_stream_data_callback.html#ad8a3a9f609df5fd3a5d885cbe1b2204d
-      std::lock_guard<std::mutex> lock(lock_);
+      std::lock_guard<std::mutex> lock(mutex_);
       size_t copy_bytes = std::min(num_bytes, buf_.size());
       std::copy(buf_.begin(), buf_.begin() + copy_bytes, buf.begin());
       buf_.erase(buf_.begin(), buf_.begin() + copy_bytes);
@@ -160,6 +172,11 @@ private:
     return players;
   }
 
+  static std::mutex& GetPlayersMutex() {
+    static std::mutex mutex;
+    return mutex;
+  }
+
   const int sample_rate_;
   const int channel_num_;
   const int bit_depth_in_bytes_;
@@ -167,7 +184,7 @@ private:
 
   std::atomic<double> volume_{1.0};
   std::vector<uint8_t> buf_;
-  std::mutex lock_;
+  std::mutex mutex_;
   std::shared_ptr<oboe::AudioStream> stream_;
 };
 
@@ -210,7 +227,7 @@ void Player_SetVolume(PlayerID audio_player, double volume) {
 
 const char* Player_Close(PlayerID audio_player) {
   Player* p = reinterpret_cast<Player*>(audio_player);
-  const char* msg = p->Close();
+  const char* msg = p->CloseAndRemove();
   delete p;
   return msg;
 }
