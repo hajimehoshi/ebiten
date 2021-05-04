@@ -141,10 +141,10 @@ type dummyHook struct {
 	updates []func() error
 }
 
-func (h *dummyHook) OnSuspendAudio(f func()) {
+func (h *dummyHook) OnSuspendAudio(f func() error) {
 }
 
-func (h *dummyHook) OnResumeAudio(f func()) {
+func (h *dummyHook) OnResumeAudio(f func() error) {
 }
 
 func (h *dummyHook) AppendHookOnBeforeUpdate(f func() error) {

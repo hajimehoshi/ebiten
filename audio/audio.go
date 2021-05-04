@@ -125,17 +125,19 @@ func NewContext(sampleRate int) *Context {
 	theContext = c
 
 	h := getHook()
-	h.OnSuspendAudio(func() {
+	h.OnSuspendAudio(func() error {
 		c.semaphore <- struct{}{}
 		if s, ok := np.(interface{ suspend() }); ok {
 			s.suspend()
 		}
+		return nil
 	})
-	h.OnResumeAudio(func() {
+	h.OnResumeAudio(func() error {
 		<-c.semaphore
 		if s, ok := np.(interface{ resume() }); ok {
 			s.resume()
 		}
+		return nil
 	})
 
 	h.AppendHookOnBeforeUpdate(func() error {
@@ -423,8 +425,8 @@ func (p *Player) SetVolume(volume float64) {
 }
 
 type hook interface {
-	OnSuspendAudio(f func())
-	OnResumeAudio(f func())
+	OnSuspendAudio(f func() error)
+	OnResumeAudio(f func() error)
 	AppendHookOnBeforeUpdate(f func() error)
 }
 
@@ -439,11 +441,11 @@ func getHook() hook {
 
 type hookImpl struct{}
 
-func (h *hookImpl) OnSuspendAudio(f func()) {
+func (h *hookImpl) OnSuspendAudio(f func() error) {
 	hooks.OnSuspendAudio(f)
 }
 
-func (h *hookImpl) OnResumeAudio(f func()) {
+func (h *hookImpl) OnResumeAudio(f func() error) {
 	hooks.OnResumeAudio(f)
 }
 

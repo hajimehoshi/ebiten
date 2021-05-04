@@ -258,10 +258,11 @@ func (u *UserInterface) isFocused() bool {
 
 func (u *UserInterface) update() error {
 	if u.suspended() {
-		hooks.SuspendAudio()
-		return nil
+		return hooks.SuspendAudio()
 	}
-	hooks.ResumeAudio()
+	if err := hooks.ResumeAudio(); err != nil {
+		return err
+	}
 	return u.updateImpl(false)
 }
 
@@ -284,7 +285,7 @@ func (u *UserInterface) updateImpl(force bool) error {
 func (u *UserInterface) loop(context driver.UIContext) <-chan error {
 	u.context = context
 
-	errCh := make(chan error)
+	errCh := make(chan error, 1)
 	reqStopAudioCh := make(chan struct{})
 	resStopAudioCh := make(chan struct{})
 
@@ -300,7 +301,6 @@ func (u *UserInterface) loop(context driver.UIContext) <-chan error {
 			<-resStopAudioCh
 
 			errCh <- err
-			close(errCh)
 			return
 		}
 		if u.vsync {
@@ -344,9 +344,15 @@ func (u *UserInterface) loop(context driver.UIContext) <-chan error {
 			select {
 			case <-t.C:
 				if u.suspended() {
-					hooks.SuspendAudio()
+					if err := hooks.SuspendAudio(); err != nil {
+						errCh <- err
+						return
+					}
 				} else {
-					hooks.ResumeAudio()
+					if err := hooks.ResumeAudio(); err != nil {
+						errCh <- err
+						return
+					}
 				}
 			case <-reqStopAudioCh:
 				return

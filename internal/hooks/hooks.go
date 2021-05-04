@@ -44,42 +44,44 @@ func RunBeforeUpdateHooks() error {
 
 var (
 	audioSuspended bool
-	onSuspendAudio func()
-	onResumeAudio  func()
+	onSuspendAudio func() error
+	onResumeAudio  func() error
 )
 
-func OnSuspendAudio(f func()) {
+func OnSuspendAudio(f func() error) {
 	m.Lock()
 	onSuspendAudio = f
 	m.Unlock()
 }
 
-func OnResumeAudio(f func()) {
+func OnResumeAudio(f func() error) {
 	m.Lock()
 	onResumeAudio = f
 	m.Unlock()
 }
 
-func SuspendAudio() {
+func SuspendAudio() error {
 	m.Lock()
 	defer m.Unlock()
 	if audioSuspended {
-		return
+		return nil
 	}
 	audioSuspended = true
 	if onSuspendAudio != nil {
-		onSuspendAudio()
+		return onSuspendAudio()
 	}
+	return nil
 }
 
-func ResumeAudio() {
+func ResumeAudio() error {
 	m.Lock()
 	defer m.Unlock()
 	if !audioSuspended {
-		return
+		return nil
 	}
 	audioSuspended = false
 	if onResumeAudio != nil {
-		onResumeAudio()
+		return onResumeAudio()
 	}
+	return nil
 }

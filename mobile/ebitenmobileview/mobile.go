@@ -75,12 +75,12 @@ func Update() error {
 	return mobile.Get().Update()
 }
 
-func Suspend() {
-	mobile.Get().SetForeground(false)
+func Suspend() error {
+	return mobile.Get().SetForeground(false)
 }
 
-func Resume() {
-	mobile.Get().SetForeground(true)
+func Resume() error {
+	return mobile.Get().SetForeground(true)
 }
 
 func OnContextLost() {

@@ -136,7 +136,10 @@ func (u *UserInterface) appMain(a app.App) {
 		case lifecycle.Event:
 			switch e.Crosses(lifecycle.StageVisible) {
 			case lifecycle.CrossOn:
-				u.SetForeground(true)
+				if err := u.SetForeground(true); err != nil {
+					// There are no other ways than panicking here.
+					panic(err)
+				}
 				restorable.OnContextLost()
 				glctx, _ = e.DrawContext.(gl.Context)
 				// Assume that glctx is always a same instance.
@@ -147,7 +150,10 @@ func (u *UserInterface) appMain(a app.App) {
 				}
 				a.Send(paint.Event{})
 			case lifecycle.CrossOff:
-				u.SetForeground(false)
+				if err := u.SetForeground(false); err != nil {
+					// There are no other ways than panicking here.
+					panic(err)
+				}
 				glctx = nil
 			}
 		case size.Event:
@@ -213,7 +219,7 @@ func (u *UserInterface) appMain(a app.App) {
 	}
 }
 
-func (u *UserInterface) SetForeground(foreground bool) {
+func (u *UserInterface) SetForeground(foreground bool) error {
 	var v int32
 	if foreground {
 		v = 1
@@ -221,9 +227,9 @@ func (u *UserInterface) SetForeground(foreground bool) {
 	atomic.StoreInt32(&u.foreground, v)
 
 	if foreground {
-		hooks.ResumeAudio()
+		return hooks.ResumeAudio()
 	} else {
-		hooks.SuspendAudio()
+		return hooks.SuspendAudio()
 	}
 }
 

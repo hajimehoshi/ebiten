@@ -916,12 +916,16 @@ func (u *UserInterface) update() (float64, float64, bool, error) {
 	u.input.update(u.window, u.context)
 
 	for !u.isRunnableOnUnfocused() && u.window.GetAttrib(glfw.Focused) == 0 && !u.window.ShouldClose() {
-		hooks.SuspendAudio()
+		if err := hooks.SuspendAudio(); err != nil {
+			return 0, 0, false, err
+		}
 		// Wait for an arbitrary period to avoid busy loop.
 		time.Sleep(time.Second / 60)
 		glfw.PollEvents()
 	}
-	hooks.ResumeAudio()
+	if err := hooks.ResumeAudio(); err != nil {
+		return 0, 0, false, err
+	}
 
 	return outsideWidth, outsideHeight, outsideSizeChanged, nil
 }
