@@ -92,7 +92,7 @@ func (p *readerPlayer) ensurePlayer() error {
 		p.factory.context = c
 	}
 	if p.stream == nil {
-		s, err := newTimeStream(p.src, p.factory.sampleRate, p.factory.context.MaxBufferSize())
+		s, err := newTimeStream(p.src, p.factory.sampleRate)
 		if err != nil {
 			return err
 		}
@@ -130,9 +130,7 @@ func (p *readerPlayer) Pause() {
 		return
 	}
 
-	n := p.player.UnplayedBufferSize()
 	p.player.Pause()
-	p.stream.Unread(int(n))
 	p.context.removePlayer(p)
 }
 
@@ -231,23 +229,19 @@ func (p *readerPlayer) source() io.Reader {
 }
 
 type timeStream struct {
-	r             io.Reader
-	sampleRate    int
-	pos           int64
-	buf           []byte
-	unread        int
-	maxBufferSize int
+	r          io.Reader
+	sampleRate int
+	pos        int64
 
 	// m is a mutex for this stream.
 	// All the exported functions are protected by this mutex as Read can be read from a different goroutine than Seek.
 	m sync.Mutex
 }
 
-func newTimeStream(r io.Reader, sampleRate int, maxBufferSize int) (*timeStream, error) {
+func newTimeStream(r io.Reader, sampleRate int) (*timeStream, error) {
 	s := &timeStream{
-		r:             r,
-		sampleRate:    sampleRate,
-		maxBufferSize: maxBufferSize,
+		r:          r,
+		sampleRate: sampleRate,
 	}
 	if seeker, ok := s.r.(io.Seeker); ok {
 		// Get the current position of the source.
@@ -260,35 +254,12 @@ func newTimeStream(r io.Reader, sampleRate int, maxBufferSize int) (*timeStream,
 	return s, nil
 }
 
-func (s *timeStream) Unread(n int) {
-	s.m.Lock()
-	defer s.m.Unlock()
-
-	if s.unread+n > len(s.buf) {
-		// This should not happen usually, but the player's UnplayedBufferSize can include some errors.
-		n = len(s.buf) - s.unread
-	}
-	s.unread += n
-	s.pos -= int64(n)
-}
-
 func (s *timeStream) Read(buf []byte) (int, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	if s.unread > 0 {
-		n := copy(buf, s.buf[len(s.buf)-s.unread:])
-		s.unread -= n
-		s.pos += int64(n)
-		return n, nil
-	}
-
 	n, err := s.r.Read(buf)
 	s.pos += int64(n)
-	s.buf = append(s.buf, buf[:n]...)
-	if m := s.maxBufferSize; len(s.buf) > m {
-		s.buf = s.buf[len(s.buf)-m:]
-	}
 	return n, err
 }
 
@@ -312,8 +283,6 @@ func (s *timeStream) Seek(offset time.Duration) error {
 	}
 
 	s.pos = pos
-	s.buf = s.buf[:0]
-	s.unread = 0
 	return nil
 }
 

@@ -137,11 +137,17 @@ func (p *player) Pause() {
 	}
 
 	// Change the state first. appendBuffer is called as an 'ended' callback.
+	var data [2][]float32
 	for _, n := range p.bufferSourceNodes {
+		for ch := 0; ch < 2; ch++ {
+			t := n.Get("buffer").Call("getChannelData", ch)
+			data[ch] = append(data[ch], float32ArrayToFloat32Slice(t)...)
+		}
 		n.Set("onended", nil)
 		n.Call("stop")
 		n.Call("disconnect")
 	}
+	p.buf = append(fromLR(data[0], data[1]), p.buf...)
 	p.state = playerPaused
 	p.bufferSourceNodes = p.bufferSourceNodes[:0]
 	p.nextPos = 0
@@ -264,7 +270,7 @@ func (p *player) UnplayedBufferSize() int64 {
 	for _, n := range p.bufferSourceNodes {
 		sec += n.Get("buffer").Get("duration").Float()
 	}
-	return int64(sec * float64(p.context.sampleRate*p.context.channelNum*p.context.bitDepthInBytes))
+	return int64(len(p.buf)) + int64(sec*float64(p.context.sampleRate*p.context.channelNum*p.context.bitDepthInBytes))
 }
 
 func (p *player) Err() error {
@@ -285,10 +291,6 @@ type go2cppDriverWrapper struct {
 
 func (w *go2cppDriverWrapper) NewPlayer(r io.Reader) Player {
 	return w.c.NewPlayer(r)
-}
-
-func (w *go2cppDriverWrapper) MaxBufferSize() int {
-	return w.c.MaxBufferSize()
 }
 
 func (w *go2cppDriverWrapper) Suspend() error {
@@ -317,6 +319,24 @@ func toLR(data []byte) ([]float32, []float32) {
 	return l, r
 }
 
+func fromLR(l, r []float32) []byte {
+	const max = 1 << 15
+
+	if len(l) != len(r) {
+		panic("readerdriver: len(l) must equal to len(r) at fromLR")
+	}
+	bs := make([]byte, len(l)*4)
+	for i := range l {
+		lv := int16(l[i] * max)
+		bs[4*i] = byte(lv)
+		bs[4*i+1] = byte(lv >> 8)
+		rv := int16(r[i] * max)
+		bs[4*i+2] = byte(rv)
+		bs[4*i+3] = byte(rv >> 8)
+	}
+	return bs
+}
+
 func float32SliceToTypedArray(s []float32) js.Value {
 	h := (*reflect.SliceHeader)(unsafe.Pointer(&s))
 	h.Len *= 4
@@ -328,4 +348,17 @@ func float32SliceToTypedArray(s []float32) js.Value {
 	runtime.KeepAlive(s)
 	buf := a.Get("buffer")
 	return js.Global().Get("Float32Array").New(buf, a.Get("byteOffset"), a.Get("byteLength").Int()/4)
+}
+
+func float32ArrayToFloat32Slice(v js.Value) []float32 {
+	bs := make([]byte, v.Get("byteLength").Int())
+	js.CopyBytesToGo(bs, js.Global().Get("Uint8Array").New(v.Get("buffer"), v.Get("byteOffset"), v.Get("byteLength")))
+
+	h := (*reflect.SliceHeader)(unsafe.Pointer(&bs))
+	h.Len /= 4
+	h.Cap /= 4
+	f32s := *(*[]float32)(unsafe.Pointer(h))
+	runtime.KeepAlive(bs)
+
+	return f32s
 }

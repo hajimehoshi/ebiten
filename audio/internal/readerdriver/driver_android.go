@@ -80,8 +80,22 @@ type player struct {
 }
 
 func (p *player) Pause() {
-	// TODO: Implement the 'true' pause after #1633 is fixed.
-	p.Reset()
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
+
+	if p.err != nil {
+		return
+	}
+	if p.closed {
+		return
+	}
+	if p.p == nil {
+		return
+	}
+	if err := p.p.Pause(); err != nil {
+		p.setErrorImpl(err)
+		return
+	}
 }
 
 func (p *player) Play() {
@@ -224,10 +238,10 @@ func (p *player) shouldWait() bool {
 	if p.p == nil {
 		return false
 	}
-	if !p.p.IsPlaying() {
-		return false
+	if p.p.IsPlaying() {
+		return p.p.UnplayedBufferSize() >= int64(p.context.maxBufferSize())
 	}
-	return p.p.UnplayedBufferSize() >= int64(p.context.MaxBufferSize())
+	return true
 }
 
 func (p *player) wait() bool {

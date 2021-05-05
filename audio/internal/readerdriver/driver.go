@@ -20,7 +20,6 @@ import (
 
 type Context interface {
 	NewPlayer(io.Reader) Player
-	MaxBufferSize() int
 	Suspend() error
 	Resume() error
 	io.Closer
@@ -59,7 +58,7 @@ func (c *context) oneBufferSize() int {
 
 // maxBufferSize returns the maximum size of the buffer for the audio source.
 // This buffer is used when unreading on pausing the player.
-func (c *context) MaxBufferSize() int {
+func (c *context) maxBufferSize() int {
 	// The number of underlying buffers should be 2.
 	return c.oneBufferSize() * 2
 }
