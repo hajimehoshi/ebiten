@@ -91,6 +91,7 @@ func (p *player) Pause() {
 		p.setErrorImpl(err)
 		return
 	}
+	p.cond.Signal()
 }
 
 func (p *player) Play() {
