@@ -14,7 +14,11 @@
 
 package oboe
 
-// #cgo CXXFLAGS: -std=c++17
+// Disable AAudio (#1634).
+// AAudio doesn't care about plugging in/out of a headphone.
+// See https://github.com/google/oboe/blob/master/docs/notes/disconnect.md
+
+// #cgo CXXFLAGS: -std=c++17 -DOBOE_ENABLE_AAUDIO=0
 // #cgo LDFLAGS: -llog -lOpenSLES -static-libstdc++
 //
 // #include "binding_android.h"
