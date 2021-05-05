@@ -74,11 +74,12 @@ type player struct {
 	src     io.Reader
 	err     error
 	cond    *sync.Cond
-	state   playerState
+	closed  bool
 	volume  float64
 }
 
 func (p *player) Pause() {
+	// TODO: Implement the 'true' pause after #1633 is fixed.
 	p.Reset()
 }
 
@@ -89,7 +90,7 @@ func (p *player) Play() {
 	if p.err != nil {
 		return
 	}
-	if p.state != playerPaused {
+	if p.p != nil && p.p.IsPlaying() {
 		return
 	}
 	defer p.cond.Signal()
@@ -113,7 +114,6 @@ func (p *player) Play() {
 		p.setErrorImpl(err)
 		return
 	}
-	p.state = playerPlay
 	if runLoop {
 		go p.loop()
 	}
@@ -122,7 +122,10 @@ func (p *player) Play() {
 func (p *player) IsPlaying() bool {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
-	return p.state == playerPlay
+	if p.p == nil {
+		return false
+	}
+	return p.p.IsPlaying()
 }
 
 func (p *player) Reset() {
@@ -132,7 +135,7 @@ func (p *player) Reset() {
 	if p.err != nil {
 		return
 	}
-	if p.state == playerClosed {
+	if p.closed {
 		return
 	}
 	if p.p == nil {
@@ -146,7 +149,6 @@ func (p *player) Reset() {
 		p.setErrorImpl(err)
 		return
 	}
-	p.state = playerPaused
 }
 
 func (p *player) Volume() float64 {
@@ -190,7 +192,7 @@ func (p *player) closeImpl() error {
 	defer p.cond.Signal()
 
 	runtime.SetFinalizer(p, nil)
-	p.state = playerClosed
+	p.closed = true
 	if p.p == nil {
 		return p.err
 	}
@@ -215,19 +217,16 @@ func (p *player) setErrorImpl(err error) {
 }
 
 func (p *player) shouldWait() bool {
+	if p.closed {
+		return false
+	}
 	if p.p == nil {
 		return false
 	}
-	switch p.state {
-	case playerPlay:
-		return p.p.UnplayedBufferSize() >= int64(p.context.MaxBufferSize())
-	case playerPaused:
-		return true
-	case playerClosed:
+	if !p.p.IsPlaying() {
 		return false
-	default:
-		panic("not reached")
 	}
+	return p.p.UnplayedBufferSize() >= int64(p.context.MaxBufferSize())
 }
 
 func (p *player) wait() bool {
@@ -237,14 +236,14 @@ func (p *player) wait() bool {
 	for p.shouldWait() {
 		p.cond.Wait()
 	}
-	return p.p != nil && p.state == playerPlay
+	return p.p != nil && p.p.IsPlaying()
 }
 
 func (p *player) write(buf []byte) {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
 
-	if p.state == playerClosed {
+	if p.closed {
 		return
 	}
 	if p.p == nil {

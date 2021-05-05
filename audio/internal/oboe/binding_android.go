@@ -60,6 +60,10 @@ func onWrittenCallback(player C.uintptr_t) {
 	p.onWritten()
 }
 
+func (p *Player) IsPlaying() bool {
+	return bool(C.Player_IsPlaying(p.player))
+}
+
 func (p *Player) AppendBuffer(buf []byte) {
 	ptr := C.CBytes(buf)
 	defer C.free(ptr)

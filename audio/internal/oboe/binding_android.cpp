@@ -68,6 +68,10 @@ public:
     std::atomic_store(&volume_, volume);
   }
 
+  bool IsPlaying() {
+    return stream_->getState() == oboe::StreamState::Started;
+  }
+
   void AppendBuffer(uint8_t* data, int length) {
     // Sync this constants with internal/readerdriver/driver.go
     const size_t bytes_per_sample = channel_num_ * bit_depth_in_bytes_;
@@ -208,6 +212,11 @@ const char* Resume() {
 PlayerID Player_Create(int sample_rate, int channel_num, int bit_depth_in_bytes, double volume, uintptr_t go_player) {
   Player* p = new Player(sample_rate, channel_num, bit_depth_in_bytes, volume, go_player);
   return reinterpret_cast<PlayerID>(p);
+}
+
+bool Player_IsPlaying(PlayerID audio_player) {
+  Player* p = reinterpret_cast<Player*>(audio_player);
+  return p->IsPlaying();
 }
 
 void Player_AppendBuffer(PlayerID audio_player, uint8_t* data, int length) {
