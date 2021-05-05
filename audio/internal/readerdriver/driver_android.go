@@ -18,6 +18,7 @@ import (
 	"io"
 	"runtime"
 	"sync"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/oboe"
 )
@@ -268,6 +269,9 @@ func (p *player) loop() {
 
 		// Now p.p.Reset() doesn't close the stream gracefully. Then buffer size check is necessary here.
 		if err == io.EOF && p.UnplayedBufferSize() == 0 {
+			// Even when the unplayed buffer size is 0, the audio data in the hardware might not be played yet (#1632).
+			// Just wait for a while.
+			time.Sleep(100 * time.Millisecond)
 			p.Reset()
 			return
 		}

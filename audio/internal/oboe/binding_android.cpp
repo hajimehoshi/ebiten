@@ -57,11 +57,6 @@ public:
       std::lock_guard<std::mutex> lock(GetPlayersMutex());
       GetPlayers().insert(this);
     }
-    // Fill zeros with 1/60[s] as the first part to avoid noises (#1632).
-    // 1/60[s] is an arbitrary duration and might need to be adjusted.
-    size_t mul = channel_num_ * bit_depth_in_bytes_;
-    size_t size = (sample_rate_ * channel_num_ * bit_depth_in_bytes_) / 60 / mul * mul;
-    buf_.resize(size);
   }
 
   void SetVolume(double volume) {
