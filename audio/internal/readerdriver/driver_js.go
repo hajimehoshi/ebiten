@@ -209,6 +209,10 @@ func (p *player) appendBuffer(this js.Value, args []js.Value) interface{} {
 		}
 	}
 
+	if len(bs) == 0 {
+		return nil
+	}
+
 	l, r := toLR(bs)
 	tl, tr := float32SliceToTypedArray(l), float32SliceToTypedArray(r)
 
