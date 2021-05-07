@@ -76,10 +76,6 @@ func (c *dummyReaderContext) Resume() error {
 	return nil
 }
 
-func (c *dummyReaderContext) Close() error {
-	return nil
-}
-
 func (p *dummyReaderPlayer) Pause() {
 	p.m.Lock()
 	p.playing = false

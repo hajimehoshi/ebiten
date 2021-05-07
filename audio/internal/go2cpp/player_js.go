@@ -59,10 +59,6 @@ func (c *Context) NewPlayer(r io.Reader) *Player {
 	return p
 }
 
-func (c *Context) Close() error {
-	return nil
-}
-
 func (c *Context) oneBufferSize() int {
 	// TODO: This must be audio.oneBufferSize(p.context.sampleRate). Avoid the duplication.
 	return c.sampleRate * c.channelNum * c.bitDepthInBytes / 4

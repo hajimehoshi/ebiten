@@ -116,11 +116,6 @@ func (c *context) NewPlayer(src io.Reader) Player {
 	return p
 }
 
-func (c *context) Close() error {
-	// TODO: Implement this
-	return nil
-}
-
 func (c *context) Suspend() error {
 	c.audioContext.Call("suspend")
 	return nil
@@ -305,10 +300,6 @@ func (w *go2cppDriverWrapper) Suspend() error {
 func (w *go2cppDriverWrapper) Resume() error {
 	// Do nothing so far.
 	return nil
-}
-
-func (w *go2cppDriverWrapper) Close() error {
-	return w.c.Close()
 }
 
 func toLR(data []byte) ([]float32, []float32) {

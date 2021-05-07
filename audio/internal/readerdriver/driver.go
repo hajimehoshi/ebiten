@@ -22,7 +22,6 @@ type Context interface {
 	NewPlayer(io.Reader) Player
 	Suspend() error
 	Resume() error
-	io.Closer
 }
 
 type Player interface {

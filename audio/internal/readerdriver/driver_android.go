@@ -64,11 +64,6 @@ func (c *context) Resume() error {
 	return oboe.Resume()
 }
 
-func (c *context) Close() error {
-	// TODO: Implement this
-	return nil
-}
-
 type player struct {
 	context *context
 	p       *oboe.Player
