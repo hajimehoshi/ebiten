@@ -213,6 +213,9 @@ func (p *playerImpl) Play() {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
 
+	if p.err != nil {
+		return
+	}
 	if p.state != playerPaused {
 		return
 	}
@@ -318,6 +321,9 @@ func (p *playerImpl) Pause() {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
 
+	if p.err != nil {
+		return
+	}
 	if p.state != playerPlay {
 		return
 	}
@@ -341,6 +347,9 @@ func (p *playerImpl) Reset() {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
 
+	if p.err != nil {
+		return
+	}
 	if p.state == playerClosed {
 		return
 	}
