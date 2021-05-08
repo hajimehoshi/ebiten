@@ -97,6 +97,7 @@ type playerImpl struct {
 	eof          bool
 	cond         *sync.Cond
 	started      bool
+	volume       float64
 }
 
 type players struct {
@@ -186,6 +187,7 @@ func (c *context) NewPlayer(src io.Reader) Player {
 			context: c,
 			src:     src,
 			cond:    sync.NewCond(&sync.Mutex{}),
+			volume:  1,
 		},
 	}
 	runtime.SetFinalizer(p, (*player).Close)
@@ -258,6 +260,9 @@ func (p *playerImpl) Play() {
 			buf.mAudioDataByteSize = C.UInt32(size)
 			p.unqueuedBufs = append(p.unqueuedBufs, buf)
 		}
+
+		C.AudioQueueSetParameter(p.audioQueue, C.kAudioQueueParam_Volume, C.AudioQueueParameterValue(p.volume))
+
 		runLoop = true
 	}
 
@@ -374,13 +379,28 @@ func (p *playerImpl) IsPlaying() bool {
 }
 
 func (p *player) Volume() float64 {
-	// TODO: Implement this
-	// See AudioQueueSetParameter
-	return 1
+	return p.p.Volume()
+}
+
+func (p *playerImpl) Volume() float64 {
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
+	return p.volume
 }
 
 func (p *player) SetVolume(volume float64) {
-	// TODO: Implement this
+	p.p.SetVolume(volume)
+}
+
+func (p *playerImpl) SetVolume(volume float64) {
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
+
+	p.volume = volume
+	if p.audioQueue == nil {
+		return
+	}
+	C.AudioQueueSetParameter(p.audioQueue, C.kAudioQueueParam_Volume, C.AudioQueueParameterValue(volume))
 }
 
 func (p *player) UnplayedBufferSize() int64 {
