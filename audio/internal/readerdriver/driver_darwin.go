@@ -26,6 +26,7 @@ package readerdriver
 //
 // // ebiten_readerdriver_AudioQueueNewOutput is a wrapper for AudioQueueNewOutput.
 // // This is to avoid go-vet warnings of an unsafe.Pointer usage.
+// // TODO: Use cgo.Handle (https://tip.golang.org/pkg/runtime/cgo/#Handle) when Go 1.17 becomes the minimum supported version.
 // static OSStatus ebiten_readerdriver_AudioQueueNewOutput(
 //     const AudioStreamBasicDescription *inFormat,
 //     AudioQueueOutputCallback inCallbackProc,
