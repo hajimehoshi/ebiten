@@ -96,7 +96,6 @@ type playerImpl struct {
 	err          error
 	eof          bool
 	cond         *sync.Cond
-	started      bool
 	volume       float64
 }
 
@@ -303,7 +302,6 @@ func (p *playerImpl) Play() {
 		p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueueStart failed: %d", osstatus))
 		return
 	}
-	p.started = true
 	p.state = playerPlay
 	p.cond.Signal()
 
@@ -323,6 +321,10 @@ func (p *playerImpl) Pause() {
 	if p.state != playerPlay {
 		return
 	}
+	if p.audioQueue == nil {
+		return
+	}
+
 	if osstatus := C.AudioQueuePause(p.audioQueue); osstatus != C.noErr && p.err == nil {
 		p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueuePause failed: %d", osstatus))
 		return
@@ -342,24 +344,25 @@ func (p *playerImpl) Reset() {
 	if p.state == playerClosed {
 		return
 	}
+	if p.audioQueue == nil {
+		return
+	}
 
-	if p.started {
-		if osstatus := C.AudioQueuePause(p.audioQueue); osstatus != C.noErr && p.err == nil {
-			p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueuePause failed: %d", osstatus))
-			return
-		}
-		// AudioQueueReset invokes the callback directry.
-		p.cond.L.Unlock()
-		if osstatus := C.AudioQueueReset(p.audioQueue); osstatus != C.noErr && p.err == nil {
-			p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueueReset failed: %d", osstatus))
-			p.cond.L.Lock()
-			return
-		}
+	if osstatus := C.AudioQueuePause(p.audioQueue); osstatus != C.noErr && p.err == nil {
+		p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueuePause failed: %d", osstatus))
+		return
+	}
+	// AudioQueueReset invokes the callback directry.
+	p.cond.L.Unlock()
+	if osstatus := C.AudioQueueReset(p.audioQueue); osstatus != C.noErr && p.err == nil {
+		p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueueReset failed: %d", osstatus))
 		p.cond.L.Lock()
-		if osstatus := C.AudioQueueFlush(p.audioQueue); osstatus != C.noErr && p.err == nil {
-			p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueueFlush failed: %d", osstatus))
-			return
-		}
+		return
+	}
+	p.cond.L.Lock()
+	if osstatus := C.AudioQueueFlush(p.audioQueue); osstatus != C.noErr && p.err == nil {
+		p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueueFlush failed: %d", osstatus))
+		return
 	}
 
 	p.state = playerPaused
