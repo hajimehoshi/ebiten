@@ -26,24 +26,29 @@ namespace {
 class Player : public oboe::AudioStreamDataCallback {
 public:
   static const char* Suspend() {
-    std::lock_guard<std::mutex> lock(GetPlayersMutex());
+    std::lock_guard<std::mutex> lock(PlayersMutex());
     for (Player* player : GetPlayers()) {
+      if (!player->IsPlaying()) {
+        continue;
+      }
       // Close should be called rather than Pause for onPause.
       // https://github.com/google/oboe/blob/master/docs/GettingStarted.md
       if (const char* msg = player->Close(); msg) {
         return msg;
       }
+      GetPlayersToResume().insert(player);
     }
     return nullptr;
   }
 
   static const char* Resume() {
-    std::lock_guard<std::mutex> lock(GetPlayersMutex());
-    for (Player* player : GetPlayers()) {
+    std::lock_guard<std::mutex> lock(PlayersMutex());
+    for (Player* player : GetPlayersToResume()) {
       if (const char* msg = player->Play(); msg) {
         return msg;
       }
     }
+    GetPlayersToResume().clear();
     return nullptr;
   }
 
@@ -54,7 +59,7 @@ public:
       go_player_{go_player} {
     std::atomic_store(&volume_, volume);
     {
-      std::lock_guard<std::mutex> lock(GetPlayersMutex());
+      std::lock_guard<std::mutex> lock(PlayersMutex());
       GetPlayers().insert(this);
     }
   }
@@ -133,7 +138,7 @@ public:
   const char* CloseAndRemove() {
     // Close and remove self from the players atomically.
     // Otherwise, a removed player might be resumed at Resume unexpectedly.
-    std::lock_guard<std::mutex> lock(GetPlayersMutex());
+    std::lock_guard<std::mutex> lock(PlayersMutex());
     const char* msg = Close();
     GetPlayers().erase(this);
     return msg;
@@ -176,7 +181,12 @@ private:
     return players;
   }
 
-  static std::mutex& GetPlayersMutex() {
+  static std::set<Player*>& GetPlayersToResume() {
+    static std::set<Player*> players_to_resume;
+    return players_to_resume;
+  }
+
+  static std::mutex& PlayersMutex() {
     static std::mutex mutex;
     return mutex;
   }
