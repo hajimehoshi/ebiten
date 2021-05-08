@@ -110,16 +110,21 @@ func (p *player) Play() {
 			p.cond.Signal()
 		})
 		runLoop = true
+	}
 
-		// Fill the first part before playing to reduce noises (#1632).
-		buf := make([]byte, p.context.oneBufferSize())
+	buf := make([]byte, p.context.maxBufferSize())
+	for p.p.UnplayedBufferSize() < int64(p.context.maxBufferSize()) {
 		n, err := p.src.Read(buf)
 		if err != nil && err != io.EOF {
 			p.setErrorImpl(err)
 			return
 		}
 		p.p.AppendBuffer(buf[:n])
+		if err == io.EOF {
+			break
+		}
 	}
+
 	if err := p.p.Play(); err != nil {
 		p.setErrorImpl(err)
 		return
