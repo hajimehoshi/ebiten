@@ -528,10 +528,12 @@ func (p *playerImpl) closeImpl(reuseLater bool) error {
 		p.audioQueue = nil
 	}
 	if reuseLater {
+		p.state = playerPaused
+		p.buf = p.buf[:0]
+		p.eof = false
+	} else {
 		p.unqueuedBufs = nil
 		p.state = playerClosed
-	} else {
-		p.state = playerPaused
 	}
 	p.cond.Signal()
 	return p.err
