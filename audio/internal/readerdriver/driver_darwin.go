@@ -517,7 +517,7 @@ func (p *playerImpl) closeForReuse() error {
 
 func (p *playerImpl) closeImpl(reuseLater bool) error {
 	if p.audioQueue != nil {
-		// Even if reuseLater is true, AudioQueuePause is not efficent for reusing.
+		// Even if reuseLater is true, AudioQueuePause is not efficient for reusing.
 		// AudioQueueStart takes long if the AudioQueueStop is not called.
 		if osstatus := C.AudioQueueStop(p.audioQueue, C.true); osstatus != C.noErr && p.err != nil {
 			// setErrorImpl calls closeImpl. Do not call this.
