@@ -259,15 +259,20 @@ func (p *players) suspend() error {
 }
 
 func (p *players) resume() error {
+	// playerImpl's Play can touch p. Avoid the deadlock.
 	p.m.Lock()
-	defer p.m.Unlock()
-
+	players := map[*playerImpl]struct{}{}
 	for pl := range p.toResume {
+		players[pl] = struct{}{}
+		delete(p.toResume, pl)
+	}
+	p.m.Unlock()
+
+	for pl := range players {
 		pl.Play()
 		if err := pl.Err(); err != nil {
 			return err
 		}
-		delete(p.toResume, pl)
 	}
 	return nil
 }
