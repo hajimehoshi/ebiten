@@ -23,20 +23,6 @@ package readerdriver
 // void ebiten_readerdriver_render(void* inUserData, AudioQueueRef inAQ, AudioQueueBufferRef inBuffer);
 //
 // void ebiten_readerdriver_setNotificationHandler();
-//
-// // ebiten_readerdriver_AudioQueueNewOutput is a wrapper for AudioQueueNewOutput.
-// // This is to avoid go-vet warnings of an unsafe.Pointer usage.
-// // TODO: Use cgo.Handle (https://tip.golang.org/pkg/runtime/cgo/#Handle) when Go 1.17 becomes the minimum supported version.
-// static OSStatus ebiten_readerdriver_AudioQueueNewOutput(
-//     const AudioStreamBasicDescription *inFormat,
-//     AudioQueueOutputCallback inCallbackProc,
-//     uintptr_t inUserData,
-//     CFRunLoopRef inCallbackRunLoop,
-//     CFStringRef inCallbackRunLoopMode,
-//     UInt32 inFlags,
-//     AudioQueueRef *outAQ) {
-//   return AudioQueueNewOutput(inFormat, inCallbackProc, (void*)(inUserData), inCallbackRunLoop, inCallbackRunLoopMode, inFlags, outAQ);
-// }
 import "C"
 
 import (
@@ -100,45 +86,36 @@ type playerImpl struct {
 }
 
 type players struct {
-	players  map[int]*playerImpl
+	players  map[C.AudioQueueRef]*playerImpl
 	toResume map[*playerImpl]struct{}
 	m        sync.Mutex
 }
 
-func (p *players) add(player *playerImpl) int {
+func (p *players) add(player *playerImpl, audioQueue C.AudioQueueRef) {
 	p.m.Lock()
 	defer p.m.Unlock()
 
-	id := 1
-	for {
-		if _, ok := p.players[id]; ok {
-			id++
-			continue
-		}
-		break
-	}
 	if p.players == nil {
-		p.players = map[int]*playerImpl{}
+		p.players = map[C.AudioQueueRef]*playerImpl{}
 	}
-	p.players[id] = player
-	return id
+	p.players[audioQueue] = player
 }
 
-func (p *players) get(id int) *playerImpl {
+func (p *players) get(audioQueue C.AudioQueueRef) *playerImpl {
 	p.m.Lock()
 	defer p.m.Unlock()
-	return p.players[id]
+	return p.players[audioQueue]
 }
 
-func (p *players) remove(id int) {
+func (p *players) remove(audioQueue C.AudioQueueRef) {
 	p.m.Lock()
 	defer p.m.Unlock()
 
-	pl, ok := p.players[id]
+	pl, ok := p.players[audioQueue]
 	if !ok {
 		return
 	}
-	delete(p.players, id)
+	delete(p.players, audioQueue)
 	delete(p.toResume, pl)
 }
 
@@ -190,7 +167,6 @@ func (c *context) NewPlayer(src io.Reader) Player {
 		},
 	}
 	runtime.SetFinalizer(p, (*player).Close)
-	p.p.id = thePlayers.add(p.p)
 	return p
 }
 
@@ -239,10 +215,10 @@ func (p *playerImpl) Play() {
 		}
 
 		var audioQueue C.AudioQueueRef
-		if osstatus := C.ebiten_readerdriver_AudioQueueNewOutput(
+		if osstatus := C.AudioQueueNewOutput(
 			&desc,
 			(C.AudioQueueOutputCallback)(C.ebiten_readerdriver_render),
-			C.uintptr_t(p.id),
+			nil,
 			(C.CFRunLoopRef)(0),
 			(C.CFStringRef)(0),
 			0,
@@ -264,6 +240,8 @@ func (p *playerImpl) Play() {
 		}
 
 		C.AudioQueueSetParameter(p.audioQueue, C.kAudioQueueParam_Volume, C.AudioQueueParameterValue(p.volume))
+
+		thePlayers.add(p, p.audioQueue)
 
 		runLoop = true
 	}
@@ -451,18 +429,17 @@ func (p *playerImpl) closeImpl() error {
 		if osstatus := C.AudioQueueDispose(p.audioQueue, C.true); osstatus != C.noErr && p.err != nil {
 			p.err = fmt.Errorf("readerdriver: AudioQueueDispose failed: %d", osstatus)
 		}
+		thePlayers.remove(p.audioQueue)
 		p.audioQueue = nil
 	}
 	p.state = playerClosed
 	p.cond.Signal()
-	thePlayers.remove(p.id)
 	return p.err
 }
 
 //export ebiten_readerdriver_render
 func ebiten_readerdriver_render(inUserData unsafe.Pointer, inAQ C.AudioQueueRef, inBuffer C.AudioQueueBufferRef) {
-	id := int(uintptr(inUserData))
-	p := thePlayers.get(id)
+	p := thePlayers.get(inAQ)
 	queued, err := p.appendBuffer(inBuffer)
 	if err != nil {
 		p.setError(err)
