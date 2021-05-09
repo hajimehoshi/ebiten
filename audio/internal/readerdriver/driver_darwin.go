@@ -37,10 +37,111 @@ func IsAvailable() bool {
 	return true
 }
 
+type audioQueuePoolItem struct {
+	queue C.AudioQueueRef
+	bufs  []C.AudioQueueBufferRef
+}
+
+type audioQueuePool struct {
+	c      *context
+	unused []audioQueuePoolItem
+	used   []audioQueuePoolItem
+	m      sync.Mutex
+}
+
+func (a *audioQueuePool) Get() (C.AudioQueueRef, []C.AudioQueueBufferRef, error) {
+	a.m.Lock()
+	defer a.m.Unlock()
+
+	if len(a.unused) > 0 {
+		q := a.unused[0]
+		a.unused = a.unused[1:]
+		a.used = append(a.used, q)
+		return q.queue, q.bufs, nil
+	}
+
+	flags := C.kAudioFormatFlagIsPacked
+	if a.c.bitDepthInBytes != 1 {
+		flags |= C.kAudioFormatFlagIsSignedInteger
+	}
+	desc := C.AudioStreamBasicDescription{
+		mSampleRate:       C.double(a.c.sampleRate),
+		mFormatID:         C.kAudioFormatLinearPCM,
+		mFormatFlags:      C.UInt32(flags),
+		mBytesPerPacket:   C.UInt32(a.c.channelNum * a.c.bitDepthInBytes),
+		mFramesPerPacket:  1,
+		mBytesPerFrame:    C.UInt32(a.c.channelNum * a.c.bitDepthInBytes),
+		mChannelsPerFrame: C.UInt32(a.c.channelNum),
+		mBitsPerChannel:   C.UInt32(8 * a.c.bitDepthInBytes),
+	}
+
+	var audioQueue C.AudioQueueRef
+	if osstatus := C.AudioQueueNewOutput(
+		&desc,
+		(C.AudioQueueOutputCallback)(C.ebiten_readerdriver_render),
+		nil,
+		(C.CFRunLoopRef)(0),
+		(C.CFStringRef)(0),
+		0,
+		&audioQueue); osstatus != C.noErr {
+		return nil, nil, fmt.Errorf("readerdriver: AudioQueueNewFormat with StreamFormat failed: %d", osstatus)
+	}
+
+	size := a.c.oneBufferSize()
+	bufs := make([]C.AudioQueueBufferRef, 0, 2)
+	for len(bufs) < cap(bufs) {
+		var buf C.AudioQueueBufferRef
+		if osstatus := C.AudioQueueAllocateBuffer(audioQueue, C.UInt32(size), &buf); osstatus != C.noErr {
+			return nil, nil, fmt.Errorf("readerdriver: AudioQueueAllocateBuffer failed: %d", osstatus)
+		}
+		buf.mAudioDataByteSize = C.UInt32(size)
+		bufs = append(bufs, buf)
+	}
+
+	a.used = append(a.used, audioQueuePoolItem{
+		queue: audioQueue,
+		bufs:  bufs,
+	})
+
+	return audioQueue, bufs, nil
+}
+
+func (a *audioQueuePool) Put(audioQueue C.AudioQueueRef) error {
+	a.m.Lock()
+	defer a.m.Unlock()
+
+	for i, q := range a.used {
+		if q.queue != audioQueue {
+			continue
+		}
+
+		a.used = append(a.used[:i], a.used[i+1:]...)
+		// 32 is an arbitrary number.
+		if len(a.unused)+len(a.used) < 32 {
+			a.unused = append(a.unused, q)
+			break
+		}
+
+		// As the pool is too big, remove the AudioQueue.
+		for _, b := range q.bufs {
+			if osstatus := C.AudioQueueFreeBuffer(q.queue, b); osstatus != C.noErr {
+				return fmt.Errorf("readerdriver: AudioQueueFreeBuffer failed: %d", osstatus)
+			}
+		}
+		if osstatus := C.AudioQueueDispose(q.queue, C.true); osstatus != C.noErr {
+			return fmt.Errorf("readerdriver: AudioQueueDispose failed: %d", osstatus)
+		}
+		break
+	}
+	return nil
+}
+
 type context struct {
 	sampleRate      int
 	channelNum      int
 	bitDepthInBytes int
+
+	audioQueuePool audioQueuePool
 }
 
 // TOOD: Convert the error code correctly.
@@ -55,6 +156,7 @@ func NewContext(sampleRate, channelNum, bitDepthInBytes int) (Context, chan stru
 		channelNum:      channelNum,
 		bitDepthInBytes: bitDepthInBytes,
 	}
+	c.audioQueuePool.c = c
 	C.ebiten_readerdriver_setNotificationHandler()
 	return c, ready, nil
 }
@@ -198,49 +300,14 @@ func (p *playerImpl) Play() {
 
 	var runLoop bool
 	if p.audioQueue == nil {
-		c := p.context
-		flags := C.kAudioFormatFlagIsPacked
-		if c.bitDepthInBytes != 1 {
-			flags |= C.kAudioFormatFlagIsSignedInteger
-		}
-		desc := C.AudioStreamBasicDescription{
-			mSampleRate:       C.double(c.sampleRate),
-			mFormatID:         C.kAudioFormatLinearPCM,
-			mFormatFlags:      C.UInt32(flags),
-			mBytesPerPacket:   C.UInt32(c.channelNum * c.bitDepthInBytes),
-			mFramesPerPacket:  1,
-			mBytesPerFrame:    C.UInt32(c.channelNum * c.bitDepthInBytes),
-			mChannelsPerFrame: C.UInt32(c.channelNum),
-			mBitsPerChannel:   C.UInt32(8 * c.bitDepthInBytes),
-		}
-
-		var audioQueue C.AudioQueueRef
-		if osstatus := C.AudioQueueNewOutput(
-			&desc,
-			(C.AudioQueueOutputCallback)(C.ebiten_readerdriver_render),
-			nil,
-			(C.CFRunLoopRef)(0),
-			(C.CFStringRef)(0),
-			0,
-			&audioQueue); osstatus != C.noErr {
-			p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueueNewFormat with StreamFormat failed: %d", osstatus))
+		audioQueue, audioQueueBuffers, err := p.context.audioQueuePool.Get()
+		if err != nil {
+			p.setErrorImpl(err)
 			return
 		}
 		p.audioQueue = audioQueue
-
-		size := c.oneBufferSize()
-		for len(p.unqueuedBufs) < 2 {
-			var buf C.AudioQueueBufferRef
-			if osstatus := C.AudioQueueAllocateBuffer(audioQueue, C.UInt32(size), &buf); osstatus != C.noErr {
-				p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueueAllocateBuffer failed: %d", osstatus))
-				return
-			}
-			buf.mAudioDataByteSize = C.UInt32(size)
-			p.unqueuedBufs = append(p.unqueuedBufs, buf)
-		}
-
+		p.unqueuedBufs = audioQueueBuffers
 		C.AudioQueueSetParameter(p.audioQueue, C.kAudioQueueParam_Volume, C.AudioQueueParameterValue(p.volume))
-
 		thePlayers.add(p, p.audioQueue)
 
 		runLoop = true
@@ -411,28 +478,33 @@ func (p *player) Close() error {
 func (p *playerImpl) Close() error {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
-	return p.closeImpl()
+	return p.closeImpl(false)
 }
 
-func (p *playerImpl) closeImpl() error {
+func (p *playerImpl) closeForReuse() error {
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
+	return p.closeImpl(true)
+}
+
+func (p *playerImpl) closeImpl(reuseLater bool) error {
 	if p.audioQueue != nil {
 		if osstatus := C.AudioQueueStop(p.audioQueue, C.true); osstatus != C.noErr && p.err != nil {
 			// setErrorImpl calls closeImpl. Do not call this.
 			p.err = fmt.Errorf("readerdriver: AudioQueueStop failed: %d", osstatus)
 		}
-		for _, b := range p.unqueuedBufs {
-			if osstatus := C.AudioQueueFreeBuffer(p.audioQueue, b); osstatus != C.noErr && p.err != nil {
-				p.err = fmt.Errorf("readerdriver: AudioQueueFreeBuffer failed: %d", osstatus)
-			}
-		}
-		p.unqueuedBufs = nil
-		if osstatus := C.AudioQueueDispose(p.audioQueue, C.true); osstatus != C.noErr && p.err != nil {
-			p.err = fmt.Errorf("readerdriver: AudioQueueDispose failed: %d", osstatus)
+		if err := p.context.audioQueuePool.Put(p.audioQueue); err != nil && p.err != nil {
+			p.err = err
 		}
 		thePlayers.remove(p.audioQueue)
 		p.audioQueue = nil
 	}
-	p.state = playerClosed
+	if reuseLater {
+		p.unqueuedBufs = nil
+		p.state = playerClosed
+	} else {
+		p.state = playerPaused
+	}
 	p.cond.Signal()
 	return p.err
 }
@@ -448,7 +520,7 @@ func ebiten_readerdriver_render(inUserData unsafe.Pointer, inAQ C.AudioQueueRef,
 	if !queued {
 		p.unqueuedBufs = append(p.unqueuedBufs, inBuffer)
 		if len(p.unqueuedBufs) == 2 && p.eof {
-			p.Pause()
+			p.closeForReuse()
 		}
 	}
 }
@@ -521,7 +593,7 @@ func (p *playerImpl) setError(err error) {
 
 func (p *playerImpl) setErrorImpl(err error) {
 	p.err = err
-	p.closeImpl()
+	p.closeImpl(false)
 }
 
 func (p *playerImpl) loop() {
