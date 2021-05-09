@@ -189,7 +189,7 @@ func (p *readerPlayer) Current() time.Duration {
 		return 0
 	}
 
-	sample := (p.stream.Current() - p.player.UnplayedBufferSize()) / bytesPerSample
+	sample := (p.stream.Current() - int64(p.player.UnplayedBufferSize())) / bytesPerSample
 	return time.Duration(sample) * time.Second / time.Duration(p.factory.sampleRate)
 }
 

@@ -101,6 +101,6 @@ func (p *Player) Close() error {
 	return nil
 }
 
-func (p *Player) UnplayedBufferSize() int64 {
-	return int64(C.Player_UnplayedBufferSize(p.player))
+func (p *Player) UnplayedBufferSize() int {
+	return int(C.Player_UnplayedBufferSize(p.player))
 }

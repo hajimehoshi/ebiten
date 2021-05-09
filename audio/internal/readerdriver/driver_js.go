@@ -296,7 +296,7 @@ func (p *player) SetVolume(volume float64) {
 	p.gain.Get("gain").Set("value", volume)
 }
 
-func (p *player) UnplayedBufferSize() int64 {
+func (p *player) UnplayedBufferSize() int {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
 
@@ -305,7 +305,7 @@ func (p *player) UnplayedBufferSize() int64 {
 	for _, n := range p.bufferSourceNodes {
 		sec += n.Get("buffer").Get("duration").Float()
 	}
-	return int64(len(p.buf)) + int64(sec*float64(p.context.sampleRate*p.context.channelNum*p.context.bitDepthInBytes))
+	return len(p.buf) + int(sec*float64(p.context.sampleRate*p.context.channelNum*p.context.bitDepthInBytes))
 }
 
 func (p *player) Err() error {

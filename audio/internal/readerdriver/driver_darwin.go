@@ -525,14 +525,14 @@ func (p *playerImpl) SetVolume(volume float64) {
 	C.AudioQueueSetParameter(p.audioQueue, C.kAudioQueueParam_Volume, C.AudioQueueParameterValue(volume))
 }
 
-func (p *player) UnplayedBufferSize() int64 {
+func (p *player) UnplayedBufferSize() int {
 	return p.p.UnplayedBufferSize()
 }
 
-func (p *playerImpl) UnplayedBufferSize() int64 {
+func (p *playerImpl) UnplayedBufferSize() int {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
-	return int64(len(p.buf))
+	return len(p.buf)
 }
 
 func (p *player) Close() error {

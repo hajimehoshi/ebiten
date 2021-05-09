@@ -127,7 +127,7 @@ func (p *Player) Play() {
 	// TODO: Get the appropriate buffer size from the C++ side.
 	if p.buf == nil {
 		n := p.context.oneBufferSize()
-		if max := p.context.MaxBufferSize() - int(p.UnplayedBufferSize()); n > max {
+		if max := p.context.MaxBufferSize() - p.UnplayedBufferSize(); n > max {
 			n = max
 		}
 		p.buf = make([]byte, n)
@@ -195,11 +195,11 @@ func (p *Player) SetVolume(volume float64) {
 	p.v.Set("volume", volume)
 }
 
-func (p *Player) UnplayedBufferSize() int64 {
+func (p *Player) UnplayedBufferSize() int {
 	if !p.v.Truthy() {
 		return 0
 	}
-	return int64(p.v.Get("unplayedBufferSize").Int())
+	return p.v.Get("unplayedBufferSize").Int()
 }
 
 func (p *Player) Err() error {
@@ -303,7 +303,7 @@ func (p *Player) loop() {
 		}
 
 		n := readChunkSize
-		if max := p.context.MaxBufferSize() - int(p.UnplayedBufferSize()); n > max {
+		if max := p.context.MaxBufferSize() - p.UnplayedBufferSize(); n > max {
 			n = max
 		}
 		n2, err := p.src.Read(buf[:n])

@@ -114,7 +114,7 @@ func (p *player) Play() {
 	}
 
 	buf := make([]byte, p.context.maxBufferSize())
-	for p.p.UnplayedBufferSize() < int64(p.context.maxBufferSize()) {
+	for p.p.UnplayedBufferSize() < p.context.maxBufferSize() {
 		n, err := p.src.Read(buf)
 		if err != nil && err != io.EOF {
 			p.setErrorImpl(err)
@@ -183,7 +183,7 @@ func (p *player) SetVolume(volume float64) {
 	p.p.SetVolume(volume)
 }
 
-func (p *player) UnplayedBufferSize() int64 {
+func (p *player) UnplayedBufferSize() int {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
 	if p.p == nil {
@@ -240,7 +240,7 @@ func (p *player) shouldWait() bool {
 		return false
 	}
 	if p.p.IsPlaying() {
-		return p.p.UnplayedBufferSize() >= int64(p.context.maxBufferSize())
+		return p.p.UnplayedBufferSize() >= p.context.maxBufferSize()
 	}
 	return true
 }

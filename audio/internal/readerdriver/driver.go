@@ -31,7 +31,7 @@ type Player interface {
 	Reset()
 	Volume() float64
 	SetVolume(volume float64)
-	UnplayedBufferSize() int64
+	UnplayedBufferSize() int
 	Err() error
 	io.Closer
 }
