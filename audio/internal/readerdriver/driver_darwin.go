@@ -366,16 +366,21 @@ func (p *playerImpl) Play() {
 	}
 
 	for {
-		if osstatus := C.AudioQueueStart(p.audioQueue, nil); osstatus != C.noErr {
-			// AudioQueueStart might fail just after recovering from Siri.
+		if osstatus := C.AudioQueuePrime(p.audioQueue, 0, nil); osstatus != C.noErr {
+			// AudioQueuePrime might fail just after recovering from Siri.
 			if osstatus == C.AVAudioSessionErrorCodeSiriIsRecording {
 				time.Sleep(10 * time.Millisecond)
 				continue
 			}
-			p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueueStart failed: %d", osstatus))
+			p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueuePrime failed: %d", osstatus))
 			return
 		}
 		break
+	}
+
+	if osstatus := C.AudioQueueStart(p.audioQueue, nil); osstatus != C.noErr {
+		p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueueStart failed: %d", osstatus))
+		return
 	}
 
 	p.state = playerPlay
