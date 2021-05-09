@@ -272,7 +272,10 @@ func (p *player) IsPlaying() bool {
 func (p *player) Reset() {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
+	p.resetImpl()
+}
 
+func (p *player) resetImpl() {
 	if p.err != nil {
 		return
 	}
@@ -312,14 +315,14 @@ func (p *player) Err() error {
 }
 
 func (p *player) Close() error {
+	runtime.SetFinalizer(p, nil)
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
 	return p.closeImpl()
 }
 
 func (p *player) closeImpl() error {
-	runtime.SetFinalizer(p, nil)
-	p.Reset()
+	p.resetImpl()
 	p.state = playerClosed
 	p.appendBufferFunc.Release()
 	p.cond.Signal()
