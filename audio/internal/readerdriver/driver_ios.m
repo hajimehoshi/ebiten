@@ -12,27 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !android
-// +build !darwin
-// +build !js
+// +build ios
 
-package readerdriver
-
-import (
-	"fmt"
-	"runtime"
-)
-
-func IsAvailable() bool {
-	return false
-}
-
-type context struct {
-	sampleRate      int
-	channelNum      int
-	bitDepthInBytes int
-}
-
-func NewContext(sampleRate int, channelNum int, bitDepthInBytes int) (Context, chan struct{}, error) {
-	panic(fmt.Sprintf("readerdriver: NewContext is not available on this environment: GOOS=%s", runtime.GOOS))
+void ebiten_readerdriver_setNotificationHandler() {
+  // AVAudioSessionInterruptionNotification is not reliable on iOS. Rely on
+  // applicationWillResignActive and applicationDidBecomeActive instead. See
+  // https://stackoverflow.com/questions/24404463/ios-siri-not-available-does-not-return-avaudiosessioninterruptionoptionshouldre
+  return;
 }

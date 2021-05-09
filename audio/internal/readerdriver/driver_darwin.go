@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !ios
-
 package readerdriver
 
 // #cgo LDFLAGS: -framework AudioToolbox
@@ -30,6 +28,7 @@ import (
 	"io"
 	"runtime"
 	"sync"
+	"time"
 	"unsafe"
 )
 
@@ -366,10 +365,19 @@ func (p *playerImpl) Play() {
 		return
 	}
 
-	if osstatus := C.AudioQueueStart(p.audioQueue, nil); osstatus != C.noErr {
-		p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueueStart failed: %d", osstatus))
-		return
+	for {
+		if osstatus := C.AudioQueueStart(p.audioQueue, nil); osstatus != C.noErr {
+			// AudioQueueStart might fail just after recovering from Siri.
+			if osstatus == C.AVAudioSessionErrorCodeSiriIsRecording {
+				time.Sleep(10 * time.Millisecond)
+				continue
+			}
+			p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueueStart failed: %d", osstatus))
+			return
+		}
+		break
 	}
+
 	p.state = playerPlay
 	p.cond.Signal()
 
