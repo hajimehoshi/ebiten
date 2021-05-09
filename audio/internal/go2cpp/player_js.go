@@ -21,10 +21,6 @@ import (
 	"syscall/js"
 )
 
-const (
-	readChunkSize = 4096
-)
-
 type Context struct {
 	v               js.Value
 	sampleRate      int
@@ -294,6 +290,8 @@ func (p *Player) writeImpl(dst js.Value, src []byte) {
 }
 
 func (p *Player) loop() {
+	const readChunkSize = 4096
+
 	buf := make([]byte, readChunkSize)
 	dst := js.Global().Get("Uint8Array").New(readChunkSize)
 
