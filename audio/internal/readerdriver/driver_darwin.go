@@ -268,8 +268,8 @@ func (p *playerImpl) Play() {
 		runLoop = true
 	}
 
+	buf := make([]byte, p.context.maxBufferSize())
 	for len(p.buf) < p.context.maxBufferSize() {
-		buf := make([]byte, p.context.maxBufferSize())
 		n, err := p.src.Read(buf)
 		if err != nil && err != io.EOF {
 			p.setErrorImpl(err)
@@ -363,12 +363,12 @@ func (p *playerImpl) Reset() {
 	}
 	// AudioQueueReset invokes the callback directry.
 	p.cond.L.Unlock()
-	if osstatus := C.AudioQueueReset(p.audioQueue); osstatus != C.noErr && p.err == nil {
+	osstatus := C.AudioQueueReset(p.audioQueue)
+	p.cond.L.Lock()
+	if osstatus != C.noErr && p.err == nil {
 		p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueueReset failed: %d", osstatus))
-		p.cond.L.Lock()
 		return
 	}
-	p.cond.L.Lock()
 	if osstatus := C.AudioQueueFlush(p.audioQueue); osstatus != C.noErr && p.err == nil {
 		p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueueFlush failed: %d", osstatus))
 		return
