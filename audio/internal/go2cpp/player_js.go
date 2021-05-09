@@ -213,7 +213,10 @@ func (p *Player) Close() error {
 func (p *Player) close(remove bool) error {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
+	return p.closeImpl(remove)
+}
 
+func (p *Player) closeImpl(remove bool) error {
 	if p.state == playerStateClosed {
 		return p.err
 	}
@@ -271,12 +274,6 @@ func (p *Player) waitUntilUnpaused() bool {
 	return p.v.Truthy() && p.state == playerStatePlaying
 }
 
-func (p *Player) write(dst js.Value, src []byte) {
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
-	p.writeImpl(dst, src)
-}
-
 func (p *Player) writeImpl(dst js.Value, src []byte) {
 	if p.state == playerStateClosed {
 		return
@@ -300,22 +297,22 @@ func (p *Player) loop() {
 			return
 		}
 
-		n := readChunkSize
-		if max := p.context.MaxBufferSize() - p.UnplayedBufferSize(); n > max {
-			n = max
-		}
-		n2, err := p.src.Read(buf[:n])
+		p.cond.L.Lock()
+		n, err := p.src.Read(buf)
 		if err != nil && err != io.EOF {
-			p.setError(err)
+			p.setErrorImpl(err)
+			p.cond.L.Unlock()
 			return
 		}
 		if n > 0 {
-			p.write(dst, buf[:n2])
+			p.writeImpl(dst, buf[:n])
 		}
 
 		if err == io.EOF {
-			p.close(false)
+			p.closeImpl(false)
+			p.cond.L.Unlock()
 			return
 		}
+		p.cond.L.Unlock()
 	}
 }
