@@ -42,11 +42,25 @@ type audioQueuePoolItem struct {
 	bufs  []C.AudioQueueBufferRef
 }
 
+const audioQueuePoolMaxItemNum = 32 // 32 is an arbitrary number.
+
 type audioQueuePool struct {
 	c      *context
 	unused []audioQueuePoolItem
 	used   []audioQueuePoolItem
 	m      sync.Mutex
+}
+
+func (a *audioQueuePool) Prepare(context *context) error {
+	a.c = context
+	for i := 0; i < audioQueuePoolMaxItemNum; i++ {
+		if _, _, err := a.Get(); err != nil {
+			return err
+		}
+	}
+	a.unused = a.used
+	a.used = a.used[:0]
+	return nil
 }
 
 func (a *audioQueuePool) Get() (C.AudioQueueRef, []C.AudioQueueBufferRef, error) {
@@ -116,8 +130,7 @@ func (a *audioQueuePool) Put(audioQueue C.AudioQueueRef) error {
 		}
 
 		a.used = append(a.used[:i], a.used[i+1:]...)
-		// 32 is an arbitrary number.
-		if len(a.unused)+len(a.used) < 32 {
+		if len(a.unused)+len(a.used) < audioQueuePoolMaxItemNum {
 			a.unused = append(a.unused, q)
 			break
 		}
@@ -156,7 +169,9 @@ func NewContext(sampleRate, channelNum, bitDepthInBytes int) (Context, chan stru
 		channelNum:      channelNum,
 		bitDepthInBytes: bitDepthInBytes,
 	}
-	c.audioQueuePool.c = c
+	if err := c.audioQueuePool.Prepare(c); err != nil {
+		return nil, nil, err
+	}
 	C.ebiten_readerdriver_setNotificationHandler()
 	return c, ready, nil
 }
