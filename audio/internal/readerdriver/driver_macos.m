@@ -36,9 +36,11 @@
 
 @end
 
-// ebiten_readerdriver_setNotificationHandler sets a handler for sleep/wake notifications.
+// ebiten_readerdriver_setNotificationHandler sets a handler for sleep/wake
+// notifications.
 void ebiten_readerdriver_setNotificationHandler() {
-  EbitenReaderDriverNotificationObserver *observer = [[EbitenReaderDriverNotificationObserver alloc] init];
+  EbitenReaderDriverNotificationObserver *observer =
+      [[EbitenReaderDriverNotificationObserver alloc] init];
 
   [[[NSWorkspace sharedWorkspace] notificationCenter]
       addObserver:observer
