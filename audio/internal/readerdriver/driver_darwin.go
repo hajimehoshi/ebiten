@@ -517,6 +517,8 @@ func (p *playerImpl) closeForReuse() error {
 
 func (p *playerImpl) closeImpl(reuseLater bool) error {
 	if p.audioQueue != nil {
+		// Even if reuseLater is true, AudioQueuePause is not efficent for reusing.
+		// AudioQueueStart takes long if the AudioQueueStop is not called.
 		if osstatus := C.AudioQueueStop(p.audioQueue, C.true); osstatus != C.noErr && p.err != nil {
 			// setErrorImpl calls closeImpl. Do not call this.
 			p.err = fmt.Errorf("readerdriver: AudioQueueStop failed: %d", osstatus)
@@ -527,12 +529,14 @@ func (p *playerImpl) closeImpl(reuseLater bool) error {
 		thePlayers.remove(p.audioQueue)
 		p.audioQueue = nil
 	}
+
+	// When reuseLater is true, this playerImpl can be reused later even though the AudioQueue is removed.
 	if reuseLater {
 		p.state = playerPaused
 		p.buf = p.buf[:0]
 		p.eof = false
-	} else {
 		p.unqueuedBufs = nil
+	} else {
 		p.state = playerClosed
 	}
 	p.cond.Signal()
