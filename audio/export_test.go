@@ -116,7 +116,7 @@ func (p *dummyReaderPlayer) SetVolume(volume float64) {
 	p.volume = volume
 }
 
-func (p *dummyReaderPlayer) UnplayedBufferSize() int64 {
+func (p *dummyReaderPlayer) UnplayedBufferSize() int {
 	return 0
 }
 
