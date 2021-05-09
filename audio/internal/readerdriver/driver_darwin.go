@@ -435,8 +435,9 @@ func (p *playerImpl) Reset() {
 		return
 	}
 	// AudioQueueReset invokes the callback directry.
+	q := p.audioQueue
 	p.cond.L.Unlock()
-	osstatus := C.AudioQueueReset(p.audioQueue)
+	osstatus := C.AudioQueueReset(q)
 	p.cond.L.Lock()
 	if osstatus != C.noErr && p.err == nil {
 		p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueueReset failed: %d", osstatus))
@@ -519,10 +520,19 @@ func (p *playerImpl) closeImpl(reuseLater bool) error {
 	if p.audioQueue != nil {
 		// Even if reuseLater is true, AudioQueuePause is not efficient for reusing.
 		// AudioQueueStart takes long if the AudioQueueStop is not called.
-		if osstatus := C.AudioQueueStop(p.audioQueue, C.true); osstatus != C.noErr && p.err != nil {
+
+		// AudioQueueStop might invoke AudioQueueReset. Unlock the mutex here to avoid a deadlock.
+		q := p.audioQueue
+		p.cond.L.Unlock()
+		osstatus := C.AudioQueueStop(q, C.true)
+		p.cond.L.Lock()
+
+		if osstatus != C.noErr && p.err != nil {
 			// setErrorImpl calls closeImpl. Do not call this.
 			p.err = fmt.Errorf("readerdriver: AudioQueueStop failed: %d", osstatus)
 		}
+
+		// All the AudioQueueBuffers are already dequeued. It is safe to dispose the AudioQueue and its buffers.
 		if err := p.context.audioQueuePool.Put(p.audioQueue); err != nil && p.err != nil {
 			p.err = err
 		}
