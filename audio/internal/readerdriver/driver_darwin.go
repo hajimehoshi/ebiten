@@ -199,6 +199,7 @@ type playerImpl struct {
 	eof          bool
 	cond         *sync.Cond
 	volume       float64
+	playCh       chan struct{}
 }
 
 type players struct {
@@ -310,6 +311,24 @@ func (p *playerImpl) Play() {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
 
+	if p.playCh != nil {
+		// Play is already called and the processing is not done yet.
+		// Do nothing and return.
+		return
+	}
+
+	// Call Play asynchronously since AudioQueuePrime and AudioQueuePlay might take long.
+	p.playCh = make(chan struct{})
+	go func() {
+		defer func() {
+			close(p.playCh)
+			p.playCh = nil
+		}()
+		p.playImpl()
+	}()
+}
+
+func (p *playerImpl) playImpl() {
 	if p.err != nil {
 		return
 	}
@@ -399,6 +418,10 @@ func (p *playerImpl) Pause() {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
 
+	if ch := p.playCh; ch != nil {
+		<-ch
+	}
+
 	if p.err != nil {
 		return
 	}
@@ -424,6 +447,10 @@ func (p *player) Reset() {
 func (p *playerImpl) Reset() {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
+
+	if ch := p.playCh; ch != nil {
+		<-ch
+	}
 
 	if p.err != nil {
 		return
@@ -466,6 +493,10 @@ func (p *player) IsPlaying() bool {
 func (p *playerImpl) IsPlaying() bool {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
+
+	if ch := p.playCh; ch != nil {
+		<-ch
+	}
 	return p.state == playerPlay
 }
 
@@ -522,6 +553,10 @@ func (p *playerImpl) closeForReuse() error {
 }
 
 func (p *playerImpl) closeImpl(reuseLater bool) error {
+	if ch := p.playCh; ch != nil {
+		<-ch
+	}
+
 	if p.audioQueue != nil {
 		// Even if reuseLater is true, AudioQueuePause is not efficient for reusing.
 		// AudioQueueStart takes long if the AudioQueueStop is not called.
