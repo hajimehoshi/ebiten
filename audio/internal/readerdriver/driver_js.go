@@ -126,7 +126,22 @@ func (c *context) Resume() error {
 	return nil
 }
 
+func (p *player) Play() {
+	if p.err != nil {
+		return
+	}
+	if p.state != playerPaused {
+		return
+	}
+	p.state = playerPlay
+	p.appendBuffer(js.Undefined(), nil)
+	p.appendBuffer(js.Undefined(), nil)
+}
+
 func (p *player) Pause() {
+	if p.err != nil {
+		return
+	}
 	if p.state != playerPlay {
 		return
 	}
@@ -232,20 +247,14 @@ func (p *player) appendBuffer(this js.Value, args []js.Value) interface{} {
 	return nil
 }
 
-func (p *player) Play() {
-	if p.state != playerPaused {
-		return
-	}
-	p.state = playerPlay
-	p.appendBuffer(js.Undefined(), nil)
-	p.appendBuffer(js.Undefined(), nil)
-}
-
 func (p *player) IsPlaying() bool {
 	return p.state == playerPlay
 }
 
 func (p *player) Reset() {
+	if p.err != nil {
+		return
+	}
 	if p.state == playerClosed {
 		return
 	}
