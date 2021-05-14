@@ -15,6 +15,7 @@
 // +build !android
 // +build !darwin
 // +build !js
+// +build !windows
 
 package readerdriver
 
