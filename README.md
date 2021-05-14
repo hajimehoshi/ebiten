@@ -49,6 +49,7 @@ For installation on desktops, see [the installation instruction](https://ebiten.
 
 ## Community
 
+- [Discord](https://discord.gg/3tVdM5H8cC)
 - `#ebiten` channel in [Gophers Slack](https://blog.gopheracademy.com/gophers-slack-community/)
 - [GitHub Discussion](https://github.com/hajimehoshi/ebiten/discussions)
 - [`r/ebiten` in Reddit](https://www.reddit.com/r/ebiten/)
