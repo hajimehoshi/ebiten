@@ -208,50 +208,52 @@ private:
 
 extern "C" {
 
-const char *Suspend() { return Player::Suspend(); }
+const char *ebiten_oboe_Suspend() { return Player::Suspend(); }
 
-const char *Resume() { return Player::Resume(); }
+const char *ebiten_oboe_Resume() { return Player::Resume(); }
 
-PlayerID Player_Create(int sample_rate, int channel_num, int bit_depth_in_bytes,
-                       double volume, uintptr_t go_player) {
+PlayerID ebiten_oboe_Player_Create(int sample_rate, int channel_num,
+                                   int bit_depth_in_bytes, double volume,
+                                   uintptr_t go_player) {
   Player *p = new Player(sample_rate, channel_num, bit_depth_in_bytes, volume,
                          go_player);
   return reinterpret_cast<PlayerID>(p);
 }
 
-bool Player_IsPlaying(PlayerID audio_player) {
+bool ebiten_oboe_Player_IsPlaying(PlayerID audio_player) {
   Player *p = reinterpret_cast<Player *>(audio_player);
   return p->IsPlaying();
 }
 
-void Player_AppendBuffer(PlayerID audio_player, uint8_t *data, int length) {
+void ebiten_oboe_Player_AppendBuffer(PlayerID audio_player, uint8_t *data,
+                                     int length) {
   Player *p = reinterpret_cast<Player *>(audio_player);
   p->AppendBuffer(data, length);
 }
 
-const char *Player_Play(PlayerID audio_player) {
+const char *ebiten_oboe_Player_Play(PlayerID audio_player) {
   Player *p = reinterpret_cast<Player *>(audio_player);
   return p->Play();
 }
 
-const char *Player_Pause(PlayerID audio_player) {
+const char *ebiten_oboe_Player_Pause(PlayerID audio_player) {
   Player *p = reinterpret_cast<Player *>(audio_player);
   return p->Pause();
 }
 
-void Player_SetVolume(PlayerID audio_player, double volume) {
+void ebiten_oboe_Player_SetVolume(PlayerID audio_player, double volume) {
   Player *p = reinterpret_cast<Player *>(audio_player);
   p->SetVolume(volume);
 }
 
-const char *Player_Close(PlayerID audio_player) {
+const char *ebiten_oboe_Player_Close(PlayerID audio_player) {
   Player *p = reinterpret_cast<Player *>(audio_player);
   const char *msg = p->CloseAndRemove();
   delete p;
   return msg;
 }
 
-int Player_UnplayedBufferSize(PlayerID audio_player) {
+int ebiten_oboe_Player_UnplayedBufferSize(PlayerID audio_player) {
   Player *p = reinterpret_cast<Player *>(audio_player);
   return p->GetUnplayedBufferSize();
 }

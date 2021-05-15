@@ -31,14 +31,14 @@ import (
 )
 
 func Suspend() error {
-	if msg := C.Suspend(); msg != nil {
+	if msg := C.ebiten_oboe_Suspend(); msg != nil {
 		return fmt.Errorf("oboe: Suspend failed: %s", C.GoString(msg))
 	}
 	return nil
 }
 
 func Resume() error {
-	if msg := C.Resume(); msg != nil {
+	if msg := C.ebiten_oboe_Resume(); msg != nil {
 		return fmt.Errorf("oboe: Resume failed: %s", C.GoString(msg))
 	}
 	return nil
@@ -53,7 +53,7 @@ func NewPlayer(sampleRate, channelNum, bitDepthInBytes int, volume float64, onWr
 	p := &Player{
 		onWritten: onWritten,
 	}
-	p.player = C.Player_Create(C.int(sampleRate), C.int(channelNum), C.int(bitDepthInBytes), C.double(volume), C.uintptr_t(uintptr(unsafe.Pointer(p))))
+	p.player = C.ebiten_oboe_Player_Create(C.int(sampleRate), C.int(channelNum), C.int(bitDepthInBytes), C.double(volume), C.uintptr_t(uintptr(unsafe.Pointer(p))))
 	runtime.SetFinalizer(p, (*Player).Close)
 	return p
 }
@@ -65,21 +65,21 @@ func onWrittenCallback(player C.uintptr_t) {
 }
 
 func (p *Player) IsPlaying() bool {
-	return bool(C.Player_IsPlaying(p.player))
+	return bool(C.ebiten_oboe_Player_IsPlaying(p.player))
 }
 
 func (p *Player) AppendBuffer(buf []byte) {
 	ptr := C.CBytes(buf)
 	defer C.free(ptr)
 
-	C.Player_AppendBuffer(p.player, (*C.uint8_t)(ptr), C.int(len(buf)))
+	C.ebiten_oboe_Player_AppendBuffer(p.player, (*C.uint8_t)(ptr), C.int(len(buf)))
 }
 
 func (p *Player) Play() error {
 	if p.player == 0 {
 		return fmt.Errorf("oboe: player is already closed at Play")
 	}
-	if msg := C.Player_Play(p.player); msg != nil {
+	if msg := C.ebiten_oboe_Player_Play(p.player); msg != nil {
 		return fmt.Errorf("oboe: Player_Play failed: %s", C.GoString(msg))
 	}
 	return nil
@@ -89,14 +89,14 @@ func (p *Player) Pause() error {
 	if p.player == 0 {
 		return fmt.Errorf("oboe: player is already closed at Pause")
 	}
-	if msg := C.Player_Pause(p.player); msg != nil {
+	if msg := C.ebiten_oboe_Player_Pause(p.player); msg != nil {
 		return fmt.Errorf("oboe: Player_Pause failed: %s", C.GoString(msg))
 	}
 	return nil
 }
 
 func (p *Player) SetVolume(volume float64) {
-	C.Player_SetVolume(p.player, C.double(volume))
+	C.ebiten_oboe_Player_SetVolume(p.player, C.double(volume))
 }
 
 func (p *Player) Close() error {
@@ -104,7 +104,7 @@ func (p *Player) Close() error {
 	if p.player == 0 {
 		return fmt.Errorf("oboe: player is already closed at Close")
 	}
-	if msg := C.Player_Close(p.player); msg != nil {
+	if msg := C.ebiten_oboe_Player_Close(p.player); msg != nil {
 		return fmt.Errorf("oboe: Player_Close failed: %s", C.GoString(msg))
 	}
 	p.player = 0
@@ -112,5 +112,5 @@ func (p *Player) Close() error {
 }
 
 func (p *Player) UnplayedBufferSize() int {
-	return int(C.Player_UnplayedBufferSize(p.player))
+	return int(C.ebiten_oboe_Player_UnplayedBufferSize(p.player))
 }
