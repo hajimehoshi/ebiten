@@ -651,7 +651,7 @@ func (p *playerImpl) shouldWait() bool {
 	case playerPaused:
 		return true
 	case playerPlay:
-		return len(p.buf) >= p.context.maxBufferSize() || p.eof
+		return len(p.buf) >= p.context.maxBufferSize()
 	case playerClosed:
 		return false
 	default:

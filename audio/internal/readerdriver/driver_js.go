@@ -341,7 +341,7 @@ func (p *player) shouldWait() bool {
 		// WebAudio doesn't have a notion of pause.
 		return false
 	case playerPlay:
-		return len(p.buf) >= p.context.maxBufferSize() || p.eof
+		return len(p.buf) >= p.context.maxBufferSize()
 	case playerClosed:
 		return false
 	default:
