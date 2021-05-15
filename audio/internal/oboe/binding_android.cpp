@@ -141,6 +141,7 @@ public:
     std::lock_guard<std::mutex> lock(PlayersMutex());
     const char* msg = Close();
     GetPlayers().erase(this);
+    GetPlayersToResume().erase(this);
     return msg;
   }
 
