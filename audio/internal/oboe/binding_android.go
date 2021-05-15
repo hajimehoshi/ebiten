@@ -76,6 +76,9 @@ func (p *Player) AppendBuffer(buf []byte) {
 }
 
 func (p *Player) Play() error {
+	if p.player == 0 {
+		return fmt.Errorf("oboe: player is already closed at Play")
+	}
 	if msg := C.Player_Play(p.player); msg != nil {
 		return fmt.Errorf("oboe: Player_Play failed: %s", C.GoString(msg))
 	}
@@ -83,6 +86,9 @@ func (p *Player) Play() error {
 }
 
 func (p *Player) Pause() error {
+	if p.player == 0 {
+		return fmt.Errorf("oboe: player is already closed at Pause")
+	}
 	if msg := C.Player_Pause(p.player); msg != nil {
 		return fmt.Errorf("oboe: Player_Pause failed: %s", C.GoString(msg))
 	}
@@ -95,9 +101,13 @@ func (p *Player) SetVolume(volume float64) {
 
 func (p *Player) Close() error {
 	runtime.SetFinalizer(p, nil)
+	if p.player == 0 {
+		return fmt.Errorf("oboe: player is already closed at Close")
+	}
 	if msg := C.Player_Close(p.player); msg != nil {
 		return fmt.Errorf("oboe: Player_Close failed: %s", C.GoString(msg))
 	}
+	p.player = 0
 	return nil
 }
 

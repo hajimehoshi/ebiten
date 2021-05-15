@@ -157,14 +157,12 @@ func (p *player) Reset() {
 	if p.p == nil {
 		return
 	}
-	defer func() {
-		p.p = nil
-		p.cond.Signal()
-	}()
 	if err := p.p.Close(); err != nil {
 		p.setErrorImpl(err)
 		return
 	}
+	p.p = nil
+	p.cond.Signal()
 }
 
 func (p *player) Volume() float64 {
