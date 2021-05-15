@@ -25,14 +25,15 @@ extern "C" {
 
 typedef uintptr_t PlayerID;
 
-const char* Suspend();
-const char* Resume();
-PlayerID Player_Create(int sample_rate, int channel_num, int bit_depth_in_bytes, double volume, uintptr_t go_player);
+const char *Suspend();
+const char *Resume();
+PlayerID Player_Create(int sample_rate, int channel_num, int bit_depth_in_bytes,
+                       double volume, uintptr_t go_player);
 bool Player_IsPlaying(PlayerID audio_player);
-void Player_AppendBuffer(PlayerID audio_player, uint8_t* data, int length);
-const char* Player_Play(PlayerID audio_player);
-const char* Player_Pause(PlayerID audio_player);
-const char* Player_Close(PlayerID audio_player);
+void Player_AppendBuffer(PlayerID audio_player, uint8_t *data, int length);
+const char *Player_Play(PlayerID audio_player);
+const char *Player_Pause(PlayerID audio_player);
+const char *Player_Close(PlayerID audio_player);
 void Player_SetVolume(PlayerID audio_player, double volume);
 int Player_UnplayedBufferSize(PlayerID audio_player);
 
@@ -40,4 +41,4 @@ int Player_UnplayedBufferSize(PlayerID audio_player);
 }
 #endif
 
-#endif  // OBOE_ANDROID_H_
+#endif // OBOE_ANDROID_H_

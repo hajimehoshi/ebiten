@@ -25,15 +25,15 @@ namespace {
 
 class Player : public oboe::AudioStreamDataCallback {
 public:
-  static const char* Suspend() {
+  static const char *Suspend() {
     std::lock_guard<std::mutex> lock(PlayersMutex());
-    for (Player* player : GetPlayers()) {
+    for (Player *player : GetPlayers()) {
       if (!player->IsPlaying()) {
         continue;
       }
       // Close should be called rather than Pause for onPause.
       // https://github.com/google/oboe/blob/master/docs/GettingStarted.md
-      if (const char* msg = player->Close(); msg) {
+      if (const char *msg = player->Close(); msg) {
         return msg;
       }
       GetPlayersToResume().insert(player);
@@ -41,10 +41,10 @@ public:
     return nullptr;
   }
 
-  static const char* Resume() {
+  static const char *Resume() {
     std::lock_guard<std::mutex> lock(PlayersMutex());
-    for (Player* player : GetPlayersToResume()) {
-      if (const char* msg = player->Play(); msg) {
+    for (Player *player : GetPlayersToResume()) {
+      if (const char *msg = player->Play(); msg) {
         return msg;
       }
     }
@@ -52,11 +52,10 @@ public:
     return nullptr;
   }
 
-  Player(int sample_rate, int channel_num, int bit_depth_in_bytes, double volume, uintptr_t go_player)
-    : sample_rate_{sample_rate},
-      channel_num_{channel_num},
-      bit_depth_in_bytes_{bit_depth_in_bytes},
-      go_player_{go_player} {
+  Player(int sample_rate, int channel_num, int bit_depth_in_bytes,
+         double volume, uintptr_t go_player)
+      : sample_rate_{sample_rate}, channel_num_{channel_num},
+        bit_depth_in_bytes_{bit_depth_in_bytes}, go_player_{go_player} {
     std::atomic_store(&volume_, volume);
     {
       std::lock_guard<std::mutex> lock(PlayersMutex());
@@ -64,39 +63,38 @@ public:
     }
   }
 
-  void SetVolume(double volume) {
-    std::atomic_store(&volume_, volume);
-  }
+  void SetVolume(double volume) { std::atomic_store(&volume_, volume); }
 
-  bool IsPlaying() {
-    return stream_->getState() == oboe::StreamState::Started;
-  }
+  bool IsPlaying() { return stream_->getState() == oboe::StreamState::Started; }
 
-  void AppendBuffer(uint8_t* data, int length) {
+  void AppendBuffer(uint8_t *data, int length) {
     // Sync this constants with internal/readerdriver/driver.go
     const size_t bytes_per_sample = channel_num_ * bit_depth_in_bytes_;
-    const size_t one_buffer_size = sample_rate_ * channel_num_ * bit_depth_in_bytes_ / 4 / bytes_per_sample * bytes_per_sample;
+    const size_t one_buffer_size = sample_rate_ * channel_num_ *
+                                   bit_depth_in_bytes_ / 4 / bytes_per_sample *
+                                   bytes_per_sample;
     const size_t max_buffer_size = one_buffer_size * 2;
 
     std::lock_guard<std::mutex> lock(mutex_);
     buf_.insert(buf_.end(), data, data + length);
   }
 
-  const char* Play() {
+  const char *Play() {
     if (bit_depth_in_bytes_ != 2) {
       return "bit_depth_in_bytes_ must be 2 but not";
     }
 
     if (!stream_) {
       oboe::AudioStreamBuilder builder;
-      oboe::Result result = builder.setDirection(oboe::Direction::Output)
-        ->setPerformanceMode(oboe::PerformanceMode::LowLatency)
-        ->setSharingMode(oboe::SharingMode::Shared)
-        ->setFormat(oboe::AudioFormat::I16)
-        ->setChannelCount(channel_num_)
-        ->setSampleRate(sample_rate_)
-        ->setDataCallback(this)
-        ->openStream(stream_);
+      oboe::Result result =
+          builder.setDirection(oboe::Direction::Output)
+              ->setPerformanceMode(oboe::PerformanceMode::LowLatency)
+              ->setSharingMode(oboe::SharingMode::Shared)
+              ->setFormat(oboe::AudioFormat::I16)
+              ->setChannelCount(channel_num_)
+              ->setSampleRate(sample_rate_)
+              ->setDataCallback(this)
+              ->openStream(stream_);
       if (result != oboe::Result::OK) {
         return oboe::convertToText(result);
       }
@@ -111,7 +109,7 @@ public:
     return nullptr;
   }
 
-  const char* Pause() {
+  const char *Pause() {
     if (!stream_) {
       return nullptr;
     }
@@ -121,7 +119,7 @@ public:
     return nullptr;
   }
 
-  const char* Close() {
+  const char *Close() {
     if (!stream_) {
       return nullptr;
     }
@@ -135,11 +133,11 @@ public:
     return nullptr;
   }
 
-  const char* CloseAndRemove() {
+  const char *CloseAndRemove() {
     // Close and remove self from the players atomically.
     // Otherwise, a removed player might be resumed at Resume unexpectedly.
     std::lock_guard<std::mutex> lock(PlayersMutex());
-    const char* msg = Close();
+    const char *msg = Close();
     GetPlayers().erase(this);
     GetPlayersToResume().erase(this);
     return msg;
@@ -150,7 +148,9 @@ public:
     return buf_.size();
   }
 
-  oboe::DataCallbackResult onAudioReady(oboe::AudioStream *oboe_stream, void *audio_data, int32_t num_frames) override {
+  oboe::DataCallbackResult onAudioReady(oboe::AudioStream *oboe_stream,
+                                        void *audio_data,
+                                        int32_t num_frames) override {
     size_t num_bytes = num_frames * channel_num_ * bit_depth_in_bytes_;
     std::vector<uint8_t> buf(num_bytes);
     {
@@ -164,30 +164,31 @@ public:
     }
 
     if (const double volume = std::atomic_load(&volume_); volume < 1) {
-      for (int i = 0; i < buf.size()/2; i++) {
-        int16_t v = static_cast<int16_t>(buf[2*i]) | (static_cast<int16_t>(buf[2*i+1]) << 8);
+      for (int i = 0; i < buf.size() / 2; i++) {
+        int16_t v = static_cast<int16_t>(buf[2 * i]) |
+                    (static_cast<int16_t>(buf[2 * i + 1]) << 8);
         v = static_cast<int16_t>(static_cast<double>(v) * volume);
-        buf[2*i] = static_cast<uint8_t>(v);
-        buf[2*i+1] = static_cast<uint8_t>(v >> 8);
+        buf[2 * i] = static_cast<uint8_t>(v);
+        buf[2 * i + 1] = static_cast<uint8_t>(v >> 8);
       }
     }
 
-    std::copy(buf.begin(), buf.end(), reinterpret_cast<uint8_t*>(audio_data));
+    std::copy(buf.begin(), buf.end(), reinterpret_cast<uint8_t *>(audio_data));
     return oboe::DataCallbackResult::Continue;
   }
 
 private:
-  static std::set<Player*>& GetPlayers() {
-    static std::set<Player*> players;
+  static std::set<Player *> &GetPlayers() {
+    static std::set<Player *> players;
     return players;
   }
 
-  static std::set<Player*>& GetPlayersToResume() {
-    static std::set<Player*> players_to_resume;
+  static std::set<Player *> &GetPlayersToResume() {
+    static std::set<Player *> players_to_resume;
     return players_to_resume;
   }
 
-  static std::mutex& PlayersMutex() {
+  static std::mutex &PlayersMutex() {
     static std::mutex mutex;
     return mutex;
   }
@@ -203,58 +204,56 @@ private:
   std::shared_ptr<oboe::AudioStream> stream_;
 };
 
-}  // namespace
+} // namespace
 
 extern "C" {
 
-const char* Suspend() {
-  return Player::Suspend();
-}
+const char *Suspend() { return Player::Suspend(); }
 
-const char* Resume() {
-  return Player::Resume();
-}
+const char *Resume() { return Player::Resume(); }
 
-PlayerID Player_Create(int sample_rate, int channel_num, int bit_depth_in_bytes, double volume, uintptr_t go_player) {
-  Player* p = new Player(sample_rate, channel_num, bit_depth_in_bytes, volume, go_player);
+PlayerID Player_Create(int sample_rate, int channel_num, int bit_depth_in_bytes,
+                       double volume, uintptr_t go_player) {
+  Player *p = new Player(sample_rate, channel_num, bit_depth_in_bytes, volume,
+                         go_player);
   return reinterpret_cast<PlayerID>(p);
 }
 
 bool Player_IsPlaying(PlayerID audio_player) {
-  Player* p = reinterpret_cast<Player*>(audio_player);
+  Player *p = reinterpret_cast<Player *>(audio_player);
   return p->IsPlaying();
 }
 
-void Player_AppendBuffer(PlayerID audio_player, uint8_t* data, int length) {
-  Player* p = reinterpret_cast<Player*>(audio_player);
+void Player_AppendBuffer(PlayerID audio_player, uint8_t *data, int length) {
+  Player *p = reinterpret_cast<Player *>(audio_player);
   p->AppendBuffer(data, length);
 }
 
-const char* Player_Play(PlayerID audio_player) {
-  Player* p = reinterpret_cast<Player*>(audio_player);
+const char *Player_Play(PlayerID audio_player) {
+  Player *p = reinterpret_cast<Player *>(audio_player);
   return p->Play();
 }
 
-const char* Player_Pause(PlayerID audio_player) {
-  Player* p = reinterpret_cast<Player*>(audio_player);
+const char *Player_Pause(PlayerID audio_player) {
+  Player *p = reinterpret_cast<Player *>(audio_player);
   return p->Pause();
 }
 
 void Player_SetVolume(PlayerID audio_player, double volume) {
-  Player* p = reinterpret_cast<Player*>(audio_player);
+  Player *p = reinterpret_cast<Player *>(audio_player);
   p->SetVolume(volume);
 }
 
-const char* Player_Close(PlayerID audio_player) {
-  Player* p = reinterpret_cast<Player*>(audio_player);
-  const char* msg = p->CloseAndRemove();
+const char *Player_Close(PlayerID audio_player) {
+  Player *p = reinterpret_cast<Player *>(audio_player);
+  const char *msg = p->CloseAndRemove();
   delete p;
   return msg;
 }
 
 int Player_UnplayedBufferSize(PlayerID audio_player) {
-  Player* p = reinterpret_cast<Player*>(audio_player);
+  Player *p = reinterpret_cast<Player *>(audio_player);
   return p->GetUnplayedBufferSize();
 }
 
-}  // extern "C"
+} // extern "C"
