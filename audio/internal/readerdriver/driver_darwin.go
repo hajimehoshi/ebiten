@@ -475,10 +475,6 @@ func (p *playerImpl) Reset() {
 		p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueueReset failed: %d", osstatus))
 		return
 	}
-	if osstatus := C.AudioQueueFlush(p.audioQueue); osstatus != C.noErr && p.err == nil {
-		p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueueFlush failed: %d", osstatus))
-		return
-	}
 
 	p.state = playerPaused
 	p.buf = p.buf[:0]
