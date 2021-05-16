@@ -674,14 +674,10 @@ func (p *playerImpl) loop() {
 
 		p.cond.L.Lock()
 		p.buf = append(p.buf, buf[:n]...)
-		l := len(p.buf)
-		p.cond.L.Unlock()
-
-		if err == io.EOF && l == 0 {
-			p.cond.L.Lock()
+		if err == io.EOF && len(p.buf) == 0 {
 			p.eof = true
-			p.cond.L.Unlock()
 		}
+		p.cond.L.Unlock()
 	}
 }
 
