@@ -95,9 +95,20 @@ func (p *player) Pause() {
 }
 
 func (p *player) Play() {
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
+	// Call Play asynchronously since Oboe's Play might take long.
+	ch := make(chan struct{})
+	go func() {
+		p.cond.L.Lock()
+		defer p.cond.L.Unlock()
+		close(ch)
+		p.playImpl()
+	}()
 
+	// Wait until the mutex is locked in the above goroutine.
+	<-ch
+}
+
+func (p *player) playImpl() {
 	if p.err != nil {
 		return
 	}
