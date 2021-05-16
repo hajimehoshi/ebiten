@@ -593,15 +593,19 @@ func (p *playerImpl) appendBufferImpl(inBuffer C.AudioQueueBufferRef) (bool, err
 		return false, nil
 	}
 
-	bs := make([]byte, p.context.oneBufferSize())
-	n := copy(bs, p.buf)
-	var signal bool
-	if len(p.buf[n:]) < p.context.maxBufferSize() {
-		signal = true
+	oneBufferSize := p.context.oneBufferSize()
+	n := oneBufferSize
+	if len(p.buf) < n {
+		n = len(p.buf)
 	}
+	buf := p.buf[:n]
+	signal := len(p.buf[n:]) < p.context.maxBufferSize()
 
-	for i, b := range bs {
+	for i, b := range buf {
 		*(*byte)(unsafe.Pointer(uintptr(inBuffer.mAudioData) + uintptr(i))) = b
+	}
+	for i := len(buf); i < oneBufferSize; i++ {
+		*(*byte)(unsafe.Pointer(uintptr(inBuffer.mAudioData) + uintptr(i))) = 0
 	}
 
 	if osstatus := C.AudioQueueEnqueueBuffer(p.audioQueue, inBuffer, 0, nil); osstatus != C.noErr {
