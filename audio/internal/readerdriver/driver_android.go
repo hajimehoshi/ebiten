@@ -24,8 +24,7 @@ import (
 )
 
 func IsAvailable() bool {
-	// Disable the reader driver for Android temporarily (#1645).
-	return false
+	return true
 }
 
 type context struct {

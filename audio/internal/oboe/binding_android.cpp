@@ -84,6 +84,8 @@ public:
       return "bit_depth_in_bytes_ must be 2 but not";
     }
 
+    int retry_count = 0;
+  retry:
     if (!stream_) {
       oboe::AudioStreamBuilder builder;
       oboe::Result result =
@@ -96,6 +98,16 @@ public:
               ->setDataCallback(this)
               ->openStream(stream_);
       if (result != oboe::Result::OK) {
+        // openStream might fail with oboe::Result::ErrorInternal when too many
+        // streams are opened in a short time (#1645).
+        if (result == oboe::Result::ErrorInternal && retry_count < 100) {
+          retry_count++;
+          // Sleep 10[ms]
+          timespec ts = {};
+          ts.tv_nsec = 10000000;
+          nanosleep(&ts, nullptr);
+          goto retry;
+        }
         return oboe::convertToText(result);
       }
     }
