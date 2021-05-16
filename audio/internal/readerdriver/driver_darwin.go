@@ -523,9 +523,7 @@ func (p *playerImpl) Close() error {
 	return p.closeImpl(false)
 }
 
-func (p *playerImpl) closeForReuse() error {
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
+func (p *playerImpl) closeForReuseImpl() error {
 	return p.closeImpl(true)
 }
 
@@ -574,11 +572,15 @@ func ebiten_readerdriver_render(inUserData unsafe.Pointer, inAQ C.AudioQueueRef,
 		p.setError(err)
 		return
 	}
-	if !queued {
-		p.unqueuedBufs = append(p.unqueuedBufs, inBuffer)
-		if len(p.unqueuedBufs) == 2 && p.eof {
-			p.closeForReuse()
-		}
+	if queued {
+		return
+	}
+
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
+	p.unqueuedBufs = append(p.unqueuedBufs, inBuffer)
+	if len(p.unqueuedBufs) == 2 && p.eof {
+		p.closeForReuseImpl()
 	}
 }
 
