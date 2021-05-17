@@ -435,7 +435,10 @@ func (p *player) Reset() {
 func (p *playerImpl) Reset() {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
+	p.resetImpl()
+}
 
+func (p *playerImpl) resetImpl() {
 	if p.err != nil {
 		return
 	}
@@ -520,14 +523,10 @@ func (p *player) Close() error {
 func (p *playerImpl) Close() error {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
-	return p.closeImpl(false)
+	return p.closeImpl()
 }
 
-func (p *playerImpl) closeForReuseImpl() error {
-	return p.closeImpl(true)
-}
-
-func (p *playerImpl) closeImpl(reuseLater bool) error {
+func (p *playerImpl) closeImpl() error {
 	if p.audioQueue != nil {
 		// Even if reuseLater is true, AudioQueuePause is not efficient for reusing.
 		// AudioQueueStart takes long if the AudioQueueStop is not called.
@@ -551,15 +550,7 @@ func (p *playerImpl) closeImpl(reuseLater bool) error {
 		p.audioQueue = nil
 	}
 
-	// When reuseLater is true, this playerImpl can be reused later even though the AudioQueue is removed.
-	if reuseLater {
-		p.state = playerPaused
-		p.buf = p.buf[:0]
-		p.eof = false
-		p.unqueuedBufs = nil
-	} else {
-		p.state = playerClosed
-	}
+	p.state = playerClosed
 	p.cond.Signal()
 	return p.err
 }
@@ -580,7 +571,7 @@ func ebiten_readerdriver_render(inUserData unsafe.Pointer, inAQ C.AudioQueueRef,
 	defer p.cond.L.Unlock()
 	p.unqueuedBufs = append(p.unqueuedBufs, inBuffer)
 	if len(p.unqueuedBufs) == 2 && p.eof {
-		p.closeForReuseImpl()
+		p.resetImpl()
 	}
 }
 
@@ -656,7 +647,7 @@ func (p *playerImpl) setError(err error) {
 
 func (p *playerImpl) setErrorImpl(err error) {
 	p.err = err
-	p.closeImpl(false)
+	p.closeImpl()
 }
 
 func (p *playerImpl) loop() {
