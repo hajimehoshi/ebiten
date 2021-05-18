@@ -537,13 +537,13 @@ func (p *playerImpl) closeImpl() error {
 		osstatus := C.AudioQueueStop(q, C.true)
 		p.cond.L.Lock()
 
-		if osstatus != C.noErr && p.err != nil {
+		if osstatus != C.noErr && p.err == nil {
 			// setErrorImpl calls closeImpl. Do not call this.
 			p.err = fmt.Errorf("readerdriver: AudioQueueStop failed: %d", osstatus)
 		}
 
 		// All the AudioQueueBuffers are already dequeued. It is safe to dispose the AudioQueue and its buffers.
-		if err := p.context.audioQueuePool.Put(p.audioQueue); err != nil && p.err != nil {
+		if err := p.context.audioQueuePool.Put(p.audioQueue); err != nil && p.err == nil {
 			p.err = err
 		}
 		thePlayers.remove(p.audioQueue)
