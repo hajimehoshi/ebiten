@@ -286,6 +286,8 @@ func (p *players) readAndWriteBuffersImpl() {
 	if n := headerBufferSize*headerNum - len(p.buf); n > 0 {
 		// Do mixing of the current players instead of mixing on the OS side.
 		// Apparently, mixing on the Go side is more effient and requires less buffers.
+		//
+		// waveOutSetVolume is not used since it doesn't work correctly in some environments.
 		var volumes []float64
 		var bufs [][]byte
 		for pl := range p.players {
