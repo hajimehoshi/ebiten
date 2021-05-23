@@ -13,6 +13,7 @@
 // limitations under the License.
 
 //go:generate file2byteslice -package=audio -input=./audio/jab.wav -output=./audio/jab.go -var=Jab_wav
+//go:generate file2byteslice -package=audio -input=./audio/jab48000.wav -output=./audio/jab48000.go -var=Jab48000_wav
 //go:generate file2byteslice -package=audio -input=./audio/jump.ogg -output=./audio/jump.go -var=Jump_ogg
 //go:generate file2byteslice -package=audio -input=./audio/ragtime.mp3 -output=./audio/ragtime.mp3.go -var=Ragtime_mp3
 //go:generate file2byteslice -package=audio -input=./audio/ragtime.ogg -output=./audio/ragtime.ogg.go -var=Ragtime_ogg

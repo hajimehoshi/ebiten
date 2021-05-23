@@ -126,7 +126,7 @@ func init() {
 }
 
 var (
-	audioContext = audio.NewContext(44100)
+	audioContext = audio.NewContext(48000)
 	jumpPlayer   *audio.Player
 	hitPlayer    *audio.Player
 )
@@ -141,7 +141,7 @@ func init() {
 		log.Fatal(err)
 	}
 
-	jabD, err := wav.Decode(audioContext, bytes.NewReader(raudio.Jab_wav))
+	jabD, err := wav.Decode(audioContext, bytes.NewReader(raudio.Jab48000_wav))
 	if err != nil {
 		log.Fatal(err)
 	}
