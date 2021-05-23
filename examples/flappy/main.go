@@ -62,7 +62,8 @@ const (
 	screenWidth      = 640
 	screenHeight     = 480
 	tileSize         = 32
-	fontSize         = 32
+	titleFontSize    = fontSize * 1.5
+	fontSize         = 24
 	smallFontSize    = fontSize / 2
 	pipeWidth        = tileSize * 2
 	pipeStartOffsetX = 8
@@ -73,6 +74,7 @@ const (
 var (
 	gopherImage     *ebiten.Image
 	tilesImage      *ebiten.Image
+	titleArcadeFont font.Face
 	arcadeFont      font.Face
 	smallArcadeFont font.Face
 )
@@ -97,6 +99,14 @@ func init() {
 		log.Fatal(err)
 	}
 	const dpi = 72
+	titleArcadeFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
+		Size:    titleFontSize,
+		DPI:     dpi,
+		Hinting: font.HintingFull,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
 	arcadeFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    fontSize,
 		DPI:     dpi,
@@ -184,8 +194,17 @@ func (g *Game) init() {
 	}
 }
 
+func isAnyKeyJustPressed() bool {
+	for _, k := range inpututil.PressedKeys() {
+		if inpututil.IsKeyJustPressed(k) {
+			return true
+		}
+	}
+	return false
+}
+
 func jump() bool {
-	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+	if isAnyKeyJustPressed() {
 		return true
 	}
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
@@ -193,6 +212,13 @@ func jump() bool {
 	}
 	if len(inpututil.JustPressedTouchIDs()) > 0 {
 		return true
+	}
+	for _, g := range ebiten.GamepadIDs() {
+		for i := 0; i < ebiten.GamepadButtonNum(g); i++ {
+			if inpututil.IsGamepadButtonJustPressed(g, ebiten.GamepadButton(i)) {
+				return true
+			}
+		}
 	}
 	return false
 }
@@ -247,12 +273,18 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	if g.mode != ModeTitle {
 		g.drawGopher(screen)
 	}
+	var titleTexts []string
 	var texts []string
 	switch g.mode {
 	case ModeTitle:
-		texts = []string{"FLAPPY GOPHER", "", "", "", "", "PRESS SPACE KEY", "", "OR TOUCH SCREEN"}
+		titleTexts = []string{"FLAPPY GOPHER"}
+		texts = []string{"", "", "", "", "", "", "", "PRESS ANY KEY OR BUTTON", "", "OR TOUCH SCREEN"}
 	case ModeGameOver:
 		texts = []string{"", "GAME OVER!"}
+	}
+	for i, l := range titleTexts {
+		x := (screenWidth - len(l)*titleFontSize) / 2
+		text.Draw(screen, l, titleArcadeFont, x, (i+4)*titleFontSize, color.White)
 	}
 	for i, l := range texts {
 		x := (screenWidth - len(l)*fontSize) / 2
