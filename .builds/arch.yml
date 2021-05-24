@@ -1,11 +1,12 @@
 image: archlinux
 packages:
-  - alsa-lib
-  - mesa
-  - libxrandr
+  - alsa
   - libxcursor
-  - libxinerama
+  - libpulse
   - libxi
+  - libxinerama
+  - libxrandr
+  - mesa
   - pkg-config
   - go
 sources:

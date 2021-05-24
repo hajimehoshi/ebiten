@@ -1,14 +1,15 @@
 image: fedora/latest
 packages:
-  - mesa-libGLU-devel
-  - mesa-libGLES-devel
-  - libXrandr-devel
+  - alsa-lib-devel
   - libXcursor-devel
+  - libXrandr-devel
   - libXinerama-devel
   - libXi-devel
   - libXxf86vm-devel
-  - alsa-lib-devel
+  - mesa-libGLES-devel
+  - mesa-libGLU-devel
   - pkg-config
+  - pulseaudio-libs-devel
   - go
 sources:
   - https://github.com/hajimehoshi/ebiten
