@@ -1,12 +1,12 @@
 image: archlinux
 packages:
-  - alsa-lib
-  - mesa
-  - libxrandr
   - libxcursor
-  - libxinerama
   - libxi
+  - libxinerama
+  - libxrandr
+  - mesa
   - pkg-config
+  - portaudio
   - go
 sources:
   - https://github.com/hajimehoshi/ebiten

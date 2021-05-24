@@ -8,8 +8,8 @@ packages:
   - libxinerama-dev
   - libxrandr-dev
   - libxxf86vm-dev
-  - libasound2-dev
   - pkg-config
+  - portaudio19-dev
   - golang
 sources:
   - https://github.com/hajimehoshi/ebiten
