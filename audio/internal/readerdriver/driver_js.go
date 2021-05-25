@@ -329,6 +329,12 @@ func (p *player) closeImpl() error {
 	return p.err
 }
 
+func (p *player) setError(err error) {
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
+	p.setErrorImpl(err)
+}
+
 func (p *player) setErrorImpl(err error) {
 	p.err = err
 	p.closeImpl()
@@ -366,16 +372,17 @@ func (p *player) loop() {
 			return
 		}
 
-		p.cond.L.Lock()
 		n, err := p.src.Read(buf)
 		if err != nil && err != io.EOF {
-			p.setErrorImpl(err)
-			p.cond.L.Unlock()
+			p.setError(err)
 			return
 		}
 
+		p.cond.L.Lock()
 		p.buf = append(p.buf, buf[:n]...)
 		if err == io.EOF {
+			// p.eof can be true even if the buffer is not consumed yet.
+			// This might be different from the other drivers.
 			p.eof = true
 			p.cond.L.Unlock()
 			return
