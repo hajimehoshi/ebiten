@@ -621,7 +621,9 @@ func (p *playerImpl) shouldWait() bool {
 	case playerPaused:
 		return true
 	case playerPlay:
-		return len(p.buf) >= p.context.maxBufferSize()
+		// If the buffer has too much data, wait until the buffer data is consumed.
+		// If the source reaches EOF, wait until the state is reset.
+		return len(p.buf) >= p.context.maxBufferSize() || p.eof
 	case playerClosed:
 		return false
 	default:
