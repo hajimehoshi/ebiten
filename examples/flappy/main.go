@@ -141,7 +141,7 @@ func init() {
 		log.Fatal(err)
 	}
 
-	jabD, err := wav.Decode(audioContext, bytes.NewReader(raudio.Jab48000_wav))
+	jabD, err := wav.Decode(audioContext, bytes.NewReader(raudio.Jab_wav))
 	if err != nil {
 		log.Fatal(err)
 	}

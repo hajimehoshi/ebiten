@@ -46,13 +46,13 @@ func init() {
 	// Initialize audio context.
 	g.audioContext = audio.NewContext(sampleRate)
 
-	// In this example, embedded resource "Jab48000_wav" is used.
+	// In this example, embedded resource "Jab_wav" is used.
 	//
 	// If you want to use a wav file, open this and pass the file stream to wav.Decode.
 	// Note that file's Close() should not be closed here
 	// since audio.Player manages stream state.
 	//
-	//     f, err := os.Open("jab48000.wav")
+	//     f, err := os.Open("jab.wav")
 	//     if err != nil {
 	//         return err
 	//     }
@@ -61,7 +61,7 @@ func init() {
 	//     ...
 
 	// Decode wav-formatted data and retrieve decoded PCM stream.
-	d, err := wav.Decode(g.audioContext, bytes.NewReader(raudio.Jab48000_wav))
+	d, err := wav.Decode(g.audioContext, bytes.NewReader(raudio.Jab_wav))
 	if err != nil {
 		log.Fatal(err)
 	}
