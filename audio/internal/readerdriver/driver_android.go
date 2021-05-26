@@ -198,10 +198,7 @@ func (p *player) SetVolume(volume float64) {
 func (p *player) UnplayedBufferSize() int {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
-	return p.unplayedBufferSizeImpl()
-}
 
-func (p *player) unplayedBufferSizeImpl() int {
 	if p.p == nil {
 		return 0
 	}
@@ -279,19 +276,6 @@ func (p *player) wait() bool {
 	return p.p != nil && p.p.IsPlaying()
 }
 
-func (p *player) write(buf []byte) {
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
-
-	if p.closed {
-		return
-	}
-	if p.p == nil {
-		return
-	}
-	p.p.AppendBuffer(buf)
-}
-
 func (p *player) loop() {
 	buf := make([]byte, 4096)
 	for {
@@ -304,15 +288,15 @@ func (p *player) loop() {
 			p.setError(err)
 			return
 		}
-		p.write(buf[:n])
 
 		p.cond.L.Lock()
+		p.p.AppendBuffer(buf[:n])
 		if err == io.EOF {
 			p.eof = true
 		}
 
 		// Now p.resetImpl() doesn't close the stream gracefully. Then buffer size check is necessary here.
-		if p.eof && p.unplayedBufferSizeImpl() == 0 {
+		if p.eof && p.p.UnplayedBufferSize() == 0 {
 			// Even when the unplayed buffer size is 0,
 			// the audio data in the hardware might not be played yet (#1632).
 			// Just wait for a while.
