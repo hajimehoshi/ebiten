@@ -72,6 +72,7 @@ type player struct {
 	cond    *sync.Cond
 	closed  bool
 	volume  float64
+	eof     bool
 }
 
 func (p *player) Pause() {
@@ -158,7 +159,10 @@ func (p *player) IsPlaying() bool {
 func (p *player) Reset() {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
+	p.resetImpl()
+}
 
+func (p *player) resetImpl() {
 	if p.err != nil {
 		return
 	}
@@ -173,6 +177,7 @@ func (p *player) Reset() {
 		return
 	}
 	p.p = nil
+	p.eof = false
 	p.cond.Signal()
 }
 
@@ -195,6 +200,10 @@ func (p *player) SetVolume(volume float64) {
 func (p *player) UnplayedBufferSize() int {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
+	return p.unplayedBufferSizeImpl()
+}
+
+func (p *player) unplayedBufferSizeImpl() int {
 	if p.p == nil {
 		return 0
 	}
@@ -248,10 +257,18 @@ func (p *player) shouldWait() bool {
 	if p.p == nil {
 		return false
 	}
-	if p.p.IsPlaying() {
-		return p.p.UnplayedBufferSize() >= p.context.maxBufferSize()
+
+	// Wait when the player is paused.
+	if !p.p.IsPlaying() {
+		return true
 	}
-	return true
+
+	// When the source reaches EOF, wait until all the data is consumed.
+	if p.eof {
+		return p.p.UnplayedBufferSize() > 0
+	}
+
+	return p.p.UnplayedBufferSize() >= p.context.maxBufferSize()
 }
 
 func (p *player) wait() bool {
@@ -291,13 +308,21 @@ func (p *player) loop() {
 		}
 		p.write(buf[:n])
 
-		// Now p.p.Reset() doesn't close the stream gracefully. Then buffer size check is necessary here.
-		if err == io.EOF && p.UnplayedBufferSize() == 0 {
-			// Even when the unplayed buffer size is 0, the audio data in the hardware might not be played yet (#1632).
+		p.cond.L.Lock()
+		if err == io.EOF {
+			p.eof = true
+		}
+
+		// Now p.resetImpl() doesn't close the stream gracefully. Then buffer size check is necessary here.
+		if p.eof && p.unplayedBufferSizeImpl() == 0 {
+			// Even when the unplayed buffer size is 0,
+			// the audio data in the hardware might not be played yet (#1632).
 			// Just wait for a while.
 			time.Sleep(100 * time.Millisecond)
-			p.Reset()
+			p.resetImpl()
+			p.cond.L.Unlock()
 			return
 		}
+		p.cond.L.Unlock()
 	}
 }
