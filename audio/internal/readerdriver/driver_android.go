@@ -134,6 +134,7 @@ func (p *player) playImpl() {
 		}
 		p.p.AppendBuffer(buf[:n])
 		if err == io.EOF {
+			p.eof = true
 			break
 		}
 	}
