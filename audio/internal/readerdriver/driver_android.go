@@ -160,10 +160,7 @@ func (p *player) IsPlaying() bool {
 func (p *player) Reset() {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
-	p.resetImpl()
-}
 
-func (p *player) resetImpl() {
 	if p.err != nil {
 		return
 	}
@@ -319,9 +316,9 @@ func (p *player) loop() {
 			// Even when the unplayed buffer size is 0,
 			// the audio data in the hardware might not be played yet (#1632).
 			// Just wait for a while.
-			time.Sleep(100 * time.Millisecond)
-			p.resetImpl()
 			p.cond.L.Unlock()
+			time.Sleep(100 * time.Millisecond)
+			p.Reset()
 			return
 		}
 		p.cond.L.Unlock()
