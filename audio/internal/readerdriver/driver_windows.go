@@ -110,45 +110,14 @@ func (p *players) setContext(context *context) {
 	p.context = context
 }
 
-func (p *players) add(player *playerImpl) {
+func (p *players) add(player *playerImpl) error {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
+
 	if p.players == nil {
 		p.players = map[*playerImpl]struct{}{}
 	}
 	p.players[player] = struct{}{}
-}
-
-func (p *players) remove(player *playerImpl) error {
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
-
-	delete(p.players, player)
-	if len(p.players) > 0 {
-		return nil
-	}
-	if p.waveOut == 0 {
-		return nil
-	}
-
-	for _, h := range p.headers {
-		if err := h.Close(); err != nil {
-			return err
-		}
-	}
-	p.headers = p.headers[:0]
-	if err := waveOutClose(p.waveOut); err != nil {
-		return err
-	}
-	p.waveOut = 0
-	p.cond.Signal()
-
-	return nil
-}
-
-func (p *players) play() error {
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
 
 	if p.waveOut != 0 {
 		return nil
@@ -188,6 +157,33 @@ func (p *players) play() error {
 	p.readAndWriteBuffersImpl()
 
 	go p.loop()
+
+	return nil
+}
+
+func (p *players) remove(player *playerImpl) error {
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
+
+	delete(p.players, player)
+	if len(p.players) > 0 {
+		return nil
+	}
+	if p.waveOut == 0 {
+		return nil
+	}
+
+	for _, h := range p.headers {
+		if err := h.Close(); err != nil {
+			return err
+		}
+	}
+	p.headers = p.headers[:0]
+	if err := waveOutClose(p.waveOut); err != nil {
+		return err
+	}
+	p.waveOut = 0
+	p.cond.Signal()
 
 	return nil
 }
@@ -442,11 +438,6 @@ func (p *playerImpl) playImpl() {
 		return
 	}
 
-	// thePlayers can has another mutex, and double mutex might introduce a deadlock.
-	p.m.Unlock()
-	thePlayers.add(p)
-	p.m.Lock()
-
 	buf := make([]byte, p.context.maxBufferSize())
 	for len(p.buf) < p.context.maxBufferSize() {
 		n, err := p.src.Read(buf)
@@ -465,8 +456,9 @@ func (p *playerImpl) playImpl() {
 		return
 	}
 
+	// thePlayers can has another mutex, and double mutex might introduce a deadlock.
 	p.m.Unlock()
-	err := thePlayers.play()
+	err := thePlayers.add(p)
 	p.m.Lock()
 
 	if err != nil {
