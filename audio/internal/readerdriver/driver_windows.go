@@ -97,6 +97,7 @@ type players struct {
 	context *context
 	players map[*playerImpl]struct{}
 	buf     []byte
+	err     error
 
 	waveOut uintptr
 	headers []*header
@@ -113,6 +114,10 @@ func (p *players) setContext(context *context) {
 func (p *players) add(player *playerImpl) error {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
+
+	if p.err != nil {
+		return p.err
+	}
 
 	if p.players == nil {
 		p.players = map[*playerImpl]struct{}{}
@@ -164,6 +169,13 @@ func (p *players) add(player *playerImpl) error {
 func (p *players) remove(player *playerImpl) error {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
+	return p.removeImpl(player)
+}
+
+func (p *players) removeImpl(player *playerImpl) error {
+	if p.err != nil {
+		return p.err
+	}
 
 	delete(p.players, player)
 	if len(p.players) > 0 {
@@ -221,8 +233,17 @@ func (p *players) loop() {
 		if !p.wait() {
 			return
 		}
-		p.readAndWriteBuffers()
+		if err := p.readAndWriteBuffers(); err != nil {
+			p.setError(err)
+			break
+		}
 	}
+}
+
+func (p *players) setError(err error) {
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
+	p.err = err
 }
 
 func (p *players) suspend() error {
@@ -261,13 +282,13 @@ var waveOutOpenCallback = windows.NewCallbackCDecl(func(hwo, uMsg, dwInstance, d
 	return 0
 })
 
-func (p *players) readAndWriteBuffers() {
+func (p *players) readAndWriteBuffers() error {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
-	p.readAndWriteBuffersImpl()
+	return p.readAndWriteBuffersImpl()
 }
 
-func (p *players) readAndWriteBuffersImpl() {
+func (p *players) readAndWriteBuffersImpl() error {
 	headerNum := 0
 	for _, h := range p.headers {
 		if h.IsQueued() {
@@ -276,7 +297,7 @@ func (p *players) readAndWriteBuffersImpl() {
 		headerNum++
 	}
 	if headerNum == 0 {
-		return
+		return nil
 	}
 
 	if n := headerBufferSize*headerNum - len(p.buf); n > 0 {
@@ -360,13 +381,12 @@ func (p *players) readAndWriteBuffersImpl() {
 			if werr := err.(*winmmError); werr.fname == "waveOutWrite" && werr.errno == errorNotFound {
 				// TODO: Retry later.
 			}
-			for pl := range p.players {
-				pl.setError(err)
-			}
-			return
+			return err
 		}
 		p.buf = p.buf[headerBufferSize:]
 	}
+
+	return nil
 }
 
 var thePlayers = players{
