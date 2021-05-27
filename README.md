@@ -30,7 +30,7 @@ For installation on desktops, see [the installation instruction](https://ebiten.
 
 ## Features
 
-* 2D Graphics (Geometry/Color matrix transformation, Various composition modes, Offscreen rendering, Text rendering, Automatic batches, Automatic texture atlas, Custom shaders)
+* 2D Graphics (Geometry and color transformation by matrices, Various composition modes, Offscreen rendering, Text rendering, Automatic batches, Automatic texture atlas, Custom shaders)
 * Input (Mouse, Keyboard, Gamepads, Touches)
 * Audio (Ogg/Vorbis, MP3, WAV, PCM)
 
