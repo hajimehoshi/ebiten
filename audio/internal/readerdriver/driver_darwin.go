@@ -449,18 +449,20 @@ func (p *playerImpl) resetImpl() {
 		return
 	}
 
-	if osstatus := C.AudioQueuePause(p.audioQueue); osstatus != C.noErr && p.err == nil {
-		p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueuePause failed: %d", osstatus))
-		return
-	}
-	// AudioQueueReset invokes the callback directry.
-	q := p.audioQueue
-	p.cond.L.Unlock()
-	osstatus := C.AudioQueueReset(q)
-	p.cond.L.Lock()
-	if osstatus != C.noErr && p.err == nil {
-		p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueueReset failed: %d", osstatus))
-		return
+	if len(p.unqueuedBufs) < 2 {
+		if osstatus := C.AudioQueuePause(p.audioQueue); osstatus != C.noErr && p.err == nil {
+			p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueuePause failed: %d", osstatus))
+			return
+		}
+		// AudioQueueReset invokes the callback directry.
+		q := p.audioQueue
+		p.cond.L.Unlock()
+		osstatus := C.AudioQueueReset(q)
+		p.cond.L.Lock()
+		if osstatus != C.noErr && p.err == nil {
+			p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueueReset failed: %d", osstatus))
+			return
+		}
 	}
 
 	p.state = playerPaused
