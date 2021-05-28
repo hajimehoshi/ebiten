@@ -184,12 +184,12 @@ func (p *players) removeImpl(player *playerImpl) error {
 }
 
 func (p *players) shouldWait() bool {
-	if len(p.players) == 0 {
-		return true
-	}
-
 	if p.waveOut == 0 {
 		return false
+	}
+
+	if len(p.players) == 0 {
+		return true
 	}
 
 	if len(p.buf) < headerBufferSize*len(p.headers) {
