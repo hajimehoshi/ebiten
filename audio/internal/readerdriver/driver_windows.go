@@ -160,7 +160,7 @@ func (p *players) add(player *playerImpl) error {
 		p.headers = append(p.headers, h)
 	}
 
-	if err := p.readAndWriteBuffersImpl(); err != nil {
+	if err := p.readAndWriteBuffers(); err != nil {
 		return err
 	}
 
@@ -205,32 +205,23 @@ func (p *players) shouldWait() bool {
 	return true
 }
 
-func (p *players) wait() bool {
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
-
-	for p.shouldWait() {
-		p.cond.Wait()
-	}
-	return p.waveOut != 0
-}
-
 func (p *players) loop() {
 	for {
-		if !p.wait() {
+		p.cond.L.Lock()
+		for p.shouldWait() {
+			p.cond.Wait()
+		}
+		if p.waveOut == 0 {
+			p.cond.L.Unlock()
 			return
 		}
 		if err := p.readAndWriteBuffers(); err != nil {
-			p.setError(err)
+			p.err = err
+			p.cond.L.Unlock()
 			break
 		}
+		p.cond.L.Unlock()
 	}
-}
-
-func (p *players) setError(err error) {
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
-	p.err = err
 }
 
 func (p *players) suspend() error {
@@ -270,12 +261,6 @@ var waveOutOpenCallback = windows.NewCallbackCDecl(func(hwo, uMsg, dwInstance, d
 })
 
 func (p *players) readAndWriteBuffers() error {
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
-	return p.readAndWriteBuffersImpl()
-}
-
-func (p *players) readAndWriteBuffersImpl() error {
 	if len(p.players) == 0 {
 		return nil
 	}
