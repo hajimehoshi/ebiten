@@ -178,27 +178,7 @@ func (p *players) removeImpl(player *playerImpl) error {
 	if p.err != nil {
 		return p.err
 	}
-
 	delete(p.players, player)
-	if len(p.players) > 0 {
-		return nil
-	}
-	if p.waveOut == 0 {
-		return nil
-	}
-
-	for _, h := range p.headers {
-		if err := h.Close(); err != nil {
-			return err
-		}
-	}
-	p.headers = p.headers[:0]
-	if err := waveOutClose(p.waveOut); err != nil {
-		return err
-	}
-	p.waveOut = 0
-	p.cond.Signal()
-
 	return nil
 }
 
@@ -616,12 +596,12 @@ func (p *playerImpl) read(buf []byte) int {
 	defer p.m.Unlock()
 
 	if p.state != playerPlay {
-		return len(buf)
+		return 0
 	}
 
 	if len(p.buf) == 0 && p.eof {
 		p.pauseImpl()
-		return len(buf)
+		return 0
 	}
 
 	if len(p.buf) < p.context.maxBufferSize() {
