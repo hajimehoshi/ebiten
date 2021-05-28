@@ -303,20 +303,6 @@ func (p *playerImpl) playImpl() {
 		thePlayers.add(p, p.waveOut)
 	}
 
-	buf := make([]byte, p.context.maxBufferSize())
-	for len(p.buf) < p.context.maxBufferSize() {
-		n, err := p.src.Read(buf)
-		if err != nil && err != io.EOF {
-			p.setErrorImpl(err)
-			return
-		}
-		p.buf = append(p.buf, buf[:n]...)
-		if err == io.EOF {
-			p.eof = true
-			break
-		}
-	}
-
 	if p.eof && len(p.buf) == 0 {
 		return
 	}
@@ -537,7 +523,7 @@ func (p *playerImpl) readAndWriteBufferImpl() {
 		return
 	}
 
-	if len(p.buf) < p.context.maxBufferSize() && !p.eof {
+	for len(p.buf) < p.context.maxBufferSize() && !p.eof {
 		buf := make([]byte, p.context.maxBufferSize())
 		n, err := p.src.Read(buf)
 		if err != nil && err != io.EOF {
@@ -545,84 +531,88 @@ func (p *playerImpl) readAndWriteBufferImpl() {
 			return
 		}
 		p.buf = append(p.buf, buf[:n]...)
-		if err == io.EOF && len(p.buf) == 0 {
-			p.eof = true
+		if err == io.EOF {
+			if len(p.buf) == 0 {
+				p.eof = true
+			}
+			break
 		}
 	}
 
-	if len(p.buf) > 0 {
-		for _, h := range p.headers {
-			if h.IsQueued() {
-				continue
-			}
+	for _, h := range p.headers {
+		if len(p.buf) == 0 {
+			break
+		}
+		if h.IsQueued() {
+			continue
+		}
 
-			n := headerBufferSize
-			if n > len(p.buf) {
-				n = len(p.buf)
-			}
-			buf := p.buf[:n]
+		n := headerBufferSize
+		if n > len(p.buf) {
+			n = len(p.buf)
+		}
+		buf := p.buf[:n]
 
-			// Adjust the volume
-			if p.volume < 1 {
-				switch p.context.bitDepthInBytes {
-				case 1:
-					const (
-						max    = 127
-						min    = -128
-						offset = 128
-					)
-					for i, b := range buf {
-						x := int16(b) - offset
-						x = int16(float64(x) * p.volume)
-						if x > max {
-							x = max
-						}
-						if x < min {
-							x = min
-						}
-						buf[i] = byte(x + offset)
+		// Adjust the volume
+		if p.volume < 1 {
+			switch p.context.bitDepthInBytes {
+			case 1:
+				const (
+					max    = 127
+					min    = -128
+					offset = 128
+				)
+				for i, b := range buf {
+					x := int16(b) - offset
+					x = int16(float64(x) * p.volume)
+					if x > max {
+						x = max
 					}
-				case 2:
-					const (
-						max = (1 << 15) - 1
-						min = -(1 << 15)
-					)
-					for i := 0; i < n/2; i++ {
-						x := int32(int16(buf[2*i]) | (int16(buf[2*i+1]) << 8))
-						x = int32(float64(x) * p.volume)
-						if x > max {
-							x = max
-						}
-						if x < min {
-							x = min
-						}
-						buf[2*i] = byte(x)
-						buf[2*i+1] = byte(x >> 8)
+					if x < min {
+						x = min
 					}
+					buf[i] = byte(x + offset)
+				}
+			case 2:
+				const (
+					max = (1 << 15) - 1
+					min = -(1 << 15)
+				)
+				for i := 0; i < n/2; i++ {
+					x := int32(int16(buf[2*i]) | (int16(buf[2*i+1]) << 8))
+					x = int32(float64(x) * p.volume)
+					if x > max {
+						x = max
+					}
+					if x < min {
+						x = min
+					}
+					buf[2*i] = byte(x)
+					buf[2*i+1] = byte(x >> 8)
 				}
 			}
+		}
 
-			if err := h.Write(buf); err != nil {
-				// This error can happen when e.g. a new HDMI connection is detected (hajimehoshi/oto#51).
-				const errorNotFound = 1168
-				if werr := err.(*winmmError); werr.fname == "waveOutWrite" {
-					switch {
-					case werr.mmresult == mmsyserrNomem:
-						continue
-					case werr.errno == errorNotFound:
-						// TODO: Retry later.
-					}
+		if err := h.Write(buf); err != nil {
+			// This error can happen when e.g. a new HDMI connection is detected (hajimehoshi/oto#51).
+			const errorNotFound = 1168
+			if werr := err.(*winmmError); werr.fname == "waveOutWrite" {
+				switch {
+				case werr.mmresult == mmsyserrNomem:
+					continue
+				case werr.errno == errorNotFound:
+					// TODO: Retry later.
 				}
-				p.setErrorImpl(err)
-				return
 			}
+			p.setErrorImpl(err)
+			return
+		}
 
-			p.buf = p.buf[n:]
+		p.buf = p.buf[n:]
 
-			// 4 is an arbitrary number that doesn't cause a problem at examples/piano (#1653).
-			if p.queuedHeadersNum() >= 4 {
-				break
-			}
+		// 4 is an arbitrary number that doesn't cause a problem at examples/piano (#1653).
+		if p.queuedHeadersNum() >= 4 {
+			break
 		}
 	}
 
