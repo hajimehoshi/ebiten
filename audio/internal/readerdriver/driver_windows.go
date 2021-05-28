@@ -18,7 +18,6 @@ import (
 	"io"
 	"runtime"
 	"sync"
-	"sync/atomic"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -98,32 +97,32 @@ type players struct {
 	context *context
 	players map[*playerImpl]struct{}
 	buf     []byte
-	err     atomic.Value
+	err     error
 
 	waveOut uintptr
 	headers []*header
 
-	// cond protects only the member 'players' and waveOut functions.
-	// The other members don't have to be protected.
 	cond *sync.Cond
 }
 
 func (p *players) setContext(context *context) {
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
 	p.context = context
 }
 
 func (p *players) add(player *playerImpl) error {
-	if err := p.err.Load(); err != nil {
-		return err.(error)
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
+
+	if p.err != nil {
+		return p.err
 	}
 
-	p.cond.L.Lock()
 	if p.players == nil {
 		p.players = map[*playerImpl]struct{}{}
 	}
 	p.players[player] = struct{}{}
-	p.cond.L.Unlock()
-
 	p.cond.Signal()
 
 	if p.waveOut != 0 {
@@ -161,8 +160,7 @@ func (p *players) add(player *playerImpl) error {
 		p.headers = append(p.headers, h)
 	}
 
-	// There should be only one players in total.
-	if err := p.readAndWriteBuffers([]*playerImpl{player}); err != nil {
+	if err := p.readAndWriteBuffers(); err != nil {
 		return err
 	}
 
@@ -172,14 +170,16 @@ func (p *players) add(player *playerImpl) error {
 }
 
 func (p *players) remove(player *playerImpl) error {
-	if err := p.err.Load(); err != nil {
-		return err.(error)
-	}
-
 	p.cond.L.Lock()
-	delete(p.players, player)
-	p.cond.L.Unlock()
+	defer p.cond.L.Unlock()
+	return p.removeImpl(player)
+}
 
+func (p *players) removeImpl(player *playerImpl) error {
+	if p.err != nil {
+		return p.err
+	}
+	delete(p.players, player)
 	return nil
 }
 
@@ -206,36 +206,31 @@ func (p *players) shouldWait() bool {
 }
 
 func (p *players) loop() {
-	var players []*playerImpl
 	for {
 		p.cond.L.Lock()
 		for p.shouldWait() {
 			p.cond.Wait()
 		}
-
-		players = players[:0]
-		for pl := range p.players {
-			players = append(players, pl)
-		}
-		p.cond.L.Unlock()
-
 		if p.waveOut == 0 {
+			p.cond.L.Unlock()
 			return
 		}
-		if err := p.readAndWriteBuffers(players); err != nil {
-			p.err.Store(err)
+		if err := p.readAndWriteBuffers(); err != nil {
+			p.err = err
+			p.cond.L.Unlock()
 			break
 		}
+		p.cond.L.Unlock()
 	}
 }
 
 func (p *players) suspend() error {
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
+
 	if p.waveOut == 0 {
 		return nil
 	}
-
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
 	if err := waveOutPause(p.waveOut); err != nil {
 		return err
 	}
@@ -243,12 +238,12 @@ func (p *players) suspend() error {
 }
 
 func (p *players) resume() error {
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
+
 	if p.waveOut == 0 {
 		return nil
 	}
-
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
 	if err := waveOutRestart(p.waveOut); err != nil {
 		return err
 	}
@@ -265,8 +260,8 @@ var waveOutOpenCallback = windows.NewCallbackCDecl(func(hwo, uMsg, dwInstance, d
 	return 0
 })
 
-func (p *players) readAndWriteBuffers(players []*playerImpl) error {
-	if len(players) == 0 {
+func (p *players) readAndWriteBuffers() error {
+	if len(p.players) == 0 {
 		return nil
 	}
 
@@ -288,7 +283,7 @@ func (p *players) readAndWriteBuffers(players []*playerImpl) error {
 		// waveOutSetVolume is not used since it doesn't work correctly in some environments.
 		var volumes []float64
 		var bufs [][]byte
-		for _, pl := range players {
+		for pl := range p.players {
 			buf := make([]byte, n)
 			n := pl.read(buf)
 			bufs = append(bufs, buf[:n])
@@ -347,8 +342,6 @@ func (p *players) readAndWriteBuffers(players []*playerImpl) error {
 		p.buf = append(p.buf, buf...)
 	}
 
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
 	for _, h := range p.headers {
 		if len(p.buf) < headerBufferSize {
 			break
