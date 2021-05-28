@@ -467,6 +467,10 @@ func (p *playerImpl) playImpl() {
 		return
 	}
 
+	// Set the state before adding the player so that the audio loop can start to play it immediately.
+	// This is a little tricky since this depends on the timing of Signal().
+	p.state = playerPlay
+
 	// thePlayers can has another mutex, and double mutex might introduce a deadlock.
 	p.m.Unlock()
 	err := thePlayers.add(p)
@@ -477,7 +481,6 @@ func (p *playerImpl) playImpl() {
 		return
 	}
 
-	p.state = playerPlay
 	// Do not create the player's own loop. Scheduling on Winodws is inefficient compared to the other OSes.
 }
 
