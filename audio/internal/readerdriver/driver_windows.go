@@ -159,7 +159,9 @@ func (p *players) add(player *playerImpl) error {
 		p.headers = append(p.headers, h)
 	}
 
-	p.readAndWriteBuffersImpl()
+	if err := p.readAndWriteBuffersImpl(); err != nil {
+		return err
+	}
 
 	go p.loop()
 
