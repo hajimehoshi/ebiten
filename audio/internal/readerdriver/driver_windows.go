@@ -103,7 +103,7 @@ type players struct {
 	waveOut uintptr
 	headers []*header
 
-	// cond protects only the member 'players'.
+	// cond protects only the member 'players' and waveOut functions.
 	// The other members don't have to be protected.
 	cond *sync.Cond
 }
@@ -233,6 +233,9 @@ func (p *players) suspend() error {
 	if p.waveOut == 0 {
 		return nil
 	}
+
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
 	if err := waveOutPause(p.waveOut); err != nil {
 		return err
 	}
@@ -243,6 +246,9 @@ func (p *players) resume() error {
 	if p.waveOut == 0 {
 		return nil
 	}
+
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
 	if err := waveOutRestart(p.waveOut); err != nil {
 		return err
 	}
@@ -341,6 +347,8 @@ func (p *players) readAndWriteBuffers(players []*playerImpl) error {
 		p.buf = append(p.buf, buf...)
 	}
 
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
 	for _, h := range p.headers {
 		if len(p.buf) < headerBufferSize {
 			break
