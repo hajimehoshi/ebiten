@@ -18,7 +18,6 @@ import (
 	"io"
 	"runtime"
 	"sync"
-	"sync/atomic"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -98,7 +97,7 @@ type players struct {
 	context *context
 	players map[*playerImpl]struct{}
 	buf     []byte
-	err     atomic.Value
+	err     error
 
 	waveOut uintptr
 	headers []*header
@@ -113,12 +112,12 @@ func (p *players) setContext(context *context) {
 }
 
 func (p *players) add(player *playerImpl) error {
-	if err := p.err.Load(); err != nil {
-		return err.(error)
-	}
-
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
+
+	if p.err != nil {
+		return p.err
+	}
 
 	if p.players == nil {
 		p.players = map[*playerImpl]struct{}{}
@@ -126,7 +125,7 @@ func (p *players) add(player *playerImpl) error {
 	p.players[player] = struct{}{}
 	p.cond.Signal()
 
-	if atomic.LoadUintptr(&p.waveOut) != 0 {
+	if p.waveOut != 0 {
 		return nil
 	}
 
@@ -151,10 +150,10 @@ func (p *players) add(player *playerImpl) error {
 		return err
 	}
 
-	atomic.StoreUintptr(&p.waveOut, w)
+	p.waveOut = w
 	p.headers = make([]*header, 0, 4)
 	for len(p.headers) < cap(p.headers) {
-		h, err := newHeader(w, headerBufferSize)
+		h, err := newHeader(p.waveOut, headerBufferSize)
 		if err != nil {
 			return err
 		}
@@ -177,15 +176,15 @@ func (p *players) remove(player *playerImpl) error {
 }
 
 func (p *players) removeImpl(player *playerImpl) error {
-	if err := p.err.Load(); err != nil {
-		return err.(error)
+	if p.err != nil {
+		return p.err
 	}
 	delete(p.players, player)
 	return nil
 }
 
 func (p *players) shouldWait() bool {
-	if atomic.LoadUintptr(&p.waveOut) == 0 {
+	if p.waveOut == 0 {
 		return false
 	}
 
@@ -212,13 +211,13 @@ func (p *players) loop() {
 		for p.shouldWait() {
 			p.cond.Wait()
 		}
-		if atomic.LoadUintptr(&p.waveOut) == 0 {
+		if p.waveOut == 0 {
 			p.cond.L.Unlock()
 			return
 		}
 		if err := p.readAndWriteBuffers(); err != nil {
+			p.err = err
 			p.cond.L.Unlock()
-			p.err.Store(err)
 			break
 		}
 		p.cond.L.Unlock()
@@ -226,30 +225,26 @@ func (p *players) loop() {
 }
 
 func (p *players) suspend() error {
-	waveOut := atomic.LoadUintptr(&p.waveOut)
-	if waveOut == 0 {
-		return nil
-	}
-
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
 
-	if err := waveOutPause(waveOut); err != nil {
+	if p.waveOut == 0 {
+		return nil
+	}
+	if err := waveOutPause(p.waveOut); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (p *players) resume() error {
-	waveOut := atomic.LoadUintptr(&p.waveOut)
-	if waveOut == 0 {
-		return nil
-	}
-
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
 
-	if err := waveOutRestart(waveOut); err != nil {
+	if p.waveOut == 0 {
+		return nil
+	}
+	if err := waveOutRestart(p.waveOut); err != nil {
 		return err
 	}
 	p.cond.Signal()
