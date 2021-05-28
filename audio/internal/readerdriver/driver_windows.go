@@ -123,6 +123,7 @@ func (p *players) add(player *playerImpl) error {
 		p.players = map[*playerImpl]struct{}{}
 	}
 	p.players[player] = struct{}{}
+	p.cond.Signal()
 
 	if p.waveOut != 0 {
 		return nil
@@ -183,6 +184,10 @@ func (p *players) removeImpl(player *playerImpl) error {
 }
 
 func (p *players) shouldWait() bool {
+	if len(p.players) == 0 {
+		return true
+	}
+
 	if p.waveOut == 0 {
 		return false
 	}
@@ -271,6 +276,10 @@ func (p *players) readAndWriteBuffers() error {
 }
 
 func (p *players) readAndWriteBuffersImpl() error {
+	if len(p.players) == 0 {
+		return nil
+	}
+
 	headerNum := 0
 	for _, h := range p.headers {
 		if h.IsQueued() {
