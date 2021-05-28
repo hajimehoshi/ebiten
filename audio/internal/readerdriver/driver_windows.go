@@ -55,7 +55,10 @@ func (h *header) Write(data []byte) error {
 		data = append(data, make([]byte, n)...)
 	}
 	copy(h.buffer, data)
-	return waveOutWrite(h.waveOut, h.waveHdr)
+	if err := waveOutWrite(h.waveOut, h.waveHdr); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (h *header) IsQueued() bool {
@@ -81,7 +84,6 @@ func NewContext(sampleRate, channelNum, bitDepthInBytes int) (Context, chan stru
 		channelNum:      channelNum,
 		bitDepthInBytes: bitDepthInBytes,
 	}
-	thePlayers.setContext(c)
 	return c, ready, nil
 }
 
@@ -94,145 +96,54 @@ func (c *context) Resume() error {
 }
 
 type players struct {
-	context *context
-	players map[*playerImpl]struct{}
-	buf     []byte
-	err     error
-
-	waveOut uintptr
-	headers []*header
-
-	cond *sync.Cond
+	players  map[uintptr]*playerImpl
+	toResume map[*playerImpl]struct{}
+	cond     *sync.Cond
 }
 
-func (p *players) setContext(context *context) {
+func (p *players) add(player *playerImpl, waveOut uintptr) {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
-	p.context = context
-}
-
-func (p *players) add(player *playerImpl) error {
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
-
-	if p.err != nil {
-		return p.err
-	}
 
 	if p.players == nil {
-		p.players = map[*playerImpl]struct{}{}
+		p.players = map[uintptr]*playerImpl{}
 	}
-	p.players[player] = struct{}{}
-	p.cond.Signal()
-
-	if p.waveOut != 0 {
-		return nil
+	runLoop := len(p.players) == 0
+	p.players[waveOut] = player
+	if runLoop {
+		// Use the only one loop. Windows' context switching is not efficent and
+		// using too many goroutines might be problematic.
+		go p.loop()
 	}
-
-	numBlockAlign := p.context.channelNum * p.context.bitDepthInBytes
-	f := &waveformatex{
-		wFormatTag:      waveFormatPCM,
-		nChannels:       uint16(p.context.channelNum),
-		nSamplesPerSec:  uint32(p.context.sampleRate),
-		nAvgBytesPerSec: uint32(p.context.sampleRate * numBlockAlign),
-		wBitsPerSample:  uint16(p.context.bitDepthInBytes * 8),
-		nBlockAlign:     uint16(numBlockAlign),
-	}
-
-	w, err := waveOutOpen(f, waveOutOpenCallback)
-	const elementNotFound = 1168
-	if e, ok := err.(*winmmError); ok && e.errno == elementNotFound {
-		// TODO: No device was found. Return the dummy device (hajimehoshi/oto#77).
-		// TODO: Retry to open the device when possible.
-		return err
-	}
-	if err != nil {
-		return err
-	}
-
-	p.waveOut = w
-	p.headers = make([]*header, 0, 4)
-	for len(p.headers) < cap(p.headers) {
-		h, err := newHeader(p.waveOut, headerBufferSize)
-		if err != nil {
-			return err
-		}
-		p.headers = append(p.headers, h)
-	}
-
-	if err := p.readAndWriteBuffers(); err != nil {
-		return err
-	}
-
-	go p.loop()
-
-	return nil
 }
 
-func (p *players) remove(player *playerImpl) error {
+func (p *players) remove(waveOut uintptr) {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
-	return p.removeImpl(player)
-}
 
-func (p *players) removeImpl(player *playerImpl) error {
-	if p.err != nil {
-		return p.err
+	pl, ok := p.players[waveOut]
+	if !ok {
+		return
 	}
-	delete(p.players, player)
-	return nil
-}
+	delete(p.players, waveOut)
+	delete(p.toResume, pl)
 
-func (p *players) shouldWait() bool {
-	if p.waveOut == 0 {
-		return false
-	}
-
-	if len(p.players) == 0 {
-		return true
-	}
-
-	if len(p.buf) < headerBufferSize*len(p.headers) {
-		return false
-	}
-
-	for _, h := range p.headers {
-		if !h.IsQueued() {
-			return false
-		}
-	}
-
-	return true
-}
-
-func (p *players) loop() {
-	for {
-		p.cond.L.Lock()
-		for p.shouldWait() {
-			p.cond.Wait()
-		}
-		if p.waveOut == 0 {
-			p.cond.L.Unlock()
-			return
-		}
-		if err := p.readAndWriteBuffers(); err != nil {
-			p.err = err
-			p.cond.L.Unlock()
-			break
-		}
-		p.cond.L.Unlock()
-	}
+	p.cond.Signal()
 }
 
 func (p *players) suspend() error {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
 
-	if p.waveOut == 0 {
-		return nil
-	}
-	if err := waveOutPause(p.waveOut); err != nil {
-		return err
+	for _, pl := range p.players {
+		if !pl.IsPlaying() {
+			continue
+		}
+		pl.Pause()
+		if p.toResume == nil {
+			p.toResume = map[*playerImpl]struct{}{}
+		}
+		p.toResume[pl] = struct{}{}
 	}
 	return nil
 }
@@ -241,128 +152,47 @@ func (p *players) resume() error {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
 
-	if p.waveOut == 0 {
-		return nil
+	for pl := range p.toResume {
+		pl.Play()
+		delete(p.toResume, pl)
 	}
-	if err := waveOutRestart(p.waveOut); err != nil {
-		return err
-	}
-	p.cond.Signal()
 	return nil
 }
 
-var waveOutOpenCallback = windows.NewCallbackCDecl(func(hwo, uMsg, dwInstance, dwParam1, dwParam2 uintptr) uintptr {
-	const womDone = 0x3bd
-	if uMsg != womDone {
-		return 0
-	}
-	thePlayers.cond.Signal()
-	return 0
-})
-
-func (p *players) readAndWriteBuffers() error {
+func (p *players) shouldWait() bool {
 	if len(p.players) == 0 {
-		return nil
+		return false
 	}
 
-	headerNum := 0
-	for _, h := range p.headers {
-		if h.IsQueued() {
-			continue
+	for _, pl := range p.players {
+		if pl.canProceed() {
+			return false
 		}
-		headerNum++
 	}
-	if headerNum == 0 {
-		return nil
+	return true
+}
+
+func (p *players) wait() bool {
+	p.cond.L.Lock()
+	defer p.cond.L.Unlock()
+
+	for p.shouldWait() {
+		p.cond.Wait()
 	}
+	return len(p.players) > 0
+}
 
-	if n := headerBufferSize*headerNum - len(p.buf); n > 0 {
-		// Do mixing of the current players instead of mixing on the OS side.
-		// Apparently, mixing on the Go side is more effient and requires less buffers.
-		//
-		// waveOutSetVolume is not used since it doesn't work correctly in some environments.
-		var volumes []float64
-		var bufs [][]byte
-		for pl := range p.players {
-			buf := make([]byte, n)
-			n := pl.read(buf)
-			bufs = append(bufs, buf[:n])
-			volumes = append(volumes, pl.Volume())
+func (p *players) loop() {
+	for {
+		if !p.wait() {
+			return
 		}
-
-		buf := make([]byte, n)
-		switch p.context.bitDepthInBytes {
-		case 1:
-			const (
-				max    = 127
-				min    = -128
-				offset = 128
-			)
-			for i := 0; i < n; i++ {
-				var x int16
-				for j, b := range bufs {
-					if len(b) <= i {
-						continue
-					}
-					xx := int16(b[i]) - offset
-					x += int16(float64(xx) * volumes[j])
-				}
-				if x > max {
-					x = max
-				}
-				if x < min {
-					x = min
-				}
-				buf[i] = byte(x + offset)
-			}
-		case 2:
-			const (
-				max = (1 << 15) - 1
-				min = -(1 << 15)
-			)
-			for i := 0; i < n/2; i++ {
-				var x int32
-				for j, b := range bufs {
-					if len(b) <= 2*i {
-						continue
-					}
-					xx := int32(int16(b[2*i]) | (int16(b[2*i+1]) << 8))
-					x += int32(float64(xx) * volumes[j])
-				}
-				if x > max {
-					x = max
-				}
-				if x < min {
-					x = min
-				}
-				buf[2*i] = byte(x)
-				buf[2*i+1] = byte(x >> 8)
-			}
+		p.cond.L.Lock()
+		for _, pl := range p.players {
+			pl.readAndWriteBuffer()
 		}
-		p.buf = append(p.buf, buf...)
+		p.cond.L.Unlock()
 	}
-
-	for _, h := range p.headers {
-		if len(p.buf) < headerBufferSize {
-			break
-		}
-
-		if h.IsQueued() {
-			continue
-		}
-
-		if err := h.Write(p.buf[:headerBufferSize]); err != nil {
-			// This error can happen when e.g. a new HDMI connection is detected (hajimehoshi/oto#51).
-			const errorNotFound = 1168
-			if werr := err.(*winmmError); werr.fname == "waveOutWrite" && werr.errno == errorNotFound {
-				// TODO: Retry later.
-			}
-			return err
-		}
-		p.buf = p.buf[headerBufferSize:]
-	}
-
-	return nil
 }
 
 var thePlayers = players{
@@ -377,7 +207,9 @@ type playerImpl struct {
 	context *context
 	src     io.Reader
 	err     error
+	waveOut uintptr
 	state   playerState
+	headers []*header
 	buf     []byte
 	eof     bool
 	volume  float64
@@ -404,7 +236,6 @@ func (p *player) Err() error {
 func (p *playerImpl) Err() error {
 	p.m.Lock()
 	defer p.m.Unlock()
-
 	return p.err
 }
 
@@ -434,6 +265,44 @@ func (p *playerImpl) playImpl() {
 		return
 	}
 
+	if p.waveOut == 0 {
+		numBlockAlign := p.context.channelNum * p.context.bitDepthInBytes
+		f := &waveformatex{
+			wFormatTag:      waveFormatPCM,
+			nChannels:       uint16(p.context.channelNum),
+			nSamplesPerSec:  uint32(p.context.sampleRate),
+			nAvgBytesPerSec: uint32(p.context.sampleRate * numBlockAlign),
+			wBitsPerSample:  uint16(p.context.bitDepthInBytes * 8),
+			nBlockAlign:     uint16(numBlockAlign),
+		}
+
+		w, err := waveOutOpen(f, waveOutOpenCallback)
+		const elementNotFound = 1168
+		if e, ok := err.(*winmmError); ok && e.errno == elementNotFound {
+			// TODO: No device was found. Return the dummy device (hajimehoshi/oto#77).
+			// TODO: Retry to open the device when possible.
+			p.setErrorImpl(err)
+			return
+		}
+		if err != nil {
+			p.setErrorImpl(err)
+			return
+		}
+
+		p.waveOut = w
+		p.headers = make([]*header, 0, 6)
+		for len(p.headers) < cap(p.headers) {
+			h, err := newHeader(p.waveOut, headerBufferSize)
+			if err != nil {
+				p.setErrorImpl(err)
+				return
+			}
+			p.headers = append(p.headers, h)
+		}
+
+		thePlayers.add(p, p.waveOut)
+	}
+
 	buf := make([]byte, p.context.maxBufferSize())
 	for len(p.buf) < p.context.maxBufferSize() {
 		n, err := p.src.Read(buf)
@@ -452,21 +321,39 @@ func (p *playerImpl) playImpl() {
 		return
 	}
 
-	// Set the state before adding the player so that the audio loop can start to play it immediately.
-	// This is a little tricky since this depends on the timing of Signal().
+	// Set the state first as readAndWriteBufferImpl checks the current player state.
 	p.state = playerPlay
 
-	// thePlayers can has another mutex, and double mutex might introduce a deadlock.
-	p.m.Unlock()
-	err := thePlayers.add(p)
-	p.m.Lock()
+	// Call readAndWriteBufferImpl to ensure at least one header is queued.
+	p.readAndWriteBufferImpl()
 
-	if err != nil {
+	if err := waveOutRestart(p.waveOut); err != nil {
 		p.setErrorImpl(err)
 		return
 	}
 
-	// Do not create the player's own loop. Scheduling on Winodws is inefficient compared to the other OSes.
+	// Switching goroutines is very inefficient on Windows. Avoid a dedicated goroutine for a player.
+}
+
+func volumeForWinAPI(v float64) uint32 {
+	u32 := uint32(0xffff * v)
+	return (u32 << 16) | u32
+}
+
+func (p *playerImpl) queuedHeadersNum() int {
+	var c int
+	for _, h := range p.headers {
+		if h.IsQueued() {
+			c++
+		}
+	}
+	return c
+}
+
+func (p *playerImpl) canProceed() bool {
+	p.m.Lock()
+	defer p.m.Unlock()
+	return p.queuedHeadersNum() < len(p.headers) && p.state == playerPlay
 }
 
 func (p *player) Pause() {
@@ -485,6 +372,17 @@ func (p *playerImpl) pauseImpl() {
 	}
 	if p.state != playerPlay {
 		return
+	}
+	if p.waveOut == 0 {
+		return
+	}
+
+	// waveOutPause never return when there is no queued header.
+	if p.queuedHeadersNum() > 0 {
+		if err := waveOutPause(p.waveOut); err != nil {
+			p.setErrorImpl(err)
+			return
+		}
 	}
 
 	p.state = playerPaused
@@ -506,6 +404,38 @@ func (p *playerImpl) resetImpl() {
 	}
 	if p.state == playerClosed {
 		return
+	}
+	if p.waveOut == 0 {
+		return
+	}
+
+	// waveOutReset and waveOutPause never return when there is no queued header.
+	if p.queuedHeadersNum() > 0 {
+		err := waveOutReset(p.waveOut)
+		if err != nil {
+			p.setErrorImpl(err)
+			return
+		}
+
+		err = waveOutPause(p.waveOut)
+		if err != nil {
+			p.setErrorImpl(err)
+			return
+		}
+	}
+
+	// Now all the headers are WHDR_DONE. Recreate the headers.
+	for i, h := range p.headers {
+		if err := h.Close(); err != nil {
+			p.setErrorImpl(err)
+			return
+		}
+		h, err := newHeader(p.waveOut, headerBufferSize)
+		if err != nil {
+			p.setErrorImpl(err)
+			return
+		}
+		p.headers[i] = h
 	}
 
 	p.state = playerPaused
@@ -566,59 +496,142 @@ func (p *playerImpl) Close() error {
 
 func (p *playerImpl) closeImpl() error {
 	p.state = playerClosed
+	if p.waveOut != 0 {
+		for _, h := range p.headers {
+			if err := h.Close(); err != nil && p.err == nil {
+				p.err = err
+			}
+		}
+		p.headers = p.headers[:0]
+		if err := waveOutClose(p.waveOut); err != nil && p.err == nil {
+			p.err = err
+		}
 
-	p.m.Unlock()
-	err := thePlayers.remove(p)
-	p.m.Lock()
+		// This player's lock might block thePlayer's lock. Unlock this first.
+		p.m.Unlock()
+		thePlayers.remove(p.waveOut)
+		p.m.Lock()
 
-	if err != nil && p.err == nil {
-		p.err = err
+		p.waveOut = 0
 	}
 	return p.err
 }
 
-func (p *playerImpl) setError(err error) {
+var waveOutOpenCallback = windows.NewCallbackCDecl(func(hwo, uMsg, dwInstance, dwParam1, dwParam2 uintptr) uintptr {
+	const womDone = 0x3bd
+	if uMsg != womDone {
+		return 0
+	}
+	thePlayers.cond.Signal()
+	return 0
+})
+
+func (p *playerImpl) readAndWriteBuffer() {
 	p.m.Lock()
 	defer p.m.Unlock()
-	p.setErrorImpl(err)
+	p.readAndWriteBufferImpl()
+}
+
+func (p *playerImpl) readAndWriteBufferImpl() {
+	if p.state != playerPlay {
+		return
+	}
+
+	if len(p.buf) < p.context.maxBufferSize() && !p.eof {
+		buf := make([]byte, p.context.maxBufferSize())
+		n, err := p.src.Read(buf)
+		if err != nil && err != io.EOF {
+			p.setErrorImpl(err)
+			return
+		}
+		p.buf = append(p.buf, buf[:n]...)
+		if err == io.EOF && len(p.buf) == 0 {
+			p.eof = true
+		}
+	}
+
+	if len(p.buf) > 0 {
+		for _, h := range p.headers {
+			if h.IsQueued() {
+				continue
+			}
+
+			n := headerBufferSize
+			if n > len(p.buf) {
+				n = len(p.buf)
+			}
+			buf := p.buf[:n]
+
+			// Adjust the volume
+			if p.volume < 1 {
+				switch p.context.bitDepthInBytes {
+				case 1:
+					const (
+						max    = 127
+						min    = -128
+						offset = 128
+					)
+					for i, b := range buf {
+						x := int16(b) - offset
+						x = int16(float64(x) * p.volume)
+						if x > max {
+							x = max
+						}
+						if x < min {
+							x = min
+						}
+						buf[i] = byte(x + offset)
+					}
+				case 2:
+					const (
+						max = (1 << 15) - 1
+						min = -(1 << 15)
+					)
+					for i := 0; i < n/2; i++ {
+						x := int32(int16(buf[2*i]) | (int16(buf[2*i+1]) << 8))
+						x = int32(float64(x) * p.volume)
+						if x > max {
+							x = max
+						}
+						if x < min {
+							x = min
+						}
+						buf[2*i] = byte(x)
+						buf[2*i+1] = byte(x >> 8)
+					}
+				}
+			}
+
+			if err := h.Write(buf); err != nil {
+				// This error can happen when e.g. a new HDMI connection is detected (hajimehoshi/oto#51).
+				const errorNotFound = 1168
+				if werr := err.(*winmmError); werr.fname == "waveOutWrite" {
+					switch {
+					case werr.mmresult == mmsyserrNomem:
+						continue
+					case werr.errno == errorNotFound:
+						// TODO: Retry later.
+					}
+				}
+				p.setErrorImpl(err)
+				return
+			}
+
+			p.buf = p.buf[n:]
+
+			// 4 is an arbitrary number that doesn't cause a problem at examples/piano (#1653).
+			if p.queuedHeadersNum() >= 4 {
+				break
+			}
+		}
+	}
+
+	if p.queuedHeadersNum() == 0 && p.eof {
+		p.pauseImpl()
+	}
 }
 
 func (p *playerImpl) setErrorImpl(err error) {
 	p.err = err
 	p.closeImpl()
-}
-
-func (p *playerImpl) read(buf []byte) int {
-	p.m.Lock()
-	defer p.m.Unlock()
-
-	if p.state != playerPlay {
-		return 0
-	}
-
-	if len(p.buf) == 0 && p.eof {
-		p.pauseImpl()
-		return 0
-	}
-
-	if len(p.buf) < p.context.maxBufferSize() {
-		buf := make([]byte, p.context.maxBufferSize())
-		n, err := p.src.Read(buf)
-		if err != nil && err != io.EOF {
-			p.setErrorImpl(err)
-			return len(buf)
-		}
-
-		p.buf = append(p.buf, buf[:n]...)
-		if err == io.EOF {
-			p.eof = true
-		}
-	}
-
-	bytesPerSample := p.context.channelNum * p.context.bitDepthInBytes
-	n := len(p.buf) / bytesPerSample * bytesPerSample
-	n = copy(buf, p.buf[:n])
-	p.buf = p.buf[n:]
-
-	return n
 }
