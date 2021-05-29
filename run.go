@@ -183,7 +183,7 @@ func isRunGameEnded() bool {
 }
 
 // RunGameWithoutMainLoop runs the game, but doesn't call the loop on the main (UI) thread.
-// Different from Run, RunGameWithoutMainLoop returns immediately.
+// RunGameWithoutMainLoop returns immediately unlike Run.
 //
 // Ebiten users should NOT call RunGameWithoutMainLoop.
 // Instead, functions in github.com/hajimehoshi/ebiten/v2/mobile package calls this.
