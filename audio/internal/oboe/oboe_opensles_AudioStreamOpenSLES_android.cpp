@@ -354,10 +354,6 @@ SLresult AudioStreamOpenSLES::registerBufferQueueCallback() {
     return result;
 }
 
-int32_t AudioStreamOpenSLES::getFramesPerBurst() {
-    return mFramesPerBurst;
-}
-
 int64_t AudioStreamOpenSLES::getFramesProcessedByServer() {
     updateServiceFrameCounter();
     int64_t millis64 = mPositionMillis.get();

@@ -20,6 +20,8 @@
 #include "oboe_common_DataConversionFlowGraph_android.h"
 #include "oboe_common_SourceFloatCaller_android.h"
 #include "oboe_common_SourceI16Caller_android.h"
+#include "oboe_common_SourceI24Caller_android.h"
+#include "oboe_common_SourceI32Caller_android.h"
 
 #include "oboe_flowgraph_ClipToRange_android.h"
 #include "oboe_flowgraph_MonoToMultiConverter_android.h"
@@ -28,9 +30,11 @@
 #include "oboe_flowgraph_SinkFloat_android.h"
 #include "oboe_flowgraph_SinkI16_android.h"
 #include "oboe_flowgraph_SinkI24_android.h"
+#include "oboe_flowgraph_SinkI32_android.h"
 #include "oboe_flowgraph_SourceFloat_android.h"
 #include "oboe_flowgraph_SourceI16_android.h"
 #include "oboe_flowgraph_SourceI24_android.h"
+#include "oboe_flowgraph_SourceI32_android.h"
 #include "oboe_flowgraph_SampleRateConverter_android.h"
 
 using namespace oboe;
@@ -116,6 +120,14 @@ Result DataConversionFlowGraph::configure(AudioStream *sourceStream, AudioStream
                 mSourceCaller = std::make_unique<SourceI16Caller>(sourceChannelCount,
                                                                   actualSourceFramesPerCallback);
                 break;
+            case AudioFormat::I24:
+                mSourceCaller = std::make_unique<SourceI24Caller>(sourceChannelCount,
+                                                                  actualSourceFramesPerCallback);
+                break;
+            case AudioFormat::I32:
+                mSourceCaller = std::make_unique<SourceI32Caller>(sourceChannelCount,
+                                                                  actualSourceFramesPerCallback);
+                break;
             default:
                 LOGE("%s() Unsupported source caller format = %d", __func__, sourceFormat);
                 return Result::ErrorIllegalArgument;
@@ -131,6 +143,12 @@ Result DataConversionFlowGraph::configure(AudioStream *sourceStream, AudioStream
                 break;
             case AudioFormat::I16:
                 mSource = std::make_unique<SourceI16>(sourceChannelCount);
+                break;
+            case AudioFormat::I24:
+                mSource = std::make_unique<SourceI24>(sourceChannelCount);
+                break;
+            case AudioFormat::I32:
+                mSource = std::make_unique<SourceI32>(sourceChannelCount);
                 break;
             default:
                 LOGE("%s() Unsupported source format = %d", __func__, sourceFormat);
@@ -201,6 +219,12 @@ Result DataConversionFlowGraph::configure(AudioStream *sourceStream, AudioStream
             break;
         case AudioFormat::I16:
             mSink = std::make_unique<SinkI16>(sinkChannelCount);
+            break;
+        case AudioFormat::I24:
+            mSink = std::make_unique<SinkI24>(sinkChannelCount);
+            break;
+        case AudioFormat::I32:
+            mSink = std::make_unique<SinkI32>(sinkChannelCount);
             break;
         default:
             LOGE("%s() Unsupported sink format = %d", __func__, sinkFormat);

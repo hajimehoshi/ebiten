@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 The Android Open Source Project
+ * Copyright 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,34 +14,29 @@
  * limitations under the License.
  */
 
+#ifndef FLOWGRAPH_SINK_I32_H
+#define FLOWGRAPH_SINK_I32_H
 
-#ifndef FLOWGRAPH_SINK_FLOAT_H
-#define FLOWGRAPH_SINK_FLOAT_H
-
-#include <unistd.h>
-#include <sys/types.h>
+#include <stdint.h>
 
 #include "oboe_flowgraph_FlowGraphNode_android.h"
 
 namespace FLOWGRAPH_OUTER_NAMESPACE {
 namespace flowgraph {
 
-/**
- * AudioSink that lets you read data as 32-bit floats.
- */
-class SinkFloat : public FlowGraphSink {
+class SinkI32 : public FlowGraphSink {
 public:
-    explicit SinkFloat(int32_t channelCount);
-    ~SinkFloat() override = default;
+    explicit SinkI32(int32_t channelCount);
+    ~SinkI32() override = default;
 
     int32_t read(void *data, int32_t numFrames) override;
 
     const char *getName() override {
-        return "SinkFloat";
+        return "SinkI32";
     }
 };
 
 } /* namespace flowgraph */
 } /* namespace FLOWGRAPH_OUTER_NAMESPACE */
 
-#endif //FLOWGRAPH_SINK_FLOAT_H
+#endif //FLOWGRAPH_SINK_I32_H

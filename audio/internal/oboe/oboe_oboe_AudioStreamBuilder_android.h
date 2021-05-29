@@ -391,11 +391,11 @@ public:
     }
 
     /**
-     * If true then  Oboe might convert data formats to achieve optimal results.
+     * If true then Oboe might convert data formats to achieve optimal results.
      * On some versions of Android, for example, a float stream could not get a
      * low latency data path. So an I16 stream might be opened and converted to float.
      *
-     * Default is true.
+     * Default is false.
      */
     AudioStreamBuilder *setFormatConversionAllowed(bool allowed) {
         mFormatConversionAllowed = allowed;
@@ -429,7 +429,8 @@ public:
     /**
      * Create and open a stream object based on the current settings.
      *
-     * The caller owns the pointer to the AudioStream object.
+     * The caller owns the pointer to the AudioStream object
+     * and must delete it when finished.
      *
      * @deprecated Use openStream(std::shared_ptr<oboe::AudioStream> &stream) instead.
      * @param stream pointer to a variable to receive the stream address
@@ -455,6 +456,8 @@ public:
      * The caller must create a unique ptr, and pass by reference so it can be
      * modified to point to an opened stream. The caller owns the unique ptr,
      * and it will be automatically closed and deleted when going out of scope.
+     *
+     * @deprecated Use openStream(std::shared_ptr<oboe::AudioStream> &stream) instead.
      * @param stream Reference to the ManagedStream (uniqueptr) used to keep track of stream
      * @return OBOE_OK if successful or a negative error code.
      */

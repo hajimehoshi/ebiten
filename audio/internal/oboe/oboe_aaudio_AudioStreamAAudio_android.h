@@ -18,6 +18,7 @@
 #define OBOE_STREAM_AAUDIO_H_
 
 #include <atomic>
+#include <shared_mutex>
 #include <mutex>
 #include <thread>
 
@@ -67,8 +68,7 @@ public:
 
     ResultWithValue<int32_t> setBufferSizeInFrames(int32_t requestedFrames) override;
     int32_t getBufferSizeInFrames() override;
-    int32_t getFramesPerBurst() override;
-    ResultWithValue<int32_t> getXRunCount() const override;
+    ResultWithValue<int32_t> getXRunCount()  override;
     bool isXRunCountSupported() const override { return true; }
 
     ResultWithValue<double> calculateLatencyMillis() override;
@@ -81,7 +81,7 @@ public:
                                        int64_t *framePosition,
                                        int64_t *timeNanoseconds) override;
 
-    StreamState getState() const override;
+    StreamState getState() override;
 
     AudioApi getAudioApi() const override {
         return AudioApi::AAudio;
@@ -120,6 +120,7 @@ private:
 
     // pointer to the underlying 'C' AAudio stream, valid if open, null if closed
     std::atomic<AAudioStream *> mAAudioStream{nullptr};
+    std::shared_mutex           mAAudioStreamLock; // to protect mAAudioStream while closing
 
     static AAudioLoader *mLibLoader;
 

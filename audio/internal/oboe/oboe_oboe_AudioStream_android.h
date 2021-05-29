@@ -130,7 +130,7 @@ public:
      *
      * @return state or a negative error.
      */
-    virtual StreamState getState() const = 0;
+    virtual StreamState getState() = 0;
 
     /**
      * Wait until the stream's current state no longer matches the input state.
@@ -191,7 +191,7 @@ public:
      * @return a result which is either Result::OK with the xRun count as the value, or a
      * Result::Error* code
      */
-    virtual ResultWithValue<int32_t> getXRunCount() const {
+    virtual ResultWithValue<int32_t> getXRunCount() {
         return ResultWithValue<int32_t>(Result::ErrorUnimplemented);
     }
 
@@ -205,7 +205,9 @@ public:
      *
      * @return burst size
      */
-    virtual int32_t getFramesPerBurst() = 0;
+    int32_t getFramesPerBurst() const {
+        return mFramesPerBurst;
+    }
 
     /**
      * Get the number of bytes in each audio frame. This is calculated using the channel count
@@ -536,6 +538,12 @@ protected:
     std::mutex           mLock; // for synchronizing start/stop/close
 
     oboe::Result         mErrorCallbackResult = oboe::Result::OK;
+
+    /**
+     * Number of frames which will be copied to/from the audio device in a single read/write
+     * operation
+     */
+    int32_t              mFramesPerBurst = kUnspecified;
 
 private:
 

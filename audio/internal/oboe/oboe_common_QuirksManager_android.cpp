@@ -20,10 +20,6 @@
 #include "oboe_common_OboeDebug_android.h"
 #include "oboe_common_QuirksManager_android.h"
 
-#ifndef __ANDROID_API_R__
-#define __ANDROID_API_R__ 30
-#endif
-
 using namespace oboe;
 
 int32_t QuirksManager::DeviceQuirks::clipBufferSize(AudioStream &stream,
@@ -74,6 +70,10 @@ public:
 
         std::string chipname = getPropertyString("ro.hardware.chipname");
         isExynos9810 = (chipname == "exynos9810");
+        isExynos990 = (chipname == "exynos990");
+        isExynos850 = (chipname == "exynos850");
+
+        mBuildChangelist = getPropertyInteger("ro.build.changelist", 0);
     }
 
     virtual ~SamsungDeviceQuirks() = default;
@@ -87,15 +87,26 @@ public:
         return kTopMargin;
     }
 
-    // See Oboe issue #824 for more information.
+    // See Oboe issues #824 and #1247 for more information.
     bool isMonoMMapActuallyStereo() const override {
-        return isExynos9810; // TODO We can make this version specific if it gets fixed.
+        return isExynos9810 || isExynos850; // TODO We can make this version specific if it gets fixed.
     }
 
     bool isAAudioMMapPossible(const AudioStreamBuilder &builder) const override {
         return DeviceQuirks::isAAudioMMapPossible(builder)
                 // Samsung says they use Legacy for Camcorder
                 && builder.getInputPreset() != oboe::InputPreset::Camcorder;
+    }
+
+    bool isMMapSafe(const AudioStreamBuilder &builder) override {
+        const bool isInput = builder.getDirection() == Direction::Input;
+        // This detects b/159066712 , S20 LSI has corrupt low latency audio recording
+        // and turns off MMAP.
+        // See also https://github.com/google/oboe/issues/892
+        bool mRecordingCorrupted = isInput
+            && isExynos990
+            && mBuildChangelist < 19350896;
+        return !mRecordingCorrupted;
     }
 
 private:
@@ -105,6 +116,9 @@ private:
     static constexpr int32_t kTopMargin = 1;
     bool isExynos = false;
     bool isExynos9810 = false;
+    bool isExynos990 = false;
+    bool isExynos850 = false;
+    int mBuildChangelist = 0;
 };
 
 QuirksManager::QuirksManager() {
@@ -170,6 +184,19 @@ bool QuirksManager::isConversionNeeded(
         LOGI("QuirksManager::%s() forcing internal format to I16 for low latency", __func__);
     }
 
+    // Add quirk for float output on API <21
+    if (isFloat
+            && !isInput
+            && getSdkVersion() < __ANDROID_API_L__
+            && builder.isFormatConversionAllowed()
+            ) {
+        childBuilder.setFormat(AudioFormat::I16);
+        conversionNeeded = true;
+        LOGI("QuirksManager::%s() float was requested but not supported on pre-L devices, "
+             "creating an underlying I16 stream and using format conversion to provide a float "
+             "stream", __func__);
+    }
+
     // Channel Count conversions
     if (OboeGlobals::areWorkaroundsEnabled()
             && builder.isChannelConversionAllowed()
@@ -202,4 +229,9 @@ bool QuirksManager::isConversionNeeded(
     // phones and they have almost all been updated to 9.0.
 
     return conversionNeeded;
+}
+
+bool QuirksManager::isMMapSafe(AudioStreamBuilder &builder) {
+    if (!OboeGlobals::areWorkaroundsEnabled()) return true;
+    return mDeviceQuirks->isMMapSafe(builder);
 }

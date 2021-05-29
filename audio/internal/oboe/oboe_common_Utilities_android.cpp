@@ -60,6 +60,12 @@ int32_t convertFormatToSizeInBytes(AudioFormat format) {
         case AudioFormat::Float:
             size = sizeof(float);
             break;
+        case AudioFormat::I24:
+            size = 3; // packed 24-bit data
+            break;
+        case AudioFormat::I32:
+            size = sizeof(int32_t);
+            break;
         default:
             break;
     }
@@ -98,6 +104,8 @@ const char *convertToText<AudioFormat>(AudioFormat format) {
         case AudioFormat::Unspecified:  return "Unspecified";
         case AudioFormat::I16:          return "I16";
         case AudioFormat::Float:        return "Float";
+        case AudioFormat::I24:          return "I24";
+        case AudioFormat::I32:          return "I32";
         default:                        return "Unrecognized format";
     }
 }

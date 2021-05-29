@@ -23,6 +23,7 @@
 #include "oboe_common_AudioClock_android.h"
 #include "oboe_common_OboeDebug_android.h"
 #include "oboe_oboe_Utilities_android.h"
+#include "oboe_aaudio_AAudioExtensions_android.h"
 
 #ifdef __ANDROID__
 #include <sys/system_properties.h>
@@ -281,6 +282,7 @@ Result AudioStreamAAudio::open() {
             mLibLoader->stream_getPerformanceMode(mAAudioStream));
     mBufferCapacityInFrames = mLibLoader->stream_getBufferCapacity(mAAudioStream);
     mBufferSizeInFrames = mLibLoader->stream_getBufferSize(mAAudioStream);
+    mFramesPerBurst = mLibLoader->stream_getFramesPerBurst(mAAudioStream);
 
     // These were added in P so we have to check for the function pointer.
     if (mLibLoader->stream_getUsage != nullptr) {
@@ -317,8 +319,13 @@ Result AudioStreamAAudio::close() {
 
     AudioStream::close();
 
-    // This will delete the AAudio stream object so we need to null out the pointer.
-    AAudioStream *stream = mAAudioStream.exchange(nullptr);
+    AAudioStream *stream = nullptr;
+    {
+        // Wait for any methods using mAAudioStream to finish.
+        std::unique_lock<std::shared_mutex> lock2(mAAudioStreamLock);
+        // Closing will delete *mAAudioStream so we need to null out the pointer atomically.
+        stream = mAAudioStream.exchange(nullptr);
+    }
     if (stream != nullptr) {
         if (OboeGlobals::areWorkaroundsEnabled()) {
             // Make sure we are really stopped. Do it under mLock
@@ -540,29 +547,27 @@ Result AudioStreamAAudio::waitForStateChange(StreamState currentState,
 }
 
 ResultWithValue<int32_t> AudioStreamAAudio::setBufferSizeInFrames(int32_t requestedFrames) {
+    int32_t adjustedFrames = requestedFrames;
+    if (adjustedFrames > mBufferCapacityInFrames) {
+        adjustedFrames = mBufferCapacityInFrames;
+    }
+    // This calls getBufferSize() so avoid recursive lock.
+    adjustedFrames = QuirksManager::getInstance().clipBufferSize(*this, adjustedFrames);
 
+    std::shared_lock<std::shared_mutex> lock(mAAudioStreamLock);
     AAudioStream *stream = mAAudioStream.load();
-
     if (stream != nullptr) {
-        int32_t adjustedFrames = requestedFrames;
-        if (adjustedFrames > mBufferCapacityInFrames) {
-            adjustedFrames = mBufferCapacityInFrames;
-        }
-        adjustedFrames = QuirksManager::getInstance().clipBufferSize(*this, adjustedFrames);
-
         int32_t newBufferSize = mLibLoader->stream_setBufferSize(mAAudioStream, adjustedFrames);
-
         // Cache the result if it's valid
         if (newBufferSize > 0) mBufferSizeInFrames = newBufferSize;
-
         return ResultWithValue<int32_t>::createBasedOnSign(newBufferSize);
-
     } else {
         return ResultWithValue<int32_t>(Result::ErrorClosed);
     }
 }
 
-StreamState AudioStreamAAudio::getState() const {
+StreamState AudioStreamAAudio::getState() {
+    std::shared_lock<std::shared_mutex> lock(mAAudioStreamLock);
     AAudioStream *stream = mAAudioStream.load();
     if (stream != nullptr) {
         aaudio_stream_state_t aaudioState = mLibLoader->stream_getState(stream);
@@ -579,6 +584,7 @@ StreamState AudioStreamAAudio::getState() const {
 }
 
 int32_t AudioStreamAAudio::getBufferSizeInFrames() {
+    std::shared_lock<std::shared_mutex> lock(mAAudioStreamLock);
     AAudioStream *stream = mAAudioStream.load();
     if (stream != nullptr) {
         mBufferSizeInFrames = mLibLoader->stream_getBufferSize(stream);
@@ -586,29 +592,34 @@ int32_t AudioStreamAAudio::getBufferSizeInFrames() {
     return mBufferSizeInFrames;
 }
 
-int32_t AudioStreamAAudio::getFramesPerBurst() {
-    AAudioStream *stream = mAAudioStream.load();
-    if (stream != nullptr) {
-        mFramesPerBurst = mLibLoader->stream_getFramesPerBurst(stream);
-    }
-    return mFramesPerBurst;
-}
-
 void AudioStreamAAudio::updateFramesRead() {
+    std::shared_lock<std::shared_mutex> lock(mAAudioStreamLock);
     AAudioStream *stream = mAAudioStream.load();
+// Set to 1 for debugging race condition #1180 with mAAudioStream.
+// See also DEBUG_CLOSE_RACE in OboeTester.
+// This was left in the code so that we could test the fix again easily in the future.
+// We could not trigger the race condition without adding these get calls and the sleeps.
+#define DEBUG_CLOSE_RACE 0
+#if DEBUG_CLOSE_RACE
+    // This is used when testing race conditions with close().
+    // See DEBUG_CLOSE_RACE in OboeTester
+    AudioClock::sleepForNanos(400 * kNanosPerMillisecond);
+#endif // DEBUG_CLOSE_RACE
     if (stream != nullptr) {
         mFramesRead = mLibLoader->stream_getFramesRead(stream);
     }
 }
 
 void AudioStreamAAudio::updateFramesWritten() {
+    std::shared_lock<std::shared_mutex> lock(mAAudioStreamLock);
     AAudioStream *stream = mAAudioStream.load();
     if (stream != nullptr) {
         mFramesWritten = mLibLoader->stream_getFramesWritten(stream);
     }
 }
 
-ResultWithValue<int32_t> AudioStreamAAudio::getXRunCount() const {
+ResultWithValue<int32_t> AudioStreamAAudio::getXRunCount() {
+    std::shared_lock<std::shared_mutex> lock(mAAudioStreamLock);
     AAudioStream *stream = mAAudioStream.load();
     if (stream != nullptr) {
         return ResultWithValue<int32_t>::createBasedOnSign(mLibLoader->stream_getXRunCount(stream));
@@ -620,11 +631,12 @@ ResultWithValue<int32_t> AudioStreamAAudio::getXRunCount() const {
 Result AudioStreamAAudio::getTimestamp(clockid_t clockId,
                                    int64_t *framePosition,
                                    int64_t *timeNanoseconds) {
+    if (getState() != StreamState::Started) {
+        return Result::ErrorInvalidState;
+    }
+    std::shared_lock<std::shared_mutex> lock(mAAudioStreamLock);
     AAudioStream *stream = mAAudioStream.load();
     if (stream != nullptr) {
-        if (getState() != StreamState::Started) {
-            return Result::ErrorInvalidState;
-        }
         return static_cast<Result>(mLibLoader->stream_getTimestamp(stream, clockId,
                                                framePosition, timeNanoseconds));
     } else {
@@ -633,11 +645,6 @@ Result AudioStreamAAudio::getTimestamp(clockid_t clockId,
 }
 
 ResultWithValue<double> AudioStreamAAudio::calculateLatencyMillis() {
-    AAudioStream *stream = mAAudioStream.load();
-    if (stream == nullptr) {
-        return ResultWithValue<double>(Result::ErrorClosed);
-    }
-
     // Get the time that a known audio frame was presented.
     int64_t hardwareFrameIndex;
     int64_t hardwareFrameHardwareTime;
@@ -675,9 +682,10 @@ ResultWithValue<double> AudioStreamAAudio::calculateLatencyMillis() {
 }
 
 bool AudioStreamAAudio::isMMapUsed() {
+    std::shared_lock<std::shared_mutex> lock(mAAudioStreamLock);
     AAudioStream *stream = mAAudioStream.load();
     if (stream != nullptr) {
-        return mLibLoader->stream_isMMapUsed(stream);
+        return AAudioExtensions::getInstance().isMMapUsed(stream);
     } else {
         return false;
     }

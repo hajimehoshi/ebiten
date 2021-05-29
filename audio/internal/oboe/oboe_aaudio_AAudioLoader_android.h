@@ -52,6 +52,12 @@ typedef int32_t aaudio_usage_t;
 typedef int32_t aaudio_content_type_t;
 typedef int32_t aaudio_input_preset_t;
 typedef int32_t aaudio_session_id_t;
+
+// There are a few definitions used by Oboe.
+#define AAUDIO_OK                      static_cast<aaudio_result_t>(Result::OK)
+#define AAUDIO_ERROR_TIMEOUT           static_cast<aaudio_result_t>(Result::ErrorTimeout)
+#define AAUDIO_STREAM_STATE_STARTING   static_cast<aaudio_stream_state_t>(StreamState::Starting)
+#define AAUDIO_STREAM_STATE_STARTED    static_cast<aaudio_stream_state_t>(StreamState::Started)
 #else
 #include <aaudio/AAudio.h>
 #include <android/ndk-version.h>
@@ -62,7 +68,6 @@ typedef int32_t aaudio_session_id_t;
 #endif
 
 namespace oboe {
-
 
 /**
  * The AAudio API was not available in early versions of Android.
@@ -133,6 +138,8 @@ class AAudioLoader {
      */
     int open();
 
+    void *getLibHandle() const { return mLibHandle; }
+
     // Function pointers into the AAudio shared library.
     signature_I_PPB   createStreamBuilder = nullptr;
 
@@ -166,8 +173,6 @@ class AAudioLoader {
     signature_I_PSTPTL  stream_waitForStateChange = nullptr;
 
     signature_I_PSKPLPL stream_getTimestamp = nullptr;
-
-    signature_B_PS      stream_isMMapUsed = nullptr;
 
     signature_I_PS   stream_close = nullptr;
 

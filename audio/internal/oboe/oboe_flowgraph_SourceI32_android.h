@@ -14,34 +14,31 @@
  * limitations under the License.
  */
 
+#ifndef FLOWGRAPH_SOURCE_I32_H
+#define FLOWGRAPH_SOURCE_I32_H
 
-#ifndef FLOWGRAPH_SINK_FLOAT_H
-#define FLOWGRAPH_SINK_FLOAT_H
-
-#include <unistd.h>
-#include <sys/types.h>
+#include <stdint.h>
 
 #include "oboe_flowgraph_FlowGraphNode_android.h"
 
 namespace FLOWGRAPH_OUTER_NAMESPACE {
 namespace flowgraph {
 
-/**
- * AudioSink that lets you read data as 32-bit floats.
- */
-class SinkFloat : public FlowGraphSink {
+class SourceI32 : public FlowGraphSourceBuffered {
 public:
-    explicit SinkFloat(int32_t channelCount);
-    ~SinkFloat() override = default;
+    explicit SourceI32(int32_t channelCount);
+    ~SourceI32() override = default;
 
-    int32_t read(void *data, int32_t numFrames) override;
+    int32_t onProcess(int32_t numFrames) override;
 
     const char *getName() override {
-        return "SinkFloat";
+        return "SourceI32";
     }
+private:
+    static constexpr float kScale = 1.0 / (1UL << 31);
 };
 
 } /* namespace flowgraph */
 } /* namespace FLOWGRAPH_OUTER_NAMESPACE */
 
-#endif //FLOWGRAPH_SINK_FLOAT_H
+#endif //FLOWGRAPH_SOURCE_I32_H

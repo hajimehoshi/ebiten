@@ -56,10 +56,7 @@ public:
      *
      * @return state or a negative error.
      */
-    StreamState getState() const override { return mState.load(); }
-
-    int32_t getFramesPerBurst() override;
-
+    StreamState getState() override { return mState.load(); }
 
     AudioApi getAudioApi() const override {
         return AudioApi::OpenSLES;

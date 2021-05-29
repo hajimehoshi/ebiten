@@ -49,7 +49,7 @@ public:
 
     int32_t getBufferCapacityInFrames() const override;
 
-    ResultWithValue<int32_t> getXRunCount() const override {
+    ResultWithValue<int32_t> getXRunCount() override {
         return ResultWithValue<int32_t>(mXRunCount);
     }
 

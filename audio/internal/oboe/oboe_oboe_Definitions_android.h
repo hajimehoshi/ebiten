@@ -17,7 +17,6 @@
 #ifndef OBOE_DEFINITIONS_H
 #define OBOE_DEFINITIONS_H
 
-
 #include <cstdint>
 #include <type_traits>
 
@@ -108,9 +107,36 @@ namespace oboe {
         I16 = 1, // AAUDIO_FORMAT_PCM_I16,
 
         /**
-         * Single precision floating points.
+         * Single precision floating point.
+         *
+         * This is the recommended format for most applications.
+         * But note that the use of Float may prevent the opening of
+         * a low-latency input path on OpenSL ES or Legacy AAudio streams.
          */
         Float = 2, // AAUDIO_FORMAT_PCM_FLOAT,
+
+        /**
+         * Signed 24-bit integers, packed into 3 bytes.
+         *
+         * Note that the use of this format does not guarantee that
+         * the full precision will be provided.  The underlying device may
+         * be using I16 format.
+         *
+         * Added in API 31 (S).
+         */
+        I24 = 3, // AAUDIO_FORMAT_PCM_I24_PACKED
+
+        /**
+         * Signed 32-bit integers.
+         *
+         * Note that the use of this format does not guarantee that
+         * the full precision will be provided.  The underlying device may
+         * be using I16 format.
+         *
+         * Added in API 31 (S).
+         */
+        I32 = 4, // AAUDIO_FORMAT_PCM_I32
+
     };
 
     /**

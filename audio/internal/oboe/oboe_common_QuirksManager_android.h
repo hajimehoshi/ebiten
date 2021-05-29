@@ -21,6 +21,10 @@
 #include "oboe_oboe_AudioStreamBuilder_android.h"
 #include "oboe_aaudio_AudioStreamAAudio_android.h"
 
+#ifndef __ANDROID_API_R__
+#define __ANDROID_API_R__ 30
+#endif
+
 namespace oboe {
 
 /**
@@ -98,6 +102,10 @@ public:
 
         virtual bool isAAudioMMapPossible(const AudioStreamBuilder &builder) const;
 
+        virtual bool isMMapSafe(const AudioStreamBuilder & /* builder */ ) {
+            return true;
+        }
+
         static constexpr int32_t kDefaultBottomMarginInBursts = 0;
         static constexpr int32_t kDefaultTopMarginInBursts = 0;
 
@@ -107,6 +115,8 @@ public:
         static constexpr int32_t kLegacyBottomMarginInBursts = 1;
         static constexpr int32_t kCommonNativeRate = 48000; // very typical native sample rate
     };
+
+    bool isMMapSafe(AudioStreamBuilder &builder);
 
 private:
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 The Android Open Source Project
+ * Copyright 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,30 +14,41 @@
  * limitations under the License.
  */
 
-#include "oboe_common_OboeDebug_android.h"
 #include <algorithm>
 #include <unistd.h>
+
+#if FLOWGRAPH_ANDROID_INTERNAL
+#include <audio_utils/primitives.h>
+#endif
+
 #include "oboe_flowgraph_FlowGraphNode_android.h"
-#include "oboe_flowgraph_SourceFloat_android.h"
+#include "oboe_flowgraph_SourceI32_android.h"
 
 using namespace FLOWGRAPH_OUTER_NAMESPACE::flowgraph;
 
-SourceFloat::SourceFloat(int32_t channelCount)
+SourceI32::SourceI32(int32_t channelCount)
         : FlowGraphSourceBuffered(channelCount) {
 }
 
-int32_t SourceFloat::onProcess(int32_t numFrames) {
-    float *outputBuffer = output.getBuffer();
+int32_t SourceI32::onProcess(int32_t numFrames) {
+    float *floatData = output.getBuffer();
     const int32_t channelCount = output.getSamplesPerFrame();
 
     const int32_t framesLeft = mSizeInFrames - mFrameIndex;
     const int32_t framesToProcess = std::min(numFrames, framesLeft);
     const int32_t numSamples = framesToProcess * channelCount;
 
-    const float *floatBase = (float *) mData;
-    const float *floatData = &floatBase[mFrameIndex * channelCount];
-    memcpy(outputBuffer, floatData, numSamples * sizeof(float));
+    const int32_t *intBase = static_cast<const int32_t *>(mData);
+    const int32_t *intData = &intBase[mFrameIndex * channelCount];
+
+#if FLOWGRAPH_ANDROID_INTERNAL
+    memcpy_to_float_from_i32(floatData, intData, numSamples);
+#else
+    for (int i = 0; i < numSamples; i++) {
+        *floatData++ = *intData++ * kScale;
+    }
+#endif
+
     mFrameIndex += framesToProcess;
     return framesToProcess;
 }
-

@@ -196,11 +196,6 @@ protected:
     int32_t                         mBufferCapacityInFrames = kUnspecified;
     /** Stream buffer size specified as a number of audio frames */
     int32_t                         mBufferSizeInFrames = kUnspecified;
-    /**
-     * Number of frames which will be copied to/from the audio device in a single read/write
-     * operation
-     */
-    int32_t                         mFramesPerBurst = kUnspecified;
 
     /** Stream sharing mode */
     SharingMode                     mSharingMode = SharingMode::Shared;
@@ -235,6 +230,8 @@ protected:
             case AudioFormat::Unspecified:
             case AudioFormat::I16:
             case AudioFormat::Float:
+            case AudioFormat::I24:
+            case AudioFormat::I32:
                 break;
 
             default:

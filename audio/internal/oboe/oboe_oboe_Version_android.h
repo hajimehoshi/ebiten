@@ -34,7 +34,7 @@
 #define OBOE_VERSION_MAJOR 1
 
 // Type: 8-bit unsigned int. Min value: 0 Max value: 255. See below for description.
-#define OBOE_VERSION_MINOR 5
+#define OBOE_VERSION_MINOR 6
 
 // Type: 16-bit unsigned int. Min value: 0 Max value: 65535. See below for description.
 #define OBOE_VERSION_PATCH 0

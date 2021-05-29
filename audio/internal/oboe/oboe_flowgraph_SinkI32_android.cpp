@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 The Android Open Source Project
+ * Copyright 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,36 +14,42 @@
  * limitations under the License.
  */
 
-#include <algorithm>
-#include <unistd.h>
+#if FLOWGRAPH_ANDROID_INTERNAL
+#include <audio_utils/primitives.h>
+#endif
+
 #include "oboe_flowgraph_FlowGraphNode_android.h"
-#include "oboe_flowgraph_SinkFloat_android.h"
+#include "oboe_flowgraph_FlowgraphUtilities_android.h"
+#include "oboe_flowgraph_SinkI32_android.h"
 
 using namespace FLOWGRAPH_OUTER_NAMESPACE::flowgraph;
 
-SinkFloat::SinkFloat(int32_t channelCount)
-        : FlowGraphSink(channelCount) {
-}
+SinkI32::SinkI32(int32_t channelCount)
+        : FlowGraphSink(channelCount) {}
 
-int32_t SinkFloat::read(void *data, int32_t numFrames) {
-    // printf("SinkFloat::read(,,%d)\n", numFrames);
-    float *floatData = (float *) data;
+int32_t SinkI32::read(void *data, int32_t numFrames) {
+    int32_t *intData = (int32_t *) data;
     const int32_t channelCount = input.getSamplesPerFrame();
 
     int32_t framesLeft = numFrames;
     while (framesLeft > 0) {
         // Run the graph and pull data through the input port.
-        int32_t framesPulled = pullData(framesLeft);
-        // printf("SinkFloat::read: framesLeft = %d, framesPulled = %d\n", framesLeft, framesPulled);
-        if (framesPulled <= 0) {
+        int32_t framesRead = pullData(framesLeft);
+        if (framesRead <= 0) {
             break;
         }
         const float *signal = input.getBuffer();
-        int32_t numSamples = framesPulled * channelCount;
-        memcpy(floatData, signal, numSamples * sizeof(float));
-        floatData += numSamples;
-        framesLeft -= framesPulled;
+        int32_t numSamples = framesRead * channelCount;
+#if FLOWGRAPH_ANDROID_INTERNAL
+        memcpy_to_i32_from_float(intData, signal, numSamples);
+        intData += numSamples;
+        signal += numSamples;
+#else
+        for (int i = 0; i < numSamples; i++) {
+            *intData++ = FlowgraphUtilities::clamp32FromFloat(*signal++);
+        }
+#endif
+        framesLeft -= framesRead;
     }
-    // printf("SinkFloat returning %d\n", numFrames - framesLeft);
     return numFrames - framesLeft;
 }

@@ -16,6 +16,8 @@
 
 #include <sys/types.h>
 
+
+#include "oboe_aaudio_AAudioExtensions_android.h"
 #include "oboe_aaudio_AudioStreamAAudio_android.h"
 #include "oboe_common_FilterAudioStream_android.h"
 #include "oboe_common_OboeDebug_android.h"
@@ -89,6 +91,7 @@ bool AudioStreamBuilder::isCompatible(AudioStreamBase &other) {
 Result AudioStreamBuilder::openStream(AudioStream **streamPP) {
     auto result = isValidConfig();
     if (result != Result::OK) {
+        LOGW("%s() invalid config %d", __func__, result);
         return result;
     }
 
@@ -109,7 +112,6 @@ Result AudioStreamBuilder::openStream(AudioStream **streamPP) {
     // Do we need to make a child stream and convert.
     if (conversionNeeded) {
         AudioStream *tempStream;
-
         result = childBuilder.openStream(&tempStream);
         if (result != Result::OK) {
             return result;
@@ -156,7 +158,20 @@ Result AudioStreamBuilder::openStream(AudioStream **streamPP) {
         }
     }
 
-    result = streamP->open(); // TODO review API
+    // If MMAP has a problem in this case then disable it temporarily.
+    bool wasMMapOriginallyEnabled = AAudioExtensions::getInstance().isMMapEnabled();
+    bool wasMMapTemporarilyDisabled = false;
+    if (wasMMapOriginallyEnabled) {
+        bool isMMapSafe = QuirksManager::getInstance().isMMapSafe(childBuilder);
+        if (!isMMapSafe) {
+            AAudioExtensions::getInstance().setMMapEnabled(false);
+            wasMMapTemporarilyDisabled = true;
+        }
+    }
+    result = streamP->open();
+    if (wasMMapTemporarilyDisabled) {
+        AAudioExtensions::getInstance().setMMapEnabled(wasMMapOriginallyEnabled); // restore original
+    }
     if (result == Result::OK) {
 
         int32_t  optimalBufferSize = -1;
@@ -188,24 +203,16 @@ Result AudioStreamBuilder::openStream(AudioStream **streamPP) {
 
 Result AudioStreamBuilder::openManagedStream(oboe::ManagedStream &stream) {
     stream.reset();
-    auto result = isValidConfig();
-    if (result != Result::OK) {
-        return result;
-    }
     AudioStream *streamptr;
-    result = openStream(&streamptr);
+    auto result = openStream(&streamptr);
     stream.reset(streamptr);
     return result;
 }
 
 Result AudioStreamBuilder::openStream(std::shared_ptr<AudioStream> &sharedStream) {
     sharedStream.reset();
-    auto result = isValidConfig();
-    if (result != Result::OK) {
-        return result;
-    }
     AudioStream *streamptr;
-    result = openStream(&streamptr);
+    auto result = openStream(&streamptr);
     if (result == Result::OK) {
         sharedStream.reset(streamptr);
         // Save a weak_ptr in the stream for use with callbacks.
