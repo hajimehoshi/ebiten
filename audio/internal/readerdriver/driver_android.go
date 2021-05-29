@@ -24,7 +24,8 @@ import (
 )
 
 func IsAvailable() bool {
-	return true
+	// TODO: Enable this after #1656 is fixed
+	return false
 }
 
 type context struct {
