@@ -22,33 +22,6 @@ import (
 	. "github.com/hajimehoshi/ebiten/v2/internal/affine"
 )
 
-func TestColorMScale(t *testing.T) {
-	cases := []struct {
-		In  *ColorM
-		Out *ColorM
-	}{
-		{
-			nil,
-			(*ColorM)(nil).Scale(0.25, 0.5, 0.75, 1),
-		},
-		{
-			(*ColorM)(nil).Scale(0.5, 0.5, 0.5, 0.8),
-			(*ColorM)(nil).Scale(0.125, 0.25, 0.375, 0.8),
-		},
-		{
-			(*ColorM)(nil).Translate(0, 0, 0, 0),
-			(*ColorM)(nil).Scale(0.25, 0.5, 0.75, 1),
-		},
-	}
-	for _, c := range cases {
-		got := c.In.Scale(0.25, 0.5, 0.75, 1)
-		want := c.Out
-		if got != want {
-			t.Errorf("%v.Scale(): got: %v, want: %v", c.In, got, want)
-		}
-	}
-}
-
 func TestColorMScaleOnly(t *testing.T) {
 	cases := []struct {
 		In  *ColorM

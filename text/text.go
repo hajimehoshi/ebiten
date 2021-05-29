@@ -27,6 +27,7 @@ import (
 	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/internal/colormcache"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
@@ -176,18 +177,12 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 	textM.Lock()
 	defer textM.Unlock()
 
-	cr, cg, cb, ca := clr.RGBA()
-	if ca == 0 {
-		return
-	}
-
-	var colorm ebiten.ColorM
-	colorm.Scale(float64(cr)/float64(ca), float64(cg)/float64(ca), float64(cb)/float64(ca), float64(ca)/0xffff)
-
 	fx, fy := fixed.I(x), fixed.I(y)
 	prevR := rune(-1)
 
 	faceHeight := face.Metrics().Height
+
+	colorm := colormcache.ColorToColorM(clr)
 
 	for _, r := range text {
 		if prevR >= 0 {
