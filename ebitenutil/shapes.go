@@ -17,7 +17,6 @@ package ebitenutil
 import (
 	"image"
 	"image/color"
-	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/internal/colormcache"
@@ -38,16 +37,66 @@ func init() {
 //
 // DrawLine is not concurrent-safe.
 func DrawLine(dst *ebiten.Image, x1, y1, x2, y2 float64, clr color.Color) {
-	length := math.Hypot(x2-x1, y2-y1)
+	DrawLineWidth(dst, x1, y1, x2, y2, 1, clr)
+}
 
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Scale(length, 1)
-	op.GeoM.Rotate(math.Atan2(y2-y1, x2-x1))
-	op.GeoM.Translate(x1, y1)
-	op.ColorM = colormcache.ColorToColorM(clr)
-	// Filter must be 'nearest' filter (default).
-	// Linear filtering would make edges blurred.
-	dst.DrawImage(emptySubImage, op)
+// DrawLineWidth draws a line segment on the given destination dst with a variable width
+// in pixels.
+func DrawLineWidth(dst *ebiten.Image, x1, y1, x2, y2, width float64, clr color.Color) {
+	x1f, y1f := float32(x1), float32(y1)
+	x2f, y2f := float32(x2), float32(y2)
+	var xOffset, yOffset float32
+	if x1f > x2f {
+		xOffset = -float32(width) / 2
+	} else {
+		xOffset = float32(width) / 2
+	}
+	if y1f > y2f {
+		yOffset = float32(width) / 2
+	} else {
+		yOffset = -float32(width) / 2
+	}
+
+	r, g, b, a := clr.RGBA()
+	r32 := float32(r) / 0xffff
+	g32 := float32(g) / 0xffff
+	b32 := float32(b) / 0xffff
+	a32 := float32(a) / 0xffff
+
+	dst.DrawTriangles([]ebiten.Vertex{
+		{
+			DstX: x1f - xOffset, DstY: y1f - yOffset,
+			SrcX: 0, SrcY: 0,
+			ColorR: r32, ColorG: g32, ColorB: b32, ColorA: a32,
+		},
+		{
+			DstX: x1f + xOffset, DstY: y1f + yOffset,
+			SrcX: 0, SrcY: 1,
+			ColorR: r32, ColorG: g32, ColorB: b32, ColorA: a32,
+		},
+		{
+			DstX: x2f - xOffset, DstY: y2f - yOffset,
+			SrcX: 1, SrcY: 1,
+			ColorR: r32, ColorG: g32, ColorB: b32, ColorA: a32,
+		},
+		{
+			DstX: x2f - xOffset, DstY: y2f - yOffset,
+			SrcX: 0, SrcY: 0,
+			ColorR: r32, ColorG: g32, ColorB: b32, ColorA: a32,
+		},
+		{
+			DstX: x2f + xOffset, DstY: y2f + yOffset,
+			SrcX: 0, SrcY: 1,
+			ColorR: r32, ColorG: g32, ColorB: b32, ColorA: a32,
+		},
+		{
+			DstX: x1f + xOffset, DstY: y1f + yOffset,
+			SrcX: 1, SrcY: 1,
+			ColorR: r32, ColorG: g32, ColorB: b32, ColorA: a32,
+		},
+	},
+		[]uint16{0, 1, 2, 3, 4, 5}, emptySubImage, nil,
+	)
 }
 
 // DrawRect draws a rectangle on the given destination dst.
