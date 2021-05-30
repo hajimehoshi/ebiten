@@ -601,9 +601,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 //
 // If the image is disposed, SubImage returns nil.
 //
-// A sub-image returned by SubImage can be used as a rendering source and a rendering destination.
-// If a sub-image is used as a rendering source, the image is used as if it is a small image.
-// If a sub-image is used as a rendering destination, the region being rendered is clipped.
+// In the current Ebiten implementation, SubImage is available only as a rendering source.
 func (i *Image) SubImage(r image.Rectangle) image.Image {
 	i.copyCheck()
 	if i.isDisposed() {
