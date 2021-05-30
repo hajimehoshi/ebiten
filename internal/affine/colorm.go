@@ -17,6 +17,7 @@ package affine
 import (
 	"image/color"
 	"math"
+	"sync"
 )
 
 // ColorMDim is a dimension of a ColorM.
@@ -441,15 +442,16 @@ func (c *ColorM) Concat(other *ColorM) *ColorM {
 // Scale scales the matrix by (r, g, b, a).
 func (c *ColorM) Scale(r, g, b, a float32) *ColorM {
 	if !c.isInited() {
-		return &ColorM{
-			body: []float32{
-				r, 0, 0, 0,
-				0, g, 0, 0,
-				0, 0, b, 0,
-				0, 0, 0, a,
-			},
-		}
+		return getCachedScalingColorM(r, g, b, a)
 	}
+
+	if c.ScaleOnly() {
+		if c.body == nil {
+			return getCachedScalingColorM(r, g, b, a)
+		}
+		return getCachedScalingColorM(r*c.body[0], g*c.body[5], b*c.body[10], a*c.body[15])
+	}
+
 	eb := make([]float32, len(colorMIdentityBody))
 	if c.body != nil {
 		copy(eb, c.body)
@@ -548,4 +550,63 @@ func (c *ColorM) ChangeHSV(hueTheta float64, saturationScale float32, valueScale
 	c = c.Scale(v, s*v, s*v, 1)
 	c = c.Concat(yCbCrToRgb)
 	return c
+}
+
+type cachedScalingColorMKey struct {
+	r, g, b, a float32
+}
+
+type cachedScalingColorMValue struct {
+	c     *ColorM
+	atime uint64
+}
+
+var (
+	cachedScalingColorM  = map[cachedScalingColorMKey]*cachedScalingColorMValue{}
+	cachedScalingColorMM sync.Mutex
+	cacheMonotonicClock  uint64
+)
+
+func getCachedScalingColorM(r, g, b, a float32) *ColorM {
+	key := cachedScalingColorMKey{r, g, b, a}
+
+	cachedScalingColorMM.Lock()
+	defer cachedScalingColorMM.Unlock()
+
+	cacheMonotonicClock++
+	now := cacheMonotonicClock
+
+	if v, ok := cachedScalingColorM[key]; ok {
+		v.atime = now
+		return v.c
+	}
+
+	const maxCacheSize = 512 // An arbitrary number
+
+	for len(cachedScalingColorM) >= maxCacheSize {
+		var oldest uint64 = math.MaxUint64
+		var oldestKey cachedScalingColorMKey
+		for k, v := range cachedScalingColorM {
+			if v.atime < oldest {
+				oldestKey = k
+				oldest = v.atime
+			}
+		}
+		delete(cachedScalingColorM, oldestKey)
+	}
+
+	v := &cachedScalingColorMValue{
+		c: &ColorM{
+			body: []float32{
+				r, 0, 0, 0,
+				0, g, 0, 0,
+				0, 0, b, 0,
+				0, 0, 0, a,
+			},
+		},
+		atime: now,
+	}
+	cachedScalingColorM[key] = v
+
+	return v.c
 }

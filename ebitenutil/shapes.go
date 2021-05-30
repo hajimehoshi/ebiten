@@ -20,7 +20,6 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/internal/colormcache"
 )
 
 var (
@@ -32,11 +31,17 @@ func init() {
 	emptyImage.Fill(color.White)
 }
 
+func colorToScale(clr color.Color) (float64, float64, float64, float64) {
+	cr, cg, cb, ca := clr.RGBA()
+	if ca == 0 {
+		return 0, 0, 0, 0
+	}
+	return float64(cr) / float64(ca), float64(cg) / float64(ca), float64(cb) / float64(ca), float64(ca) / 0xffff
+}
+
 // DrawLine draws a line segment on the given destination dst.
 //
 // DrawLine is intended to be used mainly for debugging or prototyping purpose.
-//
-// DrawLine is not concurrent-safe.
 func DrawLine(dst *ebiten.Image, x1, y1, x2, y2 float64, clr color.Color) {
 	length := math.Hypot(x2-x1, y2-y1)
 
@@ -44,7 +49,7 @@ func DrawLine(dst *ebiten.Image, x1, y1, x2, y2 float64, clr color.Color) {
 	op.GeoM.Scale(length, 1)
 	op.GeoM.Rotate(math.Atan2(y2-y1, x2-x1))
 	op.GeoM.Translate(x1, y1)
-	op.ColorM = colormcache.ColorToColorM(clr)
+	op.ColorM.Scale(colorToScale(clr))
 	// Filter must be 'nearest' filter (default).
 	// Linear filtering would make edges blurred.
 	dst.DrawImage(emptySubImage, op)
@@ -53,13 +58,11 @@ func DrawLine(dst *ebiten.Image, x1, y1, x2, y2 float64, clr color.Color) {
 // DrawRect draws a rectangle on the given destination dst.
 //
 // DrawRect is intended to be used mainly for debugging or prototyping purpose.
-//
-// DrawRect is not concurrent-safe.
 func DrawRect(dst *ebiten.Image, x, y, width, height float64, clr color.Color) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Scale(width, height)
 	op.GeoM.Translate(x, y)
-	op.ColorM = colormcache.ColorToColorM(clr)
+	op.ColorM.Scale(colorToScale(clr))
 	// Filter must be 'nearest' filter (default).
 	// Linear filtering would make edges blurred.
 	dst.DrawImage(emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image), op)
