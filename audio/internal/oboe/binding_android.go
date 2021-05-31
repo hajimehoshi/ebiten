@@ -27,6 +27,7 @@ import "C"
 import (
 	"fmt"
 	"runtime"
+	"sync"
 	"unsafe"
 )
 
@@ -47,6 +48,10 @@ func Resume() error {
 type Player struct {
 	player    C.PlayerID
 	onWritten func()
+
+	// m is the mutex for this player.
+	// This is necessary as Close can be invoked from the finalizer goroutine.
+	m sync.Mutex
 }
 
 func NewPlayer(sampleRate, channelNum, bitDepthInBytes int, volume float64, onWritten func()) *Player {
@@ -65,10 +70,15 @@ func onWrittenCallback(player C.uintptr_t) {
 }
 
 func (p *Player) IsPlaying() bool {
+	p.m.Lock()
+	defer p.m.Unlock()
 	return bool(C.ebiten_oboe_Player_IsPlaying(p.player))
 }
 
 func (p *Player) AppendBuffer(buf []byte) {
+	p.m.Lock()
+	defer p.m.Unlock()
+
 	ptr := C.CBytes(buf)
 	defer C.free(ptr)
 
@@ -76,6 +86,9 @@ func (p *Player) AppendBuffer(buf []byte) {
 }
 
 func (p *Player) Play() error {
+	p.m.Lock()
+	defer p.m.Unlock()
+
 	if p.player == 0 {
 		return fmt.Errorf("oboe: player is already closed at Play")
 	}
@@ -86,6 +99,9 @@ func (p *Player) Play() error {
 }
 
 func (p *Player) Pause() error {
+	p.m.Lock()
+	defer p.m.Unlock()
+
 	if p.player == 0 {
 		return fmt.Errorf("oboe: player is already closed at Pause")
 	}
@@ -96,10 +112,15 @@ func (p *Player) Pause() error {
 }
 
 func (p *Player) SetVolume(volume float64) {
+	p.m.Lock()
+	defer p.m.Unlock()
 	C.ebiten_oboe_Player_SetVolume(p.player, C.double(volume))
 }
 
 func (p *Player) Close() error {
+	p.m.Lock()
+	defer p.m.Unlock()
+
 	runtime.SetFinalizer(p, nil)
 	if p.player == 0 {
 		return fmt.Errorf("oboe: player is already closed at Close")
@@ -112,5 +133,7 @@ func (p *Player) Close() error {
 }
 
 func (p *Player) UnplayedBufferSize() int {
+	p.m.Lock()
+	defer p.m.Unlock()
 	return int(C.ebiten_oboe_Player_UnplayedBufferSize(p.player))
 }
