@@ -31,6 +31,13 @@ import (
 	"unsafe"
 )
 
+func Play(sampleRate, channelNum, bitDepthInBytes int) error {
+	if msg := C.ebiten_oboe_Play(C.int(sampleRate), C.int(channelNum), C.int(bitDepthInBytes)); msg != nil {
+		return fmt.Errorf("oboe: Play failed: %s", C.GoString(msg))
+	}
+	return nil
+}
+
 func Suspend() error {
 	if msg := C.ebiten_oboe_Suspend(); msg != nil {
 		return fmt.Errorf("oboe: Suspend failed: %s", C.GoString(msg))
@@ -54,17 +61,17 @@ type Player struct {
 	m sync.Mutex
 }
 
-func NewPlayer(sampleRate, channelNum, bitDepthInBytes int, volume float64, onWritten func()) *Player {
+func NewPlayer(volume float64, onWritten func()) *Player {
 	p := &Player{
 		onWritten: onWritten,
 	}
-	p.player = C.ebiten_oboe_Player_Create(C.int(sampleRate), C.int(channelNum), C.int(bitDepthInBytes), C.double(volume), C.uintptr_t(uintptr(unsafe.Pointer(p))))
+	p.player = C.ebiten_oboe_Player_Create(C.double(volume), C.uintptr_t(uintptr(unsafe.Pointer(p))))
 	runtime.SetFinalizer(p, (*Player).Close)
 	return p
 }
 
-//export onWrittenCallback
-func onWrittenCallback(player C.uintptr_t) {
+//export ebiten_oboe_onWrittenCallback
+func ebiten_oboe_onWrittenCallback(player C.uintptr_t) {
 	p := (*Player)(unsafe.Pointer(uintptr(player)))
 	p.onWritten()
 }
@@ -92,9 +99,7 @@ func (p *Player) Play() error {
 	if p.player == 0 {
 		return fmt.Errorf("oboe: player is already closed at Play")
 	}
-	if msg := C.ebiten_oboe_Player_Play(p.player); msg != nil {
-		return fmt.Errorf("oboe: Player_Play failed: %s", C.GoString(msg))
-	}
+	C.ebiten_oboe_Player_Play(p.player)
 	return nil
 }
 
@@ -105,9 +110,7 @@ func (p *Player) Pause() error {
 	if p.player == 0 {
 		return fmt.Errorf("oboe: player is already closed at Pause")
 	}
-	if msg := C.ebiten_oboe_Player_Pause(p.player); msg != nil {
-		return fmt.Errorf("oboe: Player_Pause failed: %s", C.GoString(msg))
-	}
+	C.ebiten_oboe_Player_Pause(p.player)
 	return nil
 }
 
@@ -125,9 +128,7 @@ func (p *Player) Close() error {
 	if p.player == 0 {
 		return fmt.Errorf("oboe: player is already closed at Close")
 	}
-	if msg := C.ebiten_oboe_Player_Close(p.player); msg != nil {
-		return fmt.Errorf("oboe: Player_Close failed: %s", C.GoString(msg))
-	}
+	C.ebiten_oboe_Player_Close(p.player)
 	p.player = 0
 	return nil
 }

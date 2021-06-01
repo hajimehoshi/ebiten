@@ -18,14 +18,12 @@ import (
 	"io"
 	"runtime"
 	"sync"
-	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/oboe"
 )
 
 func IsAvailable() bool {
-	// TODO: Enable this after #1660 is fixed
-	return false
+	return true
 }
 
 type context struct {
@@ -42,6 +40,9 @@ func NewContext(sampleRate int, channelNum int, bitDepthInBytes int) (Context, c
 		sampleRate:      sampleRate,
 		channelNum:      channelNum,
 		bitDepthInBytes: bitDepthInBytes,
+	}
+	if err := oboe.Play(sampleRate, channelNum, bitDepthInBytes); err != nil {
+		return nil, nil, err
 	}
 	return c, ready, nil
 }
@@ -120,7 +121,7 @@ func (p *player) playImpl() {
 	defer p.cond.Signal()
 	var runLoop bool
 	if p.p == nil {
-		p.p = oboe.NewPlayer(p.context.sampleRate, p.context.channelNum, p.context.bitDepthInBytes, p.volume, func() {
+		p.p = oboe.NewPlayer(p.volume, func() {
 			p.cond.Signal()
 		})
 		runLoop = true
@@ -161,7 +162,10 @@ func (p *player) IsPlaying() bool {
 func (p *player) Reset() {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
+	p.resetImpl()
+}
 
+func (p *player) resetImpl() {
 	if p.err != nil {
 		return
 	}
@@ -298,12 +302,8 @@ func (p *player) loop() {
 
 		// Now p.resetImpl() doesn't close the stream gracefully. Then buffer size check is necessary here.
 		if p.eof && p.p.UnplayedBufferSize() == 0 {
-			// Even when the unplayed buffer size is 0,
-			// the audio data in the hardware might not be played yet (#1632).
-			// Just wait for a while.
+			p.resetImpl()
 			p.cond.L.Unlock()
-			time.Sleep(100 * time.Millisecond)
-			p.Reset()
 			return
 		}
 		p.cond.L.Unlock()

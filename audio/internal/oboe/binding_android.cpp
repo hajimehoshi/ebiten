@@ -21,214 +21,236 @@
 #include <set>
 #include <vector>
 
+#include <android/log.h>
+
 namespace {
 
-class Player : public oboe::AudioStreamDataCallback {
+class Player;
+
+class Stream : public oboe::AudioStreamDataCallback {
 public:
-  static const char *Suspend() {
-    std::lock_guard<std::mutex> lock(PlayersMutex());
-    for (Player *player : GetPlayers()) {
-      if (!player->IsPlaying()) {
-        continue;
-      }
-      // Close should be called rather than Pause for onPause.
-      // https://github.com/google/oboe/blob/master/docs/GettingStarted.md
-      if (const char *msg = player->Close(); msg) {
-        return msg;
-      }
-      GetPlayersToResume().insert(player);
-    }
-    return nullptr;
-  }
+  // GetInstance returns the instance of Stream. Only one Stream object is used
+  // in one process. It is because multiple streams can be problematic in both
+  // AAudio and OpenSL (#1656, #1660).
+  static Stream &GetInstance();
 
-  static const char *Resume() {
-    std::lock_guard<std::mutex> lock(PlayersMutex());
-    for (Player *player : GetPlayersToResume()) {
-      if (const char *msg = player->Play(); msg) {
-        return msg;
-      }
-    }
-    GetPlayersToResume().clear();
-    return nullptr;
-  }
+  const char *Play(int sample_rate, int channel_num, int bit_depth_in_bytes);
+  const char *Pause();
+  const char *Resume();
+  const char *Close();
 
-  Player(int sample_rate, int channel_num, int bit_depth_in_bytes,
-         double volume, uintptr_t go_player)
-      : sample_rate_{sample_rate}, channel_num_{channel_num},
-        bit_depth_in_bytes_{bit_depth_in_bytes}, go_player_{go_player} {
+  void AddPlayer(Player *player);
+  void RemovePlayer(Player *player);
+
+  oboe::DataCallbackResult onAudioReady(oboe::AudioStream *oboe_stream,
+                                        void *audio_data,
+                                        int32_t num_frames) override;
+
+private:
+  Stream();
+  int sample_rate_ = 0;
+  int channel_num_ = 0;
+  int bit_depth_in_bytes_ = 0;
+
+  std::mutex mutex_;
+  std::set<Player *> players_;
+  std::shared_ptr<oboe::AudioStream> stream_;
+};
+
+class Player {
+public:
+  Player(double volume, uintptr_t go_player) : go_player_{go_player} {
     std::atomic_store(&volume_, volume);
-    {
-      std::lock_guard<std::mutex> lock(PlayersMutex());
-      GetPlayers().insert(this);
-    }
+    Stream::GetInstance().AddPlayer(this);
   }
+
+  ~Player() { Stream::GetInstance().RemovePlayer(this); }
 
   void SetVolume(double volume) { std::atomic_store(&volume_, volume); }
 
-  bool IsPlaying() { return stream_->getState() == oboe::StreamState::Started; }
+  void Play() { std::atomic_store(&playing_, true); }
+
+  void Pause() { std::atomic_store(&playing_, false); }
+
+  bool IsPlaying() { return std::atomic_load(&playing_); }
 
   void AppendBuffer(uint8_t *data, int length) {
-    // Sync this constants with internal/readerdriver/driver.go
-    const size_t bytes_per_sample = channel_num_ * bit_depth_in_bytes_;
-    const size_t one_buffer_size = sample_rate_ * channel_num_ *
-                                   bit_depth_in_bytes_ / 4 / bytes_per_sample *
-                                   bytes_per_sample;
-    const size_t max_buffer_size = one_buffer_size * 2;
-
     std::lock_guard<std::mutex> lock(mutex_);
     buf_.insert(buf_.end(), data, data + length);
   }
 
-  const char *Play() {
-    if (bit_depth_in_bytes_ != 2) {
-      return "bit_depth_in_bytes_ must be 2 but not";
-    }
-
-    int retry_count = 0;
-  retry:
-    if (!stream_) {
-      oboe::AudioStreamBuilder builder;
-      oboe::Result result =
-          builder.setDirection(oboe::Direction::Output)
-              ->setPerformanceMode(oboe::PerformanceMode::LowLatency)
-              ->setSharingMode(oboe::SharingMode::Shared)
-              ->setFormat(oboe::AudioFormat::I16)
-              ->setChannelCount(channel_num_)
-              ->setSampleRate(sample_rate_)
-              ->setDataCallback(this)
-              ->openStream(stream_);
-      if (result != oboe::Result::OK) {
-        // openStream might fail with oboe::Result::ErrorInternal when too many
-        // streams are opened in a short time (#1645).
-        if (result == oboe::Result::ErrorInternal && retry_count < 100) {
-          retry_count++;
-          // Sleep 10[ms]
-          timespec ts = {};
-          ts.tv_nsec = 10000000;
-          nanosleep(&ts, nullptr);
-          goto retry;
-        }
-        return oboe::convertToText(result);
-      }
-    }
-    if (stream_->getSharingMode() != oboe::SharingMode::Shared) {
-      return "oboe::SharingMode::Shared is not available";
-    }
-    // What if the buffer size is not enough?
-    if (oboe::Result result = stream_->start(); result != oboe::Result::OK) {
-      return oboe::convertToText(result);
-    }
-    return nullptr;
-  }
-
-  const char *Pause() {
-    if (!stream_) {
-      return nullptr;
-    }
-    if (oboe::Result result = stream_->pause(); result != oboe::Result::OK) {
-      return oboe::convertToText(result);
-    }
-    return nullptr;
-  }
-
-  const char *Close() {
-    if (!stream_) {
-      return nullptr;
-    }
-    if (oboe::Result result = stream_->stop(); result != oboe::Result::OK) {
-      return oboe::convertToText(result);
-    }
-    if (oboe::Result result = stream_->close(); result != oboe::Result::OK) {
-      return oboe::convertToText(result);
-    }
-    stream_.reset();
-    return nullptr;
-  }
-
-  const char *CloseAndRemove() {
-    // Close and remove self from the players atomically.
-    // Otherwise, a removed player might be resumed at Resume unexpectedly.
-    std::lock_guard<std::mutex> lock(PlayersMutex());
-    const char *msg = Close();
-    GetPlayers().erase(this);
-    GetPlayersToResume().erase(this);
-    return msg;
-  }
-
-  int GetUnplayedBufferSize() {
+  size_t GetUnplayedBufferSize() {
     std::lock_guard<std::mutex> lock(mutex_);
     return buf_.size();
   }
 
-  oboe::DataCallbackResult onAudioReady(oboe::AudioStream *oboe_stream,
-                                        void *audio_data,
-                                        int32_t num_frames) override {
-    size_t num_bytes = num_frames * channel_num_ * bit_depth_in_bytes_;
-    std::vector<uint8_t> buf(num_bytes);
+  size_t Read(std::vector<float> &buf) {
+    if (!std::atomic_load(&playing_)) {
+      return 0;
+    }
+
+    const double volume = std::atomic_load(&volume_);
+    size_t copy_num = 0;
     {
       // TODO: Do not use a lock in onAudioReady.
       // https://google.github.io/oboe/reference/classoboe_1_1_audio_stream_data_callback.html#ad8a3a9f609df5fd3a5d885cbe1b2204d
       std::lock_guard<std::mutex> lock(mutex_);
-      size_t copy_bytes = std::min(num_bytes, buf_.size());
-      std::copy(buf_.begin(), buf_.begin() + copy_bytes, buf.begin());
-      buf_.erase(buf_.begin(), buf_.begin() + copy_bytes);
-      onWrittenCallback(go_player_);
-    }
-
-    if (const double volume = std::atomic_load(&volume_); volume < 1) {
-      for (int i = 0; i < buf.size() / 2; i++) {
-        int16_t v = static_cast<int16_t>(buf[2 * i]) |
-                    (static_cast<int16_t>(buf[2 * i + 1]) << 8);
-        v = static_cast<int16_t>(static_cast<double>(v) * volume);
-        buf[2 * i] = static_cast<uint8_t>(v);
-        buf[2 * i + 1] = static_cast<uint8_t>(v >> 8);
+      copy_num = std::min(buf.size(), buf_.size() / 2);
+      for (size_t i = 0; i < copy_num; i++) {
+        int16_t v = static_cast<int16_t>(buf_[2 * i]) |
+                    (static_cast<int16_t>(buf_[2 * i + 1]) << 8);
+        buf[i] = static_cast<float>(v) / (1 << 15) * volume;
       }
+      buf_.erase(buf_.begin(), buf_.begin() + copy_num * 2);
     }
 
-    std::copy(buf.begin(), buf.end(), reinterpret_cast<uint8_t *>(audio_data));
-    return oboe::DataCallbackResult::Continue;
+    if (copy_num) {
+      ebiten_oboe_onWrittenCallback(go_player_);
+    }
+    return copy_num;
   }
 
 private:
-  static std::set<Player *> &GetPlayers() {
-    static std::set<Player *> players;
-    return players;
-  }
-
-  static std::set<Player *> &GetPlayersToResume() {
-    static std::set<Player *> players_to_resume;
-    return players_to_resume;
-  }
-
-  static std::mutex &PlayersMutex() {
-    static std::mutex mutex;
-    return mutex;
-  }
-
-  const int sample_rate_;
-  const int channel_num_;
-  const int bit_depth_in_bytes_;
   const uintptr_t go_player_;
 
   std::atomic<double> volume_{1.0};
+  std::atomic<bool> playing_;
   std::vector<uint8_t> buf_;
   std::mutex mutex_;
-  std::shared_ptr<oboe::AudioStream> stream_;
 };
+
+Stream &Stream::GetInstance() {
+  static Stream *stream = new Stream();
+  return *stream;
+}
+
+const char *Stream::Play(int sample_rate, int channel_num,
+                         int bit_depth_in_bytes) {
+  sample_rate_ = sample_rate;
+  channel_num_ = channel_num;
+  bit_depth_in_bytes_ = bit_depth_in_bytes;
+
+  // TODO: Enable bit_depth_in_bytes_ == 1
+  if (bit_depth_in_bytes_ != 2) {
+    return "bit_depth_in_bytes_ must be 2 but not";
+  }
+
+  if (!stream_) {
+    oboe::AudioStreamBuilder builder;
+    oboe::Result result =
+        builder.setDirection(oboe::Direction::Output)
+            ->setPerformanceMode(oboe::PerformanceMode::LowLatency)
+            ->setSharingMode(oboe::SharingMode::Shared)
+            ->setFormat(oboe::AudioFormat::Float)
+            ->setChannelCount(channel_num_)
+            ->setSampleRate(sample_rate_)
+            ->setDataCallback(this)
+            ->openStream(stream_);
+    if (result != oboe::Result::OK) {
+      return oboe::convertToText(result);
+    }
+  }
+  if (stream_->getSharingMode() != oboe::SharingMode::Shared) {
+    return "oboe::SharingMode::Shared is not available";
+  }
+  // What if the buffer size is not enough?
+  if (oboe::Result result = stream_->start(); result != oboe::Result::OK) {
+    return oboe::convertToText(result);
+  }
+  return nullptr;
+}
+
+const char *Stream::Pause() {
+  if (!stream_) {
+    return nullptr;
+  }
+  if (oboe::Result result = stream_->pause(); result != oboe::Result::OK) {
+    return oboe::convertToText(result);
+  }
+  return nullptr;
+}
+
+const char *Stream::Resume() {
+  if (!stream_) {
+    return "Play is not called yet at Resume";
+  }
+  if (oboe::Result result = stream_->start(); result != oboe::Result::OK) {
+    return oboe::convertToText(result);
+  }
+  return nullptr;
+}
+
+const char *Stream::Close() {
+  // Nobody calls this so far.
+  if (!stream_) {
+    return nullptr;
+  }
+  if (oboe::Result result = stream_->stop(); result != oboe::Result::OK) {
+    return oboe::convertToText(result);
+  }
+  if (oboe::Result result = stream_->close(); result != oboe::Result::OK) {
+    return oboe::convertToText(result);
+  }
+  stream_.reset();
+  return nullptr;
+}
+
+void Stream::AddPlayer(Player *player) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  players_.insert(player);
+}
+
+void Stream::RemovePlayer(Player *player) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  players_.erase(player);
+}
+
+oboe::DataCallbackResult Stream::onAudioReady(oboe::AudioStream *oboe_stream,
+                                              void *audio_data,
+                                              int32_t num_frames) {
+  size_t num = num_frames * channel_num_;
+  std::vector<std::vector<float>> bufs;
+  {
+    // TODO: Do not use a lock in onAudioReady.
+    // https://google.github.io/oboe/reference/classoboe_1_1_audio_stream_data_callback.html#ad8a3a9f609df5fd3a5d885cbe1b2204d
+    std::lock_guard<std::mutex> lock(mutex_);
+    bufs.resize(players_.size());
+    size_t i = 0;
+    for (Player *player : players_) {
+      bufs[i].resize(num);
+      player->Read(bufs[i]);
+      i++;
+    }
+  }
+
+  float *dst = reinterpret_cast<float *>(audio_data);
+  for (int i = 0; i < num; i++) {
+    dst[i] = 0;
+    for (const std::vector<float> buf : bufs) {
+      dst[i] += buf[i];
+    }
+  }
+  return oboe::DataCallbackResult::Continue;
+}
+
+Stream::Stream() = default;
 
 } // namespace
 
 extern "C" {
 
-const char *ebiten_oboe_Suspend() { return Player::Suspend(); }
+const char *ebiten_oboe_Play(int sample_rate, int channel_num,
+                             int bit_depth_in_bytes) {
+  return Stream::GetInstance().Play(sample_rate, channel_num,
+                                    bit_depth_in_bytes);
+}
 
-const char *ebiten_oboe_Resume() { return Player::Resume(); }
+const char *ebiten_oboe_Suspend() { return Stream::GetInstance().Pause(); }
 
-PlayerID ebiten_oboe_Player_Create(int sample_rate, int channel_num,
-                                   int bit_depth_in_bytes, double volume,
-                                   uintptr_t go_player) {
-  Player *p = new Player(sample_rate, channel_num, bit_depth_in_bytes, volume,
-                         go_player);
+const char *ebiten_oboe_Resume() { return Stream::GetInstance().Resume(); }
+
+PlayerID ebiten_oboe_Player_Create(double volume, uintptr_t go_player) {
+  Player *p = new Player(volume, go_player);
   return reinterpret_cast<PlayerID>(p);
 }
 
@@ -243,12 +265,12 @@ void ebiten_oboe_Player_AppendBuffer(PlayerID audio_player, uint8_t *data,
   p->AppendBuffer(data, length);
 }
 
-const char *ebiten_oboe_Player_Play(PlayerID audio_player) {
+void ebiten_oboe_Player_Play(PlayerID audio_player) {
   Player *p = reinterpret_cast<Player *>(audio_player);
-  return p->Play();
+  p->Play();
 }
 
-const char *ebiten_oboe_Player_Pause(PlayerID audio_player) {
+void ebiten_oboe_Player_Pause(PlayerID audio_player) {
   Player *p = reinterpret_cast<Player *>(audio_player);
   return p->Pause();
 }
@@ -258,11 +280,9 @@ void ebiten_oboe_Player_SetVolume(PlayerID audio_player, double volume) {
   p->SetVolume(volume);
 }
 
-const char *ebiten_oboe_Player_Close(PlayerID audio_player) {
+void ebiten_oboe_Player_Close(PlayerID audio_player) {
   Player *p = reinterpret_cast<Player *>(audio_player);
-  const char *msg = p->CloseAndRemove();
   delete p;
-  return msg;
 }
 
 int ebiten_oboe_Player_UnplayedBufferSize(PlayerID audio_player) {
