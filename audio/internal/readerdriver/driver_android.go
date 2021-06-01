@@ -24,7 +24,7 @@ import (
 )
 
 func IsAvailable() bool {
-	// TODO: Enable this after #1656 is fixed
+	// TODO: Enable this after #1660 is fixed
 	return false
 }
 
