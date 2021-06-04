@@ -276,6 +276,7 @@ func (p *playerImpl) playImpl() {
 			nBlockAlign:     uint16(numBlockAlign),
 		}
 
+		// TOOD: What about using an event instead of a callback? PortAudio and other libraries do that.
 		w, err := waveOutOpen(f, waveOutOpenCallback)
 		const elementNotFound = 1168
 		if e, ok := err.(*winmmError); ok && e.errno == elementNotFound {
