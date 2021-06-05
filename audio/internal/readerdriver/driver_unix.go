@@ -454,9 +454,9 @@ func (p *playerImpl) closeImpl() error {
 
 func (p *playerImpl) addBuffer(buf []float32) int {
 	p.m.Lock()
-	defer p.m.Unlock()
 
 	if p.state != playerPlay {
+		p.m.Unlock()
 		return 0
 	}
 
@@ -466,19 +466,22 @@ func (p *playerImpl) addBuffer(buf []float32) int {
 		n = len(buf)
 	}
 	volume := float32(p.volume)
+	src := p.buf[:n*bitDepthInBytes]
+	p.buf = p.buf[n*bitDepthInBytes:]
+	p.m.Unlock()
+
 	for i := 0; i < n; i++ {
 		var v float32
 		switch bitDepthInBytes {
 		case 1:
-			v8 := p.buf[i]
+			v8 := src[i]
 			v = float32(v8-(1<<7)) / (1 << 7)
 		case 2:
-			v16 := int16(p.buf[2*i]) | (int16(p.buf[2*i+1]) << 8)
+			v16 := int16(src[2*i]) | (int16(src[2*i+1]) << 8)
 			v = float32(v16) / (1 << 15)
 		}
 		buf[i] += v * volume
 	}
-	p.buf = p.buf[n*bitDepthInBytes:]
 	return n
 }
 
