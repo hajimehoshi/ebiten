@@ -93,11 +93,11 @@ func NewContext(sampleRate, channelNum, bitDepthInBytes int) (Context, chan stru
 	C.pa_threaded_mainloop_lock(c.mainloop)
 	defer C.pa_threaded_mainloop_unlock(c.mainloop)
 
-	if C.pa_threaded_mainloop_start(c.mainloop) != 0 {
-		return nil, nil, fmt.Errorf("readerdriver: pa_threaded_mainloop_start failed")
+	if code := C.pa_threaded_mainloop_start(c.mainloop); code != 0 {
+		return nil, nil, fmt.Errorf("readerdriver: pa_threaded_mainloop_start failed: %s", C.GoString(C.pa_strerror(code)))
 	}
-	if C.pa_context_connect(c.context, nil, C.PA_CONTEXT_NOAUTOSPAWN, nil) != 0 {
-		return nil, nil, fmt.Errorf("readerdriver: pa_context_connect failed")
+	if code := C.pa_context_connect(c.context, nil, C.PA_CONTEXT_NOAUTOSPAWN, nil); code != 0 {
+		return nil, nil, fmt.Errorf("readerdriver: pa_context_connect failed: %s", C.GoString(C.pa_strerror(code)))
 	}
 
 	// Wait until the context is ready.
@@ -142,8 +142,8 @@ func NewContext(sampleRate, channelNum, bitDepthInBytes int) (Context, chan stru
 		C.PA_STREAM_NOT_MONOTONIC | C.PA_STREAM_AUTO_TIMING_UPDATE |
 		C.PA_STREAM_ADJUST_LATENCY
 
-	if C.pa_stream_connect_playback(c.stream, nil, &bufferAttr, streamFlags, nil, nil) != 0 {
-		return nil, nil, fmt.Errorf("readerdriver: pa_stream_connect_playback failed")
+	if code := C.pa_stream_connect_playback(c.stream, nil, &bufferAttr, streamFlags, nil, nil); code != 0 {
+		return nil, nil, fmt.Errorf("readerdriver: pa_stream_connect_playback failed: %s", C.GoString(C.pa_strerror(code)))
 	}
 
 	// Wait until the stream is ready.
@@ -196,7 +196,7 @@ func (c *context) loop() {
 		c.cond.L.Unlock()
 
 		for _, p := range players {
-			p.load()
+			p.readSourceToBuffer()
 		}
 	}
 }
@@ -268,7 +268,7 @@ func ebiten_readerdriver_streamWriteCallback(stream *C.pa_stream, requestedBytes
 			}
 		}
 		for _, p := range players {
-			p.addBuffer(buf32[:bytesToFill/4])
+			p.readBufferAndAdd(buf32[:bytesToFill/4])
 		}
 		c.cond.Signal()
 		for i := uintptr(0); i < uintptr(bytesToFill/4); i++ {
@@ -454,7 +454,7 @@ func (p *playerImpl) closeImpl() error {
 	return p.err
 }
 
-func (p *playerImpl) addBuffer(buf []float32) int {
+func (p *playerImpl) readBufferAndAdd(buf []float32) int {
 	p.m.Lock()
 
 	if p.state != playerPlay {
@@ -493,7 +493,7 @@ func (p *playerImpl) isBufferFull() bool {
 	return len(p.buf) >= p.context.maxBufferSize()
 }
 
-func (p *playerImpl) load() {
+func (p *playerImpl) readSourceToBuffer() {
 	p.m.Lock()
 	defer p.m.Unlock()
 
