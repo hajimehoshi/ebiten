@@ -154,7 +154,25 @@ func NewContext(sampleRate, channelNum, bitDepthInBytes int) (Context, chan stru
 
 	C.pa_stream_cork(c.stream, 0, C.pa_stream_success_cb_t(C.ebiten_readerdriver_streamSuccessCallback), unsafe.Pointer(c.mainloop))
 
+	go c.loop()
+
 	return c, ready, nil
+}
+
+func (c *context) loop() {
+	var players []*playerImpl
+	for {
+		c.m.Lock()
+		players = players[:0]
+		for p := range c.players {
+			players = append(players, p)
+		}
+		c.m.Unlock()
+
+		for _, p := range players {
+			p.load()
+		}
+	}
 }
 
 func (c *context) Suspend() error {
@@ -239,12 +257,12 @@ type player struct {
 type playerImpl struct {
 	context *context
 	src     io.Reader
-	cond    *sync.Cond
 	volume  float64
 	err     error
 	state   playerState
 	buf     []byte
-	hasLoop bool
+
+	m sync.Mutex
 }
 
 func (c *context) NewPlayer(src io.Reader) Player {
@@ -252,7 +270,6 @@ func (c *context) NewPlayer(src io.Reader) Player {
 		p: &playerImpl{
 			context: c,
 			src:     src,
-			cond:    sync.NewCond(&sync.Mutex{}),
 			volume:  1,
 		},
 	}
@@ -265,8 +282,8 @@ func (p *player) Err() error {
 }
 
 func (p *playerImpl) Err() error {
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
+	p.m.Lock()
+	defer p.m.Unlock()
 
 	return p.err
 }
@@ -276,14 +293,9 @@ func (p *player) Play() {
 }
 
 func (p *playerImpl) Play() {
-	ch := make(chan struct{})
-	go func() {
-		p.cond.L.Lock()
-		defer p.cond.L.Unlock()
-		close(ch)
-		p.playImpl()
-	}()
-	<-ch
+	p.m.Lock()
+	defer p.m.Unlock()
+	p.playImpl()
 }
 
 func (p *playerImpl) playImpl() {
@@ -309,16 +321,9 @@ func (p *playerImpl) playImpl() {
 
 	p.state = playerPlay
 
-	p.cond.L.Unlock()
+	p.m.Unlock()
 	p.context.addPlayer(p)
-	p.cond.L.Lock()
-
-	p.cond.Signal()
-
-	if !p.hasLoop {
-		go p.loop()
-		p.hasLoop = true
-	}
+	p.m.Lock()
 }
 
 func (p *player) Pause() {
@@ -326,8 +331,8 @@ func (p *player) Pause() {
 }
 
 func (p *playerImpl) Pause() {
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
+	p.m.Lock()
+	defer p.m.Unlock()
 	p.pauseImpl()
 }
 
@@ -336,7 +341,6 @@ func (p *playerImpl) pauseImpl() {
 		return
 	}
 	p.state = playerPaused
-	p.cond.Signal()
 }
 
 func (p *player) Reset() {
@@ -344,8 +348,8 @@ func (p *player) Reset() {
 }
 
 func (p *playerImpl) Reset() {
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
+	p.m.Lock()
+	defer p.m.Unlock()
 	p.resetImpl()
 }
 
@@ -355,7 +359,6 @@ func (p *playerImpl) resetImpl() {
 	}
 	p.state = playerPaused
 	p.buf = p.buf[:0]
-	p.cond.Signal()
 }
 
 func (p *player) IsPlaying() bool {
@@ -363,8 +366,8 @@ func (p *player) IsPlaying() bool {
 }
 
 func (p *playerImpl) IsPlaying() bool {
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
+	p.m.Lock()
+	defer p.m.Unlock()
 	return p.state == playerPlay
 }
 
@@ -373,8 +376,8 @@ func (p *player) Volume() float64 {
 }
 
 func (p *playerImpl) Volume() float64 {
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
+	p.m.Lock()
+	defer p.m.Unlock()
 	return p.volume
 }
 
@@ -383,8 +386,8 @@ func (p *player) SetVolume(volume float64) {
 }
 
 func (p *playerImpl) SetVolume(volume float64) {
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
+	p.m.Lock()
+	defer p.m.Unlock()
 	p.volume = volume
 }
 
@@ -393,8 +396,8 @@ func (p *player) UnplayedBufferSize() int {
 }
 
 func (p *playerImpl) UnplayedBufferSize() int {
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
+	p.m.Lock()
+	defer p.m.Unlock()
 	return len(p.buf)
 }
 
@@ -404,28 +407,27 @@ func (p *player) Close() error {
 }
 
 func (p *playerImpl) Close() error {
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
+	p.m.Lock()
+	defer p.m.Unlock()
 	return p.closeImpl()
 }
 
 func (p *playerImpl) closeImpl() error {
-	p.cond.L.Unlock()
+	p.m.Unlock()
 	p.context.removePlayer(p)
-	p.cond.L.Lock()
+	p.m.Lock()
 
 	if p.state == playerClosed {
 		return nil
 	}
 	p.state = playerClosed
 	p.buf = nil
-	p.cond.Signal()
 	return p.err
 }
 
 func (p *playerImpl) addBuffer(buf []float32) int {
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
+	p.m.Lock()
+	defer p.m.Unlock()
 
 	if p.state != playerPlay {
 		return 0
@@ -450,66 +452,36 @@ func (p *playerImpl) addBuffer(buf []float32) int {
 		buf[i] += v * volume
 	}
 	p.buf = p.buf[n*bitDepthInBytes:]
-	if n > 0 {
-		p.cond.Signal()
-	}
 	return n
 }
 
-func (p *playerImpl) shouldWait() bool {
-	switch p.state {
-	case playerPaused:
-		return true
-	case playerPlay:
-		// If the buffer has too much data, wait until the buffer data is consumed.
-		// If the source reaches EOF, wait until the state is reset.
-		return len(p.buf) >= p.context.maxBufferSize()
-	case playerClosed:
-		return false
-	default:
-		panic("not reached")
+func (p *playerImpl) load() {
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	if p.err != nil {
+		return
 	}
-}
-
-func (p *playerImpl) wait() bool {
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
-
-	for p.shouldWait() {
-		p.cond.Wait()
+	if p.state == playerClosed {
+		return
 	}
-	return p.state == playerPlay
-}
 
-func (p *playerImpl) setError(err error) {
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
-	p.setErrorImpl(err)
+	if len(p.buf) >= p.context.maxBufferSize() {
+		return
+	}
+	buf := make([]byte, p.context.maxBufferSize())
+	n, err := p.src.Read(buf)
+	if err != nil && err != io.EOF {
+		p.setErrorImpl(err)
+		return
+	}
+	p.buf = append(p.buf, buf[:n]...)
+	if err == io.EOF && len(p.buf) == 0 {
+		p.resetImpl()
+	}
 }
 
 func (p *playerImpl) setErrorImpl(err error) {
 	p.err = err
 	p.closeImpl()
-}
-
-func (p *playerImpl) loop() {
-	buf := make([]byte, 4096)
-	for {
-		if !p.wait() {
-			return
-		}
-
-		n, err := p.src.Read(buf)
-		if err != nil && err != io.EOF {
-			p.setError(err)
-			return
-		}
-
-		p.cond.L.Lock()
-		p.buf = append(p.buf, buf[:n]...)
-		if err == io.EOF && len(p.buf) == 0 {
-			p.resetImpl()
-		}
-		p.cond.L.Unlock()
-	}
 }
