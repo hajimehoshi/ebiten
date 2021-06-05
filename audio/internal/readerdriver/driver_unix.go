@@ -51,8 +51,10 @@ type context struct {
 
 	players map[*playerImpl]struct{}
 	buf     []float32
-	m       sync.Mutex
+	cond    *sync.Cond
 }
+
+var theContext *context
 
 func NewContext(sampleRate, channelNum, bitDepthInBytes int) (Context, chan struct{}, error) {
 	ready := make(chan struct{})
@@ -62,7 +64,9 @@ func NewContext(sampleRate, channelNum, bitDepthInBytes int) (Context, chan stru
 		sampleRate:      sampleRate,
 		channelNum:      channelNum,
 		bitDepthInBytes: bitDepthInBytes,
+		cond:            sync.NewCond(&sync.Mutex{}),
 	}
+	theContext = c
 
 	c.mainloop = C.pa_threaded_mainloop_new()
 	if c.mainloop == nil {
@@ -123,7 +127,7 @@ func NewContext(sampleRate, channelNum, bitDepthInBytes int) (Context, chan stru
 	defer C.free(unsafe.Pointer(streamName))
 	c.stream = C.pa_stream_new(c.context, streamName, &sampleSpecificatiom, &m)
 	C.pa_stream_set_state_callback(c.stream, C.pa_stream_notify_cb_t(C.ebiten_readerdriver_streamStateCallback), unsafe.Pointer(c.mainloop))
-	C.pa_stream_set_write_callback(c.stream, C.pa_stream_request_cb_t(C.ebiten_readerdriver_streamWriteCallback), unsafe.Pointer(c))
+	C.pa_stream_set_write_callback(c.stream, C.pa_stream_request_cb_t(C.ebiten_readerdriver_streamWriteCallback), nil)
 
 	const defaultValue = 0xffffffff
 	bufferAttr := C.pa_buffer_attr{
@@ -159,15 +163,35 @@ func NewContext(sampleRate, channelNum, bitDepthInBytes int) (Context, chan stru
 	return c, ready, nil
 }
 
+func (c *context) shouldWait() bool {
+	for p := range c.players {
+		if !p.isBufferFull() {
+			return false
+		}
+	}
+	return true
+}
+
+func (c *context) wait() {
+	c.cond.L.Lock()
+	defer c.cond.L.Unlock()
+
+	for c.shouldWait() {
+		c.cond.Wait()
+	}
+}
+
 func (c *context) loop() {
 	var players []*playerImpl
 	for {
-		c.m.Lock()
+		c.wait()
+
+		c.cond.L.Lock()
 		players = players[:0]
 		for p := range c.players {
 			players = append(players, p)
 		}
-		c.m.Unlock()
+		c.cond.L.Unlock()
 
 		for _, p := range players {
 			p.load()
@@ -186,19 +210,21 @@ func (c *context) Resume() error {
 }
 
 func (c *context) addPlayer(player *playerImpl) {
-	c.m.Lock()
-	defer c.m.Unlock()
+	c.cond.L.Lock()
+	defer c.cond.L.Unlock()
 
 	if c.players == nil {
 		c.players = map[*playerImpl]struct{}{}
 	}
 	c.players[player] = struct{}{}
+	c.cond.Signal()
 }
 
 func (c *context) removePlayer(player *playerImpl) {
-	c.m.Lock()
-	defer c.m.Unlock()
+	c.cond.L.Lock()
+	defer c.cond.L.Unlock()
 	delete(c.players, player)
+	c.cond.Signal()
 }
 
 //export ebiten_readerdriver_contextStateCallback
@@ -217,19 +243,19 @@ func ebiten_readerdriver_streamSuccessCallback(stream *C.pa_stream, userdata uns
 
 //export ebiten_readerdriver_streamWriteCallback
 func ebiten_readerdriver_streamWriteCallback(stream *C.pa_stream, requestedBytes C.size_t, userdata unsafe.Pointer) {
-	c := (*context)(userdata)
+	c := theContext
 
 	var buf unsafe.Pointer
 	var buf32 []float32
 	var bytesToFill C.size_t = 256
 	var players []*playerImpl
 	for n := int(requestedBytes); n > 0; n -= int(bytesToFill) {
-		c.m.Lock()
+		c.cond.L.Lock()
 		players = players[:0]
 		for p := range c.players {
 			players = append(players, p)
 		}
-		c.m.Unlock()
+		c.cond.L.Unlock()
 
 		C.pa_stream_begin_write(stream, &buf, &bytesToFill)
 		if len(buf32) < int(bytesToFill)/4 {
@@ -242,6 +268,7 @@ func ebiten_readerdriver_streamWriteCallback(stream *C.pa_stream, requestedBytes
 		for _, p := range players {
 			p.addBuffer(buf32[:bytesToFill/4])
 		}
+		c.cond.Signal()
 		for i := uintptr(0); i < uintptr(bytesToFill/4); i++ {
 			*(*float32)(unsafe.Pointer(uintptr(buf) + 4*i)) = buf32[i]
 		}
@@ -453,6 +480,12 @@ func (p *playerImpl) addBuffer(buf []float32) int {
 	}
 	p.buf = p.buf[n*bitDepthInBytes:]
 	return n
+}
+
+func (p *playerImpl) isBufferFull() bool {
+	p.m.Lock()
+	defer p.m.Unlock()
+	return len(p.buf) >= p.context.maxBufferSize()
 }
 
 func (p *playerImpl) load() {
