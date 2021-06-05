@@ -56,6 +56,8 @@ type context struct {
 
 var theContext *context
 
+const bufferSize = 4096
+
 func NewContext(sampleRate, channelNum, bitDepthInBytes int) (Context, chan struct{}, error) {
 	ready := make(chan struct{})
 	close(ready)
@@ -132,7 +134,7 @@ func NewContext(sampleRate, channelNum, bitDepthInBytes int) (Context, chan stru
 	const defaultValue = 0xffffffff
 	bufferAttr := C.pa_buffer_attr{
 		maxlength: defaultValue,
-		tlength:   2048,
+		tlength:   bufferSize,
 		prebuf:    defaultValue,
 		minreq:    defaultValue,
 	}
@@ -247,7 +249,7 @@ func ebiten_readerdriver_streamWriteCallback(stream *C.pa_stream, requestedBytes
 
 	var buf unsafe.Pointer
 	var buf32 []float32
-	var bytesToFill C.size_t = 256
+	var bytesToFill C.size_t = bufferSize
 	var players []*playerImpl
 	for n := int(requestedBytes); n > 0; n -= int(bytesToFill) {
 		c.cond.L.Lock()
