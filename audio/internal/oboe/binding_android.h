@@ -29,15 +29,6 @@ const char *ebiten_oboe_Play(int sample_rate, int channel_num,
                              int bit_depth_in_bytes);
 const char *ebiten_oboe_Suspend();
 const char *ebiten_oboe_Resume();
-PlayerID ebiten_oboe_Player_Create(double volume, uintptr_t go_player);
-bool ebiten_oboe_Player_IsPlaying(PlayerID audio_player);
-void ebiten_oboe_Player_AppendBuffer(PlayerID audio_player, uint8_t *data,
-                                     int length);
-void ebiten_oboe_Player_Play(PlayerID audio_player);
-void ebiten_oboe_Player_Pause(PlayerID audio_player);
-void ebiten_oboe_Player_Close(PlayerID audio_player);
-void ebiten_oboe_Player_SetVolume(PlayerID audio_player, double volume);
-int ebiten_oboe_Player_UnplayedBufferSize(PlayerID audio_player);
 
 #ifdef __cplusplus
 }

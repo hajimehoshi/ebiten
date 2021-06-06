@@ -13,7 +13,6 @@
 // limitations under the License.
 
 // +build aix dragonfly freebsd hurd illumos linux netbsd openbsd solaris
-// +build !android
 
 package readerdriver
 
@@ -153,9 +152,15 @@ func (p *player) Play() {
 }
 
 func (p *playerImpl) Play() {
-	p.m.Lock()
-	defer p.m.Unlock()
-	p.playImpl()
+	ch := make(chan struct{})
+	go func() {
+		p.m.Lock()
+		defer p.m.Unlock()
+
+		close(ch)
+		p.playImpl()
+	}()
+	<-ch
 }
 
 func (p *playerImpl) playImpl() {
@@ -193,10 +198,7 @@ func (p *player) Pause() {
 func (p *playerImpl) Pause() {
 	p.m.Lock()
 	defer p.m.Unlock()
-	p.pauseImpl()
-}
 
-func (p *playerImpl) pauseImpl() {
 	if p.state != playerPlay {
 		return
 	}
@@ -335,15 +337,22 @@ func (p *playerImpl) readSourceToBuffer() {
 		return
 	}
 
-	if len(p.buf) >= p.context.maxBufferSize() {
+	maxBufferSize := p.context.maxBufferSize()
+	if len(p.buf) >= maxBufferSize {
 		return
 	}
-	buf := make([]byte, p.context.maxBufferSize())
-	n, err := p.src.Read(buf)
+
+	src := p.src
+	p.m.Unlock()
+	buf := make([]byte, maxBufferSize)
+	n, err := src.Read(buf)
+	p.m.Lock()
+
 	if err != nil && err != io.EOF {
 		p.setErrorImpl(err)
 		return
 	}
+
 	p.buf = append(p.buf, buf[:n]...)
 	if err == io.EOF && len(p.buf) == 0 {
 		p.resetImpl()
