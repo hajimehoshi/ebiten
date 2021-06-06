@@ -172,16 +172,21 @@ func (p *playerImpl) playImpl() {
 		return
 	}
 
-	buf := make([]byte, p.context.maxBufferSize())
-	for len(p.buf) < p.context.maxBufferSize() {
-		n, err := p.src.Read(buf)
-		if err != nil && err != io.EOF {
-			p.setErrorImpl(err)
-			return
-		}
-		p.buf = append(p.buf, buf[:n]...)
-		if err == io.EOF {
-			break
+	if !p.eof {
+		buf := make([]byte, p.context.maxBufferSize())
+		for len(p.buf) < p.context.maxBufferSize() {
+			n, err := p.src.Read(buf)
+			if err != nil && err != io.EOF {
+				p.setErrorImpl(err)
+				return
+			}
+			p.buf = append(p.buf, buf[:n]...)
+			if err == io.EOF {
+				if len(p.buf) == 0 {
+					p.eof = true
+				}
+				break
+			}
 		}
 	}
 
