@@ -163,7 +163,7 @@ oboe::DataCallbackResult Stream::onAudioReady(oboe::AudioStream *oboe_stream,
 Stream::Stream() = default;
 
 void Stream::Loop(int num_frames) {
-  std::vector<float> tmp(num_frames * channel_num_ * 2);
+  std::vector<float> tmp(num_frames * channel_num_ * 3);
   for (;;) {
     {
       std::unique_lock<std::mutex> lock{mutex_};
