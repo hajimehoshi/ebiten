@@ -57,7 +57,7 @@ func Resume() error {
 
 //export ebiten_oboe_read
 func ebiten_oboe_read(buf *C.float, len C.size_t) {
-	s := []float32{}
+	var s []float32
 	h := (*reflect.SliceHeader)(unsafe.Pointer(&s))
 	h.Data = uintptr(unsafe.Pointer(buf))
 	h.Len = int(len)
