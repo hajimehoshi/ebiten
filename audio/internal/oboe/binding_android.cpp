@@ -17,7 +17,10 @@
 #include "_cgo_export.h"
 #include "oboe_oboe_Oboe_android.h"
 
+#include <condition_variable>
 #include <memory>
+#include <mutex>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -35,6 +38,7 @@ public:
   const char *Pause();
   const char *Resume();
   const char *Close();
+  const char *AppendBuffer(float *buf, size_t len);
 
   oboe::DataCallbackResult onAudioReady(oboe::AudioStream *oboe_stream,
                                         void *audio_data,
@@ -42,11 +46,20 @@ public:
 
 private:
   Stream();
+  void Loop(int num_frames);
+
   int sample_rate_ = 0;
   int channel_num_ = 0;
   int bit_depth_in_bytes_ = 0;
 
   std::shared_ptr<oboe::AudioStream> stream_;
+
+  // All the member variables other than the thread must be initialized before
+  // the thread.
+  std::vector<float> buf_;
+  std::mutex mutex_;
+  std::condition_variable cond_;
+  std::unique_ptr<std::thread> thread_;
 };
 
 Stream &Stream::GetInstance() {
@@ -74,7 +87,6 @@ const char *Stream::Play(int sample_rate, int channel_num,
             ->setFormat(oboe::AudioFormat::Float)
             ->setChannelCount(channel_num_)
             ->setSampleRate(sample_rate_)
-            ->setBufferCapacityInFrames(1024)
             ->setDataCallback(this)
             ->openStream(stream_);
     if (result != oboe::Result::OK) {
@@ -84,6 +96,11 @@ const char *Stream::Play(int sample_rate, int channel_num,
   if (stream_->getSharingMode() != oboe::SharingMode::Shared) {
     return "oboe::SharingMode::Shared is not available";
   }
+
+  int num_frames = stream_->getBufferSizeInFrames();
+  thread_ =
+      std::make_unique<std::thread>([this, num_frames]() { Loop(num_frames); });
+
   // What if the buffer size is not enough?
   if (oboe::Result result = stream_->start(); result != oboe::Result::OK) {
     return oboe::convertToText(result);
@@ -130,14 +147,36 @@ oboe::DataCallbackResult Stream::onAudioReady(oboe::AudioStream *oboe_stream,
                                               void *audio_data,
                                               int32_t num_frames) {
   size_t num = num_frames * channel_num_;
-  float *dst = reinterpret_cast<float *>(audio_data);
   // TODO: Do not use a lock in onAudioReady.
   // https://google.github.io/oboe/reference/classoboe_1_1_audio_stream_data_callback.html#ad8a3a9f609df5fd3a5d885cbe1b2204d
-  ebiten_oboe_read(dst, num);
+  {
+    std::unique_lock<std::mutex> lock{mutex_};
+    cond_.wait(lock, [this, num] { return buf_.size() >= num; });
+    std::copy(buf_.begin(), buf_.begin() + num,
+              reinterpret_cast<float *>(audio_data));
+    buf_.erase(buf_.begin(), buf_.begin() + num);
+    cond_.notify_one();
+  }
   return oboe::DataCallbackResult::Continue;
 }
 
 Stream::Stream() = default;
+
+void Stream::Loop(int num_frames) {
+  std::vector<float> tmp(num_frames * channel_num_ * 2);
+  for (;;) {
+    {
+      std::unique_lock<std::mutex> lock{mutex_};
+      cond_.wait(lock, [this, &tmp] { return buf_.size() < tmp.size(); });
+    }
+    ebiten_oboe_read(&tmp[0], tmp.size());
+    {
+      std::lock_guard<std::mutex> lock{mutex_};
+      buf_.insert(buf_.end(), tmp.begin(), tmp.end());
+      cond_.notify_one();
+    }
+  }
+}
 
 } // namespace
 
