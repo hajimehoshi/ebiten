@@ -36,7 +36,7 @@ func newPlayers() *players {
 
 func (ps *players) shouldWait() bool {
 	for p := range ps.players {
-		if !p.isBufferFull() {
+		if p.canReadSourceToBuffer() {
 			return false
 		}
 	}
@@ -115,6 +115,7 @@ type playerImpl struct {
 	err     error
 	state   playerState
 	buf     []byte
+	eof     bool
 
 	m sync.Mutex
 }
@@ -184,7 +185,9 @@ func (p *playerImpl) playImpl() {
 		}
 	}
 
-	p.state = playerPlay
+	if !p.eof || len(p.buf) > 0 {
+		p.state = playerPlay
+	}
 
 	p.m.Unlock()
 	p.players.addPlayer(p)
@@ -221,6 +224,7 @@ func (p *playerImpl) resetImpl() {
 	}
 	p.state = playerPaused
 	p.buf = p.buf[:0]
+	p.eof = false
 }
 
 func (p *player) IsPlaying() bool {
@@ -320,10 +324,14 @@ func (p *playerImpl) readBufferAndAdd(buf []float32) int {
 	return n
 }
 
-func (p *playerImpl) isBufferFull() bool {
+func (p *playerImpl) canReadSourceToBuffer() bool {
 	p.m.Lock()
 	defer p.m.Unlock()
-	return len(p.buf) >= p.context.maxBufferSize()
+
+	if p.eof {
+		return false
+	}
+	return len(p.buf) < p.context.maxBufferSize()
 }
 
 func (p *playerImpl) readSourceToBuffer() {
@@ -355,7 +363,8 @@ func (p *playerImpl) readSourceToBuffer() {
 
 	p.buf = append(p.buf, buf[:n]...)
 	if err == io.EOF && len(p.buf) == 0 {
-		p.resetImpl()
+		p.state = playerPaused
+		p.eof = true
 	}
 }
 
