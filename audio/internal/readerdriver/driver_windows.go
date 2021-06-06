@@ -322,11 +322,6 @@ func (p *playerImpl) playImpl() {
 	// Switching goroutines is very inefficient on Windows. Avoid a dedicated goroutine for a player.
 }
 
-func volumeForWinAPI(v float64) uint32 {
-	u32 := uint32(0xffff * v)
-	return (u32 << 16) | u32
-}
-
 func (p *playerImpl) queuedHeadersNum() int {
 	var c int
 	for _, h := range p.headers {

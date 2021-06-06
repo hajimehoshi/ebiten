@@ -49,9 +49,7 @@ type context struct {
 	context  *C.pa_context
 	stream   *C.pa_stream
 
-	players map[*playerImpl]struct{}
-	buf     []float32
-	cond    *sync.Cond
+	players *players
 }
 
 var theContext *context
@@ -66,7 +64,9 @@ func NewContext(sampleRate, channelNum, bitDepthInBytes int) (Context, chan stru
 		sampleRate:      sampleRate,
 		channelNum:      channelNum,
 		bitDepthInBytes: bitDepthInBytes,
-		cond:            sync.NewCond(&sync.Mutex{}),
+		players: &players{
+			cond: sync.NewCond(&sync.Mutex{}),
+		},
 	}
 	theContext = c
 
@@ -160,13 +160,19 @@ func NewContext(sampleRate, channelNum, bitDepthInBytes int) (Context, chan stru
 
 	C.pa_stream_cork(c.stream, 0, C.pa_stream_success_cb_t(C.ebiten_readerdriver_streamSuccessCallback), unsafe.Pointer(c.mainloop))
 
-	go c.loop()
+	go c.players.loop()
 
 	return c, ready, nil
 }
 
-func (c *context) shouldWait() bool {
-	for p := range c.players {
+type players struct {
+	players map[*playerImpl]struct{}
+	buf     []float32
+	cond    *sync.Cond
+}
+
+func (ps *players) shouldWait() bool {
+	for p := range ps.players {
 		if !p.isBufferFull() {
 			return false
 		}
@@ -174,26 +180,26 @@ func (c *context) shouldWait() bool {
 	return true
 }
 
-func (c *context) wait() {
-	c.cond.L.Lock()
-	defer c.cond.L.Unlock()
+func (ps *players) wait() {
+	ps.cond.L.Lock()
+	defer ps.cond.L.Unlock()
 
-	for c.shouldWait() {
-		c.cond.Wait()
+	for ps.shouldWait() {
+		ps.cond.Wait()
 	}
 }
 
-func (c *context) loop() {
+func (ps *players) loop() {
 	var players []*playerImpl
 	for {
-		c.wait()
+		ps.wait()
 
-		c.cond.L.Lock()
+		ps.cond.L.Lock()
 		players = players[:0]
-		for p := range c.players {
+		for p := range ps.players {
 			players = append(players, p)
 		}
-		c.cond.L.Unlock()
+		ps.cond.L.Unlock()
 
 		for _, p := range players {
 			p.readSourceToBuffer()
@@ -211,22 +217,37 @@ func (c *context) Resume() error {
 	return nil
 }
 
-func (c *context) addPlayer(player *playerImpl) {
-	c.cond.L.Lock()
-	defer c.cond.L.Unlock()
+func (ps *players) addPlayer(player *playerImpl) {
+	ps.cond.L.Lock()
+	defer ps.cond.L.Unlock()
 
-	if c.players == nil {
-		c.players = map[*playerImpl]struct{}{}
+	if ps.players == nil {
+		ps.players = map[*playerImpl]struct{}{}
 	}
-	c.players[player] = struct{}{}
-	c.cond.Signal()
+	ps.players[player] = struct{}{}
+	ps.cond.Signal()
 }
 
-func (c *context) removePlayer(player *playerImpl) {
-	c.cond.L.Lock()
-	defer c.cond.L.Unlock()
-	delete(c.players, player)
-	c.cond.Signal()
+func (ps *players) removePlayer(player *playerImpl) {
+	ps.cond.L.Lock()
+	defer ps.cond.L.Unlock()
+
+	delete(ps.players, player)
+	ps.cond.Signal()
+}
+
+func (ps *players) read(buf []float32) {
+	ps.cond.L.Lock()
+	players := make([]*playerImpl, 0, len(ps.players))
+	for p := range ps.players {
+		players = append(players, p)
+	}
+	ps.cond.L.Unlock()
+
+	for _, p := range players {
+		p.readBufferAndAdd(buf)
+	}
+	ps.cond.Signal()
 }
 
 //export ebiten_readerdriver_contextStateCallback
@@ -250,15 +271,7 @@ func ebiten_readerdriver_streamWriteCallback(stream *C.pa_stream, requestedBytes
 	var buf unsafe.Pointer
 	var buf32 []float32
 	var bytesToFill C.size_t = bufferSize
-	var players []*playerImpl
 	for n := int(requestedBytes); n > 0; n -= int(bytesToFill) {
-		c.cond.L.Lock()
-		players = players[:0]
-		for p := range c.players {
-			players = append(players, p)
-		}
-		c.cond.L.Unlock()
-
 		C.pa_stream_begin_write(stream, &buf, &bytesToFill)
 		if len(buf32) < int(bytesToFill)/4 {
 			buf32 = make([]float32, bytesToFill/4)
@@ -267,10 +280,9 @@ func ebiten_readerdriver_streamWriteCallback(stream *C.pa_stream, requestedBytes
 				buf32[i] = 0
 			}
 		}
-		for _, p := range players {
-			p.readBufferAndAdd(buf32[:bytesToFill/4])
-		}
-		c.cond.Signal()
+
+		c.players.read(buf32[:bytesToFill/4])
+
 		for i := uintptr(0); i < uintptr(bytesToFill/4); i++ {
 			*(*float32)(unsafe.Pointer(uintptr(buf) + 4*i)) = buf32[i]
 		}
@@ -285,6 +297,7 @@ type player struct {
 
 type playerImpl struct {
 	context *context
+	players *players
 	src     io.Reader
 	volume  float64
 	err     error
@@ -295,9 +308,14 @@ type playerImpl struct {
 }
 
 func (c *context) NewPlayer(src io.Reader) Player {
+	return newPlayer(c, c.players, src)
+}
+
+func newPlayer(context *context, players *players, src io.Reader) *player {
 	p := &player{
 		p: &playerImpl{
-			context: c,
+			context: context,
+			players: players,
 			src:     src,
 			volume:  1,
 		},
@@ -351,7 +369,7 @@ func (p *playerImpl) playImpl() {
 	p.state = playerPlay
 
 	p.m.Unlock()
-	p.context.addPlayer(p)
+	p.players.addPlayer(p)
 	p.m.Lock()
 }
 
@@ -443,7 +461,7 @@ func (p *playerImpl) Close() error {
 
 func (p *playerImpl) closeImpl() error {
 	p.m.Unlock()
-	p.context.removePlayer(p)
+	p.players.removePlayer(p)
 	p.m.Lock()
 
 	if p.state == playerClosed {
