@@ -20,7 +20,6 @@ import (
 	"unicode"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
-	"github.com/hajimehoshi/ebiten/v2/internal/jsutil"
 )
 
 var (
@@ -48,7 +47,7 @@ func jsKeyToID(key js.Value) int {
 	// js.Value cannot be used as a map key.
 	// As the number of keys is around 100, just a dumb loop should work.
 	for i, k := range jsKeys {
-		if jsutil.Equal(k, key) {
+		if k.Equal(key) {
 			return i
 		}
 	}
@@ -343,7 +342,7 @@ func (i *Input) updateFromEvent(e js.Value) {
 	// Avoid using js.Value.String() as String creates a Uint8Array via a TextEncoder and causes a heavy
 	// overhead (#1437).
 	switch t := e.Get("type"); {
-	case jsutil.Equal(t, stringKeydown):
+	case t.Equal(stringKeydown):
 		c := e.Get("code")
 		if c.Type() != js.TypeString {
 			code := e.Get("keyCode").Int()
@@ -358,20 +357,20 @@ func (i *Input) updateFromEvent(e js.Value) {
 			i.keyDownEdge(code)
 			return
 		}
-		if jsutil.Equal(c, driverKeyToJSKey[driver.KeyArrowUp]) ||
-			jsutil.Equal(c, driverKeyToJSKey[driver.KeyArrowDown]) ||
-			jsutil.Equal(c, driverKeyToJSKey[driver.KeyArrowLeft]) ||
-			jsutil.Equal(c, driverKeyToJSKey[driver.KeyArrowRight]) ||
-			jsutil.Equal(c, driverKeyToJSKey[driver.KeyBackspace]) ||
-			jsutil.Equal(c, driverKeyToJSKey[driver.KeyTab]) {
+		if c.Equal(driverKeyToJSKey[driver.KeyArrowUp]) ||
+			c.Equal(driverKeyToJSKey[driver.KeyArrowDown]) ||
+			c.Equal(driverKeyToJSKey[driver.KeyArrowLeft]) ||
+			c.Equal(driverKeyToJSKey[driver.KeyArrowRight]) ||
+			c.Equal(driverKeyToJSKey[driver.KeyBackspace]) ||
+			c.Equal(driverKeyToJSKey[driver.KeyTab]) {
 			e.Call("preventDefault")
 		}
 		i.keyDown(c)
-	case jsutil.Equal(t, stringKeypress):
+	case t.Equal(stringKeypress):
 		if r := rune(e.Get("charCode").Int()); unicode.IsPrint(r) {
 			i.runeBuffer = append(i.runeBuffer, r)
 		}
-	case jsutil.Equal(t, stringKeyup):
+	case t.Equal(stringKeyup):
 		if e.Get("code").Type() != js.TypeString {
 			// Assume that UA is Edge.
 			code := e.Get("keyCode").Int()
@@ -379,21 +378,21 @@ func (i *Input) updateFromEvent(e js.Value) {
 			return
 		}
 		i.keyUp(e.Get("code"))
-	case jsutil.Equal(t, stringMousedown):
+	case t.Equal(stringMousedown):
 		button := e.Get("button").Int()
 		i.mouseDown(button)
 		i.setMouseCursorFromEvent(e)
-	case jsutil.Equal(t, stringMouseup):
+	case t.Equal(stringMouseup):
 		button := e.Get("button").Int()
 		i.mouseUp(button)
 		i.setMouseCursorFromEvent(e)
-	case jsutil.Equal(t, stringMousemove):
+	case t.Equal(stringMousemove):
 		i.setMouseCursorFromEvent(e)
-	case jsutil.Equal(t, stringWheel):
+	case t.Equal(stringWheel):
 		// TODO: What if e.deltaMode is not DOM_DELTA_PIXEL?
 		i.wheelX = -e.Get("deltaX").Float()
 		i.wheelY = -e.Get("deltaY").Float()
-	case jsutil.Equal(t, stringTouchstart) || jsutil.Equal(t, stringTouchend) || jsutil.Equal(t, stringTouchmove):
+	case t.Equal(stringTouchstart) || t.Equal(stringTouchend) || t.Equal(stringTouchmove):
 		i.updateTouchesFromEvent(e)
 	}
 }

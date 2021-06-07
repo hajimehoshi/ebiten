@@ -42,27 +42,27 @@ type (
 )
 
 func (t textureNative) equal(rhs textureNative) bool {
-	return jsutil.Equal(js.Value(t), js.Value(rhs))
+	return js.Value(t).Equal(js.Value(rhs))
 }
 
 func (f framebufferNative) equal(rhs framebufferNative) bool {
-	return jsutil.Equal(js.Value(f), js.Value(rhs))
+	return js.Value(f).Equal(js.Value(rhs))
 }
 
 func (s shader) equal(rhs shader) bool {
-	return jsutil.Equal(js.Value(s), js.Value(rhs))
+	return js.Value(s).Equal(js.Value(rhs))
 }
 
 func (b buffer) equal(rhs buffer) bool {
-	return jsutil.Equal(js.Value(b), js.Value(rhs))
+	return js.Value(b).Equal(js.Value(rhs))
 }
 
 func (u uniformLocation) equal(rhs uniformLocation) bool {
-	return jsutil.Equal(js.Value(u), js.Value(rhs))
+	return js.Value(u).Equal(js.Value(rhs))
 }
 
 func (p program) equal(rhs program) bool {
-	return jsutil.Equal(p.value, rhs.value) && p.id == rhs.id
+	return p.value.Equal(rhs.value) && p.id == rhs.id
 }
 
 var InvalidTexture = textureNative(js.Null())
@@ -107,9 +107,9 @@ func (c *context) initGL() {
 			gl = canvas.Call("getContext", "webgl2", attr)
 		} else {
 			gl = canvas.Call("getContext", "webgl", attr)
-			if jsutil.Equal(gl, js.Null()) {
+			if !gl.Truthy() {
 				gl = canvas.Call("getContext", "experimental-webgl", attr)
-				if jsutil.Equal(gl, js.Null()) {
+				if !gl.Truthy() {
 					panic("opengl: getContext failed")
 				}
 			}
@@ -166,7 +166,7 @@ func (c *context) scissor(x, y, width, height int) {
 func (c *context) newTexture(width, height int) (textureNative, error) {
 	gl := c.gl
 	t := gl.createTexture.Invoke()
-	if jsutil.Equal(t, js.Null()) {
+	if !t.Truthy() {
 		return textureNative(js.Null()), errors.New("opengl: glGenTexture failed")
 	}
 	gl.pixelStorei.Invoke(gles.UNPACK_ALIGNMENT, 4)
@@ -287,7 +287,7 @@ func (c *context) newFragmentShader(source string) (shader, error) {
 func (c *context) newShader(shaderType int, source string) (shader, error) {
 	gl := c.gl
 	s := gl.createShader.Invoke(int(shaderType))
-	if jsutil.Equal(s, js.Null()) {
+	if !s.Truthy() {
 		return shader(js.Null()), fmt.Errorf("opengl: glCreateShader failed: shader type: %d", shaderType)
 	}
 
@@ -309,7 +309,7 @@ func (c *context) deleteShader(s shader) {
 func (c *context) newProgram(shaders []shader, attributes []string) (program, error) {
 	gl := c.gl
 	v := gl.createProgram.Invoke()
-	if jsutil.Equal(v, js.Null()) {
+	if !v.Truthy() {
 		return program{}, errors.New("opengl: glCreateProgram failed")
 	}
 

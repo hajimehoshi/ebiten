@@ -22,7 +22,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
-	"github.com/hajimehoshi/ebiten/v2/internal/jsutil"
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 )
 
@@ -560,7 +559,7 @@ func (u *UserInterface) Run(context driver.UIContext) error {
 	if u.initFocused && window.Truthy() {
 		// Do not focus the canvas when the current document is in an iframe.
 		// Otherwise, the parent page tries to focus the iframe on every loading, which is annoying (#1373).
-		isInIframe := !jsutil.Equal(window.Get("location"), window.Get("parent").Get("location"))
+		isInIframe := !window.Get("location").Equal(window.Get("parent").Get("location"))
 		if !isInIframe {
 			canvas.Call("focus")
 		}
@@ -602,7 +601,7 @@ func (u *UserInterface) SetScreenTransparent(transparent bool) {
 
 func (u *UserInterface) IsScreenTransparent() bool {
 	bodyStyle := document.Get("body").Get("style")
-	return jsutil.Equal(bodyStyle.Get("backgroundColor"), stringTransparent)
+	return bodyStyle.Get("backgroundColor").Equal(stringTransparent)
 }
 
 func (u *UserInterface) ResetForFrame() {

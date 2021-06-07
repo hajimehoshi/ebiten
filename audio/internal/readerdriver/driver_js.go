@@ -24,7 +24,6 @@ import (
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/go2cpp"
-	"github.com/hajimehoshi/ebiten/v2/internal/jsutil"
 )
 
 func IsAvailable() bool {
@@ -206,7 +205,7 @@ func (p *player) appendBufferImpl(audioBuffer js.Value) {
 	// appendBuffer is called as the 'ended' callback of a buffer.
 	// 'this' is an AudioBufferSourceNode that already finishes its playing.
 	for i, n := range p.bufferSourceNodes {
-		if jsutil.Equal(n, audioBuffer) {
+		if n.Equal(audioBuffer) {
 			p.bufferSourceNodes = append(p.bufferSourceNodes[:i], p.bufferSourceNodes[i+1:]...)
 			break
 		}
