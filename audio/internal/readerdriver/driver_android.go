@@ -43,7 +43,6 @@ func NewContext(sampleRate int, channelNum int, bitDepthInBytes int) (Context, c
 	if err := oboe.Play(sampleRate, channelNum, bitDepthInBytes, c.players.read); err != nil {
 		return nil, nil, err
 	}
-	go c.players.loop()
 	return c, ready, nil
 }
 

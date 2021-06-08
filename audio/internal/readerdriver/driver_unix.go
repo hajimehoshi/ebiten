@@ -156,8 +156,6 @@ func NewContext(sampleRate, channelNum, bitDepthInBytes int) (Context, chan stru
 
 	C.pa_stream_cork(c.stream, 0, C.pa_stream_success_cb_t(C.ebiten_readerdriver_streamSuccessCallback), unsafe.Pointer(c.mainloop))
 
-	go c.players.loop()
-
 	return c, ready, nil
 }
 

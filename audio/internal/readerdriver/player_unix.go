@@ -29,9 +29,11 @@ type players struct {
 }
 
 func newPlayers() *players {
-	return &players{
+	p := &players{
 		cond: sync.NewCond(&sync.Mutex{}),
 	}
+	go p.loop()
+	return p
 }
 
 func (ps *players) shouldWait() bool {
