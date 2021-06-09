@@ -137,7 +137,9 @@ func prepareGomobileCommands() error {
 		return err
 	}
 
-	// `gomobile init` is not needed. This just ensures the existence of the latest gobind command.
+	if err := runCommand("gomobile", []string{"init"}, nil); err != nil {
+		return err
+	}
 
 	return nil
 }
