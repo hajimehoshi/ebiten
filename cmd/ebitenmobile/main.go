@@ -115,27 +115,33 @@ func main() {
 
 	flagset.Parse(args[1:])
 
-	os, err := osFromBuildTarget(buildTarget)
+	buildTarget, err := osFromBuildTarget(buildTarget)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Add ldflags to suppress linker errors (#932).
 	// See https://github.com/golang/go/issues/17807
-	if os == "android" {
+	if buildTarget == "android" {
 		if buildLdflags != "" {
 			buildLdflags += " "
 		}
 		buildLdflags += "-extldflags=-Wl,-soname,libgojni.so"
 	}
 
-	if err := prepareGomobileCommands(); err != nil {
+	dir, err := prepareGomobileCommands()
+	defer func() {
+		if dir != "" && !buildWork {
+			removeAll(dir)
+		}
+	}()
+	if err != nil {
 		log.Fatal(err)
 	}
 
 	switch args[0] {
 	case "bind":
-		if err := doBind(args, &flagset, os); err != nil {
+		if err := doBind(args, &flagset, buildTarget); err != nil {
 			log.Fatal(err)
 		}
 	default:
