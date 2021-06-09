@@ -106,7 +106,7 @@ func prepareGomobileCommands() error {
 	if err := runGo("mod", "init", modname); err != nil {
 		return err
 	}
-	if err := os.WriteFile("tools.go", []byte(fmt.Sprintf(`// +build tools
+	if err := ioutil.WriteFile("tools.go", []byte(fmt.Sprintf(`// +build tools
 
 package %s
 
