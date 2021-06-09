@@ -81,7 +81,9 @@ func prepareGomobileCommands() error {
 		fmt.Printf("PATH=%s\n", newpath)
 	}
 	if !buildN {
-		os.Setenv("PATH", newpath)
+		if err := os.Setenv("PATH", newpath); err != nil {
+			return err
+		}
 	}
 
 	pwd, err := os.Getwd()
