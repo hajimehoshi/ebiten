@@ -100,14 +100,25 @@ func prepareGomobileCommands() error {
 		os.Chdir(pwd)
 	}()
 
-	if err := runGo("mod", "init", "ebitenmobiletemporary"); err != nil {
+	const modname = "ebitenmobiletemporary"
+	if err := runGo("mod", "init", modname); err != nil {
+		return err
+	}
+	if err := os.WriteFile("tools.go", []byte(fmt.Sprintf(`// +build tools
+
+package %s
+
+import (
+	_ "golang.org/x/mobile/cmd/gobind"
+	_ "golang.org/x/mobile/cmd/gomobile"
+)
+`, modname)), 0644); err != nil {
 		return err
 	}
 
 	// To record gomobile to go.sum for Go 1.16 and later, go-get gomobile instaed of golang.org/x/mobile (#1487).
 	// This also records gobind as gomobile depends on gobind indirectly.
 	// Using `...` doesn't work on Windows since mobile/internal/mobileinit cannot be compiled on Windows w/o Cgo (#1493).
-	// Note that `go mod tidy` doesn't work since this removes all the indirect imports.
 	if err := runGo("get", "golang.org/x/mobile/cmd/gomobile@"+gomobileHash); err != nil {
 		return err
 	}
@@ -118,6 +129,9 @@ func prepareGomobileCommands() error {
 		if err := runGo("mod", "edit", "-replace=golang.org/x/mobile="+localgm); err != nil {
 			return err
 		}
+	}
+	if err := runGo("mod", "tidy"); err != nil {
+		return err
 	}
 	if err := runGo("build", "-o", exe(filepath.Join("bin", "gomobile")), "golang.org/x/mobile/cmd/gomobile"); err != nil {
 		return err
