@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 
+//go:build !windows
 // +build !windows
 
 // This file implements GlowGetProcAddress for every supported platform. The

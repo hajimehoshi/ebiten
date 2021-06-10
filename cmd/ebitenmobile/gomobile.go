@@ -112,11 +112,15 @@ func prepareGomobileCommands() (string, error) {
 		os.Chdir(pwd)
 	}()
 
-	const modname = "ebitenmobiletemporary"
+	const (
+		modname   = "ebitenmobiletemporary"
+		buildtags = "//go:build tools" +
+			"\n// +build tools"
+	)
 	if err := runGo("mod", "init", modname); err != nil {
 		return tmp, err
 	}
-	if err := ioutil.WriteFile("tools.go", []byte(fmt.Sprintf(`// +build tools
+	if err := ioutil.WriteFile("tools.go", []byte(fmt.Sprintf(`%s
 
 package %s
 
@@ -124,7 +128,7 @@ import (
 	_ "golang.org/x/mobile/cmd/gobind"
 	_ "golang.org/x/mobile/cmd/gomobile"
 )
-`, modname)), 0644); err != nil {
+`, buildtags, modname)), 0644); err != nil {
 		return tmp, err
 	}
 

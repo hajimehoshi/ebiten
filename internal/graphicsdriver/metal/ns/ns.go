@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build darwin
 // +build darwin
 
 // Package ns provides access to Apple's AppKit API (https://developer.apple.com/documentation/appkit).

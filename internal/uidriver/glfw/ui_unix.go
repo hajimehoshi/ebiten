@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build (dragonfly || freebsd || linux || netbsd || openbsd || solaris) && !android
 // +build dragonfly freebsd linux netbsd openbsd solaris
 // +build !android
 

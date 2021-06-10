@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build darwin
-// +build ios
+//go:build darwin && ios
+// +build darwin,ios
 
 package metal
 

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build darwin
 // +build darwin
 
 // Package ca provides access to Apple's Core Animation API (https://developer.apple.com/documentation/quartzcore).

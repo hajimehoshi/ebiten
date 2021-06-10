@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !android
-// +build !js
+//go:build !android && !js
+// +build !android,!js
 
 package restorable
 

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build (darwin || freebsd || linux || windows) && !js && !android && !ios
 // +build darwin freebsd linux windows
 // +build !js
 // +build !android

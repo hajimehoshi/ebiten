@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 
+//go:build freebsd || linux
 // +build freebsd linux
 
 package gl

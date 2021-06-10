@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build android || (ios && 386) || (ios && amd64) || (ios && ebitengl)
 // +build android ios,386 ios,amd64 ios,ebitengl
 
 package mobile

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build ignore
 // +build ignore
 
 // The key name convention follows the Web standard: https://www.w3.org/TR/uievents-code/#keyboard-key-codes
@@ -814,9 +815,11 @@ func main() {
 		buildTag := ""
 		switch path {
 		case filepath.Join("internal", "glfw", "keys.go"):
-			buildTag = "// +build !js"
+			buildTag = "//go:build !js" +
+				"\n// +build !js"
 		case filepath.Join("internal", "uidriver", "glfw", "keys.go"):
-			buildTag = "// +build darwin freebsd linux windows" +
+			buildTag = "//go:build (darwin || freebsd || linux || windows) && !android && !ios" +
+				"\n// +build darwin freebsd linux windows" +
 				"\n// +build !android" +
 				"\n// +build !ios"
 		}
