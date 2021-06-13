@@ -18,6 +18,7 @@ import (
 	"image"
 	"image/draw"
 	"math/bits"
+	"reflect"
 	"runtime"
 	"sync"
 	"unsafe"
@@ -89,13 +90,18 @@ func (m *Monitor) GetPos() (int, int) {
 func (m *Monitor) GetVideoMode() *VidMode {
 	v := glfwDLL.call("glfwGetVideoMode", m.m)
 	panicError()
+	var vals []int32
+	h := (*reflect.SliceHeader)(unsafe.Pointer(&vals))
+	h.Data = v
+	h.Len = 6
+	h.Cap = 6
 	return &VidMode{
-		Width:       int(*(*int32)(unsafe.Pointer(v))),
-		Height:      int(*(*int32)(unsafe.Pointer(v + 4))),
-		RedBits:     int(*(*int32)(unsafe.Pointer(v + 8))),
-		GreenBits:   int(*(*int32)(unsafe.Pointer(v + 12))),
-		BlueBits:    int(*(*int32)(unsafe.Pointer(v + 16))),
-		RefreshRate: int(*(*int32)(unsafe.Pointer(v + 20))),
+		Width:       int(vals[0]),
+		Height:      int(vals[1]),
+		RedBits:     int(vals[2]),
+		GreenBits:   int(vals[3]),
+		BlueBits:    int(vals[4]),
+		RefreshRate: int(vals[5]),
 	}
 }
 
