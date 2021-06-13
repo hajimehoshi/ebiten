@@ -465,14 +465,14 @@ func (u *UserInterface) setInitWindowFloating(floating bool) {
 
 func (u *UserInterface) isInitWindowMaximized() bool {
 	u.m.Lock()
-	f := u.initWindowMaximized
+	m := u.initWindowMaximized
 	u.m.Unlock()
-	return f
+	return m
 }
 
-func (u *UserInterface) setInitWindowMaximized(floating bool) {
+func (u *UserInterface) setInitWindowMaximized(maximized bool) {
 	u.m.Lock()
-	u.initWindowMaximized = floating
+	u.initWindowMaximized = maximized
 	u.m.Unlock()
 }
 
