@@ -162,14 +162,8 @@ func (w *Window) SetAttrib(attrib Hint, value int) {
 }
 
 func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsCallback) {
-	var gcb glfw.CharModsCallback
-	if cbfun != nil {
-		gcb = func(window *glfw.Window, char rune, mods glfw.ModifierKey) {
-			cbfun(theWindows.get(window), char, ModifierKey(mods))
-		}
-	}
-	w.w.SetCharModsCallback(gcb)
-	return nil // TODO
+	w.w.SetCharModsCallback(charModsCallbacks[cbfun])
+	return 0 // TODO
 }
 
 func (w *Window) SetCursor(cursor *Cursor) {
@@ -181,35 +175,17 @@ func (w *Window) SetCursor(cursor *Cursor) {
 }
 
 func (w *Window) SetFramebufferSizeCallback(cbfun FramebufferSizeCallback) (previous FramebufferSizeCallback) {
-	var gcb glfw.FramebufferSizeCallback
-	if cbfun != nil {
-		gcb = func(window *glfw.Window, width int, height int) {
-			cbfun(theWindows.get(window), width, height)
-		}
-	}
-	w.w.SetFramebufferSizeCallback(gcb)
-	return nil // TODO
+	w.w.SetFramebufferSizeCallback(framebufferSizeCallbacks[cbfun])
+	return 0 // TODO
 }
 
 func (w *Window) SetScrollCallback(cbfun ScrollCallback) (previous ScrollCallback) {
-	var gcb glfw.ScrollCallback
-	if cbfun != nil {
-		gcb = func(window *glfw.Window, xoff float64, yoff float64) {
-			cbfun(theWindows.get(window), xoff, yoff)
-		}
-	}
-	w.w.SetScrollCallback(gcb)
-	return nil // TODO
+	w.w.SetScrollCallback(scrollCallbacks[cbfun])
+	return 0 // TODO
 }
 
 func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous SizeCallback) {
-	var gcb glfw.SizeCallback
-	if cbfun != nil {
-		gcb = func(window *glfw.Window, width, height int) {
-			cbfun(theWindows.get(window), width, height)
-		}
-	}
-	w.w.SetSizeCallback(gcb)
+	w.w.SetSizeCallback(sizeCallbacks[cbfun])
 	prev := w.prevSizeCallback
 	w.prevSizeCallback = cbfun
 	return prev

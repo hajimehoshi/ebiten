@@ -107,6 +107,10 @@ type UserInterface struct {
 	input   Input
 	iwindow window
 
+	sizeCallback              glfw.SizeCallback
+	framebufferSizeCallback   glfw.FramebufferSizeCallback
+	framebufferSizeCallbackCh chan struct{}
+
 	t thread.Thread
 	m sync.RWMutex
 }
@@ -726,47 +730,50 @@ func (u *UserInterface) createWindow() error {
 
 // registerWindowSetSizeCallback must be called from the main thread.
 func (u *UserInterface) registerWindowSetSizeCallback() {
-	u.window.SetSizeCallback(func(_ *glfw.Window, width, height int) {
-		if !u.setSizeCallbackEnabled {
-			return
-		}
-
-		if u.window.GetAttrib(glfw.Resizable) == glfw.False {
-			return
-		}
-		if u.isFullscreen() {
-			return
-		}
-
-		if err := u.runOnAnotherThreadFromMainThread(func() error {
-			var outsideWidth, outsideHeight float64
-			var outsideSizeChanged bool
-
-			_ = u.t.Call(func() error {
-				if width != 0 || height != 0 {
-					u.setWindowSize(width, height, u.isFullscreen())
-				}
-
-				outsideWidth, outsideHeight, outsideSizeChanged = u.updateSize()
-				return nil
-			})
-			if outsideSizeChanged {
-				u.context.Layout(outsideWidth, outsideHeight)
+	if u.sizeCallback == 0 {
+		u.sizeCallback = glfw.ToSizeCallback(func(_ *glfw.Window, width, height int) {
+			if !u.setSizeCallbackEnabled {
+				return
 			}
-			if err := u.context.ForceUpdate(); err != nil {
-				return err
+
+			if u.window.GetAttrib(glfw.Resizable) == glfw.False {
+				return
 			}
-			if u.Graphics().IsGL() {
+			if u.isFullscreen() {
+				return
+			}
+
+			if err := u.runOnAnotherThreadFromMainThread(func() error {
+				var outsideWidth, outsideHeight float64
+				var outsideSizeChanged bool
+
 				_ = u.t.Call(func() error {
-					u.swapBuffers()
+					if width != 0 || height != 0 {
+						u.setWindowSize(width, height, u.isFullscreen())
+					}
+
+					outsideWidth, outsideHeight, outsideSizeChanged = u.updateSize()
 					return nil
 				})
+				if outsideSizeChanged {
+					u.context.Layout(outsideWidth, outsideHeight)
+				}
+				if err := u.context.ForceUpdate(); err != nil {
+					return err
+				}
+				if u.Graphics().IsGL() {
+					_ = u.t.Call(func() error {
+						u.swapBuffers()
+						return nil
+					})
+				}
+				return nil
+			}); err != nil {
+				u.err = err
 			}
-			return nil
-		}); err != nil {
-			u.err = err
-		}
-	})
+		})
+	}
+	u.window.SetSizeCallback(u.sizeCallback)
 }
 
 func (u *UserInterface) init() error {
@@ -1210,15 +1217,18 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 		newW := width
 		newH := height
 		if oldW != newW || oldH != newH {
-			ch := make(chan struct{}, 1)
-			u.window.SetFramebufferSizeCallback(func(_ *glfw.Window, _, _ int) {
-				// This callback can be invoked multiple times by one PollEvents in theory (#1618).
-				// Allow the case when the channel is full.
-				select {
-				case ch <- struct{}{}:
-				default:
-				}
-			})
+			u.framebufferSizeCallbackCh = make(chan struct{}, 1)
+			if u.framebufferSizeCallback == 0 {
+				u.framebufferSizeCallback = glfw.ToFramebufferSizeCallback(func(_ *glfw.Window, _, _ int) {
+					// This callback can be invoked multiple times by one PollEvents in theory (#1618).
+					// Allow the case when the channel is full.
+					select {
+					case u.framebufferSizeCallbackCh <- struct{}{}:
+					default:
+					}
+				})
+			}
+			u.window.SetFramebufferSizeCallback(u.framebufferSizeCallback)
 			u.window.SetSize(newW, newH)
 			// Just after SetSize, GetSize is not reliable especially on Linux/UNIX.
 			// Let's wait for FramebufferSize callback in any cases.
@@ -1231,7 +1241,7 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 			for {
 				glfw.PollEvents()
 				select {
-				case <-ch:
+				case <-u.framebufferSizeCallbackCh:
 					break event
 				case <-t.C:
 					break event
@@ -1239,8 +1249,9 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 					time.Sleep(time.Millisecond)
 				}
 			}
-			u.window.SetFramebufferSizeCallback(nil)
-			close(ch)
+			u.window.SetFramebufferSizeCallback(glfw.ToFramebufferSizeCallback(nil))
+			close(u.framebufferSizeCallbackCh)
+			u.framebufferSizeCallbackCh = nil
 		}
 
 		// Window title might be lost on macOS after coming back from fullscreen.

@@ -196,16 +196,9 @@ func (w *Window) Restore() {
 }
 
 func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsCallback) {
-	var gcb uintptr
-	if cbfun != nil {
-		gcb = windows.NewCallbackCDecl(func(window uintptr, char rune, mods ModifierKey) uintptr {
-			cbfun(theGLFWWindows.get(window), char, mods)
-			return 0
-		})
-	}
-	glfwDLL.call("glfwSetCharModsCallback", w.w, gcb)
+	glfwDLL.call("glfwSetCharModsCallback", w.w, uintptr(cbfun))
 	panicError()
-	return nil // TODO
+	return ToCharModsCallback(nil) // TODO
 }
 
 func (w *Window) SetCursor(cursor *Cursor) {
@@ -217,42 +210,19 @@ func (w *Window) SetCursor(cursor *Cursor) {
 }
 
 func (w *Window) SetFramebufferSizeCallback(cbfun FramebufferSizeCallback) (previous FramebufferSizeCallback) {
-	var gcb uintptr
-	if cbfun != nil {
-		gcb = windows.NewCallbackCDecl(func(window uintptr, width int, height int) uintptr {
-			cbfun(theGLFWWindows.get(window), width, height)
-			return 0
-		})
-	}
-	glfwDLL.call("glfwSetFramebufferSizeCallback", w.w, gcb)
+	glfwDLL.call("glfwSetFramebufferSizeCallback", w.w, uintptr(cbfun))
 	panicError()
-	return nil // TODO
+	return ToFramebufferSizeCallback(nil) // TODO
 }
 
 func (w *Window) SetScrollCallback(cbfun ScrollCallback) (previous ScrollCallback) {
-	var gcb uintptr
-	if cbfun != nil {
-		gcb = windows.NewCallbackCDecl(func(window uintptr, xoff *float64, yoff *float64) uintptr {
-			// xoff and yoff were originally float64, but there is no good way to pass them on 32bit
-			// machines via NewCallback. We've fixed GLFW side to use pointer values.
-			cbfun(theGLFWWindows.get(window), *xoff, *yoff)
-			return 0
-		})
-	}
-	glfwDLL.call("glfwSetScrollCallback", w.w, gcb)
+	glfwDLL.call("glfwSetScrollCallback", w.w, uintptr(cbfun))
 	panicError()
-	return nil // TODO
+	return ToScrollCallback(nil) // TODO
 }
 
 func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous SizeCallback) {
-	var gcb uintptr
-	if cbfun != nil {
-		gcb = windows.NewCallbackCDecl(func(window uintptr, width int, height int) uintptr {
-			cbfun(theGLFWWindows.get(window), width, height)
-			return 0
-		})
-	}
-	glfwDLL.call("glfwSetWindowSizeCallback", w.w, gcb)
+	glfwDLL.call("glfwSetWindowSizeCallback", w.w, uintptr(cbfun))
 	panicError()
 	prev := w.prevSizeCallback
 	w.prevSizeCallback = cbfun
