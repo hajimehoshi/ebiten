@@ -22,11 +22,6 @@ import (
 )
 
 var (
-	/*charModsCallbacks        = map[CharModsCallback]func(window *Window, char rune, mods ModifierKey){}
-	framebufferSizeCallbacks = map[FramebufferSizeCallback]func(window *Window, width int, height int){}
-	scrollCallbacks          = map[ScrollCallback]func(window *Window, xoff float64, yoff float64){}
-	sizeCallbacks            = map[SizeCallback]func(window *Window, width int, height int){}*/
-
 	charModsCallbacks        = map[CharModsCallback]glfw.CharModsCallback{}
 	framebufferSizeCallbacks = map[FramebufferSizeCallback]glfw.FramebufferSizeCallback{}
 	scrollCallbacks          = map[ScrollCallback]glfw.ScrollCallback{}

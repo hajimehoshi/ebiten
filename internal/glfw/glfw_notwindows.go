@@ -163,7 +163,7 @@ func (w *Window) SetAttrib(attrib Hint, value int) {
 
 func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsCallback) {
 	w.w.SetCharModsCallback(charModsCallbacks[cbfun])
-	return 0 // TODO
+	return ToCharModsCallback(nil) // TODO
 }
 
 func (w *Window) SetCursor(cursor *Cursor) {
@@ -176,12 +176,12 @@ func (w *Window) SetCursor(cursor *Cursor) {
 
 func (w *Window) SetFramebufferSizeCallback(cbfun FramebufferSizeCallback) (previous FramebufferSizeCallback) {
 	w.w.SetFramebufferSizeCallback(framebufferSizeCallbacks[cbfun])
-	return 0 // TODO
+	return ToFramebufferSizeCallback(nil) // TODO
 }
 
 func (w *Window) SetScrollCallback(cbfun ScrollCallback) (previous ScrollCallback) {
 	w.w.SetScrollCallback(scrollCallbacks[cbfun])
-	return 0 // TODO
+	return ToScrollCallback(nil) // TODO
 }
 
 func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous SizeCallback) {
