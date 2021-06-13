@@ -19,6 +19,7 @@ package glfw
 
 type (
 	CharModsCallback        uintptr
+	CloseCallback           uintptr
 	FramebufferSizeCallback uintptr
 	ScrollCallback          uintptr
 	SizeCallback            uintptr

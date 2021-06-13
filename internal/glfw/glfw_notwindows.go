@@ -174,6 +174,11 @@ func (w *Window) SetCursor(cursor *Cursor) {
 	w.w.SetCursor(c)
 }
 
+func (w *Window) SetCloseCallback(cbfun CloseCallback) (previous CloseCallback) {
+	w.w.SetCloseCallback(closeCallbacks[cbfun])
+	return ToCloseCallback(nil) // TODO
+}
+
 func (w *Window) SetFramebufferSizeCallback(cbfun FramebufferSizeCallback) (previous FramebufferSizeCallback) {
 	w.w.SetFramebufferSizeCallback(framebufferSizeCallbacks[cbfun])
 	return ToFramebufferSizeCallback(nil) // TODO
@@ -182,6 +187,10 @@ func (w *Window) SetFramebufferSizeCallback(cbfun FramebufferSizeCallback) (prev
 func (w *Window) SetScrollCallback(cbfun ScrollCallback) (previous ScrollCallback) {
 	w.w.SetScrollCallback(scrollCallbacks[cbfun])
 	return ToScrollCallback(nil) // TODO
+}
+
+func (w *Window) SetShouldClose(value bool) {
+	w.w.SetShouldClose(value)
 }
 
 func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous SizeCallback) {

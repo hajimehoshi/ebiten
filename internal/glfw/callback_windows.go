@@ -28,6 +28,16 @@ func ToCharModsCallback(cb func(window *Window, char rune, mods ModifierKey)) Ch
 	}))
 }
 
+func ToCloseCallback(cb func(window *Window)) CloseCallback {
+	if cb == nil {
+		return 0
+	}
+	return CloseCallback(windows.NewCallbackCDecl(func(window uintptr) uintptr {
+		cb(theGLFWWindows.get(window))
+		return 0
+	}))
+}
+
 func ToFramebufferSizeCallback(cb func(window *Window, width int, height int)) FramebufferSizeCallback {
 	if cb == nil {
 		return 0

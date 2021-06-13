@@ -64,14 +64,16 @@ type UserInterface struct {
 	maxWindowWidthInDP  int
 	maxWindowHeightInDP int
 
-	running             uint32
-	toChangeSize        bool
-	origPosX            int
-	origPosY            int
-	runnableOnUnfocused bool
-	vsync               bool
-	iconImages          []image.Image
-	cursorShape         driver.CursorShape
+	running              uint32
+	toChangeSize         bool
+	origPosX             int
+	origPosY             int
+	runnableOnUnfocused  bool
+	vsync                bool
+	iconImages           []image.Image
+	cursorShape          driver.CursorShape
+	windowClosingHandled bool
+	windowBeingClosed    bool
 
 	// setSizeCallbackEnabled must be accessed from the main thread.
 	setSizeCallbackEnabled bool
@@ -108,6 +110,7 @@ type UserInterface struct {
 	iwindow window
 
 	sizeCallback              glfw.SizeCallback
+	closeCallback             glfw.CloseCallback
 	framebufferSizeCallback   glfw.FramebufferSizeCallback
 	framebufferSizeCallbackCh chan struct{}
 
@@ -476,6 +479,26 @@ func (u *UserInterface) setInitWindowMaximized(maximized bool) {
 	u.m.Unlock()
 }
 
+func (u *UserInterface) isWindowClosingHandled() bool {
+	u.m.Lock()
+	v := u.windowClosingHandled
+	u.m.Unlock()
+	return v
+}
+
+func (u *UserInterface) setWindowClosingHandled(handled bool) {
+	u.m.Lock()
+	u.windowClosingHandled = handled
+	u.m.Unlock()
+}
+
+func (u *UserInterface) isWindowBeingClosed() bool {
+	u.m.Lock()
+	v := u.windowBeingClosed
+	u.m.Unlock()
+	return v
+}
+
 func (u *UserInterface) isInitFocused() bool {
 	u.m.Lock()
 	v := u.initFocused
@@ -724,6 +747,7 @@ func (u *UserInterface) createWindow() error {
 	// TODO: Set icons
 
 	u.registerWindowSetSizeCallback()
+	u.registerWindowCloseCallback()
 
 	return nil
 }
@@ -774,6 +798,23 @@ func (u *UserInterface) registerWindowSetSizeCallback() {
 		})
 	}
 	u.window.SetSizeCallback(u.sizeCallback)
+}
+
+// registerWindowCloseCallback must be called from the main thread.
+func (u *UserInterface) registerWindowCloseCallback() {
+	if u.closeCallback == 0 {
+		u.closeCallback = glfw.ToCloseCallback(func(_ *glfw.Window) {
+			u.m.Lock()
+			u.windowBeingClosed = true
+			u.m.Unlock()
+
+			if !u.isWindowClosingHandled() {
+				return
+			}
+			u.window.SetShouldClose(false)
+		})
+	}
+	u.window.SetCloseCallback(u.closeCallback)
 }
 
 func (u *UserInterface) init() error {
@@ -1347,6 +1388,10 @@ func (u *UserInterface) ResetForFrame() {
 		u.context.Layout(w, h)
 	}
 	u.input.resetForFrame()
+
+	u.m.Lock()
+	u.windowBeingClosed = false
+	u.m.Unlock()
 }
 
 func (u *UserInterface) MonitorPosition() (int, int) {

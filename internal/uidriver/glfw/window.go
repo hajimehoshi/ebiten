@@ -264,3 +264,15 @@ func (w *window) SetTitle(title string) {
 		return nil
 	})
 }
+
+func (w *window) IsBeingClosed() bool {
+	return w.ui.isWindowBeingClosed()
+}
+
+func (w *window) SetClosingHandled(handled bool) {
+	w.ui.setWindowClosingHandled(handled)
+}
+
+func (w *window) IsClosingHandled() bool {
+	return w.ui.isWindowClosingHandled()
+}

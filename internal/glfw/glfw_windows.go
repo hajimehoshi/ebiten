@@ -201,6 +201,12 @@ func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsC
 	return ToCharModsCallback(nil) // TODO
 }
 
+func (w *Window) SetCloseCallback(cbfun CloseCallback) (previous CloseCallback) {
+	glfwDLL.call("glfwSetWindowCloseCallback", w.w, uintptr(cbfun))
+	panicError()
+	return ToCloseCallback(nil) // TODO
+}
+
 func (w *Window) SetCursor(cursor *Cursor) {
 	var c uintptr
 	if cursor != nil {
@@ -219,6 +225,15 @@ func (w *Window) SetScrollCallback(cbfun ScrollCallback) (previous ScrollCallbac
 	glfwDLL.call("glfwSetScrollCallback", w.w, uintptr(cbfun))
 	panicError()
 	return ToScrollCallback(nil) // TODO
+}
+
+func (w *Window) SetShouldClose(value bool) {
+	var v uintptr = False
+	if value {
+		v = True
+	}
+	glfwDLL.call("glfwSetWindowShouldClose", w.w, v)
+	panicError()
 }
 
 func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous SizeCallback) {

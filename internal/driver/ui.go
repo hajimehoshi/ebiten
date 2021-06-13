@@ -93,4 +93,8 @@ type Window interface {
 	SetIcon(iconImages []image.Image)
 	SetTitle(title string)
 	Restore()
+
+	IsBeingClosed() bool
+	SetClosingHandled(handled bool)
+	IsClosingHandled() bool
 }

@@ -23,6 +23,7 @@ import (
 
 var (
 	charModsCallbacks        = map[CharModsCallback]glfw.CharModsCallback{}
+	closeCallbacks           = map[CloseCallback]glfw.CloseCallback{}
 	framebufferSizeCallbacks = map[FramebufferSizeCallback]glfw.FramebufferSizeCallback{}
 	scrollCallbacks          = map[ScrollCallback]glfw.ScrollCallback{}
 	sizeCallbacks            = map[SizeCallback]glfw.SizeCallback{}
@@ -37,6 +38,18 @@ func ToCharModsCallback(cb func(window *Window, char rune, mods ModifierKey)) Ch
 		cb(theWindows.get(window), char, ModifierKey(mods))
 	}
 	charModsCallbacks[id] = gcb
+	return id
+}
+
+func ToCloseCallback(cb func(window *Window)) CloseCallback {
+	if cb == nil {
+		return 0
+	}
+	id := CloseCallback(len(closeCallbacks) + 1)
+	var gcb glfw.CloseCallback = func(window *glfw.Window) {
+		cb(theWindows.get(window))
+	}
+	closeCallbacks[id] = gcb
 	return id
 }
 

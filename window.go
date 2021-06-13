@@ -315,3 +315,46 @@ func RestoreWindow() {
 		w.Restore()
 	}
 }
+
+// IsWindowBeingClosed returns true when the user is trying to close the window on desktops.
+// As the window is closed immediately by default,
+// you might want to call SetWindowClosingHandled(true) to prevent the window is automatically closed.
+//
+// IsWindowBeingClosed always returns false on other platforms.
+//
+// IsWindowBeingClosed is concurrent-safe.
+func IsWindowBeingClosed() bool {
+	if w := uiDriver().Window(); w != nil {
+		return w.IsBeingClosed()
+	}
+	return false
+}
+
+// SetWindowClosingHandled sets whether the window closing is handled or not on desktops. The default state is false.
+//
+// If the window closing is handled, the window is not closed immediately and
+// the game can know whether the window is begin closed or not by IsWindowBeingClosed.
+// In this case, the window is not closed automatically.
+// To end the game, you have to return an error value at the Game's Update function.
+//
+// SetWindowClosingHandled works only on desktops.
+// SetWindowClosingHandled does nothing on other platforms.
+//
+// SetWindowClosingHandled is concurrent-safe.
+func SetWindowClosingHandled(handled bool) {
+	if w := uiDriver().Window(); w != nil {
+		w.SetClosingHandled(handled)
+	}
+}
+
+// IsWindowClosingHandled reports whether the window closing is handled or not on desktops by SetWindowClosingHandled.
+//
+// IsWindowClosingHandled always returns false on other platforms.
+//
+// IsWindowClosingHandled is concurrent-safe.
+func IsWindowClosingHandled() bool {
+	if w := uiDriver().Window(); w != nil {
+		return w.IsClosingHandled()
+	}
+	return false
+}
