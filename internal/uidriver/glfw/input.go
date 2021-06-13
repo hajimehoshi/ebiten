@@ -272,7 +272,7 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) {
 	defer i.ui.m.Unlock()
 
 	i.onceCallback.Do(func() {
-		window.SetCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
+		window.SetCharModsCallback(glfw.ToCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
 			// As this function is called from GLFW callbacks, the current thread is main.
 			if !unicode.IsPrint(char) {
 				return
@@ -281,14 +281,14 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) {
 			i.ui.m.Lock()
 			defer i.ui.m.Unlock()
 			i.runeBuffer = append(i.runeBuffer, char)
-		})
-		window.SetScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
+		}))
+		window.SetScrollCallback(glfw.ToScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
 			// As this function is called from GLFW callbacks, the current thread is main.
 			i.ui.m.Lock()
 			defer i.ui.m.Unlock()
 			i.scrollX = xoff
 			i.scrollY = yoff
-		})
+		}))
 	})
 	if i.keyPressed == nil {
 		i.keyPressed = map[glfw.Key]bool{}
