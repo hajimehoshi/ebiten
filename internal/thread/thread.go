@@ -73,7 +73,7 @@ func (t *OSThread) Call(f func() error) error {
 type NoopThread struct{}
 
 // NewNoopThread creates a new thread that does no threading.
-func NewNoopThread() Thread {
+func NewNoopThread() *NoopThread {
 	return &NoopThread{}
 }
 
