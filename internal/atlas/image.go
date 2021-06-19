@@ -45,6 +45,13 @@ func max(a, b int) int {
 	return b
 }
 
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 func init() {
 	hooks.AppendHookOnBeforeUpdate(func() error {
 		backendsM.Lock()
@@ -70,17 +77,10 @@ func resolveDeferred() {
 // Actual time duration is increased in an exponential way for each usages as a rendering target.
 const baseCountToPutOnAtlas = 10
 
-func min(a, b uint) uint {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 func putImagesOnAtlas() error {
 	for i := range imagesToPutOnAtlas {
 		i.usedAsSourceCount++
-		if i.usedAsSourceCount >= baseCountToPutOnAtlas*(1<<min(uint(i.isolatedCount), 31)) {
+		if i.usedAsSourceCount >= baseCountToPutOnAtlas*(1<<uint(min(i.isolatedCount, 31))) {
 			if err := i.putOnAtlas(); err != nil {
 				return err
 			}
@@ -715,8 +715,11 @@ func BeginFrame() error {
 		if len(theBackends) != 0 {
 			panic("atlas: all the images must be not on an atlas before the game starts")
 		}
-		minSize = 1024
-		maxSize = max(minSize, restorable.MaxImageSize())
+		// Use 8192 as a minimum texture size to reduce chences to extend the texture (#1675).
+		// For example, extending a texture size from 4096px to 8192px might be slow in some environments.
+		// TODO: Extending a texture to 16384px can be very slow (#1674).
+		minSize = min(8192, restorable.MaxImageSize())
+		maxSize = restorable.MaxImageSize()
 	})
 	if err != nil {
 		return err
