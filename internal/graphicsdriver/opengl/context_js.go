@@ -530,7 +530,7 @@ func (c *context) needsRestoring() bool {
 }
 
 func (c *context) canUsePBO() bool {
-	return isWebGL2Available
+	return false
 }
 
 func (c *context) texSubImage2D(t textureNative, args []*driver.ReplacePixelsArgs) {

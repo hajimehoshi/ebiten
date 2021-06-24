@@ -120,6 +120,7 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	}
 	i.graphics.drawCalled = false
 
+	// TODO: Now canUsePBO always returns false (#1678). Remove the code for PBO.
 	if !i.graphics.context.canUsePBO() {
 		i.graphics.context.texSubImage2D(i.textureNative, args)
 		return
