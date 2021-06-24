@@ -533,7 +533,7 @@ func (c *context) canUsePBO() bool {
 	return isWebGL2Available
 }
 
-func (c *context) texSubImage2D(t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
+func (c *context) texSubImage2D(t textureNative, args []*driver.ReplacePixelsArgs) {
 	c.bindTexture(t)
 	gl := c.gl
 	for _, a := range args {

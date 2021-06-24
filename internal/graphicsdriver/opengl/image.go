@@ -120,12 +120,12 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	}
 	i.graphics.drawCalled = false
 
-	w, h := i.width, i.height
 	if !i.graphics.context.canUsePBO() {
-		i.graphics.context.texSubImage2D(i.textureNative, w, h, args)
+		i.graphics.context.texSubImage2D(i.textureNative, args)
 		return
 	}
 
+	w, h := i.width, i.height
 	if i.pbo.equal(*new(buffer)) {
 		i.pbo = i.graphics.context.newPixelBufferObject(w, h)
 		if i.pbo.equal(*new(buffer)) {
