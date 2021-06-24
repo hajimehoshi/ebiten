@@ -11,7 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
+//
+//go:build example
 // +build example
 
 package main
@@ -22,21 +23,14 @@ import (
 	"image/color"
 	"log"
 	"math/rand"
-	"strconv"
 	"time"
 )
 
 const (
 	screenWidth  = 640
 	screenHeight = 480
-
-	frameOX     = 0
-	frameOY     = 32
-	frameWidth  = 32
-	frameHeight = 32
-	frameNum    = 8
 	scale       = 64
-	points      = 1024
+	stars      = 1024
 )
 
 func abs(a int) int {
@@ -47,7 +41,7 @@ func abs(a int) int {
 }
 
 type Star struct {
-	fromx, fromy, tox, toy, blightness float64
+	fromx, fromy, tox, toy, brightness float64
 }
 
 func (s *Star) Init() {
@@ -55,7 +49,7 @@ func (s *Star) Init() {
 	s.fromx = s.tox
 	s.toy = rand.Float64() * screenHeight * scale
 	s.fromy = s.toy
-	s.blightness = rand.Float64() * 0xff
+	s.brightness = rand.Float64() * 0xff
 }
 
 func (s *Star) Out() bool {
@@ -67,9 +61,9 @@ func (s *Star) Update(x, y float64) {
 	s.fromy = s.toy
 	s.tox += (s.tox - x) / 32
 	s.toy += (s.toy - y) / 32
-	s.blightness += 1
-	if 0xff < s.blightness {
-		s.blightness = 0xff
+	s.brightness += 1
+	if 0xff < s.brightness {
+		s.brightness = 0xff
 	}
 	if s.Out() {
 		s.Init()
@@ -81,18 +75,18 @@ func (s *Star) Pos() (float64, float64, float64, float64) {
 }
 
 func (s *Star) Colors() (uint8, uint8, uint8) {
-	return uint8(0xbb * s.blightness / 0xff), // Red
-		uint8(0xdd * s.blightness / 0xff), // Green
-		uint8(0xff * s.blightness / 0xff) // Blue
+	return uint8(0xbb * s.brightness / 0xff), // Red
+		uint8(0xdd * s.brightness / 0xff), // Green
+		uint8(0xff * s.brightness / 0xff) // Blue
 }
 
 type Game struct {
-	stars [points]Star
+	stars [stars]Star
 }
 
 func NewGame() *Game {
-	g := new(Game)
-	for i := 0; i < points; i++ {
+	g := &Game{}
+	for i := 0; i < stars; i++ {
 		g.stars[i].Init()
 	}
 	return g
@@ -100,18 +94,18 @@ func NewGame() *Game {
 
 func (g *Game) Update() error {
 	x, y := ebiten.CursorPosition()
-	for i := 0; i < points; i++ {
+	for i := 0; i < stars; i++ {
 		g.stars[i].Update(float64(x * scale), float64(y * scale))
 	}
 	return nil
 }
 
-func (g *Game) Draw(img *ebiten.Image) {
-	for i := 0; i < points; i++ {
+func (g *Game) Draw(screen *ebiten.Image) {
+	for i := 0; i < stars; i++ {
 		s := &g.stars[i]
 		fx, fy, tx, ty := s.Pos()
 		r, g, b := s.Colors()
-		ebitenutil.DrawLine(img, fx, fy, tx, ty, color.RGBA{r, g, b, 0xff})
+		ebitenutil.DrawLine(screen, fx, fy, tx, ty, color.RGBA{r, g, b, 0xff})
 	}
 }
 
