@@ -715,10 +715,7 @@ func BeginFrame() error {
 		if len(theBackends) != 0 {
 			panic("atlas: all the images must be not on an atlas before the game starts")
 		}
-		// Use 8192 as a minimum texture size to reduce chences to extend the texture (#1675).
-		// For example, extending a texture size from 4096px to 8192px might be slow in some environments.
-		// TODO: Extending a texture to 16384px can be very slow (#1674).
-		minSize = min(8192, restorable.MaxImageSize())
+		minSize = 1024
 		maxSize = restorable.MaxImageSize()
 	})
 	if err != nil {
