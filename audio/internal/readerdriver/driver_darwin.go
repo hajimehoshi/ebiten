@@ -33,7 +33,7 @@ import (
 )
 
 func IsAvailable() bool {
-	return true
+	return false
 }
 
 type audioQueuePoolItem struct {
