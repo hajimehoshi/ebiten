@@ -74,10 +74,11 @@ func (s *Star) Pos() (float64, float64, float64, float64) {
 	return s.fromx / scale, s.fromy / scale, s.tox / scale, s.toy / scale
 }
 
-func (s *Star) Colors() (uint8, uint8, uint8) {
-	return uint8(0xbb * s.brightness / 0xff), // Red
-		uint8(0xdd * s.brightness / 0xff), // Green
-		uint8(0xff * s.brightness / 0xff) // Blue
+func (s *Star) Color() color.RGBA {
+	return color.RGBA{uint8(0xbb * s.brightness / 0xff),
+		uint8(0xdd * s.brightness / 0xff),
+		uint8(0xff * s.brightness / 0xff),
+		0xff}
 }
 
 type Game struct {
@@ -104,8 +105,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for i := 0; i < stars; i++ {
 		s := &g.stars[i]
 		fx, fy, tx, ty := s.Pos()
-		r, g, b := s.Colors()
-		ebitenutil.DrawLine(screen, fx, fy, tx, ty, color.RGBA{r, g, b, 0xff})
+		ebitenutil.DrawLine(screen, fx, fy, tx, ty, s.Color())
 	}
 }
 
