@@ -36,6 +36,7 @@ You don't have to update existing files' license comments.
 ## Adding build tags for examples
 
 ```go
+//go:build example
 // +build example
 ```
 
