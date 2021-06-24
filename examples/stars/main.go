@@ -28,8 +28,8 @@ import (
 const (
 	screenWidth  = 640
 	screenHeight = 480
-	scale       = 64
-	stars      = 1024
+	scale        = 64
+	stars        = 1024
 )
 
 func abs(a int) int {
@@ -94,7 +94,7 @@ func NewGame() *Game {
 func (g *Game) Update() error {
 	x, y := ebiten.CursorPosition()
 	for i := 0; i < stars; i++ {
-		g.stars[i].Update(float64(x * scale), float64(y * scale))
+		g.stars[i].Update(float64(x*scale), float64(y*scale))
 	}
 	return nil
 }
