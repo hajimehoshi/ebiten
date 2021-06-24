@@ -52,10 +52,6 @@ func (s *Star) Init() {
 	s.brightness = rand.Float64() * 0xff
 }
 
-func (s *Star) Out() bool {
-	return s.fromx < 0 || screenWidth*scale < s.fromx || s.fromy < 0 || screenHeight*scale < s.fromy
-}
-
 func (s *Star) Update(x, y float64) {
 	s.fromx = s.tox
 	s.fromy = s.toy
@@ -65,20 +61,16 @@ func (s *Star) Update(x, y float64) {
 	if 0xff < s.brightness {
 		s.brightness = 0xff
 	}
-	if s.Out() {
+	if s.fromx < 0 || screenWidth*scale < s.fromx || s.fromy < 0 || screenHeight*scale < s.fromy {
 		s.Init()
 	}
 }
 
-func (s *Star) Pos() (float64, float64, float64, float64) {
-	return s.fromx / scale, s.fromy / scale, s.tox / scale, s.toy / scale
-}
-
-func (s *Star) Color() color.RGBA {
-	return color.RGBA{uint8(0xbb * s.brightness / 0xff),
+func (s *Star) Draw(screen *ebiten.Image) {
+	ebitenutil.DrawLine(screen, s.fromx/scale, s.fromy/scale, s.tox/scale, s.toy/scale, color.RGBA{uint8(0xbb * s.brightness / 0xff),
 		uint8(0xdd * s.brightness / 0xff),
 		uint8(0xff * s.brightness / 0xff),
-		0xff}
+		0xff})
 }
 
 type Game struct {
@@ -103,9 +95,7 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	for i := 0; i < starsNum; i++ {
-		s := &g.stars[i]
-		fx, fy, tx, ty := s.Pos()
-		ebitenutil.DrawLine(screen, fx, fy, tx, ty, s.Color())
+		g.stars[i].Draw(screen)
 	}
 }
 
