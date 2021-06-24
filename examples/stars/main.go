@@ -30,7 +30,7 @@ const (
 	screenWidth  = 640
 	screenHeight = 480
 	scale        = 64
-	stars        = 1024
+	starsNum     = 1024
 )
 
 func abs(a int) int {
@@ -82,12 +82,12 @@ func (s *Star) Color() color.RGBA {
 }
 
 type Game struct {
-	stars [stars]Star
+	stars [starsNum]Star
 }
 
 func NewGame() *Game {
 	g := &Game{}
-	for i := 0; i < stars; i++ {
+	for i := 0; i < starsNum; i++ {
 		g.stars[i].Init()
 	}
 	return g
@@ -95,14 +95,14 @@ func NewGame() *Game {
 
 func (g *Game) Update() error {
 	x, y := ebiten.CursorPosition()
-	for i := 0; i < stars; i++ {
+	for i := 0; i < starsNum; i++ {
 		g.stars[i].Update(float64(x*scale), float64(y*scale))
 	}
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	for i := 0; i < stars; i++ {
+	for i := 0; i < starsNum; i++ {
 		s := &g.stars[i]
 		fx, fy, tx, ty := s.Pos()
 		ebitenutil.DrawLine(screen, fx, fy, tx, ty, s.Color())
