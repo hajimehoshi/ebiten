@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build example
 // +build example
 
 // This demo is inspired by the xscreensaver 'squirals'.
