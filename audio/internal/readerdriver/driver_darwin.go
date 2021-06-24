@@ -704,11 +704,8 @@ func (p *playerImpl) readSourceToBuffer() {
 		return
 	}
 
-	src := p.src
-	p.m.Unlock()
 	buf := make([]byte, maxBufferSize)
-	n, err := src.Read(buf)
-	p.m.Lock()
+	n, err := p.src.Read(buf)
 
 	if err != nil && err != io.EOF {
 		p.setError(err)
