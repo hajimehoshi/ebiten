@@ -6,7 +6,11 @@ There are some rules for Ebiten contribution.
 
 ## Asking us when you are not sure
 
-You can ask us by [creating a GitHub issue](https://github.com/hajimehoshi/ebiten/issues/new) or at [Gophers Slack](https://invite.slack.golangbridge.org/)'s #ebiten channel.
+You can ask us at these communities:
+
+ * [Ebiten Discord Server](https://discord.gg/3tVdM5H8cC)
+ * `#ebiten` channel in [Gophers Slack](https://invite.slack.golangbridge.org/)
+ * [GitHub Discussion](https://github.com/hajimehoshi/ebiten/discussions)
 
 ## Following the Go convention
 
