@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build darwin && !ios
-// +build darwin,!ios
+//go:build darwin && ios
+// +build darwin,ios
 
 package readerdriver
 
-// #cgo LDFLAGS: -framework AppKit
-import "C"
+// 12288 seems necessary at least on iPod touch (7th).
+// With 48000[Hz] stereo, the maximum delay is (12288 / 4 / 2 [samples]) / 48000 [Hz] = 0.032 [sec].
+// '4' is float32 size in bytes. '2' is a number of channels for stereo.
 
-const bufferSizeInBytes = 2048
+const bufferSizeInBytes = 12288
