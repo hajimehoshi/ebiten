@@ -18,12 +18,13 @@
 package main
 
 import (
-	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"image/color"
 	"log"
 	"math/rand"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
 const (
@@ -67,10 +68,11 @@ func (s *Star) Update(x, y float64) {
 }
 
 func (s *Star) Draw(screen *ebiten.Image) {
-	ebitenutil.DrawLine(screen, s.fromx/scale, s.fromy/scale, s.tox/scale, s.toy/scale, color.RGBA{uint8(0xbb * s.brightness / 0xff),
+	color := color.RGBA{uint8(0xbb * s.brightness / 0xff),
 		uint8(0xdd * s.brightness / 0xff),
 		uint8(0xff * s.brightness / 0xff),
-		0xff})
+		0xff}
+	ebitenutil.DrawLine(screen, s.fromx/scale, s.fromy/scale, s.tox/scale, s.toy/scale, color)
 }
 
 type Game struct {
