@@ -33,7 +33,7 @@ import (
 )
 
 func IsAvailable() bool {
-	return false
+	return true
 }
 
 type audioQueuePoolItem struct {
@@ -495,20 +495,11 @@ func (p *playerImpl) resetImpl() {
 		return
 	}
 
-	if len(p.unqueuedBufs) < 2 {
-		if osstatus := C.AudioQueuePause(p.audioQueue); osstatus != C.noErr && p.err == nil {
-			p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueuePause failed: %d", osstatus))
-			return
-		}
-		// AudioQueueReset invokes the callback directry.
-		q := p.audioQueue
-		p.m.Unlock()
-		osstatus := C.AudioQueueReset(q)
-		p.m.Lock()
-		if osstatus != C.noErr && p.err == nil {
-			p.setErrorImpl(fmt.Errorf("readerdriver: AudioQueueReset failed: %d", osstatus))
-			return
-		}
+	// AudioQueueReset is not efficient (#1650, #1680).
+	// Discard the current AudioQueue and recreate one when playing this player again.
+	if err := p.closeAudioQueue(); err != nil {
+		p.setErrorImpl(err)
+		return
 	}
 
 	p.state = playerPaused
@@ -575,33 +566,43 @@ func (p *playerImpl) Close() error {
 }
 
 func (p *playerImpl) closeImpl() error {
-	if p.audioQueue != nil {
-		// Even if reuseLater is true, AudioQueuePause is not efficient for reusing.
-		// AudioQueueStart takes long if the AudioQueueStop is not called.
-
-		// AudioQueueStop might invoke AudioQueueReset. Unlock the mutex here to avoid a deadlock.
-		q := p.audioQueue
-		p.m.Unlock()
-		osstatus := C.AudioQueueStop(q, C.true)
-		p.m.Lock()
-
-		if osstatus != C.noErr && p.err == nil {
-			// setErrorImpl calls closeImpl. Do not call this.
-			p.err = fmt.Errorf("readerdriver: AudioQueueStop failed: %d", osstatus)
-		}
-
-		// All the AudioQueueBuffers are already dequeued. It is safe to dispose the AudioQueue and its buffers.
-		if err := p.context.audioQueuePool.Put(p.audioQueue); err != nil && p.err == nil {
-			p.err = err
-		}
-		p.m.Unlock()
-		thePlayers.remove(p.audioQueue)
-		p.m.Lock()
-		p.audioQueue = nil
+	if err := p.closeAudioQueue(); err != nil && p.err == nil {
+		// setErrorImpl calls closeImpl. Do not call this.
+		p.err = err
 	}
 
 	p.state = playerClosed
 	return p.err
+}
+
+func (p *playerImpl) closeAudioQueue() error {
+	if p.audioQueue == nil {
+		return nil
+	}
+
+	// Even if reuseLater is true, AudioQueuePause is not efficient for reusing.
+	// AudioQueueStart takes long if the AudioQueueStop is not called.
+
+	// AudioQueueStop might invoke AudioQueueReset. Unlock the mutex here to avoid a deadlock.
+	q := p.audioQueue
+	p.m.Unlock()
+	osstatus := C.AudioQueueStop(q, C.true)
+	p.m.Lock()
+
+	if osstatus != C.noErr && p.err == nil {
+		return fmt.Errorf("readerdriver: AudioQueueStop failed: %d", osstatus)
+	}
+
+	// All the AudioQueueBuffers are already dequeued. It is safe to dispose the AudioQueue and its buffers.
+	if err := p.context.audioQueuePool.Put(p.audioQueue); err != nil && p.err == nil {
+		return err
+	}
+
+	p.m.Unlock()
+	thePlayers.remove(p.audioQueue)
+	p.m.Lock()
+	p.audioQueue = nil
+	return nil
 }
 
 //export ebiten_readerdriver_render
