@@ -38,6 +38,53 @@ var (
 	maxSize = 0
 )
 
+type temporaryPixels struct {
+	pixels     []byte
+	pos        int
+	totalUse   int
+	unusedTime int
+}
+
+var theTemporaryPixels temporaryPixels
+
+func (t *temporaryPixels) alloc(size int) []byte {
+	if len(t.pixels) < t.pos+size {
+		newL := len(t.pixels)
+		if newL == 0 {
+			newL = 16
+		}
+		for newL < t.pos+size {
+			newL *= 2
+		}
+		t.pixels = make([]byte, newL)
+		t.pos = 0
+	}
+	pix := t.pixels[t.pos : t.pos+size]
+	t.pos += size
+	t.totalUse += size
+	return pix
+}
+
+func (t *temporaryPixels) resetAtFrameEnd() {
+	const maxUnusedTime = 60
+
+	if t.totalUse == 0 {
+		if t.unusedTime < maxUnusedTime {
+			t.unusedTime++
+		}
+	} else {
+		t.unusedTime = 0
+	}
+
+	// Let the pixels GCed if this is not used for a while.
+	if t.unusedTime == maxUnusedTime && len(t.pixels) > 0 {
+		t.pixels = nil
+	}
+
+	t.pos = 0
+	t.totalUse = 0
+}
+
 func max(a, b int) int {
 	if a > b {
 		return a
@@ -487,7 +534,7 @@ func (i *Image) replacePixels(pix []byte) {
 	}
 
 	// Add a padding around the image.
-	pixb := make([]byte, 4*w*h)
+	pixb := theTemporaryPixels.alloc(4 * w * h)
 	for j := 0; j < oh; j++ {
 		copy(pixb[4*((j+paddingSize)*w+paddingSize):], pix[4*j*ow:4*(j+1)*ow])
 	}
@@ -699,6 +746,8 @@ func NewScreenFramebufferImage(width, height int) *Image {
 
 func EndFrame() error {
 	backendsM.Lock()
+
+	theTemporaryPixels.resetAtFrameEnd()
 
 	return restorable.ResolveStaleImages()
 }

@@ -304,7 +304,11 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 
 	if x == 0 && y == 0 && width == w && height == h {
 		if pixels != nil {
-			i.basePixels.AddOrReplace(pixels, 0, 0, w, h)
+			// pixels can point to a shared region.
+			// This function is responsible to copy this.
+			copiedPixels := make([]byte, len(pixels))
+			copy(copiedPixels, pixels)
+			i.basePixels.AddOrReplace(copiedPixels, 0, 0, w, h)
 		} else {
 			i.basePixels.Remove(0, 0, w, h)
 		}
@@ -324,7 +328,11 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	}
 
 	if pixels != nil {
-		i.basePixels.AddOrReplace(pixels, x, y, width, height)
+		// pixels can point to a shared region.
+		// This function is responsible to copy this.
+		copiedPixels := make([]byte, len(pixels))
+		copy(copiedPixels, pixels)
+		i.basePixels.AddOrReplace(copiedPixels, x, y, width, height)
 	} else {
 		i.basePixels.Remove(x, y, width, height)
 	}
