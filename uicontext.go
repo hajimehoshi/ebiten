@@ -24,6 +24,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
@@ -158,16 +159,22 @@ func (c *uiContext) update(updateCount int) error {
 	if err, ok := c.err.Load().(error); ok && err != nil {
 		return err
 	}
+
 	if err := buffered.BeginFrame(); err != nil {
 		return err
 	}
 	if err := c.updateImpl(updateCount); err != nil {
 		return err
 	}
-	if err := buffered.EndFrame(); err != nil {
-		return err
-	}
-	return nil
+
+	// All the vertices data are consumed at the end of the frame, and the data backend can be
+	// available after that. Until then, lock the vertices backend.
+	return graphics.LockAndResetVertices(func() error {
+		if err := buffered.EndFrame(); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 func (c *uiContext) updateImpl(updateCount int) error {

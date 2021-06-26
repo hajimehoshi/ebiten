@@ -408,8 +408,8 @@ func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageNum]*Image,
 	// All images must be resolved and not stale each after frame.
 	// So we don't have to care if image is stale or not here.
 
-	// vertices is generated at ebiten package and doesn't have to be copied so far.
-	// This depends on the implementation of graphics.QuadVertices.
+	vs := make([]float32, len(vertices))
+	copy(vs, vertices)
 
 	is := make([]uint16, len(indices))
 	copy(is, indices)
@@ -417,7 +417,7 @@ func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageNum]*Image,
 	item := &drawTrianglesHistoryItem{
 		images:    srcs,
 		offsets:   offsets,
-		vertices:  vertices,
+		vertices:  vs,
 		indices:   is,
 		colorm:    colorm,
 		mode:      mode,
