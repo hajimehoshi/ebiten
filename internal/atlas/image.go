@@ -39,50 +39,48 @@ var (
 )
 
 type temporaryPixels struct {
-	pixels     []byte
-	pos        int
-	totalUse   int
-	unusedTime int
+	pixels           []byte
+	pos              int
+	notFullyUsedTime int
 }
 
 var theTemporaryPixels temporaryPixels
 
+func temporaryPixelsByteSize(size int) int {
+	l := 16
+	for l < size {
+		l *= 2
+	}
+	return l
+}
+
 func (t *temporaryPixels) alloc(size int) []byte {
 	if len(t.pixels) < t.pos+size {
-		newL := len(t.pixels)
-		if newL == 0 {
-			newL = 16
-		}
-		for newL < t.pos+size {
-			newL *= 2
-		}
-		t.pixels = make([]byte, newL)
+		t.pixels = make([]byte, temporaryPixelsByteSize(t.pos+size))
 		t.pos = 0
 	}
 	pix := t.pixels[t.pos : t.pos+size]
 	t.pos += size
-	t.totalUse += size
 	return pix
 }
 
 func (t *temporaryPixels) resetAtFrameEnd() {
-	const maxUnusedTime = 60
+	const maxNotFullyUsedTime = 60
 
-	if t.totalUse == 0 {
-		if t.unusedTime < maxUnusedTime {
-			t.unusedTime++
+	if temporaryPixelsByteSize(t.pos) < len(t.pixels) {
+		if t.notFullyUsedTime < maxNotFullyUsedTime {
+			t.notFullyUsedTime++
 		}
 	} else {
-		t.unusedTime = 0
+		t.notFullyUsedTime = 0
 	}
 
 	// Let the pixels GCed if this is not used for a while.
-	if t.unusedTime == maxUnusedTime && len(t.pixels) > 0 {
+	if t.notFullyUsedTime == maxNotFullyUsedTime && len(t.pixels) > 0 {
 		t.pixels = nil
 	}
 
 	t.pos = 0
-	t.totalUse = 0
 }
 
 func max(a, b int) int {
