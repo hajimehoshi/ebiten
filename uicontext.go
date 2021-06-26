@@ -143,20 +143,7 @@ func (c *uiContext) offsets(deviceScaleFactor float64) (float64, float64) {
 
 func (c *uiContext) Update() error {
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
-
-	if err, ok := c.err.Load().(error); ok && err != nil {
-		return err
-	}
-	if err := buffered.BeginFrame(); err != nil {
-		return err
-	}
-	if err := c.update(clock.Update(MaxTPS())); err != nil {
-		return err
-	}
-	if err := buffered.EndFrame(); err != nil {
-		return err
-	}
-	return nil
+	return c.update(clock.Update(MaxTPS()))
 }
 
 func (c *uiContext) ForceUpdate() error {
@@ -164,14 +151,17 @@ func (c *uiContext) ForceUpdate() error {
 	if c.outsideWidth == 0 || c.outsideHeight == 0 {
 		return nil
 	}
+	return c.update(1)
+}
 
+func (c *uiContext) update(updateCount int) error {
 	if err, ok := c.err.Load().(error); ok && err != nil {
 		return err
 	}
 	if err := buffered.BeginFrame(); err != nil {
 		return err
 	}
-	if err := c.update(1); err != nil {
+	if err := c.updateImpl(updateCount); err != nil {
 		return err
 	}
 	if err := buffered.EndFrame(); err != nil {
@@ -180,7 +170,7 @@ func (c *uiContext) ForceUpdate() error {
 	return nil
 }
 
-func (c *uiContext) update(updateCount int) error {
+func (c *uiContext) updateImpl(updateCount int) error {
 	c.updateOffscreen()
 
 	// Ensure that Update is called once before Draw so that Update can be used for initialization.
