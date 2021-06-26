@@ -20,7 +20,6 @@ package main
 import (
 	"fmt"
 	"syscall/js"
-	"time"
 )
 
 func (g *Game) loseAndRestoreContext() {
@@ -48,17 +47,5 @@ func (g *Game) loseAndRestoreContext() {
 
 	ext.Call("loseContext")
 	fmt.Println("Lost the context!")
-	fmt.Println("The context is automatically restored after 3 seconds.")
 	g.lost = true
-
-	// If and only if the context is lost by loseContext, you need to call restoreContext. Note that in usual
-	// case of context lost, you cannot call restoreContext but the context should be restored automatically.
-	//
-	// After the context is lost, update will not be called. Instead, fire the goroutine to restore the context.
-	go func() {
-		time.Sleep(3 * time.Second)
-		ext.Call("restoreContext")
-		fmt.Println("Restored the context!")
-		g.lost = false
-	}()
 }

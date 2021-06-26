@@ -23,7 +23,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gles"
 	"github.com/hajimehoshi/ebiten/v2/internal/jsutil"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
-	"github.com/hajimehoshi/ebiten/v2/internal/web"
 )
 
 type (
@@ -85,7 +84,6 @@ const (
 
 var (
 	isWebGL2Available = !forceWebGL1 && (js.Global().Get("WebGL2RenderingContext").Truthy() || js.Global().Get("go2cpp").Truthy())
-	needsRestoring    = !web.IsMobileBrowser() && !js.Global().Get("go2cpp").Truthy()
 )
 
 type contextImpl struct {
@@ -526,7 +524,8 @@ func (c *context) flush() {
 }
 
 func (c *context) needsRestoring() bool {
-	return needsRestoring
+	// Though it is possible to have a logic to restore the graphics data for GPU, do not use it for performance (#1603).
+	return false
 }
 
 func (c *context) canUsePBO() bool {

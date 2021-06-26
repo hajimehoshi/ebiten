@@ -22,7 +22,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
-	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 )
 
 var (
@@ -58,7 +57,6 @@ type UserInterface struct {
 	cursorShape         driver.CursorShape
 
 	sizeChanged bool
-	contextLost bool
 
 	lastDeviceScaleFactor float64
 
@@ -290,11 +288,6 @@ func (u *UserInterface) loop(context driver.UIContext) <-chan error {
 
 	var cf js.Func
 	f := func() {
-		if u.contextLost {
-			requestAnimationFrame.Invoke(cf)
-			return
-		}
-
 		if err := u.update(); err != nil {
 			close(reqStopAudioCh)
 			<-resStopAudioCh
@@ -545,12 +538,7 @@ func setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "webglcontextlost", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.contextLost = true
-		restorable.OnContextLost()
-		return nil
-	}))
-	v.Call("addEventListener", "webglcontextrestored", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		theUI.contextLost = false
+		window.Get("location").Call("reload")
 		return nil
 	}))
 }
