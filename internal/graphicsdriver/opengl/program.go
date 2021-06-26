@@ -16,11 +16,11 @@ package opengl
 
 import (
 	"fmt"
+	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
-	"github.com/hajimehoshi/ebiten/v2/internal/web"
 )
 
 const floatSizeInBytes = 4
@@ -164,7 +164,7 @@ func (s *openGLState) reset(context *context) error {
 
 	// On browsers (at least Chrome), buffers are already detached from the context
 	// and must not be deleted by DeleteBuffer.
-	if !web.IsBrowser() {
+	if runtime.GOOS != "js" {
 		if !s.arrayBuffer.equal(zeroBuffer) {
 			context.deleteBuffer(s.arrayBuffer)
 		}
