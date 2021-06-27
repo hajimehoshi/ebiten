@@ -699,7 +699,7 @@ type newShaderCommand struct {
 }
 
 func (c *newShaderCommand) String() string {
-	return fmt.Sprintf("new-shader-image")
+	return fmt.Sprintf("new-shader")
 }
 
 // Exec executes a newShaderCommand.
