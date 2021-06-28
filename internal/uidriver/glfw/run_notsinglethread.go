@@ -46,12 +46,14 @@ func (u *UserInterface) Run(uicontext driver.UIContext) error {
 		_ = u.t.Call(func() error {
 			if err := u.init(); err != nil {
 				ch <- err
+				return nil
 			}
 			return nil
 		})
 
 		if err := u.loop(); err != nil {
 			ch <- err
+			return
 		}
 	}()
 
