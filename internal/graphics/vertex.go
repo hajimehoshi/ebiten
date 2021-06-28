@@ -68,7 +68,7 @@ type verticesBackend struct {
 }
 
 func verticesBackendFloat32Size(size int) int {
-	l := 1024
+	l := 128 * VertexFloatNum
 	for l < size {
 		l *= 2
 	}
