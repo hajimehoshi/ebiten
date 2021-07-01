@@ -684,7 +684,14 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion drive
 	return nil
 }
 
-func (g *Graphics) Draw(dstID, srcID driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region) error {
+func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, uniforms []interface{}) error {
+	if shader == driver.InvalidShaderID {
+		return g.drawTrianglesWithDefaultShader(dstID, srcIDs[0], indexLen, indexOffset, mode, colorM, filter, address, dstRegion, srcRegion)
+	}
+	return g.drawTrianglesWithShader(dstID, srcIDs, offsets, shader, indexLen, indexOffset, mode, dstRegion, srcRegion, uniforms)
+}
+
+func (g *Graphics) drawTrianglesWithDefaultShader(dstID, srcID driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region) error {
 	dst := g.images[dstID]
 
 	srcs := [graphics.ShaderImageNum]*Image{g.images[srcID]}
@@ -930,7 +937,7 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	bce.EndEncoding()
 }
 
-func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, dstRegion, srcRegion driver.Region, mode driver.CompositeMode, uniforms []interface{}) error {
+func (g *Graphics) drawTrianglesWithShader(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, dstRegion, srcRegion driver.Region, uniforms []interface{}) error {
 	dst := g.images[dstID]
 
 	var srcs [graphics.ShaderImageNum]*Image

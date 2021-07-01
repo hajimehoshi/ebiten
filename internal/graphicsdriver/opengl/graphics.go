@@ -142,7 +142,14 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) {
 	g.context.elementArrayBufferSubData(indices)
 }
 
-func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region) error {
+func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, uniforms []interface{}) error {
+	if shader == driver.InvalidShaderID {
+		return g.drawTrianglesWithDefaultShader(dstID, srcIDs[0], indexLen, indexOffset, mode, colorM, filter, address, dstRegion, srcRegion)
+	}
+	return g.drawTrianglesWithShader(dstID, srcIDs, offsets, shader, indexLen, indexOffset, mode, dstRegion, srcRegion, uniforms)
+}
+
+func (g *Graphics) drawTrianglesWithDefaultShader(dst, src driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region) error {
 	destination := g.images[dst]
 	source := g.images[src]
 
@@ -289,7 +296,7 @@ func (g *Graphics) removeShader(shader *Shader) {
 	delete(g.shaders, shader.id)
 }
 
-func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, dstRegion, srcRegion driver.Region, mode driver.CompositeMode, uniforms []interface{}) error {
+func (g *Graphics) drawTrianglesWithShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, dstRegion, srcRegion driver.Region, uniforms []interface{}) error {
 	d := g.images[dst]
 	s := g.shaders[shader]
 

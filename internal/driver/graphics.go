@@ -51,18 +51,13 @@ type Graphics interface {
 
 	NewShader(program *shaderir.Program) (Shader, error)
 
-	// Draw draws an image onto another image.
-	//
-	// TODO: Merge this into DrawShader.
-	Draw(dst, src ImageID, indexLen int, indexOffset int, mode CompositeMode, colorM *affine.ColorM, filter Filter, address Address, dstRegion, srcRegion Region) error
-
-	// DrawShader draws the shader.
+	// DrawTriangles draws an image onto another image with the given parameters.
 	//
 	// uniforms represents a colletion of uniform variables. The values must be one of these types:
 	//
 	//   * float32
 	//   * []float32
-	DrawShader(dst ImageID, srcs [graphics.ShaderImageNum]ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader ShaderID, indexLen int, indexOffset int, dstRegion, srcRegion Region, mode CompositeMode, uniforms []interface{}) error
+	DrawTriangles(dst ImageID, srcs [graphics.ShaderImageNum]ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader ShaderID, indexLen int, indexOffset int, mode CompositeMode, colorM *affine.ColorM, filter Filter, address Address, dstRegion, srcRegion Region, uniforms []interface{}) error
 }
 
 // GraphicsNotReady represents that the graphics driver is not ready for recovering from the context lost.
