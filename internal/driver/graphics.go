@@ -30,8 +30,8 @@ type Region struct {
 }
 
 const (
-	InvalidImageID  = -1
-	InvalidShaderID = -1
+	InvalidImageID  = 0
+	InvalidShaderID = 0
 )
 
 type Graphics interface {

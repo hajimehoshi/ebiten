@@ -74,15 +74,13 @@ func (g *Graphics) checkSize(width, height int) {
 }
 
 func (g *Graphics) genNextImageID() driver.ImageID {
-	id := g.nextImageID
 	g.nextImageID++
-	return id
+	return g.nextImageID
 }
 
 func (g *Graphics) genNextShaderID() driver.ShaderID {
-	id := g.nextShaderID
 	g.nextShaderID++
-	return id
+	return g.nextShaderID
 }
 
 func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
