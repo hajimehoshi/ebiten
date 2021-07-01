@@ -684,57 +684,110 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion drive
 	return nil
 }
 
-func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, uniforms []interface{}) error {
-	if shader == driver.InvalidShaderID {
-		return g.drawTrianglesWithDefaultShader(dstID, srcIDs[0], indexLen, indexOffset, mode, colorM, filter, address, dstRegion, srcRegion)
-	}
-	return g.drawTrianglesWithShader(dstID, srcIDs, offsets, shader, indexLen, indexOffset, mode, dstRegion, srcRegion, uniforms)
-}
-
-func (g *Graphics) drawTrianglesWithDefaultShader(dstID, srcID driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region) error {
+func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, uniforms []interface{}) error {
 	dst := g.images[dstID]
 
-	srcs := [graphics.ShaderImageNum]*Image{g.images[srcID]}
+	var srcs [graphics.ShaderImageNum]*Image
+	for i, srcID := range srcIDs {
+		srcs[i] = g.images[srcID]
+	}
 
 	var rps mtl.RenderPipelineState
-	if dst.screen && filter == driver.FilterScreen {
-		rps = g.screenRPS
+	var uniformVars []interface{}
+	if shaderID == driver.InvalidShaderID {
+		if dst.screen && filter == driver.FilterScreen {
+			rps = g.screenRPS
+		} else {
+			rps = g.rpss[rpsKey{
+				screen:        dst.screen,
+				useColorM:     colorM != nil,
+				filter:        filter,
+				address:       address,
+				compositeMode: mode,
+			}]
+		}
+
+		w, h := dst.internalSize()
+		sourceSize := []float32{0, 0}
+		if filter != driver.FilterNearest {
+			w, h := srcs[0].internalSize()
+			sourceSize[0] = float32(w)
+			sourceSize[1] = float32(h)
+		}
+		esBody, esTranslate := colorM.UnsafeElements()
+		scale := float32(0)
+		if filter == driver.FilterScreen {
+			scale = float32(dst.width) / float32(srcs[0].width)
+		}
+		uniformVars = []interface{}{
+			[]float32{float32(w), float32(h)},
+			sourceSize,
+			esBody,
+			esTranslate,
+			scale,
+			[]float32{
+				srcRegion.X,
+				srcRegion.Y,
+				srcRegion.X + srcRegion.Width,
+				srcRegion.Y + srcRegion.Height,
+			},
+		}
 	} else {
-		rps = g.rpss[rpsKey{
-			screen:        dst.screen,
-			useColorM:     colorM != nil,
-			filter:        filter,
-			address:       address,
-			compositeMode: mode,
-		}]
+		var err error
+		rps, err = g.shaders[shaderID].RenderPipelineState(g.view.getMTLDevice(), mode)
+		if err != nil {
+			return err
+		}
+
+		uniformVars = make([]interface{}, graphics.PreservedUniformVariablesNum+len(uniforms))
+
+		// Set the destination texture size.
+		dw, dh := dst.internalSize()
+		uniformVars[graphics.DestinationTextureSizeUniformVariableIndex] = []float32{float32(dw), float32(dh)}
+
+		// Set the source texture sizes.
+		usizes := make([]float32, 2*len(srcs))
+		for i, src := range srcs {
+			if src != nil {
+				w, h := src.internalSize()
+				usizes[2*i] = float32(w)
+				usizes[2*i+1] = float32(h)
+			}
+		}
+		uniformVars[graphics.TextureSizesUniformVariableIndex] = usizes
+
+		// Set the destination region's origin.
+		udorigin := []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
+		uniformVars[graphics.TextureDestinationRegionOriginUniformVariableIndex] = udorigin
+
+		// Set the destination region's size.
+		udsize := []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
+		uniformVars[graphics.TextureDestinationRegionSizeUniformVariableIndex] = udsize
+
+		// Set the source offsets.
+		uoffsets := make([]float32, 2*len(offsets))
+		for i, offset := range offsets {
+			uoffsets[2*i] = offset[0]
+			uoffsets[2*i+1] = offset[1]
+		}
+		uniformVars[graphics.TextureSourceOffsetsUniformVariableIndex] = uoffsets
+
+		// Set the source region's origin of texture0.
+		usorigin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
+		uniformVars[graphics.TextureSourceRegionOriginUniformVariableIndex] = usorigin
+
+		// Set the source region's size of texture0.
+		ussize := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
+		uniformVars[graphics.TextureSourceRegionSizeUniformVariableIndex] = ussize
+
+		// Set the additional uniform variables.
+		for i, v := range uniforms {
+			const offset = graphics.PreservedUniformVariablesNum
+			uniformVars[offset+i] = v
+		}
 	}
 
-	w, h := dst.internalSize()
-	sourceSize := []float32{0, 0}
-	if filter != driver.FilterNearest {
-		w, h := srcs[0].internalSize()
-		sourceSize[0] = float32(w)
-		sourceSize[1] = float32(h)
-	}
-	esBody, esTranslate := colorM.UnsafeElements()
-	scale := float32(0)
-	if filter == driver.FilterScreen {
-		scale = float32(dst.width) / float32(srcs[0].width)
-	}
-	uniforms := []interface{}{
-		[]float32{float32(w), float32(h)},
-		sourceSize,
-		esBody,
-		esTranslate,
-		scale,
-		[]float32{
-			srcRegion.X,
-			srcRegion.Y,
-			srcRegion.X + srcRegion.Width,
-			srcRegion.Y + srcRegion.Height,
-		},
-	}
-	if err := g.draw(rps, dst, dstRegion, srcs, indexLen, indexOffset, uniforms); err != nil {
+	if err := g.draw(rps, dst, dstRegion, srcs, indexLen, indexOffset, uniformVars); err != nil {
 		return err
 	}
 	return nil
@@ -935,70 +988,4 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 		bce.CopyFromTexture(t, 0, 0, so, ss, i.texture, 0, 0, do)
 	}
 	bce.EndEncoding()
-}
-
-func (g *Graphics) drawTrianglesWithShader(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, dstRegion, srcRegion driver.Region, uniforms []interface{}) error {
-	dst := g.images[dstID]
-
-	var srcs [graphics.ShaderImageNum]*Image
-	for i, srcID := range srcIDs {
-		srcs[i] = g.images[srcID]
-	}
-
-	rps, err := g.shaders[shader].RenderPipelineState(g.view.getMTLDevice(), mode)
-	if err != nil {
-		return err
-	}
-
-	us := make([]interface{}, graphics.PreservedUniformVariablesNum+len(uniforms))
-
-	// Set the destination texture size.
-	dw, dh := dst.internalSize()
-	us[graphics.DestinationTextureSizeUniformVariableIndex] = []float32{float32(dw), float32(dh)}
-
-	// Set the source texture sizes.
-	usizes := make([]float32, 2*len(srcs))
-	for i, src := range srcs {
-		if src != nil {
-			w, h := src.internalSize()
-			usizes[2*i] = float32(w)
-			usizes[2*i+1] = float32(h)
-		}
-	}
-	us[graphics.TextureSizesUniformVariableIndex] = usizes
-
-	// Set the destination region's origin.
-	udorigin := []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
-	us[graphics.TextureDestinationRegionOriginUniformVariableIndex] = udorigin
-
-	// Set the destination region's size.
-	udsize := []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
-	us[graphics.TextureDestinationRegionSizeUniformVariableIndex] = udsize
-
-	// Set the source offsets.
-	uoffsets := make([]float32, 2*len(offsets))
-	for i, offset := range offsets {
-		uoffsets[2*i] = offset[0]
-		uoffsets[2*i+1] = offset[1]
-	}
-	us[graphics.TextureSourceOffsetsUniformVariableIndex] = uoffsets
-
-	// Set the source region's origin of texture0.
-	usorigin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
-	us[graphics.TextureSourceRegionOriginUniformVariableIndex] = usorigin
-
-	// Set the source region's size of texture0.
-	ussize := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
-	us[graphics.TextureSourceRegionSizeUniformVariableIndex] = ussize
-
-	// Set the additional uniform variables.
-	for i, v := range uniforms {
-		const offset = graphics.PreservedUniformVariablesNum
-		us[offset+i] = v
-	}
-
-	if err := g.draw(rps, dst, dstRegion, srcs, indexLen, indexOffset, us); err != nil {
-		return err
-	}
-	return nil
 }
