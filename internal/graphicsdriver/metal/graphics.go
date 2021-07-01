@@ -413,10 +413,6 @@ func (g *Graphics) genNextImageID() driver.ImageID {
 	return id
 }
 
-func (g *Graphics) InvalidImageID() driver.ImageID {
-	return -1
-}
-
 func (g *Graphics) genNextShaderID() driver.ShaderID {
 	id := g.nextShaderID
 	g.nextShaderID++

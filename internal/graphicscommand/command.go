@@ -417,7 +417,7 @@ func (c *drawTrianglesCommand) Exec(indexOffset int) error {
 		var imgs [graphics.ShaderImageNum]driver.ImageID
 		for i, src := range c.srcs {
 			if src == nil {
-				imgs[i] = theGraphicsDriver.InvalidImageID()
+				imgs[i] = driver.InvalidImageID
 				continue
 			}
 			imgs[i] = src.image.ID()

@@ -79,10 +79,6 @@ func (g *Graphics) genNextImageID() driver.ImageID {
 	return id
 }
 
-func (g *Graphics) InvalidImageID() driver.ImageID {
-	return -1
-}
-
 func (g *Graphics) genNextShaderID() driver.ShaderID {
 	id := g.nextShaderID
 	g.nextShaderID++
@@ -391,7 +387,7 @@ func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]
 
 	var ts [graphics.ShaderImageNum]textureVariable
 	for i, src := range srcs {
-		if src == g.InvalidImageID() {
+		if src == driver.InvalidImageID {
 			continue
 		}
 		ts[i].valid = true

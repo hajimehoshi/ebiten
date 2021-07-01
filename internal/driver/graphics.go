@@ -29,6 +29,11 @@ type Region struct {
 	Height float32
 }
 
+const (
+	InvalidImageID  = -1
+	InvalidShaderID = -1
+)
+
 type Graphics interface {
 	Begin()
 	End()
@@ -43,7 +48,6 @@ type Graphics interface {
 	IsGL() bool
 	HasHighPrecisionFloat() bool
 	MaxImageSize() int
-	InvalidImageID() ImageID
 
 	NewShader(program *shaderir.Program) (Shader, error)
 
