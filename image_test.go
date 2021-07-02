@@ -2207,3 +2207,36 @@ func TestImageClip(t *testing.T) {
 		}
 	}
 }
+
+// Issue #1691
+func TestImageSubImageFill(t *testing.T) {
+	dst := NewImage(3, 3).SubImage(image.Rect(1, 1, 2, 2)).(*Image)
+	dst.Fill(color.White)
+	for j := 0; j < 3; j++ {
+		for i := 0; i < 3; i++ {
+			got := dst.At(i, j)
+			var want color.RGBA
+			if i == 1 && j == 1 {
+				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
+			}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+
+	dst = NewImage(17, 31).SubImage(image.Rect(3, 4, 8, 10)).(*Image)
+	dst.Fill(color.White)
+	for j := 0; j < 31; j++ {
+		for i := 0; i < 17; i++ {
+			got := dst.At(i, j)
+			var want color.RGBA
+			if 3 <= i && i < 8 && 4 <= j && j < 10 {
+				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
+			}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
