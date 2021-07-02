@@ -26,11 +26,12 @@ import (
 )
 
 type (
-	textureNative     js.Value
-	framebufferNative js.Value
-	shader            js.Value
-	buffer            js.Value
-	uniformLocation   js.Value
+	textureNative      js.Value
+	renderbufferNative js.Value
+	framebufferNative  js.Value
+	shader             js.Value
+	buffer             js.Value
+	uniformLocation    js.Value
 
 	attribLocation int
 	programID      int
@@ -42,6 +43,10 @@ type (
 
 func (t textureNative) equal(rhs textureNative) bool {
 	return js.Value(t).Equal(js.Value(rhs))
+}
+
+func (r renderbufferNative) equal(rhs renderbufferNative) bool {
+	return js.Value(r).Equal(js.Value(rhs))
 }
 
 func (f framebufferNative) equal(rhs framebufferNative) bool {
@@ -100,6 +105,7 @@ func (c *context) initGL() {
 		attr := js.Global().Get("Object").New()
 		attr.Set("alpha", true)
 		attr.Set("premultipliedAlpha", true)
+		attr.Set("stencil", true)
 
 		if isWebGL2Available {
 			gl = canvas.Call("getContext", "webgl2", attr)
@@ -165,7 +171,7 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 	gl := c.gl
 	t := gl.createTexture.Invoke()
 	if !t.Truthy() {
-		return textureNative(js.Null()), errors.New("opengl: glGenTexture failed")
+		return textureNative(js.Null()), errors.New("opengl: createTexture failed")
 	}
 	c.bindTexture(textureNative(t))
 
@@ -240,6 +246,37 @@ func (c *context) isTexture(t textureNative) bool {
 	panic("opengl: isTexture is not implemented")
 }
 
+func (c *context) newRenderbuffer(width, height int) (renderbufferNative, error) {
+	gl := c.gl
+	r := gl.createRenderbuffer.Invoke()
+	if !r.Truthy() {
+		return renderbufferNative(js.Null()), errors.New("opengl: createRenderbuffer failed")
+	}
+
+	c.bindRenderbuffer(renderbufferNative(r))
+	// TODO: Is STENCIL_INDEX8 portable?
+	// https://stackoverflow.com/questions/11084961/binding-a-stencil-render-buffer-to-a-frame-buffer-in-opengl
+	gl.renderbufferStorage.Invoke(gles.RENDERBUFFER, gles.STENCIL_INDEX8, width, height)
+
+	return renderbufferNative(r), nil
+}
+
+func (c *context) bindRenderbufferImpl(r renderbufferNative) {
+	gl := c.gl
+	gl.bindRenderbuffer.Invoke(gles.RENDERBUFFER, js.Value(r))
+}
+
+func (c *context) deleteRenderbuffer(r renderbufferNative) {
+	gl := c.gl
+	if !gl.isRenderbuffer.Invoke(js.Value(r)).Bool() {
+		return
+	}
+	if c.lastRenderbuffer.equal(r) {
+		c.lastRenderbuffer = renderbufferNative(js.Null())
+	}
+	gl.deleteRenderbuffer.Invoke(js.Value(r))
+}
+
 func (c *context) newFramebuffer(t textureNative) (framebufferNative, error) {
 	gl := c.gl
 	f := gl.createFramebuffer.Invoke()
@@ -251,6 +288,18 @@ func (c *context) newFramebuffer(t textureNative) (framebufferNative, error) {
 	}
 
 	return framebufferNative(f), nil
+}
+
+func (c *context) bindStencilBuffer(f framebufferNative, r renderbufferNative) error {
+	gl := c.gl
+	c.bindFramebuffer(f)
+
+	gl.framebufferRenderbuffer.Invoke(gles.FRAMEBUFFER, gles.STENCIL_ATTACHMENT, gles.RENDERBUFFER, js.Value(r))
+	if s := gl.checkFramebufferStatus.Invoke(gles.FRAMEBUFFER); s.Int() != gles.FRAMEBUFFER_COMPLETE {
+		return errors.New(fmt.Sprintf("opengl: framebufferRenderbuffer failed: %d", s.Int()))
+	}
+	gl.clear.Invoke(gles.STENCIL_BUFFER_BIT)
+	return nil
 }
 
 func (c *context) setViewportImpl(width, height int) {
@@ -597,4 +646,28 @@ func (c *context) getBufferSubData(buffer buffer, width, height int) []byte {
 	gl.getBufferSubData.Invoke(gles.PIXEL_UNPACK_BUFFER, 0, arr, 0, l)
 	gl.bindBuffer.Invoke(gles.PIXEL_UNPACK_BUFFER, nil)
 	return jsutil.Uint8ArrayToSlice(arr, l)
+}
+
+func (c *context) enableStencilTest() {
+	gl := c.gl
+	gl.enable.Invoke(gles.STENCIL_TEST)
+}
+
+func (c *context) disableStencilTest() {
+	gl := c.gl
+	gl.disable.Invoke(gles.STENCIL_TEST)
+}
+
+func (c *context) beginStencilWithEvenOddRule() {
+	gl := c.gl
+	gl.stencilFunc.Invoke(gles.ALWAYS, 0x00, 0xff)
+	gl.stencilOp.Invoke(gles.KEEP, gles.KEEP, gles.INVERT)
+	gl.colorMask.Invoke(false, false, false, false)
+}
+
+func (c *context) endStencilWithEvenOddRule() {
+	gl := c.gl
+	gl.stencilFunc.Invoke(gles.NOTEQUAL, 0x00, 0xff)
+	gl.stencilOp.Invoke(gles.ZERO, gles.ZERO, gles.ZERO)
+	gl.colorMask.Invoke(true, true, true, true)
 }

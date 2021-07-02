@@ -23,6 +23,7 @@ type Image struct {
 	id          driver.ImageID
 	graphics    *Graphics
 	texture     textureNative
+	stencil     renderbufferNative
 	framebuffer *framebuffer
 	pbo         buffer
 	width       int
@@ -47,6 +48,9 @@ func (i *Image) Dispose() {
 	}
 	if !i.texture.equal(*new(textureNative)) {
 		i.graphics.context.deleteTexture(i.texture)
+	}
+	if !i.stencil.equal(*new(renderbufferNative)) {
+		i.graphics.context.deleteRenderbuffer(i.stencil)
 	}
 
 	i.graphics.removeImage(i)
@@ -102,6 +106,27 @@ func (i *Image) ensureFramebuffer() error {
 		return err
 	}
 	i.framebuffer = f
+	return nil
+}
+
+func (i *Image) ensureStencilBuffer() error {
+	if !i.stencil.equal(*new(renderbufferNative)) {
+		return nil
+	}
+
+	if err := i.ensureFramebuffer(); err != nil {
+		return err
+	}
+
+	r, err := i.graphics.context.newRenderbuffer(i.framebufferSize())
+	if err != nil {
+		return err
+	}
+	i.stencil = r
+
+	if err := i.graphics.context.bindStencilBuffer(i.framebuffer.native, i.stencil); err != nil {
+		return err
+	}
 	return nil
 }
 

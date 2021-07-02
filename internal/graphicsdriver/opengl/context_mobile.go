@@ -27,15 +27,20 @@ import (
 )
 
 type (
-	textureNative     uint32
-	framebufferNative uint32
-	shader            uint32
-	program           uint32
-	buffer            uint32
+	textureNative      uint32
+	renderbufferNative uint32
+	framebufferNative  uint32
+	shader             uint32
+	program            uint32
+	buffer             uint32
 )
 
 func (t textureNative) equal(rhs textureNative) bool {
 	return t == rhs
+}
+
+func (r renderbufferNative) equal(rhs renderbufferNative) bool {
+	return r == rhs
 }
 
 func (f framebufferNative) equal(rhs framebufferNative) bool {
@@ -185,6 +190,34 @@ func (c *context) isTexture(t textureNative) bool {
 	return c.ctx.IsTexture(uint32(t))
 }
 
+func (c *context) newRenderbuffer(width, height int) (renderbufferNative, error) {
+	r := c.ctx.GenRenderbuffers(1)[0]
+	if r <= 0 {
+		return 0, errors.New("opengl: creating renderbuffer failed")
+	}
+
+	renderbuffer := renderbufferNative(r)
+	c.bindRenderbuffer(renderbuffer)
+
+	c.ctx.RenderbufferStorage(gles.RENDERBUFFER, gles.STENCIL_INDEX8, int32(width), int32(height))
+
+	return renderbuffer, nil
+}
+
+func (c *context) bindRenderbufferImpl(r renderbufferNative) {
+	c.ctx.BindRenderbuffer(gles.RENDERBUFFER, uint32(r))
+}
+
+func (c *context) deleteRenderbuffer(r renderbufferNative) {
+	if !c.ctx.IsRenderbuffer(uint32(r)) {
+		return
+	}
+	if c.lastRenderbuffer.equal(r) {
+		c.lastRenderbuffer = 0
+	}
+	c.ctx.DeleteRenderbuffers([]uint32{uint32(r)})
+}
+
 func (c *context) newFramebuffer(texture textureNative) (framebufferNative, error) {
 	f := c.ctx.GenFramebuffers(1)[0]
 	if f <= 0 {
@@ -204,6 +237,17 @@ func (c *context) newFramebuffer(texture textureNative) (framebufferNative, erro
 		return 0, fmt.Errorf("opengl: creating framebuffer failed: unknown error")
 	}
 	return framebufferNative(f), nil
+}
+
+func (c *context) bindStencilBuffer(f framebufferNative, r renderbufferNative) error {
+	c.bindFramebuffer(f)
+
+	c.ctx.FramebufferRenderbuffer(gles.FRAMEBUFFER, gles.STENCIL_ATTACHMENT, gles.RENDERBUFFER, uint32(r))
+	if s := c.ctx.CheckFramebufferStatus(gles.FRAMEBUFFER); s != gles.FRAMEBUFFER_COMPLETE {
+		return errors.New(fmt.Sprintf("opengl: glFramebufferRenderbuffer failed: %d", s))
+	}
+	c.ctx.Clear(gles.STENCIL_BUFFER_BIT)
+	return nil
 }
 
 func (c *context) setViewportImpl(width, height int) {
@@ -456,4 +500,24 @@ func (c *context) getBufferSubData(buffer buffer, width, height int) []byte {
 	// gl.GetBufferSubData doesn't exist on OpenGL ES 2 and 3.
 	// As PBO is not used in mobiles, leave this unimplemented so far.
 	panic("opengl: getBufferSubData is not implemented for mobiles")
+}
+
+func (c *context) enableStencilTest() {
+	c.ctx.Enable(gles.STENCIL_TEST)
+}
+
+func (c *context) disableStencilTest() {
+	c.ctx.Disable(gles.STENCIL_TEST)
+}
+
+func (c *context) beginStencilWithEvenOddRule() {
+	c.ctx.StencilFunc(gles.ALWAYS, 0x00, 0xff)
+	c.ctx.StencilOp(gles.KEEP, gles.KEEP, gles.INVERT)
+	c.ctx.ColorMask(false, false, false, false)
+}
+
+func (c *context) endStencilWithEvenOddRule() {
+	c.ctx.StencilFunc(gles.NOTEQUAL, 0x00, 0xff)
+	c.ctx.StencilOp(gles.ZERO, gles.ZERO, gles.ZERO)
+	c.ctx.ColorMask(true, true, true, true)
 }

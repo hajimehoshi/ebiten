@@ -19,6 +19,7 @@ package main
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 	"log"
 	"math"
@@ -27,6 +28,15 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
+
+var (
+	emptyImage    = ebiten.NewImage(3, 3)
+	emptySubImage = emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
+)
+
+func init() {
+	emptyImage.Fill(color.White)
+}
 
 const (
 	screenWidth  = 640
@@ -99,10 +109,18 @@ func drawEbitenText(screen *ebiten.Image) {
 	path.LineTo(320, 55)
 	path.LineTo(290, 20)
 
-	op := &vector.FillOptions{
-		Color: color.RGBA{0xdb, 0x56, 0x20, 0xff},
+	op := &ebiten.DrawTrianglesOptions{
+		EvenOdd: true,
 	}
-	path.Fill(screen, op)
+	vs, is := path.AppendVerticesAndIndices(nil, nil)
+	for i := range vs {
+		vs[i].SrcX = 1
+		vs[i].SrcY = 1
+		vs[i].ColorR = 0xdb / float32(0xff)
+		vs[i].ColorG = 0x56 / float32(0xff)
+		vs[i].ColorB = 0x20 / float32(0xff)
+	}
+	screen.DrawTriangles(vs, is, emptySubImage, op)
 }
 
 func drawEbitenLogo(screen *ebiten.Image, x, y int) {
@@ -131,10 +149,18 @@ func drawEbitenLogo(screen *ebiten.Image, x, y int) {
 	path.LineTo(xf+unit, yf+3*unit)
 	path.LineTo(xf+unit, yf+4*unit)
 
-	op := &vector.FillOptions{
-		Color: color.RGBA{0xdb, 0x56, 0x20, 0xff},
+	op := &ebiten.DrawTrianglesOptions{
+		EvenOdd: true,
 	}
-	path.Fill(screen, op)
+	vs, is := path.AppendVerticesAndIndices(nil, nil)
+	for i := range vs {
+		vs[i].SrcX = 1
+		vs[i].SrcY = 1
+		vs[i].ColorR = 0xdb / float32(0xff)
+		vs[i].ColorG = 0x56 / float32(0xff)
+		vs[i].ColorB = 0x20 / float32(0xff)
+	}
+	screen.DrawTriangles(vs, is, emptySubImage, op)
 }
 
 func maxCounter(index int) int {
@@ -166,10 +192,18 @@ func drawWave(screen *ebiten.Image, counter int) {
 	path.LineTo(screenWidth, screenHeight)
 	path.LineTo(0, screenHeight)
 
-	op := &vector.FillOptions{
-		Color: color.RGBA{0x33, 0x66, 0xff, 0xff},
+	op := &ebiten.DrawTrianglesOptions{
+		EvenOdd: true,
 	}
-	path.Fill(screen, op)
+	vs, is := path.AppendVerticesAndIndices(nil, nil)
+	for i := range vs {
+		vs[i].SrcX = 1
+		vs[i].SrcY = 1
+		vs[i].ColorR = 0x33 / float32(0xff)
+		vs[i].ColorG = 0x66 / float32(0xff)
+		vs[i].ColorB = 0xff / float32(0xff)
+	}
+	screen.DrawTriangles(vs, is, emptySubImage, op)
 }
 
 type Game struct {

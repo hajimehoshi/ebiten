@@ -213,7 +213,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	is := graphics.QuadIndices()
 
 	srcs := [graphics.ShaderImageNum]*mipmap.Mipmap{img.mipmap}
-	i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.AddressUnsafe, dstRegion, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, canSkipMipmap(options.GeoM, filter))
+	i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.AddressUnsafe, dstRegion, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false, canSkipMipmap(options.GeoM, filter))
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -271,6 +271,19 @@ type DrawTrianglesOptions struct {
 	// Address is a sampler address mode.
 	// The default (zero) value is AddressUnsafe.
 	Address Address
+
+	// EvenOdd represents whether the even-odd rule is applied or not.
+	//
+	// If EvenOdd is true, triangles are rendered based on the even-odd rule. If false, triangles are rendered without condition.
+	// Whether overlapped regions by multiple triangles is rendered or not depends on the number of the overlapping:
+	// if and only if the number is odd, the region is rendered.
+	//
+	// EvenOdd is useful when you want to render a complex polygon.
+	// A complex polygon is a non-convex polygon like a concave polygon, a polygon with holes, or a self-intersecting polygon.
+	// See examples/vector for actual usages.
+	//
+	// The default value is false.
+	EvenOdd bool
 }
 
 // MaxIndicesNum is the maximum number of indices for DrawTriangles.
@@ -349,7 +362,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	srcs := [graphics.ShaderImageNum]*mipmap.Mipmap{img.mipmap}
 
-	i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, address, dstRegion, sr, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+	i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, address, dstRegion, sr, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, options.EvenOdd, false)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
@@ -371,6 +384,19 @@ type DrawTrianglesShaderOptions struct {
 	// Images is a set of the source images.
 	// All the image must be the same size.
 	Images [4]*Image
+
+	// EvenOdd represents whether the even-odd rule is applied or not.
+	//
+	// If EvenOdd is true, triangles are rendered based on the even-odd rule. If false, triangles are rendered without condition.
+	// Whether overlapped regions by multiple triangles is rendered or not depends on the number of the overlapping:
+	// if and only if the number is odd, the region is rendered.
+	//
+	// EvenOdd is useful when you want to render a complex polygon.
+	// A complex polygon is a non-convex polygon like a concave polygon, a polygon with holes, or a self-intersecting polygon.
+	// See examples/vector for actual usages.
+	//
+	// The default value is false.
+	EvenOdd bool
 }
 
 func init() {
@@ -485,7 +511,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	}
 
 	us := shader.convertUniforms(options.Uniforms)
-	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, us, false)
+	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, us, options.EvenOdd, false)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
@@ -597,7 +623,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	}
 
 	us := shader.convertUniforms(options.Uniforms)
-	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, us, canSkipMipmap(options.GeoM, driver.FilterNearest))
+	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, us, false, canSkipMipmap(options.GeoM, driver.FilterNearest))
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.

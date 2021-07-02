@@ -48,7 +48,7 @@ func clearImage(img *Image, w, h int) {
 		Width:  float32(w),
 		Height: float32(h),
 	}
-	img.DrawTriangles([graphics.ShaderImageNum]*Image{emptyImage}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
+	img.DrawTriangles([graphics.ShaderImageNum]*Image{emptyImage}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil, false)
 }
 
 func TestShader(t *testing.T) {
@@ -63,7 +63,7 @@ func TestShader(t *testing.T) {
 		Width:  1,
 		Height: 1,
 	}
-	img.DrawTriangles([graphics.ShaderImageNum]*Image{}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, s, nil)
+	img.DrawTriangles([graphics.ShaderImageNum]*Image{}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, s, nil, false)
 
 	if err := ResolveStaleImages(); err != nil {
 		t.Fatal(err)
@@ -99,7 +99,7 @@ func TestShaderChain(t *testing.T) {
 			Width:  1,
 			Height: 1,
 		}
-		imgs[i+1].DrawTriangles([graphics.ShaderImageNum]*Image{imgs[i]}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, s, nil)
+		imgs[i+1].DrawTriangles([graphics.ShaderImageNum]*Image{imgs[i]}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, s, nil, false)
 	}
 
 	if err := ResolveStaleImages(); err != nil {
@@ -138,7 +138,7 @@ func TestShaderMultipleSources(t *testing.T) {
 		Width:  1,
 		Height: 1,
 	}
-	dst.DrawTriangles(srcs, offsets, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, s, nil)
+	dst.DrawTriangles(srcs, offsets, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, s, nil, false)
 
 	// Clear one of the sources after DrawTriangles. dst should not be affected.
 	clearImage(srcs[0], 1, 1)
@@ -180,7 +180,7 @@ func TestShaderMultipleSourcesOnOneTexture(t *testing.T) {
 		Width:  1,
 		Height: 1,
 	}
-	dst.DrawTriangles(srcs, offsets, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, s, nil)
+	dst.DrawTriangles(srcs, offsets, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, s, nil, false)
 
 	// Clear one of the sources after DrawTriangles. dst should not be affected.
 	clearImage(srcs[0], 3, 1)
@@ -211,7 +211,7 @@ func TestShaderDispose(t *testing.T) {
 		Width:  1,
 		Height: 1,
 	}
-	img.DrawTriangles([graphics.ShaderImageNum]*Image{}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, s, nil)
+	img.DrawTriangles([graphics.ShaderImageNum]*Image{}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, s, nil, false)
 
 	// Dispose the shader. This should invalidates all the images using this shader i.e., all the images become
 	// stale.

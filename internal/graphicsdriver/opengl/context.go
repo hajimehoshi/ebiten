@@ -49,6 +49,7 @@ type context struct {
 	screenFramebuffer  framebufferNative // This might not be the default frame buffer '0' (e.g. iOS).
 	lastFramebuffer    framebufferNative
 	lastTexture        textureNative
+	lastRenderbuffer   renderbufferNative
 	lastViewportWidth  int
 	lastViewportHeight int
 	lastCompositeMode  driver.CompositeMode
@@ -66,6 +67,14 @@ func (c *context) bindTexture(t textureNative) {
 	}
 	c.bindTextureImpl(t)
 	c.lastTexture = t
+}
+
+func (c *context) bindRenderbuffer(r renderbufferNative) {
+	if c.lastRenderbuffer.equal(r) {
+		return
+	}
+	c.bindRenderbufferImpl(r)
+	c.lastRenderbuffer = r
 }
 
 func (c *context) bindFramebuffer(f framebufferNative) {

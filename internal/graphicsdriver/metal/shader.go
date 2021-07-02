@@ -26,20 +26,25 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/metal"
 )
 
+type shaderRpsKey struct {
+	compositeMode  driver.CompositeMode
+	colorWriteMask bool
+}
+
 type Shader struct {
 	id driver.ShaderID
 
 	ir   *shaderir.Program
 	fs   mtl.Function
 	vs   mtl.Function
-	rpss map[driver.CompositeMode]mtl.RenderPipelineState
+	rpss map[shaderRpsKey]mtl.RenderPipelineState
 }
 
 func newShader(device mtl.Device, id driver.ShaderID, program *shaderir.Program) (*Shader, error) {
 	s := &Shader{
 		id:   id,
 		ir:   program,
-		rpss: map[driver.CompositeMode]mtl.RenderPipelineState{},
+		rpss: map[shaderRpsKey]mtl.RenderPipelineState{},
 	}
 	if err := s.init(device); err != nil {
 		return nil, err
@@ -83,31 +88,43 @@ func (s *Shader) init(device mtl.Device) error {
 	return nil
 }
 
-func (s *Shader) RenderPipelineState(device mtl.Device, c driver.CompositeMode) (mtl.RenderPipelineState, error) {
-	if rps, ok := s.rpss[c]; ok {
+func (s *Shader) RenderPipelineState(device mtl.Device, compositeMode driver.CompositeMode, colorWriteMask bool) (mtl.RenderPipelineState, error) {
+	if rps, ok := s.rpss[shaderRpsKey{
+		compositeMode:  compositeMode,
+		colorWriteMask: colorWriteMask,
+	}]; ok {
 		return rps, nil
 	}
 
 	rpld := mtl.RenderPipelineDescriptor{
-		VertexFunction:   s.vs,
-		FragmentFunction: s.fs,
+		VertexFunction:               s.vs,
+		FragmentFunction:             s.fs,
+		StencilAttachmentPixelFormat: mtl.PixelFormatStencil8,
 	}
 
 	// TODO: For the precise pixel format, whether the render target is the screen or not must be considered.
 	rpld.ColorAttachments[0].PixelFormat = mtl.PixelFormatRGBA8UNorm
 	rpld.ColorAttachments[0].BlendingEnabled = true
 
-	src, dst := c.Operations()
+	src, dst := compositeMode.Operations()
 	rpld.ColorAttachments[0].DestinationAlphaBlendFactor = operationToBlendFactor(dst)
 	rpld.ColorAttachments[0].DestinationRGBBlendFactor = operationToBlendFactor(dst)
 	rpld.ColorAttachments[0].SourceAlphaBlendFactor = operationToBlendFactor(src)
 	rpld.ColorAttachments[0].SourceRGBBlendFactor = operationToBlendFactor(src)
+	if colorWriteMask {
+		rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskAll
+	} else {
+		rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskNone
+	}
 
 	rps, err := device.MakeRenderPipelineState(rpld)
 	if err != nil {
 		return mtl.RenderPipelineState{}, err
 	}
 
-	s.rpss[c] = rps
+	s.rpss[shaderRpsKey{
+		compositeMode:  compositeMode,
+		colorWriteMask: colorWriteMask,
+	}] = rps
 	return rps, nil
 }

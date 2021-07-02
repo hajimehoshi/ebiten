@@ -296,11 +296,12 @@ FragmentShaderFunc(0, FILTER_SCREEN, ADDRESS_UNSAFE)
 `
 
 type rpsKey struct {
-	useColorM     bool
-	filter        driver.Filter
-	address       driver.Address
-	compositeMode driver.CompositeMode
-	screen        bool
+	useColorM      bool
+	filter         driver.Filter
+	address        driver.Address
+	compositeMode  driver.CompositeMode
+	colorWriteMask bool
+	screen         bool
 }
 
 type Graphics struct {
@@ -313,7 +314,9 @@ type Graphics struct {
 	rce       mtl.RenderCommandEncoder
 
 	screenDrawable ca.MetalDrawable
+
 	lastDstTexture mtl.Texture
+	lastStencilUse bool
 
 	vb mtl.Buffer
 	ib mtl.Buffer
@@ -332,6 +335,18 @@ type Graphics struct {
 	tmpTextures  []mtl.Texture
 
 	pool unsafe.Pointer
+}
+
+type stencilMode int
+
+const (
+	prepareStencil stencilMode = iota
+	drawWithStencil
+	noStencil
+)
+
+func (s stencilMode) useStencil() bool {
+	return s != noStencil
 }
 
 var theGraphics Graphics
@@ -539,8 +554,9 @@ func (g *Graphics) Reset() error {
 		return err
 	}
 	rpld := mtl.RenderPipelineDescriptor{
-		VertexFunction:   vs,
-		FragmentFunction: fs,
+		VertexFunction:               vs,
+		FragmentFunction:             fs,
+		StencilAttachmentPixelFormat: mtl.PixelFormatStencil8,
 	}
 	rpld.ColorAttachments[0].PixelFormat = g.view.colorPixelFormat()
 	rpld.ColorAttachments[0].BlendingEnabled = true
@@ -548,6 +564,7 @@ func (g *Graphics) Reset() error {
 	rpld.ColorAttachments[0].DestinationRGBBlendFactor = mtl.BlendFactorZero
 	rpld.ColorAttachments[0].SourceAlphaBlendFactor = mtl.BlendFactorOne
 	rpld.ColorAttachments[0].SourceRGBBlendFactor = mtl.BlendFactorOne
+	rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskAll
 	rps, err := g.view.getMTLDevice().MakeRenderPipelineState(rpld)
 	if err != nil {
 		return err
@@ -566,42 +583,51 @@ func (g *Graphics) Reset() error {
 					driver.FilterLinear,
 				} {
 					for c := driver.CompositeModeSourceOver; c <= driver.CompositeModeMax; c++ {
-						cmi := 0
-						if cm {
-							cmi = 1
-						}
-						fs, err := lib.MakeFunction(fmt.Sprintf("FragmentShader_%d_%d_%d", cmi, f, a))
-						if err != nil {
-							return err
-						}
-						rpld := mtl.RenderPipelineDescriptor{
-							VertexFunction:   vs,
-							FragmentFunction: fs,
-						}
+						for _, cwm := range []bool{false, true} {
+							cmi := 0
+							if cm {
+								cmi = 1
+							}
+							fs, err := lib.MakeFunction(fmt.Sprintf("FragmentShader_%d_%d_%d", cmi, f, a))
+							if err != nil {
+								return err
+							}
+							rpld := mtl.RenderPipelineDescriptor{
+								VertexFunction:               vs,
+								FragmentFunction:             fs,
+								StencilAttachmentPixelFormat: mtl.PixelFormatStencil8,
+							}
 
-						pix := mtl.PixelFormatRGBA8UNorm
-						if screen {
-							pix = g.view.colorPixelFormat()
-						}
-						rpld.ColorAttachments[0].PixelFormat = pix
-						rpld.ColorAttachments[0].BlendingEnabled = true
+							pix := mtl.PixelFormatRGBA8UNorm
+							if screen {
+								pix = g.view.colorPixelFormat()
+							}
+							rpld.ColorAttachments[0].PixelFormat = pix
+							rpld.ColorAttachments[0].BlendingEnabled = true
 
-						src, dst := c.Operations()
-						rpld.ColorAttachments[0].DestinationAlphaBlendFactor = operationToBlendFactor(dst)
-						rpld.ColorAttachments[0].DestinationRGBBlendFactor = operationToBlendFactor(dst)
-						rpld.ColorAttachments[0].SourceAlphaBlendFactor = operationToBlendFactor(src)
-						rpld.ColorAttachments[0].SourceRGBBlendFactor = operationToBlendFactor(src)
-						rps, err := g.view.getMTLDevice().MakeRenderPipelineState(rpld)
-						if err != nil {
-							return err
+							src, dst := c.Operations()
+							rpld.ColorAttachments[0].DestinationAlphaBlendFactor = operationToBlendFactor(dst)
+							rpld.ColorAttachments[0].DestinationRGBBlendFactor = operationToBlendFactor(dst)
+							rpld.ColorAttachments[0].SourceAlphaBlendFactor = operationToBlendFactor(src)
+							rpld.ColorAttachments[0].SourceRGBBlendFactor = operationToBlendFactor(src)
+							if cwm {
+								rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskAll
+							} else {
+								rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskNone
+							}
+							rps, err := g.view.getMTLDevice().MakeRenderPipelineState(rpld)
+							if err != nil {
+								return err
+							}
+							g.rpss[rpsKey{
+								screen:         screen,
+								useColorM:      cm,
+								filter:         f,
+								address:        a,
+								compositeMode:  c,
+								colorWriteMask: cwm,
+							}] = rps
 						}
-						g.rpss[rpsKey{
-							screen:        screen,
-							useColorM:     cm,
-							filter:        f,
-							address:       a,
-							compositeMode: c,
-						}] = rps
 					}
 				}
 			}
@@ -619,12 +645,14 @@ func (g *Graphics) flushRenderCommandEncoderIfNeeded() {
 	g.rce.EndEncoding()
 	g.rce = mtl.RenderCommandEncoder{}
 	g.lastDstTexture = mtl.Texture{}
+	g.lastStencilUse = false
 }
 
-func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion driver.Region, srcs [graphics.ShaderImageNum]*Image, indexLen int, indexOffset int, uniforms []interface{}) error {
-	if g.lastDstTexture != dst.mtlTexture() {
+func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion driver.Region, srcs [graphics.ShaderImageNum]*Image, indexLen int, indexOffset int, uniforms []interface{}, stencilMode stencilMode) error {
+	if g.lastDstTexture != dst.mtlTexture() || g.lastStencilUse != stencilMode.useStencil() {
 		g.flushRenderCommandEncoderIfNeeded()
 	}
+
 	if g.rce == (mtl.RenderCommandEncoder{}) {
 		rpd := mtl.RenderPassDescriptor{}
 		// Even though the destination pixels are not used, mtl.LoadActionDontCare might cause glitches
@@ -640,11 +668,19 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion drive
 		rpd.ColorAttachments[0].Texture = t
 		rpd.ColorAttachments[0].ClearColor = mtl.ClearColor{}
 
+		if stencilMode.useStencil() {
+			dst.ensureStencil()
+			rpd.StencilAttachment.LoadAction = mtl.LoadActionClear
+			rpd.StencilAttachment.StoreAction = mtl.StoreActionDontCare
+			rpd.StencilAttachment.Texture = dst.stencil
+		}
+
 		if g.cb == (mtl.CommandBuffer{}) {
 			g.cb = g.cq.MakeCommandBuffer()
 		}
 		g.rce = g.cb.MakeRenderCommandEncoder(rpd)
 	}
+	g.lastStencilUse = stencilMode.useStencil()
 
 	g.rce.SetRenderPipelineState(rps)
 
@@ -687,11 +723,51 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion drive
 			g.rce.SetFragmentTexture(mtl.Texture{}, i)
 		}
 	}
+
+	// The stencil reference value is always 0 (default).
+	switch stencilMode {
+	case prepareStencil:
+		desc := mtl.DepthStencilDescriptor{
+			BackFaceStencil: mtl.StencilDescriptor{
+				StencilFailureOperation:   mtl.StencilOperationKeep,
+				DepthFailureOperation:     mtl.StencilOperationKeep,
+				DepthStencilPassOperation: mtl.StencilOperationInvert,
+				StencilCompareFunction:    mtl.CompareFunctionAlways,
+			},
+			FrontFaceStencil: mtl.StencilDescriptor{
+				StencilFailureOperation:   mtl.StencilOperationKeep,
+				DepthFailureOperation:     mtl.StencilOperationKeep,
+				DepthStencilPassOperation: mtl.StencilOperationInvert,
+				StencilCompareFunction:    mtl.CompareFunctionAlways,
+			},
+		}
+		g.rce.SetDepthStencilState(g.view.getMTLDevice().MakeDepthStencilState(desc))
+	case drawWithStencil:
+		desc := mtl.DepthStencilDescriptor{
+			BackFaceStencil: mtl.StencilDescriptor{
+				StencilFailureOperation:   mtl.StencilOperationZero,
+				DepthFailureOperation:     mtl.StencilOperationZero,
+				DepthStencilPassOperation: mtl.StencilOperationZero,
+				StencilCompareFunction:    mtl.CompareFunctionNotEqual,
+			},
+			FrontFaceStencil: mtl.StencilDescriptor{
+				StencilFailureOperation:   mtl.StencilOperationZero,
+				DepthFailureOperation:     mtl.StencilOperationZero,
+				DepthStencilPassOperation: mtl.StencilOperationZero,
+				StencilCompareFunction:    mtl.CompareFunctionNotEqual,
+			},
+		}
+		g.rce.SetDepthStencilState(g.view.getMTLDevice().MakeDepthStencilState(desc))
+	case noStencil:
+		g.rce.SetDepthStencilState(mtl.DepthStencilState{})
+	}
+
 	g.rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, indexLen, mtl.IndexTypeUInt16, g.ib, indexOffset*2)
+
 	return nil
 }
 
-func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, uniforms []interface{}) error {
+func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, uniforms []interface{}, evenOdd bool) error {
 	dst := g.images[dstID]
 
 	if dst.screen {
@@ -703,18 +779,28 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 		srcs[i] = g.images[srcID]
 	}
 
-	var rps mtl.RenderPipelineState
+	var rpss [2]mtl.RenderPipelineState
 	var uniformVars []interface{}
 	if shaderID == driver.InvalidShaderID {
 		if dst.screen && filter == driver.FilterScreen {
-			rps = g.screenRPS
+			rpss[1] = g.screenRPS
 		} else {
-			rps = g.rpss[rpsKey{
-				screen:        dst.screen,
-				useColorM:     colorM != nil,
-				filter:        filter,
-				address:       address,
-				compositeMode: mode,
+			useColorM := colorM != nil
+			rpss[0] = g.rpss[rpsKey{
+				screen:         dst.screen,
+				useColorM:      useColorM,
+				filter:         filter,
+				address:        address,
+				compositeMode:  mode,
+				colorWriteMask: false,
+			}]
+			rpss[1] = g.rpss[rpsKey{
+				screen:         dst.screen,
+				useColorM:      useColorM,
+				filter:         filter,
+				address:        address,
+				compositeMode:  mode,
+				colorWriteMask: true,
 			}]
 		}
 
@@ -745,7 +831,11 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 		}
 	} else {
 		var err error
-		rps, err = g.shaders[shaderID].RenderPipelineState(g.view.getMTLDevice(), mode)
+		rpss[0], err = g.shaders[shaderID].RenderPipelineState(g.view.getMTLDevice(), mode, false)
+		if err != nil {
+			return err
+		}
+		rpss[1], err = g.shaders[shaderID].RenderPipelineState(g.view.getMTLDevice(), mode, true)
 		if err != nil {
 			return err
 		}
@@ -798,8 +888,17 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 		}
 	}
 
-	if err := g.draw(rps, dst, dstRegion, srcs, indexLen, indexOffset, uniformVars); err != nil {
-		return err
+	if evenOdd {
+		if err := g.draw(rpss[0], dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, prepareStencil); err != nil {
+			return err
+		}
+		if err := g.draw(rpss[1], dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, drawWithStencil); err != nil {
+			return err
+		}
+	} else {
+		if err := g.draw(rpss[1], dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, noStencil); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -889,6 +988,7 @@ type Image struct {
 	height   int
 	screen   bool
 	texture  mtl.Texture
+	stencil  mtl.Texture
 }
 
 func (i *Image) ID() driver.ImageID {
@@ -903,6 +1003,10 @@ func (i *Image) internalSize() (int, int) {
 }
 
 func (i *Image) Dispose() {
+	if i.stencil != (mtl.Texture{}) {
+		i.stencil.Release()
+		i.stencil = mtl.Texture{}
+	}
 	if i.texture != (mtl.Texture{}) {
 		i.texture.Release()
 		i.texture = mtl.Texture{}
@@ -1021,4 +1125,20 @@ func (i *Image) mtlTexture() mtl.Texture {
 		return g.screenDrawable.Texture()
 	}
 	return i.texture
+}
+
+func (i *Image) ensureStencil() {
+	if i.stencil != (mtl.Texture{}) {
+		return
+	}
+
+	td := mtl.TextureDescriptor{
+		TextureType: mtl.TextureType2D,
+		PixelFormat: mtl.PixelFormatStencil8,
+		Width:       graphics.InternalImageSize(i.width),
+		Height:      graphics.InternalImageSize(i.height),
+		StorageMode: mtl.StorageModePrivate,
+		Usage:       mtl.TextureUsageRenderTarget,
+	}
+	i.stencil = i.graphics.view.getMTLDevice().MakeTexture(td)
 }

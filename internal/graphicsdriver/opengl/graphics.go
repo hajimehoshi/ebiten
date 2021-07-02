@@ -142,7 +142,7 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) {
 	g.context.elementArrayBufferSubData(indices)
 }
 
-func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, uniforms []interface{}) error {
+func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, uniforms []interface{}, evenOdd bool) error {
 	destination := g.images[dstID]
 
 	if !destination.pbo.equal(*new(buffer)) {
@@ -308,7 +308,20 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 		return err
 	}
 
+	if evenOdd {
+		if err := destination.ensureStencilBuffer(); err != nil {
+			return err
+		}
+		g.context.enableStencilTest()
+		g.context.beginStencilWithEvenOddRule()
+		g.context.drawElements(indexLen, indexOffset*2)
+		g.context.endStencilWithEvenOddRule()
+	}
 	g.context.drawElements(indexLen, indexOffset*2) // 2 is uint16 size in bytes
+	if evenOdd {
+		g.context.disableStencilTest()
+	}
+
 	return nil
 }
 

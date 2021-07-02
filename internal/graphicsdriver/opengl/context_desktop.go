@@ -29,15 +29,20 @@ import (
 )
 
 type (
-	textureNative     uint32
-	framebufferNative uint32
-	shader            uint32
-	program           uint32
-	buffer            uint32
+	textureNative      uint32
+	renderbufferNative uint32
+	framebufferNative  uint32
+	shader             uint32
+	program            uint32
+	buffer             uint32
 )
 
 func (t textureNative) equal(rhs textureNative) bool {
 	return t == rhs
+}
+
+func (r renderbufferNative) equal(rhs renderbufferNative) bool {
+	return r == rhs
 }
 
 func (f framebufferNative) equal(rhs framebufferNative) bool {
@@ -198,6 +203,38 @@ func (c *context) isTexture(t textureNative) bool {
 	panic("opengl: isTexture is not implemented")
 }
 
+func (c *context) newRenderbuffer(width, height int) (renderbufferNative, error) {
+	var r uint32
+	gl.GenRenderbuffersEXT(1, &r)
+	if r <= 0 {
+		return 0, errors.New("opengl: creating renderbuffer failed")
+	}
+
+	renderbuffer := renderbufferNative(r)
+	c.bindRenderbuffer(renderbuffer)
+
+	// GL_STENCIL_INDEX8 might not be available with OpenGL 2.1.
+	// https://www.khronos.org/opengl/wiki/Image_Format
+	gl.RenderbufferStorageEXT(gl.RENDERBUFFER, gl.DEPTH24_STENCIL8, int32(width), int32(height))
+
+	return renderbuffer, nil
+}
+
+func (c *context) bindRenderbufferImpl(r renderbufferNative) {
+	gl.BindRenderbufferEXT(gl.RENDERBUFFER, uint32(r))
+}
+
+func (c *context) deleteRenderbuffer(r renderbufferNative) {
+	rr := uint32(r)
+	if !gl.IsRenderbufferEXT(rr) {
+		return
+	}
+	if c.lastRenderbuffer.equal(r) {
+		c.lastRenderbuffer = 0
+	}
+	gl.DeleteRenderbuffersEXT(1, &rr)
+}
+
 func (c *context) newFramebuffer(texture textureNative) (framebufferNative, error) {
 	var f uint32
 	gl.GenFramebuffersEXT(1, &f)
@@ -218,6 +255,17 @@ func (c *context) newFramebuffer(texture textureNative) (framebufferNative, erro
 		return 0, fmt.Errorf("opengl: creating framebuffer failed: unknown error")
 	}
 	return framebufferNative(f), nil
+}
+
+func (c *context) bindStencilBuffer(f framebufferNative, r renderbufferNative) error {
+	c.bindFramebuffer(f)
+
+	gl.FramebufferRenderbufferEXT(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.RENDERBUFFER, uint32(r))
+	if s := gl.CheckFramebufferStatusEXT(gl.FRAMEBUFFER); s != gl.FRAMEBUFFER_COMPLETE {
+		return errors.New(fmt.Sprintf("opengl: glFramebufferRenderbuffer failed: %d", s))
+	}
+	gl.Clear(gl.STENCIL_BUFFER_BIT)
+	return nil
 }
 
 func (c *context) setViewportImpl(width, height int) {
@@ -491,4 +539,24 @@ func (c *context) getBufferSubData(buffer buffer, width, height int) []byte {
 	gl.GetBufferSubData(gl.PIXEL_UNPACK_BUFFER, 0, 4*width*height, gl.Ptr(pixels))
 	gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, 0)
 	return pixels
+}
+
+func (c *context) enableStencilTest() {
+	gl.Enable(gl.STENCIL_TEST)
+}
+
+func (c *context) disableStencilTest() {
+	gl.Disable(gl.STENCIL_TEST)
+}
+
+func (c *context) beginStencilWithEvenOddRule() {
+	gl.StencilFunc(gl.ALWAYS, 0x00, 0xff)
+	gl.StencilOp(gl.KEEP, gl.KEEP, gl.INVERT)
+	gl.ColorMask(false, false, false, false)
+}
+
+func (c *context) endStencilWithEvenOddRule() {
+	gl.StencilFunc(gl.NOTEQUAL, 0x00, 0xff)
+	gl.StencilOp(gl.ZERO, gl.ZERO, gl.ZERO)
+	gl.ColorMask(true, true, true, true)
 }
