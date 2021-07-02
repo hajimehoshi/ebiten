@@ -167,7 +167,6 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 	if !t.Truthy() {
 		return textureNative(js.Null()), errors.New("opengl: glGenTexture failed")
 	}
-	gl.pixelStorei.Invoke(gles.UNPACK_ALIGNMENT, 4)
 	c.bindTexture(textureNative(t))
 
 	gl.texParameteri.Invoke(gles.TEXTURE_2D, gles.TEXTURE_MAG_FILTER, gles.NEAREST)
@@ -175,6 +174,7 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 	gl.texParameteri.Invoke(gles.TEXTURE_2D, gles.TEXTURE_WRAP_S, gles.CLAMP_TO_EDGE)
 	gl.texParameteri.Invoke(gles.TEXTURE_2D, gles.TEXTURE_WRAP_T, gles.CLAMP_TO_EDGE)
 
+	gl.pixelStorei.Invoke(gles.UNPACK_ALIGNMENT, 4)
 	// Firefox warns the usage of textures without specifying pixels (#629)
 	//
 	//     Error: WebGL warning: drawElements: This operation requires zeroing texture data. This is slow.

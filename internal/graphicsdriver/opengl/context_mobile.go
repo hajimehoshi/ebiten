@@ -127,13 +127,13 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 	if t <= 0 {
 		return 0, errors.New("opengl: creating texture failed")
 	}
-	c.ctx.PixelStorei(gles.UNPACK_ALIGNMENT, 4)
 	c.bindTexture(textureNative(t))
 
 	c.ctx.TexParameteri(gles.TEXTURE_2D, gles.TEXTURE_MAG_FILTER, gles.NEAREST)
 	c.ctx.TexParameteri(gles.TEXTURE_2D, gles.TEXTURE_MIN_FILTER, gles.NEAREST)
 	c.ctx.TexParameteri(gles.TEXTURE_2D, gles.TEXTURE_WRAP_S, gles.CLAMP_TO_EDGE)
 	c.ctx.TexParameteri(gles.TEXTURE_2D, gles.TEXTURE_WRAP_T, gles.CLAMP_TO_EDGE)
+	c.ctx.PixelStorei(gles.UNPACK_ALIGNMENT, 4)
 	c.ctx.TexImage2D(gles.TEXTURE_2D, 0, gles.RGBA, int32(width), int32(height), gles.RGBA, gles.UNSIGNED_BYTE, nil)
 
 	return textureNative(t), nil

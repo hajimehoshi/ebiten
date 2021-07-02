@@ -140,14 +140,15 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 	if t <= 0 {
 		return 0, errors.New("opengl: creating texture failed")
 	}
-	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 4)
 	texture := textureNative(t)
-
 	c.bindTexture(texture)
+
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+
+	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 4)
 	// If data is nil, this just allocates memory and the content is undefined.
 	// https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glTexImage2D.xhtml
 	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(width), int32(height), 0, gl.RGBA, gl.UNSIGNED_BYTE, nil)
