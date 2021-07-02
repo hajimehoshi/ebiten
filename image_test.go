@@ -2240,3 +2240,130 @@ func TestImageSubImageFill(t *testing.T) {
 		}
 	}
 }
+
+func TestImageEvenOdd(t *testing.T) {
+	emptyImage := NewImage(3, 3)
+	emptyImage.Fill(color.White)
+	emptySubImage := emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*Image)
+
+	vs0 := []Vertex{
+		{
+			DstX: 1, DstY: 1, SrcX: 1, SrcY: 1,
+			ColorR: 1, ColorG: 0, ColorB: 0, ColorA: 1,
+		},
+		{
+			DstX: 15, DstY: 1, SrcX: 1, SrcY: 1,
+			ColorR: 1, ColorG: 0, ColorB: 0, ColorA: 1,
+		},
+		{
+			DstX: 1, DstY: 15, SrcX: 1, SrcY: 1,
+			ColorR: 1, ColorG: 0, ColorB: 0, ColorA: 1,
+		},
+		{
+			DstX: 15, DstY: 15, SrcX: 1, SrcY: 1,
+			ColorR: 1, ColorG: 0, ColorB: 0, ColorA: 1,
+		},
+	}
+	is0 := []uint16{0, 1, 2, 1, 2, 3}
+
+	vs1 := []Vertex{
+		{
+			DstX: 2, DstY: 2, SrcX: 1, SrcY: 1,
+			ColorR: 0, ColorG: 1, ColorB: 0, ColorA: 1,
+		},
+		{
+			DstX: 14, DstY: 2, SrcX: 1, SrcY: 1,
+			ColorR: 0, ColorG: 1, ColorB: 0, ColorA: 1,
+		},
+		{
+			DstX: 2, DstY: 14, SrcX: 1, SrcY: 1,
+			ColorR: 0, ColorG: 1, ColorB: 0, ColorA: 1,
+		},
+		{
+			DstX: 14, DstY: 14, SrcX: 1, SrcY: 1,
+			ColorR: 0, ColorG: 1, ColorB: 0, ColorA: 1,
+		},
+	}
+	is1 := []uint16{4, 5, 6, 5, 6, 7}
+
+	vs2 := []Vertex{
+		{
+			DstX: 3, DstY: 3, SrcX: 1, SrcY: 1,
+			ColorR: 0, ColorG: 0, ColorB: 1, ColorA: 1,
+		},
+		{
+			DstX: 13, DstY: 3, SrcX: 1, SrcY: 1,
+			ColorR: 0, ColorG: 0, ColorB: 1, ColorA: 1,
+		},
+		{
+			DstX: 3, DstY: 13, SrcX: 1, SrcY: 1,
+			ColorR: 0, ColorG: 0, ColorB: 1, ColorA: 1,
+		},
+		{
+			DstX: 13, DstY: 13, SrcX: 1, SrcY: 1,
+			ColorR: 0, ColorG: 0, ColorB: 1, ColorA: 1,
+		},
+	}
+	is2 := []uint16{8, 9, 10, 9, 10, 11}
+
+	// Draw all the vertices once. The even-odd rule is applied for all the vertices once.
+	dst := NewImage(16, 16)
+	op := &DrawTrianglesOptions{
+		EvenOdd: true,
+	}
+	dst.DrawTriangles(append(append(vs0, vs1...), vs2...), append(append(is0, is1...), is2...), emptySubImage, op)
+	for j := 0; j < 16; j++ {
+		for i := 0; i < 16; i++ {
+			got := dst.At(i, j)
+			var want color.RGBA
+			switch {
+			case 3 <= i && i < 13 && 3 <= j && j < 13:
+				want = color.RGBA{0, 0, 0xff, 0xff}
+			case 2 <= i && i < 14 && 2 <= j && j < 14:
+				want = color.RGBA{0, 0, 0, 0}
+			case 1 <= i && i < 15 && 1 <= j && j < 15:
+				want = color.RGBA{0xff, 0, 0, 0xff}
+			default:
+				want = color.RGBA{0, 0, 0, 0}
+			}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+
+	// Do the same thing with a little shift. This confirms that the underlying stencil buffer is cleared correctly.
+	for i := range vs0 {
+		vs0[i].DstX++
+		vs0[i].DstY++
+	}
+	for i := range vs1 {
+		vs1[i].DstX++
+		vs1[i].DstY++
+	}
+	for i := range vs2 {
+		vs2[i].DstX++
+		vs2[i].DstY++
+	}
+	dst.Clear()
+	dst.DrawTriangles(append(append(vs0, vs1...), vs2...), append(append(is0, is1...), is2...), emptySubImage, op)
+	for j := 0; j < 16; j++ {
+		for i := 0; i < 16; i++ {
+			got := dst.At(i, j)
+			var want color.RGBA
+			switch {
+			case 4 <= i && i < 14 && 4 <= j && j < 14:
+				want = color.RGBA{0, 0, 0xff, 0xff}
+			case 3 <= i && i < 15 && 3 <= j && j < 15:
+				want = color.RGBA{0, 0, 0, 0}
+			case 2 <= i && i < 16 && 2 <= j && j < 16:
+				want = color.RGBA{0xff, 0, 0, 0xff}
+			default:
+				want = color.RGBA{0, 0, 0, 0}
+			}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}

@@ -298,7 +298,6 @@ func (c *context) bindStencilBuffer(f framebufferNative, r renderbufferNative) e
 	if s := gl.checkFramebufferStatus.Invoke(gles.FRAMEBUFFER); s.Int() != gles.FRAMEBUFFER_COMPLETE {
 		return errors.New(fmt.Sprintf("opengl: framebufferRenderbuffer failed: %d", s.Int()))
 	}
-	gl.clear.Invoke(gles.STENCIL_BUFFER_BIT)
 	return nil
 }
 
@@ -660,6 +659,7 @@ func (c *context) disableStencilTest() {
 
 func (c *context) beginStencilWithEvenOddRule() {
 	gl := c.gl
+	gl.clear.Invoke(gles.STENCIL_BUFFER_BIT)
 	gl.stencilFunc.Invoke(gles.ALWAYS, 0x00, 0xff)
 	gl.stencilOp.Invoke(gles.KEEP, gles.KEEP, gles.INVERT)
 	gl.colorMask.Invoke(false, false, false, false)
@@ -668,6 +668,6 @@ func (c *context) beginStencilWithEvenOddRule() {
 func (c *context) endStencilWithEvenOddRule() {
 	gl := c.gl
 	gl.stencilFunc.Invoke(gles.NOTEQUAL, 0x00, 0xff)
-	gl.stencilOp.Invoke(gles.ZERO, gles.ZERO, gles.ZERO)
+	gl.stencilOp.Invoke(gles.KEEP, gles.KEEP, gles.KEEP)
 	gl.colorMask.Invoke(true, true, true, true)
 }

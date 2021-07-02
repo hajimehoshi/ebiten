@@ -745,15 +745,15 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion drive
 	case drawWithStencil:
 		desc := mtl.DepthStencilDescriptor{
 			BackFaceStencil: mtl.StencilDescriptor{
-				StencilFailureOperation:   mtl.StencilOperationZero,
-				DepthFailureOperation:     mtl.StencilOperationZero,
-				DepthStencilPassOperation: mtl.StencilOperationZero,
+				StencilFailureOperation:   mtl.StencilOperationKeep,
+				DepthFailureOperation:     mtl.StencilOperationKeep,
+				DepthStencilPassOperation: mtl.StencilOperationKeep,
 				StencilCompareFunction:    mtl.CompareFunctionNotEqual,
 			},
 			FrontFaceStencil: mtl.StencilDescriptor{
-				StencilFailureOperation:   mtl.StencilOperationZero,
-				DepthFailureOperation:     mtl.StencilOperationZero,
-				DepthStencilPassOperation: mtl.StencilOperationZero,
+				StencilFailureOperation:   mtl.StencilOperationKeep,
+				DepthFailureOperation:     mtl.StencilOperationKeep,
+				DepthStencilPassOperation: mtl.StencilOperationKeep,
 				StencilCompareFunction:    mtl.CompareFunctionNotEqual,
 			},
 		}
