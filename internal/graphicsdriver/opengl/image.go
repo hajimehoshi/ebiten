@@ -20,14 +20,14 @@ import (
 )
 
 type Image struct {
-	id            driver.ImageID
-	graphics      *Graphics
-	textureNative textureNative
-	framebuffer   *framebuffer
-	pbo           buffer
-	width         int
-	height        int
-	screen        bool
+	id          driver.ImageID
+	graphics    *Graphics
+	texture     textureNative
+	framebuffer *framebuffer
+	pbo         buffer
+	width       int
+	height      int
+	screen      bool
 }
 
 func (i *Image) ID() driver.ImageID {
@@ -35,7 +35,7 @@ func (i *Image) ID() driver.ImageID {
 }
 
 func (i *Image) IsInvalidated() bool {
-	return !i.graphics.context.isTexture(i.textureNative)
+	return !i.graphics.context.isTexture(i.texture)
 }
 
 func (i *Image) Dispose() {
@@ -45,8 +45,8 @@ func (i *Image) Dispose() {
 	if i.framebuffer != nil {
 		i.framebuffer.delete(&i.graphics.context)
 	}
-	if !i.textureNative.equal(*new(textureNative)) {
-		i.graphics.context.deleteTexture(i.textureNative)
+	if !i.texture.equal(*new(textureNative)) {
+		i.graphics.context.deleteTexture(i.texture)
 	}
 
 	i.graphics.removeImage(i)
@@ -97,7 +97,7 @@ func (i *Image) ensureFramebuffer() error {
 		i.framebuffer = newScreenFramebuffer(&i.graphics.context, w, h)
 		return nil
 	}
-	f, err := newFramebufferFromTexture(&i.graphics.context, i.textureNative, w, h)
+	f, err := newFramebufferFromTexture(&i.graphics.context, i.texture, w, h)
 	if err != nil {
 		return err
 	}
@@ -122,7 +122,7 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 
 	// TODO: Now canUsePBO always returns false (#1678). Remove the code for PBO.
 	if !i.graphics.context.canUsePBO() {
-		i.graphics.context.texSubImage2D(i.textureNative, args)
+		i.graphics.context.texSubImage2D(i.texture, args)
 		return
 	}
 
@@ -139,5 +139,5 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	if i.pbo.equal(*new(buffer)) {
 		panic("opengl: newPixelBufferObject failed")
 	}
-	i.graphics.context.replacePixelsWithPBO(i.pbo, i.textureNative, w, h, args)
+	i.graphics.context.replacePixelsWithPBO(i.pbo, i.texture, w, h, args)
 }

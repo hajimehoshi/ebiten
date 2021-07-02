@@ -97,7 +97,7 @@ func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	i.textureNative = t
+	i.texture = t
 	g.addImage(i)
 	return i, nil
 }
@@ -301,7 +301,7 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 			continue
 		}
 		imgs[i].valid = true
-		imgs[i].native = g.images[srcID].textureNative
+		imgs[i].native = g.images[srcID].texture
 	}
 
 	if err := g.useProgram(program, uniformVars, imgs); err != nil {
