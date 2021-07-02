@@ -89,7 +89,13 @@ func init() {
 //
 // When the image is disposed, Fill does nothing.
 func (i *Image) Fill(clr color.Color) {
-	w, h := i.Size()
+	// Use the original size to cover the entire region (#1691).
+	// DrawImage automatically clips the rendering region.
+	orig := i
+	if i.isSubImage() {
+		orig = i.original
+	}
+	w, h := orig.Size()
 
 	op := &DrawImageOptions{}
 	op.GeoM.Scale(float64(w), float64(h))
