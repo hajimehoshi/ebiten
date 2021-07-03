@@ -130,7 +130,7 @@ func (g *GomobileContext) DrawElements(mode uint32, count int32, xtype uint32, o
 }
 
 func (g *GomobileContext) Enable(cap uint32) {
-	g.ctx.Enable(gl.Enum(gl.Enum(cap)))
+	g.ctx.Enable(gl.Enum(cap))
 }
 
 func (g *GomobileContext) EnableVertexAttribArray(index uint32) {
