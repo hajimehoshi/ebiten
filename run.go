@@ -182,21 +182,6 @@ func isRunGameEnded() bool {
 	return atomic.LoadInt32(&isRunGameEnded_) != 0
 }
 
-// RunGameWithoutMainLoop runs the game, but doesn't call the loop on the main (UI) thread.
-// RunGameWithoutMainLoop returns immediately unlike Run.
-//
-// Ebiten users should NOT call RunGameWithoutMainLoop.
-// Instead, functions in github.com/hajimehoshi/ebiten/v2/mobile package calls this.
-//
-// TODO: Remove this. In order to remove this, the uiContext should be in another package.
-func RunGameWithoutMainLoop(game Game) {
-	initializeWindowPositionIfNeeded(WindowSize())
-	theUIContext.set(&imageDumperGame{
-		game: game,
-	})
-	uiDriver().RunWithoutMainLoop(theUIContext)
-}
-
 // ScreenSizeInFullscreen returns the size in device-independent pixels when the game is fullscreen.
 // The adopted monitor is the 'current' monitor which the window belongs to.
 // The returned value can be given to Run or SetSize function if the perfectly fit fullscreen is needed.
