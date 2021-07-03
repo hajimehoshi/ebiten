@@ -248,7 +248,6 @@ func (u *UserInterface) Run(context driver.UIContext) error {
 
 func (u *UserInterface) RunWithoutMainLoop(context driver.UIContext) {
 	go func() {
-		// title is ignored?
 		if err := u.run(context, false); err != nil {
 			u.errCh <- err
 		}
