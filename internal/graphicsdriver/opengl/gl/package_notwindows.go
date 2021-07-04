@@ -101,27 +101,34 @@ package gl
 // typedef void  (APIENTRYP GPBINDATTRIBLOCATION)(GLuint  program, GLuint  index, const GLchar * name);
 // typedef void  (APIENTRYP GPBINDBUFFER)(GLenum  target, GLuint  buffer);
 // typedef void  (APIENTRYP GPBINDFRAMEBUFFEREXT)(GLenum  target, GLuint  framebuffer);
+// typedef void  (APIENTRYP GPBINDRENDERBUFFEREXT)(GLenum  target, GLuint  renderbuffer);
 // typedef void  (APIENTRYP GPBINDTEXTURE)(GLenum  target, GLuint  texture);
 // typedef void  (APIENTRYP GPBLENDFUNC)(GLenum  sfactor, GLenum  dfactor);
 // typedef void  (APIENTRYP GPBUFFERDATA)(GLenum  target, GLsizeiptr  size, const void * data, GLenum  usage);
 // typedef void  (APIENTRYP GPBUFFERSUBDATA)(GLenum  target, GLintptr  offset, GLsizeiptr  size, const void * data);
 // typedef GLenum  (APIENTRYP GPCHECKFRAMEBUFFERSTATUSEXT)(GLenum  target);
+// typedef void  (APIENTRYP GPCLEAR)(GLbitfield  mask);
+// typedef void  (APIENTRYP GPCOLORMASK)(GLboolean  red, GLboolean  green, GLboolean  blue, GLboolean  alpha);
 // typedef void  (APIENTRYP GPCOMPILESHADER)(GLuint  shader);
 // typedef GLuint  (APIENTRYP GPCREATEPROGRAM)();
 // typedef GLuint  (APIENTRYP GPCREATESHADER)(GLenum  type);
 // typedef void  (APIENTRYP GPDELETEBUFFERS)(GLsizei  n, const GLuint * buffers);
 // typedef void  (APIENTRYP GPDELETEFRAMEBUFFERSEXT)(GLsizei  n, const GLuint * framebuffers);
 // typedef void  (APIENTRYP GPDELETEPROGRAM)(GLuint  program);
+// typedef void  (APIENTRYP GPDELETERENDERBUFFERSEXT)(GLsizei  n, const GLuint * renderbuffers);
 // typedef void  (APIENTRYP GPDELETESHADER)(GLuint  shader);
 // typedef void  (APIENTRYP GPDELETETEXTURES)(GLsizei  n, const GLuint * textures);
+// typedef void  (APIENTRYP GPDISABLE)(GLenum  cap);
 // typedef void  (APIENTRYP GPDISABLEVERTEXATTRIBARRAY)(GLuint  index);
 // typedef void  (APIENTRYP GPDRAWELEMENTS)(GLenum  mode, GLsizei  count, GLenum  type, const uintptr_t indices);
 // typedef void  (APIENTRYP GPENABLE)(GLenum  cap);
 // typedef void  (APIENTRYP GPENABLEVERTEXATTRIBARRAY)(GLuint  index);
 // typedef void  (APIENTRYP GPFLUSH)();
+// typedef void  (APIENTRYP GPFRAMEBUFFERRENDERBUFFEREXT)(GLenum  target, GLenum  attachment, GLenum  renderbuffertarget, GLuint  renderbuffer);
 // typedef void  (APIENTRYP GPFRAMEBUFFERTEXTURE2DEXT)(GLenum  target, GLenum  attachment, GLenum  textarget, GLuint  texture, GLint  level);
 // typedef void  (APIENTRYP GPGENBUFFERS)(GLsizei  n, GLuint * buffers);
 // typedef void  (APIENTRYP GPGENFRAMEBUFFERSEXT)(GLsizei  n, GLuint * framebuffers);
+// typedef void  (APIENTRYP GPGENRENDERBUFFERSEXT)(GLsizei  n, GLuint * renderbuffers);
 // typedef void  (APIENTRYP GPGENTEXTURES)(GLsizei  n, GLuint * textures);
 // typedef void  (APIENTRYP GPGETBUFFERSUBDATA)(GLenum  target, GLintptr  offset, GLsizeiptr  size, void * data);
 // typedef void  (APIENTRYP GPGETDOUBLEI_V)(GLenum  target, GLuint  index, GLdouble * data);
@@ -145,12 +152,16 @@ package gl
 // typedef void  (APIENTRYP GPGETVERTEXARRAYPOINTERI_VEXT)(GLuint  vaobj, GLuint  index, GLenum  pname, void ** param);
 // typedef GLboolean  (APIENTRYP GPISFRAMEBUFFEREXT)(GLuint  framebuffer);
 // typedef GLboolean  (APIENTRYP GPISPROGRAM)(GLuint  program);
+// typedef GLboolean  (APIENTRYP GPISRENDERBUFFEREXT)(GLuint  renderbuffer);
 // typedef GLboolean  (APIENTRYP GPISTEXTURE)(GLuint  texture);
 // typedef void  (APIENTRYP GPLINKPROGRAM)(GLuint  program);
 // typedef void  (APIENTRYP GPPIXELSTOREI)(GLenum  pname, GLint  param);
 // typedef void  (APIENTRYP GPREADPIXELS)(GLint  x, GLint  y, GLsizei  width, GLsizei  height, GLenum  format, GLenum  type, void * pixels);
+// typedef void  (APIENTRYP GPRENDERBUFFERSTORAGEEXT)(GLenum  target, GLenum  internalformat, GLsizei  width, GLsizei  height);
 // typedef void  (APIENTRYP GPSCISSOR)(GLint  x, GLint  y, GLsizei  width, GLsizei  height);
 // typedef void  (APIENTRYP GPSHADERSOURCE)(GLuint  shader, GLsizei  count, const GLchar *const* string, const GLint * length);
+// typedef void  (APIENTRYP GPSTENCILFUNC)(GLenum  func, GLint  ref, GLuint  mask);
+// typedef void  (APIENTRYP GPSTENCILOP)(GLenum  fail, GLenum  zfail, GLenum  zpass);
 // typedef void  (APIENTRYP GPTEXIMAGE2D)(GLenum  target, GLint  level, GLint  internalformat, GLsizei  width, GLsizei  height, GLint  border, GLenum  format, GLenum  type, const void * pixels);
 // typedef void  (APIENTRYP GPTEXPARAMETERI)(GLenum  target, GLenum  pname, GLint  param);
 // typedef void  (APIENTRYP GPTEXSUBIMAGE2D)(GLenum  target, GLint  level, GLint  xoffset, GLint  yoffset, GLsizei  width, GLsizei  height, GLenum  format, GLenum  type, const void * pixels);
@@ -182,6 +193,9 @@ package gl
 // static void  glowBindFramebufferEXT(GPBINDFRAMEBUFFEREXT fnptr, GLenum  target, GLuint  framebuffer) {
 //   (*fnptr)(target, framebuffer);
 // }
+// static void  glowBindRenderbufferEXT(GPBINDRENDERBUFFEREXT fnptr, GLenum  target, GLuint  renderbuffer) {
+//   (*fnptr)(target, renderbuffer);
+// }
 // static void  glowBindTexture(GPBINDTEXTURE fnptr, GLenum  target, GLuint  texture) {
 //   (*fnptr)(target, texture);
 // }
@@ -196,6 +210,12 @@ package gl
 // }
 // static GLenum  glowCheckFramebufferStatusEXT(GPCHECKFRAMEBUFFERSTATUSEXT fnptr, GLenum  target) {
 //   return (*fnptr)(target);
+// }
+// static void  glowClear(GPCLEAR fnptr, GLbitfield  mask) {
+//   (*fnptr)(mask);
+// }
+// static void  glowColorMask(GPCOLORMASK fnptr, GLboolean  red, GLboolean  green, GLboolean  blue, GLboolean  alpha) {
+//   (*fnptr)(red, green, blue, alpha);
 // }
 // static void  glowCompileShader(GPCOMPILESHADER fnptr, GLuint  shader) {
 //   (*fnptr)(shader);
@@ -215,11 +235,17 @@ package gl
 // static void  glowDeleteProgram(GPDELETEPROGRAM fnptr, GLuint  program) {
 //   (*fnptr)(program);
 // }
+// static void  glowDeleteRenderbuffersEXT(GPDELETERENDERBUFFERSEXT fnptr, GLsizei  n, const GLuint * renderbuffers) {
+//   (*fnptr)(n, renderbuffers);
+// }
 // static void  glowDeleteShader(GPDELETESHADER fnptr, GLuint  shader) {
 //   (*fnptr)(shader);
 // }
 // static void  glowDeleteTextures(GPDELETETEXTURES fnptr, GLsizei  n, const GLuint * textures) {
 //   (*fnptr)(n, textures);
+// }
+// static void  glowDisable(GPDISABLE fnptr, GLenum  cap) {
+//   (*fnptr)(cap);
 // }
 // static void  glowDisableVertexAttribArray(GPDISABLEVERTEXATTRIBARRAY fnptr, GLuint  index) {
 //   (*fnptr)(index);
@@ -236,6 +262,9 @@ package gl
 // static void  glowFlush(GPFLUSH fnptr) {
 //   (*fnptr)();
 // }
+// static void  glowFramebufferRenderbufferEXT(GPFRAMEBUFFERRENDERBUFFEREXT fnptr, GLenum  target, GLenum  attachment, GLenum  renderbuffertarget, GLuint  renderbuffer) {
+//   (*fnptr)(target, attachment, renderbuffertarget, renderbuffer);
+// }
 // static void  glowFramebufferTexture2DEXT(GPFRAMEBUFFERTEXTURE2DEXT fnptr, GLenum  target, GLenum  attachment, GLenum  textarget, GLuint  texture, GLint  level) {
 //   (*fnptr)(target, attachment, textarget, texture, level);
 // }
@@ -244,6 +273,9 @@ package gl
 // }
 // static void  glowGenFramebuffersEXT(GPGENFRAMEBUFFERSEXT fnptr, GLsizei  n, GLuint * framebuffers) {
 //   (*fnptr)(n, framebuffers);
+// }
+// static void  glowGenRenderbuffersEXT(GPGENRENDERBUFFERSEXT fnptr, GLsizei  n, GLuint * renderbuffers) {
+//   (*fnptr)(n, renderbuffers);
 // }
 // static void  glowGenTextures(GPGENTEXTURES fnptr, GLsizei  n, GLuint * textures) {
 //   (*fnptr)(n, textures);
@@ -314,6 +346,9 @@ package gl
 // static GLboolean  glowIsProgram(GPISPROGRAM fnptr, GLuint  program) {
 //   return (*fnptr)(program);
 // }
+// static GLboolean  glowIsRenderbufferEXT(GPISRENDERBUFFEREXT fnptr, GLuint  renderbuffer) {
+//   return (*fnptr)(renderbuffer);
+// }
 // static GLboolean  glowIsTexture(GPISTEXTURE fnptr, GLuint  texture) {
 //   return (*fnptr)(texture);
 // }
@@ -326,11 +361,20 @@ package gl
 // static void  glowReadPixels(GPREADPIXELS fnptr, GLint  x, GLint  y, GLsizei  width, GLsizei  height, GLenum  format, GLenum  type, void * pixels) {
 //   (*fnptr)(x, y, width, height, format, type, pixels);
 // }
+// static void  glowRenderbufferStorageEXT(GPRENDERBUFFERSTORAGEEXT fnptr, GLenum  target, GLenum  internalformat, GLsizei  width, GLsizei  height) {
+//   (*fnptr)(target, internalformat, width, height);
+// }
 // static void  glowScissor(GPSCISSOR fnptr, GLint  x, GLint  y, GLsizei  width, GLsizei  height) {
 //   (*fnptr)(x, y, width, height);
 // }
 // static void  glowShaderSource(GPSHADERSOURCE fnptr, GLuint  shader, GLsizei  count, const GLchar *const* string, const GLint * length) {
 //   (*fnptr)(shader, count, string, length);
+// }
+// static void  glowStencilFunc(GPSTENCILFUNC fnptr, GLenum  func, GLint  ref, GLuint  mask) {
+//   (*fnptr)(func, ref, mask);
+// }
+// static void  glowStencilOp(GPSTENCILOP fnptr, GLenum  fail, GLenum  zfail, GLenum  zpass) {
+//   (*fnptr)(fail, zfail, zpass);
 // }
 // static void  glowTexImage2D(GPTEXIMAGE2D fnptr, GLenum  target, GLint  level, GLint  internalformat, GLsizei  width, GLsizei  height, GLint  border, GLenum  format, GLenum  type, const void * pixels) {
 //   (*fnptr)(target, level, internalformat, width, height, border, format, type, pixels);
@@ -390,27 +434,34 @@ var (
 	gpBindAttribLocation          C.GPBINDATTRIBLOCATION
 	gpBindBuffer                  C.GPBINDBUFFER
 	gpBindFramebufferEXT          C.GPBINDFRAMEBUFFEREXT
+	gpBindRenderbufferEXT         C.GPBINDRENDERBUFFEREXT
 	gpBindTexture                 C.GPBINDTEXTURE
 	gpBlendFunc                   C.GPBLENDFUNC
 	gpBufferData                  C.GPBUFFERDATA
 	gpBufferSubData               C.GPBUFFERSUBDATA
 	gpCheckFramebufferStatusEXT   C.GPCHECKFRAMEBUFFERSTATUSEXT
+	gpClear                       C.GPCLEAR
+	gpColorMask                   C.GPCOLORMASK
 	gpCompileShader               C.GPCOMPILESHADER
 	gpCreateProgram               C.GPCREATEPROGRAM
 	gpCreateShader                C.GPCREATESHADER
 	gpDeleteBuffers               C.GPDELETEBUFFERS
 	gpDeleteFramebuffersEXT       C.GPDELETEFRAMEBUFFERSEXT
 	gpDeleteProgram               C.GPDELETEPROGRAM
+	gpDeleteRenderbuffersEXT      C.GPDELETERENDERBUFFERSEXT
 	gpDeleteShader                C.GPDELETESHADER
 	gpDeleteTextures              C.GPDELETETEXTURES
+	gpDisable                     C.GPDISABLE
 	gpDisableVertexAttribArray    C.GPDISABLEVERTEXATTRIBARRAY
 	gpDrawElements                C.GPDRAWELEMENTS
 	gpEnable                      C.GPENABLE
 	gpEnableVertexAttribArray     C.GPENABLEVERTEXATTRIBARRAY
 	gpFlush                       C.GPFLUSH
+	gpFramebufferRenderbufferEXT  C.GPFRAMEBUFFERRENDERBUFFEREXT
 	gpFramebufferTexture2DEXT     C.GPFRAMEBUFFERTEXTURE2DEXT
 	gpGenBuffers                  C.GPGENBUFFERS
 	gpGenFramebuffersEXT          C.GPGENFRAMEBUFFERSEXT
+	gpGenRenderbuffersEXT         C.GPGENRENDERBUFFERSEXT
 	gpGenTextures                 C.GPGENTEXTURES
 	gpGetBufferSubData            C.GPGETBUFFERSUBDATA
 	gpGetDoublei_v                C.GPGETDOUBLEI_V
@@ -434,12 +485,16 @@ var (
 	gpGetVertexArrayPointeri_vEXT C.GPGETVERTEXARRAYPOINTERI_VEXT
 	gpIsFramebufferEXT            C.GPISFRAMEBUFFEREXT
 	gpIsProgram                   C.GPISPROGRAM
+	gpIsRenderbufferEXT           C.GPISRENDERBUFFEREXT
 	gpIsTexture                   C.GPISTEXTURE
 	gpLinkProgram                 C.GPLINKPROGRAM
 	gpPixelStorei                 C.GPPIXELSTOREI
 	gpReadPixels                  C.GPREADPIXELS
+	gpRenderbufferStorageEXT      C.GPRENDERBUFFERSTORAGEEXT
 	gpScissor                     C.GPSCISSOR
 	gpShaderSource                C.GPSHADERSOURCE
+	gpStencilFunc                 C.GPSTENCILFUNC
+	gpStencilOp                   C.GPSTENCILOP
 	gpTexImage2D                  C.GPTEXIMAGE2D
 	gpTexParameteri               C.GPTEXPARAMETERI
 	gpTexSubImage2D               C.GPTEXSUBIMAGE2D
@@ -484,6 +539,10 @@ func BindFramebufferEXT(target uint32, framebuffer uint32) {
 	C.glowBindFramebufferEXT(gpBindFramebufferEXT, (C.GLenum)(target), (C.GLuint)(framebuffer))
 }
 
+func BindRenderbufferEXT(target uint32, renderbuffer uint32) {
+	C.glowBindRenderbufferEXT(gpBindRenderbufferEXT, (C.GLenum)(target), (C.GLuint)(renderbuffer))
+}
+
 func BindTexture(target uint32, texture uint32) {
 	C.glowBindTexture(gpBindTexture, (C.GLenum)(target), (C.GLuint)(texture))
 }
@@ -503,6 +562,14 @@ func BufferSubData(target uint32, offset int, size int, data unsafe.Pointer) {
 func CheckFramebufferStatusEXT(target uint32) uint32 {
 	ret := C.glowCheckFramebufferStatusEXT(gpCheckFramebufferStatusEXT, (C.GLenum)(target))
 	return (uint32)(ret)
+}
+
+func Clear(mask uint32) {
+	C.glowClear(gpClear, (C.GLbitfield)(mask))
+}
+
+func ColorMask(red bool, green bool, blue bool, alpha bool) {
+	C.glowColorMask(gpColorMask, (C.GLboolean)(boolToInt(red)), (C.GLboolean)(boolToInt(green)), (C.GLboolean)(boolToInt(blue)), (C.GLboolean)(boolToInt(alpha)))
 }
 
 func CompileShader(shader uint32) {
@@ -531,12 +598,20 @@ func DeleteProgram(program uint32) {
 	C.glowDeleteProgram(gpDeleteProgram, (C.GLuint)(program))
 }
 
+func DeleteRenderbuffersEXT(n int32, renderbuffers *uint32) {
+	C.glowDeleteRenderbuffersEXT(gpDeleteRenderbuffersEXT, (C.GLsizei)(n), (*C.GLuint)(unsafe.Pointer(renderbuffers)))
+}
+
 func DeleteShader(shader uint32) {
 	C.glowDeleteShader(gpDeleteShader, (C.GLuint)(shader))
 }
 
 func DeleteTextures(n int32, textures *uint32) {
 	C.glowDeleteTextures(gpDeleteTextures, (C.GLsizei)(n), (*C.GLuint)(unsafe.Pointer(textures)))
+}
+
+func Disable(cap uint32) {
+	C.glowDisable(gpDisable, (C.GLenum)(cap))
 }
 
 func DisableVertexAttribArray(index uint32) {
@@ -559,6 +634,10 @@ func Flush() {
 	C.glowFlush(gpFlush)
 }
 
+func FramebufferRenderbufferEXT(target uint32, attachment uint32, renderbuffertarget uint32, renderbuffer uint32) {
+	C.glowFramebufferRenderbufferEXT(gpFramebufferRenderbufferEXT, (C.GLenum)(target), (C.GLenum)(attachment), (C.GLenum)(renderbuffertarget), (C.GLuint)(renderbuffer))
+}
+
 func FramebufferTexture2DEXT(target uint32, attachment uint32, textarget uint32, texture uint32, level int32) {
 	C.glowFramebufferTexture2DEXT(gpFramebufferTexture2DEXT, (C.GLenum)(target), (C.GLenum)(attachment), (C.GLenum)(textarget), (C.GLuint)(texture), (C.GLint)(level))
 }
@@ -569,6 +648,10 @@ func GenBuffers(n int32, buffers *uint32) {
 
 func GenFramebuffersEXT(n int32, framebuffers *uint32) {
 	C.glowGenFramebuffersEXT(gpGenFramebuffersEXT, (C.GLsizei)(n), (*C.GLuint)(unsafe.Pointer(framebuffers)))
+}
+
+func GenRenderbuffersEXT(n int32, renderbuffers *uint32) {
+	C.glowGenRenderbuffersEXT(gpGenRenderbuffersEXT, (C.GLsizei)(n), (*C.GLuint)(unsafe.Pointer(renderbuffers)))
 }
 
 func GenTextures(n int32, textures *uint32) {
@@ -659,6 +742,11 @@ func IsProgram(program uint32) bool {
 	return ret == TRUE
 }
 
+func IsRenderbufferEXT(renderbuffer uint32) bool {
+	ret := C.glowIsRenderbufferEXT(gpIsRenderbufferEXT, (C.GLuint)(renderbuffer))
+	return ret == TRUE
+}
+
 func IsTexture(texture uint32) bool {
 	ret := C.glowIsTexture(gpIsTexture, (C.GLuint)(texture))
 	return ret == TRUE
@@ -676,12 +764,24 @@ func ReadPixels(x int32, y int32, width int32, height int32, format uint32, xtyp
 	C.glowReadPixels(gpReadPixels, (C.GLint)(x), (C.GLint)(y), (C.GLsizei)(width), (C.GLsizei)(height), (C.GLenum)(format), (C.GLenum)(xtype), pixels)
 }
 
+func RenderbufferStorageEXT(target uint32, internalformat uint32, width int32, height int32) {
+	C.glowRenderbufferStorageEXT(gpRenderbufferStorageEXT, (C.GLenum)(target), (C.GLenum)(internalformat), (C.GLsizei)(width), (C.GLsizei)(height))
+}
+
 func Scissor(x int32, y int32, width int32, height int32) {
 	C.glowScissor(gpScissor, (C.GLint)(x), (C.GLint)(y), (C.GLsizei)(width), (C.GLsizei)(height))
 }
 
 func ShaderSource(shader uint32, count int32, xstring **uint8, length *int32) {
 	C.glowShaderSource(gpShaderSource, (C.GLuint)(shader), (C.GLsizei)(count), (**C.GLchar)(unsafe.Pointer(xstring)), (*C.GLint)(unsafe.Pointer(length)))
+}
+
+func StencilFunc(xfunc uint32, ref int32, mask uint32) {
+	C.glowStencilFunc(gpStencilFunc, (C.GLenum)(xfunc), (C.GLint)(ref), (C.GLuint)(mask))
+}
+
+func StencilOp(fail uint32, zfail uint32, zpass uint32) {
+	C.glowStencilOp(gpStencilOp, (C.GLenum)(fail), (C.GLenum)(zfail), (C.GLenum)(zpass))
 }
 
 func TexImage2D(target uint32, level int32, internalformat int32, width int32, height int32, border int32, format uint32, xtype uint32, pixels unsafe.Pointer) {
@@ -766,6 +866,7 @@ func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
 		return errors.New("glBindBuffer")
 	}
 	gpBindFramebufferEXT = (C.GPBINDFRAMEBUFFEREXT)(getProcAddr("glBindFramebufferEXT"))
+	gpBindRenderbufferEXT = (C.GPBINDRENDERBUFFEREXT)(getProcAddr("glBindRenderbufferEXT"))
 	gpBindTexture = (C.GPBINDTEXTURE)(getProcAddr("glBindTexture"))
 	if gpBindTexture == nil {
 		return errors.New("glBindTexture")
@@ -783,6 +884,14 @@ func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
 		return errors.New("glBufferSubData")
 	}
 	gpCheckFramebufferStatusEXT = (C.GPCHECKFRAMEBUFFERSTATUSEXT)(getProcAddr("glCheckFramebufferStatusEXT"))
+	gpClear = (C.GPCLEAR)(getProcAddr("glClear"))
+	if gpClear == nil {
+		return errors.New("glClear")
+	}
+	gpColorMask = (C.GPCOLORMASK)(getProcAddr("glColorMask"))
+	if gpColorMask == nil {
+		return errors.New("glColorMask")
+	}
 	gpCompileShader = (C.GPCOMPILESHADER)(getProcAddr("glCompileShader"))
 	if gpCompileShader == nil {
 		return errors.New("glCompileShader")
@@ -804,6 +913,7 @@ func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
 	if gpDeleteProgram == nil {
 		return errors.New("glDeleteProgram")
 	}
+	gpDeleteRenderbuffersEXT = (C.GPDELETERENDERBUFFERSEXT)(getProcAddr("glDeleteRenderbuffersEXT"))
 	gpDeleteShader = (C.GPDELETESHADER)(getProcAddr("glDeleteShader"))
 	if gpDeleteShader == nil {
 		return errors.New("glDeleteShader")
@@ -811,6 +921,10 @@ func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
 	gpDeleteTextures = (C.GPDELETETEXTURES)(getProcAddr("glDeleteTextures"))
 	if gpDeleteTextures == nil {
 		return errors.New("glDeleteTextures")
+	}
+	gpDisable = (C.GPDISABLE)(getProcAddr("glDisable"))
+	if gpDisable == nil {
+		return errors.New("glDisable")
 	}
 	gpDisableVertexAttribArray = (C.GPDISABLEVERTEXATTRIBARRAY)(getProcAddr("glDisableVertexAttribArray"))
 	if gpDisableVertexAttribArray == nil {
@@ -832,12 +946,14 @@ func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
 	if gpFlush == nil {
 		return errors.New("glFlush")
 	}
+	gpFramebufferRenderbufferEXT = (C.GPFRAMEBUFFERRENDERBUFFEREXT)(getProcAddr("glFramebufferRenderbufferEXT"))
 	gpFramebufferTexture2DEXT = (C.GPFRAMEBUFFERTEXTURE2DEXT)(getProcAddr("glFramebufferTexture2DEXT"))
 	gpGenBuffers = (C.GPGENBUFFERS)(getProcAddr("glGenBuffers"))
 	if gpGenBuffers == nil {
 		return errors.New("glGenBuffers")
 	}
 	gpGenFramebuffersEXT = (C.GPGENFRAMEBUFFERSEXT)(getProcAddr("glGenFramebuffersEXT"))
+	gpGenRenderbuffersEXT = (C.GPGENRENDERBUFFERSEXT)(getProcAddr("glGenRenderbuffersEXT"))
 	gpGenTextures = (C.GPGENTEXTURES)(getProcAddr("glGenTextures"))
 	if gpGenTextures == nil {
 		return errors.New("glGenTextures")
@@ -891,6 +1007,7 @@ func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
 	if gpIsProgram == nil {
 		return errors.New("glIsProgram")
 	}
+	gpIsRenderbufferEXT = (C.GPISRENDERBUFFEREXT)(getProcAddr("glIsRenderbufferEXT"))
 	gpIsTexture = (C.GPISTEXTURE)(getProcAddr("glIsTexture"))
 	if gpIsTexture == nil {
 		return errors.New("glIsTexture")
@@ -907,6 +1024,7 @@ func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
 	if gpReadPixels == nil {
 		return errors.New("glReadPixels")
 	}
+	gpRenderbufferStorageEXT = (C.GPRENDERBUFFERSTORAGEEXT)(getProcAddr("glRenderbufferStorageEXT"))
 	gpScissor = (C.GPSCISSOR)(getProcAddr("glScissor"))
 	if gpScissor == nil {
 		return errors.New("glScissor")
@@ -914,6 +1032,14 @@ func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
 	gpShaderSource = (C.GPSHADERSOURCE)(getProcAddr("glShaderSource"))
 	if gpShaderSource == nil {
 		return errors.New("glShaderSource")
+	}
+	gpStencilFunc = (C.GPSTENCILFUNC)(getProcAddr("glStencilFunc"))
+	if gpStencilFunc == nil {
+		return errors.New("glStencilFunc")
+	}
+	gpStencilOp = (C.GPSTENCILOP)(getProcAddr("glStencilOp"))
+	if gpStencilOp == nil {
+		return errors.New("glStencilOp")
 	}
 	gpTexImage2D = (C.GPTEXIMAGE2D)(getProcAddr("glTexImage2D"))
 	if gpTexImage2D == nil {
