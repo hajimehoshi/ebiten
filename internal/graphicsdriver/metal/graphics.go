@@ -610,8 +610,6 @@ func (g *Graphics) Reset() error {
 }
 
 func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion driver.Region, srcs [graphics.ShaderImageNum]*Image, indexLen int, indexOffset int, uniforms []interface{}) error {
-	g.view.update()
-
 	rpd := mtl.RenderPassDescriptor{}
 	// Even though the destination pixels are not used, mtl.LoadActionDontCare might cause glitches
 	// (#1019). Always using mtl.LoadActionLoad is safe.
@@ -686,6 +684,10 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion drive
 
 func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, uniforms []interface{}) error {
 	dst := g.images[dstID]
+
+	if dst.screen {
+		g.view.update()
+	}
 
 	var srcs [graphics.ShaderImageNum]*Image
 	for i, srcID := range srcIDs {
