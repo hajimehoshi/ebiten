@@ -310,8 +310,10 @@ type Graphics struct {
 	rpss      map[rpsKey]mtl.RenderPipelineState
 	cq        mtl.CommandQueue
 	cb        mtl.CommandBuffer
+	rce       mtl.RenderCommandEncoder
 
 	screenDrawable ca.MetalDrawable
+	lastDstTexture mtl.Texture
 
 	vb mtl.Buffer
 	ib mtl.Buffer
@@ -609,39 +611,46 @@ func (g *Graphics) Reset() error {
 	return nil
 }
 
+func (g *Graphics) flushRenderCommandEncoderIfNeeded() {
+	if g.rce == (mtl.RenderCommandEncoder{}) {
+		return
+	}
+	g.rce.EndEncoding()
+	g.rce = mtl.RenderCommandEncoder{}
+	g.lastDstTexture = mtl.Texture{}
+}
+
 func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion driver.Region, srcs [graphics.ShaderImageNum]*Image, indexLen int, indexOffset int, uniforms []interface{}) error {
-	rpd := mtl.RenderPassDescriptor{}
-	// Even though the destination pixels are not used, mtl.LoadActionDontCare might cause glitches
-	// (#1019). Always using mtl.LoadActionLoad is safe.
-	rpd.ColorAttachments[0].LoadAction = mtl.LoadActionLoad
-	rpd.ColorAttachments[0].StoreAction = mtl.StoreActionStore
+	if g.lastDstTexture != dst.mtlTexture() {
+		g.flushRenderCommandEncoderIfNeeded()
+	}
+	if g.rce == (mtl.RenderCommandEncoder{}) {
+		rpd := mtl.RenderPassDescriptor{}
+		// Even though the destination pixels are not used, mtl.LoadActionDontCare might cause glitches
+		// (#1019). Always using mtl.LoadActionLoad is safe.
+		rpd.ColorAttachments[0].LoadAction = mtl.LoadActionLoad
+		rpd.ColorAttachments[0].StoreAction = mtl.StoreActionStore
 
-	var t mtl.Texture
-	if dst.screen {
-		if g.screenDrawable == (ca.MetalDrawable{}) {
-			drawable := g.view.drawable()
-			if drawable == (ca.MetalDrawable{}) {
-				return nil
-			}
-			g.screenDrawable = drawable
+		t := dst.mtlTexture()
+		g.lastDstTexture = t
+		if t == (mtl.Texture{}) {
+			return nil
 		}
-		t = g.screenDrawable.Texture()
-	} else {
-		t = dst.texture
-	}
-	rpd.ColorAttachments[0].Texture = t
-	rpd.ColorAttachments[0].ClearColor = mtl.ClearColor{}
+		rpd.ColorAttachments[0].Texture = t
+		rpd.ColorAttachments[0].ClearColor = mtl.ClearColor{}
 
-	if g.cb == (mtl.CommandBuffer{}) {
-		g.cb = g.cq.MakeCommandBuffer()
+		if g.cb == (mtl.CommandBuffer{}) {
+			g.cb = g.cq.MakeCommandBuffer()
+		}
+		g.rce = g.cb.MakeRenderCommandEncoder(rpd)
 	}
-	rce := g.cb.MakeRenderCommandEncoder(rpd)
-	rce.SetRenderPipelineState(rps)
+
+	g.rce.SetRenderPipelineState(rps)
 
 	// In Metal, the NDC's Y direction (upward) and the framebuffer's Y direction (downward) don't
 	// match. Then, the Y direction must be inverted.
 	w, h := dst.internalSize()
-	rce.SetViewport(mtl.Viewport{
+	g.rce.SetViewport(mtl.Viewport{
 		OriginX: 0,
 		OriginY: float64(h),
 		Width:   float64(w),
@@ -649,22 +658,22 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion drive
 		ZNear:   -1,
 		ZFar:    1,
 	})
-	rce.SetScissorRect(mtl.ScissorRect{
+	g.rce.SetScissorRect(mtl.ScissorRect{
 		X:      int(dstRegion.X),
 		Y:      int(dstRegion.Y),
 		Width:  int(dstRegion.Width),
 		Height: int(dstRegion.Height),
 	})
-	rce.SetVertexBuffer(g.vb, 0, 0)
+	g.rce.SetVertexBuffer(g.vb, 0, 0)
 
 	for i, u := range uniforms {
 		switch u := u.(type) {
 		case float32:
-			rce.SetVertexBytes(unsafe.Pointer(&u), unsafe.Sizeof(u), i+1)
-			rce.SetFragmentBytes(unsafe.Pointer(&u), unsafe.Sizeof(u), i+1)
+			g.rce.SetVertexBytes(unsafe.Pointer(&u), unsafe.Sizeof(u), i+1)
+			g.rce.SetFragmentBytes(unsafe.Pointer(&u), unsafe.Sizeof(u), i+1)
 		case []float32:
-			rce.SetVertexBytes(unsafe.Pointer(&u[0]), unsafe.Sizeof(u[0])*uintptr(len(u)), i+1)
-			rce.SetFragmentBytes(unsafe.Pointer(&u[0]), unsafe.Sizeof(u[0])*uintptr(len(u)), i+1)
+			g.rce.SetVertexBytes(unsafe.Pointer(&u[0]), unsafe.Sizeof(u[0])*uintptr(len(u)), i+1)
+			g.rce.SetFragmentBytes(unsafe.Pointer(&u[0]), unsafe.Sizeof(u[0])*uintptr(len(u)), i+1)
 		default:
 			return fmt.Errorf("metal: unexpected uniform value: %[1]v (type: %[1]T)", u)
 		}
@@ -672,13 +681,12 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion drive
 
 	for i, src := range srcs {
 		if src != nil {
-			rce.SetFragmentTexture(src.texture, i)
+			g.rce.SetFragmentTexture(src.texture, i)
 		} else {
-			rce.SetFragmentTexture(mtl.Texture{}, i)
+			g.rce.SetFragmentTexture(mtl.Texture{}, i)
 		}
 	}
-	rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, indexLen, mtl.IndexTypeUInt16, g.ib, indexOffset*2)
-	rce.EndEncoding()
+	g.rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, indexLen, mtl.IndexTypeUInt16, g.ib, indexOffset*2)
 	return nil
 }
 
@@ -792,6 +800,11 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 	if err := g.draw(rps, dst, dstRegion, srcs, indexLen, indexOffset, uniformVars); err != nil {
 		return err
 	}
+
+	if dst.screen {
+		g.flushRenderCommandEncoderIfNeeded()
+	}
+
 	return nil
 }
 
@@ -906,6 +919,8 @@ func (i *Image) IsInvalidated() bool {
 }
 
 func (i *Image) syncTexture() {
+	i.graphics.flushRenderCommandEncoderIfNeeded()
+
 	// Calling SynchronizeTexture is ignored on iOS (see mtl.m), but it looks like committing BlitCommandEncoder
 	// is necessary (#1337).
 	if i.graphics.cb != (mtl.CommandBuffer{}) {
@@ -934,6 +949,8 @@ func (i *Image) Pixels() ([]byte, error) {
 
 func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	g := i.graphics
+
+	g.flushRenderCommandEncoderIfNeeded()
 
 	// Calculate the smallest texture size to include all the values in args.
 	minX := math.MaxInt32
@@ -990,4 +1007,19 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 		bce.CopyFromTexture(t, 0, 0, so, ss, i.texture, 0, 0, do)
 	}
 	bce.EndEncoding()
+}
+
+func (i *Image) mtlTexture() mtl.Texture {
+	if i.screen {
+		g := i.graphics
+		if g.screenDrawable == (ca.MetalDrawable{}) {
+			drawable := g.view.drawable()
+			if drawable == (ca.MetalDrawable{}) {
+				return mtl.Texture{}
+			}
+			g.screenDrawable = drawable
+		}
+		return g.screenDrawable.Texture()
+	}
+	return i.texture
 }
