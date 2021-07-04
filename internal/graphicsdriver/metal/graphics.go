@@ -826,33 +826,35 @@ func (g *Graphics) HasHighPrecisionFloat() bool {
 }
 
 func (g *Graphics) MaxImageSize() int {
-	if g.maxImageSize == 0 {
+	if g.maxImageSize != 0 {
+		return g.maxImageSize
+	}
+
+	g.maxImageSize = 4096
+	// https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
+	switch {
+	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily5_v1):
+		g.maxImageSize = 16384
+	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily4_v1):
+		g.maxImageSize = 16384
+	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily3_v1):
+		g.maxImageSize = 16384
+	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v2):
+		g.maxImageSize = 8192
+	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v1):
 		g.maxImageSize = 4096
-		// https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
-		switch {
-		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily5_v1):
-			g.maxImageSize = 16384
-		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily4_v1):
-			g.maxImageSize = 16384
-		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily3_v1):
-			g.maxImageSize = 16384
-		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v2):
-			g.maxImageSize = 8192
-		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v1):
-			g.maxImageSize = 4096
-		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v2):
-			g.maxImageSize = 8192
-		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v1):
-			g.maxImageSize = 4096
-		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily2_v1):
-			g.maxImageSize = 16384
-		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily1_v1):
-			g.maxImageSize = 8192
-		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_macOS_GPUFamily1_v1):
-			g.maxImageSize = 16384
-		default:
-			panic("metal: there is no supported feature set")
-		}
+	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v2):
+		g.maxImageSize = 8192
+	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v1):
+		g.maxImageSize = 4096
+	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily2_v1):
+		g.maxImageSize = 16384
+	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily1_v1):
+		g.maxImageSize = 8192
+	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_macOS_GPUFamily1_v1):
+		g.maxImageSize = 16384
+	default:
+		panic("metal: there is no supported feature set")
 	}
 	return g.maxImageSize
 }
