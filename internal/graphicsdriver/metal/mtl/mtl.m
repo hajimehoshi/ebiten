@@ -84,6 +84,10 @@ Device_MakeRenderPipelineState(void *device,
       descriptor.ColorAttachment0SourceAlphaBlendFactor;
   renderPipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor =
       descriptor.ColorAttachment0SourceRGBBlendFactor;
+  renderPipelineDescriptor.colorAttachments[0].writeMask =
+      descriptor.ColorAttachment0WriteMask;
+  renderPipelineDescriptor.stencilAttachmentPixelFormat =
+      descriptor.StencilAttachmentPixelFormat;
   NSError *error;
   id<MTLRenderPipelineState> renderPipelineState = [(id<MTLDevice>)device
       newRenderPipelineStateWithDescriptor:renderPipelineDescriptor
@@ -125,6 +129,32 @@ void *Device_MakeTexture(void *device, struct TextureDescriptor descriptor) {
   return texture;
 }
 
+void *Device_MakeDepthStencilState(void *device,
+                                   struct DepthStencilDescriptor descriptor) {
+  MTLDepthStencilDescriptor *depthStencilDescriptor =
+      [[MTLDepthStencilDescriptor alloc] init];
+  depthStencilDescriptor.backFaceStencil.stencilFailureOperation =
+      descriptor.BackFaceStencilStencilFailureOperation;
+  depthStencilDescriptor.backFaceStencil.depthFailureOperation =
+      descriptor.BackFaceStencilDepthFailureOperation;
+  depthStencilDescriptor.backFaceStencil.depthStencilPassOperation =
+      descriptor.BackFaceStencilDepthStencilPassOperation;
+  depthStencilDescriptor.backFaceStencil.stencilCompareFunction =
+      descriptor.BackFaceStencilStencilCompareFunction;
+  depthStencilDescriptor.frontFaceStencil.stencilFailureOperation =
+      descriptor.FrontFaceStencilStencilFailureOperation;
+  depthStencilDescriptor.frontFaceStencil.depthFailureOperation =
+      descriptor.FrontFaceStencilDepthFailureOperation;
+  depthStencilDescriptor.frontFaceStencil.depthStencilPassOperation =
+      descriptor.FrontFaceStencilDepthStencilPassOperation;
+  depthStencilDescriptor.frontFaceStencil.stencilCompareFunction =
+      descriptor.FrontFaceStencilStencilCompareFunction;
+  id<MTLDepthStencilState> depthStencilState = [(id<MTLDevice>)device
+      newDepthStencilStateWithDescriptor:depthStencilDescriptor];
+  [depthStencilDescriptor release];
+  return depthStencilState;
+}
+
 void CommandQueue_Release(void *commandQueue) {
   [(id<MTLCommandQueue>)commandQueue release];
 }
@@ -162,6 +192,12 @@ CommandBuffer_MakeRenderCommandEncoder(void *commandBuffer,
                         descriptor.ColorAttachment0ClearColor.Alpha);
   renderPassDescriptor.colorAttachments[0].texture =
       (id<MTLTexture>)descriptor.ColorAttachment0Texture;
+  renderPassDescriptor.stencilAttachment.loadAction =
+      descriptor.StencilAttachmentLoadAction;
+  renderPassDescriptor.stencilAttachment.storeAction =
+      descriptor.StencilAttachmentStoreAction;
+  renderPassDescriptor.stencilAttachment.texture =
+      (id<MTLTexture>)descriptor.StencilAttachmentTexture;
   id<MTLRenderCommandEncoder> rce = [(id<MTLCommandBuffer>)commandBuffer
       renderCommandEncoderWithDescriptor:renderPassDescriptor];
   [renderPassDescriptor release];
@@ -250,6 +286,12 @@ void RenderCommandEncoder_SetBlendColor(void *renderCommandEncoder, float red,
                                                                 green:green
                                                                  blue:blue
                                                                 alpha:alpha];
+}
+
+void RenderCommandEncoder_SetDepthStencilState(void *renderCommandEncoder,
+                                               void *depthStencilState) {
+  [(id<MTLRenderCommandEncoder>)renderCommandEncoder
+      setDepthStencilState:(id<MTLDepthStencilState>)depthStencilState];
 }
 
 void RenderCommandEncoder_DrawPrimitives(void *renderCommandEncoder,
@@ -371,4 +413,8 @@ void Function_Release(void *function) { [(id<MTLFunction>)function release]; }
 
 void RenderPipelineState_Release(void *renderPipelineState) {
   [(id<MTLRenderPipelineState>)renderPipelineState release];
+}
+
+void DepthStencilState_Release(void *depthStencilState) {
+  [(id<MTLDepthStencilState>)depthStencilState release];
 }

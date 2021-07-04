@@ -47,6 +47,8 @@ struct RenderPipelineDescriptor {
   uint8_t ColorAttachment0DestinationRGBBlendFactor;
   uint8_t ColorAttachment0SourceAlphaBlendFactor;
   uint8_t ColorAttachment0SourceRGBBlendFactor;
+  uint8_t ColorAttachment0WriteMask;
+  uint8_t StencilAttachmentPixelFormat;
 };
 
 struct RenderPipelineState {
@@ -66,6 +68,9 @@ struct RenderPassDescriptor {
   uint8_t ColorAttachment0StoreAction;
   struct ClearColor ColorAttachment0ClearColor;
   void *ColorAttachment0Texture;
+  uint8_t StencilAttachmentLoadAction;
+  uint8_t StencilAttachmentStoreAction;
+  void *StencilAttachmentTexture;
 };
 
 struct TextureDescriptor {
@@ -110,6 +115,17 @@ struct ScissorRect {
   uint_t Height;
 };
 
+struct DepthStencilDescriptor {
+  uint8_t BackFaceStencilStencilFailureOperation;
+  uint8_t BackFaceStencilDepthFailureOperation;
+  uint8_t BackFaceStencilDepthStencilPassOperation;
+  uint8_t BackFaceStencilStencilCompareFunction;
+  uint8_t FrontFaceStencilStencilFailureOperation;
+  uint8_t FrontFaceStencilDepthFailureOperation;
+  uint8_t FrontFaceStencilDepthStencilPassOperation;
+  uint8_t FrontFaceStencilStencilCompareFunction;
+};
+
 struct Device CreateSystemDefaultDevice();
 struct Devices CopyAllDevices();
 
@@ -125,6 +141,8 @@ void *Device_MakeBufferWithBytes(void *device, const void *bytes, size_t length,
 void *Device_MakeBufferWithLength(void *device, size_t length,
                                   uint16_t options);
 void *Device_MakeTexture(void *device, struct TextureDescriptor descriptor);
+void *Device_MakeDepthStencilState(void *device,
+                                   struct DepthStencilDescriptor descriptor);
 
 void CommandQueue_Release(void *commandQueue);
 void *CommandQueue_MakeCommandBuffer(void *commandQueue);
@@ -160,6 +178,8 @@ void RenderCommandEncoder_SetBlendColor(void *renderCommandEncoder, float red,
                                         float green, float blue, float alpha);
 void RenderCommandEncoder_SetFragmentTexture(void *renderCommandEncoder,
                                              void *texture, uint_t index);
+void RenderCommandEncoder_SetDepthStencilState(void *renderCommandEncoder,
+                                               void *depthStencilState);
 void RenderCommandEncoder_DrawPrimitives(void *renderCommandEncoder,
                                          uint8_t primitiveType,
                                          uint_t vertexStart,
@@ -193,3 +213,4 @@ void Buffer_Retain(void *buffer);
 void Buffer_Release(void *buffer);
 void Function_Release(void *function);
 void RenderPipelineState_Release(void *renderPipelineState);
+void DepthStencilState_Release(void *depthStencilState);
