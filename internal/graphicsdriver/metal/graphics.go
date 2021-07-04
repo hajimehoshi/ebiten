@@ -379,6 +379,7 @@ func (g *Graphics) flushIfNeeded(present bool) {
 	if g.cb == (mtl.CommandBuffer{}) {
 		return
 	}
+	g.flushRenderCommandEncoderIfNeeded()
 
 	if present && g.screenDrawable != (ca.MetalDrawable{}) {
 		g.cb.PresentDrawable(g.screenDrawable)
@@ -799,10 +800,6 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 
 	if err := g.draw(rps, dst, dstRegion, srcs, indexLen, indexOffset, uniformVars); err != nil {
 		return err
-	}
-
-	if dst.screen {
-		g.flushRenderCommandEncoderIfNeeded()
 	}
 
 	return nil
