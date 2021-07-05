@@ -489,7 +489,7 @@ func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs
 	}
 	if c.evenOdd || evenOdd {
 		if c.evenOdd && evenOdd {
-			return !mightOverlapsDstRegions(c.vertices, vertices)
+			return !mightOverlapDstRegions(c.vertices, vertices)
 		}
 		return false
 	}
@@ -526,7 +526,7 @@ func dstRegionFromVertices(vertices []float32) (minX, minY, maxX, maxY float32) 
 	return
 }
 
-func mightOverlapsDstRegions(vertices1, vertices2 []float32) bool {
+func mightOverlapDstRegions(vertices1, vertices2 []float32) bool {
 	minX1, minY1, maxX1, maxY1 := dstRegionFromVertices(vertices1)
 	minX2, minY2, maxX2, maxY2 := dstRegionFromVertices(vertices2)
 	const mergin = 1
