@@ -482,7 +482,7 @@ func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs
 	if c.srcRegion != srcRegion {
 		return false
 	}
-	if c.evenOdd != evenOdd {
+	if c.evenOdd || evenOdd {
 		return false
 	}
 	return true

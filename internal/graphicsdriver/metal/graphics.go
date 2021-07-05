@@ -316,7 +316,6 @@ type Graphics struct {
 	screenDrawable ca.MetalDrawable
 
 	lastDstTexture mtl.Texture
-	lastStencilUse bool
 
 	vb mtl.Buffer
 	ib mtl.Buffer
@@ -344,10 +343,6 @@ const (
 	drawWithStencil
 	noStencil
 )
-
-func (s stencilMode) useStencil() bool {
-	return s != noStencil
-}
 
 var theGraphics Graphics
 
@@ -645,11 +640,13 @@ func (g *Graphics) flushRenderCommandEncoderIfNeeded() {
 	g.rce.EndEncoding()
 	g.rce = mtl.RenderCommandEncoder{}
 	g.lastDstTexture = mtl.Texture{}
-	g.lastStencilUse = false
 }
 
 func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion driver.Region, srcs [graphics.ShaderImageNum]*Image, indexLen int, indexOffset int, uniforms []interface{}, stencilMode stencilMode) error {
-	if g.lastDstTexture != dst.mtlTexture() || g.lastStencilUse != stencilMode.useStencil() {
+	// When prepareing a stencil buffer, flush the current render command encoder
+	// to make sure the stencil buffer is cleared when loading.
+	// TODO: What about clearing the stencil buffer by vertices?
+	if g.lastDstTexture != dst.mtlTexture() || stencilMode == prepareStencil {
 		g.flushRenderCommandEncoderIfNeeded()
 	}
 
@@ -668,7 +665,7 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion drive
 		rpd.ColorAttachments[0].Texture = t
 		rpd.ColorAttachments[0].ClearColor = mtl.ClearColor{}
 
-		if stencilMode.useStencil() {
+		if stencilMode == prepareStencil {
 			dst.ensureStencil()
 			rpd.StencilAttachment.LoadAction = mtl.LoadActionClear
 			rpd.StencilAttachment.StoreAction = mtl.StoreActionDontCare
@@ -680,7 +677,6 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion drive
 		}
 		g.rce = g.cb.MakeRenderCommandEncoder(rpd)
 	}
-	g.lastStencilUse = stencilMode.useStencil()
 
 	g.rce.SetRenderPipelineState(rps)
 

@@ -2332,7 +2332,7 @@ func TestImageEvenOdd(t *testing.T) {
 		}
 	}
 
-	// Do the same thing with a little shift. This confirms that the underlying stencil buffer is cleared correctly.
+	// Do the same thing but with a little shift. This confirms that the underlying stencil buffer is cleared correctly.
 	for i := range vs0 {
 		vs0[i].DstX++
 		vs0[i].DstY++
@@ -2357,6 +2357,44 @@ func TestImageEvenOdd(t *testing.T) {
 			case 3 <= i && i < 15 && 3 <= j && j < 15:
 				want = color.RGBA{0, 0, 0, 0}
 			case 2 <= i && i < 16 && 2 <= j && j < 16:
+				want = color.RGBA{0xff, 0, 0, 0xff}
+			default:
+				want = color.RGBA{0, 0, 0, 0}
+			}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+
+	// Do the same thing but with split DrawTriangle calls. This confirms that the even-odd rule is applied for one call.
+	for i := range vs0 {
+		vs0[i].DstX--
+		vs0[i].DstY--
+	}
+	for i := range vs1 {
+		vs1[i].DstX--
+		vs1[i].DstY--
+	}
+	for i := range vs2 {
+		vs2[i].DstX--
+		vs2[i].DstY--
+	}
+	dst.Clear()
+	// Use the first indices set.
+	dst.DrawTriangles(vs0, is0, emptySubImage, op)
+	dst.DrawTriangles(vs1, is0, emptySubImage, op)
+	dst.DrawTriangles(vs2, is0, emptySubImage, op)
+	for j := 0; j < 16; j++ {
+		for i := 0; i < 16; i++ {
+			got := dst.At(i, j)
+			var want color.RGBA
+			switch {
+			case 3 <= i && i < 13 && 3 <= j && j < 13:
+				want = color.RGBA{0, 0, 0xff, 0xff}
+			case 2 <= i && i < 14 && 2 <= j && j < 14:
+				want = color.RGBA{0, 0xff, 0, 0xff}
+			case 1 <= i && i < 15 && 1 <= j && j < 15:
 				want = color.RGBA{0xff, 0, 0, 0xff}
 			default:
 				want = color.RGBA{0, 0, 0, 0}
