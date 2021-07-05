@@ -51,29 +51,28 @@ func (p *Path) LineTo(x, y float32) {
 	p.cur = point{x: x, y: y}
 }
 
-// nseg returns a number of segments based on the given two points (x0, y0) and (x1, y1).
-func nseg(x0, y0, x1, y1 float32) int {
-	distx := x1 - x0
-	if distx < 0 {
-		distx = -distx
+// nseg returns a number of segments based on the given three points for a Bézier curve.
+//
+// See golang.org/x/image/vector's devSquared for more details.
+func nseg(x0, y0, x1, y1, x2, y2 float32) int {
+	devx := x0 - 2*x1 + x2
+	devy := y0 - 2*y1 + y2
+	devsq := devx*devx + devy*devy
+	if devsq < 0.333 {
+		return 0
 	}
-	disty := y1 - y0
-	if disty < 0 {
-		disty = -disty
-	}
-	dist := distx
-	if dist < disty {
-		dist = disty
-	}
-
-	return int(math.Ceil(float64(dist)))
+	const tol = 3
+	return 1 + int(math.Sqrt(math.Sqrt(tol*float64(devsq))))*2
 }
 
 // QuadTo adds a quadratic Bézier curve to the path.
 func (p *Path) QuadTo(cpx, cpy, x, y float32) {
 	// TODO: Split more appropriate number of segments.
 	c := p.cur
-	num := nseg(c.x, c.y, x, y)
+	num := nseg(c.x, c.y, cpx, cpy, x, y)
+	if num == 0 {
+		return
+	}
 	for t := float32(0.0); t <= 1; t += 1.0 / float32(num) {
 		xf := (1-t)*(1-t)*c.x + 2*t*(1-t)*cpx + t*t*x
 		yf := (1-t)*(1-t)*c.y + 2*t*(1-t)*cpy + t*t*y
@@ -85,7 +84,13 @@ func (p *Path) QuadTo(cpx, cpy, x, y float32) {
 func (p *Path) CubicTo(cp0x, cp0y, cp1x, cp1y, x, y float32) {
 	// TODO: Split more appropriate number of segments.
 	c := p.cur
-	num := nseg(c.x, c.y, x, y)
+	num := nseg(c.x, c.y, cp0x, cp0y, x, y)
+	if num2 := nseg(c.x, c.y, cp1x, cp1y, x, y); num2 > num {
+		num = num2
+	}
+	if num == 0 {
+		return
+	}
 	for t := float32(0.0); t <= 1; t += 1.0 / float32(num) {
 		xf := (1-t)*(1-t)*(1-t)*c.x + 3*(1-t)*(1-t)*t*cp0x + 3*(1-t)*t*t*cp1x + t*t*t*x
 		yf := (1-t)*(1-t)*(1-t)*c.y + 3*(1-t)*(1-t)*t*cp0y + 3*(1-t)*t*t*cp1y + t*t*t*y
