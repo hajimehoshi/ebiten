@@ -132,6 +132,7 @@ fragment float4 FragmentShader(Vertex in [[stage_in]]) {
 	rpld.VertexFunction = vs
 	rpld.FragmentFunction = fs
 	rpld.ColorAttachments[0].PixelFormat = mtl.PixelFormatRGBA8UNorm
+	rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskAll
 	rps, err := device.MakeRenderPipelineState(rpld)
 	if err != nil {
 		log.Fatalln(err)
