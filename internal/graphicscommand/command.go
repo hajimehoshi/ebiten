@@ -163,8 +163,8 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	if !split && 0 < len(q.commands) {
 		// TODO: Pass offsets and uniforms when merging considers the shader.
 		if last, ok := q.commands[len(q.commands)-1].(*drawTrianglesCommand); ok {
-			if last.CanMergeWithDrawTrianglesCommand(dst, srcs, color, mode, filter, address, dstRegion, srcRegion, shader, evenOdd) {
-				last.addNumVertices(len(vertices))
+			if last.CanMergeWithDrawTrianglesCommand(dst, srcs, vertices, color, mode, filter, address, dstRegion, srcRegion, shader, evenOdd) {
+				last.setVertices(q.lastVertices(len(vertices) + last.numVertices()))
 				last.addNumIndices(len(indices))
 				return
 			}
@@ -175,7 +175,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 		dst:       dst,
 		srcs:      srcs,
 		offsets:   offsets,
-		nvertices: len(vertices),
+		vertices:  q.lastVertices(len(vertices)),
 		nindices:  len(indices),
 		color:     color,
 		mode:      mode,
@@ -188,6 +188,10 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 		evenOdd:   evenOdd,
 	}
 	q.commands = append(q.commands, c)
+}
+
+func (q *commandQueue) lastVertices(n int) []float32 {
+	return q.vertices[q.nvertices-n : q.nvertices]
 }
 
 // Enqueue enqueues a drawing command other than a draw-triangles command.
@@ -311,7 +315,7 @@ type drawTrianglesCommand struct {
 	dst       *Image
 	srcs      [graphics.ShaderImageNum]*Image
 	offsets   [graphics.ShaderImageNum - 1][2]float32
-	nvertices int
+	vertices  []float32
 	nindices  int
 	color     *affine.ColorM
 	mode      driver.CompositeMode
@@ -435,15 +439,15 @@ func (c *drawTrianglesCommand) Exec(indexOffset int) error {
 }
 
 func (c *drawTrianglesCommand) numVertices() int {
-	return c.nvertices
+	return len(c.vertices)
 }
 
 func (c *drawTrianglesCommand) numIndices() int {
 	return c.nindices
 }
 
-func (c *drawTrianglesCommand) addNumVertices(n int) {
-	c.nvertices += n
+func (c *drawTrianglesCommand) setVertices(vertices []float32) {
+	c.vertices = vertices
 }
 
 func (c *drawTrianglesCommand) addNumIndices(n int) {
@@ -452,7 +456,7 @@ func (c *drawTrianglesCommand) addNumIndices(n int) {
 
 // CanMergeWithDrawTrianglesCommand returns a boolean value indicating whether the other drawTrianglesCommand can be merged
 // with the drawTrianglesCommand c.
-func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageNum]*Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, shader *Shader, evenOdd bool) bool {
+func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageNum]*Image, vertices []float32, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, shader *Shader, evenOdd bool) bool {
 	// If a shader is used, commands are not merged.
 	//
 	// TODO: Merge shader commands considering uniform variables.
@@ -484,9 +488,49 @@ func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs
 		return false
 	}
 	if c.evenOdd || evenOdd {
+		if c.evenOdd && evenOdd {
+			return !mightOverlapsDstRegions(c.vertices, vertices)
+		}
 		return false
 	}
 	return true
+}
+
+var (
+	posInf32 = float32(math.Inf(1))
+	negInf32 = float32(math.Inf(-1))
+)
+
+func dstRegionFromVertices(vertices []float32) (minX, minY, maxX, maxY float32) {
+	minX = posInf32
+	minY = posInf32
+	maxX = negInf32
+	maxY = negInf32
+
+	for i := 0; i < len(vertices)/graphics.VertexFloatNum; i++ {
+		x := vertices[graphics.VertexFloatNum*i]
+		y := vertices[graphics.VertexFloatNum*i+1]
+		if x < minX {
+			minX = x
+		}
+		if y < minY {
+			minY = y
+		}
+		if maxX < x {
+			maxX = x
+		}
+		if maxY < y {
+			maxY = y
+		}
+	}
+	return
+}
+
+func mightOverlapsDstRegions(vertices1, vertices2 []float32) bool {
+	minX1, minY1, maxX1, maxY1 := dstRegionFromVertices(vertices1)
+	minX2, minY2, maxX2, maxY2 := dstRegionFromVertices(vertices2)
+	const mergin = 1
+	return minX1 < maxX2+mergin && minX2 < maxX1+mergin && minY1 < maxY2+mergin && minY2 < maxY1+mergin
 }
 
 // replacePixelsCommand represents a command to replace pixels of an image.
