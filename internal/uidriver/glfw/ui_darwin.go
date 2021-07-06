@@ -23,21 +23,23 @@ package glfw
 // #import <AppKit/AppKit.h>
 //
 // static void currentMonitorPos(uintptr_t windowPtr, int* x, int* y) {
-//   NSScreen* screen = [NSScreen mainScreen];
-//   if (windowPtr) {
-//     NSWindow* window = (NSWindow*)windowPtr;
-//     if ([window isVisible]) {
-//       // When the window is visible, the window is already initialized.
-//       // [NSScreen mainScreen] sometimes tells a lie when the window is put across monitors (#703).
-//       screen = [window screen];
+//   @autoreleasepool {
+//     NSScreen* screen = [NSScreen mainScreen];
+//     if (windowPtr) {
+//       NSWindow* window = (NSWindow*)windowPtr;
+//       if ([window isVisible]) {
+//         // When the window is visible, the window is already initialized.
+//         // [NSScreen mainScreen] sometimes tells a lie when the window is put across monitors (#703).
+//         screen = [window screen];
+//       }
 //     }
+//     NSDictionary* screenDictionary = [screen deviceDescription];
+//     NSNumber* screenID = [screenDictionary objectForKey:@"NSScreenNumber"];
+//     CGDirectDisplayID aID = [screenID unsignedIntValue];
+//     const CGRect bounds = CGDisplayBounds(aID);
+//     *x = bounds.origin.x;
+//     *y = bounds.origin.y;
 //   }
-//   NSDictionary* screenDictionary = [screen deviceDescription];
-//   NSNumber* screenID = [screenDictionary objectForKey:@"NSScreenNumber"];
-//   CGDirectDisplayID aID = [screenID unsignedIntValue];
-//   const CGRect bounds = CGDisplayBounds(aID);
-//   *x = bounds.origin.x;
-//   *y = bounds.origin.y;
 // }
 //
 // static bool isNativeFullscreen() {
