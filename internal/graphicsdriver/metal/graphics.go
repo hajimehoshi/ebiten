@@ -425,14 +425,14 @@ func (g *Graphics) availableBuffer(length uintptr) mtl.Buffer {
 	}
 
 	// GC unused buffers.
-	const maxUnusedBuffers = 20
+	const maxUnusedBuffers = 10
 	if len(g.unusedBuffers) > maxUnusedBuffers {
 		bufs := make([]mtl.Buffer, 0, len(g.unusedBuffers))
 		for b := range g.unusedBuffers {
 			bufs = append(bufs, b)
 		}
 		sort.Slice(bufs, func(a, b int) bool {
-			return bufs[a].Length() < bufs[b].Length()
+			return bufs[a].Length() > bufs[b].Length()
 		})
 		for _, b := range bufs[maxUnusedBuffers:] {
 			delete(g.unusedBuffers, b)
