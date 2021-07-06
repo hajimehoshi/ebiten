@@ -296,12 +296,12 @@ FragmentShaderFunc(0, FILTER_SCREEN, ADDRESS_UNSAFE)
 `
 
 type rpsKey struct {
-	useColorM      bool
-	filter         driver.Filter
-	address        driver.Address
-	compositeMode  driver.CompositeMode
-	colorWriteMask bool
-	screen         bool
+	useColorM     bool
+	filter        driver.Filter
+	address       driver.Address
+	compositeMode driver.CompositeMode
+	stencilMode   stencilMode
+	screen        bool
 }
 
 type Graphics struct {
@@ -315,7 +315,8 @@ type Graphics struct {
 
 	screenDrawable ca.MetalDrawable
 
-	lastDstTexture mtl.Texture
+	lastDstTexture  mtl.Texture
+	lastStencilMode stencilMode
 
 	vb mtl.Buffer
 	ib mtl.Buffer
@@ -549,9 +550,8 @@ func (g *Graphics) Reset() error {
 		return err
 	}
 	rpld := mtl.RenderPipelineDescriptor{
-		VertexFunction:               vs,
-		FragmentFunction:             fs,
-		StencilAttachmentPixelFormat: mtl.PixelFormatStencil8,
+		VertexFunction:   vs,
+		FragmentFunction: fs,
 	}
 	rpld.ColorAttachments[0].PixelFormat = g.view.colorPixelFormat()
 	rpld.ColorAttachments[0].BlendingEnabled = true
@@ -578,7 +578,11 @@ func (g *Graphics) Reset() error {
 					driver.FilterLinear,
 				} {
 					for c := driver.CompositeModeSourceOver; c <= driver.CompositeModeMax; c++ {
-						for _, cwm := range []bool{false, true} {
+						for _, stencil := range []stencilMode{
+							prepareStencil,
+							drawWithStencil,
+							noStencil,
+						} {
 							cmi := 0
 							if cm {
 								cmi = 1
@@ -588,9 +592,11 @@ func (g *Graphics) Reset() error {
 								return err
 							}
 							rpld := mtl.RenderPipelineDescriptor{
-								VertexFunction:               vs,
-								FragmentFunction:             fs,
-								StencilAttachmentPixelFormat: mtl.PixelFormatStencil8,
+								VertexFunction:   vs,
+								FragmentFunction: fs,
+							}
+							if stencil != noStencil {
+								rpld.StencilAttachmentPixelFormat = mtl.PixelFormatStencil8
 							}
 
 							pix := mtl.PixelFormatRGBA8UNorm
@@ -605,22 +611,22 @@ func (g *Graphics) Reset() error {
 							rpld.ColorAttachments[0].DestinationRGBBlendFactor = operationToBlendFactor(dst)
 							rpld.ColorAttachments[0].SourceAlphaBlendFactor = operationToBlendFactor(src)
 							rpld.ColorAttachments[0].SourceRGBBlendFactor = operationToBlendFactor(src)
-							if cwm {
-								rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskAll
-							} else {
+							if stencil == prepareStencil {
 								rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskNone
+							} else {
+								rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskAll
 							}
 							rps, err := g.view.getMTLDevice().MakeRenderPipelineState(rpld)
 							if err != nil {
 								return err
 							}
 							g.rpss[rpsKey{
-								screen:         screen,
-								useColorM:      cm,
-								filter:         f,
-								address:        a,
-								compositeMode:  c,
-								colorWriteMask: cwm,
+								screen:        screen,
+								useColorM:     cm,
+								filter:        f,
+								address:       a,
+								compositeMode: c,
+								stencilMode:   stencil,
 							}] = rps
 						}
 					}
@@ -646,9 +652,10 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion drive
 	// When prepareing a stencil buffer, flush the current render command encoder
 	// to make sure the stencil buffer is cleared when loading.
 	// TODO: What about clearing the stencil buffer by vertices?
-	if g.lastDstTexture != dst.mtlTexture() || stencilMode == prepareStencil {
+	if g.lastDstTexture != dst.mtlTexture() || (g.lastStencilMode == noStencil) != (stencilMode == noStencil) {
 		g.flushRenderCommandEncoderIfNeeded()
 	}
+	g.lastStencilMode = stencilMode
 
 	if g.rce == (mtl.RenderCommandEncoder{}) {
 		rpd := mtl.RenderPassDescriptor{}
@@ -755,7 +762,21 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion drive
 		}
 		g.rce.SetDepthStencilState(g.view.getMTLDevice().MakeDepthStencilState(desc))
 	case noStencil:
-		g.rce.SetDepthStencilState(mtl.DepthStencilState{})
+		desc := mtl.DepthStencilDescriptor{
+			BackFaceStencil: mtl.StencilDescriptor{
+				StencilFailureOperation:   mtl.StencilOperationKeep,
+				DepthFailureOperation:     mtl.StencilOperationKeep,
+				DepthStencilPassOperation: mtl.StencilOperationKeep,
+				StencilCompareFunction:    mtl.CompareFunctionAlways,
+			},
+			FrontFaceStencil: mtl.StencilDescriptor{
+				StencilFailureOperation:   mtl.StencilOperationKeep,
+				DepthFailureOperation:     mtl.StencilOperationKeep,
+				DepthStencilPassOperation: mtl.StencilOperationKeep,
+				StencilCompareFunction:    mtl.CompareFunctionAlways,
+			},
+		}
+		g.rce.SetDepthStencilState(g.view.getMTLDevice().MakeDepthStencilState(desc))
 	}
 
 	g.rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, indexLen, mtl.IndexTypeUInt16, g.ib, indexOffset*2)
@@ -775,29 +796,26 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 		srcs[i] = g.images[srcID]
 	}
 
-	var rpss [2]mtl.RenderPipelineState
+	rpss := map[stencilMode]mtl.RenderPipelineState{}
 	var uniformVars []interface{}
 	if shaderID == driver.InvalidShaderID {
 		if dst.screen && filter == driver.FilterScreen {
-			rpss[1] = g.screenRPS
+			rpss[noStencil] = g.screenRPS
 		} else {
-			useColorM := colorM != nil
-			rpss[0] = g.rpss[rpsKey{
-				screen:         dst.screen,
-				useColorM:      useColorM,
-				filter:         filter,
-				address:        address,
-				compositeMode:  mode,
-				colorWriteMask: false,
-			}]
-			rpss[1] = g.rpss[rpsKey{
-				screen:         dst.screen,
-				useColorM:      useColorM,
-				filter:         filter,
-				address:        address,
-				compositeMode:  mode,
-				colorWriteMask: true,
-			}]
+			for _, stencil := range []stencilMode{
+				prepareStencil,
+				drawWithStencil,
+				noStencil,
+			} {
+				rpss[stencil] = g.rpss[rpsKey{
+					screen:        dst.screen,
+					useColorM:     colorM != nil,
+					filter:        filter,
+					address:       address,
+					compositeMode: mode,
+					stencilMode:   stencil,
+				}]
+			}
 		}
 
 		w, h := dst.internalSize()
@@ -826,14 +844,16 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 			},
 		}
 	} else {
-		var err error
-		rpss[0], err = g.shaders[shaderID].RenderPipelineState(g.view.getMTLDevice(), mode, false)
-		if err != nil {
-			return err
-		}
-		rpss[1], err = g.shaders[shaderID].RenderPipelineState(g.view.getMTLDevice(), mode, true)
-		if err != nil {
-			return err
+		for _, stencil := range []stencilMode{
+			prepareStencil,
+			drawWithStencil,
+			noStencil,
+		} {
+			var err error
+			rpss[stencil], err = g.shaders[shaderID].RenderPipelineState(g.view.getMTLDevice(), mode, stencil)
+			if err != nil {
+				return err
+			}
 		}
 
 		uniformVars = make([]interface{}, graphics.PreservedUniformVariablesNum+len(uniforms))
@@ -885,14 +905,14 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 	}
 
 	if evenOdd {
-		if err := g.draw(rpss[0], dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, prepareStencil); err != nil {
+		if err := g.draw(rpss[prepareStencil], dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, prepareStencil); err != nil {
 			return err
 		}
-		if err := g.draw(rpss[1], dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, drawWithStencil); err != nil {
+		if err := g.draw(rpss[drawWithStencil], dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, drawWithStencil); err != nil {
 			return err
 		}
 	} else {
-		if err := g.draw(rpss[1], dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, noStencil); err != nil {
+		if err := g.draw(rpss[noStencil], dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, noStencil); err != nil {
 			return err
 		}
 	}

@@ -27,8 +27,8 @@ import (
 )
 
 type shaderRpsKey struct {
-	compositeMode  driver.CompositeMode
-	colorWriteMask bool
+	compositeMode driver.CompositeMode
+	stencilMode   stencilMode
 }
 
 type Shader struct {
@@ -88,18 +88,20 @@ func (s *Shader) init(device mtl.Device) error {
 	return nil
 }
 
-func (s *Shader) RenderPipelineState(device mtl.Device, compositeMode driver.CompositeMode, colorWriteMask bool) (mtl.RenderPipelineState, error) {
+func (s *Shader) RenderPipelineState(device mtl.Device, compositeMode driver.CompositeMode, stencilMode stencilMode) (mtl.RenderPipelineState, error) {
 	if rps, ok := s.rpss[shaderRpsKey{
-		compositeMode:  compositeMode,
-		colorWriteMask: colorWriteMask,
+		compositeMode: compositeMode,
+		stencilMode:   stencilMode,
 	}]; ok {
 		return rps, nil
 	}
 
 	rpld := mtl.RenderPipelineDescriptor{
-		VertexFunction:               s.vs,
-		FragmentFunction:             s.fs,
-		StencilAttachmentPixelFormat: mtl.PixelFormatStencil8,
+		VertexFunction:   s.vs,
+		FragmentFunction: s.fs,
+	}
+	if stencilMode != noStencil {
+		rpld.StencilAttachmentPixelFormat = mtl.PixelFormatStencil8
 	}
 
 	// TODO: For the precise pixel format, whether the render target is the screen or not must be considered.
@@ -111,10 +113,10 @@ func (s *Shader) RenderPipelineState(device mtl.Device, compositeMode driver.Com
 	rpld.ColorAttachments[0].DestinationRGBBlendFactor = operationToBlendFactor(dst)
 	rpld.ColorAttachments[0].SourceAlphaBlendFactor = operationToBlendFactor(src)
 	rpld.ColorAttachments[0].SourceRGBBlendFactor = operationToBlendFactor(src)
-	if colorWriteMask {
-		rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskAll
-	} else {
+	if stencilMode == prepareStencil {
 		rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskNone
+	} else {
+		rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskAll
 	}
 
 	rps, err := device.MakeRenderPipelineState(rpld)
@@ -123,8 +125,8 @@ func (s *Shader) RenderPipelineState(device mtl.Device, compositeMode driver.Com
 	}
 
 	s.rpss[shaderRpsKey{
-		compositeMode:  compositeMode,
-		colorWriteMask: colorWriteMask,
+		compositeMode: compositeMode,
+		stencilMode:   stencilMode,
 	}] = rps
 	return rps, nil
 }
