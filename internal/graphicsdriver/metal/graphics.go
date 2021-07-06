@@ -794,7 +794,11 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion drive
 		rpd := mtl.RenderPassDescriptor{}
 		// Even though the destination pixels are not used, mtl.LoadActionDontCare might cause glitches
 		// (#1019). Always using mtl.LoadActionLoad is safe.
-		rpd.ColorAttachments[0].LoadAction = mtl.LoadActionLoad
+		if dst.screen {
+			rpd.ColorAttachments[0].LoadAction = mtl.LoadActionClear
+		} else {
+			rpd.ColorAttachments[0].LoadAction = mtl.LoadActionLoad
+		}
 		rpd.ColorAttachments[0].StoreAction = mtl.StoreActionStore
 
 		t := dst.mtlTexture()
@@ -1012,6 +1016,10 @@ func (g *Graphics) FramebufferYDirection() driver.YDirection {
 }
 
 func (g *Graphics) NeedsRestoring() bool {
+	return false
+}
+
+func (g *Graphics) NeedsClearingScreen() bool {
 	return false
 }
 

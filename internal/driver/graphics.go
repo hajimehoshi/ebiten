@@ -45,6 +45,7 @@ type Graphics interface {
 	SetVsyncEnabled(enabled bool)
 	FramebufferYDirection() YDirection
 	NeedsRestoring() bool
+	NeedsClearingScreen() bool
 	IsGL() bool
 	HasHighPrecisionFloat() bool
 	MaxImageSize() int

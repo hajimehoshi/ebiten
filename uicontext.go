@@ -205,8 +205,10 @@ func (c *uiContext) updateImpl(updateCount int) error {
 	}
 	c.game.Draw(c.offscreen)
 
-	// This clear is needed for fullscreen mode or some mobile platforms (#622).
-	c.screen.Clear()
+	if uiDriver().Graphics().NeedsClearingScreen() {
+		// This clear is needed for fullscreen mode or some mobile platforms (#622).
+		c.screen.Clear()
+	}
 
 	op := &DrawImageOptions{}
 

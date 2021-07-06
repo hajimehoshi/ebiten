@@ -337,6 +337,10 @@ func (g *Graphics) NeedsRestoring() bool {
 	return g.context.needsRestoring()
 }
 
+func (g *Graphics) NeedsClearingScreen() bool {
+	return true
+}
+
 func (g *Graphics) IsGL() bool {
 	return true
 }
