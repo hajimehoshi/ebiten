@@ -30,5 +30,6 @@ void MetalLayer_SetDisplaySyncEnabled(void *metalLayer,
                                       uint8_t displaySyncEnabled);
 void MetalLayer_SetDrawableSize(void *metalLayer, double width, double height);
 void *MetalLayer_NextDrawable(void *metalLayer);
+void MetalLayer_SetFramebufferOnly(void *metalLayer, uint8_t framebufferOnly);
 
 void *MetalDrawable_Texture(void *drawable);

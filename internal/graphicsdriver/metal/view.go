@@ -73,10 +73,12 @@ func (v *view) reset() error {
 
 	// The vsync state might be reset. Set the state again (#1364).
 	v.ml.SetDisplaySyncEnabled(v.vsync)
+	v.ml.SetFramebufferOnly(true)
+
 	return nil
 }
 
-func (v *view) drawable() ca.MetalDrawable {
+func (v *view) nextDrawable() ca.MetalDrawable {
 	d, err := v.ml.NextDrawable()
 	if err != nil {
 		// Drawable is nil. This can happen at the initial state. Let's wait and see.

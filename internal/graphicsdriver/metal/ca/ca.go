@@ -147,6 +147,18 @@ func (ml MetalLayer) NextDrawable() (MetalDrawable, error) {
 	return MetalDrawable{md}, nil
 }
 
+// SetFramebufferOnly sets a Boolean value that determines whether the layer’s textures are used only for rendering.
+//
+// https://developer.apple.com/documentation/quartzcore/cametallayer/1478168-framebufferonly
+func (ml MetalLayer) SetFramebufferOnly(framebufferOnly bool) {
+	switch framebufferOnly {
+	case true:
+		C.MetalLayer_SetFramebufferOnly(ml.metalLayer, 1)
+	case false:
+		C.MetalLayer_SetFramebufferOnly(ml.metalLayer, 0)
+	}
+}
+
 // MetalDrawable is a displayable resource that can be rendered or written to by Metal.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametaldrawable.

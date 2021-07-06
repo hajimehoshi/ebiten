@@ -98,3 +98,7 @@ void *MetalLayer_NextDrawable(void *metalLayer) {
 void *MetalDrawable_Texture(void *metalDrawable) {
   return ((id<CAMetalDrawable>)metalDrawable).texture;
 }
+
+void MetalLayer_SetFramebufferOnly(void *metalLayer, uint8_t framebufferOnly) {
+  [((CAMetalLayer *)metalLayer) setFramebufferOnly:framebufferOnly];
+}
