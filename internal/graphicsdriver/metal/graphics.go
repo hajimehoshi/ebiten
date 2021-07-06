@@ -707,7 +707,7 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion drive
 	// When prepareing a stencil buffer, flush the current render command encoder
 	// to make sure the stencil buffer is cleared when loading.
 	// TODO: What about clearing the stencil buffer by vertices?
-	if g.lastDstTexture != dst.mtlTexture() || (g.lastStencilMode == noStencil) != (stencilMode == noStencil) {
+	if g.lastDstTexture != dst.mtlTexture() || (g.lastStencilMode == noStencil) != (stencilMode == noStencil) || stencilMode == prepareStencil {
 		g.flushRenderCommandEncoderIfNeeded()
 	}
 	g.lastStencilMode = stencilMode
