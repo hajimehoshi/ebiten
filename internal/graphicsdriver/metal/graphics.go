@@ -435,7 +435,6 @@ func (g *Graphics) availableBuffer(length uintptr) mtl.Buffer {
 			return bufs[a].Length() < bufs[b].Length()
 		})
 		for _, b := range bufs[maxUnusedBuffers:] {
-			println("delete!", b.Length())
 			delete(g.unusedBuffers, b)
 			b.Release()
 		}
