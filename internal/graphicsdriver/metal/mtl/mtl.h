@@ -147,7 +147,9 @@ void *Device_MakeDepthStencilState(void *device,
 void CommandQueue_Release(void *commandQueue);
 void *CommandQueue_MakeCommandBuffer(void *commandQueue);
 
+void CommandBuffer_Retain(void *commandBuffer);
 void CommandBuffer_Release(void *commandBuffer);
+uint8_t CommandBuffer_Status(void *commandBuffer);
 void CommandBuffer_PresentDrawable(void *commandBuffer, void *drawable);
 void CommandBuffer_Commit(void *commandBuffer);
 void CommandBuffer_WaitUntilCompleted(void *commandBuffer);
@@ -208,6 +210,7 @@ void Texture_ReplaceRegion(void *texture, struct Region region, uint_t level,
 int Texture_Width(void *texture);
 int Texture_Height(void *texture);
 
+size_t Buffer_Length(void *buffer);
 void Buffer_CopyToContents(void *buffer, void *data, size_t lengthInBytes);
 void Buffer_Retain(void *buffer);
 void Buffer_Release(void *buffer);

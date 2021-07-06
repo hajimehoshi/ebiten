@@ -330,6 +330,17 @@ const (
 	CompareFunctionAlways       CompareFunction = 7
 )
 
+type CommandBufferStatus uint8
+
+const (
+	CommandBufferStatusNotEnqueued CommandBufferStatus = 0 //The command buffer is not enqueued yet.
+	CommandBufferStatusEnqueued    CommandBufferStatus = 1 // The command buffer is enqueued.
+	CommandBufferStatusCommitted   CommandBufferStatus = 2 // The command buffer is committed for execution.
+	CommandBufferStatusScheduled   CommandBufferStatus = 3 // The command buffer is scheduled.
+	CommandBufferStatusCompleted   CommandBufferStatus = 4 // The command buffer completed execution successfully.
+	CommandBufferStatusError       CommandBufferStatus = 5 // Execution of the command buffer was aborted due to an error during execution.
+)
+
 // Resource represents a memory allocation for storing specialized data
 // that is accessible to the GPU.
 //
@@ -623,6 +634,21 @@ type CommandBuffer struct {
 	commandBuffer unsafe.Pointer
 }
 
+func (cb CommandBuffer) Retain() {
+	C.CommandBuffer_Retain(cb.commandBuffer)
+}
+
+func (cb CommandBuffer) Release() {
+	C.CommandBuffer_Release(cb.commandBuffer)
+}
+
+// Status returns the current stage in the lifetime of the command buffer.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtlcommandbuffer/1443048-status
+func (cb CommandBuffer) Status() CommandBufferStatus {
+	return CommandBufferStatus(C.CommandBuffer_Status(cb.commandBuffer))
+}
+
 // PresentDrawable registers a drawable presentation to occur as soon as possible.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlcommandbuffer/1443029-presentdrawable.
@@ -871,6 +897,12 @@ func (t Texture) Height() int {
 // Reference: https://developer.apple.com/documentation/metal/mtlbuffer.
 type Buffer struct {
 	buffer unsafe.Pointer
+}
+
+func (b Buffer) resource() unsafe.Pointer { return b.buffer }
+
+func (b Buffer) Length() uintptr {
+	return uintptr(C.Buffer_Length(b.buffer))
 }
 
 func (b Buffer) CopyToContents(data unsafe.Pointer, lengthInBytes uintptr) {

@@ -20,6 +20,7 @@ package metal
 import (
 	"fmt"
 	"math"
+	"sort"
 	"strings"
 	"unsafe"
 
@@ -316,6 +317,9 @@ type Graphics struct {
 
 	screenDrawable ca.MetalDrawable
 
+	buffers       map[mtl.CommandBuffer][]mtl.Buffer
+	unusedBuffers map[mtl.Buffer]struct{}
+
 	lastDstTexture  mtl.Texture
 	lastStencilMode stencilMode
 
@@ -376,15 +380,90 @@ func (g *Graphics) SetUIView(uiview uintptr) {
 	g.view.setUIView(uiview)
 }
 
+func pow2(x uintptr) uintptr {
+	var p2 uintptr = 1
+	for p2 < x {
+		p2 *= 2
+	}
+	return p2
+}
+
+func (g *Graphics) availableBuffer(length uintptr) mtl.Buffer {
+	if g.cb == (mtl.CommandBuffer{}) {
+		g.cb = g.cq.MakeCommandBuffer()
+	}
+
+	var newBuf mtl.Buffer
+
+	for cb, bs := range g.buffers {
+		// If the command buffer still lives, the buffer must not be updated.
+		// TODO: Handle an error?
+		if cb.Status() != mtl.CommandBufferStatusCompleted {
+			continue
+		}
+
+		for _, b := range bs {
+			if newBuf == (mtl.Buffer{}) && b.Length() >= length {
+				newBuf = b
+				continue
+			}
+			if g.unusedBuffers == nil {
+				g.unusedBuffers = map[mtl.Buffer]struct{}{}
+			}
+			g.unusedBuffers[b] = struct{}{}
+		}
+		delete(g.buffers, cb)
+		cb.Release()
+	}
+
+	for b := range g.unusedBuffers {
+		if b.Length() >= length {
+			newBuf = b
+			delete(g.unusedBuffers, b)
+			break
+		}
+	}
+
+	// GC unused buffers.
+	const maxUnusedBuffers = 20
+	if len(g.unusedBuffers) > maxUnusedBuffers {
+		bufs := make([]mtl.Buffer, 0, len(g.unusedBuffers))
+		for b := range g.unusedBuffers {
+			bufs = append(bufs, b)
+		}
+		sort.Slice(bufs, func(a, b int) bool {
+			return bufs[a].Length() < bufs[b].Length()
+		})
+		for _, b := range bufs[maxUnusedBuffers:] {
+			println("delete!", b.Length())
+			delete(g.unusedBuffers, b)
+			b.Release()
+		}
+	}
+
+	if newBuf == (mtl.Buffer{}) {
+		newBuf = g.view.getMTLDevice().MakeBufferWithLength(pow2(length), resourceStorageMode)
+	}
+
+	if g.buffers == nil {
+		g.buffers = map[mtl.CommandBuffer][]mtl.Buffer{}
+	}
+	if _, ok := g.buffers[g.cb]; !ok {
+		g.cb.Retain()
+	}
+	g.buffers[g.cb] = append(g.buffers[g.cb], newBuf)
+	return newBuf
+}
+
 func (g *Graphics) SetVertices(vertices []float32, indices []uint16) {
-	if g.vb != (mtl.Buffer{}) {
-		g.vb.Release()
-	}
-	if g.ib != (mtl.Buffer{}) {
-		g.ib.Release()
-	}
-	g.vb = g.view.getMTLDevice().MakeBufferWithBytes(unsafe.Pointer(&vertices[0]), unsafe.Sizeof(vertices[0])*uintptr(len(vertices)), resourceStorageMode)
-	g.ib = g.view.getMTLDevice().MakeBufferWithBytes(unsafe.Pointer(&indices[0]), unsafe.Sizeof(indices[0])*uintptr(len(indices)), resourceStorageMode)
+	vbSize := unsafe.Sizeof(vertices[0]) * uintptr(len(vertices))
+	ibSize := unsafe.Sizeof(indices[0]) * uintptr(len(indices))
+
+	g.vb = g.availableBuffer(vbSize)
+	g.vb.CopyToContents(unsafe.Pointer(&vertices[0]), vbSize)
+
+	g.ib = g.availableBuffer(ibSize)
+	g.ib.CopyToContents(unsafe.Pointer(&indices[0]), ibSize)
 }
 
 func (g *Graphics) flushIfNeeded(present bool) {

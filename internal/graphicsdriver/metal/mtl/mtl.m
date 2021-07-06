@@ -163,6 +163,18 @@ void *CommandQueue_MakeCommandBuffer(void *commandQueue) {
   return [(id<MTLCommandQueue>)commandQueue commandBuffer];
 }
 
+void CommandBuffer_Retain(void *commandBuffer) {
+  [(id<MTLCommandBuffer>)commandBuffer retain];
+}
+
+void CommandBuffer_Release(void *commandBuffer) {
+  [(id<MTLCommandBuffer>)commandBuffer release];
+}
+
+uint8_t CommandBuffer_Status(void *commandBuffer) {
+  return [(id<MTLCommandBuffer>)commandBuffer status];
+}
+
 void CommandBuffer_PresentDrawable(void *commandBuffer, void *drawable) {
   [(id<MTLCommandBuffer>)commandBuffer
       presentDrawable:(id<MTLDrawable>)drawable];
@@ -401,8 +413,13 @@ int Texture_Width(void *texture) { return [(id<MTLTexture>)texture width]; }
 
 int Texture_Height(void *texture) { return [(id<MTLTexture>)texture height]; }
 
+size_t Buffer_Length(void *buffer) { return [(id<MTLBuffer>)buffer length]; }
+
 void Buffer_CopyToContents(void *buffer, void *data, size_t lengthInBytes) {
   memcpy(((id<MTLBuffer>)buffer).contents, data, lengthInBytes);
+#if !TARGET_OS_IPHONE
+  [(id<MTLBuffer>)buffer didModifyRange:NSMakeRange(0, lengthInBytes)];
+#endif
 }
 
 void Buffer_Retain(void *buffer) { [(id<MTLBuffer>)buffer retain]; }
