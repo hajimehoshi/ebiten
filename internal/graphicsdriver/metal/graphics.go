@@ -312,6 +312,7 @@ type Graphics struct {
 	cq        mtl.CommandQueue
 	cb        mtl.CommandBuffer
 	rce       mtl.RenderCommandEncoder
+	dsss      map[stencilMode]mtl.DepthStencilState
 
 	screenDrawable ca.MetalDrawable
 
@@ -511,9 +512,19 @@ func (g *Graphics) Reset() error {
 		g.cq = mtl.CommandQueue{}
 	}
 
+	// Creating *State objects are expensive and reuse them whenever possible.
+	// See https://developer.apple.com/library/archive/documentation/Miscellaneous/Conceptual/MetalProgrammingGuide/Cmd-Submiss/Cmd-Submiss.html
+
 	// TODO: Release existing rpss
 	if g.rpss == nil {
 		g.rpss = map[rpsKey]mtl.RenderPipelineState{}
+	}
+
+	for _, dss := range g.dsss {
+		dss.Release()
+	}
+	if g.dsss == nil {
+		g.dsss = map[stencilMode]mtl.DepthStencilState{}
 	}
 
 	if err := g.view.reset(); err != nil {
@@ -635,6 +646,50 @@ func (g *Graphics) Reset() error {
 		}
 	}
 
+	// The stencil reference value is always 0 (default).
+	g.dsss[prepareStencil] = g.view.getMTLDevice().MakeDepthStencilState(mtl.DepthStencilDescriptor{
+		BackFaceStencil: mtl.StencilDescriptor{
+			StencilFailureOperation:   mtl.StencilOperationKeep,
+			DepthFailureOperation:     mtl.StencilOperationKeep,
+			DepthStencilPassOperation: mtl.StencilOperationInvert,
+			StencilCompareFunction:    mtl.CompareFunctionAlways,
+		},
+		FrontFaceStencil: mtl.StencilDescriptor{
+			StencilFailureOperation:   mtl.StencilOperationKeep,
+			DepthFailureOperation:     mtl.StencilOperationKeep,
+			DepthStencilPassOperation: mtl.StencilOperationInvert,
+			StencilCompareFunction:    mtl.CompareFunctionAlways,
+		},
+	})
+	g.dsss[drawWithStencil] = g.view.getMTLDevice().MakeDepthStencilState(mtl.DepthStencilDescriptor{
+		BackFaceStencil: mtl.StencilDescriptor{
+			StencilFailureOperation:   mtl.StencilOperationKeep,
+			DepthFailureOperation:     mtl.StencilOperationKeep,
+			DepthStencilPassOperation: mtl.StencilOperationKeep,
+			StencilCompareFunction:    mtl.CompareFunctionNotEqual,
+		},
+		FrontFaceStencil: mtl.StencilDescriptor{
+			StencilFailureOperation:   mtl.StencilOperationKeep,
+			DepthFailureOperation:     mtl.StencilOperationKeep,
+			DepthStencilPassOperation: mtl.StencilOperationKeep,
+			StencilCompareFunction:    mtl.CompareFunctionNotEqual,
+		},
+	})
+	g.dsss[noStencil] = g.view.getMTLDevice().MakeDepthStencilState(mtl.DepthStencilDescriptor{
+		BackFaceStencil: mtl.StencilDescriptor{
+			StencilFailureOperation:   mtl.StencilOperationKeep,
+			DepthFailureOperation:     mtl.StencilOperationKeep,
+			DepthStencilPassOperation: mtl.StencilOperationKeep,
+			StencilCompareFunction:    mtl.CompareFunctionAlways,
+		},
+		FrontFaceStencil: mtl.StencilDescriptor{
+			StencilFailureOperation:   mtl.StencilOperationKeep,
+			DepthFailureOperation:     mtl.StencilOperationKeep,
+			DepthStencilPassOperation: mtl.StencilOperationKeep,
+			StencilCompareFunction:    mtl.CompareFunctionAlways,
+		},
+	})
+
 	g.cq = g.view.getMTLDevice().MakeCommandQueue()
 	return nil
 }
@@ -727,63 +782,7 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion drive
 		}
 	}
 
-	// The stencil reference value is always 0 (default).
-	switch stencilMode {
-	case prepareStencil:
-		desc := mtl.DepthStencilDescriptor{
-			BackFaceStencil: mtl.StencilDescriptor{
-				StencilFailureOperation:   mtl.StencilOperationKeep,
-				DepthFailureOperation:     mtl.StencilOperationKeep,
-				DepthStencilPassOperation: mtl.StencilOperationInvert,
-				StencilCompareFunction:    mtl.CompareFunctionAlways,
-			},
-			FrontFaceStencil: mtl.StencilDescriptor{
-				StencilFailureOperation:   mtl.StencilOperationKeep,
-				DepthFailureOperation:     mtl.StencilOperationKeep,
-				DepthStencilPassOperation: mtl.StencilOperationInvert,
-				StencilCompareFunction:    mtl.CompareFunctionAlways,
-			},
-		}
-		ss := g.view.getMTLDevice().MakeDepthStencilState(desc)
-		g.rce.SetDepthStencilState(ss)
-		ss.Release()
-	case drawWithStencil:
-		desc := mtl.DepthStencilDescriptor{
-			BackFaceStencil: mtl.StencilDescriptor{
-				StencilFailureOperation:   mtl.StencilOperationKeep,
-				DepthFailureOperation:     mtl.StencilOperationKeep,
-				DepthStencilPassOperation: mtl.StencilOperationKeep,
-				StencilCompareFunction:    mtl.CompareFunctionNotEqual,
-			},
-			FrontFaceStencil: mtl.StencilDescriptor{
-				StencilFailureOperation:   mtl.StencilOperationKeep,
-				DepthFailureOperation:     mtl.StencilOperationKeep,
-				DepthStencilPassOperation: mtl.StencilOperationKeep,
-				StencilCompareFunction:    mtl.CompareFunctionNotEqual,
-			},
-		}
-		ss := g.view.getMTLDevice().MakeDepthStencilState(desc)
-		g.rce.SetDepthStencilState(ss)
-		ss.Release()
-	case noStencil:
-		desc := mtl.DepthStencilDescriptor{
-			BackFaceStencil: mtl.StencilDescriptor{
-				StencilFailureOperation:   mtl.StencilOperationKeep,
-				DepthFailureOperation:     mtl.StencilOperationKeep,
-				DepthStencilPassOperation: mtl.StencilOperationKeep,
-				StencilCompareFunction:    mtl.CompareFunctionAlways,
-			},
-			FrontFaceStencil: mtl.StencilDescriptor{
-				StencilFailureOperation:   mtl.StencilOperationKeep,
-				DepthFailureOperation:     mtl.StencilOperationKeep,
-				DepthStencilPassOperation: mtl.StencilOperationKeep,
-				StencilCompareFunction:    mtl.CompareFunctionAlways,
-			},
-		}
-		ss := g.view.getMTLDevice().MakeDepthStencilState(desc)
-		g.rce.SetDepthStencilState(ss)
-		ss.Release()
-	}
+	g.rce.SetDepthStencilState(g.dsss[stencilMode])
 
 	g.rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, indexLen, mtl.IndexTypeUInt16, g.ib, indexOffset*2)
 
