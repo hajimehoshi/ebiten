@@ -744,7 +744,9 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion drive
 				StencilCompareFunction:    mtl.CompareFunctionAlways,
 			},
 		}
-		g.rce.SetDepthStencilState(g.view.getMTLDevice().MakeDepthStencilState(desc))
+		ss := g.view.getMTLDevice().MakeDepthStencilState(desc)
+		g.rce.SetDepthStencilState(ss)
+		ss.Release()
 	case drawWithStencil:
 		desc := mtl.DepthStencilDescriptor{
 			BackFaceStencil: mtl.StencilDescriptor{
@@ -760,7 +762,9 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion drive
 				StencilCompareFunction:    mtl.CompareFunctionNotEqual,
 			},
 		}
-		g.rce.SetDepthStencilState(g.view.getMTLDevice().MakeDepthStencilState(desc))
+		ss := g.view.getMTLDevice().MakeDepthStencilState(desc)
+		g.rce.SetDepthStencilState(ss)
+		ss.Release()
 	case noStencil:
 		desc := mtl.DepthStencilDescriptor{
 			BackFaceStencil: mtl.StencilDescriptor{
@@ -776,7 +780,9 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion drive
 				StencilCompareFunction:    mtl.CompareFunctionAlways,
 			},
 		}
-		g.rce.SetDepthStencilState(g.view.getMTLDevice().MakeDepthStencilState(desc))
+		ss := g.view.getMTLDevice().MakeDepthStencilState(desc)
+		g.rce.SetDepthStencilState(ss)
+		ss.Release()
 	}
 
 	g.rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, indexLen, mtl.IndexTypeUInt16, g.ib, indexOffset*2)
