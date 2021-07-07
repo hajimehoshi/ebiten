@@ -654,7 +654,14 @@ func (c *newShaderCommand) Exec(indexOffset int) error {
 	return err
 }
 
-// ResetGraphicsDriverState resets or initializes the current graphics driver state.
+// InitializeGraphicsDriverState initialize the current graphics driver state.
+func InitializeGraphicsDriverState() error {
+	return runOnMainThread(func() error {
+		return theGraphicsDriver.Initialize()
+	})
+}
+
+// ResetGraphicsDriverState resets the current graphics driver state.
 func ResetGraphicsDriverState() error {
 	return runOnMainThread(func() error {
 		return theGraphicsDriver.Reset()

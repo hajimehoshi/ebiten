@@ -272,7 +272,7 @@ func (i *images) restore() error {
 
 // InitializeGraphicsDriverState initializes the graphics driver state.
 func InitializeGraphicsDriverState() error {
-	return graphicscommand.ResetGraphicsDriverState()
+	return graphicscommand.InitializeGraphicsDriverState()
 }
 
 // MaxImageSize returns the maximum size of an image.

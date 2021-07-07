@@ -41,6 +41,7 @@ type Graphics interface {
 	SetVertices(vertices []float32, indices []uint16)
 	NewImage(width, height int) (Image, error)
 	NewScreenFramebufferImage(width, height int) (Image, error)
+	Initialize() error
 	Reset() error
 	SetVsyncEnabled(enabled bool)
 	FramebufferYDirection() YDirection

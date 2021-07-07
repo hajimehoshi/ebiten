@@ -565,12 +565,7 @@ func operationToBlendFactor(c driver.Operation) mtl.BlendFactor {
 	}
 }
 
-func (g *Graphics) Reset() error {
-	if g.cq != (mtl.CommandQueue{}) {
-		g.cq.Release()
-		g.cq = mtl.CommandQueue{}
-	}
-
+func (g *Graphics) Initialize() error {
 	// Creating *State objects are expensive and reuse them whenever possible.
 	// See https://developer.apple.com/library/archive/documentation/Miscellaneous/Conceptual/MetalProgrammingGuide/Cmd-Submiss/Cmd-Submiss.html
 
@@ -751,6 +746,10 @@ func (g *Graphics) Reset() error {
 
 	g.cq = g.view.getMTLDevice().MakeCommandQueue()
 	return nil
+}
+
+func (g *Graphics) Reset() error {
+	panic("metal: Reset is not implemented")
 }
 
 func (g *Graphics) flushRenderCommandEncoderIfNeeded() {
