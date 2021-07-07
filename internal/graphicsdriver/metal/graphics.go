@@ -320,7 +320,7 @@ type Graphics struct {
 	buffers       map[mtl.CommandBuffer][]mtl.Buffer
 	unusedBuffers map[mtl.Buffer]struct{}
 
-	lastDstTexture  mtl.Texture
+	lastDst         *Image
 	lastStencilMode stencilMode
 
 	vb mtl.Buffer
@@ -777,16 +777,17 @@ func (g *Graphics) flushRenderCommandEncoderIfNeeded() {
 	}
 	g.rce.EndEncoding()
 	g.rce = mtl.RenderCommandEncoder{}
-	g.lastDstTexture = mtl.Texture{}
+	g.lastDst = nil
 }
 
 func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion driver.Region, srcs [graphics.ShaderImageNum]*Image, indexLen int, indexOffset int, uniforms []interface{}, stencilMode stencilMode) error {
 	// When prepareing a stencil buffer, flush the current render command encoder
 	// to make sure the stencil buffer is cleared when loading.
 	// TODO: What about clearing the stencil buffer by vertices?
-	if g.lastDstTexture != dst.mtlTexture() || (g.lastStencilMode == noStencil) != (stencilMode == noStencil) || stencilMode == prepareStencil {
+	if g.lastDst != dst || (g.lastStencilMode == noStencil) != (stencilMode == noStencil) || stencilMode == prepareStencil {
 		g.flushRenderCommandEncoderIfNeeded()
 	}
+	g.lastDst = dst
 	g.lastStencilMode = stencilMode
 
 	if g.rce == (mtl.RenderCommandEncoder{}) {
@@ -802,7 +803,6 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion drive
 		}
 
 		t := dst.mtlTexture()
-		g.lastDstTexture = t
 		if t == (mtl.Texture{}) {
 			return nil
 		}
