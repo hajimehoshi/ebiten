@@ -388,13 +388,7 @@ func pow2(x uintptr) uintptr {
 	return p2
 }
 
-func (g *Graphics) availableBuffer(length uintptr) mtl.Buffer {
-	if g.cb == (mtl.CommandBuffer{}) {
-		g.cb = g.cq.MakeCommandBuffer()
-	}
-
-	var newBuf mtl.Buffer
-
+func (g *Graphics) gcBuffers() {
 	for cb, bs := range g.buffers {
 		// If the command buffer still lives, the buffer must not be updated.
 		// TODO: Handle an error?
@@ -403,10 +397,6 @@ func (g *Graphics) availableBuffer(length uintptr) mtl.Buffer {
 		}
 
 		for _, b := range bs {
-			if newBuf == (mtl.Buffer{}) && b.Length() >= length {
-				newBuf = b
-				continue
-			}
 			if g.unusedBuffers == nil {
 				g.unusedBuffers = map[mtl.Buffer]struct{}{}
 			}
@@ -416,15 +406,6 @@ func (g *Graphics) availableBuffer(length uintptr) mtl.Buffer {
 		cb.Release()
 	}
 
-	for b := range g.unusedBuffers {
-		if b.Length() >= length {
-			newBuf = b
-			delete(g.unusedBuffers, b)
-			break
-		}
-	}
-
-	// GC unused buffers.
 	const maxUnusedBuffers = 10
 	if len(g.unusedBuffers) > maxUnusedBuffers {
 		bufs := make([]mtl.Buffer, 0, len(g.unusedBuffers))
@@ -437,6 +418,21 @@ func (g *Graphics) availableBuffer(length uintptr) mtl.Buffer {
 		for _, b := range bufs[maxUnusedBuffers:] {
 			delete(g.unusedBuffers, b)
 			b.Release()
+		}
+	}
+}
+
+func (g *Graphics) availableBuffer(length uintptr) mtl.Buffer {
+	if g.cb == (mtl.CommandBuffer{}) {
+		g.cb = g.cq.MakeCommandBuffer()
+	}
+
+	var newBuf mtl.Buffer
+	for b := range g.unusedBuffers {
+		if b.Length() >= length {
+			newBuf = b
+			delete(g.unusedBuffers, b)
+			break
 		}
 	}
 
@@ -1228,6 +1224,8 @@ func (i *Image) mtlTexture() mtl.Texture {
 				return mtl.Texture{}
 			}
 			g.screenDrawable = drawable
+			// After nextDrawable, it is expected some command buffers are completed.
+			g.gcBuffers()
 		}
 		return g.screenDrawable.Texture()
 	}
