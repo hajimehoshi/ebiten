@@ -153,6 +153,7 @@ uint8_t CommandBuffer_Status(void *commandBuffer);
 void CommandBuffer_PresentDrawable(void *commandBuffer, void *drawable);
 void CommandBuffer_Commit(void *commandBuffer);
 void CommandBuffer_WaitUntilCompleted(void *commandBuffer);
+void CommandBuffer_WaitUntilScheduled(void *commandBuffer);
 void *
 CommandBuffer_MakeRenderCommandEncoder(void *commandBuffer,
                                        struct RenderPassDescriptor descriptor);

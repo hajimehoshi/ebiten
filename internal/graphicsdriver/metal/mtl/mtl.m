@@ -188,6 +188,10 @@ void CommandBuffer_WaitUntilCompleted(void *commandBuffer) {
   [(id<MTLCommandBuffer>)commandBuffer waitUntilCompleted];
 }
 
+void CommandBuffer_WaitUntilScheduled(void *commandBuffer) {
+  [(id<MTLCommandBuffer>)commandBuffer waitUntilScheduled];
+}
+
 void *
 CommandBuffer_MakeRenderCommandEncoder(void *commandBuffer,
                                        struct RenderPassDescriptor descriptor) {

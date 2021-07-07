@@ -467,10 +467,14 @@ func (g *Graphics) flushIfNeeded(present bool) {
 	}
 	g.flushRenderCommandEncoderIfNeeded()
 
-	if present && g.screenDrawable != (ca.MetalDrawable{}) {
+	if !g.view.presentsWithTransaction() && present && g.screenDrawable != (ca.MetalDrawable{}) {
 		g.cb.PresentDrawable(g.screenDrawable)
 	}
 	g.cb.Commit()
+	if g.view.presentsWithTransaction() && present && g.screenDrawable != (ca.MetalDrawable{}) {
+		g.cb.WaitUntilScheduled()
+		g.screenDrawable.Present()
+	}
 
 	for _, t := range g.tmpTextures {
 		t.Release()

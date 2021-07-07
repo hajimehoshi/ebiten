@@ -69,7 +69,10 @@ func (v *view) reset() error {
 	// MTLPixelFormatBGRA8Unorm_sRGB, MTLPixelFormatRGBA16Float, MTLPixelFormatBGRA10_XR, or
 	// MTLPixelFormatBGRA10_XR_sRGB.
 	v.ml.SetPixelFormat(mtl.PixelFormatBGRA8UNorm)
-	v.ml.SetMaximumDrawableCount(3)
+
+	// When presentsWithTransaction is YES and triple buffering is enabled, nextDrawing returns immediately once every two times.
+	// This makes FPS doubled. To avoid this, disable the triple buffering.
+	v.ml.SetMaximumDrawableCount(2)
 
 	// The vsync state might be reset. Set the state again (#1364).
 	v.ml.SetDisplaySyncEnabled(v.vsync)
@@ -85,4 +88,8 @@ func (v *view) nextDrawable() ca.MetalDrawable {
 		return ca.MetalDrawable{}
 	}
 	return d
+}
+
+func (v *view) presentsWithTransaction() bool {
+	return v.ml.PresentsWithTransaction()
 }

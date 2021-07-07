@@ -147,6 +147,13 @@ func (ml MetalLayer) NextDrawable() (MetalDrawable, error) {
 	return MetalDrawable{md}, nil
 }
 
+// PresentsWithTransaction returns a Boolean value that determines whether the layer presents its content using a Core Animation transaction.
+//
+// Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478157-presentswithtransaction
+func (ml MetalLayer) PresentsWithTransaction() bool {
+	return C.MetalLayer_PresentsWithTransaction(ml.metalLayer) != 0
+}
+
 // SetFramebufferOnly sets a Boolean value that determines whether the layer’s textures are used only for rendering.
 //
 // https://developer.apple.com/documentation/quartzcore/cametallayer/1478168-framebufferonly
@@ -174,4 +181,11 @@ func (md MetalDrawable) Drawable() unsafe.Pointer { return md.metalDrawable }
 // Reference: https://developer.apple.com/documentation/quartzcore/cametaldrawable/1478159-texture.
 func (md MetalDrawable) Texture() mtl.Texture {
 	return mtl.NewTexture(C.MetalDrawable_Texture(md.metalDrawable))
+}
+
+// Present presents the drawable onscreen as soon as possible.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtldrawable/1470284-present.
+func (md MetalDrawable) Present() {
+	C.MetalDrawable_Present(md.metalDrawable)
 }

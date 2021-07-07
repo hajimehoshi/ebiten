@@ -670,6 +670,13 @@ func (cb CommandBuffer) WaitUntilCompleted() {
 	C.CommandBuffer_WaitUntilCompleted(cb.commandBuffer)
 }
 
+// WaitUntilScheduled blocks execution of the current thread until the command buffer is scheduled.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtlcommandbuffer/1443036-waituntilscheduled.
+func (cb CommandBuffer) WaitUntilScheduled() {
+	C.CommandBuffer_WaitUntilScheduled(cb.commandBuffer)
+}
+
 // MakeRenderCommandEncoder creates an encoder object that can
 // encode graphics rendering commands into this command buffer.
 //
