@@ -317,7 +317,8 @@ type Graphics struct {
 
 	screenDrawable ca.MetalDrawable
 
-	buffers map[mtl.Buffer]int
+	buffers       map[mtl.CommandBuffer][]mtl.Buffer
+	unusedBuffers map[mtl.Buffer]struct{}
 
 	lastDstTexture  mtl.Texture
 	lastStencilMode stencilMode
@@ -387,40 +388,54 @@ func pow2(x uintptr) uintptr {
 	return p2
 }
 
-func (g *Graphics) ageBuffers() {
-	for b, age := range g.buffers {
-		if age <= maximumDrawableCount {
-			g.buffers[b]++
-		}
-	}
-}
-
 func (g *Graphics) availableBuffer(length uintptr) mtl.Buffer {
+	if g.cb == (mtl.CommandBuffer{}) {
+		g.cb = g.cq.MakeCommandBuffer()
+	}
+
 	var newBuf mtl.Buffer
 
-	var availBufs []mtl.Buffer
-	for b, age := range g.buffers {
-		// If the buffer is too young, its command buffer might still live.
-		// The buffer must not be updated in this case.
-		if age <= maximumDrawableCount {
+	for cb, bs := range g.buffers {
+		// If the command buffer still lives, the buffer must not be updated.
+		// TODO: Handle an error?
+		if cb.Status() != mtl.CommandBufferStatusCompleted {
 			continue
 		}
 
-		if newBuf == (mtl.Buffer{}) && b.Length() >= length {
-			newBuf = b
-			continue
+		for _, b := range bs {
+			if newBuf == (mtl.Buffer{}) && b.Length() >= length {
+				newBuf = b
+				continue
+			}
+			if g.unusedBuffers == nil {
+				g.unusedBuffers = map[mtl.Buffer]struct{}{}
+			}
+			g.unusedBuffers[b] = struct{}{}
 		}
-		availBufs = append(availBufs, b)
+		delete(g.buffers, cb)
+		cb.Release()
+	}
+
+	for b := range g.unusedBuffers {
+		if b.Length() >= length {
+			newBuf = b
+			delete(g.unusedBuffers, b)
+			break
+		}
 	}
 
 	// GC unused buffers.
 	const maxUnusedBuffers = 10
-	if len(availBufs) > maxUnusedBuffers {
-		sort.Slice(availBufs, func(a, b int) bool {
-			return availBufs[a].Length() > availBufs[b].Length()
+	if len(g.unusedBuffers) > maxUnusedBuffers {
+		bufs := make([]mtl.Buffer, 0, len(g.unusedBuffers))
+		for b := range g.unusedBuffers {
+			bufs = append(bufs, b)
+		}
+		sort.Slice(bufs, func(a, b int) bool {
+			return bufs[a].Length() > bufs[b].Length()
 		})
-		for _, b := range availBufs[maxUnusedBuffers:] {
-			delete(g.buffers, b)
+		for _, b := range bufs[maxUnusedBuffers:] {
+			delete(g.unusedBuffers, b)
 			b.Release()
 		}
 	}
@@ -428,10 +443,14 @@ func (g *Graphics) availableBuffer(length uintptr) mtl.Buffer {
 	if newBuf == (mtl.Buffer{}) {
 		newBuf = g.view.getMTLDevice().MakeBufferWithLength(pow2(length), resourceStorageMode)
 	}
+
 	if g.buffers == nil {
-		g.buffers = map[mtl.Buffer]int{}
+		g.buffers = map[mtl.CommandBuffer][]mtl.Buffer{}
 	}
-	g.buffers[newBuf] = 0
+	if _, ok := g.buffers[g.cb]; !ok {
+		g.cb.Retain()
+	}
+	g.buffers[g.cb] = append(g.buffers[g.cb], newBuf)
 	return newBuf
 }
 
@@ -1209,10 +1228,6 @@ func (i *Image) mtlTexture() mtl.Texture {
 				return mtl.Texture{}
 			}
 			g.screenDrawable = drawable
-
-			// nextDrawable blocks until the new drawable is available.
-			// If nextDrawable returns a valid drawable, this means that at least one drawable is already processed.
-			g.ageBuffers()
 		}
 		return g.screenDrawable.Texture()
 	}

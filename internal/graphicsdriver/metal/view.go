@@ -24,8 +24,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
 
-const maximumDrawableCount = 3
-
 type view struct {
 	window uintptr
 	uiview uintptr
@@ -71,7 +69,7 @@ func (v *view) reset() error {
 	// MTLPixelFormatBGRA8Unorm_sRGB, MTLPixelFormatRGBA16Float, MTLPixelFormatBGRA10_XR, or
 	// MTLPixelFormatBGRA10_XR_sRGB.
 	v.ml.SetPixelFormat(mtl.PixelFormatBGRA8UNorm)
-	v.ml.SetMaximumDrawableCount(maximumDrawableCount)
+	v.ml.SetMaximumDrawableCount(3)
 
 	// The vsync state might be reset. Set the state again (#1364).
 	v.ml.SetDisplaySyncEnabled(v.vsync)
