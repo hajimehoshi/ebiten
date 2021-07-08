@@ -792,11 +792,12 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion drive
 		// (#1019). Always using mtl.LoadActionLoad is safe.
 		if dst.screen {
 			rpd.ColorAttachments[0].LoadAction = mtl.LoadActionClear
-			rpd.ColorAttachments[0].StoreAction = mtl.StoreActionDontCare
 		} else {
 			rpd.ColorAttachments[0].LoadAction = mtl.LoadActionLoad
-			rpd.ColorAttachments[0].StoreAction = mtl.StoreActionStore
 		}
+
+		// The store action should always be 'store' even for the screen (#1700).
+		rpd.ColorAttachments[0].StoreAction = mtl.StoreActionStore
 
 		t := dst.mtlTexture()
 		if t == (mtl.Texture{}) {
