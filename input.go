@@ -32,7 +32,7 @@ import (
 //
 // Keyboards don't work on iOS yet (#1090).
 func InputChars() []rune {
-	return uiDriver().Input().RuneBuffer()
+	return uiDriver().Input().AppendInputChars(nil)
 }
 
 // IsKeyPressed returns a boolean indicating whether key is pressed.
@@ -140,7 +140,7 @@ func GamepadName(id GamepadID) string {
 //
 // GamepadIDs always returns an empty slice on iOS.
 func GamepadIDs() []GamepadID {
-	return uiDriver().Input().GamepadIDs()
+	return uiDriver().Input().AppendGamepadIDs(nil)
 }
 
 // GamepadAxisNum returns the number of axes of the gamepad (id).
@@ -198,7 +198,7 @@ type TouchID = driver.TouchID
 //
 // TouchIDs is concurrent-safe.
 func TouchIDs() []TouchID {
-	return uiDriver().Input().TouchIDs()
+	return uiDriver().Input().AppendTouchIDs(nil)
 }
 
 // TouchPosition returns the position for the touch of the specified ID.

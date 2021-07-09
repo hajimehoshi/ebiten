@@ -114,16 +114,11 @@ func (i *Input) GamepadName(id driver.GamepadID) string {
 	return g.name
 }
 
-func (i *Input) GamepadIDs() []driver.GamepadID {
-	if len(i.gamepads) == 0 {
-		return nil
-	}
-
-	r := make([]driver.GamepadID, 0, len(i.gamepads))
+func (i *Input) AppendGamepadIDs(gamepadIDs []driver.GamepadID) []driver.GamepadID {
 	for id := range i.gamepads {
-		r = append(r, id)
+		gamepadIDs = append(gamepadIDs, id)
 	}
-	return r
+	return gamepadIDs
 }
 
 func (i *Input) GamepadAxisNum(id driver.GamepadID) int {
@@ -164,16 +159,11 @@ func (i *Input) IsGamepadButtonPressed(id driver.GamepadID, button driver.Gamepa
 	return g.buttonPressed[button]
 }
 
-func (i *Input) TouchIDs() []driver.TouchID {
-	if len(i.touches) == 0 {
-		return nil
-	}
-
-	ids := make([]driver.TouchID, 0, len(i.touches))
+func (i *Input) AppendTouchIDs(touchIDs []driver.TouchID) []driver.TouchID {
 	for id := range i.touches {
-		ids = append(ids, id)
+		touchIDs = append(touchIDs, id)
 	}
-	return ids
+	return touchIDs
 }
 
 func (i *Input) TouchPosition(id driver.TouchID) (x, y int) {
@@ -187,10 +177,8 @@ func (i *Input) TouchPosition(id driver.TouchID) (x, y int) {
 	return 0, 0
 }
 
-func (i *Input) RuneBuffer() []rune {
-	rs := make([]rune, len(i.runeBuffer))
-	copy(rs, i.runeBuffer)
-	return rs
+func (i *Input) AppendInputChars(runes []rune) []rune {
+	return append(runes, i.runeBuffer...)
 }
 
 func (i *Input) resetForFrame() {

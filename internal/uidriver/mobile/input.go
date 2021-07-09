@@ -38,15 +38,14 @@ func (i *Input) CursorPosition() (x, y int) {
 	return 0, 0
 }
 
-func (i *Input) GamepadIDs() []driver.GamepadID {
+func (i *Input) AppendGamepadIDs(gamepadIDs []driver.GamepadID) []driver.GamepadID {
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
 
-	ids := make([]driver.GamepadID, 0, len(i.gamepads))
 	for _, g := range i.gamepads {
-		ids = append(ids, g.ID)
+		gamepadIDs = append(gamepadIDs, g.ID)
 	}
-	return ids
+	return gamepadIDs
 }
 
 func (i *Input) GamepadSDLID(id driver.GamepadID) string {
@@ -133,19 +132,14 @@ func (i *Input) IsGamepadButtonPressed(id driver.GamepadID, button driver.Gamepa
 	return false
 }
 
-func (i *Input) TouchIDs() []driver.TouchID {
+func (i *Input) AppendTouchIDs(touchIDs []driver.TouchID) []driver.TouchID {
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
 
-	if len(i.touches) == 0 {
-		return nil
-	}
-
-	ids := make([]driver.TouchID, 0, len(i.touches))
 	for id := range i.touches {
-		ids = append(ids, id)
+		touchIDs = append(touchIDs, id)
 	}
-	return ids
+	return touchIDs
 }
 
 func (i *Input) TouchPosition(id driver.TouchID) (x, y int) {
@@ -160,13 +154,10 @@ func (i *Input) TouchPosition(id driver.TouchID) (x, y int) {
 	return 0, 0
 }
 
-func (i *Input) RuneBuffer() []rune {
-	i.ui.m.RLock()
-	defer i.ui.m.RUnlock()
-
-	rs := make([]rune, len(i.runes))
-	copy(rs, i.runes)
-	return rs
+func (i *Input) AppendInputChars(runes []rune) []rune {
+	i.ui.m.Lock()
+	defer i.ui.m.Unlock()
+	return append(runes, i.runes...)
 }
 
 func (i *Input) IsKeyPressed(key driver.Key) bool {

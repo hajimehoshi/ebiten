@@ -19,18 +19,18 @@ type GamepadID int
 type TouchID int
 
 type Input interface {
+	AppendInputChars(runes []rune) []rune
+	AppendGamepadIDs(gamepadIDs []GamepadID) []GamepadID
+	AppendTouchIDs(touchIDs []TouchID) []TouchID
 	CursorPosition() (x, y int)
 	GamepadSDLID(id GamepadID) string
 	GamepadName(id GamepadID) string
 	GamepadAxis(id GamepadID, axis int) float64
 	GamepadAxisNum(id GamepadID) int
 	GamepadButtonNum(id GamepadID) int
-	GamepadIDs() []GamepadID
 	IsGamepadButtonPressed(id GamepadID, button GamepadButton) bool
 	IsKeyPressed(key Key) bool
 	IsMouseButtonPressed(button MouseButton) bool
-	RuneBuffer() []rune
-	TouchIDs() []TouchID
 	TouchPosition(id TouchID) (x, y int)
 	Wheel() (xoff, yoff float64)
 }
