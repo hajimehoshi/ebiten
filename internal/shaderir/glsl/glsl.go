@@ -19,6 +19,7 @@ import (
 	"go/constant"
 	"go/token"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -82,6 +83,12 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 		structNames: map[string]string{},
 	}
 
+	indexToFunc := map[int]*shaderir.Func{}
+	for _, f := range p.Funcs {
+		f := f
+		indexToFunc[f.Index] = &f
+	}
+
 	// Vertex func
 	var vslines []string
 	{
@@ -110,16 +117,33 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 				vslines = append(vslines, fmt.Sprintf("%s %s;", keyword, c.glslVarDecl(p, &t, fmt.Sprintf("V%d", i))))
 			}
 		}
-		if len(p.Funcs) > 0 {
-			vslines = append(vslines, "")
-			for _, f := range p.Funcs {
-				vslines = append(vslines, c.glslFunc(p, &f, true)...)
+
+		var funcs []*shaderir.Func
+		if p.VertexFunc.Block != nil {
+			indices := p.ReferredFuncIndicesInVertexShader()
+			sort.Ints(indices)
+			funcs = make([]*shaderir.Func, 0, len(indices))
+			for _, idx := range indices {
+				funcs = append(funcs, indexToFunc[idx])
 			}
+		} else {
+			// When a vertex entry point is not defined, allow to put all the functions. This is useful for testing.
+			funcs = make([]*shaderir.Func, 0, len(p.Funcs))
 			for _, f := range p.Funcs {
+				f := f
+				funcs = append(funcs, &f)
+			}
+		}
+		if len(funcs) > 0 {
+			vslines = append(vslines, "")
+			for _, f := range funcs {
+				vslines = append(vslines, c.glslFunc(p, f, true)...)
+			}
+			for _, f := range funcs {
 				if len(vslines) > 0 && vslines[len(vslines)-1] != "" {
 					vslines = append(vslines, "")
 				}
-				vslines = append(vslines, c.glslFunc(p, &f, false)...)
+				vslines = append(vslines, c.glslFunc(p, f, false)...)
 			}
 		}
 
@@ -156,16 +180,32 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 			fslines = append(fslines, "out vec4 fragColor;")
 		}
 
-		if len(p.Funcs) > 0 {
-			fslines = append(fslines, "")
-			for _, f := range p.Funcs {
-				fslines = append(fslines, c.glslFunc(p, &f, true)...)
+		var funcs []*shaderir.Func
+		if p.VertexFunc.Block != nil {
+			indices := p.ReferredFuncIndicesInFragmentShader()
+			sort.Ints(indices)
+			funcs = make([]*shaderir.Func, 0, len(indices))
+			for _, idx := range indices {
+				funcs = append(funcs, indexToFunc[idx])
 			}
+		} else {
+			// When a fragment entry point is not defined, allow to put all the functions. This is useful for testing.
+			funcs = make([]*shaderir.Func, 0, len(p.Funcs))
 			for _, f := range p.Funcs {
+				f := f
+				funcs = append(funcs, &f)
+			}
+		}
+		if len(funcs) > 0 {
+			fslines = append(fslines, "")
+			for _, f := range funcs {
+				fslines = append(fslines, c.glslFunc(p, f, true)...)
+			}
+			for _, f := range funcs {
 				if len(fslines) > 0 && fslines[len(fslines)-1] != "" {
 					fslines = append(fslines, "")
 				}
-				fslines = append(fslines, c.glslFunc(p, &f, false)...)
+				fslines = append(fslines, c.glslFunc(p, f, false)...)
 			}
 		}
 
