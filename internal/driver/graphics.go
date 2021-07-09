@@ -42,7 +42,6 @@ type Graphics interface {
 	NewImage(width, height int) (Image, error)
 	NewScreenFramebufferImage(width, height int) (Image, error)
 	Initialize() error
-	Reset() error
 	SetVsyncEnabled(enabled bool)
 	FramebufferYDirection() YDirection
 	NeedsRestoring() bool

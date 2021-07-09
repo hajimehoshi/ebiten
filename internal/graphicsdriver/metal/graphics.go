@@ -767,10 +767,6 @@ func (g *Graphics) Initialize() error {
 	return nil
 }
 
-func (g *Graphics) Reset() error {
-	panic("metal: Reset is not implemented")
-}
-
 func (g *Graphics) flushRenderCommandEncoderIfNeeded() {
 	if g.rce == (mtl.RenderCommandEncoder{}) {
 		return

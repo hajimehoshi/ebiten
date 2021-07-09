@@ -662,10 +662,14 @@ func InitializeGraphicsDriverState() error {
 }
 
 // ResetGraphicsDriverState resets the current graphics driver state.
+// If the graphics driver doesn't have an API to reset, ResetGraphicsDriverState does nothing.
 func ResetGraphicsDriverState() error {
-	return runOnMainThread(func() error {
-		return theGraphicsDriver.Reset()
-	})
+	if r, ok := theGraphicsDriver.(interface{ Reset() error }); ok {
+		return runOnMainThread(func() error {
+			return r.Reset()
+		})
+	}
+	return nil
 }
 
 // MaxImageSize returns the maximum size of an image.
