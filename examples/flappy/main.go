@@ -176,6 +176,8 @@ type Game struct {
 	pipeTileYs []int
 
 	gameoverCount int
+
+	gamepadIDs []ebiten.GamepadID
 }
 
 func NewGame() *Game {
@@ -204,7 +206,7 @@ func isAnyKeyJustPressed() bool {
 	return false
 }
 
-func jump() bool {
+func (g *Game) jump() bool {
 	if isAnyKeyJustPressed() {
 		return true
 	}
@@ -214,7 +216,8 @@ func jump() bool {
 	if len(inpututil.JustPressedTouchIDs()) > 0 {
 		return true
 	}
-	for _, g := range ebiten.GamepadIDs() {
+	g.gamepadIDs = ebiten.AppendGamepadIDs(g.gamepadIDs[:0])
+	for _, g := range g.gamepadIDs {
 		for i := 0; i < ebiten.GamepadButtonNum(g); i++ {
 			if inpututil.IsGamepadButtonJustPressed(g, ebiten.GamepadButton(i)) {
 				return true
@@ -231,13 +234,13 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func (g *Game) Update() error {
 	switch g.mode {
 	case ModeTitle:
-		if jump() {
+		if g.jump() {
 			g.mode = ModeGame
 		}
 	case ModeGame:
 		g.x16 += 32
 		g.cameraX += 2
-		if jump() {
+		if g.jump() {
 			g.vy16 = -96
 			jumpPlayer.Rewind()
 			jumpPlayer.Play()
@@ -260,7 +263,7 @@ func (g *Game) Update() error {
 		if g.gameoverCount > 0 {
 			g.gameoverCount--
 		}
-		if g.gameoverCount == 0 && jump() {
+		if g.gameoverCount == 0 && g.jump() {
 			g.init()
 			g.mode = ModeTitle
 		}

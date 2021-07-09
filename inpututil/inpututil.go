@@ -40,6 +40,9 @@ type inputState struct {
 	touchDurations     map[ebiten.TouchID]int
 	prevTouchDurations map[ebiten.TouchID]int
 
+	gamepadIDsBuf []ebiten.GamepadID
+	touchIDsBuf   []ebiten.TouchID
+
 	m sync.RWMutex
 }
 
@@ -117,7 +120,8 @@ func (i *inputState) update() {
 	for id := range i.gamepadIDs {
 		delete(i.gamepadIDs, id)
 	}
-	for _, id := range ebiten.GamepadIDs() {
+	i.gamepadIDsBuf = ebiten.AppendGamepadIDs(i.gamepadIDsBuf[:0])
+	for _, id := range i.gamepadIDsBuf {
 		i.gamepadIDs[id] = struct{}{}
 		if _, ok := i.gamepadButtonDurations[id]; !ok {
 			i.gamepadButtonDurations[id] = make([]int, ebiten.GamepadButtonMax+1)
@@ -150,7 +154,8 @@ func (i *inputState) update() {
 	for id := range i.touchIDs {
 		delete(i.touchIDs, id)
 	}
-	for _, id := range ebiten.TouchIDs() {
+	i.touchIDsBuf = ebiten.AppendTouchIDs(i.touchIDsBuf[:0])
+	for _, id := range i.touchIDsBuf {
 		i.touchIDs[id] = struct{}{}
 		i.touchDurations[id]++
 	}

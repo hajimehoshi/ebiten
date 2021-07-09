@@ -18,21 +18,30 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 )
 
-// InputChars return "printable" runes read from the keyboard at the time update is called.
+// AppendInputChars appends "printable" runes, read from the keyboard at the time update is called, to runes,
+// and returns the extended buffer.
+// Giving a slice that already has enough capacity works efficiently.
 //
-// InputChars represents the environment's locale-dependent translation of keyboard
+// AppendInputChars represents the environment's locale-dependent translation of keyboard
 // input to Unicode characters.
 //
 // IsKeyPressed is based on a mapping of device (US keyboard) codes to input device keys.
 // "Control" and modifier keys should be handled with IsKeyPressed.
 //
-// InputChars is concurrent-safe.
+// AppendInputChars is concurrent-safe.
 //
 // On Android (ebitenmobile), EbitenView must be focusable to enable to handle keyboard keys.
 //
 // Keyboards don't work on iOS yet (#1090).
+func AppendInputChars(runes []rune) []rune {
+	return uiDriver().Input().AppendInputChars(runes)
+}
+
+// InputChars return "printable" runes read from the keyboard at the time update is called.
+//
+// Deprecated: as of v2.2.0. Use AppendInputChars instead.
 func InputChars() []rune {
-	return uiDriver().Input().AppendInputChars(nil)
+	return AppendInputChars(nil)
 }
 
 // IsKeyPressed returns a boolean indicating whether key is pressed.
@@ -134,13 +143,21 @@ func GamepadName(id GamepadID) string {
 	return uiDriver().Input().GamepadName(id)
 }
 
+// AppendGamepadIDs appends available gamepad IDs to gamepadIDs, and returns the extended buffer.
+// Giving a slice that already has enough capacity works efficiently.
+//
+// AppendGamepadIDs is concurrent-safe.
+//
+// AppendGamepadIDs doesn't append anything on iOS.
+func AppendGamepadIDs(gamepadIDs []GamepadID) []GamepadID {
+	return uiDriver().Input().AppendGamepadIDs(gamepadIDs)
+}
+
 // GamepadIDs returns a slice indicating available gamepad IDs.
 //
-// GamepadIDs is concurrent-safe.
-//
-// GamepadIDs always returns an empty slice on iOS.
+// Deprecated: as of v2.2.0. Use AppendGamepadIDs instead.
 func GamepadIDs() []GamepadID {
-	return uiDriver().Input().AppendGamepadIDs(nil)
+	return AppendGamepadIDs(nil)
 }
 
 // GamepadAxisNum returns the number of axes of the gamepad (id).
@@ -188,17 +205,25 @@ func IsGamepadButtonPressed(id GamepadID, button GamepadButton) bool {
 // TouchID represents a touch's identifier.
 type TouchID = driver.TouchID
 
-// TouchIDs returns the current touch states.
+// AppendTouchIDs appends the current touch states to touches, and returns the extended buffer.
+// Giving a slice that already has enough capacity works efficiently.
 //
 // If you want to know whether a touch started being pressed in the current frame,
 // use inpututil.JustPressedTouchIDs
 //
-// TouchIDs returns nil when there are no touches.
-// TouchIDs always returns nil on desktops.
+// AppendTouchIDs doesn't append anything when there are no touches.
+// AppendTouchIDs always does nothing on desktops.
 //
-// TouchIDs is concurrent-safe.
+// AppendTouchIDs is concurrent-safe.
+func AppendTouchIDs(touches []TouchID) []TouchID {
+	return uiDriver().Input().AppendTouchIDs(touches)
+}
+
+// TouchIDs returns the current touch states.
+//
+// Deperecated: as of v2.2.0. Use AppendTouchIDs instead.
 func TouchIDs() []TouchID {
-	return uiDriver().Input().AppendTouchIDs(nil)
+	return AppendTouchIDs(nil)
 }
 
 // TouchPosition returns the position for the touch of the specified ID.

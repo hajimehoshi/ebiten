@@ -48,15 +48,17 @@ func repeatingKeyPressed(key ebiten.Key) bool {
 }
 
 type Game struct {
+	runes   []rune
 	text    string
 	counter int
 }
 
 func (g *Game) Update() error {
-	// Add a string from InputChars, that returns string input by users.
-	// Note that InputChars result changes every frame, so you need to call this
+	// Add a string by AppendInputChars, that appends runes input by users.
+	// Note that AppendInputChars result changes every frame, so you need to call this
 	// every frame.
-	g.text += string(ebiten.InputChars())
+	g.runes = ebiten.AppendInputChars(g.runes[:0])
+	g.text += string(g.runes)
 
 	// Adjust the string to be at most 10 lines.
 	ss := strings.Split(g.text, "\n")

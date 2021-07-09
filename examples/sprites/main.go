@@ -115,9 +115,10 @@ const (
 )
 
 type Game struct {
-	sprites Sprites
-	op      ebiten.DrawImageOptions
-	inited  bool
+	touchIDs []ebiten.TouchID
+	sprites  Sprites
+	op       ebiten.DrawImageOptions
+	inited   bool
 }
 
 func (g *Game) init() {
@@ -144,8 +145,8 @@ func (g *Game) init() {
 	}
 }
 
-func leftTouched() bool {
-	for _, id := range ebiten.TouchIDs() {
+func (g *Game) leftTouched() bool {
+	for _, id := range g.touchIDs {
 		x, _ := ebiten.TouchPosition(id)
 		if x < screenWidth/2 {
 			return true
@@ -154,8 +155,8 @@ func leftTouched() bool {
 	return false
 }
 
-func rightTouched() bool {
-	for _, id := range ebiten.TouchIDs() {
+func (g *Game) rightTouched() bool {
+	for _, id := range g.touchIDs {
 		x, _ := ebiten.TouchPosition(id)
 		if x >= screenWidth/2 {
 			return true
@@ -168,9 +169,10 @@ func (g *Game) Update() error {
 	if !g.inited {
 		g.init()
 	}
+	g.touchIDs = ebiten.AppendTouchIDs(g.touchIDs[:0])
 
 	// Decrease the number of the sprites.
-	if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) || leftTouched() {
+	if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) || g.leftTouched() {
 		g.sprites.num -= 20
 		if g.sprites.num < MinSprites {
 			g.sprites.num = MinSprites
@@ -178,7 +180,7 @@ func (g *Game) Update() error {
 	}
 
 	// Increase the number of the sprites.
-	if ebiten.IsKeyPressed(ebiten.KeyArrowRight) || rightTouched() {
+	if ebiten.IsKeyPressed(ebiten.KeyArrowRight) || g.rightTouched() {
 		g.sprites.num += 20
 		if MaxSprites < g.sprites.num {
 			g.sprites.num = MaxSprites

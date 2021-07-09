@@ -74,10 +74,11 @@ type Game struct {
 	x, y float64
 	zoom float64
 
-	touches map[ebiten.TouchID]*touch
-	pinch   *pinch
-	pan     *pan
-	taps    []tap
+	touchIDs []ebiten.TouchID
+	touches  map[ebiten.TouchID]*touch
+	pinch    *pinch
+	pan      *pan
+	taps     []tap
 }
 
 func (g *Game) Update() error {
@@ -111,15 +112,17 @@ func (g *Game) Update() error {
 	// What touches are new in this frame?
 	for _, id := range inpututil.JustPressedTouchIDs() {
 		x, y := ebiten.TouchPosition(id)
-		g.touches[ebiten.TouchID(id)] = &touch{
+		g.touches[id] = &touch{
 			originX: x, originY: y,
 			currX: x, currY: y,
 		}
 	}
 
+	g.touchIDs = ebiten.AppendTouchIDs(g.touchIDs[:0])
+
 	// Update the current position and durations of any touches that have
 	// neither begun nor ended in this frame.
-	for _, id := range ebiten.TouchIDs() {
+	for _, id := range g.touchIDs {
 		t := g.touches[id]
 		t.duration = inpututil.TouchPressDuration(id)
 		t.currX, t.currY = ebiten.TouchPosition(id)
@@ -133,7 +136,7 @@ func (g *Game) Update() error {
 		// If the diff between their origins is different to the diff between
 		// their currents and if these two are not already a pinch, then this is
 		// a new pinch!
-		id1, id2 := ebiten.TouchIDs()[0], ebiten.TouchIDs()[1]
+		id1, id2 := g.touchIDs[0], g.touchIDs[1]
 		t1, t2 := g.touches[id1], g.touches[id2]
 		originDiff := distance(t1.originX, t1.originY, t2.originX, t2.originY)
 		currDiff := distance(t1.currX, t1.currY, t2.currX, t2.currY)
@@ -149,7 +152,7 @@ func (g *Game) Update() error {
 		}
 	case 1:
 		// Potentially this is a new pan.
-		id := ebiten.TouchIDs()[0]
+		id := g.touchIDs[0]
 		t := g.touches[id]
 		if !t.wasPinch && g.pan == nil && g.pinch == nil {
 			diff := math.Abs(distance(t.originX, t.originY, t.currX, t.currY))
