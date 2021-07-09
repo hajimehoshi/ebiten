@@ -161,6 +161,9 @@ func (i *Input) TouchPosition(id driver.TouchID) (x, y int) {
 }
 
 func (i *Input) RuneBuffer() []rune {
+	i.ui.m.RLock()
+	defer i.ui.m.RUnlock()
+
 	rs := make([]rune, len(i.runes))
 	copy(rs, i.runes)
 	return rs
