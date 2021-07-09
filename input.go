@@ -207,16 +207,5 @@ func TouchIDs() []TouchID {
 //
 // TouchPosition is cuncurrent-safe.
 func TouchPosition(id TouchID) (int, int) {
-	found := false
-	for _, i := range uiDriver().Input().TouchIDs() {
-		if id == i {
-			found = true
-			break
-		}
-	}
-	if !found {
-		return 0, 0
-	}
-
 	return uiDriver().Input().TouchPosition(id)
 }
