@@ -54,7 +54,7 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
-	// Add a string by AppendInputChars, that appends runes input by users.
+	// Add runes that are input by the user by AppendInputChars.
 	// Note that AppendInputChars result changes every frame, so you need to call this
 	// every frame.
 	g.runes = ebiten.AppendInputChars(g.runes[:0])
