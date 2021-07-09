@@ -39,7 +39,7 @@ func AppendInputChars(runes []rune) []rune {
 
 // InputChars return "printable" runes read from the keyboard at the time update is called.
 //
-// Deprecated: as of v2.2.0. Use AppendInputChars instead.
+// Deprecated: as of v2.2. Use AppendInputChars instead.
 func InputChars() []rune {
 	return AppendInputChars(nil)
 }
@@ -155,7 +155,7 @@ func AppendGamepadIDs(gamepadIDs []GamepadID) []GamepadID {
 
 // GamepadIDs returns a slice indicating available gamepad IDs.
 //
-// Deprecated: as of v2.2.0. Use AppendGamepadIDs instead.
+// Deprecated: as of v2.2. Use AppendGamepadIDs instead.
 func GamepadIDs() []GamepadID {
 	return AppendGamepadIDs(nil)
 }
@@ -221,7 +221,7 @@ func AppendTouchIDs(touches []TouchID) []TouchID {
 
 // TouchIDs returns the current touch states.
 //
-// Deperecated: as of v2.2.0. Use AppendTouchIDs instead.
+// Deperecated: as of v2.2. Use AppendTouchIDs instead.
 func TouchIDs() []TouchID {
 	return AppendTouchIDs(nil)
 }

@@ -488,7 +488,7 @@ const (
 	KeyMax     Key = KeyMeta
 
 	// Keys for backward compatibility.
-	// Deprecated: as of 2.1.0.
+	// Deprecated: as of v2.1.
 {{range $old, $new := .OldEbitenKeyNameToDriverKeyName}}Key{{$old}} Key = Key(driver.Key{{$new}})
 {{end}}
 )
