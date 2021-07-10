@@ -12,9 +12,9 @@ require (
 	github.com/jakecoffman/cp v1.1.0
 	github.com/jfreymuth/oggvorbis v1.0.3
 	golang.org/x/image v0.0.0-20210220032944-ac19c3e999fb
-	golang.org/x/mobile v0.0.0-20210220033013-bdb1ca9a1e08
+	golang.org/x/mobile v0.0.0-20210614202936-7c8f154d1008
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210415045647-66c3f260301c
-	golang.org/x/tools v0.1.0
+	golang.org/x/sys v0.0.0-20210510120138-977fb7262007
+	golang.org/x/tools v0.1.2
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
