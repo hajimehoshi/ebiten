@@ -118,9 +118,6 @@ func (p *readerPlayer) ensurePlayer() error {
 		}()
 	}
 
-	p.m.Lock()
-	defer p.m.Unlock()
-
 	if p.stream == nil {
 		s, err := newTimeStream(p.src, p.factory.sampleRate)
 		if err != nil {
