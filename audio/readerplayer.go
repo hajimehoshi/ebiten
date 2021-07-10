@@ -26,6 +26,8 @@ import (
 type readerPlayerFactory struct {
 	context    readerdriver.Context
 	sampleRate int
+
+	m sync.Mutex
 }
 
 var readerDriverForTesting readerdriver.Context
@@ -51,6 +53,9 @@ type readerPlayer struct {
 }
 
 func (f *readerPlayerFactory) newPlayerImpl(context *Context, src io.Reader) (playerImpl, error) {
+	f.m.Lock()
+	defer f.m.Unlock()
+
 	p := &readerPlayer{
 		src:     src,
 		context: context,
@@ -61,6 +66,9 @@ func (f *readerPlayerFactory) newPlayerImpl(context *Context, src io.Reader) (pl
 }
 
 func (f *readerPlayerFactory) suspend() error {
+	f.m.Lock()
+	defer f.m.Unlock()
+
 	if f.context == nil {
 		return nil
 	}
@@ -68,10 +76,29 @@ func (f *readerPlayerFactory) suspend() error {
 }
 
 func (f *readerPlayerFactory) resume() error {
+	f.m.Lock()
+	defer f.m.Unlock()
+
 	if f.context == nil {
 		return nil
 	}
 	return f.context.Resume()
+}
+
+func (f *readerPlayerFactory) initContextIfNeeded() (<-chan struct{}, error) {
+	f.m.Lock()
+	defer f.m.Unlock()
+
+	if f.context != nil {
+		return nil, nil
+	}
+
+	c, ready, err := readerdriver.NewContext(f.sampleRate, channelNum, bitDepthInBytes)
+	if err != nil {
+		return nil, err
+	}
+	f.context = c
+	return ready, nil
 }
 
 func (p *readerPlayer) ensurePlayer() error {
@@ -80,17 +107,20 @@ func (p *readerPlayer) ensurePlayer() error {
 	// but if Ebiten is used for a shared library, the timing when init functions are called
 	// is unexpectable.
 	// e.g. a variable for JVM on Android might not be set.
-	if p.factory.context == nil {
-		c, ready, err := readerdriver.NewContext(p.factory.sampleRate, channelNum, bitDepthInBytes)
-		if err != nil {
-			return err
-		}
+	ready, err := p.factory.initContextIfNeeded()
+	if err != nil {
+		return err
+	}
+	if ready != nil {
 		go func() {
 			<-ready
 			p.context.setReady()
 		}()
-		p.factory.context = c
 	}
+
+	p.m.Lock()
+	defer p.m.Unlock()
+
 	if p.stream == nil {
 		s, err := newTimeStream(p.src, p.factory.sampleRate)
 		if err != nil {
