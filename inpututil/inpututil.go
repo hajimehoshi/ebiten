@@ -185,7 +185,7 @@ func AppendPressedKeys(keys []ebiten.Key) []ebiten.Key {
 
 // PressedKeys returns a set of currently pressed keyboard keys.
 //
-// Deprecated: as of v2.2.0. Use AppendPressedKeys instead.
+// Deprecated: as of v2.2. Use AppendPressedKeys instead.
 func PressedKeys() []ebiten.Key {
 	return AppendPressedKeys(nil)
 }
@@ -249,24 +249,34 @@ func MouseButtonPressDuration(button ebiten.MouseButton) int {
 	return s
 }
 
-// JustConnectedGamepadIDs returns gamepad IDs that are connected just in the current frame.
+// AppendJustConnectedGamepadIDs appends gamepad IDs that are connected just in the current frame to gamepadIDs,
+// and returns the extended buffer.
+// Giving a slice that already has enough capacity works efficiently.
 //
-// JustConnectedGamepadIDs might return nil when there is no connected gamepad.
+// AppendJustConnectedGamepadIDs might append nothing when there is no connected gamepad.
 //
-// JustConnectedGamepadIDs is concurrent safe.
-func JustConnectedGamepadIDs() []ebiten.GamepadID {
-	var ids []ebiten.GamepadID
+// AppendJustConnectedGamepadIDs is concurrent safe.
+func AppendJustConnectedGamepadIDs(gamepadIDs []ebiten.GamepadID) []ebiten.GamepadID {
+	origLen := len(gamepadIDs)
 	theInputState.m.RLock()
 	for id := range theInputState.gamepadIDs {
 		if _, ok := theInputState.prevGamepadIDs[id]; !ok {
-			ids = append(ids, id)
+			gamepadIDs = append(gamepadIDs, id)
 		}
 	}
 	theInputState.m.RUnlock()
-	sort.Slice(ids, func(a, b int) bool {
-		return ids[a] < ids[b]
+	s := gamepadIDs[origLen:]
+	sort.Slice(s, func(a, b int) bool {
+		return s[a] < s[b]
 	})
-	return ids
+	return gamepadIDs
+}
+
+// JustConnectedGamepadIDs returns gamepad IDs that are connected just in the current frame.
+//
+// Deprecated: as of v2.2. Use AppendJustConnectedGamepadIDs instead.
+func JustConnectedGamepadIDs() []ebiten.GamepadID {
+	return AppendJustConnectedGamepadIDs(nil)
 }
 
 // IsGamepadJustDisconnected returns a boolean value indicating

@@ -35,6 +35,7 @@ const (
 )
 
 type Game struct {
+	gamepadIDsBuf  []ebiten.GamepadID
 	gamepadIDs     map[ebiten.GamepadID]struct{}
 	axes           map[ebiten.GamepadID][]string
 	pressedButtons map[ebiten.GamepadID][]string
@@ -46,7 +47,8 @@ func (g *Game) Update() error {
 	}
 
 	// Log the gamepad connection events.
-	for _, id := range inpututil.JustConnectedGamepadIDs() {
+	g.gamepadIDsBuf = inpututil.AppendJustConnectedGamepadIDs(g.gamepadIDsBuf[:0])
+	for _, id := range g.gamepadIDsBuf {
 		log.Printf("gamepad connected: id: %d", id)
 		g.gamepadIDs[id] = struct{}{}
 	}
