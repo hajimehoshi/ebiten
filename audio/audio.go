@@ -71,6 +71,7 @@ type Context struct {
 	sampleRate int
 	err        error
 	ready      bool
+	readyOnce  sync.Once
 
 	players map[playerImpl]struct{}
 
@@ -255,15 +256,18 @@ func (c *Context) IsReady() bool {
 		return r
 	}
 
-	// Create another goroutine since (*Player).Play can lock the context's mutex.
-	go func() {
-		// The audio context is never ready unless there is a player. This is
-		// problematic when a user tries to play audio after the context is ready.
-		// Play a dummy player to avoid the blocking (#969).
-		// Use a long enough buffer so that writing doesn't finish immediately (#970).
-		p := NewPlayerFromBytes(c, make([]byte, bufferSize()*2))
-		p.Play()
-	}()
+	c.readyOnce.Do(func() {
+		// Create another goroutine since (*Player).Play can lock the context's mutex.
+		// TODO: Is this needed for reader players?
+		go func() {
+			// The audio context is never ready unless there is a player. This is
+			// problematic when a user tries to play audio after the context is ready.
+			// Play a dummy player to avoid the blocking (#969).
+			// Use a long enough buffer so that writing doesn't finish immediately (#970).
+			p := NewPlayerFromBytes(c, make([]byte, bufferSize()*2))
+			p.Play()
+		}()
+	})
 
 	return r
 }
