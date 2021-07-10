@@ -166,14 +166,14 @@ func (i *inputState) update() {
 	}
 }
 
-// PressedKeys returns a set of currently pressed keyboard keys.
+// AppendPressedKeys append currently pressed keyboard keys to keys and returns the extended buffer.
+// Giving a slice that already has enough capacity works efficiently.
 //
-// PressedKeys is concurrent safe.
-func PressedKeys() []ebiten.Key {
+// AppendPressedKeys is concurrent safe.
+func AppendPressedKeys(keys []ebiten.Key) []ebiten.Key {
 	theInputState.m.RLock()
 	defer theInputState.m.RUnlock()
 
-	keys := make([]ebiten.Key, 0, len(theInputState.keyDurations))
 	for i, d := range theInputState.keyDurations {
 		if d == 0 {
 			continue
@@ -181,6 +181,13 @@ func PressedKeys() []ebiten.Key {
 		keys = append(keys, ebiten.Key(i))
 	}
 	return keys
+}
+
+// PressedKeys returns a set of currently pressed keyboard keys.
+//
+// Deprecated: as of v2.2.0. Use AppendPressedKeys instead.
+func PressedKeys() []ebiten.Key {
+	return AppendPressedKeys(nil)
 }
 
 // IsKeyJustPressed returns a boolean value indicating

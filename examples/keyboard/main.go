@@ -52,7 +52,7 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
-	g.keys = inpututil.PressedKeys()
+	g.keys = inpututil.AppendPressedKeys(g.keys[:0])
 	return nil
 }
 

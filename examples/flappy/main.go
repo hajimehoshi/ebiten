@@ -177,6 +177,7 @@ type Game struct {
 
 	gameoverCount int
 
+	keys       []ebiten.Key
 	gamepadIDs []ebiten.GamepadID
 }
 
@@ -197,8 +198,9 @@ func (g *Game) init() {
 	}
 }
 
-func isAnyKeyJustPressed() bool {
-	for _, k := range inpututil.PressedKeys() {
+func (g *Game) isAnyKeyJustPressed() bool {
+	g.keys = inpututil.AppendPressedKeys(g.keys[:0])
+	for _, k := range g.keys {
 		if inpututil.IsKeyJustPressed(k) {
 			return true
 		}
@@ -207,7 +209,7 @@ func isAnyKeyJustPressed() bool {
 }
 
 func (g *Game) jump() bool {
-	if isAnyKeyJustPressed() {
+	if g.isAnyKeyJustPressed() {
 		return true
 	}
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
