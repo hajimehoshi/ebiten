@@ -253,8 +253,6 @@ func MouseButtonPressDuration(button ebiten.MouseButton) int {
 // and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
-// AppendJustConnectedGamepadIDs might append nothing when there is no connected gamepad.
-//
 // AppendJustConnectedGamepadIDs is concurrent safe.
 func AppendJustConnectedGamepadIDs(gamepadIDs []ebiten.GamepadID) []ebiten.GamepadID {
 	origLen := len(gamepadIDs)
@@ -330,24 +328,32 @@ func GamepadButtonPressDuration(id ebiten.GamepadID, button ebiten.GamepadButton
 	return s
 }
 
-// JustPressedTouchIDs returns touch IDs that are created just in the current frame.
+// AppendJustPressedTouchIDs append touch IDs that are created just in the current frame to touchIDs,
+// and returns the extended buffer.
+// Giving a slice that already has enough capacity works efficiently.
 //
-// JustPressedTouchIDs might return nil when there is not touch.
-//
-// JustPressedTouchIDs is concurrent safe.
-func JustPressedTouchIDs() []ebiten.TouchID {
-	var ids []ebiten.TouchID
+// AppendJustPressedTouchIDs is concurrent safe.
+func AppendJustPressedTouchIDs(touchIDs []ebiten.TouchID) []ebiten.TouchID {
+	origLen := len(touchIDs)
 	theInputState.m.RLock()
 	for id, s := range theInputState.touchDurations {
 		if s == 1 {
-			ids = append(ids, id)
+			touchIDs = append(touchIDs, id)
 		}
 	}
 	theInputState.m.RUnlock()
-	sort.Slice(ids, func(a, b int) bool {
-		return ids[a] < ids[b]
+	s := touchIDs[origLen:]
+	sort.Slice(s, func(a, b int) bool {
+		return s[a] < s[b]
 	})
-	return ids
+	return touchIDs
+}
+
+// JustPressedTouchIDs returns touch IDs that are created just in the current frame.
+//
+// Deprecated: as of v2.2. Use AppendJustPressedTouchIDs instead.
+func JustPressedTouchIDs() []ebiten.TouchID {
+	return AppendJustPressedTouchIDs(nil)
 }
 
 // IsTouchJustReleased returns a boolean value indicating

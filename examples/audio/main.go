@@ -112,6 +112,7 @@ func (t musicType) String() string {
 
 // Player represents the current audio state.
 type Player struct {
+	game         *Game
 	audioContext *audio.Context
 	audioPlayer  *audio.Player
 	current      time.Duration
@@ -129,7 +130,7 @@ func playerBarRect() (x, y, w, h int) {
 	return
 }
 
-func NewPlayer(audioContext *audio.Context, musicType musicType) (*Player, error) {
+func NewPlayer(game *Game, audioContext *audio.Context, musicType musicType) (*Player, error) {
 	type audioStream interface {
 		io.ReadSeeker
 		Length() int64
@@ -160,6 +161,7 @@ func NewPlayer(audioContext *audio.Context, musicType musicType) (*Player, error
 		return nil, err
 	}
 	player := &Player{
+		game:         game,
 		audioContext: audioContext,
 		audioPlayer:  p,
 		total:        time.Second * time.Duration(s.Length()) / bytesPerSample / sampleRate,
@@ -232,7 +234,7 @@ func (p *Player) shouldPlaySE() bool {
 			return true
 		}
 	}
-	for _, id := range inpututil.JustPressedTouchIDs() {
+	for _, id := range p.game.justPressedTouchIDs {
 		if image.Pt(ebiten.TouchPosition(id)).In(r) {
 			return true
 		}
@@ -277,7 +279,7 @@ func (p *Player) shouldSwitchPlayStateIfNeeded() bool {
 			return true
 		}
 	}
-	for _, id := range inpututil.JustPressedTouchIDs() {
+	for _, id := range p.game.justPressedTouchIDs {
 		if image.Pt(ebiten.TouchPosition(id)).In(r) {
 			return true
 		}
@@ -296,14 +298,14 @@ func (p *Player) switchPlayStateIfNeeded() {
 	p.audioPlayer.Play()
 }
 
-func justPressedPosition() (int, int, bool) {
+func (p *Player) justPressedPosition() (int, int, bool) {
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		x, y := ebiten.CursorPosition()
 		return x, y, true
 	}
 
-	if ts := inpututil.JustPressedTouchIDs(); len(ts) > 0 {
-		x, y := ebiten.TouchPosition(ts[0])
+	if len(p.game.justPressedTouchIDs) > 0 {
+		x, y := ebiten.TouchPosition(p.game.justPressedTouchIDs[0])
 		return x, y, true
 	}
 
@@ -312,7 +314,7 @@ func justPressedPosition() (int, int, bool) {
 
 func (p *Player) seekBarIfNeeded() {
 	// Calculate the next seeking position from the current cursor position.
-	x, y, ok := justPressedPosition()
+	x, y, ok := p.justPressedPosition()
 	if !ok {
 		return
 	}
@@ -376,21 +378,25 @@ type Game struct {
 	musicPlayer   *Player
 	musicPlayerCh chan *Player
 	errCh         chan error
+
+	justPressedTouchIDs []ebiten.TouchID
 }
 
 func NewGame() (*Game, error) {
 	audioContext := audio.NewContext(sampleRate)
 
-	m, err := NewPlayer(audioContext, typeOgg)
+	g := &Game{
+		musicPlayerCh: make(chan *Player),
+		errCh:         make(chan error),
+	}
+
+	m, err := NewPlayer(g, audioContext, typeOgg)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Game{
-		musicPlayer:   m,
-		musicPlayerCh: make(chan *Player),
-		errCh:         make(chan error),
-	}, nil
+	g.musicPlayer = m
+	return g, nil
 }
 
 func (g *Game) Update() error {
@@ -401,6 +407,8 @@ func (g *Game) Update() error {
 		return err
 	default:
 	}
+
+	g.justPressedTouchIDs = inpututil.AppendJustPressedTouchIDs(g.justPressedTouchIDs[:0])
 
 	if g.musicPlayer != nil && inpututil.IsKeyJustPressed(ebiten.KeyA) {
 		var t musicType
@@ -417,7 +425,7 @@ func (g *Game) Update() error {
 		g.musicPlayer = nil
 
 		go func() {
-			p, err := NewPlayer(audio.CurrentContext(), t)
+			p, err := NewPlayer(g, audio.CurrentContext(), t)
 			if err != nil {
 				g.errCh <- err
 				return

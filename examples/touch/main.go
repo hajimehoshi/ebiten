@@ -110,7 +110,8 @@ func (g *Game) Update() error {
 	}
 
 	// What touches are new in this frame?
-	for _, id := range inpututil.JustPressedTouchIDs() {
+	g.touchIDs = inpututil.AppendJustPressedTouchIDs(g.touchIDs[:0])
+	for _, id := range g.touchIDs {
 		x, y := ebiten.TouchPosition(id)
 		g.touches[id] = &touch{
 			originX: x, originY: y,

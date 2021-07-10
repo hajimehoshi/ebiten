@@ -184,8 +184,9 @@ func (s *Stroke) SetDraggingObject(object interface{}) {
 }
 
 type Game struct {
-	strokes map[*Stroke]struct{}
-	sprites []*Sprite
+	touchIDs []ebiten.TouchID
+	strokes  map[*Stroke]struct{}
+	sprites  []*Sprite
 }
 
 var ebitenImage *ebiten.Image
@@ -273,7 +274,8 @@ func (g *Game) Update() error {
 		s.SetDraggingObject(g.spriteAt(s.Position()))
 		g.strokes[s] = struct{}{}
 	}
-	for _, id := range inpututil.JustPressedTouchIDs() {
+	g.touchIDs = inpututil.AppendJustPressedTouchIDs(g.touchIDs[:0])
+	for _, id := range g.touchIDs {
 		s := NewStroke(&TouchStrokeSource{id})
 		s.SetDraggingObject(g.spriteAt(s.Position()))
 		g.strokes[s] = struct{}{}

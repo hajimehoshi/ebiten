@@ -178,6 +178,7 @@ type Game struct {
 	gameoverCount int
 
 	keys       []ebiten.Key
+	touchIDs   []ebiten.TouchID
 	gamepadIDs []ebiten.GamepadID
 }
 
@@ -215,7 +216,8 @@ func (g *Game) jump() bool {
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		return true
 	}
-	if len(inpututil.JustPressedTouchIDs()) > 0 {
+	g.touchIDs = inpututil.AppendJustPressedTouchIDs(g.touchIDs)
+	if len(g.touchIDs) > 0 {
 		return true
 	}
 	g.gamepadIDs = ebiten.AppendGamepadIDs(g.gamepadIDs[:0])
