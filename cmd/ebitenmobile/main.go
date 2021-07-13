@@ -221,42 +221,44 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 	}
 
 	if buildOS == "darwin" {
-		dir := filepath.Join(buildO, "Versions", "A")
+		for _, target := range []string{"ios", "simulator", "catalyst", "macos"} {
+			dir := filepath.Join(target, buildO, "Versions", "A")
 
-		if err := ioutil.WriteFile(filepath.Join(dir, "Headers", prefixUpper+"EbitenViewController.h"), []byte(replacePrefixes(objcH)), 0644); err != nil {
-			return err
-		}
-		// TODO: Remove 'Ebitenmobileview.objc.h' here. Now it is hard since there is a header file importing
-		// that header file.
-
-		fs, err := ioutil.ReadDir(filepath.Join(dir, "Headers"))
-		if err != nil {
-			return err
-		}
-		var headerFiles []string
-		for _, f := range fs {
-			if strings.HasSuffix(f.Name(), ".h") {
-				headerFiles = append(headerFiles, f.Name())
+			if err := ioutil.WriteFile(filepath.Join(dir, "Headers", prefixUpper+"EbitenViewController.h"), []byte(replacePrefixes(objcH)), 0644); err != nil {
+				return err
 			}
-		}
+			// TODO: Remove 'Ebitenmobileview.objc.h' here. Now it is hard since there is a header file importing
+			// that header file.
 
-		w, err := os.OpenFile(filepath.Join(dir, "Modules", "module.modulemap"), os.O_WRONLY, 0644)
-		if err != nil {
-			return err
-		}
-		defer w.Close()
-		var mmVals = struct {
-			Module  string
-			Headers []string
-		}{
-			Module:  prefixUpper,
-			Headers: headerFiles,
-		}
-		if err := iosModuleMapTmpl.Execute(w, mmVals); err != nil {
-			return err
-		}
+			fs, err := ioutil.ReadDir(filepath.Join(dir, "Headers"))
+			if err != nil {
+				return err
+			}
+			var headerFiles []string
+			for _, f := range fs {
+				if strings.HasSuffix(f.Name(), ".h") {
+					headerFiles = append(headerFiles, f.Name())
+				}
+			}
 
-		// TODO: Remove Ebitenmobileview.objc.h?
+			w, err := os.OpenFile(filepath.Join(dir, "Modules", "module.modulemap"), os.O_WRONLY, 0644)
+			if err != nil {
+				return err
+			}
+			defer w.Close()
+			var mmVals = struct {
+				Module  string
+				Headers []string
+			}{
+				Module:  prefixUpper,
+				Headers: headerFiles,
+			}
+			if err := iosModuleMapTmpl.Execute(w, mmVals); err != nil {
+				return err
+			}
+
+			// TODO: Remove Ebitenmobileview.objc.h?
+		}
 	}
 
 	return nil
