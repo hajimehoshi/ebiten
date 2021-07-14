@@ -50,8 +50,8 @@ func (p *Path) LineTo(x, y float32) {
 }
 
 // QuadTo adds a quadratic Bézier curve to the path.
-func (p *Path) QuadTo(cpx, cpy, x, y float32) {
-	p.quadTo(cpx, cpy, x, y, 0)
+func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
+	p.quadTo(x1, y1, x2, y2, 0)
 }
 
 // isPointCloseToSegment detects the distance between a segment (x0, y0)-(x1, y1) and a point (x, y) is less than allow.
@@ -89,8 +89,8 @@ func (p *Path) quadTo(x1, y1, x2, y2 float32, level int) {
 }
 
 // CubicTo adds a cubic Bézier curve to the path.
-func (p *Path) CubicTo(cp0x, cp0y, cp1x, cp1y, x, y float32) {
-	p.cubicTo(cp0x, cp0y, cp1x, cp1y, x, y, 0)
+func (p *Path) CubicTo(x1, y1, x2, y2, x3, y3 float32) {
+	p.cubicTo(x1, y1, x2, y2, x3, y3, 0)
 }
 
 func (p *Path) cubicTo(x1, y1, x2, y2, x3, y3 float32, level int) {
