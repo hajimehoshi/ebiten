@@ -399,10 +399,14 @@ func GetPrimaryMonitor() *Monitor {
 func Init() error {
 	glfwDLL.call("glfwInit")
 	// InvalidValue can happen when specific joysticks are used. This issue
-	// will be fixed in GLFW 3.3.5. As a temporary fix, accept this error.
+	// will be fixed in GLFW 3.3.5. As a temporary fix, ignore this error.
 	// See go-gl/glfw#292, go-gl/glfw#324, and glfw/glfw#1763
 	// (#1229).
-	return acceptError(APIUnavailable, InvalidValue)
+	err := acceptError(APIUnavailable, InvalidValue)
+	if e, ok := err.(*glfwError); ok && e.code == InvalidValue {
+		return nil
+	}
+	return err
 }
 
 func (j Joystick) Present() bool {

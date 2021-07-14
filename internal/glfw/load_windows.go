@@ -129,7 +129,7 @@ func (e *glfwError) Error() string {
 
 var lastErr = make(chan *glfwError, 1)
 
-func fetchError() error {
+func fetchError() *glfwError {
 	select {
 	case err := <-lastErr:
 		return err
@@ -146,7 +146,7 @@ func panicError() {
 
 func flushErrors() {
 	if err := fetchError(); err != nil {
-		panic(fmt.Sprintf("glfw: uncaught error: %s", err))
+		panic(fmt.Sprintf("glfw: uncaught error: %s", err.Error()))
 	}
 }
 
@@ -156,14 +156,18 @@ func acceptError(codes ...ErrorCode) error {
 		return nil
 	}
 	for _, c := range codes {
-		if err.(*glfwError).code == c {
-			return nil
+		if err.code == c {
+			return err
 		}
 	}
-	if err.(*glfwError).code == PlatformError {
-		// PlatformError is not handled here (See github.com/go-gl/glfw's implementation).
-		// TODO: Should we log this error?
+	switch err.code {
+	case PlatformError:
+		// TODO: Should we log this?
 		return nil
+	case NotInitialized, NoCurrentContext, InvalidEnum, InvalidValue, OutOfMemory:
+		panic(err)
+	default:
+		panic(fmt.Sprintf("glfw: uncaught error: %s", err.Error()))
 	}
 	return err
 }
@@ -177,7 +181,7 @@ func goGLFWErrorCallback(code uintptr, desc *byte) uintptr {
 	select {
 	case lastErr <- err:
 	default:
-		panic(fmt.Sprintf("glfw: uncaught error: %s", err))
+		panic(fmt.Sprintf("glfw: uncaught error: %s", err.Error()))
 	}
 	return 0
 }
