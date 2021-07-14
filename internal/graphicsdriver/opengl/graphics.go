@@ -149,11 +149,6 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) {
 func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, uniforms []interface{}, evenOdd bool) error {
 	destination := g.images[dstID]
 
-	if !destination.pbo.equal(*new(buffer)) {
-		g.context.deleteBuffer(destination.pbo)
-		destination.pbo = *new(buffer)
-	}
-
 	g.drawCalled = true
 
 	if err := destination.setViewport(); err != nil {

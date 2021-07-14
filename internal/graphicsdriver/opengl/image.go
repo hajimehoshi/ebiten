@@ -25,7 +25,6 @@ type Image struct {
 	texture     textureNative
 	stencil     renderbufferNative
 	framebuffer *framebuffer
-	pbo         buffer
 	width       int
 	height      int
 	screen      bool
@@ -40,9 +39,6 @@ func (i *Image) IsInvalidated() bool {
 }
 
 func (i *Image) Dispose() {
-	if !i.pbo.equal(*new(buffer)) {
-		i.graphics.context.deleteBuffer(i.pbo)
-	}
 	if i.framebuffer != nil {
 		i.framebuffer.delete(&i.graphics.context)
 	}
@@ -69,15 +65,7 @@ func (i *Image) Pixels() ([]byte, error) {
 		return nil, err
 	}
 
-	// PBO is created only when PBO is enabled AND ReplacePixels is called.
-	// If PBO is enabled but the buffer doesn't exist, this means either ReplacePixels is not called or
-	// different draw calls than ReplacePixels were called.
-	if !i.graphics.context.canUsePBO() || i.pbo.equal(*new(buffer)) {
-		p := i.graphics.context.framebufferPixels(i.framebuffer, i.width, i.height)
-		return p, nil
-	}
-
-	p := i.graphics.context.getBufferSubData(i.pbo, i.width, i.height)
+	p := i.graphics.context.framebufferPixels(i.framebuffer, i.width, i.height)
 	return p, nil
 }
 
@@ -144,25 +132,5 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 		i.graphics.context.flush()
 	}
 	i.graphics.drawCalled = false
-
-	// TODO: Now canUsePBO always returns false (#1678). Remove the code for PBO.
-	if !i.graphics.context.canUsePBO() {
-		i.graphics.context.texSubImage2D(i.texture, args)
-		return
-	}
-
-	w, h := i.width, i.height
-	if i.pbo.equal(*new(buffer)) {
-		i.pbo = i.graphics.context.newPixelBufferObject(w, h)
-		if i.pbo.equal(*new(buffer)) {
-			panic("opengl: newPixelBufferObject failed")
-		}
-		if i.framebuffer != nil {
-			i.graphics.context.framebufferPixelsToBuffer(i.framebuffer, i.pbo, i.width, i.height)
-		}
-	}
-	if i.pbo.equal(*new(buffer)) {
-		panic("opengl: newPixelBufferObject failed")
-	}
-	i.graphics.context.replacePixelsWithPBO(i.pbo, i.texture, w, h, args)
+	i.graphics.context.texSubImage2D(i.texture, args)
 }

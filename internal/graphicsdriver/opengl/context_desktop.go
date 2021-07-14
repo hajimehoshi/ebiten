@@ -496,48 +496,11 @@ func (c *context) needsRestoring() bool {
 	return false
 }
 
-func (c *context) canUsePBO() bool {
-	return false
-}
-
 func (c *context) texSubImage2D(t textureNative, args []*driver.ReplacePixelsArgs) {
 	c.bindTexture(t)
 	for _, a := range args {
 		gl.TexSubImage2D(gl.TEXTURE_2D, 0, int32(a.X), int32(a.Y), int32(a.Width), int32(a.Height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(a.Pixels))
 	}
-}
-
-func (c *context) newPixelBufferObject(width, height int) buffer {
-	var b uint32
-	gl.GenBuffers(1, &b)
-	gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, b)
-	gl.BufferData(gl.PIXEL_UNPACK_BUFFER, 4*width*height, nil, gl.STREAM_DRAW)
-	gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, 0)
-	return buffer(b)
-}
-
-func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
-	c.bindTexture(t)
-	gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, uint32(buffer))
-
-	stride := 4 * width
-	for _, a := range args {
-		offset := 4 * (a.Y*width + a.X)
-		for j := 0; j < a.Height; j++ {
-			gl.BufferSubData(gl.PIXEL_UNPACK_BUFFER, offset+stride*j, 4*a.Width, gl.Ptr(a.Pixels[4*a.Width*j:4*a.Width*(j+1)]))
-		}
-	}
-
-	gl.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, nil)
-	gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, 0)
-}
-
-func (c *context) getBufferSubData(buffer buffer, width, height int) []byte {
-	gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, uint32(buffer))
-	pixels := make([]byte, 4*width*height)
-	gl.GetBufferSubData(gl.PIXEL_UNPACK_BUFFER, 0, 4*width*height, gl.Ptr(pixels))
-	gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, 0)
-	return pixels
 }
 
 func (c *context) enableStencilTest() {

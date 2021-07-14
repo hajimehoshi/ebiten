@@ -599,54 +599,6 @@ func (c *context) texSubImage2D(t textureNative, args []*driver.ReplacePixelsArg
 	}
 }
 
-func (c *context) newPixelBufferObject(width, height int) buffer {
-	gl := c.gl
-	b := gl.createBuffer.Invoke()
-	gl.bindBuffer.Invoke(gles.PIXEL_UNPACK_BUFFER, js.Value(b))
-	gl.bufferData.Invoke(gles.PIXEL_UNPACK_BUFFER, 4*width*height, gles.STREAM_DRAW)
-	gl.bindBuffer.Invoke(gles.PIXEL_UNPACK_BUFFER, nil)
-	return buffer(b)
-}
-
-func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
-	if !isWebGL2Available {
-		panic("opengl: WebGL2 must be available when replacePixelsWithPBO is called")
-	}
-
-	c.bindTexture(t)
-	gl := c.gl
-	gl.bindBuffer.Invoke(gles.PIXEL_UNPACK_BUFFER, js.Value(buffer))
-
-	stride := 4 * width
-	for _, a := range args {
-		arr := jsutil.TemporaryUint8Array(len(a.Pixels), a.Pixels)
-		offset := 4 * (a.Y*width + a.X)
-		for j := 0; j < a.Height; j++ {
-			gl.bufferSubData.Invoke(gles.PIXEL_UNPACK_BUFFER, offset+stride*j, arr, 4*a.Width*j, 4*a.Width)
-		}
-	}
-
-	// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
-	//                    GLsizei width, GLsizei height,
-	//                    GLenum format, GLenum type, GLintptr offset);
-	gl.texSubImage2D.Invoke(gles.TEXTURE_2D, 0, 0, 0, width, height, gles.RGBA, gles.UNSIGNED_BYTE, 0)
-	gl.bindBuffer.Invoke(gles.PIXEL_UNPACK_BUFFER, nil)
-}
-
-func (c *context) getBufferSubData(buffer buffer, width, height int) []byte {
-	if !isWebGL2Available {
-		panic("opengl: WebGL2 must be available when getBufferSubData is called")
-	}
-
-	gl := c.gl
-	gl.bindBuffer.Invoke(gles.PIXEL_UNPACK_BUFFER, js.Value(buffer))
-	l := 4 * width * height
-	arr := jsutil.TemporaryUint8Array(l, nil)
-	gl.getBufferSubData.Invoke(gles.PIXEL_UNPACK_BUFFER, 0, arr, 0, l)
-	gl.bindBuffer.Invoke(gles.PIXEL_UNPACK_BUFFER, nil)
-	return jsutil.Uint8ArrayToSlice(arr, l)
-}
-
 func (c *context) enableStencilTest() {
 	gl := c.gl
 	gl.enable.Invoke(gles.STENCIL_TEST)

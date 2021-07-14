@@ -469,38 +469,6 @@ func (c *context) texSubImage2D(t textureNative, args []*driver.ReplacePixelsArg
 	}
 }
 
-func (c *context) newPixelBufferObject(width, height int) buffer {
-	b := c.ctx.GenBuffers(1)[0]
-	c.ctx.BindBuffer(gles.PIXEL_UNPACK_BUFFER, b)
-	c.ctx.BufferData(gles.PIXEL_UNPACK_BUFFER, 4*width*height, nil, gles.STREAM_DRAW)
-	c.ctx.BindBuffer(gles.PIXEL_UNPACK_BUFFER, 0)
-	return buffer(b)
-}
-
-func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
-	// This implementation is not used yet so far. See the comment at canUsePBO.
-
-	c.bindTexture(t)
-	c.ctx.BindBuffer(gles.PIXEL_UNPACK_BUFFER, uint32(buffer))
-
-	stride := 4 * width
-	for _, a := range args {
-		offset := 4 * (a.Y*width + a.X)
-		for j := 0; j < a.Height; j++ {
-			c.ctx.BufferSubData(gles.PIXEL_UNPACK_BUFFER, offset+stride*j, a.Pixels[4*a.Width*j:4*a.Width*(j+1)])
-		}
-	}
-
-	c.ctx.TexSubImage2D(gles.TEXTURE_2D, 0, 0, 0, int32(width), int32(height), gles.RGBA, gles.UNSIGNED_BYTE, nil)
-	c.ctx.BindBuffer(gles.PIXEL_UNPACK_BUFFER, 0)
-}
-
-func (c *context) getBufferSubData(buffer buffer, width, height int) []byte {
-	// gl.GetBufferSubData doesn't exist on OpenGL ES 2 and 3.
-	// As PBO is not used in mobiles, leave this unimplemented so far.
-	panic("opengl: getBufferSubData is not implemented for mobiles")
-}
-
 func (c *context) enableStencilTest() {
 	c.ctx.Enable(gles.STENCIL_TEST)
 }
