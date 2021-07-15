@@ -436,9 +436,24 @@ func (j Joystick) Present() bool {
 	return r == True
 }
 
+func panicErrorExceptForInvalidValue() {
+	// InvalidValue can happen when specific joysticks are used. This issue
+	// will be fixed in GLFW 3.3.5. As a temporary fix, ignore this error.
+	// See go-gl/glfw#292, go-gl/glfw#324, and glfw/glfw#1763
+	// (#1229).
+	err := acceptError(InvalidValue)
+	if e, ok := err.(*glfwError); ok && e.code == InvalidValue {
+		return
+	}
+	if err != nil {
+		panic(err)
+	}
+}
+
 func PollEvents() {
 	glfwDLL.call("glfwPollEvents")
-	panicError()
+	// This should be used for WaitEvents and WaitEventsTimeout if needed.
+	panicErrorExceptForInvalidValue()
 }
 
 func SetMonitorCallback(cbfun func(monitor *Monitor, event PeripheralEvent)) {
