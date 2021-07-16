@@ -50,6 +50,9 @@ func (p *Path) LineTo(x, y float32) {
 }
 
 // QuadTo adds a quadratic Bézier curve to the path.
+// (x1, y1) is the control point, and (x2, y2) is the destination.
+//
+// QuadTo updates the current position to (x2, y2).
 func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 	p.quadTo(x1, y1, x2, y2, 0)
 }
@@ -73,7 +76,7 @@ func (p *Path) quadTo(x1, y1, x2, y2 float32, level int) {
 
 	x0 := p.cur.x
 	y0 := p.cur.y
-	if isPointCloseToSegment(x1, y1, x0, y0, x2, y2, 1) {
+	if isPointCloseToSegment(x1, y1, x0, y0, x2, y2, 0.5) {
 		p.LineTo(x2, y2)
 		return
 	}
@@ -89,6 +92,9 @@ func (p *Path) quadTo(x1, y1, x2, y2 float32, level int) {
 }
 
 // CubicTo adds a cubic Bézier curve to the path.
+// (x1, y1) and (x2, y2) are the control points, and (x3, y3) is the destination.
+//
+// CubicTo updates the current position to (x3, y3).
 func (p *Path) CubicTo(x1, y1, x2, y2, x3, y3 float32) {
 	p.cubicTo(x1, y1, x2, y2, x3, y3, 0)
 }
@@ -100,7 +106,7 @@ func (p *Path) cubicTo(x1, y1, x2, y2, x3, y3 float32, level int) {
 
 	x0 := p.cur.x
 	y0 := p.cur.y
-	if isPointCloseToSegment(x1, y1, x0, y0, x3, y3, 1) && isPointCloseToSegment(x2, y2, x0, y0, x3, y3, 1) {
+	if isPointCloseToSegment(x1, y1, x0, y0, x3, y3, 0.5) && isPointCloseToSegment(x2, y2, x0, y0, x3, y3, 0.5) {
 		p.LineTo(x3, y3)
 		return
 	}
