@@ -163,6 +163,30 @@ func drawEbitenLogo(screen *ebiten.Image, x, y int) {
 	screen.DrawTriangles(vs, is, emptySubImage, op)
 }
 
+func drawArc(screen *ebiten.Image, count int) {
+	var path vector.Path
+
+	path.MoveTo(350, 100)
+	const cx, cy, r = 450, 100, 70
+	theta := math.Pi * float64(count) / 180
+	x := cx + r*math.Cos(theta)
+	y := cy + r*math.Sin(theta)
+	path.ArcTo(450, 100, float32(x), float32(y), 30)
+
+	op := &ebiten.DrawTrianglesOptions{
+		EvenOdd: true,
+	}
+	vs, is := path.AppendVerticesAndIndicesForFilling(nil, nil)
+	for i := range vs {
+		vs[i].SrcX = 1
+		vs[i].SrcY = 1
+		vs[i].ColorR = 0x33 / float32(0xff)
+		vs[i].ColorG = 0xcc / float32(0xff)
+		vs[i].ColorB = 0x66 / float32(0xff)
+	}
+	screen.DrawTriangles(vs, is, emptySubImage, op)
+}
+
 func maxCounter(index int) int {
 	return 128 + (17*index+32)%64
 }
@@ -219,6 +243,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.White)
 	drawEbitenText(screen)
 	drawEbitenLogo(screen, 20, 90)
+	drawArc(screen, g.counter)
 	drawWave(screen, g.counter)
 
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f", ebiten.CurrentTPS(), ebiten.CurrentFPS()))

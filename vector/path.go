@@ -18,6 +18,8 @@
 package vector
 
 import (
+	"math"
+
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -45,7 +47,10 @@ func (p *Path) LineTo(x, y float32) {
 	if len(p.segs) == 0 {
 		p.segs = append(p.segs, []point{p.cur})
 	}
-	p.segs[len(p.segs)-1] = append(p.segs[len(p.segs)-1], point{x: x, y: y})
+	seg := p.segs[len(p.segs)-1]
+	if seg[len(seg)-1].x != x || seg[len(seg)-1].y != y {
+		p.segs[len(p.segs)-1] = append(seg, point{x: x, y: y})
+	}
 	p.cur = point{x: x, y: y}
 }
 
@@ -125,6 +130,56 @@ func (p *Path) cubicTo(x1, y1, x2, y2, x3, y3 float32, level int) {
 	y0123 := (y012 + y123) / 2
 	p.cubicTo(x01, y01, x012, y012, x0123, y0123, level+1)
 	p.cubicTo(x123, y123, x23, y23, x3, y3, level+1)
+}
+
+func normalize(x, y float32) (float32, float32) {
+	len := float32(math.Hypot(float64(x), float64(y)))
+	return x / len, y / len
+}
+
+// ArcTo adds an arc curve to the path. (x1, y1) is the control point, and (x2, y2) is the destination.
+//
+// ArcTo updates the current position to (x2, y2).
+func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
+	x0 := p.cur.x
+	y0 := p.cur.y
+	dx0 := x0 - x1
+	dy0 := y0 - y1
+	dx1 := x2 - x1
+	dy1 := y2 - y1
+	dx0, dy0 = normalize(dx0, dy0)
+	dx1, dy1 = normalize(dx1, dy1)
+
+	// theta is the angle between two vectors (dx0, dy0) and (dx1, dy1).
+	theta := math.Acos(float64(dx0*dx1 + dy0*dy1))
+	// TODO: When theta is bigger than π/2, the arc should be split into two.
+
+	// dist is the distance between the control point and the arc's begenning and ending points.
+	dist := radius / float32(math.Tan(theta/2))
+
+	// TODO: What if dist is too big?
+
+	// (ax0, ay0) is the start of the arc.
+	ax0 := x1 + dx0*dist
+	ay0 := y1 + dy0*dist
+
+	// (ax1, ay1) is the end of the arc.
+	ax1 := x1 + dx1*dist
+	ay1 := y1 + dy1*dist
+
+	p.LineTo(ax0, ay0)
+
+	// Calculate the control points for an approximated Bézier curve.
+	// See https://docs.microsoft.com/en-us/xamarin/xamarin-forms/user-interface/graphics/skiasharp/curves/beziers.
+	alpha := math.Pi - theta
+	l := radius * float32(math.Tan(alpha/4)*4/3)
+	cx0 := ax0 + l*(-dx0)
+	cy0 := ay0 + l*(-dy0)
+	cx1 := ax1 + l*(-dx1)
+	cy1 := ay1 + l*(-dy1)
+	p.CubicTo(cx0, cy0, cx1, cy1, ax1, ay1)
+
+	p.LineTo(x2, y2)
 }
 
 // AppendVerticesAndIndicesForFilling appends vertices and indices to fill this path and returns them.
