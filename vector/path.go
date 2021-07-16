@@ -45,7 +45,9 @@ func (p *Path) MoveTo(x, y float32) {
 // LineTo updates the current position to (x, y).
 func (p *Path) LineTo(x, y float32) {
 	if len(p.segs) == 0 {
-		p.segs = append(p.segs, []point{p.cur})
+		p.segs = append(p.segs, []point{{x: x, y: y}})
+		p.cur = point{x: x, y: y}
+		return
 	}
 	seg := p.segs[len(p.segs)-1]
 	if seg[len(seg)-1].x != x || seg[len(seg)-1].y != y {
@@ -180,6 +182,54 @@ func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 	p.CubicTo(cx0, cy0, cx1, cy1, ax1, ay1)
 
 	p.LineTo(x2, y2)
+}
+
+// Arc adds an arc to the path.
+// (x, y) is the center of the arc.
+//
+// Arc updates the current position to the end of the arc.
+func (p *Path) Arc(x, y, radius, startAngle, endAngle float32) {
+	// Adjust the angles.
+	for startAngle > endAngle {
+		endAngle += 2 * math.Pi
+	}
+	da := float64(endAngle - startAngle)
+	if da >= 2*math.Pi {
+		da = 2 * math.Pi
+		endAngle = startAngle + float32(da)
+	}
+
+	// If the angle is big, splict this into multiple Arc calls.
+	if da > math.Pi/2 {
+		const delta = math.Pi / 3
+		a := float64(startAngle)
+		for {
+			p.Arc(x, y, radius, float32(a), float32(math.Min(a+delta, float64(endAngle))))
+			if a+delta >= float64(endAngle) {
+				break
+			}
+			a += delta
+		}
+		return
+	}
+
+	sin0, cos0 := math.Sincos(float64(startAngle))
+	x0 := x + radius*float32(cos0)
+	y0 := y + radius*float32(sin0)
+	sin1, cos1 := math.Sincos(float64(endAngle))
+	x1 := x + radius*float32(cos1)
+	y1 := y + radius*float32(sin1)
+
+	p.LineTo(x0, y0)
+
+	// Calculate the control points for an approximated Bézier curve.
+	// See https://docs.microsoft.com/en-us/xamarin/xamarin-forms/user-interface/graphics/skiasharp/curves/beziers.
+	l := radius * float32(math.Tan(da/4)*4/3)
+	cx0 := x0 + l*float32(-sin0)
+	cy0 := y0 + l*float32(cos0)
+	cx1 := x1 + l*float32(sin1)
+	cy1 := y1 + l*float32(-cos1)
+	p.CubicTo(cx0, cy0, cx1, cy1, x1, y1)
 }
 
 // AppendVerticesAndIndicesForFilling appends vertices and indices to fill this path and returns them.

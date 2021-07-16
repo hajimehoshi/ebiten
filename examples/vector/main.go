@@ -168,10 +168,14 @@ func drawArc(screen *ebiten.Image, count int) {
 
 	path.MoveTo(350, 100)
 	const cx, cy, r = 450, 100, 70
-	theta := math.Pi * float64(count) / 180
-	x := cx + r*math.Cos(theta)
-	y := cy + r*math.Sin(theta)
+	theta1 := math.Pi * float64(count) / 180
+	x := cx + r*math.Cos(theta1)
+	y := cy + r*math.Sin(theta1)
 	path.ArcTo(450, 100, float32(x), float32(y), 30)
+
+	theta2 := math.Pi * float64(count) / 180 / 3
+	path.MoveTo(550, 100)
+	path.Arc(550, 100, 50, float32(theta1), float32(theta2))
 
 	op := &ebiten.DrawTrianglesOptions{
 		EvenOdd: true,
