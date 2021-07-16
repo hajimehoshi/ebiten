@@ -127,15 +127,15 @@ func (p *Path) cubicTo(x1, y1, x2, y2, x3, y3 float32, level int) {
 	p.cubicTo(x123, y123, x23, y23, x3, y3, level+1)
 }
 
-// AppendVerticesAndIndices appends vertices and indices for this path and returns them.
-// AppendVerticesAndIndices works in a similar way to the built-in append function.
+// AppendVerticesAndIndicesForFilling appends vertices and indices to fill this path and returns them.
+// AppendVerticesAndIndicesForFilling works in a similar way to the built-in append function.
 // If the arguments are nils, AppendVerticesAndIndices returns new slices.
 //
 // The returned vertice's SrcX and SrcY are 0, and ColorR, ColorG, ColorB, and ColorA are 1.
 //
 // The returned values are intended to be passed to DrawTriangles or DrawTrianglesShader with EvenOdd option
 // in order to render a complex polygon like a concave polygon, a polygon with holes, or a self-intersecting polygon.
-func (p *Path) AppendVerticesAndIndices(vertices []ebiten.Vertex, indices []uint16) ([]ebiten.Vertex, []uint16) {
+func (p *Path) AppendVerticesAndIndicesForFilling(vertices []ebiten.Vertex, indices []uint16) ([]ebiten.Vertex, []uint16) {
 	// TODO: Add tests.
 
 	var base uint16
