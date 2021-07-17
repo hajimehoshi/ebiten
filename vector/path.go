@@ -23,6 +23,14 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
+// Direction represents clockwise or countercolockwise.
+type Direction int
+
+const (
+	Clockwise Direction = iota
+	CounterClockwise
+)
+
 type point struct {
 	x float32
 	y float32
@@ -139,6 +147,10 @@ func normalize(x, y float32) (float32, float32) {
 	return x / len, y / len
 }
 
+func cross(x0, y0, x1, y1 float32) float32 {
+	return x0*y1 - x1*y0
+}
+
 // ArcTo adds an arc curve to the path. (x1, y1) is the control point, and (x2, y2) is the destination.
 //
 // ArcTo updates the current position to (x2, y2).
@@ -165,21 +177,22 @@ func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 	ax0 := x1 + dx0*dist
 	ay0 := y1 + dy0*dist
 
-	// (ax1, ay1) is the end of the arc.
-	ax1 := x1 + dx1*dist
-	ay1 := y1 + dy1*dist
-
-	p.LineTo(ax0, ay0)
-
-	// Calculate the control points for an approximated Bézier curve.
-	// See https://docs.microsoft.com/en-us/xamarin/xamarin-forms/user-interface/graphics/skiasharp/curves/beziers.
-	alpha := math.Pi - theta
-	l := radius * float32(math.Tan(alpha/4)*4/3)
-	cx0 := ax0 + l*(-dx0)
-	cy0 := ay0 + l*(-dy0)
-	cx1 := ax1 + l*(-dx1)
-	cy1 := ay1 + l*(-dy1)
-	p.CubicTo(cx0, cy0, cx1, cy1, ax1, ay1)
+	var cx, cy, a0, a1 float32
+	var dir Direction
+	if cross(dx0, dy0, dx1, dy1) >= 0 {
+		cx = ax0 - dy0*radius
+		cy = ay0 + dx0*radius
+		a0 = float32(math.Atan2(float64(-dx0), float64(dy0)))
+		a1 = float32(math.Atan2(float64(dx1), float64(-dy1)))
+		dir = CounterClockwise
+	} else {
+		cx = ax0 + dy0*radius
+		cy = ay0 - dx0*radius
+		a0 = float32(math.Atan2(float64(dx0), float64(-dy0)))
+		a1 = float32(math.Atan2(float64(-dx1), float64(dy1)))
+		dir = Clockwise
+	}
+	p.Arc(cx, cy, radius, a0, a1, dir)
 
 	p.LineTo(x2, y2)
 }
@@ -188,27 +201,50 @@ func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 // (x, y) is the center of the arc.
 //
 // Arc updates the current position to the end of the arc.
-func (p *Path) Arc(x, y, radius, startAngle, endAngle float32) {
+func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 	// Adjust the angles.
-	for startAngle > endAngle {
-		endAngle += 2 * math.Pi
+	var da float64
+	if dir == Clockwise {
+		for startAngle > endAngle {
+			endAngle += 2 * math.Pi
+		}
+		da = float64(endAngle - startAngle)
+	} else {
+		for startAngle < endAngle {
+			startAngle += 2 * math.Pi
+		}
+		da = float64(startAngle - endAngle)
 	}
-	da := float64(endAngle - startAngle)
+
 	if da >= 2*math.Pi {
 		da = 2 * math.Pi
-		endAngle = startAngle + float32(da)
+		if dir == Clockwise {
+			endAngle = startAngle + 2*math.Pi
+		} else {
+			startAngle = endAngle + 2*math.Pi
+		}
 	}
 
 	// If the angle is big, splict this into multiple Arc calls.
 	if da > math.Pi/2 {
 		const delta = math.Pi / 3
 		a := float64(startAngle)
-		for {
-			p.Arc(x, y, radius, float32(a), float32(math.Min(a+delta, float64(endAngle))))
-			if a+delta >= float64(endAngle) {
-				break
+		if dir == Clockwise {
+			for {
+				p.Arc(x, y, radius, float32(a), float32(math.Min(a+delta, float64(endAngle))), dir)
+				if a+delta >= float64(endAngle) {
+					break
+				}
+				a += delta
 			}
-			a += delta
+		} else {
+			for {
+				p.Arc(x, y, radius, float32(a), float32(math.Max(a-delta, float64(endAngle))), dir)
+				if a-delta <= float64(endAngle) {
+					break
+				}
+				a -= delta
+			}
 		}
 		return
 	}
@@ -225,10 +261,18 @@ func (p *Path) Arc(x, y, radius, startAngle, endAngle float32) {
 	// Calculate the control points for an approximated Bézier curve.
 	// See https://docs.microsoft.com/en-us/xamarin/xamarin-forms/user-interface/graphics/skiasharp/curves/beziers.
 	l := radius * float32(math.Tan(da/4)*4/3)
-	cx0 := x0 + l*float32(-sin0)
-	cy0 := y0 + l*float32(cos0)
-	cx1 := x1 + l*float32(sin1)
-	cy1 := y1 + l*float32(-cos1)
+	var cx0, cy0, cx1, cy1 float32
+	if dir == Clockwise {
+		cx0 = x0 + l*float32(-sin0)
+		cy0 = y0 + l*float32(cos0)
+		cx1 = x1 + l*float32(sin1)
+		cy1 = y1 + l*float32(-cos1)
+	} else {
+		cx0 = x0 + l*float32(sin0)
+		cy0 = y0 + l*float32(-cos0)
+		cx1 = x1 + l*float32(-sin1)
+		cy1 = y1 + l*float32(cos1)
+	}
 	p.CubicTo(cx0, cy0, cx1, cy1, x1, y1)
 }
 
