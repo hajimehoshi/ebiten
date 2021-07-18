@@ -65,7 +65,7 @@ func (g *Game) Update() error {
 		maxAxis := ebiten.GamepadAxisNum(id)
 		for a := 0; a < maxAxis; a++ {
 			v := ebiten.GamepadAxisValue(id, a)
-			g.axes[id] = append(g.axes[id], fmt.Sprintf("%d:%0.2f", a, v))
+			g.axes[id] = append(g.axes[id], fmt.Sprintf("%d:%+0.2f", a, v))
 		}
 		maxButton := ebiten.GamepadButton(ebiten.GamepadButtonNum(id))
 		for b := ebiten.GamepadButton(id); b < maxButton; b++ {
