@@ -49,12 +49,12 @@ func (g *Game) Update() error {
 	// Log the gamepad connection events.
 	g.gamepadIDsBuf = inpututil.AppendJustConnectedGamepadIDs(g.gamepadIDsBuf[:0])
 	for _, id := range g.gamepadIDsBuf {
-		log.Printf("gamepad connected: id: %d", id)
+		log.Printf("gamepad connected: id: %d, SDL ID: %s", id, ebiten.GamepadSDLID(id))
 		g.gamepadIDs[id] = struct{}{}
 	}
 	for id := range g.gamepadIDs {
 		if inpututil.IsGamepadJustDisconnected(id) {
-			log.Printf("gamepad disconnected: id: %d", id)
+			log.Printf("gamepad disconnected: id: %d, SDL ID: %s", id, ebiten.GamepadSDLID(id))
 			delete(g.gamepadIDs, id)
 		}
 	}
