@@ -112,7 +112,7 @@ func Wheel() (xoff, yoff float64) {
 //
 // IsMouseButtonPressed is concurrent-safe.
 func IsMouseButtonPressed(mouseButton MouseButton) bool {
-	return uiDriver().Input().IsMouseButtonPressed(driver.MouseButton(mouseButton))
+	return uiDriver().Input().IsMouseButtonPressed(mouseButton)
 }
 
 // GamepadID represents a gamepad's identifier.
@@ -199,7 +199,7 @@ func GamepadButtonNum(id GamepadID) int {
 //
 // IsGamepadButtonPressed always returns false on iOS.
 func IsGamepadButtonPressed(id GamepadID, button GamepadButton) bool {
-	return uiDriver().Input().IsGamepadButtonPressed(id, driver.GamepadButton(button))
+	return uiDriver().Input().IsGamepadButtonPressed(id, button)
 }
 
 // TouchID represents a touch's identifier.

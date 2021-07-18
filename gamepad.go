@@ -19,41 +19,41 @@ import (
 )
 
 // A GamepadButton represents a gamepad button.
-type GamepadButton int
+type GamepadButton = driver.GamepadButton
 
 // GamepadButtons
 const (
-	GamepadButton0   GamepadButton = GamepadButton(driver.GamepadButton0)
-	GamepadButton1   GamepadButton = GamepadButton(driver.GamepadButton1)
-	GamepadButton2   GamepadButton = GamepadButton(driver.GamepadButton2)
-	GamepadButton3   GamepadButton = GamepadButton(driver.GamepadButton3)
-	GamepadButton4   GamepadButton = GamepadButton(driver.GamepadButton4)
-	GamepadButton5   GamepadButton = GamepadButton(driver.GamepadButton5)
-	GamepadButton6   GamepadButton = GamepadButton(driver.GamepadButton6)
-	GamepadButton7   GamepadButton = GamepadButton(driver.GamepadButton7)
-	GamepadButton8   GamepadButton = GamepadButton(driver.GamepadButton8)
-	GamepadButton9   GamepadButton = GamepadButton(driver.GamepadButton9)
-	GamepadButton10  GamepadButton = GamepadButton(driver.GamepadButton10)
-	GamepadButton11  GamepadButton = GamepadButton(driver.GamepadButton11)
-	GamepadButton12  GamepadButton = GamepadButton(driver.GamepadButton12)
-	GamepadButton13  GamepadButton = GamepadButton(driver.GamepadButton13)
-	GamepadButton14  GamepadButton = GamepadButton(driver.GamepadButton14)
-	GamepadButton15  GamepadButton = GamepadButton(driver.GamepadButton15)
-	GamepadButton16  GamepadButton = GamepadButton(driver.GamepadButton16)
-	GamepadButton17  GamepadButton = GamepadButton(driver.GamepadButton17)
-	GamepadButton18  GamepadButton = GamepadButton(driver.GamepadButton18)
-	GamepadButton19  GamepadButton = GamepadButton(driver.GamepadButton19)
-	GamepadButton20  GamepadButton = GamepadButton(driver.GamepadButton20)
-	GamepadButton21  GamepadButton = GamepadButton(driver.GamepadButton21)
-	GamepadButton22  GamepadButton = GamepadButton(driver.GamepadButton22)
-	GamepadButton23  GamepadButton = GamepadButton(driver.GamepadButton23)
-	GamepadButton24  GamepadButton = GamepadButton(driver.GamepadButton24)
-	GamepadButton25  GamepadButton = GamepadButton(driver.GamepadButton25)
-	GamepadButton26  GamepadButton = GamepadButton(driver.GamepadButton26)
-	GamepadButton27  GamepadButton = GamepadButton(driver.GamepadButton27)
-	GamepadButton28  GamepadButton = GamepadButton(driver.GamepadButton28)
-	GamepadButton29  GamepadButton = GamepadButton(driver.GamepadButton29)
-	GamepadButton30  GamepadButton = GamepadButton(driver.GamepadButton30)
-	GamepadButton31  GamepadButton = GamepadButton(driver.GamepadButton31)
+	GamepadButton0   GamepadButton = driver.GamepadButton0
+	GamepadButton1   GamepadButton = driver.GamepadButton1
+	GamepadButton2   GamepadButton = driver.GamepadButton2
+	GamepadButton3   GamepadButton = driver.GamepadButton3
+	GamepadButton4   GamepadButton = driver.GamepadButton4
+	GamepadButton5   GamepadButton = driver.GamepadButton5
+	GamepadButton6   GamepadButton = driver.GamepadButton6
+	GamepadButton7   GamepadButton = driver.GamepadButton7
+	GamepadButton8   GamepadButton = driver.GamepadButton8
+	GamepadButton9   GamepadButton = driver.GamepadButton9
+	GamepadButton10  GamepadButton = driver.GamepadButton10
+	GamepadButton11  GamepadButton = driver.GamepadButton11
+	GamepadButton12  GamepadButton = driver.GamepadButton12
+	GamepadButton13  GamepadButton = driver.GamepadButton13
+	GamepadButton14  GamepadButton = driver.GamepadButton14
+	GamepadButton15  GamepadButton = driver.GamepadButton15
+	GamepadButton16  GamepadButton = driver.GamepadButton16
+	GamepadButton17  GamepadButton = driver.GamepadButton17
+	GamepadButton18  GamepadButton = driver.GamepadButton18
+	GamepadButton19  GamepadButton = driver.GamepadButton19
+	GamepadButton20  GamepadButton = driver.GamepadButton20
+	GamepadButton21  GamepadButton = driver.GamepadButton21
+	GamepadButton22  GamepadButton = driver.GamepadButton22
+	GamepadButton23  GamepadButton = driver.GamepadButton23
+	GamepadButton24  GamepadButton = driver.GamepadButton24
+	GamepadButton25  GamepadButton = driver.GamepadButton25
+	GamepadButton26  GamepadButton = driver.GamepadButton26
+	GamepadButton27  GamepadButton = driver.GamepadButton27
+	GamepadButton28  GamepadButton = driver.GamepadButton28
+	GamepadButton29  GamepadButton = driver.GamepadButton29
+	GamepadButton30  GamepadButton = driver.GamepadButton30
+	GamepadButton31  GamepadButton = driver.GamepadButton31
 	GamepadButtonMax GamepadButton = GamepadButton31
 )

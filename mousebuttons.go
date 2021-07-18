@@ -19,11 +19,11 @@ import (
 )
 
 // A MouseButton represents a mouse button.
-type MouseButton int
+type MouseButton = driver.MouseButton
 
 // MouseButtons
 const (
-	MouseButtonLeft   MouseButton = MouseButton(driver.MouseButtonLeft)
-	MouseButtonRight  MouseButton = MouseButton(driver.MouseButtonRight)
-	MouseButtonMiddle MouseButton = MouseButton(driver.MouseButtonMiddle)
+	MouseButtonLeft   MouseButton = driver.MouseButtonLeft
+	MouseButtonRight  MouseButton = driver.MouseButtonRight
+	MouseButtonMiddle MouseButton = driver.MouseButtonMiddle
 )
