@@ -393,6 +393,18 @@ func (j Joystick) GetButtons() []byte {
 	return bs
 }
 
+func (j Joystick) GetHats() []JoystickHatState {
+	var l int32
+	ptr := glfwDLL.call("glfwGetJoystickHats", uintptr(j), uintptr(unsafe.Pointer(&l)))
+	panicError()
+	hats := make([]JoystickHatState, l)
+	for i := int32(0); i < l; i++ {
+		hats[i] = *(*JoystickHatState)(unsafe.Pointer(ptr))
+		ptr++
+	}
+	return hats
+}
+
 func GetMonitors() []*Monitor {
 	var l int32
 	ptr := glfwDLL.call("glfwGetMonitors", uintptr(unsafe.Pointer(&l)))

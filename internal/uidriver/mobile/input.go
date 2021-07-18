@@ -132,6 +132,21 @@ func (i *Input) IsGamepadButtonPressed(id driver.GamepadID, button driver.Gamepa
 	return false
 }
 
+func (i *Input) HasGamepadStandardLayoutMapping(id driver.GamepadID) bool {
+	// TODO: Implement this (#1557)
+	return false
+}
+
+func (i *Input) IsStandardGamepadButtonPressed(id driver.GamepadID, button driver.StandardGamepadButton) bool {
+	// TODO: Implement this (#1557)
+	return false
+}
+
+func (i *Input) StandardGamepadAxisValue(id driver.GamepadID, axis driver.StandardGamepadAxis) float64 {
+	// TODO: Implement this (#1557)
+	return 0
+}
+
 func (i *Input) AppendTouchIDs(touchIDs []driver.TouchID) []driver.TouchID {
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()

@@ -25,6 +25,7 @@ import (
 	"unicode"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
@@ -36,6 +37,8 @@ type gamepad struct {
 	axes          [16]float64
 	buttonNum     int
 	buttonPressed [256]bool
+	hatsNum       int
+	hats          [16]int
 }
 
 type Input struct {
@@ -344,8 +347,83 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) {
 			i.gamepads[id].axes[a] = float64(axes32[a])
 		}
 
+		hats := id.GetHats()
+		i.gamepads[id].hatsNum = len(hats)
+		for h := 0; h < len(i.gamepads[id].hats); h++ {
+			if len(hats) <= h {
+				i.gamepads[id].hats[h] = 0
+				continue
+			}
+			i.gamepads[id].hats[h] = int(hats[h])
+		}
+
 		// Note that GLFW's gamepad GUID follows SDL's GUID.
 		i.gamepads[id].guid = id.GetGUID()
 		i.gamepads[id].name = id.GetName()
 	}
+}
+
+func (i *Input) HasGamepadStandardLayoutMapping(id driver.GamepadID) bool {
+	i.ui.m.Lock()
+	defer i.ui.m.Unlock()
+
+	if len(i.gamepads) <= int(id) {
+		return false
+	}
+	g := i.gamepads[int(id)]
+	return gamepaddb.HasStandardLayoutMapping(g.guid)
+}
+
+func (i *Input) StandardGamepadAxisValue(id driver.GamepadID, axis driver.StandardGamepadAxis) float64 {
+	i.ui.m.Lock()
+	defer i.ui.m.Unlock()
+
+	if len(i.gamepads) <= int(id) {
+		return 0
+	}
+	g := i.gamepads[int(id)]
+	return gamepaddb.AxisValue(g.guid, axis, &gamepadState{&g})
+}
+
+func (i *Input) IsStandardGamepadButtonPressed(id driver.GamepadID, button driver.StandardGamepadButton) bool {
+	i.ui.m.Lock()
+	defer i.ui.m.Unlock()
+
+	if len(i.gamepads) <= int(id) {
+		return false
+	}
+	g := i.gamepads[int(id)]
+	return gamepaddb.IsButtonPressed(g.guid, button, &gamepadState{&g})
+}
+
+func init() {
+	// Confirm that all the hat state values are the same.
+	if gamepaddb.HatUp != glfw.HatUp {
+		panic("glfw: gamepaddb.HatUp must equal to glfw.HatUp but not")
+	}
+	if gamepaddb.HatRight != glfw.HatRight {
+		panic("glfw: gamepaddb.HatRight must equal to glfw.HatRight but not")
+	}
+	if gamepaddb.HatDown != glfw.HatDown {
+		panic("glfw: gamepaddb.HatDown must equal to glfw.HatDown but not")
+	}
+	if gamepaddb.HatLeft != glfw.HatLeft {
+		panic("glfw: gamepaddb.HatLeft must equal to glfw.HatLeft but not")
+	}
+}
+
+type gamepadState struct {
+	g *gamepad
+}
+
+func (s *gamepadState) Axis(index int) float64 {
+	return s.g.axes[index]
+}
+
+func (s *gamepadState) Button(index int) bool {
+	return s.g.buttonPressed[index]
+}
+
+func (s *gamepadState) Hat(index int) int {
+	return s.g.hats[index]
 }

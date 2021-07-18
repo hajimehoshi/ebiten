@@ -28,9 +28,12 @@ type Input interface {
 	GamepadAxisValue(id GamepadID, axis int) float64
 	GamepadAxisNum(id GamepadID) int
 	GamepadButtonNum(id GamepadID) int
+	HasGamepadStandardLayoutMapping(id GamepadID) bool
 	IsGamepadButtonPressed(id GamepadID, button GamepadButton) bool
 	IsKeyPressed(key Key) bool
 	IsMouseButtonPressed(button MouseButton) bool
+	IsStandardGamepadButtonPressed(id GamepadID, button StandardGamepadButton) bool
+	StandardGamepadAxisValue(id GamepadID, button StandardGamepadAxis) float64
 	TouchPosition(id TouchID) (x, y int)
 	Wheel() (xoff, yoff float64)
 }

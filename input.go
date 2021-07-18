@@ -209,6 +209,31 @@ func IsGamepadButtonPressed(id GamepadID, button GamepadButton) bool {
 	return uiDriver().Input().IsGamepadButtonPressed(id, button)
 }
 
+// StandardGamepadAxisValue returns a float value [-1.0 - 1.0] of the given gamepad (id)'s standard axis (axis).
+//
+// StandardGamepadAxisValue returns 0 when the gamepad doesn't have a standard gamepad layout mapping.
+//
+// StandardGamepadAxisValue is concurrent safe.
+func StandardGamepadAxisValue(id GamepadID, axis StandardGamepadAxis) float64 {
+	return uiDriver().Input().StandardGamepadAxisValue(id, axis)
+}
+
+// IsStandardGamepadButtonPressed reports whether the given gamepad (id)'s standard gamepad button (button) is pressed.
+//
+// IsStandardGamepadButtonPressed returns false when the gamepad doesn't have a standard gamepad layout mapping.
+//
+// IsStandardGamepadButtonPressed is concurrent safe.
+func IsStandardGamepadButtonPressed(id GamepadID, button StandardGamepadButton) bool {
+	return uiDriver().Input().IsStandardGamepadButtonPressed(id, button)
+}
+
+// HasGamepadStandardLayoutMapping reports whether the gamepad (id) has the standard gamepad layout.
+//
+// HasGamepadStandardLayoutMapping is concurrent-safe.
+func HasGamepadStandardLayoutMapping(id GamepadID) bool {
+	return uiDriver().Input().HasGamepadStandardLayoutMapping(id)
+}
+
 // TouchID represents a touch's identifier.
 type TouchID = driver.TouchID
 

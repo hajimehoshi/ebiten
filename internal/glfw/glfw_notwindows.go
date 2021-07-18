@@ -281,6 +281,14 @@ func (j Joystick) GetButtons() []Action {
 	return bs
 }
 
+func (j Joystick) GetHats() []JoystickHatState {
+	var hats []JoystickHatState
+	for _, s := range glfw.Joystick(j).GetHats() {
+		hats = append(hats, JoystickHatState(s))
+	}
+	return hats
+}
+
 func GetMonitors() []*Monitor {
 	ms := []*Monitor{}
 	for _, m := range glfw.GetMonitors() {

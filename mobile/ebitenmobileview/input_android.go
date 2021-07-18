@@ -70,6 +70,8 @@ const (
 	sourceJoystick = 0x01000010
 )
 
+// TODO: Can we map these values to the standard gamepad buttons?
+
 var androidKeyToGamepadButton = map[int]driver.GamepadButton{
 	keycodeButtonA:      driver.GamepadButton0,
 	keycodeButtonB:      driver.GamepadButton1,

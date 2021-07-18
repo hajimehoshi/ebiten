@@ -1,0 +1,379 @@
+// Copyright 2021 The Ebiten Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// gamecontrollerdb.txt is downloaded at https://github.com/gabomdq/SDL_GameControllerDB.
+
+//go:generate file2byteslice -package gamepaddb -input=./gamecontrollerdb.txt -output=./gamecontrollerdb.txt.go -var=gamecontrollerdbTxt
+
+package gamepaddb
+
+import (
+	"bufio"
+	"bytes"
+	"fmt"
+	"io"
+	"runtime"
+	"strconv"
+	"strings"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+)
+
+type platform int
+
+const (
+	platformUnknown platform = iota
+	platformWindows
+	platformMacOS
+	platformUnix
+	platformAndroid
+	platformIOS
+)
+
+func init() {
+	var currentPlatform platform
+
+	if runtime.GOOS == "windows" {
+		currentPlatform = platformWindows
+	} else if runtime.GOOS == "aix" ||
+		runtime.GOOS == "dragonfly" ||
+		runtime.GOOS == "freebsd" ||
+		runtime.GOOS == "hurd" ||
+		runtime.GOOS == "illumos" ||
+		runtime.GOOS == "linux" ||
+		runtime.GOOS == "netbsd" ||
+		runtime.GOOS == "openbsd" ||
+		runtime.GOOS == "solaris" {
+		currentPlatform = platformUnix
+	} else if runtime.GOOS == "android" {
+		currentPlatform = platformAndroid
+	} else if isIOS {
+		currentPlatform = platformIOS
+	} else if runtime.GOOS == "darwin" {
+		currentPlatform = platformMacOS
+	}
+
+	if currentPlatform == platformUnknown {
+		return
+	}
+
+	r := bufio.NewReader(bytes.NewReader(gamecontrollerdbTxt))
+	for {
+		line, err := r.ReadString('\n')
+		if err != nil && err != io.EOF {
+			panic(err)
+		}
+		if err := processLine(line, currentPlatform); err != nil {
+			panic(err)
+		}
+		if err == io.EOF {
+			break
+		}
+	}
+}
+
+type mappingType int
+
+const (
+	mappingTypeButton mappingType = iota
+	mappingTypeAxis
+	mappingTypeHat
+)
+
+const (
+	HatUp    = 1
+	HatRight = 2
+	HatDown  = 4
+	HatLeft  = 8
+)
+
+type mapping struct {
+	Type       mappingType
+	Index      int
+	AxisScale  int
+	AxisOffset int
+	HatState   int
+}
+
+var (
+	gamepadButtonMappings = map[string]map[driver.StandardGamepadButton]*mapping{}
+	gamepadAxisMappings   = map[string]map[driver.StandardGamepadAxis]*mapping{}
+)
+
+func processLine(line string, platform platform) error {
+	line = strings.TrimSpace(line)
+	if len(line) == 0 {
+		return nil
+	}
+	if line[0] == '#' {
+		return nil
+	}
+	tokens := strings.Split(line, ",")
+	id := tokens[0]
+	for _, token := range tokens[2:] {
+		if len(token) == 0 {
+			continue
+		}
+		tks := strings.Split(token, ":")
+		if tks[0] == "platform" {
+			switch tks[1] {
+			case "Windows":
+				if platform != platformWindows {
+					return nil
+				}
+			case "Mac OS X":
+				if platform != platformMacOS {
+					return nil
+				}
+			case "Linux":
+				if platform != platformUnix {
+					return nil
+				}
+			case "Android":
+				if platform != platformAndroid {
+					return nil
+				}
+			case "iOS":
+				if platform != platformIOS {
+					return nil
+				}
+			default:
+				return fmt.Errorf("gamepaddb: unexpected platform: %s", tks[1])
+			}
+			continue
+		}
+
+		gb, err := parseMappingElement(tks[1])
+		if err != nil {
+			return err
+		}
+
+		if b, ok := toStandardGamepadButton(tks[0]); ok {
+			m, ok := gamepadButtonMappings[id]
+			if !ok {
+				m = map[driver.StandardGamepadButton]*mapping{}
+				gamepadButtonMappings[id] = m
+			}
+			m[b] = gb
+			continue
+		}
+
+		if a, ok := toStandardGamepadAxis(tks[0]); ok {
+			m, ok := gamepadAxisMappings[id]
+			if !ok {
+				m = map[driver.StandardGamepadAxis]*mapping{}
+				gamepadAxisMappings[id] = m
+			}
+			m[a] = gb
+			continue
+		}
+
+		// The buttons like "misc1" are ignored so far.
+		// There is no corresponding button in the Web standard gamepad layout.
+	}
+
+	return nil
+}
+
+func parseMappingElement(str string) (*mapping, error) {
+	switch {
+	case str[0] == 'a' || strings.HasPrefix(str, "+a") || strings.HasPrefix(str, "-a"):
+		min := -1
+		max := 1
+		numstr := str[1:]
+		if str[0] == '+' {
+			numstr = str[2:]
+			min = 0
+		} else if str[0] == '-' {
+			numstr = str[2:]
+			max = 0
+		}
+
+		scale := 2 / (max - min)
+		offset := -(max + min)
+		if numstr[len(numstr)-1] == '~' {
+			numstr = numstr[:len(numstr)-1]
+			scale = -scale
+			offset = -offset
+		}
+
+		index, err := strconv.Atoi(numstr)
+		if err != nil {
+			return nil, err
+		}
+
+		return &mapping{
+			Type:       mappingTypeAxis,
+			Index:      index,
+			AxisScale:  scale,
+			AxisOffset: offset,
+		}, nil
+
+	case str[0] == 'b':
+		index, err := strconv.Atoi(str[1:])
+		if err != nil {
+			return nil, err
+		}
+		return &mapping{
+			Type:  mappingTypeButton,
+			Index: index,
+		}, nil
+
+	case str[0] == 'h':
+		tokens := strings.Split(str[1:], ".")
+		if len(tokens) < 2 {
+			return nil, fmt.Errorf("gamepaddb: unexpected hat: %s", str)
+		}
+		index, err := strconv.Atoi(tokens[0])
+		if err != nil {
+			return nil, err
+		}
+		hat, err := strconv.Atoi(tokens[1])
+		if err != nil {
+			return nil, err
+		}
+		return &mapping{
+			Type:     mappingTypeHat,
+			Index:    index,
+			HatState: hat,
+		}, nil
+	}
+
+	return nil, fmt.Errorf("gamepaddb: unepxected mapping: %s", str)
+}
+
+func toStandardGamepadButton(str string) (driver.StandardGamepadButton, bool) {
+	switch str {
+	case "a":
+		return driver.StandardGamepadButtonRightBottom, true
+	case "b":
+		return driver.StandardGamepadButtonRightRight, true
+	case "x":
+		return driver.StandardGamepadButtonRightLeft, true
+	case "y":
+		return driver.StandardGamepadButtonRightTop, true
+	case "back":
+		return driver.StandardGamepadButtonCenterLeft, true
+	case "start":
+		return driver.StandardGamepadButtonCenterRight, true
+	case "guide":
+		return driver.StandardGamepadButtonCenterCenter, true
+	case "leftshoulder":
+		return driver.StandardGamepadButtonFrontTopLeft, true
+	case "rightshoulder":
+		return driver.StandardGamepadButtonFrontTopRight, true
+	case "leftstick":
+		return driver.StandardGamepadButtonLeftStick, true
+	case "rightstick":
+		return driver.StandardGamepadButtonRightStick, true
+	case "dpup":
+		return driver.StandardGamepadButtonLeftTop, true
+	case "dpright":
+		return driver.StandardGamepadButtonLeftRight, true
+	case "dpdown":
+		return driver.StandardGamepadButtonLeftBottom, true
+	case "dpleft":
+		return driver.StandardGamepadButtonLeftLeft, true
+	case "lefttrigger":
+		return driver.StandardGamepadButtonFrontBottomLeft, true
+	case "righttrigger":
+		return driver.StandardGamepadButtonFrontBottomRight, true
+	default:
+		return 0, false
+	}
+}
+
+func toStandardGamepadAxis(str string) (driver.StandardGamepadAxis, bool) {
+	switch str {
+	case "leftx":
+		return driver.StandardGamepadAxisLeftStickHorizontal, true
+	case "lefty":
+		return driver.StandardGamepadAxisLeftStickVertical, true
+	case "rightx":
+		return driver.StandardGamepadAxisRightStickHorizontal, true
+	case "righty":
+		return driver.StandardGamepadAxisRightStickVertical, true
+	default:
+		return 0, false
+	}
+}
+
+func HasStandardLayoutMapping(id string) bool {
+	if _, ok := gamepadButtonMappings[id]; ok {
+		return true
+	}
+	if _, ok := gamepadAxisMappings[id]; ok {
+		return true
+	}
+	return false
+}
+
+type GamepadState interface {
+	Axis(index int) float64
+	Button(index int) bool
+	Hat(index int) int
+}
+
+func AxisValue(id string, axis driver.StandardGamepadAxis, state GamepadState) float64 {
+	mappings, ok := gamepadAxisMappings[id]
+	if !ok {
+		return 0
+	}
+	switch m := mappings[axis]; m.Type {
+	case mappingTypeAxis:
+		v := state.Axis(m.Index)*float64(m.AxisScale) + float64(m.AxisOffset)
+		if v > 1 {
+			return 1
+		} else if v < -1 {
+			return -1
+		}
+		return v
+	case mappingTypeButton:
+		if state.Button(m.Index) {
+			return 1
+		} else {
+			return -1
+		}
+	case mappingTypeHat:
+		if state.Hat(m.Index)&m.HatState != 0 {
+			return 1
+		} else {
+			return -1
+		}
+	}
+
+	return 0
+}
+
+func IsButtonPressed(id string, button driver.StandardGamepadButton, state GamepadState) bool {
+	mappings, ok := gamepadButtonMappings[id]
+	if !ok {
+		return false
+	}
+	switch m := mappings[button]; m.Type {
+	case mappingTypeAxis:
+		v := state.Axis(m.Index)*float64(m.AxisScale) + float64(m.AxisOffset)
+		if m.AxisOffset < 0 || m.AxisOffset == 0 && m.AxisScale > 0 {
+			return v >= 0
+		} else {
+			return v <= 0
+		}
+	case mappingTypeButton:
+		return state.Button(m.Index)
+	case mappingTypeHat:
+		return state.Hat(m.Index)&m.HatState != 0
+	}
+
+	return false
+}
