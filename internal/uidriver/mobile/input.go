@@ -87,7 +87,7 @@ func (i *Input) GamepadAxisNum(id driver.GamepadID) int {
 	return 0
 }
 
-func (i *Input) GamepadAxis(id driver.GamepadID, axis int) float64 {
+func (i *Input) GamepadAxisValue(id driver.GamepadID, axis int) float64 {
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
 

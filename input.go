@@ -169,13 +169,20 @@ func GamepadAxisNum(id GamepadID) int {
 	return uiDriver().Input().GamepadAxisNum(id)
 }
 
+// GamepadAxisValue returns the float value [-1.0 - 1.0] of the given gamepad (id)'s axis (axis).
+//
+// GamepadAxisValue is concurrent-safe.
+//
+// GamepadAxisValue always returns 0 on iOS.
+func GamepadAxisValue(id GamepadID, axis int) float64 {
+	return uiDriver().Input().GamepadAxisValue(id, axis)
+}
+
 // GamepadAxis returns the float value [-1.0 - 1.0] of the given gamepad (id)'s axis (axis).
 //
-// GamepadAxis is concurrent-safe.
-//
-// GamepadAxis always returns 0 on iOS.
+// Deprecated: as of v2.2. Use GamepadAxisValue instead.
 func GamepadAxis(id GamepadID, axis int) float64 {
-	return uiDriver().Input().GamepadAxis(id, axis)
+	return GamepadAxisValue(id, axis)
 }
 
 // GamepadButtonNum returns the number of the buttons of the given gamepad (id).

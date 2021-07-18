@@ -121,7 +121,7 @@ func (i *Input) GamepadAxisNum(id driver.GamepadID) int {
 	return i.gamepads[id].axisNum
 }
 
-func (i *Input) GamepadAxis(id driver.GamepadID, axis int) float64 {
+func (i *Input) GamepadAxisValue(id driver.GamepadID, axis int) float64 {
 	if !i.ui.isRunning() {
 		return 0
 	}

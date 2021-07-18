@@ -25,7 +25,7 @@ type Input interface {
 	CursorPosition() (x, y int)
 	GamepadSDLID(id GamepadID) string
 	GamepadName(id GamepadID) string
-	GamepadAxis(id GamepadID, axis int) float64
+	GamepadAxisValue(id GamepadID, axis int) float64
 	GamepadAxisNum(id GamepadID) int
 	GamepadButtonNum(id GamepadID) int
 	IsGamepadButtonPressed(id GamepadID, button GamepadButton) bool
