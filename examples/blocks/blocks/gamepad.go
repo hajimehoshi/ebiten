@@ -95,7 +95,7 @@ func (c *gamepadConfig) initializeIfNeeded() {
 		c.defaultAxesValues = map[int]float64{}
 		na := ebiten.GamepadAxisNum(c.gamepadID)
 		for a := 0; a < na; a++ {
-			c.defaultAxesValues[a] = ebiten.GamepadAxis(c.gamepadID, a)
+			c.defaultAxesValues[a] = ebiten.GamepadAxisValue(c.gamepadID, a)
 		}
 	}
 }
@@ -136,7 +136,7 @@ func (c *gamepadConfig) Scan(b virtualGamepadButton) bool {
 
 	na := ebiten.GamepadAxisNum(c.gamepadID)
 	for a := 0; a < na; a++ {
-		v := ebiten.GamepadAxis(c.gamepadID, a)
+		v := ebiten.GamepadAxisValue(c.gamepadID, a)
 		const delta = 0.25
 
 		// Check |v| < 1.0 because there is a bug that a button returns
@@ -177,7 +177,7 @@ func (c *gamepadConfig) IsButtonPressed(b virtualGamepadButton) bool {
 
 	a, ok := c.axes[b]
 	if ok {
-		v := ebiten.GamepadAxis(c.gamepadID, a.id)
+		v := ebiten.GamepadAxisValue(c.gamepadID, a.id)
 		if a.positive {
 			return axisThreshold <= v && v <= 1.0
 		} else {
