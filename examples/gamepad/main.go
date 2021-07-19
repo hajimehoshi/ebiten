@@ -83,7 +83,7 @@ func (g *Game) Update() error {
 			}
 		}
 
-		if ebiten.HasGamepadStandardLayoutMapping(id) {
+		if ebiten.IsStandardGamepadLayoutAvailable(id) {
 			for b := ebiten.StandardGamepadButton(0); b <= ebiten.StandardGamepadButtonMax; b++ {
 				// Log button events.
 				if inpututil.IsStandardGamepadButtonJustPressed(id, b) {
@@ -214,13 +214,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		})
 		for _, id := range ids {
 			var standard string
-			if ebiten.HasGamepadStandardLayoutMapping(id) {
+			if ebiten.IsStandardGamepadLayoutAvailable(id) {
 				standard = " (Standard Layout)"
 			}
 			str += fmt.Sprintf("Gamepad (ID: %d, SDL ID: %s)%s:\n", id, ebiten.GamepadSDLID(id), standard)
 			str += fmt.Sprintf("  Axes:    %s\n", strings.Join(g.axes[id], ", "))
 			str += fmt.Sprintf("  Buttons: %s\n", strings.Join(g.pressedButtons[id], ", "))
-			if ebiten.HasGamepadStandardLayoutMapping(id) {
+			if ebiten.IsStandardGamepadLayoutAvailable(id) {
 				str += "\n"
 				str += standardMap(id)
 				str += "\n"

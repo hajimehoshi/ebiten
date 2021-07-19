@@ -487,7 +487,7 @@ func (i *Input) updateForGo2Cpp() {
 	}
 }
 
-func (i *Input) HasGamepadStandardLayoutMapping(id driver.GamepadID) bool {
+func (i *Input) IsStandardGamepadLayoutAvailable(id driver.GamepadID) bool {
 	g, ok := i.gamepads[id]
 	if !ok {
 		return false

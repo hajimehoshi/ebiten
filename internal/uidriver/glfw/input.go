@@ -363,7 +363,7 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) {
 	}
 }
 
-func (i *Input) HasGamepadStandardLayoutMapping(id driver.GamepadID) bool {
+func (i *Input) IsStandardGamepadLayoutAvailable(id driver.GamepadID) bool {
 	i.ui.m.Lock()
 	defer i.ui.m.Unlock()
 

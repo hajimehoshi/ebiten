@@ -132,7 +132,7 @@ func (i *Input) IsGamepadButtonPressed(id driver.GamepadID, button driver.Gamepa
 	return false
 }
 
-func (i *Input) HasGamepadStandardLayoutMapping(id driver.GamepadID) bool {
+func (i *Input) IsStandardGamepadLayoutAvailable(id driver.GamepadID) bool {
 	// TODO: Implement this (#1557)
 	return false
 }
