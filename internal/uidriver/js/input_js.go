@@ -93,7 +93,7 @@ func (i *Input) CursorPosition() (x, y int) {
 
 func (i *Input) GamepadSDLID(id driver.GamepadID) string {
 	// This emulates the implementation of EMSCRIPTEN_JoystickGetDeviceGUID.
-	// https://hg.libsdl.org/SDL/file/bc90ce38f1e2/src/joystick/emscripten/SDL_sysjoystick.c#l385
+	// https://github.com/libsdl-org/SDL/blob/0e9560aea22818884921e5e5064953257bfe7fa7/src/joystick/emscripten/SDL_sysjoystick.c#L385
 	g, ok := i.gamepads[id]
 	if !ok {
 		return ""
