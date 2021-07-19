@@ -97,7 +97,7 @@ func CursorPosition() (x, y int) {
 	return uiDriver().Input().CursorPosition()
 }
 
-// Wheel returns the x and y offset of the mouse wheel or touchpad scroll.
+// Wheel returns x and y offsets of the mouse wheel or touchpad scroll.
 // It returns 0 if the wheel isn't being rolled.
 //
 // Wheel is concurrent-safe.
@@ -169,7 +169,7 @@ func GamepadAxisNum(id GamepadID) int {
 	return uiDriver().Input().GamepadAxisNum(id)
 }
 
-// GamepadAxisValue returns the float value [-1.0 - 1.0] of the given gamepad (id)'s axis (axis).
+// GamepadAxisValue returns a float value [-1.0 - 1.0] of the given gamepad (id)'s axis (axis).
 //
 // GamepadAxisValue is concurrent-safe.
 //
@@ -178,7 +178,7 @@ func GamepadAxisValue(id GamepadID, axis int) float64 {
 	return uiDriver().Input().GamepadAxisValue(id, axis)
 }
 
-// GamepadAxis returns the float value [-1.0 - 1.0] of the given gamepad (id)'s axis (axis).
+// GamepadAxis returns a float value [-1.0 - 1.0] of the given gamepad (id)'s axis (axis).
 //
 // Deprecated: as of v2.2. Use GamepadAxisValue instead.
 func GamepadAxis(id GamepadID, axis int) float64 {
@@ -194,7 +194,7 @@ func GamepadButtonNum(id GamepadID) int {
 	return uiDriver().Input().GamepadButtonNum(id)
 }
 
-// IsGamepadButtonPressed returns the boolean indicating the given button of the gamepad (id) is pressed or not.
+// IsGamepadButtonPressed reports whether the given button of the gamepad (id) is pressed or not.
 //
 // If you want to know whether the given button of gamepad (id) started being pressed in the current frame,
 // use inpututil.IsGamepadButtonJustPressed
