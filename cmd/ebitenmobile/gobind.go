@@ -558,7 +558,7 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
     }
 
     // The implementation is copied from SDL:
-    // https://hg.libsdl.org/SDL/file/bc90ce38f1e2/android-project/app/src/main/java/org/libsdl/app/SDLControllerManager.java#l308
+    // https://github.com/libsdl-org/SDL/blob/0e9560aea22818884921e5e5064953257bfe7fa7/android-project/app/src/main/java/org/libsdl/app/SDLControllerManager.java#L308
     private int getButtonMask(InputDevice joystickDevice) {
         int button_mask = 0;
         int[] keys = new int[] {
@@ -668,7 +668,7 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
             }
         }
         // The variable is_accelerometer seems always false, then skip the checking:
-        // https://hg.libsdl.org/SDL/file/bc90ce38f1e2/android-project/app/src/main/java/org/libsdl/app/SDLControllerManager.java#l207
+        // https://github.com/libsdl-org/SDL/blob/0e9560aea22818884921e5e5064953257bfe7fa7/android-project/app/src/main/java/org/libsdl/app/SDLControllerManager.java#L207
         int axisMask = 0;
         if (naxes >= 2) {
             axisMask |= ((1 << SDL_CONTROLLER_AXIS_LEFTX) | (1 << SDL_CONTROLLER_AXIS_LEFTY));
