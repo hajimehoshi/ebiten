@@ -28,7 +28,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
-type gamePad struct {
+type gamepad struct {
 	valid         bool
 	guid          string
 	name          string
@@ -46,7 +46,7 @@ type Input struct {
 	scrollY            float64
 	cursorX            int
 	cursorY            int
-	gamepads           [16]gamePad
+	gamepads           [16]gamepad
 	touches            map[driver.TouchID]pos // TODO: Implement this (#417)
 	runeBuffer         []rune
 	ui                 *UserInterface
