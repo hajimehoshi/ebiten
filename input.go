@@ -227,7 +227,7 @@ func IsStandardGamepadButtonPressed(id GamepadID, button StandardGamepadButton) 
 	return uiDriver().Input().IsStandardGamepadButtonPressed(id, button)
 }
 
-// IsStandardGamepadLayoutAvailable reports whether the gamepad (id) has the standard gamepad layout.
+// IsStandardGamepadLayoutAvailable reports whether the gamepad (id) has a standard gamepad layout mapping.
 //
 // IsStandardGamepadLayoutAvailable is concurrent-safe.
 func IsStandardGamepadLayoutAvailable(id GamepadID) bool {
