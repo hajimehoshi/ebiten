@@ -48,7 +48,7 @@ func (i *Input) stateForVirtualGamepadButton(b virtualGamepadButton) int {
 }
 
 func (i *Input) Update() {
-	if !i.gamepadConfig.IsInitialized() {
+	if !i.gamepadConfig.IsGamepadIDInitialized() {
 		return
 	}
 

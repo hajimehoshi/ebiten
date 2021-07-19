@@ -39,6 +39,23 @@ var virtualGamepadButtons = []virtualGamepadButton{
 	virtualGamepadButtonButtonB,
 }
 
+func (v virtualGamepadButton) StandardGamepadButton() ebiten.StandardGamepadButton {
+	switch v {
+	case virtualGamepadButtonLeft:
+		return ebiten.StandardGamepadButtonLeftLeft
+	case virtualGamepadButtonRight:
+		return ebiten.StandardGamepadButtonLeftRight
+	case virtualGamepadButtonDown:
+		return ebiten.StandardGamepadButtonLeftBottom
+	case virtualGamepadButtonButtonA:
+		return ebiten.StandardGamepadButtonRightBottom
+	case virtualGamepadButtonButtonB:
+		return ebiten.StandardGamepadButtonRightRight
+	default:
+		panic("not reached")
+	}
+}
+
 const axisThreshold = 0.75
 
 type axis struct {
@@ -64,13 +81,26 @@ func (c *gamepadConfig) SetGamepadID(id ebiten.GamepadID) {
 	c.gamepadIDInitialized = true
 }
 
-func (c *gamepadConfig) IsInitialized() bool {
+func (c *gamepadConfig) ResetGamepadID() {
+	c.gamepadID = 0
+	c.gamepadIDInitialized = false
+}
+
+func (c *gamepadConfig) IsGamepadIDInitialized() bool {
 	return c.gamepadIDInitialized
+}
+
+func (c *gamepadConfig) NeedsConfiguration() bool {
+	return !ebiten.IsStandardGamepadLayoutAvailable(c.gamepadID)
 }
 
 func (c *gamepadConfig) initializeIfNeeded() {
 	if !c.gamepadIDInitialized {
 		panic("not reached")
+	}
+
+	if ebiten.IsStandardGamepadLayoutAvailable(c.gamepadID) {
+		return
 	}
 
 	if c.buttons == nil {
@@ -101,9 +131,6 @@ func (c *gamepadConfig) initializeIfNeeded() {
 }
 
 func (c *gamepadConfig) Reset() {
-	c.gamepadID = 0
-	c.gamepadIDInitialized = false
-
 	c.buttons = nil
 	c.axes = nil
 	c.assignedButtons = nil
@@ -168,6 +195,10 @@ func (c *gamepadConfig) IsButtonPressed(b virtualGamepadButton) bool {
 		panic("not reached")
 	}
 
+	if ebiten.IsStandardGamepadLayoutAvailable(c.gamepadID) {
+		return ebiten.IsStandardGamepadButtonPressed(c.gamepadID, b.StandardGamepadButton())
+	}
+
 	c.initializeIfNeeded()
 
 	bb, ok := c.buttons[b]
@@ -191,6 +222,10 @@ func (c *gamepadConfig) IsButtonPressed(b virtualGamepadButton) bool {
 func (c *gamepadConfig) IsButtonJustPressed(b virtualGamepadButton) bool {
 	if !c.gamepadIDInitialized {
 		panic("not reached")
+	}
+
+	if ebiten.IsStandardGamepadLayoutAvailable(c.gamepadID) {
+		return inpututil.IsStandardGamepadButtonJustPressed(c.gamepadID, b.StandardGamepadButton())
 	}
 
 	c.initializeIfNeeded()

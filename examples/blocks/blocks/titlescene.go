@@ -40,7 +40,7 @@ type TitleScene struct {
 }
 
 func anyGamepadVirtualButtonJustPressed(i *Input) bool {
-	if !i.gamepadConfig.IsInitialized() {
+	if !i.gamepadConfig.IsGamepadIDInitialized() {
 		return false
 	}
 
@@ -64,13 +64,21 @@ func (s *TitleScene) Update(state *GameState) error {
 		return nil
 	}
 
+	if state.Input.gamepadConfig.IsGamepadIDInitialized() {
+		return nil
+	}
+
 	// If 'virtual' gamepad buttons are not set and any gamepad buttons are pressed,
 	// go to the gamepad configuration scene.
-	if id := state.Input.GamepadIDButtonPressed(); id >= 0 {
+	id := state.Input.GamepadIDButtonPressed()
+	if id < 0 {
+		return nil
+	}
+	state.Input.gamepadConfig.SetGamepadID(id)
+	if state.Input.gamepadConfig.NeedsConfiguration() {
 		g := &GamepadScene{}
 		g.gamepadID = id
 		state.SceneManager.GoTo(g)
-		return nil
 	}
 	return nil
 }
