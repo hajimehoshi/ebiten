@@ -83,6 +83,7 @@ const (
 	StandardGamepadButtonLeftLeft         StandardGamepadButton = driver.StandardGamepadButtonLeftLeft
 	StandardGamepadButtonLeftRight        StandardGamepadButton = driver.StandardGamepadButtonLeftRight
 	StandardGamepadButtonCenterCenter     StandardGamepadButton = driver.StandardGamepadButtonCenterCenter
+	StandardGamepadButtonMax              StandardGamepadButton = StandardGamepadButtonCenterCenter
 )
 
 // StandardGamepadAxis represents a gamepad axis in the standard layout.
@@ -97,4 +98,5 @@ const (
 	StandardGamepadAxisLeftStickVertical    StandardGamepadAxis = driver.StandardGamepadAxisLeftStickVertical
 	StandardGamepadAxisRightStickHorizontal StandardGamepadAxis = driver.StandardGamepadAxisRightStickHorizontal
 	StandardGamepadAxisRightStickVertical   StandardGamepadAxis = driver.StandardGamepadAxisRightStickVertical
+	StandardGamepadAxisMax                  StandardGamepadAxis = StandardGamepadAxisRightStickVertical
 )

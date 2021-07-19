@@ -67,6 +67,7 @@ func (g *Game) Update() error {
 			v := ebiten.GamepadAxisValue(id, a)
 			g.axes[id] = append(g.axes[id], fmt.Sprintf("%d:%+0.2f", a, v))
 		}
+
 		maxButton := ebiten.GamepadButton(ebiten.GamepadButtonNum(id))
 		for b := ebiten.GamepadButton(id); b < maxButton; b++ {
 			if ebiten.IsGamepadButtonPressed(id, b) {
@@ -79,6 +80,18 @@ func (g *Game) Update() error {
 			}
 			if inpututil.IsGamepadButtonJustReleased(id, b) {
 				log.Printf("button released: id: %d, button: %d", id, b)
+			}
+		}
+
+		if ebiten.HasGamepadStandardLayoutMapping(id) {
+			for b := ebiten.StandardGamepadButton(0); b <= ebiten.StandardGamepadButtonMax; b++ {
+				// Log button events.
+				if inpututil.IsStandardGamepadButtonJustPressed(id, b) {
+					log.Printf("standard button pressed: id: %d, button: %d", id, b)
+				}
+				if inpututil.IsStandardGamepadButtonJustReleased(id, b) {
+					log.Printf("standard button released: id: %d, button: %d", id, b)
+				}
 			}
 		}
 	}
