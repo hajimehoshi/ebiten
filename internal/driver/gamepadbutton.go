@@ -74,6 +74,8 @@ const (
 	StandardGamepadButtonLeftLeft
 	StandardGamepadButtonLeftRight
 	StandardGamepadButtonCenterCenter
+
+	StandardGamepadButtonMax = StandardGamepadButtonCenterCenter
 )
 
 type StandardGamepadAxis int
@@ -84,4 +86,6 @@ const (
 	StandardGamepadAxisLeftStickVertical
 	StandardGamepadAxisRightStickHorizontal
 	StandardGamepadAxisRightStickVertical
+
+	StandardGamepadAxisMax = StandardGamepadAxisRightStickVertical
 )

@@ -66,9 +66,16 @@ type gamepad struct {
 	axes          [16]float64
 	buttonNum     int
 	buttonPressed [256]bool
+
+	standardButtonPressed [driver.StandardGamepadButtonMax + 1]bool
+	standardAxisValues    [driver.StandardGamepadAxisMax + 1]float64
 }
 
 func (g *gamepad) hasStandardLayoutMapping() bool {
+	// With go2cpp, the controller must have the standard
+	if go2cpp.Truthy() {
+		return true
+	}
 	return g.mapping == "standard"
 }
 
@@ -325,6 +332,13 @@ func (i *Input) updateGamepads() {
 			g.buttonPressed[b] = buttons.Index(b).Get("pressed").Bool()
 		}
 
+		if g.mapping == "standard" {
+			// When the gamepad's mapping is "standard", the button and axis IDs are already mapped as the standard layout.
+			// See https://www.w3.org/TR/gamepad/#remapping.
+			copy(g.standardButtonPressed[:], g.buttonPressed[:])
+			copy(g.standardAxisValues[:], g.axes[:])
+		}
+
 		if i.gamepads == nil {
 			i.gamepads = map[driver.GamepadID]gamepad{}
 		}
@@ -503,10 +517,7 @@ func (i *Input) StandardGamepadAxisValue(id driver.GamepadID, axis driver.Standa
 	if !g.hasStandardLayoutMapping() {
 		return 0
 	}
-
-	// When the gamepad's mapping is "standard", the axes IDs are already mapped as the standard layout.
-	// See https://www.w3.org/TR/gamepad/#remapping.
-	return i.GamepadAxisValue(id, int(axis))
+	return g.standardAxisValues[axis]
 }
 
 func (i *Input) IsStandardGamepadButtonPressed(id driver.GamepadID, button driver.StandardGamepadButton) bool {
@@ -517,8 +528,5 @@ func (i *Input) IsStandardGamepadButtonPressed(id driver.GamepadID, button drive
 	if !g.hasStandardLayoutMapping() {
 		return false
 	}
-
-	// When the gamepad's mapping is "standard", the button IDs are already mapped as the standard layout.
-	// See https://www.w3.org/TR/gamepad/#remapping.
-	return i.IsGamepadButtonPressed(id, driver.GamepadButton(button))
+	return g.standardButtonPressed[button]
 }
