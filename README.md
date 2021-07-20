@@ -45,7 +45,6 @@ For installation on desktops, see [the installation instruction](https://ebiten.
   * [ebitenutil](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/ebitenutil)
   * [inpututil](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/inpututil)
   * [mobile](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/mobile)
-  * [nintendoswitch](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/nintendoswitch)
   * [text](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/text)
 
 ## Community
