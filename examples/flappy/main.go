@@ -177,7 +177,6 @@ type Game struct {
 
 	gameoverCount int
 
-	keys       []ebiten.Key
 	touchIDs   []ebiten.TouchID
 	gamepadIDs []ebiten.GamepadID
 }
@@ -199,18 +198,8 @@ func (g *Game) init() {
 	}
 }
 
-func (g *Game) isAnyKeyJustPressed() bool {
-	g.keys = inpututil.AppendPressedKeys(g.keys[:0])
-	for _, k := range g.keys {
-		if inpututil.IsKeyJustPressed(k) {
-			return true
-		}
-	}
-	return false
-}
-
-func (g *Game) jump() bool {
-	if g.isAnyKeyJustPressed() {
+func (g *Game) isKeyJustPressed() bool {
+	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 		return true
 	}
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
@@ -222,8 +211,19 @@ func (g *Game) jump() bool {
 	}
 	g.gamepadIDs = ebiten.AppendGamepadIDs(g.gamepadIDs[:0])
 	for _, g := range g.gamepadIDs {
-		for i := 0; i < ebiten.GamepadButtonNum(g); i++ {
-			if inpututil.IsGamepadButtonJustPressed(g, ebiten.GamepadButton(i)) {
+		if ebiten.IsStandardGamepadLayoutAvailable(g) {
+			if inpututil.IsStandardGamepadButtonJustPressed(g, ebiten.StandardGamepadButtonRightBottom) {
+				return true
+			}
+			if inpututil.IsStandardGamepadButtonJustPressed(g, ebiten.StandardGamepadButtonRightRight) {
+				return true
+			}
+		} else {
+			// The button 0/1 might not be A/B buttons.
+			if inpututil.IsGamepadButtonJustPressed(g, ebiten.GamepadButton0) {
+				return true
+			}
+			if inpututil.IsGamepadButtonJustPressed(g, ebiten.GamepadButton1) {
 				return true
 			}
 		}
@@ -238,13 +238,13 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func (g *Game) Update() error {
 	switch g.mode {
 	case ModeTitle:
-		if g.jump() {
+		if g.isKeyJustPressed() {
 			g.mode = ModeGame
 		}
 	case ModeGame:
 		g.x16 += 32
 		g.cameraX += 2
-		if g.jump() {
+		if g.isKeyJustPressed() {
 			g.vy16 = -96
 			jumpPlayer.Rewind()
 			jumpPlayer.Play()
@@ -267,7 +267,7 @@ func (g *Game) Update() error {
 		if g.gameoverCount > 0 {
 			g.gameoverCount--
 		}
-		if g.gameoverCount == 0 && g.jump() {
+		if g.gameoverCount == 0 && g.isKeyJustPressed() {
 			g.init()
 			g.mode = ModeTitle
 		}
@@ -286,7 +286,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	switch g.mode {
 	case ModeTitle:
 		titleTexts = []string{"FLAPPY GOPHER"}
-		texts = []string{"", "", "", "", "", "", "", "PRESS ANY KEY OR BUTTON", "", "OR TOUCH SCREEN"}
+		texts = []string{"", "", "", "", "", "", "", "PRESS SPACE KEY", "", "OR A/B BUTTON", "", "OR TOUCH SCREEN"}
 	case ModeGameOver:
 		texts = []string{"", "GAME OVER!"}
 	}
