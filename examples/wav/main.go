@@ -40,9 +40,9 @@ type Game struct {
 	audioPlayer  *audio.Player
 }
 
-var g Game
+func NewGame() (*Game, error) {
+	g := &Game{}
 
-func init() {
 	var err error
 	// Initialize audio context.
 	g.audioContext = audio.NewContext(sampleRate)
@@ -64,14 +64,16 @@ func init() {
 	// Decode wav-formatted data and retrieve decoded PCM stream.
 	d, err := wav.Decode(g.audioContext, bytes.NewReader(raudio.Jab_wav))
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	// Create an audio.Player that has one stream.
 	g.audioPlayer, err = audio.NewPlayer(g.audioContext, d)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
+
+	return g, nil
 }
 
 func (g *Game) Update() error {
@@ -97,9 +99,13 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
+	g, err := NewGame()
+	if err != nil {
+		log.Fatal(err)
+	}
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("WAV (Ebiten Demo)")
-	if err := ebiten.RunGame(&g); err != nil {
+	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
 }

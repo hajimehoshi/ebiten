@@ -34,8 +34,6 @@ const (
 	frequency    = 440
 )
 
-var audioContext = audio.NewContext(sampleRate)
-
 // stream is an infinite stream of 440 Hz sine wave.
 type stream struct {
 	position  int64
@@ -87,15 +85,19 @@ func (s *stream) Close() error {
 }
 
 type Game struct {
-	player *audio.Player
+	audioContext *audio.Context
+	player       *audio.Player
 }
 
 func (g *Game) Update() error {
+	if g.audioContext == nil {
+		g.audioContext = audio.NewContext(sampleRate)
+	}
 	if g.player == nil {
 		// Pass the (infinite) stream to audio.NewPlayer.
 		// After calling Play, the stream never ends as long as the player object lives.
 		var err error
-		g.player, err = audio.NewPlayer(audioContext, &stream{})
+		g.player, err = audio.NewPlayer(g.audioContext, &stream{})
 		if err != nil {
 			return err
 		}

@@ -64,7 +64,6 @@ const (
 
 var (
 	gophersImage *ebiten.Image
-	count        = 0
 )
 
 func createRandomIconImage() image.Image {
@@ -92,6 +91,7 @@ func createRandomIconImage() image.Image {
 }
 
 type game struct {
+	count       int
 	width       int
 	height      int
 	transparent bool
@@ -276,7 +276,7 @@ func (g *game) Update() error {
 		ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
 	}
 
-	count++
+	g.count++
 	return nil
 }
 
@@ -285,8 +285,8 @@ func (g *game) Draw(screen *ebiten.Image) {
 	w2, h2 := screen.Size()
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(-w+w2)/2, float64(-h+h2)/2)
-	dx := math.Cos(2*math.Pi*float64(count)/360) * 20
-	dy := math.Sin(2*math.Pi*float64(count)/360) * 20
+	dx := math.Cos(2*math.Pi*float64(g.count)/360) * 20
+	dy := math.Sin(2*math.Pi*float64(g.count)/360) * 20
 	op.GeoM.Translate(dx, dy)
 	screen.DrawImage(gophersImage, op)
 

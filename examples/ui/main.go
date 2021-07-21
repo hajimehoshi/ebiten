@@ -454,9 +454,8 @@ type Game struct {
 	textBoxLog *TextBox
 }
 
-var g Game
-
-func init() {
+func NewGame() *Game {
+	g := &Game{}
 	g.button1 = &Button{
 		Rect: image.Rect(16, 16, 144, 48),
 		Text: "Button 1",
@@ -489,6 +488,7 @@ func init() {
 		}
 		g.textBoxLog.AppendLine(msg)
 	})
+	return g
 }
 
 func (g *Game) Update() error {
@@ -514,7 +514,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("UI (Ebiten Demo)")
-	if err := ebiten.RunGame(&g); err != nil {
+	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}
 }

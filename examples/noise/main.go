@@ -63,8 +63,6 @@ func (g *Game) Update() error {
 	return nil
 }
 
-var offscreen = ebiten.NewImage(320, 240)
-
 func (g *Game) Draw(screen *ebiten.Image) {
 	screen.ReplacePixels(g.noiseImage.Pix)
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f", ebiten.CurrentTPS(), ebiten.CurrentFPS()))

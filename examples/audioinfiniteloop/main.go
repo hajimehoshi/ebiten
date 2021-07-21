@@ -39,10 +39,9 @@ const (
 	loopLengthInSecond  = 4
 )
 
-var audioContext = audio.NewContext(sampleRate)
-
 type Game struct {
-	player *audio.Player
+	player       *audio.Player
+	audioContext *audio.Context
 }
 
 func (g *Game) Update() error {
@@ -50,9 +49,13 @@ func (g *Game) Update() error {
 		return nil
 	}
 
+	if g.audioContext == nil {
+		g.audioContext = audio.NewContext(sampleRate)
+	}
+
 	// Decode an Ogg file.
 	// oggS is a decoded io.ReadCloser and io.Seeker.
-	oggS, err := vorbis.Decode(audioContext, bytes.NewReader(raudio.Ragtime_ogg))
+	oggS, err := vorbis.Decode(g.audioContext, bytes.NewReader(raudio.Ragtime_ogg))
 	if err != nil {
 		return err
 	}
@@ -61,7 +64,7 @@ func (g *Game) Update() error {
 	// s is still an io.ReadCloser and io.Seeker.
 	s := audio.NewInfiniteLoopWithIntro(oggS, introLengthInSecond*4*sampleRate, loopLengthInSecond*4*sampleRate)
 
-	g.player, err = audio.NewPlayer(audioContext, s)
+	g.player, err = audio.NewPlayer(g.audioContext, s)
 	if err != nil {
 		return err
 	}

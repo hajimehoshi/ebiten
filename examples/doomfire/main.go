@@ -33,7 +33,6 @@ const (
 )
 
 var (
-	pixels      = make([]byte, screenSize*4)
 	firePalette = []color.RGBA{
 		{R: 7, G: 7, B: 7, A: 255},       //  0
 		{R: 31, G: 7, B: 7, A: 255},      //  1
@@ -76,16 +75,18 @@ var (
 )
 
 type Game struct {
-	firePixels []byte
+	pixels  []byte
+	indices []byte
 }
 
 func NewGame() *Game {
-	firePixels := make([]byte, screenSize)
+	indices := make([]byte, screenSize)
 	for i := screenSize - screenWidth; i < screenSize; i++ {
-		firePixels[i] = 36
+		indices[i] = 36
 	}
 	return &Game{
-		firePixels: firePixels,
+		pixels:  make([]byte, screenSize*4),
+		indices: indices,
 	}
 }
 
@@ -105,7 +106,7 @@ func (g *Game) updateFireIntensityPerPixel(currentPixelIndex int) {
 	}
 
 	d := rand.Intn(3)
-	newI := int(g.firePixels[below]) - d
+	newI := int(g.indices[below]) - d
 	if newI < 0 {
 		newI = 0
 	}
@@ -113,16 +114,16 @@ func (g *Game) updateFireIntensityPerPixel(currentPixelIndex int) {
 	if currentPixelIndex-d < 0 {
 		return
 	}
-	g.firePixels[currentPixelIndex-d] = byte(newI)
+	g.indices[currentPixelIndex-d] = byte(newI)
 }
 
 func (g *Game) renderFire() {
-	for i, v := range g.firePixels {
+	for i, v := range g.indices {
 		p := firePalette[v]
-		pixels[i*4] = p.R
-		pixels[i*4+1] = p.G
-		pixels[i*4+2] = p.B
-		pixels[i*4+3] = p.A
+		g.pixels[i*4] = p.R
+		g.pixels[i*4+1] = p.G
+		g.pixels[i*4+2] = p.B
+		g.pixels[i*4+3] = p.A
 	}
 }
 
@@ -133,7 +134,7 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.renderFire()
-	screen.ReplacePixels(pixels)
+	screen.ReplacePixels(g.pixels)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

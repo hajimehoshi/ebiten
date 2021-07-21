@@ -31,10 +31,14 @@ const (
 )
 
 var (
-	offscreen    = ebiten.NewImage(screenWidth, screenHeight)
-	offscreenPix []byte
-	palette      [maxIt]byte
+	palette [maxIt]byte
 )
+
+func init() {
+	for i := range palette {
+		palette[i] = byte(math.Sqrt(float64(i)/float64(len(palette))) * 0x80)
+	}
+}
 
 func color(it int) (r, g, b byte) {
 	if it == maxIt {
@@ -44,7 +48,22 @@ func color(it int) (r, g, b byte) {
 	return c, c, c
 }
 
-func updateOffscreen(centerX, centerY, size float64) {
+type Game struct {
+	offscreen    *ebiten.Image
+	offscreenPix []byte
+}
+
+func NewGame() *Game {
+	g := &Game{
+		offscreen:    ebiten.NewImage(screenWidth, screenHeight),
+		offscreenPix: make([]byte, screenWidth*screenHeight*4),
+	}
+	// Now it is not feasible to call updateOffscreen every frame due to performance.
+	g.updateOffscreen(-0.75, 0.25, 2)
+	return g
+}
+
+func (gm *Game) updateOffscreen(centerX, centerY, size float64) {
 	for j := 0; j < screenHeight; j++ {
 		for i := 0; i < screenHeight; i++ {
 			x := float64(i)*size/screenWidth - size/2 + centerX
@@ -60,25 +79,13 @@ func updateOffscreen(centerX, centerY, size float64) {
 			}
 			r, g, b := color(it)
 			p := 4 * (i + j*screenWidth)
-			offscreenPix[p] = r
-			offscreenPix[p+1] = g
-			offscreenPix[p+2] = b
-			offscreenPix[p+3] = 0xff
+			gm.offscreenPix[p] = r
+			gm.offscreenPix[p+1] = g
+			gm.offscreenPix[p+2] = b
+			gm.offscreenPix[p+3] = 0xff
 		}
 	}
-	offscreen.ReplacePixels(offscreenPix)
-}
-
-func init() {
-	offscreenPix = make([]byte, screenWidth*screenHeight*4)
-	for i := range palette {
-		palette[i] = byte(math.Sqrt(float64(i)/float64(len(palette))) * 0x80)
-	}
-	// Now it is not feasible to call updateOffscreen every frame due to performance.
-	updateOffscreen(-0.75, 0.25, 2)
-}
-
-type Game struct {
+	gm.offscreen.ReplacePixels(gm.offscreenPix)
 }
 
 func (g *Game) Update() error {
@@ -86,7 +93,7 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	screen.DrawImage(offscreen, nil)
+	screen.DrawImage(g.offscreen, nil)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -96,7 +103,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Mandelbrot (Ebiten Demo)")
-	if err := ebiten.RunGame(&Game{}); err != nil {
+	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}
 }

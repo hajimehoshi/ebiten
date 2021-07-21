@@ -65,8 +65,6 @@ const (
 	baseFreq     = 220
 )
 
-var audioContext = audio.NewContext(sampleRate)
-
 // pianoAt returns an i-th sample of piano with the given frequency.
 func pianoAt(i int, freq float64) float64 {
 	// Create piano-like waves with multiple sin waves.
@@ -137,13 +135,6 @@ func init() {
 	}()
 }
 
-// playNote plays piano sound with the given frequency.
-func playNote(freq float64) {
-	f := int(freq)
-	p := audio.NewPlayerFromBytes(audioContext, pianoNoteSamples[f])
-	p.Play()
-}
-
 var (
 	pianoImage = ebiten.NewImage(screenWidth, screenHeight)
 )
@@ -196,6 +187,13 @@ var (
 )
 
 type Game struct {
+	audioContext *audio.Context
+}
+
+func NewGame() *Game {
+	return &Game{
+		audioContext: audio.NewContext(sampleRate),
+	}
 }
 
 func (g *Game) Update() error {
@@ -214,10 +212,17 @@ func (g *Game) Update() error {
 			if !inpututil.IsKeyJustPressed(key) {
 				continue
 			}
-			playNote(baseFreq * math.Exp2(float64(i-1)/12.0))
+			g.playNote(baseFreq * math.Exp2(float64(i-1)/12.0))
 		}
 	}
 	return nil
+}
+
+// playNote plays piano sound with the given frequency.
+func (g *Game) playNote(freq float64) {
+	f := int(freq)
+	p := audio.NewPlayerFromBytes(g.audioContext, pianoNoteSamples[f])
+	p.Play()
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
@@ -234,7 +239,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func main() {
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
 	ebiten.SetWindowTitle("Piano (Ebiten Demo)")
-	if err := ebiten.RunGame(&Game{}); err != nil {
+	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}
 }

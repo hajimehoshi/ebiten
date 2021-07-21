@@ -126,32 +126,6 @@ func init() {
 	}
 }
 
-var (
-	audioContext = audio.NewContext(48000)
-	jumpPlayer   *audio.Player
-	hitPlayer    *audio.Player
-)
-
-func init() {
-	jumpD, err := vorbis.Decode(audioContext, bytes.NewReader(raudio.Jump_ogg))
-	if err != nil {
-		log.Fatal(err)
-	}
-	jumpPlayer, err = audio.NewPlayer(audioContext, jumpD)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	jabD, err := wav.Decode(audioContext, bytes.NewReader(raudio.Jab_wav))
-	if err != nil {
-		log.Fatal(err)
-	}
-	hitPlayer, err = audio.NewPlayer(audioContext, jabD)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
 type Mode int
 
 const (
@@ -179,6 +153,10 @@ type Game struct {
 
 	touchIDs   []ebiten.TouchID
 	gamepadIDs []ebiten.GamepadID
+
+	audioContext *audio.Context
+	jumpPlayer   *audio.Player
+	hitPlayer    *audio.Player
 }
 
 func NewGame() *Game {
@@ -195,6 +173,26 @@ func (g *Game) init() {
 	g.pipeTileYs = make([]int, 256)
 	for i := range g.pipeTileYs {
 		g.pipeTileYs[i] = rand.Intn(6) + 2
+	}
+
+	g.audioContext = audio.NewContext(48000)
+
+	jumpD, err := vorbis.Decode(g.audioContext, bytes.NewReader(raudio.Jump_ogg))
+	if err != nil {
+		log.Fatal(err)
+	}
+	g.jumpPlayer, err = audio.NewPlayer(g.audioContext, jumpD)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	jabD, err := wav.Decode(g.audioContext, bytes.NewReader(raudio.Jab_wav))
+	if err != nil {
+		log.Fatal(err)
+	}
+	g.hitPlayer, err = audio.NewPlayer(g.audioContext, jabD)
+	if err != nil {
+		log.Fatal(err)
 	}
 }
 
@@ -246,8 +244,8 @@ func (g *Game) Update() error {
 		g.cameraX += 2
 		if g.isKeyJustPressed() {
 			g.vy16 = -96
-			jumpPlayer.Rewind()
-			jumpPlayer.Play()
+			g.jumpPlayer.Rewind()
+			g.jumpPlayer.Play()
 		}
 		g.y16 += g.vy16
 
@@ -258,8 +256,8 @@ func (g *Game) Update() error {
 		}
 
 		if g.hit() {
-			hitPlayer.Rewind()
-			hitPlayer.Play()
+			g.hitPlayer.Rewind()
+			g.hitPlayer.Play()
 			g.mode = ModeGameOver
 			g.gameoverCount = 30
 		}
