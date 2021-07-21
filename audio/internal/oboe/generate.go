@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build generate
-// +build generate
-
 //go:generate go run gen.go
 
 package oboe
