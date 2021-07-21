@@ -172,6 +172,10 @@ func initialize() error {
 		return err
 	}
 
+	if !glfw.UpdateGamepadMappings(string(gamecontrollerdbTxt)) {
+		return fmt.Errorf("glfw: UpdateGamepadMappings failed")
+	}
+
 	glfw.WindowHint(glfw.Visible, glfw.False)
 	glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
 

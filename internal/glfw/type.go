@@ -33,3 +33,8 @@ type VidMode struct {
 	BlueBits    int
 	RefreshRate int
 }
+
+type GamepadState struct {
+	Buttons [15]Action
+	Axes    [6]float32
+}

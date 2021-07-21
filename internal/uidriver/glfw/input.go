@@ -17,15 +17,17 @@
 // +build !android
 // +build !ios
 
+//go:generate file2byteslice -package glfw -input=./gamecontrollerdb.txt -output=./gamecontrollerdb.txt.go -var=gamecontrollerdbTxt
+
 package glfw
 
 import (
+	"fmt"
 	"math"
 	"sync"
 	"unicode"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
-	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
@@ -37,8 +39,7 @@ type gamepad struct {
 	axes          [16]float64
 	buttonNum     int
 	buttonPressed [256]bool
-	hatsNum       int
-	hats          [16]int
+	state         *glfw.GamepadState
 }
 
 type Input struct {
@@ -317,6 +318,12 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) {
 			continue
 		}
 
+		i.gamepads[id].state = id.GetGamepadState()
+
+		// Note that GLFW's gamepad GUID follows SDL's GUID.
+		i.gamepads[id].guid = id.GetGUID()
+		i.gamepads[id].name = id.GetName()
+
 		buttons := id.GetButtons()
 
 		// A gamepad can be detected even though there are not. Apparently, some special devices are
@@ -346,20 +353,6 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) {
 			}
 			i.gamepads[id].axes[a] = float64(axes32[a])
 		}
-
-		hats := id.GetHats()
-		i.gamepads[id].hatsNum = len(hats)
-		for h := 0; h < len(i.gamepads[id].hats); h++ {
-			if len(hats) <= h {
-				i.gamepads[id].hats[h] = 0
-				continue
-			}
-			i.gamepads[id].hats[h] = int(hats[h])
-		}
-
-		// Note that GLFW's gamepad GUID follows SDL's GUID.
-		i.gamepads[id].guid = id.GetGUID()
-		i.gamepads[id].name = id.GetName()
 	}
 }
 
@@ -371,7 +364,7 @@ func (i *Input) IsStandardGamepadLayoutAvailable(id driver.GamepadID) bool {
 		return false
 	}
 	g := i.gamepads[int(id)]
-	return gamepaddb.HasStandardLayoutMapping(g.guid)
+	return g.state != nil
 }
 
 func (i *Input) StandardGamepadAxisValue(id driver.GamepadID, axis driver.StandardGamepadAxis) float64 {
@@ -382,7 +375,10 @@ func (i *Input) StandardGamepadAxisValue(id driver.GamepadID, axis driver.Standa
 		return 0
 	}
 	g := i.gamepads[int(id)]
-	return gamepaddb.AxisValue(g.guid, axis, &gamepadState{&g})
+	if g.state == nil {
+		return 0
+	}
+	return float64(g.state.Axes[standardAxisToGLFWAxis(axis)])
 }
 
 func (i *Input) IsStandardGamepadButtonPressed(id driver.GamepadID, button driver.StandardGamepadButton) bool {
@@ -393,37 +389,66 @@ func (i *Input) IsStandardGamepadButtonPressed(id driver.GamepadID, button drive
 		return false
 	}
 	g := i.gamepads[int(id)]
-	return gamepaddb.IsButtonPressed(g.guid, button, &gamepadState{&g})
-}
-
-func init() {
-	// Confirm that all the hat state values are the same.
-	if gamepaddb.HatUp != glfw.HatUp {
-		panic("glfw: gamepaddb.HatUp must equal to glfw.HatUp but not")
+	if g.state == nil {
+		return false
 	}
-	if gamepaddb.HatRight != glfw.HatRight {
-		panic("glfw: gamepaddb.HatRight must equal to glfw.HatRight but not")
+	switch button {
+	case driver.StandardGamepadButtonFrontBottomLeft:
+		return g.state.Axes[glfw.AxisLeftTrigger] > 0
+	case driver.StandardGamepadButtonFrontBottomRight:
+		return g.state.Axes[glfw.AxisRightTrigger] > 0
 	}
-	if gamepaddb.HatDown != glfw.HatDown {
-		panic("glfw: gamepaddb.HatDown must equal to glfw.HatDown but not")
+	return g.state.Buttons[standardButtonToGLFWButton(button)] == glfw.Press
+}
+
+func standardAxisToGLFWAxis(axis driver.StandardGamepadAxis) glfw.GamepadAxis {
+	switch axis {
+	case driver.StandardGamepadAxisLeftStickHorizontal:
+		return glfw.AxisLeftX
+	case driver.StandardGamepadAxisLeftStickVertical:
+		return glfw.AxisLeftY
+	case driver.StandardGamepadAxisRightStickHorizontal:
+		return glfw.AxisRightX
+	case driver.StandardGamepadAxisRightStickVertical:
+		return glfw.AxisRightY
+	default:
+		panic(fmt.Sprintf("glfw: invalid or inconvertible StandardGamepadAxis: %d", axis))
 	}
-	if gamepaddb.HatLeft != glfw.HatLeft {
-		panic("glfw: gamepaddb.HatLeft must equal to glfw.HatLeft but not")
+}
+
+func standardButtonToGLFWButton(button driver.StandardGamepadButton) glfw.GamepadButton {
+	switch button {
+	case driver.StandardGamepadButtonRightBottom:
+		return glfw.ButtonA
+	case driver.StandardGamepadButtonRightRight:
+		return glfw.ButtonB
+	case driver.StandardGamepadButtonRightLeft:
+		return glfw.ButtonX
+	case driver.StandardGamepadButtonRightTop:
+		return glfw.ButtonY
+	case driver.StandardGamepadButtonFrontTopLeft:
+		return glfw.ButtonLeftBumper
+	case driver.StandardGamepadButtonFrontTopRight:
+		return glfw.ButtonRightBumper
+	case driver.StandardGamepadButtonCenterLeft:
+		return glfw.ButtonBack
+	case driver.StandardGamepadButtonCenterRight:
+		return glfw.ButtonStart
+	case driver.StandardGamepadButtonLeftStick:
+		return glfw.ButtonLeftThumb
+	case driver.StandardGamepadButtonRightStick:
+		return glfw.ButtonRightThumb
+	case driver.StandardGamepadButtonLeftTop:
+		return glfw.ButtonDpadUp
+	case driver.StandardGamepadButtonLeftBottom:
+		return glfw.ButtonDpadDown
+	case driver.StandardGamepadButtonLeftLeft:
+		return glfw.ButtonDpadLeft
+	case driver.StandardGamepadButtonLeftRight:
+		return glfw.ButtonDpadRight
+	case driver.StandardGamepadButtonCenterCenter:
+		return glfw.ButtonGuide
+	default:
+		panic(fmt.Sprintf("glfw: invalid or inconvertible StandardGamepadButton: %d", button))
 	}
-}
-
-type gamepadState struct {
-	g *gamepad
-}
-
-func (s *gamepadState) Axis(index int) float64 {
-	return s.g.axes[index]
-}
-
-func (s *gamepadState) Button(index int) bool {
-	return s.g.buttonPressed[index]
-}
-
-func (s *gamepadState) Hat(index int) int {
-	return s.g.hats[index]
 }
