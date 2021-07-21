@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !js && !windows
-// +build !js,!windows
+//go:build !js
+// +build !js
 
 package readerdriver
 

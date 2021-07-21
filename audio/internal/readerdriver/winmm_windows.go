@@ -59,8 +59,8 @@ type waveformatex struct {
 }
 
 const (
-	waveFormatPCM = 1
-	whdrInqueue   = 16
+	waveFormatIEEEFloat = 3
+	whdrInqueue         = 16
 )
 
 type mmresult uint
