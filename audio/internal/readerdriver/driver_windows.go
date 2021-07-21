@@ -23,6 +23,9 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+// The common players in players_unix.go are not used on Windows.
+// Mixing on Go side can cause bigger delays (#1710).
+
 const headerBufferSize = 2048
 
 func IsAvailable() bool {
