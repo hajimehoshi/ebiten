@@ -54,8 +54,8 @@ type UI interface {
 	IsRunnableOnUnfocused() bool
 	SetRunnableOnUnfocused(runnableOnUnfocused bool)
 
-	IsVsyncEnabled() bool
-	SetVsyncEnabled(enabled bool)
+	FPSMode() FPSMode
+	SetFPSMode(mode FPSMode)
 
 	IsScreenTransparent() bool
 	SetScreenTransparent(transparent bool)
@@ -98,3 +98,10 @@ type Window interface {
 	SetClosingHandled(handled bool)
 	IsClosingHandled() bool
 }
+
+type FPSMode int
+
+const (
+	FPSModeVsyncOn FPSMode = iota
+	FPSModeVsyncOffMaximum
+)

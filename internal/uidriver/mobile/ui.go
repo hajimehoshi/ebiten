@@ -404,11 +404,11 @@ func (u *UserInterface) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 	// Do nothing
 }
 
-func (u *UserInterface) IsVsyncEnabled() bool {
-	return true
+func (u *UserInterface) FPSMode() driver.FPSMode {
+	return driver.FPSModeVsyncOn
 }
 
-func (u *UserInterface) SetVsyncEnabled(enabled bool) {
+func (u *UserInterface) SetFPSMode(mode driver.FPSMode) {
 	// Do nothing
 }
 

@@ -69,7 +69,7 @@ type UserInterface struct {
 	origPosX             int
 	origPosY             int
 	runnableOnUnfocused  bool
-	vsync                bool
+	fpsMode              driver.FPSMode
 	iconImages           []image.Image
 	cursorShape          driver.CursorShape
 	windowClosingHandled bool
@@ -90,7 +90,7 @@ type UserInterface struct {
 	initFullscreenHeightInDP int
 
 	initTitle               string
-	initVsync               bool
+	initFPSMode             driver.FPSMode
 	initFullscreen          bool
 	initCursorMode          driver.CursorMode
 	initWindowDecorated     bool
@@ -104,7 +104,7 @@ type UserInterface struct {
 	initScreenTransparent   bool
 	initFocused             bool
 
-	vsyncInited bool
+	fpsModeInited bool
 
 	input   Input
 	iwindow window
@@ -133,7 +133,7 @@ var (
 		maxWindowHeightInDP:     glfw.DontCare,
 		origPosX:                invalidPos,
 		origPosY:                invalidPos,
-		initVsync:               true,
+		initFPSMode:             driver.FPSModeVsyncOn,
 		initCursorMode:          driver.CursorModeVisible,
 		initWindowDecorated:     true,
 		initWindowPositionXInDP: invalidPos,
@@ -141,7 +141,7 @@ var (
 		initWindowWidthInDP:     640,
 		initWindowHeightInDP:    480,
 		initFocused:             true,
-		vsync:                   true,
+		fpsMode:                 driver.FPSModeVsyncOn,
 	}
 )
 
@@ -314,9 +314,9 @@ func (u *UserInterface) setInitTitle(title string) {
 	u.m.RUnlock()
 }
 
-func (u *UserInterface) isInitVsyncEnabled() bool {
+func (u *UserInterface) getInitFPSMode() driver.FPSMode {
 	u.m.RLock()
-	v := u.initVsync
+	v := u.initFPSMode
 	u.m.RUnlock()
 	return v
 }
@@ -599,41 +599,41 @@ func (u *UserInterface) IsRunnableOnUnfocused() bool {
 	return u.isRunnableOnUnfocused()
 }
 
-func (u *UserInterface) SetVsyncEnabled(enabled bool) {
+func (u *UserInterface) SetFPSMode(mode driver.FPSMode) {
 	if !u.isRunning() {
 		// In general, m is used for locking init* values.
 		// m is not used for updating vsync in setWindowSize so far, but
 		// it should be OK since any goroutines can't reach here when
 		// the game already starts and setWindowSize can be called.
 		u.m.Lock()
-		u.initVsync = enabled
+		u.initFPSMode = mode
 		u.m.Unlock()
 		return
 	}
 	_ = u.t.Call(func() error {
-		if !u.vsyncInited {
+		if !u.fpsModeInited {
 			u.m.Lock()
-			u.initVsync = enabled
+			u.initFPSMode = mode
 			u.m.Unlock()
 			return nil
 		}
-		u.vsync = enabled
+		u.fpsMode = mode
 		u.updateVsync()
 		return nil
 	})
 }
 
-func (u *UserInterface) IsVsyncEnabled() bool {
+func (u *UserInterface) FPSMode() driver.FPSMode {
 	if !u.isRunning() {
-		return u.isInitVsyncEnabled()
+		return u.getInitFPSMode()
 	}
-	var v bool
+	var v driver.FPSMode
 	_ = u.t.Call(func() error {
-		if !u.vsyncInited {
-			v = u.isInitVsyncEnabled()
+		if !u.fpsModeInited {
+			v = u.getInitFPSMode()
 			return nil
 		}
-		v = u.vsync
+		v = u.fpsMode
 		return nil
 	})
 	return v
@@ -956,10 +956,10 @@ func (u *UserInterface) update() (float64, float64, bool, error) {
 
 	// Initialize vsync after SetMonitor is called. See the comment in updateVsync.
 	// Calling this inside setWindowSize didn't work (#1363).
-	if !u.vsyncInited {
-		u.vsync = u.isInitVsyncEnabled()
+	if !u.fpsModeInited {
+		u.fpsMode = u.getInitFPSMode()
 		u.updateVsync()
-		u.vsyncInited = true
+		u.fpsModeInited = true
 	}
 
 	outsideWidth, outsideHeight, outsideSizeChanged := u.updateSize()
@@ -1326,13 +1326,13 @@ func (u *UserInterface) updateVsync() {
 		// TODO: (#405) If triple buffering is needed, SwapInterval(0) should be called,
 		// but is this correct? If glfw.SwapInterval(0) and the driver doesn't support triple
 		// buffering, what will happen?
-		if u.vsync {
+		if u.fpsMode == driver.FPSModeVsyncOn {
 			glfw.SwapInterval(1)
 		} else {
 			glfw.SwapInterval(0)
 		}
 	}
-	u.Graphics().SetVsyncEnabled(u.vsync)
+	u.Graphics().SetVsyncEnabled(u.fpsMode == driver.FPSModeVsyncOn)
 }
 
 // currentMonitor returns the current active monitor.

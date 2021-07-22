@@ -328,7 +328,7 @@ func DeviceScaleFactor() float64 {
 //
 // IsVsyncEnabled is concurrent-safe.
 func IsVsyncEnabled() bool {
-	return uiDriver().IsVsyncEnabled()
+	return uiDriver().FPSMode() == driver.FPSModeVsyncOn
 }
 
 // SetVsyncEnabled sets a boolean value indicating whether
@@ -346,7 +346,11 @@ func IsVsyncEnabled() bool {
 //
 // SetVsyncEnabled is concurrent-safe.
 func SetVsyncEnabled(enabled bool) {
-	uiDriver().SetVsyncEnabled(enabled)
+	if enabled {
+		uiDriver().SetFPSMode(driver.FPSModeVsyncOn)
+	} else {
+		uiDriver().SetFPSMode(driver.FPSModeVsyncOffMaximum)
+	}
 }
 
 // MaxTPS returns the current maximum TPS.

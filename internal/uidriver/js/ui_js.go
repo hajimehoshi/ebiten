@@ -49,7 +49,7 @@ func driverCursorShapeToCSSCursor(cursor driver.CursorShape) string {
 
 type UserInterface struct {
 	runnableOnUnfocused bool
-	vsync               bool
+	fpsMode             driver.FPSMode
 	running             bool
 	initFocused         bool
 	cursorMode          driver.CursorMode
@@ -67,7 +67,6 @@ type UserInterface struct {
 var theUI = &UserInterface{
 	runnableOnUnfocused: true,
 	sizeChanged:         true,
-	vsync:               true,
 	initFocused:         true,
 }
 
@@ -136,12 +135,12 @@ func (u *UserInterface) IsRunnableOnUnfocused() bool {
 	return u.runnableOnUnfocused
 }
 
-func (u *UserInterface) SetVsyncEnabled(enabled bool) {
-	u.vsync = enabled
+func (u *UserInterface) SetFPSMode(mode driver.FPSMode) {
+	u.fpsMode = mode
 }
 
-func (u *UserInterface) IsVsyncEnabled() bool {
-	return u.vsync
+func (u *UserInterface) FPSMode() driver.FPSMode {
+	return u.fpsMode
 }
 
 func (u *UserInterface) CursorMode() driver.CursorMode {
@@ -295,7 +294,7 @@ func (u *UserInterface) loop(context driver.UIContext) <-chan error {
 			errCh <- err
 			return
 		}
-		if u.vsync {
+		if u.fpsMode == driver.FPSModeVsyncOn {
 			requestAnimationFrame.Invoke(cf)
 		} else {
 			setTimeout.Invoke(cf, 0)
