@@ -218,8 +218,6 @@ func ScreenSizeInFullscreen() (int, int) {
 
 // CursorMode returns the current cursor mode.
 //
-// On browsers, only CursorModeVisible and CursorModeHidden are supported.
-//
 // CursorMode returns CursorModeHidden on mobiles.
 //
 // CursorMode is concurrent-safe.
