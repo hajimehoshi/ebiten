@@ -209,14 +209,14 @@ func (g *game) Update() error {
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyT) {
 		switch tps {
-		case ebiten.UncappedTPS:
+		case ebiten.SyncWithFPS:
 			tps = 30
 		case 30:
 			tps = 60
 		case 60:
 			tps = 120
 		case 120:
-			tps = ebiten.UncappedTPS
+			tps = ebiten.SyncWithFPS
 		default:
 			panic("not reached")
 		}
@@ -293,8 +293,8 @@ func (g *game) Draw(screen *ebiten.Image) {
 	wx, wy := ebiten.WindowPosition()
 	minw, minh, maxw, maxh := ebiten.WindowSizeLimits()
 	cx, cy := ebiten.CursorPosition()
-	tpsStr := "Uncapped"
-	if t := ebiten.MaxTPS(); t != ebiten.UncappedTPS {
+	tpsStr := "Sync with FPS"
+	if t := ebiten.MaxTPS(); t != ebiten.SyncWithFPS {
 		tpsStr = fmt.Sprintf("%d", t)
 	}
 

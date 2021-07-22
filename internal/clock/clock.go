@@ -125,13 +125,13 @@ func updateFPSAndTPS(now int64, count int) {
 	tpsCount = 0
 }
 
-const UncappedTPS = -1
+const SyncWithFPS = -1
 
 // Update updates the inner clock state and returns an integer value
 // indicating how many times the game should update based on given tps.
 // tps represents TPS (ticks per second).
-// If tps is UncappedTPS, Update always returns 1.
-// If tps <= 0 and not UncappedTPS, Update always returns 0.
+// If tps is SyncWithFPS, Update always returns 1.
+// If tps <= 0 and not SyncWithFPS, Update always returns 0.
 //
 // Update is expected to be called per frame.
 func Update(tps int) int {
@@ -146,7 +146,7 @@ func Update(tps int) int {
 	lastNow = n
 
 	c := 0
-	if tps == UncappedTPS {
+	if tps == SyncWithFPS {
 		c = 1
 	} else if tps > 0 {
 		c = calcCountFromTPS(int64(tps), n)
