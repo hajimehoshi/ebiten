@@ -226,10 +226,18 @@ func SetCursorMode(mode CursorModeType) {
 	uiDriver().SetCursorMode(driver.CursorMode(mode))
 }
 
+// CursorShape returns the current cursor shape.
+//
+// CursorShape returns CursorShapeDefault on mobiles.
+//
+// CursorShape is concurrent-safe.
 func CursorShape() CursorShapeType {
 	return CursorShapeType(uiDriver().CursorShape())
 }
 
+// SetCursorShape sets the cursor shape.
+//
+// SetCursorShape is concurrent-safe.
 func SetCursorShape(shape CursorShapeType) {
 	uiDriver().SetCursorShape(driver.CursorShape(shape))
 }
