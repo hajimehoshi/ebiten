@@ -17,7 +17,7 @@ package ebiten
 import "github.com/hajimehoshi/ebiten/v2/internal/driver"
 
 // CursorModeType represents a render and coordinate mode of a mouse cursor.
-type CursorModeType int
+type CursorModeType = driver.CursorMode
 
 // CursorModeTypes
 const (
@@ -27,7 +27,7 @@ const (
 )
 
 // CursorShapeType represents a shape of a mouse cursor.
-type CursorShapeType int
+type CursorShapeType = driver.CursorShape
 
 // CursorShapeTypes
 const (

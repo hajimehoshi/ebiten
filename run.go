@@ -207,7 +207,7 @@ func ScreenSizeInFullscreen() (int, int) {
 //
 // CursorMode is concurrent-safe.
 func CursorMode() CursorModeType {
-	return CursorModeType(uiDriver().CursorMode())
+	return uiDriver().CursorMode()
 }
 
 // SetCursorMode sets the render and capture mode of the mouse cursor.
@@ -223,7 +223,7 @@ func CursorMode() CursorModeType {
 //
 // SetCursorMode is concurrent-safe.
 func SetCursorMode(mode CursorModeType) {
-	uiDriver().SetCursorMode(driver.CursorMode(mode))
+	uiDriver().SetCursorMode(mode)
 }
 
 // CursorShape returns the current cursor shape.
@@ -232,14 +232,14 @@ func SetCursorMode(mode CursorModeType) {
 //
 // CursorShape is concurrent-safe.
 func CursorShape() CursorShapeType {
-	return CursorShapeType(uiDriver().CursorShape())
+	return uiDriver().CursorShape()
 }
 
 // SetCursorShape sets the cursor shape.
 //
 // SetCursorShape is concurrent-safe.
 func SetCursorShape(shape CursorShapeType) {
-	uiDriver().SetCursorShape(driver.CursorShape(shape))
+	uiDriver().SetCursorShape(shape)
 }
 
 // IsFullscreen reports whether the current mode is fullscreen or not.
