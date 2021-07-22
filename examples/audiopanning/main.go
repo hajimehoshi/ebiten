@@ -78,7 +78,7 @@ func (g *Game) initAudio() {
 	// Wrap the raw audio with the StereoPanStream
 	g.panstream = NewStereoPanStreamFromReader(audio.NewInfiniteLoop(oggS, oggS.Length()))
 
-	g.player, err = audio.NewPlayer(g.audioContext, g.panstream)
+	g.player, err = g.audioContext.NewPlayer(g.panstream)
 	if err != nil {
 		log.Fatal(err)
 	}

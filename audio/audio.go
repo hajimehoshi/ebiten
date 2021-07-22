@@ -330,8 +330,8 @@ type playerImpl interface {
 //
 // A Player doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
-func NewPlayer(context *Context, src io.Reader) (*Player, error) {
-	pi, err := context.np.newPlayerImpl(context, src)
+func (c *Context) NewPlayer(src io.Reader) (*Player, error) {
+	pi, err := c.np.newPlayerImpl(c, src)
 	if err != nil {
 		return nil, err
 	}
@@ -343,20 +343,33 @@ func NewPlayer(context *Context, src io.Reader) (*Player, error) {
 	return p, nil
 }
 
+// NewPlayer creates a new player with the given stream.
+//
+// Deprecated: as of v2.2. Use (*Context).NewPlayer instead.
+func NewPlayer(context *Context, src io.Reader) (*Player, error) {
+	return context.NewPlayer(src)
+}
+
 // NewPlayerFromBytes creates a new player with the given bytes.
 //
 // As opposed to NewPlayer, you don't have to care if src is already used by another player or not.
 // src can be shared by multiple players.
 //
 // The format of src should be same as noted at NewPlayer.
-func NewPlayerFromBytes(context *Context, src []byte) *Player {
-	b := bytes.NewReader(src)
-	p, err := NewPlayer(context, b)
+func (c *Context) NewPlayerFromBytes(src []byte) *Player {
+	p, err := c.NewPlayer(bytes.NewReader(src))
 	if err != nil {
 		// Errors should never happen.
 		panic(fmt.Sprintf("audio: %v at NewPlayerFromBytes", err))
 	}
 	return p
+}
+
+// NewPlayerFromBytes creates a new player with the given bytes.
+//
+// Deprecated: as of v2.2. Use (*Context).NewPlayerFromBytes instead.
+func NewPlayerFromBytes(context *Context, src []byte) *Player {
+	return context.NewPlayerFromBytes(src)
 }
 
 func (p *Player) finalize() {

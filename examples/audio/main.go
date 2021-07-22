@@ -147,7 +147,7 @@ func NewPlayer(game *Game, audioContext *audio.Context, musicType musicType) (*P
 	default:
 		panic("not reached")
 	}
-	p, err := audio.NewPlayer(audioContext, s)
+	p, err := audioContext.NewPlayer(s)
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +246,7 @@ func (p *Player) playSEIfNeeded() {
 	if !p.shouldPlaySE() {
 		return
 	}
-	sePlayer := audio.NewPlayerFromBytes(p.audioContext, p.seBytes)
+	sePlayer := p.audioContext.NewPlayerFromBytes(p.seBytes)
 	sePlayer.Play()
 }
 

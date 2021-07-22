@@ -68,7 +68,7 @@ func NewGame() (*Game, error) {
 	}
 
 	// Create an audio.Player that has one stream.
-	g.audioPlayer, err = audio.NewPlayer(g.audioContext, d)
+	g.audioPlayer, err = g.audioContext.NewPlayer(d)
 	if err != nil {
 		return nil, err
 	}

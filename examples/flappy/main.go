@@ -181,7 +181,7 @@ func (g *Game) init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	g.jumpPlayer, err = audio.NewPlayer(g.audioContext, jumpD)
+	g.jumpPlayer, err = g.audioContext.NewPlayer(jumpD)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -190,7 +190,7 @@ func (g *Game) init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	g.hitPlayer, err = audio.NewPlayer(g.audioContext, jabD)
+	g.hitPlayer, err = g.audioContext.NewPlayer(jabD)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -64,7 +64,7 @@ func (g *Game) Update() error {
 	// s is still an io.ReadCloser and io.Seeker.
 	s := audio.NewInfiniteLoopWithIntro(oggS, introLengthInSecond*4*sampleRate, loopLengthInSecond*4*sampleRate)
 
-	g.player, err = audio.NewPlayer(g.audioContext, s)
+	g.player, err = g.audioContext.NewPlayer(s)
 	if err != nil {
 		return err
 	}

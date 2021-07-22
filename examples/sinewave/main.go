@@ -94,10 +94,10 @@ func (g *Game) Update() error {
 		g.audioContext = audio.NewContext(sampleRate)
 	}
 	if g.player == nil {
-		// Pass the (infinite) stream to audio.NewPlayer.
+		// Pass the (infinite) stream to NewPlayer.
 		// After calling Play, the stream never ends as long as the player object lives.
 		var err error
-		g.player, err = audio.NewPlayer(g.audioContext, &stream{})
+		g.player, err = g.audioContext.NewPlayer(&stream{})
 		if err != nil {
 			return err
 		}

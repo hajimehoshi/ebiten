@@ -221,7 +221,7 @@ func (g *Game) Update() error {
 // playNote plays piano sound with the given frequency.
 func (g *Game) playNote(freq float64) {
 	f := int(freq)
-	p := audio.NewPlayerFromBytes(g.audioContext, pianoNoteSamples[f])
+	p := g.audioContext.NewPlayerFromBytes(pianoNoteSamples[f])
 	p.Play()
 }
 
