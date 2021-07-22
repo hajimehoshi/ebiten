@@ -98,6 +98,9 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 	if !document.Truthy() {
 		return
 	}
+	if fullscreen == document.Get("fullscreenElement").Truthy() {
+		return
+	}
 	if fullscreen {
 		f := canvas.Get("requestFullscreen")
 		if !f.Truthy() {
