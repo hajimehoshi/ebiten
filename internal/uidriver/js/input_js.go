@@ -403,6 +403,8 @@ func (i *Input) updateFromEvent(e js.Value) {
 	case t.Equal(stringTouchstart) || t.Equal(stringTouchend) || t.Equal(stringTouchmove):
 		i.updateTouchesFromEvent(e)
 	}
+
+	i.ui.forceUpdateOnMinimumFPSMode()
 }
 
 func (i *Input) setMouseCursorFromEvent(e js.Value) {

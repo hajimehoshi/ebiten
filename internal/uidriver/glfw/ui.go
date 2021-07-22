@@ -639,6 +639,15 @@ func (u *UserInterface) FPSMode() driver.FPSMode {
 	return v
 }
 
+func (u *UserInterface) ScheduleFrame() {
+	if !u.isRunning() {
+		return
+	}
+	// As the main thread can be blocked, do not check the current FPS mode.
+	// PostEmptyEvent is concurrent safe.
+	glfw.PostEmptyEvent()
+}
+
 func (u *UserInterface) CursorMode() driver.CursorMode {
 	if !u.isRunning() {
 		return u.getInitCursorMode()
@@ -964,8 +973,12 @@ func (u *UserInterface) update() (float64, float64, bool, error) {
 
 	outsideWidth, outsideHeight, outsideSizeChanged := u.updateSize()
 
-	// TODO: Updating the input can be skipped when clock.Update returns 0 (#1367).
-	glfw.PollEvents()
+	if u.fpsMode != driver.FPSModeVsyncOffMinimum {
+		// TODO: Updating the input can be skipped when clock.Update returns 0 (#1367).
+		glfw.PollEvents()
+	} else {
+		glfw.WaitEvents()
+	}
 	u.input.update(u.window, u.context)
 
 	for !u.isRunnableOnUnfocused() && u.window.GetAttrib(glfw.Focused) == 0 && !u.window.ShouldClose() {

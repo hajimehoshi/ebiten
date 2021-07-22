@@ -334,6 +334,10 @@ func PollEvents() {
 	glfw.PollEvents()
 }
 
+func PostEmptyEvent() {
+	glfw.PostEmptyEvent()
+}
+
 func SetMonitorCallback(cbfun func(monitor *Monitor, event PeripheralEvent)) {
 	var gcb func(monitor *glfw.Monitor, event glfw.PeripheralEvent)
 	if cbfun != nil {
@@ -358,6 +362,10 @@ func Terminate() {
 
 func UpdateGamepadMappings(mapping string) bool {
 	return glfw.UpdateGamepadMappings(mapping)
+}
+
+func WaitEvents() {
+	glfw.WaitEvents()
 }
 
 func WindowHint(target Hint, hint int) {

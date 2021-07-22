@@ -517,6 +517,11 @@ func PollEvents() {
 	panicErrorExceptForInvalidValue()
 }
 
+func PostEmptyEvent() {
+	glfwDLL.call("glfwPostEmptyEvent")
+	panicError()
+}
+
 func SetMonitorCallback(cbfun func(monitor *Monitor, event PeripheralEvent)) {
 	var gcb uintptr
 	if cbfun != nil {
@@ -552,6 +557,11 @@ func UpdateGamepadMappings(mapping string) bool {
 	r := glfwDLL.call("glfwUpdateGamepadMappings", uintptr(unsafe.Pointer(&m[0])))
 	panicError()
 	return r == True
+}
+
+func WaitEvents() {
+	glfwDLL.call("glfwWaitEvents")
+	panicError()
 }
 
 func WindowHint(target Hint, hint int) {

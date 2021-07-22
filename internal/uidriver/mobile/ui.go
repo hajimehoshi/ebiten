@@ -112,6 +112,9 @@ type UserInterface struct {
 
 	input Input
 
+	fpsMode         driver.FPSMode
+	renderRequester RenderRequester
+
 	t *thread.OSThread
 
 	m sync.RWMutex
@@ -405,11 +408,19 @@ func (u *UserInterface) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 }
 
 func (u *UserInterface) FPSMode() driver.FPSMode {
-	return driver.FPSModeVsyncOn
+	return u.fpsMode
 }
 
 func (u *UserInterface) SetFPSMode(mode driver.FPSMode) {
-	// Do nothing
+	u.fpsMode = mode
+	u.updateExplicitRenderingModeIfNeeded()
+}
+
+func (u *UserInterface) updateExplicitRenderingModeIfNeeded() {
+	if u.renderRequester == nil {
+		return
+	}
+	u.renderRequester.SetExplicitRenderingMode(u.fpsMode == driver.FPSModeVsyncOffMinimum)
 }
 
 func (u *UserInterface) DeviceScaleFactor() float64 {
@@ -459,4 +470,23 @@ type Gamepad struct {
 
 func (u *UserInterface) UpdateInput(keys map[driver.Key]struct{}, runes []rune, touches []*Touch, gamepads []Gamepad) {
 	u.input.update(keys, runes, touches, gamepads)
+	if u.fpsMode == driver.FPSModeVsyncOffMinimum {
+		u.renderRequester.RequestRenderIfNeeded()
+	}
+}
+
+type RenderRequester interface {
+	SetExplicitRenderingMode(explicitRendering bool)
+	RequestRenderIfNeeded()
+}
+
+func (u *UserInterface) SetRenderRequester(renderRequester RenderRequester) {
+	u.renderRequester = renderRequester
+	u.updateExplicitRenderingModeIfNeeded()
+}
+
+func (u *UserInterface) ScheduleFrame() {
+	if u.renderRequester != nil && u.fpsMode == driver.FPSModeVsyncOffMinimum {
+		u.renderRequester.RequestRenderIfNeeded()
+	}
 }

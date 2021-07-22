@@ -56,6 +56,7 @@ type UI interface {
 
 	FPSMode() FPSMode
 	SetFPSMode(mode FPSMode)
+	ScheduleFrame()
 
 	IsScreenTransparent() bool
 	SetScreenTransparent(transparent bool)
@@ -104,4 +105,5 @@ type FPSMode int
 const (
 	FPSModeVsyncOn FPSMode = iota
 	FPSModeVsyncOffMaximum
+	FPSModeVsyncOffMinimum
 )

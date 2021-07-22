@@ -90,3 +90,12 @@ func OnContextLost() {
 func DeviceScale() float64 {
 	return devicescale.GetAt(0, 0)
 }
+
+type RenderRequester interface {
+	SetExplicitRenderingMode(explicitRendering bool)
+	RequestRenderIfNeeded()
+}
+
+func SetRenderRequester(renderRequester RenderRequester) {
+	mobile.Get().SetRenderRequester(renderRequester)
+}

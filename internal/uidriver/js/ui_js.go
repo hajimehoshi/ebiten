@@ -50,11 +50,13 @@ func driverCursorShapeToCSSCursor(cursor driver.CursorShape) string {
 type UserInterface struct {
 	runnableOnUnfocused bool
 	fpsMode             driver.FPSMode
+	renderingScheduled  bool
 	running             bool
 	initFocused         bool
 	cursorMode          driver.CursorMode
 	cursorPrevMode      driver.CursorMode
 	cursorShape         driver.CursorShape
+	onceUpdateCalled    bool
 
 	sizeChanged bool
 
@@ -144,6 +146,10 @@ func (u *UserInterface) SetFPSMode(mode driver.FPSMode) {
 
 func (u *UserInterface) FPSMode() driver.FPSMode {
 	return u.fpsMode
+}
+
+func (u *UserInterface) ScheduleFrame() {
+	u.renderingScheduled = true
 }
 
 func (u *UserInterface) CursorMode() driver.CursorMode {
@@ -281,6 +287,20 @@ func (u *UserInterface) updateImpl(force bool) error {
 	return nil
 }
 
+func (u *UserInterface) needsUpdate() bool {
+	if u.fpsMode != driver.FPSModeVsyncOffMinimum {
+		return true
+	}
+	if !u.onceUpdateCalled {
+		return true
+	}
+	if u.renderingScheduled {
+		return true
+	}
+	// TODO: Watch the gamepad state?
+	return false
+}
+
 func (u *UserInterface) loop(context driver.UIContext) <-chan error {
 	u.context = context
 
@@ -290,17 +310,24 @@ func (u *UserInterface) loop(context driver.UIContext) <-chan error {
 
 	var cf js.Func
 	f := func() {
-		if err := u.update(); err != nil {
-			close(reqStopAudioCh)
-			<-resStopAudioCh
+		if u.needsUpdate() {
+			u.onceUpdateCalled = true
+			u.renderingScheduled = false
+			if err := u.update(); err != nil {
+				close(reqStopAudioCh)
+				<-resStopAudioCh
 
-			errCh <- err
-			return
+				errCh <- err
+				return
+			}
 		}
-		if u.fpsMode == driver.FPSModeVsyncOn {
+		switch u.fpsMode {
+		case driver.FPSModeVsyncOn:
 			requestAnimationFrame.Invoke(cf)
-		} else {
+		case driver.FPSModeVsyncOffMaximum:
 			setTimeout.Invoke(cf, 0)
+		case driver.FPSModeVsyncOffMinimum:
+			requestAnimationFrame.Invoke(cf)
 		}
 	}
 
@@ -538,6 +565,13 @@ func setCanvasEventHandlers(v js.Value) {
 		window.Get("location").Call("reload")
 		return nil
 	}))
+}
+
+func (u *UserInterface) forceUpdateOnMinimumFPSMode() {
+	if u.fpsMode != driver.FPSModeVsyncOffMinimum {
+		return
+	}
+	u.updateImpl(true)
 }
 
 func (u *UserInterface) Run(context driver.UIContext) error {

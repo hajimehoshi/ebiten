@@ -312,7 +312,7 @@ func DeviceScaleFactor() float64 {
 // IsVsyncEnabled returns a boolean value indicating whether
 // the game uses the display's vsync.
 //
-// IsVsyncEnabled is concurrent-safe.
+// Deprecated: as of v2.2. Use FPSMode instead.
 func IsVsyncEnabled() bool {
 	return uiDriver().FPSMode() == driver.FPSModeVsyncOn
 }
@@ -320,17 +320,7 @@ func IsVsyncEnabled() bool {
 // SetVsyncEnabled sets a boolean value indicating whether
 // the game uses the display's vsync.
 //
-// If the given value is true, the game tries to sync the display's refresh rate.
-// If false, the game ignores the display's refresh rate.
-// The initial value is true.
-// By disabling vsync, the game works more efficiently but consumes more CPU.
-//
-// Note that the state doesn't affect TPS (ticks per second, i.e. how many the run function is
-// updated per second).
-//
-// SetVsyncEnabled does nothing on mobiles so far.
-//
-// SetVsyncEnabled is concurrent-safe.
+// Deprecated: as of v2.2. Use SetFPSMode instead.
 func SetVsyncEnabled(enabled bool) {
 	if enabled {
 		uiDriver().SetFPSMode(driver.FPSModeVsyncOn)
@@ -339,10 +329,63 @@ func SetVsyncEnabled(enabled bool) {
 	}
 }
 
+// FPSModeType is a type of FPS modes.
+type FPSModeType = driver.FPSMode
+
+const (
+	// FPSModeVsyncOn indicates that the game tries to sync the display's refresh rate.
+	// FPSModeVsyncOn is the default mode.
+	FPSModeVsyncOn FPSModeType = driver.FPSModeVsyncOn
+
+	// FPSModeVsyncOffMaximum indicates that the game doesn't sync with vsycn, and
+	// the game is updated whenever possible.
+	//
+	// Be careful that FPSModeVsyncOffMaximum might consume a lot of battery power.
+	//
+	// In FPSModeVsyncOffMaximum, the game's Draw is called almost without sleeping.
+	// The game's Update is called based on the specified TPS.
+	FPSModeVsyncOffMaximum FPSModeType = driver.FPSModeVsyncOffMaximum
+
+	// FPSModeVsyncOffMinimum indicates that the game doesn't sync with vsycn, and
+	// the game is updated only when necessary.
+	//
+	// FPSModeVsyncOffMinimum is useful for relatively static applications to save battery power.
+	//
+	// In FPSModeVsyncOffMinimum, the game's Update and Draw are called only when
+	// 1) new inputting is detected, or 2) ScheduleFrame is called.
+	// In FPSModeVsyncOffMinimum, TPS is SyncWithFPS no matter what TPS is specified at SetMaxTPS.
+	FPSModeVsyncOffMinimum FPSModeType = driver.FPSModeVsyncOffMinimum
+)
+
+// FPSMode returns the current FPS mode.
+//
+// FPSMode is concurrent-safe.
+func FPSMode() FPSModeType {
+	return uiDriver().FPSMode()
+}
+
+// SetFPSMode sets the FPS mode.
+// The default FPS mode is FPSModeVsycnOn.
+//
+// SetFPSMode is concurrent-safe.
+func SetFPSMode(mode FPSModeType) {
+	uiDriver().SetFPSMode(mode)
+}
+
+// ScheduleFrame schedules a next frame when the current FPS mode is FPSModeVsyncOffMinimum.
+//
+// ScheduleFrame is concurrent-safe.
+func ScheduleFrame() {
+	uiDriver().ScheduleFrame()
+}
+
 // MaxTPS returns the current maximum TPS.
 //
 // MaxTPS is concurrent-safe.
 func MaxTPS() int {
+	if FPSMode() == FPSModeVsyncOffMinimum {
+		return SyncWithFPS
+	}
 	return int(atomic.LoadInt32(&currentMaxTPS))
 }
 
