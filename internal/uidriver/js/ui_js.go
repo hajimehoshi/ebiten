@@ -446,11 +446,6 @@ func setWindowEventHandlers(v js.Value) {
 		}
 		return nil
 	}))
-
-	v.Call("addEventListener", "gamepadconnected", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		// Do nothing.
-		return nil
-	}))
 }
 
 func setCanvasEventHandlers(v js.Value) {
