@@ -130,22 +130,8 @@ func (i *imageDumperGame) Layout(outsideWidth, outsideHeight int) (screenWidth, 
 
 // RunGame starts the main loop and runs the game.
 // game's Update function is called every tick to update the game logic.
-// game's Draw function is, if it exists, called every frame to draw the screen.
+// game's Draw function is called every frame to draw the screen.
 // game's Layout function is called when necessary, and you can specify the logical screen size by the function.
-//
-// game must implement Game interface.
-// Game's Draw function is optional, but it is recommended to implement Draw to seperate updating the logic and
-// rendering.
-//
-// RunGame is a more flexibile form of Run due to game's Layout function.
-// You can make a resizable window if you use RunGame, while you cannot if you use Run.
-// RunGame is more sophisticated way than Run and hides the notion of 'scale'.
-//
-// While Run specifies the window size, RunGame does not.
-// You need to call SetWindowSize before RunGame if you want.
-// Otherwise, a default window size is adopted.
-//
-// Some functions (ScreenScale, SetScreenScale, SetScreenSize) are not available with RunGame.
 //
 // On browsers, it is strongly recommended to use iframe if you embed an Ebiten application in your website.
 //
