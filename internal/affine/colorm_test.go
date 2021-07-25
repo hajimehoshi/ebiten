@@ -148,7 +148,7 @@ func TestColorMIsInvertible(t *testing.T) {
 		got := c.In.IsInvertible()
 		want := c.Out
 		if got != want {
-			t.Errorf("%v.IsInvertible(): got: %t, want: %t", c.In, got, want)
+			t.Errorf("%s.IsInvertible(): got: %t, want: %t", c.In, got, want)
 		}
 	}
 }
