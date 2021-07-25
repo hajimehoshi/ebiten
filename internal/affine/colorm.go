@@ -106,11 +106,9 @@ func (c *ColorM) ScaleOnly() bool {
 			return false
 		}
 	}
-	if c.translate != nil {
-		for _, e := range c.translate {
-			if e != 0 {
-				return false
-			}
+	for _, e := range c.translate {
+		if e != 0 {
+			return false
 		}
 	}
 	return true
