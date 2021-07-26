@@ -15,6 +15,7 @@
 package affine
 
 import (
+	"fmt"
 	"image/color"
 	"math"
 	"sync"
@@ -48,6 +49,15 @@ type ColorM struct {
 	// elements are immutable and a new array must be created when updating.
 	body      []float32
 	translate []float32
+}
+
+func (c *ColorM) String() string {
+	b, t := c.UnsafeElements()
+	return fmt.Sprintf("[[%f, %f, %f, %f, %f], [%f, %f, %f, %f, %f], [%f, %f, %f, %f, %f], [%f, %f, %f, %f, %f]]",
+		b[0], b[4], b[8], b[12], t[0],
+		b[1], b[5], b[9], b[13], t[1],
+		b[2], b[6], b[10], b[14], t[2],
+		b[3], b[7], b[11], b[15], t[3])
 }
 
 func clamp(x float32) float32 {
