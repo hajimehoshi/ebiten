@@ -72,8 +72,14 @@ func clamp(x float32) float32 {
 	return x
 }
 
-func (c *ColorM) isInited() bool {
-	return c != nil && c.impl != nil
+func (c *ColorM) isIdentity() bool {
+	if c == nil {
+		return true
+	}
+	if c.impl == nil {
+		return true
+	}
+	return c.impl.IsIdentity()
 }
 
 func (c *colorMImplBodyTranslate) IsIdentity() bool {
@@ -81,7 +87,7 @@ func (c *colorMImplBodyTranslate) IsIdentity() bool {
 }
 
 func (c *ColorM) ScaleOnly() bool {
-	if c == nil || c.impl == nil {
+	if c.isIdentity() {
 		return true
 	}
 	return c.impl.ScaleOnly()
@@ -133,7 +139,7 @@ func (c *colorMImplBodyTranslate) ScaleOnly() bool {
 }
 
 func (c *ColorM) Apply(clr color.Color) color.Color {
-	if !c.isInited() {
+	if c.isIdentity() {
 		return clr
 	}
 	return c.impl.Apply(clr)
@@ -168,7 +174,7 @@ func (c *colorMImplBodyTranslate) Apply(clr color.Color) color.Color {
 }
 
 func (c *ColorM) UnsafeElements() ([]float32, []float32) {
-	if !c.isInited() {
+	if c.isIdentity() {
 		return colorMIdentityBody[:], colorMIdentityTranslate[:]
 	}
 	return c.impl.UnsafeElements()
@@ -179,7 +185,7 @@ func (c *colorMImplBodyTranslate) UnsafeElements() ([]float32, []float32) {
 }
 
 func (c *ColorM) det() float32 {
-	if !c.isInited() {
+	if c.isIdentity() {
 		return 1
 	}
 	return c.impl.det()
@@ -225,7 +231,7 @@ func (c *ColorM) IsInvertible() bool {
 // Invert inverts the matrix.
 // If c is not invertible, Invert panics.
 func (c *ColorM) Invert() *ColorM {
-	if !c.isInited() {
+	if c.isIdentity() {
 		return nil
 	}
 	return c.impl.Invert()
@@ -352,7 +358,7 @@ func (c *ColorM) SetElement(i, j int, element float32) *ColorM {
 	newImpl := &colorMImplBodyTranslate{
 		body: colorMIdentityBody,
 	}
-	if c.isInited() {
+	if !c.isIdentity() {
 		*newImpl = *c.impl
 	}
 	if j < (ColorMDim - 1) {
@@ -366,48 +372,40 @@ func (c *ColorM) SetElement(i, j int, element float32) *ColorM {
 }
 
 func (c *ColorM) Equals(other *ColorM) bool {
-	if !c.isInited() {
-		if !other.isInited() {
-			return true
-		}
-		return other.impl.IsIdentity()
+	if c.isIdentity() {
+		return other.isIdentity()
+	}
+	if other.isIdentity() {
+		return false
 	}
 	return c.impl.Equals(other)
 }
 
 func (c *colorMImplBodyTranslate) Equals(other *ColorM) bool {
-	lhsb := &colorMIdentityBody
-	lhst := &colorMIdentityTranslate
+	lhsb := &other.impl.body
+	lhst := &other.impl.translate
 	rhsb := &c.body
 	rhst := &c.translate
-	if other.isInited() {
-		lhsb = &other.impl.body
-		lhst = &other.impl.translate
-	}
 	return *lhsb == *rhsb && *lhst == *rhst
 }
 
 // Concat multiplies a color matrix with the other color matrix.
 // This is same as muptiplying the matrix other and the matrix c in this order.
 func (c *ColorM) Concat(other *ColorM) *ColorM {
-	if !c.isInited() {
+	if c.isIdentity() {
 		return other
 	}
-	if !other.isInited() {
+	if other.isIdentity() {
 		return c
 	}
 	return c.impl.Concat(other)
 }
 
 func (c *colorMImplBodyTranslate) Concat(other *ColorM) *ColorM {
-	lhsb := &colorMIdentityBody
-	lhst := &colorMIdentityTranslate
+	lhsb := &other.impl.body
+	lhst := &other.impl.translate
 	rhsb := &c.body
 	rhst := &c.translate
-	if other.isInited() {
-		lhsb = &other.impl.body
-		lhst = &other.impl.translate
-	}
 
 	return &ColorM{
 		impl: &colorMImplBodyTranslate{
@@ -426,7 +424,7 @@ func (c *colorMImplBodyTranslate) Concat(other *ColorM) *ColorM {
 
 // Scale scales the matrix by (r, g, b, a).
 func (c *ColorM) Scale(r, g, b, a float32) *ColorM {
-	if !c.isInited() {
+	if c.isIdentity() {
 		return getCachedScalingColorM(r, g, b, a)
 	}
 	if c.ScaleOnly() {
@@ -461,7 +459,7 @@ func (c *colorMImplBodyTranslate) Scale(r, g, b, a float32) *ColorM {
 
 // Translate translates the matrix by (r, g, b, a).
 func (c *ColorM) Translate(r, g, b, a float32) *ColorM {
-	if !c.isInited() {
+	if c.isIdentity() {
 		return &ColorM{
 			impl: &colorMImplBodyTranslate{
 				body:      colorMIdentityBody,
