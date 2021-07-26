@@ -195,6 +195,29 @@ func TestColorMInvert(t *testing.T) {
 		{
 			In: arrayToColorM([4][5]float32{
 				{1, 0, 0, 0, 0},
+				{0, 1, 0, 0, 0},
+				{0, 0, 1, 0, 0},
+				{0, 0, 0, 1, 0},
+			}),
+			Out: arrayToColorM([4][5]float32{
+				{1, 0, 0, 0, 0},
+				{0, 1, 0, 0, 0},
+				{0, 0, 1, 0, 0},
+				{0, 0, 0, 1, 0},
+			}),
+		},
+		{
+			In: (*ColorM)(nil).Scale(1, 2, 4, 8),
+			Out: arrayToColorM([4][5]float32{
+				{1, 0, 0, 0, 0},
+				{0, 0.5, 0, 0, 0},
+				{0, 0, 0.25, 0, 0},
+				{0, 0, 0, 0.125, 0},
+			}),
+		},
+		{
+			In: arrayToColorM([4][5]float32{
+				{1, 0, 0, 0, 0},
 				{8, 1, 0, 0, 0},
 				{-9, 0, 1, 0, 0},
 				{7, 4, 2, 1, 0},
@@ -246,5 +269,66 @@ func BenchmarkColorMInvert(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		m = m.Invert()
+	}
+}
+
+func TestColorMConcat(t *testing.T) {
+	cases := []struct {
+		In0 *ColorM
+		In1 *ColorM
+		Out *ColorM
+	}{
+		{
+			nil,
+			nil,
+			nil,
+		},
+		{
+			(*ColorM)(nil).Scale(1, 2, 3, 4),
+			(*ColorM)(nil).Scale(5, 6, 7, 8),
+			(*ColorM)(nil).Scale(5, 12, 21, 32),
+		},
+		{
+			(*ColorM)(nil).Scale(5, 6, 7, 8),
+			(*ColorM)(nil).Scale(1, 2, 3, 4),
+			(*ColorM)(nil).Scale(5, 12, 21, 32),
+		},
+		{
+			arrayToColorM([4][5]float32{
+				{1, 2, 3, 4, 5},
+				{5, 1, 2, 3, 4},
+				{4, 5, 1, 2, 3},
+				{3, 4, 5, 1, 2},
+			}),
+			(*ColorM)(nil).Scale(1, 2, 3, 4),
+			arrayToColorM([4][5]float32{
+				{1, 2, 3, 4, 5},
+				{10, 2, 4, 6, 8},
+				{12, 15, 3, 6, 9},
+				{12, 16, 20, 4, 8},
+			}),
+		},
+		{
+			(*ColorM)(nil).Scale(1, 2, 3, 4),
+			arrayToColorM([4][5]float32{
+				{1, 2, 3, 4, 5},
+				{5, 1, 2, 3, 4},
+				{4, 5, 1, 2, 3},
+				{3, 4, 5, 1, 2},
+			}),
+			arrayToColorM([4][5]float32{
+				{1, 4, 9, 16, 5},
+				{5, 2, 6, 12, 4},
+				{4, 10, 3, 8, 3},
+				{3, 8, 15, 4, 2},
+			}),
+		},
+	}
+	for _, c := range cases {
+		got := c.In0.Concat(c.In1)
+		want := c.Out
+		if !equalWithDelta(got, want, 1e-6) {
+			t.Errorf("%s.Concat(%s): got: %v, want: %v", c.In0, c.In1, got, want)
+		}
 	}
 }
