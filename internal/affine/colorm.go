@@ -173,15 +173,15 @@ func (c *colorMImplBodyTranslate) Apply(clr color.Color) color.Color {
 	}
 }
 
-func (c *ColorM) UnsafeElements() ([]float32, []float32) {
+func (c *ColorM) UnsafeElements() (*[16]float32, *[4]float32) {
 	if c.isIdentity() {
-		return colorMIdentityBody[:], colorMIdentityTranslate[:]
+		return &colorMIdentityBody, &colorMIdentityTranslate
 	}
 	return c.impl.UnsafeElements()
 }
 
-func (c *colorMImplBodyTranslate) UnsafeElements() ([]float32, []float32) {
-	return c.body[:], c.translate[:]
+func (c *colorMImplBodyTranslate) UnsafeElements() (*[16]float32, *[4]float32) {
+	return &c.body, &c.translate
 }
 
 func (c *ColorM) det() float32 {

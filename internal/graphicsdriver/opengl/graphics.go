@@ -192,11 +192,11 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 			esBody, esTranslate := colorM.UnsafeElements()
 			uniformVars = append(uniformVars, uniformVariable{
 				name:  "color_matrix_body",
-				value: esBody,
+				value: esBody[:],
 				typ:   shaderir.Type{Main: shaderir.Mat4},
 			}, uniformVariable{
 				name:  "color_matrix_translation",
-				value: esTranslate,
+				value: esTranslate[:],
 				typ:   shaderir.Type{Main: shaderir.Vec4},
 			})
 		}

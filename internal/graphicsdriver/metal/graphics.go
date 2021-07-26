@@ -917,8 +917,8 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 		uniformVars = []interface{}{
 			[]float32{float32(w), float32(h)},
 			sourceSize,
-			esBody,
-			esTranslate,
+			esBody[:],
+			esTranslate[:],
 			scale,
 			[]float32{
 				srcRegion.X,
