@@ -209,7 +209,7 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 // As the cache capacity has limit, it is not guaranteed that all the glyphs for runes given at DrawWithOptions are cached.
 // The cache is shared with CacheGlyphs.
 //
-// It is OK to call Draw with a same text and a same face at every frame in terms of performance.
+// It is OK to call DrawWithOptions with a same text and a same face at every frame in terms of performance.
 //
 // Draw/DrawWithOptions and CacheGlyphs are implemented like this:
 //
