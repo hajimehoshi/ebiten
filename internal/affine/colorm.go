@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"image/color"
 	"math"
-	"sync"
 )
 
 // ColorMDim is a dimension of a ColorM.
@@ -104,7 +103,7 @@ func (c ColorMIdentity) IsIdentity() bool {
 	return true
 }
 
-func (c *colorMImplScale) IsIdentity() bool {
+func (c colorMImplScale) IsIdentity() bool {
 	return c.scale == [4]float32{1, 1, 1, 1}
 }
 
@@ -116,7 +115,7 @@ func (c ColorMIdentity) ScaleOnly() bool {
 	return true
 }
 
-func (c *colorMImplScale) ScaleOnly() bool {
+func (c colorMImplScale) ScaleOnly() bool {
 	return true
 }
 
@@ -169,7 +168,7 @@ func (c ColorMIdentity) UnsafeScaleElements() *[4]float32 {
 	return &[...]float32{1, 1, 1, 1}
 }
 
-func (c *colorMImplScale) UnsafeScaleElements() *[4]float32 {
+func (c colorMImplScale) UnsafeScaleElements() *[4]float32 {
 	return &c.scale
 }
 
@@ -200,7 +199,7 @@ func (c ColorMIdentity) Apply(clr color.Color) color.Color {
 	}
 }
 
-func (c *colorMImplScale) Apply(clr color.Color) color.Color {
+func (c colorMImplScale) Apply(clr color.Color) color.Color {
 	rf, gf, bf, af := colorToFloat32s(clr)
 	rf *= c.scale[0]
 	gf *= c.scale[1]
@@ -242,7 +241,7 @@ func (c ColorMIdentity) UnsafeElements() (*[16]float32, *[4]float32) {
 	return &colorMIdentityBody, &colorMIdentityTranslate
 }
 
-func (c *colorMImplScale) UnsafeElements() (*[16]float32, *[4]float32) {
+func (c colorMImplScale) UnsafeElements() (*[16]float32, *[4]float32) {
 	return &[...]float32{
 		c.scale[0], 0, 0, 0,
 		0, c.scale[1], 0, 0,
@@ -290,7 +289,7 @@ func (c ColorMIdentity) IsInvertible() bool {
 	return true
 }
 
-func (c *colorMImplScale) IsInvertible() bool {
+func (c colorMImplScale) IsInvertible() bool {
 	return c.scale[0] != 0 && c.scale[1] != 0 && c.scale[2] != 0 && c.scale[3] != 0
 }
 
@@ -302,8 +301,8 @@ func (c ColorMIdentity) Invert() ColorM {
 	return c
 }
 
-func (c *colorMImplScale) Invert() ColorM {
-	return &colorMImplScale{
+func (c colorMImplScale) Invert() ColorM {
+	return colorMImplScale{
 		scale: [4]float32{
 			1 / c.scale[0],
 			1 / c.scale[1],
@@ -449,7 +448,7 @@ func (c ColorMIdentity) Equals(other ColorM) bool {
 	return other.IsIdentity()
 }
 
-func (c *colorMImplScale) Equals(other ColorM) bool {
+func (c colorMImplScale) Equals(other ColorM) bool {
 	if !other.ScaleOnly() {
 		return false
 	}
@@ -472,7 +471,7 @@ func (c ColorMIdentity) Concat(other ColorM) ColorM {
 	return other
 }
 
-func (c *colorMImplScale) Concat(other ColorM) ColorM {
+func (c colorMImplScale) Concat(other ColorM) ColorM {
 	if other.IsIdentity() {
 		return c
 	}
@@ -518,11 +517,13 @@ func (c *colorMImplBodyTranslate) Concat(other ColorM) ColorM {
 }
 
 func (c ColorMIdentity) Scale(r, g, b, a float32) ColorM {
-	return getCachedScalingColorM(r, g, b, a)
+	return colorMImplScale{
+		scale: [...]float32{r, g, b, a},
+	}
 }
 
-func (c *colorMImplScale) Scale(r, g, b, a float32) ColorM {
-	return &colorMImplScale{
+func (c colorMImplScale) Scale(r, g, b, a float32) ColorM {
+	return colorMImplScale{
 		scale: [...]float32{
 			c.scale[0] * r,
 			c.scale[1] * g,
@@ -535,7 +536,9 @@ func (c *colorMImplScale) Scale(r, g, b, a float32) ColorM {
 func (c *colorMImplBodyTranslate) Scale(r, g, b, a float32) ColorM {
 	if c.ScaleOnly() {
 		s := c.UnsafeScaleElements()
-		return getCachedScalingColorM(r*s[0], g*s[1], b*s[2], a*s[3])
+		return colorMImplScale{
+			scale: [...]float32{r * s[0], g * s[1], b * s[2], a * s[3]},
+		}
 	}
 
 	eb := c.body
@@ -566,7 +569,7 @@ func (c ColorMIdentity) Translate(r, g, b, a float32) ColorM {
 	}
 }
 
-func (c *colorMImplScale) Translate(r, g, b, a float32) ColorM {
+func (c colorMImplScale) Translate(r, g, b, a float32) ColorM {
 	return &colorMImplBodyTranslate{
 		body: [...]float32{
 			c.scale[0], 0, 0, 0,
@@ -646,49 +649,4 @@ type cachedScalingColorMKey struct {
 type cachedScalingColorMValue struct {
 	c     *colorMImplScale
 	atime uint64
-}
-
-var (
-	cachedScalingColorM  = map[cachedScalingColorMKey]*cachedScalingColorMValue{}
-	cachedScalingColorMM sync.Mutex
-	cacheMonotonicClock  uint64
-)
-
-func getCachedScalingColorM(r, g, b, a float32) ColorM {
-	key := cachedScalingColorMKey{r, g, b, a}
-
-	cachedScalingColorMM.Lock()
-	defer cachedScalingColorMM.Unlock()
-
-	cacheMonotonicClock++
-	now := cacheMonotonicClock
-
-	if v, ok := cachedScalingColorM[key]; ok {
-		v.atime = now
-		return v.c
-	}
-
-	const maxCacheSize = 512 // An arbitrary number
-
-	for len(cachedScalingColorM) >= maxCacheSize {
-		var oldest uint64 = math.MaxUint64
-		var oldestKey cachedScalingColorMKey
-		for k, v := range cachedScalingColorM {
-			if v.atime < oldest {
-				oldestKey = k
-				oldest = v.atime
-			}
-		}
-		delete(cachedScalingColorM, oldestKey)
-	}
-
-	v := &cachedScalingColorMValue{
-		c: &colorMImplScale{
-			scale: [...]float32{r, g, b, a},
-		},
-		atime: now,
-	}
-	cachedScalingColorM[key] = v
-
-	return v.c
 }
