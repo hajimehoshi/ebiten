@@ -22,14 +22,20 @@ import (
 	"image/draw"
 	_ "image/png"
 	"math"
+	"math/rand"
 	"runtime"
 	"testing"
+	"time"
 
 	. "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	t "github.com/hajimehoshi/ebiten/v2/internal/testing"
 )
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 func skipTooSlowTests(t *testing.T) bool {
 	if testing.Short() {
@@ -2403,5 +2409,17 @@ func TestImageEvenOdd(t *testing.T) {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}
+	}
+}
+
+// #1658
+func BenchmarkColorMScale(b *testing.B) {
+	r := rand.Float64
+	dst := NewImage(16, 16)
+	src := NewImage(16, 16)
+	for n := 0; n < b.N; n++ {
+		op := &DrawImageOptions{}
+		op.ColorM.Scale(r(), r(), r(), r())
+		dst.DrawImage(src, op)
 	}
 }
