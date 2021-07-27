@@ -3,7 +3,7 @@ module github.com/hajimehoshi/ebiten/v2
 go 1.15
 
 require (
-	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20210715014612-ab6297867137
+	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20210727001814-0db043d8d5be
 	github.com/gofrs/flock v0.8.0
 	github.com/hajimehoshi/bitmapfont/v2 v2.1.3
 	github.com/hajimehoshi/file2byteslice v0.0.0-20200812174855-0e5e8a80490e
