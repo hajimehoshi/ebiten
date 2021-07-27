@@ -61,7 +61,9 @@ func drawGlyph(dst *ebiten.Image, face font.Face, r rune, img *ebiten.Image, dx,
 	}
 	op2.GeoM.Reset()
 	op2.GeoM.Translate(float64((dx+b.Min.X)>>6), float64((dy+b.Min.Y)>>6))
-	op2.GeoM.Concat(op.GeoM)
+	if op != nil {
+		op2.GeoM.Concat(op.GeoM)
+	}
 	dst.DrawImage(img, op2)
 }
 
