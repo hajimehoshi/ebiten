@@ -17,7 +17,6 @@ package driver
 import (
 	"errors"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
@@ -33,6 +32,11 @@ const (
 	InvalidImageID  = 0
 	InvalidShaderID = 0
 )
+
+type ColorM interface {
+	IsIdentity() bool
+	UnsafeElements() (*[16]float32, *[4]float32)
+}
 
 type Graphics interface {
 	Begin()
@@ -58,7 +62,7 @@ type Graphics interface {
 	//
 	//   * float32
 	//   * []float32
-	DrawTriangles(dst ImageID, srcs [graphics.ShaderImageNum]ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader ShaderID, indexLen int, indexOffset int, mode CompositeMode, colorM affine.ColorM, filter Filter, address Address, dstRegion, srcRegion Region, uniforms []interface{}, evenOdd bool) error
+	DrawTriangles(dst ImageID, srcs [graphics.ShaderImageNum]ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader ShaderID, indexLen int, indexOffset int, mode CompositeMode, colorM ColorM, filter Filter, address Address, dstRegion, srcRegion Region, uniforms []interface{}, evenOdd bool) error
 }
 
 // GraphicsNotReady represents that the graphics driver is not ready for recovering from the context lost.

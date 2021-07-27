@@ -17,7 +17,6 @@ package opengl
 import (
 	"fmt"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -146,7 +145,7 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) {
 	g.context.elementArrayBufferSubData(indices)
 }
 
-func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM affine.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, uniforms []interface{}, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM driver.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, uniforms []interface{}, evenOdd bool) error {
 	destination := g.images[dstID]
 
 	g.drawCalled = true
