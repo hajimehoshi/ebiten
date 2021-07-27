@@ -20,6 +20,7 @@ package main
 import (
 	"image/color"
 	"log"
+	"math"
 	"math/rand"
 	"time"
 
@@ -98,6 +99,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		b := text.BoundString(mplusBigFont, sampleText)
 		ebitenutil.DrawRect(screen, float64(b.Min.X+x), float64(b.Min.Y+y), float64(b.Dx()), float64(b.Dy()), gray)
 		text.Draw(screen, sampleText, mplusBigFont, x, y, color.White)
+	}
+	{
+		const x, y = 20, 240
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Rotate(math.Pi / 4)
+		op.GeoM.Translate(x, y)
+		op.Filter = ebiten.FilterLinear
+		text.DrawWithOptions(screen, sampleText, mplusNormalFont, op)
 	}
 }
 
