@@ -32,42 +32,49 @@ const ColorMDim = affine.ColorMDim
 //
 // The initial value is identity.
 type ColorM struct {
-	impl *affine.ColorM
+	impl affine.ColorM
 
 	_ [0]func() // Marks as non-comparable.
 }
 
+func (c *ColorM) affineColorM() affine.ColorM {
+	if c.impl != nil {
+		return c.impl
+	}
+	return affine.ColorMIdentity{}
+}
+
 // String returns a string representation of ColorM.
 func (c *ColorM) String() string {
-	return c.impl.String()
+	return affine.ColorMString(c.affineColorM())
 }
 
 // Reset resets the ColorM as identity.
 func (c *ColorM) Reset() {
-	c.impl = nil
+	c.impl = affine.ColorMIdentity{}
 }
 
 // Apply pre-multiplies a vector (r, g, b, a, 1) by the matrix
 // where r, g, b, and a are clr's values in straight-alpha format.
 // In other words, Apply calculates ColorM * (r, g, b, a, 1)^T.
 func (c *ColorM) Apply(clr color.Color) color.Color {
-	return c.impl.Apply(clr)
+	return c.affineColorM().Apply(clr)
 }
 
 // Concat multiplies a color matrix with the other color matrix.
 // This is same as muptiplying the matrix other and the matrix c in this order.
 func (c *ColorM) Concat(other ColorM) {
-	c.impl = c.impl.Concat(other.impl)
+	c.impl = c.affineColorM().Concat(other.impl)
 }
 
 // Scale scales the matrix by (r, g, b, a).
 func (c *ColorM) Scale(r, g, b, a float64) {
-	c.impl = c.impl.Scale(float32(r), float32(g), float32(b), float32(a))
+	c.impl = c.affineColorM().Scale(float32(r), float32(g), float32(b), float32(a))
 }
 
 // Translate translates the matrix by (r, g, b, a).
 func (c *ColorM) Translate(r, g, b, a float64) {
-	c.impl = c.impl.Translate(float32(r), float32(g), float32(b), float32(a))
+	c.impl = c.affineColorM().Translate(float32(r), float32(g), float32(b), float32(a))
 }
 
 // RotateHue rotates the hue.
@@ -83,27 +90,27 @@ func (c *ColorM) RotateHue(theta float64) {
 //
 // This conversion uses RGB to/from YCrCb conversion.
 func (c *ColorM) ChangeHSV(hueTheta float64, saturationScale float64, valueScale float64) {
-	c.impl = c.impl.ChangeHSV(hueTheta, float32(saturationScale), float32(valueScale))
+	c.impl = affine.ChangeHSV(c.affineColorM(), hueTheta, float32(saturationScale), float32(valueScale))
 }
 
 // Element returns a value of a matrix at (i, j).
 func (c *ColorM) Element(i, j int) float64 {
-	return float64(c.impl.Element(i, j))
+	return float64(affine.ColorMElement(c.affineColorM(), i, j))
 }
 
 // SetElement sets an element at (i, j).
 func (c *ColorM) SetElement(i, j int, element float64) {
-	c.impl = c.impl.SetElement(i, j, float32(element))
+	c.impl = affine.ColorMSetElement(c.affineColorM(), i, j, float32(element))
 }
 
 // IsInvertible returns a boolean value indicating
 // whether the matrix c is invertible or not.
 func (c *ColorM) IsInvertible() bool {
-	return c.impl.IsInvertible()
+	return c.affineColorM().IsInvertible()
 }
 
 // Invert inverts the matrix.
 // If c is not invertible, Invert panics.
 func (c *ColorM) Invert() {
-	c.impl = c.impl.Invert()
+	c.impl = c.affineColorM().Invert()
 }

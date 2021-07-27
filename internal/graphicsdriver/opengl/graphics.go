@@ -146,7 +146,7 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) {
 	g.context.elementArrayBufferSubData(indices)
 }
 
-func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, uniforms []interface{}, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM affine.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, uniforms []interface{}, evenOdd bool) error {
 	destination := g.images[dstID]
 
 	g.drawCalled = true
@@ -166,7 +166,7 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 	var uniformVars []uniformVariable
 	if shaderID == driver.InvalidShaderID {
 		program = g.state.programs[programKey{
-			useColorM: colorM != nil,
+			useColorM: !colorM.IsIdentity(),
 			filter:    filter,
 			address:   address,
 		}]
@@ -187,7 +187,7 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 			typ: shaderir.Type{Main: shaderir.Vec4},
 		})
 
-		if colorM != nil {
+		if !colorM.IsIdentity() {
 			// ColorM's elements are immutable. It's OK to hold the reference without copying.
 			esBody, esTranslate := colorM.UnsafeElements()
 			uniformVars = append(uniformVars, uniformVariable{

@@ -18,6 +18,7 @@ import (
 	"image/color"
 	"testing"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	. "github.com/hajimehoshi/ebiten/v2/internal/restorable"
@@ -48,7 +49,7 @@ func clearImage(img *Image, w, h int) {
 		Width:  float32(w),
 		Height: float32(h),
 	}
-	img.DrawTriangles([graphics.ShaderImageNum]*Image{emptyImage}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil, false)
+	img.DrawTriangles([graphics.ShaderImageNum]*Image{emptyImage}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil, false)
 }
 
 func TestShader(t *testing.T) {

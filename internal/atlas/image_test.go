@@ -19,6 +19,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	. "github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -102,7 +103,7 @@ func TestEnsureIsolated(t *testing.T) {
 		Width:  size,
 		Height: size,
 	}
-	img4.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+	img4.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 	want := false
 	if got := img4.IsOnAtlasForTesting(); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
@@ -132,7 +133,7 @@ func TestEnsureIsolated(t *testing.T) {
 
 	// Check further drawing doesn't cause panic.
 	// This bug was fixed by 03dcd948.
-	img4.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+	img4.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 }
 
 func TestReputOnAtlas(t *testing.T) {
@@ -179,7 +180,7 @@ func TestReputOnAtlas(t *testing.T) {
 		Width:  size,
 		Height: size,
 	}
-	img1.DrawTriangles([graphics.ShaderImageNum]*Image{img2}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+	img1.DrawTriangles([graphics.ShaderImageNum]*Image{img2}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 	if got, want := img1.IsOnAtlasForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -191,7 +192,7 @@ func TestReputOnAtlas(t *testing.T) {
 		if err := PutImagesOnAtlasForTesting(); err != nil {
 			t.Fatal(err)
 		}
-		img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+		img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 		if got, want := img1.IsOnAtlasForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
@@ -219,7 +220,7 @@ func TestReputOnAtlas(t *testing.T) {
 	}
 
 	// img1 is on an atlas again.
-	img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+	img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 	if got, want := img1.IsOnAtlasForTesting(), true; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -243,7 +244,7 @@ func TestReputOnAtlas(t *testing.T) {
 	}
 
 	// Use img1 as a render target again.
-	img1.DrawTriangles([graphics.ShaderImageNum]*Image{img2}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+	img1.DrawTriangles([graphics.ShaderImageNum]*Image{img2}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 	if got, want := img1.IsOnAtlasForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -255,7 +256,7 @@ func TestReputOnAtlas(t *testing.T) {
 			t.Fatal(err)
 		}
 		img1.ReplacePixels(make([]byte, 4*size*size))
-		img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+		img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 		if got, want := img1.IsOnAtlasForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
@@ -265,7 +266,7 @@ func TestReputOnAtlas(t *testing.T) {
 	}
 
 	// img1 is not on an atlas due to ReplacePixels.
-	img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+	img0.DrawTriangles([graphics.ShaderImageNum]*Image{img1}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 	if got, want := img1.IsOnAtlasForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -275,7 +276,7 @@ func TestReputOnAtlas(t *testing.T) {
 		if err := PutImagesOnAtlasForTesting(); err != nil {
 			t.Fatal(err)
 		}
-		img0.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+		img0.DrawTriangles([graphics.ShaderImageNum]*Image{img3}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 		if got, want := img3.IsOnAtlasForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
@@ -375,7 +376,7 @@ func TestReplacePixelsAfterDrawTriangles(t *testing.T) {
 		Width:  w,
 		Height: h,
 	}
-	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 	dst.ReplacePixels(pix)
 
 	pix, err := dst.Pixels(0, 0, w, h)
@@ -423,7 +424,7 @@ func TestSmallImages(t *testing.T) {
 		Width:  w,
 		Height: h,
 	}
-	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 
 	pix, err := dst.Pixels(0, 0, w, h)
 	if err != nil {
@@ -471,7 +472,7 @@ func TestLongImages(t *testing.T) {
 		Width:  dstW,
 		Height: dstH,
 	}
-	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 
 	pix, err := dst.Pixels(0, 0, dstW, dstH)
 	if err != nil {
@@ -559,7 +560,7 @@ func TestDisposedAndReputOnAtlas(t *testing.T) {
 		Width:  size,
 		Height: size,
 	}
-	src.DrawTriangles([graphics.ShaderImageNum]*Image{src2}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+	src.DrawTriangles([graphics.ShaderImageNum]*Image{src2}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 	if got, want := src.IsOnAtlasForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -569,7 +570,7 @@ func TestDisposedAndReputOnAtlas(t *testing.T) {
 		if err := PutImagesOnAtlasForTesting(); err != nil {
 			t.Fatal(err)
 		}
-		dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+		dst.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 		if got, want := src.IsOnAtlasForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
@@ -609,7 +610,7 @@ func TestImageIsNotReputOnAtlasWithoutUsingAsSource(t *testing.T) {
 	}
 
 	// Use src2 as a rendering target, and make src2 an independent image.
-	src2.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+	src2.DrawTriangles([graphics.ShaderImageNum]*Image{src}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 	if got, want := src2.IsOnAtlasForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -630,7 +631,7 @@ func TestImageIsNotReputOnAtlasWithoutUsingAsSource(t *testing.T) {
 		if err := PutImagesOnAtlasForTesting(); err != nil {
 			t.Fatal(err)
 		}
-		dst.DrawTriangles([graphics.ShaderImageNum]*Image{src2}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+		dst.DrawTriangles([graphics.ShaderImageNum]*Image{src2}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 		if got, want := src2.IsOnAtlasForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
