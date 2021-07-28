@@ -1,0 +1,28 @@
+name: steam
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: Test with Steam Runtime
+    runs-on: ubuntu-latest
+    env:
+      DISPLAY: ':99.0'
+      STEAM_RUNTIME_VERSION: '0.20210630.0'
+      GO_VERSION: '1.16.6'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Docker build
+        run: |
+          curl -L --output com.valvesoftware.SteamRuntime.Sdk-amd64,i386-scout-sysroot.Dockerfile https://repo.steampowered.com/steamrt-images-scout/snapshots/${STEAM_RUNTIME_VERSION}/com.valvesoftware.SteamRuntime.Sdk-amd64,i386-scout-sysroot.Dockerfile
+          curl -L --output com.valvesoftware.SteamRuntime.Sdk-amd64,i386-scout-sysroot.tar.gz https://repo.steampowered.com/steamrt-images-scout/snapshots/${STEAM_RUNTIME_VERSION}/com.valvesoftware.SteamRuntime.Sdk-amd64,i386-scout-sysroot.tar.gz
+          docker build -f com.valvesoftware.SteamRuntime.Sdk-amd64,i386-scout-sysroot.Dockerfile -t steamrt_scout_amd64:latest .
+
+      - name: Docker run
+        run: |
+          docker run --rm --workdir=/work --volume $(pwd):/work steamrt_scout_amd64:latest /bin/sh .github/workflows/steam.sh ${GO_VERSION}
