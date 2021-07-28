@@ -21,6 +21,7 @@ package ebitenutil
 
 import (
 	"image"
+	"io"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -42,7 +43,15 @@ func NewImageFromFile(path string) (*ebiten.Image, image.Image, error) {
 	defer func() {
 		_ = file.Close()
 	}()
-	img, _, err := image.Decode(file)
+	return NewImageFromReader(file)
+}
+
+// NewImageFromReader loads from the io.Reader and returns ebiten.Image and image.Image.
+//
+// Image decoders must be imported when using NewImageFromReader. For example,
+// if you want to load a PNG image, you'd need to add `_ "image/png"` to the import section.
+func NewImageFromReader(reader io.Reader) (*ebiten.Image, image.Image, error) {
+	img, _, err := image.Decode(reader)
 	if err != nil {
 		return nil, nil, err
 	}
