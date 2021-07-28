@@ -33,6 +33,9 @@ import (
 	t "github.com/hajimehoshi/ebiten/v2/internal/testing"
 )
 
+// maxImageSize is a maximum image size that should work in almost every environment.
+const maxImageSize = 4096 - 2
+
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
@@ -801,7 +804,7 @@ func TestImageStretch(t *testing.T) {
 
 	const w = 16
 
-	dst := NewImage(w, 4096)
+	dst := NewImage(w, maxImageSize)
 loop:
 	for h := 1; h <= 32; h++ {
 		src := NewImage(w+2, h+2)
@@ -2159,7 +2162,7 @@ func TestImageDrawImageTooSmallScale(t *testing.T) {
 // Issue #1399
 func TestImageDrawImageCannotAllocateImageForMipmap(t *testing.T) {
 	dst := NewImage(1, 1)
-	src := NewImage(4096, 4096)
+	src := NewImage(maxImageSize, maxImageSize)
 
 	op := &DrawImageOptions{}
 	op.GeoM.Scale(64, 64)
