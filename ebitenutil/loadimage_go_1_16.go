@@ -12,10 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build (darwin || freebsd || js || linux || windows) && !android && !ios && go1.16
-// +build darwin freebsd js linux windows
-// +build !android
-// +build !ios
+//go:build (darwin || freebsd || js || linux || windows || android || ios) && go1.16
+// +build darwin freebsd js linux windows android ios
 // +build go1.16
 
 package ebitenutil
@@ -43,5 +41,10 @@ func NewImageFromFS(filesystem fs.FS, path string) (*ebiten.Image, image.Image, 
 	defer func() {
 		_ = file.Close()
 	}()
-	return NewImageFromReader(file)
+	img, _, err := image.Decode(file)
+	if err != nil {
+		return nil, nil, err
+	}
+	img2 := ebiten.NewImageFromImage(img)
+	return img2, img, err
 }
