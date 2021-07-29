@@ -51,8 +51,9 @@ jobs:
         run: |
           local_ebiten=$(pwd)
           cd /tmp
-          git clone --depth=1 https://github.com/hajimehoshi/go-inovation
+          git clone https://github.com/hajimehoshi/go-inovation
           cd go-inovation
+          git switch -d f3826c0f9353590df19c61b79f38cd7272837022
           go mod edit -replace=github.com/hajimehoshi/ebiten/v2=$local_ebiten
           go mod tidy
 
