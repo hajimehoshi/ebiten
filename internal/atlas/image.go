@@ -685,7 +685,7 @@ func (i *Image) DumpScreenshot(path string, blackbg bool) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
-	return i.backend.restorable.Dump(path, blackbg, image.Rect(paddingSize, paddingSize, i.width-2*paddingSize, i.height-2*paddingSize))
+	return i.backend.restorable.Dump(path, blackbg, image.Rect(paddingSize, paddingSize, paddingSize+i.width, paddingSize+i.height))
 }
 
 func NewScreenFramebufferImage(width, height int) *Image {
