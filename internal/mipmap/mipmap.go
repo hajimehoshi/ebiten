@@ -69,8 +69,8 @@ func (m *Mipmap) SetVolatile(volatile bool) {
 	m.orig.SetVolatile(volatile)
 }
 
-func (m *Mipmap) Dump(name string, blackbg bool) error {
-	return m.orig.Dump(name, blackbg)
+func (m *Mipmap) DumpScreenshot(name string, blackbg bool) error {
+	return m.orig.DumpScreenshot(name, blackbg)
 }
 
 func (m *Mipmap) ReplacePixels(pix []byte, x, y, width, height int) error {

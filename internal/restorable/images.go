@@ -15,6 +15,7 @@
 package restorable
 
 import (
+	"image"
 	"path/filepath"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
@@ -115,7 +116,7 @@ func RestoreIfNeeded() error {
 // This is for testing usage.
 func DumpImages(dir string) error {
 	for img := range theImages.images {
-		if err := img.Dump(filepath.Join(dir, "*.png"), false); err != nil {
+		if err := img.Dump(filepath.Join(dir, "*.png"), false, image.Rect(0, 0, img.width, img.height)); err != nil {
 			return err
 		}
 	}
