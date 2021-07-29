@@ -16,6 +16,7 @@ package atlas
 
 import (
 	"fmt"
+	"image"
 	"runtime"
 	"sync"
 
@@ -725,11 +726,11 @@ func (i *Image) allocate(putOnAtlas bool) {
 	i.node = n
 }
 
-func (i *Image) Dump(path string, blackbg bool) error {
+func (i *Image) DumpScreenshot(path string, blackbg bool) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
-	return i.backend.restorable.Dump(path, blackbg)
+	return i.backend.restorable.Dump(path, blackbg, image.Rect(paddingSize, paddingSize, i.width-2*paddingSize, i.height-2*paddingSize))
 }
 
 func NewScreenFramebufferImage(width, height int) *Image {

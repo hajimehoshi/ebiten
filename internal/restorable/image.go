@@ -16,6 +16,7 @@ package restorable
 
 import (
 	"fmt"
+	"image"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
@@ -648,6 +649,6 @@ func (i *Image) isInvalidated() (bool, error) {
 	return i.image.IsInvalidated(), nil
 }
 
-func (i *Image) Dump(path string, blackbg bool) error {
-	return i.image.Dump(path, blackbg)
+func (i *Image) Dump(path string, blackbg bool, rect image.Rectangle) error {
+	return i.image.Dump(path, blackbg, rect)
 }

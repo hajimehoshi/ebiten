@@ -149,9 +149,9 @@ func (img *Image) Pixels(x, y, width, height int) (pix []byte, err error) {
 	return pix, nil
 }
 
-func (i *Image) Dump(name string, blackbg bool) error {
+func (i *Image) DumpScreenshot(name string, blackbg bool) error {
 	checkDelayedCommandsFlushed("Dump")
-	return i.img.Dump(name, blackbg)
+	return i.img.DumpScreenshot(name, blackbg)
 }
 
 func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {

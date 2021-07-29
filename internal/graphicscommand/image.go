@@ -207,7 +207,7 @@ func (i *Image) IsInvalidated() bool {
 // If blackbg is true, any alpha values in the dumped image will be 255.
 //
 // This is for testing usage.
-func (i *Image) Dump(path string, blackbg bool) error {
+func (i *Image) Dump(path string, blackbg bool, rect image.Rectangle) error {
 	// Screen image cannot be dumped.
 	if i.screen {
 		return nil
@@ -231,11 +231,11 @@ func (i *Image) Dump(path string, blackbg bool) error {
 		}
 	}
 
-	if err := png.Encode(f, &image.RGBA{
+	if err := png.Encode(f, (&image.RGBA{
 		Pix:    pix,
 		Stride: 4 * i.width,
 		Rect:   image.Rect(0, 0, i.width, i.height),
-	}); err != nil {
+	}).SubImage(rect)); err != nil {
 		return err
 	}
 	return nil
