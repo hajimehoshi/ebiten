@@ -22,6 +22,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
 )
 
-func glslVersion() glsl.GLSLVersion {
+func (c *context) glslVersion() glsl.GLSLVersion {
 	return glsl.GLSLVersionDefault
 }
