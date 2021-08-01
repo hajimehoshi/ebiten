@@ -87,16 +87,31 @@ const (
 	dstColor         = operation(gles.DST_COLOR)
 )
 
+type webGLVersion int
+
+const (
+	webGLVersionUnknown webGLVersion = iota
+	webGLVersion1
+	webGLVersion2
+)
+
 var (
-	isWebGL2Available = !forceWebGL1 && (js.Global().Get("WebGL2RenderingContext").Truthy() || js.Global().Get("go2cpp").Truthy())
+	webGL2MightBeAvailable = !forceWebGL1 && (js.Global().Get("WebGL2RenderingContext").Truthy() || js.Global().Get("go2cpp").Truthy())
 )
 
 type contextImpl struct {
 	gl            *gl
 	lastProgramID programID
+	webGLVersion  webGLVersion
+}
+
+func (c *context) usesWebGL2() bool {
+	return c.webGLVersion == webGLVersion2
 }
 
 func (c *context) initGL() {
+	c.webGLVersion = webGLVersionUnknown
+
 	var gl js.Value
 
 	// TODO: Define id?
@@ -107,22 +122,33 @@ func (c *context) initGL() {
 		attr.Set("premultipliedAlpha", true)
 		attr.Set("stencil", true)
 
-		if isWebGL2Available {
+		if webGL2MightBeAvailable {
 			gl = canvas.Call("getContext", "webgl2", attr)
-		} else {
+			if gl.Truthy() {
+				c.webGLVersion = webGLVersion2
+			}
+		}
+
+		// Even though WebGL2RenderingContext exists, getting a webgl2 context might fail (#1738).
+		if !gl.Truthy() {
 			gl = canvas.Call("getContext", "webgl", attr)
 			if !gl.Truthy() {
 				gl = canvas.Call("getContext", "experimental-webgl", attr)
-				if !gl.Truthy() {
-					panic("opengl: getContext failed")
-				}
 			}
+			if gl.Truthy() {
+				c.webGLVersion = webGLVersion1
+			}
+		}
+
+		if !gl.Truthy() {
+			panic("opengl: getContext failed")
 		}
 	} else if go2cpp := js.Global().Get("go2cpp"); go2cpp.Truthy() {
 		gl = go2cpp.Get("gl")
+		c.webGLVersion = webGLVersion2
 	}
 
-	c.gl = newGL(gl)
+	c.gl = c.newGL(gl)
 }
 
 func (c *context) reset() error {
@@ -145,7 +171,7 @@ func (c *context) reset() error {
 	f := gl.getParameter.Invoke(gles.FRAMEBUFFER_BINDING)
 	c.screenFramebuffer = framebufferNative(f)
 
-	if !isWebGL2Available {
+	if !c.usesWebGL2() {
 		gl.getExtension.Invoke("OES_standard_derivatives")
 	}
 	return nil
@@ -435,43 +461,43 @@ func (c *context) uniformFloats(p program, location string, v []float32, typ sha
 
 	switch base {
 	case shaderir.Float:
-		if isWebGL2Available {
+		if c.usesWebGL2() {
 			gl.uniform1fv.Invoke(js.Value(l), arr, 0, len(v))
 		} else {
 			gl.uniform1fv.Invoke(js.Value(l), arr.Call("subarray", 0, len(v)))
 		}
 	case shaderir.Vec2:
-		if isWebGL2Available {
+		if c.usesWebGL2() {
 			gl.uniform2fv.Invoke(js.Value(l), arr, 0, len(v))
 		} else {
 			gl.uniform2fv.Invoke(js.Value(l), arr.Call("subarray", 0, len(v)))
 		}
 	case shaderir.Vec3:
-		if isWebGL2Available {
+		if c.usesWebGL2() {
 			gl.uniform3fv.Invoke(js.Value(l), arr, 0, len(v))
 		} else {
 			gl.uniform3fv.Invoke(js.Value(l), arr.Call("subarray", 0, len(v)))
 		}
 	case shaderir.Vec4:
-		if isWebGL2Available {
+		if c.usesWebGL2() {
 			gl.uniform4fv.Invoke(js.Value(l), arr, 0, len(v))
 		} else {
 			gl.uniform4fv.Invoke(js.Value(l), arr.Call("subarray", 0, len(v)))
 		}
 	case shaderir.Mat2:
-		if isWebGL2Available {
+		if c.usesWebGL2() {
 			gl.uniformMatrix2fv.Invoke(js.Value(l), false, arr, 0, len(v))
 		} else {
 			gl.uniformMatrix2fv.Invoke(js.Value(l), false, arr.Call("subarray", 0, len(v)))
 		}
 	case shaderir.Mat3:
-		if isWebGL2Available {
+		if c.usesWebGL2() {
 			gl.uniformMatrix3fv.Invoke(js.Value(l), false, arr, 0, len(v))
 		} else {
 			gl.uniformMatrix3fv.Invoke(js.Value(l), false, arr.Call("subarray", 0, len(v)))
 		}
 	case shaderir.Mat4:
-		if isWebGL2Available {
+		if c.usesWebGL2() {
 			gl.uniformMatrix4fv.Invoke(js.Value(l), false, arr, 0, len(v))
 		} else {
 			gl.uniformMatrix4fv.Invoke(js.Value(l), false, arr.Call("subarray", 0, len(v)))
@@ -528,7 +554,7 @@ func (c *context) arrayBufferSubData(data []float32) {
 	gl := c.gl
 	l := len(data) * 4
 	arr := jsutil.TemporaryUint8Array(l, data)
-	if isWebGL2Available {
+	if c.usesWebGL2() {
 		gl.bufferSubData.Invoke(gles.ARRAY_BUFFER, 0, arr, 0, l)
 	} else {
 		gl.bufferSubData.Invoke(gles.ARRAY_BUFFER, 0, arr.Call("subarray", 0, l))
@@ -539,7 +565,7 @@ func (c *context) elementArrayBufferSubData(data []uint16) {
 	gl := c.gl
 	l := len(data) * 2
 	arr := jsutil.TemporaryUint8Array(l, data)
-	if isWebGL2Available {
+	if c.usesWebGL2() {
 		gl.bufferSubData.Invoke(gles.ELEMENT_ARRAY_BUFFER, 0, arr, 0, l)
 	} else {
 		gl.bufferSubData.Invoke(gles.ELEMENT_ARRAY_BUFFER, 0, arr.Call("subarray", 0, l))
@@ -585,7 +611,7 @@ func (c *context) texSubImage2D(t textureNative, args []*driver.ReplacePixelsArg
 	gl := c.gl
 	for _, a := range args {
 		arr := jsutil.TemporaryUint8Array(len(a.Pixels), a.Pixels)
-		if isWebGL2Available {
+		if c.usesWebGL2() {
 			// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
 			//                    GLsizei width, GLsizei height,
 			//                    GLenum format, GLenum type, ArrayBufferView pixels, srcOffset);

@@ -93,7 +93,7 @@ type gl struct {
 	viewport                 js.Value
 }
 
-func newGL(v js.Value) *gl {
+func (c *context) newGL(v js.Value) *gl {
 	// Passing a Go string to the JS world is expensive. This causes conversion to UTF-16 (#1438).
 	// In order to reduce the cost when calling functions, create the function objects by bind and use them.
 	g := &gl{
@@ -168,7 +168,7 @@ func newGL(v js.Value) *gl {
 		vertexAttribPointer:      v.Get("vertexAttribPointer").Call("bind", v),
 		viewport:                 v.Get("viewport").Call("bind", v),
 	}
-	if isWebGL2Available {
+	if c.usesWebGL2() {
 		g.getExtension = v.Get("getBufferSubData").Call("bind", v)
 	} else {
 		g.getExtension = v.Get("getExtension").Call("bind", v)
