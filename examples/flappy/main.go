@@ -175,7 +175,9 @@ func (g *Game) init() {
 		g.pipeTileYs[i] = rand.Intn(6) + 2
 	}
 
-	g.audioContext = audio.NewContext(48000)
+	if g.audioContext == nil {
+		g.audioContext = audio.NewContext(48000)
+	}
 
 	jumpD, err := vorbis.Decode(g.audioContext, bytes.NewReader(raudio.Jump_ogg))
 	if err != nil {
