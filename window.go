@@ -75,7 +75,9 @@ func IsWindowResizable() bool {
 //
 // SetWindowResizable is concurrent-safe.
 func SetWindowResizable(resizable bool) {
-	theUIContext.setWindowResizable(resizable)
+	if w := uiDriver().Window(); w != nil {
+		w.SetResizable(resizable)
+	}
 }
 
 // SetWindowTitle sets the title of the window.

@@ -110,15 +110,6 @@ func (c *uiContext) setScreenClearedEveryFrame(cleared bool) {
 	}
 }
 
-func (c *uiContext) setWindowResizable(resizable bool) {
-	c.m.Lock()
-	defer c.m.Unlock()
-
-	if w := uiDriver().Window(); w != nil {
-		w.SetResizable(resizable)
-	}
-}
-
 func (c *uiContext) screenScale(deviceScaleFactor float64) float64 {
 	if c.offscreen == nil {
 		return 0
