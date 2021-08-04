@@ -17,5 +17,7 @@
 
 package debug
 
+const IsDebug = false
+
 func Logf(format string, args ...interface{}) {
 }

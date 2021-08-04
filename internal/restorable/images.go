@@ -18,6 +18,7 @@ import (
 	"image"
 	"path/filepath"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 )
@@ -57,6 +58,15 @@ var theImages = &images{
 //
 // ResolveStaleImages is intended to be called at the end of a frame.
 func ResolveStaleImages() error {
+	if debug.IsDebug {
+		debug.Logf("Internal image sizes:\n")
+		imgs := make([]*graphicscommand.Image, 0, len(theImages.images))
+		for i := range theImages.images {
+			imgs = append(imgs, i.image)
+		}
+		graphicscommand.LogImagesInfo(imgs)
+	}
+
 	if err := graphicscommand.FlushCommands(); err != nil {
 		return err
 	}

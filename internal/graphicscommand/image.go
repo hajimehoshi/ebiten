@@ -18,9 +18,11 @@ import (
 	"fmt"
 	"image"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
+	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/png"
@@ -239,4 +241,14 @@ func (i *Image) Dump(path string, blackbg bool, rect image.Rectangle) error {
 		return err
 	}
 	return nil
+}
+
+func LogImagesInfo(images []*Image) {
+	sort.Slice(images, func(a, b int) bool {
+		return images[a].id < images[b].id
+	})
+	for _, i := range images {
+		w, h := i.InternalSize()
+		debug.Logf("  %d: (%d, %d)\n", i.id, w, h)
+	}
 }

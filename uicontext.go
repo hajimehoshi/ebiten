@@ -160,6 +160,8 @@ func (c *uiContext) update(updateCount int) error {
 		return err
 	}
 
+	debug.Logf("----\n")
+
 	if err := buffered.BeginFrame(); err != nil {
 		return err
 	}
@@ -185,7 +187,7 @@ func (c *uiContext) updateImpl(updateCount int) error {
 		updateCount = 1
 		c.updateCalled = true
 	}
-	debug.Logf("--\nUpdate count per frame: %d\n", updateCount)
+	debug.Logf("Update count per frame: %d\n", updateCount)
 
 	for i := 0; i < updateCount; i++ {
 		if err := hooks.RunBeforeUpdateHooks(); err != nil {

@@ -21,6 +21,8 @@ import (
 	"fmt"
 )
 
+const IsDebug = true
+
 func Logf(format string, args ...interface{}) {
 	fmt.Printf(format, args...)
 }

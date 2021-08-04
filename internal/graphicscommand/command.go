@@ -217,7 +217,7 @@ func (q *commandQueue) flush() error {
 
 	es := q.indices
 	vs := q.vertices
-	debug.Logf("--\nGraphics commands:\n")
+	debug.Logf("Graphics commands:\n")
 
 	if theGraphicsDriver.HasHighPrecisionFloat() {
 		n := q.nvertices / graphics.VertexFloatNum
