@@ -212,6 +212,8 @@ func (g *game) Update() error {
 			fpsMode = ebiten.FPSModeVsyncOffMinimum
 		case ebiten.FPSModeVsyncOffMinimum:
 			fpsMode = ebiten.FPSModeVsyncOn
+			// Reset TPS
+			tps = 60
 		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyT) {
