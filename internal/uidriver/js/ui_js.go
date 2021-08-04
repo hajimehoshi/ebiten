@@ -276,11 +276,11 @@ func (u *UserInterface) updateImpl(force bool) error {
 	u.input.updateForGo2Cpp()
 	u.updateSize()
 	if force {
-		if err := u.context.ForceUpdate(); err != nil {
+		if err := u.context.ForceUpdateFrame(); err != nil {
 			return err
 		}
 	} else {
-		if err := u.context.Update(); err != nil {
+		if err := u.context.UpdateFrame(); err != nil {
 			return err
 		}
 	}

@@ -329,7 +329,7 @@ func (u *UserInterface) update() error {
 		renderEndCh <- struct{}{}
 	}()
 
-	if err := u.context.Update(); err != nil {
+	if err := u.context.UpdateFrame(); err != nil {
 		return err
 	}
 	return nil

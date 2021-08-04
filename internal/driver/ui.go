@@ -20,8 +20,8 @@ import (
 )
 
 type UIContext interface {
-	Update() error
-	ForceUpdate() error
+	UpdateFrame() error
+	ForceUpdateFrame() error
 	Layout(outsideWidth, outsideHeight float64)
 
 	// AdjustPosition can be called from a different goroutine from Update's or Layout's.

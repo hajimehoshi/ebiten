@@ -795,7 +795,7 @@ func (u *UserInterface) registerWindowSetSizeCallback() {
 				if outsideSizeChanged {
 					u.context.Layout(outsideWidth, outsideHeight)
 				}
-				if err := u.context.ForceUpdate(); err != nil {
+				if err := u.context.ForceUpdateFrame(); err != nil {
 					return err
 				}
 				if u.Graphics().IsGL() {
@@ -1033,7 +1033,7 @@ func (u *UserInterface) loop() error {
 			u.context.Layout(outsideWidth, outsideHeight)
 		}
 
-		if err := u.context.Update(); err != nil {
+		if err := u.context.UpdateFrame(); err != nil {
 			return err
 		}
 
@@ -1192,8 +1192,9 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 	u.swapBuffers()
 
 	// Disable the callback of SetSize. This callback can be invoked by SetMonitor or SetSize.
-	// ForceUpdate is called from the callback.
-	// While setWindowSize can be called from Update, calling ForceUpdate inside Update is illegal (#1505).
+	// ForceUpdateFrame is called from the callback.
+	// While setWindowSize can be called from UpdateFrame,
+	// calling ForceUpdateFrame inside UpdateFrame is illegal (#1505).
 	if u.setSizeCallbackEnabled {
 		u.setSizeCallbackEnabled = false
 		defer func() {
