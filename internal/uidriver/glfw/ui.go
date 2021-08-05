@@ -781,6 +781,9 @@ func (u *UserInterface) registerWindowSetSizeCallback() {
 			}
 
 			if err := u.runOnAnotherThreadFromMainThread(func() error {
+				// Disable Vsync temporarily. On macOS, getting a next frame can get stuck (#1740).
+				u.Graphics().SetVsyncEnabled(false)
+
 				var outsideWidth, outsideHeight float64
 				var outsideSizeChanged bool
 
@@ -967,9 +970,12 @@ func (u *UserInterface) update() (float64, float64, bool, error) {
 	// Calling this inside setWindowSize didn't work (#1363).
 	if !u.fpsModeInited {
 		u.fpsMode = u.getInitFPSMode()
-		u.updateVsync()
 		u.fpsModeInited = true
 	}
+
+	// Call updateVsync even though fpsMode is not updated.
+	// The vsync state might be changed in other places (e.g., the SetSizeCallback).
+	u.updateVsync()
 
 	outsideWidth, outsideHeight, outsideSizeChanged := u.updateSize()
 

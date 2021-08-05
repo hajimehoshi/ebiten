@@ -30,6 +30,7 @@ type view struct {
 
 	windowChanged bool
 	vsync         bool
+	vsyncInited   bool
 
 	device mtl.Device
 	ml     ca.MetalLayer
@@ -46,8 +47,12 @@ func (v *view) getMTLDevice() mtl.Device {
 }
 
 func (v *view) setDisplaySyncEnabled(enabled bool) {
+	if v.vsync == enabled && !v.vsyncInited {
+		return
+	}
 	v.ml.SetDisplaySyncEnabled(enabled)
 	v.vsync = enabled
+	v.vsyncInited = true
 }
 
 func (v *view) colorPixelFormat() mtl.PixelFormat {
@@ -75,7 +80,9 @@ func (v *view) reset() error {
 	v.ml.SetMaximumDrawableCount(2)
 
 	// The vsync state might be reset. Set the state again (#1364).
-	v.ml.SetDisplaySyncEnabled(v.vsync)
+	if v.vsyncInited {
+		v.ml.SetDisplaySyncEnabled(v.vsync)
+	}
 	v.ml.SetFramebufferOnly(true)
 
 	return nil
