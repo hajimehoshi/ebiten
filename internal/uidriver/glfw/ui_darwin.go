@@ -42,9 +42,12 @@ package glfw
 //   }
 // }
 //
-// static bool isNativeFullscreen() {
-//   return [[NSApplication sharedApplication] currentSystemPresentationOptions] &
-//       NSApplicationPresentationFullScreen;
+// static bool isNativeFullscreen(uintptr_t windowPtr) {
+//   if (!windowPtr) {
+//     return false;
+//   }
+//   NSWindow* window = (NSWindow*)windowPtr;
+//   return (window.styleMask & NSWindowStyleMaskFullScreen) != 0;
 // }
 //
 // static void setNativeCursor(int cursorID) {
@@ -118,7 +121,7 @@ func (u *UserInterface) nativeWindow() uintptr {
 }
 
 func (u *UserInterface) isNativeFullscreen() bool {
-	return bool(C.isNativeFullscreen())
+	return bool(C.isNativeFullscreen(C.uintptr_t(u.window.GetCocoaWindow())))
 }
 
 func (u *UserInterface) setNativeCursor(shape driver.CursorShape) {
