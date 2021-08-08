@@ -48,6 +48,7 @@ jobs:
           mv ./wasmbrowsertest $(go env GOPATH)/bin/go_js_wasm_exec
 
       - name: Prepare ebitenmobile test
+        if: ${{ !startsWith(matrix.go, '1.15.') }}
         run: |
           local_ebiten=$(pwd)
           cd /tmp
@@ -90,12 +91,13 @@ jobs:
           go install ./cmd/ebitenmobile
 
       - name: ebitenmobile bind (Android)
+        if: ${{ !startsWith(matrix.go, '1.15.') }}
         run: |
           cd /tmp/go-inovation
           ebitenmobile bind -target android -javapkg com.hajimehoshi.goinovation -o inovation.aar -v github.com/hajimehoshi/go-inovation/mobile
 
       - name: ebitenmobile bind (iOS)
-        if: ${{ matrix.os == 'macos-latest' }}
+        if: ${{ matrix.os == 'macos-latest' && !startsWith(matrix.go, '1.15.') }}
         run: |
           cd /tmp/go-inovation
           ebitenmobile bind -target ios -o Inovation.framework -v github.com/hajimehoshi/go-inovation/mobile
