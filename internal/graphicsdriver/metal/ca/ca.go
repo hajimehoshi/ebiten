@@ -154,6 +154,17 @@ func (ml MetalLayer) PresentsWithTransaction() bool {
 	return C.MetalLayer_PresentsWithTransaction(ml.metalLayer) != 0
 }
 
+// SetPresentsWithTransaction sets a Boolean value that determines whether the layer presents its content using a Core Animation transaction.
+//
+// Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478157-presentswithtransaction
+func (ml MetalLayer) SetPresentsWithTransaction(presentsWithTransaction bool) {
+	if presentsWithTransaction {
+		C.MetalLayer_SetPresentsWithTransaction(ml.metalLayer, 1)
+	} else {
+		C.MetalLayer_SetPresentsWithTransaction(ml.metalLayer, 0)
+	}
+}
+
 // SetFramebufferOnly sets a Boolean value that determines whether the layer’s textures are used only for rendering.
 //
 // https://developer.apple.com/documentation/quartzcore/cametallayer/1478168-framebufferonly

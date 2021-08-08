@@ -85,18 +85,16 @@ void MetalLayer_SetDisplaySyncEnabled(void *metalLayer,
     [((CAMetalLayer *)metalLayer) setDisplaySyncEnabled:displaySyncEnabled];
   }
 #endif
-
-  // setting presentsWithTransaction YES makes the FPS stable (#1196). We're not
-  // sure why...
-  if (displaySyncEnabled) {
-    [((CAMetalLayer *)metalLayer) setPresentsWithTransaction:YES];
-  } else {
-    [((CAMetalLayer *)metalLayer) setPresentsWithTransaction:NO];
-  }
 }
 
 void MetalLayer_SetDrawableSize(void *metalLayer, double width, double height) {
   ((CAMetalLayer *)metalLayer).drawableSize = (CGSize){width, height};
+}
+
+void MetalLayer_SetPresentsWithTransaction(void *metalLayer,
+                                           uint8_t presentsWithTransaction) {
+  [((CAMetalLayer *)metalLayer)
+      setPresentsWithTransaction:presentsWithTransaction];
 }
 
 void *MetalLayer_NextDrawable(void *metalLayer) {

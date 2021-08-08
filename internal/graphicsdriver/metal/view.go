@@ -29,8 +29,7 @@ type view struct {
 	uiview uintptr
 
 	windowChanged bool
-	vsync         bool
-	vsyncInited   bool
+	vsyncDisabled bool
 
 	device mtl.Device
 	ml     ca.MetalLayer
@@ -47,12 +46,19 @@ func (v *view) getMTLDevice() mtl.Device {
 }
 
 func (v *view) setDisplaySyncEnabled(enabled bool) {
-	if v.vsync == enabled && !v.vsyncInited {
+	if !v.vsyncDisabled == enabled {
 		return
 	}
+	v.forceSetDisplaySyncEnabled(enabled)
+}
+
+func (v *view) forceSetDisplaySyncEnabled(enabled bool) {
 	v.ml.SetDisplaySyncEnabled(enabled)
-	v.vsync = enabled
-	v.vsyncInited = true
+
+	// setting presentsWithTransaction true makes the FPS stable (#1196). We're not sure why...
+	v.ml.SetPresentsWithTransaction(enabled)
+
+	v.vsyncDisabled = !enabled
 }
 
 func (v *view) colorPixelFormat() mtl.PixelFormat {
@@ -80,9 +86,7 @@ func (v *view) reset() error {
 	v.ml.SetMaximumDrawableCount(2)
 
 	// The vsync state might be reset. Set the state again (#1364).
-	if v.vsyncInited {
-		v.ml.SetDisplaySyncEnabled(v.vsync)
-	}
+	v.forceSetDisplaySyncEnabled(!v.vsyncDisabled)
 	v.ml.SetFramebufferOnly(true)
 
 	return nil

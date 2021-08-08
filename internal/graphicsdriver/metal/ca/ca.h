@@ -29,6 +29,8 @@ const char *MetalLayer_SetMaximumDrawableCount(void *metalLayer,
 void MetalLayer_SetDisplaySyncEnabled(void *metalLayer,
                                       uint8_t displaySyncEnabled);
 void MetalLayer_SetDrawableSize(void *metalLayer, double width, double height);
+void MetalLayer_SetPresentsWithTransaction(void *metalLayer,
+                                           uint8_t presentsWithTransaction);
 void *MetalLayer_NextDrawable(void *metalLayer);
 void MetalLayer_SetFramebufferOnly(void *metalLayer, uint8_t framebufferOnly);
 uint8_t MetalLayer_PresentsWithTransaction(void *metalLayer);
