@@ -327,6 +327,10 @@ func (g *Graphics) SetVsyncEnabled(enabled bool) {
 	// Do nothing
 }
 
+func (g *Graphics) SetFullscreen(fullscreen bool) {
+	// Do nothing
+}
+
 func (g *Graphics) FramebufferYDirection() driver.YDirection {
 	return driver.Upward
 }

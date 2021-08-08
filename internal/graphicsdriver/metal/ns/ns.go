@@ -77,3 +77,10 @@ func (v View) SetWantsLayer(wantsLayer bool) {
 		C.View_SetWantsLayer(v.view, 0)
 	}
 }
+
+// IsInFullScreenMode returns a boolean value indicating whether the view is in full screen mode.
+//
+// Reference: https://developer.apple.com/documentation/appkit/nsview/1483337-infullscreenmode.
+func (v View) IsInFullScreenMode() bool {
+	return C.View_IsInFullScreenMode(v.view) != 0
+}

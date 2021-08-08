@@ -28,3 +28,7 @@ void View_SetLayer(void *view, void *layer) {
 void View_SetWantsLayer(void *view, unsigned char wantsLayer) {
   ((NSView *)view).wantsLayer = (BOOL)wantsLayer;
 }
+
+uint8_t View_IsInFullScreenMode(void *view) {
+  return ((NSView *)view).isInFullScreenMode;
+}

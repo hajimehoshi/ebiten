@@ -1180,6 +1180,8 @@ func (u *UserInterface) adjustWindowSizeBasedOnSizeLimitsInDP(width, height int)
 func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 	width, height = u.adjustWindowSizeBasedOnSizeLimits(width, height)
 
+	u.Graphics().SetFullscreen(fullscreen || u.isNativeFullscreen())
+
 	if u.windowWidth == width && u.windowHeight == height && u.isFullscreen() == fullscreen && u.lastDeviceScaleFactor == u.deviceScaleFactor() {
 		return
 	}

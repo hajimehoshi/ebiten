@@ -47,6 +47,7 @@ type Graphics interface {
 	NewScreenFramebufferImage(width, height int) (Image, error)
 	Initialize() error
 	SetVsyncEnabled(enabled bool)
+	SetFullscreen(fullscreen bool)
 	FramebufferYDirection() YDirection
 	NeedsRestoring() bool
 	NeedsClearingScreen() bool

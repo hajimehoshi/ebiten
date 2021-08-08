@@ -1007,6 +1007,10 @@ func (g *Graphics) SetVsyncEnabled(enabled bool) {
 	g.view.setDisplaySyncEnabled(enabled)
 }
 
+func (g *Graphics) SetFullscreen(fullscreen bool) {
+	g.view.setFullscreen(fullscreen)
+}
+
 func (g *Graphics) FramebufferYDirection() driver.YDirection {
 	return driver.Downward
 }

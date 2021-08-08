@@ -30,6 +30,7 @@ type view struct {
 
 	windowChanged bool
 	vsyncDisabled bool
+	fullscreen    bool
 
 	device mtl.Device
 	ml     ca.MetalLayer
@@ -54,11 +55,33 @@ func (v *view) setDisplaySyncEnabled(enabled bool) {
 
 func (v *view) forceSetDisplaySyncEnabled(enabled bool) {
 	v.ml.SetDisplaySyncEnabled(enabled)
+	v.vsyncDisabled = !enabled
 
 	// setting presentsWithTransaction true makes the FPS stable (#1196). We're not sure why...
-	v.ml.SetPresentsWithTransaction(enabled)
+	v.updatePresentsWithTransaction()
+}
 
-	v.vsyncDisabled = !enabled
+func (v *view) setFullscreen(fullscreen bool) {
+	if v.fullscreen == fullscreen {
+		return
+	}
+	v.fullscreen = fullscreen
+	v.updatePresentsWithTransaction()
+}
+
+func (v *view) updatePresentsWithTransaction() {
+	// Disable presentsWithTransaction on the fullscreen mode (#1745).
+
+	pwt := !v.vsyncDisabled && !v.fullscreen
+	v.ml.SetPresentsWithTransaction(pwt)
+
+	// When presentsWithTransaction is YES and triple buffering is enabled, nextDrawing returns immediately once every two times.
+	// This makes FPS doubled. To avoid this, disable the triple buffering.
+	if pwt {
+		v.ml.SetMaximumDrawableCount(2)
+	} else {
+		v.ml.SetMaximumDrawableCount(3)
+	}
 }
 
 func (v *view) colorPixelFormat() mtl.PixelFormat {
@@ -80,10 +103,6 @@ func (v *view) reset() error {
 	// MTLPixelFormatBGRA8Unorm_sRGB, MTLPixelFormatRGBA16Float, MTLPixelFormatBGRA10_XR, or
 	// MTLPixelFormatBGRA10_XR_sRGB.
 	v.ml.SetPixelFormat(mtl.PixelFormatBGRA8UNorm)
-
-	// When presentsWithTransaction is YES and triple buffering is enabled, nextDrawing returns immediately once every two times.
-	// This makes FPS doubled. To avoid this, disable the triple buffering.
-	v.ml.SetMaximumDrawableCount(2)
 
 	// The vsync state might be reset. Set the state again (#1364).
 	v.forceSetDisplaySyncEnabled(!v.vsyncDisabled)

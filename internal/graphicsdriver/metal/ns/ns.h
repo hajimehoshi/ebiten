@@ -20,3 +20,4 @@ void *Window_ContentView(uintptr_t window);
 
 void View_SetLayer(void *view, void *layer);
 void View_SetWantsLayer(void *view, unsigned char wantsLayer);
+uint8_t View_IsInFullScreenMode(void *view);
