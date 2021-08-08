@@ -38,11 +38,8 @@ func (d *dll) call(name string, args ...uintptr) uintptr {
 	if _, ok := d.procs[name]; !ok {
 		d.procs[name] = d.d.NewProc(name)
 	}
-	r, _, err := d.procs[name].Call(args...)
-	if err != nil && err.(windows.Errno) != 0 {
-		// It looks like there is no way to handle these errors?
-		// panic(fmt.Sprintf("glfw: calling proc error: errno: %d (%s)", err, err.Error()))
-	}
+	// It looks like there is no way to handle Windows errors correctly.
+	r, _, _ := d.procs[name].Call(args...)
 	return r
 }
 
