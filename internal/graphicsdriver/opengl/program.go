@@ -148,6 +148,7 @@ func (s *openGLState) reset(context *context) error {
 	}
 
 	s.lastProgram = zeroProgram
+	context.useProgram(zeroProgram)
 	s.lastUniforms = map[string]interface{}{}
 
 	// When context lost happens, deleting programs or buffers is not necessary.
