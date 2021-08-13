@@ -225,9 +225,9 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 		{
 			const idx = graphics.DestinationTextureSizeUniformVariableIndex
 			w, h := destination.framebufferSize()
-			uniformVars[idx].name = "U0"
+			uniformVars[idx].name = fmt.Sprintf("U%d", idx)
 			uniformVars[idx].value = []float32{float32(w), float32(h)}
-			uniformVars[idx].typ = shader.ir.Uniforms[0]
+			uniformVars[idx].typ = shader.ir.Uniforms[idx]
 		}
 		{
 			sizes := make([]float32, 2*len(srcIDs))
