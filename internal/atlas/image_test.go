@@ -522,7 +522,7 @@ func TestExtendWithBigImage(t *testing.T) {
 // Issue #1217
 func TestMaxImageSize(t *testing.T) {
 	// This tests that a too-big image is allocated correctly.
-	s := maxImageSizeForTesting
+	s := maxImageSizeForTesting - 2*PaddingSize
 	img := NewImage(s, s)
 	defer img.MarkDisposed()
 	img.ReplacePixels(make([]byte, 4*s*s))

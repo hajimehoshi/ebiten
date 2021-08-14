@@ -16,6 +16,7 @@ package atlas
 
 const (
 	BaseCountToPutOnAtlas = baseCountToPutOnAtlas
+	PaddingSize           = paddingSize
 )
 
 func PutImagesOnAtlasForTesting() error {
