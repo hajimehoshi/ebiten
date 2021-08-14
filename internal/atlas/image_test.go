@@ -527,9 +527,10 @@ func TestMaxImageSize(t *testing.T) {
 	img.ReplacePixels(make([]byte, 4*s*s))
 }
 
-// Issue #1217
-func TestMinImageSize(t *testing.T) {
-	ResetBackendsForTesting()
+// Issue #1217 (disabled)
+func Disable_TestMinImageSize(t *testing.T) {
+	// The backend cannot be reset. If this is necessary, sync the state with the images (#1756).
+	// ResetBackendsForTesting()
 
 	// This tests that extending a backend works correctly.
 	// Though the image size is minimum size of the backend, extending the backend happens due to the paddings.
