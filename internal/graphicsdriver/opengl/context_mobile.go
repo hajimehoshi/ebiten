@@ -326,6 +326,8 @@ func (c *context) useProgram(p program) {
 }
 
 func (c *context) deleteProgram(p program) {
+	c.locationCache.deleteProgram(p)
+
 	if !c.ctx.IsProgram(uint32(p)) {
 		return
 	}
