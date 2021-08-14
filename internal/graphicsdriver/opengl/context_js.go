@@ -367,6 +367,8 @@ func (c *context) useProgram(p program) {
 }
 
 func (c *context) deleteProgram(p program) {
+	c.locationCache.deleteProgram(p)
+
 	gl := c.gl
 	if !gl.isProgram.Invoke(p.value).Bool() {
 		return

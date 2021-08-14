@@ -309,6 +309,8 @@ func (c *context) useProgram(p program) {
 }
 
 func (c *context) deleteProgram(p program) {
+	c.locationCache.deleteProgram(p)
+
 	if !gl.IsProgram(uint32(p)) {
 		return
 	}

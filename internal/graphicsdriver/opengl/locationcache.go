@@ -38,3 +38,7 @@ func (c *locationCache) GetUniformLocation(context *context, p program, location
 	}
 	return l
 }
+
+func (c *locationCache) deleteProgram(p program) {
+	delete(c.uniformLocationCache, getProgramID(p))
+}
