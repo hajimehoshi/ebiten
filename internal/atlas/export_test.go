@@ -40,12 +40,6 @@ func ResetImageSizeForTesting() {
 	maxSize = oldMaxSize
 }
 
-func ResetBackendsForTesting() {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-	theBackends = nil
-}
-
 func (i *Image) IsOnAtlasForTesting() bool {
 	backendsM.Lock()
 	defer backendsM.Unlock()
