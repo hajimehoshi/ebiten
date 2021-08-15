@@ -1054,64 +1054,6 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 }
 
-// Issue #1701
-func TestShaderDerivatives2(t *testing.T) {
-	const w, h = 16, 16
-
-	s, err := NewShader([]byte(`package main
-
-// This function uses dfdx and then should not be in GLSL's vertex shader (#1701).
-func Foo(p vec4) vec4 {
-	return vec4(abs(dfdx(p.r)), abs(dfdy(p.g)), 0, 1)
-}
-
-func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	p := imageSrc0At(texCoord)
-	return Foo(p)
-}
-`))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	dst := NewImage(w, h)
-	src := NewImage(w, h)
-	pix := make([]byte, 4*w*h)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
-			if i < w/2 {
-				pix[4*(j*w+i)] = 0xff
-			}
-			if j < h/2 {
-				pix[4*(j*w+i)+1] = 0xff
-			}
-			pix[4*(j*w+i)+3] = 0xff
-		}
-	}
-	src.ReplacePixels(pix)
-
-	op := &DrawRectShaderOptions{}
-	op.Images[0] = src
-	dst.DrawRectShader(w, h, s, op)
-
-	// The results of the edges might be unreliable. Skip the edges.
-	for j := 1; j < h-1; j++ {
-		for i := 1; i < w-1; i++ {
-			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{0, 0, 0, 0xff}
-			if i == w/2-1 || i == w/2 {
-				want.R = 0xff
-			}
-			if j == h/2-1 || j == h/2 {
-				want.G = 0xff
-			}
-			if got != want {
-				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
-			}
-		}
-	}
-}
-
 // Issue #1754
 func TestShaderUniformFirstElement(t *testing.T) {
 	shaders := []struct {
