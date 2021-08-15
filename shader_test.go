@@ -1111,3 +1111,72 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 }
+
+// Issue #1754
+func TestShaderUniformFirstElement(t *testing.T) {
+	shaders := []struct {
+		Name     string
+		Shader   string
+		Uniforms map[string]interface{}
+	}{
+		{
+			Name: "float array",
+			Shader: `package main
+
+var C [2]float
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(C[0], 1, 1, 1)
+}`,
+			Uniforms: map[string]interface{}{
+				"C": []float32{1, 1},
+			},
+		},
+		{
+			Name: "float one-element array",
+			Shader: `package main
+
+var C [1]float
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(C[0], 1, 1, 1)
+}`,
+			Uniforms: map[string]interface{}{
+				"C": []float32{1},
+			},
+		},
+		{
+			Name: "matrix array",
+			Shader: `package main
+
+var C [2]mat2
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(C[0][0][0], 1, 1, 1)
+}`,
+			Uniforms: map[string]interface{}{
+				"C": []float32{1, 0, 0, 0, 0, 0, 0, 0},
+			},
+		},
+	}
+
+	for _, shader := range shaders {
+		shader := shader
+		t.Run(shader.Name, func(t *testing.T) {
+			const w, h = 1, 1
+
+			dst := NewImage(w, h)
+			s, err := NewShader([]byte(shader.Shader))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			op := &DrawRectShaderOptions{}
+			op.Uniforms = shader.Uniforms
+			dst.DrawRectShader(w, h, s, op)
+			if got, want := dst.At(0, 0), (color.RGBA{0xff, 0xff, 0xff, 0xff}); got != want {
+				t.Errorf("got: %v, want: %v", got, want)
+			}
+		})
+	}
+}
