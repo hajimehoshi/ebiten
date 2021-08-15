@@ -123,9 +123,45 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 			}
 		}
 
+		// Add a dummy function to just touch uniform array variable's elements (#1754).
+		// Without this, the first elements of a uniform array might not be initialized correctly on some environments.
+		var touchedUniforms []string
+		for i, t := range p.Uniforms {
+			if t.Main != shaderir.Array {
+				continue
+			}
+			if t.Length <= 1 {
+				continue
+			}
+			str := fmt.Sprintf("U%d[%d]", i, t.Length-1)
+			switch t.Sub[0].Main {
+			case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
+				str += ".x"
+			case shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
+				str += "[0][0]"
+			}
+			str = "float(" + str + ")"
+			touchedUniforms = append(touchedUniforms, str)
+		}
+
+		var touchUniformsFunc []string
+		if len(touchedUniforms) > 0 {
+			touchUniformsFunc = append(touchUniformsFunc, "float touchUniforms() {")
+			touchUniformsFunc = append(touchUniformsFunc, fmt.Sprintf("\treturn %s;", strings.Join(touchedUniforms, " + ")))
+			touchUniformsFunc = append(touchUniformsFunc, "}")
+
+		}
+
 		if p.VertexFunc.Block != nil && len(p.VertexFunc.Block.Stmts) > 0 {
+			if len(touchUniformsFunc) > 0 {
+				vslines = append(vslines, "")
+				vslines = append(vslines, touchUniformsFunc...)
+			}
 			vslines = append(vslines, "")
 			vslines = append(vslines, "void main(void) {")
+			if len(touchUniformsFunc) > 0 {
+				vslines = append(vslines, "\ttouchUniforms();")
+			}
 			vslines = append(vslines, c.glslBlock(p, p.VertexFunc.Block, p.VertexFunc.Block, 0)...)
 			vslines = append(vslines, "}")
 		}
