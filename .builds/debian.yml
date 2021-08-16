@@ -4,7 +4,6 @@ packages:
   - libc6-dev
   - libglu1-mesa-dev
   - libgl1-mesa-dev
-  - libpulse-dev
   - libxcursor-dev
   - libxi-dev
   - libxinerama-dev

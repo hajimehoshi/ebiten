@@ -9,7 +9,6 @@ packages:
   - mesa-libGLES-devel
   - mesa-libGLU-devel
   - pkg-config
-  - pulseaudio-libs-devel
   - go
 sources:
   - https://github.com/hajimehoshi/ebiten

@@ -1,8 +1,7 @@
 image: archlinux
 packages:
-  - alsa
+  - alsa-lib
   - libxcursor
-  - libpulse
   - libxi
   - libxinerama
   - libxrandr
