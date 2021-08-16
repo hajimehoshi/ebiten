@@ -12,9 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build (aix || dragonfly || freebsd || hurd || illumos || linux || netbsd || openbsd || solaris) && !android
-// +build aix dragonfly freebsd hurd illumos linux netbsd openbsd solaris
-// +build !android
+//go:build !android && !darwin && !js && !windows
+// +build !android,!darwin,!js,!windows
 
 package readerdriver
 
