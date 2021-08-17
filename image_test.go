@@ -2426,3 +2426,13 @@ func BenchmarkColorMScale(b *testing.B) {
 		dst.DrawImage(src, op)
 	}
 }
+
+// #1765
+func TestColorMConcat(t *testing.T) {
+	var a, b ColorM
+	a.SetElement(1, 2, -1)
+	a.Concat(b)
+	if got, want := a.Element(1, 2), -1.0; got != want {
+		t.Errorf("got: %f, want: %f", got, want)
+	}
+}

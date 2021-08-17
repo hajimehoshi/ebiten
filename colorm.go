@@ -64,7 +64,11 @@ func (c *ColorM) Apply(clr color.Color) color.Color {
 // Concat multiplies a color matrix with the other color matrix.
 // This is same as muptiplying the matrix other and the matrix c in this order.
 func (c *ColorM) Concat(other ColorM) {
-	c.impl = c.affineColorM().Concat(other.impl)
+	o := other.impl
+	if o == nil {
+		o = affine.ColorMIdentity{}
+	}
+	c.impl = c.affineColorM().Concat(o)
 }
 
 // Scale scales the matrix by (r, g, b, a).
