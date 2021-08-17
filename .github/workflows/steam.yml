@@ -9,7 +9,7 @@ jobs:
     env:
       DISPLAY: ':99.0'
       STEAM_RUNTIME_VERSION: '0.20210721.1'
-      GO_VERSION: '1.16.7'
+      GO_VERSION: '1.17'
     defaults:
       run:
         shell: bash
