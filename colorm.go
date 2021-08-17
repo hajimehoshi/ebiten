@@ -66,7 +66,7 @@ func (c *ColorM) Apply(clr color.Color) color.Color {
 func (c *ColorM) Concat(other ColorM) {
 	o := other.impl
 	if o == nil {
-		o = affine.ColorMIdentity{}
+		return
 	}
 	c.impl = c.affineColorM().Concat(o)
 }
