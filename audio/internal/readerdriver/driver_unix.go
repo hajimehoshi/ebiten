@@ -24,6 +24,7 @@ import "C"
 
 import (
 	"fmt"
+	"sync"
 	"time"
 	"unsafe"
 )
@@ -37,8 +38,12 @@ type context struct {
 	channelNum      int
 	bitDepthInBytes int
 
+	suspended bool
+
 	handle        *C.snd_pcm_t
 	supportsPause bool
+
+	cond *sync.Cond
 
 	players *players
 }
@@ -57,6 +62,7 @@ func NewContext(sampleRate, channelNum, bitDepthInBytes int) (Context, chan stru
 		sampleRate:      sampleRate,
 		channelNum:      channelNum,
 		bitDepthInBytes: bitDepthInBytes,
+		cond:            sync.NewCond(&sync.Mutex{}),
 		players:         newPlayers(),
 	}
 	theContext = c
@@ -124,6 +130,13 @@ func (c *context) alsaPcmHwParams(sampleRate, channelNum int, bufferSize, period
 }
 
 func (c *context) readAndWrite(buf32 []float32) error {
+	c.cond.L.Lock()
+	defer c.cond.L.Unlock()
+
+	for c.suspended {
+		c.cond.Wait()
+	}
+
 	for i := range buf32 {
 		buf32[i] = 0
 	}
@@ -147,6 +160,10 @@ func (c *context) readAndWrite(buf32 []float32) error {
 }
 
 func (c *context) Suspend() error {
+	c.cond.L.Lock()
+	defer c.cond.L.Unlock()
+	c.suspended = true
+
 	if c.supportsPause {
 		if err := C.snd_pcm_pause(c.handle, 1); err < 0 {
 			return alsaError(err)
@@ -161,6 +178,13 @@ func (c *context) Suspend() error {
 }
 
 func (c *context) Resume() error {
+	c.cond.L.Lock()
+	defer c.cond.L.Unlock()
+	defer func() {
+		c.suspended = false
+		c.cond.Signal()
+	}()
+
 	if c.supportsPause {
 		if err := C.snd_pcm_pause(c.handle, 0); err < 0 {
 			return alsaError(err)
