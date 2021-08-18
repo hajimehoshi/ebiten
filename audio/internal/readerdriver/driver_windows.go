@@ -22,7 +22,7 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-const headerBufferSize = 4096
+const headerBufferSize = 8192
 
 func IsAvailable() bool {
 	return true
@@ -117,7 +117,7 @@ func NewContext(sampleRate, channelNum, bitDepthInBytes int) (Context, chan stru
 	}
 
 	c.waveOut = w
-	c.headers = make([]*header, 0, 4)
+	c.headers = make([]*header, 0, 3)
 	for len(c.headers) < cap(c.headers) {
 		h, err := newHeader(c.waveOut, headerBufferSize)
 		if err != nil {

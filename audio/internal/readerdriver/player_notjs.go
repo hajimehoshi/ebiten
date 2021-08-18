@@ -156,15 +156,23 @@ func (p *player) Play() {
 }
 
 func (p *playerImpl) Play() {
-	ch := make(chan struct{})
-	go func() {
+	// Goroutines don't work effiently on Windows. Avoid using them (#1768).
+	if runtime.GOOS == "windows" {
 		p.m.Lock()
 		defer p.m.Unlock()
 
-		close(ch)
 		p.playImpl()
-	}()
-	<-ch
+	} else {
+		ch := make(chan struct{})
+		go func() {
+			p.m.Lock()
+			defer p.m.Unlock()
+
+			close(ch)
+			p.playImpl()
+		}()
+		<-ch
+	}
 }
 
 func (p *playerImpl) playImpl() {
