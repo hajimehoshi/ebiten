@@ -16,13 +16,15 @@ package readerdriver
 
 import (
 	"fmt"
-	"sync"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
 )
 
-const headerBufferSize = 8192
+// Avoid goroutines on Windows (#1768).
+// Apparently, switching contexts might take longer than other platforms.
+
+const headerBufferSize = 4096
 
 func IsAvailable() bool {
 	return true
@@ -73,7 +75,7 @@ type context struct {
 	waveOut uintptr
 	headers []*header
 
-	cond *sync.Cond
+	buf32 []float32
 
 	players *players
 }
@@ -88,7 +90,6 @@ func NewContext(sampleRate, channelNum, bitDepthInBytes int) (Context, chan stru
 		sampleRate:      sampleRate,
 		channelNum:      channelNum,
 		bitDepthInBytes: bitDepthInBytes,
-		cond:            sync.NewCond(&sync.Mutex{}),
 		players:         newPlayers(),
 	}
 	theContext = c
@@ -117,7 +118,7 @@ func NewContext(sampleRate, channelNum, bitDepthInBytes int) (Context, chan stru
 	}
 
 	c.waveOut = w
-	c.headers = make([]*header, 0, 3)
+	c.headers = make([]*header, 0, 6)
 	for len(c.headers) < cap(c.headers) {
 		h, err := newHeader(c.waveOut, headerBufferSize)
 		if err != nil {
@@ -126,7 +127,10 @@ func NewContext(sampleRate, channelNum, bitDepthInBytes int) (Context, chan stru
 		c.headers = append(c.headers, h)
 	}
 
-	go c.loop()
+	c.buf32 = make([]float32, headerBufferSize/4)
+	for range c.headers {
+		c.appendBuffers()
+	}
 
 	return c, ready, nil
 }
@@ -161,36 +165,22 @@ var waveOutOpenCallback = windows.NewCallbackCDecl(func(hwo, uMsg, dwInstance, d
 	if uMsg != womDone {
 		return 0
 	}
-	theContext.cond.Signal()
+	theContext.appendBuffers()
 	return 0
 })
 
-func (c *context) loop() {
-	buf32 := make([]float32, headerBufferSize/4)
-	for {
-		c.appendBuffer(buf32)
+func (c *context) appendBuffers() {
+	for i := range c.buf32 {
+		c.buf32[i] = 0
 	}
-}
-
-func (c *context) appendBuffer(buf32 []float32) {
-	c.cond.L.Lock()
-	defer c.cond.L.Unlock()
-
-	for !c.isHeaderAvailable() {
-		c.cond.Wait()
-	}
-
-	for i := range buf32 {
-		buf32[i] = 0
-	}
-	c.players.read(buf32)
+	c.players.read(c.buf32)
 
 	for _, h := range c.headers {
 		if h.IsQueued() {
 			continue
 		}
 
-		if err := h.Write(buf32); err != nil {
+		if err := h.Write(c.buf32); err != nil {
 			// This error can happen when e.g. a new HDMI connection is detected (hajimehoshi/oto#51).
 			const errorNotFound = 1168
 			if werr := err.(*winmmError); werr.fname == "waveOutWrite" {
@@ -204,6 +194,5 @@ func (c *context) appendBuffer(buf32 []float32) {
 			// TODO: Treat the error corretly
 			panic(fmt.Errorf("readerdriver: Queueing the header failed: %v", err))
 		}
-		return
 	}
 }
