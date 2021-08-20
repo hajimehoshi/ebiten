@@ -34,6 +34,7 @@ type Input interface {
 	IsStandardGamepadButtonPressed(id GamepadID, button StandardGamepadButton) bool
 	IsStandardGamepadLayoutAvailable(id GamepadID) bool
 	StandardGamepadAxisValue(id GamepadID, button StandardGamepadAxis) float64
+	UpdateStandardGamepadLayoutMappings(mapping string) (bool, error)
 	TouchPosition(id TouchID) (x, y int)
 	Wheel() (xoff, yoff float64)
 }
