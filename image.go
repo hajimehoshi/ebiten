@@ -708,6 +708,22 @@ func (i *Image) At(x, y int) color.Color {
 	return color.RGBA{pix[0], pix[1], pix[2], pix[3]}
 }
 
+// RGBA64At implements image.RGBA64Image's RGBA64At.
+//
+// RGBA64At loads pixels from GPU to system memory if necessary, which means
+// that RGBA64At can be slow.
+//
+// RGBA64At always returns a transparent color if the image is disposed.
+//
+// Note that an important logic should not rely on values returned by RGBA64At,
+// since the returned values can include very slight differences between some machines.
+//
+// RGBA64At can't be called outside the main loop (ebiten.Run's updating function) starts.
+func (i *Image) RGBA64At(x, y int) color.RGBA64 {
+	r, g, b, a := i.At(x, y).(color.RGBA).RGBA()
+	return color.RGBA64{uint16(r), uint16(g), uint16(b), uint16(a)}
+}
+
 // Set sets the color at (x, y).
 //
 // Set loads pixels from GPU to system memory if necessary, which means that Set can be slow.
