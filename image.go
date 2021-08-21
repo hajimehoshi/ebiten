@@ -691,21 +691,8 @@ func (i *Image) ColorModel() color.Model {
 //
 // At can't be called outside the main loop (ebiten.Run's updating function) starts.
 func (i *Image) At(x, y int) color.Color {
-	if i.isDisposed() {
-		return color.RGBA{}
-	}
-	if !image.Pt(x, y).In(i.Bounds()) {
-		return color.RGBA{}
-	}
-	pix, err := i.mipmap.Pixels(x, y, 1, 1)
-	if err != nil {
-		if panicOnErrorAtImageAt {
-			panic(err)
-		}
-		theUIContext.setError(err)
-		return color.RGBA{}
-	}
-	return color.RGBA{pix[0], pix[1], pix[2], pix[3]}
+	r, g, b, a := i.at(x, y)
+	return color.RGBA{r, g, b, a}
 }
 
 // RGBA64At implements image.RGBA64Image's RGBA64At.
@@ -720,8 +707,26 @@ func (i *Image) At(x, y int) color.Color {
 //
 // RGBA64At can't be called outside the main loop (ebiten.Run's updating function) starts.
 func (i *Image) RGBA64At(x, y int) color.RGBA64 {
-	r, g, b, a := i.At(x, y).(color.RGBA).RGBA()
-	return color.RGBA64{uint16(r), uint16(g), uint16(b), uint16(a)}
+	r, g, b, a := i.at(x, y)
+	return color.RGBA64{uint16(r) * 0x101, uint16(g) * 0x101, uint16(b) * 0x101, uint16(a) * 0x101}
+}
+
+func (i *Image) at(x, y int) (r, g, b, a uint8) {
+	if i.isDisposed() {
+		return 0, 0, 0, 0
+	}
+	if !image.Pt(x, y).In(i.Bounds()) {
+		return 0, 0, 0, 0
+	}
+	pix, err := i.mipmap.Pixels(x, y, 1, 1)
+	if err != nil {
+		if panicOnErrorAtImageAt {
+			panic(err)
+		}
+		theUIContext.setError(err)
+		return 0, 0, 0, 0
+	}
+	return pix[0], pix[1], pix[2], pix[3]
 }
 
 // Set sets the color at (x, y).
