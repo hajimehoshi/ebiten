@@ -1582,18 +1582,29 @@ func TestImageAtAfterDisposingSubImage(t *testing.T) {
 	img.Set(0, 0, color.White)
 	img.SubImage(image.Rect(0, 0, 16, 16))
 	runtime.GC()
-	got := img.At(0, 0)
+
 	want := color.RGBA{0xff, 0xff, 0xff, 0xff}
+	want64 := color.RGBA64{0xffff, 0xffff, 0xffff, 0xffff}
+	got := img.At(0, 0)
 	if got != want {
-		t.Errorf("got: %v, want: %v", got, want)
+		t.Errorf("At(0,0) got: %v, want: %v", got, want)
+	}
+	got = img.RGBA64At(0, 0)
+	if got != want64 {
+		t.Errorf("RGBA64At(0,0) got: %v, want: %v", got, want)
 	}
 
 	img.Set(0, 1, color.White)
 	sub := img.SubImage(image.Rect(0, 0, 16, 16)).(*Image)
 	sub.Dispose()
+
 	got = img.At(0, 1)
 	if got != want {
-		t.Errorf("got: %v, want: %v", got, want)
+		t.Errorf("At(0,1) got: %v, want: %v", got, want64)
+	}
+	got = img.RGBA64At(0, 1)
+	if got != want64 {
+		t.Errorf("RGBA64At(0,1) got: %v, want: %v", got, want64)
 	}
 }
 
