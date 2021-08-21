@@ -19,6 +19,8 @@ import (
 	"runtime"
 	"sync"
 	"syscall/js"
+
+	"github.com/hajimehoshi/ebiten/v2/audio/internal/readerdriver"
 )
 
 type Context struct {
@@ -38,7 +40,7 @@ func NewContext(sampleRate int, channelNum, bitDepthInBytes int) *Context {
 	}
 }
 
-func (c *Context) NewPlayer(r io.Reader) *Player {
+func (c *Context) NewPlayer(r io.Reader) readerdriver.Player {
 	cond := sync.NewCond(&sync.Mutex{})
 	onwritten := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		cond.Signal()
@@ -53,6 +55,16 @@ func (c *Context) NewPlayer(r io.Reader) *Player {
 	}
 	runtime.SetFinalizer(p, (*Player).Close)
 	return p
+}
+
+func (c *Context) Suspend() error {
+	// Do nothing so far.
+	return nil
+}
+
+func (c *Context) Resume() error {
+	// Do nothing so far.
+	return nil
 }
 
 func (c *Context) oneBufferSize() int {

@@ -15,7 +15,6 @@
 package audio
 
 import (
-	"io"
 	"syscall/js"
 
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/go2cpp"
@@ -26,27 +25,8 @@ func newContext(sampleRate, channelNum, bitDepthInBytes int) (context, chan stru
 	if js.Global().Get("go2cpp").Truthy() {
 		ready := make(chan struct{})
 		close(ready)
-		ctx := go2cpp.NewContext(sampleRate, channelNum, bitDepthInBytes)
-		return &go2cppDriverWrapper{ctx}, ready, nil
+		return go2cpp.NewContext(sampleRate, channelNum, bitDepthInBytes), ready, nil
 	}
 
 	return readerdriver.NewContext(sampleRate, channelNum, bitDepthInBytes)
-}
-
-type go2cppDriverWrapper struct {
-	c *go2cpp.Context
-}
-
-func (w *go2cppDriverWrapper) NewPlayer(r io.Reader) readerdriver.Player {
-	return w.c.NewPlayer(r)
-}
-
-func (w *go2cppDriverWrapper) Suspend() error {
-	// Do nothing so far.
-	return nil
-}
-
-func (w *go2cppDriverWrapper) Resume() error {
-	// Do nothing so far.
-	return nil
 }
