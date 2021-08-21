@@ -22,8 +22,6 @@ import (
 	"sync"
 	"syscall/js"
 	"unsafe"
-
-	"github.com/hajimehoshi/ebiten/v2/audio/internal/go2cpp"
 )
 
 type context struct {
@@ -38,10 +36,6 @@ type context struct {
 
 func newContext(sampleRate int, channelNum int, bitDepthInBytes int) (*context, chan struct{}, error) {
 	ready := make(chan struct{})
-	if js.Global().Get("go2cpp").Truthy() {
-		close(ready)
-		return &go2cppDriverWrapper{go2cpp.NewContext(sampleRate, channelNum, bitDepthInBytes)}, ready, nil
-	}
 
 	class := js.Global().Get("AudioContext")
 	if !class.Truthy() {
@@ -384,24 +378,6 @@ func (p *player) loop() {
 		}
 		p.cond.L.Unlock()
 	}
-}
-
-type go2cppDriverWrapper struct {
-	c *go2cpp.Context
-}
-
-func (w *go2cppDriverWrapper) NewPlayer(r io.Reader) Player {
-	return w.c.NewPlayer(r)
-}
-
-func (w *go2cppDriverWrapper) Suspend() error {
-	// Do nothing so far.
-	return nil
-}
-
-func (w *go2cppDriverWrapper) Resume() error {
-	// Do nothing so far.
-	return nil
 }
 
 func toLR(data []byte) ([]float32, []float32) {
