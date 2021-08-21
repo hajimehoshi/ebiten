@@ -23,49 +23,49 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/readerdriver"
 )
 
-type readerPlayerFactory struct {
+type playerFactory struct {
 	context    readerdriver.Context
 	sampleRate int
 
 	m sync.Mutex
 }
 
-var readerDriverForTesting readerdriver.Context
+var driverForTesting readerdriver.Context
 
-func newReaderPlayerFactory(sampleRate int) *readerPlayerFactory {
-	f := &readerPlayerFactory{
+func newPlayerFactory(sampleRate int) *playerFactory {
+	f := &playerFactory{
 		sampleRate: sampleRate,
 	}
-	if readerDriverForTesting != nil {
-		f.context = readerDriverForTesting
+	if driverForTesting != nil {
+		f.context = driverForTesting
 	}
 	// TODO: Consider the hooks.
 	return f
 }
 
-type readerPlayer struct {
+type player struct {
 	context *Context
 	player  readerdriver.Player
 	src     io.Reader
 	stream  *timeStream
-	factory *readerPlayerFactory
+	factory *playerFactory
 	m       sync.Mutex
 }
 
-func (f *readerPlayerFactory) newPlayerImpl(context *Context, src io.Reader) (playerImpl, error) {
+func (f *playerFactory) newPlayer(context *Context, src io.Reader) (*player, error) {
 	f.m.Lock()
 	defer f.m.Unlock()
 
-	p := &readerPlayer{
+	p := &player{
 		src:     src,
 		context: context,
 		factory: f,
 	}
-	runtime.SetFinalizer(p, (*readerPlayer).Close)
+	runtime.SetFinalizer(p, (*player).Close)
 	return p, nil
 }
 
-func (f *readerPlayerFactory) suspend() error {
+func (f *playerFactory) suspend() error {
 	f.m.Lock()
 	defer f.m.Unlock()
 
@@ -75,7 +75,7 @@ func (f *readerPlayerFactory) suspend() error {
 	return f.context.Suspend()
 }
 
-func (f *readerPlayerFactory) resume() error {
+func (f *playerFactory) resume() error {
 	f.m.Lock()
 	defer f.m.Unlock()
 
@@ -85,7 +85,7 @@ func (f *readerPlayerFactory) resume() error {
 	return f.context.Resume()
 }
 
-func (f *readerPlayerFactory) initContextIfNeeded() (<-chan struct{}, error) {
+func (f *playerFactory) initContextIfNeeded() (<-chan struct{}, error) {
 	f.m.Lock()
 	defer f.m.Unlock()
 
@@ -101,7 +101,7 @@ func (f *readerPlayerFactory) initContextIfNeeded() (<-chan struct{}, error) {
 	return ready, nil
 }
 
-func (p *readerPlayer) ensurePlayer() error {
+func (p *player) ensurePlayer() error {
 	// Initialize the underlying player lazily to enable calling NewContext in an 'init' function.
 	// Accessing the underlying player functions requires the environment to be already initialized,
 	// but if Ebiten is used for a shared library, the timing when init functions are called
@@ -131,7 +131,7 @@ func (p *readerPlayer) ensurePlayer() error {
 	return nil
 }
 
-func (p *readerPlayer) Play() {
+func (p *player) Play() {
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -146,7 +146,7 @@ func (p *readerPlayer) Play() {
 	p.context.addPlayer(p)
 }
 
-func (p *readerPlayer) Pause() {
+func (p *player) Pause() {
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -161,7 +161,7 @@ func (p *readerPlayer) Pause() {
 	p.context.removePlayer(p)
 }
 
-func (p *readerPlayer) IsPlaying() bool {
+func (p *player) IsPlaying() bool {
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -171,7 +171,7 @@ func (p *readerPlayer) IsPlaying() bool {
 	return p.player.IsPlaying()
 }
 
-func (p *readerPlayer) Volume() float64 {
+func (p *player) Volume() float64 {
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -182,7 +182,7 @@ func (p *readerPlayer) Volume() float64 {
 	return p.player.Volume()
 }
 
-func (p *readerPlayer) SetVolume(volume float64) {
+func (p *player) SetVolume(volume float64) {
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -193,7 +193,7 @@ func (p *readerPlayer) SetVolume(volume float64) {
 	p.player.SetVolume(volume)
 }
 
-func (p *readerPlayer) Close() error {
+func (p *player) Close() error {
 	p.m.Lock()
 	defer p.m.Unlock()
 	runtime.SetFinalizer(p, nil)
@@ -208,7 +208,7 @@ func (p *readerPlayer) Close() error {
 	return nil
 }
 
-func (p *readerPlayer) Current() time.Duration {
+func (p *player) Current() time.Duration {
 	p.m.Lock()
 	defer p.m.Unlock()
 	if err := p.ensurePlayer(); err != nil {
@@ -220,11 +220,11 @@ func (p *readerPlayer) Current() time.Duration {
 	return time.Duration(sample) * time.Second / time.Duration(p.factory.sampleRate)
 }
 
-func (p *readerPlayer) Rewind() error {
+func (p *player) Rewind() error {
 	return p.Seek(0)
 }
 
-func (p *readerPlayer) Seek(offset time.Duration) error {
+func (p *player) Seek(offset time.Duration) error {
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -241,7 +241,7 @@ func (p *readerPlayer) Seek(offset time.Duration) error {
 	return p.stream.Seek(offset)
 }
 
-func (p *readerPlayer) Err() error {
+func (p *player) Err() error {
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -251,7 +251,7 @@ func (p *readerPlayer) Err() error {
 	return p.player.Err()
 }
 
-func (p *readerPlayer) source() io.Reader {
+func (p *player) source() io.Reader {
 	return p.src
 }
 

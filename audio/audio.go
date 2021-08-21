@@ -56,7 +56,7 @@ const (
 //
 // For a typical usage example, see examples/wav/main.go.
 type Context struct {
-	np *readerPlayerFactory
+	playerFactory *playerFactory
 
 	// inited represents whether the audio device is initialized and available or not.
 	// On Android, audio loop cannot be started unless JVM is accessible. After updating one frame, JVM should exist.
@@ -68,7 +68,7 @@ type Context struct {
 	ready      bool
 	readyOnce  sync.Once
 
-	players map[playerImpl]struct{}
+	players map[*player]struct{}
 
 	m         sync.Mutex
 	semaphore chan struct{}
@@ -98,23 +98,23 @@ func NewContext(sampleRate int) *Context {
 	}
 
 	c := &Context{
-		sampleRate: sampleRate,
-		np:         newReaderPlayerFactory(sampleRate),
-		players:    map[playerImpl]struct{}{},
-		inited:     make(chan struct{}),
-		semaphore:  make(chan struct{}, 1),
+		sampleRate:    sampleRate,
+		playerFactory: newPlayerFactory(sampleRate),
+		players:       map[*player]struct{}{},
+		inited:        make(chan struct{}),
+		semaphore:     make(chan struct{}, 1),
 	}
 	theContext = c
 
 	h := getHook()
 	h.OnSuspendAudio(func() error {
 		c.semaphore <- struct{}{}
-		c.np.suspend()
+		c.playerFactory.suspend()
 		return nil
 	})
 	h.OnResumeAudio(func() error {
 		<-c.semaphore
-		c.np.resume()
+		c.playerFactory.resume()
 		return nil
 	})
 
@@ -172,7 +172,7 @@ func (c *Context) setReady() {
 	c.m.Unlock()
 }
 
-func (c *Context) addPlayer(p playerImpl) {
+func (c *Context) addPlayer(p *player) {
 	c.m.Lock()
 	defer c.m.Unlock()
 	c.players[p] = struct{}{}
@@ -188,7 +188,7 @@ func (c *Context) addPlayer(p playerImpl) {
 	}
 }
 
-func (c *Context) removePlayer(p playerImpl) {
+func (c *Context) removePlayer(p *player) {
 	c.m.Lock()
 	delete(c.players, p)
 	c.m.Unlock()
@@ -200,17 +200,13 @@ func (c *Context) gcPlayers() error {
 
 	// Now reader players cannot call removePlayers from themselves in the current implementation.
 	// Underlying playering can be the pause state after fishing its playing,
-	// but there is no way to notify this to readerPlayers so far.
+	// but there is no way to notify this to players so far.
 	// Instead, let's check the states proactively every frame.
 	for p := range c.players {
-		rp, ok := p.(*readerPlayer)
-		if !ok {
-			return nil
-		}
-		if err := rp.Err(); err != nil {
+		if err := p.Err(); err != nil {
 			return err
 		}
-		if !rp.IsPlaying() {
+		if !p.IsPlaying() {
 			delete(c.players, p)
 		}
 	}
@@ -273,22 +269,7 @@ func (c *Context) waitUntilInited() {
 // This means that if a Player plays an infinite stream,
 // the object is never GCed unless Close is called.
 type Player struct {
-	p playerImpl
-}
-
-type playerImpl interface {
-	io.Closer
-
-	Play()
-	IsPlaying() bool
-	Pause()
-	Volume() float64
-	SetVolume(volume float64)
-	Current() time.Duration
-	Rewind() error
-	Seek(offset time.Duration) error
-
-	source() io.Reader
+	p *player
 }
 
 // NewPlayer creates a new player with the given stream.
@@ -308,7 +289,7 @@ type playerImpl interface {
 // A Player doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
 func (c *Context) NewPlayer(src io.Reader) (*Player, error) {
-	pi, err := c.np.newPlayerImpl(c, src)
+	pi, err := c.playerFactory.newPlayer(c, src)
 	if err != nil {
 		return nil, err
 	}

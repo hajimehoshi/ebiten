@@ -23,8 +23,8 @@ import (
 )
 
 type (
-	dummyReaderContext struct{}
-	dummyReaderPlayer  struct {
+	dummyContext struct{}
+	dummyPlayer  struct {
 		r       io.Reader
 		playing bool
 		volume  float64
@@ -32,32 +32,32 @@ type (
 	}
 )
 
-func (c *dummyReaderContext) NewPlayer(r io.Reader) readerdriver.Player {
-	return &dummyReaderPlayer{
+func (c *dummyContext) NewPlayer(r io.Reader) readerdriver.Player {
+	return &dummyPlayer{
 		r:      r,
 		volume: 1,
 	}
 }
 
-func (c *dummyReaderContext) MaxBufferSize() int {
+func (c *dummyContext) MaxBufferSize() int {
 	return 48000 * channelNum * bitDepthInBytes / 4
 }
 
-func (c *dummyReaderContext) Suspend() error {
+func (c *dummyContext) Suspend() error {
 	return nil
 }
 
-func (c *dummyReaderContext) Resume() error {
+func (c *dummyContext) Resume() error {
 	return nil
 }
 
-func (p *dummyReaderPlayer) Pause() {
+func (p *dummyPlayer) Pause() {
 	p.m.Lock()
 	p.playing = false
 	p.m.Unlock()
 }
 
-func (p *dummyReaderPlayer) Play() {
+func (p *dummyPlayer) Play() {
 	p.m.Lock()
 	p.playing = true
 	p.m.Unlock()
@@ -71,35 +71,35 @@ func (p *dummyReaderPlayer) Play() {
 	}()
 }
 
-func (p *dummyReaderPlayer) IsPlaying() bool {
+func (p *dummyPlayer) IsPlaying() bool {
 	p.m.Lock()
 	defer p.m.Unlock()
 	return p.playing
 }
 
-func (p *dummyReaderPlayer) Reset() {
+func (p *dummyPlayer) Reset() {
 	p.m.Lock()
 	defer p.m.Unlock()
 	p.playing = false
 }
 
-func (p *dummyReaderPlayer) Volume() float64 {
+func (p *dummyPlayer) Volume() float64 {
 	return p.volume
 }
 
-func (p *dummyReaderPlayer) SetVolume(volume float64) {
+func (p *dummyPlayer) SetVolume(volume float64) {
 	p.volume = volume
 }
 
-func (p *dummyReaderPlayer) UnplayedBufferSize() int {
+func (p *dummyPlayer) UnplayedBufferSize() int {
 	return 0
 }
 
-func (p *dummyReaderPlayer) Err() error {
+func (p *dummyPlayer) Err() error {
 	return nil
 }
 
-func (p *dummyReaderPlayer) Close() error {
+func (p *dummyPlayer) Close() error {
 	p.m.Lock()
 	defer p.m.Unlock()
 	p.playing = false
@@ -107,7 +107,7 @@ func (p *dummyReaderPlayer) Close() error {
 }
 
 func init() {
-	readerDriverForTesting = &dummyReaderContext{}
+	driverForTesting = &dummyContext{}
 }
 
 type dummyHook struct {
