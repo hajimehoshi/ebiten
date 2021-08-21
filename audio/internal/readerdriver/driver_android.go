@@ -26,7 +26,7 @@ type context struct {
 	players *players
 }
 
-func NewContext(sampleRate int, channelNum int, bitDepthInBytes int) (Context, chan struct{}, error) {
+func newContext(sampleRate int, channelNum int, bitDepthInBytes int) (*context, chan struct{}, error) {
 	ready := make(chan struct{})
 	close(ready)
 

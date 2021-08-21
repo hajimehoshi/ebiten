@@ -89,7 +89,7 @@ type context struct {
 
 var theContext *context
 
-func NewContext(sampleRate, channelNum, bitDepthInBytes int) (Context, chan struct{}, error) {
+func newContext(sampleRate, channelNum, bitDepthInBytes int) (*context, chan struct{}, error) {
 	ready := make(chan struct{})
 	close(ready)
 

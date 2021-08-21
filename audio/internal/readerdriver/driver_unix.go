@@ -50,7 +50,7 @@ func alsaError(err C.int) error {
 	return fmt.Errorf("readerdriver: ALSA error: %s", C.GoString(C.snd_strerror(err)))
 }
 
-func NewContext(sampleRate, channelNum, bitDepthInBytes int) (Context, chan struct{}, error) {
+func newContext(sampleRate, channelNum, bitDepthInBytes int) (*context, chan struct{}, error) {
 	ready := make(chan struct{})
 	close(ready)
 

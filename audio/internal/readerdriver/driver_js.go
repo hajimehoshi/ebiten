@@ -36,7 +36,7 @@ type context struct {
 	bitDepthInBytes int
 }
 
-func NewContext(sampleRate int, channelNum int, bitDepthInBytes int) (Context, chan struct{}, error) {
+func newContext(sampleRate int, channelNum int, bitDepthInBytes int) (*context, chan struct{}, error) {
 	ready := make(chan struct{})
 	if js.Global().Get("go2cpp").Truthy() {
 		close(ready)

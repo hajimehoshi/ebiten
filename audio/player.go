@@ -23,14 +23,20 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/readerdriver"
 )
 
+type context interface {
+	NewPlayer(io.Reader) readerdriver.Player
+	Suspend() error
+	Resume() error
+}
+
 type playerFactory struct {
-	context    readerdriver.Context
+	context    context
 	sampleRate int
 
 	m sync.Mutex
 }
 
-var driverForTesting readerdriver.Context
+var driverForTesting context
 
 func newPlayerFactory(sampleRate int) *playerFactory {
 	f := &playerFactory{
