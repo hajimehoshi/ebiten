@@ -20,11 +20,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hajimehoshi/ebiten/v2/audio/internal/readerdriver"
+	"github.com/hajimehoshi/oto/v2"
 )
 
 type context interface {
-	NewPlayer(io.Reader) readerdriver.Player
+	NewPlayer(io.Reader) oto.Player
 	Suspend() error
 	Resume() error
 }
@@ -51,7 +51,7 @@ func newPlayerFactory(sampleRate int) *playerFactory {
 
 type player struct {
 	context *Context
-	player  readerdriver.Player
+	player  oto.Player
 	src     io.Reader
 	stream  *timeStream
 	factory *playerFactory

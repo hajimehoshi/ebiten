@@ -17,8 +17,9 @@ package audio
 import (
 	"syscall/js"
 
+	"github.com/hajimehoshi/oto/v2"
+
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/go2cpp"
-	"github.com/hajimehoshi/ebiten/v2/audio/internal/readerdriver"
 )
 
 func newContext(sampleRate, channelNum, bitDepthInBytes int) (context, chan struct{}, error) {
@@ -28,5 +29,5 @@ func newContext(sampleRate, channelNum, bitDepthInBytes int) (context, chan stru
 		return go2cpp.NewContext(sampleRate, channelNum, bitDepthInBytes), ready, nil
 	}
 
-	return readerdriver.NewContext(sampleRate, channelNum, bitDepthInBytes)
+	return oto.NewContext(sampleRate, channelNum, bitDepthInBytes)
 }

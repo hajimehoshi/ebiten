@@ -18,9 +18,9 @@
 package audio
 
 import (
-	"github.com/hajimehoshi/ebiten/v2/audio/internal/readerdriver"
+	"github.com/hajimehoshi/oto/v2"
 )
 
 func newContext(sampleRate, channelNum, bitDepthInBytes int) (context, chan struct{}, error) {
-	return readerdriver.NewContext(sampleRate, channelNum, bitDepthInBytes)
+	return oto.NewContext(sampleRate, channelNum, bitDepthInBytes)
 }

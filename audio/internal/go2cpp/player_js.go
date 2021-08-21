@@ -20,7 +20,7 @@ import (
 	"sync"
 	"syscall/js"
 
-	"github.com/hajimehoshi/ebiten/v2/audio/internal/readerdriver"
+	"github.com/hajimehoshi/oto/v2"
 )
 
 type Context struct {
@@ -40,7 +40,7 @@ func NewContext(sampleRate int, channelNum, bitDepthInBytes int) *Context {
 	}
 }
 
-func (c *Context) NewPlayer(r io.Reader) readerdriver.Player {
+func (c *Context) NewPlayer(r io.Reader) oto.Player {
 	cond := sync.NewCond(&sync.Mutex{})
 	onwritten := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		cond.Signal()
