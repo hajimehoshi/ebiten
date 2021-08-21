@@ -29,10 +29,6 @@ import (
 	"unsafe"
 )
 
-func IsAvailable() bool {
-	return true
-}
-
 type context struct {
 	sampleRate      int
 	channelNum      int
@@ -84,6 +80,7 @@ func NewContext(sampleRate, channelNum, bitDepthInBytes int) (Context, chan stru
 		buf32 := make([]float32, int(periodSize)*c.channelNum)
 		for {
 			if err := c.readAndWrite(buf32); err != nil {
+				// TODO: Handle errors correctly.
 				panic(err)
 			}
 		}

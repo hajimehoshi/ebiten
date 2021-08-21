@@ -40,7 +40,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hajimehoshi/ebiten/v2/audio/internal/readerdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
@@ -50,10 +49,6 @@ const (
 	bytesPerSample  = bitDepthInBytes * channelNum
 )
 
-type newPlayerImpler interface {
-	newPlayerImpl(context *Context, src io.Reader) (playerImpl, error)
-}
-
 // A Context represents a current state of audio.
 //
 // At most one Context object can exist in one process.
@@ -61,7 +56,7 @@ type newPlayerImpler interface {
 //
 // For a typical usage example, see examples/wav/main.go.
 type Context struct {
-	np newPlayerImpler
+	np *readerPlayerFactory
 
 	// inited represents whether the audio device is initialized and available or not.
 	// On Android, audio loop cannot be started unless JVM is accessible. After updating one frame, JVM should exist.
@@ -102,23 +97,9 @@ func NewContext(sampleRate int) *Context {
 		panic("audio: context is already created")
 	}
 
-	var np newPlayerImpler
-	if readerdriver.IsAvailable() {
-		// 'Reader players' are players that implement io.Reader. This is the new way and
-		// not all the environments support reader players. Reader players can have enough
-		// buffers so that clicking noises can be avoided compared to writer players.
-		// Reder players will replace writer players in any platforms in the future.
-		np = newReaderPlayerFactory(sampleRate)
-	} else {
-		// 'Writer players' are players that implement io.Writer. This is the old way but
-		// all the environments support writer players. Writer players cannot have enough
-		// buffers and clicking noises are sometimes problematic (#1356, #1458).
-		np = newWriterPlayerFactory(sampleRate)
-	}
-
 	c := &Context{
 		sampleRate: sampleRate,
-		np:         np,
+		np:         newReaderPlayerFactory(sampleRate),
 		players:    map[playerImpl]struct{}{},
 		inited:     make(chan struct{}),
 		semaphore:  make(chan struct{}, 1),
@@ -128,16 +109,12 @@ func NewContext(sampleRate int) *Context {
 	h := getHook()
 	h.OnSuspendAudio(func() error {
 		c.semaphore <- struct{}{}
-		if s, ok := np.(interface{ suspend() error }); ok {
-			return s.suspend()
-		}
+		c.np.suspend()
 		return nil
 	})
 	h.OnResumeAudio(func() error {
 		<-c.semaphore
-		if s, ok := np.(interface{ resume() error }); ok {
-			return s.resume()
-		}
+		c.np.resume()
 		return nil
 	})
 

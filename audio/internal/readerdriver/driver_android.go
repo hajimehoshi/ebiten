@@ -18,10 +18,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/oboe"
 )
 
-func IsAvailable() bool {
-	return true
-}
-
 type context struct {
 	sampleRate      int
 	channelNum      int

@@ -26,10 +26,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/go2cpp"
 )
 
-func IsAvailable() bool {
-	return true
-}
-
 type context struct {
 	audioContext js.Value
 	ready        bool

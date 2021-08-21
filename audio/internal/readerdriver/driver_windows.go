@@ -26,10 +26,6 @@ import (
 
 const headerBufferSize = 4096
 
-func IsAvailable() bool {
-	return true
-}
-
 type header struct {
 	waveOut uintptr
 	buffer  []float32

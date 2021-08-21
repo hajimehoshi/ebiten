@@ -30,10 +30,6 @@ import (
 	"unsafe"
 )
 
-func IsAvailable() bool {
-	return true
-}
-
 const (
 	float32SizeInBytes = 4
 )
