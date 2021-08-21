@@ -23,31 +23,6 @@ import (
 )
 
 type (
-	dummyWriterContext struct{}
-	dummyWriterPlayer  struct{}
-)
-
-func (c *dummyWriterContext) NewPlayer() io.WriteCloser {
-	return &dummyWriterPlayer{}
-}
-
-func (c *dummyWriterContext) Close() error {
-	return nil
-}
-
-func (p *dummyWriterPlayer) Write(b []byte) (int, error) {
-	return len(b), nil
-}
-
-func (p *dummyWriterPlayer) Close() error {
-	return nil
-}
-
-func init() {
-	writerDriverForTesting = &dummyWriterContext{}
-}
-
-type (
 	dummyReaderContext struct{}
 	dummyReaderPlayer  struct {
 		r       io.Reader
