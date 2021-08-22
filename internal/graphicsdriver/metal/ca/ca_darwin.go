@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build darwin
-// +build darwin
-
 // Package ca provides access to Apple's Core Animation API (https://developer.apple.com/documentation/quartzcore).
 //
 // This package is in very early stages of development.
@@ -36,7 +33,7 @@ import (
 // #cgo !ios CFLAGS: -mmacosx-version-min=10.12
 // #cgo LDFLAGS: -framework QuartzCore -framework Foundation -framework CoreGraphics
 //
-// #include "ca.h"
+// #include "ca_darwin.h"
 import "C"
 
 // Layer is an object that manages image-based content and

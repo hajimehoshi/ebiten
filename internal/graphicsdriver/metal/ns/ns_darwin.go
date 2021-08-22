@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build darwin
-// +build darwin
-
 // Package ns provides access to Apple's AppKit API (https://developer.apple.com/documentation/appkit).
 //
 // This package is in very early stages of development.
@@ -30,7 +27,7 @@ import (
 
 // #cgo !ios CFLAGS: -mmacosx-version-min=10.12
 //
-// #include "ns.h"
+// #include "ns_darwin.h"
 import "C"
 
 // Window is a window that an app displays on the screen.

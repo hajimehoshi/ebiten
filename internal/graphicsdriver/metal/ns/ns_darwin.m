@@ -12,12 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build darwin
+#include "ns_darwin.h"
+#import <Cocoa/Cocoa.h>
 
-#include "stdint.h"
+void *Window_ContentView(uintptr_t window) {
+  return ((NSWindow *)window).contentView;
+}
 
-void *Window_ContentView(uintptr_t window);
+void View_SetLayer(void *view, void *layer) {
+  ((NSView *)view).layer = (CALayer *)layer;
+}
 
-void View_SetLayer(void *view, void *layer);
-void View_SetWantsLayer(void *view, unsigned char wantsLayer);
-uint8_t View_IsInFullScreenMode(void *view);
+void View_SetWantsLayer(void *view, unsigned char wantsLayer) {
+  ((NSView *)view).wantsLayer = (BOOL)wantsLayer;
+}
+
+uint8_t View_IsInFullScreenMode(void *view) {
+  return ((NSView *)view).isInFullScreenMode;
+}

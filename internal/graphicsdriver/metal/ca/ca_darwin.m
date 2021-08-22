@@ -12,9 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build darwin
-
-#include "ca.h"
+#include "ca_darwin.h"
 #import <QuartzCore/QuartzCore.h>
 
 void *MakeMetalLayer() {

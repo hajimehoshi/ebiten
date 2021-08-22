@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build darwin
-// +build darwin
-
 // Package mtl provides access to Apple's Metal API (https://developer.apple.com/documentation/metal).
 //
 // Package mtl requires macOS version 10.13 or newer.
@@ -34,7 +31,7 @@ import (
 // #cgo !ios CFLAGS: -mmacosx-version-min=10.12
 // #cgo LDFLAGS: -framework Metal -framework CoreGraphics -framework Foundation
 //
-// #include "mtl.h"
+// #include "mtl_darwin.h"
 // #include <stdlib.h>
 import "C"
 
