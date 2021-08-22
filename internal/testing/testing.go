@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/internal/testflock"
 )
 
 var regularTermination = errors.New("regular termination")
@@ -43,9 +42,6 @@ func (*game) Layout(int, int) (int, int) {
 }
 
 func MainWithRunLoop(m *testing.M) {
-	testflock.Lock()
-	defer testflock.Unlock()
-
 	// Run an Ebiten process so that (*Image).At is available.
 	g := &game{
 		m: m,
