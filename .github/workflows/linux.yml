@@ -1,0 +1,40 @@
+name: linux
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        image: ['debian:latest', 'ubuntu:latest']
+    name: Test with ${{ matrix.image }}
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ matrix.image }}
+    env:
+      DISPLAY: ':99.0'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.17.x'
+
+      - name: Install dependencies
+        if: ${{ matrix.image == 'debian:latest' || matrix.image == 'ubuntu:latest' }}
+        run: |
+          apt-get update
+          apt-get install -y libasound2-dev libgl1-mesa-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev pkg-config
+
+      - name: Xvfb
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+
+      - name: go test
+        run: |
+          go test -tags=example -v ./...
