@@ -234,17 +234,20 @@ func IsStandardGamepadLayoutAvailable(id GamepadID) bool {
 	return uiDriver().Input().IsStandardGamepadLayoutAvailable(id)
 }
 
-// UpdateStandardGamepadLayoutMappings updates the gamepad layout definitions using a set of definitions in SDL_GameControllerDB format.
+// UpdateStandardGamepadLayoutMappings parses the specified string mappings in SDL_GameControllerDB format and
+// updates the gamepad layout definitions.
 //
-// Multiple input definitions can be provided separated by newlines.
+// UpdateStandardGamepadLayoutMappings reports whether the mappings were applied,
+// and returns an error in case any occurred while parsing the mappings.
+//
+// One or more input definitions can be provided separated by newlines.
 // In particular, it is valid to pass an entire gamecontrollerdb.txt file.
-//
 // Note though that Ebiten already includes its own copy of this file,
 // so this call should only be necessary to add mappings for hardware not supported yet;
-// ideally games using the StandardGamepad functions should allow the user to provide mappings and then call this function if provided.
-// When using this facility to support new hardware, please also send a pull request to https://github.com/gabomdq/SDL_GameControllerDB to make your mapping available to everyone else.
-//
-// UpdateStandardGamepadLayoutMappings reports whether the mappings were applied, and returns an error in case any occurred while parsing the mappings.
+// ideally games using the StandardGamepad* functions should allow the user to provide mappings and
+// then call this function if provided.
+// When using this facility to support new hardware, please also send a pull request to
+// https://github.com/gabomdq/SDL_GameControllerDB to make your mapping available to everyone else.
 //
 // On platforms where gamepad mappings are not managed by Ebiten, this always returns false and nil.
 //
