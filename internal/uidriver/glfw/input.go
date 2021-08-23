@@ -452,3 +452,26 @@ func standardButtonToGLFWButton(button driver.StandardGamepadButton) glfw.Gamepa
 		panic(fmt.Sprintf("glfw: invalid or inconvertible StandardGamepadButton: %d", button))
 	}
 }
+
+// UpdateStandardGamepadLayoutMappings can be used to provide new gamepad mappings to Ebiten.
+// The string must be in the format of SDL_GameControllerDB.
+func (i *Input) UpdateStandardGamepadLayoutMappings(mapping string) (bool, error) {
+	var err error
+	if i.ui.isRunning() {
+		err = i.ui.t.Call(func() error {
+			return i.updateStandardGamepadLayoutMappings(mapping)
+		})
+	} else {
+		err = i.updateStandardGamepadLayoutMappings(mapping)
+	}
+	return err == nil, err
+}
+
+func (i *Input) updateStandardGamepadLayoutMappings(mapping string) error {
+	if !glfw.UpdateGamepadMappings(mapping) {
+		// Would be nice if we could actually get the error string.
+		// However, go-gl currently does not provide it in any way.
+		return fmt.Errorf("glfw: could not parse or update gamepad mappings")
+	}
+	return nil
+}
