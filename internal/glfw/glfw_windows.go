@@ -301,7 +301,7 @@ func (w *Window) SetTitle(title string) {
 func (w *Window) ShouldClose() bool {
 	r := glfwDLL.call("glfwWindowShouldClose", w.w)
 	panicError()
-	return r == True
+	return byte(r) == True
 }
 
 func (w *Window) Show() {
@@ -494,7 +494,7 @@ func Init() error {
 func (j Joystick) Present() bool {
 	r := glfwDLL.call("glfwJoystickPresent", uintptr(j))
 	panicError()
-	return r == True
+	return byte(r) == True
 }
 
 func panicErrorExceptForInvalidValue() {
@@ -556,7 +556,7 @@ func UpdateGamepadMappings(mapping string) bool {
 	defer runtime.KeepAlive(m)
 	r := glfwDLL.call("glfwUpdateGamepadMappings", uintptr(unsafe.Pointer(&m[0])))
 	panicError()
-	return r == True
+	return byte(r) == True
 }
 
 func WaitEvents() {

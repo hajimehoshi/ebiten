@@ -315,22 +315,22 @@ func GetVertexArrayPointeri_vEXT(vaobj uint32, index uint32, pname uint32, param
 
 func IsFramebufferEXT(framebuffer uint32) bool {
 	ret, _, _ := syscall.Syscall(gpIsFramebufferEXT, 1, uintptr(framebuffer), 0, 0)
-	return ret != 0
+	return byte(ret) != 0
 }
 
 func IsProgram(program uint32) bool {
 	ret, _, _ := syscall.Syscall(gpIsProgram, 1, uintptr(program), 0, 0)
-	return ret != 0
+	return byte(ret) != 0
 }
 
 func IsRenderbufferEXT(renderbuffer uint32) bool {
 	ret, _, _ := syscall.Syscall(gpIsRenderbufferEXT, 1, uintptr(renderbuffer), 0, 0)
-	return ret != 0
+	return byte(ret) != 0
 }
 
 func IsTexture(texture uint32) bool {
 	ret, _, _ := syscall.Syscall(gpIsTexture, 1, uintptr(texture), 0, 0)
-	return ret != 0
+	return byte(ret) != 0
 }
 
 func LinkProgram(program uint32) {
