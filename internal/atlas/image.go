@@ -55,6 +55,8 @@ func temporaryPixelsByteSize(size int) int {
 	return l
 }
 
+// alloc allocates the pixels and reutrns it.
+// Be careful that the returned pixels might not be zero-cleared.
 func (t *temporaryPixels) alloc(size int) []byte {
 	if len(t.pixels) < t.pos+size {
 		t.pixels = make([]byte, temporaryPixelsByteSize(t.pos+size))
@@ -79,8 +81,11 @@ func (t *temporaryPixels) resetAtFrameEnd() {
 	// Let the pixels GCed if this is not used for a while.
 	if t.notFullyUsedTime == maxNotFullyUsedTime && len(t.pixels) > 0 {
 		t.pixels = nil
-		t.pos = 0
 	}
+
+	// Reset the position and reuse the allocated bytes.
+	// t.pixels should already be sent to GPU, then this can be reused.
+	t.pos = 0
 }
 
 func max(a, b int) int {
@@ -532,6 +537,25 @@ func (i *Image) replacePixels(pix []byte) {
 	}
 
 	pixb := theTemporaryPixels.alloc(4 * w * h)
+
+	// Clear the edges. pixb might not be zero-cleared.
+	rowPixels := 4 * w
+	for i := 0; i < rowPixels; i++ {
+		pixb[i] = 0
+	}
+	for j := 1; j < h-1; j++ {
+		pixb[rowPixels*j] = 0
+		pixb[rowPixels*j+1] = 0
+		pixb[rowPixels*j+2] = 0
+		pixb[rowPixels*j+3] = 0
+		pixb[rowPixels*(j+1)-4] = 0
+		pixb[rowPixels*(j+1)-3] = 0
+		pixb[rowPixels*(j+1)-2] = 0
+		pixb[rowPixels*(j+1)-1] = 0
+	}
+	for i := 0; i < rowPixels; i++ {
+		pixb[rowPixels*(h-1)+i] = 0
+	}
 
 	// Copy the content.
 	for j := 0; j < oh; j++ {
