@@ -79,9 +79,8 @@ func (t *temporaryPixels) resetAtFrameEnd() {
 	// Let the pixels GCed if this is not used for a while.
 	if t.notFullyUsedTime == maxNotFullyUsedTime && len(t.pixels) > 0 {
 		t.pixels = nil
+		t.pos = 0
 	}
-
-	t.pos = 0
 }
 
 func max(a, b int) int {
@@ -532,8 +531,9 @@ func (i *Image) replacePixels(pix []byte) {
 		panic(fmt.Sprintf("atlas: len(p) must be %d but %d", l, len(pix)))
 	}
 
-	// Add a padding around the image.
 	pixb := theTemporaryPixels.alloc(4 * w * h)
+
+	// Copy the content.
 	for j := 0; j < oh; j++ {
 		copy(pixb[4*((j+paddingSize)*w+paddingSize):], pix[4*j*ow:4*(j+1)*ow])
 	}
