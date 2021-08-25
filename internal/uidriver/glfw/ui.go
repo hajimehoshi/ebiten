@@ -975,6 +975,7 @@ func (u *UserInterface) update() (float64, float64, bool, error) {
 
 	// Call updateVsync even though fpsMode is not updated.
 	// The vsync state might be changed in other places (e.g., the SetSizeCallback).
+	// Also, when toggling to fullscreen, vsync state might be reset unexpectedly (#1787).
 	u.updateVsync()
 
 	outsideWidth, outsideHeight, outsideSizeChanged := u.updateSize()
