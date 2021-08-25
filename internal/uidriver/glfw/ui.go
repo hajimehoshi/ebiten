@@ -910,9 +910,12 @@ func (u *UserInterface) update() (float64, float64, bool, error) {
 	// Calling this inside setWindowSize didn't work (#1363).
 	if !u.vsyncInited {
 		u.vsync = u.isInitVsyncEnabled()
-		u.updateVsync()
 		u.vsyncInited = true
 	}
+
+	// Call updateVsync regardless of vsyncInited.
+	// When toggling to fullscreen, vsync state might be reset unexpectedly (#1787).
+	u.updateVsync()
 
 	outsideWidth, outsideHeight, outsideSizeChanged := u.updateSize()
 
