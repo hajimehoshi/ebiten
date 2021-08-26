@@ -1,4 +1,4 @@
-name: steam
+name: Steam
 
 on: [push, pull_request]
 

@@ -1,0 +1,30 @@
+name: Sourcehut Build
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [alpine, arch, debian, fedora, ubuntu]
+    name: Test on ${{ matrix.os }}
+    runs-on: ubuntu-latest
+    env:
+      SOURCEHUT_OAUTH_TOKEN: ${{ secrets.SOURCEHUT_OAUTH_TOKEN }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17.x
+
+      - name: Run
+        run: |
+          go run .github/workflows/sourcehutbuild.go \
+              -manifest .github/workflows/sourcehutmanifests/${{ matrix.os }}.yml \
+              -note '${{ format('{0} ({1})', github.event.head_commit.id, matrix.os) }}'
