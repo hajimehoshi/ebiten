@@ -26,5 +26,6 @@ jobs:
       - name: Run
         run: |
           go run .github/workflows/sourcehutbuild.go \
+              -commit ${{ github.event.head_commit.id }} \
               -manifest .github/workflows/sourcehutmanifests/${{ matrix.os }}.yml \
               -note '${{ format('{0} ({1})', github.event.head_commit.id, matrix.os) }}'

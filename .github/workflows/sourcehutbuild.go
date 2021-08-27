@@ -26,10 +26,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
 var (
+	flagCommit   = flag.String("commit", "", "git commit hash ID")
 	flagManifest = flag.String("manifest", "", "manifest file path")
 	flagNote     = flag.String("note", "", "note for the build")
 )
@@ -101,8 +103,10 @@ func run() error {
 		return err
 	}
 
+	manifestStr := strings.ReplaceAll(string(manifest), "{{.Commit}}", *flagCommit)
+
 	body, err := httpRequest(http.MethodPost, "/api/jobs", &JobRequest{
-		Manifest: string(manifest),
+		Manifest: manifestStr,
 		Note:     *flagNote,
 	})
 	if err != nil {

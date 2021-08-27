@@ -12,7 +12,7 @@ packages:
   - pkg-config
   - golang
 sources:
-  - https://github.com/hajimehoshi/ebiten
+  - https://github.com/hajimehoshi/ebiten#{{.Commit}}
 tasks:
   - build: |
       cd ebiten
