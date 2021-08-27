@@ -32,7 +32,7 @@ jobs:
           distribution: 'adopt'
 
       - name: Install dependencies
-        if: ${{ matrix.os == 'ubuntu-latest' }}
+        if: ${{ startsWith(matrix.os, 'ubuntu-') }}
         run: |
           sudo apt-get update
           sudo apt-get install libasound2-dev libgl1-mesa-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev
@@ -58,12 +58,12 @@ jobs:
           go mod tidy
 
       - name: Xvfb
-        if: ${{ matrix.os == 'ubuntu-latest' }}
+        if: ${{ startsWith(matrix.os, 'ubuntu-') }}
         run: |
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
 
       - name: go vet
-        if: ${{ matrix.os != 'windows-latest' }} # TODO: Fix go vet errors on Windows. (#1306)
+        if: ${{ !startsWith(matrix.os, 'windows-') }} # TODO: Fix go vet errors on Windows. (#1306)
         run: |
           go vet -tags=example -v ./...
 
@@ -80,13 +80,13 @@ jobs:
           env GOOS=windows GOARCH=386 go build -tags=example -v ./...
 
       - name: go test
-        if: ${{ matrix.os == 'ubuntu-latest' }} # TODO: Add more test environments (#1305)
+        if: ${{ startsWith(matrix.os, 'ubuntu-') }} # TODO: Add more test environments (#1305)
         run: |
           go test -tags=example -v ./...
 
       - name: go test (Wasm)
         # TODO: Investigate times out on Windows. (#1313)
-        if: ${{ matrix.os != 'windows-latest' }}
+        if: ${{ !startsWith(matrix.os, 'windows-') }}
         run: |
           env GOOS=js GOARCH=wasm go test -tags=example -v ./...
           env GOOS=js GOARCH=wasm go test -tags=example,ebitenwebgl1 -v ./...
@@ -102,7 +102,7 @@ jobs:
           ebitenmobile bind -target android -javapkg com.hajimehoshi.goinovation -o inovation.aar -v github.com/hajimehoshi/go-inovation/mobile
 
       - name: ebitenmobile bind (iOS)
-        if: ${{ matrix.os == 'macos-latest' && !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') }}
+        if: ${{ startsWith(matrix.os, 'macos-') && !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') }}
         run: |
           cd /tmp/go-inovation
           ebitenmobile bind -target ios -o Inovation.framework -v github.com/hajimehoshi/go-inovation/mobile
