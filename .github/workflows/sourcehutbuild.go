@@ -119,7 +119,6 @@ func run() error {
 
 	// Poll the queued job's status
 	const maxAttempt = 60
-loop:
 	for i := 0; i < maxAttempt; i++ {
 		fmt.Printf("Polling the status... (%d)\n", i+1)
 
@@ -142,7 +141,7 @@ loop:
 		case "running":
 			// Do nothing
 		case "success":
-			break loop
+			return nil
 		case "failed":
 			resBody, err := io.ReadAll(body)
 			if err != nil {
@@ -154,7 +153,7 @@ loop:
 		time.Sleep(10 * time.Second)
 	}
 
-	return nil
+	return fmt.Errorf("time out")
 }
 
 func main() {
