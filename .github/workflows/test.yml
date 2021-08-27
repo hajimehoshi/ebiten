@@ -70,7 +70,7 @@ jobs:
       - name: go vet (atomic align)
         run: |
           go install .github/workflows/vettools/atomicalign.go
-          go vet -vettool=$(which atomicalign) -tags=example -v ./...
+          go vet -vettool=$(which atomicalign)${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }} -tags=example -v ./...
 
       - name: go build
         run: |
