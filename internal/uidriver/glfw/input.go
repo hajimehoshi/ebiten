@@ -17,7 +17,7 @@
 // +build !android
 // +build !ios
 
-//go:generate curl --location --output gamecontrollerdb.txt https://raw.githubusercontent.com/gabomdq/SDL_GameControllerDB/master/gamecontrollerdb.txt
+//go:generate curl --location --remote-name https://raw.githubusercontent.com/gabomdq/SDL_GameControllerDB/master/gamecontrollerdb.txt
 //go:generate file2byteslice -package glfw -input=./gamecontrollerdb.txt -output=./gamecontrollerdb.txt.go -var=gamecontrollerdbTxt
 
 package glfw
