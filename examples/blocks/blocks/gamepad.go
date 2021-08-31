@@ -211,9 +211,8 @@ func (c *gamepadConfig) IsButtonPressed(b virtualGamepadButton) bool {
 		v := ebiten.GamepadAxisValue(c.gamepadID, a.id)
 		if a.positive {
 			return axisThreshold <= v && v <= 1.0
-		} else {
-			return -1.0 <= v && v <= -axisThreshold
 		}
+		return -1.0 <= v && v <= -axisThreshold
 	}
 	return false
 }
@@ -254,9 +253,8 @@ func (c *gamepadConfig) ButtonName(b virtualGamepadButton) string {
 	if ok {
 		if a.positive {
 			return fmt.Sprintf("Axis %d+", a.id)
-		} else {
-			return fmt.Sprintf("Axis %d-", a.id)
 		}
+		return fmt.Sprintf("Axis %d-", a.id)
 	}
 
 	return ""

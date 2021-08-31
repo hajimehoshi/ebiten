@@ -114,12 +114,11 @@ func vecToDir(dx, dy int) (Dir, bool) {
 			return DirUp, true
 		}
 		return DirDown, true
-	} else {
-		if dx < 0 {
-			return DirLeft, true
-		}
-		return DirRight, true
 	}
+	if dx < 0 {
+		return DirLeft, true
+	}
+	return DirRight, true
 }
 
 // Update updates the current input states.
