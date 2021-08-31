@@ -617,7 +617,7 @@ func (u *UserInterface) SetFPSMode(mode driver.FPSMode) {
 			u.m.Unlock()
 			return nil
 		}
-		u.fpsMode = mode
+		u.setFPSMode(mode)
 		u.updateVsync()
 		return nil
 	})
@@ -752,8 +752,6 @@ func (u *UserInterface) createWindow() error {
 		u.window.MakeContextCurrent()
 	}
 
-	u.window.SetInputMode(glfw.StickyMouseButtonsMode, glfw.True)
-	u.window.SetInputMode(glfw.StickyKeysMode, glfw.True)
 	u.window.SetInputMode(glfw.CursorMode, driverCursorModeToGLFWCursorMode(u.getInitCursorMode()))
 	u.window.SetCursor(glfwSystemCursors[u.getCursorShape()])
 	u.window.SetTitle(u.title)
@@ -950,6 +948,19 @@ func (u *UserInterface) updateSize() (float64, float64, bool) {
 	return w, h, true
 }
 
+// setFPSMode must be called from the main thread.
+func (u *UserInterface) setFPSMode(fpsMode driver.FPSMode) {
+	u.fpsMode = fpsMode
+	u.fpsModeInited = true
+
+	sticky := glfw.True
+	if fpsMode == driver.FPSModeVsyncOffMinimum {
+		sticky = glfw.False
+	}
+	u.window.SetInputMode(glfw.StickyMouseButtonsMode, sticky)
+	u.window.SetInputMode(glfw.StickyKeysMode, sticky)
+}
+
 // update must be called from the main thread.
 func (u *UserInterface) update() (float64, float64, bool, error) {
 	if u.err != nil {
@@ -969,8 +980,7 @@ func (u *UserInterface) update() (float64, float64, bool, error) {
 	// Initialize vsync after SetMonitor is called. See the comment in updateVsync.
 	// Calling this inside setWindowSize didn't work (#1363).
 	if !u.fpsModeInited {
-		u.fpsMode = u.getInitFPSMode()
-		u.fpsModeInited = true
+		u.setFPSMode(u.getInitFPSMode())
 	}
 
 	// Call updateVsync even though fpsMode is not updated.
