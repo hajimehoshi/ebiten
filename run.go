@@ -337,7 +337,7 @@ const (
 	// FPSModeVsyncOn is the default mode.
 	FPSModeVsyncOn FPSModeType = driver.FPSModeVsyncOn
 
-	// FPSModeVsyncOffMaximum indicates that the game doesn't sync with vsycn, and
+	// FPSModeVsyncOffMaximum indicates that the game doesn't sync with vsync, and
 	// the game is updated whenever possible.
 	//
 	// Be careful that FPSModeVsyncOffMaximum might consume a lot of battery power.
@@ -346,7 +346,7 @@ const (
 	// The game's Update is called based on the specified TPS.
 	FPSModeVsyncOffMaximum FPSModeType = driver.FPSModeVsyncOffMaximum
 
-	// FPSModeVsyncOffMinimum indicates that the game doesn't sync with vsycn, and
+	// FPSModeVsyncOffMinimum indicates that the game doesn't sync with vsync, and
 	// the game is updated only when necessary.
 	//
 	// FPSModeVsyncOffMinimum is useful for relatively static applications to save battery power.
@@ -365,7 +365,7 @@ func FPSMode() FPSModeType {
 }
 
 // SetFPSMode sets the FPS mode.
-// The default FPS mode is FPSModeVsycnOn.
+// The default FPS mode is FPSModeVsyncOn.
 //
 // SetFPSMode is concurrent-safe.
 func SetFPSMode(mode FPSModeType) {
@@ -441,7 +441,7 @@ func SetScreenTransparent(transparent bool) {
 // SetInitFocused sets whether the application is focused on show.
 // The default value is true, i.e., the application is focused.
 // Note that the application does not proceed if this is not focused by default.
-// This behavior can be changed by SetRunnableInBackground.
+// This behavior can be changed by SetRunnableOnUnfocused.
 //
 // SetInitFocused does nothing on mobile.
 //

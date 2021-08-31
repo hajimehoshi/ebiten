@@ -199,10 +199,10 @@ func SetWindowSize(width, height int) {
 	}
 }
 
-// WindowSizeLimist returns the limitation of the window size on desktops.
+// WindowSizeLimits returns the limitation of the window size on desktops.
 // A negative value indicates the size is not limited.
 //
-// WindowMaxSize is concurrent-safe.
+// WindowSizeLimits is concurrent-safe.
 func WindowSizeLimits() (minw, minh, maxw, maxh int) {
 	if w := uiDriver().Window(); w != nil {
 		return w.SizeLimits()
@@ -213,7 +213,7 @@ func WindowSizeLimits() (minw, minh, maxw, maxh int) {
 // SetWindowSizeLimits sets the limitation of the window size on desktops.
 // A negative value indicates the size is not limited.
 //
-// SetWindowMaxSize is concurrent-safe.
+// SetWindowSizeLimits is concurrent-safe.
 func SetWindowSizeLimits(minw, minh, maxw, maxh int) {
 	if w := uiDriver().Window(); w != nil {
 		w.SetSizeLimits(minw, minh, maxw, maxh)
