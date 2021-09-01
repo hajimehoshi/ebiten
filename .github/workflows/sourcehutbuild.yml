@@ -1,6 +1,7 @@
 name: Sourcehut Build
 
-on: [push, pull_request]
+# Skip pull requests as secrets are not available there.
+on: push
 
 jobs:
   test:
