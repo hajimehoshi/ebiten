@@ -44,7 +44,6 @@ var (
 type ColorM interface {
 	IsIdentity() bool
 	ScaleOnly() bool
-	UnsafeScaleElements() *[4]float32
 	UnsafeElements() (*[16]float32, *[4]float32)
 	Apply(clr color.Color) color.Color
 
@@ -67,6 +66,8 @@ type ColorM interface {
 
 	// Translate translates the matrix by (r, g, b, a).
 	Translate(r, g, b, a float32) ColorM
+
+	scaleElements() (r, g, b, a float32)
 }
 
 func ColorMString(c ColorM) string {
@@ -164,16 +165,16 @@ func (c *colorMImplBodyTranslate) ScaleOnly() bool {
 	return true
 }
 
-func (c ColorMIdentity) UnsafeScaleElements() *[4]float32 {
-	return &[...]float32{1, 1, 1, 1}
+func (c ColorMIdentity) scaleElements() (r, g, b, a float32) {
+	return 1, 1, 1, 1
 }
 
-func (c colorMImplScale) UnsafeScaleElements() *[4]float32 {
-	return &c.scale
+func (c colorMImplScale) scaleElements() (r, g, b, a float32) {
+	return c.scale[0], c.scale[1], c.scale[2], c.scale[3]
 }
 
-func (c *colorMImplBodyTranslate) UnsafeScaleElements() *[4]float32 {
-	return &[...]float32{c.body[0], c.body[5], c.body[10], c.body[15]}
+func (c *colorMImplBodyTranslate) scaleElements() (r, g, b, a float32) {
+	return c.body[0], c.body[5], c.body[10], c.body[15]
 }
 
 func colorToFloat32s(clr color.Color) (float32, float32, float32, float32) {
@@ -452,10 +453,19 @@ func (c colorMImplScale) Equals(other ColorM) bool {
 	if !other.ScaleOnly() {
 		return false
 	}
-	for i, s := range other.UnsafeScaleElements() {
-		if c.scale[i] != s {
-			return false
-		}
+
+	r, g, b, a := other.scaleElements()
+	if c.scale[0] != r {
+		return false
+	}
+	if c.scale[1] != g {
+		return false
+	}
+	if c.scale[2] != b {
+		return false
+	}
+	if c.scale[3] != a {
+		return false
 	}
 	return true
 }
@@ -477,8 +487,7 @@ func (c colorMImplScale) Concat(other ColorM) ColorM {
 	}
 
 	if other.ScaleOnly() {
-		s := other.UnsafeScaleElements()
-		return c.Scale(s[0], s[1], s[2], s[3])
+		return c.Scale(other.scaleElements())
 	}
 
 	lhsb, lhst := other.UnsafeElements()
@@ -535,9 +544,9 @@ func (c colorMImplScale) Scale(r, g, b, a float32) ColorM {
 
 func (c *colorMImplBodyTranslate) Scale(r, g, b, a float32) ColorM {
 	if c.ScaleOnly() {
-		s := c.UnsafeScaleElements()
+		sr, sg, sb, sa := c.scaleElements()
 		return colorMImplScale{
-			scale: [...]float32{r * s[0], g * s[1], b * s[2], a * s[3]},
+			scale: [...]float32{r * sr, g * sg, b * sb, a * sa},
 		}
 	}
 
