@@ -124,7 +124,9 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices [
 	}
 
 	if colorm.ScaleOnly() {
-		body, _ := colorm.UnsafeElements()
+		var body [16]float32
+		var translate [4]float32
+		colorm.UnsafeElements(&body, &translate)
 		cr := body[0]
 		cg := body[5]
 		cb := body[10]

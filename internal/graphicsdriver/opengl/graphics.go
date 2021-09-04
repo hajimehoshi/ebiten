@@ -188,7 +188,9 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 
 		if !colorM.IsIdentity() {
 			// ColorM's elements are immutable. It's OK to hold the reference without copying.
-			esBody, esTranslate := colorM.UnsafeElements()
+			var esBody [16]float32
+			var esTranslate [4]float32
+			colorM.UnsafeElements(&esBody, &esTranslate)
 			uniformVars = append(uniformVars, uniformVariable{
 				name:  "color_matrix_body",
 				value: esBody[:],

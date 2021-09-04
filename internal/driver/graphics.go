@@ -35,7 +35,7 @@ const (
 
 type ColorM interface {
 	IsIdentity() bool
-	UnsafeElements() (*[16]float32, *[4]float32)
+	UnsafeElements(body *[16]float32, translate *[4]float32)
 }
 
 type Graphics interface {

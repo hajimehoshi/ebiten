@@ -44,7 +44,7 @@ var (
 type ColorM interface {
 	IsIdentity() bool
 	ScaleOnly() bool
-	UnsafeElements() (*[16]float32, *[4]float32)
+	UnsafeElements(body *[16]float32, translate *[4]float32)
 	Apply(clr color.Color) color.Color
 
 	// IsInvertible returns a boolean value indicating
@@ -71,7 +71,9 @@ type ColorM interface {
 }
 
 func ColorMString(c ColorM) string {
-	b, t := c.UnsafeElements()
+	var b [16]float32
+	var t [4]float32
+	c.UnsafeElements(&b, &t)
 	return fmt.Sprintf("[[%f, %f, %f, %f, %f], [%f, %f, %f, %f, %f], [%f, %f, %f, %f, %f], [%f, %f, %f, %f, %f]]",
 		b[0], b[4], b[8], b[12], t[0],
 		b[1], b[5], b[9], b[13], t[1],
@@ -238,21 +240,55 @@ func (c *colorMImplBodyTranslate) Apply(clr color.Color) color.Color {
 	}
 }
 
-func (c ColorMIdentity) UnsafeElements() (*[16]float32, *[4]float32) {
-	return &colorMIdentityBody, &colorMIdentityTranslate
+func (c ColorMIdentity) UnsafeElements(body *[16]float32, translate *[4]float32) {
+	body[0] = 1
+	body[1] = 0
+	body[2] = 0
+	body[3] = 0
+	body[4] = 0
+	body[5] = 1
+	body[6] = 0
+	body[7] = 0
+	body[8] = 0
+	body[9] = 0
+	body[10] = 1
+	body[11] = 0
+	body[12] = 0
+	body[13] = 0
+	body[14] = 0
+	body[15] = 1
+	translate[0] = 0
+	translate[1] = 0
+	translate[2] = 0
+	translate[3] = 0
 }
 
-func (c colorMImplScale) UnsafeElements() (*[16]float32, *[4]float32) {
-	return &[...]float32{
-		c.scale[0], 0, 0, 0,
-		0, c.scale[1], 0, 0,
-		0, 0, c.scale[2], 0,
-		0, 0, 0, c.scale[3],
-	}, &colorMIdentityTranslate
+func (c colorMImplScale) UnsafeElements(body *[16]float32, translate *[4]float32) {
+	body[0] = c.scale[0]
+	body[1] = 0
+	body[2] = 0
+	body[3] = 0
+	body[4] = 0
+	body[5] = c.scale[1]
+	body[6] = 0
+	body[7] = 0
+	body[8] = 0
+	body[9] = 0
+	body[10] = c.scale[2]
+	body[11] = 0
+	body[12] = 0
+	body[13] = 0
+	body[14] = 0
+	body[15] = c.scale[3]
+	translate[0] = 0
+	translate[1] = 0
+	translate[2] = 0
+	translate[3] = 0
 }
 
-func (c *colorMImplBodyTranslate) UnsafeElements() (*[16]float32, *[4]float32) {
-	return &c.body, &c.translate
+func (c *colorMImplBodyTranslate) UnsafeElements(body *[16]float32, translate *[4]float32) {
+	copy(body[:], c.body[:])
+	copy(translate[:], c.translate[:])
 }
 
 func (c *colorMImplBodyTranslate) det() float32 {
@@ -420,7 +456,9 @@ func (c *colorMImplBodyTranslate) Invert() ColorM {
 
 // ColorMElement returns a value of a matrix at (i, j).
 func ColorMElement(c ColorM, i, j int) float32 {
-	b, t := c.UnsafeElements()
+	var b [16]float32
+	var t [4]float32
+	c.UnsafeElements(&b, &t)
 	if j < ColorMDim-1 {
 		return b[i+j*(ColorMDim-1)]
 	}
@@ -433,9 +471,7 @@ func ColorMSetElement(c ColorM, i, j int, element float32) ColorM {
 		body: colorMIdentityBody,
 	}
 	if !c.IsIdentity() {
-		b, t := c.UnsafeElements()
-		newImpl.body = *b
-		newImpl.translate = *t
+		c.UnsafeElements(&newImpl.body, &newImpl.translate)
 	}
 	if j < (ColorMDim - 1) {
 		newImpl.body[i+j*(ColorMDim-1)] = element
@@ -471,10 +507,12 @@ func (c colorMImplScale) Equals(other ColorM) bool {
 }
 
 func (c *colorMImplBodyTranslate) Equals(other ColorM) bool {
-	lhsb, lhst := other.UnsafeElements()
+	var lhsb [16]float32
+	var lhst [4]float32
+	other.UnsafeElements(&lhsb, &lhst)
 	rhsb := &c.body
 	rhst := &c.translate
-	return *lhsb == *rhsb && *lhst == *rhst
+	return lhsb == *rhsb && lhst == *rhst
 }
 
 func (c ColorMIdentity) Concat(other ColorM) ColorM {
@@ -490,7 +528,9 @@ func (c colorMImplScale) Concat(other ColorM) ColorM {
 		return c.Scale(other.scaleElements())
 	}
 
-	lhsb, lhst := other.UnsafeElements()
+	var lhsb [16]float32
+	var lhst [4]float32
+	other.UnsafeElements(&lhsb, &lhst)
 	s := &c.scale
 	return &colorMImplBodyTranslate{
 		body: [...]float32{
@@ -499,7 +539,7 @@ func (c colorMImplScale) Concat(other ColorM) ColorM {
 			lhsb[8] * s[2], lhsb[9] * s[2], lhsb[10] * s[2], lhsb[11] * s[2],
 			lhsb[12] * s[3], lhsb[13] * s[3], lhsb[14] * s[3], lhsb[15] * s[3],
 		},
-		translate: *lhst,
+		translate: lhst,
 	}
 }
 
@@ -508,14 +548,16 @@ func (c *colorMImplBodyTranslate) Concat(other ColorM) ColorM {
 		return c
 	}
 
-	lhsb, lhst := other.UnsafeElements()
+	var lhsb [16]float32
+	var lhst [4]float32
+	other.UnsafeElements(&lhsb, &lhst)
 	rhsb := &c.body
 	rhst := &c.translate
 
 	return &colorMImplBodyTranslate{
 		// TODO: This is a temporary hack to calculate multiply of transposed matrices.
 		// Fix mulSquare implmentation and swap the arguments.
-		body: mulSquare(rhsb, lhsb, ColorMDim-1),
+		body: mulSquare(rhsb, &lhsb, ColorMDim-1),
 		translate: [...]float32{
 			lhsb[0]*rhst[0] + lhsb[4]*rhst[1] + lhsb[8]*rhst[2] + lhsb[12]*rhst[3] + lhst[0],
 			lhsb[1]*rhst[0] + lhsb[5]*rhst[1] + lhsb[9]*rhst[2] + lhsb[13]*rhst[3] + lhst[1],
