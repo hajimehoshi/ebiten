@@ -89,6 +89,19 @@ var (
 	go2cpp                = js.Global().Get("go2cpp")
 )
 
+var (
+	documentHasFocus js.Value
+	documentHidden   js.Value
+)
+
+func init() {
+	if go2cpp.Truthy() {
+		return
+	}
+	documentHasFocus = document.Get("hasFocus").Call("bind", document)
+	documentHidden = js.Global().Get("Object").Call("getOwnPropertyDescriptor", js.Global().Get("Document").Get("prototype"), "hidden").Get("get").Call("bind", document)
+}
+
 func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 	return window.Get("innerWidth").Int(), window.Get("innerHeight").Int()
 }
@@ -252,10 +265,10 @@ func (u *UserInterface) isFocused() bool {
 		return true
 	}
 
-	if !document.Call("hasFocus").Bool() {
+	if !documentHasFocus.Invoke().Bool() {
 		return false
 	}
-	if document.Get("hidden").Bool() {
+	if documentHidden.Invoke().Bool() {
 		return false
 	}
 	return true
