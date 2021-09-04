@@ -44,6 +44,7 @@ var (
 type ColorM interface {
 	IsIdentity() bool
 	ScaleOnly() bool
+	At(i, j int) float32
 	UnsafeElements(body *[16]float32, translate *[4]float32)
 	Apply(clr color.Color) color.Color
 
@@ -454,15 +455,25 @@ func (c *colorMImplBodyTranslate) Invert() ColorM {
 	return m
 }
 
-// ColorMElement returns a value of a matrix at (i, j).
-func ColorMElement(c ColorM, i, j int) float32 {
-	var b [16]float32
-	var t [4]float32
-	c.UnsafeElements(&b, &t)
-	if j < ColorMDim-1 {
-		return b[i+j*(ColorMDim-1)]
+func (c ColorMIdentity) At(i, j int) float32 {
+	if i == j {
+		return 1
 	}
-	return t[i]
+	return 0
+}
+
+func (c colorMImplScale) At(i, j int) float32 {
+	if i == j {
+		return c.scale[i]
+	}
+	return 0
+}
+
+func (c *colorMImplBodyTranslate) At(i, j int) float32 {
+	if j < ColorMDim-1 {
+		return c.body[i+j*(ColorMDim-1)]
+	}
+	return c.translate[i]
 }
 
 // ColorMSetElement sets an element at (i, j).

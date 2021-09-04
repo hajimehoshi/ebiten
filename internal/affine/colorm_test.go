@@ -169,8 +169,8 @@ func abs(x float32) float32 {
 func equalWithDelta(a, b ColorM, delta float32) bool {
 	for j := 0; j < 5; j++ {
 		for i := 0; i < 4; i++ {
-			ea := ColorMElement(a, i, j)
-			eb := ColorMElement(b, i, j)
+			ea := a.At(i, j)
+			eb := b.At(i, j)
 			if abs(ea-eb) > delta {
 				return false
 			}

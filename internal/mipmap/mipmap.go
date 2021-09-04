@@ -124,13 +124,10 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices [
 	}
 
 	if colorm.ScaleOnly() {
-		var body [16]float32
-		var translate [4]float32
-		colorm.UnsafeElements(&body, &translate)
-		cr := body[0]
-		cg := body[5]
-		cb := body[10]
-		ca := body[15]
+		cr := colorm.At(0, 0)
+		cg := colorm.At(1, 1)
+		cb := colorm.At(2, 2)
+		ca := colorm.At(3, 3)
 		colorm = affine.ColorMIdentity{}
 		const n = graphics.VertexFloatNum
 		for i := 0; i < len(vertices)/n; i++ {
