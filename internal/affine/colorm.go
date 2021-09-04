@@ -45,7 +45,7 @@ type ColorM interface {
 	IsIdentity() bool
 	ScaleOnly() bool
 	At(i, j int) float32
-	UnsafeElements(body *[16]float32, translate *[4]float32)
+	Elements(body *[16]float32, translate *[4]float32)
 	Apply(clr color.Color) color.Color
 
 	// IsInvertible returns a boolean value indicating
@@ -74,7 +74,7 @@ type ColorM interface {
 func ColorMString(c ColorM) string {
 	var b [16]float32
 	var t [4]float32
-	c.UnsafeElements(&b, &t)
+	c.Elements(&b, &t)
 	return fmt.Sprintf("[[%f, %f, %f, %f, %f], [%f, %f, %f, %f, %f], [%f, %f, %f, %f, %f], [%f, %f, %f, %f, %f]]",
 		b[0], b[4], b[8], b[12], t[0],
 		b[1], b[5], b[9], b[13], t[1],
@@ -241,7 +241,7 @@ func (c *colorMImplBodyTranslate) Apply(clr color.Color) color.Color {
 	}
 }
 
-func (c ColorMIdentity) UnsafeElements(body *[16]float32, translate *[4]float32) {
+func (c ColorMIdentity) Elements(body *[16]float32, translate *[4]float32) {
 	body[0] = 1
 	body[1] = 0
 	body[2] = 0
@@ -264,7 +264,7 @@ func (c ColorMIdentity) UnsafeElements(body *[16]float32, translate *[4]float32)
 	translate[3] = 0
 }
 
-func (c colorMImplScale) UnsafeElements(body *[16]float32, translate *[4]float32) {
+func (c colorMImplScale) Elements(body *[16]float32, translate *[4]float32) {
 	body[0] = c.scale[0]
 	body[1] = 0
 	body[2] = 0
@@ -287,7 +287,7 @@ func (c colorMImplScale) UnsafeElements(body *[16]float32, translate *[4]float32
 	translate[3] = 0
 }
 
-func (c *colorMImplBodyTranslate) UnsafeElements(body *[16]float32, translate *[4]float32) {
+func (c *colorMImplBodyTranslate) Elements(body *[16]float32, translate *[4]float32) {
 	copy(body[:], c.body[:])
 	copy(translate[:], c.translate[:])
 }
@@ -482,7 +482,7 @@ func ColorMSetElement(c ColorM, i, j int, element float32) ColorM {
 		body: colorMIdentityBody,
 	}
 	if !c.IsIdentity() {
-		c.UnsafeElements(&newImpl.body, &newImpl.translate)
+		c.Elements(&newImpl.body, &newImpl.translate)
 	}
 	if j < (ColorMDim - 1) {
 		newImpl.body[i+j*(ColorMDim-1)] = element
@@ -520,7 +520,7 @@ func (c colorMImplScale) Equals(other ColorM) bool {
 func (c *colorMImplBodyTranslate) Equals(other ColorM) bool {
 	var lhsb [16]float32
 	var lhst [4]float32
-	other.UnsafeElements(&lhsb, &lhst)
+	other.Elements(&lhsb, &lhst)
 	rhsb := &c.body
 	rhst := &c.translate
 	return lhsb == *rhsb && lhst == *rhst
@@ -541,7 +541,7 @@ func (c colorMImplScale) Concat(other ColorM) ColorM {
 
 	var lhsb [16]float32
 	var lhst [4]float32
-	other.UnsafeElements(&lhsb, &lhst)
+	other.Elements(&lhsb, &lhst)
 	s := &c.scale
 	return &colorMImplBodyTranslate{
 		body: [...]float32{
@@ -561,7 +561,7 @@ func (c *colorMImplBodyTranslate) Concat(other ColorM) ColorM {
 
 	var lhsb [16]float32
 	var lhst [4]float32
-	other.UnsafeElements(&lhsb, &lhst)
+	other.Elements(&lhsb, &lhst)
 	rhsb := &c.body
 	rhst := &c.translate
 

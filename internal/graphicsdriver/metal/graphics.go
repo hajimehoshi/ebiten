@@ -910,7 +910,7 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 		}
 		var esBody [16]float32
 		var esTranslate [4]float32
-		colorM.UnsafeElements(&esBody, &esTranslate)
+		colorM.Elements(&esBody, &esTranslate)
 		scale := float32(0)
 		if filter == driver.FilterScreen {
 			scale = float32(dst.width) / float32(srcs[0].width)
