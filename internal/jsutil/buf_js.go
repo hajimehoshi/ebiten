@@ -46,9 +46,6 @@ var (
 	temporaryFloat32ArrayByteLengthFunc js.Value
 )
 
-func objectPrototype() {
-}
-
 func init() {
 	if go2cpp {
 		return
