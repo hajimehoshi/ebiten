@@ -18,7 +18,10 @@ import (
 	"syscall/js"
 )
 
+var go2cpp = js.Global().Get("go2cpp").Truthy()
+
 var (
+	object       = js.Global().Get("Object")
 	arrayBuffer  = js.Global().Get("ArrayBuffer")
 	uint8Array   = js.Global().Get("Uint8Array")
 	float32Array = js.Global().Get("Float32Array")
@@ -37,18 +40,57 @@ var (
 	temporaryFloat32Array = float32Array.New(temporaryArrayBuffer)
 )
 
+var (
+	temporaryArrayBufferByteLengthFunc  js.Value
+	temporaryUint8ArrayByteLengthFunc   js.Value
+	temporaryFloat32ArrayByteLengthFunc js.Value
+)
+
+func objectPrototype() {
+}
+
+func init() {
+	if go2cpp {
+		return
+	}
+	temporaryArrayBufferByteLengthFunc = object.Call("getOwnPropertyDescriptor", arrayBuffer.Get("prototype"), "byteLength").Get("get").Call("bind", temporaryArrayBuffer)
+	temporaryUint8ArrayByteLengthFunc = object.Call("getOwnPropertyDescriptor", object.Call("getPrototypeOf", uint8Array).Get("prototype"), "byteLength").Get("get").Call("bind", temporaryUint8Array)
+	temporaryFloat32ArrayByteLengthFunc = object.Call("getOwnPropertyDescriptor", object.Call("getPrototypeOf", float32Array).Get("prototype"), "byteLength").Get("get").Call("bind", temporaryFloat32Array)
+}
+
+func temporaryArrayBufferByteLength() int {
+	if go2cpp {
+		return temporaryArrayBuffer.Get("byteLength").Int()
+	}
+	return temporaryArrayBufferByteLengthFunc.Invoke().Int()
+}
+
+func temporaryUint8ArrayByteLength() int {
+	if go2cpp {
+		return temporaryUint8Array.Get("byteLength").Int()
+	}
+	return temporaryUint8ArrayByteLengthFunc.Invoke().Int()
+}
+
+func temporaryFloat32ArrayByteLength() int {
+	if go2cpp {
+		return temporaryFloat32Array.Get("byteLength").Int()
+	}
+	return temporaryFloat32ArrayByteLengthFunc.Invoke().Int()
+}
+
 func ensureTemporaryArrayBufferSize(byteLength int) {
-	bufl := temporaryArrayBuffer.Get("byteLength").Int()
+	bufl := temporaryArrayBufferByteLength()
 	if bufl < byteLength {
 		for bufl < byteLength {
 			bufl *= 2
 		}
 		temporaryArrayBuffer = arrayBuffer.New(bufl)
 	}
-	if temporaryUint8Array.Get("byteLength").Int() < bufl {
+	if temporaryUint8ArrayByteLength() < bufl {
 		temporaryUint8Array = uint8Array.New(temporaryArrayBuffer)
 	}
-	if temporaryFloat32Array.Get("byteLength").Int() < bufl {
+	if temporaryFloat32ArrayByteLength() < bufl {
 		temporaryFloat32Array = float32Array.New(temporaryArrayBuffer)
 	}
 }
