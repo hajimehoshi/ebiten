@@ -123,7 +123,7 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices [
 		}
 	}
 
-	if colorm.ScaleOnly() {
+	if !colorm.IsIdentity() && colorm.ScaleOnly() {
 		cr := colorm.At(0, 0)
 		cg := colorm.At(1, 1)
 		cb := colorm.At(2, 2)
