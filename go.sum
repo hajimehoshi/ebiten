@@ -32,8 +32,8 @@ golang.org/x/image v0.0.0-20210628002857-a66eb6448b8d h1:RNPAfi2nHY7C2srAV8A49jp
 golang.org/x/image v0.0.0-20210628002857-a66eb6448b8d/go.mod h1:023OzeP/+EPmXeapQh35lcL3II3LrY8Ic+EFFKVhULM=
 golang.org/x/mobile v0.0.0-20190312151609-d3739f865fa6/go.mod h1:z+o9i4GpDbdi3rU15maQ/Ox0txvL9dWGYEHz965HBQE=
 golang.org/x/mobile v0.0.0-20190415191353-3e0bab5405d6/go.mod h1:E/iHnbuqvinMTCcRqshq8CkpyQDoeVncDDYHnLhea+o=
-golang.org/x/mobile v0.0.0-20210716004757-34ab1303b554 h1:3In5TnfvnuXTF/uflgpYxSCEGP2NdYT37KsPh3VjZYU=
-golang.org/x/mobile v0.0.0-20210716004757-34ab1303b554/go.mod h1:jFTmtFYCV0MFtXBU+J5V/+5AUeVS0ON/0WkE/KSrl6E=
+golang.org/x/mobile v0.0.0-20210902104108-5d9a33257ab5 h1:peBP2oZO/xVnGMaWMCyFEI0WENsGj71wx5K12mRELHQ=
+golang.org/x/mobile v0.0.0-20210902104108-5d9a33257ab5/go.mod h1:c4YKU3ZylDmvbw+H/PSvm42vhdWbuxCzbonauEAP9B8=
 golang.org/x/mod v0.1.0/go.mod h1:0QHyrYULN0/3qlju5TqG8bIK38QM8yzMo5ekMj3DlcY=
 golang.org/x/mod v0.4.2 h1:Gz96sIWK3OalVv/I/qNygP42zyoKp3xptRVCWRFEBvo=
 golang.org/x/mod v0.4.2/go.mod h1:s0Qsj1ACt9ePp/hMypM3fl4fZqREWJwdYDEqhRiZZUA=
