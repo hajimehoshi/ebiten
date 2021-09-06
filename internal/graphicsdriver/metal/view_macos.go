@@ -43,6 +43,11 @@ func (v *view) update() {
 	v.windowChanged = false
 }
 
+func (v *view) usePresentsWithTransaction() bool {
+	// Disable presentsWithTransaction on the fullscreen mode (#1745).
+	return !v.vsyncDisabled && !v.fullscreen
+}
+
 const (
 	storageMode         = mtl.StorageModeManaged
 	resourceStorageMode = mtl.ResourceStorageModeManaged

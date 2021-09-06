@@ -70,9 +70,7 @@ func (v *view) setFullscreen(fullscreen bool) {
 }
 
 func (v *view) updatePresentsWithTransaction() {
-	// Disable presentsWithTransaction on the fullscreen mode (#1745).
-
-	pwt := !v.vsyncDisabled && !v.fullscreen
+	pwt := v.usePresentsWithTransaction()
 	v.ml.SetPresentsWithTransaction(pwt)
 
 	// When presentsWithTransaction is YES and triple buffering is enabled, nextDrawing returns immediately once every two times.

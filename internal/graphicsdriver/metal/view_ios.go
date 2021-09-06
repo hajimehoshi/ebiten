@@ -57,6 +57,11 @@ func (v *view) update() {
 	C.setFrame(v.ml.Layer(), unsafe.Pointer(v.uiview))
 }
 
+func (v *view) usePresentsWithTransaction() bool {
+	// Do not use presentsWithTransaction on iOS (#1799).
+	return false
+}
+
 const (
 	storageMode         = mtl.StorageModeShared
 	resourceStorageMode = mtl.ResourceStorageModeShared
