@@ -19,17 +19,9 @@
 package glfw
 
 import (
-	"math"
-
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
-
-// fromGLFWMonitorPixel must be called from the main thread.
-func (u *UserInterface) fromGLFWMonitorPixel(x float64, screenScale float64) float64 {
-	// deviceScale is sometimes an unnice value (e.g., 1.502361). Use math.Ceil to clean the vaule.
-	return math.Ceil(x / (screenScale * u.deviceScaleFactor()))
-}
 
 func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y

@@ -81,11 +81,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
-func (u *UserInterface) fromGLFWMonitorPixel(x float64, deviceScale float64) float64 {
-	// TODO what is the actual unit here?
-	return x
-}
-
 func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
