@@ -12,8 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build !android && !ios && !js
+// +build !android,!ios,!js
+
 package devicescale
 
-func impl(x, y int) float64 {
-	return 1
+import (
+	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
+)
+
+func monitorAt(x, y int) *glfw.Monitor {
+	// We only have monitor x and y coordinates but no reliable sizes.
+	// So the "correct" monitor is the one closest to x, y to the bottom right.
+	var best *glfw.Monitor
+	var bestScore int
+	for _, mon := range glfw.GetMonitors() {
+		mx, my := mon.GetPos()
+		if x < mx || y < my {
+			continue
+		}
+		score := (x - mx) + (y - my)
+		if best == nil || score < bestScore {
+			best = mon
+		}
+	}
+	if best == nil {
+		return glfw.GetMonitors()[0]
+	}
+	return best
 }
