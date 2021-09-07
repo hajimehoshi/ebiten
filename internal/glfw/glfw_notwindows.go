@@ -94,6 +94,10 @@ func (m *Monitor) GetVideoMode() *VidMode {
 	}
 }
 
+func (m *Monitor) GetWorkarea() (int, int, int, int) {
+	return m.m.GetWorkarea()
+}
+
 type Window struct {
 	w *glfw.Window
 

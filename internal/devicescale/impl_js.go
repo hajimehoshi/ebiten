@@ -33,3 +33,7 @@ func impl(x, y int) float64 {
 	}
 	return ratio
 }
+
+func screenScaleAt(x, y int) float64 {
+	return 1
+}

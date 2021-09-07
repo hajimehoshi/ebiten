@@ -19,7 +19,6 @@
 package devicescale
 
 import (
-	"log"
 	"math"
 
 	"github.com/jezek/xgb"
@@ -27,7 +26,7 @@ import (
 	"github.com/jezek/xgb/xproto"
 )
 
-func impl(x, y int) float64 {
+func screenScaleImpl(x, y int) float64 {
 	// BEWARE: if https://github.com/glfw/glfw/issues/1961 gets fixed, this function may need revising.
 	// In case GLFW decides to switch to returning logical pixels, we can just return 1.0.
 
@@ -37,7 +36,6 @@ func impl(x, y int) float64 {
 	// Also at the moment we need this prior to switching to fullscreen, but that might be replacable.
 	// So this function computes the ratio of physical per logical pixels.
 	m := monitorAt(x, y)
-	sx, _ := m.GetContentScale()
 	monitorX, monitorY := m.GetPos()
 	xconn, err := xgb.NewConn()
 	defer xconn.Close()
@@ -46,14 +44,14 @@ func impl(x, y int) float64 {
 		// Assume we're on pure Wayland then.
 		// GLFW/Wayland shouldn't be having this issue.
 		// log.Print("No X11.")
-		return float64(sx)
+		return 1.0
 	}
 	err = randr.Init(xconn)
 	if err != nil {
 		// No RANDR extension?
 		// No problem.
 		// log.Print("No RANDR.")
-		return float64(sx)
+		return 1.0
 	}
 	root := xproto.Setup(xconn).DefaultScreen(xconn).Root
 	res, err := randr.GetScreenResourcesCurrent(xconn, root).Reply()
@@ -61,7 +59,7 @@ func impl(x, y int) float64 {
 		// Likely means RANDR is not working.
 		// No problem.
 		// log.Print("RANDR not working.")
-		return float64(sx)
+		return 1.0
 	}
 	for _, crtc := range res.Crtcs[0:res.NumCrtcs] {
 		info, err := randr.GetCrtcInfo(xconn, crtc, res.ConfigTimestamp).Reply()
@@ -84,11 +82,10 @@ func impl(x, y int) float64 {
 			// Return the _larger_ scale, as this would yield a letterboxed display on mismatch, rather than a cut-off one.
 			scale := math.Max(float64(physWidth)/float64(xWidth), float64(physHeight)/float64(xHeight))
 			// log.Printf("Screen scale: %v.", scale)
-			log.Printf("sx=%v scale=%v -> %v", sx, scale, float64(sx)*scale)
-			return float64(sx) * scale
+			return scale
 		}
 	}
 	// Monitor not known to XRandR. Weird.
 	// log.Print("Monitor not found.")
-	return float64(sx)
+	return 1.0
 }
