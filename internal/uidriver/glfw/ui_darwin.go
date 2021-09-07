@@ -86,14 +86,6 @@ func (u *UserInterface) fromGLFWMonitorPixel(x float64, deviceScale float64) flo
 	return x
 }
 
-func (u *UserInterface) fromGLFWPixel(x float64) float64 {
-	return x / u.deviceScaleFactor()
-}
-
-func (u *UserInterface) toGLFWPixel(x float64) float64 {
-	return x * u.deviceScaleFactor()
-}
-
 func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
