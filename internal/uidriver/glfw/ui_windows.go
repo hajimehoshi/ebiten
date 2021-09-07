@@ -103,16 +103,6 @@ func (u *UserInterface) fromGLFWMonitorPixel(x float64, screenScale float64) flo
 	return x / (screenScale * u.deviceScaleFactor())
 }
 
-// fromGLFWPixel must be called from the main thread.
-func (u *UserInterface) fromGLFWPixel(x float64) float64 {
-	return x / u.deviceScaleFactor()
-}
-
-// toGLFWPixel must be called from the main thread.
-func (u *UserInterface) toGLFWPixel(x float64) float64 {
-	return x * u.deviceScaleFactor()
-}
-
 func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	mx, my := currentMonitor(u.window).GetPos()
 	// As the video width/height might be wrong,
