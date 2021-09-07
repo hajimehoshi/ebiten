@@ -952,9 +952,6 @@ func (u *UserInterface) updateSize() (float64, float64, bool) {
 		w = u.fromGLFWPixel(float64(ww))
 		h = u.fromGLFWPixel(float64(wh))
 	}
-	// On Linux/UNIX, further adjusting is required (#1307).
-	w = u.toFramebufferPixel(w)
-	h = u.toFramebufferPixel(h)
 
 	return w, h, true
 }
