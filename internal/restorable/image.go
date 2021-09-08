@@ -108,7 +108,13 @@ type Image struct {
 
 var emptyImage *Image
 
-func init() {
+func ensureEmptyImage() *Image {
+	if emptyImage != nil {
+		return emptyImage
+	}
+
+	// Initialize the empty image lazily. Some functions like NeedsRestoring might not work at the initial phase.
+
 	// w and h are the empty image's size. They indicate the 1x1 image with 1px padding around.
 	const w, h = 3, 3
 	emptyImage = &Image{
@@ -126,6 +132,7 @@ func init() {
 	// This operation is also important when restoring emptyImage.
 	emptyImage.ReplacePixels(pix, 0, 0, w, h)
 	theImages.add(emptyImage)
+	return emptyImage
 }
 
 // NewImage creates an empty image with the given size.
@@ -229,6 +236,8 @@ func quadVertices(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca float32
 }
 
 func clearImage(i *graphicscommand.Image) {
+	emptyImage := ensureEmptyImage()
+
 	if i == emptyImage.image {
 		panic("restorable: fillImage cannot be called on emptyImage")
 	}
@@ -585,7 +594,7 @@ func (i *Image) restore() error {
 
 	gimg := graphicscommand.NewImage(w, h)
 	// Clear the image explicitly.
-	if i != emptyImage {
+	if i != ensureEmptyImage() {
 		// As clearImage uses emptyImage, clearImage cannot be called on emptyImage.
 		// It is OK to skip this since emptyImage has its entire pixel information.
 		clearImage(gimg)
