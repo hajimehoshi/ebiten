@@ -25,9 +25,10 @@ import (
 	etesting "github.com/hajimehoshi/ebiten/v2/internal/testing"
 )
 
-var emptyImage = NewImage(3, 3)
-
 func clearImage(img *Image, w, h int) {
+	emptyImage := NewImage(3, 3)
+	defer emptyImage.Dispose()
+
 	dx0 := float32(0)
 	dy0 := float32(0)
 	dx1 := float32(w)

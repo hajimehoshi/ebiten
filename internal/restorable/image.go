@@ -141,6 +141,10 @@ func ensureEmptyImage() *Image {
 //
 // Note that Dispose is not called automatically.
 func NewImage(width, height int) *Image {
+	if !graphicsDriverInitialized {
+		panic("restorable: graphics driver must be ready at NewImage but not")
+	}
+
 	i := &Image{
 		image:  graphicscommand.NewImage(width, height),
 		width:  width,

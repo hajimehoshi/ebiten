@@ -281,8 +281,11 @@ func (i *images) restore() error {
 	return nil
 }
 
+var graphicsDriverInitialized bool
+
 // InitializeGraphicsDriverState initializes the graphics driver state.
 func InitializeGraphicsDriverState() error {
+	graphicsDriverInitialized = true
 	return graphicscommand.InitializeGraphicsDriverState()
 }
 
