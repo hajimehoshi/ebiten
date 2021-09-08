@@ -68,6 +68,8 @@ const DefaultTPS = 60
 // On some environments, CurrentFPS doesn't return a reliable value since vsync doesn't work well there.
 // If you want to measure the application's speed, Use CurrentTPS.
 //
+// This value is for measurement and/or debug, and your game logic should not rely on this value.
+//
 // CurrentFPS is concurrent-safe.
 func CurrentFPS() float64 {
 	return clock.CurrentFPS()
@@ -391,6 +393,8 @@ func MaxTPS() int {
 
 // CurrentTPS returns the current TPS (ticks per second),
 // that represents how many update function is called in a second.
+//
+// This value is for measurement and/or debug, and your game logic should not rely on this value.
 //
 // CurrentTPS is concurrent-safe.
 func CurrentTPS() float64 {
