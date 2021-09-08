@@ -12,9 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !ios && (darwin || windows)
-// +build !ios
-// +build darwin windows
+//go:build (darwin && !ios) || windows
+// +build darwin,!ios windows
 
 package devicescale
 

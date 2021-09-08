@@ -35,7 +35,7 @@ func monitorAt(x, y int) *glfw.Monitor {
 		}
 		score := (x - mx) + (y - my)
 		if best == nil || score < bestScore {
-			best = mon
+			best, bestScore = mon, score
 		}
 	}
 	if best == nil {

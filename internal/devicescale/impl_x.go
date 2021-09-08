@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !js && !(darwin || windows)
-// +build !android,!js,!darwin,!windows
+//go:build !android && !darwin && !js && !windows
+// +build !android,!darwin,!js,!windows
 
 package devicescale
 
@@ -26,7 +26,7 @@ import (
 )
 
 func impl(x, y int) float64 {
-	// BEWARE: if https://github.com/glfw/glfw/issues/1961 gets fixed, this function may need revising.
+	// TODO: if https://github.com/glfw/glfw/issues/1961 gets fixed, this function may need revising.
 	// In case GLFW decides to switch to returning logical pixels, we can just return 1.0.
 
 	// Note: GLFW currently returns physical pixel sizes,
@@ -57,7 +57,7 @@ func impl(x, y int) float64 {
 		// No problem.
 		return float64(sx)
 	}
-	for _, crtc := range res.Crtcs[0:res.NumCrtcs] {
+	for _, crtc := range res.Crtcs[:res.NumCrtcs] {
 		info, err := randr.GetCrtcInfo(xconn, crtc, res.ConfigTimestamp).Reply()
 		if err != nil {
 			// This Crtc is bad. Maybe just got disconnected?
