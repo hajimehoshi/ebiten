@@ -81,16 +81,17 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
-func fromGLFWMonitorPixel(x float64, deviceScale float64) float64 {
+func (u *UserInterface) fromGLFWMonitorPixel(x float64, deviceScale float64) float64 {
+	// TODO what is the actual unit here?
 	return x
 }
 
 func (u *UserInterface) fromGLFWPixel(x float64) float64 {
-	return x
+	return x / u.deviceScaleFactor()
 }
 
 func (u *UserInterface) toGLFWPixel(x float64) float64 {
-	return x
+	return x * u.deviceScaleFactor()
 }
 
 func (u *UserInterface) toFramebufferPixel(x float64) float64 {

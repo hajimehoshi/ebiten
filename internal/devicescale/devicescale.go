@@ -23,8 +23,9 @@ type pos struct {
 }
 
 var (
-	m     sync.Mutex
-	cache = map[pos]float64{}
+	m                sync.Mutex
+	cache            = map[pos]float64{}
+	screenScaleCache = map[pos]float64{}
 )
 
 // GetAt returns the device scale at (x, y).
@@ -44,5 +45,19 @@ func GetAt(x, y int) float64 {
 	// The only known case is when the application works on macOS, with OpenGL, with a wider screen mode,
 	// and in the fullscreen mode (#1573).
 
+	return s
+}
+
+// ScreenScaleAt returns the screen scale at (x, y).
+// x and y are in device-dependent pixels and must be the top-left coordinate of a monitor, or 0,0 to request a "global scale".
+// The screen scale maps physical screen pixels to device dependent pixels.
+func ScreenScaleAt(x, y int) float64 {
+	m.Lock()
+	defer m.Unlock()
+	if s, ok := screenScaleCache[pos{x, y}]; ok {
+		return s
+	}
+	s := screenScaleImpl(x, y)
+	screenScaleCache[pos{x, y}] = s
 	return s
 }
