@@ -83,6 +83,7 @@ type Monitor struct {
 func (m *Monitor) GetContentScale() (float32, float32) {
 	var sx, sy float32
 	glfwDLL.call("glfwGetMonitorContentScale", m.m, uintptr(unsafe.Pointer(&sx)), uintptr(unsafe.Pointer(&sy)))
+	panicError()
 	return sx, sy
 }
 

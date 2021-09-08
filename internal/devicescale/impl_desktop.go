@@ -1,4 +1,4 @@
-// Copyright 2018 The Ebiten Authors
+// Copyright 2021 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,8 +22,10 @@ import (
 )
 
 func monitorAt(x, y int) *glfw.Monitor {
-	// We only have monitor x and y coordinates but no reliable sizes.
+	// GLFW only provides monitor x and y coordinates but no reliable sizes.
 	// So the "correct" monitor is the one closest to x, y to the bottom right.
+	// This usually works, but in some exceptional layouts may return the wrong monitor.
+	// Thus, this function is best called with the top-left coordinates of an actual monitor if possible.
 	var best *glfw.Monitor
 	var bestScore int
 	for _, mon := range glfw.GetMonitors() {

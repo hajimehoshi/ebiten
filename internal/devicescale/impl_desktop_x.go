@@ -1,4 +1,4 @@
-// Copyright 2018 The Ebiten Authors
+// Copyright 2021 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,11 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build (dragonfly || freebsd || linux || netbsd || openbsd || solaris) && !android && !ios && !js
-// +build dragonfly freebsd linux netbsd openbsd solaris
-// +build !android
-// +build !ios
-// +build !js
+//go:build !android && !ios && !js && !(darwin || windows)
+// +build !android,!ios,!js,!darwin,!windows
 
 package devicescale
 
@@ -46,14 +43,11 @@ func impl(x, y int) float64 {
 		// No X11 connection?
 		// Assume we're on pure Wayland then.
 		// GLFW/Wayland shouldn't be having this issue.
-		// log.Print("No X11.")
 		return float64(sx)
 	}
-	err = randr.Init(xconn)
-	if err != nil {
+	if err = randr.Init(xconn); err != nil {
 		// No RANDR extension?
 		// No problem.
-		// log.Print("No RANDR.")
 		return float64(sx)
 	}
 	root := xproto.Setup(xconn).DefaultScreen(xconn).Root
@@ -61,7 +55,6 @@ func impl(x, y int) float64 {
 	if err != nil {
 		// Likely means RANDR is not working.
 		// No problem.
-		// log.Print("RANDR not working.")
 		return float64(sx)
 	}
 	for _, crtc := range res.Crtcs[0:res.NumCrtcs] {
@@ -76,19 +69,15 @@ func impl(x, y int) float64 {
 			continue
 		}
 		if int(info.X) == monitorX && int(info.Y) == monitorY {
-			// log.Printf("Monitor found: %+v.", info)
 			xWidth, xHeight := info.Width, info.Height
 			vm := m.GetVideoMode()
 			physWidth, physHeight := vm.Width, vm.Height
-			// log.Printf("Virtual: %vx%v <- physical: %vx%v.", xWidth, xHeight, physWidth, physHeight)
-			// We must return one scale, even though there may be two.
+			// Return one scale, even though there may be separate X and Y scales.
 			// Return the _larger_ scale, as this would yield a letterboxed display on mismatch, rather than a cut-off one.
 			scale := math.Max(float64(physWidth)/float64(xWidth), float64(physHeight)/float64(xHeight))
-			// log.Printf("Screen scale: %v.", scale)
 			return float64(sx) * scale
 		}
 	}
 	// Monitor not known to XRandR. Weird.
-	// log.Print("Monitor not found.")
 	return float64(sx)
 }
