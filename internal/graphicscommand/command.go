@@ -292,6 +292,13 @@ func (q *commandQueue) flush() error {
 		cs = cs[nc:]
 	}
 	theGraphicsDriver.End()
+
+	// Release the commands explicitly (#1803).
+	// Apparently, the part of a slice between len and cap-1 still holds references.
+	// Then, resetting the length by [:0] doesn't release the references.
+	for i := range q.commands {
+		q.commands[i] = nil
+	}
 	q.commands = q.commands[:0]
 	q.nvertices = 0
 	q.nindices = 0
