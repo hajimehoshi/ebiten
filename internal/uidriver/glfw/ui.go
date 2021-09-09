@@ -160,9 +160,9 @@ func init() {
 		panic(err)
 	}
 	glfw.SetMonitorCallback(func(monitor *glfw.Monitor, event glfw.PeripheralEvent) {
-		cacheMonitors()
+		updateMonitors()
 	})
-	cacheMonitors()
+	updateMonitors()
 }
 
 var glfwSystemCursors = map[driver.CursorShape]*glfw.Cursor{}
@@ -208,7 +208,7 @@ func initialize() error {
 	return nil
 }
 
-type cachedMonitor struct {
+type monitor struct {
 	m  *glfw.Monitor
 	vm *glfw.VidMode
 	// Pos of monitor in virtual coords
@@ -217,18 +217,18 @@ type cachedMonitor struct {
 }
 
 // monitors is the monitor list cache for desktop glfw compile targets.
-// populated by 'cacheMonitors' which is called on init and every
+// populated by 'updateMonitors' which is called on init and every
 // monitor config change event.
 //
 // monitors must be manipulated on the main thread.
-var monitors []*cachedMonitor
+var monitors []*monitor
 
-func cacheMonitors() {
+func updateMonitors() {
 	monitors = nil
 	ms := glfw.GetMonitors()
 	for _, m := range ms {
 		x, y := m.GetPos()
-		monitors = append(monitors, &cachedMonitor{
+		monitors = append(monitors, &monitor{
 			m:  m,
 			vm: m.GetVideoMode(),
 			x:  x,
@@ -237,12 +237,19 @@ func cacheMonitors() {
 	}
 }
 
-// getCachedMonitor returns a monitor for the given window x/y,
+func ensureMonitors() []*monitor {
+	if len(monitors) == 0 {
+		updateMonitors()
+	}
+	return monitors
+}
+
+// getMonitorFromPosition returns a monitor for the given window x/y,
 // or returns nil if monitor is not found.
 //
-// getCachedMonitor must be called on the main thread.
-func getCachedMonitor(wx, wy int) *cachedMonitor {
-	for _, m := range monitors {
+// getMonitorFromPosition must be called on the main thread.
+func getMonitorFromPosition(wx, wy int) *monitor {
+	for _, m := range ensureMonitors() {
 		if m.x <= wx && wx < m.x+m.vm.Width && m.y <= wy && wy < m.y+m.vm.Height {
 			return m
 		}
@@ -1387,7 +1394,7 @@ func currentMonitor(window *glfw.Window) *glfw.Monitor {
 	}
 
 	// As the fallback, detect the monitor from the window.
-	if m := getCachedMonitor(window.GetPos()); m != nil {
+	if m := getMonitorFromPosition(window.GetPos()); m != nil {
 		return m.m
 	}
 	return glfw.GetPrimaryMonitor()

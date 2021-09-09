@@ -107,10 +107,9 @@ func currentMonitorByOS(w *glfw.Window) *glfw.Monitor {
 	// Note: [NSApp mainWindow] is nil when it doesn't have its border. Use w here.
 	win := w.GetCocoaWindow()
 	C.currentMonitorPos(C.uintptr_t(win), &x, &y)
-	for _, m := range glfw.GetMonitors() {
-		mx, my := m.GetPos()
-		if int(x) == mx && int(y) == my {
-			return m
+	for _, m := range ensureMonitors() {
+		if int(x) == m.x && int(y) == m.y {
+			return m.m
 		}
 	}
 	return nil

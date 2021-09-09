@@ -171,10 +171,9 @@ func currentMonitorByOS(_ *glfw.Window) *glfw.Monitor {
 	}
 
 	x, y := int(mi.rcMonitor.left), int(mi.rcMonitor.top)
-	for _, m := range glfw.GetMonitors() {
-		mx, my := m.GetPos()
-		if mx == x && my == y {
-			return m
+	for _, m := range ensureMonitors() {
+		if m.x == x && m.y == y {
+			return m.m
 		}
 	}
 	return nil
