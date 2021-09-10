@@ -22,6 +22,8 @@ import (
 )
 
 func monitorAt(x, y int) *glfw.Monitor {
+	// TODO: when https://github.com/glfw/glfw/issues/1961 is fixed,
+	// see if that will allow simplify this by using GetVideoMode().
 	// GLFW only provides monitor x and y coordinates but no reliable sizes.
 	// So the "correct" monitor is the one closest to x, y to the bottom right.
 	// This usually works, but in some exceptional layouts may return the wrong monitor.
