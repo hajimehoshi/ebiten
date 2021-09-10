@@ -28,7 +28,8 @@ func monitorAt(x, y int) *glfw.Monitor {
 	// Thus, this function is best called with the top-left coordinates of an actual monitor if possible.
 	var best *glfw.Monitor
 	var bestScore int
-	for _, mon := range glfw.GetMonitors() {
+	monitors := glfw.GetMonitors()
+	for _, mon := range monitors {
 		mx, my := mon.GetPos()
 		if x < mx || y < my {
 			continue
@@ -39,7 +40,7 @@ func monitorAt(x, y int) *glfw.Monitor {
 		}
 	}
 	if best == nil {
-		return glfw.GetMonitors()[0]
+		return monitors[0]
 	}
 	return best
 }
