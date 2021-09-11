@@ -496,9 +496,3 @@ func (i *Input) IsStandardGamepadButtonPressed(id driver.GamepadID, button drive
 	}
 	return g.standardButtonPressed[button]
 }
-
-// UpdateStandardGamepadLayoutMappings is not supported for JS - the browser maintains the mappings.
-func (i *Input) UpdateStandardGamepadLayoutMappings(mapping string) (bool, error) {
-	// All OK - browser owns this though.
-	return false, nil
-}

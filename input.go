@@ -16,6 +16,7 @@ package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
 // AppendInputChars appends "printable" runes, read from the keyboard at the time update is called, to runes,
@@ -237,8 +238,7 @@ func IsStandardGamepadLayoutAvailable(id GamepadID) bool {
 // UpdateStandardGamepadLayoutMappings parses the specified string mappings in SDL_GameControllerDB format and
 // updates the gamepad layout definitions.
 //
-// UpdateStandardGamepadLayoutMappings reports whether the mappings were applied,
-// and returns an error in case any occurred while parsing the mappings.
+// UpdateStandardGamepadLayoutMappings returns an error in case any occurred while parsing the mappings.
 //
 // One or more input definitions can be provided separated by newlines.
 // In particular, it is valid to pass an entire gamecontrollerdb.txt file.
@@ -251,11 +251,11 @@ func IsStandardGamepadLayoutAvailable(id GamepadID) bool {
 //
 // On platforms where gamepad mappings are not managed by Ebiten, this always returns false and nil.
 //
-// UpdateStandardGamepadLayoutMappings must be called on the main thread before ebiten.Run, and is concurrent-safe after ebiten.Run.
+// UpdateStandardGamepadLayoutMappings is concurrent-safe.
 //
 // Updated mappings take effect immediately even for already connected gamepads.
-func UpdateStandardGamepadLayoutMappings(mappings string) (bool, error) {
-	return uiDriver().Input().UpdateStandardGamepadLayoutMappings(mappings)
+func UpdateStandardGamepadLayoutMappings(mappings string) error {
+	return gamepaddb.Update([]byte(mappings))
 }
 
 // TouchID represents a touch's identifier.

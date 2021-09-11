@@ -147,13 +147,6 @@ func (i *Input) StandardGamepadAxisValue(id driver.GamepadID, axis driver.Standa
 	return 0
 }
 
-// UpdateStandardGamepadLayoutMappings is not supported on mobile - this still needs to be implemented.
-func (i *Input) UpdateStandardGamepadLayoutMappings(mapping string) (bool, error) {
-	// TODO: Implement this (#1557)
-	// Note: NOT returning an error, as mappings also do not matter right now (all functions above return nothing is pressed anyway).
-	return false, nil
-}
-
 func (i *Input) AppendTouchIDs(touchIDs []driver.TouchID) []driver.TouchID {
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
