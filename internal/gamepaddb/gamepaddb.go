@@ -419,11 +419,16 @@ func IsButtonPressed(id string, button driver.StandardGamepadButton, state Gamep
 	return false
 }
 
-// UpdateStandardGamepadLayoutMappings can be used to provide new gamepad mappings to Ebiten.
+// Update adds new gamepad mappings.
 // The string must be in the format of SDL_GameControllerDB.
-func Update(mapping []byte) error {
+func Update(mapping []byte) (bool, error) {
 	if currentPlatform == platformUnknown {
-		return nil
+		return false, nil
+	}
+
+	//
+	if currentPlatform == platformAndroid || currentPlatform == platformIOS {
+		return false, nil
 	}
 
 	mappingsM.Lock()
@@ -434,15 +439,15 @@ func Update(mapping []byte) error {
 	for {
 		line, err := r.ReadString('\n')
 		if err != nil && err != io.EOF {
-			return err
+			return false, err
 		}
 		if err := processLine(line, currentPlatform); err != nil {
-			return err
+			return false, err
 		}
 		if err == io.EOF {
 			break
 		}
 	}
 
-	return nil
+	return true, nil
 }
