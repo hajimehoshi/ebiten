@@ -435,25 +435,6 @@ func (j Joystick) GetHats() []JoystickHatState {
 	return hats
 }
 
-func (j Joystick) GetGamepadState() *GamepadState {
-	var s struct {
-		Buttons [15]uint8
-		Axes    [6]float32
-	}
-	r := glfwDLL.call("glfwGetGamepadState", uintptr(j), uintptr(unsafe.Pointer(&s)))
-	panicError()
-	if r != True {
-		return nil
-	}
-
-	state := &GamepadState{}
-	for i, b := range s.Buttons {
-		state.Buttons[i] = Action(b)
-	}
-	copy(state.Axes[:], s.Axes[:])
-	return state
-}
-
 func GetMonitors() []*Monitor {
 	var l int32
 	ptr := glfwDLL.call("glfwGetMonitors", uintptr(unsafe.Pointer(&l)))
@@ -549,14 +530,6 @@ func Terminate() {
 	if err := glfwDLL.unload(); err != nil {
 		panic(err)
 	}
-}
-
-func UpdateGamepadMappings(mapping string) bool {
-	m := append([]byte(mapping), 0)
-	defer runtime.KeepAlive(m)
-	r := glfwDLL.call("glfwUpdateGamepadMappings", uintptr(unsafe.Pointer(&m[0])))
-	panicError()
-	return byte(r) == True
 }
 
 func WaitEvents() {

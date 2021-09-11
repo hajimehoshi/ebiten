@@ -1,4 +1,4 @@
-// Copyright 2018 The Ebiten Authors
+// Copyright 2021 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,24 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !js
-// +build !js
+//go:build !darwin || !ios
+// +build !darwin !ios
 
-package glfw
+package gamepaddb
 
-type (
-	CharModsCallback        uintptr
-	CloseCallback           uintptr
-	FramebufferSizeCallback uintptr
-	ScrollCallback          uintptr
-	SizeCallback            uintptr
-)
-
-type VidMode struct {
-	Width       int
-	Height      int
-	RedBits     int
-	GreenBits   int
-	BlueBits    int
-	RefreshRate int
-}
+const isIOS = false

@@ -289,19 +289,6 @@ func (j Joystick) GetHats() []JoystickHatState {
 	return hats
 }
 
-func (j Joystick) GetGamepadState() *GamepadState {
-	s := glfw.Joystick(j).GetGamepadState()
-	if s == nil {
-		return nil
-	}
-	state := &GamepadState{}
-	for i, b := range s.Buttons {
-		state.Buttons[i] = Action(b)
-	}
-	copy(state.Axes[:], s.Axes[:])
-	return state
-}
-
 func GetMonitors() []*Monitor {
 	ms := []*Monitor{}
 	for _, m := range glfw.GetMonitors() {
@@ -358,10 +345,6 @@ func SwapInterval(interval int) {
 
 func Terminate() {
 	glfw.Terminate()
-}
-
-func UpdateGamepadMappings(mapping string) bool {
-	return glfw.UpdateGamepadMappings(mapping)
 }
 
 func WaitEvents() {

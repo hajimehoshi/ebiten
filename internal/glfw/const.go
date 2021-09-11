@@ -24,8 +24,6 @@ import (
 type (
 	Action           int
 	ErrorCode        int
-	GamepadAxis      int
-	GamepadButton    int
 	Hint             int
 	InputMode        int
 	Joystick         int
@@ -168,31 +166,4 @@ const (
 	HatRightDown = HatRight | HatDown
 	HatLeftUp    = HatLeft | HatUp
 	HatLeftDown  = HatLeft | HatDown
-)
-
-const (
-	AxisLeftX        = GamepadAxis(0)
-	AxisLeftY        = GamepadAxis(1)
-	AxisRightX       = GamepadAxis(2)
-	AxisRightY       = GamepadAxis(3)
-	AxisLeftTrigger  = GamepadAxis(4)
-	AxisRightTrigger = GamepadAxis(5)
-)
-
-const (
-	ButtonA           = GamepadButton(0)
-	ButtonB           = GamepadButton(1)
-	ButtonX           = GamepadButton(2)
-	ButtonY           = GamepadButton(3)
-	ButtonLeftBumper  = GamepadButton(4)
-	ButtonRightBumper = GamepadButton(5)
-	ButtonBack        = GamepadButton(6)
-	ButtonStart       = GamepadButton(7)
-	ButtonGuide       = GamepadButton(8)
-	ButtonLeftThumb   = GamepadButton(9)
-	ButtonRightThumb  = GamepadButton(10)
-	ButtonDpadUp      = GamepadButton(11)
-	ButtonDpadRight   = GamepadButton(12)
-	ButtonDpadDown    = GamepadButton(13)
-	ButtonDpadLeft    = GamepadButton(14)
 )
