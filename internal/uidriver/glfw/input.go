@@ -385,7 +385,7 @@ func (i *Input) StandardGamepadAxisValue(id driver.GamepadID, axis driver.Standa
 		return 0
 	}
 	g := i.gamepads[int(id)]
-	return gamepaddb.AxisValue(g.guid, axis, &gamepadState{&g})
+	return gamepaddb.AxisValue(g.guid, axis, gamepadState{&g})
 }
 
 func (i *Input) IsStandardGamepadButtonPressed(id driver.GamepadID, button driver.StandardGamepadButton) bool {
@@ -396,7 +396,7 @@ func (i *Input) IsStandardGamepadButtonPressed(id driver.GamepadID, button drive
 		return false
 	}
 	g := i.gamepads[int(id)]
-	return gamepaddb.IsButtonPressed(g.guid, button, &gamepadState{&g})
+	return gamepaddb.IsButtonPressed(g.guid, button, gamepadState{&g})
 }
 
 func init() {
@@ -419,14 +419,14 @@ type gamepadState struct {
 	g *gamepad
 }
 
-func (s *gamepadState) Axis(index int) float64 {
+func (s gamepadState) Axis(index int) float64 {
 	return s.g.axes[index]
 }
 
-func (s *gamepadState) Button(index int) bool {
+func (s gamepadState) Button(index int) bool {
 	return s.g.buttonPressed[index]
 }
 
-func (s *gamepadState) Hat(index int) int {
+func (s gamepadState) Hat(index int) int {
 	return s.g.hats[index]
 }
