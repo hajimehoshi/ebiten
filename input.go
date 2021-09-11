@@ -238,7 +238,8 @@ func IsStandardGamepadLayoutAvailable(id GamepadID) bool {
 // UpdateStandardGamepadLayoutMappings parses the specified string mappings in SDL_GameControllerDB format and
 // updates the gamepad layout definitions.
 //
-// UpdateStandardGamepadLayoutMappings returns an error in case any occurred while parsing the mappings.
+// UpdateStandardGamepadLayoutMappings reports whether the mappings were applied,
+// and returns an error in case any occurred while parsing the mappings.
 //
 // One or more input definitions can be provided separated by newlines.
 // In particular, it is valid to pass an entire gamecontrollerdb.txt file.

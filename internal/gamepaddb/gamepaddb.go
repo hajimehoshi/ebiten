@@ -91,10 +91,10 @@ var additionalGLFWGamepads = []byte(`
 `)
 
 func init() {
-	if err := Update(gamecontrollerdbTxt); err != nil {
+	if _, err := Update(gamecontrollerdbTxt); err != nil {
 		panic(err)
 	}
-	if err := Update(additionalGLFWGamepads); err != nil {
+	if _, err := Update(additionalGLFWGamepads); err != nil {
 		panic(err)
 	}
 }
@@ -426,8 +426,9 @@ func Update(mapping []byte) (bool, error) {
 		return false, nil
 	}
 
-	//
+	// TODO: Implement this (#1557)
 	if currentPlatform == platformAndroid || currentPlatform == platformIOS {
+		// Note: NOT returning an error, as mappings also do not matter right now.
 		return false, nil
 	}
 
