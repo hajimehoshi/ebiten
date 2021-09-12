@@ -352,3 +352,43 @@ func CacheGlyphs(face font.Face, text string) {
 		getGlyphImage(face, r)
 	}
 }
+
+// FaceWithLineHeight returns a font.Face with the given lineHeight in pixels.
+// The returned face will otherwise have the same glyphs and metrics as face.
+func FaceWithLineHeight(face font.Face, lineHeight float64) font.Face {
+	return faceWithLineHeight{
+		face:       face,
+		lineHeight: fixed.Int26_6(lineHeight * (1 << 6)),
+	}
+}
+
+type faceWithLineHeight struct {
+	face       font.Face
+	lineHeight fixed.Int26_6
+}
+
+func (f faceWithLineHeight) Close() error {
+	return f.face.Close()
+}
+
+func (f faceWithLineHeight) Glyph(dot fixed.Point26_6, r rune) (dr image.Rectangle, mask image.Image, maskp image.Point, advance fixed.Int26_6, ok bool) {
+	return f.face.Glyph(dot, r)
+}
+
+func (f faceWithLineHeight) GlyphBounds(r rune) (bounds fixed.Rectangle26_6, advance fixed.Int26_6, ok bool) {
+	return f.face.GlyphBounds(r)
+}
+
+func (f faceWithLineHeight) GlyphAdvance(r rune) (advance fixed.Int26_6, ok bool) {
+	return f.face.GlyphAdvance(r)
+}
+
+func (f faceWithLineHeight) Kern(r0, r1 rune) fixed.Int26_6 {
+	return f.face.Kern(r0, r1)
+}
+
+func (f faceWithLineHeight) Metrics() font.Metrics {
+	m := f.face.Metrics()
+	m.Height = f.lineHeight
+	return m
+}

@@ -108,6 +108,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		op.Filter = ebiten.FilterLinear
 		text.DrawWithOptions(screen, sampleText, mplusNormalFont, op)
 	}
+	{
+		const x, y = 160, 240
+		const lineHeight = 80
+		b := text.BoundString(text.FaceWithLineHeight(mplusBigFont, lineHeight), sampleText)
+		ebitenutil.DrawRect(screen, float64(b.Min.X+x), float64(b.Min.Y+y), float64(b.Dx()), float64(b.Dy()), gray)
+		text.Draw(screen, sampleText, text.FaceWithLineHeight(mplusBigFont, lineHeight), x, y, color.White)
+	}
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
