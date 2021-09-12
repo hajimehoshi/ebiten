@@ -98,99 +98,44 @@ func (g *Game) Update() error {
 	return nil
 }
 
-func standardMap(id ebiten.GamepadID) string {
-	m := `      [FBL]              [FBR]
-      [FTL]              [FTR]
+var standardButtonToString = map[ebiten.StandardGamepadButton]string{
+	ebiten.StandardGamepadButtonRightBottom:      "RB",
+	ebiten.StandardGamepadButtonRightRight:       "RR",
+	ebiten.StandardGamepadButtonRightLeft:        "RL",
+	ebiten.StandardGamepadButtonRightTop:         "RT",
+	ebiten.StandardGamepadButtonFrontTopLeft:     "FTL",
+	ebiten.StandardGamepadButtonFrontTopRight:    "FTR",
+	ebiten.StandardGamepadButtonFrontBottomLeft:  "FBL",
+	ebiten.StandardGamepadButtonFrontBottomRight: "FBR",
+	ebiten.StandardGamepadButtonCenterLeft:       "CL",
+	ebiten.StandardGamepadButtonCenterRight:      "CR",
+	ebiten.StandardGamepadButtonLeftStick:        "LS",
+	ebiten.StandardGamepadButtonRightStick:       "RS",
+	ebiten.StandardGamepadButtonLeftBottom:       "LB",
+	ebiten.StandardGamepadButtonLeftRight:        "LR",
+	ebiten.StandardGamepadButtonLeftLeft:         "LL",
+	ebiten.StandardGamepadButtonLeftTop:          "LT",
+	ebiten.StandardGamepadButtonCenterCenter:     "CC",
+}
 
-      [LT]     [CC]     [RT]
-    [LL][LR] [CL][CR] [RL][RR]
-      [LB]              [RB]
-           (LS)    (RS)
+func standardMap(id ebiten.GamepadID) string {
+	m := `       [FBL ]                    [FBR ]
+       [FTL ]                    [FTR ]
+
+       [LT  ]       [CC  ]       [RT  ]
+    [LL  ][LR  ] [CL  ][CR  ] [RL  ][RR  ]
+       [LB  ]                    [RB  ]
+             [LS  ]       [RS  ]
 `
-	if ebiten.IsStandardGamepadButtonPressed(id, ebiten.StandardGamepadButtonRightBottom) {
-		m = strings.Replace(m, "[RB]", "[**]", 1)
-	} else {
-		m = strings.Replace(m, "[RB]", "[  ]", 1)
-	}
-	if ebiten.IsStandardGamepadButtonPressed(id, ebiten.StandardGamepadButtonRightRight) {
-		m = strings.Replace(m, "[RR]", "[**]", 1)
-	} else {
-		m = strings.Replace(m, "[RR]", "[  ]", 1)
-	}
-	if ebiten.IsStandardGamepadButtonPressed(id, ebiten.StandardGamepadButtonRightLeft) {
-		m = strings.Replace(m, "[RL]", "[**]", 1)
-	} else {
-		m = strings.Replace(m, "[RL]", "[  ]", 1)
-	}
-	if ebiten.IsStandardGamepadButtonPressed(id, ebiten.StandardGamepadButtonRightTop) {
-		m = strings.Replace(m, "[RT]", "[**]", 1)
-	} else {
-		m = strings.Replace(m, "[RT]", "[  ]", 1)
-	}
-	if ebiten.IsStandardGamepadButtonPressed(id, ebiten.StandardGamepadButtonFrontTopLeft) {
-		m = strings.Replace(m, "[FTL]", "[**]", 1)
-	} else {
-		m = strings.Replace(m, "[FTL]", "[  ]", 1)
-	}
-	if ebiten.IsStandardGamepadButtonPressed(id, ebiten.StandardGamepadButtonFrontTopRight) {
-		m = strings.Replace(m, "[FTR]", "[**]", 1)
-	} else {
-		m = strings.Replace(m, "[FTR]", "[  ]", 1)
-	}
-	if ebiten.IsStandardGamepadButtonPressed(id, ebiten.StandardGamepadButtonFrontBottomLeft) {
-		m = strings.Replace(m, "[FBL]", "[**]", 1)
-	} else {
-		m = strings.Replace(m, "[FBL]", "[  ]", 1)
-	}
-	if ebiten.IsStandardGamepadButtonPressed(id, ebiten.StandardGamepadButtonFrontBottomRight) {
-		m = strings.Replace(m, "[FBR]", "[**]", 1)
-	} else {
-		m = strings.Replace(m, "[FBR]", "[  ]", 1)
-	}
-	if ebiten.IsStandardGamepadButtonPressed(id, ebiten.StandardGamepadButtonCenterLeft) {
-		m = strings.Replace(m, "[CL]", "[**]", 1)
-	} else {
-		m = strings.Replace(m, "[CL]", "[  ]", 1)
-	}
-	if ebiten.IsStandardGamepadButtonPressed(id, ebiten.StandardGamepadButtonCenterRight) {
-		m = strings.Replace(m, "[CR]", "[**]", 1)
-	} else {
-		m = strings.Replace(m, "[CR]", "[  ]", 1)
-	}
-	if ebiten.IsStandardGamepadButtonPressed(id, ebiten.StandardGamepadButtonLeftStick) {
-		m = strings.Replace(m, "(LS)", "[**]", 1)
-	} else {
-		m = strings.Replace(m, "(LS)", "[  ]", 1)
-	}
-	if ebiten.IsStandardGamepadButtonPressed(id, ebiten.StandardGamepadButtonRightStick) {
-		m = strings.Replace(m, "(RS)", "[**]", 1)
-	} else {
-		m = strings.Replace(m, "(RS)", "[  ]", 1)
-	}
-	if ebiten.IsStandardGamepadButtonPressed(id, ebiten.StandardGamepadButtonLeftBottom) {
-		m = strings.Replace(m, "[LB]", "[**]", 1)
-	} else {
-		m = strings.Replace(m, "[LB]", "[  ]", 1)
-	}
-	if ebiten.IsStandardGamepadButtonPressed(id, ebiten.StandardGamepadButtonLeftRight) {
-		m = strings.Replace(m, "[LR]", "[**]", 1)
-	} else {
-		m = strings.Replace(m, "[LR]", "[  ]", 1)
-	}
-	if ebiten.IsStandardGamepadButtonPressed(id, ebiten.StandardGamepadButtonLeftLeft) {
-		m = strings.Replace(m, "[LL]", "[**]", 1)
-	} else {
-		m = strings.Replace(m, "[LL]", "[  ]", 1)
-	}
-	if ebiten.IsStandardGamepadButtonPressed(id, ebiten.StandardGamepadButtonLeftTop) {
-		m = strings.Replace(m, "[LT]", "[**]", 1)
-	} else {
-		m = strings.Replace(m, "[LT]", "[  ]", 1)
-	}
-	if ebiten.IsStandardGamepadButtonPressed(id, ebiten.StandardGamepadButtonCenterCenter) {
-		m = strings.Replace(m, "[CC]", "[**]", 1)
-	} else {
-		m = strings.Replace(m, "[CC]", "[  ]", 1)
+
+	for b, str := range standardButtonToString {
+		placeholder := "[" + str + strings.Repeat(" ", 4-len(str)) + "]"
+		v := ebiten.StandardGamepadButtonValue(id, b)
+		if ebiten.IsStandardGamepadButtonPressed(id, b) {
+			m = strings.Replace(m, placeholder, fmt.Sprintf("[%0.2f]", v), 1)
+		} else {
+			m = strings.Replace(m, placeholder, fmt.Sprintf(" %0.2f ", v), 1)
+		}
 	}
 
 	m += fmt.Sprintf("    Left Stick:  X: %+0.2f, Y: %+0.2f\n    Right Stick: X: %+0.2f, Y: %+0.2f",
@@ -222,7 +167,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			str += fmt.Sprintf("  Buttons: %s\n", strings.Join(g.pressedButtons[id], ", "))
 			if ebiten.IsStandardGamepadLayoutAvailable(id) {
 				str += "\n"
-				str += standardMap(id)
+				str += standardMap(id) + "\n"
 				str += "\n"
 			}
 			str += "\n"

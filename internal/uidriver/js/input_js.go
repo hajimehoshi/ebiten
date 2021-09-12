@@ -66,8 +66,10 @@ type gamepad struct {
 	axes          [16]float64
 	buttonNum     int
 	buttonPressed [256]bool
+	buttonValues  [256]float64
 
 	standardButtonPressed [driver.StandardGamepadButtonMax + 1]bool
+	standardButtonValues  [driver.StandardGamepadButtonMax + 1]float64
 	standardAxisValues    [driver.StandardGamepadAxisMax + 1]float64
 }
 
@@ -315,27 +317,24 @@ func (i *Input) updateGamepads() {
 		axes := gp.Get("axes")
 		axesNum := axes.Length()
 		g.axisNum = axesNum
-		for a := 0; a < len(g.axes); a++ {
-			if axesNum <= a {
-				break
-			}
+		for a := 0; a < axesNum; a++ {
 			g.axes[a] = axes.Index(a).Float()
 		}
 
 		buttons := gp.Get("buttons")
 		buttonsNum := buttons.Length()
 		g.buttonNum = buttonsNum
-		for b := 0; b < len(g.buttonPressed); b++ {
-			if buttonsNum <= b {
-				break
-			}
-			g.buttonPressed[b] = buttons.Index(b).Get("pressed").Bool()
+		for b := 0; b < buttonsNum; b++ {
+			btn := buttons.Index(b)
+			g.buttonPressed[b] = btn.Get("pressed").Bool()
+			g.buttonValues[b] = btn.Get("value").Float()
 		}
 
 		if g.mapping == "standard" {
 			// When the gamepad's mapping is "standard", the button and axis IDs are already mapped as the standard layout.
 			// See https://www.w3.org/TR/gamepad/#remapping.
 			copy(g.standardButtonPressed[:], g.buttonPressed[:])
+			copy(g.standardButtonValues[:], g.buttonValues[:])
 			copy(g.standardAxisValues[:], g.axes[:])
 		}
 
@@ -484,6 +483,17 @@ func (i *Input) StandardGamepadAxisValue(id driver.GamepadID, axis driver.Standa
 		return 0
 	}
 	return g.standardAxisValues[axis]
+}
+
+func (i *Input) StandardGamepadButtonValue(id driver.GamepadID, button driver.StandardGamepadButton) float64 {
+	g, ok := i.gamepads[id]
+	if !ok {
+		return 0
+	}
+	if !g.hasStandardLayoutMapping() {
+		return 0
+	}
+	return g.standardButtonValues[button]
 }
 
 func (i *Input) IsStandardGamepadButtonPressed(id driver.GamepadID, button driver.StandardGamepadButton) bool {

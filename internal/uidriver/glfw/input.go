@@ -388,6 +388,17 @@ func (i *Input) StandardGamepadAxisValue(id driver.GamepadID, axis driver.Standa
 	return gamepaddb.AxisValue(g.guid, axis, gamepadState{&g})
 }
 
+func (i *Input) StandardGamepadButtonValue(id driver.GamepadID, button driver.StandardGamepadButton) float64 {
+	i.ui.m.Lock()
+	defer i.ui.m.Unlock()
+
+	if len(i.gamepads) <= int(id) {
+		return 0
+	}
+	g := i.gamepads[int(id)]
+	return gamepaddb.ButtonValue(g.guid, button, gamepadState{&g})
+}
+
 func (i *Input) IsStandardGamepadButtonPressed(id driver.GamepadID, button driver.StandardGamepadButton) bool {
 	i.ui.m.Lock()
 	defer i.ui.m.Unlock()

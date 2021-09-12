@@ -394,6 +394,40 @@ func AxisValue(id string, axis driver.StandardGamepadAxis, state GamepadState) f
 	return 0
 }
 
+func ButtonValue(id string, button driver.StandardGamepadButton, state GamepadState) float64 {
+	mappingsM.RLock()
+	defer mappingsM.RUnlock()
+
+	mappings, ok := gamepadButtonMappings[id]
+	if !ok {
+		return 0
+	}
+
+	switch m := mappings[button]; m.Type {
+	case mappingTypeAxis:
+		v := state.Axis(m.Index)*float64(m.AxisScale) + float64(m.AxisOffset)
+		if v > 1 {
+			return 1
+		} else if v < -1 {
+			return -1
+		}
+		// Adjust [-1, 1] to [0, 1]
+		return (v + 1) / 2
+	case mappingTypeButton:
+		if state.Button(m.Index) {
+			return 1
+		}
+		return 0
+	case mappingTypeHat:
+		if state.Hat(m.Index)&m.HatState != 0 {
+			return 1
+		}
+		return 0
+	}
+
+	return 0
+}
+
 func IsButtonPressed(id string, button driver.StandardGamepadButton, state GamepadState) bool {
 	mappingsM.RLock()
 	defer mappingsM.RUnlock()

@@ -142,6 +142,11 @@ func (i *Input) IsStandardGamepadButtonPressed(id driver.GamepadID, button drive
 	return false
 }
 
+func (i *Input) StandardGamepadButtonValue(id driver.GamepadID, button driver.StandardGamepadButton) float64 {
+	// TODO: Implement this (#1557)
+	return 0
+}
+
 func (i *Input) StandardGamepadAxisValue(id driver.GamepadID, axis driver.StandardGamepadAxis) float64 {
 	// TODO: Implement this (#1557)
 	return 0

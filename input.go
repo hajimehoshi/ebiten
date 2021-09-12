@@ -219,6 +219,15 @@ func StandardGamepadAxisValue(id GamepadID, axis StandardGamepadAxis) float64 {
 	return uiDriver().Input().StandardGamepadAxisValue(id, axis)
 }
 
+// StandardGamepadButtonValue returns a float value [0.0 - 1.0] of the given gamepad (id)'s standard button (button).
+//
+// StandardGamepadButtonValue returns 0 when the gamepad doesn't have a standard gamepad layout mapping.
+//
+// StandardGamepadButtonValue is concurrent safe.
+func StandardGamepadButtonValue(id GamepadID, button StandardGamepadButton) float64 {
+	return uiDriver().Input().StandardGamepadButtonValue(id, button)
+}
+
 // IsStandardGamepadButtonPressed reports whether the given gamepad (id)'s standard gamepad button (button) is pressed.
 //
 // IsStandardGamepadButtonPressed returns false when the gamepad doesn't have a standard gamepad layout mapping.
