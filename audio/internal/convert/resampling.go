@@ -137,7 +137,8 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 			p := r.lruSrcBlocks[0]
 			delete(r.srcBufL, p)
 			delete(r.srcBufR, p)
-			r.lruSrcBlocks = r.lruSrcBlocks[1:]
+			copy(r.lruSrcBlocks, r.lruSrcBlocks[1:])
+			r.lruSrcBlocks = r.lruSrcBlocks[:len(r.lruSrcBlocks)-1]
 		}
 		r.lruSrcBlocks = append(r.lruSrcBlocks, r.srcBlock)
 	} else {
