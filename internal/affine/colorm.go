@@ -579,12 +579,20 @@ func (c *colorMImplBodyTranslate) Concat(other ColorM) ColorM {
 }
 
 func (c ColorMIdentity) Scale(r, g, b, a float32) ColorM {
+	if r == 1 && g == 1 && b == 1 && a == 1 {
+		return c
+	}
+
 	return colorMImplScale{
 		scale: [...]float32{r, g, b, a},
 	}
 }
 
 func (c colorMImplScale) Scale(r, g, b, a float32) ColorM {
+	if r == 1 && g == 1 && b == 1 && a == 1 {
+		return c
+	}
+
 	return colorMImplScale{
 		scale: [...]float32{
 			c.scale[0] * r,
@@ -596,6 +604,10 @@ func (c colorMImplScale) Scale(r, g, b, a float32) ColorM {
 }
 
 func (c *colorMImplBodyTranslate) Scale(r, g, b, a float32) ColorM {
+	if r == 1 && g == 1 && b == 1 && a == 1 {
+		return c
+	}
+
 	if c.ScaleOnly() {
 		sr, sg, sb, sa := c.scaleElements()
 		return colorMImplScale{
@@ -625,6 +637,10 @@ func (c *colorMImplBodyTranslate) Scale(r, g, b, a float32) ColorM {
 }
 
 func (c ColorMIdentity) Translate(r, g, b, a float32) ColorM {
+	if r == 0 && g == 0 && b == 0 && a == 0 {
+		return c
+	}
+
 	return &colorMImplBodyTranslate{
 		body:      colorMIdentityBody,
 		translate: [...]float32{r, g, b, a},
@@ -632,6 +648,10 @@ func (c ColorMIdentity) Translate(r, g, b, a float32) ColorM {
 }
 
 func (c colorMImplScale) Translate(r, g, b, a float32) ColorM {
+	if r == 0 && g == 0 && b == 0 && a == 0 {
+		return c
+	}
+
 	return &colorMImplBodyTranslate{
 		body: [...]float32{
 			c.scale[0], 0, 0, 0,
@@ -644,6 +664,10 @@ func (c colorMImplScale) Translate(r, g, b, a float32) ColorM {
 }
 
 func (c *colorMImplBodyTranslate) Translate(r, g, b, a float32) ColorM {
+	if r == 0 && g == 0 && b == 0 && a == 0 {
+		return c
+	}
+
 	es := c.translate
 	es[0] += r
 	es[1] += g
