@@ -1472,6 +1472,10 @@ func (u *UserInterface) Window() driver.Window {
 
 // maximizeWindow must be called from the main thread.
 func (u *UserInterface) maximizeWindow() {
+	if u.isNativeFullscreen() {
+		return
+	}
+
 	if u.setSizeCallbackEnabled {
 		u.setSizeCallbackEnabled = false
 		defer func() {
@@ -1497,6 +1501,10 @@ func (u *UserInterface) maximizeWindow() {
 
 // iconifyWindow must be called from the main thread.
 func (u *UserInterface) iconifyWindow() {
+	if u.isNativeFullscreen() {
+		return
+	}
+
 	if u.setSizeCallbackEnabled {
 		u.setSizeCallbackEnabled = false
 		defer func() {
