@@ -168,7 +168,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			if ebiten.IsStandardGamepadLayoutAvailable(id) {
 				str += "\n"
 				str += standardMap(id) + "\n"
-				str += "\n"
 			}
 			str += "\n"
 		}
