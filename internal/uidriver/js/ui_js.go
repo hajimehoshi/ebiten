@@ -351,7 +351,7 @@ func (u *UserInterface) loop(context driver.UIContext) <-chan error {
 		return nil
 	})
 
-	// Call f asyncly to be async since ch is used in f.
+	// Call f asyncly since ch is used in f.
 	go f()
 
 	// Run another loop to watch suspended() as the above update function is never called when the tab is hidden.
