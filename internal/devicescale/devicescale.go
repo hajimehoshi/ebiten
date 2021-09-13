@@ -28,7 +28,7 @@ var (
 )
 
 // GetAt returns the device scale at (x, y).
-// x and y are in device-dependent pixels.
+// x and y are in device-dependent pixels and must be the top-left coordinate of a monitor, or 0,0 to request a "global scale".
 // The device scale maps device dependent pixels to device independent pixels.
 func GetAt(x, y int) float64 {
 	m.Lock()

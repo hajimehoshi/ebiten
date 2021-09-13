@@ -22,27 +22,14 @@ import (
 )
 
 func monitorAt(x, y int) *glfw.Monitor {
-	// TODO: when https://github.com/glfw/glfw/issues/1961 is fixed,
-	// see if that will allow simplify this by using GetVideoMode().
-	// GLFW only provides monitor x and y coordinates but no reliable sizes.
-	// So the "correct" monitor is the one closest to x, y to the bottom right.
-	// This usually works, but in some exceptional layouts may return the wrong monitor.
-	// Thus, this function is best called with the top-left coordinates of an actual monitor if possible.
-	var best *glfw.Monitor
-	var bestScore int
+	// Note: this assumes that x, y are exact monitor origins.
+	// If they're not, this arbitrarily returns the first monitor.
 	monitors := glfw.GetMonitors()
 	for _, mon := range monitors {
 		mx, my := mon.GetPos()
-		if x < mx || y < my {
-			continue
-		}
-		score := (x - mx) + (y - my)
-		if best == nil || score < bestScore {
-			best, bestScore = mon, score
+		if x == mx && y == my {
+			return mon
 		}
 	}
-	if best == nil {
-		return monitors[0]
-	}
-	return best
+	return monitors[0]
 }
