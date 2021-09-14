@@ -17,7 +17,6 @@
 
 package devicescale
 
-func impl(x, y int) float64 {
-	sx, _ := monitorAt(x, y).GetContentScale()
-	return float64(sx)
+func videoModeScaleImpl(x, y int) float64 {
+	return 1
 }

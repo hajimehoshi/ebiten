@@ -189,9 +189,10 @@ func initialize() error {
 	m := currentMonitor(w)
 	theUI.initMonitor = m
 	v := m.GetVideoMode()
-	scale := devicescale.GetAt(currentMonitor(w).GetPos())
-	theUI.initFullscreenWidthInDP = int(fromGLFWMonitorPixel(float64(v.Width), scale))
-	theUI.initFullscreenHeightInDP = int(fromGLFWMonitorPixel(float64(v.Height), scale))
+	mx, my := currentMonitor(w).GetPos()
+	scale := devicescale.VideoModeScaleAt(mx, my)
+	theUI.initFullscreenWidthInDP = int(theUI.fromGLFWMonitorPixel(float64(v.Width), scale))
+	theUI.initFullscreenHeightInDP = int(theUI.fromGLFWMonitorPixel(float64(v.Height), scale))
 
 	// Create system cursors. These cursors are destroyed at glfw.Terminate().
 	glfwSystemCursors[driver.CursorShapeDefault] = nil
@@ -528,10 +529,12 @@ func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 
 	var w, h int
 	_ = u.t.Call(func() error {
-		v := currentMonitor(u.window).GetVideoMode()
-		s := u.deviceScaleFactor()
-		w = int(fromGLFWMonitorPixel(float64(v.Width), s))
-		h = int(fromGLFWMonitorPixel(float64(v.Height), s))
+		m := currentMonitor(u.window)
+		v := m.GetVideoMode()
+		mx, my := m.GetPos()
+		s := devicescale.VideoModeScaleAt(mx, my)
+		w = int(u.fromGLFWMonitorPixel(float64(v.Width), s))
+		h = int(u.fromGLFWMonitorPixel(float64(v.Height), s))
 		return nil
 	})
 	return w, h
@@ -707,7 +710,7 @@ func (u *UserInterface) SetCursorShape(shape driver.CursorShape) {
 func (u *UserInterface) DeviceScaleFactor() float64 {
 	if !u.isRunning() {
 		// TODO: Use the initWindowPosition. This requires to convert the units correctly (#1575).
-		return devicescale.GetAt(u.initMonitor.GetPos())
+		return u.deviceScaleFactor()
 	}
 
 	f := 0.0
@@ -724,7 +727,8 @@ func (u *UserInterface) deviceScaleFactor() float64 {
 	if u.window != nil {
 		m = currentMonitor(u.window)
 	}
-	return devicescale.GetAt(m.GetPos())
+	mx, my := m.GetPos()
+	return devicescale.GetAt(mx, my)
 }
 
 func init() {
@@ -933,11 +937,13 @@ func (u *UserInterface) updateSize() (float64, float64, bool) {
 
 	var w, h float64
 	if u.isFullscreen() {
-		v := currentMonitor(u.window).GetVideoMode()
+		m := currentMonitor(u.window)
+		v := m.GetVideoMode()
 		ww, wh := v.Width, v.Height
-		s := u.deviceScaleFactor()
-		w = fromGLFWMonitorPixel(float64(ww), s)
-		h = fromGLFWMonitorPixel(float64(wh), s)
+		mx, my := m.GetPos()
+		s := devicescale.VideoModeScaleAt(mx, my)
+		w = u.fromGLFWMonitorPixel(float64(ww), s)
+		h = u.fromGLFWMonitorPixel(float64(wh), s)
 	} else {
 		// Instead of u.windowWidth and u.windowHeight, use the actual window size here.
 		// On Windows, the specified size at SetSize and the actual window size might not
@@ -946,9 +952,6 @@ func (u *UserInterface) updateSize() (float64, float64, bool) {
 		w = u.fromGLFWPixel(float64(ww))
 		h = u.fromGLFWPixel(float64(wh))
 	}
-	// On Linux/UNIX, further adjusting is required (#1307).
-	w = u.toFramebufferPixel(w)
-	h = u.toFramebufferPixel(h)
 
 	return w, h, true
 }

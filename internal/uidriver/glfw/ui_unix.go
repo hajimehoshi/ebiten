@@ -19,37 +19,23 @@
 package glfw
 
 import (
-	"math"
-
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
 // fromGLFWMonitorPixel must be called from the main thread.
-func fromGLFWMonitorPixel(x float64, deviceScale float64) float64 {
-	// deviceScaleFactor is sometimes an unnice value (e.g., 1.502361). Use math.Ceil to clean the vaule.
-	return math.Ceil(x / deviceScale)
+func (u *UserInterface) fromGLFWMonitorPixel(x float64, videoModeScale float64) float64 {
+	return x / (videoModeScale * u.deviceScaleFactor())
 }
 
 // fromGLFWPixel must be called from the main thread.
 func (u *UserInterface) fromGLFWPixel(x float64) float64 {
-	// deviceScaleFactor() is a scale by desktop environment (e.g., Cinnamon), while GetContentScale() is X's scale.
-	// They are different things and then need to be treated in different ways (#1350).
-	s, _ := currentMonitor(u.window).GetContentScale()
-	return x / float64(s)
+	return x / u.deviceScaleFactor()
 }
 
 // toGLFWPixel must be called from the main thread.
 func (u *UserInterface) toGLFWPixel(x float64) float64 {
-	s, _ := currentMonitor(u.window).GetContentScale()
-	return x * float64(s)
-}
-
-// toFramebufferPixel must be called from the main thread.
-func (u *UserInterface) toFramebufferPixel(x float64) float64 {
-	s, _ := currentMonitor(u.window).GetContentScale()
-	// deviceScaleFactor is sometimes an unnice value (e.g., 1.502361). Use math.Ceil to clean the vaule.
-	return math.Ceil(x * float64(s) / u.deviceScaleFactor())
+	return x * u.deviceScaleFactor()
 }
 
 func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {

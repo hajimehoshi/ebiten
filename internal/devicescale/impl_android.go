@@ -103,3 +103,7 @@ func impl(x, y int) float64 {
 	}
 	return s
 }
+
+func videoModeScaleImpl(x, y int) float64 {
+	return 1
+}

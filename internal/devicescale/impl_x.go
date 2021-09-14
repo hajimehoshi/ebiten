@@ -25,9 +25,9 @@ import (
 	"github.com/jezek/xgb/xproto"
 )
 
-func impl(x, y int) float64 {
+func videoModeScaleImpl(x, y int) float64 {
 	// TODO: if https://github.com/glfw/glfw/issues/1961 gets fixed, this function may need revising.
-	// In case GLFW decides to switch to returning logical pixels, we can just return 1.0.
+	// In case GLFW decides to switch to returning logical pixels, we can just return 1.
 
 	// Note: GLFW currently returns physical pixel sizes,
 	// but we need to predict the window system-side size of the fullscreen window
@@ -35,7 +35,6 @@ func impl(x, y int) float64 {
 	// Also at the moment we need this prior to switching to fullscreen, but that might be replacable.
 	// So this function computes the ratio of physical per logical pixels.
 	m := monitorAt(x, y)
-	sx, _ := m.GetContentScale()
 	monitorX, monitorY := m.GetPos()
 	xconn, err := xgb.NewConn()
 	defer xconn.Close()
@@ -43,19 +42,19 @@ func impl(x, y int) float64 {
 		// No X11 connection?
 		// Assume we're on pure Wayland then.
 		// GLFW/Wayland shouldn't be having this issue.
-		return float64(sx)
+		return 1
 	}
 	if err = randr.Init(xconn); err != nil {
 		// No RANDR extension?
 		// No problem.
-		return float64(sx)
+		return 1
 	}
 	root := xproto.Setup(xconn).DefaultScreen(xconn).Root
 	res, err := randr.GetScreenResourcesCurrent(xconn, root).Reply()
 	if err != nil {
 		// Likely means RANDR is not working.
 		// No problem.
-		return float64(sx)
+		return 1
 	}
 	for _, crtc := range res.Crtcs[:res.NumCrtcs] {
 		info, err := randr.GetCrtcInfo(xconn, crtc, res.ConfigTimestamp).Reply()
@@ -75,9 +74,9 @@ func impl(x, y int) float64 {
 			// Return one scale, even though there may be separate X and Y scales.
 			// Return the _larger_ scale, as this would yield a letterboxed display on mismatch, rather than a cut-off one.
 			scale := math.Max(float64(physWidth)/float64(xWidth), float64(physHeight)/float64(xHeight))
-			return float64(sx) * scale
+			return scale
 		}
 	}
 	// Monitor not known to XRandR. Weird.
-	return float64(sx)
+	return 1
 }
