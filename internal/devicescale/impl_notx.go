@@ -18,6 +18,5 @@
 package devicescale
 
 func screenScaleImpl(x, y int) float64 {
-	sx, _ := monitorAt(x, y).GetContentScale()
-	return float64(sx)
+	return 1.0
 }
