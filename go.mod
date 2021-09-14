@@ -9,6 +9,7 @@ require (
 	github.com/hajimehoshi/go-mp3 v0.3.2
 	github.com/hajimehoshi/oto/v2 v2.1.0-alpha.0.20210912073017-18657977e3dc
 	github.com/jakecoffman/cp v1.1.0
+	github.com/jezek/xgb v0.0.0-20210312150743-0e0f116e1240 // indirect
 	github.com/jfreymuth/oggvorbis v1.0.3
 	golang.org/x/image v0.0.0-20210628002857-a66eb6448b8d
 	golang.org/x/mobile v0.0.0-20210902104108-5d9a33257ab5

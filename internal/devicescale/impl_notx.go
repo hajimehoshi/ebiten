@@ -1,4 +1,4 @@
-// Copyright 2018 The Ebiten Authors
+// Copyright 2021 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build (darwin && !ios) || windows
+// +build darwin,!ios windows
+
 package devicescale
 
 func impl(x, y int) float64 {
-	return 1
+	sx, _ := monitorAt(x, y).GetContentScale()
+	return float64(sx)
 }

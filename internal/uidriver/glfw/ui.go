@@ -246,6 +246,8 @@ func ensureMonitors() []*monitor {
 // getMonitorFromPosition must be called on the main thread.
 func getMonitorFromPosition(wx, wy int) *monitor {
 	for _, m := range ensureMonitors() {
+		// TODO: Fix incorrectness in the cases of https://github.com/glfw/glfw/issues/1961.
+		// See also internal/devicescale/impl_desktop.go for a maybe better way of doing this.
 		if m.x <= wx && wx < m.x+m.vm.Width && m.y <= wy && wy < m.y+m.vm.Height {
 			return m
 		}
