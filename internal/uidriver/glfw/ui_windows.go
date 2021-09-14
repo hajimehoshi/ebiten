@@ -98,6 +98,11 @@ func getMonitorInfoW(hMonitor uintptr, lpmi *monitorInfo) error {
 	return nil
 }
 
+// videoModeScale must be called from the main thread.
+func (u *UserInterface) videoModeScale(m *glfw.Monitor) float64 {
+	return 1
+}
+
 // fromGLFWMonitorPixel must be called from the main thread.
 func (u *UserInterface) fromGLFWMonitorPixel(x float64, videoModeScale float64) float64 {
 	return x / (videoModeScale * u.deviceScaleFactor())
