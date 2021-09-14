@@ -231,7 +231,7 @@ func updateMonitors() {
 			y:  y,
 		})
 	}
-	updateMonitorsByOS()
+	clearVideoModeScaleCache()
 }
 
 func ensureMonitors() []*monitor {

@@ -32,8 +32,8 @@ type videoModeScaleCacheKey struct{ X, Y int }
 
 var videoModeScaleCache = map[videoModeScaleCacheKey]float64{}
 
-// updateMonitorsByOS must be called from the main thread.
-func updateMonitorsByOS() {
+// clearVideoModeScaleCache must be called from the main thread.
+func clearVideoModeScaleCache() {
 	for k := range videoModeScaleCache {
 		delete(videoModeScaleCache, k)
 	}
