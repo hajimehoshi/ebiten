@@ -31,6 +31,6 @@ func impl(x, y int) float64 {
 	return float64(C.devicePixelRatio())
 }
 
-func screenScaleImpl(x, y int) float64 {
+func videoModeScaleImpl(x, y int) float64 {
 	return 1
 }

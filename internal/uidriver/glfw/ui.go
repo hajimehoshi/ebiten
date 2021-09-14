@@ -190,7 +190,7 @@ func initialize() error {
 	theUI.initMonitor = m
 	v := m.GetVideoMode()
 	mx, my := currentMonitor(w).GetPos()
-	scale := devicescale.ScreenScaleAt(mx, my)
+	scale := devicescale.VideoModeScaleAt(mx, my)
 	theUI.initFullscreenWidthInDP = int(theUI.fromGLFWMonitorPixel(float64(v.Width), scale))
 	theUI.initFullscreenHeightInDP = int(theUI.fromGLFWMonitorPixel(float64(v.Height), scale))
 
@@ -532,7 +532,7 @@ func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 		m := currentMonitor(u.window)
 		v := m.GetVideoMode()
 		mx, my := m.GetPos()
-		s := devicescale.ScreenScaleAt(mx, my)
+		s := devicescale.VideoModeScaleAt(mx, my)
 		w = int(u.fromGLFWMonitorPixel(float64(v.Width), s))
 		h = int(u.fromGLFWMonitorPixel(float64(v.Height), s))
 		return nil
@@ -941,7 +941,7 @@ func (u *UserInterface) updateSize() (float64, float64, bool) {
 		v := m.GetVideoMode()
 		ww, wh := v.Width, v.Height
 		mx, my := m.GetPos()
-		s := devicescale.ScreenScaleAt(mx, my)
+		s := devicescale.VideoModeScaleAt(mx, my)
 		w = u.fromGLFWMonitorPixel(float64(ww), s)
 		h = u.fromGLFWMonitorPixel(float64(wh), s)
 	} else {
@@ -1650,8 +1650,8 @@ func (u *UserInterface) setWindowTitle(title string) {
 }
 
 // fromGLFWMonitorPixel must be called from the main thread.
-func (u *UserInterface) fromGLFWMonitorPixel(x float64, screenScale float64) float64 {
-	return x / (screenScale * u.deviceScaleFactor())
+func (u *UserInterface) fromGLFWMonitorPixel(x float64, videoModeScale float64) float64 {
+	return x / (videoModeScale * u.deviceScaleFactor())
 }
 
 // fromGLFWPixel must be called from the main thread.

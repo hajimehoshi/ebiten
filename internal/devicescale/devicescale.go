@@ -23,9 +23,9 @@ type pos struct {
 }
 
 var (
-	m                sync.Mutex
-	cache            = map[pos]float64{}
-	screenScaleCache = map[pos]float64{}
+	m                   sync.Mutex
+	cache               = map[pos]float64{}
+	videoModeScaleCache = map[pos]float64{}
 )
 
 // GetAt returns the device scale at (x, y), i.e. the number of device-dependent pixels per device-independent pixel.
@@ -47,15 +47,15 @@ func GetAt(x, y int) float64 {
 	return s
 }
 
-// ScreenScaleAt returns the screen scale at (x, y), i.e. the number of video mode pixels per device-dependent pixel.
+// VideoModeScaleAt returns the video mode scale scale at (x, y), i.e. the number of video mode pixels per device-dependent pixel.
 // x and y are in device-dependent pixels and must be the top-left coordinate of a monitor, or 0,0 to request a "global scale".
-func ScreenScaleAt(x, y int) float64 {
+func VideoModeScaleAt(x, y int) float64 {
 	m.Lock()
 	defer m.Unlock()
-	if s, ok := screenScaleCache[pos{x, y}]; ok {
+	if s, ok := videoModeScaleCache[pos{x, y}]; ok {
 		return s
 	}
-	s := screenScaleImpl(x, y)
-	screenScaleCache[pos{x, y}] = s
+	s := videoModeScaleImpl(x, y)
+	videoModeScaleCache[pos{x, y}] = s
 	return s
 }

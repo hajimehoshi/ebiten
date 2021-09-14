@@ -25,7 +25,7 @@ import (
 	"github.com/jezek/xgb/xproto"
 )
 
-func screenScaleImpl(x, y int) float64 {
+func videoModeScaleImpl(x, y int) float64 {
 	// TODO: if https://github.com/glfw/glfw/issues/1961 gets fixed, this function may need revising.
 	// In case GLFW decides to switch to returning logical pixels, we can just return 1.
 

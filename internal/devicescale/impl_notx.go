@@ -17,6 +17,6 @@
 
 package devicescale
 
-func screenScaleImpl(x, y int) float64 {
-	return 1.0
+func videoModeScaleImpl(x, y int) float64 {
+	return 1
 }
