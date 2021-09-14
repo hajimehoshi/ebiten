@@ -30,7 +30,12 @@ import (
 
 type videoModeScaleCacheKey struct{ X, Y int }
 
-var videoModeScaleCache map[videoModeScaleCacheKey]float64
+var videoModeScaleCache = map[videoModeScaleCacheKey]float64{}
+
+// updateMonitorsByOS must be called from the main thread.
+func updateMonitorsByOS() {
+	videoModeScaleCache = map[videoModeScaleCacheKey]float64{}
+}
 
 // videoModeScale must be called from the main thread.
 func videoModeScale(m *glfw.Monitor) float64 {

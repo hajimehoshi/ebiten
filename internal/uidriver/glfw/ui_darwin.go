@@ -81,6 +81,9 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
+// updateMonitorsByOS must be called from the main thread.
+func updateMonitorsByOS() {}
+
 // videoModeScale must be called from the main thread.
 func (u *UserInterface) videoModeScale(m *glfw.Monitor) float64 {
 	return 1

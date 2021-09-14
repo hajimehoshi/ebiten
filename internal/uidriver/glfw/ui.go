@@ -231,6 +231,7 @@ func updateMonitors() {
 			y:  y,
 		})
 	}
+	updateMonitorsByOS()
 }
 
 func ensureMonitors() []*monitor {
