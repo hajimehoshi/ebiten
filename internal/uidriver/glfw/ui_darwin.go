@@ -83,14 +83,14 @@ import (
 
 // fromGLFWMonitorPixel must be called from the main thread.
 func (u *UserInterface) fromGLFWMonitorPixel(x float64, videoModeScale float64) float64 {
-	// videoModeScale is always 1 on OS X,
+	// videoModeScale is always 1 on macOS,
 	// however leaving the divison in place for consistency.
 	return x / videoModeScale
 }
 
 // fromGLFWPixel must be called from the main thread.
 func (u *UserInterface) fromGLFWPixel(x float64) float64 {
-	// NOTE: On OS X, GLFW exposes the device independent coordinate system.
+	// NOTE: On macOS, GLFW exposes the device independent coordinate system.
 	// Thus, the conversion functions are unnecessary,
 	// however we still need the deviceScaleFactor internally
 	// so we can create and maintain a HiDPI frame buffer.
