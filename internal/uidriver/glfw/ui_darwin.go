@@ -85,7 +85,7 @@ import (
 func updateMonitorsByOS() {}
 
 // videoModeScale must be called from the main thread.
-func (u *UserInterface) videoModeScale(m *glfw.Monitor) float64 {
+func videoModeScale(m *glfw.Monitor) float64 {
 	return 1
 }
 
