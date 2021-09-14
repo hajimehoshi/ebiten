@@ -81,6 +81,27 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
+// fromGLFWMonitorPixel must be called from the main thread.
+func (u *UserInterface) fromGLFWMonitorPixel(x float64, videoModeScale float64) float64 {
+	// videoModeScale is always 1 on OS X,
+	// however leaving the divison in place for consistency.
+	return x / videoModeScale
+}
+
+// fromGLFWPixel must be called from the main thread.
+func (u *UserInterface) fromGLFWPixel(x float64) float64 {
+	// NOTE: On OS X, GLFW exposes the device independent coordinate system.
+	// Thus, the conversion functions are unnecessary,
+	// however we still need the deviceScaleFactor internally
+	// so we can create and maintain a HiDPI frame buffer.
+	return x
+}
+
+// toGLFWPixel must be called from the main thread.
+func (u *UserInterface) toGLFWPixel(x float64) float64 {
+	return x
+}
+
 func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }

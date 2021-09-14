@@ -1648,18 +1648,3 @@ func (u *UserInterface) setWindowTitle(title string) {
 
 	u.window.SetTitle(title)
 }
-
-// fromGLFWMonitorPixel must be called from the main thread.
-func (u *UserInterface) fromGLFWMonitorPixel(x float64, videoModeScale float64) float64 {
-	return x / (videoModeScale * u.deviceScaleFactor())
-}
-
-// fromGLFWPixel must be called from the main thread.
-func (u *UserInterface) fromGLFWPixel(x float64) float64 {
-	return x / u.deviceScaleFactor()
-}
-
-// toGLFWPixel must be called from the main thread.
-func (u *UserInterface) toGLFWPixel(x float64) float64 {
-	return x * u.deviceScaleFactor()
-}
