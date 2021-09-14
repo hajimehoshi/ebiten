@@ -27,7 +27,7 @@ import (
 
 func screenScaleImpl(x, y int) float64 {
 	// TODO: if https://github.com/glfw/glfw/issues/1961 gets fixed, this function may need revising.
-	// In case GLFW decides to switch to returning logical pixels, we can just return 1.0.
+	// In case GLFW decides to switch to returning logical pixels, we can just return 1.
 
 	// Note: GLFW currently returns physical pixel sizes,
 	// but we need to predict the window system-side size of the fullscreen window
@@ -42,19 +42,19 @@ func screenScaleImpl(x, y int) float64 {
 		// No X11 connection?
 		// Assume we're on pure Wayland then.
 		// GLFW/Wayland shouldn't be having this issue.
-		return 1.0
+		return 1
 	}
 	if err = randr.Init(xconn); err != nil {
 		// No RANDR extension?
 		// No problem.
-		return 1.0
+		return 1
 	}
 	root := xproto.Setup(xconn).DefaultScreen(xconn).Root
 	res, err := randr.GetScreenResourcesCurrent(xconn, root).Reply()
 	if err != nil {
 		// Likely means RANDR is not working.
 		// No problem.
-		return 1.0
+		return 1
 	}
 	for _, crtc := range res.Crtcs[:res.NumCrtcs] {
 		info, err := randr.GetCrtcInfo(xconn, crtc, res.ConfigTimestamp).Reply()
@@ -78,5 +78,5 @@ func screenScaleImpl(x, y int) float64 {
 		}
 	}
 	// Monitor not known to XRandR. Weird.
-	return 1.0
+	return 1
 }
