@@ -28,9 +28,8 @@ var (
 	screenScaleCache = map[pos]float64{}
 )
 
-// GetAt returns the device scale at (x, y).
+// GetAt returns the device scale at (x, y), i.e. the number of device-dependent pixels per device-independent pixel.
 // x and y are in device-dependent pixels and must be the top-left coordinate of a monitor, or 0,0 to request a "global scale".
-// The device scale maps device dependent pixels to device independent pixels.
 func GetAt(x, y int) float64 {
 	m.Lock()
 	defer m.Unlock()
@@ -48,9 +47,8 @@ func GetAt(x, y int) float64 {
 	return s
 }
 
-// ScreenScaleAt returns the screen scale at (x, y).
+// ScreenScaleAt returns the screen scale at (x, y), i.e. the number of video mode pixels per device-dependent pixel.
 // x and y are in device-dependent pixels and must be the top-left coordinate of a monitor, or 0,0 to request a "global scale".
-// The screen scale maps physical screen pixels to device dependent pixels.
 func ScreenScaleAt(x, y int) float64 {
 	m.Lock()
 	defer m.Unlock()
