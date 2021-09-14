@@ -34,7 +34,9 @@ var videoModeScaleCache = map[videoModeScaleCacheKey]float64{}
 
 // updateMonitorsByOS must be called from the main thread.
 func updateMonitorsByOS() {
-	videoModeScaleCache = map[videoModeScaleCacheKey]float64{}
+	for k := range videoModeScaleCache {
+		delete(videoModeScaleCache, k)
+	}
 }
 
 // videoModeScale must be called from the main thread.
