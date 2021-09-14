@@ -28,8 +28,27 @@ import (
 	"github.com/jezek/xgb/xproto"
 )
 
+type videoModeScaleCacheKey struct{ X, Y int }
+
+var videoModeScaleCache map[videoModeScaleCacheKey]float64
+
 // videoModeScale must be called from the main thread.
 func videoModeScale(m *glfw.Monitor) float64 {
+	// Caching wrapper for videoModeScaleUncached as
+	// videoModeScaleUncached may be expensive (uses blocking calls on X connection)
+	// and public ScreenSizeInFullscreen API needs the videoModeScale.
+	monitorX, monitorY := m.GetPos()
+	cacheKey := videoModeScaleCacheKey{X: monitorX, Y: monitorY}
+	if cached, ok := videoModeScaleCache[cacheKey]; ok {
+		return cached
+	}
+	scale := videoModeScaleUncached(m, monitorX, monitorY)
+	videoModeScaleCache[cacheKey] = scale
+	return scale
+}
+
+// videoModeScaleUncached must be called from the main thread.
+func videoModeScaleUncached(m *glfw.Monitor, monitorX, monitorY int) float64 {
 	// TODO: if https://github.com/glfw/glfw/issues/1961 gets fixed, this function may need revising.
 	// In case GLFW decides to switch to returning logical pixels, we can just return 1.
 
@@ -38,7 +57,6 @@ func videoModeScale(m *glfw.Monitor) float64 {
 	// for our `ScreenSizeInFullscreen` public API.
 	// Also at the moment we need this prior to switching to fullscreen, but that might be replacable.
 	// So this function computes the ratio of physical per logical pixels.
-	monitorX, monitorY := m.GetPos()
 	xconn, err := xgb.NewConn()
 	defer xconn.Close()
 	if err != nil {
