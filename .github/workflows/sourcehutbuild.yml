@@ -5,6 +5,7 @@ on: push
 
 jobs:
   test:
+    if: github.repository_owner == 'hajimehoshi'
     strategy:
       matrix:
         os: [alpine, arch, debian, fedora, ubuntu]
