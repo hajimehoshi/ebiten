@@ -232,6 +232,7 @@ func updateMonitors() {
 		})
 	}
 	clearVideoModeScaleCache()
+	devicescale.ClearCache()
 }
 
 func ensureMonitors() []*monitor {
