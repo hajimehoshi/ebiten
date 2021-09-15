@@ -81,6 +81,14 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
+// clearVideoModeScaleCache must be called from the main thread.
+func clearVideoModeScaleCache() {}
+
+// videoModeScale must be called from the main thread.
+func videoModeScale(m *glfw.Monitor) float64 {
+	return 1
+}
+
 // fromGLFWMonitorPixel must be called from the main thread.
 func (u *UserInterface) fromGLFWMonitorPixel(x float64, videoModeScale float64) float64 {
 	// videoModeScale is always 1 on macOS,
