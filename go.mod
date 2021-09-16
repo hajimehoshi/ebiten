@@ -7,9 +7,9 @@ require (
 	github.com/hajimehoshi/bitmapfont/v2 v2.1.3
 	github.com/hajimehoshi/file2byteslice v0.0.0-20200812174855-0e5e8a80490e
 	github.com/hajimehoshi/go-mp3 v0.3.2
-	github.com/hajimehoshi/oto/v2 v2.1.0-alpha.0.20210912073017-18657977e3dc
+	github.com/hajimehoshi/oto/v2 v2.1.0-alpha.1
 	github.com/jakecoffman/cp v1.1.0
-	github.com/jezek/xgb v0.0.0-20210312150743-0e0f116e1240 // indirect
+	github.com/jezek/xgb v0.0.0-20210312150743-0e0f116e1240
 	github.com/jfreymuth/oggvorbis v1.0.3
 	golang.org/x/image v0.0.0-20210628002857-a66eb6448b8d
 	golang.org/x/mobile v0.0.0-20210902104108-5d9a33257ab5
