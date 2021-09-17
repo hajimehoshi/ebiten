@@ -50,6 +50,21 @@ package glfw
 //   return (window.styleMask & NSWindowStyleMaskFullScreen) != 0;
 // }
 //
+// static void setNativeFullscreen(uintptr_t windowPtr, bool fullscreen) {
+//   NSWindow* window = (NSWindow*)windowPtr;
+//   if (((window.styleMask & NSWindowStyleMaskFullScreen) != 0) == fullscreen) {
+//     return;
+//   }
+//   bool origResizable = window.styleMask & NSWindowStyleMaskResizable;
+//   if (!origResizable) {
+//     window.styleMask |= NSWindowStyleMaskResizable;
+//   }
+//   [window toggleFullScreen:nil];
+//   if (!origResizable) {
+//     window.styleMask &= ~NSWindowStyleMaskResizable;
+//   }
+// }
+//
 // static void setNativeCursor(int cursorID) {
 //   id cursor = [[NSCursor class] performSelector:@selector(arrowCursor)];
 //   switch (cursorID) {
@@ -138,4 +153,14 @@ func (u *UserInterface) isNativeFullscreen() bool {
 
 func (u *UserInterface) setNativeCursor(shape driver.CursorShape) {
 	C.setNativeCursor(C.int(shape))
+}
+
+func (u *UserInterface) isNativeFullscreenAvailable() bool {
+	return true
+}
+
+func (u *UserInterface) setNativeFullscreen(fullscreen bool) {
+	// Toggling fullscreen might ignore events like keyUp. Ensure that events are fired.
+	glfw.WaitEventsTimeout(1)
+	C.setNativeFullscreen(C.uintptr_t(u.window.GetCocoaWindow()), C.bool(fullscreen))
 }

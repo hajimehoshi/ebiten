@@ -545,7 +545,7 @@ func (u *UserInterface) isFullscreen() bool {
 	if !u.isRunning() {
 		panic("glfw: isFullscreen can't be called before the main loop starts")
 	}
-	return u.window.GetMonitor() != nil
+	return u.window.GetMonitor() != nil || u.isNativeFullscreen()
 }
 
 func (u *UserInterface) IsFullscreen() bool {
@@ -576,10 +576,6 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 	}
 
 	_ = u.t.Call(func() error {
-		if u.isNativeFullscreen() {
-			return nil
-		}
-
 		w, h := u.windowWidth, u.windowHeight
 		u.setWindowSize(w, h, fullscreen)
 		return nil
@@ -783,7 +779,7 @@ func (u *UserInterface) registerWindowSetSizeCallback() {
 			if u.window.GetAttrib(glfw.Resizable) == glfw.False {
 				return
 			}
-			if u.isFullscreen() {
+			if u.isFullscreen() && !u.isNativeFullscreen() {
 				return
 			}
 
@@ -849,8 +845,8 @@ func (u *UserInterface) init() error {
 		glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
 	}
 
-	// Enable auto-iconifying on Windows and macOS until some fullscreen issues are solved (#1506).
-	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+	// Enable auto-iconifying on Windows until some fullscreen issues are solved (#1506).
+	if runtime.GOOS == "windows" {
 		glfw.WindowHint(glfw.AutoIconify, glfw.True)
 	} else {
 		glfw.WindowHint(glfw.AutoIconify, glfw.False)
@@ -1205,7 +1201,7 @@ func (u *UserInterface) adjustWindowSizeBasedOnSizeLimitsInDP(width, height int)
 func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 	width, height = u.adjustWindowSizeBasedOnSizeLimits(width, height)
 
-	u.Graphics().SetFullscreen(fullscreen || u.isNativeFullscreen())
+	u.Graphics().SetFullscreen(fullscreen)
 
 	if u.windowWidth == width && u.windowHeight == height && u.isFullscreen() == fullscreen && u.lastDeviceScaleFactor == u.deviceScaleFactor() {
 		return
@@ -1235,21 +1231,42 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 		}()
 	}
 
+	windowRecreated := u.setWindowSizeImpl(width, height, fullscreen)
+
+	// As width might be updated, update windowWidth/Height here.
+	u.windowWidth = width
+	u.windowHeight = height
+
+	u.toChangeSize = true
+
+	if windowRecreated {
+		if g, ok := u.Graphics().(interface{ SetWindow(uintptr) }); ok {
+			g.SetWindow(u.nativeWindow())
+		}
+	}
+}
+
+func (u *UserInterface) setWindowSizeImpl(width, height int, fullscreen bool) bool {
 	var windowRecreated bool
 
 	if fullscreen {
-		if u.origPosX == invalidPos || u.origPosY == invalidPos {
-			u.origPosX, u.origPosY = u.window.GetPos()
+		if x, y := u.origPos(); x == invalidPos || y == invalidPos {
+			u.setOrigPos(u.window.GetPos())
 		}
-		m := currentMonitor(u.window)
-		v := m.GetVideoMode()
-		u.window.SetMonitor(m, 0, 0, v.Width, v.Height, v.RefreshRate)
 
-		// Swapping buffer is necesary to prevent the image lag (#1004).
-		// TODO: This might not work when vsync is disabled.
-		if u.Graphics().IsGL() {
-			glfw.PollEvents()
-			u.swapBuffers()
+		if u.isNativeFullscreenAvailable() {
+			u.setNativeFullscreen(fullscreen)
+		} else {
+			m := currentMonitor(u.window)
+			v := m.GetVideoMode()
+			u.window.SetMonitor(m, 0, 0, v.Width, v.Height, v.RefreshRate)
+
+			// Swapping buffer is necesary to prevent the image lag (#1004).
+			// TODO: This might not work when vsync is disabled.
+			if u.Graphics().IsGL() {
+				glfw.PollEvents()
+				u.swapBuffers()
+			}
 		}
 	} else {
 		// On Windows, giving a too small width doesn't call a callback (#165).
@@ -1263,7 +1280,9 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 			width = minWindowWidth
 		}
 
-		if u.window.GetMonitor() != nil {
+		if u.isNativeFullscreenAvailable() && u.isNativeFullscreen() {
+			u.setNativeFullscreen(false)
+		} else if !u.isNativeFullscreenAvailable() && u.window.GetMonitor() != nil {
 			if u.Graphics().IsGL() {
 				// When OpenGL is used, swapping buffer is enough to solve the image-lag
 				// issue (#1004). Rather, recreating window destroys GPU resources.
@@ -1289,9 +1308,7 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 			}
 		}
 
-		if u.origPosX != invalidPos && u.origPosY != invalidPos {
-			x := u.origPosX
-			y := u.origPosY
+		if x, y := u.origPos(); x != invalidPos && y != invalidPos {
 			u.window.SetPos(x, y)
 			// Dirty hack for macOS (#703). Rendering doesn't work correctly with one SetPos, but
 			// work with two or more SetPos.
@@ -1299,8 +1316,7 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 				u.window.SetPos(x+1, y)
 				u.window.SetPos(x, y)
 			}
-			u.origPosX = invalidPos
-			u.origPosY = invalidPos
+			u.setOrigPos(invalidPos, invalidPos)
 		}
 
 		// Set the window size after the position. The order matters.
@@ -1350,17 +1366,7 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 		u.window.SetTitle(u.title)
 	}
 
-	// As width might be updated, update windowWidth/Height here.
-	u.windowWidth = width
-	u.windowHeight = height
-
-	u.toChangeSize = true
-
-	if windowRecreated {
-		if g, ok := u.Graphics().(interface{ SetWindow(uintptr) }); ok {
-			g.SetWindow(u.nativeWindow())
-		}
-	}
+	return windowRecreated
 }
 
 // updateVsync must be called on the main thread.
@@ -1625,7 +1631,7 @@ func (u *UserInterface) setWindowPosition(x, y int) {
 	xf := u.toGLFWPixel(float64(x))
 	yf := u.toGLFWPixel(float64(y))
 	if x, y := u.adjustWindowPosition(mx+int(xf), my+int(yf)); u.isFullscreen() {
-		u.origPosX, u.origPosY = x, y
+		u.setOrigPos(x, y)
 	} else {
 		u.window.SetPos(x, y)
 	}
@@ -1653,4 +1659,27 @@ func (u *UserInterface) setWindowTitle(title string) {
 	}
 
 	u.window.SetTitle(title)
+}
+
+func (u *UserInterface) origPos() (int, int) {
+	// On macOS, the window can be fullscreened without calling an Ebiten function.
+	// Then, an original position might not be available by u.window.GetPos().
+	// Do not rely on the window position.
+	if u.isNativeFullscreenAvailable() {
+		return invalidPos, invalidPos
+	}
+	return u.origPosX, u.origPosY
+}
+
+func (u *UserInterface) setOrigPos(x, y int) {
+	// TODO: The original position should be updated at a 'PosCallback'.
+
+	// On macOS, the window can be fullscreened without calling an Ebiten function.
+	// Then, an original position might not be available by u.window.GetPos().
+	// Do not rely on the window position.
+	if u.isNativeFullscreenAvailable() {
+		return
+	}
+	u.origPosX = x
+	u.origPosY = y
 }

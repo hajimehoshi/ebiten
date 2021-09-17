@@ -176,8 +176,8 @@ func (w *window) Position() (int, int) {
 	x, y := 0, 0
 	_ = w.ui.t.Call(func() error {
 		var wx, wy int
-		if w.ui.isFullscreen() {
-			wx, wy = w.ui.origPosX, w.ui.origPosY
+		if w.ui.isFullscreen() && !w.ui.isNativeFullscreenAvailable() {
+			wx, wy = w.ui.origPos()
 		} else {
 			wx, wy = w.ui.window.GetPos()
 		}
@@ -223,6 +223,12 @@ func (w *window) SetSize(width, height int) {
 		return
 	}
 	_ = w.ui.t.Call(func() error {
+		// When a window is a native fullscreen, forcing to resize the window might leave unexpected image lags.
+		// Forbid this.
+		if w.ui.isNativeFullscreen() {
+			return nil
+		}
+
 		ww := int(w.ui.toGLFWPixel(float64(width)))
 		wh := int(w.ui.toGLFWPixel(float64(height)))
 		w.ui.setWindowSize(ww, wh, w.ui.isFullscreen())

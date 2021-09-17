@@ -351,6 +351,10 @@ func WaitEvents() {
 	glfw.WaitEvents()
 }
 
+func WaitEventsTimeout(timeout float64) {
+	glfw.WaitEventsTimeout(timeout)
+}
+
 func WindowHint(target Hint, hint int) {
 	glfw.WindowHint(glfw.Hint(target), hint)
 }
