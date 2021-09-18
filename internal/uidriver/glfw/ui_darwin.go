@@ -63,17 +63,24 @@ package glfw
 //   if (!origResizable) {
 //     window.styleMask &= ~NSWindowStyleMaskResizable;
 //   }
+// }
 //
+// static void adjustViewSize(uintptr_t windowPtr) {
+//   NSWindow* window = (NSWindow*)windowPtr;
 //   if ((window.styleMask & NSWindowStyleMaskFullScreen) == 0) {
 //     return;
 //   }
 //
 //   // Reduce the view height (#1745).
 //   // https://stackoverflow.com/questions/27758027/sprite-kit-serious-fps-issue-in-full-screen-mode-on-os-x
+//   CGSize windowSize = [window frame].size;
 //   NSView* view = [window contentView];
-//   CGSize size = [view frame].size;
-//   size.width--;
-//   [view setFrameSize:size];
+//   CGSize viewSize = [view frame].size;
+//   if (windowSize.width != viewSize.width || windowSize.height != viewSize.height) {
+//     return;
+//   }
+//   viewSize.width--;
+//   [view setFrameSize:viewSize];
 //
 //   // NSColor.blackColor (0, 0, 0, 1) didn't work.
 //   // Use the transparent color instead.
@@ -178,4 +185,8 @@ func (u *UserInterface) setNativeFullscreen(fullscreen bool) {
 	// Toggling fullscreen might ignore events like keyUp. Ensure that events are fired.
 	glfw.WaitEventsTimeout(1)
 	C.setNativeFullscreen(C.uintptr_t(u.window.GetCocoaWindow()), C.bool(fullscreen))
+}
+
+func (u *UserInterface) adjustViewSize() {
+	C.adjustViewSize(C.uintptr_t(u.window.GetCocoaWindow()))
 }

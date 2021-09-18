@@ -203,3 +203,6 @@ func (u *UserInterface) isNativeFullscreenAvailable() bool {
 func (u *UserInterface) setNativeFullscreen(fullscreen bool) {
 	panic(fmt.Sprintf("glfw: setNativeFullscreen is not implemented in this environment: %s", runtime.GOOS))
 }
+
+func (u *UserInterface) adjustViewSize() {
+}

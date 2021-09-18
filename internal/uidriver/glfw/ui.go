@@ -776,6 +776,8 @@ func (u *UserInterface) registerWindowSetSizeCallback() {
 				return
 			}
 
+			u.adjustViewSize()
+
 			if u.window.GetAttrib(glfw.Resizable) == glfw.False {
 				return
 			}
@@ -1227,6 +1229,8 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 	}
 
 	windowRecreated := u.setWindowSizeImpl(width, height, fullscreen)
+
+	u.adjustViewSize()
 
 	// As width might be updated, update windowWidth/Height here.
 	u.windowWidth = width
