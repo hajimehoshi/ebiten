@@ -936,7 +936,11 @@ func (u *UserInterface) updateSize() (float64, float64, bool) {
 	u.toChangeSize = false
 
 	var w, h float64
-	if u.isFullscreen() {
+	if u.isFullscreen() && !u.isNativeFullscreen() {
+		// On Linux, the window size is not reliable just after making the window
+		// fullscreened. Use the monitor size.
+		// On macOS's native fullscreen, the window's size returns a more precise size
+		// reflecting the adjustment of the view size (#1745).
 		m := currentMonitor(u.window)
 		v := m.GetVideoMode()
 		ww, wh := v.Width, v.Height
