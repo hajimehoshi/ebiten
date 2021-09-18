@@ -62,6 +62,10 @@ func (v *view) usePresentsWithTransaction() bool {
 	return false
 }
 
+func (v *view) maximumDrawableCount() int {
+	return 3
+}
+
 const (
 	storageMode         = mtl.StorageModeShared
 	resourceStorageMode = mtl.ResourceStorageModeShared

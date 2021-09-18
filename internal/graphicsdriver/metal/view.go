@@ -70,16 +70,8 @@ func (v *view) setFullscreen(fullscreen bool) {
 }
 
 func (v *view) updatePresentsWithTransaction() {
-	pwt := v.usePresentsWithTransaction()
-	v.ml.SetPresentsWithTransaction(pwt)
-
-	// When presentsWithTransaction is YES and triple buffering is enabled, nextDrawing returns immediately once every two times.
-	// This makes FPS doubled. To avoid this, disable the triple buffering.
-	if pwt {
-		v.ml.SetMaximumDrawableCount(2)
-	} else {
-		v.ml.SetMaximumDrawableCount(3)
-	}
+	v.ml.SetPresentsWithTransaction(v.usePresentsWithTransaction())
+	v.ml.SetMaximumDrawableCount(v.maximumDrawableCount())
 }
 
 func (v *view) colorPixelFormat() mtl.PixelFormat {
