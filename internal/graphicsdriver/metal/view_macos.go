@@ -45,7 +45,7 @@ func (v *view) update() {
 
 func (v *view) usePresentsWithTransaction() bool {
 	// Disable presentsWithTransaction on the fullscreen mode (#1745).
-	return !v.vsyncDisabled && !v.fullscreen
+	return !v.vsyncDisabled
 }
 
 func (v *view) maximumDrawableCount() int {

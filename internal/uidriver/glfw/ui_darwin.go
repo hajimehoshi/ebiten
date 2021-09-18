@@ -63,6 +63,21 @@ package glfw
 //   if (!origResizable) {
 //     window.styleMask &= ~NSWindowStyleMaskResizable;
 //   }
+//
+//   if ((window.styleMask & NSWindowStyleMaskFullScreen) == 0) {
+//     return;
+//   }
+//
+//   // Reduce the view height (#1745).
+//   // https://stackoverflow.com/questions/27758027/sprite-kit-serious-fps-issue-in-full-screen-mode-on-os-x
+//   NSView* view = [window contentView];
+//   CGSize size = [view frame].size;
+//   size.width--;
+//   [view setFrameSize:size];
+//
+//   // NSColor.blackColor (0, 0, 0, 1) didn't work.
+//   // Use the transparent color instead.
+//   [window setBackgroundColor: [NSColor colorWithSRGBRed:0 green:0 blue:0 alpha:0]];
 // }
 //
 // static void setNativeCursor(int cursorID) {
