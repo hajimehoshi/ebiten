@@ -68,7 +68,7 @@ static DWORD getWindowExStyle(const _GLFWwindow* window)
 {
     DWORD style = WS_EX_APPWINDOW;
 
-    if (window->monitor || window->floating)
+    if (window->floating)
         style |= WS_EX_TOPMOST;
 
     return style;
@@ -436,7 +436,7 @@ static void fitToMonitor(_GLFWwindow* window)
 {
     MONITORINFO mi = { sizeof(mi) };
     GetMonitorInfo(window->monitor->win32.handle, &mi);
-    SetWindowPos(window->win32.handle, HWND_TOPMOST,
+    SetWindowPos(window->win32.handle, window->floating ? HWND_TOPMOST : HWND_NOTOPMOST,
                  mi.rcMonitor.left,
                  mi.rcMonitor.top,
                  mi.rcMonitor.right - mi.rcMonitor.left,
@@ -1756,7 +1756,7 @@ void _glfwPlatformSetWindowMonitor(_GLFWwindow* window,
         acquireMonitor(window);
 
         GetMonitorInfo(window->monitor->win32.handle, &mi);
-        SetWindowPos(window->win32.handle, HWND_TOPMOST,
+        SetWindowPos(window->win32.handle, window->floating ? HWND_TOPMOST : HWND_NOTOPMOST,
                      mi.rcMonitor.left,
                      mi.rcMonitor.top,
                      mi.rcMonitor.right - mi.rcMonitor.left,

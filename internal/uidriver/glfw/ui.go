@@ -845,12 +845,7 @@ func (u *UserInterface) init() error {
 		glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
 	}
 
-	// Enable auto-iconifying on Windows until some fullscreen issues are solved (#1506).
-	if runtime.GOOS == "windows" {
-		glfw.WindowHint(glfw.AutoIconify, glfw.True)
-	} else {
-		glfw.WindowHint(glfw.AutoIconify, glfw.False)
-	}
+	glfw.WindowHint(glfw.AutoIconify, glfw.False)
 
 	decorated := glfw.False
 	if u.isInitWindowDecorated() {
