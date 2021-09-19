@@ -2329,7 +2329,7 @@ func TestImageEvenOdd(t *testing.T) {
 	// Draw all the vertices once. The even-odd rule is applied for all the vertices once.
 	dst := NewImage(16, 16)
 	op := &DrawTrianglesOptions{
-		EvenOdd: true,
+		FillRule: EvenOdd,
 	}
 	dst.DrawTriangles(append(append(vs0, vs1...), vs2...), append(append(is0, is1...), is2...), emptySubImage, op)
 	for j := 0; j < 16; j++ {
