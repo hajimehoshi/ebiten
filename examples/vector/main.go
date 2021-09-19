@@ -110,7 +110,7 @@ func drawEbitenText(screen *ebiten.Image) {
 	path.LineTo(290, 20)
 
 	op := &ebiten.DrawTrianglesOptions{
-		EvenOdd: true,
+		FillRule: ebiten.EvenOdd,
 	}
 	vs, is := path.AppendVerticesAndIndicesForFilling(nil, nil)
 	for i := range vs {
@@ -150,7 +150,7 @@ func drawEbitenLogo(screen *ebiten.Image, x, y int) {
 	path.LineTo(xf+unit, yf+4*unit)
 
 	op := &ebiten.DrawTrianglesOptions{
-		EvenOdd: true,
+		FillRule: ebiten.EvenOdd,
 	}
 	vs, is := path.AppendVerticesAndIndicesForFilling(nil, nil)
 	for i := range vs {
@@ -178,7 +178,7 @@ func drawArc(screen *ebiten.Image, count int) {
 	path.Arc(550, 100, 50, float32(theta1), float32(theta2), vector.Clockwise)
 
 	op := &ebiten.DrawTrianglesOptions{
-		EvenOdd: true,
+		FillRule: ebiten.EvenOdd,
 	}
 	vs, is := path.AppendVerticesAndIndicesForFilling(nil, nil)
 	for i := range vs {
@@ -221,7 +221,7 @@ func drawWave(screen *ebiten.Image, counter int) {
 	path.LineTo(0, screenHeight)
 
 	op := &ebiten.DrawTrianglesOptions{
-		EvenOdd: true,
+		FillRule: ebiten.EvenOdd,
 	}
 	vs, is := path.AppendVerticesAndIndicesForFilling(nil, nil)
 	for i := range vs {

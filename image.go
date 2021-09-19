@@ -253,6 +253,18 @@ const (
 	AddressRepeat Address = Address(driver.AddressRepeat)
 )
 
+// FillRule is the rule whether an overlapped region is rendered with DrawTriangles(Shader).
+type FillRule int
+
+const (
+	// FillAll indicates all the triangles are rendered regardless of overlaps.
+	FillAll FillRule = iota
+
+	// EvenOdd means that triangles are rendered based on the even-odd rule.
+	// If and only if the number of overlappings is odd, the region is rendered.
+	EvenOdd
+)
+
 // DrawTrianglesOptions represents options for DrawTriangles.
 type DrawTrianglesOptions struct {
 	// ColorM is a color matrix to draw.
@@ -274,18 +286,14 @@ type DrawTrianglesOptions struct {
 	// The default (zero) value is AddressUnsafe.
 	Address Address
 
-	// EvenOdd represents whether the even-odd rule is applied or not.
+	// FillRule indicates the rule how an overlapped region is rendered.
 	//
-	// If EvenOdd is true, triangles are rendered based on the even-odd rule. If false, triangles are rendered without condition.
-	// Whether overlapped regions by multiple triangles is rendered or not depends on the number of the overlapping:
-	// if and only if the number is odd, the region is rendered.
-	//
-	// EvenOdd is useful when you want to render a complex polygon.
+	// The rule EvenOdd is useful when you want to render a complex polygon.
 	// A complex polygon is a non-convex polygon like a concave polygon, a polygon with holes, or a self-intersecting polygon.
 	// See examples/vector for actual usages.
 	//
-	// The default value is false.
-	EvenOdd bool
+	// The default (zero) value is FillAll.
+	FillRule FillRule
 }
 
 // MaxIndicesNum is the maximum number of indices for DrawTriangles.
@@ -364,7 +372,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	srcs := [graphics.ShaderImageNum]*mipmap.Mipmap{img.mipmap}
 
-	i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.affineColorM(), mode, filter, address, dstRegion, sr, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, options.EvenOdd, false)
+	i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.affineColorM(), mode, filter, address, dstRegion, sr, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, options.FillRule == EvenOdd, false)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
@@ -387,18 +395,14 @@ type DrawTrianglesShaderOptions struct {
 	// All the image must be the same size.
 	Images [4]*Image
 
-	// EvenOdd represents whether the even-odd rule is applied or not.
+	// FillRule indicates the rule how an overlapped region is rendered.
 	//
-	// If EvenOdd is true, triangles are rendered based on the even-odd rule. If false, triangles are rendered without condition.
-	// Whether overlapped regions by multiple triangles is rendered or not depends on the number of the overlapping:
-	// if and only if the number is odd, the region is rendered.
-	//
-	// EvenOdd is useful when you want to render a complex polygon.
+	// The rule EvenOdd is useful when you want to render a complex polygon.
 	// A complex polygon is a non-convex polygon like a concave polygon, a polygon with holes, or a self-intersecting polygon.
 	// See examples/vector for actual usages.
 	//
-	// The default value is false.
-	EvenOdd bool
+	// The default (zero) value is FillAll.
+	FillRule FillRule
 }
 
 func init() {
@@ -514,7 +518,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 
 	us := shader.convertUniforms(options.Uniforms)
 
-	i.mipmap.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, driver.FilterNearest, driver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, us, options.EvenOdd, false)
+	i.mipmap.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, driver.FilterNearest, driver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, us, options.FillRule == EvenOdd, false)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
