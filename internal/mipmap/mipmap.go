@@ -48,7 +48,6 @@ func New(width, height int) *Mipmap {
 		width:  width,
 		height: height,
 		orig:   buffered.NewImage(width, height),
-		imgs:   map[int]*buffered.Image{},
 	}
 }
 
@@ -57,7 +56,6 @@ func NewScreenFramebufferMipmap(width, height int) *Mipmap {
 		width:  width,
 		height: height,
 		orig:   buffered.NewScreenFramebufferImage(width, height),
-		imgs:   map[int]*buffered.Image{},
 	}
 }
 
@@ -167,6 +165,16 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices [
 	m.disposeMipmaps()
 }
 
+func (m *Mipmap) setImg(level int, img *buffered.Image) {
+	if m.imgs == nil {
+		if img == nil {
+			return
+		}
+		m.imgs = map[int]*buffered.Image{}
+	}
+	m.imgs[level] = img
+}
+
 func (m *Mipmap) level(level int) *buffered.Image {
 	if level == 0 {
 		panic("ebiten: level must be non-zero at level")
@@ -191,7 +199,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 	case level > 1:
 		src = m.level(level - 1)
 		if src == nil {
-			m.imgs[level] = nil
+			m.setImg(level, nil)
 			return nil
 		}
 		w := sizeForLevel(m.width, level-1)
@@ -206,14 +214,14 @@ func (m *Mipmap) level(level int) *buffered.Image {
 	w2 := sizeForLevel(m.width, level-1)
 	h2 := sizeForLevel(m.height, level-1)
 	if w2 == 0 || h2 == 0 {
-		m.imgs[level] = nil
+		m.setImg(level, nil)
 		return nil
 	}
 	// buffered.NewImage panics with a too big size when actual allocation happens.
 	// 4096 should be a safe size in most environments (#1399).
 	// Unfortunately a precise max image size cannot be obtained here since this requires GPU access.
 	if w2 > 4096 || h2 > 4096 {
-		m.imgs[level] = nil
+		m.setImg(level, nil)
 		return nil
 	}
 	s := buffered.NewImage(w2, h2)
@@ -226,7 +234,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		Height: float32(h2),
 	}
 	s.DrawTriangles([graphics.ShaderImageNum]*buffered.Image{src}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, filter, driver.AddressUnsafe, dstRegion, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
-	m.imgs[level] = s
+	m.setImg(level, s)
 
 	return m.imgs[level]
 }
