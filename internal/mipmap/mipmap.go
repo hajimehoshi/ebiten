@@ -167,9 +167,6 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices [
 
 func (m *Mipmap) setImg(level int, img *buffered.Image) {
 	if m.imgs == nil {
-		if img == nil {
-			return
-		}
 		m.imgs = map[int]*buffered.Image{}
 	}
 	m.imgs[level] = img
