@@ -377,8 +377,8 @@ func main() {
 	w, h := ebiten.ScreenSizeInFullscreen()
 	fmt.Printf("Screen size in fullscreen: %d, %d\n", w, h)
 
-	// Decode an image from a byte slice.
-	// Now this image file's byte slice is generated with //go:generated for Go 1.15 or older.
+	// Decode an image from the image file's byte slice.
+	// Now the byte slice is generated with //go:generate for Go 1.15 or older.
 	// If you use Go 1.16 or newer, it is strongly recommended to use //go:embed to embed the image file.
 	// See https://pkg.go.dev/embed for more details.
 	img, _, err := image.Decode(bytes.NewReader(images.Gophers_jpg))
