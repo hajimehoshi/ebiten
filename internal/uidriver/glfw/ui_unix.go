@@ -75,7 +75,7 @@ func videoModeScaleUncached(m *glfw.Monitor, monitorX, monitorY int) float64 {
 	}
 	defer xconn.Close()
 
-	if err = randr.Init(xconn); err != nil {
+	if err := randr.Init(xconn); err != nil {
 		// No RANDR extension? No problem.
 		return 1
 	}
