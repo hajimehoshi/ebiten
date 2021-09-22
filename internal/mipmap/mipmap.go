@@ -121,21 +121,6 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices [
 		}
 	}
 
-	if !colorm.IsIdentity() && colorm.ScaleOnly() {
-		cr := colorm.At(0, 0)
-		cg := colorm.At(1, 1)
-		cb := colorm.At(2, 2)
-		ca := colorm.At(3, 3)
-		colorm = affine.ColorMIdentity{}
-		const n = graphics.VertexFloatNum
-		for i := 0; i < len(vertices)/n; i++ {
-			vertices[i*n+4] *= cr
-			vertices[i*n+5] *= cg
-			vertices[i*n+6] *= cb
-			vertices[i*n+7] *= ca
-		}
-	}
-
 	var s *buffered.Shader
 	if shader != nil {
 		s = shader.shader

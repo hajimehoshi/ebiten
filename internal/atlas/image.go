@@ -429,6 +429,18 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		i.processSrc(src)
 	}
 
+	cr := float32(1)
+	cg := float32(1)
+	cb := float32(1)
+	ca := float32(1)
+	if !colorm.IsIdentity() && colorm.ScaleOnly() {
+		cr = colorm.At(0, 0)
+		cg = colorm.At(1, 1)
+		cb = colorm.At(2, 2)
+		ca = colorm.At(3, 3)
+		colorm = affine.ColorMIdentity{}
+	}
+
 	var dx, dy float32
 	// A screen image doesn't have its padding.
 	if !i.screen {
@@ -446,12 +458,16 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		ox += paddingSize
 		oy += paddingSize
 		oxf, oyf = float32(ox), float32(oy)
-		n := len(vertices) / graphics.VertexFloatNum
-		for i := 0; i < n; i++ {
-			vertices[i*graphics.VertexFloatNum+0] += dx
-			vertices[i*graphics.VertexFloatNum+1] += dy
-			vertices[i*graphics.VertexFloatNum+2] += oxf
-			vertices[i*graphics.VertexFloatNum+3] += oyf
+		n := len(vertices)
+		for i := 0; i < n; i += graphics.VertexFloatNum {
+			vertices[i] += dx
+			vertices[i+1] += dy
+			vertices[i+2] += oxf
+			vertices[i+3] += oyf
+			vertices[i+4] *= cr
+			vertices[i+5] *= cg
+			vertices[i+6] *= cb
+			vertices[i+7] *= ca
 		}
 		// srcRegion can be delibarately empty when this is not needed in order to avoid unexpected
 		// performance issue (#1293).
@@ -460,10 +476,14 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 			srcRegion.Y += oyf
 		}
 	} else {
-		n := len(vertices) / graphics.VertexFloatNum
-		for i := 0; i < n; i++ {
-			vertices[i*graphics.VertexFloatNum+0] += dx
-			vertices[i*graphics.VertexFloatNum+1] += dy
+		n := len(vertices)
+		for i := 0; i < n; i += graphics.VertexFloatNum {
+			vertices[i] += dx
+			vertices[i+1] += dy
+			vertices[i+4] *= cr
+			vertices[i+5] *= cg
+			vertices[i+6] *= cb
+			vertices[i+7] *= ca
 		}
 	}
 
