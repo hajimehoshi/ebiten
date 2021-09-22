@@ -51,13 +51,14 @@ func videoModeScale(m *glfw.Monitor) float64 {
 	if cached, ok := videoModeScaleCache[cacheKey]; ok {
 		return cached
 	}
-	scale := videoModeScaleUncached(m, monitorX, monitorY)
+
+	scale := videoModeScaleUncached(m)
 	videoModeScaleCache[cacheKey] = scale
 	return scale
 }
 
 // videoModeScaleUncached must be called from the main thread.
-func videoModeScaleUncached(m *glfw.Monitor, monitorX, monitorY int) float64 {
+func videoModeScaleUncached(m *glfw.Monitor) float64 {
 	// TODO: if glfw/glfw#1961 gets fixed, this function may need revising.
 	// In case GLFW decides to switch to returning logical pixels, we can just return 1.
 
@@ -86,6 +87,8 @@ func videoModeScaleUncached(m *glfw.Monitor, monitorX, monitorY int) float64 {
 		// Likely means RANDR is not working. No problem.
 		return 1
 	}
+
+	monitorX, monitorY := m.GetPos()
 
 	for _, crtc := range res.Crtcs[:res.NumCrtcs] {
 		info, err := randr.GetCrtcInfo(xconn, crtc, res.ConfigTimestamp).Reply()
