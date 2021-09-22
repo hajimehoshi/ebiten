@@ -89,7 +89,7 @@ jobs:
         # TODO: Add more test environments (#1305)
         if: ${{ startsWith(matrix.os, 'ubuntu-') && !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') }}
         run: |
-          go test -tags=example -shuffle -v ./...
+          go test -tags=example -shuffle=on -v ./...
 
       - name: go test (Wasm, Go 1.16 or older)
         # TODO: Investigate times out on Windows. (#1313)
@@ -102,8 +102,8 @@ jobs:
         # TODO: Investigate times out on Windows. (#1313)
         if: ${{ !startsWith(matrix.os, 'windows-') && !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') }}
         run: |
-          env GOOS=js GOARCH=wasm go test -tags=example -shuffle -v ./...
-          env GOOS=js GOARCH=wasm go test -tags=example,ebitenwebgl1 -shuffle -v ./...
+          env GOOS=js GOARCH=wasm go test -tags=example -shuffle=on -v ./...
+          env GOOS=js GOARCH=wasm go test -tags=example,ebitenwebgl1 -shuffle=on -v ./...
 
       - name: Install ebitenmobile
         run: |
