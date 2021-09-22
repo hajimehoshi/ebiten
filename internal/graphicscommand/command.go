@@ -227,17 +227,17 @@ func (q *commandQueue) flush() error {
 			// Instead, align the vertices with about 1/3 pixels.
 			for idx := 0; idx < 2; idx++ {
 				x := vs[i*graphics.VertexFloatNum+idx]
-				int := float32(math.Floor(float64(x)))
-				frac := x - int
+				ix := float32(math.Floor(float64(x)))
+				frac := x - ix
 				switch {
 				case frac < 3.0/16.0:
-					vs[i*graphics.VertexFloatNum+idx] = int
+					vs[i*graphics.VertexFloatNum+idx] = ix
 				case frac < 8.0/16.0:
-					vs[i*graphics.VertexFloatNum+idx] = int + 5.0/16.0
+					vs[i*graphics.VertexFloatNum+idx] = ix + 5.0/16.0
 				case frac < 13.0/16.0:
-					vs[i*graphics.VertexFloatNum+idx] = int + 11.0/16.0
+					vs[i*graphics.VertexFloatNum+idx] = ix + 11.0/16.0
 				default:
-					vs[i*graphics.VertexFloatNum+idx] = int + 16.0/16.0
+					vs[i*graphics.VertexFloatNum+idx] = ix + 16.0/16.0
 				}
 			}
 		}
