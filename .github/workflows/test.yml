@@ -79,17 +79,31 @@ jobs:
           env GOOS=windows GOARCH=amd64 go build -tags=example -v ./...
           env GOOS=windows GOARCH=386 go build -tags=example -v ./...
 
-      - name: go test
-        if: ${{ startsWith(matrix.os, 'ubuntu-') }} # TODO: Add more test environments (#1305)
+      - name: go test (Go 1.16 or older)
+        # TODO: Add more test environments (#1305)
+        if: ${{ startsWith(matrix.os, 'ubuntu-') && (startsWith(matrix.go, '1.15.') || startsWith(matrix.go, '1.16.')) }}
         run: |
           go test -tags=example -v ./...
 
-      - name: go test (Wasm)
+      - name: go test
+        # TODO: Add more test environments (#1305)
+        if: ${{ startsWith(matrix.os, 'ubuntu-') && !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') }}
+        run: |
+          go test -tags=example -shuffle -v ./...
+
+      - name: go test (Wasm, Go 1.16 or older)
         # TODO: Investigate times out on Windows. (#1313)
-        if: ${{ !startsWith(matrix.os, 'windows-') }}
+        if: ${{ !startsWith(matrix.os, 'windows-') && (startsWith(matrix.go, '1.15.') || startsWith(matrix.go, '1.16.')) }}
         run: |
           env GOOS=js GOARCH=wasm go test -tags=example -v ./...
           env GOOS=js GOARCH=wasm go test -tags=example,ebitenwebgl1 -v ./...
+
+      - name: go test (Wasm)
+        # TODO: Investigate times out on Windows. (#1313)
+        if: ${{ !startsWith(matrix.os, 'windows-') && !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') }}
+        run: |
+          env GOOS=js GOARCH=wasm go test -tags=example -shuffle -v ./...
+          env GOOS=js GOARCH=wasm go test -tags=example,ebitenwebgl1 -shuffle -v ./...
 
       - name: Install ebitenmobile
         run: |
