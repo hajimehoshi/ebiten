@@ -30,7 +30,7 @@ import (
 const (
 	screenWidth  = 640
 	screenHeight = 480
-	sampleRate   = 44100
+	sampleRate   = 48000
 )
 
 const (

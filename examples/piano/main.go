@@ -61,7 +61,7 @@ func init() {
 const (
 	screenWidth  = 320
 	screenHeight = 240
-	sampleRate   = 44100
+	sampleRate   = 48000
 	baseFreq     = 220
 )
 
