@@ -219,26 +219,39 @@ func (q *commandQueue) flush() error {
 		for i := 0; i < n; i++ {
 			s := q.srcSizes[i]
 
+			idx := i * graphics.VertexFloatNum
+
 			// Convert pixels to texels.
-			vs[i*graphics.VertexFloatNum+2] /= s.width
-			vs[i*graphics.VertexFloatNum+3] /= s.height
+			vs[idx+2] /= s.width
+			vs[idx+3] /= s.height
 
 			// Avoid the center of the pixel, which is problematic (#929, #1171).
 			// Instead, align the vertices with about 1/3 pixels.
-			for idx := 0; idx < 2; idx++ {
-				x := vs[i*graphics.VertexFloatNum+idx]
-				ix := float32(math.Floor(float64(x)))
-				frac := x - ix
-				switch {
-				case frac < 3.0/16.0:
-					vs[i*graphics.VertexFloatNum+idx] = ix
-				case frac < 8.0/16.0:
-					vs[i*graphics.VertexFloatNum+idx] = ix + 5.0/16.0
-				case frac < 13.0/16.0:
-					vs[i*graphics.VertexFloatNum+idx] = ix + 11.0/16.0
-				default:
-					vs[i*graphics.VertexFloatNum+idx] = ix + 16.0/16.0
-				}
+			x := vs[idx]
+			y := vs[idx+1]
+			ix := float32(math.Floor(float64(x)))
+			iy := float32(math.Floor(float64(y)))
+			fracx := x - ix
+			fracy := y - iy
+			switch {
+			case fracx < 3.0/16.0:
+				vs[idx] = ix
+			case fracx < 8.0/16.0:
+				vs[idx] = ix + 5.0/16.0
+			case fracx < 13.0/16.0:
+				vs[idx] = ix + 11.0/16.0
+			default:
+				vs[idx] = ix + 16.0/16.0
+			}
+			switch {
+			case fracy < 3.0/16.0:
+				vs[idx+1] = iy
+			case fracy < 8.0/16.0:
+				vs[idx+1] = iy + 5.0/16.0
+			case fracy < 13.0/16.0:
+				vs[idx+1] = iy + 11.0/16.0
+			default:
+				vs[idx+1] = iy + 16.0/16.0
 			}
 		}
 	} else {
