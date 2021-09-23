@@ -178,7 +178,7 @@ func (u *UserInterface) setNativeCursor(shape driver.CursorShape) {
 }
 
 func (u *UserInterface) isNativeFullscreenAvailable() bool {
-	return true
+	return u.window.GetAttrib(glfw.TransparentFramebuffer) != glfw.True
 }
 
 func (u *UserInterface) setNativeFullscreen(fullscreen bool) {
