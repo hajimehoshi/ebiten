@@ -398,6 +398,10 @@ func ButtonValue(id string, button driver.StandardGamepadButton, state GamepadSt
 	mappingsM.RLock()
 	defer mappingsM.RUnlock()
 
+	return buttonValue(id, button, state)
+}
+
+func buttonValue(id string, button driver.StandardGamepadButton, state GamepadState) float64 {
 	mappings, ok := gamepadButtonMappings[id]
 	if !ok {
 		return 0
@@ -429,6 +433,10 @@ func ButtonValue(id string, button driver.StandardGamepadButton, state GamepadSt
 }
 
 func IsButtonPressed(id string, button driver.StandardGamepadButton, state GamepadState) bool {
+	// Use XInput's trigger dead zone.
+	// See https://source.chromium.org/chromium/chromium/src/+/main:device/gamepad/public/cpp/gamepad.h;l=22-23;drc=6997f8a177359bb99598988ed5e900841984d242
+	const threshold = 30.0 / 255.0
+
 	mappingsM.RLock()
 	defer mappingsM.RUnlock()
 
@@ -438,12 +446,8 @@ func IsButtonPressed(id string, button driver.StandardGamepadButton, state Gamep
 	}
 	switch m := mappings[button]; m.Type {
 	case mappingTypeAxis:
-		v := state.Axis(m.Index)*float64(m.AxisScale) + float64(m.AxisOffset)
-		if m.AxisOffset < 0 || m.AxisOffset == 0 && m.AxisScale > 0 {
-			return v >= 0
-		} else {
-			return v <= 0
-		}
+		v := buttonValue(id, button, state)
+		return v > threshold
 	case mappingTypeButton:
 		return state.Button(m.Index)
 	case mappingTypeHat:
