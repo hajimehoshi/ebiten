@@ -333,7 +333,7 @@ func (g *game) Draw(screen *ebiten.Image) {
 	msg := fmt.Sprintf(`[Arrow keys] Move the window
 [Shift + Arrow keys] Change the window size
 %s
-[F] Switch the fullscreen state (only for desktops)
+[F] Switch the fullscreen state
 [U] Switch the runnable-on-unfocused state
 [C] Switch the cursor mode (visible, hidden, or captured)
 [I] Change the window icon (only for desktops)
