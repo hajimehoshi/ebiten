@@ -407,9 +407,9 @@ func ButtonValue(id string, button driver.StandardGamepadButton, state GamepadSt
 	case mappingTypeAxis:
 		v := state.Axis(m.Index)*float64(m.AxisScale) + float64(m.AxisOffset)
 		if v > 1 {
-			return 1
+			v = 1
 		} else if v < -1 {
-			return -1
+			v = -1
 		}
 		// Adjust [-1, 1] to [0, 1]
 		return (v + 1) / 2
