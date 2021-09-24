@@ -171,11 +171,6 @@ func processLine(line string, platform platform) error {
 			continue
 		}
 
-		// Found a token without a colon e.g., 'sat' or 'm_nin' on a Saturn controller. Ignore this.
-		if len(tks) == 1 {
-			continue
-		}
-
 		gb, err := parseMappingElement(tks[1])
 		if err != nil {
 			return err
@@ -210,12 +205,8 @@ func processLine(line string, platform platform) error {
 
 func parseMappingElement(str string) (*mapping, error) {
 	switch {
-	case str[0] == 'a' || strings.HasPrefix(str, "+a") || strings.HasPrefix(str, "-a") || str[0] == '~':
+	case str[0] == 'a' || strings.HasPrefix(str, "+a") || strings.HasPrefix(str, "-a"):
 		var tilda bool
-		if str[0] == '~' {
-			str = str[1:]
-			tilda = true
-		}
 		if str[len(str)-1] == '~' {
 			str = str[:len(str)-1]
 			tilda = true
