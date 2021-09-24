@@ -368,9 +368,15 @@ func AxisValue(id string, axis driver.StandardGamepadAxis, state GamepadState) f
 	if !ok {
 		return 0
 	}
-	switch m := mappings[axis]; m.Type {
+
+	mapping := mappings[axis]
+	if mapping == nil {
+		return 0
+	}
+
+	switch mapping.Type {
 	case mappingTypeAxis:
-		v := state.Axis(m.Index)*float64(m.AxisScale) + float64(m.AxisOffset)
+		v := state.Axis(mapping.Index)*float64(mapping.AxisScale) + float64(mapping.AxisOffset)
 		if v > 1 {
 			return 1
 		} else if v < -1 {
@@ -378,13 +384,13 @@ func AxisValue(id string, axis driver.StandardGamepadAxis, state GamepadState) f
 		}
 		return v
 	case mappingTypeButton:
-		if state.Button(m.Index) {
+		if state.Button(mapping.Index) {
 			return 1
 		} else {
 			return -1
 		}
 	case mappingTypeHat:
-		if state.Hat(m.Index)&m.HatState != 0 {
+		if state.Hat(mapping.Index)&mapping.HatState != 0 {
 			return 1
 		} else {
 			return -1
@@ -407,9 +413,14 @@ func buttonValue(id string, button driver.StandardGamepadButton, state GamepadSt
 		return 0
 	}
 
-	switch m := mappings[button]; m.Type {
+	mapping := mappings[button]
+	if mapping == nil {
+		return 0
+	}
+
+	switch mapping.Type {
 	case mappingTypeAxis:
-		v := state.Axis(m.Index)*float64(m.AxisScale) + float64(m.AxisOffset)
+		v := state.Axis(mapping.Index)*float64(mapping.AxisScale) + float64(mapping.AxisOffset)
 		if v > 1 {
 			v = 1
 		} else if v < -1 {
@@ -418,12 +429,12 @@ func buttonValue(id string, button driver.StandardGamepadButton, state GamepadSt
 		// Adjust [-1, 1] to [0, 1]
 		return (v + 1) / 2
 	case mappingTypeButton:
-		if state.Button(m.Index) {
+		if state.Button(mapping.Index) {
 			return 1
 		}
 		return 0
 	case mappingTypeHat:
-		if state.Hat(m.Index)&m.HatState != 0 {
+		if state.Hat(mapping.Index)&mapping.HatState != 0 {
 			return 1
 		}
 		return 0
@@ -444,14 +455,20 @@ func IsButtonPressed(id string, button driver.StandardGamepadButton, state Gamep
 	if !ok {
 		return false
 	}
-	switch m := mappings[button]; m.Type {
+
+	mapping := mappings[button]
+	if mapping == nil {
+		return false
+	}
+
+	switch mapping.Type {
 	case mappingTypeAxis:
 		v := buttonValue(id, button, state)
 		return v > threshold
 	case mappingTypeButton:
-		return state.Button(m.Index)
+		return state.Button(mapping.Index)
 	case mappingTypeHat:
-		return state.Hat(m.Index)&m.HatState != 0
+		return state.Hat(mapping.Index)&mapping.HatState != 0
 	}
 
 	return false
