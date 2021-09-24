@@ -14,7 +14,10 @@
 
 // gamecontrollerdb.txt is downloaded at https://github.com/gabomdq/SDL_GameControllerDB.
 
-//go:generate curl --location --remote-name https://raw.githubusercontent.com/gabomdq/SDL_GameControllerDB/master/gamecontrollerdb.txt
+// To update the database file, run:
+//
+//     curl --location --remote-name https://raw.githubusercontent.com/gabomdq/SDL_GameControllerDB/master/gamecontrollerdb.txt
+
 //go:generate file2byteslice -package gamepaddb -input=./gamecontrollerdb.txt -output=./gamecontrollerdb.txt.go -var=gamecontrollerdbTxt
 
 package gamepaddb
