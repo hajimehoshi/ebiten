@@ -196,7 +196,20 @@ func (c *gamepadConfig) IsButtonPressed(b virtualGamepadButton) bool {
 	}
 
 	if ebiten.IsStandardGamepadLayoutAvailable(c.gamepadID) {
-		return ebiten.IsStandardGamepadButtonPressed(c.gamepadID, b.StandardGamepadButton())
+		if ebiten.IsStandardGamepadButtonPressed(c.gamepadID, b.StandardGamepadButton()) {
+			return true
+		}
+
+		const threshold = 0.7
+		switch b {
+		case virtualGamepadButtonLeft:
+			return ebiten.StandardGamepadAxisValue(c.gamepadID, ebiten.StandardGamepadAxisLeftStickHorizontal) < -threshold
+		case virtualGamepadButtonRight:
+			return ebiten.StandardGamepadAxisValue(c.gamepadID, ebiten.StandardGamepadAxisLeftStickHorizontal) > threshold
+		case virtualGamepadButtonDown:
+			return ebiten.StandardGamepadAxisValue(c.gamepadID, ebiten.StandardGamepadAxisLeftStickVertical) > threshold
+		}
+		return false
 	}
 
 	c.initializeIfNeeded()
