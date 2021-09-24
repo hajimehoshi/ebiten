@@ -141,6 +141,10 @@ func (w *Window) GetSize() (width, height int) {
 	return w.w.GetSize()
 }
 
+func (w *Window) Hide() {
+	w.w.Hide()
+}
+
 func (w *Window) Iconify() {
 	w.w.Iconify()
 }

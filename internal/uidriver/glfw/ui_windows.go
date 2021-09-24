@@ -140,6 +140,8 @@ func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 }
 
 func currentMonitorByOS(_ *glfw.Window) *glfw.Monitor {
+	// TODO: Why not using the given window?
+
 	// TODO: Should we return nil here?
 	w, err := getActiveWindow()
 	if err != nil {
@@ -205,4 +207,7 @@ func (u *UserInterface) setNativeFullscreen(fullscreen bool) {
 }
 
 func (u *UserInterface) adjustViewSize() {
+}
+
+func initializeWindowAfterCreation(w *glfw.Window) {
 }

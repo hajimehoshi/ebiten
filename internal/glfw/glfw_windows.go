@@ -182,6 +182,11 @@ func (w *Window) GetSize() (int, int) {
 	return int(width), int(height)
 }
 
+func (w *Window) Hide() {
+	glfwDLL.call("glfwHideWindow", w.w)
+	panicError()
+}
+
 func (w *Window) Iconify() {
 	glfwDLL.call("glfwIconifyWindow", w.w)
 	panicError()

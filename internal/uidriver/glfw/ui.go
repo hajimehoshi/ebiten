@@ -185,9 +185,8 @@ func initialize() error {
 		panic("glfw: glfw.CreateWindow must not return nil")
 	}
 	defer w.Destroy()
+	initializeWindowAfterCreation(w)
 
-	// TODO: The first current monitor should be determined without a window.
-	// On Linux, the first window position is always (0, 0) and not reliable to detect a monitor.
 	m := currentMonitor(w)
 	theUI.initMonitor = m
 	v := m.GetVideoMode()
@@ -753,6 +752,8 @@ func (u *UserInterface) createWindow() error {
 	if err != nil {
 		return err
 	}
+	initializeWindowAfterCreation(window)
+
 	u.window = window
 
 	if u.Graphics().IsGL() {
@@ -890,6 +891,7 @@ func (u *UserInterface) init() error {
 	if err := u.createWindow(); err != nil {
 		return err
 	}
+
 	u.setSizeCallbackEnabled = true
 
 	setSize := func() {

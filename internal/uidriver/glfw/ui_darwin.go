@@ -193,3 +193,6 @@ func (u *UserInterface) adjustViewSize() {
 	}
 	C.adjustViewSize(C.uintptr_t(u.window.GetCocoaWindow()))
 }
+
+func initializeWindowAfterCreation(w *glfw.Window) {
+}

@@ -164,3 +164,10 @@ func (u *UserInterface) setNativeFullscreen(fullscreen bool) {
 
 func (u *UserInterface) adjustViewSize() {
 }
+
+func initializeWindowAfterCreation(w *glfw.Window) {
+	// Show the window once before getting the position of the window.
+	// On Linux/Unix, the window position is not reliable before showing.
+	w.Show()
+	w.Hide()
+}
