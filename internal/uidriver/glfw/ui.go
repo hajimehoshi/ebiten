@@ -186,10 +186,12 @@ func initialize() error {
 	}
 	defer w.Destroy()
 
+	// TODO: The first current monitor should be determined without a window.
+	// On Linux, the first window position is always (0, 0) and not reliable to detect a monitor.
 	m := currentMonitor(w)
 	theUI.initMonitor = m
 	v := m.GetVideoMode()
-	scale := videoModeScale(currentMonitor(w))
+	scale := videoModeScale(m)
 	theUI.initFullscreenWidthInDP = int(theUI.fromGLFWMonitorPixel(float64(v.Width), scale))
 	theUI.initFullscreenHeightInDP = int(theUI.fromGLFWMonitorPixel(float64(v.Height), scale))
 
