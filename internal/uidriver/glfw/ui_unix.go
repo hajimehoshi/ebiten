@@ -169,5 +169,9 @@ func initializeWindowAfterCreation(w *glfw.Window) {
 	// Show the window once before getting the position of the window.
 	// On Linux/Unix, the window position is not reliable before showing.
 	w.Show()
-	w.Hide()
+
+	// Hiding the window makes the position unreliable again. Do not call w.Hide() here (#1829)
+	// Calling Hide is problematic especially on XWayland and/or Sway.
+	// Apparently the window state is inconsistent just after the window is created, but we are not sure.
+	// For more details, see the discussion in #1829.
 }
