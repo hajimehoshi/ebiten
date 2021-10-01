@@ -19,7 +19,6 @@ package main
 
 import (
 	"fmt"
-	"image"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -37,8 +36,6 @@ type Game struct {
 	camScaleTo float64
 
 	mousePanX, mousePanY int
-
-	debugImg *ebiten.Image
 }
 
 // NewGame returns a new isometric demo Game.
@@ -50,8 +47,8 @@ func NewGame() (*Game, error) {
 
 	g := &Game{
 		currentLevel: l,
-		camScale:     2,
-		camScaleTo:   2,
+		camScale:     1,
+		camScaleTo:   1,
 		mousePanX:    math.MinInt32,
 		mousePanY:    math.MinInt32,
 	}
@@ -151,31 +148,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.renderLevel(screen)
 
 	// Print game info.
-	var origW int
-	if g.debugImg != nil {
-		w, _ := g.debugImg.Size()
-		origW = w
-	}
-	debugBox := image.NewRGBA(image.Rect(0, 0, g.w, 200))
-	if origW != g.w {
-		if g.debugImg != nil {
-			g.debugImg.Dispose()
-		}
-		g.debugImg = ebiten.NewImageFromImage(debugBox)
-	}
-	g.debugImg.Clear()
-	ebitenutil.DebugPrint(g.debugImg, fmt.Sprintf("KEYS WASD EC R\nFPS  %0.0f\nTPS  %0.0f\nSCA  %0.2f\nPOS  %0.0f,%0.0f", ebiten.CurrentFPS(), ebiten.CurrentTPS(), g.camScale, g.camX, g.camY))
-
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(3, 0)
-	op.GeoM.Scale(2, 2)
-	screen.DrawImage(g.debugImg, op)
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("KEYS WASD EC R\nFPS  %0.0f\nTPS  %0.0f\nSCA  %0.2f\nPOS  %0.0f,%0.0f", ebiten.CurrentFPS(), ebiten.CurrentTPS(), g.camScale, g.camX, g.camY))
 }
 
 // Layout is called when the Game's layout changes.
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
-	s := ebiten.DeviceScaleFactor()
-	g.w, g.h = int(s*float64(outsideWidth)), int(s*float64(outsideHeight))
+	g.w, g.h = outsideWidth, outsideHeight
 	return g.w, g.h
 }
 
