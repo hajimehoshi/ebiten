@@ -37,6 +37,8 @@ type Game struct {
 	camScaleTo float64
 
 	mousePanX, mousePanY int
+
+	debugImg *ebiten.Image
 }
 
 // NewGame returns a new isometric demo Game.
@@ -149,13 +151,25 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.renderLevel(screen)
 
 	// Print game info.
+	var origW int
+	if g.debugImg != nil {
+		w, _ := g.debugImg.Size()
+		origW = w
+	}
 	debugBox := image.NewRGBA(image.Rect(0, 0, g.w, 200))
-	debugImg := ebiten.NewImageFromImage(debugBox)
-	ebitenutil.DebugPrint(debugImg, fmt.Sprintf("KEYS WASD EC R\nFPS  %0.0f\nTPS  %0.0f\nSCA  %0.2f\nPOS  %0.0f,%0.0f", ebiten.CurrentFPS(), ebiten.CurrentTPS(), g.camScale, g.camX, g.camY))
+	if origW != g.w {
+		if g.debugImg != nil {
+			g.debugImg.Dispose()
+		}
+		g.debugImg = ebiten.NewImageFromImage(debugBox)
+	}
+	g.debugImg.Clear()
+	ebitenutil.DebugPrint(g.debugImg, fmt.Sprintf("KEYS WASD EC R\nFPS  %0.0f\nTPS  %0.0f\nSCA  %0.2f\nPOS  %0.0f,%0.0f", ebiten.CurrentFPS(), ebiten.CurrentTPS(), g.camScale, g.camX, g.camY))
+
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(3, 0)
 	op.GeoM.Scale(2, 2)
-	screen.DrawImage(debugImg, op)
+	screen.DrawImage(g.debugImg, op)
 }
 
 // Layout is called when the Game's layout changes.
