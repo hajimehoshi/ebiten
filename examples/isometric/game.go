@@ -27,8 +27,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
-var spinner = []byte(`-\|/`)
-
 // Game is an isometric demo game.
 type Game struct {
 	w, h         int
@@ -39,8 +37,6 @@ type Game struct {
 	camScaleTo float64
 
 	mousePanX, mousePanY int
-
-	spinnerIndex int
 }
 
 // NewGame returns a new isometric demo Game.
@@ -178,6 +174,8 @@ func (g *Game) cartesianToIso(x, y float64) (float64, float64) {
 }
 
 /*
+This function might be useful for those who want to modify this example.
+
 // isoToCartesian transforms isometric coordinates into cartesian coordinates.
 func (g *Game) isoToCartesian(x, y float64) (float64, float64) {
 	tileSize := g.currentLevel.tileSize
