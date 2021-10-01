@@ -31,6 +31,13 @@ https://opengameart.org/content/runner-character
 CC0 1.0
 ```
 
+## spritesheet.png
+
+```
+Part of (or All) the graphic tiles used in this program is the public domain
+roguelike tileset 'RLTiles'. You can find the original tileset at: http://rltiles.sf.net
+```
+
 ## smoke.png
 
 ```
