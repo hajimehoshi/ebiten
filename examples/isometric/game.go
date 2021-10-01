@@ -180,6 +180,8 @@ func (g *Game) isoToCartesian(x, y float64) (float64, float64) {
 // renderLevel draws the current Level on the screen.
 func (g *Game) renderLevel(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
+	padding := float64(g.currentLevel.tileSize) * g.camScale
+	cx, cy := float64(g.w/2), float64(g.h/2)
 
 	var t *Tile
 	for y := 0; y < g.currentLevel.h; y++ {
@@ -187,8 +189,7 @@ func (g *Game) renderLevel(screen *ebiten.Image) {
 			xi, yi := g.cartesianToIso(float64(x), float64(y))
 
 			// Skip drawing off-screen tiles.
-			padding := float64(g.currentLevel.tileSize) * g.camScale
-			drawX, drawY := ((xi-g.camX)*g.camScale)+float64(g.w/2.0), ((yi+g.camY)*g.camScale)+float64(g.h/2.0)
+			drawX, drawY := ((xi-g.camX)*g.camScale)+cx, ((yi+g.camY)*g.camScale)+cy
 			if drawX+padding < 0 || drawY+padding < 0 || drawX > float64(g.w) || drawY > float64(g.h) {
 				continue
 			}
@@ -206,7 +207,7 @@ func (g *Game) renderLevel(screen *ebiten.Image) {
 			// Zoom.
 			op.GeoM.Scale(g.camScale, g.camScale)
 			// Center.
-			op.GeoM.Translate(float64(g.w/2.0), float64(g.h/2.0))
+			op.GeoM.Translate(cx, cy)
 
 			t.Draw(screen, op)
 		}
