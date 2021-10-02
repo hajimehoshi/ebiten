@@ -102,6 +102,7 @@ func (g *Game) Update() error {
 	if ebiten.IsKeyPressed(ebiten.KeyUp) || ebiten.IsKeyPressed(ebiten.KeyW) {
 		g.camY += pan
 	}
+
 	// Pan camera via mouse.
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight) {
 		if g.mousePanX == math.MinInt32 && g.mousePanY == math.MinInt32 {
@@ -118,13 +119,13 @@ func (g *Game) Update() error {
 	// Clamp camera position.
 	worldWidth := float64(g.currentLevel.w * g.currentLevel.tileSize / 2)
 	worldHeight := float64(g.currentLevel.h * g.currentLevel.tileSize / 2)
-	if g.camX < worldWidth*-1 {
-		g.camX = worldWidth * -1
+	if g.camX < -worldWidth {
+		g.camX = -worldWidth
 	} else if g.camX > worldWidth {
 		g.camX = worldWidth
 	}
-	if g.camY < worldHeight*-1 {
-		g.camY = worldHeight * -1
+	if g.camY < -worldHeight {
+		g.camY = -worldHeight
 	} else if g.camY > 0 {
 		g.camY = 0
 	}
@@ -183,7 +184,6 @@ func (g *Game) renderLevel(screen *ebiten.Image) {
 	padding := float64(g.currentLevel.tileSize) * g.camScale
 	cx, cy := float64(g.w/2), float64(g.h/2)
 
-	var t *Tile
 	for y := 0; y < g.currentLevel.h; y++ {
 		for x := 0; x < g.currentLevel.w; x++ {
 			xi, yi := g.cartesianToIso(float64(x), float64(y))
@@ -194,7 +194,7 @@ func (g *Game) renderLevel(screen *ebiten.Image) {
 				continue
 			}
 
-			t = g.currentLevel.tiles[y][x]
+			t := g.currentLevel.tiles[y][x]
 			if t == nil {
 				continue // No tile at this position.
 			}
