@@ -19,13 +19,13 @@ import (
 	"math"
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func TestColorMInit(t *testing.T) {
-	var m ColorM
-	for i := 0; i < ColorMDim-1; i++ {
-		for j := 0; j < ColorMDim; j++ {
+	var m ebiten.ColorM
+	for i := 0; i < ebiten.ColorMDim-1; i++ {
+		for j := 0; j < ebiten.ColorMDim; j++ {
 			got := m.Element(i, j)
 			want := 0.0
 			if i == j {
@@ -38,8 +38,8 @@ func TestColorMInit(t *testing.T) {
 	}
 
 	m.SetElement(0, 0, 1)
-	for i := 0; i < ColorMDim-1; i++ {
-		for j := 0; j < ColorMDim; j++ {
+	for i := 0; i < ebiten.ColorMDim-1; i++ {
+		for j := 0; j < ebiten.ColorMDim; j++ {
 			got := m.Element(i, j)
 			want := 0.0
 			if i == j {
@@ -53,7 +53,7 @@ func TestColorMInit(t *testing.T) {
 }
 
 func TestColorMAssign(t *testing.T) {
-	m := ColorM{}
+	m := ebiten.ColorM{}
 	m.SetElement(0, 0, 1)
 	m2 := m
 	m.SetElement(0, 0, 0)
@@ -71,7 +71,7 @@ func TestColorMTranslate(t *testing.T) {
 		{0, 0, 1, 0, 2.5},
 		{0, 0, 0, 1, 3.5},
 	}
-	m := ColorM{}
+	m := ebiten.ColorM{}
 	m.Translate(0.5, 1.5, 2.5, 3.5)
 	for i := 0; i < 4; i++ {
 		for j := 0; j < 5; j++ {
@@ -91,7 +91,7 @@ func TestColorMScale(t *testing.T) {
 		{0, 0, 2.5, 0, 0},
 		{0, 0, 0, 3.5, 0},
 	}
-	m := ColorM{}
+	m := ebiten.ColorM{}
 	m.Scale(0.5, 1.5, 2.5, 3.5)
 	for i := 0; i < 4; i++ {
 		for j := 0; j < 5; j++ {
@@ -111,7 +111,7 @@ func TestColorMTranslateAndScale(t *testing.T) {
 		{0, 0, 1, 0, 0},
 		{0, 0, 0, 0.5, 0.5},
 	}
-	m := ColorM{}
+	m := ebiten.ColorM{}
 	m.Translate(0, 0, 0, 1)
 	m.Scale(1, 1, 1, 0.5)
 	for i := 0; i < 4; i++ {
@@ -132,7 +132,7 @@ func TestColorMMonochrome(t *testing.T) {
 		{0.2990, 0.5870, 0.1140, 0, 0},
 		{0, 0, 0, 1, 0},
 	}
-	m := ColorM{}
+	m := ebiten.ColorM{}
 	m.ChangeHSV(0, 0, 1)
 	for i := 0; i < 4; i++ {
 		for j := 0; j < 5; j++ {
@@ -152,7 +152,7 @@ func TestColorMConcatSelf(t *testing.T) {
 		{30, 43, 51, 39, 34},
 		{25, 37, 39, 46, 36},
 	}
-	m := ColorM{}
+	m := ebiten.ColorM{}
 	for i := 0; i < 4; i++ {
 		for j := 0; j < 5; j++ {
 			m.SetElement(i, j, float64((i+j)%5+1))
@@ -178,23 +178,23 @@ func absDiffU32(x, y uint32) uint32 {
 }
 
 func TestColorMApply(t *testing.T) {
-	mono := ColorM{}
+	mono := ebiten.ColorM{}
 	mono.ChangeHSV(0, 0, 1)
 
-	shiny := ColorM{}
+	shiny := ebiten.ColorM{}
 	shiny.Translate(1, 1, 1, 0)
 
-	shift := ColorM{}
+	shift := ebiten.ColorM{}
 	shift.Translate(0.5, 0.5, 0.5, 0.5)
 
 	cases := []struct {
-		ColorM ColorM
+		ColorM ebiten.ColorM
 		In     color.Color
 		Out    color.Color
 		Delta  uint32
 	}{
 		{
-			ColorM: ColorM{},
+			ColorM: ebiten.ColorM{},
 			In:     color.RGBA{1, 2, 3, 4},
 			Out:    color.RGBA{1, 2, 3, 4},
 			Delta:  0x101,
@@ -237,7 +237,7 @@ func TestColorMApply(t *testing.T) {
 
 // #1765
 func TestColorMConcat(t *testing.T) {
-	var a, b ColorM
+	var a, b ebiten.ColorM
 	a.SetElement(1, 2, -1)
 	a.Concat(b)
 	if got, want := a.Element(1, 2), -1.0; got != want {

@@ -24,7 +24,7 @@ import (
 	"strings"
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/v2/internal/shader"
+	"github.com/hajimehoshi/ebiten/v2/internal/shader"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/metal"
 )
@@ -150,7 +150,7 @@ func TestCompile(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			s, err := Compile(fset, f, "Vertex", "Fragment", 0)
+			s, err := shader.Compile(fset, f, "Vertex", "Fragment", 0)
 			if err != nil {
 				t.Error(err)
 				return

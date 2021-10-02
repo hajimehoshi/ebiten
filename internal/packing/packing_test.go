@@ -17,7 +17,7 @@ package packing_test
 import (
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/v2/internal/packing"
+	"github.com/hajimehoshi/ebiten/v2/internal/packing"
 )
 
 func TestPage(t *testing.T) {
@@ -211,8 +211,8 @@ func TestPage(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		p := NewPage(1024, 1024)
-		nodes := []*Node{}
+		p := packing.NewPage(1024, 1024)
+		nodes := []*packing.Node{}
 		nnodes := 0
 		for i, in := range c.In {
 			if in.FreeNodeID == -1 {
@@ -254,7 +254,7 @@ func TestPage(t *testing.T) {
 }
 
 func TestExtend(t *testing.T) {
-	p := NewPage(1024, 4096)
+	p := packing.NewPage(1024, 4096)
 	s := p.Size()
 	p.Alloc(s/2, s/2)
 	p.Extend(1)
@@ -289,7 +289,7 @@ func TestExtend(t *testing.T) {
 }
 
 func TestExtend2(t *testing.T) {
-	p := NewPage(1024, 4096)
+	p := packing.NewPage(1024, 4096)
 	s := p.Size()
 	p.Alloc(s/2, s/2)
 	n1 := p.Alloc(s/2, s/2)
@@ -331,7 +331,7 @@ func TestExtend2(t *testing.T) {
 
 // Issue #1454
 func TestExtendTooMuch(t *testing.T) {
-	p := NewPage(1024, 4096)
+	p := packing.NewPage(1024, 4096)
 	p.Alloc(1, 1)
 	if got, want := p.Extend(3), false; got != want {
 		t.Errorf("got: %t, want: %t", got, want)
@@ -339,7 +339,7 @@ func TestExtendTooMuch(t *testing.T) {
 }
 
 func TestExtendWithoutAllocation(t *testing.T) {
-	p := NewPage(1024, 4096)
+	p := packing.NewPage(1024, 4096)
 
 	if got, want := p.Extend(2), true; got != want {
 		t.Errorf("got: %t, want: %t", got, want)

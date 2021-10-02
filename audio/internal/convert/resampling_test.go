@@ -20,7 +20,7 @@ import (
 	"math"
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/v2/audio/internal/convert"
+	"github.com/hajimehoshi/ebiten/v2/audio/internal/convert"
 )
 
 func soundAt(timeInSecond float64) float64 {
@@ -69,7 +69,7 @@ func TestResampling(t *testing.T) {
 	}
 	for _, c := range cases {
 		inB := newSoundBytes(c.In)
-		outS := NewResampling(bytes.NewReader(inB), int64(len(inB)), c.In, c.Out)
+		outS := convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), c.In, c.Out)
 		gotB, err := ioutil.ReadAll(outS)
 		if err != nil {
 			t.Fatal(err)

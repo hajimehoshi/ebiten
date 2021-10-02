@@ -19,13 +19,13 @@ import (
 	"math"
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func TestGeoMInit(t *testing.T) {
-	var m GeoM
-	for i := 0; i < GeoMDim-1; i++ {
-		for j := 0; j < GeoMDim; j++ {
+	var m ebiten.GeoM
+	for i := 0; i < ebiten.GeoMDim-1; i++ {
+		for j := 0; j < ebiten.GeoMDim; j++ {
 			got := m.Element(i, j)
 			want := 0.0
 			if i == j {
@@ -39,7 +39,7 @@ func TestGeoMInit(t *testing.T) {
 }
 
 func TestGeoMAssign(t *testing.T) {
-	m := GeoM{}
+	m := ebiten.GeoM{}
 	m.SetElement(0, 0, 1)
 	m2 := m
 	m.SetElement(0, 0, 0)
@@ -51,9 +51,9 @@ func TestGeoMAssign(t *testing.T) {
 }
 
 func TestGeoMConcat(t *testing.T) {
-	matrix1 := GeoM{}
+	matrix1 := ebiten.GeoM{}
 	matrix1.Scale(2, 2)
-	matrix2 := GeoM{}
+	matrix2 := ebiten.GeoM{}
 	matrix2.Translate(1, 1)
 
 	matrix3 := matrix1
@@ -93,7 +93,7 @@ func TestGeoMConcat(t *testing.T) {
 }
 
 func TestGeoMConcatSelf(t *testing.T) {
-	m := GeoM{}
+	m := ebiten.GeoM{}
 	m.SetElement(0, 0, 1)
 	m.SetElement(0, 1, 2)
 	m.SetElement(0, 2, 3)
@@ -117,7 +117,7 @@ func TestGeoMConcatSelf(t *testing.T) {
 	}
 }
 
-func geoMToString(g GeoM) string {
+func geoMToString(g ebiten.GeoM) string {
 	a := g.Element(0, 0)
 	b := g.Element(0, 1)
 	c := g.Element(1, 0)
@@ -128,26 +128,26 @@ func geoMToString(g GeoM) string {
 }
 
 func TestGeoMApply(t *testing.T) {
-	trans := GeoM{}
+	trans := ebiten.GeoM{}
 	trans.Translate(1, 2)
 
-	scale := GeoM{}
+	scale := ebiten.GeoM{}
 	scale.Scale(1.5, 2.5)
 
-	cpx := GeoM{}
+	cpx := ebiten.GeoM{}
 	cpx.Rotate(math.Pi)
 	cpx.Scale(1.5, 2.5)
 	cpx.Translate(-2, -3)
 
 	cases := []struct {
-		GeoM GeoM
+		GeoM ebiten.GeoM
 		InX  float64
 		InY  float64
 		OutX float64
 		OutY float64
 	}{
 		{
-			GeoM: GeoM{},
+			GeoM: ebiten.GeoM{},
 			InX:  3.14159,
 			InY:  2.81828,
 			OutX: 3.14159,
@@ -187,30 +187,30 @@ func TestGeoMApply(t *testing.T) {
 }
 
 func TestGeoMIsInvert(t *testing.T) {
-	zero := GeoM{}
+	zero := ebiten.GeoM{}
 	zero.Scale(0, 0)
 
-	trans := GeoM{}
+	trans := ebiten.GeoM{}
 	trans.Translate(1, 2)
 
-	scale := GeoM{}
+	scale := ebiten.GeoM{}
 	scale.Scale(1.5, 2.5)
 
-	cpx := GeoM{}
+	cpx := ebiten.GeoM{}
 	cpx.Rotate(math.Pi)
 	cpx.Scale(1.5, 2.5)
 	cpx.Translate(-2, -3)
 
-	cpx2 := GeoM{}
+	cpx2 := ebiten.GeoM{}
 	cpx2.Scale(2, 3)
 	cpx2.Rotate(0.234)
 	cpx2.Translate(100, 100)
 
-	skew := GeoM{}
+	skew := ebiten.GeoM{}
 	skew.Skew(1, 1)
 
 	cases := []struct {
-		GeoM       GeoM
+		GeoM       ebiten.GeoM
 		Invertible bool
 	}{
 		{
@@ -218,7 +218,7 @@ func TestGeoMIsInvert(t *testing.T) {
 			Invertible: false,
 		},
 		{
-			GeoM:       GeoM{},
+			GeoM:       ebiten.GeoM{},
 			Invertible: true,
 		},
 		{
@@ -286,8 +286,8 @@ func TestGeoMIsInvert(t *testing.T) {
 	}
 }
 
-func newGeoM(a, b, c, d, tx, ty float64) GeoM {
-	outp := GeoM{}
+func newGeoM(a, b, c, d, tx, ty float64) ebiten.GeoM {
+	outp := ebiten.GeoM{}
 	outp.SetElement(0, 0, a)
 	outp.SetElement(0, 1, b)
 	outp.SetElement(0, 2, tx)
@@ -298,7 +298,7 @@ func newGeoM(a, b, c, d, tx, ty float64) GeoM {
 }
 
 func TestGeomSkew(t *testing.T) {
-	testSkew := func(skewX, skewY float64, input, expected GeoM) {
+	testSkew := func(skewX, skewY float64, input, expected ebiten.GeoM) {
 		input.Skew(skewX, skewY)
 		for i := 0; i < 2; i++ {
 			for j := 0; j < 3; j++ {
@@ -313,15 +313,15 @@ func TestGeomSkew(t *testing.T) {
 	}
 	// skewX = 0.25
 	expectedX := newGeoM(1, math.Tan(0.25), math.Tan(0), 1, 0, 0)
-	testSkew(0.25, 0, GeoM{}, expectedX)
+	testSkew(0.25, 0, ebiten.GeoM{}, expectedX)
 
 	// skewY = 0.25
 	expectedY := newGeoM(1, math.Tan(0), math.Tan(0.5), 1, 0, 0)
-	testSkew(0, 0.5, GeoM{}, expectedY)
+	testSkew(0, 0.5, ebiten.GeoM{}, expectedY)
 
 	// skewX, skewY = 0.3, 0.8
 	expectedXY := newGeoM(1, math.Tan(0.3), math.Tan(0.8), 1, 0, 0)
-	testSkew(0.3, 0.8, GeoM{}, expectedXY)
+	testSkew(0.3, 0.8, ebiten.GeoM{}, expectedXY)
 
 	// skewX, skewY = 0.4, -1.8 ; b, c = 2, 3
 	expectedOffDiag := newGeoM(1+3*math.Tan(0.4), 2+math.Tan(0.4), 3+math.Tan(-1.8), 1+2*math.Tan(-1.8), 0, 0)
@@ -336,13 +336,13 @@ func TestGeomSkew(t *testing.T) {
 
 func TestGeoMEquals(t *testing.T) {
 	tests := []struct {
-		a    GeoM
-		b    GeoM
+		a    ebiten.GeoM
+		b    ebiten.GeoM
 		want bool
 	}{
 		{
-			a:    GeoM{},
-			b:    GeoM{},
+			a:    ebiten.GeoM{},
+			b:    ebiten.GeoM{},
 			want: true,
 		},
 		{
@@ -366,9 +366,9 @@ func TestGeoMEquals(t *testing.T) {
 }
 
 func BenchmarkGeoM(b *testing.B) {
-	var m GeoM
+	var m ebiten.GeoM
 	for i := 0; i < b.N; i++ {
-		m = GeoM{}
+		m = ebiten.GeoM{}
 		m.Translate(10, 20)
 		m.Scale(2, 3)
 		m.Rotate(math.Pi / 2)

@@ -20,17 +20,17 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/hajimehoshi/ebiten/v2/audio"
+	"github.com/hajimehoshi/ebiten/v2/audio"
 )
 
-var context *Context
+var context *audio.Context
 
 func setup() {
-	context = NewContext(44100)
+	context = audio.NewContext(44100)
 }
 
 func teardown() {
-	ResetContextForTesting()
+	audio.ResetContextForTesting()
 	context = nil
 }
 
@@ -39,14 +39,14 @@ func TestGC(t *testing.T) {
 	setup()
 	defer teardown()
 
-	p, _ := NewPlayer(context, bytes.NewReader(make([]byte, 4)))
-	got := PlayersNumForTesting()
+	p, _ := audio.NewPlayer(context, bytes.NewReader(make([]byte, 4)))
+	got := audio.PlayersNumForTesting()
 	if want := 0; got != want {
 		t.Errorf("PlayersNum(): got: %d, want: %d", got, want)
 	}
 
 	p.Play()
-	got = PlayersNumForTesting()
+	got = audio.PlayersNumForTesting()
 	if want := 1; got != want {
 		t.Errorf("PlayersNum() after Play: got: %d, want: %d", got, want)
 	}
@@ -56,11 +56,11 @@ func TestGC(t *testing.T) {
 	runtime.GC()
 
 	for i := 0; i < 10; i++ {
-		got = PlayersNumForTesting()
+		got = audio.PlayersNumForTesting()
 		if want := 0; got == want {
 			return
 		}
-		if err := UpdateForTesting(); err != nil {
+		if err := audio.UpdateForTesting(); err != nil {
 			t.Error(err)
 		}
 		// 200[ms] should be enough all the bytes are consumed.
@@ -76,24 +76,24 @@ func TestSameSourcePlayers(t *testing.T) {
 	defer teardown()
 
 	src := bytes.NewReader(make([]byte, 4))
-	p0, err := NewPlayer(context, src)
+	p0, err := audio.NewPlayer(context, src)
 	if err != nil {
 		t.Fatal(err)
 	}
-	p1, err := NewPlayer(context, src)
+	p1, err := audio.NewPlayer(context, src)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// As the player does not play yet, error doesn't happen.
-	if err := UpdateForTesting(); err != nil {
+	if err := audio.UpdateForTesting(); err != nil {
 		t.Error(err)
 	}
 
 	p0.Play()
 	p1.Play()
 
-	if err := UpdateForTesting(); err == nil {
+	if err := audio.UpdateForTesting(); err == nil {
 		t.Errorf("got: nil, want: an error")
 	}
 }
@@ -103,7 +103,7 @@ func TestPauseBeforeInit(t *testing.T) {
 	defer teardown()
 
 	src := bytes.NewReader(make([]byte, 4))
-	p, err := NewPlayer(context, src)
+	p, err := audio.NewPlayer(context, src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +112,7 @@ func TestPauseBeforeInit(t *testing.T) {
 	p.Pause()
 	p.Play()
 
-	if err := UpdateForTesting(); err != nil {
+	if err := audio.UpdateForTesting(); err != nil {
 		t.Error(err)
 	}
 }
