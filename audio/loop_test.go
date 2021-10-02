@@ -20,7 +20,7 @@ import (
 	"math"
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/v2/audio"
+	"github.com/hajimehoshi/ebiten/v2/audio"
 )
 
 func TestInfiniteLoop(t *testing.T) {
@@ -32,7 +32,7 @@ func TestInfiniteLoop(t *testing.T) {
 	for i := range src {
 		src[i] = indexToByte(i)
 	}
-	l := NewInfiniteLoop(bytes.NewReader(src), int64(len(src)))
+	l := audio.NewInfiniteLoop(bytes.NewReader(src), int64(len(src)))
 
 	buf := make([]byte, len(src)*4)
 	if _, err := io.ReadFull(l, buf); err != nil {
@@ -94,8 +94,8 @@ func TestInfiniteLoopWithIntro(t *testing.T) {
 	for i := range src {
 		src[i] = indexToByte(i)
 	}
-	srcInf := NewInfiniteLoop(bytes.NewReader(src), srcLength)
-	l := NewInfiniteLoopWithIntro(srcInf, introLength, loopLength)
+	srcInf := audio.NewInfiniteLoop(bytes.NewReader(src), srcLength)
+	l := audio.NewInfiniteLoopWithIntro(srcInf, introLength, loopLength)
 
 	buf := make([]byte, srcLength*4)
 	if _, err := io.ReadFull(l, buf); err != nil {
@@ -151,7 +151,7 @@ func TestInfiniteLoopWithIntro(t *testing.T) {
 
 func TestInfiniteLoopWithIncompleteSize(t *testing.T) {
 	// s1 should work as if 4092 is given.
-	s1 := NewInfiniteLoop(bytes.NewReader(make([]byte, 4096)), 4095)
+	s1 := audio.NewInfiniteLoop(bytes.NewReader(make([]byte, 4096)), 4095)
 	n1, err := s1.Seek(4093, io.SeekStart)
 	if err != nil {
 		t.Error(err)
@@ -161,7 +161,7 @@ func TestInfiniteLoopWithIncompleteSize(t *testing.T) {
 	}
 
 	// s2 should work as if 2044 and 2044 are given.
-	s2 := NewInfiniteLoopWithIntro(bytes.NewReader(make([]byte, 4096)), 2047, 2046)
+	s2 := audio.NewInfiniteLoopWithIntro(bytes.NewReader(make([]byte, 4096)), 2047, 2046)
 	n2, err := s2.Seek(4093, io.SeekStart)
 	if err != nil {
 		t.Error(err)

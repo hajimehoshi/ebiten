@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
-	. "github.com/hajimehoshi/ebiten/v2/internal/atlas"
+	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	etesting "github.com/hajimehoshi/ebiten/v2/internal/testing"
@@ -28,7 +28,7 @@ import (
 func TestShaderFillTwice(t *testing.T) {
 	const w, h = 1, 1
 
-	dst := NewImage(w, h)
+	dst := atlas.NewImage(w, h)
 
 	vs := quadVertices(w, h, 0, 0, 1)
 	is := graphics.QuadIndices()
@@ -39,14 +39,14 @@ func TestShaderFillTwice(t *testing.T) {
 		Height: h,
 	}
 	p0 := etesting.ShaderProgramFill(0xff, 0xff, 0xff, 0xff)
-	s0 := NewShader(&p0)
-	dst.DrawTriangles([graphics.ShaderImageNum]*Image{}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, s0, nil, false)
+	s0 := atlas.NewShader(&p0)
+	dst.DrawTriangles([graphics.ShaderImageNum]*atlas.Image{}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, s0, nil, false)
 
 	// Vertices must be recreated (#1755)
 	vs = quadVertices(w, h, 0, 0, 1)
 	p1 := etesting.ShaderProgramFill(0x80, 0x80, 0x80, 0xff)
-	s1 := NewShader(&p1)
-	dst.DrawTriangles([graphics.ShaderImageNum]*Image{}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, s1, nil, false)
+	s1 := atlas.NewShader(&p1)
+	dst.DrawTriangles([graphics.ShaderImageNum]*atlas.Image{}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, s1, nil, false)
 
 	pix, err := dst.Pixels(0, 0, w, h)
 	if err != nil {
@@ -60,10 +60,10 @@ func TestShaderFillTwice(t *testing.T) {
 func TestImageDrawTwice(t *testing.T) {
 	const w, h = 1, 1
 
-	dst := NewImage(w, h)
-	src0 := NewImage(w, h)
+	dst := atlas.NewImage(w, h)
+	src0 := atlas.NewImage(w, h)
 	src0.ReplacePixels([]byte{0xff, 0xff, 0xff, 0xff})
-	src1 := NewImage(w, h)
+	src1 := atlas.NewImage(w, h)
 	src1.ReplacePixels([]byte{0x80, 0x80, 0x80, 0xff})
 
 	vs := quadVertices(w, h, 0, 0, 1)
@@ -74,11 +74,11 @@ func TestImageDrawTwice(t *testing.T) {
 		Width:  w,
 		Height: h,
 	}
-	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src0}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+	dst.DrawTriangles([graphics.ShaderImageNum]*atlas.Image{src0}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 
 	// Vertices must be recreated (#1755)
 	vs = quadVertices(w, h, 0, 0, 1)
-	dst.DrawTriangles([graphics.ShaderImageNum]*Image{src1}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+	dst.DrawTriangles([graphics.ShaderImageNum]*atlas.Image{src1}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 
 	pix, err := dst.Pixels(0, 0, w, h)
 	if err != nil {

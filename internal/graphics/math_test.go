@@ -17,7 +17,7 @@ package graphics_test
 import (
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 )
 
 func TestInternalImageSize(t *testing.T) {
@@ -31,7 +31,7 @@ func TestInternalImageSize(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		got := InternalImageSize(testCase.arg)
+		got := graphics.InternalImageSize(testCase.arg)
 		wanted := testCase.expected
 		if wanted != got {
 			t.Errorf("Clp(%d) = %d, wanted %d", testCase.arg, got, wanted)

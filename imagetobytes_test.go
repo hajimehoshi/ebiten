@@ -21,7 +21,7 @@ import (
 	"image/color/palette"
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func TestImageToBytes(t *testing.T) {
@@ -93,7 +93,7 @@ func TestImageToBytes(t *testing.T) {
 		},
 	}
 	for i, c := range cases {
-		got := ImageToBytes(c.In)
+		got := ebiten.ImageToBytes(c.In)
 		want := c.Out
 		if !bytes.Equal(got, want) {
 			t.Errorf("Test %d: got: %v, want: %v", i, got, want)
@@ -105,7 +105,7 @@ func BenchmarkImageToBytesRGBA(b *testing.B) {
 	img := image.NewRGBA(image.Rect(0, 0, 4096, 4096))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		ImageToBytes(img)
+		ebiten.ImageToBytes(img)
 	}
 }
 
@@ -113,7 +113,7 @@ func BenchmarkImageToBytesNRGBA(b *testing.B) {
 	img := image.NewNRGBA(image.Rect(0, 0, 4096, 4096))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		ImageToBytes(img)
+		ebiten.ImageToBytes(img)
 	}
 }
 
@@ -121,6 +121,6 @@ func BenchmarkImageToBytesPaletted(b *testing.B) {
 	img := image.NewPaletted(image.Rect(0, 0, 4096, 4096), palette.Plan9)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		ImageToBytes(img)
+		ebiten.ImageToBytes(img)
 	}
 }

@@ -18,59 +18,59 @@ import (
 	"go/constant"
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/v2/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/metal"
 )
 
-func block(localVars []Type, offset int, stmts ...Stmt) *Block {
-	return &Block{
+func block(localVars []shaderir.Type, offset int, stmts ...shaderir.Stmt) *shaderir.Block {
+	return &shaderir.Block{
 		LocalVars:           localVars,
 		LocalVarIndexOffset: offset,
 		Stmts:               stmts,
 	}
 }
 
-func exprStmt(expr Expr) Stmt {
-	return Stmt{
-		Type:  ExprStmt,
-		Exprs: []Expr{expr},
+func exprStmt(expr shaderir.Expr) shaderir.Stmt {
+	return shaderir.Stmt{
+		Type:  shaderir.ExprStmt,
+		Exprs: []shaderir.Expr{expr},
 	}
 }
 
-func blockStmt(block *Block) Stmt {
-	return Stmt{
-		Type:   BlockStmt,
-		Blocks: []*Block{block},
+func blockStmt(block *shaderir.Block) shaderir.Stmt {
+	return shaderir.Stmt{
+		Type:   shaderir.BlockStmt,
+		Blocks: []*shaderir.Block{block},
 	}
 }
 
-func returnStmt(expr Expr) Stmt {
-	return Stmt{
-		Type:  Return,
-		Exprs: []Expr{expr},
+func returnStmt(expr shaderir.Expr) shaderir.Stmt {
+	return shaderir.Stmt{
+		Type:  shaderir.Return,
+		Exprs: []shaderir.Expr{expr},
 	}
 }
 
-func assignStmt(lhs Expr, rhs Expr) Stmt {
-	return Stmt{
-		Type:  Assign,
-		Exprs: []Expr{lhs, rhs},
+func assignStmt(lhs shaderir.Expr, rhs shaderir.Expr) shaderir.Stmt {
+	return shaderir.Stmt{
+		Type:  shaderir.Assign,
+		Exprs: []shaderir.Expr{lhs, rhs},
 	}
 }
 
-func ifStmt(cond Expr, block *Block, elseBlock *Block) Stmt {
-	return Stmt{
-		Type:   If,
-		Exprs:  []Expr{cond},
-		Blocks: []*Block{block, elseBlock},
+func ifStmt(cond shaderir.Expr, block *shaderir.Block, elseBlock *shaderir.Block) shaderir.Stmt {
+	return shaderir.Stmt{
+		Type:   shaderir.If,
+		Exprs:  []shaderir.Expr{cond},
+		Blocks: []*shaderir.Block{block, elseBlock},
 	}
 }
 
-func forStmt(t Type, index, init, end int, op Op, delta int, block *Block) Stmt {
-	return Stmt{
-		Type:        For,
-		Blocks:      []*Block{block},
+func forStmt(t shaderir.Type, index, init, end int, op shaderir.Op, delta int, block *shaderir.Block) shaderir.Stmt {
+	return shaderir.Stmt{
+		Type:        shaderir.For,
+		Blocks:      []*shaderir.Block{block},
 		ForVarType:  t,
 		ForVarIndex: index,
 		ForInit:     constant.MakeInt64(int64(init)),
@@ -80,74 +80,74 @@ func forStmt(t Type, index, init, end int, op Op, delta int, block *Block) Stmt 
 	}
 }
 
-func floatExpr(value float32) Expr {
-	return Expr{
-		Type:  NumberExpr,
+func floatExpr(value float32) shaderir.Expr {
+	return shaderir.Expr{
+		Type:  shaderir.NumberExpr,
 		Const: constant.MakeFloat64(float64(value)),
 	}
 }
 
-func uniformVariableExpr(index int) Expr {
-	return Expr{
-		Type:  UniformVariable,
+func uniformVariableExpr(index int) shaderir.Expr {
+	return shaderir.Expr{
+		Type:  shaderir.UniformVariable,
 		Index: index,
 	}
 }
 
-func localVariableExpr(index int) Expr {
-	return Expr{
-		Type:  LocalVariable,
+func localVariableExpr(index int) shaderir.Expr {
+	return shaderir.Expr{
+		Type:  shaderir.LocalVariable,
 		Index: index,
 	}
 }
 
-func builtinFuncExpr(f BuiltinFunc) Expr {
-	return Expr{
-		Type:        BuiltinFuncExpr,
+func builtinFuncExpr(f shaderir.BuiltinFunc) shaderir.Expr {
+	return shaderir.Expr{
+		Type:        shaderir.BuiltinFuncExpr,
 		BuiltinFunc: f,
 	}
 }
 
-func swizzlingExpr(swizzling string) Expr {
-	return Expr{
-		Type:      SwizzlingExpr,
+func swizzlingExpr(swizzling string) shaderir.Expr {
+	return shaderir.Expr{
+		Type:      shaderir.SwizzlingExpr,
 		Swizzling: swizzling,
 	}
 }
 
-func functionExpr(index int) Expr {
-	return Expr{
-		Type:  FunctionExpr,
+func functionExpr(index int) shaderir.Expr {
+	return shaderir.Expr{
+		Type:  shaderir.FunctionExpr,
 		Index: index,
 	}
 }
 
-func binaryExpr(op Op, exprs ...Expr) Expr {
-	return Expr{
-		Type:  Binary,
+func binaryExpr(op shaderir.Op, exprs ...shaderir.Expr) shaderir.Expr {
+	return shaderir.Expr{
+		Type:  shaderir.Binary,
 		Op:    op,
 		Exprs: exprs,
 	}
 }
 
-func selectionExpr(cond, a, b Expr) Expr {
-	return Expr{
-		Type:  Selection,
-		Exprs: []Expr{cond, a, b},
+func selectionExpr(cond, a, b shaderir.Expr) shaderir.Expr {
+	return shaderir.Expr{
+		Type:  shaderir.Selection,
+		Exprs: []shaderir.Expr{cond, a, b},
 	}
 }
 
-func callExpr(callee Expr, args ...Expr) Expr {
-	return Expr{
-		Type:  Call,
-		Exprs: append([]Expr{callee}, args...),
+func callExpr(callee shaderir.Expr, args ...shaderir.Expr) shaderir.Expr {
+	return shaderir.Expr{
+		Type:  shaderir.Call,
+		Exprs: append([]shaderir.Expr{callee}, args...),
 	}
 }
 
-func fieldSelectorExpr(a, b Expr) Expr {
-	return Expr{
-		Type:  FieldSelector,
-		Exprs: []Expr{a, b},
+func fieldSelectorExpr(a, b shaderir.Expr) shaderir.Expr {
+	return shaderir.Expr{
+		Type:  shaderir.FieldSelector,
+		Exprs: []shaderir.Expr{a, b},
 	}
 }
 
@@ -156,22 +156,22 @@ func TestOutput(t *testing.T) {
 
 	tests := []struct {
 		Name    string
-		Program Program
+		Program shaderir.Program
 		GlslVS  string
 		GlslFS  string
 		Metal   string
 	}{
 		{
 			Name:    "Empty",
-			Program: Program{},
+			Program: shaderir.Program{},
 			GlslVS:  ``,
 			GlslFS:  glsl.FragmentPrelude(glsl.GLSLVersionDefault),
 		},
 		{
 			Name: "Uniform",
-			Program: Program{
-				Uniforms: []Type{
-					{Main: Float},
+			Program: shaderir.Program{
+				Uniforms: []shaderir.Type{
+					{Main: shaderir.Float},
 				},
 			},
 			GlslVS: `uniform float U0;`,
@@ -180,12 +180,12 @@ uniform float U0;`,
 		},
 		{
 			Name: "UniformStruct",
-			Program: Program{
-				Uniforms: []Type{
+			Program: shaderir.Program{
+				Uniforms: []shaderir.Type{
 					{
-						Main: Struct,
-						Sub: []Type{
-							{Main: Float},
+						Main: shaderir.Struct,
+						Sub: []shaderir.Type{
+							{Main: shaderir.Float},
 						},
 					},
 				},
@@ -204,15 +204,15 @@ uniform S0 U0;`,
 		},
 		{
 			Name: "Vars",
-			Program: Program{
-				Uniforms: []Type{
-					{Main: Float},
+			Program: shaderir.Program{
+				Uniforms: []shaderir.Type{
+					{Main: shaderir.Float},
 				},
-				Attributes: []Type{
-					{Main: Vec2},
+				Attributes: []shaderir.Type{
+					{Main: shaderir.Vec2},
 				},
-				Varyings: []Type{
-					{Main: Vec3},
+				Varyings: []shaderir.Type{
+					{Main: shaderir.Vec3},
 				},
 			},
 			GlslVS: `uniform float U0;
@@ -224,8 +224,8 @@ varying vec3 V0;`,
 		},
 		{
 			Name: "Func",
-			Program: Program{
-				Funcs: []Func{
+			Program: shaderir.Program{
+				Funcs: []shaderir.Func{
 					{
 						Index: 0,
 					},
@@ -243,17 +243,17 @@ void F0(void) {
 		},
 		{
 			Name: "FuncParams",
-			Program: Program{
-				Funcs: []Func{
+			Program: shaderir.Program{
+				Funcs: []shaderir.Func{
 					{
 						Index: 0,
-						InParams: []Type{
-							{Main: Float},
-							{Main: Vec2},
-							{Main: Vec4},
+						InParams: []shaderir.Type{
+							{Main: shaderir.Float},
+							{Main: shaderir.Vec2},
+							{Main: shaderir.Vec4},
 						},
-						OutParams: []Type{
-							{Main: Mat4},
+						OutParams: []shaderir.Type{
+							{Main: shaderir.Mat4},
 						},
 					},
 				},
@@ -270,14 +270,14 @@ void F0(in float l0, in vec2 l1, in vec4 l2, out mat4 l3) {
 		},
 		{
 			Name: "FuncReturn",
-			Program: Program{
-				Funcs: []Func{
+			Program: shaderir.Program{
+				Funcs: []shaderir.Func{
 					{
 						Index: 0,
-						InParams: []Type{
-							{Main: Float},
+						InParams: []shaderir.Type{
+							{Main: shaderir.Float},
 						},
-						Return: Type{Main: Float},
+						Return: shaderir.Type{Main: shaderir.Float},
 						Block: block(
 							nil,
 							1,
@@ -302,19 +302,19 @@ float F0(in float l0) {
 		},
 		{
 			Name: "FuncLocals",
-			Program: Program{
-				Funcs: []Func{
+			Program: shaderir.Program{
+				Funcs: []shaderir.Func{
 					{
 						Index: 0,
-						InParams: []Type{
-							{Main: Float},
+						InParams: []shaderir.Type{
+							{Main: shaderir.Float},
 						},
-						OutParams: []Type{
-							{Main: Float},
+						OutParams: []shaderir.Type{
+							{Main: shaderir.Float},
 						},
-						Block: block([]Type{
-							{Main: Mat4},
-							{Main: Mat4},
+						Block: block([]shaderir.Type{
+							{Main: shaderir.Mat4},
+							{Main: shaderir.Mat4},
 						}, 2),
 					},
 				},
@@ -335,27 +335,27 @@ void F0(in float l0, out float l1) {
 		},
 		{
 			Name: "FuncBlocks",
-			Program: Program{
-				Funcs: []Func{
+			Program: shaderir.Program{
+				Funcs: []shaderir.Func{
 					{
 						Index: 0,
-						InParams: []Type{
-							{Main: Float},
+						InParams: []shaderir.Type{
+							{Main: shaderir.Float},
 						},
-						OutParams: []Type{
-							{Main: Float},
+						OutParams: []shaderir.Type{
+							{Main: shaderir.Float},
 						},
 						Block: block(
-							[]Type{
-								{Main: Mat4},
-								{Main: Mat4},
+							[]shaderir.Type{
+								{Main: shaderir.Mat4},
+								{Main: shaderir.Mat4},
 							},
 							2,
 							blockStmt(
 								block(
-									[]Type{
-										{Main: Mat4},
-										{Main: Mat4},
+									[]shaderir.Type{
+										{Main: shaderir.Mat4},
+										{Main: shaderir.Mat4},
 									},
 									4,
 								),
@@ -388,16 +388,16 @@ void F0(in float l0, out float l1) {
 		},
 		{
 			Name: "Add",
-			Program: Program{
-				Funcs: []Func{
+			Program: shaderir.Program{
+				Funcs: []shaderir.Func{
 					{
 						Index: 0,
-						InParams: []Type{
-							{Main: Float},
-							{Main: Float},
+						InParams: []shaderir.Type{
+							{Main: shaderir.Float},
+							{Main: shaderir.Float},
 						},
-						OutParams: []Type{
-							{Main: Float},
+						OutParams: []shaderir.Type{
+							{Main: shaderir.Float},
 						},
 						Block: block(
 							nil,
@@ -405,7 +405,7 @@ void F0(in float l0, out float l1) {
 							assignStmt(
 								localVariableExpr(2),
 								binaryExpr(
-									Add,
+									shaderir.Add,
 									localVariableExpr(0),
 									localVariableExpr(1),
 								),
@@ -428,17 +428,17 @@ void F0(in float l0, in float l1, out float l2) {
 		},
 		{
 			Name: "Selection",
-			Program: Program{
-				Funcs: []Func{
+			Program: shaderir.Program{
+				Funcs: []shaderir.Func{
 					{
 						Index: 0,
-						InParams: []Type{
-							{Main: Bool},
-							{Main: Float},
-							{Main: Float},
+						InParams: []shaderir.Type{
+							{Main: shaderir.Bool},
+							{Main: shaderir.Float},
+							{Main: shaderir.Float},
 						},
-						OutParams: []Type{
-							{Main: Float},
+						OutParams: []shaderir.Type{
+							{Main: shaderir.Float},
 						},
 						Block: block(
 							nil,
@@ -469,16 +469,16 @@ void F0(in bool l0, in float l1, in float l2, out float l3) {
 		},
 		{
 			Name: "Call",
-			Program: Program{
-				Funcs: []Func{
+			Program: shaderir.Program{
+				Funcs: []shaderir.Func{
 					{
 						Index: 0,
-						InParams: []Type{
-							{Main: Float},
-							{Main: Float},
+						InParams: []shaderir.Type{
+							{Main: shaderir.Float},
+							{Main: shaderir.Float},
 						},
-						OutParams: []Type{
-							{Main: Vec2},
+						OutParams: []shaderir.Type{
+							{Main: shaderir.Vec2},
 						},
 						Block: block(
 							nil,
@@ -516,16 +516,16 @@ void F0(in float l0, in float l1, out vec2 l2) {
 		},
 		{
 			Name: "BuiltinFunc",
-			Program: Program{
-				Funcs: []Func{
+			Program: shaderir.Program{
+				Funcs: []shaderir.Func{
 					{
 						Index: 0,
-						InParams: []Type{
-							{Main: Float},
-							{Main: Float},
+						InParams: []shaderir.Type{
+							{Main: shaderir.Float},
+							{Main: shaderir.Float},
 						},
-						OutParams: []Type{
-							{Main: Float},
+						OutParams: []shaderir.Type{
+							{Main: shaderir.Float},
 						},
 						Block: block(
 							nil,
@@ -533,7 +533,7 @@ void F0(in float l0, in float l1, out vec2 l2) {
 							assignStmt(
 								localVariableExpr(2),
 								callExpr(
-									builtinFuncExpr(Min),
+									builtinFuncExpr(shaderir.Min),
 									localVariableExpr(0),
 									localVariableExpr(1),
 								),
@@ -556,15 +556,15 @@ void F0(in float l0, in float l1, out float l2) {
 		},
 		{
 			Name: "FieldSelector",
-			Program: Program{
-				Funcs: []Func{
+			Program: shaderir.Program{
+				Funcs: []shaderir.Func{
 					{
 						Index: 0,
-						InParams: []Type{
-							{Main: Vec4},
+						InParams: []shaderir.Type{
+							{Main: shaderir.Vec4},
 						},
-						OutParams: []Type{
-							{Main: Vec2},
+						OutParams: []shaderir.Type{
+							{Main: shaderir.Vec2},
 						},
 						Block: block(
 							nil,
@@ -594,23 +594,23 @@ void F0(in vec4 l0, out vec2 l1) {
 		},
 		{
 			Name: "If",
-			Program: Program{
-				Funcs: []Func{
+			Program: shaderir.Program{
+				Funcs: []shaderir.Func{
 					{
 						Index: 0,
-						InParams: []Type{
-							{Main: Float},
-							{Main: Float},
+						InParams: []shaderir.Type{
+							{Main: shaderir.Float},
+							{Main: shaderir.Float},
 						},
-						OutParams: []Type{
-							{Main: Float},
+						OutParams: []shaderir.Type{
+							{Main: shaderir.Float},
 						},
 						Block: block(
 							nil,
 							3,
 							ifStmt(
 								binaryExpr(
-									EqualOp,
+									shaderir.EqualOp,
 									localVariableExpr(0),
 									floatExpr(0),
 								),
@@ -657,28 +657,28 @@ void F0(in float l0, in float l1, out float l2) {
 		},
 		{
 			Name: "For",
-			Program: Program{
-				Funcs: []Func{
+			Program: shaderir.Program{
+				Funcs: []shaderir.Func{
 					{
 						Index: 0,
-						InParams: []Type{
-							{Main: Float},
-							{Main: Float},
+						InParams: []shaderir.Type{
+							{Main: shaderir.Float},
+							{Main: shaderir.Float},
 						},
-						OutParams: []Type{
-							{Main: Float},
+						OutParams: []shaderir.Type{
+							{Main: shaderir.Float},
 						},
 						Block: block(
-							[]Type{
+							[]shaderir.Type{
 								{},
 							},
 							3,
 							forStmt(
-								Type{Main: Int},
+								shaderir.Type{Main: shaderir.Int},
 								3,
 								0,
 								100,
-								LessThanOp,
+								shaderir.LessThanOp,
 								1,
 								block(
 									nil,
@@ -711,32 +711,32 @@ void F0(in float l0, in float l1, out float l2) {
 		},
 		{
 			Name: "For2",
-			Program: Program{
-				Funcs: []Func{
+			Program: shaderir.Program{
+				Funcs: []shaderir.Func{
 					{
 						Index: 0,
-						InParams: []Type{
-							{Main: Float},
-							{Main: Float},
+						InParams: []shaderir.Type{
+							{Main: shaderir.Float},
+							{Main: shaderir.Float},
 						},
-						OutParams: []Type{
-							{Main: Float},
+						OutParams: []shaderir.Type{
+							{Main: shaderir.Float},
 						},
 						Block: block(
-							[]Type{
+							[]shaderir.Type{
 								{},
 							},
 							3,
 							forStmt(
-								Type{Main: Int},
+								shaderir.Type{Main: shaderir.Int},
 								3,
 								0,
 								100,
-								LessThanOp,
+								shaderir.LessThanOp,
 								1,
 								block(
-									[]Type{
-										{Main: Int},
+									[]shaderir.Type{
+										{Main: shaderir.Int},
 									},
 									4,
 									assignStmt(
@@ -783,33 +783,33 @@ void F0(float l0, float l1, thread float& l2) {
 		},
 		{
 			Name: "For3",
-			Program: Program{
-				Funcs: []Func{
+			Program: shaderir.Program{
+				Funcs: []shaderir.Func{
 					{
 						Index: 0,
-						InParams: []Type{
-							{Main: Float},
-							{Main: Float},
+						InParams: []shaderir.Type{
+							{Main: shaderir.Float},
+							{Main: shaderir.Float},
 						},
-						OutParams: []Type{
-							{Main: Float},
+						OutParams: []shaderir.Type{
+							{Main: shaderir.Float},
 						},
 						Block: block(
-							[]Type{
+							[]shaderir.Type{
 								{},
 								{},
 							},
 							3,
 							forStmt(
-								Type{Main: Int},
+								shaderir.Type{Main: shaderir.Int},
 								3,
 								0,
 								100,
-								LessThanOp,
+								shaderir.LessThanOp,
 								1,
 								block(
-									[]Type{
-										{Main: Int},
+									[]shaderir.Type{
+										{Main: shaderir.Int},
 									},
 									4,
 									assignStmt(
@@ -819,15 +819,15 @@ void F0(float l0, float l1, thread float& l2) {
 								),
 							),
 							forStmt(
-								Type{Main: Float},
+								shaderir.Type{Main: shaderir.Float},
 								4,
 								0,
 								100,
-								LessThanOp,
+								shaderir.LessThanOp,
 								1,
 								block(
-									[]Type{
-										{Main: Int},
+									[]shaderir.Type{
+										{Main: shaderir.Int},
 									},
 									5,
 									assignStmt(
@@ -886,20 +886,20 @@ void F0(float l0, float l1, thread float& l2) {
 		},
 		{
 			Name: "VertexFunc",
-			Program: Program{
-				Uniforms: []Type{
-					{Main: Float},
+			Program: shaderir.Program{
+				Uniforms: []shaderir.Type{
+					{Main: shaderir.Float},
 				},
-				Attributes: []Type{
-					{Main: Vec4},
-					{Main: Float},
-					{Main: Vec2},
+				Attributes: []shaderir.Type{
+					{Main: shaderir.Vec4},
+					{Main: shaderir.Float},
+					{Main: shaderir.Vec2},
 				},
-				Varyings: []Type{
-					{Main: Float},
-					{Main: Vec2},
+				Varyings: []shaderir.Type{
+					{Main: shaderir.Float},
+					{Main: shaderir.Vec2},
 				},
-				VertexFunc: VertexFunc{
+				VertexFunc: shaderir.VertexFunc{
 					Block: block(
 						nil,
 						4+1,
@@ -937,20 +937,20 @@ varying vec2 V1;`,
 		},
 		{
 			Name: "FragmentFunc",
-			Program: Program{
-				Uniforms: []Type{
-					{Main: Float},
+			Program: shaderir.Program{
+				Uniforms: []shaderir.Type{
+					{Main: shaderir.Float},
 				},
-				Attributes: []Type{
-					{Main: Vec4},
-					{Main: Float},
-					{Main: Vec2},
+				Attributes: []shaderir.Type{
+					{Main: shaderir.Vec4},
+					{Main: shaderir.Float},
+					{Main: shaderir.Vec2},
 				},
-				Varyings: []Type{
-					{Main: Float},
-					{Main: Vec2},
+				Varyings: []shaderir.Type{
+					{Main: shaderir.Float},
+					{Main: shaderir.Vec2},
 				},
-				VertexFunc: VertexFunc{
+				VertexFunc: shaderir.VertexFunc{
 					Block: block(
 						nil,
 						5+1,
@@ -968,11 +968,11 @@ varying vec2 V1;`,
 						),
 					),
 				},
-				FragmentFunc: FragmentFunc{
+				FragmentFunc: shaderir.FragmentFunc{
 					Block: block(
-						[]Type{
-							{Main: Float},
-							{Main: Vec2},
+						[]shaderir.Type{
+							{Main: shaderir.Float},
+							{Main: shaderir.Vec2},
 						},
 						3+1,
 						assignStmt(

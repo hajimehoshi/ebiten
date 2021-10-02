@@ -25,7 +25,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	t "github.com/hajimehoshi/ebiten/v2/internal/testing"
-	. "github.com/hajimehoshi/ebiten/v2/text"
+	"github.com/hajimehoshi/ebiten/v2/text"
 )
 
 func TestMain(m *testing.M) {
@@ -35,7 +35,7 @@ func TestMain(m *testing.M) {
 func TestTextColor(t *testing.T) {
 	clr := color.RGBA{0x80, 0x80, 0x80, 0x80}
 	img := ebiten.NewImage(30, 30)
-	Draw(img, "Hello", bitmapfont.Face, 12, 12, clr)
+	text.Draw(img, "Hello", bitmapfont.Face, 12, 12, clr)
 
 	w, h := img.Size()
 	allTransparent := true
@@ -123,7 +123,7 @@ func TestTextOverlap(t *testing.T) {
 
 	// With testFace, 'b' is rendered at the previous position as 0xff.
 	// 'a' is rendered at the current position as 0x80.
-	Draw(dst, "ab", f, 0, 0, color.White)
+	text.Draw(dst, "ab", f, 0, 0, color.White)
 	for j := 0; j < testFaceSize; j++ {
 		for i := 0; i < testFaceSize; i++ {
 			got := dst.At(i, j)
@@ -135,7 +135,7 @@ func TestTextOverlap(t *testing.T) {
 	}
 
 	// The glyph 'a' should be treated correctly.
-	Draw(dst, "a", f, testFaceSize, 0, color.White)
+	text.Draw(dst, "a", f, testFaceSize, 0, color.White)
 	for j := 0; j < testFaceSize; j++ {
 		for i := testFaceSize; i < testFaceSize*2; i++ {
 			got := dst.At(i, j)
