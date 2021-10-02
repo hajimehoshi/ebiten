@@ -15,28 +15,28 @@
 package twenty48_test
 
 import (
-	example2048 "github.com/hajimehoshi/ebiten/v2/examples/2048/2048"
+	twenty48 "github.com/hajimehoshi/ebiten/v2/examples/2048/2048"
 
 	"fmt"
 	"testing"
 )
 
-func cellsToTiles(cells []int, size int) map[*example2048.Tile]struct{} {
-	tiles := map[*example2048.Tile]struct{}{}
+func cellsToTiles(cells []int, size int) map[*twenty48.Tile]struct{} {
+	tiles := map[*twenty48.Tile]struct{}{}
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
 			c := cells[i+j*size]
 			if c == 0 {
 				continue
 			}
-			t := example2048.NewTile(c, i, j)
+			t := twenty48.NewTile(c, i, j)
 			tiles[t] = struct{}{}
 		}
 	}
 	return tiles
 }
 
-func tilesToCells(tiles map[*example2048.Tile]struct{}, size int) ([]int, []int) {
+func tilesToCells(tiles map[*twenty48.Tile]struct{}, size int) ([]int, []int) {
 	cells := make([]int, size*size)
 	nextCells := make([]int, size*size)
 	for t := range tiles {
@@ -58,12 +58,12 @@ func tilesToCells(tiles map[*example2048.Tile]struct{}, size int) ([]int, []int)
 func TestMoveTiles(t *testing.T) {
 	const size = 4
 	testCases := []struct {
-		Dir   example2048.Dir
+		Dir   twenty48.Dir
 		Input []int
 		Want  []int
 	}{
 		{
-			Dir: example2048.DirUp,
+			Dir: twenty48.DirUp,
 			Input: []int{
 				0, 0, 0, 0,
 				0, 0, 0, 0,
@@ -78,7 +78,7 @@ func TestMoveTiles(t *testing.T) {
 			},
 		},
 		{
-			Dir: example2048.DirRight,
+			Dir: twenty48.DirRight,
 			Input: []int{
 				2, 0, 0, 0,
 				0, 2, 0, 0,
@@ -93,7 +93,7 @@ func TestMoveTiles(t *testing.T) {
 			},
 		},
 		{
-			Dir: example2048.DirUp,
+			Dir: twenty48.DirUp,
 			Input: []int{
 				2, 0, 0, 0,
 				0, 2, 0, 0,
@@ -108,7 +108,7 @@ func TestMoveTiles(t *testing.T) {
 			},
 		},
 		{
-			Dir: example2048.DirLeft,
+			Dir: twenty48.DirLeft,
 			Input: []int{
 				0, 2, 2, 2,
 				0, 0, 0, 0,
@@ -123,7 +123,7 @@ func TestMoveTiles(t *testing.T) {
 			},
 		},
 		{
-			Dir: example2048.DirRight,
+			Dir: twenty48.DirRight,
 			Input: []int{
 				0, 0, 0, 2,
 				0, 0, 2, 2,
@@ -138,7 +138,7 @@ func TestMoveTiles(t *testing.T) {
 			},
 		},
 		{
-			Dir: example2048.DirLeft,
+			Dir: twenty48.DirLeft,
 			Input: []int{
 				0, 0, 0, 2,
 				0, 0, 2, 2,
@@ -153,7 +153,7 @@ func TestMoveTiles(t *testing.T) {
 			},
 		},
 		{
-			Dir: example2048.DirRight,
+			Dir: twenty48.DirRight,
 			Input: []int{
 				4, 8, 8, 4,
 				8, 8, 4, 4,
@@ -168,7 +168,7 @@ func TestMoveTiles(t *testing.T) {
 			},
 		},
 		{
-			Dir: example2048.DirDown,
+			Dir: twenty48.DirDown,
 			Input: []int{
 				4, 8, 8, 4,
 				8, 8, 4, 4,
@@ -183,7 +183,7 @@ func TestMoveTiles(t *testing.T) {
 			},
 		},
 		{
-			Dir: example2048.DirLeft,
+			Dir: twenty48.DirLeft,
 			Input: []int{
 				4, 8, 8, 4,
 				8, 8, 4, 4,
@@ -198,7 +198,7 @@ func TestMoveTiles(t *testing.T) {
 			},
 		},
 		{
-			Dir: example2048.DirUp,
+			Dir: twenty48.DirUp,
 			Input: []int{
 				4, 8, 8, 4,
 				8, 8, 4, 4,
@@ -213,7 +213,7 @@ func TestMoveTiles(t *testing.T) {
 			},
 		},
 		{
-			Dir: example2048.DirUp,
+			Dir: twenty48.DirUp,
 			Input: []int{
 				2, 4, 2, 4,
 				4, 2, 4, 2,
@@ -231,7 +231,7 @@ func TestMoveTiles(t *testing.T) {
 	for _, test := range testCases {
 		want, _ := tilesToCells(cellsToTiles(test.Want, size), size)
 		tiles := cellsToTiles(test.Input, size)
-		moved := example2048.MoveTiles(tiles, size, test.Dir)
+		moved := twenty48.MoveTiles(tiles, size, test.Dir)
 		input, got := tilesToCells(tiles, size)
 		if !moved {
 			got = input
