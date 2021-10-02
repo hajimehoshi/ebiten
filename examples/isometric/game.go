@@ -190,7 +190,7 @@ func (g *Game) renderLevel(screen *ebiten.Image) {
 	target := screen
 	scale := g.camScale
 
-	// When zooming in, there can be slight gaps between tiles.
+	// When zooming in, tiles can have slight bleeding edges.
 	// To avoid them, render the result on an offscreen first and then scale it later.
 	if scaleLater {
 		if g.offscreen == nil {
