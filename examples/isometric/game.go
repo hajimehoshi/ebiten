@@ -193,6 +193,14 @@ func (g *Game) renderLevel(screen *ebiten.Image) {
 	// When zooming in, tiles can have slight bleeding edges.
 	// To avoid them, render the result on an offscreen first and then scale it later.
 	if scaleLater {
+		if g.offscreen != nil {
+			w, h := g.offscreen.Size()
+			sw, sh := screen.Size()
+			if w != sw || h != sh {
+				g.offscreen.Dispose()
+				g.offscreen = nil
+			}
+		}
 		if g.offscreen == nil {
 			g.offscreen = ebiten.NewImage(screen.Size())
 		}
