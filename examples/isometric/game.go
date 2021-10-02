@@ -36,6 +36,8 @@ type Game struct {
 	camScaleTo float64
 
 	mousePanX, mousePanY int
+
+	offscreen *ebiten.Image
 }
 
 // NewGame returns a new isometric demo Game.
@@ -184,11 +186,26 @@ func (g *Game) renderLevel(screen *ebiten.Image) {
 	padding := float64(g.currentLevel.tileSize) * g.camScale
 	cx, cy := float64(g.w/2), float64(g.h/2)
 
+	scaleLater := g.camScale > 1
+	target := screen
+	scale := g.camScale
+
+	// When zooming in, there can be slight gaps between tiles.
+	// To avoid them, render the result on an offscreen first and then scale it later.
+	if scaleLater {
+		if g.offscreen == nil {
+			g.offscreen = ebiten.NewImage(screen.Size())
+		}
+		target = g.offscreen
+		target.Clear()
+		scale = 1
+	}
+
 	for y := 0; y < g.currentLevel.h; y++ {
 		for x := 0; x < g.currentLevel.w; x++ {
 			xi, yi := g.cartesianToIso(float64(x), float64(y))
 
-			// Skip drawing off-screen tiles.
+			// Skip drawing tiles that are out of the screen.
 			drawX, drawY := ((xi-g.camX)*g.camScale)+cx, ((yi+g.camY)*g.camScale)+cy
 			if drawX+padding < 0 || drawY+padding < 0 || drawX > float64(g.w) || drawY > float64(g.h) {
 				continue
@@ -205,11 +222,19 @@ func (g *Game) renderLevel(screen *ebiten.Image) {
 			// Translate camera position.
 			op.GeoM.Translate(-g.camX, g.camY)
 			// Zoom.
-			op.GeoM.Scale(g.camScale, g.camScale)
+			op.GeoM.Scale(scale, scale)
 			// Center.
 			op.GeoM.Translate(cx, cy)
 
-			t.Draw(screen, op)
+			t.Draw(target, op)
 		}
+	}
+
+	if scaleLater {
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(-cx, -cy)
+		op.GeoM.Scale(float64(g.camScale), float64(g.camScale))
+		op.GeoM.Translate(cx, cy)
+		screen.DrawImage(target, op)
 	}
 }
