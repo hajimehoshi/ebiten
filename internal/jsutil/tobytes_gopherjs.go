@@ -12,29 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build js && !wasm
+// +build js,!wasm
+
 package jsutil
 
 import (
-	"fmt"
-	"syscall/js"
+	"bytes"
+	"encoding/binary"
 )
 
-func Uint8ArrayToSlice(value js.Value, length int) []byte {
-	if l := value.Get("byteLength").Int(); length > l {
-		length = l
-	}
-	s := make([]byte, length)
-	js.CopyBytesToGo(s, value)
-	return s
-}
-
-func copySliceToTemporaryArrayBuffer(src interface{}) {
-	switch s := src.(type) {
-	case []uint8:
-		js.CopyBytesToJS(temporaryUint8Array, s)
-	case []int8, []int16, []int32, []uint16, []uint32, []float32, []float64:
-		js.CopyBytesToJS(temporaryUint8Array, sliceToByteSlice(s))
-	default:
-		panic(fmt.Sprintf("jsutil: unexpected value at CopySliceToJS: %T", s))
-	}
+func sliceToByteSlice(s interface{}) (bs []byte) {
+	var b bytes.Buffer
+	binary.Write(&b, binary.LittleEndian, s)
+	return b.Bytes()
 }
