@@ -109,7 +109,7 @@ func (c *context) usesWebGL2() bool {
 	return c.webGLVersion == webGLVersion2
 }
 
-func (c *context) initGL() {
+func (c *context) initGL() error {
 	c.webGLVersion = webGLVersionUnknown
 
 	var gl js.Value
@@ -141,7 +141,7 @@ func (c *context) initGL() {
 		}
 
 		if !gl.Truthy() {
-			panic("opengl: getContext failed")
+			return fmt.Errorf("opengl: getContext failed")
 		}
 	} else if go2cpp := js.Global().Get("go2cpp"); go2cpp.Truthy() {
 		gl = go2cpp.Get("gl")
@@ -149,6 +149,7 @@ func (c *context) initGL() {
 	}
 
 	c.gl = c.newGL(gl)
+	return nil
 }
 
 func (c *context) reset() error {
@@ -159,7 +160,9 @@ func (c *context) reset() error {
 	c.lastViewportHeight = 0
 	c.lastCompositeMode = driver.CompositeModeUnknown
 
-	c.initGL()
+	if err := c.initGL(); err != nil {
+		return err
+	}
 
 	if c.gl.isContextLost.Invoke().Bool() {
 		return driver.GraphicsNotReady
