@@ -39,7 +39,7 @@ func TestGC(t *testing.T) {
 	setup()
 	defer teardown()
 
-	p, _ := audio.NewPlayer(context, bytes.NewReader(make([]byte, 4)))
+	p, _ := context.NewPlayer(bytes.NewReader(make([]byte, 4)))
 	got := audio.PlayersNumForTesting()
 	if want := 0; got != want {
 		t.Errorf("PlayersNum(): got: %d, want: %d", got, want)
@@ -76,11 +76,11 @@ func TestSameSourcePlayers(t *testing.T) {
 	defer teardown()
 
 	src := bytes.NewReader(make([]byte, 4))
-	p0, err := audio.NewPlayer(context, src)
+	p0, err := context.NewPlayer(src)
 	if err != nil {
 		t.Fatal(err)
 	}
-	p1, err := audio.NewPlayer(context, src)
+	p1, err := context.NewPlayer(src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +103,7 @@ func TestPauseBeforeInit(t *testing.T) {
 	defer teardown()
 
 	src := bytes.NewReader(make([]byte, 4))
-	p, err := audio.NewPlayer(context, src)
+	p, err := context.NewPlayer(src)
 	if err != nil {
 		t.Fatal(err)
 	}
