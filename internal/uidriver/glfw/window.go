@@ -206,13 +206,13 @@ func (w *window) SetPosition(x, y int) {
 
 func (w *window) Size() (int, int) {
 	if !w.ui.isRunning() {
-		ww, wh := w.ui.getInitWindowSize()
+		ww, wh := w.ui.getInitWindowSizeInDP()
 		return w.ui.adjustWindowSizeBasedOnSizeLimitsInDP(ww, wh)
 	}
 	ww, wh := 0, 0
 	_ = w.ui.t.Call(func() error {
-		ww = int(w.ui.fromGLFWPixel(float64(w.ui.windowWidth), w.ui.currentMonitor()))
-		wh = int(w.ui.fromGLFWPixel(float64(w.ui.windowHeight), w.ui.currentMonitor()))
+		ww = w.ui.windowWidthInDP
+		wh = w.ui.windowHeightInDP
 		return nil
 	})
 	return ww, wh
@@ -230,9 +230,7 @@ func (w *window) SetSize(width, height int) {
 			return nil
 		}
 
-		ww := int(w.ui.toGLFWPixel(float64(width), w.ui.currentMonitor()))
-		wh := int(w.ui.toGLFWPixel(float64(height), w.ui.currentMonitor()))
-		w.ui.setWindowSize(ww, wh, w.ui.isFullscreen())
+		w.ui.setWindowSizeInDP(width, height, w.ui.isFullscreen())
 		return nil
 	})
 }
