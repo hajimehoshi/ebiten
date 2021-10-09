@@ -117,22 +117,26 @@ func videoModeScaleUncached(m *glfw.Monitor) float64 {
 }
 
 // fromGLFWMonitorPixel must be called from the main thread.
-func (u *UserInterface) fromGLFWMonitorPixel(x float64, videoModeScale float64) float64 {
-	return x / (videoModeScale * u.deviceScaleFactor())
+func (u *UserInterface) fromGLFWMonitorPixel(x float64, monitor *glfw.Monitor) float64 {
+	return x / (videoModeScale(monitor) * u.deviceScaleFactor(monitor))
 }
 
 // fromGLFWPixel must be called from the main thread.
-func (u *UserInterface) fromGLFWPixel(x float64) float64 {
-	return x / u.deviceScaleFactor()
+func (u *UserInterface) fromGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
+	return x / u.deviceScaleFactor(monitor)
 }
 
 // toGLFWPixel must be called from the main thread.
-func (u *UserInterface) toGLFWPixel(x float64) float64 {
-	return x * u.deviceScaleFactor()
+func (u *UserInterface) toGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
+	return x * u.deviceScaleFactor(monitor)
 }
 
 func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y
+}
+
+func initialMonitorByOS() *glfw.Monitor {
+	return nil
 }
 
 func currentMonitorByOS(_ *glfw.Window) *glfw.Monitor {
