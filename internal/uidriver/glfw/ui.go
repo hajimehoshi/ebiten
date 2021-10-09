@@ -53,10 +53,10 @@ type UserInterface struct {
 	title   string
 	window  *glfw.Window
 
-	// windowWidth and windowHeight represents a window size.
-	// The units are device-dependent pixels.
-	windowWidth  int
-	windowHeight int
+	// windowWidthInDP and windowHeightInDP represents a window size.
+	// The units are device-independent pixels.
+	windowWidthInDP  int
+	windowHeightInDP int
 
 	// The units are device-independent pixels.
 	minWindowWidthInDP  int
@@ -269,27 +269,6 @@ func (u *UserInterface) setRunning(running bool) {
 	}
 }
 
-func (u *UserInterface) getWindowSizeLimits() (minw, minh, maxw, maxh int) {
-	u.m.RLock()
-	defer u.m.RUnlock()
-
-	minw, minh, maxw, maxh = -1, -1, -1, -1
-	m := u.currentMonitor()
-	if u.minWindowWidthInDP >= 0 {
-		minw = int(u.toGLFWPixel(float64(u.minWindowWidthInDP), m))
-	}
-	if u.minWindowHeightInDP >= 0 {
-		minh = int(u.toGLFWPixel(float64(u.minWindowHeightInDP), m))
-	}
-	if u.maxWindowWidthInDP >= 0 {
-		maxw = int(u.toGLFWPixel(float64(u.maxWindowWidthInDP), m))
-	}
-	if u.maxWindowHeightInDP >= 0 {
-		maxh = int(u.toGLFWPixel(float64(u.maxWindowHeightInDP), m))
-	}
-	return
-}
-
 func (u *UserInterface) getWindowSizeLimitsInDP() (minw, minh, maxw, maxh int) {
 	u.m.RLock()
 	defer u.m.RUnlock()
@@ -452,7 +431,7 @@ func (u *UserInterface) setInitWindowPosition(x, y int) {
 	u.initWindowPositionYInDP = y
 }
 
-func (u *UserInterface) getInitWindowSize() (int, int) {
+func (u *UserInterface) getInitWindowSizeInDP() (int, int) {
 	u.m.Lock()
 	w, h := u.initWindowWidthInDP, u.initWindowHeightInDP
 	u.m.Unlock()
@@ -576,8 +555,8 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 	}
 
 	_ = u.t.Call(func() error {
-		w, h := u.windowWidth, u.windowHeight
-		u.setWindowSize(w, h, fullscreen)
+		w, h := u.windowWidthInDP, u.windowHeightInDP
+		u.setWindowSizeInDP(w, h, fullscreen)
 		return nil
 	})
 }
@@ -792,7 +771,9 @@ func (u *UserInterface) registerWindowSetSizeCallback() {
 
 				_ = u.t.Call(func() error {
 					if width != 0 || height != 0 {
-						u.setWindowSize(width, height, u.isFullscreen())
+						w := int(u.fromGLFWPixel(float64(width), u.currentMonitor()))
+						h := int(u.fromGLFWPixel(float64(height), u.currentMonitor()))
+						u.setWindowSizeInDP(w, h, u.isFullscreen())
 					}
 
 					outsideWidth, outsideHeight, outsideSizeChanged = u.updateSize()
@@ -890,10 +871,8 @@ func (u *UserInterface) init() error {
 	u.setSizeCallbackEnabled = true
 
 	setSize := func() {
-		ww, wh := u.getInitWindowSize()
-		ww = int(u.toGLFWPixel(float64(ww), u.initMonitor))
-		wh = int(u.toGLFWPixel(float64(wh), u.initMonitor))
-		u.setWindowSize(ww, wh, u.isFullscreen())
+		ww, wh := u.getInitWindowSizeInDP()
+		u.setWindowSizeInDP(ww, wh, u.isFullscreen())
 	}
 
 	// Set the window size and the window position in this order on Linux or other UNIX using X (#1118),
@@ -927,8 +906,8 @@ func (u *UserInterface) init() error {
 }
 
 func (u *UserInterface) updateSize() (float64, float64, bool) {
-	ww, wh := u.windowWidth, u.windowHeight
-	u.setWindowSize(ww, wh, u.isFullscreen())
+	ww, wh := u.windowWidthInDP, u.windowHeightInDP
+	u.setWindowSizeInDP(ww, wh, u.isFullscreen())
 
 	if !u.toChangeSize {
 		return 0, 0, false
@@ -947,9 +926,9 @@ func (u *UserInterface) updateSize() (float64, float64, bool) {
 		w = u.fromGLFWMonitorPixel(float64(ww), m)
 		h = u.fromGLFWMonitorPixel(float64(wh), m)
 	} else {
-		// Instead of u.windowWidth and u.windowHeight, use the actual window size here.
-		// On Windows, the specified size at SetSize and the actual window size might not
-		// match (#1163).
+		// Instead of u.windowWidthInDP and u.windowHeightInDP, use the actual window size
+		// here. On Windows, the specified size at SetSize and the actual window size might
+		// not match (#1163).
 		ww, wh := u.window.GetSize()
 		w = u.fromGLFWPixel(float64(ww), u.currentMonitor())
 		h = u.fromGLFWPixel(float64(wh), u.currentMonitor())
@@ -983,7 +962,9 @@ func (u *UserInterface) update() (float64, float64, bool, error) {
 
 	if u.isInitFullscreen() {
 		w, h := u.window.GetSize()
-		u.setWindowSize(w, h, true)
+		ww := int(u.fromGLFWPixel(float64(w), u.currentMonitor()))
+		wh := int(u.fromGLFWPixel(float64(h), u.currentMonitor()))
+		u.setWindowSizeInDP(ww, wh, true)
 		u.setInitFullscreen(false)
 	}
 
@@ -1161,25 +1142,6 @@ func (u *UserInterface) updateWindowSizeLimits() {
 }
 
 // adjustWindowSizeBasedOnSizeLimitsInDP adjust the size based on the window size limits.
-// width and height are in device-dependent pixels.
-func (u *UserInterface) adjustWindowSizeBasedOnSizeLimits(width, height int) (int, int) {
-	minw, minh, maxw, maxh := u.getWindowSizeLimits()
-	if minw >= 0 && width < minw {
-		width = minw
-	}
-	if minh >= 0 && height < minh {
-		height = minh
-	}
-	if maxw >= 0 && width > maxw {
-		width = maxw
-	}
-	if maxh >= 0 && height > maxh {
-		height = maxh
-	}
-	return width, height
-}
-
-// adjustWindowSizeBasedOnSizeLimitsInDP adjust the size based on the window size limits.
 // width and height are in device-independent pixels.
 func (u *UserInterface) adjustWindowSizeBasedOnSizeLimitsInDP(width, height int) (int, int) {
 	minw, minh, maxw, maxh := u.getWindowSizeLimitsInDP()
@@ -1199,12 +1161,13 @@ func (u *UserInterface) adjustWindowSizeBasedOnSizeLimitsInDP(width, height int)
 }
 
 // setWindowSize must be called from the main thread.
-func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
-	width, height = u.adjustWindowSizeBasedOnSizeLimits(width, height)
+func (u *UserInterface) setWindowSizeInDP(width, height int, fullscreen bool) {
+	width, height = u.adjustWindowSizeBasedOnSizeLimitsInDP(width, height)
 
 	u.Graphics().SetFullscreen(fullscreen)
 
-	if u.windowWidth == width && u.windowHeight == height && u.isFullscreen() == fullscreen && u.lastDeviceScaleFactor == u.deviceScaleFactor(u.currentMonitor()) {
+	scale := u.deviceScaleFactor(u.currentMonitor())
+	if u.windowWidthInDP == width && u.windowHeightInDP == height && u.isFullscreen() == fullscreen && u.lastDeviceScaleFactor == scale {
 		return
 	}
 
@@ -1215,7 +1178,7 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 		height = 1
 	}
 
-	u.lastDeviceScaleFactor = u.deviceScaleFactor(u.currentMonitor())
+	u.lastDeviceScaleFactor = scale
 
 	// To make sure the current existing framebuffers are rendered,
 	// swap buffers here before SetSize is called.
@@ -1232,13 +1195,13 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 		}()
 	}
 
-	windowRecreated := u.setWindowSizeImpl(width, height, fullscreen)
+	windowRecreated := u.setWindowSizeInDPImpl(width, height, fullscreen)
 
 	u.adjustViewSize()
 
 	// As width might be updated, update windowWidth/Height here.
-	u.windowWidth = width
-	u.windowHeight = height
+	u.windowWidthInDP = width
+	u.windowHeightInDP = height
 
 	u.toChangeSize = true
 
@@ -1249,7 +1212,7 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool) {
 	}
 }
 
-func (u *UserInterface) setWindowSizeImpl(width, height int, fullscreen bool) bool {
+func (u *UserInterface) setWindowSizeInDPImpl(width, height int, fullscreen bool) bool {
 	var windowRecreated bool
 
 	if fullscreen {
@@ -1275,7 +1238,7 @@ func (u *UserInterface) setWindowSizeImpl(width, height int, fullscreen bool) bo
 		// On Windows, giving a too small width doesn't call a callback (#165).
 		// To prevent hanging up, return asap if the width is too small.
 		// 126 is an arbitrary number and I guess this is small enough.
-		minWindowWidth := int(u.toGLFWPixel(126, u.currentMonitor()))
+		minWindowWidth := 126
 		if u.window.GetAttrib(glfw.Decorated) == glfw.False {
 			minWindowWidth = 1
 		}
@@ -1290,7 +1253,9 @@ func (u *UserInterface) setWindowSizeImpl(width, height int, fullscreen bool) bo
 				// When OpenGL is used, swapping buffer is enough to solve the image-lag
 				// issue (#1004). Rather, recreating window destroys GPU resources.
 				// TODO: This might not work when vsync is disabled.
-				u.window.SetMonitor(nil, 0, 0, width, height, 0)
+				ww := int(u.toGLFWPixel(float64(width), u.currentMonitor()))
+				wh := int(u.toGLFWPixel(float64(height), u.currentMonitor()))
+				u.window.SetMonitor(nil, 0, 0, ww, wh, 0)
 				glfw.PollEvents()
 				u.swapBuffers()
 			} else {
@@ -1325,8 +1290,8 @@ func (u *UserInterface) setWindowSizeImpl(width, height int, fullscreen bool) bo
 		// Set the window size after the position. The order matters.
 		// In the opposite order, the window size might not be correct when going back from fullscreen with multi monitors.
 		oldW, oldH := u.window.GetSize()
-		newW := width
-		newH := height
+		newW := int(u.toGLFWPixel(float64(width), u.currentMonitor()))
+		newH := int(u.toGLFWPixel(float64(height), u.currentMonitor()))
 		if oldW != newW || oldH != newH {
 			u.framebufferSizeCallbackCh = make(chan struct{}, 1)
 			if u.framebufferSizeCallback == 0 {
@@ -1537,7 +1502,9 @@ func (u *UserInterface) maximizeWindow() {
 		// Do not call setWindowSize in the fullscreen mode since setWindowSize requires the window size
 		// before the fullscreen, while window.GetSize() returns the desktop screen size in the fullscreen mode.
 		w, h := u.window.GetSize()
-		u.setWindowSize(w, h, u.isFullscreen())
+		ww := int(u.fromGLFWPixel(float64(w), u.currentMonitor()))
+		wh := int(u.fromGLFWPixel(float64(h), u.currentMonitor()))
+		u.setWindowSizeInDP(ww, wh, u.isFullscreen())
 	}
 }
 
@@ -1588,7 +1555,9 @@ func (u *UserInterface) restoreWindow() {
 	// before the fullscreen, while window.GetSize() returns the desktop screen size in the fullscreen mode.
 	if !u.isFullscreen() {
 		w, h := u.window.GetSize()
-		u.setWindowSize(w, h, u.isFullscreen())
+		ww := int(u.fromGLFWPixel(float64(w), u.currentMonitor()))
+		wh := int(u.fromGLFWPixel(float64(h), u.currentMonitor()))
+		u.setWindowSizeInDP(ww, wh, u.isFullscreen())
 	}
 }
 
@@ -1670,7 +1639,9 @@ func (u *UserInterface) setWindowPosition(x, y int, monitor *glfw.Monitor) {
 	// before the fullscreen, while window.GetSize() returns the desktop screen size in the fullscreen mode.
 	if !u.isFullscreen() && runtime.GOOS == "darwin" {
 		w, h := u.window.GetSize()
-		u.setWindowSize(w, h, u.isFullscreen())
+		ww := int(u.fromGLFWPixel(float64(w), u.currentMonitor()))
+		wh := int(u.fromGLFWPixel(float64(h), u.currentMonitor()))
+		u.setWindowSizeInDP(ww, wh, u.isFullscreen())
 	}
 }
 
