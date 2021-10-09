@@ -47,7 +47,6 @@ type monitorInfo struct {
 var (
 	// user32 is defined at hideconsole_windows.go
 	procGetSystemMetrics    = user32.NewProc("GetSystemMetrics")
-	procGetActiveWindow     = user32.NewProc("GetActiveWindow")
 	procGetForegroundWindow = user32.NewProc("GetForegroundWindow")
 	procMonitorFromWindow   = user32.NewProc("MonitorFromWindow")
 	procGetMonitorInfoW     = user32.NewProc("GetMonitorInfoW")
@@ -59,14 +58,6 @@ func getSystemMetrics(nIndex int) (int, error) {
 		return 0, fmt.Errorf("ui: GetSystemMetrics failed: error code: %d", e)
 	}
 	return int(r), nil
-}
-
-func getActiveWindow() (uintptr, error) {
-	r, _, e := procGetActiveWindow.Call()
-	if e != nil && e.(windows.Errno) != 0 {
-		return 0, fmt.Errorf("ui: GetActiveWindow failed: error code: %d", e)
-	}
-	return r, nil
 }
 
 func getForegroundWindow() (uintptr, error) {
@@ -102,28 +93,23 @@ func getMonitorInfoW(hMonitor uintptr, lpmi *monitorInfo) error {
 // clearVideoModeScaleCache must be called from the main thread.
 func clearVideoModeScaleCache() {}
 
-// videoModeScale must be called from the main thread.
-func videoModeScale(m *glfw.Monitor) float64 {
-	return 1
-}
-
 // fromGLFWMonitorPixel must be called from the main thread.
-func (u *UserInterface) fromGLFWMonitorPixel(x float64, videoModeScale float64) float64 {
-	return x / (videoModeScale * u.deviceScaleFactor())
+func (u *UserInterface) fromGLFWMonitorPixel(x float64, monitor *glfw.Monitor) float64 {
+	return x / u.deviceScaleFactor(monitor)
 }
 
 // fromGLFWPixel must be called from the main thread.
-func (u *UserInterface) fromGLFWPixel(x float64) float64 {
-	return x / u.deviceScaleFactor()
+func (u *UserInterface) fromGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
+	return x / u.deviceScaleFactor(monitor)
 }
 
 // toGLFWPixel must be called from the main thread.
-func (u *UserInterface) toGLFWPixel(x float64) float64 {
-	return x * u.deviceScaleFactor()
+func (u *UserInterface) toGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
+	return x * u.deviceScaleFactor(monitor)
 }
 
 func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
-	mx, my := currentMonitor(u.window).GetPos()
+	mx, my := u.currentMonitor().GetPos()
 	// As the video width/height might be wrong,
 	// adjust x/y at least to enable to handle the window (#328)
 	if x < mx {
@@ -139,28 +125,24 @@ func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
 
-func currentMonitorByOS(_ *glfw.Window) *glfw.Monitor {
-	// TODO: Why not using the given window?
-
-	// TODO: Should we return nil here?
-	w, err := getActiveWindow()
+func initialMonitorByOS() *glfw.Monitor {
+	// Get the foreground window, that is common among multiple processes.
+	w, err := getForegroundWindow()
 	if err != nil {
 		panic(err)
 	}
-
 	if w == 0 {
-		// The active window doesn't exist when launching, or the application is runnable on unfocused.
-		// Get the foreground window, that is common among multiple processes.
-		w, err = getForegroundWindow()
-		if err != nil {
-			panic(err)
-		}
-		if w == 0 {
-			// GetForegroundWindow can return null according to the document.
-			return nil
-		}
+		// GetForegroundWindow can return null according to the document.
+		return nil
 	}
+	return monitorFromWin32Window(w)
+}
 
+func currentMonitorByOS(w *glfw.Window) *glfw.Monitor {
+	return monitorFromWin32Window(w.GetWin32Window())
+}
+
+func monitorFromWin32Window(w uintptr) *glfw.Monitor {
 	// Get the current monitor by the window handle instead of the window position. It is because the window
 	// position is not relaiable in some cases e.g. when the window is put across multiple monitors.
 

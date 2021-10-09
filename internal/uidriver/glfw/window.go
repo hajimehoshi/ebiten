@@ -181,11 +181,12 @@ func (w *window) Position() (int, int) {
 		} else {
 			wx, wy = w.ui.window.GetPos()
 		}
-		mx, my := currentMonitor(w.ui.window).GetPos()
+		m := w.ui.currentMonitor()
+		mx, my := m.GetPos()
 		wx -= mx
 		wy -= my
-		xf := w.ui.fromGLFWPixel(float64(wx))
-		yf := w.ui.fromGLFWPixel(float64(wy))
+		xf := w.ui.fromGLFWPixel(float64(wx), m)
+		yf := w.ui.fromGLFWPixel(float64(wy), m)
 		x, y = int(xf), int(yf)
 		return nil
 	})
@@ -198,7 +199,7 @@ func (w *window) SetPosition(x, y int) {
 		return
 	}
 	_ = w.ui.t.Call(func() error {
-		w.ui.setWindowPosition(x, y)
+		w.ui.setWindowPosition(x, y, w.ui.currentMonitor())
 		return nil
 	})
 }
@@ -210,8 +211,8 @@ func (w *window) Size() (int, int) {
 	}
 	ww, wh := 0, 0
 	_ = w.ui.t.Call(func() error {
-		ww = int(w.ui.fromGLFWPixel(float64(w.ui.windowWidth)))
-		wh = int(w.ui.fromGLFWPixel(float64(w.ui.windowHeight)))
+		ww = int(w.ui.fromGLFWPixel(float64(w.ui.windowWidth), w.ui.currentMonitor()))
+		wh = int(w.ui.fromGLFWPixel(float64(w.ui.windowHeight), w.ui.currentMonitor()))
 		return nil
 	})
 	return ww, wh
@@ -229,8 +230,8 @@ func (w *window) SetSize(width, height int) {
 			return nil
 		}
 
-		ww := int(w.ui.toGLFWPixel(float64(width)))
-		wh := int(w.ui.toGLFWPixel(float64(height)))
+		ww := int(w.ui.toGLFWPixel(float64(width), w.ui.currentMonitor()))
+		wh := int(w.ui.toGLFWPixel(float64(height), w.ui.currentMonitor()))
 		w.ui.setWindowSize(ww, wh, w.ui.isFullscreen())
 		return nil
 	})

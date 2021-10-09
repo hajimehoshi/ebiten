@@ -127,14 +127,13 @@ func videoModeScale(m *glfw.Monitor) float64 {
 }
 
 // fromGLFWMonitorPixel must be called from the main thread.
-func (u *UserInterface) fromGLFWMonitorPixel(x float64, videoModeScale float64) float64 {
-	// videoModeScale is always 1 on macOS,
-	// however leaving the divison in place for consistency.
-	return x / videoModeScale
+func (u *UserInterface) fromGLFWMonitorPixel(x float64, monitor *glfw.Monitor) float64 {
+	// videoModeScale is always 1 on macOS.
+	return x
 }
 
 // fromGLFWPixel must be called from the main thread.
-func (u *UserInterface) fromGLFWPixel(x float64) float64 {
+func (u *UserInterface) fromGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
 	// NOTE: On macOS, GLFW exposes the device independent coordinate system.
 	// Thus, the conversion functions are unnecessary,
 	// however we still need the deviceScaleFactor internally
@@ -143,12 +142,16 @@ func (u *UserInterface) fromGLFWPixel(x float64) float64 {
 }
 
 // toGLFWPixel must be called from the main thread.
-func (u *UserInterface) toGLFWPixel(x float64) float64 {
+func (u *UserInterface) toGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
 	return x
 }
 
 func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y
+}
+
+func initialMonitorByOS() *glfw.Monitor {
+	return nil
 }
 
 func currentMonitorByOS(w *glfw.Window) *glfw.Monitor {
