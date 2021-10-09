@@ -121,11 +121,6 @@ import (
 // clearVideoModeScaleCache must be called from the main thread.
 func clearVideoModeScaleCache() {}
 
-// videoModeScale must be called from the main thread.
-func videoModeScale(m *glfw.Monitor) float64 {
-	return 1
-}
-
 // fromGLFWMonitorPixel must be called from the main thread.
 func (u *UserInterface) fromGLFWMonitorPixel(x float64, monitor *glfw.Monitor) float64 {
 	// videoModeScale is always 1 on macOS.
