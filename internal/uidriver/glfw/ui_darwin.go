@@ -121,14 +121,14 @@ import (
 // clearVideoModeScaleCache must be called from the main thread.
 func clearVideoModeScaleCache() {}
 
-// fromGLFWMonitorPixel must be called from the main thread.
-func (u *UserInterface) fromGLFWMonitorPixel(x float64, monitor *glfw.Monitor) float64 {
+// dipFromGLFWMonitorPixel must be called from the main thread.
+func (u *UserInterface) dipFromGLFWMonitorPixel(x float64, monitor *glfw.Monitor) float64 {
 	// videoModeScale is always 1 on macOS.
 	return x
 }
 
-// fromGLFWPixel must be called from the main thread.
-func (u *UserInterface) fromGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
+// dipFromGLFWPixel must be called from the main thread.
+func (u *UserInterface) dipFromGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
 	// NOTE: On macOS, GLFW exposes the device independent coordinate system.
 	// Thus, the conversion functions are unnecessary,
 	// however we still need the deviceScaleFactor internally
@@ -136,8 +136,8 @@ func (u *UserInterface) fromGLFWPixel(x float64, monitor *glfw.Monitor) float64 
 	return x
 }
 
-// toGLFWPixel must be called from the main thread.
-func (u *UserInterface) toGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
+// dipToGLFWPixel must be called from the main thread.
+func (u *UserInterface) dipToGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
 	return x
 }
 

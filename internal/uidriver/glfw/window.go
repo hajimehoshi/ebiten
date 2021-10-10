@@ -185,8 +185,8 @@ func (w *window) Position() (int, int) {
 		mx, my := m.GetPos()
 		wx -= mx
 		wy -= my
-		xf := w.ui.fromGLFWPixel(float64(wx), m)
-		yf := w.ui.fromGLFWPixel(float64(wy), m)
+		xf := w.ui.dipFromGLFWPixel(float64(wx), m)
+		yf := w.ui.dipFromGLFWPixel(float64(wy), m)
 		x, y = int(xf), int(yf)
 		return nil
 	})
@@ -195,7 +195,7 @@ func (w *window) Position() (int, int) {
 
 func (w *window) SetPosition(x, y int) {
 	if !w.ui.isRunning() {
-		w.ui.setInitWindowPosition(x, y)
+		w.ui.setInitWindowPositionInDIP(x, y)
 		return
 	}
 	_ = w.ui.t.Call(func() error {
@@ -206,13 +206,13 @@ func (w *window) SetPosition(x, y int) {
 
 func (w *window) Size() (int, int) {
 	if !w.ui.isRunning() {
-		ww, wh := w.ui.getInitWindowSizeInDP()
-		return w.ui.adjustWindowSizeBasedOnSizeLimitsInDP(ww, wh)
+		ww, wh := w.ui.getInitWindowSizeInDIP()
+		return w.ui.adjustWindowSizeBasedOnSizeLimitsInDIP(ww, wh)
 	}
 	ww, wh := 0, 0
 	_ = w.ui.t.Call(func() error {
-		ww = w.ui.windowWidthInDP
-		wh = w.ui.windowHeightInDP
+		ww = w.ui.windowWidthInDIP
+		wh = w.ui.windowHeightInDIP
 		return nil
 	})
 	return ww, wh
@@ -220,7 +220,7 @@ func (w *window) Size() (int, int) {
 
 func (w *window) SetSize(width, height int) {
 	if !w.ui.isRunning() {
-		w.ui.setInitWindowSize(width, height)
+		w.ui.setInitWindowSizeInDIP(width, height)
 		return
 	}
 	_ = w.ui.t.Call(func() error {
@@ -230,17 +230,17 @@ func (w *window) SetSize(width, height int) {
 			return nil
 		}
 
-		w.ui.setWindowSizeInDP(width, height, w.ui.isFullscreen())
+		w.ui.setWindowSizeInDIP(width, height, w.ui.isFullscreen())
 		return nil
 	})
 }
 
 func (w *window) SizeLimits() (minw, minh, maxw, maxh int) {
-	return w.ui.getWindowSizeLimitsInDP()
+	return w.ui.getWindowSizeLimitsInDIP()
 }
 
 func (w *window) SetSizeLimits(minw, minh, maxw, maxh int) {
-	if !w.ui.setWindowSizeLimitsInDP(minw, minh, maxw, maxh) {
+	if !w.ui.setWindowSizeLimitsInDIP(minw, minh, maxw, maxh) {
 		return
 	}
 	if !w.ui.isRunning() {

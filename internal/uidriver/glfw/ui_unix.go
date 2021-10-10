@@ -116,18 +116,18 @@ func videoModeScaleUncached(m *glfw.Monitor) float64 {
 	return 1
 }
 
-// fromGLFWMonitorPixel must be called from the main thread.
-func (u *UserInterface) fromGLFWMonitorPixel(x float64, monitor *glfw.Monitor) float64 {
+// dipFromGLFWMonitorPixel must be called from the main thread.
+func (u *UserInterface) dipFromGLFWMonitorPixel(x float64, monitor *glfw.Monitor) float64 {
 	return x / (videoModeScale(monitor) * u.deviceScaleFactor(monitor))
 }
 
-// fromGLFWPixel must be called from the main thread.
-func (u *UserInterface) fromGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
+// dipFromGLFWPixel must be called from the main thread.
+func (u *UserInterface) dipFromGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
 	return x / u.deviceScaleFactor(monitor)
 }
 
-// toGLFWPixel must be called from the main thread.
-func (u *UserInterface) toGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
+// dipToGLFWPixel must be called from the main thread.
+func (u *UserInterface) dipToGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
 	return x * u.deviceScaleFactor(monitor)
 }
 
