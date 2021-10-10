@@ -1441,28 +1441,11 @@ func (u *UserInterface) ResetForFrame() {
 	u.m.Unlock()
 }
 
-func (u *UserInterface) MonitorPosition() (int, int) {
-	if !u.isRunning() {
-		return u.monitorPosition()
-	}
-	var mx, my int
-	_ = u.t.Call(func() error {
-		mx, my = u.monitorPosition()
-		return nil
-	})
-	return mx, my
-}
-
 func (u *UserInterface) SetInitFocused(focused bool) {
 	if u.isRunning() {
 		panic("ui: SetInitFocused must be called before the main loop")
 	}
 	u.setInitFocused(focused)
-}
-
-func (u *UserInterface) monitorPosition() (int, int) {
-	// TODO: dipFromGLFWMonitorPixel might be required.
-	return u.currentMonitor().GetPos()
 }
 
 func (u *UserInterface) Input() driver.Input {
