@@ -880,11 +880,11 @@ func (u *UserInterface) init() error {
 	// this. This doesn't matter on macOS.
 	wx, wy := u.getInitWindowPositionInDIP()
 	if runtime.GOOS == "windows" {
-		u.setWindowPosition(wx, wy, u.initMonitor)
+		u.setWindowPositionInDIP(wx, wy, u.initMonitor)
 		setSize()
 	} else {
 		setSize()
-		u.setWindowPosition(wx, wy, u.initMonitor)
+		u.setWindowPositionInDIP(wx, wy, u.initMonitor)
 	}
 
 	u.updateWindowSizeLimits()
@@ -1612,12 +1612,12 @@ func (u *UserInterface) setWindowResizable(resizable bool) {
 	u.window.SetAttrib(glfw.Resizable, v)
 }
 
-// setWindowPosition sets the window position.
+// setWindowPositionInDIP sets the window position.
 //
 // x and y are the position in device-independent pixels.
 //
-// setWindowPosition must be called from the main thread.
-func (u *UserInterface) setWindowPosition(x, y int, monitor *glfw.Monitor) {
+// setWindowPositionInDIP must be called from the main thread.
+func (u *UserInterface) setWindowPositionInDIP(x, y int, monitor *glfw.Monitor) {
 	if u.setSizeCallbackEnabled {
 		u.setSizeCallbackEnabled = false
 		defer func() {

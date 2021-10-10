@@ -199,7 +199,7 @@ func (w *window) SetPosition(x, y int) {
 		return
 	}
 	_ = w.ui.t.Call(func() error {
-		w.ui.setWindowPosition(x, y, w.ui.currentMonitor())
+		w.ui.setWindowPositionInDIP(x, y, w.ui.currentMonitor())
 		return nil
 	})
 }
