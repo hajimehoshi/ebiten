@@ -123,7 +123,6 @@ func clearVideoModeScaleCache() {}
 
 // dipFromGLFWMonitorPixel must be called from the main thread.
 func (u *UserInterface) dipFromGLFWMonitorPixel(x float64, monitor *glfw.Monitor) float64 {
-	// videoModeScale is always 1 on macOS.
 	return x
 }
 
