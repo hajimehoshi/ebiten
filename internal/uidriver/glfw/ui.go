@@ -727,8 +727,11 @@ func (u *UserInterface) createWindow() error {
 		return err
 	}
 	initializeWindowAfterCreation(window)
-
 	u.window = window
+
+	// Even just after a window creation, FramebufferSize callback might be invoked (#1847).
+	// Ensure to consume this callback.
+	u.waitForFramebufferSizeCallback(nil)
 
 	if u.Graphics().IsGL() {
 		u.window.MakeContextCurrent()
@@ -815,6 +818,51 @@ func (u *UserInterface) registerWindowCloseCallback() {
 		})
 	}
 	u.window.SetCloseCallback(u.closeCallback)
+}
+
+// waitForFramebufferSizeCallback waits for GLFW's FramebufferSize callback.
+// f is a process executed after registering the callback.
+// If the callback is not invoked for a while, waitForFramebufferSizeCallback times out and return.
+//
+// waitForFramebufferSizeCallback must be called from the main thread.
+func (u *UserInterface) waitForFramebufferSizeCallback(f func()) {
+	u.framebufferSizeCallbackCh = make(chan struct{}, 1)
+
+	if u.framebufferSizeCallback == 0 {
+		u.framebufferSizeCallback = glfw.ToFramebufferSizeCallback(func(_ *glfw.Window, w, h int) {
+			// This callback can be invoked multiple times by one PollEvents in theory (#1618).
+			// Allow the case when the channel is full.
+			select {
+			case u.framebufferSizeCallbackCh <- struct{}{}:
+			default:
+			}
+		})
+	}
+	u.window.SetFramebufferSizeCallback(u.framebufferSizeCallback)
+
+	if f != nil {
+		f()
+	}
+
+	// Use the timeout as FramebufferSize event might not be fired (#1618).
+	t := time.NewTimer(time.Second)
+	defer t.Stop()
+
+event:
+	for {
+		glfw.PollEvents()
+		select {
+		case <-u.framebufferSizeCallbackCh:
+			break event
+		case <-t.C:
+			break event
+		default:
+			time.Sleep(time.Millisecond)
+		}
+	}
+	u.window.SetFramebufferSizeCallback(glfw.ToFramebufferSizeCallback(nil))
+	close(u.framebufferSizeCallbackCh)
+	u.framebufferSizeCallbackCh = nil
 }
 
 func (u *UserInterface) init() error {
@@ -1293,41 +1341,11 @@ func (u *UserInterface) setWindowSizeInDIPImpl(width, height int, fullscreen boo
 		newW := int(u.dipToGLFWPixel(float64(width), u.currentMonitor()))
 		newH := int(u.dipToGLFWPixel(float64(height), u.currentMonitor()))
 		if oldW != newW || oldH != newH {
-			u.framebufferSizeCallbackCh = make(chan struct{}, 1)
-			if u.framebufferSizeCallback == 0 {
-				u.framebufferSizeCallback = glfw.ToFramebufferSizeCallback(func(_ *glfw.Window, _, _ int) {
-					// This callback can be invoked multiple times by one PollEvents in theory (#1618).
-					// Allow the case when the channel is full.
-					select {
-					case u.framebufferSizeCallbackCh <- struct{}{}:
-					default:
-					}
-				})
-			}
-			u.window.SetFramebufferSizeCallback(u.framebufferSizeCallback)
-			u.window.SetSize(newW, newH)
 			// Just after SetSize, GetSize is not reliable especially on Linux/UNIX.
 			// Let's wait for FramebufferSize callback in any cases.
-
-			// Use the timeout as FramebufferSize event might not be fired (#1618).
-			t := time.NewTimer(time.Second)
-			defer t.Stop()
-
-		event:
-			for {
-				glfw.PollEvents()
-				select {
-				case <-u.framebufferSizeCallbackCh:
-					break event
-				case <-t.C:
-					break event
-				default:
-					time.Sleep(time.Millisecond)
-				}
-			}
-			u.window.SetFramebufferSizeCallback(glfw.ToFramebufferSizeCallback(nil))
-			close(u.framebufferSizeCallbackCh)
-			u.framebufferSizeCallbackCh = nil
+			u.waitForFramebufferSizeCallback(func() {
+				u.window.SetSize(newW, newH)
+			})
 		}
 
 		// Window title might be lost on macOS after coming back from fullscreen.
