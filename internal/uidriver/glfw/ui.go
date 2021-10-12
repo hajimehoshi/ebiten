@@ -186,6 +186,7 @@ func initialize() error {
 	}
 	defer w.Destroy()
 	initializeWindowAfterCreation(w)
+	theUI.waitForFramebufferSizeCallback(w, nil)
 
 	m := initialMonitor(w)
 	theUI.initMonitor = m
@@ -731,7 +732,7 @@ func (u *UserInterface) createWindow() error {
 
 	// Even just after a window creation, FramebufferSize callback might be invoked (#1847).
 	// Ensure to consume this callback.
-	u.waitForFramebufferSizeCallback(nil)
+	u.waitForFramebufferSizeCallback(u.window, nil)
 
 	if u.Graphics().IsGL() {
 		u.window.MakeContextCurrent()
@@ -825,11 +826,11 @@ func (u *UserInterface) registerWindowCloseCallback() {
 // If the callback is not invoked for a while, waitForFramebufferSizeCallback times out and return.
 //
 // waitForFramebufferSizeCallback must be called from the main thread.
-func (u *UserInterface) waitForFramebufferSizeCallback(f func()) {
+func (u *UserInterface) waitForFramebufferSizeCallback(window *glfw.Window, f func()) {
 	u.framebufferSizeCallbackCh = make(chan struct{}, 1)
 
 	if u.framebufferSizeCallback == 0 {
-		u.framebufferSizeCallback = glfw.ToFramebufferSizeCallback(func(_ *glfw.Window, w, h int) {
+		u.framebufferSizeCallback = glfw.ToFramebufferSizeCallback(func(_ *glfw.Window, _, _ int) {
 			// This callback can be invoked multiple times by one PollEvents in theory (#1618).
 			// Allow the case when the channel is full.
 			select {
@@ -838,7 +839,7 @@ func (u *UserInterface) waitForFramebufferSizeCallback(f func()) {
 			}
 		})
 	}
-	u.window.SetFramebufferSizeCallback(u.framebufferSizeCallback)
+	window.SetFramebufferSizeCallback(u.framebufferSizeCallback)
 
 	if f != nil {
 		f()
@@ -860,7 +861,7 @@ event:
 			time.Sleep(time.Millisecond)
 		}
 	}
-	u.window.SetFramebufferSizeCallback(glfw.ToFramebufferSizeCallback(nil))
+	window.SetFramebufferSizeCallback(glfw.ToFramebufferSizeCallback(nil))
 	close(u.framebufferSizeCallbackCh)
 	u.framebufferSizeCallbackCh = nil
 }
@@ -1343,7 +1344,7 @@ func (u *UserInterface) setWindowSizeInDPImpl(width, height int, fullscreen bool
 		if oldW != newW || oldH != newH {
 			// Just after SetSize, GetSize is not reliable especially on Linux/UNIX.
 			// Let's wait for FramebufferSize callback in any cases.
-			u.waitForFramebufferSizeCallback(func() {
+			u.waitForFramebufferSizeCallback(u.window, func() {
 				u.window.SetSize(newW, newH)
 			})
 		}
