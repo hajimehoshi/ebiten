@@ -1,4 +1,4 @@
-image: debian/testing
+image: debian/stable
 packages:
   - libasound2-dev
   - libc6-dev
