@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DISPLAY: ':99.0'
-      STEAM_RUNTIME_VERSION: '0.20210721.1'
+      STEAM_RUNTIME_VERSION: '0.20210906.1'
       GO_VERSION: '1.17'
     defaults:
       run:
