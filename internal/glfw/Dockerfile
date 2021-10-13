@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y \
         git \
         ca-certificates \
         golang \
-        gcc-mingw-w64=8.3.0-6+21.3~deb10u1 \
+        gcc-mingw-w64=8.3.0-6+21.3~deb10u2 \
         && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /work
