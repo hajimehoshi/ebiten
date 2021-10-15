@@ -8,7 +8,7 @@ jobs:
     if: github.repository_owner == 'hajimehoshi'
     strategy:
       matrix:
-        os: [alpine, arch, debian, fedora, ubuntu]
+        os: [alpine, arch, debian, fedora, freebsd, ubuntu]
     name: Test on ${{ matrix.os }}
     runs-on: ubuntu-latest
     env:
