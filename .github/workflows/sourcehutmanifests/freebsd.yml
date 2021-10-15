@@ -1,0 +1,17 @@
+image: freebsd/latest
+packages:
+  - alsa-lib
+  - glfw
+  - libxcursor
+  - libxi
+  - libxinerama
+  - libxrandr
+  - mesa-libs
+  - go
+  - pkgconf
+sources:
+  - https://github.com/hajimehoshi/ebiten#{{.Commit}}
+tasks:
+  - build: |
+      cd ebiten
+      go build -tags=example ./...
