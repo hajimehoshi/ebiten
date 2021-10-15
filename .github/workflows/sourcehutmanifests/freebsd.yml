@@ -7,8 +7,8 @@ packages:
   - libxinerama
   - libxrandr
   - mesa-libs
-  - go
   - pkgconf
+  - go
 sources:
   - https://github.com/hajimehoshi/ebiten#{{.Commit}}
 tasks:
