@@ -218,7 +218,7 @@ func (u *UserInterface) appMain(a app.App) {
 			for _, t := range touches {
 				ts = append(ts, t)
 			}
-			u.input.update(keys, runes, ts, nil)
+			u.input.update(keys, runes, ts)
 		}
 	}
 }
@@ -468,8 +468,17 @@ type Gamepad struct {
 	AxisNum   int
 }
 
-func (u *UserInterface) UpdateInput(keys map[driver.Key]struct{}, runes []rune, touches []Touch, gamepads []Gamepad) {
-	u.input.update(keys, runes, touches, gamepads)
+func (u *UserInterface) UpdateInput(keys map[driver.Key]struct{}, runes []rune, touches []Touch) {
+	u.input.update(keys, runes, touches)
+	if u.fpsMode == driver.FPSModeVsyncOffMinimum {
+		u.renderRequester.RequestRenderIfNeeded()
+	}
+}
+
+// UpdateGamepads updates the gamepad states.
+// UpdateGamepads is called when the gamepad states are given from outside like Android.
+func (u *UserInterface) UpdateGamepads(gamepads []Gamepad) {
+	u.input.updateGamepads(gamepads)
 	if u.fpsMode == driver.FPSModeVsyncOffMinimum {
 		u.renderRequester.RequestRenderIfNeeded()
 	}

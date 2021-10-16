@@ -18,6 +18,8 @@
 package ebitenmobileview
 
 import (
+	"runtime"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/uidriver/mobile"
 )
@@ -28,9 +30,11 @@ type position struct {
 }
 
 var (
-	keys     = map[driver.Key]struct{}{}
-	runes    []rune
-	touches  = map[driver.TouchID]position{}
+	keys    = map[driver.Key]struct{}{}
+	runes   []rune
+	touches = map[driver.TouchID]position{}
+
+	// gamepads is updated only at Android.
 	gamepads = map[driver.GamepadID]mobile.Gamepad{}
 )
 
@@ -49,10 +53,13 @@ func updateInput() {
 		})
 	}
 
-	gamepadSlice = gamepadSlice[:0]
-	for _, g := range gamepads {
-		gamepadSlice = append(gamepadSlice, g)
-	}
+	mobile.Get().UpdateInput(keys, runes, touchSlice)
 
-	mobile.Get().UpdateInput(keys, runes, touchSlice, gamepadSlice)
+	if runtime.GOOS == "android" {
+		gamepadSlice = gamepadSlice[:0]
+		for _, g := range gamepads {
+			gamepadSlice = append(gamepadSlice, g)
+		}
+		mobile.Get().UpdateGamepads(gamepadSlice)
+	}
 }
