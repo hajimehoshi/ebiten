@@ -137,8 +137,6 @@ func GamepadSDLID(id GamepadID) string {
 //   - Chrome: "Xbox 360 Controller (XInput STANDARD GAMEPAD)"
 //   - Firefox: "xinput"
 //
-// GamepadName always returns an empty string on iOS.
-//
 // GamepadName is concurrent-safe.
 func GamepadName(id GamepadID) string {
 	return uiDriver().Input().GamepadName(id)
@@ -148,8 +146,6 @@ func GamepadName(id GamepadID) string {
 // Giving a slice that already has enough capacity works efficiently.
 //
 // AppendGamepadIDs is concurrent-safe.
-//
-// AppendGamepadIDs doesn't append anything on iOS.
 func AppendGamepadIDs(gamepadIDs []GamepadID) []GamepadID {
 	return uiDriver().Input().AppendGamepadIDs(gamepadIDs)
 }
@@ -164,8 +160,6 @@ func GamepadIDs() []GamepadID {
 // GamepadAxisNum returns the number of axes of the gamepad (id).
 //
 // GamepadAxisNum is concurrent-safe.
-//
-// GamepadAxisNum always returns 0 on iOS.
 func GamepadAxisNum(id GamepadID) int {
 	return uiDriver().Input().GamepadAxisNum(id)
 }
@@ -173,8 +167,6 @@ func GamepadAxisNum(id GamepadID) int {
 // GamepadAxisValue returns a float value [-1.0 - 1.0] of the given gamepad (id)'s axis (axis).
 //
 // GamepadAxisValue is concurrent-safe.
-//
-// GamepadAxisValue always returns 0 on iOS.
 func GamepadAxisValue(id GamepadID, axis int) float64 {
 	return uiDriver().Input().GamepadAxisValue(id, axis)
 }
@@ -189,8 +181,6 @@ func GamepadAxis(id GamepadID, axis int) float64 {
 // GamepadButtonNum returns the number of the buttons of the given gamepad (id).
 //
 // GamepadButtonNum is concurrent-safe.
-//
-// GamepadButtonNum always returns 0 on iOS.
 func GamepadButtonNum(id GamepadID) int {
 	return uiDriver().Input().GamepadButtonNum(id)
 }
@@ -204,8 +194,6 @@ func GamepadButtonNum(id GamepadID) int {
 //
 // The relationships between physical buttons and buttion IDs depend on environments.
 // There can be differences even between Chrome and Firefox.
-//
-// IsGamepadButtonPressed always returns false on iOS.
 func IsGamepadButtonPressed(id GamepadID, button GamepadButton) bool {
 	return uiDriver().Input().IsGamepadButtonPressed(id, button)
 }

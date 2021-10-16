@@ -83,6 +83,8 @@ func (u *UserInterface) Update() error {
 		return nil
 	}
 
+	u.input.updateGamepads()
+
 	renderCh <- struct{}{}
 	go func() {
 		<-renderEndCh

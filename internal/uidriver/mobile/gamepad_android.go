@@ -21,13 +21,17 @@ import (
 // UpdateGamepads updates the gamepad states.
 // UpdateGamepads is called when the gamepad states are given from outside like Android.
 func (u *UserInterface) UpdateGamepads(gamepads []Gamepad) {
-	u.input.updateGamepads(gamepads)
+	u.input.updateGamepadsFromOutside(gamepads)
 	if u.fpsMode == driver.FPSModeVsyncOffMinimum {
 		u.renderRequester.RequestRenderIfNeeded()
 	}
 }
 
-func (i *Input) updateGamepads(gamepads []Gamepad) {
+func (i *Input) updateGamepadsFromOutside(gamepads []Gamepad) {
 	i.gamepads = i.gamepads[:0]
 	i.gamepads = append(i.gamepads, gamepads...)
+}
+
+func (i *Input) updateGamepads() {
+	// Do nothing.
 }
