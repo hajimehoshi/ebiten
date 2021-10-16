@@ -302,7 +302,7 @@ func OnGamepadAdded(deviceID int, name string, buttonNum int, axisNum int, descr
 	sdlid[15] = byte(axisMask >> 8)
 
 	id := gamepadIDFromDeviceID(deviceID)
-	gamepads[id] = &mobile.Gamepad{
+	gamepads[id] = mobile.Gamepad{
 		ID:        id,
 		SDLID:     hex.EncodeToString(sdlid[:]),
 		Name:      name,

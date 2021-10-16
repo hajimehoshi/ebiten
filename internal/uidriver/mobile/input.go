@@ -199,7 +199,7 @@ func (i *Input) IsMouseButtonPressed(key driver.MouseButton) bool {
 	return false
 }
 
-func (i *Input) update(keys map[driver.Key]struct{}, runes []rune, touches []*Touch, gamepads []Gamepad) {
+func (i *Input) update(keys map[driver.Key]struct{}, runes []rune, touches []Touch, gamepads []Gamepad) {
 	i.ui.m.Lock()
 	defer i.ui.m.Unlock()
 

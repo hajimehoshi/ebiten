@@ -129,7 +129,7 @@ func (u *UserInterface) appMain(a app.App) {
 	var glctx gl.Context
 	var sizeInited bool
 
-	touches := map[touch.Sequence]*Touch{}
+	touches := map[touch.Sequence]Touch{}
 	keys := map[driver.Key]struct{}{}
 
 	for e := range a.Events() {
@@ -184,7 +184,7 @@ func (u *UserInterface) appMain(a app.App) {
 				s := deviceScale()
 				x, y := float64(e.X)/s, float64(e.Y)/s
 				// TODO: Is it ok to cast from int64 to int here?
-				touches[e.Sequence] = &Touch{
+				touches[e.Sequence] = Touch{
 					ID: driver.TouchID(e.Sequence),
 					X:  int(x),
 					Y:  int(y),
@@ -214,7 +214,7 @@ func (u *UserInterface) appMain(a app.App) {
 		}
 
 		if updateInput {
-			ts := []*Touch{}
+			var ts []Touch
 			for _, t := range touches {
 				ts = append(ts, t)
 			}
@@ -468,7 +468,7 @@ type Gamepad struct {
 	AxisNum   int
 }
 
-func (u *UserInterface) UpdateInput(keys map[driver.Key]struct{}, runes []rune, touches []*Touch, gamepads []Gamepad) {
+func (u *UserInterface) UpdateInput(keys map[driver.Key]struct{}, runes []rune, touches []Touch, gamepads []Gamepad) {
 	u.input.update(keys, runes, touches, gamepads)
 	if u.fpsMode == driver.FPSModeVsyncOffMinimum {
 		u.renderRequester.RequestRenderIfNeeded()

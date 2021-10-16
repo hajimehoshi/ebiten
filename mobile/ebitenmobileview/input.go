@@ -31,23 +31,28 @@ var (
 	keys     = map[driver.Key]struct{}{}
 	runes    []rune
 	touches  = map[driver.TouchID]position{}
-	gamepads = map[driver.GamepadID]*mobile.Gamepad{}
+	gamepads = map[driver.GamepadID]mobile.Gamepad{}
+)
+
+var (
+	touchSlice   []mobile.Touch
+	gamepadSlice []mobile.Gamepad
 )
 
 func updateInput() {
-	ts := make([]*mobile.Touch, 0, len(touches))
+	touchSlice = touchSlice[:0]
 	for id, position := range touches {
-		ts = append(ts, &mobile.Touch{
+		touchSlice = append(touchSlice, mobile.Touch{
 			ID: id,
 			X:  position.x,
 			Y:  position.y,
 		})
 	}
 
-	gs := make([]mobile.Gamepad, 0, len(gamepads))
+	gamepadSlice = gamepadSlice[:0]
 	for _, g := range gamepads {
-		gs = append(gs, *g)
+		gamepadSlice = append(gamepadSlice, g)
 	}
 
-	mobile.Get().UpdateInput(keys, runes, ts, gs)
+	mobile.Get().UpdateInput(keys, runes, touchSlice, gamepadSlice)
 }
