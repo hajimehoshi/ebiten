@@ -475,15 +475,6 @@ func (u *UserInterface) UpdateInput(keys map[driver.Key]struct{}, runes []rune, 
 	}
 }
 
-// UpdateGamepads updates the gamepad states.
-// UpdateGamepads is called when the gamepad states are given from outside like Android.
-func (u *UserInterface) UpdateGamepads(gamepads []Gamepad) {
-	u.input.updateGamepads(gamepads)
-	if u.fpsMode == driver.FPSModeVsyncOffMinimum {
-		u.renderRequester.RequestRenderIfNeeded()
-	}
-}
-
 type RenderRequester interface {
 	SetExplicitRenderingMode(explicitRendering bool)
 	RequestRenderIfNeeded()

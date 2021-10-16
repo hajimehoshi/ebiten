@@ -1,4 +1,4 @@
-// Copyright 2016 Hajime Hoshi
+// Copyright 2021 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,40 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build android || ios
-// +build android ios
-
-package ebitenmobileview
+package mobile
 
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
-	"github.com/hajimehoshi/ebiten/v2/internal/uidriver/mobile"
 )
 
-type position struct {
-	x int
-	y int
+// UpdateGamepads updates the gamepad states.
+// UpdateGamepads is called when the gamepad states are given from outside like Android.
+func (u *UserInterface) UpdateGamepads(gamepads []Gamepad) {
+	u.input.updateGamepads(gamepads)
+	if u.fpsMode == driver.FPSModeVsyncOffMinimum {
+		u.renderRequester.RequestRenderIfNeeded()
+	}
 }
 
-var (
-	keys    = map[driver.Key]struct{}{}
-	runes   []rune
-	touches = map[driver.TouchID]position{}
-)
-
-var (
-	touchSlice []mobile.Touch
-)
-
-func updateInput() {
-	touchSlice = touchSlice[:0]
-	for id, position := range touches {
-		touchSlice = append(touchSlice, mobile.Touch{
-			ID: id,
-			X:  position.x,
-			Y:  position.y,
-		})
-	}
-
-	mobile.Get().UpdateInput(keys, runes, touchSlice)
+func (i *Input) updateGamepads(gamepads []Gamepad) {
+	i.gamepads = i.gamepads[:0]
+	i.gamepads = append(i.gamepads, gamepads...)
 }

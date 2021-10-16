@@ -222,7 +222,7 @@ func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int) 
 				return
 			}
 			g.Buttons[button] = true
-			updateInput()
+			updateGamepads()
 		}
 	case source&sourceJoystick == sourceJoystick:
 		// DPAD keys can come here, but they are also treated as an axis at a motion event. Ignore them.
@@ -248,7 +248,7 @@ func OnKeyUpOnAndroid(keyCode int, source int, deviceID int) {
 				return
 			}
 			g.Buttons[button] = false
-			updateInput()
+			updateGamepads()
 		}
 	case source&sourceJoystick == sourceJoystick:
 		// DPAD keys can come here, but they are also treated as an axis at a motion event. Ignore them.
@@ -272,7 +272,7 @@ func OnGamepadAxesChanged(deviceID int, axisID int, value float32) {
 		return
 	}
 	g.Axes[aid] = value
-	updateInput()
+	updateGamepads()
 }
 
 func OnGamepadAdded(deviceID int, name string, buttonNum int, axisNum int, descriptor string, vendorID int, productID int, buttonMask int, axisMask int) {
@@ -309,6 +309,7 @@ func OnGamepadAdded(deviceID int, name string, buttonNum int, axisNum int, descr
 		ButtonNum: buttonNum,
 		AxisNum:   axisNum,
 	}
+	updateGamepads()
 }
 
 func OnInputDeviceRemoved(deviceID int) {
@@ -316,4 +317,18 @@ func OnInputDeviceRemoved(deviceID int) {
 		delete(gamepads, id)
 		delete(deviceIDToGamepadID, deviceID)
 	}
+	updateGamepads()
+}
+
+var (
+	gamepads     = map[driver.GamepadID]mobile.Gamepad{}
+	gamepadSlice []mobile.Gamepad
+)
+
+func updateGamepads() {
+	gamepadSlice = gamepadSlice[:0]
+	for _, g := range gamepads {
+		gamepadSlice = append(gamepadSlice, g)
+	}
+	mobile.Get().UpdateGamepads(gamepadSlice)
 }
