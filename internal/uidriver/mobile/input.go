@@ -205,14 +205,14 @@ func (i *Input) update(keys map[driver.Key]struct{}, runes []rune, touches []Tou
 		i.keys[k] = struct{}{}
 	}
 
-	i.runes = make([]rune, len(runes))
-	copy(i.runes, runes)
+	i.runes = i.runes[:0]
+	i.runes = append(i.runes, runes...)
 
-	i.touches = make([]Touch, len(touches))
-	copy(i.touches, touches)
+	i.touches = i.touches[:0]
+	i.touches = append(i.touches, touches...)
 
-	i.gamepads = make([]Gamepad, len(gamepads))
-	copy(i.gamepads, gamepads)
+	i.gamepads = i.gamepads[:0]
+	i.gamepads = append(i.gamepads, gamepads...)
 }
 
 func (i *Input) resetForFrame() {
