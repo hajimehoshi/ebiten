@@ -21,15 +21,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 )
 
-type pos struct {
-	X int
-	Y int
-}
-
 type Input struct {
 	keys     map[driver.Key]struct{}
 	runes    []rune
-	touches  map[driver.TouchID]pos
+	touches  []Touch
 	gamepads []Gamepad
 	ui       *UserInterface
 }
@@ -156,8 +151,8 @@ func (i *Input) AppendTouchIDs(touchIDs []driver.TouchID) []driver.TouchID {
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
 
-	for id := range i.touches {
-		touchIDs = append(touchIDs, id)
+	for _, t := range i.touches {
+		touchIDs = append(touchIDs, t.ID)
 	}
 	return touchIDs
 }
@@ -166,9 +161,9 @@ func (i *Input) TouchPosition(id driver.TouchID) (x, y int) {
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
 
-	for tid, pos := range i.touches {
-		if id == tid {
-			return i.ui.adjustPosition(pos.X, pos.Y)
+	for _, t := range i.touches {
+		if t.ID == id {
+			return i.ui.adjustPosition(t.X, t.Y)
 		}
 	}
 	return 0, 0
@@ -184,9 +179,6 @@ func (i *Input) IsKeyPressed(key driver.Key) bool {
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
 
-	if i.keys == nil {
-		return false
-	}
 	_, ok := i.keys[key]
 	return ok
 }
@@ -203,7 +195,12 @@ func (i *Input) update(keys map[driver.Key]struct{}, runes []rune, touches []Tou
 	i.ui.m.Lock()
 	defer i.ui.m.Unlock()
 
-	i.keys = map[driver.Key]struct{}{}
+	if i.keys == nil {
+		i.keys = map[driver.Key]struct{}{}
+	}
+	for k := range i.keys {
+		delete(i.keys, k)
+	}
 	for k := range keys {
 		i.keys[k] = struct{}{}
 	}
@@ -211,13 +208,8 @@ func (i *Input) update(keys map[driver.Key]struct{}, runes []rune, touches []Tou
 	i.runes = make([]rune, len(runes))
 	copy(i.runes, runes)
 
-	i.touches = map[driver.TouchID]pos{}
-	for _, t := range touches {
-		i.touches[t.ID] = pos{
-			X: t.X,
-			Y: t.Y,
-		}
-	}
+	i.touches = make([]Touch, len(touches))
+	copy(i.touches, touches)
 
 	i.gamepads = make([]Gamepad, len(gamepads))
 	copy(i.gamepads, gamepads)
