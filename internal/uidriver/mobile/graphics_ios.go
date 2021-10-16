@@ -28,7 +28,7 @@ import (
 
 func (*UserInterface) Graphics() driver.Graphics {
 	if _, err := mtl.CreateSystemDefaultDevice(); err != nil {
-		panic(fmt.Sprintf("ebiten: mtl.CreateSystemDefaultDevice failed on iOS: %v", err))
+		panic(fmt.Sprintf("mobile: mtl.CreateSystemDefaultDevice failed on iOS: %v", err))
 	}
 	return metal.Get()
 }
