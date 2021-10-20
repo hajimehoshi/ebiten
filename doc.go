@@ -86,6 +86,15 @@
 //   * `glfw_windows_386.dll` for Windows 386
 //   * `glfw_windows_amd64.dll` for Windows amd64
 //
+// The directory path can be obtained by Go commands. For example, on PowerShell:
+//
+//   $dir = go list -f '{{.Dir}}' github.com/hajimehoshi/ebiten/v2/internal/glfw
+//   echo $dir\glfw_windows_amd64.dll
+//
+// and on shell:
+//
+//   echo $(go list -f '{{.Dir}}' github.com/hajimehoshi/ebiten/v2/internal/glfw)/glfw_windows_amd64.dll
+//
 // Embedding a DLL and extracting it on the fly might be problematic on Windows since the application might be
 // unexpectedly recognized as a virus by some virus checkers.
 // `ebitenexternaldll` is useful for such cases. See #1832 for the discussion.
