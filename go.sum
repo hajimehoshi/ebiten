@@ -9,8 +9,8 @@ github.com/hajimehoshi/go-mp3 v0.3.2 h1:xSYNE2F3lxtOu9BRjCWHHceg7S91IHfXfXp5+LYQ
 github.com/hajimehoshi/go-mp3 v0.3.2/go.mod h1:qMJj/CSDxx6CGHiZeCgbiq2DSUkbK0UbtXShQcnfyMM=
 github.com/hajimehoshi/oto v0.6.1 h1:7cJz/zRQV4aJvMSSRqzN2TImoVVMpE0BCY4nrNJaDOM=
 github.com/hajimehoshi/oto v0.6.1/go.mod h1:0QXGEkbuJRohbJaxr7ZQSxnju7hEhseiPx2hrh6raOI=
-github.com/hajimehoshi/oto/v2 v2.1.0-alpha.2 h1:DV2DcbY3YLuLB9gI9R1GT9TPOo92lUeWveV8ci1sBLk=
-github.com/hajimehoshi/oto/v2 v2.1.0-alpha.2/go.mod h1:rUKQmwMkqmRxe+IAof9+tuYA2ofm8cAWXFmSfzDN8vQ=
+github.com/hajimehoshi/oto/v2 v2.1.0-alpha.2.0.20211022061803-81e245b09d0b h1:DyHaCwXYwsZMLawB9G7uDP18WHvwO8KXm9JROxTY5ew=
+github.com/hajimehoshi/oto/v2 v2.1.0-alpha.2.0.20211022061803-81e245b09d0b/go.mod h1:rUKQmwMkqmRxe+IAof9+tuYA2ofm8cAWXFmSfzDN8vQ=
 github.com/jakecoffman/cp v1.1.0 h1:bhKvCNbAddYegYHSV5abG3G23vZdsISgqXa4X/lK8Oo=
 github.com/jakecoffman/cp v1.1.0/go.mod h1:JjY/Fp6d8E1CHnu74gWNnU0+b9VzEdUVPoJxg2PsTQg=
 github.com/jezek/xgb v0.0.0-20210312150743-0e0f116e1240 h1:dy+DS31tGEGCsZzB45HmJJNHjur8GDgtRNX9U7HnSX4=

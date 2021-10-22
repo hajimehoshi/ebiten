@@ -126,9 +126,7 @@ func NewContext(sampleRate int) *Context {
 		var err error
 		theContextLock.Lock()
 		if theContext != nil {
-			theContext.m.Lock()
-			err = theContext.err
-			theContext.m.Unlock()
+			err = theContext.error()
 		}
 		theContextLock.Unlock()
 		if err != nil {
@@ -152,18 +150,20 @@ func CurrentContext() *Context {
 	return c
 }
 
-func (c *Context) hasError() bool {
-	c.m.Lock()
-	r := c.err != nil
-	c.m.Unlock()
-	return r
-}
-
 func (c *Context) setError(err error) {
 	// TODO: What if c.err already exists?
 	c.m.Lock()
 	c.err = err
 	c.m.Unlock()
+}
+
+func (c *Context) error() error {
+	c.m.Lock()
+	defer c.m.Unlock()
+	if c.err != nil {
+		return c.err
+	}
+	return c.playerFactory.error()
 }
 
 func (c *Context) setReady() {

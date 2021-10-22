@@ -67,6 +67,10 @@ func (c *Context) Resume() error {
 	return nil
 }
 
+func (c *Context) Err() error {
+	return nil
+}
+
 func (c *Context) oneBufferSize() int {
 	// TODO: This must be audio.oneBufferSize(p.context.sampleRate). Avoid the duplication.
 	return c.sampleRate * c.channelNum * c.bitDepthInBytes / 4

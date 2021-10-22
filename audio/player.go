@@ -27,6 +27,7 @@ type context interface {
 	NewPlayer(io.Reader) oto.Player
 	Suspend() error
 	Resume() error
+	Err() error
 }
 
 type playerFactory struct {
@@ -89,6 +90,16 @@ func (f *playerFactory) resume() error {
 		return nil
 	}
 	return f.context.Resume()
+}
+
+func (f *playerFactory) error() error {
+	f.m.Lock()
+	defer f.m.Unlock()
+
+	if f.context == nil {
+		return nil
+	}
+	return f.context.Err()
 }
 
 func (f *playerFactory) initContextIfNeeded() (<-chan struct{}, error) {
