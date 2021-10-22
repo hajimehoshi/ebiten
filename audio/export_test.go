@@ -51,6 +51,10 @@ func (c *dummyContext) Resume() error {
 	return nil
 }
 
+func (c *dummyContext) Err() error {
+	return nil
+}
+
 func (p *dummyPlayer) Pause() {
 	p.m.Lock()
 	p.playing = false
