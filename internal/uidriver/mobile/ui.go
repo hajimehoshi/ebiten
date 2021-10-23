@@ -22,6 +22,7 @@ import (
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
+	"time"
 	"unicode"
 
 	"golang.org/x/mobile/app"
