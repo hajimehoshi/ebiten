@@ -39,11 +39,7 @@ func (g *Game) Update() error {
 	g.touchIDs = g.touchIDs[:0]
 	g.touchIDs = inpututil.AppendJustPressedTouchIDs(g.touchIDs)
 	if len(g.touchIDs) > 0 {
-		op := &ebiten.VibrateOptions{
-			Duration:        200 * time.Millisecond,
-			StrongMagnitude: 1,
-		}
-		ebiten.Vibrate(op)
+		ebiten.Vibrate(200 * time.Millisecond)
 	}
 
 	return nil

@@ -18,8 +18,18 @@ import (
 	"time"
 )
 
-// VibrateOptions represents the options to vibrate a device.
-type VibrateOptions struct {
+// Vibrate vibrates the device.
+//
+// Vibrate works on mobiles and browsers.
+// On browsers, StrongManitude and WeakMagnitude might be ignored.
+//
+// Vibrate is concurrent-safe.
+func Vibrate(duration time.Duration) {
+	uiDriver().Vibrate(duration)
+}
+
+// GamepadVibrateOptions represents the options to vibrate a gamepad.
+type GamepadVibrateOptions struct {
 	// Duration is the time duration of the effect.
 	Duration time.Duration
 
@@ -32,12 +42,4 @@ type VibrateOptions struct {
 	WeakMagnitude float64
 }
 
-// Vibrate vibrates the device.
-//
-// Vibrate works on mobiles and browsers.
-// On browsers, StrongManitude and WeakMagnitude might be ignored.
-//
-// Vibrate is concurrent-safe.
-func Vibrate(options *VibrateOptions) {
-	uiDriver().Vibrate(options.Duration, options.StrongMagnitude, options.WeakMagnitude)
-}
+// TODO: Add a function VibrateGamepad.

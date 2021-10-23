@@ -494,6 +494,6 @@ func (u *UserInterface) ScheduleFrame() {
 	}
 }
 
-func (u *UserInterface) Vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+func (u *UserInterface) Vibrate(duration time.Duration) {
 	// TODO: Implement this (#1452)
 }

@@ -63,7 +63,7 @@ type UI interface {
 	SetScreenTransparent(transparent bool)
 	SetInitFocused(focused bool)
 
-	Vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64)
+	Vibrate(duration time.Duration)
 
 	Input() Input
 	Window() Window
