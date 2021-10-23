@@ -492,3 +492,7 @@ func (u *UserInterface) ScheduleFrame() {
 		u.renderRequester.RequestRenderIfNeeded()
 	}
 }
+
+func (u *UserInterface) Vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	// TODO: Implement this (#1452)
+}

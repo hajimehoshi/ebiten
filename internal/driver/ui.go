@@ -17,6 +17,7 @@ package driver
 import (
 	"errors"
 	"image"
+	"time"
 )
 
 type UIContext interface {
@@ -61,6 +62,8 @@ type UI interface {
 	IsScreenTransparent() bool
 	SetScreenTransparent(transparent bool)
 	SetInitFocused(focused bool)
+
+	Vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64)
 
 	Input() Input
 	Window() Window
