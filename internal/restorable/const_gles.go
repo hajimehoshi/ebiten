@@ -17,6 +17,4 @@
 
 package restorable
 
-const needsDisposingWhenRestoring = true
-
 const canDetectContextLostExplicitly = true

@@ -14,11 +14,5 @@
 
 package restorable
 
-// needsDisposingWhenRestoring reports whether disposing resources is necessary or not when restoring.
-//
-// On browsers, disposing resources is not required since the objects are already managed by JavaScript GC and they
-// are already invalidated. Rather, disposing them when restoring causes warnings on the console.
-const needsDisposingWhenRestoring = false
-
 // canDetectContextLostExplicitly reports whether the context lost can be detected by handlers in an explicit way.
 const canDetectContextLostExplicitly = true
