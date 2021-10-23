@@ -21,7 +21,6 @@ import (
 // Vibrate vibrates the device.
 //
 // Vibrate works on mobiles and browsers.
-// On browsers, StrongManitude and WeakMagnitude might be ignored.
 //
 // Vibrate is concurrent-safe.
 func Vibrate(duration time.Duration) {

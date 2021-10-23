@@ -417,7 +417,7 @@ package mobile
 //   }
 // }
 //
-// static void init(void) {
+// static void initializeGamepads(void) {
 //   controllers = [NSMutableArray array];
 //   controllerProperties = [NSMutableArray array];
 //
@@ -453,7 +453,7 @@ import (
 )
 
 func init() {
-	C.init()
+	C.initializeGamepads()
 }
 
 func (i *Input) updateGamepads() {

@@ -22,7 +22,6 @@ import (
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
-	"time"
 	"unicode"
 
 	"golang.org/x/mobile/app"
@@ -492,8 +491,4 @@ func (u *UserInterface) ScheduleFrame() {
 	if u.renderRequester != nil && u.fpsMode == driver.FPSModeVsyncOffMinimum {
 		u.renderRequester.RequestRenderIfNeeded()
 	}
-}
-
-func (u *UserInterface) Vibrate(duration time.Duration) {
-	// TODO: Implement this (#1452)
 }
