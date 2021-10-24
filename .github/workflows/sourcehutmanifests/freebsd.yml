@@ -1,7 +1,6 @@
 image: freebsd/latest
 packages:
   - alsa-lib
-  - glfw
   - libxcursor
   - libxi
   - libxinerama
