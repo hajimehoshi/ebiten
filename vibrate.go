@@ -28,8 +28,8 @@ func Vibrate(duration time.Duration) {
 	uiDriver().Vibrate(duration)
 }
 
-// GamepadVibrateOptions represents the options to vibrate a gamepad.
-type GamepadVibrateOptions struct {
+// VibrateGamepadOptions represents the options to vibrate a gamepad.
+type VibrateGamepadOptions struct {
 	// Duration is the time duration of the effect.
 	Duration time.Duration
 
@@ -42,4 +42,9 @@ type GamepadVibrateOptions struct {
 	WeakMagnitude float64
 }
 
-// TODO: Add a function VibrateGamepad.
+// VibrateGamepad vibrates the specified gamepad with the specified options.
+//
+// VibrateGamepad is concurrent-safe.
+func VibrateGamepad(gamepadID GamepadID, options *VibrateGamepadOptions) {
+	uiDriver().Input().VibrateGamepad(gamepadID, options.Duration, options.StrongMagnitude, options.WeakMagnitude)
+}

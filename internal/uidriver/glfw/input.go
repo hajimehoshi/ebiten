@@ -23,6 +23,7 @@ package glfw
 import (
 	"math"
 	"sync"
+	"time"
 	"unicode"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
@@ -407,6 +408,10 @@ func (i *Input) IsStandardGamepadButtonPressed(id driver.GamepadID, button drive
 	}
 	g := i.gamepads[int(id)]
 	return gamepaddb.IsButtonPressed(g.guid, button, gamepadState{&g})
+}
+
+func (i *Input) VibrateGamepad(id driver.GamepadID, duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	// TODO: Implement this (#1452)
 }
 
 func init() {

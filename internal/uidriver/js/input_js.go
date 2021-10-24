@@ -17,10 +17,13 @@ package js
 import (
 	"encoding/hex"
 	"syscall/js"
+	"time"
 	"unicode"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 )
+
+var object = js.Global().Get("Object")
 
 var (
 	stringKeydown    = js.ValueOf("keydown")
@@ -60,6 +63,8 @@ type pos struct {
 }
 
 type gamepad struct {
+	value js.Value
+
 	name          string
 	mapping       string
 	axisNum       int
@@ -310,7 +315,9 @@ func (i *Input) updateGamepads() {
 		}
 
 		id := driver.GamepadID(gp.Get("index").Int())
-		g := gamepad{}
+		g := gamepad{
+			value: gp,
+		}
 		g.name = gp.Get("id").String()
 		g.mapping = gp.Get("mapping").String()
 
@@ -505,4 +512,38 @@ func (i *Input) IsStandardGamepadButtonPressed(id driver.GamepadID, button drive
 		return false
 	}
 	return g.standardButtonPressed[button]
+}
+
+func (i *Input) VibrateGamepad(id driver.GamepadID, duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	g, ok := i.gamepads[id]
+	if !ok {
+		return
+	}
+
+	// vibrationActuator is avaialble on Chrome.
+	if va := g.value.Get("vibrationActuator"); va.Truthy() {
+		if !va.Get("playEffect").Truthy() {
+			return
+		}
+
+		prop := object.New()
+		prop.Set("startDelay", 0)
+		prop.Set("duration", float64(duration/time.Millisecond))
+		prop.Set("strongMagnitude", strongMagnitude)
+		prop.Set("weakMagnitude", weakMagnitude)
+		va.Call("playEffect", "dual-rumble", prop)
+		return
+	}
+
+	// hapticActuators is available on Firefox.
+	if ha := g.value.Get("hapticActuators"); ha.Truthy() {
+		// TODO: Is this order correct?
+		if ha.Length() > 0 {
+			ha.Index(0).Call("pulse", strongMagnitude, float64(duration/time.Millisecond))
+		}
+		if ha.Length() > 1 {
+			ha.Index(1).Call("pulse", weakMagnitude, float64(duration/time.Millisecond))
+		}
+		return
+	}
 }

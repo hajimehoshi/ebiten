@@ -32,7 +32,8 @@ const (
 )
 
 type Game struct {
-	touchIDs []ebiten.TouchID
+	touchIDs   []ebiten.TouchID
+	gamepadIDs []ebiten.GamepadID
 }
 
 func (g *Game) Update() error {
@@ -42,11 +43,33 @@ func (g *Game) Update() error {
 		ebiten.Vibrate(200 * time.Millisecond)
 	}
 
+	g.gamepadIDs = g.gamepadIDs[:0]
+	g.gamepadIDs = ebiten.AppendGamepadIDs(g.gamepadIDs)
+	for _, id := range g.gamepadIDs {
+		for b := ebiten.GamepadButton0; b <= ebiten.GamepadButtonMax; b++ {
+			if !inpututil.IsGamepadButtonJustPressed(id, b) {
+				continue
+			}
+			// TODO: Test weak-magnitude.
+			op := &ebiten.VibrateGamepadOptions{
+				Duration:        200 * time.Millisecond,
+				StrongMagnitude: 1,
+				WeakMagnitude:   0,
+			}
+			ebiten.VibrateGamepad(id, op)
+			break
+		}
+	}
+
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	ebitenutil.DebugPrint(screen, "Touch the screen to vibrate the screen.")
+	msg := "Touch the screen to vibrate the screen."
+	if len(g.gamepadIDs) > 0 {
+		msg += "\nPress a gamepad button to vibrate the gamepad."
+	}
+	ebitenutil.DebugPrint(screen, msg)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

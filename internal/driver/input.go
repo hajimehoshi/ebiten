@@ -14,6 +14,10 @@
 
 package driver
 
+import (
+	"time"
+)
+
 type GamepadID int
 
 type TouchID int
@@ -36,5 +40,6 @@ type Input interface {
 	StandardGamepadAxisValue(id GamepadID, button StandardGamepadAxis) float64
 	StandardGamepadButtonValue(id GamepadID, button StandardGamepadButton) float64
 	TouchPosition(id TouchID) (x, y int)
+	VibrateGamepad(id GamepadID, duration time.Duration, strongMagnitude float64, weakMagnitude float64)
 	Wheel() (xoff, yoff float64)
 }

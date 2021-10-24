@@ -191,6 +191,10 @@ func (i *Input) IsMouseButtonPressed(key driver.MouseButton) bool {
 	return false
 }
 
+func (i *Input) VibrateGamepad(id driver.GamepadID, duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	// TODO: Implement this (#1452)
+}
+
 func (i *Input) update(keys map[driver.Key]struct{}, runes []rune, touches []Touch) {
 	i.ui.m.Lock()
 	defer i.ui.m.Unlock()
