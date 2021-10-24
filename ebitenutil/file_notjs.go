@@ -12,11 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build (darwin || freebsd || linux || windows) && !js && !android && !ios
-// +build darwin freebsd linux windows
-// +build !js
-// +build !android
-// +build !ios
+//go:build !android && !js && !ios
+// +build !android,!js,!ios
 
 package ebitenutil
 

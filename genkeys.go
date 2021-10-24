@@ -818,10 +818,8 @@ func main() {
 			buildTag = "//go:build !js" +
 				"\n// +build !js"
 		case filepath.Join("internal", "uidriver", "glfw", "keys.go"):
-			buildTag = "//go:build (darwin || freebsd || linux || windows) && !android && !ios" +
-				"\n// +build darwin freebsd linux windows" +
-				"\n// +build !android" +
-				"\n// +build !ios"
+			buildTag = "//go:build !android && !js && !ios" +
+				"\n// +build !android,!js,!ios"
 		}
 		// NOTE: According to godoc, maps are automatically sorted by key.
 		if err := tmpl.Execute(f, struct {

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build freebsd || linux || windows || ebitengl
-// +build freebsd linux windows ebitengl
+//go:build !android && !js && !ios
+// +build !android,!js,!ios
 
 package glfw
 
