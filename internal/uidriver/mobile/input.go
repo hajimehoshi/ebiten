@@ -18,6 +18,8 @@
 package mobile
 
 import (
+	"time"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 )
 
