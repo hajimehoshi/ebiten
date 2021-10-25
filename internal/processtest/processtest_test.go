@@ -19,7 +19,7 @@ package processtest_test
 
 import (
 	"bytes"
-	"io/ioutil"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -28,7 +28,7 @@ import (
 
 func TestPrograms(t *testing.T) {
 	dir := "testdata"
-	ents, err := ioutil.ReadDir(dir)
+	ents, err := os.ReadDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}

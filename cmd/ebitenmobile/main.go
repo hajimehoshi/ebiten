@@ -23,7 +23,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -223,13 +222,13 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 	if buildOS == "darwin" {
 		dir := filepath.Join(buildO, "Versions", "A")
 
-		if err := ioutil.WriteFile(filepath.Join(dir, "Headers", prefixUpper+"EbitenViewController.h"), []byte(replacePrefixes(objcH)), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, "Headers", prefixUpper+"EbitenViewController.h"), []byte(replacePrefixes(objcH)), 0644); err != nil {
 			return err
 		}
 		// TODO: Remove 'Ebitenmobileview.objc.h' here. Now it is hard since there is a header file importing
 		// that header file.
 
-		fs, err := ioutil.ReadDir(filepath.Join(dir, "Headers"))
+		fs, err := os.ReadDir(filepath.Join(dir, "Headers"))
 		if err != nil {
 			return err
 		}

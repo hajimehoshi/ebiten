@@ -23,7 +23,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"image"
-	"io/ioutil"
+	"io"
 )
 
 const (
@@ -41,9 +41,9 @@ func CreateTextImage() *image.RGBA {
 	}
 	defer s.Close()
 
-	pix, err := ioutil.ReadAll(s)
+	pix, err := io.ReadAll(s)
 	if err != nil {
-		panic(fmt.Sprintf("assets: ioutil.ReadAll failed: %v", err))
+		panic(fmt.Sprintf("assets: io.ReadAll failed: %v", err))
 	}
 	return &image.RGBA{
 		Pix:    pix,

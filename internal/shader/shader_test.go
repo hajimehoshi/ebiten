@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"go/parser"
 	"go/token"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -70,7 +70,7 @@ func TestCompile(t *testing.T) {
 		t.Skip("file open might not be implemented in this environment")
 	}
 
-	files, err := ioutil.ReadDir("testdata")
+	files, err := os.ReadDir("testdata")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestCompile(t *testing.T) {
 			continue
 		}
 
-		src, err := ioutil.ReadFile(filepath.Join("testdata", n))
+		src, err := os.ReadFile(filepath.Join("testdata", n))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -110,7 +110,7 @@ func TestCompile(t *testing.T) {
 
 		vsn := name + ".expected.vs"
 		if _, ok := fnames[vsn]; ok {
-			vs, err := ioutil.ReadFile(filepath.Join("testdata", vsn))
+			vs, err := os.ReadFile(filepath.Join("testdata", vsn))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -119,7 +119,7 @@ func TestCompile(t *testing.T) {
 
 		fsn := name + ".expected.fs"
 		if _, ok := fnames[fsn]; ok {
-			fs, err := ioutil.ReadFile(filepath.Join("testdata", fsn))
+			fs, err := os.ReadFile(filepath.Join("testdata", fsn))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -132,7 +132,7 @@ func TestCompile(t *testing.T) {
 
 		metaln := name + ".expected.metal"
 		if _, ok := fnames[metaln]; ok {
-			metal, err := ioutil.ReadFile(filepath.Join("testdata", metaln))
+			metal, err := os.ReadFile(filepath.Join("testdata", metaln))
 			if err != nil {
 				t.Fatal(err)
 			}

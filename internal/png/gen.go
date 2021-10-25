@@ -23,7 +23,7 @@ import (
 	"go/format"
 	"go/parser"
 	"go/token"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -36,7 +36,7 @@ func run() error {
 	// TODO: Use go/packages with specifying build tags so that stdlibfuzz can be avoided.
 	dir := filepath.Join(runtime.GOROOT(), "src", "image", "png")
 
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		return err
 	}
@@ -63,7 +63,7 @@ func run() error {
 
 		// TODO: Remove call of RegisterDecoder
 
-		data, err := ioutil.ReadAll(in)
+		data, err := io.ReadAll(in)
 		if err != nil {
 			return err
 		}

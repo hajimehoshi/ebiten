@@ -16,7 +16,6 @@ package audio
 
 import (
 	"io"
-	"io/ioutil"
 	"sync"
 
 	"github.com/hajimehoshi/oto/v2"
@@ -66,7 +65,7 @@ func (p *dummyPlayer) Play() {
 	p.playing = true
 	p.m.Unlock()
 	go func() {
-		if _, err := ioutil.ReadAll(p.r); err != nil {
+		if _, err := io.ReadAll(p.r); err != nil {
 			panic(err)
 		}
 		p.m.Lock()

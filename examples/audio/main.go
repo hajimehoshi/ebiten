@@ -27,7 +27,6 @@ import (
 	"image/color"
 	_ "image/png"
 	"io"
-	"io/ioutil"
 	"log"
 	"time"
 
@@ -179,7 +178,7 @@ func NewPlayer(game *Game, audioContext *audio.Context, musicType musicType) (*P
 			log.Fatal(err)
 			return
 		}
-		b, err := ioutil.ReadAll(s)
+		b, err := io.ReadAll(s)
 		if err != nil {
 			log.Fatal(err)
 			return
