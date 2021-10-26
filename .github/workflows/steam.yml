@@ -8,7 +8,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DISPLAY: ':99.0'
-      STEAM_RUNTIME_VERSION: '0.20210906.1'
       GO_VERSION: '1.17'
     defaults:
       run:
@@ -19,14 +18,14 @@ jobs:
 
       - name: Docker build (386)
         run: |
-          curl --location --remote-name https://repo.steampowered.com/steamrt-images-scout/snapshots/${STEAM_RUNTIME_VERSION}/com.valvesoftware.SteamRuntime.Sdk-i386-scout-sysroot.Dockerfile
-          curl --location --remote-name https://repo.steampowered.com/steamrt-images-scout/snapshots/${STEAM_RUNTIME_VERSION}/com.valvesoftware.SteamRuntime.Sdk-i386-scout-sysroot.tar.gz
+          curl --location --remote-name https://repo.steampowered.com/steamrt-images-scout/snapshots/latest-public-beta/com.valvesoftware.SteamRuntime.Sdk-i386-scout-sysroot.Dockerfile
+          curl --location --remote-name https://repo.steampowered.com/steamrt-images-scout/snapshots/latest-public-beta/com.valvesoftware.SteamRuntime.Sdk-i386-scout-sysroot.tar.gz
           docker build -f com.valvesoftware.SteamRuntime.Sdk-i386-scout-sysroot.Dockerfile -t steamrt_scout_i386:latest .
 
       - name: Docker build (amd64)
         run: |
-          curl --location --remote-name https://repo.steampowered.com/steamrt-images-scout/snapshots/${STEAM_RUNTIME_VERSION}/com.valvesoftware.SteamRuntime.Sdk-amd64,i386-scout-sysroot.Dockerfile
-          curl --location --remote-name https://repo.steampowered.com/steamrt-images-scout/snapshots/${STEAM_RUNTIME_VERSION}/com.valvesoftware.SteamRuntime.Sdk-amd64,i386-scout-sysroot.tar.gz
+          curl --location --remote-name https://repo.steampowered.com/steamrt-images-scout/snapshots/latest-public-beta/com.valvesoftware.SteamRuntime.Sdk-amd64,i386-scout-sysroot.Dockerfile
+          curl --location --remote-name https://repo.steampowered.com/steamrt-images-scout/snapshots/latest-public-beta/com.valvesoftware.SteamRuntime.Sdk-amd64,i386-scout-sysroot.tar.gz
           docker build -f com.valvesoftware.SteamRuntime.Sdk-amd64,i386-scout-sysroot.Dockerfile -t steamrt_scout_amd64:latest .
 
       - name: Docker run (386)
