@@ -270,7 +270,9 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 
 	for _, u := range uniforms {
 		if len(u.valueSlice) == 0 {
-			if got, expected := (&shaderir.Type{Main: shaderir.Float}), &u.typ; !got.Equal(expected) {
+			if u.typ.Main != shaderir.Float {
+				expected := &shaderir.Type{Main: shaderir.Float}
+				got := &u.typ
 				return fmt.Errorf("opengl: uniform variable %s type doesn't match: expected %s but %s", u.name, expected.String(), got.String())
 			}
 
