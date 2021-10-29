@@ -225,7 +225,7 @@ func zeroUniformValue(name string, t shaderir.Type) driver.Uniform {
 		return driver.Uniform{
 			Float32: 0,
 		}
-	case shaderir.Array:
+	case shaderir.Array, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
 		return driver.Uniform{
 			Float32s: make([]float32, t.FloatNum()),
 		}
