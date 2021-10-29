@@ -21,6 +21,7 @@ import (
 	"go/token"
 	"strings"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 	"github.com/hajimehoshi/ebiten/v2/internal/shader"
@@ -172,7 +173,7 @@ func (s *Shader) Dispose() {
 	s.shader = nil
 }
 
-func (s *Shader) convertUniforms(uniforms map[string]interface{}) []interface{} {
+func (s *Shader) convertUniforms(uniforms map[string]interface{}) []driver.Uniform {
 	type index struct {
 		resultIndex        int
 		shaderUniformIndex int
@@ -191,20 +192,26 @@ func (s *Shader) convertUniforms(uniforms map[string]interface{}) []interface{} 
 		idx++
 	}
 
-	us := make([]interface{}, len(names))
+	us := make([]driver.Uniform, len(names))
 	for name, idx := range names {
 		if v, ok := uniforms[name]; ok {
-			// TODO: Check the uniform variable types?
-			us[idx.resultIndex] = v
+			switch v := v.(type) {
+			case float32:
+				us[idx.resultIndex] = driver.Uniform{
+					Float32: v,
+				}
+			case []float32:
+				us[idx.resultIndex] = driver.Uniform{
+					Float32s: v,
+				}
+			default:
+				panic(fmt.Sprintf("ebiten: unexpected uniform value type: %s, %T", name, v))
+			}
 			continue
 		}
 
 		t := s.uniformTypes[idx.shaderUniformIndex]
-		v := zeroUniformValue(t)
-		if v == nil {
-			panic(fmt.Sprintf("ebiten: unexpected uniform variable type: %s", t.String()))
-		}
-		us[idx.resultIndex] = v
+		us[idx.resultIndex] = zeroUniformValue(name, t)
 	}
 
 	// TODO: Panic if uniforms include an invalid name
@@ -212,24 +219,17 @@ func (s *Shader) convertUniforms(uniforms map[string]interface{}) []interface{} 
 	return us
 }
 
-func zeroUniformValue(t shaderir.Type) interface{} {
+func zeroUniformValue(name string, t shaderir.Type) driver.Uniform {
 	switch t.Main {
-	case shaderir.Bool:
-		return false
-	case shaderir.Int:
-		return 0
 	case shaderir.Float:
-		return float32(0)
+		return driver.Uniform{
+			Float32: 0,
+		}
 	case shaderir.Array:
-		switch t.Sub[0].Main {
-		case shaderir.Bool:
-			return make([]bool, t.Length)
-		case shaderir.Int:
-			return make([]int, t.Length)
-		default:
-			return make([]float32, t.FloatNum())
+		return driver.Uniform{
+			Float32s: make([]float32, t.FloatNum()),
 		}
 	default:
-		return make([]float32, t.FloatNum())
+		panic(fmt.Sprintf("ebiten: unexpected uniform variable type: %s, %s", name, t.String()))
 	}
 }

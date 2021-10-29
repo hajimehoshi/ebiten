@@ -120,11 +120,6 @@ type programKey struct {
 	address   driver.Address
 }
 
-type uniformVariableValue struct {
-	f32  float32
-	f32s []float32
-}
-
 // openGLState is a state for
 type openGLState struct {
 	// arrayBuffer is OpenGL's array buffer (vertices data).
@@ -137,7 +132,7 @@ type openGLState struct {
 	programs map[programKey]program
 
 	lastProgram       program
-	lastUniforms      map[string]uniformVariableValue
+	lastUniforms      map[string]driver.Uniform
 	lastActiveTexture int
 }
 
@@ -247,7 +242,7 @@ func areSameFloat32Array(a, b []float32) bool {
 
 type uniformVariable struct {
 	name  string
-	value uniformVariableValue
+	value driver.Uniform
 	typ   shaderir.Type
 }
 
@@ -275,7 +270,7 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 	}
 
 	for _, u := range uniforms {
-		if len(u.value.f32s) == 0 {
+		if len(u.value.Float32s) == 0 {
 			if u.typ.Main != shaderir.Float {
 				expected := &shaderir.Type{Main: shaderir.Float}
 				got := &u.typ
@@ -283,33 +278,29 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 			}
 
 			cached, ok := g.state.lastUniforms[u.name]
-			if ok && cached.f32 == u.value.f32 {
+			if ok && cached.Float32 == u.value.Float32 {
 				continue
 			}
 			// TODO: Remember whether the location is available or not.
-			g.context.uniformFloat(program, u.name, u.value.f32)
+			g.context.uniformFloat(program, u.name, u.value.Float32)
 			if g.state.lastUniforms == nil {
-				g.state.lastUniforms = map[string]uniformVariableValue{}
+				g.state.lastUniforms = map[string]driver.Uniform{}
 			}
-			g.state.lastUniforms[u.name] = uniformVariableValue{
-				f32: u.value.f32,
-			}
+			g.state.lastUniforms[u.name] = u.value
 		} else {
-			if got, expected := len(u.value.f32s), u.typ.FloatNum(); got != expected {
+			if got, expected := len(u.value.Float32s), u.typ.FloatNum(); got != expected {
 				return fmt.Errorf("opengl: length of a uniform variables %s (%s) doesn't match: expected %d but %d", u.name, u.typ.String(), expected, got)
 			}
 
 			cached, ok := g.state.lastUniforms[u.name]
-			if ok && areSameFloat32Array(cached.f32s, u.value.f32s) {
+			if ok && areSameFloat32Array(cached.Float32s, u.value.Float32s) {
 				continue
 			}
-			g.context.uniformFloats(program, u.name, u.value.f32s, u.typ)
+			g.context.uniformFloats(program, u.name, u.value.Float32s, u.typ)
 			if g.state.lastUniforms == nil {
-				g.state.lastUniforms = map[string]uniformVariableValue{}
+				g.state.lastUniforms = map[string]driver.Uniform{}
 			}
-			g.state.lastUniforms[u.name] = uniformVariableValue{
-				f32s: u.value.f32s,
-			}
+			g.state.lastUniforms[u.name] = u.value
 		}
 	}
 
