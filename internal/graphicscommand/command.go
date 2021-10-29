@@ -53,6 +53,26 @@ type size struct {
 	height float32
 }
 
+type drawTrianglesCommandPool struct {
+	pool []*drawTrianglesCommand
+}
+
+func (p *drawTrianglesCommandPool) get() *drawTrianglesCommand {
+	if len(p.pool) == 0 {
+		return &drawTrianglesCommand{}
+	}
+	v := p.pool[len(p.pool)-1]
+	p.pool = p.pool[:len(p.pool)-1]
+	return v
+}
+
+func (p *drawTrianglesCommandPool) put(v *drawTrianglesCommand) {
+	if len(p.pool) >= 1024 {
+		return
+	}
+	p.pool = append(p.pool, v)
+}
+
 // commandQueue is a command queue for drawing commands.
 type commandQueue struct {
 	// commands is a queue of drawing commands.
@@ -76,6 +96,8 @@ type commandQueue struct {
 
 	tmpNumIndices int
 	nextIndex     int
+
+	drawTrianglesCommandPool drawTrianglesCommandPool
 
 	err error
 }
@@ -166,22 +188,21 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 		}
 	}
 
-	c := &drawTrianglesCommand{
-		dst:       dst,
-		srcs:      srcs,
-		offsets:   offsets,
-		vertices:  q.lastVertices(len(vertices)),
-		nindices:  len(indices),
-		color:     color,
-		mode:      mode,
-		filter:    filter,
-		address:   address,
-		dstRegion: dstRegion,
-		srcRegion: srcRegion,
-		shader:    shader,
-		uniforms:  uniforms,
-		evenOdd:   evenOdd,
-	}
+	c := q.drawTrianglesCommandPool.get()
+	c.dst = dst
+	c.srcs = srcs
+	c.offsets = offsets
+	c.vertices = q.lastVertices(len(vertices))
+	c.nindices = len(indices)
+	c.color = color
+	c.mode = mode
+	c.filter = filter
+	c.address = address
+	c.dstRegion = dstRegion
+	c.srcRegion = srcRegion
+	c.shader = shader
+	c.uniforms = uniforms
+	c.evenOdd = evenOdd
 	q.commands = append(q.commands, c)
 }
 
@@ -309,7 +330,10 @@ func (q *commandQueue) flush() error {
 	// Release the commands explicitly (#1803).
 	// Apparently, the part of a slice between len and cap-1 still holds references.
 	// Then, resetting the length by [:0] doesn't release the references.
-	for i := range q.commands {
+	for i, c := range q.commands {
+		if c, ok := c.(*drawTrianglesCommand); ok {
+			q.drawTrianglesCommandPool.put(c)
+		}
 		q.commands[i] = nil
 	}
 	q.commands = q.commands[:0]
