@@ -239,9 +239,10 @@ func areSameFloat32Array(a, b []float32) bool {
 }
 
 type uniformVariable struct {
-	name  string
-	value interface{}
-	typ   shaderir.Type
+	name       string
+	value      float32
+	valueSlice []float32
+	typ        shaderir.Type
 }
 
 type textureVariable struct {
@@ -268,32 +269,29 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 	}
 
 	for _, u := range uniforms {
-		switch v := u.value.(type) {
-		case float32:
+		if len(u.valueSlice) == 0 {
 			if got, expected := (&shaderir.Type{Main: shaderir.Float}), &u.typ; !got.Equal(expected) {
 				return fmt.Errorf("opengl: uniform variable %s type doesn't match: expected %s but %s", u.name, expected.String(), got.String())
 			}
 
 			cached, ok := g.state.lastUniforms[u.name].(float32)
-			if ok && cached == v {
+			if ok && cached == u.value {
 				continue
 			}
 			// TODO: Remember whether the location is available or not.
-			g.context.uniformFloat(program, u.name, v)
-			g.state.lastUniforms[u.name] = v
-		case []float32:
-			if got, expected := len(v), u.typ.FloatNum(); got != expected {
+			g.context.uniformFloat(program, u.name, u.value)
+			g.state.lastUniforms[u.name] = u.value
+		} else {
+			if got, expected := len(u.valueSlice), u.typ.FloatNum(); got != expected {
 				return fmt.Errorf("opengl: length of a uniform variables %s (%s) doesn't match: expected %d but %d", u.name, u.typ.String(), expected, got)
 			}
 
 			cached, ok := g.state.lastUniforms[u.name].([]float32)
-			if ok && areSameFloat32Array(cached, v) {
+			if ok && areSameFloat32Array(cached, u.valueSlice) {
 				continue
 			}
-			g.context.uniformFloats(program, u.name, v, u.typ)
-			g.state.lastUniforms[u.name] = v
-		default:
-			return fmt.Errorf("opengl: unexpected uniform value: %v (type: %T)", u.value, u.value)
+			g.context.uniformFloats(program, u.name, u.valueSlice, u.typ)
+			g.state.lastUniforms[u.name] = u.valueSlice
 		}
 	}
 
