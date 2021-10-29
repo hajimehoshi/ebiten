@@ -28,6 +28,11 @@ func Get() *Graphics {
 	return &theGraphics
 }
 
+type activatedTexture struct {
+	textureNative textureNative
+	index         int
+}
+
 type Graphics struct {
 	state   openGLState
 	context context
@@ -42,6 +47,10 @@ type Graphics struct {
 	drawCalled bool
 
 	uniformVariableNameCache map[int]string
+
+	// activatedTextures is a set of activated textures.
+	// textureNative cannot be a map key unfortunately.
+	activatedTextures []activatedTexture
 }
 
 func (g *Graphics) Begin() {

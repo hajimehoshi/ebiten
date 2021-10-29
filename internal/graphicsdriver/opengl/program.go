@@ -297,13 +297,6 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 		}
 	}
 
-	type activatedTexture struct {
-		textureNative textureNative
-		index         int
-	}
-
-	// textureNative cannot be a map key unfortunately.
-	textureToActivatedTexture := []activatedTexture{}
 	var idx int
 loop:
 	for i, t := range textures {
@@ -313,14 +306,14 @@ loop:
 
 		// If the texture is already bound, set the texture variable to point to the texture.
 		// Rebinding the same texture seems problematic (#1193).
-		for _, at := range textureToActivatedTexture {
+		for _, at := range g.activatedTextures {
 			if t.native.equal(at.textureNative) {
 				g.context.uniformInt(program, fmt.Sprintf("T%d", i), at.index)
 				continue loop
 			}
 		}
 
-		textureToActivatedTexture = append(textureToActivatedTexture, activatedTexture{
+		g.activatedTextures = append(g.activatedTextures, activatedTexture{
 			textureNative: t.native,
 			index:         idx,
 		})
@@ -335,6 +328,11 @@ loop:
 
 		idx++
 	}
+
+	for i := range g.activatedTextures {
+		g.activatedTextures[i] = activatedTexture{}
+	}
+	g.activatedTextures = g.activatedTextures[:0]
 
 	return nil
 }
