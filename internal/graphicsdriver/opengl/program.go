@@ -251,6 +251,18 @@ type textureVariable struct {
 	native textureNative
 }
 
+func (g *Graphics) textureVariableName(idx int) string {
+	if v, ok := g.textureVariableNameCache[idx]; ok {
+		return v
+	}
+	if g.textureVariableNameCache == nil {
+		g.textureVariableNameCache = map[int]string{}
+	}
+	name := fmt.Sprintf("T%d", idx)
+	g.textureVariableNameCache[idx] = name
+	return name
+}
+
 // useProgram uses the program (programTexture).
 func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textures [graphics.ShaderImageNum]textureVariable) error {
 	if !g.state.lastProgram.equal(program) {
@@ -318,7 +330,7 @@ loop:
 		// Rebinding the same texture seems problematic (#1193).
 		for _, at := range g.activatedTextures {
 			if t.native.equal(at.textureNative) {
-				g.context.uniformInt(program, fmt.Sprintf("T%d", i), at.index)
+				g.context.uniformInt(program, g.textureVariableName(i), at.index)
 				continue loop
 			}
 		}
@@ -327,7 +339,7 @@ loop:
 			textureNative: t.native,
 			index:         idx,
 		})
-		g.context.uniformInt(program, fmt.Sprintf("T%d", i), idx)
+		g.context.uniformInt(program, g.textureVariableName(i), idx)
 		if g.state.lastActiveTexture != idx {
 			g.context.activeTexture(idx)
 			g.state.lastActiveTexture = idx

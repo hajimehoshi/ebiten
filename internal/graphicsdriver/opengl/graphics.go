@@ -47,6 +47,7 @@ type Graphics struct {
 	drawCalled bool
 
 	uniformVariableNameCache map[int]string
+	textureVariableNameCache map[int]string
 
 	uniformVars []uniformVariable
 
