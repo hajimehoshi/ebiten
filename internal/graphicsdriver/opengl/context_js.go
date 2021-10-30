@@ -99,6 +99,15 @@ var (
 	webGL2MightBeAvailable = !forceWebGL1 && (js.Global().Get("WebGL2RenderingContext").Truthy() || js.Global().Get("go2cpp").Truthy())
 )
 
+func uint8ArrayToSlice(value js.Value, length int) []byte {
+	if l := value.Get("byteLength").Int(); length > l {
+		length = l
+	}
+	s := make([]byte, length)
+	js.CopyBytesToGo(s, value)
+	return s
+}
+
 type contextImpl struct {
 	gl            *gl
 	lastProgramID programID
@@ -236,7 +245,7 @@ func (c *context) framebufferPixels(f *framebuffer, width, height int) []byte {
 	p := jsutil.TemporaryUint8Array(l, nil)
 	gl.readPixels.Invoke(0, 0, width, height, gles.RGBA, gles.UNSIGNED_BYTE, p)
 
-	return jsutil.Uint8ArrayToSlice(p, l)
+	return uint8ArrayToSlice(p, l)
 }
 
 func (c *context) framebufferPixelsToBuffer(f *framebuffer, buffer buffer, width, height int) {
