@@ -242,7 +242,7 @@ func (c *context) framebufferPixels(f *framebuffer, width, height int) []byte {
 	c.bindFramebuffer(f.native)
 
 	l := 4 * width * height
-	p := jsutil.TemporaryUint8Array(l, nil)
+	p := jsutil.TemporaryUint8ArrayFromUint8Slice(l, nil)
 	gl.readPixels.Invoke(0, 0, width, height, gles.RGBA, gles.UNSIGNED_BYTE, p)
 
 	return uint8ArrayToSlice(p, l)
@@ -567,7 +567,7 @@ func (c *context) bindElementArrayBuffer(b buffer) {
 func (c *context) arrayBufferSubData(data []float32) {
 	gl := c.gl
 	l := len(data) * 4
-	arr := jsutil.TemporaryUint8Array(l, data)
+	arr := jsutil.TemporaryUint8ArrayFromFloat32Slice(l, data)
 	if c.usesWebGL2() {
 		gl.bufferSubData.Invoke(gles.ARRAY_BUFFER, 0, arr, 0, l)
 	} else {
@@ -578,7 +578,7 @@ func (c *context) arrayBufferSubData(data []float32) {
 func (c *context) elementArrayBufferSubData(data []uint16) {
 	gl := c.gl
 	l := len(data) * 2
-	arr := jsutil.TemporaryUint8Array(l, data)
+	arr := jsutil.TemporaryUint8ArrayFromUint16Slice(l, data)
 	if c.usesWebGL2() {
 		gl.bufferSubData.Invoke(gles.ELEMENT_ARRAY_BUFFER, 0, arr, 0, l)
 	} else {
@@ -624,7 +624,7 @@ func (c *context) texSubImage2D(t textureNative, args []*driver.ReplacePixelsArg
 	c.bindTexture(t)
 	gl := c.gl
 	for _, a := range args {
-		arr := jsutil.TemporaryUint8Array(len(a.Pixels), a.Pixels)
+		arr := jsutil.TemporaryUint8ArrayFromUint8Slice(len(a.Pixels), a.Pixels)
 		if c.usesWebGL2() {
 			// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
 			//                    GLsizei width, GLsizei height,
