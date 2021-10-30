@@ -331,7 +331,7 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 
 		for i, v := range uniforms {
 			const offset = graphics.PreservedUniformVariablesNum
-			g.uniformVars[i+offset].name = fmt.Sprintf("U%d", i+offset)
+			g.uniformVars[i+offset].name = g.uniformVariableName(i + offset)
 			g.uniformVars[i+offset].value = v
 			g.uniformVars[i+offset].typ = shader.ir.Uniforms[i+offset]
 		}
