@@ -293,7 +293,6 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 				// the value u would be allocated on heap.
 				typ := u.typ
 				return fmt.Errorf("opengl: length of a uniform variables %s (%s) doesn't match: expected %d but %d", u.name, typ.String(), expected, got)
-				return nil
 			}
 
 			cached, ok := g.state.lastUniforms[u.name]
