@@ -36,10 +36,9 @@ const (
 var (
 	shaderPaletteHorizontal *ebiten.Shader
 	shaderPaletteVertical   *ebiten.Shader
-	shaderShape             *ebiten.Shader
 	shaderPrograms          []*ebiten.Shader
 
-	uniformsByShaderIndex = make([]map[string]interface{}, 3)
+	uniformsByShaderIndex = make([]map[string]interface{}, 2)
 )
 
 func init() {
