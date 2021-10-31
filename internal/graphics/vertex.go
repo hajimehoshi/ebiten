@@ -75,13 +75,20 @@ func verticesBackendFloat32Size(size int) int {
 	return l
 }
 
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 func (v *verticesBackend) slice(n int) []float32 {
 	v.m.Lock()
 	defer v.m.Unlock()
 
 	need := n * VertexFloatNum
 	if len(v.backend) < v.pos+need {
-		v.backend = make([]float32, verticesBackendFloat32Size(v.pos+need))
+		v.backend = make([]float32, max(len(v.backend)*2, verticesBackendFloat32Size(need)))
 		v.pos = 0
 	}
 	s := v.backend[v.pos : v.pos+need]

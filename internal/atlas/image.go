@@ -59,7 +59,7 @@ func temporaryPixelsByteSize(size int) int {
 // Be careful that the returned pixels might not be zero-cleared.
 func (t *temporaryPixels) alloc(size int) []byte {
 	if len(t.pixels) < t.pos+size {
-		t.pixels = make([]byte, temporaryPixelsByteSize(t.pos+size))
+		t.pixels = make([]byte, max(len(t.pixels)*2, temporaryPixelsByteSize(size)))
 		t.pos = 0
 	}
 	pix := t.pixels[t.pos : t.pos+size]
