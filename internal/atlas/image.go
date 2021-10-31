@@ -81,6 +81,7 @@ func (t *temporaryPixels) resetAtFrameEnd() {
 	// Let the pixels GCed if this is not used for a while.
 	if t.notFullyUsedTime == maxNotFullyUsedTime && len(t.pixels) > 0 {
 		t.pixels = nil
+		t.notFullyUsedTime = 0
 	}
 
 	// Reset the position and reuse the allocated bytes.
