@@ -80,8 +80,8 @@ func (f *f32Reader) Read(buf []byte) (int, error) {
 	for i := 0; i < n; i++ {
 		f := f.fbuf[i]
 		s := int16(f * (1<<15 - 1))
-		b[2*i] = uint8(s)
-		b[2*i+1] = uint8(s >> 8)
+		b[2*i] = byte(s)
+		b[2*i+1] = byte(s >> 8)
 	}
 
 	if len(buf) == 1 && len(b) == 2 {

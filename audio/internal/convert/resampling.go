@@ -110,7 +110,7 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 				return 0, 0, err
 			}
 		}
-		buf := make([]uint8, resamplingBufferSize*4)
+		buf := make([]byte, resamplingBufferSize*4)
 		c := 0
 		for c < len(buf) {
 			n, err := r.source.Read(buf[c:])
@@ -202,7 +202,7 @@ func (r *Resampling) at(t int64) (float64, float64, error) {
 	return lv, rv, nil
 }
 
-func (r *Resampling) Read(b []uint8) (int, error) {
+func (r *Resampling) Read(b []byte) (int, error) {
 	if r.pos == r.Length() {
 		return 0, io.EOF
 	}
@@ -217,10 +217,10 @@ func (r *Resampling) Read(b []uint8) (int, error) {
 		}
 		l16 := int16(l * (1<<15 - 1))
 		r16 := int16(r * (1<<15 - 1))
-		b[4*i] = uint8(l16)
-		b[4*i+1] = uint8(l16 >> 8)
-		b[4*i+2] = uint8(r16)
-		b[4*i+3] = uint8(r16 >> 8)
+		b[4*i] = byte(l16)
+		b[4*i+1] = byte(l16 >> 8)
+		b[4*i+2] = byte(r16)
+		b[4*i+3] = byte(r16 >> 8)
 	}
 	r.pos += int64(n)
 	return n, nil

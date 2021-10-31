@@ -32,7 +32,7 @@ func NewStereo16(source io.ReadSeeker, mono, eight bool) *Stereo16 {
 	}
 }
 
-func (s *Stereo16) Read(b []uint8) (int, error) {
+func (s *Stereo16) Read(b []byte) (int, error) {
 	l := len(b)
 	if s.mono {
 		l /= 2
@@ -40,7 +40,7 @@ func (s *Stereo16) Read(b []uint8) (int, error) {
 	if s.eight {
 		l /= 2
 	}
-	buf := make([]uint8, l)
+	buf := make([]byte, l)
 	n, err := s.source.Read(buf)
 	if err != nil && err != io.EOF {
 		return 0, err
@@ -49,10 +49,10 @@ func (s *Stereo16) Read(b []uint8) (int, error) {
 	case s.mono && s.eight:
 		for i := 0; i < n; i++ {
 			v := int16(int(buf[i])*0x101 - (1 << 15))
-			b[4*i] = uint8(v)
-			b[4*i+1] = uint8(v >> 8)
-			b[4*i+2] = uint8(v)
-			b[4*i+3] = uint8(v >> 8)
+			b[4*i] = byte(v)
+			b[4*i+1] = byte(v >> 8)
+			b[4*i+2] = byte(v)
+			b[4*i+3] = byte(v >> 8)
 		}
 	case s.mono && !s.eight:
 		for i := 0; i < n/2; i++ {
@@ -65,10 +65,10 @@ func (s *Stereo16) Read(b []uint8) (int, error) {
 		for i := 0; i < n/2; i++ {
 			v0 := int16(int(buf[2*i])*0x101 - (1 << 15))
 			v1 := int16(int(buf[2*i+1])*0x101 - (1 << 15))
-			b[4*i] = uint8(v0)
-			b[4*i+1] = uint8(v0 >> 8)
-			b[4*i+2] = uint8(v1)
-			b[4*i+3] = uint8(v1 >> 8)
+			b[4*i] = byte(v0)
+			b[4*i+1] = byte(v0 >> 8)
+			b[4*i+2] = byte(v1)
+			b[4*i+3] = byte(v1 >> 8)
 		}
 	}
 	if s.mono {
