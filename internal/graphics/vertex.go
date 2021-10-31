@@ -108,6 +108,7 @@ func (v *verticesBackend) lockAndReset(f func() error) error {
 
 	if v.notFullyUsedTime == maxNotFullyUsedTime && len(v.backend) > 0 {
 		v.backend = nil
+		v.notFullyUsedTime = 0
 	}
 
 	v.pos = 0
