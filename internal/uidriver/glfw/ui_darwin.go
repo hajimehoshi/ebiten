@@ -175,7 +175,9 @@ func (u *UserInterface) setNativeCursor(shape driver.CursorShape) {
 }
 
 func (u *UserInterface) isNativeFullscreenAvailable() bool {
-	return u.window.GetAttrib(glfw.TransparentFramebuffer) != glfw.True
+	// TODO: If the window is transparent, we should use GLFW's windowed fullscreen (#1822, #1857).
+	// However, if the user clicks the green button, should this window be in native fullscreen mode?
+	return true
 }
 
 func (u *UserInterface) setNativeFullscreen(fullscreen bool) {
