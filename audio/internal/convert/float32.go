@@ -27,10 +27,11 @@ func NewReaderFromFloat32Reader(r Float32Reader) io.Reader {
 }
 
 type f32Reader struct {
-	r    Float32Reader
-	eof  bool
-	buf  *byte
-	fbuf []float32
+	r         Float32Reader
+	eof       bool
+	hasRemain bool
+	remain    byte
+	fbuf      []float32
 }
 
 func max(a, b int) int {
@@ -47,22 +48,15 @@ func (f *f32Reader) Read(buf []byte) (int, error) {
 	if len(buf) == 0 {
 		return 0, nil
 	}
-	if f.buf != nil {
-		buf[0] = *f.buf
-		f.buf = nil
+	if f.hasRemain {
+		buf[0] = f.remain
+		f.hasRemain = false
 		return 1, nil
 	}
 
 	l := max(len(buf)/2, 1)
-	ll := len(f.fbuf)
-	if ll < 16 {
-		ll = 16
-	}
-	for ll < l {
-		ll *= 2
-	}
-	if len(f.fbuf) < ll {
-		f.fbuf = make([]float32, ll)
+	if cap(f.fbuf) < l {
+		f.fbuf = make([]float32, l)
 	}
 
 	n, err := f.r.Read(f.fbuf[:l])
@@ -86,7 +80,8 @@ func (f *f32Reader) Read(buf []byte) (int, error) {
 
 	if len(buf) == 1 && len(b) == 2 {
 		buf[0] = b[0]
-		f.buf = &b[1]
+		f.remain = b[1]
+		f.hasRemain = true
 		return 1, err
 	}
 	return n * 2, err
