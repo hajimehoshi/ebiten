@@ -384,7 +384,9 @@ func (c *context) uniformFloats(p program, location string, v []float32, typ sha
 	case shaderir.Mat4:
 		c.ctx.UniformMatrix4fv(int32(l), false, v)
 	default:
-		panic(fmt.Sprintf("opengl: unexpected type: %s", typ.String()))
+		// Copy shaderir.Type value to avoid heap allocation of typ.
+		t := typ
+		panic(fmt.Sprintf("opengl: unexpected type: %s", t.String()))
 	}
 	return true
 }
