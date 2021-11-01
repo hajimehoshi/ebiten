@@ -59,10 +59,6 @@ func (p program) equal(rhs program) bool {
 	return p == rhs
 }
 
-func (p program) getID() int {
-	return int(p)
-}
-
 var InvalidTexture textureNative
 
 type (

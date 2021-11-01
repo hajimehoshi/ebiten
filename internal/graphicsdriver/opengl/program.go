@@ -130,7 +130,7 @@ type openGLState struct {
 
 	// programs is OpenGL's program for rendering a texture.
 	programs                map[programKey]program
-	lastUniformsByProgramID map[int]map[string]driver.Uniform
+	lastUniformsByProgramID map[programID]map[string]driver.Uniform
 
 	lastProgram       program
 	lastActiveTexture int
@@ -153,7 +153,7 @@ func (s *openGLState) reset(context *context) error {
 		delete(s.lastUniformsByProgramID, key)
 	}
 	if s.lastUniformsByProgramID == nil {
-		s.lastUniformsByProgramID = map[int]map[string]driver.Uniform{}
+		s.lastUniformsByProgramID = map[programID]map[string]driver.Uniform{}
 	}
 
 	// When context lost happens, deleting programs or buffers is not necessary.
@@ -165,7 +165,7 @@ func (s *openGLState) reset(context *context) error {
 		for k, p := range s.programs {
 			context.deleteProgram(p)
 			delete(s.programs, k)
-			delete(s.lastUniformsByProgramID, p.getID())
+			delete(s.lastUniformsByProgramID, getProgramID(p))
 		}
 	}
 
@@ -280,7 +280,7 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 		g.context.activeTexture(0)
 	}
 
-	programID := program.getID()
+	programID := getProgramID(program)
 	for _, u := range uniforms {
 		if len(u.value.Float32s) == 0 {
 			if u.typ.Main != shaderir.Float {
