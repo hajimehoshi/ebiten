@@ -129,8 +129,8 @@ type openGLState struct {
 	elementArrayBuffer buffer
 
 	// programs is OpenGL's program for rendering a texture.
-	programs     map[programKey]program
-	lastUniforms map[program]map[string]driver.Uniform
+	programs                map[programKey]program
+	lastUniformsByProgramID map[int]map[string]driver.Uniform
 
 	lastProgram       program
 	lastActiveTexture int
@@ -149,11 +149,11 @@ func (s *openGLState) reset(context *context) error {
 
 	s.lastProgram = zeroProgram
 	context.useProgram(zeroProgram)
-	for key := range s.lastUniforms {
-		delete(s.lastUniforms, key)
+	for key := range s.lastUniformsByProgramID {
+		delete(s.lastUniformsByProgramID, key)
 	}
-	if s.lastUniforms == nil {
-		s.lastUniforms = map[program]map[string]driver.Uniform{}
+	if s.lastUniformsByProgramID == nil {
+		s.lastUniformsByProgramID = map[int]map[string]driver.Uniform{}
 	}
 
 	// When context lost happens, deleting programs or buffers is not necessary.
@@ -165,7 +165,7 @@ func (s *openGLState) reset(context *context) error {
 		for k, p := range s.programs {
 			context.deleteProgram(p)
 			delete(s.programs, k)
-			delete(s.lastUniforms, p)
+			delete(s.lastUniformsByProgramID, p.getID())
 		}
 	}
 
@@ -280,6 +280,7 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 		g.context.activeTexture(0)
 	}
 
+	programID := program.getID()
 	for _, u := range uniforms {
 		if len(u.value.Float32s) == 0 {
 			if u.typ.Main != shaderir.Float {
@@ -288,16 +289,16 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 				return fmt.Errorf("opengl: uniform variable %s type doesn't match: expected %s but %s", u.name, expected.String(), got.String())
 			}
 
-			cached, ok := g.state.lastUniforms[program][u.name]
+			cached, ok := g.state.lastUniformsByProgramID[programID][u.name]
 			if ok && cached.Float32 == u.value.Float32 {
 				continue
 			}
 			// TODO: Remember whether the location is available or not.
 			g.context.uniformFloat(program, u.name, u.value.Float32)
-			if g.state.lastUniforms[program] == nil {
-				g.state.lastUniforms[program] = map[string]driver.Uniform{}
+			if g.state.lastUniformsByProgramID[programID] == nil {
+				g.state.lastUniformsByProgramID[programID] = map[string]driver.Uniform{}
 			}
-			g.state.lastUniforms[program][u.name] = u.value
+			g.state.lastUniformsByProgramID[programID][u.name] = u.value
 		} else {
 			if got, expected := len(u.value.Float32s), u.typ.FloatNum(); got != expected {
 				// Copy a shaderir.Type value once. Do not pass u.typ directly to fmt.Errorf arguments, or
@@ -306,15 +307,15 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 				return fmt.Errorf("opengl: length of a uniform variables %s (%s) doesn't match: expected %d but %d", u.name, typ.String(), expected, got)
 			}
 
-			cached, ok := g.state.lastUniforms[program][u.name]
+			cached, ok := g.state.lastUniformsByProgramID[programID][u.name]
 			if ok && areSameFloat32Array(cached.Float32s, u.value.Float32s) {
 				continue
 			}
 			g.context.uniformFloats(program, u.name, u.value.Float32s, u.typ)
-			if g.state.lastUniforms[program] == nil {
-				g.state.lastUniforms[program] = map[string]driver.Uniform{}
+			if g.state.lastUniformsByProgramID[programID] == nil {
+				g.state.lastUniformsByProgramID[programID] = map[string]driver.Uniform{}
 			}
-			g.state.lastUniforms[program][u.name] = u.value
+			g.state.lastUniformsByProgramID[programID][u.name] = u.value
 		}
 	}
 
