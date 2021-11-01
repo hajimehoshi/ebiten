@@ -70,7 +70,7 @@ func (p program) equal(rhs program) bool {
 }
 
 func (p program) getID() int {
-	return p.id
+	return int(p.id)
 }
 
 var InvalidTexture = textureNative(js.Null())
