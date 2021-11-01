@@ -77,7 +77,7 @@ func (t *Type) String() string {
 		str += "}"
 		return str
 	default:
-		return fmt.Sprintf("?(unknown type: %d)", t)
+		return fmt.Sprintf("?(unknown type: %d)", t.Main)
 	}
 }
 

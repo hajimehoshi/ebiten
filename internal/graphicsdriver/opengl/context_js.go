@@ -517,9 +517,7 @@ func (c *context) uniformFloats(p program, location string, v []float32, typ sha
 			gl.uniformMatrix4fv.Invoke(js.Value(l), false, arr.Call("subarray", 0, len(v)))
 		}
 	default:
-		// Copy shaderir.Type value to avoid heap allocation of typ.
-		t := typ
-		panic(fmt.Sprintf("opengl: unexpected type: %s", t.String()))
+		panic(fmt.Sprintf("opengl: unexpected type: %s", typ.String()))
 	}
 
 	return true
