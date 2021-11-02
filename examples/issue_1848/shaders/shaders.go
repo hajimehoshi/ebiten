@@ -77,43 +77,43 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	p -= 0.5
 
 	// Drawing circles
-	idx := -1
+	idx := -1.
 	shortestDistance := 0.
 	for i := 0; i < 8; i++ {
 		r := Radiuses[i]
 		pos := p - Positions[i]
 		d := length(pos) - r
 		if d < shortestDistance {
-			idx = i
+			idx = float(i)
 			shortestDistance = d
 		}
 	}
 	// We're not in a circle
-	if idx < 0 {
-		return vec4(0)
+	if idx < 0. {
+		return vec4(0.)
 	}
 
 	// Resolving color
 	var c vec4
-	if idx == 0 {
-		c = vec4(palette(shortestDistance, Palette0[0], Palette0[1], Palette0[2], Palette0[3]), 1)
-	} else if idx == 1 {
-		c = vec4(palette(shortestDistance, Palette1[0], Palette1[1], Palette1[2], Palette1[3]), 1)
-	} else if idx == 2 {
-		c = vec4(palette(shortestDistance, Palette2[0], Palette2[1], Palette2[2], Palette2[3]), 1)
-	} else if idx == 3 {
-		c = vec4(palette(shortestDistance, Palette3[0], Palette3[1], Palette3[2], Palette3[3]), 1)
-	} else if idx == 4 {
-		c = vec4(palette(shortestDistance, Palette4[0], Palette4[1], Palette4[2], Palette4[3]), 1)
-	} else if idx == 5 {
-		c = vec4(palette(shortestDistance, Palette5[0], Palette5[1], Palette5[2], Palette5[3]), 1)
-	} else if idx == 6 {
-		c = vec4(palette(shortestDistance, Palette6[0], Palette6[1], Palette6[2], Palette6[3]), 1)
-	} else if idx == 7 {
-		c = vec4(palette(shortestDistance, Palette7[0], Palette7[1], Palette7[2], Palette7[3]), 1)
+	if idx == 0. {
+		c = vec4(palette(shortestDistance, Palette0[0], Palette0[1], Palette0[2], Palette0[3]), 1.)
+	} else if idx == 1. {
+		c = vec4(palette(shortestDistance, Palette1[0], Palette1[1], Palette1[2], Palette1[3]), 1.)
+	} else if idx == 2. {
+		c = vec4(palette(shortestDistance, Palette2[0], Palette2[1], Palette2[2], Palette2[3]), 1.)
+	} else if idx == 3. {
+		c = vec4(palette(shortestDistance, Palette3[0], Palette3[1], Palette3[2], Palette3[3]), 1.)
+	} else if idx == 4. {
+		c = vec4(palette(shortestDistance, Palette4[0], Palette4[1], Palette4[2], Palette4[3]), 1.)
+	} else if idx == 5. {
+		c = vec4(palette(shortestDistance, Palette5[0], Palette5[1], Palette5[2], Palette5[3]), 1.)
+	} else if idx == 6. {
+		c = vec4(palette(shortestDistance, Palette6[0], Palette6[1], Palette6[2], Palette6[3]), 1.)
+	} else if idx == 7. {
+		c = vec4(palette(shortestDistance, Palette7[0], Palette7[1], Palette7[2], Palette7[3]), 1.)
 	}
 
-	return c*(1-smoothstep(Aliasing, 0., -shortestDistance))
+	return c*(1.-smoothstep(Aliasing, 0., -shortestDistance))
 }
 `)
 
