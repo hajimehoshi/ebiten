@@ -31,9 +31,10 @@ import (
 )
 
 const (
-	screenWidth  = 640
-	screenHeight = 480
-	sampleRate   = 22050
+	screenWidth    = 640
+	screenHeight   = 480
+	sampleRate     = 22050
+	bytesPerSample = 4 // 2 channels * 2 bytes (16 bit)
 
 	introLengthInSecond = 5
 	loopLengthInSecond  = 4
@@ -62,7 +63,7 @@ func (g *Game) Update() error {
 
 	// Create an infinite loop stream from the decoded bytes.
 	// s is still an io.ReadCloser and io.Seeker.
-	s := audio.NewInfiniteLoopWithIntro(oggS, introLengthInSecond*4*sampleRate, loopLengthInSecond*4*sampleRate)
+	s := audio.NewInfiniteLoopWithIntro(oggS, introLengthInSecond*bytesPerSample*sampleRate, loopLengthInSecond*bytesPerSample*sampleRate)
 
 	g.player, err = g.audioContext.NewPlayer(s)
 	if err != nil {
