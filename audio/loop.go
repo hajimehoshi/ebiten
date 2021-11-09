@@ -62,7 +62,7 @@ func (i *InfiniteLoop) ensurePos() error {
 	return nil
 }
 
-// Read is implementation of ReadSeekCloser's Read.
+// Read is implementation of ReadSeeker's Read.
 func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	if err := i.ensurePos(); err != nil {
 		return 0, err
@@ -92,7 +92,7 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	return n, nil
 }
 
-// Seek is implementation of ReadSeekCloser's Seek.
+// Seek is implementation of ReadSeeker's Seek.
 func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 	if err := i.ensurePos(); err != nil {
 		return 0, err
