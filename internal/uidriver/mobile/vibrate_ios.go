@@ -21,66 +21,75 @@ package mobile
 //
 // #import <CoreHaptics/CoreHaptics.h>
 //
-// static CHHapticEngine* engine;
+// static id initializeHapticEngine(void) {
+//   if (@available(iOS 13.0, *)) {
+//     if (!CHHapticEngine.capabilitiesForHardware.supportsHaptics) {
+//       return nil;
+//     }
 //
-// static void initializeVibrate(void) {
-//   if (!CHHapticEngine.capabilitiesForHardware.supportsHaptics) {
-//     return;
-//   }
+//     NSError* error = nil;
+//     CHHapticEngine* engine = [[CHHapticEngine alloc] initAndReturnError:&error];
+//     if (error) {
+//       return nil;
+//     }
 //
-//   NSError* error = nil;
-//   engine = [[CHHapticEngine alloc] initAndReturnError:&error];
-//   if (error) {
-//     return;
+//     [engine startAndReturnError:&error];
+//     if (error) {
+//       return nil;
+//     }
+//     return engine;
 //   }
-//
-//   [engine startAndReturnError:&error];
-//   if (error) {
-//     return;
-//   }
+//   return nil;
 // }
 //
 // static void vibrate(double duration) {
-//   if (!engine) {
-//     return;
-//   }
-//
-//   @autoreleasepool {
-//     NSDictionary* hapticDict = @{
-//       CHHapticPatternKeyPattern: @[
-//         @{
-//           CHHapticPatternKeyEvent: @{
-//             CHHapticPatternKeyEventType:CHHapticEventTypeHapticContinuous,
-//             CHHapticPatternKeyTime:@0.0,
-//             CHHapticPatternKeyEventDuration:[NSNumber numberWithDouble:duration],
-//             CHHapticPatternKeyEventParameters:@[
-//               @{
-//                 CHHapticPatternKeyParameterID: CHHapticEventParameterIDHapticIntensity,
-//                 CHHapticPatternKeyParameterValue: @1.0,
-//               },
-//             ],
+//   if (@available(iOS 13.0, *)) {
+//     static BOOL initializeHapticEngineCalled = NO;
+//     static CHHapticEngine* engine = nil;
+//     if (!initializeHapticEngineCalled) {
+//       engine = (CHHapticEngine*)initializeHapticEngine();
+//       initializeHapticEngineCalled = YES;
+//     }
+//     if (!engine) {
+//       return;
+//     }
+//     @autoreleasepool {
+//       NSDictionary* hapticDict = @{
+//         (id<NSCopying>)(CHHapticPatternKeyPattern): @[
+//           @{
+//             (id<NSCopying>)(CHHapticPatternKeyEvent): @{
+//               (id<NSCopying>)(CHHapticPatternKeyEventType):CHHapticEventTypeHapticContinuous,
+//               (id<NSCopying>)(CHHapticPatternKeyTime):@0.0,
+//               (id<NSCopying>)(CHHapticPatternKeyEventDuration):[NSNumber numberWithDouble:duration],
+//               (id<NSCopying>)(CHHapticPatternKeyEventParameters):@[
+//                 @{
+//                   (id<NSCopying>)(CHHapticPatternKeyParameterID): CHHapticEventParameterIDHapticIntensity,
+//                   (id<NSCopying>)(CHHapticPatternKeyParameterValue): @1.0,
+//                 },
+//               ],
+//             },
 //           },
-//         },
-//       ],
-//     };
+//         ],
+//       };
 //
-//     NSError* error = nil;
-//     CHHapticPattern* pattern = [[CHHapticPattern alloc] initWithDictionary:hapticDict
-//                                                                      error:&error];
-//     if (error) {
-//       return;
-//     }
+//       NSError* error = nil;
+//       CHHapticPattern* pattern = [[CHHapticPattern alloc] initWithDictionary:hapticDict
+//                                                                        error:&error];
+//       if (error) {
+//         return;
+//       }
 //
-//     id<CHHapticPatternPlayer> player = [engine createPlayerWithPattern:pattern
-//                                                                  error:&error];
-//     if (error) {
-//       return;
-//     }
+//       id<CHHapticPatternPlayer> player = [engine createPlayerWithPattern:pattern
+//                                                                    error:&error];
+//       if (error) {
+//         return;
+//       }
 //
-//     [player startAtTime:0 error:&error];
-//     if (error) {
-//       NSLog(@"3, %@", [error localizedDescription]);
-//       return;
+//       [player startAtTime:0 error:&error];
+//       if (error) {
+//         NSLog(@"3, %@", [error localizedDescription]);
+//         return;
+//       }
 //     }
 //   }
 // }
@@ -91,10 +100,6 @@ import (
 	"sync"
 	"time"
 )
-
-func init() {
-	C.initializeVibrate()
-}
 
 var vibrationM sync.Mutex
 
