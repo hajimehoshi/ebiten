@@ -298,7 +298,8 @@ func (i *Input) updateGamepads() {
 		return
 	}
 
-	if !nav.Get("getGamepads").Truthy() {
+	gamepads := nav.Call("getGamepads")
+	if !gamepads.Truthy() {
 		return
 	}
 
@@ -306,7 +307,6 @@ func (i *Input) updateGamepads() {
 		delete(i.gamepads, k)
 	}
 
-	gamepads := nav.Call("getGamepads")
 	l := gamepads.Length()
 	for idx := 0; idx < l; idx++ {
 		gp := gamepads.Index(idx)
