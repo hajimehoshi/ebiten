@@ -392,3 +392,62 @@ func (f faceWithLineHeight) Metrics() font.Metrics {
 	m.Height = f.lineHeight
 	return m
 }
+
+// Glyphs is infomation to render one glyph.
+type Glyph struct {
+	// Rune is a character for this glyph.
+	Rune rune
+
+	// Image is an image for this glyph.
+	// Image is a grayscale image i.e. RGBA values are the same.
+	Image *ebiten.Image
+
+	// X is the X position to render this glyph.
+	// The position is determined in a sequence of characters given at AppendGlyphs.
+	// The position's origin is the first character's dot ('.') position.
+	X float64
+
+	// Y is the Y position to render this glyph.
+	// The position is determined in a sequence of characters given at AppendGlyphs.
+	// The position's origin is the first character's dot ('.') position.
+	Y float64
+}
+
+// AppendGlyphs appends the glyph information to glyphs.
+// You can render each glyphs as you like. See examples/text for an example of AppendGlyphs.
+func AppendGlyphs(glyphs []Glyph, face font.Face, text string) []Glyph {
+	textM.Lock()
+	defer textM.Unlock()
+
+	var pos fixed.Point26_6
+	prevR := rune(-1)
+
+	faceHeight := face.Metrics().Height
+
+	for _, r := range text {
+		if prevR >= 0 {
+			pos.X += face.Kern(prevR, r)
+		}
+		if r == '\n' {
+			pos.X = 0
+			pos.Y += faceHeight
+			prevR = rune(-1)
+			continue
+		}
+
+		if img := getGlyphImage(face, r); img != nil {
+			b := getGlyphBounds(face, r)
+			glyphs = append(glyphs, Glyph{
+				Rune:  r,
+				Image: img,
+				X:     math.Floor(fixed26_6ToFloat64(pos.X + b.Min.X)),
+				Y:     math.Floor(fixed26_6ToFloat64(pos.Y + b.Min.Y)),
+			})
+		}
+		pos.X += glyphAdvance(face, r)
+
+		prevR = r
+	}
+
+	return glyphs
+}
