@@ -684,20 +684,20 @@ func (u *UserInterface) SetCursorShape(shape driver.CursorShape) {
 func (u *UserInterface) DeviceScaleFactor() float64 {
 	if !u.isRunning() {
 		// TODO: Use the initWindowPosition. This requires to convert the units correctly (#1575).
-		return u.deviceScaleFactor(u.currentMonitor())
+		return u.deviceScaleFactor()
 	}
 
 	f := 0.0
 	_ = u.t.Call(func() error {
-		f = u.deviceScaleFactor(u.currentMonitor())
+		f = u.deviceScaleFactor()
 		return nil
 	})
 	return f
 }
 
 // deviceScaleFactor must be called from the main thread.
-func (u *UserInterface) deviceScaleFactor(monitor *glfw.Monitor) float64 {
-	mx, my := monitor.GetPos()
+func (u *UserInterface) deviceScaleFactor() float64 {
+	mx, my := u.currentMonitor().GetPos()
 	return devicescale.GetAt(mx, my)
 }
 
@@ -1213,7 +1213,7 @@ func (u *UserInterface) setWindowSizeInDIP(width, height int, fullscreen bool) {
 
 	u.Graphics().SetFullscreen(fullscreen)
 
-	scale := u.deviceScaleFactor(u.currentMonitor())
+	scale := u.deviceScaleFactor()
 	if u.windowWidthInDIP == width && u.windowHeightInDIP == height && u.isFullscreen() == fullscreen && u.lastDeviceScaleFactor == scale {
 		return
 	}
