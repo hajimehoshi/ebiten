@@ -304,9 +304,10 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) {
 	cx, cy := window.GetCursorPos()
 	// TODO: This is tricky. Rename the function?
 	m := i.ui.currentMonitor()
+	s := i.ui.deviceScaleFactor(m)
 	cx = i.ui.dipFromGLFWPixel(cx, m)
 	cy = i.ui.dipFromGLFWPixel(cy, m)
-	cx, cy = context.AdjustPosition(cx, cy, i.ui.deviceScaleFactor())
+	cx, cy = context.AdjustPosition(cx, cy, s)
 
 	// AdjustPosition can return NaN at the initialization.
 	if !math.IsNaN(cx) && !math.IsNaN(cy) {
