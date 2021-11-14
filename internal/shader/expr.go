@@ -200,13 +200,6 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 				cs.addError(e.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed: %s", e.Fun))
 				return nil, nil, nil, false
 			}
-			// If the argument is a non-typed constant value, treat is as a float value (#1874).
-			for i, e := range es {
-				if e.Type == shaderir.NumberExpr && e.ConstType == shaderir.ConstTypeNone {
-					e.ConstType = shaderir.ConstTypeFloat
-					ts[i] = shaderir.Type{Main: shaderir.Float}
-				}
-			}
 			args = append(args, es...)
 			argts = append(argts, ts...)
 			stmts = append(stmts, ss...)
@@ -276,6 +269,11 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 			case shaderir.Texture2DF:
 				t = shaderir.Type{Main: shaderir.Vec4}
 			default:
+				// If the argument is a non-typed constant value, treat is as a float value (#1874).
+				if args[0].Type == shaderir.NumberExpr && args[0].ConstType == shaderir.ConstTypeNone {
+					args[0].ConstType = shaderir.ConstTypeFloat
+					argts[0] = shaderir.Type{Main: shaderir.Float}
+				}
 				t = argts[0]
 			}
 			return []shaderir.Expr{
