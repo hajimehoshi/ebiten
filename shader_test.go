@@ -1180,3 +1180,18 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		})
 	}
 }
+
+func TestShaderUnmatchedArgs(t *testing.T) {
+	if _, err := ebiten.NewShader([]byte(`package main
+
+func Foo() {
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	Foo(1)
+	return position
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+}

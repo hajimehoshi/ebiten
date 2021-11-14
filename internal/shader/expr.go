@@ -291,6 +291,15 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 
 		f := cs.funcs[callee.Index]
 
+		if len(f.ir.InParams) < len(args) {
+			cs.addError(e.Pos(), fmt.Sprintf("too many arguments in call to %s", e.Fun))
+			return nil, nil, nil, false
+		}
+		if len(f.ir.InParams) > len(args) {
+			cs.addError(e.Pos(), fmt.Sprintf("not enough arguments in call to %s", e.Fun))
+			return nil, nil, nil, false
+		}
+
 		for i, p := range f.ir.InParams {
 			if args[i].Type == shaderir.NumberExpr && p.Main == shaderir.Int {
 				if !cs.forceToInt(e, &args[i]) {
