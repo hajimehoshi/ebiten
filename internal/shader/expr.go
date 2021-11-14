@@ -200,6 +200,13 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 				cs.addError(e.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed: %s", e.Fun))
 				return nil, nil, nil, false
 			}
+			// If the argument is a non-typed constant value, treat is as a float value (#1874).
+			for i, e := range es {
+				if e.Type == shaderir.NumberExpr && e.ConstType == shaderir.ConstTypeNone {
+					e.ConstType = shaderir.ConstTypeFloat
+					ts[i] = shaderir.Type{Main: shaderir.Float}
+				}
+			}
 			args = append(args, es...)
 			argts = append(argts, ts...)
 			stmts = append(stmts, ss...)
