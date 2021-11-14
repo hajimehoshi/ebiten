@@ -1194,4 +1194,51 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 `)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
 	}
+
+	if _, err := ebiten.NewShader([]byte(`package main
+
+func Foo(x float) {
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	Foo()
+	return position
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := ebiten.NewShader([]byte(`package main
+
+func Foo(x, y float) {
+}
+
+func Bar() (float, float, float) {
+	return 0, 1
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	Foo(Bar())
+	return position
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := ebiten.NewShader([]byte(`package main
+
+func Foo(x, y, z float) {
+}
+
+func Bar() (float, float) {
+	return 0, 1
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	Foo(Bar())
+	return position
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
 }
