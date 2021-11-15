@@ -297,6 +297,14 @@ func newGeoM(a, b, c, d, tx, ty float64) ebiten.GeoM {
 	return outp
 }
 
+func TestGeomGetter(t *testing.T) {
+	geoM := newGeoM(1, 2, 3, 4, 5, 6)
+	geoM2 := newGeoM(geoM.A(), geoM.B(), geoM.C(), geoM.D(), geoM.Tx(), geoM.Ty())
+	if geoM != geoM2 {
+		t.Errorf("got: %s want: %s", geoMToString(geoM), geoMToString(geoM2))
+	}
+}
+
 func TestGeomSkew(t *testing.T) {
 	testSkew := func(skewX, skewY float64, input, expected ebiten.GeoM) {
 		input.Skew(skewX, skewY)

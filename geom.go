@@ -80,6 +80,36 @@ func (g *GeoM) Element(i, j int) float64 {
 	}
 }
 
+// A returns the A value of the matrix.
+func (g *GeoM) A() float64 {
+	return g.a_1 + 1
+}
+
+// B returns the B value of the matrix.
+func (g *GeoM) B() float64 {
+	return g.b
+}
+
+// C returns the C value of the matrix.
+func (g *GeoM) C() float64 {
+	return g.c
+}
+
+// D returns the D value of the matrix.
+func (g *GeoM) D() float64 {
+	return g.d_1 + 1
+}
+
+// Tx returns the Tx value of the matrix.
+func (g *GeoM) Tx() float64 {
+	return g.tx
+}
+
+// Ty returns the Ty value of the matrix.
+func (g *GeoM) Ty() float64 {
+	return g.ty
+}
+
 // Concat multiplies a geometry matrix with the other geometry matrix.
 // This is same as muptiplying the matrix other and the matrix g in this order.
 func (g *GeoM) Concat(other GeoM) {
