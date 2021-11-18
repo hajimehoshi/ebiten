@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    package="org.ebiten.example.vibrate"
+    android:versionCode="1"
+    android:versionName="1.0">
+  <uses-permission android:name="android.permission.VIBRATE"/>
+  <application android:label="Vibrate" android:debuggable="true">
+    <activity android:name="org.golang.app.GoNativeActivity"
+	      android:label="vibrate"
+	      android:configChanges="orientation|keyboardHidden">
+      <meta-data android:name="android.app.lib_name" android:value="vibrate" />
+      <intent-filter>
+	<action android:name="android.intent.action.MAIN" />
+	<category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity>
+  </application>
+</manifest>
