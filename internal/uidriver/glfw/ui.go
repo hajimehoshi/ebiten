@@ -699,6 +699,12 @@ func (u *UserInterface) DeviceScaleFactor() float64 {
 
 // deviceScaleFactor must be called from the main thread.
 func (u *UserInterface) deviceScaleFactor(monitor *glfw.Monitor) float64 {
+	// It is rare, but monitor can be nil when glfw.GetPrimaryMonitor returns nil.
+	// In this case, return 1 as a tentative scale (#1878).
+	if monitor == nil {
+		return 1
+	}
+
 	mx, my := monitor.GetPos()
 	return devicescale.GetAt(mx, my)
 }
