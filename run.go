@@ -135,6 +135,8 @@ func (i *imageDumperGame) Layout(outsideWidth, outsideHeight int) (screenWidth, 
 // game's Draw function is called every frame to draw the screen.
 // game's Layout function is called when necessary, and you can specify the logical screen size by the function.
 //
+// game's functions are called on the same goroutine.
+//
 // On browsers, it is strongly recommended to use iframe if you embed an Ebiten application in your website.
 //
 // RunGame must be called on the main thread.
