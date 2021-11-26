@@ -17,10 +17,23 @@
 
 package metal
 
+// #cgo CFLAGS: -x objective-c
+// #cgo LDFLAGS: -framework Foundation
+//
+// #import <Foundation/Foundation.h>
+//
+// static int getMacOSMajorVersion() {
+//   NSOperatingSystemVersion version = [[NSProcessInfo processInfo] operatingSystemVersion];
+//   return (int)version.majorVersion;
+// }
+import "C"
+
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ns"
 )
+
+var macOSMajorVersion = int(C.getMacOSMajorVersion())
 
 func (v *view) setWindow(window uintptr) {
 	// NSView can be updated e.g., fullscreen-state is switched.
@@ -44,6 +57,12 @@ func (v *view) update() {
 }
 
 func (v *view) usePresentsWithTransaction() bool {
+	// On macOS 12 (or later), do not use presentsWithTransaction, or vsync doesn't work (#1885).
+	// This works only for Metal. Unfortunately, there is not a good solution for OpenGL.
+	if macOSMajorVersion >= 12 {
+		return false
+	}
+
 	// Disable presentsWithTransaction on the fullscreen mode (#1745).
 	return !v.vsyncDisabled
 }
