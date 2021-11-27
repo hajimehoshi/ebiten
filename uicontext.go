@@ -68,37 +68,42 @@ func (c *uiContext) Layout(outsideWidth, outsideHeight float64) {
 }
 
 func (c *uiContext) updateOffscreen() {
-	sw, sh := c.game.Layout(int(c.outsideWidth), int(c.outsideHeight))
-	if sw <= 0 || sh <= 0 {
+	ow, oh := c.game.Layout(int(c.outsideWidth), int(c.outsideHeight))
+	if ow <= 0 || oh <= 0 {
 		panic("ebiten: Layout must return positive numbers")
 	}
 
+	// TODO: This is duplicated with mobile/ebitenmobileview/funcs.go. Refactor this.
+	d := uiDriver().DeviceScaleFactor()
+	sw, sh := int(c.outsideWidth*d), int(c.outsideHeight*d)
+
 	if c.offscreen != nil && !c.outsideSizeUpdated {
-		if w, h := c.offscreen.Size(); w == sw && h == sh {
+		if w, h := c.offscreen.Size(); w == ow && h == oh {
 			return
 		}
 	}
 	c.outsideSizeUpdated = false
 
 	if c.screen != nil {
-		c.screen.Dispose()
-		c.screen = nil
+		if w, h := c.screen.Size(); w != sw || h != sh {
+			c.screen.Dispose()
+			c.screen = nil
+		}
+	}
+	if c.screen == nil {
+		c.screen = newScreenFramebufferImage(int(c.outsideWidth*d), int(c.outsideHeight*d))
 	}
 
 	if c.offscreen != nil {
-		if w, h := c.offscreen.Size(); w != sw || h != sh {
+		if w, h := c.offscreen.Size(); w != ow || h != oh {
 			c.offscreen.Dispose()
 			c.offscreen = nil
 		}
 	}
 	if c.offscreen == nil {
-		c.offscreen = NewImage(sw, sh)
+		c.offscreen = NewImage(ow, oh)
 		c.offscreen.mipmap.SetVolatile(IsScreenClearedEveryFrame())
 	}
-
-	// TODO: This is duplicated with mobile/ebitenmobileview/funcs.go. Refactor this.
-	d := uiDriver().DeviceScaleFactor()
-	c.screen = newScreenFramebufferImage(int(c.outsideWidth*d), int(c.outsideHeight*d))
 }
 
 func (c *uiContext) setScreenClearedEveryFrame(cleared bool) {
