@@ -66,14 +66,13 @@ func (c *uiContext) Layout(outsideWidth, outsideHeight float64) {
 }
 
 func (c *uiContext) updateOffscreen() {
+	d := uiDriver().DeviceScaleFactor()
+	sw, sh := int(c.outsideWidth*d), int(c.outsideHeight*d)
+
 	ow, oh := c.game.Layout(int(c.outsideWidth), int(c.outsideHeight))
 	if ow <= 0 || oh <= 0 {
 		panic("ebiten: Layout must return positive numbers")
 	}
-
-	// TODO: This is duplicated with mobile/ebitenmobileview/funcs.go. Refactor this.
-	d := uiDriver().DeviceScaleFactor()
-	sw, sh := int(c.outsideWidth*d), int(c.outsideHeight*d)
 
 	if c.screen != nil {
 		if w, h := c.screen.Size(); w != sw || h != sh {
