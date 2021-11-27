@@ -63,7 +63,6 @@ type UserInterface struct {
 	maxWindowHeightInDIP int
 
 	running              uint32
-	toChangeSize         bool
 	origPosX             int
 	origPosY             int
 	runnableOnUnfocused  bool
@@ -771,15 +770,10 @@ func (u *UserInterface) registerWindowSetSizeCallback() {
 			}
 
 			if err := u.runOnAnotherThreadFromMainThread(func() error {
-				// toChangeSize affects the result of updateSize (#1884).
-				// TODO: Remove toChangeSize to simplify the logic.
-				u.toChangeSize = true
-
 				// Disable Vsync temporarily. On macOS, getting a next frame can get stuck (#1740).
 				u.Graphics().SetVsyncEnabled(false)
 
 				var outsideWidth, outsideHeight float64
-				var outsideSizeChanged bool
 
 				_ = u.t.Call(func() error {
 					if width != 0 || height != 0 {
@@ -788,12 +782,10 @@ func (u *UserInterface) registerWindowSetSizeCallback() {
 						u.setWindowSizeInDIP(w, h, u.isFullscreen())
 					}
 
-					outsideWidth, outsideHeight, outsideSizeChanged = u.updateSize()
+					outsideWidth, outsideHeight = u.updateSize()
 					return nil
 				})
-				if outsideSizeChanged {
-					u.context.Layout(outsideWidth, outsideHeight)
-				}
+				u.context.Layout(outsideWidth, outsideHeight)
 				if err := u.context.ForceUpdateFrame(); err != nil {
 					return err
 				}
@@ -962,14 +954,9 @@ func (u *UserInterface) init() error {
 	return nil
 }
 
-func (u *UserInterface) updateSize() (float64, float64, bool) {
+func (u *UserInterface) updateSize() (float64, float64) {
 	ww, wh := u.windowWidthInDIP, u.windowHeightInDIP
 	u.setWindowSizeInDIP(ww, wh, u.isFullscreen())
-
-	if !u.toChangeSize {
-		return 0, 0, false
-	}
-	u.toChangeSize = false
 
 	var w, h float64
 	if u.isFullscreen() && !u.isNativeFullscreen() {
@@ -991,7 +978,7 @@ func (u *UserInterface) updateSize() (float64, float64, bool) {
 		h = u.dipFromGLFWPixel(float64(wh), u.currentMonitor())
 	}
 
-	return w, h, true
+	return w, h
 }
 
 // setFPSMode must be called from the main thread.
@@ -1008,13 +995,13 @@ func (u *UserInterface) setFPSMode(fpsMode driver.FPSMode) {
 }
 
 // update must be called from the main thread.
-func (u *UserInterface) update() (float64, float64, bool, error) {
+func (u *UserInterface) update() (float64, float64, error) {
 	if u.err != nil {
-		return 0, 0, false, u.err
+		return 0, 0, u.err
 	}
 
 	if u.window.ShouldClose() {
-		return 0, 0, false, driver.RegularTermination
+		return 0, 0, driver.RegularTermination
 	}
 
 	if u.isInitFullscreen() {
@@ -1036,7 +1023,7 @@ func (u *UserInterface) update() (float64, float64, bool, error) {
 	// Also, when toggling to fullscreen, vsync state might be reset unexpectedly (#1787).
 	u.updateVsync()
 
-	outsideWidth, outsideHeight, outsideSizeChanged := u.updateSize()
+	outsideWidth, outsideHeight := u.updateSize()
 
 	if u.fpsMode != driver.FPSModeVsyncOffMinimum {
 		// TODO: Updating the input can be skipped when clock.Update returns 0 (#1367).
@@ -1048,17 +1035,17 @@ func (u *UserInterface) update() (float64, float64, bool, error) {
 
 	for !u.isRunnableOnUnfocused() && u.window.GetAttrib(glfw.Focused) == 0 && !u.window.ShouldClose() {
 		if err := hooks.SuspendAudio(); err != nil {
-			return 0, 0, false, err
+			return 0, 0, err
 		}
 		// Wait for an arbitrary period to avoid busy loop.
 		time.Sleep(time.Second / 60)
 		glfw.PollEvents()
 	}
 	if err := hooks.ResumeAudio(); err != nil {
-		return 0, 0, false, err
+		return 0, 0, err
 	}
 
-	return outsideWidth, outsideHeight, outsideSizeChanged, nil
+	return outsideWidth, outsideHeight, nil
 }
 
 func (u *UserInterface) loop() error {
@@ -1086,17 +1073,14 @@ func (u *UserInterface) loop() error {
 		}
 
 		var outsideWidth, outsideHeight float64
-		var outsideSizeChanged bool
 		if err := u.t.Call(func() error {
 			var err error
-			outsideWidth, outsideHeight, outsideSizeChanged, err = u.update()
+			outsideWidth, outsideHeight, err = u.update()
 			return err
 		}); err != nil {
 			return err
 		}
-		if outsideSizeChanged {
-			u.context.Layout(outsideWidth, outsideHeight)
-		}
+		u.context.Layout(outsideWidth, outsideHeight)
 
 		if err := u.context.UpdateFrame(); err != nil {
 			return err
@@ -1259,8 +1243,6 @@ func (u *UserInterface) setWindowSizeInDIP(width, height int, fullscreen bool) {
 	// As width might be updated, update windowWidth/Height here.
 	u.windowWidthInDIP = width
 	u.windowHeightInDIP = height
-
-	u.toChangeSize = true
 
 	if windowRecreated {
 		if g, ok := u.Graphics().(interface{ SetWindow(uintptr) }); ok {
@@ -1453,14 +1435,11 @@ func (u *UserInterface) IsScreenTransparent() bool {
 func (u *UserInterface) ResetForFrame() {
 	// The offscreens must be updated every frame (#490).
 	var w, h float64
-	var changed bool
 	_ = u.t.Call(func() error {
-		w, h, changed = u.updateSize()
+		w, h = u.updateSize()
 		return nil
 	})
-	if changed {
-		u.context.Layout(w, h)
-	}
+	u.context.Layout(w, h)
 	u.input.resetForFrame()
 
 	u.m.Lock()
