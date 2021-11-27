@@ -35,9 +35,8 @@ type uiContext struct {
 
 	updateCalled bool
 
-	outsideSizeUpdated bool
-	outsideWidth       float64
-	outsideHeight      float64
+	outsideWidth  float64
+	outsideHeight float64
 
 	err atomic.Value
 
@@ -62,7 +61,6 @@ func (c *uiContext) Layout(outsideWidth, outsideHeight float64) {
 	if outsideWidth == 0 || outsideHeight == 0 {
 		return
 	}
-	c.outsideSizeUpdated = true
 	c.outsideWidth = outsideWidth
 	c.outsideHeight = outsideHeight
 }
@@ -76,13 +74,6 @@ func (c *uiContext) updateOffscreen() {
 	// TODO: This is duplicated with mobile/ebitenmobileview/funcs.go. Refactor this.
 	d := uiDriver().DeviceScaleFactor()
 	sw, sh := int(c.outsideWidth*d), int(c.outsideHeight*d)
-
-	if c.offscreen != nil && !c.outsideSizeUpdated {
-		if w, h := c.offscreen.Size(); w == ow && h == oh {
-			return
-		}
-	}
-	c.outsideSizeUpdated = false
 
 	if c.screen != nil {
 		if w, h := c.screen.Size(); w != sw || h != sh {
