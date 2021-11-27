@@ -771,6 +771,10 @@ func (u *UserInterface) registerWindowSetSizeCallback() {
 			}
 
 			if err := u.runOnAnotherThreadFromMainThread(func() error {
+				// toChangeSize affects the result of updateSize (#1884).
+				// TODO: Remove toChangeSize to simplify the logic.
+				u.toChangeSize = true
+
 				// Disable Vsync temporarily. On macOS, getting a next frame can get stuck (#1740).
 				u.Graphics().SetVsyncEnabled(false)
 
