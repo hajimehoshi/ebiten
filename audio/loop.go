@@ -83,13 +83,12 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	}
 
 	if err == io.EOF || i.pos == i.length() {
-		pos, err := i.src.Seek(i.lstart, io.SeekStart)
+		pos, err := i.Seek(i.lstart, io.SeekStart)
 		if err != nil {
 			return 0, err
 		}
 		i.pos = pos
 	}
-
 	return n, nil
 }
 
