@@ -95,7 +95,9 @@ func TestInfiniteLoopWithIntro(t *testing.T) {
 		src[i] = indexToByte(i)
 	}
 	srcInf := audio.NewInfiniteLoop(bytes.NewReader(src), srcLength)
+	srcInf.SetNoBlendForTesting(true)
 	l := audio.NewInfiniteLoopWithIntro(srcInf, introLength, loopLength)
+	l.SetNoBlendForTesting(true)
 
 	buf := make([]byte, srcLength*4)
 	if _, err := io.ReadFull(l, buf); err != nil {
@@ -167,6 +169,91 @@ func TestInfiniteLoopWithIncompleteSize(t *testing.T) {
 		t.Error(err)
 	}
 	if got, want := n2, int64(2044+(4093-(2044+2044))); got != want {
+		t.Errorf("got: %d, want: %d", got, want)
+	}
+}
+
+type slowReader struct {
+	src io.ReadSeeker
+	eof bool
+}
+
+func (s *slowReader) Read(buf []byte) (int, error) {
+	if len(buf) == 0 {
+		if s.eof {
+			return 0, io.EOF
+		}
+		return 0, nil
+	}
+
+	n, err := s.src.Read(buf[:1])
+	if err == io.EOF {
+		s.eof = true
+	}
+	return n, err
+}
+
+func (s *slowReader) Seek(offset int64, whence int) (int64, error) {
+	s.eof = false
+	return s.src.Seek(offset, whence)
+}
+
+func TestInfiniteLoopWithSlowSource(t *testing.T) {
+	src := make([]byte, 4096)
+	for i := range src {
+		src[i] = byte(i)
+	}
+	r := &slowReader{
+		src: bytes.NewReader(src),
+	}
+	loop := audio.NewInfiniteLoop(r, 4096)
+
+	buf := make([]byte, 4096)
+
+	// With a slow source, whose Read always reads at most one byte,
+	// an infinite loop should adjust the reading size along with bitDepthInBytes (= 2).
+
+	n0, err := loop.Read(buf)
+	if err != nil {
+		t.Error(err)
+	}
+	if got, want := n0, 0; got != want {
+		t.Errorf("got: %d, want: %d", got, want)
+	}
+
+	n1, err := loop.Read(buf)
+	if err != nil {
+		t.Error(err)
+	}
+	if got, want := n1, 2; got != want {
+		t.Errorf("got: %d, want: %d", got, want)
+	}
+	if got, want := buf[0], byte(0); got != want {
+		t.Errorf("got: %d, want: %d", got, want)
+	}
+	if got, want := buf[1], byte(1); got != want {
+		t.Errorf("got: %d, want: %d", got, want)
+	}
+
+	n2, err := loop.Read(buf)
+	if err != nil {
+		t.Error(err)
+	}
+	if got, want := n2, 0; got != want {
+		t.Errorf("got: %d, want: %d", got, want)
+	}
+
+	n3, err := loop.Read(buf)
+	if err != nil {
+		t.Error(err)
+	}
+	if got, want := n3, 2; got != want {
+		t.Errorf("got: %d, want: %d", got, want)
+	}
+	if got, want := buf[0], byte(2); got != want {
+		t.Errorf("got: %d, want: %d", got, want)
+	}
+	if got, want := buf[1], byte(3); got != want {
 		t.Errorf("got: %d, want: %d", got, want)
 	}
 }

@@ -152,3 +152,7 @@ func PlayersNumForTesting() int {
 func ResetContextForTesting() {
 	theContext = nil
 }
+
+func (i *InfiniteLoop) SetNoBlendForTesting(value bool) {
+	i.noBlendForTesting = value
+}
