@@ -83,11 +83,12 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	}
 
 	if err == io.EOF || i.pos == i.length() {
-		pos, err := i.Seek(i.lstart, io.SeekStart)
-		if err != nil {
+		// Ignore the new position returned by Seek since the source position might not be match with the position
+		// managed by this.
+		if _, err := i.src.Seek(i.lstart, io.SeekStart); err != nil {
 			return 0, err
 		}
-		i.pos = pos
+		i.pos = i.lstart
 	}
 	return n, nil
 }
@@ -110,7 +111,7 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 	if next < 0 {
 		return 0, fmt.Errorf("audio: position must >= 0")
 	}
-	if next >= i.lstart {
+	if next > i.lstart {
 		next = ((next - i.lstart) % i.llength) + i.lstart
 	}
 	// Ignore the new position returned by Seek since the source position might not be match with the position
