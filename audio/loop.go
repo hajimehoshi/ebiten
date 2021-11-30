@@ -39,6 +39,12 @@ type InfiniteLoop struct {
 }
 
 // NewInfiniteLoop creates a new infinite loop stream with a source stream and length in bytes.
+//
+// If the loop's total length is exactly the same as src's length, you might hear noises around the loop joint.
+// This noise can be heard especially when src is decoded from a lossy compression format like Ogg/Vorbis and MP3.
+// In this case, try to add more (about 0.1[s]) data to src after the loop end.
+// If src has data after the loop end, an InfiniteLoop uses part of the data to blend with the loop start
+// to make the loop joint smooth.
 func NewInfiniteLoop(src io.ReadSeeker, length int64) *InfiniteLoop {
 	return NewInfiniteLoopWithIntro(src, 0, length)
 }
