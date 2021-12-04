@@ -42,7 +42,7 @@ package mobile
 //   return nil;
 // }
 //
-// static void vibrate(double duration) {
+// static void vibrate(double duration, double intensity) {
 //   if (@available(iOS 13.0, *)) {
 //     static BOOL initializeHapticEngineCalled = NO;
 //     static CHHapticEngine* engine = nil;
@@ -64,7 +64,7 @@ package mobile
 //               (id<NSCopying>)(CHHapticPatternKeyEventParameters):@[
 //                 @{
 //                   (id<NSCopying>)(CHHapticPatternKeyParameterID): CHHapticEventParameterIDHapticIntensity,
-//                   (id<NSCopying>)(CHHapticPatternKeyParameterValue): @1.0,
+//                   (id<NSCopying>)(CHHapticPatternKeyParameterValue): [NSNumber numberWithDouble:intensity],
 //                 },
 //               ],
 //             },
@@ -103,9 +103,9 @@ import (
 
 var vibrationM sync.Mutex
 
-func (u *UserInterface) Vibrate(duration time.Duration) {
+func (u *UserInterface) Vibrate(duration time.Duration, intensity float64) {
 	vibrationM.Lock()
 	defer vibrationM.Unlock()
 
-	C.vibrate(C.double(float64(duration) / float64(time.Second)))
+	C.vibrate(C.double(float64(duration)/float64(time.Second)), C.double(intensity))
 }

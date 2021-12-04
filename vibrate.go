@@ -18,20 +18,38 @@ import (
 	"time"
 )
 
-// Vibrate vibrates the device.
+// VibrateOptions represents the options for device vibration.
+type VibrateOptions struct {
+	// Duration is the time duration of the effect.
+	Duration time.Duration
+
+	// Intensity is the strength of the device vibration.
+	// The value is in between 0 and 1.
+	Intensity float64
+}
+
+// Vibrate vibrates the device with the specified options.
 //
 // Vibrate works on mobiles and browsers.
+//
+// On browsers, Intensity in the options is ignored.
 //
 // On Android, this line is required in the manifest setting to use the vibration:
 //
 //     <uses-permission android:name="android.permission.VIBRATE"/>
 //
+// On Android, Intensity in the options is recognized only when the API Level is 26 or newer.
+// Otherwise, Intensity is ignored.
+//
+// On iOS, Vibrate works only when iOS version is 13.0 or newer.
+// Otherwise, Vibrate does nothing.
+//
 // Vibrate is concurrent-safe.
-func Vibrate(duration time.Duration) {
-	uiDriver().Vibrate(duration)
+func Vibrate(options *VibrateOptions) {
+	uiDriver().Vibrate(options.Duration, options.Intensity)
 }
 
-// VibrateGamepadOptions represents the options to vibrate a gamepad.
+// VibrateGamepadOptions represents the options for gamepad vibration.
 type VibrateGamepadOptions struct {
 	// Duration is the time duration of the effect.
 	Duration time.Duration
