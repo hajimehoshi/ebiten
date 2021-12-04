@@ -533,6 +533,10 @@ type DrawRectShaderOptions struct {
 	// The default (zero) value is regular alpha blending.
 	CompositeMode CompositeMode
 
+	// Filter is a type of texture filter.
+	// The default (zero) value is FilterNearest.
+	Filter Filter
+
 	// Uniforms is a set of uniform variables for the shader.
 	// The keys are the names of the uniform variables.
 	// The values must be float or []float.
@@ -629,8 +633,9 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		offsets[i][1] = -sy + float32(b.Min.Y)
 	}
 
+	filter := driver.Filter(options.Filter)
 	us := shader.convertUniforms(options.Uniforms)
-	i.mipmap.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, driver.FilterNearest, driver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, us, false, canSkipMipmap(options.GeoM, driver.FilterNearest))
+	i.mipmap.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, filter, driver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, us, false, canSkipMipmap(options.GeoM, driver.FilterNearest))
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.
