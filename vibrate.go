@@ -22,6 +22,10 @@ import (
 //
 // Vibrate works on mobiles and browsers.
 //
+// On Android, this line is required in the manifest setting to use the vibration:
+//
+//     <uses-permission android:name="android.permission.VIBRATE"/>
+//
 // Vibrate is concurrent-safe.
 func Vibrate(duration time.Duration) {
 	uiDriver().Vibrate(duration)
