@@ -1673,6 +1673,6 @@ func (u *UserInterface) setOrigPos(x, y int) {
 	u.origPosY = y
 }
 
-func (u *UserInterface) Vibrate(duration time.Duration) {
+func (u *UserInterface) Vibrate(duration time.Duration, intensity float64) {
 	// Do nothing.
 }

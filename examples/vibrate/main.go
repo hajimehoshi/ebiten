@@ -32,15 +32,21 @@ const (
 )
 
 type Game struct {
-	touchIDs   []ebiten.TouchID
-	gamepadIDs []ebiten.GamepadID
+	touchIDs     []ebiten.TouchID
+	gamepadIDs   []ebiten.GamepadID
+	touchCounter int
 }
 
 func (g *Game) Update() error {
 	g.touchIDs = g.touchIDs[:0]
 	g.touchIDs = inpututil.AppendJustPressedTouchIDs(g.touchIDs)
 	if len(g.touchIDs) > 0 {
-		ebiten.Vibrate(200 * time.Millisecond)
+		g.touchCounter++
+		op := &ebiten.VibrateOptions{
+			Duration:  200 * time.Millisecond,
+			Intensity: 0.5*float64(g.touchCounter%2) + 0.5,
+		}
+		ebiten.Vibrate(op)
 	}
 
 	g.gamepadIDs = g.gamepadIDs[:0]
