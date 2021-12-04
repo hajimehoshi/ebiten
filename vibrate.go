@@ -34,12 +34,14 @@ type VibrateOptions struct {
 //
 // On browsers, Intensity in the options is ignored.
 //
-// On Android, this line is required in the manifest setting to use the vibration:
+// On Android, this line is required in the manifest setting to use Vibrate:
 //
 //     <uses-permission android:name="android.permission.VIBRATE"/>
 //
 // On Android, Intensity in the options is recognized only when the API Level is 26 or newer.
 // Otherwise, Intensity is ignored.
+//
+// On iOS, CoreHaptics.framework is required to use Vibrate.
 //
 // On iOS, Vibrate works only when iOS version is 13.0 or newer.
 // Otherwise, Vibrate does nothing.
