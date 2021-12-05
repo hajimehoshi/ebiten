@@ -26,7 +26,7 @@ Ebiten is an open source game library for the Go programming language. Ebiten's 
 * [WebAssembly](https://ebiten.org/documents/webassembly.html)
 * Nintendo Switch™
 
-Note: Keyboards are not available on iOS.
+Note: External (bluetooth) keyboards are not available on iOS yet.
 
 For installation on desktops, see [the installation instruction](https://ebiten.org/documents/install.html).
 
