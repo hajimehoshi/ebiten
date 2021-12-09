@@ -811,6 +811,10 @@ func (i *Image) ReplacePixels(pixels []byte) {
 //
 // If width or height is less than 1 or more than device-dependent maximum size, NewImage panics.
 //
+// NewImage should be called only when necessary.
+// For example, you should avoid to call NewImage every Update or Draw call.
+// Reusing the same image by Clear is much more efficient than creating a new image.
+//
 // NewImage panics if RunGame already finishes.
 func NewImage(width, height int) *Image {
 	if isRunGameEnded() {
@@ -833,6 +837,10 @@ func NewImage(width, height int) *Image {
 // NewImageFromImage creates a new image with the given image (source).
 //
 // If source's width or height is less than 1 or more than device-dependent maximum size, NewImageFromImage panics.
+//
+// NewImageFromImage should be called only when necessary.
+// For example, you should avoid to call NewImageFromImage every Update or Draw call.
+// Reusing the same image by Clear is much more efficient than creating a new image.
 //
 // NewImageFromImage panics if RunGame already finishes.
 func NewImageFromImage(source image.Image) *Image {
