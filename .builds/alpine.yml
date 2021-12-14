@@ -10,7 +10,7 @@ packages:
   - pkgconf
   - go
 sources:
-  - https://github.com/hajimehoshi/ebiten#{{.Commit}}
+  - https://github.com/hajimehoshi/ebiten
 tasks:
   - build: |
       cd ebiten
