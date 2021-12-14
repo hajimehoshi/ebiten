@@ -171,9 +171,9 @@ type DrawImageOptions struct {
 // be used in really rare cases. Ebiten images usually share an internal
 // automatic texture atlas, but when you consume the atlas, or you create a huge
 // image, those images cannot be on the same texture atlas. In this case, draw
-// commands are separated. The texture atlas size is 4096x4096 so far. Another
-// case is when you use an offscreen as a render source. An offscreen doesn't
-// share the texture atlas with high probability.
+// commands are separated.
+// Another case is when you use an offscreen as a render source. An offscreen
+// doesn't share the texture atlas with high probability.
 //
 // For more performance tips, see https://ebiten.org/documents/performancetips.html
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
