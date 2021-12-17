@@ -12,26 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !ebitencbackend
-// +build !ebitencbackend
+//go:build ebitencbackend
+// +build ebitencbackend
 
-package audio
+package ebiten
 
 import (
-	"syscall/js"
-
-	"github.com/hajimehoshi/oto/v2"
-
-	"github.com/hajimehoshi/ebiten/v2/audio/internal/go2cpp"
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/uidriver/cbackend"
 )
 
-func newContext(sampleRate, channelNum, bitDepthInBytes int) (context, chan struct{}, error) {
-	if js.Global().Get("go2cpp").Truthy() {
-		ready := make(chan struct{})
-		close(ready)
-		return otoContextToContext(go2cpp.NewContext(sampleRate, channelNum, bitDepthInBytes)), ready, nil
-	}
-
-	ctx, ready, err := oto.NewContext(sampleRate, channelNum, bitDepthInBytes)
-	return otoContextToContext(ctx), ready, err
+func uiDriver() driver.UI {
+	return cbackend.Get()
 }

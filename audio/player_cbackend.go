@@ -12,26 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !ebitencbackend
-// +build !ebitencbackend
+//go:build ebitencbackend
+// +build ebitencbackend
 
 package audio
 
 import (
-	"syscall/js"
+	"io"
 
-	"github.com/hajimehoshi/oto/v2"
-
-	"github.com/hajimehoshi/ebiten/v2/audio/internal/go2cpp"
+	"github.com/hajimehoshi/ebiten/v2/audio/internal/cbackend"
 )
 
 func newContext(sampleRate, channelNum, bitDepthInBytes int) (context, chan struct{}, error) {
-	if js.Global().Get("go2cpp").Truthy() {
-		ready := make(chan struct{})
-		close(ready)
-		return otoContextToContext(go2cpp.NewContext(sampleRate, channelNum, bitDepthInBytes)), ready, nil
-	}
+	ctx, ready, err := cbackend.NewContext(sampleRate, channelNum, bitDepthInBytes)
+	return &contextProxy{ctx}, ready, err
+}
 
-	ctx, ready, err := oto.NewContext(sampleRate, channelNum, bitDepthInBytes)
-	return otoContextToContext(ctx), ready, err
+// contextProxy is a proxy between cbackend.Context and context.
+type contextProxy struct {
+	*cbackend.Context
+}
+
+// NewPlayer implements context.
+func (c *contextProxy) NewPlayer(r io.Reader) player {
+	return c.Context.NewPlayer(r)
 }

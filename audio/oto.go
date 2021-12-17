@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build !ebitencbackend
+// +build !ebitencbackend
+
 package audio
 
 import (
@@ -33,7 +36,7 @@ type contextProxy struct {
 	otoContext
 }
 
-// contextProxy implements context.
+// NewPlayer implements context.
 func (c *contextProxy) NewPlayer(r io.Reader) player {
 	return c.otoContext.NewPlayer(r)
 }
