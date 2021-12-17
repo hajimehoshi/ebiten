@@ -68,7 +68,7 @@ type Context struct {
 	ready      bool
 	readyOnce  sync.Once
 
-	players map[*player]struct{}
+	players map[*playerImpl]struct{}
 
 	m         sync.Mutex
 	semaphore chan struct{}
@@ -100,7 +100,7 @@ func NewContext(sampleRate int) *Context {
 	c := &Context{
 		sampleRate:    sampleRate,
 		playerFactory: newPlayerFactory(sampleRate),
-		players:       map[*player]struct{}{},
+		players:       map[*playerImpl]struct{}{},
 		inited:        make(chan struct{}),
 		semaphore:     make(chan struct{}, 1),
 	}
@@ -172,7 +172,7 @@ func (c *Context) setReady() {
 	c.m.Unlock()
 }
 
-func (c *Context) addPlayer(p *player) {
+func (c *Context) addPlayer(p *playerImpl) {
 	c.m.Lock()
 	defer c.m.Unlock()
 	c.players[p] = struct{}{}
@@ -188,7 +188,7 @@ func (c *Context) addPlayer(p *player) {
 	}
 }
 
-func (c *Context) removePlayer(p *player) {
+func (c *Context) removePlayer(p *playerImpl) {
 	c.m.Lock()
 	delete(c.players, p)
 	c.m.Unlock()
@@ -269,7 +269,7 @@ func (c *Context) waitUntilInited() {
 // This means that if a Player plays an infinite stream,
 // the object is never GCed unless Close is called.
 type Player struct {
-	p *player
+	p *playerImpl
 }
 
 // NewPlayer creates a new player with the given stream.

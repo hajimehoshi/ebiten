@@ -21,9 +21,9 @@ import (
 	"time"
 )
 
-// otoPlayer is exactly same as the interface oto.Player.
+// player is exactly same as the interface oto.Player.
 // This is defined in order to remove the dependency on Oto from this file.
-type otoPlayer interface {
+type player interface {
 	Pause()
 	Play()
 	IsPlaying() bool
@@ -36,7 +36,7 @@ type otoPlayer interface {
 }
 
 type context interface {
-	NewPlayer(io.Reader) otoPlayer
+	NewPlayer(io.Reader) player
 	Suspend() error
 	Resume() error
 	Err() error
@@ -62,25 +62,25 @@ func newPlayerFactory(sampleRate int) *playerFactory {
 	return f
 }
 
-type player struct {
+type playerImpl struct {
 	context *Context
-	player  otoPlayer
+	player  player
 	src     io.Reader
 	stream  *timeStream
 	factory *playerFactory
 	m       sync.Mutex
 }
 
-func (f *playerFactory) newPlayer(context *Context, src io.Reader) (*player, error) {
+func (f *playerFactory) newPlayer(context *Context, src io.Reader) (*playerImpl, error) {
 	f.m.Lock()
 	defer f.m.Unlock()
 
-	p := &player{
+	p := &playerImpl{
 		src:     src,
 		context: context,
 		factory: f,
 	}
-	runtime.SetFinalizer(p, (*player).Close)
+	runtime.SetFinalizer(p, (*playerImpl).Close)
 	return p, nil
 }
 
@@ -130,7 +130,7 @@ func (f *playerFactory) initContextIfNeeded() (<-chan struct{}, error) {
 	return ready, nil
 }
 
-func (p *player) ensurePlayer() error {
+func (p *playerImpl) ensurePlayer() error {
 	// Initialize the underlying player lazily to enable calling NewContext in an 'init' function.
 	// Accessing the underlying player functions requires the environment to be already initialized,
 	// but if Ebiten is used for a shared library, the timing when init functions are called
@@ -160,7 +160,7 @@ func (p *player) ensurePlayer() error {
 	return nil
 }
 
-func (p *player) Play() {
+func (p *playerImpl) Play() {
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -175,7 +175,7 @@ func (p *player) Play() {
 	p.context.addPlayer(p)
 }
 
-func (p *player) Pause() {
+func (p *playerImpl) Pause() {
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -190,7 +190,7 @@ func (p *player) Pause() {
 	p.context.removePlayer(p)
 }
 
-func (p *player) IsPlaying() bool {
+func (p *playerImpl) IsPlaying() bool {
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -200,7 +200,7 @@ func (p *player) IsPlaying() bool {
 	return p.player.IsPlaying()
 }
 
-func (p *player) Volume() float64 {
+func (p *playerImpl) Volume() float64 {
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -211,7 +211,7 @@ func (p *player) Volume() float64 {
 	return p.player.Volume()
 }
 
-func (p *player) SetVolume(volume float64) {
+func (p *playerImpl) SetVolume(volume float64) {
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -222,7 +222,7 @@ func (p *player) SetVolume(volume float64) {
 	p.player.SetVolume(volume)
 }
 
-func (p *player) Close() error {
+func (p *playerImpl) Close() error {
 	p.m.Lock()
 	defer p.m.Unlock()
 	runtime.SetFinalizer(p, nil)
@@ -237,7 +237,7 @@ func (p *player) Close() error {
 	return nil
 }
 
-func (p *player) Current() time.Duration {
+func (p *playerImpl) Current() time.Duration {
 	p.m.Lock()
 	defer p.m.Unlock()
 	if err := p.ensurePlayer(); err != nil {
@@ -249,11 +249,11 @@ func (p *player) Current() time.Duration {
 	return time.Duration(sample) * time.Second / time.Duration(p.factory.sampleRate)
 }
 
-func (p *player) Rewind() error {
+func (p *playerImpl) Rewind() error {
 	return p.Seek(0)
 }
 
-func (p *player) Seek(offset time.Duration) error {
+func (p *playerImpl) Seek(offset time.Duration) error {
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -270,7 +270,7 @@ func (p *player) Seek(offset time.Duration) error {
 	return p.stream.Seek(offset)
 }
 
-func (p *player) Err() error {
+func (p *playerImpl) Err() error {
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -280,7 +280,7 @@ func (p *player) Err() error {
 	return p.player.Err()
 }
 
-func (p *player) source() io.Reader {
+func (p *playerImpl) source() io.Reader {
 	return p.src
 }
 

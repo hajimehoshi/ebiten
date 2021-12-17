@@ -34,7 +34,7 @@ type contextProxy struct {
 }
 
 // contextProxy implements context.
-func (c *contextProxy) NewPlayer(r io.Reader) otoPlayer {
+func (c *contextProxy) NewPlayer(r io.Reader) player {
 	return c.otoContext.NewPlayer(r)
 }
 
