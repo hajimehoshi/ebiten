@@ -19,12 +19,24 @@ import (
 	"runtime"
 	"sync"
 	"time"
-
-	"github.com/hajimehoshi/oto/v2"
 )
 
+// otoPlayer is exactly same as the interface oto.Player.
+// This is defined in order to remove the dependency on Oto from this file.
+type otoPlayer interface {
+	Pause()
+	Play()
+	IsPlaying() bool
+	Reset()
+	Volume() float64
+	SetVolume(volume float64)
+	UnplayedBufferSize() int
+	Err() error
+	io.Closer
+}
+
 type context interface {
-	NewPlayer(io.Reader) oto.Player
+	NewPlayer(io.Reader) otoPlayer
 	Suspend() error
 	Resume() error
 	Err() error
@@ -52,7 +64,7 @@ func newPlayerFactory(sampleRate int) *playerFactory {
 
 type player struct {
 	context *Context
-	player  oto.Player
+	player  otoPlayer
 	src     io.Reader
 	stream  *timeStream
 	factory *playerFactory

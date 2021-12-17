@@ -12,16 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !js
-// +build !js
-
 package audio
 
 import (
+	"io"
+
 	"github.com/hajimehoshi/oto/v2"
 )
 
-func newContext(sampleRate, channelNum, bitDepthInBytes int) (context, chan struct{}, error) {
-	ctx, ready, err := oto.NewContext(sampleRate, channelNum, bitDepthInBytes)
-	return otoContextToContext(ctx), ready, err
+// otoContext is an interface for *oto.Context.
+type otoContext interface {
+	NewPlayer(io.Reader) oto.Player
+	Suspend() error
+	Resume() error
+	Err() error
+}
+
+// contextProxy is a proxy between otoContext and context.
+type contextProxy struct {
+	otoContext
+}
+
+// contextProxy implements context.
+func (c *contextProxy) NewPlayer(r io.Reader) otoPlayer {
+	return c.otoContext.NewPlayer(r)
+}
+
+func otoContextToContext(ctx otoContext) context {
+	return &contextProxy{ctx}
 }

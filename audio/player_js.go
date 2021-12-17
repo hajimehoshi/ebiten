@@ -26,8 +26,9 @@ func newContext(sampleRate, channelNum, bitDepthInBytes int) (context, chan stru
 	if js.Global().Get("go2cpp").Truthy() {
 		ready := make(chan struct{})
 		close(ready)
-		return go2cpp.NewContext(sampleRate, channelNum, bitDepthInBytes), ready, nil
+		return otoContextToContext(go2cpp.NewContext(sampleRate, channelNum, bitDepthInBytes)), ready, nil
 	}
 
-	return oto.NewContext(sampleRate, channelNum, bitDepthInBytes)
+	ctx, ready, err := oto.NewContext(sampleRate, channelNum, bitDepthInBytes)
+	return otoContextToContext(ctx), ready, err
 }
