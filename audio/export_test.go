@@ -18,8 +18,6 @@ import (
 	"io"
 	"io/ioutil"
 	"sync"
-
-	"github.com/hajimehoshi/oto/v2"
 )
 
 type (
@@ -32,7 +30,7 @@ type (
 	}
 )
 
-func (c *dummyContext) NewPlayer(r io.Reader) oto.Player {
+func (c *dummyContext) NewPlayer(r io.Reader) player {
 	return &dummyPlayer{
 		r:      r,
 		volume: 1,
