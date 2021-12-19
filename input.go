@@ -24,7 +24,9 @@ import (
 // Giving a slice that already has enough capacity works efficiently.
 //
 // AppendInputChars represents the environment's locale-dependent translation of keyboard
-// input to Unicode characters.
+// input to Unicode characters. On the other hand, Key represents a physical key of US keyboard layout
+//
+// "Control" and modifier keys should be handled with IsKeyPressed.
 //
 // AppendInputChars is concurrent-safe.
 //
@@ -47,8 +49,8 @@ func InputChars() []rune {
 // If you want to know whether the key started being pressed in the current frame,
 // use inpututil.IsKeyJustPressed
 //
-// IsKeyPressed is based on a mapping of device (US keyboard) codes to input device keys.
-// "Control" and modifier keys should be handled with IsKeyPressed.
+// Note that a Key represents a pysical key of US keyboard layout.
+// For example, KeyQ represents Q key on US keyboards and ' (quote) key on Dvorak keyboards.
 //
 // Known issue: On Edge browser, some keys don't work well:
 //
