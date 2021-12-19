@@ -26,9 +26,6 @@ import (
 // AppendInputChars represents the environment's locale-dependent translation of keyboard
 // input to Unicode characters.
 //
-// IsKeyPressed is based on a mapping of device (US keyboard) codes to input device keys.
-// "Control" and modifier keys should be handled with IsKeyPressed.
-//
 // AppendInputChars is concurrent-safe.
 //
 // On Android (ebitenmobile), EbitenView must be focusable to enable to handle keyboard keys.
@@ -49,6 +46,9 @@ func InputChars() []rune {
 //
 // If you want to know whether the key started being pressed in the current frame,
 // use inpututil.IsKeyJustPressed
+//
+// IsKeyPressed is based on a mapping of device (US keyboard) codes to input device keys.
+// "Control" and modifier keys should be handled with IsKeyPressed.
 //
 // Known issue: On Edge browser, some keys don't work well:
 //
