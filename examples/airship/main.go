@@ -269,8 +269,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.drawGroundImage(screen, g.groundImage)
 
 	// Draw the message.
-	tutrial := "Space: Move forward\nLeft/Right: Rotate"
-	msg := fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f\n%s", ebiten.CurrentTPS(), ebiten.CurrentFPS(), tutrial)
+	tutorial := "Space: Move forward\nLeft/Right: Rotate"
+	msg := fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f\n%s", ebiten.CurrentTPS(), ebiten.CurrentFPS(), tutorial)
 	ebitenutil.DebugPrint(screen, msg)
 }
 
