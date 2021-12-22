@@ -71,8 +71,7 @@ func (c *Context) Err() error {
 }
 
 func (c *Context) oneBufferSize() int {
-	// TODO: This must be audio.oneBufferSize(p.context.sampleRate). Avoid the duplication.
-	return c.sampleRate * c.channelNum * c.bitDepthInBytes / 4
+	return int(float64(c.sampleRate*c.channelNum*c.bitDepthInBytes) * cbackend.AudioBufferSizeInSeconds())
 }
 
 func (c *Context) MaxBufferSize() int {

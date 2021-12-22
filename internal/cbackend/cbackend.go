@@ -51,6 +51,7 @@ package cbackend
 // void EbitenGetTouches(struct Touch* touches);
 //
 // // Audio
+// // TODO: Implement mixing on Go side and reduce the API.
 // typedef void (*OnWrittenCallback)(int id);
 // void EbitenOpenAudio(int sample_rate, int channel_num, int bit_depth_in_bytes);
 // void EbitenCloseAudio();
@@ -62,6 +63,7 @@ package cbackend
 // double EbitenAudioPlayerGetVolume(int id);
 // void EbitenAudioPlayerSetVolume(int id, double volume);
 // int EbitenAudioPlayerGetUnplayedBufferSize(int id);
+// float EbitenAudioBufferSizeInSeconds();
 //
 // void EbitenAudioPlayerOnWrittenCallback(int id);
 // static int EbitenCreateAudioPlayerProxy() {
@@ -185,6 +187,10 @@ func CreateAudioPlayer(onWritten func()) *AudioPlayer {
 	defer onWrittenCallbacksM.Unlock()
 	onWrittenCallbacks[id] = onWritten
 	return p
+}
+
+func AudioBufferSizeInSeconds() float64 {
+	return float64(C.EbitenAudioBufferSizeInSeconds())
 }
 
 type AudioPlayer struct {
