@@ -51,29 +51,18 @@ package cbackend
 // void EbitenGetTouches(struct Touch* touches);
 //
 // // Audio
-// // TODO: Implement mixing on Go side and reduce the API.
-// typedef void (*OnWrittenCallback)(int id);
-// void EbitenOpenAudio(int sample_rate, int channel_num, int bit_depth_in_bytes);
+// typedef void (*OnReadCallback)(float* buf, size_t length);
+// void EbitenOpenAudio(int sample_rate, int channel_num, OnReadCallback on_read_callback);
 // void EbitenCloseAudio();
-// int EbitenCreateAudioPlayer(OnWrittenCallback on_written_callback);
-// void EbitenAudioPlayerPlay(int id);
-// void EbitenAudioPlayerPause(int id);
-// void EbitenAudioPlayerWrite(int id, uint8_t* data, int length);
-// void EbitenAudioPlayerClose(int id, int immediately);
-// double EbitenAudioPlayerGetVolume(int id);
-// void EbitenAudioPlayerSetVolume(int id, double volume);
-// int EbitenAudioPlayerGetUnplayedBufferSize(int id);
-// float EbitenAudioBufferSizeInSeconds();
 //
-// void EbitenAudioPlayerOnWrittenCallback(int id);
-// static int EbitenCreateAudioPlayerProxy() {
-//   return EbitenCreateAudioPlayer(EbitenAudioPlayerOnWrittenCallback);
+// void EbitenAudioOnReadCallback(float* buf, size_t length);
+// static void EbitenOpenAudioProxy(int sample_rate, int channel_num) {
+//   EbitenOpenAudio(sample_rate, channel_num, EbitenAudioOnReadCallback);
 // }
 import "C"
 
 import (
-	"runtime"
-	"sync"
+	"reflect"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
@@ -170,80 +159,23 @@ func AppendTouches(touches []Touch) []Touch {
 	return touches
 }
 
-func OpenAudio(sampleRate, channelNum, bitDepthInBytes int) {
-	C.EbitenOpenAudio(C.int(sampleRate), C.int(channelNum), C.int(bitDepthInBytes))
+var onReadCallback func(buf []float32)
+
+func OpenAudio(sampleRate, channelNum int, onRead func(buf []float32)) {
+	C.EbitenOpenAudioProxy(C.int(sampleRate), C.int(channelNum))
+	onReadCallback = onRead
 }
 
 func CloseAudio() {
 	C.EbitenCloseAudio()
 }
 
-func CreateAudioPlayer(onWritten func()) *AudioPlayer {
-	id := C.EbitenCreateAudioPlayerProxy()
-	p := &AudioPlayer{
-		id: id,
-	}
-	onWrittenCallbacksM.Lock()
-	defer onWrittenCallbacksM.Unlock()
-	onWrittenCallbacks[id] = onWritten
-	return p
-}
-
-func AudioBufferSizeInSeconds() float64 {
-	return float64(C.EbitenAudioBufferSizeInSeconds())
-}
-
-type AudioPlayer struct {
-	id C.int
-}
-
-func (p *AudioPlayer) Play() {
-	C.EbitenAudioPlayerPlay(p.id)
-}
-
-func (p *AudioPlayer) Pause() {
-	C.EbitenAudioPlayerPause(p.id)
-}
-
-func (p *AudioPlayer) Write(buf []byte) {
-	C.EbitenAudioPlayerWrite(p.id, (*C.uint8_t)(unsafe.Pointer(&buf[0])), C.int(len(buf)))
-	runtime.KeepAlive(buf)
-}
-
-func (p *AudioPlayer) Close(immediately bool) {
-	var i C.int
-	if immediately {
-		i = 1
-	}
-	C.EbitenAudioPlayerClose(p.id, i)
-
-	onWrittenCallbacksM.Lock()
-	defer onWrittenCallbacksM.Unlock()
-	delete(onWrittenCallbacks, p.id)
-}
-
-func (p *AudioPlayer) Volume() float64 {
-	return float64(C.EbitenAudioPlayerGetVolume(p.id))
-}
-
-func (p *AudioPlayer) SetVolume(volume float64) {
-	C.EbitenAudioPlayerSetVolume(p.id, C.double(volume))
-}
-
-func (p *AudioPlayer) UnplayedBufferSize() int {
-	return int(C.EbitenAudioPlayerGetUnplayedBufferSize(p.id))
-}
-
-var (
-	onWrittenCallbacks  = map[C.int]func(){}
-	onWrittenCallbacksM sync.Mutex
-)
-
-//export EbitenAudioPlayerOnWrittenCallback
-func EbitenAudioPlayerOnWrittenCallback(id C.int) {
-	onWrittenCallbacksM.Lock()
-	defer onWrittenCallbacksM.Unlock()
-	if c, ok := onWrittenCallbacks[id]; ok {
-		c()
-	}
+//export EbitenAudioOnReadCallback
+func EbitenAudioOnReadCallback(buf *C.float, length C.size_t) {
+	var s []float32
+	h := (*reflect.SliceHeader)(unsafe.Pointer(&s))
+	h.Data = uintptr(unsafe.Pointer(buf))
+	h.Len = int(length)
+	h.Cap = int(length)
+	onReadCallback(s)
 }
