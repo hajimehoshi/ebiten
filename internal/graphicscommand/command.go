@@ -94,8 +94,8 @@ type commandQueue struct {
 	indices  []uint16
 	nindices int
 
-	tmpNumIndices int
-	nextIndex     int
+	tmpNumVertexFloats int
+	tmpNumIndices      int
 
 	drawTrianglesCommandPool drawTrianglesCommandPool
 
@@ -144,6 +144,11 @@ func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
 	q.nindices += len(indices)
 }
 
+// mustUseDifferentVertexBuffer reports whether a differnt vertex buffer must be used.
+func mustUseDifferentVertexBuffer(nextNumVertexFloats, nextNumIndices int) bool {
+	return nextNumVertexFloats > graphics.IndicesNum*graphics.VertexFloatNum || nextNumIndices > graphics.IndicesNum
+}
+
 // EnqueueDrawTrianglesCommand enqueues a drawing-image command.
 func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, color affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, shader *Shader, uniforms []driver.Uniform, evenOdd bool) {
 	if len(indices) > graphics.IndicesNum {
@@ -151,17 +156,17 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	}
 
 	split := false
-	if q.tmpNumIndices+len(indices) > graphics.IndicesNum {
+	if mustUseDifferentVertexBuffer(q.tmpNumVertexFloats+len(vertices), q.tmpNumIndices+len(indices)) {
+		q.tmpNumVertexFloats = 0
 		q.tmpNumIndices = 0
-		q.nextIndex = 0
 		split = true
 	}
 
 	// Assume that all the image sizes are same.
 	// Assume that the images are packed from the front in the slice srcs.
 	q.appendVertices(vertices, srcs[0])
-	q.appendIndices(indices, uint16(q.nextIndex))
-	q.nextIndex += len(vertices) / graphics.VertexFloatNum
+	q.appendIndices(indices, uint16(q.tmpNumVertexFloats/graphics.VertexFloatNum))
+	q.tmpNumVertexFloats += len(vertices)
 	q.tmpNumIndices += len(indices)
 
 	if srcs[0] != nil {
@@ -297,7 +302,7 @@ func (q *commandQueue) flush() error {
 				if dtc.numIndices() > graphics.IndicesNum {
 					panic(fmt.Sprintf("graphicscommand: dtc.NumIndices() must be <= graphics.IndicesNum but not at Flush: dtc.NumIndices(): %d, graphics.IndicesNum: %d", dtc.numIndices(), graphics.IndicesNum))
 				}
-				if ne+dtc.numIndices() > graphics.IndicesNum {
+				if nc > 0 && mustUseDifferentVertexBuffer(nv+dtc.numVertices(), ne+dtc.numIndices()) {
 					break
 				}
 				nv += dtc.numVertices()
@@ -339,8 +344,8 @@ func (q *commandQueue) flush() error {
 	q.commands = q.commands[:0]
 	q.nvertices = 0
 	q.nindices = 0
+	q.tmpNumVertexFloats = 0
 	q.tmpNumIndices = 0
-	q.nextIndex = 0
 	return nil
 }
 

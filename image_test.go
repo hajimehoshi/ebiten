@@ -2437,3 +2437,167 @@ func BenchmarkColorMScale(b *testing.B) {
 		dst.DrawImage(src, op)
 	}
 }
+
+func TestIndicesOverflow(t *testing.T) {
+	const (
+		w = 16
+		h = 16
+	)
+
+	dst := ebiten.NewImage(w, h)
+	src := ebiten.NewImage(w, h)
+	src.Fill(color.White)
+
+	op := &ebiten.DrawTrianglesOptions{}
+	vs := make([]ebiten.Vertex, 3)
+	is := make([]uint16, graphics.IndicesNum/3*3)
+	dst.DrawTriangles(vs, is, src, op)
+
+	// Cause an overflow for indices.
+	vs = []ebiten.Vertex{
+		{
+			DstX:   0,
+			DstY:   0,
+			SrcX:   0,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   w,
+			DstY:   0,
+			SrcX:   w,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   0,
+			DstY:   h,
+			SrcX:   0,
+			SrcY:   h,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   w,
+			DstY:   h,
+			SrcX:   w,
+			SrcY:   h,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+	}
+	is = []uint16{0, 1, 2, 1, 2, 3}
+	dst.DrawTriangles(vs, is, src, op)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j)
+			want := color.RGBA{0xff, 0xff, 0xff, 0xff}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestVerticesOverflow(t *testing.T) {
+	const (
+		w = 16
+		h = 16
+	)
+
+	dst := ebiten.NewImage(w, h)
+	src := ebiten.NewImage(w, h)
+	src.Fill(color.White)
+
+	op := &ebiten.DrawTrianglesOptions{}
+	vs := make([]ebiten.Vertex, graphics.IndicesNum-1)
+	is := make([]uint16, 3)
+	dst.DrawTriangles(vs, is, src, op)
+
+	// Cause an overflow for vertices.
+	vs = []ebiten.Vertex{
+		{
+			DstX:   0,
+			DstY:   0,
+			SrcX:   0,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   w,
+			DstY:   0,
+			SrcX:   w,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   0,
+			DstY:   h,
+			SrcX:   0,
+			SrcY:   h,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   w,
+			DstY:   h,
+			SrcX:   w,
+			SrcY:   h,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+	}
+	is = []uint16{0, 1, 2, 1, 2, 3}
+	dst.DrawTriangles(vs, is, src, op)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j)
+			want := color.RGBA{0xff, 0xff, 0xff, 0xff}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestTooManyVertices(t *testing.T) {
+	const (
+		w = 16
+		h = 16
+	)
+
+	dst := ebiten.NewImage(w, h)
+	src := ebiten.NewImage(w, h)
+	src.Fill(color.White)
+
+	op := &ebiten.DrawTrianglesOptions{}
+	vs := make([]ebiten.Vertex, graphics.IndicesNum+1)
+	is := make([]uint16, 3)
+	dst.DrawTriangles(vs, is, src, op)
+
+	// Force to cause flushing the graphics commands.
+	// Confirm this doesn't freeze.
+	dst.At(0, 0)
+}
