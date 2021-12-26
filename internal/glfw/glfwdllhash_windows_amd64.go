@@ -5,4 +5,4 @@
 
 package glfw
 
-const glfwDLLHash = "654e301e14362491530e1c9e2dde434d96eb5c6b11de42af62d85d9cc170f4d8"
+const glfwDLLHash = "6dd83fa958939315d474392aebac5fd1708d6cfb6b3d5cc6d9e43f35a3243f58"
