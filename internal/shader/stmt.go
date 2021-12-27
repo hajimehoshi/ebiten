@@ -471,7 +471,12 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 
 		for _, expr := range exprs {
 			if expr.Type != shaderir.Call {
+				// TODO: Should this return an error?
 				continue
+			}
+			if expr.Exprs[0].Type == shaderir.BuiltinFuncExpr {
+				cs.addError(stmt.Pos(), fmt.Sprintf("the statement is evaluated but not used"))
+				return nil, false
 			}
 			stmts = append(stmts, shaderir.Stmt{
 				Type:  shaderir.ExprStmt,
