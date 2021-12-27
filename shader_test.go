@@ -1251,6 +1251,18 @@ var Time float
 var ScreenSize vec2
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	position
+	return position
+}`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := ebiten.NewShader([]byte(`package main
+
+var Time float
+var ScreenSize vec2
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	vec2(position)
 	return position
 }`)); err == nil {

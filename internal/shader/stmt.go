@@ -463,6 +463,11 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		}
 
 	case *ast.ExprStmt:
+		if _, ok := stmt.X.(*ast.CallExpr); !ok {
+			cs.addError(stmt.Pos(), fmt.Sprintf("the statement is evaluated but not used"))
+			return nil, false
+		}
+
 		exprs, _, ss, ok := cs.parseExpr(block, stmt.X, true)
 		if !ok {
 			return nil, false
@@ -470,8 +475,9 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		stmts = append(stmts, ss...)
 
 		for _, expr := range exprs {
+			// There can be a non-call expr like LocalVariable expressions.
+			// These are necessary to be used as arguments for an outside function callers.
 			if expr.Type != shaderir.Call {
-				// TODO: Should this return an error?
 				continue
 			}
 			if expr.Exprs[0].Type == shaderir.BuiltinFuncExpr {

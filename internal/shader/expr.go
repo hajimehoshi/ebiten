@@ -373,6 +373,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 			// TODO: Is this an error?
 		}
 
+		// These local-variable expressions are used for an outside function callers.
 		var exprs []shaderir.Expr
 		for _, p := range outParams {
 			exprs = append(exprs, shaderir.Expr{
