@@ -87,7 +87,6 @@ type UserInterface struct {
 	initFullscreenHeightInDIP int
 
 	initTitle                string
-	initFPSMode              driver.FPSMode
 	initFullscreen           bool
 	initCursorMode           driver.CursorMode
 	initWindowDecorated      bool
@@ -130,7 +129,6 @@ var (
 		maxWindowHeightInDIP:     glfw.DontCare,
 		origPosX:                 invalidPos,
 		origPosY:                 invalidPos,
-		initFPSMode:              driver.FPSModeVsyncOn,
 		initCursorMode:           driver.CursorModeVisible,
 		initWindowDecorated:      true,
 		initWindowPositionXInDIP: invalidPos,
@@ -297,13 +295,6 @@ func (u *UserInterface) setInitTitle(title string) {
 	u.m.RLock()
 	u.initTitle = title
 	u.m.RUnlock()
-}
-
-func (u *UserInterface) getInitFPSMode() driver.FPSMode {
-	u.m.RLock()
-	v := u.initFPSMode
-	u.m.RUnlock()
-	return v
 }
 
 func (u *UserInterface) isInitFullscreen() bool {
@@ -582,20 +573,14 @@ func (u *UserInterface) IsRunnableOnUnfocused() bool {
 
 func (u *UserInterface) SetFPSMode(mode driver.FPSMode) {
 	if !u.isRunning() {
-		// In general, m is used for locking init* values.
-		// m is not used for updating vsync in setWindowSize so far, but
-		// it should be OK since any goroutines can't reach here when
-		// the game already starts and setWindowSize can be called.
 		u.m.Lock()
-		u.initFPSMode = mode
+		u.fpsMode = mode
 		u.m.Unlock()
 		return
 	}
 	_ = u.t.Call(func() error {
 		if !u.fpsModeInited {
-			u.m.Lock()
-			u.initFPSMode = mode
-			u.m.Unlock()
+			u.fpsMode = mode
 			return nil
 		}
 		u.setFPSMode(mode)
@@ -606,14 +591,13 @@ func (u *UserInterface) SetFPSMode(mode driver.FPSMode) {
 
 func (u *UserInterface) FPSMode() driver.FPSMode {
 	if !u.isRunning() {
-		return u.getInitFPSMode()
+		u.m.Lock()
+		m := u.fpsMode
+		u.m.Unlock()
+		return m
 	}
 	var v driver.FPSMode
 	_ = u.t.Call(func() error {
-		if !u.fpsModeInited {
-			v = u.getInitFPSMode()
-			return nil
-		}
 		v = u.fpsMode
 		return nil
 	})
@@ -983,8 +967,13 @@ func (u *UserInterface) updateSize() (float64, float64) {
 
 // setFPSMode must be called from the main thread.
 func (u *UserInterface) setFPSMode(fpsMode driver.FPSMode) {
+	needUpdate := u.fpsMode != fpsMode || !u.fpsModeInited
 	u.fpsMode = fpsMode
 	u.fpsModeInited = true
+
+	if !needUpdate {
+		return
+	}
 
 	sticky := glfw.True
 	if fpsMode == driver.FPSModeVsyncOffMinimum {
@@ -1015,7 +1004,7 @@ func (u *UserInterface) update() (float64, float64, error) {
 	// Initialize vsync after SetMonitor is called. See the comment in updateVsync.
 	// Calling this inside setWindowSize didn't work (#1363).
 	if !u.fpsModeInited {
-		u.setFPSMode(u.getInitFPSMode())
+		u.setFPSMode(u.fpsMode)
 	}
 
 	// Call updateVsync even though fpsMode is not updated.
