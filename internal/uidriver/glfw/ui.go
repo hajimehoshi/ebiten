@@ -86,7 +86,6 @@ type UserInterface struct {
 	initFullscreenWidthInDIP  int
 	initFullscreenHeightInDIP int
 
-	initTitle                string
 	initFullscreen           bool
 	initCursorMode           driver.CursorMode
 	initWindowDecorated      bool
@@ -282,19 +281,6 @@ func (u *UserInterface) setWindowSizeLimitsInDIP(minw, minh, maxw, maxh int) boo
 	u.maxWindowWidthInDIP = maxw
 	u.maxWindowHeightInDIP = maxh
 	return true
-}
-
-func (u *UserInterface) getInitTitle() string {
-	u.m.RLock()
-	v := u.initTitle
-	u.m.RUnlock()
-	return v
-}
-
-func (u *UserInterface) setInitTitle(title string) {
-	u.m.RLock()
-	u.initTitle = title
-	u.m.RUnlock()
 }
 
 func (u *UserInterface) isInitFullscreen() bool {
@@ -927,7 +913,6 @@ func (u *UserInterface) init() error {
 		u.window.Maximize()
 	}
 
-	u.title = u.getInitTitle()
 	u.window.SetTitle(u.title)
 	u.window.Show()
 

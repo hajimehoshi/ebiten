@@ -258,7 +258,9 @@ func (w *window) SetIcon(iconImages []image.Image) {
 
 func (w *window) SetTitle(title string) {
 	if !w.ui.isRunning() {
-		w.ui.setInitTitle(title)
+		w.ui.m.Lock()
+		w.ui.title = title
+		w.ui.m.Unlock()
 		return
 	}
 	w.ui.title = title
