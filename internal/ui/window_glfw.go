@@ -53,27 +53,32 @@ func (w *Window) SetDecorated(decorated bool) {
 	})
 }
 
-func (w *Window) IsResizable() bool {
+func (w *Window) ResizingMode() WindowResizingMode {
 	if !w.ui.isRunning() {
-		return w.ui.isInitWindowResizable()
+		w.ui.m.Lock()
+		mode := w.ui.windowResizingMode
+		w.ui.m.Unlock()
+		return mode
 	}
-	v := false
+	var mode WindowResizingMode
 	w.ui.t.Call(func() {
-		v = w.ui.window.GetAttrib(glfw.Resizable) == glfw.True
+		mode = w.ui.windowResizingMode
 	})
-	return v
+	return mode
 }
 
-func (w *Window) SetResizable(resizable bool) {
+func (w *Window) SetResizingMode(mode WindowResizingMode) {
 	if !w.ui.isRunning() {
-		w.ui.setInitWindowResizable(resizable)
+		w.ui.m.Lock()
+		w.ui.windowResizingMode = mode
+		w.ui.m.Unlock()
 		return
 	}
 	w.ui.t.Call(func() {
 		if w.ui.isNativeFullscreen() {
 			return
 		}
-		w.ui.setWindowResizable(resizable)
+		w.ui.setWindowResizingMode(mode)
 	})
 }
 
@@ -105,7 +110,7 @@ func (w *Window) IsMaximized() bool {
 	if !w.ui.isRunning() {
 		return w.ui.isInitWindowMaximized()
 	}
-	if !w.IsResizable() {
+	if w.ResizingMode() != WindowResizingModeEnabled {
 		return false
 	}
 	var v bool
@@ -119,7 +124,7 @@ func (w *Window) Maximize() {
 	// Do not allow maximizing the window when the window is not resizable.
 	// On Windows, it is possible to restore the window from being maximized by mouse-dragging,
 	// and this can be an unexpected behavior.
-	if !w.IsResizable() {
+	if w.ResizingMode() != WindowResizingModeEnabled {
 		panic("ui: a window to maximize must be resizable")
 	}
 	if !w.ui.isRunning() {

@@ -30,11 +30,11 @@ func (*Window) IsDecorated() bool {
 func (*Window) SetDecorated(decorated bool) {
 }
 
-func (*Window) IsResizable() bool {
-	return false
+func (*Window) ResizingMode() WindowResizingMode {
+	return WindowResizingModeDisabled
 }
 
-func (*Window) SetResizable(resizable bool) {
+func (*Window) SetResizingMode(mode WindowResizingMode) {
 }
 
 func (*Window) Position() (int, int) {

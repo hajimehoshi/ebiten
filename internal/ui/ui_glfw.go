@@ -70,6 +70,7 @@ type UserInterface struct {
 	cursorShape          CursorShape
 	windowClosingHandled bool
 	windowBeingClosed    bool
+	windowResizingMode   WindowResizingMode
 
 	// setSizeCallbackEnabled must be accessed from the main thread.
 	setSizeCallbackEnabled bool
@@ -88,7 +89,6 @@ type UserInterface struct {
 	initFullscreen           bool
 	initCursorMode           CursorMode
 	initWindowDecorated      bool
-	initWindowResizable      bool
 	initWindowPositionXInDIP int
 	initWindowPositionYInDIP int
 	initWindowWidthInDIP     int
@@ -343,19 +343,6 @@ func (u *UserInterface) isRunnableOnUnfocused() bool {
 func (u *UserInterface) setRunnableOnUnfocused(runnableOnUnfocused bool) {
 	u.m.Lock()
 	u.runnableOnUnfocused = runnableOnUnfocused
-	u.m.Unlock()
-}
-
-func (u *UserInterface) isInitWindowResizable() bool {
-	u.m.RLock()
-	v := u.initWindowResizable
-	u.m.RUnlock()
-	return v
-}
-
-func (u *UserInterface) setInitWindowResizable(resizable bool) {
-	u.m.Lock()
-	u.initWindowResizable = resizable
 	u.m.Unlock()
 }
 
@@ -873,7 +860,11 @@ func (u *UserInterface) init() error {
 
 	// Before creating a window, set it unresizable no matter what u.isInitWindowResizable() is (#1987).
 	// Making the window resizable here doesn't work correctly when switching to enable resizing.
-	glfw.WindowHint(glfw.Resizable, glfw.False)
+	resizable := glfw.False
+	if u.windowResizingMode == WindowResizingModeEnabled {
+		resizable = glfw.True
+	}
+	glfw.WindowHint(glfw.Resizable, resizable)
 
 	floating := glfw.False
 	if u.isInitWindowFloating() {
@@ -908,12 +899,12 @@ func (u *UserInterface) init() error {
 	u.setWindowPositionInDIP(wx, wy, u.initMonitor)
 	u.setWindowSizeInDIP(ww, wh, u.isFullscreen())
 
-	u.setWindowResizable(u.isInitWindowResizable())
-
 	// Maximizing a window requires a proper size and position. Call Maximize here (#1117).
 	if u.isInitWindowMaximized() {
 		u.window.Maximize()
 	}
+
+	u.setWindowResizingModeForOS(u.windowResizingMode)
 
 	u.window.Show()
 
@@ -1520,8 +1511,12 @@ func (u *UserInterface) setWindowFloating(floating bool) {
 	u.window.SetAttrib(glfw.Floating, v)
 }
 
-// setWindowResizable must be called from the main thread.
-func (u *UserInterface) setWindowResizable(resizable bool) {
+// setWindowResizingMode must be called from the main thread.
+func (u *UserInterface) setWindowResizingMode(mode WindowResizingMode) {
+	if u.windowResizingMode == mode {
+		return
+	}
+
 	if u.setSizeCallbackEnabled {
 		u.setSizeCallbackEnabled = false
 		defer func() {
@@ -1529,11 +1524,14 @@ func (u *UserInterface) setWindowResizable(resizable bool) {
 		}()
 	}
 
+	u.windowResizingMode = mode
+
 	v := glfw.False
-	if resizable {
+	if mode == WindowResizingModeEnabled {
 		v = glfw.True
 	}
 	u.window.SetAttrib(glfw.Resizable, v)
+	u.setWindowResizingModeForOS(mode)
 }
 
 // setWindowPositionInDIP sets the window position.

@@ -203,5 +203,8 @@ func (u *UserInterface) setNativeFullscreen(fullscreen bool) {
 func (u *UserInterface) adjustViewSize() {
 }
 
+func (u *UserInterface) setWindowResizingModeForOS(mode WindowResizingMode) {
+}
+
 func initializeWindowAfterCreation(w *glfw.Window) {
 }

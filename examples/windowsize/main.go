@@ -131,7 +131,7 @@ func (g *game) Update() error {
 	positionX, positionY := ebiten.WindowPosition()
 	g.transparent = ebiten.IsScreenTransparent()
 	floating := ebiten.IsWindowFloating()
-	resizable := ebiten.IsWindowResizable()
+	resizingMode := ebiten.WindowResizingMode()
 	screenCleared := ebiten.IsScreenClearedEveryFrame()
 
 	const d = 16
@@ -238,7 +238,16 @@ func (g *game) Update() error {
 		floating = !floating
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
-		resizable = !resizable
+		switch resizingMode {
+		case ebiten.WindowResizingModeDisabled:
+			resizingMode = ebiten.WindowResizingModeOnlyFullscreenEnabled
+		case ebiten.WindowResizingModeOnlyFullscreenEnabled:
+			resizingMode = ebiten.WindowResizingModeEnabled
+		case ebiten.WindowResizingModeEnabled:
+			resizingMode = ebiten.WindowResizingModeDisabled
+		default:
+			panic("not reached")
+		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyW) {
 		screenCleared = !screenCleared
@@ -275,7 +284,7 @@ func (g *game) Update() error {
 	}
 	ebiten.SetWindowFloating(floating)
 	ebiten.SetScreenClearedEveryFrame(screenCleared)
-	if maximize && ebiten.IsWindowResizable() {
+	if maximize && ebiten.WindowResizingMode() == ebiten.WindowResizingModeEnabled {
 		ebiten.MaximizeWindow()
 	}
 	if minimize {
@@ -284,7 +293,7 @@ func (g *game) Update() error {
 	if restore {
 		ebiten.RestoreWindow()
 	}
-	ebiten.SetWindowResizable(resizable)
+	ebiten.SetWindowResizingMode(resizingMode)
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyI) {
 		ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
@@ -314,7 +323,7 @@ func (g *game) Draw(screen *ebiten.Image) {
 	}
 
 	var lines []string
-	if !ebiten.IsWindowMaximized() && ebiten.IsWindowResizable() {
+	if !ebiten.IsWindowMaximized() && ebiten.WindowResizingMode() == ebiten.WindowResizingModeEnabled {
 		lines = append(lines, "[M] Maximize the window (only for desktops)")
 	}
 	if !ebiten.IsWindowMinimized() {
@@ -325,7 +334,7 @@ func (g *game) Draw(screen *ebiten.Image) {
 	}
 	msgM := strings.Join(lines, "\n")
 
-	msgR := "[R] Switch the window resizable state (only for desktops)\n"
+	msgR := "[R] Switch the window resizing mode (only for desktops)\n"
 	fg := "Yes"
 	if !ebiten.IsFocused() {
 		fg = "No"
@@ -405,20 +414,20 @@ func main() {
 		ebiten.SetFullscreen(true)
 	}
 	if *flagResizable {
-		ebiten.SetWindowResizable(true)
+		ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	}
 	if *flagFloating {
 		ebiten.SetWindowFloating(true)
 	}
 	if *flagMaximize {
-		ebiten.SetWindowResizable(true)
+		ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 		ebiten.MaximizeWindow()
 	}
 	if !*flagVsync {
 		ebiten.SetFPSMode(ebiten.FPSModeVsyncOffMaximum)
 	}
 	if *flagAutoAdjusting {
-		ebiten.SetWindowResizable(true)
+		ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	}
 
 	ebiten.SetInitFocused(*flagInitFocused)
@@ -438,7 +447,7 @@ func main() {
 	}
 	if minw >= 0 || minh >= 0 || maxw >= 0 || maxh >= 0 {
 		ebiten.SetWindowSizeLimits(minw, minh, maxw, maxh)
-		ebiten.SetWindowResizable(true)
+		ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	}
 
 	const title = "Window Size (Ebiten Demo)"

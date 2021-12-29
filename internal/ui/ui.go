@@ -68,3 +68,11 @@ const (
 	CursorShapeEWResize
 	CursorShapeNSResize
 )
+
+type WindowResizingMode int
+
+const (
+	WindowResizingModeDisabled WindowResizingMode = iota
+	WindowResizingModeOnlyFullscreenEnabled
+	WindowResizingModeEnabled
+)

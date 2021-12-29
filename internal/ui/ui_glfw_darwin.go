@@ -22,6 +22,91 @@ package ui
 //
 // #import <AppKit/AppKit.h>
 //
+// @interface EbitenWindowDelegate : NSObject <NSWindowDelegate>
+// @end
+//
+// @implementation EbitenWindowDelegate {
+//   id<NSWindowDelegate> origDelegate_;
+//   bool origResizable_;
+// }
+//
+// - (instancetype)initWithOrigDelegate:(id<NSWindowDelegate>)origDelegate {
+//   self = [super init];
+//   if (self != nil) {
+//     origDelegate_ = origDelegate;
+//   }
+//   return self;
+// }
+//
+// // The method set of origDelegate_ must sync with GLFWWindowDelegate's implementation.
+// // See cocoa_window.m in GLFW.
+// - (BOOL)windowShouldClose:(id)sender {
+//   return [origDelegate_ windowShouldClose:sender];
+// }
+// - (void)windowDidResize:(NSNotification *)notification {
+//   [origDelegate_ windowDidResize:notification];
+// }
+// - (void)windowDidMove:(NSNotification *)notification {
+//   [origDelegate_ windowDidMove:notification];
+// }
+// - (void)windowDidMiniaturize:(NSNotification *)notification {
+//   [origDelegate_ windowDidMiniaturize:notification];
+// }
+// - (void)windowDidDeminiaturize:(NSNotification *)notification {
+//   [origDelegate_ windowDidDeminiaturize:notification];
+// }
+// - (void)windowDidBecomeKey:(NSNotification *)notification {
+//   [origDelegate_ windowDidBecomeKey:notification];
+// }
+// - (void)windowDidResignKey:(NSNotification *)notification {
+//   [origDelegate_ windowDidResignKey:notification];
+// }
+// - (void)windowDidChangeOcclusionState:(NSNotification* )notification {
+//   [origDelegate_ windowDidChangeOcclusionState:notification];
+// }
+//
+// - (void)pushResizableState:(NSWindow*)window {
+//   origResizable_ = window.styleMask & NSWindowStyleMaskResizable;
+//   if (!origResizable_) {
+//     window.styleMask |= NSWindowStyleMaskResizable;
+//   }
+// }
+//
+// - (void)popResizableState:(NSWindow*)window {
+//   if (!origResizable_) {
+//     window.styleMask &= ~NSWindowStyleMaskResizable;
+//   }
+//   origResizable_ = false;
+// }
+//
+// - (void)windowWillEnterFullScreen:(NSNotification *)notification {
+//   NSWindow* window = (NSWindow*)[notification object];
+//   [self pushResizableState:window];
+// }
+//
+// - (void)windowDidEnterFullScreen:(NSNotification *)notification {
+//   NSWindow* window = (NSWindow*)[notification object];
+//   [self popResizableState:window];
+// }
+//
+// - (void)windowWillExitFullScreen:(NSNotification *)notification {
+//   NSWindow* window = (NSWindow*)[notification object];
+//   [self pushResizableState:window];
+// }
+//
+// - (void)windowDidExitFullScreen:(NSNotification *)notification {
+//   NSWindow* window = (NSWindow*)[notification object];
+//   [self popResizableState:window];
+// }
+//
+// @end
+//
+// static void initializeWindow(uintptr_t windowPtr) {
+//   NSWindow* window = (NSWindow*)windowPtr;
+//   // This delegate is never released. This assumes that the window lives until the process lives.
+//   window.delegate = [[EbitenWindowDelegate alloc] initWithOrigDelegate:window.delegate];
+// }
+//
 // static void currentMonitorPos(uintptr_t windowPtr, int* x, int* y) {
 //   @autoreleasepool {
 //     NSScreen* screen = [NSScreen mainScreen];
@@ -55,6 +140,9 @@ package ui
 //   if (((window.styleMask & NSWindowStyleMaskFullScreen) != 0) == fullscreen) {
 //     return;
 //   }
+//
+//   // Even though EbitenWindowDelegate is used, this hack is still required.
+//   // toggleFullscreen doesn't work when the window is not resizable.
 //   bool origResizable = window.styleMask & NSWindowStyleMaskResizable;
 //   if (!origResizable) {
 //     window.styleMask |= NSWindowStyleMaskResizable;
@@ -125,6 +213,15 @@ package ui
 //   NSPoint location = [NSEvent mouseLocation];
 //   *x = (int)(location.x);
 //   *y = (int)(location.y);
+// }
+//
+// static void setAllowFullscreen(uintptr_t windowPtr, bool allowFullscreen) {
+//   NSWindow* window = (NSWindow*)windowPtr;
+//   if (allowFullscreen) {
+//     window.collectionBehavior |= NSWindowCollectionBehaviorFullScreenPrimary;
+//   } else {
+//     window.collectionBehavior &= ~NSWindowCollectionBehaviorFullScreenPrimary;
+//   }
 // }
 import "C"
 
@@ -225,5 +322,14 @@ func (u *UserInterface) adjustViewSize() {
 	C.adjustViewSize(C.uintptr_t(u.window.GetCocoaWindow()))
 }
 
+func (u *UserInterface) setWindowResizingModeForOS(mode WindowResizingMode) {
+	allowFullscreen := mode == WindowResizingModeOnlyFullscreenEnabled ||
+		mode == WindowResizingModeEnabled
+	C.setAllowFullscreen(C.uintptr_t(u.window.GetCocoaWindow()), C.bool(allowFullscreen))
+}
+
 func initializeWindowAfterCreation(w *glfw.Window) {
+	// TODO: Register NSWindowWillEnterFullScreenNotification and so on.
+	// Enable resizing temporary before making the window fullscreen.
+	C.initializeWindow(C.uintptr_t(w.GetCocoaWindow()))
 }

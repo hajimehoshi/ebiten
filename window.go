@@ -21,6 +21,27 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
+// WindowResizingModeType represents a mode in which a user resizes the window.
+//
+// Regardless of the resizing mode, an Ebiten application can still change the window size or make
+// the window fullscreen by calling Ebiten functions.
+type WindowResizingModeType = ui.WindowResizingMode
+
+// WindowResizingModeTypes
+const (
+	// WindowResizingModeDisabled indicates the mode to disallow resizing the window by a user.
+	WindowResizingModeDisabled WindowResizingModeType = WindowResizingModeType(ui.WindowResizingModeDisabled)
+
+	// WindowResizingModeDisabled indicates the mode to disallow resizing the window,
+	// but allow to make the window fullscreen by a user.
+	// This works only on macOS so far.
+	// On the other platforms, this is the same as WindowResizingModeDisabled.
+	WindowResizingModeOnlyFullscreenEnabled WindowResizingModeType = WindowResizingModeType(ui.WindowResizingModeOnlyFullscreenEnabled)
+
+	// WindowResizingModeEnabled indicates the mode to allow resizing the window by a user.
+	WindowResizingModeEnabled WindowResizingModeType = WindowResizingModeType(ui.WindowResizingModeEnabled)
+)
+
 // IsWindowDecorated reports whether the window is decorated.
 //
 // IsWindowDecorated is concurrent-safe.
@@ -42,24 +63,42 @@ func SetWindowDecorated(decorated bool) {
 	ui.Get().Window().SetDecorated(decorated)
 }
 
+// WindowResizingMode returns the current mode in which a user resizes the window.
+//
+// The default mode is WindowResizingModeDisabled.
+//
+// WindowResizingMode is concurrent-safe.
+func WindowResizingMode() WindowResizingModeType {
+	return WindowResizingModeType(ui.Get().Window().ResizingMode())
+}
+
+// SetWindowResizingMode sets the mode in which a user resizes the window.
+//
+// SetWindowResizingMode does nothing on macOS when the window is fullscreened.
+//
+// SetWindowResizingMode is concurrent-safe.
+func SetWindowResizingMode(mode WindowResizingModeType) {
+	ui.Get().Window().SetResizingMode(ui.WindowResizingMode(mode))
+}
+
 // IsWindowResizable reports whether the window is resizable by the user's dragging on desktops.
 // On the other environments, IsWindowResizable always returns false.
 //
-// IsWindowResizable is concurrent-safe.
+// Deprecated: as of v2.2. Use WindowResizingMode instead.
 func IsWindowResizable() bool {
-	return ui.Get().Window().IsResizable()
+	return ui.Get().Window().ResizingMode() == ui.WindowResizingModeEnabled
 }
 
 // SetWindowResizable sets whether the window is resizable by the user's dragging on desktops.
 // On the other environments, SetWindowResizable does nothing.
 //
-// The window is not resizable by default.
-//
-// SetWindowResizable does nothing on macOS when the window is fullscreened.
-//
-// SetWindowResizable is concurrent-safe.
+// Deprecated: as of v2.2, Use SetWindowResizingMode instead.
 func SetWindowResizable(resizable bool) {
-	ui.Get().Window().SetResizable(resizable)
+	mode := ui.WindowResizingModeDisabled
+	if resizable {
+		mode = ui.WindowResizingModeEnabled
+	}
+	ui.Get().Window().SetResizingMode(mode)
 }
 
 // SetWindowTitle sets the title of the window.
@@ -200,7 +239,7 @@ func SetWindowFloating(float bool) {
 
 // MaximizeWindow maximizes the window.
 //
-// MaximizeWindow panics when the window is not resizable.
+// MaximizeWindow panics when the window is not resizable (WindowResizingModeEnabled).
 //
 // MaximizeWindow does nothing on browsers or mobiles.
 //
@@ -211,7 +250,7 @@ func MaximizeWindow() {
 
 // IsWindowMaximized reports whether the window is maximized or not.
 //
-// IsWindowMaximized returns false when the window is not resizable.
+// IsWindowMaximized returns false when the window is not resizable (WindowResizingModeEnabled).
 //
 // IsWindowMaximized always returns false on browsers and mobiles.
 //
