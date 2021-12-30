@@ -24,6 +24,7 @@
 //go:generate file2byteslice -package=images -input=./images/smoke.png -output=./images/smoke.go -var=Smoke_png
 //go:generate file2byteslice -package=images -input=./images/tile.png -output=./images/tile.go -var=Tile_png
 //go:generate file2byteslice -package=images -input=./images/runner.png -output=./images/runner.go -var=Runner_png
+//go:generate file2byteslice -package=images -input=./images/spritesheet.png -output=./images/spritesheet.go -var=Spritesheet_png
 //go:generate file2byteslice -package=images -input=./images/tiles.png -output=./images/tiles.go -var=Tiles_png
 //go:generate file2byteslice -package=images -input=./images/ui.png -output=./images/ui.go -var=UI_png
 //go:generate file2byteslice -package=audio -input=./images/audio/alert.png -output=./images/audio/alert.go -var=Alert_png
