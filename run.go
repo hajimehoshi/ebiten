@@ -19,6 +19,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 )
 
 // Game defines necessary functions for a game.
@@ -166,6 +167,11 @@ func RunGame(game Game) error {
 		return err
 	}
 	return nil
+}
+
+// RunOnMainThread calls the given f on the main thread, and blocks until f returns.
+func RunOnMainThread(f func()) {
+	graphicscommand.RunOnMainThread(f)
 }
 
 func isRunGameEnded() bool {

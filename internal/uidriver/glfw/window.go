@@ -32,9 +32,8 @@ func (w *window) IsDecorated() bool {
 		return w.ui.isInitWindowDecorated()
 	}
 	v := false
-	_ = w.ui.t.Call(func() error {
+	w.ui.t.Call(func() {
 		v = w.ui.window.GetAttrib(glfw.Decorated) == glfw.True
-		return nil
 	})
 	return v
 }
@@ -45,13 +44,12 @@ func (w *window) SetDecorated(decorated bool) {
 		return
 	}
 
-	_ = w.ui.t.Call(func() error {
+	w.ui.t.Call(func() {
 		if w.ui.isNativeFullscreen() {
-			return nil
+			return
 		}
 
 		w.ui.setWindowDecorated(decorated)
-		return nil
 	})
 }
 
@@ -60,9 +58,8 @@ func (w *window) IsResizable() bool {
 		return w.ui.isInitWindowResizable()
 	}
 	v := false
-	_ = w.ui.t.Call(func() error {
+	w.ui.t.Call(func() {
 		v = w.ui.window.GetAttrib(glfw.Resizable) == glfw.True
-		return nil
 	})
 	return v
 }
@@ -72,12 +69,11 @@ func (w *window) SetResizable(resizable bool) {
 		w.ui.setInitWindowResizable(resizable)
 		return
 	}
-	_ = w.ui.t.Call(func() error {
+	w.ui.t.Call(func() {
 		if w.ui.isNativeFullscreen() {
-			return nil
+			return
 		}
 		w.ui.setWindowResizable(resizable)
-		return nil
 	})
 }
 
@@ -86,9 +82,8 @@ func (w *window) IsFloating() bool {
 		return w.ui.isInitWindowFloating()
 	}
 	var v bool
-	_ = w.ui.t.Call(func() error {
+	w.ui.t.Call(func() {
 		v = w.ui.window.GetAttrib(glfw.Floating) == glfw.True
-		return nil
 	})
 	return v
 }
@@ -98,12 +93,11 @@ func (w *window) SetFloating(floating bool) {
 		w.ui.setInitWindowFloating(floating)
 		return
 	}
-	_ = w.ui.t.Call(func() error {
+	w.ui.t.Call(func() {
 		if w.ui.isNativeFullscreen() {
-			return nil
+			return
 		}
 		w.ui.setWindowFloating(floating)
-		return nil
 	})
 }
 
@@ -112,9 +106,8 @@ func (w *window) IsMaximized() bool {
 		return w.ui.isInitWindowMaximized()
 	}
 	var v bool
-	_ = w.ui.t.Call(func() error {
+	w.ui.t.Call(func() {
 		v = w.ui.window.GetAttrib(glfw.Maximized) == glfw.True
-		return nil
 	})
 	return v
 }
@@ -127,10 +120,7 @@ func (w *window) Maximize() {
 		w.ui.setInitWindowMaximized(true)
 		return
 	}
-	_ = w.ui.t.Call(func() error {
-		w.ui.maximizeWindow()
-		return nil
-	})
+	w.ui.t.Call(w.ui.maximizeWindow)
 }
 
 func (w *window) IsMinimized() bool {
@@ -138,9 +128,8 @@ func (w *window) IsMinimized() bool {
 		return false
 	}
 	var v bool
-	_ = w.ui.t.Call(func() error {
+	w.ui.t.Call(func() {
 		v = w.ui.window.GetAttrib(glfw.Iconified) == glfw.True
-		return nil
 	})
 	return v
 }
@@ -150,10 +139,7 @@ func (w *window) Minimize() {
 		// Do nothing
 		return
 	}
-	_ = w.ui.t.Call(func() error {
-		w.ui.iconifyWindow()
-		return nil
-	})
+	w.ui.t.Call(w.ui.iconifyWindow)
 }
 
 func (w *window) Restore() {
@@ -161,10 +147,7 @@ func (w *window) Restore() {
 		// Do nothing
 		return
 	}
-	_ = w.ui.t.Call(func() error {
-		w.ui.restoreWindow()
-		return nil
-	})
+	w.ui.t.Call(w.ui.restoreWindow)
 }
 
 func (w *window) Position() (int, int) {
@@ -172,7 +155,7 @@ func (w *window) Position() (int, int) {
 		panic("glfw: WindowPosition can't be called before the main loop starts")
 	}
 	x, y := 0, 0
-	_ = w.ui.t.Call(func() error {
+	w.ui.t.Call(func() {
 		var wx, wy int
 		if w.ui.isFullscreen() && !w.ui.isNativeFullscreenAvailable() {
 			wx, wy = w.ui.origPos()
@@ -186,7 +169,6 @@ func (w *window) Position() (int, int) {
 		xf := w.ui.dipFromGLFWPixel(float64(wx), m)
 		yf := w.ui.dipFromGLFWPixel(float64(wy), m)
 		x, y = int(xf), int(yf)
-		return nil
 	})
 	return x, y
 }
@@ -196,9 +178,8 @@ func (w *window) SetPosition(x, y int) {
 		w.ui.setInitWindowPositionInDIP(x, y)
 		return
 	}
-	_ = w.ui.t.Call(func() error {
+	w.ui.t.Call(func() {
 		w.ui.setWindowPositionInDIP(x, y, w.ui.currentMonitor())
-		return nil
 	})
 }
 
@@ -208,10 +189,9 @@ func (w *window) Size() (int, int) {
 		return w.ui.adjustWindowSizeBasedOnSizeLimitsInDIP(ww, wh)
 	}
 	ww, wh := 0, 0
-	_ = w.ui.t.Call(func() error {
+	w.ui.t.Call(func() {
 		ww = w.ui.windowWidthInDIP
 		wh = w.ui.windowHeightInDIP
-		return nil
 	})
 	return ww, wh
 }
@@ -221,15 +201,14 @@ func (w *window) SetSize(width, height int) {
 		w.ui.setInitWindowSizeInDIP(width, height)
 		return
 	}
-	_ = w.ui.t.Call(func() error {
+	w.ui.t.Call(func() {
 		// When a window is a native fullscreen, forcing to resize the window might leave unexpected image lags.
 		// Forbid this.
 		if w.ui.isNativeFullscreen() {
-			return nil
+			return
 		}
 
 		w.ui.setWindowSizeInDIP(width, height, w.ui.isFullscreen())
-		return nil
 	})
 }
 
@@ -245,10 +224,7 @@ func (w *window) SetSizeLimits(minw, minh, maxw, maxh int) {
 		return
 	}
 
-	_ = w.ui.t.Call(func() error {
-		w.ui.updateWindowSizeLimits()
-		return nil
-	})
+	w.ui.t.Call(w.ui.updateWindowSizeLimits)
 }
 
 func (w *window) SetIcon(iconImages []image.Image) {
@@ -264,9 +240,8 @@ func (w *window) SetTitle(title string) {
 		return
 	}
 	w.ui.title = title
-	_ = w.ui.t.Call(func() error {
+	w.ui.t.Call(func() {
 		w.ui.setWindowTitle(title)
-		return nil
 	})
 }
 

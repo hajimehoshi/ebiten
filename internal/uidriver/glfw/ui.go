@@ -484,12 +484,11 @@ func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 	}
 
 	var w, h int
-	_ = u.t.Call(func() error {
+	u.t.Call(func() {
 		m := u.currentMonitor()
 		v := m.GetVideoMode()
 		w = int(u.dipFromGLFWMonitorPixel(float64(v.Width), m))
 		h = int(u.dipFromGLFWMonitorPixel(float64(v.Height), m))
-		return nil
 	})
 	return w, h
 }
@@ -507,9 +506,8 @@ func (u *UserInterface) IsFullscreen() bool {
 		return u.isInitFullscreen()
 	}
 	b := false
-	_ = u.t.Call(func() error {
+	u.t.Call(func() {
 		b = u.isFullscreen()
-		return nil
 	})
 	return b
 }
@@ -521,18 +519,16 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 	}
 
 	var update bool
-	_ = u.t.Call(func() error {
+	u.t.Call(func() {
 		update = u.isFullscreen() != fullscreen
-		return nil
 	})
 	if !update {
 		return
 	}
 
-	_ = u.t.Call(func() error {
+	u.t.Call(func() {
 		w, h := u.windowWidthInDIP, u.windowHeightInDIP
 		u.setWindowSizeInDIP(w, h, fullscreen)
-		return nil
 	})
 }
 
@@ -542,9 +538,8 @@ func (u *UserInterface) IsFocused() bool {
 	}
 
 	var focused bool
-	_ = u.t.Call(func() error {
+	u.t.Call(func() {
 		focused = u.window.GetAttrib(glfw.Focused) == glfw.True
-		return nil
 	})
 	return focused
 }
@@ -564,14 +559,13 @@ func (u *UserInterface) SetFPSMode(mode driver.FPSMode) {
 		u.m.Unlock()
 		return
 	}
-	_ = u.t.Call(func() error {
+	u.t.Call(func() {
 		if !u.fpsModeInited {
 			u.fpsMode = mode
-			return nil
+			return
 		}
 		u.setFPSMode(mode)
 		u.updateVsync()
-		return nil
 	})
 }
 
@@ -583,9 +577,8 @@ func (u *UserInterface) FPSMode() driver.FPSMode {
 		return m
 	}
 	var v driver.FPSMode
-	_ = u.t.Call(func() error {
+	u.t.Call(func() {
 		v = u.fpsMode
-		return nil
 	})
 	return v
 }
@@ -603,21 +596,23 @@ func (u *UserInterface) CursorMode() driver.CursorMode {
 	if !u.isRunning() {
 		return u.getInitCursorMode()
 	}
-	var v driver.CursorMode
-	_ = u.t.Call(func() error {
-		mode := u.window.GetInputMode(glfw.CursorMode)
-		switch mode {
-		case glfw.CursorNormal:
-			v = driver.CursorModeVisible
-		case glfw.CursorHidden:
-			v = driver.CursorModeHidden
-		case glfw.CursorDisabled:
-			v = driver.CursorModeCaptured
-		default:
-			panic(fmt.Sprintf("glfw: invalid GLFW cursor mode: %d", mode))
-		}
-		return nil
+
+	var mode int
+	u.t.Call(func() {
+		mode = u.window.GetInputMode(glfw.CursorMode)
 	})
+
+	var v driver.CursorMode
+	switch mode {
+	case glfw.CursorNormal:
+		v = driver.CursorModeVisible
+	case glfw.CursorHidden:
+		v = driver.CursorModeHidden
+	case glfw.CursorDisabled:
+		v = driver.CursorModeCaptured
+	default:
+		panic(fmt.Sprintf("glfw: invalid GLFW cursor mode: %d", mode))
+	}
 	return v
 }
 
@@ -626,9 +621,8 @@ func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
 		u.setInitCursorMode(mode)
 		return
 	}
-	_ = u.t.Call(func() error {
+	u.t.Call(func() {
 		u.window.SetInputMode(glfw.CursorMode, driverCursorModeToGLFWCursorMode(mode))
-		return nil
 	})
 }
 
@@ -644,9 +638,8 @@ func (u *UserInterface) SetCursorShape(shape driver.CursorShape) {
 	if !u.isRunning() {
 		return
 	}
-	_ = u.t.Call(func() error {
+	u.t.Call(func() {
 		u.setNativeCursor(shape)
-		return nil
 	})
 }
 
@@ -657,9 +650,8 @@ func (u *UserInterface) DeviceScaleFactor() float64 {
 	}
 
 	f := 0.0
-	_ = u.t.Call(func() error {
+	u.t.Call(func() {
 		f = u.deviceScaleFactor(u.currentMonitor())
-		return nil
 	})
 	return f
 }
@@ -745,7 +737,7 @@ func (u *UserInterface) registerWindowSetSizeCallback() {
 
 				var outsideWidth, outsideHeight float64
 
-				_ = u.t.Call(func() error {
+				u.t.Call(func() {
 					if width != 0 || height != 0 {
 						w := int(u.dipFromGLFWPixel(float64(width), u.currentMonitor()))
 						h := int(u.dipFromGLFWPixel(float64(height), u.currentMonitor()))
@@ -753,16 +745,14 @@ func (u *UserInterface) registerWindowSetSizeCallback() {
 					}
 
 					outsideWidth, outsideHeight = u.updateSize()
-					return nil
 				})
 				u.context.Layout(outsideWidth, outsideHeight)
 				if err := u.context.ForceUpdateFrame(); err != nil {
 					return err
 				}
 				if u.Graphics().IsGL() {
-					_ = u.t.Call(func() error {
+					u.t.Call(func() {
 						u.swapBuffers()
-						return nil
 					})
 				}
 				return nil
@@ -1023,12 +1013,7 @@ func (u *UserInterface) update() (float64, float64, error) {
 }
 
 func (u *UserInterface) loop() error {
-	defer func() {
-		_ = u.t.Call(func() error {
-			glfw.Terminate()
-			return nil
-		})
-	}()
+	defer u.t.Call(glfw.Terminate)
 
 	for {
 		var unfocused bool
@@ -1047,10 +1032,9 @@ func (u *UserInterface) loop() error {
 		}
 
 		var outsideWidth, outsideHeight float64
-		if err := u.t.Call(func() error {
-			var err error
+		var err error
+		if u.t.Call(func() {
 			outsideWidth, outsideHeight, err = u.update()
-			return err
 		}); err != nil {
 			return err
 		}
@@ -1084,14 +1068,13 @@ func (u *UserInterface) loop() error {
 					newImgs[i] = rgba
 				}
 
-				_ = u.t.Call(func() error {
+				u.t.Call(func() {
 					// In the fullscreen mode, reset the icon images and try again later.
 					if u.isFullscreen() {
 						u.setIconImages(imgs)
-						return nil
+						return
 					}
 					u.window.SetIcon(newImgs)
-					return nil
 				})
 			}()
 		}
@@ -1100,10 +1083,7 @@ func (u *UserInterface) loop() error {
 		// However, (*thread).Call is not good for performance due to channels.
 		// Let's avoid this whenever possible (#1367).
 		if u.Graphics().IsGL() {
-			_ = u.t.Call(func() error {
-				u.swapBuffers()
-				return nil
-			})
+			u.t.Call(u.swapBuffers)
 		}
 
 		if unfocused {
@@ -1399,9 +1379,8 @@ func (u *UserInterface) IsScreenTransparent() bool {
 		return u.isInitScreenTransparent()
 	}
 	val := false
-	_ = u.t.Call(func() error {
+	u.t.Call(func() {
 		val = u.window.GetAttrib(glfw.TransparentFramebuffer) == glfw.True
-		return nil
 	})
 	return val
 }
@@ -1409,9 +1388,8 @@ func (u *UserInterface) IsScreenTransparent() bool {
 func (u *UserInterface) ResetForFrame() {
 	// The offscreens must be updated every frame (#490).
 	var w, h float64
-	_ = u.t.Call(func() error {
+	u.t.Call(func() {
 		w, h = u.updateSize()
-		return nil
 	})
 	u.context.Layout(w, h)
 	u.input.resetForFrame()

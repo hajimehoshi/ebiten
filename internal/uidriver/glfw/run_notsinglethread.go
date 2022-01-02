@@ -32,16 +32,13 @@ func (u *UserInterface) Run(uicontext driver.UIContext) error {
 
 	ch := make(chan error, 1)
 	go func() {
-		defer func() {
-			_ = u.t.Call(func() error {
-				return thread.BreakLoop
-			})
-		}()
+		defer u.t.Stop()
 
 		defer close(ch)
 
-		if err := u.t.Call(func() error {
-			return u.init()
+		var err error
+		if u.t.Call(func() {
+			err = u.init()
 		}); err != nil {
 			ch <- err
 			return
@@ -77,11 +74,7 @@ func (u *UserInterface) runOnAnotherThreadFromMainThread(f func() error) error {
 
 	var err error
 	go func() {
-		defer func() {
-			_ = u.t.Call(func() error {
-				return thread.BreakLoop
-			})
-		}()
+		defer u.t.Stop()
 		err = f()
 	}()
 	u.t.Loop()
