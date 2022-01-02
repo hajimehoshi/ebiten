@@ -53,7 +53,7 @@ func (t *OSThread) Loop() {
 		case fn := <-t.funcs:
 			fn.f()
 			if fn.done != nil {
-				close(fn.done)
+				fn.done <- struct{}{}
 			}
 		case <-t.done:
 			return
