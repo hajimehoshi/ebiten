@@ -103,3 +103,6 @@ func (t *NoopThread) Loop() {}
 func (t *NoopThread) Call(f func() error) error {
 	return f()
 }
+
+// Stop does nothing
+func (t *NoopThread) Stop() {}
