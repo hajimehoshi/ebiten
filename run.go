@@ -15,7 +15,6 @@
 package ebiten
 
 import (
-	"fmt"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
@@ -171,24 +170,8 @@ func RunGame(game Game) error {
 }
 
 // RunOnMainThread calls the given f on the main thread, and blocks until f returns.
-//
-// This method panics if f panics.
 func RunOnMainThread(f func()) {
-	var err error
-	if graphicscommand.RunOnMainThread(func() {
-		// If f panics, capture the panic error and propagates to the
-		// calling goroutine.
-		defer func() {
-			if r := recover(); r != nil {
-				err = fmt.Errorf("%v", r)
-			}
-		}()
-
-		f()
-		return
-	}); err != nil {
-		panic(err)
-	}
+	graphicscommand.RunOnMainThread(f)
 }
 
 func isRunGameEnded() bool {

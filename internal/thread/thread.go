@@ -14,8 +14,6 @@
 
 package thread
 
-import "sync"
-
 // Thread defines threading behavior in Ebiten.
 type Thread interface {
 	Call(func())
@@ -23,15 +21,11 @@ type Thread interface {
 	Stop()
 }
 
-type funcdata struct {
-	f    func()
-	done chan struct{}
-}
-
 // OSThread represents an OS thread.
 type OSThread struct {
-	funcs chan funcdata
-	done  chan struct{}
+	funcs     chan func()
+	done      chan struct{}
+	terminate chan struct{}
 }
 
 // NewOSThread creates a new thread.
@@ -39,8 +33,9 @@ type OSThread struct {
 // It is assumed that the OS thread is fixed by runtime.LockOSThread when NewOSThread is called.
 func NewOSThread() *OSThread {
 	return &OSThread{
-		funcs: make(chan funcdata),
-		done:  make(chan struct{}),
+		funcs:     make(chan func()),
+		done:      make(chan struct{}),
+		terminate: make(chan struct{}),
 	}
 }
 
@@ -51,11 +46,14 @@ func (t *OSThread) Loop() {
 	for {
 		select {
 		case fn := <-t.funcs:
-			fn.f()
-			if fn.done != nil {
-				fn.done <- struct{}{}
-			}
-		case <-t.done:
+			func() {
+				defer func() {
+					t.done <- struct{}{}
+				}()
+
+				fn()
+			}()
+		case <-t.terminate:
 			return
 		}
 	}
@@ -63,13 +61,7 @@ func (t *OSThread) Loop() {
 
 // Stop stops the thread loop.
 func (t *OSThread) Stop() {
-	close(t.done)
-}
-
-var donePool = sync.Pool{
-	New: func() interface{} {
-		return make(chan struct{})
-	},
+	close(t.terminate)
 }
 
 // Call calls f on the thread.
@@ -78,14 +70,8 @@ var donePool = sync.Pool{
 //
 // Call blocks if Loop is not called.
 func (t *OSThread) Call(f func()) {
-	done := donePool.Get().(chan struct{})
-	defer donePool.Put(done)
-
-	t.funcs <- funcdata{
-		f:    f,
-		done: done,
-	}
-	<-done
+	t.funcs <- f
+	<-t.done
 }
 
 // NoopThread is used to disable threading.
@@ -100,9 +86,7 @@ func NewNoopThread() *NoopThread {
 func (t *NoopThread) Loop() {}
 
 // Call executes the func immediately
-func (t *NoopThread) Call(f func() error) error {
-	return f()
-}
+func (t *NoopThread) Call(f func()) { f() }
 
 // Stop does nothing
 func (t *NoopThread) Stop() {}
