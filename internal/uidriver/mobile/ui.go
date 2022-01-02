@@ -88,9 +88,7 @@ func (u *UserInterface) Update() error {
 	renderCh <- struct{}{}
 	go func() {
 		<-renderEndCh
-		u.t.Call(func() error {
-			return thread.BreakLoop
-		})
+		u.t.Stop()
 	}()
 	u.t.Loop()
 	return nil

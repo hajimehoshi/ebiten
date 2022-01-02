@@ -224,10 +224,11 @@ func (q *commandQueue) Enqueue(command command) {
 }
 
 // Flush flushes the command queue.
-func (q *commandQueue) Flush() error {
-	return RunOnMainThread(func() error {
-		return q.flush()
+func (q *commandQueue) Flush() (err error) {
+	RunOnMainThread(func() {
+		err = q.flush()
 	})
+	return
 }
 
 // flush must be called the main thread.
@@ -699,18 +700,19 @@ func (c *newShaderCommand) Exec(indexOffset int) error {
 }
 
 // InitializeGraphicsDriverState initialize the current graphics driver state.
-func InitializeGraphicsDriverState() error {
-	return RunOnMainThread(func() error {
-		return theGraphicsDriver.Initialize()
+func InitializeGraphicsDriverState() (err error) {
+	RunOnMainThread(func() {
+		err = theGraphicsDriver.Initialize()
 	})
+	return
 }
 
 // ResetGraphicsDriverState resets the current graphics driver state.
 // If the graphics driver doesn't have an API to reset, ResetGraphicsDriverState does nothing.
-func ResetGraphicsDriverState() error {
+func ResetGraphicsDriverState() (err error) {
 	if r, ok := theGraphicsDriver.(interface{ Reset() error }); ok {
-		return RunOnMainThread(func() error {
-			return r.Reset()
+		RunOnMainThread(func() {
+			err = r.Reset()
 		})
 	}
 	return nil
@@ -719,9 +721,8 @@ func ResetGraphicsDriverState() error {
 // MaxImageSize returns the maximum size of an image.
 func MaxImageSize() int {
 	var size int
-	_ = RunOnMainThread(func() error {
+	RunOnMainThread(func() {
 		size = theGraphicsDriver.MaxImageSize()
-		return nil
 	})
 	return size
 }

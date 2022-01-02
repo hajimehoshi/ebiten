@@ -174,7 +174,8 @@ func RunGame(game Game) error {
 //
 // This method panics if f panics.
 func RunOnMainThread(f func()) {
-	if err := graphicscommand.RunOnMainThread(func() (err error) {
+	var err error
+	if graphicscommand.RunOnMainThread(func() {
 		// If f panics, capture the panic error and propagates to the
 		// calling goroutine.
 		defer func() {

@@ -14,20 +14,24 @@
 
 package thread
 
-import (
-	"errors"
-)
+import "sync"
 
 // Thread defines threading behavior in Ebiten.
 type Thread interface {
-	Call(func() error) error
+	Call(func())
 	Loop()
+	Stop()
+}
+
+type funcdata struct {
+	f    func()
+	done chan struct{}
 }
 
 // OSThread represents an OS thread.
 type OSThread struct {
-	funcs   chan func() error
-	results chan error
+	funcs chan funcdata
+	done  chan struct{}
 }
 
 // NewOSThread creates a new thread.
@@ -35,38 +39,53 @@ type OSThread struct {
 // It is assumed that the OS thread is fixed by runtime.LockOSThread when NewOSThread is called.
 func NewOSThread() *OSThread {
 	return &OSThread{
-		funcs:   make(chan func() error),
-		results: make(chan error),
+		funcs: make(chan funcdata),
+		done:  make(chan struct{}),
 	}
 }
 
-// BreakLoop represents an termination of the loop.
-var BreakLoop = errors.New("break loop")
-
-// Loop starts the thread loop until a posted function returns BreakLoop.
+// Loop starts the thread loop until Stop is called.
 //
 // Loop must be called on the thread.
 func (t *OSThread) Loop() {
-	for f := range t.funcs {
-		err := f()
-		if err == BreakLoop {
-			t.results <- nil
+	for {
+		select {
+		case fn := <-t.funcs:
+			fn.f()
+			if fn.done != nil {
+				close(fn.done)
+			}
+		case <-t.done:
 			return
 		}
-		t.results <- err
 	}
+}
+
+// Stop stops the thread loop.
+func (t *OSThread) Stop() {
+	close(t.done)
+}
+
+var donePool = sync.Pool{
+	New: func() interface{} {
+		return make(chan struct{})
+	},
 }
 
 // Call calls f on the thread.
 //
 // Do not call this from the same thread. This would block forever.
 //
-// If f returns BreakLoop, Loop returns.
-//
 // Call blocks if Loop is not called.
-func (t *OSThread) Call(f func() error) error {
-	t.funcs <- f
-	return <-t.results
+func (t *OSThread) Call(f func()) {
+	done := donePool.Get().(chan struct{})
+	defer donePool.Put(done)
+
+	t.funcs <- funcdata{
+		f:    f,
+		done: done,
+	}
+	<-done
 }
 
 // NoopThread is used to disable threading.
