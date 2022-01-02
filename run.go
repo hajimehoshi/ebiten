@@ -15,10 +15,12 @@
 package ebiten
 
 import (
+	"fmt"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 )
 
 // Game defines necessary functions for a game.
@@ -166,6 +168,26 @@ func RunGame(game Game) error {
 		return err
 	}
 	return nil
+}
+
+// RunOnMainThread calls the given f on the main thread, and blocks until f returns.
+//
+// This method panics if f panics.
+func RunOnMainThread(f func()) {
+	if err := graphicscommand.RunOnMainThread(func() (err error) {
+		// If f panics, capture the panic error and propagates to the
+		// calling goroutine.
+		defer func() {
+			if r := recover(); r != nil {
+				err = fmt.Errorf("%v", r)
+			}
+		}()
+
+		f()
+		return
+	}); err != nil {
+		panic(err)
+	}
 }
 
 func isRunGameEnded() bool {
