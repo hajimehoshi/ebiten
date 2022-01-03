@@ -285,6 +285,11 @@ func (u *UserInterface) update() error {
 }
 
 func (u *UserInterface) updateImpl(force bool) error {
+	// context can be nil when an event is fired but the loop doesn't start yet (#1928).
+	if u.context == nil {
+		return nil
+	}
+
 	u.input.updateGamepads()
 	u.input.updateForGo2Cpp()
 	u.updateSize()
