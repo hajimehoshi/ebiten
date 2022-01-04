@@ -335,17 +335,41 @@ func toStandardGamepadAxis(str string) (driver.StandardGamepadAxis, bool) {
 	}
 }
 
+func buttonMappings(id string) map[driver.StandardGamepadButton]*mapping {
+	if m, ok := gamepadButtonMappings[id]; ok {
+		return m
+	}
+	if currentPlatform == platformAndroid {
+		// If the gamepad is not an HID API, use the default mapping on Android.
+		if id[14] != 'h' {
+			if addAndroidDefaultMappings(id) {
+				return gamepadButtonMappings[id]
+			}
+		}
+	}
+	return nil
+}
+
+func axisMappings(id string) map[driver.StandardGamepadAxis]*mapping {
+	if m, ok := gamepadAxisMappings[id]; ok {
+		return m
+	}
+	if currentPlatform == platformAndroid {
+		// If the gamepad is not an HID API, use the default mapping on Android.
+		if id[14] != 'h' {
+			if addAndroidDefaultMappings(id) {
+				return gamepadAxisMappings[id]
+			}
+		}
+	}
+	return nil
+}
+
 func HasStandardLayoutMapping(id string) bool {
 	mappingsM.RLock()
 	defer mappingsM.RUnlock()
 
-	if _, ok := gamepadButtonMappings[id]; ok {
-		return true
-	}
-	if _, ok := gamepadAxisMappings[id]; ok {
-		return true
-	}
-	return false
+	return buttonMappings(id) != nil || axisMappings(id) != nil
 }
 
 type GamepadState interface {
@@ -358,8 +382,8 @@ func AxisValue(id string, axis driver.StandardGamepadAxis, state GamepadState) f
 	mappingsM.RLock()
 	defer mappingsM.RUnlock()
 
-	mappings, ok := gamepadAxisMappings[id]
-	if !ok {
+	mappings := axisMappings(id)
+	if mappings == nil {
 		return 0
 	}
 
@@ -402,8 +426,8 @@ func ButtonValue(id string, button driver.StandardGamepadButton, state GamepadSt
 }
 
 func buttonValue(id string, button driver.StandardGamepadButton, state GamepadState) float64 {
-	mappings, ok := gamepadButtonMappings[id]
-	if !ok {
+	mappings := buttonMappings(id)
+	if mappings == nil {
 		return 0
 	}
 
@@ -476,7 +500,7 @@ func Update(mapping []byte) (bool, error) {
 	}
 
 	// TODO: Implement this (#1557)
-	if currentPlatform == platformAndroid || currentPlatform == platformIOS {
+	if currentPlatform == platformIOS {
 		// Note: NOT returning an error, as mappings also do not matter right now.
 		return false, nil
 	}
@@ -500,4 +524,203 @@ func Update(mapping []byte) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func addAndroidDefaultMappings(id string) bool {
+	// See https://github.com/libsdl-org/SDL/blob/120c76c84bbce4c1bfed4e9eb74e10678bd83120/include/SDL_gamecontroller.h#L655-L680
+	const (
+		SDLControllerButtonA             = 0
+		SDLControllerButtonB             = 1
+		SDLControllerButtonX             = 2
+		SDLControllerButtonY             = 3
+		SDLControllerButtonBack          = 4
+		SDLControllerButtonGuide         = 5
+		SDLControllerButtonStart         = 6
+		SDLControllerButtonLeftStick     = 7
+		SDLControllerButtonRightStick    = 8
+		SDLControllerButtonLeftShoulder  = 9
+		SDLControllerButtonRightShoulder = 10
+		SDLControllerButtonDpadUp        = 11
+		SDLControllerButtonDpadDown      = 12
+		SDLControllerButtonDpadLeft      = 13
+		SDLControllerButtonDpadRight     = 14
+	)
+
+	// See https://github.com/libsdl-org/SDL/blob/120c76c84bbce4c1bfed4e9eb74e10678bd83120/include/SDL_gamecontroller.h#L550-L560
+	const (
+		SDLControllerAxisLeftX        = 0
+		SDLControllerAxisLeftY        = 1
+		SDLControllerAxisRightX       = 2
+		SDLControllerAxisRightY       = 3
+		SDLControllerAxisTriggerLeft  = 4
+		SDLControllerAxisTriggerRight = 5
+	)
+
+	// See https://github.com/libsdl-org/SDL/blob/120c76c84bbce4c1bfed4e9eb74e10678bd83120/src/joystick/SDL_gamecontroller.c#L468-L568
+
+	const faceButtonMask = ((1 << SDLControllerButtonA) |
+		(1 << SDLControllerButtonB) |
+		(1 << SDLControllerButtonX) |
+		(1 << SDLControllerButtonY))
+
+	buttonMask := uint16(id[12]) | (uint16(id[13]) << 8)
+	axisMask := uint16(id[14]) | (uint16(id[15]) << 8)
+	if buttonMask == 0 && axisMask == 0 {
+		return false
+	}
+	if buttonMask&faceButtonMask == 0 {
+		return false
+	}
+
+	gamepadButtonMappings[id] = map[driver.StandardGamepadButton]*mapping{}
+	if buttonMask&(1<<SDLControllerButtonA) != 0 {
+		gamepadButtonMappings[id][driver.StandardGamepadButtonRightBottom] = &mapping{
+			Type:  mappingTypeButton,
+			Index: SDLControllerButtonA,
+		}
+	}
+	if buttonMask&(1<<SDLControllerButtonB) != 0 {
+		gamepadButtonMappings[id][driver.StandardGamepadButtonRightRight] = &mapping{
+			Type:  mappingTypeButton,
+			Index: SDLControllerButtonB,
+		}
+	} else {
+		// Use the back button as "B" for easy UI navigation with TV remotes.
+		gamepadButtonMappings[id][driver.StandardGamepadButtonRightRight] = &mapping{
+			Type:  mappingTypeButton,
+			Index: SDLControllerButtonBack,
+		}
+		buttonMask &= ^(uint16(1) << SDLControllerButtonBack)
+	}
+	if buttonMask&(1<<SDLControllerButtonX) != 0 {
+		gamepadButtonMappings[id][driver.StandardGamepadButtonRightLeft] = &mapping{
+			Type:  mappingTypeButton,
+			Index: SDLControllerButtonX,
+		}
+	}
+	if buttonMask&(1<<SDLControllerButtonY) != 0 {
+		gamepadButtonMappings[id][driver.StandardGamepadButtonRightTop] = &mapping{
+			Type:  mappingTypeButton,
+			Index: SDLControllerButtonY,
+		}
+	}
+	if buttonMask&(1<<SDLControllerButtonBack) != 0 {
+		gamepadButtonMappings[id][driver.StandardGamepadButtonCenterLeft] = &mapping{
+			Type:  mappingTypeButton,
+			Index: SDLControllerButtonBack,
+		}
+	}
+	if buttonMask&(1<<SDLControllerButtonGuide) != 0 {
+		// TODO: If SDKVersion >= 30, add this code:
+		//
+		//     gamepadButtonMappings[id][driver.StandardGamepadButtonCenterCenter] = &mapping{
+		//         Type:  mappingTypeButton,
+		//         Index: SDLControllerButtonGuide,
+		//     }
+	}
+	if buttonMask&(1<<SDLControllerButtonStart) != 0 {
+		gamepadButtonMappings[id][driver.StandardGamepadButtonCenterRight] = &mapping{
+			Type:  mappingTypeButton,
+			Index: SDLControllerButtonStart,
+		}
+	}
+	if buttonMask&(1<<SDLControllerButtonLeftStick) != 0 {
+		gamepadButtonMappings[id][driver.StandardGamepadButtonLeftStick] = &mapping{
+			Type:  mappingTypeButton,
+			Index: SDLControllerButtonLeftStick,
+		}
+	}
+	if buttonMask&(1<<SDLControllerButtonRightStick) != 0 {
+		gamepadButtonMappings[id][driver.StandardGamepadButtonRightStick] = &mapping{
+			Type:  mappingTypeButton,
+			Index: SDLControllerButtonRightStick,
+		}
+	}
+	if buttonMask&(1<<SDLControllerButtonLeftShoulder) != 0 {
+		gamepadButtonMappings[id][driver.StandardGamepadButtonFrontTopLeft] = &mapping{
+			Type:  mappingTypeButton,
+			Index: SDLControllerButtonLeftShoulder,
+		}
+	}
+	if buttonMask&(1<<SDLControllerButtonRightShoulder) != 0 {
+		gamepadButtonMappings[id][driver.StandardGamepadButtonFrontTopRight] = &mapping{
+			Type:  mappingTypeButton,
+			Index: SDLControllerButtonRightShoulder,
+		}
+	}
+	if buttonMask&(1<<SDLControllerButtonDpadUp) != 0 {
+		gamepadButtonMappings[id][driver.StandardGamepadButtonLeftTop] = &mapping{
+			Type:  mappingTypeButton,
+			Index: SDLControllerButtonDpadUp,
+		}
+	}
+	if buttonMask&(1<<SDLControllerButtonDpadDown) != 0 {
+		gamepadButtonMappings[id][driver.StandardGamepadButtonLeftBottom] = &mapping{
+			Type:  mappingTypeButton,
+			Index: SDLControllerButtonDpadDown,
+		}
+	}
+	if buttonMask&(1<<SDLControllerButtonDpadLeft) != 0 {
+		gamepadButtonMappings[id][driver.StandardGamepadButtonLeftLeft] = &mapping{
+			Type:  mappingTypeButton,
+			Index: SDLControllerButtonDpadLeft,
+		}
+	}
+	if buttonMask&(1<<SDLControllerButtonDpadRight) != 0 {
+		gamepadButtonMappings[id][driver.StandardGamepadButtonLeftRight] = &mapping{
+			Type:  mappingTypeButton,
+			Index: SDLControllerButtonDpadRight,
+		}
+	}
+
+	if axisMask&(1<<SDLControllerAxisLeftX) != 0 {
+		gamepadAxisMappings[id][driver.StandardGamepadAxisLeftStickHorizontal] = &mapping{
+			Type:       mappingTypeAxis,
+			Index:      SDLControllerAxisLeftX,
+			AxisScale:  1,
+			AxisOffset: 0,
+		}
+	}
+	if axisMask&(1<<SDLControllerAxisLeftY) != 0 {
+		gamepadAxisMappings[id][driver.StandardGamepadAxisLeftStickVertical] = &mapping{
+			Type:       mappingTypeAxis,
+			Index:      SDLControllerAxisLeftY,
+			AxisScale:  1,
+			AxisOffset: 0,
+		}
+	}
+	if axisMask&(1<<SDLControllerAxisRightX) != 0 {
+		gamepadAxisMappings[id][driver.StandardGamepadAxisRightStickHorizontal] = &mapping{
+			Type:       mappingTypeAxis,
+			Index:      SDLControllerAxisRightX,
+			AxisScale:  1,
+			AxisOffset: 0,
+		}
+	}
+	if axisMask&(1<<SDLControllerAxisRightY) != 0 {
+		gamepadAxisMappings[id][driver.StandardGamepadAxisRightStickVertical] = &mapping{
+			Type:       mappingTypeAxis,
+			Index:      SDLControllerAxisRightY,
+			AxisScale:  1,
+			AxisOffset: 0,
+		}
+	}
+	if axisMask&(1<<SDLControllerAxisTriggerLeft) != 0 {
+		gamepadButtonMappings[id][driver.StandardGamepadButtonFrontBottomLeft] = &mapping{
+			Type:       mappingTypeAxis,
+			Index:      SDLControllerAxisTriggerLeft,
+			AxisScale:  1,
+			AxisOffset: 0,
+		}
+	}
+	if axisMask&(1<<SDLControllerAxisTriggerRight) != 0 {
+		gamepadButtonMappings[id][driver.StandardGamepadButtonFrontBottomRight] = &mapping{
+			Type:       mappingTypeAxis,
+			Index:      SDLControllerAxisTriggerRight,
+			AxisScale:  1,
+			AxisOffset: 0,
+		}
+	}
+
+	return true
 }

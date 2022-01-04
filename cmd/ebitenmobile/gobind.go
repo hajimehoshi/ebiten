@@ -537,7 +537,7 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
                     value = 0.0f;
                 }
             }
-            Ebitenmobileview.onGamepadAxesChanged(event.getDeviceId(), axis, value);
+            Ebitenmobileview.onGamepadAxesOrHatsChanged(event.getDeviceId(), axis, value);
         }
         return true;
     }
@@ -562,20 +562,26 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         }
 
         boolean[] keyExistences = inputDevice.hasKeys(gamepadButtons);
-        int buttonNum = gamepadButtons.length - 1;
-        for (int i = gamepadButtons.length - 1; i >= 0; i--) {
-            if (keyExistences[i]) {
+        int nbuttons = 0;
+        for (int i = 0; i < gamepadButtons.length; i++) {
+            if (!keyExistences[i]) {
                 break;
             }
-            buttonNum--;
+            nbuttons++;
         }
 
-        int axisNum = axes.length - 1;
-        for (int i = axes.length - 1; i >= 0; i--) {
-            if (inputDevice.getMotionRange(axes[i], InputDevice.SOURCE_JOYSTICK) != null) {
+        int naxes = 0;
+        int nhats2 = 0;
+        for (int i = 0; i < axes.length; i++) {
+            InputDevice.MotionRange range = inputDevice.getMotionRange(axes[i], InputDevice.SOURCE_JOYSTICK);
+            if (range == null) {
                 break;
             }
-            axisNum--;
+            if (range.getAxis() == MotionEvent.AXIS_HAT_X || range.getAxis() == MotionEvent.AXIS_HAT_Y) {
+                nhats2++;
+            } else {
+                naxes++;
+            }
         }
 
         String descriptor = inputDevice.getDescriptor();
@@ -586,7 +592,7 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         int buttonMask = getButtonMask(inputDevice);
         int axisMask = getAxisMask(inputDevice);
 
-        Ebitenmobileview.onGamepadAdded(deviceId, inputDevice.getName(), buttonNum, axisNum, descriptor, vendorId, productId, buttonMask, axisMask);
+        Ebitenmobileview.onGamepadAdded(deviceId, inputDevice.getName(), nbuttons, naxes, nhats2/2, descriptor, vendorId, productId, buttonMask, axisMask);
     }
 
     // The implementation is copied from SDL:

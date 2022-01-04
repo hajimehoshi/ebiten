@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
 type Input struct {
@@ -130,22 +131,54 @@ func (i *Input) IsGamepadButtonPressed(id driver.GamepadID, button driver.Gamepa
 }
 
 func (i *Input) IsStandardGamepadLayoutAvailable(id driver.GamepadID) bool {
-	// TODO: Implement this (#1557)
+	i.ui.m.RLock()
+	defer i.ui.m.RUnlock()
+
+	for _, g := range i.gamepads {
+		if g.ID != id {
+			continue
+		}
+		return gamepaddb.HasStandardLayoutMapping(g.SDLID)
+	}
 	return false
 }
 
 func (i *Input) IsStandardGamepadButtonPressed(id driver.GamepadID, button driver.StandardGamepadButton) bool {
-	// TODO: Implement this (#1557)
+	i.ui.m.RLock()
+	defer i.ui.m.RUnlock()
+
+	for _, g := range i.gamepads {
+		if g.ID != id {
+			continue
+		}
+		return gamepaddb.IsButtonPressed(g.SDLID, button, gamepadState{&g})
+	}
 	return false
 }
 
 func (i *Input) StandardGamepadButtonValue(id driver.GamepadID, button driver.StandardGamepadButton) float64 {
-	// TODO: Implement this (#1557)
+	i.ui.m.RLock()
+	defer i.ui.m.RUnlock()
+
+	for _, g := range i.gamepads {
+		if g.ID != id {
+			continue
+		}
+		return gamepaddb.ButtonValue(g.SDLID, button, gamepadState{&g})
+	}
 	return 0
 }
 
 func (i *Input) StandardGamepadAxisValue(id driver.GamepadID, axis driver.StandardGamepadAxis) float64 {
-	// TODO: Implement this (#1557)
+	i.ui.m.RLock()
+	defer i.ui.m.RUnlock()
+
+	for _, g := range i.gamepads {
+		if g.ID != id {
+			continue
+		}
+		return gamepaddb.AxisValue(g.SDLID, axis, gamepadState{&g})
+	}
 	return 0
 }
 
@@ -220,4 +253,20 @@ func (i *Input) update(keys map[driver.Key]struct{}, runes []rune, touches []Tou
 
 func (i *Input) resetForFrame() {
 	i.runes = nil
+}
+
+type gamepadState struct {
+	g *Gamepad
+}
+
+func (s gamepadState) Axis(index int) float64 {
+	return float64(s.g.Axes[index])
+}
+
+func (s gamepadState) Button(index int) bool {
+	return s.g.Buttons[index]
+}
+
+func (s gamepadState) Hat(index int) int {
+	return s.g.Hats[index]
 }
