@@ -221,42 +221,61 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 	}
 
 	if buildOS == "darwin" {
-		dir := filepath.Join(buildO, "Versions", "A")
-
-		if err := ioutil.WriteFile(filepath.Join(dir, "Headers", prefixUpper+"EbitenViewController.h"), []byte(replacePrefixes(objcH)), 0644); err != nil {
-			return err
-		}
-		// TODO: Remove 'Ebitenmobileview.objc.h' here. Now it is hard since there is a header file importing
-		// that header file.
-
-		fs, err := ioutil.ReadDir(filepath.Join(dir, "Headers"))
+		// TODO: Use os.ReadDir after Ebiten stops supporting Go 1.15.
+		f, err := os.Open(buildO)
 		if err != nil {
 			return err
 		}
-		var headerFiles []string
-		for _, f := range fs {
-			if strings.HasSuffix(f.Name(), ".h") {
-				headerFiles = append(headerFiles, f.Name())
+		defer f.Close()
+
+		names, err := f.Readdirnames(-1)
+		if err != nil {
+			return err
+		}
+
+		for _, name := range names {
+			if name == "Info.plist" {
+				continue
 			}
-		}
+			frameworkName := filepath.Base(buildO)
+			frameworkName = frameworkName[:len(frameworkName)-len(".xcframework")] + ".framework"
+			dir := filepath.Join(buildO, name, frameworkName, "Versions", "A")
 
-		w, err := os.OpenFile(filepath.Join(dir, "Modules", "module.modulemap"), os.O_WRONLY, 0644)
-		if err != nil {
-			return err
-		}
-		defer w.Close()
-		var mmVals = struct {
-			Module  string
-			Headers []string
-		}{
-			Module:  prefixUpper,
-			Headers: headerFiles,
-		}
-		if err := iosModuleMapTmpl.Execute(w, mmVals); err != nil {
-			return err
-		}
+			if err := ioutil.WriteFile(filepath.Join(dir, "Headers", prefixUpper+"EbitenViewController.h"), []byte(replacePrefixes(objcH)), 0644); err != nil {
+				return err
+			}
+			// TODO: Remove 'Ebitenmobileview.objc.h' here. Now it is hard since there is a header file importing
+			// that header file.
 
-		// TODO: Remove Ebitenmobileview.objc.h?
+			fs, err := ioutil.ReadDir(filepath.Join(dir, "Headers"))
+			if err != nil {
+				return err
+			}
+			var headerFiles []string
+			for _, f := range fs {
+				if strings.HasSuffix(f.Name(), ".h") {
+					headerFiles = append(headerFiles, f.Name())
+				}
+			}
+
+			w, err := os.OpenFile(filepath.Join(dir, "Modules", "module.modulemap"), os.O_WRONLY, 0644)
+			if err != nil {
+				return err
+			}
+			defer w.Close()
+			var mmVals = struct {
+				Module  string
+				Headers []string
+			}{
+				Module:  prefixUpper,
+				Headers: headerFiles,
+			}
+			if err := iosModuleMapTmpl.Execute(w, mmVals); err != nil {
+				return err
+			}
+
+			// TODO: Remove Ebitenmobileview.objc.h?
+		}
 	}
 
 	return nil

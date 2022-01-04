@@ -240,22 +240,6 @@ package mobile
 //
 //       property->nAxes = 6;
 //       property->nHats = 1;
-//     } else if (controller.gamepad) {
-//       property->buttonMask |= (1 << kControllerButtonA);
-//       property->buttonMask |= (1 << kControllerButtonB);
-//       property->buttonMask |= (1 << kControllerButtonX);
-//       property->buttonMask |= (1 << kControllerButtonY);
-//       property->buttonMask |= (1 << kControllerButtonLeftShoulder);
-//       property->buttonMask |= (1 << kControllerButtonRightShoulder);
-//       // This button's detection actually does not happen.
-//       property->buttonMask |= (1 << kControllerButtonStart);
-//       property->nButtons += 7;
-//
-//       vendor = kUSBVendorApple;
-//       product = 2;
-//       subtype = 2;
-//       property->nAxes = 0;
-//       property->nHats = 1;
 //     }
 //
 //     const int kSDLHardwareBusBluetooth = 0x05;
@@ -284,7 +268,7 @@ package mobile
 //
 // static void addController(GCController* controller) {
 //   // Ignore if the controller is not an actual controller.
-//   if (!controller.extendedGamepad && !controller.gamepad && controller.microGamepad) {
+//   if (!controller.extendedGamepad && controller.microGamepad) {
 //     return;
 //   }
 //
@@ -395,20 +379,6 @@ package mobile
 //       }
 //
 // #pragma clang diagnostic pop
-//
-//       if (property.nHats) {
-//         controllerState->hat = getHatState(gamepad.dpad);
-//       }
-//     } else if (controller.gamepad) {
-//       GCGamepad* gamepad = controller.gamepad;
-//
-//       int buttonCount = 0;
-//       controllerState->buttons[buttonCount++] = gamepad.buttonA.isPressed;
-//       controllerState->buttons[buttonCount++] = gamepad.buttonB.isPressed;
-//       controllerState->buttons[buttonCount++] = gamepad.buttonX.isPressed;
-//       controllerState->buttons[buttonCount++] = gamepad.buttonY.isPressed;
-//       controllerState->buttons[buttonCount++] = gamepad.leftShoulder.isPressed;
-//       controllerState->buttons[buttonCount++] = gamepad.rightShoulder.isPressed;
 //
 //       if (property.nHats) {
 //         controllerState->hat = getHatState(gamepad.dpad);
