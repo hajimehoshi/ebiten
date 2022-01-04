@@ -23,7 +23,7 @@ import (
 	"runtime"
 )
 
-const gomobileHash = "4e6c2922fdeed32d3596616518aaee7b0d79ce55"
+const gomobileHash = "5d9a33257ab559d10fa8c96087aed99bf8b6d868"
 
 func runCommand(command string, args []string, env []string) error {
 	if buildX || buildN {
