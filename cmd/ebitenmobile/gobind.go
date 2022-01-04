@@ -125,6 +125,12 @@ func run() error {
 			if err := writeFile(filepath.Join("src", "gobind", prefixLower+"ebitenviewcontroller_ios.m"), replacePrefixes(objcM)); err != nil {
 				return err
 			}
+			if err := writeFile(filepath.Join("src", "gobind", prefixLower+"ebitenviewcontroller_ios.go"), `package main
+
+// #cgo CFLAGS: -DGLES_SILENCE_DEPRECATION
+import "C"`); err != nil {
+				return err
+			}
 		case "java":
 			// Android
 			dir := filepath.Join(strings.Split(*javaPkg, ".")...)
