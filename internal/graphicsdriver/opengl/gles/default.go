@@ -27,6 +27,7 @@ package gles
 // #endif
 //
 // #if defined(os_ios)
+//   #define GLES_SILENCE_DEPRECATION
 //   #include <OpenGLES/ES2/glext.h>
 // #endif
 import "C"
