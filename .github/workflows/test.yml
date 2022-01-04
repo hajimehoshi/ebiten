@@ -113,4 +113,4 @@ jobs:
         if: ${{ startsWith(matrix.os, 'macos-') && !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') }}
         run: |
           cd /tmp/go-inovation
-          ebitenmobile bind -target ios -o Inovation.framework -v github.com/hajimehoshi/go-inovation/mobile
+          ebitenmobile bind -target ios -o Inovation.xcframework -v github.com/hajimehoshi/go-inovation/mobile
