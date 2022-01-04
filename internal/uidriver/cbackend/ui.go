@@ -20,6 +20,7 @@ package cbackend
 import (
 	"runtime"
 	"time"
+	"log"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cbackend"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
@@ -29,6 +30,8 @@ import (
 const deviceScaleFactor = 1
 
 func init() {
+	log.Println("Init ui.go")
+	
 	runtime.LockOSThread()
 }
 

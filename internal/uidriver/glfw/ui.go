@@ -25,6 +25,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"log"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
@@ -140,6 +141,8 @@ var (
 )
 
 func init() {
+	log.Println("Init ui.go")
+	
 	theUI.input.ui = theUI
 	theUI.iwindow.ui = theUI
 }
@@ -149,25 +152,31 @@ func Get() *UserInterface {
 }
 
 func init() {
+	log.Println("Init2 ui.go")
+	
 	hideConsoleWindowOnWindows()
 	if err := initialize(); err != nil {
 		panic(err)
 	}
+	log.Println("Init2 ui.go Done 2")
 	glfw.SetMonitorCallback(func(monitor *glfw.Monitor, event glfw.PeripheralEvent) {
 		updateMonitors()
 	})
 	updateMonitors()
+	log.Println("Init2 ui.go Done")
 }
 
 var glfwSystemCursors = map[driver.CursorShape]*glfw.Cursor{}
 
 func initialize() error {
+	log.Println("initialize()")
 	if err := glfw.Init(); err != nil {
 		return err
 	}
 
 	glfw.WindowHint(glfw.Visible, glfw.False)
 	glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
+	log.Println("initialize()")
 
 	// Create a window to set the initial monitor.
 	w, err := glfw.CreateWindow(16, 16, "", nil, nil)
@@ -178,15 +187,21 @@ func initialize() error {
 		// This can happen on Windows Remote Desktop (#903).
 		panic("glfw: glfw.CreateWindow must not return nil")
 	}
+	log.Println("initialize()")
+
 	defer w.Destroy()
+	log.Println("initialize()1")
 	initializeWindowAfterCreation(w)
+	log.Println("initialize()2")
 	theUI.waitForFramebufferSizeCallback(w, nil)
+	log.Println("initialize()3")
 
 	m := initialMonitor(w)
 	theUI.initMonitor = m
 	v := m.GetVideoMode()
 	theUI.initFullscreenWidthInDIP = int(theUI.dipFromGLFWMonitorPixel(float64(v.Width), m))
 	theUI.initFullscreenHeightInDIP = int(theUI.dipFromGLFWMonitorPixel(float64(v.Height), m))
+	log.Println("initialize()")
 
 	// Create system cursors. These cursors are destroyed at glfw.Terminate().
 	glfwSystemCursors[driver.CursorShapeDefault] = nil
@@ -195,6 +210,7 @@ func initialize() error {
 	glfwSystemCursors[driver.CursorShapePointer] = glfw.CreateStandardCursor(glfw.HandCursor)
 	glfwSystemCursors[driver.CursorShapeEWResize] = glfw.CreateStandardCursor(glfw.HResizeCursor)
 	glfwSystemCursors[driver.CursorShapeNSResize] = glfw.CreateStandardCursor(glfw.VResizeCursor)
+	log.Println("initialize()")
 
 	return nil
 }
@@ -669,6 +685,8 @@ func (u *UserInterface) deviceScaleFactor(monitor *glfw.Monitor) float64 {
 }
 
 func init() {
+	log.Println("Init3 ui.go")
+	
 	// Lock the main thread.
 	runtime.LockOSThread()
 }
@@ -787,6 +805,7 @@ func (u *UserInterface) registerWindowCloseCallback() {
 //
 // waitForFramebufferSizeCallback must be called from the main thread.
 func (u *UserInterface) waitForFramebufferSizeCallback(window *glfw.Window, f func()) {
+	log.Println("waitForFramebufferSizeCallback. Start")
 	u.framebufferSizeCallbackCh = make(chan struct{}, 1)
 
 	if u.framebufferSizeCallback == 0 {
@@ -818,12 +837,17 @@ event:
 		case <-t.C:
 			break event
 		default:
-			time.Sleep(time.Millisecond)
+			return;  //fix
+			// if we werent able to get the callback the first time this may take a while
+			// maybe it means that glfw is not fully initialized. 
+			// Anyway, it seems that in some cases we can just skip it
+			time.Sleep(time.Millisecond * 6.0)
 		}
 	}
 	window.SetFramebufferSizeCallback(glfw.ToFramebufferSizeCallback(nil))
 	close(u.framebufferSizeCallbackCh)
 	u.framebufferSizeCallbackCh = nil
+	log.Println("waitForFramebufferSizeCallback. Stop")
 }
 
 func (u *UserInterface) init() error {

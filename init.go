@@ -15,9 +15,12 @@
 package ebiten
 
 import (
+	"fmt"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 )
 
 func init() {
+	fmt.Println("Init main.go")
 	graphicscommand.SetGraphicsDriver(uiDriver().Graphics())
+	fmt.Println("Graphics started")
 }

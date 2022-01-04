@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-
+	"log"
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -77,6 +77,7 @@ var (
 )
 
 func init() {
+	log.Println("Init image.go 1")
 	w, h := emptyImage.Size()
 	pix := make([]byte, 4*w*h)
 	for i := range pix {
@@ -406,6 +407,7 @@ type DrawTrianglesShaderOptions struct {
 }
 
 func init() {
+	log.Println("Init image.go 2")
 	var op DrawTrianglesShaderOptions
 	if got, want := len(op.Images), graphics.ShaderImageNum; got != want {
 		panic(fmt.Sprintf("ebiten: len((DrawTrianglesShaderOptions{}).Images) must be %d but %d", want, got))
@@ -547,6 +549,7 @@ type DrawRectShaderOptions struct {
 }
 
 func init() {
+	log.Println("Init image.go 3")
 	var op DrawRectShaderOptions
 	if got, want := len(op.Images), graphics.ShaderImageNum; got != want {
 		panic(fmt.Sprintf("ebiten: len((DrawRectShaderOptions{}).Images) must be %d but %d", want, got))

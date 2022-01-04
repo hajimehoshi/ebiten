@@ -25,6 +25,7 @@ import (
 	"sync"
 	"time"
 	"unicode"
+	"log"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
@@ -415,6 +416,8 @@ func (i *Input) VibrateGamepad(id driver.GamepadID, duration time.Duration, stro
 }
 
 func init() {
+	log.Println("Init input.go")
+	
 	// Confirm that all the hat state values are the same.
 	if gamepaddb.HatUp != glfw.HatUp {
 		panic("glfw: gamepaddb.HatUp must equal to glfw.HatUp but not")

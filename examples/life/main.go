@@ -30,11 +30,13 @@ import (
 	"log"
 	"math/rand"
 	"time"
+	"fmt"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func init() {
+	fmt.Println("Init life")
 	rand.Seed(time.Now().UnixNano())
 }
 
@@ -179,6 +181,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
+	fmt.Println("Game started");
 	g := &Game{
 		world: NewWorld(screenWidth, screenHeight, int((screenWidth*screenHeight)/10)),
 	}

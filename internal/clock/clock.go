@@ -18,6 +18,7 @@ package clock
 import (
 	"sync"
 	"time"
+	"log"
 )
 
 var (
@@ -37,6 +38,8 @@ var (
 )
 
 func init() {
+	log.Println("Init clock.go")
+	
 	n := now()
 	lastNow = n
 	lastSystemTime = n

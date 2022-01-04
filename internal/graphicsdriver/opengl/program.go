@@ -17,6 +17,7 @@ package opengl
 import (
 	"fmt"
 	"runtime"
+	"log"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -108,6 +109,8 @@ var theArrayBufferLayout = arrayBufferLayout{
 }
 
 func init() {
+	log.Println("Init program.go")
+	
 	vertexFloatNum := theArrayBufferLayout.totalBytes() / floatSizeInBytes
 	if graphics.VertexFloatNum != vertexFloatNum {
 		panic(fmt.Sprintf("vertex float num must be %d but %d", graphics.VertexFloatNum, vertexFloatNum))

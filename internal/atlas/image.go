@@ -19,6 +19,7 @@ import (
 	"image"
 	"runtime"
 	"sync"
+	"log"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
@@ -104,6 +105,7 @@ func min(a, b int) int {
 }
 
 func init() {
+	log.Println("Init image.go")
 	hooks.AppendHookOnBeforeUpdate(func() error {
 		backendsM.Lock()
 		defer backendsM.Unlock()
@@ -111,6 +113,8 @@ func init() {
 		resolveDeferred()
 		return putImagesOnAtlas()
 	})
+	fmt.Println("Done image.go")
+	
 }
 
 func resolveDeferred() {

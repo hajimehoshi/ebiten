@@ -39,6 +39,7 @@ const (
 var keyboardImage *ebiten.Image
 
 func init() {
+	fmt.Println("Load keyboard")
 	img, _, err := image.Decode(bytes.NewReader(rkeyboard.Keyboard_png))
 	if err != nil {
 		log.Fatal(err)

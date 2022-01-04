@@ -31,6 +31,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"log"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 )
@@ -49,6 +50,8 @@ const (
 var currentPlatform platform
 
 func init() {
+	log.Println("Init gamepaddb.go")
+	
 	if runtime.GOOS == "windows" {
 		currentPlatform = platformWindows
 		return
