@@ -660,6 +660,6 @@ func (c *context) beginStencilWithEvenOddRule() {
 func (c *context) endStencilWithEvenOddRule() {
 	gl := c.gl
 	gl.stencilFunc.Invoke(gles.NOTEQUAL, 0x00, 0xff)
-	gl.stencilOp.Invoke(gles.KEEP, gles.KEEP, gles.ZERO)
+	gl.stencilOp.Invoke(gles.KEEP, gles.KEEP, gles.KEEP)
 	gl.colorMask.Invoke(true, true, true, true)
 }

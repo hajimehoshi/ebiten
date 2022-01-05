@@ -737,13 +737,13 @@ func (g *Graphics) Initialize() error {
 		BackFaceStencil: mtl.StencilDescriptor{
 			StencilFailureOperation:   mtl.StencilOperationKeep,
 			DepthFailureOperation:     mtl.StencilOperationKeep,
-			DepthStencilPassOperation: mtl.StencilOperationZero,
+			DepthStencilPassOperation: mtl.StencilOperationKeep,
 			StencilCompareFunction:    mtl.CompareFunctionNotEqual,
 		},
 		FrontFaceStencil: mtl.StencilDescriptor{
 			StencilFailureOperation:   mtl.StencilOperationKeep,
 			DepthFailureOperation:     mtl.StencilOperationKeep,
-			DepthStencilPassOperation: mtl.StencilOperationZero,
+			DepthStencilPassOperation: mtl.StencilOperationKeep,
 			StencilCompareFunction:    mtl.CompareFunctionNotEqual,
 		},
 	})
