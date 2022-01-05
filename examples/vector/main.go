@@ -43,7 +43,7 @@ const (
 	screenHeight = 480
 )
 
-func drawEbitenText(screen *ebiten.Image) {
+func drawEbitenText(screen *ebiten.Image, counter int) {
 	var path vector.Path
 
 	// E
@@ -119,6 +119,7 @@ func drawEbitenText(screen *ebiten.Image) {
 		vs[i].ColorR = 0xdb / float32(0xff)
 		vs[i].ColorG = 0x56 / float32(0xff)
 		vs[i].ColorB = 0x20 / float32(0xff)
+		vs[i].ColorA = float32((counter/30)%2)/2 + 0.5
 	}
 	screen.DrawTriangles(vs, is, emptySubImage, op)
 }
@@ -245,7 +246,7 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.White)
-	drawEbitenText(screen)
+	drawEbitenText(screen, g.counter)
 	drawEbitenLogo(screen, 20, 90)
 	drawArc(screen, g.counter)
 	drawWave(screen, g.counter)

@@ -520,6 +520,6 @@ func (c *context) beginStencilWithEvenOddRule() {
 
 func (c *context) endStencilWithEvenOddRule() {
 	gl.StencilFunc(gl.NOTEQUAL, 0x00, 0xff)
-	gl.StencilOp(gl.KEEP, gl.KEEP, gl.KEEP)
+	gl.StencilOp(gl.KEEP, gl.KEEP, gl.ZERO)
 	gl.ColorMask(true, true, true, true)
 }

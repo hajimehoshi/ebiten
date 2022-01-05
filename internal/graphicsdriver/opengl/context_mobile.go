@@ -488,6 +488,6 @@ func (c *context) beginStencilWithEvenOddRule() {
 
 func (c *context) endStencilWithEvenOddRule() {
 	c.ctx.StencilFunc(gles.NOTEQUAL, 0x00, 0xff)
-	c.ctx.StencilOp(gles.KEEP, gles.KEEP, gles.KEEP)
+	c.ctx.StencilOp(gles.KEEP, gles.KEEP, gles.ZERO)
 	c.ctx.ColorMask(true, true, true, true)
 }
