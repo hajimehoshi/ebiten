@@ -61,7 +61,7 @@ func (t *OSThread) Loop() {
 
 // Stop stops the thread loop.
 func (t *OSThread) Stop() {
-	close(t.terminate)
+	t.terminate <- struct{}{}
 }
 
 // Call calls f on the thread.
