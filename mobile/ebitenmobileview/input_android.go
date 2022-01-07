@@ -211,14 +211,23 @@ func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 	}
 }
 
+func gamepadFromGamepadID(id driver.GamepadID) *mobile.Gamepad {
+	for i, g := range gamepads {
+		if g.ID == id {
+			return &gamepads[i]
+		}
+	}
+	return nil
+}
+
 func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int) {
 	switch {
 	case source&sourceGamepad == sourceGamepad:
 		// A gamepad can be detected as a keyboard. Detect the device as a gamepad first.
 		if button, ok := androidKeyToGamepadButton[keyCode]; ok {
 			id := gamepadIDFromDeviceID(deviceID)
-			g, ok := gamepads[id]
-			if !ok {
+			g := gamepadFromGamepadID(id)
+			if g == nil {
 				return
 			}
 			g.Buttons[button] = true
@@ -243,8 +252,8 @@ func OnKeyUpOnAndroid(keyCode int, source int, deviceID int) {
 		// A gamepad can be detected as a keyboard. Detect the device as a gamepad first.
 		if button, ok := androidKeyToGamepadButton[keyCode]; ok {
 			id := gamepadIDFromDeviceID(deviceID)
-			g, ok := gamepads[id]
-			if !ok {
+			g := gamepadFromGamepadID(id)
+			if g == nil {
 				return
 			}
 			g.Buttons[button] = false
@@ -261,9 +270,9 @@ func OnKeyUpOnAndroid(keyCode int, source int, deviceID int) {
 }
 
 func OnGamepadAxesChanged(deviceID int, axisID int, value float32) {
-	did := gamepadIDFromDeviceID(deviceID)
-	g, ok := gamepads[did]
-	if !ok {
+	id := gamepadIDFromDeviceID(deviceID)
+	g := gamepadFromGamepadID(id)
+	if g == nil {
 		return
 	}
 	aid, ok := androidAxisIDToAxisID[axisID]
@@ -302,33 +311,37 @@ func OnGamepadAdded(deviceID int, name string, buttonNum int, axisNum int, descr
 	sdlid[15] = byte(axisMask >> 8)
 
 	id := gamepadIDFromDeviceID(deviceID)
-	gamepads[id] = &mobile.Gamepad{
+	gamepads = append(gamepads, mobile.Gamepad{
 		ID:        id,
 		SDLID:     hex.EncodeToString(sdlid[:]),
 		Name:      name,
 		ButtonNum: buttonNum,
 		AxisNum:   axisNum,
-	}
+	})
 	updateGamepads()
 }
 
 func OnInputDeviceRemoved(deviceID int) {
 	if id, ok := deviceIDToGamepadID[deviceID]; ok {
-		delete(gamepads, id)
+		idx := -1
+		for i, g := range gamepads {
+			if g.ID == id {
+				idx = i
+				break
+			}
+		}
+		if idx >= 0 {
+			lastIdx := len(gamepads) - 1
+			gamepads[idx], gamepads[lastIdx] = gamepads[lastIdx], gamepads[idx]
+			gamepads = gamepads[:len(gamepads)-1]
+		}
 		delete(deviceIDToGamepadID, deviceID)
 	}
 	updateGamepads()
 }
 
-var (
-	gamepads     = map[driver.GamepadID]*mobile.Gamepad{}
-	gamepadSlice []mobile.Gamepad
-)
+var gamepads []mobile.Gamepad
 
 func updateGamepads() {
-	gamepadSlice = gamepadSlice[:0]
-	for _, g := range gamepads {
-		gamepadSlice = append(gamepadSlice, *g)
-	}
-	mobile.Get().UpdateGamepads(gamepadSlice)
+	mobile.Get().UpdateGamepads(gamepads)
 }
