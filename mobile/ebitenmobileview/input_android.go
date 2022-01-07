@@ -302,7 +302,7 @@ func OnGamepadAdded(deviceID int, name string, buttonNum int, axisNum int, descr
 	sdlid[15] = byte(axisMask >> 8)
 
 	id := gamepadIDFromDeviceID(deviceID)
-	gamepads[id] = mobile.Gamepad{
+	gamepads[id] = &mobile.Gamepad{
 		ID:        id,
 		SDLID:     hex.EncodeToString(sdlid[:]),
 		Name:      name,
@@ -321,14 +321,14 @@ func OnInputDeviceRemoved(deviceID int) {
 }
 
 var (
-	gamepads     = map[driver.GamepadID]mobile.Gamepad{}
+	gamepads     = map[driver.GamepadID]*mobile.Gamepad{}
 	gamepadSlice []mobile.Gamepad
 )
 
 func updateGamepads() {
 	gamepadSlice = gamepadSlice[:0]
 	for _, g := range gamepads {
-		gamepadSlice = append(gamepadSlice, g)
+		gamepadSlice = append(gamepadSlice, *g)
 	}
 	mobile.Get().UpdateGamepads(gamepadSlice)
 }
