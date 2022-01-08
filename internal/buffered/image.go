@@ -65,6 +65,18 @@ func (i *Image) initialize(width, height int) {
 	i.height = height
 }
 
+func (i *Image) SetIndependent(volatile bool) {
+	if maybeCanAddDelayedCommand() {
+		if tryAddDelayedCommand(func() error {
+			i.SetIndependent(volatile)
+			return nil
+		}) {
+			return
+		}
+	}
+	i.img.SetIndependent(volatile)
+}
+
 func (i *Image) SetVolatile(volatile bool) {
 	if maybeCanAddDelayedCommand() {
 		if tryAddDelayedCommand(func() error {

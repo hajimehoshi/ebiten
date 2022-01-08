@@ -93,6 +93,12 @@ func (c *uiContext) updateOffscreen() {
 	if c.offscreen == nil {
 		c.offscreen = NewImage(ow, oh)
 		c.offscreen.mipmap.SetVolatile(IsScreenClearedEveryFrame())
+
+		// Keep the offscreen an independent image from an atlas (#1938).
+		// The shader program for the screen is special and doesn't work well with an image on an atlas.
+		// An image on an atlas is surrounded by a transparent edge,
+		// and the shader program unexpectedly picks the pixel on the edges.
+		c.offscreen.mipmap.SetIndependent(true)
 	}
 }
 
