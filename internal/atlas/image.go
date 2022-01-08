@@ -216,7 +216,7 @@ func init() {
 	backendsM.Lock()
 }
 
-// Image is a renctangle pixel set that might be on an atlas.
+// Image is a rectangle pixel set that might be on an atlas.
 type Image struct {
 	width       int
 	height      int
