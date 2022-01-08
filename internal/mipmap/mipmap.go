@@ -59,8 +59,8 @@ func NewScreenFramebufferMipmap(width, height int) *Mipmap {
 	}
 }
 
-func (m *Mipmap) SetIndependent(volatile bool) {
-	m.orig.SetIndependent(volatile)
+func (m *Mipmap) SetIndependent(idependent bool) {
+	m.orig.SetIndependent(idependent)
 }
 
 func (m *Mipmap) SetVolatile(volatile bool) {
