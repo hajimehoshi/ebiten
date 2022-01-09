@@ -499,12 +499,6 @@ func Update(mapping []byte) (bool, error) {
 		return false, nil
 	}
 
-	// TODO: Implement this (#1722)
-	if currentPlatform == platformIOS {
-		// Note: NOT returning an error, as mappings also do not matter right now.
-		return false, nil
-	}
-
 	mappingsM.Lock()
 	defer mappingsM.Unlock()
 

@@ -452,6 +452,7 @@ func (i *Input) updateGamepads() {
 			Name:      string(name),
 			ButtonNum: int(property.nButtons),
 			AxisNum:   int(property.nAxes),
+			HatNum:    int(property.nHats),
 		}
 
 		var state C.struct_ControllerState
@@ -474,6 +475,10 @@ func (i *Input) updateGamepads() {
 
 		for j := 0; j < gamepad.AxisNum; j++ {
 			gamepad.Axes[j] = float32(state.axes[j])
+		}
+
+		if gamepad.HatNum > 0 {
+			gamepad.Hats[0] = int(state.hat)
 		}
 
 		i.gamepads = append(i.gamepads, gamepad)
