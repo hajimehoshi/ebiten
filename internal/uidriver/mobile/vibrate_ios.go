@@ -93,7 +93,6 @@ package mobile
 //     }
 //   }
 // }
-//
 import "C"
 
 import (
@@ -103,9 +102,9 @@ import (
 
 var vibrationM sync.Mutex
 
-func (u *UserInterface) Vibrate(duration time.Duration, intensity float64) {
+func (u *UserInterface) Vibrate(duration time.Duration, magnitude float64) {
 	vibrationM.Lock()
 	defer vibrationM.Unlock()
 
-	C.vibrate(C.double(float64(duration)/float64(time.Second)), C.double(intensity))
+	C.vibrate(C.double(float64(duration)/float64(time.Second)), C.double(magnitude))
 }

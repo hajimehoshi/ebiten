@@ -23,23 +23,23 @@ type VibrateOptions struct {
 	// Duration is the time duration of the effect.
 	Duration time.Duration
 
-	// Intensity is the strength of the device vibration.
+	// Magnitude is the strength of the device vibration.
 	// The value is in between 0 and 1.
-	Intensity float64
+	Magnitude float64
 }
 
 // Vibrate vibrates the device with the specified options.
 //
 // Vibrate works on mobiles and browsers.
 //
-// On browsers, Intensity in the options is ignored.
+// On browsers, Magnitude in the options is ignored.
 //
 // On Android, this line is required in the manifest setting to use Vibrate:
 //
 //     <uses-permission android:name="android.permission.VIBRATE"/>
 //
-// On Android, Intensity in the options is recognized only when the API Level is 26 or newer.
-// Otherwise, Intensity is ignored.
+// On Android, Magnitude in the options is recognized only when the API Level is 26 or newer.
+// Otherwise, Magnitude is ignored.
 //
 // On iOS, CoreHaptics.framework is required to use Vibrate.
 //
@@ -48,7 +48,7 @@ type VibrateOptions struct {
 //
 // Vibrate is concurrent-safe.
 func Vibrate(options *VibrateOptions) {
-	uiDriver().Vibrate(options.Duration, options.Intensity)
+	uiDriver().Vibrate(options.Duration, options.Magnitude)
 }
 
 // VibrateGamepadOptions represents the options for gamepad vibration.

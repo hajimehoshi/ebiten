@@ -653,8 +653,8 @@ func (u *UserInterface) SetInitFocused(focused bool) {
 	u.initFocused = focused
 }
 
-func (u *UserInterface) Vibrate(duration time.Duration, intensity float64) {
-	// intensity is ignored.
+func (u *UserInterface) Vibrate(duration time.Duration, magnitude float64) {
+	// magnitude is ignored.
 
 	if js.Global().Get("navigator").Get("vibrate").Truthy() {
 		js.Global().Get("navigator").Call("vibrate", float64(duration/time.Millisecond))

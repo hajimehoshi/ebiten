@@ -31,7 +31,7 @@ import (
 //
 //     Vibrator v = (Vibrator)getSystemService(Context.VIBRATOR_SERVICE);
 //     if (Build.VERSION.SDK_INT >= 26) {
-//       v.vibrate(VibrationEffect.createOneShot(milliseconds, intensity * 255))
+//       v.vibrate(VibrationEffect.createOneShot(milliseconds, magnitude * 255))
 //     } else {
 //       v.vibrate(millisecond)
 //     }
@@ -40,7 +40,7 @@ import (
 //
 //     <uses-permission android:name="android.permission.VIBRATE"/>
 //
-static void vibrateOneShot(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx, int64_t milliseconds, double intensity) {
+static void vibrateOneShot(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx, int64_t milliseconds, double magnitude) {
   JavaVM* vm = (JavaVM*)java_vm;
   JNIEnv* env = (JNIEnv*)jni_env;
   jobject context = (jobject)ctx;
@@ -77,7 +77,7 @@ static void vibrateOneShot(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx, 
         (*env)->CallStaticObjectMethod(
             env, android_os_VibrationEffect,
             (*env)->GetStaticMethodID(env, android_os_VibrationEffect, "createOneShot", "(JI)Landroid/os/VibrationEffect;"),
-            milliseconds, (int)(intensity * 255));
+            milliseconds, (int)(magnitude * 255));
 
     (*env)->CallVoidMethod(
         env, vibrator,
@@ -104,10 +104,10 @@ static void vibrateOneShot(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx, 
 */
 import "C"
 
-func (u *UserInterface) Vibrate(duration time.Duration, intensity float64) {
+func (u *UserInterface) Vibrate(duration time.Duration, magnitude float64) {
 	_ = app.RunOnJVM(func(vm, env, ctx uintptr) error {
 		// TODO: This might be crash when this is called from init(). How can we detect this?
-		C.vibrateOneShot(C.uintptr_t(vm), C.uintptr_t(env), C.uintptr_t(ctx), C.int64_t(duration/time.Millisecond), C.double(intensity))
+		C.vibrateOneShot(C.uintptr_t(vm), C.uintptr_t(env), C.uintptr_t(ctx), C.int64_t(duration/time.Millisecond), C.double(magnitude))
 		return nil
 	})
 }
