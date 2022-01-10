@@ -1,4 +1,4 @@
-// Copyright 2018 The Ebiten Authors
+// Copyright 2014 Hajime Hoshi
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,31 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build go1.16
+// +build go1.16
+
 package ebitenutil
 
 import (
+	"embed"
 	"image"
-	"io/ioutil"
-	"net/http"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-// NewImageFromURL creates a new ebiten.Image from the given URL.
+// NewImageFromEmbedFile loads the file from embed.FS with path and returns ebiten.Image and image.Image.
 //
-// Image decoders must be imported when using NewImageFromURL. For example,
+// Image decoders must be imported when using NewImageFromEmbedFile. For example,
 // if you want to load a PNG image, you'd need to add `_ "image/png"` to the import section.
-func NewImageFromURL(url string) (*ebiten.Image, error) {
-	res, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	body, err := ioutil.ReadAll(res.Body)
+func NewImageFromEmbedFile(embedFs embed.FS, path string) (*ebiten.Image, image.Image, error) {
+	file, err := embedFs.Open(path)
 	if err != nil {
 		return nil, nil, err
 	}
-
-	return NewImageFromReader(body)
+	defer func() {
+		_ = file.Close()
+	}()
+	return NewImageFromReader(file)
 }
