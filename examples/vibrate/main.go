@@ -44,7 +44,7 @@ func (g *Game) Update() error {
 		g.touchCounter++
 		op := &ebiten.VibrateOptions{
 			Duration:  200 * time.Millisecond,
-			Intensity: 0.5*float64(g.touchCounter%2) + 0.5,
+			Magnitude: 0.5*float64(g.touchCounter%2) + 0.5,
 		}
 		ebiten.Vibrate(op)
 	}
