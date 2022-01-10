@@ -100,16 +100,7 @@ func (i *Image) Fill(clr color.Color) {
 
 	op := &DrawImageOptions{}
 	op.GeoM.Scale(float64(w), float64(h))
-
-	r, g, b, a := clr.RGBA()
-	var rf, gf, bf, af float64
-	if a > 0 {
-		rf = float64(r) / float64(a)
-		gf = float64(g) / float64(a)
-		bf = float64(b) / float64(a)
-		af = float64(a) / 0xffff
-	}
-	op.ColorM.Scale(rf, gf, bf, af)
+	op.ColorM.ScaleWithColor(clr)
 	op.CompositeMode = CompositeModeCopy
 
 	i.DrawImage(emptySubImage, op)

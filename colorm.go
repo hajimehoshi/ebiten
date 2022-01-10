@@ -76,6 +76,16 @@ func (c *ColorM) Scale(r, g, b, a float64) {
 	c.impl = c.affineColorM().Scale(float32(r), float32(g), float32(b), float32(a))
 }
 
+// ScaleWithColor scales the matrix by clr.
+func (c *ColorM) ScaleWithColor(clr color.Color) {
+	cr, cg, cb, ca := clr.RGBA()
+	if ca == 0 {
+		c.Scale(0, 0, 0, 0)
+		return
+	}
+	c.Scale(float64(cr)/float64(ca), float64(cg)/float64(ca), float64(cb)/float64(ca), float64(ca)/0xffff)
+}
+
 // Translate translates the matrix by (r, g, b, a).
 func (c *ColorM) Translate(r, g, b, a float64) {
 	c.impl = c.affineColorM().Translate(float32(r), float32(g), float32(b), float32(a))

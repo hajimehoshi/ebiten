@@ -129,8 +129,7 @@ func (b *Board) Draw(boardImage *ebiten.Image) {
 			x := i*tileSize + (i+1)*tileMargin
 			y := j*tileSize + (j+1)*tileMargin
 			op.GeoM.Translate(float64(x), float64(y))
-			r, g, b, a := colorToScale(tileBackgroundColor(v))
-			op.ColorM.Scale(r, g, b, a)
+			op.ColorM.ScaleWithColor(tileBackgroundColor(v))
 			boardImage.DrawImage(tileImage, op)
 		}
 	}

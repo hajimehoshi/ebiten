@@ -179,14 +179,9 @@ var textM sync.Mutex
 //
 // Draw is concurrent-safe.
 func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Color) {
-	cr, cg, cb, ca := clr.RGBA()
-	if ca == 0 {
-		return
-	}
-
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(x), float64(y))
-	op.ColorM.Scale(float64(cr)/float64(ca), float64(cg)/float64(ca), float64(cb)/float64(ca), float64(ca)/0xffff)
+	op.ColorM.ScaleWithColor(clr)
 	DrawWithOptions(dst, text, face, op)
 }
 
