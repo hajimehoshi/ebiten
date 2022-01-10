@@ -25,7 +25,7 @@ import (
 //
 // Image decoders must be imported when using NewImageFromEmbedFile. For example,
 // if you want to load a PNG image, you'd need to add `_ "image/png"` to the import section.
-func NewImageFromEmbedFile(fsFs fs.FS, path string) (*ebiten.Image, image.Image, error) {
+func NewImageFromFileSystem(fsFs fs.FS, path string) (*ebiten.Image, image.Image, error) {
 	file, err := fsFs.Open(path)
 	if err != nil {
 		return nil, nil, err

@@ -63,7 +63,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func main() {
 	var err error
 	// get image from embed.FS
-	gophersImage, _, err = ebitenutil.NewImageFromEmbedFile(embedData, "assets/gophers.jpg")
+	gophersImage, _, err = ebitenutil.NewImageFromFileSystem(embedData, "assets/gophers.jpg")
 	if err != nil {
 		log.Fatal(err)
 	}
