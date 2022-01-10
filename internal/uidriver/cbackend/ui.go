@@ -126,7 +126,7 @@ func (*UserInterface) SetScreenTransparent(transparent bool) {
 func (*UserInterface) SetInitFocused(focused bool) {
 }
 
-func (*UserInterface) Vibrate(duration time.Duration, intensity float64) {
+func (*UserInterface) Vibrate(duration time.Duration, magnitude float64) {
 }
 
 func (*UserInterface) Input() driver.Input {
