@@ -12,13 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build go1.16
-// +build go1.16
-
 package ebitenutil
 
 import (
-	"embed"
+	"io/fs"
 	"image"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -28,8 +25,8 @@ import (
 //
 // Image decoders must be imported when using NewImageFromEmbedFile. For example,
 // if you want to load a PNG image, you'd need to add `_ "image/png"` to the import section.
-func NewImageFromEmbedFile(embedFs embed.FS, path string) (*ebiten.Image, image.Image, error) {
-	file, err := embedFs.Open(path)
+func NewImageFromEmbedFile(fsFs fs.FS, path string) (*ebiten.Image, image.Image, error) {
+	file, err := fsFs.Open(path)
 	if err != nil {
 		return nil, nil, err
 	}
