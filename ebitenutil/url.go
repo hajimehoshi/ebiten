@@ -16,7 +16,6 @@ package ebitenutil
 
 import (
 	"image"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -26,17 +25,12 @@ import (
 //
 // Image decoders must be imported when using NewImageFromURL. For example,
 // if you want to load a PNG image, you'd need to add `_ "image/png"` to the import section.
-func NewImageFromURL(url string) (*ebiten.Image, error) {
+func NewImageFromURL(url string) (*ebiten.Image, image.Image, error) {
 	res, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return nil, nil, err
 	}
+	defer res.Body.Close()
 
-	return NewImageFromReader(body)
+	return NewImageFromReader(res.Body)
 }
