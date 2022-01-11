@@ -33,8 +33,18 @@ const (
 	GLSLVersionES300
 )
 
+// utilFunctions is GLSL utility functions for old GLSL versions.
+const utilFunctions = `int modInt(int x, int y) {
+	return x - y*(x/y);
+}`
+
 func VertexPrelude(version GLSLVersion) string {
-	if version == GLSLVersionES300 {
+	switch version {
+	case GLSLVersionDefault:
+		return utilFunctions
+	case GLSLVersionES100:
+		return utilFunctions
+	case GLSLVersionES300:
 		return `#version 300 es`
 	}
 	return ""
@@ -48,13 +58,17 @@ func FragmentPrelude(version GLSLVersion) string {
 	case GLSLVersionES300:
 		prefix = `#version 300 es` + "\n\n"
 	}
-	return prefix + `#if defined(GL_ES)
+	prelude := prefix + `#if defined(GL_ES)
 precision highp float;
 #else
 #define lowp
 #define mediump
 #define highp
 #endif`
+	if version == GLSLVersionDefault || version == GLSLVersionES100 {
+		prelude += "\n\n" + utilFunctions
+	}
+	return prelude
 }
 
 type compileContext struct {
@@ -496,6 +510,10 @@ func (c *compileContext) glslBlock(p *shaderir.Program, topBlock, block *shaderi
 			}
 			return fmt.Sprintf("%s(%s)", op, glslExpr(&e.Exprs[0]))
 		case shaderir.Binary:
+			if e.Op == shaderir.ModOp && (c.version == GLSLVersionDefault || c.version == GLSLVersionES100) {
+				// '%' is not defined.
+				return fmt.Sprintf("modInt((%s), (%s))", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]))
+			}
 			return fmt.Sprintf("(%s) %s (%s)", glslExpr(&e.Exprs[0]), e.Op, glslExpr(&e.Exprs[1]))
 		case shaderir.Selection:
 			return fmt.Sprintf("(%s) ? (%s) : (%s)", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]), glslExpr(&e.Exprs[2]))
