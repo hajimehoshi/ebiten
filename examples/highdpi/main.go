@@ -42,7 +42,7 @@ func NewGame() *Game {
 
 	// Load the image asynchronously.
 	go func() {
-		img, err := ebitenutil.NewImageFromURL(url)
+		img, _, err := ebitenutil.NewImageFromURL(url)
 		if err != nil {
 			log.Fatal(err)
 		}
