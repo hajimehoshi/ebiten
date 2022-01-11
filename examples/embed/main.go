@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build example
-// +build example
+//go:build example && go1.16
+// +build example,go1.16
 
 package main
 

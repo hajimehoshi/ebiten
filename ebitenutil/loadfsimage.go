@@ -1,4 +1,4 @@
-// Copyright 2014 Hajime Hoshi
+// Copyright 2022 Hajime Hoshi
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,9 +21,9 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-// NewImageFromEmbedFile loads the file from embed.FS with path and returns ebiten.Image and image.Image.
+// NewImageFromFileSystem loads the file from fs.FS with path and returns ebiten.Image and image.Image.
 //
-// Image decoders must be imported when using NewImageFromEmbedFile. For example,
+// Image decoders must be imported when using NewImageFromFileSystem. For example,
 // if you want to load a PNG image, you'd need to add `_ "image/png"` to the import section.
 func NewImageFromFileSystem(fsFs fs.FS, path string) (*ebiten.Image, image.Image, error) {
 	file, err := fsFs.Open(path)
