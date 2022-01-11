@@ -27,7 +27,7 @@ import (
 )
 
 // Embedding files from assets directory
-//go:embed assets/*
+//go:embed assets/gophers.jpg
 var embedData embed.FS
 
 const (
