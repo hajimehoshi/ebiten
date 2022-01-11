@@ -107,7 +107,7 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 	var vslines []string
 	{
 		vslines = append(vslines, strings.Split(VertexPrelude(version), "\n")...)
-		vslines = append(vslines, "{{.Structs}}")
+		vslines = append(vslines, "", "{{.Structs}}")
 		if len(p.Uniforms) > 0 || p.TextureNum > 0 || len(p.Attributes) > 0 || len(p.Varyings) > 0 {
 			vslines = append(vslines, "")
 			for i, t := range p.Uniforms {
