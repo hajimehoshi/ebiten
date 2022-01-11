@@ -29,6 +29,22 @@ func canTruncateToInteger(v gconstant.Value) bool {
 	return gconstant.ToInt(v).Kind() != gconstant.Unknown
 }
 
+func goConstantKindString(k gconstant.Kind) string {
+	switch k {
+	case gconstant.Bool:
+		return "bool"
+	case gconstant.String:
+		return "string"
+	case gconstant.Int:
+		return "int"
+	case gconstant.Float:
+		return "float"
+	case gconstant.Complex:
+		return "complex"
+	}
+	return "unknown"
+}
+
 var textureVariableRe = regexp.MustCompile(`\A__t(\d+)\z`)
 
 func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariableUsed bool) ([]shaderir.Expr, []shaderir.Type, []shaderir.Stmt, bool) {
@@ -94,6 +110,18 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 				v = gconstant.MakeBool(gconstant.Compare(lhs[0].Const, op, rhs[0].Const))
 				t = shaderir.Type{Main: shaderir.Bool}
 			default:
+				if op == token.REM {
+					if lhs[0].Const.Kind() != gconstant.Int || rhs[0].Const.Kind() != gconstant.Int {
+						var wrongTypeName string
+						if lhs[0].Const.Kind() != gconstant.Int {
+							wrongTypeName = goConstantKindString(lhs[0].Const.Kind())
+						} else {
+							wrongTypeName = goConstantKindString(rhs[0].Const.Kind())
+						}
+						cs.addError(e.Pos(), fmt.Sprintf("invalid operation: operator %% not defined on untyped %s", wrongTypeName))
+						return nil, nil, nil, false
+					}
+				}
 				v = gconstant.BinaryOp(lhs[0].Const, op, rhs[0].Const)
 				if v.Kind() == gconstant.Float {
 					t = shaderir.Type{Main: shaderir.Float}
@@ -172,6 +200,20 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 		default:
 			cs.addError(e.Pos(), fmt.Sprintf("invalid expression: %s %s %s", lhst.String(), e.Op, rhst.String()))
 			return nil, nil, nil, false
+		}
+
+		if op == shaderir.ModOp {
+			// TODO: What about ivec?
+			if lhst.Main != shaderir.Int || rhst.Main != shaderir.Int {
+				var wrongType shaderir.Type
+				if lhst.Main != shaderir.Int {
+					wrongType = lhst
+				} else {
+					wrongType = rhst
+				}
+				cs.addError(e.Pos(), fmt.Sprintf("invalid operation: operator %% not defined on %s", wrongType.String()))
+				return nil, nil, nil, false
+			}
 		}
 
 		return []shaderir.Expr{

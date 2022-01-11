@@ -75,19 +75,32 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				op = shaderir.ModOp
 			}
 
-			rhs, _, ss, ok := cs.parseExpr(block, stmt.Rhs[0], true)
+			rhs, rts, ss, ok := cs.parseExpr(block, stmt.Rhs[0], true)
 			if !ok {
 				return nil, false
 			}
 			stmts = append(stmts, ss...)
 
-			lhs, ts, ss, ok := cs.parseExpr(block, stmt.Lhs[0], true)
+			lhs, lts, ss, ok := cs.parseExpr(block, stmt.Lhs[0], true)
 			if !ok {
 				return nil, false
 			}
 			stmts = append(stmts, ss...)
 
-			if rhs[0].Type == shaderir.NumberExpr && ts[0].Main == shaderir.Int {
+			if op == shaderir.ModOp {
+				if lts[0].Main != shaderir.Int || rts[0].Main != shaderir.Int {
+					var wrongType shaderir.Type
+					if lts[0].Main != shaderir.Int {
+						wrongType = lts[0]
+					} else {
+						wrongType = rts[0]
+					}
+					cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: operator %% not defined on %s", wrongType.String()))
+					return nil, false
+				}
+			}
+
+			if rhs[0].Type == shaderir.NumberExpr && rts[0].Main == shaderir.Int {
 				if !cs.forceToInt(stmt, &rhs[0]) {
 					return nil, false
 				}
