@@ -21,7 +21,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-// NewImageFromURL creates a new ebiten.Image from the given URL.
+// NewImageFromURL loads the file from the given URL and returns ebiten.Image and image.Image.
 //
 // Image decoders must be imported when using NewImageFromURL. For example,
 // if you want to load a PNG image, you'd need to add `_ "image/png"` to the import section.

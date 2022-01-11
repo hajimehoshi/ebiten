@@ -1,4 +1,4 @@
-// Copyright 2022 Hajime Hoshi
+// Copyright 2014 Hajime Hoshi
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 package ebitenutil
 
 import (
+	"io"
 	"io/fs"
 	"image"
 
@@ -34,4 +35,17 @@ func NewImageFromFileSystem(fsFs fs.FS, path string) (*ebiten.Image, image.Image
 		_ = file.Close()
 	}()
 	return NewImageFromReader(file)
+}
+
+// NewImageFromReader loads from the io.Reader and returns ebiten.Image and image.Image.
+//
+// Image decoders must be imported when using NewImageFromReader. For example,
+// if you want to load a PNG image, you'd need to add `_ "image/png"` to the import section.
+func NewImageFromReader(reader io.Reader) (*ebiten.Image, image.Image, error) {
+	img, _, err := image.Decode(reader)
+	if err != nil {
+		return nil, nil, err
+	}
+	img2 := ebiten.NewImageFromImage(img)
+	return img2, img, err
 }
