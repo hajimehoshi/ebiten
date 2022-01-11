@@ -1353,6 +1353,16 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	a := 2
+	a %= 1.0
+	return vec4(a)
+}`)); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := ebiten.NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := 2
 	a %= 0.5
 	return vec4(a)
 }`)); err == nil {
@@ -1364,6 +1374,68 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	a := 2.0
 	a %= 1
+	return vec4(a)
+}`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+}
+
+func TestShaderOperatorAssign(t *testing.T) {
+	if _, err := ebiten.NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := 1.0
+	a += 2
+	return vec4(a)
+}`)); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := ebiten.NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := 1.0
+	a += 2.0
+	return vec4(a)
+}`)); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := ebiten.NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := 1.0
+	a += 2.1
+	return vec4(a)
+}`)); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := ebiten.NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := 1
+	a += 2
+	return vec4(a)
+}`)); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := ebiten.NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := 1
+	a += 2.0
+	return vec4(a)
+}`)); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := ebiten.NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := 1
+	a += 2.1
 	return vec4(a)
 }`)); err == nil {
 		t.Errorf("error must be non-nil but was nil")

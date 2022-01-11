@@ -5,7 +5,7 @@ void F0(out vec2 l0) {
 	vec2 l3 = vec2(0);
 	l1 = vec2(0.0);
 	for (int l2 = 0; l2 < 100; l2++) {
-		(l1).x = ((l1).x) + (l2);
+		(l1).x = ((l1).x) + (float(l2));
 		if (((l1).x) >= (100.0)) {
 			break;
 		}

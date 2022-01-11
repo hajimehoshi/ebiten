@@ -87,23 +87,36 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			}
 			stmts = append(stmts, ss...)
 
-			if op == shaderir.ModOp {
-				if lts[0].Main != shaderir.Int || rts[0].Main != shaderir.Int {
-					var wrongType shaderir.Type
-					if lts[0].Main != shaderir.Int {
-						wrongType = lts[0]
-					} else {
-						wrongType = rts[0]
-					}
-					cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: operator %% not defined on %s", wrongType.String()))
-					return nil, false
-				}
-			}
-
+			// Treat an integer literal as an integer constant value.
 			if rhs[0].Type == shaderir.NumberExpr && rts[0].Main == shaderir.Int {
 				if !cs.forceToInt(stmt, &rhs[0]) {
 					return nil, false
 				}
+			}
+
+			if lts[0].Main != rts[0].Main {
+				switch lts[0].Main {
+				case shaderir.Int:
+					if !cs.forceToInt(stmt, &rhs[0]) {
+						return nil, false
+					}
+				case shaderir.Float:
+					if rhs[0].Const != nil && rhs[0].Const.Kind() == gconstant.Int {
+						rhs[0].Const = gconstant.ToFloat(rhs[0].Const)
+						rhs[0].ConstType = shaderir.ConstTypeFloat
+					} else {
+						cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: mismatched types %s and %s", lts[0].String(), rts[0].String()))
+						return nil, false
+					}
+				default:
+					cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: mismatched types %s and %s", lts[0].String(), rts[0].String()))
+					return nil, false
+				}
+			}
+
+			if op == shaderir.ModOp && lts[0].Main != shaderir.Int {
+				cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: operator %% not defined on %s", lts[0].String()))
+				return nil, false
 			}
 
 			stmts = append(stmts, shaderir.Stmt{
