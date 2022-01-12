@@ -466,7 +466,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 			continue
 		}
 		if img.isDisposed() {
-			panic("ebiten: the given image to DrawRectShader must not be disposed")
+			panic("ebiten: the given image to DrawTrianglesShader must not be disposed")
 		}
 		if i == 0 {
 			imgw, imgh = img.Size()
