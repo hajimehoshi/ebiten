@@ -202,9 +202,11 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 			return nil, nil, nil, false
 		}
 
+		// For `%`, both types must be deducible to integers.
 		if op == shaderir.ModOp {
 			// TODO: What about ivec?
-			if lhst.Main != shaderir.Int || rhst.Main != shaderir.Int {
+			if lhst.Main != shaderir.Int && (lhs[0].ConstType == shaderir.ConstTypeNone || !canTruncateToInteger(lhs[0].Const)) ||
+				rhst.Main != shaderir.Int && (rhs[0].ConstType == shaderir.ConstTypeNone || !canTruncateToInteger(rhs[0].Const)) {
 				var wrongType shaderir.Type
 				if lhst.Main != shaderir.Int {
 					wrongType = lhst

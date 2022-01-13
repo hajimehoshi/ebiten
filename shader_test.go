@@ -1284,6 +1284,24 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	if _, err := ebiten.NewShader([]byte(`package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := int(2) % 0.5
+	return vec4(a)
+}`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := ebiten.NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := int(2) % 1.0
+	return vec4(a)
+}`)); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := ebiten.NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	a := 2.0
 	b := 0.5
 	return vec4(a % b)
