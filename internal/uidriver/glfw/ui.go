@@ -86,18 +86,19 @@ type UserInterface struct {
 	initFullscreenWidthInDIP  int
 	initFullscreenHeightInDIP int
 
-	initFullscreen           bool
-	initCursorMode           driver.CursorMode
-	initWindowDecorated      bool
-	initWindowResizable      bool
-	initWindowPositionXInDIP int
-	initWindowPositionYInDIP int
-	initWindowWidthInDIP     int
-	initWindowHeightInDIP    int
-	initWindowFloating       bool
-	initWindowMaximized      bool
-	initScreenTransparent    bool
-	initFocused              bool
+	initFullscreen            bool
+	initCursorMode            driver.CursorMode
+	initWindowDecorated       bool
+	initWindowResizable       bool
+	initWindowPositionXInDIP  int
+	initWindowPositionYInDIP  int
+	initWindowWidthInDIP      int
+	initWindowHeightInDIP     int
+	initWindowFloating        bool
+	initWindowMaximized       bool
+	initWindowKeepAspectRatio bool
+	initScreenTransparent     bool
+	initFocused               bool
 
 	fpsModeInited bool
 
@@ -374,6 +375,19 @@ func (u *UserInterface) setInitScreenTransparent(transparent bool) {
 	u.m.RLock()
 	u.initScreenTransparent = transparent
 	u.m.RUnlock()
+}
+
+func (u *UserInterface) isInitWindowKeepAspectRatio() bool {
+	u.m.RLock()
+	v := u.initWindowKeepAspectRatio
+	u.m.RUnlock()
+	return v
+}
+
+func (u *UserInterface) setInitWindowKeepAspectRatio(keep bool) {
+	u.m.Lock()
+	u.initWindowKeepAspectRatio = keep
+	u.m.Unlock()
 }
 
 func (u *UserInterface) getIconImages() []image.Image {
@@ -902,6 +916,9 @@ func (u *UserInterface) init() error {
 	if u.isInitWindowMaximized() {
 		u.window.Maximize()
 	}
+
+	keepAspectRatio := u.isInitWindowKeepAspectRatio()
+	u.window.SetKeepAspectRatio(keepAspectRatio)
 
 	u.window.SetTitle(u.title)
 	u.window.Show()

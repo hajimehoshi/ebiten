@@ -261,6 +261,15 @@ func (w *Window) SetSizeLimits(minw, minh, maxw, maxh int) {
 	panicError()
 }
 
+func (w *Window) SetKeepAspectRatio(keep bool) {
+	n, d := glfw.DontCare, glfw.DontCare
+	if keep {
+		n, d = w.GetSize()
+	}
+	glfwDLL.call("glfwSetWindowAspectRatio", w.w, uintptr(n), uintptr(d))
+	panicError()
+}
+
 func (w *Window) SetIcon(images []image.Image) {
 	gimgs := make([]glfwImage, len(images))
 	defer runtime.KeepAlive(gimgs)
