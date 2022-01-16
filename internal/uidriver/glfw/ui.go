@@ -104,10 +104,11 @@ type UserInterface struct {
 	input   Input
 	iwindow window
 
-	sizeCallback              glfw.SizeCallback
-	closeCallback             glfw.CloseCallback
-	framebufferSizeCallback   glfw.FramebufferSizeCallback
-	framebufferSizeCallbackCh chan struct{}
+	sizeCallback                   glfw.SizeCallback
+	closeCallback                  glfw.CloseCallback
+	framebufferSizeCallback        glfw.FramebufferSizeCallback
+	defaultFramebufferSizeCallback glfw.FramebufferSizeCallback
+	framebufferSizeCallbackCh      chan struct{}
 
 	t thread.Thread
 	m sync.RWMutex
@@ -821,7 +822,16 @@ event:
 			time.Sleep(time.Millisecond)
 		}
 	}
-	window.SetFramebufferSizeCallback(glfw.ToFramebufferSizeCallback(nil))
+	if u.defaultFramebufferSizeCallback == 0 {
+		// When the window gets resized (either by manual window resize or a window
+		// manager), glfw sends a framebuffer size callback which we need to handle (#1960).
+		// This event is the only way to handle the size change at least on i3 window manager.
+		u.defaultFramebufferSizeCallback = glfw.ToFramebufferSizeCallback(func(_ *glfw.Window, w, h int) {
+			u.setWindowSizeInDIP(w, h, u.isFullscreen())
+		})
+	}
+	window.SetFramebufferSizeCallback(u.defaultFramebufferSizeCallback)
+
 	close(u.framebufferSizeCallbackCh)
 	u.framebufferSizeCallbackCh = nil
 }
