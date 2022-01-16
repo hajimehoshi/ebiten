@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build android || ios
 // +build android ios
 
 package gles
@@ -26,6 +27,7 @@ package gles
 // #endif
 //
 // #if defined(os_ios)
+//   #define GLES_SILENCE_DEPRECATION
 //   #include <OpenGLES/ES2/glext.h>
 // #endif
 import "C"
@@ -65,6 +67,10 @@ func (DefaultContext) BindFramebuffer(target uint32, framebuffer uint32) {
 	C.glBindFramebuffer(C.GLenum(target), C.GLuint(framebuffer))
 }
 
+func (DefaultContext) BindRenderbuffer(target uint32, renderbuffer uint32) {
+	C.glBindRenderbuffer(C.GLenum(target), C.GLuint(renderbuffer))
+}
+
 func (DefaultContext) BindTexture(target uint32, texture uint32) {
 	C.glBindTexture(C.GLenum(target), C.GLuint(texture))
 }
@@ -87,6 +93,14 @@ func (DefaultContext) BufferSubData(target uint32, offset int, data []byte) {
 
 func (DefaultContext) CheckFramebufferStatus(target uint32) uint32 {
 	return uint32(C.glCheckFramebufferStatus(C.GLenum(target)))
+}
+
+func (DefaultContext) Clear(mask uint32) {
+	C.glClear(C.GLbitfield(mask))
+}
+
+func (DefaultContext) ColorMask(red, green, blue, alpha bool) {
+	C.glColorMask(glBool(red), glBool(green), glBool(blue), glBool(alpha))
 }
 
 func (DefaultContext) CompileShader(shader uint32) {
@@ -113,12 +127,20 @@ func (DefaultContext) DeleteProgram(program uint32) {
 	C.glDeleteProgram(C.GLuint(program))
 }
 
+func (DefaultContext) DeleteRenderbuffers(renderbuffers []uint32) {
+	C.glDeleteRenderbuffers(C.GLsizei(len(renderbuffers)), (*C.GLuint)(unsafe.Pointer(&renderbuffers[0])))
+}
+
 func (DefaultContext) DeleteShader(shader uint32) {
 	C.glDeleteShader(C.GLuint(shader))
 }
 
 func (DefaultContext) DeleteTextures(textures []uint32) {
 	C.glDeleteTextures(C.GLsizei(len(textures)), (*C.GLuint)(unsafe.Pointer(&textures[0])))
+}
+
+func (DefaultContext) Disable(cap uint32) {
+	C.glDisable(C.GLenum(cap))
 }
 
 func (DefaultContext) DisableVertexAttribArray(index uint32) {
@@ -141,6 +163,10 @@ func (DefaultContext) Flush() {
 	C.glFlush()
 }
 
+func (DefaultContext) FramebufferRenderbuffer(target uint32, attachment uint32, renderbuffertarget uint32, renderbuffer uint32) {
+	C.glFramebufferRenderbuffer(C.GLenum(target), C.GLenum(attachment), C.GLenum(renderbuffertarget), C.GLuint(renderbuffer))
+}
+
 func (DefaultContext) FramebufferTexture2D(target uint32, attachment uint32, textarget uint32, texture uint32, level int32) {
 	C.glFramebufferTexture2D(C.GLenum(target), C.GLenum(attachment), C.GLenum(textarget), C.GLuint(texture), C.GLint(level))
 }
@@ -155,6 +181,12 @@ func (DefaultContext) GenFramebuffers(n int32) []uint32 {
 	framebuffers := make([]uint32, n)
 	C.glGenFramebuffers(C.GLsizei(n), (*C.GLuint)(unsafe.Pointer(&framebuffers[0])))
 	return framebuffers
+}
+
+func (DefaultContext) GenRenderbuffers(n int32) []uint32 {
+	renderbuffers := make([]uint32, n)
+	C.glGenRenderbuffers(C.GLsizei(n), (*C.GLuint)(unsafe.Pointer(&renderbuffers[0])))
+	return renderbuffers
 }
 
 func (DefaultContext) GenTextures(n int32) []uint32 {
@@ -226,6 +258,10 @@ func (DefaultContext) IsProgram(program uint32) bool {
 	return C.glIsProgram(C.GLuint(program)) != FALSE
 }
 
+func (DefaultContext) IsRenderbuffer(renderbuffer uint32) bool {
+	return C.glIsRenderbuffer(C.GLuint(renderbuffer)) != FALSE
+}
+
 func (DefaultContext) IsTexture(texture uint32) bool {
 	return C.glIsTexture(C.GLuint(texture)) != FALSE
 }
@@ -242,6 +278,10 @@ func (DefaultContext) ReadPixels(dst []byte, x int32, y int32, width int32, heig
 	C.glReadPixels(C.GLint(x), C.GLint(y), C.GLsizei(width), C.GLsizei(height), C.GLenum(format), C.GLenum(xtype), unsafe.Pointer(&dst[0]))
 }
 
+func (DefaultContext) RenderbufferStorage(target uint32, internalFormat uint32, width int32, height int32) {
+	C.glRenderbufferStorage(C.GLenum(target), C.GLenum(internalFormat), C.GLsizei(width), C.GLsizei(height))
+}
+
 func (DefaultContext) Scissor(x, y, width, height int32) {
 	C.glScissor(C.GLint(x), C.GLint(y), C.GLsizei(width), C.GLsizei(height))
 }
@@ -250,6 +290,14 @@ func (DefaultContext) ShaderSource(shader uint32, xstring string) {
 	s, free := cStringPtr(xstring)
 	defer free()
 	C.glShaderSource(C.GLuint(shader), 1, (**C.GLchar)(unsafe.Pointer(s)), nil)
+}
+
+func (DefaultContext) StencilFunc(func_ uint32, ref int32, mask uint32) {
+	C.glStencilFunc(C.GLenum(func_), C.GLint(ref), C.GLuint(mask))
+}
+
+func (DefaultContext) StencilOp(sfail, dpfail, dppass uint32) {
+	C.glStencilOp(C.GLenum(sfail), C.GLenum(dpfail), C.GLenum(dppass))
 }
 
 func (DefaultContext) TexImage2D(target uint32, level int32, internalformat int32, width int32, height int32, format uint32, xtype uint32, pixels []byte) {

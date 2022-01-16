@@ -12,15 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build !js
 // +build !js
 
 package glfw
 
 type (
-	CharModsCallback        func(w *Window, char rune, mods ModifierKey)
-	FramebufferSizeCallback func(w *Window, width int, height int)
-	ScrollCallback          func(w *Window, xoff float64, yoff float64)
-	SizeCallback            func(w *Window, width int, height int)
+	CharModsCallback        uintptr
+	CloseCallback           uintptr
+	FramebufferSizeCallback uintptr
+	ScrollCallback          uintptr
+	SizeCallback            uintptr
 )
 
 type VidMode struct {

@@ -232,7 +232,7 @@ func (s *GameScene) Update(state *GameState) error {
 
 	if s.gameover {
 		if inpututil.IsKeyJustPressed(ebiten.KeySpace) ||
-			anyGamepadAbstractButtonJustPressed(state.Input) {
+			anyGamepadVirtualButtonJustPressed(state.Input) {
 			state.SceneManager.GoTo(&TitleScene{})
 		}
 		return nil

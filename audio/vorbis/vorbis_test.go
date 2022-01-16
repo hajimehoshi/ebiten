@@ -21,7 +21,7 @@ import (
 	"github.com/jfreymuth/oggvorbis"
 
 	"github.com/hajimehoshi/ebiten/v2/audio"
-	. "github.com/hajimehoshi/ebiten/v2/audio/vorbis"
+	"github.com/hajimehoshi/ebiten/v2/audio/vorbis"
 )
 
 var audioContext = audio.NewContext(44100)
@@ -29,7 +29,7 @@ var audioContext = audio.NewContext(44100)
 func TestMono(t *testing.T) {
 	bs := test_mono_ogg
 
-	s, err := DecodeWithSampleRate(audioContext.SampleRate(), bytes.NewReader(bs))
+	s, err := vorbis.DecodeWithSampleRate(audioContext.SampleRate(), bytes.NewReader(bs))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func TestMono(t *testing.T) {
 func TestTooShort(t *testing.T) {
 	bs := test_tooshort_ogg
 
-	s, err := DecodeWithSampleRate(audioContext.SampleRate(), bytes.NewReader(bs))
+	s, err := vorbis.DecodeWithSampleRate(audioContext.SampleRate(), bytes.NewReader(bs))
 	if err != nil {
 		t.Fatal(err)
 	}

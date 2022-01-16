@@ -27,8 +27,8 @@ var (
 	cache = map[pos]float64{}
 )
 
-// GetAt returns the device scale at (x, y).
-// x and y are in device-dependent pixels.
+// GetAt returns the device scale at (x, y), i.e. the number of device-dependent pixels per device-independent pixel.
+// x and y are in device-dependent pixels and must be the top-left coordinate of a monitor, or 0,0 to request a "global scale".
 func GetAt(x, y int) float64 {
 	m.Lock()
 	defer m.Unlock()
@@ -37,11 +37,20 @@ func GetAt(x, y int) float64 {
 	}
 	s := impl(x, y)
 	cache[pos{x, y}] = s
+	return s
+}
 
-	// TODO: Provide a way to invalidate the cache, or move the cache.
+// CelarCache clears the cache.
+// This should be called when monitors are changed by connecting or disconnecting.
+func ClearCache() {
+	// TODO: This should be called not only when monitors are changed but also a monitor's scales are changed.
 	// The device scale can vary even for the same monitor.
 	// The only known case is when the application works on macOS, with OpenGL, with a wider screen mode,
 	// and in the fullscreen mode (#1573).
 
-	return s
+	m.Lock()
+	defer m.Unlock()
+	for k := range cache {
+		delete(cache, k)
+	}
 }

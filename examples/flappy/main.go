@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build example
 // +build example
 
 package main
@@ -62,7 +63,8 @@ const (
 	screenWidth      = 640
 	screenHeight     = 480
 	tileSize         = 32
-	fontSize         = 32
+	titleFontSize    = fontSize * 1.5
+	fontSize         = 24
 	smallFontSize    = fontSize / 2
 	pipeWidth        = tileSize * 2
 	pipeStartOffsetX = 8
@@ -73,6 +75,7 @@ const (
 var (
 	gopherImage     *ebiten.Image
 	tilesImage      *ebiten.Image
+	titleArcadeFont font.Face
 	arcadeFont      font.Face
 	smallArcadeFont font.Face
 )
@@ -97,6 +100,14 @@ func init() {
 		log.Fatal(err)
 	}
 	const dpi = 72
+	titleArcadeFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
+		Size:    titleFontSize,
+		DPI:     dpi,
+		Hinting: font.HintingFull,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
 	arcadeFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    fontSize,
 		DPI:     dpi,
@@ -110,32 +121,6 @@ func init() {
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-var (
-	audioContext = audio.NewContext(44100)
-	jumpPlayer   *audio.Player
-	hitPlayer    *audio.Player
-)
-
-func init() {
-	jumpD, err := vorbis.Decode(audioContext, bytes.NewReader(raudio.Jump_ogg))
-	if err != nil {
-		log.Fatal(err)
-	}
-	jumpPlayer, err = audio.NewPlayer(audioContext, jumpD)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	jabD, err := wav.Decode(audioContext, bytes.NewReader(raudio.Jab_wav))
-	if err != nil {
-		log.Fatal(err)
-	}
-	hitPlayer, err = audio.NewPlayer(audioContext, jabD)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -165,6 +150,13 @@ type Game struct {
 	pipeTileYs []int
 
 	gameoverCount int
+
+	touchIDs   []ebiten.TouchID
+	gamepadIDs []ebiten.GamepadID
+
+	audioContext *audio.Context
+	jumpPlayer   *audio.Player
+	hitPlayer    *audio.Player
 }
 
 func NewGame() *Game {
@@ -182,17 +174,59 @@ func (g *Game) init() {
 	for i := range g.pipeTileYs {
 		g.pipeTileYs[i] = rand.Intn(6) + 2
 	}
+
+	if g.audioContext == nil {
+		g.audioContext = audio.NewContext(48000)
+	}
+
+	jumpD, err := vorbis.Decode(g.audioContext, bytes.NewReader(raudio.Jump_ogg))
+	if err != nil {
+		log.Fatal(err)
+	}
+	g.jumpPlayer, err = g.audioContext.NewPlayer(jumpD)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	jabD, err := wav.Decode(g.audioContext, bytes.NewReader(raudio.Jab_wav))
+	if err != nil {
+		log.Fatal(err)
+	}
+	g.hitPlayer, err = g.audioContext.NewPlayer(jabD)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
-func jump() bool {
+func (g *Game) isKeyJustPressed() bool {
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 		return true
 	}
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		return true
 	}
-	if len(inpututil.JustPressedTouchIDs()) > 0 {
+	g.touchIDs = inpututil.AppendJustPressedTouchIDs(g.touchIDs)
+	if len(g.touchIDs) > 0 {
 		return true
+	}
+	g.gamepadIDs = ebiten.AppendGamepadIDs(g.gamepadIDs[:0])
+	for _, g := range g.gamepadIDs {
+		if ebiten.IsStandardGamepadLayoutAvailable(g) {
+			if inpututil.IsStandardGamepadButtonJustPressed(g, ebiten.StandardGamepadButtonRightBottom) {
+				return true
+			}
+			if inpututil.IsStandardGamepadButtonJustPressed(g, ebiten.StandardGamepadButtonRightRight) {
+				return true
+			}
+		} else {
+			// The button 0/1 might not be A/B buttons.
+			if inpututil.IsGamepadButtonJustPressed(g, ebiten.GamepadButton0) {
+				return true
+			}
+			if inpututil.IsGamepadButtonJustPressed(g, ebiten.GamepadButton1) {
+				return true
+			}
+		}
 	}
 	return false
 }
@@ -204,16 +238,16 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func (g *Game) Update() error {
 	switch g.mode {
 	case ModeTitle:
-		if jump() {
+		if g.isKeyJustPressed() {
 			g.mode = ModeGame
 		}
 	case ModeGame:
 		g.x16 += 32
 		g.cameraX += 2
-		if jump() {
+		if g.isKeyJustPressed() {
 			g.vy16 = -96
-			jumpPlayer.Rewind()
-			jumpPlayer.Play()
+			g.jumpPlayer.Rewind()
+			g.jumpPlayer.Play()
 		}
 		g.y16 += g.vy16
 
@@ -224,8 +258,8 @@ func (g *Game) Update() error {
 		}
 
 		if g.hit() {
-			hitPlayer.Rewind()
-			hitPlayer.Play()
+			g.hitPlayer.Rewind()
+			g.hitPlayer.Play()
 			g.mode = ModeGameOver
 			g.gameoverCount = 30
 		}
@@ -233,7 +267,7 @@ func (g *Game) Update() error {
 		if g.gameoverCount > 0 {
 			g.gameoverCount--
 		}
-		if g.gameoverCount == 0 && jump() {
+		if g.gameoverCount == 0 && g.isKeyJustPressed() {
 			g.init()
 			g.mode = ModeTitle
 		}
@@ -247,12 +281,18 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	if g.mode != ModeTitle {
 		g.drawGopher(screen)
 	}
+	var titleTexts []string
 	var texts []string
 	switch g.mode {
 	case ModeTitle:
-		texts = []string{"FLAPPY GOPHER", "", "", "", "", "PRESS SPACE KEY", "", "OR TOUCH SCREEN"}
+		titleTexts = []string{"FLAPPY GOPHER"}
+		texts = []string{"", "", "", "", "", "", "", "PRESS SPACE KEY", "", "OR A/B BUTTON", "", "OR TOUCH SCREEN"}
 	case ModeGameOver:
 		texts = []string{"", "GAME OVER!"}
+	}
+	for i, l := range titleTexts {
+		x := (screenWidth - len(l)*titleFontSize) / 2
+		text.Draw(screen, l, titleArcadeFont, x, (i+4)*titleFontSize, color.White)
 	}
 	for i, l := range texts {
 		x := (screenWidth - len(l)*fontSize) / 2

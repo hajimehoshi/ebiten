@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build example
 // +build example
 
 // This is an example to implement an audio player.
@@ -22,7 +23,9 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"image"
 	"image/color"
+	_ "image/png"
 	"io"
 	"io/ioutil"
 	"log"
@@ -35,6 +38,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/audio/wav"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	raudio "github.com/hajimehoshi/ebiten/v2/examples/resources/audio"
+	riaudio "github.com/hajimehoshi/ebiten/v2/examples/resources/images/audio"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
@@ -49,6 +53,32 @@ var (
 	playerBarColor     = color.RGBA{0x80, 0x80, 0x80, 0xff}
 	playerCurrentColor = color.RGBA{0xff, 0xff, 0xff, 0xff}
 )
+
+var (
+	playButtonImage  *ebiten.Image
+	pauseButtonImage *ebiten.Image
+	alertButtonImage *ebiten.Image
+)
+
+func init() {
+	img, _, err := image.Decode(bytes.NewReader(riaudio.Play_png))
+	if err != nil {
+		panic(err)
+	}
+	playButtonImage = ebiten.NewImageFromImage(img)
+
+	img, _, err = image.Decode(bytes.NewReader(riaudio.Pause_png))
+	if err != nil {
+		panic(err)
+	}
+	pauseButtonImage = ebiten.NewImageFromImage(img)
+
+	img, _, err = image.Decode(bytes.NewReader(riaudio.Alert_png))
+	if err != nil {
+		panic(err)
+	}
+	alertButtonImage = ebiten.NewImageFromImage(img)
+}
 
 type musicType int
 
@@ -70,6 +100,7 @@ func (t musicType) String() string {
 
 // Player represents the current audio state.
 type Player struct {
+	game         *Game
 	audioContext *audio.Context
 	audioPlayer  *audio.Player
 	current      time.Duration
@@ -78,6 +109,9 @@ type Player struct {
 	seCh         chan []byte
 	volume128    int
 	musicType    musicType
+
+	playButtonPosition  image.Point
+	alertButtonPosition image.Point
 }
 
 func playerBarRect() (x, y, w, h int) {
@@ -87,7 +121,7 @@ func playerBarRect() (x, y, w, h int) {
 	return
 }
 
-func NewPlayer(audioContext *audio.Context, musicType musicType) (*Player, error) {
+func NewPlayer(game *Game, audioContext *audio.Context, musicType musicType) (*Player, error) {
 	type audioStream interface {
 		io.ReadSeeker
 		Length() int64
@@ -113,11 +147,12 @@ func NewPlayer(audioContext *audio.Context, musicType musicType) (*Player, error
 	default:
 		panic("not reached")
 	}
-	p, err := audio.NewPlayer(audioContext, s)
+	p, err := audioContext.NewPlayer(s)
 	if err != nil {
 		return nil, err
 	}
 	player := &Player{
+		game:         game,
 		audioContext: audioContext,
 		audioPlayer:  p,
 		total:        time.Second * time.Duration(s.Length()) / bytesPerSample / sampleRate,
@@ -128,6 +163,15 @@ func NewPlayer(audioContext *audio.Context, musicType musicType) (*Player, error
 	if player.total == 0 {
 		player.total = 1
 	}
+
+	const buttonPadding = 16
+	w, _ := playButtonImage.Size()
+	player.playButtonPosition.X = (screenWidth - w*2 + buttonPadding*1) / 2
+	player.playButtonPosition.Y = screenHeight - 160
+
+	player.alertButtonPosition.X = player.playButtonPosition.X + w + buttonPadding
+	player.alertButtonPosition.Y = player.playButtonPosition.Y
+
 	player.audioPlayer.Play()
 	go func() {
 		s, err := wav.Decode(audioContext, bytes.NewReader(raudio.Jab_wav))
@@ -172,16 +216,37 @@ func (p *Player) update() error {
 	return nil
 }
 
-func (p *Player) playSEIfNeeded() {
+func (p *Player) shouldPlaySE() bool {
 	if p.seBytes == nil {
 		// Bytes for the SE is not loaded yet.
-		return
+		return false
 	}
 
-	if !inpututil.IsKeyJustPressed(ebiten.KeyP) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyP) {
+		return true
+	}
+	r := image.Rectangle{
+		Min: p.alertButtonPosition,
+		Max: p.alertButtonPosition.Add(image.Pt(alertButtonImage.Size())),
+	}
+	if image.Pt(ebiten.CursorPosition()).In(r) {
+		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+			return true
+		}
+	}
+	for _, id := range p.game.justPressedTouchIDs {
+		if image.Pt(ebiten.TouchPosition(id)).In(r) {
+			return true
+		}
+	}
+	return false
+}
+
+func (p *Player) playSEIfNeeded() {
+	if !p.shouldPlaySE() {
 		return
 	}
-	sePlayer := audio.NewPlayerFromBytes(p.audioContext, p.seBytes)
+	sePlayer := p.audioContext.NewPlayerFromBytes(p.seBytes)
 	sePlayer.Play()
 }
 
@@ -201,8 +266,29 @@ func (p *Player) updateVolumeIfNeeded() {
 	p.audioPlayer.SetVolume(float64(p.volume128) / 128)
 }
 
+func (p *Player) shouldSwitchPlayStateIfNeeded() bool {
+	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
+		return true
+	}
+	r := image.Rectangle{
+		Min: p.playButtonPosition,
+		Max: p.playButtonPosition.Add(image.Pt(playButtonImage.Size())),
+	}
+	if image.Pt(ebiten.CursorPosition()).In(r) {
+		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+			return true
+		}
+	}
+	for _, id := range p.game.justPressedTouchIDs {
+		if image.Pt(ebiten.TouchPosition(id)).In(r) {
+			return true
+		}
+	}
+	return false
+}
+
 func (p *Player) switchPlayStateIfNeeded() {
-	if !inpututil.IsKeyJustPressed(ebiten.KeyS) {
+	if !p.shouldSwitchPlayStateIfNeeded() {
 		return
 	}
 	if p.audioPlayer.IsPlaying() {
@@ -212,14 +298,14 @@ func (p *Player) switchPlayStateIfNeeded() {
 	p.audioPlayer.Play()
 }
 
-func justPressedPosition() (int, int, bool) {
+func (p *Player) justPressedPosition() (int, int, bool) {
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		x, y := ebiten.CursorPosition()
 		return x, y, true
 	}
 
-	if ts := inpututil.JustPressedTouchIDs(); len(ts) > 0 {
-		x, y := ebiten.TouchPosition(ts[0])
+	if len(p.game.justPressedTouchIDs) > 0 {
+		x, y := ebiten.TouchPosition(p.game.justPressedTouchIDs[0])
 		return x, y, true
 	}
 
@@ -228,7 +314,7 @@ func justPressedPosition() (int, int, bool) {
 
 func (p *Player) seekBarIfNeeded() {
 	// Calculate the next seeking position from the current cursor position.
-	x, y, ok := justPressedPosition()
+	x, y, ok := p.justPressedPosition()
 	if !ok {
 		return
 	}
@@ -262,6 +348,18 @@ func (p *Player) draw(screen *ebiten.Image) {
 	s := (c / time.Second) % 60
 	currentTimeStr := fmt.Sprintf("%02d:%02d", m, s)
 
+	// Draw buttons
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(float64(p.playButtonPosition.X), float64(p.playButtonPosition.Y))
+	if p.audioPlayer.IsPlaying() {
+		screen.DrawImage(pauseButtonImage, op)
+	} else {
+		screen.DrawImage(playButtonImage, op)
+	}
+	op.GeoM.Reset()
+	op.GeoM.Translate(float64(p.alertButtonPosition.X), float64(p.alertButtonPosition.Y))
+	screen.DrawImage(alertButtonImage, op)
+
 	// Draw the debug message.
 	msg := fmt.Sprintf(`TPS: %0.2f
 Press S to toggle Play/Pause
@@ -280,21 +378,25 @@ type Game struct {
 	musicPlayer   *Player
 	musicPlayerCh chan *Player
 	errCh         chan error
+
+	justPressedTouchIDs []ebiten.TouchID
 }
 
 func NewGame() (*Game, error) {
 	audioContext := audio.NewContext(sampleRate)
 
-	m, err := NewPlayer(audioContext, typeOgg)
+	g := &Game{
+		musicPlayerCh: make(chan *Player),
+		errCh:         make(chan error),
+	}
+
+	m, err := NewPlayer(g, audioContext, typeOgg)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Game{
-		musicPlayer:   m,
-		musicPlayerCh: make(chan *Player),
-		errCh:         make(chan error),
-	}, nil
+	g.musicPlayer = m
+	return g, nil
 }
 
 func (g *Game) Update() error {
@@ -305,6 +407,8 @@ func (g *Game) Update() error {
 		return err
 	default:
 	}
+
+	g.justPressedTouchIDs = inpututil.AppendJustPressedTouchIDs(g.justPressedTouchIDs[:0])
 
 	if g.musicPlayer != nil && inpututil.IsKeyJustPressed(ebiten.KeyA) {
 		var t musicType
@@ -321,7 +425,7 @@ func (g *Game) Update() error {
 		g.musicPlayer = nil
 
 		go func() {
-			p, err := NewPlayer(audio.CurrentContext(), t)
+			p, err := NewPlayer(g, audio.CurrentContext(), t)
 			if err != nil {
 				g.errCh <- err
 				return

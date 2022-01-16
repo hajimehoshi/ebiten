@@ -33,10 +33,10 @@ type GamepadScene struct {
 func (s *GamepadScene) Update(state *GameState) error {
 	if s.currentIndex == 0 {
 		state.Input.gamepadConfig.Reset()
-		state.Input.gamepadConfig.SetGamepadID(s.gamepadID)
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		state.Input.gamepadConfig.Reset()
+		state.Input.gamepadConfig.ResetGamepadID()
 		state.SceneManager.GoTo(&TitleScene{})
 		return nil
 	}

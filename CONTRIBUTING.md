@@ -1,12 +1,16 @@
 # Contributing to Ebiten
 
-Ebiten is an open source project and we would appreciate your contributions!
+Ebiten is an open source project and we appreciate your contributions!
 
 There are some rules for Ebiten contribution.
 
 ## Asking us when you are not sure
 
-You can ask us by [creating a GitHub issue](https://github.com/hajimehoshi/ebiten/issues/new) or at [Gophers Slack](https://invite.slack.golangbridge.org/)'s #ebiten channel.
+You can ask us at these communities:
+
+ * [Ebiten Discord Server](https://discord.gg/3tVdM5H8cC)
+ * `#ebiten` channel in [Gophers Slack](https://invite.slack.golangbridge.org/)
+ * [GitHub Discussion](https://github.com/hajimehoshi/ebiten/discussions)
 
 ## Following the Go convention
 
@@ -36,11 +40,18 @@ You don't have to update existing files' license comments.
 ## Adding build tags for examples
 
 ```go
+//go:build example
 // +build example
 ```
 
 `example` is to prevent from installing executions by `go get github.com/hajimehoshi/ebiten/v2/...`.
 
-## Documentation
+## Implementation details
 
 See the [documents](https://ebiten.org/documents/implementation.html) about internal implementation.
+
+## Fixing the documentation
+
+Ebiten's documentations are managed at [ebiten/ebiten.org](https://github.com/ebiten/ebiten.org).  
+
+Before submitting a documentation PR, read through the [README](https://github.com/ebiten/ebiten.org/blob/main/README.md) in that repo.

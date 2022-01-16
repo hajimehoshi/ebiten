@@ -21,6 +21,7 @@ import (
 
 // Input manages the input state including gamepads and keyboards.
 type Input struct {
+	gamepadIDs                 []ebiten.GamepadID
 	virtualGamepadButtonStates map[virtualGamepadButton]int
 	gamepadConfig              gamepadConfig
 }
@@ -28,7 +29,8 @@ type Input struct {
 // GamepadIDButtonPressed returns a gamepad ID where at least one button is pressed.
 // If no button is pressed, GamepadIDButtonPressed returns -1.
 func (i *Input) GamepadIDButtonPressed() ebiten.GamepadID {
-	for _, id := range ebiten.GamepadIDs() {
+	i.gamepadIDs = ebiten.AppendGamepadIDs(i.gamepadIDs[:0])
+	for _, id := range i.gamepadIDs {
 		for b := ebiten.GamepadButton(0); b <= ebiten.GamepadButtonMax; b++ {
 			if ebiten.IsGamepadButtonPressed(id, b) {
 				return id
@@ -46,7 +48,7 @@ func (i *Input) stateForVirtualGamepadButton(b virtualGamepadButton) int {
 }
 
 func (i *Input) Update() {
-	if !i.gamepadConfig.IsInitialized() {
+	if !i.gamepadConfig.IsGamepadIDInitialized() {
 		return
 	}
 

@@ -18,15 +18,17 @@ import (
 	"image/color"
 	"testing"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
-	. "github.com/hajimehoshi/ebiten/v2/internal/restorable"
+	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 	etesting "github.com/hajimehoshi/ebiten/v2/internal/testing"
 )
 
-var emptyImage = NewImage(3, 3)
+func clearImage(img *restorable.Image, w, h int) {
+	emptyImage := restorable.NewImage(3, 3)
+	defer emptyImage.Dispose()
 
-func clearImage(img *Image, w, h int) {
 	dx0 := float32(0)
 	dy0 := float32(0)
 	dx1 := float32(w)
@@ -48,27 +50,27 @@ func clearImage(img *Image, w, h int) {
 		Width:  float32(w),
 		Height: float32(h),
 	}
-	img.DrawTriangles([graphics.ShaderImageNum]*Image{emptyImage}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil)
+	img.DrawTriangles([graphics.ShaderImageNum]*restorable.Image{emptyImage}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeClear, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, nil, nil, false)
 }
 
 func TestShader(t *testing.T) {
-	img := NewImage(1, 1)
+	img := restorable.NewImage(1, 1)
 	defer img.Dispose()
 
 	ir := etesting.ShaderProgramFill(0xff, 0, 0, 0xff)
-	s := NewShader(&ir)
+	s := restorable.NewShader(&ir)
 	dr := driver.Region{
 		X:      0,
 		Y:      0,
 		Width:  1,
 		Height: 1,
 	}
-	img.DrawTriangles([graphics.ShaderImageNum]*Image{}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, s, nil)
+	img.DrawTriangles([graphics.ShaderImageNum]*restorable.Image{}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, s, nil, false)
 
-	if err := ResolveStaleImages(); err != nil {
+	if err := restorable.ResolveStaleImages(); err != nil {
 		t.Fatal(err)
 	}
-	if err := RestoreIfNeeded(); err != nil {
+	if err := restorable.RestoreIfNeeded(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -81,9 +83,9 @@ func TestShader(t *testing.T) {
 
 func TestShaderChain(t *testing.T) {
 	const num = 10
-	imgs := []*Image{}
+	imgs := []*restorable.Image{}
 	for i := 0; i < num; i++ {
-		img := NewImage(1, 1)
+		img := restorable.NewImage(1, 1)
 		defer img.Dispose()
 		imgs = append(imgs, img)
 	}
@@ -91,7 +93,7 @@ func TestShaderChain(t *testing.T) {
 	imgs[0].ReplacePixels([]byte{0xff, 0, 0, 0xff}, 0, 0, 1, 1)
 
 	ir := etesting.ShaderProgramImages(1)
-	s := NewShader(&ir)
+	s := restorable.NewShader(&ir)
 	for i := 0; i < num-1; i++ {
 		dr := driver.Region{
 			X:      0,
@@ -99,13 +101,13 @@ func TestShaderChain(t *testing.T) {
 			Width:  1,
 			Height: 1,
 		}
-		imgs[i+1].DrawTriangles([graphics.ShaderImageNum]*Image{imgs[i]}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, s, nil)
+		imgs[i+1].DrawTriangles([graphics.ShaderImageNum]*restorable.Image{imgs[i]}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, s, nil, false)
 	}
 
-	if err := ResolveStaleImages(); err != nil {
+	if err := restorable.ResolveStaleImages(); err != nil {
 		t.Fatal(err)
 	}
-	if err := RestoreIfNeeded(); err != nil {
+	if err := restorable.RestoreIfNeeded(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -119,18 +121,18 @@ func TestShaderChain(t *testing.T) {
 }
 
 func TestShaderMultipleSources(t *testing.T) {
-	var srcs [graphics.ShaderImageNum]*Image
+	var srcs [graphics.ShaderImageNum]*restorable.Image
 	for i := range srcs {
-		srcs[i] = NewImage(1, 1)
+		srcs[i] = restorable.NewImage(1, 1)
 	}
 	srcs[0].ReplacePixels([]byte{0x40, 0, 0, 0xff}, 0, 0, 1, 1)
 	srcs[1].ReplacePixels([]byte{0, 0x80, 0, 0xff}, 0, 0, 1, 1)
 	srcs[2].ReplacePixels([]byte{0, 0, 0xc0, 0xff}, 0, 0, 1, 1)
 
-	dst := NewImage(1, 1)
+	dst := restorable.NewImage(1, 1)
 
 	ir := etesting.ShaderProgramImages(3)
-	s := NewShader(&ir)
+	s := restorable.NewShader(&ir)
 	var offsets [graphics.ShaderImageNum - 1][2]float32
 	dr := driver.Region{
 		X:      0,
@@ -138,15 +140,15 @@ func TestShaderMultipleSources(t *testing.T) {
 		Width:  1,
 		Height: 1,
 	}
-	dst.DrawTriangles(srcs, offsets, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, s, nil)
+	dst.DrawTriangles(srcs, offsets, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, s, nil, false)
 
 	// Clear one of the sources after DrawTriangles. dst should not be affected.
 	clearImage(srcs[0], 1, 1)
 
-	if err := ResolveStaleImages(); err != nil {
+	if err := restorable.ResolveStaleImages(); err != nil {
 		t.Fatal(err)
 	}
-	if err := RestoreIfNeeded(); err != nil {
+	if err := restorable.RestoreIfNeeded(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -158,18 +160,18 @@ func TestShaderMultipleSources(t *testing.T) {
 }
 
 func TestShaderMultipleSourcesOnOneTexture(t *testing.T) {
-	src := NewImage(3, 1)
+	src := restorable.NewImage(3, 1)
 	src.ReplacePixels([]byte{
 		0x40, 0, 0, 0xff,
 		0, 0x80, 0, 0xff,
 		0, 0, 0xc0, 0xff,
 	}, 0, 0, 3, 1)
-	srcs := [graphics.ShaderImageNum]*Image{src, src, src}
+	srcs := [graphics.ShaderImageNum]*restorable.Image{src, src, src}
 
-	dst := NewImage(1, 1)
+	dst := restorable.NewImage(1, 1)
 
 	ir := etesting.ShaderProgramImages(3)
-	s := NewShader(&ir)
+	s := restorable.NewShader(&ir)
 	offsets := [graphics.ShaderImageNum - 1][2]float32{
 		{1, 0},
 		{2, 0},
@@ -180,15 +182,15 @@ func TestShaderMultipleSourcesOnOneTexture(t *testing.T) {
 		Width:  1,
 		Height: 1,
 	}
-	dst.DrawTriangles(srcs, offsets, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, s, nil)
+	dst.DrawTriangles(srcs, offsets, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, s, nil, false)
 
 	// Clear one of the sources after DrawTriangles. dst should not be affected.
 	clearImage(srcs[0], 3, 1)
 
-	if err := ResolveStaleImages(); err != nil {
+	if err := restorable.ResolveStaleImages(); err != nil {
 		t.Fatal(err)
 	}
-	if err := RestoreIfNeeded(); err != nil {
+	if err := restorable.RestoreIfNeeded(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -200,27 +202,27 @@ func TestShaderMultipleSourcesOnOneTexture(t *testing.T) {
 }
 
 func TestShaderDispose(t *testing.T) {
-	img := NewImage(1, 1)
+	img := restorable.NewImage(1, 1)
 	defer img.Dispose()
 
 	ir := etesting.ShaderProgramFill(0xff, 0, 0, 0xff)
-	s := NewShader(&ir)
+	s := restorable.NewShader(&ir)
 	dr := driver.Region{
 		X:      0,
 		Y:      0,
 		Width:  1,
 		Height: 1,
 	}
-	img.DrawTriangles([graphics.ShaderImageNum]*Image{}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, s, nil)
+	img.DrawTriangles([graphics.ShaderImageNum]*restorable.Image{}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(1, 1, 0, 0), graphics.QuadIndices(), nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, s, nil, false)
 
 	// Dispose the shader. This should invalidates all the images using this shader i.e., all the images become
 	// stale.
 	s.Dispose()
 
-	if err := ResolveStaleImages(); err != nil {
+	if err := restorable.ResolveStaleImages(); err != nil {
 		t.Fatal(err)
 	}
-	if err := RestoreIfNeeded(); err != nil {
+	if err := restorable.RestoreIfNeeded(); err != nil {
 		t.Fatal(err)
 	}
 

@@ -20,7 +20,7 @@ import (
 	"math"
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/v2/audio/internal/convert"
+	"github.com/hajimehoshi/ebiten/v2/audio/internal/convert"
 )
 
 type f32reader struct {
@@ -37,7 +37,7 @@ func (f *f32reader) Read(buf []float32) (int, error) {
 	return n, nil
 }
 
-func newFloat32Reader(data []float32) Float32Reader {
+func newFloat32Reader(data []float32) convert.Float32Reader {
 	return &f32reader{data: data}
 }
 
@@ -82,7 +82,7 @@ func TestFloat32Reader(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		r := NewReaderFromFloat32Reader(newFloat32Reader(c.In))
+		r := convert.NewReaderFromFloat32Reader(newFloat32Reader(c.In))
 
 		got := []byte{}
 		for {

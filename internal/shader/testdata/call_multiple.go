@@ -1,7 +1,7 @@
 package main
 
 func Foo(x vec2) vec2 {
-	var xx, yx float = Bar(x.x, x.y)
+	var xx, yx float = Bar(x.x)
 	return vec2(xx, yx)
 }
 

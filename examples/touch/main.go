@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build example
 // +build example
 
 package main
@@ -73,10 +74,11 @@ type Game struct {
 	x, y float64
 	zoom float64
 
-	touches map[ebiten.TouchID]*touch
-	pinch   *pinch
-	pan     *pan
-	taps    []tap
+	touchIDs []ebiten.TouchID
+	touches  map[ebiten.TouchID]*touch
+	pinch    *pinch
+	pan      *pan
+	taps     []tap
 }
 
 func (g *Game) Update() error {
@@ -108,17 +110,20 @@ func (g *Game) Update() error {
 	}
 
 	// What touches are new in this frame?
-	for _, id := range inpututil.JustPressedTouchIDs() {
+	g.touchIDs = inpututil.AppendJustPressedTouchIDs(g.touchIDs[:0])
+	for _, id := range g.touchIDs {
 		x, y := ebiten.TouchPosition(id)
-		g.touches[ebiten.TouchID(id)] = &touch{
+		g.touches[id] = &touch{
 			originX: x, originY: y,
 			currX: x, currY: y,
 		}
 	}
 
+	g.touchIDs = ebiten.AppendTouchIDs(g.touchIDs[:0])
+
 	// Update the current position and durations of any touches that have
 	// neither begun nor ended in this frame.
-	for _, id := range ebiten.TouchIDs() {
+	for _, id := range g.touchIDs {
 		t := g.touches[id]
 		t.duration = inpututil.TouchPressDuration(id)
 		t.currX, t.currY = ebiten.TouchPosition(id)
@@ -132,7 +137,7 @@ func (g *Game) Update() error {
 		// If the diff between their origins is different to the diff between
 		// their currents and if these two are not already a pinch, then this is
 		// a new pinch!
-		id1, id2 := ebiten.TouchIDs()[0], ebiten.TouchIDs()[1]
+		id1, id2 := g.touchIDs[0], g.touchIDs[1]
 		t1, t2 := g.touches[id1], g.touches[id2]
 		originDiff := distance(t1.originX, t1.originY, t2.originX, t2.originY)
 		currDiff := distance(t1.currX, t1.currY, t2.currX, t2.currY)
@@ -148,7 +153,7 @@ func (g *Game) Update() error {
 		}
 	case 1:
 		// Potentially this is a new pan.
-		id := ebiten.TouchIDs()[0]
+		id := g.touchIDs[0]
 		t := g.touches[id]
 		if !t.wasPinch && g.pan == nil && g.pinch == nil {
 			diff := math.Abs(distance(t.originX, t.originY, t.currX, t.currY))
@@ -224,15 +229,10 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	// Decode image from a byte slice instead of a file so that
-	// this example works in any working directory.
-	// If you want to use a file, there are some options:
-	// 1) Use os.Open and pass the file to the image decoder.
-	//    This is a very regular way, but doesn't work on browsers.
-	// 2) Use ebitenutil.OpenFile and pass the file to the image decoder.
-	//    This works even on browsers.
-	// 3) Use ebitenutil.NewImageFromFile to create an ebiten.Image directly from a file.
-	//    This also works on browsers.
+	// Decode an image from the image file's byte slice.
+	// Now the byte slice is generated with //go:generate for Go 1.15 or older.
+	// If you use Go 1.16 or newer, it is strongly recommended to use //go:embed to embed the image file.
+	// See https://pkg.go.dev/embed for more details.
 	img, _, err := image.Decode(bytes.NewReader(images.Gophers_jpg))
 	if err != nil {
 		log.Fatal(err)

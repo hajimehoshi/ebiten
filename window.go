@@ -75,7 +75,9 @@ func IsWindowResizable() bool {
 //
 // SetWindowResizable is concurrent-safe.
 func SetWindowResizable(resizable bool) {
-	theUIContext.setWindowResizable(resizable)
+	if w := uiDriver().Window(); w != nil {
+		w.SetResizable(resizable)
+	}
 }
 
 // SetWindowTitle sets the title of the window.
@@ -197,10 +199,10 @@ func SetWindowSize(width, height int) {
 	}
 }
 
-// WindowSizeLimist returns the limitation of the window size on desktops.
+// WindowSizeLimits returns the limitation of the window size on desktops.
 // A negative value indicates the size is not limited.
 //
-// WindowMaxSize is concurrent-safe.
+// WindowSizeLimits is concurrent-safe.
 func WindowSizeLimits() (minw, minh, maxw, maxh int) {
 	if w := uiDriver().Window(); w != nil {
 		return w.SizeLimits()
@@ -211,7 +213,7 @@ func WindowSizeLimits() (minw, minh, maxw, maxh int) {
 // SetWindowSizeLimits sets the limitation of the window size on desktops.
 // A negative value indicates the size is not limited.
 //
-// SetWindowMaxSize is concurrent-safe.
+// SetWindowSizeLimits is concurrent-safe.
 func SetWindowSizeLimits(minw, minh, maxw, maxh int) {
 	if w := uiDriver().Window(); w != nil {
 		w.SetSizeLimits(minw, minh, maxw, maxh)
@@ -314,4 +316,47 @@ func RestoreWindow() {
 	if w := uiDriver().Window(); w != nil {
 		w.Restore()
 	}
+}
+
+// IsWindowBeingClosed returns true when the user is trying to close the window on desktops.
+// As the window is closed immediately by default,
+// you might want to call SetWindowClosingHandled(true) to prevent the window is automatically closed.
+//
+// IsWindowBeingClosed always returns false on other platforms.
+//
+// IsWindowBeingClosed is concurrent-safe.
+func IsWindowBeingClosed() bool {
+	if w := uiDriver().Window(); w != nil {
+		return w.IsBeingClosed()
+	}
+	return false
+}
+
+// SetWindowClosingHandled sets whether the window closing is handled or not on desktops. The default state is false.
+//
+// If the window closing is handled, the window is not closed immediately and
+// the game can know whether the window is begin closed or not by IsWindowBeingClosed.
+// In this case, the window is not closed automatically.
+// To end the game, you have to return an error value at the Game's Update function.
+//
+// SetWindowClosingHandled works only on desktops.
+// SetWindowClosingHandled does nothing on other platforms.
+//
+// SetWindowClosingHandled is concurrent-safe.
+func SetWindowClosingHandled(handled bool) {
+	if w := uiDriver().Window(); w != nil {
+		w.SetClosingHandled(handled)
+	}
+}
+
+// IsWindowClosingHandled reports whether the window closing is handled or not on desktops by SetWindowClosingHandled.
+//
+// IsWindowClosingHandled always returns false on other platforms.
+//
+// IsWindowClosingHandled is concurrent-safe.
+func IsWindowClosingHandled() bool {
+	if w := uiDriver().Window(); w != nil {
+		return w.IsClosingHandled()
+	}
+	return false
 }

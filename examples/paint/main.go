@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build example
 // +build example
 
 package main
@@ -33,8 +34,7 @@ const (
 )
 
 var (
-	brushImage  *ebiten.Image
-	canvasImage = ebiten.NewImage(screenWidth, screenHeight)
+	brushImage *ebiten.Image
 )
 
 func init() {
@@ -54,12 +54,21 @@ func init() {
 		Stride: 4,
 		Rect:   image.Rect(0, 0, 4, 4),
 	})
-
-	canvasImage.Fill(color.White)
 }
 
 type Game struct {
-	count int
+	touches []ebiten.TouchID
+	count   int
+
+	canvasImage *ebiten.Image
+}
+
+func NewGame() *Game {
+	g := &Game{
+		canvasImage: ebiten.NewImage(screenWidth, screenHeight),
+	}
+	g.canvasImage.Fill(color.White)
+	return g
 }
 
 func (g *Game) Update() error {
@@ -68,14 +77,15 @@ func (g *Game) Update() error {
 	// Paint the brush by mouse dragging
 	mx, my := ebiten.CursorPosition()
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		g.paint(canvasImage, mx, my)
+		g.paint(g.canvasImage, mx, my)
 		drawn = true
 	}
 
 	// Paint the brush by touches
-	for _, t := range ebiten.TouchIDs() {
+	g.touches = ebiten.AppendTouchIDs(g.touches[:0])
+	for _, t := range g.touches {
 		x, y := ebiten.TouchPosition(t)
-		g.paint(canvasImage, x, y)
+		g.paint(g.canvasImage, x, y)
 		drawn = true
 	}
 	if drawn {
@@ -97,11 +107,11 @@ func (g *Game) paint(canvas *ebiten.Image, x, y int) {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	screen.DrawImage(canvasImage, nil)
+	screen.DrawImage(g.canvasImage, nil)
 
 	mx, my := ebiten.CursorPosition()
 	msg := fmt.Sprintf("(%d, %d)", mx, my)
-	for _, t := range ebiten.TouchIDs() {
+	for _, t := range g.touches {
 		x, y := ebiten.TouchPosition(t)
 		msg += fmt.Sprintf("\n(%d, %d) touch %d", x, y, t)
 	}
@@ -115,7 +125,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Paint (Ebiten Demo)")
-	if err := ebiten.RunGame(&Game{}); err != nil {
+	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}
 }

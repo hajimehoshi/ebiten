@@ -15,8 +15,10 @@
 package restorable
 
 import (
+	"image"
 	"path/filepath"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 )
@@ -56,6 +58,15 @@ var theImages = &images{
 //
 // ResolveStaleImages is intended to be called at the end of a frame.
 func ResolveStaleImages() error {
+	if debug.IsDebug {
+		debug.Logf("Internal image sizes:\n")
+		imgs := make([]*graphicscommand.Image, 0, len(theImages.images))
+		for i := range theImages.images {
+			imgs = append(imgs, i.image)
+		}
+		graphicscommand.LogImagesInfo(imgs)
+	}
+
 	if err := graphicscommand.FlushCommands(); err != nil {
 		return err
 	}
@@ -115,7 +126,7 @@ func RestoreIfNeeded() error {
 // This is for testing usage.
 func DumpImages(dir string) error {
 	for img := range theImages.images {
-		if err := img.Dump(filepath.Join(dir, "*.png"), false); err != nil {
+		if err := img.Dump(filepath.Join(dir, "*.png"), false, image.Rect(0, 0, img.width, img.height)); err != nil {
 			return err
 		}
 	}
@@ -190,9 +201,7 @@ func (i *images) restore() error {
 
 	// Dispose all the shaders ahead of restoring. A current shader ID and a new shader ID can be duplicated.
 	for s := range i.shaders {
-		if needsDisposingWhenRestoring {
-			s.shader.Dispose()
-		}
+		s.shader.Dispose()
 		s.shader = nil
 	}
 	for s := range i.shaders {
@@ -202,9 +211,7 @@ func (i *images) restore() error {
 	// Dispose all the images ahead of restoring. A current texture ID and a new texture ID can be duplicated.
 	// TODO: Write a test to confirm that ID duplication never happens.
 	for i := range i.images {
-		if needsDisposingWhenRestoring {
-			i.image.Dispose()
-		}
+		i.image.Dispose()
 		i.image = nil
 	}
 
@@ -270,9 +277,12 @@ func (i *images) restore() error {
 	return nil
 }
 
+var graphicsDriverInitialized bool
+
 // InitializeGraphicsDriverState initializes the graphics driver state.
 func InitializeGraphicsDriverState() error {
-	return graphicscommand.ResetGraphicsDriverState()
+	graphicsDriverInitialized = true
+	return graphicscommand.InitializeGraphicsDriverState()
 }
 
 // MaxImageSize returns the maximum size of an image.

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build !js
 // +build !js
 
 package glfw
@@ -21,16 +22,17 @@ import (
 )
 
 type (
-	Action          int
-	ErrorCode       int
-	Hint            int
-	InputMode       int
-	Joystick        int
-	Key             int
-	ModifierKey     int
-	MouseButton     int
-	PeripheralEvent int
-	StandardCursor  int
+	Action           int
+	ErrorCode        int
+	Hint             int
+	InputMode        int
+	Joystick         int
+	JoystickHatState int
+	Key              int
+	ModifierKey      int
+	MouseButton      int
+	PeripheralEvent  int
+	StandardCursor   int
 )
 
 const (
@@ -77,6 +79,7 @@ const (
 )
 
 const (
+	AutoIconify            = Hint(0x00020006)
 	ClientAPI              = Hint(0x00022001)
 	ContextVersionMajor    = Hint(0x00022002)
 	ContextVersionMinor    = Hint(0x00022003)
@@ -152,4 +155,16 @@ const (
 	HandCursor      = StandardCursor(0x00036004)
 	HResizeCursor   = StandardCursor(0x00036005)
 	VResizeCursor   = StandardCursor(0x00036006)
+)
+
+const (
+	HatCentered  = JoystickHatState(0)
+	HatUp        = JoystickHatState(1)
+	HatRight     = JoystickHatState(2)
+	HatDown      = JoystickHatState(4)
+	HatLeft      = JoystickHatState(8)
+	HatRightUp   = HatRight | HatUp
+	HatRightDown = HatRight | HatDown
+	HatLeftUp    = HatLeft | HatUp
+	HatLeftDown  = HatLeft | HatDown
 )

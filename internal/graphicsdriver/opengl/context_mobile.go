@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build android || ios
 // +build android ios
 
 package opengl
@@ -26,15 +27,20 @@ import (
 )
 
 type (
-	textureNative     uint32
-	framebufferNative uint32
-	shader            uint32
-	program           uint32
-	buffer            uint32
+	textureNative      uint32
+	renderbufferNative uint32
+	framebufferNative  uint32
+	shader             uint32
+	program            uint32
+	buffer             uint32
 )
 
 func (t textureNative) equal(rhs textureNative) bool {
 	return t == rhs
+}
+
+func (r renderbufferNative) equal(rhs renderbufferNative) bool {
+	return r == rhs
 }
 
 func (f framebufferNative) equal(rhs framebufferNative) bool {
@@ -126,13 +132,13 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 	if t <= 0 {
 		return 0, errors.New("opengl: creating texture failed")
 	}
-	c.ctx.PixelStorei(gles.UNPACK_ALIGNMENT, 4)
 	c.bindTexture(textureNative(t))
 
 	c.ctx.TexParameteri(gles.TEXTURE_2D, gles.TEXTURE_MAG_FILTER, gles.NEAREST)
 	c.ctx.TexParameteri(gles.TEXTURE_2D, gles.TEXTURE_MIN_FILTER, gles.NEAREST)
 	c.ctx.TexParameteri(gles.TEXTURE_2D, gles.TEXTURE_WRAP_S, gles.CLAMP_TO_EDGE)
 	c.ctx.TexParameteri(gles.TEXTURE_2D, gles.TEXTURE_WRAP_T, gles.CLAMP_TO_EDGE)
+	c.ctx.PixelStorei(gles.UNPACK_ALIGNMENT, 4)
 	c.ctx.TexImage2D(gles.TEXTURE_2D, 0, gles.RGBA, int32(width), int32(height), gles.RGBA, gles.UNSIGNED_BYTE, nil)
 
 	return textureNative(t), nil
@@ -184,6 +190,34 @@ func (c *context) isTexture(t textureNative) bool {
 	return c.ctx.IsTexture(uint32(t))
 }
 
+func (c *context) newRenderbuffer(width, height int) (renderbufferNative, error) {
+	r := c.ctx.GenRenderbuffers(1)[0]
+	if r <= 0 {
+		return 0, errors.New("opengl: creating renderbuffer failed")
+	}
+
+	renderbuffer := renderbufferNative(r)
+	c.bindRenderbuffer(renderbuffer)
+
+	c.ctx.RenderbufferStorage(gles.RENDERBUFFER, gles.STENCIL_INDEX8, int32(width), int32(height))
+
+	return renderbuffer, nil
+}
+
+func (c *context) bindRenderbufferImpl(r renderbufferNative) {
+	c.ctx.BindRenderbuffer(gles.RENDERBUFFER, uint32(r))
+}
+
+func (c *context) deleteRenderbuffer(r renderbufferNative) {
+	if !c.ctx.IsRenderbuffer(uint32(r)) {
+		return
+	}
+	if c.lastRenderbuffer.equal(r) {
+		c.lastRenderbuffer = 0
+	}
+	c.ctx.DeleteRenderbuffers([]uint32{uint32(r)})
+}
+
 func (c *context) newFramebuffer(texture textureNative) (framebufferNative, error) {
 	f := c.ctx.GenFramebuffers(1)[0]
 	if f <= 0 {
@@ -203,6 +237,16 @@ func (c *context) newFramebuffer(texture textureNative) (framebufferNative, erro
 		return 0, fmt.Errorf("opengl: creating framebuffer failed: unknown error")
 	}
 	return framebufferNative(f), nil
+}
+
+func (c *context) bindStencilBuffer(f framebufferNative, r renderbufferNative) error {
+	c.bindFramebuffer(f)
+
+	c.ctx.FramebufferRenderbuffer(gles.FRAMEBUFFER, gles.STENCIL_ATTACHMENT, gles.RENDERBUFFER, uint32(r))
+	if s := c.ctx.CheckFramebufferStatus(gles.FRAMEBUFFER); s != gles.FRAMEBUFFER_COMPLETE {
+		return errors.New(fmt.Sprintf("opengl: glFramebufferRenderbuffer failed: %d", s))
+	}
+	return nil
 }
 
 func (c *context) setViewportImpl(width, height int) {
@@ -282,6 +326,8 @@ func (c *context) useProgram(p program) {
 }
 
 func (c *context) deleteProgram(p program) {
+	c.locationCache.deleteProgram(p)
+
 	if !c.ctx.IsProgram(uint32(p)) {
 		return
 	}
@@ -418,41 +464,30 @@ func (c *context) canUsePBO() bool {
 	return false
 }
 
-func (c *context) texSubImage2D(t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
+func (c *context) texSubImage2D(t textureNative, args []*driver.ReplacePixelsArgs) {
 	c.bindTexture(t)
 	for _, a := range args {
 		c.ctx.TexSubImage2D(gles.TEXTURE_2D, 0, int32(a.X), int32(a.Y), int32(a.Width), int32(a.Height), gles.RGBA, gles.UNSIGNED_BYTE, a.Pixels)
 	}
 }
 
-func (c *context) newPixelBufferObject(width, height int) buffer {
-	b := c.ctx.GenBuffers(1)[0]
-	c.ctx.BindBuffer(gles.PIXEL_UNPACK_BUFFER, b)
-	c.ctx.BufferData(gles.PIXEL_UNPACK_BUFFER, 4*width*height, nil, gles.STREAM_DRAW)
-	c.ctx.BindBuffer(gles.PIXEL_UNPACK_BUFFER, 0)
-	return buffer(b)
+func (c *context) enableStencilTest() {
+	c.ctx.Enable(gles.STENCIL_TEST)
 }
 
-func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
-	// This implementation is not used yet so far. See the comment at canUsePBO.
-
-	c.bindTexture(t)
-	c.ctx.BindBuffer(gles.PIXEL_UNPACK_BUFFER, uint32(buffer))
-
-	stride := 4 * width
-	for _, a := range args {
-		offset := 4 * (a.Y*width + a.X)
-		for j := 0; j < a.Height; j++ {
-			c.ctx.BufferSubData(gles.PIXEL_UNPACK_BUFFER, offset+stride*j, a.Pixels[4*a.Width*j:4*a.Width*(j+1)])
-		}
-	}
-
-	c.ctx.TexSubImage2D(gles.TEXTURE_2D, 0, 0, 0, int32(width), int32(height), gles.RGBA, gles.UNSIGNED_BYTE, nil)
-	c.ctx.BindBuffer(gles.PIXEL_UNPACK_BUFFER, 0)
+func (c *context) disableStencilTest() {
+	c.ctx.Disable(gles.STENCIL_TEST)
 }
 
-func (c *context) getBufferSubData(buffer buffer, width, height int) []byte {
-	// gl.GetBufferSubData doesn't exist on OpenGL ES 2 and 3.
-	// As PBO is not used in mobiles, leave this unimplemented so far.
-	panic("opengl: getBufferSubData is not implemented for mobiles")
+func (c *context) beginStencilWithEvenOddRule() {
+	c.ctx.Clear(gles.STENCIL_BUFFER_BIT)
+	c.ctx.StencilFunc(gles.ALWAYS, 0x00, 0xff)
+	c.ctx.StencilOp(gles.KEEP, gles.KEEP, gles.INVERT)
+	c.ctx.ColorMask(false, false, false, false)
+}
+
+func (c *context) endStencilWithEvenOddRule() {
+	c.ctx.StencilFunc(gles.NOTEQUAL, 0x00, 0xff)
+	c.ctx.StencilOp(gles.KEEP, gles.KEEP, gles.KEEP)
+	c.ctx.ColorMask(true, true, true, true)
 }

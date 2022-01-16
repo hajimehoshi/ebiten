@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build example
 // +build example
 
 package main
@@ -29,10 +30,8 @@ import (
 const (
 	screenWidth  = 640
 	screenHeight = 480
-	sampleRate   = 44100
+	sampleRate   = 48000
 )
-
-var audioContext = audio.NewContext(sampleRate)
 
 const (
 	freqA  = 440.0
@@ -90,8 +89,22 @@ func toBytes(l, r []int16) []byte {
 	return b
 }
 
+type Game struct {
+	scoreIndex  int
+	frames      int
+	currentNote rune
+
+	audioContext *audio.Context
+}
+
+func NewGame() *Game {
+	return &Game{
+		audioContext: audio.NewContext(sampleRate),
+	}
+}
+
 // playNote plays the note at scoreIndex of the score.
-func playNote(scoreIndex int) rune {
+func (g *Game) playNote(scoreIndex int) rune {
 	note := score[scoreIndex]
 
 	// If the note is 'rest', play nothing.
@@ -117,22 +130,16 @@ func playNote(scoreIndex int) rune {
 	square(l, vol, freq, 0.25)
 	square(r, vol, freq, 0.25)
 
-	p := audio.NewPlayerFromBytes(audioContext, toBytes(l, r))
+	p := g.audioContext.NewPlayerFromBytes(toBytes(l, r))
 	p.Play()
 
 	return rune(note)
 }
 
-type Game struct {
-	scoreIndex  int
-	frames      int
-	currentNote rune
-}
-
 func (g *Game) Update() error {
 	// Play notes for each half second.
-	if g.frames%30 == 0 && audioContext.IsReady() {
-		g.currentNote = playNote(g.scoreIndex)
+	if g.frames%30 == 0 && g.audioContext.IsReady() {
+		g.currentNote = g.playNote(g.scoreIndex)
 		g.scoreIndex++
 		g.scoreIndex %= len(score)
 	}
@@ -147,7 +154,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	} else {
 		msg += string(g.currentNote)
 	}
-	if !audioContext.IsReady() {
+	if !g.audioContext.IsReady() {
 		msg += "\n\n(If the audio doesn't start,\n click the screen or press keys)"
 	}
 	ebitenutil.DebugPrint(screen, msg)
@@ -160,7 +167,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("PCM (Ebiten Demo)")
-	if err := ebiten.RunGame(&Game{}); err != nil {
+	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}
 }

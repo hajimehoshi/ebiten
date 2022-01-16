@@ -6,7 +6,7 @@ void F0(in vec2 l0, out vec2 l1) {
 	float l3 = float(0);
 	float l4 = float(0);
 	float l5 = float(0);
-	F1((l0).x, (l0).y, l2, l3);
+	F1((l0).x, l2, l3);
 	l4 = l2;
 	l5 = l3;
 	l1 = vec2(l4, l5);

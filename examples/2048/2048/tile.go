@@ -322,21 +322,6 @@ func (t *Tile) Update() error {
 	return nil
 }
 
-func colorToScale(clr color.Color) (float64, float64, float64, float64) {
-	r, g, b, a := clr.RGBA()
-	rf := float64(r) / 0xffff
-	gf := float64(g) / 0xffff
-	bf := float64(b) / 0xffff
-	af := float64(a) / 0xffff
-	// Convert to non-premultiplied alpha components.
-	if 0 < af {
-		rf /= af
-		gf /= af
-		bf /= af
-	}
-	return rf, gf, bf, af
-}
-
 func mean(a, b int, rate float64) int {
 	return int(float64(a)*(1-rate) + float64(b)*rate)
 }
@@ -398,8 +383,7 @@ func (t *Tile) Draw(boardImage *ebiten.Image) {
 		op.GeoM.Translate(float64(tileSize/2), float64(tileSize/2))
 	}
 	op.GeoM.Translate(float64(x), float64(y))
-	r, g, b, a := colorToScale(tileBackgroundColor(v))
-	op.ColorM.Scale(r, g, b, a)
+	op.ColorM.ScaleWithColor(tileBackgroundColor(v))
 	boardImage.DrawImage(tileImage, op)
 	str := strconv.Itoa(v)
 

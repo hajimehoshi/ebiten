@@ -17,6 +17,7 @@ package ebitenmobileview
 import (
 	"encoding/hex"
 	"hash/crc32"
+	"math"
 	"unicode"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
@@ -69,6 +70,8 @@ const (
 	sourceGamepad  = 0x00000401
 	sourceJoystick = 0x01000010
 )
+
+// TODO: Can we map these values to the standard gamepad buttons?
 
 var androidKeyToGamepadButton = map[int]driver.GamepadButton{
 	keycodeButtonA:      driver.GamepadButton0,
@@ -147,31 +150,34 @@ var androidAxisIDToAxisID = map[int]int{
 	axisRx:        3,
 	axisRy:        4,
 	axisRz:        5,
-	axisHatX:      6,
-	axisHatY:      7,
-	axisLtrigger:  8,
-	axisRtrigger:  9,
-	axisThrottle:  10,
-	axisRudder:    11,
-	axisWheel:     12,
-	axisGas:       13,
-	axisBrake:     14,
-	axisGeneric1:  15,
-	axisGeneric2:  16,
-	axisGeneric3:  17,
-	axisGeneric4:  18,
-	axisGeneric5:  19,
-	axisGeneric6:  20,
-	axisGeneric7:  21,
-	axisGeneric8:  22,
-	axisGeneric9:  23,
-	axisGeneric10: 24,
-	axisGeneric11: 25,
-	axisGeneric12: 26,
-	axisGeneric13: 27,
-	axisGeneric14: 28,
-	axisGeneric15: 29,
-	axisGeneric16: 30,
+	axisLtrigger:  6,
+	axisRtrigger:  7,
+	axisThrottle:  8,
+	axisRudder:    9,
+	axisWheel:     10,
+	axisGas:       11,
+	axisBrake:     12,
+	axisGeneric1:  13,
+	axisGeneric2:  14,
+	axisGeneric3:  15,
+	axisGeneric4:  16,
+	axisGeneric5:  17,
+	axisGeneric6:  18,
+	axisGeneric7:  19,
+	axisGeneric8:  20,
+	axisGeneric9:  21,
+	axisGeneric10: 22,
+	axisGeneric11: 23,
+	axisGeneric12: 24,
+	axisGeneric13: 25,
+	axisGeneric14: 26,
+	axisGeneric15: 27,
+	axisGeneric16: 28,
+}
+
+var androidAxisIDToHatID2 = map[int]int{
+	axisHatX: 0,
+	axisHatY: 1,
 }
 
 var (
@@ -209,18 +215,27 @@ func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 	}
 }
 
+func gamepadFromGamepadID(id driver.GamepadID) *mobile.Gamepad {
+	for i, g := range gamepads {
+		if g.ID == id {
+			return &gamepads[i]
+		}
+	}
+	return nil
+}
+
 func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int) {
 	switch {
 	case source&sourceGamepad == sourceGamepad:
 		// A gamepad can be detected as a keyboard. Detect the device as a gamepad first.
 		if button, ok := androidKeyToGamepadButton[keyCode]; ok {
 			id := gamepadIDFromDeviceID(deviceID)
-			g, ok := gamepads[id]
-			if !ok {
+			g := gamepadFromGamepadID(id)
+			if g == nil {
 				return
 			}
 			g.Buttons[button] = true
-			updateInput()
+			updateGamepads()
 		}
 	case source&sourceJoystick == sourceJoystick:
 		// DPAD keys can come here, but they are also treated as an axis at a motion event. Ignore them.
@@ -241,12 +256,12 @@ func OnKeyUpOnAndroid(keyCode int, source int, deviceID int) {
 		// A gamepad can be detected as a keyboard. Detect the device as a gamepad first.
 		if button, ok := androidKeyToGamepadButton[keyCode]; ok {
 			id := gamepadIDFromDeviceID(deviceID)
-			g, ok := gamepads[id]
-			if !ok {
+			g := gamepadFromGamepadID(id)
+			if g == nil {
 				return
 			}
 			g.Buttons[button] = false
-			updateInput()
+			updateGamepads()
 		}
 	case source&sourceJoystick == sourceJoystick:
 		// DPAD keys can come here, but they are also treated as an axis at a motion event. Ignore them.
@@ -258,24 +273,60 @@ func OnKeyUpOnAndroid(keyCode int, source int, deviceID int) {
 	}
 }
 
-func OnGamepadAxesChanged(deviceID int, axisID int, value float32) {
-	did := gamepadIDFromDeviceID(deviceID)
-	g, ok := gamepads[did]
-	if !ok {
+func OnGamepadAxesOrHatsChanged(deviceID int, axisID int, value float32) {
+	id := gamepadIDFromDeviceID(deviceID)
+	g := gamepadFromGamepadID(id)
+	if g == nil {
 		return
 	}
-	aid, ok := androidAxisIDToAxisID[axisID]
-	if !ok {
-		// Unexpected axis value.
+
+	if aid, ok := androidAxisIDToAxisID[axisID]; ok {
+		g.Axes[aid] = value
+		updateGamepads()
 		return
 	}
-	g.Axes[aid] = value
-	updateInput()
+
+	if hid2, ok := androidAxisIDToHatID2[axisID]; ok {
+		const (
+			hatUp    = 1
+			hatRight = 2
+			hatDown  = 4
+			hatLeft  = 8
+		)
+		hid := hid2 / 2
+		v := g.Hats[hid]
+		if hid2%2 == 0 {
+			hatX := int(math.Round(float64(value)))
+			if hatX < 0 {
+				v |= hatLeft
+				v &= ^hatRight
+			} else if hatX > 0 {
+				v &= ^hatLeft
+				v |= hatRight
+			} else {
+				v &= ^(hatLeft | hatRight)
+			}
+		} else {
+			hatY := int(math.Round(float64(value)))
+			if hatY < 0 {
+				v |= hatUp
+				v &= ^hatDown
+			} else if hatY > 0 {
+				v &= ^hatUp
+				v |= hatDown
+			} else {
+				v &= ^(hatUp | hatDown)
+			}
+		}
+		g.Hats[hid] = v
+		updateGamepads()
+		return
+	}
 }
 
-func OnGamepadAdded(deviceID int, name string, buttonNum int, axisNum int, descriptor string, vendorID int, productID int, buttonMask int, axisMask int) {
+func OnGamepadAdded(deviceID int, name string, buttonNum int, axisNum int, hatNum int, descriptor string, vendorID int, productID int, buttonMask int, axisMask int) {
 	// This emulates the implementation of Android_AddJoystick.
-	// https://hg.libsdl.org/SDL/file/bc90ce38f1e2/src/joystick/android/SDL_sysjoystick.c#l386
+	// https://github.com/libsdl-org/SDL/blob/0e9560aea22818884921e5e5064953257bfe7fa7/src/joystick/android/SDL_sysjoystick.c#L386
 	const SDL_HARDWARE_BUS_BLUETOOTH = 0x05
 
 	var sdlid [16]byte
@@ -300,18 +351,38 @@ func OnGamepadAdded(deviceID int, name string, buttonNum int, axisNum int, descr
 	sdlid[15] = byte(axisMask >> 8)
 
 	id := gamepadIDFromDeviceID(deviceID)
-	gamepads[id] = &mobile.Gamepad{
+	gamepads = append(gamepads, mobile.Gamepad{
 		ID:        id,
 		SDLID:     hex.EncodeToString(sdlid[:]),
 		Name:      name,
 		ButtonNum: buttonNum,
 		AxisNum:   axisNum,
-	}
+		HatNum:    hatNum,
+	})
+	updateGamepads()
 }
 
 func OnInputDeviceRemoved(deviceID int) {
 	if id, ok := deviceIDToGamepadID[deviceID]; ok {
-		delete(gamepads, id)
+		idx := -1
+		for i, g := range gamepads {
+			if g.ID == id {
+				idx = i
+				break
+			}
+		}
+		if idx >= 0 {
+			lastIdx := len(gamepads) - 1
+			gamepads[idx], gamepads[lastIdx] = gamepads[lastIdx], gamepads[idx]
+			gamepads = gamepads[:len(gamepads)-1]
+		}
 		delete(deviceIDToGamepadID, deviceID)
 	}
+	updateGamepads()
+}
+
+var gamepads []mobile.Gamepad
+
+func updateGamepads() {
+	mobile.Get().UpdateGamepads(gamepads)
 }

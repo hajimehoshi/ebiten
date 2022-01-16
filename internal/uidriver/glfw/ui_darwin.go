@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build !ios
 // +build !ios
 
 package glfw
@@ -22,51 +23,138 @@ package glfw
 // #import <AppKit/AppKit.h>
 //
 // static void currentMonitorPos(uintptr_t windowPtr, int* x, int* y) {
-//   NSScreen* screen = [NSScreen mainScreen];
-//   if (windowPtr) {
-//     NSWindow* window = (NSWindow*)windowPtr;
-//     if ([window isVisible]) {
-//       // When the window is visible, the window is already initialized.
-//       // [NSScreen mainScreen] sometimes tells a lie when the window is put across monitors (#703).
-//       screen = [window screen];
+//   @autoreleasepool {
+//     NSScreen* screen = [NSScreen mainScreen];
+//     if (windowPtr) {
+//       NSWindow* window = (NSWindow*)windowPtr;
+//       if ([window isVisible]) {
+//         // When the window is visible, the window is already initialized.
+//         // [NSScreen mainScreen] sometimes tells a lie when the window is put across monitors (#703).
+//         screen = [window screen];
+//       }
 //     }
+//     NSDictionary* screenDictionary = [screen deviceDescription];
+//     NSNumber* screenID = [screenDictionary objectForKey:@"NSScreenNumber"];
+//     CGDirectDisplayID aID = [screenID unsignedIntValue];
+//     const CGRect bounds = CGDisplayBounds(aID);
+//     *x = bounds.origin.x;
+//     *y = bounds.origin.y;
 //   }
-//   NSDictionary* screenDictionary = [screen deviceDescription];
-//   NSNumber* screenID = [screenDictionary objectForKey:@"NSScreenNumber"];
-//   CGDirectDisplayID aID = [screenID unsignedIntValue];
-//   const CGRect bounds = CGDisplayBounds(aID);
-//   *x = bounds.origin.x;
-//   *y = bounds.origin.y;
 // }
 //
-// static bool isNativeFullscreen() {
-//   return [[NSApplication sharedApplication] currentSystemPresentationOptions] &
-//       NSApplicationPresentationFullScreen;
+// static bool isNativeFullscreen(uintptr_t windowPtr) {
+//   if (!windowPtr) {
+//     return false;
+//   }
+//   NSWindow* window = (NSWindow*)windowPtr;
+//   return (window.styleMask & NSWindowStyleMaskFullScreen) != 0;
+// }
+//
+// static void setNativeFullscreen(uintptr_t windowPtr, bool fullscreen) {
+//   NSWindow* window = (NSWindow*)windowPtr;
+//   if (((window.styleMask & NSWindowStyleMaskFullScreen) != 0) == fullscreen) {
+//     return;
+//   }
+//   bool origResizable = window.styleMask & NSWindowStyleMaskResizable;
+//   if (!origResizable) {
+//     window.styleMask |= NSWindowStyleMaskResizable;
+//   }
+//   [window toggleFullScreen:nil];
+//   if (!origResizable) {
+//     window.styleMask &= ~NSWindowStyleMaskResizable;
+//   }
+// }
+//
+// static void adjustViewSize(uintptr_t windowPtr) {
+//   NSWindow* window = (NSWindow*)windowPtr;
+//   if ((window.styleMask & NSWindowStyleMaskFullScreen) == 0) {
+//     return;
+//   }
+//
+//   // Apparently, adjusting the view size is not needed as of macOS 12 (#1745).
+//   static int majorVersion = 0;
+//   if (majorVersion == 0) {
+//     majorVersion = [[NSProcessInfo processInfo] operatingSystemVersion].majorVersion;
+//   }
+//   if (majorVersion >= 12) {
+//     return;
+//   }
+//
+//   // Reduce the view height (#1745).
+//   // https://stackoverflow.com/questions/27758027/sprite-kit-serious-fps-issue-in-full-screen-mode-on-os-x
+//   CGSize windowSize = [window frame].size;
+//   NSView* view = [window contentView];
+//   CGSize viewSize = [view frame].size;
+//   if (windowSize.width != viewSize.width || windowSize.height != viewSize.height) {
+//     return;
+//   }
+//   viewSize.width--;
+//   [view setFrameSize:viewSize];
+//
+//   // NSColor.blackColor (0, 0, 0, 1) didn't work.
+//   // Use the transparent color instead.
+//   [window setBackgroundColor: [NSColor colorWithSRGBRed:0 green:0 blue:0 alpha:0]];
+// }
+//
+// static void setNativeCursor(int cursorID) {
+//   id cursor = [[NSCursor class] performSelector:@selector(arrowCursor)];
+//   switch (cursorID) {
+//   case 0:
+//     cursor = [[NSCursor class] performSelector:@selector(arrowCursor)];
+//     break;
+//   case 1:
+//     cursor = [[NSCursor class] performSelector:@selector(IBeamCursor)];
+//     break;
+//   case 2:
+//     cursor = [[NSCursor class] performSelector:@selector(crosshairCursor)];
+//     break;
+//   case 3:
+//     cursor = [[NSCursor class] performSelector:@selector(pointingHandCursor)];
+//     break;
+//   case 4:
+//     cursor = [[NSCursor class] performSelector:@selector(_windowResizeEastWestCursor)];
+//     break;
+//   case 5:
+//     cursor = [[NSCursor class] performSelector:@selector(_windowResizeNorthSouthCursor)];
+//     break;
+//   }
+//   [cursor push];
 // }
 import "C"
 
 import (
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
-func fromGLFWMonitorPixel(x float64, deviceScale float64) float64 {
+// clearVideoModeScaleCache must be called from the main thread.
+func clearVideoModeScaleCache() {}
+
+// dipFromGLFWMonitorPixel must be called from the main thread.
+func (u *UserInterface) dipFromGLFWMonitorPixel(x float64, monitor *glfw.Monitor) float64 {
 	return x
 }
 
-func (u *UserInterface) fromGLFWPixel(x float64) float64 {
+// dipFromGLFWPixel must be called from the main thread.
+func (u *UserInterface) dipFromGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
+	// NOTE: On macOS, GLFW exposes the device independent coordinate system.
+	// Thus, the conversion functions are unnecessary,
+	// however we still need the deviceScaleFactor internally
+	// so we can create and maintain a HiDPI frame buffer.
 	return x
 }
 
-func (u *UserInterface) toGLFWPixel(x float64) float64 {
-	return x
-}
-
-func (u *UserInterface) toFramebufferPixel(x float64) float64 {
+// dipToGLFWPixel must be called from the main thread.
+func (u *UserInterface) dipToGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
 	return x
 }
 
 func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y
+}
+
+func initialMonitorByOS() *glfw.Monitor {
+	return nil
 }
 
 func currentMonitorByOS(w *glfw.Window) *glfw.Monitor {
@@ -75,10 +163,9 @@ func currentMonitorByOS(w *glfw.Window) *glfw.Monitor {
 	// Note: [NSApp mainWindow] is nil when it doesn't have its border. Use w here.
 	win := w.GetCocoaWindow()
 	C.currentMonitorPos(C.uintptr_t(win), &x, &y)
-	for _, m := range glfw.GetMonitors() {
-		mx, my := m.GetPos()
-		if int(x) == mx && int(y) == my {
-			return m
+	for _, m := range ensureMonitors() {
+		if int(x) == m.x && int(y) == m.y {
+			return m.m
 		}
 	}
 	return nil
@@ -89,5 +176,31 @@ func (u *UserInterface) nativeWindow() uintptr {
 }
 
 func (u *UserInterface) isNativeFullscreen() bool {
-	return bool(C.isNativeFullscreen())
+	return bool(C.isNativeFullscreen(C.uintptr_t(u.window.GetCocoaWindow())))
+}
+
+func (u *UserInterface) setNativeCursor(shape driver.CursorShape) {
+	C.setNativeCursor(C.int(shape))
+}
+
+func (u *UserInterface) isNativeFullscreenAvailable() bool {
+	// TODO: If the window is transparent, we should use GLFW's windowed fullscreen (#1822, #1857).
+	// However, if the user clicks the green button, should this window be in native fullscreen mode?
+	return true
+}
+
+func (u *UserInterface) setNativeFullscreen(fullscreen bool) {
+	// Toggling fullscreen might ignore events like keyUp. Ensure that events are fired.
+	glfw.WaitEventsTimeout(0.1)
+	C.setNativeFullscreen(C.uintptr_t(u.window.GetCocoaWindow()), C.bool(fullscreen))
+}
+
+func (u *UserInterface) adjustViewSize() {
+	if u.Graphics().IsGL() {
+		return
+	}
+	C.adjustViewSize(C.uintptr_t(u.window.GetCocoaWindow()))
+}
+
+func initializeWindowAfterCreation(w *glfw.Window) {
 }

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build example
 // +build example
 
 package main
@@ -51,7 +52,7 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
-	g.keys = inpututil.PressedKeys()
+	g.keys = inpututil.AppendPressedKeys(g.keys[:0])
 	return nil
 }
 

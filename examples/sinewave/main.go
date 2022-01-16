@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build example
 // +build example
 
 package main
@@ -29,11 +30,9 @@ import (
 const (
 	screenWidth  = 640
 	screenHeight = 480
-	sampleRate   = 44100
+	sampleRate   = 48000
 	frequency    = 440
 )
-
-var audioContext = audio.NewContext(sampleRate)
 
 // stream is an infinite stream of 440 Hz sine wave.
 type stream struct {
@@ -86,15 +85,19 @@ func (s *stream) Close() error {
 }
 
 type Game struct {
-	player *audio.Player
+	audioContext *audio.Context
+	player       *audio.Player
 }
 
 func (g *Game) Update() error {
+	if g.audioContext == nil {
+		g.audioContext = audio.NewContext(sampleRate)
+	}
 	if g.player == nil {
-		// Pass the (infinite) stream to audio.NewPlayer.
+		// Pass the (infinite) stream to NewPlayer.
 		// After calling Play, the stream never ends as long as the player object lives.
 		var err error
-		g.player, err = audio.NewPlayer(audioContext, &stream{})
+		g.player, err = g.audioContext.NewPlayer(&stream{})
 		if err != nil {
 			return err
 		}

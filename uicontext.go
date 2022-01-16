@@ -24,6 +24,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
@@ -34,9 +35,8 @@ type uiContext struct {
 
 	updateCalled bool
 
-	outsideSizeUpdated bool
-	outsideWidth       float64
-	outsideHeight      float64
+	outsideWidth  float64
+	outsideHeight float64
 
 	err atomic.Value
 
@@ -61,43 +61,45 @@ func (c *uiContext) Layout(outsideWidth, outsideHeight float64) {
 	if outsideWidth == 0 || outsideHeight == 0 {
 		return
 	}
-	c.outsideSizeUpdated = true
 	c.outsideWidth = outsideWidth
 	c.outsideHeight = outsideHeight
 }
 
 func (c *uiContext) updateOffscreen() {
-	sw, sh := c.game.Layout(int(c.outsideWidth), int(c.outsideHeight))
-	if sw <= 0 || sh <= 0 {
+	d := uiDriver().DeviceScaleFactor()
+	sw, sh := int(c.outsideWidth*d), int(c.outsideHeight*d)
+
+	ow, oh := c.game.Layout(int(c.outsideWidth), int(c.outsideHeight))
+	if ow <= 0 || oh <= 0 {
 		panic("ebiten: Layout must return positive numbers")
 	}
 
-	if c.offscreen != nil && !c.outsideSizeUpdated {
-		if w, h := c.offscreen.Size(); w == sw && h == sh {
-			return
+	if c.screen != nil {
+		if w, h := c.screen.Size(); w != sw || h != sh {
+			c.screen.Dispose()
+			c.screen = nil
 		}
 	}
-	c.outsideSizeUpdated = false
-
-	if c.screen != nil {
-		c.screen.Dispose()
-		c.screen = nil
+	if c.screen == nil {
+		c.screen = newScreenFramebufferImage(int(c.outsideWidth*d), int(c.outsideHeight*d))
 	}
 
 	if c.offscreen != nil {
-		if w, h := c.offscreen.Size(); w != sw || h != sh {
+		if w, h := c.offscreen.Size(); w != ow || h != oh {
 			c.offscreen.Dispose()
 			c.offscreen = nil
 		}
 	}
 	if c.offscreen == nil {
-		c.offscreen = NewImage(sw, sh)
+		c.offscreen = NewImage(ow, oh)
 		c.offscreen.mipmap.SetVolatile(IsScreenClearedEveryFrame())
-	}
 
-	// TODO: This is duplicated with mobile/ebitenmobileview/funcs.go. Refactor this.
-	d := uiDriver().DeviceScaleFactor()
-	c.screen = newScreenFramebufferImage(int(c.outsideWidth*d), int(c.outsideHeight*d))
+		// Keep the offscreen an independent image from an atlas (#1938).
+		// The shader program for the screen is special and doesn't work well with an image on an atlas.
+		// An image on an atlas is surrounded by a transparent edge,
+		// and the shader program unexpectedly picks the pixel on the edges.
+		c.offscreen.mipmap.SetIndependent(true)
+	}
 }
 
 func (c *uiContext) setScreenClearedEveryFrame(cleared bool) {
@@ -106,15 +108,6 @@ func (c *uiContext) setScreenClearedEveryFrame(cleared bool) {
 
 	if c.offscreen != nil {
 		c.offscreen.mipmap.SetVolatile(cleared)
-	}
-}
-
-func (c *uiContext) setWindowResizable(resizable bool) {
-	c.m.Lock()
-	defer c.m.Unlock()
-
-	if w := uiDriver().Window(); w != nil {
-		w.SetResizable(resizable)
 	}
 }
 
@@ -141,46 +134,44 @@ func (c *uiContext) offsets(deviceScaleFactor float64) (float64, float64) {
 	return x, y
 }
 
-func (c *uiContext) Update() error {
+func (c *uiContext) UpdateFrame() error {
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
-
-	if err, ok := c.err.Load().(error); ok && err != nil {
-		return err
-	}
-	if err := buffered.BeginFrame(); err != nil {
-		return err
-	}
-	if err := c.update(clock.Update(MaxTPS())); err != nil {
-		return err
-	}
-	if err := buffered.EndFrame(); err != nil {
-		return err
-	}
-	return nil
+	return c.updateFrame(clock.Update(MaxTPS()))
 }
 
-func (c *uiContext) ForceUpdate() error {
+func (c *uiContext) ForceUpdateFrame() error {
 	// ForceUpdate can be invoked even if uiContext it not initialized yet (#1591).
 	if c.outsideWidth == 0 || c.outsideHeight == 0 {
 		return nil
 	}
+	return c.updateFrame(1)
+}
 
+func (c *uiContext) updateFrame(updateCount int) error {
 	if err, ok := c.err.Load().(error); ok && err != nil {
 		return err
 	}
+
+	debug.Logf("----\n")
+
 	if err := buffered.BeginFrame(); err != nil {
 		return err
 	}
-	if err := c.update(1); err != nil {
+	if err := c.updateFrameImpl(updateCount); err != nil {
 		return err
 	}
-	if err := buffered.EndFrame(); err != nil {
-		return err
-	}
-	return nil
+
+	// All the vertices data are consumed at the end of the frame, and the data backend can be
+	// available after that. Until then, lock the vertices backend.
+	return graphics.LockAndResetVertices(func() error {
+		if err := buffered.EndFrame(); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
-func (c *uiContext) update(updateCount int) error {
+func (c *uiContext) updateFrameImpl(updateCount int) error {
 	c.updateOffscreen()
 
 	// Ensure that Update is called once before Draw so that Update can be used for initialization.
@@ -188,7 +179,7 @@ func (c *uiContext) update(updateCount int) error {
 		updateCount = 1
 		c.updateCalled = true
 	}
-	debug.Logf("--\nUpdate count per frame: %d\n", updateCount)
+	debug.Logf("Update count per frame: %d\n", updateCount)
 
 	for i := 0; i < updateCount; i++ {
 		if err := hooks.RunBeforeUpdateHooks(); err != nil {
@@ -208,8 +199,10 @@ func (c *uiContext) update(updateCount int) error {
 	}
 	c.game.Draw(c.offscreen)
 
-	// This clear is needed for fullscreen mode or some mobile platforms (#622).
-	c.screen.Clear()
+	if uiDriver().Graphics().NeedsClearingScreen() {
+		// This clear is needed for fullscreen mode or some mobile platforms (#622).
+		c.screen.Clear()
+	}
 
 	op := &DrawImageOptions{}
 

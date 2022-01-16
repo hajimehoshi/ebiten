@@ -23,7 +23,7 @@ import (
 )
 
 // A Key represents a keyboard key.
-// These keys represent pysical keys of US keyboard.
+// These keys represent pysical keys of US keyboard layout.
 // For example, KeyQ represents Q key on US keyboards and ' (quote) key on Dvorak keyboards.
 type Key int
 
@@ -141,7 +141,7 @@ const (
 	KeyMax            Key = KeyMeta
 
 	// Keys for backward compatibility.
-	// Deprecated: as of 2.1.0.
+	// Deprecated: as of v2.1.
 	Key0            Key = Key(driver.KeyDigit0)
 	Key1            Key = Key(driver.KeyDigit1)
 	Key2            Key = Key(driver.KeyDigit2)

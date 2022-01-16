@@ -18,9 +18,11 @@ import (
 	"fmt"
 	"image"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
+	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/png"
@@ -139,7 +141,7 @@ func (i *Image) InternalSize() (int, int) {
 //
 // If the source image is not specified, i.e., src is nil and there is no image in the uniform variables, the
 // elements for the source image are not used.
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, clr *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, shader *Shader, uniforms []interface{}) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, clr affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, shader *Shader, uniforms []driver.Uniform, evenOdd bool) {
 	if shader == nil {
 		// Fast path for rendering without a shader (#1355).
 		img := srcs[0]
@@ -160,7 +162,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [gra
 	}
 	i.resolveBufferedReplacePixels()
 
-	theCommandQueue.EnqueueDrawTrianglesCommand(i, srcs, offsets, vertices, indices, clr, mode, filter, address, dstRegion, srcRegion, shader, uniforms)
+	theCommandQueue.EnqueueDrawTrianglesCommand(i, srcs, offsets, vertices, indices, clr, mode, filter, address, dstRegion, srcRegion, shader, uniforms, evenOdd)
 }
 
 // Pixels returns the image's pixels.
@@ -207,7 +209,7 @@ func (i *Image) IsInvalidated() bool {
 // If blackbg is true, any alpha values in the dumped image will be 255.
 //
 // This is for testing usage.
-func (i *Image) Dump(path string, blackbg bool) error {
+func (i *Image) Dump(path string, blackbg bool, rect image.Rectangle) error {
 	// Screen image cannot be dumped.
 	if i.screen {
 		return nil
@@ -231,12 +233,22 @@ func (i *Image) Dump(path string, blackbg bool) error {
 		}
 	}
 
-	if err := png.Encode(f, &image.RGBA{
+	if err := png.Encode(f, (&image.RGBA{
 		Pix:    pix,
 		Stride: 4 * i.width,
 		Rect:   image.Rect(0, 0, i.width, i.height),
-	}); err != nil {
+	}).SubImage(rect)); err != nil {
 		return err
 	}
 	return nil
+}
+
+func LogImagesInfo(images []*Image) {
+	sort.Slice(images, func(a, b int) bool {
+		return images[a].id < images[b].id
+	})
+	for _, i := range images {
+		w, h := i.InternalSize()
+		debug.Logf("  %d: (%d, %d)\n", i.id, w, h)
+	}
 }

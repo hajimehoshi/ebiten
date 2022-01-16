@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build example
 // +build example
 
 package main
@@ -64,15 +65,10 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	// Decode image from a byte slice instead of a file so that
-	// this example works in any working directory.
-	// If you want to use a file, there are some options:
-	// 1) Use os.Open and pass the file to the image decoder.
-	//    This is a very regular way, but doesn't work on browsers.
-	// 2) Use ebitenutil.OpenFile and pass the file to the image decoder.
-	//    This works even on browsers.
-	// 3) Use ebitenutil.NewImageFromFile to create an ebiten.Image directly from a file.
-	//    This also works on browsers.
+	// Decode an image from the image file's byte slice.
+	// Now the byte slice is generated with //go:generate for Go 1.15 or older.
+	// If you use Go 1.16 or newer, it is strongly recommended to use //go:embed to embed the image file.
+	// See https://pkg.go.dev/embed for more details.
 	img, _, err := image.Decode(bytes.NewReader(images.Runner_png))
 	if err != nil {
 		log.Fatal(err)

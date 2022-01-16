@@ -17,11 +17,13 @@ package js
 import (
 	"encoding/hex"
 	"syscall/js"
+	"time"
 	"unicode"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
-	"github.com/hajimehoshi/ebiten/v2/internal/jsutil"
 )
+
+var object = js.Global().Get("Object")
 
 var (
 	stringKeydown    = js.ValueOf("keydown")
@@ -48,7 +50,7 @@ func jsKeyToID(key js.Value) int {
 	// js.Value cannot be used as a map key.
 	// As the number of keys is around 100, just a dumb loop should work.
 	for i, k := range jsKeys {
-		if jsutil.Equal(k, key) {
+		if k.Equal(key) {
 			return i
 		}
 	}
@@ -61,11 +63,27 @@ type pos struct {
 }
 
 type gamepad struct {
+	value js.Value
+
 	name          string
+	mapping       string
 	axisNum       int
 	axes          [16]float64
 	buttonNum     int
 	buttonPressed [256]bool
+	buttonValues  [256]float64
+
+	standardButtonPressed [driver.StandardGamepadButtonMax + 1]bool
+	standardButtonValues  [driver.StandardGamepadButtonMax + 1]float64
+	standardAxisValues    [driver.StandardGamepadAxisMax + 1]float64
+}
+
+func (g *gamepad) hasStandardLayoutMapping() bool {
+	// With go2cpp, the controller must have the standard
+	if go2cpp.Truthy() {
+		return true
+	}
+	return g.mapping == "standard"
 }
 
 type Input struct {
@@ -94,7 +112,7 @@ func (i *Input) CursorPosition() (x, y int) {
 
 func (i *Input) GamepadSDLID(id driver.GamepadID) string {
 	// This emulates the implementation of EMSCRIPTEN_JoystickGetDeviceGUID.
-	// https://hg.libsdl.org/SDL/file/bc90ce38f1e2/src/joystick/emscripten/SDL_sysjoystick.c#l385
+	// https://github.com/libsdl-org/SDL/blob/0e9560aea22818884921e5e5064953257bfe7fa7/src/joystick/emscripten/SDL_sysjoystick.c#L385
 	g, ok := i.gamepads[id]
 	if !ok {
 		return ""
@@ -115,16 +133,11 @@ func (i *Input) GamepadName(id driver.GamepadID) string {
 	return g.name
 }
 
-func (i *Input) GamepadIDs() []driver.GamepadID {
-	if len(i.gamepads) == 0 {
-		return nil
-	}
-
-	r := make([]driver.GamepadID, 0, len(i.gamepads))
+func (i *Input) AppendGamepadIDs(gamepadIDs []driver.GamepadID) []driver.GamepadID {
 	for id := range i.gamepads {
-		r = append(r, id)
+		gamepadIDs = append(gamepadIDs, id)
 	}
-	return r
+	return gamepadIDs
 }
 
 func (i *Input) GamepadAxisNum(id driver.GamepadID) int {
@@ -135,7 +148,7 @@ func (i *Input) GamepadAxisNum(id driver.GamepadID) int {
 	return g.axisNum
 }
 
-func (i *Input) GamepadAxis(id driver.GamepadID, axis int) float64 {
+func (i *Input) GamepadAxisValue(id driver.GamepadID, axis int) float64 {
 	g, ok := i.gamepads[id]
 	if !ok {
 		return 0
@@ -165,16 +178,11 @@ func (i *Input) IsGamepadButtonPressed(id driver.GamepadID, button driver.Gamepa
 	return g.buttonPressed[button]
 }
 
-func (i *Input) TouchIDs() []driver.TouchID {
-	if len(i.touches) == 0 {
-		return nil
-	}
-
-	ids := make([]driver.TouchID, 0, len(i.touches))
+func (i *Input) AppendTouchIDs(touchIDs []driver.TouchID) []driver.TouchID {
 	for id := range i.touches {
-		ids = append(ids, id)
+		touchIDs = append(touchIDs, id)
 	}
-	return ids
+	return touchIDs
 }
 
 func (i *Input) TouchPosition(id driver.TouchID) (x, y int) {
@@ -188,10 +196,8 @@ func (i *Input) TouchPosition(id driver.TouchID) (x, y int) {
 	return 0, 0
 }
 
-func (i *Input) RuneBuffer() []rune {
-	rs := make([]rune, len(i.runeBuffer))
-	copy(rs, i.runeBuffer)
-	return rs
+func (i *Input) AppendInputChars(runes []rune) []rune {
+	return append(runes, i.runeBuffer...)
 }
 
 func (i *Input) resetForFrame() {
@@ -292,7 +298,8 @@ func (i *Input) updateGamepads() {
 		return
 	}
 
-	if !nav.Get("getGamepads").Truthy() {
+	gamepads := nav.Call("getGamepads")
+	if !gamepads.Truthy() {
 		return
 	}
 
@@ -300,7 +307,6 @@ func (i *Input) updateGamepads() {
 		delete(i.gamepads, k)
 	}
 
-	gamepads := nav.Call("getGamepads")
 	l := gamepads.Length()
 	for idx := 0; idx < l; idx++ {
 		gp := gamepads.Index(idx)
@@ -309,27 +315,34 @@ func (i *Input) updateGamepads() {
 		}
 
 		id := driver.GamepadID(gp.Get("index").Int())
-		g := gamepad{}
+		g := gamepad{
+			value: gp,
+		}
 		g.name = gp.Get("id").String()
+		g.mapping = gp.Get("mapping").String()
 
 		axes := gp.Get("axes")
-		axesNum := axes.Get("length").Int()
+		axesNum := axes.Length()
 		g.axisNum = axesNum
-		for a := 0; a < len(g.axes); a++ {
-			if axesNum <= a {
-				break
-			}
+		for a := 0; a < axesNum; a++ {
 			g.axes[a] = axes.Index(a).Float()
 		}
 
 		buttons := gp.Get("buttons")
-		buttonsNum := buttons.Get("length").Int()
+		buttonsNum := buttons.Length()
 		g.buttonNum = buttonsNum
-		for b := 0; b < len(g.buttonPressed); b++ {
-			if buttonsNum <= b {
-				break
-			}
-			g.buttonPressed[b] = buttons.Index(b).Get("pressed").Bool()
+		for b := 0; b < buttonsNum; b++ {
+			btn := buttons.Index(b)
+			g.buttonPressed[b] = btn.Get("pressed").Bool()
+			g.buttonValues[b] = btn.Get("value").Float()
+		}
+
+		if g.mapping == "standard" {
+			// When the gamepad's mapping is "standard", the button and axis IDs are already mapped as the standard layout.
+			// See https://www.w3.org/TR/gamepad/#remapping.
+			copy(g.standardButtonPressed[:], g.buttonPressed[:])
+			copy(g.standardButtonValues[:], g.buttonValues[:])
+			copy(g.standardAxisValues[:], g.axes[:])
 		}
 
 		if i.gamepads == nil {
@@ -343,7 +356,7 @@ func (i *Input) updateFromEvent(e js.Value) {
 	// Avoid using js.Value.String() as String creates a Uint8Array via a TextEncoder and causes a heavy
 	// overhead (#1437).
 	switch t := e.Get("type"); {
-	case jsutil.Equal(t, stringKeydown):
+	case t.Equal(stringKeydown):
 		c := e.Get("code")
 		if c.Type() != js.TypeString {
 			code := e.Get("keyCode").Int()
@@ -358,20 +371,20 @@ func (i *Input) updateFromEvent(e js.Value) {
 			i.keyDownEdge(code)
 			return
 		}
-		if jsutil.Equal(c, driverKeyToJSKey[driver.KeyArrowUp]) ||
-			jsutil.Equal(c, driverKeyToJSKey[driver.KeyArrowDown]) ||
-			jsutil.Equal(c, driverKeyToJSKey[driver.KeyArrowLeft]) ||
-			jsutil.Equal(c, driverKeyToJSKey[driver.KeyArrowRight]) ||
-			jsutil.Equal(c, driverKeyToJSKey[driver.KeyBackspace]) ||
-			jsutil.Equal(c, driverKeyToJSKey[driver.KeyTab]) {
+		if c.Equal(driverKeyToJSKey[driver.KeyArrowUp]) ||
+			c.Equal(driverKeyToJSKey[driver.KeyArrowDown]) ||
+			c.Equal(driverKeyToJSKey[driver.KeyArrowLeft]) ||
+			c.Equal(driverKeyToJSKey[driver.KeyArrowRight]) ||
+			c.Equal(driverKeyToJSKey[driver.KeyBackspace]) ||
+			c.Equal(driverKeyToJSKey[driver.KeyTab]) {
 			e.Call("preventDefault")
 		}
 		i.keyDown(c)
-	case jsutil.Equal(t, stringKeypress):
+	case t.Equal(stringKeypress):
 		if r := rune(e.Get("charCode").Int()); unicode.IsPrint(r) {
 			i.runeBuffer = append(i.runeBuffer, r)
 		}
-	case jsutil.Equal(t, stringKeyup):
+	case t.Equal(stringKeyup):
 		if e.Get("code").Type() != js.TypeString {
 			// Assume that UA is Edge.
 			code := e.Get("keyCode").Int()
@@ -379,23 +392,25 @@ func (i *Input) updateFromEvent(e js.Value) {
 			return
 		}
 		i.keyUp(e.Get("code"))
-	case jsutil.Equal(t, stringMousedown):
+	case t.Equal(stringMousedown):
 		button := e.Get("button").Int()
 		i.mouseDown(button)
 		i.setMouseCursorFromEvent(e)
-	case jsutil.Equal(t, stringMouseup):
+	case t.Equal(stringMouseup):
 		button := e.Get("button").Int()
 		i.mouseUp(button)
 		i.setMouseCursorFromEvent(e)
-	case jsutil.Equal(t, stringMousemove):
+	case t.Equal(stringMousemove):
 		i.setMouseCursorFromEvent(e)
-	case jsutil.Equal(t, stringWheel):
+	case t.Equal(stringWheel):
 		// TODO: What if e.deltaMode is not DOM_DELTA_PIXEL?
 		i.wheelX = -e.Get("deltaX").Float()
 		i.wheelY = -e.Get("deltaY").Float()
-	case jsutil.Equal(t, stringTouchstart) || jsutil.Equal(t, stringTouchend) || jsutil.Equal(t, stringTouchmove):
+	case t.Equal(stringTouchstart) || t.Equal(stringTouchend) || t.Equal(stringTouchmove):
 		i.updateTouchesFromEvent(e)
 	}
+
+	i.ui.forceUpdateOnMinimumFPSMode()
 }
 
 func (i *Input) setMouseCursorFromEvent(e js.Value) {
@@ -456,40 +471,79 @@ func (i *Input) updateForGo2Cpp() {
 			Y: y.Int(),
 		}
 	}
+}
 
-	for k := range i.gamepads {
-		delete(i.gamepads, k)
+func (i *Input) IsStandardGamepadLayoutAvailable(id driver.GamepadID) bool {
+	g, ok := i.gamepads[id]
+	if !ok {
+		return false
 	}
-	gamepadCount := go2cpp.Get("gamepadCount").Int()
-	for idx := 0; idx < gamepadCount; idx++ {
-		g := gamepad{}
+	return g.hasStandardLayoutMapping()
+}
 
-		// Avoid buggy devices on GLFW (#1173).
-		buttonCount := go2cpp.Call("getGamepadButtonCount", idx).Int()
-		if buttonCount > len(g.buttonPressed) {
-			continue
+func (i *Input) StandardGamepadAxisValue(id driver.GamepadID, axis driver.StandardGamepadAxis) float64 {
+	g, ok := i.gamepads[id]
+	if !ok {
+		return 0
+	}
+	if !g.hasStandardLayoutMapping() {
+		return 0
+	}
+	return g.standardAxisValues[axis]
+}
+
+func (i *Input) StandardGamepadButtonValue(id driver.GamepadID, button driver.StandardGamepadButton) float64 {
+	g, ok := i.gamepads[id]
+	if !ok {
+		return 0
+	}
+	if !g.hasStandardLayoutMapping() {
+		return 0
+	}
+	return g.standardButtonValues[button]
+}
+
+func (i *Input) IsStandardGamepadButtonPressed(id driver.GamepadID, button driver.StandardGamepadButton) bool {
+	g, ok := i.gamepads[id]
+	if !ok {
+		return false
+	}
+	if !g.hasStandardLayoutMapping() {
+		return false
+	}
+	return g.standardButtonPressed[button]
+}
+
+func (i *Input) VibrateGamepad(id driver.GamepadID, duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	g, ok := i.gamepads[id]
+	if !ok {
+		return
+	}
+
+	// vibrationActuator is avaialble on Chrome.
+	if va := g.value.Get("vibrationActuator"); va.Truthy() {
+		if !va.Get("playEffect").Truthy() {
+			return
 		}
 
-		axisCount := go2cpp.Call("getGamepadAxisCount", idx).Int()
-		if axisCount > len(g.axes) {
-			continue
-		}
+		prop := object.New()
+		prop.Set("startDelay", 0)
+		prop.Set("duration", float64(duration/time.Millisecond))
+		prop.Set("strongMagnitude", strongMagnitude)
+		prop.Set("weakMagnitude", weakMagnitude)
+		va.Call("playEffect", "dual-rumble", prop)
+		return
+	}
 
-		id := driver.GamepadID(go2cpp.Call("getGamepadId", idx).Int())
-
-		g.buttonNum = buttonCount
-		for j := 0; j < buttonCount; j++ {
-			g.buttonPressed[j] = go2cpp.Call("isGamepadButtonPressed", idx, j).Bool()
+	// hapticActuators is available on Firefox.
+	if ha := g.value.Get("hapticActuators"); ha.Truthy() {
+		// TODO: Is this order correct?
+		if ha.Length() > 0 {
+			ha.Index(0).Call("pulse", strongMagnitude, float64(duration/time.Millisecond))
 		}
-
-		g.axisNum = axisCount
-		for j := 0; j < axisCount; j++ {
-			g.axes[j] = go2cpp.Call("getGamepadAxis", idx, j).Float()
+		if ha.Length() > 1 {
+			ha.Index(1).Call("pulse", weakMagnitude, float64(duration/time.Millisecond))
 		}
-
-		if i.gamepads == nil {
-			i.gamepads = map[driver.GamepadID]gamepad{}
-		}
-		i.gamepads[id] = g
+		return
 	}
 }

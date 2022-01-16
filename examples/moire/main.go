@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build example
 // +build example
 
 // This example is just to check if Ebiten can draw fine checker pattern evenly.

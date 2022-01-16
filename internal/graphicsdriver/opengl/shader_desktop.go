@@ -12,9 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !android
-// +build !js
-// +build !ios
+//go:build !android && !js && !ios
+// +build !android,!js,!ios
 
 package opengl
 
@@ -22,6 +21,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
 )
 
-func glslVersion() glsl.GLSLVersion {
+func (c *context) glslVersion() glsl.GLSLVersion {
 	return glsl.GLSLVersionDefault
 }

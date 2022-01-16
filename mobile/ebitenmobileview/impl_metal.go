@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build (darwin && ios && arm) || (darwin && ios && arm64)
 // +build darwin,ios,arm darwin,ios,arm64
 
 package ebitenmobileview

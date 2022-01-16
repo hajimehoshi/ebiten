@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build android || ios
 // +build android ios
 
 package mobile
@@ -82,12 +83,12 @@ func (u *UserInterface) Update() error {
 		return nil
 	}
 
+	u.input.updateGamepads()
+
 	renderCh <- struct{}{}
 	go func() {
 		<-renderEndCh
-		u.t.Call(func() error {
-			return thread.BreakLoop
-		})
+		u.t.Stop()
 	}()
 	u.t.Loop()
 	return nil
@@ -111,6 +112,9 @@ type UserInterface struct {
 
 	input Input
 
+	fpsMode         driver.FPSMode
+	renderRequester RenderRequester
+
 	t *thread.OSThread
 
 	m sync.RWMutex
@@ -125,7 +129,7 @@ func (u *UserInterface) appMain(a app.App) {
 	var glctx gl.Context
 	var sizeInited bool
 
-	touches := map[touch.Sequence]*Touch{}
+	touches := map[touch.Sequence]Touch{}
 	keys := map[driver.Key]struct{}{}
 
 	for e := range a.Events() {
@@ -136,7 +140,10 @@ func (u *UserInterface) appMain(a app.App) {
 		case lifecycle.Event:
 			switch e.Crosses(lifecycle.StageVisible) {
 			case lifecycle.CrossOn:
-				u.SetForeground(true)
+				if err := u.SetForeground(true); err != nil {
+					// There are no other ways than panicking here.
+					panic(err)
+				}
 				restorable.OnContextLost()
 				glctx, _ = e.DrawContext.(gl.Context)
 				// Assume that glctx is always a same instance.
@@ -147,7 +154,10 @@ func (u *UserInterface) appMain(a app.App) {
 				}
 				a.Send(paint.Event{})
 			case lifecycle.CrossOff:
-				u.SetForeground(false)
+				if err := u.SetForeground(false); err != nil {
+					// There are no other ways than panicking here.
+					panic(err)
+				}
 				glctx = nil
 			}
 		case size.Event:
@@ -174,7 +184,7 @@ func (u *UserInterface) appMain(a app.App) {
 				s := deviceScale()
 				x, y := float64(e.X)/s, float64(e.Y)/s
 				// TODO: Is it ok to cast from int64 to int here?
-				touches[e.Sequence] = &Touch{
+				touches[e.Sequence] = Touch{
 					ID: driver.TouchID(e.Sequence),
 					X:  int(x),
 					Y:  int(y),
@@ -204,16 +214,16 @@ func (u *UserInterface) appMain(a app.App) {
 		}
 
 		if updateInput {
-			ts := []*Touch{}
+			var ts []Touch
 			for _, t := range touches {
 				ts = append(ts, t)
 			}
-			u.input.update(keys, runes, ts, nil)
+			u.input.update(keys, runes, ts)
 		}
 	}
 }
 
-func (u *UserInterface) SetForeground(foreground bool) {
+func (u *UserInterface) SetForeground(foreground bool) error {
 	var v int32
 	if foreground {
 		v = 1
@@ -221,9 +231,9 @@ func (u *UserInterface) SetForeground(foreground bool) {
 	atomic.StoreInt32(&u.foreground, v)
 
 	if foreground {
-		hooks.ResumeAudio()
+		return hooks.ResumeAudio()
 	} else {
-		hooks.SuspendAudio()
+		return hooks.SuspendAudio()
 	}
 }
 
@@ -241,7 +251,6 @@ func (u *UserInterface) Run(context driver.UIContext) error {
 
 func (u *UserInterface) RunWithoutMainLoop(context driver.UIContext) {
 	go func() {
-		// title is ignored?
 		if err := u.run(context, false); err != nil {
 			u.errCh <- err
 		}
@@ -320,7 +329,7 @@ func (u *UserInterface) update() error {
 		renderEndCh <- struct{}{}
 	}()
 
-	if err := u.context.Update(); err != nil {
+	if err := u.context.UpdateFrame(); err != nil {
 		return err
 	}
 	return nil
@@ -398,12 +407,20 @@ func (u *UserInterface) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 	// Do nothing
 }
 
-func (u *UserInterface) IsVsyncEnabled() bool {
-	return true
+func (u *UserInterface) FPSMode() driver.FPSMode {
+	return u.fpsMode
 }
 
-func (u *UserInterface) SetVsyncEnabled(enabled bool) {
-	// Do nothing
+func (u *UserInterface) SetFPSMode(mode driver.FPSMode) {
+	u.fpsMode = mode
+	u.updateExplicitRenderingModeIfNeeded()
+}
+
+func (u *UserInterface) updateExplicitRenderingModeIfNeeded() {
+	if u.renderRequester == nil {
+		return
+	}
+	u.renderRequester.SetExplicitRenderingMode(u.fpsMode == driver.FPSModeVsyncOffMinimum)
 }
 
 func (u *UserInterface) DeviceScaleFactor() float64 {
@@ -449,8 +466,29 @@ type Gamepad struct {
 	ButtonNum int
 	Axes      [32]float32
 	AxisNum   int
+	Hats      [16]int
+	HatNum    int
 }
 
-func (u *UserInterface) UpdateInput(keys map[driver.Key]struct{}, runes []rune, touches []*Touch, gamepads []Gamepad) {
-	u.input.update(keys, runes, touches, gamepads)
+func (u *UserInterface) UpdateInput(keys map[driver.Key]struct{}, runes []rune, touches []Touch) {
+	u.input.update(keys, runes, touches)
+	if u.fpsMode == driver.FPSModeVsyncOffMinimum {
+		u.renderRequester.RequestRenderIfNeeded()
+	}
+}
+
+type RenderRequester interface {
+	SetExplicitRenderingMode(explicitRendering bool)
+	RequestRenderIfNeeded()
+}
+
+func (u *UserInterface) SetRenderRequester(renderRequester RenderRequester) {
+	u.renderRequester = renderRequester
+	u.updateExplicitRenderingModeIfNeeded()
+}
+
+func (u *UserInterface) ScheduleFrame() {
+	if u.renderRequester != nil && u.fpsMode == driver.FPSModeVsyncOffMinimum {
+		u.renderRequester.RequestRenderIfNeeded()
+	}
 }

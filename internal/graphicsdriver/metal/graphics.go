@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build darwin
 // +build darwin
 
 package metal
@@ -19,10 +20,10 @@ package metal
 import (
 	"fmt"
 	"math"
+	"sort"
 	"strings"
 	"unsafe"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca"
@@ -299,6 +300,7 @@ type rpsKey struct {
 	filter        driver.Filter
 	address       driver.Address
 	compositeMode driver.CompositeMode
+	stencilMode   stencilMode
 	screen        bool
 }
 
@@ -309,8 +311,16 @@ type Graphics struct {
 	rpss      map[rpsKey]mtl.RenderPipelineState
 	cq        mtl.CommandQueue
 	cb        mtl.CommandBuffer
+	rce       mtl.RenderCommandEncoder
+	dsss      map[stencilMode]mtl.DepthStencilState
 
 	screenDrawable ca.MetalDrawable
+
+	buffers       map[mtl.CommandBuffer][]mtl.Buffer
+	unusedBuffers map[mtl.Buffer]struct{}
+
+	lastDst         *Image
+	lastStencilMode stencilMode
 
 	vb mtl.Buffer
 	ib mtl.Buffer
@@ -330,6 +340,14 @@ type Graphics struct {
 
 	pool unsafe.Pointer
 }
+
+type stencilMode int
+
+const (
+	prepareStencil stencilMode = iota
+	drawWithStencil
+	noStencil
+)
 
 var theGraphics Graphics
 
@@ -361,26 +379,101 @@ func (g *Graphics) SetUIView(uiview uintptr) {
 	g.view.setUIView(uiview)
 }
 
+func pow2(x uintptr) uintptr {
+	var p2 uintptr = 1
+	for p2 < x {
+		p2 *= 2
+	}
+	return p2
+}
+
+func (g *Graphics) gcBuffers() {
+	for cb, bs := range g.buffers {
+		// If the command buffer still lives, the buffer must not be updated.
+		// TODO: Handle an error?
+		if cb.Status() != mtl.CommandBufferStatusCompleted {
+			continue
+		}
+
+		for _, b := range bs {
+			if g.unusedBuffers == nil {
+				g.unusedBuffers = map[mtl.Buffer]struct{}{}
+			}
+			g.unusedBuffers[b] = struct{}{}
+		}
+		delete(g.buffers, cb)
+		cb.Release()
+	}
+
+	const maxUnusedBuffers = 10
+	if len(g.unusedBuffers) > maxUnusedBuffers {
+		bufs := make([]mtl.Buffer, 0, len(g.unusedBuffers))
+		for b := range g.unusedBuffers {
+			bufs = append(bufs, b)
+		}
+		sort.Slice(bufs, func(a, b int) bool {
+			return bufs[a].Length() > bufs[b].Length()
+		})
+		for _, b := range bufs[maxUnusedBuffers:] {
+			delete(g.unusedBuffers, b)
+			b.Release()
+		}
+	}
+}
+
+func (g *Graphics) availableBuffer(length uintptr) mtl.Buffer {
+	if g.cb == (mtl.CommandBuffer{}) {
+		g.cb = g.cq.MakeCommandBuffer()
+	}
+
+	var newBuf mtl.Buffer
+	for b := range g.unusedBuffers {
+		if b.Length() >= length {
+			newBuf = b
+			delete(g.unusedBuffers, b)
+			break
+		}
+	}
+
+	if newBuf == (mtl.Buffer{}) {
+		newBuf = g.view.getMTLDevice().MakeBufferWithLength(pow2(length), resourceStorageMode)
+	}
+
+	if g.buffers == nil {
+		g.buffers = map[mtl.CommandBuffer][]mtl.Buffer{}
+	}
+	if _, ok := g.buffers[g.cb]; !ok {
+		g.cb.Retain()
+	}
+	g.buffers[g.cb] = append(g.buffers[g.cb], newBuf)
+	return newBuf
+}
+
 func (g *Graphics) SetVertices(vertices []float32, indices []uint16) {
-	if g.vb != (mtl.Buffer{}) {
-		g.vb.Release()
-	}
-	if g.ib != (mtl.Buffer{}) {
-		g.ib.Release()
-	}
-	g.vb = g.view.getMTLDevice().MakeBufferWithBytes(unsafe.Pointer(&vertices[0]), unsafe.Sizeof(vertices[0])*uintptr(len(vertices)), resourceStorageMode)
-	g.ib = g.view.getMTLDevice().MakeBufferWithBytes(unsafe.Pointer(&indices[0]), unsafe.Sizeof(indices[0])*uintptr(len(indices)), resourceStorageMode)
+	vbSize := unsafe.Sizeof(vertices[0]) * uintptr(len(vertices))
+	ibSize := unsafe.Sizeof(indices[0]) * uintptr(len(indices))
+
+	g.vb = g.availableBuffer(vbSize)
+	g.vb.CopyToContents(unsafe.Pointer(&vertices[0]), vbSize)
+
+	g.ib = g.availableBuffer(ibSize)
+	g.ib.CopyToContents(unsafe.Pointer(&indices[0]), ibSize)
 }
 
 func (g *Graphics) flushIfNeeded(present bool) {
 	if g.cb == (mtl.CommandBuffer{}) {
 		return
 	}
+	g.flushRenderCommandEncoderIfNeeded()
 
-	if present && g.screenDrawable != (ca.MetalDrawable{}) {
+	if !g.view.presentsWithTransaction() && present && g.screenDrawable != (ca.MetalDrawable{}) {
 		g.cb.PresentDrawable(g.screenDrawable)
 	}
 	g.cb.Commit()
+	if g.view.presentsWithTransaction() && present && g.screenDrawable != (ca.MetalDrawable{}) {
+		g.cb.WaitUntilScheduled()
+		g.screenDrawable.Present()
+	}
 
 	for _, t := range g.tmpTextures {
 		t.Release()
@@ -407,19 +500,13 @@ func (g *Graphics) checkSize(width, height int) {
 }
 
 func (g *Graphics) genNextImageID() driver.ImageID {
-	id := g.nextImageID
 	g.nextImageID++
-	return id
-}
-
-func (g *Graphics) InvalidImageID() driver.ImageID {
-	return -1
+	return g.nextImageID
 }
 
 func (g *Graphics) genNextShaderID() driver.ShaderID {
-	id := g.nextShaderID
 	g.nextShaderID++
-	return id
+	return g.nextShaderID
 }
 
 func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
@@ -496,15 +583,20 @@ func operationToBlendFactor(c driver.Operation) mtl.BlendFactor {
 	}
 }
 
-func (g *Graphics) Reset() error {
-	if g.cq != (mtl.CommandQueue{}) {
-		g.cq.Release()
-		g.cq = mtl.CommandQueue{}
-	}
+func (g *Graphics) Initialize() error {
+	// Creating *State objects are expensive and reuse them whenever possible.
+	// See https://developer.apple.com/library/archive/documentation/Miscellaneous/Conceptual/MetalProgrammingGuide/Cmd-Submiss/Cmd-Submiss.html
 
 	// TODO: Release existing rpss
 	if g.rpss == nil {
 		g.rpss = map[rpsKey]mtl.RenderPipelineState{}
+	}
+
+	for _, dss := range g.dsss {
+		dss.Release()
+	}
+	if g.dsss == nil {
+		g.dsss = map[stencilMode]mtl.DepthStencilState{}
 	}
 
 	if err := g.view.reset(); err != nil {
@@ -550,6 +642,7 @@ func (g *Graphics) Reset() error {
 	rpld.ColorAttachments[0].DestinationRGBBlendFactor = mtl.BlendFactorZero
 	rpld.ColorAttachments[0].SourceAlphaBlendFactor = mtl.BlendFactorOne
 	rpld.ColorAttachments[0].SourceRGBBlendFactor = mtl.BlendFactorOne
+	rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskAll
 	rps, err := g.view.getMTLDevice().MakeRenderPipelineState(rpld)
 	if err != nil {
 		return err
@@ -568,87 +661,169 @@ func (g *Graphics) Reset() error {
 					driver.FilterLinear,
 				} {
 					for c := driver.CompositeModeSourceOver; c <= driver.CompositeModeMax; c++ {
-						cmi := 0
-						if cm {
-							cmi = 1
-						}
-						fs, err := lib.MakeFunction(fmt.Sprintf("FragmentShader_%d_%d_%d", cmi, f, a))
-						if err != nil {
-							return err
-						}
-						rpld := mtl.RenderPipelineDescriptor{
-							VertexFunction:   vs,
-							FragmentFunction: fs,
-						}
+						for _, stencil := range []stencilMode{
+							prepareStencil,
+							drawWithStencil,
+							noStencil,
+						} {
+							cmi := 0
+							if cm {
+								cmi = 1
+							}
+							fs, err := lib.MakeFunction(fmt.Sprintf("FragmentShader_%d_%d_%d", cmi, f, a))
+							if err != nil {
+								return err
+							}
+							rpld := mtl.RenderPipelineDescriptor{
+								VertexFunction:   vs,
+								FragmentFunction: fs,
+							}
+							if stencil != noStencil {
+								rpld.StencilAttachmentPixelFormat = mtl.PixelFormatStencil8
+							}
 
-						pix := mtl.PixelFormatRGBA8UNorm
-						if screen {
-							pix = g.view.colorPixelFormat()
-						}
-						rpld.ColorAttachments[0].PixelFormat = pix
-						rpld.ColorAttachments[0].BlendingEnabled = true
+							pix := mtl.PixelFormatRGBA8UNorm
+							if screen {
+								pix = g.view.colorPixelFormat()
+							}
+							rpld.ColorAttachments[0].PixelFormat = pix
+							rpld.ColorAttachments[0].BlendingEnabled = true
 
-						src, dst := c.Operations()
-						rpld.ColorAttachments[0].DestinationAlphaBlendFactor = operationToBlendFactor(dst)
-						rpld.ColorAttachments[0].DestinationRGBBlendFactor = operationToBlendFactor(dst)
-						rpld.ColorAttachments[0].SourceAlphaBlendFactor = operationToBlendFactor(src)
-						rpld.ColorAttachments[0].SourceRGBBlendFactor = operationToBlendFactor(src)
-						rps, err := g.view.getMTLDevice().MakeRenderPipelineState(rpld)
-						if err != nil {
-							return err
+							src, dst := c.Operations()
+							rpld.ColorAttachments[0].DestinationAlphaBlendFactor = operationToBlendFactor(dst)
+							rpld.ColorAttachments[0].DestinationRGBBlendFactor = operationToBlendFactor(dst)
+							rpld.ColorAttachments[0].SourceAlphaBlendFactor = operationToBlendFactor(src)
+							rpld.ColorAttachments[0].SourceRGBBlendFactor = operationToBlendFactor(src)
+							if stencil == prepareStencil {
+								rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskNone
+							} else {
+								rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskAll
+							}
+							rps, err := g.view.getMTLDevice().MakeRenderPipelineState(rpld)
+							if err != nil {
+								return err
+							}
+							g.rpss[rpsKey{
+								screen:        screen,
+								useColorM:     cm,
+								filter:        f,
+								address:       a,
+								compositeMode: c,
+								stencilMode:   stencil,
+							}] = rps
 						}
-						g.rpss[rpsKey{
-							screen:        screen,
-							useColorM:     cm,
-							filter:        f,
-							address:       a,
-							compositeMode: c,
-						}] = rps
 					}
 				}
 			}
 		}
 	}
 
+	// The stencil reference value is always 0 (default).
+	g.dsss[prepareStencil] = g.view.getMTLDevice().MakeDepthStencilState(mtl.DepthStencilDescriptor{
+		BackFaceStencil: mtl.StencilDescriptor{
+			StencilFailureOperation:   mtl.StencilOperationKeep,
+			DepthFailureOperation:     mtl.StencilOperationKeep,
+			DepthStencilPassOperation: mtl.StencilOperationInvert,
+			StencilCompareFunction:    mtl.CompareFunctionAlways,
+		},
+		FrontFaceStencil: mtl.StencilDescriptor{
+			StencilFailureOperation:   mtl.StencilOperationKeep,
+			DepthFailureOperation:     mtl.StencilOperationKeep,
+			DepthStencilPassOperation: mtl.StencilOperationInvert,
+			StencilCompareFunction:    mtl.CompareFunctionAlways,
+		},
+	})
+	g.dsss[drawWithStencil] = g.view.getMTLDevice().MakeDepthStencilState(mtl.DepthStencilDescriptor{
+		BackFaceStencil: mtl.StencilDescriptor{
+			StencilFailureOperation:   mtl.StencilOperationKeep,
+			DepthFailureOperation:     mtl.StencilOperationKeep,
+			DepthStencilPassOperation: mtl.StencilOperationKeep,
+			StencilCompareFunction:    mtl.CompareFunctionNotEqual,
+		},
+		FrontFaceStencil: mtl.StencilDescriptor{
+			StencilFailureOperation:   mtl.StencilOperationKeep,
+			DepthFailureOperation:     mtl.StencilOperationKeep,
+			DepthStencilPassOperation: mtl.StencilOperationKeep,
+			StencilCompareFunction:    mtl.CompareFunctionNotEqual,
+		},
+	})
+	g.dsss[noStencil] = g.view.getMTLDevice().MakeDepthStencilState(mtl.DepthStencilDescriptor{
+		BackFaceStencil: mtl.StencilDescriptor{
+			StencilFailureOperation:   mtl.StencilOperationKeep,
+			DepthFailureOperation:     mtl.StencilOperationKeep,
+			DepthStencilPassOperation: mtl.StencilOperationKeep,
+			StencilCompareFunction:    mtl.CompareFunctionAlways,
+		},
+		FrontFaceStencil: mtl.StencilDescriptor{
+			StencilFailureOperation:   mtl.StencilOperationKeep,
+			DepthFailureOperation:     mtl.StencilOperationKeep,
+			DepthStencilPassOperation: mtl.StencilOperationKeep,
+			StencilCompareFunction:    mtl.CompareFunctionAlways,
+		},
+	})
+
 	g.cq = g.view.getMTLDevice().MakeCommandQueue()
 	return nil
 }
 
-func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion driver.Region, srcs [graphics.ShaderImageNum]*Image, indexLen int, indexOffset int, uniforms []interface{}) error {
-	g.view.update()
+func (g *Graphics) flushRenderCommandEncoderIfNeeded() {
+	if g.rce == (mtl.RenderCommandEncoder{}) {
+		return
+	}
+	g.rce.EndEncoding()
+	g.rce = mtl.RenderCommandEncoder{}
+	g.lastDst = nil
+}
 
-	rpd := mtl.RenderPassDescriptor{}
-	// Even though the destination pixels are not used, mtl.LoadActionDontCare might cause glitches
-	// (#1019). Always using mtl.LoadActionLoad is safe.
-	rpd.ColorAttachments[0].LoadAction = mtl.LoadActionLoad
-	rpd.ColorAttachments[0].StoreAction = mtl.StoreActionStore
+func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion driver.Region, srcs [graphics.ShaderImageNum]*Image, indexLen int, indexOffset int, uniforms []driver.Uniform, stencilMode stencilMode) error {
+	// When prepareing a stencil buffer, flush the current render command encoder
+	// to make sure the stencil buffer is cleared when loading.
+	// TODO: What about clearing the stencil buffer by vertices?
+	if g.lastDst != dst || (g.lastStencilMode == noStencil) != (stencilMode == noStencil) || stencilMode == prepareStencil {
+		g.flushRenderCommandEncoderIfNeeded()
+	}
+	g.lastDst = dst
+	g.lastStencilMode = stencilMode
 
-	var t mtl.Texture
-	if dst.screen {
-		if g.screenDrawable == (ca.MetalDrawable{}) {
-			drawable := g.view.drawable()
-			if drawable == (ca.MetalDrawable{}) {
-				return nil
-			}
-			g.screenDrawable = drawable
+	if g.rce == (mtl.RenderCommandEncoder{}) {
+		rpd := mtl.RenderPassDescriptor{}
+		// Even though the destination pixels are not used, mtl.LoadActionDontCare might cause glitches
+		// (#1019). Always using mtl.LoadActionLoad is safe.
+		if dst.screen {
+			rpd.ColorAttachments[0].LoadAction = mtl.LoadActionClear
+		} else {
+			rpd.ColorAttachments[0].LoadAction = mtl.LoadActionLoad
 		}
-		t = g.screenDrawable.Texture()
-	} else {
-		t = dst.texture
-	}
-	rpd.ColorAttachments[0].Texture = t
-	rpd.ColorAttachments[0].ClearColor = mtl.ClearColor{}
 
-	if g.cb == (mtl.CommandBuffer{}) {
-		g.cb = g.cq.MakeCommandBuffer()
+		// The store action should always be 'store' even for the screen (#1700).
+		rpd.ColorAttachments[0].StoreAction = mtl.StoreActionStore
+
+		t := dst.mtlTexture()
+		if t == (mtl.Texture{}) {
+			return nil
+		}
+		rpd.ColorAttachments[0].Texture = t
+		rpd.ColorAttachments[0].ClearColor = mtl.ClearColor{}
+
+		if stencilMode == prepareStencil {
+			dst.ensureStencil()
+			rpd.StencilAttachment.LoadAction = mtl.LoadActionClear
+			rpd.StencilAttachment.StoreAction = mtl.StoreActionDontCare
+			rpd.StencilAttachment.Texture = dst.stencil
+		}
+
+		if g.cb == (mtl.CommandBuffer{}) {
+			g.cb = g.cq.MakeCommandBuffer()
+		}
+		g.rce = g.cb.MakeRenderCommandEncoder(rpd)
 	}
-	rce := g.cb.MakeRenderCommandEncoder(rpd)
-	rce.SetRenderPipelineState(rps)
+
+	g.rce.SetRenderPipelineState(rps)
 
 	// In Metal, the NDC's Y direction (upward) and the framebuffer's Y direction (downward) don't
 	// match. Then, the Y direction must be inverted.
 	w, h := dst.internalSize()
-	rce.SetViewport(mtl.Viewport{
+	g.rce.SetViewport(mtl.Viewport{
 		OriginX: 0,
 		OriginY: float64(h),
 		Width:   float64(w),
@@ -656,85 +831,202 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion drive
 		ZNear:   -1,
 		ZFar:    1,
 	})
-	rce.SetScissorRect(mtl.ScissorRect{
+	g.rce.SetScissorRect(mtl.ScissorRect{
 		X:      int(dstRegion.X),
 		Y:      int(dstRegion.Y),
 		Width:  int(dstRegion.Width),
 		Height: int(dstRegion.Height),
 	})
-	rce.SetVertexBuffer(g.vb, 0, 0)
+	g.rce.SetVertexBuffer(g.vb, 0, 0)
 
 	for i, u := range uniforms {
-		switch u := u.(type) {
-		case float32:
-			rce.SetVertexBytes(unsafe.Pointer(&u), unsafe.Sizeof(u), i+1)
-			rce.SetFragmentBytes(unsafe.Pointer(&u), unsafe.Sizeof(u), i+1)
-		case []float32:
-			rce.SetVertexBytes(unsafe.Pointer(&u[0]), unsafe.Sizeof(u[0])*uintptr(len(u)), i+1)
-			rce.SetFragmentBytes(unsafe.Pointer(&u[0]), unsafe.Sizeof(u[0])*uintptr(len(u)), i+1)
-		default:
-			return fmt.Errorf("metal: unexpected uniform value: %[1]v (type: %[1]T)", u)
+		if len(u.Float32s) == 0 {
+			v := u.Float32
+			g.rce.SetVertexBytes(unsafe.Pointer(&v), unsafe.Sizeof(v), i+1)
+			g.rce.SetFragmentBytes(unsafe.Pointer(&v), unsafe.Sizeof(v), i+1)
+		} else {
+			v := u.Float32s
+			g.rce.SetVertexBytes(unsafe.Pointer(&v[0]), unsafe.Sizeof(v[0])*uintptr(len(v)), i+1)
+			g.rce.SetFragmentBytes(unsafe.Pointer(&v[0]), unsafe.Sizeof(v[0])*uintptr(len(v)), i+1)
 		}
 	}
 
 	for i, src := range srcs {
 		if src != nil {
-			rce.SetFragmentTexture(src.texture, i)
+			g.rce.SetFragmentTexture(src.texture, i)
 		} else {
-			rce.SetFragmentTexture(mtl.Texture{}, i)
+			g.rce.SetFragmentTexture(mtl.Texture{}, i)
 		}
 	}
-	rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, indexLen, mtl.IndexTypeUInt16, g.ib, indexOffset*2)
-	rce.EndEncoding()
+
+	g.rce.SetDepthStencilState(g.dsss[stencilMode])
+
+	g.rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, indexLen, mtl.IndexTypeUInt16, g.ib, indexOffset*2)
+
 	return nil
 }
 
-func (g *Graphics) Draw(dstID, srcID driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region) error {
+func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM driver.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, uniforms []driver.Uniform, evenOdd bool) error {
 	dst := g.images[dstID]
 
-	srcs := [graphics.ShaderImageNum]*Image{g.images[srcID]}
+	if dst.screen {
+		g.view.update()
+	}
 
-	var rps mtl.RenderPipelineState
-	if dst.screen && filter == driver.FilterScreen {
-		rps = g.screenRPS
+	var srcs [graphics.ShaderImageNum]*Image
+	for i, srcID := range srcIDs {
+		srcs[i] = g.images[srcID]
+	}
+
+	rpss := map[stencilMode]mtl.RenderPipelineState{}
+	var uniformVars []driver.Uniform
+	if shaderID == driver.InvalidShaderID {
+		if dst.screen && filter == driver.FilterScreen {
+			rpss[noStencil] = g.screenRPS
+		} else {
+			for _, stencil := range []stencilMode{
+				prepareStencil,
+				drawWithStencil,
+				noStencil,
+			} {
+				rpss[stencil] = g.rpss[rpsKey{
+					screen:        dst.screen,
+					useColorM:     !colorM.IsIdentity(),
+					filter:        filter,
+					address:       address,
+					compositeMode: mode,
+					stencilMode:   stencil,
+				}]
+			}
+		}
+
+		w, h := dst.internalSize()
+		sourceSize := []float32{0, 0}
+		if filter != driver.FilterNearest {
+			w, h := srcs[0].internalSize()
+			sourceSize[0] = float32(w)
+			sourceSize[1] = float32(h)
+		}
+		var esBody [16]float32
+		var esTranslate [4]float32
+		colorM.Elements(&esBody, &esTranslate)
+		scale := float32(0)
+		if filter == driver.FilterScreen {
+			scale = float32(dst.width) / float32(srcs[0].width)
+		}
+		uniformVars = []driver.Uniform{
+			{
+				Float32s: []float32{float32(w), float32(h)},
+			},
+			{
+				Float32s: sourceSize,
+			},
+			{
+				Float32s: esBody[:],
+			},
+			{
+				Float32s: esTranslate[:],
+			},
+			{
+				Float32: scale,
+			},
+			{
+				Float32s: []float32{
+					srcRegion.X,
+					srcRegion.Y,
+					srcRegion.X + srcRegion.Width,
+					srcRegion.Y + srcRegion.Height,
+				},
+			},
+		}
 	} else {
-		rps = g.rpss[rpsKey{
-			screen:        dst.screen,
-			useColorM:     colorM != nil,
-			filter:        filter,
-			address:       address,
-			compositeMode: mode,
-		}]
+		for _, stencil := range []stencilMode{
+			prepareStencil,
+			drawWithStencil,
+			noStencil,
+		} {
+			var err error
+			rpss[stencil], err = g.shaders[shaderID].RenderPipelineState(g.view.getMTLDevice(), mode, stencil)
+			if err != nil {
+				return err
+			}
+		}
+
+		uniformVars = make([]driver.Uniform, graphics.PreservedUniformVariablesNum+len(uniforms))
+
+		// Set the destination texture size.
+		dw, dh := dst.internalSize()
+		uniformVars[graphics.DestinationTextureSizeUniformVariableIndex] = driver.Uniform{
+			Float32s: []float32{float32(dw), float32(dh)},
+		}
+
+		// Set the source texture sizes.
+		usizes := make([]float32, 2*len(srcs))
+		for i, src := range srcs {
+			if src != nil {
+				w, h := src.internalSize()
+				usizes[2*i] = float32(w)
+				usizes[2*i+1] = float32(h)
+			}
+		}
+		uniformVars[graphics.TextureSizesUniformVariableIndex] = driver.Uniform{
+			Float32s: usizes,
+		}
+
+		// Set the destination region's origin.
+		udorigin := []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
+		uniformVars[graphics.TextureDestinationRegionOriginUniformVariableIndex] = driver.Uniform{
+			Float32s: udorigin,
+		}
+
+		// Set the destination region's size.
+		udsize := []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
+		uniformVars[graphics.TextureDestinationRegionSizeUniformVariableIndex] = driver.Uniform{
+			Float32s: udsize,
+		}
+
+		// Set the source offsets.
+		uoffsets := make([]float32, 2*len(offsets))
+		for i, offset := range offsets {
+			uoffsets[2*i] = offset[0]
+			uoffsets[2*i+1] = offset[1]
+		}
+		uniformVars[graphics.TextureSourceOffsetsUniformVariableIndex] = driver.Uniform{
+			Float32s: uoffsets,
+		}
+
+		// Set the source region's origin of texture0.
+		usorigin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
+		uniformVars[graphics.TextureSourceRegionOriginUniformVariableIndex] = driver.Uniform{
+			Float32s: usorigin,
+		}
+
+		// Set the source region's size of texture0.
+		ussize := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
+		uniformVars[graphics.TextureSourceRegionSizeUniformVariableIndex] = driver.Uniform{
+			Float32s: ussize,
+		}
+
+		// Set the additional uniform variables.
+		for i, v := range uniforms {
+			const offset = graphics.PreservedUniformVariablesNum
+			uniformVars[offset+i] = v
+		}
 	}
 
-	w, h := dst.internalSize()
-	sourceSize := []float32{0, 0}
-	if filter != driver.FilterNearest {
-		w, h := srcs[0].internalSize()
-		sourceSize[0] = float32(w)
-		sourceSize[1] = float32(h)
+	if evenOdd {
+		if err := g.draw(rpss[prepareStencil], dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, prepareStencil); err != nil {
+			return err
+		}
+		if err := g.draw(rpss[drawWithStencil], dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, drawWithStencil); err != nil {
+			return err
+		}
+	} else {
+		if err := g.draw(rpss[noStencil], dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, noStencil); err != nil {
+			return err
+		}
 	}
-	esBody, esTranslate := colorM.UnsafeElements()
-	scale := float32(0)
-	if filter == driver.FilterScreen {
-		scale = float32(dst.width) / float32(srcs[0].width)
-	}
-	uniforms := []interface{}{
-		[]float32{float32(w), float32(h)},
-		sourceSize,
-		esBody,
-		esTranslate,
-		scale,
-		[]float32{
-			srcRegion.X,
-			srcRegion.Y,
-			srcRegion.X + srcRegion.Width,
-			srcRegion.Y + srcRegion.Height,
-		},
-	}
-	if err := g.draw(rps, dst, dstRegion, srcs, indexLen, indexOffset, uniforms); err != nil {
-		return err
-	}
+
 	return nil
 }
 
@@ -742,11 +1034,19 @@ func (g *Graphics) SetVsyncEnabled(enabled bool) {
 	g.view.setDisplaySyncEnabled(enabled)
 }
 
+func (g *Graphics) SetFullscreen(fullscreen bool) {
+	g.view.setFullscreen(fullscreen)
+}
+
 func (g *Graphics) FramebufferYDirection() driver.YDirection {
 	return driver.Downward
 }
 
 func (g *Graphics) NeedsRestoring() bool {
+	return false
+}
+
+func (g *Graphics) NeedsClearingScreen() bool {
 	return false
 }
 
@@ -759,33 +1059,35 @@ func (g *Graphics) HasHighPrecisionFloat() bool {
 }
 
 func (g *Graphics) MaxImageSize() int {
-	if g.maxImageSize == 0 {
+	if g.maxImageSize != 0 {
+		return g.maxImageSize
+	}
+
+	g.maxImageSize = 4096
+	// https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
+	switch {
+	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily5_v1):
+		g.maxImageSize = 16384
+	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily4_v1):
+		g.maxImageSize = 16384
+	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily3_v1):
+		g.maxImageSize = 16384
+	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v2):
+		g.maxImageSize = 8192
+	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v1):
 		g.maxImageSize = 4096
-		// https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
-		switch {
-		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily5_v1):
-			g.maxImageSize = 16384
-		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily4_v1):
-			g.maxImageSize = 16384
-		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily3_v1):
-			g.maxImageSize = 16384
-		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v2):
-			g.maxImageSize = 8192
-		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v1):
-			g.maxImageSize = 4096
-		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v2):
-			g.maxImageSize = 8192
-		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v1):
-			g.maxImageSize = 4096
-		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily2_v1):
-			g.maxImageSize = 16384
-		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily1_v1):
-			g.maxImageSize = 8192
-		case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_macOS_GPUFamily1_v1):
-			g.maxImageSize = 16384
-		default:
-			panic("metal: there is no supported feature set")
-		}
+	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v2):
+		g.maxImageSize = 8192
+	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v1):
+		g.maxImageSize = 4096
+	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily2_v1):
+		g.maxImageSize = 16384
+	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily1_v1):
+		g.maxImageSize = 8192
+	case g.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_macOS_GPUFamily1_v1):
+		g.maxImageSize = 16384
+	default:
+		panic("metal: there is no supported feature set")
 	}
 	return g.maxImageSize
 }
@@ -820,6 +1122,7 @@ type Image struct {
 	height   int
 	screen   bool
 	texture  mtl.Texture
+	stencil  mtl.Texture
 }
 
 func (i *Image) ID() driver.ImageID {
@@ -834,6 +1137,10 @@ func (i *Image) internalSize() (int, int) {
 }
 
 func (i *Image) Dispose() {
+	if i.stencil != (mtl.Texture{}) {
+		i.stencil.Release()
+		i.stencil = mtl.Texture{}
+	}
 	if i.texture != (mtl.Texture{}) {
 		i.texture.Release()
 		i.texture = mtl.Texture{}
@@ -849,6 +1156,8 @@ func (i *Image) IsInvalidated() bool {
 }
 
 func (i *Image) syncTexture() {
+	i.graphics.flushRenderCommandEncoderIfNeeded()
+
 	// Calling SynchronizeTexture is ignored on iOS (see mtl.m), but it looks like committing BlitCommandEncoder
 	// is necessary (#1337).
 	if i.graphics.cb != (mtl.CommandBuffer{}) {
@@ -877,6 +1186,8 @@ func (i *Image) Pixels() ([]byte, error) {
 
 func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	g := i.graphics
+
+	g.flushRenderCommandEncoderIfNeeded()
 
 	// Calculate the smallest texture size to include all the values in args.
 	minX := math.MaxInt32
@@ -935,68 +1246,35 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	bce.EndEncoding()
 }
 
-func (g *Graphics) DrawShader(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, dstRegion, srcRegion driver.Region, mode driver.CompositeMode, uniforms []interface{}) error {
-	dst := g.images[dstID]
-
-	var srcs [graphics.ShaderImageNum]*Image
-	for i, srcID := range srcIDs {
-		srcs[i] = g.images[srcID]
-	}
-
-	rps, err := g.shaders[shader].RenderPipelineState(g.view.getMTLDevice(), mode)
-	if err != nil {
-		return err
-	}
-
-	us := make([]interface{}, graphics.PreservedUniformVariablesNum+len(uniforms))
-
-	// Set the destination texture size.
-	dw, dh := dst.internalSize()
-	us[graphics.DestinationTextureSizeUniformVariableIndex] = []float32{float32(dw), float32(dh)}
-
-	// Set the source texture sizes.
-	usizes := make([]float32, 2*len(srcs))
-	for i, src := range srcs {
-		if src != nil {
-			w, h := src.internalSize()
-			usizes[2*i] = float32(w)
-			usizes[2*i+1] = float32(h)
+func (i *Image) mtlTexture() mtl.Texture {
+	if i.screen {
+		g := i.graphics
+		if g.screenDrawable == (ca.MetalDrawable{}) {
+			drawable := g.view.nextDrawable()
+			if drawable == (ca.MetalDrawable{}) {
+				return mtl.Texture{}
+			}
+			g.screenDrawable = drawable
+			// After nextDrawable, it is expected some command buffers are completed.
+			g.gcBuffers()
 		}
+		return g.screenDrawable.Texture()
 	}
-	us[graphics.TextureSizesUniformVariableIndex] = usizes
+	return i.texture
+}
 
-	// Set the destination region's origin.
-	udorigin := []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
-	us[graphics.TextureDestinationRegionOriginUniformVariableIndex] = udorigin
-
-	// Set the destination region's size.
-	udsize := []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
-	us[graphics.TextureDestinationRegionSizeUniformVariableIndex] = udsize
-
-	// Set the source offsets.
-	uoffsets := make([]float32, 2*len(offsets))
-	for i, offset := range offsets {
-		uoffsets[2*i] = offset[0]
-		uoffsets[2*i+1] = offset[1]
-	}
-	us[graphics.TextureSourceOffsetsUniformVariableIndex] = uoffsets
-
-	// Set the source region's origin of texture0.
-	usorigin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
-	us[graphics.TextureSourceRegionOriginUniformVariableIndex] = usorigin
-
-	// Set the source region's size of texture0.
-	ussize := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
-	us[graphics.TextureSourceRegionSizeUniformVariableIndex] = ussize
-
-	// Set the additional uniform variables.
-	for i, v := range uniforms {
-		const offset = graphics.PreservedUniformVariablesNum
-		us[offset+i] = v
+func (i *Image) ensureStencil() {
+	if i.stencil != (mtl.Texture{}) {
+		return
 	}
 
-	if err := g.draw(rps, dst, dstRegion, srcs, indexLen, indexOffset, us); err != nil {
-		return err
+	td := mtl.TextureDescriptor{
+		TextureType: mtl.TextureType2D,
+		PixelFormat: mtl.PixelFormatStencil8,
+		Width:       graphics.InternalImageSize(i.width),
+		Height:      graphics.InternalImageSize(i.height),
+		StorageMode: mtl.StorageModePrivate,
+		Usage:       mtl.TextureUsageRenderTarget,
 	}
-	return nil
+	i.stencil = i.graphics.view.getMTLDevice().MakeTexture(td)
 }

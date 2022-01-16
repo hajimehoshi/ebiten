@@ -17,11 +17,12 @@ package driver
 import (
 	"errors"
 	"image"
+	"time"
 )
 
 type UIContext interface {
-	Update() error
-	ForceUpdate() error
+	UpdateFrame() error
+	ForceUpdateFrame() error
 	Layout(outsideWidth, outsideHeight float64)
 
 	// AdjustPosition can be called from a different goroutine from Update's or Layout's.
@@ -54,12 +55,15 @@ type UI interface {
 	IsRunnableOnUnfocused() bool
 	SetRunnableOnUnfocused(runnableOnUnfocused bool)
 
-	IsVsyncEnabled() bool
-	SetVsyncEnabled(enabled bool)
+	FPSMode() FPSMode
+	SetFPSMode(mode FPSMode)
+	ScheduleFrame()
 
 	IsScreenTransparent() bool
 	SetScreenTransparent(transparent bool)
 	SetInitFocused(focused bool)
+
+	Vibrate(duration time.Duration, magnitude float64)
 
 	Input() Input
 	Window() Window
@@ -93,4 +97,16 @@ type Window interface {
 	SetIcon(iconImages []image.Image)
 	SetTitle(title string)
 	Restore()
+
+	IsBeingClosed() bool
+	SetClosingHandled(handled bool)
+	IsClosingHandled() bool
 }
+
+type FPSMode int
+
+const (
+	FPSModeVsyncOn FPSMode = iota
+	FPSModeVsyncOffMaximum
+	FPSModeVsyncOffMinimum
+)

@@ -12,22 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build darwin freebsd linux windows
-// +build !android
-// +build !ios
+//go:build !android && !js && !ios
+// +build !android,!js,!ios
 
 package glfw
 
 import (
 	"math"
 	"sync"
+	"time"
 	"unicode"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
-type gamePad struct {
+type gamepad struct {
 	valid         bool
 	guid          string
 	name          string
@@ -35,6 +36,8 @@ type gamePad struct {
 	axes          [16]float64
 	buttonNum     int
 	buttonPressed [256]bool
+	hatsNum       int
+	hats          [16]int
 }
 
 type Input struct {
@@ -45,7 +48,7 @@ type Input struct {
 	scrollY            float64
 	cursorX            int
 	cursorY            int
-	gamepads           [16]gamePad
+	gamepads           [16]gamepad
 	touches            map[driver.TouchID]pos // TODO: Implement this (#417)
 	runeBuffer         []rune
 	ui                 *UserInterface
@@ -66,20 +69,19 @@ func (i *Input) CursorPosition() (x, y int) {
 	return i.cursorX, i.cursorY
 }
 
-func (i *Input) GamepadIDs() []driver.GamepadID {
+func (i *Input) AppendGamepadIDs(gamepadIDs []driver.GamepadID) []driver.GamepadID {
 	if !i.ui.isRunning() {
 		return nil
 	}
 
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
-	r := make([]driver.GamepadID, 0, len(i.gamepads))
 	for id, g := range i.gamepads {
 		if g.valid {
-			r = append(r, driver.GamepadID(id))
+			gamepadIDs = append(gamepadIDs, driver.GamepadID(id))
 		}
 	}
-	return r
+	return gamepadIDs
 }
 
 func (i *Input) GamepadSDLID(id driver.GamepadID) string {
@@ -121,7 +123,7 @@ func (i *Input) GamepadAxisNum(id driver.GamepadID) int {
 	return i.gamepads[id].axisNum
 }
 
-func (i *Input) GamepadAxis(id driver.GamepadID, axis int) float64 {
+func (i *Input) GamepadAxisValue(id driver.GamepadID, axis int) float64 {
 	if !i.ui.isRunning() {
 		return 0
 	}
@@ -160,21 +162,17 @@ func (i *Input) IsGamepadButtonPressed(id driver.GamepadID, button driver.Gamepa
 	return i.gamepads[id].buttonPressed[button]
 }
 
-func (i *Input) TouchIDs() []driver.TouchID {
+func (i *Input) AppendTouchIDs(touchIDs []driver.TouchID) []driver.TouchID {
 	if !i.ui.isRunning() {
 		return nil
 	}
 
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
-	if len(i.touches) == 0 {
-		return nil
-	}
-	ids := make([]driver.TouchID, 0, len(i.touches))
 	for id := range i.touches {
-		ids = append(ids, id)
+		touchIDs = append(touchIDs, id)
 	}
-	return ids
+	return touchIDs
 }
 
 func (i *Input) TouchPosition(id driver.TouchID) (x, y int) {
@@ -192,16 +190,14 @@ func (i *Input) TouchPosition(id driver.TouchID) (x, y int) {
 	return 0, 0
 }
 
-func (i *Input) RuneBuffer() []rune {
+func (i *Input) AppendInputChars(runes []rune) []rune {
 	if !i.ui.isRunning() {
 		return nil
 	}
 
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
-	rs := make([]rune, len(i.runeBuffer))
-	copy(rs, i.runeBuffer)
-	return rs
+	return append(runes, i.runeBuffer...)
 }
 
 func (i *Input) resetForFrame() {
@@ -272,7 +268,7 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) {
 	defer i.ui.m.Unlock()
 
 	i.onceCallback.Do(func() {
-		window.SetCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
+		window.SetCharModsCallback(glfw.ToCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
 			// As this function is called from GLFW callbacks, the current thread is main.
 			if !unicode.IsPrint(char) {
 				return
@@ -281,14 +277,14 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) {
 			i.ui.m.Lock()
 			defer i.ui.m.Unlock()
 			i.runeBuffer = append(i.runeBuffer, char)
-		})
-		window.SetScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
+		}))
+		window.SetScrollCallback(glfw.ToScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
 			// As this function is called from GLFW callbacks, the current thread is main.
 			i.ui.m.Lock()
 			defer i.ui.m.Unlock()
 			i.scrollX = xoff
 			i.scrollY = yoff
-		})
+		}))
 	})
 	if i.keyPressed == nil {
 		i.keyPressed = map[glfw.Key]bool{}
@@ -304,9 +300,10 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) {
 	}
 	cx, cy := window.GetCursorPos()
 	// TODO: This is tricky. Rename the function?
-	s := i.ui.deviceScaleFactor()
-	cx = fromGLFWMonitorPixel(cx, s)
-	cy = fromGLFWMonitorPixel(cy, s)
+	m := i.ui.currentMonitor()
+	s := i.ui.deviceScaleFactor(m)
+	cx = i.ui.dipFromGLFWPixel(cx, m)
+	cy = i.ui.dipFromGLFWPixel(cy, m)
 	cx, cy = context.AdjustPosition(cx, cy, s)
 
 	// AdjustPosition can return NaN at the initialization.
@@ -350,8 +347,98 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) {
 			i.gamepads[id].axes[a] = float64(axes32[a])
 		}
 
+		hats := id.GetHats()
+		i.gamepads[id].hatsNum = len(hats)
+		for h := 0; h < len(i.gamepads[id].hats); h++ {
+			if len(hats) <= h {
+				i.gamepads[id].hats[h] = 0
+				continue
+			}
+			i.gamepads[id].hats[h] = int(hats[h])
+		}
+
 		// Note that GLFW's gamepad GUID follows SDL's GUID.
 		i.gamepads[id].guid = id.GetGUID()
 		i.gamepads[id].name = id.GetName()
 	}
+}
+
+func (i *Input) IsStandardGamepadLayoutAvailable(id driver.GamepadID) bool {
+	i.ui.m.Lock()
+	defer i.ui.m.Unlock()
+
+	if len(i.gamepads) <= int(id) {
+		return false
+	}
+	g := i.gamepads[int(id)]
+	return gamepaddb.HasStandardLayoutMapping(g.guid)
+}
+
+func (i *Input) StandardGamepadAxisValue(id driver.GamepadID, axis driver.StandardGamepadAxis) float64 {
+	i.ui.m.Lock()
+	defer i.ui.m.Unlock()
+
+	if len(i.gamepads) <= int(id) {
+		return 0
+	}
+	g := i.gamepads[int(id)]
+	return gamepaddb.AxisValue(g.guid, axis, gamepadState{&g})
+}
+
+func (i *Input) StandardGamepadButtonValue(id driver.GamepadID, button driver.StandardGamepadButton) float64 {
+	i.ui.m.Lock()
+	defer i.ui.m.Unlock()
+
+	if len(i.gamepads) <= int(id) {
+		return 0
+	}
+	g := i.gamepads[int(id)]
+	return gamepaddb.ButtonValue(g.guid, button, gamepadState{&g})
+}
+
+func (i *Input) IsStandardGamepadButtonPressed(id driver.GamepadID, button driver.StandardGamepadButton) bool {
+	i.ui.m.Lock()
+	defer i.ui.m.Unlock()
+
+	if len(i.gamepads) <= int(id) {
+		return false
+	}
+	g := i.gamepads[int(id)]
+	return gamepaddb.IsButtonPressed(g.guid, button, gamepadState{&g})
+}
+
+func (i *Input) VibrateGamepad(id driver.GamepadID, duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	// TODO: Implement this (#1452)
+}
+
+func init() {
+	// Confirm that all the hat state values are the same.
+	if gamepaddb.HatUp != glfw.HatUp {
+		panic("glfw: gamepaddb.HatUp must equal to glfw.HatUp but not")
+	}
+	if gamepaddb.HatRight != glfw.HatRight {
+		panic("glfw: gamepaddb.HatRight must equal to glfw.HatRight but not")
+	}
+	if gamepaddb.HatDown != glfw.HatDown {
+		panic("glfw: gamepaddb.HatDown must equal to glfw.HatDown but not")
+	}
+	if gamepaddb.HatLeft != glfw.HatLeft {
+		panic("glfw: gamepaddb.HatLeft must equal to glfw.HatLeft but not")
+	}
+}
+
+type gamepadState struct {
+	g *gamepad
+}
+
+func (s gamepadState) Axis(index int) float64 {
+	return s.g.axes[index]
+}
+
+func (s gamepadState) Button(index int) bool {
+	return s.g.buttonPressed[index]
+}
+
+func (s gamepadState) Hat(index int) int {
+	return s.g.hats[index]
 }

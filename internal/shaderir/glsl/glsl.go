@@ -19,6 +19,7 @@ import (
 	"go/constant"
 	"go/token"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -32,8 +33,18 @@ const (
 	GLSLVersionES300
 )
 
+// utilFunctions is GLSL utility functions for old GLSL versions.
+const utilFunctions = `int modInt(int x, int y) {
+	return x - y*(x/y);
+}`
+
 func VertexPrelude(version GLSLVersion) string {
-	if version == GLSLVersionES300 {
+	switch version {
+	case GLSLVersionDefault:
+		return utilFunctions
+	case GLSLVersionES100:
+		return utilFunctions
+	case GLSLVersionES300:
 		return `#version 300 es`
 	}
 	return ""
@@ -47,13 +58,17 @@ func FragmentPrelude(version GLSLVersion) string {
 	case GLSLVersionES300:
 		prefix = `#version 300 es` + "\n\n"
 	}
-	return prefix + `#if defined(GL_ES)
+	prelude := prefix + `#if defined(GL_ES)
 precision highp float;
 #else
 #define lowp
 #define mediump
 #define highp
 #endif`
+	if version == GLSLVersionDefault || version == GLSLVersionES100 {
+		prelude += "\n\n" + utilFunctions
+	}
+	return prelude
 }
 
 type compileContext struct {
@@ -82,11 +97,17 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 		structNames: map[string]string{},
 	}
 
+	indexToFunc := map[int]*shaderir.Func{}
+	for _, f := range p.Funcs {
+		f := f
+		indexToFunc[f.Index] = &f
+	}
+
 	// Vertex func
 	var vslines []string
 	{
 		vslines = append(vslines, strings.Split(VertexPrelude(version), "\n")...)
-		vslines = append(vslines, "{{.Structs}}")
+		vslines = append(vslines, "", "{{.Structs}}")
 		if len(p.Uniforms) > 0 || p.TextureNum > 0 || len(p.Attributes) > 0 || len(p.Varyings) > 0 {
 			vslines = append(vslines, "")
 			for i, t := range p.Uniforms {
@@ -110,22 +131,75 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 				vslines = append(vslines, fmt.Sprintf("%s %s;", keyword, c.glslVarDecl(p, &t, fmt.Sprintf("V%d", i))))
 			}
 		}
-		if len(p.Funcs) > 0 {
-			vslines = append(vslines, "")
-			for _, f := range p.Funcs {
-				vslines = append(vslines, c.glslFunc(p, &f, true)...)
+
+		var funcs []*shaderir.Func
+		if p.VertexFunc.Block != nil {
+			indices := p.ReferredFuncIndicesInVertexShader()
+			sort.Ints(indices)
+			funcs = make([]*shaderir.Func, 0, len(indices))
+			for _, idx := range indices {
+				funcs = append(funcs, indexToFunc[idx])
 			}
+		} else {
+			// When a vertex entry point is not defined, allow to put all the functions. This is useful for testing.
+			funcs = make([]*shaderir.Func, 0, len(p.Funcs))
 			for _, f := range p.Funcs {
+				f := f
+				funcs = append(funcs, &f)
+			}
+		}
+		if len(funcs) > 0 {
+			vslines = append(vslines, "")
+			for _, f := range funcs {
+				vslines = append(vslines, c.glslFunc(p, f, true)...)
+			}
+			for _, f := range funcs {
 				if len(vslines) > 0 && vslines[len(vslines)-1] != "" {
 					vslines = append(vslines, "")
 				}
-				vslines = append(vslines, c.glslFunc(p, &f, false)...)
+				vslines = append(vslines, c.glslFunc(p, f, false)...)
 			}
 		}
 
+		// Add a dummy function to just touch uniform array variable's elements (#1754).
+		// Without this, the first elements of a uniform array might not be initialized correctly on some environments.
+		var touchedUniforms []string
+		for i, t := range p.Uniforms {
+			if t.Main != shaderir.Array {
+				continue
+			}
+			if t.Length <= 1 {
+				continue
+			}
+			str := fmt.Sprintf("U%d[%d]", i, t.Length-1)
+			switch t.Sub[0].Main {
+			case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
+				str += ".x"
+			case shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
+				str += "[0][0]"
+			}
+			str = "float(" + str + ")"
+			touchedUniforms = append(touchedUniforms, str)
+		}
+
+		var touchUniformsFunc []string
+		if len(touchedUniforms) > 0 {
+			touchUniformsFunc = append(touchUniformsFunc, "float touchUniforms() {")
+			touchUniformsFunc = append(touchUniformsFunc, fmt.Sprintf("\treturn %s;", strings.Join(touchedUniforms, " + ")))
+			touchUniformsFunc = append(touchUniformsFunc, "}")
+
+		}
+
 		if p.VertexFunc.Block != nil && len(p.VertexFunc.Block.Stmts) > 0 {
+			if len(touchUniformsFunc) > 0 {
+				vslines = append(vslines, "")
+				vslines = append(vslines, touchUniformsFunc...)
+			}
 			vslines = append(vslines, "")
 			vslines = append(vslines, "void main(void) {")
+			if len(touchUniformsFunc) > 0 {
+				vslines = append(vslines, "\ttouchUniforms();")
+			}
 			vslines = append(vslines, c.glslBlock(p, p.VertexFunc.Block, p.VertexFunc.Block, 0)...)
 			vslines = append(vslines, "}")
 		}
@@ -156,16 +230,32 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 			fslines = append(fslines, "out vec4 fragColor;")
 		}
 
-		if len(p.Funcs) > 0 {
-			fslines = append(fslines, "")
-			for _, f := range p.Funcs {
-				fslines = append(fslines, c.glslFunc(p, &f, true)...)
+		var funcs []*shaderir.Func
+		if p.VertexFunc.Block != nil {
+			indices := p.ReferredFuncIndicesInFragmentShader()
+			sort.Ints(indices)
+			funcs = make([]*shaderir.Func, 0, len(indices))
+			for _, idx := range indices {
+				funcs = append(funcs, indexToFunc[idx])
 			}
+		} else {
+			// When a fragment entry point is not defined, allow to put all the functions. This is useful for testing.
+			funcs = make([]*shaderir.Func, 0, len(p.Funcs))
 			for _, f := range p.Funcs {
+				f := f
+				funcs = append(funcs, &f)
+			}
+		}
+		if len(funcs) > 0 {
+			fslines = append(fslines, "")
+			for _, f := range funcs {
+				fslines = append(fslines, c.glslFunc(p, f, true)...)
+			}
+			for _, f := range funcs {
 				if len(fslines) > 0 && fslines[len(fslines)-1] != "" {
 					fslines = append(fslines, "")
 				}
-				fslines = append(fslines, c.glslFunc(p, &f, false)...)
+				fslines = append(fslines, c.glslFunc(p, f, false)...)
 			}
 		}
 
@@ -420,6 +510,10 @@ func (c *compileContext) glslBlock(p *shaderir.Program, topBlock, block *shaderi
 			}
 			return fmt.Sprintf("%s(%s)", op, glslExpr(&e.Exprs[0]))
 		case shaderir.Binary:
+			if e.Op == shaderir.ModOp && (c.version == GLSLVersionDefault || c.version == GLSLVersionES100) {
+				// '%' is not defined.
+				return fmt.Sprintf("modInt((%s), (%s))", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]))
+			}
 			return fmt.Sprintf("(%s) %s (%s)", glslExpr(&e.Exprs[0]), e.Op, glslExpr(&e.Exprs[1]))
 		case shaderir.Selection:
 			return fmt.Sprintf("(%s) ? (%s) : (%s)", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]), glslExpr(&e.Exprs[2]))

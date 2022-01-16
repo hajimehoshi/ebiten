@@ -19,6 +19,7 @@ import (
 	"image"
 	"image/color"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
@@ -89,20 +90,17 @@ func init() {
 //
 // When the image is disposed, Fill does nothing.
 func (i *Image) Fill(clr color.Color) {
-	w, h := i.Size()
+	// Use the original size to cover the entire region (#1691).
+	// DrawImage automatically clips the rendering region.
+	orig := i
+	if i.isSubImage() {
+		orig = i.original
+	}
+	w, h := orig.Size()
 
 	op := &DrawImageOptions{}
 	op.GeoM.Scale(float64(w), float64(h))
-
-	r, g, b, a := clr.RGBA()
-	var rf, gf, bf, af float64
-	if a > 0 {
-		rf = float64(r) / float64(a)
-		gf = float64(g) / float64(a)
-		bf = float64(b) / float64(a)
-		af = float64(a) / 0xffff
-	}
-	op.ColorM.Scale(rf, gf, bf, af)
+	op.ColorM.ScaleWithColor(clr)
 	op.CompositeMode = CompositeModeCopy
 
 	i.DrawImage(emptySubImage, op)
@@ -164,9 +162,9 @@ type DrawImageOptions struct {
 // be used in really rare cases. Ebiten images usually share an internal
 // automatic texture atlas, but when you consume the atlas, or you create a huge
 // image, those images cannot be on the same texture atlas. In this case, draw
-// commands are separated. The texture atlas size is 4096x4096 so far. Another
-// case is when you use an offscreen as a render source. An offscreen doesn't
-// share the texture atlas with high probability.
+// commands are separated.
+// Another case is when you use an offscreen as a render source. An offscreen
+// doesn't share the texture atlas with high probability.
 //
 // For more performance tips, see https://ebiten.org/documents/performancetips.html
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
@@ -207,7 +205,8 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	is := graphics.QuadIndices()
 
 	srcs := [graphics.ShaderImageNum]*mipmap.Mipmap{img.mipmap}
-	i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, driver.AddressUnsafe, dstRegion, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, canSkipMipmap(options.GeoM, filter))
+
+	i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.affineColorM(), mode, filter, driver.AddressUnsafe, dstRegion, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false, canSkipMipmap(options.GeoM, filter))
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -245,6 +244,18 @@ const (
 	AddressRepeat Address = Address(driver.AddressRepeat)
 )
 
+// FillRule is the rule whether an overlapped region is rendered with DrawTriangles(Shader).
+type FillRule int
+
+const (
+	// FillAll indicates all the triangles are rendered regardless of overlaps.
+	FillAll FillRule = iota
+
+	// EvenOdd means that triangles are rendered based on the even-odd rule.
+	// If and only if the number of overlappings is odd, the region is rendered.
+	EvenOdd
+)
+
 // DrawTrianglesOptions represents options for DrawTriangles.
 type DrawTrianglesOptions struct {
 	// ColorM is a color matrix to draw.
@@ -265,6 +276,15 @@ type DrawTrianglesOptions struct {
 	// Address is a sampler address mode.
 	// The default (zero) value is AddressUnsafe.
 	Address Address
+
+	// FillRule indicates the rule how an overlapped region is rendered.
+	//
+	// The rule EvenOdd is useful when you want to render a complex polygon.
+	// A complex polygon is a non-convex polygon like a concave polygon, a polygon with holes, or a self-intersecting polygon.
+	// See examples/vector for actual usages.
+	//
+	// The default (zero) value is FillAll.
+	FillRule FillRule
 }
 
 // MaxIndicesNum is the maximum number of indices for DrawTriangles.
@@ -343,7 +363,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	srcs := [graphics.ShaderImageNum]*mipmap.Mipmap{img.mipmap}
 
-	i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.impl, mode, filter, address, dstRegion, sr, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+	i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.affineColorM(), mode, filter, address, dstRegion, sr, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, options.FillRule == EvenOdd, false)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
@@ -365,6 +385,15 @@ type DrawTrianglesShaderOptions struct {
 	// Images is a set of the source images.
 	// All the image must be the same size.
 	Images [4]*Image
+
+	// FillRule indicates the rule how an overlapped region is rendered.
+	//
+	// The rule EvenOdd is useful when you want to render a complex polygon.
+	// A complex polygon is a non-convex polygon like a concave polygon, a polygon with holes, or a self-intersecting polygon.
+	// See examples/vector for actual usages.
+	//
+	// The default (zero) value is FillAll.
+	FillRule FillRule
 }
 
 func init() {
@@ -437,7 +466,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 			continue
 		}
 		if img.isDisposed() {
-			panic("ebiten: the given image to DrawRectShader must not be disposed")
+			panic("ebiten: the given image to DrawTrianglesShader must not be disposed")
 		}
 		if i == 0 {
 			imgw, imgh = img.Size()
@@ -479,7 +508,8 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	}
 
 	us := shader.convertUniforms(options.Uniforms)
-	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, us, false)
+
+	i.mipmap.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, driver.FilterNearest, driver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, us, options.FillRule == EvenOdd, false)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
@@ -591,7 +621,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	}
 
 	us := shader.convertUniforms(options.Uniforms)
-	i.mipmap.DrawTriangles(imgs, vs, is, nil, mode, driver.FilterNearest, driver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, us, canSkipMipmap(options.GeoM, driver.FilterNearest))
+	i.mipmap.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, driver.FilterNearest, driver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, us, false, canSkipMipmap(options.GeoM, driver.FilterNearest))
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.
@@ -601,7 +631,9 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 //
 // If the image is disposed, SubImage returns nil.
 //
-// In the current Ebiten implementation, SubImage is available only as a rendering source.
+// A sub-image returned by SubImage can be used as a rendering source and a rendering destination.
+// If a sub-image is used as a rendering source, the image is used as if it is a small image.
+// If a sub-image is used as a rendering destination, the region being rendered is clipped.
 func (i *Image) SubImage(r image.Rectangle) image.Image {
 	i.copyCheck()
 	if i.isDisposed() {
@@ -654,11 +686,32 @@ func (i *Image) ColorModel() color.Model {
 //
 // At can't be called outside the main loop (ebiten.Run's updating function) starts.
 func (i *Image) At(x, y int) color.Color {
+	r, g, b, a := i.at(x, y)
+	return color.RGBA{r, g, b, a}
+}
+
+// RGBA64At implements image.RGBA64Image's RGBA64At.
+//
+// RGBA64At loads pixels from GPU to system memory if necessary, which means
+// that RGBA64At can be slow.
+//
+// RGBA64At always returns a transparent color if the image is disposed.
+//
+// Note that an important logic should not rely on values returned by RGBA64At,
+// since the returned values can include very slight differences between some machines.
+//
+// RGBA64At can't be called outside the main loop (ebiten.Run's updating function) starts.
+func (i *Image) RGBA64At(x, y int) color.RGBA64 {
+	r, g, b, a := i.at(x, y)
+	return color.RGBA64{uint16(r) * 0x101, uint16(g) * 0x101, uint16(b) * 0x101, uint16(a) * 0x101}
+}
+
+func (i *Image) at(x, y int) (r, g, b, a uint8) {
 	if i.isDisposed() {
-		return color.RGBA{}
+		return 0, 0, 0, 0
 	}
 	if !image.Pt(x, y).In(i.Bounds()) {
-		return color.RGBA{}
+		return 0, 0, 0, 0
 	}
 	pix, err := i.mipmap.Pixels(x, y, 1, 1)
 	if err != nil {
@@ -666,9 +719,9 @@ func (i *Image) At(x, y int) color.Color {
 			panic(err)
 		}
 		theUIContext.setError(err)
-		return color.RGBA{}
+		return 0, 0, 0, 0
 	}
-	return color.RGBA{pix[0], pix[1], pix[2], pix[3]}
+	return pix[0], pix[1], pix[2], pix[3]
 }
 
 // Set sets the color at (x, y).
@@ -749,6 +802,10 @@ func (i *Image) ReplacePixels(pixels []byte) {
 //
 // If width or height is less than 1 or more than device-dependent maximum size, NewImage panics.
 //
+// NewImage should be called only when necessary.
+// For example, you should avoid to call NewImage every Update or Draw call.
+// Reusing the same image by Clear is much more efficient than creating a new image.
+//
 // NewImage panics if RunGame already finishes.
 func NewImage(width, height int) *Image {
 	if isRunGameEnded() {
@@ -771,6 +828,10 @@ func NewImage(width, height int) *Image {
 // NewImageFromImage creates a new image with the given image (source).
 //
 // If source's width or height is less than 1 or more than device-dependent maximum size, NewImageFromImage panics.
+//
+// NewImageFromImage should be called only when necessary.
+// For example, you should avoid to call NewImageFromImage every Update or Draw call.
+// Reusing the same image by Clear is much more efficient than creating a new image.
 //
 // NewImageFromImage panics if RunGame already finishes.
 func NewImageFromImage(source image.Image) *Image {

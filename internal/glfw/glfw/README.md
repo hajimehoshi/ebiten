@@ -1,6 +1,8 @@
 These files are basically copy of github.com/v3.3/glfw/glfw.
 
-There is one change from the original files: `GLFWscrollfun` takes pointers instead of values since all arguments of C functions have to be 32bit on 32bit Windows machine.
+There are some changes from the original files.
+
+`GLFWscrollfun` takes pointers instead of values since all arguments of C functions have to be 32bit on 32bit Windows machine.
 
 ```diff
 diff --git a/tmp/glfw-3.3.3/include/GLFW/glfw3.h b/./internal/glfw/glfw/include/GLFW/glfw3.h
@@ -32,4 +34,40 @@ index 337d5cf0..4ac555cb 100644
  }
 
  // Notifies shared code of a mouse button click event
+```
+
+A fullscreened window doesn't float (#1506, glfw/glfw#1967).
+
+```diff
+diff --git a/tmp/glfw-3.3.4/src/win32_window.c b/./internal/glfw/glfw/src/win32_window.c
+index d17b6da4..17e2f842 100644
+--- a/tmp/glfw-3.3.4/src/win32_window.c
++++ b/./internal/glfw/glfw/src/win32_window.c
+@@ -68,7 +68,7 @@ static DWORD getWindowExStyle(const _GLFWwindow* window)
+ {
+     DWORD style = WS_EX_APPWINDOW;
+ 
+-    if (window->monitor || window->floating)
++    if (window->floating)
+         style |= WS_EX_TOPMOST;
+ 
+     return style;
+@@ -436,7 +436,7 @@ static void fitToMonitor(_GLFWwindow* window)
+ {
+     MONITORINFO mi = { sizeof(mi) };
+     GetMonitorInfo(window->monitor->win32.handle, &mi);
+-    SetWindowPos(window->win32.handle, HWND_TOPMOST,
++    SetWindowPos(window->win32.handle, window->floating ? HWND_TOPMOST : HWND_NOTOPMOST,
+                  mi.rcMonitor.left,
+                  mi.rcMonitor.top,
+                  mi.rcMonitor.right - mi.rcMonitor.left,
+@@ -1756,7 +1756,7 @@ void _glfwPlatformSetWindowMonitor(_GLFWwindow* window,
+         acquireMonitor(window);
+ 
+         GetMonitorInfo(window->monitor->win32.handle, &mi);
+-        SetWindowPos(window->win32.handle, HWND_TOPMOST,
++        SetWindowPos(window->win32.handle, window->floating ? HWND_TOPMOST : HWND_NOTOPMOST,
+                      mi.rcMonitor.left,
+                      mi.rcMonitor.top,
+                      mi.rcMonitor.right - mi.rcMonitor.left,
 ```

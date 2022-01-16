@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build example
 // +build example
 
 // This demo is inspired by the xscreensaver 'squirals'.
@@ -77,10 +78,7 @@ var (
 			},
 		},
 	}
-	selectedPalette = 0
-	colorCycle      = 0
-	canvas          = ebiten.NewImage(width, height)
-	auto            *automaton
+
 	// blocker is an arbitrary color used to prevent the
 	// squirals from leaving the canvas.
 	blocker = color.RGBA{0, 0, 0, 254}
@@ -129,7 +127,7 @@ type squiral struct {
 	dead  bool
 }
 
-func (s *squiral) spawn() {
+func (s *squiral) spawn(game *Game) {
 	s.dead = false
 
 	rx := rand.Intn(width-4) + 2
@@ -138,7 +136,7 @@ func (s *squiral) spawn() {
 	for dx := -2; dx <= 2; dx++ {
 		for dy := -2; dy <= 2; dy++ {
 			tx, ty := rx+dx, ry+dy
-			if auto.colorMap[tx][ty] != background {
+			if game.auto.colorMap[tx][ty] != background {
 				s.dead = true
 				return
 			}
@@ -150,13 +148,13 @@ func (s *squiral) spawn() {
 	s.pos.y = ry
 	s.dir = rand.Intn(4)
 
-	colorCycle = (colorCycle + 1) % len(palettes[selectedPalette].colors)
-	s.col = palettes[selectedPalette].colors[colorCycle]
+	game.colorCycle = (game.colorCycle + 1) % len(palettes[game.selectedPalette].colors)
+	s.col = palettes[game.selectedPalette].colors[game.colorCycle]
 
 	s.rot = rand.Intn(2)
 }
 
-func (s *squiral) step(debug int) {
+func (s *squiral) step(game *Game) {
 	if s.dead {
 		return
 	}
@@ -178,7 +176,7 @@ func (s *squiral) step(debug int) {
 			x: x + off.x,
 			y: y + off.y,
 		}
-		if auto.colorMap[target.x][target.y] == background {
+		if game.auto.colorMap[target.x][target.y] == background {
 			// If the target is free we need to also check the
 			// surrounding cells.
 
@@ -188,7 +186,7 @@ func (s *squiral) step(debug int) {
 				x: target.x + off.x,
 				y: target.y + off.y,
 			}
-			if auto.colorMap[ntarg.x][ntarg.y] == s.col {
+			if game.auto.colorMap[ntarg.x][ntarg.y] == s.col {
 				// If this has the same color, we cannot go into this direction,
 				// to avoid ugly blocks of equal color.
 				continue // try next direction
@@ -205,7 +203,7 @@ func (s *squiral) step(debug int) {
 
 				// If one of the outer targets equals the squiral's
 				// color, again continue with next direction.
-				if auto.colorMap[xtarg.x][xtarg.y] == s.col {
+				if game.auto.colorMap[xtarg.x][xtarg.y] == s.col {
 					// If this is not free we cannot go into this direction.
 					set = false
 					break // try next direction
@@ -216,7 +214,7 @@ func (s *squiral) step(debug int) {
 
 				// If one of the outer targets equals the squiral's
 				// color, again continue with next direction.
-				if auto.colorMap[xtarg.x][xtarg.y] == s.col {
+				if game.auto.colorMap[xtarg.x][xtarg.y] == s.col {
 					// If this is not free we cannot go into this direction.
 					set = false
 					break // try next direction
@@ -228,7 +226,7 @@ func (s *squiral) step(debug int) {
 				s.dir = dir
 				// 2. set the color of this squiral to its
 				// current position.
-				setpix(s.pos, s.col)
+				game.setpix(s.pos, s.col)
 				return
 			}
 		}
@@ -242,50 +240,60 @@ type automaton struct {
 	colorMap [width][height]color.Color
 }
 
-func (au *automaton) init() {
+func (au *automaton) init(game *Game) {
 	// Init the test grid with color (0,0,0,0) and the borders of
 	// it with color(0,0,0,254) as a blocker color, so the squirals
 	// cannot escape the scene.
 	for x := 0; x < width; x++ {
 		for y := 0; y < height; y++ {
 			if x == 0 || x == width-1 || y == 0 || y == height-1 {
-				auto.colorMap[x][y] = blocker
+				au.colorMap[x][y] = blocker
 			} else {
-				auto.colorMap[x][y] = background
+				au.colorMap[x][y] = background
 			}
 		}
 	}
 
 	for i := 0; i < numOfSquirals; i++ {
-		auto.squirals[i].spawn()
+		au.squirals[i].spawn(game)
 	}
 }
 
-func (au *automaton) step() {
+func (a *automaton) step(game *Game) {
 	for i := 0; i < numOfSquirals; i++ {
-		for s := 0; s < au.squirals[i].speed; s++ {
-			au.squirals[i].step(i)
-			if au.squirals[i].dead {
-				au.squirals[i].spawn()
+		for s := 0; s < a.squirals[i].speed; s++ {
+			a.squirals[i].step(game)
+			if a.squirals[i].dead {
+				a.squirals[i].spawn(game)
 			}
 		}
 	}
-}
-
-func setpix(xy vec2, col color.Color) {
-	canvas.Set(xy.x, xy.y, col)
-	auto.colorMap[xy.x][xy.y] = col
 }
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
-	canvas.Fill(background)
-
-	auto = &automaton{}
-	auto.init()
 }
 
-type Game struct{}
+type Game struct {
+	selectedPalette int
+	colorCycle      int
+	canvas          *ebiten.Image
+	auto            automaton
+}
+
+func NewGame() *Game {
+	g := &Game{
+		canvas: ebiten.NewImage(width, height),
+	}
+	g.canvas.Fill(background)
+	g.auto.init(g)
+	return g
+}
+
+func (g *Game) setpix(xy vec2, col color.Color) {
+	g.canvas.Set(xy.x, xy.y, col)
+	g.auto.colorMap[xy.x][xy.y] = col
+}
 
 func (g *Game) Update() error {
 	reset := false
@@ -298,24 +306,24 @@ func (g *Game) Update() error {
 		}
 		reset = true
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyT) {
-		selectedPalette = (selectedPalette + 1) % len(palettes)
+		g.selectedPalette = (g.selectedPalette + 1) % len(palettes)
 		reset = true
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyR) {
 		reset = true
 	}
 
 	if reset {
-		canvas.Fill(background)
-		auto.init()
+		g.canvas.Fill(background)
+		g.auto.init(g)
 	}
 
-	auto.step()
+	g.auto.step(g)
 
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	screen.DrawImage(canvas, nil)
+	screen.DrawImage(g.canvas, nil)
 	ebitenutil.DebugPrintAt(
 		screen,
 		fmt.Sprintf("TPS: %0.2f, FPS: %0.2f", ebiten.CurrentTPS(), ebiten.CurrentFPS()),
@@ -333,7 +341,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	)
 	ebitenutil.DebugPrintAt(
 		screen,
-		fmt.Sprintf("[t]: cycle theme (current: %s)", palettes[selectedPalette].name),
+		fmt.Sprintf("[t]: cycle theme (current: %s)", palettes[g.selectedPalette].name),
 		1, 48,
 	)
 }
@@ -346,7 +354,7 @@ func main() {
 	ebiten.SetMaxTPS(250)
 	ebiten.SetWindowSize(width*scale, height*scale)
 	ebiten.SetWindowTitle("Squirals (Ebiten Demo)")
-	if err := ebiten.RunGame(&Game{}); err != nil {
+	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}
 }

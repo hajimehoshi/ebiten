@@ -39,6 +39,23 @@ var virtualGamepadButtons = []virtualGamepadButton{
 	virtualGamepadButtonButtonB,
 }
 
+func (v virtualGamepadButton) StandardGamepadButton() ebiten.StandardGamepadButton {
+	switch v {
+	case virtualGamepadButtonLeft:
+		return ebiten.StandardGamepadButtonLeftLeft
+	case virtualGamepadButtonRight:
+		return ebiten.StandardGamepadButtonLeftRight
+	case virtualGamepadButtonDown:
+		return ebiten.StandardGamepadButtonLeftBottom
+	case virtualGamepadButtonButtonA:
+		return ebiten.StandardGamepadButtonRightBottom
+	case virtualGamepadButtonButtonB:
+		return ebiten.StandardGamepadButtonRightRight
+	default:
+		panic("not reached")
+	}
+}
+
 const axisThreshold = 0.75
 
 type axis struct {
@@ -64,13 +81,26 @@ func (c *gamepadConfig) SetGamepadID(id ebiten.GamepadID) {
 	c.gamepadIDInitialized = true
 }
 
-func (c *gamepadConfig) IsInitialized() bool {
+func (c *gamepadConfig) ResetGamepadID() {
+	c.gamepadID = 0
+	c.gamepadIDInitialized = false
+}
+
+func (c *gamepadConfig) IsGamepadIDInitialized() bool {
 	return c.gamepadIDInitialized
+}
+
+func (c *gamepadConfig) NeedsConfiguration() bool {
+	return !ebiten.IsStandardGamepadLayoutAvailable(c.gamepadID)
 }
 
 func (c *gamepadConfig) initializeIfNeeded() {
 	if !c.gamepadIDInitialized {
 		panic("not reached")
+	}
+
+	if ebiten.IsStandardGamepadLayoutAvailable(c.gamepadID) {
+		return
 	}
 
 	if c.buttons == nil {
@@ -95,15 +125,12 @@ func (c *gamepadConfig) initializeIfNeeded() {
 		c.defaultAxesValues = map[int]float64{}
 		na := ebiten.GamepadAxisNum(c.gamepadID)
 		for a := 0; a < na; a++ {
-			c.defaultAxesValues[a] = ebiten.GamepadAxis(c.gamepadID, a)
+			c.defaultAxesValues[a] = ebiten.GamepadAxisValue(c.gamepadID, a)
 		}
 	}
 }
 
 func (c *gamepadConfig) Reset() {
-	c.gamepadID = 0
-	c.gamepadIDInitialized = false
-
 	c.buttons = nil
 	c.axes = nil
 	c.assignedButtons = nil
@@ -136,7 +163,7 @@ func (c *gamepadConfig) Scan(b virtualGamepadButton) bool {
 
 	na := ebiten.GamepadAxisNum(c.gamepadID)
 	for a := 0; a < na; a++ {
-		v := ebiten.GamepadAxis(c.gamepadID, a)
+		v := ebiten.GamepadAxisValue(c.gamepadID, a)
 		const delta = 0.25
 
 		// Check |v| < 1.0 because there is a bug that a button returns
@@ -168,6 +195,23 @@ func (c *gamepadConfig) IsButtonPressed(b virtualGamepadButton) bool {
 		panic("not reached")
 	}
 
+	if ebiten.IsStandardGamepadLayoutAvailable(c.gamepadID) {
+		if ebiten.IsStandardGamepadButtonPressed(c.gamepadID, b.StandardGamepadButton()) {
+			return true
+		}
+
+		const threshold = 0.7
+		switch b {
+		case virtualGamepadButtonLeft:
+			return ebiten.StandardGamepadAxisValue(c.gamepadID, ebiten.StandardGamepadAxisLeftStickHorizontal) < -threshold
+		case virtualGamepadButtonRight:
+			return ebiten.StandardGamepadAxisValue(c.gamepadID, ebiten.StandardGamepadAxisLeftStickHorizontal) > threshold
+		case virtualGamepadButtonDown:
+			return ebiten.StandardGamepadAxisValue(c.gamepadID, ebiten.StandardGamepadAxisLeftStickVertical) > threshold
+		}
+		return false
+	}
+
 	c.initializeIfNeeded()
 
 	bb, ok := c.buttons[b]
@@ -177,12 +221,11 @@ func (c *gamepadConfig) IsButtonPressed(b virtualGamepadButton) bool {
 
 	a, ok := c.axes[b]
 	if ok {
-		v := ebiten.GamepadAxis(c.gamepadID, a.id)
+		v := ebiten.GamepadAxisValue(c.gamepadID, a.id)
 		if a.positive {
 			return axisThreshold <= v && v <= 1.0
-		} else {
-			return -1.0 <= v && v <= -axisThreshold
 		}
+		return -1.0 <= v && v <= -axisThreshold
 	}
 	return false
 }
@@ -191,6 +234,10 @@ func (c *gamepadConfig) IsButtonPressed(b virtualGamepadButton) bool {
 func (c *gamepadConfig) IsButtonJustPressed(b virtualGamepadButton) bool {
 	if !c.gamepadIDInitialized {
 		panic("not reached")
+	}
+
+	if ebiten.IsStandardGamepadLayoutAvailable(c.gamepadID) {
+		return inpututil.IsStandardGamepadButtonJustPressed(c.gamepadID, b.StandardGamepadButton())
 	}
 
 	c.initializeIfNeeded()
@@ -219,9 +266,8 @@ func (c *gamepadConfig) ButtonName(b virtualGamepadButton) string {
 	if ok {
 		if a.positive {
 			return fmt.Sprintf("Axis %d+", a.id)
-		} else {
-			return fmt.Sprintf("Axis %d-", a.id)
 		}
+		return fmt.Sprintf("Axis %d-", a.id)
 	}
 
 	return ""

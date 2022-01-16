@@ -24,12 +24,20 @@ import (
 	"strings"
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/v2/internal/shader"
+	"github.com/hajimehoshi/ebiten/v2/internal/shader"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/metal"
 )
 
-func glslNormalize(str string) string {
+func glslVertexNormalize(str string) string {
+	p := glsl.VertexPrelude(glsl.GLSLVersionDefault)
+	if strings.HasPrefix(str, p) {
+		str = str[len(p):]
+	}
+	return strings.TrimSpace(str)
+}
+
+func glslFragmentNormalize(str string) string {
 	p := glsl.FragmentPrelude(glsl.GLSLVersionDefault)
 	if strings.HasPrefix(str, p) {
 		str = str[len(p):]
@@ -150,7 +158,7 @@ func TestCompile(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			s, err := Compile(fset, f, "Vertex", "Fragment", 0)
+			s, err := shader.Compile(fset, f, "Vertex", "Fragment", 0)
 			if err != nil {
 				t.Error(err)
 				return
@@ -158,11 +166,11 @@ func TestCompile(t *testing.T) {
 
 			// GLSL
 			vs, fs := glsl.Compile(s, glsl.GLSLVersionDefault)
-			if got, want := glslNormalize(vs), glslNormalize(string(tc.VS)); got != want {
+			if got, want := glslVertexNormalize(vs), glslVertexNormalize(string(tc.VS)); got != want {
 				compare(t, "GLSL Vertex", got, want)
 			}
 			if tc.FS != nil {
-				if got, want := glslNormalize(fs), glslNormalize(string(tc.FS)); got != want {
+				if got, want := glslFragmentNormalize(fs), glslFragmentNormalize(string(tc.FS)); got != want {
 					compare(t, "GLSL Fragment", got, want)
 				}
 			}

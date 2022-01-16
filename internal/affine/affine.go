@@ -14,8 +14,8 @@
 
 package affine
 
-func mulSquare(lhs, rhs []float32, dim int) []float32 {
-	result := make([]float32, len(lhs))
+func mulSquare(lhs, rhs *[16]float32, dim int) [16]float32 {
+	result := [16]float32{}
 	for i := 0; i < dim; i++ {
 		for j := 0; j < dim; j++ {
 			e := float32(0.0)

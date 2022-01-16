@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !ebitengl
+//go:build !ebitengl && !ios
+// +build !ebitengl,!ios
 
 package glfw
 

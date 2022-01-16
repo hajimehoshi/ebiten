@@ -52,7 +52,7 @@ func (s *Shader) Dispose() {
 }
 
 func (s *Shader) compile() error {
-	vssrc, fssrc := glsl.Compile(s.ir, glslVersion())
+	vssrc, fssrc := glsl.Compile(s.ir, s.graphics.context.glslVersion())
 
 	vs, err := s.graphics.context.newVertexShader(vssrc)
 	if err != nil {

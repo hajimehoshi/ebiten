@@ -3,7 +3,7 @@ package main
 func Foo() vec2 {
 	v := vec2(0)
 	for i := 0; i < 100; i++ {
-		v.x += i
+		v.x += float(i)
 		if v.x >= 100 {
 			break
 		}

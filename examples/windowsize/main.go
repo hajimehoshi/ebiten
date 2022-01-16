@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build example
 // +build example
 
 package main
@@ -37,17 +38,18 @@ import (
 )
 
 var (
-	flagFullscreen        = flag.Bool("fullscreen", false, "fullscreen")
-	flagResizable         = flag.Bool("resizable", false, "make the window resizable")
-	flagWindowPosition    = flag.String("windowposition", "", "window position (e.g., 100,200)")
-	flagScreenTransparent = flag.Bool("screentransparent", false, "screen transparent")
-	flagAutoAdjusting     = flag.Bool("autoadjusting", false, "make the game screen auto-adjusting")
-	flagFloating          = flag.Bool("floating", false, "make the window floating")
-	flagMaximize          = flag.Bool("maximize", false, "maximize the window")
-	flagVsync             = flag.Bool("vsync", true, "enable vsync")
-	flagInitFocused       = flag.Bool("initfocused", true, "whether the window is focused on start")
-	flagMinWindowSize     = flag.String("minwindowsize", "", "minimum window size (e.g., 100x200)")
-	flagMaxWindowSize     = flag.String("maxwindowsize", "", "maximium window size (e.g., 1920x1080)")
+	flagFullscreen     = flag.Bool("fullscreen", false, "fullscreen")
+	flagResizable      = flag.Bool("resizable", false, "make the window resizable")
+	flagWindowPosition = flag.String("windowposition", "", "window position (e.g., 100,200)")
+	flagTransparent    = flag.Bool("transparent", false, "screen transparent")
+	flagAutoAdjusting  = flag.Bool("autoadjusting", false, "make the game screen auto-adjusting")
+	flagFloating       = flag.Bool("floating", false, "make the window floating")
+	flagMaximize       = flag.Bool("maximize", false, "maximize the window")
+	flagVsync          = flag.Bool("vsync", true, "enable vsync")
+	flagAutoRestore    = flag.Bool("autorestore", false, "restore the window automatically")
+	flagInitFocused    = flag.Bool("initfocused", true, "whether the window is focused on start")
+	flagMinWindowSize  = flag.String("minwindowsize", "", "minimum window size (e.g., 100x200)")
+	flagMaxWindowSize  = flag.String("maxwindowsize", "", "maximium window size (e.g., 1920x1080)")
 )
 
 func init() {
@@ -63,7 +65,6 @@ const (
 
 var (
 	gophersImage *ebiten.Image
-	count        = 0
 )
 
 func createRandomIconImage() image.Image {
@@ -91,6 +92,7 @@ func createRandomIconImage() image.Image {
 }
 
 type game struct {
+	count       int
 	width       int
 	height      int
 	transparent bool
@@ -123,7 +125,7 @@ func (g *game) Update() error {
 	fullscreen := ebiten.IsFullscreen()
 	runnableOnUnfocused := ebiten.IsRunnableOnUnfocused()
 	cursorMode := ebiten.CursorMode()
-	vsyncEnabled := ebiten.IsVsyncEnabled()
+	fpsMode := ebiten.FPSMode()
 	tps := ebiten.MaxTPS()
 	decorated := ebiten.IsWindowDecorated()
 	positionX, positionY := ebiten.WindowPosition()
@@ -204,18 +206,27 @@ func (g *game) Update() error {
 		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyV) {
-		vsyncEnabled = !vsyncEnabled
+		switch fpsMode {
+		case ebiten.FPSModeVsyncOn:
+			fpsMode = ebiten.FPSModeVsyncOffMaximum
+		case ebiten.FPSModeVsyncOffMaximum:
+			fpsMode = ebiten.FPSModeVsyncOffMinimum
+		case ebiten.FPSModeVsyncOffMinimum:
+			fpsMode = ebiten.FPSModeVsyncOn
+			// Reset TPS
+			tps = 60
+		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyT) {
 		switch tps {
-		case ebiten.UncappedTPS:
+		case ebiten.SyncWithFPS:
 			tps = 30
 		case 30:
 			tps = 60
 		case 60:
 			tps = 120
 		case 120:
-			tps = ebiten.UncappedTPS
+			tps = ebiten.SyncWithFPS
 		default:
 			panic("not reached")
 		}
@@ -236,7 +247,11 @@ func (g *game) Update() error {
 	minimize := inpututil.IsKeyJustPressed(ebiten.KeyN)
 	restore := false
 	if ebiten.IsWindowMaximized() || ebiten.IsWindowMinimized() {
-		restore = inpututil.IsKeyJustPressed(ebiten.KeyE)
+		if *flagAutoRestore {
+			restore = g.count%ebiten.MaxTPS() == 0
+		} else {
+			restore = inpututil.IsKeyJustPressed(ebiten.KeyE)
+		}
 	}
 
 	if toUpdateWindowSize {
@@ -248,10 +263,10 @@ func (g *game) Update() error {
 	ebiten.SetRunnableOnUnfocused(runnableOnUnfocused)
 	ebiten.SetCursorMode(cursorMode)
 
-	// Set vsync enabled only when this is needed.
-	// This makes a bug around vsync initialization more explicit (#1364).
-	if vsyncEnabled != ebiten.IsVsyncEnabled() {
-		ebiten.SetVsyncEnabled(vsyncEnabled)
+	// Set FPS mode enabled only when this is needed.
+	// This makes a bug around FPS mode initialization more explicit (#1364).
+	if fpsMode != ebiten.FPSMode() {
+		ebiten.SetFPSMode(fpsMode)
 	}
 	ebiten.SetMaxTPS(tps)
 	ebiten.SetWindowDecorated(decorated)
@@ -275,7 +290,7 @@ func (g *game) Update() error {
 		ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
 	}
 
-	count++
+	g.count++
 	return nil
 }
 
@@ -284,16 +299,16 @@ func (g *game) Draw(screen *ebiten.Image) {
 	w2, h2 := screen.Size()
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(-w+w2)/2, float64(-h+h2)/2)
-	dx := math.Cos(2*math.Pi*float64(count)/360) * 20
-	dy := math.Sin(2*math.Pi*float64(count)/360) * 20
+	dx := math.Cos(2*math.Pi*float64(g.count)/360) * 20
+	dy := math.Sin(2*math.Pi*float64(g.count)/360) * 20
 	op.GeoM.Translate(dx, dy)
 	screen.DrawImage(gophersImage, op)
 
 	wx, wy := ebiten.WindowPosition()
 	minw, minh, maxw, maxh := ebiten.WindowSizeLimits()
 	cx, cy := ebiten.CursorPosition()
-	tpsStr := "Uncapped"
-	if t := ebiten.MaxTPS(); t != ebiten.UncappedTPS {
+	tpsStr := "Sync with FPS"
+	if t := ebiten.MaxTPS(); t != ebiten.SyncWithFPS {
 		tpsStr = fmt.Sprintf("%d", t)
 	}
 
@@ -318,11 +333,11 @@ func (g *game) Draw(screen *ebiten.Image) {
 	msg := fmt.Sprintf(`[Arrow keys] Move the window
 [Shift + Arrow keys] Change the window size
 %s
-[F] Switch the fullscreen state (only for desktops)
+[F] Switch the fullscreen state
 [U] Switch the runnable-on-unfocused state
 [C] Switch the cursor mode (visible, hidden, or captured)
 [I] Change the window icon (only for desktops)
-[V] Switch vsync
+[V] Switch the FPS mode
 [T] Switch TPS (ticks per second)
 [D] Switch the window decoration (only for desktops)
 [L] Switch the window floating state (only for desktops)
@@ -362,15 +377,10 @@ func main() {
 	w, h := ebiten.ScreenSizeInFullscreen()
 	fmt.Printf("Screen size in fullscreen: %d, %d\n", w, h)
 
-	// Decode image from a byte slice instead of a file so that
-	// this example works in any working directory.
-	// If you want to use a file, there are some options:
-	// 1) Use os.Open and pass the file to the image decoder.
-	//    This is a very regular way, but doesn't work on browsers.
-	// 2) Use ebitenutil.OpenFile and pass the file to the image decoder.
-	//    This works even on browsers.
-	// 3) Use ebitenutil.NewImageFromFile to create an ebiten.Image directly from a file.
-	//    This also works on browsers.
+	// Decode an image from the image file's byte slice.
+	// Now the byte slice is generated with //go:generate for Go 1.15 or older.
+	// If you use Go 1.16 or newer, it is strongly recommended to use //go:embed to embed the image file.
+	// See https://pkg.go.dev/embed for more details.
 	img, _, err := image.Decode(bytes.NewReader(images.Gophers_jpg))
 	if err != nil {
 		log.Fatal(err)
@@ -382,7 +392,7 @@ func main() {
 	if x, y, ok := parseWindowPosition(); ok {
 		ebiten.SetWindowPosition(x, y)
 	}
-	ebiten.SetScreenTransparent(*flagScreenTransparent)
+	ebiten.SetScreenTransparent(*flagTransparent)
 
 	g := &game{
 		width:  initScreenWidth,
@@ -402,7 +412,9 @@ func main() {
 		ebiten.SetWindowResizable(true)
 		ebiten.MaximizeWindow()
 	}
-	ebiten.SetVsyncEnabled(*flagVsync)
+	if !*flagVsync {
+		ebiten.SetFPSMode(ebiten.FPSModeVsyncOffMaximum)
+	}
 	if *flagAutoAdjusting {
 		ebiten.SetWindowResizable(true)
 	}

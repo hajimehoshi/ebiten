@@ -78,4 +78,24 @@
 // to manage threads yourself. Functions like IsKeyPressed will no longer be concurrent-safe with this build tag.
 // They must be called from the main thread or the same goroutine as the given game's callback functions like Update
 // to RunGame.
+//
+// `ebitenexternaldll` stops embedding DLL file in a Windows executable.
+// `ebitenexternaldll` works only for Windows.
+// The executable will require a DLL file at the working directory. Copy them from Ebiten repository's `internal/glfw`:
+//
+//   * `glfw_windows_386.dll` for Windows 386
+//   * `glfw_windows_amd64.dll` for Windows amd64
+//
+// The directory path can be obtained by Go commands. For example, on PowerShell:
+//
+//   $dir = go list -f '{{.Dir}}' github.com/hajimehoshi/ebiten/v2/internal/glfw
+//   echo $dir\glfw_windows_amd64.dll
+//
+// and on shell:
+//
+//   echo $(go list -f '{{.Dir}}' github.com/hajimehoshi/ebiten/v2/internal/glfw)/glfw_windows_amd64.dll
+//
+// Embedding a DLL and extracting it on the fly might be problematic on Windows since the application might be
+// unexpectedly recognized as a virus by some virus checkers.
+// `ebitenexternaldll` is useful for such cases. See #1832 for the discussion.
 package ebiten

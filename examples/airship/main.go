@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build example
 // +build example
 
 package main
@@ -40,23 +41,15 @@ const (
 var (
 	skyColor = color.RGBA{0x66, 0xcc, 0xff, 0xff}
 
-	gophersImage           *ebiten.Image
-	repeatedGophersImage   *ebiten.Image
-	groundImage            = ebiten.NewImage(screenWidth*3, screenHeight*2/3+200)
-	perspectiveGroundImage = ebiten.NewImage(screenWidth*3, screenHeight)
-	fogImage               *ebiten.Image
+	gophersImage         *ebiten.Image
+	repeatedGophersImage *ebiten.Image
 )
 
 func init() {
-	// Decode image from a byte slice instead of a file so that
-	// this example works in any working directory.
-	// If you want to use a file, there are some options:
-	// 1) Use os.Open and pass the file to the image decoder.
-	//    This is a very regular way, but doesn't work on browsers.
-	// 2) Use ebitenutil.OpenFile and pass the file to the image decoder.
-	//    This works even on browsers.
-	// 3) Use ebitenutil.NewImageFromFile to create an ebiten.Image directly from a file.
-	//    This also works on browsers.
+	// Decode an image from the image file's byte slice.
+	// Now the byte slice is generated with //go:generate for Go 1.15 or older.
+	// If you use Go 1.16 or newer, it is strongly recommended to use //go:embed to embed the image file.
+	// See https://pkg.go.dev/embed for more details.
 	img, _, err := image.Decode(bytes.NewReader(images.Gophers_jpg))
 	if err != nil {
 		log.Fatal(err)
@@ -76,23 +69,6 @@ func init() {
 			repeatedGophersImage.DrawImage(gophersImage, op)
 		}
 	}
-
-	const fogHeight = 16
-	w, _ = perspectiveGroundImage.Size()
-	fogRGBA := image.NewRGBA(image.Rect(0, 0, w, fogHeight))
-	for j := 0; j < fogHeight; j++ {
-		a := uint32(float64(fogHeight-1-j) * 0xff / (fogHeight - 1))
-		clr := skyColor
-		r, g, b, oa := uint32(clr.R), uint32(clr.G), uint32(clr.B), uint32(clr.A)
-		clr.R = uint8(r * a / oa)
-		clr.G = uint8(g * a / oa)
-		clr.B = uint8(b * a / oa)
-		clr.A = uint8(a)
-		for i := 0; i < w; i++ {
-			fogRGBA.SetRGBA(i, j, clr)
-		}
-	}
-	fogImage = ebiten.NewImageFromImage(fogRGBA)
 }
 
 // player represents the current airship's position.
@@ -199,9 +175,9 @@ func (g *Game) updateGroundImage(ground *ebiten.Image) {
 
 // drawGroundImage draws the ground image to the given screen image.
 func (g *Game) drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
-	perspectiveGroundImage.Clear()
+	g.perspectiveGroundImage.Clear()
 	gw, _ := ground.Size()
-	pw, ph := perspectiveGroundImage.Size()
+	pw, ph := g.perspectiveGroundImage.Size()
 	for j := 0; j < ph; j++ {
 		// z is in [2, -1]
 		rate := float64(j) / float64(ph)
@@ -215,30 +191,55 @@ func (g *Game) drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
 		op.GeoM.Scale(1/z, 8) // 8 is an arbitrary number not to make empty lines.
 		op.GeoM.Translate(float64(pw)/2, float64(j)/z)
 
-		perspectiveGroundImage.DrawImage(ground.SubImage(image.Rect(0, j, gw, j+1)).(*ebiten.Image), op)
+		g.perspectiveGroundImage.DrawImage(ground.SubImage(image.Rect(0, j, gw, j+1)).(*ebiten.Image), op)
 	}
 
-	perspectiveGroundImage.DrawImage(fogImage, nil)
+	g.perspectiveGroundImage.DrawImage(g.fogImage, nil)
 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(-float64(pw)/2, 0)
 	op.GeoM.Rotate(-1 * float64(g.player.lean) / maxLean * math.Pi / 8)
 	op.GeoM.Translate(float64(screenWidth)/2, screenHeight/3)
-	screen.DrawImage(perspectiveGroundImage, op)
+	screen.DrawImage(g.perspectiveGroundImage, op)
 }
 
 type Game struct {
 	player *player
+
+	groundImage            *ebiten.Image
+	perspectiveGroundImage *ebiten.Image
+	fogImage               *ebiten.Image
 }
 
 func NewGame() *Game {
-	return &Game{
+	g := &Game{
 		player: &player{
 			x16:   16 * 100,
 			y16:   16 * 200,
 			angle: maxAngle * 3 / 4,
 		},
+		groundImage:            ebiten.NewImage(screenWidth*3, screenHeight*2/3+200),
+		perspectiveGroundImage: ebiten.NewImage(screenWidth*3, screenHeight),
 	}
+
+	const fogHeight = 16
+	w, _ := g.perspectiveGroundImage.Size()
+	fogRGBA := image.NewRGBA(image.Rect(0, 0, w, fogHeight))
+	for j := 0; j < fogHeight; j++ {
+		a := uint32(float64(fogHeight-1-j) * 0xff / (fogHeight - 1))
+		clr := skyColor
+		r, g, b, oa := uint32(clr.R), uint32(clr.G), uint32(clr.B), uint32(clr.A)
+		clr.R = uint8(r * a / oa)
+		clr.G = uint8(g * a / oa)
+		clr.B = uint8(b * a / oa)
+		clr.A = uint8(a)
+		for i := 0; i < w; i++ {
+			fogRGBA.SetRGBA(i, j, clr)
+		}
+	}
+	g.fogImage = ebiten.NewImageFromImage(fogRGBA)
+
+	return g
 }
 
 func (g *Game) Update() error {
@@ -264,12 +265,12 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	// Draw the ground image.
 	screen.Fill(skyColor)
-	g.updateGroundImage(groundImage)
-	g.drawGroundImage(screen, groundImage)
+	g.updateGroundImage(g.groundImage)
+	g.drawGroundImage(screen, g.groundImage)
 
 	// Draw the message.
-	tutrial := "Space: Move forward\nLeft/Right: Rotate"
-	msg := fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f\n%s", ebiten.CurrentTPS(), ebiten.CurrentFPS(), tutrial)
+	tutorial := "Space: Move forward\nLeft/Right: Rotate"
+	msg := fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f\n%s", ebiten.CurrentTPS(), ebiten.CurrentFPS(), tutorial)
 	ebitenutil.DebugPrint(screen, msg)
 }
 

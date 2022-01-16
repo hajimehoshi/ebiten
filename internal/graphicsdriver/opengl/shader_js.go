@@ -18,9 +18,12 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
 )
 
-func glslVersion() glsl.GLSLVersion {
-	if isWebGL2Available {
+func (c *context) glslVersion() glsl.GLSLVersion {
+	switch c.webGLVersion {
+	case webGLVersion1:
+		return glsl.GLSLVersionES100
+	case webGLVersion2:
 		return glsl.GLSLVersionES300
 	}
-	return glsl.GLSLVersionES100
+	panic("opengl: WebGL context is not initialized yet at glslVersion")
 }

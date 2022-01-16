@@ -25,15 +25,38 @@ type InfiniteLoop struct {
 	lstart  int64
 	llength int64
 	pos     int64
+
+	// extra is the remainder in the case when the read byte sizes are not multiple of bitDepthInBytes.
+	extra []byte
+
+	// afterLoop is data after the loop.
+	afterLoop []byte
+
+	// blending represents whether the loop start and afterLoop are blended or not.
+	blending bool
+
+	noBlendForTesting bool
 }
 
 // NewInfiniteLoop creates a new infinite loop stream with a source stream and length in bytes.
+//
+// If the loop's total length is exactly the same as src's length, you might hear noises around the loop joint.
+// This noise can be heard especially when src is decoded from a lossy compression format like Ogg/Vorbis and MP3.
+// In this case, try to add more (about 0.1[s]) data to src after the loop end.
+// If src has data after the loop end, an InfiniteLoop uses part of the data to blend with the loop start
+// to make the loop joint smooth.
 func NewInfiniteLoop(src io.ReadSeeker, length int64) *InfiniteLoop {
 	return NewInfiniteLoopWithIntro(src, 0, length)
 }
 
 // NewInfiniteLoopWithIntro creates a new infinite loop stream with an intro part.
 // NewInfiniteLoopWithIntro accepts a source stream src, introLength in bytes and loopLength in bytes.
+//
+// If the loop's total length is exactly the same as src's length, you might hear noises around the loop joint.
+// This noise can be heard especially when src is decoded from a lossy compression format like Ogg/Vorbis and MP3.
+// In this case, try to add more (about 0.1[s]) data to src after the loop end.
+// If src has data after the loop end, an InfiniteLoop uses part of the data to blend with the loop start
+// to make the loop joint smooth.
 func NewInfiniteLoopWithIntro(src io.ReadSeeker, introLength int64, loopLength int64) *InfiniteLoop {
 	return &InfiniteLoop{
 		src:     src,
@@ -62,7 +85,19 @@ func (i *InfiniteLoop) ensurePos() error {
 	return nil
 }
 
-// Read is implementation of ReadSeekCloser's Read.
+func (i *InfiniteLoop) blendRate(pos int64) float64 {
+	if pos < i.lstart {
+		return 0
+	}
+	if pos >= i.lstart+int64(len(i.afterLoop)) {
+		return 0
+	}
+	p := (pos - i.lstart) / bytesPerSample
+	l := len(i.afterLoop) / bytesPerSample
+	return 1 - float64(p)/float64(l)
+}
+
+// Read is implementation of ReadSeeker's Read.
 func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	if err := i.ensurePos(); err != nil {
 		return 0, err
@@ -72,28 +107,93 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 		b = b[:i.length()-i.pos]
 	}
 
-	n, err := i.src.Read(b)
+	extralen := len(i.extra)
+	copy(b, i.extra)
+	i.extra = i.extra[:0]
+
+	n, err := i.src.Read(b[extralen:])
+	n += extralen
 	i.pos += int64(n)
 	if i.pos > i.length() {
 		panic(fmt.Sprintf("audio: position must be <= length but not at (*InfiniteLoop).Read: pos: %d, length: %d", i.pos, i.length()))
+	}
+
+	// Save the remainder part to extra. This will be used at the next Read.
+	if rem := n % bitDepthInBytes; rem != 0 {
+		i.extra = append(i.extra, b[n-rem:n]...)
+		b = b[:n-rem]
+		n = n - rem
+	}
+
+	// Blend afterLoop and the loop start to reduce noises (#1888).
+	// Ideally, afterLoop and the loop start should be identical, but they can have very slight differences.
+	if !i.noBlendForTesting && i.blending && i.pos >= i.lstart && i.pos-int64(n) < i.lstart+int64(len(i.afterLoop)) {
+		if n%bitDepthInBytes != 0 {
+			panic(fmt.Sprintf("audio: n must be a multiple of bitDepthInBytes but not: %d", n))
+		}
+		for idx := 0; idx < n/bitDepthInBytes; idx++ {
+			abspos := i.pos - int64(n) + int64(idx)*bitDepthInBytes
+			rate := i.blendRate(abspos)
+			if rate == 0 {
+				continue
+			}
+
+			// This assumes that bitDepthInBytes is 2.
+			relpos := abspos - i.lstart
+			afterLoop := int16(i.afterLoop[relpos]) | (int16(i.afterLoop[relpos+1]) << 8)
+			orig := int16(b[2*idx]) | (int16(b[2*idx+1]) << 8)
+
+			newval := int16(float64(afterLoop)*rate + float64(orig)*(1-rate))
+			b[2*idx] = byte(newval)
+			b[2*idx+1] = byte(newval >> 8)
+		}
 	}
 
 	if err != nil && err != io.EOF {
 		return 0, err
 	}
 
-	if err == io.EOF || i.pos == i.length() {
-		pos, err := i.Seek(i.lstart, io.SeekStart)
-		if err != nil {
+	// Read the afterLoop part if necessary.
+	if i.pos == i.length() && err == nil {
+		if i.afterLoop == nil {
+			buflen := int64(256 * bytesPerSample)
+			if buflen > i.length() {
+				buflen = i.length()
+			}
+
+			buf := make([]byte, buflen)
+			pos := 0
+			for pos < len(buf) {
+				n, err := i.src.Read(buf[pos:])
+				if err != nil && err != io.EOF {
+					return 0, err
+				}
+				pos += n
+				if err == io.EOF {
+					break
+				}
+			}
+			i.afterLoop = buf[:pos]
+		}
+		if len(i.afterLoop) > 0 {
+			i.blending = true
+		}
+	}
+
+	if i.pos == i.length() || err == io.EOF {
+		// Ignore the new position returned by Seek since the source position might not be match with the position
+		// managed by this.
+		if _, err := i.src.Seek(i.lstart, io.SeekStart); err != nil {
 			return 0, err
 		}
-		i.pos = pos
+		i.pos = i.lstart
 	}
 	return n, nil
 }
 
-// Seek is implementation of ReadSeekCloser's Seek.
+// Seek is implementation of ReadSeeker's Seek.
 func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
+	i.blending = false
 	if err := i.ensurePos(); err != nil {
 		return 0, err
 	}
@@ -110,7 +210,7 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 	if next < 0 {
 		return 0, fmt.Errorf("audio: position must >= 0")
 	}
-	if next >= i.lstart {
+	if next > i.lstart {
 		next = ((next - i.lstart) % i.llength) + i.lstart
 	}
 	// Ignore the new position returned by Seek since the source position might not be match with the position

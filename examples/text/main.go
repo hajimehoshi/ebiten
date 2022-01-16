@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build example
 // +build example
 
 package main
@@ -19,6 +20,7 @@ package main
 import (
 	"image/color"
 	"log"
+	"math"
 	"math/rand"
 	"time"
 
@@ -77,9 +79,14 @@ type Game struct {
 	counter        int
 	kanjiText      []rune
 	kanjiTextColor color.RGBA
+	glyphs         []text.Glyph
 }
 
 func (g *Game) Update() error {
+	// Initialize the glyphs for special (colorful) rendering.
+	if len(g.glyphs) == 0 {
+		g.glyphs = text.AppendGlyphs(g.glyphs, mplusNormalFont, sampleText)
+	}
 	return nil
 }
 
@@ -97,6 +104,48 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		b := text.BoundString(mplusBigFont, sampleText)
 		ebitenutil.DrawRect(screen, float64(b.Min.X+x), float64(b.Min.Y+y), float64(b.Dx()), float64(b.Dy()), gray)
 		text.Draw(screen, sampleText, mplusBigFont, x, y, color.White)
+	}
+	{
+		const x, y = 20, 240
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Rotate(math.Pi / 4)
+		op.GeoM.Translate(x, y)
+		op.Filter = ebiten.FilterLinear
+		text.DrawWithOptions(screen, sampleText, mplusNormalFont, op)
+	}
+	{
+		const x, y = 160, 240
+		const lineHeight = 80
+		b := text.BoundString(text.FaceWithLineHeight(mplusBigFont, lineHeight), sampleText)
+		ebitenutil.DrawRect(screen, float64(b.Min.X+x), float64(b.Min.Y+y), float64(b.Dx()), float64(b.Dy()), gray)
+		text.Draw(screen, sampleText, text.FaceWithLineHeight(mplusBigFont, lineHeight), x, y, color.White)
+	}
+	{
+		const x, y = 240, 400
+		op := &ebiten.DrawImageOptions{}
+		// g.glyphs is initialized by text.AppendGlyphs.
+		// You can customize how to render each glyph.
+		// In this example, multiple colors are used to render glyphs.
+		for i, gl := range g.glyphs {
+			op.GeoM.Reset()
+			op.GeoM.Translate(x, y)
+			op.GeoM.Translate(gl.X, gl.Y)
+			op.ColorM.Reset()
+			r := 1.0
+			if i%3 == 0 {
+				r = 0.5
+			}
+			g := 1.0
+			if i%3 == 1 {
+				g = 0.5
+			}
+			b := 1.0
+			if i%3 == 2 {
+				b = 0.5
+			}
+			op.ColorM.Scale(r, g, b, 1)
+			screen.DrawImage(gl.Image, op)
+		}
 	}
 }
 

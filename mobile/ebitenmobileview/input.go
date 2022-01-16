@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build android || ios
 // +build android ios
 
 package ebitenmobileview
@@ -27,26 +28,24 @@ type position struct {
 }
 
 var (
-	keys     = map[driver.Key]struct{}{}
-	runes    []rune
-	touches  = map[driver.TouchID]position{}
-	gamepads = map[driver.GamepadID]*mobile.Gamepad{}
+	keys    = map[driver.Key]struct{}{}
+	runes   []rune
+	touches = map[driver.TouchID]position{}
+)
+
+var (
+	touchSlice []mobile.Touch
 )
 
 func updateInput() {
-	ts := make([]*mobile.Touch, 0, len(touches))
+	touchSlice = touchSlice[:0]
 	for id, position := range touches {
-		ts = append(ts, &mobile.Touch{
+		touchSlice = append(touchSlice, mobile.Touch{
 			ID: id,
 			X:  position.x,
 			Y:  position.y,
 		})
 	}
 
-	gs := make([]mobile.Gamepad, 0, len(gamepads))
-	for _, g := range gamepads {
-		gs = append(gs, *g)
-	}
-
-	mobile.Get().UpdateInput(keys, runes, ts, gs)
+	mobile.Get().UpdateInput(keys, runes, touchSlice)
 }

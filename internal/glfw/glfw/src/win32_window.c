@@ -68,7 +68,7 @@ static DWORD getWindowExStyle(const _GLFWwindow* window)
 {
     DWORD style = WS_EX_APPWINDOW;
 
-    if (window->monitor || window->floating)
+    if (window->floating)
         style |= WS_EX_TOPMOST;
 
     return style;
@@ -436,7 +436,7 @@ static void fitToMonitor(_GLFWwindow* window)
 {
     MONITORINFO mi = { sizeof(mi) };
     GetMonitorInfo(window->monitor->win32.handle, &mi);
-    SetWindowPos(window->win32.handle, HWND_TOPMOST,
+    SetWindowPos(window->win32.handle, window->floating ? HWND_TOPMOST : HWND_NOTOPMOST,
                  mi.rcMonitor.left,
                  mi.rcMonitor.top,
                  mi.rcMonitor.right - mi.rcMonitor.left,
@@ -1297,8 +1297,12 @@ static int createNativeWindow(_GLFWwindow* window,
         {
             float xscale, yscale;
             _glfwPlatformGetWindowContentScale(window, &xscale, &yscale);
-            rect.right = (int) (rect.right * xscale);
-            rect.bottom = (int) (rect.bottom * yscale);
+
+            if (xscale > 0.f && yscale > 0.f)
+            {
+                rect.right = (int) (rect.right * xscale);
+                rect.bottom = (int) (rect.bottom * yscale);
+            }
         }
 
         ClientToScreen(window->win32.handle, (POINT*) &rect.left);
@@ -1756,7 +1760,7 @@ void _glfwPlatformSetWindowMonitor(_GLFWwindow* window,
         acquireMonitor(window);
 
         GetMonitorInfo(window->monitor->win32.handle, &mi);
-        SetWindowPos(window->win32.handle, HWND_TOPMOST,
+        SetWindowPos(window->win32.handle, window->floating ? HWND_TOPMOST : HWND_NOTOPMOST,
                      mi.rcMonitor.left,
                      mi.rcMonitor.top,
                      mi.rcMonitor.right - mi.rcMonitor.left,
@@ -2067,7 +2071,7 @@ const char* _glfwPlatformGetScancodeName(int scancode)
     if (scancode < 0 || scancode > (KF_EXTENDED | 0xff) ||
         _glfw.win32.keycodes[scancode] == GLFW_KEY_UNKNOWN)
     {
-        _glfwInputError(GLFW_INVALID_VALUE, "Invalid scancode");
+        _glfwInputError(GLFW_INVALID_VALUE, "Invalid scancode %i", scancode);
         return NULL;
     }
 

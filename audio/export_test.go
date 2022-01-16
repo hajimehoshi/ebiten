@@ -18,38 +18,11 @@ import (
 	"io"
 	"io/ioutil"
 	"sync"
-
-	"github.com/hajimehoshi/ebiten/v2/audio/internal/readerdriver"
 )
 
 type (
-	dummyWriterContext struct{}
-	dummyWriterPlayer  struct{}
-)
-
-func (c *dummyWriterContext) NewPlayer() io.WriteCloser {
-	return &dummyWriterPlayer{}
-}
-
-func (c *dummyWriterContext) Close() error {
-	return nil
-}
-
-func (p *dummyWriterPlayer) Write(b []byte) (int, error) {
-	return len(b), nil
-}
-
-func (p *dummyWriterPlayer) Close() error {
-	return nil
-}
-
-func init() {
-	writerDriverForTesting = &dummyWriterContext{}
-}
-
-type (
-	dummyReaderContext struct{}
-	dummyReaderPlayer  struct {
+	dummyContext struct{}
+	dummyPlayer  struct {
 		r       io.Reader
 		playing bool
 		volume  float64
@@ -57,28 +30,36 @@ type (
 	}
 )
 
-func (c *dummyReaderContext) NewPlayer(r io.Reader) readerdriver.Player {
-	return &dummyReaderPlayer{
+func (c *dummyContext) NewPlayer(r io.Reader) player {
+	return &dummyPlayer{
 		r:      r,
 		volume: 1,
 	}
 }
 
-func (c *dummyReaderContext) MaxBufferSize() int {
+func (c *dummyContext) MaxBufferSize() int {
 	return 48000 * channelNum * bitDepthInBytes / 4
 }
 
-func (c *dummyReaderContext) Close() error {
+func (c *dummyContext) Suspend() error {
 	return nil
 }
 
-func (p *dummyReaderPlayer) Pause() {
+func (c *dummyContext) Resume() error {
+	return nil
+}
+
+func (c *dummyContext) Err() error {
+	return nil
+}
+
+func (p *dummyPlayer) Pause() {
 	p.m.Lock()
 	p.playing = false
 	p.m.Unlock()
 }
 
-func (p *dummyReaderPlayer) Play() {
+func (p *dummyPlayer) Play() {
 	p.m.Lock()
 	p.playing = true
 	p.m.Unlock()
@@ -92,35 +73,35 @@ func (p *dummyReaderPlayer) Play() {
 	}()
 }
 
-func (p *dummyReaderPlayer) IsPlaying() bool {
+func (p *dummyPlayer) IsPlaying() bool {
 	p.m.Lock()
 	defer p.m.Unlock()
 	return p.playing
 }
 
-func (p *dummyReaderPlayer) Reset() {
+func (p *dummyPlayer) Reset() {
 	p.m.Lock()
 	defer p.m.Unlock()
 	p.playing = false
 }
 
-func (p *dummyReaderPlayer) Volume() float64 {
+func (p *dummyPlayer) Volume() float64 {
 	return p.volume
 }
 
-func (p *dummyReaderPlayer) SetVolume(volume float64) {
+func (p *dummyPlayer) SetVolume(volume float64) {
 	p.volume = volume
 }
 
-func (p *dummyReaderPlayer) UnplayedBufferSize() int64 {
+func (p *dummyPlayer) UnplayedBufferSize() int {
 	return 0
 }
 
-func (p *dummyReaderPlayer) Err() error {
+func (p *dummyPlayer) Err() error {
 	return nil
 }
 
-func (p *dummyReaderPlayer) Close() error {
+func (p *dummyPlayer) Close() error {
 	p.m.Lock()
 	defer p.m.Unlock()
 	p.playing = false
@@ -128,17 +109,17 @@ func (p *dummyReaderPlayer) Close() error {
 }
 
 func init() {
-	readerDriverForTesting = &dummyReaderContext{}
+	driverForTesting = &dummyContext{}
 }
 
 type dummyHook struct {
 	updates []func() error
 }
 
-func (h *dummyHook) OnSuspendAudio(f func()) {
+func (h *dummyHook) OnSuspendAudio(f func() error) {
 }
 
-func (h *dummyHook) OnResumeAudio(f func()) {
+func (h *dummyHook) OnResumeAudio(f func() error) {
 }
 
 func (h *dummyHook) AppendHookOnBeforeUpdate(f func() error) {
@@ -168,4 +149,8 @@ func PlayersNumForTesting() int {
 
 func ResetContextForTesting() {
 	theContext = nil
+}
+
+func (i *InfiniteLoop) SetNoBlendForTesting(value bool) {
+	i.noBlendForTesting = value
 }

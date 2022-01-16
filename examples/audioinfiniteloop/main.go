@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build example
 // +build example
 
 package main
@@ -30,18 +31,18 @@ import (
 )
 
 const (
-	screenWidth  = 640
-	screenHeight = 480
-	sampleRate   = 22050
+	screenWidth    = 640
+	screenHeight   = 480
+	sampleRate     = 22050
+	bytesPerSample = 4 // 2 channels * 2 bytes (16 bit)
 
 	introLengthInSecond = 5
 	loopLengthInSecond  = 4
 )
 
-var audioContext = audio.NewContext(sampleRate)
-
 type Game struct {
-	player *audio.Player
+	player       *audio.Player
+	audioContext *audio.Context
 }
 
 func (g *Game) Update() error {
@@ -49,18 +50,22 @@ func (g *Game) Update() error {
 		return nil
 	}
 
+	if g.audioContext == nil {
+		g.audioContext = audio.NewContext(sampleRate)
+	}
+
 	// Decode an Ogg file.
 	// oggS is a decoded io.ReadCloser and io.Seeker.
-	oggS, err := vorbis.Decode(audioContext, bytes.NewReader(raudio.Ragtime_ogg))
+	oggS, err := vorbis.Decode(g.audioContext, bytes.NewReader(raudio.Ragtime_ogg))
 	if err != nil {
 		return err
 	}
 
 	// Create an infinite loop stream from the decoded bytes.
 	// s is still an io.ReadCloser and io.Seeker.
-	s := audio.NewInfiniteLoopWithIntro(oggS, introLengthInSecond*4*sampleRate, loopLengthInSecond*4*sampleRate)
+	s := audio.NewInfiniteLoopWithIntro(oggS, introLengthInSecond*bytesPerSample*sampleRate, loopLengthInSecond*bytesPerSample*sampleRate)
 
-	g.player, err = audio.NewPlayer(audioContext, s)
+	g.player, err = g.audioContext.NewPlayer(s)
 	if err != nil {
 		return err
 	}

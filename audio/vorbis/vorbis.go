@@ -106,7 +106,9 @@ func (d *decoded) Seek(offset int64, whence int) (int64, error) {
 	// pos should be always even
 	next = next / 2 * 2
 	d.posInBytes = int(next)
-	d.decoder.SetPosition(next / int64(d.decoder.Channels()) / 2)
+	if err := d.decoder.SetPosition(next / int64(d.decoder.Channels()) / 2); err != nil {
+		return 0, err
+	}
 	d.decoderr = nil
 	return next, nil
 }

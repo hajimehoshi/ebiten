@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build example
 // +build example
 
 package main
@@ -40,9 +41,7 @@ const (
 	sampleRate   = 22050
 )
 
-var img *ebiten.Image
-
-var audioContext = audio.NewContext(sampleRate)
+var ebitenImage *ebiten.Image
 
 type Game struct {
 	player    *audio.Player
@@ -56,6 +55,8 @@ type Game struct {
 
 	count int
 	xpos  float64
+
+	audioContext *audio.Context
 }
 
 func (g *Game) initAudio() {
@@ -63,9 +64,13 @@ func (g *Game) initAudio() {
 		return
 	}
 
+	if g.audioContext == nil {
+		g.audioContext = audio.NewContext(sampleRate)
+	}
+
 	// Decode an Ogg file.
 	// oggS is a decoded io.ReadCloser and io.Seeker.
-	oggS, err := vorbis.Decode(audioContext, bytes.NewReader(raudio.Ragtime_ogg))
+	oggS, err := vorbis.Decode(g.audioContext, bytes.NewReader(raudio.Ragtime_ogg))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -73,7 +78,7 @@ func (g *Game) initAudio() {
 	// Wrap the raw audio with the StereoPanStream
 	g.panstream = NewStereoPanStreamFromReader(audio.NewInfiniteLoop(oggS, oggS.Length()))
 
-	g.player, err = audio.NewPlayer(audioContext, g.panstream)
+	g.player, err = g.audioContext.NewPlayer(g.panstream)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -108,8 +113,8 @@ Panning: %.2f`, ebiten.CurrentTPS(), float64(pos)/float64(time.Second), g.pannin
 
 	// draw image to show where the sound is at related to the screen
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(g.xpos-float64(img.Bounds().Dx()/2), screenHeight/2)
-	screen.DrawImage(img, op)
+	op.GeoM.Translate(g.xpos-float64(ebitenImage.Bounds().Dx()/2), screenHeight/2)
+	screen.DrawImage(ebitenImage, op)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -117,20 +122,15 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	// Decode image from a byte slice instead of a file so that
-	// this example works in any working directory.
-	// If you want to use a file, there are some options:
-	// 1) Use os.Open and pass the file to the image decoder.
-	//    This is a very regular way, but doesn't work on browsers.
-	// 2) Use ebitenutil.OpenFile and pass the file to the image decoder.
-	//    This works even on browsers.
-	// 3) Use ebitenutil.NewImageFromFile to create an ebiten.Image directly from a file.
-	//    This also works on browsers.
-	rawimg, _, err := image.Decode(bytes.NewReader(images.Ebiten_png))
+	// Decode an image from the image file's byte slice.
+	// Now the byte slice is generated with //go:generate for Go 1.15 or older.
+	// If you use Go 1.16 or newer, it is strongly recommended to use //go:embed to embed the image file.
+	// See https://pkg.go.dev/embed for more details.
+	img, _, err := image.Decode(bytes.NewReader(images.Ebiten_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	img = ebiten.NewImageFromImage(rawimg)
+	ebitenImage = ebiten.NewImageFromImage(img)
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Audio Panning Loop (Ebiten Demo)")

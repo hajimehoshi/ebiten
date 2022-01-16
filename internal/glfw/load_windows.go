@@ -15,12 +15,7 @@
 package glfw
 
 import (
-	"bytes"
-	"compress/gzip"
 	"fmt"
-	"io"
-	"os"
-	"path/filepath"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -38,65 +33,9 @@ func (d *dll) call(name string, args ...uintptr) uintptr {
 	if _, ok := d.procs[name]; !ok {
 		d.procs[name] = d.d.NewProc(name)
 	}
-	r, _, err := d.procs[name].Call(args...)
-	if err != nil && err.(windows.Errno) != 0 {
-		// It looks like there is no way to handle these errors?
-		// panic(fmt.Sprintf("glfw: calling proc error: errno: %d (%s)", err, err.Error()))
-	}
+	// It looks like there is no way to handle Windows errors correctly.
+	r, _, _ := d.procs[name].Call(args...)
 	return r
-}
-
-func writeDLLFile(name string) error {
-	f, err := gzip.NewReader(bytes.NewReader(glfwDLLCompressed))
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	out, err := os.Create(name)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	if _, err := io.Copy(out, f); err != nil {
-		return err
-	}
-	return nil
-}
-
-func loadDLL() (*dll, error) {
-	cachedir, err := os.UserCacheDir()
-	if err != nil {
-		return nil, err
-	}
-
-	dir := filepath.Join(cachedir, "ebiten")
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, err
-	}
-
-	fn := filepath.Join(dir, glfwDLLHash+".dll")
-	if _, err := os.Stat(fn); err != nil {
-		if !os.IsNotExist(err) {
-			return nil, err
-		}
-
-		// Create a DLL as a temporary file and then rename it later.
-		// Without the temporary file, writing a DLL might fail in the process of writing and Ebiten cannot
-		// notice that the DLL file is incomplete.
-		if err := writeDLLFile(fn + ".tmp"); err != nil {
-			return nil, err
-		}
-
-		if err := os.Rename(fn+".tmp", fn); err != nil {
-			return nil, err
-		}
-	}
-
-	return &dll{
-		d: windows.NewLazyDLL(fn),
-	}, nil
 }
 
 func (d *dll) unload() error {
@@ -129,7 +68,7 @@ func (e *glfwError) Error() string {
 
 var lastErr = make(chan *glfwError, 1)
 
-func fetchError() error {
+func fetchError() *glfwError {
 	select {
 	case err := <-lastErr:
 		return err
@@ -146,7 +85,7 @@ func panicError() {
 
 func flushErrors() {
 	if err := fetchError(); err != nil {
-		panic(fmt.Sprintf("glfw: uncaught error: %s", err))
+		panic(fmt.Sprintf("glfw: uncaught error: %s", err.Error()))
 	}
 }
 
@@ -156,14 +95,18 @@ func acceptError(codes ...ErrorCode) error {
 		return nil
 	}
 	for _, c := range codes {
-		if err.(*glfwError).code == c {
-			return nil
+		if err.code == c {
+			return err
 		}
 	}
-	if err.(*glfwError).code == PlatformError {
-		// PlatformError is not handled here (See github.com/go-gl/glfw's implementation).
-		// TODO: Should we log this error?
+	switch err.code {
+	case PlatformError:
+		// TODO: Should we log this?
 		return nil
+	case NotInitialized, NoCurrentContext, InvalidEnum, InvalidValue, OutOfMemory:
+		panic(err)
+	default:
+		panic(fmt.Sprintf("glfw: uncaught error: %s", err.Error()))
 	}
 	return err
 }
@@ -177,7 +120,7 @@ func goGLFWErrorCallback(code uintptr, desc *byte) uintptr {
 	select {
 	case lastErr <- err:
 	default:
-		panic(fmt.Sprintf("glfw: uncaught error: %s", err))
+		panic(fmt.Sprintf("glfw: uncaught error: %s", err.Error()))
 	}
 	return 0
 }

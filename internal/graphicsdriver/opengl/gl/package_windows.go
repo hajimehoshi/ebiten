@@ -15,27 +15,34 @@ var (
 	gpBindAttribLocation          uintptr
 	gpBindBuffer                  uintptr
 	gpBindFramebufferEXT          uintptr
+	gpBindRenderbufferEXT         uintptr
 	gpBindTexture                 uintptr
 	gpBlendFunc                   uintptr
 	gpBufferData                  uintptr
 	gpBufferSubData               uintptr
 	gpCheckFramebufferStatusEXT   uintptr
+	gpClear                       uintptr
+	gpColorMask                   uintptr
 	gpCompileShader               uintptr
 	gpCreateProgram               uintptr
 	gpCreateShader                uintptr
 	gpDeleteBuffers               uintptr
 	gpDeleteFramebuffersEXT       uintptr
 	gpDeleteProgram               uintptr
+	gpDeleteRenderbuffersEXT      uintptr
 	gpDeleteShader                uintptr
 	gpDeleteTextures              uintptr
+	gpDisable                     uintptr
 	gpDisableVertexAttribArray    uintptr
 	gpDrawElements                uintptr
 	gpEnable                      uintptr
 	gpEnableVertexAttribArray     uintptr
 	gpFlush                       uintptr
+	gpFramebufferRenderbufferEXT  uintptr
 	gpFramebufferTexture2DEXT     uintptr
 	gpGenBuffers                  uintptr
 	gpGenFramebuffersEXT          uintptr
+	gpGenRenderbuffersEXT         uintptr
 	gpGenTextures                 uintptr
 	gpGetBufferSubData            uintptr
 	gpGetDoublei_v                uintptr
@@ -59,12 +66,16 @@ var (
 	gpGetVertexArrayPointeri_vEXT uintptr
 	gpIsFramebufferEXT            uintptr
 	gpIsProgram                   uintptr
+	gpIsRenderbufferEXT           uintptr
 	gpIsTexture                   uintptr
 	gpLinkProgram                 uintptr
 	gpPixelStorei                 uintptr
 	gpReadPixels                  uintptr
+	gpRenderbufferStorageEXT      uintptr
 	gpScissor                     uintptr
 	gpShaderSource                uintptr
+	gpStencilFunc                 uintptr
+	gpStencilOp                   uintptr
 	gpTexImage2D                  uintptr
 	gpTexParameteri               uintptr
 	gpTexSubImage2D               uintptr
@@ -109,6 +120,10 @@ func BindFramebufferEXT(target uint32, framebuffer uint32) {
 	syscall.Syscall(gpBindFramebufferEXT, 2, uintptr(target), uintptr(framebuffer), 0)
 }
 
+func BindRenderbufferEXT(target uint32, renderbuffer uint32) {
+	syscall.Syscall(gpBindRenderbufferEXT, 2, uintptr(target), uintptr(renderbuffer), 0)
+}
+
 func BindTexture(target uint32, texture uint32) {
 	syscall.Syscall(gpBindTexture, 2, uintptr(target), uintptr(texture), 0)
 }
@@ -128,6 +143,14 @@ func BufferSubData(target uint32, offset int, size int, data unsafe.Pointer) {
 func CheckFramebufferStatusEXT(target uint32) uint32 {
 	ret, _, _ := syscall.Syscall(gpCheckFramebufferStatusEXT, 1, uintptr(target), 0, 0)
 	return (uint32)(ret)
+}
+
+func Clear(mask uint32) {
+	syscall.Syscall(gpClear, 1, uintptr(mask), 0, 0)
+}
+
+func ColorMask(red bool, green bool, blue bool, alpha bool) {
+	syscall.Syscall6(gpColorMask, 4, boolToUintptr(red), boolToUintptr(green), boolToUintptr(blue), boolToUintptr(alpha), 0, 0)
 }
 
 func CompileShader(shader uint32) {
@@ -156,12 +179,20 @@ func DeleteProgram(program uint32) {
 	syscall.Syscall(gpDeleteProgram, 1, uintptr(program), 0, 0)
 }
 
+func DeleteRenderbuffersEXT(n int32, renderbuffers *uint32) {
+	syscall.Syscall(gpDeleteRenderbuffersEXT, 2, uintptr(n), uintptr(unsafe.Pointer(renderbuffers)), 0)
+}
+
 func DeleteShader(shader uint32) {
 	syscall.Syscall(gpDeleteShader, 1, uintptr(shader), 0, 0)
 }
 
 func DeleteTextures(n int32, textures *uint32) {
 	syscall.Syscall(gpDeleteTextures, 2, uintptr(n), uintptr(unsafe.Pointer(textures)), 0)
+}
+
+func Disable(cap uint32) {
+	syscall.Syscall(gpDisable, 1, uintptr(cap), 0, 0)
 }
 
 func DisableVertexAttribArray(index uint32) {
@@ -184,6 +215,10 @@ func Flush() {
 	syscall.Syscall(gpFlush, 0, 0, 0, 0)
 }
 
+func FramebufferRenderbufferEXT(target uint32, attachment uint32, renderbuffertarget uint32, renderbuffer uint32) {
+	syscall.Syscall6(gpFramebufferRenderbufferEXT, 4, uintptr(target), uintptr(attachment), uintptr(renderbuffertarget), uintptr(renderbuffer), 0, 0)
+}
+
 func FramebufferTexture2DEXT(target uint32, attachment uint32, textarget uint32, texture uint32, level int32) {
 	syscall.Syscall6(gpFramebufferTexture2DEXT, 5, uintptr(target), uintptr(attachment), uintptr(textarget), uintptr(texture), uintptr(level), 0)
 }
@@ -194,6 +229,10 @@ func GenBuffers(n int32, buffers *uint32) {
 
 func GenFramebuffersEXT(n int32, framebuffers *uint32) {
 	syscall.Syscall(gpGenFramebuffersEXT, 2, uintptr(n), uintptr(unsafe.Pointer(framebuffers)), 0)
+}
+
+func GenRenderbuffersEXT(n int32, renderbuffers *uint32) {
+	syscall.Syscall(gpGenRenderbuffersEXT, 2, uintptr(n), uintptr(unsafe.Pointer(renderbuffers)), 0)
 }
 
 func GenTextures(n int32, textures *uint32) {
@@ -276,17 +315,22 @@ func GetVertexArrayPointeri_vEXT(vaobj uint32, index uint32, pname uint32, param
 
 func IsFramebufferEXT(framebuffer uint32) bool {
 	ret, _, _ := syscall.Syscall(gpIsFramebufferEXT, 1, uintptr(framebuffer), 0, 0)
-	return ret != 0
+	return byte(ret) != 0
 }
 
 func IsProgram(program uint32) bool {
 	ret, _, _ := syscall.Syscall(gpIsProgram, 1, uintptr(program), 0, 0)
-	return ret != 0
+	return byte(ret) != 0
+}
+
+func IsRenderbufferEXT(renderbuffer uint32) bool {
+	ret, _, _ := syscall.Syscall(gpIsRenderbufferEXT, 1, uintptr(renderbuffer), 0, 0)
+	return byte(ret) != 0
 }
 
 func IsTexture(texture uint32) bool {
 	ret, _, _ := syscall.Syscall(gpIsTexture, 1, uintptr(texture), 0, 0)
-	return ret != 0
+	return byte(ret) != 0
 }
 
 func LinkProgram(program uint32) {
@@ -301,12 +345,24 @@ func ReadPixels(x int32, y int32, width int32, height int32, format uint32, xtyp
 	syscall.Syscall9(gpReadPixels, 7, uintptr(x), uintptr(y), uintptr(width), uintptr(height), uintptr(format), uintptr(xtype), uintptr(pixels), 0, 0)
 }
 
+func RenderbufferStorageEXT(target uint32, internalformat uint32, width int32, height int32) {
+	syscall.Syscall6(gpRenderbufferStorageEXT, 4, uintptr(target), uintptr(internalformat), uintptr(width), uintptr(height), 0, 0)
+}
+
 func Scissor(x int32, y int32, width int32, height int32) {
 	syscall.Syscall6(gpScissor, 4, uintptr(x), uintptr(y), uintptr(width), uintptr(height), 0, 0)
 }
 
 func ShaderSource(shader uint32, count int32, xstring **uint8, length *int32) {
 	syscall.Syscall6(gpShaderSource, 4, uintptr(shader), uintptr(count), uintptr(unsafe.Pointer(xstring)), uintptr(unsafe.Pointer(length)), 0, 0)
+}
+
+func StencilFunc(xfunc uint32, ref int32, mask uint32) {
+	syscall.Syscall(gpStencilFunc, 3, uintptr(xfunc), uintptr(ref), uintptr(mask))
+}
+
+func StencilOp(fail uint32, zfail uint32, zpass uint32) {
+	syscall.Syscall(gpStencilOp, 3, uintptr(fail), uintptr(zfail), uintptr(zpass))
 }
 
 func TexImage2D(target uint32, level int32, internalformat int32, width int32, height int32, border int32, format uint32, xtype uint32, pixels unsafe.Pointer) {
@@ -391,6 +447,7 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 		return errors.New("glBindBuffer")
 	}
 	gpBindFramebufferEXT = getProcAddr("glBindFramebufferEXT")
+	gpBindRenderbufferEXT = getProcAddr("glBindRenderbufferEXT")
 	gpBindTexture = getProcAddr("glBindTexture")
 	if gpBindTexture == 0 {
 		return errors.New("glBindTexture")
@@ -408,6 +465,14 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 		return errors.New("glBufferSubData")
 	}
 	gpCheckFramebufferStatusEXT = getProcAddr("glCheckFramebufferStatusEXT")
+	gpClear = getProcAddr("glClear")
+	if gpClear == 0 {
+		return errors.New("glClear")
+	}
+	gpColorMask = getProcAddr("glColorMask")
+	if gpColorMask == 0 {
+		return errors.New("glColorMask")
+	}
 	gpCompileShader = getProcAddr("glCompileShader")
 	if gpCompileShader == 0 {
 		return errors.New("glCompileShader")
@@ -429,6 +494,7 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	if gpDeleteProgram == 0 {
 		return errors.New("glDeleteProgram")
 	}
+	gpDeleteRenderbuffersEXT = getProcAddr("glDeleteRenderbuffersEXT")
 	gpDeleteShader = getProcAddr("glDeleteShader")
 	if gpDeleteShader == 0 {
 		return errors.New("glDeleteShader")
@@ -436,6 +502,10 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	gpDeleteTextures = getProcAddr("glDeleteTextures")
 	if gpDeleteTextures == 0 {
 		return errors.New("glDeleteTextures")
+	}
+	gpDisable = getProcAddr("glDisable")
+	if gpDisable == 0 {
+		return errors.New("glDisable")
 	}
 	gpDisableVertexAttribArray = getProcAddr("glDisableVertexAttribArray")
 	if gpDisableVertexAttribArray == 0 {
@@ -457,12 +527,14 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	if gpFlush == 0 {
 		return errors.New("glFlush")
 	}
+	gpFramebufferRenderbufferEXT = getProcAddr("glFramebufferRenderbufferEXT")
 	gpFramebufferTexture2DEXT = getProcAddr("glFramebufferTexture2DEXT")
 	gpGenBuffers = getProcAddr("glGenBuffers")
 	if gpGenBuffers == 0 {
 		return errors.New("glGenBuffers")
 	}
 	gpGenFramebuffersEXT = getProcAddr("glGenFramebuffersEXT")
+	gpGenRenderbuffersEXT = getProcAddr("glGenRenderbuffersEXT")
 	gpGenTextures = getProcAddr("glGenTextures")
 	if gpGenTextures == 0 {
 		return errors.New("glGenTextures")
@@ -516,6 +588,7 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	if gpIsProgram == 0 {
 		return errors.New("glIsProgram")
 	}
+	gpIsRenderbufferEXT = getProcAddr("glIsRenderbufferEXT")
 	gpIsTexture = getProcAddr("glIsTexture")
 	if gpIsTexture == 0 {
 		return errors.New("glIsTexture")
@@ -532,6 +605,7 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	if gpReadPixels == 0 {
 		return errors.New("glReadPixels")
 	}
+	gpRenderbufferStorageEXT = getProcAddr("glRenderbufferStorageEXT")
 	gpScissor = getProcAddr("glScissor")
 	if gpScissor == 0 {
 		return errors.New("glScissor")
@@ -539,6 +613,14 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	gpShaderSource = getProcAddr("glShaderSource")
 	if gpShaderSource == 0 {
 		return errors.New("glShaderSource")
+	}
+	gpStencilFunc = getProcAddr("glStencilFunc")
+	if gpStencilFunc == 0 {
+		return errors.New("glStencilFunc")
+	}
+	gpStencilOp = getProcAddr("glStencilOp")
+	if gpStencilOp == 0 {
+		return errors.New("glStencilOp")
 	}
 	gpTexImage2D = getProcAddr("glTexImage2D")
 	if gpTexImage2D == 0 {

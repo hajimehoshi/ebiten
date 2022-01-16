@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build darwin
 // +build darwin
 
 package metal
@@ -28,7 +29,8 @@ type view struct {
 	uiview uintptr
 
 	windowChanged bool
-	vsync         bool
+	vsyncDisabled bool
+	fullscreen    bool
 
 	device mtl.Device
 	ml     ca.MetalLayer
@@ -45,8 +47,31 @@ func (v *view) getMTLDevice() mtl.Device {
 }
 
 func (v *view) setDisplaySyncEnabled(enabled bool) {
+	if !v.vsyncDisabled == enabled {
+		return
+	}
+	v.forceSetDisplaySyncEnabled(enabled)
+}
+
+func (v *view) forceSetDisplaySyncEnabled(enabled bool) {
 	v.ml.SetDisplaySyncEnabled(enabled)
-	v.vsync = enabled
+	v.vsyncDisabled = !enabled
+
+	// setting presentsWithTransaction true makes the FPS stable (#1196). We're not sure why...
+	v.updatePresentsWithTransaction()
+}
+
+func (v *view) setFullscreen(fullscreen bool) {
+	if v.fullscreen == fullscreen {
+		return
+	}
+	v.fullscreen = fullscreen
+	v.updatePresentsWithTransaction()
+}
+
+func (v *view) updatePresentsWithTransaction() {
+	v.ml.SetPresentsWithTransaction(v.usePresentsWithTransaction())
+	v.ml.SetMaximumDrawableCount(v.maximumDrawableCount())
 }
 
 func (v *view) colorPixelFormat() mtl.PixelFormat {
@@ -68,18 +93,23 @@ func (v *view) reset() error {
 	// MTLPixelFormatBGRA8Unorm_sRGB, MTLPixelFormatRGBA16Float, MTLPixelFormatBGRA10_XR, or
 	// MTLPixelFormatBGRA10_XR_sRGB.
 	v.ml.SetPixelFormat(mtl.PixelFormatBGRA8UNorm)
-	v.ml.SetMaximumDrawableCount(3)
 
 	// The vsync state might be reset. Set the state again (#1364).
-	v.ml.SetDisplaySyncEnabled(v.vsync)
+	v.forceSetDisplaySyncEnabled(!v.vsyncDisabled)
+	v.ml.SetFramebufferOnly(true)
+
 	return nil
 }
 
-func (v *view) drawable() ca.MetalDrawable {
+func (v *view) nextDrawable() ca.MetalDrawable {
 	d, err := v.ml.NextDrawable()
 	if err != nil {
 		// Drawable is nil. This can happen at the initial state. Let's wait and see.
 		return ca.MetalDrawable{}
 	}
 	return d
+}
+
+func (v *view) presentsWithTransaction() bool {
+	return v.ml.PresentsWithTransaction()
 }

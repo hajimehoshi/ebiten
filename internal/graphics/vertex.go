@@ -57,10 +57,29 @@ var (
 	theVerticesBackend = &verticesBackend{}
 )
 
+// TODO: The logic is very similar to atlas.temporaryPixels. Unify them.
+
 type verticesBackend struct {
-	backend []float32
-	head    int
-	m       sync.Mutex
+	backend          []float32
+	pos              int
+	notFullyUsedTime int
+
+	m sync.Mutex
+}
+
+func verticesBackendFloat32Size(size int) int {
+	l := 128 * VertexFloatNum
+	for l < size {
+		l *= 2
+	}
+	return l
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 func (v *verticesBackend) slice(n int) []float32 {
@@ -68,21 +87,39 @@ func (v *verticesBackend) slice(n int) []float32 {
 	defer v.m.Unlock()
 
 	need := n * VertexFloatNum
-	if v.head+need > len(v.backend) {
-		v.backend = nil
-		v.head = 0
+	if len(v.backend) < v.pos+need {
+		v.backend = make([]float32, max(len(v.backend)*2, verticesBackendFloat32Size(need)))
+		v.pos = 0
 	}
-	if v.backend == nil {
-		l := 1024
-		if n > l {
-			l = n
-		}
-		v.backend = make([]float32, VertexFloatNum*l)
+	s := v.backend[v.pos : v.pos+need]
+	v.pos += need
+	return s
+}
+
+func (v *verticesBackend) lockAndReset(f func() error) error {
+	v.m.Lock()
+	defer v.m.Unlock()
+
+	if err := f(); err != nil {
+		return err
 	}
 
-	s := v.backend[v.head : v.head+need]
-	v.head += need
-	return s
+	const maxNotFullyUsedTime = 60
+	if verticesBackendFloat32Size(v.pos) < len(v.backend) {
+		if v.notFullyUsedTime < maxNotFullyUsedTime {
+			v.notFullyUsedTime++
+		}
+	} else {
+		v.notFullyUsedTime = 0
+	}
+
+	if v.notFullyUsedTime == maxNotFullyUsedTime && len(v.backend) > 0 {
+		v.backend = nil
+		v.notFullyUsedTime = 0
+	}
+
+	v.pos = 0
+	return nil
 }
 
 // Vertices returns a float32 slice for n vertices.
@@ -90,6 +127,10 @@ func (v *verticesBackend) slice(n int) []float32 {
 // and users can do optimization based on this fact.
 func Vertices(n int) []float32 {
 	return theVerticesBackend.slice(n)
+}
+
+func LockAndResetVertices(f func() error) error {
+	return theVerticesBackend.lockAndReset(f)
 }
 
 // QuadVertices returns a float32 slice for a quadrangle.

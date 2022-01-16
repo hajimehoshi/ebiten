@@ -17,7 +17,6 @@ package opengl
 import (
 	"fmt"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -27,6 +26,11 @@ var theGraphics Graphics
 
 func Get() *Graphics {
 	return &theGraphics
+}
+
+type activatedTexture struct {
+	textureNative textureNative
+	index         int
 }
 
 type Graphics struct {
@@ -41,6 +45,15 @@ type Graphics struct {
 
 	// drawCalled is true just after Draw is called. This holds true until ReplacePixels is called.
 	drawCalled bool
+
+	uniformVariableNameCache map[int]string
+	textureVariableNameCache map[int]string
+
+	uniformVars []uniformVariable
+
+	// activatedTextures is a set of activated textures.
+	// textureNative cannot be a map key unfortunately.
+	activatedTextures []activatedTexture
 }
 
 func (g *Graphics) Begin() {
@@ -74,19 +87,13 @@ func (g *Graphics) checkSize(width, height int) {
 }
 
 func (g *Graphics) genNextImageID() driver.ImageID {
-	id := g.nextImageID
 	g.nextImageID++
-	return id
-}
-
-func (g *Graphics) InvalidImageID() driver.ImageID {
-	return -1
+	return g.nextImageID
 }
 
 func (g *Graphics) genNextShaderID() driver.ShaderID {
-	id := g.nextShaderID
 	g.nextShaderID++
-	return id
+	return g.nextShaderID
 }
 
 func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
@@ -103,7 +110,7 @@ func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	i.textureNative = t
+	i.texture = t
 	g.addImage(i)
 	return i, nil
 }
@@ -135,6 +142,10 @@ func (g *Graphics) removeImage(img *Image) {
 	delete(g.images, img.id)
 }
 
+func (g *Graphics) Initialize() error {
+	return g.state.reset(&g.context)
+}
+
 // Reset resets or initializes the current OpenGL state.
 func (g *Graphics) Reset() error {
 	return g.state.reset(&g.context)
@@ -148,14 +159,20 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) {
 	g.context.elementArrayBufferSubData(indices)
 }
 
-func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region) error {
-	destination := g.images[dst]
-	source := g.images[src]
-
-	if !destination.pbo.equal(*new(buffer)) {
-		g.context.deleteBuffer(destination.pbo)
-		destination.pbo = *new(buffer)
+func (g *Graphics) uniformVariableName(idx int) string {
+	if v, ok := g.uniformVariableNameCache[idx]; ok {
+		return v
 	}
+	if g.uniformVariableNameCache == nil {
+		g.uniformVariableNameCache = map[int]string{}
+	}
+	name := fmt.Sprintf("U%d", idx)
+	g.uniformVariableNameCache[idx] = name
+	return name
+}
+
+func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM driver.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, uniforms []driver.Uniform, evenOdd bool) error {
+	destination := g.images[dstID]
 
 	g.drawCalled = true
 
@@ -170,85 +187,197 @@ func (g *Graphics) Draw(dst, src driver.ImageID, indexLen int, indexOffset int, 
 	)
 	g.context.blendFunc(mode)
 
-	program := g.state.programs[programKey{
-		useColorM: colorM != nil,
-		filter:    filter,
-		address:   address,
-	}]
+	var program program
+	if shaderID == driver.InvalidShaderID {
+		program = g.state.programs[programKey{
+			useColorM: !colorM.IsIdentity(),
+			filter:    filter,
+			address:   address,
+		}]
 
-	uniforms := []uniformVariable{}
-
-	vw := destination.framebuffer.width
-	vh := destination.framebuffer.height
-	uniforms = append(uniforms, uniformVariable{
-		name:  "viewport_size",
-		value: []float32{float32(vw), float32(vh)},
-		typ:   shaderir.Type{Main: shaderir.Vec2},
-	}, uniformVariable{
-		name: "source_region",
-		value: []float32{
-			srcRegion.X,
-			srcRegion.Y,
-			srcRegion.X + srcRegion.Width,
-			srcRegion.Y + srcRegion.Height,
-		},
-		typ: shaderir.Type{Main: shaderir.Vec4},
-	})
-
-	if colorM != nil {
-		// ColorM's elements are immutable. It's OK to hold the reference without copying.
-		esBody, esTranslate := colorM.UnsafeElements()
-		uniforms = append(uniforms, uniformVariable{
-			name:  "color_matrix_body",
-			value: esBody,
-			typ:   shaderir.Type{Main: shaderir.Mat4},
+		dw, dh := destination.framebufferSize()
+		g.uniformVars = append(g.uniformVars, uniformVariable{
+			name: "viewport_size",
+			value: driver.Uniform{
+				Float32s: []float32{float32(dw), float32(dh)},
+			},
+			typ: shaderir.Type{Main: shaderir.Vec2},
 		}, uniformVariable{
-			name:  "color_matrix_translation",
-			value: esTranslate,
-			typ:   shaderir.Type{Main: shaderir.Vec4},
+			name: "source_region",
+			value: driver.Uniform{
+				Float32s: []float32{
+					srcRegion.X,
+					srcRegion.Y,
+					srcRegion.X + srcRegion.Width,
+					srcRegion.Y + srcRegion.Height,
+				},
+			},
+			typ: shaderir.Type{Main: shaderir.Vec4},
 		})
-	}
 
-	if filter != driver.FilterNearest {
-		sw, sh := source.framebufferSize()
-		uniforms = append(uniforms, uniformVariable{
-			name:  "source_size",
-			value: []float32{float32(sw), float32(sh)},
-			typ:   shaderir.Type{Main: shaderir.Vec2},
-		})
-	}
+		if !colorM.IsIdentity() {
+			// ColorM's elements are immutable. It's OK to hold the reference without copying.
+			var esBody [16]float32
+			var esTranslate [4]float32
+			colorM.Elements(&esBody, &esTranslate)
+			g.uniformVars = append(g.uniformVars, uniformVariable{
+				name: "color_matrix_body",
+				value: driver.Uniform{
+					Float32s: esBody[:],
+				},
+				typ: shaderir.Type{Main: shaderir.Mat4},
+			}, uniformVariable{
+				name: "color_matrix_translation",
+				value: driver.Uniform{
+					Float32s: esTranslate[:],
+				},
+				typ: shaderir.Type{Main: shaderir.Vec4},
+			})
+		}
 
-	if filter == driver.FilterScreen {
-		scale := float32(destination.width) / float32(source.width)
-		uniforms = append(uniforms, uniformVariable{
-			name:  "scale",
-			value: scale,
-			typ:   shaderir.Type{Main: shaderir.Float},
-		})
-	}
+		if filter != driver.FilterNearest {
+			sw, sh := g.images[srcIDs[0]].framebufferSize()
+			g.uniformVars = append(g.uniformVars, uniformVariable{
+				name: "source_size",
+				value: driver.Uniform{
+					Float32s: []float32{float32(sw), float32(sh)},
+				},
+				typ: shaderir.Type{Main: shaderir.Vec2},
+			})
+		}
 
-	var imgs [graphics.ShaderImageNum]textureVariable
-	for i := range imgs {
-		if i == 0 {
-			imgs[i].valid = true
-			imgs[i].native = source.textureNative
+		if filter == driver.FilterScreen {
+			scale := float32(destination.width) / float32(g.images[srcIDs[0]].width)
+			g.uniformVars = append(g.uniformVars, uniformVariable{
+				name: "scale",
+				value: driver.Uniform{
+					Float32: scale,
+				},
+				typ: shaderir.Type{Main: shaderir.Float},
+			})
+		}
+	} else {
+		shader := g.shaders[shaderID]
+		program = shader.p
+
+		ulen := graphics.PreservedUniformVariablesNum + len(uniforms)
+		if cap(g.uniformVars) < ulen {
+			g.uniformVars = make([]uniformVariable, ulen)
+		} else {
+			g.uniformVars = g.uniformVars[:ulen]
+		}
+
+		{
+			const idx = graphics.DestinationTextureSizeUniformVariableIndex
+			w, h := destination.framebufferSize()
+			g.uniformVars[idx].name = g.uniformVariableName(idx)
+			g.uniformVars[idx].value.Float32s = []float32{float32(w), float32(h)}
+			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
+		}
+		{
+			sizes := make([]float32, 2*len(srcIDs))
+			for i, srcID := range srcIDs {
+				if img := g.images[srcID]; img != nil {
+					w, h := img.framebufferSize()
+					sizes[2*i] = float32(w)
+					sizes[2*i+1] = float32(h)
+				}
+
+			}
+			const idx = graphics.TextureSizesUniformVariableIndex
+			g.uniformVars[idx].name = g.uniformVariableName(idx)
+			g.uniformVars[idx].value.Float32s = sizes
+			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
+		}
+		dw, dh := destination.framebufferSize()
+		{
+			origin := []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
+			const idx = graphics.TextureDestinationRegionOriginUniformVariableIndex
+			g.uniformVars[idx].name = g.uniformVariableName(idx)
+			g.uniformVars[idx].value.Float32s = origin
+			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
+		}
+		{
+			size := []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
+			const idx = graphics.TextureDestinationRegionSizeUniformVariableIndex
+			g.uniformVars[idx].name = g.uniformVariableName(idx)
+			g.uniformVars[idx].value.Float32s = size
+			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
+		}
+		{
+			voffsets := make([]float32, 2*len(offsets))
+			for i, o := range offsets {
+				voffsets[2*i] = o[0]
+				voffsets[2*i+1] = o[1]
+			}
+			const idx = graphics.TextureSourceOffsetsUniformVariableIndex
+			g.uniformVars[idx].name = g.uniformVariableName(idx)
+			g.uniformVars[idx].value.Float32s = voffsets
+			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
+		}
+		{
+			origin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
+			const idx = graphics.TextureSourceRegionOriginUniformVariableIndex
+			g.uniformVars[idx].name = g.uniformVariableName(idx)
+			g.uniformVars[idx].value.Float32s = origin
+			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
+		}
+		{
+			size := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
+			const idx = graphics.TextureSourceRegionSizeUniformVariableIndex
+			g.uniformVars[idx].name = g.uniformVariableName(idx)
+			g.uniformVars[idx].value.Float32s = size
+			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
+		}
+
+		for i, v := range uniforms {
+			const offset = graphics.PreservedUniformVariablesNum
+			g.uniformVars[i+offset].name = g.uniformVariableName(i + offset)
+			g.uniformVars[i+offset].value = v
+			g.uniformVars[i+offset].typ = shader.ir.Uniforms[i+offset]
 		}
 	}
 
-	if err := g.useProgram(program, uniforms, imgs); err != nil {
+	var imgs [graphics.ShaderImageNum]textureVariable
+	for i, srcID := range srcIDs {
+		if srcID == driver.InvalidImageID {
+			continue
+		}
+		imgs[i].valid = true
+		imgs[i].native = g.images[srcID].texture
+	}
+
+	if err := g.useProgram(program, g.uniformVars, imgs); err != nil {
 		return err
 	}
 
-	g.context.drawElements(indexLen, indexOffset*2) // 2 is uint16 size in bytes
+	for i := range g.uniformVars {
+		g.uniformVars[i] = uniformVariable{}
+	}
+	g.uniformVars = g.uniformVars[:0]
 
-	// glFlush() might be necessary at least on MacBook Pro (a smilar problem at #419),
-	// but basically this pass the tests (esp. TestImageTooManyFill).
-	// As glFlush() causes performance problems, this should be avoided as much as possible.
-	// Let's wait and see, and file a new issue when this problem is newly foung.
+	if evenOdd {
+		if err := destination.ensureStencilBuffer(); err != nil {
+			return err
+		}
+		g.context.enableStencilTest()
+		g.context.beginStencilWithEvenOddRule()
+		g.context.drawElements(indexLen, indexOffset*2)
+		g.context.endStencilWithEvenOddRule()
+	}
+	g.context.drawElements(indexLen, indexOffset*2) // 2 is uint16 size in bytes
+	if evenOdd {
+		g.context.disableStencilTest()
+	}
+
 	return nil
 }
 
 func (g *Graphics) SetVsyncEnabled(enabled bool) {
+	// Do nothing
+}
+
+func (g *Graphics) SetFullscreen(fullscreen bool) {
 	// Do nothing
 }
 
@@ -258,6 +387,10 @@ func (g *Graphics) FramebufferYDirection() driver.YDirection {
 
 func (g *Graphics) NeedsRestoring() bool {
 	return g.context.needsRestoring()
+}
+
+func (g *Graphics) NeedsClearingScreen() bool {
+	return true
 }
 
 func (g *Graphics) IsGL() bool {
@@ -293,115 +426,4 @@ func (g *Graphics) addShader(shader *Shader) {
 
 func (g *Graphics) removeShader(shader *Shader) {
 	delete(g.shaders, shader.id)
-}
-
-func (g *Graphics) DrawShader(dst driver.ImageID, srcs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader driver.ShaderID, indexLen int, indexOffset int, dstRegion, srcRegion driver.Region, mode driver.CompositeMode, uniforms []interface{}) error {
-	d := g.images[dst]
-	s := g.shaders[shader]
-
-	if !d.pbo.equal(*new(buffer)) {
-		g.context.deleteBuffer(d.pbo)
-		d.pbo = *new(buffer)
-	}
-
-	g.drawCalled = true
-
-	if err := d.setViewport(); err != nil {
-		return err
-	}
-	g.context.scissor(
-		int(dstRegion.X),
-		int(dstRegion.Y),
-		int(dstRegion.Width),
-		int(dstRegion.Height),
-	)
-	g.context.blendFunc(mode)
-
-	us := make([]uniformVariable, graphics.PreservedUniformVariablesNum+len(uniforms))
-
-	{
-		const idx = graphics.DestinationTextureSizeUniformVariableIndex
-		w, h := d.framebufferSize()
-		us[idx].name = "U0"
-		us[idx].value = []float32{float32(w), float32(h)}
-		us[idx].typ = s.ir.Uniforms[0]
-	}
-	{
-		sizes := make([]float32, 2*len(srcs))
-		for i, src := range srcs {
-			if img := g.images[src]; img != nil {
-				w, h := img.framebufferSize()
-				sizes[2*i] = float32(w)
-				sizes[2*i+1] = float32(h)
-			}
-
-		}
-		const idx = graphics.TextureSizesUniformVariableIndex
-		us[idx].name = fmt.Sprintf("U%d", idx)
-		us[idx].value = sizes
-		us[idx].typ = s.ir.Uniforms[idx]
-	}
-	dw, dh := d.framebufferSize()
-	{
-		origin := []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
-		const idx = graphics.TextureDestinationRegionOriginUniformVariableIndex
-		us[idx].name = fmt.Sprintf("U%d", idx)
-		us[idx].value = origin
-		us[idx].typ = s.ir.Uniforms[idx]
-	}
-	{
-		size := []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
-		const idx = graphics.TextureDestinationRegionSizeUniformVariableIndex
-		us[idx].name = fmt.Sprintf("U%d", idx)
-		us[idx].value = size
-		us[idx].typ = s.ir.Uniforms[idx]
-	}
-	{
-		voffsets := make([]float32, 2*len(offsets))
-		for i, o := range offsets {
-			voffsets[2*i] = o[0]
-			voffsets[2*i+1] = o[1]
-		}
-		const idx = graphics.TextureSourceOffsetsUniformVariableIndex
-		us[idx].name = fmt.Sprintf("U%d", idx)
-		us[idx].value = voffsets
-		us[idx].typ = s.ir.Uniforms[idx]
-	}
-	{
-		origin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
-		const idx = graphics.TextureSourceRegionOriginUniformVariableIndex
-		us[idx].name = fmt.Sprintf("U%d", idx)
-		us[idx].value = origin
-		us[idx].typ = s.ir.Uniforms[idx]
-	}
-	{
-		size := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
-		const idx = graphics.TextureSourceRegionSizeUniformVariableIndex
-		us[idx].name = fmt.Sprintf("U%d", idx)
-		us[idx].value = size
-		us[idx].typ = s.ir.Uniforms[idx]
-	}
-
-	for i, v := range uniforms {
-		const offset = graphics.PreservedUniformVariablesNum
-		us[i+offset].name = fmt.Sprintf("U%d", i+offset)
-		us[i+offset].value = v
-		us[i+offset].typ = s.ir.Uniforms[i+offset]
-	}
-
-	var ts [graphics.ShaderImageNum]textureVariable
-	for i, src := range srcs {
-		if src == g.InvalidImageID() {
-			continue
-		}
-		ts[i].valid = true
-		ts[i].native = g.images[src].textureNative
-	}
-
-	if err := g.useProgram(s.p, us, ts); err != nil {
-		return err
-	}
-	g.context.drawElements(indexLen, indexOffset*2) // 2 is uint16 size in bytes
-
-	return nil
 }

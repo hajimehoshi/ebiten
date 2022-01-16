@@ -17,7 +17,6 @@ package driver
 import (
 	"errors"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
@@ -29,6 +28,22 @@ type Region struct {
 	Height float32
 }
 
+const (
+	InvalidImageID  = 0
+	InvalidShaderID = 0
+)
+
+type ColorM interface {
+	IsIdentity() bool
+	At(i, j int) float32
+	Elements(body *[16]float32, translate *[4]float32)
+}
+
+type Uniform struct {
+	Float32  float32
+	Float32s []float32
+}
+
 type Graphics interface {
 	Begin()
 	End()
@@ -36,29 +51,25 @@ type Graphics interface {
 	SetVertices(vertices []float32, indices []uint16)
 	NewImage(width, height int) (Image, error)
 	NewScreenFramebufferImage(width, height int) (Image, error)
-	Reset() error
+	Initialize() error
 	SetVsyncEnabled(enabled bool)
+	SetFullscreen(fullscreen bool)
 	FramebufferYDirection() YDirection
 	NeedsRestoring() bool
+	NeedsClearingScreen() bool
 	IsGL() bool
 	HasHighPrecisionFloat() bool
 	MaxImageSize() int
-	InvalidImageID() ImageID
 
 	NewShader(program *shaderir.Program) (Shader, error)
 
-	// Draw draws an image onto another image.
-	//
-	// TODO: Merge this into DrawShader.
-	Draw(dst, src ImageID, indexLen int, indexOffset int, mode CompositeMode, colorM *affine.ColorM, filter Filter, address Address, dstRegion, srcRegion Region) error
-
-	// DrawShader draws the shader.
+	// DrawTriangles draws an image onto another image with the given parameters.
 	//
 	// uniforms represents a colletion of uniform variables. The values must be one of these types:
 	//
 	//   * float32
 	//   * []float32
-	DrawShader(dst ImageID, srcs [graphics.ShaderImageNum]ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader ShaderID, indexLen int, indexOffset int, dstRegion, srcRegion Region, mode CompositeMode, uniforms []interface{}) error
+	DrawTriangles(dst ImageID, srcs [graphics.ShaderImageNum]ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader ShaderID, indexLen int, indexOffset int, mode CompositeMode, colorM ColorM, filter Filter, address Address, dstRegion, srcRegion Region, uniforms []Uniform, evenOdd bool) error
 }
 
 // GraphicsNotReady represents that the graphics driver is not ready for recovering from the context lost.

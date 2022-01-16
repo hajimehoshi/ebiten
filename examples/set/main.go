@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build example
 // +build example
 
 package main
@@ -36,13 +37,18 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-var offscreen = ebiten.NewImage(screenWidth, screenHeight)
-
 type Game struct {
+	offscreen *ebiten.Image
+}
+
+func NewGame() *Game {
+	return &Game{
+		offscreen: ebiten.NewImage(screenWidth, screenHeight),
+	}
 }
 
 func (g *Game) Update() error {
-	w, h := offscreen.Size()
+	w, h := g.offscreen.Size()
 	x := rand.Intn(w)
 	y := rand.Intn(h)
 	c := color.RGBA{
@@ -51,12 +57,12 @@ func (g *Game) Update() error {
 		byte(rand.Intn(256)),
 		byte(0xff),
 	}
-	offscreen.Set(x, y, c)
+	g.offscreen.Set(x, y, c)
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	screen.DrawImage(offscreen, nil)
+	screen.DrawImage(g.offscreen, nil)
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f", ebiten.CurrentTPS(), ebiten.CurrentFPS()))
 }
 
@@ -67,7 +73,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func main() {
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
 	ebiten.SetWindowTitle("Set (Ebiten Demo)")
-	if err := ebiten.RunGame(&Game{}); err != nil {
+	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}
 }

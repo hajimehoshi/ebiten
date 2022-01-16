@@ -12,9 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !android
-// +build !js
-// +build !ios
+//go:build !android && !js && !ios
+// +build !android,!js,!ios
 
 package ebiten
 
@@ -53,7 +52,7 @@ func takeScreenshot(screen *Image) error {
 	}
 
 	blackbg := !IsScreenTransparent()
-	if err := screen.mipmap.Dump(newname, blackbg); err != nil {
+	if err := screen.mipmap.DumpScreenshot(newname, blackbg); err != nil {
 		return err
 	}
 

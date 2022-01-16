@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build android || ios
 // +build android ios
 
 // Package ebitenmobileview offers functions for OpenGL/Metal view of mobiles.
@@ -75,12 +76,12 @@ func Update() error {
 	return mobile.Get().Update()
 }
 
-func Suspend() {
-	mobile.Get().SetForeground(false)
+func Suspend() error {
+	return mobile.Get().SetForeground(false)
 }
 
-func Resume() {
-	mobile.Get().SetForeground(true)
+func Resume() error {
+	return mobile.Get().SetForeground(true)
 }
 
 func OnContextLost() {
@@ -89,4 +90,13 @@ func OnContextLost() {
 
 func DeviceScale() float64 {
 	return devicescale.GetAt(0, 0)
+}
+
+type RenderRequester interface {
+	SetExplicitRenderingMode(explicitRendering bool)
+	RequestRenderIfNeeded()
+}
+
+func SetRenderRequester(renderRequester RenderRequester) {
+	mobile.Get().SetRenderRequester(renderRequester)
 }

@@ -83,6 +83,7 @@ type Input struct {
 	mouseInitPosY int
 	mouseDir      Dir
 
+	touches       []ebiten.TouchID
 	touchState    touchState
 	touchID       ebiten.TouchID
 	touchInitPosX int
@@ -113,12 +114,11 @@ func vecToDir(dx, dy int) (Dir, bool) {
 			return DirUp, true
 		}
 		return DirDown, true
-	} else {
-		if dx < 0 {
-			return DirLeft, true
-		}
-		return DirRight, true
 	}
+	if dx < 0 {
+		return DirLeft, true
+	}
+	return DirRight, true
 }
 
 // Update updates the current input states.
@@ -147,12 +147,13 @@ func (i *Input) Update() {
 	case mouseStateSettled:
 		i.mouseState = mouseStateNone
 	}
+
+	i.touches = ebiten.AppendTouchIDs(i.touches[:0])
 	switch i.touchState {
 	case touchStateNone:
-		ts := ebiten.TouchIDs()
-		if len(ts) == 1 {
-			i.touchID = ts[0]
-			x, y := ebiten.TouchPosition(ts[0])
+		if len(i.touches) == 1 {
+			i.touchID = i.touches[0]
+			x, y := ebiten.TouchPosition(i.touches[0])
 			i.touchInitPosX = x
 			i.touchInitPosY = y
 			i.touchLastPosX = x
@@ -160,21 +161,20 @@ func (i *Input) Update() {
 			i.touchState = touchStatePressing
 		}
 	case touchStatePressing:
-		ts := ebiten.TouchIDs()
-		if len(ts) >= 2 {
+		if len(i.touches) >= 2 {
 			break
 		}
-		if len(ts) == 1 {
-			if ts[0] != i.touchID {
+		if len(i.touches) == 1 {
+			if i.touches[0] != i.touchID {
 				i.touchState = touchStateInvalid
 			} else {
-				x, y := ebiten.TouchPosition(ts[0])
+				x, y := ebiten.TouchPosition(i.touches[0])
 				i.touchLastPosX = x
 				i.touchLastPosY = y
 			}
 			break
 		}
-		if len(ts) == 0 {
+		if len(i.touches) == 0 {
 			dx := i.touchLastPosX - i.touchInitPosX
 			dy := i.touchLastPosY - i.touchInitPosY
 			d, ok := vecToDir(dx, dy)
@@ -188,7 +188,7 @@ func (i *Input) Update() {
 	case touchStateSettled:
 		i.touchState = touchStateNone
 	case touchStateInvalid:
-		if len(ebiten.TouchIDs()) == 0 {
+		if len(i.touches) == 0 {
 			i.touchState = touchStateNone
 		}
 	}

@@ -16,6 +16,7 @@ package atlas
 
 const (
 	BaseCountToPutOnAtlas = baseCountToPutOnAtlas
+	PaddingSize           = paddingSize
 )
 
 func PutImagesOnAtlasForTesting() error {
@@ -37,12 +38,6 @@ func SetImageSizeForTesting(min, max int) {
 func ResetImageSizeForTesting() {
 	minSize = oldMinSize
 	maxSize = oldMaxSize
-}
-
-func ResetBackendsForTesting() {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-	theBackends = nil
 }
 
 func (i *Image) IsOnAtlasForTesting() bool {

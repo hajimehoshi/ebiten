@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build !android && !js && (!ios || !ebitengl)
 // +build !android
 // +build !js
+// +build !ios !ebitengl
 
 package restorable
-
-const needsDisposingWhenRestoring = true
 
 const canDetectContextLostExplicitly = false

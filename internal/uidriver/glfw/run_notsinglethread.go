@@ -12,10 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !ebitensinglethread
-// +build darwin freebsd linux windows
-// +build !android
-// +build !ios
+//go:build !ebitensinglethread && !android && !js && !ios
+// +build !ebitensinglethread,!android,!js,!ios
 
 package glfw
 
@@ -34,23 +32,21 @@ func (u *UserInterface) Run(uicontext driver.UIContext) error {
 
 	ch := make(chan error, 1)
 	go func() {
-		defer func() {
-			_ = u.t.Call(func() error {
-				return thread.BreakLoop
-			})
-		}()
+		defer u.t.Stop()
 
 		defer close(ch)
 
-		_ = u.t.Call(func() error {
-			if err := u.init(); err != nil {
-				ch <- err
-			}
-			return nil
-		})
+		var err error
+		if u.t.Call(func() {
+			err = u.init()
+		}); err != nil {
+			ch <- err
+			return
+		}
 
 		if err := u.loop(); err != nil {
 			ch <- err
+			return
 		}
 	}()
 
@@ -78,11 +74,7 @@ func (u *UserInterface) runOnAnotherThreadFromMainThread(f func() error) error {
 
 	var err error
 	go func() {
-		defer func() {
-			_ = u.t.Call(func() error {
-				return thread.BreakLoop
-			})
-		}()
+		defer u.t.Stop()
 		err = f()
 	}()
 	u.t.Loop()

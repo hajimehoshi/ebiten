@@ -18,6 +18,7 @@ import (
 	"image"
 	"image/draw"
 	"math/bits"
+	"reflect"
 	"runtime"
 	"sync"
 	"unsafe"
@@ -79,6 +80,13 @@ type Monitor struct {
 	m uintptr
 }
 
+func (m *Monitor) GetContentScale() (float32, float32) {
+	var sx, sy float32
+	glfwDLL.call("glfwGetMonitorContentScale", m.m, uintptr(unsafe.Pointer(&sx)), uintptr(unsafe.Pointer(&sy)))
+	panicError()
+	return sx, sy
+}
+
 func (m *Monitor) GetPos() (int, int) {
 	var x, y int32
 	glfwDLL.call("glfwGetMonitorPos", m.m, uintptr(unsafe.Pointer(&x)), uintptr(unsafe.Pointer(&y)))
@@ -89,13 +97,18 @@ func (m *Monitor) GetPos() (int, int) {
 func (m *Monitor) GetVideoMode() *VidMode {
 	v := glfwDLL.call("glfwGetVideoMode", m.m)
 	panicError()
+	var vals []int32
+	h := (*reflect.SliceHeader)(unsafe.Pointer(&vals))
+	h.Data = v
+	h.Len = 6
+	h.Cap = 6
 	return &VidMode{
-		Width:       int(*(*int32)(unsafe.Pointer(v))),
-		Height:      int(*(*int32)(unsafe.Pointer(v + 4))),
-		RedBits:     int(*(*int32)(unsafe.Pointer(v + 8))),
-		GreenBits:   int(*(*int32)(unsafe.Pointer(v + 12))),
-		BlueBits:    int(*(*int32)(unsafe.Pointer(v + 16))),
-		RefreshRate: int(*(*int32)(unsafe.Pointer(v + 20))),
+		Width:       int(vals[0]),
+		Height:      int(vals[1]),
+		RedBits:     int(vals[2]),
+		GreenBits:   int(vals[3]),
+		BlueBits:    int(vals[4]),
+		RefreshRate: int(vals[5]),
 	}
 }
 
@@ -169,6 +182,11 @@ func (w *Window) GetSize() (int, int) {
 	return int(width), int(height)
 }
 
+func (w *Window) Hide() {
+	glfwDLL.call("glfwHideWindow", w.w)
+	panicError()
+}
+
 func (w *Window) Iconify() {
 	glfwDLL.call("glfwIconifyWindow", w.w)
 	panicError()
@@ -190,16 +208,15 @@ func (w *Window) Restore() {
 }
 
 func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsCallback) {
-	var gcb uintptr
-	if cbfun != nil {
-		gcb = windows.NewCallbackCDecl(func(window uintptr, char rune, mods ModifierKey) uintptr {
-			cbfun(theGLFWWindows.get(window), char, mods)
-			return 0
-		})
-	}
-	glfwDLL.call("glfwSetCharModsCallback", w.w, gcb)
+	glfwDLL.call("glfwSetCharModsCallback", w.w, uintptr(cbfun))
 	panicError()
-	return nil // TODO
+	return ToCharModsCallback(nil) // TODO
+}
+
+func (w *Window) SetCloseCallback(cbfun CloseCallback) (previous CloseCallback) {
+	glfwDLL.call("glfwSetWindowCloseCallback", w.w, uintptr(cbfun))
+	panicError()
+	return ToCloseCallback(nil) // TODO
 }
 
 func (w *Window) SetCursor(cursor *Cursor) {
@@ -211,42 +228,28 @@ func (w *Window) SetCursor(cursor *Cursor) {
 }
 
 func (w *Window) SetFramebufferSizeCallback(cbfun FramebufferSizeCallback) (previous FramebufferSizeCallback) {
-	var gcb uintptr
-	if cbfun != nil {
-		gcb = windows.NewCallbackCDecl(func(window uintptr, width int, height int) uintptr {
-			cbfun(theGLFWWindows.get(window), width, height)
-			return 0
-		})
-	}
-	glfwDLL.call("glfwSetFramebufferSizeCallback", w.w, gcb)
+	glfwDLL.call("glfwSetFramebufferSizeCallback", w.w, uintptr(cbfun))
 	panicError()
-	return nil // TODO
+	return ToFramebufferSizeCallback(nil) // TODO
 }
 
 func (w *Window) SetScrollCallback(cbfun ScrollCallback) (previous ScrollCallback) {
-	var gcb uintptr
-	if cbfun != nil {
-		gcb = windows.NewCallbackCDecl(func(window uintptr, xoff *float64, yoff *float64) uintptr {
-			// xoff and yoff were originally float64, but there is no good way to pass them on 32bit
-			// machines via NewCallback. We've fixed GLFW side to use pointer values.
-			cbfun(theGLFWWindows.get(window), *xoff, *yoff)
-			return 0
-		})
-	}
-	glfwDLL.call("glfwSetScrollCallback", w.w, gcb)
+	glfwDLL.call("glfwSetScrollCallback", w.w, uintptr(cbfun))
 	panicError()
-	return nil // TODO
+	return ToScrollCallback(nil) // TODO
+}
+
+func (w *Window) SetShouldClose(value bool) {
+	var v uintptr = False
+	if value {
+		v = True
+	}
+	glfwDLL.call("glfwSetWindowShouldClose", w.w, v)
+	panicError()
 }
 
 func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous SizeCallback) {
-	var gcb uintptr
-	if cbfun != nil {
-		gcb = windows.NewCallbackCDecl(func(window uintptr, width int, height int) uintptr {
-			cbfun(theGLFWWindows.get(window), width, height)
-			return 0
-		})
-	}
-	glfwDLL.call("glfwSetWindowSizeCallback", w.w, gcb)
+	glfwDLL.call("glfwSetWindowSizeCallback", w.w, uintptr(cbfun))
 	panicError()
 	prev := w.prevSizeCallback
 	w.prevSizeCallback = cbfun
@@ -310,7 +313,7 @@ func (w *Window) SetTitle(title string) {
 func (w *Window) ShouldClose() bool {
 	r := glfwDLL.call("glfwWindowShouldClose", w.w)
 	panicError()
-	return r == True
+	return byte(r) == True
 }
 
 func (w *Window) Show() {
@@ -347,6 +350,12 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 func (j Joystick) GetGUID() string {
 	ptr := glfwDLL.call("glfwGetJoystickGUID", uintptr(j))
 	panicError()
+
+	// ptr can be nil after disconnecting the joystick.
+	if ptr == 0 {
+		return ""
+	}
+
 	var backed [256]byte
 	as := backed[:0]
 	for i := int32(0); ; i++ {
@@ -364,6 +373,12 @@ func (j Joystick) GetGUID() string {
 func (j Joystick) GetName() string {
 	ptr := glfwDLL.call("glfwGetJoystickName", uintptr(j))
 	panicError()
+
+	// ptr can be nil after disconnecting the joystick.
+	if ptr == 0 {
+		return ""
+	}
+
 	var backed [256]byte
 	as := backed[:0]
 	for i := int32(0); ; i++ {
@@ -382,6 +397,12 @@ func (j Joystick) GetAxes() []float32 {
 	var l int32
 	ptr := glfwDLL.call("glfwGetJoystickAxes", uintptr(j), uintptr(unsafe.Pointer(&l)))
 	panicError()
+
+	// ptr can be nil after disconnecting the joystick.
+	if ptr == 0 {
+		return nil
+	}
+
 	as := make([]float32, l)
 	for i := int32(0); i < l; i++ {
 		as[i] = *(*float32)(unsafe.Pointer(ptr))
@@ -394,12 +415,36 @@ func (j Joystick) GetButtons() []byte {
 	var l int32
 	ptr := glfwDLL.call("glfwGetJoystickButtons", uintptr(j), uintptr(unsafe.Pointer(&l)))
 	panicError()
+
+	// ptr can be nil after disconnecting the joystick.
+	if ptr == 0 {
+		return nil
+	}
+
 	bs := make([]byte, l)
 	for i := int32(0); i < l; i++ {
 		bs[i] = *(*byte)(unsafe.Pointer(ptr))
 		ptr++
 	}
 	return bs
+}
+
+func (j Joystick) GetHats() []JoystickHatState {
+	var l int32
+	ptr := glfwDLL.call("glfwGetJoystickHats", uintptr(j), uintptr(unsafe.Pointer(&l)))
+	panicError()
+
+	// ptr can be nil after disconnecting the joystick.
+	if ptr == 0 {
+		return nil
+	}
+
+	hats := make([]JoystickHatState, l)
+	for i := int32(0); i < l; i++ {
+		hats[i] = *(*JoystickHatState)(unsafe.Pointer(ptr))
+		ptr++
+	}
+	return hats
 }
 
 func GetMonitors() []*Monitor {
@@ -428,17 +473,45 @@ func GetPrimaryMonitor() *Monitor {
 
 func Init() error {
 	glfwDLL.call("glfwInit")
-	return acceptError(APIUnavailable)
+	// InvalidValue can happen when specific joysticks are used. This issue
+	// will be fixed in GLFW 3.3.5. As a temporary fix, ignore this error.
+	// See go-gl/glfw#292, go-gl/glfw#324, and glfw/glfw#1763
+	// (#1229).
+	err := acceptError(APIUnavailable, InvalidValue)
+	if e, ok := err.(*glfwError); ok && e.code == InvalidValue {
+		return nil
+	}
+	return err
 }
 
 func (j Joystick) Present() bool {
 	r := glfwDLL.call("glfwJoystickPresent", uintptr(j))
 	panicError()
-	return r == True
+	return byte(r) == True
+}
+
+func panicErrorExceptForInvalidValue() {
+	// InvalidValue can happen when specific joysticks are used. This issue
+	// will be fixed in GLFW 3.3.5. As a temporary fix, ignore this error.
+	// See go-gl/glfw#292, go-gl/glfw#324, and glfw/glfw#1763
+	// (#1229).
+	err := acceptError(InvalidValue)
+	if e, ok := err.(*glfwError); ok && e.code == InvalidValue {
+		return
+	}
+	if err != nil {
+		panic(err)
+	}
 }
 
 func PollEvents() {
 	glfwDLL.call("glfwPollEvents")
+	// This should be used for WaitEvents and WaitEventsTimeout if needed.
+	panicErrorExceptForInvalidValue()
+}
+
+func PostEmptyEvent() {
+	glfwDLL.call("glfwPostEmptyEvent")
 	panicError()
 }
 
@@ -469,6 +542,11 @@ func Terminate() {
 	if err := glfwDLL.unload(); err != nil {
 		panic(err)
 	}
+}
+
+func WaitEvents() {
+	glfwDLL.call("glfwWaitEvents")
+	panicError()
 }
 
 func WindowHint(target Hint, hint int) {

@@ -19,10 +19,8 @@ import (
 	"runtime"
 	"sync"
 	"syscall/js"
-)
 
-const (
-	readChunkSize = 4096
+	"github.com/hajimehoshi/oto/v2"
 )
 
 type Context struct {
@@ -42,7 +40,7 @@ func NewContext(sampleRate int, channelNum, bitDepthInBytes int) *Context {
 	}
 }
 
-func (c *Context) NewPlayer(r io.Reader) *Player {
+func (c *Context) NewPlayer(r io.Reader) oto.Player {
 	cond := sync.NewCond(&sync.Mutex{})
 	onwritten := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		cond.Signal()
@@ -59,7 +57,17 @@ func (c *Context) NewPlayer(r io.Reader) *Player {
 	return p
 }
 
-func (c *Context) Close() error {
+func (c *Context) Suspend() error {
+	// Do nothing so far.
+	return nil
+}
+
+func (c *Context) Resume() error {
+	// Do nothing so far.
+	return nil
+}
+
+func (c *Context) Err() error {
 	return nil
 }
 
@@ -131,14 +139,14 @@ func (p *Player) Play() {
 	// TODO: Get the appropriate buffer size from the C++ side.
 	if p.buf == nil {
 		n := p.context.oneBufferSize()
-		if max := p.context.MaxBufferSize() - int(p.UnplayedBufferSize()); n > max {
+		if max := p.context.MaxBufferSize() - p.UnplayedBufferSize(); n > max {
 			n = max
 		}
 		p.buf = make([]byte, n)
 	}
 	n, err := p.src.Read(p.buf)
 	if err != nil && err != io.EOF {
-		p.setError(err)
+		p.setErrorImpl(err)
 		return
 	}
 	if n > 0 {
@@ -199,11 +207,11 @@ func (p *Player) SetVolume(volume float64) {
 	p.v.Set("volume", volume)
 }
 
-func (p *Player) UnplayedBufferSize() int64 {
+func (p *Player) UnplayedBufferSize() int {
 	if !p.v.Truthy() {
 		return 0
 	}
-	return int64(p.v.Get("unplayedBufferSize").Int())
+	return p.v.Get("unplayedBufferSize").Int()
 }
 
 func (p *Player) Err() error {
@@ -221,7 +229,10 @@ func (p *Player) Close() error {
 func (p *Player) close(remove bool) error {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
+	return p.closeImpl(remove)
+}
 
+func (p *Player) closeImpl(remove bool) error {
 	if p.state == playerStateClosed {
 		return p.err
 	}
@@ -243,7 +254,10 @@ func (p *Player) close(remove bool) error {
 func (p *Player) setError(err error) {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
+	p.setErrorImpl(err)
+}
 
+func (p *Player) setErrorImpl(err error) {
 	if p.state != playerStateClosed && p.v.Truthy() {
 		p.v.Call("close", true)
 		p.v = js.Undefined()
@@ -276,12 +290,6 @@ func (p *Player) waitUntilUnpaused() bool {
 	return p.v.Truthy() && p.state == playerStatePlaying
 }
 
-func (p *Player) write(dst js.Value, src []byte) {
-	p.cond.L.Lock()
-	defer p.cond.L.Unlock()
-	p.writeImpl(dst, src)
-}
-
 func (p *Player) writeImpl(dst js.Value, src []byte) {
 	if p.state == playerStateClosed {
 		return
@@ -295,6 +303,8 @@ func (p *Player) writeImpl(dst js.Value, src []byte) {
 }
 
 func (p *Player) loop() {
+	const readChunkSize = 4096
+
 	buf := make([]byte, readChunkSize)
 	dst := js.Global().Get("Uint8Array").New(readChunkSize)
 
@@ -303,22 +313,22 @@ func (p *Player) loop() {
 			return
 		}
 
-		n := readChunkSize
-		if max := p.context.MaxBufferSize() - int(p.UnplayedBufferSize()); n > max {
-			n = max
-		}
-		n2, err := p.src.Read(buf[:n])
+		p.cond.L.Lock()
+		n, err := p.src.Read(buf)
 		if err != nil && err != io.EOF {
-			p.setError(err)
+			p.setErrorImpl(err)
+			p.cond.L.Unlock()
 			return
 		}
 		if n > 0 {
-			p.write(dst, buf[:n2])
+			p.writeImpl(dst, buf[:n])
 		}
 
 		if err == io.EOF {
-			p.close(false)
+			p.closeImpl(false)
+			p.cond.L.Unlock()
 			return
 		}
+		p.cond.L.Unlock()
 	}
 }

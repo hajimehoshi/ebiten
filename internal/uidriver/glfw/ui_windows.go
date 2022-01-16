@@ -16,10 +16,12 @@ package glfw
 
 import (
 	"fmt"
+	"runtime"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
@@ -45,7 +47,6 @@ type monitorInfo struct {
 var (
 	// user32 is defined at hideconsole_windows.go
 	procGetSystemMetrics    = user32.NewProc("GetSystemMetrics")
-	procGetActiveWindow     = user32.NewProc("GetActiveWindow")
 	procGetForegroundWindow = user32.NewProc("GetForegroundWindow")
 	procMonitorFromWindow   = user32.NewProc("MonitorFromWindow")
 	procGetMonitorInfoW     = user32.NewProc("GetMonitorInfoW")
@@ -57,14 +58,6 @@ func getSystemMetrics(nIndex int) (int, error) {
 		return 0, fmt.Errorf("ui: GetSystemMetrics failed: error code: %d", e)
 	}
 	return int(r), nil
-}
-
-func getActiveWindow() (uintptr, error) {
-	r, _, e := procGetActiveWindow.Call()
-	if e != nil && e.(windows.Errno) != 0 {
-		return 0, fmt.Errorf("ui: GetActiveWindow failed: error code: %d", e)
-	}
-	return r, nil
 }
 
 func getForegroundWindow() (uintptr, error) {
@@ -97,28 +90,26 @@ func getMonitorInfoW(hMonitor uintptr, lpmi *monitorInfo) error {
 	return nil
 }
 
-// fromGLFWMonitorPixel must be called from the main thread.
-func fromGLFWMonitorPixel(x float64, deviceScale float64) float64 {
-	return x / deviceScale
+// clearVideoModeScaleCache must be called from the main thread.
+func clearVideoModeScaleCache() {}
+
+// dipFromGLFWMonitorPixel must be called from the main thread.
+func (u *UserInterface) dipFromGLFWMonitorPixel(x float64, monitor *glfw.Monitor) float64 {
+	return x / u.deviceScaleFactor(monitor)
 }
 
-// fromGLFWPixel must be called from the main thread.
-func (u *UserInterface) fromGLFWPixel(x float64) float64 {
-	return x / u.deviceScaleFactor()
+// dipFromGLFWPixel must be called from the main thread.
+func (u *UserInterface) dipFromGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
+	return x / u.deviceScaleFactor(monitor)
 }
 
-// toGLFWPixel must be called from the main thread.
-func (u *UserInterface) toGLFWPixel(x float64) float64 {
-	return x * u.deviceScaleFactor()
-}
-
-// toFramebufferPixel must be called from the main thread.
-func (u *UserInterface) toFramebufferPixel(x float64) float64 {
-	return x
+// dipToGLFWPixel must be called from the main thread.
+func (u *UserInterface) dipToGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
+	return x * u.deviceScaleFactor(monitor)
 }
 
 func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
-	mx, my := currentMonitor(u.window).GetPos()
+	mx, my := u.currentMonitor().GetPos()
 	// As the video width/height might be wrong,
 	// adjust x/y at least to enable to handle the window (#328)
 	if x < mx {
@@ -134,26 +125,24 @@ func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
 
-func currentMonitorByOS(_ *glfw.Window) *glfw.Monitor {
-	// TODO: Should we return nil here?
-	w, err := getActiveWindow()
+func initialMonitorByOS() *glfw.Monitor {
+	// Get the foreground window, that is common among multiple processes.
+	w, err := getForegroundWindow()
 	if err != nil {
 		panic(err)
 	}
-
 	if w == 0 {
-		// The active window doesn't exist when launching, or the application is runnable on unfocused.
-		// Get the foreground window, that is common among multiple processes.
-		w, err = getForegroundWindow()
-		if err != nil {
-			panic(err)
-		}
-		if w == 0 {
-			// GetForegroundWindow can return null according to the document.
-			return nil
-		}
+		// GetForegroundWindow can return null according to the document.
+		return nil
 	}
+	return monitorFromWin32Window(w)
+}
 
+func currentMonitorByOS(w *glfw.Window) *glfw.Monitor {
+	return monitorFromWin32Window(w.GetWin32Window())
+}
+
+func monitorFromWin32Window(w uintptr) *glfw.Monitor {
 	// Get the current monitor by the window handle instead of the window position. It is because the window
 	// position is not relaiable in some cases e.g. when the window is put across multiple monitors.
 
@@ -170,10 +159,9 @@ func currentMonitorByOS(_ *glfw.Window) *glfw.Monitor {
 	}
 
 	x, y := int(mi.rcMonitor.left), int(mi.rcMonitor.top)
-	for _, m := range glfw.GetMonitors() {
-		mx, my := m.GetPos()
-		if mx == x && my == y {
-			return m
+	for _, m := range ensureMonitors() {
+		if m.x == x && m.y == y {
+			return m.m
 		}
 	}
 	return nil
@@ -185,4 +173,23 @@ func (u *UserInterface) nativeWindow() uintptr {
 
 func (u *UserInterface) isNativeFullscreen() bool {
 	return false
+}
+
+func (u *UserInterface) setNativeCursor(shape driver.CursorShape) {
+	// TODO: Use native API in the future (#1571)
+	u.window.SetCursor(glfwSystemCursors[shape])
+}
+
+func (u *UserInterface) isNativeFullscreenAvailable() bool {
+	return false
+}
+
+func (u *UserInterface) setNativeFullscreen(fullscreen bool) {
+	panic(fmt.Sprintf("glfw: setNativeFullscreen is not implemented in this environment: %s", runtime.GOOS))
+}
+
+func (u *UserInterface) adjustViewSize() {
+}
+
+func initializeWindowAfterCreation(w *glfw.Window) {
 }

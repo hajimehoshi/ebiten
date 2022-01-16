@@ -48,7 +48,6 @@ func New(width, height int) *Mipmap {
 		width:  width,
 		height: height,
 		orig:   buffered.NewImage(width, height),
-		imgs:   map[int]*buffered.Image{},
 	}
 }
 
@@ -57,8 +56,11 @@ func NewScreenFramebufferMipmap(width, height int) *Mipmap {
 		width:  width,
 		height: height,
 		orig:   buffered.NewScreenFramebufferImage(width, height),
-		imgs:   map[int]*buffered.Image{},
 	}
+}
+
+func (m *Mipmap) SetIndependent(independent bool) {
+	m.orig.SetIndependent(independent)
 }
 
 func (m *Mipmap) SetVolatile(volatile bool) {
@@ -69,8 +71,8 @@ func (m *Mipmap) SetVolatile(volatile bool) {
 	m.orig.SetVolatile(volatile)
 }
 
-func (m *Mipmap) Dump(name string, blackbg bool) error {
-	return m.orig.Dump(name, blackbg)
+func (m *Mipmap) DumpScreenshot(name string, blackbg bool) error {
+	return m.orig.DumpScreenshot(name, blackbg)
 }
 
 func (m *Mipmap) ReplacePixels(pix []byte, x, y, width, height int) error {
@@ -85,7 +87,7 @@ func (m *Mipmap) Pixels(x, y, width, height int) ([]byte, error) {
 	return m.orig.Pixels(x, y, width, height)
 }
 
-func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms []interface{}, canSkipMipmap bool) {
+func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices []float32, indices []uint16, colorm affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms []driver.Uniform, evenOdd bool, canSkipMipmap bool) {
 	if len(indices) == 0 {
 		return
 	}
@@ -123,22 +125,6 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices [
 		}
 	}
 
-	if colorm != nil && colorm.ScaleOnly() {
-		body, _ := colorm.UnsafeElements()
-		cr := body[0]
-		cg := body[5]
-		cb := body[10]
-		ca := body[15]
-		colorm = nil
-		const n = graphics.VertexFloatNum
-		for i := 0; i < len(vertices)/n; i++ {
-			vertices[i*n+4] *= cr
-			vertices[i*n+5] *= cg
-			vertices[i*n+6] *= cb
-			vertices[i*n+7] *= ca
-		}
-	}
-
 	var s *buffered.Shader
 	if shader != nil {
 		s = shader.shader
@@ -164,8 +150,15 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices [
 		imgs[i] = src.orig
 	}
 
-	m.orig.DrawTriangles(imgs, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, s, uniforms)
+	m.orig.DrawTriangles(imgs, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, s, uniforms, evenOdd)
 	m.disposeMipmaps()
+}
+
+func (m *Mipmap) setImg(level int, img *buffered.Image) {
+	if m.imgs == nil {
+		m.imgs = map[int]*buffered.Image{}
+	}
+	m.imgs[level] = img
 }
 
 func (m *Mipmap) level(level int) *buffered.Image {
@@ -192,7 +185,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 	case level > 1:
 		src = m.level(level - 1)
 		if src == nil {
-			m.imgs[level] = nil
+			m.setImg(level, nil)
 			return nil
 		}
 		w := sizeForLevel(m.width, level-1)
@@ -207,14 +200,14 @@ func (m *Mipmap) level(level int) *buffered.Image {
 	w2 := sizeForLevel(m.width, level-1)
 	h2 := sizeForLevel(m.height, level-1)
 	if w2 == 0 || h2 == 0 {
-		m.imgs[level] = nil
+		m.setImg(level, nil)
 		return nil
 	}
 	// buffered.NewImage panics with a too big size when actual allocation happens.
 	// 4096 should be a safe size in most environments (#1399).
 	// Unfortunately a precise max image size cannot be obtained here since this requires GPU access.
 	if w2 > 4096 || h2 > 4096 {
-		m.imgs[level] = nil
+		m.setImg(level, nil)
 		return nil
 	}
 	s := buffered.NewImage(w2, h2)
@@ -226,8 +219,8 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		Width:  float32(w2),
 		Height: float32(h2),
 	}
-	s.DrawTriangles([graphics.ShaderImageNum]*buffered.Image{src}, vs, is, nil, driver.CompositeModeCopy, filter, driver.AddressUnsafe, dstRegion, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil)
-	m.imgs[level] = s
+	s.DrawTriangles([graphics.ShaderImageNum]*buffered.Image{src}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, filter, driver.AddressUnsafe, dstRegion, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+	m.setImg(level, s)
 
 	return m.imgs[level]
 }

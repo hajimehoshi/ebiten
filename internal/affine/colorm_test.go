@@ -19,31 +19,31 @@ import (
 	"math/rand"
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/v2/internal/affine"
+	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 )
 
 func TestColorMScale(t *testing.T) {
 	cases := []struct {
-		In  *ColorM
-		Out *ColorM
+		In  affine.ColorM
+		Out affine.ColorM
 	}{
 		{
-			nil,
-			(*ColorM)(nil).Scale(0.25, 0.5, 0.75, 1),
+			affine.ColorMIdentity{},
+			affine.ColorMIdentity{}.Scale(0.25, 0.5, 0.75, 1),
 		},
 		{
-			(*ColorM)(nil).Scale(0.5, 0.5, 0.5, 0.8),
-			(*ColorM)(nil).Scale(0.125, 0.25, 0.375, 0.8),
+			affine.ColorMIdentity{}.Scale(0.5, 0.5, 0.5, 0.8),
+			affine.ColorMIdentity{}.Scale(0.125, 0.25, 0.375, 0.8),
 		},
 		{
-			(*ColorM)(nil).Translate(0, 0, 0, 0),
-			(*ColorM)(nil).Scale(0.25, 0.5, 0.75, 1),
+			affine.ColorMIdentity{}.Translate(0, 0, 0, 0),
+			affine.ColorMIdentity{}.Scale(0.25, 0.5, 0.75, 1),
 		},
 	}
 	for _, c := range cases {
 		got := c.In.Scale(0.25, 0.5, 0.75, 1)
 		want := c.Out
-		if got != want {
+		if !got.Equals(want) {
 			t.Errorf("%v.Scale(): got: %v, want: %v", c.In, got, want)
 		}
 	}
@@ -51,51 +51,51 @@ func TestColorMScale(t *testing.T) {
 
 func TestColorMScaleOnly(t *testing.T) {
 	cases := []struct {
-		In  *ColorM
+		In  affine.ColorM
 		Out bool
 	}{
 		{
-			nil,
+			affine.ColorMIdentity{},
 			true,
 		},
 		{
-			(*ColorM)(nil).Translate(0, 0, 0, 0),
+			affine.ColorMIdentity{}.Translate(0, 0, 0, 0),
 			true,
 		},
 		{
-			(*ColorM)(nil).Translate(1, 0, 0, 0),
+			affine.ColorMIdentity{}.Translate(1, 0, 0, 0),
 			false,
 		},
 		{
-			(*ColorM)(nil).Translate(0, 0, 0, -1),
+			affine.ColorMIdentity{}.Translate(0, 0, 0, -1),
 			false,
 		},
 		{
-			(*ColorM)(nil).Scale(1, 1, 1, 1),
+			affine.ColorMIdentity{}.Scale(1, 1, 1, 1),
 			true,
 		},
 		{
-			(*ColorM)(nil).Scale(0, 0, 0, 0),
+			affine.ColorMIdentity{}.Scale(0, 0, 0, 0),
 			true,
 		},
 		{
-			(*ColorM)(nil).Scale(0.1, 0.2, 0.3, 0.4),
+			affine.ColorMIdentity{}.Scale(0.1, 0.2, 0.3, 0.4),
 			true,
 		},
 		{
-			(*ColorM)(nil).Scale(0.1, 0.2, 0.3, 0.4).Translate(1, 0, 0, 0),
+			affine.ColorMIdentity{}.Scale(0.1, 0.2, 0.3, 0.4).Translate(1, 0, 0, 0),
 			false,
 		},
 		{
-			(*ColorM)(nil).ChangeHSV(math.Pi/2, 0.5, 0.5),
+			affine.ChangeHSV(affine.ColorMIdentity{}, math.Pi/2, 0.5, 0.5),
 			false,
 		},
 		{
-			(*ColorM)(nil).SetElement(0, 0, 2),
+			affine.ColorMSetElement(affine.ColorMIdentity{}, 0, 0, 2),
 			true,
 		},
 		{
-			(*ColorM)(nil).SetElement(0, 1, 2),
+			affine.ColorMSetElement(affine.ColorMIdentity{}, 0, 1, 2),
 			false,
 		},
 	}
@@ -109,28 +109,24 @@ func TestColorMScaleOnly(t *testing.T) {
 }
 
 func TestColorMIsInvertible(t *testing.T) {
-	m := &ColorM{}
-	m = m.SetElement(1, 0, .5)
-	m = m.SetElement(1, 1, .5)
-	m = m.SetElement(1, 2, .5)
-	m = m.SetElement(1, 3, .5)
-	m = m.SetElement(1, 4, .5)
+	var m affine.ColorM = affine.ColorMIdentity{}
+	m = affine.ColorMSetElement(m, 1, 0, .5)
+	m = affine.ColorMSetElement(m, 1, 1, .5)
+	m = affine.ColorMSetElement(m, 1, 2, .5)
+	m = affine.ColorMSetElement(m, 1, 3, .5)
+	m = affine.ColorMSetElement(m, 1, 4, .5)
 
-	cidentity := &ColorM{}
-	cinvalid := &ColorM{}
-	cinvalid = cinvalid.SetElement(0, 0, 0)
-	cinvalid = cinvalid.SetElement(1, 1, 0)
-	cinvalid = cinvalid.SetElement(2, 2, 0)
-	cinvalid = cinvalid.SetElement(3, 3, 0)
+	var cidentity affine.ColorM = affine.ColorMIdentity{}
+	var cinvalid affine.ColorM = affine.ColorMIdentity{}
+	cinvalid = affine.ColorMSetElement(cinvalid, 0, 0, 0)
+	cinvalid = affine.ColorMSetElement(cinvalid, 1, 1, 0)
+	cinvalid = affine.ColorMSetElement(cinvalid, 2, 2, 0)
+	cinvalid = affine.ColorMSetElement(cinvalid, 3, 3, 0)
 
 	cases := []struct {
-		In  *ColorM
+		In  affine.ColorM
 		Out bool
 	}{
-		{
-			nil,
-			true,
-		},
 		{
 			cidentity,
 			true,
@@ -148,16 +144,16 @@ func TestColorMIsInvertible(t *testing.T) {
 		got := c.In.IsInvertible()
 		want := c.Out
 		if got != want {
-			t.Errorf("%v.IsInvertible(): got: %t, want: %t", c.In, got, want)
+			t.Errorf("%s.IsInvertible(): got: %t, want: %t", c.In, got, want)
 		}
 	}
 }
 
-func arrayToColorM(es [4][5]float32) *ColorM {
-	var a = &ColorM{}
+func arrayToColorM(es [4][5]float32) affine.ColorM {
+	var a affine.ColorM = affine.ColorMIdentity{}
 	for j := 0; j < 5; j++ {
 		for i := 0; i < 4; i++ {
-			a = a.SetElement(i, j, es[i][j])
+			a = affine.ColorMSetElement(a, i, j, es[i][j])
 		}
 	}
 	return a
@@ -170,11 +166,11 @@ func abs(x float32) float32 {
 	return x
 }
 
-func equalWithDelta(a, b *ColorM, delta float32) bool {
+func equalWithDelta(a, b affine.ColorM, delta float32) bool {
 	for j := 0; j < 5; j++ {
 		for i := 0; i < 4; i++ {
-			ea := a.Element(i, j)
-			eb := b.Element(i, j)
+			ea := a.At(i, j)
+			eb := b.At(i, j)
 			if abs(ea-eb) > delta {
 				return false
 			}
@@ -185,12 +181,35 @@ func equalWithDelta(a, b *ColorM, delta float32) bool {
 
 func TestColorMInvert(t *testing.T) {
 	cases := []struct {
-		In  *ColorM
-		Out *ColorM
+		In  affine.ColorM
+		Out affine.ColorM
 	}{
 		{
-			In:  nil,
-			Out: nil,
+			In:  affine.ColorMIdentity{},
+			Out: affine.ColorMIdentity{},
+		},
+		{
+			In: arrayToColorM([4][5]float32{
+				{1, 0, 0, 0, 0},
+				{0, 1, 0, 0, 0},
+				{0, 0, 1, 0, 0},
+				{0, 0, 0, 1, 0},
+			}),
+			Out: arrayToColorM([4][5]float32{
+				{1, 0, 0, 0, 0},
+				{0, 1, 0, 0, 0},
+				{0, 0, 1, 0, 0},
+				{0, 0, 0, 1, 0},
+			}),
+		},
+		{
+			In: affine.ColorMIdentity{}.Scale(1, 2, 4, 8),
+			Out: arrayToColorM([4][5]float32{
+				{1, 0, 0, 0, 0},
+				{0, 0.5, 0, 0, 0},
+				{0, 0, 0.25, 0, 0},
+				{0, 0, 0, 0.125, 0},
+			}),
 		},
 		{
 			In: arrayToColorM([4][5]float32{
@@ -233,8 +252,8 @@ func BenchmarkColorMInvert(b *testing.B) {
 	r := rand.Float32
 
 	b.StopTimer()
-	var m *ColorM
-	for m == nil || !m.IsInvertible() {
+	var m affine.ColorM = affine.ColorMIdentity{}
+	for m.IsIdentity() || !m.IsInvertible() {
 		m = arrayToColorM([4][5]float32{
 			{r(), r(), r(), r(), r() * 10},
 			{r(), r(), r(), r(), r() * 10},
@@ -246,5 +265,66 @@ func BenchmarkColorMInvert(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		m = m.Invert()
+	}
+}
+
+func TestColorMConcat(t *testing.T) {
+	cases := []struct {
+		In0 affine.ColorM
+		In1 affine.ColorM
+		Out affine.ColorM
+	}{
+		{
+			affine.ColorMIdentity{},
+			affine.ColorMIdentity{},
+			affine.ColorMIdentity{},
+		},
+		{
+			affine.ColorMIdentity{}.Scale(1, 2, 3, 4),
+			affine.ColorMIdentity{}.Scale(5, 6, 7, 8),
+			affine.ColorMIdentity{}.Scale(5, 12, 21, 32),
+		},
+		{
+			affine.ColorMIdentity{}.Scale(5, 6, 7, 8),
+			affine.ColorMIdentity{}.Scale(1, 2, 3, 4),
+			affine.ColorMIdentity{}.Scale(5, 12, 21, 32),
+		},
+		{
+			arrayToColorM([4][5]float32{
+				{1, 2, 3, 4, 5},
+				{5, 1, 2, 3, 4},
+				{4, 5, 1, 2, 3},
+				{3, 4, 5, 1, 2},
+			}),
+			affine.ColorMIdentity{}.Scale(1, 2, 3, 4),
+			arrayToColorM([4][5]float32{
+				{1, 2, 3, 4, 5},
+				{10, 2, 4, 6, 8},
+				{12, 15, 3, 6, 9},
+				{12, 16, 20, 4, 8},
+			}),
+		},
+		{
+			affine.ColorMIdentity{}.Scale(1, 2, 3, 4),
+			arrayToColorM([4][5]float32{
+				{1, 2, 3, 4, 5},
+				{5, 1, 2, 3, 4},
+				{4, 5, 1, 2, 3},
+				{3, 4, 5, 1, 2},
+			}),
+			arrayToColorM([4][5]float32{
+				{1, 4, 9, 16, 5},
+				{5, 2, 6, 12, 4},
+				{4, 10, 3, 8, 3},
+				{3, 8, 15, 4, 2},
+			}),
+		},
+	}
+	for _, c := range cases {
+		got := c.In0.Concat(c.In1)
+		want := c.Out
+		if !equalWithDelta(got, want, 1e-6) {
+			t.Errorf("%s.Concat(%s): got: %v, want: %v", c.In0, c.In1, got, want)
+		}
 	}
 }

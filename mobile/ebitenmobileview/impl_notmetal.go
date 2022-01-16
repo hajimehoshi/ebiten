@@ -12,9 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build darwin,ios
-// +build !arm
-// +build !arm64
+//go:build darwin && ios && !arm && !arm64
+// +build darwin,ios,!arm,!arm64
 
 package ebitenmobileview
 

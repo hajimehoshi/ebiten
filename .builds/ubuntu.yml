@@ -1,5 +1,6 @@
 image: ubuntu/lts
 packages:
+  - libasound2-dev
   - libc6-dev
   - libglu1-mesa-dev
   - libgl1-mesa-dev
@@ -8,7 +9,6 @@ packages:
   - libxinerama-dev
   - libxrandr-dev
   - libxxf86vm-dev
-  - libasound2-dev
   - pkg-config
   - golang
 sources:

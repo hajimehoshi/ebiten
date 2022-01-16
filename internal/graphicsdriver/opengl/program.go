@@ -16,11 +16,11 @@ package opengl
 
 import (
 	"fmt"
+	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
-	"github.com/hajimehoshi/ebiten/v2/internal/web"
 )
 
 const floatSizeInBytes = 4
@@ -132,7 +132,7 @@ type openGLState struct {
 	programs map[programKey]program
 
 	lastProgram       program
-	lastUniforms      map[string]interface{}
+	lastUniforms      map[string]driver.Uniform
 	lastActiveTexture int
 }
 
@@ -148,7 +148,10 @@ func (s *openGLState) reset(context *context) error {
 	}
 
 	s.lastProgram = zeroProgram
-	s.lastUniforms = map[string]interface{}{}
+	context.useProgram(zeroProgram)
+	for key := range s.lastUniforms {
+		delete(s.lastUniforms, key)
+	}
 
 	// When context lost happens, deleting programs or buffers is not necessary.
 	// However, it is not assumed that reset is called only when context lost happens.
@@ -164,7 +167,7 @@ func (s *openGLState) reset(context *context) error {
 
 	// On browsers (at least Chrome), buffers are already detached from the context
 	// and must not be deleted by DeleteBuffer.
-	if !web.IsBrowser() {
+	if runtime.GOOS != "js" {
 		if !s.arrayBuffer.equal(zeroBuffer) {
 			context.deleteBuffer(s.arrayBuffer)
 		}
@@ -239,13 +242,25 @@ func areSameFloat32Array(a, b []float32) bool {
 
 type uniformVariable struct {
 	name  string
-	value interface{}
+	value driver.Uniform
 	typ   shaderir.Type
 }
 
 type textureVariable struct {
 	valid  bool
 	native textureNative
+}
+
+func (g *Graphics) textureVariableName(idx int) string {
+	if v, ok := g.textureVariableNameCache[idx]; ok {
+		return v
+	}
+	if g.textureVariableNameCache == nil {
+		g.textureVariableNameCache = map[int]string{}
+	}
+	name := fmt.Sprintf("T%d", idx)
+	g.textureVariableNameCache[idx] = name
+	return name
 }
 
 // useProgram uses the program (programTexture).
@@ -267,42 +282,43 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 	}
 
 	for _, u := range uniforms {
-		switch v := u.value.(type) {
-		case float32:
-			if got, expected := (&shaderir.Type{Main: shaderir.Float}), &u.typ; !got.Equal(expected) {
+		if len(u.value.Float32s) == 0 {
+			if u.typ.Main != shaderir.Float {
+				expected := &shaderir.Type{Main: shaderir.Float}
+				got := u.typ
 				return fmt.Errorf("opengl: uniform variable %s type doesn't match: expected %s but %s", u.name, expected.String(), got.String())
 			}
 
-			cached, ok := g.state.lastUniforms[u.name].(float32)
-			if ok && cached == v {
+			cached, ok := g.state.lastUniforms[u.name]
+			if ok && cached.Float32 == u.value.Float32 {
 				continue
 			}
 			// TODO: Remember whether the location is available or not.
-			g.context.uniformFloat(program, u.name, v)
-			g.state.lastUniforms[u.name] = v
-		case []float32:
-			if got, expected := len(v), u.typ.FloatNum(); got != expected {
-				return fmt.Errorf("opengl: length of a uniform variables %s (%s) doesn't match: expected %d but %d", u.name, u.typ.String(), expected, got)
+			g.context.uniformFloat(program, u.name, u.value.Float32)
+			if g.state.lastUniforms == nil {
+				g.state.lastUniforms = map[string]driver.Uniform{}
+			}
+			g.state.lastUniforms[u.name] = u.value
+		} else {
+			if got, expected := len(u.value.Float32s), u.typ.FloatNum(); got != expected {
+				// Copy a shaderir.Type value once. Do not pass u.typ directly to fmt.Errorf arguments, or
+				// the value u would be allocated on heap.
+				typ := u.typ
+				return fmt.Errorf("opengl: length of a uniform variables %s (%s) doesn't match: expected %d but %d", u.name, typ.String(), expected, got)
 			}
 
-			cached, ok := g.state.lastUniforms[u.name].([]float32)
-			if ok && areSameFloat32Array(cached, v) {
+			cached, ok := g.state.lastUniforms[u.name]
+			if ok && areSameFloat32Array(cached.Float32s, u.value.Float32s) {
 				continue
 			}
-			g.context.uniformFloats(program, u.name, v, u.typ)
-			g.state.lastUniforms[u.name] = v
-		default:
-			return fmt.Errorf("opengl: unexpected uniform value: %v (type: %T)", u.value, u.value)
+			g.context.uniformFloats(program, u.name, u.value.Float32s, u.typ)
+			if g.state.lastUniforms == nil {
+				g.state.lastUniforms = map[string]driver.Uniform{}
+			}
+			g.state.lastUniforms[u.name] = u.value
 		}
 	}
 
-	type activatedTexture struct {
-		textureNative textureNative
-		index         int
-	}
-
-	// textureNative cannot be a map key unfortunately.
-	textureToActivatedTexture := []activatedTexture{}
 	var idx int
 loop:
 	for i, t := range textures {
@@ -312,18 +328,18 @@ loop:
 
 		// If the texture is already bound, set the texture variable to point to the texture.
 		// Rebinding the same texture seems problematic (#1193).
-		for _, at := range textureToActivatedTexture {
+		for _, at := range g.activatedTextures {
 			if t.native.equal(at.textureNative) {
-				g.context.uniformInt(program, fmt.Sprintf("T%d", i), at.index)
+				g.context.uniformInt(program, g.textureVariableName(i), at.index)
 				continue loop
 			}
 		}
 
-		textureToActivatedTexture = append(textureToActivatedTexture, activatedTexture{
+		g.activatedTextures = append(g.activatedTextures, activatedTexture{
 			textureNative: t.native,
 			index:         idx,
 		})
-		g.context.uniformInt(program, fmt.Sprintf("T%d", i), idx)
+		g.context.uniformInt(program, g.textureVariableName(i), idx)
 		if g.state.lastActiveTexture != idx {
 			g.context.activeTexture(idx)
 			g.state.lastActiveTexture = idx
@@ -334,6 +350,11 @@ loop:
 
 		idx++
 	}
+
+	for i := range g.activatedTextures {
+		g.activatedTextures[i] = activatedTexture{}
+	}
+	g.activatedTextures = g.activatedTextures[:0]
 
 	return nil
 }

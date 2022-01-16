@@ -49,16 +49,22 @@ func fixed26_6ToFloat64(x fixed.Int26_6) float64 {
 	return float64(x>>6) + float64(x&((1<<6)-1))/float64(1<<6)
 }
 
-func drawGlyph(dst *ebiten.Image, face font.Face, r rune, img *ebiten.Image, x, y fixed.Int26_6, clr ebiten.ColorM) {
+func drawGlyph(dst *ebiten.Image, face font.Face, r rune, img *ebiten.Image, dx, dy fixed.Int26_6, op *ebiten.DrawImageOptions) {
 	if img == nil {
 		return
 	}
 
 	b := getGlyphBounds(face, r)
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64((x+b.Min.X)>>6), float64((y+b.Min.Y)>>6))
-	op.ColorM = clr
-	dst.DrawImage(img, op)
+	op2 := &ebiten.DrawImageOptions{}
+	if op != nil {
+		*op2 = *op
+		op2.GeoM.Reset()
+	}
+	op2.GeoM.Translate(math.Floor(fixed26_6ToFloat64(dx+b.Min.X)), math.Floor(fixed26_6ToFloat64(dy+b.Min.Y)))
+	if op != nil {
+		op2.GeoM.Concat(op.GeoM)
+	}
+	dst.DrawImage(img, op2)
 }
 
 var (
@@ -162,7 +168,7 @@ var textM sync.Mutex
 //
 // It is OK to call Draw with a same text and a same face at every frame in terms of performance.
 //
-// Draw and CacheGlyphs are implemented like this:
+// Draw/DrawWithOptions and CacheGlyphs are implemented like this:
 //
 //     Draw        = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
 //                 + Draw them onto the destination by `(*ebiten.Image).DrawImage`
@@ -173,36 +179,68 @@ var textM sync.Mutex
 //
 // Draw is concurrent-safe.
 func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Color) {
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(float64(x), float64(y))
+	op.ColorM.ScaleWithColor(clr)
+	DrawWithOptions(dst, text, face, op)
+}
+
+// DrawWithOptions draws a given text on a given destination image dst.
+//
+// face is the font for text rendering.
+// op is the options to draw glyph images.
+// The origin point is a 'dot' (period) position.
+// Be careful that the origin point is not left-upper corner position of dst.
+// The default glyph color is while. op's ColorM adjusts the color.
+//
+// If you want to adjust the position of the text, these functions are useful:
+//
+//     * text.BoundString:                     the rendered bounds of the given text.
+//     * golang.org/x/image/font.Face.Metrics: the metrics of the face.
+//
+// The '\n' newline character puts the following text on the next line.
+// Line height is based on Metrics().Height of the font.
+//
+// Glyphs used for rendering are cached in least-recently-used way.
+// Then old glyphs might be evicted from the cache.
+// As the cache capacity has limit, it is not guaranteed that all the glyphs for runes given at DrawWithOptions are cached.
+// The cache is shared with CacheGlyphs.
+//
+// It is OK to call DrawWithOptions with a same text and a same face at every frame in terms of performance.
+//
+// Draw/DrawWithOptions and CacheGlyphs are implemented like this:
+//
+//     Draw        = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
+//                 + Draw them onto the destination by `(*ebiten.Image).DrawImage`
+//     CacheGlyphs = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
+//
+// Be careful that the passed font face is held by this package and is never released.
+// This is a known issue (#498).
+//
+// DrawWithOptions is concurrent-safe.
+func DrawWithOptions(dst *ebiten.Image, text string, face font.Face, options *ebiten.DrawImageOptions) {
 	textM.Lock()
 	defer textM.Unlock()
 
-	cr, cg, cb, ca := clr.RGBA()
-	if ca == 0 {
-		return
-	}
-
-	var colorm ebiten.ColorM
-	colorm.Scale(float64(cr)/float64(ca), float64(cg)/float64(ca), float64(cb)/float64(ca), float64(ca)/0xffff)
-
-	fx, fy := fixed.I(x), fixed.I(y)
+	var dx, dy fixed.Int26_6
 	prevR := rune(-1)
 
 	faceHeight := face.Metrics().Height
 
 	for _, r := range text {
 		if prevR >= 0 {
-			fx += face.Kern(prevR, r)
+			dx += face.Kern(prevR, r)
 		}
 		if r == '\n' {
-			fx = fixed.I(x)
-			fy += faceHeight
+			dx = 0
+			dy += faceHeight
 			prevR = rune(-1)
 			continue
 		}
 
 		img := getGlyphImage(face, r)
-		drawGlyph(dst, face, r, img, fx, fy, colorm)
-		fx += glyphAdvance(face, r)
+		drawGlyph(dst, face, r, img, dx, dy, options)
+		dx += glyphAdvance(face, r)
 
 		prevR = r
 	}
@@ -287,7 +325,7 @@ func BoundString(face font.Face, text string) image.Rectangle {
 // As the cache capacity has limit, it is not guaranteed that all the glyphs for runes given at CacheGlyphs are cached.
 // The cache is shared with Draw.
 //
-// Draw and CacheGlyphs are implemented like this:
+// Draw/DrawWithOptions and CacheGlyphs are implemented like this:
 //
 //     Draw        = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
 //                 + Draw them onto the destination by `(*ebiten.Image).DrawImage`
@@ -308,4 +346,103 @@ func CacheGlyphs(face font.Face, text string) {
 	for _, r := range text {
 		getGlyphImage(face, r)
 	}
+}
+
+// FaceWithLineHeight returns a font.Face with the given lineHeight in pixels.
+// The returned face will otherwise have the same glyphs and metrics as face.
+func FaceWithLineHeight(face font.Face, lineHeight float64) font.Face {
+	return faceWithLineHeight{
+		face:       face,
+		lineHeight: fixed.Int26_6(lineHeight * (1 << 6)),
+	}
+}
+
+type faceWithLineHeight struct {
+	face       font.Face
+	lineHeight fixed.Int26_6
+}
+
+func (f faceWithLineHeight) Close() error {
+	return f.face.Close()
+}
+
+func (f faceWithLineHeight) Glyph(dot fixed.Point26_6, r rune) (dr image.Rectangle, mask image.Image, maskp image.Point, advance fixed.Int26_6, ok bool) {
+	return f.face.Glyph(dot, r)
+}
+
+func (f faceWithLineHeight) GlyphBounds(r rune) (bounds fixed.Rectangle26_6, advance fixed.Int26_6, ok bool) {
+	return f.face.GlyphBounds(r)
+}
+
+func (f faceWithLineHeight) GlyphAdvance(r rune) (advance fixed.Int26_6, ok bool) {
+	return f.face.GlyphAdvance(r)
+}
+
+func (f faceWithLineHeight) Kern(r0, r1 rune) fixed.Int26_6 {
+	return f.face.Kern(r0, r1)
+}
+
+func (f faceWithLineHeight) Metrics() font.Metrics {
+	m := f.face.Metrics()
+	m.Height = f.lineHeight
+	return m
+}
+
+// Glyphs is infomation to render one glyph.
+type Glyph struct {
+	// Rune is a character for this glyph.
+	Rune rune
+
+	// Image is an image for this glyph.
+	// Image is a grayscale image i.e. RGBA values are the same.
+	Image *ebiten.Image
+
+	// X is the X position to render this glyph.
+	// The position is determined in a sequence of characters given at AppendGlyphs.
+	// The position's origin is the first character's dot ('.') position.
+	X float64
+
+	// Y is the Y position to render this glyph.
+	// The position is determined in a sequence of characters given at AppendGlyphs.
+	// The position's origin is the first character's dot ('.') position.
+	Y float64
+}
+
+// AppendGlyphs appends the glyph information to glyphs.
+// You can render each glyphs as you like. See examples/text for an example of AppendGlyphs.
+func AppendGlyphs(glyphs []Glyph, face font.Face, text string) []Glyph {
+	textM.Lock()
+	defer textM.Unlock()
+
+	var pos fixed.Point26_6
+	prevR := rune(-1)
+
+	faceHeight := face.Metrics().Height
+
+	for _, r := range text {
+		if prevR >= 0 {
+			pos.X += face.Kern(prevR, r)
+		}
+		if r == '\n' {
+			pos.X = 0
+			pos.Y += faceHeight
+			prevR = rune(-1)
+			continue
+		}
+
+		if img := getGlyphImage(face, r); img != nil {
+			b := getGlyphBounds(face, r)
+			glyphs = append(glyphs, Glyph{
+				Rune:  r,
+				Image: img,
+				X:     math.Floor(fixed26_6ToFloat64(pos.X + b.Min.X)),
+				Y:     math.Floor(fixed26_6ToFloat64(pos.Y + b.Min.Y)),
+			})
+		}
+		pos.X += glyphAdvance(face, r)
+
+		prevR = r
+	}
+
+	return glyphs
 }

@@ -75,22 +75,48 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				op = shaderir.ModOp
 			}
 
-			rhs, _, ss, ok := cs.parseExpr(block, stmt.Rhs[0], true)
+			rhs, rts, ss, ok := cs.parseExpr(block, stmt.Rhs[0], true)
 			if !ok {
 				return nil, false
 			}
 			stmts = append(stmts, ss...)
 
-			lhs, ts, ss, ok := cs.parseExpr(block, stmt.Lhs[0], true)
+			lhs, lts, ss, ok := cs.parseExpr(block, stmt.Lhs[0], true)
 			if !ok {
 				return nil, false
 			}
 			stmts = append(stmts, ss...)
 
-			if rhs[0].Type == shaderir.NumberExpr && ts[0].Main == shaderir.Int {
+			// Treat an integer literal as an integer constant value.
+			if rhs[0].Type == shaderir.NumberExpr && rts[0].Main == shaderir.Int {
 				if !cs.forceToInt(stmt, &rhs[0]) {
 					return nil, false
 				}
+			}
+
+			if lts[0].Main != rts[0].Main {
+				switch lts[0].Main {
+				case shaderir.Int:
+					if !cs.forceToInt(stmt, &rhs[0]) {
+						return nil, false
+					}
+				case shaderir.Float:
+					if rhs[0].Const != nil && rhs[0].Const.Kind() == gconstant.Int {
+						rhs[0].Const = gconstant.ToFloat(rhs[0].Const)
+						rhs[0].ConstType = shaderir.ConstTypeFloat
+					} else {
+						cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: mismatched types %s and %s", lts[0].String(), rts[0].String()))
+						return nil, false
+					}
+				default:
+					cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: mismatched types %s and %s", lts[0].String(), rts[0].String()))
+					return nil, false
+				}
+			}
+
+			if op == shaderir.ModOp && lts[0].Main != shaderir.Int {
+				cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: operator %% not defined on %s", lts[0].String()))
+				return nil, false
 			}
 
 			stmts = append(stmts, shaderir.Stmt{
@@ -463,6 +489,11 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		}
 
 	case *ast.ExprStmt:
+		if _, ok := stmt.X.(*ast.CallExpr); !ok {
+			cs.addError(stmt.Pos(), fmt.Sprintf("the statement is evaluated but not used"))
+			return nil, false
+		}
+
 		exprs, _, ss, ok := cs.parseExpr(block, stmt.X, true)
 		if !ok {
 			return nil, false
@@ -470,8 +501,14 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		stmts = append(stmts, ss...)
 
 		for _, expr := range exprs {
+			// There can be a non-call expr like LocalVariable expressions.
+			// These are necessary to be used as arguments for an outside function callers.
 			if expr.Type != shaderir.Call {
 				continue
+			}
+			if expr.Exprs[0].Type == shaderir.BuiltinFuncExpr {
+				cs.addError(stmt.Pos(), fmt.Sprintf("the statement is evaluated but not used"))
+				return nil, false
 			}
 			stmts = append(stmts, shaderir.Stmt{
 				Type:  shaderir.ExprStmt,

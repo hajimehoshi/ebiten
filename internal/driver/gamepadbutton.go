@@ -52,3 +52,40 @@ const (
 )
 
 const GamepadButtonNum = 32
+
+type StandardGamepadButton int
+
+// https://www.w3.org/TR/gamepad/#remapping
+const (
+	StandardGamepadButtonRightBottom StandardGamepadButton = iota
+	StandardGamepadButtonRightRight
+	StandardGamepadButtonRightLeft
+	StandardGamepadButtonRightTop
+	StandardGamepadButtonFrontTopLeft
+	StandardGamepadButtonFrontTopRight
+	StandardGamepadButtonFrontBottomLeft
+	StandardGamepadButtonFrontBottomRight
+	StandardGamepadButtonCenterLeft
+	StandardGamepadButtonCenterRight
+	StandardGamepadButtonLeftStick
+	StandardGamepadButtonRightStick
+	StandardGamepadButtonLeftTop
+	StandardGamepadButtonLeftBottom
+	StandardGamepadButtonLeftLeft
+	StandardGamepadButtonLeftRight
+	StandardGamepadButtonCenterCenter
+
+	StandardGamepadButtonMax = StandardGamepadButtonCenterCenter
+)
+
+type StandardGamepadAxis int
+
+// https://www.w3.org/TR/gamepad/#remapping
+const (
+	StandardGamepadAxisLeftStickHorizontal StandardGamepadAxis = iota
+	StandardGamepadAxisLeftStickVertical
+	StandardGamepadAxisRightStickHorizontal
+	StandardGamepadAxisRightStickVertical
+
+	StandardGamepadAxisMax = StandardGamepadAxisRightStickVertical
+)

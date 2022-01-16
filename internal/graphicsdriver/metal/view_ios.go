@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build darwin
-// +build ios
+//go:build darwin && ios
+// +build darwin,ios
 
 package metal
 
@@ -55,6 +55,15 @@ func (v *view) update() {
 		C.addSublayer(unsafe.Pointer(v.uiview), v.ml.Layer())
 	})
 	C.setFrame(v.ml.Layer(), unsafe.Pointer(v.uiview))
+}
+
+func (v *view) usePresentsWithTransaction() bool {
+	// Do not use presentsWithTransaction on iOS (#1799).
+	return false
+}
+
+func (v *view) maximumDrawableCount() int {
+	return 3
 }
 
 const (

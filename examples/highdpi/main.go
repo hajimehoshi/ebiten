@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build example
 // +build example
 
 package main
@@ -25,11 +26,16 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
-var (
-	highDPIImageCh = make(chan *ebiten.Image)
-)
+type Game struct {
+	highDPIImageCh chan *ebiten.Image
+	highDPIImage   *ebiten.Image
+}
 
-func init() {
+func NewGame() *Game {
+	g := &Game{
+		highDPIImageCh: make(chan *ebiten.Image),
+	}
+
 	// Licensed under Public Domain
 	// https://commons.wikimedia.org/wiki/File:As08-16-2593.jpg
 	const url = "https://upload.wikimedia.org/wikipedia/commons/1/1f/As08-16-2593.jpg"
@@ -40,13 +46,11 @@ func init() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		highDPIImageCh <- img
-		close(highDPIImageCh)
+		g.highDPIImageCh <- img
+		close(g.highDPIImageCh)
 	}()
-}
 
-type Game struct {
-	highDPIImage *ebiten.Image
+	return g
 }
 
 func (g *Game) Update() error {
@@ -60,7 +64,7 @@ func (g *Game) Update() error {
 
 	// Use select and 'default' clause for non-blocking receiving.
 	select {
-	case img := <-highDPIImageCh:
+	case img := <-g.highDPIImageCh:
 		g.highDPIImage = img
 	default:
 	}
@@ -109,7 +113,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func main() {
 	ebiten.SetWindowSize(640, 480)
 	ebiten.SetWindowTitle("High DPI (Ebiten Demo)")
-	if err := ebiten.RunGame(&Game{}); err != nil {
+	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}
 }

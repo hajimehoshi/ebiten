@@ -19,6 +19,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 )
 
 // Game defines necessary functions for a game.
@@ -67,6 +68,8 @@ const DefaultTPS = 60
 //
 // On some environments, CurrentFPS doesn't return a reliable value since vsync doesn't work well there.
 // If you want to measure the application's speed, Use CurrentTPS.
+//
+// This value is for measurement and/or debug, and your game logic should not rely on this value.
 //
 // CurrentFPS is concurrent-safe.
 func CurrentFPS() float64 {
@@ -130,22 +133,10 @@ func (i *imageDumperGame) Layout(outsideWidth, outsideHeight int) (screenWidth, 
 
 // RunGame starts the main loop and runs the game.
 // game's Update function is called every tick to update the game logic.
-// game's Draw function is, if it exists, called every frame to draw the screen.
+// game's Draw function is called every frame to draw the screen.
 // game's Layout function is called when necessary, and you can specify the logical screen size by the function.
 //
-// game must implement Game interface.
-// Game's Draw function is optional, but it is recommended to implement Draw to seperate updating the logic and
-// rendering.
-//
-// RunGame is a more flexibile form of Run due to game's Layout function.
-// You can make a resizable window if you use RunGame, while you cannot if you use Run.
-// RunGame is more sophisticated way than Run and hides the notion of 'scale'.
-//
-// While Run specifies the window size, RunGame does not.
-// You need to call SetWindowSize before RunGame if you want.
-// Otherwise, a default window size is adopted.
-//
-// Some functions (ScreenScale, SetScreenScale, SetScreenSize) are not available with RunGame.
+// game's functions are called on the same goroutine.
 //
 // On browsers, it is strongly recommended to use iframe if you embed an Ebiten application in your website.
 //
@@ -178,23 +169,13 @@ func RunGame(game Game) error {
 	return nil
 }
 
-func isRunGameEnded() bool {
-	return atomic.LoadInt32(&isRunGameEnded_) != 0
+// RunOnMainThread calls the given f on the main thread, and blocks until f returns.
+func RunOnMainThread(f func()) {
+	graphicscommand.RunOnMainThread(f)
 }
 
-// RunGameWithoutMainLoop runs the game, but doesn't call the loop on the main (UI) thread.
-// Different from Run, RunGameWithoutMainLoop returns immediately.
-//
-// Ebiten users should NOT call RunGameWithoutMainLoop.
-// Instead, functions in github.com/hajimehoshi/ebiten/v2/mobile package calls this.
-//
-// TODO: Remove this. In order to remove this, the uiContext should be in another package.
-func RunGameWithoutMainLoop(game Game) {
-	initializeWindowPositionIfNeeded(WindowSize())
-	theUIContext.set(&imageDumperGame{
-		game: game,
-	})
-	uiDriver().RunWithoutMainLoop(theUIContext)
+func isRunGameEnded() bool {
+	return atomic.LoadInt32(&isRunGameEnded_) != 0
 }
 
 // ScreenSizeInFullscreen returns the size in device-independent pixels when the game is fullscreen.
@@ -218,13 +199,11 @@ func ScreenSizeInFullscreen() (int, int) {
 
 // CursorMode returns the current cursor mode.
 //
-// On browsers, only CursorModeVisible and CursorModeHidden are supported.
-//
 // CursorMode returns CursorModeHidden on mobiles.
 //
 // CursorMode is concurrent-safe.
 func CursorMode() CursorModeType {
-	return CursorModeType(uiDriver().CursorMode())
+	return uiDriver().CursorMode()
 }
 
 // SetCursorMode sets the render and capture mode of the mouse cursor.
@@ -240,27 +219,35 @@ func CursorMode() CursorModeType {
 //
 // SetCursorMode is concurrent-safe.
 func SetCursorMode(mode CursorModeType) {
-	uiDriver().SetCursorMode(driver.CursorMode(mode))
+	uiDriver().SetCursorMode(mode)
 }
 
+// CursorShape returns the current cursor shape.
+//
+// CursorShape returns CursorShapeDefault on mobiles.
+//
+// CursorShape is concurrent-safe.
 func CursorShape() CursorShapeType {
-	return CursorShapeType(uiDriver().CursorShape())
+	return uiDriver().CursorShape()
 }
 
+// SetCursorShape sets the cursor shape.
+//
+// SetCursorShape is concurrent-safe.
 func SetCursorShape(shape CursorShapeType) {
-	uiDriver().SetCursorShape(driver.CursorShape(shape))
+	uiDriver().SetCursorShape(shape)
 }
 
 // IsFullscreen reports whether the current mode is fullscreen or not.
 //
-// IsFullscreen always returns false on browsers or mobiles.
+// IsFullscreen always returns false on mobiles.
 //
 // IsFullscreen is concurrent-safe.
 func IsFullscreen() bool {
 	return uiDriver().IsFullscreen()
 }
 
-// SetFullscreen changes the current mode to fullscreen or not on desktops.
+// SetFullscreen changes the current mode to fullscreen or not on desktops and browsers.
 //
 // In fullscreen mode, the game screen is automatically enlarged
 // to fit with the monitor. The current scale value is ignored.
@@ -268,7 +255,10 @@ func IsFullscreen() bool {
 // On desktops, Ebiten uses 'windowed' fullscreen mode, which doesn't change
 // your monitor's resolution.
 //
-// SetFullscreen does nothing on browsers or mobiles.
+// On browsers, triggering fullscreen requires a user gesture otherwise SetFullscreen does nothing but leave an error message in console.
+// This behaviour varies across browser implementations, your mileage may vary.
+//
+// SetFullscreen does nothing on mobiles.
 //
 // SetFullscreen does nothing on macOS when the window is fullscreened natively by the macOS desktop
 // instead of SetFullscreen(true).
@@ -332,58 +322,112 @@ func DeviceScaleFactor() float64 {
 // IsVsyncEnabled returns a boolean value indicating whether
 // the game uses the display's vsync.
 //
-// IsVsyncEnabled is concurrent-safe.
+// Deprecated: as of v2.2. Use FPSMode instead.
 func IsVsyncEnabled() bool {
-	return uiDriver().IsVsyncEnabled()
+	return uiDriver().FPSMode() == driver.FPSModeVsyncOn
 }
 
 // SetVsyncEnabled sets a boolean value indicating whether
 // the game uses the display's vsync.
 //
-// If the given value is true, the game tries to sync the display's refresh rate.
-// If false, the game ignores the display's refresh rate.
-// The initial value is true.
-// By disabling vsync, the game works more efficiently but consumes more CPU.
-//
-// Note that the state doesn't affect TPS (ticks per second, i.e. how many the run function is
-// updated per second).
-//
-// SetVsyncEnabled does nothing on mobiles so far.
-//
-// SetVsyncEnabled is concurrent-safe.
+// Deprecated: as of v2.2. Use SetFPSMode instead.
 func SetVsyncEnabled(enabled bool) {
-	uiDriver().SetVsyncEnabled(enabled)
+	if enabled {
+		uiDriver().SetFPSMode(driver.FPSModeVsyncOn)
+	} else {
+		uiDriver().SetFPSMode(driver.FPSModeVsyncOffMaximum)
+	}
+}
+
+// FPSModeType is a type of FPS modes.
+type FPSModeType = driver.FPSMode
+
+const (
+	// FPSModeVsyncOn indicates that the game tries to sync the display's refresh rate.
+	// FPSModeVsyncOn is the default mode.
+	FPSModeVsyncOn FPSModeType = driver.FPSModeVsyncOn
+
+	// FPSModeVsyncOffMaximum indicates that the game doesn't sync with vsync, and
+	// the game is updated whenever possible.
+	//
+	// Be careful that FPSModeVsyncOffMaximum might consume a lot of battery power.
+	//
+	// In FPSModeVsyncOffMaximum, the game's Draw is called almost without sleeping.
+	// The game's Update is called based on the specified TPS.
+	FPSModeVsyncOffMaximum FPSModeType = driver.FPSModeVsyncOffMaximum
+
+	// FPSModeVsyncOffMinimum indicates that the game doesn't sync with vsync, and
+	// the game is updated only when necessary.
+	//
+	// FPSModeVsyncOffMinimum is useful for relatively static applications to save battery power.
+	//
+	// In FPSModeVsyncOffMinimum, the game's Update and Draw are called only when
+	// 1) new inputting is detected, or 2) ScheduleFrame is called.
+	// In FPSModeVsyncOffMinimum, TPS is SyncWithFPS no matter what TPS is specified at SetMaxTPS.
+	FPSModeVsyncOffMinimum FPSModeType = driver.FPSModeVsyncOffMinimum
+)
+
+// FPSMode returns the current FPS mode.
+//
+// FPSMode is concurrent-safe.
+func FPSMode() FPSModeType {
+	return uiDriver().FPSMode()
+}
+
+// SetFPSMode sets the FPS mode.
+// The default FPS mode is FPSModeVsyncOn.
+//
+// SetFPSMode is concurrent-safe.
+func SetFPSMode(mode FPSModeType) {
+	uiDriver().SetFPSMode(mode)
+}
+
+// ScheduleFrame schedules a next frame when the current FPS mode is FPSModeVsyncOffMinimum.
+//
+// ScheduleFrame is concurrent-safe.
+func ScheduleFrame() {
+	uiDriver().ScheduleFrame()
 }
 
 // MaxTPS returns the current maximum TPS.
 //
 // MaxTPS is concurrent-safe.
 func MaxTPS() int {
+	if FPSMode() == FPSModeVsyncOffMinimum {
+		return SyncWithFPS
+	}
 	return int(atomic.LoadInt32(&currentMaxTPS))
 }
 
 // CurrentTPS returns the current TPS (ticks per second),
 // that represents how many update function is called in a second.
 //
+// This value is for measurement and/or debug, and your game logic should not rely on this value.
+//
 // CurrentTPS is concurrent-safe.
 func CurrentTPS() float64 {
 	return clock.CurrentTPS()
 }
 
-// UncappedTPS is a special TPS value that means the game doesn't have limitation on TPS.
-const UncappedTPS = clock.UncappedTPS
+// SyncWithFPS is a special TPS value that means TPS syncs with FPS.
+const SyncWithFPS = clock.SyncWithFPS
+
+// UncappedTPS is a special TPS value that means TPS syncs with FPS.
+//
+// Deprecated: as of v2.2. Use SyncWithFPS instead.
+const UncappedTPS = SyncWithFPS
 
 // SetMaxTPS sets the maximum TPS (ticks per second),
 // that represents how many updating function is called per second.
 // The initial value is 60.
 //
-// If tps is UncappedTPS, TPS is uncapped and the game is updated per frame.
-// If tps is negative but not UncappedTPS, SetMaxTPS panics.
+// If tps is SyncWithFPS, TPS is uncapped and the game is updated per frame.
+// If tps is negative but not SyncWithFPS, SetMaxTPS panics.
 //
 // SetMaxTPS is concurrent-safe.
 func SetMaxTPS(tps int) {
-	if tps < 0 && tps != UncappedTPS {
-		panic("ebiten: tps must be >= 0 or UncappedTPS")
+	if tps < 0 && tps != SyncWithFPS {
+		panic("ebiten: tps must be >= 0 or SyncWithFPS")
 	}
 	atomic.StoreInt32(&currentMaxTPS, int32(tps))
 }
@@ -409,7 +453,7 @@ func SetScreenTransparent(transparent bool) {
 // SetInitFocused sets whether the application is focused on show.
 // The default value is true, i.e., the application is focused.
 // Note that the application does not proceed if this is not focused by default.
-// This behavior can be changed by SetRunnableInBackground.
+// This behavior can be changed by SetRunnableOnUnfocused.
 //
 // SetInitFocused does nothing on mobile.
 //
