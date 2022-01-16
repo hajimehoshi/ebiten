@@ -31,8 +31,8 @@ var (
 
 	getCurrentProcessIdProc      = kernel32.NewProc("GetCurrentProcessId")
 	getConsoleWindowProc         = kernel32.NewProc("GetConsoleWindow")
+	freeConsoleWindowProc        = kernel32.NewProc("FreeConsole")
 	getWindowThreadProcessIdProc = user32.NewProc("GetWindowThreadProcessId")
-	showWindowAsyncProc          = user32.NewProc("ShowWindowAsync")
 )
 
 func getCurrentProcessId() (uint32, error) {
@@ -60,9 +60,10 @@ func getConsoleWindow() (uintptr, error) {
 	return r, nil
 }
 
-func showWindowAsync(hwnd uintptr, show int) error {
-	if _, _, e := showWindowAsyncProc.Call(hwnd, uintptr(show)); e != nil && e.(windows.Errno) != 0 {
-		return fmt.Errorf("ui: ShowWindowAsync failed: %d", e)
+func freeConsole() error {
+	_, _, e := freeConsoleWindowProc.Call()
+	if e != nil && e.(windows.Errno) != 0 {
+		return fmt.Errorf("ui: FreeConsole failed: %d", e)
 	}
 	return nil
 }
@@ -90,6 +91,7 @@ func hideConsoleWindowOnWindows() {
 	}
 	if pid == cpid {
 		// The current process created its own console. Hide this.
-		showWindowAsync(w, windows.SW_HIDE)
+		// Ignore error
+		freeConsole()
 	}
 }
