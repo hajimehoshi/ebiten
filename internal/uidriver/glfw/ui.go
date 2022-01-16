@@ -372,9 +372,9 @@ func (u *UserInterface) isInitScreenTransparent() bool {
 }
 
 func (u *UserInterface) setInitScreenTransparent(transparent bool) {
-	u.m.RLock()
+	u.m.Lock()
 	u.initScreenTransparent = transparent
-	u.m.RUnlock()
+	u.m.Unlock()
 }
 
 func (u *UserInterface) getIconImages() []image.Image {
@@ -421,9 +421,9 @@ func (u *UserInterface) setInitWindowSizeInDIP(width, height int) {
 }
 
 func (u *UserInterface) isInitWindowFloating() bool {
-	u.m.Lock()
+	u.m.RLock()
 	f := u.initWindowFloating
-	u.m.Unlock()
+	u.m.RUnlock()
 	return f
 }
 
@@ -434,9 +434,9 @@ func (u *UserInterface) setInitWindowFloating(floating bool) {
 }
 
 func (u *UserInterface) isInitWindowMaximized() bool {
-	u.m.Lock()
+	u.m.RLock()
 	m := u.initWindowMaximized
-	u.m.Unlock()
+	u.m.RUnlock()
 	return m
 }
 
@@ -447,9 +447,9 @@ func (u *UserInterface) setInitWindowMaximized(maximized bool) {
 }
 
 func (u *UserInterface) isWindowClosingHandled() bool {
-	u.m.Lock()
+	u.m.RLock()
 	v := u.windowClosingHandled
-	u.m.Unlock()
+	u.m.RUnlock()
 	return v
 }
 
@@ -460,16 +460,16 @@ func (u *UserInterface) setWindowClosingHandled(handled bool) {
 }
 
 func (u *UserInterface) isWindowBeingClosed() bool {
-	u.m.Lock()
+	u.m.RLock()
 	v := u.windowBeingClosed
-	u.m.Unlock()
+	u.m.RUnlock()
 	return v
 }
 
 func (u *UserInterface) isInitFocused() bool {
-	u.m.Lock()
+	u.m.RLock()
 	v := u.initFocused
-	u.m.Unlock()
+	u.m.RUnlock()
 	return v
 }
 
