@@ -262,7 +262,7 @@ func (w *Window) SetSizeLimits(minw, minh, maxw, maxh int) {
 }
 
 func (w *Window) SetKeepAspectRatio(keep bool) {
-	n, d := glfw.DontCare, glfw.DontCare
+	n, d := -1, -1
 	if keep {
 		n, d = w.GetSize()
 	}
