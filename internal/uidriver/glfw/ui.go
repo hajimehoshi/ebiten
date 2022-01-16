@@ -104,10 +104,11 @@ type UserInterface struct {
 	input   Input
 	iwindow window
 
-	sizeCallback              glfw.SizeCallback
-	closeCallback             glfw.CloseCallback
-	framebufferSizeCallback   glfw.FramebufferSizeCallback
-	framebufferSizeCallbackCh chan struct{}
+	sizeCallback                   glfw.SizeCallback
+	closeCallback                  glfw.CloseCallback
+	framebufferSizeCallback        glfw.FramebufferSizeCallback
+	defaultFramebufferSizeCallback glfw.FramebufferSizeCallback
+	framebufferSizeCallbackCh      chan struct{}
 
 	t thread.Thread
 	m sync.RWMutex
@@ -821,7 +822,13 @@ event:
 			time.Sleep(time.Millisecond)
 		}
 	}
-	window.SetFramebufferSizeCallback(glfw.ToFramebufferSizeCallback(nil))
+	if u.defaultFramebufferSizeCallback == 0 {
+		u.defaultFramebufferSizeCallback = glfw.ToFramebufferSizeCallback(func(_ *glfw.Window, w, h int) {
+			u.setWindowSizeInDIP(w, h, u.isFullscreen())
+		})
+	}
+	window.SetFramebufferSizeCallback(u.defaultFramebufferSizeCallback)
+
 	close(u.framebufferSizeCallbackCh)
 	u.framebufferSizeCallbackCh = nil
 }

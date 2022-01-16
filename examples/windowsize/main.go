@@ -305,6 +305,7 @@ func (g *game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(gophersImage, op)
 
 	wx, wy := ebiten.WindowPosition()
+	ww, wh := ebiten.WindowSize()
 	minw, minh, maxw, maxh := ebiten.WindowSizeLimits()
 	cx, cy := ebiten.CursorPosition()
 	tpsStr := "Sync with FPS"
@@ -344,12 +345,13 @@ func (g *game) Draw(screen *ebiten.Image) {
 [W] Switch whether to skip clearing the screen
 %s
 IsFocused?: %s
-Windows Position: (%d, %d)
+Window Position: (%d, %d)
+Window Size: (%d, %d)
 Window size limitation: (%d, %d) - (%d, %d)
 Cursor: (%d, %d)
 TPS: Current: %0.2f / Max: %s
 FPS: %0.2f
-Device Scale Factor: %0.2f`, msgM, msgR, fg, wx, wy, minw, minh, maxw, maxh, cx, cy, ebiten.CurrentTPS(), tpsStr, ebiten.CurrentFPS(), ebiten.DeviceScaleFactor())
+Device Scale Factor: %0.2f`, msgM, msgR, fg, wx, wy, ww, wh, minw, minh, maxw, maxh, cx, cy, ebiten.CurrentTPS(), tpsStr, ebiten.CurrentFPS(), ebiten.DeviceScaleFactor())
 	ebitenutil.DebugPrint(screen, msg)
 }
 
