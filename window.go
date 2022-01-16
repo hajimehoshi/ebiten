@@ -221,7 +221,6 @@ func SetWindowSizeLimits(minw, minh, maxw, maxh int) {
 }
 
 // SetWindowKeepAspectRatio sets whether the window should keep its aspect ratio while resizing.
-
 func SetWindowKeepAspectRatio(keep bool) {
 	if w := uiDriver().Window(); w != nil {
 		w.SetKeepAspectRatio(keep)
