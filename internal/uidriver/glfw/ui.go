@@ -823,6 +823,8 @@ event:
 		}
 	}
 	if u.defaultFramebufferSizeCallback == 0 {
+		// When window gets resized (either by manual window resize or a window
+		// manager), glfw sends a framebuffer size callback which we need to handle
 		u.defaultFramebufferSizeCallback = glfw.ToFramebufferSizeCallback(func(_ *glfw.Window, w, h int) {
 			u.setWindowSizeInDIP(w, h, u.isFullscreen())
 		})
