@@ -108,6 +108,13 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 						cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: mismatched types %s and %s", lts[0].String(), rts[0].String()))
 						return nil, false
 					}
+				case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
+					if rts[0].Main == shaderir.Float || rhs[0].Const != nil {
+						// ok
+					} else {
+						cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: mismatched types %s and %s", lts[0].String(), rts[0].String()))
+						return nil, false
+					}
 				default:
 					cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: mismatched types %s and %s", lts[0].String(), rts[0].String()))
 					return nil, false
