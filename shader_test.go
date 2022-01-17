@@ -1465,6 +1465,42 @@ func TestShaderOperatorVecAndNumber(t *testing.T) {
 	if _, err := ebiten.NewShader([]byte(`package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := vec2(1) + 2
+	return a.xxyy
+}`)); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := ebiten.NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := vec2(1) + 2.1
+	return a.xxyy
+}`)); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := ebiten.NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := vec2(1) % 2
+	return a.xxyy
+}`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := ebiten.NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := vec2(1) % 2.1
+	return a.xxyy
+}`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := ebiten.NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	a := vec2(1)
 	a += 2
 	return a.xxyy
