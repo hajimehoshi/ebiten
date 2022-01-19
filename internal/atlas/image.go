@@ -334,7 +334,7 @@ func (i *Image) putOnAtlas() error {
 
 	if restorable.NeedsRestoring() {
 		// If the underlying graphics driver requires restoring from the context lost, the pixel data is
-		// needed. A image on an atlas must have its complete pixel data in this case.
+		// needed. An image on an atlas must have its complete pixel data in this case.
 		pixels := make([]byte, 4*i.width*i.height)
 		for y := 0; y < i.height; y++ {
 			for x := 0; x < i.width; x++ {
