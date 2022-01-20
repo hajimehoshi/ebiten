@@ -147,6 +147,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 		var t shaderir.Type
 		switch {
 		case op == shaderir.LessThanOp || op == shaderir.LessThanEqualOp || op == shaderir.GreaterThanOp || op == shaderir.GreaterThanEqualOp || op == shaderir.EqualOp || op == shaderir.NotEqualOp || op == shaderir.AndAnd || op == shaderir.OrOr:
+			// TODO: Check types of the operands.
 			t = shaderir.Type{Main: shaderir.Bool}
 		case lhs[0].Type == shaderir.NumberExpr && rhs[0].Type != shaderir.NumberExpr:
 			if rhst.Main == shaderir.Int {
@@ -168,34 +169,30 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 			t = lhst
 		case lhst.Equal(&rhst):
 			t = lhst
-		case lhst.Main == shaderir.Float || lhst.Main == shaderir.Int:
+		case lhst.Main == shaderir.Float:
 			switch rhst.Main {
-			case shaderir.Int:
-				t = lhst
 			case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
 				t = rhst
 			default:
 				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 				return nil, nil, nil, false
 			}
-		case rhst.Main == shaderir.Float || rhst.Main == shaderir.Int:
+		case rhst.Main == shaderir.Float:
 			switch lhst.Main {
-			case shaderir.Int:
-				t = rhst
 			case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
 				t = lhst
 			default:
 				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 				return nil, nil, nil, false
 			}
-		case lhst.Main == shaderir.Vec2 && rhst.Main == shaderir.Mat2 ||
-			lhst.Main == shaderir.Mat2 && rhst.Main == shaderir.Vec2:
+		case op == shaderir.Mul && (lhst.Main == shaderir.Vec2 && rhst.Main == shaderir.Mat2 ||
+			lhst.Main == shaderir.Mat2 && rhst.Main == shaderir.Vec2):
 			t = shaderir.Type{Main: shaderir.Vec2}
-		case lhst.Main == shaderir.Vec3 && rhst.Main == shaderir.Mat3 ||
-			lhst.Main == shaderir.Mat3 && rhst.Main == shaderir.Vec3:
+		case op == shaderir.Mul && (lhst.Main == shaderir.Vec3 && rhst.Main == shaderir.Mat3 ||
+			lhst.Main == shaderir.Mat3 && rhst.Main == shaderir.Vec3):
 			t = shaderir.Type{Main: shaderir.Vec3}
-		case lhst.Main == shaderir.Vec4 && rhst.Main == shaderir.Mat4 ||
-			lhst.Main == shaderir.Mat4 && rhst.Main == shaderir.Vec4:
+		case op == shaderir.Mul && (lhst.Main == shaderir.Vec4 && rhst.Main == shaderir.Mat4 ||
+			lhst.Main == shaderir.Mat4 && rhst.Main == shaderir.Vec4):
 			t = shaderir.Type{Main: shaderir.Vec4}
 		default:
 			cs.addError(e.Pos(), fmt.Sprintf("invalid expression: %s %s %s", lhst.String(), e.Op, rhst.String()))

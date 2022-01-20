@@ -15,6 +15,7 @@
 package ebiten_test
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"testing"
@@ -1536,5 +1537,65 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	return a.xxyy
 }`)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
+	}
+}
+
+// Issue #1971
+func TestShaderOperatorMultiply(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "a := 1 * vec2(2); _ = a", err: false},
+		{stmt: "a := int(1) * vec2(2); _ = a", err: true},
+		{stmt: "a := 1.0 * vec2(2); _ = a", err: false},
+		{stmt: "a := 1 + vec2(2); _ = a", err: false},
+		{stmt: "a := int(1) + vec2(2); _ = a", err: true},
+		{stmt: "a := 1.0 + vec2(2); _ = a", err: false},
+		{stmt: "a := 1 * vec3(2); _ = a", err: false},
+		{stmt: "a := 1.0 * vec3(2); _ = a", err: false},
+		{stmt: "a := 1 * vec4(2); _ = a", err: false},
+		{stmt: "a := 1.0 * vec4(2); _ = a", err: false},
+		{stmt: "a := 1 * mat2(2); _ = a", err: false},
+		{stmt: "a := 1.0 * mat2(2); _ = a", err: false},
+		{stmt: "a := 1 * mat3(2); _ = a", err: false},
+		{stmt: "a := 1.0 * mat3(2); _ = a", err: false},
+		{stmt: "a := 1 * mat4(2); _ = a", err: false},
+		{stmt: "a := 1.0 * mat4(2); _ = a", err: false},
+		{stmt: "a := vec2(1) * 2; _ = a", err: false},
+		{stmt: "a := vec2(1) * 2.0; _ = a", err: false},
+		{stmt: "a := vec2(1) * int(2); _ = a", err: true},
+		{stmt: "a := vec2(1) * vec2(2); _ = a", err: false},
+		{stmt: "a := vec2(1) + vec2(2); _ = a", err: false},
+		{stmt: "a := vec2(1) * vec3(2); _ = a", err: true},
+		{stmt: "a := vec2(1) * vec4(2); _ = a", err: true},
+		{stmt: "a := vec2(1) * mat2(2); _ = a", err: false},
+		{stmt: "a := vec2(1) * mat3(2); _ = a", err: true},
+		{stmt: "a := vec2(1) * mat4(2); _ = a", err: true},
+		{stmt: "a := mat2(1) * 2; _ = a", err: false},
+		{stmt: "a := mat2(1) * 2.0; _ = a", err: false},
+		{stmt: "a := mat2(1) * int(2); _ = a", err: true},
+		{stmt: "a := mat2(1) + 2.0; _ = a", err: false},
+		{stmt: "a := mat2(1) * vec2(2); _ = a", err: false},
+		{stmt: "a := mat2(1) + vec2(2); _ = a", err: true},
+		{stmt: "a := mat2(1) * vec3(2); _ = a", err: true},
+		{stmt: "a := mat2(1) * vec4(2); _ = a", err: true},
+		{stmt: "a := mat2(1) * mat2(2); _ = a", err: false},
+		{stmt: "a := mat2(1) * mat3(2); _ = a", err: true},
+		{stmt: "a := mat2(1) * mat4(2); _ = a", err: true},
+	}
+
+	for _, c := range cases {
+		_, err := ebiten.NewShader([]byte(fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	%s
+	return position
+}`, c.stmt)))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", c.stmt, err)
+		}
 	}
 }
