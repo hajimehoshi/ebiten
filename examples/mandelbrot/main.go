@@ -103,6 +103,8 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Mandelbrot (Ebiten Demo)")
+	ebiten.SetFPSMode(ebiten.FPSModeVsyncOffMinimum)
+
 	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}
