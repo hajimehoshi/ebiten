@@ -1,22 +1,18 @@
 package main
 
 func Foo() vec2 {
-	x := Float() * Int()
-	y := Int() * Float()
+	x := Float() * 1
+	y := 1 * Float()
 	return vec2(x, y)
 }
 
 func Foo2() vec2 {
-	var x = Float() * Int()
-	var y = Int() * Float()
+	var x = Float() * 1
+	var y = 1 * Float()
 	return vec2(x, y)
 }
 
 func Float() float {
-	return 1.0
-}
-
-func Int() int {
 	return 1.0
 }
 
