@@ -94,7 +94,12 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				}
 			}
 
-			if lts[0].Main != rts[0].Main {
+			if lts[0].Main == rts[0].Main {
+				if op == shaderir.Div && (rts[0].Main == shaderir.Mat2 || rts[0].Main == shaderir.Mat3 || rts[0].Main == shaderir.Mat4) {
+					cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: operator / not defined on %s", rts[0].String()))
+					return nil, false
+				}
+			} else {
 				switch lts[0].Main {
 				case shaderir.Int:
 					if !cs.forceToInt(stmt, &rhs[0]) {

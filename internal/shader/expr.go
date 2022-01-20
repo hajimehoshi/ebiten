@@ -182,6 +182,10 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 			}
 			t = lhst
 		case lhst.Equal(&rhst):
+			if op == shaderir.Div && (rhst.Main == shaderir.Mat2 || rhst.Main == shaderir.Mat3 || rhst.Main == shaderir.Mat4) {
+				cs.addError(e.Pos(), fmt.Sprintf("invalid operation: operator %s not defined on %s", e.Op, rhst.String()))
+				return nil, nil, nil, false
+			}
 			t = lhst
 		case lhst.Main == shaderir.Float:
 			switch rhst.Main {
