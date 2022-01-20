@@ -1570,6 +1570,7 @@ func TestShaderOperatorMultiply(t *testing.T) {
 		{stmt: "a := vec2(1) * vec3(2); _ = a", err: true},
 		{stmt: "a := vec2(1) * vec4(2); _ = a", err: true},
 		{stmt: "a := vec2(1) * mat2(2); _ = a", err: false},
+		{stmt: "a := vec2(1) + mat2(2); _ = a", err: true},
 		{stmt: "a := vec2(1) * mat3(2); _ = a", err: true},
 		{stmt: "a := vec2(1) * mat4(2); _ = a", err: true},
 		{stmt: "a := mat2(1) * 2; _ = a", err: false},
