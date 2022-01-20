@@ -111,6 +111,13 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
 					if rts[0].Main == shaderir.Float {
 						// OK
+					} else if op == shaderir.Mul && ((lts[0].Main == shaderir.Vec2 && rts[0].Main == shaderir.Mat2) ||
+						(lts[0].Main == shaderir.Vec3 && rts[0].Main == shaderir.Mat3) ||
+						(lts[0].Main == shaderir.Vec4 && rts[0].Main == shaderir.Mat4) ||
+						(lts[0].Main == shaderir.Mat2 && rts[0].Main == shaderir.Vec2) ||
+						(lts[0].Main == shaderir.Mat3 && rts[0].Main == shaderir.Vec3) ||
+						(lts[0].Main == shaderir.Mat4 && rts[0].Main == shaderir.Vec4)) {
+						// OK
 					} else if rhs[0].Const != nil && rhs[0].Const.Kind() == gconstant.Int {
 						rhs[0].Const = gconstant.ToFloat(rhs[0].Const)
 						rhs[0].ConstType = shaderir.ConstTypeFloat

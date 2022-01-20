@@ -1600,3 +1600,57 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 }
+
+// Issue #1971
+func TestShaderOperatorMultiplyAssign(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "a := 1.0; a *= 2", err: false},
+		{stmt: "a := 1.0; a *= 2.0", err: false},
+		{stmt: "a := 1.0; a *= int(2)", err: true},
+		{stmt: "a := 1.0; a *= vec2(2)", err: true},
+		{stmt: "a := 1.0; a *= vec3(2)", err: true},
+		{stmt: "a := 1.0; a *= vec4(2)", err: true},
+		{stmt: "a := 1.0; a *= mat2(2)", err: true},
+		{stmt: "a := 1.0; a *= mat3(2)", err: true},
+		{stmt: "a := 1.0; a *= mat4(2)", err: true},
+		{stmt: "a := vec2(1); a *= 2", err: false},
+		{stmt: "a := vec2(1); a *= 2.0", err: false},
+		{stmt: "a := vec2(1); a *= int(2)", err: true},
+		{stmt: "a := vec2(1); a *= vec2(2)", err: false},
+		{stmt: "a := vec2(1); a += vec2(2)", err: false},
+		{stmt: "a := vec2(1); a *= vec3(2)", err: true},
+		{stmt: "a := vec2(1); a *= vec4(2)", err: true},
+		{stmt: "a := vec2(1); a *= mat2(2)", err: false},
+		{stmt: "a := vec2(1); a += mat2(2)", err: true},
+		{stmt: "a := vec2(1); a *= mat3(2)", err: true},
+		{stmt: "a := vec2(1); a *= mat4(2)", err: true},
+		{stmt: "a := mat2(1); a *= 2", err: false},
+		{stmt: "a := mat2(1); a *= 2.0", err: false},
+		{stmt: "a := mat2(1); a *= int(2)", err: true},
+		{stmt: "a := mat2(1); a *= vec2(2)", err: false},
+		{stmt: "a := mat2(1); a += vec2(2)", err: true},
+		{stmt: "a := mat2(1); a *= vec3(2)", err: true},
+		{stmt: "a := mat2(1); a *= vec4(2)", err: true},
+		{stmt: "a := mat2(1); a *= mat2(2)", err: false},
+		{stmt: "a := mat2(1); a += mat2(2)", err: false},
+		{stmt: "a := mat2(1); a *= mat3(2)", err: true},
+		{stmt: "a := mat2(1); a *= mat4(2)", err: true},
+	}
+
+	for _, c := range cases {
+		_, err := ebiten.NewShader([]byte(fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	%s
+	return position
+}`, c.stmt)))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", c.stmt, err)
+		}
+	}
+}
