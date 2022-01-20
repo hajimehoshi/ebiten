@@ -109,7 +109,12 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 						return nil, false
 					}
 				case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
-					if rts[0].Main == shaderir.Float {
+					if (op == shaderir.Mul || op == shaderir.Div) && rts[0].Main == shaderir.Float {
+						// OK
+					} else if (lts[0].Main == shaderir.Vec2 ||
+						lts[0].Main == shaderir.Vec3 ||
+						lts[0].Main == shaderir.Vec4) &&
+						rts[0].Main == shaderir.Float {
 						// OK
 					} else if op == shaderir.Mul && ((lts[0].Main == shaderir.Vec2 && rts[0].Main == shaderir.Mat2) ||
 						(lts[0].Main == shaderir.Vec3 && rts[0].Main == shaderir.Mat3) ||

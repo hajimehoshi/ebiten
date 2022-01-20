@@ -150,6 +150,13 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 			// TODO: Check types of the operands.
 			t = shaderir.Type{Main: shaderir.Bool}
 		case lhs[0].Type == shaderir.NumberExpr && rhs[0].Type != shaderir.NumberExpr:
+			switch rhst.Main {
+			case shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
+				if op != shaderir.Mul {
+					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
+					return nil, nil, nil, false
+				}
+			}
 			if rhst.Main == shaderir.Int {
 				if !canTruncateToInteger(lhs[0].Const) {
 					cs.addError(e.Pos(), fmt.Sprintf("constant %s truncated to integer", lhs[0].Const.String()))
@@ -159,6 +166,13 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 			}
 			t = rhst
 		case lhs[0].Type != shaderir.NumberExpr && rhs[0].Type == shaderir.NumberExpr:
+			switch lhst.Main {
+			case shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
+				if op != shaderir.Mul && op != shaderir.Div {
+					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
+					return nil, nil, nil, false
+				}
+			}
 			if lhst.Main == shaderir.Int {
 				if !canTruncateToInteger(rhs[0].Const) {
 					cs.addError(e.Pos(), fmt.Sprintf("constant %s truncated to integer", rhs[0].Const.String()))
@@ -171,15 +185,27 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 			t = lhst
 		case lhst.Main == shaderir.Float:
 			switch rhst.Main {
-			case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
+			case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
 				t = rhst
+			case shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
+				if op != shaderir.Mul {
+					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
+					return nil, nil, nil, false
+				}
+				t = lhst
 			default:
 				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 				return nil, nil, nil, false
 			}
 		case rhst.Main == shaderir.Float:
 			switch lhst.Main {
-			case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
+			case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
+				t = lhst
+			case shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
+				if op != shaderir.Mul && op != shaderir.Div {
+					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
+					return nil, nil, nil, false
+				}
 				t = lhst
 			default:
 				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))

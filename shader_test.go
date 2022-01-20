@@ -1542,6 +1542,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 // Issue #1971
 func TestShaderOperatorMultiply(t *testing.T) {
+	// Note: mat + float is allowed in GLSL but not in Metal.
+
 	cases := []struct {
 		stmt string
 		err  bool
@@ -1551,6 +1553,7 @@ func TestShaderOperatorMultiply(t *testing.T) {
 		{stmt: "a := 1.0 * vec2(2); _ = a", err: false},
 		{stmt: "a := 1 + vec2(2); _ = a", err: false},
 		{stmt: "a := int(1) + vec2(2); _ = a", err: true},
+		{stmt: "a := 1.0 / vec2(2); _ = a", err: false},
 		{stmt: "a := 1.0 + vec2(2); _ = a", err: false},
 		{stmt: "a := 1 * vec3(2); _ = a", err: false},
 		{stmt: "a := 1.0 * vec3(2); _ = a", err: false},
@@ -1558,12 +1561,18 @@ func TestShaderOperatorMultiply(t *testing.T) {
 		{stmt: "a := 1.0 * vec4(2); _ = a", err: false},
 		{stmt: "a := 1 * mat2(2); _ = a", err: false},
 		{stmt: "a := 1.0 * mat2(2); _ = a", err: false},
+		{stmt: "a := float(1.0) / mat2(2); _ = a", err: true},
+		{stmt: "a := 1.0 / mat2(2); _ = a", err: true},
+		{stmt: "a := float(1.0) + mat2(2); _ = a", err: true},
+		{stmt: "a := 1.0 + mat2(2); _ = a", err: true},
 		{stmt: "a := 1 * mat3(2); _ = a", err: false},
 		{stmt: "a := 1.0 * mat3(2); _ = a", err: false},
 		{stmt: "a := 1 * mat4(2); _ = a", err: false},
 		{stmt: "a := 1.0 * mat4(2); _ = a", err: false},
 		{stmt: "a := vec2(1) * 2; _ = a", err: false},
 		{stmt: "a := vec2(1) * 2.0; _ = a", err: false},
+		{stmt: "a := vec2(1) / 2.0; _ = a", err: false},
+		{stmt: "a := vec2(1) + 2.0; _ = a", err: false},
 		{stmt: "a := vec2(1) * int(2); _ = a", err: true},
 		{stmt: "a := vec2(1) * vec2(2); _ = a", err: false},
 		{stmt: "a := vec2(1) + vec2(2); _ = a", err: false},
@@ -1575,8 +1584,11 @@ func TestShaderOperatorMultiply(t *testing.T) {
 		{stmt: "a := vec2(1) * mat4(2); _ = a", err: true},
 		{stmt: "a := mat2(1) * 2; _ = a", err: false},
 		{stmt: "a := mat2(1) * 2.0; _ = a", err: false},
+		{stmt: "a := mat2(1) / 2.0; _ = a", err: false},
+		{stmt: "a := mat2(1) / float(2); _ = a", err: false},
 		{stmt: "a := mat2(1) * int(2); _ = a", err: true},
-		{stmt: "a := mat2(1) + 2.0; _ = a", err: false},
+		{stmt: "a := mat2(1) + 2.0; _ = a", err: true},
+		{stmt: "a := mat2(1) + float(2); _ = a", err: true},
 		{stmt: "a := mat2(1) * vec2(2); _ = a", err: false},
 		{stmt: "a := mat2(1) + vec2(2); _ = a", err: true},
 		{stmt: "a := mat2(1) * vec3(2); _ = a", err: true},
@@ -1618,7 +1630,11 @@ func TestShaderOperatorMultiplyAssign(t *testing.T) {
 		{stmt: "a := 1.0; a *= mat4(2)", err: true},
 		{stmt: "a := vec2(1); a *= 2", err: false},
 		{stmt: "a := vec2(1); a *= 2.0", err: false},
+		{stmt: "a := vec2(1); a /= 2.0", err: false},
+		{stmt: "a := vec2(1); a += 2.0", err: false},
 		{stmt: "a := vec2(1); a *= int(2)", err: true},
+		{stmt: "a := vec2(1); a *= float(2)", err: false},
+		{stmt: "a := vec2(1); a /= float(2)", err: false},
 		{stmt: "a := vec2(1); a *= vec2(2)", err: false},
 		{stmt: "a := vec2(1); a += vec2(2)", err: false},
 		{stmt: "a := vec2(1); a *= vec3(2)", err: true},
@@ -1629,7 +1645,11 @@ func TestShaderOperatorMultiplyAssign(t *testing.T) {
 		{stmt: "a := vec2(1); a *= mat4(2)", err: true},
 		{stmt: "a := mat2(1); a *= 2", err: false},
 		{stmt: "a := mat2(1); a *= 2.0", err: false},
+		{stmt: "a := mat2(1); a /= 2.0", err: false},
+		{stmt: "a := mat2(1); a += 2.0", err: true},
 		{stmt: "a := mat2(1); a *= int(2)", err: true},
+		{stmt: "a := mat2(1); a *= float(2)", err: false},
+		{stmt: "a := mat2(1); a /= float(2)", err: false},
 		{stmt: "a := mat2(1); a *= vec2(2)", err: true},
 		{stmt: "a := mat2(1); a += vec2(2)", err: true},
 		{stmt: "a := mat2(1); a *= vec3(2)", err: true},
