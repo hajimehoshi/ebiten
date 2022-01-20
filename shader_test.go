@@ -1630,7 +1630,7 @@ func TestShaderOperatorMultiplyAssign(t *testing.T) {
 		{stmt: "a := mat2(1); a *= 2", err: false},
 		{stmt: "a := mat2(1); a *= 2.0", err: false},
 		{stmt: "a := mat2(1); a *= int(2)", err: true},
-		{stmt: "a := mat2(1); a *= vec2(2)", err: false},
+		{stmt: "a := mat2(1); a *= vec2(2)", err: true},
 		{stmt: "a := mat2(1); a += vec2(2)", err: true},
 		{stmt: "a := mat2(1); a *= vec3(2)", err: true},
 		{stmt: "a := mat2(1); a *= vec4(2)", err: true},
