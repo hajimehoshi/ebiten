@@ -204,7 +204,7 @@ func (g *nativeGamepad) hatState(hat int) int {
 }
 
 func (g *nativeGamepads) init() {
-	var dicts []unsafe.Pointer
+	var dicts []C.CFDictionaryRef
 
 	page := C.kHIDPage_GenericDesktop
 	for _, usage := range []uint{
@@ -224,25 +224,30 @@ func (g *nativeGamepads) init() {
 		}
 		defer C.CFRelease(C.CFTypeRef(usageRef))
 
-		keys := []unsafe.Pointer{
-			unsafe.Pointer(C.cfStringRefIOHIDDeviceUsagePageKey()),
-			unsafe.Pointer(C.cfStringRefIOHIDDeviceUsageKey()),
+		keys := []C.CFStringRef{
+			C.cfStringRefIOHIDDeviceUsagePageKey(),
+			C.cfStringRefIOHIDDeviceUsageKey(),
 		}
-		values := []unsafe.Pointer{
-			unsafe.Pointer(pageRef),
-			unsafe.Pointer(usageRef),
+		values := []C.CFNumberRef{
+			pageRef,
+			usageRef,
 		}
 
-		dict := C.CFDictionaryCreate(C.kCFAllocatorDefault, &keys[0], &values[0], C.CFIndex(len(keys)), &C.kCFTypeDictionaryKeyCallBacks, &C.kCFTypeDictionaryValueCallBacks)
+		dict := C.CFDictionaryCreate(C.kCFAllocatorDefault,
+			(*unsafe.Pointer)(unsafe.Pointer(&keys[0])),
+			(*unsafe.Pointer)(unsafe.Pointer(&values[0])),
+			C.CFIndex(len(keys)), &C.kCFTypeDictionaryKeyCallBacks, &C.kCFTypeDictionaryValueCallBacks)
 		if dict == 0 {
 			panic("gamepad: CFDictionaryCreate returned nil")
 		}
-		defer C.CFRelease(C.CFTypeRef(unsafe.Pointer(dict)))
+		defer C.CFRelease(C.CFTypeRef(dict))
 
-		dicts = append(dicts, unsafe.Pointer(dict))
+		dicts = append(dicts, dict)
 	}
 
-	matching := C.CFArrayCreate(C.kCFAllocatorDefault, &dicts[0], C.CFIndex(len(dicts)), &C.kCFTypeArrayCallBacks)
+	matching := C.CFArrayCreate(C.kCFAllocatorDefault,
+		(*unsafe.Pointer)(unsafe.Pointer(&dicts[0])),
+		C.CFIndex(len(dicts)), &C.kCFTypeArrayCallBacks)
 	if matching == 0 {
 		panic("gamepad: CFArrayCreateMutable returned nil")
 	}
