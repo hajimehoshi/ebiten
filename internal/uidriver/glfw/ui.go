@@ -1014,7 +1014,9 @@ func (u *UserInterface) update() (float64, float64, error) {
 	} else {
 		glfw.WaitEvents()
 	}
-	u.input.update(u.window, u.context)
+	if err := u.input.update(u.window, u.context); err != nil {
+		return 0, 0, err
+	}
 
 	for !u.isRunnableOnUnfocused() && u.window.GetAttrib(glfw.Focused) == 0 && !u.window.ShouldClose() {
 		if err := hooks.SuspendAudio(); err != nil {

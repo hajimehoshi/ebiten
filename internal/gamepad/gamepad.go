@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build (darwin && !ios) || js
-// +build darwin,!ios js
+//go:build (darwin && !ios) || js || windows
+// +build darwin,!ios js windows
 
 package gamepad
 
@@ -57,8 +57,8 @@ func AppendGamepadIDs(ids []driver.GamepadID) []driver.GamepadID {
 }
 
 // Update is concurrent-safe.
-func Update() {
-	theGamepads.update()
+func Update() error {
+	return theGamepads.update()
 }
 
 // Get is concurrent-safe.
@@ -78,21 +78,30 @@ func (g *gamepads) appendGamepadIDs(ids []driver.GamepadID) []driver.GamepadID {
 	return ids
 }
 
-func (g *gamepads) update() {
+func (g *gamepads) update() error {
 	g.m.Lock()
 	defer g.m.Unlock()
 
 	if !g.inited {
-		g.nativeGamepads.init()
+		if err := g.nativeGamepads.init(); err != nil {
+			return err
+		}
 		g.inited = true
 	}
 
-	g.nativeGamepads.update()
+	if err := g.nativeGamepads.update(); err != nil {
+		return err
+	}
+
 	for _, gp := range g.gamepads {
-		if gp != nil {
-			gp.update()
+		if gp == nil {
+			continue
+		}
+		if err := gp.update(g); err != nil {
+			return err
 		}
 	}
+	return nil
 }
 
 func (g *gamepads) get(id driver.GamepadID) *Gamepad {
@@ -156,11 +165,11 @@ type Gamepad struct {
 	nativeGamepad
 }
 
-func (g *Gamepad) update() {
+func (g *Gamepad) update(gamepads *gamepads) error {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	g.nativeGamepad.update()
+	return g.nativeGamepad.update(gamepads)
 }
 
 // Name is concurrent-safe.

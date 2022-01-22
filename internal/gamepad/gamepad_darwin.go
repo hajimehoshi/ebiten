@@ -18,6 +18,7 @@
 package gamepad
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"sync"
@@ -115,7 +116,7 @@ func (g *nativeGamepad) elementValue(e *element) int {
 	return 0
 }
 
-func (g *nativeGamepad) update() {
+func (g *nativeGamepad) update(gamepads *gamepads) error {
 	if cap(g.axisValues) < len(g.axes) {
 		g.axisValues = make([]float64, len(g.axes))
 	}
@@ -167,6 +168,8 @@ func (g *nativeGamepad) update() {
 			g.hatValues[i] = hatStates[state]
 		}
 	}
+
+	return nil
 }
 
 func (g *nativeGamepad) hasOwnStandardLayoutMapping() bool {
@@ -214,7 +217,7 @@ func (g *nativeGamepad) vibrate(duration time.Duration, strongMagnitude float64,
 	// TODO: Implement this (#1452)
 }
 
-func (g *nativeGamepads) init() {
+func (g *nativeGamepads) init() error {
 	var dicts []C.CFDictionaryRef
 
 	page := C.kHIDPage_GenericDesktop
@@ -225,13 +228,13 @@ func (g *nativeGamepads) init() {
 	} {
 		pageRef := C.CFNumberCreate(C.kCFAllocatorDefault, C.kCFNumberIntType, unsafe.Pointer(&page))
 		if pageRef == 0 {
-			panic("gamepad: CFNumberCreate returned nil")
+			return errors.New("gamepad: CFNumberCreate returned nil")
 		}
 		defer C.CFRelease(C.CFTypeRef(pageRef))
 
 		usageRef := C.CFNumberCreate(C.kCFAllocatorDefault, C.kCFNumberIntType, unsafe.Pointer(&usage))
 		if usageRef == 0 {
-			panic("gamepad: CFNumberCreate returned nil")
+			return errors.New("gamepad: CFNumberCreate returned nil")
 		}
 		defer C.CFRelease(C.CFTypeRef(usageRef))
 
@@ -249,7 +252,7 @@ func (g *nativeGamepads) init() {
 			(*unsafe.Pointer)(unsafe.Pointer(&values[0])),
 			C.CFIndex(len(keys)), &C.kCFTypeDictionaryKeyCallBacks, &C.kCFTypeDictionaryValueCallBacks)
 		if dict == 0 {
-			panic("gamepad: CFDictionaryCreate returned nil")
+			return errors.New("gamepad: CFDictionaryCreate returned nil")
 		}
 		defer C.CFRelease(C.CFTypeRef(dict))
 
@@ -260,13 +263,13 @@ func (g *nativeGamepads) init() {
 		(*unsafe.Pointer)(unsafe.Pointer(&dicts[0])),
 		C.CFIndex(len(dicts)), &C.kCFTypeArrayCallBacks)
 	if matching == 0 {
-		panic("gamepad: CFArrayCreateMutable returned nil")
+		return errors.New("gamepad: CFArrayCreateMutable returned nil")
 	}
 	defer C.CFRelease(C.CFTypeRef(matching))
 
 	g.hidManager = C.IOHIDManagerCreate(C.kCFAllocatorDefault, C.kIOHIDOptionsTypeNone)
 	if C.IOHIDManagerOpen(g.hidManager, C.kIOHIDOptionsTypeNone) != C.kIOReturnSuccess {
-		panic("gamepad: IOHIDManagerOpen failed")
+		return errors.New("gamepad: IOHIDManagerOpen failed")
 	}
 
 	C.IOHIDManagerSetDeviceMatchingMultiple(g.hidManager, matching)
@@ -277,6 +280,8 @@ func (g *nativeGamepads) init() {
 
 	// Execute the run loop once in order to register any initially-attached gamepads.
 	C.CFRunLoopRunInMode(C.kCFRunLoopDefaultMode, 0, 0 /* false */)
+
+	return nil
 }
 
 //export ebitenGamepadMatchingCallback
@@ -293,7 +298,7 @@ func ebitenGamepadRemovalCallback(ctx unsafe.Pointer, res C.IOReturn, sender uns
 	theGamepads.devicesToRemove = append(theGamepads.devicesToRemove, device)
 }
 
-func (g *nativeGamepads) update() {
+func (g *nativeGamepads) update() error {
 	theGamepads.devicesM.Lock()
 	defer theGamepads.devicesM.Unlock()
 
@@ -307,6 +312,7 @@ func (g *nativeGamepads) update() {
 	}
 	g.devicesToAdd = g.devicesToAdd[:0]
 	g.devicesToRemove = g.devicesToRemove[:0]
+	return nil
 }
 
 func (g *nativeGamepads) addDevice(device C.IOHIDDeviceRef) {

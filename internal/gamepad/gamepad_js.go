@@ -31,10 +31,11 @@ type nativeGamepads struct {
 	indices map[int]struct{}
 }
 
-func (g *nativeGamepads) init() {
+func (g *nativeGamepads) init() error {
+	return nil
 }
 
-func (g *nativeGamepads) update() {
+func (g *nativeGamepads) update() error {
 	// TODO: Use the gamepad events instead of navigator.getGamepads after go2cpp is removed.
 
 	defer func() {
@@ -45,12 +46,12 @@ func (g *nativeGamepads) update() {
 
 	nav := js.Global().Get("navigator")
 	if !nav.Truthy() {
-		return
+		return nil
 	}
 
 	gps := nav.Call("getGamepads")
 	if !gps.Truthy() {
-		return
+		return nil
 	}
 
 	l := gps.Length()
@@ -90,6 +91,8 @@ func (g *nativeGamepads) update() {
 		_, ok := g.indices[gamepad.index]
 		return !ok
 	})
+
+	return nil
 }
 
 type nativeGamepad struct {
@@ -106,7 +109,8 @@ func (g *nativeGamepad) hasOwnStandardLayoutMapping() bool {
 	return g.mapping == "standard"
 }
 
-func (g *nativeGamepad) update() {
+func (g *nativeGamepad) update(gamepads *gamepads) error {
+	return nil
 }
 
 func (g *nativeGamepad) axisNum() int {

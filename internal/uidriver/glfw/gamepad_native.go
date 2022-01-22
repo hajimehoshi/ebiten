@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build darwin && !ios
-// +build darwin,!ios
+//go:build (darwin && !ios) || windows
+// +build darwin,!ios windows
 
 package glfw
 
@@ -27,8 +27,8 @@ import (
 type nativeGamepads struct{}
 
 // updateGamepads must be called on the main thread.
-func (i *Input) updateGamepads() {
-	gamepadpkg.Update()
+func (i *Input) updateGamepads() error {
+	return gamepadpkg.Update()
 }
 
 func (i *Input) AppendGamepadIDs(gamepadIDs []driver.GamepadID) []driver.GamepadID {

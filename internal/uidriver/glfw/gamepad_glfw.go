@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !js && !darwin
-// +build !android,!js,!darwin
+//go:build !android && !js && !darwin && !windows
+// +build !android,!js,!darwin,!windows
 
 package glfw
 
@@ -28,7 +28,7 @@ import (
 type nativeGamepads struct {
 }
 
-func (i *Input) updateGamepads() {
+func (i *Input) updateGamepads() error {
 	for id := glfw.Joystick(0); id < glfw.Joystick(len(i.gamepads)); id++ {
 		i.gamepads[id].valid = false
 		if !id.Present() {
@@ -79,6 +79,8 @@ func (i *Input) updateGamepads() {
 		i.gamepads[id].guid = id.GetGUID()
 		i.gamepads[id].name = id.GetName()
 	}
+
+	return nil
 }
 
 func (i *Input) AppendGamepadIDs(gamepadIDs []driver.GamepadID) []driver.GamepadID {

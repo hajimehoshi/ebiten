@@ -170,7 +170,7 @@ var glfwMouseButtonToMouseButton = map[glfw.MouseButton]driver.MouseButton{
 }
 
 // update must be called from the main thread.
-func (i *Input) update(window *glfw.Window, context driver.UIContext) {
+func (i *Input) update(window *glfw.Window, context driver.UIContext) error {
 	i.ui.m.Lock()
 	defer i.ui.m.Unlock()
 
@@ -218,5 +218,5 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) {
 		i.cursorX, i.cursorY = int(cx), int(cy)
 	}
 
-	i.updateGamepads()
+	return i.updateGamepads()
 }
