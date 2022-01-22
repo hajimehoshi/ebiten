@@ -54,7 +54,7 @@ func (g *Game) Update() error {
 	}
 	for id := range g.gamepadIDs {
 		if inpututil.IsGamepadJustDisconnected(id) {
-			log.Printf("gamepad disconnected: id: %d, SDL ID: %s", id, ebiten.GamepadSDLID(id))
+			log.Printf("gamepad disconnected: id: %d", id)
 			delete(g.gamepadIDs, id)
 		}
 	}
