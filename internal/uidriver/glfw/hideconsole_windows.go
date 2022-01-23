@@ -37,8 +37,8 @@ var (
 
 func getCurrentProcessId() (uint32, error) {
 	r, _, e := getCurrentProcessIdProc.Call()
-	if e != nil && e.(windows.Errno) != 0 {
-		return 0, fmt.Errorf("ui: GetCurrentProcessId failed: %d", e)
+	if e != nil && e != windows.ERROR_SUCCESS {
+		return 0, fmt.Errorf("ui: GetCurrentProcessId failed: %w", e)
 	}
 	return uint32(r), nil
 }
@@ -46,24 +46,26 @@ func getCurrentProcessId() (uint32, error) {
 func getWindowThreadProcessId(hwnd uintptr) (uint32, error) {
 	pid := uint32(0)
 	r, _, e := getWindowThreadProcessIdProc.Call(hwnd, uintptr(unsafe.Pointer(&pid)))
+	if e != nil && e != windows.ERROR_SUCCESS {
+		return 0, fmt.Errorf("ui: GetWindowThreadProcessId failed: %w", e)
+	}
 	if r == 0 {
-		return 0, fmt.Errorf("ui: GetWindowThreadProcessId failed: %d", e)
+		return 0, fmt.Errorf("ui: GetWindowThreadProcessId returned 0")
 	}
 	return pid, nil
 }
 
 func getConsoleWindow() (uintptr, error) {
 	r, _, e := getConsoleWindowProc.Call()
-	if e != nil && e.(windows.Errno) != 0 {
-		return 0, fmt.Errorf("ui: GetConsoleWindow failed: %d", e)
+	if e != nil && e != windows.ERROR_SUCCESS {
+		return 0, fmt.Errorf("ui: GetConsoleWindow failed: %w", e)
 	}
 	return r, nil
 }
 
 func freeConsole() error {
-	_, _, e := freeConsoleWindowProc.Call()
-	if e != nil && e.(windows.Errno) != 0 {
-		return fmt.Errorf("ui: FreeConsole failed: %d", e)
+	if _, _, e := freeConsoleWindowProc.Call(); e != nil && e != windows.ERROR_SUCCESS {
+		return fmt.Errorf("ui: FreeConsole failed: %w", e)
 	}
 	return nil
 }

@@ -54,24 +54,24 @@ var (
 
 func getSystemMetrics(nIndex int) (int, error) {
 	r, _, e := procGetSystemMetrics.Call(uintptr(nIndex))
-	if e != nil && e.(windows.Errno) != 0 {
-		return 0, fmt.Errorf("ui: GetSystemMetrics failed: error code: %d", e)
+	if e != nil && e != windows.ERROR_SUCCESS {
+		return 0, fmt.Errorf("ui: GetSystemMetrics failed: error code: %w", e)
 	}
 	return int(r), nil
 }
 
 func getForegroundWindow() (uintptr, error) {
 	r, _, e := procGetForegroundWindow.Call()
-	if e != nil && e.(windows.Errno) != 0 {
-		return 0, fmt.Errorf("ui: GetForegroundWindow failed: error code: %d", e)
+	if e != nil && e != windows.ERROR_SUCCESS {
+		return 0, fmt.Errorf("ui: GetForegroundWindow failed: error code: %w", e)
 	}
 	return r, nil
 }
 
 func monitorFromWindow(hwnd uintptr, dwFlags uint32) (uintptr, error) {
 	r, _, e := procMonitorFromWindow.Call(hwnd, uintptr(dwFlags))
-	if e != nil && e.(windows.Errno) != 0 {
-		return 0, fmt.Errorf("ui: MonitorFromWindow failed: error code: %d", e)
+	if e != nil && e != windows.ERROR_SUCCESS {
+		return 0, fmt.Errorf("ui: MonitorFromWindow failed: error code: %w", e)
 	}
 	if r == 0 {
 		return 0, fmt.Errorf("ui: MonitorFromWindow failed: returned value: %d", r)
@@ -81,8 +81,8 @@ func monitorFromWindow(hwnd uintptr, dwFlags uint32) (uintptr, error) {
 
 func getMonitorInfoW(hMonitor uintptr, lpmi *monitorInfo) error {
 	r, _, e := procGetMonitorInfoW.Call(hMonitor, uintptr(unsafe.Pointer(lpmi)))
-	if e != nil && e.(windows.Errno) != 0 {
-		return fmt.Errorf("ui: GetMonitorInfoW failed: error code: %d", e)
+	if e != nil && e != windows.ERROR_SUCCESS {
+		return fmt.Errorf("ui: GetMonitorInfoW failed: error code: %w", e)
 	}
 	if r == 0 {
 		return fmt.Errorf("ui: GetMonitorInfoW failed: returned value: %d", r)

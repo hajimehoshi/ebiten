@@ -3,6 +3,7 @@
 package gl
 
 import (
+	"fmt"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -18,9 +19,15 @@ func getProcAddress(namea string) uintptr {
 	if err != nil {
 		panic(err)
 	}
-	if r, _, _ := wglGetProcAddress.Call(uintptr(unsafe.Pointer(cname))); r != 0 {
+
+	r, _, err := wglGetProcAddress.Call(uintptr(unsafe.Pointer(cname)))
+	if err != nil && err != windows.ERROR_SUCCESS && err != windows.ERROR_PROC_NOT_FOUND {
+		panic(fmt.Sprintf("gl: wglGetProcAddress failed: %s", err.Error()))
+	}
+	if r != 0 {
 		return r
 	}
+
 	p := opengl32.NewProc(namea)
 	if err := p.Find(); err != nil {
 		// The proc is not found.
