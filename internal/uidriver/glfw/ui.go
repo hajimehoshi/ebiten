@@ -1251,16 +1251,6 @@ func (u *UserInterface) setWindowSizeInDIPImpl(width, height int, fullscreen boo
 
 		if u.isNativeFullscreenAvailable() && u.isNativeFullscreen() {
 			u.setNativeFullscreen(false)
-
-			// Reset the window size and the position explicitly (#1975).
-			// Polling an event is necessary to set the window size correctly
-			// after restoring from the fullscreen.
-			glfw.PollEvents()
-			ww := int(u.dipToGLFWPixel(float64(width), u.currentMonitor()))
-			wh := int(u.dipToGLFWPixel(float64(height), u.currentMonitor()))
-			u.window.SetSize(ww, wh)
-
-			// TODO: Set the window position correctly if possible.
 		} else if !u.isNativeFullscreenAvailable() && u.window.GetMonitor() != nil {
 			if u.Graphics().IsGL() {
 				// When OpenGL is used, swapping buffer is enough to solve the image-lag
