@@ -264,6 +264,7 @@ func (i *Input) TouchPosition(id driver.TouchID) (x, y int) {
 }
 
 func (i *Input) VibrateGamepad(id driver.GamepadID, duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	cbackend.VibrateGamepad(id, duration, strongMagnitude, weakMagnitude)
 }
 
 func (i *Input) Wheel() (xoff, yoff float64) {

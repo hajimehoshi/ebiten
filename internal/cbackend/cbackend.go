@@ -49,6 +49,7 @@ package cbackend
 // void EbitenGetGamepads(struct Gamepad* gamepads);
 // int EbitenGetTouchNum();
 // void EbitenGetTouches(struct Touch* touches);
+// void EbitenVibrateGamepad(int id, double durationInSeconds, double strongMagnitude, double weakMagnitude);
 //
 // // Audio
 // typedef void (*OnReadCallback)(float* buf, size_t length);
@@ -63,6 +64,7 @@ import "C"
 
 import (
 	"reflect"
+	"time"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
@@ -157,6 +159,10 @@ func AppendTouches(touches []Touch) []Touch {
 		})
 	}
 	return touches
+}
+
+func VibrateGamepad(id driver.GamepadID, duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	C.EbitenVibrateGamepad(C.int(id), C.double(float64(duration)/float64(time.Second)), C.double(strongMagnitude), C.double(weakMagnitude))
 }
 
 var onReadCallback func(buf []float32)
