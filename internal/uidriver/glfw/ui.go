@@ -1302,9 +1302,6 @@ func (u *UserInterface) setWindowSizeInDIPImpl(width, height int, fullscreen boo
 				u.window.SetSize(newW, newH)
 			})
 		}
-
-		// Window title might be lost on macOS after coming back from fullscreen.
-		u.window.SetTitle(u.title)
 	}
 
 	return windowRecreated
