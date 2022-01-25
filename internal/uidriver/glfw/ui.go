@@ -827,7 +827,12 @@ event:
 		// manager), glfw sends a framebuffer size callback which we need to handle (#1960).
 		// This event is the only way to handle the size change at least on i3 window manager.
 		u.defaultFramebufferSizeCallback = glfw.ToFramebufferSizeCallback(func(_ *glfw.Window, w, h int) {
-			u.setWindowSizeInDIP(w, h, u.isFullscreen())
+			// The framebuffer size is always scaled by the device scale factor (#1975).
+			// See also the implementation in uiContext.updateOffscreen.
+			s := u.deviceScaleFactor(u.currentMonitor())
+			ww := int(float64(w) / s)
+			wh := int(float64(h) / s)
+			u.setWindowSizeInDIP(ww, wh, u.isFullscreen())
 		})
 	}
 	window.SetFramebufferSizeCallback(u.defaultFramebufferSizeCallback)
