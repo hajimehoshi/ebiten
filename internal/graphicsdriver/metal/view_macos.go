@@ -44,7 +44,10 @@ func (v *view) update() {
 }
 
 func (v *view) usePresentsWithTransaction() bool {
-	// Disable presentsWithTransaction on the fullscreen mode (#1745).
+	// Disable presentsWithTransaction on the fullscreen mode (#1745, #1974).
+	if v.fullscreen {
+		return false
+	}
 	return !v.vsyncDisabled
 }
 
