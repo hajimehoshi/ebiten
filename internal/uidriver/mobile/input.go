@@ -67,6 +67,9 @@ func (i *Input) GamepadName(id driver.GamepadID) string {
 		if g.ID != id {
 			continue
 		}
+		if name := gamepaddb.Name(g.SDLID); name != "" {
+			return name
+		}
 		return g.Name
 	}
 	return ""

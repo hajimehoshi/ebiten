@@ -163,6 +163,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 				standard = " (Standard Layout)"
 			}
 			str += fmt.Sprintf("Gamepad (ID: %d, SDL ID: %s)%s:\n", id, ebiten.GamepadSDLID(id), standard)
+			str += fmt.Sprintf("  Name:    %s\n", ebiten.GamepadName(id))
 			str += fmt.Sprintf("  Axes:    %s\n", strings.Join(g.axes[id], ", "))
 			str += fmt.Sprintf("  Buttons: %s\n", strings.Join(g.pressedButtons[id], ", "))
 			if ebiten.IsStandardGamepadLayoutAvailable(id) {

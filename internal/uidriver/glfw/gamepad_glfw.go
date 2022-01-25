@@ -119,6 +119,9 @@ func (i *Input) GamepadName(id driver.GamepadID) string {
 	if len(i.gamepads) <= int(id) {
 		return ""
 	}
+	if name := gamepaddb.Name(i.gamepads[id].guid); name != "" {
+		return name
+	}
 	return i.gamepads[id].name
 }
 

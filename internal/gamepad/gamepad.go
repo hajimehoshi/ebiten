@@ -163,6 +163,9 @@ func (g *Gamepad) update() {
 
 func (g *Gamepad) Name() string {
 	// This is immutable and doesn't have to be protected by a mutex.
+	if name := gamepaddb.Name(g.sdlID); name != "" {
+		return name
+	}
 	return g.name
 }
 

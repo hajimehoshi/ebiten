@@ -126,6 +126,7 @@ type mapping struct {
 }
 
 var (
+	gamepadNames          = map[string]string{}
 	gamepadButtonMappings = map[string]map[driver.StandardGamepadButton]*mapping{}
 	gamepadAxisMappings   = map[string]map[driver.StandardGamepadAxis]*mapping{}
 	mappingsM             sync.RWMutex
@@ -202,6 +203,8 @@ func processLine(line string, platform platform) error {
 		// The buttons like "misc1" are ignored so far.
 		// There is no corresponding button in the Web standard gamepad layout.
 	}
+
+	gamepadNames[id] = tokens[1]
 
 	return nil
 }
@@ -376,6 +379,13 @@ type GamepadState interface {
 	Axis(index int) float64
 	Button(index int) bool
 	Hat(index int) int
+}
+
+func Name(id string) string {
+	mappingsM.RLock()
+	defer mappingsM.RUnlock()
+
+	return gamepadNames[id]
 }
 
 func AxisValue(id string, axis driver.StandardGamepadAxis, state GamepadState) float64 {
