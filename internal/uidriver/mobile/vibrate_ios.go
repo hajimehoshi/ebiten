@@ -17,8 +17,9 @@
 
 package mobile
 
-// #cgo LDFLAGS: -framework CoreHaptics
+// #cgo LDFLAGS: -framework AVFAudio -framework CoreHaptics
 //
+// #import <AVFAudio/AVFAudio.h>
 // #import <CoreHaptics/CoreHaptics.h>
 // #include <dispatch/dispatch.h>
 //
@@ -29,7 +30,11 @@ package mobile
 //     }
 //
 //     NSError* error = nil;
-//     CHHapticEngine* engine = [[CHHapticEngine alloc] initAndReturnError:&error];
+//     // Specify the AVAudioSession's shared instance so that this won't affect
+//     // the result of `[[AVAudioSession sharedInstance] secondaryAudioShouldBeSilencedHint]` (#1976).
+//     CHHapticEngine* engine =
+//         [[CHHapticEngine alloc] initWithAudioSession:[AVAudioSession sharedInstance]
+//                                                error:&error];
 //     if (error) {
 //       NSLog(@"CHHapticEngine::initAndReturnError failed: %@", error);
 //       return nil;
