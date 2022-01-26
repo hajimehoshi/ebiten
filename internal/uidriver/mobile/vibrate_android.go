@@ -105,9 +105,11 @@ static void vibrateOneShot(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx, 
 import "C"
 
 func (u *UserInterface) Vibrate(duration time.Duration, magnitude float64) {
-	_ = app.RunOnJVM(func(vm, env, ctx uintptr) error {
-		// TODO: This might be crash when this is called from init(). How can we detect this?
-		C.vibrateOneShot(C.uintptr_t(vm), C.uintptr_t(env), C.uintptr_t(ctx), C.int64_t(duration/time.Millisecond), C.double(magnitude))
-		return nil
-	})
+	go func() {
+		_ = app.RunOnJVM(func(vm, env, ctx uintptr) error {
+			// TODO: This might be crash when this is called from init(). How can we detect this?
+			C.vibrateOneShot(C.uintptr_t(vm), C.uintptr_t(env), C.uintptr_t(ctx), C.int64_t(duration/time.Millisecond), C.double(magnitude))
+			return nil
+		})
+	}()
 }

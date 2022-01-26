@@ -20,6 +20,7 @@ package mobile
 // #cgo LDFLAGS: -framework CoreHaptics
 //
 // #import <CoreHaptics/CoreHaptics.h>
+// #include <dispatch/dispatch.h>
 //
 // static id initializeHapticEngine(void) {
 //   if (@available(iOS 13.0, *)) {
@@ -30,11 +31,13 @@ package mobile
 //     NSError* error = nil;
 //     CHHapticEngine* engine = [[CHHapticEngine alloc] initAndReturnError:&error];
 //     if (error) {
+//       NSLog(@"CHHapticEngine::initAndReturnError failed: %@", error);
 //       return nil;
 //     }
 //
 //     [engine startAndReturnError:&error];
 //     if (error) {
+//       NSLog(@"CHHapticEngine::startAndReturnError failed %@", error);
 //       return nil;
 //     }
 //     return engine;
@@ -42,7 +45,7 @@ package mobile
 //   return nil;
 // }
 //
-// static void vibrate(double duration, double intensity) {
+// static void vibrateOnMainThread(double duration, double intensity) {
 //   if (@available(iOS 13.0, *)) {
 //     static BOOL initializeHapticEngineCalled = NO;
 //     static CHHapticEngine* engine = nil;
@@ -93,18 +96,20 @@ package mobile
 //     }
 //   }
 // }
+//
+// static void vibrate(double duration, double intensity) {
+//   dispatch_async(dispatch_get_main_queue(), ^{
+//     vibrateOnMainThread(duration, intensity);
+//   });
+// }
 import "C"
 
 import (
-	"sync"
 	"time"
 )
 
-var vibrationM sync.Mutex
-
 func (u *UserInterface) Vibrate(duration time.Duration, magnitude float64) {
-	vibrationM.Lock()
-	defer vibrationM.Unlock()
-
-	C.vibrate(C.double(float64(duration)/float64(time.Second)), C.double(magnitude))
+	go func() {
+		C.vibrate(C.double(float64(duration)/float64(time.Second)), C.double(magnitude))
+	}()
 }
