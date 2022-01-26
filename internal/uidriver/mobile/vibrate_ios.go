@@ -17,9 +17,9 @@
 
 package mobile
 
-// #cgo LDFLAGS: -framework AVFAudio -framework CoreHaptics
+// #cgo LDFLAGS: -framework AVFoundation -framework CoreHaptics
 //
-// #import <AVFAudio/AVFAudio.h>
+// #import <AVFoundation/AVFoundation.h>
 // #import <CoreHaptics/CoreHaptics.h>
 // #include <dispatch/dispatch.h>
 //
