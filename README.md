@@ -58,3 +58,5 @@ For installation on desktops, see [the installation instruction](https://ebiten.
 ## License
 
 Ebiten is licensed under Apache license version 2.0. See [LICENSE](LICENSE) file.
+
+[The Ebiten logo](https://ebiten.org/images/logo.png) by Hajime Hoshi is licensed under [the Creative Commons Attribution-NoDerivatives 4.0](https://creativecommons.org/licenses/by-nd/4.0/).
