@@ -32,23 +32,11 @@ func (i *Input) updateGamepads() {
 }
 
 func (i *Input) AppendGamepadIDs(gamepadIDs []driver.GamepadID) []driver.GamepadID {
-	var gs []driver.GamepadID
-	i.ui.t.Call(func() {
-		gs = gamepadpkg.AppendGamepadIDs(gamepadIDs)
-	})
-	return gs
-}
-
-func (i *Input) gamepad(id driver.GamepadID) *gamepadpkg.Gamepad {
-	var g *gamepadpkg.Gamepad
-	i.ui.t.Call(func() {
-		g = gamepadpkg.Get(id)
-	})
-	return g
+	return gamepadpkg.AppendGamepadIDs(gamepadIDs)
 }
 
 func (i *Input) GamepadSDLID(id driver.GamepadID) string {
-	g := i.gamepad(id)
+	g := gamepadpkg.Get(id)
 	if g == nil {
 		return ""
 	}
@@ -56,7 +44,7 @@ func (i *Input) GamepadSDLID(id driver.GamepadID) string {
 }
 
 func (i *Input) GamepadName(id driver.GamepadID) string {
-	g := i.gamepad(id)
+	g := gamepadpkg.Get(id)
 	if g == nil {
 		return ""
 	}
@@ -64,7 +52,7 @@ func (i *Input) GamepadName(id driver.GamepadID) string {
 }
 
 func (i *Input) GamepadAxisNum(id driver.GamepadID) int {
-	g := i.gamepad(id)
+	g := gamepadpkg.Get(id)
 	if g == nil {
 		return 0
 	}
@@ -72,7 +60,7 @@ func (i *Input) GamepadAxisNum(id driver.GamepadID) int {
 }
 
 func (i *Input) GamepadAxisValue(id driver.GamepadID, axis int) float64 {
-	g := i.gamepad(id)
+	g := gamepadpkg.Get(id)
 	if g == nil {
 		return 0
 	}
@@ -80,7 +68,7 @@ func (i *Input) GamepadAxisValue(id driver.GamepadID, axis int) float64 {
 }
 
 func (i *Input) GamepadButtonNum(id driver.GamepadID) int {
-	g := i.gamepad(id)
+	g := gamepadpkg.Get(id)
 	if g == nil {
 		return 0
 	}
@@ -90,7 +78,7 @@ func (i *Input) GamepadButtonNum(id driver.GamepadID) int {
 }
 
 func (i *Input) IsGamepadButtonPressed(id driver.GamepadID, button driver.GamepadButton) bool {
-	g := i.gamepad(id)
+	g := gamepadpkg.Get(id)
 	if g == nil {
 		return false
 	}
@@ -110,7 +98,7 @@ func (i *Input) IsGamepadButtonPressed(id driver.GamepadID, button driver.Gamepa
 }
 
 func (i *Input) IsStandardGamepadLayoutAvailable(id driver.GamepadID) bool {
-	g := i.gamepad(id)
+	g := gamepadpkg.Get(id)
 	if g == nil {
 		return false
 	}
@@ -118,7 +106,7 @@ func (i *Input) IsStandardGamepadLayoutAvailable(id driver.GamepadID) bool {
 }
 
 func (i *Input) StandardGamepadAxisValue(id driver.GamepadID, axis driver.StandardGamepadAxis) float64 {
-	g := i.gamepad(id)
+	g := gamepadpkg.Get(id)
 	if g == nil {
 		return 0
 	}
@@ -126,7 +114,7 @@ func (i *Input) StandardGamepadAxisValue(id driver.GamepadID, axis driver.Standa
 }
 
 func (i *Input) StandardGamepadButtonValue(id driver.GamepadID, button driver.StandardGamepadButton) float64 {
-	g := i.gamepad(id)
+	g := gamepadpkg.Get(id)
 	if g == nil {
 		return 0
 	}
@@ -134,7 +122,7 @@ func (i *Input) StandardGamepadButtonValue(id driver.GamepadID, button driver.St
 }
 
 func (i *Input) IsStandardGamepadButtonPressed(id driver.GamepadID, button driver.StandardGamepadButton) bool {
-	g := i.gamepad(id)
+	g := gamepadpkg.Get(id)
 	if g == nil {
 		return false
 	}
@@ -142,7 +130,7 @@ func (i *Input) IsStandardGamepadButtonPressed(id driver.GamepadID, button drive
 }
 
 func (i *Input) VibrateGamepad(id driver.GamepadID, duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
-	g := i.gamepad(id)
+	g := gamepadpkg.Get(id)
 	if g == nil {
 		return
 	}

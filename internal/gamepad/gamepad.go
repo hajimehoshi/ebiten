@@ -40,6 +40,7 @@ const (
 type gamepads struct {
 	inited   bool
 	gamepads []*Gamepad
+	m        sync.Mutex
 
 	nativeGamepads
 }
@@ -50,22 +51,22 @@ func init() {
 	theGamepads.nativeGamepads.gamepads = &theGamepads
 }
 
-// AppendGamepadIDs must be called on the main thread.
 func AppendGamepadIDs(ids []driver.GamepadID) []driver.GamepadID {
 	return theGamepads.appendGamepadIDs(ids)
 }
 
-// Update must be called on the main thread.
 func Update() {
 	theGamepads.update()
 }
 
-// Get must be called on the main thread.
 func Get(id driver.GamepadID) *Gamepad {
 	return theGamepads.get(id)
 }
 
 func (g *gamepads) appendGamepadIDs(ids []driver.GamepadID) []driver.GamepadID {
+	g.m.Lock()
+	defer g.m.Unlock()
+
 	for i, gp := range g.gamepads {
 		if gp != nil && gp.present() {
 			ids = append(ids, driver.GamepadID(i))
@@ -75,6 +76,9 @@ func (g *gamepads) appendGamepadIDs(ids []driver.GamepadID) []driver.GamepadID {
 }
 
 func (g *gamepads) update() {
+	g.m.Lock()
+	defer g.m.Unlock()
+
 	if !g.inited {
 		g.nativeGamepads.init()
 		g.inited = true
@@ -89,14 +93,15 @@ func (g *gamepads) update() {
 }
 
 func (g *gamepads) get(id driver.GamepadID) *Gamepad {
+	g.m.Lock()
+	defer g.m.Unlock()
+
 	if id < 0 || int(id) >= len(g.gamepads) {
 		return nil
 	}
 	return g.gamepads[id]
 }
 
-// find can be invoked from callbacks on the OS's main thread.
-// As a callback can be called synchronously from update, using a mutex is not a good idea.
 func (g *gamepads) find(cond func(*Gamepad) bool) *Gamepad {
 	for _, gp := range g.gamepads {
 		if gp == nil {
@@ -109,8 +114,6 @@ func (g *gamepads) find(cond func(*Gamepad) bool) *Gamepad {
 	return nil
 }
 
-// add can be invoked from callbacks on the OS's main thread.
-// As a callback can be called synchronously from update, using a mutex is not a good idea.
 func (g *gamepads) add(name, sdlID string) *Gamepad {
 	for i, gp := range g.gamepads {
 		if gp == nil {
@@ -131,8 +134,6 @@ func (g *gamepads) add(name, sdlID string) *Gamepad {
 	return gp
 }
 
-// remove can be invoked from callbacks on the OS's main thread.
-// As a callback can be called synchronously from update, using a mutex is not a good idea.
 func (g *gamepads) remove(cond func(*Gamepad) bool) {
 	for i, gp := range g.gamepads {
 		if gp == nil {

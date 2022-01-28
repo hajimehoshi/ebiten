@@ -20,6 +20,7 @@ package gamepad
 import (
 	"fmt"
 	"sort"
+	"sync"
 	"time"
 	"unsafe"
 )
@@ -60,7 +61,10 @@ import "C"
 type nativeGamepads struct {
 	gamepads *gamepads
 
-	hidManager C.IOHIDManagerRef
+	hidManager      C.IOHIDManagerRef
+	devicesToAdd    []C.IOHIDDeviceRef
+	devicesToRemove []C.IOHIDDeviceRef
+	devicesM        sync.Mutex
 }
 
 type nativeGamepad struct {
@@ -285,7 +289,36 @@ func (g *nativeGamepads) init() {
 
 //export ebitenGamepadMatchingCallback
 func ebitenGamepadMatchingCallback(ctx unsafe.Pointer, res C.IOReturn, sender unsafe.Pointer, device C.IOHIDDeviceRef) {
-	if theGamepads.find(func(g *Gamepad) bool {
+	theGamepads.devicesM.Lock()
+	defer theGamepads.devicesM.Unlock()
+	theGamepads.devicesToAdd = append(theGamepads.devicesToAdd, device)
+}
+
+//export ebitenGamepadRemovalCallback
+func ebitenGamepadRemovalCallback(ctx unsafe.Pointer, res C.IOReturn, sender unsafe.Pointer, device C.IOHIDDeviceRef) {
+	theGamepads.devicesM.Lock()
+	defer theGamepads.devicesM.Unlock()
+	theGamepads.devicesToRemove = append(theGamepads.devicesToRemove, device)
+}
+
+func (g *nativeGamepads) update() {
+	theGamepads.devicesM.Lock()
+	defer theGamepads.devicesM.Unlock()
+
+	for _, device := range g.devicesToAdd {
+		g.addDevice(device)
+	}
+	for _, device := range g.devicesToRemove {
+		g.gamepads.remove(func(g *Gamepad) bool {
+			return g.device == device
+		})
+	}
+	g.devicesToAdd = g.devicesToAdd[:0]
+	g.devicesToRemove = g.devicesToRemove[:0]
+}
+
+func (g *nativeGamepads) addDevice(device C.IOHIDDeviceRef) {
+	if g.gamepads.find(func(g *Gamepad) bool {
 		return g.device == device
 	}) != nil {
 		return
@@ -331,8 +364,8 @@ func ebitenGamepadMatchingCallback(ctx unsafe.Pointer, res C.IOReturn, sender un
 	elements := C.IOHIDDeviceCopyMatchingElements(device, 0, C.kIOHIDOptionsTypeNone)
 	defer C.CFRelease(C.CFTypeRef(elements))
 
-	g := theGamepads.add(name, sdlID)
-	g.device = device
+	gp := g.gamepads.add(name, sdlID)
+	gp.device = device
 
 	for i := C.CFIndex(0); i < C.CFArrayGetCount(elements); i++ {
 		native := (C.IOHIDElementRef)(C.CFArrayGetValueAtIndex(elements, i))
@@ -356,27 +389,27 @@ func ebitenGamepadMatchingCallback(ctx unsafe.Pointer, res C.IOReturn, sender un
 			case C.kHIDUsage_GD_X, C.kHIDUsage_GD_Y, C.kHIDUsage_GD_Z,
 				C.kHIDUsage_GD_Rx, C.kHIDUsage_GD_Ry, C.kHIDUsage_GD_Rz,
 				C.kHIDUsage_GD_Slider, C.kHIDUsage_GD_Dial, C.kHIDUsage_GD_Wheel:
-				g.axes = append(g.axes, element{
+				gp.axes = append(gp.axes, element{
 					native:  native,
 					usage:   int(usage),
-					index:   len(g.axes),
+					index:   len(gp.axes),
 					minimum: int(C.IOHIDElementGetLogicalMin(native)),
 					maximum: int(C.IOHIDElementGetLogicalMax(native)),
 				})
 			case C.kHIDUsage_GD_Hatswitch:
-				g.hats = append(g.hats, element{
+				gp.hats = append(gp.hats, element{
 					native:  native,
 					usage:   int(usage),
-					index:   len(g.hats),
+					index:   len(gp.hats),
 					minimum: int(C.IOHIDElementGetLogicalMin(native)),
 					maximum: int(C.IOHIDElementGetLogicalMax(native)),
 				})
 			case C.kHIDUsage_GD_DPadUp, C.kHIDUsage_GD_DPadRight, C.kHIDUsage_GD_DPadDown, C.kHIDUsage_GD_DPadLeft,
 				C.kHIDUsage_GD_SystemMainMenu, C.kHIDUsage_GD_Select, C.kHIDUsage_GD_Start:
-				g.buttons = append(g.buttons, element{
+				gp.buttons = append(gp.buttons, element{
 					native:  native,
 					usage:   int(usage),
-					index:   len(g.buttons),
+					index:   len(gp.buttons),
 					minimum: int(C.IOHIDElementGetLogicalMin(native)),
 					maximum: int(C.IOHIDElementGetLogicalMax(native)),
 				})
@@ -384,36 +417,26 @@ func ebitenGamepadMatchingCallback(ctx unsafe.Pointer, res C.IOReturn, sender un
 		case C.kHIDPage_Simulation:
 			switch usage {
 			case C.kHIDUsage_Sim_Accelerator, C.kHIDUsage_Sim_Brake, C.kHIDUsage_Sim_Throttle, C.kHIDUsage_Sim_Rudder, C.kHIDUsage_Sim_Steering:
-				g.axes = append(g.axes, element{
+				gp.axes = append(gp.axes, element{
 					native:  native,
 					usage:   int(usage),
-					index:   len(g.axes),
+					index:   len(gp.axes),
 					minimum: int(C.IOHIDElementGetLogicalMin(native)),
 					maximum: int(C.IOHIDElementGetLogicalMax(native)),
 				})
 			}
 		case C.kHIDPage_Button, C.kHIDPage_Consumer:
-			g.buttons = append(g.buttons, element{
+			gp.buttons = append(gp.buttons, element{
 				native:  native,
 				usage:   int(usage),
-				index:   len(g.buttons),
+				index:   len(gp.buttons),
 				minimum: int(C.IOHIDElementGetLogicalMin(native)),
 				maximum: int(C.IOHIDElementGetLogicalMax(native)),
 			})
 		}
 	}
 
-	sort.Stable(g.axes)
-	sort.Stable(g.buttons)
-	sort.Stable(g.hats)
-}
-
-//export ebitenGamepadRemovalCallback
-func ebitenGamepadRemovalCallback(ctx unsafe.Pointer, res C.IOReturn, sender unsafe.Pointer, device C.IOHIDDeviceRef) {
-	theGamepads.remove(func(g *Gamepad) bool {
-		return g.device == device
-	})
-}
-
-func (g *nativeGamepads) update() {
+	sort.Stable(gp.axes)
+	sort.Stable(gp.buttons)
+	sort.Stable(gp.hats)
 }
