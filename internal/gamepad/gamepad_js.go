@@ -67,7 +67,7 @@ func (g *nativeGamepads) update() {
 		g.indices[index] = struct{}{}
 
 		// The gamepad is not registered yet, register this.
-		gamepad := g.gamepads.findImpl(func(gamepad *Gamepad) bool {
+		gamepad := g.gamepads.find(func(gamepad *Gamepad) bool {
 			return index == gamepad.index
 		})
 		if gamepad == nil {
@@ -78,7 +78,7 @@ func (g *nativeGamepads) update() {
 			var sdlID [16]byte
 			copy(sdlID[:], []byte(name))
 
-			gamepad = g.gamepads.addImpl(name, hex.EncodeToString(sdlID[:]))
+			gamepad = g.gamepads.add(name, hex.EncodeToString(sdlID[:]))
 			gamepad.index = index
 			gamepad.mapping = gp.Get("mapping").String()
 		}
@@ -86,7 +86,7 @@ func (g *nativeGamepads) update() {
 	}
 
 	// Remove an unused gamepads.
-	g.gamepads.removeImpl(func(gamepad *Gamepad) bool {
+	g.gamepads.remove(func(gamepad *Gamepad) bool {
 		_, ok := g.indices[gamepad.index]
 		return !ok
 	})

@@ -39,7 +39,6 @@ const (
 
 type gamepads struct {
 	gamepads []*Gamepad
-	m        sync.Mutex
 
 	nativeGamepads
 }
@@ -51,14 +50,17 @@ func init() {
 	theGamepads.nativeGamepads.gamepads = &theGamepads
 }
 
+// AppendGamepadIDs must be called on the main thread.
 func AppendGamepadIDs(ids []driver.GamepadID) []driver.GamepadID {
 	return theGamepads.appendGamepadIDs(ids)
 }
 
+// Update must be called on the main thread.
 func Update() {
 	theGamepads.update()
 }
 
+// Get must be called on the main thread.
 func Get(id driver.GamepadID) *Gamepad {
 	return theGamepads.get(id)
 }
@@ -73,9 +75,6 @@ func (g *gamepads) appendGamepadIDs(ids []driver.GamepadID) []driver.GamepadID {
 }
 
 func (g *gamepads) update() {
-	g.m.Lock()
-	defer g.m.Unlock()
-
 	g.nativeGamepads.update()
 	for _, gp := range g.gamepads {
 		if gp != nil {
@@ -85,12 +84,6 @@ func (g *gamepads) update() {
 }
 
 func (g *gamepads) get(id driver.GamepadID) *Gamepad {
-	g.m.Lock()
-	defer g.m.Unlock()
-	return g.getImpl(id)
-}
-
-func (g *gamepads) getImpl(id driver.GamepadID) *Gamepad {
 	if id < 0 || int(id) >= len(g.gamepads) {
 		return nil
 	}
@@ -98,12 +91,6 @@ func (g *gamepads) getImpl(id driver.GamepadID) *Gamepad {
 }
 
 func (g *gamepads) find(cond func(*Gamepad) bool) *Gamepad {
-	g.m.Lock()
-	defer g.m.Unlock()
-	return g.findImpl(cond)
-}
-
-func (g *gamepads) findImpl(cond func(*Gamepad) bool) *Gamepad {
 	for _, gp := range g.gamepads {
 		if gp == nil {
 			continue
@@ -116,12 +103,6 @@ func (g *gamepads) findImpl(cond func(*Gamepad) bool) *Gamepad {
 }
 
 func (g *gamepads) add(name, sdlID string) *Gamepad {
-	g.m.Lock()
-	defer g.m.Unlock()
-	return g.addImpl(name, sdlID)
-}
-
-func (g *gamepads) addImpl(name, sdlID string) *Gamepad {
 	for i, gp := range g.gamepads {
 		if gp == nil {
 			gp := &Gamepad{
@@ -142,12 +123,6 @@ func (g *gamepads) addImpl(name, sdlID string) *Gamepad {
 }
 
 func (g *gamepads) remove(cond func(*Gamepad) bool) {
-	g.m.Lock()
-	defer g.m.Unlock()
-	g.removeImpl(cond)
-}
-
-func (g *gamepads) removeImpl(cond func(*Gamepad) bool) {
 	for i, gp := range g.gamepads {
 		if gp == nil {
 			continue
