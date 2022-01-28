@@ -38,6 +38,7 @@ const (
 )
 
 type gamepads struct {
+	inited   bool
 	gamepads []*Gamepad
 
 	nativeGamepads
@@ -46,7 +47,6 @@ type gamepads struct {
 var theGamepads gamepads
 
 func init() {
-	theGamepads.nativeGamepads.init()
 	theGamepads.nativeGamepads.gamepads = &theGamepads
 }
 
@@ -75,6 +75,11 @@ func (g *gamepads) appendGamepadIDs(ids []driver.GamepadID) []driver.GamepadID {
 }
 
 func (g *gamepads) update() {
+	if !g.inited {
+		g.nativeGamepads.init()
+		g.inited = true
+	}
+
 	g.nativeGamepads.update()
 	for _, gp := range g.gamepads {
 		if gp != nil {
