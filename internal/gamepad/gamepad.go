@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build darwin && !ios
-// +build darwin,!ios
+//go:build (darwin && !ios) || js
+// +build darwin,!ios js
 
 package gamepad
 
 import (
 	"sync"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
@@ -47,6 +48,7 @@ var theGamepads gamepads
 
 func init() {
 	theGamepads.nativeGamepads.init()
+	theGamepads.nativeGamepads.gamepads = &theGamepads
 }
 
 func AppendGamepadIDs(ids []driver.GamepadID) []driver.GamepadID {
@@ -62,9 +64,6 @@ func Get(id driver.GamepadID) *Gamepad {
 }
 
 func (g *gamepads) appendGamepadIDs(ids []driver.GamepadID) []driver.GamepadID {
-	g.m.Lock()
-	defer g.m.Unlock()
-
 	for i, gp := range g.gamepads {
 		if gp != nil && gp.present() {
 			ids = append(ids, driver.GamepadID(i))
@@ -77,6 +76,7 @@ func (g *gamepads) update() {
 	g.m.Lock()
 	defer g.m.Unlock()
 
+	g.nativeGamepads.update()
 	for _, gp := range g.gamepads {
 		if gp != nil {
 			gp.update()
@@ -87,7 +87,10 @@ func (g *gamepads) update() {
 func (g *gamepads) get(id driver.GamepadID) *Gamepad {
 	g.m.Lock()
 	defer g.m.Unlock()
+	return g.getImpl(id)
+}
 
+func (g *gamepads) getImpl(id driver.GamepadID) *Gamepad {
 	if id < 0 || int(id) >= len(g.gamepads) {
 		return nil
 	}
@@ -97,7 +100,10 @@ func (g *gamepads) get(id driver.GamepadID) *Gamepad {
 func (g *gamepads) find(cond func(*Gamepad) bool) *Gamepad {
 	g.m.Lock()
 	defer g.m.Unlock()
+	return g.findImpl(cond)
+}
 
+func (g *gamepads) findImpl(cond func(*Gamepad) bool) *Gamepad {
 	for _, gp := range g.gamepads {
 		if gp == nil {
 			continue
@@ -112,7 +118,10 @@ func (g *gamepads) find(cond func(*Gamepad) bool) *Gamepad {
 func (g *gamepads) add(name, sdlID string) *Gamepad {
 	g.m.Lock()
 	defer g.m.Unlock()
+	return g.addImpl(name, sdlID)
+}
 
+func (g *gamepads) addImpl(name, sdlID string) *Gamepad {
 	for i, gp := range g.gamepads {
 		if gp == nil {
 			gp := &Gamepad{
@@ -135,7 +144,10 @@ func (g *gamepads) add(name, sdlID string) *Gamepad {
 func (g *gamepads) remove(cond func(*Gamepad) bool) {
 	g.m.Lock()
 	defer g.m.Unlock()
+	g.removeImpl(cond)
+}
 
+func (g *gamepads) removeImpl(cond func(*Gamepad) bool) {
 	for i, gp := range g.gamepads {
 		if gp == nil {
 			continue
@@ -220,17 +232,42 @@ func (g *Gamepad) IsStandardLayoutAvailable() bool {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	return gamepaddb.HasStandardLayoutMapping(g.sdlID)
+	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
+		return true
+	}
+	return g.hasOwnStandardLayoutMapping()
 }
 
 func (g *Gamepad) StandardAxisValue(axis driver.StandardGamepadAxis) float64 {
-	return gamepaddb.AxisValue(g.sdlID, axis, g)
+	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
+		return gamepaddb.AxisValue(g.sdlID, axis, g)
+	}
+	if g.hasOwnStandardLayoutMapping() {
+		return g.nativeGamepad.axisValue(int(axis))
+	}
+	return 0
 }
 
 func (g *Gamepad) StandardButtonValue(button driver.StandardGamepadButton) float64 {
-	return gamepaddb.ButtonValue(g.sdlID, button, g)
+	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
+		return gamepaddb.ButtonValue(g.sdlID, button, g)
+	}
+	if g.hasOwnStandardLayoutMapping() {
+		return g.nativeGamepad.buttonValue(int(button))
+	}
+	return 0
 }
 
 func (g *Gamepad) IsStandardButtonPressed(button driver.StandardGamepadButton) bool {
-	return gamepaddb.IsButtonPressed(g.sdlID, button, g)
+	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
+		return gamepaddb.IsButtonPressed(g.sdlID, button, g)
+	}
+	if g.hasOwnStandardLayoutMapping() {
+		return g.nativeGamepad.isButtonPressed(int(button))
+	}
+	return false
+}
+
+func (g *Gamepad) Vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	g.nativeGamepad.vibrate(duration, strongMagnitude, weakMagnitude)
 }

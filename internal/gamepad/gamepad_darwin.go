@@ -20,6 +20,7 @@ package gamepad
 import (
 	"fmt"
 	"sort"
+	"time"
 	"unsafe"
 )
 
@@ -57,6 +58,8 @@ import (
 import "C"
 
 type nativeGamepads struct {
+	gamepads *gamepads
+
 	hidManager C.IOHIDManagerRef
 }
 
@@ -170,6 +173,10 @@ func (g *nativeGamepad) update() {
 	}
 }
 
+func (g *nativeGamepad) hasOwnStandardLayoutMapping() bool {
+	return false
+}
+
 func (g *nativeGamepad) axisNum() int {
 	return len(g.axisValues)
 }
@@ -189,6 +196,10 @@ func (g *nativeGamepad) axisValue(axis int) float64 {
 	return g.axisValues[axis]
 }
 
+func (g *nativeGamepad) buttonValue(button int) float64 {
+	panic("gamepad: buttonValue is not implemented")
+}
+
 func (g *nativeGamepad) isButtonPressed(button int) bool {
 	if button < 0 || button >= len(g.buttonValues) {
 		return false
@@ -201,6 +212,10 @@ func (g *nativeGamepad) hatState(hat int) int {
 		return hatCentered
 	}
 	return g.hatValues[hat]
+}
+
+func (g *nativeGamepad) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	// TODO: Implement this (#1452)
 }
 
 func (g *nativeGamepads) init() {
@@ -398,4 +413,7 @@ func ebitenGamepadRemovalCallback(ctx unsafe.Pointer, res C.IOReturn, sender uns
 	theGamepads.remove(func(g *Gamepad) bool {
 		return g.device == device
 	})
+}
+
+func (g *nativeGamepads) update() {
 }

@@ -129,5 +129,9 @@ func (i *Input) IsStandardGamepadButtonPressed(id driver.GamepadID, button drive
 }
 
 func (i *Input) VibrateGamepad(id driver.GamepadID, duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
-	// TODO: Implement this (#1452)
+	g := gamepadpkg.Get(id)
+	if g == nil {
+		return
+	}
+	g.Vibrate(duration, strongMagnitude, weakMagnitude)
 }
