@@ -51,14 +51,17 @@ func init() {
 	theGamepads.nativeGamepads.gamepads = &theGamepads
 }
 
+// AppendGamepadIDs is concurrent-safe.
 func AppendGamepadIDs(ids []driver.GamepadID) []driver.GamepadID {
 	return theGamepads.appendGamepadIDs(ids)
 }
 
+// Update is concurrent-safe.
 func Update() {
 	theGamepads.update()
 }
 
+// Get is concurrent-safe.
 func Get(id driver.GamepadID) *Gamepad {
 	return theGamepads.get(id)
 }
@@ -160,6 +163,7 @@ func (g *Gamepad) update() {
 	g.nativeGamepad.update()
 }
 
+// Name is concurrent-safe.
 func (g *Gamepad) Name() string {
 	// This is immutable and doesn't have to be protected by a mutex.
 	if name := gamepaddb.Name(g.sdlID); name != "" {
@@ -168,11 +172,13 @@ func (g *Gamepad) Name() string {
 	return g.name
 }
 
+// SDLID is concurrent-safe.
 func (g *Gamepad) SDLID() string {
 	// This is immutable and doesn't have to be protected by a mutex.
 	return g.sdlID
 }
 
+// AxisNum is concurrent-safe.
 func (g *Gamepad) AxisNum() int {
 	g.m.Lock()
 	defer g.m.Unlock()
@@ -180,6 +186,7 @@ func (g *Gamepad) AxisNum() int {
 	return g.nativeGamepad.axisNum()
 }
 
+// ButtonNum is concurrent-safe.
 func (g *Gamepad) ButtonNum() int {
 	g.m.Lock()
 	defer g.m.Unlock()
@@ -187,6 +194,7 @@ func (g *Gamepad) ButtonNum() int {
 	return g.nativeGamepad.buttonNum()
 }
 
+// HatNum is concurrent-safe.
 func (g *Gamepad) HatNum() int {
 	g.m.Lock()
 	defer g.m.Unlock()
@@ -194,6 +202,7 @@ func (g *Gamepad) HatNum() int {
 	return g.nativeGamepad.hatNum()
 }
 
+// Axis is concurrent-safe.
 func (g *Gamepad) Axis(axis int) float64 {
 	g.m.Lock()
 	defer g.m.Unlock()
@@ -201,6 +210,7 @@ func (g *Gamepad) Axis(axis int) float64 {
 	return g.nativeGamepad.axisValue(axis)
 }
 
+// Button is concurrent-safe.
 func (g *Gamepad) Button(button int) bool {
 	g.m.Lock()
 	defer g.m.Unlock()
@@ -208,6 +218,7 @@ func (g *Gamepad) Button(button int) bool {
 	return g.nativeGamepad.isButtonPressed(button)
 }
 
+// Hat is concurrent-safe.
 func (g *Gamepad) Hat(hat int) int {
 	g.m.Lock()
 	defer g.m.Unlock()
@@ -215,6 +226,7 @@ func (g *Gamepad) Hat(hat int) int {
 	return g.nativeGamepad.hatState(hat)
 }
 
+// IsStandardLayoutAvailable is concurrent-safe.
 func (g *Gamepad) IsStandardLayoutAvailable() bool {
 	g.m.Lock()
 	defer g.m.Unlock()
@@ -225,6 +237,7 @@ func (g *Gamepad) IsStandardLayoutAvailable() bool {
 	return g.hasOwnStandardLayoutMapping()
 }
 
+// StandardAxisValue is concurrent-safe.
 func (g *Gamepad) StandardAxisValue(axis driver.StandardGamepadAxis) float64 {
 	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
 		return gamepaddb.AxisValue(g.sdlID, axis, g)
@@ -235,6 +248,7 @@ func (g *Gamepad) StandardAxisValue(axis driver.StandardGamepadAxis) float64 {
 	return 0
 }
 
+// StandardButtonValue is concurrent-safe.
 func (g *Gamepad) StandardButtonValue(button driver.StandardGamepadButton) float64 {
 	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
 		return gamepaddb.ButtonValue(g.sdlID, button, g)
@@ -245,6 +259,7 @@ func (g *Gamepad) StandardButtonValue(button driver.StandardGamepadButton) float
 	return 0
 }
 
+// IsStandardButtonPressed is concurrent-safe.
 func (g *Gamepad) IsStandardButtonPressed(button driver.StandardGamepadButton) bool {
 	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
 		return gamepaddb.IsButtonPressed(g.sdlID, button, g)
@@ -255,6 +270,10 @@ func (g *Gamepad) IsStandardButtonPressed(button driver.StandardGamepadButton) b
 	return false
 }
 
+// Vibrate is concurrent-safe.
 func (g *Gamepad) Vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	g.m.Lock()
+	defer g.m.Unlock()
+
 	g.nativeGamepad.vibrate(duration, strongMagnitude, weakMagnitude)
 }
