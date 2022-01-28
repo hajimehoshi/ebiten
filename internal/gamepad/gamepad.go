@@ -90,6 +90,8 @@ func (g *gamepads) get(id driver.GamepadID) *Gamepad {
 	return g.gamepads[id]
 }
 
+// find can be invoked from callbacks on the OS's main thread.
+// As a callback can be called synchronously from update, using a mutex is not a good idea.
 func (g *gamepads) find(cond func(*Gamepad) bool) *Gamepad {
 	for _, gp := range g.gamepads {
 		if gp == nil {
@@ -102,6 +104,8 @@ func (g *gamepads) find(cond func(*Gamepad) bool) *Gamepad {
 	return nil
 }
 
+// add can be invoked from callbacks on the OS's main thread.
+// As a callback can be called synchronously from update, using a mutex is not a good idea.
 func (g *gamepads) add(name, sdlID string) *Gamepad {
 	for i, gp := range g.gamepads {
 		if gp == nil {
@@ -122,6 +126,8 @@ func (g *gamepads) add(name, sdlID string) *Gamepad {
 	return gp
 }
 
+// remove can be invoked from callbacks on the OS's main thread.
+// As a callback can be called synchronously from update, using a mutex is not a good idea.
 func (g *gamepads) remove(cond func(*Gamepad) bool) {
 	for i, gp := range g.gamepads {
 		if gp == nil {
