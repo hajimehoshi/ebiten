@@ -2,7 +2,6 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/hajimehoshi/ebiten/v2.svg)](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2)
 [![Build Status](https://github.com/hajimehoshi/ebiten/workflows/test/badge.svg)](https://github.com/hajimehoshi/ebiten/actions?query=workflow%3Atest)
-[![Go Report Card](https://goreportcard.com/badge/github.com/hajimehoshi/ebiten)](https://goreportcard.com/report/github.com/hajimehoshi/ebiten)
 
 **A dead simple 2D game library for Go**
 
