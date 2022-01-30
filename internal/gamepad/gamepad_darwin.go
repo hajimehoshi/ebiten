@@ -106,15 +106,7 @@ func (e elements) Swap(i, j int) {
 	e[i], e[j] = e[j], e[i]
 }
 
-func (g *nativeGamepad) present() bool {
-	return g.device != 0
-}
-
 func (g *nativeGamepad) elementValue(e *element) int {
-	if g.device == 0 {
-		return 0
-	}
-
 	var valueRef C.IOHIDValueRef
 	if C.IOHIDDeviceGetValue(g.device, e.native, &valueRef) == C.kIOReturnSuccess {
 		return int(C.IOHIDValueGetIntegerValue(valueRef))

@@ -71,7 +71,7 @@ func (g *gamepads) appendGamepadIDs(ids []driver.GamepadID) []driver.GamepadID {
 	defer g.m.Unlock()
 
 	for i, gp := range g.gamepads {
-		if gp != nil && gp.present() {
+		if gp != nil {
 			ids = append(ids, driver.GamepadID(i))
 		}
 	}

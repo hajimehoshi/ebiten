@@ -98,10 +98,6 @@ type nativeGamepad struct {
 	mapping string
 }
 
-func (g *nativeGamepad) present() bool {
-	return g.value.Truthy()
-}
-
 func (g *nativeGamepad) hasOwnStandardLayoutMapping() bool {
 	// With go2cpp, the controller must have the standard
 	if go2cpp.Truthy() {
