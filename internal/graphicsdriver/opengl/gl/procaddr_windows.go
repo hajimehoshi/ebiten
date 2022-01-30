@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	opengl32          = windows.NewLazySystemDLL("opengl32")
-	wglGetProcAddress = opengl32.NewProc("wglGetProcAddress")
+	opengl32              = windows.NewLazySystemDLL("opengl32")
+	procWglGetProcAddress = opengl32.NewProc("wglGetProcAddress")
 )
 
 func getProcAddress(namea string) uintptr {
@@ -20,12 +20,12 @@ func getProcAddress(namea string) uintptr {
 		panic(err)
 	}
 
-	r, _, err := wglGetProcAddress.Call(uintptr(unsafe.Pointer(cname)))
-	if err != nil && err != windows.ERROR_SUCCESS && err != windows.ERROR_PROC_NOT_FOUND {
-		panic(fmt.Sprintf("gl: wglGetProcAddress failed: %s", err.Error()))
-	}
+	r, _, err := procWglGetProcAddress.Call(uintptr(unsafe.Pointer(cname)))
 	if r != 0 {
 		return r
+	}
+	if err != nil && err != windows.ERROR_SUCCESS && err != windows.ERROR_PROC_NOT_FOUND {
+		panic(fmt.Sprintf("gl: wglGetProcAddress failed: %s", err.Error()))
 	}
 
 	p := opengl32.NewProc(namea)

@@ -52,40 +52,34 @@ var (
 	procGetMonitorInfoW     = user32.NewProc("GetMonitorInfoW")
 )
 
-func getSystemMetrics(nIndex int) (int, error) {
+func getSystemMetrics(nIndex int) (int32, error) {
 	r, _, e := procGetSystemMetrics.Call(uintptr(nIndex))
-	if e != nil && e != windows.ERROR_SUCCESS {
-		return 0, fmt.Errorf("ui: GetSystemMetrics failed: error code: %w", e)
-	}
-	return int(r), nil
-}
-
-func getForegroundWindow() (uintptr, error) {
-	r, _, e := procGetForegroundWindow.Call()
-	if e != nil && e != windows.ERROR_SUCCESS {
-		return 0, fmt.Errorf("ui: GetForegroundWindow failed: error code: %w", e)
-	}
-	return r, nil
-}
-
-func monitorFromWindow(hwnd uintptr, dwFlags uint32) (uintptr, error) {
-	r, _, e := procMonitorFromWindow.Call(hwnd, uintptr(dwFlags))
-	if e != nil && e != windows.ERROR_SUCCESS {
-		return 0, fmt.Errorf("ui: MonitorFromWindow failed: error code: %w", e)
-	}
 	if r == 0 {
-		return 0, fmt.Errorf("ui: MonitorFromWindow failed: returned value: %d", r)
+		if e != nil && e != windows.ERROR_SUCCESS {
+			return 0, fmt.Errorf("glfw: GetSystemMetrics failed: error code: %w", e)
+		}
+		return 0, fmt.Errorf("glfw: GetSystemMetrics returned 0")
 	}
-	return r, nil
+	return int32(r), nil
+}
+
+func getForegroundWindow() windows.HWND {
+	r, _, _ := procGetForegroundWindow.Call()
+	return windows.HWND(r)
+}
+
+func monitorFromWindow(hwnd windows.HWND, dwFlags uint32) uintptr {
+	r, _, _ := procMonitorFromWindow.Call(uintptr(hwnd), uintptr(dwFlags))
+	return r
 }
 
 func getMonitorInfoW(hMonitor uintptr, lpmi *monitorInfo) error {
 	r, _, e := procGetMonitorInfoW.Call(hMonitor, uintptr(unsafe.Pointer(lpmi)))
-	if e != nil && e != windows.ERROR_SUCCESS {
-		return fmt.Errorf("ui: GetMonitorInfoW failed: error code: %w", e)
-	}
 	if r == 0 {
-		return fmt.Errorf("ui: GetMonitorInfoW failed: returned value: %d", r)
+		if e != nil && e != windows.ERROR_SUCCESS {
+			return fmt.Errorf("glfw: GetMonitorInfoW failed: error code: %w", e)
+		}
+		return fmt.Errorf("glfw: GetMonitorInfoW failed: returned 0")
 	}
 	return nil
 }
@@ -119,18 +113,15 @@ func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	if err != nil {
 		panic(err)
 	}
-	if y < my+t {
-		y = my + t
+	if y < my+int(t) {
+		y = my + int(t)
 	}
 	return x, y
 }
 
 func initialMonitorByOS() *glfw.Monitor {
 	// Get the foreground window, that is common among multiple processes.
-	w, err := getForegroundWindow()
-	if err != nil {
-		panic(err)
-	}
+	w := getForegroundWindow()
 	if w == 0 {
 		// GetForegroundWindow can return null according to the document.
 		return nil
@@ -139,15 +130,15 @@ func initialMonitorByOS() *glfw.Monitor {
 }
 
 func currentMonitorByOS(w *glfw.Window) *glfw.Monitor {
-	return monitorFromWin32Window(w.GetWin32Window())
+	return monitorFromWin32Window(windows.HWND(w.GetWin32Window()))
 }
 
-func monitorFromWin32Window(w uintptr) *glfw.Monitor {
+func monitorFromWin32Window(w windows.HWND) *glfw.Monitor {
 	// Get the current monitor by the window handle instead of the window position. It is because the window
 	// position is not relaiable in some cases e.g. when the window is put across multiple monitors.
 
-	m, err := monitorFromWindow(w, monitorDefaultToNearest)
-	if err != nil {
+	m := monitorFromWindow(w, monitorDefaultToNearest)
+	if m == 0 {
 		// monitorFromWindow can return error on Wine. Ignore this.
 		return nil
 	}

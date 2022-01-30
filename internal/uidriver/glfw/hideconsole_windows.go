@@ -29,71 +29,48 @@ var (
 	kernel32 = windows.NewLazySystemDLL("kernel32.dll")
 	user32   = windows.NewLazySystemDLL("user32.dll")
 
-	getCurrentProcessIdProc      = kernel32.NewProc("GetCurrentProcessId")
-	getConsoleWindowProc         = kernel32.NewProc("GetConsoleWindow")
-	freeConsoleWindowProc        = kernel32.NewProc("FreeConsole")
-	getWindowThreadProcessIdProc = user32.NewProc("GetWindowThreadProcessId")
+	procFreeConsoleWindow        = kernel32.NewProc("FreeConsole")
+	procGetCurrentProcessId      = kernel32.NewProc("GetCurrentProcessId")
+	procGetConsoleWindow         = kernel32.NewProc("GetConsoleWindow")
+	procGetWindowThreadProcessId = user32.NewProc("GetWindowThreadProcessId")
 )
 
-func getCurrentProcessId() (uint32, error) {
-	r, _, e := getCurrentProcessIdProc.Call()
-	if e != nil && e != windows.ERROR_SUCCESS {
-		return 0, fmt.Errorf("ui: GetCurrentProcessId failed: %w", e)
-	}
-	return uint32(r), nil
-}
-
-func getWindowThreadProcessId(hwnd uintptr) (uint32, error) {
-	pid := uint32(0)
-	r, _, e := getWindowThreadProcessIdProc.Call(hwnd, uintptr(unsafe.Pointer(&pid)))
-	if e != nil && e != windows.ERROR_SUCCESS {
-		return 0, fmt.Errorf("ui: GetWindowThreadProcessId failed: %w", e)
-	}
-	if r == 0 {
-		return 0, fmt.Errorf("ui: GetWindowThreadProcessId returned 0")
-	}
-	return pid, nil
-}
-
-func getConsoleWindow() (uintptr, error) {
-	r, _, e := getConsoleWindowProc.Call()
-	if e != nil && e != windows.ERROR_SUCCESS {
-		return 0, fmt.Errorf("ui: GetConsoleWindow failed: %w", e)
-	}
-	return r, nil
-}
-
 func freeConsole() error {
-	if _, _, e := freeConsoleWindowProc.Call(); e != nil && e != windows.ERROR_SUCCESS {
-		return fmt.Errorf("ui: FreeConsole failed: %w", e)
+	r, _, e := procFreeConsoleWindow.Call()
+	if r == 0 {
+		if e != nil && e != windows.ERROR_SUCCESS {
+			return fmt.Errorf("glfw: FreeConsole failed: %w", e)
+		}
+		return fmt.Errorf("glfw: FreeConsole returned 0")
 	}
 	return nil
+}
+
+func getCurrentProcessId() uint32 {
+	r, _, _ := procGetCurrentProcessId.Call()
+	return uint32(r)
+}
+
+func getConsoleWindow() windows.HWND {
+	r, _, _ := procGetConsoleWindow.Call()
+	return windows.HWND(r)
+}
+
+func getWindowThreadProcessId(hwnd windows.HWND) (tid, pid uint32) {
+	r, _, _ := procGetWindowThreadProcessId.Call(uintptr(hwnd), uintptr(unsafe.Pointer(&pid)))
+	tid = uint32(r)
+	return
 }
 
 // hideConsoleWindowOnWindows will hide the console window that is showing when
 // compiling on Windows without specifying the '-ldflags "-Hwindowsgui"' flag.
 func hideConsoleWindowOnWindows() {
-	pid, err := getCurrentProcessId()
-	if err != nil {
-		// Ignore errors because:
-		// 1. It is not critical if the console can't be hid.
-		// 2. There is nothing to do when errors happen.
-		return
-	}
-	w, err := getConsoleWindow()
-	if err != nil {
-		// Ignore errors
-		return
-	}
+	pid := getCurrentProcessId()
 	// Get the process ID of the console's creator.
-	cpid, err := getWindowThreadProcessId(w)
-	if err != nil {
-		// Ignore errors
-		return
-	}
+	_, cpid := getWindowThreadProcessId(getConsoleWindow())
 	if pid == cpid {
 		// The current process created its own console. Hide this.
-		// Ignore error
+		// Ignore error.
 		freeConsole()
 	}
 }
