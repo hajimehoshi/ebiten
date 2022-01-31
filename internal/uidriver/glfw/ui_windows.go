@@ -53,11 +53,10 @@ var (
 )
 
 func getSystemMetrics(nIndex int) (int32, error) {
-	r, _, e := procGetSystemMetrics.Call(uintptr(nIndex))
+	r, _, _ := procGetSystemMetrics.Call(uintptr(nIndex))
 	if r == 0 {
-		if e != nil && e != windows.ERROR_SUCCESS {
-			return 0, fmt.Errorf("glfw: GetSystemMetrics failed: error code: %w", e)
-		}
+		// GetLastError doesn't provide an extended information.
+		// See https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getsystemmetrics
 		return 0, fmt.Errorf("glfw: GetSystemMetrics returned 0")
 	}
 	return int32(r), nil
