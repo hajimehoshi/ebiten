@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build (darwin && !ios) || windows
-// +build darwin,!ios windows
+//go:build !android && !js && !ios
+// +build !android,!js,!ios
 
 package glfw
 

@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build (!darwin || ios) && !js && !windows
+//go:build (!darwin || ios) && !js && (!linux || android) && !windows
 // +build !darwin ios
 // +build !js
+// +build !linux android
 // +build !windows
 
 package gamepad
@@ -72,5 +73,4 @@ func (*nativeGamepad) hatState(hat int) int {
 }
 
 func (g *nativeGamepad) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
-	// TODO: Implement this (#1452)
 }
