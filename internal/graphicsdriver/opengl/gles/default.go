@@ -12,17 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build android || ios
-// +build android ios
+//go:build android || ios || gles2
+// +build android ios gles2
 
 package gles
 
 // #cgo android CFLAGS:  -Dos_android
 // #cgo android LDFLAGS: -lGLESv2
+// #cgo gles2   CFLAGS:  -Dgles2
+// #cgo gles2   LDFLAGS: -lGLESv2
 // #cgo ios     CFLAGS:  -Dos_ios
 // #cgo ios     LDFLAGS: -framework OpenGLES
 //
-// #if defined(os_android)
+// #if defined(os_android) || defined(gles2)
 //   #include <GLES2/gl2.h>
 // #endif
 //

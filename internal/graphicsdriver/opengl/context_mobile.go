@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build android || ios
-// +build android ios
+//go:build android || ios || gles2
+// +build android ios gles2
 
 package opengl
 
