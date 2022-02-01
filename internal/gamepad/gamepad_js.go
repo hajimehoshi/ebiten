@@ -111,15 +111,15 @@ func (g *nativeGamepad) update(gamepads *gamepads) error {
 	return nil
 }
 
-func (g *nativeGamepad) axisNum() int {
+func (g *nativeGamepad) axisCount() int {
 	return g.value.Get("axes").Length()
 }
 
-func (g *nativeGamepad) buttonNum() int {
+func (g *nativeGamepad) buttonCount() int {
 	return g.value.Get("buttons").Length()
 }
 
-func (g *nativeGamepad) hatNum() int {
+func (g *nativeGamepad) hatCount() int {
 	return 0
 }
 

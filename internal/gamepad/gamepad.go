@@ -183,28 +183,28 @@ func (g *Gamepad) SDLID() string {
 	return g.sdlID
 }
 
-// AxisNum is concurrent-safe.
-func (g *Gamepad) AxisNum() int {
+// AxisCount is concurrent-safe.
+func (g *Gamepad) AxisCount() int {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	return g.nativeGamepad.axisNum()
+	return g.nativeGamepad.axisCount()
 }
 
-// ButtonNum is concurrent-safe.
-func (g *Gamepad) ButtonNum() int {
+// ButtonCount is concurrent-safe.
+func (g *Gamepad) ButtonCount() int {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	return g.nativeGamepad.buttonNum()
+	return g.nativeGamepad.buttonCount()
 }
 
-// HatNum is concurrent-safe.
-func (g *Gamepad) HatNum() int {
+// HatCount is concurrent-safe.
+func (g *Gamepad) HatCount() int {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	return g.nativeGamepad.hatNum()
+	return g.nativeGamepad.hatCount()
 }
 
 // Axis is concurrent-safe.

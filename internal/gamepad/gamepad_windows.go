@@ -666,21 +666,21 @@ func (g *nativeGamepad) update(gamepads *gamepads) (err error) {
 	return nil
 }
 
-func (g *nativeGamepad) axisNum() int {
+func (g *nativeGamepad) axisCount() int {
 	if g.usesDInput() {
 		return len(g.dinputAxes)
 	}
 	return 6
 }
 
-func (g *nativeGamepad) buttonNum() int {
+func (g *nativeGamepad) buttonCount() int {
 	if g.usesDInput() {
 		return len(g.dinputButtons)
 	}
 	return len(xinputButtons)
 }
 
-func (g *nativeGamepad) hatNum() int {
+func (g *nativeGamepad) hatCount() int {
 	if g.usesDInput() {
 		return len(g.dinputHats)
 	}

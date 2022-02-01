@@ -56,7 +56,7 @@ func (i *Input) GamepadAxisNum(id driver.GamepadID) int {
 	if g == nil {
 		return 0
 	}
-	return g.AxisNum()
+	return g.AxisCount()
 }
 
 func (i *Input) GamepadAxisValue(id driver.GamepadID, axis int) float64 {
@@ -74,7 +74,7 @@ func (i *Input) GamepadButtonNum(id driver.GamepadID) int {
 	}
 
 	// For backward compatibility, hats are treated as buttons in GLFW.
-	return g.ButtonNum() + g.HatNum()*4
+	return g.ButtonCount() + g.HatCount()*4
 }
 
 func (i *Input) IsGamepadButtonPressed(id driver.GamepadID, button driver.GamepadButton) bool {
@@ -83,13 +83,13 @@ func (i *Input) IsGamepadButtonPressed(id driver.GamepadID, button driver.Gamepa
 		return false
 	}
 
-	nbuttons := g.ButtonNum()
+	nbuttons := g.ButtonCount()
 	if int(button) < nbuttons {
 		return g.Button(int(button))
 	}
 
 	// For backward compatibility, hats are treated as buttons in GLFW.
-	if hat := (int(button) - nbuttons) / 4; hat < g.HatNum() {
+	if hat := (int(button) - nbuttons) / 4; hat < g.HatCount() {
 		dir := (int(button) - nbuttons) % 4
 		return g.Hat(hat)&(1<<dir) != 0
 	}

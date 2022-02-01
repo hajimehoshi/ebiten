@@ -396,15 +396,15 @@ func (g *nativeGamepad) hasOwnStandardLayoutMapping() bool {
 	return false
 }
 
-func (g *nativeGamepad) axisNum() int {
+func (g *nativeGamepad) axisCount() int {
 	return len(g.axisValues)
 }
 
-func (g *nativeGamepad) buttonNum() int {
+func (g *nativeGamepad) buttonCount() int {
 	return len(g.buttonValues)
 }
 
-func (g *nativeGamepad) hatNum() int {
+func (g *nativeGamepad) hatCount() int {
 	return len(g.hatValues)
 }
 
