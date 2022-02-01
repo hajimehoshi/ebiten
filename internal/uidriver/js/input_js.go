@@ -111,7 +111,7 @@ func (i *Input) GamepadAxisNum(id driver.GamepadID) int {
 	if g == nil {
 		return 0
 	}
-	return g.AxisNum()
+	return g.AxisCount()
 }
 
 func (i *Input) GamepadAxisValue(id driver.GamepadID, axis int) float64 {
@@ -127,7 +127,7 @@ func (i *Input) GamepadButtonNum(id driver.GamepadID) int {
 	if g == nil {
 		return 0
 	}
-	return g.ButtonNum()
+	return g.ButtonCount()
 }
 
 func (i *Input) IsGamepadButtonPressed(id driver.GamepadID, button driver.GamepadButton) bool {
