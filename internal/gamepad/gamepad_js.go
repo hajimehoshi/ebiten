@@ -26,16 +26,14 @@ var (
 )
 
 type nativeGamepads struct {
-	gamepads *gamepads
-
 	indices map[int]struct{}
 }
 
-func (g *nativeGamepads) init() error {
+func (g *nativeGamepads) init(gamepads *gamepads) error {
 	return nil
 }
 
-func (g *nativeGamepads) update() error {
+func (g *nativeGamepads) update(gamepads *gamepads) error {
 	// TODO: Use the gamepad events instead of navigator.getGamepads after go2cpp is removed.
 
 	defer func() {
@@ -68,7 +66,7 @@ func (g *nativeGamepads) update() error {
 		g.indices[index] = struct{}{}
 
 		// The gamepad is not registered yet, register this.
-		gamepad := g.gamepads.find(func(gamepad *Gamepad) bool {
+		gamepad := gamepads.find(func(gamepad *Gamepad) bool {
 			return index == gamepad.index
 		})
 		if gamepad == nil {
@@ -79,7 +77,7 @@ func (g *nativeGamepads) update() error {
 			var sdlID [16]byte
 			copy(sdlID[:], []byte(name))
 
-			gamepad = g.gamepads.add(name, hex.EncodeToString(sdlID[:]))
+			gamepad = gamepads.add(name, hex.EncodeToString(sdlID[:]))
 			gamepad.index = index
 			gamepad.mapping = gp.Get("mapping").String()
 		}
@@ -87,7 +85,7 @@ func (g *nativeGamepads) update() error {
 	}
 
 	// Remove an unused gamepads.
-	g.gamepads.remove(func(gamepad *Gamepad) bool {
+	gamepads.remove(func(gamepad *Gamepad) bool {
 		_, ok := g.indices[gamepad.index]
 		return !ok
 	})

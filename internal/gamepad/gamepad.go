@@ -47,10 +47,6 @@ type gamepads struct {
 
 var theGamepads gamepads
 
-func init() {
-	theGamepads.nativeGamepads.gamepads = &theGamepads
-}
-
 // AppendGamepadIDs is concurrent-safe.
 func AppendGamepadIDs(ids []driver.GamepadID) []driver.GamepadID {
 	return theGamepads.appendGamepadIDs(ids)
@@ -83,13 +79,13 @@ func (g *gamepads) update() error {
 	defer g.m.Unlock()
 
 	if !g.inited {
-		if err := g.nativeGamepads.init(); err != nil {
+		if err := g.nativeGamepads.init(g); err != nil {
 			return err
 		}
 		g.inited = true
 	}
 
-	if err := g.nativeGamepads.update(); err != nil {
+	if err := g.nativeGamepads.update(g); err != nil {
 		return err
 	}
 

@@ -60,15 +60,13 @@ import (
 import "C"
 
 type nativeGamepads struct {
-	gamepads *gamepads
-
 	hidManager      C.IOHIDManagerRef
 	devicesToAdd    []C.IOHIDDeviceRef
 	devicesToRemove []C.IOHIDDeviceRef
 	devicesM        sync.Mutex
 }
 
-func (g *nativeGamepads) init() error {
+func (g *nativeGamepads) init(gamepads *gamepads) error {
 	var dicts []C.CFDictionaryRef
 
 	page := C.kHIDPage_GenericDesktop
@@ -149,15 +147,15 @@ func ebitenGamepadRemovalCallback(ctx unsafe.Pointer, res C.IOReturn, sender uns
 	theGamepads.devicesToRemove = append(theGamepads.devicesToRemove, device)
 }
 
-func (g *nativeGamepads) update() error {
+func (g *nativeGamepads) update(gamepads *gamepads) error {
 	theGamepads.devicesM.Lock()
 	defer theGamepads.devicesM.Unlock()
 
 	for _, device := range g.devicesToAdd {
-		g.addDevice(device)
+		g.addDevice(device, gamepads)
 	}
 	for _, device := range g.devicesToRemove {
-		g.gamepads.remove(func(g *Gamepad) bool {
+		gamepads.remove(func(g *Gamepad) bool {
 			return g.device == device
 		})
 	}
@@ -166,8 +164,8 @@ func (g *nativeGamepads) update() error {
 	return nil
 }
 
-func (g *nativeGamepads) addDevice(device C.IOHIDDeviceRef) {
-	if g.gamepads.find(func(g *Gamepad) bool {
+func (g *nativeGamepads) addDevice(device C.IOHIDDeviceRef, gamepads *gamepads) {
+	if gamepads.find(func(g *Gamepad) bool {
 		return g.device == device
 	}) != nil {
 		return
@@ -213,7 +211,7 @@ func (g *nativeGamepads) addDevice(device C.IOHIDDeviceRef) {
 	elements := C.IOHIDDeviceCopyMatchingElements(device, 0, C.kIOHIDOptionsTypeNone)
 	defer C.CFRelease(C.CFTypeRef(elements))
 
-	gp := g.gamepads.add(name, sdlID)
+	gp := gamepads.add(name, sdlID)
 	gp.device = device
 
 	for i := C.CFIndex(0); i < C.CFArrayGetCount(elements); i++ {

@@ -97,8 +97,6 @@ var xinputButtons = []uint16{
 }
 
 type nativeGamepads struct {
-	gamepads *gamepads
-
 	dinput8    windows.Handle
 	dinput8API *iDirectInput8W
 	xinput     windows.Handle
@@ -130,7 +128,7 @@ type enumObjectsContext struct {
 	povCount    int
 }
 
-func (g *nativeGamepads) init() error {
+func (g *nativeGamepads) init(gamepads *gamepads) error {
 	// As there is no guarantee that the DLL exists, NewLazySystemDLL is not available.
 	// TODO: Is there a 'system' version of LoadLibrary?
 	if h, err := windows.LoadLibrary("dinput8.dll"); err == nil {
@@ -184,7 +182,7 @@ func (g *nativeGamepads) init() error {
 		}
 		g.dinput8API = api
 
-		if err := g.detectConnection(); err != nil {
+		if err := g.detectConnection(gamepads); err != nil {
 			return err
 		}
 	}
@@ -220,12 +218,12 @@ func (g *nativeGamepads) xinputGetState(dwUserIndex uint32, pState *xinputState)
 	return nil
 }
 
-func (g *nativeGamepads) detectConnection() error {
+func (g *nativeGamepads) detectConnection(gamepads *gamepads) error {
 	if g.dinput8 != 0 {
 		if g.enumDevicesCallback == 0 {
 			g.enumDevicesCallback = windows.NewCallback(g.dinput8EnumDevicesCallback)
 		}
-		if err := g.dinput8API.EnumDevices(_DI8DEVCLASS_GAMECTRL, g.enumDevicesCallback, nil, _DIEDFL_ALLDEVICES); err != nil {
+		if err := g.dinput8API.EnumDevices(_DI8DEVCLASS_GAMECTRL, g.enumDevicesCallback, unsafe.Pointer(gamepads), _DIEDFL_ALLDEVICES); err != nil {
 			return err
 		}
 		if g.err != nil {
@@ -236,7 +234,7 @@ func (g *nativeGamepads) detectConnection() error {
 		const xuserMaxCount = 4
 
 		for i := 0; i < xuserMaxCount; i++ {
-			if g.gamepads.find(func(g *Gamepad) bool {
+			if gamepads.find(func(g *Gamepad) bool {
 				return g.dinputDevice == nil && g.xinputIndex == i
 			}) != nil {
 				continue
@@ -273,7 +271,7 @@ func (g *nativeGamepads) detectConnection() error {
 				name = "XInput Drum Kit"
 			}
 
-			gp := g.gamepads.add(name, sdlID)
+			gp := gamepads.add(name, sdlID)
 			gp.xinputIndex = i
 		}
 	}
@@ -281,11 +279,13 @@ func (g *nativeGamepads) detectConnection() error {
 }
 
 func (g *nativeGamepads) dinput8EnumDevicesCallback(lpddi *diDeviceInstanceW, pvRef unsafe.Pointer) uintptr {
+	gamepads := (*gamepads)(pvRef)
+
 	if g.err != nil {
 		return _DIENUM_STOP
 	}
 
-	if g.gamepads.find(func(g *Gamepad) bool {
+	if gamepads.find(func(g *Gamepad) bool {
 		return g.dinputGUID == lpddi.guidInstance
 	}) != nil {
 		return _DIENUM_CONTINUE
@@ -382,7 +382,7 @@ func (g *nativeGamepads) dinput8EnumDevicesCallback(lpddi *diDeviceInstanceW, pv
 			bs[0], bs[1], bs[2], bs[3], bs[4], bs[5], bs[6], bs[7], bs[8], bs[9], bs[10], bs[11])
 	}
 
-	gp := g.gamepads.add(name, sdlID)
+	gp := gamepads.add(name, sdlID)
 	gp.dinputDevice = device
 	gp.dinputObjects = ctx.objects
 	gp.dinputGUID = lpddi.guidInstance
@@ -505,7 +505,7 @@ func (g *nativeGamepads) dinputDevice8EnumObjectsCallback(lpddoi *diDeviceObject
 	return _DIENUM_CONTINUE
 }
 
-func (g *nativeGamepads) update() error {
+func (g *nativeGamepads) update(gamepads *gamepads) error {
 	if g.err != nil {
 		return g.err
 	}
@@ -521,7 +521,7 @@ func (g *nativeGamepads) update() error {
 	}
 
 	if atomic.LoadInt32(&g.deviceChanged) != 0 {
-		if err := g.detectConnection(); err != nil {
+		if err := g.detectConnection(gamepads); err != nil {
 			g.err = err
 		}
 		atomic.StoreInt32(&g.deviceChanged, 0)
