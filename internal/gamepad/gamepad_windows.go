@@ -116,18 +116,6 @@ type nativeGamepads struct {
 	err           error
 }
 
-type nativeGamepad struct {
-	dinputDevice  *iDirectInputDevice8W
-	dinputObjects []dinputObject
-	dinputGUID    windows.GUID
-	dinputAxes    []float64
-	dinputButtons []bool
-	dinputHats    []int
-
-	xinputIndex int
-	xinputState xinputState
-}
-
 type dinputObject struct {
 	objectType dinputObjectType
 	index      int
@@ -548,6 +536,18 @@ func (g *nativeGamepads) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintp
 		atomic.StoreInt32(&g.deviceChanged, 1)
 	}
 	return callWindowProcW(g.origWndProc, hWnd, uMsg, wParam, lParam)
+}
+
+type nativeGamepad struct {
+	dinputDevice  *iDirectInputDevice8W
+	dinputObjects []dinputObject
+	dinputGUID    windows.GUID
+	dinputAxes    []float64
+	dinputButtons []bool
+	dinputHats    []int
+
+	xinputIndex int
+	xinputState xinputState
 }
 
 func (*nativeGamepad) hasOwnStandardLayoutMapping() bool {

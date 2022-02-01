@@ -68,155 +68,6 @@ type nativeGamepads struct {
 	devicesM        sync.Mutex
 }
 
-type nativeGamepad struct {
-	device  C.IOHIDDeviceRef
-	axes    elements
-	buttons elements
-	hats    elements
-
-	axisValues   []float64
-	buttonValues []bool
-	hatValues    []int
-}
-
-type element struct {
-	native  C.IOHIDElementRef
-	usage   int
-	index   int
-	minimum int
-	maximum int
-}
-
-type elements []element
-
-func (e elements) Len() int {
-	return len(e)
-}
-
-func (e elements) Less(i, j int) bool {
-	if e[i].usage != e[j].usage {
-		return e[i].usage < e[j].usage
-	}
-	if e[i].index != e[j].index {
-		return e[i].index < e[j].index
-	}
-	return false
-}
-
-func (e elements) Swap(i, j int) {
-	e[i], e[j] = e[j], e[i]
-}
-
-func (g *nativeGamepad) elementValue(e *element) int {
-	var valueRef C.IOHIDValueRef
-	if C.IOHIDDeviceGetValue(g.device, e.native, &valueRef) == C.kIOReturnSuccess {
-		return int(C.IOHIDValueGetIntegerValue(valueRef))
-	}
-
-	return 0
-}
-
-func (g *nativeGamepad) update(gamepads *gamepads) error {
-	if cap(g.axisValues) < len(g.axes) {
-		g.axisValues = make([]float64, len(g.axes))
-	}
-	g.axisValues = g.axisValues[:len(g.axes)]
-
-	if cap(g.buttonValues) < len(g.buttons) {
-		g.buttonValues = make([]bool, len(g.buttons))
-	}
-	g.buttonValues = g.buttonValues[:len(g.buttons)]
-
-	if cap(g.hatValues) < len(g.hats) {
-		g.hatValues = make([]int, len(g.hats))
-	}
-	g.hatValues = g.hatValues[:len(g.hats)]
-
-	for i, a := range g.axes {
-		raw := g.elementValue(&a)
-		if raw < a.minimum {
-			a.minimum = raw
-		}
-		if raw > a.maximum {
-			a.maximum = raw
-		}
-		var value float64
-		if size := a.maximum - a.minimum; size != 0 {
-			value = 2*float64(raw-a.minimum)/float64(size) - 1
-		}
-		g.axisValues[i] = value
-	}
-
-	for i, b := range g.buttons {
-		g.buttonValues[i] = g.elementValue(&b) > 0
-	}
-
-	hatStates := []int{
-		hatUp,
-		hatRightUp,
-		hatRight,
-		hatRightDown,
-		hatDown,
-		hatLeftDown,
-		hatLeft,
-		hatLeftUp,
-	}
-	for i, h := range g.hats {
-		if state := g.elementValue(&h); state < 0 || state >= len(hatStates) {
-			g.hatValues[i] = hatCentered
-		} else {
-			g.hatValues[i] = hatStates[state]
-		}
-	}
-
-	return nil
-}
-
-func (g *nativeGamepad) hasOwnStandardLayoutMapping() bool {
-	return false
-}
-
-func (g *nativeGamepad) axisNum() int {
-	return len(g.axisValues)
-}
-
-func (g *nativeGamepad) buttonNum() int {
-	return len(g.buttonValues)
-}
-
-func (g *nativeGamepad) hatNum() int {
-	return len(g.hatValues)
-}
-
-func (g *nativeGamepad) axisValue(axis int) float64 {
-	if axis < 0 || axis >= len(g.axisValues) {
-		return 0
-	}
-	return g.axisValues[axis]
-}
-
-func (g *nativeGamepad) buttonValue(button int) float64 {
-	panic("gamepad: buttonValue is not implemented")
-}
-
-func (g *nativeGamepad) isButtonPressed(button int) bool {
-	if button < 0 || button >= len(g.buttonValues) {
-		return false
-	}
-	return g.buttonValues[button]
-}
-
-func (g *nativeGamepad) hatState(hat int) int {
-	if hat < 0 || hat >= len(g.hatValues) {
-		return hatCentered
-	}
-	return g.hatValues[hat]
-}
-
-func (g *nativeGamepad) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
-	// TODO: Implement this (#1452)
-}
-
 func (g *nativeGamepads) init() error {
 	var dicts []C.CFDictionaryRef
 
@@ -437,4 +288,153 @@ func (g *nativeGamepads) addDevice(device C.IOHIDDeviceRef) {
 	sort.Stable(gp.axes)
 	sort.Stable(gp.buttons)
 	sort.Stable(gp.hats)
+}
+
+type element struct {
+	native  C.IOHIDElementRef
+	usage   int
+	index   int
+	minimum int
+	maximum int
+}
+
+type elements []element
+
+func (e elements) Len() int {
+	return len(e)
+}
+
+func (e elements) Less(i, j int) bool {
+	if e[i].usage != e[j].usage {
+		return e[i].usage < e[j].usage
+	}
+	if e[i].index != e[j].index {
+		return e[i].index < e[j].index
+	}
+	return false
+}
+
+func (e elements) Swap(i, j int) {
+	e[i], e[j] = e[j], e[i]
+}
+
+type nativeGamepad struct {
+	device  C.IOHIDDeviceRef
+	axes    elements
+	buttons elements
+	hats    elements
+
+	axisValues   []float64
+	buttonValues []bool
+	hatValues    []int
+}
+
+func (g *nativeGamepad) elementValue(e *element) int {
+	var valueRef C.IOHIDValueRef
+	if C.IOHIDDeviceGetValue(g.device, e.native, &valueRef) == C.kIOReturnSuccess {
+		return int(C.IOHIDValueGetIntegerValue(valueRef))
+	}
+
+	return 0
+}
+
+func (g *nativeGamepad) update(gamepads *gamepads) error {
+	if cap(g.axisValues) < len(g.axes) {
+		g.axisValues = make([]float64, len(g.axes))
+	}
+	g.axisValues = g.axisValues[:len(g.axes)]
+
+	if cap(g.buttonValues) < len(g.buttons) {
+		g.buttonValues = make([]bool, len(g.buttons))
+	}
+	g.buttonValues = g.buttonValues[:len(g.buttons)]
+
+	if cap(g.hatValues) < len(g.hats) {
+		g.hatValues = make([]int, len(g.hats))
+	}
+	g.hatValues = g.hatValues[:len(g.hats)]
+
+	for i, a := range g.axes {
+		raw := g.elementValue(&a)
+		if raw < a.minimum {
+			a.minimum = raw
+		}
+		if raw > a.maximum {
+			a.maximum = raw
+		}
+		var value float64
+		if size := a.maximum - a.minimum; size != 0 {
+			value = 2*float64(raw-a.minimum)/float64(size) - 1
+		}
+		g.axisValues[i] = value
+	}
+
+	for i, b := range g.buttons {
+		g.buttonValues[i] = g.elementValue(&b) > 0
+	}
+
+	hatStates := []int{
+		hatUp,
+		hatRightUp,
+		hatRight,
+		hatRightDown,
+		hatDown,
+		hatLeftDown,
+		hatLeft,
+		hatLeftUp,
+	}
+	for i, h := range g.hats {
+		if state := g.elementValue(&h); state < 0 || state >= len(hatStates) {
+			g.hatValues[i] = hatCentered
+		} else {
+			g.hatValues[i] = hatStates[state]
+		}
+	}
+
+	return nil
+}
+
+func (g *nativeGamepad) hasOwnStandardLayoutMapping() bool {
+	return false
+}
+
+func (g *nativeGamepad) axisNum() int {
+	return len(g.axisValues)
+}
+
+func (g *nativeGamepad) buttonNum() int {
+	return len(g.buttonValues)
+}
+
+func (g *nativeGamepad) hatNum() int {
+	return len(g.hatValues)
+}
+
+func (g *nativeGamepad) axisValue(axis int) float64 {
+	if axis < 0 || axis >= len(g.axisValues) {
+		return 0
+	}
+	return g.axisValues[axis]
+}
+
+func (g *nativeGamepad) buttonValue(button int) float64 {
+	panic("gamepad: buttonValue is not implemented")
+}
+
+func (g *nativeGamepad) isButtonPressed(button int) bool {
+	if button < 0 || button >= len(g.buttonValues) {
+		return false
+	}
+	return g.buttonValues[button]
+}
+
+func (g *nativeGamepad) hatState(hat int) int {
+	if hat < 0 || hat >= len(g.hatValues) {
+		return hatCentered
+	}
+	return g.hatValues[hat]
+}
+
+func (g *nativeGamepad) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	// TODO: Implement this (#1452)
 }
