@@ -299,23 +299,23 @@ func OnGamepadAxesOrHatsChanged(deviceID int, axisID int, value float32) {
 			hatX := int(math.Round(float64(value)))
 			if hatX < 0 {
 				v |= hatLeft
-				v &= ^hatRight
+				v &^= hatRight
 			} else if hatX > 0 {
-				v &= ^hatLeft
+				v &^= hatLeft
 				v |= hatRight
 			} else {
-				v &= ^(hatLeft | hatRight)
+				v &^= (hatLeft | hatRight)
 			}
 		} else {
 			hatY := int(math.Round(float64(value)))
 			if hatY < 0 {
 				v |= hatUp
-				v &= ^hatDown
+				v &^= hatDown
 			} else if hatY > 0 {
-				v &= ^hatUp
+				v &^= hatUp
 				v |= hatDown
 			} else {
-				v &= ^(hatUp | hatDown)
+				v &^= (hatUp | hatDown)
 			}
 		}
 		g.Hats[hid] = v

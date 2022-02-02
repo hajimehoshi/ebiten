@@ -594,7 +594,7 @@ func addAndroidDefaultMappings(id string) bool {
 			Type:  mappingTypeButton,
 			Index: SDLControllerButtonBack,
 		}
-		buttonMask &= ^(uint16(1) << SDLControllerButtonBack)
+		buttonMask &^= uint16(1) << SDLControllerButtonBack
 	}
 	if buttonMask&(1<<SDLControllerButtonX) != 0 {
 		gamepadButtonMappings[id][driver.StandardGamepadButtonRightLeft] = &mapping{
