@@ -171,6 +171,7 @@ func initialize() error {
 	glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
 
 	// Create a window to set the initial monitor.
+	// TODO: Instead of a dummy window, get a mouse cursor position and get a monitor from it (#1982).
 	w, err := glfw.CreateWindow(16, 16, "", nil, nil)
 	if err != nil {
 		return err
