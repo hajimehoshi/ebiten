@@ -807,7 +807,7 @@ func (u *UserInterface) waitForFramebufferSizeCallback(window *glfw.Window, f fu
 	}
 
 	// Use the timeout as FramebufferSize event might not be fired (#1618).
-	t := time.NewTimer(time.Second)
+	t := time.NewTimer(100 * time.Millisecond)
 	defer t.Stop()
 
 event:
