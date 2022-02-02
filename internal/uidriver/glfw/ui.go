@@ -711,6 +711,7 @@ func (u *UserInterface) createWindow() error {
 
 	u.registerWindowSetSizeCallback()
 	u.registerWindowCloseCallback()
+	u.registerWindowFramebufferSizeCallback()
 
 	return nil
 }
@@ -780,6 +781,28 @@ func (u *UserInterface) registerWindowCloseCallback() {
 		})
 	}
 	u.window.SetCloseCallback(u.closeCallback)
+}
+
+// registerWindowFramebufferSizeCallback must be called from the main thread.
+func (u *UserInterface) registerWindowFramebufferSizeCallback() {
+	if u.defaultFramebufferSizeCallback == 0 {
+		// When the window gets resized (either by manual window resize or a window
+		// manager), glfw sends a framebuffer size callback which we need to handle (#1960).
+		// This event is the only way to handle the size change at least on i3 window manager.
+		u.defaultFramebufferSizeCallback = glfw.ToFramebufferSizeCallback(func(_ *glfw.Window, w, h int) {
+			if u.isFullscreen() {
+				return
+			}
+
+			// The framebuffer size is always scaled by the device scale factor (#1975).
+			// See also the implementation in uiContext.updateOffscreen.
+			s := u.deviceScaleFactor(u.currentMonitor())
+			ww := int(float64(w) / s)
+			wh := int(float64(h) / s)
+			u.setWindowSizeInDIP(ww, wh, u.isFullscreen())
+		})
+	}
+	u.window.SetFramebufferSizeCallback(u.defaultFramebufferSizeCallback)
 }
 
 // waitForFramebufferSizeCallback waits for GLFW's FramebufferSize callback.
@@ -904,23 +927,6 @@ func (u *UserInterface) init() error {
 	if u.isInitWindowMaximized() {
 		u.window.Maximize()
 	}
-
-	// When the window gets resized (either by manual window resize or a window
-	// manager), glfw sends a framebuffer size callback which we need to handle (#1960).
-	// This event is the only way to handle the size change at least on i3 window manager.
-	u.defaultFramebufferSizeCallback = glfw.ToFramebufferSizeCallback(func(_ *glfw.Window, w, h int) {
-		if u.isFullscreen() {
-			return
-		}
-
-		// The framebuffer size is always scaled by the device scale factor (#1975).
-		// See also the implementation in uiContext.updateOffscreen.
-		s := u.deviceScaleFactor(u.currentMonitor())
-		ww := int(float64(w) / s)
-		wh := int(float64(h) / s)
-		u.setWindowSizeInDIP(ww, wh, u.isFullscreen())
-	})
-	u.window.SetFramebufferSizeCallback(u.defaultFramebufferSizeCallback)
 
 	u.window.SetTitle(u.title)
 	u.window.Show()
