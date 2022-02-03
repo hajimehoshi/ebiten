@@ -76,14 +76,6 @@ func _EVIOCGNAME(len uint) uint {
 	return _IOC(_IOC_READ, 'E', 0x06, len)
 }
 
-type inotify_event struct {
-	wd     int32 // TODO: The original type is C's int. Is it OK to use int32?
-	mask   uint32
-	cookie uint32
-	len    uint32
-	name   string
-}
-
 type input_absinfo struct {
 	value      int32
 	minimum    int32

@@ -227,26 +227,26 @@ func (g *nativeGamepads) update(gamepads *gamepads) error {
 	buf = buf[:n]
 
 	for len(buf) > 0 {
-		e := inotify_event{
-			wd:     int32(buf[0]) | int32(buf[1])<<8 | int32(buf[2])<<16 | int32(buf[3])<<24,
-			mask:   uint32(buf[4]) | uint32(buf[5])<<8 | uint32(buf[6])<<16 | uint32(buf[7])<<24,
-			cookie: uint32(buf[8]) | uint32(buf[9])<<8 | uint32(buf[10])<<16 | uint32(buf[11])<<24,
-			len:    uint32(buf[12]) | uint32(buf[13])<<8 | uint32(buf[14])<<16 | uint32(buf[15])<<24,
+		e := unix.InotifyEvent{
+			Wd:     int32(buf[0]) | int32(buf[1])<<8 | int32(buf[2])<<16 | int32(buf[3])<<24,
+			Mask:   uint32(buf[4]) | uint32(buf[5])<<8 | uint32(buf[6])<<16 | uint32(buf[7])<<24,
+			Cookie: uint32(buf[8]) | uint32(buf[9])<<8 | uint32(buf[10])<<16 | uint32(buf[11])<<24,
+			Len:    uint32(buf[12]) | uint32(buf[13])<<8 | uint32(buf[14])<<16 | uint32(buf[15])<<24,
 		}
-		e.name = unix.ByteSliceToString(buf[16 : 16+e.len-1]) // len includes the null termiinate.
-		buf = buf[16+e.len:]
-		if !reEvent.MatchString(e.name) {
+		name := unix.ByteSliceToString(buf[16 : 16+e.Len-1]) // len includes the null termiinate.
+		buf = buf[16+e.Len:]
+		if !reEvent.MatchString(name) {
 			continue
 		}
 
-		path := filepath.Join(dirName, e.name)
-		if e.mask&(unix.IN_CREATE|unix.IN_ATTRIB) != 0 {
+		path := filepath.Join(dirName, name)
+		if e.Mask&(unix.IN_CREATE|unix.IN_ATTRIB) != 0 {
 			if err := g.openGamepad(gamepads, path); err != nil {
 				return err
 			}
 			continue
 		}
-		if e.mask&unix.IN_DELETE != 0 {
+		if e.Mask&unix.IN_DELETE != 0 {
 			if gp := gamepads.find(func(gamepad *Gamepad) bool {
 				return gamepad.path == path
 			}); gp != nil {
