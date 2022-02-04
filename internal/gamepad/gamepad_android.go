@@ -31,10 +31,6 @@ func (*nativeGamepads) update(gamepads *gamepads) error {
 type nativeGamepad struct {
 	androidDeviceID int
 
-	axisCount_   int
-	buttonCount_ int
-	hatCount_    int
-
 	axes    []float64
 	buttons []bool
 	hats    []int
@@ -50,15 +46,15 @@ func (*nativeGamepad) hasOwnStandardLayoutMapping() bool {
 }
 
 func (g *nativeGamepad) axisCount() int {
-	return g.axisCount_
+	return len(g.axes)
 }
 
 func (g *nativeGamepad) buttonCount() int {
-	return g.buttonCount_
+	return len(g.buttons)
 }
 
 func (g *nativeGamepad) hatCount() int {
-	return g.hatCount_
+	return len(g.hats)
 }
 
 func (g *nativeGamepad) axisValue(axis int) float64 {

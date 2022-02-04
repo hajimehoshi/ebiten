@@ -53,9 +53,6 @@ func (g *gamepads) addAndroidGamepad(androidDeviceID int, name, sdlID string, ax
 
 	gp := g.add(name, sdlID)
 	gp.androidDeviceID = androidDeviceID
-	gp.axisCount_ = axisCount
-	gp.buttonCount_ = buttonCount
-	gp.hatCount_ = hatCount
 	gp.axes = make([]float64, axisCount)
 	gp.buttons = make([]bool, buttonCount)
 	gp.hats = make([]int, hatCount)
@@ -113,7 +110,7 @@ func (g *Gamepad) updateAndroidGamepadAxis(axis int, value float64) {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	if axis < 0 || axis >= g.axisCount_ {
+	if axis < 0 || axis >= len(g.axes) {
 		return
 	}
 	g.axes[axis] = value
@@ -123,7 +120,7 @@ func (g *Gamepad) updateAndroidGamepadButton(button driver.GamepadButton, presse
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	if button < 0 || int(button) >= g.buttonCount_ {
+	if button < 0 || int(button) >= len(g.buttons) {
 		return
 	}
 	g.buttons[button] = pressed
@@ -133,7 +130,7 @@ func (g *Gamepad) updateAndroidGamepadHat(hat int, dir AndroidHatDirection, valu
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	if hat < 0 || hat >= g.hatCount_ {
+	if hat < 0 || hat >= len(g.hats) {
 		return
 	}
 	v := g.hats[hat]
