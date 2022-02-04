@@ -458,18 +458,6 @@ type Touch struct {
 	Y  int
 }
 
-type Gamepad struct {
-	ID        driver.GamepadID
-	SDLID     string
-	Name      string
-	Buttons   [driver.GamepadButtonNum]bool
-	ButtonNum int
-	Axes      [32]float32
-	AxisNum   int
-	Hats      [16]int
-	HatNum    int
-}
-
 func (u *UserInterface) UpdateInput(keys map[driver.Key]struct{}, runes []rune, touches []Touch) {
 	u.input.update(keys, runes, touches)
 	if u.fpsMode == driver.FPSModeVsyncOffMinimum {
