@@ -17,7 +17,8 @@
 
 package mobile
 
-// #cgo LDFLAGS: -framework AVFoundation -framework CoreHaptics
+// #cgo CFLAGS: -x objective-c
+// #cgo LDFLAGS: -framework AVFoundation -framework CoreHaptics -framework Foundation
 //
 // #import <AVFoundation/AVFoundation.h>
 // #import <CoreHaptics/CoreHaptics.h>

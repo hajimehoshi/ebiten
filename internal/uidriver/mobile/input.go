@@ -26,9 +26,6 @@ type Input struct {
 	runes   []rune
 	touches []Touch
 	ui      *UserInterface
-
-	// gamepads is used only on iOS.
-	gamepads []Gamepad
 }
 
 func (i *Input) CursorPosition() (x, y int) {

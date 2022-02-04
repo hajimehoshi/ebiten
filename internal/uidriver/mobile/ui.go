@@ -84,8 +84,6 @@ func (u *UserInterface) Update() error {
 		return nil
 	}
 
-	// TODO: Remove this call after porting the gamepad part of iOS to internal/gamepad.
-	u.input.updateGamepads()
 	gamepad.Update()
 
 	renderCh <- struct{}{}

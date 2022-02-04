@@ -15,22 +15,14 @@
 //go:build ios
 // +build ios
 
-package mobile
+package gamepad
 
 // #cgo CFLAGS: -x objective-c
 // #cgo LDFLAGS: -framework Foundation -framework GameController
 //
 // #import <GameController/GameController.h>
 //
-// static NSMutableArray* controllers = nil;
-// static NSMutableArray* controllerProperties = nil;
 // static NSString* GCInputXboxShareButton = @"Button Share";
-// static uint32_t currentId = 0;
-//
-// static uint32_t genNextId() {
-//   currentId++;
-//   return currentId;
-// }
 //
 // enum ControllerButton {
 //   kControllerButtonInvalid = -1,
@@ -85,17 +77,19 @@ package mobile
 // };
 //
 // struct ControllerProperty {
-//   uint32_t id;
-//   uint8_t nButtons;
 //   uint8_t nAxes;
+//   uint8_t nButtons;
 //   uint8_t nHats;
 //   uint16_t buttonMask;
-//   uint8_t guid[16];
-//   uint8_t name[256];
+//   char guid[16];
+//   char name[256];
 //   bool hasDualshockTouchpad;
 //   bool hasXboxPaddles;
 //   bool hasXboxShareButton;
 // };
+//
+// void ebitenAddGamepad(uintptr_t controller, struct ControllerProperty* prop);
+// void ebitenRemoveGamepad(uintptr_t controller);
 //
 // static size_t min(size_t a, size_t b) {
 //   return a < b ? a : b;
@@ -272,25 +266,13 @@ package mobile
 //     return;
 //   }
 //
-//   [controllers addObject:controller];
-//
 //   struct ControllerProperty property = {};
 //   getControllerPropertyFromController(controller, &property);
-//   property.id = genNextId();
-//   NSValue* value = [NSValue valueWithBytes:&property objCType:@encode(struct ControllerProperty)];
-//   [controllerProperties addObject:value];
+//   ebitenAddGamepad((uintptr_t)(controller), &property);
 // }
 //
 // static void removeController(GCController* controller) {
-//   int index = [controllers indexOfObject:controller];
-//   [controllers removeObjectAtIndex:index];
-//   // NSValue should be released by the autorelease pool.
-//   [controllerProperties removeObjectAtIndex:index];
-// }
-//
-// static void getControllerPropertyFromIndex(int index, struct ControllerProperty* property) {
-//   NSValue* value = [controllerProperties objectAtIndex:index];
-//   [value getValue:property];
+//   ebitenRemoveGamepad((uintptr_t)(controller));
 // }
 //
 // struct ControllerState {
@@ -314,12 +296,11 @@ package mobile
 //   return hat;
 // }
 //
-// static void getControllerStateFromIndex(int index, struct ControllerState* controllerState) {
+// static void getControllerState(uintptr_t controller_ptr, struct ControllerState* controllerState,
+//                                uint16_t buttonMask, uint8_t nHats,
+//                                bool hasDualshockTouchpad, bool hasXboxPaddles, bool hasXboxShareButton) {
+//   GCController* controller = (GCController*)(controller_ptr);
 //   @autoreleasepool {
-//     GCController* controller = [controllers objectAtIndex:index];
-//     struct ControllerProperty property = {};
-//     getControllerPropertyFromIndex(index, &property);
-//
 //     if (controller.extendedGamepad) {
 //       GCExtendedGamepad* gamepad = controller.extendedGamepad;
 //
@@ -341,46 +322,46 @@ package mobile
 // #pragma clang diagnostic push
 // #pragma clang diagnostic ignored "-Wunguarded-availability-new"
 //
-//       if (property.buttonMask & (1 << kControllerButtonLeftStick)) {
+//       if (buttonMask & (1 << kControllerButtonLeftStick)) {
 //         controllerState->buttons[buttonCount++] = gamepad.leftThumbstickButton.isPressed;
 //       }
-//       if (property.buttonMask & (1 << kControllerButtonRightStick)) {
+//       if (buttonMask & (1 << kControllerButtonRightStick)) {
 //         controllerState->buttons[buttonCount++] = gamepad.rightThumbstickButton.isPressed;
 //       }
-//       if (property.buttonMask & (1 << kControllerButtonBack)) {
+//       if (buttonMask & (1 << kControllerButtonBack)) {
 //         controllerState->buttons[buttonCount++] = gamepad.buttonOptions.isPressed;
 //       }
-//       if (property.buttonMask & (1 << kControllerButtonGuide)) {
+//       if (buttonMask & (1 << kControllerButtonGuide)) {
 //         controllerState->buttons[buttonCount++] = gamepad.buttonHome.isPressed;
 //       }
-//       if (property.buttonMask & (1 << kControllerButtonStart)) {
+//       if (buttonMask & (1 << kControllerButtonStart)) {
 //         controllerState->buttons[buttonCount++] = gamepad.buttonMenu.isPressed;
 //       }
 //
-//       if (property.hasDualshockTouchpad) {
+//       if (hasDualshockTouchpad) {
 //         controllerState->buttons[buttonCount++] = controller.physicalInputProfile.buttons[GCInputDualShockTouchpadButton].isPressed;
 //       }
-//       if (property.hasXboxPaddles) {
-//         if (property.buttonMask & (1 << kControllerButtonPaddle1)) {
+//       if (hasXboxPaddles) {
+//         if (buttonMask & (1 << kControllerButtonPaddle1)) {
 //           controllerState->buttons[buttonCount++] = controller.physicalInputProfile.buttons[GCInputXboxPaddleOne].isPressed;
 //         }
-//         if (property.buttonMask & (1 << kControllerButtonPaddle2)) {
+//         if (buttonMask & (1 << kControllerButtonPaddle2)) {
 //           controllerState->buttons[buttonCount++] = controller.physicalInputProfile.buttons[GCInputXboxPaddleTwo].isPressed;
 //         }
-//         if (property.buttonMask & (1 << kControllerButtonPaddle3)) {
+//         if (buttonMask & (1 << kControllerButtonPaddle3)) {
 //           controllerState->buttons[buttonCount++] = controller.physicalInputProfile.buttons[GCInputXboxPaddleThree].isPressed;
 //         }
-//         if (property.buttonMask & (1 << kControllerButtonPaddle4)) {
+//         if (buttonMask & (1 << kControllerButtonPaddle4)) {
 //           controllerState->buttons[buttonCount++] = controller.physicalInputProfile.buttons[GCInputXboxPaddleFour].isPressed;
 //         }
 //       }
-//       if (property.hasXboxShareButton) {
+//       if (hasXboxShareButton) {
 //         controllerState->buttons[buttonCount++] = controller.physicalInputProfile.buttons[GCInputXboxShareButton].isPressed;
 //       }
 //
 // #pragma clang diagnostic pop
 //
-//       if (property.nHats) {
+//       if (nHats) {
 //         controllerState->hat = getHatState(gamepad.dpad);
 //       }
 //     }
@@ -388,9 +369,6 @@ package mobile
 // }
 //
 // static void initializeGamepads(void) {
-//   controllers = [NSMutableArray array];
-//   controllerProperties = [NSMutableArray array];
-//
 //   @autoreleasepool {
 //     for (GCController* controller in [GCController controllers]) {
 //       addController(controller);
@@ -410,77 +388,73 @@ package mobile
 //                                }];
 //   }
 // }
-//
-// static int getControllersNum(void) {
-//   return [controllers count];
-// }
 import "C"
 
-import (
-	"encoding/hex"
+//export ebitenAddGamepad
+func ebitenAddGamepad(controller C.uintptr_t, prop *C.struct_ControllerProperty) {
+	theGamepads.addIOSGamepad(controller, prop)
+}
 
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
-)
+//export ebitenRemoveGamepad
+func ebitenRemoveGamepad(controller C.uintptr_t) {
+	theGamepads.removeIOSGamepad(controller)
+}
 
-func init() {
+func (g *gamepads) addIOSGamepad(controller C.uintptr_t, prop *C.struct_ControllerProperty) {
+	g.m.Lock()
+	defer g.m.Unlock()
+
+	name := C.GoString(&prop.name[0])
+	sdlID := C.GoStringN(&prop.guid[0], 16)
+	gp := g.add(name, sdlID)
+	gp.controller = uintptr(controller)
+	gp.axes = make([]float64, prop.nAxes)
+	gp.buttons = make([]bool, prop.nButtons+prop.nHats*4)
+	gp.hats = make([]int, prop.nHats)
+	gp.buttonMask = uint16(prop.buttonMask)
+	gp.hasDualshockTouchpad = bool(prop.hasDualshockTouchpad)
+	gp.hasXboxPaddles = bool(prop.hasXboxPaddles)
+	gp.hasXboxShareButton = bool(prop.hasXboxShareButton)
+}
+
+func (g *gamepads) removeIOSGamepad(controller C.uintptr_t) {
+	g.m.Lock()
+	defer g.m.Unlock()
+
+	g.remove(func(gamepad *Gamepad) bool {
+		return gamepad.controller == uintptr(controller)
+	})
+}
+
+func initializeIOSGamepads() {
 	C.initializeGamepads()
 }
 
-func (i *Input) updateGamepads() {
-	i.gamepads = i.gamepads[:0]
+func (g *nativeGamepad) updateIOSGamepad() {
+	var state C.struct_ControllerState
+	C.getControllerState(C.uintptr_t(g.controller), &state, C.uint16_t(g.buttonMask), C.uint8_t(len(g.hats)),
+		C.bool(g.hasDualshockTouchpad), C.bool(g.hasXboxPaddles), C.bool(g.hasXboxShareButton))
 
-	num := int(C.getControllersNum())
-	for idx := 0; idx < num; idx++ {
-		var property C.struct_ControllerProperty
-		C.getControllerPropertyFromIndex(C.int(idx), &property)
-		var guid [16]byte
-		for i := range property.guid {
-			guid[i] = byte(property.guid[i])
-		}
+	nButtons := len(g.buttons) - len(g.hats)*4
+	for i := 0; i < nButtons; i++ {
+		g.buttons[i] = state.buttons[i] != 0
+	}
 
-		name := make([]byte, 0, len(property.name))
-		for _, c := range property.name {
-			if c == 0 {
-				break
-			}
-			name = append(name, byte(c))
-		}
+	// Follow the GLFW way to process hats.
+	// See _glfwInputJoystickHat.
+	if len(g.hats) > 0 {
+		base := len(g.buttons) - len(g.hats)*4
+		g.buttons[base] = state.hat&0x01 != 0
+		g.buttons[base+1] = state.hat&0x02 != 0
+		g.buttons[base+2] = state.hat&0x04 != 0
+		g.buttons[base+3] = state.hat&0x08 != 0
+	}
 
-		gamepad := Gamepad{
-			ID:        driver.GamepadID(property.id),
-			SDLID:     hex.EncodeToString(guid[:]),
-			Name:      string(name),
-			ButtonNum: int(property.nButtons),
-			AxisNum:   int(property.nAxes),
-			HatNum:    int(property.nHats),
-		}
+	for i := range g.axes {
+		g.axes[i] = float64(state.axes[i])
+	}
 
-		var state C.struct_ControllerState
-		C.getControllerStateFromIndex(C.int(idx), &state)
-
-		for j := 0; j < gamepad.ButtonNum; j++ {
-			gamepad.Buttons[j] = state.buttons[j] != 0
-		}
-
-		// Follow the GLFW way to process hats.
-		// See _glfwInputJoystickHat.
-		if property.nHats > 0 {
-			base := gamepad.ButtonNum
-			gamepad.ButtonNum += 4
-			gamepad.Buttons[base] = state.hat&0x01 != 0
-			gamepad.Buttons[base+1] = state.hat&0x02 != 0
-			gamepad.Buttons[base+2] = state.hat&0x04 != 0
-			gamepad.Buttons[base+3] = state.hat&0x08 != 0
-		}
-
-		for j := 0; j < gamepad.AxisNum; j++ {
-			gamepad.Axes[j] = float32(state.axes[j])
-		}
-
-		if gamepad.HatNum > 0 {
-			gamepad.Hats[0] = int(state.hat)
-		}
-
-		i.gamepads = append(i.gamepads, gamepad)
+	if len(g.hats) > 0 {
+		g.hats[0] = int(state.hat)
 	}
 }

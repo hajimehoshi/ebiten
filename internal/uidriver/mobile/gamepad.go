@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build android
-// +build android
+//go:build android || ios
+// +build android ios
 
 package mobile
 
@@ -114,11 +114,4 @@ func (i *Input) VibrateGamepad(id driver.GamepadID, duration time.Duration, stro
 		return
 	}
 	g.Vibrate(duration, strongMagnitude, weakMagnitude)
-}
-
-// TODO: Remove this struct after porting the gamepad part of iOS to internal/gamepad.
-type Gamepad struct{}
-
-// TODO: Remove this function after porting the gamepad part of iOS to internal/gamepad.
-func (i *Input) updateGamepads() {
 }
