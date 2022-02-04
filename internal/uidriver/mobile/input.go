@@ -22,11 +22,13 @@ import (
 )
 
 type Input struct {
-	keys     map[driver.Key]struct{}
-	runes    []rune
-	touches  []Touch
+	keys    map[driver.Key]struct{}
+	runes   []rune
+	touches []Touch
+	ui      *UserInterface
+
+	// gamepads is used only on iOS.
 	gamepads []Gamepad
-	ui       *UserInterface
 }
 
 func (i *Input) CursorPosition() (x, y int) {

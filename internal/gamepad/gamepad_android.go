@@ -12,12 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build (!darwin || ios) && !js && !linux && !windows
-// +build !darwin ios
-// +build !js
-// +build !linux
-// +build !windows
-
 package gamepad
 
 import (
@@ -34,9 +28,20 @@ func (*nativeGamepads) update(gamepads *gamepads) error {
 	return nil
 }
 
-type nativeGamepad struct{}
+type nativeGamepad struct {
+	androidDeviceID int
+
+	axisCount_   int
+	buttonCount_ int
+	hatCount_    int
+
+	axes    []float64
+	buttons []bool
+	hats    []int
+}
 
 func (*nativeGamepad) update(gamepad *gamepads) error {
+	// Do nothing. The state of gamepads are given via APIs in extern_android.go.
 	return nil
 }
 
@@ -44,33 +49,43 @@ func (*nativeGamepad) hasOwnStandardLayoutMapping() bool {
 	return false
 }
 
-func (*nativeGamepad) axisCount() int {
-	return 0
+func (g *nativeGamepad) axisCount() int {
+	return g.axisCount_
 }
 
-func (*nativeGamepad) buttonCount() int {
-	return 0
+func (g *nativeGamepad) buttonCount() int {
+	return g.buttonCount_
 }
 
-func (*nativeGamepad) hatCount() int {
-	return 0
+func (g *nativeGamepad) hatCount() int {
+	return g.hatCount_
 }
 
-func (*nativeGamepad) axisValue(axis int) float64 {
-	return 0
+func (g *nativeGamepad) axisValue(axis int) float64 {
+	if axis < 0 || axis >= len(g.axes) {
+		return 0
+	}
+	return g.axes[axis]
 }
 
-func (*nativeGamepad) isButtonPressed(button int) bool {
-	return false
+func (g *nativeGamepad) isButtonPressed(button int) bool {
+	if button < 0 || button >= len(g.buttons) {
+		return false
+	}
+	return g.buttons[button]
 }
 
 func (*nativeGamepad) buttonValue(button int) float64 {
 	panic("gamepad: buttonValue is not implemented")
 }
 
-func (*nativeGamepad) hatState(hat int) int {
-	return hatCentered
+func (g *nativeGamepad) hatState(hat int) int {
+	if hat < 0 || hat >= len(g.hats) {
+		return 0
+	}
+	return g.hats[hat]
 }
 
 func (g *nativeGamepad) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	// TODO: Implement this (#1452)
 }

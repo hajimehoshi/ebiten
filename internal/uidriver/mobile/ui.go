@@ -34,6 +34,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
@@ -83,7 +84,9 @@ func (u *UserInterface) Update() error {
 		return nil
 	}
 
+	// TODO: Remove this call after porting the gamepad part of iOS to internal/gamepad.
 	u.input.updateGamepads()
+	gamepad.Update()
 
 	renderCh <- struct{}{}
 	go func() {

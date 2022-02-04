@@ -21,7 +21,7 @@ import (
 	"unicode"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
-	"github.com/hajimehoshi/ebiten/v2/internal/uidriver/mobile"
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 )
 
 // https://developer.android.com/reference/android/view/KeyEvent
@@ -180,30 +180,6 @@ var androidAxisIDToHatID2 = map[int]int{
 	axisHatY: 1,
 }
 
-var (
-	// deviceIDToGamepadID is a map from Android device IDs to Ebiten gamepad IDs.
-	// As convention, Ebiten gamepad IDs start with 0, and many applications depend on this fact.
-	deviceIDToGamepadID = map[int]driver.GamepadID{}
-)
-
-func gamepadIDFromDeviceID(deviceID int) driver.GamepadID {
-	if id, ok := deviceIDToGamepadID[deviceID]; ok {
-		return id
-	}
-	ids := map[driver.GamepadID]struct{}{}
-	for _, id := range deviceIDToGamepadID {
-		ids[id] = struct{}{}
-	}
-	for i := driver.GamepadID(0); ; i++ {
-		if _, ok := ids[i]; ok {
-			continue
-		}
-		deviceIDToGamepadID[deviceID] = i
-		return i
-	}
-	panic("ebitenmobileview: a gamepad ID cannot be determined")
-}
-
 func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 	switch action {
 	case 0x00, 0x05, 0x02: // ACTION_DOWN, ACTION_POINTER_DOWN, ACTION_MOVE
@@ -215,27 +191,12 @@ func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 	}
 }
 
-func gamepadFromGamepadID(id driver.GamepadID) *mobile.Gamepad {
-	for i, g := range gamepads {
-		if g.ID == id {
-			return &gamepads[i]
-		}
-	}
-	return nil
-}
-
 func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int) {
 	switch {
 	case source&sourceGamepad == sourceGamepad:
 		// A gamepad can be detected as a keyboard. Detect the device as a gamepad first.
 		if button, ok := androidKeyToGamepadButton[keyCode]; ok {
-			id := gamepadIDFromDeviceID(deviceID)
-			g := gamepadFromGamepadID(id)
-			if g == nil {
-				return
-			}
-			g.Buttons[button] = true
-			updateGamepads()
+			gamepad.UpdateAndroidGamepadButton(deviceID, button, true)
 		}
 	case source&sourceJoystick == sourceJoystick:
 		// DPAD keys can come here, but they are also treated as an axis at a motion event. Ignore them.
@@ -255,13 +216,7 @@ func OnKeyUpOnAndroid(keyCode int, source int, deviceID int) {
 	case source&sourceGamepad == sourceGamepad:
 		// A gamepad can be detected as a keyboard. Detect the device as a gamepad first.
 		if button, ok := androidKeyToGamepadButton[keyCode]; ok {
-			id := gamepadIDFromDeviceID(deviceID)
-			g := gamepadFromGamepadID(id)
-			if g == nil {
-				return
-			}
-			g.Buttons[button] = false
-			updateGamepads()
+			gamepad.UpdateAndroidGamepadButton(deviceID, button, false)
 		}
 	case source&sourceJoystick == sourceJoystick:
 		// DPAD keys can come here, but they are also treated as an axis at a motion event. Ignore them.
@@ -274,15 +229,8 @@ func OnKeyUpOnAndroid(keyCode int, source int, deviceID int) {
 }
 
 func OnGamepadAxesOrHatsChanged(deviceID int, axisID int, value float32) {
-	id := gamepadIDFromDeviceID(deviceID)
-	g := gamepadFromGamepadID(id)
-	if g == nil {
-		return
-	}
-
-	if aid, ok := androidAxisIDToAxisID[axisID]; ok {
-		g.Axes[aid] = value
-		updateGamepads()
+	if axis, ok := androidAxisIDToAxisID[axisID]; ok {
+		gamepad.UpdateAndroidGamepadAxis(deviceID, axis, float64(value))
 		return
 	}
 
@@ -293,38 +241,20 @@ func OnGamepadAxesOrHatsChanged(deviceID int, axisID int, value float32) {
 			hatDown  = 4
 			hatLeft  = 8
 		)
-		hid := hid2 / 2
-		v := g.Hats[hid]
-		if hid2%2 == 0 {
-			hatX := int(math.Round(float64(value)))
-			if hatX < 0 {
-				v |= hatLeft
-				v &^= hatRight
-			} else if hatX > 0 {
-				v &^= hatLeft
-				v |= hatRight
-			} else {
-				v &^= (hatLeft | hatRight)
-			}
-		} else {
-			hatY := int(math.Round(float64(value)))
-			if hatY < 0 {
-				v |= hatUp
-				v &^= hatDown
-			} else if hatY > 0 {
-				v &^= hatUp
-				v |= hatDown
-			} else {
-				v &^= (hatUp | hatDown)
-			}
+		hatID := hid2 / 2
+		var dir gamepad.AndroidHatDirection
+		switch hid2 % 2 {
+		case 0:
+			dir = gamepad.AndroidHatDirectionX
+		case 1:
+			dir = gamepad.AndroidHatDirectionY
 		}
-		g.Hats[hid] = v
-		updateGamepads()
+		gamepad.UpdateAndroidGamepadHat(deviceID, hatID, dir, int(math.Round(float64(value))))
 		return
 	}
 }
 
-func OnGamepadAdded(deviceID int, name string, buttonNum int, axisNum int, hatNum int, descriptor string, vendorID int, productID int, buttonMask int, axisMask int) {
+func OnGamepadAdded(deviceID int, name string, buttonCount int, axisCount int, hatCount int, descriptor string, vendorID int, productID int, buttonMask int, axisMask int) {
 	// This emulates the implementation of Android_AddJoystick.
 	// https://github.com/libsdl-org/SDL/blob/0e9560aea22818884921e5e5064953257bfe7fa7/src/joystick/android/SDL_sysjoystick.c#L386
 	const SDL_HARDWARE_BUS_BLUETOOTH = 0x05
@@ -350,39 +280,9 @@ func OnGamepadAdded(deviceID int, name string, buttonNum int, axisNum int, hatNu
 	sdlid[14] = byte(axisMask)
 	sdlid[15] = byte(axisMask >> 8)
 
-	id := gamepadIDFromDeviceID(deviceID)
-	gamepads = append(gamepads, mobile.Gamepad{
-		ID:        id,
-		SDLID:     hex.EncodeToString(sdlid[:]),
-		Name:      name,
-		ButtonNum: buttonNum,
-		AxisNum:   axisNum,
-		HatNum:    hatNum,
-	})
-	updateGamepads()
+	gamepad.AddAndroidGamepad(deviceID, name, hex.EncodeToString(sdlid[:]), axisCount, buttonCount, hatCount)
 }
 
 func OnInputDeviceRemoved(deviceID int) {
-	if id, ok := deviceIDToGamepadID[deviceID]; ok {
-		idx := -1
-		for i, g := range gamepads {
-			if g.ID == id {
-				idx = i
-				break
-			}
-		}
-		if idx >= 0 {
-			lastIdx := len(gamepads) - 1
-			gamepads[idx], gamepads[lastIdx] = gamepads[lastIdx], gamepads[idx]
-			gamepads = gamepads[:len(gamepads)-1]
-		}
-		delete(deviceIDToGamepadID, deviceID)
-	}
-	updateGamepads()
-}
-
-var gamepads []mobile.Gamepad
-
-func updateGamepads() {
-	mobile.Get().UpdateGamepads(gamepads)
+	gamepad.RemoveAndroidGamepad(deviceID)
 }
