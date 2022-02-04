@@ -362,7 +362,7 @@ const (
 	// FPSModeVsyncOffMinimum is useful for relatively static applications to save battery power.
 	//
 	// In FPSModeVsyncOffMinimum, the game's Update and Draw are called only when
-	// 1) new inputting is detected, or 2) ScheduleFrame is called.
+	// 1) new inputting except for gamepads is detected, or 2) ScheduleFrame is called.
 	// In FPSModeVsyncOffMinimum, TPS is SyncWithFPS no matter what TPS is specified at SetMaxTPS.
 	FPSModeVsyncOffMinimum FPSModeType = driver.FPSModeVsyncOffMinimum
 )
