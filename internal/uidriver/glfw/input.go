@@ -23,20 +23,9 @@ import (
 	"unicode"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
-
-type gamepad struct {
-	valid         bool
-	guid          string
-	name          string
-	axisNum       int
-	axes          [16]float64
-	buttonNum     int
-	buttonPressed [256]bool
-	hatsNum       int
-	hats          [16]int
-}
 
 type Input struct {
 	keyPressed         map[glfw.Key]bool
@@ -46,12 +35,9 @@ type Input struct {
 	scrollY            float64
 	cursorX            int
 	cursorY            int
-	gamepads           [16]gamepad
 	touches            map[driver.TouchID]pos // TODO: Implement this (#417)
 	runeBuffer         []rune
 	ui                 *UserInterface
-
-	nativeGamepads
 }
 
 type pos struct {
@@ -218,5 +204,6 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) error {
 		i.cursorX, i.cursorY = int(cx), int(cy)
 	}
 
-	return i.updateGamepads()
+	gamepad.Update()
+	return nil
 }

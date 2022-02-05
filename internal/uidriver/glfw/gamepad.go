@@ -24,13 +24,6 @@ import (
 	gamepadpkg "github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 )
 
-type nativeGamepads struct{}
-
-// updateGamepads must be called on the main thread.
-func (i *Input) updateGamepads() error {
-	return gamepadpkg.Update()
-}
-
 func (i *Input) AppendGamepadIDs(gamepadIDs []driver.GamepadID) []driver.GamepadID {
 	return gamepadpkg.AppendGamepadIDs(gamepadIDs)
 }
