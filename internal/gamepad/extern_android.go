@@ -19,8 +19,6 @@ package gamepad
 
 import (
 	"fmt"
-
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 )
 
 type AndroidHatDirection int
@@ -42,7 +40,7 @@ func UpdateAndroidGamepadAxis(androidDeviceID int, axis int, value float64) {
 	theGamepads.updateAndroidGamepadAxis(androidDeviceID, axis, value)
 }
 
-func UpdateAndroidGamepadButton(androidDeviceID int, button driver.GamepadButton, pressed bool) {
+func UpdateAndroidGamepadButton(androidDeviceID int, button Button, pressed bool) {
 	theGamepads.updateAndroidGamepadButton(androidDeviceID, button, pressed)
 }
 
@@ -83,7 +81,7 @@ func (g *gamepads) updateAndroidGamepadAxis(androidDeviceID int, axis int, value
 	gp.updateAndroidGamepadAxis(axis, value)
 }
 
-func (g *gamepads) updateAndroidGamepadButton(androidDeviceID int, button driver.GamepadButton, pressed bool) {
+func (g *gamepads) updateAndroidGamepadButton(androidDeviceID int, button Button, pressed bool) {
 	g.m.Lock()
 	defer g.m.Unlock()
 
@@ -119,7 +117,7 @@ func (g *Gamepad) updateAndroidGamepadAxis(axis int, value float64) {
 	g.axes[axis] = value
 }
 
-func (g *Gamepad) updateAndroidGamepadButton(button driver.GamepadButton, pressed bool) {
+func (g *Gamepad) updateAndroidGamepadButton(button Button, pressed bool) {
 	g.m.Lock()
 	defer g.m.Unlock()
 
