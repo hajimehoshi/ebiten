@@ -14,45 +14,6 @@
 
 package driver
 
-type GamepadButton int
-
-const (
-	GamepadButton0 GamepadButton = iota
-	GamepadButton1
-	GamepadButton2
-	GamepadButton3
-	GamepadButton4
-	GamepadButton5
-	GamepadButton6
-	GamepadButton7
-	GamepadButton8
-	GamepadButton9
-	GamepadButton10
-	GamepadButton11
-	GamepadButton12
-	GamepadButton13
-	GamepadButton14
-	GamepadButton15
-	GamepadButton16
-	GamepadButton17
-	GamepadButton18
-	GamepadButton19
-	GamepadButton20
-	GamepadButton21
-	GamepadButton22
-	GamepadButton23
-	GamepadButton24
-	GamepadButton25
-	GamepadButton26
-	GamepadButton27
-	GamepadButton28
-	GamepadButton29
-	GamepadButton30
-	GamepadButton31
-)
-
-const GamepadButtonNum = 32
-
 type StandardGamepadButton int
 
 // https://www.w3.org/TR/gamepad/#remapping
