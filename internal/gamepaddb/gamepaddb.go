@@ -145,6 +145,8 @@ func processLine(line string, platform platform) error {
 			continue
 		}
 		tks := strings.Split(token, ":")
+
+		// Note that the platform part is listed in the definition of SDL_GetPlatform.
 		if tks[0] == "platform" {
 			switch tks[1] {
 			case "Windows":
@@ -167,6 +169,8 @@ func processLine(line string, platform platform) error {
 				if platform != platformIOS {
 					return nil
 				}
+			case "":
+				// Allow any platforms
 			default:
 				return fmt.Errorf("gamepaddb: unexpected platform: %s", tks[1])
 			}
@@ -503,10 +507,6 @@ func IsButtonPressed(id string, button StandardButton, state GamepadState) bool 
 // Update adds new gamepad mappings.
 // The string must be in the format of SDL_GameControllerDB.
 func Update(mapping []byte) (bool, error) {
-	if currentPlatform == platformUnknown {
-		return false, nil
-	}
-
 	mappingsM.Lock()
 	defer mappingsM.Unlock()
 

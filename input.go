@@ -304,6 +304,15 @@ func IsStandardGamepadLayoutAvailable(id GamepadID) bool {
 // When using this facility to support new hardware, please also send a pull request to
 // https://github.com/gabomdq/SDL_GameControllerDB to make your mapping available to everyone else.
 //
+// A platform field in a line corresponds with a GOOS like the following:
+//
+//    "Windows":  GOOS=windows
+//    "Mac OS X": GOOS=darwin (not ios)
+//    "Linux":    GOOS=linux (not android)
+//    "Android":  GOOS=android
+//    "iOS":      GOOS=ios
+//    "":         Any GOOS
+//
 // On platforms where gamepad mappings are not managed by Ebiten, this always returns false and nil.
 //
 // UpdateStandardGamepadLayoutMappings is concurrent-safe.
