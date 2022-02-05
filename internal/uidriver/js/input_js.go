@@ -16,11 +16,9 @@ package js
 
 import (
 	"syscall/js"
-	"time"
 	"unicode"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
-	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 )
 
 var (
@@ -81,61 +79,6 @@ func (i *Input) CursorPosition() (x, y int) {
 	}
 	xf, yf := i.ui.context.AdjustPosition(float64(i.cursorX), float64(i.cursorY), i.ui.DeviceScaleFactor())
 	return int(xf), int(yf)
-}
-
-func (i *Input) GamepadSDLID(id driver.GamepadID) string {
-	g := gamepad.Get(id)
-	if g == nil {
-		return ""
-	}
-	return g.SDLID()
-}
-
-// GamepadName returns a string containing some information about the controller.
-// A PS2 controller returned "810-3-USB Gamepad" on Firefox
-// A Xbox 360 controller returned "xinput" on Firefox and "Xbox 360 Controller (XInput STANDARD GAMEPAD)" on Chrome
-func (i *Input) GamepadName(id driver.GamepadID) string {
-	g := gamepad.Get(id)
-	if g == nil {
-		return ""
-	}
-	return g.Name()
-}
-
-func (i *Input) AppendGamepadIDs(gamepadIDs []driver.GamepadID) []driver.GamepadID {
-	return gamepad.AppendGamepadIDs(gamepadIDs)
-}
-
-func (i *Input) GamepadAxisNum(id driver.GamepadID) int {
-	g := gamepad.Get(id)
-	if g == nil {
-		return 0
-	}
-	return g.AxisCount()
-}
-
-func (i *Input) GamepadAxisValue(id driver.GamepadID, axis int) float64 {
-	g := gamepad.Get(id)
-	if g == nil {
-		return 0
-	}
-	return g.Axis(axis)
-}
-
-func (i *Input) GamepadButtonNum(id driver.GamepadID) int {
-	g := gamepad.Get(id)
-	if g == nil {
-		return 0
-	}
-	return g.ButtonCount()
-}
-
-func (i *Input) IsGamepadButtonPressed(id driver.GamepadID, button driver.GamepadButton) bool {
-	g := gamepad.Get(id)
-	if g == nil {
-		return false
-	}
-	return g.Button(int(button))
 }
 
 func (i *Input) AppendTouchIDs(touchIDs []driver.TouchID) []driver.TouchID {
@@ -250,10 +193,6 @@ func (i *Input) mouseUp(code int) {
 		i.mouseButtonPressed = map[int]bool{}
 	}
 	i.mouseButtonPressed[code] = false
-}
-
-func (i *Input) updateGamepads() {
-	gamepad.Update()
 }
 
 func (i *Input) updateFromEvent(e js.Value) {
@@ -375,44 +314,4 @@ func (i *Input) updateForGo2Cpp() {
 			Y: y.Int(),
 		}
 	}
-}
-
-func (i *Input) IsStandardGamepadLayoutAvailable(id driver.GamepadID) bool {
-	g := gamepad.Get(id)
-	if g == nil {
-		return false
-	}
-	return g.IsStandardLayoutAvailable()
-}
-
-func (i *Input) StandardGamepadAxisValue(id driver.GamepadID, axis driver.StandardGamepadAxis) float64 {
-	g := gamepad.Get(id)
-	if g == nil {
-		return 0
-	}
-	return g.StandardAxisValue(axis)
-}
-
-func (i *Input) StandardGamepadButtonValue(id driver.GamepadID, button driver.StandardGamepadButton) float64 {
-	g := gamepad.Get(id)
-	if g == nil {
-		return 0
-	}
-	return g.StandardButtonValue(button)
-}
-
-func (i *Input) IsStandardGamepadButtonPressed(id driver.GamepadID, button driver.StandardGamepadButton) bool {
-	g := gamepad.Get(id)
-	if g == nil {
-		return false
-	}
-	return g.IsStandardButtonPressed(button)
-}
-
-func (i *Input) VibrateGamepad(id driver.GamepadID, duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
-	g := gamepad.Get(id)
-	if g == nil {
-		return
-	}
-	g.Vibrate(duration, strongMagnitude, weakMagnitude)
 }

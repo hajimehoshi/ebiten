@@ -16,6 +16,7 @@ package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
@@ -128,7 +129,11 @@ type GamepadID = driver.GamepadID
 //
 // GamepadSDLID is concurrent-safe.
 func GamepadSDLID(id GamepadID) string {
-	return uiDriver().Input().GamepadSDLID(id)
+	g := gamepad.Get(id)
+	if g == nil {
+		return ""
+	}
+	return g.SDLID()
 }
 
 // GamepadName returns a string with the name.
@@ -141,7 +146,11 @@ func GamepadSDLID(id GamepadID) string {
 //
 // GamepadName is concurrent-safe.
 func GamepadName(id GamepadID) string {
-	return uiDriver().Input().GamepadName(id)
+	g := gamepad.Get(id)
+	if g == nil {
+		return ""
+	}
+	return g.Name()
 }
 
 // AppendGamepadIDs appends available gamepad IDs to gamepadIDs, and returns the extended buffer.
@@ -149,7 +158,7 @@ func GamepadName(id GamepadID) string {
 //
 // AppendGamepadIDs is concurrent-safe.
 func AppendGamepadIDs(gamepadIDs []GamepadID) []GamepadID {
-	return uiDriver().Input().AppendGamepadIDs(gamepadIDs)
+	return gamepad.AppendGamepadIDs(gamepadIDs)
 }
 
 // GamepadIDs returns a slice indicating available gamepad IDs.
@@ -163,14 +172,22 @@ func GamepadIDs() []GamepadID {
 //
 // GamepadAxisNum is concurrent-safe.
 func GamepadAxisNum(id GamepadID) int {
-	return uiDriver().Input().GamepadAxisNum(id)
+	g := gamepad.Get(id)
+	if g == nil {
+		return 0
+	}
+	return g.AxisCount()
 }
 
 // GamepadAxisValue returns a float value [-1.0 - 1.0] of the given gamepad (id)'s axis (axis).
 //
 // GamepadAxisValue is concurrent-safe.
 func GamepadAxisValue(id GamepadID, axis int) float64 {
-	return uiDriver().Input().GamepadAxisValue(id, axis)
+	g := gamepad.Get(id)
+	if g == nil {
+		return 0
+	}
+	return g.Axis(axis)
 }
 
 // GamepadAxis returns a float value [-1.0 - 1.0] of the given gamepad (id)'s axis (axis).
@@ -184,7 +201,13 @@ func GamepadAxis(id GamepadID, axis int) float64 {
 //
 // GamepadButtonNum is concurrent-safe.
 func GamepadButtonNum(id GamepadID) int {
-	return uiDriver().Input().GamepadButtonNum(id)
+	g := gamepad.Get(id)
+	if g == nil {
+		return 0
+	}
+
+	// For backward compatibility, hats are treated as buttons in GLFW.
+	return g.ButtonCount() + g.HatCount()*4
 }
 
 // IsGamepadButtonPressed reports whether the given button of the gamepad (id) is pressed or not.
@@ -197,7 +220,23 @@ func GamepadButtonNum(id GamepadID) int {
 // The relationships between physical buttons and buttion IDs depend on environments.
 // There can be differences even between Chrome and Firefox.
 func IsGamepadButtonPressed(id GamepadID, button GamepadButton) bool {
-	return uiDriver().Input().IsGamepadButtonPressed(id, button)
+	g := gamepad.Get(id)
+	if g == nil {
+		return false
+	}
+
+	nbuttons := g.ButtonCount()
+	if int(button) < nbuttons {
+		return g.Button(int(button))
+	}
+
+	// For backward compatibility, hats are treated as buttons in GLFW.
+	if hat := (int(button) - nbuttons) / 4; hat < g.HatCount() {
+		dir := (int(button) - nbuttons) % 4
+		return g.Hat(hat)&(1<<dir) != 0
+	}
+
+	return false
 }
 
 // StandardGamepadAxisValue returns a float value [-1.0 - 1.0] of the given gamepad (id)'s standard axis (axis).
@@ -206,7 +245,11 @@ func IsGamepadButtonPressed(id GamepadID, button GamepadButton) bool {
 //
 // StandardGamepadAxisValue is concurrent safe.
 func StandardGamepadAxisValue(id GamepadID, axis StandardGamepadAxis) float64 {
-	return uiDriver().Input().StandardGamepadAxisValue(id, axis)
+	g := gamepad.Get(id)
+	if g == nil {
+		return 0
+	}
+	return g.StandardAxisValue(axis)
 }
 
 // StandardGamepadButtonValue returns a float value [0.0 - 1.0] of the given gamepad (id)'s standard button (button).
@@ -215,7 +258,11 @@ func StandardGamepadAxisValue(id GamepadID, axis StandardGamepadAxis) float64 {
 //
 // StandardGamepadButtonValue is concurrent safe.
 func StandardGamepadButtonValue(id GamepadID, button StandardGamepadButton) float64 {
-	return uiDriver().Input().StandardGamepadButtonValue(id, button)
+	g := gamepad.Get(id)
+	if g == nil {
+		return 0
+	}
+	return g.StandardButtonValue(button)
 }
 
 // IsStandardGamepadButtonPressed reports whether the given gamepad (id)'s standard gamepad button (button) is pressed.
@@ -224,14 +271,22 @@ func StandardGamepadButtonValue(id GamepadID, button StandardGamepadButton) floa
 //
 // IsStandardGamepadButtonPressed is concurrent safe.
 func IsStandardGamepadButtonPressed(id GamepadID, button StandardGamepadButton) bool {
-	return uiDriver().Input().IsStandardGamepadButtonPressed(id, button)
+	g := gamepad.Get(id)
+	if g == nil {
+		return false
+	}
+	return g.IsStandardButtonPressed(button)
 }
 
 // IsStandardGamepadLayoutAvailable reports whether the gamepad (id) has a standard gamepad layout mapping.
 //
 // IsStandardGamepadLayoutAvailable is concurrent-safe.
 func IsStandardGamepadLayoutAvailable(id GamepadID) bool {
-	return uiDriver().Input().IsStandardGamepadLayoutAvailable(id)
+	g := gamepad.Get(id)
+	if g == nil {
+		return false
+	}
+	return g.IsStandardLayoutAvailable()
 }
 
 // UpdateStandardGamepadLayoutMappings parses the specified string mappings in SDL_GameControllerDB format and

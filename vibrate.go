@@ -16,6 +16,8 @@ package ebiten
 
 import (
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 )
 
 // VibrateOptions represents the options for device vibration.
@@ -69,5 +71,9 @@ type VibrateGamepadOptions struct {
 //
 // VibrateGamepad is concurrent-safe.
 func VibrateGamepad(gamepadID GamepadID, options *VibrateGamepadOptions) {
-	uiDriver().Input().VibrateGamepad(gamepadID, options.Duration, options.StrongMagnitude, options.WeakMagnitude)
+	g := gamepad.Get(gamepadID)
+	if g == nil {
+		return
+	}
+	g.Vibrate(options.Duration, options.StrongMagnitude, options.WeakMagnitude)
 }

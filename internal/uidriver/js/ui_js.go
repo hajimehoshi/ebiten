@@ -20,6 +20,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
@@ -290,7 +291,7 @@ func (u *UserInterface) updateImpl(force bool) error {
 		return nil
 	}
 
-	u.input.updateGamepads()
+	gamepad.Update()
 	u.input.updateForGo2Cpp()
 	u.updateSize()
 	if force {

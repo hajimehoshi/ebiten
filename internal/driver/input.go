@@ -14,32 +14,16 @@
 
 package driver
 
-import (
-	"time"
-)
-
 type GamepadID int
 
 type TouchID int
 
 type Input interface {
 	AppendInputChars(runes []rune) []rune
-	AppendGamepadIDs(gamepadIDs []GamepadID) []GamepadID
 	AppendTouchIDs(touchIDs []TouchID) []TouchID
 	CursorPosition() (x, y int)
-	GamepadSDLID(id GamepadID) string
-	GamepadName(id GamepadID) string
-	GamepadAxisValue(id GamepadID, axis int) float64
-	GamepadAxisNum(id GamepadID) int
-	GamepadButtonNum(id GamepadID) int
-	IsGamepadButtonPressed(id GamepadID, button GamepadButton) bool
 	IsKeyPressed(key Key) bool
 	IsMouseButtonPressed(button MouseButton) bool
-	IsStandardGamepadButtonPressed(id GamepadID, button StandardGamepadButton) bool
-	IsStandardGamepadLayoutAvailable(id GamepadID) bool
-	StandardGamepadAxisValue(id GamepadID, axis StandardGamepadAxis) float64
-	StandardGamepadButtonValue(id GamepadID, button StandardGamepadButton) float64
 	TouchPosition(id TouchID) (x, y int)
-	VibrateGamepad(id GamepadID, duration time.Duration, strongMagnitude float64, weakMagnitude float64)
 	Wheel() (xoff, yoff float64)
 }
