@@ -108,7 +108,6 @@ func acceptError(codes ...ErrorCode) error {
 	default:
 		panic(fmt.Sprintf("glfw: uncaught error: %s", err.Error()))
 	}
-	return err
 }
 
 func goGLFWErrorCallback(code uintptr, desc *byte) uintptr {
