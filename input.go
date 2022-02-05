@@ -120,7 +120,7 @@ func IsMouseButtonPressed(mouseButton MouseButton) bool {
 }
 
 // GamepadID represents a gamepad's identifier.
-type GamepadID = driver.GamepadID
+type GamepadID = gamepad.ID
 
 // GamepadSDLID returns a string with the GUID generated in the same way as SDL.
 // To detect devices, see also the community project of gamepad devices database: https://github.com/gabomdq/SDL_GameControllerDB

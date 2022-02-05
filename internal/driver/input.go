@@ -14,8 +14,6 @@
 
 package driver
 
-type GamepadID int
-
 type TouchID int
 
 type Input interface {

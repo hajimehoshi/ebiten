@@ -22,6 +22,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
+type ID int
+
 const (
 	hatCentered  = 0
 	hatUp        = 1
@@ -45,7 +47,7 @@ type gamepads struct {
 var theGamepads gamepads
 
 // AppendGamepadIDs is concurrent-safe.
-func AppendGamepadIDs(ids []driver.GamepadID) []driver.GamepadID {
+func AppendGamepadIDs(ids []ID) []ID {
 	return theGamepads.appendGamepadIDs(ids)
 }
 
@@ -55,17 +57,17 @@ func Update() error {
 }
 
 // Get is concurrent-safe.
-func Get(id driver.GamepadID) *Gamepad {
+func Get(id ID) *Gamepad {
 	return theGamepads.get(id)
 }
 
-func (g *gamepads) appendGamepadIDs(ids []driver.GamepadID) []driver.GamepadID {
+func (g *gamepads) appendGamepadIDs(ids []ID) []ID {
 	g.m.Lock()
 	defer g.m.Unlock()
 
 	for i, gp := range g.gamepads {
 		if gp != nil {
-			ids = append(ids, driver.GamepadID(i))
+			ids = append(ids, ID(i))
 		}
 	}
 	return ids
@@ -97,7 +99,7 @@ func (g *gamepads) update() error {
 	return nil
 }
 
-func (g *gamepads) get(id driver.GamepadID) *Gamepad {
+func (g *gamepads) get(id ID) *Gamepad {
 	g.m.Lock()
 	defer g.m.Unlock()
 
