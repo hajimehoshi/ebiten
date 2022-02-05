@@ -15,8 +15,8 @@
 package ebiten
 
 import (
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
 // GamepadButton represents a gamepad button.
@@ -63,27 +63,27 @@ const (
 //
 // The layout and the button values are based on the web standard.
 // See https://www.w3.org/TR/gamepad/#remapping.
-type StandardGamepadButton = driver.StandardGamepadButton
+type StandardGamepadButton = gamepaddb.StandardButton
 
 // StandardGamepadButtons
 const (
-	StandardGamepadButtonRightBottom      StandardGamepadButton = driver.StandardGamepadButtonRightBottom
-	StandardGamepadButtonRightRight       StandardGamepadButton = driver.StandardGamepadButtonRightRight
-	StandardGamepadButtonRightLeft        StandardGamepadButton = driver.StandardGamepadButtonRightLeft
-	StandardGamepadButtonRightTop         StandardGamepadButton = driver.StandardGamepadButtonRightTop
-	StandardGamepadButtonFrontTopLeft     StandardGamepadButton = driver.StandardGamepadButtonFrontTopLeft
-	StandardGamepadButtonFrontTopRight    StandardGamepadButton = driver.StandardGamepadButtonFrontTopRight
-	StandardGamepadButtonFrontBottomLeft  StandardGamepadButton = driver.StandardGamepadButtonFrontBottomLeft
-	StandardGamepadButtonFrontBottomRight StandardGamepadButton = driver.StandardGamepadButtonFrontBottomRight
-	StandardGamepadButtonCenterLeft       StandardGamepadButton = driver.StandardGamepadButtonCenterLeft
-	StandardGamepadButtonCenterRight      StandardGamepadButton = driver.StandardGamepadButtonCenterRight
-	StandardGamepadButtonLeftStick        StandardGamepadButton = driver.StandardGamepadButtonLeftStick
-	StandardGamepadButtonRightStick       StandardGamepadButton = driver.StandardGamepadButtonRightStick
-	StandardGamepadButtonLeftTop          StandardGamepadButton = driver.StandardGamepadButtonLeftTop
-	StandardGamepadButtonLeftBottom       StandardGamepadButton = driver.StandardGamepadButtonLeftBottom
-	StandardGamepadButtonLeftLeft         StandardGamepadButton = driver.StandardGamepadButtonLeftLeft
-	StandardGamepadButtonLeftRight        StandardGamepadButton = driver.StandardGamepadButtonLeftRight
-	StandardGamepadButtonCenterCenter     StandardGamepadButton = driver.StandardGamepadButtonCenterCenter
+	StandardGamepadButtonRightBottom      StandardGamepadButton = gamepaddb.StandardButtonRightBottom
+	StandardGamepadButtonRightRight       StandardGamepadButton = gamepaddb.StandardButtonRightRight
+	StandardGamepadButtonRightLeft        StandardGamepadButton = gamepaddb.StandardButtonRightLeft
+	StandardGamepadButtonRightTop         StandardGamepadButton = gamepaddb.StandardButtonRightTop
+	StandardGamepadButtonFrontTopLeft     StandardGamepadButton = gamepaddb.StandardButtonFrontTopLeft
+	StandardGamepadButtonFrontTopRight    StandardGamepadButton = gamepaddb.StandardButtonFrontTopRight
+	StandardGamepadButtonFrontBottomLeft  StandardGamepadButton = gamepaddb.StandardButtonFrontBottomLeft
+	StandardGamepadButtonFrontBottomRight StandardGamepadButton = gamepaddb.StandardButtonFrontBottomRight
+	StandardGamepadButtonCenterLeft       StandardGamepadButton = gamepaddb.StandardButtonCenterLeft
+	StandardGamepadButtonCenterRight      StandardGamepadButton = gamepaddb.StandardButtonCenterRight
+	StandardGamepadButtonLeftStick        StandardGamepadButton = gamepaddb.StandardButtonLeftStick
+	StandardGamepadButtonRightStick       StandardGamepadButton = gamepaddb.StandardButtonRightStick
+	StandardGamepadButtonLeftTop          StandardGamepadButton = gamepaddb.StandardButtonLeftTop
+	StandardGamepadButtonLeftBottom       StandardGamepadButton = gamepaddb.StandardButtonLeftBottom
+	StandardGamepadButtonLeftLeft         StandardGamepadButton = gamepaddb.StandardButtonLeftLeft
+	StandardGamepadButtonLeftRight        StandardGamepadButton = gamepaddb.StandardButtonLeftRight
+	StandardGamepadButtonCenterCenter     StandardGamepadButton = gamepaddb.StandardButtonCenterCenter
 	StandardGamepadButtonMax              StandardGamepadButton = StandardGamepadButtonCenterCenter
 )
 
@@ -91,13 +91,13 @@ const (
 //
 // The layout and the button values are based on the web standard.
 // See https://www.w3.org/TR/gamepad/#remapping.
-type StandardGamepadAxis = driver.StandardGamepadAxis
+type StandardGamepadAxis = gamepaddb.StandardAxis
 
 // StandardGamepadAxes
 const (
-	StandardGamepadAxisLeftStickHorizontal  StandardGamepadAxis = driver.StandardGamepadAxisLeftStickHorizontal
-	StandardGamepadAxisLeftStickVertical    StandardGamepadAxis = driver.StandardGamepadAxisLeftStickVertical
-	StandardGamepadAxisRightStickHorizontal StandardGamepadAxis = driver.StandardGamepadAxisRightStickHorizontal
-	StandardGamepadAxisRightStickVertical   StandardGamepadAxis = driver.StandardGamepadAxisRightStickVertical
+	StandardGamepadAxisLeftStickHorizontal  StandardGamepadAxis = gamepaddb.StandardAxisLeftStickHorizontal
+	StandardGamepadAxisLeftStickVertical    StandardGamepadAxis = gamepaddb.StandardAxisLeftStickVertical
+	StandardGamepadAxisRightStickHorizontal StandardGamepadAxis = gamepaddb.StandardAxisRightStickHorizontal
+	StandardGamepadAxisRightStickVertical   StandardGamepadAxis = gamepaddb.StandardAxisRightStickVertical
 	StandardGamepadAxisMax                  StandardGamepadAxis = StandardGamepadAxisRightStickVertical
 )

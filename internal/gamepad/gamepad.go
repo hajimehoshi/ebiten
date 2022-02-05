@@ -18,7 +18,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
@@ -242,7 +241,7 @@ func (g *Gamepad) IsStandardLayoutAvailable() bool {
 }
 
 // StandardAxisValue is concurrent-safe.
-func (g *Gamepad) StandardAxisValue(axis driver.StandardGamepadAxis) float64 {
+func (g *Gamepad) StandardAxisValue(axis gamepaddb.StandardAxis) float64 {
 	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
 		return gamepaddb.AxisValue(g.sdlID, axis, g)
 	}
@@ -253,7 +252,7 @@ func (g *Gamepad) StandardAxisValue(axis driver.StandardGamepadAxis) float64 {
 }
 
 // StandardButtonValue is concurrent-safe.
-func (g *Gamepad) StandardButtonValue(button driver.StandardGamepadButton) float64 {
+func (g *Gamepad) StandardButtonValue(button gamepaddb.StandardButton) float64 {
 	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
 		return gamepaddb.ButtonValue(g.sdlID, button, g)
 	}
@@ -264,7 +263,7 @@ func (g *Gamepad) StandardButtonValue(button driver.StandardGamepadButton) float
 }
 
 // IsStandardButtonPressed is concurrent-safe.
-func (g *Gamepad) IsStandardButtonPressed(button driver.StandardGamepadButton) bool {
+func (g *Gamepad) IsStandardButtonPressed(button gamepaddb.StandardButton) bool {
 	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
 		return gamepaddb.IsButtonPressed(g.sdlID, button, g)
 	}
