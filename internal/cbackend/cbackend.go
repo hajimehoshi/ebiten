@@ -71,10 +71,10 @@ import (
 )
 
 type Gamepad struct {
-	ID            driver.GamepadID
+	ID            int
 	Standard      bool
-	ButtonNum     int
-	AxisNum       int
+	ButtonCount   int
+	AxisCount     int
 	ButtonPressed [32]bool
 	ButtonValues  [32]float64
 	AxisValues    [16]float64
@@ -119,16 +119,16 @@ func AppendGamepads(gamepads []Gamepad) []Gamepad {
 
 	for _, g := range cGamepads {
 		gamepad := Gamepad{
-			ID:        driver.GamepadID(g.id),
-			Standard:  g.standard != 0,
-			ButtonNum: int(g.button_num),
-			AxisNum:   int(g.axis_num),
+			ID:          int(g.id),
+			Standard:    g.standard != 0,
+			ButtonCount: int(g.button_num),
+			AxisCount:   int(g.axis_num),
 		}
-		for i := 0; i < gamepad.ButtonNum; i++ {
+		for i := 0; i < gamepad.ButtonCount; i++ {
 			gamepad.ButtonPressed[i] = g.button_pressed[i] != 0
 			gamepad.ButtonValues[i] = float64(g.button_values[i])
 		}
-		for i := 0; i < gamepad.AxisNum; i++ {
+		for i := 0; i < gamepad.AxisCount; i++ {
 			gamepad.AxisValues[i] = float64(g.axis_values[i])
 		}
 
@@ -161,7 +161,7 @@ func AppendTouches(touches []Touch) []Touch {
 	return touches
 }
 
-func VibrateGamepad(id driver.GamepadID, duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+func VibrateGamepad(id int, duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
 	C.EbitenVibrateGamepad(C.int(id), C.double(float64(duration)/float64(time.Second)), C.double(strongMagnitude), C.double(weakMagnitude))
 }
 

@@ -22,6 +22,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cbackend"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 )
 
 type Input struct {
@@ -35,7 +36,7 @@ func (i *Input) update(context driver.UIContext) {
 	i.m.Lock()
 	defer i.m.Unlock()
 
-	i.updateGamepads()
+	gamepad.Update()
 
 	i.touches = i.touches[:0]
 	i.touches = cbackend.AppendTouches(i.touches)

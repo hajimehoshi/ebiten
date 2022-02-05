@@ -20,191 +20,98 @@ package cbackend
 import (
 	"time"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/cbackend"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 )
 
-func (i *Input) updateGamepads() {
-	i.gamepads = i.gamepads[:0]
-	i.gamepads = cbackend.AppendGamepads(i.gamepads)
-}
-
 func (i *Input) AppendGamepadIDs(gamepadIDs []driver.GamepadID) []driver.GamepadID {
-	i.m.Lock()
-	defer i.m.Unlock()
-
-	for _, g := range i.gamepads {
-		gamepadIDs = append(gamepadIDs, g.ID)
-	}
-	return gamepadIDs
+	return gamepad.AppendGamepadIDs(gamepadIDs)
 }
 
 func (i *Input) GamepadSDLID(id driver.GamepadID) string {
-	return ""
+	g := gamepad.Get(id)
+	if g == nil {
+		return ""
+	}
+	return g.SDLID()
 }
 
 func (i *Input) GamepadName(id driver.GamepadID) string {
-	return ""
+	g := gamepad.Get(id)
+	if g == nil {
+		return ""
+	}
+	return g.Name()
 }
 
 func (i *Input) GamepadAxisValue(id driver.GamepadID, axis int) float64 {
-	i.m.Lock()
-	defer i.m.Unlock()
-
-	for _, g := range i.gamepads {
-		if g.ID != id {
-			continue
-		}
-		if axis < 0 {
-			return 0
-		}
-		if g.AxisNum <= axis {
-			return 0
-		}
-		if len(g.AxisValues) <= axis {
-			return 0
-		}
-		return g.AxisValues[axis]
+	g := gamepad.Get(id)
+	if g == nil {
+		return 0
 	}
-	return 0
+	return g.Axis(axis)
 }
 
 func (i *Input) GamepadAxisNum(id driver.GamepadID) int {
-	i.m.Lock()
-	defer i.m.Unlock()
-
-	for _, g := range i.gamepads {
-		if g.ID != id {
-			continue
-		}
-		return g.AxisNum
+	g := gamepad.Get(id)
+	if g == nil {
+		return 0
 	}
-	return 0
+	return g.AxisCount()
 }
 
 func (i *Input) GamepadButtonNum(id driver.GamepadID) int {
-	i.m.Lock()
-	defer i.m.Unlock()
-
-	for _, g := range i.gamepads {
-		if g.ID != id {
-			continue
-		}
-		return g.ButtonNum
+	g := gamepad.Get(id)
+	if g == nil {
+		return 0
 	}
-	return 0
+	return g.ButtonCount()
 }
 
 func (i *Input) IsGamepadButtonPressed(id driver.GamepadID, button driver.GamepadButton) bool {
-	i.m.Lock()
-	defer i.m.Unlock()
-
-	for _, g := range i.gamepads {
-		if g.ID != id {
-			continue
-		}
-		if button < 0 {
-			return false
-		}
-		if g.ButtonNum <= int(button) {
-			return false
-		}
-		if len(g.ButtonPressed) <= int(button) {
-			return false
-		}
-		return g.ButtonPressed[button]
+	g := gamepad.Get(id)
+	if g == nil {
+		return false
 	}
-	return false
+	return g.Button(int(button))
 }
 
 func (i *Input) IsStandardGamepadButtonPressed(id driver.GamepadID, button driver.StandardGamepadButton) bool {
-	i.m.Lock()
-	defer i.m.Unlock()
-
-	for _, g := range i.gamepads {
-		if g.ID != id {
-			continue
-		}
-		if !g.Standard {
-			return false
-		}
-		if button < 0 {
-			return false
-		}
-		if g.ButtonNum <= int(button) {
-			return false
-		}
-		if len(g.ButtonPressed) <= int(button) {
-			return false
-		}
-		return g.ButtonPressed[button]
+	g := gamepad.Get(id)
+	if g == nil {
+		return false
 	}
-	return false
+	return g.IsStandardButtonPressed(button)
 }
 
 func (i *Input) IsStandardGamepadLayoutAvailable(id driver.GamepadID) bool {
-	i.m.Lock()
-	defer i.m.Unlock()
-
-	for _, g := range i.gamepads {
-		if g.ID != id {
-			continue
-		}
-		return g.Standard
+	g := gamepad.Get(id)
+	if g == nil {
+		return false
 	}
-	return false
+	return g.IsStandardLayoutAvailable()
 }
 
 func (i *Input) StandardGamepadAxisValue(id driver.GamepadID, axis driver.StandardGamepadAxis) float64 {
-	i.m.Lock()
-	defer i.m.Unlock()
-
-	for _, g := range i.gamepads {
-		if g.ID != id {
-			continue
-		}
-		if !g.Standard {
-			return 0
-		}
-		if axis < 0 {
-			return 0
-		}
-		if g.AxisNum <= int(axis) {
-			return 0
-		}
-		if len(g.AxisValues) <= int(axis) {
-			return 0
-		}
-		return g.AxisValues[axis]
+	g := gamepad.Get(id)
+	if g == nil {
+		return 0
 	}
-	return 0
+	return g.StandardAxisValue(axis)
 }
 
 func (i *Input) StandardGamepadButtonValue(id driver.GamepadID, button driver.StandardGamepadButton) float64 {
-	i.m.Lock()
-	defer i.m.Unlock()
-
-	for _, g := range i.gamepads {
-		if g.ID != id {
-			continue
-		}
-		if !g.Standard {
-			return 0
-		}
-		if button < 0 {
-			return 0
-		}
-		if g.ButtonNum <= int(button) {
-			return 0
-		}
-		if len(g.ButtonValues) <= int(button) {
-			return 0
-		}
-		return g.ButtonValues[button]
+	g := gamepad.Get(id)
+	if g == nil {
+		return 0
 	}
-	return 0
+	return g.StandardButtonValue(button)
 }
 
 func (i *Input) VibrateGamepad(id driver.GamepadID, duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
-	cbackend.VibrateGamepad(id, duration, strongMagnitude, weakMagnitude)
+	g := gamepad.Get(id)
+	if g == nil {
+		return
+	}
+	g.Vibrate(duration, strongMagnitude, weakMagnitude)
 }
