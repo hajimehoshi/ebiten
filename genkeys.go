@@ -651,7 +651,7 @@ var androidKeyToDriverKey = map[int]driver.Key{
 }
 `
 
-const mobileGBuildKeysTmpl = `{{.License}}
+const uidriverMobileKeysTmpl = `{{.License}}
 
 {{.DoNotEdit}}
 
@@ -791,7 +791,7 @@ func main() {
 		filepath.Join("internal", "driver", "keys.go"):                 driverKeysTmpl,
 		filepath.Join("internal", "glfw", "keys.go"):                   glfwKeysTmpl,
 		filepath.Join("internal", "uidriver", "glfw", "keys.go"):       uidriverGlfwKeysTmpl,
-		filepath.Join("internal", "uidriver", "mobile", "keys.go"):     mobileGBuildKeysTmpl,
+		filepath.Join("internal", "uidriver", "mobile", "keys.go"):     uidriverMobileKeysTmpl,
 		filepath.Join("internal", "uidriver", "js", "keys_js.go"):      uidriverJsKeysTmpl,
 		filepath.Join("keys.go"):                                       ebitenKeysTmpl,
 		filepath.Join("mobile", "ebitenmobileview", "keys_android.go"): mobileAndroidKeysTmpl,
@@ -817,6 +817,9 @@ func main() {
 		case filepath.Join("internal", "glfw", "keys.go"):
 			buildTag = "//go:build !js" +
 				"\n// +build !js"
+		case filepath.Join("internal", "uidriver", "mobile", "keys.go"):
+			buildTag = "//go:build android || ios" +
+				"\n// +build android ios"
 		case filepath.Join("internal", "uidriver", "glfw", "keys.go"):
 			buildTag = "//go:build !android && !js && !ios" +
 				"\n// +build !android,!js,!ios"
