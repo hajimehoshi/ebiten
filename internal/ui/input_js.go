@@ -257,7 +257,7 @@ func (i *Input) updateFromEvent(e js.Value) {
 }
 
 func (i *Input) setMouseCursorFromEvent(e js.Value) {
-	if i.ui.cursorMode == driver.CursorModeCaptured {
+	if i.ui.cursorMode == CursorModeCaptured {
 		x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
 		i.origCursorX, i.origCursorY = x, y
 		dx, dy := e.Get("movementX").Int(), e.Get("movementY").Int()

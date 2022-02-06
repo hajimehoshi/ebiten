@@ -110,11 +110,11 @@ type UserInterface struct {
 	setGBuildSizeCh chan struct{}
 	once            sync.Once
 
-	context driver.UIContext
+	context Context
 
 	input Input
 
-	fpsMode         driver.FPSMode
+	fpsMode         FPSMode
 	renderRequester RenderRequester
 
 	t *thread.OSThread
@@ -239,7 +239,7 @@ func (u *UserInterface) SetForeground(foreground bool) error {
 	}
 }
 
-func (u *UserInterface) Run(context driver.UIContext) error {
+func (u *UserInterface) Run(context Context) error {
 	u.setGBuildSizeCh = make(chan struct{})
 	go func() {
 		if err := u.run(context, true); err != nil {
@@ -251,7 +251,7 @@ func (u *UserInterface) Run(context driver.UIContext) error {
 	return nil
 }
 
-func (u *UserInterface) RunWithoutMainLoop(context driver.UIContext) {
+func (u *UserInterface) RunWithoutMainLoop(context Context) {
 	go func() {
 		if err := u.run(context, false); err != nil {
 			u.errCh <- err
@@ -259,7 +259,7 @@ func (u *UserInterface) RunWithoutMainLoop(context driver.UIContext) {
 	}()
 }
 
-func (u *UserInterface) run(context driver.UIContext, mainloop bool) (err error) {
+func (u *UserInterface) run(context Context, mainloop bool) (err error) {
 	// Convert the panic to a regular error so that Java/Objective-C layer can treat this easily e.g., for
 	// Crashlytics. A panic is treated as SIGABRT, and there is no way to handle this on Java/Objective-C layer
 	// unfortunately.
@@ -373,19 +373,19 @@ func (u *UserInterface) adjustPosition(x, y int) (int, int) {
 	return int(xf), int(yf)
 }
 
-func (u *UserInterface) CursorMode() driver.CursorMode {
-	return driver.CursorModeHidden
+func (u *UserInterface) CursorMode() CursorMode {
+	return CursorModeHidden
 }
 
-func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
+func (u *UserInterface) SetCursorMode(mode CursorMode) {
 	// Do nothing
 }
 
-func (u *UserInterface) CursorShape() driver.CursorShape {
-	return driver.CursorShapeDefault
+func (u *UserInterface) CursorShape() CursorShape {
+	return CursorShapeDefault
 }
 
-func (u *UserInterface) SetCursorShape(shape driver.CursorShape) {
+func (u *UserInterface) SetCursorShape(shape CursorShape) {
 	// Do nothing
 }
 
@@ -409,11 +409,11 @@ func (u *UserInterface) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 	// Do nothing
 }
 
-func (u *UserInterface) FPSMode() driver.FPSMode {
+func (u *UserInterface) FPSMode() FPSMode {
 	return u.fpsMode
 }
 
-func (u *UserInterface) SetFPSMode(mode driver.FPSMode) {
+func (u *UserInterface) SetFPSMode(mode FPSMode) {
 	u.fpsMode = mode
 	u.updateExplicitRenderingModeIfNeeded()
 }
@@ -422,7 +422,7 @@ func (u *UserInterface) updateExplicitRenderingModeIfNeeded() {
 	if u.renderRequester == nil {
 		return
 	}
-	u.renderRequester.SetExplicitRenderingMode(u.fpsMode == driver.FPSModeVsyncOffMinimum)
+	u.renderRequester.SetExplicitRenderingMode(u.fpsMode == FPSModeVsyncOffMinimum)
 }
 
 func (u *UserInterface) DeviceScaleFactor() float64 {
@@ -462,7 +462,7 @@ type Touch struct {
 
 func (u *UserInterface) UpdateInput(keys map[driver.Key]struct{}, runes []rune, touches []Touch) {
 	u.input.update(keys, runes, touches)
-	if u.fpsMode == driver.FPSModeVsyncOffMinimum {
+	if u.fpsMode == FPSModeVsyncOffMinimum {
 		u.renderRequester.RequestRenderIfNeeded()
 	}
 }
@@ -478,7 +478,7 @@ func (u *UserInterface) SetRenderRequester(renderRequester RenderRequester) {
 }
 
 func (u *UserInterface) ScheduleFrame() {
-	if u.renderRequester != nil && u.fpsMode == driver.FPSModeVsyncOffMinimum {
+	if u.renderRequester != nil && u.fpsMode == FPSModeVsyncOffMinimum {
 		u.renderRequester.RequestRenderIfNeeded()
 	}
 }

@@ -18,7 +18,6 @@ import (
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
@@ -162,7 +161,7 @@ func RunGame(game Game) error {
 		game: game,
 	})
 	if err := ui.Get().Run(theUIContext); err != nil {
-		if err == driver.RegularTermination {
+		if err == ui.RegularTermination {
 			return nil
 		}
 		return err
@@ -325,7 +324,7 @@ func DeviceScaleFactor() float64 {
 //
 // Deprecated: as of v2.2. Use FPSMode instead.
 func IsVsyncEnabled() bool {
-	return ui.Get().FPSMode() == driver.FPSModeVsyncOn
+	return ui.Get().FPSMode() == ui.FPSModeVsyncOn
 }
 
 // SetVsyncEnabled sets a boolean value indicating whether
@@ -334,19 +333,19 @@ func IsVsyncEnabled() bool {
 // Deprecated: as of v2.2. Use SetFPSMode instead.
 func SetVsyncEnabled(enabled bool) {
 	if enabled {
-		ui.Get().SetFPSMode(driver.FPSModeVsyncOn)
+		ui.Get().SetFPSMode(ui.FPSModeVsyncOn)
 	} else {
-		ui.Get().SetFPSMode(driver.FPSModeVsyncOffMaximum)
+		ui.Get().SetFPSMode(ui.FPSModeVsyncOffMaximum)
 	}
 }
 
 // FPSModeType is a type of FPS modes.
-type FPSModeType = driver.FPSMode
+type FPSModeType = ui.FPSMode
 
 const (
 	// FPSModeVsyncOn indicates that the game tries to sync the display's refresh rate.
 	// FPSModeVsyncOn is the default mode.
-	FPSModeVsyncOn FPSModeType = driver.FPSModeVsyncOn
+	FPSModeVsyncOn FPSModeType = ui.FPSModeVsyncOn
 
 	// FPSModeVsyncOffMaximum indicates that the game doesn't sync with vsync, and
 	// the game is updated whenever possible.
@@ -355,7 +354,7 @@ const (
 	//
 	// In FPSModeVsyncOffMaximum, the game's Draw is called almost without sleeping.
 	// The game's Update is called based on the specified TPS.
-	FPSModeVsyncOffMaximum FPSModeType = driver.FPSModeVsyncOffMaximum
+	FPSModeVsyncOffMaximum FPSModeType = ui.FPSModeVsyncOffMaximum
 
 	// FPSModeVsyncOffMinimum indicates that the game doesn't sync with vsync, and
 	// the game is updated only when necessary.
@@ -365,7 +364,7 @@ const (
 	// In FPSModeVsyncOffMinimum, the game's Update and Draw are called only when
 	// 1) new inputting except for gamepads is detected, or 2) ScheduleFrame is called.
 	// In FPSModeVsyncOffMinimum, TPS is SyncWithFPS no matter what TPS is specified at SetMaxTPS.
-	FPSModeVsyncOffMinimum FPSModeType = driver.FPSModeVsyncOffMinimum
+	FPSModeVsyncOffMinimum FPSModeType = ui.FPSModeVsyncOffMinimum
 )
 
 // FPSMode returns the current FPS mode.

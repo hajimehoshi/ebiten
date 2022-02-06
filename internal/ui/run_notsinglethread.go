@@ -18,12 +18,11 @@
 package ui
 
 import (
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
-func (u *UserInterface) Run(uicontext driver.UIContext) error {
+func (u *UserInterface) Run(uicontext Context) error {
 	u.context = uicontext
 
 	// Initialize the main thread first so the thread is available at u.run (#809).

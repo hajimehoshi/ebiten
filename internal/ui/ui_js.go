@@ -29,19 +29,19 @@ var (
 	stringTransparent = js.ValueOf("transparent")
 )
 
-func driverCursorShapeToCSSCursor(cursor driver.CursorShape) string {
+func driverCursorShapeToCSSCursor(cursor CursorShape) string {
 	switch cursor {
-	case driver.CursorShapeDefault:
+	case CursorShapeDefault:
 		return "default"
-	case driver.CursorShapeText:
+	case CursorShapeText:
 		return "text"
-	case driver.CursorShapeCrosshair:
+	case CursorShapeCrosshair:
 		return "crosshair"
-	case driver.CursorShapePointer:
+	case CursorShapePointer:
 		return "pointer"
-	case driver.CursorShapeEWResize:
+	case CursorShapeEWResize:
 		return "ew-resize"
-	case driver.CursorShapeNSResize:
+	case CursorShapeNSResize:
 		return "ns-resize"
 	}
 	return "auto"
@@ -49,20 +49,20 @@ func driverCursorShapeToCSSCursor(cursor driver.CursorShape) string {
 
 type UserInterface struct {
 	runnableOnUnfocused bool
-	fpsMode             driver.FPSMode
+	fpsMode             FPSMode
 	renderingScheduled  bool
 	running             bool
 	initFocused         bool
-	cursorMode          driver.CursorMode
-	cursorPrevMode      driver.CursorMode
-	cursorShape         driver.CursorShape
+	cursorMode          CursorMode
+	cursorPrevMode      CursorMode
+	cursorShape         CursorShape
 	onceUpdateCalled    bool
 
 	sizeChanged bool
 
 	lastDeviceScaleFactor float64
 
-	context driver.UIContext
+	context Context
 	input   Input
 }
 
@@ -153,11 +153,11 @@ func (u *UserInterface) IsRunnableOnUnfocused() bool {
 	return u.runnableOnUnfocused
 }
 
-func (u *UserInterface) SetFPSMode(mode driver.FPSMode) {
+func (u *UserInterface) SetFPSMode(mode FPSMode) {
 	u.fpsMode = mode
 }
 
-func (u *UserInterface) FPSMode() driver.FPSMode {
+func (u *UserInterface) FPSMode() FPSMode {
 	return u.fpsMode
 }
 
@@ -165,14 +165,14 @@ func (u *UserInterface) ScheduleFrame() {
 	u.renderingScheduled = true
 }
 
-func (u *UserInterface) CursorMode() driver.CursorMode {
+func (u *UserInterface) CursorMode() CursorMode {
 	if !canvas.Truthy() {
-		return driver.CursorModeHidden
+		return CursorModeHidden
 	}
 	return u.cursorMode
 }
 
-func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
+func (u *UserInterface) SetCursorMode(mode CursorMode) {
 	if !canvas.Truthy() {
 		return
 	}
@@ -181,35 +181,35 @@ func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
 	}
 	// Remember the previous cursor mode in the case when the pointer lock exits by pressing ESC.
 	u.cursorPrevMode = u.cursorMode
-	if u.cursorMode == driver.CursorModeCaptured {
+	if u.cursorMode == CursorModeCaptured {
 		document.Call("exitPointerLock")
 	}
 	u.cursorMode = mode
 	switch mode {
-	case driver.CursorModeVisible:
+	case CursorModeVisible:
 		canvas.Get("style").Set("cursor", driverCursorShapeToCSSCursor(u.cursorShape))
-	case driver.CursorModeHidden:
+	case CursorModeHidden:
 		canvas.Get("style").Set("cursor", stringNone)
-	case driver.CursorModeCaptured:
+	case CursorModeCaptured:
 		canvas.Call("requestPointerLock")
 	}
 }
 
 func (u *UserInterface) recoverCursorMode() {
-	if theUI.cursorPrevMode == driver.CursorModeCaptured {
-		panic("ui: cursorPrevMode must not be driver.CursorModeCaptured at recoverCursorMode")
+	if theUI.cursorPrevMode == CursorModeCaptured {
+		panic("ui: cursorPrevMode must not be CursorModeCaptured at recoverCursorMode")
 	}
 	u.SetCursorMode(u.cursorPrevMode)
 }
 
-func (u *UserInterface) CursorShape() driver.CursorShape {
+func (u *UserInterface) CursorShape() CursorShape {
 	if !canvas.Truthy() {
-		return driver.CursorShapeDefault
+		return CursorShapeDefault
 	}
 	return u.cursorShape
 }
 
-func (u *UserInterface) SetCursorShape(shape driver.CursorShape) {
+func (u *UserInterface) SetCursorShape(shape CursorShape) {
 	if !canvas.Truthy() {
 		return
 	}
@@ -218,7 +218,7 @@ func (u *UserInterface) SetCursorShape(shape driver.CursorShape) {
 	}
 
 	u.cursorShape = shape
-	if u.cursorMode == driver.CursorModeVisible {
+	if u.cursorMode == CursorModeVisible {
 		canvas.Get("style").Set("cursor", driverCursorShapeToCSSCursor(u.cursorShape))
 	}
 }
@@ -306,7 +306,7 @@ func (u *UserInterface) updateImpl(force bool) error {
 }
 
 func (u *UserInterface) needsUpdate() bool {
-	if u.fpsMode != driver.FPSModeVsyncOffMinimum {
+	if u.fpsMode != FPSModeVsyncOffMinimum {
 		return true
 	}
 	if !u.onceUpdateCalled {
@@ -319,7 +319,7 @@ func (u *UserInterface) needsUpdate() bool {
 	return false
 }
 
-func (u *UserInterface) loop(context driver.UIContext) <-chan error {
+func (u *UserInterface) loop(context Context) <-chan error {
 	u.context = context
 
 	errCh := make(chan error, 1)
@@ -340,11 +340,11 @@ func (u *UserInterface) loop(context driver.UIContext) <-chan error {
 			}
 		}
 		switch u.fpsMode {
-		case driver.FPSModeVsyncOn:
+		case FPSModeVsyncOn:
 			requestAnimationFrame.Invoke(cf)
-		case driver.FPSModeVsyncOffMaximum:
+		case FPSModeVsyncOffMaximum:
 			setTimeout.Invoke(cf, 0)
-		case driver.FPSModeVsyncOffMinimum:
+		case FPSModeVsyncOffMinimum:
 			requestAnimationFrame.Invoke(cf)
 		}
 	}
@@ -463,7 +463,7 @@ func init() {
 		// Recover the state correctly when the pointer lock exits.
 
 		// A user can exit the pointer lock by pressing ESC. In this case, sync the cursor mode state.
-		if theUI.cursorMode == driver.CursorModeCaptured {
+		if theUI.cursorMode == CursorModeCaptured {
 			theUI.recoverCursorMode()
 		}
 		theUI.input.recoverCursorPosition()
@@ -586,13 +586,13 @@ func setCanvasEventHandlers(v js.Value) {
 }
 
 func (u *UserInterface) forceUpdateOnMinimumFPSMode() {
-	if u.fpsMode != driver.FPSModeVsyncOffMinimum {
+	if u.fpsMode != FPSModeVsyncOffMinimum {
 		return
 	}
 	u.updateImpl(true)
 }
 
-func (u *UserInterface) Run(context driver.UIContext) error {
+func (u *UserInterface) Run(context Context) error {
 	if u.initFocused && window.Truthy() {
 		// Do not focus the canvas when the current document is in an iframe.
 		// Otherwise, the parent page tries to focus the iframe on every loading, which is annoying (#1373).
@@ -605,7 +605,7 @@ func (u *UserInterface) Run(context driver.UIContext) error {
 	return <-u.loop(context)
 }
 
-func (u *UserInterface) RunWithoutMainLoop(context driver.UIContext) {
+func (u *UserInterface) RunWithoutMainLoop(context Context) {
 	panic("ui: RunWithoutMainLoop is not implemented")
 }
 

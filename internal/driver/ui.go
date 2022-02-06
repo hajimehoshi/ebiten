@@ -15,60 +15,8 @@
 package driver
 
 import (
-	"errors"
 	"image"
-	"time"
 )
-
-type UIContext interface {
-	UpdateFrame() error
-	ForceUpdateFrame() error
-	Layout(outsideWidth, outsideHeight float64)
-
-	// AdjustPosition can be called from a different goroutine from Update's or Layout's.
-	AdjustPosition(x, y float64, deviceScaleFactor float64) (float64, float64)
-}
-
-// RegularTermination represents a regular termination.
-// Run can return this error, and if this error is received,
-// the game loop should be terminated as soon as possible.
-var RegularTermination = errors.New("regular termination")
-
-type UI interface {
-	Run(context UIContext) error
-	RunWithoutMainLoop(context UIContext)
-
-	DeviceScaleFactor() float64
-	IsFocused() bool
-	ScreenSizeInFullscreen() (int, int)
-	ResetForFrame()
-
-	CursorMode() CursorMode
-	SetCursorMode(mode CursorMode)
-
-	CursorShape() CursorShape
-	SetCursorShape(shape CursorShape)
-
-	IsFullscreen() bool
-	SetFullscreen(fullscreen bool)
-
-	IsRunnableOnUnfocused() bool
-	SetRunnableOnUnfocused(runnableOnUnfocused bool)
-
-	FPSMode() FPSMode
-	SetFPSMode(mode FPSMode)
-	ScheduleFrame()
-
-	IsScreenTransparent() bool
-	SetScreenTransparent(transparent bool)
-	SetInitFocused(focused bool)
-
-	Vibrate(duration time.Duration, magnitude float64)
-
-	Input() Input
-	Window() Window
-	Graphics() Graphics
-}
 
 type Window interface {
 	IsDecorated() bool
@@ -102,11 +50,3 @@ type Window interface {
 	SetClosingHandled(handled bool)
 	IsClosingHandled() bool
 }
-
-type FPSMode int
-
-const (
-	FPSModeVsyncOn FPSMode = iota
-	FPSModeVsyncOffMaximum
-	FPSModeVsyncOffMinimum
-)

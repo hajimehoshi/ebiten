@@ -123,7 +123,6 @@ package ui
 import "C"
 
 import (
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
@@ -179,7 +178,7 @@ func (u *UserInterface) isNativeFullscreen() bool {
 	return bool(C.isNativeFullscreen(C.uintptr_t(u.window.GetCocoaWindow())))
 }
 
-func (u *UserInterface) setNativeCursor(shape driver.CursorShape) {
+func (u *UserInterface) setNativeCursor(shape CursorShape) {
 	C.setNativeCursor(C.int(shape))
 }
 

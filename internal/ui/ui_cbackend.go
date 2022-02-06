@@ -41,7 +41,7 @@ func Get() *UserInterface {
 	return &theUserInterface
 }
 
-func (u *UserInterface) Run(context driver.UIContext) error {
+func (u *UserInterface) Run(context Context) error {
 	cbackend.InitializeGame()
 	for {
 		w, h := cbackend.ScreenSize()
@@ -58,7 +58,7 @@ func (u *UserInterface) Run(context driver.UIContext) error {
 	}
 }
 
-func (*UserInterface) RunWithoutMainLoop(context driver.UIContext) {
+func (*UserInterface) RunWithoutMainLoop(context Context) {
 	panic("ui: RunWithoutMainLoop is not implemented")
 }
 
@@ -77,18 +77,18 @@ func (*UserInterface) ScreenSizeInFullscreen() (int, int) {
 func (*UserInterface) ResetForFrame() {
 }
 
-func (*UserInterface) CursorMode() driver.CursorMode {
-	return driver.CursorModeHidden
+func (*UserInterface) CursorMode() CursorMode {
+	return CursorModeHidden
 }
 
-func (*UserInterface) SetCursorMode(mode driver.CursorMode) {
+func (*UserInterface) SetCursorMode(mode CursorMode) {
 }
 
-func (*UserInterface) CursorShape() driver.CursorShape {
-	return driver.CursorShapeDefault
+func (*UserInterface) CursorShape() CursorShape {
+	return CursorShapeDefault
 }
 
-func (*UserInterface) SetCursorShape(shape driver.CursorShape) {
+func (*UserInterface) SetCursorShape(shape CursorShape) {
 }
 
 func (*UserInterface) IsFullscreen() bool {
@@ -105,11 +105,11 @@ func (*UserInterface) IsRunnableOnUnfocused() bool {
 func (*UserInterface) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 }
 
-func (*UserInterface) FPSMode() driver.FPSMode {
-	return driver.FPSModeVsyncOn
+func (*UserInterface) FPSMode() FPSMode {
+	return FPSModeVsyncOn
 }
 
-func (*UserInterface) SetFPSMode(mode driver.FPSMode) {
+func (*UserInterface) SetFPSMode(mode FPSMode) {
 }
 
 func (*UserInterface) ScheduleFrame() {

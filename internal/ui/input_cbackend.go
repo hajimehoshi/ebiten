@@ -32,7 +32,7 @@ type Input struct {
 	m sync.Mutex
 }
 
-func (i *Input) update(context driver.UIContext) {
+func (i *Input) update(context Context) {
 	i.m.Lock()
 	defer i.m.Unlock()
 

@@ -33,21 +33,21 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
-func driverCursorModeToGLFWCursorMode(mode driver.CursorMode) int {
+func driverCursorModeToGLFWCursorMode(mode CursorMode) int {
 	switch mode {
-	case driver.CursorModeVisible:
+	case CursorModeVisible:
 		return glfw.CursorNormal
-	case driver.CursorModeHidden:
+	case CursorModeHidden:
 		return glfw.CursorHidden
-	case driver.CursorModeCaptured:
+	case CursorModeCaptured:
 		return glfw.CursorDisabled
 	default:
-		panic(fmt.Sprintf("ui: invalid driver.CursorMode: %d", mode))
+		panic(fmt.Sprintf("ui: invalid CursorMode: %d", mode))
 	}
 }
 
 type UserInterface struct {
-	context driver.UIContext
+	context Context
 	title   string
 	window  *glfw.Window
 
@@ -66,9 +66,9 @@ type UserInterface struct {
 	origPosX             int
 	origPosY             int
 	runnableOnUnfocused  bool
-	fpsMode              driver.FPSMode
+	fpsMode              FPSMode
 	iconImages           []image.Image
-	cursorShape          driver.CursorShape
+	cursorShape          CursorShape
 	windowClosingHandled bool
 	windowBeingClosed    bool
 
@@ -87,7 +87,7 @@ type UserInterface struct {
 	initFullscreenHeightInDIP int
 
 	initFullscreen           bool
-	initCursorMode           driver.CursorMode
+	initCursorMode           CursorMode
 	initWindowDecorated      bool
 	initWindowResizable      bool
 	initWindowPositionXInDIP int
@@ -129,14 +129,14 @@ var (
 		maxWindowHeightInDIP:     glfw.DontCare,
 		origPosX:                 invalidPos,
 		origPosY:                 invalidPos,
-		initCursorMode:           driver.CursorModeVisible,
+		initCursorMode:           CursorModeVisible,
 		initWindowDecorated:      true,
 		initWindowPositionXInDIP: invalidPos,
 		initWindowPositionYInDIP: invalidPos,
 		initWindowWidthInDIP:     640,
 		initWindowHeightInDIP:    480,
 		initFocused:              true,
-		fpsMode:                  driver.FPSModeVsyncOn,
+		fpsMode:                  FPSModeVsyncOn,
 	}
 )
 
@@ -160,7 +160,7 @@ func init() {
 	updateMonitors()
 }
 
-var glfwSystemCursors = map[driver.CursorShape]*glfw.Cursor{}
+var glfwSystemCursors = map[CursorShape]*glfw.Cursor{}
 
 func initialize() error {
 	if err := glfw.Init(); err != nil {
@@ -191,12 +191,12 @@ func initialize() error {
 	theUI.initFullscreenHeightInDIP = int(theUI.dipFromGLFWMonitorPixel(float64(v.Height), m))
 
 	// Create system cursors. These cursors are destroyed at glfw.Terminate().
-	glfwSystemCursors[driver.CursorShapeDefault] = nil
-	glfwSystemCursors[driver.CursorShapeText] = glfw.CreateStandardCursor(glfw.IBeamCursor)
-	glfwSystemCursors[driver.CursorShapeCrosshair] = glfw.CreateStandardCursor(glfw.CrosshairCursor)
-	glfwSystemCursors[driver.CursorShapePointer] = glfw.CreateStandardCursor(glfw.HandCursor)
-	glfwSystemCursors[driver.CursorShapeEWResize] = glfw.CreateStandardCursor(glfw.HResizeCursor)
-	glfwSystemCursors[driver.CursorShapeNSResize] = glfw.CreateStandardCursor(glfw.VResizeCursor)
+	glfwSystemCursors[CursorShapeDefault] = nil
+	glfwSystemCursors[CursorShapeText] = glfw.CreateStandardCursor(glfw.IBeamCursor)
+	glfwSystemCursors[CursorShapeCrosshair] = glfw.CreateStandardCursor(glfw.CrosshairCursor)
+	glfwSystemCursors[CursorShapePointer] = glfw.CreateStandardCursor(glfw.HandCursor)
+	glfwSystemCursors[CursorShapeEWResize] = glfw.CreateStandardCursor(glfw.HResizeCursor)
+	glfwSystemCursors[CursorShapeNSResize] = glfw.CreateStandardCursor(glfw.VResizeCursor)
 
 	return nil
 }
@@ -298,27 +298,27 @@ func (u *UserInterface) setInitFullscreen(initFullscreen bool) {
 	u.m.Unlock()
 }
 
-func (u *UserInterface) getInitCursorMode() driver.CursorMode {
+func (u *UserInterface) getInitCursorMode() CursorMode {
 	u.m.RLock()
 	v := u.initCursorMode
 	u.m.RUnlock()
 	return v
 }
 
-func (u *UserInterface) setInitCursorMode(mode driver.CursorMode) {
+func (u *UserInterface) setInitCursorMode(mode CursorMode) {
 	u.m.Lock()
 	u.initCursorMode = mode
 	u.m.Unlock()
 }
 
-func (u *UserInterface) getCursorShape() driver.CursorShape {
+func (u *UserInterface) getCursorShape() CursorShape {
 	u.m.RLock()
 	v := u.cursorShape
 	u.m.RUnlock()
 	return v
 }
 
-func (u *UserInterface) setCursorShape(shape driver.CursorShape) driver.CursorShape {
+func (u *UserInterface) setCursorShape(shape CursorShape) CursorShape {
 	u.m.Lock()
 	old := u.cursorShape
 	u.cursorShape = shape
@@ -554,7 +554,7 @@ func (u *UserInterface) IsRunnableOnUnfocused() bool {
 	return u.isRunnableOnUnfocused()
 }
 
-func (u *UserInterface) SetFPSMode(mode driver.FPSMode) {
+func (u *UserInterface) SetFPSMode(mode FPSMode) {
 	if !u.isRunning() {
 		u.m.Lock()
 		u.fpsMode = mode
@@ -571,14 +571,14 @@ func (u *UserInterface) SetFPSMode(mode driver.FPSMode) {
 	})
 }
 
-func (u *UserInterface) FPSMode() driver.FPSMode {
+func (u *UserInterface) FPSMode() FPSMode {
 	if !u.isRunning() {
 		u.m.Lock()
 		m := u.fpsMode
 		u.m.Unlock()
 		return m
 	}
-	var v driver.FPSMode
+	var v FPSMode
 	u.t.Call(func() {
 		v = u.fpsMode
 	})
@@ -594,7 +594,7 @@ func (u *UserInterface) ScheduleFrame() {
 	glfw.PostEmptyEvent()
 }
 
-func (u *UserInterface) CursorMode() driver.CursorMode {
+func (u *UserInterface) CursorMode() CursorMode {
 	if !u.isRunning() {
 		return u.getInitCursorMode()
 	}
@@ -604,21 +604,21 @@ func (u *UserInterface) CursorMode() driver.CursorMode {
 		mode = u.window.GetInputMode(glfw.CursorMode)
 	})
 
-	var v driver.CursorMode
+	var v CursorMode
 	switch mode {
 	case glfw.CursorNormal:
-		v = driver.CursorModeVisible
+		v = CursorModeVisible
 	case glfw.CursorHidden:
-		v = driver.CursorModeHidden
+		v = CursorModeHidden
 	case glfw.CursorDisabled:
-		v = driver.CursorModeCaptured
+		v = CursorModeCaptured
 	default:
 		panic(fmt.Sprintf("ui: invalid GLFW cursor mode: %d", mode))
 	}
 	return v
 }
 
-func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
+func (u *UserInterface) SetCursorMode(mode CursorMode) {
 	if !u.isRunning() {
 		u.setInitCursorMode(mode)
 		return
@@ -628,11 +628,11 @@ func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
 	})
 }
 
-func (u *UserInterface) CursorShape() driver.CursorShape {
+func (u *UserInterface) CursorShape() CursorShape {
 	return u.getCursorShape()
 }
 
-func (u *UserInterface) SetCursorShape(shape driver.CursorShape) {
+func (u *UserInterface) SetCursorShape(shape CursorShape) {
 	old := u.setCursorShape(shape)
 	if old == shape {
 		return
@@ -675,7 +675,7 @@ func init() {
 	runtime.LockOSThread()
 }
 
-func (u *UserInterface) RunWithoutMainLoop(context driver.UIContext) {
+func (u *UserInterface) RunWithoutMainLoop(context Context) {
 	panic("ui: RunWithoutMainLoop is not implemented")
 }
 
@@ -967,7 +967,7 @@ func (u *UserInterface) updateSize() (float64, float64) {
 }
 
 // setFPSMode must be called from the main thread.
-func (u *UserInterface) setFPSMode(fpsMode driver.FPSMode) {
+func (u *UserInterface) setFPSMode(fpsMode FPSMode) {
 	needUpdate := u.fpsMode != fpsMode || !u.fpsModeInited
 	u.fpsMode = fpsMode
 	u.fpsModeInited = true
@@ -977,7 +977,7 @@ func (u *UserInterface) setFPSMode(fpsMode driver.FPSMode) {
 	}
 
 	sticky := glfw.True
-	if fpsMode == driver.FPSModeVsyncOffMinimum {
+	if fpsMode == FPSModeVsyncOffMinimum {
 		sticky = glfw.False
 	}
 	u.window.SetInputMode(glfw.StickyMouseButtonsMode, sticky)
@@ -991,7 +991,7 @@ func (u *UserInterface) update() (float64, float64, error) {
 	}
 
 	if u.window.ShouldClose() {
-		return 0, 0, driver.RegularTermination
+		return 0, 0, RegularTermination
 	}
 
 	if u.isInitFullscreen() {
@@ -1015,7 +1015,7 @@ func (u *UserInterface) update() (float64, float64, error) {
 
 	outsideWidth, outsideHeight := u.updateSize()
 
-	if u.fpsMode != driver.FPSModeVsyncOffMinimum {
+	if u.fpsMode != FPSModeVsyncOffMinimum {
 		// TODO: Updating the input can be skipped when clock.Update returns 0 (#1367).
 		glfw.PollEvents()
 	} else {
@@ -1335,13 +1335,13 @@ func (u *UserInterface) updateVsync() {
 		// TODO: (#405) If triple buffering is needed, SwapInterval(0) should be called,
 		// but is this correct? If glfw.SwapInterval(0) and the driver doesn't support triple
 		// buffering, what will happen?
-		if u.fpsMode == driver.FPSModeVsyncOn {
+		if u.fpsMode == FPSModeVsyncOn {
 			glfw.SwapInterval(1)
 		} else {
 			glfw.SwapInterval(0)
 		}
 	}
-	u.Graphics().SetVsyncEnabled(u.fpsMode == driver.FPSModeVsyncOn)
+	u.Graphics().SetVsyncEnabled(u.fpsMode == FPSModeVsyncOn)
 }
 
 // initialMonitor returns the initial monitor to show the window.

@@ -156,7 +156,7 @@ var glfwMouseButtonToMouseButton = map[glfw.MouseButton]driver.MouseButton{
 }
 
 // update must be called from the main thread.
-func (i *Input) update(window *glfw.Window, context driver.UIContext) error {
+func (i *Input) update(window *glfw.Window, context Context) error {
 	i.ui.m.Lock()
 	defer i.ui.m.Unlock()
 
