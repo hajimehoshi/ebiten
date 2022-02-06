@@ -18,12 +18,8 @@
 
 package ui
 
-import (
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
-)
-
 type Input struct {
-	keys    map[driver.Key]struct{}
+	keys    map[Key]struct{}
 	runes   []rune
 	touches []Touch
 	ui      *UserInterface
@@ -61,7 +57,7 @@ func (i *Input) AppendInputChars(runes []rune) []rune {
 	return append(runes, i.runes...)
 }
 
-func (i *Input) IsKeyPressed(key driver.Key) bool {
+func (i *Input) IsKeyPressed(key Key) bool {
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
 
@@ -77,12 +73,12 @@ func (i *Input) IsMouseButtonPressed(key MouseButton) bool {
 	return false
 }
 
-func (i *Input) update(keys map[driver.Key]struct{}, runes []rune, touches []Touch) {
+func (i *Input) update(keys map[Key]struct{}, runes []rune, touches []Touch) {
 	i.ui.m.Lock()
 	defer i.ui.m.Unlock()
 
 	if i.keys == nil {
-		i.keys = map[driver.Key]struct{}{}
+		i.keys = map[Key]struct{}{}
 	}
 	for k := range i.keys {
 		delete(i.keys, k)

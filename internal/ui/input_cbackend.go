@@ -21,7 +21,6 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cbackend"
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 )
 
@@ -66,7 +65,7 @@ func (i *Input) CursorPosition() (x, y int) {
 	return 0, 0
 }
 
-func (i *Input) IsKeyPressed(key driver.Key) bool {
+func (i *Input) IsKeyPressed(key Key) bool {
 	return false
 }
 

@@ -17,8 +17,6 @@ package ui
 import (
 	"syscall/js"
 	"unicode"
-
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 )
 
 var (
@@ -37,7 +35,7 @@ var (
 var jsKeys []js.Value
 
 func init() {
-	for _, k := range driverKeyToJSKey {
+	for _, k := range uiKeyToJSKey {
 		jsKeys = append(jsKeys, k)
 	}
 }
@@ -109,14 +107,14 @@ func (i *Input) resetForFrame() {
 	i.wheelY = 0
 }
 
-func (i *Input) IsKeyPressed(key driver.Key) bool {
+func (i *Input) IsKeyPressed(key Key) bool {
 	if i.keyPressed != nil {
-		if i.keyPressed[jsKeyToID(driverKeyToJSKey[key])] {
+		if i.keyPressed[jsKeyToID(uiKeyToJSKey[key])] {
 			return true
 		}
 	}
 	if i.keyPressedEdge != nil {
-		for c, k := range edgeKeyCodeToDriverKey {
+		for c, k := range edgeKeyCodeToUIKey {
 			if k != key {
 				continue
 			}
@@ -203,23 +201,23 @@ func (i *Input) updateFromEvent(e js.Value) {
 		c := e.Get("code")
 		if c.Type() != js.TypeString {
 			code := e.Get("keyCode").Int()
-			if edgeKeyCodeToDriverKey[code] == driver.KeyArrowUp ||
-				edgeKeyCodeToDriverKey[code] == driver.KeyArrowDown ||
-				edgeKeyCodeToDriverKey[code] == driver.KeyArrowLeft ||
-				edgeKeyCodeToDriverKey[code] == driver.KeyArrowRight ||
-				edgeKeyCodeToDriverKey[code] == driver.KeyBackspace ||
-				edgeKeyCodeToDriverKey[code] == driver.KeyTab {
+			if edgeKeyCodeToUIKey[code] == KeyArrowUp ||
+				edgeKeyCodeToUIKey[code] == KeyArrowDown ||
+				edgeKeyCodeToUIKey[code] == KeyArrowLeft ||
+				edgeKeyCodeToUIKey[code] == KeyArrowRight ||
+				edgeKeyCodeToUIKey[code] == KeyBackspace ||
+				edgeKeyCodeToUIKey[code] == KeyTab {
 				e.Call("preventDefault")
 			}
 			i.keyDownEdge(code)
 			return
 		}
-		if c.Equal(driverKeyToJSKey[driver.KeyArrowUp]) ||
-			c.Equal(driverKeyToJSKey[driver.KeyArrowDown]) ||
-			c.Equal(driverKeyToJSKey[driver.KeyArrowLeft]) ||
-			c.Equal(driverKeyToJSKey[driver.KeyArrowRight]) ||
-			c.Equal(driverKeyToJSKey[driver.KeyBackspace]) ||
-			c.Equal(driverKeyToJSKey[driver.KeyTab]) {
+		if c.Equal(uiKeyToJSKey[KeyArrowUp]) ||
+			c.Equal(uiKeyToJSKey[KeyArrowDown]) ||
+			c.Equal(uiKeyToJSKey[KeyArrowLeft]) ||
+			c.Equal(uiKeyToJSKey[KeyArrowRight]) ||
+			c.Equal(uiKeyToJSKey[KeyBackspace]) ||
+			c.Equal(uiKeyToJSKey[KeyTab]) {
 			e.Call("preventDefault")
 		}
 		i.keyDown(c)

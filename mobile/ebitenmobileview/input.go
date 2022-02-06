@@ -18,7 +18,6 @@
 package ebitenmobileview
 
 import (
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -28,7 +27,7 @@ type position struct {
 }
 
 var (
-	keys    = map[driver.Key]struct{}{}
+	keys    = map[ui.Key]struct{}{}
 	runes   []rune
 	touches = map[ui.TouchID]position{}
 )

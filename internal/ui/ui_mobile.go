@@ -132,7 +132,7 @@ func (u *UserInterface) appMain(a app.App) {
 	var sizeInited bool
 
 	touches := map[touch.Sequence]Touch{}
-	keys := map[driver.Key]struct{}{}
+	keys := map[Key]struct{}{}
 
 	for e := range a.Events() {
 		var updateInput bool
@@ -196,7 +196,7 @@ func (u *UserInterface) appMain(a app.App) {
 			}
 			updateInput = true
 		case key.Event:
-			k, ok := gbuildKeyToDriverKey[e.Code]
+			k, ok := gbuildKeyToUIKey[e.Code]
 			if ok {
 				switch e.Direction {
 				case key.DirPress, key.DirNone:
@@ -460,7 +460,7 @@ type Touch struct {
 	Y  int
 }
 
-func (u *UserInterface) UpdateInput(keys map[driver.Key]struct{}, runes []rune, touches []Touch) {
+func (u *UserInterface) UpdateInput(keys map[Key]struct{}, runes []rune, touches []Touch) {
 	u.input.update(keys, runes, touches)
 	if u.fpsMode == FPSModeVsyncOffMinimum {
 		u.renderRequester.RequestRenderIfNeeded()

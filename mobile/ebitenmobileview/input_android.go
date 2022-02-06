@@ -201,7 +201,7 @@ func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int) 
 	case source&sourceJoystick == sourceJoystick:
 		// DPAD keys can come here, but they are also treated as an axis at a motion event. Ignore them.
 	case source&sourceKeyboard == sourceKeyboard:
-		if key, ok := androidKeyToDriverKey[keyCode]; ok {
+		if key, ok := androidKeyToUIKey[keyCode]; ok {
 			keys[key] = struct{}{}
 			if r := rune(unicodeChar); r != 0 && unicode.IsPrint(r) {
 				runes = []rune{r}
@@ -221,7 +221,7 @@ func OnKeyUpOnAndroid(keyCode int, source int, deviceID int) {
 	case source&sourceJoystick == sourceJoystick:
 		// DPAD keys can come here, but they are also treated as an axis at a motion event. Ignore them.
 	case source&sourceKeyboard == sourceKeyboard:
-		if key, ok := androidKeyToDriverKey[keyCode]; ok {
+		if key, ok := androidKeyToUIKey[keyCode]; ok {
 			delete(keys, key)
 			updateInput()
 		}

@@ -15,7 +15,6 @@
 package ebiten
 
 import (
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -69,18 +68,18 @@ func IsKeyPressed(key Key) bool {
 		return false
 	}
 
-	var keys []driver.Key
+	var keys []ui.Key
 	switch key {
 	case KeyAlt:
-		keys = []driver.Key{driver.KeyAltLeft, driver.KeyAltRight}
+		keys = []ui.Key{ui.KeyAltLeft, ui.KeyAltRight}
 	case KeyControl:
-		keys = []driver.Key{driver.KeyControlLeft, driver.KeyControlRight}
+		keys = []ui.Key{ui.KeyControlLeft, ui.KeyControlRight}
 	case KeyShift:
-		keys = []driver.Key{driver.KeyShiftLeft, driver.KeyShiftRight}
+		keys = []ui.Key{ui.KeyShiftLeft, ui.KeyShiftRight}
 	case KeyMeta:
-		keys = []driver.Key{driver.KeyMetaLeft, driver.KeyMetaRight}
+		keys = []ui.Key{ui.KeyMetaLeft, ui.KeyMetaRight}
 	default:
-		keys = []driver.Key{driver.Key(key)}
+		keys = []ui.Key{ui.Key(key)}
 	}
 	for _, k := range keys {
 		if ui.Get().Input().IsKeyPressed(k) {

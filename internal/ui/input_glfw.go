@@ -22,7 +22,6 @@ import (
 	"sync"
 	"unicode"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
@@ -104,7 +103,7 @@ func (i *Input) resetForFrame() {
 	i.scrollX, i.scrollY = 0, 0
 }
 
-func (i *Input) IsKeyPressed(key driver.Key) bool {
+func (i *Input) IsKeyPressed(key Key) bool {
 	if !i.ui.isRunning() {
 		return false
 	}
@@ -114,7 +113,7 @@ func (i *Input) IsKeyPressed(key driver.Key) bool {
 	if i.keyPressed == nil {
 		i.keyPressed = map[glfw.Key]bool{}
 	}
-	gk, ok := driverKeyToGLFWKey[key]
+	gk, ok := uiKeyToGLFWKey[key]
 	return ok && i.keyPressed[gk]
 }
 
@@ -182,7 +181,7 @@ func (i *Input) update(window *glfw.Window, context Context) error {
 	if i.keyPressed == nil {
 		i.keyPressed = map[glfw.Key]bool{}
 	}
-	for gk := range glfwKeyToDriverKey {
+	for gk := range glfwKeyToUIKey {
 		i.keyPressed[gk] = window.GetKey(gk) == glfw.Press
 	}
 	if i.mouseButtonPressed == nil {
