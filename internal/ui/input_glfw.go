@@ -35,7 +35,7 @@ type Input struct {
 	scrollY            float64
 	cursorX            int
 	cursorY            int
-	touches            map[driver.TouchID]pos // TODO: Implement this (#417)
+	touches            map[TouchID]pos // TODO: Implement this (#417)
 	runeBuffer         []rune
 	ui                 *UserInterface
 }
@@ -55,7 +55,7 @@ func (i *Input) CursorPosition() (x, y int) {
 	return i.cursorX, i.cursorY
 }
 
-func (i *Input) AppendTouchIDs(touchIDs []driver.TouchID) []driver.TouchID {
+func (i *Input) AppendTouchIDs(touchIDs []TouchID) []TouchID {
 	if !i.ui.isRunning() {
 		return nil
 	}
@@ -68,7 +68,7 @@ func (i *Input) AppendTouchIDs(touchIDs []driver.TouchID) []driver.TouchID {
 	return touchIDs
 }
 
-func (i *Input) TouchPosition(id driver.TouchID) (x, y int) {
+func (i *Input) TouchPosition(id TouchID) (x, y int) {
 	if !i.ui.isRunning() {
 		return 0, 0
 	}
@@ -118,7 +118,7 @@ func (i *Input) IsKeyPressed(key driver.Key) bool {
 	return ok && i.keyPressed[gk]
 }
 
-func (i *Input) IsMouseButtonPressed(button driver.MouseButton) bool {
+func (i *Input) IsMouseButtonPressed(button MouseButton) bool {
 	if !i.ui.isRunning() {
 		return false
 	}
@@ -149,10 +149,10 @@ func (i *Input) Wheel() (xoff, yoff float64) {
 	return i.scrollX, i.scrollY
 }
 
-var glfwMouseButtonToMouseButton = map[glfw.MouseButton]driver.MouseButton{
-	glfw.MouseButtonLeft:   driver.MouseButtonLeft,
-	glfw.MouseButtonRight:  driver.MouseButtonRight,
-	glfw.MouseButtonMiddle: driver.MouseButtonMiddle,
+var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
+	glfw.MouseButtonLeft:   MouseButtonLeft,
+	glfw.MouseButtonRight:  MouseButtonRight,
+	glfw.MouseButtonMiddle: MouseButtonMiddle,
 }
 
 // update must be called from the main thread.

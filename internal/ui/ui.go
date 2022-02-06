@@ -27,6 +27,16 @@ type Context interface {
 	AdjustPosition(x, y float64, deviceScaleFactor float64) (float64, float64)
 }
 
+type MouseButton int
+
+const (
+	MouseButtonLeft MouseButton = iota
+	MouseButtonRight
+	MouseButtonMiddle
+)
+
+type TouchID int
+
 // RegularTermination represents a regular termination.
 // Run can return this error, and if this error is received,
 // the game loop should be terminated as soon as possible.

@@ -15,15 +15,15 @@
 package ebiten
 
 import (
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 // A MouseButton represents a mouse button.
-type MouseButton = driver.MouseButton
+type MouseButton = ui.MouseButton
 
 // MouseButtons
 const (
-	MouseButtonLeft   MouseButton = driver.MouseButtonLeft
-	MouseButtonRight  MouseButton = driver.MouseButtonRight
-	MouseButtonMiddle MouseButton = driver.MouseButtonMiddle
+	MouseButtonLeft   MouseButton = ui.MouseButtonLeft
+	MouseButtonRight  MouseButton = ui.MouseButtonRight
+	MouseButtonMiddle MouseButton = ui.MouseButtonMiddle
 )

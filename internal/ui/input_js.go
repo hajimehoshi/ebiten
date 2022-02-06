@@ -68,7 +68,7 @@ type Input struct {
 	origCursorY        int
 	wheelX             float64
 	wheelY             float64
-	touches            map[driver.TouchID]pos
+	touches            map[TouchID]pos
 	runeBuffer         []rune
 	ui                 *UserInterface
 }
@@ -81,14 +81,14 @@ func (i *Input) CursorPosition() (x, y int) {
 	return int(xf), int(yf)
 }
 
-func (i *Input) AppendTouchIDs(touchIDs []driver.TouchID) []driver.TouchID {
+func (i *Input) AppendTouchIDs(touchIDs []TouchID) []TouchID {
 	for id := range i.touches {
 		touchIDs = append(touchIDs, id)
 	}
 	return touchIDs
 }
 
-func (i *Input) TouchPosition(id driver.TouchID) (x, y int) {
+func (i *Input) TouchPosition(id TouchID) (x, y int) {
 	d := i.ui.DeviceScaleFactor()
 	for tid, pos := range i.touches {
 		if id == tid {
@@ -128,13 +128,13 @@ func (i *Input) IsKeyPressed(key driver.Key) bool {
 	return false
 }
 
-var codeToMouseButton = map[int]driver.MouseButton{
-	0: driver.MouseButtonLeft,
-	1: driver.MouseButtonMiddle,
-	2: driver.MouseButtonRight,
+var codeToMouseButton = map[int]MouseButton{
+	0: MouseButtonLeft,
+	1: MouseButtonMiddle,
+	2: MouseButtonRight,
 }
 
-func (i *Input) IsMouseButtonPressed(button driver.MouseButton) bool {
+func (i *Input) IsMouseButtonPressed(button MouseButton) bool {
 	if i.mouseButtonPressed == nil {
 		i.mouseButtonPressed = map[int]bool{}
 	}
@@ -282,9 +282,9 @@ func (in *Input) updateTouchesFromEvent(e js.Value) {
 	}
 	for i := 0; i < j.Length(); i++ {
 		jj := j.Call("item", i)
-		id := driver.TouchID(jj.Get("identifier").Int())
+		id := TouchID(jj.Get("identifier").Int())
 		if in.touches == nil {
-			in.touches = map[driver.TouchID]pos{}
+			in.touches = map[TouchID]pos{}
 		}
 		in.touches[id] = pos{
 			X: jj.Get("clientX").Int(),
@@ -307,9 +307,9 @@ func (i *Input) updateForGo2Cpp() {
 		x := go2cpp.Call("getTouchX", idx)
 		y := go2cpp.Call("getTouchY", idx)
 		if i.touches == nil {
-			i.touches = map[driver.TouchID]pos{}
+			i.touches = map[TouchID]pos{}
 		}
-		i.touches[driver.TouchID(id.Int())] = pos{
+		i.touches[TouchID(id.Int())] = pos{
 			X: x.Int(),
 			Y: y.Int(),
 		}

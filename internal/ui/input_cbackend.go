@@ -52,7 +52,7 @@ func (i *Input) AppendInputChars(runes []rune) []rune {
 	return nil
 }
 
-func (i *Input) AppendTouchIDs(touchIDs []driver.TouchID) []driver.TouchID {
+func (i *Input) AppendTouchIDs(touchIDs []TouchID) []TouchID {
 	i.m.Lock()
 	defer i.m.Unlock()
 
@@ -70,11 +70,11 @@ func (i *Input) IsKeyPressed(key driver.Key) bool {
 	return false
 }
 
-func (i *Input) IsMouseButtonPressed(button driver.MouseButton) bool {
+func (i *Input) IsMouseButtonPressed(button MouseButton) bool {
 	return false
 }
 
-func (i *Input) TouchPosition(id driver.TouchID) (x, y int) {
+func (i *Input) TouchPosition(id TouchID) (x, y int) {
 	i.m.Lock()
 	defer i.m.Unlock()
 

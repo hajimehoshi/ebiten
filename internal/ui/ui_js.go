@@ -661,7 +661,7 @@ func (u *UserInterface) Vibrate(duration time.Duration, magnitude float64) {
 	}
 }
 
-func (u *UserInterface) Input() driver.Input {
+func (u *UserInterface) Input() *Input {
 	return &u.input
 }
 

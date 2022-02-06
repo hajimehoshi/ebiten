@@ -1431,7 +1431,7 @@ func (u *UserInterface) SetInitFocused(focused bool) {
 	u.setInitFocused(focused)
 }
 
-func (u *UserInterface) Input() driver.Input {
+func (u *UserInterface) Input() *Input {
 	return &u.input
 }
 

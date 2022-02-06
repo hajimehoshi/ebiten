@@ -30,7 +30,7 @@ type position struct {
 var (
 	keys    = map[driver.Key]struct{}{}
 	runes   []rune
-	touches = map[driver.TouchID]position{}
+	touches = map[ui.TouchID]position{}
 )
 
 var (

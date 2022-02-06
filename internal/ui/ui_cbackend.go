@@ -128,7 +128,7 @@ func (*UserInterface) SetInitFocused(focused bool) {
 func (*UserInterface) Vibrate(duration time.Duration, magnitude float64) {
 }
 
-func (*UserInterface) Input() driver.Input {
+func (*UserInterface) Input() *Input {
 	return &theUserInterface.input
 }
 

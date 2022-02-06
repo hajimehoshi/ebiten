@@ -66,8 +66,6 @@ import (
 	"reflect"
 	"time"
 	"unsafe"
-
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 )
 
 type Gamepad struct {
@@ -81,7 +79,7 @@ type Gamepad struct {
 }
 
 type Touch struct {
-	ID driver.TouchID
+	ID ui.TouchID
 	X  int
 	Y  int
 }
@@ -153,7 +151,7 @@ func AppendTouches(touches []Touch) []Touch {
 
 	for _, t := range cTouches {
 		touches = append(touches, Touch{
-			ID: driver.TouchID(t.id),
+			ID: ui.TouchID(t.id),
 			X:  int(t.x),
 			Y:  int(t.y),
 		})

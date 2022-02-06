@@ -20,7 +20,7 @@ package ebitenmobileview
 import (
 	"fmt"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 // #cgo CFLAGS: -x objective-c
@@ -50,12 +50,12 @@ func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
 	switch phase {
 	case C.UITouchPhaseBegan, C.UITouchPhaseMoved, C.UITouchPhaseStationary:
 		id := getIDFromPtr(ptr)
-		touches[driver.TouchID(id)] = position{x, y}
+		touches[ui.TouchID(id)] = position{x, y}
 		updateInput()
 	case C.UITouchPhaseEnded, C.UITouchPhaseCancelled:
 		id := getIDFromPtr(ptr)
 		delete(ptrToID, ptr)
-		delete(touches, driver.TouchID(id))
+		delete(touches, ui.TouchID(id))
 		updateInput()
 	default:
 		panic(fmt.Sprintf("ebitenmobileview: invalid phase: %d", phase))

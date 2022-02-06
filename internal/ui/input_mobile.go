@@ -33,7 +33,7 @@ func (i *Input) CursorPosition() (x, y int) {
 	return 0, 0
 }
 
-func (i *Input) AppendTouchIDs(touchIDs []driver.TouchID) []driver.TouchID {
+func (i *Input) AppendTouchIDs(touchIDs []TouchID) []TouchID {
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
 
@@ -43,7 +43,7 @@ func (i *Input) AppendTouchIDs(touchIDs []driver.TouchID) []driver.TouchID {
 	return touchIDs
 }
 
-func (i *Input) TouchPosition(id driver.TouchID) (x, y int) {
+func (i *Input) TouchPosition(id TouchID) (x, y int) {
 	i.ui.m.RLock()
 	defer i.ui.m.RUnlock()
 
@@ -73,7 +73,7 @@ func (i *Input) Wheel() (xoff, yoff float64) {
 	return 0, 0
 }
 
-func (i *Input) IsMouseButtonPressed(key driver.MouseButton) bool {
+func (i *Input) IsMouseButtonPressed(key MouseButton) bool {
 	return false
 }
 
