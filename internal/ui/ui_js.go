@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package js
+package ui
 
 import (
 	"syscall/js"
@@ -21,7 +21,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
@@ -198,7 +197,7 @@ func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
 
 func (u *UserInterface) recoverCursorMode() {
 	if theUI.cursorPrevMode == driver.CursorModeCaptured {
-		panic("js: cursorPrevMode must not be driver.CursorModeCaptured at recoverCursorMode")
+		panic("ui: cursorPrevMode must not be driver.CursorModeCaptured at recoverCursorMode")
 	}
 	u.SetCursorMode(u.cursorPrevMode)
 }
@@ -607,7 +606,7 @@ func (u *UserInterface) Run(context driver.UIContext) error {
 }
 
 func (u *UserInterface) RunWithoutMainLoop(context driver.UIContext) {
-	panic("js: RunWithoutMainLoop is not implemented")
+	panic("ui: RunWithoutMainLoop is not implemented")
 }
 
 func (u *UserInterface) updateScreenSize() {
@@ -626,7 +625,7 @@ func (u *UserInterface) updateScreenSize() {
 
 func (u *UserInterface) SetScreenTransparent(transparent bool) {
 	if u.running {
-		panic("js: SetScreenTransparent can't be called after the main loop starts")
+		panic("ui: SetScreenTransparent can't be called after the main loop starts")
 	}
 
 	bodyStyle := document.Get("body").Get("style")
@@ -668,8 +667,4 @@ func (u *UserInterface) Input() driver.Input {
 
 func (u *UserInterface) Window() driver.Window {
 	return nil
-}
-
-func (*UserInterface) Graphics() driver.Graphics {
-	return opengl.Get()
 }

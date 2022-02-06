@@ -26,6 +26,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 type uiContext struct {
@@ -66,7 +67,7 @@ func (c *uiContext) Layout(outsideWidth, outsideHeight float64) {
 }
 
 func (c *uiContext) updateOffscreen() {
-	d := uiDriver().DeviceScaleFactor()
+	d := ui.Get().DeviceScaleFactor()
 	sw, sh := int(c.outsideWidth*d), int(c.outsideHeight*d)
 
 	ow, oh := c.game.Layout(int(c.outsideWidth), int(c.outsideHeight))
@@ -188,7 +189,7 @@ func (c *uiContext) updateFrameImpl(updateCount int) error {
 		if err := c.game.Update(); err != nil {
 			return err
 		}
-		uiDriver().ResetForFrame()
+		ui.Get().ResetForFrame()
 	}
 
 	// Even though updateCount == 0, the offscreen is cleared and Draw is called.
@@ -199,15 +200,15 @@ func (c *uiContext) updateFrameImpl(updateCount int) error {
 	}
 	c.game.Draw(c.offscreen)
 
-	if uiDriver().Graphics().NeedsClearingScreen() {
+	if ui.Get().Graphics().NeedsClearingScreen() {
 		// This clear is needed for fullscreen mode or some mobile platforms (#622).
 		c.screen.Clear()
 	}
 
 	op := &DrawImageOptions{}
 
-	s := c.screenScale(uiDriver().DeviceScaleFactor())
-	switch vd := uiDriver().Graphics().FramebufferYDirection(); vd {
+	s := c.screenScale(ui.Get().DeviceScaleFactor())
+	switch vd := ui.Get().Graphics().FramebufferYDirection(); vd {
 	case driver.Upward:
 		op.GeoM.Scale(s, -s)
 		_, h := c.offscreen.Size()
@@ -218,7 +219,7 @@ func (c *uiContext) updateFrameImpl(updateCount int) error {
 		panic(fmt.Sprintf("ebiten: invalid v-direction: %d", vd))
 	}
 
-	op.GeoM.Translate(c.offsets(uiDriver().DeviceScaleFactor()))
+	op.GeoM.Translate(c.offsets(ui.Get().DeviceScaleFactor()))
 	op.CompositeMode = CompositeModeCopy
 
 	// filterScreen works with >=1 scale, but does not well with <1 scale.

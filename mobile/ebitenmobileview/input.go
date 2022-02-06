@@ -19,7 +19,7 @@ package ebitenmobileview
 
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
-	"github.com/hajimehoshi/ebiten/v2/internal/uidriver/mobile"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 type position struct {
@@ -34,18 +34,18 @@ var (
 )
 
 var (
-	touchSlice []mobile.Touch
+	touchSlice []ui.Touch
 )
 
 func updateInput() {
 	touchSlice = touchSlice[:0]
 	for id, position := range touches {
-		touchSlice = append(touchSlice, mobile.Touch{
+		touchSlice = append(touchSlice, ui.Touch{
 			ID: id,
 			X:  position.x,
 			Y:  position.y,
 		})
 	}
 
-	mobile.Get().UpdateInput(keys, runes, touchSlice)
+	ui.Get().UpdateInput(keys, runes, touchSlice)
 }

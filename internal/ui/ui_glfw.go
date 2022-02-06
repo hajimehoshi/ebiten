@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !js && !ios
-// +build !android,!js,!ios
+//go:build !android && !js && !ios && !ebitencbackend
+// +build !android,!js,!ios,!ebitencbackend
 
-package glfw
+package ui
 
 import (
 	"fmt"
@@ -42,7 +42,7 @@ func driverCursorModeToGLFWCursorMode(mode driver.CursorMode) int {
 	case driver.CursorModeCaptured:
 		return glfw.CursorDisabled
 	default:
-		panic(fmt.Sprintf("glfw: invalid driver.CursorMode: %d", mode))
+		panic(fmt.Sprintf("ui: invalid driver.CursorMode: %d", mode))
 	}
 }
 
@@ -178,7 +178,7 @@ func initialize() error {
 	}
 	if w == nil {
 		// This can happen on Windows Remote Desktop (#903).
-		panic("glfw: glfw.CreateWindow must not return nil")
+		panic("ui: glfw.CreateWindow must not return nil")
 	}
 	defer w.Destroy()
 	initializeWindowAfterCreation(w)
@@ -498,7 +498,7 @@ func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 // isFullscreen must be called from the main thread.
 func (u *UserInterface) isFullscreen() bool {
 	if !u.isRunning() {
-		panic("glfw: isFullscreen can't be called before the main loop starts")
+		panic("ui: isFullscreen can't be called before the main loop starts")
 	}
 	return u.window.GetMonitor() != nil || u.isNativeFullscreen()
 }
@@ -613,7 +613,7 @@ func (u *UserInterface) CursorMode() driver.CursorMode {
 	case glfw.CursorDisabled:
 		v = driver.CursorModeCaptured
 	default:
-		panic(fmt.Sprintf("glfw: invalid GLFW cursor mode: %d", mode))
+		panic(fmt.Sprintf("ui: invalid GLFW cursor mode: %d", mode))
 	}
 	return v
 }
@@ -676,7 +676,7 @@ func init() {
 }
 
 func (u *UserInterface) RunWithoutMainLoop(context driver.UIContext) {
-	panic("glfw: RunWithoutMainLoop is not implemented")
+	panic("ui: RunWithoutMainLoop is not implemented")
 }
 
 // createWindow creates a GLFW window.
@@ -686,7 +686,7 @@ func (u *UserInterface) RunWithoutMainLoop(context driver.UIContext) {
 // createWindow does not set the position or size so far.
 func (u *UserInterface) createWindow() error {
 	if u.window != nil {
-		panic("glfw: u.window must not exist at createWindow")
+		panic("ui: u.window must not exist at createWindow")
 	}
 
 	// As a start, create a window with temporary size to create OpenGL context thread.
@@ -1288,7 +1288,7 @@ func (u *UserInterface) setWindowSizeInDIPImpl(width, height int, fullscreen boo
 				}
 				if err := u.createWindow(); err != nil {
 					// TODO: This should return an error.
-					panic(fmt.Sprintf("glfw: failed to recreate window: %v", err))
+					panic(fmt.Sprintf("ui: failed to recreate window: %v", err))
 				}
 				// Reset the size limits explicitly.
 				u.updateWindowSizeLimits()
@@ -1396,7 +1396,7 @@ func (u *UserInterface) SetScreenTransparent(transparent bool) {
 		u.setInitScreenTransparent(transparent)
 		return
 	}
-	panic("glfw: SetScreenTransparent can't be called after the main loop starts")
+	panic("ui: SetScreenTransparent can't be called after the main loop starts")
 }
 
 func (u *UserInterface) IsScreenTransparent() bool {

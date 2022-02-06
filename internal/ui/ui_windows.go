@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package glfw
+//go:build !ebitencbackend
+// +build !ebitencbackend
+
+package ui
 
 import (
 	"fmt"
@@ -57,7 +60,7 @@ func getSystemMetrics(nIndex int) (int32, error) {
 	if r == 0 {
 		// GetLastError doesn't provide an extended information.
 		// See https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getsystemmetrics
-		return 0, fmt.Errorf("glfw: GetSystemMetrics returned 0")
+		return 0, fmt.Errorf("ui: GetSystemMetrics returned 0")
 	}
 	return int32(r), nil
 }
@@ -76,9 +79,9 @@ func getMonitorInfoW(hMonitor uintptr, lpmi *monitorInfo) error {
 	r, _, e := procGetMonitorInfoW.Call(hMonitor, uintptr(unsafe.Pointer(lpmi)))
 	if r == 0 {
 		if e != nil && e != windows.ERROR_SUCCESS {
-			return fmt.Errorf("glfw: GetMonitorInfoW failed: error code: %w", e)
+			return fmt.Errorf("ui: GetMonitorInfoW failed: error code: %w", e)
 		}
-		return fmt.Errorf("glfw: GetMonitorInfoW failed: returned 0")
+		return fmt.Errorf("ui: GetMonitorInfoW failed: returned 0")
 	}
 	return nil
 }
@@ -175,7 +178,7 @@ func (u *UserInterface) isNativeFullscreenAvailable() bool {
 }
 
 func (u *UserInterface) setNativeFullscreen(fullscreen bool) {
-	panic(fmt.Sprintf("glfw: setNativeFullscreen is not implemented in this environment: %s", runtime.GOOS))
+	panic(fmt.Sprintf("ui: setNativeFullscreen is not implemented in this environment: %s", runtime.GOOS))
 }
 
 func (u *UserInterface) adjustViewSize() {

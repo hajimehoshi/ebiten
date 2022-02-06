@@ -33,7 +33,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
-	"github.com/hajimehoshi/ebiten/v2/internal/uidriver/mobile"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 var theState state
@@ -59,7 +59,7 @@ func SetGame(game ebiten.Game) {
 }
 
 func Layout(viewWidth, viewHeight float64) {
-	mobile.Get().SetOutsideSize(viewWidth, viewHeight)
+	ui.Get().SetOutsideSize(viewWidth, viewHeight)
 }
 
 func Update() error {
@@ -73,15 +73,15 @@ func Update() error {
 		return nil
 	}
 
-	return mobile.Get().Update()
+	return ui.Get().Update()
 }
 
 func Suspend() error {
-	return mobile.Get().SetForeground(false)
+	return ui.Get().SetForeground(false)
 }
 
 func Resume() error {
-	return mobile.Get().SetForeground(true)
+	return ui.Get().SetForeground(true)
 }
 
 func OnContextLost() {
@@ -98,5 +98,5 @@ type RenderRequester interface {
 }
 
 func SetRenderRequester(renderRequester RenderRequester) {
-	mobile.Get().SetRenderRequester(renderRequester)
+	ui.Get().SetRenderRequester(renderRequester)
 }

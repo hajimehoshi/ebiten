@@ -17,6 +17,8 @@ package ebiten
 import (
 	"image"
 	"sync/atomic"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 const (
@@ -29,7 +31,7 @@ const (
 //
 // IsWindowDecorated is concurrent-safe.
 func IsWindowDecorated() bool {
-	if w := uiDriver().Window(); w != nil {
+	if w := ui.Get().Window(); w != nil {
 		return w.IsDecorated()
 	}
 	return false
@@ -47,7 +49,7 @@ func IsWindowDecorated() bool {
 //
 // SetWindowDecorated is concurrent-safe.
 func SetWindowDecorated(decorated bool) {
-	if w := uiDriver().Window(); w != nil {
+	if w := ui.Get().Window(); w != nil {
 		w.SetDecorated(decorated)
 	}
 }
@@ -57,7 +59,7 @@ func SetWindowDecorated(decorated bool) {
 //
 // IsWindowResizable is concurrent-safe.
 func IsWindowResizable() bool {
-	if w := uiDriver().Window(); w != nil {
+	if w := ui.Get().Window(); w != nil {
 		return w.IsResizable()
 	}
 	return false
@@ -75,7 +77,7 @@ func IsWindowResizable() bool {
 //
 // SetWindowResizable is concurrent-safe.
 func SetWindowResizable(resizable bool) {
-	if w := uiDriver().Window(); w != nil {
+	if w := ui.Get().Window(); w != nil {
 		w.SetResizable(resizable)
 	}
 }
@@ -86,7 +88,7 @@ func SetWindowResizable(resizable bool) {
 //
 // SetWindowTitle is concurrent-safe.
 func SetWindowTitle(title string) {
-	if w := uiDriver().Window(); w != nil {
+	if w := ui.Get().Window(); w != nil {
 		w.SetTitle(title)
 	}
 }
@@ -112,7 +114,7 @@ func SetWindowTitle(title string) {
 //
 // SetWindowIcon is concurrent-safe.
 func SetWindowIcon(iconImages []image.Image) {
-	if w := uiDriver().Window(); w != nil {
+	if w := ui.Get().Window(); w != nil {
 		w.SetIcon(iconImages)
 	}
 }
@@ -129,7 +131,7 @@ func SetWindowIcon(iconImages []image.Image) {
 //
 // WindowPosition is concurrent-safe.
 func WindowPosition() (x, y int) {
-	if w := uiDriver().Window(); w != nil {
+	if w := ui.Get().Window(); w != nil {
 		return w.Position()
 	}
 	return 0, 0
@@ -146,7 +148,7 @@ func WindowPosition() (x, y int) {
 // SetWindowPosition is concurrent-safe.
 func SetWindowPosition(x, y int) {
 	atomic.StoreUint32(&windowPositionSetExplicitly, 1)
-	if w := uiDriver().Window(); w != nil {
+	if w := ui.Get().Window(); w != nil {
 		w.SetPosition(x, y)
 	}
 }
@@ -156,13 +158,13 @@ var (
 )
 
 func initializeWindowPositionIfNeeded(width, height int) {
-	w := uiDriver().Window()
+	w := ui.Get().Window()
 	if w == nil {
 		return
 	}
 
 	if atomic.LoadUint32(&windowPositionSetExplicitly) == 0 {
-		sw, sh := uiDriver().ScreenSizeInFullscreen()
+		sw, sh := ui.Get().ScreenSizeInFullscreen()
 		x := (sw - width) / 2
 		y := (sh - height) / 3
 		w.SetPosition(x, y)
@@ -176,7 +178,7 @@ func initializeWindowPositionIfNeeded(width, height int) {
 //
 // WindowSize is concurrent-safe.
 func WindowSize() (int, int) {
-	if w := uiDriver().Window(); w != nil {
+	if w := ui.Get().Window(); w != nil {
 		return w.Size()
 	}
 	return 0, 0
@@ -194,7 +196,7 @@ func SetWindowSize(width, height int) {
 	if width <= 0 || height <= 0 {
 		panic("ebiten: width and height must be positive")
 	}
-	if w := uiDriver().Window(); w != nil {
+	if w := ui.Get().Window(); w != nil {
 		w.SetSize(width, height)
 	}
 }
@@ -204,7 +206,7 @@ func SetWindowSize(width, height int) {
 //
 // WindowSizeLimits is concurrent-safe.
 func WindowSizeLimits() (minw, minh, maxw, maxh int) {
-	if w := uiDriver().Window(); w != nil {
+	if w := ui.Get().Window(); w != nil {
 		return w.SizeLimits()
 	}
 	return -1, -1, -1, -1
@@ -215,7 +217,7 @@ func WindowSizeLimits() (minw, minh, maxw, maxh int) {
 //
 // SetWindowSizeLimits is concurrent-safe.
 func SetWindowSizeLimits(minw, minh, maxw, maxh int) {
-	if w := uiDriver().Window(); w != nil {
+	if w := ui.Get().Window(); w != nil {
 		w.SetSizeLimits(minw, minh, maxw, maxh)
 	}
 }
@@ -226,7 +228,7 @@ func SetWindowSizeLimits(minw, minh, maxw, maxh int) {
 //
 // IsWindowFloating is concurrent-safe.
 func IsWindowFloating() bool {
-	if w := uiDriver().Window(); w != nil {
+	if w := ui.Get().Window(); w != nil {
 		return w.IsFloating()
 	}
 	return false
@@ -241,7 +243,7 @@ func IsWindowFloating() bool {
 //
 // SetWindowFloating is concurrent-safe.
 func SetWindowFloating(float bool) {
-	if w := uiDriver().Window(); w != nil {
+	if w := ui.Get().Window(); w != nil {
 		w.SetFloating(float)
 	}
 }
@@ -257,7 +259,7 @@ func MaximizeWindow() {
 	if !IsWindowResizable() {
 		panic("ebiten: a window to maximize must be resizable")
 	}
-	if w := uiDriver().Window(); w != nil {
+	if w := ui.Get().Window(); w != nil {
 		w.Maximize()
 	}
 }
@@ -273,7 +275,7 @@ func IsWindowMaximized() bool {
 	if !IsWindowResizable() {
 		return false
 	}
-	if w := uiDriver().Window(); w != nil {
+	if w := ui.Get().Window(); w != nil {
 		return w.IsMaximized()
 	}
 	return false
@@ -287,7 +289,7 @@ func IsWindowMaximized() bool {
 //
 // MinimizeWindow is concurrent-safe.
 func MinimizeWindow() {
-	if w := uiDriver().Window(); w != nil {
+	if w := ui.Get().Window(); w != nil {
 		w.Minimize()
 	}
 }
@@ -298,7 +300,7 @@ func MinimizeWindow() {
 //
 // IsWindowMinimized is concurrent-safe.
 func IsWindowMinimized() bool {
-	if w := uiDriver().Window(); w != nil {
+	if w := ui.Get().Window(); w != nil {
 		return w.IsMinimized()
 	}
 	return false
@@ -313,7 +315,7 @@ func RestoreWindow() {
 	if !IsWindowMaximized() && !IsWindowMinimized() {
 		panic("ebiten: RestoreWindow must be called on a maximized or a minimized window")
 	}
-	if w := uiDriver().Window(); w != nil {
+	if w := ui.Get().Window(); w != nil {
 		w.Restore()
 	}
 }
@@ -326,7 +328,7 @@ func RestoreWindow() {
 //
 // IsWindowBeingClosed is concurrent-safe.
 func IsWindowBeingClosed() bool {
-	if w := uiDriver().Window(); w != nil {
+	if w := ui.Get().Window(); w != nil {
 		return w.IsBeingClosed()
 	}
 	return false
@@ -344,7 +346,7 @@ func IsWindowBeingClosed() bool {
 //
 // SetWindowClosingHandled is concurrent-safe.
 func SetWindowClosingHandled(handled bool) {
-	if w := uiDriver().Window(); w != nil {
+	if w := ui.Get().Window(); w != nil {
 		w.SetClosingHandled(handled)
 	}
 }
@@ -355,7 +357,7 @@ func SetWindowClosingHandled(handled bool) {
 //
 // IsWindowClosingHandled is concurrent-safe.
 func IsWindowClosingHandled() bool {
-	if w := uiDriver().Window(); w != nil {
+	if w := ui.Get().Window(); w != nil {
 		return w.IsClosingHandled()
 	}
 	return false

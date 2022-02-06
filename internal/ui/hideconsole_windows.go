@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package glfw
+//go:build !ebitencbackend
+// +build !ebitencbackend
+
+package ui
 
 import (
 	"fmt"
@@ -39,9 +42,9 @@ func freeConsole() error {
 	r, _, e := procFreeConsoleWindow.Call()
 	if r == 0 {
 		if e != nil && e != windows.ERROR_SUCCESS {
-			return fmt.Errorf("glfw: FreeConsole failed: %w", e)
+			return fmt.Errorf("ui: FreeConsole failed: %w", e)
 		}
-		return fmt.Errorf("glfw: FreeConsole returned 0")
+		return fmt.Errorf("ui: FreeConsole returned 0")
 	}
 	return nil
 }

@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !ebitensinglethread && !android && !js && !ios
-// +build !ebitensinglethread,!android,!js,!ios
+//go:build !android && !js && !ios && !ebitencbackend && !ebitensinglethread
+// +build !android,!js,!ios,!ebitencbackend,!ebitensinglethread
 
-package glfw
+package ui
 
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"

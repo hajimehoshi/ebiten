@@ -570,13 +570,13 @@ const (
 )
 `
 
-const uidriverGlfwKeysTmpl = `{{.License}}
+const uiGLFWKeysTmpl = `{{.License}}
 
 {{.DoNotEdit}}
 
 {{.BuildTag}}
 
-package glfw
+package ui
 
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
@@ -594,13 +594,13 @@ var driverKeyToGLFWKey = map[driver.Key]glfw.Key{
 }
 `
 
-const uidriverJsKeysTmpl = `{{.License}}
+const uiJSKeysTmpl = `{{.License}}
 
 {{.DoNotEdit}}
 
 {{.BuildTag}}
 
-package js
+package ui
 
 import (
 	"syscall/js"
@@ -651,13 +651,13 @@ var androidKeyToDriverKey = map[int]driver.Key{
 }
 `
 
-const uidriverMobileKeysTmpl = `{{.License}}
+const uiMobileKeysTmpl = `{{.License}}
 
 {{.DoNotEdit}}
 
 {{.BuildTag}}
 
-package mobile
+package ui
 
 import (
 	"golang.org/x/mobile/event/key"
@@ -790,9 +790,9 @@ func main() {
 	for path, tmpl := range map[string]string{
 		filepath.Join("internal", "driver", "keys.go"):                 driverKeysTmpl,
 		filepath.Join("internal", "glfw", "keys.go"):                   glfwKeysTmpl,
-		filepath.Join("internal", "uidriver", "glfw", "keys.go"):       uidriverGlfwKeysTmpl,
-		filepath.Join("internal", "uidriver", "mobile", "keys.go"):     uidriverMobileKeysTmpl,
-		filepath.Join("internal", "uidriver", "js", "keys_js.go"):      uidriverJsKeysTmpl,
+		filepath.Join("internal", "ui", "keys_glfw.go"):                uiGLFWKeysTmpl,
+		filepath.Join("internal", "ui", "keys_mobile.go"):              uiMobileKeysTmpl,
+		filepath.Join("internal", "ui", "keys_js.go"):                  uiJSKeysTmpl,
 		filepath.Join("keys.go"):                                       ebitenKeysTmpl,
 		filepath.Join("mobile", "ebitenmobileview", "keys_android.go"): mobileAndroidKeysTmpl,
 	} {
@@ -817,12 +817,13 @@ func main() {
 		case filepath.Join("internal", "glfw", "keys.go"):
 			buildTag = "//go:build !js" +
 				"\n// +build !js"
-		case filepath.Join("internal", "uidriver", "mobile", "keys.go"):
-			buildTag = "//go:build android || ios" +
-				"\n// +build android ios"
-		case filepath.Join("internal", "uidriver", "glfw", "keys.go"):
-			buildTag = "//go:build !android && !js && !ios" +
-				"\n// +build !android,!js,!ios"
+		case filepath.Join("internal", "ui", "keys_mobile.go"):
+			buildTag = "//go:build (android || ios) && !ebitencbackend" +
+				"\n// +build android ios" +
+				"\n// +build !ebitencbackend"
+		case filepath.Join("internal", "ui", "keys_glfw.go"):
+			buildTag = "//go:build !android && !js && !ios && !ebitencbackend" +
+				"\n// +build !android,!js,!ios,!ebitencbackend"
 		}
 		// NOTE: According to godoc, maps are automatically sorted by key.
 		if err := tmpl.Execute(f, struct {

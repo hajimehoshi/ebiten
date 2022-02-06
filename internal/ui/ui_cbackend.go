@@ -15,7 +15,7 @@
 //go:build ebitencbackend
 // +build ebitencbackend
 
-package cbackend
+package ui
 
 import (
 	"runtime"
@@ -23,7 +23,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cbackend"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
 const deviceScaleFactor = 1
@@ -60,7 +59,7 @@ func (u *UserInterface) Run(context driver.UIContext) error {
 }
 
 func (*UserInterface) RunWithoutMainLoop(context driver.UIContext) {
-	panic("cbackend: RunWithoutMainLoop is not implemented")
+	panic("ui: RunWithoutMainLoop is not implemented")
 }
 
 func (*UserInterface) DeviceScaleFactor() float64 {
@@ -135,8 +134,4 @@ func (*UserInterface) Input() driver.Input {
 
 func (*UserInterface) Window() driver.Window {
 	return nil
-}
-
-func (*UserInterface) Graphics() driver.Graphics {
-	return opengl.Get()
 }

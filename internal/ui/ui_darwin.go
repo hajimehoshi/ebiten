@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !ios
-// +build !ios
+//go:build !ios && !ebitencbackend
+// +build !ios,!ebitencbackend
 
-package glfw
+package ui
 
 // #cgo CFLAGS: -x objective-c
 // #cgo LDFLAGS: -framework AppKit

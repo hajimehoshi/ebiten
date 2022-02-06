@@ -16,8 +16,9 @@ package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 func init() {
-	graphicscommand.SetGraphicsDriver(uiDriver().Graphics())
+	graphicscommand.SetGraphicsDriver(ui.Get().Graphics())
 }

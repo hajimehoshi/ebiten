@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !js && !ios
-// +build !android,!js,!ios
+//go:build !android && !js && !ios && !ebitencbackend
+// +build !android,!js,!ios,!ebitencbackend
 
-package glfw
+package ui
 
 import (
 	"image"
@@ -114,7 +114,7 @@ func (w *window) IsMaximized() bool {
 
 func (w *window) Maximize() {
 	if !w.IsResizable() {
-		panic("glfw: a window to maximize must be resizable")
+		panic("ui: a window to maximize must be resizable")
 	}
 	if !w.ui.isRunning() {
 		w.ui.setInitWindowMaximized(true)
@@ -152,7 +152,7 @@ func (w *window) Restore() {
 
 func (w *window) Position() (int, int) {
 	if !w.ui.isRunning() {
-		panic("glfw: WindowPosition can't be called before the main loop starts")
+		panic("ui: WindowPosition can't be called before the main loop starts")
 	}
 	x, y := 0, 0
 	w.ui.t.Call(func() {

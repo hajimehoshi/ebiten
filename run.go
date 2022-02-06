@@ -20,6 +20,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 // Game defines necessary functions for a game.
@@ -160,7 +161,7 @@ func RunGame(game Game) error {
 	theUIContext.set(&imageDumperGame{
 		game: game,
 	})
-	if err := uiDriver().Run(theUIContext); err != nil {
+	if err := ui.Get().Run(theUIContext); err != nil {
 		if err == driver.RegularTermination {
 			return nil
 		}
@@ -194,7 +195,7 @@ func isRunGameEnded() bool {
 // ScreenSizeInFullscreen must be called on the main thread before ebiten.Run, and is concurrent-safe after
 // ebiten.Run.
 func ScreenSizeInFullscreen() (int, int) {
-	return uiDriver().ScreenSizeInFullscreen()
+	return ui.Get().ScreenSizeInFullscreen()
 }
 
 // CursorMode returns the current cursor mode.
@@ -203,7 +204,7 @@ func ScreenSizeInFullscreen() (int, int) {
 //
 // CursorMode is concurrent-safe.
 func CursorMode() CursorModeType {
-	return uiDriver().CursorMode()
+	return ui.Get().CursorMode()
 }
 
 // SetCursorMode sets the render and capture mode of the mouse cursor.
@@ -219,7 +220,7 @@ func CursorMode() CursorModeType {
 //
 // SetCursorMode is concurrent-safe.
 func SetCursorMode(mode CursorModeType) {
-	uiDriver().SetCursorMode(mode)
+	ui.Get().SetCursorMode(mode)
 }
 
 // CursorShape returns the current cursor shape.
@@ -228,14 +229,14 @@ func SetCursorMode(mode CursorModeType) {
 //
 // CursorShape is concurrent-safe.
 func CursorShape() CursorShapeType {
-	return uiDriver().CursorShape()
+	return ui.Get().CursorShape()
 }
 
 // SetCursorShape sets the cursor shape.
 //
 // SetCursorShape is concurrent-safe.
 func SetCursorShape(shape CursorShapeType) {
-	uiDriver().SetCursorShape(shape)
+	ui.Get().SetCursorShape(shape)
 }
 
 // IsFullscreen reports whether the current mode is fullscreen or not.
@@ -244,7 +245,7 @@ func SetCursorShape(shape CursorShapeType) {
 //
 // IsFullscreen is concurrent-safe.
 func IsFullscreen() bool {
-	return uiDriver().IsFullscreen()
+	return ui.Get().IsFullscreen()
 }
 
 // SetFullscreen changes the current mode to fullscreen or not on desktops and browsers.
@@ -265,7 +266,7 @@ func IsFullscreen() bool {
 //
 // SetFullscreen is concurrent-safe.
 func SetFullscreen(fullscreen bool) {
-	uiDriver().SetFullscreen(fullscreen)
+	ui.Get().SetFullscreen(fullscreen)
 }
 
 // IsFocused returns a boolean value indicating whether
@@ -275,7 +276,7 @@ func SetFullscreen(fullscreen bool) {
 //
 // IsFocused is concurrent-safe.
 func IsFocused() bool {
-	return uiDriver().IsFocused()
+	return ui.Get().IsFocused()
 }
 
 // IsRunnableOnUnfocused returns a boolean value indicating whether
@@ -283,7 +284,7 @@ func IsFocused() bool {
 //
 // IsRunnableOnUnfocused is concurrent-safe.
 func IsRunnableOnUnfocused() bool {
-	return uiDriver().IsRunnableOnUnfocused()
+	return ui.Get().IsRunnableOnUnfocused()
 }
 
 // SetRunnableOnUnfocused sets the state if the game runs even in background.
@@ -298,7 +299,7 @@ func IsRunnableOnUnfocused() bool {
 //
 // SetRunnableOnUnfocused is concurrent-safe.
 func SetRunnableOnUnfocused(runnableOnUnfocused bool) {
-	uiDriver().SetRunnableOnUnfocused(runnableOnUnfocused)
+	ui.Get().SetRunnableOnUnfocused(runnableOnUnfocused)
 }
 
 // DeviceScaleFactor returns a device scale factor value of the current monitor which the window belongs to.
@@ -316,7 +317,7 @@ func SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 //
 // BUG: DeviceScaleFactor value is not affected by SetWindowPosition before RunGame (#1575).
 func DeviceScaleFactor() float64 {
-	return uiDriver().DeviceScaleFactor()
+	return ui.Get().DeviceScaleFactor()
 }
 
 // IsVsyncEnabled returns a boolean value indicating whether
@@ -324,7 +325,7 @@ func DeviceScaleFactor() float64 {
 //
 // Deprecated: as of v2.2. Use FPSMode instead.
 func IsVsyncEnabled() bool {
-	return uiDriver().FPSMode() == driver.FPSModeVsyncOn
+	return ui.Get().FPSMode() == driver.FPSModeVsyncOn
 }
 
 // SetVsyncEnabled sets a boolean value indicating whether
@@ -333,9 +334,9 @@ func IsVsyncEnabled() bool {
 // Deprecated: as of v2.2. Use SetFPSMode instead.
 func SetVsyncEnabled(enabled bool) {
 	if enabled {
-		uiDriver().SetFPSMode(driver.FPSModeVsyncOn)
+		ui.Get().SetFPSMode(driver.FPSModeVsyncOn)
 	} else {
-		uiDriver().SetFPSMode(driver.FPSModeVsyncOffMaximum)
+		ui.Get().SetFPSMode(driver.FPSModeVsyncOffMaximum)
 	}
 }
 
@@ -371,7 +372,7 @@ const (
 //
 // FPSMode is concurrent-safe.
 func FPSMode() FPSModeType {
-	return uiDriver().FPSMode()
+	return ui.Get().FPSMode()
 }
 
 // SetFPSMode sets the FPS mode.
@@ -379,14 +380,14 @@ func FPSMode() FPSModeType {
 //
 // SetFPSMode is concurrent-safe.
 func SetFPSMode(mode FPSModeType) {
-	uiDriver().SetFPSMode(mode)
+	ui.Get().SetFPSMode(mode)
 }
 
 // ScheduleFrame schedules a next frame when the current FPS mode is FPSModeVsyncOffMinimum.
 //
 // ScheduleFrame is concurrent-safe.
 func ScheduleFrame() {
-	uiDriver().ScheduleFrame()
+	ui.Get().ScheduleFrame()
 }
 
 // MaxTPS returns the current maximum TPS.
@@ -436,7 +437,7 @@ func SetMaxTPS(tps int) {
 //
 // IsScreenTransparent is concurrent-safe.
 func IsScreenTransparent() bool {
-	return uiDriver().IsScreenTransparent()
+	return ui.Get().IsScreenTransparent()
 }
 
 // SetScreenTransparent sets the state if the window is transparent.
@@ -447,7 +448,7 @@ func IsScreenTransparent() bool {
 //
 // SetScreenTransparent is concurrent-safe.
 func SetScreenTransparent(transparent bool) {
-	uiDriver().SetScreenTransparent(transparent)
+	ui.Get().SetScreenTransparent(transparent)
 }
 
 // SetInitFocused sets whether the application is focused on show.
@@ -461,5 +462,5 @@ func SetScreenTransparent(transparent bool) {
 //
 // SetInitFocused is cuncurrent-safe.
 func SetInitFocused(focused bool) {
-	uiDriver().SetInitFocused(focused)
+	ui.Get().SetInitFocused(focused)
 }

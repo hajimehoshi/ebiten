@@ -15,7 +15,7 @@
 //go:build ebitencbackend
 // +build ebitencbackend
 
-package cbackend
+package ui
 
 import (
 	"sync"

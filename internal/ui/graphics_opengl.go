@@ -1,4 +1,4 @@
-// Copyright 2019 The Ebiten Authors
+// Copyright 2018 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,23 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ((ios && arm) || (ios && arm64)) && !ebitengl
-// +build ios,arm ios,arm64
-// +build !ebitengl
+//go:build !darwin || (ios && 386) || (ios && amd64) || ebitengl
+// +build !darwin ios,386 ios,amd64 ebitengl
 
-package mobile
+package ui
 
 import (
-	"fmt"
-
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
 func (*UserInterface) Graphics() driver.Graphics {
-	if _, err := mtl.CreateSystemDefaultDevice(); err != nil {
-		panic(fmt.Sprintf("mobile: mtl.CreateSystemDefaultDevice failed on iOS: %v", err))
-	}
-	return metal.Get()
+	return opengl.Get()
 }

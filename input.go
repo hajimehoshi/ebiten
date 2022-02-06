@@ -18,6 +18,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 // AppendInputChars appends "printable" runes, read from the keyboard at the time update is called, to runes,
@@ -35,7 +36,7 @@ import (
 //
 // Keyboards don't work on iOS yet (#1090).
 func AppendInputChars(runes []rune) []rune {
-	return uiDriver().Input().AppendInputChars(runes)
+	return ui.Get().Input().AppendInputChars(runes)
 }
 
 // InputChars return "printable" runes read from the keyboard at the time update is called.
@@ -82,7 +83,7 @@ func IsKeyPressed(key Key) bool {
 		keys = []driver.Key{driver.Key(key)}
 	}
 	for _, k := range keys {
-		if uiDriver().Input().IsKeyPressed(k) {
+		if ui.Get().Input().IsKeyPressed(k) {
 			return true
 		}
 	}
@@ -98,7 +99,7 @@ func IsKeyPressed(key Key) bool {
 //
 // CursorPosition is concurrent-safe.
 func CursorPosition() (x, y int) {
-	return uiDriver().Input().CursorPosition()
+	return ui.Get().Input().CursorPosition()
 }
 
 // Wheel returns x and y offsets of the mouse wheel or touchpad scroll.
@@ -106,7 +107,7 @@ func CursorPosition() (x, y int) {
 //
 // Wheel is concurrent-safe.
 func Wheel() (xoff, yoff float64) {
-	return uiDriver().Input().Wheel()
+	return ui.Get().Input().Wheel()
 }
 
 // IsMouseButtonPressed returns a boolean indicating whether mouseButton is pressed.
@@ -116,7 +117,7 @@ func Wheel() (xoff, yoff float64) {
 //
 // IsMouseButtonPressed is concurrent-safe.
 func IsMouseButtonPressed(mouseButton MouseButton) bool {
-	return uiDriver().Input().IsMouseButtonPressed(mouseButton)
+	return ui.Get().Input().IsMouseButtonPressed(mouseButton)
 }
 
 // GamepadID represents a gamepad's identifier.
@@ -336,7 +337,7 @@ type TouchID = driver.TouchID
 //
 // AppendTouchIDs is concurrent-safe.
 func AppendTouchIDs(touches []TouchID) []TouchID {
-	return uiDriver().Input().AppendTouchIDs(touches)
+	return ui.Get().Input().AppendTouchIDs(touches)
 }
 
 // TouchIDs returns the current touch states.
@@ -352,5 +353,5 @@ func TouchIDs() []TouchID {
 //
 // TouchPosition is cuncurrent-safe.
 func TouchPosition(id TouchID) (int, int) {
-	return uiDriver().Input().TouchPosition(id)
+	return ui.Get().Input().TouchPosition(id)
 }

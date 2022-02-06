@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !darwin && !js && !windows
-// +build !android,!darwin,!js,!windows
+//go:build !android && !darwin && !js && !windows && !ebitencbackend
+// +build !android,!darwin,!js,!windows,!ebitencbackend
 
-package glfw
+package ui
 
 import (
 	"fmt"
@@ -162,7 +162,7 @@ func (u *UserInterface) isNativeFullscreenAvailable() bool {
 }
 
 func (u *UserInterface) setNativeFullscreen(fullscreen bool) {
-	panic(fmt.Sprintf("glfw: setNativeFullscreen is not implemented in this environment: %s", runtime.GOOS))
+	panic(fmt.Sprintf("ui: setNativeFullscreen is not implemented in this environment: %s", runtime.GOOS))
 }
 
 func (u *UserInterface) adjustViewSize() {
