@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
@@ -665,6 +664,6 @@ func (u *UserInterface) Input() *Input {
 	return &u.input
 }
 
-func (u *UserInterface) Window() driver.Window {
-	return nil
+func (u *UserInterface) Window() *Window {
+	return &Window{}
 }

@@ -34,7 +34,6 @@ import (
 	"golang.org/x/mobile/gl"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
@@ -450,8 +449,8 @@ func (u *UserInterface) Input() *Input {
 	return &u.input
 }
 
-func (u *UserInterface) Window() driver.Window {
-	return nil
+func (u *UserInterface) Window() *Window {
+	return &Window{}
 }
 
 type Touch struct {

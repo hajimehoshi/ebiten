@@ -27,7 +27,6 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
@@ -102,7 +101,7 @@ type UserInterface struct {
 	fpsModeInited bool
 
 	input   Input
-	iwindow window
+	iwindow Window
 
 	sizeCallback                   glfw.SizeCallback
 	closeCallback                  glfw.CloseCallback
@@ -1435,7 +1434,7 @@ func (u *UserInterface) Input() *Input {
 	return &u.input
 }
 
-func (u *UserInterface) Window() driver.Window {
+func (u *UserInterface) Window() *Window {
 	return &u.iwindow
 }
 

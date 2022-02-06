@@ -23,11 +23,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
-type window struct {
+type Window struct {
 	ui *UserInterface
 }
 
-func (w *window) IsDecorated() bool {
+func (w *Window) IsDecorated() bool {
 	if !w.ui.isRunning() {
 		return w.ui.isInitWindowDecorated()
 	}
@@ -38,7 +38,7 @@ func (w *window) IsDecorated() bool {
 	return v
 }
 
-func (w *window) SetDecorated(decorated bool) {
+func (w *Window) SetDecorated(decorated bool) {
 	if !w.ui.isRunning() {
 		w.ui.setInitWindowDecorated(decorated)
 		return
@@ -53,7 +53,7 @@ func (w *window) SetDecorated(decorated bool) {
 	})
 }
 
-func (w *window) IsResizable() bool {
+func (w *Window) IsResizable() bool {
 	if !w.ui.isRunning() {
 		return w.ui.isInitWindowResizable()
 	}
@@ -64,7 +64,7 @@ func (w *window) IsResizable() bool {
 	return v
 }
 
-func (w *window) SetResizable(resizable bool) {
+func (w *Window) SetResizable(resizable bool) {
 	if !w.ui.isRunning() {
 		w.ui.setInitWindowResizable(resizable)
 		return
@@ -77,7 +77,7 @@ func (w *window) SetResizable(resizable bool) {
 	})
 }
 
-func (w *window) IsFloating() bool {
+func (w *Window) IsFloating() bool {
 	if !w.ui.isRunning() {
 		return w.ui.isInitWindowFloating()
 	}
@@ -88,7 +88,7 @@ func (w *window) IsFloating() bool {
 	return v
 }
 
-func (w *window) SetFloating(floating bool) {
+func (w *Window) SetFloating(floating bool) {
 	if !w.ui.isRunning() {
 		w.ui.setInitWindowFloating(floating)
 		return
@@ -101,7 +101,7 @@ func (w *window) SetFloating(floating bool) {
 	})
 }
 
-func (w *window) IsMaximized() bool {
+func (w *Window) IsMaximized() bool {
 	if !w.ui.isRunning() {
 		return w.ui.isInitWindowMaximized()
 	}
@@ -112,7 +112,7 @@ func (w *window) IsMaximized() bool {
 	return v
 }
 
-func (w *window) Maximize() {
+func (w *Window) Maximize() {
 	if !w.IsResizable() {
 		panic("ui: a window to maximize must be resizable")
 	}
@@ -123,7 +123,7 @@ func (w *window) Maximize() {
 	w.ui.t.Call(w.ui.maximizeWindow)
 }
 
-func (w *window) IsMinimized() bool {
+func (w *Window) IsMinimized() bool {
 	if !w.ui.isRunning() {
 		return false
 	}
@@ -134,7 +134,7 @@ func (w *window) IsMinimized() bool {
 	return v
 }
 
-func (w *window) Minimize() {
+func (w *Window) Minimize() {
 	if !w.ui.isRunning() {
 		// Do nothing
 		return
@@ -142,7 +142,7 @@ func (w *window) Minimize() {
 	w.ui.t.Call(w.ui.iconifyWindow)
 }
 
-func (w *window) Restore() {
+func (w *Window) Restore() {
 	if !w.ui.isRunning() {
 		// Do nothing
 		return
@@ -150,7 +150,7 @@ func (w *window) Restore() {
 	w.ui.t.Call(w.ui.restoreWindow)
 }
 
-func (w *window) Position() (int, int) {
+func (w *Window) Position() (int, int) {
 	if !w.ui.isRunning() {
 		panic("ui: WindowPosition can't be called before the main loop starts")
 	}
@@ -173,7 +173,7 @@ func (w *window) Position() (int, int) {
 	return x, y
 }
 
-func (w *window) SetPosition(x, y int) {
+func (w *Window) SetPosition(x, y int) {
 	if !w.ui.isRunning() {
 		w.ui.setInitWindowPositionInDIP(x, y)
 		return
@@ -183,7 +183,7 @@ func (w *window) SetPosition(x, y int) {
 	})
 }
 
-func (w *window) Size() (int, int) {
+func (w *Window) Size() (int, int) {
 	if !w.ui.isRunning() {
 		ww, wh := w.ui.getInitWindowSizeInDIP()
 		return w.ui.adjustWindowSizeBasedOnSizeLimitsInDIP(ww, wh)
@@ -196,7 +196,7 @@ func (w *window) Size() (int, int) {
 	return ww, wh
 }
 
-func (w *window) SetSize(width, height int) {
+func (w *Window) SetSize(width, height int) {
 	if !w.ui.isRunning() {
 		w.ui.setInitWindowSizeInDIP(width, height)
 		return
@@ -212,11 +212,11 @@ func (w *window) SetSize(width, height int) {
 	})
 }
 
-func (w *window) SizeLimits() (minw, minh, maxw, maxh int) {
+func (w *Window) SizeLimits() (minw, minh, maxw, maxh int) {
 	return w.ui.getWindowSizeLimitsInDIP()
 }
 
-func (w *window) SetSizeLimits(minw, minh, maxw, maxh int) {
+func (w *Window) SetSizeLimits(minw, minh, maxw, maxh int) {
 	if !w.ui.setWindowSizeLimitsInDIP(minw, minh, maxw, maxh) {
 		return
 	}
@@ -227,12 +227,12 @@ func (w *window) SetSizeLimits(minw, minh, maxw, maxh int) {
 	w.ui.t.Call(w.ui.updateWindowSizeLimits)
 }
 
-func (w *window) SetIcon(iconImages []image.Image) {
+func (w *Window) SetIcon(iconImages []image.Image) {
 	// The icons are actually set at (*UserInterface).loop.
 	w.ui.setIconImages(iconImages)
 }
 
-func (w *window) SetTitle(title string) {
+func (w *Window) SetTitle(title string) {
 	if !w.ui.isRunning() {
 		w.ui.m.Lock()
 		w.ui.title = title
@@ -245,14 +245,14 @@ func (w *window) SetTitle(title string) {
 	})
 }
 
-func (w *window) IsBeingClosed() bool {
+func (w *Window) IsBeingClosed() bool {
 	return w.ui.isWindowBeingClosed()
 }
 
-func (w *window) SetClosingHandled(handled bool) {
+func (w *Window) SetClosingHandled(handled bool) {
 	w.ui.setWindowClosingHandled(handled)
 }
 
-func (w *window) IsClosingHandled() bool {
+func (w *Window) IsClosingHandled() bool {
 	return w.ui.isWindowClosingHandled()
 }

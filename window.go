@@ -31,10 +31,7 @@ const (
 //
 // IsWindowDecorated is concurrent-safe.
 func IsWindowDecorated() bool {
-	if w := ui.Get().Window(); w != nil {
-		return w.IsDecorated()
-	}
-	return false
+	return ui.Get().Window().IsDecorated()
 }
 
 // SetWindowDecorated sets the state if the window is decorated.
@@ -49,9 +46,7 @@ func IsWindowDecorated() bool {
 //
 // SetWindowDecorated is concurrent-safe.
 func SetWindowDecorated(decorated bool) {
-	if w := ui.Get().Window(); w != nil {
-		w.SetDecorated(decorated)
-	}
+	ui.Get().Window().SetDecorated(decorated)
 }
 
 // IsWindowResizable reports whether the window is resizable by the user's dragging on desktops.
@@ -59,10 +54,7 @@ func SetWindowDecorated(decorated bool) {
 //
 // IsWindowResizable is concurrent-safe.
 func IsWindowResizable() bool {
-	if w := ui.Get().Window(); w != nil {
-		return w.IsResizable()
-	}
-	return false
+	return ui.Get().Window().IsResizable()
 }
 
 // SetWindowResizable sets whether the window is resizable by the user's dragging on desktops.
@@ -77,9 +69,7 @@ func IsWindowResizable() bool {
 //
 // SetWindowResizable is concurrent-safe.
 func SetWindowResizable(resizable bool) {
-	if w := ui.Get().Window(); w != nil {
-		w.SetResizable(resizable)
-	}
+	ui.Get().Window().SetResizable(resizable)
 }
 
 // SetWindowTitle sets the title of the window.
@@ -88,9 +78,7 @@ func SetWindowResizable(resizable bool) {
 //
 // SetWindowTitle is concurrent-safe.
 func SetWindowTitle(title string) {
-	if w := ui.Get().Window(); w != nil {
-		w.SetTitle(title)
-	}
+	ui.Get().Window().SetTitle(title)
 }
 
 // SetWindowIcon sets the icon of the game window.
@@ -114,9 +102,7 @@ func SetWindowTitle(title string) {
 //
 // SetWindowIcon is concurrent-safe.
 func SetWindowIcon(iconImages []image.Image) {
-	if w := ui.Get().Window(); w != nil {
-		w.SetIcon(iconImages)
-	}
+	ui.Get().Window().SetIcon(iconImages)
 }
 
 // WindowPosition returns the window position.
@@ -131,10 +117,7 @@ func SetWindowIcon(iconImages []image.Image) {
 //
 // WindowPosition is concurrent-safe.
 func WindowPosition() (x, y int) {
-	if w := ui.Get().Window(); w != nil {
-		return w.Position()
-	}
-	return 0, 0
+	return ui.Get().Window().Position()
 }
 
 // SetWindowPosition sets the window position.
@@ -148,9 +131,7 @@ func WindowPosition() (x, y int) {
 // SetWindowPosition is concurrent-safe.
 func SetWindowPosition(x, y int) {
 	atomic.StoreUint32(&windowPositionSetExplicitly, 1)
-	if w := ui.Get().Window(); w != nil {
-		w.SetPosition(x, y)
-	}
+	ui.Get().Window().SetPosition(x, y)
 }
 
 var (
@@ -158,16 +139,11 @@ var (
 )
 
 func initializeWindowPositionIfNeeded(width, height int) {
-	w := ui.Get().Window()
-	if w == nil {
-		return
-	}
-
 	if atomic.LoadUint32(&windowPositionSetExplicitly) == 0 {
 		sw, sh := ui.Get().ScreenSizeInFullscreen()
 		x := (sw - width) / 2
 		y := (sh - height) / 3
-		w.SetPosition(x, y)
+		ui.Get().Window().SetPosition(x, y)
 	}
 }
 
@@ -178,10 +154,7 @@ func initializeWindowPositionIfNeeded(width, height int) {
 //
 // WindowSize is concurrent-safe.
 func WindowSize() (int, int) {
-	if w := ui.Get().Window(); w != nil {
-		return w.Size()
-	}
-	return 0, 0
+	return ui.Get().Window().Size()
 }
 
 // SetWindowSize sets the window size on desktops.
@@ -196,9 +169,7 @@ func SetWindowSize(width, height int) {
 	if width <= 0 || height <= 0 {
 		panic("ebiten: width and height must be positive")
 	}
-	if w := ui.Get().Window(); w != nil {
-		w.SetSize(width, height)
-	}
+	ui.Get().Window().SetSize(width, height)
 }
 
 // WindowSizeLimits returns the limitation of the window size on desktops.
@@ -206,10 +177,7 @@ func SetWindowSize(width, height int) {
 //
 // WindowSizeLimits is concurrent-safe.
 func WindowSizeLimits() (minw, minh, maxw, maxh int) {
-	if w := ui.Get().Window(); w != nil {
-		return w.SizeLimits()
-	}
-	return -1, -1, -1, -1
+	return ui.Get().Window().SizeLimits()
 }
 
 // SetWindowSizeLimits sets the limitation of the window size on desktops.
@@ -217,9 +185,7 @@ func WindowSizeLimits() (minw, minh, maxw, maxh int) {
 //
 // SetWindowSizeLimits is concurrent-safe.
 func SetWindowSizeLimits(minw, minh, maxw, maxh int) {
-	if w := ui.Get().Window(); w != nil {
-		w.SetSizeLimits(minw, minh, maxw, maxh)
-	}
+	ui.Get().Window().SetSizeLimits(minw, minh, maxw, maxh)
 }
 
 // IsWindowFloating reports whether the window is always shown above all the other windows.
@@ -228,10 +194,7 @@ func SetWindowSizeLimits(minw, minh, maxw, maxh int) {
 //
 // IsWindowFloating is concurrent-safe.
 func IsWindowFloating() bool {
-	if w := ui.Get().Window(); w != nil {
-		return w.IsFloating()
-	}
-	return false
+	return ui.Get().Window().IsFloating()
 }
 
 // SetWindowFloating sets the state whether the window is always shown above all the other windows.
@@ -243,9 +206,7 @@ func IsWindowFloating() bool {
 //
 // SetWindowFloating is concurrent-safe.
 func SetWindowFloating(float bool) {
-	if w := ui.Get().Window(); w != nil {
-		w.SetFloating(float)
-	}
+	ui.Get().Window().SetFloating(float)
 }
 
 // MaximizeWindow maximizes the window.
@@ -259,9 +220,7 @@ func MaximizeWindow() {
 	if !IsWindowResizable() {
 		panic("ebiten: a window to maximize must be resizable")
 	}
-	if w := ui.Get().Window(); w != nil {
-		w.Maximize()
-	}
+	ui.Get().Window().Maximize()
 }
 
 // IsWindowMaximized reports whether the window is maximized or not.
@@ -275,10 +234,7 @@ func IsWindowMaximized() bool {
 	if !IsWindowResizable() {
 		return false
 	}
-	if w := ui.Get().Window(); w != nil {
-		return w.IsMaximized()
-	}
-	return false
+	return ui.Get().Window().IsMaximized()
 }
 
 // MinimizeWindow minimizes the window.
@@ -289,9 +245,7 @@ func IsWindowMaximized() bool {
 //
 // MinimizeWindow is concurrent-safe.
 func MinimizeWindow() {
-	if w := ui.Get().Window(); w != nil {
-		w.Minimize()
-	}
+	ui.Get().Window().Minimize()
 }
 
 // IsWindowMinimized reports whether the window is minimized or not.
@@ -300,10 +254,7 @@ func MinimizeWindow() {
 //
 // IsWindowMinimized is concurrent-safe.
 func IsWindowMinimized() bool {
-	if w := ui.Get().Window(); w != nil {
-		return w.IsMinimized()
-	}
-	return false
+	return ui.Get().Window().IsMinimized()
 }
 
 // RestoreWindow restores the window from its maximized or minimized state.
@@ -315,9 +266,7 @@ func RestoreWindow() {
 	if !IsWindowMaximized() && !IsWindowMinimized() {
 		panic("ebiten: RestoreWindow must be called on a maximized or a minimized window")
 	}
-	if w := ui.Get().Window(); w != nil {
-		w.Restore()
-	}
+	ui.Get().Window().Restore()
 }
 
 // IsWindowBeingClosed returns true when the user is trying to close the window on desktops.
@@ -328,10 +277,7 @@ func RestoreWindow() {
 //
 // IsWindowBeingClosed is concurrent-safe.
 func IsWindowBeingClosed() bool {
-	if w := ui.Get().Window(); w != nil {
-		return w.IsBeingClosed()
-	}
-	return false
+	return ui.Get().Window().IsBeingClosed()
 }
 
 // SetWindowClosingHandled sets whether the window closing is handled or not on desktops. The default state is false.
@@ -346,9 +292,7 @@ func IsWindowBeingClosed() bool {
 //
 // SetWindowClosingHandled is concurrent-safe.
 func SetWindowClosingHandled(handled bool) {
-	if w := ui.Get().Window(); w != nil {
-		w.SetClosingHandled(handled)
-	}
+	ui.Get().Window().SetClosingHandled(handled)
 }
 
 // IsWindowClosingHandled reports whether the window closing is handled or not on desktops by SetWindowClosingHandled.
@@ -357,8 +301,5 @@ func SetWindowClosingHandled(handled bool) {
 //
 // IsWindowClosingHandled is concurrent-safe.
 func IsWindowClosingHandled() bool {
-	if w := ui.Get().Window(); w != nil {
-		return w.IsClosingHandled()
-	}
-	return false
+	return ui.Get().Window().IsClosingHandled()
 }

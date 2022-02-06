@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cbackend"
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 )
 
 const deviceScaleFactor = 1
@@ -132,6 +131,6 @@ func (*UserInterface) Input() *Input {
 	return &theUserInterface.input
 }
 
-func (*UserInterface) Window() driver.Window {
-	return nil
+func (*UserInterface) Window() *Window {
+	return &Window{}
 }
