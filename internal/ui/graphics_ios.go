@@ -22,12 +22,12 @@ package ui
 import (
 	"fmt"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
 
-func Graphics() driver.Graphics {
+func Graphics() graphicsdriver.Graphics {
 	if _, err := mtl.CreateSystemDefaultDevice(); err != nil {
 		panic(fmt.Sprintf("mobile: mtl.CreateSystemDefaultDevice failed on iOS: %v", err))
 	}

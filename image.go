@@ -20,8 +20,8 @@ import (
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 )
 
@@ -106,8 +106,8 @@ func (i *Image) Fill(clr color.Color) {
 	i.DrawImage(emptySubImage, op)
 }
 
-func canSkipMipmap(geom GeoM, filter driver.Filter) bool {
-	if filter != driver.FilterLinear {
+func canSkipMipmap(geom GeoM, filter graphicsdriver.Filter) bool {
+	if filter != graphicsdriver.FilterLinear {
 		return true
 	}
 	return geom.det2x2() >= 0.999
@@ -178,7 +178,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	}
 
 	dstBounds := i.Bounds()
-	dstRegion := driver.Region{
+	dstRegion := graphicsdriver.Region{
 		X:      float32(dstBounds.Min.X),
 		Y:      float32(dstBounds.Min.Y),
 		Width:  float32(dstBounds.Dx()),
@@ -192,8 +192,8 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	}
 
 	bounds := img.Bounds()
-	mode := driver.CompositeMode(options.CompositeMode)
-	filter := driver.Filter(options.Filter)
+	mode := graphicsdriver.CompositeMode(options.CompositeMode)
+	filter := graphicsdriver.Filter(options.Filter)
 
 	a, b, c, d, tx, ty := options.GeoM.elements32()
 
@@ -206,7 +206,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 
 	srcs := [graphics.ShaderImageNum]*mipmap.Mipmap{img.mipmap}
 
-	i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.affineColorM(), mode, filter, driver.AddressUnsafe, dstRegion, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false, canSkipMipmap(options.GeoM, filter))
+	i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.affineColorM(), mode, filter, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false, canSkipMipmap(options.GeoM, filter))
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -235,13 +235,13 @@ type Address int
 
 const (
 	// AddressUnsafe means there is no guarantee when the texture coodinates are out of range.
-	AddressUnsafe Address = Address(driver.AddressUnsafe)
+	AddressUnsafe Address = Address(graphicsdriver.AddressUnsafe)
 
 	// AddressClampToZero means that out-of-range texture coordinates return 0 (transparent).
-	AddressClampToZero Address = Address(driver.AddressClampToZero)
+	AddressClampToZero Address = Address(graphicsdriver.AddressClampToZero)
 
 	// AddressRepeat means that texture coordinates wrap to the other side of the texture.
-	AddressRepeat Address = Address(driver.AddressRepeat)
+	AddressRepeat Address = Address(graphicsdriver.AddressRepeat)
 )
 
 // FillRule is the rule whether an overlapped region is rendered with DrawTriangles(Shader).
@@ -320,7 +320,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	// TODO: Check the maximum value of indices and len(vertices)?
 
 	dstBounds := i.Bounds()
-	dstRegion := driver.Region{
+	dstRegion := graphicsdriver.Region{
 		X:      float32(dstBounds.Min.X),
 		Y:      float32(dstBounds.Min.Y),
 		Width:  float32(dstBounds.Dx()),
@@ -331,13 +331,13 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		options = &DrawTrianglesOptions{}
 	}
 
-	mode := driver.CompositeMode(options.CompositeMode)
+	mode := graphicsdriver.CompositeMode(options.CompositeMode)
 
-	address := driver.Address(options.Address)
-	var sr driver.Region
-	if address != driver.AddressUnsafe {
+	address := graphicsdriver.Address(options.Address)
+	var sr graphicsdriver.Region
+	if address != graphicsdriver.AddressUnsafe {
 		b := img.Bounds()
-		sr = driver.Region{
+		sr = graphicsdriver.Region{
 			X:      float32(b.Min.X),
 			Y:      float32(b.Min.Y),
 			Width:  float32(b.Dx()),
@@ -345,7 +345,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		}
 	}
 
-	filter := driver.Filter(options.Filter)
+	filter := graphicsdriver.Filter(options.Filter)
 
 	vs := graphics.Vertices(len(vertices))
 	for i, v := range vertices {
@@ -432,7 +432,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	// TODO: Check the maximum value of indices and len(vertices)?
 
 	dstBounds := i.Bounds()
-	dstRegion := driver.Region{
+	dstRegion := graphicsdriver.Region{
 		X:      float32(dstBounds.Min.X),
 		Y:      float32(dstBounds.Min.Y),
 		Width:  float32(dstBounds.Dx()),
@@ -443,7 +443,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		options = &DrawTrianglesShaderOptions{}
 	}
 
-	mode := driver.CompositeMode(options.CompositeMode)
+	mode := graphicsdriver.CompositeMode(options.CompositeMode)
 
 	vs := graphics.Vertices(len(vertices))
 	for i, v := range vertices {
@@ -486,10 +486,10 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		sy = float32(b.Min.Y)
 	}
 
-	var sr driver.Region
+	var sr graphicsdriver.Region
 	if img := options.Images[0]; img != nil {
 		b := img.Bounds()
-		sr = driver.Region{
+		sr = graphicsdriver.Region{
 			X:      float32(b.Min.X),
 			Y:      float32(b.Min.Y),
 			Width:  float32(b.Dx()),
@@ -509,7 +509,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 
 	us := shader.convertUniforms(options.Uniforms)
 
-	i.mipmap.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, driver.FilterNearest, driver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, us, options.FillRule == EvenOdd, false)
+	i.mipmap.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, us, options.FillRule == EvenOdd, false)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
@@ -561,7 +561,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	}
 
 	dstBounds := i.Bounds()
-	dstRegion := driver.Region{
+	dstRegion := graphicsdriver.Region{
 		X:      float32(dstBounds.Min.X),
 		Y:      float32(dstBounds.Min.Y),
 		Width:  float32(dstBounds.Dx()),
@@ -572,7 +572,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		options = &DrawRectShaderOptions{}
 	}
 
-	mode := driver.CompositeMode(options.CompositeMode)
+	mode := graphicsdriver.CompositeMode(options.CompositeMode)
 
 	var imgs [graphics.ShaderImageNum]*mipmap.Mipmap
 	for i, img := range options.Images {
@@ -599,10 +599,10 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	vs := graphics.QuadVertices(sx, sy, sx+float32(width), sy+float32(height), a, b, c, d, tx, ty, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 
-	var sr driver.Region
+	var sr graphicsdriver.Region
 	if img := options.Images[0]; img != nil {
 		b := img.Bounds()
-		sr = driver.Region{
+		sr = graphicsdriver.Region{
 			X:      float32(b.Min.X),
 			Y:      float32(b.Min.Y),
 			Width:  float32(b.Dx()),
@@ -621,7 +621,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	}
 
 	us := shader.convertUniforms(options.Uniforms)
-	i.mipmap.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, driver.FilterNearest, driver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, us, false, canSkipMipmap(options.GeoM, driver.FilterNearest))
+	i.mipmap.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, us, false, canSkipMipmap(options.GeoM, graphicsdriver.FilterNearest))
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.

@@ -15,12 +15,12 @@
 package opengl
 
 import (
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
 type Image struct {
-	id          driver.ImageID
+	id          graphicsdriver.ImageID
 	graphics    *Graphics
 	texture     textureNative
 	stencil     renderbufferNative
@@ -30,7 +30,7 @@ type Image struct {
 	screen      bool
 }
 
-func (i *Image) ID() driver.ImageID {
+func (i *Image) ID() graphicsdriver.ImageID {
 	return i.id
 }
 
@@ -118,7 +118,7 @@ func (i *Image) ensureStencilBuffer() error {
 	return nil
 }
 
-func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
+func (i *Image) ReplacePixels(args []*graphicsdriver.ReplacePixelsArgs) {
 	if i.screen {
 		panic("opengl: ReplacePixels cannot be called on the screen, that doesn't have a texture")
 	}

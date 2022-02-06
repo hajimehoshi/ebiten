@@ -19,8 +19,8 @@ import (
 	"path/filepath"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
 // forceRestoring reports whether restoring forcely happens or not.
@@ -112,7 +112,7 @@ func RestoreIfNeeded() error {
 	}
 
 	err := graphicscommand.ResetGraphicsDriverState()
-	if err == driver.GraphicsNotReady {
+	if err == graphicsdriver.GraphicsNotReady {
 		return nil
 	}
 	if err != nil {

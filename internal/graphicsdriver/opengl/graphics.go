@@ -17,8 +17,8 @@ package opengl
 import (
 	"fmt"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
@@ -37,11 +37,11 @@ type Graphics struct {
 	state   openGLState
 	context context
 
-	nextImageID driver.ImageID
-	images      map[driver.ImageID]*Image
+	nextImageID graphicsdriver.ImageID
+	images      map[graphicsdriver.ImageID]*Image
 
-	nextShaderID driver.ShaderID
-	shaders      map[driver.ShaderID]*Shader
+	nextShaderID graphicsdriver.ShaderID
+	shaders      map[graphicsdriver.ShaderID]*Shader
 
 	// drawCalled is true just after Draw is called. This holds true until ReplacePixels is called.
 	drawCalled bool
@@ -86,17 +86,17 @@ func (g *Graphics) checkSize(width, height int) {
 	}
 }
 
-func (g *Graphics) genNextImageID() driver.ImageID {
+func (g *Graphics) genNextImageID() graphicsdriver.ImageID {
 	g.nextImageID++
 	return g.nextImageID
 }
 
-func (g *Graphics) genNextShaderID() driver.ShaderID {
+func (g *Graphics) genNextShaderID() graphicsdriver.ShaderID {
 	g.nextShaderID++
 	return g.nextShaderID
 }
 
-func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
+func (g *Graphics) NewImage(width, height int) (graphicsdriver.Image, error) {
 	i := &Image{
 		id:       g.genNextImageID(),
 		graphics: g,
@@ -115,7 +115,7 @@ func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
 	return i, nil
 }
 
-func (g *Graphics) NewScreenFramebufferImage(width, height int) (driver.Image, error) {
+func (g *Graphics) NewScreenFramebufferImage(width, height int) (graphicsdriver.Image, error) {
 	g.checkSize(width, height)
 	i := &Image{
 		id:       g.genNextImageID(),
@@ -130,7 +130,7 @@ func (g *Graphics) NewScreenFramebufferImage(width, height int) (driver.Image, e
 
 func (g *Graphics) addImage(img *Image) {
 	if g.images == nil {
-		g.images = map[driver.ImageID]*Image{}
+		g.images = map[graphicsdriver.ImageID]*Image{}
 	}
 	if _, ok := g.images[img.id]; ok {
 		panic(fmt.Sprintf("opengl: image ID %d was already registered", img.id))
@@ -171,7 +171,7 @@ func (g *Graphics) uniformVariableName(idx int) string {
 	return name
 }
 
-func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM driver.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, uniforms []driver.Uniform, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageNum]graphicsdriver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, colorM graphicsdriver.ColorM, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, uniforms []graphicsdriver.Uniform, evenOdd bool) error {
 	destination := g.images[dstID]
 
 	g.drawCalled = true
@@ -188,7 +188,7 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 	g.context.blendFunc(mode)
 
 	var program program
-	if shaderID == driver.InvalidShaderID {
+	if shaderID == graphicsdriver.InvalidShaderID {
 		program = g.state.programs[programKey{
 			useColorM: !colorM.IsIdentity(),
 			filter:    filter,
@@ -198,13 +198,13 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 		dw, dh := destination.framebufferSize()
 		g.uniformVars = append(g.uniformVars, uniformVariable{
 			name: "viewport_size",
-			value: driver.Uniform{
+			value: graphicsdriver.Uniform{
 				Float32s: []float32{float32(dw), float32(dh)},
 			},
 			typ: shaderir.Type{Main: shaderir.Vec2},
 		}, uniformVariable{
 			name: "source_region",
-			value: driver.Uniform{
+			value: graphicsdriver.Uniform{
 				Float32s: []float32{
 					srcRegion.X,
 					srcRegion.Y,
@@ -222,35 +222,35 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 			colorM.Elements(&esBody, &esTranslate)
 			g.uniformVars = append(g.uniformVars, uniformVariable{
 				name: "color_matrix_body",
-				value: driver.Uniform{
+				value: graphicsdriver.Uniform{
 					Float32s: esBody[:],
 				},
 				typ: shaderir.Type{Main: shaderir.Mat4},
 			}, uniformVariable{
 				name: "color_matrix_translation",
-				value: driver.Uniform{
+				value: graphicsdriver.Uniform{
 					Float32s: esTranslate[:],
 				},
 				typ: shaderir.Type{Main: shaderir.Vec4},
 			})
 		}
 
-		if filter != driver.FilterNearest {
+		if filter != graphicsdriver.FilterNearest {
 			sw, sh := g.images[srcIDs[0]].framebufferSize()
 			g.uniformVars = append(g.uniformVars, uniformVariable{
 				name: "source_size",
-				value: driver.Uniform{
+				value: graphicsdriver.Uniform{
 					Float32s: []float32{float32(sw), float32(sh)},
 				},
 				typ: shaderir.Type{Main: shaderir.Vec2},
 			})
 		}
 
-		if filter == driver.FilterScreen {
+		if filter == graphicsdriver.FilterScreen {
 			scale := float32(destination.width) / float32(g.images[srcIDs[0]].width)
 			g.uniformVars = append(g.uniformVars, uniformVariable{
 				name: "scale",
-				value: driver.Uniform{
+				value: graphicsdriver.Uniform{
 					Float32: scale,
 				},
 				typ: shaderir.Type{Main: shaderir.Float},
@@ -340,7 +340,7 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 
 	var imgs [graphics.ShaderImageNum]textureVariable
 	for i, srcID := range srcIDs {
-		if srcID == driver.InvalidImageID {
+		if srcID == graphicsdriver.InvalidImageID {
 			continue
 		}
 		imgs[i].valid = true
@@ -381,8 +381,8 @@ func (g *Graphics) SetFullscreen(fullscreen bool) {
 	// Do nothing
 }
 
-func (g *Graphics) FramebufferYDirection() driver.YDirection {
-	return driver.Upward
+func (g *Graphics) FramebufferYDirection() graphicsdriver.YDirection {
+	return graphicsdriver.Upward
 }
 
 func (g *Graphics) NeedsRestoring() bool {
@@ -405,7 +405,7 @@ func (g *Graphics) MaxImageSize() int {
 	return g.context.getMaxTextureSize()
 }
 
-func (g *Graphics) NewShader(program *shaderir.Program) (driver.Shader, error) {
+func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, error) {
 	s, err := newShader(g.genNextShaderID(), g, program)
 	if err != nil {
 		return nil, err
@@ -416,7 +416,7 @@ func (g *Graphics) NewShader(program *shaderir.Program) (driver.Shader, error) {
 
 func (g *Graphics) addShader(shader *Shader) {
 	if g.shaders == nil {
-		g.shaders = map[driver.ShaderID]*Shader{}
+		g.shaders = map[graphicsdriver.ShaderID]*Shader{}
 	}
 	if _, ok := g.shaders[shader.id]; ok {
 		panic(fmt.Sprintf("opengl: shader ID %d was already registered", shader.id))

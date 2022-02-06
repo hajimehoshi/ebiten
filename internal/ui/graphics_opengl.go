@@ -18,10 +18,10 @@
 package ui
 
 import (
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
-func Graphics() driver.Graphics {
+func Graphics() graphicsdriver.Graphics {
 	return opengl.Get()
 }

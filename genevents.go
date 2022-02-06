@@ -348,17 +348,17 @@ package {{.Package}}
 import (
 	"fmt"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
-func convertCh(driverCh chan driver.Event) (chan Event) {
+func convertCh(driverCh chan graphicsdriver.Event) (chan Event) {
 	ch := make(chan Event)
 	go func() {
 		defer close(ch)
 
 		for v := range driverCh {
 			switch v := v.(type) {
-			{{range .Events}}case driver.{{.Name}}:
+			{{range .Events}}case graphicsdriver.{{.Name}}:
 				ch <- {{.Name}}(v)
 			{{end}}default:
 				panic(fmt.Sprintf("event: unknown event: %v", v))

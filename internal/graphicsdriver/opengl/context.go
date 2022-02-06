@@ -18,26 +18,26 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
 type operation int
 
-func convertOperation(op driver.Operation) operation {
+func convertOperation(op graphicsdriver.Operation) operation {
 	switch op {
-	case driver.Zero:
+	case graphicsdriver.Zero:
 		return zero
-	case driver.One:
+	case graphicsdriver.One:
 		return one
-	case driver.SrcAlpha:
+	case graphicsdriver.SrcAlpha:
 		return srcAlpha
-	case driver.DstAlpha:
+	case graphicsdriver.DstAlpha:
 		return dstAlpha
-	case driver.OneMinusSrcAlpha:
+	case graphicsdriver.OneMinusSrcAlpha:
 		return oneMinusSrcAlpha
-	case driver.OneMinusDstAlpha:
+	case graphicsdriver.OneMinusDstAlpha:
 		return oneMinusDstAlpha
-	case driver.DstColor:
+	case graphicsdriver.DstColor:
 		return dstColor
 	default:
 		panic(fmt.Sprintf("opengl: invalid operation %d at convertOperation", op))
@@ -52,7 +52,7 @@ type context struct {
 	lastRenderbuffer   renderbufferNative
 	lastViewportWidth  int
 	lastViewportHeight int
-	lastCompositeMode  driver.CompositeMode
+	lastCompositeMode  graphicsdriver.CompositeMode
 	maxTextureSize     int
 	maxTextureSizeOnce sync.Once
 	highp              bool

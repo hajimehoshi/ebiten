@@ -21,8 +21,8 @@ import (
 	"go/token"
 	"strings"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 	"github.com/hajimehoshi/ebiten/v2/internal/shader"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -173,7 +173,7 @@ func (s *Shader) Dispose() {
 	s.shader = nil
 }
 
-func (s *Shader) convertUniforms(uniforms map[string]interface{}) []driver.Uniform {
+func (s *Shader) convertUniforms(uniforms map[string]interface{}) []graphicsdriver.Uniform {
 	type index struct {
 		resultIndex        int
 		shaderUniformIndex int
@@ -192,16 +192,16 @@ func (s *Shader) convertUniforms(uniforms map[string]interface{}) []driver.Unifo
 		idx++
 	}
 
-	us := make([]driver.Uniform, len(names))
+	us := make([]graphicsdriver.Uniform, len(names))
 	for name, idx := range names {
 		if v, ok := uniforms[name]; ok {
 			switch v := v.(type) {
 			case float32:
-				us[idx.resultIndex] = driver.Uniform{
+				us[idx.resultIndex] = graphicsdriver.Uniform{
 					Float32: v,
 				}
 			case []float32:
-				us[idx.resultIndex] = driver.Uniform{
+				us[idx.resultIndex] = graphicsdriver.Uniform{
 					Float32s: v,
 				}
 			default:
@@ -219,14 +219,14 @@ func (s *Shader) convertUniforms(uniforms map[string]interface{}) []driver.Unifo
 	return us
 }
 
-func zeroUniformValue(name string, t shaderir.Type) driver.Uniform {
+func zeroUniformValue(name string, t shaderir.Type) graphicsdriver.Uniform {
 	switch t.Main {
 	case shaderir.Float:
-		return driver.Uniform{
+		return graphicsdriver.Uniform{
 			Float32: 0,
 		}
 	case shaderir.Array, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
-		return driver.Uniform{
+		return graphicsdriver.Uniform{
 			Float32s: make([]float32, t.FloatNum()),
 		}
 	default:

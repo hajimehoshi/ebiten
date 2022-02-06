@@ -19,7 +19,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
 // glslReservedKeywords is a set of reserved keywords that cannot be used as an indentifier on some environments.
@@ -61,11 +61,11 @@ func vertexShaderStr() string {
 	return src
 }
 
-func fragmentShaderStr(useColorM bool, filter driver.Filter, address driver.Address) string {
+func fragmentShaderStr(useColorM bool, filter graphicsdriver.Filter, address graphicsdriver.Address) string {
 	replaces := map[string]string{
-		"{{.AddressClampToZero}}": fmt.Sprintf("%d", driver.AddressClampToZero),
-		"{{.AddressRepeat}}":      fmt.Sprintf("%d", driver.AddressRepeat),
-		"{{.AddressUnsafe}}":      fmt.Sprintf("%d", driver.AddressUnsafe),
+		"{{.AddressClampToZero}}": fmt.Sprintf("%d", graphicsdriver.AddressClampToZero),
+		"{{.AddressRepeat}}":      fmt.Sprintf("%d", graphicsdriver.AddressRepeat),
+		"{{.AddressUnsafe}}":      fmt.Sprintf("%d", graphicsdriver.AddressUnsafe),
 	}
 	src := shaderStrFragment
 	for k, v := range replaces {
@@ -79,22 +79,22 @@ func fragmentShaderStr(useColorM bool, filter driver.Filter, address driver.Addr
 	}
 
 	switch filter {
-	case driver.FilterNearest:
+	case graphicsdriver.FilterNearest:
 		defs = append(defs, "#define FILTER_NEAREST")
-	case driver.FilterLinear:
+	case graphicsdriver.FilterLinear:
 		defs = append(defs, "#define FILTER_LINEAR")
-	case driver.FilterScreen:
+	case graphicsdriver.FilterScreen:
 		defs = append(defs, "#define FILTER_SCREEN")
 	default:
 		panic(fmt.Sprintf("opengl: invalid filter: %d", filter))
 	}
 
 	switch address {
-	case driver.AddressClampToZero:
+	case graphicsdriver.AddressClampToZero:
 		defs = append(defs, "#define ADDRESS_CLAMP_TO_ZERO")
-	case driver.AddressRepeat:
+	case graphicsdriver.AddressRepeat:
 		defs = append(defs, "#define ADDRESS_REPEAT")
-	case driver.AddressUnsafe:
+	case graphicsdriver.AddressUnsafe:
 		defs = append(defs, "#define ADDRESS_UNSAFE")
 	default:
 		panic(fmt.Sprintf("opengl: invalid address: %d", address))

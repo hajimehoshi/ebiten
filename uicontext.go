@@ -23,8 +23,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
@@ -209,11 +209,11 @@ func (c *uiContext) updateFrameImpl(updateCount int) error {
 
 	s := c.screenScale(ui.Get().DeviceScaleFactor())
 	switch vd := ui.Graphics().FramebufferYDirection(); vd {
-	case driver.Upward:
+	case graphicsdriver.Upward:
 		op.GeoM.Scale(s, -s)
 		_, h := c.offscreen.Size()
 		op.GeoM.Translate(0, float64(h)*s)
-	case driver.Downward:
+	case graphicsdriver.Downward:
 		op.GeoM.Scale(s, s)
 	default:
 		panic(fmt.Sprintf("ebiten: invalid v-direction: %d", vd))

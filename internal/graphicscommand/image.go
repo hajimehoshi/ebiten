@@ -23,14 +23,14 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/png"
 )
 
 // Image represents an image that is implemented with OpenGL.
 type Image struct {
-	image          driver.Image
+	image          graphicsdriver.Image
 	width          int
 	height         int
 	internalWidth  int
@@ -39,11 +39,11 @@ type Image struct {
 
 	// id is an indentifier for the image. This is used only when dummping the information.
 	//
-	// This is duplicated with driver.Image's ID, but this id is still necessary because this image might not
-	// have its driver.Image.
+	// This is duplicated with graphicsdriver.Image's ID, but this id is still necessary because this image might not
+	// have its graphicsdriver.Image.
 	id int
 
-	bufferedRP []*driver.ReplacePixelsArgs
+	bufferedRP []*graphicsdriver.ReplacePixelsArgs
 }
 
 var nextID = 1
@@ -141,7 +141,7 @@ func (i *Image) InternalSize() (int, int) {
 //
 // If the source image is not specified, i.e., src is nil and there is no image in the uniform variables, the
 // elements for the source image are not used.
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, clr affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, shader *Shader, uniforms []driver.Uniform, evenOdd bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, clr affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms []graphicsdriver.Uniform, evenOdd bool) {
 	if shader == nil {
 		// Fast path for rendering without a shader (#1355).
 		img := srcs[0]
@@ -180,7 +180,7 @@ func (i *Image) Pixels() ([]byte, error) {
 }
 
 func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
-	i.bufferedRP = append(i.bufferedRP, &driver.ReplacePixelsArgs{
+	i.bufferedRP = append(i.bufferedRP, &graphicsdriver.ReplacePixelsArgs{
 		Pixels: pixels,
 		X:      x,
 		Y:      y,

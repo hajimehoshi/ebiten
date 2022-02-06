@@ -21,7 +21,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
@@ -110,11 +110,11 @@ func (c *context) reset() error {
 	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
-	c.lastCompositeMode = driver.CompositeModeUnknown
+	c.lastCompositeMode = graphicsdriver.CompositeModeUnknown
 	gl.Enable(gl.BLEND)
 	gl.Enable(gl.SCISSOR_TEST)
 
-	c.blendFunc(driver.CompositeModeSourceOver)
+	c.blendFunc(graphicsdriver.CompositeModeSourceOver)
 
 	f := int32(0)
 	gl.GetIntegerv(gl.FRAMEBUFFER_BINDING, &f)
@@ -122,7 +122,7 @@ func (c *context) reset() error {
 	return nil
 }
 
-func (c *context) blendFunc(mode driver.CompositeMode) {
+func (c *context) blendFunc(mode graphicsdriver.CompositeMode) {
 	if c.lastCompositeMode == mode {
 		return
 	}
@@ -496,7 +496,7 @@ func (c *context) needsRestoring() bool {
 	return false
 }
 
-func (c *context) texSubImage2D(t textureNative, args []*driver.ReplacePixelsArgs) {
+func (c *context) texSubImage2D(t textureNative, args []*graphicsdriver.ReplacePixelsArgs) {
 	c.bindTexture(t)
 	for _, a := range args {
 		gl.TexSubImage2D(gl.TEXTURE_2D, 0, int32(a.X), int32(a.Y), int32(a.Width), int32(a.Height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(a.Pixels))

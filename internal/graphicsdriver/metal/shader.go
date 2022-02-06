@@ -20,19 +20,19 @@ package metal
 import (
 	"fmt"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/metal"
 )
 
 type shaderRpsKey struct {
-	compositeMode driver.CompositeMode
+	compositeMode graphicsdriver.CompositeMode
 	stencilMode   stencilMode
 }
 
 type Shader struct {
-	id driver.ShaderID
+	id graphicsdriver.ShaderID
 
 	ir   *shaderir.Program
 	fs   mtl.Function
@@ -40,7 +40,7 @@ type Shader struct {
 	rpss map[shaderRpsKey]mtl.RenderPipelineState
 }
 
-func newShader(device mtl.Device, id driver.ShaderID, program *shaderir.Program) (*Shader, error) {
+func newShader(device mtl.Device, id graphicsdriver.ShaderID, program *shaderir.Program) (*Shader, error) {
 	s := &Shader{
 		id:   id,
 		ir:   program,
@@ -52,7 +52,7 @@ func newShader(device mtl.Device, id driver.ShaderID, program *shaderir.Program)
 	return s, nil
 }
 
-func (s *Shader) ID() driver.ShaderID {
+func (s *Shader) ID() graphicsdriver.ShaderID {
 	return s.id
 }
 
@@ -88,7 +88,7 @@ func (s *Shader) init(device mtl.Device) error {
 	return nil
 }
 
-func (s *Shader) RenderPipelineState(device mtl.Device, compositeMode driver.CompositeMode, stencilMode stencilMode) (mtl.RenderPipelineState, error) {
+func (s *Shader) RenderPipelineState(device mtl.Device, compositeMode graphicsdriver.CompositeMode, stencilMode stencilMode) (mtl.RenderPipelineState, error) {
 	if rps, ok := s.rpss[shaderRpsKey{
 		compositeMode: compositeMode,
 		stencilMode:   stencilMode,

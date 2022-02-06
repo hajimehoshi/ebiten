@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
@@ -116,8 +116,8 @@ func init() {
 
 type programKey struct {
 	useColorM bool
-	filter    driver.Filter
-	address   driver.Address
+	filter    graphicsdriver.Filter
+	address   graphicsdriver.Address
 }
 
 // openGLState is a state for
@@ -132,7 +132,7 @@ type openGLState struct {
 	programs map[programKey]program
 
 	lastProgram       program
-	lastUniforms      map[string]driver.Uniform
+	lastUniforms      map[string]graphicsdriver.Uniform
 	lastActiveTexture int
 }
 
@@ -183,15 +183,15 @@ func (s *openGLState) reset(context *context) error {
 	defer context.deleteShader(shaderVertexModelviewNative)
 
 	for _, c := range []bool{false, true} {
-		for _, a := range []driver.Address{
-			driver.AddressClampToZero,
-			driver.AddressRepeat,
-			driver.AddressUnsafe,
+		for _, a := range []graphicsdriver.Address{
+			graphicsdriver.AddressClampToZero,
+			graphicsdriver.AddressRepeat,
+			graphicsdriver.AddressUnsafe,
 		} {
-			for _, f := range []driver.Filter{
-				driver.FilterNearest,
-				driver.FilterLinear,
-				driver.FilterScreen,
+			for _, f := range []graphicsdriver.Filter{
+				graphicsdriver.FilterNearest,
+				graphicsdriver.FilterLinear,
+				graphicsdriver.FilterScreen,
 			} {
 				shaderFragmentColorMatrixNative, err := context.newFragmentShader(fragmentShaderStr(c, f, a))
 				if err != nil {
@@ -242,7 +242,7 @@ func areSameFloat32Array(a, b []float32) bool {
 
 type uniformVariable struct {
 	name  string
-	value driver.Uniform
+	value graphicsdriver.Uniform
 	typ   shaderir.Type
 }
 
@@ -296,7 +296,7 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 			// TODO: Remember whether the location is available or not.
 			g.context.uniformFloat(program, u.name, u.value.Float32)
 			if g.state.lastUniforms == nil {
-				g.state.lastUniforms = map[string]driver.Uniform{}
+				g.state.lastUniforms = map[string]graphicsdriver.Uniform{}
 			}
 			g.state.lastUniforms[u.name] = u.value
 		} else {
@@ -313,7 +313,7 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 			}
 			g.context.uniformFloats(program, u.name, u.value.Float32s, u.typ)
 			if g.state.lastUniforms == nil {
-				g.state.lastUniforms = map[string]driver.Uniform{}
+				g.state.lastUniforms = map[string]graphicsdriver.Uniform{}
 			}
 			g.state.lastUniforms[u.name] = u.value
 		}

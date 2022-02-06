@@ -24,8 +24,8 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -297,9 +297,9 @@ FragmentShaderFunc(0, FILTER_SCREEN, ADDRESS_UNSAFE)
 
 type rpsKey struct {
 	useColorM     bool
-	filter        driver.Filter
-	address       driver.Address
-	compositeMode driver.CompositeMode
+	filter        graphicsdriver.Filter
+	address       graphicsdriver.Address
+	compositeMode graphicsdriver.CompositeMode
 	stencilMode   stencilMode
 	screen        bool
 }
@@ -325,11 +325,11 @@ type Graphics struct {
 	vb mtl.Buffer
 	ib mtl.Buffer
 
-	images      map[driver.ImageID]*Image
-	nextImageID driver.ImageID
+	images      map[graphicsdriver.ImageID]*Image
+	nextImageID graphicsdriver.ImageID
 
-	shaders      map[driver.ShaderID]*Shader
-	nextShaderID driver.ShaderID
+	shaders      map[graphicsdriver.ShaderID]*Shader
+	nextShaderID graphicsdriver.ShaderID
 
 	src *Image
 	dst *Image
@@ -499,17 +499,17 @@ func (g *Graphics) checkSize(width, height int) {
 	}
 }
 
-func (g *Graphics) genNextImageID() driver.ImageID {
+func (g *Graphics) genNextImageID() graphicsdriver.ImageID {
 	g.nextImageID++
 	return g.nextImageID
 }
 
-func (g *Graphics) genNextShaderID() driver.ShaderID {
+func (g *Graphics) genNextShaderID() graphicsdriver.ShaderID {
 	g.nextShaderID++
 	return g.nextShaderID
 }
 
-func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
+func (g *Graphics) NewImage(width, height int) (graphicsdriver.Image, error) {
 	g.checkSize(width, height)
 	td := mtl.TextureDescriptor{
 		TextureType: mtl.TextureType2D,
@@ -531,7 +531,7 @@ func (g *Graphics) NewImage(width, height int) (driver.Image, error) {
 	return i, nil
 }
 
-func (g *Graphics) NewScreenFramebufferImage(width, height int) (driver.Image, error) {
+func (g *Graphics) NewScreenFramebufferImage(width, height int) (graphicsdriver.Image, error) {
 	g.view.setDrawableSize(width, height)
 	i := &Image{
 		id:       g.genNextImageID(),
@@ -546,7 +546,7 @@ func (g *Graphics) NewScreenFramebufferImage(width, height int) (driver.Image, e
 
 func (g *Graphics) addImage(img *Image) {
 	if g.images == nil {
-		g.images = map[driver.ImageID]*Image{}
+		g.images = map[graphicsdriver.ImageID]*Image{}
 	}
 	if _, ok := g.images[img.id]; ok {
 		panic(fmt.Sprintf("opengl: image ID %d was already registered", img.id))
@@ -562,21 +562,21 @@ func (g *Graphics) SetTransparent(transparent bool) {
 	g.transparent = transparent
 }
 
-func operationToBlendFactor(c driver.Operation) mtl.BlendFactor {
+func operationToBlendFactor(c graphicsdriver.Operation) mtl.BlendFactor {
 	switch c {
-	case driver.Zero:
+	case graphicsdriver.Zero:
 		return mtl.BlendFactorZero
-	case driver.One:
+	case graphicsdriver.One:
 		return mtl.BlendFactorOne
-	case driver.SrcAlpha:
+	case graphicsdriver.SrcAlpha:
 		return mtl.BlendFactorSourceAlpha
-	case driver.DstAlpha:
+	case graphicsdriver.DstAlpha:
 		return mtl.BlendFactorDestinationAlpha
-	case driver.OneMinusSrcAlpha:
+	case graphicsdriver.OneMinusSrcAlpha:
 		return mtl.BlendFactorOneMinusSourceAlpha
-	case driver.OneMinusDstAlpha:
+	case graphicsdriver.OneMinusDstAlpha:
 		return mtl.BlendFactorOneMinusDestinationAlpha
-	case driver.DstColor:
+	case graphicsdriver.DstColor:
 		return mtl.BlendFactorDestinationColor
 	default:
 		panic(fmt.Sprintf("metal: invalid operation: %d", c))
@@ -607,12 +607,12 @@ func (g *Graphics) Initialize() error {
 	}
 
 	replaces := map[string]string{
-		"{{.FilterNearest}}":      fmt.Sprintf("%d", driver.FilterNearest),
-		"{{.FilterLinear}}":       fmt.Sprintf("%d", driver.FilterLinear),
-		"{{.FilterScreen}}":       fmt.Sprintf("%d", driver.FilterScreen),
-		"{{.AddressClampToZero}}": fmt.Sprintf("%d", driver.AddressClampToZero),
-		"{{.AddressRepeat}}":      fmt.Sprintf("%d", driver.AddressRepeat),
-		"{{.AddressUnsafe}}":      fmt.Sprintf("%d", driver.AddressUnsafe),
+		"{{.FilterNearest}}":      fmt.Sprintf("%d", graphicsdriver.FilterNearest),
+		"{{.FilterLinear}}":       fmt.Sprintf("%d", graphicsdriver.FilterLinear),
+		"{{.FilterScreen}}":       fmt.Sprintf("%d", graphicsdriver.FilterScreen),
+		"{{.AddressClampToZero}}": fmt.Sprintf("%d", graphicsdriver.AddressClampToZero),
+		"{{.AddressRepeat}}":      fmt.Sprintf("%d", graphicsdriver.AddressRepeat),
+		"{{.AddressUnsafe}}":      fmt.Sprintf("%d", graphicsdriver.AddressUnsafe),
 	}
 	src := source
 	for k, v := range replaces {
@@ -628,7 +628,7 @@ func (g *Graphics) Initialize() error {
 		return err
 	}
 	fs, err := lib.MakeFunction(
-		fmt.Sprintf("FragmentShader_%d_%d_%d", 0, driver.FilterScreen, driver.AddressUnsafe))
+		fmt.Sprintf("FragmentShader_%d_%d_%d", 0, graphicsdriver.FilterScreen, graphicsdriver.AddressUnsafe))
 	if err != nil {
 		return err
 	}
@@ -651,16 +651,16 @@ func (g *Graphics) Initialize() error {
 
 	for _, screen := range []bool{false, true} {
 		for _, cm := range []bool{false, true} {
-			for _, a := range []driver.Address{
-				driver.AddressClampToZero,
-				driver.AddressRepeat,
-				driver.AddressUnsafe,
+			for _, a := range []graphicsdriver.Address{
+				graphicsdriver.AddressClampToZero,
+				graphicsdriver.AddressRepeat,
+				graphicsdriver.AddressUnsafe,
 			} {
-				for _, f := range []driver.Filter{
-					driver.FilterNearest,
-					driver.FilterLinear,
+				for _, f := range []graphicsdriver.Filter{
+					graphicsdriver.FilterNearest,
+					graphicsdriver.FilterLinear,
 				} {
-					for c := driver.CompositeModeSourceOver; c <= driver.CompositeModeMax; c++ {
+					for c := graphicsdriver.CompositeModeSourceOver; c <= graphicsdriver.CompositeModeMax; c++ {
 						for _, stencil := range []stencilMode{
 							prepareStencil,
 							drawWithStencil,
@@ -775,7 +775,7 @@ func (g *Graphics) flushRenderCommandEncoderIfNeeded() {
 	g.lastDst = nil
 }
 
-func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion driver.Region, srcs [graphics.ShaderImageNum]*Image, indexLen int, indexOffset int, uniforms []driver.Uniform, stencilMode stencilMode) error {
+func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion graphicsdriver.Region, srcs [graphics.ShaderImageNum]*Image, indexLen int, indexOffset int, uniforms []graphicsdriver.Uniform, stencilMode stencilMode) error {
 	// When prepareing a stencil buffer, flush the current render command encoder
 	// to make sure the stencil buffer is cleared when loading.
 	// TODO: What about clearing the stencil buffer by vertices?
@@ -866,7 +866,7 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion drive
 	return nil
 }
 
-func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderImageNum]driver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID driver.ShaderID, indexLen int, indexOffset int, mode driver.CompositeMode, colorM driver.ColorM, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, uniforms []driver.Uniform, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageNum]graphicsdriver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, colorM graphicsdriver.ColorM, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, uniforms []graphicsdriver.Uniform, evenOdd bool) error {
 	dst := g.images[dstID]
 
 	if dst.screen {
@@ -879,9 +879,9 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 	}
 
 	rpss := map[stencilMode]mtl.RenderPipelineState{}
-	var uniformVars []driver.Uniform
-	if shaderID == driver.InvalidShaderID {
-		if dst.screen && filter == driver.FilterScreen {
+	var uniformVars []graphicsdriver.Uniform
+	if shaderID == graphicsdriver.InvalidShaderID {
+		if dst.screen && filter == graphicsdriver.FilterScreen {
 			rpss[noStencil] = g.screenRPS
 		} else {
 			for _, stencil := range []stencilMode{
@@ -902,7 +902,7 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 
 		w, h := dst.internalSize()
 		sourceSize := []float32{0, 0}
-		if filter != driver.FilterNearest {
+		if filter != graphicsdriver.FilterNearest {
 			w, h := srcs[0].internalSize()
 			sourceSize[0] = float32(w)
 			sourceSize[1] = float32(h)
@@ -911,10 +911,10 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 		var esTranslate [4]float32
 		colorM.Elements(&esBody, &esTranslate)
 		scale := float32(0)
-		if filter == driver.FilterScreen {
+		if filter == graphicsdriver.FilterScreen {
 			scale = float32(dst.width) / float32(srcs[0].width)
 		}
-		uniformVars = []driver.Uniform{
+		uniformVars = []graphicsdriver.Uniform{
 			{
 				Float32s: []float32{float32(w), float32(h)},
 			},
@@ -952,11 +952,11 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 			}
 		}
 
-		uniformVars = make([]driver.Uniform, graphics.PreservedUniformVariablesNum+len(uniforms))
+		uniformVars = make([]graphicsdriver.Uniform, graphics.PreservedUniformVariablesNum+len(uniforms))
 
 		// Set the destination texture size.
 		dw, dh := dst.internalSize()
-		uniformVars[graphics.DestinationTextureSizeUniformVariableIndex] = driver.Uniform{
+		uniformVars[graphics.DestinationTextureSizeUniformVariableIndex] = graphicsdriver.Uniform{
 			Float32s: []float32{float32(dw), float32(dh)},
 		}
 
@@ -969,19 +969,19 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 				usizes[2*i+1] = float32(h)
 			}
 		}
-		uniformVars[graphics.TextureSizesUniformVariableIndex] = driver.Uniform{
+		uniformVars[graphics.TextureSizesUniformVariableIndex] = graphicsdriver.Uniform{
 			Float32s: usizes,
 		}
 
 		// Set the destination region's origin.
 		udorigin := []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
-		uniformVars[graphics.TextureDestinationRegionOriginUniformVariableIndex] = driver.Uniform{
+		uniformVars[graphics.TextureDestinationRegionOriginUniformVariableIndex] = graphicsdriver.Uniform{
 			Float32s: udorigin,
 		}
 
 		// Set the destination region's size.
 		udsize := []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
-		uniformVars[graphics.TextureDestinationRegionSizeUniformVariableIndex] = driver.Uniform{
+		uniformVars[graphics.TextureDestinationRegionSizeUniformVariableIndex] = graphicsdriver.Uniform{
 			Float32s: udsize,
 		}
 
@@ -991,19 +991,19 @@ func (g *Graphics) DrawTriangles(dstID driver.ImageID, srcIDs [graphics.ShaderIm
 			uoffsets[2*i] = offset[0]
 			uoffsets[2*i+1] = offset[1]
 		}
-		uniformVars[graphics.TextureSourceOffsetsUniformVariableIndex] = driver.Uniform{
+		uniformVars[graphics.TextureSourceOffsetsUniformVariableIndex] = graphicsdriver.Uniform{
 			Float32s: uoffsets,
 		}
 
 		// Set the source region's origin of texture0.
 		usorigin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
-		uniformVars[graphics.TextureSourceRegionOriginUniformVariableIndex] = driver.Uniform{
+		uniformVars[graphics.TextureSourceRegionOriginUniformVariableIndex] = graphicsdriver.Uniform{
 			Float32s: usorigin,
 		}
 
 		// Set the source region's size of texture0.
 		ussize := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
-		uniformVars[graphics.TextureSourceRegionSizeUniformVariableIndex] = driver.Uniform{
+		uniformVars[graphics.TextureSourceRegionSizeUniformVariableIndex] = graphicsdriver.Uniform{
 			Float32s: ussize,
 		}
 
@@ -1038,8 +1038,8 @@ func (g *Graphics) SetFullscreen(fullscreen bool) {
 	g.view.setFullscreen(fullscreen)
 }
 
-func (g *Graphics) FramebufferYDirection() driver.YDirection {
-	return driver.Downward
+func (g *Graphics) FramebufferYDirection() graphicsdriver.YDirection {
+	return graphicsdriver.Downward
 }
 
 func (g *Graphics) NeedsRestoring() bool {
@@ -1092,7 +1092,7 @@ func (g *Graphics) MaxImageSize() int {
 	return g.maxImageSize
 }
 
-func (g *Graphics) NewShader(program *shaderir.Program) (driver.Shader, error) {
+func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, error) {
 	s, err := newShader(g.view.getMTLDevice(), g.genNextShaderID(), program)
 	if err != nil {
 		return nil, err
@@ -1103,7 +1103,7 @@ func (g *Graphics) NewShader(program *shaderir.Program) (driver.Shader, error) {
 
 func (g *Graphics) addShader(shader *Shader) {
 	if g.shaders == nil {
-		g.shaders = map[driver.ShaderID]*Shader{}
+		g.shaders = map[graphicsdriver.ShaderID]*Shader{}
 	}
 	if _, ok := g.shaders[shader.id]; ok {
 		panic(fmt.Sprintf("metal: shader ID %d was already registered", shader.id))
@@ -1116,7 +1116,7 @@ func (g *Graphics) removeShader(shader *Shader) {
 }
 
 type Image struct {
-	id       driver.ImageID
+	id       graphicsdriver.ImageID
 	graphics *Graphics
 	width    int
 	height   int
@@ -1125,7 +1125,7 @@ type Image struct {
 	stencil  mtl.Texture
 }
 
-func (i *Image) ID() driver.ImageID {
+func (i *Image) ID() graphicsdriver.ImageID {
 	return i.id
 }
 
@@ -1184,7 +1184,7 @@ func (i *Image) Pixels() ([]byte, error) {
 	return b, nil
 }
 
-func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
+func (i *Image) ReplacePixels(args []*graphicsdriver.ReplacePixelsArgs) {
 	g := i.graphics
 
 	g.flushRenderCommandEncoderIfNeeded()

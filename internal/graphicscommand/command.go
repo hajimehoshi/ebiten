@@ -21,14 +21,14 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
-var theGraphicsDriver driver.Graphics
+var theGraphicsDriver graphicsdriver.Graphics
 
-func SetGraphicsDriver(driver driver.Graphics) {
+func SetGraphicsDriver(driver graphicsdriver.Graphics) {
 	theGraphicsDriver = driver
 }
 
@@ -150,7 +150,7 @@ func mustUseDifferentVertexBuffer(nextNumVertexFloats, nextNumIndices int) bool 
 }
 
 // EnqueueDrawTrianglesCommand enqueues a drawing-image command.
-func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, color affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, shader *Shader, uniforms []driver.Uniform, evenOdd bool) {
+func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, color affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms []graphicsdriver.Uniform, evenOdd bool) {
 	if len(indices) > graphics.IndicesNum {
 		panic(fmt.Sprintf("graphicscommand: len(indices) must be <= graphics.IndicesNum but not at EnqueueDrawTrianglesCommand: len(indices): %d, graphics.IndicesNum: %d", len(indices), graphics.IndicesNum))
 	}
@@ -363,46 +363,46 @@ type drawTrianglesCommand struct {
 	vertices  []float32
 	nindices  int
 	color     affine.ColorM
-	mode      driver.CompositeMode
-	filter    driver.Filter
-	address   driver.Address
-	dstRegion driver.Region
-	srcRegion driver.Region
+	mode      graphicsdriver.CompositeMode
+	filter    graphicsdriver.Filter
+	address   graphicsdriver.Address
+	dstRegion graphicsdriver.Region
+	srcRegion graphicsdriver.Region
 	shader    *Shader
-	uniforms  []driver.Uniform
+	uniforms  []graphicsdriver.Uniform
 	evenOdd   bool
 }
 
 func (c *drawTrianglesCommand) String() string {
 	mode := ""
 	switch c.mode {
-	case driver.CompositeModeSourceOver:
+	case graphicsdriver.CompositeModeSourceOver:
 		mode = "source-over"
-	case driver.CompositeModeClear:
+	case graphicsdriver.CompositeModeClear:
 		mode = "clear"
-	case driver.CompositeModeCopy:
+	case graphicsdriver.CompositeModeCopy:
 		mode = "copy"
-	case driver.CompositeModeDestination:
+	case graphicsdriver.CompositeModeDestination:
 		mode = "destination"
-	case driver.CompositeModeDestinationOver:
+	case graphicsdriver.CompositeModeDestinationOver:
 		mode = "destination-over"
-	case driver.CompositeModeSourceIn:
+	case graphicsdriver.CompositeModeSourceIn:
 		mode = "source-in"
-	case driver.CompositeModeDestinationIn:
+	case graphicsdriver.CompositeModeDestinationIn:
 		mode = "destination-in"
-	case driver.CompositeModeSourceOut:
+	case graphicsdriver.CompositeModeSourceOut:
 		mode = "source-out"
-	case driver.CompositeModeDestinationOut:
+	case graphicsdriver.CompositeModeDestinationOut:
 		mode = "destination-out"
-	case driver.CompositeModeSourceAtop:
+	case graphicsdriver.CompositeModeSourceAtop:
 		mode = "source-atop"
-	case driver.CompositeModeDestinationAtop:
+	case graphicsdriver.CompositeModeDestinationAtop:
 		mode = "destination-atop"
-	case driver.CompositeModeXor:
+	case graphicsdriver.CompositeModeXor:
 		mode = "xor"
-	case driver.CompositeModeLighter:
+	case graphicsdriver.CompositeModeLighter:
 		mode = "lighter"
-	case driver.CompositeModeMultiply:
+	case graphicsdriver.CompositeModeMultiply:
 		mode = "multiply"
 	default:
 		panic(fmt.Sprintf("graphicscommand: invalid composite mode: %d", c.mode))
@@ -419,11 +419,11 @@ func (c *drawTrianglesCommand) String() string {
 
 	filter := ""
 	switch c.filter {
-	case driver.FilterNearest:
+	case graphicsdriver.FilterNearest:
 		filter = "nearest"
-	case driver.FilterLinear:
+	case graphicsdriver.FilterLinear:
 		filter = "linear"
-	case driver.FilterScreen:
+	case graphicsdriver.FilterScreen:
 		filter = "screen"
 	default:
 		panic(fmt.Sprintf("graphicscommand: invalid filter: %d", c.filter))
@@ -431,11 +431,11 @@ func (c *drawTrianglesCommand) String() string {
 
 	address := ""
 	switch c.address {
-	case driver.AddressClampToZero:
+	case graphicsdriver.AddressClampToZero:
 		address = "clamp_to_zero"
-	case driver.AddressRepeat:
+	case graphicsdriver.AddressRepeat:
 		address = "repeat"
-	case driver.AddressUnsafe:
+	case graphicsdriver.AddressUnsafe:
 		address = "unsafe"
 	default:
 		panic(fmt.Sprintf("graphicscommand: invalid address: %d", c.address))
@@ -465,13 +465,13 @@ func (c *drawTrianglesCommand) Exec(indexOffset int) error {
 		return nil
 	}
 
-	var shaderID driver.ShaderID = driver.InvalidShaderID
-	var imgs [graphics.ShaderImageNum]driver.ImageID
+	var shaderID graphicsdriver.ShaderID = graphicsdriver.InvalidShaderID
+	var imgs [graphics.ShaderImageNum]graphicsdriver.ImageID
 	if c.shader != nil {
 		shaderID = c.shader.shader.ID()
 		for i, src := range c.srcs {
 			if src == nil {
-				imgs[i] = driver.InvalidImageID
+				imgs[i] = graphicsdriver.InvalidImageID
 				continue
 			}
 			imgs[i] = src.image.ID()
@@ -501,7 +501,7 @@ func (c *drawTrianglesCommand) addNumIndices(n int) {
 
 // CanMergeWithDrawTrianglesCommand returns a boolean value indicating whether the other drawTrianglesCommand can be merged
 // with the drawTrianglesCommand c.
-func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageNum]*Image, vertices []float32, color affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, shader *Shader, evenOdd bool) bool {
+func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageNum]*Image, vertices []float32, color affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, evenOdd bool) bool {
 	// If a shader is used, commands are not merged.
 	//
 	// TODO: Merge shader commands considering uniform variables.
@@ -581,7 +581,7 @@ func mightOverlapDstRegions(vertices1, vertices2 []float32) bool {
 // replacePixelsCommand represents a command to replace pixels of an image.
 type replacePixelsCommand struct {
 	dst  *Image
-	args []*driver.ReplacePixelsArgs
+	args []*graphicsdriver.ReplacePixelsArgs
 }
 
 func (c *replacePixelsCommand) String() string {

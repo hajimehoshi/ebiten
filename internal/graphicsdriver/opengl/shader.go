@@ -17,20 +17,20 @@ package opengl
 import (
 	"fmt"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
 )
 
 type Shader struct {
-	id       driver.ShaderID
+	id       graphicsdriver.ShaderID
 	graphics *Graphics
 
 	ir *shaderir.Program
 	p  program
 }
 
-func newShader(id driver.ShaderID, graphics *Graphics, program *shaderir.Program) (*Shader, error) {
+func newShader(id graphicsdriver.ShaderID, graphics *Graphics, program *shaderir.Program) (*Shader, error) {
 	s := &Shader{
 		id:       id,
 		graphics: graphics,
@@ -42,7 +42,7 @@ func newShader(id driver.ShaderID, graphics *Graphics, program *shaderir.Program
 	return s, nil
 }
 
-func (s *Shader) ID() driver.ShaderID {
+func (s *Shader) ID() graphicsdriver.ShaderID {
 	return s.id
 }
 

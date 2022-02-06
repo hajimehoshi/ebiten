@@ -34,13 +34,13 @@ package ui
 import "C"
 
 import (
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
-var graphics driver.Graphics
+var graphics graphicsdriver.Graphics
 
 func supportsMetal() bool {
 	// On old mac devices like iMac 2011, Metal is not supported (#779).
@@ -64,6 +64,6 @@ func init() {
 	graphics = opengl.Get()
 }
 
-func Graphics() driver.Graphics {
+func Graphics() graphicsdriver.Graphics {
 	return graphics
 }

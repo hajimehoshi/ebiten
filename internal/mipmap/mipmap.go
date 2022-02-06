@@ -20,8 +20,8 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
@@ -87,14 +87,14 @@ func (m *Mipmap) Pixels(x, y, width, height int) ([]byte, error) {
 	return m.orig.Pixels(x, y, width, height)
 }
 
-func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices []float32, indices []uint16, colorm affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms []driver.Uniform, evenOdd bool, canSkipMipmap bool) {
+func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms []graphicsdriver.Uniform, evenOdd bool, canSkipMipmap bool) {
 	if len(indices) == 0 {
 		return
 	}
 
 	level := 0
 	// TODO: Do we need to check all the sources' states of being volatile?
-	if !canSkipMipmap && srcs[0] != nil && !srcs[0].volatile && filter != driver.FilterScreen {
+	if !canSkipMipmap && srcs[0] != nil && !srcs[0].volatile && filter != graphicsdriver.FilterScreen {
 		level = math.MaxInt32
 		for i := 0; i < len(indices)/3; i++ {
 			const n = graphics.VertexFloatNum
@@ -176,12 +176,12 @@ func (m *Mipmap) level(level int) *buffered.Image {
 
 	var src *buffered.Image
 	var vs []float32
-	var filter driver.Filter
+	var filter graphicsdriver.Filter
 	switch {
 	case level == 1:
 		src = m.orig
 		vs = graphics.QuadVertices(0, 0, float32(m.width), float32(m.height), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
-		filter = driver.FilterLinear
+		filter = graphicsdriver.FilterLinear
 	case level > 1:
 		src = m.level(level - 1)
 		if src == nil {
@@ -191,7 +191,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		w := sizeForLevel(m.width, level-1)
 		h := sizeForLevel(m.height, level-1)
 		vs = graphics.QuadVertices(0, 0, float32(w), float32(h), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
-		filter = driver.FilterLinear
+		filter = graphicsdriver.FilterLinear
 	default:
 		panic(fmt.Sprintf("ebiten: invalid level: %d", level))
 	}
@@ -213,13 +213,13 @@ func (m *Mipmap) level(level int) *buffered.Image {
 	s := buffered.NewImage(w2, h2)
 	s.SetVolatile(m.volatile)
 
-	dstRegion := driver.Region{
+	dstRegion := graphicsdriver.Region{
 		X:      0,
 		Y:      0,
 		Width:  float32(w2),
 		Height: float32(h2),
 	}
-	s.DrawTriangles([graphics.ShaderImageNum]*buffered.Image{src}, vs, is, affine.ColorMIdentity{}, driver.CompositeModeCopy, filter, driver.AddressUnsafe, dstRegion, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+	s.DrawTriangles([graphics.ShaderImageNum]*buffered.Image{src}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, filter, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 	m.setImg(level, s)
 
 	return m.imgs[level]
@@ -253,10 +253,10 @@ func (m *Mipmap) disposeMipmaps() {
 }
 
 // mipmapLevel returns an appropriate mipmap level for the given distance.
-func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, filter driver.Filter) int {
+func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, filter graphicsdriver.Filter) int {
 	const maxLevel = 6
 
-	if filter == driver.FilterScreen {
+	if filter == graphicsdriver.FilterScreen {
 		return 0
 	}
 
@@ -277,7 +277,7 @@ func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, fil
 		return 0
 	}
 
-	if filter != driver.FilterLinear {
+	if filter != graphicsdriver.FilterLinear {
 		return 0
 	}
 

@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"syscall/js"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gles"
 	"github.com/hajimehoshi/ebiten/v2/internal/jsutil"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -167,19 +167,19 @@ func (c *context) reset() error {
 	c.lastFramebuffer = framebufferNative(js.Null())
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
-	c.lastCompositeMode = driver.CompositeModeUnknown
+	c.lastCompositeMode = graphicsdriver.CompositeModeUnknown
 
 	if err := c.initGL(); err != nil {
 		return err
 	}
 
 	if c.gl.isContextLost.Invoke().Bool() {
-		return driver.GraphicsNotReady
+		return graphicsdriver.GraphicsNotReady
 	}
 	gl := c.gl
 	gl.enable.Invoke(gles.BLEND)
 	gl.enable.Invoke(gles.SCISSOR_TEST)
-	c.blendFunc(driver.CompositeModeSourceOver)
+	c.blendFunc(graphicsdriver.CompositeModeSourceOver)
 	f := gl.getParameter.Invoke(gles.FRAMEBUFFER_BINDING)
 	c.screenFramebuffer = framebufferNative(f)
 
@@ -189,7 +189,7 @@ func (c *context) reset() error {
 	return nil
 }
 
-func (c *context) blendFunc(mode driver.CompositeMode) {
+func (c *context) blendFunc(mode graphicsdriver.CompositeMode) {
 	if c.lastCompositeMode == mode {
 		return
 	}
@@ -620,7 +620,7 @@ func (c *context) canUsePBO() bool {
 	return false
 }
 
-func (c *context) texSubImage2D(t textureNative, args []*driver.ReplacePixelsArgs) {
+func (c *context) texSubImage2D(t textureNative, args []*graphicsdriver.ReplacePixelsArgs) {
 	c.bindTexture(t)
 	gl := c.gl
 	for _, a := range args {
