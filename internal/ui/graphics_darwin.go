@@ -34,6 +34,8 @@ package ui
 import "C"
 
 import (
+	"sync"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
@@ -56,14 +58,15 @@ func supportsMetal() bool {
 	return true
 }
 
-func init() {
-	if supportsMetal() {
-		graphics = metal.Get()
-		return
-	}
-	graphics = opengl.Get()
-}
+var graphicsOnce sync.Once
 
 func Graphics() graphicsdriver.Graphics {
+	graphicsOnce.Do(func() {
+		if supportsMetal() {
+			graphics = metal.Get()
+			return
+		}
+		graphics = opengl.Get()
+	})
 	return graphics
 }
