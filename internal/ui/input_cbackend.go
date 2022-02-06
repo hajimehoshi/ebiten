@@ -57,7 +57,7 @@ func (i *Input) AppendTouchIDs(touchIDs []TouchID) []TouchID {
 	defer i.m.Unlock()
 
 	for _, t := range i.touches {
-		touchIDs = append(touchIDs, t.ID)
+		touchIDs = append(touchIDs, TouchID(t.ID))
 	}
 	return touchIDs
 }
@@ -79,7 +79,7 @@ func (i *Input) TouchPosition(id TouchID) (x, y int) {
 	defer i.m.Unlock()
 
 	for _, t := range i.touches {
-		if t.ID == id {
+		if TouchID(t.ID) == id {
 			return t.X, t.Y
 		}
 	}

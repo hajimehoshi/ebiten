@@ -66,8 +66,6 @@ import (
 	"reflect"
 	"time"
 	"unsafe"
-
-	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 type Gamepad struct {
@@ -81,7 +79,7 @@ type Gamepad struct {
 }
 
 type Touch struct {
-	ID ui.TouchID
+	ID int
 	X  int
 	Y  int
 }
@@ -153,7 +151,7 @@ func AppendTouches(touches []Touch) []Touch {
 
 	for _, t := range cTouches {
 		touches = append(touches, Touch{
-			ID: ui.TouchID(t.id),
+			ID: int(t.id),
 			X:  int(t.x),
 			Y:  int(t.y),
 		})
