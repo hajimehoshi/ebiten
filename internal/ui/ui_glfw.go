@@ -185,6 +185,8 @@ func initialize() error {
 
 	m := initialMonitor(w)
 	theUI.initMonitor = m
+	// GetVideoMode must be called from the main thread, then call this here and record
+	// initFullscreen{Width,Height}InDIP.
 	v := m.GetVideoMode()
 	theUI.initFullscreenWidthInDIP = int(theUI.dipFromGLFWMonitorPixel(float64(v.Width), m))
 	theUI.initFullscreenHeightInDIP = int(theUI.dipFromGLFWMonitorPixel(float64(v.Height), m))
