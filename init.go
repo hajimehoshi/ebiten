@@ -20,5 +20,5 @@ import (
 )
 
 func init() {
-	graphicscommand.SetGraphicsDriver(ui.Get().Graphics())
+	graphicscommand.SetGraphicsDriver(ui.Graphics())
 }

@@ -27,7 +27,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
 
-func (*UserInterface) Graphics() driver.Graphics {
+func Graphics() driver.Graphics {
 	if _, err := mtl.CreateSystemDefaultDevice(); err != nil {
 		panic(fmt.Sprintf("mobile: mtl.CreateSystemDefaultDevice failed on iOS: %v", err))
 	}

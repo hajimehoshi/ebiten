@@ -64,6 +64,6 @@ func init() {
 	graphics = opengl.Get()
 }
 
-func (*UserInterface) Graphics() driver.Graphics {
+func Graphics() driver.Graphics {
 	return graphics
 }

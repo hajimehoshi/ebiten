@@ -700,7 +700,7 @@ func (u *UserInterface) createWindow() error {
 	// Ensure to consume this callback.
 	u.waitForFramebufferSizeCallback(u.window, nil)
 
-	if u.Graphics().IsGL() {
+	if Graphics().IsGL() {
 		u.window.MakeContextCurrent()
 	}
 
@@ -735,7 +735,7 @@ func (u *UserInterface) registerWindowSetSizeCallback() {
 
 			if err := u.runOnAnotherThreadFromMainThread(func() error {
 				// Disable Vsync temporarily. On macOS, getting a next frame can get stuck (#1740).
-				u.Graphics().SetVsyncEnabled(false)
+				Graphics().SetVsyncEnabled(false)
 
 				var outsideWidth, outsideHeight float64
 
@@ -752,7 +752,7 @@ func (u *UserInterface) registerWindowSetSizeCallback() {
 				if err := u.context.ForceUpdateFrame(); err != nil {
 					return err
 				}
-				if u.Graphics().IsGL() {
+				if Graphics().IsGL() {
 					u.t.Call(func() {
 						u.swapBuffers()
 					})
@@ -852,7 +852,7 @@ event:
 }
 
 func (u *UserInterface) init() error {
-	if u.Graphics().IsGL() {
+	if Graphics().IsGL() {
 		glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLAPI)
 		glfw.WindowHint(glfw.ContextVersionMajor, 2)
 		glfw.WindowHint(glfw.ContextVersionMinor, 1)
@@ -873,7 +873,7 @@ func (u *UserInterface) init() error {
 		transparent = glfw.True
 	}
 	glfw.WindowHint(glfw.TransparentFramebuffer, transparent)
-	u.Graphics().SetTransparent(u.isInitScreenTransparent())
+	Graphics().SetTransparent(u.isInitScreenTransparent())
 
 	resizable := glfw.False
 	if u.isInitWindowResizable() {
@@ -931,7 +931,7 @@ func (u *UserInterface) init() error {
 	u.window.SetTitle(u.title)
 	u.window.Show()
 
-	if g, ok := u.Graphics().(interface{ SetWindow(uintptr) }); ok {
+	if g, ok := Graphics().(interface{ SetWindow(uintptr) }); ok {
 		g.SetWindow(u.nativeWindow())
 	}
 
@@ -1109,7 +1109,7 @@ func (u *UserInterface) loop() error {
 		// swapBuffers also checks IsGL, so this condition is redundant.
 		// However, (*thread).Call is not good for performance due to channels.
 		// Let's avoid this whenever possible (#1367).
-		if u.Graphics().IsGL() {
+		if Graphics().IsGL() {
 			u.t.Call(u.swapBuffers)
 		}
 
@@ -1131,7 +1131,7 @@ func (u *UserInterface) loop() error {
 
 // swapBuffers must be called from the main thread.
 func (u *UserInterface) swapBuffers() {
-	if u.Graphics().IsGL() {
+	if Graphics().IsGL() {
 		u.window.SwapBuffers()
 	}
 }
@@ -1186,7 +1186,7 @@ func (u *UserInterface) adjustWindowSizeBasedOnSizeLimitsInDIP(width, height int
 func (u *UserInterface) setWindowSizeInDIP(width, height int, fullscreen bool) {
 	width, height = u.adjustWindowSizeBasedOnSizeLimitsInDIP(width, height)
 
-	u.Graphics().SetFullscreen(fullscreen)
+	Graphics().SetFullscreen(fullscreen)
 
 	scale := u.deviceScaleFactor(u.currentMonitor())
 	if u.windowWidthInDIP == width && u.windowHeightInDIP == height && u.isFullscreen() == fullscreen && u.lastDeviceScaleFactor == scale {
@@ -1226,7 +1226,7 @@ func (u *UserInterface) setWindowSizeInDIP(width, height int, fullscreen bool) {
 	u.windowHeightInDIP = height
 
 	if windowRecreated {
-		if g, ok := u.Graphics().(interface{ SetWindow(uintptr) }); ok {
+		if g, ok := Graphics().(interface{ SetWindow(uintptr) }); ok {
 			g.SetWindow(u.nativeWindow())
 		}
 	}
@@ -1249,7 +1249,7 @@ func (u *UserInterface) setWindowSizeInDIPImpl(width, height int, fullscreen boo
 
 			// Swapping buffer is necesary to prevent the image lag (#1004).
 			// TODO: This might not work when vsync is disabled.
-			if u.Graphics().IsGL() {
+			if Graphics().IsGL() {
 				glfw.PollEvents()
 				u.swapBuffers()
 			}
@@ -1269,7 +1269,7 @@ func (u *UserInterface) setWindowSizeInDIPImpl(width, height int, fullscreen boo
 		if u.isNativeFullscreenAvailable() && u.isNativeFullscreen() {
 			u.setNativeFullscreen(false)
 		} else if !u.isNativeFullscreenAvailable() && u.window.GetMonitor() != nil {
-			if u.Graphics().IsGL() {
+			if Graphics().IsGL() {
 				// When OpenGL is used, swapping buffer is enough to solve the image-lag
 				// issue (#1004). Rather, recreating window destroys GPU resources.
 				// TODO: This might not work when vsync is disabled.
@@ -1326,7 +1326,7 @@ func (u *UserInterface) setWindowSizeInDIPImpl(width, height int, fullscreen boo
 
 // updateVsync must be called on the main thread.
 func (u *UserInterface) updateVsync() {
-	if u.Graphics().IsGL() {
+	if Graphics().IsGL() {
 		// SwapInterval is affected by the current monitor of the window.
 		// This needs to be called at least after SetMonitor.
 		// Without SwapInterval after SetMonitor, vsynch doesn't work (#375).
@@ -1340,7 +1340,7 @@ func (u *UserInterface) updateVsync() {
 			glfw.SwapInterval(0)
 		}
 	}
-	u.Graphics().SetVsyncEnabled(u.fpsMode == FPSModeVsyncOn)
+	Graphics().SetVsyncEnabled(u.fpsMode == FPSModeVsyncOn)
 }
 
 // initialMonitor returns the initial monitor to show the window.

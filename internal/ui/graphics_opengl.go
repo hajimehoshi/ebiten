@@ -22,6 +22,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
-func (*UserInterface) Graphics() driver.Graphics {
+func Graphics() driver.Graphics {
 	return opengl.Get()
 }
