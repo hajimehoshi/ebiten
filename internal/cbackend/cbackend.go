@@ -66,6 +66,8 @@ import (
 	"reflect"
 	"time"
 	"unsafe"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 type Gamepad struct {
