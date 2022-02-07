@@ -924,24 +924,12 @@ func (u *UserInterface) init() error {
 
 	u.setSizeCallbackEnabled = true
 
-	setSize := func() {
-		ww, wh := u.getInitWindowSizeInDIP()
-		u.setWindowSizeInDIP(ww, wh, u.isFullscreen())
-	}
-
-	// Set the window size and the window position in this order on Linux or other UNIX using X (#1118),
-	// but this should be inverted on Windows. This is very tricky, but there is no obvious way to solve
-	// this. This doesn't matter on macOS.
-	// TODO: Set the position first even on X. setWindowSizeInDIP uses the monitor of the window, and
-	// if the window position is not reliable, the device scale factor is also not reliable (#1118, #1982).
+	// The position must be set before the size is set (#1982).
+	// setWindowSize refers the current monitor's device scale.
 	wx, wy := u.getInitWindowPositionInDIP()
-	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
-		u.setWindowPositionInDIP(wx, wy, u.initMonitor)
-		setSize()
-	} else {
-		setSize()
-		u.setWindowPositionInDIP(wx, wy, u.initMonitor)
-	}
+	u.setWindowPositionInDIP(wx, wy, u.initMonitor)
+	ww, wh := u.getInitWindowSizeInDIP()
+	u.setWindowSizeInDIP(ww, wh, u.isFullscreen())
 
 	u.updateWindowSizeLimits()
 
