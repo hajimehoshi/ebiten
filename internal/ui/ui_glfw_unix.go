@@ -133,8 +133,8 @@ func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
 
-func initialMonitorByOS() *glfw.Monitor {
-	return nil
+func initialMonitorByOS() (*glfw.Monitor, error) {
+	return nil, nil
 }
 
 func currentMonitorByOS(_ *glfw.Window) *glfw.Monitor {

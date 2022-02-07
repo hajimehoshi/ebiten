@@ -158,7 +158,7 @@ func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
 
-func initialMonitorByOS() *glfw.Monitor {
+func initialMonitorByOS() (*glfw.Monitor, error) {
 	var cx, cy C.int
 	C.currentMouseLocation(&cx, &cy)
 	x, y := int(cx), int(cy)
@@ -176,11 +176,11 @@ func initialMonitorByOS() *glfw.Monitor {
 	for _, m := range ensureMonitors() {
 		w, h := m.vm.Width, m.vm.Height
 		if x >= m.x && x < m.x+w && y >= m.y && y < m.y+h {
-			return m.m
+			return m.m, nil
 		}
 	}
 
-	return nil
+	return nil, nil
 }
 
 func currentMonitorByOS(w *glfw.Window) *glfw.Monitor {

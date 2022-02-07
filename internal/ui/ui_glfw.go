@@ -170,8 +170,12 @@ func initialize() error {
 	glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
 
 	var m *glfw.Monitor
-	if runtime.GOOS == "darwin" {
-		m = initialMonitorByOS()
+	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
+		var err error
+		m, err = initialMonitorByOS()
+		if err != nil {
+			return err
+		}
 		if m == nil {
 			m = glfw.GetPrimaryMonitor()
 		}
@@ -189,7 +193,10 @@ func initialize() error {
 		defer w.Destroy()
 		initializeWindowAfterCreation(w)
 		theUI.waitForFramebufferSizeCallback(w, nil)
-		m = initialMonitorByOS()
+		m, err = initialMonitorByOS()
+		if err != nil {
+			return err
+		}
 		if m == nil {
 			m = currentMonitorImpl(w)
 		}

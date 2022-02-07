@@ -46,12 +46,17 @@ type monitorInfo struct {
 	dwFlags   uint32
 }
 
+type point struct {
+	x int32
+	y int32
+}
+
 var (
 	// user32 is defined at hideconsole_windows.go
-	procGetSystemMetrics    = user32.NewProc("GetSystemMetrics")
-	procGetForegroundWindow = user32.NewProc("GetForegroundWindow")
-	procMonitorFromWindow   = user32.NewProc("MonitorFromWindow")
-	procGetMonitorInfoW     = user32.NewProc("GetMonitorInfoW")
+	procGetSystemMetrics  = user32.NewProc("GetSystemMetrics")
+	procMonitorFromWindow = user32.NewProc("MonitorFromWindow")
+	procGetMonitorInfoW   = user32.NewProc("GetMonitorInfoW")
+	procGetCursorPos      = user32.NewProc("GetCursorPos")
 )
 
 func getSystemMetrics(nIndex int) (int32, error) {
@@ -62,11 +67,6 @@ func getSystemMetrics(nIndex int) (int32, error) {
 		return 0, fmt.Errorf("ui: GetSystemMetrics returned 0")
 	}
 	return int32(r), nil
-}
-
-func getForegroundWindow() windows.HWND {
-	r, _, _ := procGetForegroundWindow.Call()
-	return windows.HWND(r)
 }
 
 func monitorFromWindow(hwnd windows.HWND, dwFlags uint32) uintptr {
@@ -83,6 +83,18 @@ func getMonitorInfoW(hMonitor uintptr, lpmi *monitorInfo) error {
 		return fmt.Errorf("ui: GetMonitorInfoW failed: returned 0")
 	}
 	return nil
+}
+
+func getCursorPos() (int32, int32, error) {
+	var pt point
+	r, _, e := procGetCursorPos.Call(uintptr(unsafe.Pointer(&pt)))
+	if r == 0 {
+		if e != nil && e != windows.ERROR_SUCCESS {
+			return 0, 0, fmt.Errorf("ui: GetCursorPos failed: error code: %w", e)
+		}
+		return 0, 0, fmt.Errorf("ui: GetCursorPos failed: returned 0")
+	}
+	return pt.x, pt.y, nil
 }
 
 // clearVideoModeScaleCache must be called from the main thread.
@@ -120,14 +132,22 @@ func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
 
-func initialMonitorByOS() *glfw.Monitor {
-	// Get the foreground window, that is common among multiple processes.
-	w := getForegroundWindow()
-	if w == 0 {
-		// GetForegroundWindow can return null according to the document.
-		return nil
+func initialMonitorByOS() (*glfw.Monitor, error) {
+	px, py, err := getCursorPos()
+	if err != nil {
+		return nil, err
 	}
-	return monitorFromWin32Window(w)
+	x, y := int(px), int(py)
+
+	// Find the monitor including the cursor.
+	for _, m := range ensureMonitors() {
+		w, h := m.vm.Width, m.vm.Height
+		if x >= m.x && x < m.x+w && y >= m.y && y < m.y+h {
+			return m.m, nil
+		}
+	}
+
+	return nil, nil
 }
 
 func currentMonitorByOS(w *glfw.Window) *glfw.Monitor {
