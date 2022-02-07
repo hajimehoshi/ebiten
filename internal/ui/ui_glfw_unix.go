@@ -129,7 +129,7 @@ func (u *UserInterface) dipToGLFWPixel(x float64, monitor *glfw.Monitor) float64
 	return x * u.deviceScaleFactor(monitor)
 }
 
-func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
+func (u *UserInterface) adjustWindowPosition(x, y int, monitor *glfw.Monitor) (int, int) {
 	return x, y
 }
 

@@ -1603,7 +1603,7 @@ func (u *UserInterface) setWindowPositionInDIP(x, y int, monitor *glfw.Monitor) 
 	mx, my := monitor.GetPos()
 	xf := u.dipToGLFWPixel(float64(x), monitor)
 	yf := u.dipToGLFWPixel(float64(y), monitor)
-	if x, y := u.adjustWindowPosition(mx+int(xf), my+int(yf)); u.isFullscreen() {
+	if x, y := u.adjustWindowPosition(mx+int(xf), my+int(yf), monitor); u.isFullscreen() {
 		u.setOrigPos(x, y)
 	} else {
 		u.window.SetPos(x, y)

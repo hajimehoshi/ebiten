@@ -115,8 +115,8 @@ func (u *UserInterface) dipToGLFWPixel(x float64, monitor *glfw.Monitor) float64
 	return x * u.deviceScaleFactor(monitor)
 }
 
-func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
-	mx, my := u.currentMonitor().GetPos()
+func (u *UserInterface) adjustWindowPosition(x, y int, monitor *glfw.Monitor) (int, int) {
+	mx, my := monitor.GetPos()
 	// As the video width/height might be wrong,
 	// adjust x/y at least to enable to handle the window (#328)
 	if x < mx {
