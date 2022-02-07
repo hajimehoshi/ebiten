@@ -913,7 +913,6 @@ func (u *UserInterface) init() error {
 		u.window.Maximize()
 	}
 
-	u.window.SetTitle(u.title)
 	u.window.Show()
 
 	if g, ok := Graphics().(interface{ SetWindow(uintptr) }); ok {
