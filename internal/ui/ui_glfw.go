@@ -169,37 +169,12 @@ func initialize() error {
 	glfw.WindowHint(glfw.Visible, glfw.False)
 	glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
 
-	var m *glfw.Monitor
-	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
-		var err error
-		m, err = initialMonitorByOS()
-		if err != nil {
-			return err
-		}
-		if m == nil {
-			m = glfw.GetPrimaryMonitor()
-		}
-	} else {
-		// Create a window to set the initial monitor.
-		// TODO: Instead of a dummy window, get a mouse cursor position and get a monitor from it (#1982).
-		w, err := glfw.CreateWindow(16, 16, "", nil, nil)
-		if err != nil {
-			return err
-		}
-		if w == nil {
-			// This can happen on Windows Remote Desktop (#903).
-			panic("ui: glfw.CreateWindow must not return nil")
-		}
-		defer w.Destroy()
-		initializeWindowAfterCreation(w)
-		theUI.waitForFramebufferSizeCallback(w, nil)
-		m, err = initialMonitorByOS()
-		if err != nil {
-			return err
-		}
-		if m == nil {
-			m = currentMonitorImpl(w)
-		}
+	m, err := initialMonitorByOS()
+	if err != nil {
+		return err
+	}
+	if m == nil {
+		m = glfw.GetPrimaryMonitor()
 	}
 
 	theUI.initMonitor = m

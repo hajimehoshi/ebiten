@@ -134,6 +134,28 @@ func (u *UserInterface) adjustWindowPosition(x, y int, monitor *glfw.Monitor) (i
 }
 
 func initialMonitorByOS() (*glfw.Monitor, error) {
+	xconn, err := xgb.NewConn()
+	if err != nil {
+		// Assume we're on pure Wayland then.
+		return nil, nil
+	}
+	defer xconn.Close()
+
+	root := xproto.Setup(xconn).DefaultScreen(xconn).Root
+	rep, err := xproto.QueryPointer(xconn, root).Reply()
+	if err != nil {
+		return nil, err
+	}
+	x, y := int(rep.RootX), int(rep.RootY)
+
+	// Find the monitor including the cursor.
+	for _, m := range ensureMonitors() {
+		w, h := m.vm.Width, m.vm.Height
+		if x >= m.x && x < m.x+w && y >= m.y && y < m.y+h {
+			return m.m, nil
+		}
+	}
+
 	return nil, nil
 }
 
