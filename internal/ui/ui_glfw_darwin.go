@@ -120,6 +120,12 @@ package ui
 //   }
 //   [cursor push];
 // }
+//
+// static void currentMouseLocation(int* x, int* y) {
+//   NSPoint location = [NSEvent mouseLocation];
+//   *x = (int)(location.x);
+//   *y = (int)(location.y);
+// }
 import "C"
 
 import (
@@ -153,12 +159,32 @@ func (u *UserInterface) adjustWindowPosition(x, y int) (int, int) {
 }
 
 func initialMonitorByOS() *glfw.Monitor {
+	var cx, cy C.int
+	C.currentMouseLocation(&cx, &cy)
+	x, y := int(cx), int(cy)
+
+	// Flip Y.
+	for _, m := range ensureMonitors() {
+		if m.x == 0 && m.y == 0 {
+			y = -y
+			y += m.vm.Height
+			break
+		}
+	}
+
+	// Find the monitor including the cursor.
+	for _, m := range ensureMonitors() {
+		w, h := m.vm.Width, m.vm.Height
+		if x >= m.x && x < m.x+w && y >= m.y && y < m.y+h {
+			return m.m
+		}
+	}
+
 	return nil
 }
 
 func currentMonitorByOS(w *glfw.Window) *glfw.Monitor {
-	x := C.int(0)
-	y := C.int(0)
+	var x, y C.int
 	// Note: [NSApp mainWindow] is nil when it doesn't have its border. Use w here.
 	win := w.GetCocoaWindow()
 	C.currentMonitorPos(C.uintptr_t(win), &x, &y)

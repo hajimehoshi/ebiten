@@ -169,21 +169,32 @@ func initialize() error {
 	glfw.WindowHint(glfw.Visible, glfw.False)
 	glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
 
-	// Create a window to set the initial monitor.
-	// TODO: Instead of a dummy window, get a mouse cursor position and get a monitor from it (#1982).
-	w, err := glfw.CreateWindow(16, 16, "", nil, nil)
-	if err != nil {
-		return err
+	var m *glfw.Monitor
+	if runtime.GOOS == "darwin" {
+		m = initialMonitorByOS()
+		if m == nil {
+			m = glfw.GetPrimaryMonitor()
+		}
+	} else {
+		// Create a window to set the initial monitor.
+		// TODO: Instead of a dummy window, get a mouse cursor position and get a monitor from it (#1982).
+		w, err := glfw.CreateWindow(16, 16, "", nil, nil)
+		if err != nil {
+			return err
+		}
+		if w == nil {
+			// This can happen on Windows Remote Desktop (#903).
+			panic("ui: glfw.CreateWindow must not return nil")
+		}
+		defer w.Destroy()
+		initializeWindowAfterCreation(w)
+		theUI.waitForFramebufferSizeCallback(w, nil)
+		m = initialMonitorByOS()
+		if m == nil {
+			m = currentMonitorImpl(w)
+		}
 	}
-	if w == nil {
-		// This can happen on Windows Remote Desktop (#903).
-		panic("ui: glfw.CreateWindow must not return nil")
-	}
-	defer w.Destroy()
-	initializeWindowAfterCreation(w)
-	theUI.waitForFramebufferSizeCallback(w, nil)
 
-	m := initialMonitor(w)
 	theUI.initMonitor = m
 	// GetVideoMode must be called from the main thread, then call this here and record
 	// initFullscreen{Width,Height}InDIP.
@@ -914,8 +925,10 @@ func (u *UserInterface) init() error {
 	// Set the window size and the window position in this order on Linux or other UNIX using X (#1118),
 	// but this should be inverted on Windows. This is very tricky, but there is no obvious way to solve
 	// this. This doesn't matter on macOS.
+	// TODO: Set the position first even on X. setWindowSizeInDIP uses the monitor of the window, and
+	// if the window position is not reliable, the device scale factor is also not reliable (#1118, #1982).
 	wx, wy := u.getInitWindowPositionInDIP()
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
 		u.setWindowPositionInDIP(wx, wy, u.initMonitor)
 		setSize()
 	} else {
@@ -1343,18 +1356,6 @@ func (u *UserInterface) updateVsync() {
 		}
 	}
 	Graphics().SetVsyncEnabled(u.fpsMode == FPSModeVsyncOn)
-}
-
-// initialMonitor returns the initial monitor to show the window.
-//
-// The given window is just a hint and might not be used to determine the initial monitor.
-//
-// initialMonitor must be called on the main thread.
-func initialMonitor(window *glfw.Window) *glfw.Monitor {
-	if m := initialMonitorByOS(); m != nil {
-		return m
-	}
-	return currentMonitorImpl(window)
 }
 
 // currentMonitor returns the current active monitor.
