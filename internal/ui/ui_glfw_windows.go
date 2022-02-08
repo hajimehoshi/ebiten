@@ -69,7 +69,7 @@ func getSystemMetrics(nIndex int) (int32, error) {
 	return int32(r), nil
 }
 
-func monitorFromWindow(hwnd windows.HWND, dwFlags uint32) uintptr {
+func monitorFromWindow_(hwnd windows.HWND, dwFlags uint32) uintptr {
 	r, _, _ := procMonitorFromWindow.Call(uintptr(hwnd), uintptr(dwFlags))
 	return r
 }
@@ -150,7 +150,7 @@ func initialMonitorByOS() (*glfw.Monitor, error) {
 	return nil, nil
 }
 
-func currentMonitorByOS(w *glfw.Window) *glfw.Monitor {
+func monitorFromWindowByOS(w *glfw.Window) *glfw.Monitor {
 	return monitorFromWin32Window(windows.HWND(w.GetWin32Window()))
 }
 
@@ -158,7 +158,7 @@ func monitorFromWin32Window(w windows.HWND) *glfw.Monitor {
 	// Get the current monitor by the window handle instead of the window position. It is because the window
 	// position is not relaiable in some cases e.g. when the window is put across multiple monitors.
 
-	m := monitorFromWindow(w, monitorDefaultToNearest)
+	m := monitorFromWindow_(w, monitorDefaultToNearest)
 	if m == 0 {
 		// monitorFromWindow can return error on Wine. Ignore this.
 		return nil

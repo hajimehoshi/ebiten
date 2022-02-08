@@ -159,7 +159,7 @@ func initialMonitorByOS() (*glfw.Monitor, error) {
 	return nil, nil
 }
 
-func currentMonitorByOS(_ *glfw.Window) *glfw.Monitor {
+func monitorFromWindowByOS(_ *glfw.Window) *glfw.Monitor {
 	// TODO: Implement this correctly. (#1119).
 	return nil
 }

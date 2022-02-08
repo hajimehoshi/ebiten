@@ -1316,18 +1316,19 @@ func (u *UserInterface) updateVsync() {
 //
 // currentMonitor must be called on the main thread.
 func (u *UserInterface) currentMonitor() *glfw.Monitor {
-	if !u.isRunning() {
+	if u.window == nil {
 		return u.initMonitor
 	}
-	return currentMonitorImpl(u.window)
+	if m := monitorFromWindow(u.window); m != nil {
+		return m
+	}
+	return glfw.GetPrimaryMonitor()
 }
 
-// currentMonitorImpl returns the current active monitor.
+// monitorFromWindow returns the monitor from the given window.
 //
-// The given window might or might not be used to detect the monitor.
-//
-// currentMonitorImpl must be called on the main thread.
-func currentMonitorImpl(window *glfw.Window) *glfw.Monitor {
+// monitorFromWindow must be called on the main thread.
+func monitorFromWindow(window *glfw.Window) *glfw.Monitor {
 	// GetMonitor is available only in fullscreen.
 	if m := window.GetMonitor(); m != nil {
 		return m
@@ -1336,7 +1337,7 @@ func currentMonitorImpl(window *glfw.Window) *glfw.Monitor {
 	// Getting a monitor from a window position is not reliable in general (e.g., when a window is put across
 	// multiple monitors, or, before SetWindowPosition is called.).
 	// Get the monitor which the current window belongs to. This requires OS API.
-	if m := currentMonitorByOS(window); m != nil {
+	if m := monitorFromWindowByOS(window); m != nil {
 		return m
 	}
 
@@ -1344,7 +1345,8 @@ func currentMonitorImpl(window *glfw.Window) *glfw.Monitor {
 	if m := getMonitorFromPosition(window.GetPos()); m != nil {
 		return m.m
 	}
-	return glfw.GetPrimaryMonitor()
+
+	return nil
 }
 
 func (u *UserInterface) SetScreenTransparent(transparent bool) {
