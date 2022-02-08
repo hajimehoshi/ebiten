@@ -398,6 +398,7 @@ func (u *UserInterface) setInitWindowPositionInDIP(x, y int) {
 	u.m.Lock()
 	defer u.m.Unlock()
 
+	// TODO: Update initMonitor if necessary (#1575).
 	u.initWindowPositionXInDIP = x
 	u.initWindowPositionYInDIP = y
 }
@@ -641,7 +642,6 @@ func (u *UserInterface) SetCursorShape(shape CursorShape) {
 
 func (u *UserInterface) DeviceScaleFactor() float64 {
 	if !u.isRunning() {
-		// TODO: Use the initWindowPosition. This requires to convert the units correctly (#1575).
 		return u.deviceScaleFactor(u.currentMonitor())
 	}
 
