@@ -708,6 +708,8 @@ func (u *UserInterface) createWindow() error {
 	u.registerWindowCloseCallback()
 	u.registerWindowFramebufferSizeCallback()
 
+	u.updateWindowSizeLimits()
+
 	return nil
 }
 
@@ -905,8 +907,6 @@ func (u *UserInterface) init() error {
 	u.setWindowPositionInDIP(wx, wy, u.initMonitor)
 	ww, wh := u.getInitWindowSizeInDIP()
 	u.setWindowSizeInDIP(ww, wh, u.isFullscreen())
-
-	u.updateWindowSizeLimits()
 
 	// Maximizing a window requires a proper size and position. Call Maximize here (#1117).
 	if u.isInitWindowMaximized() {
@@ -1273,8 +1273,6 @@ func (u *UserInterface) setWindowSizeInDIPImpl(width, height int, fullscreen boo
 					// TODO: This should return an error.
 					panic(fmt.Sprintf("ui: failed to recreate window: %v", err))
 				}
-				// Reset the size limits explicitly.
-				u.updateWindowSizeLimits()
 				u.window.Show()
 				windowRecreated = true
 			}
