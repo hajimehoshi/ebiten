@@ -675,16 +675,18 @@ func (u *UserInterface) RunWithoutMainLoop(context Context) {
 
 // createWindow creates a GLFW window.
 //
+// width and height are in GLFW pixels (not device-independent pixels).
+//
 // createWindow must be called from the main thread.
 //
 // createWindow does not set the position or size so far.
-func (u *UserInterface) createWindow() error {
+func (u *UserInterface) createWindow(width, height int) error {
 	if u.window != nil {
 		panic("ui: u.window must not exist at createWindow")
 	}
 
 	// As a start, create a window with temporary size to create OpenGL context thread.
-	window, err := glfw.CreateWindow(16, 16, "", nil, nil)
+	window, err := glfw.CreateWindow(width, height, "", nil, nil)
 	if err != nil {
 		return err
 	}
@@ -895,7 +897,10 @@ func (u *UserInterface) init() error {
 		glfw.WindowHint(glfw.Visible, glfw.True)
 	}
 
-	if err := u.createWindow(); err != nil {
+	ww, wh := u.getInitWindowSizeInDIP()
+	initW := int(u.dipToGLFWPixel(float64(ww), u.initMonitor))
+	initH := int(u.dipToGLFWPixel(float64(wh), u.initMonitor))
+	if err := u.createWindow(initW, initH); err != nil {
 		return err
 	}
 
@@ -903,9 +908,9 @@ func (u *UserInterface) init() error {
 
 	// The position must be set before the size is set (#1982).
 	// setWindowSize refers the current monitor's device scale.
+	// TODO: currentMonitor is very hard to use correctly. Refactor this.
 	wx, wy := u.getInitWindowPositionInDIP()
 	u.setWindowPositionInDIP(wx, wy, u.initMonitor)
-	ww, wh := u.getInitWindowSizeInDIP()
 	u.setWindowSizeInDIP(ww, wh, u.isFullscreen())
 
 	// Maximizing a window requires a proper size and position. Call Maximize here (#1117).
@@ -1269,7 +1274,9 @@ func (u *UserInterface) setWindowSizeInDIPImpl(width, height int, fullscreen boo
 					u.window.Destroy()
 					u.window = nil
 				}
-				if err := u.createWindow(); err != nil {
+				ww := int(u.dipToGLFWPixel(float64(width), u.currentMonitor()))
+				wh := int(u.dipToGLFWPixel(float64(height), u.currentMonitor()))
+				if err := u.createWindow(ww, wh); err != nil {
 					// TODO: This should return an error.
 					panic(fmt.Sprintf("ui: failed to recreate window: %v", err))
 				}
