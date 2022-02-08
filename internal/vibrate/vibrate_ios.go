@@ -15,7 +15,7 @@
 //go:build ios && !ebitencbackend
 // +build ios,!ebitencbackend
 
-package ui
+package vibrate
 
 // #cgo CFLAGS: -x objective-c
 // #cgo LDFLAGS: -framework AVFoundation -framework CoreHaptics -framework Foundation
@@ -114,7 +114,7 @@ import (
 	"time"
 )
 
-func (u *UserInterface) Vibrate(duration time.Duration, magnitude float64) {
+func Vibrate(duration time.Duration, magnitude float64) {
 	go func() {
 		C.vibrate(C.double(float64(duration)/float64(time.Second)), C.double(magnitude))
 	}()
