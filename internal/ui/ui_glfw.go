@@ -702,7 +702,7 @@ func (u *UserInterface) createWindow() error {
 	u.window.SetInputMode(glfw.CursorMode, driverCursorModeToGLFWCursorMode(u.getInitCursorMode()))
 	u.window.SetCursor(glfwSystemCursors[u.getCursorShape()])
 	u.window.SetTitle(u.title)
-	// TODO: Set icons
+	// Icons are set after every frame. They don't have to be cared here.
 
 	u.registerWindowSetSizeCallback()
 	u.registerWindowCloseCallback()
