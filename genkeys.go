@@ -817,8 +817,8 @@ func main() {
 				"\n// +build android ios" +
 				"\n// +build !ebitencbackend"
 		case filepath.Join("internal", "ui", "keys_glfw.go"):
-			buildTag = "//go:build !android && !js && !ios && !ebitencbackend" +
-				"\n// +build !android,!js,!ios,!ebitencbackend"
+			buildTag = "//go:build !android && !ios && !js && !ebitencbackend" +
+				"\n// +build !android,!ios,!js,!ebitencbackend"
 		}
 		// NOTE: According to godoc, maps are automatically sorted by key.
 		if err := tmpl.Execute(f, struct {
