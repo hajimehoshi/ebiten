@@ -1565,8 +1565,8 @@ func (u *UserInterface) setWindowPositionInDIP(x, y int, monitor *glfw.Monitor) 
 	// before the fullscreen, while window.GetSize() returns the desktop screen size in the fullscreen mode.
 	if !u.isFullscreen() && runtime.GOOS == "darwin" {
 		w, h := u.window.GetSize()
-		ww := int(u.dipFromGLFWPixel(float64(w), u.currentMonitor()))
-		wh := int(u.dipFromGLFWPixel(float64(h), u.currentMonitor()))
+		ww := int(u.dipFromGLFWPixel(float64(w), monitor))
+		wh := int(u.dipFromGLFWPixel(float64(h), monitor))
 		u.setWindowSizeInDIP(ww, wh, u.isFullscreen())
 	}
 }
