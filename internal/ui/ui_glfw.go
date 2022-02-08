@@ -1258,31 +1258,11 @@ func (u *UserInterface) setWindowSizeInDIPImpl(width, height int, fullscreen boo
 		if u.isNativeFullscreenAvailable() && u.isNativeFullscreen() {
 			u.setNativeFullscreen(false)
 		} else if !u.isNativeFullscreenAvailable() && u.window.GetMonitor() != nil {
-			if Graphics().IsGL() {
-				// When OpenGL is used, swapping buffer is enough to solve the image-lag
-				// issue (#1004). Rather, recreating window destroys GPU resources.
-				// TODO: This might not work when vsync is disabled.
-				ww := int(u.dipToGLFWPixel(float64(width), u.currentMonitor()))
-				wh := int(u.dipToGLFWPixel(float64(height), u.currentMonitor()))
-				u.window.SetMonitor(nil, 0, 0, ww, wh, 0)
-				glfw.PollEvents()
-				u.swapBuffers()
-			} else {
-				// Recreate the window since an image lag remains after coming back from
-				// fullscreen (#1004).
-				if u.window != nil {
-					u.window.Destroy()
-					u.window = nil
-				}
-				ww := int(u.dipToGLFWPixel(float64(width), u.currentMonitor()))
-				wh := int(u.dipToGLFWPixel(float64(height), u.currentMonitor()))
-				if err := u.createWindow(ww, wh); err != nil {
-					// TODO: This should return an error.
-					panic(fmt.Sprintf("ui: failed to recreate window: %v", err))
-				}
-				u.window.Show()
-				windowRecreated = true
-			}
+			ww := int(u.dipToGLFWPixel(float64(width), u.currentMonitor()))
+			wh := int(u.dipToGLFWPixel(float64(height), u.currentMonitor()))
+			u.window.SetMonitor(nil, 0, 0, ww, wh, 0)
+			glfw.PollEvents()
+			u.swapBuffers()
 		}
 
 		if x, y := u.origPos(); x != invalidPos && y != invalidPos {
