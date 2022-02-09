@@ -85,18 +85,19 @@ type UserInterface struct {
 	initFullscreenWidthInDIP  int
 	initFullscreenHeightInDIP int
 
-	initFullscreen           bool
-	initCursorMode           CursorMode
-	initWindowDecorated      bool
-	initWindowResizable      bool
-	initWindowPositionXInDIP int
-	initWindowPositionYInDIP int
-	initWindowWidthInDIP     int
-	initWindowHeightInDIP    int
-	initWindowFloating       bool
-	initWindowMaximized      bool
-	initScreenTransparent    bool
-	initFocused              bool
+	initFullscreen            bool
+	initCursorMode            CursorMode
+	initWindowDecorated       bool
+	initWindowResizable       bool
+	initWindowPositionXInDIP  int
+	initWindowPositionYInDIP  int
+	initWindowWidthInDIP      int
+	initWindowHeightInDIP     int
+	initWindowFloating        bool
+	initWindowMaximized       bool
+	initWindowKeepAspectRatio bool
+	initScreenTransparent     bool
+	initFocused               bool
 
 	fpsModeInited bool
 
@@ -277,6 +278,19 @@ func (u *UserInterface) setWindowSizeLimitsInDIP(minw, minh, maxw, maxh int) boo
 	u.maxWindowWidthInDIP = maxw
 	u.maxWindowHeightInDIP = maxh
 	return true
+}
+
+func (u *UserInterface) isInitWindowKeepAspectRatio() bool {
+	u.m.RLock()
+	v := u.initWindowKeepAspectRatio
+	u.m.RUnlock()
+	return v
+}
+
+func (u *UserInterface) setInitWindowKeepAspectRatio(keep bool) {
+	u.m.Lock()
+	u.initWindowKeepAspectRatio = keep
+	u.m.Unlock()
 }
 
 func (u *UserInterface) isInitFullscreen() bool {
@@ -917,6 +931,9 @@ func (u *UserInterface) init() error {
 	if u.isInitWindowMaximized() {
 		u.window.Maximize()
 	}
+
+	keepAspectRatio := u.isInitWindowKeepAspectRatio()
+	u.window.SetKeepAspectRatio(keepAspectRatio)
 
 	u.window.Show()
 
