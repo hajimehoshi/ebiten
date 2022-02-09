@@ -1304,6 +1304,9 @@ func (u *UserInterface) setWindowSizeInDIPImpl(width, height int, fullscreen boo
 		}
 	}
 
+	// TODO: This must be called just after the window is created.
+	// This relies on the initial value of lastDeviceScaleFactor is 0 so this is called, but the condition is fragile.
+	// Refactor this.
 	n, d := glfw.DontCare, glfw.DontCare
 	if !fullscreen && u.isWindowAspectRatioFixed() {
 		n, d = u.window.GetSize()
