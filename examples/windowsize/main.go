@@ -60,7 +60,7 @@ func init() {
 
 const (
 	initScreenWidth  = 480
-	initScreenHeight = 360
+	initScreenHeight = 480
 	initScreenScale  = 1
 )
 
@@ -291,6 +291,10 @@ func (g *game) Update() error {
 		ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
 	}
 
+	if inpututil.IsKeyJustPressed(ebiten.KeyA) {
+		ebiten.SetWindowAspectRatioFixed(!ebiten.IsWindowAspectRatioFixed())
+	}
+
 	g.count++
 	return nil
 }
@@ -344,6 +348,7 @@ func (g *game) Draw(screen *ebiten.Image) {
 [D] Switch the window decoration (only for desktops)
 [L] Switch the window floating state (only for desktops)
 [W] Switch whether to skip clearing the screen
+[A] Switch whether to fix window aspect ratio (only for desktops)
 %s
 IsFocused?: %s
 Window Position: (%d, %d)
