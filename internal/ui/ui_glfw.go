@@ -1141,15 +1141,27 @@ func (u *UserInterface) swapBuffers() {
 
 // updateWindowSizeLimits must be called from the main thread.
 func (u *UserInterface) updateWindowSizeLimits() {
+	aspectRatio := 0.0
+	if !u.isFullscreen() && u.isWindowAspectRatioFixed() {
+		w, h := u.window.GetSize()
+		aspectRatio = float64(h) / float64(w)
+	}
+
 	m := u.currentMonitor()
 	minw, minh, maxw, maxh := u.getWindowSizeLimitsInDIP()
+
 	if minw < 0 {
-		minw = glfw.DontCare
+		// Always set the minimum window width.
+		minw = int(u.dipToGLFWPixel(float64(u.minimumWindowWidth()), m))
 	} else {
 		minw = int(u.dipToGLFWPixel(float64(minw), m))
 	}
 	if minh < 0 {
-		minh = glfw.DontCare
+		if aspectRatio > 0 {
+			minh = int(float64(minw) * aspectRatio)
+		} else {
+			minh = glfw.DontCare
+		}
 	} else {
 		minh = int(u.dipToGLFWPixel(float64(minh), m))
 	}
@@ -1222,11 +1234,32 @@ func (u *UserInterface) setWindowSizeInDIP(width, height int, fullscreen bool) {
 
 	u.setWindowSizeInDIPImpl(width, height, fullscreen)
 
+	// TODO: This must be called just after the window is created.
+	// This relies on the initial value of lastDeviceScaleFactor is 0 so this is called, but the condition is fragile.
+	// Refactor this.
+	n, d := glfw.DontCare, glfw.DontCare
+	if !fullscreen && u.isWindowAspectRatioFixed() {
+		n, d = width, height
+	}
+	u.window.SetAspectRatio(n, d)
+	u.updateWindowSizeLimits()
+
 	u.adjustViewSize()
 
 	// As width might be updated, update windowWidth/Height here.
 	u.windowWidthInDIP = width
 	u.windowHeightInDIP = height
+}
+
+func (u *UserInterface) minimumWindowWidth() int {
+	// On Windows, giving a too small width doesn't call a callback (#165).
+	// To prevent hanging up, return asap if the width is too small.
+	if u.window.GetAttrib(glfw.Decorated) == glfw.False {
+		return 1
+	}
+
+	// 126 is an arbitrary number and I guess this is small enough.
+	return 126
 }
 
 func (u *UserInterface) setWindowSizeInDIPImpl(width, height int, fullscreen bool) {
@@ -1250,17 +1283,9 @@ func (u *UserInterface) setWindowSizeInDIPImpl(width, height int, fullscreen boo
 			}
 		}
 	} else {
-		// On Windows, giving a too small width doesn't call a callback (#165).
-		// To prevent hanging up, return asap if the width is too small.
-		// 126 is an arbitrary number and I guess this is small enough.
-		minWindowWidth := 126
-		if u.window.GetAttrib(glfw.Decorated) == glfw.False {
-			minWindowWidth = 1
+		if mw := u.minimumWindowWidth(); width < mw {
+			width = mw
 		}
-		if width < minWindowWidth {
-			width = minWindowWidth
-		}
-
 		if u.isNativeFullscreenAvailable() && u.isNativeFullscreen() {
 			u.setNativeFullscreen(false)
 		} else if !u.isNativeFullscreenAvailable() && u.window.GetMonitor() != nil {
@@ -1295,15 +1320,6 @@ func (u *UserInterface) setWindowSizeInDIPImpl(width, height int, fullscreen boo
 			})
 		}
 	}
-
-	// TODO: This must be called just after the window is created.
-	// This relies on the initial value of lastDeviceScaleFactor is 0 so this is called, but the condition is fragile.
-	// Refactor this.
-	n, d := glfw.DontCare, glfw.DontCare
-	if !fullscreen && u.isWindowAspectRatioFixed() {
-		n, d = u.window.GetSize()
-	}
-	u.window.SetAspectRatio(n, d)
 }
 
 // updateVsync must be called on the main thread.
