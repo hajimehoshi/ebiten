@@ -747,9 +747,6 @@ func (u *UserInterface) registerWindowSetSizeCallback() {
 			}
 
 			if err := u.runOnAnotherThreadFromMainThread(func() error {
-				// Disable Vsync temporarily. On macOS, getting a next frame can get stuck (#1740).
-				Graphics().SetVsyncEnabled(false)
-
 				var outsideWidth, outsideHeight float64
 
 				u.t.Call(func() {
