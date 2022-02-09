@@ -208,7 +208,7 @@ func (w *Window) SetSizeLimits(minw, minh, maxw, maxh int) {
 	w.w.SetSizeLimits(minw, minh, maxw, maxh)
 }
 
-func () SetKeepAspectRatio(keep bool) {
+func (w *Window) SetKeepAspectRatio(keep bool) {
 	n, d := glfw.DontCare, glfw.DontCare
 	if keep {
 		n, d = w.GetSize()
