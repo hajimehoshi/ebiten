@@ -1252,14 +1252,20 @@ func (u *UserInterface) setWindowSizeInDIP(width, height int, fullscreen bool) {
 }
 
 func (u *UserInterface) minimumWindowWidth() int {
-	// On Windows, giving a too small width doesn't call a callback (#165).
-	// To prevent hanging up, return asap if the width is too small.
 	if u.window.GetAttrib(glfw.Decorated) == glfw.False {
 		return 1
 	}
 
-	// 126 is an arbitrary number and I guess this is small enough.
-	return 126
+	// On Windows, giving a too small width doesn't call a callback (#165).
+	// To prevent hanging up, return asap if the width is too small.
+	// 126 is an arbitrary number and I guess this is small enough .
+	if runtime.GOOS == "windows" {
+		return 126
+	}
+
+	// On macOS, resizing the window by cursor sometimes ignores the minimum size.
+	// To avoid the flaky behavior, do not add a limitation.
+	return 1
 }
 
 func (u *UserInterface) setWindowSizeInDIPImpl(width, height int, fullscreen bool) {
