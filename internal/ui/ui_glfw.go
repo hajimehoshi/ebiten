@@ -1220,24 +1220,16 @@ func (u *UserInterface) setWindowSizeInDIP(width, height int, fullscreen bool) {
 		}()
 	}
 
-	windowRecreated := u.setWindowSizeInDIPImpl(width, height, fullscreen)
+	u.setWindowSizeInDIPImpl(width, height, fullscreen)
 
 	u.adjustViewSize()
 
 	// As width might be updated, update windowWidth/Height here.
 	u.windowWidthInDIP = width
 	u.windowHeightInDIP = height
-
-	if windowRecreated {
-		if g, ok := Graphics().(interface{ SetWindow(uintptr) }); ok {
-			g.SetWindow(u.nativeWindow())
-		}
-	}
 }
 
-func (u *UserInterface) setWindowSizeInDIPImpl(width, height int, fullscreen bool) bool {
-	var windowRecreated bool
-
+func (u *UserInterface) setWindowSizeInDIPImpl(width, height int, fullscreen bool) {
 	if fullscreen {
 		if x, y := u.origPos(); x == invalidPos || y == invalidPos {
 			u.setOrigPos(u.window.GetPos())
@@ -1312,8 +1304,6 @@ func (u *UserInterface) setWindowSizeInDIPImpl(width, height int, fullscreen boo
 		n, d = u.window.GetSize()
 	}
 	u.window.SetAspectRatio(n, d)
-
-	return windowRecreated
 }
 
 // updateVsync must be called on the main thread.
