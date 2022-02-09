@@ -932,7 +932,7 @@ func (u *UserInterface) init() error {
 		u.window.Maximize()
 	}
 
-	u.window.SetAspectRatioFixed(u.isInitWindowAspectRatioFixed())
+	u.setWindowAspectRatioFixed(u.isInitWindowAspectRatioFixed())
 
 	u.window.Show()
 
@@ -1622,4 +1622,12 @@ func (u *UserInterface) setOrigPos(x, y int) {
 	}
 	u.origPosX = x
 	u.origPosY = y
+}
+
+func (u *UserInterface) setWindowAspectRatioFixed(fixed bool) {
+	n, d := glfw.DontCare, glfw.DontCare
+	if fixed {
+		n, d = u.window.GetSize()
+	}
+	u.window.SetAspectRatio(n, d)
 }

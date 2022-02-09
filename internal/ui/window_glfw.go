@@ -233,7 +233,7 @@ func (w *Window) SetAspectRatioFixed(fixed bool) {
 		return
 	}
 	w.ui.t.Call(func() {
-		w.ui.window.SetAspectRatioFixed(fixed)
+		w.ui.setWindowAspectRatioFixed(fixed)
 	})
 }
 
