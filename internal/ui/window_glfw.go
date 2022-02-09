@@ -228,13 +228,7 @@ func (w *Window) SetSizeLimits(minw, minh, maxw, maxh int) {
 }
 
 func (w *Window) SetAspectRatioFixed(fixed bool) {
-	if !w.ui.isRunning() {
-		w.ui.setInitWindowAspectRatioFixed(fixed)
-		return
-	}
-	w.ui.t.Call(func() {
-		w.ui.setWindowAspectRatioFixed(fixed)
-	})
+	w.ui.setWindowAspectRatioFixed(fixed)
 }
 
 func (w *Window) SetIcon(iconImages []image.Image) {

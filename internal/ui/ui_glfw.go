@@ -61,15 +61,16 @@ type UserInterface struct {
 	maxWindowWidthInDIP  int
 	maxWindowHeightInDIP int
 
-	running              uint32
-	origPosX             int
-	origPosY             int
-	runnableOnUnfocused  bool
-	fpsMode              FPSMode
-	iconImages           []image.Image
-	cursorShape          CursorShape
-	windowClosingHandled bool
-	windowBeingClosed    bool
+	running                uint32
+	origPosX               int
+	origPosY               int
+	runnableOnUnfocused    bool
+	fpsMode                FPSMode
+	iconImages             []image.Image
+	cursorShape            CursorShape
+	windowClosingHandled   bool
+	windowBeingClosed      bool
+	windowAspectRatioFixed bool
 
 	// setSizeCallbackEnabled must be accessed from the main thread.
 	setSizeCallbackEnabled bool
@@ -85,19 +86,18 @@ type UserInterface struct {
 	initFullscreenWidthInDIP  int
 	initFullscreenHeightInDIP int
 
-	initFullscreen             bool
-	initCursorMode             CursorMode
-	initWindowDecorated        bool
-	initWindowResizable        bool
-	initWindowPositionXInDIP   int
-	initWindowPositionYInDIP   int
-	initWindowWidthInDIP       int
-	initWindowHeightInDIP      int
-	initWindowFloating         bool
-	initWindowMaximized        bool
-	initWindowAspectRatioFixed bool
-	initScreenTransparent      bool
-	initFocused                bool
+	initFullscreen           bool
+	initCursorMode           CursorMode
+	initWindowDecorated      bool
+	initWindowResizable      bool
+	initWindowPositionXInDIP int
+	initWindowPositionYInDIP int
+	initWindowWidthInDIP     int
+	initWindowHeightInDIP    int
+	initWindowFloating       bool
+	initWindowMaximized      bool
+	initScreenTransparent    bool
+	initFocused              bool
 
 	fpsModeInited bool
 
@@ -280,16 +280,16 @@ func (u *UserInterface) setWindowSizeLimitsInDIP(minw, minh, maxw, maxh int) boo
 	return true
 }
 
-func (u *UserInterface) isInitWindowAspectRatioFixed() bool {
+func (u *UserInterface) isWindowAspectRatioFixed() bool {
 	u.m.RLock()
-	v := u.initWindowAspectRatioFixed
+	v := u.windowAspectRatioFixed
 	u.m.RUnlock()
 	return v
 }
 
-func (u *UserInterface) setInitWindowAspectRatioFixed(fixed bool) {
+func (u *UserInterface) setWindowAspectRatioFixed(fixed bool) {
 	u.m.Lock()
-	u.initWindowAspectRatioFixed = fixed
+	u.windowAspectRatioFixed = fixed
 	u.m.Unlock()
 }
 
@@ -932,8 +932,6 @@ func (u *UserInterface) init() error {
 		u.window.Maximize()
 	}
 
-	u.setWindowAspectRatioFixed(u.isInitWindowAspectRatioFixed())
-
 	u.window.Show()
 
 	if g, ok := Graphics().(interface{ SetWindow(uintptr) }); ok {
@@ -1306,6 +1304,12 @@ func (u *UserInterface) setWindowSizeInDIPImpl(width, height int, fullscreen boo
 		}
 	}
 
+	n, d := glfw.DontCare, glfw.DontCare
+	if !fullscreen && u.isWindowAspectRatioFixed() {
+		n, d = u.window.GetSize()
+	}
+	u.window.SetAspectRatio(n, d)
+
 	return windowRecreated
 }
 
@@ -1622,12 +1626,4 @@ func (u *UserInterface) setOrigPos(x, y int) {
 	}
 	u.origPosX = x
 	u.origPosY = y
-}
-
-func (u *UserInterface) setWindowAspectRatioFixed(fixed bool) {
-	n, d := glfw.DontCare, glfw.DontCare
-	if fixed {
-		n, d = u.window.GetSize()
-	}
-	u.window.SetAspectRatio(n, d)
 }
