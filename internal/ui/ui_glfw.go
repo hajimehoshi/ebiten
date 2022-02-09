@@ -885,11 +885,9 @@ func (u *UserInterface) init() error {
 	glfw.WindowHint(glfw.TransparentFramebuffer, transparent)
 	Graphics().SetTransparent(u.isInitScreenTransparent())
 
-	resizable := glfw.False
-	if u.isInitWindowResizable() {
-		resizable = glfw.True
-	}
-	glfw.WindowHint(glfw.Resizable, resizable)
+	// Before creating a window, set it unresizable no matter what u.isInitWindowResizable() is (#1987).
+	// Making the window resizable here doesn't work correctly when switching to enable resizing.
+	glfw.WindowHint(glfw.Resizable, glfw.False)
 
 	floating := glfw.False
 	if u.isInitWindowFloating() {
@@ -923,6 +921,8 @@ func (u *UserInterface) init() error {
 	wx, wy := u.getInitWindowPositionInDIP()
 	u.setWindowPositionInDIP(wx, wy, u.initMonitor)
 	u.setWindowSizeInDIP(ww, wh, u.isFullscreen())
+
+	u.setWindowResizable(u.isInitWindowResizable())
 
 	// Maximizing a window requires a proper size and position. Call Maximize here (#1117).
 	if u.isInitWindowMaximized() {
