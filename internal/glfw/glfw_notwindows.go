@@ -208,6 +208,14 @@ func (w *Window) SetSizeLimits(minw, minh, maxw, maxh int) {
 	w.w.SetSizeLimits(minw, minh, maxw, maxh)
 }
 
+func () SetKeepAspectRatio(keep bool) {
+	n, d := glfw.DontCare, glfw.DontCare
+	if keep {
+		n, d = w.GetSize()
+	}
+	w.w.SetAspectRatio(n, d)
+}
+
 func (w *Window) SetIcon(images []image.Image) {
 	w.w.SetIcon(images)
 }
