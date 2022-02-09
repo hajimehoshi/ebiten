@@ -72,11 +72,9 @@ func SetWindowResizable(resizable bool) {
 	ui.Get().Window().SetResizable(resizable)
 }
 
-// SetWindowKeepAspectRatio sets whether the window should keep its aspect ratio while resizing.
-func SetWindowKeepAspectRatio(keep bool) {
-	if w := ui.Get().Window(); w != nil {
-		w.SetKeepAspectRatio(keep)
-	}
+// SetWindowAspectRatioFixed sets whether the window should keep its aspect ratio while resizing.
+func SetWindowAspectRatioFixed(fixed bool) {
+	ui.Get().Window().SetAspectRatioFixed(fixed)
 }
 
 // SetWindowTitle sets the title of the window.

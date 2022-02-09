@@ -79,7 +79,7 @@ func (*Window) IsMinimized() bool {
 	return false
 }
 
-func (*Window) SetKeepAspectRatio(keep bool) {
+func (*Window) SetAspectRatioFixed(fixed bool) {
 }
 
 func (*Window) SetIcon(iconImages []image.Image) {

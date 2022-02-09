@@ -261,9 +261,9 @@ func (w *Window) SetSizeLimits(minw, minh, maxw, maxh int) {
 	panicError()
 }
 
-func (w *Window) SetKeepAspectRatio(keep bool) {
+func (w *Window) SetAspectRatioFixed(fixed bool) {
 	n, d := -1, -1
-	if keep {
+	if fixed {
 		n, d = w.GetSize()
 	}
 	glfwDLL.call("glfwSetWindowAspectRatio", w.w, uintptr(n), uintptr(d))

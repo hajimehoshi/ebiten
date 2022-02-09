@@ -227,13 +227,13 @@ func (w *Window) SetSizeLimits(minw, minh, maxw, maxh int) {
 	w.ui.t.Call(w.ui.updateWindowSizeLimits)
 }
 
-func (w *Window) SetKeepAspectRatio(keep bool) {
+func (w *Window) SetAspectRatioFixed(fixed bool) {
 	if !w.ui.isRunning() {
-		w.ui.setInitWindowKeepAspectRatio(keep)
+		w.ui.setInitWindowAspectRatioFixed(fixed)
 		return
 	}
 	w.ui.t.Call(func() {
-		w.ui.window.SetKeepAspectRatio(keep)
+		w.ui.window.SetAspectRatioFixed(fixed)
 	})
 }
 
