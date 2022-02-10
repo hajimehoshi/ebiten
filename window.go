@@ -217,9 +217,6 @@ func SetWindowFloating(float bool) {
 //
 // MaximizeWindow is concurrent-safe.
 func MaximizeWindow() {
-	if !IsWindowResizable() {
-		panic("ebiten: a window to maximize must be resizable")
-	}
 	ui.Get().Window().Maximize()
 }
 
@@ -231,9 +228,6 @@ func MaximizeWindow() {
 //
 // IsWindowMaximized is concurrent-safe.
 func IsWindowMaximized() bool {
-	if !IsWindowResizable() {
-		return false
-	}
 	return ui.Get().Window().IsMaximized()
 }
 
