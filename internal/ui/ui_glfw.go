@@ -61,16 +61,15 @@ type UserInterface struct {
 	maxWindowWidthInDIP  int
 	maxWindowHeightInDIP int
 
-	running                uint32
-	origPosX               int
-	origPosY               int
-	runnableOnUnfocused    bool
-	fpsMode                FPSMode
-	iconImages             []image.Image
-	cursorShape            CursorShape
-	windowClosingHandled   bool
-	windowBeingClosed      bool
-	windowAspectRatioFixed bool
+	running              uint32
+	origPosX             int
+	origPosY             int
+	runnableOnUnfocused  bool
+	fpsMode              FPSMode
+	iconImages           []image.Image
+	cursorShape          CursorShape
+	windowClosingHandled bool
+	windowBeingClosed    bool
 
 	// setSizeCallbackEnabled must be accessed from the main thread.
 	setSizeCallbackEnabled bool
@@ -278,19 +277,6 @@ func (u *UserInterface) setWindowSizeLimitsInDIP(minw, minh, maxw, maxh int) boo
 	u.maxWindowWidthInDIP = maxw
 	u.maxWindowHeightInDIP = maxh
 	return true
-}
-
-func (u *UserInterface) isWindowAspectRatioFixed() bool {
-	u.m.RLock()
-	v := u.windowAspectRatioFixed
-	u.m.RUnlock()
-	return v
-}
-
-func (u *UserInterface) setWindowAspectRatioFixed(fixed bool) {
-	u.m.Lock()
-	u.windowAspectRatioFixed = fixed
-	u.m.Unlock()
 }
 
 func (u *UserInterface) isInitFullscreen() bool {
@@ -1138,12 +1124,6 @@ func (u *UserInterface) swapBuffers() {
 
 // updateWindowSizeLimits must be called from the main thread.
 func (u *UserInterface) updateWindowSizeLimits() {
-	aspectRatio := 0.0
-	if !u.isFullscreen() && u.isWindowAspectRatioFixed() {
-		w, h := u.window.GetSize()
-		aspectRatio = float64(h) / float64(w)
-	}
-
 	m := u.currentMonitor()
 	minw, minh, maxw, maxh := u.getWindowSizeLimitsInDIP()
 
@@ -1154,11 +1134,7 @@ func (u *UserInterface) updateWindowSizeLimits() {
 		minw = int(u.dipToGLFWPixel(float64(minw), m))
 	}
 	if minh < 0 {
-		if aspectRatio > 0 {
-			minh = int(float64(minw) * aspectRatio)
-		} else {
-			minh = glfw.DontCare
-		}
+		minh = glfw.DontCare
 	} else {
 		minh = int(u.dipToGLFWPixel(float64(minh), m))
 	}
@@ -1231,14 +1207,6 @@ func (u *UserInterface) setWindowSizeInDIP(width, height int, fullscreen bool) {
 
 	u.setWindowSizeInDIPImpl(width, height, fullscreen)
 
-	// TODO: This must be called just after the window is created.
-	// This relies on the initial value of lastDeviceScaleFactor is 0 so this is called, but the condition is fragile.
-	// Refactor this.
-	n, d := glfw.DontCare, glfw.DontCare
-	if !fullscreen && u.isWindowAspectRatioFixed() {
-		n, d = width, height
-	}
-	u.window.SetAspectRatio(n, d)
 	u.updateWindowSizeLimits()
 
 	u.adjustViewSize()

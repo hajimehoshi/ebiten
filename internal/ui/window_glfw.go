@@ -227,14 +227,6 @@ func (w *Window) SetSizeLimits(minw, minh, maxw, maxh int) {
 	w.ui.t.Call(w.ui.updateWindowSizeLimits)
 }
 
-func (w *Window) SetAspectRatioFixed(fixed bool) {
-	w.ui.setWindowAspectRatioFixed(fixed)
-}
-
-func (w *Window) IsAspectRatioFixed() bool {
-	return w.ui.isWindowAspectRatioFixed()
-}
-
 func (w *Window) SetIcon(iconImages []image.Image) {
 	// The icons are actually set at (*UserInterface).loop.
 	w.ui.setIconImages(iconImages)
