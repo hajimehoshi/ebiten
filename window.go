@@ -84,7 +84,7 @@ func SetWindowResizingMode(mode WindowResizingModeType) {
 // IsWindowResizable reports whether the window is resizable by the user's dragging on desktops.
 // On the other environments, IsWindowResizable always returns false.
 //
-// Deprecated: as of v2.2. Use WindowResizingMode instead.
+// Deprecated: as of v2.3. Use WindowResizingMode instead.
 func IsWindowResizable() bool {
 	return ui.Get().Window().ResizingMode() == ui.WindowResizingModeEnabled
 }
@@ -92,7 +92,7 @@ func IsWindowResizable() bool {
 // SetWindowResizable sets whether the window is resizable by the user's dragging on desktops.
 // On the other environments, SetWindowResizable does nothing.
 //
-// Deprecated: as of v2.2, Use SetWindowResizingMode instead.
+// Deprecated: as of v2.3, Use SetWindowResizingMode instead.
 func SetWindowResizable(resizable bool) {
 	mode := ui.WindowResizingModeDisabled
 	if resizable {
