@@ -56,8 +56,6 @@ func IsWindowResizable() bool {
 //
 // The window is not resizable by default.
 //
-// If SetWindowResizable is called with true and Run is used, SetWindowResizable panics. Use RunGame instead.
-//
 // SetWindowResizable does nothing on macOS when the window is fullscreened natively by the macOS desktop
 // instead of SetFullscreen(true).
 //
