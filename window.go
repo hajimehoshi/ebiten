@@ -21,12 +21,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
-const (
-	maxInt     = int(^uint(0) >> 1)
-	minInt     = -maxInt - 1
-	invalidPos = minInt
-)
-
 // IsWindowDecorated reports whether the window is decorated.
 //
 // IsWindowDecorated is concurrent-safe.
