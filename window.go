@@ -35,8 +35,7 @@ func IsWindowDecorated() bool {
 // SetWindowDecorated works only on desktops.
 // SetWindowDecorated does nothing on other platforms.
 //
-// SetWindowDecorated does nothing on macOS when the window is fullscreened natively by the macOS desktop
-// instead of SetFullscreen(true).
+// SetWindowDecorated does nothing on macOS when the window is fullscreened.
 //
 // SetWindowDecorated is concurrent-safe.
 func SetWindowDecorated(decorated bool) {
@@ -56,8 +55,7 @@ func IsWindowResizable() bool {
 //
 // The window is not resizable by default.
 //
-// SetWindowResizable does nothing on macOS when the window is fullscreened natively by the macOS desktop
-// instead of SetFullscreen(true).
+// SetWindowResizable does nothing on macOS when the window is fullscreened.
 //
 // SetWindowResizable is concurrent-safe.
 func SetWindowResizable(resizable bool) {
@@ -193,8 +191,7 @@ func IsWindowFloating() bool {
 //
 // SetWindowFloating does nothing on browsers or mobiles.
 //
-// SetWindowFloating does nothing on macOS when the window is fullscreened natively by the macOS desktop
-// instead of SetFullscreen(true).
+// SetWindowFloating does nothing on macOS when the window is fullscreened.
 //
 // SetWindowFloating is concurrent-safe.
 func SetWindowFloating(float bool) {
