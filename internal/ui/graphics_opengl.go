@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !darwin || (ios && 386) || (ios && amd64) || ebitengl
-// +build !darwin ios,386 ios,amd64 ebitengl
+//go:build !darwin || ebitengl
+// +build !darwin ebitengl
 
 package ui
 

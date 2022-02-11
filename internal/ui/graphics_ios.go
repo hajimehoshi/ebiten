@@ -12,22 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ((ios && arm) || (ios && arm64)) && !ebitengl && !ebitencbackend
-// +build ios,arm ios,arm64
-// +build !ebitengl
-// +build !ebitencbackend
+//go:build ios && !ebitengl && !ebitencbackend
+// +build ios,!ebitengl,!ebitencbackend
 
 package ui
 
 import (
 	"fmt"
+	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
 func Graphics() graphicsdriver.Graphics {
+	if runtime.GOARCH == "386" || runtime.GOARCH == "amd64" {
+		return opengl.Get()
+	}
+
 	if _, err := mtl.CreateSystemDefaultDevice(); err != nil {
 		panic(fmt.Sprintf("mobile: mtl.CreateSystemDefaultDevice failed on iOS: %v", err))
 	}
