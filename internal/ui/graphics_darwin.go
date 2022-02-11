@@ -38,24 +38,19 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
 var graphics graphicsdriver.Graphics
 
 func supportsMetal() bool {
-	// On old mac devices like iMac 2011, Metal is not supported (#779).
-	if _, err := mtl.CreateSystemDefaultDevice(); err != nil {
-		return false
-	}
-
 	// On macOS 10.11 El Capitan, there is a rendering issue on Metal (#781).
 	// Use the OpenGL in macOS 10.11 or older.
 	if C.getMacOSMajorVersion() <= 10 && C.getMacOSMinorVersion() <= 11 {
 		return false
 	}
-	return true
+
+	return metal.Get() != nil
 }
 
 var graphicsOnce sync.Once

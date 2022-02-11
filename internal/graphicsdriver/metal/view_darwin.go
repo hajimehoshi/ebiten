@@ -15,6 +15,7 @@
 package metal
 
 import (
+	"errors"
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca"
@@ -76,10 +77,10 @@ func (v *view) colorPixelFormat() mtl.PixelFormat {
 }
 
 func (v *view) initialize() error {
-	var err error
-	v.device, err = mtl.CreateSystemDefaultDevice()
-	if err != nil {
-		return err
+	var ok bool
+	v.device, ok = mtl.CreateSystemDefaultDevice()
+	if !ok {
+		return errors.New("metal: Metal is not supported")
 	}
 
 	v.ml = ca.MakeMetalLayer()

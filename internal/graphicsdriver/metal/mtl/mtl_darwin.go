@@ -460,10 +460,10 @@ type Device struct {
 // CreateSystemDefaultDevice returns the preferred system default Metal device.
 //
 // Reference: https://developer.apple.com/documentation/metal/1433401-mtlcreatesystemdefaultdevice.
-func CreateSystemDefaultDevice() (Device, error) {
+func CreateSystemDefaultDevice() (Device, bool) {
 	d := C.CreateSystemDefaultDevice()
 	if d.Device == nil {
-		return Device{}, errors.New("Metal is not supported on this system")
+		return Device{}, false
 	}
 
 	return Device{
@@ -471,7 +471,7 @@ func CreateSystemDefaultDevice() (Device, error) {
 		Headless: d.Headless != 0,
 		LowPower: d.LowPower != 0,
 		Name:     C.GoString(d.Name),
-	}, nil
+	}, true
 }
 
 // Device returns the underlying id<MTLDevice> pointer.

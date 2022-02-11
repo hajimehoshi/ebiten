@@ -23,7 +23,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
@@ -32,8 +31,8 @@ func Graphics() graphicsdriver.Graphics {
 		return opengl.Get()
 	}
 
-	if _, err := mtl.CreateSystemDefaultDevice(); err != nil {
-		panic(fmt.Sprintf("mobile: mtl.CreateSystemDefaultDevice failed on iOS: %v", err))
+	if metal.Get() == nil {
+		panic(fmt.Sprintf("ui: Metal is not available on this iOS device"))
 	}
 	return metal.Get()
 }
