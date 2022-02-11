@@ -1,4 +1,4 @@
-// Copyright 2019 The Ebiten Authors
+// Copyright 2022 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,21 +18,11 @@
 package ui
 
 import (
-	"fmt"
-	"runtime"
-
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
 func Graphics() graphicsdriver.Graphics {
-	if runtime.GOARCH == "386" || runtime.GOARCH == "amd64" {
-		return opengl.Get()
-	}
-
-	if metal.Get() == nil {
-		panic(fmt.Sprintf("ui: Metal is not available on this iOS device"))
-	}
-	return metal.Get()
+	// Metal might not be supported on emulators on Intel machines.
+	return opengl.Get()
 }
