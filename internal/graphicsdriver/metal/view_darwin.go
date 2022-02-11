@@ -75,7 +75,7 @@ func (v *view) colorPixelFormat() mtl.PixelFormat {
 	return v.ml.PixelFormat()
 }
 
-func (v *view) reset() error {
+func (v *view) initialize() error {
 	var err error
 	v.device, err = mtl.CreateSystemDefaultDevice()
 	if err != nil {

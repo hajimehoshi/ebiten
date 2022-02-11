@@ -596,7 +596,7 @@ func (g *Graphics) Initialize() error {
 		g.dsss = map[stencilMode]mtl.DepthStencilState{}
 	}
 
-	if err := g.view.reset(); err != nil {
+	if err := g.view.initialize(); err != nil {
 		return err
 	}
 	if g.transparent {
