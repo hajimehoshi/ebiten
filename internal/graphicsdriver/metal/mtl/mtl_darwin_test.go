@@ -30,9 +30,9 @@ import (
 )
 
 func Disabled_TestRenderTriangle(t *testing.T) {
-	device, err := mtl.CreateSystemDefaultDevice()
-	if err != nil {
-		t.Fatal(err)
+	device, ok := mtl.CreateSystemDefaultDevice()
+	if !ok {
+		t.Fatal("Metal is not supported")
 	}
 
 	// Create a render pipeline state.
