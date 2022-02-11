@@ -180,7 +180,7 @@ func (g *nativeGamepads) init(gamepads *gamepads) error {
 		}
 
 		var api *iDirectInput8W
-		if err := g.directInput8Create(m, _DIRECTINPUT_VERSION, unsafe.Pointer(&iidIDirectInput8W), unsafe.Pointer(&api), nil); err != nil {
+		if err := g.directInput8Create(m, _DIRECTINPUT_VERSION, &iidIDirectInput8W, &api, nil); err != nil {
 			return err
 		}
 		g.dinput8API = api
@@ -193,9 +193,9 @@ func (g *nativeGamepads) init(gamepads *gamepads) error {
 	return nil
 }
 
-func (g *nativeGamepads) directInput8Create(hinst uintptr, dwVersion uint32, riidltf unsafe.Pointer, ppvOut unsafe.Pointer, punkOuter unsafe.Pointer) error {
+func (g *nativeGamepads) directInput8Create(hinst uintptr, dwVersion uint32, riidltf *windows.GUID, ppvOut **iDirectInput8W, punkOuter unsafe.Pointer) error {
 	r, _, _ := syscall.Syscall6(g.procDirectInput8Create, 5,
-		hinst, uintptr(dwVersion), uintptr(riidltf), uintptr(ppvOut), uintptr(punkOuter),
+		hinst, uintptr(dwVersion), uintptr(unsafe.Pointer(riidltf)), uintptr(unsafe.Pointer(ppvOut)), uintptr(punkOuter),
 		0)
 	if r != _DI_OK {
 		return fmt.Errorf("gamepad: DirectInput8Create failed: %w", directInputError(syscall.Errno(r)))
