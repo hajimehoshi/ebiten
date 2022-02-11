@@ -31,7 +31,9 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
-type graphicsDriverGetterImpl struct{}
+type graphicsDriverGetterImpl struct {
+	transparent bool
+}
 
 func (g *graphicsDriverGetterImpl) getAuto() graphicsdriver.Graphics {
 	return g.getOpenGL()

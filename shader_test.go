@@ -17,6 +17,7 @@ package ebiten_test
 import (
 	"image"
 	"image/color"
+	"math"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -648,6 +649,77 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
 			want := color.RGBA{0x40, 0, 0x40, 0xff}
+			if !sameColors(got, want, 2) {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestShaderTextureAt(t *testing.T) {
+	const w, h = 16, 16
+
+	src := ebiten.NewImage(w, h)
+	src.Fill(color.RGBA{0x10, 0x20, 0x30, 0xff})
+
+	dst := ebiten.NewImage(w, h)
+	s, err := ebiten.NewShader([]byte(`package main
+
+func textureAt(uv vec2) vec4 {
+	return imageSrc0UnsafeAt(uv)
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return textureAt(texCoord)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	op := &ebiten.DrawRectShaderOptions{}
+	op.Images[0] = src
+	dst.DrawRectShader(w, h, s, op)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{0x10, 0x20, 0x30, 0xff}
+			if !sameColors(got, want, 2) {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestShaderAtan2(t *testing.T) {
+	const w, h = 16, 16
+
+	src := ebiten.NewImage(w, h)
+	src.Fill(color.RGBA{0x10, 0x20, 0x30, 0xff})
+
+	dst := ebiten.NewImage(w, h)
+	s, err := ebiten.NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	y := vec4(1, 1, 1, 1)
+	x := vec4(1, 1, 1, 1)
+	return atan2(y, x)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	op := &ebiten.DrawRectShaderOptions{}
+	op.Images[0] = src
+	dst.DrawRectShader(w, h, s, op)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			v := byte(math.Floor(0xff * math.Pi / 4))
+			want := color.RGBA{v, v, v, v}
 			if !sameColors(got, want, 2) {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}

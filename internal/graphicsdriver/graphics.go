@@ -54,6 +54,7 @@ type Graphics interface {
 	NeedsRestoring() bool
 	NeedsClearingScreen() bool
 	IsGL() bool
+	IsDirectX() bool
 	HasHighPrecisionFloat() bool
 	MaxImageSize() int
 

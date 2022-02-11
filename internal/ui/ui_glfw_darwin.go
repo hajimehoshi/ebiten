@@ -232,7 +232,9 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
-type graphicsDriverGetterImpl struct{}
+type graphicsDriverGetterImpl struct {
+	transparent bool
+}
 
 func (g *graphicsDriverGetterImpl) getAuto() graphicsdriver.Graphics {
 	if m := g.getMetal(); m != nil {

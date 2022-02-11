@@ -1046,6 +1046,10 @@ func (g *Graphics) IsGL() bool {
 	return false
 }
 
+func (g *Graphics) IsDirectX() bool {
+	return false
+}
+
 func (g *Graphics) HasHighPrecisionFloat() bool {
 	return true
 }

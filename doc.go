@@ -69,9 +69,16 @@
 // If the specified graphics library is not available, RunGame returns an error.
 // This can take one of the following value:
 //
-//     "auto":   Ebiten chooses the graphics library automatically. This is the default value.
-//     "opengl": OpenGL, OpenGL ES, or WebGL.
-//     "metal":  Metal. This works only on macOS or iOS.
+//     "auto":    Ebiten chooses the graphics library automatically. This is the default value.
+//     "opengl":  OpenGL, OpenGL ES, or WebGL.
+//     "directx": DirectX. This works only on Windows.
+//     "metal":   Metal. This works only on macOS or iOS.
+//
+// `EBITEN_DIRECTX` environment variable specifies various parameters for DirectX.
+// You can specify multiple values separated by a comma. The default value is empty (i.e. no parameters).
+//
+//     "warp":  Use WARP (i.e. software rendering).
+//     "debug": Use a debug layer.
 //
 // Build tags
 //

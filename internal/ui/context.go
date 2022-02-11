@@ -61,7 +61,18 @@ func (c *contextImpl) updateFrame(graphicsDriver graphicsdriver.Graphics, outsid
 }
 
 func (c *contextImpl) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
-	return c.updateFrameImpl(graphicsDriver, 1, outsideWidth, outsideHeight, deviceScaleFactor)
+	n := 1
+	if graphicsDriver.IsDirectX() {
+		// On DirectX, both framebuffers in the swap chain should be updated.
+		// Or, the rendering result becomes unexpected when the window is resized.
+		n = 2
+	}
+	for i := 0; i < n; i++ {
+		if err := c.updateFrameImpl(graphicsDriver, 1, outsideWidth, outsideHeight, deviceScaleFactor); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (c *contextImpl) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {

@@ -26,12 +26,18 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/directx"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
-type graphicsDriverGetterImpl struct{}
+type graphicsDriverGetterImpl struct {
+	transparent bool
+}
 
 func (g *graphicsDriverGetterImpl) getAuto() graphicsdriver.Graphics {
+	if d := g.getDirectX(); d != nil {
+		return d
+	}
 	return g.getOpenGL()
 }
 
@@ -42,7 +48,13 @@ func (*graphicsDriverGetterImpl) getOpenGL() graphicsdriver.Graphics {
 	return nil
 }
 
-func (*graphicsDriverGetterImpl) getDirectX() graphicsdriver.Graphics {
+func (g *graphicsDriverGetterImpl) getDirectX() graphicsdriver.Graphics {
+	if g.transparent {
+		return nil
+	}
+	if d := directx.Get(); d != nil {
+		return d
+	}
 	return nil
 }
 

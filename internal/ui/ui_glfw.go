@@ -811,19 +811,6 @@ event:
 }
 
 func (u *userInterfaceImpl) init() error {
-	g, err := chooseGraphicsDriver(&graphicsDriverGetterImpl{})
-	if err != nil {
-		return err
-	}
-	u.graphicsDriver = g
-	if u.graphicsDriver.IsGL() {
-		glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLAPI)
-		glfw.WindowHint(glfw.ContextVersionMajor, 2)
-		glfw.WindowHint(glfw.ContextVersionMinor, 1)
-	} else {
-		glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
-	}
-
 	glfw.WindowHint(glfw.AutoIconify, glfw.False)
 
 	decorated := glfw.False
@@ -832,12 +819,29 @@ func (u *userInterfaceImpl) init() error {
 	}
 	glfw.WindowHint(glfw.Decorated, decorated)
 
-	transparent := glfw.False
-	if u.isInitScreenTransparent() {
-		transparent = glfw.True
+	transparent := u.isInitScreenTransparent()
+	glfwTransparent := glfw.False
+	if transparent {
+		glfwTransparent = glfw.True
 	}
-	glfw.WindowHint(glfw.TransparentFramebuffer, transparent)
+	glfw.WindowHint(glfw.TransparentFramebuffer, glfwTransparent)
+
+	g, err := chooseGraphicsDriver(&graphicsDriverGetterImpl{
+		transparent: transparent,
+	})
+	if err != nil {
+		return err
+	}
+	u.graphicsDriver = g
 	u.graphicsDriver.SetTransparent(u.isInitScreenTransparent())
+
+	if u.graphicsDriver.IsGL() {
+		glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLAPI)
+		glfw.WindowHint(glfw.ContextVersionMajor, 2)
+		glfw.WindowHint(glfw.ContextVersionMinor, 1)
+	} else {
+		glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
+	}
 
 	// Before creating a window, set it unresizable no matter what u.isInitWindowResizable() is (#1987).
 	// Making the window resizable here doesn't work correctly when switching to enable resizing.
