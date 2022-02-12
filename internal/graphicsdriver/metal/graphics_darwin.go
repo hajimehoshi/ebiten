@@ -349,14 +349,10 @@ const (
 // isMetalAvailable reports whether Metal is available or not.
 //
 // On old mac devices like iMac 2011, Metal is not supported (#779).
-var isMetalAvailable bool
-
-func init() {
-	// Initialize isMetalAvailable on the main thread.
-	// TODO: Is there a better way to check whether Metal is available or not?
-	// It seems OK to call MTLCreateSystemDefaultDevice multiple times, so this should be fine.
-	_, isMetalAvailable = mtl.CreateSystemDefaultDevice()
-}
+//
+// initializeView calls mtl.CreateSystemDefualtDevice, which works only when Metal is available.
+// If there is a better way, this should be adopted.
+var isMetalAvailable = theGraphics.initializeView() == nil
 
 var theGraphics Graphics
 
@@ -595,6 +591,10 @@ func operationToBlendFactor(c graphicsdriver.Operation) mtl.BlendFactor {
 	}
 }
 
+func (g *Graphics) initializeView() error {
+	return g.view.initialize()
+}
+
 func (g *Graphics) Initialize() error {
 	// Creating *State objects are expensive and reuse them whenever possible.
 	// See https://developer.apple.com/library/archive/documentation/Miscellaneous/Conceptual/MetalProgrammingGuide/Cmd-Submiss/Cmd-Submiss.html
@@ -611,9 +611,6 @@ func (g *Graphics) Initialize() error {
 		g.dsss = map[stencilMode]mtl.DepthStencilState{}
 	}
 
-	if err := g.view.initialize(); err != nil {
-		return err
-	}
 	if g.transparent {
 		g.view.ml.SetOpaque(false)
 	}
