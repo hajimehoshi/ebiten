@@ -41,7 +41,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
-var graphics graphicsdriver.Graphics
+var theGraphics graphicsdriver.Graphics
 
 func supportsMetal() bool {
 	// On macOS 10.11 El Capitan, there is a rendering issue on Metal (#781).
@@ -55,13 +55,13 @@ func supportsMetal() bool {
 
 var graphicsOnce sync.Once
 
-func Graphics() graphicsdriver.Graphics {
+func graphics() graphicsdriver.Graphics {
 	graphicsOnce.Do(func() {
 		if supportsMetal() {
-			graphics = metal.Get()
+			theGraphics = metal.Get()
 			return
 		}
-		graphics = opengl.Get()
+		theGraphics = opengl.Get()
 	})
-	return graphics
+	return theGraphics
 }

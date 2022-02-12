@@ -22,7 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
-func Graphics() graphicsdriver.Graphics {
+func graphics() graphicsdriver.Graphics {
 	// Metal might not be supported on emulators on Intel machines.
 	return opengl.Get()
 }

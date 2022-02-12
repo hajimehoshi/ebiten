@@ -16,6 +16,8 @@ package ui
 
 import (
 	"errors"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
 type Context interface {
@@ -76,3 +78,11 @@ const (
 	WindowResizingModeOnlyFullscreenEnabled
 	WindowResizingModeEnabled
 )
+
+func NeedsClearingScreen() bool {
+	return graphics().NeedsClearingScreen()
+}
+
+func FramebufferYDirection() graphicsdriver.YDirection {
+	return graphics().FramebufferYDirection()
+}

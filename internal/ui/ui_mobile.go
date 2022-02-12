@@ -279,7 +279,7 @@ func (u *UserInterface) run(context Context, mainloop bool) (err error) {
 		// When mainloop is true, gomobile-build is used. In this case, GL functions must be called via
 		// gl.Context so that they are called on the appropriate thread.
 		ctx := <-glContextCh
-		Graphics().(*opengl.Graphics).SetGomobileGLContext(ctx)
+		graphics().(*opengl.Graphics).SetGomobileGLContext(ctx)
 	} else {
 		u.t = thread.NewOSThread()
 		graphicscommand.SetMainThread(u.t)

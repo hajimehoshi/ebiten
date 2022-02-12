@@ -200,7 +200,7 @@ func (c *uiContext) updateFrameImpl(updateCount int) error {
 	}
 	c.game.Draw(c.offscreen)
 
-	if ui.Graphics().NeedsClearingScreen() {
+	if ui.NeedsClearingScreen() {
 		// This clear is needed for fullscreen mode or some mobile platforms (#622).
 		c.screen.Clear()
 	}
@@ -208,7 +208,7 @@ func (c *uiContext) updateFrameImpl(updateCount int) error {
 	op := &DrawImageOptions{}
 
 	s := c.screenScale(ui.Get().DeviceScaleFactor())
-	switch vd := ui.Graphics().FramebufferYDirection(); vd {
+	switch vd := ui.FramebufferYDirection(); vd {
 	case graphicsdriver.Upward:
 		op.GeoM.Scale(s, -s)
 		_, h := c.offscreen.Size()

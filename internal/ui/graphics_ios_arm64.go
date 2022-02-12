@@ -22,7 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
 )
 
-func Graphics() graphicsdriver.Graphics {
+func graphics() graphicsdriver.Graphics {
 	g := metal.Get()
 	if g == nil {
 		panic("ui: Metal is not available on this iOS device")
