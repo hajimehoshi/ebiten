@@ -238,10 +238,10 @@ func (u *UserInterface) SetForeground(foreground bool) error {
 	}
 }
 
-func (u *UserInterface) Run(context Context) error {
+func (u *UserInterface) Run(game Game) error {
 	u.setGBuildSizeCh = make(chan struct{})
 	go func() {
-		if err := u.run(context, true); err != nil {
+		if err := u.run(game, true); err != nil {
 			// As mobile apps never ends, Loop can't return. Just panic here.
 			panic(err)
 		}
@@ -250,15 +250,15 @@ func (u *UserInterface) Run(context Context) error {
 	return nil
 }
 
-func (u *UserInterface) RunWithoutMainLoop(context Context) {
+func (u *UserInterface) RunWithoutMainLoop(game Game) {
 	go func() {
-		if err := u.run(context, false); err != nil {
+		if err := u.run(game, false); err != nil {
 			u.errCh <- err
 		}
 	}()
 }
 
-func (u *UserInterface) run(context Context, mainloop bool) (err error) {
+func (u *UserInterface) run(game Game, mainloop bool) (err error) {
 	// Convert the panic to a regular error so that Java/Objective-C layer can treat this easily e.g., for
 	// Crashlytics. A panic is treated as SIGABRT, and there is no way to handle this on Java/Objective-C layer
 	// unfortunately.
@@ -273,7 +273,7 @@ func (u *UserInterface) run(context Context, mainloop bool) (err error) {
 	u.sizeChanged = true
 	u.m.Unlock()
 
-	u.context = newContextImpl(context)
+	u.context = newContextImpl(game)
 
 	if mainloop {
 		// When mainloop is true, gomobile-build is used. In this case, GL functions must be called via

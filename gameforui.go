@@ -21,7 +21,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
-type uiContext struct {
+type gameForUI struct {
 	game      Game
 	offscreen *Image
 	screen    *Image
@@ -29,15 +29,15 @@ type uiContext struct {
 	m sync.Mutex
 }
 
-var theUIContext = &uiContext{}
+var theGameForUI = &gameForUI{}
 
-func (c *uiContext) set(game Game) {
+func (c *gameForUI) set(game Game) {
 	c.m.Lock()
 	defer c.m.Unlock()
 	c.game = game
 }
 
-func (c *uiContext) UpdateOffscreen(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {
+func (c *gameForUI) Layout(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {
 	ow, oh := c.game.Layout(int(outsideWidth), int(outsideHeight))
 	if ow <= 0 || oh <= 0 {
 		panic("ebiten: Layout must return positive numbers")
@@ -74,7 +74,7 @@ func (c *uiContext) UpdateOffscreen(outsideWidth, outsideHeight float64, deviceS
 	return ow, oh
 }
 
-func (c *uiContext) setScreenClearedEveryFrame(cleared bool) {
+func (c *gameForUI) setScreenClearedEveryFrame(cleared bool) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
@@ -83,11 +83,11 @@ func (c *uiContext) setScreenClearedEveryFrame(cleared bool) {
 	}
 }
 
-func (c *uiContext) UpdateGame() error {
+func (c *gameForUI) Update() error {
 	return c.game.Update()
 }
 
-func (c *uiContext) DrawGame(screenScale float64, offsetX, offsetY float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection) error {
+func (c *gameForUI) Draw(screenScale float64, offsetX, offsetY float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection) error {
 	// Even though updateCount == 0, the offscreen is cleared and Draw is called.
 	// Draw should not update the game state and then the screen should not be updated without Update, but
 	// users might want to process something at Draw with the time intervals of FPS.

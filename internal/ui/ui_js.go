@@ -314,8 +314,8 @@ func (u *UserInterface) needsUpdate() bool {
 	return false
 }
 
-func (u *UserInterface) loop(context Context) <-chan error {
-	u.context = newContextImpl(context)
+func (u *UserInterface) loop(game Game) <-chan error {
+	u.context = newContextImpl(game)
 
 	errCh := make(chan error, 1)
 	reqStopAudioCh := make(chan struct{})
@@ -587,7 +587,7 @@ func (u *UserInterface) forceUpdateOnMinimumFPSMode() {
 	u.updateImpl(true)
 }
 
-func (u *UserInterface) Run(context Context) error {
+func (u *UserInterface) Run(game Game) error {
 	if u.initFocused && window.Truthy() {
 		// Do not focus the canvas when the current document is in an iframe.
 		// Otherwise, the parent page tries to focus the iframe on every loading, which is annoying (#1373).
@@ -597,10 +597,10 @@ func (u *UserInterface) Run(context Context) error {
 		}
 	}
 	u.running = true
-	return <-u.loop(context)
+	return <-u.loop(game)
 }
 
-func (u *UserInterface) RunWithoutMainLoop(context Context) {
+func (u *UserInterface) RunWithoutMainLoop(game Game) {
 	panic("ui: RunWithoutMainLoop is not implemented")
 }
 

@@ -91,7 +91,7 @@ func SetScreenClearedEveryFrame(cleared bool) {
 		v = 1
 	}
 	atomic.StoreInt32(&isScreenClearedEveryFrame, v)
-	theUIContext.setScreenClearedEveryFrame(cleared)
+	theGameForUI.setScreenClearedEveryFrame(cleared)
 }
 
 // IsScreenClearedEveryFrame returns true if the frame isn't cleared at the beginning.
@@ -156,10 +156,10 @@ func RunGame(game Game) error {
 	defer atomic.StoreInt32(&isRunGameEnded_, 1)
 
 	initializeWindowPositionIfNeeded(WindowSize())
-	theUIContext.set(&imageDumperGame{
+	theGameForUI.set(&imageDumperGame{
 		game: game,
 	})
-	if err := ui.Get().Run(theUIContext); err != nil {
+	if err := ui.Get().Run(theGameForUI); err != nil {
 		if err == ui.RegularTermination {
 			return nil
 		}

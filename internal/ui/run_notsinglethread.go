@@ -22,8 +22,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
-func (u *UserInterface) Run(context Context) error {
-	u.context = newContextImpl(context)
+func (u *UserInterface) Run(game Game) error {
+	u.context = newContextImpl(game)
 
 	// Initialize the main thread first so the thread is available at u.run (#809).
 	u.t = thread.NewOSThread()

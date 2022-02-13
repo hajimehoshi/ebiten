@@ -40,8 +40,8 @@ func Get() *UserInterface {
 	return &theUserInterface
 }
 
-func (u *UserInterface) Run(context Context) error {
-	u.context = newContextImpl(context)
+func (u *UserInterface) Run(game Game) error {
+	u.context = newContextImpl(game)
 	cbackend.InitializeGame()
 	for {
 		w, h := cbackend.ScreenSize()
@@ -58,7 +58,7 @@ func (u *UserInterface) Run(context Context) error {
 	}
 }
 
-func (*UserInterface) RunWithoutMainLoop(context Context) {
+func (*UserInterface) RunWithoutMainLoop(game Game) {
 	panic("ui: RunWithoutMainLoop is not implemented")
 }
 

@@ -642,7 +642,7 @@ func init() {
 	runtime.LockOSThread()
 }
 
-func (u *UserInterface) RunWithoutMainLoop(context Context) {
+func (u *UserInterface) RunWithoutMainLoop(game Game) {
 	panic("ui: RunWithoutMainLoop is not implemented")
 }
 

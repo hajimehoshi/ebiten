@@ -29,6 +29,6 @@ import (
 //
 // TODO: Remove this. In order to remove this, the uiContext should be in another package.
 func RunGameWithoutMainLoop(game Game) {
-	theUIContext.set(game)
-	ui.Get().RunWithoutMainLoop(theUIContext)
+	theGameForUI.set(game)
+	ui.Get().RunWithoutMainLoop(theGameForUI)
 }
