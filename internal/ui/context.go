@@ -55,19 +55,30 @@ func newContextImpl(game Game) *contextImpl {
 	}
 }
 
-func (c *contextImpl) updateFrame(deviceScaleFactor float64) error {
+func (c *contextImpl) updateFrame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
-	return c.updateFrameImpl(clock.Update(theGlobalState.maxTPS()), deviceScaleFactor)
+	return c.updateFrameImpl(clock.Update(theGlobalState.maxTPS()), outsideWidth, outsideHeight, deviceScaleFactor)
 }
 
-func (c *contextImpl) forceUpdateFrame(deviceScaleFactor float64) error {
-	return c.updateFrameImpl(1, deviceScaleFactor)
+func (c *contextImpl) forceUpdateFrame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
+	return c.updateFrameImpl(1, outsideWidth, outsideHeight, deviceScaleFactor)
 }
 
-func (c *contextImpl) updateFrameImpl(updateCount int, deviceScaleFactor float64) error {
+func (c *contextImpl) updateFrameImpl(updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
 	if err := theGlobalState.err(); err != nil {
 		return err
 	}
+
+	// The given outside size can be 0 e.g. just after restoring from the fullscreen mode on Windows (#1589)
+	// Just ignore such cases. Otherwise, creating a zero-sized framebuffer causes a panic.
+	if outsideWidth == 0 || outsideHeight == 0 {
+		return nil
+	}
+
+	c.m.Lock()
+	c.outsideWidth = outsideWidth
+	c.outsideHeight = outsideHeight
+	c.m.Unlock()
 
 	// ForceUpdate can be invoked even if the context is not initialized yet (#1591).
 	if w, h := c.layoutGame(deviceScaleFactor); w == 0 || h == 0 {
@@ -122,19 +133,6 @@ func (c *contextImpl) layoutGame(deviceScaleFactor float64) (int, int) {
 	c.screenWidth = w
 	c.screenHeight = h
 	return w, h
-}
-
-func (c *contextImpl) layout(outsideWidth, outsideHeight float64) {
-	// The given outside size can be 0 e.g. just after restoring from the fullscreen mode on Windows (#1589)
-	// Just ignore such cases. Otherwise, creating a zero-sized framebuffer causes a panic.
-	if outsideWidth == 0 || outsideHeight == 0 {
-		return
-	}
-
-	c.m.Lock()
-	defer c.m.Unlock()
-	c.outsideWidth = outsideWidth
-	c.outsideHeight = outsideHeight
 }
 
 func (c *contextImpl) adjustPosition(x, y float64, deviceScaleFactor float64) (float64, float64) {

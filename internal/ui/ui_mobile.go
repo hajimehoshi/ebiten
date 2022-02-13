@@ -295,8 +295,8 @@ func (u *UserInterface) run(game Game, mainloop bool) (err error) {
 	}
 }
 
-// layoutIfNeeded must be called on the same goroutine as update().
-func (u *UserInterface) layoutIfNeeded() {
+// outsideSize must be called on the same goroutine as update().
+func (u *UserInterface) outsideSize() (float64, float64) {
 	var outsideWidth, outsideHeight float64
 
 	u.m.RLock()
@@ -311,7 +311,7 @@ func (u *UserInterface) layoutIfNeeded() {
 	}
 	u.m.RUnlock()
 
-	u.context.layout(outsideWidth, outsideHeight)
+	return outsideWidth, outsideHeight
 }
 
 func (u *UserInterface) update() error {
@@ -320,8 +320,8 @@ func (u *UserInterface) update() error {
 		renderEndCh <- struct{}{}
 	}()
 
-	u.layoutIfNeeded()
-	if err := u.context.updateFrame(deviceScale()); err != nil {
+	w, h := u.outsideSize()
+	if err := u.context.updateFrame(w, h, deviceScale()); err != nil {
 		return err
 	}
 	return nil

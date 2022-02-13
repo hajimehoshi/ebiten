@@ -219,26 +219,20 @@ func (u *UserInterface) DeviceScaleFactor() float64 {
 	return devicescale.GetAt(0, 0)
 }
 
-func (u *UserInterface) updateSize() {
-	a := u.DeviceScaleFactor()
-	if u.lastDeviceScaleFactor != a {
-		u.updateScreenSize()
-	}
-	u.lastDeviceScaleFactor = a
-
+func (u *UserInterface) outsideSize() (float64, float64) {
 	switch {
 	case document.Truthy():
 		body := document.Get("body")
 		bw := body.Get("clientWidth").Float()
 		bh := body.Get("clientHeight").Float()
-		u.context.layout(bw, bh)
+		return bw, bh
 	case go2cpp.Truthy():
 		w := go2cpp.Get("screenWidth").Float()
 		h := go2cpp.Get("screenHeight").Float()
-		u.context.layout(w, h)
+		return w, h
 	default:
 		// Node.js
-		u.context.layout(640, 480)
+		return 640, 480
 	}
 }
 
@@ -281,13 +275,20 @@ func (u *UserInterface) updateImpl(force bool) error {
 
 	gamepad.Update()
 	u.input.updateForGo2Cpp()
-	u.updateSize()
+
+	a := u.DeviceScaleFactor()
+	if u.lastDeviceScaleFactor != a {
+		u.updateScreenSize()
+	}
+	u.lastDeviceScaleFactor = a
+
+	w, h := u.outsideSize()
 	if force {
-		if err := u.context.forceUpdateFrame(u.DeviceScaleFactor()); err != nil {
+		if err := u.context.forceUpdateFrame(w, h, u.DeviceScaleFactor()); err != nil {
 			return err
 		}
 	} else {
-		if err := u.context.updateFrame(u.DeviceScaleFactor()); err != nil {
+		if err := u.context.updateFrame(w, h, u.DeviceScaleFactor()); err != nil {
 			return err
 		}
 	}

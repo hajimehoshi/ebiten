@@ -44,13 +44,11 @@ func (u *UserInterface) Run(game Game) error {
 	u.context = newContextImpl(game)
 	cbackend.InitializeGame()
 	for {
-		w, h := cbackend.ScreenSize()
-		u.context.layout(float64(w), float64(h))
-
 		cbackend.BeginFrame()
 		u.input.update(u.context)
 
-		if err := u.context.updateFrame(deviceScaleFactor); err != nil {
+		w, h := cbackend.ScreenSize()
+		if err := u.context.updateFrame(float64(w), float64(h), deviceScaleFactor); err != nil {
 			return err
 		}
 
