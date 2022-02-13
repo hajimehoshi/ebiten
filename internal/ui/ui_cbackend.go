@@ -19,7 +19,6 @@ package ui
 
 import (
 	"runtime"
-	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cbackend"
 )
