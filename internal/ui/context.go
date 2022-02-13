@@ -32,7 +32,7 @@ const DefaultTPS = 60
 type Game interface {
 	Layout(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int)
 	Update() error
-	Draw(screenScale float64, offsetX, offsetY float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection) error
+	Draw(screenScale float64, offsetX, offsetY float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection, screenClearedEveryFrame bool) error
 }
 
 type contextImpl struct {
@@ -100,7 +100,7 @@ func (c *contextImpl) updateFrameImpl(updateCount int, deviceScaleFactor float64
 
 	// Draw the game.
 	screenScale, offsetX, offsetY := c.screenScaleAndOffsets(deviceScaleFactor)
-	if err := c.game.Draw(screenScale, offsetX, offsetY, graphics().NeedsClearingScreen(), graphics().FramebufferYDirection()); err != nil {
+	if err := c.game.Draw(screenScale, offsetX, offsetY, graphics().NeedsClearingScreen(), graphics().FramebufferYDirection(), theGlobalState.isScreenClearedEveryFrame()); err != nil {
 		return err
 	}
 
@@ -166,19 +166,21 @@ func (c *contextImpl) screenScaleAndOffsets(deviceScaleFactor float64) (float64,
 }
 
 var theGlobalState = globalState{
-	currentMaxTPS: DefaultTPS,
+	maxTPS_:                    DefaultTPS,
+	isScreenClearedEveryFrame_: 1,
 }
 
 // globalState represents a global state in this package.
 // This is available even before the game loop starts.
 type globalState struct {
-	currentErr     atomic.Value
-	currentFPSMode int32
-	currentMaxTPS  int32
+	err_                       atomic.Value
+	fpsMode_                   int32
+	maxTPS_                    int32
+	isScreenClearedEveryFrame_ int32
 }
 
 func (g *globalState) err() error {
-	err, ok := g.currentErr.Load().(error)
+	err, ok := g.err_.Load().(error)
 	if !ok {
 		return nil
 	}
@@ -186,29 +188,41 @@ func (g *globalState) err() error {
 }
 
 func (g *globalState) setError(err error) {
-	g.currentErr.Store(err)
+	g.err_.Store(err)
 }
 
 func (g *globalState) fpsMode() FPSModeType {
-	return FPSModeType(atomic.LoadInt32(&g.currentFPSMode))
+	return FPSModeType(atomic.LoadInt32(&g.fpsMode_))
 }
 
 func (g *globalState) setFPSMode(fpsMode FPSModeType) {
-	atomic.StoreInt32(&g.currentFPSMode, int32(fpsMode))
+	atomic.StoreInt32(&g.fpsMode_, int32(fpsMode))
 }
 
 func (g *globalState) maxTPS() int {
 	if g.fpsMode() == FPSModeVsyncOffMinimum {
 		return clock.SyncWithFPS
 	}
-	return int(atomic.LoadInt32(&g.currentMaxTPS))
+	return int(atomic.LoadInt32(&g.maxTPS_))
 }
 
 func (g *globalState) setMaxTPS(tps int) {
 	if tps < 0 && tps != clock.SyncWithFPS {
 		panic("ebiten: tps must be >= 0 or SyncWithFPS")
 	}
-	atomic.StoreInt32(&g.currentMaxTPS, int32(tps))
+	atomic.StoreInt32(&g.maxTPS_, int32(tps))
+}
+
+func (g *globalState) isScreenClearedEveryFrame() bool {
+	return atomic.LoadInt32(&g.isScreenClearedEveryFrame_) != 0
+}
+
+func (g *globalState) setScreenClearedEveryFrame(cleared bool) {
+	v := int32(0)
+	if cleared {
+		v = 1
+	}
+	atomic.StoreInt32(&g.isScreenClearedEveryFrame_, v)
 }
 
 func SetError(err error) {
@@ -230,4 +244,12 @@ func MaxTPS() int {
 
 func SetMaxTPS(tps int) {
 	theGlobalState.setMaxTPS(tps)
+}
+
+func IsScreenClearedEveryFrame() bool {
+	return theGlobalState.isScreenClearedEveryFrame()
+}
+
+func SetScreenClearedEveryFrame(cleared bool) {
+	theGlobalState.setScreenClearedEveryFrame(cleared)
 }

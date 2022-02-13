@@ -77,8 +77,7 @@ func CurrentFPS() float64 {
 }
 
 var (
-	isScreenClearedEveryFrame = int32(1)
-	isRunGameEnded_           = int32(0)
+	isRunGameEnded_ = int32(0)
 )
 
 // SetScreenClearedEveryFrame enables or disables the clearing of the screen at the beginning of each frame.
@@ -86,19 +85,14 @@ var (
 //
 // SetScreenClearedEveryFrame is concurrent-safe.
 func SetScreenClearedEveryFrame(cleared bool) {
-	v := int32(0)
-	if cleared {
-		v = 1
-	}
-	atomic.StoreInt32(&isScreenClearedEveryFrame, v)
-	theGameForUI.setScreenClearedEveryFrame(cleared)
+	ui.SetScreenClearedEveryFrame(cleared)
 }
 
 // IsScreenClearedEveryFrame returns true if the frame isn't cleared at the beginning.
 //
 // IsScreenClearedEveryFrame is concurrent-safe.
 func IsScreenClearedEveryFrame() bool {
-	return atomic.LoadInt32(&isScreenClearedEveryFrame) != 0
+	return ui.IsScreenClearedEveryFrame()
 }
 
 type imageDumperGame struct {

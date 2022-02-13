@@ -64,6 +64,10 @@ func (m *Mipmap) SetIndependent(independent bool) {
 }
 
 func (m *Mipmap) SetVolatile(volatile bool) {
+	if m.volatile == volatile {
+		return
+	}
+
 	m.volatile = volatile
 	if m.volatile {
 		m.disposeMipmaps()

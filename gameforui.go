@@ -62,7 +62,6 @@ func (c *gameForUI) Layout(outsideWidth, outsideHeight float64, deviceScaleFacto
 	}
 	if c.offscreen == nil {
 		c.offscreen = NewImage(ow, oh)
-		c.offscreen.mipmap.SetVolatile(IsScreenClearedEveryFrame())
 
 		// Keep the offscreen an independent image from an atlas (#1938).
 		// The shader program for the screen is special and doesn't work well with an image on an atlas.
@@ -74,24 +73,17 @@ func (c *gameForUI) Layout(outsideWidth, outsideHeight float64, deviceScaleFacto
 	return ow, oh
 }
 
-func (c *gameForUI) setScreenClearedEveryFrame(cleared bool) {
-	c.m.Lock()
-	defer c.m.Unlock()
-
-	if c.offscreen != nil {
-		c.offscreen.mipmap.SetVolatile(cleared)
-	}
-}
-
 func (c *gameForUI) Update() error {
 	return c.game.Update()
 }
 
-func (c *gameForUI) Draw(screenScale float64, offsetX, offsetY float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection) error {
+func (c *gameForUI) Draw(screenScale float64, offsetX, offsetY float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection, screenClearedEveryFrame bool) error {
+	c.offscreen.mipmap.SetVolatile(screenClearedEveryFrame)
+
 	// Even though updateCount == 0, the offscreen is cleared and Draw is called.
 	// Draw should not update the game state and then the screen should not be updated without Update, but
 	// users might want to process something at Draw with the time intervals of FPS.
-	if IsScreenClearedEveryFrame() {
+	if screenClearedEveryFrame {
 		c.offscreen.Clear()
 	}
 	c.game.Draw(c.offscreen)
