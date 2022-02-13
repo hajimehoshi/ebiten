@@ -16,7 +16,6 @@ package ebiten
 
 import (
 	"fmt"
-	"math"
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
@@ -91,30 +90,7 @@ func (c *uiContext) setScreenClearedEveryFrame(cleared bool) {
 	}
 }
 
-func (c *uiContext) screenScale(outsideWidth, outsideHeight float64, deviceScaleFactor float64) float64 {
-	if c.offscreen == nil {
-		return 0
-	}
-	sw, sh := c.offscreen.Size()
-	scaleX := outsideWidth / float64(sw) * deviceScaleFactor
-	scaleY := outsideHeight / float64(sh) * deviceScaleFactor
-	return math.Min(scaleX, scaleY)
-}
-
-func (c *uiContext) offsets(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (float64, float64) {
-	if c.offscreen == nil {
-		return 0, 0
-	}
-	sw, sh := c.offscreen.Size()
-	s := c.screenScale(outsideWidth, outsideHeight, deviceScaleFactor)
-	width := float64(sw) * s
-	height := float64(sh) * s
-	x := (outsideWidth*deviceScaleFactor - width) / 2
-	y := (outsideHeight*deviceScaleFactor - height) / 2
-	return x, y
-}
-
-func (c *uiContext) UpdateFrame(updateCount int, outsideWidth, outsideHeight float64) error {
+func (c *uiContext) UpdateFrame(updateCount int, screenScale float64, offsetX, offsetY float64) error {
 	// Ensure that Update is called once before Draw so that Update can be used for initialization.
 	if !c.updateCalled && updateCount == 0 {
 		updateCount = 1
@@ -147,7 +123,7 @@ func (c *uiContext) UpdateFrame(updateCount int, outsideWidth, outsideHeight flo
 
 	op := &DrawImageOptions{}
 
-	s := c.screenScale(outsideWidth, outsideHeight, ui.Get().DeviceScaleFactor())
+	s := screenScale
 	switch vd := ui.FramebufferYDirection(); vd {
 	case graphicsdriver.Upward:
 		op.GeoM.Scale(s, -s)
@@ -159,7 +135,7 @@ func (c *uiContext) UpdateFrame(updateCount int, outsideWidth, outsideHeight flo
 		panic(fmt.Sprintf("ebiten: invalid v-direction: %d", vd))
 	}
 
-	op.GeoM.Translate(c.offsets(outsideWidth, outsideHeight, ui.Get().DeviceScaleFactor()))
+	op.GeoM.Translate(offsetX, offsetY)
 	op.CompositeMode = CompositeModeCopy
 
 	// filterScreen works with >=1 scale, but does not well with <1 scale.
@@ -171,15 +147,4 @@ func (c *uiContext) UpdateFrame(updateCount int, outsideWidth, outsideHeight flo
 	}
 	c.screen.DrawImage(c.offscreen, op)
 	return nil
-}
-
-func (c *uiContext) AdjustPosition(x, y float64, outsideWidth, outsideHeight float64, deviceScaleFactor float64) (float64, float64) {
-	ox, oy := c.offsets(outsideWidth, outsideHeight, deviceScaleFactor)
-	s := c.screenScale(outsideWidth, outsideHeight, deviceScaleFactor)
-	// The scale 0 indicates that the offscreen is not initialized yet.
-	// As any cursor values don't make sense, just return NaN.
-	if s == 0 {
-		return math.NaN(), math.NaN()
-	}
-	return (x*deviceScaleFactor - ox) / s, (y*deviceScaleFactor - oy) / s
 }

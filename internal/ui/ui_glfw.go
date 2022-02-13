@@ -707,6 +707,7 @@ func (u *UserInterface) registerWindowSetSizeCallback() {
 
 			if err := u.runOnAnotherThreadFromMainThread(func() error {
 				var outsideWidth, outsideHeight float64
+				var deviceScaleFactor float64
 
 				u.t.Call(func() {
 					if width != 0 || height != 0 {
@@ -716,9 +717,10 @@ func (u *UserInterface) registerWindowSetSizeCallback() {
 					}
 
 					outsideWidth, outsideHeight = u.updateSize()
+					deviceScaleFactor = u.deviceScaleFactor(u.currentMonitor())
 				})
 				u.context.layout(outsideWidth, outsideHeight)
-				if err := u.context.forceUpdateFrame(); err != nil {
+				if err := u.context.forceUpdateFrame(deviceScaleFactor); err != nil {
 					return err
 				}
 				if graphics().IsGL() {
@@ -1022,15 +1024,17 @@ func (u *UserInterface) loop() error {
 		}
 
 		var outsideWidth, outsideHeight float64
+		var deviceScaleFactor float64
 		var err error
 		if u.t.Call(func() {
 			outsideWidth, outsideHeight, err = u.update()
+			deviceScaleFactor = u.deviceScaleFactor(u.currentMonitor())
 		}); err != nil {
 			return err
 		}
 		u.context.layout(outsideWidth, outsideHeight)
 
-		if err := u.context.updateFrame(); err != nil {
+		if err := u.context.updateFrame(deviceScaleFactor); err != nil {
 			return err
 		}
 

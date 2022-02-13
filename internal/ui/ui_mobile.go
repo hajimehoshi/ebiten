@@ -330,7 +330,7 @@ func (u *UserInterface) update() error {
 		renderEndCh <- struct{}{}
 	}()
 
-	if err := u.context.updateFrame(); err != nil {
+	if err := u.context.updateFrame(deviceScale()); err != nil {
 		return err
 	}
 	return nil

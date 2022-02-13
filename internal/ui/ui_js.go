@@ -289,11 +289,11 @@ func (u *UserInterface) updateImpl(force bool) error {
 	u.input.updateForGo2Cpp()
 	u.updateSize()
 	if force {
-		if err := u.context.forceUpdateFrame(); err != nil {
+		if err := u.context.forceUpdateFrame(u.DeviceScaleFactor()); err != nil {
 			return err
 		}
 	} else {
-		if err := u.context.updateFrame(); err != nil {
+		if err := u.context.updateFrame(u.DeviceScaleFactor()); err != nil {
 			return err
 		}
 	}

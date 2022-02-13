@@ -50,7 +50,7 @@ func (u *UserInterface) Run(context Context) error {
 		cbackend.BeginFrame()
 		u.input.update(u.context)
 
-		if err := u.context.updateFrame(); err != nil {
+		if err := u.context.updateFrame(deviceScaleFactor); err != nil {
 			return err
 		}
 

@@ -15,6 +15,7 @@
 package ui
 
 import (
+	"math"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
@@ -27,10 +28,7 @@ const DefaultTPS = 60
 
 type Context interface {
 	UpdateOffscreen(outsideWidth, outsideHeight float64) (int, int)
-	UpdateFrame(updateCount int, outsideWidth, outsideHeight float64) error
-
-	// AdjustPosition can be called from a different goroutine from Update's or Layout's.
-	AdjustPosition(x, y float64, outsideWidth, outsideHeight float64, deviceScaleFactor float64) (float64, float64)
+	UpdateFrame(updateCount int, screenScale float64, offsetX, offsetY float64) error
 }
 
 type contextImpl struct {
@@ -48,16 +46,16 @@ func newContextImpl(context Context) *contextImpl {
 	}
 }
 
-func (c *contextImpl) updateFrame() error {
+func (c *contextImpl) updateFrame(deviceScaleFactor float64) error {
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
-	return c.updateFrameImpl(clock.Update(theGlobalState.maxTPS()))
+	return c.updateFrameImpl(clock.Update(theGlobalState.maxTPS()), deviceScaleFactor)
 }
 
-func (c *contextImpl) forceUpdateFrame() error {
-	return c.updateFrameImpl(1)
+func (c *contextImpl) forceUpdateFrame(deviceScaleFactor float64) error {
+	return c.updateFrameImpl(1, deviceScaleFactor)
 }
 
-func (c *contextImpl) updateFrameImpl(updateCount int) error {
+func (c *contextImpl) updateFrameImpl(updateCount int, deviceScaleFactor float64) error {
 	ow, oh := c.context.UpdateOffscreen(c.outsideWidth, c.outsideHeight)
 	c.offscreenWidth = ow
 	c.offscreenHeight = oh
@@ -76,7 +74,10 @@ func (c *contextImpl) updateFrameImpl(updateCount int) error {
 	if err := buffered.BeginFrame(); err != nil {
 		return err
 	}
-	if err := c.context.UpdateFrame(updateCount, c.outsideWidth, c.outsideHeight); err != nil {
+
+	screenScale := c.screenScale(deviceScaleFactor)
+	offsetX, offsetY := c.offsets(deviceScaleFactor)
+	if err := c.context.UpdateFrame(updateCount, screenScale, offsetX, offsetY); err != nil {
 		return err
 	}
 
@@ -101,8 +102,37 @@ func (c *contextImpl) layout(outsideWidth, outsideHeight float64) {
 	c.outsideHeight = outsideHeight
 }
 
+// TODO: Make adjustPosition concurrent-safe.
 func (c *contextImpl) adjustPosition(x, y float64, deviceScaleFactor float64) (float64, float64) {
-	return c.context.AdjustPosition(x, y, c.outsideWidth, c.outsideHeight, deviceScaleFactor)
+	ox, oy := c.offsets(deviceScaleFactor)
+	s := c.screenScale(deviceScaleFactor)
+	// The scale 0 indicates that the offscreen is not initialized yet.
+	// As any cursor values don't make sense, just return NaN.
+	if s == 0 {
+		return math.NaN(), math.NaN()
+	}
+	return (x*deviceScaleFactor - ox) / s, (y*deviceScaleFactor - oy) / s
+}
+
+func (c *contextImpl) offsets(deviceScaleFactor float64) (float64, float64) {
+	if c.offscreenWidth == 0 || c.offscreenHeight == 0 {
+		return 0, 0
+	}
+	s := c.screenScale(deviceScaleFactor)
+	width := float64(c.offscreenWidth) * s
+	height := float64(c.offscreenHeight) * s
+	x := (c.outsideWidth*deviceScaleFactor - width) / 2
+	y := (c.outsideHeight*deviceScaleFactor - height) / 2
+	return x, y
+}
+
+func (c *contextImpl) screenScale(deviceScaleFactor float64) float64 {
+	if c.offscreenWidth == 0 || c.offscreenHeight == 0 {
+		return 0
+	}
+	scaleX := c.outsideWidth / float64(c.offscreenWidth) * deviceScaleFactor
+	scaleY := c.outsideHeight / float64(c.offscreenHeight) * deviceScaleFactor
+	return math.Min(scaleX, scaleY)
 }
 
 var theGlobalState = globalState{
