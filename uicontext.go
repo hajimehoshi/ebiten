@@ -42,15 +42,13 @@ func (c *uiContext) set(game Game) {
 	c.game = game
 }
 
-func (c *uiContext) UpdateOffscreen(outsideWidth, outsideHeight float64) (int, int) {
-	d := ui.Get().DeviceScaleFactor()
-	sw, sh := int(outsideWidth*d), int(outsideHeight*d)
-
+func (c *uiContext) UpdateOffscreen(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {
 	ow, oh := c.game.Layout(int(outsideWidth), int(outsideHeight))
 	if ow <= 0 || oh <= 0 {
 		panic("ebiten: Layout must return positive numbers")
 	}
 
+	sw, sh := int(outsideWidth*deviceScaleFactor), int(outsideHeight*deviceScaleFactor)
 	if c.screen != nil {
 		if w, h := c.screen.Size(); w != sw || h != sh {
 			c.screen.Dispose()
@@ -58,7 +56,7 @@ func (c *uiContext) UpdateOffscreen(outsideWidth, outsideHeight float64) (int, i
 		}
 	}
 	if c.screen == nil {
-		c.screen = newScreenFramebufferImage(int(outsideWidth*d), int(outsideHeight*d))
+		c.screen = newScreenFramebufferImage(sw, sh)
 	}
 
 	if c.offscreen != nil {

@@ -27,7 +27,7 @@ import (
 const DefaultTPS = 60
 
 type Context interface {
-	UpdateOffscreen(outsideWidth, outsideHeight float64) (int, int)
+	UpdateOffscreen(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int)
 	UpdateFrame(updateCount int, screenScale float64, offsetX, offsetY float64) error
 }
 
@@ -56,7 +56,7 @@ func (c *contextImpl) forceUpdateFrame(deviceScaleFactor float64) error {
 }
 
 func (c *contextImpl) updateFrameImpl(updateCount int, deviceScaleFactor float64) error {
-	ow, oh := c.context.UpdateOffscreen(c.outsideWidth, c.outsideHeight)
+	ow, oh := c.context.UpdateOffscreen(c.outsideWidth, c.outsideHeight, deviceScaleFactor)
 	c.offscreenWidth = ow
 	c.offscreenHeight = oh
 
