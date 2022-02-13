@@ -636,7 +636,7 @@ func (u *UserInterface) IsScreenTransparent() bool {
 	return bodyStyle.Get("backgroundColor").Equal(stringTransparent)
 }
 
-func (u *UserInterface) ResetForTick() {
+func (u *UserInterface) resetForTick() {
 	u.input.resetForTick()
 }
 

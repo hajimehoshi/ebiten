@@ -23,17 +23,21 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	graphicspkg "github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
 const DefaultTPS = 60
 
 type Context interface {
 	UpdateOffscreen(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int)
-	UpdateFrame(updateCount int, screenScale float64, offsetX, offsetY float64) error
+	UpdateGame() error
+	DrawGame(screenScale float64, offsetX, offsetY float64) error
 }
 
 type contextImpl struct {
 	context Context
+
+	updateCalled bool
 
 	// The following members must be protected by the mutex m.
 	outsideWidth    float64
@@ -75,8 +79,27 @@ func (c *contextImpl) updateFrameImpl(updateCount int, deviceScaleFactor float64
 		return err
 	}
 
+	// Ensure that Update is called once before Draw so that Update can be used for initialization.
+	if !c.updateCalled && updateCount == 0 {
+		updateCount = 1
+		c.updateCalled = true
+	}
+	debug.Logf("Update count per frame: %d\n", updateCount)
+
+	// Update the game.
+	for i := 0; i < updateCount; i++ {
+		if err := hooks.RunBeforeUpdateHooks(); err != nil {
+			return err
+		}
+		if err := c.context.UpdateGame(); err != nil {
+			return err
+		}
+		Get().resetForTick()
+	}
+
+	// Draw the game.
 	screenScale, offsetX, offsetY := c.screenScaleAndOffsets(deviceScaleFactor)
-	if err := c.context.UpdateFrame(updateCount, screenScale, offsetX, offsetY); err != nil {
+	if err := c.context.DrawGame(screenScale, offsetX, offsetY); err != nil {
 		return err
 	}
 

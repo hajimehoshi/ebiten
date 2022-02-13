@@ -1349,7 +1349,7 @@ func (u *UserInterface) IsScreenTransparent() bool {
 	return val
 }
 
-func (u *UserInterface) ResetForTick() {
+func (u *UserInterface) resetForTick() {
 	u.input.resetForTick()
 
 	u.m.Lock()

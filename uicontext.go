@@ -18,9 +18,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -28,8 +26,6 @@ type uiContext struct {
 	game      Game
 	offscreen *Image
 	screen    *Image
-
-	updateCalled bool
 
 	m sync.Mutex
 }
@@ -88,24 +84,11 @@ func (c *uiContext) setScreenClearedEveryFrame(cleared bool) {
 	}
 }
 
-func (c *uiContext) UpdateFrame(updateCount int, screenScale float64, offsetX, offsetY float64) error {
-	// Ensure that Update is called once before Draw so that Update can be used for initialization.
-	if !c.updateCalled && updateCount == 0 {
-		updateCount = 1
-		c.updateCalled = true
-	}
-	debug.Logf("Update count per frame: %d\n", updateCount)
+func (c *uiContext) UpdateGame() error {
+	return c.game.Update()
+}
 
-	for i := 0; i < updateCount; i++ {
-		if err := hooks.RunBeforeUpdateHooks(); err != nil {
-			return err
-		}
-		if err := c.game.Update(); err != nil {
-			return err
-		}
-		ui.Get().ResetForTick()
-	}
-
+func (c *uiContext) DrawGame(screenScale float64, offsetX, offsetY float64) error {
 	// Even though updateCount == 0, the offscreen is cleared and Draw is called.
 	// Draw should not update the game state and then the screen should not be updated without Update, but
 	// users might want to process something at Draw with the time intervals of FPS.

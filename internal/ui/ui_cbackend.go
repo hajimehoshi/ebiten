@@ -74,7 +74,7 @@ func (*UserInterface) ScreenSizeInFullscreen() (int, int) {
 	return 0, 0
 }
 
-func (*UserInterface) ResetForTick() {
+func (*UserInterface) resetForTick() {
 }
 
 func (*UserInterface) CursorMode() CursorMode {
