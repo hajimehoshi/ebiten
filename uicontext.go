@@ -19,9 +19,7 @@ import (
 	"math"
 	"sync"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -34,9 +32,6 @@ type uiContext struct {
 
 	updateCalled bool
 
-	outsideWidth  float64
-	outsideHeight float64
-
 	m sync.Mutex
 }
 
@@ -48,16 +43,11 @@ func (c *uiContext) set(game Game) {
 	c.game = game
 }
 
-func (c *uiContext) Layout(outsideWidth, outsideHeight float64) {
-	c.outsideWidth = outsideWidth
-	c.outsideHeight = outsideHeight
-}
-
-func (c *uiContext) updateOffscreen() {
+func (c *uiContext) UpdateOffscreen(outsideWidth, outsideHeight float64) (int, int) {
 	d := ui.Get().DeviceScaleFactor()
-	sw, sh := int(c.outsideWidth*d), int(c.outsideHeight*d)
+	sw, sh := int(outsideWidth*d), int(outsideHeight*d)
 
-	ow, oh := c.game.Layout(int(c.outsideWidth), int(c.outsideHeight))
+	ow, oh := c.game.Layout(int(outsideWidth), int(outsideHeight))
 	if ow <= 0 || oh <= 0 {
 		panic("ebiten: Layout must return positive numbers")
 	}
@@ -69,7 +59,7 @@ func (c *uiContext) updateOffscreen() {
 		}
 	}
 	if c.screen == nil {
-		c.screen = newScreenFramebufferImage(int(c.outsideWidth*d), int(c.outsideHeight*d))
+		c.screen = newScreenFramebufferImage(int(outsideWidth*d), int(outsideHeight*d))
 	}
 
 	if c.offscreen != nil {
@@ -88,6 +78,8 @@ func (c *uiContext) updateOffscreen() {
 		// and the shader program unexpectedly picks the pixel on the edges.
 		c.offscreen.mipmap.SetIndependent(true)
 	}
+
+	return ow, oh
 }
 
 func (c *uiContext) setScreenClearedEveryFrame(cleared bool) {
@@ -99,52 +91,30 @@ func (c *uiContext) setScreenClearedEveryFrame(cleared bool) {
 	}
 }
 
-func (c *uiContext) screenScale(deviceScaleFactor float64) float64 {
+func (c *uiContext) screenScale(outsideWidth, outsideHeight float64, deviceScaleFactor float64) float64 {
 	if c.offscreen == nil {
 		return 0
 	}
 	sw, sh := c.offscreen.Size()
-	scaleX := c.outsideWidth / float64(sw) * deviceScaleFactor
-	scaleY := c.outsideHeight / float64(sh) * deviceScaleFactor
+	scaleX := outsideWidth / float64(sw) * deviceScaleFactor
+	scaleY := outsideHeight / float64(sh) * deviceScaleFactor
 	return math.Min(scaleX, scaleY)
 }
 
-func (c *uiContext) offsets(deviceScaleFactor float64) (float64, float64) {
+func (c *uiContext) offsets(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (float64, float64) {
 	if c.offscreen == nil {
 		return 0, 0
 	}
 	sw, sh := c.offscreen.Size()
-	s := c.screenScale(deviceScaleFactor)
+	s := c.screenScale(outsideWidth, outsideHeight, deviceScaleFactor)
 	width := float64(sw) * s
 	height := float64(sh) * s
-	x := (c.outsideWidth*deviceScaleFactor - width) / 2
-	y := (c.outsideHeight*deviceScaleFactor - height) / 2
+	x := (outsideWidth*deviceScaleFactor - width) / 2
+	y := (outsideHeight*deviceScaleFactor - height) / 2
 	return x, y
 }
 
-func (c *uiContext) UpdateFrame(updateCount int) error {
-	debug.Logf("----\n")
-
-	if err := buffered.BeginFrame(); err != nil {
-		return err
-	}
-	if err := c.updateFrameImpl(updateCount); err != nil {
-		return err
-	}
-
-	// All the vertices data are consumed at the end of the frame, and the data backend can be
-	// available after that. Until then, lock the vertices backend.
-	return graphics.LockAndResetVertices(func() error {
-		if err := buffered.EndFrame(); err != nil {
-			return err
-		}
-		return nil
-	})
-}
-
-func (c *uiContext) updateFrameImpl(updateCount int) error {
-	c.updateOffscreen()
-
+func (c *uiContext) UpdateFrame(updateCount int, outsideWidth, outsideHeight float64) error {
 	// Ensure that Update is called once before Draw so that Update can be used for initialization.
 	if !c.updateCalled && updateCount == 0 {
 		updateCount = 1
@@ -177,7 +147,7 @@ func (c *uiContext) updateFrameImpl(updateCount int) error {
 
 	op := &DrawImageOptions{}
 
-	s := c.screenScale(ui.Get().DeviceScaleFactor())
+	s := c.screenScale(outsideWidth, outsideHeight, ui.Get().DeviceScaleFactor())
 	switch vd := ui.FramebufferYDirection(); vd {
 	case graphicsdriver.Upward:
 		op.GeoM.Scale(s, -s)
@@ -189,7 +159,7 @@ func (c *uiContext) updateFrameImpl(updateCount int) error {
 		panic(fmt.Sprintf("ebiten: invalid v-direction: %d", vd))
 	}
 
-	op.GeoM.Translate(c.offsets(ui.Get().DeviceScaleFactor()))
+	op.GeoM.Translate(c.offsets(outsideWidth, outsideHeight, ui.Get().DeviceScaleFactor()))
 	op.CompositeMode = CompositeModeCopy
 
 	// filterScreen works with >=1 scale, but does not well with <1 scale.
@@ -203,9 +173,9 @@ func (c *uiContext) updateFrameImpl(updateCount int) error {
 	return nil
 }
 
-func (c *uiContext) AdjustPosition(x, y float64, deviceScaleFactor float64) (float64, float64) {
-	ox, oy := c.offsets(deviceScaleFactor)
-	s := c.screenScale(deviceScaleFactor)
+func (c *uiContext) AdjustPosition(x, y float64, outsideWidth, outsideHeight float64, deviceScaleFactor float64) (float64, float64) {
+	ox, oy := c.offsets(outsideWidth, outsideHeight, deviceScaleFactor)
+	s := c.screenScale(outsideWidth, outsideHeight, deviceScaleFactor)
 	// The scale 0 indicates that the offscreen is not initialized yet.
 	// As any cursor values don't make sense, just return NaN.
 	if s == 0 {

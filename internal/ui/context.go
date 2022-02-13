@@ -17,24 +17,29 @@ package ui
 import (
 	"sync/atomic"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
+	"github.com/hajimehoshi/ebiten/v2/internal/debug"
+	graphicspkg "github.com/hajimehoshi/ebiten/v2/internal/graphics"
 )
 
 const DefaultTPS = 60
 
 type Context interface {
-	UpdateFrame(updateCount int) error
-	Layout(outsideWidth, outsideHeight float64)
+	UpdateOffscreen(outsideWidth, outsideHeight float64) (int, int)
+	UpdateFrame(updateCount int, outsideWidth, outsideHeight float64) error
 
 	// AdjustPosition can be called from a different goroutine from Update's or Layout's.
-	AdjustPosition(x, y float64, deviceScaleFactor float64) (float64, float64)
+	AdjustPosition(x, y float64, outsideWidth, outsideHeight float64, deviceScaleFactor float64) (float64, float64)
 }
 
 type contextImpl struct {
 	context Context
 
-	outsideWidth  float64
-	outsideHeight float64
+	outsideWidth    float64
+	outsideHeight   float64
+	offscreenWidth  int
+	offscreenHeight int
 }
 
 func newContextImpl(context Context) *contextImpl {
@@ -44,15 +49,19 @@ func newContextImpl(context Context) *contextImpl {
 }
 
 func (c *contextImpl) updateFrame() error {
-	if err := theGlobalState.err(); err != nil {
-		return err
-	}
-
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
-	return c.context.UpdateFrame(clock.Update(theGlobalState.maxTPS()))
+	return c.updateFrameImpl(clock.Update(theGlobalState.maxTPS()))
 }
 
 func (c *contextImpl) forceUpdateFrame() error {
+	return c.updateFrameImpl(1)
+}
+
+func (c *contextImpl) updateFrameImpl(updateCount int) error {
+	ow, oh := c.context.UpdateOffscreen(c.outsideWidth, c.outsideHeight)
+	c.offscreenWidth = ow
+	c.offscreenHeight = oh
+
 	if err := theGlobalState.err(); err != nil {
 		return err
 	}
@@ -62,7 +71,23 @@ func (c *contextImpl) forceUpdateFrame() error {
 		return nil
 	}
 
-	return c.context.UpdateFrame(1)
+	debug.Logf("----\n")
+
+	if err := buffered.BeginFrame(); err != nil {
+		return err
+	}
+	if err := c.context.UpdateFrame(updateCount, c.outsideWidth, c.outsideHeight); err != nil {
+		return err
+	}
+
+	// All the vertices data are consumed at the end of the frame, and the data backend can be
+	// available after that. Until then, lock the vertices backend.
+	return graphicspkg.LockAndResetVertices(func() error {
+		if err := buffered.EndFrame(); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 func (c *contextImpl) layout(outsideWidth, outsideHeight float64) {
@@ -74,11 +99,10 @@ func (c *contextImpl) layout(outsideWidth, outsideHeight float64) {
 
 	c.outsideWidth = outsideWidth
 	c.outsideHeight = outsideHeight
-	c.context.Layout(outsideWidth, outsideHeight)
 }
 
 func (c *contextImpl) adjustPosition(x, y float64, deviceScaleFactor float64) (float64, float64) {
-	return c.context.AdjustPosition(x, y, deviceScaleFactor)
+	return c.context.AdjustPosition(x, y, c.outsideWidth, c.outsideHeight, deviceScaleFactor)
 }
 
 var theGlobalState = globalState{
