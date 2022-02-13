@@ -31,7 +31,7 @@ type Input struct {
 	m sync.Mutex
 }
 
-func (i *Input) update(context Context) {
+func (i *Input) update(context *contextImpl) {
 	i.m.Lock()
 	defer i.m.Unlock()
 
@@ -41,7 +41,7 @@ func (i *Input) update(context Context) {
 	i.touches = cbackend.AppendTouches(i.touches)
 
 	for idx, t := range i.touches {
-		x, y := context.AdjustPosition(float64(t.X), float64(t.Y), deviceScaleFactor)
+		x, y := context.adjustPosition(float64(t.X), float64(t.Y), deviceScaleFactor)
 		i.touches[idx].X = int(x)
 		i.touches[idx].Y = int(y)
 	}

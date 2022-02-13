@@ -20,15 +20,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
-type Context interface {
-	UpdateFrame() error
-	ForceUpdateFrame() error
-	Layout(outsideWidth, outsideHeight float64)
-
-	// AdjustPosition can be called from a different goroutine from Update's or Layout's.
-	AdjustPosition(x, y float64, deviceScaleFactor float64) (float64, float64)
-}
-
 type MouseButton int
 
 const (

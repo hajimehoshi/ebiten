@@ -30,7 +30,8 @@ func init() {
 }
 
 type UserInterface struct {
-	input Input
+	context *contextImpl
+	input   Input
 }
 
 var theUserInterface UserInterface
@@ -40,15 +41,18 @@ func Get() *UserInterface {
 }
 
 func (u *UserInterface) Run(context Context) error {
+	u.context = &contextImpl{
+		context: context,
+	}
 	cbackend.InitializeGame()
 	for {
 		w, h := cbackend.ScreenSize()
-		context.Layout(float64(w), float64(h))
+		u.context.layout(float64(w), float64(h))
 
 		cbackend.BeginFrame()
-		u.input.update(context)
+		u.input.update(u.context)
 
-		if err := context.UpdateFrame(); err != nil {
+		if err := u.context.updateFrame(); err != nil {
 			return err
 		}
 

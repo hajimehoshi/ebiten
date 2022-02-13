@@ -23,6 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 // panicOnErrorAtImageAt indicates whether (*Image).At panics on an error or not.
@@ -718,7 +719,7 @@ func (i *Image) at(x, y int) (r, g, b, a uint8) {
 		if panicOnErrorAtImageAt {
 			panic(err)
 		}
-		theUIContext.setError(err)
+		ui.SetError(err)
 		return 0, 0, 0, 0
 	}
 	return pix[0], pix[1], pix[2], pix[3]
@@ -746,7 +747,7 @@ func (i *Image) Set(x, y int, clr color.Color) {
 	r, g, b, a := clr.RGBA()
 	pix := []byte{byte(r >> 8), byte(g >> 8), byte(b >> 8), byte(a >> 8)}
 	if err := i.mipmap.ReplacePixels(pix, x, y, 1, 1); err != nil {
-		theUIContext.setError(err)
+		ui.SetError(err)
 	}
 }
 
@@ -794,7 +795,7 @@ func (i *Image) ReplacePixels(pixels []byte) {
 	// * In internal/mipmap, pixels are copied when necessary.
 	// * In internal/shareable, pixels are copied to make its paddings.
 	if err := i.mipmap.ReplacePixels(pixels, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
-		theUIContext.setError(err)
+		ui.SetError(err)
 	}
 }
 

@@ -61,7 +61,7 @@ type UserInterface struct {
 
 	lastDeviceScaleFactor float64
 
-	context Context
+	context *contextImpl
 	input   Input
 }
 
@@ -240,14 +240,14 @@ func (u *UserInterface) updateSize() {
 			body := document.Get("body")
 			bw := body.Get("clientWidth").Float()
 			bh := body.Get("clientHeight").Float()
-			u.context.Layout(bw, bh)
+			u.context.layout(bw, bh)
 		case go2cpp.Truthy():
 			w := go2cpp.Get("screenWidth").Float()
 			h := go2cpp.Get("screenHeight").Float()
-			u.context.Layout(w, h)
+			u.context.layout(w, h)
 		default:
 			// Node.js
-			u.context.Layout(640, 480)
+			u.context.layout(640, 480)
 		}
 	}
 }
@@ -293,11 +293,11 @@ func (u *UserInterface) updateImpl(force bool) error {
 	u.input.updateForGo2Cpp()
 	u.updateSize()
 	if force {
-		if err := u.context.ForceUpdateFrame(); err != nil {
+		if err := u.context.forceUpdateFrame(); err != nil {
 			return err
 		}
 	} else {
-		if err := u.context.UpdateFrame(); err != nil {
+		if err := u.context.updateFrame(); err != nil {
 			return err
 		}
 	}
@@ -319,7 +319,9 @@ func (u *UserInterface) needsUpdate() bool {
 }
 
 func (u *UserInterface) loop(context Context) <-chan error {
-	u.context = context
+	u.context = &contextImpl{
+		context: context,
+	}
 
 	errCh := make(chan error, 1)
 	reqStopAudioCh := make(chan struct{})

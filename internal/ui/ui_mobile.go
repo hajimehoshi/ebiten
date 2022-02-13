@@ -109,7 +109,7 @@ type UserInterface struct {
 	setGBuildSizeCh chan struct{}
 	once            sync.Once
 
-	context Context
+	context *contextImpl
 
 	input Input
 
@@ -273,7 +273,9 @@ func (u *UserInterface) run(context Context, mainloop bool) (err error) {
 	u.sizeChanged = true
 	u.m.Unlock()
 
-	u.context = context
+	u.context = &contextImpl{
+		context: context,
+	}
 
 	if mainloop {
 		// When mainloop is true, gomobile-build is used. In this case, GL functions must be called via
@@ -320,7 +322,7 @@ func (u *UserInterface) layoutIfNeeded() {
 	u.m.RUnlock()
 
 	if sizeChanged {
-		u.context.Layout(outsideWidth, outsideHeight)
+		u.context.layout(outsideWidth, outsideHeight)
 	}
 }
 
@@ -330,7 +332,7 @@ func (u *UserInterface) update() error {
 		renderEndCh <- struct{}{}
 	}()
 
-	if err := u.context.UpdateFrame(); err != nil {
+	if err := u.context.updateFrame(); err != nil {
 		return err
 	}
 	return nil
@@ -368,7 +370,7 @@ func (u *UserInterface) setGBuildSize(widthPx, heightPx int) {
 }
 
 func (u *UserInterface) adjustPosition(x, y int) (int, int) {
-	xf, yf := u.context.AdjustPosition(float64(x), float64(y), deviceScale())
+	xf, yf := u.context.adjustPosition(float64(x), float64(y), deviceScale())
 	return int(xf), int(yf)
 }
 

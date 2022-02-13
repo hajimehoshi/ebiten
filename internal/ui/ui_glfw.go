@@ -46,7 +46,7 @@ func driverCursorModeToGLFWCursorMode(mode CursorMode) int {
 }
 
 type UserInterface struct {
-	context Context
+	context *contextImpl
 	title   string
 	window  *glfw.Window
 
@@ -731,8 +731,8 @@ func (u *UserInterface) registerWindowSetSizeCallback() {
 
 					outsideWidth, outsideHeight = u.updateSize()
 				})
-				u.context.Layout(outsideWidth, outsideHeight)
-				if err := u.context.ForceUpdateFrame(); err != nil {
+				u.context.layout(outsideWidth, outsideHeight)
+				if err := u.context.forceUpdateFrame(); err != nil {
 					return err
 				}
 				if graphics().IsGL() {
@@ -1042,9 +1042,9 @@ func (u *UserInterface) loop() error {
 		}); err != nil {
 			return err
 		}
-		u.context.Layout(outsideWidth, outsideHeight)
+		u.context.layout(outsideWidth, outsideHeight)
 
-		if err := u.context.UpdateFrame(); err != nil {
+		if err := u.context.updateFrame(); err != nil {
 			return err
 		}
 
@@ -1365,7 +1365,7 @@ func (u *UserInterface) ResetForFrame() {
 	u.t.Call(func() {
 		w, h = u.updateSize()
 	})
-	u.context.Layout(w, h)
+	u.context.layout(w, h)
 	u.input.resetForFrame()
 
 	u.m.Lock()

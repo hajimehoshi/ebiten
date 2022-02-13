@@ -155,7 +155,7 @@ var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 }
 
 // update must be called from the main thread.
-func (i *Input) update(window *glfw.Window, context Context) error {
+func (i *Input) update(window *glfw.Window, context *contextImpl) error {
 	i.ui.m.Lock()
 	defer i.ui.m.Unlock()
 
@@ -196,7 +196,7 @@ func (i *Input) update(window *glfw.Window, context Context) error {
 	s := i.ui.deviceScaleFactor(m)
 	cx = i.ui.dipFromGLFWPixel(cx, m)
 	cy = i.ui.dipFromGLFWPixel(cy, m)
-	cx, cy = context.AdjustPosition(cx, cy, s)
+	cx, cy = context.adjustPosition(cx, cy, s)
 
 	// AdjustPosition can return NaN at the initialization.
 	if !math.IsNaN(cx) && !math.IsNaN(cy) {

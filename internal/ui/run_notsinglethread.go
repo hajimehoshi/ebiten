@@ -23,7 +23,9 @@ import (
 )
 
 func (u *UserInterface) Run(uicontext Context) error {
-	u.context = uicontext
+	u.context = &contextImpl{
+		context: uicontext,
+	}
 
 	// Initialize the main thread first so the thread is available at u.run (#809).
 	u.t = thread.NewOSThread()

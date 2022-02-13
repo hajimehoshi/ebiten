@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"math"
 	"sync"
-	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
@@ -39,8 +38,6 @@ type uiContext struct {
 	outsideWidth  float64
 	outsideHeight float64
 
-	err atomic.Value
-
 	m sync.Mutex
 }
 
@@ -52,16 +49,7 @@ func (c *uiContext) set(game Game) {
 	c.game = game
 }
 
-func (c *uiContext) setError(err error) {
-	c.err.Store(err)
-}
-
 func (c *uiContext) Layout(outsideWidth, outsideHeight float64) {
-	// The given outside size can be 0 e.g. just after restoring from the fullscreen mode on Windows (#1589)
-	// Just ignore such cases. Otherwise, creating a zero-sized framebuffer causes a panic.
-	if outsideWidth == 0 || outsideHeight == 0 {
-		return
-	}
 	c.outsideWidth = outsideWidth
 	c.outsideHeight = outsideHeight
 }
@@ -149,10 +137,6 @@ func (c *uiContext) ForceUpdateFrame() error {
 }
 
 func (c *uiContext) updateFrame(updateCount int) error {
-	if err, ok := c.err.Load().(error); ok && err != nil {
-		return err
-	}
-
 	debug.Logf("----\n")
 
 	if err := buffered.BeginFrame(); err != nil {
