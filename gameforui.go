@@ -16,7 +16,6 @@ package ebiten
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
@@ -25,16 +24,12 @@ type gameForUI struct {
 	game      Game
 	offscreen *Image
 	screen    *Image
-
-	m sync.Mutex
 }
 
-var theGameForUI = &gameForUI{}
-
-func (c *gameForUI) set(game Game) {
-	c.m.Lock()
-	defer c.m.Unlock()
-	c.game = game
+func newGameForUI(game Game) *gameForUI {
+	return &gameForUI{
+		game: game,
+	}
 }
 
 func (c *gameForUI) Layout(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {

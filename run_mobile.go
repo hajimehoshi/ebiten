@@ -27,8 +27,7 @@ import (
 // Ebiten users should NOT call RunGameWithoutMainLoop.
 // Instead, functions in github.com/hajimehoshi/ebiten/v2/mobile package calls this.
 //
-// TODO: Remove this. In order to remove this, the uiContext should be in another package.
+// TODO: Remove this. In order to remove this, the gameForUI should be in another package.
 func RunGameWithoutMainLoop(game Game) {
-	theGameForUI.set(game)
-	ui.Get().RunWithoutMainLoop(theGameForUI)
+	ui.Get().RunWithoutMainLoop(newGameForUI(game))
 }

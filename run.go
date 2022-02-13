@@ -150,10 +150,10 @@ func RunGame(game Game) error {
 	defer atomic.StoreInt32(&isRunGameEnded_, 1)
 
 	initializeWindowPositionIfNeeded(WindowSize())
-	theGameForUI.set(&imageDumperGame{
+	g := newGameForUI(&imageDumperGame{
 		game: game,
 	})
-	if err := ui.Get().Run(theGameForUI); err != nil {
+	if err := ui.Get().Run(g); err != nil {
 		if err == ui.RegularTermination {
 			return nil
 		}
