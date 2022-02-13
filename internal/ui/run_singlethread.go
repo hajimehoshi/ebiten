@@ -43,6 +43,6 @@ func (u *UserInterface) Run(game Game) error {
 	return nil
 }
 
-func (u *UserInterface) runOnAnotherThreadFromMainThread(f func() error) error {
-	return f()
+func (u *UserInterface) runOnAnotherThreadFromMainThread(f func()) {
+	f()
 }

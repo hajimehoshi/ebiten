@@ -60,7 +60,7 @@ func (u *UserInterface) Run(game Game) error {
 // u.t is updated to the new thread until runOnAnotherThreadFromMainThread is called.
 //
 // Inside f, another functions that must be called from the main thread can be called safely.
-func (u *UserInterface) runOnAnotherThreadFromMainThread(f func() error) error {
+func (u *UserInterface) runOnAnotherThreadFromMainThread(f func()) {
 	// As this function is called from the main thread, u.t should never be accessed and can be updated here.
 	t := u.t
 	defer func() {
@@ -71,11 +71,9 @@ func (u *UserInterface) runOnAnotherThreadFromMainThread(f func() error) error {
 	u.t = thread.NewOSThread()
 	graphicscommand.SetRenderingThread(u.t)
 
-	var err error
 	go func() {
 		defer u.t.Stop()
-		err = f()
+		f()
 	}()
 	u.t.Loop()
-	return err
 }

@@ -109,6 +109,7 @@ type UserInterface struct {
 	defaultFramebufferSizeCallback glfw.FramebufferSizeCallback
 	framebufferSizeCallbackCh      chan struct{}
 
+	// t is the main thread == the rendering thread.
 	t thread.Thread
 	m sync.RWMutex
 }
@@ -701,32 +702,28 @@ func (u *UserInterface) registerWindowSetSizeCallback() {
 				return
 			}
 
-			if err := u.runOnAnotherThreadFromMainThread(func() error {
-				var outsideWidth, outsideHeight float64
-				var deviceScaleFactor float64
+			if width != 0 || height != 0 {
+				w := int(u.dipFromGLFWPixel(float64(width), u.currentMonitor()))
+				h := int(u.dipFromGLFWPixel(float64(height), u.currentMonitor()))
+				u.setWindowSizeInDIP(w, h, u.isFullscreen())
+			}
 
-				u.t.Call(func() {
-					if width != 0 || height != 0 {
-						w := int(u.dipFromGLFWPixel(float64(width), u.currentMonitor()))
-						h := int(u.dipFromGLFWPixel(float64(height), u.currentMonitor()))
-						u.setWindowSizeInDIP(w, h, u.isFullscreen())
-					}
+			outsideWidth, outsideHeight := u.updateSize()
+			deviceScaleFactor := u.deviceScaleFactor(u.currentMonitor())
 
-					outsideWidth, outsideHeight = u.updateSize()
-					deviceScaleFactor = u.deviceScaleFactor(u.currentMonitor())
-				})
+			// In the game's update, u.t.Call might be called.
+			// In order to call it safely, use runOnAnotherThreadFromMainThread.
+			var err error
+			u.runOnAnotherThreadFromMainThread(func() {
 				u.context.layout(outsideWidth, outsideHeight)
-				if err := u.context.forceUpdateFrame(deviceScaleFactor); err != nil {
-					return err
-				}
-				if graphics().IsGL() {
-					u.t.Call(func() {
-						u.swapBuffers()
-					})
-				}
-				return nil
-			}); err != nil {
+				err = u.context.forceUpdateFrame(deviceScaleFactor)
+			})
+			if err != nil {
 				u.err = err
+			}
+
+			if graphics().IsGL() {
+				u.swapBuffers()
 			}
 		})
 	}
