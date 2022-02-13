@@ -286,7 +286,7 @@ func (u *UserInterface) run(game Game, mainloop bool) (err error) {
 		graphics().(*opengl.Graphics).SetGomobileGLContext(ctx)
 	} else {
 		u.t = thread.NewOSThread()
-		graphicscommand.SetMainThread(u.t)
+		graphicscommand.SetRenderingThread(u.t)
 	}
 
 	// If gomobile-build is used, wait for the outside size fixed.

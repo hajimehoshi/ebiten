@@ -164,7 +164,7 @@ func RunGame(game Game) error {
 
 // RunOnMainThread calls the given f on the main thread, and blocks until f returns.
 func RunOnMainThread(f func()) {
-	graphicscommand.RunOnMainThread(f)
+	graphicscommand.RunOnRenderingThread(f)
 }
 
 func isRunGameEnded() bool {

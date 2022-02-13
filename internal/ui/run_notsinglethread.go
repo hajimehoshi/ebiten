@@ -27,7 +27,7 @@ func (u *UserInterface) Run(game Game) error {
 
 	// Initialize the main thread first so the thread is available at u.run (#809).
 	u.t = thread.NewOSThread()
-	graphicscommand.SetMainThread(u.t)
+	graphicscommand.SetRenderingThread(u.t)
 
 	ch := make(chan error, 1)
 	go func() {
@@ -65,11 +65,11 @@ func (u *UserInterface) runOnAnotherThreadFromMainThread(f func() error) error {
 	t := u.t
 	defer func() {
 		u.t = t
-		graphicscommand.SetMainThread(t)
+		graphicscommand.SetRenderingThread(t)
 	}()
 
 	u.t = thread.NewOSThread()
-	graphicscommand.SetMainThread(u.t)
+	graphicscommand.SetRenderingThread(u.t)
 
 	var err error
 	go func() {
