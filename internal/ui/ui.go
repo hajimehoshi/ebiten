@@ -35,10 +35,10 @@ type TouchID int
 // the game loop should be terminated as soon as possible.
 var RegularTermination = errors.New("regular termination")
 
-type FPSMode int
+type FPSModeType int
 
 const (
-	FPSModeVsyncOn FPSMode = iota
+	FPSModeVsyncOn FPSModeType = iota
 	FPSModeVsyncOffMaximum
 	FPSModeVsyncOffMinimum
 )

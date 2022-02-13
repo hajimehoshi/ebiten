@@ -22,10 +22,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
-func (u *UserInterface) Run(uicontext Context) error {
-	u.context = &contextImpl{
-		context: uicontext,
-	}
+func (u *UserInterface) Run(context Context) error {
+	u.context = newContextImpl(context)
 
 	// Initialize the main thread first so the thread is available at u.run (#809).
 	u.t = thread.NewOSThread()

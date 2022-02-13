@@ -48,7 +48,7 @@ func driverCursorShapeToCSSCursor(cursor CursorShape) string {
 
 type UserInterface struct {
 	runnableOnUnfocused bool
-	fpsMode             FPSMode
+	fpsMode             FPSModeType
 	renderingScheduled  bool
 	running             bool
 	initFocused         bool
@@ -152,12 +152,8 @@ func (u *UserInterface) IsRunnableOnUnfocused() bool {
 	return u.runnableOnUnfocused
 }
 
-func (u *UserInterface) SetFPSMode(mode FPSMode) {
+func (u *UserInterface) SetFPSMode(mode FPSModeType) {
 	u.fpsMode = mode
-}
-
-func (u *UserInterface) FPSMode() FPSMode {
-	return u.fpsMode
 }
 
 func (u *UserInterface) ScheduleFrame() {
@@ -319,9 +315,7 @@ func (u *UserInterface) needsUpdate() bool {
 }
 
 func (u *UserInterface) loop(context Context) <-chan error {
-	u.context = &contextImpl{
-		context: context,
-	}
+	u.context = newContextImpl(context)
 
 	errCh := make(chan error, 1)
 	reqStopAudioCh := make(chan struct{})

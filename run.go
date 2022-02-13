@@ -61,7 +61,7 @@ type Game interface {
 }
 
 // DefaultTPS represents a default ticks per second, that represents how many times game updating happens in a second.
-const DefaultTPS = 60
+const DefaultTPS = ui.DefaultTPS
 
 // CurrentFPS returns the current number of FPS (frames per second), that represents
 // how many swapping buffer happens per second.
@@ -79,7 +79,6 @@ func CurrentFPS() float64 {
 var (
 	isScreenClearedEveryFrame = int32(1)
 	isRunGameEnded_           = int32(0)
-	currentMaxTPS             = int32(DefaultTPS)
 )
 
 // SetScreenClearedEveryFrame enables or disables the clearing of the screen at the beginning of each frame.
@@ -324,7 +323,7 @@ func DeviceScaleFactor() float64 {
 //
 // Deprecated: as of v2.2. Use FPSMode instead.
 func IsVsyncEnabled() bool {
-	return ui.Get().FPSMode() == ui.FPSModeVsyncOn
+	return ui.FPSMode() == ui.FPSModeVsyncOn
 }
 
 // SetVsyncEnabled sets a boolean value indicating whether
@@ -333,14 +332,14 @@ func IsVsyncEnabled() bool {
 // Deprecated: as of v2.2. Use SetFPSMode instead.
 func SetVsyncEnabled(enabled bool) {
 	if enabled {
-		ui.Get().SetFPSMode(ui.FPSModeVsyncOn)
+		ui.SetFPSMode(ui.FPSModeVsyncOn)
 	} else {
-		ui.Get().SetFPSMode(ui.FPSModeVsyncOffMaximum)
+		ui.SetFPSMode(ui.FPSModeVsyncOffMaximum)
 	}
 }
 
 // FPSModeType is a type of FPS modes.
-type FPSModeType = ui.FPSMode
+type FPSModeType = ui.FPSModeType
 
 const (
 	// FPSModeVsyncOn indicates that the game tries to sync the display's refresh rate.
@@ -371,7 +370,7 @@ const (
 //
 // FPSMode is concurrent-safe.
 func FPSMode() FPSModeType {
-	return ui.Get().FPSMode()
+	return ui.FPSMode()
 }
 
 // SetFPSMode sets the FPS mode.
@@ -379,7 +378,7 @@ func FPSMode() FPSModeType {
 //
 // SetFPSMode is concurrent-safe.
 func SetFPSMode(mode FPSModeType) {
-	ui.Get().SetFPSMode(mode)
+	ui.SetFPSMode(mode)
 }
 
 // ScheduleFrame schedules a next frame when the current FPS mode is FPSModeVsyncOffMinimum.
@@ -393,10 +392,7 @@ func ScheduleFrame() {
 //
 // MaxTPS is concurrent-safe.
 func MaxTPS() int {
-	if FPSMode() == FPSModeVsyncOffMinimum {
-		return SyncWithFPS
-	}
-	return int(atomic.LoadInt32(&currentMaxTPS))
+	return ui.MaxTPS()
 }
 
 // CurrentTPS returns the current TPS (ticks per second),
@@ -426,10 +422,7 @@ const UncappedTPS = SyncWithFPS
 //
 // SetMaxTPS is concurrent-safe.
 func SetMaxTPS(tps int) {
-	if tps < 0 && tps != SyncWithFPS {
-		panic("ebiten: tps must be >= 0 or SyncWithFPS")
-	}
-	atomic.StoreInt32(&currentMaxTPS, int32(tps))
+	ui.SetMaxTPS(tps)
 }
 
 // IsScreenTransparent reports whether the window is transparent.

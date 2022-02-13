@@ -20,7 +20,6 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
-	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -123,20 +122,7 @@ func (c *uiContext) offsets(deviceScaleFactor float64) (float64, float64) {
 	return x, y
 }
 
-func (c *uiContext) UpdateFrame() error {
-	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
-	return c.updateFrame(clock.Update(MaxTPS()))
-}
-
-func (c *uiContext) ForceUpdateFrame() error {
-	// ForceUpdate can be invoked even if uiContext it not initialized yet (#1591).
-	if c.outsideWidth == 0 || c.outsideHeight == 0 {
-		return nil
-	}
-	return c.updateFrame(1)
-}
-
-func (c *uiContext) updateFrame(updateCount int) error {
+func (c *uiContext) UpdateFrame(updateCount int) error {
 	debug.Logf("----\n")
 
 	if err := buffered.BeginFrame(); err != nil {

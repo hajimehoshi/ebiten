@@ -41,9 +41,7 @@ func Get() *UserInterface {
 }
 
 func (u *UserInterface) Run(context Context) error {
-	u.context = &contextImpl{
-		context: context,
-	}
+	u.context = newContextImpl(context)
 	cbackend.InitializeGame()
 	for {
 		w, h := cbackend.ScreenSize()
@@ -107,11 +105,7 @@ func (*UserInterface) IsRunnableOnUnfocused() bool {
 func (*UserInterface) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 }
 
-func (*UserInterface) FPSMode() FPSMode {
-	return FPSModeVsyncOn
-}
-
-func (*UserInterface) SetFPSMode(mode FPSMode) {
+func (*UserInterface) SetFPSMode(mode FPSModeType) {
 }
 
 func (*UserInterface) ScheduleFrame() {

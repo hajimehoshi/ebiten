@@ -65,7 +65,7 @@ type UserInterface struct {
 	origPosX             int
 	origPosY             int
 	runnableOnUnfocused  bool
-	fpsMode              FPSMode
+	fpsMode              FPSModeType
 	iconImages           []image.Image
 	cursorShape          CursorShape
 	windowClosingHandled bool
@@ -536,7 +536,7 @@ func (u *UserInterface) IsRunnableOnUnfocused() bool {
 	return u.isRunnableOnUnfocused()
 }
 
-func (u *UserInterface) SetFPSMode(mode FPSMode) {
+func (u *UserInterface) SetFPSMode(mode FPSModeType) {
 	if !u.isRunning() {
 		u.m.Lock()
 		u.fpsMode = mode
@@ -551,20 +551,6 @@ func (u *UserInterface) SetFPSMode(mode FPSMode) {
 		u.setFPSMode(mode)
 		u.updateVsync()
 	})
-}
-
-func (u *UserInterface) FPSMode() FPSMode {
-	if !u.isRunning() {
-		u.m.Lock()
-		m := u.fpsMode
-		u.m.Unlock()
-		return m
-	}
-	var v FPSMode
-	u.t.Call(func() {
-		v = u.fpsMode
-	})
-	return v
 }
 
 func (u *UserInterface) ScheduleFrame() {
@@ -943,7 +929,7 @@ func (u *UserInterface) updateSize() (float64, float64) {
 }
 
 // setFPSMode must be called from the main thread.
-func (u *UserInterface) setFPSMode(fpsMode FPSMode) {
+func (u *UserInterface) setFPSMode(fpsMode FPSModeType) {
 	needUpdate := u.fpsMode != fpsMode || !u.fpsModeInited
 	u.fpsMode = fpsMode
 	u.fpsModeInited = true

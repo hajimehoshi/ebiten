@@ -113,7 +113,7 @@ type UserInterface struct {
 
 	input Input
 
-	fpsMode         FPSMode
+	fpsMode         FPSModeType
 	renderRequester RenderRequester
 
 	t *thread.OSThread
@@ -273,9 +273,7 @@ func (u *UserInterface) run(context Context, mainloop bool) (err error) {
 	u.sizeChanged = true
 	u.m.Unlock()
 
-	u.context = &contextImpl{
-		context: context,
-	}
+	u.context = newContextImpl(context)
 
 	if mainloop {
 		// When mainloop is true, gomobile-build is used. In this case, GL functions must be called via
@@ -410,11 +408,7 @@ func (u *UserInterface) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 	// Do nothing
 }
 
-func (u *UserInterface) FPSMode() FPSMode {
-	return u.fpsMode
-}
-
-func (u *UserInterface) SetFPSMode(mode FPSMode) {
+func (u *UserInterface) SetFPSMode(mode FPSModeType) {
 	u.fpsMode = mode
 	u.updateExplicitRenderingModeIfNeeded()
 }

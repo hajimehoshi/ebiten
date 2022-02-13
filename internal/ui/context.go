@@ -16,11 +16,14 @@ package ui
 
 import (
 	"sync/atomic"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 )
 
+const DefaultTPS = 60
+
 type Context interface {
-	UpdateFrame() error
-	ForceUpdateFrame() error
+	UpdateFrame(updateCount int) error
 	Layout(outsideWidth, outsideHeight float64)
 
 	// AdjustPosition can be called from a different goroutine from Update's or Layout's.
@@ -30,21 +33,36 @@ type Context interface {
 type contextImpl struct {
 	context Context
 
-	err atomic.Value
+	outsideWidth  float64
+	outsideHeight float64
+}
+
+func newContextImpl(context Context) *contextImpl {
+	return &contextImpl{
+		context: context,
+	}
 }
 
 func (c *contextImpl) updateFrame() error {
-	if err, ok := c.err.Load().(error); ok && err != nil {
+	if err := theGlobalState.err(); err != nil {
 		return err
 	}
-	return c.context.UpdateFrame()
+
+	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
+	return c.context.UpdateFrame(clock.Update(theGlobalState.maxTPS()))
 }
 
 func (c *contextImpl) forceUpdateFrame() error {
-	if err, ok := c.err.Load().(error); ok && err != nil {
+	if err := theGlobalState.err(); err != nil {
 		return err
 	}
-	return c.context.ForceUpdateFrame()
+
+	// ForceUpdate can be invoked even if the context is not initialized yet (#1591).
+	if c.outsideWidth == 0 || c.outsideHeight == 0 {
+		return nil
+	}
+
+	return c.context.UpdateFrame(1)
 }
 
 func (c *contextImpl) layout(outsideWidth, outsideHeight float64) {
@@ -54,6 +72,8 @@ func (c *contextImpl) layout(outsideWidth, outsideHeight float64) {
 		return
 	}
 
+	c.outsideWidth = outsideWidth
+	c.outsideHeight = outsideHeight
 	c.context.Layout(outsideWidth, outsideHeight)
 }
 
@@ -61,10 +81,69 @@ func (c *contextImpl) adjustPosition(x, y float64, deviceScaleFactor float64) (f
 	return c.context.AdjustPosition(x, y, deviceScaleFactor)
 }
 
-func (c *contextImpl) setError(err error) {
-	c.err.Store(err)
+var theGlobalState = globalState{
+	currentMaxTPS: DefaultTPS,
+}
+
+// globalState represents a global state in this package.
+// This is available even before the game loop starts.
+type globalState struct {
+	currentErr     atomic.Value
+	currentFPSMode int32
+	currentMaxTPS  int32
+}
+
+func (g *globalState) err() error {
+	err, ok := g.currentErr.Load().(error)
+	if !ok {
+		return nil
+	}
+	return err
+}
+
+func (g *globalState) setError(err error) {
+	g.currentErr.Store(err)
+}
+
+func (g *globalState) fpsMode() FPSModeType {
+	return FPSModeType(atomic.LoadInt32(&g.currentFPSMode))
+}
+
+func (g *globalState) setFPSMode(fpsMode FPSModeType) {
+	atomic.StoreInt32(&g.currentFPSMode, int32(fpsMode))
+}
+
+func (g *globalState) maxTPS() int {
+	if g.fpsMode() == FPSModeVsyncOffMinimum {
+		return clock.SyncWithFPS
+	}
+	return int(atomic.LoadInt32(&g.currentMaxTPS))
+}
+
+func (g *globalState) setMaxTPS(tps int) {
+	if tps < 0 && tps != clock.SyncWithFPS {
+		panic("ebiten: tps must be >= 0 or SyncWithFPS")
+	}
+	atomic.StoreInt32(&g.currentMaxTPS, int32(tps))
 }
 
 func SetError(err error) {
-	Get().context.setError(err)
+	theGlobalState.setError(err)
+}
+
+func FPSMode() FPSModeType {
+	return theGlobalState.fpsMode()
+}
+
+func SetFPSMode(fpsMode FPSModeType) {
+	theGlobalState.setFPSMode(fpsMode)
+	Get().SetFPSMode(fpsMode)
+}
+
+func MaxTPS() int {
+	return theGlobalState.maxTPS()
+}
+
+func SetMaxTPS(tps int) {
+	theGlobalState.setMaxTPS(tps)
 }
