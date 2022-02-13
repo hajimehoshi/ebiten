@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !darwin || ebitengl
-// +build !darwin ebitengl
+//go:build !darwin || ebitencbackend || ebitengl
+// +build !darwin ebitencbackend ebitengl
 
 package ui
 

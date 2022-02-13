@@ -24,8 +24,8 @@ package gl
 #cgo linux,!ebitencbackend freebsd,!ebitencbackend openbsd,!ebitencbackend pkg-config: gl
 #cgo egl CFLAGS: -DTAG_EGL
 #cgo egl,!ebitencbackend pkg-config: egl
-#cgo !darwin ebitencbackend LDFLAGS: -Wl,-unresolved-symbols=ignore-all
-#cgo darwin ebitencbackend LDFLAGS: -Wl,-undefined,dynamic_lookup
+#cgo !darwin,ebitencbackend LDFLAGS: -Wl,-unresolved-symbols=ignore-all
+#cgo darwin,ebitencbackend LDFLAGS: -Wl,-undefined,dynamic_lookup
 // Check the EGL tag first as it takes priority over the platform's default
 // configuration of WGL/GLX/CGL.
 #if defined(TAG_EGL)

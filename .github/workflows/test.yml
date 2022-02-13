@@ -79,6 +79,11 @@ jobs:
           env GOOS=windows GOARCH=amd64 go build -tags=example -v ./...
           env GOOS=windows GOARCH=386 go build -tags=example -v ./...
 
+      - name: go build (cbackend)
+        if: ${{ !startsWith(matrix.os, 'windows-')
+        run: |
+          go build -tags=example,ebitencbackend -v ./...
+
       - name: go test (Go 1.16 or older)
         # TODO: Add more test environments (#1305)
         if: ${{ startsWith(matrix.os, 'ubuntu-') && (startsWith(matrix.go, '1.15.') || startsWith(matrix.go, '1.16.')) }}
