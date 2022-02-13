@@ -16,6 +16,7 @@ package ui
 
 import (
 	"math"
+	"sync"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
@@ -34,10 +35,13 @@ type Context interface {
 type contextImpl struct {
 	context Context
 
+	// The following members must be protected by the mutex m.
 	outsideWidth    float64
 	outsideHeight   float64
 	offscreenWidth  int
 	offscreenHeight int
+
+	m sync.Mutex
 }
 
 func newContextImpl(context Context) *contextImpl {
@@ -56,16 +60,12 @@ func (c *contextImpl) forceUpdateFrame(deviceScaleFactor float64) error {
 }
 
 func (c *contextImpl) updateFrameImpl(updateCount int, deviceScaleFactor float64) error {
-	ow, oh := c.context.UpdateOffscreen(c.outsideWidth, c.outsideHeight, deviceScaleFactor)
-	c.offscreenWidth = ow
-	c.offscreenHeight = oh
-
 	if err := theGlobalState.err(); err != nil {
 		return err
 	}
 
 	// ForceUpdate can be invoked even if the context is not initialized yet (#1591).
-	if c.outsideWidth == 0 || c.outsideHeight == 0 {
+	if w, h := c.updateOffscreenSize(deviceScaleFactor); w == 0 || h == 0 {
 		return nil
 	}
 
@@ -75,8 +75,7 @@ func (c *contextImpl) updateFrameImpl(updateCount int, deviceScaleFactor float64
 		return err
 	}
 
-	screenScale := c.screenScale(deviceScaleFactor)
-	offsetX, offsetY := c.offsets(deviceScaleFactor)
+	screenScale, offsetX, offsetY := c.screenScaleAndOffsets(deviceScaleFactor)
 	if err := c.context.UpdateFrame(updateCount, screenScale, offsetX, offsetY); err != nil {
 		return err
 	}
@@ -91,6 +90,16 @@ func (c *contextImpl) updateFrameImpl(updateCount int, deviceScaleFactor float64
 	})
 }
 
+func (c *contextImpl) updateOffscreenSize(deviceScaleFactor float64) (int, int) {
+	c.m.Lock()
+	defer c.m.Unlock()
+
+	w, h := c.context.UpdateOffscreen(c.outsideWidth, c.outsideHeight, deviceScaleFactor)
+	c.offscreenWidth = w
+	c.offscreenHeight = h
+	return w, h
+}
+
 func (c *contextImpl) layout(outsideWidth, outsideHeight float64) {
 	// The given outside size can be 0 e.g. just after restoring from the fullscreen mode on Windows (#1589)
 	// Just ignore such cases. Otherwise, creating a zero-sized framebuffer causes a panic.
@@ -98,14 +107,14 @@ func (c *contextImpl) layout(outsideWidth, outsideHeight float64) {
 		return
 	}
 
+	c.m.Lock()
+	defer c.m.Unlock()
 	c.outsideWidth = outsideWidth
 	c.outsideHeight = outsideHeight
 }
 
-// TODO: Make adjustPosition concurrent-safe.
 func (c *contextImpl) adjustPosition(x, y float64, deviceScaleFactor float64) (float64, float64) {
-	ox, oy := c.offsets(deviceScaleFactor)
-	s := c.screenScale(deviceScaleFactor)
+	s, ox, oy := c.screenScaleAndOffsets(deviceScaleFactor)
 	// The scale 0 indicates that the offscreen is not initialized yet.
 	// As any cursor values don't make sense, just return NaN.
 	if s == 0 {
@@ -114,25 +123,22 @@ func (c *contextImpl) adjustPosition(x, y float64, deviceScaleFactor float64) (f
 	return (x*deviceScaleFactor - ox) / s, (y*deviceScaleFactor - oy) / s
 }
 
-func (c *contextImpl) offsets(deviceScaleFactor float64) (float64, float64) {
-	if c.offscreenWidth == 0 || c.offscreenHeight == 0 {
-		return 0, 0
-	}
-	s := c.screenScale(deviceScaleFactor)
-	width := float64(c.offscreenWidth) * s
-	height := float64(c.offscreenHeight) * s
-	x := (c.outsideWidth*deviceScaleFactor - width) / 2
-	y := (c.outsideHeight*deviceScaleFactor - height) / 2
-	return x, y
-}
+func (c *contextImpl) screenScaleAndOffsets(deviceScaleFactor float64) (float64, float64, float64) {
+	c.m.Lock()
+	defer c.m.Unlock()
 
-func (c *contextImpl) screenScale(deviceScaleFactor float64) float64 {
 	if c.offscreenWidth == 0 || c.offscreenHeight == 0 {
-		return 0
+		return 0, 0, 0
 	}
+
 	scaleX := c.outsideWidth / float64(c.offscreenWidth) * deviceScaleFactor
 	scaleY := c.outsideHeight / float64(c.offscreenHeight) * deviceScaleFactor
-	return math.Min(scaleX, scaleY)
+	scale := math.Min(scaleX, scaleY)
+	width := float64(c.offscreenWidth) * scale
+	height := float64(c.offscreenHeight) * scale
+	x := (c.outsideWidth*deviceScaleFactor - width) / 2
+	y := (c.outsideHeight*deviceScaleFactor - height) / 2
+	return scale, x, y
 }
 
 var theGlobalState = globalState{
