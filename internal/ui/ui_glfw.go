@@ -1349,8 +1349,8 @@ func (u *UserInterface) IsScreenTransparent() bool {
 	return val
 }
 
-func (u *UserInterface) ResetForFrame() {
-	u.input.resetForFrame()
+func (u *UserInterface) ResetForTick() {
+	u.input.resetForTick()
 
 	u.m.Lock()
 	u.windowBeingClosed = false

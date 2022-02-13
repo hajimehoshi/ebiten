@@ -101,7 +101,7 @@ func (i *Input) AppendInputChars(runes []rune) []rune {
 	return append(runes, i.runeBuffer...)
 }
 
-func (i *Input) resetForFrame() {
+func (i *Input) resetForTick() {
 	i.runeBuffer = nil
 	i.wheelX = 0
 	i.wheelY = 0

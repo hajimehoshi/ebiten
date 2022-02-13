@@ -94,6 +94,6 @@ func (i *Input) update(keys map[Key]struct{}, runes []rune, touches []Touch) {
 	i.touches = append(i.touches, touches...)
 }
 
-func (i *Input) resetForFrame() {
+func (i *Input) resetForTick() {
 	i.runes = nil
 }

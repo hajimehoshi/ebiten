@@ -431,8 +431,8 @@ func (u *UserInterface) IsScreenTransparent() bool {
 	return false
 }
 
-func (u *UserInterface) ResetForFrame() {
-	u.input.resetForFrame()
+func (u *UserInterface) ResetForTick() {
+	u.input.resetForTick()
 }
 
 func (u *UserInterface) SetInitFocused(focused bool) {

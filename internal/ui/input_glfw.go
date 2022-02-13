@@ -92,7 +92,7 @@ func (i *Input) AppendInputChars(runes []rune) []rune {
 	return append(runes, i.runeBuffer...)
 }
 
-func (i *Input) resetForFrame() {
+func (i *Input) resetForTick() {
 	if !i.ui.isRunning() {
 		return
 	}

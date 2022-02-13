@@ -636,8 +636,8 @@ func (u *UserInterface) IsScreenTransparent() bool {
 	return bodyStyle.Get("backgroundColor").Equal(stringTransparent)
 }
 
-func (u *UserInterface) ResetForFrame() {
-	u.input.resetForFrame()
+func (u *UserInterface) ResetForTick() {
+	u.input.resetForTick()
 }
 
 func (u *UserInterface) SetInitFocused(focused bool) {

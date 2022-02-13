@@ -103,7 +103,7 @@ func (c *uiContext) UpdateFrame(updateCount int, screenScale float64, offsetX, o
 		if err := c.game.Update(); err != nil {
 			return err
 		}
-		ui.Get().ResetForFrame()
+		ui.Get().ResetForTick()
 	}
 
 	// Even though updateCount == 0, the offscreen is cleared and Draw is called.
