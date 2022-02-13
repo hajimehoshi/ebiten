@@ -58,7 +58,6 @@ var (
 		// Give a default outside size so that the game can start without initializing them.
 		outsideWidth:  640,
 		outsideHeight: 480,
-		sizeChanged:   true,
 	}
 )
 
@@ -99,9 +98,8 @@ type UserInterface struct {
 	outsideWidth  float64
 	outsideHeight float64
 
-	sizeChanged bool
-	foreground  int32
-	errCh       chan error
+	foreground int32
+	errCh      chan error
 
 	// Used for gomobile-build
 	gbuildWidthPx   int
@@ -273,10 +271,6 @@ func (u *UserInterface) run(game Game, mainloop bool) (err error) {
 		}
 	}()
 
-	u.m.Lock()
-	u.sizeChanged = true
-	u.m.Unlock()
-
 	u.context = newContextImpl(game)
 
 	if mainloop {
@@ -306,24 +300,18 @@ func (u *UserInterface) layoutIfNeeded() {
 	var outsideWidth, outsideHeight float64
 
 	u.m.RLock()
-	sizeChanged := u.sizeChanged
-	if sizeChanged {
-		if u.gbuildWidthPx == 0 || u.gbuildHeightPx == 0 {
-			outsideWidth = u.outsideWidth
-			outsideHeight = u.outsideHeight
-		} else {
-			// gomobile build
-			d := deviceScale()
-			outsideWidth = float64(u.gbuildWidthPx) / d
-			outsideHeight = float64(u.gbuildHeightPx) / d
-		}
+	if u.gbuildWidthPx == 0 || u.gbuildHeightPx == 0 {
+		outsideWidth = u.outsideWidth
+		outsideHeight = u.outsideHeight
+	} else {
+		// gomobile build
+		d := deviceScale()
+		outsideWidth = float64(u.gbuildWidthPx) / d
+		outsideHeight = float64(u.gbuildHeightPx) / d
 	}
-	u.sizeChanged = false
 	u.m.RUnlock()
 
-	if sizeChanged {
-		u.context.layout(outsideWidth, outsideHeight)
-	}
+	u.context.layout(outsideWidth, outsideHeight)
 }
 
 func (u *UserInterface) update() error {
@@ -353,7 +341,6 @@ func (u *UserInterface) SetOutsideSize(outsideWidth, outsideHeight float64) {
 	if u.outsideWidth != outsideWidth || u.outsideHeight != outsideHeight {
 		u.outsideWidth = outsideWidth
 		u.outsideHeight = outsideHeight
-		u.sizeChanged = true
 	}
 	u.m.Unlock()
 }
@@ -362,7 +349,6 @@ func (u *UserInterface) setGBuildSize(widthPx, heightPx int) {
 	u.m.Lock()
 	u.gbuildWidthPx = widthPx
 	u.gbuildHeightPx = heightPx
-	u.sizeChanged = true
 	u.m.Unlock()
 
 	u.once.Do(func() {
