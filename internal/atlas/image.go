@@ -23,7 +23,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 	"github.com/hajimehoshi/ebiten/v2/internal/packing"
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 )
@@ -101,16 +100,6 @@ func min(a, b int) int {
 		return a
 	}
 	return b
-}
-
-func init() {
-	hooks.AppendHookOnBeforeUpdate(func() error {
-		backendsM.Lock()
-		defer backendsM.Unlock()
-
-		resolveDeferred()
-		return putImagesOnAtlas()
-	})
 }
 
 func resolveDeferred() {
@@ -820,6 +809,11 @@ func BeginFrame() error {
 		maxSize = restorable.MaxImageSize()
 	})
 	if err != nil {
+		return err
+	}
+
+	resolveDeferred()
+	if err := putImagesOnAtlas(); err != nil {
 		return err
 	}
 
