@@ -57,8 +57,6 @@ type UserInterface struct {
 	cursorShape         CursorShape
 	onceUpdateCalled    bool
 
-	sizeChanged bool
-
 	lastDeviceScaleFactor float64
 
 	context *contextImpl
@@ -67,7 +65,6 @@ type UserInterface struct {
 
 var theUI = &UserInterface{
 	runnableOnUnfocused: true,
-	sizeChanged:         true,
 	initFocused:         true,
 }
 
@@ -229,22 +226,19 @@ func (u *UserInterface) updateSize() {
 	}
 	u.lastDeviceScaleFactor = a
 
-	if u.sizeChanged {
-		u.sizeChanged = false
-		switch {
-		case document.Truthy():
-			body := document.Get("body")
-			bw := body.Get("clientWidth").Float()
-			bh := body.Get("clientHeight").Float()
-			u.context.layout(bw, bh)
-		case go2cpp.Truthy():
-			w := go2cpp.Get("screenWidth").Float()
-			h := go2cpp.Get("screenHeight").Float()
-			u.context.layout(w, h)
-		default:
-			// Node.js
-			u.context.layout(640, 480)
-		}
+	switch {
+	case document.Truthy():
+		body := document.Get("body")
+		bw := body.Get("clientWidth").Float()
+		bh := body.Get("clientHeight").Float()
+		u.context.layout(bw, bh)
+	case go2cpp.Truthy():
+		w := go2cpp.Get("screenWidth").Float()
+		h := go2cpp.Get("screenHeight").Float()
+		u.context.layout(w, h)
+	default:
+		// Node.js
+		u.context.layout(640, 480)
 	}
 }
 
@@ -611,7 +605,6 @@ func (u *UserInterface) updateScreenSize() {
 	case go2cpp.Truthy():
 		// TODO: Implement this
 	}
-	u.sizeChanged = true
 }
 
 func (u *UserInterface) SetScreenTransparent(transparent bool) {
