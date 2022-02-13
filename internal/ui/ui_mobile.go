@@ -290,8 +290,6 @@ func (u *UserInterface) run(context Context, mainloop bool) (err error) {
 		<-u.setGBuildSizeCh
 	}
 
-	// Force to set the screen size
-	u.layoutIfNeeded()
 	for {
 		if err := u.update(); err != nil {
 			return err
@@ -330,6 +328,7 @@ func (u *UserInterface) update() error {
 		renderEndCh <- struct{}{}
 	}()
 
+	u.layoutIfNeeded()
 	if err := u.context.updateFrame(deviceScale()); err != nil {
 		return err
 	}
@@ -433,7 +432,6 @@ func (u *UserInterface) IsScreenTransparent() bool {
 }
 
 func (u *UserInterface) ResetForFrame() {
-	u.layoutIfNeeded()
 	u.input.resetForFrame()
 }
 

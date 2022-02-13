@@ -637,7 +637,6 @@ func (u *UserInterface) IsScreenTransparent() bool {
 }
 
 func (u *UserInterface) ResetForFrame() {
-	u.updateSize()
 	u.input.resetForFrame()
 }
 

@@ -1350,12 +1350,6 @@ func (u *UserInterface) IsScreenTransparent() bool {
 }
 
 func (u *UserInterface) ResetForFrame() {
-	// The offscreens must be updated every frame (#490).
-	var w, h float64
-	u.t.Call(func() {
-		w, h = u.updateSize()
-	})
-	u.context.layout(w, h)
 	u.input.resetForFrame()
 
 	u.m.Lock()
