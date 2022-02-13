@@ -18,7 +18,6 @@ import (
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -160,11 +159,6 @@ func RunGame(game Game) error {
 		return err
 	}
 	return nil
-}
-
-// RunOnMainThread calls the given f on the main thread, and blocks until f returns.
-func RunOnMainThread(f func()) {
-	graphicscommand.RunOnRenderingThread(f)
 }
 
 func isRunGameEnded() bool {

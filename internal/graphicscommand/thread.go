@@ -25,8 +25,8 @@ func SetRenderingThread(thread Thread) {
 	theThread = thread
 }
 
-// RunOnRenderingThread calls f on the rendering thread, and returns an error if any.
-func RunOnRenderingThread(f func()) {
+// runOnRenderingThread calls f on the rendering thread, and returns an error if any.
+func runOnRenderingThread(f func()) {
 	// The thread is nil when 1) GOOS=js or 2) using golang.org/x/mobile/gl.
 	// When golang.org/x/mobile/gl is used, all the GL functions are called via Context, which already runs on an
 	// appropriate thread.
