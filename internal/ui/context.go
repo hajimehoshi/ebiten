@@ -75,13 +75,8 @@ func (c *contextImpl) updateFrameImpl(updateCount int, outsideWidth, outsideHeig
 		return nil
 	}
 
-	c.m.Lock()
-	c.outsideWidth = outsideWidth
-	c.outsideHeight = outsideHeight
-	c.m.Unlock()
-
 	// ForceUpdate can be invoked even if the context is not initialized yet (#1591).
-	if w, h := c.layoutGame(deviceScaleFactor); w == 0 || h == 0 {
+	if w, h := c.layoutGame(outsideWidth, outsideHeight, deviceScaleFactor); w == 0 || h == 0 {
 		return nil
 	}
 
@@ -125,11 +120,13 @@ func (c *contextImpl) updateFrameImpl(updateCount int, outsideWidth, outsideHeig
 	})
 }
 
-func (c *contextImpl) layoutGame(deviceScaleFactor float64) (int, int) {
+func (c *contextImpl) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
-	w, h := c.game.Layout(c.outsideWidth, c.outsideHeight, deviceScaleFactor)
+	c.outsideWidth = outsideWidth
+	c.outsideHeight = outsideHeight
+	w, h := c.game.Layout(outsideWidth, outsideHeight, deviceScaleFactor)
 	c.screenWidth = w
 	c.screenHeight = h
 	return w, h
