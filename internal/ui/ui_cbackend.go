@@ -58,10 +58,6 @@ func (u *UserInterface) Run(game Game) error {
 	}
 }
 
-func (*UserInterface) RunWithoutMainLoop(game Game) {
-	panic("ui: RunWithoutMainLoop is not implemented")
-}
-
 func (*UserInterface) DeviceScaleFactor() float64 {
 	return deviceScaleFactor
 }

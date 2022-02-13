@@ -642,10 +642,6 @@ func init() {
 	runtime.LockOSThread()
 }
 
-func (u *UserInterface) RunWithoutMainLoop(game Game) {
-	panic("ui: RunWithoutMainLoop is not implemented")
-}
-
 // createWindow creates a GLFW window.
 //
 // width and height are in GLFW pixels (not device-independent pixels).

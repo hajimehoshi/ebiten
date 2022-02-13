@@ -72,13 +72,13 @@ func (c *gameForUI) Update() error {
 	return c.game.Update()
 }
 
-func (c *gameForUI) Draw(screenScale float64, offsetX, offsetY float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection, screenClearedEveryFrame bool) error {
-	c.offscreen.mipmap.SetVolatile(screenClearedEveryFrame)
+func (c *gameForUI) Draw(screenScale float64, offsetX, offsetY float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection, clearScreenEveryFrame bool) error {
+	c.offscreen.mipmap.SetVolatile(clearScreenEveryFrame)
 
 	// Even though updateCount == 0, the offscreen is cleared and Draw is called.
 	// Draw should not update the game state and then the screen should not be updated without Update, but
 	// users might want to process something at Draw with the time intervals of FPS.
-	if screenClearedEveryFrame {
+	if clearScreenEveryFrame {
 		c.offscreen.Clear()
 	}
 	c.game.Draw(c.offscreen)

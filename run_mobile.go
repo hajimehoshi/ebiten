@@ -29,5 +29,5 @@ import (
 //
 // TODO: Remove this. In order to remove this, the gameForUI should be in another package.
 func RunGameWithoutMainLoop(game Game) {
-	ui.Get().RunWithoutMainLoop(newGameForUI(game))
+	ui.RunWithoutMainLoop(newGameForUI(game))
 }

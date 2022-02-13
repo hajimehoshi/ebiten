@@ -600,10 +600,6 @@ func (u *UserInterface) Run(game Game) error {
 	return <-u.loop(game)
 }
 
-func (u *UserInterface) RunWithoutMainLoop(game Game) {
-	panic("ui: RunWithoutMainLoop is not implemented")
-}
-
 func (u *UserInterface) updateScreenSize() {
 	switch {
 	case document.Truthy():

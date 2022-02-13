@@ -250,7 +250,11 @@ func (u *UserInterface) Run(game Game) error {
 	return nil
 }
 
-func (u *UserInterface) RunWithoutMainLoop(game Game) {
+func RunWithoutMainLoop(game Game) {
+	theUI.runWithoutMainLoop(game)
+}
+
+func (u *UserInterface) runWithoutMainLoop(game Game) {
 	go func() {
 		if err := u.run(game, false); err != nil {
 			u.errCh <- err
