@@ -16,8 +16,6 @@ package ui
 
 import (
 	"errors"
-
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
 type MouseButton int
@@ -69,11 +67,3 @@ const (
 	WindowResizingModeOnlyFullscreenEnabled
 	WindowResizingModeEnabled
 )
-
-func NeedsClearingScreen() bool {
-	return graphics().NeedsClearingScreen()
-}
-
-func FramebufferYDirection() graphicsdriver.YDirection {
-	return graphics().FramebufferYDirection()
-}

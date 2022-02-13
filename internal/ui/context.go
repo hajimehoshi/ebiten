@@ -23,6 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	graphicspkg "github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
@@ -31,7 +32,7 @@ const DefaultTPS = 60
 type Context interface {
 	UpdateOffscreen(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int)
 	UpdateGame() error
-	DrawGame(screenScale float64, offsetX, offsetY float64) error
+	DrawGame(screenScale float64, offsetX, offsetY float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection) error
 }
 
 type contextImpl struct {
@@ -99,7 +100,7 @@ func (c *contextImpl) updateFrameImpl(updateCount int, deviceScaleFactor float64
 
 	// Draw the game.
 	screenScale, offsetX, offsetY := c.screenScaleAndOffsets(deviceScaleFactor)
-	if err := c.context.DrawGame(screenScale, offsetX, offsetY); err != nil {
+	if err := c.context.DrawGame(screenScale, offsetX, offsetY, graphics().NeedsClearingScreen(), graphics().FramebufferYDirection()); err != nil {
 		return err
 	}
 

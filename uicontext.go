@@ -19,7 +19,6 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 type uiContext struct {
@@ -88,7 +87,7 @@ func (c *uiContext) UpdateGame() error {
 	return c.game.Update()
 }
 
-func (c *uiContext) DrawGame(screenScale float64, offsetX, offsetY float64) error {
+func (c *uiContext) DrawGame(screenScale float64, offsetX, offsetY float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection) error {
 	// Even though updateCount == 0, the offscreen is cleared and Draw is called.
 	// Draw should not update the game state and then the screen should not be updated without Update, but
 	// users might want to process something at Draw with the time intervals of FPS.
@@ -97,7 +96,7 @@ func (c *uiContext) DrawGame(screenScale float64, offsetX, offsetY float64) erro
 	}
 	c.game.Draw(c.offscreen)
 
-	if ui.NeedsClearingScreen() {
+	if needsClearingScreen {
 		// This clear is needed for fullscreen mode or some mobile platforms (#622).
 		c.screen.Clear()
 	}
@@ -105,7 +104,7 @@ func (c *uiContext) DrawGame(screenScale float64, offsetX, offsetY float64) erro
 	op := &DrawImageOptions{}
 
 	s := screenScale
-	switch vd := ui.FramebufferYDirection(); vd {
+	switch framebufferYDirection {
 	case graphicsdriver.Upward:
 		op.GeoM.Scale(s, -s)
 		_, h := c.offscreen.Size()
@@ -113,7 +112,7 @@ func (c *uiContext) DrawGame(screenScale float64, offsetX, offsetY float64) erro
 	case graphicsdriver.Downward:
 		op.GeoM.Scale(s, s)
 	default:
-		panic(fmt.Sprintf("ebiten: invalid v-direction: %d", vd))
+		panic(fmt.Sprintf("ebiten: invalid v-direction: %d", framebufferYDirection))
 	}
 
 	op.GeoM.Translate(offsetX, offsetY)
