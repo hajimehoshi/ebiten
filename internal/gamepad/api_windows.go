@@ -51,12 +51,12 @@ const (
 	_DIERR_INPUTLOST   = windows.SEVERITY_ERROR<<31 | windows.FACILITY_WIN32<<16 | windows.ERROR_READ_FAULT
 	_DIERR_NOTACQUIRED = windows.SEVERITY_ERROR<<31 | windows.FACILITY_WIN32<<16 | windows.ERROR_INVALID_ACCESS
 
-	_DIJOFS_X  = uint32(unsafe.Offsetof(diJoyState{}.lX))
-	_DIJOFS_Y  = uint32(unsafe.Offsetof(diJoyState{}.lY))
-	_DIJOFS_Z  = uint32(unsafe.Offsetof(diJoyState{}.lZ))
-	_DIJOFS_RX = uint32(unsafe.Offsetof(diJoyState{}.lRx))
-	_DIJOFS_RY = uint32(unsafe.Offsetof(diJoyState{}.lRy))
-	_DIJOFS_RZ = uint32(unsafe.Offsetof(diJoyState{}.lRz))
+	_DIJOFS_X  = uint32(unsafe.Offsetof(_DIJOYSTATE{}.lX))
+	_DIJOFS_Y  = uint32(unsafe.Offsetof(_DIJOYSTATE{}.lY))
+	_DIJOFS_Z  = uint32(unsafe.Offsetof(_DIJOYSTATE{}.lZ))
+	_DIJOFS_RX = uint32(unsafe.Offsetof(_DIJOYSTATE{}.lRx))
+	_DIJOFS_RY = uint32(unsafe.Offsetof(_DIJOYSTATE{}.lRy))
+	_DIJOFS_RZ = uint32(unsafe.Offsetof(_DIJOYSTATE{}.lRz))
 
 	_DIPH_DEVICE = 0
 	_DIPH_BYID   = 2
@@ -107,32 +107,32 @@ const (
 	_XINPUT_GAMEPAD_Y              = 0x8000
 )
 
-func diDftGetType(n uint32) byte {
+func _DIDFT_GETTYPE(n uint32) byte {
 	return byte(n)
 }
 
-func diJofsSlider(n int) uint32 {
-	return uint32(unsafe.Offsetof(diJoyState{}.rglSlider) + uintptr(n)*unsafe.Sizeof(int32(0)))
+func _DIJOFS_SLIDER(n int) uint32 {
+	return uint32(unsafe.Offsetof(_DIJOYSTATE{}.rglSlider) + uintptr(n)*unsafe.Sizeof(int32(0)))
 }
 
-func diJofsPOV(n int) uint32 {
-	return uint32(unsafe.Offsetof(diJoyState{}.rgdwPOV) + uintptr(n)*unsafe.Sizeof(uint32(0)))
+func _DIJOFS_POV(n int) uint32 {
+	return uint32(unsafe.Offsetof(_DIJOYSTATE{}.rgdwPOV) + uintptr(n)*unsafe.Sizeof(uint32(0)))
 }
 
-func diJofsButton(n int) uint32 {
-	return uint32(unsafe.Offsetof(diJoyState{}.rgbButtons) + uintptr(n))
+func _DIJOFS_BUTTON(n int) uint32 {
+	return uint32(unsafe.Offsetof(_DIJOYSTATE{}.rgbButtons) + uintptr(n))
 }
 
 var (
-	iidIDirectInput8W = windows.GUID{0xbf798031, 0x483a, 0x4da2, [...]byte{0xaa, 0x99, 0x5d, 0x64, 0xed, 0x36, 0x97, 0x00}}
-	guidXAxis         = windows.GUID{0xa36d02e0, 0xc9f3, 0x11cf, [...]byte{0xbf, 0xc7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00}}
-	guidYAxis         = windows.GUID{0xa36d02e1, 0xc9f3, 0x11cf, [...]byte{0xbf, 0xc7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00}}
-	guidZAxis         = windows.GUID{0xa36d02e2, 0xc9f3, 0x11cf, [...]byte{0xbf, 0xc7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00}}
-	guidRxAxis        = windows.GUID{0xa36d02f4, 0xc9f3, 0x11cf, [...]byte{0xbf, 0xc7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00}}
-	guidRyAxis        = windows.GUID{0xa36d02f5, 0xc9f3, 0x11cf, [...]byte{0xbf, 0xc7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00}}
-	guidRzAxis        = windows.GUID{0xa36d02e3, 0xc9f3, 0x11cf, [...]byte{0xbf, 0xc7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00}}
-	guidSlider        = windows.GUID{0xa36d02e4, 0xc9f3, 0x11cf, [...]byte{0xbf, 0xc7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00}}
-	guidPOV           = windows.GUID{0xa36d02f2, 0xc9f3, 0x11cf, [...]byte{0xbf, 0xc7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00}}
+	_IID_IDirectInput8W = windows.GUID{0xbf798031, 0x483a, 0x4da2, [...]byte{0xaa, 0x99, 0x5d, 0x64, 0xed, 0x36, 0x97, 0x00}}
+	_GUID_XAxis         = windows.GUID{0xa36d02e0, 0xc9f3, 0x11cf, [...]byte{0xbf, 0xc7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00}}
+	_GUID_YAxis         = windows.GUID{0xa36d02e1, 0xc9f3, 0x11cf, [...]byte{0xbf, 0xc7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00}}
+	_GUID_ZAxis         = windows.GUID{0xa36d02e2, 0xc9f3, 0x11cf, [...]byte{0xbf, 0xc7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00}}
+	_GUID_RxAxis        = windows.GUID{0xa36d02f4, 0xc9f3, 0x11cf, [...]byte{0xbf, 0xc7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00}}
+	_GUID_RyAxis        = windows.GUID{0xa36d02f5, 0xc9f3, 0x11cf, [...]byte{0xbf, 0xc7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00}}
+	_GUID_RzAxis        = windows.GUID{0xa36d02e3, 0xc9f3, 0x11cf, [...]byte{0xbf, 0xc7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00}}
+	_GUID_Slider        = windows.GUID{0xa36d02e4, 0xc9f3, 0x11cf, [...]byte{0xbf, 0xc7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00}}
+	_GUID_POV           = windows.GUID{0xa36d02f2, 0xc9f3, 0x11cf, [...]byte{0xbf, 0xc7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00}}
 )
 
 var (
@@ -186,8 +186,8 @@ func getRawInputDeviceInfoW(hDevice windows.Handle, uiCommand uint32, pData unsa
 	return uint32(r), nil
 }
 
-func getRawInputDeviceList(pRawInputDeviceList *rawInputDeviceList, puiNumDevices *uint32) (uint32, error) {
-	r, _, e := procGetRawInputDeviceList.Call(uintptr(unsafe.Pointer(pRawInputDeviceList)), uintptr(unsafe.Pointer(puiNumDevices)), unsafe.Sizeof(rawInputDeviceList{}))
+func getRawInputDeviceList(pRawInputDeviceList *_RAWINPUTDEVICELIST, puiNumDevices *uint32) (uint32, error) {
+	r, _, e := procGetRawInputDeviceList.Call(uintptr(unsafe.Pointer(pRawInputDeviceList)), uintptr(unsafe.Pointer(puiNumDevices)), unsafe.Sizeof(_RAWINPUTDEVICELIST{}))
 	if uint32(r) == ^uint32(0) {
 		if e != nil && e != windows.ERROR_SUCCESS {
 			return 0, fmt.Errorf("gamepad: GetRawInputDeviceList failed: %w", e)
@@ -214,16 +214,16 @@ func (d directInputError) Error() string {
 	return fmt.Sprintf("DirectInput error: %d", d)
 }
 
-type diDataFormat struct {
+type _DIDATAFORMAT struct {
 	dwSize     uint32
 	dwObjSize  uint32
 	dwFlags    uint32
 	dwDataSize uint32
 	dwNumObjs  uint32
-	rgodf      *diObjectDataFormat
+	rgodf      *_DIOBJECTDATAFORMAT
 }
 
-type diDevCaps struct {
+type _DIDEVCAPS struct {
 	dwSize                uint32
 	dwFlags               uint32
 	dwDevType             uint32
@@ -237,7 +237,7 @@ type diDevCaps struct {
 	dwFFDriverVersion     uint32
 }
 
-type diDeviceInstanceW struct {
+type _DIDEVICEINSTANCEW struct {
 	dwSize          uint32
 	guidInstance    windows.GUID
 	guidProduct     windows.GUID
@@ -249,7 +249,7 @@ type diDeviceInstanceW struct {
 	wUsage          uint16
 }
 
-type diDeviceObjectInstanceW struct {
+type _DIDEVICEOBJECTINSTANCEW struct {
 	dwSize              uint32
 	guidType            windows.GUID
 	dwOfs               uint32
@@ -267,7 +267,7 @@ type diDeviceObjectInstanceW struct {
 	wReserved           uint16
 }
 
-type diJoyState struct {
+type _DIJOYSTATE struct {
 	lX         int32
 	lY         int32
 	lZ         int32
@@ -279,27 +279,27 @@ type diJoyState struct {
 	rgbButtons [32]byte
 }
 
-type diObjectDataFormat struct {
+type _DIOBJECTDATAFORMAT struct {
 	pguid   *windows.GUID
 	dwOfs   uint32
 	dwType  uint32
 	dwFlags uint32
 }
 
-type diPropDword struct {
-	diph   diPropHeader
+type _DIPROPDWORD struct {
+	diph   _DIPROPHEADER
 	dwData uint32
 }
 
-type diPropHeader struct {
+type _DIPROPHEADER struct {
 	dwSize       uint32
 	dwHeaderSize uint32
 	dwObj        uint32
 	dwHow        uint32
 }
 
-type diPropRange struct {
-	diph diPropHeader
+type _DIPROPRANGE struct {
+	diph _DIPROPHEADER
 	lMin int32
 	lMax int32
 }
@@ -404,7 +404,7 @@ func (d *iDirectInputDevice8W) EnumObjects(lpCallback uintptr, pvRef unsafe.Poin
 	return nil
 }
 
-func (d *iDirectInputDevice8W) GetCapabilities(lpDIDevCaps *diDevCaps) error {
+func (d *iDirectInputDevice8W) GetCapabilities(lpDIDevCaps *_DIDEVCAPS) error {
 	r, _, _ := syscall.Syscall(d.vtbl.GetCapabilities, 2, uintptr(unsafe.Pointer(d)), uintptr(unsafe.Pointer(lpDIDevCaps)), 0)
 	if r != _DI_OK {
 		return fmt.Errorf("gamepad: IDirectInputDevice8::GetCapabilities failed: %w", directInputError(syscall.Errno(r)))
@@ -433,7 +433,7 @@ func (d *iDirectInputDevice8W) Release() uint32 {
 	return uint32(r)
 }
 
-func (d *iDirectInputDevice8W) SetDataFormat(lpdf *diDataFormat) error {
+func (d *iDirectInputDevice8W) SetDataFormat(lpdf *_DIDATAFORMAT) error {
 	r, _, _ := syscall.Syscall(d.vtbl.SetDataFormat, 2, uintptr(unsafe.Pointer(d)), uintptr(unsafe.Pointer(lpdf)), 0)
 	if r != _DI_OK {
 		return fmt.Errorf("gamepad: IDirectInputDevice8::SetDataFormat failed: %w", directInputError(syscall.Errno(r)))
@@ -441,7 +441,7 @@ func (d *iDirectInputDevice8W) SetDataFormat(lpdf *diDataFormat) error {
 	return nil
 }
 
-func (d *iDirectInputDevice8W) SetProperty(rguidProp uintptr, pdiph *diPropHeader) error {
+func (d *iDirectInputDevice8W) SetProperty(rguidProp uintptr, pdiph *_DIPROPHEADER) error {
 	r, _, _ := syscall.Syscall(d.vtbl.SetProperty, 3, uintptr(unsafe.Pointer(d)), rguidProp, uintptr(unsafe.Pointer(pdiph)))
 	if r != _DI_OK && r != _DI_PROPNOEFFECT {
 		return fmt.Errorf("gamepad: IDirectInputDevice8::SetProperty failed: %w", directInputError(syscall.Errno(r)))
@@ -449,13 +449,13 @@ func (d *iDirectInputDevice8W) SetProperty(rguidProp uintptr, pdiph *diPropHeade
 	return nil
 }
 
-type ridDeviceInfo struct {
+type _RID_DEVICE_INFO struct {
 	cbSize uint32
 	dwType uint32
-	hid    ridDeviceInfoHID // Originally, this member is a union.
+	hid    _RID_DEVICE_INFO_HID // Originally, this member is a union.
 }
 
-type ridDeviceInfoHID struct {
+type _RID_DEVICE_INFO_HID struct {
 	dwVendorId      uint32
 	dwProductId     uint32
 	dwVersionNumber uint32
@@ -465,7 +465,7 @@ type ridDeviceInfoHID struct {
 	_               uint32 // A padding adjusting with the size of RID_DEVICE_INFO_KEYBOARD
 }
 
-type rawInputDeviceList struct {
+type _RAWINPUTDEVICELIST struct {
 	hDevice windows.Handle
 	dwType  uint32
 }
