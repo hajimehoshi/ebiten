@@ -20,6 +20,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -40,6 +41,7 @@ var (
 	uiKeyNameToJSKey            map[string]string
 	edgeKeyCodeToName           map[int]string
 	oldEbitenKeyNameToUIKeyName map[string]string
+	midiKeyToKeyName            [][]string
 )
 
 func init() {
@@ -387,6 +389,25 @@ func init() {
 		"Right":        "ArrowRight",
 		"RightBracket": "BracketRight",
 		"Up":           "ArrowUp",
+	}
+}
+
+func init() {
+	noteSharp := "C C#D D#E F F#G G#A A#B "
+	noteFlat := "C DbD EbE F GbG AbA BbB "
+
+	var sharpNote string
+	var flatNote string
+	for noteNum := 0; noteNum < 128; noteNum++ {
+		octave := fmt.Sprint(noteNum/12 - 1)
+		sharpNote = strings.TrimSpace(noteSharp[(noteNum%12)*2 : (noteNum%12)*2+2])
+		flatNote = strings.TrimSpace(noteFlat[(noteNum%12)*2 : (noteNum%12)*2+2])
+
+		if sharpNote != flatNote {
+			midiKeyToKeyName = append(midiKeyToKeyName, []string{sharpNote + octave, flatNote + octave})
+		} else {
+			midiKeyToKeyName = append(midiKeyToKeyName, []string{sharpNote + octave})
+		}
 	}
 }
 
@@ -788,8 +809,10 @@ func main() {
 		filepath.Join("internal", "ui", "keys_glfw.go"):                uiGLFWKeysTmpl,
 		filepath.Join("internal", "ui", "keys_mobile.go"):              uiMobileKeysTmpl,
 		filepath.Join("internal", "ui", "keys_js.go"):                  uiJSKeysTmpl,
+		filepath.Join("internal", "ui", "midi.go"):                     uiMidiTmpl,
 		filepath.Join("keys.go"):                                       ebitenKeysTmpl,
 		filepath.Join("mobile", "ebitenmobileview", "keys_android.go"): mobileAndroidKeysTmpl,
+		filepath.Join("midi.go"):                                       ebitenMidiTmpl,
 	} {
 		f, err := os.Create(path)
 		if err != nil {
@@ -798,7 +821,8 @@ func main() {
 		defer f.Close()
 
 		funcs := template.FuncMap{
-			"ToLower": strings.ToLower,
+			"ToLower":          strings.ToLower,
+			"midiKeyNameToVar": midiKeyNameToVar,
 		}
 		tmpl, err := template.New(path).Funcs(funcs).Parse(tmpl)
 		if err != nil {
@@ -836,6 +860,7 @@ func main() {
 			AndroidKeyToUIKeyName       map[int]string
 			GBuildKeyToUIKeyName        map[key.Code]string
 			OldEbitenKeyNameToUIKeyName map[string]string
+			MidiKeyToName               [][]string
 		}{
 			License:                     license,
 			DoNotEdit:                   doNotEdit,
@@ -851,8 +876,104 @@ func main() {
 			AndroidKeyToUIKeyName:       androidKeyToUIKeyName,
 			GBuildKeyToUIKeyName:        gbuildKeyToUIKeyName,
 			OldEbitenKeyNameToUIKeyName: oldEbitenKeyNameToUIKeyName,
+			MidiKeyToName:               midiKeyToKeyName,
 		}); err != nil {
 			log.Fatal(err)
 		}
 	}
+}
+
+const uiMidiTmpl = `{{.License}}
+
+{{.DoNotEdit}}
+
+package ui
+
+import (
+	"fmt"
+)
+
+type MidiKey uint8
+
+const (
+	{{range $noteNum, $names := .MidiKeyToName}}{{ range $name := $names }}{{$name | midiKeyNameToVar}} MidiKey = {{$noteNum}}
+{{end}}{{end}})
+
+func (k Key) String() string {
+	switch k {
+	{{range $index, $names := .MidiKeyToName}}{{range $name := $names}}case {{$name | midiKeyNameToVar}}:
+		return {{$name | midiKeyNameToVar | printf "%q"}}
+		{{end}}{{end}}}
+	panic(fmt.Sprintf("ui: invalid midi key: %d", k))
+}
+`
+
+const ebitenMidiTmpl = `{{.License}}
+
+{{.DoNotEdit}}
+
+package ebiten
+
+import (
+	"strings"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
+)
+
+// A MidiKey represents a midi key.
+// These keys use C4 = 60 as the middle C as per: https://www.midi.org/forum/830-midi-octave-and-note-numbering-standard#reply-1086
+type MidiKey uint8
+
+// MidiKeys.
+const (
+	{{range $noteNum, $names := .MidiKeyToName}}{{ range $name := $names }}{{$name | midiKeyNameToVar}} MidiKey = MidiKey(ui.{{$name | midiKeyNameToVar}})
+{{end}}{{end}})
+
+func (k MidiKey) isValid() bool {
+	switch k {
+		{{range $idx, $names := .MidiKeyToName}}{{ range $name := $names}}case {{$name | midiKeyNameToVar}}:
+		return true
+	{{end}}{{end}}
+	default:
+		return false
+	}
+}
+
+// String returns a string representing the midi key.
+//
+// If k is an undefined key, String returns an empty string.
+func (k MidiKey) String() string {
+	switch k {
+	{{range $idx, $names := .MidiKeyToName}}{{ range $name := $names}}case {{$name | midiKeyNameToVar}}:
+		return {{$name | printf "%q"}}
+	{{end}}{{end}}}
+	return ""
+}
+
+func midiKeyNameToMidiKey(name string) (MidiKey, bool) {
+	switch strings.ToLower(name) {
+	{{range $idx, $names := .MidiKeyToName}}{{ range $name := $names}}case {{$name | printf "%q" | ToLower}}, {{$name | midiKeyNameToVar | printf "%q" | ToLower}}:
+		return {{$name | midiKeyNameToVar }}, true
+	{{end}}{{end}}}
+	return 0, false
+}
+`
+
+func midiKeyNameToVar(input string) string {
+	return "Note" + strings.Replace(
+		strings.Replace(
+			strings.Replace(
+				input,
+				"b",
+				"Flat",
+				-1,
+			),
+			"#",
+			"Sharp",
+			-1,
+		),
+		"-",
+		"_",
+		-1,
+	)
 }
