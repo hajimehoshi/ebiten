@@ -276,7 +276,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 			stmts = append(stmts, ss...)
 		}
 
-		// TODO: When len(ss) is not 0?
+		// TODO: When len(ss) is not 0? relevant to discard?
 		es, _, ss, ok := cs.parseExpr(block, e.Fun, markLocalVariableUsed)
 		if !ok {
 			return nil, nil, nil, false
