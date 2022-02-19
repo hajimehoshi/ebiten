@@ -492,7 +492,7 @@ func (c *compileContext) metalBlock(p *shaderir.Program, topBlock, block *shader
 				lines = append(lines, fmt.Sprintf("%sreturn %s;", idt, metalExpr(&s.Exprs[0])))
 			}
 		case shaderir.Discard:
-			lines = append(lines, idt+"discard;")
+			lines = append(lines, idt+"discard_fragment();")
 		default:
 			lines = append(lines, fmt.Sprintf("%s?(unexpected stmt: %d)", idt, s.Type))
 		}

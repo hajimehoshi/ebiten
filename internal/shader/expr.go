@@ -281,12 +281,20 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 		if !ok {
 			return nil, nil, nil, false
 		}
+
+		if len(ss) != 0 {
+			stmts = append(stmts, ss...)
+		}
+
+		if len(es) == 0 {
+			return nil, nil, stmts, true
+		}
+
 		if len(es) != 1 {
 			cs.addError(e.Pos(), fmt.Sprintf("multiple-value context is not available at a callee: %s", e.Fun))
 			return nil, nil, nil, false
 		}
 		callee = es[0]
-		stmts = append(stmts, ss...)
 
 		// For built-in functions, we can call this in this position. Return an expression for the function
 		// call.
@@ -500,6 +508,13 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 					Index: i,
 				},
 			}, []shaderir.Type{cs.ir.Uniforms[i]}, nil, true
+		}
+		if e.Name == "discard" {
+			return nil, nil, []shaderir.Stmt{
+				{
+					Type: shaderir.Discard,
+				},
+			}, true
 		}
 		if f, ok := shaderir.ParseBuiltinFunc(e.Name); ok {
 			return []shaderir.Expr{
