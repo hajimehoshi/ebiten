@@ -1,6 +1,6 @@
-void F0(out bool l0);
+void F0(void);
 
-void F0(out bool l0) {
+void F0(void) {
 	discard;
 	return;
 }
