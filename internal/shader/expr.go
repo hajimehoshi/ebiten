@@ -282,9 +282,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 			return nil, nil, nil, false
 		}
 
-		if len(ss) != 0 {
-			stmts = append(stmts, ss...)
-		}
+		stmts = append(stmts, ss...)
 
 		if len(es) == 0 {
 			return nil, nil, stmts, true
