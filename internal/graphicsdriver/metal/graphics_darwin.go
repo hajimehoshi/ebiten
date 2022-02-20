@@ -557,7 +557,7 @@ func (g *Graphics) addImage(img *Image) {
 		g.images = map[graphicsdriver.ImageID]*Image{}
 	}
 	if _, ok := g.images[img.id]; ok {
-		panic(fmt.Sprintf("opengl: image ID %d was already registered", img.id))
+		panic(fmt.Sprintf("metal: image ID %d was already registered", img.id))
 	}
 	g.images[img.id] = img
 }
