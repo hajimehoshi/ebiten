@@ -60,7 +60,7 @@ func (g *Graphics) Begin() {
 	// Do nothing.
 }
 
-func (g *Graphics) End() {
+func (g *Graphics) End(present bool) {
 	// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
 	// TODO: examples/sprites worked without this. Is this really needed?
 	g.context.flush()

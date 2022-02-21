@@ -293,6 +293,7 @@ func (q *commandQueue) flush() error {
 	}
 
 	theGraphicsDriver.Begin()
+	var present bool
 	cs := q.commands
 	for len(cs) > 0 {
 		nv := 0
@@ -308,6 +309,9 @@ func (q *commandQueue) flush() error {
 				}
 				nv += dtc.numVertices()
 				ne += dtc.numIndices()
+				if dtc.dst.screen {
+					present = true
+				}
 			}
 			nc++
 		}
@@ -331,7 +335,7 @@ func (q *commandQueue) flush() error {
 		}
 		cs = cs[nc:]
 	}
-	theGraphicsDriver.End()
+	theGraphicsDriver.End(present)
 
 	// Release the commands explicitly (#1803).
 	// Apparently, the part of a slice between len and cap-1 still holds references.

@@ -46,7 +46,7 @@ type Uniform struct {
 
 type Graphics interface {
 	Begin()
-	End()
+	End(present bool)
 	SetTransparent(transparent bool)
 	SetVertices(vertices []float32, indices []uint16)
 	NewImage(width, height int) (Image, error)

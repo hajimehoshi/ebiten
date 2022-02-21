@@ -369,8 +369,8 @@ func (g *Graphics) Begin() {
 	g.pool = C.allocAutoreleasePool()
 }
 
-func (g *Graphics) End() {
-	g.flushIfNeeded(true)
+func (g *Graphics) End(present bool) {
+	g.flushIfNeeded(present)
 	g.screenDrawable = ca.MetalDrawable{}
 	C.releaseAutoreleasePool(g.pool)
 	g.pool = nil
