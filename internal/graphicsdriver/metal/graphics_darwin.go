@@ -83,7 +83,8 @@ vertex VertexOut VertexShader(
   VertexOut out = {
     .position = projectionMatrix * float4(in.position, 0, 1),
     .tex = in.tex,
-    .color = in.color,
+    // Fragment shader wants premultiplied alpha.
+    .color = float4(in.color.rgb, 1) * in.color.a,
   };
 
   return out;
@@ -230,13 +231,9 @@ struct FragmentShaderImpl {
     if (useColorM) {
       c.rgb /= c.a + (1.0 - sign(c.a));
       c = (color_matrix_body * c) + color_matrix_translation;
-      c *= v.color;
       c.rgb *= c.a;
-    } else {
-      float4 s = v.color;
-      c *= float4(s.r, s.g, s.b, 1.0) * s.a;
     }
-    c = min(c, c.a);
+    c *= v.color;
     return c;
   }
 };
