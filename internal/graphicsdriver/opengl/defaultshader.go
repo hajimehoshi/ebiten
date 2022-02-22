@@ -271,8 +271,15 @@ void main(void) {
   color = (color_matrix_body * color) + color_matrix_translation;
   // Premultiply alpha
   color.rgb *= color.a;
-# endif  // defined(USE_COLOR_MATRIX)
+  // Apply color scale.
   color *= varying_color_scale;
+  // Clamp the output.
+  color.rgb = min(color.rgb, color.a);
+# else
+  // Apply color scale.
+  color *= varying_color_scale;
+  // No clamping needed as the color matrix shader is used then.
+# endif  // defined(USE_COLOR_MATRIX)
 
   gl_FragColor = color;
 

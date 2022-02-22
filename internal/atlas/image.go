@@ -425,11 +425,16 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 	cb := float32(1)
 	ca := float32(1)
 	if !colorm.IsIdentity() && colorm.ScaleOnly() {
-		cr = colorm.At(0, 0)
-		cg = colorm.At(1, 1)
-		cb = colorm.At(2, 2)
-		ca = colorm.At(3, 3)
-		colorm = affine.ColorMIdentity{}
+		r := colorm.At(0, 0)
+		g := colorm.At(1, 1)
+		b := colorm.At(2, 2)
+		a := colorm.At(3, 3)
+		if r <= a && g <= a && b <= a {
+			// Scale-only color matrix, and no color clamping needed either.
+			// (The identity color matrix case in the shader doesn't do that.)
+			cr, cg, cb, ca = r, g, b, a
+			colorm = affine.ColorMIdentity{}
+		}
 	}
 
 	var dx, dy float32
