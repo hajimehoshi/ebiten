@@ -146,7 +146,6 @@ var (
 	procGetActiveWindow        = user32.NewProc("GetActiveWindow")
 	procGetRawInputDeviceInfoW = user32.NewProc("GetRawInputDeviceInfoW")
 	procGetRawInputDeviceList  = user32.NewProc("GetRawInputDeviceList")
-	procSetWindowLongPtrW      = user32.NewProc("SetWindowLongPtrW")
 )
 
 func getCurrentThreadId() uint32 {
