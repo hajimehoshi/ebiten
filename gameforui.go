@@ -106,14 +106,14 @@ func (c *gameForUI) Draw(screenScale float64, offsetX, offsetY float64, needsCle
 	op.GeoM.Translate(offsetX, offsetY)
 	op.CompositeMode = CompositeModeCopy
 
-	// filterScreen works with >=1 scale, but does not well with <1 scale.
-	// Use regular FilterLinear instead so far (#669).
 	switch {
 	case math.Floor(s) == s:
 		op.Filter = FilterNearest
 	case s > 1:
 		op.Filter = filterScreen
 	default:
+		// filterScreen works with >=1 scale, but does not well with <1 scale.
+		// Use regular FilterLinear instead so far (#669).
 		op.Filter = FilterLinear
 	}
 	c.screen.DrawImage(c.offscreen, op)
