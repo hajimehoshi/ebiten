@@ -18,6 +18,7 @@ import (
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -92,6 +93,17 @@ func SetScreenClearedEveryFrame(cleared bool) {
 // IsScreenClearedEveryFrame is concurrent-safe.
 func IsScreenClearedEveryFrame() bool {
 	return ui.IsScreenClearedEveryFrame()
+}
+
+// SetScreenFilter requests a specific Filter to be used for upscaling/downscaling.
+//
+// Pass nil to revert to Ebiten's default filter selection.
+func SetScreenFilter(filter *Filter) {
+	if filter == nil {
+		ui.SetScreenFilter(-1)
+	} else {
+		ui.SetScreenFilter(graphicsdriver.Filter(*filter))
+	}
 }
 
 type imageDumperGame struct {
