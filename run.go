@@ -18,7 +18,6 @@ import (
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -95,15 +94,13 @@ func IsScreenClearedEveryFrame() bool {
 	return ui.IsScreenClearedEveryFrame()
 }
 
-// SetScreenFilter requests a specific Filter to be used for upscaling/downscaling.
+// SetScreenFilterEnabled enables/disables the use of the "screen" filter Ebiten uses.
 //
-// Pass nil to revert to Ebiten's default filter selection.
-func SetScreenFilter(filter *Filter) {
-	if filter == nil {
-		ui.SetScreenFilter(-1)
-	} else {
-		ui.SetScreenFilter(graphicsdriver.Filter(*filter))
-	}
+// The "screen" filter is a box filter from game to display resolution.
+//
+// If disabled, nearest-neighbor filtering will be used for scaling instead.
+func SetScreenFilterEnabled(enabled bool) {
+	ui.SetScreenFilterEnabled(enabled)
 }
 
 type imageDumperGame struct {
