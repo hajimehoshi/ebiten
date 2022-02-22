@@ -16,6 +16,7 @@ package ebiten
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
@@ -107,9 +108,12 @@ func (c *gameForUI) Draw(screenScale float64, offsetX, offsetY float64, needsCle
 
 	// filterScreen works with >=1 scale, but does not well with <1 scale.
 	// Use regular FilterLinear instead so far (#669).
-	if s >= 1 {
+	switch {
+	case math.Floor(s) == s:
+		op.Filter = FilterNearest
+	case s > 1:
 		op.Filter = filterScreen
-	} else {
+	default:
 		op.Filter = FilterLinear
 	}
 	c.screen.DrawImage(c.offscreen, op)
