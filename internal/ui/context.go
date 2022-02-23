@@ -263,6 +263,10 @@ func SetScreenClearedEveryFrame(cleared bool) {
 	theGlobalState.setScreenClearedEveryFrame(cleared)
 }
 
+func IsScreenFilterEnabled() bool {
+	return theGlobalState.isScreenFilterEnabled()
+}
+
 func SetScreenFilterEnabled(enabled bool) {
 	theGlobalState.setScreenFilterEnabled(enabled)
 }

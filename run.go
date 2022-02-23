@@ -107,6 +107,13 @@ func SetScreenFilterEnabled(enabled bool) {
 	ui.SetScreenFilterEnabled(enabled)
 }
 
+// IsScreenFilterEnabled returns true if Ebiten's "screen" filter is enabled.
+//
+// IsScreenFilterEnabled is concurrent-safe.
+func IsScreenFilterEnabled() bool {
+	return ui.IsScreenFilterEnabled()
+}
+
 type imageDumperGame struct {
 	game Game
 	d    *imageDumper
