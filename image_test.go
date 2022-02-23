@@ -1928,6 +1928,157 @@ func TestImageDrawTrianglesWithColorM(t *testing.T) {
 	}
 }
 
+func TestImageDrawTrianglesInterpolatesColors(t *testing.T) {
+	const w, h = 3, 1
+	src := ebiten.NewImage(w, h)
+	dst := ebiten.NewImage(w, h)
+	src.Fill(color.White)
+
+	vs := []ebiten.Vertex{
+		{
+			DstX:   0,
+			DstY:   0,
+			SrcX:   0,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 0,
+			ColorB: 0,
+			ColorA: 0,
+		},
+		{
+			DstX:   w,
+			DstY:   0,
+			SrcX:   w,
+			SrcY:   0,
+			ColorR: 0,
+			ColorG: 1,
+			ColorB: 0,
+			ColorA: 1,
+		},
+		{
+			DstX:   0,
+			DstY:   h,
+			SrcX:   0,
+			SrcY:   h,
+			ColorR: 1,
+			ColorG: 0,
+			ColorB: 0,
+			ColorA: 0,
+		},
+		{
+			DstX:   w,
+			DstY:   h,
+			SrcX:   w,
+			SrcY:   h,
+			ColorR: 0,
+			ColorG: 1,
+			ColorB: 0,
+			ColorA: 1,
+		},
+	}
+	dst.Fill(color.RGBA{0x00, 0x00, 0xff, 0xff})
+	op := &ebiten.DrawTrianglesOptions{}
+	is := []uint16{0, 1, 2, 1, 2, 3}
+	dst.DrawTriangles(vs, is, src, op)
+
+	got := dst.At(1, 0).(color.RGBA)
+
+	// Correct color interpolation uses the alpha channel and notices that colors on the left side of the texture are fully transparent.
+	want := color.RGBA{0x00, 0x80, 0x80, 0xff}
+
+	// Interpolation isn't exactly specified, so a range is accepable.
+	diff := math.Max(math.Max(math.Max(
+		math.Abs(float64(got.R)-float64(want.R)),
+		math.Abs(float64(got.G)-float64(want.G))),
+		math.Abs(float64(got.B)-float64(want.B))),
+		math.Abs(float64(got.A)-float64(want.A)))
+
+	if diff > 5 {
+		t.Errorf("At(1, 0): got: %v, want: %v", got, want)
+	}
+}
+
+func TestImageDrawTrianglesShaderInterpolatesValues(t *testing.T) {
+	const w, h = 3, 1
+	src := ebiten.NewImage(w, h)
+	dst := ebiten.NewImage(w, h)
+	src.Fill(color.White)
+
+	vs := []ebiten.Vertex{
+		{
+			DstX:   0,
+			DstY:   0,
+			SrcX:   0,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 0,
+			ColorB: 0,
+			ColorA: 0,
+		},
+		{
+			DstX:   w,
+			DstY:   0,
+			SrcX:   w,
+			SrcY:   0,
+			ColorR: 0,
+			ColorG: 1,
+			ColorB: 0,
+			ColorA: 1,
+		},
+		{
+			DstX:   0,
+			DstY:   h,
+			SrcX:   0,
+			SrcY:   h,
+			ColorR: 1,
+			ColorG: 0,
+			ColorB: 0,
+			ColorA: 0,
+		},
+		{
+			DstX:   w,
+			DstY:   h,
+			SrcX:   w,
+			SrcY:   h,
+			ColorR: 0,
+			ColorG: 1,
+			ColorB: 0,
+			ColorA: 1,
+		},
+	}
+	dst.Fill(color.RGBA{0x00, 0x00, 0xff, 0xff})
+	op := &ebiten.DrawTrianglesShaderOptions{
+		Images: [4]*ebiten.Image{src, nil, nil, nil},
+	}
+	is := []uint16{0, 1, 2, 1, 2, 3}
+	shader, err := ebiten.NewShader([]byte(`
+		package main
+		func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+			return color
+		}
+	`))
+	if err != nil {
+		t.Fatalf("could not compile shader: %v", err)
+	}
+	dst.DrawTrianglesShader(vs, is, shader, op)
+
+	got := dst.At(1, 0).(color.RGBA)
+
+	// Shaders get each color value interpolated independently.
+	want := color.RGBA{0x80, 0x80, 0x80, 0xff}
+
+	// Interpolation isn't exactly specified, so a range is accepable.
+	diff := math.Max(math.Max(math.Max(
+		math.Abs(float64(got.R)-float64(want.R)),
+		math.Abs(float64(got.G)-float64(want.G))),
+		math.Abs(float64(got.B)-float64(want.B))),
+		math.Abs(float64(got.A)-float64(want.A)))
+
+	if diff > 5 {
+		t.Errorf("At(1, 0): got: %v, want: %v", got, want)
+	}
+}
+
 // Issue #1137
 func TestImageDrawOver(t *testing.T) {
 	dst := ebiten.NewImage(320, 240)
