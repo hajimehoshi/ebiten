@@ -429,18 +429,17 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		g := colorm.At(1, 1)
 		b := colorm.At(2, 2)
 		a := colorm.At(3, 3)
-		if r <= 1 && g <= 1 && b <= 1 && a >= 0 {
+		if r >= 0 && g >= 0 && b >= 0 && a >= 0 && r <= 1 && g <= 1 && b <= 1 {
 			// Color matrices work on non-premultiplied colors.
 			// This color matrix can only make colors darker or equal,
 			// and thus can never invoke color clamping.
 			// Thus the simpler vertex color scale based shader can be used.
 			//
-			// Color values being negative with positive alpha is harmless -
-			// will be clamped away when converting to integer texture format anyway.
+			// Negative color values can become positive and out-of-range
+			// after applying to vertex colors below, which can make the min() in the shader kick in.
 			//
-			// However, if both color values and alpha were negative
-			// (which can also be caused by vertex colors below, if negative alpha were allowed here),
-			// this can cause a difference in the min() call in the shader, yielding different alpha-zero outputs.
+			// Alpha values smaller than 0, combined with negative vertex colors,
+			// can also make the min() kick in, so that shall be ruled out too.
 			cr, cg, cb, ca = r, g, b, a
 			colorm = affine.ColorMIdentity{}
 		}
