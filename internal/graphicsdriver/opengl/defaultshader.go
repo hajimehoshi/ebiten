@@ -117,7 +117,9 @@ varying vec4 varying_color_scale;
 
 void main(void) {
   varying_tex = A1;
-  varying_color_scale = A2;
+
+  // Fragment shader wants premultiplied alpha.
+  varying_color_scale = vec4(A2.rgb, 1) * A2.a;
 
   mat4 projection_matrix = mat4(
     vec4(2.0 / viewport_size.x, 0, 0, 0),
@@ -267,15 +269,17 @@ void main(void) {
   color.rgb /= color.a + (1.0 - sign(color.a));
   // Apply the color matrix or scale.
   color = (color_matrix_body * color) + color_matrix_translation;
-  color *= varying_color_scale;
   // Premultiply alpha
   color.rgb *= color.a;
+  // Apply color scale.
+  color *= varying_color_scale;
+  // Clamp the output.
+  color.rgb = min(color.rgb, color.a);
 # else
-  vec4 s = varying_color_scale;
-  color *= vec4(s.r, s.g, s.b, 1.0) * s.a;
+  // Apply color scale.
+  color *= varying_color_scale;
+  // No clamping needed as the color matrix shader is used then.
 # endif  // defined(USE_COLOR_MATRIX)
-
-  color = min(color, color.a);
 
   gl_FragColor = color;
 
