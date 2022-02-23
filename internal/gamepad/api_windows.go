@@ -146,7 +146,9 @@ var (
 	procGetActiveWindow        = user32.NewProc("GetActiveWindow")
 	procGetRawInputDeviceInfoW = user32.NewProc("GetRawInputDeviceInfoW")
 	procGetRawInputDeviceList  = user32.NewProc("GetRawInputDeviceList")
-	procSetWindowLongPtrW      = user32.NewProc("SetWindowLongPtrW")
+
+	procSetWindowLongW    = user32.NewProc("SetWindowLongW")    // 32-Bit Windows version.
+	procSetWindowLongPtrW = user32.NewProc("SetWindowLongPtrW") // 64-Bit Windows version.
 )
 
 func getCurrentThreadId() uint32 {
@@ -198,7 +200,15 @@ func getRawInputDeviceList(pRawInputDeviceList *_RAWINPUTDEVICELIST, puiNumDevic
 }
 
 func setWindowLongPtrW(hWnd uintptr, nIndex int32, dwNewLong uintptr) (uintptr, error) {
-	h, _, e := procSetWindowLongPtrW.Call(hWnd, uintptr(nIndex), dwNewLong)
+	var p *windows.LazyProc
+	if procSetWindowLongPtrW.Find() == nil {
+		// 64-Bit Windows.
+		p = procSetWindowLongPtrW
+	} else {
+		// 32-Bit Windows.
+		p = procSetWindowLongW
+	}
+	h, _, e := p.Call(hWnd, uintptr(nIndex), dwNewLong)
 	if h == 0 {
 		if e != nil && e != windows.ERROR_SUCCESS {
 			return 0, fmt.Errorf("gamepad: SetWindowLongPtrW failed: %w", e)
