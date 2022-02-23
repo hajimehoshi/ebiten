@@ -49,17 +49,39 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	// Box blur (7x7)
 	// https://en.wikipedia.org/wiki/Box_blur
+	//
+	// Note that this is a fixed function implementation of a box blur - more
+	// efficiency can be gained by using a separable blur
+	// (blurring horizontally and vertically separately, or for large blurs,
+	// even multiple horizontal or vertical passes), ideally combined with
+	// doing the summing up in a fragment shader (Kage can be used here).
+	//
+	// So this implementation only serves to demonstrate use of alpha blending.
+	layers := 0
 	for j := -3; j <= 3; j++ {
 		for i := -3; i <= 3; i++ {
 			op := &ebiten.DrawImageOptions{}
 			op.GeoM.Translate(float64(i), 244+float64(j))
-			// Alpha scale should be 1.0/49.0, but accumulating 1/49 49 times doesn't reach to 1, because
-			// the final color is affected by the destination alpha when CompositeModeSourceOver is used.
+			// This is a blur based on the CompositerModeSourceOver composition mode,
+			// which is basically (GL_ONE, GL_ONE_MINUS_SRC_ALPHA). ColorM acts
+			// on unpremultiplied colors, but all Ebiten internal colors are
+			// premultiplied, meaning this mode is regular alpha blending,
+			// computing each destination pixel as srcPix * alpha + dstPix * (1 - alpha).
+			//
+			// This means that the final color is affected by the destination color when CompositeModeSourceOver is used.
 			// This composite mode is the default mode. See how this is calculated at the doc:
 			// https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2#CompositeMode
 			//
-			// Use a higher value than 1.0/49.0. Here, 1.0/25.0 here to get a reasonable result.
-			op.ColorM.Scale(1, 1, 1, 1.0/25.0)
+			// So if using the same alpha every time, the end result will sure be biased towards the last layer.
+			//
+			// Correct averaging works based on
+			//   Let A_n := (a_1 + ... + a_n) / n
+			//   A_{n+1} = (a_1 + ... + a_{n+1}) / (n + 1)
+			//   A_{n+1} = (n * A_n + a_{n+1)) / (n + 1)
+			//   A_{n+1} = A_n * (1 - 1/(n+1)) + a_{n+1} * 1/(n+1)
+			// which is precisely what an alpha blend with alpha 1/(n+1) does.
+			layers++
+			op.ColorM.Scale(1, 1, 1, 1.0/float64(layers))
 			screen.DrawImage(gophersImage, op)
 		}
 	}
