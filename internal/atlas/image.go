@@ -420,6 +420,15 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		i.processSrc(src)
 	}
 
+	// If a color matrix is used, but the matrix is merely a scaling matrix,
+	// and the scaling cannot cause out-of-range colors, do not use a color matrix
+	// when rendering but instead multiply all vertex colors by the scale.
+	// This speeds up rendering.
+	//
+	// NOTE: this is only safe when not using a custom Kage shader,
+	// as custom shaders may be using vertex colors for different purposes
+	// than colorization. However, currently there are no Ebiten APIs that
+	// support both shaders and color matrices.
 	cr := float32(1)
 	cg := float32(1)
 	cb := float32(1)

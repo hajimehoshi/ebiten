@@ -223,8 +223,13 @@ type Vertex struct {
 	SrcY float32
 
 	// ColorR/ColorG/ColorB/ColorA represents color scaling values.
-	// 1 means the original source image color is used.
-	// 0 means a transparent color is used.
+	// Their interpretation depends on the concrete draw call used:
+	// - DrawTriangles: straight-alpha encoded color multiplier.
+	//   If ColorA is 0, the vertex is fully transparent and color is ignored.
+	//   If ColorA is 1, the vertex has the color (ColorR, ColorG, ColorB).
+	//   Vertex colors are interpolated linearly respecting alpha.
+	// - DrawTrianglesShader: arbitrary floating point values sent to the shader.
+	//   These are interpolated linearly and independently from each other.
 	ColorR float32
 	ColorG float32
 	ColorB float32
@@ -292,6 +297,8 @@ type DrawTrianglesOptions struct {
 const MaxIndicesNum = graphics.IndicesNum
 
 // DrawTriangles draws triangles with the specified vertices and their indices.
+//
+// Vertex contains color values, which are interpreted as straight-alpha colors.
 //
 // If len(indices) is not multiple of 3, DrawTriangles panics.
 //
@@ -405,6 +412,8 @@ func init() {
 }
 
 // DrawTrianglesShader draws triangles with the specified vertices and their indices with the specified shader.
+//
+// Vertex contains color values, which can be interpreted for any purpose by the shader.
 //
 // For the details about the shader, see https://ebiten.org/documents/shader.html.
 //
