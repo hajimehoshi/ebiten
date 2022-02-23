@@ -63,12 +63,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			op := &ebiten.DrawImageOptions{}
 			op.GeoM.Translate(float64(i), 244+float64(j))
 			// This is a blur based on the CompositerModeSourceOver composition mode,
-			// which is basically (GL_ONE, GL_ONE_MINUS_SRC_ALPHA). All colors
-			// here are unpremultiplied, but all Ebiten internal colors are
+			// which is basically (GL_ONE, GL_ONE_MINUS_SRC_ALPHA). ColorM acts
+			// on unpremultiplied colors, but all Ebiten internal colors are
 			// premultiplied, meaning this mode is regular alpha blending,
 			// computing each destination pixel as srcPix * alpha + dstPix * (1 - alpha).
 			//
-			// Note that the final color is affected by the destination alpha when CompositeModeSourceOver is used.
+			// This means that the final color is affected by the destination color when CompositeModeSourceOver is used.
 			// This composite mode is the default mode. See how this is calculated at the doc:
 			// https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2#CompositeMode
 			//
