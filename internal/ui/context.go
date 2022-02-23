@@ -32,7 +32,7 @@ const DefaultTPS = 60
 type Game interface {
 	Layout(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int)
 	Update() error
-	Draw(screenScale float64, offsetX, offsetY float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection, screenClearedEveryFrame bool) error
+	Draw(screenScale float64, offsetX, offsetY float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection, screenClearedEveryFrame, filterEnabled bool) error
 }
 
 type contextImpl struct {
@@ -106,7 +106,7 @@ func (c *contextImpl) updateFrameImpl(updateCount int, outsideWidth, outsideHeig
 
 	// Draw the game.
 	screenScale, offsetX, offsetY := c.screenScaleAndOffsets(deviceScaleFactor)
-	if err := c.game.Draw(screenScale, offsetX, offsetY, graphics().NeedsClearingScreen(), graphics().FramebufferYDirection(), theGlobalState.isScreenClearedEveryFrame()); err != nil {
+	if err := c.game.Draw(screenScale, offsetX, offsetY, graphics().NeedsClearingScreen(), graphics().FramebufferYDirection(), theGlobalState.isScreenClearedEveryFrame(), theGlobalState.isScreenFilterEnabled()); err != nil {
 		return err
 	}
 
@@ -163,6 +163,7 @@ func (c *contextImpl) screenScaleAndOffsets(deviceScaleFactor float64) (float64,
 var theGlobalState = globalState{
 	maxTPS_:                    DefaultTPS,
 	isScreenClearedEveryFrame_: 1,
+	screenFilterEnabled_:       1,
 }
 
 // globalState represents a global state in this package.
@@ -172,6 +173,7 @@ type globalState struct {
 	fpsMode_                   int32
 	maxTPS_                    int32
 	isScreenClearedEveryFrame_ int32
+	screenFilterEnabled_       int32
 }
 
 func (g *globalState) err() error {
@@ -220,6 +222,18 @@ func (g *globalState) setScreenClearedEveryFrame(cleared bool) {
 	atomic.StoreInt32(&g.isScreenClearedEveryFrame_, v)
 }
 
+func (g *globalState) isScreenFilterEnabled() bool {
+	return graphicsdriver.Filter(atomic.LoadInt32(&g.screenFilterEnabled_)) != 0
+}
+
+func (g *globalState) setScreenFilterEnabled(enabled bool) {
+	v := int32(0)
+	if enabled {
+		v = 1
+	}
+	atomic.StoreInt32(&g.screenFilterEnabled_, v)
+}
+
 func SetError(err error) {
 	theGlobalState.setError(err)
 }
@@ -247,4 +261,12 @@ func IsScreenClearedEveryFrame() bool {
 
 func SetScreenClearedEveryFrame(cleared bool) {
 	theGlobalState.setScreenClearedEveryFrame(cleared)
+}
+
+func IsScreenFilterEnabled() bool {
+	return theGlobalState.isScreenFilterEnabled()
+}
+
+func SetScreenFilterEnabled(enabled bool) {
+	theGlobalState.setScreenFilterEnabled(enabled)
 }

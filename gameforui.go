@@ -73,7 +73,7 @@ func (c *gameForUI) Update() error {
 	return c.game.Update()
 }
 
-func (c *gameForUI) Draw(screenScale float64, offsetX, offsetY float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection, clearScreenEveryFrame bool) error {
+func (c *gameForUI) Draw(screenScale float64, offsetX, offsetY float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection, clearScreenEveryFrame, filterEnabled bool) error {
 	c.offscreen.mipmap.SetVolatile(clearScreenEveryFrame)
 
 	// Even though updateCount == 0, the offscreen is cleared and Draw is called.
@@ -107,6 +107,8 @@ func (c *gameForUI) Draw(screenScale float64, offsetX, offsetY float64, needsCle
 	op.CompositeMode = CompositeModeCopy
 
 	switch {
+	case !filterEnabled:
+		op.Filter = FilterNearest
 	case math.Floor(s) == s:
 		op.Filter = FilterNearest
 	case s > 1:

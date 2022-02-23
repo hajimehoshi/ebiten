@@ -94,6 +94,26 @@ func IsScreenClearedEveryFrame() bool {
 	return ui.IsScreenClearedEveryFrame()
 }
 
+// SetScreenFilterEnabled enables/disables the use of the "screen" filter Ebiten uses.
+//
+// The "screen" filter is a box filter from game to display resolution.
+//
+// If disabled, nearest-neighbor filtering will be used for scaling instead.
+//
+// The default state is true.
+//
+// SetScreenFilterEnabled is concurrent-safe, but takes effect only at the next Draw call.
+func SetScreenFilterEnabled(enabled bool) {
+	ui.SetScreenFilterEnabled(enabled)
+}
+
+// IsScreenFilterEnabled returns true if Ebiten's "screen" filter is enabled.
+//
+// IsScreenFilterEnabled is concurrent-safe.
+func IsScreenFilterEnabled() bool {
+	return ui.IsScreenFilterEnabled()
+}
+
 type imageDumperGame struct {
 	game Game
 	d    *imageDumper
