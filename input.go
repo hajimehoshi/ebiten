@@ -18,6 +18,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
+	"github.com/hajimehoshi/ebiten/v2/midi"
 )
 
 // AppendInputChars appends "printable" runes, read from the keyboard at the time update is called, to runes,
@@ -353,4 +354,24 @@ func TouchIDs() []TouchID {
 // TouchPosition is cuncurrent-safe.
 func TouchPosition(id TouchID) (int, int) {
 	return ui.Get().Input().TouchPosition(id)
+}
+
+// IsMidiKeyPressed returns a boolean indicating whether a midi key is pressed.
+//
+// If you want to know whether the key started being pressed in the current frame,
+// use inpututil.IsMidiKeyJustPressed
+//
+// IsKeyPressed is concurrent-safe.
+//
+// Midi currently only supports Windows, macOS & Linux.
+func IsMidiKeyPressed(key MidiKey) bool {
+	if !key.isValid() {
+		return false
+	}
+
+	return ui.Get().Input().IsMidiKeyPressed(ui.MidiKey(key))
+}
+
+func ReadMidi(input *midi.MidiInput) error {
+	return ui.Get().Input().ReadMidi(input)
 }
