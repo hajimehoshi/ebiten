@@ -11,6 +11,7 @@ require (
 	github.com/jakecoffman/cp v1.1.0
 	github.com/jezek/xgb v0.0.0-20210312150743-0e0f116e1240
 	github.com/jfreymuth/oggvorbis v1.0.3
+	gitlab.com/gomidi/midi v1.23.7 // indirect
 	golang.org/x/image v0.0.0-20211028202545-6944b10bf410
 	golang.org/x/mobile v0.0.0-20220104184238-4a8be17bd2e3
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
