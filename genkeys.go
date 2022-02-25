@@ -821,8 +821,10 @@ func main() {
 		defer f.Close()
 
 		funcs := template.FuncMap{
-			"ToLower":          strings.ToLower,
-			"midiKeyNameToVar": midiKeyNameToVar,
+			"ToLower":            strings.ToLower,
+			"midiKeyNameToVar":   midiKeyNameToVar,
+			"midiKeyNamesToVars": midiKeyNamesToVars,
+			"Join":               strings.Join,
 		}
 		tmpl, err := template.New(path).Funcs(funcs).Parse(tmpl)
 		if err != nil {
@@ -893,17 +895,30 @@ import (
 	"fmt"
 )
 
+type MidiReader interface {
+	Read() error
+	Close() error
+
+	GetMidiKey(m uint8) bool
+}
+
 type MidiKey uint8
 
 const (
 	{{range $noteNum, $names := .MidiKeyToName}}{{ range $name := $names }}{{$name | midiKeyNameToVar}} MidiKey = {{$noteNum}}
 {{end}}{{end}})
 
-func (k Key) String() string {
+var (
+	midiNoteValueToMidiKey = [][]MidiKey{
+		{{range $noteNum, $names := .MidiKeyToName}}{{$noteNum}}: { {{ range $index, $name := $names }}{{if $index}}, {{end}}{{$name | midiKeyNameToVar}}{{end}} },
+{{end}}}
+)
+
+func (k MidiKey) String() string {
 	switch k {
-	{{range $index, $names := .MidiKeyToName}}{{range $name := $names}}case {{$name | midiKeyNameToVar}}:
-		return {{$name | midiKeyNameToVar | printf "%q"}}
-		{{end}}{{end}}}
+	{{range $idx, $names := .MidiKeyToName}}case {{index $names 0 | midiKeyNameToVar}}:
+		return {{midiKeyNamesToVars $names | printf "%q"}}
+	{{end}}}
 	panic(fmt.Sprintf("ui: invalid midi key: %d", k))
 }
 `
@@ -927,13 +942,14 @@ type MidiKey uint8
 // MidiKeys.
 const (
 	{{range $noteNum, $names := .MidiKeyToName}}{{ range $name := $names }}{{$name | midiKeyNameToVar}} MidiKey = MidiKey(ui.{{$name | midiKeyNameToVar}})
-{{end}}{{end}})
+{{end}}{{end}}	NoteMax MidiKey = 128
+)
 
 func (k MidiKey) isValid() bool {
 	switch k {
-		{{range $idx, $names := .MidiKeyToName}}{{ range $name := $names}}case {{$name | midiKeyNameToVar}}:
+		{{range $idx, $names := .MidiKeyToName}}case {{index $names 0 | midiKeyNameToVar}}:
 		return true
-	{{end}}{{end}}
+	{{end}}
 	default:
 		return false
 	}
@@ -944,9 +960,9 @@ func (k MidiKey) isValid() bool {
 // If k is an undefined key, String returns an empty string.
 func (k MidiKey) String() string {
 	switch k {
-	{{range $idx, $names := .MidiKeyToName}}{{ range $name := $names}}case {{$name | midiKeyNameToVar}}:
-		return {{$name | printf "%q"}}
-	{{end}}{{end}}}
+	{{range $idx, $names := .MidiKeyToName}}case {{index $names 0 | midiKeyNameToVar}}:
+		return {{Join $names " / " | printf "%q"}}
+	{{end}}}
 	return ""
 }
 
@@ -976,4 +992,13 @@ func midiKeyNameToVar(input string) string {
 		"_",
 		-1,
 	)
+}
+
+func midiKeyNamesToVars(input []string) string {
+	output := []string{}
+	for _, name := range input {
+		output = append(output, midiKeyNameToVar(name))
+	}
+
+	return strings.Join(output, " / ")
 }

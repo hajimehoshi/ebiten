@@ -20,6 +20,13 @@ import (
 	"fmt"
 )
 
+type MidiReader interface {
+	Read() error
+	Close() error
+
+	GetMidiKey(m uint8) bool
+}
+
 type MidiKey uint8
 
 const (
@@ -206,368 +213,395 @@ const (
 	NoteG9       MidiKey = 127
 )
 
-func (k Key) String() string {
+var (
+	midiNoteValueToMidiKey = [][]MidiKey{
+		0:   {NoteC_1},
+		1:   {NoteCSharp_1, NoteDFlat_1},
+		2:   {NoteD_1},
+		3:   {NoteDSharp_1, NoteEFlat_1},
+		4:   {NoteE_1},
+		5:   {NoteF_1},
+		6:   {NoteFSharp_1, NoteGFlat_1},
+		7:   {NoteG_1},
+		8:   {NoteGSharp_1, NoteAFlat_1},
+		9:   {NoteA_1},
+		10:  {NoteASharp_1, NoteBFlat_1},
+		11:  {NoteB_1},
+		12:  {NoteC0},
+		13:  {NoteCSharp0, NoteDFlat0},
+		14:  {NoteD0},
+		15:  {NoteDSharp0, NoteEFlat0},
+		16:  {NoteE0},
+		17:  {NoteF0},
+		18:  {NoteFSharp0, NoteGFlat0},
+		19:  {NoteG0},
+		20:  {NoteGSharp0, NoteAFlat0},
+		21:  {NoteA0},
+		22:  {NoteASharp0, NoteBFlat0},
+		23:  {NoteB0},
+		24:  {NoteC1},
+		25:  {NoteCSharp1, NoteDFlat1},
+		26:  {NoteD1},
+		27:  {NoteDSharp1, NoteEFlat1},
+		28:  {NoteE1},
+		29:  {NoteF1},
+		30:  {NoteFSharp1, NoteGFlat1},
+		31:  {NoteG1},
+		32:  {NoteGSharp1, NoteAFlat1},
+		33:  {NoteA1},
+		34:  {NoteASharp1, NoteBFlat1},
+		35:  {NoteB1},
+		36:  {NoteC2},
+		37:  {NoteCSharp2, NoteDFlat2},
+		38:  {NoteD2},
+		39:  {NoteDSharp2, NoteEFlat2},
+		40:  {NoteE2},
+		41:  {NoteF2},
+		42:  {NoteFSharp2, NoteGFlat2},
+		43:  {NoteG2},
+		44:  {NoteGSharp2, NoteAFlat2},
+		45:  {NoteA2},
+		46:  {NoteASharp2, NoteBFlat2},
+		47:  {NoteB2},
+		48:  {NoteC3},
+		49:  {NoteCSharp3, NoteDFlat3},
+		50:  {NoteD3},
+		51:  {NoteDSharp3, NoteEFlat3},
+		52:  {NoteE3},
+		53:  {NoteF3},
+		54:  {NoteFSharp3, NoteGFlat3},
+		55:  {NoteG3},
+		56:  {NoteGSharp3, NoteAFlat3},
+		57:  {NoteA3},
+		58:  {NoteASharp3, NoteBFlat3},
+		59:  {NoteB3},
+		60:  {NoteC4},
+		61:  {NoteCSharp4, NoteDFlat4},
+		62:  {NoteD4},
+		63:  {NoteDSharp4, NoteEFlat4},
+		64:  {NoteE4},
+		65:  {NoteF4},
+		66:  {NoteFSharp4, NoteGFlat4},
+		67:  {NoteG4},
+		68:  {NoteGSharp4, NoteAFlat4},
+		69:  {NoteA4},
+		70:  {NoteASharp4, NoteBFlat4},
+		71:  {NoteB4},
+		72:  {NoteC5},
+		73:  {NoteCSharp5, NoteDFlat5},
+		74:  {NoteD5},
+		75:  {NoteDSharp5, NoteEFlat5},
+		76:  {NoteE5},
+		77:  {NoteF5},
+		78:  {NoteFSharp5, NoteGFlat5},
+		79:  {NoteG5},
+		80:  {NoteGSharp5, NoteAFlat5},
+		81:  {NoteA5},
+		82:  {NoteASharp5, NoteBFlat5},
+		83:  {NoteB5},
+		84:  {NoteC6},
+		85:  {NoteCSharp6, NoteDFlat6},
+		86:  {NoteD6},
+		87:  {NoteDSharp6, NoteEFlat6},
+		88:  {NoteE6},
+		89:  {NoteF6},
+		90:  {NoteFSharp6, NoteGFlat6},
+		91:  {NoteG6},
+		92:  {NoteGSharp6, NoteAFlat6},
+		93:  {NoteA6},
+		94:  {NoteASharp6, NoteBFlat6},
+		95:  {NoteB6},
+		96:  {NoteC7},
+		97:  {NoteCSharp7, NoteDFlat7},
+		98:  {NoteD7},
+		99:  {NoteDSharp7, NoteEFlat7},
+		100: {NoteE7},
+		101: {NoteF7},
+		102: {NoteFSharp7, NoteGFlat7},
+		103: {NoteG7},
+		104: {NoteGSharp7, NoteAFlat7},
+		105: {NoteA7},
+		106: {NoteASharp7, NoteBFlat7},
+		107: {NoteB7},
+		108: {NoteC8},
+		109: {NoteCSharp8, NoteDFlat8},
+		110: {NoteD8},
+		111: {NoteDSharp8, NoteEFlat8},
+		112: {NoteE8},
+		113: {NoteF8},
+		114: {NoteFSharp8, NoteGFlat8},
+		115: {NoteG8},
+		116: {NoteGSharp8, NoteAFlat8},
+		117: {NoteA8},
+		118: {NoteASharp8, NoteBFlat8},
+		119: {NoteB8},
+		120: {NoteC9},
+		121: {NoteCSharp9, NoteDFlat9},
+		122: {NoteD9},
+		123: {NoteDSharp9, NoteEFlat9},
+		124: {NoteE9},
+		125: {NoteF9},
+		126: {NoteFSharp9, NoteGFlat9},
+		127: {NoteG9},
+	}
+)
+
+func (k MidiKey) String() string {
 	switch k {
 	case NoteC_1:
 		return "NoteC_1"
 	case NoteCSharp_1:
-		return "NoteCSharp_1"
-	case NoteDFlat_1:
-		return "NoteDFlat_1"
+		return "NoteCSharp_1 / NoteDFlat_1"
 	case NoteD_1:
 		return "NoteD_1"
 	case NoteDSharp_1:
-		return "NoteDSharp_1"
-	case NoteEFlat_1:
-		return "NoteEFlat_1"
+		return "NoteDSharp_1 / NoteEFlat_1"
 	case NoteE_1:
 		return "NoteE_1"
 	case NoteF_1:
 		return "NoteF_1"
 	case NoteFSharp_1:
-		return "NoteFSharp_1"
-	case NoteGFlat_1:
-		return "NoteGFlat_1"
+		return "NoteFSharp_1 / NoteGFlat_1"
 	case NoteG_1:
 		return "NoteG_1"
 	case NoteGSharp_1:
-		return "NoteGSharp_1"
-	case NoteAFlat_1:
-		return "NoteAFlat_1"
+		return "NoteGSharp_1 / NoteAFlat_1"
 	case NoteA_1:
 		return "NoteA_1"
 	case NoteASharp_1:
-		return "NoteASharp_1"
-	case NoteBFlat_1:
-		return "NoteBFlat_1"
+		return "NoteASharp_1 / NoteBFlat_1"
 	case NoteB_1:
 		return "NoteB_1"
 	case NoteC0:
 		return "NoteC0"
 	case NoteCSharp0:
-		return "NoteCSharp0"
-	case NoteDFlat0:
-		return "NoteDFlat0"
+		return "NoteCSharp0 / NoteDFlat0"
 	case NoteD0:
 		return "NoteD0"
 	case NoteDSharp0:
-		return "NoteDSharp0"
-	case NoteEFlat0:
-		return "NoteEFlat0"
+		return "NoteDSharp0 / NoteEFlat0"
 	case NoteE0:
 		return "NoteE0"
 	case NoteF0:
 		return "NoteF0"
 	case NoteFSharp0:
-		return "NoteFSharp0"
-	case NoteGFlat0:
-		return "NoteGFlat0"
+		return "NoteFSharp0 / NoteGFlat0"
 	case NoteG0:
 		return "NoteG0"
 	case NoteGSharp0:
-		return "NoteGSharp0"
-	case NoteAFlat0:
-		return "NoteAFlat0"
+		return "NoteGSharp0 / NoteAFlat0"
 	case NoteA0:
 		return "NoteA0"
 	case NoteASharp0:
-		return "NoteASharp0"
-	case NoteBFlat0:
-		return "NoteBFlat0"
+		return "NoteASharp0 / NoteBFlat0"
 	case NoteB0:
 		return "NoteB0"
 	case NoteC1:
 		return "NoteC1"
 	case NoteCSharp1:
-		return "NoteCSharp1"
-	case NoteDFlat1:
-		return "NoteDFlat1"
+		return "NoteCSharp1 / NoteDFlat1"
 	case NoteD1:
 		return "NoteD1"
 	case NoteDSharp1:
-		return "NoteDSharp1"
-	case NoteEFlat1:
-		return "NoteEFlat1"
+		return "NoteDSharp1 / NoteEFlat1"
 	case NoteE1:
 		return "NoteE1"
 	case NoteF1:
 		return "NoteF1"
 	case NoteFSharp1:
-		return "NoteFSharp1"
-	case NoteGFlat1:
-		return "NoteGFlat1"
+		return "NoteFSharp1 / NoteGFlat1"
 	case NoteG1:
 		return "NoteG1"
 	case NoteGSharp1:
-		return "NoteGSharp1"
-	case NoteAFlat1:
-		return "NoteAFlat1"
+		return "NoteGSharp1 / NoteAFlat1"
 	case NoteA1:
 		return "NoteA1"
 	case NoteASharp1:
-		return "NoteASharp1"
-	case NoteBFlat1:
-		return "NoteBFlat1"
+		return "NoteASharp1 / NoteBFlat1"
 	case NoteB1:
 		return "NoteB1"
 	case NoteC2:
 		return "NoteC2"
 	case NoteCSharp2:
-		return "NoteCSharp2"
-	case NoteDFlat2:
-		return "NoteDFlat2"
+		return "NoteCSharp2 / NoteDFlat2"
 	case NoteD2:
 		return "NoteD2"
 	case NoteDSharp2:
-		return "NoteDSharp2"
-	case NoteEFlat2:
-		return "NoteEFlat2"
+		return "NoteDSharp2 / NoteEFlat2"
 	case NoteE2:
 		return "NoteE2"
 	case NoteF2:
 		return "NoteF2"
 	case NoteFSharp2:
-		return "NoteFSharp2"
-	case NoteGFlat2:
-		return "NoteGFlat2"
+		return "NoteFSharp2 / NoteGFlat2"
 	case NoteG2:
 		return "NoteG2"
 	case NoteGSharp2:
-		return "NoteGSharp2"
-	case NoteAFlat2:
-		return "NoteAFlat2"
+		return "NoteGSharp2 / NoteAFlat2"
 	case NoteA2:
 		return "NoteA2"
 	case NoteASharp2:
-		return "NoteASharp2"
-	case NoteBFlat2:
-		return "NoteBFlat2"
+		return "NoteASharp2 / NoteBFlat2"
 	case NoteB2:
 		return "NoteB2"
 	case NoteC3:
 		return "NoteC3"
 	case NoteCSharp3:
-		return "NoteCSharp3"
-	case NoteDFlat3:
-		return "NoteDFlat3"
+		return "NoteCSharp3 / NoteDFlat3"
 	case NoteD3:
 		return "NoteD3"
 	case NoteDSharp3:
-		return "NoteDSharp3"
-	case NoteEFlat3:
-		return "NoteEFlat3"
+		return "NoteDSharp3 / NoteEFlat3"
 	case NoteE3:
 		return "NoteE3"
 	case NoteF3:
 		return "NoteF3"
 	case NoteFSharp3:
-		return "NoteFSharp3"
-	case NoteGFlat3:
-		return "NoteGFlat3"
+		return "NoteFSharp3 / NoteGFlat3"
 	case NoteG3:
 		return "NoteG3"
 	case NoteGSharp3:
-		return "NoteGSharp3"
-	case NoteAFlat3:
-		return "NoteAFlat3"
+		return "NoteGSharp3 / NoteAFlat3"
 	case NoteA3:
 		return "NoteA3"
 	case NoteASharp3:
-		return "NoteASharp3"
-	case NoteBFlat3:
-		return "NoteBFlat3"
+		return "NoteASharp3 / NoteBFlat3"
 	case NoteB3:
 		return "NoteB3"
 	case NoteC4:
 		return "NoteC4"
 	case NoteCSharp4:
-		return "NoteCSharp4"
-	case NoteDFlat4:
-		return "NoteDFlat4"
+		return "NoteCSharp4 / NoteDFlat4"
 	case NoteD4:
 		return "NoteD4"
 	case NoteDSharp4:
-		return "NoteDSharp4"
-	case NoteEFlat4:
-		return "NoteEFlat4"
+		return "NoteDSharp4 / NoteEFlat4"
 	case NoteE4:
 		return "NoteE4"
 	case NoteF4:
 		return "NoteF4"
 	case NoteFSharp4:
-		return "NoteFSharp4"
-	case NoteGFlat4:
-		return "NoteGFlat4"
+		return "NoteFSharp4 / NoteGFlat4"
 	case NoteG4:
 		return "NoteG4"
 	case NoteGSharp4:
-		return "NoteGSharp4"
-	case NoteAFlat4:
-		return "NoteAFlat4"
+		return "NoteGSharp4 / NoteAFlat4"
 	case NoteA4:
 		return "NoteA4"
 	case NoteASharp4:
-		return "NoteASharp4"
-	case NoteBFlat4:
-		return "NoteBFlat4"
+		return "NoteASharp4 / NoteBFlat4"
 	case NoteB4:
 		return "NoteB4"
 	case NoteC5:
 		return "NoteC5"
 	case NoteCSharp5:
-		return "NoteCSharp5"
-	case NoteDFlat5:
-		return "NoteDFlat5"
+		return "NoteCSharp5 / NoteDFlat5"
 	case NoteD5:
 		return "NoteD5"
 	case NoteDSharp5:
-		return "NoteDSharp5"
-	case NoteEFlat5:
-		return "NoteEFlat5"
+		return "NoteDSharp5 / NoteEFlat5"
 	case NoteE5:
 		return "NoteE5"
 	case NoteF5:
 		return "NoteF5"
 	case NoteFSharp5:
-		return "NoteFSharp5"
-	case NoteGFlat5:
-		return "NoteGFlat5"
+		return "NoteFSharp5 / NoteGFlat5"
 	case NoteG5:
 		return "NoteG5"
 	case NoteGSharp5:
-		return "NoteGSharp5"
-	case NoteAFlat5:
-		return "NoteAFlat5"
+		return "NoteGSharp5 / NoteAFlat5"
 	case NoteA5:
 		return "NoteA5"
 	case NoteASharp5:
-		return "NoteASharp5"
-	case NoteBFlat5:
-		return "NoteBFlat5"
+		return "NoteASharp5 / NoteBFlat5"
 	case NoteB5:
 		return "NoteB5"
 	case NoteC6:
 		return "NoteC6"
 	case NoteCSharp6:
-		return "NoteCSharp6"
-	case NoteDFlat6:
-		return "NoteDFlat6"
+		return "NoteCSharp6 / NoteDFlat6"
 	case NoteD6:
 		return "NoteD6"
 	case NoteDSharp6:
-		return "NoteDSharp6"
-	case NoteEFlat6:
-		return "NoteEFlat6"
+		return "NoteDSharp6 / NoteEFlat6"
 	case NoteE6:
 		return "NoteE6"
 	case NoteF6:
 		return "NoteF6"
 	case NoteFSharp6:
-		return "NoteFSharp6"
-	case NoteGFlat6:
-		return "NoteGFlat6"
+		return "NoteFSharp6 / NoteGFlat6"
 	case NoteG6:
 		return "NoteG6"
 	case NoteGSharp6:
-		return "NoteGSharp6"
-	case NoteAFlat6:
-		return "NoteAFlat6"
+		return "NoteGSharp6 / NoteAFlat6"
 	case NoteA6:
 		return "NoteA6"
 	case NoteASharp6:
-		return "NoteASharp6"
-	case NoteBFlat6:
-		return "NoteBFlat6"
+		return "NoteASharp6 / NoteBFlat6"
 	case NoteB6:
 		return "NoteB6"
 	case NoteC7:
 		return "NoteC7"
 	case NoteCSharp7:
-		return "NoteCSharp7"
-	case NoteDFlat7:
-		return "NoteDFlat7"
+		return "NoteCSharp7 / NoteDFlat7"
 	case NoteD7:
 		return "NoteD7"
 	case NoteDSharp7:
-		return "NoteDSharp7"
-	case NoteEFlat7:
-		return "NoteEFlat7"
+		return "NoteDSharp7 / NoteEFlat7"
 	case NoteE7:
 		return "NoteE7"
 	case NoteF7:
 		return "NoteF7"
 	case NoteFSharp7:
-		return "NoteFSharp7"
-	case NoteGFlat7:
-		return "NoteGFlat7"
+		return "NoteFSharp7 / NoteGFlat7"
 	case NoteG7:
 		return "NoteG7"
 	case NoteGSharp7:
-		return "NoteGSharp7"
-	case NoteAFlat7:
-		return "NoteAFlat7"
+		return "NoteGSharp7 / NoteAFlat7"
 	case NoteA7:
 		return "NoteA7"
 	case NoteASharp7:
-		return "NoteASharp7"
-	case NoteBFlat7:
-		return "NoteBFlat7"
+		return "NoteASharp7 / NoteBFlat7"
 	case NoteB7:
 		return "NoteB7"
 	case NoteC8:
 		return "NoteC8"
 	case NoteCSharp8:
-		return "NoteCSharp8"
-	case NoteDFlat8:
-		return "NoteDFlat8"
+		return "NoteCSharp8 / NoteDFlat8"
 	case NoteD8:
 		return "NoteD8"
 	case NoteDSharp8:
-		return "NoteDSharp8"
-	case NoteEFlat8:
-		return "NoteEFlat8"
+		return "NoteDSharp8 / NoteEFlat8"
 	case NoteE8:
 		return "NoteE8"
 	case NoteF8:
 		return "NoteF8"
 	case NoteFSharp8:
-		return "NoteFSharp8"
-	case NoteGFlat8:
-		return "NoteGFlat8"
+		return "NoteFSharp8 / NoteGFlat8"
 	case NoteG8:
 		return "NoteG8"
 	case NoteGSharp8:
-		return "NoteGSharp8"
-	case NoteAFlat8:
-		return "NoteAFlat8"
+		return "NoteGSharp8 / NoteAFlat8"
 	case NoteA8:
 		return "NoteA8"
 	case NoteASharp8:
-		return "NoteASharp8"
-	case NoteBFlat8:
-		return "NoteBFlat8"
+		return "NoteASharp8 / NoteBFlat8"
 	case NoteB8:
 		return "NoteB8"
 	case NoteC9:
 		return "NoteC9"
 	case NoteCSharp9:
-		return "NoteCSharp9"
-	case NoteDFlat9:
-		return "NoteDFlat9"
+		return "NoteCSharp9 / NoteDFlat9"
 	case NoteD9:
 		return "NoteD9"
 	case NoteDSharp9:
-		return "NoteDSharp9"
-	case NoteEFlat9:
-		return "NoteEFlat9"
+		return "NoteDSharp9 / NoteEFlat9"
 	case NoteE9:
 		return "NoteE9"
 	case NoteF9:
 		return "NoteF9"
 	case NoteFSharp9:
-		return "NoteFSharp9"
-	case NoteGFlat9:
-		return "NoteGFlat9"
+		return "NoteFSharp9 / NoteGFlat9"
 	case NoteG9:
 		return "NoteG9"
 	}

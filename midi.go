@@ -209,6 +209,7 @@ const (
 	NoteFSharp9  MidiKey = MidiKey(ui.NoteFSharp9)
 	NoteGFlat9   MidiKey = MidiKey(ui.NoteGFlat9)
 	NoteG9       MidiKey = MidiKey(ui.NoteG9)
+	NoteMax      MidiKey = 128
 )
 
 func (k MidiKey) isValid() bool {
@@ -217,13 +218,9 @@ func (k MidiKey) isValid() bool {
 		return true
 	case NoteCSharp_1:
 		return true
-	case NoteDFlat_1:
-		return true
 	case NoteD_1:
 		return true
 	case NoteDSharp_1:
-		return true
-	case NoteEFlat_1:
 		return true
 	case NoteE_1:
 		return true
@@ -231,19 +228,13 @@ func (k MidiKey) isValid() bool {
 		return true
 	case NoteFSharp_1:
 		return true
-	case NoteGFlat_1:
-		return true
 	case NoteG_1:
 		return true
 	case NoteGSharp_1:
 		return true
-	case NoteAFlat_1:
-		return true
 	case NoteA_1:
 		return true
 	case NoteASharp_1:
-		return true
-	case NoteBFlat_1:
 		return true
 	case NoteB_1:
 		return true
@@ -251,13 +242,9 @@ func (k MidiKey) isValid() bool {
 		return true
 	case NoteCSharp0:
 		return true
-	case NoteDFlat0:
-		return true
 	case NoteD0:
 		return true
 	case NoteDSharp0:
-		return true
-	case NoteEFlat0:
 		return true
 	case NoteE0:
 		return true
@@ -265,19 +252,13 @@ func (k MidiKey) isValid() bool {
 		return true
 	case NoteFSharp0:
 		return true
-	case NoteGFlat0:
-		return true
 	case NoteG0:
 		return true
 	case NoteGSharp0:
 		return true
-	case NoteAFlat0:
-		return true
 	case NoteA0:
 		return true
 	case NoteASharp0:
-		return true
-	case NoteBFlat0:
 		return true
 	case NoteB0:
 		return true
@@ -285,13 +266,9 @@ func (k MidiKey) isValid() bool {
 		return true
 	case NoteCSharp1:
 		return true
-	case NoteDFlat1:
-		return true
 	case NoteD1:
 		return true
 	case NoteDSharp1:
-		return true
-	case NoteEFlat1:
 		return true
 	case NoteE1:
 		return true
@@ -299,19 +276,13 @@ func (k MidiKey) isValid() bool {
 		return true
 	case NoteFSharp1:
 		return true
-	case NoteGFlat1:
-		return true
 	case NoteG1:
 		return true
 	case NoteGSharp1:
 		return true
-	case NoteAFlat1:
-		return true
 	case NoteA1:
 		return true
 	case NoteASharp1:
-		return true
-	case NoteBFlat1:
 		return true
 	case NoteB1:
 		return true
@@ -319,13 +290,9 @@ func (k MidiKey) isValid() bool {
 		return true
 	case NoteCSharp2:
 		return true
-	case NoteDFlat2:
-		return true
 	case NoteD2:
 		return true
 	case NoteDSharp2:
-		return true
-	case NoteEFlat2:
 		return true
 	case NoteE2:
 		return true
@@ -333,19 +300,13 @@ func (k MidiKey) isValid() bool {
 		return true
 	case NoteFSharp2:
 		return true
-	case NoteGFlat2:
-		return true
 	case NoteG2:
 		return true
 	case NoteGSharp2:
 		return true
-	case NoteAFlat2:
-		return true
 	case NoteA2:
 		return true
 	case NoteASharp2:
-		return true
-	case NoteBFlat2:
 		return true
 	case NoteB2:
 		return true
@@ -353,13 +314,9 @@ func (k MidiKey) isValid() bool {
 		return true
 	case NoteCSharp3:
 		return true
-	case NoteDFlat3:
-		return true
 	case NoteD3:
 		return true
 	case NoteDSharp3:
-		return true
-	case NoteEFlat3:
 		return true
 	case NoteE3:
 		return true
@@ -367,19 +324,13 @@ func (k MidiKey) isValid() bool {
 		return true
 	case NoteFSharp3:
 		return true
-	case NoteGFlat3:
-		return true
 	case NoteG3:
 		return true
 	case NoteGSharp3:
 		return true
-	case NoteAFlat3:
-		return true
 	case NoteA3:
 		return true
 	case NoteASharp3:
-		return true
-	case NoteBFlat3:
 		return true
 	case NoteB3:
 		return true
@@ -387,13 +338,9 @@ func (k MidiKey) isValid() bool {
 		return true
 	case NoteCSharp4:
 		return true
-	case NoteDFlat4:
-		return true
 	case NoteD4:
 		return true
 	case NoteDSharp4:
-		return true
-	case NoteEFlat4:
 		return true
 	case NoteE4:
 		return true
@@ -401,19 +348,13 @@ func (k MidiKey) isValid() bool {
 		return true
 	case NoteFSharp4:
 		return true
-	case NoteGFlat4:
-		return true
 	case NoteG4:
 		return true
 	case NoteGSharp4:
 		return true
-	case NoteAFlat4:
-		return true
 	case NoteA4:
 		return true
 	case NoteASharp4:
-		return true
-	case NoteBFlat4:
 		return true
 	case NoteB4:
 		return true
@@ -421,13 +362,9 @@ func (k MidiKey) isValid() bool {
 		return true
 	case NoteCSharp5:
 		return true
-	case NoteDFlat5:
-		return true
 	case NoteD5:
 		return true
 	case NoteDSharp5:
-		return true
-	case NoteEFlat5:
 		return true
 	case NoteE5:
 		return true
@@ -435,19 +372,13 @@ func (k MidiKey) isValid() bool {
 		return true
 	case NoteFSharp5:
 		return true
-	case NoteGFlat5:
-		return true
 	case NoteG5:
 		return true
 	case NoteGSharp5:
 		return true
-	case NoteAFlat5:
-		return true
 	case NoteA5:
 		return true
 	case NoteASharp5:
-		return true
-	case NoteBFlat5:
 		return true
 	case NoteB5:
 		return true
@@ -455,13 +386,9 @@ func (k MidiKey) isValid() bool {
 		return true
 	case NoteCSharp6:
 		return true
-	case NoteDFlat6:
-		return true
 	case NoteD6:
 		return true
 	case NoteDSharp6:
-		return true
-	case NoteEFlat6:
 		return true
 	case NoteE6:
 		return true
@@ -469,19 +396,13 @@ func (k MidiKey) isValid() bool {
 		return true
 	case NoteFSharp6:
 		return true
-	case NoteGFlat6:
-		return true
 	case NoteG6:
 		return true
 	case NoteGSharp6:
 		return true
-	case NoteAFlat6:
-		return true
 	case NoteA6:
 		return true
 	case NoteASharp6:
-		return true
-	case NoteBFlat6:
 		return true
 	case NoteB6:
 		return true
@@ -489,13 +410,9 @@ func (k MidiKey) isValid() bool {
 		return true
 	case NoteCSharp7:
 		return true
-	case NoteDFlat7:
-		return true
 	case NoteD7:
 		return true
 	case NoteDSharp7:
-		return true
-	case NoteEFlat7:
 		return true
 	case NoteE7:
 		return true
@@ -503,19 +420,13 @@ func (k MidiKey) isValid() bool {
 		return true
 	case NoteFSharp7:
 		return true
-	case NoteGFlat7:
-		return true
 	case NoteG7:
 		return true
 	case NoteGSharp7:
 		return true
-	case NoteAFlat7:
-		return true
 	case NoteA7:
 		return true
 	case NoteASharp7:
-		return true
-	case NoteBFlat7:
 		return true
 	case NoteB7:
 		return true
@@ -523,13 +434,9 @@ func (k MidiKey) isValid() bool {
 		return true
 	case NoteCSharp8:
 		return true
-	case NoteDFlat8:
-		return true
 	case NoteD8:
 		return true
 	case NoteDSharp8:
-		return true
-	case NoteEFlat8:
 		return true
 	case NoteE8:
 		return true
@@ -537,19 +444,13 @@ func (k MidiKey) isValid() bool {
 		return true
 	case NoteFSharp8:
 		return true
-	case NoteGFlat8:
-		return true
 	case NoteG8:
 		return true
 	case NoteGSharp8:
 		return true
-	case NoteAFlat8:
-		return true
 	case NoteA8:
 		return true
 	case NoteASharp8:
-		return true
-	case NoteBFlat8:
 		return true
 	case NoteB8:
 		return true
@@ -557,21 +458,15 @@ func (k MidiKey) isValid() bool {
 		return true
 	case NoteCSharp9:
 		return true
-	case NoteDFlat9:
-		return true
 	case NoteD9:
 		return true
 	case NoteDSharp9:
-		return true
-	case NoteEFlat9:
 		return true
 	case NoteE9:
 		return true
 	case NoteF9:
 		return true
 	case NoteFSharp9:
-		return true
-	case NoteGFlat9:
 		return true
 	case NoteG9:
 		return true
@@ -589,363 +484,257 @@ func (k MidiKey) String() string {
 	case NoteC_1:
 		return "C-1"
 	case NoteCSharp_1:
-		return "C#-1"
-	case NoteDFlat_1:
-		return "Db-1"
+		return "C#-1 / Db-1"
 	case NoteD_1:
 		return "D-1"
 	case NoteDSharp_1:
-		return "D#-1"
-	case NoteEFlat_1:
-		return "Eb-1"
+		return "D#-1 / Eb-1"
 	case NoteE_1:
 		return "E-1"
 	case NoteF_1:
 		return "F-1"
 	case NoteFSharp_1:
-		return "F#-1"
-	case NoteGFlat_1:
-		return "Gb-1"
+		return "F#-1 / Gb-1"
 	case NoteG_1:
 		return "G-1"
 	case NoteGSharp_1:
-		return "G#-1"
-	case NoteAFlat_1:
-		return "Ab-1"
+		return "G#-1 / Ab-1"
 	case NoteA_1:
 		return "A-1"
 	case NoteASharp_1:
-		return "A#-1"
-	case NoteBFlat_1:
-		return "Bb-1"
+		return "A#-1 / Bb-1"
 	case NoteB_1:
 		return "B-1"
 	case NoteC0:
 		return "C0"
 	case NoteCSharp0:
-		return "C#0"
-	case NoteDFlat0:
-		return "Db0"
+		return "C#0 / Db0"
 	case NoteD0:
 		return "D0"
 	case NoteDSharp0:
-		return "D#0"
-	case NoteEFlat0:
-		return "Eb0"
+		return "D#0 / Eb0"
 	case NoteE0:
 		return "E0"
 	case NoteF0:
 		return "F0"
 	case NoteFSharp0:
-		return "F#0"
-	case NoteGFlat0:
-		return "Gb0"
+		return "F#0 / Gb0"
 	case NoteG0:
 		return "G0"
 	case NoteGSharp0:
-		return "G#0"
-	case NoteAFlat0:
-		return "Ab0"
+		return "G#0 / Ab0"
 	case NoteA0:
 		return "A0"
 	case NoteASharp0:
-		return "A#0"
-	case NoteBFlat0:
-		return "Bb0"
+		return "A#0 / Bb0"
 	case NoteB0:
 		return "B0"
 	case NoteC1:
 		return "C1"
 	case NoteCSharp1:
-		return "C#1"
-	case NoteDFlat1:
-		return "Db1"
+		return "C#1 / Db1"
 	case NoteD1:
 		return "D1"
 	case NoteDSharp1:
-		return "D#1"
-	case NoteEFlat1:
-		return "Eb1"
+		return "D#1 / Eb1"
 	case NoteE1:
 		return "E1"
 	case NoteF1:
 		return "F1"
 	case NoteFSharp1:
-		return "F#1"
-	case NoteGFlat1:
-		return "Gb1"
+		return "F#1 / Gb1"
 	case NoteG1:
 		return "G1"
 	case NoteGSharp1:
-		return "G#1"
-	case NoteAFlat1:
-		return "Ab1"
+		return "G#1 / Ab1"
 	case NoteA1:
 		return "A1"
 	case NoteASharp1:
-		return "A#1"
-	case NoteBFlat1:
-		return "Bb1"
+		return "A#1 / Bb1"
 	case NoteB1:
 		return "B1"
 	case NoteC2:
 		return "C2"
 	case NoteCSharp2:
-		return "C#2"
-	case NoteDFlat2:
-		return "Db2"
+		return "C#2 / Db2"
 	case NoteD2:
 		return "D2"
 	case NoteDSharp2:
-		return "D#2"
-	case NoteEFlat2:
-		return "Eb2"
+		return "D#2 / Eb2"
 	case NoteE2:
 		return "E2"
 	case NoteF2:
 		return "F2"
 	case NoteFSharp2:
-		return "F#2"
-	case NoteGFlat2:
-		return "Gb2"
+		return "F#2 / Gb2"
 	case NoteG2:
 		return "G2"
 	case NoteGSharp2:
-		return "G#2"
-	case NoteAFlat2:
-		return "Ab2"
+		return "G#2 / Ab2"
 	case NoteA2:
 		return "A2"
 	case NoteASharp2:
-		return "A#2"
-	case NoteBFlat2:
-		return "Bb2"
+		return "A#2 / Bb2"
 	case NoteB2:
 		return "B2"
 	case NoteC3:
 		return "C3"
 	case NoteCSharp3:
-		return "C#3"
-	case NoteDFlat3:
-		return "Db3"
+		return "C#3 / Db3"
 	case NoteD3:
 		return "D3"
 	case NoteDSharp3:
-		return "D#3"
-	case NoteEFlat3:
-		return "Eb3"
+		return "D#3 / Eb3"
 	case NoteE3:
 		return "E3"
 	case NoteF3:
 		return "F3"
 	case NoteFSharp3:
-		return "F#3"
-	case NoteGFlat3:
-		return "Gb3"
+		return "F#3 / Gb3"
 	case NoteG3:
 		return "G3"
 	case NoteGSharp3:
-		return "G#3"
-	case NoteAFlat3:
-		return "Ab3"
+		return "G#3 / Ab3"
 	case NoteA3:
 		return "A3"
 	case NoteASharp3:
-		return "A#3"
-	case NoteBFlat3:
-		return "Bb3"
+		return "A#3 / Bb3"
 	case NoteB3:
 		return "B3"
 	case NoteC4:
 		return "C4"
 	case NoteCSharp4:
-		return "C#4"
-	case NoteDFlat4:
-		return "Db4"
+		return "C#4 / Db4"
 	case NoteD4:
 		return "D4"
 	case NoteDSharp4:
-		return "D#4"
-	case NoteEFlat4:
-		return "Eb4"
+		return "D#4 / Eb4"
 	case NoteE4:
 		return "E4"
 	case NoteF4:
 		return "F4"
 	case NoteFSharp4:
-		return "F#4"
-	case NoteGFlat4:
-		return "Gb4"
+		return "F#4 / Gb4"
 	case NoteG4:
 		return "G4"
 	case NoteGSharp4:
-		return "G#4"
-	case NoteAFlat4:
-		return "Ab4"
+		return "G#4 / Ab4"
 	case NoteA4:
 		return "A4"
 	case NoteASharp4:
-		return "A#4"
-	case NoteBFlat4:
-		return "Bb4"
+		return "A#4 / Bb4"
 	case NoteB4:
 		return "B4"
 	case NoteC5:
 		return "C5"
 	case NoteCSharp5:
-		return "C#5"
-	case NoteDFlat5:
-		return "Db5"
+		return "C#5 / Db5"
 	case NoteD5:
 		return "D5"
 	case NoteDSharp5:
-		return "D#5"
-	case NoteEFlat5:
-		return "Eb5"
+		return "D#5 / Eb5"
 	case NoteE5:
 		return "E5"
 	case NoteF5:
 		return "F5"
 	case NoteFSharp5:
-		return "F#5"
-	case NoteGFlat5:
-		return "Gb5"
+		return "F#5 / Gb5"
 	case NoteG5:
 		return "G5"
 	case NoteGSharp5:
-		return "G#5"
-	case NoteAFlat5:
-		return "Ab5"
+		return "G#5 / Ab5"
 	case NoteA5:
 		return "A5"
 	case NoteASharp5:
-		return "A#5"
-	case NoteBFlat5:
-		return "Bb5"
+		return "A#5 / Bb5"
 	case NoteB5:
 		return "B5"
 	case NoteC6:
 		return "C6"
 	case NoteCSharp6:
-		return "C#6"
-	case NoteDFlat6:
-		return "Db6"
+		return "C#6 / Db6"
 	case NoteD6:
 		return "D6"
 	case NoteDSharp6:
-		return "D#6"
-	case NoteEFlat6:
-		return "Eb6"
+		return "D#6 / Eb6"
 	case NoteE6:
 		return "E6"
 	case NoteF6:
 		return "F6"
 	case NoteFSharp6:
-		return "F#6"
-	case NoteGFlat6:
-		return "Gb6"
+		return "F#6 / Gb6"
 	case NoteG6:
 		return "G6"
 	case NoteGSharp6:
-		return "G#6"
-	case NoteAFlat6:
-		return "Ab6"
+		return "G#6 / Ab6"
 	case NoteA6:
 		return "A6"
 	case NoteASharp6:
-		return "A#6"
-	case NoteBFlat6:
-		return "Bb6"
+		return "A#6 / Bb6"
 	case NoteB6:
 		return "B6"
 	case NoteC7:
 		return "C7"
 	case NoteCSharp7:
-		return "C#7"
-	case NoteDFlat7:
-		return "Db7"
+		return "C#7 / Db7"
 	case NoteD7:
 		return "D7"
 	case NoteDSharp7:
-		return "D#7"
-	case NoteEFlat7:
-		return "Eb7"
+		return "D#7 / Eb7"
 	case NoteE7:
 		return "E7"
 	case NoteF7:
 		return "F7"
 	case NoteFSharp7:
-		return "F#7"
-	case NoteGFlat7:
-		return "Gb7"
+		return "F#7 / Gb7"
 	case NoteG7:
 		return "G7"
 	case NoteGSharp7:
-		return "G#7"
-	case NoteAFlat7:
-		return "Ab7"
+		return "G#7 / Ab7"
 	case NoteA7:
 		return "A7"
 	case NoteASharp7:
-		return "A#7"
-	case NoteBFlat7:
-		return "Bb7"
+		return "A#7 / Bb7"
 	case NoteB7:
 		return "B7"
 	case NoteC8:
 		return "C8"
 	case NoteCSharp8:
-		return "C#8"
-	case NoteDFlat8:
-		return "Db8"
+		return "C#8 / Db8"
 	case NoteD8:
 		return "D8"
 	case NoteDSharp8:
-		return "D#8"
-	case NoteEFlat8:
-		return "Eb8"
+		return "D#8 / Eb8"
 	case NoteE8:
 		return "E8"
 	case NoteF8:
 		return "F8"
 	case NoteFSharp8:
-		return "F#8"
-	case NoteGFlat8:
-		return "Gb8"
+		return "F#8 / Gb8"
 	case NoteG8:
 		return "G8"
 	case NoteGSharp8:
-		return "G#8"
-	case NoteAFlat8:
-		return "Ab8"
+		return "G#8 / Ab8"
 	case NoteA8:
 		return "A8"
 	case NoteASharp8:
-		return "A#8"
-	case NoteBFlat8:
-		return "Bb8"
+		return "A#8 / Bb8"
 	case NoteB8:
 		return "B8"
 	case NoteC9:
 		return "C9"
 	case NoteCSharp9:
-		return "C#9"
-	case NoteDFlat9:
-		return "Db9"
+		return "C#9 / Db9"
 	case NoteD9:
 		return "D9"
 	case NoteDSharp9:
-		return "D#9"
-	case NoteEFlat9:
-		return "Eb9"
+		return "D#9 / Eb9"
 	case NoteE9:
 		return "E9"
 	case NoteF9:
 		return "F9"
 	case NoteFSharp9:
-		return "F#9"
-	case NoteGFlat9:
-		return "Gb9"
+		return "F#9 / Gb9"
 	case NoteG9:
 		return "G9"
 	}
