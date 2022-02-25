@@ -46,6 +46,9 @@ type inputState struct {
 	gamepadIDsBuf []ebiten.GamepadID
 	touchIDsBuf   []ebiten.TouchID
 
+	midiKeyDurations     []int
+	midiPrevKeyDurations []int
+
 	m sync.RWMutex
 }
 
@@ -68,6 +71,9 @@ var theInputState = &inputState{
 	touchIDs:           map[ebiten.TouchID]struct{}{},
 	touchDurations:     map[ebiten.TouchID]int{},
 	prevTouchDurations: map[ebiten.TouchID]int{},
+
+	midiKeyDurations:     make([]int, ebiten.NoteMax+1),
+	midiPrevKeyDurations: make([]int, ebiten.NoteMax+1),
 }
 
 func init() {
@@ -192,6 +198,16 @@ func (i *inputState) update() {
 	for id := range i.touchDurations {
 		if _, ok := i.touchIDs[id]; !ok {
 			delete(i.touchDurations, id)
+		}
+	}
+
+	// Midi
+	copy(i.midiPrevKeyDurations[:], i.midiKeyDurations[:])
+	for k := ebiten.MidiKey(0); k <= ebiten.NoteMax; k++ {
+		if ebiten.IsMidiKeyPressed(k) {
+			i.midiKeyDurations[k]++
+		} else {
+			i.midiKeyDurations[k] = 0
 		}
 	}
 }
@@ -443,6 +459,52 @@ func IsTouchJustReleased(id ebiten.TouchID) bool {
 func TouchPressDuration(id ebiten.TouchID) int {
 	theInputState.m.RLock()
 	s := theInputState.touchDurations[id]
+	theInputState.m.RUnlock()
+	return s
+}
+
+// AppendPressedMidiKeys append currently pressed midi keys to keys and returns the extended buffer.
+// Giving a slice that already has enough capacity works efficiently.
+//
+// AppendPressedMidiKeys is concurrent safe.
+func AppendPressedMidiKeys(keys []ebiten.MidiKey) []ebiten.MidiKey {
+	theInputState.m.RLock()
+	defer theInputState.m.RUnlock()
+
+	for i, d := range theInputState.midiKeyDurations {
+		if d == 0 {
+			continue
+		}
+		keys = append(keys, ebiten.MidiKey(i))
+	}
+	return keys
+}
+
+// IsMidiKeyJustPressed returns a boolean value indicating
+// whether the given key is pressed just in the current frame.
+//
+// IsMidiKeyJustPressed is concurrent safe.
+func IsMidiKeyJustPressed(key ebiten.MidiKey) bool {
+	return MidiKeyPressDuration(key) == 1
+}
+
+// IsMidiKeyJustReleased returns a boolean value indicating
+// whether the given key is released just in the current frame.
+//
+// IsMidiKeyJustReleased is concurrent safe.
+func IsMidiKeyJustReleased(key ebiten.MidiKey) bool {
+	theInputState.m.RLock()
+	r := theInputState.midiKeyDurations[key] == 0 && theInputState.midiPrevKeyDurations[key] > 0
+	theInputState.m.RUnlock()
+	return r
+}
+
+// MidiKeyPressDuration returns how long the key is pressed in frames.
+//
+// MidiKeyPressDuration is concurrent safe.
+func MidiKeyPressDuration(key ebiten.MidiKey) int {
+	theInputState.m.RLock()
+	s := theInputState.midiKeyDurations[key]
 	theInputState.m.RUnlock()
 	return s
 }

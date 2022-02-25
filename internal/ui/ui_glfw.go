@@ -996,8 +996,13 @@ func (u *UserInterface) update() (float64, float64, error) {
 	return outsideWidth, outsideHeight, nil
 }
 
+func (u *UserInterface) terminate() {
+	u.t.Call(glfw.Terminate)
+	u.input.Close()
+}
+
 func (u *UserInterface) loop() error {
-	defer u.t.Call(glfw.Terminate)
+	defer u.terminate()
 
 	for {
 		var unfocused bool

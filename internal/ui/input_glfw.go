@@ -29,6 +29,8 @@ import (
 type Input struct {
 	keyPressed         map[glfw.Key]bool
 	mouseButtonPressed map[glfw.MouseButton]bool
+	midiKeyPressed     map[MidiKey]bool
+	midiReader         MidiReader
 	onceCallback       sync.Once
 	scrollX            float64
 	scrollY            float64
@@ -37,6 +39,7 @@ type Input struct {
 	touches            map[TouchID]pos // TODO: Implement this (#417)
 	runeBuffer         []rune
 	ui                 *UserInterface
+	readMidi           bool
 }
 
 type pos struct {
@@ -190,6 +193,17 @@ func (i *Input) update(window *glfw.Window, context *contextImpl) error {
 	for gb := range glfwMouseButtonToMouseButton {
 		i.mouseButtonPressed[gb] = window.GetMouseButton(gb) == glfw.Press
 	}
+	if i.readMidi {
+		if i.midiKeyPressed == nil {
+			i.midiKeyPressed = map[MidiKey]bool{}
+		}
+
+		for _, midiKeys := range midiNoteValueToMidiKey {
+			for _, midiKey := range midiKeys {
+				i.midiKeyPressed[midiKey] = i.midiReader.GetMidiKey(uint8(midiKey)) == true
+			}
+		}
+	}
 	cx, cy := window.GetCursorPos()
 	// TODO: This is tricky. Rename the function?
 	m := i.ui.currentMonitor()
@@ -204,5 +218,38 @@ func (i *Input) update(window *glfw.Window, context *contextImpl) error {
 	}
 
 	gamepad.Update()
+	return nil
+}
+
+func (i *Input) ReadMidi(r MidiReader) error {
+	if i.readMidi {
+		return nil
+	}
+
+	i.readMidi = true
+	i.midiReader = r
+
+	return r.Read()
+}
+
+func (i *Input) IsMidiKeyPressed(key MidiKey) bool {
+	if !i.ui.isRunning() || !i.readMidi {
+		return false
+	}
+
+	i.ui.m.Lock()
+	defer i.ui.m.Unlock()
+	if i.midiKeyPressed == nil {
+		i.midiKeyPressed = map[MidiKey]bool{}
+	}
+	mk, ok := i.midiKeyPressed[key]
+	return ok && mk
+}
+
+func (i *Input) Close() error {
+	if i.readMidi {
+		return i.midiReader.Close()
+	}
+
 	return nil
 }
