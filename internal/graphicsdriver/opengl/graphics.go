@@ -385,6 +385,10 @@ func (g *Graphics) FramebufferYDirection() graphicsdriver.YDirection {
 	return graphicsdriver.Upward
 }
 
+func (g *Graphics) NDCYDirection() graphicsdriver.YDirection {
+	return graphicsdriver.Upward
+}
+
 func (g *Graphics) NeedsRestoring() bool {
 	return g.context.needsRestoring()
 }

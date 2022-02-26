@@ -55,6 +55,7 @@ type Graphics interface {
 	SetVsyncEnabled(enabled bool)
 	SetFullscreen(fullscreen bool)
 	FramebufferYDirection() YDirection
+	NDCYDirection() YDirection
 	NeedsRestoring() bool
 	NeedsClearingScreen() bool
 	IsGL() bool

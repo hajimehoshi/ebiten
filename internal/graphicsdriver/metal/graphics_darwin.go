@@ -72,11 +72,13 @@ vertex VertexOut VertexShader(
   const device VertexIn* vertices [[buffer(0)]],
   constant float2& viewport_size [[buffer(1)]]
 ) {
+  // In Metal, the NDC's Y direction (upward) and the framebuffer's Y direction (downward) don't
+  // match. Then, the Y direction must be inverted.
   float4x4 projectionMatrix = float4x4(
     float4(2.0 / viewport_size.x, 0, 0, 0),
-    float4(0, 2.0 / viewport_size.y, 0, 0),
+    float4(0, -2.0 / viewport_size.y, 0, 0),
     float4(0, 0, 1, 0),
-    float4(-1, -1, 0, 1)
+    float4(-1, 1, 0, 1)
   );
 
   VertexIn in = vertices[vid];
@@ -829,14 +831,12 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion graph
 
 	g.rce.SetRenderPipelineState(rps)
 
-	// In Metal, the NDC's Y direction (upward) and the framebuffer's Y direction (downward) don't
-	// match. Then, the Y direction must be inverted.
 	w, h := dst.internalSize()
 	g.rce.SetViewport(mtl.Viewport{
 		OriginX: 0,
-		OriginY: float64(h),
+		OriginY: 0,
 		Width:   float64(w),
-		Height:  -float64(h),
+		Height:  float64(h),
 		ZNear:   -1,
 		ZFar:    1,
 	})
@@ -1049,6 +1049,10 @@ func (g *Graphics) SetFullscreen(fullscreen bool) {
 
 func (g *Graphics) FramebufferYDirection() graphicsdriver.YDirection {
 	return graphicsdriver.Downward
+}
+
+func (g *Graphics) NDCYDirection() graphicsdriver.YDirection {
+	return graphicsdriver.Upward
 }
 
 func (g *Graphics) NeedsRestoring() bool {

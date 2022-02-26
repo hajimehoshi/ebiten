@@ -26,6 +26,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 	"github.com/hajimehoshi/ebiten/v2/internal/shader"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 var shaderSuffix string
@@ -105,17 +106,6 @@ func imageSrc%[1]dAt(pos vec2) vec4 {
 }
 `, i, pos)
 	}
-
-	shaderSuffix += `
-func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
-	return mat4(
-		2/__imageDstTextureSize.x, 0, 0, 0,
-		0, 2/__imageDstTextureSize.y, 0, 0,
-		0, 0, 1, 0,
-		-1, -1, 0, 1,
-	) * vec4(position, 0, 1), texCoord, color
-}
-`
 }
 
 // Shader represents a compiled shader program.
@@ -136,6 +126,29 @@ func NewShader(src []byte) (*Shader, error) {
 	var buf bytes.Buffer
 	buf.Write(src)
 	buf.WriteString(shaderSuffix)
+	if ui.NeedsInvertY() {
+		buf.WriteString(`
+func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
+	return mat4(
+		2/__imageDstTextureSize.x, 0, 0, 0,
+		0, -2/__imageDstTextureSize.y, 0, 0,
+		0, 0, 1, 0,
+		-1, 1, 0, 1,
+	) * vec4(position, 0, 1), texCoord, color
+}
+`)
+	} else {
+		buf.WriteString(`
+func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
+	return mat4(
+		2/__imageDstTextureSize.x, 0, 0, 0,
+		0, 2/__imageDstTextureSize.y, 0, 0,
+		0, 0, 1, 0,
+		-1, -1, 0, 1,
+	) * vec4(position, 0, 1), texCoord, color
+}
+`)
+	}
 
 	fs := token.NewFileSet()
 	f, err := parser.ParseFile(fs, "", buf.Bytes(), parser.AllErrors)

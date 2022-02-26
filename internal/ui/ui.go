@@ -67,3 +67,7 @@ const (
 	WindowResizingModeOnlyFullscreenEnabled
 	WindowResizingModeEnabled
 )
+
+func NeedsInvertY() bool {
+	return graphics().FramebufferYDirection() != graphics().NDCYDirection()
+}
