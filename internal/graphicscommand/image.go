@@ -223,8 +223,7 @@ func (i *Image) Dump(path string, blackbg bool, rect image.Rectangle) error {
 	}
 	defer f.Close()
 
-	w, h := i.InternalSize()
-	pix := make([]byte, 4*w*h)
+	pix := make([]byte, 4*i.width*i.height)
 	if err := i.ReadPixels(pix); err != nil {
 		return err
 	}

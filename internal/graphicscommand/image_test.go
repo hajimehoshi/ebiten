@@ -53,8 +53,8 @@ func TestClear(t *testing.T) {
 	}
 	dst.DrawTriangles([graphics.ShaderImageNum]*graphicscommand.Image{src}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeClear, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
 
-	pix, err := dst.Pixels()
-	if err != nil {
+	pix := make([]byte, 4*w*h)
+	if err := dst.ReadPixels(pix); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < h/2; j++ {
@@ -107,8 +107,8 @@ func TestShader(t *testing.T) {
 	s := graphicscommand.NewShader(&ir)
 	dst.DrawTriangles([graphics.ShaderImageNum]*graphicscommand.Image{}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, s, nil, false)
 
-	pix, err := dst.Pixels()
-	if err != nil {
+	pix := make([]byte, 4*w*h)
+	if err := dst.ReadPixels(pix); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < h; j++ {
