@@ -236,7 +236,7 @@ func (c *context) bindFramebufferImpl(f framebufferNative) {
 	gl.bindFramebuffer.Invoke(gles.FRAMEBUFFER, js.Value(f))
 }
 
-func (c *context) framebufferPixels(f *framebuffer, width, height int) []byte {
+func (c *context) framebufferPixels(buf []byte, f *framebuffer, width, height int) {
 	gl := c.gl
 
 	c.bindFramebuffer(f.native)
@@ -244,8 +244,7 @@ func (c *context) framebufferPixels(f *framebuffer, width, height int) []byte {
 	l := 4 * width * height
 	p := jsutil.TemporaryUint8ArrayFromUint8Slice(l, nil)
 	gl.readPixels.Invoke(0, 0, width, height, gles.RGBA, gles.UNSIGNED_BYTE, p)
-
-	return uint8ArrayToSlice(p, l)
+	copy(buf, uint8ArrayToSlice(p, l))
 }
 
 func (c *context) framebufferPixelsToBuffer(f *framebuffer, buffer buffer, width, height int) {

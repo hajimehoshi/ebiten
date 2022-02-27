@@ -162,12 +162,10 @@ func (c *context) bindFramebufferImpl(f framebufferNative) {
 	gl.BindFramebufferEXT(gl.FRAMEBUFFER, uint32(f))
 }
 
-func (c *context) framebufferPixels(f *framebuffer, width, height int) []byte {
+func (c *context) framebufferPixels(buf []byte, f *framebuffer, width, height int) {
 	gl.Flush()
 	c.bindFramebuffer(f.native)
-	pixels := make([]byte, 4*width*height)
-	gl.ReadPixels(0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(pixels))
-	return pixels
+	gl.ReadPixels(0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(buf))
 }
 
 func (c *context) framebufferPixelsToBuffer(f *framebuffer, buffer buffer, width, height int) {

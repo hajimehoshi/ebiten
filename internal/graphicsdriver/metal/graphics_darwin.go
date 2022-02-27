@@ -1186,15 +1186,18 @@ func (i *Image) syncTexture() {
 	cb.WaitUntilCompleted()
 }
 
-func (i *Image) Pixels() ([]byte, error) {
+func (i *Image) ReadPixels(buf []byte) error {
+	if got, want := len(buf), 4*i.width*i.height; got != want {
+		return fmt.Errorf("metal: len(buf) must be %d but %d at ReadPixels", want, got)
+	}
+
 	i.graphics.flushIfNeeded(false)
 	i.syncTexture()
 
-	b := make([]byte, 4*i.width*i.height)
-	i.texture.GetBytes(&b[0], uintptr(4*i.width), mtl.Region{
+	i.texture.GetBytes(&buf[0], uintptr(4*i.width), mtl.Region{
 		Size: mtl.Size{Width: i.width, Height: i.height, Depth: 1},
 	}, 0)
-	return b, nil
+	return nil
 }
 
 func (i *Image) ReplacePixels(args []*graphicsdriver.ReplacePixelsArgs) {

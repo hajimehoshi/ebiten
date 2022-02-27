@@ -165,18 +165,19 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [gra
 	theCommandQueue.EnqueueDrawTrianglesCommand(i, srcs, offsets, vertices, indices, clr, mode, filter, address, dstRegion, srcRegion, shader, uniforms, evenOdd)
 }
 
-// Pixels returns the image's pixels.
-// Pixels might return nil when OpenGL error happens.
-func (i *Image) Pixels() ([]byte, error) {
+// ReadPixels reads the image's pixels.
+// ReadPixels returns an error when an error happens in the graphics driver.
+func (i *Image) ReadPixels(buf []byte) error {
 	i.resolveBufferedReplacePixels()
 	c := &pixelsCommand{
-		img: i,
+		img:    i,
+		result: buf,
 	}
 	theCommandQueue.Enqueue(c)
 	if err := theCommandQueue.Flush(); err != nil {
-		return nil, err
+		return err
 	}
-	return c.result, nil
+	return nil
 }
 
 func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
@@ -222,8 +223,9 @@ func (i *Image) Dump(path string, blackbg bool, rect image.Rectangle) error {
 	}
 	defer f.Close()
 
-	pix, err := i.Pixels()
-	if err != nil {
+	w, h := i.InternalSize()
+	pix := make([]byte, 4*w*h)
+	if err := i.ReadPixels(pix); err != nil {
 		return err
 	}
 

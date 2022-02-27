@@ -80,7 +80,7 @@ type Image interface {
 	ID() ImageID
 	Dispose()
 	IsInvalidated() bool
-	Pixels() ([]byte, error)
+	ReadPixels(buf []byte) error
 	ReplacePixels(args []*ReplacePixelsArgs)
 }
 

@@ -497,8 +497,8 @@ func (i *Image) makeStaleIfDependingOnShader(shader *Shader) {
 
 // readPixelsFromGPU reads the pixels from GPU and resolves the image's 'stale' state.
 func (i *Image) readPixelsFromGPU() error {
-	pix, err := i.image.Pixels()
-	if err != nil {
+	pix := make([]byte, 4*i.width*i.height)
+	if err := i.image.ReadPixels(pix); err != nil {
 		return err
 	}
 	i.basePixels = Pixels{}
@@ -626,8 +626,8 @@ func (i *Image) restore() error {
 
 	if len(i.drawTrianglesHistory) > 0 {
 		i.basePixels = Pixels{}
-		pix, err := gimg.Pixels()
-		if err != nil {
+		pix := make([]byte, 4*w*h)
+		if err := gimg.ReadPixels(pix); err != nil {
 			return err
 		}
 		i.basePixels.AddOrReplace(pix, 0, 0, w, h)

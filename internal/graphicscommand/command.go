@@ -605,11 +605,9 @@ type pixelsCommand struct {
 
 // Exec executes a pixelsCommand.
 func (c *pixelsCommand) Exec(indexOffset int) error {
-	p, err := c.img.image.Pixels()
-	if err != nil {
+	if err := c.img.image.ReadPixels(c.result); err != nil {
 		return err
 	}
-	c.result = p
 	return nil
 }
 
