@@ -15,7 +15,7 @@
 //go:build !ios && !ebitengl && !ebitencbackend
 // +build !ios,!ebitengl,!ebitencbackend
 
-package ui
+package graphicscommand
 
 // #cgo CFLAGS: -x objective-c
 // #cgo LDFLAGS: -framework Foundation
@@ -55,7 +55,7 @@ func supportsMetal() bool {
 
 var graphicsOnce sync.Once
 
-func graphics() graphicsdriver.Graphics {
+func graphicsDriver() graphicsdriver.Graphics {
 	graphicsOnce.Do(func() {
 		if supportsMetal() {
 			theGraphics = metal.Get()

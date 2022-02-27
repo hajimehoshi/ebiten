@@ -26,20 +26,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
-var theGraphicsDriver graphicsdriver.Graphics
-
-func SetGraphicsDriver(driver graphicsdriver.Graphics) {
-	theGraphicsDriver = driver
-}
-
-func NeedsInvertY() bool {
-	return theGraphicsDriver.FramebufferYDirection() != theGraphicsDriver.NDCYDirection()
-}
-
-func NeedsRestoring() bool {
-	return theGraphicsDriver.NeedsRestoring()
-}
-
 // command represents a drawing command.
 //
 // A command for drawing that is created when Image functions are called like DrawTriangles,
@@ -245,7 +231,7 @@ func (q *commandQueue) flush() error {
 	vs := q.vertices
 	debug.Logf("Graphics commands:\n")
 
-	if theGraphicsDriver.HasHighPrecisionFloat() {
+	if graphicsDriver().HasHighPrecisionFloat() {
 		n := q.nvertices / graphics.VertexFloatNum
 		for i := 0; i < n; i++ {
 			s := q.srcSizes[i]
@@ -296,7 +282,7 @@ func (q *commandQueue) flush() error {
 		}
 	}
 
-	theGraphicsDriver.Begin()
+	graphicsDriver().Begin()
 	var present bool
 	cs := q.commands
 	for len(cs) > 0 {
@@ -320,7 +306,7 @@ func (q *commandQueue) flush() error {
 			nc++
 		}
 		if 0 < ne {
-			theGraphicsDriver.SetVertices(vs[:nv], es[:ne])
+			graphicsDriver().SetVertices(vs[:nv], es[:ne])
 			es = es[ne:]
 			vs = vs[nv:]
 		}
@@ -339,7 +325,7 @@ func (q *commandQueue) flush() error {
 		}
 		cs = cs[nc:]
 	}
-	theGraphicsDriver.End(present)
+	graphicsDriver().End(present)
 
 	// Release the commands explicitly (#1803).
 	// Apparently, the part of a slice between len and cap-1 still holds references.
@@ -488,7 +474,7 @@ func (c *drawTrianglesCommand) Exec(indexOffset int) error {
 		imgs[0] = c.srcs[0].image.ID()
 	}
 
-	return theGraphicsDriver.DrawTriangles(c.dst.image.ID(), imgs, c.offsets, shaderID, c.nindices, indexOffset, c.mode, c.color, c.filter, c.address, c.dstRegion, c.srcRegion, c.uniforms, c.evenOdd)
+	return graphicsDriver().DrawTriangles(c.dst.image.ID(), imgs, c.offsets, shaderID, c.nindices, indexOffset, c.mode, c.color, c.filter, c.address, c.dstRegion, c.srcRegion, c.uniforms, c.evenOdd)
 }
 
 func (c *drawTrianglesCommand) numVertices() int {
@@ -662,7 +648,7 @@ func (c *newImageCommand) String() string {
 
 // Exec executes a newImageCommand.
 func (c *newImageCommand) Exec(indexOffset int) error {
-	i, err := theGraphicsDriver.NewImage(c.width, c.height)
+	i, err := graphicsDriver().NewImage(c.width, c.height)
 	if err != nil {
 		return err
 	}
@@ -684,7 +670,7 @@ func (c *newScreenFramebufferImageCommand) String() string {
 // Exec executes a newScreenFramebufferImageCommand.
 func (c *newScreenFramebufferImageCommand) Exec(indexOffset int) error {
 	var err error
-	c.result.image, err = theGraphicsDriver.NewScreenFramebufferImage(c.width, c.height)
+	c.result.image, err = graphicsDriver().NewScreenFramebufferImage(c.width, c.height)
 	return err
 }
 
@@ -701,14 +687,14 @@ func (c *newShaderCommand) String() string {
 // Exec executes a newShaderCommand.
 func (c *newShaderCommand) Exec(indexOffset int) error {
 	var err error
-	c.result.shader, err = theGraphicsDriver.NewShader(c.ir)
+	c.result.shader, err = graphicsDriver().NewShader(c.ir)
 	return err
 }
 
 // InitializeGraphicsDriverState initialize the current graphics driver state.
 func InitializeGraphicsDriverState() (err error) {
 	runOnRenderingThread(func() {
-		err = theGraphicsDriver.Initialize()
+		err = graphicsDriver().Initialize()
 	})
 	return
 }
@@ -716,7 +702,7 @@ func InitializeGraphicsDriverState() (err error) {
 // ResetGraphicsDriverState resets the current graphics driver state.
 // If the graphics driver doesn't have an API to reset, ResetGraphicsDriverState does nothing.
 func ResetGraphicsDriverState() (err error) {
-	if r, ok := theGraphicsDriver.(interface{ Reset() error }); ok {
+	if r, ok := graphicsDriver().(interface{ Reset() error }); ok {
 		runOnRenderingThread(func() {
 			err = r.Reset()
 		})
@@ -728,7 +714,7 @@ func ResetGraphicsDriverState() (err error) {
 func MaxImageSize() int {
 	var size int
 	runOnRenderingThread(func() {
-		size = theGraphicsDriver.MaxImageSize()
+		size = graphicsDriver().MaxImageSize()
 	})
 	return size
 }

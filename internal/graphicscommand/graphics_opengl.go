@@ -1,4 +1,4 @@
-// Copyright 2020 The Ebiten Authors
+// Copyright 2018 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,13 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ui
+//go:build !darwin || ebitencbackend || ebitengl
+// +build !darwin ebitencbackend ebitengl
+
+package graphicscommand
 
 import (
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
-func init() {
-	// TODO: Should graphics() be moved to the graphicscommand package?
-	graphicscommand.SetGraphicsDriver(graphics())
+func graphicsDriver() graphicsdriver.Graphics {
+	return opengl.Get()
 }

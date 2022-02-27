@@ -1,4 +1,4 @@
-// Copyright 2018 The Ebiten Authors
+// Copyright 2019 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,16 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !darwin || ebitencbackend || ebitengl
-// +build !darwin ebitencbackend ebitengl
+//go:build ios && !ebitengl && !ebitencbackend
+// +build ios,!ebitengl,!ebitencbackend
 
-package ui
+package graphicscommand
 
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
 )
 
-func graphics() graphicsdriver.Graphics {
-	return opengl.Get()
+func graphicsDriver() graphicsdriver.Graphics {
+	g := metal.Get()
+	if g == nil {
+		panic("ui: Metal is not available on this iOS device")
+	}
+	return g
 }

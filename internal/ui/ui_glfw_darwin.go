@@ -227,6 +227,7 @@ import "C"
 
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 )
 
 // clearVideoModeScaleCache must be called from the main thread.
@@ -316,7 +317,7 @@ func (u *UserInterface) setNativeFullscreen(fullscreen bool) {
 }
 
 func (u *UserInterface) adjustViewSize() {
-	if graphics().IsGL() {
+	if graphicscommand.IsGL() {
 		return
 	}
 	C.adjustViewSize(C.uintptr_t(u.window.GetCocoaWindow()))

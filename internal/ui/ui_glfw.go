@@ -28,6 +28,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
@@ -667,7 +668,7 @@ func (u *UserInterface) createWindow(width, height int) error {
 	// Ensure to consume this callback.
 	u.waitForFramebufferSizeCallback(u.window, nil)
 
-	if graphics().IsGL() {
+	if graphicscommand.IsGL() {
 		u.window.MakeContextCurrent()
 	}
 
@@ -721,7 +722,7 @@ func (u *UserInterface) registerWindowSetSizeCallback() {
 				u.err = err
 			}
 
-			if graphics().IsGL() {
+			if graphicscommand.IsGL() {
 				u.swapBuffers()
 			}
 		})
@@ -815,7 +816,7 @@ event:
 }
 
 func (u *UserInterface) init() error {
-	if graphics().IsGL() {
+	if graphicscommand.IsGL() {
 		glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLAPI)
 		glfw.WindowHint(glfw.ContextVersionMajor, 2)
 		glfw.WindowHint(glfw.ContextVersionMinor, 1)
@@ -836,7 +837,7 @@ func (u *UserInterface) init() error {
 		transparent = glfw.True
 	}
 	glfw.WindowHint(glfw.TransparentFramebuffer, transparent)
-	graphics().SetTransparent(u.isInitScreenTransparent())
+	graphicscommand.SetTransparent(u.isInitScreenTransparent())
 
 	// Before creating a window, set it unresizable no matter what u.isInitWindowResizable() is (#1987).
 	// Making the window resizable here doesn't work correctly when switching to enable resizing.
@@ -888,9 +889,7 @@ func (u *UserInterface) init() error {
 
 	u.window.Show()
 
-	if g, ok := graphics().(interface{ SetWindow(uintptr) }); ok {
-		g.SetWindow(u.nativeWindow())
-	}
+	graphicscommand.SetWindow(u.nativeWindow())
 
 	return nil
 }
@@ -1067,7 +1066,7 @@ func (u *UserInterface) loop() error {
 		// swapBuffers also checks IsGL, so this condition is redundant.
 		// However, (*thread).Call is not good for performance due to channels.
 		// Let's avoid this whenever possible (#1367).
-		if graphics().IsGL() {
+		if graphicscommand.IsGL() {
 			u.t.Call(u.swapBuffers)
 		}
 
@@ -1089,7 +1088,7 @@ func (u *UserInterface) loop() error {
 
 // swapBuffers must be called from the main thread.
 func (u *UserInterface) swapBuffers() {
-	if graphics().IsGL() {
+	if graphicscommand.IsGL() {
 		u.window.SwapBuffers()
 	}
 }
@@ -1146,7 +1145,7 @@ func (u *UserInterface) adjustWindowSizeBasedOnSizeLimitsInDIP(width, height int
 func (u *UserInterface) setWindowSizeInDIP(width, height int, fullscreen bool) {
 	width, height = u.adjustWindowSizeBasedOnSizeLimitsInDIP(width, height)
 
-	graphics().SetFullscreen(fullscreen)
+	graphicscommand.SetFullscreen(fullscreen)
 
 	scale := u.deviceScaleFactor(u.currentMonitor())
 	if u.windowWidthInDIP == width && u.windowHeightInDIP == height && u.isFullscreen() == fullscreen && u.lastDeviceScaleFactor == scale {
@@ -1220,7 +1219,7 @@ func (u *UserInterface) setWindowSizeInDIPImpl(width, height int, fullscreen boo
 
 			// Swapping buffer is necesary to prevent the image lag (#1004).
 			// TODO: This might not work when vsync is disabled.
-			if graphics().IsGL() {
+			if graphicscommand.IsGL() {
 				glfw.PollEvents()
 				u.swapBuffers()
 			}
@@ -1267,7 +1266,7 @@ func (u *UserInterface) setWindowSizeInDIPImpl(width, height int, fullscreen boo
 
 // updateVsync must be called on the main thread.
 func (u *UserInterface) updateVsync() {
-	if graphics().IsGL() {
+	if graphicscommand.IsGL() {
 		// SwapInterval is affected by the current monitor of the window.
 		// This needs to be called at least after SetMonitor.
 		// Without SwapInterval after SetMonitor, vsynch doesn't work (#375).
@@ -1281,7 +1280,7 @@ func (u *UserInterface) updateVsync() {
 			glfw.SwapInterval(0)
 		}
 	}
-	graphics().SetVsyncEnabled(u.fpsMode == FPSModeVsyncOn)
+	graphicscommand.SetVsyncEnabled(u.fpsMode == FPSModeVsyncOn)
 }
 
 // currentMonitor returns the current active monitor.

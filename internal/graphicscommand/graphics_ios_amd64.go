@@ -15,14 +15,14 @@
 //go:build ios && !ebitengl && !ebitencbackend
 // +build ios,!ebitengl,!ebitencbackend
 
-package ui
+package graphicscommand
 
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
-func graphics() graphicsdriver.Graphics {
+func graphicsDriver() graphicsdriver.Graphics {
 	// Metal might not be supported on emulators on Intel machines.
 	return opengl.Get()
 }
