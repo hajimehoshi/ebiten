@@ -19,5 +19,10 @@ import (
 )
 
 func init() {
+	// TODO: Should graphics() be moved to the graphicscommand package?
 	graphicscommand.SetGraphicsDriver(graphics())
+}
+
+func NeedsInvertY() bool {
+	return graphicscommand.NeedsInvertY()
 }

@@ -21,8 +21,17 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
-var (
-	projectionMatrix = shaderir.Expr{
+func projectionMatrix(invertY bool) shaderir.Expr {
+	m11s := 1
+	if invertY {
+		m11s = -1
+	}
+	m31 := -1
+	if invertY {
+		m31 = 1
+	}
+
+	return shaderir.Expr{
 		Type: shaderir.Call,
 		Exprs: []shaderir.Expr{
 			{
@@ -79,7 +88,7 @@ var (
 				Exprs: []shaderir.Expr{
 					{
 						Type:      shaderir.NumberExpr,
-						Const:     constant.MakeFloat64(2),
+						Const:     constant.MakeFloat64(float64(m11s) * 2),
 						ConstType: shaderir.ConstTypeFloat,
 					},
 					{
@@ -134,7 +143,7 @@ var (
 			},
 			{
 				Type:      shaderir.NumberExpr,
-				Const:     constant.MakeFloat64(-1),
+				Const:     constant.MakeFloat64(float64(m31)),
 				ConstType: shaderir.ConstTypeFloat,
 			},
 			{
@@ -149,7 +158,10 @@ var (
 			},
 		},
 	}
-	vertexPosition = shaderir.Expr{
+}
+
+func vertexPosition() shaderir.Expr {
+	return shaderir.Expr{
 		Type: shaderir.Call,
 		Exprs: []shaderir.Expr{
 			{
@@ -172,7 +184,10 @@ var (
 			},
 		},
 	}
-	defaultVertexFunc = shaderir.VertexFunc{
+}
+
+func defaultVertexFunc(invertY bool) shaderir.VertexFunc {
+	return shaderir.VertexFunc{
 		Block: &shaderir.Block{
 			LocalVarIndexOffset: 4 + 1,
 			Stmts: []shaderir.Stmt{
@@ -200,8 +215,8 @@ var (
 							Type: shaderir.Binary,
 							Op:   shaderir.Mul,
 							Exprs: []shaderir.Expr{
-								projectionMatrix,
-								vertexPosition,
+								projectionMatrix(invertY),
+								vertexPosition(),
 							},
 						},
 					},
@@ -209,9 +224,9 @@ var (
 			},
 		},
 	}
-)
+}
 
-func defaultProgram() shaderir.Program {
+func defaultProgram(invertY bool) shaderir.Program {
 	p := shaderir.Program{
 		Attributes: []shaderir.Type{
 			{Main: shaderir.Vec2}, // Local var (0) in the vertex shader
@@ -221,7 +236,7 @@ func defaultProgram() shaderir.Program {
 		Varyings: []shaderir.Type{
 			{Main: shaderir.Vec2}, // Local var (4) in the vertex shader, (1) in the fragment shader
 		},
-		VertexFunc: defaultVertexFunc,
+		VertexFunc: defaultVertexFunc(invertY),
 	}
 
 	p.Uniforms = make([]shaderir.Type, graphics.PreservedUniformVariablesNum)
@@ -255,7 +270,7 @@ func defaultProgram() shaderir.Program {
 // Uniform variable's index and its value are:
 //
 //   0: the framebuffer size (Vec2)
-func ShaderProgramFill(r, g, b, a byte) shaderir.Program {
+func ShaderProgramFill(invertY bool, r, g, b, a byte) shaderir.Program {
 	clr := shaderir.Expr{
 		Type: shaderir.Call,
 		Exprs: []shaderir.Expr{
@@ -286,7 +301,7 @@ func ShaderProgramFill(r, g, b, a byte) shaderir.Program {
 		},
 	}
 
-	p := defaultProgram()
+	p := defaultProgram(invertY)
 	p.FragmentFunc = shaderir.FragmentFunc{
 		Block: &shaderir.Block{
 			LocalVarIndexOffset: 2 + 1,
@@ -315,12 +330,12 @@ func ShaderProgramFill(r, g, b, a byte) shaderir.Program {
 //   0:  the framebuffer size (Vec2)
 //
 // The size and region values are actually not used in this shader so far.
-func ShaderProgramImages(imageNum int) shaderir.Program {
+func ShaderProgramImages(invertY bool, imageNum int) shaderir.Program {
 	if imageNum <= 0 {
 		panic("testing: imageNum must be >= 1")
 	}
 
-	p := defaultProgram()
+	p := defaultProgram(invertY)
 	p.TextureNum = imageNum
 
 	// In the fragment shader, local variables are:

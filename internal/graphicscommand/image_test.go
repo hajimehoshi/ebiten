@@ -103,7 +103,7 @@ func TestShader(t *testing.T) {
 	}
 	dst.DrawTriangles([graphics.ShaderImageNum]*graphicscommand.Image{clr}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeClear, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
 
-	ir := etesting.ShaderProgramFill(0xff, 0, 0, 0xff)
+	ir := etesting.ShaderProgramFill(graphicscommand.NeedsInvertY(), 0xff, 0, 0, 0xff)
 	s := graphicscommand.NewShader(&ir)
 	dst.DrawTriangles([graphics.ShaderImageNum]*graphicscommand.Image{}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, s, nil, false)
 

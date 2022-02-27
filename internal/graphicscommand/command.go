@@ -32,6 +32,10 @@ func SetGraphicsDriver(driver graphicsdriver.Graphics) {
 	theGraphicsDriver = driver
 }
 
+func NeedsInvertY() bool {
+	return theGraphicsDriver.FramebufferYDirection() != theGraphicsDriver.NDCYDirection()
+}
+
 func NeedsRestoring() bool {
 	return theGraphicsDriver.NeedsRestoring()
 }

@@ -23,12 +23,12 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
-	t "github.com/hajimehoshi/ebiten/v2/internal/testing"
+	etesting "github.com/hajimehoshi/ebiten/v2/internal/testing"
 )
 
 func TestMain(m *testing.M) {
 	restorable.EnableRestoringForTesting()
-	t.MainWithRunLoop(m)
+	etesting.MainWithRunLoop(m)
 }
 
 func pixelsToColor(p *restorable.Pixels, i, j int) color.RGBA {

@@ -20,6 +20,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 	etesting "github.com/hajimehoshi/ebiten/v2/internal/testing"
@@ -57,7 +58,7 @@ func TestShader(t *testing.T) {
 	img := restorable.NewImage(1, 1)
 	defer img.Dispose()
 
-	ir := etesting.ShaderProgramFill(0xff, 0, 0, 0xff)
+	ir := etesting.ShaderProgramFill(graphicscommand.NeedsInvertY(), 0xff, 0, 0, 0xff)
 	s := restorable.NewShader(&ir)
 	dr := graphicsdriver.Region{
 		X:      0,
@@ -92,7 +93,7 @@ func TestShaderChain(t *testing.T) {
 
 	imgs[0].ReplacePixels([]byte{0xff, 0, 0, 0xff}, 0, 0, 1, 1)
 
-	ir := etesting.ShaderProgramImages(1)
+	ir := etesting.ShaderProgramImages(graphicscommand.NeedsInvertY(), 1)
 	s := restorable.NewShader(&ir)
 	for i := 0; i < num-1; i++ {
 		dr := graphicsdriver.Region{
@@ -131,7 +132,7 @@ func TestShaderMultipleSources(t *testing.T) {
 
 	dst := restorable.NewImage(1, 1)
 
-	ir := etesting.ShaderProgramImages(3)
+	ir := etesting.ShaderProgramImages(graphicscommand.NeedsInvertY(), 3)
 	s := restorable.NewShader(&ir)
 	var offsets [graphics.ShaderImageNum - 1][2]float32
 	dr := graphicsdriver.Region{
@@ -170,7 +171,7 @@ func TestShaderMultipleSourcesOnOneTexture(t *testing.T) {
 
 	dst := restorable.NewImage(1, 1)
 
-	ir := etesting.ShaderProgramImages(3)
+	ir := etesting.ShaderProgramImages(graphicscommand.NeedsInvertY(), 3)
 	s := restorable.NewShader(&ir)
 	offsets := [graphics.ShaderImageNum - 1][2]float32{
 		{1, 0},
@@ -205,7 +206,7 @@ func TestShaderDispose(t *testing.T) {
 	img := restorable.NewImage(1, 1)
 	defer img.Dispose()
 
-	ir := etesting.ShaderProgramFill(0xff, 0, 0, 0xff)
+	ir := etesting.ShaderProgramFill(graphicscommand.NeedsInvertY(), 0xff, 0, 0, 0xff)
 	s := restorable.NewShader(&ir)
 	dr := graphicsdriver.Region{
 		X:      0,

@@ -21,6 +21,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	etesting "github.com/hajimehoshi/ebiten/v2/internal/testing"
 )
@@ -38,13 +39,13 @@ func TestShaderFillTwice(t *testing.T) {
 		Width:  w,
 		Height: h,
 	}
-	p0 := etesting.ShaderProgramFill(0xff, 0xff, 0xff, 0xff)
+	p0 := etesting.ShaderProgramFill(graphicscommand.NeedsInvertY(), 0xff, 0xff, 0xff, 0xff)
 	s0 := atlas.NewShader(&p0)
 	dst.DrawTriangles([graphics.ShaderImageNum]*atlas.Image{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, s0, nil, false)
 
 	// Vertices must be recreated (#1755)
 	vs = quadVertices(w, h, 0, 0, 1)
-	p1 := etesting.ShaderProgramFill(0x80, 0x80, 0x80, 0xff)
+	p1 := etesting.ShaderProgramFill(graphicscommand.NeedsInvertY(), 0x80, 0x80, 0x80, 0xff)
 	s1 := atlas.NewShader(&p1)
 	dst.DrawTriangles([graphics.ShaderImageNum]*atlas.Image{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, s1, nil, false)
 
