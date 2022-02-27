@@ -21,6 +21,8 @@ type Thread interface {
 }
 
 // SetRenderingThread must be called from the rendering thread where e.g. OpenGL works.
+//
+// TODO: Create thread in this package instead of setting it externally.
 func SetRenderingThread(thread Thread) {
 	theThread = thread
 }
