@@ -26,6 +26,14 @@ var (
 	debugPrintTextSubImages = map[rune]*ebiten.Image{}
 )
 
+const (
+	// DebugCharWidth is the fixed width of a character drawn by DebugPrint.
+	DebugCharWidth = assets.CharWidth
+
+	// DebugCharHeight is the fixed height of a character drawn by DebugPrint.
+	DebugCharHeight = assets.CharHeight
+)
+
 // DebugPrint draws the string str on the image on left top corner.
 //
 // The available runes are in U+0000 to U+00FF, which is C0 Controls and Basic Latin and C1 Controls and Latin-1 Supplement.
@@ -51,8 +59,8 @@ func drawDebugText(rt *ebiten.Image, str string, ox, oy int, shadow bool) {
 	w, _ := debugPrintTextImage.Size()
 	for _, c := range str {
 		const (
-			cw = assets.CharWidth
-			ch = assets.CharHeight
+			cw = DebugCharWidth
+			ch = DebugCharHeight
 		)
 		if c == '\n' {
 			x = 0
