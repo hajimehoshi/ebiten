@@ -92,10 +92,8 @@ vertex VertexOut VertexShader(
   return out;
 }
 
-float FloorMod(float x, float y) {
-  if (x < 0.0) {
-    return y - (-x - y * floor(-x/y));
-  }
+float EuclideanMod(float x, float y) {
+  // Assume that y is always positive.
   return x - y * floor(x/y);
 }
 
@@ -111,7 +109,7 @@ template<>
 inline float2 AdjustTexelByAddress<ADDRESS_REPEAT>(float2 p, float4 source_region) {
   float2 o = float2(source_region[0], source_region[1]);
   float2 size = float2(source_region[2] - source_region[0], source_region[3] - source_region[1]);
-  return float2(FloorMod((p.x - o.x), size.x) + o.x, FloorMod((p.y - o.y), size.y) + o.y);
+  return float2(EuclideanMod((p.x - o.x), size.x) + o.x, EuclideanMod((p.y - o.y), size.y) + o.y);
 }
 
 template<uint8_t filter, uint8_t address>
