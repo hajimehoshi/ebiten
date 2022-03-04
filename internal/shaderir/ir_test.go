@@ -783,11 +783,7 @@ void F0(in float l0, in float l1, out float l2) {
 		l2 = l4;
 	}
 }`,
-			Metal: `#include <metal_stdlib>
-
-using namespace metal;
-
-constexpr sampler texture_sampler{filter::nearest};
+			Metal: metal.Prelude + `
 
 void F0(float l0, float l1, thread float& l2);
 
@@ -883,11 +879,7 @@ void F0(in float l0, in float l1, out float l2) {
 		l2 = l5;
 	}
 }`,
-			Metal: `#include <metal_stdlib>
-
-using namespace metal;
-
-constexpr sampler texture_sampler{filter::nearest};
+			Metal: metal.Prelude + `
 
 void F0(float l0, float l1, thread float& l2);
 
