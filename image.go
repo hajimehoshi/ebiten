@@ -747,6 +747,10 @@ func (i *Image) at(x, y int) (r, g, b, a uint8) {
 //
 // If the image is disposed, Set does nothing.
 func (i *Image) Set(x, y int, clr color.Color) {
+	if ui.HasError() {
+		return
+	}
+
 	i.copyCheck()
 	if i.isDisposed() {
 		return
@@ -798,6 +802,10 @@ func (i *Image) Dispose() {
 //
 // When the image is disposed, ReplacePixels does nothing.
 func (i *Image) ReplacePixels(pixels []byte) {
+	if ui.HasError() {
+		return
+	}
+
 	i.copyCheck()
 
 	if i.isDisposed() {
