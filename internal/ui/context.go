@@ -66,7 +66,7 @@ func (c *contextImpl) forceUpdateFrame(outsideWidth, outsideHeight float64, devi
 }
 
 func (c *contextImpl) updateFrameImpl(updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
-	if err := theGlobalState.err(); err != nil {
+	if err := theGlobalState.error(); err != nil {
 		return err
 	}
 
@@ -100,6 +100,10 @@ func (c *contextImpl) updateFrameImpl(updateCount int, outsideWidth, outsideHeig
 			return err
 		}
 		if err := c.game.Update(); err != nil {
+			return err
+		}
+		// Catch the error that happened at (*Image).At.
+		if err := theGlobalState.error(); err != nil {
 			return err
 		}
 		Get().resetForTick()
@@ -177,7 +181,7 @@ type globalState struct {
 	screenFilterEnabled_       int32
 }
 
-func (g *globalState) err() error {
+func (g *globalState) error() error {
 	err, ok := g.err_.Load().(error)
 	if !ok {
 		return nil
@@ -236,6 +240,10 @@ func (g *globalState) setScreenFilterEnabled(enabled bool) {
 		v = 1
 	}
 	atomic.StoreInt32(&g.screenFilterEnabled_, v)
+}
+
+func HasError() bool {
+	return theGlobalState.error() != nil
 }
 
 func SetError(err error) {

@@ -717,6 +717,11 @@ func (i *Image) RGBA64At(x, y int) color.RGBA64 {
 }
 
 func (i *Image) at(x, y int) (r, g, b, a uint8) {
+	// Check the error existence and avoid unnecessary calls.
+	if ui.HasError() {
+		return 0, 0, 0, 0
+	}
+
 	if i.isDisposed() {
 		return 0, 0, 0, 0
 	}
