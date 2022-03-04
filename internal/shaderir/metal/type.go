@@ -103,7 +103,8 @@ func builtinFuncString(f shaderir.BuiltinFunc) string {
 	case shaderir.Inversesqrt:
 		return "rsqrt"
 	case shaderir.Mod:
-		return "fmod"
+		// mod is a special function that Metal doesn't originally has (#2006).
+		return "mod"
 	case shaderir.Texture2DF:
 		return "?(texture2D)"
 	}

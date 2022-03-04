@@ -1677,3 +1677,35 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 }
+
+// Issue #2006
+func TestShaderFuncMod(t *testing.T) {
+	const w, h = 16, 16
+
+	dst := ebiten.NewImage(w, h)
+	s, err := ebiten.NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	r := mod(-0.25, 1.0)
+	return vec4(r, 0, 0, 1)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dst.DrawRectShader(w/2, h/2, s, nil)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			var want color.RGBA
+			if i < w/2 && j < h/2 {
+				want = color.RGBA{0xc0, 0, 0, 0xff}
+			}
+			if !sameColors(got, want, 2) {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}

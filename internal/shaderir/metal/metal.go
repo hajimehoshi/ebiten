@@ -52,7 +52,12 @@ const Prelude = `#include <metal_stdlib>
 
 using namespace metal;
 
-constexpr sampler texture_sampler{filter::nearest};`
+constexpr sampler texture_sampler{filter::nearest};
+
+template<typename T>
+T mod(T x, T y) {
+	return x - y * floor(x/y);
+}`
 
 func Compile(p *shaderir.Program, vertex, fragment string) (shader string) {
 	c := &compileContext{
