@@ -718,6 +718,7 @@ func (i *Image) RGBA64At(x, y int) color.RGBA64 {
 
 func (i *Image) at(x, y int) (r, g, b, a uint8) {
 	// Check the error existence and avoid unnecessary calls.
+	// TODO: The package ui should have an image struct that treats errors correctly.
 	if ui.HasError() {
 		return 0, 0, 0, 0
 	}
