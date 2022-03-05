@@ -119,7 +119,7 @@ constexpr sampler texture_sampler{filter::nearest};
 
 template<>
 struct ColorFromTexel<FILTER_NEAREST, ADDRESS_UNSAFE> {
-  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale, constant float4& source_region) {
+  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, constant float4& source_region, float scale) {
     float2 p = v.tex;
     return texture.sample(texture_sampler, p);
   }
@@ -127,7 +127,7 @@ struct ColorFromTexel<FILTER_NEAREST, ADDRESS_UNSAFE> {
 
 template<uint8_t address>
 struct ColorFromTexel<FILTER_NEAREST, address> {
-  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale, constant float4& source_region) {
+  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, constant float4& source_region, float scale) {
     float2 p = AdjustTexelByAddress<address>(v.tex, source_region);
     if (source_region[0] <= p.x &&
         source_region[1] <= p.y &&
@@ -141,7 +141,7 @@ struct ColorFromTexel<FILTER_NEAREST, address> {
 
 template<>
 struct ColorFromTexel<FILTER_LINEAR, ADDRESS_UNSAFE> {
-  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale, constant float4& source_region) {
+  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, constant float4& source_region, float scale) {
     const float2 texel_size = 1 / source_size;
 
     // Shift 1/512 [texel] to avoid the tie-breaking issue.
@@ -161,7 +161,7 @@ struct ColorFromTexel<FILTER_LINEAR, ADDRESS_UNSAFE> {
 
 template<uint8_t address>
 struct ColorFromTexel<FILTER_LINEAR, address> {
-  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale, constant float4& source_region) {
+  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, constant float4& source_region, float scale) {
     const float2 texel_size = 1 / source_size;
 
     // Shift 1/512 [texel] to avoid the tie-breaking issue.
@@ -200,7 +200,7 @@ struct ColorFromTexel<FILTER_LINEAR, address> {
 
 template<uint8_t address>
 struct ColorFromTexel<FILTER_SCREEN, address> {
-  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale, constant float4& source_region) {
+  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, constant float4& source_region, float scale) {
     const float2 texel_size = 1 / source_size;
 
     float2 p0 = v.tex - texel_size / 2.0 / scale + (texel_size / 512.0);
@@ -225,9 +225,9 @@ struct FragmentShaderImpl {
       constant float2& source_size,
       constant float4x4& color_matrix_body,
       constant float4& color_matrix_translation,
-      constant float& scale,
-      constant float4& source_region) {
-    float4 c = ColorFromTexel<filter, address>().Do(v, texture, source_size, scale, source_region);
+      constant float4& source_region,
+      constant float& scale) {
+    float4 c = ColorFromTexel<filter, address>().Do(v, texture, source_size, source_region, scale);
     if (useColorM) {
       c.rgb /= c.a + (1.0 - sign(c.a));
       c = (color_matrix_body * c) + color_matrix_translation;
@@ -249,9 +249,9 @@ struct FragmentShaderImpl<useColorM, FILTER_SCREEN, address> {
       constant float2& source_size,
       constant float4x4& color_matrix_body,
       constant float4& color_matrix_translation,
-      constant float& scale,
-      constant float4& source_region) {
-    return ColorFromTexel<FILTER_SCREEN, address>().Do(v, texture, source_size, scale, source_region);
+      constant float4& source_region,
+      constant float& scale) {
+    return ColorFromTexel<FILTER_SCREEN, address>().Do(v, texture, source_size, source_region, scale);
   }
 };
 
@@ -268,10 +268,10 @@ struct FragmentShaderImpl<useColorM, FILTER_SCREEN, address> {
       constant float2& source_size [[buffer(2)]], \
       constant float4x4& color_matrix_body [[buffer(3)]], \
       constant float4& color_matrix_translation [[buffer(4)]], \
-      constant float& scale [[buffer(5)]], \
-      constant float4& source_region [[buffer(6)]]) { \
+      constant float4& source_region [[buffer(5)]], \
+      constant float& scale [[buffer(6)]]) { \
     return FragmentShaderImpl<useColorM, filter, address>().Do( \
-        v, texture, source_size, color_matrix_body, color_matrix_translation, scale, source_region); \
+        v, texture, source_size, color_matrix_body, color_matrix_translation, source_region, scale); \
   }
 
 FragmentShaderFunc(0, FILTER_NEAREST, ADDRESS_CLAMP_TO_ZERO)
@@ -935,15 +935,15 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 				Float32s: esTranslate[:],
 			},
 			{
-				Float32: scale,
-			},
-			{
 				Float32s: []float32{
 					srcRegion.X,
 					srcRegion.Y,
 					srcRegion.X + srcRegion.Width,
 					srcRegion.Y + srcRegion.Height,
 				},
+			},
+			{
+				Float32: scale,
 			},
 		}
 	} else {
