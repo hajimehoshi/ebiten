@@ -190,10 +190,7 @@ func (g *globalState) error() error {
 }
 
 func (g *globalState) setError(err error) {
-	if g.err_.Load() != nil {
-		return
-	}
-	g.err_.Store(err)
+	g.err_.CompareAndSwap(nil, err)
 }
 
 func (g *globalState) fpsMode() FPSModeType {
