@@ -395,8 +395,6 @@ func (p *playerImpl) readSourceToBuffer() {
 }
 
 func (p *playerImpl) setErrorImpl(err error) {
-	if p.err.Load() == nil {
-		p.err.Store(err)
-	}
+	p.err.CompareAndSwap(nil, err)
 	p.closeImpl()
 }
