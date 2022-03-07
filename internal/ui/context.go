@@ -174,7 +174,9 @@ var theGlobalState = globalState{
 // globalState represents a global state in this package.
 // This is available even before the game loop starts.
 type globalState struct {
-	err_                       atomic.Value
+	err_ error
+	errM sync.Mutex
+
 	fpsMode_                   int32
 	maxTPS_                    int32
 	isScreenClearedEveryFrame_ int32
@@ -182,15 +184,17 @@ type globalState struct {
 }
 
 func (g *globalState) error() error {
-	err, ok := g.err_.Load().(error)
-	if !ok {
-		return nil
-	}
-	return err
+	g.errM.Lock()
+	defer g.errM.Unlock()
+	return g.err_
 }
 
 func (g *globalState) setError(err error) {
-	g.err_.CompareAndSwap(nil, err)
+	g.errM.Lock()
+	defer g.errM.Unlock()
+	if g.err_ == nil {
+		g.err_ = err
+	}
 }
 
 func (g *globalState) fpsMode() FPSModeType {
