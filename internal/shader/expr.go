@@ -291,7 +291,9 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 		// For built-in functions, we can call this in this position. Return an expression for the function
 		// call.
 		if callee.Type == shaderir.BuiltinFuncExpr {
-			if callee.BuiltinFunc == shaderir.Len || callee.BuiltinFunc == shaderir.Cap {
+			// Process compile-time evaluations.
+			switch callee.BuiltinFunc {
+			case shaderir.Len, shaderir.Cap:
 				if len(args) != 1 {
 					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 1 but %d", callee.BuiltinFunc, len(args)))
 					return nil, nil, nil, false
@@ -307,6 +309,26 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 						ConstType: shaderir.ConstTypeInt,
 					},
 				}, []shaderir.Type{{Main: shaderir.Int}}, stmts, true
+			case shaderir.IntF:
+				if args[0].Type == shaderir.NumberExpr && canTruncateToInteger(args[0].Const) {
+					return []shaderir.Expr{
+						{
+							Type:      shaderir.NumberExpr,
+							Const:     gconstant.ToInt(args[0].Const),
+							ConstType: shaderir.ConstTypeInt,
+						},
+					}, []shaderir.Type{{Main: shaderir.Int}}, stmts, true
+				}
+			case shaderir.FloatF:
+				if args[0].Type == shaderir.NumberExpr {
+					return []shaderir.Expr{
+						{
+							Type:      shaderir.NumberExpr,
+							Const:     gconstant.ToFloat(args[0].Const),
+							ConstType: shaderir.ConstTypeFloat,
+						},
+					}, []shaderir.Type{{Main: shaderir.Float}}, stmts, true
+				}
 			}
 
 			var t shaderir.Type
