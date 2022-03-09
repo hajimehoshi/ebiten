@@ -35,7 +35,7 @@ func isUntypedInteger(expr *shaderir.Expr) bool {
 
 func isModAvailable(lhs, rhs *shaderir.Expr) bool {
 	// % is available only when
-	// 1) both are an untyped integer
+	// 1) both are untyped integers
 	// 2) either is an typed integer and the other is truncatable to an integer
 	if isUntypedInteger(lhs) && isUntypedInteger(rhs) {
 		return true
