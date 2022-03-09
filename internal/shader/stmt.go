@@ -29,6 +29,7 @@ func (cs *compileState) forceToInt(node ast.Node, expr *shaderir.Expr) bool {
 		cs.addError(node.Pos(), fmt.Sprintf("constant %s truncated to integer", expr.Const.String()))
 		return false
 	}
+	expr.Const = gconstant.ToInt(expr.Const)
 	expr.ConstType = shaderir.ConstTypeInt
 	return true
 }
@@ -88,6 +89,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			stmts = append(stmts, ss...)
 
 			// Treat an integer literal as an integer constant value.
+			wasTypedConstInt := rhs[0].ConstType == shaderir.ConstTypeInt
 			if rhs[0].Type == shaderir.NumberExpr && rts[0].Main == shaderir.Int {
 				if !cs.forceToInt(stmt, &rhs[0]) {
 					return nil, false
@@ -106,7 +108,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 						return nil, false
 					}
 				case shaderir.Float:
-					if rhs[0].Const != nil && rhs[0].Const.Kind() == gconstant.Int {
+					if rhs[0].Const != nil && rhs[0].Const.Kind() == gconstant.Int && !wasTypedConstInt {
 						rhs[0].Const = gconstant.ToFloat(rhs[0].Const)
 						rhs[0].ConstType = shaderir.ConstTypeFloat
 					} else {
@@ -125,7 +127,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 						(lts[0].Main == shaderir.Vec3 && rts[0].Main == shaderir.Mat3) ||
 						(lts[0].Main == shaderir.Vec4 && rts[0].Main == shaderir.Mat4)) {
 						// OK
-					} else if rhs[0].Const != nil && rhs[0].Const.Kind() == gconstant.Int {
+					} else if rhs[0].Const != nil && rhs[0].Const.Kind() == gconstant.Int && !wasTypedConstInt {
 						rhs[0].Const = gconstant.ToFloat(rhs[0].Const)
 						rhs[0].ConstType = shaderir.ConstTypeFloat
 					} else {

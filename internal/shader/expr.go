@@ -29,6 +29,26 @@ func canTruncateToInteger(v gconstant.Value) bool {
 	return gconstant.ToInt(v).Kind() != gconstant.Unknown
 }
 
+func isUntypedInteger(expr *shaderir.Expr) bool {
+	return expr.Const.Kind() == gconstant.Int && expr.ConstType == shaderir.ConstTypeNone
+}
+
+func isModAvailable(lhs, rhs *shaderir.Expr) bool {
+	// % is available only when
+	// 1) both are an untyped integer
+	// 2) either is an typed integer and the other is truncatable to an integer
+	if isUntypedInteger(lhs) && isUntypedInteger(rhs) {
+		return true
+	}
+	if lhs.ConstType == shaderir.ConstTypeInt && canTruncateToInteger(rhs.Const) {
+		return true
+	}
+	if rhs.ConstType == shaderir.ConstTypeInt && canTruncateToInteger(lhs.Const) {
+		return true
+	}
+	return false
+}
+
 func goConstantKindString(k gconstant.Kind) string {
 	switch k {
 	case gconstant.Bool:
@@ -111,7 +131,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 				t = shaderir.Type{Main: shaderir.Bool}
 			default:
 				if op == token.REM {
-					if lhs[0].Const.Kind() != gconstant.Int || rhs[0].Const.Kind() != gconstant.Int {
+					if !isModAvailable(&lhs[0], &rhs[0]) {
 						var wrongTypeName string
 						if lhs[0].Const.Kind() != gconstant.Int {
 							wrongTypeName = goConstantKindString(lhs[0].Const.Kind())
@@ -119,6 +139,12 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 							wrongTypeName = goConstantKindString(rhs[0].Const.Kind())
 						}
 						cs.addError(e.Pos(), fmt.Sprintf("invalid operation: operator %% not defined on untyped %s", wrongTypeName))
+						return nil, nil, nil, false
+					}
+					if !cs.forceToInt(e, &lhs[0]) {
+						return nil, nil, nil, false
+					}
+					if !cs.forceToInt(e, &rhs[0]) {
 						return nil, nil, nil, false
 					}
 				}
@@ -156,8 +182,13 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 					return nil, nil, nil, false
 				}
-			}
-			if rhst.Main == shaderir.Int {
+				fallthrough
+			case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
+				if lhs[0].ConstType == shaderir.ConstTypeInt {
+					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
+					return nil, nil, nil, false
+				}
+			case shaderir.Int:
 				if !canTruncateToInteger(lhs[0].Const) {
 					cs.addError(e.Pos(), fmt.Sprintf("constant %s truncated to integer", lhs[0].Const.String()))
 					return nil, nil, nil, false
@@ -172,8 +203,13 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 					return nil, nil, nil, false
 				}
-			}
-			if lhst.Main == shaderir.Int {
+				fallthrough
+			case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
+				if rhs[0].ConstType == shaderir.ConstTypeInt {
+					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
+					return nil, nil, nil, false
+				}
+			case shaderir.Int:
 				if !canTruncateToInteger(rhs[0].Const) {
 					cs.addError(e.Pos(), fmt.Sprintf("constant %s truncated to integer", rhs[0].Const.String()))
 					return nil, nil, nil, false
