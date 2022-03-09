@@ -595,7 +595,7 @@ func (s *compileState) parseConstant(block *block, vs *ast.ValueSpec) ([]constan
 			return nil, false
 		}
 		if es[0].Type != shaderir.NumberExpr {
-			s.addError(vs.Pos(), fmt.Sprintf("constant expresion must be a number but not: %s", n))
+			s.addError(vs.Pos(), fmt.Sprintf("constant expression must be a number but not: %s", n))
 			return nil, false
 		}
 		cs = append(cs, constant{
