@@ -20,7 +20,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
-	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/metal"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/msl"
 )
 
 type shaderRpsKey struct {

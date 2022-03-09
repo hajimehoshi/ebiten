@@ -30,7 +30,7 @@ func typeString(t *shaderir.Type, packed bool, ref bool) string {
 		}
 		return t
 	case shaderir.Struct:
-		panic("metal: a struct is not implemented")
+		panic("msl: a struct is not implemented")
 	default:
 		t := basicTypeString(t.Main, packed)
 		if ref {
