@@ -46,8 +46,8 @@ func glslFragmentNormalize(str string) string {
 }
 
 func metalNormalize(str string) string {
-	if strings.HasPrefix(str, metal.Prelude) {
-		str = str[len(metal.Prelude):]
+	if strings.HasPrefix(str, msl.Prelude) {
+		str = str[len(msl.Prelude):]
 	}
 	return strings.TrimSpace(str)
 }
@@ -176,7 +176,7 @@ func TestCompile(t *testing.T) {
 			}
 
 			if tc.Metal != nil {
-				m := metal.Compile(s, "Vertex", "Fragment")
+				m := msl.Compile(s, "Vertex", "Fragment")
 				if got, want := metalNormalize(m), metalNormalize(string(tc.Metal)); got != want {
 					compare(t, "Metal", got, want)
 				}
@@ -184,7 +184,7 @@ func TestCompile(t *testing.T) {
 
 			// Just check that Compile doesn't cause panic.
 			// TODO: Should the results be tested?
-			metal.Compile(s, "Vertex", "Fragmentp")
+			msl.Compile(s, "Vertex", "Fragmentp")
 		})
 	}
 }

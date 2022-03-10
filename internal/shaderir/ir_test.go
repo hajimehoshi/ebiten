@@ -783,7 +783,7 @@ void F0(in float l0, in float l1, out float l2) {
 		l2 = l4;
 	}
 }`,
-			Metal: metal.Prelude + `
+			Metal: msl.Prelude + `
 
 void F0(float l0, float l1, thread float& l2);
 
@@ -879,7 +879,7 @@ void F0(in float l0, in float l1, out float l2) {
 		l2 = l5;
 	}
 }`,
-			Metal: metal.Prelude + `
+			Metal: msl.Prelude + `
 
 void F0(float l0, float l1, thread float& l2);
 
@@ -1046,7 +1046,7 @@ void main(void) {
 					t.Errorf("%s fragment: got: %s, want: %s", tc.Name, got, want)
 				}
 			}
-			m := metal.Compile(&tc.Program, "Vertex", "Fragment")
+			m := msl.Compile(&tc.Program, "Vertex", "Fragment")
 			if tc.Metal != "" {
 				got := m
 				want := tc.Metal + "\n"

@@ -67,7 +67,7 @@ func (s *Shader) init(device mtl.Device) error {
 		f = "Fragment"
 	)
 
-	src := metal.Compile(s.ir, v, f)
+	src := msl.Compile(s.ir, v, f)
 	lib, err := device.MakeLibrary(src, mtl.CompileOptions{})
 	if err != nil {
 		return fmt.Errorf("metal: device.MakeLibrary failed: %v, source: %s", err, src)
