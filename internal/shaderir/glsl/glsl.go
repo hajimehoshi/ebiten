@@ -406,7 +406,7 @@ func constantToNumberLiteral(t shaderir.ConstType, v constant.Value) string {
 	return fmt.Sprintf("?(unexpected literal: %s)", v)
 }
 
-func (c *compileContext) localVariableName(p *shaderir.Program, topBlock, block *shaderir.Block, idx int) string {
+func (c *compileContext) localVariableName(p *shaderir.Program, topBlock *shaderir.Block, idx int) string {
 	switch topBlock {
 	case p.VertexFunc.Block:
 		na := len(p.Attributes)
@@ -443,7 +443,7 @@ func (c *compileContext) localVariableName(p *shaderir.Program, topBlock, block 
 
 func (c *compileContext) initVariable(p *shaderir.Program, topBlock, block *shaderir.Block, index int, decl bool, level int) []string {
 	idt := strings.Repeat("\t", level+1)
-	name := c.localVariableName(p, topBlock, block, index)
+	name := c.localVariableName(p, topBlock, index)
 	t := p.LocalVariableType(topBlock, block, index)
 
 	var lines []string
@@ -488,7 +488,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 		case shaderir.TextureVariable:
 			return fmt.Sprintf("T%d", e.Index)
 		case shaderir.LocalVariable:
-			return c.localVariableName(p, topBlock, block, e.Index)
+			return c.localVariableName(p, topBlock, e.Index)
 		case shaderir.StructMember:
 			return fmt.Sprintf("M%d", e.Index)
 		case shaderir.BuiltinFuncExpr:
@@ -573,7 +573,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 				ct = shaderir.ConstTypeFloat
 			}
 
-			v := c.localVariableName(p, topBlock, block, s.ForVarIndex)
+			v := c.localVariableName(p, topBlock, s.ForVarIndex)
 			var delta string
 			switch val, _ := constant.Float64Val(s.ForDelta); val {
 			case 0:
