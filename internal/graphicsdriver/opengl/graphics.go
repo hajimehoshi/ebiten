@@ -268,7 +268,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 		}
 
 		{
-			const idx = graphics.DestinationTextureSizeUniformVariableIndex
+			const idx = graphics.TextureDestinationSizeUniformVariableIndex
 			w, h := destination.framebufferSize()
 			g.uniformVars[idx].name = g.uniformVariableName(idx)
 			g.uniformVars[idx].value.Float32s = []float32{float32(w), float32(h)}
@@ -284,7 +284,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 				}
 
 			}
-			const idx = graphics.TextureSizesUniformVariableIndex
+			const idx = graphics.TextureSourceSizesUniformVariableIndex
 			g.uniformVars[idx].name = g.uniformVariableName(idx)
 			g.uniformVars[idx].value.Float32s = sizes
 			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]

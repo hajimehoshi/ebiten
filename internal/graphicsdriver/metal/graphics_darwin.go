@@ -963,7 +963,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 
 		// Set the destination texture size.
 		dw, dh := dst.internalSize()
-		uniformVars[graphics.DestinationTextureSizeUniformVariableIndex] = graphicsdriver.Uniform{
+		uniformVars[graphics.TextureDestinationSizeUniformVariableIndex] = graphicsdriver.Uniform{
 			Float32s: []float32{float32(dw), float32(dh)},
 		}
 
@@ -976,7 +976,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 				usizes[2*i+1] = float32(h)
 			}
 		}
-		uniformVars[graphics.TextureSizesUniformVariableIndex] = graphicsdriver.Uniform{
+		uniformVars[graphics.TextureSourceSizesUniformVariableIndex] = graphicsdriver.Uniform{
 			Float32s: usizes,
 		}
 

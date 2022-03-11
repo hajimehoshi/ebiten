@@ -31,8 +31,8 @@ const (
 		1 + // the texture source region's origin
 		1 // the texture source region's size
 
-	DestinationTextureSizeUniformVariableIndex         = 0
-	TextureSizesUniformVariableIndex                   = 1
+	TextureDestinationSizeUniformVariableIndex         = 0
+	TextureSourceSizesUniformVariableIndex             = 1
 	TextureDestinationRegionOriginUniformVariableIndex = 2
 	TextureDestinationRegionSizeUniformVariableIndex   = 3
 	TextureSourceOffsetsUniformVariableIndex           = 4
