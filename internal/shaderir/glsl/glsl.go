@@ -478,8 +478,8 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 		lines = append(lines, c.initVariable(p, topBlock, block, block.LocalVarIndexOffset+i, true, level)...)
 	}
 
-	var glslExpr func(e *shaderir.Expr) string
-	glslExpr = func(e *shaderir.Expr) string {
+	var expr func(e *shaderir.Expr) string
+	expr = func(e *shaderir.Expr) string {
 		switch e.Type {
 		case shaderir.NumberExpr:
 			return constantToNumberLiteral(e.ConstType, e.Const)
@@ -508,26 +508,26 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			default:
 				op = fmt.Sprintf("?(unexpected op: %s)", string(e.Op))
 			}
-			return fmt.Sprintf("%s(%s)", op, glslExpr(&e.Exprs[0]))
+			return fmt.Sprintf("%s(%s)", op, expr(&e.Exprs[0]))
 		case shaderir.Binary:
 			if e.Op == shaderir.ModOp && (c.version == GLSLVersionDefault || c.version == GLSLVersionES100) {
 				// '%' is not defined.
-				return fmt.Sprintf("modInt((%s), (%s))", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]))
+				return fmt.Sprintf("modInt((%s), (%s))", expr(&e.Exprs[0]), expr(&e.Exprs[1]))
 			}
-			return fmt.Sprintf("(%s) %s (%s)", glslExpr(&e.Exprs[0]), e.Op, glslExpr(&e.Exprs[1]))
+			return fmt.Sprintf("(%s) %s (%s)", expr(&e.Exprs[0]), e.Op, expr(&e.Exprs[1]))
 		case shaderir.Selection:
-			return fmt.Sprintf("(%s) ? (%s) : (%s)", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]), glslExpr(&e.Exprs[2]))
+			return fmt.Sprintf("(%s) ? (%s) : (%s)", expr(&e.Exprs[0]), expr(&e.Exprs[1]), expr(&e.Exprs[2]))
 		case shaderir.Call:
 			var args []string
 			for _, exp := range e.Exprs[1:] {
-				args = append(args, glslExpr(&exp))
+				args = append(args, expr(&exp))
 			}
 			// Using parentheses at the callee is illegal.
-			return fmt.Sprintf("%s(%s)", glslExpr(&e.Exprs[0]), strings.Join(args, ", "))
+			return fmt.Sprintf("%s(%s)", expr(&e.Exprs[0]), strings.Join(args, ", "))
 		case shaderir.FieldSelector:
-			return fmt.Sprintf("(%s).%s", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]))
+			return fmt.Sprintf("(%s).%s", expr(&e.Exprs[0]), expr(&e.Exprs[1]))
 		case shaderir.Index:
-			return fmt.Sprintf("(%s)[%s]", glslExpr(&e.Exprs[0]), glslExpr(&e.Exprs[1]))
+			return fmt.Sprintf("(%s)[%s]", expr(&e.Exprs[0]), expr(&e.Exprs[1]))
 		default:
 			return fmt.Sprintf("?(unexpected expr: %d)", e.Type)
 		}
@@ -537,7 +537,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 	for _, s := range block.Stmts {
 		switch s.Type {
 		case shaderir.ExprStmt:
-			lines = append(lines, fmt.Sprintf("%s%s;", idt, glslExpr(&s.Exprs[0])))
+			lines = append(lines, fmt.Sprintf("%s%s;", idt, expr(&s.Exprs[0])))
 		case shaderir.BlockStmt:
 			lines = append(lines, idt+"{")
 			lines = append(lines, c.block(p, topBlock, s.Blocks[0], level+1)...)
@@ -548,16 +548,16 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			if lhs.Type == shaderir.LocalVariable {
 				if t := p.LocalVariableType(topBlock, block, lhs.Index); t.Main == shaderir.Array {
 					for i := 0; i < t.Length; i++ {
-						lines = append(lines, fmt.Sprintf("%[1]s%[2]s[%[3]d] = %[4]s[%[3]d];", idt, glslExpr(&lhs), i, glslExpr(&rhs)))
+						lines = append(lines, fmt.Sprintf("%[1]s%[2]s[%[3]d] = %[4]s[%[3]d];", idt, expr(&lhs), i, expr(&rhs)))
 					}
 					continue
 				}
 			}
-			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, glslExpr(&lhs), glslExpr(&rhs)))
+			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, expr(&lhs), expr(&rhs)))
 		case shaderir.Init:
 			lines = append(lines, c.initVariable(p, topBlock, block, s.InitIndex, false, level)...)
 		case shaderir.If:
-			lines = append(lines, fmt.Sprintf("%sif (%s) {", idt, glslExpr(&s.Exprs[0])))
+			lines = append(lines, fmt.Sprintf("%sif (%s) {", idt, expr(&s.Exprs[0])))
 			lines = append(lines, c.block(p, topBlock, s.Blocks[0], level+1)...)
 			if len(s.Blocks) > 1 {
 				lines = append(lines, fmt.Sprintf("%s} else {", idt))
@@ -614,7 +614,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			if len(s.Exprs) == 0 {
 				lines = append(lines, idt+"return;")
 			} else {
-				lines = append(lines, fmt.Sprintf("%sreturn %s;", idt, glslExpr(&s.Exprs[0])))
+				lines = append(lines, fmt.Sprintf("%sreturn %s;", idt, expr(&s.Exprs[0])))
 			}
 		case shaderir.Discard:
 			lines = append(lines, idt+"discard;")

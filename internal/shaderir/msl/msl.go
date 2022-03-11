@@ -345,8 +345,8 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 		}
 	}
 
-	var metalExpr func(e *shaderir.Expr) string
-	metalExpr = func(e *shaderir.Expr) string {
+	var expr func(e *shaderir.Expr) string
+	expr = func(e *shaderir.Expr) string {
 		switch e.Type {
 		case shaderir.NumberExpr:
 			return constantToNumberLiteral(e.ConstType, e.Const)
@@ -375,11 +375,11 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			default:
 				op = fmt.Sprintf("?(unexpected op: %s)", string(e.Op))
 			}
-			return fmt.Sprintf("%s(%s)", op, metalExpr(&e.Exprs[0]))
+			return fmt.Sprintf("%s(%s)", op, expr(&e.Exprs[0]))
 		case shaderir.Binary:
-			return fmt.Sprintf("(%s) %s (%s)", metalExpr(&e.Exprs[0]), e.Op, metalExpr(&e.Exprs[1]))
+			return fmt.Sprintf("(%s) %s (%s)", expr(&e.Exprs[0]), e.Op, expr(&e.Exprs[1]))
 		case shaderir.Selection:
-			return fmt.Sprintf("(%s) ? (%s) : (%s)", metalExpr(&e.Exprs[0]), metalExpr(&e.Exprs[1]), metalExpr(&e.Exprs[2]))
+			return fmt.Sprintf("(%s) ? (%s) : (%s)", expr(&e.Exprs[0]), expr(&e.Exprs[1]), expr(&e.Exprs[2]))
 		case shaderir.Call:
 			callee := e.Exprs[0]
 			var args []string
@@ -392,16 +392,16 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 				}
 			}
 			for _, exp := range e.Exprs[1:] {
-				args = append(args, metalExpr(&exp))
+				args = append(args, expr(&exp))
 			}
 			if callee.Type == shaderir.BuiltinFuncExpr && callee.BuiltinFunc == shaderir.Texture2DF {
 				return fmt.Sprintf("%s.sample(texture_sampler, %s)", args[0], strings.Join(args[1:], ", "))
 			}
-			return fmt.Sprintf("%s(%s)", metalExpr(&callee), strings.Join(args, ", "))
+			return fmt.Sprintf("%s(%s)", expr(&callee), strings.Join(args, ", "))
 		case shaderir.FieldSelector:
-			return fmt.Sprintf("(%s).%s", metalExpr(&e.Exprs[0]), metalExpr(&e.Exprs[1]))
+			return fmt.Sprintf("(%s).%s", expr(&e.Exprs[0]), expr(&e.Exprs[1]))
 		case shaderir.Index:
-			return fmt.Sprintf("(%s)[%s]", metalExpr(&e.Exprs[0]), metalExpr(&e.Exprs[1]))
+			return fmt.Sprintf("(%s)[%s]", expr(&e.Exprs[0]), expr(&e.Exprs[1]))
 		default:
 			return fmt.Sprintf("?(unexpected expr: %d)", e.Type)
 		}
@@ -410,13 +410,13 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 	for _, s := range block.Stmts {
 		switch s.Type {
 		case shaderir.ExprStmt:
-			lines = append(lines, fmt.Sprintf("%s%s;", idt, metalExpr(&s.Exprs[0])))
+			lines = append(lines, fmt.Sprintf("%s%s;", idt, expr(&s.Exprs[0])))
 		case shaderir.BlockStmt:
 			lines = append(lines, idt+"{")
 			lines = append(lines, c.block(p, topBlock, s.Blocks[0], level+1)...)
 			lines = append(lines, idt+"}")
 		case shaderir.Assign:
-			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, metalExpr(&s.Exprs[0]), metalExpr(&s.Exprs[1])))
+			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, expr(&s.Exprs[0]), expr(&s.Exprs[1])))
 		case shaderir.Init:
 			init := true
 			if topBlock == p.VertexFunc.Block {
@@ -432,7 +432,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 				lines = append(lines, c.initVariable(p, topBlock, block, s.InitIndex, false, level)...)
 			}
 		case shaderir.If:
-			lines = append(lines, fmt.Sprintf("%sif (%s) {", idt, metalExpr(&s.Exprs[0])))
+			lines = append(lines, fmt.Sprintf("%sif (%s) {", idt, expr(&s.Exprs[0])))
 			lines = append(lines, c.block(p, topBlock, s.Blocks[0], level+1)...)
 			if len(s.Blocks) > 1 {
 				lines = append(lines, fmt.Sprintf("%s} else {", idt))
@@ -494,7 +494,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			case len(s.Exprs) == 0:
 				lines = append(lines, idt+"return;")
 			default:
-				lines = append(lines, fmt.Sprintf("%sreturn %s;", idt, metalExpr(&s.Exprs[0])))
+				lines = append(lines, fmt.Sprintf("%sreturn %s;", idt, expr(&s.Exprs[0])))
 			}
 		case shaderir.Discard:
 			lines = append(lines, idt+"discard;")
