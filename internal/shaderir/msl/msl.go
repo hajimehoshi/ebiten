@@ -303,9 +303,9 @@ func localVariableName(p *shaderir.Program, topBlock *shaderir.Block, idx int) s
 		nv := len(p.Varyings)
 		switch {
 		case idx == 0:
-			return fmt.Sprintf("varyings.Position")
+			return fmt.Sprintf("%s.Position", vertexOut)
 		case idx < nv+1:
-			return fmt.Sprintf("varyings.M%d", idx-1)
+			return fmt.Sprintf("%s.M%d", vertexOut, idx-1)
 		case idx == nv+1:
 			return fragmentOut
 		default:
