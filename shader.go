@@ -23,7 +23,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 	"github.com/hajimehoshi/ebiten/v2/internal/shader"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -186,7 +185,7 @@ func (s *Shader) Dispose() {
 	s.shader = nil
 }
 
-func (s *Shader) convertUniforms(uniforms map[string]interface{}) []graphicsdriver.Uniform {
+func (s *Shader) convertUniforms(uniforms map[string]interface{}) [][]float32 {
 	type index struct {
 		resultIndex        int
 		shaderUniformIndex int
@@ -205,18 +204,14 @@ func (s *Shader) convertUniforms(uniforms map[string]interface{}) []graphicsdriv
 		idx++
 	}
 
-	us := make([]graphicsdriver.Uniform, len(names))
+	us := make([][]float32, len(names))
 	for name, idx := range names {
 		if v, ok := uniforms[name]; ok {
 			switch v := v.(type) {
 			case float32:
-				us[idx.resultIndex] = graphicsdriver.Uniform{
-					Float32: v,
-				}
+				us[idx.resultIndex] = []float32{v}
 			case []float32:
-				us[idx.resultIndex] = graphicsdriver.Uniform{
-					Float32s: v,
-				}
+				us[idx.resultIndex] = v
 			default:
 				panic(fmt.Sprintf("ebiten: unexpected uniform value type: %s, %T", name, v))
 			}
@@ -224,25 +219,10 @@ func (s *Shader) convertUniforms(uniforms map[string]interface{}) []graphicsdriv
 		}
 
 		t := s.uniformTypes[idx.shaderUniformIndex]
-		us[idx.resultIndex] = zeroUniformValue(name, t)
+		us[idx.resultIndex] = make([]float32, t.FloatNum())
 	}
 
 	// TODO: Panic if uniforms include an invalid name
 
 	return us
-}
-
-func zeroUniformValue(name string, t shaderir.Type) graphicsdriver.Uniform {
-	switch t.Main {
-	case shaderir.Float:
-		return graphicsdriver.Uniform{
-			Float32: 0,
-		}
-	case shaderir.Array, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
-		return graphicsdriver.Uniform{
-			Float32s: make([]float32, t.FloatNum()),
-		}
-	default:
-		panic(fmt.Sprintf("ebiten: unexpected uniform variable type: %s, %s", name, t.String()))
-	}
 }

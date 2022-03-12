@@ -132,7 +132,7 @@ type openGLState struct {
 	programs map[programKey]program
 
 	lastProgram       program
-	lastUniforms      map[string]graphicsdriver.Uniform
+	lastUniforms      map[string][]float32
 	lastActiveTexture int
 }
 
@@ -242,7 +242,7 @@ func areSameFloat32Array(a, b []float32) bool {
 
 type uniformVariable struct {
 	name  string
-	value graphicsdriver.Uniform
+	value []float32
 	typ   shaderir.Type
 }
 
@@ -282,41 +282,22 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 	}
 
 	for _, u := range uniforms {
-		if len(u.value.Float32s) == 0 {
-			if u.typ.Main != shaderir.Float {
-				expected := &shaderir.Type{Main: shaderir.Float}
-				got := u.typ
-				return fmt.Errorf("opengl: uniform variable %s type doesn't match: expected %s but %s", u.name, expected.String(), got.String())
-			}
-
-			cached, ok := g.state.lastUniforms[u.name]
-			if ok && cached.Float32 == u.value.Float32 {
-				continue
-			}
-			// TODO: Remember whether the location is available or not.
-			g.context.uniformFloat(program, u.name, u.value.Float32)
-			if g.state.lastUniforms == nil {
-				g.state.lastUniforms = map[string]graphicsdriver.Uniform{}
-			}
-			g.state.lastUniforms[u.name] = u.value
-		} else {
-			if got, expected := len(u.value.Float32s), u.typ.FloatNum(); got != expected {
-				// Copy a shaderir.Type value once. Do not pass u.typ directly to fmt.Errorf arguments, or
-				// the value u would be allocated on heap.
-				typ := u.typ
-				return fmt.Errorf("opengl: length of a uniform variables %s (%s) doesn't match: expected %d but %d", u.name, typ.String(), expected, got)
-			}
-
-			cached, ok := g.state.lastUniforms[u.name]
-			if ok && areSameFloat32Array(cached.Float32s, u.value.Float32s) {
-				continue
-			}
-			g.context.uniformFloats(program, u.name, u.value.Float32s, u.typ)
-			if g.state.lastUniforms == nil {
-				g.state.lastUniforms = map[string]graphicsdriver.Uniform{}
-			}
-			g.state.lastUniforms[u.name] = u.value
+		if got, expected := len(u.value), u.typ.FloatNum(); got != expected {
+			// Copy a shaderir.Type value once. Do not pass u.typ directly to fmt.Errorf arguments, or
+			// the value u would be allocated on heap.
+			typ := u.typ
+			return fmt.Errorf("opengl: length of a uniform variables %s (%s) doesn't match: expected %d but %d", u.name, typ.String(), expected, got)
 		}
+
+		cached, ok := g.state.lastUniforms[u.name]
+		if ok && areSameFloat32Array(cached, u.value) {
+			continue
+		}
+		g.context.uniformFloats(program, u.name, u.value, u.typ)
+		if g.state.lastUniforms == nil {
+			g.state.lastUniforms = map[string][]float32{}
+		}
+		g.state.lastUniforms[u.name] = u.value
 	}
 
 	var idx int

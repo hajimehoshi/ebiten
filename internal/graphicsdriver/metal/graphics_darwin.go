@@ -784,7 +784,7 @@ func (g *Graphics) flushRenderCommandEncoderIfNeeded() {
 	g.lastDst = nil
 }
 
-func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion graphicsdriver.Region, srcs [graphics.ShaderImageNum]*Image, indexLen int, indexOffset int, uniforms []graphicsdriver.Uniform, stencilMode stencilMode) error {
+func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion graphicsdriver.Region, srcs [graphics.ShaderImageNum]*Image, indexLen int, indexOffset int, uniforms [][]float32, stencilMode stencilMode) error {
 	// When prepareing a stencil buffer, flush the current render command encoder
 	// to make sure the stencil buffer is cleared when loading.
 	// TODO: What about clearing the stencil buffer by vertices?
@@ -847,15 +847,8 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion graph
 	g.rce.SetVertexBuffer(g.vb, 0, 0)
 
 	for i, u := range uniforms {
-		if len(u.Float32s) == 0 {
-			v := u.Float32
-			g.rce.SetVertexBytes(unsafe.Pointer(&v), unsafe.Sizeof(v), i+1)
-			g.rce.SetFragmentBytes(unsafe.Pointer(&v), unsafe.Sizeof(v), i+1)
-		} else {
-			v := u.Float32s
-			g.rce.SetVertexBytes(unsafe.Pointer(&v[0]), unsafe.Sizeof(v[0])*uintptr(len(v)), i+1)
-			g.rce.SetFragmentBytes(unsafe.Pointer(&v[0]), unsafe.Sizeof(v[0])*uintptr(len(v)), i+1)
-		}
+		g.rce.SetVertexBytes(unsafe.Pointer(&u[0]), unsafe.Sizeof(u[0])*uintptr(len(u)), i+1)
+		g.rce.SetFragmentBytes(unsafe.Pointer(&u[0]), unsafe.Sizeof(u[0])*uintptr(len(u)), i+1)
 	}
 
 	for i, src := range srcs {
@@ -873,7 +866,7 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion graph
 	return nil
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageNum]graphicsdriver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, colorM graphicsdriver.ColorM, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, uniforms []graphicsdriver.Uniform, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageNum]graphicsdriver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, colorM graphicsdriver.ColorM, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
 	dst := g.images[dstID]
 
 	if dst.screen {
@@ -886,7 +879,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 	}
 
 	rpss := map[stencilMode]mtl.RenderPipelineState{}
-	var uniformVars []graphicsdriver.Uniform
+	var uniformVars [][]float32
 	if shaderID == graphicsdriver.InvalidShaderID {
 		if dst.screen && filter == graphicsdriver.FilterScreen {
 			rpss[noStencil] = g.screenRPS
@@ -921,30 +914,18 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 		if filter == graphicsdriver.FilterScreen {
 			scale = float32(dst.width) / float32(srcs[0].width)
 		}
-		uniformVars = []graphicsdriver.Uniform{
+		uniformVars = [][]float32{
+			{float32(w), float32(h)},
+			sourceSize,
+			esBody[:],
+			esTranslate[:],
 			{
-				Float32s: []float32{float32(w), float32(h)},
+				srcRegion.X,
+				srcRegion.Y,
+				srcRegion.X + srcRegion.Width,
+				srcRegion.Y + srcRegion.Height,
 			},
-			{
-				Float32s: sourceSize,
-			},
-			{
-				Float32s: esBody[:],
-			},
-			{
-				Float32s: esTranslate[:],
-			},
-			{
-				Float32s: []float32{
-					srcRegion.X,
-					srcRegion.Y,
-					srcRegion.X + srcRegion.Width,
-					srcRegion.Y + srcRegion.Height,
-				},
-			},
-			{
-				Float32: scale,
-			},
+			{scale},
 		}
 	} else {
 		for _, stencil := range []stencilMode{
@@ -959,13 +940,11 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 			}
 		}
 
-		uniformVars = make([]graphicsdriver.Uniform, graphics.PreservedUniformVariablesNum+len(uniforms))
+		uniformVars = make([][]float32, graphics.PreservedUniformVariablesNum+len(uniforms))
 
 		// Set the destination texture size.
 		dw, dh := dst.internalSize()
-		uniformVars[graphics.TextureDestinationSizeUniformVariableIndex] = graphicsdriver.Uniform{
-			Float32s: []float32{float32(dw), float32(dh)},
-		}
+		uniformVars[graphics.TextureDestinationSizeUniformVariableIndex] = []float32{float32(dw), float32(dh)}
 
 		// Set the source texture sizes.
 		usizes := make([]float32, 2*len(srcs))
@@ -976,21 +955,15 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 				usizes[2*i+1] = float32(h)
 			}
 		}
-		uniformVars[graphics.TextureSourceSizesUniformVariableIndex] = graphicsdriver.Uniform{
-			Float32s: usizes,
-		}
+		uniformVars[graphics.TextureSourceSizesUniformVariableIndex] = usizes
 
 		// Set the destination region's origin.
 		udorigin := []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
-		uniformVars[graphics.TextureDestinationRegionOriginUniformVariableIndex] = graphicsdriver.Uniform{
-			Float32s: udorigin,
-		}
+		uniformVars[graphics.TextureDestinationRegionOriginUniformVariableIndex] = udorigin
 
 		// Set the destination region's size.
 		udsize := []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
-		uniformVars[graphics.TextureDestinationRegionSizeUniformVariableIndex] = graphicsdriver.Uniform{
-			Float32s: udsize,
-		}
+		uniformVars[graphics.TextureDestinationRegionSizeUniformVariableIndex] = udsize
 
 		// Set the source offsets.
 		uoffsets := make([]float32, 2*len(offsets))
@@ -998,21 +971,15 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 			uoffsets[2*i] = offset[0]
 			uoffsets[2*i+1] = offset[1]
 		}
-		uniformVars[graphics.TextureSourceOffsetsUniformVariableIndex] = graphicsdriver.Uniform{
-			Float32s: uoffsets,
-		}
+		uniformVars[graphics.TextureSourceOffsetsUniformVariableIndex] = uoffsets
 
 		// Set the source region's origin of texture0.
 		usorigin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
-		uniformVars[graphics.TextureSourceRegionOriginUniformVariableIndex] = graphicsdriver.Uniform{
-			Float32s: usorigin,
-		}
+		uniformVars[graphics.TextureSourceRegionOriginUniformVariableIndex] = usorigin
 
 		// Set the source region's size of texture0.
 		ussize := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
-		uniformVars[graphics.TextureSourceRegionSizeUniformVariableIndex] = graphicsdriver.Uniform{
-			Float32s: ussize,
-		}
+		uniformVars[graphics.TextureSourceRegionSizeUniformVariableIndex] = ussize
 
 		// Set the additional uniform variables.
 		for i, v := range uniforms {

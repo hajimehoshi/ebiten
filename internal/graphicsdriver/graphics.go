@@ -39,11 +39,6 @@ type ColorM interface {
 	Elements(body *[16]float32, translate *[4]float32)
 }
 
-type Uniform struct {
-	Float32  float32
-	Float32s []float32
-}
-
 type Graphics interface {
 	Begin()
 	End(present bool)
@@ -70,7 +65,7 @@ type Graphics interface {
 	//
 	//   * float32
 	//   * []float32
-	DrawTriangles(dst ImageID, srcs [graphics.ShaderImageNum]ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader ShaderID, indexLen int, indexOffset int, mode CompositeMode, colorM ColorM, filter Filter, address Address, dstRegion, srcRegion Region, uniforms []Uniform, evenOdd bool) error
+	DrawTriangles(dst ImageID, srcs [graphics.ShaderImageNum]ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader ShaderID, indexLen int, indexOffset int, mode CompositeMode, colorM ColorM, filter Filter, address Address, dstRegion, srcRegion Region, uniforms [][]float32, evenOdd bool) error
 }
 
 // GraphicsNotReady represents that the graphics driver is not ready for recovering from the context lost.

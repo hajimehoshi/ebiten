@@ -171,7 +171,7 @@ func (g *Graphics) uniformVariableName(idx int) string {
 	return name
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageNum]graphicsdriver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, colorM graphicsdriver.ColorM, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, uniforms []graphicsdriver.Uniform, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageNum]graphicsdriver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, colorM graphicsdriver.ColorM, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
 	destination := g.images[dstID]
 
 	g.drawCalled = true
@@ -197,20 +197,16 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 
 		dw, dh := destination.framebufferSize()
 		g.uniformVars = append(g.uniformVars, uniformVariable{
-			name: "viewport_size",
-			value: graphicsdriver.Uniform{
-				Float32s: []float32{float32(dw), float32(dh)},
-			},
-			typ: shaderir.Type{Main: shaderir.Vec2},
+			name:  "viewport_size",
+			value: []float32{float32(dw), float32(dh)},
+			typ:   shaderir.Type{Main: shaderir.Vec2},
 		}, uniformVariable{
 			name: "source_region",
-			value: graphicsdriver.Uniform{
-				Float32s: []float32{
-					srcRegion.X,
-					srcRegion.Y,
-					srcRegion.X + srcRegion.Width,
-					srcRegion.Y + srcRegion.Height,
-				},
+			value: []float32{
+				srcRegion.X,
+				srcRegion.Y,
+				srcRegion.X + srcRegion.Width,
+				srcRegion.Y + srcRegion.Height,
 			},
 			typ: shaderir.Type{Main: shaderir.Vec4},
 		})
@@ -221,39 +217,31 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 			var esTranslate [4]float32
 			colorM.Elements(&esBody, &esTranslate)
 			g.uniformVars = append(g.uniformVars, uniformVariable{
-				name: "color_matrix_body",
-				value: graphicsdriver.Uniform{
-					Float32s: esBody[:],
-				},
-				typ: shaderir.Type{Main: shaderir.Mat4},
+				name:  "color_matrix_body",
+				value: esBody[:],
+				typ:   shaderir.Type{Main: shaderir.Mat4},
 			}, uniformVariable{
-				name: "color_matrix_translation",
-				value: graphicsdriver.Uniform{
-					Float32s: esTranslate[:],
-				},
-				typ: shaderir.Type{Main: shaderir.Vec4},
+				name:  "color_matrix_translation",
+				value: esTranslate[:],
+				typ:   shaderir.Type{Main: shaderir.Vec4},
 			})
 		}
 
 		if filter != graphicsdriver.FilterNearest {
 			sw, sh := g.images[srcIDs[0]].framebufferSize()
 			g.uniformVars = append(g.uniformVars, uniformVariable{
-				name: "source_size",
-				value: graphicsdriver.Uniform{
-					Float32s: []float32{float32(sw), float32(sh)},
-				},
-				typ: shaderir.Type{Main: shaderir.Vec2},
+				name:  "source_size",
+				value: []float32{float32(sw), float32(sh)},
+				typ:   shaderir.Type{Main: shaderir.Vec2},
 			})
 		}
 
 		if filter == graphicsdriver.FilterScreen {
 			scale := float32(destination.width) / float32(g.images[srcIDs[0]].width)
 			g.uniformVars = append(g.uniformVars, uniformVariable{
-				name: "scale",
-				value: graphicsdriver.Uniform{
-					Float32: scale,
-				},
-				typ: shaderir.Type{Main: shaderir.Float},
+				name:  "scale",
+				value: []float32{scale},
+				typ:   shaderir.Type{Main: shaderir.Float},
 			})
 		}
 	} else {
@@ -271,7 +259,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 			const idx = graphics.TextureDestinationSizeUniformVariableIndex
 			w, h := destination.framebufferSize()
 			g.uniformVars[idx].name = g.uniformVariableName(idx)
-			g.uniformVars[idx].value.Float32s = []float32{float32(w), float32(h)}
+			g.uniformVars[idx].value = []float32{float32(w), float32(h)}
 			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
 		}
 		{
@@ -286,7 +274,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 			}
 			const idx = graphics.TextureSourceSizesUniformVariableIndex
 			g.uniformVars[idx].name = g.uniformVariableName(idx)
-			g.uniformVars[idx].value.Float32s = sizes
+			g.uniformVars[idx].value = sizes
 			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
 		}
 		dw, dh := destination.framebufferSize()
@@ -294,14 +282,14 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 			origin := []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
 			const idx = graphics.TextureDestinationRegionOriginUniformVariableIndex
 			g.uniformVars[idx].name = g.uniformVariableName(idx)
-			g.uniformVars[idx].value.Float32s = origin
+			g.uniformVars[idx].value = origin
 			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
 		}
 		{
 			size := []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
 			const idx = graphics.TextureDestinationRegionSizeUniformVariableIndex
 			g.uniformVars[idx].name = g.uniformVariableName(idx)
-			g.uniformVars[idx].value.Float32s = size
+			g.uniformVars[idx].value = size
 			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
 		}
 		{
@@ -312,21 +300,21 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 			}
 			const idx = graphics.TextureSourceOffsetsUniformVariableIndex
 			g.uniformVars[idx].name = g.uniformVariableName(idx)
-			g.uniformVars[idx].value.Float32s = voffsets
+			g.uniformVars[idx].value = voffsets
 			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
 		}
 		{
 			origin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
 			const idx = graphics.TextureSourceRegionOriginUniformVariableIndex
 			g.uniformVars[idx].name = g.uniformVariableName(idx)
-			g.uniformVars[idx].value.Float32s = origin
+			g.uniformVars[idx].value = origin
 			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
 		}
 		{
 			size := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
 			const idx = graphics.TextureSourceRegionSizeUniformVariableIndex
 			g.uniformVars[idx].name = g.uniformVariableName(idx)
-			g.uniformVars[idx].value.Float32s = size
+			g.uniformVars[idx].value = size
 			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
 		}
 
