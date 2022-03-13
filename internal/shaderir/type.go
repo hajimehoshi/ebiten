@@ -104,6 +104,14 @@ func (t *Type) FloatNum() int {
 	}
 }
 
+func (t *Type) IsMatrix() bool {
+	switch t.Main {
+	case Mat2, Mat3, Mat4:
+		return true
+	}
+	return false
+}
+
 type BasicType int
 
 const (

@@ -213,7 +213,7 @@ func defaultVertexFunc(invertY bool) shaderir.VertexFunc {
 						},
 						{
 							Type: shaderir.Binary,
-							Op:   shaderir.Mul,
+							Op:   shaderir.MatrixMul,
 							Exprs: []shaderir.Expr{
 								projectionMatrix(invertY),
 								vertexPosition(),

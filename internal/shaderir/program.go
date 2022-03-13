@@ -137,7 +137,8 @@ const (
 	Add Op = iota
 	Sub
 	NotOp
-	Mul // TODO: Separate Hadamard-product and Matrix-product
+	ComponentWiseMul
+	MatrixMul
 	Div
 	ModOp
 	LeftShift
@@ -155,7 +156,7 @@ const (
 	OrOr
 )
 
-func OpFromToken(t token.Token) (Op, bool) {
+func OpFromToken(t token.Token, lhs, rhs Type) (Op, bool) {
 	switch t {
 	case token.ADD:
 		return Add, true
@@ -164,7 +165,10 @@ func OpFromToken(t token.Token) (Op, bool) {
 	case token.NOT:
 		return NotOp, true
 	case token.MUL:
-		return Mul, true
+		if lhs.IsMatrix() || rhs.IsMatrix() {
+			return MatrixMul, true
+		}
+		return ComponentWiseMul, true
 	case token.QUO:
 		return Div, true
 	case token.REM:

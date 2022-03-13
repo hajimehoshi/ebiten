@@ -164,7 +164,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 			}, []shaderir.Type{t}, stmts, true
 		}
 
-		op, ok := shaderir.OpFromToken(e.Op)
+		op, ok := shaderir.OpFromToken(e.Op, lhst, rhst)
 		if !ok {
 			cs.addError(e.Pos(), fmt.Sprintf("unexpected operator: %s", e.Op))
 			return nil, nil, nil, false
@@ -178,7 +178,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 		case lhs[0].Type == shaderir.NumberExpr && rhs[0].Type != shaderir.NumberExpr:
 			switch rhst.Main {
 			case shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
-				if op != shaderir.Mul {
+				if op != shaderir.MatrixMul {
 					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 					return nil, nil, nil, false
 				}
@@ -199,7 +199,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 		case lhs[0].Type != shaderir.NumberExpr && rhs[0].Type == shaderir.NumberExpr:
 			switch lhst.Main {
 			case shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
-				if op != shaderir.Mul && op != shaderir.Div {
+				if op != shaderir.MatrixMul && op != shaderir.Div {
 					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 					return nil, nil, nil, false
 				}
@@ -228,7 +228,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 			case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
 				t = rhst
 			case shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
-				if op != shaderir.Mul {
+				if op != shaderir.MatrixMul {
 					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 					return nil, nil, nil, false
 				}
@@ -242,7 +242,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 			case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
 				t = lhst
 			case shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
-				if op != shaderir.Mul && op != shaderir.Div {
+				if op != shaderir.MatrixMul && op != shaderir.Div {
 					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 					return nil, nil, nil, false
 				}
@@ -251,13 +251,13 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 				return nil, nil, nil, false
 			}
-		case op == shaderir.Mul && (lhst.Main == shaderir.Vec2 && rhst.Main == shaderir.Mat2 ||
+		case op == shaderir.MatrixMul && (lhst.Main == shaderir.Vec2 && rhst.Main == shaderir.Mat2 ||
 			lhst.Main == shaderir.Mat2 && rhst.Main == shaderir.Vec2):
 			t = shaderir.Type{Main: shaderir.Vec2}
-		case op == shaderir.Mul && (lhst.Main == shaderir.Vec3 && rhst.Main == shaderir.Mat3 ||
+		case op == shaderir.MatrixMul && (lhst.Main == shaderir.Vec3 && rhst.Main == shaderir.Mat3 ||
 			lhst.Main == shaderir.Mat3 && rhst.Main == shaderir.Vec3):
 			t = shaderir.Type{Main: shaderir.Vec3}
-		case op == shaderir.Mul && (lhst.Main == shaderir.Vec4 && rhst.Main == shaderir.Mat4 ||
+		case op == shaderir.MatrixMul && (lhst.Main == shaderir.Vec4 && rhst.Main == shaderir.Mat4 ||
 			lhst.Main == shaderir.Mat4 && rhst.Main == shaderir.Vec4):
 			t = shaderir.Type{Main: shaderir.Vec4}
 		default:

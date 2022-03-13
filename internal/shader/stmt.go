@@ -62,20 +62,6 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			}
 			stmts = append(stmts, ss...)
 		case token.ADD_ASSIGN, token.SUB_ASSIGN, token.MUL_ASSIGN, token.QUO_ASSIGN, token.REM_ASSIGN:
-			var op shaderir.Op
-			switch stmt.Tok {
-			case token.ADD_ASSIGN:
-				op = shaderir.Add
-			case token.SUB_ASSIGN:
-				op = shaderir.Sub
-			case token.MUL_ASSIGN:
-				op = shaderir.Mul
-			case token.QUO_ASSIGN:
-				op = shaderir.Div
-			case token.REM_ASSIGN:
-				op = shaderir.ModOp
-			}
-
 			rhs, rts, ss, ok := cs.parseExpr(block, stmt.Rhs[0], true)
 			if !ok {
 				return nil, false
@@ -87,6 +73,24 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				return nil, false
 			}
 			stmts = append(stmts, ss...)
+
+			var op shaderir.Op
+			switch stmt.Tok {
+			case token.ADD_ASSIGN:
+				op = shaderir.Add
+			case token.SUB_ASSIGN:
+				op = shaderir.Sub
+			case token.MUL_ASSIGN:
+				if lts[0].IsMatrix() || rts[0].IsMatrix() {
+					op = shaderir.MatrixMul
+				} else {
+					op = shaderir.ComponentWiseMul
+				}
+			case token.QUO_ASSIGN:
+				op = shaderir.Div
+			case token.REM_ASSIGN:
+				op = shaderir.ModOp
+			}
 
 			// Treat an integer literal as an integer constant value.
 			wasTypedConstInt := rhs[0].ConstType == shaderir.ConstTypeInt
@@ -116,14 +120,14 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 						return nil, false
 					}
 				case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
-					if (op == shaderir.Mul || op == shaderir.Div) && rts[0].Main == shaderir.Float {
+					if (op == shaderir.MatrixMul || op == shaderir.Div) && rts[0].Main == shaderir.Float {
 						// OK
 					} else if (lts[0].Main == shaderir.Vec2 ||
 						lts[0].Main == shaderir.Vec3 ||
 						lts[0].Main == shaderir.Vec4) &&
 						rts[0].Main == shaderir.Float {
 						// OK
-					} else if op == shaderir.Mul && ((lts[0].Main == shaderir.Vec2 && rts[0].Main == shaderir.Mat2) ||
+					} else if op == shaderir.MatrixMul && ((lts[0].Main == shaderir.Vec2 && rts[0].Main == shaderir.Mat2) ||
 						(lts[0].Main == shaderir.Vec3 && rts[0].Main == shaderir.Mat3) ||
 						(lts[0].Main == shaderir.Vec4 && rts[0].Main == shaderir.Mat4)) {
 						// OK
