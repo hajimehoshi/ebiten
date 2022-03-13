@@ -20,6 +20,50 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
+func opString(op shaderir.Op) string {
+	switch op {
+	case shaderir.Add:
+		return "+"
+	case shaderir.Sub:
+		return "-"
+	case shaderir.NotOp:
+		return "!"
+	case shaderir.Mul:
+		return "*"
+	case shaderir.Div:
+		return "/"
+	case shaderir.ModOp:
+		return "%"
+	case shaderir.LeftShift:
+		return "<<"
+	case shaderir.RightShift:
+		return ">>"
+	case shaderir.LessThanOp:
+		return "<"
+	case shaderir.LessThanEqualOp:
+		return "<="
+	case shaderir.GreaterThanOp:
+		return ">"
+	case shaderir.GreaterThanEqualOp:
+		return ">="
+	case shaderir.EqualOp:
+		return "=="
+	case shaderir.NotEqualOp:
+		return "!="
+	case shaderir.And:
+		return "&"
+	case shaderir.Xor:
+		return "^"
+	case shaderir.Or:
+		return "|"
+	case shaderir.AndAnd:
+		return "&&"
+	case shaderir.OrOr:
+		return "||"
+	}
+	return fmt.Sprintf("!(unexpected operator: %d)", op)
+}
+
 func typeString(t *shaderir.Type, packed bool, ref bool) string {
 	switch t.Main {
 	case shaderir.Array:

@@ -131,28 +131,28 @@ const (
 	Index
 )
 
-type Op string
+type Op int
 
 const (
-	Add                Op = "+"
-	Sub                Op = "-"
-	NotOp              Op = "!"
-	Mul                Op = "*"
-	Div                Op = "/"
-	ModOp              Op = "%"
-	LeftShift          Op = "<<"
-	RightShift         Op = ">>"
-	LessThanOp         Op = "<"
-	LessThanEqualOp    Op = "<="
-	GreaterThanOp      Op = ">"
-	GreaterThanEqualOp Op = ">="
-	EqualOp            Op = "=="
-	NotEqualOp         Op = "!="
-	And                Op = "&"
-	Xor                Op = "^"
-	Or                 Op = "|"
-	AndAnd             Op = "&&"
-	OrOr               Op = "||"
+	Add Op = iota
+	Sub
+	NotOp
+	Mul // TODO: Separate Hadamard-product and Matrix-product
+	Div
+	ModOp
+	LeftShift
+	RightShift
+	LessThanOp
+	LessThanEqualOp
+	GreaterThanOp
+	GreaterThanEqualOp
+	EqualOp
+	NotEqualOp
+	And
+	Xor
+	Or
+	AndAnd
+	OrOr
 )
 
 func OpFromToken(t token.Token) (Op, bool) {
@@ -196,7 +196,7 @@ func OpFromToken(t token.Token) (Op, bool) {
 	case token.LOR:
 		return OrOr, true
 	}
-	return "", false
+	return 0, false
 }
 
 type BuiltinFunc string

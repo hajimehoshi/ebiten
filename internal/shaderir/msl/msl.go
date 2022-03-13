@@ -371,13 +371,13 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			var op string
 			switch e.Op {
 			case shaderir.Add, shaderir.Sub, shaderir.NotOp:
-				op = string(e.Op)
+				op = opString(e.Op)
 			default:
-				op = fmt.Sprintf("?(unexpected op: %s)", string(e.Op))
+				op = fmt.Sprintf("?(unexpected op: %d)", e.Op)
 			}
 			return fmt.Sprintf("%s(%s)", op, expr(&e.Exprs[0]))
 		case shaderir.Binary:
-			return fmt.Sprintf("(%s) %s (%s)", expr(&e.Exprs[0]), e.Op, expr(&e.Exprs[1]))
+			return fmt.Sprintf("(%s) %s (%s)", expr(&e.Exprs[0]), opString(e.Op), expr(&e.Exprs[1]))
 		case shaderir.Selection:
 			return fmt.Sprintf("(%s) ? (%s) : (%s)", expr(&e.Exprs[0]), expr(&e.Exprs[1]), expr(&e.Exprs[2]))
 		case shaderir.Call:
@@ -469,9 +469,9 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			var op string
 			switch s.ForOp {
 			case shaderir.LessThanOp, shaderir.LessThanEqualOp, shaderir.GreaterThanOp, shaderir.GreaterThanEqualOp, shaderir.EqualOp, shaderir.NotEqualOp:
-				op = string(s.ForOp)
+				op = opString(s.ForOp)
 			default:
-				op = fmt.Sprintf("?(unexpected op: %s)", string(s.ForOp))
+				op = fmt.Sprintf("?(unexpected op: %d)", s.ForOp)
 			}
 
 			t := s.ForVarType
