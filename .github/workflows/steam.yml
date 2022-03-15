@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DISPLAY: ':99.0'
-      GO_VERSION: '1.17'
+      GO_VERSION: '1.18'
     defaults:
       run:
         shell: bash
