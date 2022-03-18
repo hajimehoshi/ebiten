@@ -16,6 +16,12 @@ jobs:
       run:
         shell: bash
     steps:
+      - name: Git
+        run: |
+          # See actions/checkout#135
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
       - name: Checkout
         uses: actions/checkout@v2
 
@@ -89,6 +95,11 @@ jobs:
         if: ${{ startsWith(matrix.os, 'ubuntu-') }}
         run: |
           go test -tags=example ${{ !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
+
+      - name: go test (Windows)
+        if: ${{ startsWith(matrix.os, 'windows-') }}
+        run: |
+          go test -tags=example ${{ !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./internal/shader
 
       - name: go test (Wasm)
         # TODO: Investigate times out on Windows. (#1313)
