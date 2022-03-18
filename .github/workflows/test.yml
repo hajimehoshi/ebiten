@@ -86,7 +86,7 @@ jobs:
 
       - name: go test
         # TODO: Add more test environments (#1305)
-        if: ${{ startsWith(matrix.os, 'ubuntu-')
+        if: ${{ startsWith(matrix.os, 'ubuntu-') }}
         run: |
           go test -tags=example ${{ !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
 
