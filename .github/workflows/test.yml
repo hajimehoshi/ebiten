@@ -84,17 +84,11 @@ jobs:
         run: |
           go build -tags=example,ebitencbackend -v ./...
 
-      - name: go test (Go 1.16 or older)
-        # TODO: Add more test environments (#1305)
-        if: ${{ startsWith(matrix.os, 'ubuntu-') && (startsWith(matrix.go, '1.15.') || startsWith(matrix.go, '1.16.')) }}
-        run: |
-          go test -tags=example -v ./...
-
       - name: go test
         # TODO: Add more test environments (#1305)
-        if: ${{ startsWith(matrix.os, 'ubuntu-') && !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') }}
+        if: ${{ startsWith(matrix.os, 'ubuntu-')
         run: |
-          go test -tags=example -shuffle=on -v ./...
+          go test -tags=example ${{ !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
 
       - name: go test (Wasm)
         # TODO: Investigate times out on Windows. (#1313)
