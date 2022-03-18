@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/gofrs/flock"
 	"golang.org/x/sys/windows"
 )
 
@@ -56,6 +57,11 @@ func loadDLL() (*dll, error) {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return nil, err
 	}
+
+	// Make the file operation atomic among multiple processes.
+	fl := flock.New(filepath.Join(dir, glfwDLLHash+".lock"))
+	fl.Lock()
+	defer fl.Unlock()
 
 	fn := filepath.Join(dir, glfwDLLHash+".dll")
 	if _, err := os.Stat(fn); err != nil {
