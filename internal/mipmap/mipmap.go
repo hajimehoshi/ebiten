@@ -71,8 +71,16 @@ func (m *Mipmap) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name str
 	return m.orig.DumpScreenshot(graphicsDriver, name, blackbg)
 }
 
-func (m *Mipmap) ReplacePixels(graphicsDriver graphicsdriver.Graphics, pix []byte, x, y, width, height int) error {
-	if err := m.orig.ReplacePixels(graphicsDriver, pix, x, y, width, height); err != nil {
+func (m *Mipmap) ReplaceLargeAreaPixels(pix []byte, x, y, width, height int) error {
+	if err := m.orig.ReplaceLargeAreaPixels(pix, x, y, width, height); err != nil {
+		return err
+	}
+	m.disposeMipmaps()
+	return nil
+}
+
+func (m *Mipmap) ReplaceSmallAreaPixels(graphicsDriver graphicsdriver.Graphics, pix []byte, x, y, width, height int) error {
+	if err := m.orig.ReplaceSmallAreaPixels(graphicsDriver, pix, x, y, width, height); err != nil {
 		return err
 	}
 	m.disposeMipmaps()

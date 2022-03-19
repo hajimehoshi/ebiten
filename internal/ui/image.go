@@ -60,8 +60,12 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 	i.mipmap.DrawTriangles(srcMipmaps, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, s, uniforms, evenOdd, canSkipMipmap)
 }
 
-func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
-	return i.mipmap.ReplacePixels(graphicsDriver(), pix, x, y, width, height)
+func (i *Image) ReplaceLargeAreaPixels(pix []byte, x, y, width, height int) error {
+	return i.mipmap.ReplaceLargeAreaPixels(pix, x, y, width, height)
+}
+
+func (i *Image) ReplaceSmallAreaPixels(pix []byte, x, y, width, height int) error {
+	return i.mipmap.ReplaceSmallAreaPixels(graphicsDriver(), pix, x, y, width, height)
 }
 
 func (i *Image) Pixels(x, y, width, height int) ([]byte, error) {

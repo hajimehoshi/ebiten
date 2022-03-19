@@ -337,7 +337,7 @@ func (i *Image) putOnAtlas(graphicsDriver graphicsdriver.Graphics) error {
 				pixels[4*(i.width*y+x)+3] = a
 			}
 		}
-		newI.replacePixels(pixels)
+		newI.replacePixels(pixels, 0, 0, i.width, i.height)
 	} else {
 		// If the underlying graphics driver doesn't require restoring from the context lost, just a regular
 		// rendering works.
@@ -538,13 +538,13 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 	}
 }
 
-func (i *Image) ReplacePixels(pix []byte) {
+func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	i.replacePixels(pix)
+	i.replacePixels(pix, x, y, width, height)
 }
 
-func (i *Image) replacePixels(pix []byte) {
+func (i *Image) replacePixels(pix []byte, x, y, width, height int) {
 	if i.disposed {
 		panic("atlas: the image must not be disposed at replacePixels")
 	}
@@ -558,25 +558,37 @@ func (i *Image) replacePixels(pix []byte) {
 		i.allocate(true)
 	}
 
-	x, y, w, h := i.regionWithPadding()
-	if pix == nil {
-		i.backend.restorable.ReplacePixels(nil, x, y, w, h)
+	// If the replacing area is small, replace the pixels without the padding.
+	if x != 0 || y != 0 || width != i.width || height != i.height {
+		ox, oy, _, _ := i.regionWithPadding()
+		x += ox + paddingSize
+		y += oy + paddingSize
+		copied := make([]byte, len(pix))
+		copy(copied, pix)
+		i.backend.restorable.ReplacePixels(copied, x, y, width, height)
 		return
 	}
 
-	ow, oh := w-2*paddingSize, h-2*paddingSize
+	// If the whole area is being replaced, add the padding.
+	px, py, pw, ph := i.regionWithPadding()
+	if pix == nil {
+		i.backend.restorable.ReplacePixels(nil, px, py, pw, ph)
+		return
+	}
+
+	ow, oh := pw-2*paddingSize, ph-2*paddingSize
 	if l := 4 * ow * oh; len(pix) != l {
 		panic(fmt.Sprintf("atlas: len(p) must be %d but %d", l, len(pix)))
 	}
 
-	pixb := theTemporaryPixels.alloc(4 * w * h)
+	pixb := theTemporaryPixels.alloc(4 * pw * ph)
 
 	// Clear the edges. pixb might not be zero-cleared.
-	rowPixels := 4 * w
+	rowPixels := 4 * pw
 	for i := 0; i < rowPixels; i++ {
 		pixb[i] = 0
 	}
-	for j := 1; j < h-1; j++ {
+	for j := 1; j < ph-1; j++ {
 		pixb[rowPixels*j] = 0
 		pixb[rowPixels*j+1] = 0
 		pixb[rowPixels*j+2] = 0
@@ -587,15 +599,15 @@ func (i *Image) replacePixels(pix []byte) {
 		pixb[rowPixels*(j+1)-1] = 0
 	}
 	for i := 0; i < rowPixels; i++ {
-		pixb[rowPixels*(h-1)+i] = 0
+		pixb[rowPixels*(ph-1)+i] = 0
 	}
 
 	// Copy the content.
 	for j := 0; j < oh; j++ {
-		copy(pixb[4*((j+paddingSize)*w+paddingSize):], pix[4*j*ow:4*(j+1)*ow])
+		copy(pixb[4*((j+paddingSize)*pw+paddingSize):], pix[4*j*ow:4*(j+1)*ow])
 	}
 
-	i.backend.restorable.ReplacePixels(pixb, x, y, w, h)
+	i.backend.restorable.ReplacePixels(pixb, px, py, pw, ph)
 }
 
 func (img *Image) Pixels(graphicsDriver graphicsdriver.Graphics, x, y, width, height int) ([]byte, error) {

@@ -117,7 +117,7 @@ func (i *Image) invalidatePendingPixels() {
 
 func (i *Image) resolvePendingPixels(keepPendingPixels bool) {
 	if i.needsToResolvePixels {
-		i.img.ReplacePixels(i.pixels)
+		i.img.ReplacePixels(i.pixels, 0, 0, i.width, i.height)
 		if !keepPendingPixels {
 			i.pixels = nil
 		}
@@ -166,7 +166,7 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name stri
 	return i.img.DumpScreenshot(graphicsDriver, name, blackbg)
 }
 
-func (i *Image) ReplacePixels(graphicsDriver graphicsdriver.Graphics, pix []byte, x, y, width, height int) error {
+func (i *Image) ReplaceLargeAreaPixels(pix []byte, x, y, width, height int) error {
 	if l := 4 * width * height; len(pix) != l {
 		panic(fmt.Sprintf("buffered: len(pix) was %d but must be %d", len(pix), l))
 	}
@@ -175,7 +175,29 @@ func (i *Image) ReplacePixels(graphicsDriver graphicsdriver.Graphics, pix []byte
 		copied := make([]byte, len(pix))
 		copy(copied, pix)
 		if tryAddDelayedCommand(func() error {
-			i.ReplacePixels(graphicsDriver, copied, x, y, width, height)
+			i.ReplaceLargeAreaPixels(copied, x, y, width, height)
+			return nil
+		}) {
+			return nil
+		}
+	}
+
+	i.invalidatePendingPixels()
+
+	i.img.ReplacePixels(pix, x, y, width, height)
+	return nil
+}
+
+func (i *Image) ReplaceSmallAreaPixels(graphicsDriver graphicsdriver.Graphics, pix []byte, x, y, width, height int) error {
+	if l := 4 * width * height; len(pix) != l {
+		panic(fmt.Sprintf("buffered: len(pix) was %d but must be %d", len(pix), l))
+	}
+
+	if maybeCanAddDelayedCommand() {
+		copied := make([]byte, len(pix))
+		copy(copied, pix)
+		if tryAddDelayedCommand(func() error {
+			i.ReplaceSmallAreaPixels(graphicsDriver, copied, x, y, width, height)
 			return nil
 		}) {
 			return nil
@@ -188,7 +210,7 @@ func (i *Image) ReplacePixels(graphicsDriver graphicsdriver.Graphics, pix []byte
 		// Call ReplacePixels immediately. Do not buffer the command.
 		// If a lot of new images are created but they are used at different timings,
 		// pixels are sent to GPU at different timings, which is very inefficient.
-		i.img.ReplacePixels(pix)
+		i.img.ReplacePixels(pix, x, y, width, height)
 		return nil
 	}
 

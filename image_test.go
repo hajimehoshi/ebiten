@@ -1882,6 +1882,18 @@ func TestImageReplacePixelsOnSubImage(t *testing.T) {
 	r1 := image.Rect(11, 10, 16, 13)
 	dst.SubImage(r1).(*ebiten.Image).ReplacePixels(pix1)
 
+	// Clear the pixels. This should not affect the result.
+	idx = 0
+	for j := 0; j < 3; j++ {
+		for i := 0; i < 5; i++ {
+			pix1[4*idx] = 0
+			pix1[4*idx+1] = 0
+			pix1[4*idx+2] = 0
+			pix1[4*idx+3] = 0
+			idx++
+		}
+	}
+
 	for j := 0; j < 31; j++ {
 		for i := 0; i < 17; i++ {
 			got := dst.At(i, j).(color.RGBA)
