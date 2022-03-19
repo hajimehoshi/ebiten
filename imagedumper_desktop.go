@@ -52,7 +52,7 @@ func takeScreenshot(screen *Image) error {
 	}
 
 	blackbg := !IsScreenTransparent()
-	if err := screen.mipmap.DumpScreenshot(newname, blackbg); err != nil {
+	if err := screen.image.DumpScreenshot(newname, blackbg); err != nil {
 		return err
 	}
 

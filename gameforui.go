@@ -63,7 +63,7 @@ func (c *gameForUI) Layout(outsideWidth, outsideHeight float64, deviceScaleFacto
 		// The shader program for the screen is special and doesn't work well with an image on an atlas.
 		// An image on an atlas is surrounded by a transparent edge,
 		// and the shader program unexpectedly picks the pixel on the edges.
-		c.offscreen.mipmap.SetIndependent(true)
+		c.offscreen.image.SetIndependent(true)
 	}
 
 	return ow, oh
@@ -74,7 +74,7 @@ func (c *gameForUI) Update() error {
 }
 
 func (c *gameForUI) Draw(screenScale float64, offsetX, offsetY float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection, clearScreenEveryFrame, filterEnabled bool) error {
-	c.offscreen.mipmap.SetVolatile(clearScreenEveryFrame)
+	c.offscreen.image.SetVolatile(clearScreenEveryFrame)
 
 	// Even though updateCount == 0, the offscreen is cleared and Draw is called.
 	// Draw should not update the game state and then the screen should not be updated without Update, but

@@ -23,9 +23,9 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
-	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 	"github.com/hajimehoshi/ebiten/v2/internal/shader"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 var shaderSuffix string
@@ -111,7 +111,7 @@ func imageSrc%[1]dAt(pos vec2) vec4 {
 //
 // For the details about the shader, see https://ebiten.org/documents/shader.html.
 type Shader struct {
-	shader       *mipmap.Shader
+	shader       *ui.Shader
 	uniformNames []string
 	uniformTypes []shaderir.Type
 }
@@ -172,7 +172,7 @@ func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
 	}
 
 	return &Shader{
-		shader:       mipmap.NewShader(s),
+		shader:       ui.NewShader(s),
 		uniformNames: s.UniformNames,
 		uniformTypes: s.Uniforms,
 	}, nil

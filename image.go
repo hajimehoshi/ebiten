@@ -22,7 +22,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -38,7 +37,7 @@ type Image struct {
 	// See strings.Builder for similar examples.
 	addr *Image
 
-	mipmap *mipmap.Mipmap
+	image *ui.Image
 
 	bounds   image.Rectangle
 	original *Image
@@ -58,7 +57,7 @@ func (i *Image) Size() (width, height int) {
 }
 
 func (i *Image) isDisposed() bool {
-	return i.mipmap == nil
+	return i.image == nil
 }
 
 func (i *Image) isSubImage() bool {
@@ -205,9 +204,9 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	vs := graphics.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 
-	srcs := [graphics.ShaderImageNum]*mipmap.Mipmap{img.mipmap}
+	srcs := [graphics.ShaderImageNum]*ui.Image{img.image}
 
-	i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.affineColorM(), mode, filter, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false, canSkipMipmap(options.GeoM, filter))
+	i.image.DrawTriangles(srcs, vs, is, options.ColorM.affineColorM(), mode, filter, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false, canSkipMipmap(options.GeoM, filter))
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -369,9 +368,9 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
-	srcs := [graphics.ShaderImageNum]*mipmap.Mipmap{img.mipmap}
+	srcs := [graphics.ShaderImageNum]*ui.Image{img.image}
 
-	i.mipmap.DrawTriangles(srcs, vs, is, options.ColorM.affineColorM(), mode, filter, address, dstRegion, sr, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, options.FillRule == EvenOdd, false)
+	i.image.DrawTriangles(srcs, vs, is, options.ColorM.affineColorM(), mode, filter, address, dstRegion, sr, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, options.FillRule == EvenOdd, false)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
@@ -469,7 +468,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
-	var imgs [graphics.ShaderImageNum]*mipmap.Mipmap
+	var imgs [graphics.ShaderImageNum]*ui.Image
 	var imgw, imgh int
 	for i, img := range options.Images {
 		if img == nil {
@@ -486,7 +485,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 				panic("ebiten: all the source images must be the same size with the rectangle")
 			}
 		}
-		imgs[i] = img.mipmap
+		imgs[i] = img.image
 	}
 
 	var sx, sy float32
@@ -519,7 +518,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 
 	us := shader.convertUniforms(options.Uniforms)
 
-	i.mipmap.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, us, options.FillRule == EvenOdd, false)
+	i.image.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, us, options.FillRule == EvenOdd, false)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
@@ -584,7 +583,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 
 	mode := graphicsdriver.CompositeMode(options.CompositeMode)
 
-	var imgs [graphics.ShaderImageNum]*mipmap.Mipmap
+	var imgs [graphics.ShaderImageNum]*ui.Image
 	for i, img := range options.Images {
 		if img == nil {
 			continue
@@ -595,7 +594,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		if w, h := img.Size(); width != w || height != h {
 			panic("ebiten: all the source images must be the same size with the rectangle")
 		}
-		imgs[i] = img.mipmap
+		imgs[i] = img.image
 	}
 
 	var sx, sy float32
@@ -631,7 +630,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	}
 
 	us := shader.convertUniforms(options.Uniforms)
-	i.mipmap.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, us, false, canSkipMipmap(options.GeoM, graphicsdriver.FilterNearest))
+	i.image.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, us, false, canSkipMipmap(options.GeoM, graphicsdriver.FilterNearest))
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.
@@ -663,7 +662,7 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 	}
 
 	img := &Image{
-		mipmap:   i.mipmap,
+		image:    i.image,
 		bounds:   r,
 		original: orig,
 	}
@@ -729,7 +728,7 @@ func (i *Image) at(x, y int) (r, g, b, a uint8) {
 	if !image.Pt(x, y).In(i.Bounds()) {
 		return 0, 0, 0, 0
 	}
-	pix, err := i.mipmap.Pixels(x, y, 1, 1)
+	pix, err := i.image.Pixels(x, y, 1, 1)
 	if err != nil {
 		if panicOnErrorAtImageAt {
 			panic(err)
@@ -765,7 +764,7 @@ func (i *Image) Set(x, y int, clr color.Color) {
 
 	r, g, b, a := clr.RGBA()
 	pix := []byte{byte(r >> 8), byte(g >> 8), byte(b >> 8), byte(a >> 8)}
-	if err := i.mipmap.ReplacePixels(pix, x, y, 1, 1); err != nil {
+	if err := i.image.ReplacePixels(pix, x, y, 1, 1); err != nil {
 		ui.SetError(err)
 	}
 }
@@ -788,8 +787,8 @@ func (i *Image) Dispose() {
 	if i.isSubImage() {
 		return
 	}
-	i.mipmap.MarkDisposed()
-	i.mipmap = nil
+	i.image.MarkDisposed()
+	i.image = nil
 }
 
 // ReplacePixels replaces the pixels of the image with p.
@@ -817,7 +816,7 @@ func (i *Image) ReplacePixels(pixels []byte) {
 	// Do not need to copy pixels here.
 	// * In internal/mipmap, pixels are copied when necessary.
 	// * In internal/shareable, pixels are copied to make its paddings.
-	if err := i.mipmap.ReplacePixels(pixels, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
+	if err := i.image.ReplacePixels(pixels, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
 		ui.SetError(err)
 	}
 }
@@ -842,7 +841,7 @@ func NewImage(width, height int) *Image {
 		panic(fmt.Sprintf("ebiten: height at NewImage must be positive but %d", height))
 	}
 	i := &Image{
-		mipmap: mipmap.New(width, height),
+		image:  ui.NewImage(width, height),
 		bounds: image.Rect(0, 0, width, height),
 	}
 	i.addr = i
@@ -873,7 +872,7 @@ func NewImageFromImage(source image.Image) *Image {
 	}
 
 	i := &Image{
-		mipmap: mipmap.New(width, height),
+		image:  ui.NewImage(width, height),
 		bounds: image.Rect(0, 0, width, height),
 	}
 	i.addr = i
@@ -884,7 +883,7 @@ func NewImageFromImage(source image.Image) *Image {
 
 func newScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
-		mipmap: mipmap.NewScreenFramebufferMipmap(width, height),
+		image:  ui.NewScreenFramebufferImage(width, height),
 		bounds: image.Rect(0, 0, width, height),
 		screen: true,
 	}
