@@ -174,7 +174,7 @@ func (i *Image) ReadPixels(buf []byte) error {
 		result: buf,
 	}
 	theCommandQueue.Enqueue(c)
-	if err := theCommandQueue.Flush(); err != nil {
+	if err := theCommandQueue.Flush(graphicsDriver()); err != nil {
 		return err
 	}
 	return nil

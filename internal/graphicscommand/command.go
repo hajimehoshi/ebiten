@@ -35,7 +35,7 @@ import (
 type command interface {
 	fmt.Stringer
 
-	Exec(indexOffset int) error
+	Exec(indexOffset int, graphicsDriver graphicsdriver.Graphics) error
 }
 
 type size struct {
@@ -214,15 +214,15 @@ func (q *commandQueue) Enqueue(command command) {
 }
 
 // Flush flushes the command queue.
-func (q *commandQueue) Flush() (err error) {
+func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics) (err error) {
 	runOnRenderingThread(func() {
-		err = q.flush()
+		err = q.flush(graphicsDriver)
 	})
 	return
 }
 
 // flush must be called the main thread.
-func (q *commandQueue) flush() error {
+func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
 	if len(q.commands) == 0 {
 		return nil
 	}
@@ -231,7 +231,7 @@ func (q *commandQueue) flush() error {
 	vs := q.vertices
 	debug.Logf("Graphics commands:\n")
 
-	if graphicsDriver().HasHighPrecisionFloat() {
+	if graphicsDriver.HasHighPrecisionFloat() {
 		n := q.nvertices / graphics.VertexFloatNum
 		for i := 0; i < n; i++ {
 			s := q.srcSizes[i]
@@ -282,7 +282,7 @@ func (q *commandQueue) flush() error {
 		}
 	}
 
-	graphicsDriver().Begin()
+	graphicsDriver.Begin()
 	var present bool
 	cs := q.commands
 	for len(cs) > 0 {
@@ -306,13 +306,13 @@ func (q *commandQueue) flush() error {
 			nc++
 		}
 		if 0 < ne {
-			graphicsDriver().SetVertices(vs[:nv], es[:ne])
+			graphicsDriver.SetVertices(vs[:nv], es[:ne])
 			es = es[ne:]
 			vs = vs[nv:]
 		}
 		indexOffset := 0
 		for _, c := range cs[:nc] {
-			if err := c.Exec(indexOffset); err != nil {
+			if err := c.Exec(indexOffset, graphicsDriver); err != nil {
 				return err
 			}
 			debug.Logf("  %s\n", c)
@@ -325,7 +325,7 @@ func (q *commandQueue) flush() error {
 		}
 		cs = cs[nc:]
 	}
-	graphicsDriver().End(present)
+	graphicsDriver.End(present)
 
 	// Release the commands explicitly (#1803).
 	// Apparently, the part of a slice between len and cap-1 still holds references.
@@ -346,7 +346,7 @@ func (q *commandQueue) flush() error {
 
 // FlushCommands flushes the command queue.
 func FlushCommands() error {
-	return theCommandQueue.Flush()
+	return theCommandQueue.Flush(graphicsDriver())
 }
 
 // drawTrianglesCommand represents a drawing command to draw an image on another image.
@@ -453,7 +453,7 @@ func (c *drawTrianglesCommand) String() string {
 }
 
 // Exec executes the drawTrianglesCommand.
-func (c *drawTrianglesCommand) Exec(indexOffset int) error {
+func (c *drawTrianglesCommand) Exec(indexOffset int, graphicsDriver graphicsdriver.Graphics) error {
 	// TODO: Is it ok not to bind any framebuffer here?
 	if c.nindices == 0 {
 		return nil
@@ -474,7 +474,7 @@ func (c *drawTrianglesCommand) Exec(indexOffset int) error {
 		imgs[0] = c.srcs[0].image.ID()
 	}
 
-	return graphicsDriver().DrawTriangles(c.dst.image.ID(), imgs, c.offsets, shaderID, c.nindices, indexOffset, c.mode, c.color, c.filter, c.address, c.dstRegion, c.srcRegion, c.uniforms, c.evenOdd)
+	return graphicsDriver.DrawTriangles(c.dst.image.ID(), imgs, c.offsets, shaderID, c.nindices, indexOffset, c.mode, c.color, c.filter, c.address, c.dstRegion, c.srcRegion, c.uniforms, c.evenOdd)
 }
 
 func (c *drawTrianglesCommand) numVertices() int {
@@ -583,7 +583,7 @@ func (c *replacePixelsCommand) String() string {
 }
 
 // Exec executes the replacePixelsCommand.
-func (c *replacePixelsCommand) Exec(indexOffset int) error {
+func (c *replacePixelsCommand) Exec(indexOffset int, graphicsDriver graphicsdriver.Graphics) error {
 	c.dst.image.ReplacePixels(c.args)
 	return nil
 }
@@ -594,7 +594,7 @@ type pixelsCommand struct {
 }
 
 // Exec executes a pixelsCommand.
-func (c *pixelsCommand) Exec(indexOffset int) error {
+func (c *pixelsCommand) Exec(indexOffset int, graphicsDriver graphicsdriver.Graphics) error {
 	if err := c.img.image.ReadPixels(c.result); err != nil {
 		return err
 	}
@@ -615,7 +615,7 @@ func (c *disposeImageCommand) String() string {
 }
 
 // Exec executes the disposeImageCommand.
-func (c *disposeImageCommand) Exec(indexOffset int) error {
+func (c *disposeImageCommand) Exec(indexOffset int, graphicsDriver graphicsdriver.Graphics) error {
 	c.target.image.Dispose()
 	return nil
 }
@@ -630,7 +630,7 @@ func (c *disposeShaderCommand) String() string {
 }
 
 // Exec executes the disposeShaderCommand.
-func (c *disposeShaderCommand) Exec(indexOffset int) error {
+func (c *disposeShaderCommand) Exec(indexOffset int, graphicsDriver graphicsdriver.Graphics) error {
 	c.target.shader.Dispose()
 	return nil
 }
@@ -647,8 +647,8 @@ func (c *newImageCommand) String() string {
 }
 
 // Exec executes a newImageCommand.
-func (c *newImageCommand) Exec(indexOffset int) error {
-	i, err := graphicsDriver().NewImage(c.width, c.height)
+func (c *newImageCommand) Exec(indexOffset int, graphicsDriver graphicsdriver.Graphics) error {
+	i, err := graphicsDriver.NewImage(c.width, c.height)
 	if err != nil {
 		return err
 	}
@@ -668,9 +668,9 @@ func (c *newScreenFramebufferImageCommand) String() string {
 }
 
 // Exec executes a newScreenFramebufferImageCommand.
-func (c *newScreenFramebufferImageCommand) Exec(indexOffset int) error {
+func (c *newScreenFramebufferImageCommand) Exec(indexOffset int, graphicsDriver graphicsdriver.Graphics) error {
 	var err error
-	c.result.image, err = graphicsDriver().NewScreenFramebufferImage(c.width, c.height)
+	c.result.image, err = graphicsDriver.NewScreenFramebufferImage(c.width, c.height)
 	return err
 }
 
@@ -685,9 +685,9 @@ func (c *newShaderCommand) String() string {
 }
 
 // Exec executes a newShaderCommand.
-func (c *newShaderCommand) Exec(indexOffset int) error {
+func (c *newShaderCommand) Exec(indexOffset int, graphicsDriver graphicsdriver.Graphics) error {
 	var err error
-	c.result.shader, err = graphicsDriver().NewShader(c.ir)
+	c.result.shader, err = graphicsDriver.NewShader(c.ir)
 	return err
 }
 
