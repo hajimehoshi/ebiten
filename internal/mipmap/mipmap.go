@@ -25,14 +25,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
-func BeginFrame() error {
-	return buffered.BeginFrame()
-}
-
-func EndFrame() error {
-	return buffered.EndFrame()
-}
-
 // Mipmap is a set of buffered.Image sorted by the order of mipmap level.
 // The level 0 image is a regular image and higher-level images are used for mipmap.
 type Mipmap struct {
