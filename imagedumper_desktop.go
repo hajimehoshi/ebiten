@@ -22,7 +22,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 // availableFilename returns a filename that is valid as a new file or directory.
@@ -72,7 +72,7 @@ func dumpInternalImages() error {
 		return err
 	}
 
-	if err := atlas.DumpImages(dir); err != nil {
+	if err := ui.DumpImages(dir); err != nil {
 		return err
 	}
 

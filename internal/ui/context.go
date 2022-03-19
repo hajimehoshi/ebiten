@@ -23,7 +23,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	graphicspkg "github.com/hajimehoshi/ebiten/v2/internal/graphics"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
@@ -83,7 +82,7 @@ func (c *contextImpl) updateFrameImpl(updateCount int, outsideWidth, outsideHeig
 
 	debug.Logf("----\n")
 
-	if err := buffered.BeginFrame(); err != nil {
+	if err := buffered.BeginFrame(graphicsDriver()); err != nil {
 		return err
 	}
 
@@ -111,14 +110,14 @@ func (c *contextImpl) updateFrameImpl(updateCount int, outsideWidth, outsideHeig
 
 	// Draw the game.
 	screenScale, offsetX, offsetY := c.screenScaleAndOffsets(deviceScaleFactor)
-	if err := graphicscommand.Draw(c.game, screenScale, offsetX, offsetY, theGlobalState.isScreenClearedEveryFrame(), theGlobalState.isScreenFilterEnabled()); err != nil {
+	if err := c.game.Draw(screenScale, offsetX, offsetY, graphicsDriver().NeedsClearingScreen(), graphicsDriver().FramebufferYDirection(), theGlobalState.isScreenClearedEveryFrame(), theGlobalState.isScreenFilterEnabled()); err != nil {
 		return err
 	}
 
 	// All the vertices data are consumed at the end of the frame, and the data backend can be
 	// available after that. Until then, lock the vertices backend.
 	return graphicspkg.LockAndResetVertices(func() error {
-		if err := buffered.EndFrame(); err != nil {
+		if err := buffered.EndFrame(graphicsDriver()); err != nil {
 			return err
 		}
 		return nil

@@ -117,11 +117,11 @@ func resolveDeferred() {
 // Actual time duration is increased in an exponential way for each usages as a rendering target.
 const baseCountToPutOnAtlas = 10
 
-func putImagesOnAtlas() error {
+func putImagesOnAtlas(graphicsDriver graphicsdriver.Graphics) error {
 	for i := range imagesToPutOnAtlas {
 		i.usedAsSourceCount++
 		if i.usedAsSourceCount >= baseCountToPutOnAtlas*(1<<uint(min(i.isolatedCount, 31))) {
-			if err := i.putOnAtlas(); err != nil {
+			if err := i.putOnAtlas(graphicsDriver); err != nil {
 				return err
 			}
 			i.usedAsSourceCount = 0
@@ -304,7 +304,7 @@ func (i *Image) ensureIsolated() {
 	i.isolatedCount++
 }
 
-func (i *Image) putOnAtlas() error {
+func (i *Image) putOnAtlas(graphicsDriver graphicsdriver.Graphics) error {
 	if i.backend == nil {
 		i.allocate(true)
 		return nil
@@ -327,7 +327,7 @@ func (i *Image) putOnAtlas() error {
 		pixels := make([]byte, 4*i.width*i.height)
 		for y := 0; y < i.height; y++ {
 			for x := 0; x < i.width; x++ {
-				r, g, b, a, err := i.at(x+paddingSize, y+paddingSize)
+				r, g, b, a, err := i.at(graphicsDriver, x+paddingSize, y+paddingSize)
 				if err != nil {
 					return err
 				}
@@ -598,7 +598,7 @@ func (i *Image) replacePixels(pix []byte) {
 	i.backend.restorable.ReplacePixels(pixb, x, y, w, h)
 }
 
-func (img *Image) Pixels(x, y, width, height int) ([]byte, error) {
+func (img *Image) Pixels(graphicsDriver graphicsdriver.Graphics, x, y, width, height int) ([]byte, error) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
@@ -609,7 +609,7 @@ func (img *Image) Pixels(x, y, width, height int) ([]byte, error) {
 	idx := 0
 	for j := y; j < y+height; j++ {
 		for i := x; i < x+width; i++ {
-			r, g, b, a, err := img.at(i, j)
+			r, g, b, a, err := img.at(graphicsDriver, i, j)
 			if err != nil {
 				return nil, err
 			}
@@ -623,7 +623,7 @@ func (img *Image) Pixels(x, y, width, height int) ([]byte, error) {
 	return bs, nil
 }
 
-func (i *Image) at(x, y int) (byte, byte, byte, byte, error) {
+func (i *Image) at(graphicsDriver graphicsdriver.Graphics, x, y int) (byte, byte, byte, byte, error) {
 	if i.backend == nil {
 		return 0, 0, 0, 0, nil
 	}
@@ -633,7 +633,7 @@ func (i *Image) at(x, y int) (byte, byte, byte, byte, error) {
 		return 0, 0, 0, 0, nil
 	}
 
-	return i.backend.restorable.At(x+ox, y+oy)
+	return i.backend.restorable.At(graphicsDriver, x+ox, y+oy)
 }
 
 // MarkDisposed marks the image as disposed. The actual operation is deferred.
@@ -790,11 +790,11 @@ func (i *Image) allocate(putOnAtlas bool) {
 	i.node = n
 }
 
-func (i *Image) DumpScreenshot(path string, blackbg bool) error {
+func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
-	return i.backend.restorable.Dump(path, blackbg, image.Rect(paddingSize, paddingSize, paddingSize+i.width, paddingSize+i.height))
+	return i.backend.restorable.Dump(graphicsDriver, path, blackbg, image.Rect(paddingSize, paddingSize, paddingSize+i.width, paddingSize+i.height))
 }
 
 func NewScreenFramebufferImage(width, height int) *Image {
@@ -807,20 +807,20 @@ func NewScreenFramebufferImage(width, height int) *Image {
 	return i
 }
 
-func EndFrame() error {
+func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 	backendsM.Lock()
 
 	theTemporaryPixels.resetAtFrameEnd()
 
-	return restorable.ResolveStaleImages()
+	return restorable.ResolveStaleImages(graphicsDriver)
 }
 
-func BeginFrame() error {
+func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 	defer backendsM.Unlock()
 
 	var err error
 	initOnce.Do(func() {
-		err = restorable.InitializeGraphicsDriverState()
+		err = restorable.InitializeGraphicsDriverState(graphicsDriver)
 		if err != nil {
 			return
 		}
@@ -828,22 +828,22 @@ func BeginFrame() error {
 			panic("atlas: all the images must be not on an atlas before the game starts")
 		}
 		minSize = 1024
-		maxSize = restorable.MaxImageSize()
+		maxSize = restorable.MaxImageSize(graphicsDriver)
 	})
 	if err != nil {
 		return err
 	}
 
 	resolveDeferred()
-	if err := putImagesOnAtlas(); err != nil {
+	if err := putImagesOnAtlas(graphicsDriver); err != nil {
 		return err
 	}
 
-	return restorable.RestoreIfNeeded()
+	return restorable.RestoreIfNeeded(graphicsDriver)
 }
 
-func DumpImages(dir string) error {
+func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	return restorable.DumpImages(dir)
+	return restorable.DumpImages(graphicsDriver, dir)
 }

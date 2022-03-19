@@ -67,20 +67,20 @@ func (m *Mipmap) SetVolatile(volatile bool) {
 	m.orig.SetVolatile(volatile)
 }
 
-func (m *Mipmap) DumpScreenshot(name string, blackbg bool) error {
-	return m.orig.DumpScreenshot(name, blackbg)
+func (m *Mipmap) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name string, blackbg bool) error {
+	return m.orig.DumpScreenshot(graphicsDriver, name, blackbg)
 }
 
-func (m *Mipmap) ReplacePixels(pix []byte, x, y, width, height int) error {
-	if err := m.orig.ReplacePixels(pix, x, y, width, height); err != nil {
+func (m *Mipmap) ReplacePixels(graphicsDriver graphicsdriver.Graphics, pix []byte, x, y, width, height int) error {
+	if err := m.orig.ReplacePixels(graphicsDriver, pix, x, y, width, height); err != nil {
 		return err
 	}
 	m.disposeMipmaps()
 	return nil
 }
 
-func (m *Mipmap) Pixels(x, y, width, height int) ([]byte, error) {
-	return m.orig.Pixels(x, y, width, height)
+func (m *Mipmap) Pixels(graphicsDriver graphicsdriver.Graphics, x, y, width, height int) ([]byte, error) {
+	return m.orig.Pixels(graphicsDriver, x, y, width, height)
 }
 
 func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, canSkipMipmap bool) {

@@ -345,8 +345,8 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
 }
 
 // FlushCommands flushes the command queue.
-func FlushCommands() error {
-	return theCommandQueue.Flush(graphicsDriver())
+func FlushCommands(graphicsDriver graphicsdriver.Graphics) error {
+	return theCommandQueue.Flush(graphicsDriver)
 }
 
 // drawTrianglesCommand represents a drawing command to draw an image on another image.
@@ -692,17 +692,17 @@ func (c *newShaderCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOff
 }
 
 // InitializeGraphicsDriverState initialize the current graphics driver state.
-func InitializeGraphicsDriverState() (err error) {
+func InitializeGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) (err error) {
 	runOnRenderingThread(func() {
-		err = graphicsDriver().Initialize()
+		err = graphicsDriver.Initialize()
 	})
 	return
 }
 
 // ResetGraphicsDriverState resets the current graphics driver state.
 // If the graphics driver doesn't have an API to reset, ResetGraphicsDriverState does nothing.
-func ResetGraphicsDriverState() (err error) {
-	if r, ok := graphicsDriver().(interface{ Reset() error }); ok {
+func ResetGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) (err error) {
+	if r, ok := graphicsDriver.(interface{ Reset() error }); ok {
 		runOnRenderingThread(func() {
 			err = r.Reset()
 		})
@@ -711,10 +711,10 @@ func ResetGraphicsDriverState() (err error) {
 }
 
 // MaxImageSize returns the maximum size of an image.
-func MaxImageSize() int {
+func MaxImageSize(graphicsDriver graphicsdriver.Graphics) int {
 	var size int
 	runOnRenderingThread(func() {
-		size = graphicsDriver().MaxImageSize()
+		size = graphicsDriver.MaxImageSize()
 	})
 	return size
 }

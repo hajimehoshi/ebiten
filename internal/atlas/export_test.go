@@ -14,13 +14,17 @@
 
 package atlas
 
+import (
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+)
+
 const (
 	BaseCountToPutOnAtlas = baseCountToPutOnAtlas
 	PaddingSize           = paddingSize
 )
 
-func PutImagesOnAtlasForTesting() error {
-	return putImagesOnAtlas()
+func PutImagesOnAtlasForTesting(graphicsDriver graphicsdriver.Graphics) error {
+	return putImagesOnAtlas(graphicsDriver)
 }
 
 var (

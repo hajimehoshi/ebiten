@@ -167,14 +167,14 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [gra
 
 // ReadPixels reads the image's pixels.
 // ReadPixels returns an error when an error happens in the graphics driver.
-func (i *Image) ReadPixels(buf []byte) error {
+func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, buf []byte) error {
 	i.resolveBufferedReplacePixels()
 	c := &pixelsCommand{
 		img:    i,
 		result: buf,
 	}
 	theCommandQueue.Enqueue(c)
-	if err := theCommandQueue.Flush(graphicsDriver()); err != nil {
+	if err := theCommandQueue.Flush(graphicsDriver); err != nil {
 		return err
 	}
 	return nil
@@ -210,7 +210,7 @@ func (i *Image) IsInvalidated() bool {
 // If blackbg is true, any alpha values in the dumped image will be 255.
 //
 // This is for testing usage.
-func (i *Image) Dump(path string, blackbg bool, rect image.Rectangle) error {
+func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool, rect image.Rectangle) error {
 	// Screen image cannot be dumped.
 	if i.screen {
 		return nil
@@ -224,7 +224,7 @@ func (i *Image) Dump(path string, blackbg bool, rect image.Rectangle) error {
 	defer f.Close()
 
 	pix := make([]byte, 4*i.width*i.height)
-	if err := i.ReadPixels(pix); err != nil {
+	if err := i.ReadPixels(graphicsDriver, pix); err != nil {
 		return err
 	}
 

@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 	"github.com/hajimehoshi/ebiten/v2/internal/shader"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -117,7 +116,7 @@ func NewShader(src []byte) (*Shader, error) {
 	var buf bytes.Buffer
 	buf.Write(src)
 	buf.WriteString(shaderSuffix)
-	if graphicscommand.NeedsInvertY() {
+	if graphicsDriver().FramebufferYDirection() != graphicsDriver().NDCYDirection() {
 		buf.WriteString(`
 func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
 	return mat4(

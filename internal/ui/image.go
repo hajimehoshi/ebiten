@@ -16,6 +16,7 @@ package ui
 
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
+	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
@@ -60,15 +61,15 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 }
 
 func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
-	return i.mipmap.ReplacePixels(pix, x, y, width, height)
+	return i.mipmap.ReplacePixels(graphicsDriver(), pix, x, y, width, height)
 }
 
 func (i *Image) Pixels(x, y, width, height int) ([]byte, error) {
-	return i.mipmap.Pixels(x, y, width, height)
+	return i.mipmap.Pixels(graphicsDriver(), x, y, width, height)
 }
 
 func (i *Image) DumpScreenshot(name string, blackbg bool) error {
-	return i.mipmap.DumpScreenshot(name, blackbg)
+	return i.mipmap.DumpScreenshot(graphicsDriver(), name, blackbg)
 }
 
 func (i *Image) SetIndependent(independent bool) {
@@ -77,4 +78,8 @@ func (i *Image) SetIndependent(independent bool) {
 
 func (i *Image) SetVolatile(volatile bool) {
 	i.mipmap.SetVolatile(volatile)
+}
+
+func DumpImages(dir string) error {
+	return atlas.DumpImages(graphicsDriver(), dir)
 }

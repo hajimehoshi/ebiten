@@ -34,15 +34,15 @@ type Image struct {
 	needsToResolvePixels bool
 }
 
-func BeginFrame() error {
-	if err := atlas.BeginFrame(); err != nil {
+func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
+	if err := atlas.BeginFrame(graphicsDriver); err != nil {
 		return err
 	}
 	return flushDelayedCommands()
 }
 
-func EndFrame() error {
-	return atlas.EndFrame()
+func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
+	return atlas.EndFrame(graphicsDriver)
 }
 
 func NewImage(width, height int) *Image {
@@ -138,7 +138,7 @@ func (i *Image) MarkDisposed() {
 	i.img.MarkDisposed()
 }
 
-func (img *Image) Pixels(x, y, width, height int) (pix []byte, err error) {
+func (img *Image) Pixels(graphicsDriver graphicsdriver.Graphics, x, y, width, height int) (pix []byte, err error) {
 	checkDelayedCommandsFlushed("Pixels")
 
 	if !image.Rect(x, y, x+width, y+height).In(image.Rect(0, 0, img.width, img.height)) {
@@ -148,7 +148,7 @@ func (img *Image) Pixels(x, y, width, height int) (pix []byte, err error) {
 	pix = make([]byte, 4*width*height)
 
 	if img.pixels == nil {
-		pix, err := img.img.Pixels(0, 0, img.width, img.height)
+		pix, err := img.img.Pixels(graphicsDriver, 0, 0, img.width, img.height)
 		if err != nil {
 			return nil, err
 		}
@@ -161,12 +161,12 @@ func (img *Image) Pixels(x, y, width, height int) (pix []byte, err error) {
 	return pix, nil
 }
 
-func (i *Image) DumpScreenshot(name string, blackbg bool) error {
+func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name string, blackbg bool) error {
 	checkDelayedCommandsFlushed("Dump")
-	return i.img.DumpScreenshot(name, blackbg)
+	return i.img.DumpScreenshot(graphicsDriver, name, blackbg)
 }
 
-func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
+func (i *Image) ReplacePixels(graphicsDriver graphicsdriver.Graphics, pix []byte, x, y, width, height int) error {
 	if l := 4 * width * height; len(pix) != l {
 		panic(fmt.Sprintf("buffered: len(pix) was %d but must be %d", len(pix), l))
 	}
@@ -175,7 +175,7 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
 		copied := make([]byte, len(pix))
 		copy(copied, pix)
 		if tryAddDelayedCommand(func() error {
-			i.ReplacePixels(copied, x, y, width, height)
+			i.ReplacePixels(graphicsDriver, copied, x, y, width, height)
 			return nil
 		}) {
 			return nil
@@ -194,7 +194,7 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
 
 	// TODO: Can we use (*restorable.Image).ReplacePixels?
 	if i.pixels == nil {
-		pix, err := i.img.Pixels(0, 0, i.width, i.height)
+		pix, err := i.img.Pixels(graphicsDriver, 0, 0, i.width, i.height)
 		if err != nil {
 			return err
 		}

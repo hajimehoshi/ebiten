@@ -15,7 +15,7 @@
 //go:build !ios && !ebitengl && !ebitencbackend
 // +build !ios,!ebitengl,!ebitencbackend
 
-package graphicscommand
+package ui
 
 // #cgo CFLAGS: -x objective-c
 // #cgo LDFLAGS: -framework Foundation

@@ -23,6 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	etesting "github.com/hajimehoshi/ebiten/v2/internal/testing"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 func TestMain(m *testing.M) {
@@ -54,7 +55,7 @@ func TestClear(t *testing.T) {
 	dst.DrawTriangles([graphics.ShaderImageNum]*graphicscommand.Image{src}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeClear, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
 
 	pix := make([]byte, 4*w*h)
-	if err := dst.ReadPixels(pix); err != nil {
+	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < h/2; j++ {
@@ -103,12 +104,14 @@ func TestShader(t *testing.T) {
 	}
 	dst.DrawTriangles([graphics.ShaderImageNum]*graphicscommand.Image{clr}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeClear, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
 
-	ir := etesting.ShaderProgramFill(graphicscommand.NeedsInvertY(), 0xff, 0, 0, 0xff)
+	g := ui.GraphicsDriverForTesting()
+	needsInvertY := g.FramebufferYDirection() != g.NDCYDirection()
+	ir := etesting.ShaderProgramFill(needsInvertY, 0xff, 0, 0, 0xff)
 	s := graphicscommand.NewShader(&ir)
 	dst.DrawTriangles([graphics.ShaderImageNum]*graphicscommand.Image{}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, s, nil, false)
 
 	pix := make([]byte, 4*w*h)
-	if err := dst.ReadPixels(pix); err != nil {
+	if err := dst.ReadPixels(g, pix); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < h; j++ {

@@ -26,12 +26,11 @@ import (
 // forceRestoring reports whether restoring forcely happens or not.
 var forceRestoring = false
 
+var needsRestoringByGraphicsDriver bool
+
 // NeedsRestoring reports whether restoring process works or not.
 func NeedsRestoring() bool {
-	if forceRestoring {
-		return true
-	}
-	return graphicscommand.NeedsRestoring()
+	return forceRestoring || needsRestoringByGraphicsDriver
 }
 
 // EnableRestoringForTesting forces to enable restoring for testing.
@@ -57,7 +56,7 @@ var theImages = &images{
 // all stale images.
 //
 // ResolveStaleImages is intended to be called at the end of a frame.
-func ResolveStaleImages() error {
+func ResolveStaleImages(graphicsDriver graphicsdriver.Graphics) error {
 	if debug.IsDebug {
 		debug.Logf("Internal image sizes:\n")
 		imgs := make([]*graphicscommand.Image, 0, len(theImages.images))
@@ -67,19 +66,19 @@ func ResolveStaleImages() error {
 		graphicscommand.LogImagesInfo(imgs)
 	}
 
-	if err := graphicscommand.FlushCommands(); err != nil {
+	if err := graphicscommand.FlushCommands(graphicsDriver); err != nil {
 		return err
 	}
 	if !NeedsRestoring() {
 		return nil
 	}
-	return theImages.resolveStaleImages()
+	return theImages.resolveStaleImages(graphicsDriver)
 }
 
 // RestoreIfNeeded restores the images.
 //
 // Restoring means to make all *graphicscommand.Image objects have their textures and framebuffers.
-func RestoreIfNeeded() error {
+func RestoreIfNeeded(graphicsDriver graphicsdriver.Graphics) error {
 	if !NeedsRestoring() {
 		return nil
 	}
@@ -98,7 +97,7 @@ func RestoreIfNeeded() error {
 					continue
 				}
 				var err error
-				r, err = img.isInvalidated()
+				r, err = img.isInvalidated(graphicsDriver)
 				if err != nil {
 					return err
 				}
@@ -111,22 +110,22 @@ func RestoreIfNeeded() error {
 		}
 	}
 
-	err := graphicscommand.ResetGraphicsDriverState()
+	err := graphicscommand.ResetGraphicsDriverState(graphicsDriver)
 	if err == graphicsdriver.GraphicsNotReady {
 		return nil
 	}
 	if err != nil {
 		return err
 	}
-	return theImages.restore()
+	return theImages.restore(graphicsDriver)
 }
 
 // DumpImages dumps all the current images to the specified directory.
 //
 // This is for testing usage.
-func DumpImages(dir string) error {
+func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) error {
 	for img := range theImages.images {
-		if err := img.Dump(filepath.Join(dir, "*.png"), false, image.Rect(0, 0, img.width, img.height)); err != nil {
+		if err := img.Dump(graphicsDriver, filepath.Join(dir, "*.png"), false, image.Rect(0, 0, img.width, img.height)); err != nil {
 			return err
 		}
 	}
@@ -154,10 +153,10 @@ func (i *images) removeShader(shader *Shader) {
 }
 
 // resolveStaleImages resolves stale images.
-func (i *images) resolveStaleImages() error {
+func (i *images) resolveStaleImages(graphicsDriver graphicsdriver.Graphics) error {
 	i.lastTarget = nil
 	for img := range i.images {
-		if err := img.resolveStale(); err != nil {
+		if err := img.resolveStale(graphicsDriver); err != nil {
 			return err
 		}
 	}
@@ -194,7 +193,7 @@ func (i *images) makeStaleIfDependingOnShader(shader *Shader) {
 // restore restores the images.
 //
 // Restoring means to make all *graphicscommand.Image objects have their textures and framebuffers.
-func (i *images) restore() error {
+func (i *images) restore(graphicsDriver graphicsdriver.Graphics) error {
 	if !NeedsRestoring() {
 		panic("restorable: restore cannot be called when restoring is disabled")
 	}
@@ -267,7 +266,7 @@ func (i *images) restore() error {
 	}
 
 	for _, img := range sorted {
-		if err := img.restore(); err != nil {
+		if err := img.restore(graphicsDriver); err != nil {
 			return err
 		}
 	}
@@ -280,14 +279,15 @@ func (i *images) restore() error {
 var graphicsDriverInitialized bool
 
 // InitializeGraphicsDriverState initializes the graphics driver state.
-func InitializeGraphicsDriverState() error {
+func InitializeGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) error {
 	graphicsDriverInitialized = true
-	return graphicscommand.InitializeGraphicsDriverState()
+	needsRestoringByGraphicsDriver = graphicsDriver.NeedsRestoring()
+	return graphicscommand.InitializeGraphicsDriverState(graphicsDriver)
 }
 
 // MaxImageSize returns the maximum size of an image.
-func MaxImageSize() int {
-	return graphicscommand.MaxImageSize()
+func MaxImageSize(graphicsDriver graphicsdriver.Graphics) int {
+	return graphicscommand.MaxImageSize(graphicsDriver)
 }
 
 // OnContextLost is called when the context lost is detected in an explicit way.

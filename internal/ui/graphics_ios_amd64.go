@@ -15,7 +15,7 @@
 //go:build ios && !ebitengl && !ebitencbackend
 // +build ios,!ebitengl,!ebitencbackend
 
-package graphicscommand
+package ui
 
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"

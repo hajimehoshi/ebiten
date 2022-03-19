@@ -24,6 +24,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	t "github.com/hajimehoshi/ebiten/v2/internal/testing"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 const (
@@ -109,7 +110,7 @@ func TestEnsureIsolated(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
-	pix, err := img4.Pixels(0, 0, size, size)
+	pix, err := img4.Pixels(ui.GraphicsDriverForTesting(), 0, 0, size, size)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,7 +190,7 @@ func TestReputOnAtlas(t *testing.T) {
 	// Use the doubled count since img1 was on a texture atlas and became an isolated image once.
 	// Then, img1 requires longer time to recover to be on a textur atlas again.
 	for i := 0; i < atlas.BaseCountToPutOnAtlas*2; i++ {
-		if err := atlas.PutImagesOnAtlasForTesting(); err != nil {
+		if err := atlas.PutImagesOnAtlasForTesting(ui.GraphicsDriverForTesting()); err != nil {
 			t.Fatal(err)
 		}
 		img0.DrawTriangles([graphics.ShaderImageNum]*atlas.Image{img1}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
@@ -197,11 +198,11 @@ func TestReputOnAtlas(t *testing.T) {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
 	}
-	if err := atlas.PutImagesOnAtlasForTesting(); err != nil {
+	if err := atlas.PutImagesOnAtlasForTesting(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 
-	pix, err := img1.Pixels(0, 0, size, size)
+	pix, err := img1.Pixels(ui.GraphicsDriverForTesting(), 0, 0, size, size)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -225,7 +226,7 @@ func TestReputOnAtlas(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
-	pix, err = img1.Pixels(0, 0, size, size)
+	pix, err = img1.Pixels(ui.GraphicsDriverForTesting(), 0, 0, size, size)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -252,7 +253,7 @@ func TestReputOnAtlas(t *testing.T) {
 	// Use img1 as a render source, but call ReplacePixels.
 	// Now use 4x count as img1 became an isolated image again.
 	for i := 0; i < atlas.BaseCountToPutOnAtlas*4; i++ {
-		if err := atlas.PutImagesOnAtlasForTesting(); err != nil {
+		if err := atlas.PutImagesOnAtlasForTesting(ui.GraphicsDriverForTesting()); err != nil {
 			t.Fatal(err)
 		}
 		img1.ReplacePixels(make([]byte, 4*size*size))
@@ -261,7 +262,7 @@ func TestReputOnAtlas(t *testing.T) {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
 	}
-	if err := atlas.PutImagesOnAtlasForTesting(); err != nil {
+	if err := atlas.PutImagesOnAtlasForTesting(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -273,7 +274,7 @@ func TestReputOnAtlas(t *testing.T) {
 
 	// Use img3 as a render source. As img3 is volatile, img3 is never on an atlas.
 	for i := 0; i < atlas.BaseCountToPutOnAtlas*2; i++ {
-		if err := atlas.PutImagesOnAtlasForTesting(); err != nil {
+		if err := atlas.PutImagesOnAtlasForTesting(ui.GraphicsDriverForTesting()); err != nil {
 			t.Fatal(err)
 		}
 		img0.DrawTriangles([graphics.ShaderImageNum]*atlas.Image{img3}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
@@ -313,7 +314,7 @@ func TestExtend(t *testing.T) {
 	// Ensure to allocate
 	img1.ReplacePixels(p1)
 
-	pix0, err := img0.Pixels(0, 0, w0, h0)
+	pix0, err := img0.Pixels(ui.GraphicsDriverForTesting(), 0, 0, w0, h0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -332,7 +333,7 @@ func TestExtend(t *testing.T) {
 		}
 	}
 
-	pix1, err := img1.Pixels(0, 0, w1, h1)
+	pix1, err := img1.Pixels(ui.GraphicsDriverForTesting(), 0, 0, w1, h1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -379,7 +380,7 @@ func TestReplacePixelsAfterDrawTriangles(t *testing.T) {
 	dst.DrawTriangles([graphics.ShaderImageNum]*atlas.Image{src}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 	dst.ReplacePixels(pix)
 
-	pix, err := dst.Pixels(0, 0, w, h)
+	pix, err := dst.Pixels(ui.GraphicsDriverForTesting(), 0, 0, w, h)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -426,7 +427,7 @@ func TestSmallImages(t *testing.T) {
 	}
 	dst.DrawTriangles([graphics.ShaderImageNum]*atlas.Image{src}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 
-	pix, err := dst.Pixels(0, 0, w, h)
+	pix, err := dst.Pixels(ui.GraphicsDriverForTesting(), 0, 0, w, h)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -474,7 +475,7 @@ func TestLongImages(t *testing.T) {
 	}
 	dst.DrawTriangles([graphics.ShaderImageNum]*atlas.Image{src}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 
-	pix, err := dst.Pixels(0, 0, dstW, dstH)
+	pix, err := dst.Pixels(ui.GraphicsDriverForTesting(), 0, 0, dstW, dstH)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -568,7 +569,7 @@ func TestDisposedAndReputOnAtlas(t *testing.T) {
 
 	// Use src as a render source.
 	for i := 0; i < atlas.BaseCountToPutOnAtlas/2; i++ {
-		if err := atlas.PutImagesOnAtlasForTesting(); err != nil {
+		if err := atlas.PutImagesOnAtlasForTesting(ui.GraphicsDriverForTesting()); err != nil {
 			t.Fatal(err)
 		}
 		dst.DrawTriangles([graphics.ShaderImageNum]*atlas.Image{src}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
@@ -584,7 +585,7 @@ func TestDisposedAndReputOnAtlas(t *testing.T) {
 	atlas.ResolveDeferredForTesting()
 
 	// Confirm that PutImagesOnAtlasForTesting doesn't panic.
-	if err := atlas.PutImagesOnAtlasForTesting(); err != nil {
+	if err := atlas.PutImagesOnAtlasForTesting(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -619,7 +620,7 @@ func TestImageIsNotReputOnAtlasWithoutUsingAsSource(t *testing.T) {
 	// Update the count without using src2 as a rendering source.
 	// This should not affect whether src2 is on an atlas or not.
 	for i := 0; i < atlas.BaseCountToPutOnAtlas; i++ {
-		if err := atlas.PutImagesOnAtlasForTesting(); err != nil {
+		if err := atlas.PutImagesOnAtlasForTesting(ui.GraphicsDriverForTesting()); err != nil {
 			t.Fatal(err)
 		}
 		if got, want := src2.IsOnAtlasForTesting(), false; got != want {
@@ -629,7 +630,7 @@ func TestImageIsNotReputOnAtlasWithoutUsingAsSource(t *testing.T) {
 
 	// Update the count with using src2 as a rendering source.
 	for i := 0; i < atlas.BaseCountToPutOnAtlas; i++ {
-		if err := atlas.PutImagesOnAtlasForTesting(); err != nil {
+		if err := atlas.PutImagesOnAtlasForTesting(ui.GraphicsDriverForTesting()); err != nil {
 			t.Fatal(err)
 		}
 		dst.DrawTriangles([graphics.ShaderImageNum]*atlas.Image{src2}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
@@ -638,7 +639,7 @@ func TestImageIsNotReputOnAtlasWithoutUsingAsSource(t *testing.T) {
 		}
 	}
 
-	if err := atlas.PutImagesOnAtlasForTesting(); err != nil {
+	if err := atlas.PutImagesOnAtlasForTesting(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 	if got, want := src2.IsOnAtlasForTesting(), true; got != want {

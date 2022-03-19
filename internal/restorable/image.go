@@ -447,12 +447,12 @@ func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageNum]*Image,
 	i.drawTrianglesHistory = append(i.drawTrianglesHistory, item)
 }
 
-func (i *Image) readPixelsFromGPUIfNeeded() error {
+func (i *Image) readPixelsFromGPUIfNeeded(graphicsDriver graphicsdriver.Graphics) error {
 	if len(i.drawTrianglesHistory) > 0 || i.stale {
-		if err := graphicscommand.FlushCommands(); err != nil {
+		if err := graphicscommand.FlushCommands(graphicsDriver); err != nil {
 			return err
 		}
-		if err := i.readPixelsFromGPU(); err != nil {
+		if err := i.readPixelsFromGPU(graphicsDriver); err != nil {
 			return err
 		}
 	}
@@ -462,12 +462,12 @@ func (i *Image) readPixelsFromGPUIfNeeded() error {
 // At returns a color value at (x, y).
 //
 // Note that this must not be called until context is available.
-func (i *Image) At(x, y int) (byte, byte, byte, byte, error) {
+func (i *Image) At(graphicsDriver graphicsdriver.Graphics, x, y int) (byte, byte, byte, byte, error) {
 	if x < 0 || y < 0 || i.width <= x || i.height <= y {
 		return 0, 0, 0, 0, nil
 	}
 
-	if err := i.readPixelsFromGPUIfNeeded(); err != nil {
+	if err := i.readPixelsFromGPUIfNeeded(graphicsDriver); err != nil {
 		return 0, 0, 0, 0, err
 	}
 
@@ -496,9 +496,9 @@ func (i *Image) makeStaleIfDependingOnShader(shader *Shader) {
 }
 
 // readPixelsFromGPU reads the pixels from GPU and resolves the image's 'stale' state.
-func (i *Image) readPixelsFromGPU() error {
+func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error {
 	pix := make([]byte, 4*i.width*i.height)
-	if err := i.image.ReadPixels(pix); err != nil {
+	if err := i.image.ReadPixels(graphicsDriver, pix); err != nil {
 		return err
 	}
 	i.basePixels = Pixels{}
@@ -509,7 +509,7 @@ func (i *Image) readPixelsFromGPU() error {
 }
 
 // resolveStale resolves the image's 'stale' state.
-func (i *Image) resolveStale() error {
+func (i *Image) resolveStale(graphicsDriver graphicsdriver.Graphics) error {
 	if !NeedsRestoring() {
 		return nil
 	}
@@ -523,7 +523,7 @@ func (i *Image) resolveStale() error {
 	if !i.stale {
 		return nil
 	}
-	return i.readPixelsFromGPU()
+	return i.readPixelsFromGPU(graphicsDriver)
 }
 
 // dependsOn reports whether the image depends on target.
@@ -574,7 +574,7 @@ func (i *Image) hasDependency() bool {
 }
 
 // Restore restores *graphicscommand.Image from the pixels using its state.
-func (i *Image) restore() error {
+func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 	w, h := i.width, i.height
 	// Do not dispose the image here. The image should be already disposed.
 
@@ -627,7 +627,7 @@ func (i *Image) restore() error {
 	if len(i.drawTrianglesHistory) > 0 {
 		i.basePixels = Pixels{}
 		pix := make([]byte, 4*w*h)
-		if err := gimg.ReadPixels(pix); err != nil {
+		if err := gimg.ReadPixels(graphicsDriver, pix); err != nil {
 			return err
 		}
 		i.basePixels.AddOrReplace(pix, 0, 0, w, h)
@@ -654,16 +654,16 @@ func (i *Image) Dispose() {
 // isInvalidated returns a boolean value indicating whether the image is invalidated.
 //
 // If an image is invalidated, GL context is lost and all the images should be restored asap.
-func (i *Image) isInvalidated() (bool, error) {
+func (i *Image) isInvalidated(graphicsDriver graphicsdriver.Graphics) (bool, error) {
 	// FlushCommands is required because c.offscreen.impl might not have an actual texture.
-	if err := graphicscommand.FlushCommands(); err != nil {
+	if err := graphicscommand.FlushCommands(graphicsDriver); err != nil {
 		return false, err
 	}
 	return i.image.IsInvalidated(), nil
 }
 
-func (i *Image) Dump(path string, blackbg bool, rect image.Rectangle) error {
-	return i.image.Dump(path, blackbg, rect)
+func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool, rect image.Rectangle) error {
+	return i.image.Dump(graphicsDriver, path, blackbg, rect)
 }
 
 func (i *Image) clearDrawTrianglesHistory() {

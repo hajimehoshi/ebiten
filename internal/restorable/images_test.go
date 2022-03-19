@@ -24,6 +24,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 	etesting "github.com/hajimehoshi/ebiten/v2/internal/testing"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 func TestMain(m *testing.M) {
@@ -61,10 +62,10 @@ func TestRestore(t *testing.T) {
 
 	clr0 := color.RGBA{0x00, 0x00, 0x00, 0xff}
 	img0.ReplacePixels([]byte{clr0.R, clr0.G, clr0.B, clr0.A}, 0, 0, 1, 1)
-	if err := restorable.ResolveStaleImages(); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
-	if err := restorable.RestoreIfNeeded(); err != nil {
+	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 	want := clr0
@@ -80,10 +81,10 @@ func TestRestoreWithoutDraw(t *testing.T) {
 
 	// If there is no drawing command on img0, img0 is cleared when restored.
 
-	if err := restorable.ResolveStaleImages(); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
-	if err := restorable.RestoreIfNeeded(); err != nil {
+	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -140,10 +141,10 @@ func TestRestoreChain(t *testing.T) {
 		}
 		imgs[i+1].DrawTriangles([graphics.ShaderImageNum]*restorable.Image{imgs[i]}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
 	}
-	if err := restorable.ResolveStaleImages(); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
-	if err := restorable.RestoreIfNeeded(); err != nil {
+	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 	want := clr
@@ -192,10 +193,10 @@ func TestRestoreChain2(t *testing.T) {
 		imgs[i+1].DrawTriangles([graphics.ShaderImageNum]*restorable.Image{imgs[i]}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(w, h, 0, 0), is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
 	}
 
-	if err := restorable.ResolveStaleImages(); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
-	if err := restorable.RestoreIfNeeded(); err != nil {
+	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 	for i, img := range imgs {
@@ -239,10 +240,10 @@ func TestRestoreOverrideSource(t *testing.T) {
 	img3.DrawTriangles([graphics.ShaderImageNum]*restorable.Image{img2}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(w, h, 0, 0), is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
 	img0.ReplacePixels([]byte{clr1.R, clr1.G, clr1.B, clr1.A}, 0, 0, w, h)
 	img1.DrawTriangles([graphics.ShaderImageNum]*restorable.Image{img0}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(w, h, 0, 0), is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
-	if err := restorable.ResolveStaleImages(); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
-	if err := restorable.RestoreIfNeeded(); err != nil {
+	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 	testCases := []struct {
@@ -341,10 +342,10 @@ func TestRestoreComplexGraph(t *testing.T) {
 	img7.DrawTriangles([graphics.ShaderImageNum]*restorable.Image{img2}, offsets, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
 	vs = quadVertices(w, h, 2, 0)
 	img7.DrawTriangles([graphics.ShaderImageNum]*restorable.Image{img3}, offsets, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
-	if err := restorable.ResolveStaleImages(); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
-	if err := restorable.RestoreIfNeeded(); err != nil {
+	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 	testCases := []struct {
@@ -440,10 +441,10 @@ func TestRestoreRecursive(t *testing.T) {
 	}
 	img1.DrawTriangles([graphics.ShaderImageNum]*restorable.Image{img0}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(w, h, 1, 0), is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
 	img0.DrawTriangles([graphics.ShaderImageNum]*restorable.Image{img1}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(w, h, 1, 0), is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
-	if err := restorable.ResolveStaleImages(); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
-	if err := restorable.RestoreIfNeeded(); err != nil {
+	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 	testCases := []struct {
@@ -488,7 +489,7 @@ func TestReplacePixels(t *testing.T) {
 	// Check the region (5, 7)-(9, 11). Outside state is indeterministic.
 	for j := 7; j < 11; j++ {
 		for i := 5; i < 9; i++ {
-			r, g, b, a, err := img.At(i, j)
+			r, g, b, a, err := img.At(ui.GraphicsDriverForTesting(), i, j)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -499,15 +500,15 @@ func TestReplacePixels(t *testing.T) {
 			}
 		}
 	}
-	if err := restorable.ResolveStaleImages(); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
-	if err := restorable.RestoreIfNeeded(); err != nil {
+	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 	for j := 7; j < 11; j++ {
 		for i := 5; i < 9; i++ {
-			r, g, b, a, err := img.At(i, j)
+			r, g, b, a, err := img.At(ui.GraphicsDriverForTesting(), i, j)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -542,13 +543,13 @@ func TestDrawTrianglesAndReplacePixels(t *testing.T) {
 	img1.DrawTriangles([graphics.ShaderImageNum]*restorable.Image{img0}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
 	img1.ReplacePixels([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 0, 0, 2, 1)
 
-	if err := restorable.ResolveStaleImages(); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
-	if err := restorable.RestoreIfNeeded(); err != nil {
+	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
-	r, g, b, a, err := img1.At(0, 0)
+	r, g, b, a, err := img1.At(ui.GraphicsDriverForTesting(), 0, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -586,13 +587,13 @@ func TestDispose(t *testing.T) {
 	img0.DrawTriangles([graphics.ShaderImageNum]*restorable.Image{img1}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(1, 1, 0, 0), is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
 	img1.Dispose()
 
-	if err := restorable.ResolveStaleImages(); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
-	if err := restorable.RestoreIfNeeded(); err != nil {
+	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
-	r, g, b, a, err := img0.At(0, 0)
+	r, g, b, a, err := img0.At(ui.GraphicsDriverForTesting(), 0, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -718,10 +719,10 @@ func TestReplacePixelsOnly(t *testing.T) {
 		}
 	}
 
-	if err := restorable.ResolveStaleImages(); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
-	if err := restorable.RestoreIfNeeded(); err != nil {
+	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 	want := color.RGBA{1, 2, 3, 4}
@@ -762,7 +763,7 @@ func TestReadPixelsFromVolatileImage(t *testing.T) {
 	// Read the pixels. If the implementation is correct, dst tries to read its pixels from GPU due to being
 	// stale.
 	want := byte(0xff)
-	got, _, _, _, err := dst.At(0, 0)
+	got, _, _, _, err := dst.At(ui.GraphicsDriverForTesting(), 0, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -836,7 +837,7 @@ func TestExtend(t *testing.T) {
 
 	for j := 0; j < h*2; j++ {
 		for i := 0; i < w*2; i++ {
-			got, _, _, _, err := extended.At(i, j)
+			got, _, _, _, err := extended.At(ui.GraphicsDriverForTesting(), i, j)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -892,21 +893,21 @@ func TestMutateSlices(t *testing.T) {
 	for i := range is {
 		is[i] = 0
 	}
-	if err := restorable.ResolveStaleImages(); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
-	if err := restorable.RestoreIfNeeded(); err != nil {
+	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
-			r, g, b, a, err := src.At(i, j)
+			r, g, b, a, err := src.At(ui.GraphicsDriverForTesting(), i, j)
 			if err != nil {
 				t.Fatal(err)
 			}
 			want := color.RGBA{r, g, b, a}
-			r, g, b, a, err = dst.At(i, j)
+			r, g, b, a, err = dst.At(ui.GraphicsDriverForTesting(), i, j)
 			if err != nil {
 				t.Fatal(err)
 			}
