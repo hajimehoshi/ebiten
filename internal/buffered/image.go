@@ -220,7 +220,6 @@ func (i *Image) ReplaceSmallRegionPixels(graphicsDriver graphicsdriver.Graphics,
 		return nil
 	}
 
-	// TODO: Can we use (*restorable.Image).ReplacePixels?
 	if i.pixels == nil {
 		pix, err := i.img.Pixels(graphicsDriver, 0, 0, i.width, i.height)
 		if err != nil {
