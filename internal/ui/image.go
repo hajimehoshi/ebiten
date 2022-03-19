@@ -19,7 +19,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
-	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
 type Image struct {
@@ -78,19 +77,4 @@ func (i *Image) SetIndependent(independent bool) {
 
 func (i *Image) SetVolatile(volatile bool) {
 	i.mipmap.SetVolatile(volatile)
-}
-
-type Shader struct {
-	shader *mipmap.Shader
-}
-
-func NewShader(program *shaderir.Program) *Shader {
-	return &Shader{
-		shader: mipmap.NewShader(program),
-	}
-}
-
-func (s *Shader) MarkDisposed() {
-	s.shader.MarkDisposed()
-	s.shader = nil
 }
