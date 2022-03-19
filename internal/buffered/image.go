@@ -166,7 +166,10 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name stri
 	return i.img.DumpScreenshot(graphicsDriver, name, blackbg)
 }
 
-func (i *Image) ReplaceLargeAreaPixels(pix []byte, x, y, width, height int) error {
+// ReplaceLargeRegionPixels replaces the pixels with the specified region.
+// ReplaceLargeRegionPixels is used for a relatively large region.
+// This call is not accumulated and send one draw call to replace pixels.
+func (i *Image) ReplaceLargeRegionPixels(pix []byte, x, y, width, height int) error {
 	if l := 4 * width * height; len(pix) != l {
 		panic(fmt.Sprintf("buffered: len(pix) was %d but must be %d", len(pix), l))
 	}
@@ -175,7 +178,7 @@ func (i *Image) ReplaceLargeAreaPixels(pix []byte, x, y, width, height int) erro
 		copied := make([]byte, len(pix))
 		copy(copied, pix)
 		if tryAddDelayedCommand(func() error {
-			i.ReplaceLargeAreaPixels(copied, x, y, width, height)
+			i.ReplaceLargeRegionPixels(copied, x, y, width, height)
 			return nil
 		}) {
 			return nil
@@ -188,7 +191,10 @@ func (i *Image) ReplaceLargeAreaPixels(pix []byte, x, y, width, height int) erro
 	return nil
 }
 
-func (i *Image) ReplaceSmallAreaPixels(graphicsDriver graphicsdriver.Graphics, pix []byte, x, y, width, height int) error {
+// ReplaceSmallRegionPixels replaces the pixels with the specified region.
+// ReplaceSmallRegionPixels is used for a relatively small region.
+// This call might be accumulated and send one draw call to replace pixels for the accumulated calls.
+func (i *Image) ReplaceSmallRegionPixels(graphicsDriver graphicsdriver.Graphics, pix []byte, x, y, width, height int) error {
 	if l := 4 * width * height; len(pix) != l {
 		panic(fmt.Sprintf("buffered: len(pix) was %d but must be %d", len(pix), l))
 	}
@@ -197,7 +203,7 @@ func (i *Image) ReplaceSmallAreaPixels(graphicsDriver graphicsdriver.Graphics, p
 		copied := make([]byte, len(pix))
 		copy(copied, pix)
 		if tryAddDelayedCommand(func() error {
-			i.ReplaceSmallAreaPixels(graphicsDriver, copied, x, y, width, height)
+			i.ReplaceSmallRegionPixels(graphicsDriver, copied, x, y, width, height)
 			return nil
 		}) {
 			return nil
