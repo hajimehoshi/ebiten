@@ -17,7 +17,3 @@ package ebiten
 var (
 	ImageToBytes = imageToBytes
 )
-
-func PanicOnErrorAtImageAt() {
-	panicOnErrorAtImageAt = true
-}

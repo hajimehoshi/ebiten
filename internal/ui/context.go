@@ -242,14 +242,6 @@ func (g *globalState) setScreenFilterEnabled(enabled bool) {
 	atomic.StoreInt32(&g.screenFilterEnabled_, v)
 }
 
-func HasError() bool {
-	return theGlobalState.error() != nil
-}
-
-func SetError(err error) {
-	theGlobalState.setError(err)
-}
-
 func FPSMode() FPSModeType {
 	return theGlobalState.fpsMode()
 }

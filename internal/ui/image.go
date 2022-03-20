@@ -22,6 +22,14 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 )
 
+// panicOnErrorAtImageAt indicates whether (*Image).At panics on an error or not.
+// This value is set only on testing.
+var panicOnErrorAtImageAt bool
+
+func SetPanicOnErrorAtImageAtForTesting(value bool) {
+	panicOnErrorAtImageAt = value
+}
+
 type Image struct {
 	mipmap *mipmap.Mipmap
 }
@@ -60,16 +68,39 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 	i.mipmap.DrawTriangles(srcMipmaps, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, s, uniforms, evenOdd, canSkipMipmap)
 }
 
-func (i *Image) ReplaceLargeRegionPixels(pix []byte, x, y, width, height int) error {
-	return i.mipmap.ReplaceLargeRegionPixels(pix, x, y, width, height)
+func (i *Image) ReplaceLargeRegionPixels(pix []byte, x, y, width, height int) {
+	if theGlobalState.error() != nil {
+		return
+	}
+	if err := i.mipmap.ReplaceLargeRegionPixels(pix, x, y, width, height); err != nil {
+		theGlobalState.setError(err)
+	}
 }
 
-func (i *Image) ReplaceSmallRegionPixels(pix []byte, x, y, width, height int) error {
-	return i.mipmap.ReplaceSmallRegionPixels(graphicsDriver(), pix, x, y, width, height)
+func (i *Image) ReplaceSmallRegionPixels(pix []byte, x, y, width, height int) {
+	if theGlobalState.error() != nil {
+		return
+	}
+	if err := i.mipmap.ReplaceSmallRegionPixels(graphicsDriver(), pix, x, y, width, height); err != nil {
+		theGlobalState.setError(err)
+	}
 }
 
-func (i *Image) Pixels(x, y, width, height int) ([]byte, error) {
-	return i.mipmap.Pixels(graphicsDriver(), x, y, width, height)
+func (i *Image) Pixels(x, y, width, height int) []byte {
+	// Check the error existence and avoid unnecessary calls.
+	if theGlobalState.error() != nil {
+		return nil
+	}
+
+	pix, err := i.mipmap.Pixels(graphicsDriver(), x, y, width, height)
+	if err != nil {
+		if panicOnErrorAtImageAt {
+			panic(err)
+		}
+		theGlobalState.setError(err)
+		return nil
+	}
+	return pix
 }
 
 func (i *Image) DumpScreenshot(name string, blackbg bool) error {
