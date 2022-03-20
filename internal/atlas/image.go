@@ -567,6 +567,16 @@ func (i *Image) replacePixels(pix []byte, mask []byte) {
 		return
 	}
 
+	// When a mask is specified, this image should already be initialized.
+	// Then, the paddings are not needed.
+	// TODO: This is tricky. Refactor this.
+	if mask != nil {
+		x := px + paddingSize
+		y := py + paddingSize
+		i.backend.restorable.ReplacePixels(pix, mask, x, y, i.width, i.height)
+		return
+	}
+
 	ow, oh := pw-2*paddingSize, ph-2*paddingSize
 	if l := 4 * ow * oh; len(pix) != l {
 		panic(fmt.Sprintf("atlas: len(p) must be %d but %d", l, len(pix)))
@@ -598,7 +608,7 @@ func (i *Image) replacePixels(pix []byte, mask []byte) {
 		copy(pixb[4*((j+paddingSize)*pw+paddingSize):], pix[4*j*ow:4*(j+1)*ow])
 	}
 
-	i.backend.restorable.ReplacePixels(pixb, mask, px, py, pw, ph)
+	i.backend.restorable.ReplacePixels(pixb, nil, px, py, pw, ph)
 }
 
 func (img *Image) Pixels(graphicsDriver graphicsdriver.Graphics) ([]byte, error) {
