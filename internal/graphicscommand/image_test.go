@@ -85,9 +85,58 @@ func TestReplacePixelsPartAfterDrawTriangles(t *testing.T) {
 	}
 	dst.DrawTriangles([graphics.ShaderImageNum]*graphicscommand.Image{clr}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeClear, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
 	dst.DrawTriangles([graphics.ShaderImageNum]*graphicscommand.Image{src}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
-	dst.ReplacePixels(make([]byte, 4), 0, 0, 1, 1)
+	dst.ReplacePixels(make([]byte, 4), nil, 0, 0, 1, 1)
 
 	// TODO: Check the result.
+}
+
+func TestReplacePixelsWithMask(t *testing.T) {
+	const w, h = 4, 3
+	src := graphicscommand.NewImage(w, h)
+	dst := graphicscommand.NewImage(w, h)
+
+	vs := quadVertices(w, h)
+	is := graphics.QuadIndices()
+	dr := graphicsdriver.Region{
+		X:      0,
+		Y:      0,
+		Width:  w,
+		Height: h,
+	}
+	dst.DrawTriangles([graphics.ShaderImageNum]*graphicscommand.Image{src}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeClear, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
+
+	pix0 := make([]byte, 4*w*h)
+	for i := range pix0 {
+		pix0[i] = 0x40
+	}
+	dst.ReplacePixels(pix0, nil, 0, 0, w, h)
+
+	pix1 := make([]byte, 4*w*h)
+	for i := range pix1 {
+		pix1[i] = 0x80
+	}
+	mask1 := []byte{0b11110110, 0b00000110}
+	dst.ReplacePixels(pix1, mask1, 0, 0, w, h)
+
+	readPix := make([]byte, 4*w*h)
+	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), readPix); err != nil {
+		t.Fatal(err)
+	}
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			idx := 4 * (i + w*j)
+			got := color.RGBA{readPix[idx], readPix[idx+1], readPix[idx+2], readPix[idx+3]}
+			var want color.RGBA
+			if (i != 0 && i != w-1) || (j != 0 && j != h-1) {
+				want = color.RGBA{0x80, 0x80, 0x80, 0x80}
+			} else {
+				want = color.RGBA{0x40, 0x40, 0x40, 0x40}
+			}
+			if got != want {
+				t.Errorf("dst.At(%d, %d) after ReplacePixels: got %v, want: %v", i, j, got, want)
+			}
+		}
+	}
 }
 
 func TestShader(t *testing.T) {

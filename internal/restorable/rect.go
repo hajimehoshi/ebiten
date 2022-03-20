@@ -117,6 +117,6 @@ func (pr *pixelsRecords) at(i, j int) (byte, byte, byte, byte, bool) {
 func (pr *pixelsRecords) apply(img *graphicscommand.Image) {
 	// TODO: Isn't this too heavy? Can we merge the operations?
 	for _, r := range pr.records {
-		img.ReplacePixels(r.pix, r.rect.Min.X, r.rect.Min.Y, r.rect.Dx(), r.rect.Dy())
+		img.ReplacePixels(r.pix, nil, r.rect.Min.X, r.rect.Min.Y, r.rect.Dx(), r.rect.Dy())
 	}
 }

@@ -180,9 +180,10 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, buf []byte) e
 	return nil
 }
 
-func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
+func (i *Image) ReplacePixels(pixels []byte, mask []byte, x, y, width, height int) {
 	i.bufferedRP = append(i.bufferedRP, &graphicsdriver.ReplacePixelsArgs{
 		Pixels: pixels,
+		Mask:   mask,
 		X:      x,
 		Y:      y,
 		Width:  width,

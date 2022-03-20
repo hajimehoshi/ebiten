@@ -83,6 +83,7 @@ type ImageID int
 
 type ReplacePixelsArgs struct {
 	Pixels []byte
+	Mask   []byte
 	X      int
 	Y      int
 	Width  int
