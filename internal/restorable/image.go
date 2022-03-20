@@ -304,7 +304,7 @@ func (i *Image) ReplacePixels(pixels []byte, mask []byte, x, y, width, height in
 	theImages.makeStaleIfDependingOn(i)
 
 	if pixels != nil {
-		i.image.ReplacePixels(pixels, nil, x, y, width, height)
+		i.image.ReplacePixels(pixels, mask, x, y, width, height)
 	} else {
 		// TODO: When pixels == nil, we don't have to care the pixel state there. In such cases, the image
 		// accepts only ReplacePixels and not Fill or DrawTriangles.
