@@ -918,3 +918,88 @@ func TestMutateSlices(t *testing.T) {
 		}
 	}
 }
+
+func TestOverlappedPixels(t *testing.T) {
+	dst := restorable.NewImage(3, 3)
+
+	pix0 := make([]byte, 4*2*2)
+	for j := 0; j < 2; j++ {
+		for i := 0; i < 2; i++ {
+			idx := 4 * (j*2 + i)
+			pix0[idx] = 0xff
+			pix0[idx+1] = 0
+			pix0[idx+2] = 0
+			pix0[idx+3] = 0xff
+		}
+	}
+
+	pix1 := make([]byte, 4*2*2)
+	for j := 0; j < 2; j++ {
+		for i := 0; i < 2; i++ {
+			idx := 4 * (j*2 + i)
+			pix1[idx] = 0
+			pix1[idx+1] = 0xff
+			pix1[idx+2] = 0
+			pix1[idx+3] = 0xff
+		}
+	}
+
+	dst.ReplacePixels(pix0, 0, 0, 2, 2)
+	dst.ReplacePixels(pix1, 1, 1, 2, 2)
+
+	wantColors := []color.RGBA{
+		{0xff, 0, 0, 0xff},
+		{0xff, 0, 0, 0xff},
+		{0, 0, 0, 0},
+
+		{0xff, 0, 0, 0xff},
+		{0, 0xff, 0, 0xff},
+		{0, 0xff, 0, 0xff},
+
+		{0, 0, 0, 0},
+		{0, 0xff, 0, 0xff},
+		{0, 0xff, 0, 0xff},
+	}
+	for j := 0; j < 3; j++ {
+		for i := 0; i < 3; i++ {
+			r, g, b, a, err := dst.At(ui.GraphicsDriverForTesting(), i, j)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := color.RGBA{r, g, b, a}
+			want := wantColors[3*j+i]
+			if got != want {
+				t.Errorf("color at (%d, %d): got %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+
+	dst.ReplacePixels(nil, 1, 0, 2, 2)
+
+	wantColors = []color.RGBA{
+		{0xff, 0, 0, 0xff},
+		{0, 0, 0, 0},
+		{0, 0, 0, 0},
+
+		{0xff, 0, 0, 0xff},
+		{0, 0, 0, 0},
+		{0, 0, 0, 0},
+
+		{0, 0, 0, 0},
+		{0, 0xff, 0, 0xff},
+		{0, 0xff, 0, 0xff},
+	}
+	for j := 0; j < 3; j++ {
+		for i := 0; i < 3; i++ {
+			r, g, b, a, err := dst.At(ui.GraphicsDriverForTesting(), i, j)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := color.RGBA{r, g, b, a}
+			want := wantColors[3*j+i]
+			if got != want {
+				t.Errorf("color at (%d, %d): got %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}

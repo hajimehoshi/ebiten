@@ -25,38 +25,38 @@ import (
 )
 
 type Pixels struct {
-	rectToPixels *rectToPixels
+	pixelsRecords *pixelsRecords
 }
 
 // Apply applies the Pixels state to the given image especially for restoring.
 func (p *Pixels) Apply(img *graphicscommand.Image) {
 	// Pixels doesn't clear the image. This is a caller's responsibility.
 
-	if p.rectToPixels == nil {
+	if p.pixelsRecords == nil {
 		return
 	}
-	p.rectToPixels.apply(img)
+	p.pixelsRecords.apply(img)
 }
 
 func (p *Pixels) AddOrReplace(pix []byte, x, y, width, height int) {
-	if p.rectToPixels == nil {
-		p.rectToPixels = &rectToPixels{}
+	if p.pixelsRecords == nil {
+		p.pixelsRecords = &pixelsRecords{}
 	}
-	p.rectToPixels.addOrReplace(pix, x, y, width, height)
+	p.pixelsRecords.addOrReplace(pix, x, y, width, height)
 }
 
-func (p *Pixels) Remove(x, y, width, height int) {
+func (p *Pixels) Clear(x, y, width, height int) {
 	// Note that we don't care whether the region is actually removed or not here. There is an actual case that
 	// the region is allocated but nothing is rendered. See TestDisposeImmediately at shareable package.
-	if p.rectToPixels == nil {
+	if p.pixelsRecords == nil {
 		return
 	}
-	p.rectToPixels.remove(x, y, width, height)
+	p.pixelsRecords.clear(x, y, width, height)
 }
 
 func (p *Pixels) At(i, j int) (byte, byte, byte, byte) {
-	if p.rectToPixels != nil {
-		if r, g, b, a, ok := p.rectToPixels.at(i, j); ok {
+	if p.pixelsRecords != nil {
+		if r, g, b, a, ok := p.pixelsRecords.at(i, j); ok {
 			return r, g, b, a
 		}
 	}
@@ -325,7 +325,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 			copy(copiedPixels, pixels)
 			i.basePixels.AddOrReplace(copiedPixels, 0, 0, w, h)
 		} else {
-			i.basePixels.Remove(0, 0, w, h)
+			i.basePixels.Clear(0, 0, w, h)
 		}
 		i.clearDrawTrianglesHistory()
 		i.stale = false
@@ -349,7 +349,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		copy(copiedPixels, pixels)
 		i.basePixels.AddOrReplace(copiedPixels, x, y, width, height)
 	} else {
-		i.basePixels.Remove(x, y, width, height)
+		i.basePixels.Clear(x, y, width, height)
 	}
 }
 
