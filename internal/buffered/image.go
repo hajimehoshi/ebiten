@@ -166,10 +166,9 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name stri
 	return i.img.DumpScreenshot(graphicsDriver, name, blackbg)
 }
 
-// ReplaceLargeRegionPixels replaces the pixels with the specified region.
-// ReplaceLargeRegionPixels is used for a relatively large region.
+// ReplacePixels replaces the pixels at the specified region.
 // This call is not accumulated and send one draw call to replace pixels.
-func (i *Image) ReplaceLargeRegionPixels(pix []byte, x, y, width, height int) error {
+func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) {
 	if l := 4 * width * height; len(pix) != l {
 		panic(fmt.Sprintf("buffered: len(pix) was %d but must be %d", len(pix), l))
 	}
@@ -178,45 +177,37 @@ func (i *Image) ReplaceLargeRegionPixels(pix []byte, x, y, width, height int) er
 		copied := make([]byte, len(pix))
 		copy(copied, pix)
 		if tryAddDelayedCommand(func() error {
-			i.ReplaceLargeRegionPixels(copied, x, y, width, height)
+			i.ReplacePixels(copied, x, y, width, height)
 			return nil
 		}) {
-			return nil
+			return
 		}
 	}
 
 	i.invalidatePendingPixels()
 
 	i.img.ReplacePixels(pix, x, y, width, height)
-	return nil
 }
 
-// ReplaceSmallRegionPixels replaces the pixels with the specified region.
-// ReplaceSmallRegionPixels is used for a relatively small region.
+// Set replaces the pixel at the specified position.
 // This call might be accumulated and send one draw call to replace pixels for the accumulated calls.
-func (i *Image) ReplaceSmallRegionPixels(graphicsDriver graphicsdriver.Graphics, pix []byte, x, y, width, height int) error {
-	if l := 4 * width * height; len(pix) != l {
-		panic(fmt.Sprintf("buffered: len(pix) was %d but must be %d", len(pix), l))
-	}
-
+func (i *Image) Set(graphicsDriver graphicsdriver.Graphics, r, g, b, a byte, x, y int) error {
 	if maybeCanAddDelayedCommand() {
-		copied := make([]byte, len(pix))
-		copy(copied, pix)
 		if tryAddDelayedCommand(func() error {
-			i.ReplaceSmallRegionPixels(graphicsDriver, copied, x, y, width, height)
+			i.Set(graphicsDriver, r, g, b, a, x, y)
 			return nil
 		}) {
 			return nil
 		}
 	}
 
-	if x == 0 && y == 0 && width == i.width && height == i.height {
+	if i.width == 1 && i.height == 1 {
 		i.invalidatePendingPixels()
 
 		// Call ReplacePixels immediately. Do not buffer the command.
 		// If a lot of new images are created but they are used at different timings,
 		// pixels are sent to GPU at different timings, which is very inefficient.
-		i.img.ReplacePixels(pix, x, y, width, height)
+		i.img.ReplacePixels([]byte{r, g, b, a}, x, y, 1, 1)
 		return nil
 	}
 
@@ -227,14 +218,16 @@ func (i *Image) ReplaceSmallRegionPixels(graphicsDriver graphicsdriver.Graphics,
 		}
 		i.pixels = pix
 	}
-	i.replacePendingPixels(pix, x, y, width, height)
+	i.setPendingPixel(r, g, b, a, x, y)
 	return nil
 }
 
-func (i *Image) replacePendingPixels(pix []byte, x, y, width, height int) {
-	for j := 0; j < height; j++ {
-		copy(i.pixels[4*((j+y)*i.width+x):], pix[4*j*width:4*(j+1)*width])
-	}
+func (i *Image) setPendingPixel(r, g, b, a byte, x, y int) {
+	idx := 4 * (y*i.width + x)
+	i.pixels[idx] = r
+	i.pixels[idx+1] = g
+	i.pixels[idx+2] = b
+	i.pixels[idx+3] = a
 	i.needsToResolvePixels = true
 }
 
