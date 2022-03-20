@@ -116,13 +116,15 @@ func (i *Image) invalidatePendingPixels() {
 }
 
 func (i *Image) resolvePendingPixels(keepPendingPixels bool) {
-	if i.needsToResolvePixels {
-		i.img.ReplacePixels(i.pixels, nil)
-		if !keepPendingPixels {
-			i.pixels = nil
-		}
-		i.needsToResolvePixels = false
+	if !i.needsToResolvePixels {
+		return
 	}
+
+	i.img.ReplacePixels(i.pixels, nil)
+	if !keepPendingPixels {
+		i.pixels = nil
+	}
+	i.needsToResolvePixels = false
 }
 
 func (i *Image) MarkDisposed() {
