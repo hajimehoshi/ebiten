@@ -38,11 +38,11 @@ func (p *Pixels) Apply(img *graphicscommand.Image) {
 	p.pixelsRecords.apply(img)
 }
 
-func (p *Pixels) AddOrReplace(pix []byte, x, y, width, height int) {
+func (p *Pixels) AddOrReplace(pix []byte, mask []byte, x, y, width, height int) {
 	if p.pixelsRecords == nil {
 		p.pixelsRecords = &pixelsRecords{}
 	}
-	p.pixelsRecords.addOrReplace(pix, x, y, width, height)
+	p.pixelsRecords.addOrReplace(pix, mask, x, y, width, height)
 }
 
 func (p *Pixels) Clear(x, y, width, height int) {
@@ -130,7 +130,7 @@ func ensureEmptyImage() *Image {
 
 	// As emptyImage is the source at clearImage, initialize this with ReplacePixels, not clearImage.
 	// This operation is also important when restoring emptyImage.
-	emptyImage.ReplacePixels(pix, 0, 0, w, h)
+	emptyImage.ReplacePixels(pix, nil, 0, 0, w, h)
 	theImages.add(emptyImage)
 	return emptyImage
 }
@@ -284,13 +284,13 @@ func (i *Image) makeStale() {
 
 // ClearPixels clears the specified region by ReplacePixels.
 func (i *Image) ClearPixels(x, y, width, height int) {
-	i.ReplacePixels(nil, x, y, width, height)
+	i.ReplacePixels(nil, nil, x, y, width, height)
 }
 
 // ReplacePixels replaces the image pixels with the given pixels slice.
 //
 // The specified region must not be overlapped with other regions by ReplacePixels.
-func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
+func (i *Image) ReplacePixels(pixels []byte, mask []byte, x, y, width, height int) {
 	if width <= 0 || height <= 0 {
 		panic("restorable: width/height must be positive")
 	}
@@ -323,7 +323,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 			// This function is responsible to copy this.
 			copiedPixels := make([]byte, len(pixels))
 			copy(copiedPixels, pixels)
-			i.basePixels.AddOrReplace(copiedPixels, 0, 0, w, h)
+			i.basePixels.AddOrReplace(copiedPixels, mask, 0, 0, w, h)
 		} else {
 			i.basePixels.Clear(0, 0, w, h)
 		}
@@ -347,7 +347,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		// This function is responsible to copy this.
 		copiedPixels := make([]byte, len(pixels))
 		copy(copiedPixels, pixels)
-		i.basePixels.AddOrReplace(copiedPixels, x, y, width, height)
+		i.basePixels.AddOrReplace(copiedPixels, mask, x, y, width, height)
 	} else {
 		i.basePixels.Clear(x, y, width, height)
 	}
@@ -502,7 +502,7 @@ func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error 
 		return err
 	}
 	i.basePixels = Pixels{}
-	i.basePixels.AddOrReplace(pix, 0, 0, i.width, i.height)
+	i.basePixels.AddOrReplace(pix, nil, 0, 0, i.width, i.height)
 	i.clearDrawTrianglesHistory()
 	i.stale = false
 	return nil
@@ -630,7 +630,7 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 		if err := gimg.ReadPixels(graphicsDriver, pix); err != nil {
 			return err
 		}
-		i.basePixels.AddOrReplace(pix, 0, 0, w, h)
+		i.basePixels.AddOrReplace(pix, nil, 0, 0, w, h)
 	}
 
 	i.image = gimg

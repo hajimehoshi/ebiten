@@ -96,7 +96,7 @@ func TestShaderChain(t *testing.T) {
 		imgs = append(imgs, img)
 	}
 
-	imgs[0].ReplacePixels([]byte{0xff, 0, 0, 0xff}, 0, 0, 1, 1)
+	imgs[0].ReplacePixels([]byte{0xff, 0, 0, 0xff}, nil, 0, 0, 1, 1)
 
 	ir := etesting.ShaderProgramImages(needsInvertY(), 1)
 	s := restorable.NewShader(&ir)
@@ -131,9 +131,9 @@ func TestShaderMultipleSources(t *testing.T) {
 	for i := range srcs {
 		srcs[i] = restorable.NewImage(1, 1)
 	}
-	srcs[0].ReplacePixels([]byte{0x40, 0, 0, 0xff}, 0, 0, 1, 1)
-	srcs[1].ReplacePixels([]byte{0, 0x80, 0, 0xff}, 0, 0, 1, 1)
-	srcs[2].ReplacePixels([]byte{0, 0, 0xc0, 0xff}, 0, 0, 1, 1)
+	srcs[0].ReplacePixels([]byte{0x40, 0, 0, 0xff}, nil, 0, 0, 1, 1)
+	srcs[1].ReplacePixels([]byte{0, 0x80, 0, 0xff}, nil, 0, 0, 1, 1)
+	srcs[2].ReplacePixels([]byte{0, 0, 0xc0, 0xff}, nil, 0, 0, 1, 1)
 
 	dst := restorable.NewImage(1, 1)
 
@@ -171,7 +171,7 @@ func TestShaderMultipleSourcesOnOneTexture(t *testing.T) {
 		0x40, 0, 0, 0xff,
 		0, 0x80, 0, 0xff,
 		0, 0, 0xc0, 0xff,
-	}, 0, 0, 3, 1)
+	}, nil, 0, 0, 3, 1)
 	srcs := [graphics.ShaderImageNum]*restorable.Image{src, src, src}
 
 	dst := restorable.NewImage(1, 1)

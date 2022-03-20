@@ -563,7 +563,7 @@ func (i *Image) replacePixels(pix []byte) {
 
 	px, py, pw, ph := i.regionWithPadding()
 	if pix == nil {
-		i.backend.restorable.ReplacePixels(nil, px, py, pw, ph)
+		i.backend.restorable.ReplacePixels(nil, nil, px, py, pw, ph)
 		return
 	}
 
@@ -598,7 +598,8 @@ func (i *Image) replacePixels(pix []byte) {
 		copy(pixb[4*((j+paddingSize)*pw+paddingSize):], pix[4*j*ow:4*(j+1)*ow])
 	}
 
-	i.backend.restorable.ReplacePixels(pixb, px, py, pw, ph)
+	// TODO: Specify a mask if needed.
+	i.backend.restorable.ReplacePixels(pixb, nil, px, py, pw, ph)
 }
 
 func (img *Image) Pixels(graphicsDriver graphicsdriver.Graphics) ([]byte, error) {
