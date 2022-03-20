@@ -138,15 +138,24 @@ func (i *Image) MarkDisposed() {
 	i.img.MarkDisposed()
 }
 
+func (i *Image) ensurePixels(graphicsDriver graphicsdriver.Graphics) error {
+	if i.pixels != nil {
+		return nil
+	}
+
+	pix, err := i.img.Pixels(graphicsDriver)
+	if err != nil {
+		return err
+	}
+	i.pixels = pix
+	return nil
+}
+
 func (img *Image) At(graphicsDriver graphicsdriver.Graphics, x, y int) (r, g, b, a byte, err error) {
 	checkDelayedCommandsFlushed("At")
 
-	if img.pixels == nil {
-		pix, err := img.img.Pixels(graphicsDriver)
-		if err != nil {
-			return 0, 0, 0, 0, err
-		}
-		img.pixels = pix
+	if err := img.ensurePixels(graphicsDriver); err != nil {
+		return 0, 0, 0, 0, err
 	}
 
 	idx := 4 * (y*img.width + x)
@@ -199,13 +208,10 @@ func (i *Image) ReplacePartialPixels(graphicsDriver graphicsdriver.Graphics, pix
 		}
 	}
 
-	if i.pixels == nil {
-		pix, err := i.img.Pixels(graphicsDriver)
-		if err != nil {
-			return err
-		}
-		i.pixels = pix
+	if err := i.ensurePixels(graphicsDriver); err != nil {
+		return err
 	}
+
 	i.replacePendingPixels(pix, x, y, width, height)
 	return nil
 }
