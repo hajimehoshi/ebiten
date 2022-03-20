@@ -110,7 +110,7 @@ func TestEnsureIsolated(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
-	pix, err := img4.Pixels(ui.GraphicsDriverForTesting(), 0, 0, size, size)
+	pix, err := img4.Pixels(ui.GraphicsDriverForTesting())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -202,7 +202,7 @@ func TestReputOnAtlas(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pix, err := img1.Pixels(ui.GraphicsDriverForTesting(), 0, 0, size, size)
+	pix, err := img1.Pixels(ui.GraphicsDriverForTesting())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,7 +226,7 @@ func TestReputOnAtlas(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
-	pix, err = img1.Pixels(ui.GraphicsDriverForTesting(), 0, 0, size, size)
+	pix, err = img1.Pixels(ui.GraphicsDriverForTesting())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -314,7 +314,7 @@ func TestExtend(t *testing.T) {
 	// Ensure to allocate
 	img1.ReplacePixels(p1)
 
-	pix0, err := img0.Pixels(ui.GraphicsDriverForTesting(), 0, 0, w0, h0)
+	pix0, err := img0.Pixels(ui.GraphicsDriverForTesting())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -333,7 +333,7 @@ func TestExtend(t *testing.T) {
 		}
 	}
 
-	pix1, err := img1.Pixels(ui.GraphicsDriverForTesting(), 0, 0, w1, h1)
+	pix1, err := img1.Pixels(ui.GraphicsDriverForTesting())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -380,7 +380,7 @@ func TestReplacePixelsAfterDrawTriangles(t *testing.T) {
 	dst.DrawTriangles([graphics.ShaderImageNum]*atlas.Image{src}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 	dst.ReplacePixels(pix)
 
-	pix, err := dst.Pixels(ui.GraphicsDriverForTesting(), 0, 0, w, h)
+	pix, err := dst.Pixels(ui.GraphicsDriverForTesting())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -427,7 +427,7 @@ func TestSmallImages(t *testing.T) {
 	}
 	dst.DrawTriangles([graphics.ShaderImageNum]*atlas.Image{src}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 
-	pix, err := dst.Pixels(ui.GraphicsDriverForTesting(), 0, 0, w, h)
+	pix, err := dst.Pixels(ui.GraphicsDriverForTesting())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -475,7 +475,7 @@ func TestLongImages(t *testing.T) {
 	}
 	dst.DrawTriangles([graphics.ShaderImageNum]*atlas.Image{src}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 
-	pix, err := dst.Pixels(ui.GraphicsDriverForTesting(), 0, 0, dstW, dstH)
+	pix, err := dst.Pixels(ui.GraphicsDriverForTesting())
 	if err != nil {
 		t.Fatal(err)
 	}

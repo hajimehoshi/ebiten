@@ -601,17 +601,17 @@ func (i *Image) replacePixels(pix []byte) {
 	i.backend.restorable.ReplacePixels(pixb, px, py, pw, ph)
 }
 
-func (img *Image) Pixels(graphicsDriver graphicsdriver.Graphics, x, y, width, height int) ([]byte, error) {
+func (img *Image) Pixels(graphicsDriver graphicsdriver.Graphics) ([]byte, error) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
-	x += paddingSize
-	y += paddingSize
+	x := paddingSize
+	y := paddingSize
 
-	bs := make([]byte, 4*width*height)
+	bs := make([]byte, 4*img.width*img.height)
 	idx := 0
-	for j := y; j < y+height; j++ {
-		for i := x; i < x+width; i++ {
+	for j := y; j < y+img.height; j++ {
+		for i := x; i < x+img.width; i++ {
 			r, g, b, a, err := img.at(graphicsDriver, i, j)
 			if err != nil {
 				return nil, err

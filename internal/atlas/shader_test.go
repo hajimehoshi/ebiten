@@ -51,7 +51,7 @@ func TestShaderFillTwice(t *testing.T) {
 	s1 := atlas.NewShader(&p1)
 	dst.DrawTriangles([graphics.ShaderImageNum]*atlas.Image{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, s1, nil, false)
 
-	pix, err := dst.Pixels(g, 0, 0, w, h)
+	pix, err := dst.Pixels(g)
 	if err != nil {
 		t.Error(err)
 	}
@@ -83,7 +83,7 @@ func TestImageDrawTwice(t *testing.T) {
 	vs = quadVertices(w, h, 0, 0, 1)
 	dst.DrawTriangles([graphics.ShaderImageNum]*atlas.Image{src1}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
 
-	pix, err := dst.Pixels(ui.GraphicsDriverForTesting(), 0, 0, w, h)
+	pix, err := dst.Pixels(ui.GraphicsDriverForTesting())
 	if err != nil {
 		t.Error(err)
 	}

@@ -87,8 +87,8 @@ func (i *Image) Pixels(x, y, width, height int) []byte {
 		return nil
 	}
 
-	pix, err := i.mipmap.Pixels(graphicsDriver(), x, y, width, height)
-	if err != nil {
+	pix := make([]byte, 4*width*height)
+	if err := i.mipmap.ReadPixels(graphicsDriver(), pix, x, y, width, height); err != nil {
 		if panicOnErrorOnReadingPixels {
 			panic(err)
 		}

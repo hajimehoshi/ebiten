@@ -16,7 +16,6 @@ package buffered
 
 import (
 	"fmt"
-	"image"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
@@ -139,19 +138,13 @@ func (i *Image) MarkDisposed() {
 	i.img.MarkDisposed()
 }
 
-func (img *Image) Pixels(graphicsDriver graphicsdriver.Graphics, x, y, width, height int) (pix []byte, err error) {
+func (img *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pix []byte, x, y, width, height int) (err error) {
 	checkDelayedCommandsFlushed("Pixels")
 
-	if !image.Rect(x, y, x+width, y+height).In(image.Rect(0, 0, img.width, img.height)) {
-		return nil, fmt.Errorf("buffered: out of range")
-	}
-
-	pix = make([]byte, 4*width*height)
-
 	if img.pixels == nil {
-		pix, err := img.img.Pixels(graphicsDriver, 0, 0, img.width, img.height)
+		pix, err := img.img.Pixels(graphicsDriver)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		img.pixels = pix
 	}
@@ -159,7 +152,7 @@ func (img *Image) Pixels(graphicsDriver graphicsdriver.Graphics, x, y, width, he
 	for j := 0; j < height; j++ {
 		copy(pix[4*j*width:4*(j+1)*width], img.pixels[4*((j+y)*img.width+x):])
 	}
-	return pix, nil
+	return nil
 }
 
 func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name string, blackbg bool) error {
@@ -209,7 +202,7 @@ func (i *Image) ReplacePartialPixels(graphicsDriver graphicsdriver.Graphics, pix
 	}
 
 	if i.pixels == nil {
-		pix, err := i.img.Pixels(graphicsDriver, 0, 0, i.width, i.height)
+		pix, err := i.img.Pixels(graphicsDriver)
 		if err != nil {
 			return err
 		}
