@@ -1002,4 +1002,38 @@ func TestOverlappedPixels(t *testing.T) {
 			}
 		}
 	}
+
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
+		t.Fatal(err)
+	}
+	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
+		t.Fatal(err)
+	}
+
+	wantColors = []color.RGBA{
+		{0xff, 0, 0, 0xff},
+		{0, 0, 0, 0},
+		{0, 0, 0, 0},
+
+		{0xff, 0, 0, 0xff},
+		{0, 0, 0, 0},
+		{0, 0, 0, 0},
+
+		{0, 0, 0, 0},
+		{0, 0xff, 0, 0xff},
+		{0, 0xff, 0, 0xff},
+	}
+	for j := 0; j < 3; j++ {
+		for i := 0; i < 3; i++ {
+			r, g, b, a, err := dst.At(ui.GraphicsDriverForTesting(), i, j)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := color.RGBA{r, g, b, a}
+			want := wantColors[3*j+i]
+			if got != want {
+				t.Errorf("color at (%d, %d): got %v, want: %v", i, j, got, want)
+			}
+		}
+	}
 }
