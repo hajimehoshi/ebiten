@@ -337,7 +337,7 @@ func (i *Image) putOnAtlas(graphicsDriver graphicsdriver.Graphics) error {
 				pixels[4*(i.width*y+x)+3] = a
 			}
 		}
-		newI.replacePixels(pixels, 0, 0, i.width, i.height)
+		newI.replacePixels(pixels)
 	} else {
 		// If the underlying graphics driver doesn't require restoring from the context lost, just a regular
 		// rendering works.
@@ -538,13 +538,16 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 	}
 }
 
-func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) {
+// ReplacePixels replaces the pixels on the image.
+// ReplacePixels cannot take a region due to the current implementation.
+// internal/restorable.Image has to record the areas of replaced pixels, and the areas must not be overlapped so far.
+func (i *Image) ReplacePixels(pix []byte) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	i.replacePixels(pix, x, y, width, height)
+	i.replacePixels(pix)
 }
 
-func (i *Image) replacePixels(pix []byte, x, y, width, height int) {
+func (i *Image) replacePixels(pix []byte) {
 	if i.disposed {
 		panic("atlas: the image must not be disposed at replacePixels")
 	}
@@ -558,18 +561,6 @@ func (i *Image) replacePixels(pix []byte, x, y, width, height int) {
 		i.allocate(true)
 	}
 
-	// If the replacing area is small, replace the pixels without the padding.
-	if x != 0 || y != 0 || width != i.width || height != i.height {
-		ox, oy, _, _ := i.regionWithPadding()
-		x += ox + paddingSize
-		y += oy + paddingSize
-		copied := make([]byte, len(pix))
-		copy(copied, pix)
-		i.backend.restorable.ReplacePixels(copied, x, y, width, height)
-		return
-	}
-
-	// If the whole area is being replaced, add the padding.
 	px, py, pw, ph := i.regionWithPadding()
 	if pix == nil {
 		i.backend.restorable.ReplacePixels(nil, px, py, pw, ph)
