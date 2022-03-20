@@ -22,12 +22,12 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 )
 
-// panicOnErrorAtImageAt indicates whether (*Image).At panics on an error or not.
+// panicOnErrorOnReadingPixels indicates whether reading pixels panics on an error or not.
 // This value is set only on testing.
-var panicOnErrorAtImageAt bool
+var panicOnErrorOnReadingPixels bool
 
-func SetPanicOnErrorAtImageAtForTesting(value bool) {
-	panicOnErrorAtImageAt = value
+func SetPanicOnErrorOnReadingPixelsForTesting(value bool) {
+	panicOnErrorOnReadingPixels = value
 }
 
 type Image struct {
@@ -89,7 +89,7 @@ func (i *Image) Pixels(x, y, width, height int) []byte {
 
 	pix, err := i.mipmap.Pixels(graphicsDriver(), x, y, width, height)
 	if err != nil {
-		if panicOnErrorAtImageAt {
+		if panicOnErrorOnReadingPixels {
 			panic(err)
 		}
 		theGlobalState.setError(err)
