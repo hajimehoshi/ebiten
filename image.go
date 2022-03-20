@@ -718,11 +718,7 @@ func (i *Image) at(x, y int) (r, g, b, a uint8) {
 	if !image.Pt(x, y).In(i.Bounds()) {
 		return 0, 0, 0, 0
 	}
-	pix := i.image.Pixels(x, y, 1, 1)
-	if len(pix) == 0 {
-		return 0, 0, 0, 0
-	}
-	return pix[0], pix[1], pix[2], pix[3]
+	return i.image.At(x, y)
 }
 
 // Set sets the color at (x, y).

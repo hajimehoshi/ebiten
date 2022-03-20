@@ -138,21 +138,19 @@ func (i *Image) MarkDisposed() {
 	i.img.MarkDisposed()
 }
 
-func (img *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pix []byte, x, y, width, height int) (err error) {
-	checkDelayedCommandsFlushed("Pixels")
+func (img *Image) At(graphicsDriver graphicsdriver.Graphics, x, y int) (r, g, b, a byte, err error) {
+	checkDelayedCommandsFlushed("At")
 
 	if img.pixels == nil {
 		pix, err := img.img.Pixels(graphicsDriver)
 		if err != nil {
-			return err
+			return 0, 0, 0, 0, err
 		}
 		img.pixels = pix
 	}
 
-	for j := 0; j < height; j++ {
-		copy(pix[4*j*width:4*(j+1)*width], img.pixels[4*((j+y)*img.width+x):])
-	}
-	return nil
+	idx := 4 * (y*img.width + x)
+	return img.pixels[idx], img.pixels[idx+1], img.pixels[idx+2], img.pixels[idx+3], nil
 }
 
 func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name string, blackbg bool) error {

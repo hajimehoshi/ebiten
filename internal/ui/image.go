@@ -81,21 +81,21 @@ func (i *Image) ReplacePartialPixels(pix []byte, x, y, width, height int) {
 	}
 }
 
-func (i *Image) Pixels(x, y, width, height int) []byte {
+func (i *Image) At(x, y int) (r, g, b, a byte) {
 	// Check the error existence and avoid unnecessary calls.
 	if theGlobalState.error() != nil {
-		return nil
+		return 0, 0, 0, 0
 	}
 
-	pix := make([]byte, 4*width*height)
-	if err := i.mipmap.ReadPixels(graphicsDriver(), pix, x, y, width, height); err != nil {
+	r, g, b, a, err := i.mipmap.At(graphicsDriver(), x, y)
+	if err != nil {
 		if panicOnErrorOnReadingPixels {
 			panic(err)
 		}
 		theGlobalState.setError(err)
-		return nil
+		return 0, 0, 0, 0
 	}
-	return pix
+	return r, g, b, a
 }
 
 func (i *Image) DumpScreenshot(name string, blackbg bool) error {
