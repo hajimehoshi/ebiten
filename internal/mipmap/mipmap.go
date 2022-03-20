@@ -71,13 +71,13 @@ func (m *Mipmap) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name str
 	return m.orig.DumpScreenshot(graphicsDriver, name, blackbg)
 }
 
-func (m *Mipmap) ReplacePixels(pix []byte, x, y, width, height int) {
-	m.orig.ReplacePixels(pix, x, y, width, height)
+func (m *Mipmap) ReplacePixels(pix []byte) {
+	m.orig.ReplacePixels(pix)
 	m.disposeMipmaps()
 }
 
-func (m *Mipmap) Set(graphicsDriver graphicsdriver.Graphics, r, g, b, a byte, x, y int) error {
-	if err := m.orig.Set(graphicsDriver, r, g, b, a, x, y); err != nil {
+func (m *Mipmap) ReplacePartialPixels(graphicsDriver graphicsdriver.Graphics, pix []byte, x, y, width, height int) error {
+	if err := m.orig.ReplacePartialPixels(graphicsDriver, pix, x, y, width, height); err != nil {
 		return err
 	}
 	m.disposeMipmaps()

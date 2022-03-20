@@ -289,7 +289,7 @@ func (i *Image) ClearPixels(x, y, width, height int) {
 
 // ReplacePixels replaces the image pixels with the given pixels slice.
 //
-// ReplacePixels for a part is forbidden if the image is rendered with DrawTriangles or Fill.
+// The specified region must not be overlapped with other regions by ReplacePixels.
 func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	if width <= 0 || height <= 0 {
 		panic("restorable: width/height must be positive")

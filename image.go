@@ -745,7 +745,7 @@ func (i *Image) Set(x, y int, clr color.Color) {
 	}
 
 	r, g, b, a := clr.RGBA()
-	i.image.Set(byte(r>>8), byte(g>>8), byte(b>>8), byte(a>>8), x, y)
+	i.image.ReplacePartialPixels([]byte{byte(r >> 8), byte(g >> 8), byte(b >> 8), byte(a >> 8)}, x, y, 1, 1)
 }
 
 // Dispose disposes the image data.
@@ -786,12 +786,17 @@ func (i *Image) ReplacePixels(pixels []byte) {
 	if i.isDisposed() {
 		return
 	}
-	r := i.Bounds()
 
+	if !i.isSubImage() {
+		i.image.ReplacePixels(pixels)
+		return
+	}
+
+	r := i.Bounds()
 	// Do not need to copy pixels here.
 	// * In internal/mipmap, pixels are copied when necessary.
 	// * In internal/atlas, pixels are copied to make its paddings.
-	i.image.ReplacePixels(pixels, r.Min.X, r.Min.Y, r.Dx(), r.Dy())
+	i.image.ReplacePartialPixels(pixels, r.Min.X, r.Min.Y, r.Dx(), r.Dy())
 }
 
 // NewImage returns an empty image.

@@ -68,15 +68,15 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 	i.mipmap.DrawTriangles(srcMipmaps, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, s, uniforms, evenOdd, canSkipMipmap)
 }
 
-func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) {
-	i.mipmap.ReplacePixels(pix, x, y, width, height)
+func (i *Image) ReplacePixels(pix []byte) {
+	i.mipmap.ReplacePixels(pix)
 }
 
-func (i *Image) Set(r, g, b, a byte, x, y int) {
+func (i *Image) ReplacePartialPixels(pix []byte, x, y, width, height int) {
 	if theGlobalState.error() != nil {
 		return
 	}
-	if err := i.mipmap.Set(graphicsDriver(), r, g, b, a, x, y); err != nil {
+	if err := i.mipmap.ReplacePartialPixels(graphicsDriver(), pix, x, y, width, height); err != nil {
 		theGlobalState.setError(err)
 	}
 }
