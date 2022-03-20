@@ -337,7 +337,7 @@ func (i *Image) putOnAtlas(graphicsDriver graphicsdriver.Graphics) error {
 				pixels[4*(i.width*y+x)+3] = a
 			}
 		}
-		newI.replacePixels(pixels)
+		newI.replacePixels(pixels, nil)
 	} else {
 		// If the underlying graphics driver doesn't require restoring from the context lost, just a regular
 		// rendering works.
@@ -541,13 +541,13 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 // ReplacePixels replaces the pixels on the image.
 // ReplacePixels cannot take a region due to the current implementation.
 // internal/restorable.Image has to record the areas of replaced pixels, and the areas must not be overlapped so far.
-func (i *Image) ReplacePixels(pix []byte) {
+func (i *Image) ReplacePixels(pix []byte, mask []byte) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	i.replacePixels(pix)
+	i.replacePixels(pix, mask)
 }
 
-func (i *Image) replacePixels(pix []byte) {
+func (i *Image) replacePixels(pix []byte, mask []byte) {
 	if i.disposed {
 		panic("atlas: the image must not be disposed at replacePixels")
 	}
@@ -598,8 +598,7 @@ func (i *Image) replacePixels(pix []byte) {
 		copy(pixb[4*((j+paddingSize)*pw+paddingSize):], pix[4*j*ow:4*(j+1)*ow])
 	}
 
-	// TODO: Specify a mask if needed.
-	i.backend.restorable.ReplacePixels(pixb, nil, px, py, pw, ph)
+	i.backend.restorable.ReplacePixels(pixb, mask, px, py, pw, ph)
 }
 
 func (img *Image) Pixels(graphicsDriver graphicsdriver.Graphics) ([]byte, error) {

@@ -117,7 +117,7 @@ func (i *Image) invalidatePendingPixels() {
 
 func (i *Image) resolvePendingPixels(keepPendingPixels bool) {
 	if i.needsToResolvePixels {
-		i.img.ReplacePixels(i.pixels)
+		i.img.ReplacePixels(i.pixels, nil)
 		if !keepPendingPixels {
 			i.pixels = nil
 		}
@@ -187,7 +187,7 @@ func (i *Image) ReplacePixels(pix []byte) {
 
 	i.invalidatePendingPixels()
 
-	i.img.ReplacePixels(pix)
+	i.img.ReplacePixels(pix, nil)
 }
 
 // ReplacePartial replaces the pixel at the specified partial region.
