@@ -26,7 +26,7 @@ type pixelsRecord struct {
 	pix  []byte
 }
 
-func (p *pixelsRecord) ClearIfOverlapped(rect image.Rectangle) {
+func (p *pixelsRecord) clearIfOverlapped(rect image.Rectangle) {
 	r := p.rect.Intersect(rect)
 	ox := r.Min.X - p.rect.Min.X
 	oy := r.Min.Y - p.rect.Min.Y
@@ -40,6 +40,15 @@ func (p *pixelsRecord) ClearIfOverlapped(rect image.Rectangle) {
 			p.pix[idx+3] = 0
 		}
 	}
+}
+
+func (p *pixelsRecord) at(x, y int) (r, g, b, a byte, ok bool) {
+	if !image.Pt(x, y).In(p.rect) {
+		return 0, 0, 0, 0, false
+	}
+
+	idx := 4 * ((y-p.rect.Min.Y)*p.rect.Dx() + (x - p.rect.Min.X))
+	return p.pix[idx], p.pix[idx+1], p.pix[idx+2], p.pix[idx+3], true
 }
 
 type pixelsRecords struct {
@@ -84,7 +93,7 @@ func (pr *pixelsRecords) clear(x, y, width, height int) {
 		if r.rect.In(newr) {
 			continue
 		}
-		r.ClearIfOverlapped(newr)
+		r.clearIfOverlapped(newr)
 		pr.records[n] = r
 		n++
 	}
@@ -94,24 +103,16 @@ func (pr *pixelsRecords) clear(x, y, width, height int) {
 	pr.records = pr.records[:n]
 }
 
-func (pr *pixelsRecords) at(i, j int) (byte, byte, byte, byte, bool) {
-	var record *pixelsRecord
-	pt := image.Pt(i, j)
+func (pr *pixelsRecords) at(i, j int) (r, g, b, a byte, ok bool) {
 	// Traverse the slice in the reversed order.
-	for i := len(pr.records) - 1; i >= 0; i-- {
-		p := pr.records[i]
-		if pt.In(p.rect) {
-			record = p
-			break
+	for idx := len(pr.records) - 1; idx >= 0; idx-- {
+		r, g, b, a, ok := pr.records[idx].at(i, j)
+		if ok {
+			return r, g, b, a, true
 		}
 	}
 
-	if record == nil {
-		return 0, 0, 0, 0, false
-	}
-
-	idx := 4 * ((j-record.rect.Min.Y)*record.rect.Dx() + (i - record.rect.Min.X))
-	return record.pix[idx], record.pix[idx+1], record.pix[idx+2], record.pix[idx+3], true
+	return 0, 0, 0, 0, false
 }
 
 func (pr *pixelsRecords) apply(img *graphicscommand.Image) {
