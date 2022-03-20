@@ -30,6 +30,7 @@ type Image struct {
 	height int
 
 	pixels               []byte
+	mask                 []byte
 	needsToResolvePixels bool
 }
 
@@ -112,6 +113,7 @@ func (i *Image) initializeAsScreenFramebuffer(width, height int) {
 
 func (i *Image) invalidatePendingPixels() {
 	i.pixels = nil
+	i.mask = nil
 	i.needsToResolvePixels = false
 }
 
@@ -120,9 +122,10 @@ func (i *Image) resolvePendingPixels(keepPendingPixels bool) {
 		return
 	}
 
-	i.img.ReplacePixels(i.pixels, nil)
-	if !keepPendingPixels {
+	i.img.ReplacePixels(i.pixels, i.mask)
+	if !keepPendingPixels || i.mask != nil {
 		i.pixels = nil
+		i.mask = nil
 	}
 	i.needsToResolvePixels = false
 }
@@ -140,28 +143,29 @@ func (i *Image) MarkDisposed() {
 	i.img.MarkDisposed()
 }
 
-func (i *Image) ensurePixels(graphicsDriver graphicsdriver.Graphics) error {
-	if i.pixels != nil {
-		return nil
-	}
-
-	pix, err := i.img.Pixels(graphicsDriver)
-	if err != nil {
-		return err
-	}
-	i.pixels = pix
-	return nil
-}
-
 func (img *Image) At(graphicsDriver graphicsdriver.Graphics, x, y int) (r, g, b, a byte, err error) {
 	checkDelayedCommandsFlushed("At")
 
-	if err := img.ensurePixels(graphicsDriver); err != nil {
-		return 0, 0, 0, 0, err
+	idx := (y*img.width + x)
+	if img.pixels != nil {
+		if img.mask == nil {
+			return img.pixels[4*idx], img.pixels[4*idx+1], img.pixels[4*idx+2], img.pixels[4*idx+3], nil
+		}
+		if img.mask[idx/8]<<(idx%8)&1 != 0 {
+			return img.pixels[4*idx], img.pixels[4*idx+1], img.pixels[4*idx+2], img.pixels[4*idx+3], nil
+		}
+
+		img.resolvePendingPixels(false)
 	}
 
-	idx := 4 * (y*img.width + x)
-	return img.pixels[idx], img.pixels[idx+1], img.pixels[idx+2], img.pixels[idx+3], nil
+	pix, err := img.img.Pixels(graphicsDriver)
+	if err != nil {
+		return 0, 0, 0, 0, err
+	}
+	img.pixels = pix
+	// When pixels represents the whole pixels, the mask is not needed.
+	img.mask = nil
+	return img.pixels[4*idx], img.pixels[4*idx+1], img.pixels[4*idx+2], img.pixels[4*idx+3], nil
 }
 
 func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name string, blackbg bool) error {
@@ -194,7 +198,7 @@ func (i *Image) ReplacePixels(pix []byte) {
 
 // ReplacePartial replaces the pixel at the specified partial region.
 // This call might be accumulated and send one draw call to replace pixels for the accumulated calls.
-func (i *Image) ReplacePartialPixels(graphicsDriver graphicsdriver.Graphics, pix []byte, x, y, width, height int) error {
+func (i *Image) ReplacePartialPixels(pix []byte, x, y, width, height int) {
 	if l := 4 * width * height; len(pix) != l {
 		panic(fmt.Sprintf("buffered: len(pix) was %d but must be %d", len(pix), l))
 	}
@@ -203,26 +207,38 @@ func (i *Image) ReplacePartialPixels(graphicsDriver graphicsdriver.Graphics, pix
 		if tryAddDelayedCommand(func() error {
 			copied := make([]byte, len(pix))
 			copy(copied, pix)
-			i.ReplacePartialPixels(graphicsDriver, copied, x, y, width, height)
+			i.ReplacePartialPixels(copied, x, y, width, height)
 			return nil
 		}) {
-			return nil
+			return
 		}
 	}
 
-	if err := i.ensurePixels(graphicsDriver); err != nil {
-		return err
-	}
-
 	i.replacePendingPixels(pix, x, y, width, height)
-	return nil
 }
 
-func (i *Image) replacePendingPixels(pix []byte, x, y, width, height int) {
-	for j := 0; j < height; j++ {
-		copy(i.pixels[4*((j+y)*i.width+x):], pix[4*j*width:4*(j+1)*width])
+func (img *Image) replacePendingPixels(pix []byte, x, y, width, height int) {
+	if img.pixels == nil {
+		img.pixels = make([]byte, 4*img.width*img.height)
+		if img.mask == nil {
+			img.mask = make([]byte, (img.width*img.height-1)/8+1)
+		}
 	}
-	i.needsToResolvePixels = true
+	for j := 0; j < height; j++ {
+		copy(img.pixels[4*((j+y)*img.width+x):], pix[4*j*width:4*(j+1)*width])
+	}
+
+	// A mask is created only when a partial regions are replaced by replacePendingPixels.
+	if img.mask != nil {
+		for j := 0; j < height; j++ {
+			for i := 0; i < width; i++ {
+				idx := (y+j)*img.width + x + i
+				img.mask[idx/8] |= 1 << (idx % 8)
+			}
+		}
+	}
+
+	img.needsToResolvePixels = true
 }
 
 // DrawTriangles draws the src image with the given vertices.

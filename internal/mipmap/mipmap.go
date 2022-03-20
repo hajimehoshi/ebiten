@@ -76,12 +76,9 @@ func (m *Mipmap) ReplacePixels(pix []byte) {
 	m.disposeMipmaps()
 }
 
-func (m *Mipmap) ReplacePartialPixels(graphicsDriver graphicsdriver.Graphics, pix []byte, x, y, width, height int) error {
-	if err := m.orig.ReplacePartialPixels(graphicsDriver, pix, x, y, width, height); err != nil {
-		return err
-	}
+func (m *Mipmap) ReplacePartialPixels(pix []byte, x, y, width, height int) {
+	m.orig.ReplacePartialPixels(pix, x, y, width, height)
 	m.disposeMipmaps()
-	return nil
 }
 
 func (m *Mipmap) At(graphicsDriver graphicsdriver.Graphics, x, y int) (r, g, b, a byte, err error) {

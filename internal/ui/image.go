@@ -73,12 +73,7 @@ func (i *Image) ReplacePixels(pix []byte) {
 }
 
 func (i *Image) ReplacePartialPixels(pix []byte, x, y, width, height int) {
-	if theGlobalState.error() != nil {
-		return
-	}
-	if err := i.mipmap.ReplacePartialPixels(graphicsDriver(), pix, x, y, width, height); err != nil {
-		theGlobalState.setError(err)
-	}
+	i.mipmap.ReplacePartialPixels(pix, x, y, width, height)
 }
 
 func (i *Image) At(x, y int) (r, g, b, a byte) {
