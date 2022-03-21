@@ -55,16 +55,16 @@ func newContextImpl(game Game) *contextImpl {
 	}
 }
 
-func (c *contextImpl) updateFrame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
+func (c *contextImpl) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
-	return c.updateFrameImpl(clock.Update(theGlobalState.maxTPS()), outsideWidth, outsideHeight, deviceScaleFactor)
+	return c.updateFrameImpl(graphicsDriver, clock.Update(theGlobalState.maxTPS()), outsideWidth, outsideHeight, deviceScaleFactor)
 }
 
-func (c *contextImpl) forceUpdateFrame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
-	return c.updateFrameImpl(1, outsideWidth, outsideHeight, deviceScaleFactor)
+func (c *contextImpl) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
+	return c.updateFrameImpl(graphicsDriver, 1, outsideWidth, outsideHeight, deviceScaleFactor)
 }
 
-func (c *contextImpl) updateFrameImpl(updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
+func (c *contextImpl) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
 	if err := theGlobalState.error(); err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func (c *contextImpl) updateFrameImpl(updateCount int, outsideWidth, outsideHeig
 
 	debug.Logf("----\n")
 
-	if err := buffered.BeginFrame(graphicsDriver()); err != nil {
+	if err := buffered.BeginFrame(graphicsDriver); err != nil {
 		return err
 	}
 
@@ -110,14 +110,14 @@ func (c *contextImpl) updateFrameImpl(updateCount int, outsideWidth, outsideHeig
 
 	// Draw the game.
 	screenScale, offsetX, offsetY := c.screenScaleAndOffsets(deviceScaleFactor)
-	if err := c.game.Draw(screenScale, offsetX, offsetY, graphicsDriver().NeedsClearingScreen(), graphicsDriver().FramebufferYDirection(), theGlobalState.isScreenClearedEveryFrame(), theGlobalState.isScreenFilterEnabled()); err != nil {
+	if err := c.game.Draw(screenScale, offsetX, offsetY, graphicsDriver.NeedsClearingScreen(), graphicsDriver.FramebufferYDirection(), theGlobalState.isScreenClearedEveryFrame(), theGlobalState.isScreenFilterEnabled()); err != nil {
 		return err
 	}
 
 	// All the vertices data are consumed at the end of the frame, and the data backend can be
 	// available after that. Until then, lock the vertices backend.
 	return graphicspkg.LockAndResetVertices(func() error {
-		if err := buffered.EndFrame(graphicsDriver()); err != nil {
+		if err := buffered.EndFrame(graphicsDriver); err != nil {
 			return err
 		}
 		return nil
