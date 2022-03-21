@@ -225,6 +225,23 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
 		return nil
 	}
 
+	defer func() {
+		// Release the commands explicitly (#1803).
+		// Apparently, the part of a slice between len and cap-1 still holds references.
+		// Then, resetting the length by [:0] doesn't release the references.
+		for i, c := range q.commands {
+			if c, ok := c.(*drawTrianglesCommand); ok {
+				q.drawTrianglesCommandPool.put(c)
+			}
+			q.commands[i] = nil
+		}
+		q.commands = q.commands[:0]
+		q.nvertices = 0
+		q.nindices = 0
+		q.tmpNumVertexFloats = 0
+		q.tmpNumIndices = 0
+	}()
+
 	es := q.indices
 	vs := q.vertices
 	debug.Logf("Graphics commands:\n")
@@ -324,21 +341,6 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
 		cs = cs[nc:]
 	}
 	graphicsDriver.End(present)
-
-	// Release the commands explicitly (#1803).
-	// Apparently, the part of a slice between len and cap-1 still holds references.
-	// Then, resetting the length by [:0] doesn't release the references.
-	for i, c := range q.commands {
-		if c, ok := c.(*drawTrianglesCommand); ok {
-			q.drawTrianglesCommandPool.put(c)
-		}
-		q.commands[i] = nil
-	}
-	q.commands = q.commands[:0]
-	q.nvertices = 0
-	q.nindices = 0
-	q.tmpNumVertexFloats = 0
-	q.tmpNumIndices = 0
 	return nil
 }
 
