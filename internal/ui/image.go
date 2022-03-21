@@ -68,12 +68,8 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 	i.mipmap.DrawTriangles(srcMipmaps, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, s, uniforms, evenOdd, canSkipMipmap)
 }
 
-func (i *Image) ReplacePixels(pix []byte) {
-	i.mipmap.ReplacePixels(pix)
-}
-
-func (i *Image) ReplacePartialPixels(pix []byte, x, y, width, height int) {
-	i.mipmap.ReplacePartialPixels(pix, x, y, width, height)
+func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) {
+	i.mipmap.ReplacePixels(pix, x, y, width, height)
 }
 
 func (i *Image) At(x, y int) (r, g, b, a byte) {

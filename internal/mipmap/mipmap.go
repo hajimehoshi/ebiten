@@ -71,13 +71,8 @@ func (m *Mipmap) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name str
 	return m.orig.DumpScreenshot(graphicsDriver, name, blackbg)
 }
 
-func (m *Mipmap) ReplacePixels(pix []byte) {
-	m.orig.ReplacePixels(pix)
-	m.disposeMipmaps()
-}
-
-func (m *Mipmap) ReplacePartialPixels(pix []byte, x, y, width, height int) {
-	m.orig.ReplacePartialPixels(pix, x, y, width, height)
+func (m *Mipmap) ReplacePixels(pix []byte, x, y, width, height int) {
+	m.orig.ReplacePixels(pix, x, y, width, height)
 	m.disposeMipmaps()
 }
 

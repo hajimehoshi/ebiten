@@ -174,9 +174,8 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name stri
 }
 
 // ReplacePixels replaces the pixels at the specified region.
-// This call is not accumulated and send one draw call to replace pixels.
-func (i *Image) ReplacePixels(pix []byte) {
-	if l := 4 * i.width * i.height; len(pix) != l {
+func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) {
+	if l := 4 * width * height; len(pix) != l {
 		panic(fmt.Sprintf("buffered: len(pix) was %d but must be %d", len(pix), l))
 	}
 
@@ -184,35 +183,21 @@ func (i *Image) ReplacePixels(pix []byte) {
 		copied := make([]byte, len(pix))
 		copy(copied, pix)
 		if tryAddDelayedCommand(func() error {
-			i.ReplacePixels(copied)
+			i.ReplacePixels(copied, x, y, width, height)
 			return nil
 		}) {
 			return
 		}
 	}
 
-	i.invalidatePendingPixels()
-
-	i.img.ReplacePixels(pix, nil)
-}
-
-// ReplacePartial replaces the pixel at the specified partial region.
-// This call might be accumulated and send one draw call to replace pixels for the accumulated calls.
-func (i *Image) ReplacePartialPixels(pix []byte, x, y, width, height int) {
-	if l := 4 * width * height; len(pix) != l {
-		panic(fmt.Sprintf("buffered: len(pix) was %d but must be %d", len(pix), l))
+	if x == 0 && y == 0 && width == i.width && height == i.height {
+		i.invalidatePendingPixels()
+		i.img.ReplacePixels(pix, nil)
+		return
 	}
 
-	if maybeCanAddDelayedCommand() {
-		if tryAddDelayedCommand(func() error {
-			copied := make([]byte, len(pix))
-			copy(copied, pix)
-			i.ReplacePartialPixels(copied, x, y, width, height)
-			return nil
-		}) {
-			return
-		}
-	}
+	// TODO: If width/height is big enough, ReplacePixels can be called instead of replacePendingPixels.
+	// Check if this is efficient.
 
 	i.replacePendingPixels(pix, x, y, width, height)
 }
