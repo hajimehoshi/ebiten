@@ -191,21 +191,6 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 }
 
-func TestShaderNoMain(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("At must panic but not")
-		}
-	}()
-
-	const w, h = 16, 16
-	s, _ := ebiten.NewShader([]byte(`package main
-`))
-	dst := ebiten.NewImage(w, h)
-	dst.DrawRectShader(w, h, s, nil)
-	dst.At(0, 0)
-}
-
 func TestShaderUninitializedUniformVariables(t *testing.T) {
 	const w, h = 16, 16
 
