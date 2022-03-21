@@ -56,14 +56,16 @@ type Graphics struct {
 	activatedTextures []activatedTexture
 }
 
-func (g *Graphics) Begin() {
+func (g *Graphics) Begin() error {
 	// Do nothing.
+	return nil
 }
 
-func (g *Graphics) End(present bool) {
+func (g *Graphics) End(present bool) error {
 	// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
 	// TODO: examples/sprites worked without this. Is this really needed?
 	g.context.flush()
+	return nil
 }
 
 func (g *Graphics) SetTransparent(transparent bool) {
@@ -151,12 +153,13 @@ func (g *Graphics) Reset() error {
 	return g.state.reset(&g.context)
 }
 
-func (g *Graphics) SetVertices(vertices []float32, indices []uint16) {
+func (g *Graphics) SetVertices(vertices []float32, indices []uint16) error {
 	// Note that the vertices passed to BufferSubData is not under GC management
 	// in opengl package due to unsafe-way.
 	// See BufferSubData in context_mobile.go.
 	g.context.arrayBufferSubData(vertices)
 	g.context.elementArrayBufferSubData(indices)
+	return nil
 }
 
 func (g *Graphics) uniformVariableName(idx int) string {

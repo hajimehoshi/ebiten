@@ -279,7 +279,9 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
 		}
 	}
 
-	graphicsDriver.Begin()
+	if err := graphicsDriver.Begin(); err != nil {
+		return err
+	}
 	var present bool
 	cs := q.commands
 	for len(cs) > 0 {
@@ -303,7 +305,9 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
 			nc++
 		}
 		if 0 < ne {
-			graphicsDriver.SetVertices(vs[:nv], es[:ne])
+			if err := graphicsDriver.SetVertices(vs[:nv], es[:ne]); err != nil {
+				return err
+			}
 			es = es[ne:]
 			vs = vs[nv:]
 		}
@@ -322,7 +326,9 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
 		}
 		cs = cs[nc:]
 	}
-	graphicsDriver.End(present)
+	if err := graphicsDriver.End(present); err != nil {
+		return err
+	}
 
 	// Release the commands explicitly (#1803).
 	// Apparently, the part of a slice between len and cap-1 still holds references.
@@ -611,7 +617,9 @@ func (c *replacePixelsCommand) Exec(graphicsDriver graphicsdriver.Graphics, inde
 	}
 
 	if len(c.args[lastArgIdx:]) > 0 {
-		c.dst.image.ReplacePixels(c.args[lastArgIdx:])
+		if err := c.dst.image.ReplacePixels(c.args[lastArgIdx:]); err != nil {
+			return err
+		}
 	}
 	return nil
 }

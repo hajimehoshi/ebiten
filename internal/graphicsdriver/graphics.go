@@ -41,10 +41,10 @@ type ColorM interface {
 
 type Graphics interface {
 	Initialize() error
-	Begin()
-	End(present bool)
+	Begin() error
+	End(present bool) error
 	SetTransparent(transparent bool)
-	SetVertices(vertices []float32, indices []uint16)
+	SetVertices(vertices []float32, indices []uint16) error
 	NewImage(width, height int) (Image, error)
 	NewScreenFramebufferImage(width, height int) (Image, error)
 	SetVsyncEnabled(enabled bool)
@@ -76,7 +76,7 @@ type Image interface {
 	Dispose()
 	IsInvalidated() bool
 	ReadPixels(buf []byte) error
-	ReplacePixels(args []*ReplacePixelsArgs)
+	ReplacePixels(args []*ReplacePixelsArgs) error
 }
 
 type ImageID int

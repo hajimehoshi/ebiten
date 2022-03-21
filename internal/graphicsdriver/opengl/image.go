@@ -15,6 +15,8 @@
 package opengl
 
 import (
+	"errors"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
@@ -118,12 +120,12 @@ func (i *Image) ensureStencilBuffer() error {
 	return nil
 }
 
-func (i *Image) ReplacePixels(args []*graphicsdriver.ReplacePixelsArgs) {
+func (i *Image) ReplacePixels(args []*graphicsdriver.ReplacePixelsArgs) error {
 	if i.screen {
-		panic("opengl: ReplacePixels cannot be called on the screen, that doesn't have a texture")
+		return errors.New("opengl: ReplacePixels cannot be called on the screen")
 	}
 	if len(args) == 0 {
-		return
+		return nil
 	}
 
 	// glFlush is necessary on Android.
@@ -133,4 +135,5 @@ func (i *Image) ReplacePixels(args []*graphicsdriver.ReplacePixelsArgs) {
 	}
 	i.graphics.drawCalled = false
 	i.graphics.context.texSubImage2D(i.texture, args)
+	return nil
 }
