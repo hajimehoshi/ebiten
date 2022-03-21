@@ -48,7 +48,7 @@ func (u *UserInterface) Run(game Game) error {
 		u.input.update(u.context)
 
 		w, h := cbackend.ScreenSize()
-		if err := u.context.updateFrame(float64(w), float64(h), deviceScaleFactor); err != nil {
+		if err := u.context.updateFrame(graphicsDriver(), float64(w), float64(h), deviceScaleFactor); err != nil {
 			return err
 		}
 
