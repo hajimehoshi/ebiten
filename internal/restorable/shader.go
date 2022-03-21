@@ -16,18 +16,17 @@ package restorable
 
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
-	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
 type Shader struct {
 	shader *graphicscommand.Shader
-	ir     *shaderir.Program
+	src    []byte
 }
 
-func NewShader(program *shaderir.Program) *Shader {
+func NewShader(src []byte) *Shader {
 	s := &Shader{
-		shader: graphicscommand.NewShader(program),
-		ir:     program,
+		shader: graphicscommand.NewShader(src),
+		src:    src,
 	}
 	theImages.addShader(s)
 	return s
@@ -37,9 +36,9 @@ func (s *Shader) Dispose() {
 	theImages.removeShader(s)
 	s.shader.Dispose()
 	s.shader = nil
-	s.ir = nil
+	s.src = nil
 }
 
 func (s *Shader) restore() {
-	s.shader = graphicscommand.NewShader(s.ir)
+	s.shader = graphicscommand.NewShader(s.src)
 }

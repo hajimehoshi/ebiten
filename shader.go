@@ -27,16 +27,13 @@ type Shader struct {
 
 // NewShader compiles a shader program in the shading language Kage, and retruns the result.
 //
-// If the compilation fails, NewShader returns an error.
+// As of v2.3.0, the error value is always nil, and
+// the actual complation happens lazily after the main loop starts.
 //
 // For the details about the shader, see https://ebiten.org/documents/shader.html.
 func NewShader(src []byte) (*Shader, error) {
-	s, err := ui.NewShader(src)
-	if err != nil {
-		return nil, err
-	}
 	return &Shader{
-		shader: s,
+		shader: ui.NewShader(src),
 	}, nil
 }
 

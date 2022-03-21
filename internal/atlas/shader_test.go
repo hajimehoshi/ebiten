@@ -40,15 +40,12 @@ func TestShaderFillTwice(t *testing.T) {
 		Height: h,
 	}
 	g := ui.GraphicsDriverForTesting()
-	needsInvertY := g.FramebufferYDirection() != g.NDCYDirection()
-	p0 := etesting.ShaderProgramFill(needsInvertY, 0xff, 0xff, 0xff, 0xff)
-	s0 := atlas.NewShader(&p0)
+	s0 := atlas.NewShader(etesting.ShaderProgramFill(0xff, 0xff, 0xff, 0xff))
 	dst.DrawTriangles([graphics.ShaderImageNum]*atlas.Image{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, s0, nil, false)
 
 	// Vertices must be recreated (#1755)
 	vs = quadVertices(w, h, 0, 0, 1)
-	p1 := etesting.ShaderProgramFill(needsInvertY, 0x80, 0x80, 0x80, 0xff)
-	s1 := atlas.NewShader(&p1)
+	s1 := atlas.NewShader(etesting.ShaderProgramFill(0x80, 0x80, 0x80, 0xff))
 	dst.DrawTriangles([graphics.ShaderImageNum]*atlas.Image{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, s1, nil, false)
 
 	pix, err := dst.Pixels(g)

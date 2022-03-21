@@ -61,13 +61,11 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 	}
 
 	var s *mipmap.Shader
-	var us [][]float32
 	if shader != nil {
 		s = shader.shader
-		us = shader.convertUniforms(uniforms)
 	}
 
-	i.mipmap.DrawTriangles(srcMipmaps, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, s, us, evenOdd, canSkipMipmap)
+	i.mipmap.DrawTriangles(srcMipmaps, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, s, uniforms, evenOdd, canSkipMipmap)
 }
 
 func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) {

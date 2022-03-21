@@ -18,16 +18,15 @@ import (
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
-	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
 type Shader struct {
 	shader *restorable.Shader
 }
 
-func NewShader(program *shaderir.Program) *Shader {
+func NewShader(src []byte) *Shader {
 	s := &Shader{
-		shader: restorable.NewShader(program),
+		shader: restorable.NewShader(src),
 	}
 	runtime.SetFinalizer(s, (*Shader).MarkDisposed)
 	return s

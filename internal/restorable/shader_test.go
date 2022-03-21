@@ -26,11 +26,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
-func needsInvertY() bool {
-	g := ui.GraphicsDriverForTesting()
-	return g.FramebufferYDirection() != g.NDCYDirection()
-}
-
 func clearImage(img *restorable.Image, w, h int) {
 	emptyImage := restorable.NewImage(3, 3)
 	defer emptyImage.Dispose()
@@ -63,8 +58,7 @@ func TestShader(t *testing.T) {
 	img := restorable.NewImage(1, 1)
 	defer img.Dispose()
 
-	ir := etesting.ShaderProgramFill(needsInvertY(), 0xff, 0, 0, 0xff)
-	s := restorable.NewShader(&ir)
+	s := restorable.NewShader(etesting.ShaderProgramFill(0xff, 0, 0, 0xff))
 	dr := graphicsdriver.Region{
 		X:      0,
 		Y:      0,
@@ -98,8 +92,7 @@ func TestShaderChain(t *testing.T) {
 
 	imgs[0].ReplacePixels([]byte{0xff, 0, 0, 0xff}, nil, 0, 0, 1, 1)
 
-	ir := etesting.ShaderProgramImages(needsInvertY(), 1)
-	s := restorable.NewShader(&ir)
+	s := restorable.NewShader(etesting.ShaderProgramImages(1))
 	for i := 0; i < num-1; i++ {
 		dr := graphicsdriver.Region{
 			X:      0,
@@ -137,8 +130,7 @@ func TestShaderMultipleSources(t *testing.T) {
 
 	dst := restorable.NewImage(1, 1)
 
-	ir := etesting.ShaderProgramImages(needsInvertY(), 3)
-	s := restorable.NewShader(&ir)
+	s := restorable.NewShader(etesting.ShaderProgramImages(3))
 	var offsets [graphics.ShaderImageNum - 1][2]float32
 	dr := graphicsdriver.Region{
 		X:      0,
@@ -176,8 +168,7 @@ func TestShaderMultipleSourcesOnOneTexture(t *testing.T) {
 
 	dst := restorable.NewImage(1, 1)
 
-	ir := etesting.ShaderProgramImages(needsInvertY(), 3)
-	s := restorable.NewShader(&ir)
+	s := restorable.NewShader(etesting.ShaderProgramImages(3))
 	offsets := [graphics.ShaderImageNum - 1][2]float32{
 		{1, 0},
 		{2, 0},
@@ -211,8 +202,7 @@ func TestShaderDispose(t *testing.T) {
 	img := restorable.NewImage(1, 1)
 	defer img.Dispose()
 
-	ir := etesting.ShaderProgramFill(needsInvertY(), 0xff, 0, 0, 0xff)
-	s := restorable.NewShader(&ir)
+	s := restorable.NewShader(etesting.ShaderProgramFill(0xff, 0, 0, 0xff))
 	dr := graphicsdriver.Region{
 		X:      0,
 		Y:      0,
