@@ -20,6 +20,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
@@ -47,6 +48,8 @@ func driverCursorShapeToCSSCursor(cursor CursorShape) string {
 }
 
 type userInterfaceImpl struct {
+	graphicsDriver graphicsdriver.Graphics
+
 	runnableOnUnfocused bool
 	fpsMode             FPSModeType
 	renderingScheduled  bool
@@ -279,11 +282,11 @@ func (u *userInterfaceImpl) updateImpl(force bool) error {
 
 	w, h := u.outsideSize()
 	if force {
-		if err := u.context.forceUpdateFrame(graphicsDriver(), w, h, u.DeviceScaleFactor()); err != nil {
+		if err := u.context.forceUpdateFrame(u.graphicsDriver, w, h, u.DeviceScaleFactor()); err != nil {
 			return err
 		}
 	} else {
-		if err := u.context.updateFrame(graphicsDriver(), w, h, u.DeviceScaleFactor()); err != nil {
+		if err := u.context.updateFrame(u.graphicsDriver, w, h, u.DeviceScaleFactor()); err != nil {
 			return err
 		}
 	}
@@ -306,6 +309,7 @@ func (u *userInterfaceImpl) needsUpdate() bool {
 
 func (u *userInterfaceImpl) loop(game Game) <-chan error {
 	u.context = newContextImpl(game)
+	u.graphicsDriver = graphicsDriver()
 
 	errCh := make(chan error, 1)
 	reqStopAudioCh := make(chan struct{})

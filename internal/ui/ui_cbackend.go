@@ -21,6 +21,7 @@ import (
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cbackend"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
 const deviceScaleFactor = 1
@@ -30,19 +31,22 @@ func init() {
 }
 
 type userInterfaceImpl struct {
+	graphicsDriver graphicsdriver.Graphics
+
 	context *contextImpl
 	input   Input
 }
 
 func (u *userInterfaceImpl) Run(game Game) error {
 	u.context = newContextImpl(game)
+	u.graphicsDriver = graphicsDriver()
 	cbackend.InitializeGame()
 	for {
 		cbackend.BeginFrame()
 		u.input.update(u.context)
 
 		w, h := cbackend.ScreenSize()
-		if err := u.context.updateFrame(graphicsDriver(), float64(w), float64(h), deviceScaleFactor); err != nil {
+		if err := u.context.updateFrame(u.graphicsDriver, float64(w), float64(h), deviceScaleFactor); err != nil {
 			return err
 		}
 

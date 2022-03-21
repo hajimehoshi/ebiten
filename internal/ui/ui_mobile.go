@@ -36,6 +36,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
@@ -90,6 +91,8 @@ func (u *userInterfaceImpl) Update() error {
 }
 
 type userInterfaceImpl struct {
+	graphicsDriver graphicsdriver.Graphics
+
 	outsideWidth  float64
 	outsideHeight float64
 
@@ -267,12 +270,13 @@ func (u *userInterfaceImpl) run(game Game, mainloop bool) (err error) {
 	}()
 
 	u.context = newContextImpl(game)
+	u.graphicsDriver = graphicsDriver()
 
 	if mainloop {
 		// When mainloop is true, gomobile-build is used. In this case, GL functions must be called via
 		// gl.Context so that they are called on the appropriate thread.
 		ctx := <-glContextCh
-		graphicsDriver().(*opengl.Graphics).SetGomobileGLContext(ctx)
+		u.graphicsDriver.(*opengl.Graphics).SetGomobileGLContext(ctx)
 	} else {
 		u.t = thread.NewOSThread()
 		graphicscommand.SetRenderingThread(u.t)
@@ -316,7 +320,7 @@ func (u *userInterfaceImpl) update() error {
 	}()
 
 	w, h := u.outsideSize()
-	if err := u.context.updateFrame(graphicsDriver(), w, h, deviceScale()); err != nil {
+	if err := u.context.updateFrame(u.graphicsDriver, w, h, deviceScale()); err != nil {
 		return err
 	}
 	return nil

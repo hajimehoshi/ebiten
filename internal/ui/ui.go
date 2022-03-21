@@ -83,13 +83,13 @@ func Get() *UserInterface {
 }
 
 func (u *UserInterface) imageAt(mipmap *mipmap.Mipmap, x, y int) (r, g, b, a byte, err error) {
-	return mipmap.At(graphicsDriver(), x, y)
+	return mipmap.At(u.graphicsDriver, x, y)
 }
 
 func (u *UserInterface) dumpScreenshot(mipmap *mipmap.Mipmap, name string, blackbg bool) error {
-	return mipmap.DumpScreenshot(graphicsDriver(), name, blackbg)
+	return mipmap.DumpScreenshot(u.graphicsDriver, name, blackbg)
 }
 
 func (u *UserInterface) dumpImages(dir string) error {
-	return atlas.DumpImages(graphicsDriver(), dir)
+	return atlas.DumpImages(u.graphicsDriver, dir)
 }

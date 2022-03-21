@@ -28,6 +28,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
@@ -46,6 +47,8 @@ func driverCursorModeToGLFWCursorMode(mode CursorMode) int {
 }
 
 type userInterfaceImpl struct {
+	graphicsDriver graphicsdriver.Graphics
+
 	context *contextImpl
 	title   string
 	window  *glfw.Window
@@ -660,7 +663,7 @@ func (u *userInterfaceImpl) createWindow(width, height int) error {
 	// Ensure to consume this callback.
 	u.waitForFramebufferSizeCallback(u.window, nil)
 
-	if graphicsDriver().IsGL() {
+	if u.graphicsDriver.IsGL() {
 		u.window.MakeContextCurrent()
 	}
 
@@ -708,13 +711,13 @@ func (u *userInterfaceImpl) registerWindowSetSizeCallback() {
 			// In order to call it safely, use runOnAnotherThreadFromMainThread.
 			var err error
 			u.runOnAnotherThreadFromMainThread(func() {
-				err = u.context.forceUpdateFrame(graphicsDriver(), outsideWidth, outsideHeight, deviceScaleFactor)
+				err = u.context.forceUpdateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor)
 			})
 			if err != nil {
 				u.err = err
 			}
 
-			if graphicsDriver().IsGL() {
+			if u.graphicsDriver.IsGL() {
 				u.swapBuffers()
 			}
 		})
@@ -808,7 +811,8 @@ event:
 }
 
 func (u *userInterfaceImpl) init() error {
-	if graphicsDriver().IsGL() {
+	u.graphicsDriver = graphicsDriver()
+	if u.graphicsDriver.IsGL() {
 		glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLAPI)
 		glfw.WindowHint(glfw.ContextVersionMajor, 2)
 		glfw.WindowHint(glfw.ContextVersionMinor, 1)
@@ -829,7 +833,7 @@ func (u *userInterfaceImpl) init() error {
 		transparent = glfw.True
 	}
 	glfw.WindowHint(glfw.TransparentFramebuffer, transparent)
-	graphicsDriver().SetTransparent(u.isInitScreenTransparent())
+	u.graphicsDriver.SetTransparent(u.isInitScreenTransparent())
 
 	// Before creating a window, set it unresizable no matter what u.isInitWindowResizable() is (#1987).
 	// Making the window resizable here doesn't work correctly when switching to enable resizing.
@@ -881,7 +885,7 @@ func (u *userInterfaceImpl) init() error {
 
 	u.window.Show()
 
-	if g, ok := graphicsDriver().(interface{ SetWindow(uintptr) }); ok {
+	if g, ok := u.graphicsDriver.(interface{ SetWindow(uintptr) }); ok {
 		g.SetWindow(u.nativeWindow())
 	}
 
@@ -1018,7 +1022,7 @@ func (u *userInterfaceImpl) loop() error {
 			return err
 		}
 
-		if err := u.context.updateFrame(graphicsDriver(), outsideWidth, outsideHeight, deviceScaleFactor); err != nil {
+		if err := u.context.updateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor); err != nil {
 			return err
 		}
 
@@ -1060,7 +1064,7 @@ func (u *userInterfaceImpl) loop() error {
 		// swapBuffers also checks IsGL, so this condition is redundant.
 		// However, (*thread).Call is not good for performance due to channels.
 		// Let's avoid this whenever possible (#1367).
-		if graphicsDriver().IsGL() {
+		if u.graphicsDriver.IsGL() {
 			u.t.Call(u.swapBuffers)
 		}
 
@@ -1082,7 +1086,7 @@ func (u *userInterfaceImpl) loop() error {
 
 // swapBuffers must be called from the main thread.
 func (u *userInterfaceImpl) swapBuffers() {
-	if graphicsDriver().IsGL() {
+	if u.graphicsDriver.IsGL() {
 		u.window.SwapBuffers()
 	}
 }
@@ -1139,7 +1143,7 @@ func (u *userInterfaceImpl) adjustWindowSizeBasedOnSizeLimitsInDIP(width, height
 func (u *userInterfaceImpl) setWindowSizeInDIP(width, height int, fullscreen bool) {
 	width, height = u.adjustWindowSizeBasedOnSizeLimitsInDIP(width, height)
 
-	graphicsDriver().SetFullscreen(fullscreen)
+	u.graphicsDriver.SetFullscreen(fullscreen)
 
 	scale := u.deviceScaleFactor(u.currentMonitor())
 	if u.windowWidthInDIP == width && u.windowHeightInDIP == height && u.isFullscreen() == fullscreen && u.lastDeviceScaleFactor == scale {
@@ -1213,7 +1217,7 @@ func (u *userInterfaceImpl) setWindowSizeInDIPImpl(width, height int, fullscreen
 
 			// Swapping buffer is necesary to prevent the image lag (#1004).
 			// TODO: This might not work when vsync is disabled.
-			if graphicsDriver().IsGL() {
+			if u.graphicsDriver.IsGL() {
 				glfw.PollEvents()
 				u.swapBuffers()
 			}
@@ -1260,7 +1264,7 @@ func (u *userInterfaceImpl) setWindowSizeInDIPImpl(width, height int, fullscreen
 
 // updateVsync must be called on the main thread.
 func (u *userInterfaceImpl) updateVsync() {
-	if graphicsDriver().IsGL() {
+	if u.graphicsDriver.IsGL() {
 		// SwapInterval is affected by the current monitor of the window.
 		// This needs to be called at least after SetMonitor.
 		// Without SwapInterval after SetMonitor, vsynch doesn't work (#375).
@@ -1274,7 +1278,7 @@ func (u *userInterfaceImpl) updateVsync() {
 			glfw.SwapInterval(0)
 		}
 	}
-	graphicsDriver().SetVsyncEnabled(u.fpsMode == FPSModeVsyncOn)
+	u.graphicsDriver.SetVsyncEnabled(u.fpsMode == FPSModeVsyncOn)
 }
 
 // currentMonitor returns the current active monitor.

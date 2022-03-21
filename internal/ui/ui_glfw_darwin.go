@@ -316,7 +316,7 @@ func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) {
 }
 
 func (u *userInterfaceImpl) adjustViewSize() {
-	if graphicsDriver().IsGL() {
+	if u.graphicsDriver.IsGL() {
 		return
 	}
 	C.adjustViewSize(C.uintptr_t(u.window.GetCocoaWindow()))
