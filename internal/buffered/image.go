@@ -213,7 +213,7 @@ func (img *Image) replacePendingPixels(pix []byte, x, y, width, height int) {
 		copy(img.pixels[4*((j+y)*img.width+x):], pix[4*j*width:4*(j+1)*width])
 	}
 
-	// A mask is created only when a partial regions are replaced by replacePendingPixels.
+	// A mask is created only when partial regions are replaced by replacePendingPixels.
 	if img.mask != nil {
 		for j := 0; j < height; j++ {
 			for i := 0; i < width; i++ {
