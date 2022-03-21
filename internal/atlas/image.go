@@ -563,6 +563,9 @@ func (i *Image) replacePixels(pix []byte, mask []byte) {
 
 	px, py, pw, ph := i.regionWithPadding()
 	if pix == nil {
+		if mask != nil {
+			panic("atlas: mask must be nil when pix is nil")
+		}
 		i.backend.restorable.ReplacePixels(nil, nil, px, py, pw, ph)
 		return
 	}
