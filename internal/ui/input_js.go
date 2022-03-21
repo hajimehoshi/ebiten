@@ -68,7 +68,7 @@ type Input struct {
 	wheelY             float64
 	touches            map[TouchID]pos
 	runeBuffer         []rune
-	ui                 *UserInterface
+	ui                 *userInterfaceImpl
 }
 
 func (i *Input) CursorPosition() (x, y int) {

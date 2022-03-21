@@ -36,7 +36,7 @@ type Input struct {
 	cursorY            int
 	touches            map[TouchID]pos // TODO: Implement this (#417)
 	runeBuffer         []rune
-	ui                 *UserInterface
+	ui                 *userInterfaceImpl
 }
 
 type pos struct {

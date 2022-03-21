@@ -22,7 +22,7 @@ type Input struct {
 	keys    map[Key]struct{}
 	runes   []rune
 	touches []Touch
-	ui      *UserInterface
+	ui      *userInterfaceImpl
 }
 
 func (i *Input) CursorPosition() (x, y int) {

@@ -24,7 +24,7 @@ import (
 )
 
 type Window struct {
-	ui *UserInterface
+	ui *userInterfaceImpl
 }
 
 func (w *Window) IsDecorated() bool {

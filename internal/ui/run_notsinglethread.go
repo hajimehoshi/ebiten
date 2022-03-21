@@ -22,7 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
-func (u *UserInterface) Run(game Game) error {
+func (u *userInterfaceImpl) Run(game Game) error {
 	u.context = newContextImpl(game)
 
 	// Initialize the main thread first so the thread is available at u.run (#809).
@@ -60,7 +60,7 @@ func (u *UserInterface) Run(game Game) error {
 // u.t is updated to the new thread until runOnAnotherThreadFromMainThread is called.
 //
 // Inside f, another functions that must be called from the main thread can be called safely.
-func (u *UserInterface) runOnAnotherThreadFromMainThread(f func()) {
+func (u *userInterfaceImpl) runOnAnotherThreadFromMainThread(f func()) {
 	// As this function is called from the main thread, u.t should never be accessed and can be updated here.
 	t := u.t
 	defer func() {

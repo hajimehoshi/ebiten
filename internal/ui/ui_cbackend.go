@@ -29,18 +29,12 @@ func init() {
 	runtime.LockOSThread()
 }
 
-type UserInterface struct {
+type userInterfaceImpl struct {
 	context *contextImpl
 	input   Input
 }
 
-var theUI UserInterface
-
-func Get() *UserInterface {
-	return &theUI
-}
-
-func (u *UserInterface) Run(game Game) error {
+func (u *userInterfaceImpl) Run(game Game) error {
 	u.context = newContextImpl(game)
 	cbackend.InitializeGame()
 	for {
@@ -56,69 +50,69 @@ func (u *UserInterface) Run(game Game) error {
 	}
 }
 
-func (*UserInterface) DeviceScaleFactor() float64 {
+func (*userInterfaceImpl) DeviceScaleFactor() float64 {
 	return deviceScaleFactor
 }
 
-func (*UserInterface) IsFocused() bool {
+func (*userInterfaceImpl) IsFocused() bool {
 	return true
 }
 
-func (*UserInterface) ScreenSizeInFullscreen() (int, int) {
+func (*userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
 	return 0, 0
 }
 
-func (*UserInterface) resetForTick() {
+func (*userInterfaceImpl) resetForTick() {
 }
 
-func (*UserInterface) CursorMode() CursorMode {
+func (*userInterfaceImpl) CursorMode() CursorMode {
 	return CursorModeHidden
 }
 
-func (*UserInterface) SetCursorMode(mode CursorMode) {
+func (*userInterfaceImpl) SetCursorMode(mode CursorMode) {
 }
 
-func (*UserInterface) CursorShape() CursorShape {
+func (*userInterfaceImpl) CursorShape() CursorShape {
 	return CursorShapeDefault
 }
 
-func (*UserInterface) SetCursorShape(shape CursorShape) {
+func (*userInterfaceImpl) SetCursorShape(shape CursorShape) {
 }
 
-func (*UserInterface) IsFullscreen() bool {
+func (*userInterfaceImpl) IsFullscreen() bool {
 	return false
 }
 
-func (*UserInterface) SetFullscreen(fullscreen bool) {
+func (*userInterfaceImpl) SetFullscreen(fullscreen bool) {
 }
 
-func (*UserInterface) IsRunnableOnUnfocused() bool {
+func (*userInterfaceImpl) IsRunnableOnUnfocused() bool {
 	return false
 }
 
-func (*UserInterface) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
+func (*userInterfaceImpl) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 }
 
-func (*UserInterface) SetFPSMode(mode FPSModeType) {
+func (*userInterfaceImpl) SetFPSMode(mode FPSModeType) {
 }
 
-func (*UserInterface) ScheduleFrame() {
+func (*userInterfaceImpl) ScheduleFrame() {
 }
 
-func (*UserInterface) IsScreenTransparent() bool {
+func (*userInterfaceImpl) IsScreenTransparent() bool {
 	return false
 }
 
-func (*UserInterface) SetScreenTransparent(transparent bool) {
+func (*userInterfaceImpl) SetScreenTransparent(transparent bool) {
 }
 
-func (*UserInterface) SetInitFocused(focused bool) {
+func (*userInterfaceImpl) SetInitFocused(focused bool) {
 }
 
-func (*UserInterface) Input() *Input {
+func (*userInterfaceImpl) Input() *Input {
 	return &theUI.input
 }
 
-func (*UserInterface) Window() *Window {
+func (*userInterfaceImpl) Window() *Window {
 	return &Window{}
 }

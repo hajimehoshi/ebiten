@@ -22,7 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
-func (u *UserInterface) Run(game Game) error {
+func (u *userInterfaceImpl) Run(game Game) error {
 	u.context = newContextImpl(game)
 
 	// Initialize the main thread first so the thread is available at u.run (#809).
@@ -43,6 +43,6 @@ func (u *UserInterface) Run(game Game) error {
 	return nil
 }
 
-func (u *UserInterface) runOnAnotherThreadFromMainThread(f func()) {
+func (u *userInterfaceImpl) runOnAnotherThreadFromMainThread(f func()) {
 	f()
 }

@@ -233,12 +233,12 @@ import (
 func clearVideoModeScaleCache() {}
 
 // dipFromGLFWMonitorPixel must be called from the main thread.
-func (u *UserInterface) dipFromGLFWMonitorPixel(x float64, monitor *glfw.Monitor) float64 {
+func (u *userInterfaceImpl) dipFromGLFWMonitorPixel(x float64, monitor *glfw.Monitor) float64 {
 	return x
 }
 
 // dipFromGLFWPixel must be called from the main thread.
-func (u *UserInterface) dipFromGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
+func (u *userInterfaceImpl) dipFromGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
 	// NOTE: On macOS, GLFW exposes the device independent coordinate system.
 	// Thus, the conversion functions are unnecessary,
 	// however we still need the deviceScaleFactor internally
@@ -247,11 +247,11 @@ func (u *UserInterface) dipFromGLFWPixel(x float64, monitor *glfw.Monitor) float
 }
 
 // dipToGLFWPixel must be called from the main thread.
-func (u *UserInterface) dipToGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
+func (u *userInterfaceImpl) dipToGLFWPixel(x float64, monitor *glfw.Monitor) float64 {
 	return x
 }
 
-func (u *UserInterface) adjustWindowPosition(x, y int, monitor *glfw.Monitor) (int, int) {
+func (u *userInterfaceImpl) adjustWindowPosition(x, y int, monitor *glfw.Monitor) (int, int) {
 	return x, y
 }
 
@@ -291,38 +291,38 @@ func monitorFromWindowByOS(w *glfw.Window) *glfw.Monitor {
 	return nil
 }
 
-func (u *UserInterface) nativeWindow() uintptr {
+func (u *userInterfaceImpl) nativeWindow() uintptr {
 	return u.window.GetCocoaWindow()
 }
 
-func (u *UserInterface) isNativeFullscreen() bool {
+func (u *userInterfaceImpl) isNativeFullscreen() bool {
 	return bool(C.isNativeFullscreen(C.uintptr_t(u.window.GetCocoaWindow())))
 }
 
-func (u *UserInterface) setNativeCursor(shape CursorShape) {
+func (u *userInterfaceImpl) setNativeCursor(shape CursorShape) {
 	C.setNativeCursor(C.int(shape))
 }
 
-func (u *UserInterface) isNativeFullscreenAvailable() bool {
+func (u *userInterfaceImpl) isNativeFullscreenAvailable() bool {
 	// TODO: If the window is transparent, we should use GLFW's windowed fullscreen (#1822, #1857).
 	// However, if the user clicks the green button, should this window be in native fullscreen mode?
 	return true
 }
 
-func (u *UserInterface) setNativeFullscreen(fullscreen bool) {
+func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) {
 	// Toggling fullscreen might ignore events like keyUp. Ensure that events are fired.
 	glfw.WaitEventsTimeout(0.1)
 	C.setNativeFullscreen(C.uintptr_t(u.window.GetCocoaWindow()), C.bool(fullscreen))
 }
 
-func (u *UserInterface) adjustViewSize() {
+func (u *userInterfaceImpl) adjustViewSize() {
 	if graphicsDriver().IsGL() {
 		return
 	}
 	C.adjustViewSize(C.uintptr_t(u.window.GetCocoaWindow()))
 }
 
-func (u *UserInterface) setWindowResizingModeForOS(mode WindowResizingMode) {
+func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) {
 	allowFullscreen := mode == WindowResizingModeOnlyFullscreenEnabled ||
 		mode == WindowResizingModeEnabled
 	C.setAllowFullscreen(C.uintptr_t(u.window.GetCocoaWindow()), C.bool(allowFullscreen))

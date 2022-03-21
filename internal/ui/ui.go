@@ -71,6 +71,17 @@ const (
 	WindowResizingModeEnabled
 )
 
+type UserInterface struct {
+	userInterfaceImpl
+}
+
+var theUI = &UserInterface{}
+
+func Get() *UserInterface {
+	// TODO: Get is a legacy API to access this package. Remove this.
+	return theUI
+}
+
 func (u *UserInterface) imageAt(mipmap *mipmap.Mipmap, x, y int) (r, g, b, a byte, err error) {
 	return mipmap.At(graphicsDriver(), x, y)
 }

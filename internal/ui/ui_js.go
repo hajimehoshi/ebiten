@@ -46,7 +46,7 @@ func driverCursorShapeToCSSCursor(cursor CursorShape) string {
 	return "auto"
 }
 
-type UserInterface struct {
+type userInterfaceImpl struct {
 	runnableOnUnfocused bool
 	fpsMode             FPSModeType
 	renderingScheduled  bool
@@ -63,17 +63,12 @@ type UserInterface struct {
 	input   Input
 }
 
-var theUI = &UserInterface{
-	runnableOnUnfocused: true,
-	initFocused:         true,
-}
-
 func init() {
-	theUI.input.ui = theUI
-}
-
-func Get() *UserInterface {
-	return theUI
+	theUI.userInterfaceImpl = userInterfaceImpl{
+		runnableOnUnfocused: true,
+		initFocused:         true,
+	}
+	theUI.input.ui = &theUI.userInterfaceImpl
 }
 
 var (
@@ -98,11 +93,11 @@ func init() {
 	documentHidden = js.Global().Get("Object").Call("getOwnPropertyDescriptor", js.Global().Get("Document").Get("prototype"), "hidden").Get("get").Call("bind", document)
 }
 
-func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
+func (u *userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
 	return window.Get("innerWidth").Int(), window.Get("innerHeight").Int()
 }
 
-func (u *UserInterface) SetFullscreen(fullscreen bool) {
+func (u *userInterfaceImpl) SetFullscreen(fullscreen bool) {
 	if !canvas.Truthy() {
 		return
 	}
@@ -127,7 +122,7 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 	f.Call("bind", document).Invoke()
 }
 
-func (u *UserInterface) IsFullscreen() bool {
+func (u *userInterfaceImpl) IsFullscreen() bool {
 	if !document.Truthy() {
 		return false
 	}
@@ -137,34 +132,34 @@ func (u *UserInterface) IsFullscreen() bool {
 	return true
 }
 
-func (u *UserInterface) IsFocused() bool {
+func (u *userInterfaceImpl) IsFocused() bool {
 	return u.isFocused()
 }
 
-func (u *UserInterface) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
+func (u *userInterfaceImpl) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 	u.runnableOnUnfocused = runnableOnUnfocused
 }
 
-func (u *UserInterface) IsRunnableOnUnfocused() bool {
+func (u *userInterfaceImpl) IsRunnableOnUnfocused() bool {
 	return u.runnableOnUnfocused
 }
 
-func (u *UserInterface) SetFPSMode(mode FPSModeType) {
+func (u *userInterfaceImpl) SetFPSMode(mode FPSModeType) {
 	u.fpsMode = mode
 }
 
-func (u *UserInterface) ScheduleFrame() {
+func (u *userInterfaceImpl) ScheduleFrame() {
 	u.renderingScheduled = true
 }
 
-func (u *UserInterface) CursorMode() CursorMode {
+func (u *userInterfaceImpl) CursorMode() CursorMode {
 	if !canvas.Truthy() {
 		return CursorModeHidden
 	}
 	return u.cursorMode
 }
 
-func (u *UserInterface) SetCursorMode(mode CursorMode) {
+func (u *userInterfaceImpl) SetCursorMode(mode CursorMode) {
 	if !canvas.Truthy() {
 		return
 	}
@@ -187,21 +182,21 @@ func (u *UserInterface) SetCursorMode(mode CursorMode) {
 	}
 }
 
-func (u *UserInterface) recoverCursorMode() {
+func (u *userInterfaceImpl) recoverCursorMode() {
 	if theUI.cursorPrevMode == CursorModeCaptured {
 		panic("ui: cursorPrevMode must not be CursorModeCaptured at recoverCursorMode")
 	}
 	u.SetCursorMode(u.cursorPrevMode)
 }
 
-func (u *UserInterface) CursorShape() CursorShape {
+func (u *userInterfaceImpl) CursorShape() CursorShape {
 	if !canvas.Truthy() {
 		return CursorShapeDefault
 	}
 	return u.cursorShape
 }
 
-func (u *UserInterface) SetCursorShape(shape CursorShape) {
+func (u *userInterfaceImpl) SetCursorShape(shape CursorShape) {
 	if !canvas.Truthy() {
 		return
 	}
@@ -215,11 +210,11 @@ func (u *UserInterface) SetCursorShape(shape CursorShape) {
 	}
 }
 
-func (u *UserInterface) DeviceScaleFactor() float64 {
+func (u *userInterfaceImpl) DeviceScaleFactor() float64 {
 	return devicescale.GetAt(0, 0)
 }
 
-func (u *UserInterface) outsideSize() (float64, float64) {
+func (u *userInterfaceImpl) outsideSize() (float64, float64) {
 	switch {
 	case document.Truthy():
 		body := document.Get("body")
@@ -236,14 +231,14 @@ func (u *UserInterface) outsideSize() (float64, float64) {
 	}
 }
 
-func (u *UserInterface) suspended() bool {
+func (u *userInterfaceImpl) suspended() bool {
 	if u.runnableOnUnfocused {
 		return false
 	}
 	return !u.isFocused()
 }
 
-func (u *UserInterface) isFocused() bool {
+func (u *userInterfaceImpl) isFocused() bool {
 	if go2cpp.Truthy() {
 		return true
 	}
@@ -257,7 +252,7 @@ func (u *UserInterface) isFocused() bool {
 	return true
 }
 
-func (u *UserInterface) update() error {
+func (u *userInterfaceImpl) update() error {
 	if u.suspended() {
 		return hooks.SuspendAudio()
 	}
@@ -267,7 +262,7 @@ func (u *UserInterface) update() error {
 	return u.updateImpl(false)
 }
 
-func (u *UserInterface) updateImpl(force bool) error {
+func (u *userInterfaceImpl) updateImpl(force bool) error {
 	// context can be nil when an event is fired but the loop doesn't start yet (#1928).
 	if u.context == nil {
 		return nil
@@ -295,7 +290,7 @@ func (u *UserInterface) updateImpl(force bool) error {
 	return nil
 }
 
-func (u *UserInterface) needsUpdate() bool {
+func (u *userInterfaceImpl) needsUpdate() bool {
 	if u.fpsMode != FPSModeVsyncOffMinimum {
 		return true
 	}
@@ -309,7 +304,7 @@ func (u *UserInterface) needsUpdate() bool {
 	return false
 }
 
-func (u *UserInterface) loop(game Game) <-chan error {
+func (u *userInterfaceImpl) loop(game Game) <-chan error {
 	u.context = newContextImpl(game)
 
 	errCh := make(chan error, 1)
@@ -575,14 +570,14 @@ func setCanvasEventHandlers(v js.Value) {
 	}))
 }
 
-func (u *UserInterface) forceUpdateOnMinimumFPSMode() {
+func (u *userInterfaceImpl) forceUpdateOnMinimumFPSMode() {
 	if u.fpsMode != FPSModeVsyncOffMinimum {
 		return
 	}
 	u.updateImpl(true)
 }
 
-func (u *UserInterface) Run(game Game) error {
+func (u *userInterfaceImpl) Run(game Game) error {
 	if u.initFocused && window.Truthy() {
 		// Do not focus the canvas when the current document is in an iframe.
 		// Otherwise, the parent page tries to focus the iframe on every loading, which is annoying (#1373).
@@ -595,7 +590,7 @@ func (u *UserInterface) Run(game Game) error {
 	return <-u.loop(game)
 }
 
-func (u *UserInterface) updateScreenSize() {
+func (u *userInterfaceImpl) updateScreenSize() {
 	switch {
 	case document.Truthy():
 		body := document.Get("body")
@@ -608,7 +603,7 @@ func (u *UserInterface) updateScreenSize() {
 	}
 }
 
-func (u *UserInterface) SetScreenTransparent(transparent bool) {
+func (u *userInterfaceImpl) SetScreenTransparent(transparent bool) {
 	if u.running {
 		panic("ui: SetScreenTransparent can't be called after the main loop starts")
 	}
@@ -621,26 +616,26 @@ func (u *UserInterface) SetScreenTransparent(transparent bool) {
 	}
 }
 
-func (u *UserInterface) IsScreenTransparent() bool {
+func (u *userInterfaceImpl) IsScreenTransparent() bool {
 	bodyStyle := document.Get("body").Get("style")
 	return bodyStyle.Get("backgroundColor").Equal(stringTransparent)
 }
 
-func (u *UserInterface) resetForTick() {
+func (u *userInterfaceImpl) resetForTick() {
 	u.input.resetForTick()
 }
 
-func (u *UserInterface) SetInitFocused(focused bool) {
+func (u *userInterfaceImpl) SetInitFocused(focused bool) {
 	if u.running {
 		panic("ui: SetInitFocused must be called before the main loop")
 	}
 	u.initFocused = focused
 }
 
-func (u *UserInterface) Input() *Input {
+func (u *userInterfaceImpl) Input() *Input {
 	return &u.input
 }
 
-func (u *UserInterface) Window() *Window {
+func (u *userInterfaceImpl) Window() *Window {
 	return &Window{}
 }
