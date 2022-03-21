@@ -111,7 +111,7 @@ func (i *Image) initializeAsScreenFramebuffer(width, height int) {
 	i.height = height
 }
 
-func (i *Image) invalidatePendingPixels() {
+func (i *Image) invalidatePixels() {
 	i.pixels = nil
 	i.mask = nil
 	i.needsToResolvePixels = false
@@ -123,7 +123,7 @@ func (i *Image) resolvePendingPixels(keepPendingPixels bool) {
 	}
 
 	i.img.ReplacePixels(i.pixels, i.mask)
-	if !keepPendingPixels || i.mask != nil {
+	if !keepPendingPixels {
 		i.pixels = nil
 		i.mask = nil
 	}
@@ -139,7 +139,7 @@ func (i *Image) MarkDisposed() {
 			return
 		}
 	}
-	i.invalidatePendingPixels()
+	i.invalidatePixels()
 	i.img.MarkDisposed()
 }
 
@@ -191,7 +191,7 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) {
 	}
 
 	if x == 0 && y == 0 && width == i.width && height == i.height {
-		i.invalidatePendingPixels()
+		i.invalidatePixels()
 		i.img.ReplacePixels(pix, nil)
 		return
 	}
@@ -266,7 +266,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 	i.resolvePendingPixels(false)
 
 	i.img.DrawTriangles(imgs, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, s, uniforms, evenOdd)
-	i.invalidatePendingPixels()
+	i.invalidatePixels()
 }
 
 type Shader struct {
