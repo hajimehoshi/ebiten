@@ -46,7 +46,3 @@ func (s *Shader) Dispose() {
 	s.shader.MarkDisposed()
 	s.shader = nil
 }
-
-func (s *Shader) convertUniforms(uniforms map[string]interface{}) [][]float32 {
-	return s.shader.ConvertUniforms(uniforms)
-}

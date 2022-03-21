@@ -169,7 +169,7 @@ func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
 	}, nil
 }
 
-func (s *Shader) ConvertUniforms(uniforms map[string]interface{}) [][]float32 {
+func (s *Shader) convertUniforms(uniforms map[string]interface{}) [][]float32 {
 	type index struct {
 		resultIndex        int
 		shaderUniformIndex int

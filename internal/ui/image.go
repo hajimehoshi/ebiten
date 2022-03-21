@@ -51,7 +51,7 @@ func (i *Image) MarkDisposed() {
 	i.mipmap = nil
 }
 
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, canSkipMipmap bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms map[string]interface{}, evenOdd bool, canSkipMipmap bool) {
 	var srcMipmaps [graphics.ShaderImageNum]*mipmap.Mipmap
 	for i, src := range srcs {
 		if src == nil {
@@ -61,11 +61,13 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 	}
 
 	var s *mipmap.Shader
+	var us [][]float32
 	if shader != nil {
 		s = shader.shader
+		us = shader.convertUniforms(uniforms)
 	}
 
-	i.mipmap.DrawTriangles(srcMipmaps, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, s, uniforms, evenOdd, canSkipMipmap)
+	i.mipmap.DrawTriangles(srcMipmaps, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, s, us, evenOdd, canSkipMipmap)
 }
 
 func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) {
