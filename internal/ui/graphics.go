@@ -19,5 +19,5 @@ import (
 )
 
 func GraphicsDriverForTesting() graphicsdriver.Graphics {
-	return graphicsDriver()
+	return theUI.graphicsDriver
 }
