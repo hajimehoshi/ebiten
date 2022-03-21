@@ -88,8 +88,6 @@ type commandQueue struct {
 	tmpNumIndices      int
 
 	drawTrianglesCommandPool drawTrianglesCommandPool
-
-	err error
 }
 
 // theCommandQueue is the command queue for the current process.
