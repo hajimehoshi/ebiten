@@ -245,8 +245,8 @@ func (p *playerImpl) Current() time.Duration {
 		return 0
 	}
 
-	sample := (p.stream.Current() - int64(p.player.UnplayedBufferSize())) / bytesPerSample
-	return time.Duration(sample) * time.Second / time.Duration(p.factory.sampleRate)
+	samples := (p.stream.Current() - int64(p.player.UnplayedBufferSize())) / bytesPerSample
+	return time.Duration(samples) * time.Second / time.Duration(p.factory.sampleRate)
 }
 
 func (p *playerImpl) Rewind() error {
@@ -278,6 +278,18 @@ func (p *playerImpl) Err() error {
 		return nil
 	}
 	return p.player.Err()
+}
+
+func (p *playerImpl) UnplayedBufferSize() time.Duration {
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	if p.player == nil {
+		return 0
+	}
+
+	samples := p.player.UnplayedBufferSize() / bytesPerSample
+	return time.Duration(samples) * time.Second / time.Duration(p.factory.sampleRate)
 }
 
 func (p *playerImpl) source() io.Reader {
