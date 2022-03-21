@@ -38,15 +38,15 @@ var (
 	maxSize = 0
 )
 
-type temporaryPixels struct {
+type temporaryBytes struct {
 	pixels           []byte
 	pos              int
 	notFullyUsedTime int
 }
 
-var theTemporaryPixels temporaryPixels
+var theTemporaryBytes temporaryBytes
 
-func temporaryPixelsByteSize(size int) int {
+func temporaryBytesSize(size int) int {
 	l := 16
 	for l < size {
 		l *= 2
@@ -56,9 +56,9 @@ func temporaryPixelsByteSize(size int) int {
 
 // alloc allocates the pixels and reutrns it.
 // Be careful that the returned pixels might not be zero-cleared.
-func (t *temporaryPixels) alloc(size int) []byte {
+func (t *temporaryBytes) alloc(size int) []byte {
 	if len(t.pixels) < t.pos+size {
-		t.pixels = make([]byte, max(len(t.pixels)*2, temporaryPixelsByteSize(size)))
+		t.pixels = make([]byte, max(len(t.pixels)*2, temporaryBytesSize(size)))
 		t.pos = 0
 	}
 	pix := t.pixels[t.pos : t.pos+size]
@@ -66,10 +66,10 @@ func (t *temporaryPixels) alloc(size int) []byte {
 	return pix
 }
 
-func (t *temporaryPixels) resetAtFrameEnd() {
+func (t *temporaryBytes) resetAtFrameEnd() {
 	const maxNotFullyUsedTime = 60
 
-	if temporaryPixelsByteSize(t.pos) < len(t.pixels) {
+	if temporaryBytesSize(t.pos) < len(t.pixels) {
 		if t.notFullyUsedTime < maxNotFullyUsedTime {
 			t.notFullyUsedTime++
 		}
@@ -570,27 +570,19 @@ func (i *Image) replacePixels(pix []byte, mask []byte) {
 		return
 	}
 
-	// When a mask is specified, this image should already be initialized.
-	// Then, the paddings are not needed.
-	// TODO: This is tricky. Refactor this.
-	if mask != nil {
-		x := px + paddingSize
-		y := py + paddingSize
-		i.backend.restorable.ReplacePixels(pix, mask, x, y, i.width, i.height)
-		return
-	}
-
 	ow, oh := pw-2*paddingSize, ph-2*paddingSize
 	if l := 4 * ow * oh; len(pix) != l {
 		panic(fmt.Sprintf("atlas: len(p) must be %d but %d", l, len(pix)))
 	}
 
-	pixb := theTemporaryPixels.alloc(4 * pw * ph)
+	pixb := theTemporaryBytes.alloc(4 * pw * ph)
 
 	// Clear the edges. pixb might not be zero-cleared.
+	// TODO: These loops assume that paddingSize is 1.
 	rowPixels := 4 * pw
 	for i := 0; i < rowPixels; i++ {
 		pixb[i] = 0
+		pixb[rowPixels*(ph-1)+i] = 0
 	}
 	for j := 1; j < ph-1; j++ {
 		pixb[rowPixels*j] = 0
@@ -602,16 +594,43 @@ func (i *Image) replacePixels(pix []byte, mask []byte) {
 		pixb[rowPixels*(j+1)-2] = 0
 		pixb[rowPixels*(j+1)-1] = 0
 	}
-	for i := 0; i < rowPixels; i++ {
-		pixb[rowPixels*(ph-1)+i] = 0
-	}
 
 	// Copy the content.
 	for j := 0; j < oh; j++ {
 		copy(pixb[4*((j+paddingSize)*pw+paddingSize):], pix[4*j*ow:4*(j+1)*ow])
 	}
 
-	i.backend.restorable.ReplacePixels(pixb, nil, px, py, pw, ph)
+	// Add the paddings to the mask if needed.
+	if mask != nil {
+		origMask := mask
+		mask = theTemporaryBytes.alloc((pw*ph-1)/8 + 1)
+		for i := 0; i < pw; i++ {
+			// Top edge
+			idx := i
+			mask[idx/8] |= 1 << idx % 8
+			// Bottom edge
+			idx = (ph-1)*pw + i
+			mask[idx/8] |= 1 << idx % 8
+		}
+		for j := 1; j < ph-1; j++ {
+			// Left edge
+			idx := j * pw
+			mask[idx/8] |= 1 << idx % 8
+			// Right edge
+			idx = j*pw + pw - 1
+			mask[idx/8] |= 1 << idx % 8
+
+			// Content
+			for i := 1; i < pw-1; i++ {
+				idx := j*pw + i
+				origIdx := (j-paddingSize)*(pw-paddingSize*2) + i - paddingSize
+				origValue := (origMask[origIdx/8] >> (origIdx % 8)) & 1
+				mask[idx/8] |= origValue << (idx % 8)
+			}
+		}
+	}
+
+	i.backend.restorable.ReplacePixels(pixb, mask, px, py, pw, ph)
 }
 
 func (img *Image) Pixels(graphicsDriver graphicsdriver.Graphics) ([]byte, error) {
@@ -826,7 +845,7 @@ func NewScreenFramebufferImage(width, height int) *Image {
 func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 	backendsM.Lock()
 
-	theTemporaryPixels.resetAtFrameEnd()
+	theTemporaryBytes.resetAtFrameEnd()
 
 	return restorable.ResolveStaleImages(graphicsDriver)
 }
