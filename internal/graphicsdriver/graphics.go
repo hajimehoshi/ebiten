@@ -40,13 +40,13 @@ type ColorM interface {
 }
 
 type Graphics interface {
+	Initialize() error
 	Begin()
 	End(present bool)
 	SetTransparent(transparent bool)
 	SetVertices(vertices []float32, indices []uint16)
 	NewImage(width, height int) (Image, error)
 	NewScreenFramebufferImage(width, height int) (Image, error)
-	Initialize() error
 	SetVsyncEnabled(enabled bool)
 	SetFullscreen(fullscreen bool)
 	FramebufferYDirection() YDirection
