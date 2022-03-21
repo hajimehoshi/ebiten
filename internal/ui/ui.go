@@ -16,6 +16,9 @@ package ui
 
 import (
 	"errors"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
+	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 )
 
 type MouseButton int
@@ -67,3 +70,15 @@ const (
 	WindowResizingModeOnlyFullscreenEnabled
 	WindowResizingModeEnabled
 )
+
+func (u *UserInterface) imageAt(mipmap *mipmap.Mipmap, x, y int) (r, g, b, a byte, err error) {
+	return mipmap.At(graphicsDriver(), x, y)
+}
+
+func (u *UserInterface) dumpScreenshot(mipmap *mipmap.Mipmap, name string, blackbg bool) error {
+	return mipmap.DumpScreenshot(graphicsDriver(), name, blackbg)
+}
+
+func (u *UserInterface) dumpImages(dir string) error {
+	return atlas.DumpImages(graphicsDriver(), dir)
+}

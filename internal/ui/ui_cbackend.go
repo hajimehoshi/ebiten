@@ -34,10 +34,10 @@ type UserInterface struct {
 	input   Input
 }
 
-var theUserInterface UserInterface
+var theUI UserInterface
 
 func Get() *UserInterface {
-	return &theUserInterface
+	return &theUI
 }
 
 func (u *UserInterface) Run(game Game) error {
@@ -116,7 +116,7 @@ func (*UserInterface) SetInitFocused(focused bool) {
 }
 
 func (*UserInterface) Input() *Input {
-	return &theUserInterface.input
+	return &theUI.input
 }
 
 func (*UserInterface) Window() *Window {

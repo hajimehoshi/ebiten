@@ -16,7 +16,6 @@ package ui
 
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
-	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
@@ -78,7 +77,7 @@ func (i *Image) At(x, y int) (r, g, b, a byte) {
 		return 0, 0, 0, 0
 	}
 
-	r, g, b, a, err := i.mipmap.At(graphicsDriver(), x, y)
+	r, g, b, a, err := theUI.imageAt(i.mipmap, x, y)
 	if err != nil {
 		if panicOnErrorOnReadingPixels {
 			panic(err)
@@ -90,7 +89,7 @@ func (i *Image) At(x, y int) (r, g, b, a byte) {
 }
 
 func (i *Image) DumpScreenshot(name string, blackbg bool) error {
-	return i.mipmap.DumpScreenshot(graphicsDriver(), name, blackbg)
+	return theUI.dumpScreenshot(i.mipmap, name, blackbg)
 }
 
 func (i *Image) SetIndependent(independent bool) {
@@ -102,5 +101,5 @@ func (i *Image) SetVolatile(volatile bool) {
 }
 
 func DumpImages(dir string) error {
-	return atlas.DumpImages(graphicsDriver(), dir)
+	return theUI.dumpImages(dir)
 }
