@@ -21,8 +21,23 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
+
+type graphicsDriverGetterImpl struct{}
+
+func (*graphicsDriverGetterImpl) getAuto() graphicsdriver.Graphics {
+	return opengl.Get()
+}
+
+func (*graphicsDriverGetterImpl) getOpenGL() graphicsdriver.Graphics {
+	return opengl.Get()
+}
+
+func (*graphicsDriverGetterImpl) getMetal() graphicsdriver.Graphics {
+	return nil
+}
 
 var (
 	stringNone        = js.ValueOf("none")
@@ -309,7 +324,6 @@ func (u *userInterfaceImpl) needsUpdate() bool {
 
 func (u *userInterfaceImpl) loop(game Game) <-chan error {
 	u.context = newContextImpl(game)
-	u.graphicsDriver = graphicsDriver()
 
 	errCh := make(chan error, 1)
 	reqStopAudioCh := make(chan struct{})
@@ -591,6 +605,11 @@ func (u *userInterfaceImpl) Run(game Game) error {
 		}
 	}
 	u.running = true
+	g, err := chooseGraphicsDriver(&graphicsDriverGetterImpl{})
+	if err != nil {
+		return err
+	}
+	u.graphicsDriver = g
 	return <-u.loop(game)
 }
 

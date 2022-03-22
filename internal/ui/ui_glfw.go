@@ -811,7 +811,11 @@ event:
 }
 
 func (u *userInterfaceImpl) init() error {
-	u.graphicsDriver = graphicsDriver()
+	g, err := chooseGraphicsDriver(&graphicsDriverGetterImpl{})
+	if err != nil {
+		return err
+	}
+	u.graphicsDriver = g
 	if u.graphicsDriver.IsGL() {
 		glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLAPI)
 		glfw.WindowHint(glfw.ContextVersionMajor, 2)

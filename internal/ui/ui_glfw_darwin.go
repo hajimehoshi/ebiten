@@ -227,7 +227,27 @@ import "C"
 
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
+
+type graphicsDriverGetterImpl struct{}
+
+func (g *graphicsDriverGetterImpl) getAuto() graphicsdriver.Graphics {
+	if m := g.getMetal(); m != nil {
+		return m
+	}
+	return g.getOpenGL()
+}
+
+func (*graphicsDriverGetterImpl) getOpenGL() graphicsdriver.Graphics {
+	return opengl.Get()
+}
+
+func (*graphicsDriverGetterImpl) getMetal() graphicsdriver.Graphics {
+	return metal.Get()
+}
 
 // clearVideoModeScaleCache must be called from the main thread.
 func clearVideoModeScaleCache() {}

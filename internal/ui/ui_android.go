@@ -1,4 +1,4 @@
-// Copyright 2018 The Ebiten Authors
+// Copyright 2022 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,20 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !ebitengl && !ebitencbackend
-// +build !ebitengl,!ebitencbackend
-
 package ui
 
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
-func graphicsDriver() graphicsdriver.Graphics {
-	if g := metal.Get(); g != nil {
-		return g
-	}
+type graphicsDriverGetterImpl struct {
+	gomobileBuild bool
+}
+
+func (g *graphicsDriverGetterImpl) getAuto() graphicsdriver.Graphics {
 	return opengl.Get()
+}
+
+func (*graphicsDriverGetterImpl) getOpenGL() graphicsdriver.Graphics {
+	return opengl.Get()
+}
+
+func (*graphicsDriverGetterImpl) getMetal() graphicsdriver.Graphics {
+	return nil
 }

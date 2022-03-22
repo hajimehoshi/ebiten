@@ -15,8 +15,41 @@
 package ui
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
+
+type graphicsDriverGetter interface {
+	getAuto() graphicsdriver.Graphics
+	getOpenGL() graphicsdriver.Graphics
+	getMetal() graphicsdriver.Graphics
+}
+
+func chooseGraphicsDriver(getter graphicsDriverGetter) (graphicsdriver.Graphics, error) {
+	const envName = "EBITEN_GRAPHICS_LIBRARY"
+
+	switch env := os.Getenv(envName); env {
+	case "", "auto":
+		if g := getter.getAuto(); g != nil {
+			return g, nil
+		}
+		return nil, fmt.Errorf("ui: no graphics library is available")
+	case "opengl":
+		if g := getter.getOpenGL(); g != nil {
+			return g, nil
+		}
+		return nil, fmt.Errorf("ui: %s=%s is specified but OpenGL is not available", envName, env)
+	case "metal":
+		if g := getter.getMetal(); g != nil {
+			return g, nil
+		}
+		return nil, fmt.Errorf("ui: %s=%s is specified but Metal is not available", envName, env)
+	default:
+		return nil, fmt.Errorf("ui: an unsupported graphics library is specified: %s", env)
+	}
+}
 
 func GraphicsDriverForTesting() graphicsdriver.Graphics {
 	return theUI.graphicsDriver

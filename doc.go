@@ -65,12 +65,18 @@
 // to dump all the internal images. This is valid only when the build tag
 // 'ebitendebug' is specified. This works only on desktops.
 //
+// `EBITEN_GRAPHICS_LIBRARY` environment variable specifies the graphics library.
+// If the specified graphics library is not available, RunGame returns an error.
+// This can take one of the following value:
+//
+//     "auto":   Ebiten chooses the graphics library automatically. This is the default value.
+//     "opengl": OpenGL, OpenGL ES, or WebGL.
+//     "metal":  Metal. This works only on macOS or iOS.
+//
 // Build tags
 //
 // `ebitendebug` outputs a log of graphics commands. This is useful to know what happens in Ebiten. In general, the
 // number of graphics commands affects the performance of your game.
-//
-// `ebitengl` forces to use OpenGL in any environments.
 //
 // `ebitenwebgl1` forces to use WebGL 1 on browsers.
 //

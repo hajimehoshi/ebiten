@@ -25,7 +25,23 @@ import (
 	"golang.org/x/sys/windows"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
+
+type graphicsDriverGetterImpl struct{}
+
+func (*graphicsDriverGetterImpl) getAuto() graphicsdriver.Graphics {
+	return opengl.Get()
+}
+
+func (*graphicsDriverGetterImpl) getOpenGL() graphicsdriver.Graphics {
+	return opengl.Get()
+}
+
+func (*graphicsDriverGetterImpl) getMetal() graphicsdriver.Graphics {
+	return nil
+}
 
 const (
 	smCyCaption             = 4

@@ -17,6 +17,36 @@
 
 package ui
 
+import (
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
+)
+
+type graphicsDriverGetterImpl struct {
+	gomobileBuild bool
+}
+
+func (g *graphicsDriverGetterImpl) getAuto() graphicsdriver.Graphics {
+	if m := g.getMetal(); m != nil {
+		return m
+	}
+	return g.getOpenGL()
+}
+
+func (*graphicsDriverGetterImpl) getOpenGL() graphicsdriver.Graphics {
+	return opengl.Get()
+}
+
+func (g *graphicsDriverGetterImpl) getMetal() graphicsdriver.Graphics {
+	// When gomobile-build is used, GL functions must be called via
+	// gl.Context so that they are called on the appropriate thread.
+	if g.gomobileBuild {
+		return nil
+	}
+	return metal.Get()
+}
+
 func SetUIView(uiview uintptr) {
 	// This function should be called only when the graphics library is Metal.
 	if g, ok := theUI.graphicsDriver.(interface{ SetUIView(uintptr) }); ok {
