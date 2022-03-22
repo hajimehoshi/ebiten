@@ -17,6 +17,7 @@ package restorable
 import (
 	"image"
 	"path/filepath"
+	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
@@ -292,8 +293,11 @@ func MaxImageSize(graphicsDriver graphicsdriver.Graphics) int {
 
 // OnContextLost is called when the context lost is detected in an explicit way.
 func OnContextLost() {
-	if !canDetectContextLostExplicitly {
-		panic("restorable: OnContextLost cannot be called in this environment")
-	}
+	canDetectContextLostExplicitly = true
 	theImages.contextLost = true
 }
+
+// canDetectContextLostExplicitly reports whether Ebiten can detect a context lost in an explicit way.
+// On Android, a context lost can be detected via GLSurfaceView.Renderer.onSurfaceCreated.
+// On iOS w/ OpenGL ES, this can be detected only when gomobile-build is used.
+var canDetectContextLostExplicitly = runtime.GOOS == "android"
