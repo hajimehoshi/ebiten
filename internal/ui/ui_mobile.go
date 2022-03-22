@@ -270,14 +270,17 @@ func (u *userInterfaceImpl) run(game Game, mainloop bool) (err error) {
 	}()
 
 	u.context = newContextImpl(game)
-	u.graphicsDriver = graphicsDriver()
 
 	if mainloop {
 		// When mainloop is true, gomobile-build is used. In this case, GL functions must be called via
 		// gl.Context so that they are called on the appropriate thread.
+		g := opengl.Get()
+		u.graphicsDriver = g
+
 		ctx := <-glContextCh
-		u.graphicsDriver.(*opengl.Graphics).SetGomobileGLContext(ctx)
+		g.SetGomobileGLContext(ctx)
 	} else {
+		u.graphicsDriver = graphicsDriver()
 		u.t = thread.NewOSThread()
 		graphicscommand.SetRenderingThread(u.t)
 	}
