@@ -12,20 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ios && !ebitengl && !ebitencbackend
-// +build ios,!ebitengl,!ebitencbackend
+//go:build ios
+// +build ios
 
-package ui
+package metal
 
-import (
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
-)
-
-func graphicsDriver() graphicsdriver.Graphics {
-	if g := metal.Get(); g != nil {
-		return g
-	}
-	return opengl.Get()
+func supportsMetal() bool {
+	return true
 }

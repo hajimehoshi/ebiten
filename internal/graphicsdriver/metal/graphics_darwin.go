@@ -347,15 +347,22 @@ const (
 )
 
 // isMetalAvailable reports whether Metal is available or not.
-//
-// On old mac devices like iMac 2011, Metal is not supported (#779).
 var isMetalAvailable bool
 
 func init() {
+	if !supportsMetal() {
+		return
+	}
+
 	// Initialize isMetalAvailable on the main thread.
+	// On old mac devices like iMac 2011, Metal is not supported (#779).
 	// TODO: Is there a better way to check whether Metal is available or not?
 	// It seems OK to call MTLCreateSystemDefaultDevice multiple times, so this should be fine.
-	_, isMetalAvailable = mtl.CreateSystemDefaultDevice()
+	if _, ok := mtl.CreateSystemDefaultDevice(); !ok {
+		return
+	}
+
+	isMetalAvailable = true
 }
 
 var theGraphics Graphics
