@@ -1,4 +1,4 @@
-// Copyright 2019 The Ebiten Authors
+// Copyright 2022 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,15 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build darwin && ios && !arm && !arm64
-// +build darwin,ios,!arm,!arm64
+//go:build ios
+// +build ios
 
-package ebitenmobileview
+package ui
 
-import (
-	"runtime"
-)
+func SetUIView(uiview uintptr) {
+	// This function should be called only when the graphics library is Metal.
+	if g, ok := theUI.graphicsDriver.(interface{ SetUIView(uintptr) }); ok {
+		g.SetUIView(uiview)
+	}
+}
 
-func SetUIView(uiview int64) {
-	panic("ebitenmobileview: SetUIView is not available on GOARCH=" + runtime.GOARCH)
+func IsGL() bool {
+	return theUI.graphicsDriver.IsGL()
 }

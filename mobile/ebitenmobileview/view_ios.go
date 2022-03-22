@@ -12,15 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build (darwin && ios && arm) || (darwin && ios && arm64)
-// +build darwin,ios,arm darwin,ios,arm64
+//go:build ios
+// +build ios
 
 package ebitenmobileview
 
 import (
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 func SetUIView(uiview int64) {
-	metal.Get().SetUIView(uintptr(uiview))
+	ui.SetUIView(uintptr(uiview))
+}
+
+func IsGL() bool {
+	return ui.IsGL()
 }
