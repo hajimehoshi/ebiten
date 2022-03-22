@@ -399,6 +399,11 @@ func (p *Player) SetVolume(volume float64) {
 	p.p.SetVolume(volume)
 }
 
+// UnplayedBufferSize returns the amount of unplayed data in the player's buffer in the time duration.
+func (p *Player) UnplayedBufferSize() time.Duration {
+	return p.p.UnplayedBufferSize()
+}
+
 type hook interface {
 	OnSuspendAudio(f func() error)
 	OnResumeAudio(f func() error)
