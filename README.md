@@ -12,7 +12,7 @@ Ebiten is an open source game library for the Go programming language. Ebiten's 
 * [Cheat Sheet](https://ebiten.org/documents/cheatsheet.html)
 * [Awesome Ebiten](https://github.com/sedyh/awesome-ebiten)
 
-![Overview](https://ebiten.org/images/overview2.2.png)
+![Overview](https://ebiten.org/images/overview2.png)
 
 ## Platforms
 
