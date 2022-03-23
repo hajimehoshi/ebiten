@@ -367,7 +367,7 @@ func init() {
 
 var theGraphics Graphics
 
-func Get() *Graphics {
+func Get() graphicsdriver.Graphics {
 	if !isMetalAvailable {
 		return nil
 	}
