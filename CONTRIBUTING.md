@@ -4,7 +4,15 @@ Ebiten is an open source project and we appreciate your contributions!
 
 There are some rules for Ebiten contribution.
 
+## Creating an issue in the GitHub issue
+
+Create an issue in the GitHub issues if you find an issue but this is not there.
+
+Except for very trivial fixes like fixing misspelling, it is a must to have an issue.
+
 ## Asking us when you are not sure
+
+In Ebiten, problems might not be documented very well in GitHub issues. Please ask us before you work on such issue.
 
 You can ask us at these communities:
 
