@@ -375,6 +375,7 @@ func init() {
 		"KP7":          "Numpad7",
 		"KP8":          "Numpad8",
 		"KP9":          "Numpad9",
+		"KPAdd":    	"NumpadAdd",
 		"KPDecimal":    "NumpadDecimal",
 		"KPDivide":     "NumpadDivide",
 		"KPMultiply":   "NumpadMultiply",
