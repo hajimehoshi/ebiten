@@ -4,9 +4,9 @@ Ebiten is an open source project and we appreciate your contributions!
 
 There are some rules for Ebiten contribution.
 
-## Creating an issue in the GitHub issue
+## Filing an issue in the GitHub issue
 
-Create an issue in the GitHub issues, if you find an issue or have a feature request but this is not filed.
+File an issue in the GitHub issues, if you find a problem or have a feature request but this is not filed.
 
 Except for very trivial fixes like fixing misspelling, it is a must to have an issue.
 
