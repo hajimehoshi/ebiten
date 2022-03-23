@@ -827,6 +827,8 @@ func keyNameToKeyCode(name string) (Key, bool) {
 		return KeyKP8, true
 	case "kp9":
 		return KeyKP9, true
+	case "kpadd":
+		return KeyKPAdd, true
 	case "kpdecimal":
 		return KeyKPDecimal, true
 	case "kpdivide":
