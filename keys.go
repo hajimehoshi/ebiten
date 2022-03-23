@@ -165,6 +165,7 @@ const (
 	KeyKP7          Key = Key(ui.KeyNumpad7)
 	KeyKP8          Key = Key(ui.KeyNumpad8)
 	KeyKP9          Key = Key(ui.KeyNumpad9)
+	KeyKPAdd        Key = Key(ui.KeyNumpadAdd)
 	KeyKPDecimal    Key = Key(ui.KeyNumpadDecimal)
 	KeyKPDivide     Key = Key(ui.KeyNumpadDivide)
 	KeyKPEnter      Key = Key(ui.KeyNumpadEnter)
