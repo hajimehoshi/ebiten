@@ -165,6 +165,7 @@ const (
 	KeyKP7          Key = Key(driver.KeyNumpad7)
 	KeyKP8          Key = Key(driver.KeyNumpad8)
 	KeyKP9          Key = Key(driver.KeyNumpad9)
+	KeyKPAdd        Key = Key(driver.KeyNumpadAdd)
 	KeyKPDecimal    Key = Key(driver.KeyNumpadDecimal)
 	KeyKPDivide     Key = Key(driver.KeyNumpadDivide)
 	KeyKPEnter      Key = Key(driver.KeyNumpadEnter)
@@ -826,6 +827,8 @@ func keyNameToKeyCode(name string) (Key, bool) {
 		return KeyKP8, true
 	case "kp9":
 		return KeyKP9, true
+	case "kpadd":
+		return KeyKPAdd, true
 	case "kpdecimal":
 		return KeyKPDecimal, true
 	case "kpdivide":
