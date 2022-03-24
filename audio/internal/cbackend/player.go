@@ -15,7 +15,7 @@
 //go:build ebitencbackend
 // +build ebitencbackend
 
-// TODO: This implementation is very similar to github.com/hajimehoshi/oto/v2's player_notjs.go
+// TODO: This implementation is very similar to github.com/hajimehoshi/oto/v2's player.go
 // Unify them if possible.
 
 package cbackend
