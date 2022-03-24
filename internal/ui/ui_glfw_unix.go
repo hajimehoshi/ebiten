@@ -33,12 +33,15 @@ import (
 
 type graphicsDriverGetterImpl struct{}
 
-func (*graphicsDriverGetterImpl) getAuto() graphicsdriver.Graphics {
-	return opengl.Get()
+func (g *graphicsDriverGetterImpl) getAuto() graphicsdriver.Graphics {
+	return g.getOpenGL()
 }
 
 func (*graphicsDriverGetterImpl) getOpenGL() graphicsdriver.Graphics {
-	return opengl.Get()
+	if g := opengl.Get(); g != nil {
+		return g
+	}
+	return nil
 }
 
 func (*graphicsDriverGetterImpl) getMetal() graphicsdriver.Graphics {

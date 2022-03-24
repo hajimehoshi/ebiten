@@ -242,11 +242,17 @@ func (g *graphicsDriverGetterImpl) getAuto() graphicsdriver.Graphics {
 }
 
 func (*graphicsDriverGetterImpl) getOpenGL() graphicsdriver.Graphics {
-	return opengl.Get()
+	if g := opengl.Get(); g != nil {
+		return g
+	}
+	return nil
 }
 
 func (*graphicsDriverGetterImpl) getMetal() graphicsdriver.Graphics {
-	return metal.Get()
+	if m := metal.Get(); m != nil {
+		return m
+	}
+	return nil
 }
 
 // clearVideoModeScaleCache must be called from the main thread.

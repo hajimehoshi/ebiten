@@ -35,7 +35,10 @@ func (g *graphicsDriverGetterImpl) getAuto() graphicsdriver.Graphics {
 }
 
 func (*graphicsDriverGetterImpl) getOpenGL() graphicsdriver.Graphics {
-	return opengl.Get()
+	if g := opengl.Get(); g != nil {
+		return g
+	}
+	return nil
 }
 
 func (g *graphicsDriverGetterImpl) getMetal() graphicsdriver.Graphics {

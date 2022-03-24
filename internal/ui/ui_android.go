@@ -24,11 +24,14 @@ type graphicsDriverGetterImpl struct {
 }
 
 func (g *graphicsDriverGetterImpl) getAuto() graphicsdriver.Graphics {
-	return opengl.Get()
+	return g.getOpenGL()
 }
 
 func (*graphicsDriverGetterImpl) getOpenGL() graphicsdriver.Graphics {
-	return opengl.Get()
+	if g := opengl.Get(); g != nil {
+		return g
+	}
+	return nil
 }
 
 func (*graphicsDriverGetterImpl) getMetal() graphicsdriver.Graphics {

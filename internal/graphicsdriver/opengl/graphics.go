@@ -24,7 +24,7 @@ import (
 
 var theGraphics Graphics
 
-func Get() graphicsdriver.Graphics {
+func Get() *Graphics {
 	return &theGraphics
 }
 
