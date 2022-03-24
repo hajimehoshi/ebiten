@@ -47,7 +47,10 @@ func (g *graphicsDriverGetterImpl) getMetal() graphicsdriver.Graphics {
 	if g.gomobileBuild {
 		return nil
 	}
-	return metal.Get()
+	if m := metal.Get(); m != nil {
+		return m
+	}
+	return nil
 }
 
 func SetUIView(uiview uintptr) {
