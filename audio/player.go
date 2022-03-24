@@ -32,6 +32,7 @@ type player interface {
 	SetVolume(volume float64)
 	UnplayedBufferSize() int
 	Err() error
+	SetBufferSize(bufferSize int)
 	io.Closer
 }
 
@@ -63,12 +64,13 @@ func newPlayerFactory(sampleRate int) *playerFactory {
 }
 
 type playerImpl struct {
-	context *Context
-	player  player
-	src     io.Reader
-	stream  *timeStream
-	factory *playerFactory
-	m       sync.Mutex
+	context        *Context
+	player         player
+	src            io.Reader
+	stream         *timeStream
+	factory        *playerFactory
+	initBufferSize int
+	m              sync.Mutex
 }
 
 func (f *playerFactory) newPlayer(context *Context, src io.Reader) (*playerImpl, error) {
@@ -156,6 +158,10 @@ func (p *playerImpl) ensurePlayer() error {
 	}
 	if p.player == nil {
 		p.player = p.factory.context.NewPlayer(p.stream)
+		if p.initBufferSize != 0 {
+			p.player.SetBufferSize(p.initBufferSize)
+			p.initBufferSize = 0
+		}
 	}
 	return nil
 }
@@ -290,6 +296,17 @@ func (p *playerImpl) UnplayedBufferSize() time.Duration {
 
 	samples := p.player.UnplayedBufferSize() / bytesPerSample
 	return time.Duration(samples) * time.Second / time.Duration(p.factory.sampleRate)
+}
+
+func (p *playerImpl) SetBufferSize(bufferSize int) {
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	if p.player == nil {
+		p.initBufferSize = bufferSize
+		return
+	}
+	p.player.SetBufferSize(bufferSize)
 }
 
 func (p *playerImpl) source() io.Reader {

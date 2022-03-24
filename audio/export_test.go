@@ -101,6 +101,9 @@ func (p *dummyPlayer) Err() error {
 	return nil
 }
 
+func (p *dummyPlayer) SetBufferSize(bufferSize int) {
+}
+
 func (p *dummyPlayer) Close() error {
 	p.m.Lock()
 	defer p.m.Unlock()
