@@ -404,6 +404,14 @@ func (p *Player) UnplayedBufferSize() time.Duration {
 	return p.p.UnplayedBufferSize()
 }
 
+// SetBufferSize adjusts the buffer size of the player.
+// If 0 is specified, the default buffer size is used.
+// A small buffer size is useful if you want to play a real-time PCM for example.
+// Note that the audio quality might be affected if you modify the buffer size.
+func (p *Player) SetBufferSize(bufferSize int) {
+	p.p.SetBufferSize(bufferSize)
+}
+
 type hook interface {
 	OnSuspendAudio(f func() error)
 	OnResumeAudio(f func() error)
