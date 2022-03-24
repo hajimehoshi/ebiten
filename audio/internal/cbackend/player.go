@@ -178,7 +178,7 @@ func (p *playerImpl) Play() {
 
 func (p *playerImpl) ensureTmpBuf() []byte {
 	if p.tmpbuf == nil {
-		p.tmpbuf = make([]byte, p.context.bufferSize())
+		p.tmpbuf = make([]byte, p.context.defaultBufferSize())
 	}
 	return p.tmpbuf
 }
@@ -193,7 +193,7 @@ func (p *playerImpl) playImpl() {
 
 	if !p.eof {
 		buf := p.ensureTmpBuf()
-		for len(p.buf) < p.context.bufferSize() {
+		for len(p.buf) < p.context.defaultBufferSize() {
 			n, err := p.src.Read(buf)
 			if err != nil && err != io.EOF {
 				p.setErrorImpl(err)
@@ -360,7 +360,7 @@ func (p *playerImpl) canReadSourceToBuffer() bool {
 	if p.eof {
 		return false
 	}
-	return len(p.buf) < p.context.bufferSize()
+	return len(p.buf) < p.context.defaultBufferSize()
 }
 
 func (p *playerImpl) readSourceToBuffer() {
@@ -374,7 +374,7 @@ func (p *playerImpl) readSourceToBuffer() {
 		return
 	}
 
-	if len(p.buf) >= p.context.bufferSize() {
+	if len(p.buf) >= p.context.defaultBufferSize() {
 		return
 	}
 

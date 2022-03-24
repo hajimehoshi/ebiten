@@ -62,6 +62,6 @@ func (c *Context) Err() error {
 	return nil
 }
 
-func (c *Context) bufferSize() int {
-	return c.sampleRate * c.channelNum * c.bitDepthInBytes / 4 // 0.25[s]
+func (c *Context) defaultBufferSize() int {
+	return c.sampleRate * c.channelNum * c.bitDepthInBytes / 2 // 0.5[s]
 }
