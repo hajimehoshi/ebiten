@@ -248,6 +248,10 @@ func (*graphicsDriverGetterImpl) getOpenGL() graphicsdriver.Graphics {
 	return nil
 }
 
+func (*graphicsDriverGetterImpl) getDirectX() graphicsdriver.Graphics {
+	return nil
+}
+
 func (*graphicsDriverGetterImpl) getMetal() graphicsdriver.Graphics {
 	if m := metal.Get(); m != nil {
 		return m

@@ -38,6 +38,10 @@ func (*graphicsDriverGetterImpl) getOpenGL() graphicsdriver.Graphics {
 	return nil
 }
 
+func (*graphicsDriverGetterImpl) getDirectX() graphicsdriver.Graphics {
+	return nil
+}
+
 func (*graphicsDriverGetterImpl) getMetal() graphicsdriver.Graphics {
 	return nil
 }

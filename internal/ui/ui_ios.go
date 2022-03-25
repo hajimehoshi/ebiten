@@ -41,6 +41,10 @@ func (*graphicsDriverGetterImpl) getOpenGL() graphicsdriver.Graphics {
 	return nil
 }
 
+func (*graphicsDriverGetterImpl) getDirectX() graphicsdriver.Graphics {
+	return nil
+}
+
 func (g *graphicsDriverGetterImpl) getMetal() graphicsdriver.Graphics {
 	// When gomobile-build is used, GL functions must be called via
 	// gl.Context so that they are called on the appropriate thread.
