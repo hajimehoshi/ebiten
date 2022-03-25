@@ -61,7 +61,7 @@ func opString(op shaderir.Op) string {
 	case shaderir.OrOr:
 		return "||"
 	}
-	return fmt.Sprintf("!(unexpected operator: %d)", op)
+	return fmt.Sprintf("?(unexpected operator: %d)", op)
 }
 
 func typeString(t *shaderir.Type) (string, string) {
