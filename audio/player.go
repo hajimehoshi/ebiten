@@ -286,18 +286,6 @@ func (p *playerImpl) Err() error {
 	return p.player.Err()
 }
 
-func (p *playerImpl) UnplayedBufferSize() time.Duration {
-	p.m.Lock()
-	defer p.m.Unlock()
-
-	if p.player == nil {
-		return 0
-	}
-
-	samples := p.player.UnplayedBufferSize() / bytesPerSample
-	return time.Duration(samples) * time.Second / time.Duration(p.factory.sampleRate)
-}
-
 func (p *playerImpl) SetBufferSize(bufferSize int) {
 	p.m.Lock()
 	defer p.m.Unlock()

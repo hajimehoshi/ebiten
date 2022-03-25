@@ -399,11 +399,6 @@ func (p *Player) SetVolume(volume float64) {
 	p.p.SetVolume(volume)
 }
 
-// UnplayedBufferSize returns the amount of unplayed data in the player's buffer in the time duration.
-func (p *Player) UnplayedBufferSize() time.Duration {
-	return p.p.UnplayedBufferSize()
-}
-
 // SetBufferSize adjusts the buffer size of the player.
 // If 0 is specified, the default buffer size is used.
 // A small buffer size is useful if you want to play a real-time PCM for example.
