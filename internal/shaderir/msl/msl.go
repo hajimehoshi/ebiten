@@ -54,8 +54,8 @@ using namespace metal;
 
 constexpr sampler texture_sampler{filter::nearest};
 
-template<typename T>
-T mod(T x, T y) {
+template<typename T, typename U>
+T mod(T x, U y) {
 	return x - y * floor(x/y);
 }`
 
