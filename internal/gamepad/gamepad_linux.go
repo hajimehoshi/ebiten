@@ -328,7 +328,7 @@ func (g *nativeGamepad) update(gamepad *gamepads) error {
 
 		switch e.typ {
 		case unix.EV_KEY:
-			if e.code-_BTN_MISC < len(g.keyMap) {
+			if int(e.code)-_BTN_MISC < len(g.keyMap) {
 				idx := g.keyMap[e.code-_BTN_MISC]
 				g.buttons[idx] = e.value != 0
 			}
