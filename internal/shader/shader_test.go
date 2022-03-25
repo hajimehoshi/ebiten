@@ -26,6 +26,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/shader"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/msl"
 )
 
@@ -41,6 +42,13 @@ func glslFragmentNormalize(str string) string {
 	p := glsl.FragmentPrelude(glsl.GLSLVersionDefault)
 	if strings.HasPrefix(str, p) {
 		str = str[len(p):]
+	}
+	return strings.TrimSpace(str)
+}
+
+func hlslNormalize(str string) string {
+	if strings.HasPrefix(str, hlsl.Prelude) {
+		str = str[len(hlsl.Prelude):]
 	}
 	return strings.TrimSpace(str)
 }
@@ -88,6 +96,7 @@ func TestCompile(t *testing.T) {
 		Src   []byte
 		VS    []byte
 		FS    []byte
+		HLSL  []byte
 		Metal []byte
 	}
 
@@ -138,6 +147,15 @@ func TestCompile(t *testing.T) {
 			t.Fatalf("no expected file for %s", name)
 		}
 
+		hlsln := name + ".expected.hlsl"
+		if _, ok := fnames[hlsln]; ok {
+			hlsl, err := ioutil.ReadFile(filepath.Join("testdata", hlsln))
+			if err != nil {
+				t.Fatal(err)
+			}
+			tc.HLSL = hlsl
+		}
+
 		metaln := name + ".expected.metal"
 		if _, ok := fnames[metaln]; ok {
 			metal, err := ioutil.ReadFile(filepath.Join("testdata", metaln))
@@ -172,6 +190,13 @@ func TestCompile(t *testing.T) {
 			if tc.FS != nil {
 				if got, want := glslFragmentNormalize(fs), glslFragmentNormalize(string(tc.FS)); got != want {
 					compare(t, "GLSL Fragment", got, want)
+				}
+			}
+
+			if tc.HLSL != nil {
+				h, _ := hlsl.Compile(s)
+				if got, want := hlslNormalize(h), hlslNormalize(string(tc.HLSL)); got != want {
+					compare(t, "HLSL", got, want)
 				}
 			}
 
