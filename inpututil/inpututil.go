@@ -138,7 +138,7 @@ func (i *inputState) update() {
 		i.gamepadIDs[id] = struct{}{}
 
 		n := ebiten.GamepadButtonNum(id)
-		if _, ok := i.gamepadButtonDurations[id]; !ok || n != len(i.gamepadButtonDurations) {
+		if n != len(i.gamepadButtonDurations[id]) {
 			i.gamepadButtonDurations[id] = make([]int, n)
 		}
 		for b := ebiten.GamepadButton(0); b < ebiten.GamepadButton(n); b++ {
