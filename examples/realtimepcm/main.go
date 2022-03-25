@@ -21,6 +21,7 @@ import (
 	"log"
 	"math"
 	"sync"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
@@ -135,8 +136,8 @@ func (g *Game) Update() error {
 
 		// Adjust the buffer size to reflect the audio source changes in real time.
 		// Note that Ebiten doesn't guarantee the audio quality when the buffer size is modified.
-		// 8192 should work in most cases, but this might cause glitches in some environments.
-		g.player.SetBufferSize(8192)
+		// 1/20[s] should work in most cases, but this might cause glitches in some environments.
+		g.player.SetBufferSize(time.Second / 20)
 	}
 	g.sineWave.Update(ebiten.IsKeyPressed(ebiten.KeyA))
 	return nil

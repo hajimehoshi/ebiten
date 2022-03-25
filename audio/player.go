@@ -286,15 +286,17 @@ func (p *playerImpl) Err() error {
 	return p.player.Err()
 }
 
-func (p *playerImpl) SetBufferSize(bufferSize int) {
+func (p *playerImpl) SetBufferSize(bufferSize time.Duration) {
 	p.m.Lock()
 	defer p.m.Unlock()
 
+	bufferSizeInBytes := int(bufferSize * bytesPerSample * time.Duration(p.factory.sampleRate) / time.Second)
+	bufferSizeInBytes = bufferSizeInBytes / bytesPerSample * bytesPerSample
 	if p.player == nil {
-		p.initBufferSize = bufferSize
+		p.initBufferSize = bufferSizeInBytes
 		return
 	}
-	p.player.SetBufferSize(bufferSize)
+	p.player.SetBufferSize(bufferSizeInBytes)
 }
 
 func (p *playerImpl) source() io.Reader {
