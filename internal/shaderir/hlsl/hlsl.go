@@ -71,6 +71,18 @@ float3 mod(float3 x, float3 y) {
 
 float4 mod(float4 x, float4 y) {
 	return x - y * floor(x/y);
+}
+
+float2x2 float2x2FromScalar(float x) {
+	return float2x2(x, 0, 0, x);
+}
+
+float3x3 float3x3FromScalar(float x) {
+	return float3x3(x, 0, 0, 0, x, 0, 0, 0, x);
+}
+
+float4x4 float4x4FromScalar(float x) {
+	return float4x4(x, 0, 0, 0, 0, x, 0, 0, 0, 0, x, 0, 0, 0, 0, x);
 }`
 
 func Compile(p *shaderir.Program) (string, []int) {
@@ -396,10 +408,19 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 						// Use casting. For example, `float4(1)` doesn't work.
 						return fmt.Sprintf("(%s)(%s)", expr(&e.Exprs[0]), args[0])
 					}
-				case shaderir.Mat2F, shaderir.Mat3F, shaderir.Mat4F:
+				case shaderir.Mat2F:
 					if len(args) == 1 {
-						// Use casting. For example, `float4x4(1)` doesn't work.
-						return fmt.Sprintf("(%s)(%s)", expr(&e.Exprs[0]), args[0])
+						// In HSLS, casting a scalar to a matrix initializes all the components.
+						// There seems no easy way to have an identity matrix.
+						return fmt.Sprintf("float2x2FromScalar(%s)", args[0])
+					}
+				case shaderir.Mat3F:
+					if len(args) == 1 {
+						return fmt.Sprintf("float3x3FromScalar(%s)", args[0])
+					}
+				case shaderir.Mat4F:
+					if len(args) == 1 {
+						return fmt.Sprintf("float4x4FromScalar(%s)", args[0])
 					}
 				case shaderir.Texture2DF:
 					return fmt.Sprintf("%s.Sample(samp, %s)", args[0], strings.Join(args[1:], ", "))
