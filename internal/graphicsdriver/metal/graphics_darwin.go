@@ -998,7 +998,18 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 		// Set the additional uniform variables.
 		for i, v := range uniforms {
 			const offset = graphics.PreservedUniformVariablesNum
-			uniformVars[offset+i] = v
+			switch g.shaders[shaderID].ir.Uniforms[offset+i].Main {
+			case shaderir.Mat3:
+				println("yo")
+				// float3x3 requires 16-byte alignment (#2036).
+				newV := make([]float32, 12)
+				copy(newV[0:3], v[0:3])
+				copy(newV[4:7], v[3:6])
+				copy(newV[8:11], v[6:9])
+				uniformVars[offset+i] = newV
+			default:
+				uniformVars[offset+i] = v
+			}
 		}
 	}
 

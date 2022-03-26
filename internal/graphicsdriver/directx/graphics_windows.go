@@ -1637,21 +1637,23 @@ func (s *Shader) uniformsToFloat32s(uniforms [][]float32) []float32 {
 		case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
 			fs = append(fs, u...)
 		case shaderir.Mat2:
-			for j := 0; j < 2; j++ {
-				fs = append(fs, u[2*j:2*(j+1)]...)
-				if j < 1 {
-					fs = append(fs, 0, 0)
-				}
-			}
+			fs = append(fs,
+				u[0], u[2], 0, 0,
+				u[1], u[3],
+			)
 		case shaderir.Mat3:
-			for j := 0; j < 3; j++ {
-				fs = append(fs, u[3*j:3*(j+1)]...)
-				if j < 2 {
-					fs = append(fs, 0)
-				}
-			}
+			fs = append(fs,
+				u[0], u[3], u[6], 0,
+				u[1], u[4], u[7], 0,
+				u[2], u[5], u[8],
+			)
 		case shaderir.Mat4:
-			fs = append(fs, u...)
+			fs = append(fs,
+				u[0], u[4], u[8], u[12],
+				u[1], u[5], u[9], u[13],
+				u[2], u[6], u[10], u[14],
+				u[3], u[7], u[11], u[15],
+			)
 		case shaderir.Array:
 			// Each element is aligned to the boundary.
 			switch t.Sub[0].Main {
