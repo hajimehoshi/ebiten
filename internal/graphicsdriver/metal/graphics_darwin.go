@@ -1000,7 +1000,6 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 			const offset = graphics.PreservedUniformVariablesNum
 			switch g.shaders[shaderID].ir.Uniforms[offset+i].Main {
 			case shaderir.Mat3:
-				println("yo")
 				// float3x3 requires 16-byte alignment (#2036).
 				newV := make([]float32, 12)
 				copy(newV[0:3], v[0:3])
