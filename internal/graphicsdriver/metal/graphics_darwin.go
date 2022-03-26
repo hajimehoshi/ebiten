@@ -998,14 +998,30 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 		// Set the additional uniform variables.
 		for i, v := range uniforms {
 			const offset = graphics.PreservedUniformVariablesNum
-			switch g.shaders[shaderID].ir.Uniforms[offset+i].Main {
+			t := g.shaders[shaderID].ir.Uniforms[offset+i]
+			switch t.Main {
 			case shaderir.Mat3:
 				// float3x3 requires 16-byte alignment (#2036).
-				newV := make([]float32, 12)
-				copy(newV[0:3], v[0:3])
-				copy(newV[4:7], v[3:6])
-				copy(newV[8:11], v[6:9])
-				uniformVars[offset+i] = newV
+				v1 := make([]float32, 12)
+				copy(v1[0:3], v[0:3])
+				copy(v1[4:7], v[3:6])
+				copy(v1[8:11], v[6:9])
+				uniformVars[offset+i] = v1
+			case shaderir.Array:
+				switch t.Sub[0].Main {
+				case shaderir.Mat3:
+					v1 := make([]float32, t.Length*12)
+					for j := 0; j < t.Length; j++ {
+						offset0 := j * 9
+						offset1 := j * 12
+						copy(v1[offset1:offset1+3], v[offset0:offset0+3])
+						copy(v1[offset1+4:offset1+7], v[offset0+3:offset0+6])
+						copy(v1[offset1+8:offset1+11], v[offset0+6:offset0+9])
+					}
+					uniformVars[offset+i] = v1
+				default:
+					uniformVars[offset+i] = v
+				}
 			default:
 				uniformVars[offset+i] = v
 			}

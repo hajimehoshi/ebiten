@@ -1682,24 +1682,37 @@ func (s *Shader) uniformsToFloat32s(uniforms [][]float32) []float32 {
 				fs = append(fs, u...)
 			case shaderir.Mat2:
 				for j := 0; j < t.Length; j++ {
-					for k := 0; k < 2; k++ {
-						fs = append(fs, u[2*(2*j+k):2*(2*j+k+1)]...)
-						if j < t.Length-1 || k < 1 {
-							fs = append(fs, 0, 0)
-						}
-					}
+					u1 := u[4*j : 4*(j+1)]
+					fs = append(fs,
+						u1[0], u1[2], 0, 0,
+						u1[1], u1[3], 0, 0,
+					)
+				}
+				if t.Length > 0 {
+					fs = fs[:len(fs)-2]
 				}
 			case shaderir.Mat3:
 				for j := 0; j < t.Length; j++ {
-					for k := 0; k < 3; k++ {
-						fs = append(fs, u[3*(3*j+k):3*(3*j+k+1)]...)
-						if j < t.Length-1 || k < 2 {
-							fs = append(fs, 0)
-						}
-					}
+					u1 := u[9*j : 9*(j+1)]
+					fs = append(fs,
+						u1[0], u1[3], u1[6], 0,
+						u1[1], u1[4], u1[7], 0,
+						u1[2], u1[5], u1[8], 0,
+					)
+				}
+				if t.Length > 0 {
+					fs = fs[:len(fs)-1]
 				}
 			case shaderir.Mat4:
-				fs = append(fs, u...)
+				for j := 0; j < t.Length; j++ {
+					u1 := u[16*j : 16*(j+1)]
+					fs = append(fs,
+						u1[0], u1[4], u1[8], u1[12],
+						u1[1], u1[5], u1[9], u1[13],
+						u1[2], u1[6], u1[10], u1[14],
+						u1[3], u1[7], u1[11], u1[15],
+					)
+				}
 			default:
 				panic(fmt.Sprintf("directx: not implemented type for uniform variables: %s", t.String()))
 			}
