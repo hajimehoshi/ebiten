@@ -123,6 +123,9 @@ func Compile(p *shaderir.Program) (string, []int) {
 	if len(p.Funcs) > 0 {
 		lines = append(lines, "")
 		for _, f := range p.Funcs {
+			lines = append(lines, c.function(p, &f, true)...)
+		}
+		for _, f := range p.Funcs {
 			if len(lines) > 0 && lines[len(lines)-1] != "" {
 				lines = append(lines, "")
 			}
