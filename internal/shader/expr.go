@@ -365,8 +365,17 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 						},
 					}, []shaderir.Type{{Main: shaderir.Float}}, stmts, true
 				}
+			case shaderir.Atan:
+				if len(args) != 1 {
+					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 1 but %d", callee.BuiltinFunc, len(args)))
+					return nil, nil, nil, false
+				}
+			case shaderir.Atan2:
+				if len(args) != 2 {
+					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 2 but %d", callee.BuiltinFunc, len(args)))
+					return nil, nil, nil, false
+				}
 			}
-
 			var t shaderir.Type
 			switch callee.BuiltinFunc {
 			case shaderir.BoolF:

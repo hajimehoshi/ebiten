@@ -1146,3 +1146,40 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestSyntaxAtan(t *testing.T) {
+	// `atan` takes 1 argument.
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return atan(vec4(0))
+}
+`)); err != nil {
+		t.Error(err)
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return atan(vec4(0), vec4(0))
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+	// `atan2` takes 2 arguments.
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return atan2(vec4(0))
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return atan2(vec4(0), vec4(0))
+}
+`)); err != nil {
+		t.Error(err)
+	}
+}
