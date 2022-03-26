@@ -65,27 +65,32 @@ func calculateMemoryOffsets(uniforms []shaderir.Type) []int {
 			// For matrices, each column is aligned to the boundary.
 			head = align(head)
 			offsets = append(offsets, head)
-			// TODO: Is this correct?
-			head += 1 * boundaryInBytes
-			head += 4 * 2
+			head += 4 * 6
 		case shaderir.Mat3:
 			head = align(head)
 			offsets = append(offsets, head)
-			// TODO: Is this correct?
-			head += 2 * boundaryInBytes
-			head += 4 * 3
+			head += 4 * 11
 		case shaderir.Mat4:
 			head = align(head)
 			offsets = append(offsets, head)
-			head += 4 * boundaryInBytes
+			head += 4 * 16
 		case shaderir.Array:
 			// Each array is 16-byte aligned.
 			// TODO: What if the array has 2 or more dimensions?
 			head = align(head)
 			offsets = append(offsets, head)
+			n := u.Sub[0].FloatNum()
+			switch u.Sub[0].Main {
+			case shaderir.Mat2:
+				n = 6
+			case shaderir.Mat3:
+				n = 11
+			case shaderir.Mat4:
+				n = 16
+			}
+			head += (u.Length - 1) * align(4*n)
 			// The last element is not with a padding.
-			head += (u.Length - 1) * align(4*u.Sub[0].FloatNum())
-			head += 4 * u.Sub[0].FloatNum()
+			head += 4 * n
 		case shaderir.Struct:
 			// TODO: Implement this
 			panic("hlsl: offset for a struct is not implemented yet")

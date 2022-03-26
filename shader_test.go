@@ -772,9 +772,10 @@ func TestShaderUniformMatrix2Array(t *testing.T) {
 	s, err := ebiten.NewShader([]byte(`package main
 
 var Mat2 [2]mat2
+var F float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	return vec4(256 * Mat2[0] * Mat2[1] * vec2(1), 1, 1)
+	return vec4(F * Mat2[0] * Mat2[1] * vec2(1), 1, 1)
 }
 `))
 	if err != nil {
@@ -789,6 +790,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			5.0 / 256.0, 6.0 / 256.0,
 			7.0 / 256.0, 8.0 / 256.0,
 		},
+		"F": float32(256),
 	}
 	dst.DrawRectShader(w, h, s, op)
 
@@ -810,9 +812,10 @@ func TestShaderUniformMatrix3(t *testing.T) {
 	s, err := ebiten.NewShader([]byte(`package main
 
 var Mat3 mat3
+var F float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	return vec4(Mat3 * vec3(1), 1)
+	return vec4(F * Mat3 * vec3(1), 1)
 }
 `))
 	if err != nil {
@@ -826,13 +829,14 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			4.0 / 256.0, 5.0 / 256.0, 6.0 / 256.0,
 			7.0 / 256.0, 8.0 / 256.0, 9.0 / 256.0,
 		},
+		"F": float32(2),
 	}
 	dst.DrawRectShader(w, h, s, op)
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{12, 15, 18, 0xff}
+			want := color.RGBA{24, 30, 36, 0xff}
 			if !sameColors(got, want, 2) {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -847,9 +851,10 @@ func TestShaderUniformMatrix3Array(t *testing.T) {
 	s, err := ebiten.NewShader([]byte(`package main
 
 var Mat3 [2]mat3
+var F float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	return vec4(3 * Mat3[0] * Mat3[1] * vec3(1), 1)
+	return vec4(F * Mat3[0] * Mat3[1] * vec3(1), 1)
 }
 `))
 	if err != nil {
@@ -866,6 +871,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			13.0 / 256.0, 14.0 / 256.0, 15.0 / 256.0,
 			16.0 / 256.0, 17.0 / 256.0, 18.0 / 256.0,
 		},
+		"F": float32(3),
 	}
 	dst.DrawRectShader(w, h, s, op)
 
@@ -887,9 +893,10 @@ func TestShaderUniformMatrix4(t *testing.T) {
 	s, err := ebiten.NewShader([]byte(`package main
 
 var Mat4 mat4
+var F float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	return Mat4 * vec4(1)
+	return F * Mat4 * vec4(1)
 }
 `))
 	if err != nil {
@@ -904,13 +911,14 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			9.0 / 256.0, 10.0 / 256.0, 11.0 / 256.0, 12.0 / 256.0,
 			13.0 / 256.0, 14.0 / 256.0, 15.0 / 256.0, 16.0 / 256.0,
 		},
+		"F": float32(4),
 	}
 	dst.DrawRectShader(w, h, s, op)
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{28, 32, 36, 40}
+			want := color.RGBA{112, 128, 143, 159}
 			if !sameColors(got, want, 2) {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -925,9 +933,10 @@ func TestShaderUniformMatrix4Array(t *testing.T) {
 	s, err := ebiten.NewShader([]byte(`package main
 
 var Mat4 [2]mat4
+var F float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	return Mat4[0] * Mat4[1] * vec4(1)
+	return F * Mat4[0] * Mat4[1] * vec4(1)
 }
 `))
 	if err != nil {
@@ -946,13 +955,14 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			25.0 / 256.0, 26.0 / 256.0, 27.0 / 256.0, 28.0 / 256.0,
 			29.0 / 256.0, 30.0 / 256.0, 31.0 / 256.0, 32.0 / 256.0,
 		},
+		"F": float32(4),
 	}
 	dst.DrawRectShader(w, h, s, op)
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{11, 13, 14, 16}
+			want := color.RGBA{44, 50, 56, 62}
 			if !sameColors(got, want, 2) {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
