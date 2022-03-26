@@ -734,9 +734,10 @@ func TestShaderUniformMatrix2(t *testing.T) {
 	s, err := ebiten.NewShader([]byte(`package main
 
 var Mat2 mat2
+var F float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	return vec4(Mat2 * vec2(1), 1, 1)
+	return vec4(F * Mat2 * vec2(1), 1, 1)
 }
 `))
 	if err != nil {
@@ -749,13 +750,14 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			1.0 / 256.0, 2.0 / 256.0,
 			3.0 / 256.0, 4.0 / 256.0,
 		},
+		"F": float32(2),
 	}
 	dst.DrawRectShader(w, h, s, op)
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{4, 6, 0xff, 0xff}
+			want := color.RGBA{8, 12, 0xff, 0xff}
 			if !sameColors(got, want, 2) {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}

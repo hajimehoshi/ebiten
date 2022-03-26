@@ -232,7 +232,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 					return nil, nil, nil, false
 				}
-				t = lhst
+				t = rhst
 			default:
 				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 				return nil, nil, nil, false
