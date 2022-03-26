@@ -85,6 +85,16 @@ jobs:
           env GOOS=windows GOARCH=amd64 go build -tags=example -v ./...
           env GOOS=windows GOARCH=386 go build -tags=example -v ./...
 
+      - name: go build (macOS)
+        if: ${{ startsWith(matrix.os, 'macos-') && !startsWith(matrix.go, '1.15.') }}
+        run: |
+          env CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -tags=example -v ./...
+          env CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -tags=example -o flappy_amd64 -v ./examples/flappy
+          env CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -tags=example -o flappy_arm64 -v ./examples/flappy
+          lipo -create flappy_amd64 flappy_arm64 -output flappy
+          file flappy
+          rm flappy
+
       - name: go build (cbackend)
         if: ${{ !startsWith(matrix.os, 'windows-') }}
         run: |
