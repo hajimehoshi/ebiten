@@ -86,6 +86,7 @@ type userInterfaceImpl struct {
 	// These values are not changed after initialized.
 	// TODO: the fullscreen size should be updated when the initial window position is changed?
 	initMonitor               *glfw.Monitor
+	initDeviceScaleFactor     float64
 	initFullscreenWidthInDIP  int
 	initFullscreenHeightInDIP int
 
@@ -175,6 +176,7 @@ func initialize() error {
 	}
 
 	theUI.initMonitor = m
+	theUI.initDeviceScaleFactor = theUI.deviceScaleFactor(m)
 	// GetVideoMode must be called from the main thread, then call this here and record
 	// initFullscreen{Width,Height}InDIP.
 	v := m.GetVideoMode()
@@ -612,7 +614,7 @@ func (u *userInterfaceImpl) SetCursorShape(shape CursorShape) {
 
 func (u *userInterfaceImpl) DeviceScaleFactor() float64 {
 	if !u.isRunning() {
-		return u.deviceScaleFactor(u.currentMonitor())
+		return u.initDeviceScaleFactor
 	}
 
 	f := 0.0
