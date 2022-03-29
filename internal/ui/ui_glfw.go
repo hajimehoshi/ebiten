@@ -883,6 +883,19 @@ func (u *userInterfaceImpl) init() error {
 	// setWindowSize refers the current monitor's device scale.
 	// TODO: currentMonitor is very hard to use correctly. Refactor this.
 	wx, wy := u.getInitWindowPositionInDIP()
+	// Force to put the window in the initial monitor (#1575).
+	if wx < 0 {
+		wx = 0
+	}
+	if wy < 0 {
+		wy = 0
+	}
+	if max := u.initFullscreenWidthInDIP - ww; wx >= max {
+		wx = max
+	}
+	if max := u.initFullscreenHeightInDIP - wh; wy >= max {
+		wy = max
+	}
 	u.setWindowPositionInDIP(wx, wy, u.initMonitor)
 	u.setWindowSizeInDIP(ww, wh, u.isFullscreen())
 
