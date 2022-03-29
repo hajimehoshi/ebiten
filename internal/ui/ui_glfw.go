@@ -501,15 +501,10 @@ func (u *userInterfaceImpl) SetFullscreen(fullscreen bool) {
 		return
 	}
 
-	var update bool
 	u.t.Call(func() {
-		update = u.isFullscreen() != fullscreen
-	})
-	if !update {
-		return
-	}
-
-	u.t.Call(func() {
+		if u.isFullscreen() == fullscreen {
+			return
+		}
 		w, h := u.windowWidthInDIP, u.windowHeightInDIP
 		u.setWindowSizeInDIP(w, h, fullscreen)
 	})
