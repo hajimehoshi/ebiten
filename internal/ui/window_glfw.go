@@ -168,7 +168,7 @@ func (w *Window) Position() (int, int) {
 	x, y := 0, 0
 	w.ui.t.Call(func() {
 		var wx, wy int
-		if w.ui.isFullscreen() && !w.ui.isNativeFullscreenAvailable() {
+		if w.ui.isFullscreen() {
 			wx, wy = w.ui.origPos()
 		} else {
 			wx, wy = w.ui.window.GetPos()

@@ -23,6 +23,8 @@ package ui
 // #import <AppKit/AppKit.h>
 //
 // @interface EbitenWindowDelegate : NSObject <NSWindowDelegate>
+// // origPos is the window's original position. This is valid only when the application is in the fullscreen mode.
+// @property CGPoint origPos;
 // @end
 //
 // @implementation EbitenWindowDelegate {
@@ -82,6 +84,7 @@ package ui
 // - (void)windowWillEnterFullScreen:(NSNotification *)notification {
 //   NSWindow* window = (NSWindow*)[notification object];
 //   [self pushResizableState:window];
+//   self->_origPos = [window frame].origin;
 // }
 //
 // - (void)windowDidEnterFullScreen:(NSNotification *)notification {
@@ -97,6 +100,7 @@ package ui
 // - (void)windowDidExitFullScreen:(NSNotification *)notification {
 //   NSWindow* window = (NSWindow*)[notification object];
 //   [self popResizableState:window];
+//   [window setFrameOrigin:self->_origPos];
 // }
 //
 // @end
@@ -182,6 +186,24 @@ package ui
 //   // NSColor.blackColor (0, 0, 0, 1) didn't work.
 //   // Use the transparent color instead.
 //   [window setBackgroundColor: [NSColor colorWithSRGBRed:0 green:0 blue:0 alpha:0]];
+// }
+//
+// static void windowOriginalPosition(uintptr_t windowPtr, int* x, int* y) {
+//   NSWindow* window = (NSWindow*)windowPtr;
+//   CGPoint pos;
+//   EbitenWindowDelegate* delegate = (EbitenWindowDelegate*)window.delegate;
+//   pos = delegate.origPos;
+//   *x = pos.x;
+//   *y = pos.y;
+// }
+//
+// static void setWindowOriginalPosition(uintptr_t windowPtr, int x, int y) {
+//   NSWindow* window = (NSWindow*)windowPtr;
+//   EbitenWindowDelegate* delegate = (EbitenWindowDelegate*)window.delegate;
+//   CGPoint pos;
+//   pos.x = x;
+//   pos.y = y;
+//   delegate.origPos = pos;
 // }
 //
 // static void setNativeCursor(int cursorID) {
@@ -287,12 +309,7 @@ func (u *userInterfaceImpl) adjustWindowPosition(x, y int, monitor *glfw.Monitor
 	return x, y
 }
 
-func initialMonitorByOS() (*glfw.Monitor, error) {
-	var cx, cy C.int
-	C.currentMouseLocation(&cx, &cy)
-	x, y := int(cx), int(cy)
-
-	// Flip Y.
+func flipY(y int) int {
 	for _, m := range ensureMonitors() {
 		if m.x == 0 && m.y == 0 {
 			y = -y
@@ -300,6 +317,13 @@ func initialMonitorByOS() (*glfw.Monitor, error) {
 			break
 		}
 	}
+	return y
+}
+
+func initialMonitorByOS() (*glfw.Monitor, error) {
+	var cx, cy C.int
+	C.currentMouseLocation(&cx, &cy)
+	x, y := int(cx), flipY(int(cy))
 
 	// Find the monitor including the cursor.
 	for _, m := range ensureMonitors() {
@@ -364,4 +388,27 @@ func initializeWindowAfterCreation(w *glfw.Window) {
 	// TODO: Register NSWindowWillEnterFullScreenNotification and so on.
 	// Enable resizing temporary before making the window fullscreen.
 	C.initializeWindow(C.uintptr_t(w.GetCocoaWindow()))
+}
+
+func (u *userInterfaceImpl) origPosByOS() (int, int, bool) {
+	if !u.isNativeFullscreen() {
+		return invalidPos, invalidPos, true
+	}
+	m := u.currentMonitor()
+	var cx, cy C.int
+	C.windowOriginalPosition(C.uintptr_t(u.window.GetCocoaWindow()), &cx, &cy)
+	x := int(u.dipFromGLFWPixel(float64(cx), m))
+	y := int(u.dipFromGLFWPixel(float64(flipY(int(cy))), m)) - u.windowHeightInDIP
+	return x, y, true
+}
+
+func (u *userInterfaceImpl) setOrigPosByOS(x, y int) bool {
+	if !u.isNativeFullscreen() {
+		return true
+	}
+	m := u.currentMonitor()
+	cx := C.int(u.dipToGLFWPixel(float64(x), m))
+	cy := C.int(flipY(int(u.dipToGLFWPixel(float64(y+u.windowHeightInDIP), m))))
+	C.setWindowOriginalPosition(C.uintptr_t(u.window.GetCocoaWindow()), cx, cy)
+	return true
 }

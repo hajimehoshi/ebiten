@@ -1560,11 +1560,8 @@ func (u *userInterfaceImpl) setWindowTitle(title string) {
 }
 
 func (u *userInterfaceImpl) origPos() (int, int) {
-	// On macOS, the window can be fullscreened without calling an Ebiten function.
-	// Then, an original position might not be available by u.window.GetPos().
-	// Do not rely on the window position.
-	if u.isNativeFullscreenAvailable() {
-		return invalidPos, invalidPos
+	if x, y, ok := u.origPosByOS(); ok {
+		return x, y
 	}
 	return u.origPosX, u.origPosY
 }
@@ -1572,10 +1569,7 @@ func (u *userInterfaceImpl) origPos() (int, int) {
 func (u *userInterfaceImpl) setOrigPos(x, y int) {
 	// TODO: The original position should be updated at a 'PosCallback'.
 
-	// On macOS, the window can be fullscreened without calling an Ebiten function.
-	// Then, an original position might not be available by u.window.GetPos().
-	// Do not rely on the window position.
-	if u.isNativeFullscreenAvailable() {
+	if u.setOrigPosByOS(x, y) {
 		return
 	}
 	u.origPosX = x
