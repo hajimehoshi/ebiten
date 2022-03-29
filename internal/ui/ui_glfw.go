@@ -1550,20 +1550,6 @@ func (u *userInterfaceImpl) setWindowPositionInDIP(x, y int, monitor *glfw.Monit
 	} else {
 		u.window.SetPos(x, y)
 	}
-
-	// Call setWindowSize explicitly in order to update the rendering since the callback is disabled now.
-	//
-	// There are cases when setWindowSize should be called (#1606) and should not be called (#1609).
-	// For the former, macOS seems enough so far.
-	//
-	// Do not call setWindowSize in the fullscreen mode since setWindowSize requires the window size
-	// before the fullscreen, while window.GetSize() returns the desktop screen size in the fullscreen mode.
-	if !u.isFullscreen() && runtime.GOOS == "darwin" {
-		w, h := u.window.GetSize()
-		ww := int(u.dipFromGLFWPixel(float64(w), monitor))
-		wh := int(u.dipFromGLFWPixel(float64(h), monitor))
-		u.setWindowSizeInDIP(ww, wh, u.isFullscreen())
-	}
 }
 
 // setWindowTitle must be called from the main thread.
