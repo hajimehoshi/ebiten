@@ -18,6 +18,7 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"os"
@@ -173,6 +174,11 @@ func initialize() error {
 	}
 	if m == nil {
 		m = glfw.GetPrimaryMonitor()
+	}
+
+	// GetPrimaryMonitor might return nil in theory (#1887).
+	if m == nil {
+		return errors.New("ui: no monitor was found at initialize")
 	}
 
 	theUI.initMonitor = m
@@ -469,6 +475,9 @@ func (u *userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
 	var w, h int
 	u.t.Call(func() {
 		m := u.currentMonitor()
+		if m == nil {
+			return
+		}
 		v := m.GetVideoMode()
 		w = int(u.dipFromGLFWMonitorPixel(float64(v.Width), m))
 		h = int(u.dipFromGLFWMonitorPixel(float64(v.Height), m))
@@ -920,11 +929,12 @@ func (u *userInterfaceImpl) updateSize() (float64, float64) {
 		// fullscreened. Use the monitor size.
 		// On macOS's native fullscreen, the window's size returns a more precise size
 		// reflecting the adjustment of the view size (#1745).
-		m := u.currentMonitor()
-		v := m.GetVideoMode()
-		ww, wh := v.Width, v.Height
-		w = u.dipFromGLFWMonitorPixel(float64(ww), m)
-		h = u.dipFromGLFWMonitorPixel(float64(wh), m)
+		if m := u.currentMonitor(); m != nil {
+			v := m.GetVideoMode()
+			ww, wh := v.Width, v.Height
+			w = u.dipFromGLFWMonitorPixel(float64(ww), m)
+			h = u.dipFromGLFWMonitorPixel(float64(wh), m)
+		}
 	} else {
 		// Instead of u.windowWidthInDIP and u.windowHeightInDIP, use the actual window size
 		// here. On Windows, the specified size at SetSize and the actual window size might
@@ -1230,6 +1240,10 @@ func (u *userInterfaceImpl) setWindowSizeInDIPImpl(width, height int, fullscreen
 			u.setNativeFullscreen(fullscreen)
 		} else {
 			m := u.currentMonitor()
+			if m == nil {
+				return
+			}
+
 			v := m.GetVideoMode()
 			u.window.SetMonitor(m, 0, 0, v.Width, v.Height, v.RefreshRate)
 

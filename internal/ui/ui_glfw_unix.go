@@ -67,6 +67,10 @@ func clearVideoModeScaleCache() {
 
 // videoModeScale must be called from the main thread.
 func videoModeScale(m *glfw.Monitor) float64 {
+	if m == nil {
+		return 1
+	}
+
 	// Caching wrapper for videoModeScaleUncached as
 	// videoModeScaleUncached may be expensive (uses blocking calls on X connection)
 	// and public ScreenSizeInFullscreen API needs the videoModeScale.
