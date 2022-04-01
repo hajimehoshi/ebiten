@@ -808,9 +808,20 @@ func NewImage(width, height int) *Image {
 // Reusing the same image by Clear is much more efficient than creating a new image.
 //
 // NewImageFromImage panics if RunGame already finishes.
+//
+// The returned image's origin is always (0, 0). The source's bounds are not respected.
 func NewImageFromImage(source image.Image) *Image {
 	if isRunGameEnded() {
 		panic(fmt.Sprintf("ebiten: NewImage cannot be called after RunGame finishes"))
+	}
+
+	// If the given image is an Ebiten image, use DrawImage instead of reading pixels from the source.
+	// This works even before the game loop runs.
+	if source, ok := source.(*Image); ok {
+		size := source.Bounds().Size()
+		i := NewImage(size.X, size.Y)
+		i.DrawImage(source, nil)
+		return i
 	}
 
 	size := source.Bounds().Size()

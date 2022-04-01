@@ -2846,3 +2846,46 @@ func TestTooManyVertices(t *testing.T) {
 	// Confirm this doesn't freeze.
 	dst.At(0, 0)
 }
+
+func TestImageNewImageFromEbitenImage(t *testing.T) {
+	const (
+		w = 16
+		h = 16
+	)
+
+	pix := make([]byte, 4*w*h)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			idx := 4 * (i + j*w)
+			pix[idx] = byte(i)
+			pix[idx+1] = byte(j)
+			pix[idx+2] = 0
+			pix[idx+3] = 0xff
+		}
+	}
+
+	img0 := ebiten.NewImage(w, h)
+	img0.ReplacePixels(pix)
+	img1 := ebiten.NewImageFromImage(img0)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := img1.At(i, j)
+			want := color.RGBA{byte(i), byte(j), 0, 0xff}
+			if got != want {
+				t.Errorf("img1.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+
+	img2 := ebiten.NewImageFromImage(img0.SubImage(image.Rect(4, 4, 12, 12)))
+	for j := 0; j < h/2; j++ {
+		for i := 0; i < w/2; i++ {
+			got := img2.At(i, j)
+			want := color.RGBA{byte(i + 4), byte(j + 4), 0, 0xff}
+			if got != want {
+				t.Errorf("img1.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
