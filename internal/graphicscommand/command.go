@@ -208,42 +208,6 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
 	vs := q.vertices
 	debug.Logf("Graphics commands:\n")
 
-	if graphicsDriver.HasHighPrecisionFloat() {
-		n := q.nvertices / graphics.VertexFloatNum
-		for i := 0; i < n; i++ {
-			idx := i * graphics.VertexFloatNum
-
-			// Avoid the center of the pixel, which is problematic (#929, #1171).
-			// Instead, align the vertices with about 1/3 pixels.
-			x := vs[idx]
-			y := vs[idx+1]
-			ix := float32(math.Floor(float64(x)))
-			iy := float32(math.Floor(float64(y)))
-			fracx := x - ix
-			fracy := y - iy
-			switch {
-			case fracx < 3.0/16.0:
-				vs[idx] = ix
-			case fracx < 8.0/16.0:
-				vs[idx] = ix + 5.0/16.0
-			case fracx < 13.0/16.0:
-				vs[idx] = ix + 11.0/16.0
-			default:
-				vs[idx] = ix + 16.0/16.0
-			}
-			switch {
-			case fracy < 3.0/16.0:
-				vs[idx+1] = iy
-			case fracy < 8.0/16.0:
-				vs[idx+1] = iy + 5.0/16.0
-			case fracy < 13.0/16.0:
-				vs[idx+1] = iy + 11.0/16.0
-			default:
-				vs[idx+1] = iy + 16.0/16.0
-			}
-		}
-	}
-
 	if err := graphicsDriver.Begin(); err != nil {
 		return err
 	}

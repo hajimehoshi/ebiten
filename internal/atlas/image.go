@@ -17,6 +17,7 @@ package atlas
 import (
 	"fmt"
 	"image"
+	"math"
 	"runtime"
 	"sync"
 
@@ -446,8 +447,8 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		swf, shf := float32(sw), float32(sh)
 		n := len(vertices)
 		for i := 0; i < n; i += graphics.VertexFloatNum {
-			vertices[i] += dx
-			vertices[i+1] += dy
+			vertices[i] = adjustDestinationPixel(vertices[i] + dx)
+			vertices[i+1] = adjustDestinationPixel(vertices[i+1] + dy)
 			vertices[i+2] = (vertices[i+2] + oxf) / swf
 			vertices[i+3] = (vertices[i+3] + oyf) / shf
 		}
@@ -460,8 +461,8 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 	} else {
 		n := len(vertices)
 		for i := 0; i < n; i += graphics.VertexFloatNum {
-			vertices[i] += dx
-			vertices[i+1] += dy
+			vertices[i] = adjustDestinationPixel(vertices[i] + dx)
+			vertices[i+1] = adjustDestinationPixel(vertices[i+1] + dy)
 		}
 	}
 
@@ -846,4 +847,21 @@ func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	return restorable.DumpImages(graphicsDriver, dir)
+}
+
+func adjustDestinationPixel(x float32) float32 {
+	// Avoid the center of the pixel, which is problematic (#929, #1171).
+	// Instead, align the vertices with about 1/3 pixels.
+	ix := float32(math.Floor(float64(x)))
+	frac := x - ix
+	switch {
+	case frac < 3.0/16.0:
+		return ix
+	case frac < 8.0/16.0:
+		return ix + 5.0/16.0
+	case frac < 13.0/16.0:
+		return ix + 11.0/16.0
+	default:
+		return ix + 16.0/16.0
+	}
 }
