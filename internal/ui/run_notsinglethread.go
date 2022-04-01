@@ -23,7 +23,7 @@ import (
 )
 
 func (u *userInterfaceImpl) Run(game Game) error {
-	u.context = newContextImpl(game)
+	u.context = newContext(game)
 
 	// Initialize the main thread first so the thread is available at u.run (#809).
 	u.t = thread.NewOSThread()

@@ -50,7 +50,7 @@ func driverCursorModeToGLFWCursorMode(mode CursorMode) int {
 type userInterfaceImpl struct {
 	graphicsDriver graphicsdriver.Graphics
 
-	context *contextImpl
+	context *context
 	title   string
 	window  *glfw.Window
 

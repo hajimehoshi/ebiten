@@ -35,7 +35,7 @@ type Game interface {
 	Draw(screenScale float64, offsetX, offsetY float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection, screenClearedEveryFrame, filterEnabled bool) error
 }
 
-type contextImpl struct {
+type context struct {
 	game Game
 
 	updateCalled bool
@@ -49,18 +49,18 @@ type contextImpl struct {
 	m sync.Mutex
 }
 
-func newContextImpl(game Game) *contextImpl {
-	return &contextImpl{
+func newContext(game Game) *context {
+	return &context{
 		game: game,
 	}
 }
 
-func (c *contextImpl) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
+func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
 	return c.updateFrameImpl(graphicsDriver, clock.Update(theGlobalState.maxTPS()), outsideWidth, outsideHeight, deviceScaleFactor)
 }
 
-func (c *contextImpl) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
+func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
 	n := 1
 	if graphicsDriver.IsDirectX() {
 		// On DirectX, both framebuffers in the swap chain should be updated.
@@ -75,7 +75,7 @@ func (c *contextImpl) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, o
 	return nil
 }
 
-func (c *contextImpl) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
+func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
 	if err := theGlobalState.error(); err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func (c *contextImpl) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, up
 	})
 }
 
-func (c *contextImpl) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {
+func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
@@ -147,7 +147,7 @@ func (c *contextImpl) layoutGame(outsideWidth, outsideHeight float64, deviceScal
 	return w, h
 }
 
-func (c *contextImpl) adjustPosition(x, y float64, deviceScaleFactor float64) (float64, float64) {
+func (c *context) adjustPosition(x, y float64, deviceScaleFactor float64) (float64, float64) {
 	s, ox, oy := c.screenScaleAndOffsets(deviceScaleFactor)
 	// The scale 0 indicates that the screen is not initialized yet.
 	// As any cursor values don't make sense, just return NaN.
@@ -157,7 +157,7 @@ func (c *contextImpl) adjustPosition(x, y float64, deviceScaleFactor float64) (f
 	return (x*deviceScaleFactor - ox) / s, (y*deviceScaleFactor - oy) / s
 }
 
-func (c *contextImpl) screenScaleAndOffsets(deviceScaleFactor float64) (float64, float64, float64) {
+func (c *context) screenScaleAndOffsets(deviceScaleFactor float64) (float64, float64, float64) {
 	c.m.Lock()
 	defer c.m.Unlock()
 

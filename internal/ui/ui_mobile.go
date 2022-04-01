@@ -105,7 +105,7 @@ type userInterfaceImpl struct {
 	setGBuildSizeCh chan struct{}
 	once            sync.Once
 
-	context *contextImpl
+	context *context
 
 	input Input
 
@@ -269,7 +269,7 @@ func (u *userInterfaceImpl) run(game Game, mainloop bool) (err error) {
 		}
 	}()
 
-	u.context = newContextImpl(game)
+	u.context = newContext(game)
 	g, err := chooseGraphicsDriver(&graphicsDriverGetterImpl{
 		gomobileBuild: mainloop,
 	})

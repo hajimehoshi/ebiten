@@ -84,7 +84,7 @@ type userInterfaceImpl struct {
 
 	lastDeviceScaleFactor float64
 
-	context *contextImpl
+	context *context
 	input   Input
 }
 
@@ -330,7 +330,7 @@ func (u *userInterfaceImpl) needsUpdate() bool {
 }
 
 func (u *userInterfaceImpl) loop(game Game) <-chan error {
-	u.context = newContextImpl(game)
+	u.context = newContext(game)
 
 	errCh := make(chan error, 1)
 	reqStopAudioCh := make(chan struct{})

@@ -55,12 +55,12 @@ func init() {
 type userInterfaceImpl struct {
 	graphicsDriver graphicsdriver.Graphics
 
-	context *contextImpl
+	context *context
 	input   Input
 }
 
 func (u *userInterfaceImpl) Run(game Game) error {
-	u.context = newContextImpl(game)
+	u.context = newContext(game)
 	g, err := chooseGraphicsDriver(&graphicsDriverGetterImpl{})
 	if err != nil {
 		return err

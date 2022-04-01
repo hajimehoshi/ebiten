@@ -31,7 +31,7 @@ type Input struct {
 	m sync.Mutex
 }
 
-func (i *Input) update(context *contextImpl) {
+func (i *Input) update(context *context) {
 	i.m.Lock()
 	defer i.m.Unlock()
 
