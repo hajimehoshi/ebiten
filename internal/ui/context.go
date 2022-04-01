@@ -32,7 +32,7 @@ const DefaultTPS = 60
 type Game interface {
 	Layout(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int)
 	Update() error
-	Draw(screenScale float64, offsetX, offsetY float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection, screenClearedEveryFrame, filterEnabled bool) error
+	Draw(screenScale float64, offsetX, offsetY float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection, screenClearedEveryFrame, filterEnabled bool)
 }
 
 type context struct {
@@ -121,9 +121,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 
 	// Draw the game.
 	screenScale, offsetX, offsetY := c.screenScaleAndOffsets(deviceScaleFactor)
-	if err := c.game.Draw(screenScale, offsetX, offsetY, graphicsDriver.NeedsClearingScreen(), graphicsDriver.FramebufferYDirection(), theGlobalState.isScreenClearedEveryFrame(), theGlobalState.isScreenFilterEnabled()); err != nil {
-		return err
-	}
+	c.game.Draw(screenScale, offsetX, offsetY, graphicsDriver.NeedsClearingScreen(), graphicsDriver.FramebufferYDirection(), theGlobalState.isScreenClearedEveryFrame(), theGlobalState.isScreenFilterEnabled())
 
 	// All the vertices data are consumed at the end of the frame, and the data backend can be
 	// available after that. Until then, lock the vertices backend.

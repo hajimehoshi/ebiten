@@ -73,7 +73,7 @@ func (c *gameForUI) Update() error {
 	return c.game.Update()
 }
 
-func (c *gameForUI) Draw(screenScale float64, offsetX, offsetY float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection, clearScreenEveryFrame, filterEnabled bool) error {
+func (c *gameForUI) Draw(screenScale float64, offsetX, offsetY float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection, clearScreenEveryFrame, filterEnabled bool) {
 	c.offscreen.image.SetVolatile(clearScreenEveryFrame)
 
 	// Even though updateCount == 0, the offscreen is cleared and Draw is called.
@@ -119,5 +119,4 @@ func (c *gameForUI) Draw(screenScale float64, offsetX, offsetY float64, needsCle
 		op.Filter = FilterLinear
 	}
 	c.screen.DrawImage(c.offscreen, op)
-	return nil
 }
