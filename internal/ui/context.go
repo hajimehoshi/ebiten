@@ -15,10 +15,12 @@
 package ui
 
 import (
+	"fmt"
 	"math"
 	"sync"
 	"sync/atomic"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
@@ -30,9 +32,10 @@ import (
 const DefaultTPS = 60
 
 type Game interface {
-	Layout(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int)
+	NewOffscreenImage(width, height int) *Image
+	Layout(outsideWidth, outsideHeight int) (int, int)
 	Update() error
-	Draw(screenScale float64, offsetX, offsetY float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection, screenClearedEveryFrame, filterEnabled bool)
+	Draw()
 }
 
 type context struct {
@@ -40,11 +43,12 @@ type context struct {
 
 	updateCalled bool
 
+	offscreen *Image
+	screen    *Image
+
 	// The following members must be protected by the mutex m.
 	outsideWidth  float64
 	outsideHeight float64
-	screenWidth   int
-	screenHeight  int
 
 	m sync.Mutex
 }
@@ -116,12 +120,11 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		if err := theGlobalState.error(); err != nil {
 			return err
 		}
-		Get().resetForTick()
+		theUI.resetForTick()
 	}
 
 	// Draw the game.
-	screenScale, offsetX, offsetY := c.screenScaleAndOffsets(deviceScaleFactor)
-	c.game.Draw(screenScale, offsetX, offsetY, graphicsDriver.NeedsClearingScreen(), graphicsDriver.FramebufferYDirection(), theGlobalState.isScreenClearedEveryFrame(), theGlobalState.isScreenFilterEnabled())
+	c.drawGame(graphicsDriver)
 
 	// All the vertices data are consumed at the end of the frame, and the data backend can be
 	// available after that. Until then, lock the vertices backend.
@@ -133,20 +136,119 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 	})
 }
 
+func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
+	c.offscreen.mipmap.SetVolatile(theGlobalState.isScreenClearedEveryFrame())
+
+	// Even though updateCount == 0, the offscreen is cleared and Draw is called.
+	// Draw should not update the game state and then the screen should not be updated without Update, but
+	// users might want to process something at Draw with the time intervals of FPS.
+	if theGlobalState.isScreenClearedEveryFrame() {
+		c.offscreen.clear()
+	}
+	c.game.Draw()
+
+	if graphicsDriver.NeedsClearingScreen() {
+		// This clear is needed for fullscreen mode or some mobile platforms (#622).
+		c.screen.clear()
+	}
+
+	ga := 1.0
+	gd := 1.0
+	gtx := 0.0
+	gty := 0.0
+
+	screenScale, offsetX, offsetY := c.screenScaleAndOffsets()
+	s := screenScale
+	switch y := graphicsDriver.FramebufferYDirection(); y {
+	case graphicsdriver.Upward:
+		ga *= s
+		gd *= -s
+		gty += float64(c.offscreen.height) * s
+	case graphicsdriver.Downward:
+		ga *= s
+		gd *= s
+	default:
+		panic(fmt.Sprintf("ui: invalid y-direction: %d", y))
+	}
+
+	gtx += offsetX
+	gty += offsetY
+
+	var filter graphicsdriver.Filter
+	switch {
+	case !theGlobalState.isScreenFilterEnabled():
+		filter = graphicsdriver.FilterNearest
+	case math.Floor(s) == s:
+		filter = graphicsdriver.FilterNearest
+	case s > 1:
+		filter = graphicsdriver.FilterScreen
+	default:
+		// FilterScreen works with >=1 scale, but does not well with <1 scale.
+		// Use regular FilterLinear instead so far (#669).
+		filter = graphicsdriver.FilterLinear
+	}
+
+	dstRegion := graphicsdriver.Region{
+		X:      0,
+		Y:      0,
+		Width:  float32(c.screen.width),
+		Height: float32(c.screen.height),
+	}
+
+	vs := graphics.QuadVertices(
+		0, 0, float32(c.offscreen.width), float32(c.offscreen.height),
+		float32(ga), 0, 0, float32(gd), float32(gtx), float32(gty),
+		1, 1, 1, 1)
+	is := graphics.QuadIndices()
+
+	srcs := [graphics.ShaderImageNum]*Image{c.offscreen}
+	c.screen.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, filter, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false, true)
+}
+
 func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
 	c.outsideWidth = outsideWidth
 	c.outsideHeight = outsideHeight
-	w, h := c.game.Layout(outsideWidth, outsideHeight, deviceScaleFactor)
-	c.screenWidth = w
-	c.screenHeight = h
-	return w, h
+
+	ow, oh := c.game.Layout(int(outsideWidth), int(outsideHeight))
+	if ow <= 0 || oh <= 0 {
+		panic("ui: Layout must return positive numbers")
+	}
+
+	sw, sh := int(outsideWidth*deviceScaleFactor), int(outsideHeight*deviceScaleFactor)
+	if c.screen != nil {
+		if c.screen.width != sw || c.screen.height != sh {
+			c.screen.MarkDisposed()
+			c.screen = nil
+		}
+	}
+	if c.screen == nil {
+		c.screen = newScreenFramebufferImage(sw, sh)
+	}
+
+	if c.offscreen != nil {
+		if c.offscreen.width != ow || c.offscreen.height != oh {
+			c.offscreen.MarkDisposed()
+			c.offscreen = nil
+		}
+	}
+	if c.offscreen == nil {
+		c.offscreen = c.game.NewOffscreenImage(ow, oh)
+
+		// Keep the offscreen an independent image from an atlas (#1938).
+		// The shader program for the screen is special and doesn't work well with an image on an atlas.
+		// An image on an atlas is surrounded by a transparent edge,
+		// and the shader program unexpectedly picks the pixel on the edges.
+		c.offscreen.mipmap.SetIndependent(true)
+	}
+
+	return ow, oh
 }
 
 func (c *context) adjustPosition(x, y float64, deviceScaleFactor float64) (float64, float64) {
-	s, ox, oy := c.screenScaleAndOffsets(deviceScaleFactor)
+	s, ox, oy := c.screenScaleAndOffsets()
 	// The scale 0 indicates that the screen is not initialized yet.
 	// As any cursor values don't make sense, just return NaN.
 	if s == 0 {
@@ -155,21 +257,21 @@ func (c *context) adjustPosition(x, y float64, deviceScaleFactor float64) (float
 	return (x*deviceScaleFactor - ox) / s, (y*deviceScaleFactor - oy) / s
 }
 
-func (c *context) screenScaleAndOffsets(deviceScaleFactor float64) (float64, float64, float64) {
+func (c *context) screenScaleAndOffsets() (float64, float64, float64) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
-	if c.screenWidth == 0 || c.screenHeight == 0 {
+	if c.screen == nil {
 		return 0, 0, 0
 	}
 
-	scaleX := c.outsideWidth / float64(c.screenWidth) * deviceScaleFactor
-	scaleY := c.outsideHeight / float64(c.screenHeight) * deviceScaleFactor
+	scaleX := float64(c.screen.width) / float64(c.offscreen.width)
+	scaleY := float64(c.screen.height) / float64(c.offscreen.height)
 	scale := math.Min(scaleX, scaleY)
-	width := float64(c.screenWidth) * scale
-	height := float64(c.screenHeight) * scale
-	x := (c.outsideWidth*deviceScaleFactor - width) / 2
-	y := (c.outsideHeight*deviceScaleFactor - height) / 2
+	width := float64(c.offscreen.width) * scale
+	height := float64(c.offscreen.height) * scale
+	x := (float64(c.screen.width) - width) / 2
+	y := (float64(c.screen.height) - height) / 2
 	return scale, x, y
 }
 
@@ -257,7 +359,7 @@ func FPSMode() FPSModeType {
 
 func SetFPSMode(fpsMode FPSModeType) {
 	theGlobalState.setFPSMode(fpsMode)
-	Get().SetFPSMode(fpsMode)
+	theUI.SetFPSMode(fpsMode)
 }
 
 func MaxTPS() int {

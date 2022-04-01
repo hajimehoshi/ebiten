@@ -31,17 +31,23 @@ func SetPanicOnErrorOnReadingPixelsForTesting(value bool) {
 
 type Image struct {
 	mipmap *mipmap.Mipmap
+	width  int
+	height int
 }
 
 func NewImage(width, height int) *Image {
 	return &Image{
 		mipmap: mipmap.New(width, height),
+		width:  width,
+		height: height,
 	}
 }
 
-func NewScreenFramebufferImage(width, height int) *Image {
+func newScreenFramebufferImage(width, height int) *Image {
 	return &Image{
 		mipmap: mipmap.NewScreenFramebufferMipmap(width, height),
+		width:  width,
+		height: height,
 	}
 }
 
@@ -92,14 +98,42 @@ func (i *Image) DumpScreenshot(name string, blackbg bool) error {
 	return theUI.dumpScreenshot(i.mipmap, name, blackbg)
 }
 
-func (i *Image) SetIndependent(independent bool) {
-	i.mipmap.SetIndependent(independent)
-}
-
-func (i *Image) SetVolatile(volatile bool) {
-	i.mipmap.SetVolatile(volatile)
-}
-
 func DumpImages(dir string) error {
 	return theUI.dumpImages(dir)
+}
+
+var (
+	emptyImage = NewImage(3, 3)
+)
+
+func init() {
+	pix := make([]byte, 4*emptyImage.width*emptyImage.height)
+	for i := range pix {
+		pix[i] = 0xff
+	}
+	// As emptyImage is used at Fill, use ReplacePixels instead.
+	emptyImage.ReplacePixels(pix, 0, 0, emptyImage.width, emptyImage.height)
+}
+
+func (i *Image) clear() {
+	i.Fill(0, 0, 0, 0, 0, 0, i.width, i.height)
+}
+
+func (i *Image) Fill(r, g, b, a float32, x, y, width, height int) {
+	dstRegion := graphicsdriver.Region{
+		X:      float32(x),
+		Y:      float32(y),
+		Width:  float32(width),
+		Height: float32(height),
+	}
+
+	vs := graphics.QuadVertices(
+		1, 1, float32(emptyImage.width-1), float32(emptyImage.height-1),
+		float32(i.width), 0, 0, float32(i.height), 0, 0,
+		r, g, b, a)
+	is := graphics.QuadIndices()
+
+	srcs := [graphics.ShaderImageNum]*Image{emptyImage}
+
+	i.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false, true)
 }

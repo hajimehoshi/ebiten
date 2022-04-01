@@ -66,39 +66,22 @@ func (i *Image) Clear() {
 	i.Fill(color.Transparent)
 }
 
-var (
-	emptyImage    = NewImage(3, 3)
-	emptySubImage = emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*Image)
-)
-
-func init() {
-	w, h := emptyImage.Size()
-	pix := make([]byte, 4*w*h)
-	for i := range pix {
-		pix[i] = 0xff
-	}
-	// As emptyImage is used at Fill, use ReplacePixels instead.
-	emptyImage.ReplacePixels(pix)
-}
-
 // Fill fills the image with a solid color.
 //
 // When the image is disposed, Fill does nothing.
 func (i *Image) Fill(clr color.Color) {
-	// Use the original size to cover the entire region (#1691).
-	// DrawImage automatically clips the rendering region.
-	orig := i
-	if i.isSubImage() {
-		orig = i.original
+	i.copyCheck()
+
+	var crf, cgf, cbf, caf float32
+	cr, cg, cb, ca := clr.RGBA()
+	if ca != 0 {
+		crf = float32(cr) / float32(ca)
+		cgf = float32(cg) / float32(ca)
+		cbf = float32(cb) / float32(ca)
+		caf = float32(ca) / 0xffff
 	}
-	w, h := orig.Size()
-
-	op := &DrawImageOptions{}
-	op.GeoM.Scale(float64(w), float64(h))
-	op.ColorM.ScaleWithColor(clr)
-	op.CompositeMode = CompositeModeCopy
-
-	i.DrawImage(emptySubImage, op)
+	b := i.Bounds()
+	i.image.Fill(crf, cgf, cbf, caf, b.Min.X, b.Min.Y, b.Dx(), b.Dy())
 }
 
 func canSkipMipmap(geom GeoM, filter graphicsdriver.Filter) bool {
@@ -843,14 +826,5 @@ func NewImageFromImage(source image.Image) *Image {
 	i.addr = i
 
 	i.ReplacePixels(imageToBytes(source))
-	return i
-}
-
-func newScreenFramebufferImage(width, height int) *Image {
-	i := &Image{
-		image:  ui.NewScreenFramebufferImage(width, height),
-		bounds: image.Rect(0, 0, width, height),
-	}
-	i.addr = i
 	return i
 }

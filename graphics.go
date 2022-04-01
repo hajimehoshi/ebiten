@@ -27,11 +27,6 @@ const (
 
 	// FilterLinear represents linear filter
 	FilterLinear Filter = Filter(graphicsdriver.FilterLinear)
-
-	// filterScreen represents a special filter for screen. Inner usage only.
-	//
-	// Some parameters like a color matrix or color vertex values can be ignored when filterScreen is used.
-	filterScreen Filter = Filter(graphicsdriver.FilterScreen)
 )
 
 // CompositeMode represents Porter-Duff composition mode.
