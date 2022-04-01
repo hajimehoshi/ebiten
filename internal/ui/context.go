@@ -222,7 +222,7 @@ func (g *globalState) maxTPS() int {
 
 func (g *globalState) setMaxTPS(tps int) {
 	if tps < 0 && tps != clock.SyncWithFPS {
-		panic("ebiten: tps must be >= 0 or SyncWithFPS")
+		panic("ui: tps must be >= 0 or SyncWithFPS")
 	}
 	atomic.StoreInt32(&g.maxTPS_, int32(tps))
 }

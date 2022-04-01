@@ -155,11 +155,11 @@ func (m *Mipmap) setImg(level int, img *buffered.Image) {
 
 func (m *Mipmap) level(level int) *buffered.Image {
 	if level == 0 {
-		panic("ebiten: level must be non-zero at level")
+		panic("mipmap: level must be non-zero at level")
 	}
 
 	if m.volatile {
-		panic("ebiten: mipmap images for a volatile image is not implemented yet")
+		panic("mipmap: mipmap images for a volatile image is not implemented yet")
 	}
 
 	if img, ok := m.imgs[level]; ok {
@@ -185,7 +185,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		vs = graphics.QuadVertices(0, 0, float32(w), float32(h), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 		filter = graphicsdriver.FilterLinear
 	default:
-		panic(fmt.Sprintf("ebiten: invalid level: %d", level))
+		panic(fmt.Sprintf("mipmap: invalid level: %d", level))
 	}
 	is := graphics.QuadIndices()
 

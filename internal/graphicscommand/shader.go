@@ -211,7 +211,7 @@ func (s *Shader) convertUniforms(uniforms map[string]interface{}) [][]float32 {
 			case []float32:
 				us[idx.resultIndex] = v
 			default:
-				panic(fmt.Sprintf("ebiten: unexpected uniform value type: %s, %T", name, v))
+				panic(fmt.Sprintf("graphicscommand: unexpected uniform value type: %s, %T", name, v))
 			}
 			continue
 		}
