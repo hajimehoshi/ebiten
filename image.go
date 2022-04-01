@@ -179,12 +179,13 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	sy0 := float32(bounds.Min.Y)
 	sx1 := float32(bounds.Max.X)
 	sy1 := float32(bounds.Max.Y)
-	vs := graphics.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, 1, 1, 1, 1)
+	colorm, cr, cg, cb, ca := colorMToScale(options.ColorM.affineColorM())
+	vs := graphics.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, cr, cg, cb, ca)
 	is := graphics.QuadIndices()
 
 	srcs := [graphics.ShaderImageNum]*ui.Image{img.image}
 
-	i.image.DrawTriangles(srcs, vs, is, options.ColorM.affineColorM(), mode, filter, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false, canSkipMipmap(options.GeoM, filter))
+	i.image.DrawTriangles(srcs, vs, is, colorm, mode, filter, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false, canSkipMipmap(options.GeoM, filter))
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -332,23 +333,25 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	filter := graphicsdriver.Filter(options.Filter)
 
+	colorm, cr, cg, cb, ca := colorMToScale(options.ColorM.affineColorM())
+
 	vs := graphics.Vertices(len(vertices))
 	for i, v := range vertices {
 		vs[i*graphics.VertexFloatNum] = v.DstX
 		vs[i*graphics.VertexFloatNum+1] = v.DstY
 		vs[i*graphics.VertexFloatNum+2] = v.SrcX
 		vs[i*graphics.VertexFloatNum+3] = v.SrcY
-		vs[i*graphics.VertexFloatNum+4] = v.ColorR
-		vs[i*graphics.VertexFloatNum+5] = v.ColorG
-		vs[i*graphics.VertexFloatNum+6] = v.ColorB
-		vs[i*graphics.VertexFloatNum+7] = v.ColorA
+		vs[i*graphics.VertexFloatNum+4] = v.ColorR * cr
+		vs[i*graphics.VertexFloatNum+5] = v.ColorG * cg
+		vs[i*graphics.VertexFloatNum+6] = v.ColorB * cb
+		vs[i*graphics.VertexFloatNum+7] = v.ColorA * ca
 	}
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
 	srcs := [graphics.ShaderImageNum]*ui.Image{img.image}
 
-	i.image.DrawTriangles(srcs, vs, is, options.ColorM.affineColorM(), mode, filter, address, dstRegion, sr, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, options.FillRule == EvenOdd, false)
+	i.image.DrawTriangles(srcs, vs, is, colorm, mode, filter, address, dstRegion, sr, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, options.FillRule == EvenOdd, false)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
@@ -827,4 +830,45 @@ func NewImageFromImage(source image.Image) *Image {
 
 	i.ReplacePixels(imageToBytes(source))
 	return i
+}
+
+// colorMToScale returns a new color matrix and color sclaes that equal to the given matrix in terms of the effect.
+//
+// If the given matrix is merely a scaling matrix, colorMToScale returns
+// an identity matrix and its scaling factors. This is useful to optimize
+// the rendering speed by avoiding the use of the color matrix and instead
+// multiplying all vertex colors by the scale.
+//
+// NOTE: this is only safe when not using a custom Kage shader,
+// as custom shaders may be using vertex colors for different purposes
+// than colorization. However, currently there are no Ebiten APIs that
+// support both shaders and color matrices.
+func colorMToScale(colorm affine.ColorM) (newColorM affine.ColorM, r, g, b, a float32) {
+	if colorm.IsIdentity() {
+		return colorm, 1, 1, 1, 1
+	}
+
+	if !colorm.ScaleOnly() {
+		return colorm, 1, 1, 1, 1
+	}
+	r = colorm.At(0, 0)
+	g = colorm.At(1, 1)
+	b = colorm.At(2, 2)
+	a = colorm.At(3, 3)
+
+	// Color matrices work on non-premultiplied colors.
+	// This color matrix can only make colors darker or equal,
+	// and thus can never invoke color clamping.
+	// Thus the simpler vertex color scale based shader can be used.
+	//
+	// Negative color values can become positive and out-of-range
+	// after applying to vertex colors below, which can make the min() in the shader kick in.
+	//
+	// Alpha values smaller than 0, combined with negative vertex colors,
+	// can also make the min() kick in, so that shall be ruled out too.
+	if r < 0 || g < 0 || b < 0 || a < 0 || r > 1 || g > 1 || b > 1 {
+		return colorm, 1, 1, 1, 1
+	}
+
+	return affine.ColorMIdentity{}, r, g, b, a
 }

@@ -420,40 +420,6 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		i.processSrc(src)
 	}
 
-	// If a color matrix is used, but the matrix is merely a scaling matrix,
-	// and the scaling cannot cause out-of-range colors, do not use a color matrix
-	// when rendering but instead multiply all vertex colors by the scale.
-	// This speeds up rendering.
-	//
-	// NOTE: this is only safe when not using a custom Kage shader,
-	// as custom shaders may be using vertex colors for different purposes
-	// than colorization. However, currently there are no Ebiten APIs that
-	// support both shaders and color matrices.
-	cr := float32(1)
-	cg := float32(1)
-	cb := float32(1)
-	ca := float32(1)
-	if !colorm.IsIdentity() && colorm.ScaleOnly() {
-		r := colorm.At(0, 0)
-		g := colorm.At(1, 1)
-		b := colorm.At(2, 2)
-		a := colorm.At(3, 3)
-		if r >= 0 && g >= 0 && b >= 0 && a >= 0 && r <= 1 && g <= 1 && b <= 1 {
-			// Color matrices work on non-premultiplied colors.
-			// This color matrix can only make colors darker or equal,
-			// and thus can never invoke color clamping.
-			// Thus the simpler vertex color scale based shader can be used.
-			//
-			// Negative color values can become positive and out-of-range
-			// after applying to vertex colors below, which can make the min() in the shader kick in.
-			//
-			// Alpha values smaller than 0, combined with negative vertex colors,
-			// can also make the min() kick in, so that shall be ruled out too.
-			cr, cg, cb, ca = r, g, b, a
-			colorm = affine.ColorMIdentity{}
-		}
-	}
-
 	var dx, dy float32
 	// A screen image doesn't have its padding.
 	if !i.screen {
@@ -477,10 +443,6 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 			vertices[i+1] += dy
 			vertices[i+2] += oxf
 			vertices[i+3] += oyf
-			vertices[i+4] *= cr
-			vertices[i+5] *= cg
-			vertices[i+6] *= cb
-			vertices[i+7] *= ca
 		}
 		// srcRegion can be delibarately empty when this is not needed in order to avoid unexpected
 		// performance issue (#1293).
@@ -493,10 +455,6 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		for i := 0; i < n; i += graphics.VertexFloatNum {
 			vertices[i] += dx
 			vertices[i+1] += dy
-			vertices[i+4] *= cr
-			vertices[i+5] *= cg
-			vertices[i+6] *= cb
-			vertices[i+7] *= ca
 		}
 	}
 
