@@ -1076,10 +1076,6 @@ func (g *Graphics) IsDirectX() bool {
 	return false
 }
 
-func (g *Graphics) HasHighPrecisionFloat() bool {
-	return true
-}
-
 func (g *Graphics) MaxImageSize() int {
 	if g.maxImageSize != 0 {
 		return g.maxImageSize

@@ -931,10 +931,6 @@ func (g *Graphics) IsDirectX() bool {
 	return true
 }
 
-func (g *Graphics) HasHighPrecisionFloat() bool {
-	return true
-}
-
 func (g *Graphics) MaxImageSize() int {
 	return _D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION
 }

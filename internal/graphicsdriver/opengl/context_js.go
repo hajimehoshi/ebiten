@@ -600,11 +600,6 @@ func (c *context) maxTextureSizeImpl() int {
 	return gl.getParameter.Invoke(gles.MAX_TEXTURE_SIZE).Int()
 }
 
-func (c *context) getShaderPrecisionFormatPrecision() int {
-	gl := c.gl
-	return gl.getShaderPrecisionFormat.Invoke(gles.FRAGMENT_SHADER, gles.HIGH_FLOAT).Get("precision").Int()
-}
-
 func (c *context) flush() {
 	gl := c.gl
 	gl.flush.Invoke()

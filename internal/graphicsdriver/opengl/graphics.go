@@ -396,10 +396,6 @@ func (g *Graphics) IsDirectX() bool {
 	return false
 }
 
-func (g *Graphics) HasHighPrecisionFloat() bool {
-	return g.context.hasHighPrecisionFloat()
-}
-
 func (g *Graphics) MaxImageSize() int {
 	return g.context.getMaxTextureSize()
 }

@@ -480,12 +480,6 @@ func (c *context) maxTextureSizeImpl() int {
 	return int(s)
 }
 
-func (c *context) getShaderPrecisionFormatPrecision() int {
-	// glGetShaderPrecisionFormat is not defined at OpenGL 2.0. Assume that desktop environments always have
-	// enough highp precision.
-	return highpPrecision
-}
-
 func (c *context) flush() {
 	gl.Flush()
 }

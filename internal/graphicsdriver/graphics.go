@@ -55,7 +55,6 @@ type Graphics interface {
 	NeedsClearingScreen() bool
 	IsGL() bool
 	IsDirectX() bool
-	HasHighPrecisionFloat() bool
 	MaxImageSize() int
 
 	NewShader(program *shaderir.Program) (Shader, error)

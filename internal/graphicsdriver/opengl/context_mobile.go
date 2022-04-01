@@ -443,11 +443,6 @@ func (c *context) maxTextureSizeImpl() int {
 	return int(v[0])
 }
 
-func (c *context) getShaderPrecisionFormatPrecision() int {
-	_, _, p := c.ctx.GetShaderPrecisionFormat(gles.FRAGMENT_SHADER, gles.HIGH_FLOAT)
-	return p
-}
-
 func (c *context) flush() {
 	c.ctx.Flush()
 }
