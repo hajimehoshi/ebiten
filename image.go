@@ -37,7 +37,6 @@ type Image struct {
 
 	bounds   image.Rectangle
 	original *Image
-	screen   bool
 }
 
 func (i *Image) copyCheck() {
@@ -851,7 +850,6 @@ func newScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
 		image:  ui.NewScreenFramebufferImage(width, height),
 		bounds: image.Rect(0, 0, width, height),
-		screen: true,
 	}
 	i.addr = i
 	return i
