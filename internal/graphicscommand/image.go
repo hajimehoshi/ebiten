@@ -126,8 +126,8 @@ func (i *Image) InternalSize() (int, int) {
 //
 //   0: Destination X in pixels
 //   1: Destination Y in pixels
-//   2: Source X in pixels (not texels!)
-//   3: Source Y in pixels
+//   2: Source X in texels
+//   3: Source Y in texels
 //   4: Color R [0.0-1.0]
 //   5: Color G
 //   6: Color B

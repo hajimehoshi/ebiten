@@ -277,6 +277,11 @@ func (i *Image) ensureIsolated() {
 	sy0 := float32(oy)
 	sx1 := float32(ox + w)
 	sy1 := float32(oy + h)
+	sw, sh := i.backend.restorable.InternalSize()
+	sx0 /= float32(sw)
+	sy0 /= float32(sh)
+	sx1 /= float32(sw)
+	sy1 /= float32(sh)
 	newImg := restorable.NewImage(w, h)
 	newImg.SetVolatile(i.volatile)
 	vs := []float32{
@@ -437,12 +442,14 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		ox += paddingSize
 		oy += paddingSize
 		oxf, oyf = float32(ox), float32(oy)
+		sw, sh := srcs[0].backend.restorable.InternalSize()
+		swf, shf := float32(sw), float32(sh)
 		n := len(vertices)
 		for i := 0; i < n; i += graphics.VertexFloatNum {
 			vertices[i] += dx
 			vertices[i+1] += dy
-			vertices[i+2] += oxf
-			vertices[i+3] += oyf
+			vertices[i+2] = (vertices[i+2] + oxf) / swf
+			vertices[i+3] = (vertices[i+3] + oyf) / shf
 		}
 		// srcRegion can be delibarately empty when this is not needed in order to avoid unexpected
 		// performance issue (#1293).

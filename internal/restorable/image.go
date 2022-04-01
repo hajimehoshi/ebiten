@@ -191,7 +191,7 @@ func (i *Image) Extend(width, height int) *Image {
 	srcs := [graphics.ShaderImageNum]*Image{i}
 	var offsets [graphics.ShaderImageNum - 1][2]float32
 	sw, sh := i.image.InternalSize()
-	vs := quadVertices(0, 0, float32(sw), float32(sh), 0, 0, float32(sw), float32(sh), 1, 1, 1, 1)
+	vs := quadVertices(i, 0, 0, float32(sw), float32(sh), 0, 0, float32(sw), float32(sh), 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
 		X:      0,
@@ -230,12 +230,14 @@ func NewScreenFramebufferImage(width, height int) *Image {
 }
 
 // quadVertices returns vertices to render a quad. These values are passed to graphicscommand.Image.
-func quadVertices(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca float32) []float32 {
+func quadVertices(src *Image, dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca float32) []float32 {
+	sw, sh := src.InternalSize()
+	swf, shf := float32(sw), float32(sh)
 	return []float32{
-		dx0, dy0, sx0, sy0, cr, cg, cb, ca,
-		dx1, dy0, sx1, sy0, cr, cg, cb, ca,
-		dx0, dy1, sx0, sy1, cr, cg, cb, ca,
-		dx1, dy1, sx1, sy1, cr, cg, cb, ca,
+		dx0, dy0, sx0 / swf, sy0 / shf, cr, cg, cb, ca,
+		dx1, dy0, sx1 / swf, sy0 / shf, cr, cg, cb, ca,
+		dx0, dy1, sx0 / swf, sy1 / shf, cr, cg, cb, ca,
+		dx1, dy1, sx1 / swf, sy1 / shf, cr, cg, cb, ca,
 	}
 }
 
@@ -248,11 +250,9 @@ func clearImage(i *graphicscommand.Image) {
 
 	// This needs to use 'InternalSize' to render the whole region, or edges are unexpectedly cleared on some
 	// devices.
-	//
-	// TODO: Can we unexport InternalSize()?
 	dw, dh := i.InternalSize()
 	sw, sh := emptyImage.width, emptyImage.height
-	vs := quadVertices(0, 0, float32(dw), float32(dh), 1, 1, float32(sw-1), float32(sh-1), 0, 0, 0, 0)
+	vs := quadVertices(emptyImage, 0, 0, float32(dw), float32(dh), 1, 1, float32(sw-1), float32(sh-1), 0, 0, 0, 0)
 	is := graphics.QuadIndices()
 	srcs := [graphics.ShaderImageNum]*graphicscommand.Image{emptyImage.image}
 	var offsets [graphics.ShaderImageNum - 1][2]float32
@@ -359,8 +359,8 @@ func (i *Image) ReplacePixels(pixels []byte, mask []byte, x, y, width, height in
 //
 //   0: Destination X in pixels
 //   1: Destination Y in pixels
-//   2: Source X in pixels (not texels!)
-//   3: Source Y in pixels
+//   2: Source X in texels
+//   3: Source Y in texels
 //   4: Color R [0.0-1.0]
 //   5: Color G
 //   6: Color B
@@ -672,4 +672,8 @@ func (i *Image) clearDrawTrianglesHistory() {
 		i.drawTrianglesHistory[idx] = nil
 	}
 	i.drawTrianglesHistory = i.drawTrianglesHistory[:0]
+}
+
+func (i *Image) InternalSize() (int, int) {
+	return i.image.InternalSize()
 }

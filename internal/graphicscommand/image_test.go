@@ -30,12 +30,14 @@ func TestMain(m *testing.M) {
 	etesting.MainWithRunLoop(m)
 }
 
-func quadVertices(w, h float32) []float32 {
+func quadVertices(srcImage *graphicscommand.Image, w, h float32) []float32 {
+	sw, sh := srcImage.InternalSize()
+	swf, shf := float32(sw), float32(sh)
 	return []float32{
 		0, 0, 0, 0, 1, 1, 1, 1,
-		w, 0, w, 0, 1, 1, 1, 1,
-		0, w, 0, h, 1, 1, 1, 1,
-		w, h, w, h, 1, 1, 1, 1,
+		w, 0, w / swf, 0, 1, 1, 1, 1,
+		0, w, 0, h / shf, 1, 1, 1, 1,
+		w, h, w / swf, h / shf, 1, 1, 1, 1,
 	}
 }
 
@@ -44,7 +46,7 @@ func TestClear(t *testing.T) {
 	src := graphicscommand.NewImage(w/2, h/2)
 	dst := graphicscommand.NewImage(w, h)
 
-	vs := quadVertices(w/2, h/2)
+	vs := quadVertices(src, w/2, h/2)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
 		X:      0,
@@ -75,7 +77,7 @@ func TestReplacePixelsPartAfterDrawTriangles(t *testing.T) {
 	clr := graphicscommand.NewImage(w, h)
 	src := graphicscommand.NewImage(w/2, h/2)
 	dst := graphicscommand.NewImage(w, h)
-	vs := quadVertices(w/2, h/2)
+	vs := quadVertices(src, w/2, h/2)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
 		X:      0,
@@ -95,7 +97,7 @@ func TestReplacePixelsWithMask(t *testing.T) {
 	src := graphicscommand.NewImage(w, h)
 	dst := graphicscommand.NewImage(w, h)
 
-	vs := quadVertices(w, h)
+	vs := quadVertices(src, w, h)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
 		X:      0,
@@ -143,7 +145,7 @@ func TestShader(t *testing.T) {
 	const w, h = 16, 16
 	clr := graphicscommand.NewImage(w, h)
 	dst := graphicscommand.NewImage(w, h)
-	vs := quadVertices(w, h)
+	vs := quadVertices(clr, w, h)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
 		X:      0,

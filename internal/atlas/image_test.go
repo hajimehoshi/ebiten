@@ -78,6 +78,9 @@ func TestEnsureIsolated(t *testing.T) {
 	img4 := atlas.NewImage(size, size)
 	defer img4.MarkDisposed()
 
+	img5 := atlas.NewImage(size/2, size/2)
+	defer img3.MarkDisposed()
+
 	pix := make([]byte, size*size*4)
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
@@ -105,8 +108,20 @@ func TestEnsureIsolated(t *testing.T) {
 		Height: size,
 	}
 	img4.DrawTriangles([graphics.ShaderImageNum]*atlas.Image{img3}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
-	want := false
-	if got := img4.IsOnAtlasForTesting(); got != want {
+	if got, want := img4.IsOnAtlasForTesting(), false; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	// Make img3 isolated before getting pixels.
+	vs = quadVertices(0, 0, size/2, size/2, 1)
+	dr = graphicsdriver.Region{
+		X:      0,
+		Y:      0,
+		Width:  size / 2,
+		Height: size / 2,
+	}
+	img3.DrawTriangles([graphics.ShaderImageNum]*atlas.Image{img5}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+	if got, want := img3.IsOnAtlasForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 

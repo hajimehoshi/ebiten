@@ -78,8 +78,6 @@ type commandQueue struct {
 	// Rename or fix the program.
 	nvertices int
 
-	srcSizes []size
-
 	indices  []uint16
 	nindices int
 
@@ -97,26 +95,8 @@ func (q *commandQueue) appendVertices(vertices []float32, src *Image) {
 	if len(q.vertices) < q.nvertices+len(vertices) {
 		n := q.nvertices + len(vertices) - len(q.vertices)
 		q.vertices = append(q.vertices, make([]float32, n)...)
-		q.srcSizes = append(q.srcSizes, make([]size, n/graphics.VertexFloatNum)...)
 	}
 	copy(q.vertices[q.nvertices:], vertices)
-
-	n := len(vertices) / graphics.VertexFloatNum
-	base := q.nvertices / graphics.VertexFloatNum
-
-	width := float32(1)
-	height := float32(1)
-	// src is nil when a shader is used and there are no specified images.
-	if src != nil {
-		w, h := src.InternalSize()
-		width = float32(w)
-		height = float32(h)
-	}
-	for i := 0; i < n; i++ {
-		idx := base + i
-		q.srcSizes[idx].width = width
-		q.srcSizes[idx].height = height
-	}
 	q.nvertices += len(vertices)
 }
 
@@ -231,13 +211,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
 	if graphicsDriver.HasHighPrecisionFloat() {
 		n := q.nvertices / graphics.VertexFloatNum
 		for i := 0; i < n; i++ {
-			s := q.srcSizes[i]
-
 			idx := i * graphics.VertexFloatNum
-
-			// Convert pixels to texels.
-			vs[idx+2] /= s.width
-			vs[idx+3] /= s.height
 
 			// Avoid the center of the pixel, which is problematic (#929, #1171).
 			// Instead, align the vertices with about 1/3 pixels.
@@ -267,15 +241,6 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
 			default:
 				vs[idx+1] = iy + 16.0/16.0
 			}
-		}
-	} else {
-		n := q.nvertices / graphics.VertexFloatNum
-		for i := 0; i < n; i++ {
-			s := q.srcSizes[i]
-
-			// Convert pixels to texels.
-			vs[i*graphics.VertexFloatNum+2] /= s.width
-			vs[i*graphics.VertexFloatNum+3] /= s.height
 		}
 	}
 
