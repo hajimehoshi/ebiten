@@ -317,7 +317,9 @@ func IsStandardGamepadLayoutAvailable(id GamepadID) bool {
 //
 // UpdateStandardGamepadLayoutMappings is concurrent-safe.
 //
-// Updated mappings take effect immediately even for already connected gamepads.
+// UpdateStandardGamepadLayoutMappings mappings take effect immediately even for already connected gamepads.
+//
+// UpdateStandardGamepadLayoutMappings works atomically. If an error happens, nothing is updated.
 func UpdateStandardGamepadLayoutMappings(mappings string) (bool, error) {
 	return gamepaddb.Update([]byte(mappings))
 }

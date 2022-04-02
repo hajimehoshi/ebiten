@@ -130,16 +130,15 @@ var (
 	mappingsM             sync.RWMutex
 )
 
-func processLine(line string, platform platform) error {
+func parseLine(line string, platform platform) (id string, name string, buttons map[StandardButton]*mapping, axes map[StandardAxis]*mapping, err error) {
 	line = strings.TrimSpace(line)
 	if len(line) == 0 {
-		return nil
+		return "", "", nil, nil, nil
 	}
 	if line[0] == '#' {
-		return nil
+		return "", "", nil, nil, nil
 	}
 	tokens := strings.Split(line, ",")
-	id := tokens[0]
 	for _, token := range tokens[2:] {
 		if len(token) == 0 {
 			continue
@@ -151,54 +150,50 @@ func processLine(line string, platform platform) error {
 			switch tks[1] {
 			case "Windows":
 				if platform != platformWindows {
-					return nil
+					return "", "", nil, nil, nil
 				}
 			case "Mac OS X":
 				if platform != platformMacOS {
-					return nil
+					return "", "", nil, nil, nil
 				}
 			case "Linux":
 				if platform != platformUnix {
-					return nil
+					return "", "", nil, nil, nil
 				}
 			case "Android":
 				if platform != platformAndroid {
-					return nil
+					return "", "", nil, nil, nil
 				}
 			case "iOS":
 				if platform != platformIOS {
-					return nil
+					return "", "", nil, nil, nil
 				}
 			case "":
 				// Allow any platforms
 			default:
-				return fmt.Errorf("gamepaddb: unexpected platform: %s", tks[1])
+				return "", "", nil, nil, fmt.Errorf("gamepaddb: unexpected platform: %s", tks[1])
 			}
 			continue
 		}
 
 		gb, err := parseMappingElement(tks[1])
 		if err != nil {
-			return err
+			return "", "", nil, nil, err
 		}
 
 		if b, ok := toStandardGamepadButton(tks[0]); ok {
-			m, ok := gamepadButtonMappings[id]
-			if !ok {
-				m = map[StandardButton]*mapping{}
-				gamepadButtonMappings[id] = m
+			if buttons == nil {
+				buttons = map[StandardButton]*mapping{}
 			}
-			m[b] = gb
+			buttons[b] = gb
 			continue
 		}
 
 		if a, ok := toStandardGamepadAxis(tks[0]); ok {
-			m, ok := gamepadAxisMappings[id]
-			if !ok {
-				m = map[StandardAxis]*mapping{}
-				gamepadAxisMappings[id] = m
+			if axes == nil {
+				axes = map[StandardAxis]*mapping{}
 			}
-			m[a] = gb
+			axes[a] = gb
 			continue
 		}
 
@@ -206,9 +201,7 @@ func processLine(line string, platform platform) error {
 		// There is no corresponding button in the Web standard gamepad layout.
 	}
 
-	gamepadNames[id] = tokens[1]
-
-	return nil
+	return tokens[0], tokens[1], buttons, axes, nil
 }
 
 func parseMappingElement(str string) (*mapping, error) {
@@ -506,23 +499,49 @@ func IsButtonPressed(id string, button StandardButton, state GamepadState) bool 
 
 // Update adds new gamepad mappings.
 // The string must be in the format of SDL_GameControllerDB.
-func Update(mapping []byte) (bool, error) {
+//
+// Update works atomically. If an error happens, nothing is updated.
+func Update(mappingData []byte) (bool, error) {
 	mappingsM.Lock()
 	defer mappingsM.Unlock()
 
-	buf := bytes.NewBuffer(mapping)
+	buf := bytes.NewBuffer(mappingData)
 	r := bufio.NewReader(buf)
+
+	type parsedLine struct {
+		id      string
+		name    string
+		buttons map[StandardButton]*mapping
+		axes    map[StandardAxis]*mapping
+	}
+	var lines []parsedLine
+
 	for {
 		line, err := r.ReadString('\n')
 		if err != nil && err != io.EOF {
 			return false, err
 		}
-		if err := processLine(line, currentPlatform); err != nil {
-			return false, err
+		id, name, buttons, axes, err1 := parseLine(line, currentPlatform)
+		if err1 != nil {
+			return false, err1
+		}
+		if id != "" {
+			lines = append(lines, parsedLine{
+				id:      id,
+				name:    name,
+				buttons: buttons,
+				axes:    axes,
+			})
 		}
 		if err == io.EOF {
 			break
 		}
+	}
+
+	for _, l := range lines {
+		gamepadNames[l.id] = l.name
+		gamepadButtonMappings[l.id] = l.buttons
+		gamepadAxisMappings[l.id] = l.axes
 	}
 
 	return true, nil
