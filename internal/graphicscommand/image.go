@@ -162,12 +162,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [gra
 	}
 	i.resolveBufferedReplacePixels()
 
-	var us [][]float32
-	if shader != nil {
-		us = shader.convertUniforms(uniforms)
-	}
-
-	theCommandQueue.EnqueueDrawTrianglesCommand(i, srcs, offsets, vertices, indices, clr, mode, filter, address, dstRegion, srcRegion, shader, us, evenOdd)
+	theCommandQueue.EnqueueDrawTrianglesCommand(i, srcs, offsets, vertices, indices, clr, mode, filter, address, dstRegion, srcRegion, shader, uniforms, evenOdd)
 }
 
 // ReadPixels reads the image's pixels.
