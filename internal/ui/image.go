@@ -59,7 +59,7 @@ func (i *Image) MarkDisposed() {
 	i.mipmap = nil
 }
 
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms map[string]interface{}, evenOdd bool, canSkipMipmap bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms map[string][]float32, evenOdd bool, canSkipMipmap bool) {
 	var srcMipmaps [graphics.ShaderImageNum]*mipmap.Mipmap
 	for i, src := range srcs {
 		if src == nil {

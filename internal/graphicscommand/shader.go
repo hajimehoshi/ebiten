@@ -185,7 +185,7 @@ func (s *Shader) Dispose() {
 	theCommandQueue.Enqueue(c)
 }
 
-func (s *Shader) convertUniforms(uniforms map[string]interface{}) [][]float32 {
+func (s *Shader) convertUniforms(uniforms map[string][]float32) [][]float32 {
 	if s.shader == nil {
 		panic("graphicscommand: shader is not compiled yet")
 	}
@@ -208,14 +208,7 @@ func (s *Shader) convertUniforms(uniforms map[string]interface{}) [][]float32 {
 	us := make([][]float32, len(s.uniformNameToIndex))
 	for name, idx := range s.uniformNameToIndex {
 		if v, ok := uniforms[name]; ok {
-			switch v := v.(type) {
-			case float32:
-				us[idx] = []float32{v}
-			case []float32:
-				us[idx] = v
-			default:
-				panic(fmt.Sprintf("graphicscommand: unexpected uniform value type: %s, %T", name, v))
-			}
+			us[idx] = v
 			continue
 		}
 		t := s.uniformNameToType[name]
