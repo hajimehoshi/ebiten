@@ -117,7 +117,7 @@ func mustUseDifferentVertexBuffer(nextNumVertexFloats, nextNumIndices int) bool 
 }
 
 // EnqueueDrawTrianglesCommand enqueues a drawing-image command.
-func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, color affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms map[string]interface{}, evenOdd bool) {
+func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, color affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
 	if len(indices) > graphics.IndicesNum {
 		panic(fmt.Sprintf("graphicscommand: len(indices) must be <= graphics.IndicesNum but not at EnqueueDrawTrianglesCommand: len(indices): %d, graphics.IndicesNum: %d", len(indices), graphics.IndicesNum))
 	}
@@ -152,7 +152,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	if !split && 0 < len(q.commands) {
 		// TODO: Pass offsets and uniforms when merging considers the shader.
 		if last, ok := q.commands[len(q.commands)-1].(*drawTrianglesCommand); ok {
-			if last.CanMergeWithDrawTrianglesCommand(dst, srcs, vertices, color, mode, filter, address, dstRegion, srcRegion, shader, evenOdd) {
+			if last.CanMergeWithDrawTrianglesCommand(dst, srcs, vertices, color, mode, filter, address, dstRegion, srcRegion, shader, uniforms, evenOdd) {
 				last.setVertices(q.lastVertices(len(vertices) + last.numVertices()))
 				last.addNumIndices(len(indices))
 				return
@@ -295,7 +295,7 @@ type drawTrianglesCommand struct {
 	dstRegion graphicsdriver.Region
 	srcRegion graphicsdriver.Region
 	shader    *Shader
-	uniforms  map[string]interface{}
+	uniforms  [][]float32
 	evenOdd   bool
 }
 
@@ -393,7 +393,6 @@ func (c *drawTrianglesCommand) Exec(graphicsDriver graphicsdriver.Graphics, inde
 
 	var shaderID graphicsdriver.ShaderID = graphicsdriver.InvalidShaderID
 	var imgs [graphics.ShaderImageNum]graphicsdriver.ImageID
-	var us [][]float32
 	if c.shader != nil {
 		shaderID = c.shader.shader.ID()
 		for i, src := range c.srcs {
@@ -403,12 +402,11 @@ func (c *drawTrianglesCommand) Exec(graphicsDriver graphicsdriver.Graphics, inde
 			}
 			imgs[i] = src.image.ID()
 		}
-		us = c.shader.convertUniforms(c.uniforms)
 	} else {
 		imgs[0] = c.srcs[0].image.ID()
 	}
 
-	return graphicsDriver.DrawTriangles(c.dst.image.ID(), imgs, c.offsets, shaderID, c.nindices, indexOffset, c.mode, c.color, c.filter, c.address, c.dstRegion, c.srcRegion, us, c.evenOdd)
+	return graphicsDriver.DrawTriangles(c.dst.image.ID(), imgs, c.offsets, shaderID, c.nindices, indexOffset, c.mode, c.color, c.filter, c.address, c.dstRegion, c.srcRegion, c.uniforms, c.evenOdd)
 }
 
 func (c *drawTrianglesCommand) numVertices() int {
@@ -429,12 +427,21 @@ func (c *drawTrianglesCommand) addNumIndices(n int) {
 
 // CanMergeWithDrawTrianglesCommand returns a boolean value indicating whether the other drawTrianglesCommand can be merged
 // with the drawTrianglesCommand c.
-func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageNum]*Image, vertices []float32, color affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, evenOdd bool) bool {
-	// If a shader is used, commands are not merged.
-	//
-	// TODO: Merge shader commands considering uniform variables.
-	if c.shader != nil || shader != nil {
+func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageNum]*Image, vertices []float32, color affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) bool {
+	if c.shader != shader {
 		return false
+	}
+	if c.shader != nil {
+		if len(c.uniforms) != len(uniforms) {
+			return false
+		}
+		for i, v0 := range c.uniforms {
+			for j, v1 := range v0 {
+				if v1 != uniforms[i][j] {
+					return false
+				}
+			}
+		}
 	}
 	if c.dst != dst {
 		return false
