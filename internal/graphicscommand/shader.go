@@ -162,8 +162,10 @@ func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
 type Shader struct {
 	shader graphicsdriver.Shader
 
-	uniformNames []string
-	uniformTypes []shaderir.Type
+	uniformNames       []string
+	uniformTypes       []shaderir.Type
+	uniformNameToIndex map[string]int
+	uniformNameToType  map[string]shaderir.Type
 }
 
 func NewShader(src []byte) *Shader {
@@ -188,40 +190,36 @@ func (s *Shader) convertUniforms(uniforms map[string]interface{}) [][]float32 {
 		panic("graphicscommand: shader is not compiled yet")
 	}
 
-	type index struct {
-		resultIndex        int
-		shaderUniformIndex int
+	if s.uniformNameToIndex == nil {
+		s.uniformNameToIndex = map[string]int{}
+		s.uniformNameToType = map[string]shaderir.Type{}
+
+		var idx int
+		for i, n := range s.uniformNames {
+			if strings.HasPrefix(n, "__") {
+				continue
+			}
+			s.uniformNameToIndex[n] = idx
+			s.uniformNameToType[n] = s.uniformTypes[i]
+			idx++
+		}
 	}
 
-	names := map[string]index{}
-	var idx int
-	for i, n := range s.uniformNames {
-		if strings.HasPrefix(n, "__") {
-			continue
-		}
-		names[n] = index{
-			resultIndex:        idx,
-			shaderUniformIndex: i,
-		}
-		idx++
-	}
-
-	us := make([][]float32, len(names))
-	for name, idx := range names {
+	us := make([][]float32, len(s.uniformNameToIndex))
+	for name, idx := range s.uniformNameToIndex {
 		if v, ok := uniforms[name]; ok {
 			switch v := v.(type) {
 			case float32:
-				us[idx.resultIndex] = []float32{v}
+				us[idx] = []float32{v}
 			case []float32:
-				us[idx.resultIndex] = v
+				us[idx] = v
 			default:
 				panic(fmt.Sprintf("graphicscommand: unexpected uniform value type: %s, %T", name, v))
 			}
 			continue
 		}
-
-		t := s.uniformTypes[idx.shaderUniformIndex]
-		us[idx.resultIndex] = make([]float32, t.FloatNum())
+		t := s.uniformNameToType[name]
+		us[idx] = make([]float32, t.FloatNum())
 	}
 
 	// TODO: Panic if uniforms include an invalid name
