@@ -52,6 +52,9 @@ func newScreenFramebufferImage(width, height int) *Image {
 }
 
 func (i *Image) MarkDisposed() {
+	if i.mipmap == nil {
+		return
+	}
 	i.mipmap.MarkDisposed()
 	i.mipmap = nil
 }
