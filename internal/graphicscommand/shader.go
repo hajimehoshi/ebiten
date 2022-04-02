@@ -184,6 +184,10 @@ func (s *Shader) Dispose() {
 }
 
 func (s *Shader) convertUniforms(uniforms map[string]interface{}) [][]float32 {
+	if s.shader == nil {
+		panic("graphicscommand: shader is not compiled yet")
+	}
+
 	type index struct {
 		resultIndex        int
 		shaderUniformIndex int
