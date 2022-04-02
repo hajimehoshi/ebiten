@@ -150,9 +150,8 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 
 	// TODO: If dst is the screen, reorder the command to be the last.
 	if !split && 0 < len(q.commands) {
-		// TODO: Pass offsets and uniforms when merging considers the shader.
 		if last, ok := q.commands[len(q.commands)-1].(*drawTrianglesCommand); ok {
-			if last.CanMergeWithDrawTrianglesCommand(dst, srcs, vertices, color, mode, filter, address, dstRegion, srcRegion, shader, evenOdd) {
+			if last.CanMergeWithDrawTrianglesCommand(dst, srcs, vertices, color, mode, filter, address, dstRegion, srcRegion, shader, uniforms, evenOdd) {
 				last.setVertices(q.lastVertices(len(vertices) + last.numVertices()))
 				last.addNumIndices(len(indices))
 				return
@@ -429,12 +428,28 @@ func (c *drawTrianglesCommand) addNumIndices(n int) {
 
 // CanMergeWithDrawTrianglesCommand returns a boolean value indicating whether the other drawTrianglesCommand can be merged
 // with the drawTrianglesCommand c.
-func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageNum]*Image, vertices []float32, color affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, evenOdd bool) bool {
-	// If a shader is used, commands are not merged.
-	//
-	// TODO: Merge shader commands considering uniform variables.
-	if c.shader != nil || shader != nil {
+func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageNum]*Image, vertices []float32, color affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms map[string][]float32, evenOdd bool) bool {
+	if c.shader != shader {
 		return false
+	}
+	if c.shader != nil {
+		if len(c.uniforms) != len(uniforms) {
+			return false
+		}
+		for name, v0 := range c.uniforms {
+			v1, ok := uniforms[name]
+			if !ok {
+				return false
+			}
+			if len(v0) != len(v1) {
+				return false
+			}
+			for i := range v0 {
+				if v0[i] != v1[i] {
+					return false
+				}
+			}
+		}
 	}
 	if c.dst != dst {
 		return false
