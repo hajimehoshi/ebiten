@@ -267,8 +267,8 @@ func DrawWithOptions(dst *ebiten.Image, text string, face font.Face, options *eb
 // The bound's origin point indicates the dot (period) position.
 // This means that if the text consists of one character '.', this dot is rendered at (0, 0).
 //
-// This is very similar to golang.org/x/image/font's BoundString,
-// but this BoundString calculates the actual rendered area considering multiple lines.
+// BoundString behaves almost exactly like golang.org/x/image/font's BoundString,
+// but newline characters '\n' in the input string move the text position to the following line.
 //
 // face is the font for text rendering.
 // text is the string that's being measured.
