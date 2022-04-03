@@ -38,7 +38,7 @@ const (
 	screenHeight = 480
 )
 
-const sampleText = `The quick brown fox jumps
+const sampleText = `  The quick brown fox jumps
 over the lazy dog.`
 
 var (
