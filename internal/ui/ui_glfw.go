@@ -1610,10 +1610,10 @@ func (u *userInterfaceImpl) forceToRefreshIfNeeded() {
 	}
 
 	x, y := u.window.GetPos()
-	u.window.SetPos(x+1,y+1)
+	u.window.SetPos(x+1, y+1)
 	glfw.PollEvents()
 	time.Sleep(time.Millisecond)
-	u.window.SetPos(x,y)
+	u.window.SetPos(x, y)
 	glfw.PollEvents()
 	time.Sleep(time.Millisecond)
 }
