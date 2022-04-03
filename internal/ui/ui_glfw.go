@@ -75,6 +75,7 @@ type userInterfaceImpl struct {
 	windowClosingHandled bool
 	windowBeingClosed    bool
 	windowResizingMode   WindowResizingMode
+	justAfterResized     bool
 
 	// setSizeCallbackEnabled must be accessed from the main thread.
 	setSizeCallbackEnabled bool
@@ -726,6 +727,9 @@ func (u *userInterfaceImpl) registerWindowSetSizeCallback() {
 			if u.graphicsDriver.IsGL() {
 				u.swapBuffers()
 			}
+
+			u.forceToRefreshIfNeeded()
+			u.justAfterResized = true
 		})
 	}
 	u.window.SetSizeCallback(u.sizeCallback)
@@ -988,6 +992,11 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 	if !u.fpsModeInited {
 		u.setFPSMode(u.fpsMode)
 	}
+
+	if u.justAfterResized {
+		u.forceToRefreshIfNeeded()
+	}
+	u.justAfterResized = false
 
 	// Call updateVsync even though fpsMode is not updated.
 	// The vsync state might be changed in other places (e.g., the SetSizeCallback).
@@ -1588,4 +1597,23 @@ func (u *userInterfaceImpl) setOrigPos(x, y int) {
 	}
 	u.origPosX = x
 	u.origPosY = y
+}
+
+// forceToRefreshIfNeeded forces to refresh the framebuffer by resizing the window quickly.
+// This is a very dirty but necessary hack for DirectX (#2050).
+// With DirectX, the framebuffer is not rendered correctly when the window is resized by dragging
+// or just after the resizing finishes by dragging.
+// forceToRefreshIfNeeded must be called from the main thread.
+func (u *userInterfaceImpl) forceToRefreshIfNeeded() {
+	if !u.graphicsDriver.IsDirectX() {
+		return
+	}
+
+	x, y := u.window.GetPos()
+	u.window.SetPos(x+1,y+1)
+	glfw.PollEvents()
+	time.Sleep(time.Millisecond)
+	u.window.SetPos(x,y)
+	glfw.PollEvents()
+	time.Sleep(time.Millisecond)
 }
