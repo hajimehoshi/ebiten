@@ -268,7 +268,7 @@ func DrawWithOptions(dst *ebiten.Image, text string, face font.Face, options *eb
 // This means that if the text consists of one character '.', this dot is rendered at (0, 0).
 //
 // This is very similar to golang.org/x/image/font's BoundString,
-// but this BoundString calculates the actual rendered area considering multiple lines and space characters.
+// but this BoundString calculates the actual rendered area considering multiple lines.
 //
 // face is the font for text rendering.
 // text is the string that's being measured.
