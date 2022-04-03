@@ -910,10 +910,6 @@ func (g *Graphics) FramebufferYDirection() graphicsdriver.YDirection {
 	return graphicsdriver.Downward
 }
 
-func (g *Graphics) NDCYDirection() graphicsdriver.YDirection {
-	return graphicsdriver.Upward
-}
-
 func (g *Graphics) NeedsRestoring() bool {
 	return false
 }
