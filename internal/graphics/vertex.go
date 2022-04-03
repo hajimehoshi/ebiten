@@ -29,7 +29,8 @@ const (
 		1 + // the texture destination region's size
 		1 + // the offsets array of the second and the following images
 		1 + // the texture source region's origin
-		1 // the texture source region's size
+		1 + // the texture source region's size
+		1 // the projection matrix
 
 	TextureDestinationSizeUniformVariableIndex         = 0
 	TextureSourceSizesUniformVariableIndex             = 1
@@ -38,6 +39,7 @@ const (
 	TextureSourceOffsetsUniformVariableIndex           = 4
 	TextureSourceRegionOriginUniformVariableIndex      = 5
 	TextureSourceRegionSizeUniformVariableIndex        = 6
+	ProjectionMatrixUniformVariableIndex               = 7
 )
 
 const (

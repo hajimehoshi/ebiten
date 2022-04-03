@@ -995,6 +995,13 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 		ussize := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
 		uniformVars[graphics.TextureSourceRegionSizeUniformVariableIndex] = ussize
 
+		uniformVars[graphics.ProjectionMatrixUniformVariableIndex] = []float32{
+			2 / float32(dw), 0, 0, 0,
+			0, -2 / float32(dh), 0, 0,
+			0, 0, 1, 0,
+			-1, 1, 0, 1,
+		}
+
 		// Set the additional uniform variables.
 		for i, v := range uniforms {
 			const offset = graphics.PreservedUniformVariablesNum

@@ -1056,6 +1056,12 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 		us[graphics.TextureSourceRegionOriginUniformVariableIndex] = usorigin
 		ussize := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
 		us[graphics.TextureSourceRegionSizeUniformVariableIndex] = ussize
+		us[graphics.ProjectionMatrixUniformVariableIndex] = []float32{
+			2 / float32(dw), 0, 0, 0,
+			0, -2 / float32(dh), 0, 0,
+			0, 0, 1, 0,
+			-1, 1, 0, 1,
+		}
 
 		for i, u := range uniforms {
 			us[graphics.PreservedUniformVariablesNum+i] = u

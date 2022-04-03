@@ -666,7 +666,7 @@ func (c *newShaderCommand) String() string {
 
 // Exec executes a newShaderCommand.
 func (c *newShaderCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
-	ir, err := compileShader(graphicsDriver, c.src)
+	ir, err := compileShader(c.src)
 	if err != nil {
 		return err
 	}

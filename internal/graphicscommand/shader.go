@@ -106,33 +106,16 @@ func imageSrc%[1]dAt(pos vec2) vec4 {
 	}
 }
 
-func compileShader(graphicsDriver graphicsdriver.Graphics, src []byte) (*shaderir.Program, error) {
+func compileShader(src []byte) (*shaderir.Program, error) {
 	var buf bytes.Buffer
 	buf.Write(src)
 	buf.WriteString(shaderSuffix)
-	if graphicsDriver.FramebufferYDirection() != graphicsDriver.NDCYDirection() {
-		buf.WriteString(`
+	buf.WriteString(`var __projectionMatrix mat4
+
 func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
-	return mat4(
-		2/__imageDstTextureSize.x, 0, 0, 0,
-		0, -2/__imageDstTextureSize.y, 0, 0,
-		0, 0, 1, 0,
-		-1, 1, 0, 1,
-	) * vec4(position, 0, 1), texCoord, color
+	return __projectionMatrix * vec4(position, 0, 1), texCoord, color
 }
 `)
-	} else {
-		buf.WriteString(`
-func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
-	return mat4(
-		2/__imageDstTextureSize.x, 0, 0, 0,
-		0, 2/__imageDstTextureSize.y, 0, 0,
-		0, 0, 1, 0,
-		-1, -1, 0, 1,
-	) * vec4(position, 0, 1), texCoord, color
-}
-`)
-	}
 
 	fs := token.NewFileSet()
 	f, err := parser.ParseFile(fs, "", buf.Bytes(), parser.AllErrors)

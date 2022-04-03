@@ -320,6 +320,17 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 			g.uniformVars[idx].value = size
 			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
 		}
+		{
+			const idx = graphics.ProjectionMatrixUniformVariableIndex
+			g.uniformVars[idx].name = g.uniformVariableName(idx)
+			g.uniformVars[idx].value = []float32{
+				2 / float32(dw), 0, 0, 0,
+				0, 2 / float32(dh), 0, 0,
+				0, 0, 1, 0,
+				-1, -1, 0, 1,
+			}
+			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
+		}
 
 		for i, v := range uniforms {
 			const offset = graphics.PreservedUniformVariablesNum
