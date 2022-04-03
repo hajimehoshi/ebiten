@@ -16,15 +16,16 @@ package ui
 
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
 type Shader struct {
 	shader *mipmap.Shader
 }
 
-func NewShader(src []byte) *Shader {
+func NewShader(ir *shaderir.Program) *Shader {
 	return &Shader{
-		shader: mipmap.NewShader(src),
+		shader: mipmap.NewShader(ir),
 	}
 }
 

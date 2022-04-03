@@ -497,7 +497,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		offsets[i][1] = -sy + float32(b.Min.Y)
 	}
 
-	i.image.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, convertUniforms(options.Uniforms), options.FillRule == EvenOdd, false)
+	i.image.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), options.FillRule == EvenOdd, false)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
@@ -608,7 +608,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		offsets[i][1] = -sy + float32(b.Min.Y)
 	}
 
-	i.image.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, convertUniforms(options.Uniforms), false, canSkipMipmap(options.GeoM, graphicsdriver.FilterNearest))
+	i.image.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), false, canSkipMipmap(options.GeoM, graphicsdriver.FilterNearest))
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.
@@ -882,19 +882,4 @@ func colorMToScale(colorm affine.ColorM) (newColorM affine.ColorM, r, g, b, a fl
 	}
 
 	return affine.ColorMIdentity{}, r, g, b, a
-}
-
-func convertUniforms(uniforms map[string]interface{}) map[string][]float32 {
-	us := map[string][]float32{}
-	for name, v := range uniforms {
-		switch v := v.(type) {
-		case float32:
-			us[name] = []float32{v}
-		case []float32:
-			us[name] = v
-		default:
-			panic(fmt.Sprintf("ebiten: unexpected uniform value type: %s, %T", name, v))
-		}
-	}
-	return us
 }

@@ -17,20 +17,27 @@ package testing
 import (
 	"fmt"
 	"strings"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
 // ShaderProgramFill returns a shader source to fill the frambuffer.
-func ShaderProgramFill(r, g, b, a byte) []byte {
-	return []byte(fmt.Sprintf(`package main
+func ShaderProgramFill(r, g, b, a byte) *shaderir.Program {
+	ir, err := graphics.CompileShader([]byte(fmt.Sprintf(`package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	return vec4(%0.9f, %0.9f, %0.9f, %0.9f)
 }
-`, float64(r)/0xff, float64(g)/0xff, float64(b)/0xff, float64(a)/0xff))
+`, float64(r)/0xff, float64(g)/0xff, float64(b)/0xff, float64(a)/0xff)))
+	if err != nil {
+		panic(err)
+	}
+	return ir
 }
 
 // ShaderProgramImages returns a shader source to render the frambuffer with the given images.
-func ShaderProgramImages(numImages int) []byte {
+func ShaderProgramImages(numImages int) *shaderir.Program {
 	if numImages <= 0 {
 		panic("testing: numImages must be >= 1")
 	}
@@ -40,10 +47,14 @@ func ShaderProgramImages(numImages int) []byte {
 		exprs = append(exprs, fmt.Sprintf("imageSrc%dUnsafeAt(texCoord)", i))
 	}
 
-	return []byte(fmt.Sprintf(`package main
+	ir, err := graphics.CompileShader([]byte(fmt.Sprintf(`package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	return %s
 }
-`, strings.Join(exprs, " + ")))
+`, strings.Join(exprs, " + "))))
+	if err != nil {
+		panic(err)
+	}
+	return ir
 }

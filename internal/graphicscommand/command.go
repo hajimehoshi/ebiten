@@ -23,6 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
 // command represents a drawing command.
@@ -117,7 +118,7 @@ func mustUseDifferentVertexBuffer(nextNumVertexFloats, nextNumIndices int) bool 
 }
 
 // EnqueueDrawTrianglesCommand enqueues a drawing-image command.
-func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, color affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms map[string][]float32, evenOdd bool) {
+func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, color affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
 	if len(indices) > graphics.IndicesNum {
 		panic(fmt.Sprintf("graphicscommand: len(indices) must be <= graphics.IndicesNum but not at EnqueueDrawTrianglesCommand: len(indices): %d, graphics.IndicesNum: %d", len(indices), graphics.IndicesNum))
 	}
@@ -294,7 +295,7 @@ type drawTrianglesCommand struct {
 	dstRegion graphicsdriver.Region
 	srcRegion graphicsdriver.Region
 	shader    *Shader
-	uniforms  map[string][]float32
+	uniforms  [][]float32
 	evenOdd   bool
 }
 
@@ -392,7 +393,6 @@ func (c *drawTrianglesCommand) Exec(graphicsDriver graphicsdriver.Graphics, inde
 
 	var shaderID graphicsdriver.ShaderID = graphicsdriver.InvalidShaderID
 	var imgs [graphics.ShaderImageNum]graphicsdriver.ImageID
-	var us [][]float32
 	if c.shader != nil {
 		shaderID = c.shader.shader.ID()
 		for i, src := range c.srcs {
@@ -402,12 +402,11 @@ func (c *drawTrianglesCommand) Exec(graphicsDriver graphicsdriver.Graphics, inde
 			}
 			imgs[i] = src.image.ID()
 		}
-		us = c.shader.convertUniforms(c.uniforms)
 	} else {
 		imgs[0] = c.srcs[0].image.ID()
 	}
 
-	return graphicsDriver.DrawTriangles(c.dst.image.ID(), imgs, c.offsets, shaderID, c.nindices, indexOffset, c.mode, c.color, c.filter, c.address, c.dstRegion, c.srcRegion, us, c.evenOdd)
+	return graphicsDriver.DrawTriangles(c.dst.image.ID(), imgs, c.offsets, shaderID, c.nindices, indexOffset, c.mode, c.color, c.filter, c.address, c.dstRegion, c.srcRegion, c.uniforms, c.evenOdd)
 }
 
 func (c *drawTrianglesCommand) numVertices() int {
@@ -428,7 +427,7 @@ func (c *drawTrianglesCommand) addNumIndices(n int) {
 
 // CanMergeWithDrawTrianglesCommand returns a boolean value indicating whether the other drawTrianglesCommand can be merged
 // with the drawTrianglesCommand c.
-func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageNum]*Image, vertices []float32, color affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms map[string][]float32, evenOdd bool) bool {
+func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageNum]*Image, vertices []float32, color affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) bool {
 	if c.shader != shader {
 		return false
 	}
@@ -436,16 +435,12 @@ func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs
 		if len(c.uniforms) != len(uniforms) {
 			return false
 		}
-		for name, v0 := range c.uniforms {
-			v1, ok := uniforms[name]
-			if !ok {
+		for i := range c.uniforms {
+			if len(c.uniforms[i]) != len(uniforms[i]) {
 				return false
 			}
-			if len(v0) != len(v1) {
-				return false
-			}
-			for i := range v0 {
-				if v0[i] != v1[i] {
+			for j := range c.uniforms[i] {
+				if c.uniforms[i][j] != uniforms[i][j] {
 					return false
 				}
 			}
@@ -657,7 +652,7 @@ func (c *newScreenFramebufferImageCommand) Exec(graphicsDriver graphicsdriver.Gr
 // newShaderCommand is a command to create a shader.
 type newShaderCommand struct {
 	result *Shader
-	src    []byte
+	ir     *shaderir.Program
 }
 
 func (c *newShaderCommand) String() string {
@@ -666,18 +661,11 @@ func (c *newShaderCommand) String() string {
 
 // Exec executes a newShaderCommand.
 func (c *newShaderCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
-	ir, err := compileShader(c.src)
-	if err != nil {
-		return err
-	}
-
-	s, err := graphicsDriver.NewShader(ir)
+	s, err := graphicsDriver.NewShader(c.ir)
 	if err != nil {
 		return err
 	}
 	c.result.shader = s
-	c.result.uniformNames = ir.UniformNames
-	c.result.uniformTypes = ir.Uniforms
 	return nil
 }
 
