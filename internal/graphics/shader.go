@@ -99,6 +99,12 @@ func imageSrc%[1]dAt(pos vec2) vec4 {
 		step(__textureSourceRegionOrigin.y, pos.y) *
 		(1 - step(__textureSourceRegionOrigin.y + __textureSourceRegionSize.y, pos.y))
 }
+
+var __projectionMatrix mat4
+
+func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
+	return __projectionMatrix * vec4(position, 0, 1), texCoord, color
+}
 `, i, pos)
 	}
 }
@@ -107,12 +113,6 @@ func CompileShader(src []byte) (*shaderir.Program, error) {
 	var buf bytes.Buffer
 	buf.Write(src)
 	buf.WriteString(shaderSuffix)
-	buf.WriteString(`var __projectionMatrix mat4
-
-func __vertex(position vec2, texCoord vec2, color vec4) (vec4, vec2, vec4) {
-	return __projectionMatrix * vec4(position, 0, 1), texCoord, color
-}
-`)
 
 	fs := token.NewFileSet()
 	f, err := parser.ParseFile(fs, "", buf.Bytes(), parser.AllErrors)
