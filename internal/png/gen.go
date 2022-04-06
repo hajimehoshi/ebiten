@@ -59,6 +59,18 @@ func run() error {
 		return err
 	}
 
+	const prefix = "stdlib"
+
+	matches, err := filepath.Glob(prefix + "*.go")
+	if err != nil {
+		return err
+	}
+	for _, f := range matches {
+		if err := os.Remove(f); err != nil {
+			return err
+		}
+	}
+
 	for _, f := range files {
 		in, err := os.Open(filepath.Join(dir, f))
 		if err != nil {
@@ -66,7 +78,7 @@ func run() error {
 		}
 		defer in.Close()
 
-		out, err := os.Create("stdlib" + f)
+		out, err := os.Create(prefix + f)
 		if err != nil {
 			return err
 		}
