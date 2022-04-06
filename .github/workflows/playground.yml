@@ -21,10 +21,10 @@ jobs:
       - name: Download dependencies (vendor)
         run: go mod vendor
         
-      - name: Prepare zip file
-        run: mkdir public && zip -r public/static-go-playground-sources-latest.zip . -x '*.git*'
+      - name: Prepare zip file with all the required sources
+        run: mkdir public && zip -r public/sources-latest.zip . -x '*.git*'
         
-      - name: Publish the ready to use sources
+      - name: Publish to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
