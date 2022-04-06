@@ -1,0 +1,28 @@
+name: Steam
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: Prepare ebiten for testing it from the Static Go Playground
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+      
+      - name: Download dependencies (vendor)
+        run: go mod vendor
+        
+      - name: Publish an artifact ready to use
+        uses: actions/upload-artifact@v3
+        with:
+          name: static-go-playground-sources
+          path: .
