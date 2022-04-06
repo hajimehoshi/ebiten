@@ -25,37 +25,48 @@ import (
 	"go/token"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"golang.org/x/tools/go/ast/astutil"
 )
 
-func run() error {
-	// TODO: Use go/packages with specifying build tags so that stdlibfuzz can be avoided.
-	dir := filepath.Join(runtime.GOROOT(), "src", "image", "png")
+func pngDir() (string, error) {
+	dir, err := exec.Command("go", "list", "-f", "{{.Dir}}", "image/png").Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(dir)), nil
+}
 
-	files, err := ioutil.ReadDir(dir)
+func pngFiles() ([]string, error) {
+	files, err := exec.Command("go", "list", "-f", `{{join .GoFiles ","}}`, "image/png").Output()
+	if err != nil {
+		return nil, err
+	}
+	return strings.Split(strings.TrimSpace(string(files)), ","), nil
+}
+
+func run() error {
+	dir, err := pngDir()
+	if err != nil {
+		return err
+	}
+
+	files, err := pngFiles()
 	if err != nil {
 		return err
 	}
 
 	for _, f := range files {
-		if f.IsDir() {
-			continue
-		}
-		if strings.HasSuffix(f.Name(), "_test.go") {
-			continue
-		}
-
-		in, err := os.Open(filepath.Join(dir, f.Name()))
+		in, err := os.Open(filepath.Join(dir, f))
 		if err != nil {
 			return err
 		}
 		defer in.Close()
 
-		out, err := os.Create("stdlib" + f.Name())
+		out, err := os.Create("stdlib" + f)
 		if err != nil {
 			return err
 		}
