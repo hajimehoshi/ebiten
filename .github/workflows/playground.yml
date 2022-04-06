@@ -1,4 +1,4 @@
-name: Steam
+name: Playground
 
 on: [push, pull_request]
 
@@ -21,8 +21,11 @@ jobs:
       - name: Download dependencies (vendor)
         run: go mod vendor
         
-      - name: Publish an artifact ready to use
-        uses: actions/upload-artifact@v3
+      - name: Prepare zip file
+        run: mkdir public && zip -r public/static-go-playground-sources-latest.zip . -x .git public
+        
+      - name: Publish the ready to use sources
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          name: static-go-playground-sources
-          path: .
+          publish_dir: ./public
+          # keep_files: true
