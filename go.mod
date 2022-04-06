@@ -14,6 +14,6 @@ require (
 	golang.org/x/image v0.0.0-20210628002857-a66eb6448b8d
 	golang.org/x/mobile v0.0.0-20210902104108-5d9a33257ab5
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210917161153-d61c044b1678
-	golang.org/x/tools v0.1.6
+	golang.org/x/sys v0.0.0-20211019181941-9d821ace8654
+	golang.org/x/tools v0.1.10
 )
