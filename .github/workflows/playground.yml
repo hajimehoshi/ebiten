@@ -22,10 +22,11 @@ jobs:
         run: go mod vendor
         
       - name: Prepare zip file
-        run: mkdir public && zip -r public/static-go-playground-sources-latest.zip . -x .git public
+        run: mkdir public && zip -r public/static-go-playground-sources-latest.zip . -x '*.git*'
         
       - name: Publish the ready to use sources
         uses: peaceiris/actions-gh-pages@v3
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./public
           # keep_files: true
