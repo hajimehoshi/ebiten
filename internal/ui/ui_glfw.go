@@ -54,12 +54,9 @@ type userInterfaceImpl struct {
 	title   string
 	window  *glfw.Window
 
-	// windowWidthInDIP and windowHeightInDIP represents a window size.
-	// The units are device-independent pixels.
 	windowWidthInDIP  int
 	windowHeightInDIP int
 
-	// The units are device-independent pixels.
 	minWindowWidthInDIP  int
 	minWindowHeightInDIP int
 	maxWindowWidthInDIP  int
