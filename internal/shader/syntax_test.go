@@ -1307,3 +1307,47 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		t.Errorf("error must be non-nil but was nil")
 	}
 }
+
+// Issue #2032
+func TestSyntaxTypeFuncCall(t *testing.T) {
+	if _, err := compileToIR([]byte(`package main
+
+func Foo(x vec2) {
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	Foo(0)
+	return color
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Foo(x vec2, y vec3) {
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	Foo(0, 1)
+	return color
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Foo(x vec2, y vec3) {
+}
+
+func Bar() (int, int) {
+	return 0, 1
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	Foo(Bar())
+	return color
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+}

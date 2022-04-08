@@ -444,6 +444,11 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 					return nil, nil, nil, false
 				}
 			}
+
+			if !canAssign(&args[i], &p, &argts[i]) {
+				cs.addError(e.Pos(), fmt.Sprintf("cannot use type %s as type %s in argument", argts[i].String(), p.String()))
+				return nil, nil, nil, false
+			}
 		}
 
 		var outParams []int
