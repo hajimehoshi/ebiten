@@ -394,11 +394,10 @@ func (u *userInterfaceImpl) origWindowPosByOS() (int, int, bool) {
 	if !u.isNativeFullscreen() {
 		return invalidPos, invalidPos, true
 	}
-	m := u.currentMonitor()
 	var cx, cy C.int
 	C.windowOriginalPosition(C.uintptr_t(u.window.GetCocoaWindow()), &cx, &cy)
-	x := int(u.dipFromGLFWPixel(float64(cx), m))
-	y := int(u.dipFromGLFWPixel(float64(flipY(int(cy))), m)) - u.windowHeightInDIP
+	x := int(cx)
+	y := flipY(int(cy)) - u.windowHeightInDIP
 	return x, y, true
 }
 
@@ -406,9 +405,8 @@ func (u *userInterfaceImpl) setOrigWindowPosByOS(x, y int) bool {
 	if !u.isNativeFullscreen() {
 		return true
 	}
-	m := u.currentMonitor()
-	cx := C.int(u.dipToGLFWPixel(float64(x), m))
-	cy := C.int(flipY(int(u.dipToGLFWPixel(float64(y+u.windowHeightInDIP), m))))
+	cx := C.int(x)
+	cy := C.int(flipY(y + u.windowHeightInDIP))
 	C.setWindowOriginalPosition(C.uintptr_t(u.window.GetCocoaWindow()), cx, cy)
 	return true
 }
