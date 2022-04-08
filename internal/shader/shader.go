@@ -336,6 +336,7 @@ func (cs *compileState) parseDecl(b *block, d ast.Decl) ([]shaderir.Stmt, bool) 
 				if !ok {
 					return nil, false
 				}
+
 				stmts = append(stmts, ss...)
 				if b == &cs.global {
 					// TODO: Should rhs be ignored?
@@ -473,7 +474,7 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 
 			init := vs.Values[i]
 
-			es, origts, ss, ok := s.parseExpr(block, init, true)
+			es, rts, ss, ok := s.parseExpr(block, init, true)
 			if !ok {
 				return nil, nil, nil, false
 			}
@@ -481,7 +482,7 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 			if t.Main == shaderir.None {
 				ts, ok := s.functionReturnTypes(block, init)
 				if !ok {
-					ts = origts
+					ts = rts
 				}
 				if len(ts) > 1 {
 					s.addError(vs.Pos(), fmt.Sprintf("the numbers of lhs and rhs don't match"))
@@ -495,6 +496,12 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 					es[0].ConstType = shaderir.ConstTypeInt
 				case shaderir.Float:
 					es[0].ConstType = shaderir.ConstTypeFloat
+				}
+			}
+
+			for i, rt := range rts {
+				if !canAssign(&es[i], &t, &rt) {
+					s.addError(vs.Pos(), fmt.Sprintf("cannot use type %s as type %s in variable declaration", rt.String(), t.String()))
 				}
 			}
 
@@ -526,8 +533,13 @@ func (s *compileState) parseVariable(block *block, vs *ast.ValueSpec) ([]variabl
 					}
 				}
 			}
-			if len(inittypes) > 0 {
+
+			if t.Main == shaderir.None && len(inittypes) > 0 {
 				t = inittypes[i]
+			}
+
+			if !canAssign(&initexprs[i], &t, &inittypes[i]) {
+				s.addError(vs.Pos(), fmt.Sprintf("cannot use type %s as type %s in variable declaration", inittypes[i].String(), t.String()))
 			}
 
 			// Add the same initexprs for each variable.

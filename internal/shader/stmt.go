@@ -562,7 +562,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 	for i, e := range lhs {
 		if len(lhs) == len(rhs) {
 			// Prase RHS first for the order of the statements.
-			r, origts, ss, ok := cs.parseExpr(block, rhs[i], true)
+			r, rts, ss, ok := cs.parseExpr(block, rhs[i], true)
 			if !ok {
 				return nil, false
 			}
@@ -580,7 +580,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				}
 				ts, ok := cs.functionReturnTypes(block, rhs[i])
 				if !ok {
-					ts = origts
+					ts = rts
 				}
 				if len(ts) > 1 {
 					cs.addError(pos, fmt.Sprintf("single-value context and multiple-value context cannot be mixed"))
@@ -599,7 +599,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				return nil, false
 			}
 
-			l, _, ss, ok := cs.parseExpr(block, lhs[i], false)
+			l, lts, ss, ok := cs.parseExpr(block, lhs[i], false)
 			if !ok {
 				return nil, false
 			}
@@ -646,6 +646,13 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				}
 			}
 
+			for i := range lts {
+				if !canAssign(&r[i], &lts[i], &rts[i]) {
+					cs.addError(pos, fmt.Sprintf("cannot use type %s as type %s in variable declaration", rts[i].String(), lts[i].String()))
+					return nil, false
+				}
+			}
+
 			if len(lhs) == 1 {
 				stmts = append(stmts, shaderir.Stmt{
 					Type:  shaderir.Assign,
@@ -653,7 +660,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				})
 			} else {
 				// For variable swapping, use temporary variables.
-				t := origts[0]
+				t := rts[0]
 				if t.Main == shaderir.None {
 					t = toDefaultType(r[0].Const)
 				}
@@ -716,7 +723,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				block.addNamedLocalVariable(name, t, e.Pos())
 			}
 
-			l, _, ss, ok := cs.parseExpr(block, lhs[i], false)
+			l, lts, ss, ok := cs.parseExpr(block, lhs[i], false)
 			if !ok {
 				return nil, false
 			}
@@ -726,6 +733,13 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				continue
 			}
 			allblank = false
+
+			for i, lt := range lts {
+				if !canAssign(&rhsExprs[i], &lt, &rhsTypes[i]) {
+					cs.addError(pos, fmt.Sprintf("cannot use type %s as type %s in variable declaration", rhsTypes[i].String(), lt.String()))
+					return nil, false
+				}
+			}
 
 			stmts = append(stmts, shaderir.Stmt{
 				Type:  shaderir.Assign,
@@ -753,4 +767,14 @@ func toDefaultType(v gconstant.Value) shaderir.Type {
 	}
 	// TODO: Should this be an error?
 	return shaderir.Type{}
+}
+
+func canAssign(re *shaderir.Expr, lt *shaderir.Type, rt *shaderir.Type) bool {
+	if lt.Equal(rt) {
+		return true
+	}
+	if re.Type == shaderir.NumberExpr && (lt.Main == shaderir.Float || lt.Main == shaderir.Int || lt.Main == shaderir.Bool) {
+		return true
+	}
+	return false
 }

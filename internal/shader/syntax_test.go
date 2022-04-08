@@ -1183,3 +1183,127 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		t.Error(err)
 	}
 }
+
+// Issue #1972
+func TestSyntaxType(t *testing.T) {
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var x vec2 = vec3(0)
+	_ = x
+	return color
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var x, y vec2 = vec2(0), vec3(0)
+	_, _ = x, y
+	return color
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var x vec2
+	x = vec3(0)
+	_ = x
+	return color
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var x, y vec2
+	x, y = vec2(0), vec3(0)
+	_ = x
+	_ = y
+	return color
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var x vec2
+	x = 0
+	_ = x
+	return color
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Foo() (vec3, vec3) {
+	return vec3(0), vec3(1)
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var x, y vec2 = Foo()
+	_ = x
+	_ = y
+	return color
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Foo() (vec3, vec3) {
+	return vec3(0), vec3(1)
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var x, y vec2
+	x, y = Foo()
+	_ = x
+	_ = y
+	return color
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+}
+
+// Issue #1972
+func TestSyntaxTypeBlankVar(t *testing.T) {
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var _ vec2 = vec3(0)
+	return color
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var _, _ vec2 = vec2(0), vec3(0)
+	return color
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Foo() (vec3, vec3) {
+	return vec3(0), vec3(1)
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var _, _ vec2 = Foo()
+	return color
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+}
