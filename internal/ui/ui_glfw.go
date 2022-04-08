@@ -63,8 +63,8 @@ type userInterfaceImpl struct {
 	maxWindowHeightInDIP int
 
 	running              uint32
-	origPosX             int
-	origPosY             int
+	origWindowPosX       int
+	origWindowPosY       int
 	runnableOnUnfocused  bool
 	fpsMode              FPSModeType
 	iconImages           []image.Image
@@ -130,8 +130,8 @@ func init() {
 		minWindowHeightInDIP:     glfw.DontCare,
 		maxWindowWidthInDIP:      glfw.DontCare,
 		maxWindowHeightInDIP:     glfw.DontCare,
-		origPosX:                 invalidPos,
-		origPosY:                 invalidPos,
+		origWindowPosX:           invalidPos,
+		origWindowPosY:           invalidPos,
 		initCursorMode:           CursorModeVisible,
 		initWindowDecorated:      true,
 		initWindowPositionXInDIP: invalidPos,
@@ -1238,8 +1238,8 @@ func (u *userInterfaceImpl) minimumWindowWidth() int {
 
 func (u *userInterfaceImpl) setWindowSizeInDIPImpl(width, height int, fullscreen bool) {
 	if fullscreen {
-		if x, y := u.origPos(); x == invalidPos || y == invalidPos {
-			u.setOrigPos(u.window.GetPos())
+		if x, y := u.origWindowPos(); x == invalidPos || y == invalidPos {
+			u.setOrigWindowPos(u.window.GetPos())
 		}
 
 		if u.isNativeFullscreenAvailable() {
@@ -1274,7 +1274,7 @@ func (u *userInterfaceImpl) setWindowSizeInDIPImpl(width, height int, fullscreen
 			u.swapBuffers()
 		}
 
-		if x, y := u.origPos(); x != invalidPos && y != invalidPos {
+		if x, y := u.origWindowPos(); x != invalidPos && y != invalidPos {
 			u.window.SetPos(x, y)
 			// Dirty hack for macOS (#703). Rendering doesn't work correctly with one SetPos, but
 			// work with two or more SetPos.
@@ -1282,7 +1282,7 @@ func (u *userInterfaceImpl) setWindowSizeInDIPImpl(width, height int, fullscreen
 				u.window.SetPos(x+1, y)
 				u.window.SetPos(x, y)
 			}
-			u.setOrigPos(invalidPos, invalidPos)
+			u.setOrigWindowPos(invalidPos, invalidPos)
 		}
 
 		// Set the window size after the position. The order matters.
@@ -1561,7 +1561,7 @@ func (u *userInterfaceImpl) setWindowPositionInDIP(x, y int, monitor *glfw.Monit
 	xf := u.dipToGLFWPixel(float64(x), monitor)
 	yf := u.dipToGLFWPixel(float64(y), monitor)
 	if x, y := u.adjustWindowPosition(mx+int(xf), my+int(yf), monitor); u.isFullscreen() {
-		u.setOrigPos(x, y)
+		u.setOrigWindowPos(x, y)
 	} else {
 		u.window.SetPos(x, y)
 	}
@@ -1579,21 +1579,21 @@ func (u *userInterfaceImpl) setWindowTitle(title string) {
 	u.window.SetTitle(title)
 }
 
-func (u *userInterfaceImpl) origPos() (int, int) {
-	if x, y, ok := u.origPosByOS(); ok {
+func (u *userInterfaceImpl) origWindowPos() (int, int) {
+	if x, y, ok := u.origWindowPosByOS(); ok {
 		return x, y
 	}
-	return u.origPosX, u.origPosY
+	return u.origWindowPosX, u.origWindowPosY
 }
 
-func (u *userInterfaceImpl) setOrigPos(x, y int) {
+func (u *userInterfaceImpl) setOrigWindowPos(x, y int) {
 	// TODO: The original position should be updated at a 'PosCallback'.
 
-	if u.setOrigPosByOS(x, y) {
+	if u.setOrigWindowPosByOS(x, y) {
 		return
 	}
-	u.origPosX = x
-	u.origPosY = y
+	u.origWindowPosX = x
+	u.origWindowPosY = y
 }
 
 // forceToRefreshIfNeeded forces to refresh the framebuffer by resizing the window quickly.

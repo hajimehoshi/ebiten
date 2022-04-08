@@ -390,7 +390,7 @@ func initializeWindowAfterCreation(w *glfw.Window) {
 	C.initializeWindow(C.uintptr_t(w.GetCocoaWindow()))
 }
 
-func (u *userInterfaceImpl) origPosByOS() (int, int, bool) {
+func (u *userInterfaceImpl) origWindowPosByOS() (int, int, bool) {
 	if !u.isNativeFullscreen() {
 		return invalidPos, invalidPos, true
 	}
@@ -402,7 +402,7 @@ func (u *userInterfaceImpl) origPosByOS() (int, int, bool) {
 	return x, y, true
 }
 
-func (u *userInterfaceImpl) setOrigPosByOS(x, y int) bool {
+func (u *userInterfaceImpl) setOrigWindowPosByOS(x, y int) bool {
 	if !u.isNativeFullscreen() {
 		return true
 	}

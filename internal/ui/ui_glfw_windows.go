@@ -244,10 +244,10 @@ func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) 
 func initializeWindowAfterCreation(w *glfw.Window) {
 }
 
-func (u *userInterfaceImpl) origPosByOS() (int, int, bool) {
+func (u *userInterfaceImpl) origWindowPosByOS() (int, int, bool) {
 	return 0, 0, false
 }
 
-func (u *userInterfaceImpl) setOrigPosByOS(x, y int) bool {
+func (u *userInterfaceImpl) setOrigWindowPosByOS(x, y int) bool {
 	return false
 }

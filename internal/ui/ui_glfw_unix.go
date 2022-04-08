@@ -233,10 +233,10 @@ func initializeWindowAfterCreation(w *glfw.Window) {
 	// For more details, see the discussion in #1829.
 }
 
-func (u *userInterfaceImpl) origPosByOS() (int, int, bool) {
+func (u *userInterfaceImpl) origWindowPosByOS() (int, int, bool) {
 	return 0, 0, false
 }
 
-func (u *userInterfaceImpl) setOrigPosByOS(x, y int) bool {
+func (u *userInterfaceImpl) setOrigWindowPosByOS(x, y int) bool {
 	return false
 }
