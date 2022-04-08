@@ -701,7 +701,7 @@ func (u *userInterfaceImpl) registerWindowSetSizeCallback() {
 			if u.window.GetAttrib(glfw.Resizable) == glfw.False {
 				return
 			}
-			if u.isFullscreen() && !u.isNativeFullscreen() {
+			if u.isFullscreen() {
 				return
 			}
 
