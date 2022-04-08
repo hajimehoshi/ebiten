@@ -201,6 +201,7 @@ func (w *Window) Size() (int, int) {
 	}
 	ww, wh := 0, 0
 	w.ui.t.Call(func() {
+		// Unlike origWindowPos, windowWidth/HeightInDPI is always updated via the callback.
 		ww = w.ui.windowWidthInDIP
 		wh = w.ui.windowHeightInDIP
 	})
@@ -215,6 +216,7 @@ func (w *Window) SetSize(width, height int) {
 	w.ui.t.Call(func() {
 		// When a window is a native fullscreen, forcing to resize the window might leave unexpected image lags.
 		// Forbid this.
+		// TODO: Remove this condition (#1590).
 		if w.ui.isNativeFullscreen() {
 			return
 		}
