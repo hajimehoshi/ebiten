@@ -30,6 +30,16 @@ const (
 	_ABS_CNT   = _ABS_MAX + 1
 
 	_BTN_MISC = 0x100
+	_BTN_0    = 0x100
+	_BTN_1    = 0x101
+	_BTN_2    = 0x102
+	_BTN_3    = 0x103
+	_BTN_4    = 0x104
+	_BTN_5    = 0x105
+	_BTN_6    = 0x106
+	_BTN_7    = 0x107
+	_BTN_8    = 0x108
+	_BTN_9    = 0x109
 
 	_IOC_NONE  = 0
 	_IOC_WRITE = 1

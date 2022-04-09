@@ -181,13 +181,27 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 	var axisCount int
 	var buttonCount int
 	var hatCount int
+	var necessaryButtonExist bool
 	for code := _BTN_MISC; code < _KEY_CNT; code++ {
 		if !isBitSet(keyBits, code) {
 			continue
 		}
 		n.keyMap[code-_BTN_MISC] = buttonCount
+		if _BTN_0 <= code && code <= _BTN_9 {
+			necessaryButtonExist = true
+		}
 		buttonCount++
 	}
+
+	// If the device doesn't have any necessary bottons, this might not be a gamepad (#2039).
+	// Remove this.
+	if !necessaryButtonExist {
+		n.close()
+		gamepads.remove(func(gamepad *Gamepad) bool {
+			return gamepad == gp
+		})
+	}
+
 	for code := 0; code < _ABS_CNT; code++ {
 		n.absMap[code] = -1
 		if !isBitSet(absBits, code) {
