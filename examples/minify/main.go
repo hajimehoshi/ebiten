@@ -66,11 +66,6 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	s := 1.5 / math.Pow(1.01, float64(g.counter))
-	msg := fmt.Sprintf(`Minifying images (Nearest filter vs Linear filter):
-Press R to rotate the images.
-Press C to clip the images.
-Scale: %0.2f`, s)
-	ebitenutil.DebugPrint(screen, msg)
 
 	clippedGophersImage := gophersImage.SubImage(image.Rect(100, 100, 200, 200)).(*ebiten.Image)
 	for i, f := range []ebiten.Filter{ebiten.FilterNearest, ebiten.FilterLinear} {
@@ -91,6 +86,12 @@ Scale: %0.2f`, s)
 			screen.DrawImage(gophersImage, op)
 		}
 	}
+
+	msg := fmt.Sprintf(`Minifying images (Nearest filter vs Linear filter):
+Press R to rotate the images.
+Press C to clip the images.
+Scale: %0.2f`, s)
+	ebitenutil.DebugPrint(screen, msg)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
