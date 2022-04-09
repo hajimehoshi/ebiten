@@ -22,7 +22,6 @@ import (
 	"image/color"
 	"log"
 	"math/rand"
-	"strings"
 	"time"
 
 	"golang.org/x/image/font"
@@ -113,6 +112,9 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Adjust the line height.
+	mplusBigFont = text.FaceWithLineHeight(mplusBigFont, 54)
 }
 
 func init() {
@@ -121,19 +123,19 @@ func init() {
 
 type Game struct {
 	counter        int
-	kanjiText      []rune
+	kanjiText      string
 	kanjiTextColor color.RGBA
 }
 
 func (g *Game) Update() error {
 	// Change the text color for each second.
 	if g.counter%ebiten.MaxTPS() == 0 {
-		g.kanjiText = nil
+		g.kanjiText = ""
 		for j := 0; j < 4; j++ {
 			for i := 0; i < 8; i++ {
-				g.kanjiText = append(g.kanjiText, jaKanjis[rand.Intn(len(jaKanjis))])
+				g.kanjiText += string(jaKanjis[rand.Intn(len(jaKanjis))])
 			}
-			g.kanjiText = append(g.kanjiText, '\n')
+			g.kanjiText += "\n"
 		}
 
 		g.kanjiTextColor.R = 0x80 + uint8(rand.Intn(0x7f))
@@ -156,9 +158,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	text.Draw(screen, sampleText, mplusNormalFont, x, 80, color.White)
 
 	// Draw Kanji text lines
-	for i, line := range strings.Split(string(g.kanjiText), "\n") {
-		text.Draw(screen, line, mplusBigFont, x, 160+54*i, g.kanjiTextColor)
-	}
+	text.Draw(screen, g.kanjiText, mplusBigFont, x, 160, g.kanjiTextColor)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
