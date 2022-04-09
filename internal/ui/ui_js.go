@@ -129,7 +129,7 @@ func (u *userInterfaceImpl) SetFullscreen(fullscreen bool) {
 	if !document.Truthy() {
 		return
 	}
-	if fullscreen == document.Get("fullscreenElement").Truthy() {
+	if fullscreen == document.Get("fullscreenElement").Truthy() || fullscreen == document.Get("webkitFullscreenElement").Truthy() {
 		return
 	}
 	if fullscreen {
