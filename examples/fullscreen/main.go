@@ -26,6 +26,7 @@ import (
 	_ "image/jpeg"
 	"log"
 	"math"
+	"runtime"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
@@ -78,6 +79,9 @@ type Game struct {
 func (g *Game) Update() error {
 	g.count++
 
+	if runtime.GOOS == "js" && ebiten.IsKeyPressed(ebiten.KeyF) {
+		ebiten.SetFullscreen(true)
+	}
 	if ebiten.IsKeyPressed(ebiten.KeyQ) {
 		return regularTermination
 	}
@@ -99,16 +103,15 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(gophersImage, op)
 
 	fw, fh := ebiten.ScreenSizeInFullscreen()
-	msgs := []string{
-		"This is an example of the finest fullscreen. Press Q to quit.",
-		fmt.Sprintf("Screen size in fullscreen: %d, %d", fw, fh),
-		fmt.Sprintf("Game's screen size: %d, %d", sw, sh),
-		fmt.Sprintf("Device scale factor: %0.2f", scale),
+	msg := "This is an example of the finest fullscreen. Press Q to quit.\n"
+	if runtime.GOOS == "js" {
+		msg += "Press F to enter fullscreen (again).\n"
 	}
+	msg += fmt.Sprintf("Screen size in fullscreen: %d, %d\n", fw, fh)
+	msg += fmt.Sprintf("Game's screen size: %d, %d\n", sw, sh)
+	msg += fmt.Sprintf("Device scale factor: %0.2f\n", scale)
 
-	for i, msg := range msgs {
-		text.Draw(screen, msg, mplusFont, int(50*scale), int(50+float64(i)*16*scale), color.White)
-	}
+	text.Draw(screen, msg, mplusFont, int(50*scale), 50, color.White)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
