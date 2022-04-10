@@ -1478,6 +1478,7 @@ func (u *userInterfaceImpl) restoreWindow() {
 	if runtime.GOOS != "darwin" {
 		for u.window.GetAttrib(glfw.Maximized) == glfw.True || u.window.GetAttrib(glfw.Iconified) == glfw.True {
 			glfw.PollEvents()
+			time.Sleep(time.Second / 60)
 		}
 	}
 
