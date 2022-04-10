@@ -38,7 +38,7 @@ import (
 const (
 	screenWidth  = 640
 	screenHeight = 480
-	sampleRate   = 22050
+	sampleRate   = 32000
 )
 
 var ebitenImage *ebiten.Image
