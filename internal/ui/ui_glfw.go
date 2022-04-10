@@ -936,6 +936,9 @@ func (u *userInterfaceImpl) updateSize() (float64, float64) {
 			w = u.dipFromGLFWMonitorPixel(float64(ww), m)
 			h = u.dipFromGLFWMonitorPixel(float64(wh), m)
 		}
+	} else if u.window.GetAttrib(glfw.Iconified) == glfw.True {
+		w = float64(u.windowWidthInDIP)
+		h = float64(u.windowHeightInDIP)
 	} else {
 		// Instead of u.windowWidthInDIP and u.windowHeightInDIP, use the actual window size
 		// here. On Windows, the specified size at SetSize and the actual window size might
