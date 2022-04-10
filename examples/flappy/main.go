@@ -179,7 +179,7 @@ func (g *Game) init() {
 		g.audioContext = audio.NewContext(48000)
 	}
 
-	jumpD, err := vorbis.Decode(g.audioContext, bytes.NewReader(raudio.Jump_ogg))
+	jumpD, err := vorbis.DecodeWithSampleRate(48000, bytes.NewReader(raudio.Jump_ogg))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -188,7 +188,7 @@ func (g *Game) init() {
 		log.Fatal(err)
 	}
 
-	jabD, err := wav.Decode(g.audioContext, bytes.NewReader(raudio.Jab_wav))
+	jabD, err := wav.DecodeWithSampleRate(48000, bytes.NewReader(raudio.Jab_wav))
 	if err != nil {
 		log.Fatal(err)
 	}
