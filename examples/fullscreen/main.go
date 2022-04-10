@@ -82,7 +82,7 @@ func (g *Game) Update() error {
 	if runtime.GOOS == "js" && ebiten.IsKeyPressed(ebiten.KeyF) {
 		ebiten.SetFullscreen(true)
 	}
-	if ebiten.IsKeyPressed(ebiten.KeyQ) {
+	if runtime.GOOS != "js" && ebiten.IsKeyPressed(ebiten.KeyQ) {
 		return regularTermination
 	}
 	return nil
@@ -103,9 +103,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(gophersImage, op)
 
 	fw, fh := ebiten.ScreenSizeInFullscreen()
-	msg := "This is an example of the finest fullscreen. Press Q to quit.\n"
+	msg := "This is an example of the finest fullscreen.\n"
 	if runtime.GOOS == "js" {
 		msg += "Press F to enter fullscreen (again).\n"
+	} else {
+		msg += "Press Q to quit.\n"
 	}
 	msg += fmt.Sprintf("Screen size in fullscreen: %d, %d\n", fw, fh)
 	msg += fmt.Sprintf("Game's screen size: %d, %d\n", sw, sh)
