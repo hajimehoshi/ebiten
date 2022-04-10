@@ -49,7 +49,7 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	if !g.windowClosingHandled {
-		ebitenutil.DebugPrint(screen, "Try to close this window.")
+		ebitenutil.DebugPrint(screen, "Try to close this window. This works only on desktops.")
 		return
 	}
 	ebitenutil.DebugPrint(screen, "Do you really want to close this window? [y/n]")
