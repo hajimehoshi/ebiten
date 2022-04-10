@@ -759,6 +759,9 @@ func (u *userInterfaceImpl) registerWindowFramebufferSizeCallback() {
 			if u.isFullscreen() {
 				return
 			}
+			if u.window.GetAttrib(glfw.Iconified) == glfw.True {
+				return
+			}
 
 			// The framebuffer size is always scaled by the device scale factor (#1975).
 			// See also the implementation in uiContext.updateOffscreen.
