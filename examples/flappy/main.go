@@ -205,7 +205,7 @@ func (g *Game) isKeyJustPressed() bool {
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		return true
 	}
-	g.touchIDs = inpututil.AppendJustPressedTouchIDs(g.touchIDs)
+	g.touchIDs = inpututil.AppendJustPressedTouchIDs(g.touchIDs[:0])
 	if len(g.touchIDs) > 0 {
 		return true
 	}
