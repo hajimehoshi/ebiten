@@ -11,8 +11,8 @@ github.com/hajimehoshi/go-mp3 v0.3.3 h1:cWnfRdpye2m9ElSoVqneYRcpt/l3ijttgjMeQh+r
 github.com/hajimehoshi/go-mp3 v0.3.3/go.mod h1:qMJj/CSDxx6CGHiZeCgbiq2DSUkbK0UbtXShQcnfyMM=
 github.com/hajimehoshi/oto v0.6.1 h1:7cJz/zRQV4aJvMSSRqzN2TImoVVMpE0BCY4nrNJaDOM=
 github.com/hajimehoshi/oto v0.6.1/go.mod h1:0QXGEkbuJRohbJaxr7ZQSxnju7hEhseiPx2hrh6raOI=
-github.com/hajimehoshi/oto/v2 v2.1.0-alpha.9 h1:CKrJydOt5Ogs1fw75JBj2IoAbq5T5tSodiHyBdsGHTE=
-github.com/hajimehoshi/oto/v2 v2.1.0-alpha.9/go.mod h1:rUKQmwMkqmRxe+IAof9+tuYA2ofm8cAWXFmSfzDN8vQ=
+github.com/hajimehoshi/oto/v2 v2.1.0-alpha.9.0.20220411015531-ede2e821abf6 h1:NznT17jU/O1GWMQJjGusv7G3LDP2z54OC0mHG2xe9QQ=
+github.com/hajimehoshi/oto/v2 v2.1.0-alpha.9.0.20220411015531-ede2e821abf6/go.mod h1:9i0oYbpJ8BhVGkXDKdXKfFthX1JUNfXjeTp944W8TGM=
 github.com/jakecoffman/cp v1.1.0 h1:bhKvCNbAddYegYHSV5abG3G23vZdsISgqXa4X/lK8Oo=
 github.com/jakecoffman/cp v1.1.0/go.mod h1:JjY/Fp6d8E1CHnu74gWNnU0+b9VzEdUVPoJxg2PsTQg=
 github.com/jezek/xgb v1.0.0 h1:s2rRzAV8KQRlpsYA7Uyxoidv1nodMF0m6dIG6FhhVLQ=
@@ -68,8 +68,8 @@ golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1/go.mod h1:oPkhp1MJrh7nUepCBc
 golang.org/x/sys v0.0.0-20210616045830-e2b7044e8c71/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20210809222454-d867a43fc93e/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20211019181941-9d821ace8654/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
-golang.org/x/sys v0.0.0-20220405210540-1e041c57c461 h1:kHVeDEnfKn3T238CvrUcz6KeEsFHVaKh4kMTt6Wsysg=
-golang.org/x/sys v0.0.0-20220405210540-1e041c57c461/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.0.0-20220408201424-a24fb2fb8a0f h1:8w7RhxzTVgUzw/AH/9mUV5q0vMgy40SQRursCcfmkCw=
+golang.org/x/sys v0.0.0-20220408201424-a24fb2fb8a0f/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.3/go.mod h1:5Zoc/QRtKVWzQhOtBMvqHzDpF6irO9z98xDceosuGiQ=
