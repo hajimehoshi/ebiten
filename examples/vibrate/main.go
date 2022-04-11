@@ -38,7 +38,6 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
-	g.touchIDs = g.touchIDs[:0]
 	g.touchIDs = inpututil.AppendJustPressedTouchIDs(g.touchIDs[:0])
 	if len(g.touchIDs) > 0 {
 		g.touchCounter++
