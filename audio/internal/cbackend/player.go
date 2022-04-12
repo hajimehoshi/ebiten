@@ -128,7 +128,7 @@ type playerImpl struct {
 	context    *Context
 	src        io.Reader
 	volume     float64
-	err        atomicError
+	err        error
 	state      playerState
 	tmpbuf     []byte
 	buf        []byte
@@ -156,10 +156,10 @@ func (p *Player) Err() error {
 }
 
 func (p *playerImpl) Err() error {
-	if err := p.err.Load(); err != nil {
-		return err.(error)
-	}
-	return nil
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	return p.err
 }
 
 func (p *Player) Play() {
@@ -204,7 +204,7 @@ func (p *playerImpl) ensureTmpBuf() []byte {
 }
 
 func (p *playerImpl) playImpl() {
-	if p.err.Load() != nil {
+	if p.err != nil {
 		return
 	}
 	if p.state != playerPaused {
@@ -328,14 +328,11 @@ func (p *playerImpl) closeImpl() error {
 	p.m.Lock()
 
 	if p.state == playerClosed {
-		return nil
+		return p.err
 	}
 	p.state = playerClosed
 	p.buf = nil
-	if err := p.err.Load(); err != nil {
-		return err.(error)
-	}
-	return nil
+	return p.err
 }
 
 func (p *playerImpl) readBufferAndAdd(buf []float32) int {
@@ -387,7 +384,7 @@ func (p *playerImpl) readSourceToBuffer() {
 	p.m.Lock()
 	defer p.m.Unlock()
 
-	if p.err.Load() != nil {
+	if p.err != nil {
 		return
 	}
 	if p.state == playerClosed {
@@ -414,25 +411,6 @@ func (p *playerImpl) readSourceToBuffer() {
 }
 
 func (p *playerImpl) setErrorImpl(err error) {
-	p.err.TryStore(err)
+	p.err = err
 	p.closeImpl()
-}
-
-type atomicError struct {
-	err error
-	m   sync.Mutex
-}
-
-func (a *atomicError) TryStore(err error) {
-	a.m.Lock()
-	defer a.m.Unlock()
-	if a.err == nil {
-		a.err = err
-	}
-}
-
-func (a *atomicError) Load() error {
-	a.m.Lock()
-	defer a.m.Unlock()
-	return a.err
 }
