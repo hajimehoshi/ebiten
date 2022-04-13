@@ -29,6 +29,7 @@ var (
 
 	currentFPS  float64
 	currentTPS  float64
+	prevTPS     int64
 	lastUpdated int64
 	fpsCount    = 0
 	tpsCount    = 0
@@ -82,13 +83,14 @@ func calcCountFromTPS(tps int64, now int64) int {
 
 	// Detect whether the previous time is too old.
 	// Use either 5 ticks or 5/60 sec in the case when TPS is too big like 300 (#1444).
-	if diff > max(int64(time.Second)*5/tps, int64(time.Second)*5/60) {
+	if diff > max(int64(time.Second)*5/tps, int64(time.Second)*5/60) || prevTPS != tps {
 		// The previous time is too old.
 		// Let's force to sync the game time with the system clock.
 		syncWithSystemClock = true
 	} else {
 		count = int(diff * tps / int64(time.Second))
 	}
+	prevTPS = tps
 
 	// Stabilize the count.
 	// Without this adjustment, count can be unstable like 0, 2, 0, 2, ...
