@@ -34,13 +34,6 @@ const (
 	starsNum     = 1024
 )
 
-func abs(a int) int {
-	if a < 0 {
-		return -a
-	}
-	return a
-}
-
 type Star struct {
 	fromx, fromy, tox, toy, brightness float64
 }
