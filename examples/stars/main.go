@@ -34,13 +34,6 @@ const (
 	starsNum     = 1024
 )
 
-func abs(a int) int {
-	if a < 0 {
-		return -a
-	}
-	return a
-}
-
 type Star struct {
 	fromx, fromy, tox, toy, brightness float64
 }
@@ -68,11 +61,11 @@ func (s *Star) Update(x, y float64) {
 }
 
 func (s *Star) Draw(screen *ebiten.Image) {
-	color := color.RGBA{uint8(0xbb * s.brightness / 0xff),
-		uint8(0xdd * s.brightness / 0xff),
-		uint8(0xff * s.brightness / 0xff),
-		0xff}
-	ebitenutil.DrawLine(screen, s.fromx/scale, s.fromy/scale, s.tox/scale, s.toy/scale, color)
+	c := color.RGBA{R: uint8(0xbb * s.brightness / 0xff),
+		G: uint8(0xdd * s.brightness / 0xff),
+		B: uint8(0xff * s.brightness / 0xff),
+		A: 0xff}
+	ebitenutil.DrawLine(screen, s.fromx/scale, s.fromy/scale, s.tox/scale, s.toy/scale, c)
 }
 
 type Game struct {
