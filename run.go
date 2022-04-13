@@ -88,7 +88,7 @@ const DefaultTPS = ui.DefaultTPS
 //
 // CurrentFPS is concurrent-safe.
 func CurrentFPS() float64 {
-	return clock.CurrentFPS()
+	return clock.ActualFPS()
 }
 
 var (
@@ -426,7 +426,7 @@ func MaxTPS() int {
 //
 // CurrentTPS is concurrent-safe.
 func CurrentTPS() float64 {
-	return clock.CurrentTPS()
+	return clock.ActualTPS()
 }
 
 // SyncWithFPS is a special TPS value that means TPS syncs with FPS.

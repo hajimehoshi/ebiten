@@ -27,8 +27,8 @@ var (
 	// lastSystemTime indicates the logical time in the game, so this can be bigger than the curren time.
 	lastSystemTime int64
 
-	currentFPS  float64
-	currentTPS  float64
+	actualFPS   float64
+	actualTPS   float64
 	prevTPS     int64
 	lastUpdated int64
 	fpsCount    = 0
@@ -44,16 +44,16 @@ func init() {
 	lastUpdated = n
 }
 
-func CurrentFPS() float64 {
+func ActualFPS() float64 {
 	m.Lock()
-	v := currentFPS
+	v := actualFPS
 	m.Unlock()
 	return v
 }
 
-func CurrentTPS() float64 {
+func ActualTPS() float64 {
 	m.Lock()
-	v := currentTPS
+	v := actualTPS
 	m.Unlock()
 	return v
 }
@@ -120,8 +120,8 @@ func updateFPSAndTPS(now int64, count int) {
 	if time.Second > time.Duration(now-lastUpdated) {
 		return
 	}
-	currentFPS = float64(fpsCount) * float64(time.Second) / float64(now-lastUpdated)
-	currentTPS = float64(tpsCount) * float64(time.Second) / float64(now-lastUpdated)
+	actualFPS = float64(fpsCount) * float64(time.Second) / float64(now-lastUpdated)
+	actualTPS = float64(tpsCount) * float64(time.Second) / float64(now-lastUpdated)
 	lastUpdated = now
 	fpsCount = 0
 	tpsCount = 0
