@@ -27,6 +27,19 @@ type Game interface {
 	//
 	// Update updates only the game logic and Draw draws the screen.
 	//
+	// You can assume that Update is always called TPS-times per second (60 by default), and you can assume
+	// that the time delta between two Updates is always 1 / TPS [s] (1/60[s] by default). As Ebiten already
+	// adjusts the number of Update calls, you don't have to measure time deltas in Update by e.g. OS timers.
+	//
+	// An actual TPS is available by CurrentTPS(), and the result might slightly differ from your expected TPS,
+	// but still, your game logic should stick to the fixed time delta and should not rely on CurrentTPS() value.
+	// This API is for just measurement and/or debugging. In the long run, the number of Update calls should be
+	// adjusted based on the set TPS on average.
+	//
+	// An actual time detal between two Updates might be bigger than expected. In this case, your game's
+	// Update or Draw takes longer than they should. In this case, there is nothing other than optimizing
+	// your game implementation.
+	//
 	// In the first frame, it is ensured that Update is called at least once before Draw. You can use Update
 	// to initialize the game state.
 	//
@@ -37,6 +50,9 @@ type Game interface {
 	// Draw draws the game screen by one frame.
 	//
 	// The give argument represents a screen image. The updated content is adopted as the game screen.
+	//
+	// The frequency of Draw calls depends on the user's environment, especially the monitors refresh rate.
+	// For portability, you should not put your game logic in Draw in general.
 	Draw(screen *Image)
 
 	// Layout accepts a native outside size in device-independent pixels and returns the game's logical screen
