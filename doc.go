@@ -96,8 +96,8 @@
 // `ebitenexternaldll` works only for Windows.
 // The executable will require a DLL file at the working directory. Copy them from Ebiten repository's `internal/glfw`:
 //
-//   * `glfw_windows_386.dll` for Windows 386
-//   * `glfw_windows_amd64.dll` for Windows amd64
+//   * `glfw_windows_386.dll` for Windows GOARCH=386
+//   * `glfw_windows_amd64.dll` for Windows GOARCH=amd64
 //
 // The directory path can be obtained by Go commands. For example, on PowerShell:
 //
