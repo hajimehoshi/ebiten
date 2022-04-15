@@ -128,6 +128,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(ebitenImage, &op)
 
 	str := "Press <space> to toggle interpolation\n"
+	str += "Press <enter> to change TPS\n"
 	str += fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f\nInterpolation: %v", ebiten.CurrentTPS(), ebiten.CurrentFPS(), g.interpolation)
 	ebitenutil.DebugPrint(screen, str)
 }
