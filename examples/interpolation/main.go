@@ -36,20 +36,21 @@ const (
 	screenWidth  = 320
 	screenHeight = 240
 
-	tps          = 10
-	tickDuration = float64(time.Second / tps)
-
 	maxAngle      = 256
 	movementSpeed = 10
 )
 
 var (
 	ebitenImage *ebiten.Image
+
+	tps = []int{10, 30, 60}
 )
 
 type Game struct {
+	lastUpdate time.Time
+
+	tpsIndex      int
 	interpolation bool
-	lastUpdate    time.Time
 
 	x, y   float64
 	vx, vy float64
@@ -75,6 +76,10 @@ func (g *Game) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 		g.interpolation = !g.interpolation
 	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
+		g.tpsIndex = (g.tpsIndex + 1) % len(tps)
+		ebiten.SetMaxTPS(tps[g.tpsIndex])
+	}
 
 	g.x += g.vx
 	g.y += g.vy
@@ -97,9 +102,8 @@ func (g *Game) Update() error {
 		g.angle = 0
 	}
 
-	g.prevGeom = g.currGeom
-
 	w, h := ebitenImage.Size()
+	g.prevGeom = g.currGeom
 	g.currGeom.Reset()
 	g.currGeom.Translate(-float64(w)/2, -float64(h)/2)
 	g.currGeom.Rotate(2 * math.Pi * float64(g.angle) / maxAngle)
@@ -116,6 +120,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		GeoM: g.currGeom,
 	}
 	if g.interpolation {
+		tickDuration := float64(time.Second) / float64(tps[g.tpsIndex])
 		t := float64(time.Since(g.lastUpdate)) / tickDuration
 		op.GeoM = LerpGeoM(g.prevGeom, g.currGeom, t)
 	}
@@ -142,7 +147,7 @@ func main() {
 	}
 	ebitenImage = ebiten.NewImageFromImage(img)
 
-	ebiten.SetMaxTPS(tps)
+	ebiten.SetMaxTPS(tps[0])
 	ebiten.SetFPSMode(ebiten.FPSModeVsyncOn)
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
 	ebiten.SetWindowTitle("Interpolation (Ebiten Demo)")
