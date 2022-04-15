@@ -32,7 +32,7 @@ const (
 	// WindowResizingModeDisabled indicates the mode to disallow resizing the window by a user.
 	WindowResizingModeDisabled WindowResizingModeType = WindowResizingModeType(ui.WindowResizingModeDisabled)
 
-	// WindowResizingModeDisabled indicates the mode to disallow resizing the window,
+	// WindowResizingModeOnlyFullscreenEnabled indicates the mode to disallow resizing the window,
 	// but allow to make the window fullscreen by a user.
 	// This works only on macOS so far.
 	// On the other platforms, this is the same as WindowResizingModeDisabled.
