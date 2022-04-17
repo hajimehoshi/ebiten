@@ -835,12 +835,17 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 		return err
 	}
 
+	// Restore images first before other image manipulations (#2075).
+	if err := restorable.RestoreIfNeeded(graphicsDriver); err != nil {
+		return err
+	}
+
 	resolveDeferred()
 	if err := putImagesOnAtlas(graphicsDriver); err != nil {
 		return err
 	}
 
-	return restorable.RestoreIfNeeded(graphicsDriver)
+	return nil
 }
 
 func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) error {
