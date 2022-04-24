@@ -23,7 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-// Direction represents clockwise or countercolockwise.
+// Direction represents clockwise or counterclockwise.
 type Direction int
 
 const (
