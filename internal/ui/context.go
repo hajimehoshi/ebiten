@@ -79,7 +79,7 @@ func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsi
 	return nil
 }
 
-func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
+func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64) (err error) {
 	if err := theGlobalState.error(); err != nil {
 		return err
 	}
@@ -90,15 +90,28 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		return nil
 	}
 
-	// ForceUpdate can be invoked even if the context is not initialized yet (#1591).
-	if w, h := c.layoutGame(outsideWidth, outsideHeight, deviceScaleFactor); w == 0 || h == 0 {
-		return nil
-	}
-
 	debug.Logf("----\n")
 
 	if err := buffered.BeginFrame(graphicsDriver); err != nil {
 		return err
+	}
+	defer func() {
+		// All the vertices data are consumed at the end of the frame, and the data backend can be
+		// available after that. Until then, lock the vertices backend.
+		err1 := graphics.LockAndResetVertices(func() error {
+			if err := buffered.EndFrame(graphicsDriver); err != nil {
+				return err
+			}
+			return nil
+		})
+		if err == nil {
+			err = err1
+		}
+	}()
+
+	// ForceUpdate can be invoked even if the context is not initialized yet (#1591).
+	if w, h := c.layoutGame(outsideWidth, outsideHeight, deviceScaleFactor); w == 0 || h == 0 {
+		return nil
 	}
 
 	// Ensure that Update is called once before Draw so that Update can be used for initialization.
@@ -128,12 +141,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 
 	// All the vertices data are consumed at the end of the frame, and the data backend can be
 	// available after that. Until then, lock the vertices backend.
-	return graphics.LockAndResetVertices(func() error {
-		if err := buffered.EndFrame(graphicsDriver); err != nil {
-			return err
-		}
-		return nil
-	})
+	return nil
 }
 
 func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
