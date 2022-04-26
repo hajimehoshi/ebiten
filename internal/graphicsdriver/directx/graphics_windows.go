@@ -577,7 +577,7 @@ func (g *Graphics) End(present bool) error {
 		return err
 	}
 
-	// The screen image can be nil in the very first frame (#2081).
+	// The screen image can be nil when resizing the window (#2081).
 	if present && g.screenImage != nil {
 		g.screenImage.transiteState(g.drawCommandList, _D3D12_RESOURCE_STATE_PRESENT)
 	}
