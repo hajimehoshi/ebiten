@@ -276,6 +276,11 @@ const MaxIndicesNum = graphics.IndicesNum
 
 // DrawTriangles draws triangles with the specified vertices and their indices.
 //
+// img is used as a source image. img cannot be nil.
+// If you want to draw triangles with a solid color, use a small white image
+// and adjust the color elements in the vertices. For an actual implementation,
+// see the example 'vector'.
+//
 // Vertex contains color values, which are interpreted as straight-alpha colors.
 //
 // If len(indices) is not multiple of 3, DrawTriangles panics.

@@ -30,7 +30,10 @@ import (
 )
 
 var (
-	emptyImage    = ebiten.NewImage(3, 3)
+	emptyImage = ebiten.NewImage(3, 3)
+
+	// emptySubImage is an internal sub image of emptyImage.
+	// Use emptySubImage at DrawTriangles instead of emptyImage in order to avoid bleeding edges.
 	emptySubImage = emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
 )
 
