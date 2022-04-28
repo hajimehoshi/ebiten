@@ -810,7 +810,7 @@ func NewImage(width, height int) *Image {
 //
 // NewImageFromImage should be called only when necessary.
 // For example, you should avoid to call NewImageFromImage every Update or Draw call.
-// Reusing the same image by Clear is much more efficient than creating a new image.
+// Reusing the same image by Clear and ReplacePixels is much more efficient than creating a new image.
 //
 // NewImageFromImage panics if RunGame already finishes.
 //
