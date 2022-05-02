@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build example && ebitencbackend
-// +build example,ebitencbackend
+//go:build example && (ebitencbackend || (windows && cgo))
+// +build example
+// +build ebitencbackend windows,cgo
 
 // This file is for some special environments using `ebitencbackend`.
 // You usually don't have to care about this file.
