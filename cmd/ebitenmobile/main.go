@@ -92,6 +92,10 @@ func main() {
 		flag.Usage()
 	}
 
+	if args[0] != "bind" {
+		flag.Usage()
+	}
+
 	var flagset flag.FlagSet
 	flagset.StringVar(&buildO, "o", "", "")
 	flagset.StringVar(&buildGcflags, "gcflags", "", "")
@@ -139,13 +143,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	switch args[0] {
-	case "bind":
-		if err := doBind(args, &flagset, buildTarget); err != nil {
-			log.Fatal(err)
-		}
-	default:
-		flag.Usage()
+	if err := doBind(args, &flagset, buildTarget); err != nil {
+		log.Fatal(err)
 	}
 }
 
