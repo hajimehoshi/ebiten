@@ -48,11 +48,15 @@ void *Device_MakeCommandQueue(void *device) {
 struct Library Device_MakeLibrary(void *device, const char *source,
                                   size_t sourceLength) {
   NSError *error;
+  MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
+  if (@available(macOS 10.14, iOS 12.0, *)) {
+    options.languageVersion = MTLLanguageVersion2_1;
+  }
   id<MTLLibrary> library = [(id<MTLDevice>)device
       newLibraryWithSource:[[NSString alloc] initWithBytes:source
                                                     length:sourceLength
                                                   encoding:NSUTF8StringEncoding]
-                   options:NULL // TODO.
+                   options:options
                      error:&error];
 
   struct Library l;
