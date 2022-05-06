@@ -221,7 +221,7 @@ func PressedKeys() []ebiten.Key {
 }
 
 // IsKeyJustPressed returns a boolean value indicating
-// whether the given key is pressed just in the current frame.
+// whether the given key is pressed just in the current tick.
 //
 // IsKeyJustPressed is concurrent safe.
 func IsKeyJustPressed(key ebiten.Key) bool {
@@ -229,7 +229,7 @@ func IsKeyJustPressed(key ebiten.Key) bool {
 }
 
 // IsKeyJustReleased returns a boolean value indicating
-// whether the given key is released just in the current frame.
+// whether the given key is released just in the current tick.
 //
 // IsKeyJustReleased is concurrent safe.
 func IsKeyJustReleased(key ebiten.Key) bool {
@@ -239,7 +239,7 @@ func IsKeyJustReleased(key ebiten.Key) bool {
 	return r
 }
 
-// KeyPressDuration returns how long the key is pressed in frames.
+// KeyPressDuration returns how long the key is pressed in ticks (Update).
 //
 // KeyPressDuration is concurrent safe.
 func KeyPressDuration(key ebiten.Key) int {
@@ -250,7 +250,7 @@ func KeyPressDuration(key ebiten.Key) int {
 }
 
 // IsMouseButtonJustPressed returns a boolean value indicating
-// whether the given mouse button is pressed just in the current frame.
+// whether the given mouse button is pressed just in the current tick.
 //
 // IsMouseButtonJustPressed is concurrent safe.
 func IsMouseButtonJustPressed(button ebiten.MouseButton) bool {
@@ -258,7 +258,7 @@ func IsMouseButtonJustPressed(button ebiten.MouseButton) bool {
 }
 
 // IsMouseButtonJustReleased returns a boolean value indicating
-// whether the given mouse button is released just in the current frame.
+// whether the given mouse button is released just in the current tick.
 //
 // IsMouseButtonJustReleased is concurrent safe.
 func IsMouseButtonJustReleased(button ebiten.MouseButton) bool {
@@ -269,7 +269,7 @@ func IsMouseButtonJustReleased(button ebiten.MouseButton) bool {
 	return r
 }
 
-// MouseButtonPressDuration returns how long the mouse button is pressed in frames.
+// MouseButtonPressDuration returns how long the mouse button is pressed in ticks (Update).
 //
 // MouseButtonPressDuration is concurrent safe.
 func MouseButtonPressDuration(button ebiten.MouseButton) int {
@@ -279,7 +279,7 @@ func MouseButtonPressDuration(button ebiten.MouseButton) int {
 	return s
 }
 
-// AppendJustConnectedGamepadIDs appends gamepad IDs that are connected just in the current frame to gamepadIDs,
+// AppendJustConnectedGamepadIDs appends gamepad IDs that are connected just in the current tick to gamepadIDs,
 // and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
@@ -300,7 +300,7 @@ func AppendJustConnectedGamepadIDs(gamepadIDs []ebiten.GamepadID) []ebiten.Gamep
 	return gamepadIDs
 }
 
-// JustConnectedGamepadIDs returns gamepad IDs that are connected just in the current frame.
+// JustConnectedGamepadIDs returns gamepad IDs that are connected just in the current tick.
 //
 // Deprecated: as of v2.2. Use AppendJustConnectedGamepadIDs instead.
 func JustConnectedGamepadIDs() []ebiten.GamepadID {
@@ -308,7 +308,7 @@ func JustConnectedGamepadIDs() []ebiten.GamepadID {
 }
 
 // IsGamepadJustDisconnected returns a boolean value indicating
-// whether the gamepad of the given id is released just in the current frame.
+// whether the gamepad of the given id is released just in the current tick.
 //
 // IsGamepadJustDisconnected is concurrent safe.
 func IsGamepadJustDisconnected(id ebiten.GamepadID) bool {
@@ -320,7 +320,7 @@ func IsGamepadJustDisconnected(id ebiten.GamepadID) bool {
 }
 
 // IsGamepadButtonJustPressed returns a boolean value indicating
-// whether the given gamepad button of the gamepad id is pressed just in the current frame.
+// whether the given gamepad button of the gamepad id is pressed just in the current tick.
 //
 // IsGamepadButtonJustPressed is concurrent safe.
 func IsGamepadButtonJustPressed(id ebiten.GamepadID, button ebiten.GamepadButton) bool {
@@ -328,7 +328,7 @@ func IsGamepadButtonJustPressed(id ebiten.GamepadID, button ebiten.GamepadButton
 }
 
 // IsGamepadButtonJustReleased returns a boolean value indicating
-// whether the given gamepad button of the gamepad id is released just in the current frame.
+// whether the given gamepad button of the gamepad id is released just in the current tick.
 //
 // IsGamepadButtonJustReleased is concurrent safe.
 func IsGamepadButtonJustReleased(id ebiten.GamepadID, button ebiten.GamepadButton) bool {
@@ -345,7 +345,7 @@ func IsGamepadButtonJustReleased(id ebiten.GamepadID, button ebiten.GamepadButto
 	return current == 0 && prev > 0
 }
 
-// GamepadButtonPressDuration returns how long the gamepad button of the gamepad id is pressed in frames.
+// GamepadButtonPressDuration returns how long the gamepad button of the gamepad id is pressed in ticks (Update).
 //
 // GamepadButtonPressDuration is concurrent safe.
 func GamepadButtonPressDuration(id ebiten.GamepadID, button ebiten.GamepadButton) int {
@@ -359,7 +359,7 @@ func GamepadButtonPressDuration(id ebiten.GamepadID, button ebiten.GamepadButton
 }
 
 // IsStandardGamepadButtonJustPressed returns a boolean value indicating
-// whether the given standard gamepad button of the gamepad id is pressed just in the current frame.
+// whether the given standard gamepad button of the gamepad id is pressed just in the current tick.
 //
 // IsStandardGamepadButtonJustPressed is concurrent safe.
 func IsStandardGamepadButtonJustPressed(id ebiten.GamepadID, button ebiten.StandardGamepadButton) bool {
@@ -367,7 +367,7 @@ func IsStandardGamepadButtonJustPressed(id ebiten.GamepadID, button ebiten.Stand
 }
 
 // IsStandardGamepadButtonJustReleased returns a boolean value indicating
-// whether the given standard gamepad button of the gamepad id is released just in the current frame.
+// whether the given standard gamepad button of the gamepad id is released just in the current tick.
 //
 // IsStandardGamepadButtonJustReleased is concurrent safe.
 func IsStandardGamepadButtonJustReleased(id ebiten.GamepadID, button ebiten.StandardGamepadButton) bool {
@@ -385,7 +385,7 @@ func IsStandardGamepadButtonJustReleased(id ebiten.GamepadID, button ebiten.Stan
 	return current == 0 && prev > 0
 }
 
-// StandardGamepadButtonPressDuration returns how long the standard gamepad button of the gamepad id is pressed in frames.
+// StandardGamepadButtonPressDuration returns how long the standard gamepad button of the gamepad id is pressed in ticks (Update).
 //
 // StandardGamepadButtonPressDuration is concurrent safe.
 func StandardGamepadButtonPressDuration(id ebiten.GamepadID, button ebiten.StandardGamepadButton) int {
@@ -398,7 +398,7 @@ func StandardGamepadButtonPressDuration(id ebiten.GamepadID, button ebiten.Stand
 	return 0
 }
 
-// AppendJustPressedTouchIDs append touch IDs that are created just in the current frame to touchIDs,
+// AppendJustPressedTouchIDs append touch IDs that are created just in the current tick to touchIDs,
 // and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
@@ -419,7 +419,7 @@ func AppendJustPressedTouchIDs(touchIDs []ebiten.TouchID) []ebiten.TouchID {
 	return touchIDs
 }
 
-// JustPressedTouchIDs returns touch IDs that are created just in the current frame.
+// JustPressedTouchIDs returns touch IDs that are created just in the current tick.
 //
 // Deprecated: as of v2.2. Use AppendJustPressedTouchIDs instead.
 func JustPressedTouchIDs() []ebiten.TouchID {
@@ -427,7 +427,7 @@ func JustPressedTouchIDs() []ebiten.TouchID {
 }
 
 // IsTouchJustReleased returns a boolean value indicating
-// whether the given touch is released just in the current frame.
+// whether the given touch is released just in the current tick.
 //
 // IsTouchJustReleased is concurrent safe.
 func IsTouchJustReleased(id ebiten.TouchID) bool {
@@ -437,7 +437,7 @@ func IsTouchJustReleased(id ebiten.TouchID) bool {
 	return r
 }
 
-// TouchPressDuration returns how long the touch remains in frames.
+// TouchPressDuration returns how long the touch remains in ticks (Update).
 //
 // TouchPressDuration is concurrent safe.
 func TouchPressDuration(id ebiten.TouchID) int {
