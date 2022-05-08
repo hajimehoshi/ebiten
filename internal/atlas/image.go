@@ -570,21 +570,25 @@ func (i *Image) replacePixels(pix []byte, mask []byte) {
 	if mask != nil {
 		origMask := mask
 		mask = theTemporaryBytes.alloc((pw*ph-1)/8 + 1)
+		// Clear the allocated region explicitly (#2089).
+		for i := range mask {
+			mask[i] = 0
+		}
 		for i := 0; i < pw; i++ {
 			// Top edge
 			idx := i
-			mask[idx/8] |= 1 << idx % 8
+			mask[idx/8] |= 1 << (idx % 8)
 			// Bottom edge
 			idx = (ph-1)*pw + i
-			mask[idx/8] |= 1 << idx % 8
+			mask[idx/8] |= 1 << (idx % 8)
 		}
 		for j := 1; j < ph-1; j++ {
 			// Left edge
 			idx := j * pw
-			mask[idx/8] |= 1 << idx % 8
+			mask[idx/8] |= 1 << (idx % 8)
 			// Right edge
 			idx = j*pw + pw - 1
-			mask[idx/8] |= 1 << idx % 8
+			mask[idx/8] |= 1 << (idx % 8)
 
 			// Content
 			for i := 1; i < pw-1; i++ {
