@@ -96,7 +96,7 @@ var (
 
 func getSystemMetrics(nIndex int) (int32, error) {
 	r, _, _ := procGetSystemMetrics.Call(uintptr(nIndex))
-	if r == 0 {
+	if int32(r) == 0 {
 		// GetLastError doesn't provide an extended information.
 		// See https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getsystemmetrics
 		return 0, fmt.Errorf("ui: GetSystemMetrics returned 0")
@@ -111,7 +111,7 @@ func monitorFromWindow_(hwnd windows.HWND, dwFlags uint32) uintptr {
 
 func getMonitorInfoW(hMonitor uintptr, lpmi *monitorInfo) error {
 	r, _, e := procGetMonitorInfoW.Call(hMonitor, uintptr(unsafe.Pointer(lpmi)))
-	if r == 0 {
+	if int32(r) == 0 {
 		if e != nil && e != windows.ERROR_SUCCESS {
 			return fmt.Errorf("ui: GetMonitorInfoW failed: error code: %w", e)
 		}
@@ -123,7 +123,7 @@ func getMonitorInfoW(hMonitor uintptr, lpmi *monitorInfo) error {
 func getCursorPos() (int32, int32, error) {
 	var pt point
 	r, _, e := procGetCursorPos.Call(uintptr(unsafe.Pointer(&pt)))
-	if r == 0 {
+	if int32(r) == 0 {
 		if e != nil && e != windows.ERROR_SUCCESS {
 			return 0, 0, fmt.Errorf("ui: GetCursorPos failed: error code: %w", e)
 		}

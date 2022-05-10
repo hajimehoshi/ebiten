@@ -40,7 +40,7 @@ var (
 
 func freeConsole() error {
 	r, _, e := procFreeConsoleWindow.Call()
-	if r == 0 {
+	if int32(r) == 0 {
 		if e != nil && e != windows.ERROR_SUCCESS {
 			return fmt.Errorf("ui: FreeConsole failed: %w", e)
 		}
