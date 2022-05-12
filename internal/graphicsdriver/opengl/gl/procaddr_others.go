@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 
-//go:build !windows
-// +build !windows
+//go:build !windows && !darwin
+// +build !windows,!darwin
 
 // This file implements GlowGetProcAddress for every supported platform. The
 // correct version is chosen automatically based on build tags:
@@ -33,12 +33,6 @@ package gl
 	#include <EGL/egl.h>
 	static void* GlowGetProcAddress_gl21(const char* name) {
 		return eglGetProcAddress(name);
-	}
-#elif defined(TAG_DARWIN)
-	#include <stdlib.h>
-	#include <dlfcn.h>
-	static void* GlowGetProcAddress_gl21(const char* name) {
-		return dlsym(RTLD_DEFAULT, name);
 	}
 #elif defined(TAG_POSIX)
 	#include <stdlib.h>
