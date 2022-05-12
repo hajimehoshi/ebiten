@@ -2,8 +2,7 @@ package syscall
 
 import (
 	"unsafe"
-	_ "unsafe"
-) // for linkname
+)
 
 //go:linkname syscall_syscallX syscall.syscallX
 func syscall_syscallX(fn, a1, a2, a3 uintptr) (r1, r2, err uintptr) // from runtime/sys_darwin_64.go
