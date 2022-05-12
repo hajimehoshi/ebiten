@@ -1,17 +1,5 @@
 // SPDX-License-Identifier: MIT
 
-// This file implements GlowGetProcAddress for every supported platform. The
-// correct version is chosen automatically based on build tags:
-//
-// darwin: CGL
-// linux freebsd openbsd: GLX
-//
-// Use of EGL instead of the platform's default (listed above) is made possible
-// via the "egl" build tag.
-//
-// It is also possible to install your own function outside this package for
-// retrieving OpenGL function pointers, to do this see InitWithProcAddrFunc.
-
 package gl
 
 import (
