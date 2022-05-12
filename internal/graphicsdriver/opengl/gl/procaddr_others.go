@@ -18,14 +18,11 @@
 package gl
 
 /*
-#cgo darwin CFLAGS: -DTAG_DARWIN
-#cgo darwin LDFLAGS: -framework OpenGL
 #cgo linux freebsd openbsd CFLAGS: -DTAG_POSIX
 #cgo linux,!ebitencbackend freebsd,!ebitencbackend openbsd,!ebitencbackend pkg-config: gl
 #cgo egl CFLAGS: -DTAG_EGL
 #cgo egl,!ebitencbackend pkg-config: egl
 #cgo !darwin,ebitencbackend LDFLAGS: -Wl,-unresolved-symbols=ignore-all
-#cgo darwin,ebitencbackend LDFLAGS: -Wl,-undefined,dynamic_lookup
 // Check the EGL tag first as it takes priority over the platform's default
 // configuration of WGL/GLX/CGL.
 #if defined(TAG_EGL)
