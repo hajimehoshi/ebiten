@@ -6,9 +6,9 @@ func SyscallX(fn, a1, a2, a3 uintptr) (r1, r2, err uintptr) {
 	return syscall_syscallX(fn, a1, a2, a3)
 }
 
-var syscallX6FABI0 uintptr
+var syscallXFABI0 uintptr
 
-func syscallX6F() // implemented in assembly
+func syscallXF() // implemented in assembly
 
 func SyscallXF(fn, a1, a2, a3 uintptr, f1, f2, f3 float64) (r1, r2, err uintptr) {
 	args := struct {
@@ -17,7 +17,7 @@ func SyscallXF(fn, a1, a2, a3 uintptr, f1, f2, f3 float64) (r1, r2, err uintptr)
 		r1, r2, err    uintptr
 	}{fn, a1, a2, a3, f1, f2, f3, r1, r2, err}
 	runtime_entersyscall()
-	runtime_libcCall(unsafe.Pointer(syscallX6FABI0), unsafe.Pointer(&args))
+	runtime_libcCall(unsafe.Pointer(syscallXFABI0), unsafe.Pointer(&args))
 	runtime_exitsyscall()
 	return args.r1, args.r2, args.err
 }

@@ -55,8 +55,8 @@ ok:
 	POPQ	BP
 	RET
 
-// syscallX6F calls a function in libc on behalf of the syscall package.
-// syscallX6F takes a pointer to a struct like:
+// syscallXF calls a function in libc on behalf of the syscall package.
+// syscallXF takes a pointer to a struct like:
 // struct {
 //	fn    uintptr
 //	a1    uintptr
@@ -69,11 +69,11 @@ ok:
 //	r2    uintptr
 //	err   uintptr
 // }
-// syscallX6F must be called on the g0 stack with the
+// syscallXF must be called on the g0 stack with the
 // C calling convention (use libcCall).
-GLOBL ·syscallX6FABI0(SB), NOPTR|RODATA, $8
-DATA ·syscallX6FABI0(SB)/8, $·syscallX6F(SB)
-TEXT ·syscallX6F(SB),NOSPLIT,$0
+GLOBL ·syscallXFABI0(SB), NOPTR|RODATA, $8
+DATA ·syscallXFABI0(SB)/8, $·syscallXF(SB)
+TEXT ·syscallXF(SB),NOSPLIT,$0
 	PUSHQ	BP
 	MOVQ	SP, BP
 	SUBQ	$16, SP
