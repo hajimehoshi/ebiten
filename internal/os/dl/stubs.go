@@ -22,10 +22,10 @@ var dlsymABI0 uintptr
 var dlerrorABI0 uintptr
 var dlcloseABI0 uintptr
 
-func dlopen(path *byte, mode int) (ret uintptr)
+func dlopen()
 
-func dlerror() (ret uintptr)
+func dlerror()
 
-func dlclose(handle uintptr) (ret int)
+func dlclose()
 
-func dlsym(handle uintptr, symbol *byte) (ret uintptr)
+func dlsym()
