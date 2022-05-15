@@ -61,7 +61,7 @@ type userInterfaceImpl struct {
 
 func (u *userInterfaceImpl) Run(game Game) error {
 	u.context = newContext(game)
-	g, err := chooseGraphicsDriver(&graphicsDriverGetterImpl{})
+	g, err := chooseGraphicsDriver(GraphicsEngineAuto, &graphicsDriverGetterImpl{})
 	if err != nil {
 		return err
 	}
@@ -137,6 +137,13 @@ func (*userInterfaceImpl) SetScreenTransparent(transparent bool) {
 }
 
 func (*userInterfaceImpl) SetInitFocused(focused bool) {
+}
+
+func (*userInterfaceImpl) AvailableEngines() []GraphicsEngine {
+	return nil
+}
+
+func (*userInterfaceImpl) SetEngine(engine GraphicsEngine) {
 }
 
 func (*userInterfaceImpl) Input() *Input {

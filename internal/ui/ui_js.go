@@ -77,6 +77,7 @@ type userInterfaceImpl struct {
 	renderingScheduled  bool
 	running             bool
 	initFocused         bool
+	engine              GraphicsEngine
 	cursorMode          CursorMode
 	cursorPrevMode      CursorMode
 	cursorShape         CursorShape
@@ -92,6 +93,7 @@ func init() {
 	theUI.userInterfaceImpl = userInterfaceImpl{
 		runnableOnUnfocused: true,
 		initFocused:         true,
+		engine:              GraphicsEngineAuto,
 	}
 	theUI.input.ui = &theUI.userInterfaceImpl
 }
@@ -612,7 +614,7 @@ func (u *userInterfaceImpl) Run(game Game) error {
 		}
 	}
 	u.running = true
-	g, err := chooseGraphicsDriver(&graphicsDriverGetterImpl{})
+	g, err := chooseGraphicsDriver(u.engine, &graphicsDriverGetterImpl{})
 	if err != nil {
 		return err
 	}
@@ -660,6 +662,17 @@ func (u *userInterfaceImpl) SetInitFocused(focused bool) {
 		panic("ui: SetInitFocused must be called before the main loop")
 	}
 	u.initFocused = focused
+}
+
+func (u *userInterfaceImpl) AvailableEngines() []GraphicsEngine {
+	return []GraphicsEngine{GraphicsEngineAuto, GraphicsEngineOpenGL}
+}
+
+func (u *userInterfaceImpl) SetEngine(engine GraphicsEngine) {
+	if u.running {
+		panic("ui: SetEngine must be called before the main loop")
+	}
+	u.engine = engine
 }
 
 func (u *userInterfaceImpl) Input() *Input {

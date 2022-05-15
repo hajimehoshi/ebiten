@@ -71,6 +71,15 @@ const (
 	WindowResizingModeEnabled
 )
 
+type GraphicsEngine int
+
+const (
+	GraphicsEngineAuto GraphicsEngine = iota
+	GraphicsEngineOpenGL
+	GraphicsEngineMetal
+	GraphicsEngineDirectX
+)
+
 type UserInterface struct {
 	userInterfaceImpl
 }

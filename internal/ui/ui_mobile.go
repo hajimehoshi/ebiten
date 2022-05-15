@@ -270,7 +270,7 @@ func (u *userInterfaceImpl) run(game Game, mainloop bool) (err error) {
 	}()
 
 	u.context = newContext(game)
-	g, err := chooseGraphicsDriver(&graphicsDriverGetterImpl{
+	g, err := chooseGraphicsDriver(GraphicsEngineAuto, &graphicsDriverGetterImpl{
 		gomobileBuild: mainloop,
 	})
 	if err != nil {
@@ -429,6 +429,14 @@ func (u *userInterfaceImpl) resetForTick() {
 }
 
 func (u *userInterfaceImpl) SetInitFocused(focused bool) {
+	// Do nothing
+}
+
+func (u *userInterfaceImpl) AvailableEngines() []GraphicsEngine {
+	return nil
+}
+
+func (u *userInterfaceImpl) SetEngine(engine GraphicsEngine) {
 	// Do nothing
 }
 

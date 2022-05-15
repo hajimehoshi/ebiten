@@ -100,6 +100,7 @@ type userInterfaceImpl struct {
 	initWindowMaximized      bool
 	initScreenTransparent    bool
 	initFocused              bool
+	engine                   GraphicsEngine
 
 	fpsModeInited bool
 
@@ -139,6 +140,7 @@ func init() {
 		initWindowWidthInDIP:     640,
 		initWindowHeightInDIP:    480,
 		initFocused:              true,
+		engine:                   GraphicsEngineAuto,
 		fpsMode:                  FPSModeVsyncOn,
 	}
 	theUI.input.ui = &theUI.userInterfaceImpl
@@ -462,6 +464,12 @@ func (u *userInterfaceImpl) isInitFocused() bool {
 func (u *userInterfaceImpl) setInitFocused(focused bool) {
 	u.m.Lock()
 	u.initFocused = focused
+	u.m.Unlock()
+}
+
+func (u *userInterfaceImpl) setEngine(engine GraphicsEngine) {
+	u.m.Lock()
+	u.engine = engine
 	u.m.Unlock()
 }
 
@@ -836,7 +844,7 @@ func (u *userInterfaceImpl) init() error {
 	}
 	glfw.WindowHint(glfw.TransparentFramebuffer, glfwTransparent)
 
-	g, err := chooseGraphicsDriver(&graphicsDriverGetterImpl{
+	g, err := chooseGraphicsDriver(u.engine, &graphicsDriverGetterImpl{
 		transparent: transparent,
 	})
 	if err != nil {
@@ -1394,6 +1402,20 @@ func (u *userInterfaceImpl) SetInitFocused(focused bool) {
 		panic("ui: SetInitFocused must be called before the main loop")
 	}
 	u.setInitFocused(focused)
+}
+
+func (u *userInterfaceImpl) AvailableEngines() []GraphicsEngine {
+	g := graphicsDriverGetterImpl{
+		transparent: u.isInitScreenTransparent(),
+	}
+	return g.availableEngines()
+}
+
+func (u *userInterfaceImpl) SetEngine(engine GraphicsEngine) {
+	if u.isRunning() {
+		panic("ui: SetEngine must be called before the main loop")
+	}
+	u.setEngine(engine)
 }
 
 func (u *userInterfaceImpl) Input() *Input {

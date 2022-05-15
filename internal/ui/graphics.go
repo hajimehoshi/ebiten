@@ -28,32 +28,43 @@ type graphicsDriverGetter interface {
 	getMetal() graphicsdriver.Graphics
 }
 
-func chooseGraphicsDriver(getter graphicsDriverGetter) (graphicsdriver.Graphics, error) {
+func chooseGraphicsDriver(engine GraphicsEngine, getter graphicsDriverGetter) (graphicsdriver.Graphics, error) {
 	const envName = "EBITEN_GRAPHICS_LIBRARY"
 
 	switch env := os.Getenv(envName); env {
-	case "", "auto":
+	case "auto":
+		engine = GraphicsEngineAuto
+	case "opengl":
+		engine = GraphicsEngineOpenGL
+	case "directx":
+		engine = GraphicsEngineDirectX
+	case "metal":
+		engine = GraphicsEngineMetal
+	}
+
+	switch engine {
+	case GraphicsEngineAuto:
 		if g := getter.getAuto(); g != nil {
 			return g, nil
 		}
-		return nil, fmt.Errorf("ui: no graphics library is available")
-	case "opengl":
+		return nil, fmt.Errorf("ui: no graphics engine is available")
+	case GraphicsEngineOpenGL:
 		if g := getter.getOpenGL(); g != nil {
 			return g, nil
 		}
-		return nil, fmt.Errorf("ui: %s=%s is specified but OpenGL is not available", envName, env)
-	case "directx":
+		return nil, fmt.Errorf("ui: OpenGL engine is not available")
+	case GraphicsEngineDirectX:
 		if g := getter.getDirectX(); g != nil {
 			return g, nil
 		}
-		return nil, fmt.Errorf("ui: %s=%s is specified but DirectX is not available.", envName, env)
-	case "metal":
+		return nil, fmt.Errorf("ui: DirectX engine is not available")
+	case GraphicsEngineMetal:
 		if g := getter.getMetal(); g != nil {
 			return g, nil
 		}
-		return nil, fmt.Errorf("ui: %s=%s is specified but Metal is not available", envName, env)
+		return nil, fmt.Errorf("ui: Metal engine is not available")
 	default:
-		return nil, fmt.Errorf("ui: an unsupported graphics library is specified: %s", env)
+		return nil, fmt.Errorf("ui: an unsupported graphics engine is specified")
 	}
 }
 

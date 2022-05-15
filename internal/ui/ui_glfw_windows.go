@@ -34,6 +34,15 @@ type graphicsDriverGetterImpl struct {
 	transparent bool
 }
 
+func (g *graphicsDriverGetterImpl) availableEngines() []GraphicsEngine {
+	ret := make([]GraphicsEngine, 0, 3)
+	ret = append(ret, GraphicsEngineAuto, GraphicsEngineOpenGL)
+	if g.transparent {
+		ret = append(ret, GraphicsEngineDirectX)
+	}
+	return ret
+}
+
 func (g *graphicsDriverGetterImpl) getAuto() graphicsdriver.Graphics {
 	if d := g.getDirectX(); d != nil {
 		return d

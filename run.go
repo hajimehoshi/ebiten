@@ -476,7 +476,42 @@ func SetScreenTransparent(transparent bool) {
 //
 // SetInitFocused panics if this is called after the main loop.
 //
-// SetInitFocused is cuncurrent-safe.
+// SetInitFocused is concurrent-safe.
 func SetInitFocused(focused bool) {
 	ui.Get().SetInitFocused(focused)
+}
+
+// GraphicsEngine is a type of graphics engines.
+type GraphicsEngine = ui.GraphicsEngine
+
+const (
+	// GraphicsEngineAuto indicates that the game will determine the graphics engine to use.
+	// GraphicsEngineAuto is the default engine.
+	GraphicsEngineAuto GraphicsEngine = ui.GraphicsEngineAuto
+
+	// GraphicsEngineOpenGL indicates that the game should try to use OpenGL engine
+	GraphicsEngineOpenGL GraphicsEngine = ui.GraphicsEngineOpenGL
+
+	// GraphicsEngineMetal indicates that the game should try to use Apple Metal engine
+	GraphicsEngineMetal GraphicsEngine = ui.GraphicsEngineMetal
+
+	// GraphicsEngineDirectX indicates that the game should try to use Microsoft DirectX engine
+	GraphicsEngineDirectX GraphicsEngine = ui.GraphicsEngineDirectX
+)
+
+// AvailableEngines returns slice of available graphics engines on current platform.
+//
+// AvailableEngines is concurrent-safe.
+func AvailableEngines() []GraphicsEngine {
+	return ui.Get().AvailableEngines()
+}
+
+// SetEngine sets the graphics engine that will be used after run.
+// The default value is GraphicsEngineAuto.
+//
+// SetEngine panics if this is called after the main loop.
+//
+// SetEngine is concurrent-safe.
+func SetEngine(engine GraphicsEngine) {
+	ui.Get().SetEngine(engine)
 }

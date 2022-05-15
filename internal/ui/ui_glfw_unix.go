@@ -35,6 +35,10 @@ type graphicsDriverGetterImpl struct {
 	transparent bool
 }
 
+func (*graphicsDriverGetterImpl) availableEngines() []GraphicsEngine {
+	return []GraphicsEngine{GraphicsEngineAuto, GraphicsEngineOpenGL}
+}
+
 func (g *graphicsDriverGetterImpl) getAuto() graphicsdriver.Graphics {
 	return g.getOpenGL()
 }

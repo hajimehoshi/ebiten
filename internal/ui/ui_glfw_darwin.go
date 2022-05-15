@@ -258,6 +258,10 @@ type graphicsDriverGetterImpl struct {
 	transparent bool
 }
 
+func (*graphicsDriverGetterImpl) availableEngines() []GraphicsEngine {
+	return []GraphicsEngine{GraphicsEngineAuto, GraphicsEngineOpenGL, GraphicsEngineMetal}
+}
+
 func (g *graphicsDriverGetterImpl) getAuto() graphicsdriver.Graphics {
 	if m := g.getMetal(); m != nil {
 		return m
