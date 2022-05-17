@@ -25,7 +25,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca"
 )
 
-// #cgo !ios CFLAGS: -mmacosx-version-min=10.12
+// #cgo !ios CFLAGS: -mmacosx-version-min=10.14
 //
 // #include "ns_darwin.h"
 import "C"
