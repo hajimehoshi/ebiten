@@ -14,8 +14,14 @@
 
 package glfw
 
+import (
+	"github.com/hajimehoshi/ebiten/v2/internal/glfwwin"
+)
+
 func (w *Window) GetWin32Window() uintptr {
-	r := glfwDLL.call("glfwGetWin32Window", w.w)
-	panicError()
-	return r
+	r, err := (*glfwwin.Window)(w).GetWin32Window()
+	if err != nil {
+		panic(err)
+	}
+	return uintptr(r)
 }

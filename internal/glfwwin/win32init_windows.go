@@ -334,7 +334,8 @@ func platformTerminate() error {
 	}
 
 	// Restore previous foreground lock timeout system setting
-	if err := _SystemParametersInfoW(_SPI_SETFOREGROUNDLOCKTIMEOUT, 0, uintptr(_glfw.win32.foregroundLockTimeout), _SPIF_SENDCHANGE); err != nil {
+	if err := _SystemParametersInfoW(_SPI_SETFOREGROUNDLOCKTIMEOUT, 0, uintptr(_glfw.win32.foregroundLockTimeout), _SPIF_SENDCHANGE); err != nil && !errors.Is(err, windows.ERROR_ACCESS_DENIED) {
+		// Access-denied can happen on WSL.
 		return err
 	}
 

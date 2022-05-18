@@ -1034,7 +1034,10 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 }
 
 func (u *userInterfaceImpl) loop() error {
-	defer u.t.Call(glfw.Terminate)
+	defer u.t.Call(func() {
+		u.window.Destroy()
+		glfw.Terminate()
+	})
 
 	for {
 		var unfocused bool

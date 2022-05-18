@@ -12,27 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !js
-// +build !js
-
 package glfw
 
-type uniquePtr *byte
-
-type (
-	CharModsCallback        uniquePtr
-	CloseCallback           uniquePtr
-	FramebufferSizeCallback uniquePtr
-	MonitorCallback         uniquePtr
-	ScrollCallback          uniquePtr
-	SizeCallback            uniquePtr
+import (
+	"github.com/hajimehoshi/ebiten/v2/internal/glfwwin"
 )
 
-type VidMode struct {
-	Width       int
-	Height      int
-	RedBits     int
-	GreenBits   int
-	BlueBits    int
-	RefreshRate int
-}
+type (
+	CharModsCallback        = glfwwin.CharModsCallback
+	CloseCallback           = glfwwin.CloseCallback
+	FramebufferSizeCallback = glfwwin.FramebufferSizeCallback
+	MonitorCallback         = glfwwin.MonitorCallback
+	ScrollCallback          = glfwwin.ScrollCallback
+	SizeCallback            = glfwwin.SizeCallback
+)
+
+type VidMode glfwwin.VidMode
