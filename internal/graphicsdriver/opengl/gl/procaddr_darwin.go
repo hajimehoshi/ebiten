@@ -4,9 +4,8 @@ package gl
 
 import (
 	"github.com/ebiten/purego"
-	"unsafe"
 )
 
-func getProcAddress(namea string) unsafe.Pointer {
-	return unsafe.Pointer(purego.Dlsym(purego.RTLD_DEFAULT, namea))
+func getProcAddress(namea string) uintptr {
+	return purego.Dlsym(purego.RTLD_DEFAULT, namea)
 }
