@@ -269,34 +269,6 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 	return theWindows.add(w), nil
 }
 
-func (j Joystick) GetGUID() string {
-	return glfw.Joystick(j).GetGUID()
-}
-
-func (j Joystick) GetName() string {
-	return glfw.Joystick(j).GetName()
-}
-
-func (j Joystick) GetAxes() []float32 {
-	return glfw.Joystick(j).GetAxes()
-}
-
-func (j Joystick) GetButtons() []Action {
-	var bs []Action
-	for _, b := range glfw.Joystick(j).GetButtons() {
-		bs = append(bs, Action(b))
-	}
-	return bs
-}
-
-func (j Joystick) GetHats() []JoystickHatState {
-	var hats []JoystickHatState
-	for _, s := range glfw.Joystick(j).GetHats() {
-		hats = append(hats, JoystickHatState(s))
-	}
-	return hats
-}
-
 func GetMonitors() []*Monitor {
 	ms := []*Monitor{}
 	for _, m := range glfw.GetMonitors() {
@@ -319,10 +291,6 @@ func GetPrimaryMonitor() *Monitor {
 
 func Init() error {
 	return glfw.Init()
-}
-
-func (j Joystick) Present() bool {
-	return glfw.Joystick(j).Present()
 }
 
 func PollEvents() {

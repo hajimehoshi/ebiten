@@ -352,106 +352,6 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 	return theGLFWWindows.add(w), nil
 }
 
-func (j Joystick) GetGUID() string {
-	ptr := glfwDLL.call("glfwGetJoystickGUID", uintptr(j))
-	panicError()
-
-	// ptr can be nil after disconnecting the joystick.
-	if ptr == 0 {
-		return ""
-	}
-
-	var backed [256]byte
-	as := backed[:0]
-	for i := int32(0); ; i++ {
-		b := *(*byte)(unsafe.Pointer(ptr))
-		ptr += unsafe.Sizeof(byte(0))
-		if b == 0 {
-			break
-		}
-		as = append(as, b)
-	}
-	r := string(as)
-	return r
-}
-
-func (j Joystick) GetName() string {
-	ptr := glfwDLL.call("glfwGetJoystickName", uintptr(j))
-	panicError()
-
-	// ptr can be nil after disconnecting the joystick.
-	if ptr == 0 {
-		return ""
-	}
-
-	var backed [256]byte
-	as := backed[:0]
-	for i := int32(0); ; i++ {
-		b := *(*byte)(unsafe.Pointer(ptr))
-		ptr += unsafe.Sizeof(byte(0))
-		if b == 0 {
-			break
-		}
-		as = append(as, b)
-	}
-	r := string(as)
-	return r
-}
-
-func (j Joystick) GetAxes() []float32 {
-	var l int32
-	ptr := glfwDLL.call("glfwGetJoystickAxes", uintptr(j), uintptr(unsafe.Pointer(&l)))
-	panicError()
-
-	// ptr can be nil after disconnecting the joystick.
-	if ptr == 0 {
-		return nil
-	}
-
-	as := make([]float32, l)
-	for i := int32(0); i < l; i++ {
-		as[i] = *(*float32)(unsafe.Pointer(ptr))
-		ptr += unsafe.Sizeof(float32(0))
-	}
-	return as
-}
-
-func (j Joystick) GetButtons() []byte {
-	var l int32
-	ptr := glfwDLL.call("glfwGetJoystickButtons", uintptr(j), uintptr(unsafe.Pointer(&l)))
-	panicError()
-
-	// ptr can be nil after disconnecting the joystick.
-	if ptr == 0 {
-		return nil
-	}
-
-	bs := make([]byte, l)
-	for i := int32(0); i < l; i++ {
-		bs[i] = *(*byte)(unsafe.Pointer(ptr))
-		ptr++
-	}
-	return bs
-}
-
-func (j Joystick) GetHats() []JoystickHatState {
-	var l int32
-	ptr := glfwDLL.call("glfwGetJoystickHats", uintptr(j), uintptr(unsafe.Pointer(&l)))
-	panicError()
-
-	// ptr can be nil after disconnecting the joystick.
-	if ptr == 0 {
-		return nil
-	}
-
-	hats := make([]JoystickHatState, l)
-	for i := int32(0); i < l; i++ {
-		hats[i] = *(*JoystickHatState)(unsafe.Pointer(ptr))
-		ptr++
-	}
-	return hats
-}
-
 func GetMonitors() []*Monitor {
 	var l int32
 	ptr := glfwDLL.call("glfwGetMonitors", uintptr(unsafe.Pointer(&l)))
@@ -487,12 +387,6 @@ func Init() error {
 		return nil
 	}
 	return err
-}
-
-func (j Joystick) Present() bool {
-	r := glfwDLL.call("glfwJoystickPresent", uintptr(j))
-	panicError()
-	return byte(r) == True
 }
 
 func panicErrorExceptForInvalidValue() {
