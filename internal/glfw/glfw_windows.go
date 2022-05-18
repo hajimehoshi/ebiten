@@ -22,8 +22,6 @@ import (
 	"runtime"
 	"sync"
 	"unsafe"
-
-	"golang.org/x/sys/windows"
 )
 
 type glfwImage struct {
@@ -414,20 +412,10 @@ func PostEmptyEvent() {
 	panicError()
 }
 
-func SetMonitorCallback(cbfun func(monitor *Monitor, event PeripheralEvent)) {
-	var gcb uintptr
-	if cbfun != nil {
-		gcb = windows.NewCallbackCDecl(func(monitor uintptr, event PeripheralEvent) uintptr {
-			var m *Monitor
-			if monitor != 0 {
-				m = &Monitor{monitor}
-			}
-			cbfun(m, event)
-			return 0
-		})
-	}
-	glfwDLL.call("glfwSetMonitorCallback", gcb)
+func SetMonitorCallback(cbfun MonitorCallback) MonitorCallback {
+	glfwDLL.call("glfwSetMonitorCallback", uintptr(cbfun))
 	panicError()
+	return ToMonitorCallback(nil) // TODO
 }
 
 func SwapInterval(interval int) {

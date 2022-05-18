@@ -301,18 +301,9 @@ func PostEmptyEvent() {
 	glfw.PostEmptyEvent()
 }
 
-func SetMonitorCallback(cbfun func(monitor *Monitor, event PeripheralEvent)) {
-	var gcb func(monitor *glfw.Monitor, event glfw.PeripheralEvent)
-	if cbfun != nil {
-		gcb = func(monitor *glfw.Monitor, event glfw.PeripheralEvent) {
-			var m *Monitor
-			if monitor != nil {
-				m = &Monitor{monitor}
-			}
-			cbfun(m, PeripheralEvent(event))
-		}
-	}
-	glfw.SetMonitorCallback(gcb)
+func SetMonitorCallback(cbfun MonitorCallback) MonitorCallback {
+	glfw.SetMonitorCallback(monitorCallbacks[cbfun])
+	return ToMonitorCallback(nil)
 }
 
 func SwapInterval(interval int) {

@@ -150,9 +150,9 @@ func init() {
 	if err := initialize(); err != nil {
 		panic(err)
 	}
-	glfw.SetMonitorCallback(func(monitor *glfw.Monitor, event glfw.PeripheralEvent) {
+	glfw.SetMonitorCallback(glfw.ToMonitorCallback(func(monitor *glfw.Monitor, event glfw.PeripheralEvent) {
 		updateMonitors()
-	})
+	}))
 	updateMonitors()
 }
 

@@ -21,6 +21,7 @@ type (
 	CharModsCallback        uintptr
 	CloseCallback           uintptr
 	FramebufferSizeCallback uintptr
+	MonitorCallback         uintptr
 	ScrollCallback          uintptr
 	SizeCallback            uintptr
 )

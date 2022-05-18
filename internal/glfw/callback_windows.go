@@ -48,6 +48,20 @@ func ToFramebufferSizeCallback(cb func(window *Window, width int, height int)) F
 	}))
 }
 
+func ToMonitorCallback(cb func(monitor *Monitor, event PeripheralEvent)) MonitorCallback {
+	if cb == nil {
+		return 0
+	}
+	return MonitorCallback(windows.NewCallbackCDecl(func(monitor uintptr, event PeripheralEvent) uintptr {
+		var m *Monitor
+		if monitor != 0 {
+			m = &Monitor{monitor}
+		}
+		cb(m, event)
+		return 0
+	}))
+}
+
 func ToScrollCallback(cb func(window *Window, xoff float64, yoff float64)) ScrollCallback {
 	if cb == nil {
 		return 0

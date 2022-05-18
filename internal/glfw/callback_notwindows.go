@@ -25,6 +25,7 @@ var (
 	charModsCallbacks        = map[CharModsCallback]glfw.CharModsCallback{}
 	closeCallbacks           = map[CloseCallback]glfw.CloseCallback{}
 	framebufferSizeCallbacks = map[FramebufferSizeCallback]glfw.FramebufferSizeCallback{}
+	monitorCallbacks         = map[MonitorCallback]glfw.MonitorCallback{}
 	scrollCallbacks          = map[ScrollCallback]glfw.ScrollCallback{}
 	sizeCallbacks            = map[SizeCallback]glfw.SizeCallback{}
 )
@@ -62,6 +63,22 @@ func ToFramebufferSizeCallback(cb func(window *Window, width int, height int)) F
 		cb(theWindows.get(window), width, height)
 	}
 	framebufferSizeCallbacks[id] = gcb
+	return id
+}
+
+func ToMonitorCallback(cb func(monitor *Monitor, event PeripheralEvent)) MonitorCallback {
+	if cb == nil {
+		return 0
+	}
+	id := MonitorCallback(len(monitorCallbacks) + 1)
+	var gcb glfw.MonitorCallback = func(monitor *glfw.Monitor, event glfw.PeripheralEvent) {
+		var m *Monitor
+		if monitor != nil {
+			m = &Monitor{monitor}
+		}
+		cb(m, PeripheralEvent(event))
+	}
+	monitorCallbacks[id] = gcb
 	return id
 }
 
