@@ -6,6 +6,6 @@ import (
 	"github.com/ebiten/purego"
 )
 
-func getProcAddress(namea string) uintptr {
-	return purego.Dlsym(purego.RTLD_DEFAULT, namea)
+func getProcAddress(name string) uintptr {
+	return purego.Dlsym(purego.RTLD_DEFAULT, name)
 }

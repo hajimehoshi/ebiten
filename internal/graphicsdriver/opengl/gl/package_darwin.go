@@ -4,8 +4,9 @@ package gl
 
 import (
 	"errors"
-	"github.com/ebiten/purego"
 	"unsafe"
+
+	"github.com/ebiten/purego"
 )
 
 var (
