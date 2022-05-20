@@ -206,13 +206,13 @@ func (w *Window) Restore() {
 }
 
 func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsCallback) {
-	glfwDLL.call("glfwSetCharModsCallback", w.w, uintptr(cbfun))
+	glfwDLL.call("glfwSetCharModsCallback", w.w, uniquePtrToCallback[uniquePtr(cbfun)])
 	panicError()
 	return ToCharModsCallback(nil) // TODO
 }
 
 func (w *Window) SetCloseCallback(cbfun CloseCallback) (previous CloseCallback) {
-	glfwDLL.call("glfwSetWindowCloseCallback", w.w, uintptr(cbfun))
+	glfwDLL.call("glfwSetWindowCloseCallback", w.w, uniquePtrToCallback[uniquePtr(cbfun)])
 	panicError()
 	return ToCloseCallback(nil) // TODO
 }
@@ -226,13 +226,13 @@ func (w *Window) SetCursor(cursor *Cursor) {
 }
 
 func (w *Window) SetFramebufferSizeCallback(cbfun FramebufferSizeCallback) (previous FramebufferSizeCallback) {
-	glfwDLL.call("glfwSetFramebufferSizeCallback", w.w, uintptr(cbfun))
+	glfwDLL.call("glfwSetFramebufferSizeCallback", w.w, uniquePtrToCallback[uniquePtr(cbfun)])
 	panicError()
 	return ToFramebufferSizeCallback(nil) // TODO
 }
 
 func (w *Window) SetScrollCallback(cbfun ScrollCallback) (previous ScrollCallback) {
-	glfwDLL.call("glfwSetScrollCallback", w.w, uintptr(cbfun))
+	glfwDLL.call("glfwSetScrollCallback", w.w, uniquePtrToCallback[uniquePtr(cbfun)])
 	panicError()
 	return ToScrollCallback(nil) // TODO
 }
@@ -247,7 +247,7 @@ func (w *Window) SetShouldClose(value bool) {
 }
 
 func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous SizeCallback) {
-	glfwDLL.call("glfwSetWindowSizeCallback", w.w, uintptr(cbfun))
+	glfwDLL.call("glfwSetWindowSizeCallback", w.w, uniquePtrToCallback[uniquePtr(cbfun)])
 	panicError()
 	prev := w.prevSizeCallback
 	w.prevSizeCallback = cbfun
@@ -413,7 +413,7 @@ func PostEmptyEvent() {
 }
 
 func SetMonitorCallback(cbfun MonitorCallback) MonitorCallback {
-	glfwDLL.call("glfwSetMonitorCallback", uintptr(cbfun))
+	glfwDLL.call("glfwSetMonitorCallback", uniquePtrToCallback[uniquePtr(cbfun)])
 	panicError()
 	return ToMonitorCallback(nil) // TODO
 }

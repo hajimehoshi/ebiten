@@ -166,7 +166,7 @@ func (w *Window) SetAttrib(attrib Hint, value int) {
 }
 
 func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsCallback) {
-	w.w.SetCharModsCallback(charModsCallbacks[cbfun])
+	w.w.SetCharModsCallback(cbfun)
 	return ToCharModsCallback(nil) // TODO
 }
 
@@ -179,17 +179,17 @@ func (w *Window) SetCursor(cursor *Cursor) {
 }
 
 func (w *Window) SetCloseCallback(cbfun CloseCallback) (previous CloseCallback) {
-	w.w.SetCloseCallback(closeCallbacks[cbfun])
+	w.w.SetCloseCallback(cbfun)
 	return ToCloseCallback(nil) // TODO
 }
 
 func (w *Window) SetFramebufferSizeCallback(cbfun FramebufferSizeCallback) (previous FramebufferSizeCallback) {
-	w.w.SetFramebufferSizeCallback(framebufferSizeCallbacks[cbfun])
+	w.w.SetFramebufferSizeCallback(cbfun)
 	return ToFramebufferSizeCallback(nil) // TODO
 }
 
 func (w *Window) SetScrollCallback(cbfun ScrollCallback) (previous ScrollCallback) {
-	w.w.SetScrollCallback(scrollCallbacks[cbfun])
+	w.w.SetScrollCallback(cbfun)
 	return ToScrollCallback(nil) // TODO
 }
 
@@ -198,7 +198,7 @@ func (w *Window) SetShouldClose(value bool) {
 }
 
 func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous SizeCallback) {
-	w.w.SetSizeCallback(sizeCallbacks[cbfun])
+	w.w.SetSizeCallback(cbfun)
 	prev := w.prevSizeCallback
 	w.prevSizeCallback = cbfun
 	return prev
@@ -302,7 +302,7 @@ func PostEmptyEvent() {
 }
 
 func SetMonitorCallback(cbfun MonitorCallback) MonitorCallback {
-	glfw.SetMonitorCallback(monitorCallbacks[cbfun])
+	glfw.SetMonitorCallback(cbfun)
 	return ToMonitorCallback(nil)
 }
 

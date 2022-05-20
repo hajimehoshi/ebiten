@@ -17,13 +17,15 @@
 
 package glfw
 
+type uniquePtr *byte
+
 type (
-	CharModsCallback        uintptr
-	CloseCallback           uintptr
-	FramebufferSizeCallback uintptr
-	MonitorCallback         uintptr
-	ScrollCallback          uintptr
-	SizeCallback            uintptr
+	CharModsCallback        uniquePtr
+	CloseCallback           uniquePtr
+	FramebufferSizeCallback uniquePtr
+	MonitorCallback         uniquePtr
+	ScrollCallback          uniquePtr
+	SizeCallback            uniquePtr
 )
 
 type VidMode struct {
