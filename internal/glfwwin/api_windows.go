@@ -1267,7 +1267,7 @@ func _GetCursorPos() (_POINT, error) {
 
 func _GetDC(hWnd windows.HWND) (_HDC, error) {
 	r, _, e := procGetDC.Call(uintptr(hWnd))
-	if int32(r) == 0 {
+	if _HDC(r) == 0 {
 		return 0, fmt.Errorf("glfwwin: GetDC failed: %w", e)
 	}
 	return _HDC(r), nil
@@ -1314,7 +1314,7 @@ func _GetModuleHandleW(moduleName string) (_HMODULE, error) {
 	r, _, e := procGetModuleHandleW.Call(uintptr(unsafe.Pointer(lpModuleName)))
 	runtime.KeepAlive(lpModuleName)
 
-	if int32(r) == 0 {
+	if _HMODULE(r) == 0 {
 		return 0, fmt.Errorf("glfwwin: GetModuleHandleW failed: %w", e)
 	}
 	return _HMODULE(r), nil
@@ -1433,7 +1433,7 @@ func _IsZoomed(hWnd windows.HWND) bool {
 
 func _LoadCursorW(hInstance _HINSTANCE, lpCursorName uintptr) (_HCURSOR, error) {
 	r, _, e := procLoadCursorW.Call(uintptr(hInstance), lpCursorName)
-	if int32(r) == 0 {
+	if _HCURSOR(r) == 0 {
 		return 0, fmt.Errorf("glfwwin: LoadCursorW: %w", e)
 	}
 	return _HCURSOR(r), nil
@@ -1441,7 +1441,7 @@ func _LoadCursorW(hInstance _HINSTANCE, lpCursorName uintptr) (_HCURSOR, error) 
 
 func _LoadImageW(hInst _HINSTANCE, name uintptr, typ uint32, cx int32, cy int32, fuLoad uint32) (windows.Handle, error) {
 	r, _, e := procLoadImageW.Call(uintptr(hInst), name, uintptr(typ), uintptr(cx), uintptr(cy), uintptr(fuLoad))
-	if int32(r) == 0 {
+	if windows.Handle(r) == 0 {
 		return 0, fmt.Errorf("glfwwin: LoadImageW: %w", e)
 	}
 	return windows.Handle(r), nil
@@ -1519,7 +1519,7 @@ func _PtInRect(lprc *_RECT, pt _POINT) bool {
 
 func _RegisterClassExW(unnamedParam1 *_WNDCLASSEXW) (_ATOM, error) {
 	r, _, e := procRegisterClassExW.Call(uintptr(unsafe.Pointer(unnamedParam1)))
-	if int32(r) == 0 {
+	if _ATOM(r) == 0 {
 		return 0, fmt.Errorf("glfwwin: RegisterClassExW failed: %w", e)
 	}
 	return _ATOM(r), nil
@@ -1527,7 +1527,7 @@ func _RegisterClassExW(unnamedParam1 *_WNDCLASSEXW) (_ATOM, error) {
 
 func _RegisterDeviceNotificationW(hRecipient windows.Handle, notificationFilter unsafe.Pointer, flags uint32) (_HDEVNOTIFY, error) {
 	r, _, e := procRegisterDeviceNotificationW.Call(uintptr(hRecipient), uintptr(notificationFilter), uintptr(flags))
-	if int32(r) == 0 {
+	if _HDEVNOTIFY(r) == 0 {
 		return 0, fmt.Errorf("glfwwin: RegisterDeviceNotificationW failed: %w", e)
 	}
 	return _HDEVNOTIFY(r), nil
