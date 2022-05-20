@@ -301,13 +301,13 @@ func (m *Monitor) GetVideoMode() (*VidMode, error) {
 }
 
 func (m *Monitor) SetGamma(gamma float32) {
-	panic("glfwwin: Monitor.SetGamme is not implemented")
+	panic("glfwwin: Monitor.SetGamma is not implemented")
 }
 
 func (m *Monitor) GetGammaRamp() *GammaRamp {
-	panic("glfwwin: Monitor.GetGammeRamp is not implemented")
+	panic("glfwwin: Monitor.GetGammaRamp is not implemented")
 }
 
 func (m *Monitor) SetGammaRamp(ramp *GammaRamp) {
-	panic("glfwwin: Monitor.SetGammeRamp is not implemented")
+	panic("glfwwin: Monitor.SetGammaRamp is not implemented")
 }
