@@ -1669,7 +1669,6 @@ func (w *Window) platformRestoreWindow() {
 }
 
 func (w *Window) platformMaximizeWindow() error {
-	// TODO: Handle error
 	if _IsWindowVisible(w.win32.handle) {
 		_ShowWindow(w.win32.handle, _SW_MAXIMIZE)
 	} else {

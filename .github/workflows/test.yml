@@ -106,7 +106,6 @@ jobs:
           go test -tags=example ${{ !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
 
       - name: go test (Linux 386)
-        # TODO: Add more test environments (#1305)
         if: ${{ startsWith(matrix.os, 'ubuntu-') }}
         run: |
           sudo dpkg --add-architecture i386
@@ -116,7 +115,6 @@ jobs:
           env CGO_ENABLED=1 GOARCH=386 go test -tags=example ${{ !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
 
       - name: go test (Windows 386)
-        # TODO: Add more test environments (#1305)
         if: ${{ startsWith(matrix.os, 'windows-') }}
         run: |
           # TODO: Enable this after DirectX is supported on 32bit machines (#2088)
