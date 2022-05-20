@@ -546,7 +546,9 @@ func (w *Window) Maximize() error {
 	if w.monitor != nil {
 		return nil
 	}
-	w.platformMaximizeWindow()
+	if err := w.platformMaximizeWindow(); err != nil {
+		return err
+	}
 	return nil
 }
 

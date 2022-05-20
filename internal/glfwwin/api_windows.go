@@ -128,6 +128,7 @@ const (
 	_SIZE_RESTORED                                            = 0
 	_SM_CXICON                                                = 11
 	_SM_CXSMICON                                              = 49
+	_SM_CYCAPTION                                             = 4
 	_SM_CYICON                                                = 12
 	_SM_CYSMICON                                              = 50
 	_SPI_GETFOREGROUNDLOCKTIMEOUT                             = 0x2000
@@ -798,6 +799,7 @@ var (
 	procGetPropW                      = user32.NewProc("GetPropW")
 	procGetRawInputData               = user32.NewProc("GetRawInputData")
 	procGetSystemMetrics              = user32.NewProc("GetSystemMetrics")
+	procGetSystemMetricsForDpi        = user32.NewProc("GetSystemMetricsForDpi")
 	procGetWindowLongW                = user32.NewProc("GetWindowLongW")
 	procGetWindowPlacement            = user32.NewProc("GetWindowPlacement")
 	procGetWindowRect                 = user32.NewProc("GetWindowRect")
@@ -810,6 +812,7 @@ var (
 	procMonitorFromWindow             = user32.NewProc("MonitorFromWindow")
 	procMoveWindow                    = user32.NewProc("MoveWindow")
 	procMsgWaitForMultipleObjects     = user32.NewProc("MsgWaitForMultipleObjects")
+	procOffsetRect                    = user32.NewProc("OffsetRect")
 	procPeekMessageW                  = user32.NewProc("PeekMessageW")
 	procPostMessageW                  = user32.NewProc("PostMessageW")
 	procPtInRect                      = user32.NewProc("PtInRect")
@@ -1377,6 +1380,14 @@ func _GetSystemMetrics(nIndex int32) (int32, error) {
 	return int32(r), nil
 }
 
+func _GetSystemMetricsForDpi(nIndex int32, dpi uint32) (int32, error) {
+	r, _, e := procGetSystemMetricsForDpi.Call(uintptr(nIndex), uintptr(dpi))
+	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
+		return 0, fmt.Errorf("glfwwin: GetSystemMetrics failed: %w", e)
+	}
+	return int32(r), nil
+}
+
 func _GetWindowLongW(hWnd windows.HWND, nIndex int32) (int32, error) {
 	r, _, e := procGetWindowLongW.Call(uintptr(hWnd), uintptr(nIndex))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
@@ -1468,6 +1479,11 @@ func _MsgWaitForMultipleObjects(nCount uint32, pHandles *windows.Handle, waitAll
 		return 0, fmt.Errorf("glfwwin: MsgWaitForMultipleObjects failed: %w", e)
 	}
 	return uint32(r), nil
+}
+
+func _OffsetRect(lprect *_RECT, dx int32, dy int32) bool {
+	r, _, _ := procOffsetRect.Call(uintptr(unsafe.Pointer(lprect)), uintptr(dx), uintptr(dy))
+	return int32(r) != 0
 }
 
 func _PeekMessageW(lpMsg *_MSG, hWnd windows.HWND, wMsgFilterMin uint32, wMsgFilterMax uint32, wRemoveMsg uint32) bool {

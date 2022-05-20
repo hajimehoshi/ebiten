@@ -514,6 +514,71 @@ func (w *Window) releaseMonitor() error {
 	return nil
 }
 
+func (w *Window) maximizeWindowManually() error {
+	mi, _ := _GetMonitorInfoW(_MonitorFromWindow(w.win32.handle, _MONITOR_DEFAULTTONEAREST))
+
+	rect := mi.rcWork
+
+	if w.maxwidth != DontCare && w.maxheight != DontCare {
+		if rect.right-rect.left > int32(w.maxwidth) {
+			rect.right = rect.left + int32(w.maxwidth)
+		}
+		if rect.bottom-rect.top > int32(w.maxheight) {
+			rect.bottom = rect.top + int32(w.maxheight)
+		}
+	}
+
+	s, err := _GetWindowLongW(w.win32.handle, _GWL_STYLE)
+	if err != nil {
+		return err
+	}
+	style := uint32(s)
+	style |= _WS_MAXIMIZE
+	if _, err := _SetWindowLongW(w.win32.handle, _GWL_STYLE, int32(style)); err != nil {
+		return err
+	}
+
+	if w.decorated {
+		s, err := _GetWindowLongW(w.win32.handle, _GWL_EXSTYLE)
+		if err != nil {
+			return err
+		}
+		exStyle := uint32(s)
+		if isWindows10AnniversaryUpdateOrGreaterWin32() {
+			dpi := _GetDpiForWindow(w.win32.handle)
+			if err := _AdjustWindowRectExForDpi(&rect, style, false, exStyle, dpi); err != nil {
+				return err
+			}
+			m, err := _GetSystemMetricsForDpi(_SM_CYCAPTION, dpi)
+			if err != nil {
+				return err
+			}
+			_OffsetRect(&rect, 0, m)
+		} else {
+			if err := _AdjustWindowRectEx(&rect, style, false, exStyle); err != nil {
+				return err
+			}
+			m, err := _GetSystemMetrics(_SM_CYCAPTION)
+			if err != nil {
+				return err
+			}
+			_OffsetRect(&rect, 0, m)
+		}
+
+		if rect.bottom > mi.rcWork.bottom {
+			rect.bottom = mi.rcWork.bottom
+		}
+	}
+
+	if err := _SetWindowPos(w.win32.handle, _HWND_TOP,
+		rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top,
+		_SWP_NOACTIVATE|_SWP_NOZORDER|_SWP_FRAMECHANGED); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) uintptr /*_LRESULT*/ {
 	window := (*Window)(unsafe.Pointer(_GetPropW(hWnd, "GLFW")))
 	if window == nil {
@@ -1185,9 +1250,15 @@ func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) er
 			right:  int32(wndconfig.width),
 			bottom: int32(wndconfig.height),
 		}
+		mh := _MonitorFromWindow(w.win32.handle, _MONITOR_DEFAULTTONEAREST)
+
+		// Adjust window rect to account for DPI scaling of the window frame and
+		// (if enabled) DPI scaling of the content area
+		// This cannot be done until we know what monitor the window was placed on
+		// Only update the restored window rect as the window may be maximized
 
 		if wndconfig.scaleToMonitor {
-			xscale, yscale, err := w.platformGetWindowContentScale()
+			xscale, yscale, err := getMonitorContentScaleWin32(mh)
 			if err != nil {
 				return err
 			}
@@ -1217,10 +1288,24 @@ func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) er
 		if err != nil {
 			return err
 		}
+		_OffsetRect(&rect, wp.rcNormalPosition.left-rect.left, wp.rcNormalPosition.top-rect.top)
+
 		wp.rcNormalPosition = rect
 		wp.showCmd = _SW_HIDE
 		if err := _SetWindowPlacement(w.win32.handle, &wp); err != nil {
 			return err
+		}
+
+		// Adjust rect of maximized undecorated window, because by default Windows will
+		// make such a window cover the whole monitor instead of its workarea
+
+		if wndconfig.maximized && !wndconfig.decorated {
+			mi, _ := _GetMonitorInfoW(mh)
+			if err := _SetWindowPos(w.win32.handle, _HWND_TOP,
+				mi.rcWork.left, mi.rcWork.top, mi.rcWork.right-mi.rcWork.left, mi.rcWork.bottom-mi.rcWork.top,
+				_SWP_NOACTIVATE|_SWP_NOZORDER); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -1583,8 +1668,16 @@ func (w *Window) platformRestoreWindow() {
 	_ShowWindow(w.win32.handle, _SW_RESTORE)
 }
 
-func (w *Window) platformMaximizeWindow() {
-	_ShowWindow(w.win32.handle, _SW_MAXIMIZE)
+func (w *Window) platformMaximizeWindow() error {
+	// TODO: Handle error
+	if _IsWindowVisible(w.win32.handle) {
+		_ShowWindow(w.win32.handle, _SW_MAXIMIZE)
+	} else {
+		if err := w.maximizeWindowManually(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (w *Window) platformShowWindow() {
