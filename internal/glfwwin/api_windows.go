@@ -1772,7 +1772,7 @@ func _TlsFree(dwTlsIndex uint32) error {
 
 func _TlsGetValue(dwTlsIndex uint32) (uintptr, error) {
 	r, _, e := procTlsGetValue.Call(uintptr(dwTlsIndex))
-	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
+	if r == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
 		return 0, fmt.Errorf("glfwwin: TlsGetValue failed: %w", e)
 	}
 	return r, nil
