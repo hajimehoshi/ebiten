@@ -396,6 +396,12 @@ func initWGL() error {
 		return err
 	}
 
+	// NOTE: Functions must be loaded first as they're needed to retrieve the
+	//       extension string that tells us whether the functions are supported
+	//
+	// Interestingly, wglGetProcAddress might return 0 after extensionSupportedWGL is called.
+	initWGLExtensionFunctions()
+
 	// NOTE: WGL_ARB_extensions_string and WGL_EXT_extensions_string are not
 	//       checked below as we are already using them
 	_glfw.wgl.ARB_multisample = extensionSupportedWGL("WGL_ARB_multisample")

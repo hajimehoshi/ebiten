@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"syscall"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -746,18 +747,20 @@ var (
 
 	procRtlVerifyVersionInfo = ntdll.NewProc("RtlVerifyVersionInfo")
 
-	procWGLCreateContext             = opengl32.NewProc("wglCreateContext")
-	procWGLCreateContextAttribsARB   = opengl32.NewProc("wglCreateContextAttribsARB")
-	procWGLDeleteContext             = opengl32.NewProc("wglDeleteContext")
-	procWGLGetCurrentContext         = opengl32.NewProc("wglGetCurrentContext")
-	procWGLGetCurrentDC              = opengl32.NewProc("wglGetCurrentDC")
-	procWGLGetExtensionsStringARB    = opengl32.NewProc("wglGetExtensionsStringARB")
-	procWGLGetExtensionsStringEXT    = opengl32.NewProc("wglGetExtensionsStringEXT")
-	procWGLGetPixelFormatAttribivARB = opengl32.NewProc("wglGetPixelFormatAttribivARB")
-	procWGLGetProcAddress            = opengl32.NewProc("wglGetProcAddress")
-	procWGLMakeCurrent               = opengl32.NewProc("wglMakeCurrent")
-	procWGLShareLists                = opengl32.NewProc("wglShareLists")
-	procWGLSwapIntervalEXT           = opengl32.NewProc("wglSwapIntervalEXT")
+	procWGLCreateContext     = opengl32.NewProc("wglCreateContext")
+	procWGLDeleteContext     = opengl32.NewProc("wglDeleteContext")
+	procWGLGetCurrentContext = opengl32.NewProc("wglGetCurrentContext")
+	procWGLGetCurrentDC      = opengl32.NewProc("wglGetCurrentDC")
+	procWGLGetProcAddress    = opengl32.NewProc("wglGetProcAddress")
+	procWGLMakeCurrent       = opengl32.NewProc("wglMakeCurrent")
+	procWGLShareLists        = opengl32.NewProc("wglShareLists")
+
+	// Extension functions should be obtained from wglGetProcAddress instead of opengl32.dll (#2101).
+	procWGLCreateContextAttribsARB   uintptr
+	procWGLGetExtensionsStringARB    uintptr
+	procWGLGetExtensionsStringEXT    uintptr
+	procWGLGetPixelFormatAttribivARB uintptr
+	procWGLSwapIntervalEXT           uintptr
 
 	procGetDpiForMonitor       = shcore.NewProc("GetDpiForMonitor")
 	procSetProcessDpiAwareness = shcore.NewProc("SetProcessDpiAwareness")
@@ -847,6 +850,14 @@ var (
 	procWaitMessage                   = user32.NewProc("WaitMessage")
 	procWindowFromPoint               = user32.NewProc("WindowFromPoint")
 )
+
+func initWGLExtensionFunctions() {
+	procWGLCreateContextAttribsARB = wglGetProcAddress("wglCreateContextAttribsARB")
+	procWGLGetExtensionsStringARB = wglGetProcAddress("wglGetExtensionsStringARB")
+	procWGLGetExtensionsStringEXT = wglGetProcAddress("wglGetExtensionsStringEXT")
+	procWGLGetPixelFormatAttribivARB = wglGetProcAddress("wglGetPixelFormatAttribivARB")
+	procWGLSwapIntervalEXT = wglGetProcAddress("wglSwapIntervalEXT")
+}
 
 func _AdjustWindowRectEx(lpRect *_RECT, dwStyle uint32, menu bool, dwExStyle uint32) error {
 	var bMenu uintptr
@@ -1859,7 +1870,7 @@ func wglCreateContext(unnamedParam1 _HDC) (_HGLRC, error) {
 }
 
 func wglCreateContextAttribsARB(hDC _HDC, hshareContext _HGLRC, attribList *int32) (_HGLRC, error) {
-	r, _, e := procWGLCreateContextAttribsARB.Call(uintptr(hDC), uintptr(hshareContext), uintptr(unsafe.Pointer(attribList)))
+	r, _, e := syscall.Syscall(procWGLCreateContextAttribsARB, 3, uintptr(hDC), uintptr(hshareContext), uintptr(unsafe.Pointer(attribList)))
 	if _HGLRC(r) == 0 {
 		// TODO: Show more detailed error? See the original implementation.
 		return 0, fmt.Errorf("glfwwin: wglCreateContextAttribsARB failed: %w", e)
@@ -1886,25 +1897,25 @@ func wglGetCurrentDC() _HDC {
 }
 
 func wglGetExtensionsStringARB(hdc _HDC) string {
-	r, _, _ := procWGLGetExtensionsStringARB.Call(uintptr(hdc))
+	r, _, _ := syscall.Syscall(procWGLGetExtensionsStringARB, 1, uintptr(hdc), 0, 0)
 	return windows.BytePtrToString((*byte)(unsafe.Pointer(r)))
 }
 
 func wglGetExtensionsStringARB_Available() bool {
-	return procWGLGetExtensionsStringARB.Find() == nil
+	return procWGLGetExtensionsStringARB != 0
 }
 
 func wglGetExtensionsStringEXT() string {
-	r, _, _ := procWGLGetExtensionsStringEXT.Call()
+	r, _, _ := syscall.Syscall(procWGLGetExtensionsStringEXT, 0, 0, 0, 0)
 	return windows.BytePtrToString((*byte)(unsafe.Pointer(r)))
 }
 
 func wglGetExtensionsStringEXT_Available() bool {
-	return procWGLGetExtensionsStringEXT.Find() == nil
+	return procWGLGetExtensionsStringEXT != 0
 }
 
 func wglGetPixelFormatAttribivARB(hdc _HDC, iPixelFormat int32, iLayerPlane int32, nAttributes uint32, piAttributes *int32, piValues *int32) error {
-	r, _, e := procWGLGetPixelFormatAttribivARB.Call(uintptr(hdc), uintptr(iPixelFormat), uintptr(iLayerPlane), uintptr(nAttributes), uintptr(unsafe.Pointer(piAttributes)), uintptr(unsafe.Pointer(piValues)))
+	r, _, e := syscall.Syscall6(procWGLGetPixelFormatAttribivARB, 6, uintptr(hdc), uintptr(iPixelFormat), uintptr(iLayerPlane), uintptr(nAttributes), uintptr(unsafe.Pointer(piAttributes)), uintptr(unsafe.Pointer(piValues)))
 	if int32(r) == 0 {
 		return fmt.Errorf("glfwwin: wglGetPixelFormatAttribivARB failed: %w", e)
 	}
@@ -1937,7 +1948,7 @@ func wglShareLists(unnamedParam1 _HGLRC, unnamedParam2 _HGLRC) error {
 }
 
 func wglSwapIntervalEXT(interval int32) error {
-	r, _, e := procWGLSwapIntervalEXT.Call(uintptr(interval))
+	r, _, e := syscall.Syscall(procWGLSwapIntervalEXT, 1, uintptr(interval), 0, 0)
 	if int32(r) == 0 {
 		return fmt.Errorf("glfwwin: wglSwapIntervalEXT failed: %w", e)
 	}
