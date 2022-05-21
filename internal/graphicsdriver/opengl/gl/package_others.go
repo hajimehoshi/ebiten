@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 
-//go:build !windows
-// +build !windows
+//go:build !darwin && !windows
+// +build !darwin,!windows
 
 package gl
 
