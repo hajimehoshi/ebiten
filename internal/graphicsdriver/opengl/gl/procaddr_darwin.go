@@ -6,9 +6,8 @@ import (
 	"github.com/ebiten/purego"
 )
 
-// this comment tells the linker to link to the OpenGL framework at runtime
-//go:cgo_import_dynamic _ _ "/System/Library/Frameworks/OpenGL.framework/Versions/Current/OpenGL"
+var opengl = purego.Dlopen("/System/Library/Frameworks/OpenGL.framework/Versions/Current/OpenGL", purego.RTLD_GLOBAL)
 
 func getProcAddress(name string) uintptr {
-	return purego.Dlsym(purego.RTLD_DEFAULT, name)
+	return purego.Dlsym(opengl, name)
 }

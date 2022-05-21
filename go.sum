@@ -1,6 +1,8 @@
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/ebiten/purego v0.0.0-20220517120555-d5a24be3d13f h1:RuI8DJZnK3C84MN1/A0DM/NIde8dhyvQV8oNFjm7ZIk=
 github.com/ebiten/purego v0.0.0-20220517120555-d5a24be3d13f/go.mod h1:639Gr28MPEst8oS4Hzv2YSKteDc3y/5cal9PeUINHQQ=
+github.com/ebiten/purego v0.0.0-20220521023924-36e492b737b8 h1:poLXyG4bbBg1xgb/WWXGMquXtZF8GUBIuLeM4qQ9cNw=
+github.com/ebiten/purego v0.0.0-20220521023924-36e492b737b8/go.mod h1:639Gr28MPEst8oS4Hzv2YSKteDc3y/5cal9PeUINHQQ=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220320163800-277f93cfa958 h1:TL70PMkdPCt9cRhKTqsm+giRpgrd0IGEj763nNr2VFY=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220320163800-277f93cfa958/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
 github.com/gofrs/flock v0.8.1 h1:+gYjHKf32LDeiEEFhQaotPbLuUXjY5ZqxKgXy7n59aw=
