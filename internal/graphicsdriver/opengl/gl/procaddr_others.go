@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 
-//go:build !windows && !darwin
-// +build !windows,!darwin
+//go:build !darwin && !windows
+// +build !darwin,!windows
 
 // This file implements GlowGetProcAddress for every supported platform. The
 // correct version is chosen automatically based on build tags:
