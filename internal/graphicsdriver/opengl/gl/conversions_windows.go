@@ -1,21 +1,25 @@
 // SPDX-License-Identifier: MIT
 
-//go:build !darwin && !windows
-// +build !darwin,!windows
-
 package gl
 
 import (
+	"runtime"
+	"strings"
 	"unsafe"
 )
-
-// #include <stdlib.h>
-import "C"
 
 // GoStr takes a null-terminated string returned by OpenGL and constructs a
 // corresponding Go string.
 func GoStr(cstr *uint8) string {
-	return C.GoString((*C.char)(unsafe.Pointer(cstr)))
+	str := ""
+	for {
+		if *cstr == 0 {
+			break
+		}
+		str += string(*cstr)
+		cstr = (*uint8)(unsafe.Pointer(uintptr(unsafe.Pointer(cstr)) + 1))
+	}
+	return str
 }
 
 // Strs takes a list of Go strings (with or without null-termination) and
@@ -30,15 +34,18 @@ func Strs(strs ...string) (cstrs **uint8, free func()) {
 		panic("Strs: expected at least 1 string")
 	}
 
-	css := make([]*uint8, 0, len(strs))
+	var pinned []string
+	var ptrs []*uint8
 	for _, str := range strs {
-		cs := C.CString(str)
-		css = append(css, (*uint8)(unsafe.Pointer(cs)))
+		if !strings.HasSuffix(str, "\x00") {
+			str += "\x00"
+		}
+		pinned = append(pinned, str)
+		ptrs = append(ptrs, Str(str))
 	}
 
-	return (**uint8)(&css[0]), func() {
-		for _, cs := range css {
-			C.free(unsafe.Pointer(cs))
-		}
+	return &ptrs[0], func() {
+		runtime.KeepAlive(pinned)
+		pinned = nil
 	}
 }
