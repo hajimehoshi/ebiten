@@ -1511,7 +1511,7 @@ func _PtInRect(lprc *_RECT, pt _POINT) bool {
 			// Adjust the alignment for ARM.
 			r, _, _ = procPtInRect.Call(uintptr(unsafe.Pointer(lprc)), 0, uintptr(pt.x), uintptr(pt.y))
 		default:
-			panic(fmt.Sprintf("GOARCH=%s is not supported", runtime.GOARCH))
+			panic(fmt.Sprintf("glfwwin: GOARCH=%s is not supported", runtime.GOARCH))
 		}
 	}
 	return int32(r) != 0
@@ -1582,7 +1582,7 @@ func _RtlVerifyVersionInfo(versionInfo *_OSVERSIONINFOEXW, typeMask uint32, cond
 			// Adjust the alignment for ARM.
 			r, _, _ = procRtlVerifyVersionInfo.Call(uintptr(unsafe.Pointer(versionInfo)), uintptr(typeMask), 0, uintptr(conditionMask), uintptr(conditionMask>>32))
 		default:
-			panic(fmt.Sprintf("GOARCH=%s is not supported", runtime.GOARCH))
+			panic(fmt.Sprintf("glfwwin: GOARCH=%s is not supported", runtime.GOARCH))
 		}
 	}
 	return int32(r)
