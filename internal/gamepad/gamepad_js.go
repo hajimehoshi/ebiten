@@ -47,6 +47,11 @@ func (g *nativeGamepads) update(gamepads *gamepads) error {
 		return nil
 	}
 
+	// getGamepads might not exist under a non-secure context (#2100).
+	if !nav.Get("getGamepads").Truthy() {
+		return nil
+	}
+
 	gps := nav.Call("getGamepads")
 	if !gps.Truthy() {
 		return nil
