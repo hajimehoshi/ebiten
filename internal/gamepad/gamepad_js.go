@@ -49,6 +49,7 @@ func (g *nativeGamepads) update(gamepads *gamepads) error {
 
 	// getGamepads might not exist under a non-secure context (#2100).
 	if !nav.Get("getGamepads").Truthy() {
+		js.Global().Get("console").Call("warn", "navigator.getGamepads is not available. This might require a secure (HTTPS) context.")
 		return nil
 	}
 
