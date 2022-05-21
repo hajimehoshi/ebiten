@@ -29,7 +29,6 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: ${{ matrix.go }}
-          stable: false
 
       - name: Setup JDK
         uses: actions/setup-java@v2
@@ -105,6 +104,21 @@ jobs:
         if: ${{ startsWith(matrix.os, 'ubuntu-') || startsWith(matrix.os, 'windows-') }}
         run: |
           go test -tags=example ${{ !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
+
+      - name: go test (Linux 386)
+        if: ${{ startsWith(matrix.os, 'ubuntu-') }}
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install gcc-multilib
+          sudo apt-get install libasound2-dev:i386 libgl1-mesa-dev:i386 libxcursor-dev:i386 libxi-dev:i386 libxinerama-dev:i386 libxrandr-dev:i386 libxxf86vm-dev:i386
+          env CGO_ENABLED=1 GOARCH=386 go test -tags=example ${{ !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
+
+      - name: go test (Windows 386)
+        if: ${{ startsWith(matrix.os, 'windows-') }}
+        run: |
+          # TODO: Enable this after DirectX is supported on 32bit machines (#2088)
+          # env GOARCH=386 go test -tags=example ${{ !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
 
       - name: go test (Wasm)
         # TODO: Investigate times out on Windows. (#1313)

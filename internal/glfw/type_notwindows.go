@@ -12,8 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +bulid !js
-
-//go:generate sh ./gen.sh
+//go:build !windows && !js
+// +build !windows,!js
 
 package glfw
+
+import (
+	"github.com/go-gl/glfw/v3.3/glfw"
+)
+
+type (
+	CharModsCallback        = glfw.CharModsCallback
+	CloseCallback           = glfw.CloseCallback
+	FramebufferSizeCallback = glfw.FramebufferSizeCallback
+	MonitorCallback         = glfw.MonitorCallback
+	ScrollCallback          = glfw.ScrollCallback
+	SizeCallback            = glfw.SizeCallback
+)
+
+type VidMode struct {
+	Width       int
+	Height      int
+	RedBits     int
+	GreenBits   int
+	BlueBits    int
+	RefreshRate int
+}

@@ -1,4 +1,4 @@
-// Copyright 2021 The Ebiten Authors
+// Copyright 2018 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,25 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ebitenexternaldll
-// +build ebitenexternaldll
-
 package glfw
 
 import (
-	"fmt"
-	"runtime"
-
-	"golang.org/x/sys/windows"
+	"github.com/hajimehoshi/ebiten/v2/internal/glfwwin"
 )
 
-func loadDLL() (*dll, error) {
-	name := "glfw_windows_" + runtime.GOARCH + ".dll"
-	d := windows.NewLazyDLL(name)
-	if err := d.Load(); err != nil {
-		return nil, fmt.Errorf("glfw: failed to load %s: %w", name, err)
-	}
-	return &dll{
-		d: d,
-	}, nil
-}
+type (
+	CharModsCallback        = glfwwin.CharModsCallback
+	CloseCallback           = glfwwin.CloseCallback
+	FramebufferSizeCallback = glfwwin.FramebufferSizeCallback
+	MonitorCallback         = glfwwin.MonitorCallback
+	ScrollCallback          = glfwwin.ScrollCallback
+	SizeCallback            = glfwwin.SizeCallback
+)
+
+type VidMode glfwwin.VidMode

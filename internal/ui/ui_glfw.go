@@ -150,9 +150,9 @@ func init() {
 	if err := initialize(); err != nil {
 		panic(err)
 	}
-	glfw.SetMonitorCallback(func(monitor *glfw.Monitor, event glfw.PeripheralEvent) {
+	glfw.SetMonitorCallback(glfw.ToMonitorCallback(func(monitor *glfw.Monitor, event glfw.PeripheralEvent) {
 		updateMonitors()
-	})
+	}))
 	updateMonitors()
 }
 
@@ -687,7 +687,7 @@ func (u *userInterfaceImpl) createWindow(width, height int) error {
 
 // registerWindowSetSizeCallback must be called from the main thread.
 func (u *userInterfaceImpl) registerWindowSetSizeCallback() {
-	if u.sizeCallback == 0 {
+	if u.sizeCallback == nil {
 		u.sizeCallback = glfw.ToSizeCallback(func(_ *glfw.Window, width, height int) {
 			if !u.setSizeCallbackEnabled {
 				return
@@ -734,7 +734,7 @@ func (u *userInterfaceImpl) registerWindowSetSizeCallback() {
 
 // registerWindowCloseCallback must be called from the main thread.
 func (u *userInterfaceImpl) registerWindowCloseCallback() {
-	if u.closeCallback == 0 {
+	if u.closeCallback == nil {
 		u.closeCallback = glfw.ToCloseCallback(func(_ *glfw.Window) {
 			u.m.Lock()
 			u.windowBeingClosed = true
@@ -751,7 +751,7 @@ func (u *userInterfaceImpl) registerWindowCloseCallback() {
 
 // registerWindowFramebufferSizeCallback must be called from the main thread.
 func (u *userInterfaceImpl) registerWindowFramebufferSizeCallback() {
-	if u.defaultFramebufferSizeCallback == 0 {
+	if u.defaultFramebufferSizeCallback == nil {
 		// When the window gets resized (either by manual window resize or a window
 		// manager), glfw sends a framebuffer size callback which we need to handle (#1960).
 		// This event is the only way to handle the size change at least on i3 window manager.
@@ -782,7 +782,7 @@ func (u *userInterfaceImpl) registerWindowFramebufferSizeCallback() {
 func (u *userInterfaceImpl) waitForFramebufferSizeCallback(window *glfw.Window, f func()) {
 	u.framebufferSizeCallbackCh = make(chan struct{}, 1)
 
-	if u.framebufferSizeCallback == 0 {
+	if u.framebufferSizeCallback == nil {
 		u.framebufferSizeCallback = glfw.ToFramebufferSizeCallback(func(_ *glfw.Window, _, _ int) {
 			// This callback can be invoked multiple times by one PollEvents in theory (#1618).
 			// Allow the case when the channel is full.
@@ -1034,7 +1034,10 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 }
 
 func (u *userInterfaceImpl) loop() error {
-	defer u.t.Call(glfw.Terminate)
+	defer u.t.Call(func() {
+		u.window.Destroy()
+		glfw.Terminate()
+	})
 
 	for {
 		var unfocused bool

@@ -22,17 +22,15 @@ import (
 )
 
 type (
-	Action           int
-	ErrorCode        int
-	Hint             int
-	InputMode        int
-	Joystick         int
-	JoystickHatState int
-	Key              int
-	ModifierKey      int
-	MouseButton      int
-	PeripheralEvent  int
-	StandardCursor   int
+	Action          int
+	ErrorCode       int
+	Hint            int
+	InputMode       int
+	Key             int
+	ModifierKey     int
+	MouseButton     int
+	PeripheralEvent int
+	StandardCursor  int
 )
 
 const (
@@ -57,25 +55,6 @@ const (
 	MouseButtonLeft   = MouseButton(0)
 	MouseButtonRight  = MouseButton(1)
 	MouseButtonMiddle = MouseButton(2)
-)
-
-const (
-	Joystick1  = Joystick(0)
-	Joystick2  = Joystick(1)
-	Joystick3  = Joystick(2)
-	Joystick4  = Joystick(3)
-	Joystick5  = Joystick(4)
-	Joystick6  = Joystick(5)
-	Joystick7  = Joystick(6)
-	Joystick8  = Joystick(7)
-	Joystick9  = Joystick(8)
-	Joystick10 = Joystick(9)
-	Joystick11 = Joystick(10)
-	Joystick12 = Joystick(11)
-	Joystick13 = Joystick(12)
-	Joystick14 = Joystick(13)
-	Joystick15 = Joystick(14)
-	Joystick16 = Joystick(15)
 )
 
 const (
@@ -155,16 +134,4 @@ const (
 	HandCursor      = StandardCursor(0x00036004)
 	HResizeCursor   = StandardCursor(0x00036005)
 	VResizeCursor   = StandardCursor(0x00036006)
-)
-
-const (
-	HatCentered  = JoystickHatState(0)
-	HatUp        = JoystickHatState(1)
-	HatRight     = JoystickHatState(2)
-	HatDown      = JoystickHatState(4)
-	HatLeft      = JoystickHatState(8)
-	HatRightUp   = HatRight | HatUp
-	HatRightDown = HatRight | HatDown
-	HatLeftUp    = HatLeft | HatUp
-	HatLeftDown  = HatLeft | HatDown
 )
