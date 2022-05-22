@@ -1052,7 +1052,7 @@ func _DefWindowProcW(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPA
 func _DestroyIcon(hIcon _HICON) error {
 	r, _, e := procDestroyIcon.Call(uintptr(hIcon))
 	if int32(r) == 0 {
-		fmt.Errorf("glfwwin: DestroyIcon failed: %w", e)
+		return fmt.Errorf("glfwwin: DestroyIcon failed: %w", e)
 	}
 	return nil
 }
@@ -1060,7 +1060,7 @@ func _DestroyIcon(hIcon _HICON) error {
 func _DestroyWindow(hWnd windows.HWND) error {
 	r, _, e := procDestroyWindow.Call(uintptr(hWnd))
 	if int32(r) == 0 {
-		fmt.Errorf("glfwwin: DestroyWindow failed: %w", e)
+		return fmt.Errorf("glfwwin: DestroyWindow failed: %w", e)
 	}
 	return nil
 }
