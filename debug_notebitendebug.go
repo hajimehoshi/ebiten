@@ -17,6 +17,4 @@
 
 package ebiten
 
-func isDebug() bool {
-	return false
-}
+const isDebug = false

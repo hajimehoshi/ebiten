@@ -124,7 +124,7 @@ func (i *imageDumper) update() error {
 		}
 
 		if keyname := os.Getenv(envInternalImagesKey); keyname != "" {
-			if isDebug() {
+			if isDebug {
 				if key, ok := keyNameToKeyCode(keyname); ok {
 					i.hasDumpInternalImagesKey = true
 					i.dumpInternalImagesKey = key
