@@ -185,7 +185,12 @@ func createHelperWindow() error {
 	//       process passed along a STARTUPINFO, so clear that with a no-op call
 	_ShowWindow(_glfw.win32.helperWindowHandle, _SW_HIDE)
 
-	_GUID_DEVINTERFACE_HID := windows.GUID{0x4d1e55b2, 0xf16f, 0x11cf, [...]byte{0x88, 0xcb, 0x00, 0x11, 0x11, 0x00, 0x00, 0x30}}
+	_GUID_DEVINTERFACE_HID := windows.GUID{
+		Data1: 0x4d1e55b2,
+		Data2: 0xf16f,
+		Data3: 0x11cf,
+		Data4: [...]byte{0x88, 0xcb, 0x00, 0x11, 0x11, 0x00, 0x00, 0x30},
+	}
 
 	// Register for HID device notifications
 	var dbi _DEV_BROADCAST_DEVICEINTERFACE_W
