@@ -87,7 +87,8 @@ type point struct {
 }
 
 var (
-	// user32 is defined at hideconsole_windows.go
+	user32 = windows.NewLazySystemDLL("user32.dll")
+
 	procGetSystemMetrics  = user32.NewProc("GetSystemMetrics")
 	procMonitorFromWindow = user32.NewProc("MonitorFromWindow")
 	procGetMonitorInfoW   = user32.NewProc("GetMonitorInfoW")

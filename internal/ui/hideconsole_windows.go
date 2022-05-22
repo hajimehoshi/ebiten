@@ -19,23 +19,15 @@ package ui
 
 import (
 	"fmt"
-	"unsafe"
 
 	"golang.org/x/sys/windows"
 )
 
-const (
-	processQueryLimitedInformation = 0x1000
-)
-
 var (
 	kernel32 = windows.NewLazySystemDLL("kernel32.dll")
-	user32   = windows.NewLazySystemDLL("user32.dll")
 
-	procFreeConsoleWindow        = kernel32.NewProc("FreeConsole")
-	procGetCurrentProcessId      = kernel32.NewProc("GetCurrentProcessId")
-	procGetConsoleWindow         = kernel32.NewProc("GetConsoleWindow")
-	procGetWindowThreadProcessId = user32.NewProc("GetWindowThreadProcessId")
+	procFreeConsoleWindow = kernel32.NewProc("FreeConsole")
+	procGetConsoleWindow  = kernel32.NewProc("GetConsoleWindow")
 )
 
 func freeConsole() error {
@@ -49,28 +41,24 @@ func freeConsole() error {
 	return nil
 }
 
-func getCurrentProcessId() uint32 {
-	r, _, _ := procGetCurrentProcessId.Call()
-	return uint32(r)
-}
-
 func getConsoleWindow() windows.HWND {
 	r, _, _ := procGetConsoleWindow.Call()
 	return windows.HWND(r)
 }
 
-func getWindowThreadProcessId(hwnd windows.HWND) (tid, pid uint32) {
-	r, _, _ := procGetWindowThreadProcessId.Call(uintptr(hwnd), uintptr(unsafe.Pointer(&pid)))
-	tid = uint32(r)
-	return
-}
-
 // hideConsoleWindowOnWindows will hide the console window that is showing when
 // compiling on Windows without specifying the '-ldflags "-Hwindowsgui"' flag.
 func hideConsoleWindowOnWindows() {
-	pid := getCurrentProcessId()
+	pid := windows.GetCurrentProcessId()
+
 	// Get the process ID of the console's creator.
-	_, cpid := getWindowThreadProcessId(getConsoleWindow())
+	var cpid uint32
+	if _, err := windows.GetWindowThreadProcessId(getConsoleWindow(), &cpid); err != nil {
+		// Even if closing the console fails, this is not harmful.
+		// Ignore error.
+		return
+	}
+
 	if pid == cpid {
 		// The current process created its own console. Hide this.
 		// Ignore error.
