@@ -234,9 +234,8 @@ func (c *context) deleteRenderbuffer(r renderbufferNative) {
 func (c *context) newFramebuffer(texture textureNative) (framebufferNative, error) {
 	var f uint32
 	gl.GenFramebuffersEXT(1, &f)
-	// TODO: Use gl.IsFramebuffer
 	if f <= 0 {
-		return 0, errors.New("opengl: creating framebuffer failed: gl.IsFramebuffer returns false")
+		return 0, errors.New("opengl: creating framebuffer failed")
 	}
 	c.bindFramebuffer(framebufferNative(f))
 	gl.FramebufferTexture2DEXT(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, uint32(texture), 0)
