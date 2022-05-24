@@ -53,7 +53,6 @@ type gl struct {
 	framebufferRenderbuffer  js.Value
 	framebufferTexture2D     js.Value
 	flush                    js.Value
-	getBufferSubData         js.Value
 	getExtension             js.Value
 	getParameter             js.Value
 	getProgramInfoLog        js.Value
@@ -168,9 +167,7 @@ func (c *context) newGL(v js.Value) *gl {
 		vertexAttribPointer:      v.Get("vertexAttribPointer").Call("bind", v),
 		viewport:                 v.Get("viewport").Call("bind", v),
 	}
-	if c.usesWebGL2() {
-		g.getExtension = v.Get("getBufferSubData").Call("bind", v)
-	} else {
+	if !c.usesWebGL2() {
 		g.getExtension = v.Get("getExtension").Call("bind", v)
 	}
 	return g
