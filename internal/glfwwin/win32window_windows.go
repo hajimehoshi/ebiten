@@ -1355,11 +1355,13 @@ func registerWindowClassWin32() error {
 	// In the original GLFW implementation, an embedded resource GLFW_ICON is used if possible.
 	// See https://www.glfw.org/docs/3.3/group__window.html
 
-	icon, err := _LoadImageW(0, _IDI_APPLICATION, _IMAGE_ICON, 0, 0, _LR_DEFAULTSIZE|_LR_SHARED)
-	if err != nil {
-		return err
+	if _LoadImageW_Available() {
+		icon, err := _LoadImageW(0, _IDI_APPLICATION, _IMAGE_ICON, 0, 0, _LR_DEFAULTSIZE|_LR_SHARED)
+		if err != nil {
+			return err
+		}
+		wc.hIcon = _HICON(icon)
 	}
-	wc.hIcon = _HICON(icon)
 
 	if _, err := _RegisterClassExW(&wc); err != nil {
 		return err
@@ -2138,6 +2140,10 @@ func (c *Cursor) platformCreateCursor(image *Image, xhot, yhot int) error {
 }
 
 func (c *Cursor) platformCreateStandardCursor(shape StandardCursor) error {
+	if !_LoadImageW_Available() {
+		return nil
+	}
+
 	var id int
 	switch shape {
 	case ArrowCursor:

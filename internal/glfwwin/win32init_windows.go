@@ -254,8 +254,10 @@ func platformInit() error {
 	createKeyTables()
 
 	if isWindows10CreatorsUpdateOrGreaterWin32() {
-		if err := _SetProcessDpiAwarenessContext(_DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2); err != nil && !errors.Is(err, windows.ERROR_ACCESS_DENIED) {
-			return err
+		if _SetProcessDpiAwarenessContext_Available() {
+			if err := _SetProcessDpiAwarenessContext(_DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2); err != nil && !errors.Is(err, windows.ERROR_ACCESS_DENIED) {
+				return err
+			}
 		}
 	} else if _IsWindows8Point1OrGreater() {
 		if err := _SetProcessDpiAwareness(_PROCESS_PER_MONITOR_DPI_AWARE); err != nil && !errors.Is(err, windows.ERROR_ACCESS_DENIED) {

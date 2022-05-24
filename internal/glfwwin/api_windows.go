@@ -1457,6 +1457,10 @@ func _LoadImageW(hInst _HINSTANCE, name uintptr, typ uint32, cx int32, cy int32,
 	return windows.Handle(r), nil
 }
 
+func _LoadImageW_Available() bool {
+	return procLoadImageW.Find() == nil
+}
+
 func _MapVirtualKeyW(uCode uint32, uMapType uint32) uint32 {
 	r, _, _ := procMapVirtualKeyW.Call(uintptr(uCode), uintptr(uMapType))
 	return uint32(r)
@@ -1681,6 +1685,10 @@ func _SetProcessDpiAwarenessContext(value _DPI_AWARENESS_CONTEXT) error {
 		return fmt.Errorf("glfwwin: SetProcessDpiAwarenessContext failed: %w", e)
 	}
 	return nil
+}
+
+func _SetProcessDpiAwarenessContext_Available() bool {
+	return procSetProcessDpiAwarenessContext.Find() == nil
 }
 
 func _SetPropW(hWnd windows.HWND, str string, hData windows.Handle) error {
