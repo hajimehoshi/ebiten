@@ -141,7 +141,7 @@ func BufferSubData(target uint32, offset int, size int, data unsafe.Pointer) {
 
 func CheckFramebufferStatusEXT(target uint32) uint32 {
 	ret, _, _ := syscall.Syscall(gpCheckFramebufferStatusEXT, 1, uintptr(target), 0, 0)
-	return (uint32)(ret)
+	return uint32(ret)
 }
 
 func Clear(mask uint32) {
@@ -158,12 +158,12 @@ func CompileShader(shader uint32) {
 
 func CreateProgram() uint32 {
 	ret, _, _ := syscall.Syscall(gpCreateProgram, 0, 0, 0, 0)
-	return (uint32)(ret)
+	return uint32(ret)
 }
 
 func CreateShader(xtype uint32) uint32 {
 	ret, _, _ := syscall.Syscall(gpCreateShader, 1, uintptr(xtype), 0, 0)
-	return (uint32)(ret)
+	return uint32(ret)
 }
 
 func DeleteBuffers(n int32, buffers *uint32) {
@@ -247,7 +247,7 @@ func GetDoublei_vEXT(pname uint32, index uint32, params *float64) {
 
 func GetError() uint32 {
 	ret, _, _ := syscall.Syscall(gpGetError, 0, 0, 0, 0)
-	return (uint32)(ret)
+	return uint32(ret)
 }
 func GetFloati_v(target uint32, index uint32, data *float32) {
 	syscall.Syscall(gpGetFloati_v, 3, uintptr(target), uintptr(index), uintptr(unsafe.Pointer(data)))
@@ -295,7 +295,7 @@ func GetTransformFeedbacki_v(xfb uint32, pname uint32, index uint32, param *int3
 
 func GetUniformLocation(program uint32, name *uint8) int32 {
 	ret, _, _ := syscall.Syscall(gpGetUniformLocation, 2, uintptr(program), uintptr(unsafe.Pointer(name)), 0)
-	return (int32)(ret)
+	return int32(ret)
 }
 
 func GetUnsignedBytei_vEXT(target uint32, index uint32, data *uint8) {
