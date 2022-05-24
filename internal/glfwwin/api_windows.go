@@ -842,7 +842,6 @@ var (
 	procSetWindowTextW                = user32.NewProc("SetWindowTextW")
 	procShowWindow                    = user32.NewProc("ShowWindow")
 	procSystemParametersInfoW         = user32.NewProc("SystemParametersInfoW")
-	procToUnicode                     = user32.NewProc("ToUnicode")
 	procTranslateMessage              = user32.NewProc("TranslateMessage")
 	procTrackMouseEvent               = user32.NewProc("TrackMouseEvent")
 	procUnregisterClassW              = user32.NewProc("UnregisterClassW")
@@ -1463,6 +1462,10 @@ func _MapVirtualKeyW(uCode uint32, uMapType uint32) uint32 {
 	return uint32(r)
 }
 
+func _MapVirtualKeyW_Available() bool {
+	return procMapVirtualKeyW.Find() == nil
+}
+
 func _MonitorFromWindow(hwnd windows.HWND, dwFlags uint32) _HMONITOR {
 	r, _, _ := procMonitorFromWindow.Call(uintptr(hwnd), uintptr(dwFlags))
 	return _HMONITOR(r)
@@ -1795,12 +1798,6 @@ func _TlsSetValue(dwTlsIndex uint32, lpTlsValue uintptr) error {
 		return fmt.Errorf("glfwwin: TlsSetValue failed: %w", e)
 	}
 	return nil
-}
-
-func _ToUnicode(wVirtKey uint32, wScanCode uint32, lpKeyState *byte, pwszBuff *uint16, cchBuff int32, wFlags uint32) int32 {
-	r, _, _ := procToUnicode.Call(uintptr(wVirtKey), uintptr(wScanCode),
-		uintptr(unsafe.Pointer(lpKeyState)), uintptr(unsafe.Pointer(pwszBuff)), uintptr(cchBuff), uintptr(wFlags))
-	return int32(r)
 }
 
 func _TranslateMessage(lpMsg *_MSG) bool {

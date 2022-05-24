@@ -212,41 +212,6 @@ func createHelperWindow() error {
 	return nil
 }
 
-func updateKeyNamesWin32() {
-	var state [256]byte
-	for key := KeySpace; key <= KeyLast; key++ {
-		scancode := _glfw.win32.scancodes[key]
-		if scancode == -1 {
-			continue
-		}
-
-		var vk uint32
-		if key >= KeyKP0 && key <= KeyKPAdd {
-			vks := []uint32{
-				_VK_NUMPAD0, _VK_NUMPAD1, _VK_NUMPAD2, _VK_NUMPAD3,
-				_VK_NUMPAD4, _VK_NUMPAD5, _VK_NUMPAD6, _VK_NUMPAD7,
-				_VK_NUMPAD8, _VK_NUMPAD9, _VK_DECIMAL, _VK_DIVIDE,
-				_VK_MULTIPLY, _VK_SUBTRACT, _VK_ADD,
-			}
-			vk = vks[key-KeyKP0]
-		} else {
-			vk = _MapVirtualKeyW(uint32(scancode), _MAPVK_VSC_TO_VK)
-		}
-
-		var chars [16]uint16
-		length := _ToUnicode(vk, uint32(scancode), &state[0], &chars[0], int32(len(chars)), 0)
-		if length == -1 {
-			// TODO: Why is ToUnicode called twice?
-			length = _ToUnicode(vk, uint32(scancode), &state[0], &chars[0], int32(len(chars)), 0)
-		}
-		if length < 1 {
-			continue
-		}
-
-		_glfw.win32.keynames[key] = windows.UTF16ToString(chars[:1])
-	}
-}
-
 func isWindowsVersionOrGreaterWin32(major, minor, sp uint16) bool {
 	osvi := _OSVERSIONINFOEXW{
 		dwMajorVersion:    uint32(major),
@@ -287,7 +252,6 @@ func platformInit() error {
 	// See https://github.com/glfw/glfw/commit/58b48a3a00d9c2a5ca10cc23069a71d8773cc7a4
 
 	createKeyTables()
-	updateKeyNamesWin32()
 
 	if isWindows10CreatorsUpdateOrGreaterWin32() {
 		if err := _SetProcessDpiAwarenessContext(_DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2); err != nil && !errors.Is(err, windows.ERROR_ACCESS_DENIED) {

@@ -688,7 +688,7 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 		return 0
 
 	case _WM_INPUTLANGCHANGE:
-		updateKeyNamesWin32()
+		// Do nothing
 
 	case _WM_CHAR, _WM_SYSCHAR:
 		if wParam >= 0xd800 && wParam <= 0xdbff {
@@ -732,6 +732,9 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 
 		scancode := uint32((_HIWORD(uint32(lParam)) & (_KF_EXTENDED | 0xff)))
 		if scancode == 0 {
+			if !_MapVirtualKeyW_Available() {
+				break
+			}
 			// NOTE: Some synthetic key messages have a scancode of zero
 			// HACK: Map the virtual key back to a usable scancode
 			scancode = _MapVirtualKeyW(uint32(wParam), _MAPVK_VK_TO_VSC)
@@ -2119,13 +2122,6 @@ func (w *Window) platformSetCursorMode(mode int) error {
 	}
 
 	return nil
-}
-
-func platformGetScancodeName(scancode int) (string, error) {
-	if scancode < 0 || scancode > (_KF_EXTENDED|0xff) || _glfw.win32.keycodes[scancode] == KeyUnknown {
-		return "", fmt.Errorf("glfwwin: invalid scancode: %d", scancode)
-	}
-	return _glfw.win32.keynames[_glfw.win32.keycodes[scancode]], nil
 }
 
 func platformGetKeyScancode(key Key) int {

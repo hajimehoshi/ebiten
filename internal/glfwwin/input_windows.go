@@ -258,20 +258,7 @@ func RawMouseMotionSupported() (bool, error) {
 	return platformRawMouseMotionSupported(), nil
 }
 
-func GetKeyName(key Key, scancode int) (string, error) {
-	if !_glfw.initialized {
-		return "", NotInitialized
-	}
-
-	if key != KeyUnknown {
-		if key != KeyKPEqual && (key < KeyKP0 || key > KeyKPAdd) && (key < KeyApostrophe || key > KeyWorld2) {
-			return "", nil
-		}
-		scancode = platformGetKeyScancode(key)
-	}
-
-	return platformGetScancodeName(scancode)
-}
+// GetKeyName is not implemented.
 
 func GetKeyScancode(key Key) (int, error) {
 	if !_glfw.initialized {
