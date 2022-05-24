@@ -281,7 +281,6 @@ type library struct {
 	win32 struct {
 		helperWindowHandle       windows.HWND
 		deviceNotificationHandle _HDEVNOTIFY
-		foregroundLockTimeout    uint32
 		acquiredMonitorCount     int
 		clipboardString          string
 		keycodes                 [512]Key

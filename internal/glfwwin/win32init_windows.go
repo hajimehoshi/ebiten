@@ -283,15 +283,8 @@ func isWindows10BuildOrGreaterWin32(build uint16) bool {
 }
 
 func platformInit() error {
-	// To make SetForegroundWindow work as we want, we need to fiddle
-	// with the FOREGROUNDLOCKTIMEOUT system setting (we do this as early
-	// as possible in the hope of still being the foreground process)
-	if err := _SystemParametersInfoW(_SPI_GETFOREGROUNDLOCKTIMEOUT, 0, uintptr(unsafe.Pointer(&_glfw.win32.foregroundLockTimeout)), 0); err != nil {
-		return err
-	}
-	if err := _SystemParametersInfoW(_SPI_SETFOREGROUNDLOCKTIMEOUT, 0, 0, _SPIF_SENDCHANGE); err != nil {
-		return err
-	}
+	// Changing the foreground lock timeout was removed from the original code.
+	// See https://github.com/glfw/glfw/commit/58b48a3a00d9c2a5ca10cc23069a71d8773cc7a4
 
 	createKeyTables()
 	updateKeyNamesWin32()
@@ -335,12 +328,6 @@ func platformTerminate() error {
 	}
 
 	if err := unregisterWindowClassWin32(); err != nil {
-		return err
-	}
-
-	// Restore previous foreground lock timeout system setting
-	if err := _SystemParametersInfoW(_SPI_SETFOREGROUNDLOCKTIMEOUT, 0, uintptr(_glfw.win32.foregroundLockTimeout), _SPIF_SENDCHANGE); err != nil && !errors.Is(err, windows.ERROR_ACCESS_DENIED) {
-		// Access-denied can happen on WSL.
 		return err
 	}
 
