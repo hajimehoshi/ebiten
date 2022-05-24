@@ -30,9 +30,8 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-func monitorCallback(handle _HMONITOR, dc _HDC, rect *_RECT, data _LPARAM) uintptr /* _BOOL */ {
+func monitorCallback(handle _HMONITOR, dc _HDC, rect *_RECT, monitor *Monitor /* _LPARAM */) uintptr /* _BOOL */ {
 	if mi, ok := _GetMonitorInfoW_Ex(handle); ok {
-		monitor := (*Monitor)(unsafe.Pointer(data))
 		if windows.UTF16ToString(mi.szDevice[:]) == monitor.win32.adapterName {
 			monitor.win32.handle = handle
 		}
