@@ -44,7 +44,6 @@ var (
 	gpGenFramebuffersEXT          uintptr
 	gpGenRenderbuffersEXT         uintptr
 	gpGenTextures                 uintptr
-	gpGetBufferSubData            uintptr
 	gpGetDoublei_v                uintptr
 	gpGetDoublei_vEXT             uintptr
 	gpGetError                    uintptr
@@ -237,10 +236,6 @@ func GenRenderbuffersEXT(n int32, renderbuffers *uint32) {
 
 func GenTextures(n int32, textures *uint32) {
 	syscall.Syscall(gpGenTextures, 2, uintptr(n), uintptr(unsafe.Pointer(textures)), 0)
-}
-
-func GetBufferSubData(target uint32, offset int, size int, data unsafe.Pointer) {
-	syscall.Syscall6(gpGetBufferSubData, 4, uintptr(target), uintptr(offset), uintptr(size), uintptr(data), 0, 0)
 }
 
 func GetDoublei_v(target uint32, index uint32, data *float64) {
@@ -538,10 +533,6 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	gpGenTextures = getProcAddr("glGenTextures")
 	if gpGenTextures == 0 {
 		return errors.New("glGenTextures")
-	}
-	gpGetBufferSubData = getProcAddr("glGetBufferSubData")
-	if gpGetBufferSubData == 0 {
-		return errors.New("glGetBufferSubData")
 	}
 	gpGetDoublei_v = getProcAddr("glGetDoublei_v")
 	gpGetDoublei_vEXT = getProcAddr("glGetDoublei_vEXT")
