@@ -799,7 +799,6 @@ var (
 	procGetLayeredWindowAttributes    = user32.NewProc("GetLayeredWindowAttributes")
 	procGetMessageTime                = user32.NewProc("GetMessageTime")
 	procGetMonitorInfoW               = user32.NewProc("GetMonitorInfoW")
-	procGetPropW                      = user32.NewProc("GetPropW")
 	procGetRawInputData               = user32.NewProc("GetRawInputData")
 	procGetSystemMetrics              = user32.NewProc("GetSystemMetrics")
 	procGetSystemMetricsForDpi        = user32.NewProc("GetSystemMetricsForDpi")
@@ -835,7 +834,6 @@ var (
 	procSetLayeredWindowAttributes    = user32.NewProc("procSetLayeredWindowAttributes")
 	procSetProcessDPIAware            = user32.NewProc("SetProcessDPIAware")
 	procSetProcessDpiAwarenessContext = user32.NewProc("SetProcessDpiAwarenessContext")
-	procSetPropW                      = user32.NewProc("SetPropW")
 	procSetWindowLongW                = user32.NewProc("SetWindowLongW")
 	procSetWindowPlacement            = user32.NewProc("SetWindowPlacement")
 	procSetWindowPos                  = user32.NewProc("SetWindowPos")
@@ -1358,22 +1356,6 @@ func _GetDpiForMonitor(hmonitor _HMONITOR, dpiType _MONITOR_DPI_TYPE) (dpiX, dpi
 	return dpiX, dpiY, nil
 }
 
-func _GetPropW(hWnd windows.HWND, str string) windows.Handle {
-	var lpString *uint16
-	if str != "" {
-		var err error
-		lpString, err = windows.UTF16PtrFromString(str)
-		if err != nil {
-			panic("glfwwin: str must not include a NUL character")
-		}
-	}
-
-	r, _, _ := procGetPropW.Call(uintptr(hWnd), uintptr(unsafe.Pointer(lpString)))
-	runtime.KeepAlive(lpString)
-
-	return windows.Handle(r)
-}
-
 func _GetRawInputData(hRawInput _HRAWINPUT, uiCommand uint32, pData unsafe.Pointer, pcbSize *uint32) (uint32, error) {
 	r, _, e := procGetRawInputData.Call(uintptr(hRawInput), uintptr(uiCommand), uintptr(pData), uintptr(unsafe.Pointer(pcbSize)), unsafe.Sizeof(_RAWINPUTHEADER{}))
 	if uint32(r) == (1<<32)-1 {
@@ -1689,25 +1671,6 @@ func _SetProcessDpiAwarenessContext(value _DPI_AWARENESS_CONTEXT) error {
 
 func _SetProcessDpiAwarenessContext_Available() bool {
 	return procSetProcessDpiAwarenessContext.Find() == nil
-}
-
-func _SetPropW(hWnd windows.HWND, str string, hData windows.Handle) error {
-	var lpString *uint16
-	if str != "" {
-		var err error
-		lpString, err = windows.UTF16PtrFromString(str)
-		if err != nil {
-			panic("glfwwin: str must not include a NUL character")
-		}
-	}
-
-	r, _, e := procSetPropW.Call(uintptr(hWnd), uintptr(unsafe.Pointer(lpString)), uintptr(hData))
-	runtime.KeepAlive(lpString)
-
-	if int32(r) == 0 {
-		return fmt.Errorf("glfwwin: SetPropW failed: %w", e)
-	}
-	return nil
 }
 
 func _SetThreadExecutionState(esFlags _EXECUTION_STATE) _EXECUTION_STATE {

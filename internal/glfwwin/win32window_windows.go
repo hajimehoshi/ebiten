@@ -580,7 +580,7 @@ func (w *Window) maximizeWindowManually() error {
 }
 
 func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) uintptr /*_LRESULT*/ {
-	window := (*Window)(unsafe.Pointer(_GetPropW(hWnd, "GLFW")))
+	window := handleToWindow[hWnd]
 	if window == nil {
 		// This is the message handling for the hidden helper window
 		// and for a regular window during its initial creation
@@ -1180,6 +1180,8 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 
 var windowProcPtr = windows.NewCallbackCDecl(windowProc)
 
+var handleToWindow = map[windows.HWND]*Window{}
+
 func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) error {
 	style := w.getWindowStyle()
 	exStyle := w.getWindowExStyle()
@@ -1225,9 +1227,7 @@ func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) er
 	}
 	w.win32.handle = h
 
-	if err := _SetPropW(w.win32.handle, "GLFW", windows.Handle(unsafe.Pointer(w))); err != nil {
-		return err
-	}
+	handleToWindow[w.win32.handle] = w
 
 	if _IsWindows7OrGreater() {
 		if err := _ChangeWindowMessageFilterEx(w.win32.handle, _WM_DROPFILES, _MSGFLT_ALLOW, nil); err != nil {
@@ -1432,6 +1432,7 @@ func (w *Window) platformDestroyWindow() error {
 		if err := _DestroyWindow(w.win32.handle); err != nil {
 			return err
 		}
+		delete(handleToWindow, w.win32.handle)
 		w.win32.handle = 0
 	}
 
@@ -1998,7 +1999,7 @@ func platformPollEvents() error {
 	//       because they change the input focus
 	// NOTE: The other half of this is in the WM_*KEY* handler in windowProc
 	if handle := _GetActiveWindow(); handle != 0 {
-		if window := (*Window)(unsafe.Pointer(_GetPropW(handle, "GLFW"))); window != nil {
+		if window := handleToWindow[handle]; window != nil {
 			keys := [...]struct {
 				VK  int
 				Key Key
