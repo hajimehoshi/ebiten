@@ -135,7 +135,7 @@ func (f *playerFactory) initContextIfNeeded() (<-chan struct{}, error) {
 func (p *playerImpl) ensurePlayer() error {
 	// Initialize the underlying player lazily to enable calling NewContext in an 'init' function.
 	// Accessing the underlying player functions requires the environment to be already initialized,
-	// but if Ebiten is used for a shared library, the timing when init functions are called
+	// but if Ebitengine is used for a shared library, the timing when init functions are called
 	// is unexpectable.
 	// e.g. a variable for JVM on Android might not be set.
 	ready, err := p.factory.initContextIfNeeded()
