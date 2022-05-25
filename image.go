@@ -137,7 +137,7 @@ type DrawImageOptions struct {
 //   * All Filter values are same
 //
 // Even when all the above conditions are satisfied, multiple draw commands can
-// be used in really rare cases. Ebiten images usually share an internal
+// be used in really rare cases. Ebitengine images usually share an internal
 // automatic texture atlas, but when you consume the atlas, or you create a huge
 // image, those images cannot be on the same texture atlas. In this case, draw
 // commands are separated.
@@ -820,7 +820,7 @@ func NewImageFromImage(source image.Image) *Image {
 		panic(fmt.Sprintf("ebiten: NewImage cannot be called after RunGame finishes"))
 	}
 
-	// If the given image is an Ebiten image, use DrawImage instead of reading pixels from the source.
+	// If the given image is an Ebitengine image, use DrawImage instead of reading pixels from the source.
 	// This works even before the game loop runs.
 	if source, ok := source.(*Image); ok {
 		size := source.Bounds().Size()
@@ -857,7 +857,7 @@ func NewImageFromImage(source image.Image) *Image {
 //
 // NOTE: this is only safe when not using a custom Kage shader,
 // as custom shaders may be using vertex colors for different purposes
-// than colorization. However, currently there are no Ebiten APIs that
+// than colorization. However, currently there are no Ebitengine APIs that
 // support both shaders and color matrices.
 func colorMToScale(colorm affine.ColorM) (newColorM affine.ColorM, r, g, b, a float32) {
 	if colorm.IsIdentity() {

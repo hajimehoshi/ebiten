@@ -50,7 +50,7 @@
 //     }
 //
 // In the API document, 'the main thread' means the goroutine in init(), main() and their callees without 'go'
-// statement. It is assured that 'the main thread' runs on the OS main thread. There are some Ebiten functions (e.g.,
+// statement. It is assured that 'the main thread' runs on the OS main thread. There are some Ebitengine functions (e.g.,
 // DeviceScaleFactor) that must be called on the main thread under some conditions (typically, before ebiten.RunGame
 // is called).
 //
@@ -69,7 +69,7 @@
 // If the specified graphics library is not available, RunGame returns an error.
 // This can take one of the following value:
 //
-//     "auto":    Ebiten chooses the graphics library automatically. This is the default value.
+//     "auto":    Ebitengine chooses the graphics library automatically. This is the default value.
 //     "opengl":  OpenGL, OpenGL ES, or WebGL.
 //     "directx": DirectX. This works only on Windows.
 //     "metal":   Metal. This works only on macOS or iOS.
@@ -82,12 +82,12 @@
 //
 // Build tags
 //
-// `ebitendebug` outputs a log of graphics commands. This is useful to know what happens in Ebiten. In general, the
+// `ebitendebug` outputs a log of graphics commands. This is useful to know what happens in Ebitengine. In general, the
 // number of graphics commands affects the performance of your game.
 //
 // `ebitenwebgl1` forces to use WebGL 1 on browsers.
 //
-// `ebitensinglethread` disables Ebiten's thread safety to unlock maximum performance. If you use this you will have
+// `ebitensinglethread` disables Ebitengine's thread safety to unlock maximum performance. If you use this you will have
 // to manage threads yourself. Functions like IsKeyPressed will no longer be concurrent-safe with this build tag.
 // They must be called from the main thread or the same goroutine as the given game's callback functions like Update
 // to RunGame.

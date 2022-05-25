@@ -1,11 +1,11 @@
-# Ebiten (v2)
+# Ebitengine (v2)
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/hajimehoshi/ebiten/v2.svg)](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2)
 [![Build Status](https://github.com/hajimehoshi/ebiten/workflows/test/badge.svg)](https://github.com/hajimehoshi/ebiten/actions?query=workflow%3Atest)
 
 **A dead simple 2D game library for Go**
 
-Ebiten is an open source game library for the Go programming language. Ebiten's simple API allows you to quickly and easily develop 2D games that can be deployed across multiple platforms.
+Ebitengine (formerly known as Ebiten) is an open source game library for the Go programming language. Ebitengine's simple API allows you to quickly and easily develop 2D games that can be deployed across multiple platforms.
 
 * [Website (ebiten.org)](https://ebiten.org)
 * [API Reference](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2)
@@ -57,6 +57,6 @@ For installation on desktops, see [the installation instruction](https://ebiten.
 
 ## License
 
-Ebiten is licensed under Apache license version 2.0. See [LICENSE](LICENSE) file.
+Ebitengine is licensed under Apache license version 2.0. See [LICENSE](LICENSE) file.
 
-[The Ebiten logo](https://ebiten.org/images/logo.png) by Hajime Hoshi is licensed under [the Creative Commons Attribution-NoDerivatives 4.0](https://creativecommons.org/licenses/by-nd/4.0/).
+[The Ebitengine logo](https://ebiten.org/images/logo.png) by Hajime Hoshi is licensed under [the Creative Commons Attribution-NoDerivatives 4.0](https://creativecommons.org/licenses/by-nd/4.0/).

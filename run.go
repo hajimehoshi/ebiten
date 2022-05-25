@@ -28,7 +28,7 @@ type Game interface {
 	// Update updates only the game logic and Draw draws the screen.
 	//
 	// You can assume that Update is always called TPS-times per second (60 by default), and you can assume
-	// that the time delta between two Updates is always 1 / TPS [s] (1/60[s] by default). As Ebiten already
+	// that the time delta between two Updates is always 1 / TPS [s] (1/60[s] by default). As Ebitengine already
 	// adjusts the number of Update calls, you don't have to measure time deltas in Update by e.g. OS timers.
 	//
 	// An actual TPS is available by CurrentTPS(), and the result might slightly differ from your expected TPS,
@@ -110,7 +110,7 @@ func IsScreenClearedEveryFrame() bool {
 	return ui.IsScreenClearedEveryFrame()
 }
 
-// SetScreenFilterEnabled enables/disables the use of the "screen" filter Ebiten uses.
+// SetScreenFilterEnabled enables/disables the use of the "screen" filter Ebitengine uses.
 //
 // The "screen" filter is a box filter from game to display resolution.
 //
@@ -123,7 +123,7 @@ func SetScreenFilterEnabled(enabled bool) {
 	ui.SetScreenFilterEnabled(enabled)
 }
 
-// IsScreenFilterEnabled returns true if Ebiten's "screen" filter is enabled.
+// IsScreenFilterEnabled returns true if Ebitengine's "screen" filter is enabled.
 //
 // IsScreenFilterEnabled is concurrent-safe.
 func IsScreenFilterEnabled() bool {
@@ -166,12 +166,12 @@ func (i *imageDumperGame) Layout(outsideWidth, outsideHeight int) (screenWidth, 
 //
 // game's functions are called on the same goroutine.
 //
-// On browsers, it is strongly recommended to use iframe if you embed an Ebiten application in your website.
+// On browsers, it is strongly recommended to use iframe if you embed an Ebitengine application in your website.
 //
 // RunGame must be called on the main thread.
-// Note that Ebiten bounds the main goroutine to the main OS thread by runtime.LockOSThread.
+// Note that Ebitengine bounds the main goroutine to the main OS thread by runtime.LockOSThread.
 //
-// Ebiten tries to call game's Update function 60 times a second by default. In other words,
+// Ebitengine tries to call game's Update function 60 times a second by default. In other words,
 // TPS (ticks per second) is 60 by default.
 // This is not related to framerate (display's refresh rate).
 //
@@ -205,7 +205,7 @@ func isRunGameEnded() bool {
 // The adopted monitor is the 'current' monitor which the window belongs to.
 // The returned value can be given to Run or SetSize function if the perfectly fit fullscreen is needed.
 //
-// On browsers, ScreenSizeInFullscreen returns the 'window' (global object) size, not 'screen' size since an Ebiten
+// On browsers, ScreenSizeInFullscreen returns the 'window' (global object) size, not 'screen' size since an Ebitengine
 // game should not know the outside of the window object.
 //
 // On mobiles, ScreenSizeInFullscreen returns (0, 0) so far.
@@ -275,7 +275,7 @@ func IsFullscreen() bool {
 // In fullscreen mode, the game screen is automatically enlarged
 // to fit with the monitor. The current scale value is ignored.
 //
-// On desktops, Ebiten uses 'windowed' fullscreen mode, which doesn't change
+// On desktops, Ebitengine uses 'windowed' fullscreen mode, which doesn't change
 // your monitor's resolution.
 //
 // On browsers, triggering fullscreen requires a user gesture otherwise SetFullscreen does nothing but leave an error message in console.
