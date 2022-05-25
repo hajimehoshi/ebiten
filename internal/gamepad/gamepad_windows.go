@@ -736,6 +736,9 @@ func (g *nativeGamepad) buttonValue(button int) float64 {
 
 func (g *nativeGamepad) hatState(hat int) int {
 	if g.usesDInput() {
+		if hat < 0 || hat >= len(g.dinputHats) {
+			return 0
+		}
 		return g.dinputHats[hat]
 	}
 
