@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 
-//go:build !windows
-// +build !windows
+//go:build !darwin && !windows
+// +build !darwin,!windows
 
 package gl
 
-// #cgo darwin LDFLAGS: -framework OpenGL
 // #cgo linux,!ebitencbackend freebsd,!ebitencbackend openbsd,!ebitencbackend pkg-config: gl
 //
 // #ifndef APIENTRY
