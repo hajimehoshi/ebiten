@@ -1,8 +1,8 @@
-# Contributing to Ebiten
+# Contributing to Ebitengine
 
-Ebiten is an open source project and we appreciate your contributions!
+Ebitengine is an open source project and we appreciate your contributions!
 
-There are some rules for Ebiten contribution.
+There are some rules for Ebitengine contribution.
 
 ## Filing an issue in the GitHub issue
 
@@ -12,12 +12,12 @@ Except for very trivial fixes like fixing misspelling, it is a must to have an i
 
 ## Asking us when you are not sure
 
-In Ebiten, problems might not be documented very well in GitHub issues. Please ask us before you work on such issue.
+In Ebitengine, problems might not be documented very well in GitHub issues. Please ask us before you work on such issue.
 
 You can ask us at these communities:
 
- * [Ebiten Discord Server](https://discord.gg/3tVdM5H8cC)
- * `#ebiten` channel in [Gophers Slack](https://invite.slack.golangbridge.org/)
+ * [Ebitengine Discord Server](https://discord.gg/3tVdM5H8cC)
+ * `#ebitengine` channel in [Gophers Slack](https://invite.slack.golangbridge.org/)
  * [GitHub Discussion](https://github.com/hajimehoshi/ebiten/discussions)
 
 ## Following the Go convention
@@ -28,7 +28,7 @@ For example, formatting by `go fmt` is required.
 ## Adding copyright comments to each file
 
 ```go
-// Copyright [YYYY] The Ebiten Authors
+// Copyright [YYYY] The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -60,6 +60,6 @@ See the [documents](https://ebiten.org/documents/implementation.html) about inte
 
 ## Fixing the documentation
 
-Ebiten's documentations are managed at [ebiten/ebiten.org](https://github.com/ebiten/ebiten.org).  
+Ebitengine's documentations are managed at [ebiten/ebiten.org](https://github.com/ebiten/ebiten.org).  
 
 Before submitting a documentation PR, read through the [README](https://github.com/ebiten/ebiten.org/blob/main/README.md) in that repo.
