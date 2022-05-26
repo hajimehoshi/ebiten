@@ -44,7 +44,6 @@ var (
 	gpGenFramebuffersEXT          uintptr
 	gpGenRenderbuffersEXT         uintptr
 	gpGenTextures                 uintptr
-	gpGetBufferSubData            uintptr
 	gpGetDoublei_v                uintptr
 	gpGetDoublei_vEXT             uintptr
 	gpGetError                    uintptr
@@ -142,7 +141,7 @@ func BufferSubData(target uint32, offset int, size int, data unsafe.Pointer) {
 
 func CheckFramebufferStatusEXT(target uint32) uint32 {
 	ret, _, _ := purego.SyscallN(gpCheckFramebufferStatusEXT, uintptr(target))
-	return (uint32)(ret)
+	return uint32(ret)
 }
 
 func Clear(mask uint32) {
@@ -159,12 +158,12 @@ func CompileShader(shader uint32) {
 
 func CreateProgram() uint32 {
 	ret, _, _ := purego.SyscallN(gpCreateProgram)
-	return (uint32)(ret)
+	return uint32(ret)
 }
 
 func CreateShader(xtype uint32) uint32 {
 	ret, _, _ := purego.SyscallN(gpCreateShader, uintptr(xtype))
-	return (uint32)(ret)
+	return uint32(ret)
 }
 
 func DeleteBuffers(n int32, buffers *uint32) {
@@ -239,10 +238,6 @@ func GenTextures(n int32, textures *uint32) {
 	purego.SyscallN(gpGenTextures, uintptr(n), uintptr(unsafe.Pointer(textures)))
 }
 
-func GetBufferSubData(target uint32, offset int, size int, data unsafe.Pointer) {
-	purego.SyscallN(gpGetBufferSubData, uintptr(target), uintptr(offset), uintptr(size), uintptr(data))
-}
-
 func GetDoublei_v(target uint32, index uint32, data *float64) {
 	purego.SyscallN(gpGetDoublei_v, uintptr(target), uintptr(index), uintptr(unsafe.Pointer(data)))
 }
@@ -252,7 +247,7 @@ func GetDoublei_vEXT(pname uint32, index uint32, params *float64) {
 
 func GetError() uint32 {
 	ret, _, _ := purego.SyscallN(gpGetError)
-	return (uint32)(ret)
+	return uint32(ret)
 }
 func GetFloati_v(target uint32, index uint32, data *float32) {
 	purego.SyscallN(gpGetFloati_v, uintptr(target), uintptr(index), uintptr(unsafe.Pointer(data)))
@@ -300,7 +295,7 @@ func GetTransformFeedbacki_v(xfb uint32, pname uint32, index uint32, param *int3
 
 func GetUniformLocation(program uint32, name *uint8) int32 {
 	ret, _, _ := purego.SyscallN(gpGetUniformLocation, uintptr(program), uintptr(unsafe.Pointer(name)))
-	return (int32)(ret)
+	return int32(ret)
 }
 
 func GetUnsignedBytei_vEXT(target uint32, index uint32, data *uint8) {
@@ -315,22 +310,22 @@ func GetVertexArrayPointeri_vEXT(vaobj uint32, index uint32, pname uint32, param
 
 func IsFramebufferEXT(framebuffer uint32) bool {
 	ret, _, _ := purego.SyscallN(gpIsFramebufferEXT, uintptr(framebuffer))
-	return ret == TRUE
+	return byte(ret) != 0
 }
 
 func IsProgram(program uint32) bool {
 	ret, _, _ := purego.SyscallN(gpIsProgram, uintptr(program))
-	return ret == TRUE
+	return byte(ret) != 0
 }
 
 func IsRenderbufferEXT(renderbuffer uint32) bool {
 	ret, _, _ := purego.SyscallN(gpIsRenderbufferEXT, uintptr(renderbuffer))
-	return ret == TRUE
+	return byte(ret) != 0
 }
 
 func IsTexture(texture uint32) bool {
 	ret, _, _ := purego.SyscallN(gpIsTexture, uintptr(texture))
-	return ret == TRUE
+	return byte(ret) != 0
 }
 
 func LinkProgram(program uint32) {
@@ -538,10 +533,6 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	gpGenTextures = getProcAddr("glGenTextures")
 	if gpGenTextures == 0 {
 		return errors.New("glGenTextures")
-	}
-	gpGetBufferSubData = getProcAddr("glGetBufferSubData")
-	if gpGetBufferSubData == 0 {
-		return errors.New("glGetBufferSubData")
 	}
 	gpGetDoublei_v = getProcAddr("glGetDoublei_v")
 	gpGetDoublei_vEXT = getProcAddr("glGetDoublei_vEXT")
