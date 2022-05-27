@@ -345,12 +345,6 @@ type VidMode struct {
 	RefreshRate int
 }
 
-type GammaRamp struct {
-	Red   []int
-	Green []int
-	Blue  []int
-}
-
 type Image struct {
 	Width  int
 	Height int

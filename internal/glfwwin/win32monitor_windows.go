@@ -337,14 +337,6 @@ func (m *Monitor) platformGetVideoMode() *VidMode {
 	}
 }
 
-func (m *Monitor) platformGetGammaRamp(ramp *GammaRamp) {
-	panic("glfwwin: platformGetGammaRamp is not implemented")
-}
-
-func (m *Monitor) platformSetGammaRamp(ramp *GammaRamp) {
-	panic("glfwwin: platformSetGammaRamp is not implemented")
-}
-
 func (m *Monitor) in32Adapter() (string, error) {
 	if !_glfw.initialized {
 		return "", NotInitialized

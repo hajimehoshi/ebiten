@@ -225,9 +225,6 @@ type Monitor struct {
 	modes       []*VidMode
 	currentMode *VidMode
 
-	originalRamp GammaRamp
-	currentRamp  GammaRamp
-
 	win32 struct {
 		handle _HMONITOR
 

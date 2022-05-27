@@ -36,12 +36,6 @@ func terminate() error {
 		}
 	}
 
-	for _, monitor := range _glfw.monitors {
-		if len(monitor.originalRamp.Red) != 0 {
-			monitor.platformSetGammaRamp(&monitor.originalRamp)
-		}
-	}
-
 	_glfw.monitors = nil
 
 	if err := platformTerminate(); err != nil {
