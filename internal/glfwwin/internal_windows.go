@@ -220,9 +220,6 @@ type Window struct {
 type Monitor struct {
 	name string
 
-	widthMM  int
-	heightMM int
-
 	window *Window
 
 	modes       []*VidMode

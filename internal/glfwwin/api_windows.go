@@ -727,10 +727,8 @@ var (
 
 	procChoosePixelFormat   = gdi32.NewProc("ChoosePixelFormat")
 	procCreateBitmap        = gdi32.NewProc("CreateBitmap")
-	procCreateDCW           = gdi32.NewProc("CreateDCW")
 	procCreateDIBSection    = gdi32.NewProc("CreateDIBSection")
 	procCreateRectRgn       = gdi32.NewProc("CreateRectRgn")
-	procDeleteDC            = gdi32.NewProc("DeleteDC")
 	procDeleteObject        = gdi32.NewProc("DeleteObject")
 	procDescribePixelFormat = gdi32.NewProc("DescribePixelFormat")
 	procGetDeviceCaps       = gdi32.NewProc("GetDeviceCaps")
@@ -945,44 +943,6 @@ func _CreateBitmap(nWidth int32, nHeight int32, nPlanes uint32, nBitCount uint32
 	return _HBITMAP(r), nil
 }
 
-func _CreateDCW(driver string, device string, port string, pdm *_DEVMODEW) (_HDC, error) {
-	var lpszDriver *uint16
-	if driver != "" {
-		var err error
-		lpszDriver, err = windows.UTF16PtrFromString(driver)
-		if err != nil {
-			panic("glfwwin: driver must not include a NUL character")
-		}
-	}
-
-	var lpszDevice *uint16
-	if device != "" {
-		var err error
-		lpszDevice, err = windows.UTF16PtrFromString(device)
-		if err != nil {
-			panic("glfwwin: device must not include a NUL character")
-		}
-	}
-
-	var lpszPort *uint16
-	if port != "" {
-		var err error
-		lpszPort, err = windows.UTF16PtrFromString(port)
-		if err != nil {
-			panic("glfwwin: port must not include a NUL character")
-		}
-	}
-
-	r, _, e := procCreateDCW.Call(uintptr(unsafe.Pointer(lpszDriver)), uintptr(unsafe.Pointer(lpszDevice)), uintptr(unsafe.Pointer(lpszPort)), uintptr(unsafe.Pointer(pdm)))
-	runtime.KeepAlive(lpszDriver)
-	runtime.KeepAlive(lpszDevice)
-	runtime.KeepAlive(lpszPort)
-	if _HDC(r) == 0 {
-		return 0, fmt.Errorf("glfwwin: CreateDCW failed: %w", e)
-	}
-	return _HDC(r), nil
-}
-
 func _CreateDIBSection(hdc _HDC, pbmi *_BITMAPV5HEADER, usage uint32, hSection windows.Handle, offset uint32) (_HBITMAP, *byte, error) {
 	// pbmi is originally *BITMAPINFO.
 	var bits *byte
@@ -1058,14 +1018,6 @@ func _DestroyWindow(hWnd windows.HWND) error {
 	r, _, e := procDestroyWindow.Call(uintptr(hWnd))
 	if int32(r) == 0 {
 		return fmt.Errorf("glfwwin: DestroyWindow failed: %w", e)
-	}
-	return nil
-}
-
-func _DeleteDC(hdc _HDC) error {
-	r, _, e := procDeleteDC.Call(uintptr(hdc))
-	if int32(r) == 0 {
-		return fmt.Errorf("glfwwin: DeleteDC failed: %w", e)
 	}
 	return nil
 }

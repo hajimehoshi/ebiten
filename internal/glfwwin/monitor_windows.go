@@ -240,12 +240,7 @@ func (m *Monitor) GetWorkarea() (xpos, ypos, width, height int, err error) {
 	return
 }
 
-func (m *Monitor) GetPhysicalSize() (widthMM, heightMM int, err error) {
-	if !_glfw.initialized {
-		return 0, 0, NotInitialized
-	}
-	return m.widthMM, m.heightMM, nil
-}
+// GetPhysicalSize is not implemented.
 
 func (m *Monitor) GetContentScale() (xscale, yscale float32, err error) {
 	if !_glfw.initialized {

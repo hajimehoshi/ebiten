@@ -58,26 +58,8 @@ func createMonitor(adapter *_DISPLAY_DEVICEW, display *_DISPLAY_DEVICEW) (*Monit
 		return nil, nil
 	}
 
-	var widthMM, heightMM int
-	dc, err := _CreateDCW("DISPLAY", adapterDeviceName, "", nil)
-	if err != nil {
-		return nil, err
-	}
-	if _IsWindows8Point1OrGreater() {
-		widthMM = int(_GetDeviceCaps(dc, _HORZSIZE))
-		heightMM = int(_GetDeviceCaps(dc, _VERTSIZE))
-	} else {
-		widthMM = int(float64(dm.dmPelsWidth) * 25.4 / float64(_GetDeviceCaps(dc, _LOGPIXELSX)))
-		heightMM = int(float64(dm.dmPelsHeight) * 25.4 / float64(_GetDeviceCaps(dc, _LOGPIXELSY)))
-	}
-	if err := _DeleteDC(dc); err != nil {
-		return nil, err
-	}
-
 	monitor := &Monitor{
-		name:     name,
-		widthMM:  widthMM,
-		heightMM: heightMM,
+		name: name,
 	}
 
 	if adapter.StateFlags&_DISPLAY_DEVICE_MODESPRUNED != 0 {
