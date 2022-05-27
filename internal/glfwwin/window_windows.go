@@ -317,9 +317,7 @@ func WindowHint(hint Hint, value int) error {
 	return nil
 }
 
-func WindowHintString(hint Hint, value string) {
-	panic("glfwwin: WindowHintString is not implemented")
-}
+// WindowHintString is not implemented.
 
 func (w *Window) Destroy() error {
 	if !_glfw.initialized {

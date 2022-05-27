@@ -25,7 +25,6 @@ package glfwwin
 
 import (
 	"sort"
-	"unsafe"
 )
 
 func abs(x int) uint {
@@ -257,19 +256,8 @@ func (m *Monitor) GetName() (string, error) {
 	return m.name, nil
 }
 
-func (m *Monitor) SetUserPointer(pointer unsafe.Pointer) error {
-	if !_glfw.initialized {
-		return NotInitialized
-	}
-	panic("glfwwin: Monitor.SetUserPointer is not implemented")
-}
-
-func (m *Monitor) GetUserPointer() (unsafe.Pointer, error) {
-	if !_glfw.initialized {
-		return nil, NotInitialized
-	}
-	panic("glfwwin: Monitor.GetUserPointer is not implemented")
-}
+// SetUserPointer is not implemented.
+// GetUserPointer is not implemented.
 
 func SetMonitorCallback(cbfun MonitorCallback) (MonitorCallback, error) {
 	if !_glfw.initialized {
@@ -295,14 +283,6 @@ func (m *Monitor) GetVideoMode() (*VidMode, error) {
 	return m.currentMode, nil
 }
 
-func (m *Monitor) SetGamma(gamma float32) {
-	panic("glfwwin: Monitor.SetGamma is not implemented")
-}
-
-func (m *Monitor) GetGammaRamp() *GammaRamp {
-	panic("glfwwin: Monitor.GetGammaRamp is not implemented")
-}
-
-func (m *Monitor) SetGammaRamp(ramp *GammaRamp) {
-	panic("glfwwin: Monitor.SetGammaRamp is not implemented")
-}
+// SetGamma is not implemented.
+// GetGammaRamp is not implemented.
+// SetGammaRamp is not implemented.
