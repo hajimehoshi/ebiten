@@ -185,23 +185,25 @@ func createHelperWindow() error {
 	//       process passed along a STARTUPINFO, so clear that with a no-op call
 	_ShowWindow(_glfw.win32.helperWindowHandle, _SW_HIDE)
 
-	_GUID_DEVINTERFACE_HID := windows.GUID{
-		Data1: 0x4d1e55b2,
-		Data2: 0xf16f,
-		Data3: 0x11cf,
-		Data4: [...]byte{0x88, 0xcb, 0x00, 0x11, 0x11, 0x00, 0x00, 0x30},
-	}
-
 	// Register for HID device notifications
-	var dbi _DEV_BROADCAST_DEVICEINTERFACE_W
-	dbi.dbcc_size = uint32(unsafe.Sizeof(dbi))
-	dbi.dbcc_devicetype = _DBT_DEVTYP_DEVICEINTERFACE
-	dbi.dbcc_classguid = _GUID_DEVINTERFACE_HID
-	notify, err := _RegisterDeviceNotificationW(windows.Handle(_glfw.win32.helperWindowHandle), unsafe.Pointer(&dbi), _DEVICE_NOTIFY_WINDOW_HANDLE)
-	if err != nil {
-		return err
+	if _RegisterDeviceNotificationW_Available() {
+		_GUID_DEVINTERFACE_HID := windows.GUID{
+			Data1: 0x4d1e55b2,
+			Data2: 0xf16f,
+			Data3: 0x11cf,
+			Data4: [...]byte{0x88, 0xcb, 0x00, 0x11, 0x11, 0x00, 0x00, 0x30},
+		}
+
+		var dbi _DEV_BROADCAST_DEVICEINTERFACE_W
+		dbi.dbcc_size = uint32(unsafe.Sizeof(dbi))
+		dbi.dbcc_devicetype = _DBT_DEVTYP_DEVICEINTERFACE
+		dbi.dbcc_classguid = _GUID_DEVINTERFACE_HID
+		notify, err := _RegisterDeviceNotificationW(windows.Handle(_glfw.win32.helperWindowHandle), unsafe.Pointer(&dbi), _DEVICE_NOTIFY_WINDOW_HANDLE)
+		if err != nil {
+			return err
+		}
+		_glfw.win32.deviceNotificationHandle = notify
 	}
-	_glfw.win32.deviceNotificationHandle = notify
 
 	var msg _MSG
 	for _PeekMessageW(&msg, _glfw.win32.helperWindowHandle, 0, 0, _PM_REMOVE) {

@@ -1181,6 +1181,10 @@ func _EnumDisplayDevicesW(device string, iDevNum uint32, dwFlags uint32) (_DISPL
 	return displayDevice, true
 }
 
+func _EnumDisplayDevicesW_Available() bool {
+	return procEnumDisplayDevicesW.Find() == nil
+}
+
 func _EnumDisplayMonitors(hdc _HDC, lprcClip *_RECT, lpfnEnum uintptr, dwData _LPARAM) error {
 	r, _, e := procEnumDisplayMonitors.Call(uintptr(hdc), uintptr(unsafe.Pointer(lprcClip)), uintptr(lpfnEnum), uintptr(dwData))
 	if int32(r) == 0 {
@@ -1531,6 +1535,10 @@ func _RegisterDeviceNotificationW(hRecipient windows.Handle, notificationFilter 
 		return 0, fmt.Errorf("glfwwin: RegisterDeviceNotificationW failed: %w", e)
 	}
 	return _HDEVNOTIFY(r), nil
+}
+
+func _RegisterDeviceNotificationW_Available() bool {
+	return procRegisterDeviceNotificationW.Find() == nil
 }
 
 func _RegisterRawInputDevices(pRawInputDevices []_RAWINPUTDEVICE) error {
