@@ -168,7 +168,7 @@ func createHelperWindow() error {
 	_ShowWindow(_glfw.win32.helperWindowHandle, _SW_HIDE)
 
 	// Register for HID device notifications
-	if _RegisterDeviceNotificationW_Available() {
+	if !isXbox() {
 		_GUID_DEVINTERFACE_HID := windows.GUID{
 			Data1: 0x4d1e55b2,
 			Data2: 0xf16f,
@@ -238,7 +238,7 @@ func platformInit() error {
 	createKeyTables()
 
 	if isWindows10CreatorsUpdateOrGreaterWin32() {
-		if _SetProcessDpiAwarenessContext_Available() {
+		if !isXbox() {
 			if err := _SetProcessDpiAwarenessContext(_DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2); err != nil && !errors.Is(err, windows.ERROR_ACCESS_DENIED) {
 				return err
 			}
@@ -258,8 +258,14 @@ func platformInit() error {
 	if err := createHelperWindow(); err != nil {
 		return err
 	}
-	if err := pollMonitorsWin32(); err != nil {
-		return err
+	if isXbox() {
+		// TODO: Create a dummy window.
+		// The resolution can be deterined based on a device.
+		// See https://github.com/microsoft/Xbox-GDK-Samples/blob/1f44bdabed6e340170e2c7d1007500e4dff897bb/Samples/IntroGraphics/SimpleDynamicResources/Main.cpp#L118-L148
+	} else {
+		if err := pollMonitorsWin32(); err != nil {
+			return err
+		}
 	}
 	return nil
 }

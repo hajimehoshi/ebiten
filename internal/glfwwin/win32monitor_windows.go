@@ -66,7 +66,7 @@ func createMonitor(adapter *_DISPLAY_DEVICEW, display *_DISPLAY_DEVICEW) (*Monit
 }
 
 func pollMonitorsWin32() error {
-	if !_EnumDisplayDevicesW_Available() {
+	if isXbox() {
 		return nil
 	}
 

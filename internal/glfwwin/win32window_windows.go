@@ -714,7 +714,7 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 
 		scancode := uint32((_HIWORD(uint32(lParam)) & (_KF_EXTENDED | 0xff)))
 		if scancode == 0 {
-			if !_MapVirtualKeyW_Available() {
+			if isXbox() {
 				break
 			}
 			// NOTE: Some synthetic key messages have a scancode of zero
@@ -1337,7 +1337,7 @@ func registerWindowClassWin32() error {
 	// In the original GLFW implementation, an embedded resource GLFW_ICON is used if possible.
 	// See https://www.glfw.org/docs/3.3/group__window.html
 
-	if _LoadImageW_Available() {
+	if !isXbox() {
 		icon, err := _LoadImageW(0, _IDI_APPLICATION, _IMAGE_ICON, 0, 0, _LR_DEFAULTSIZE|_LR_SHARED)
 		if err != nil {
 			return err
@@ -2123,7 +2123,7 @@ func (c *Cursor) platformCreateCursor(image *Image, xhot, yhot int) error {
 }
 
 func (c *Cursor) platformCreateStandardCursor(shape StandardCursor) error {
-	if !_LoadImageW_Available() {
+	if isXbox() {
 		return nil
 	}
 

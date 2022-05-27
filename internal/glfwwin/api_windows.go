@@ -1,4 +1,4 @@
-// Copyright 2022 The Ebiten Authors
+// Copyright 2022 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -1133,10 +1133,6 @@ func _EnumDisplayDevicesW(device string, iDevNum uint32, dwFlags uint32) (_DISPL
 	return displayDevice, true
 }
 
-func _EnumDisplayDevicesW_Available() bool {
-	return procEnumDisplayDevicesW.Find() == nil
-}
-
 func _EnumDisplayMonitors(hdc _HDC, lprcClip *_RECT, lpfnEnum uintptr, dwData _LPARAM) error {
 	r, _, e := procEnumDisplayMonitors.Call(uintptr(hdc), uintptr(unsafe.Pointer(lprcClip)), uintptr(lpfnEnum), uintptr(dwData))
 	if int32(r) == 0 {
@@ -1395,17 +1391,9 @@ func _LoadImageW(hInst _HINSTANCE, name uintptr, typ uint32, cx int32, cy int32,
 	return windows.Handle(r), nil
 }
 
-func _LoadImageW_Available() bool {
-	return procLoadImageW.Find() == nil
-}
-
 func _MapVirtualKeyW(uCode uint32, uMapType uint32) uint32 {
 	r, _, _ := procMapVirtualKeyW.Call(uintptr(uCode), uintptr(uMapType))
 	return uint32(r)
-}
-
-func _MapVirtualKeyW_Available() bool {
-	return procMapVirtualKeyW.Find() == nil
 }
 
 func _MonitorFromWindow(hwnd windows.HWND, dwFlags uint32) _HMONITOR {
@@ -1487,10 +1475,6 @@ func _RegisterDeviceNotificationW(hRecipient windows.Handle, notificationFilter 
 		return 0, fmt.Errorf("glfwwin: RegisterDeviceNotificationW failed: %w", e)
 	}
 	return _HDEVNOTIFY(r), nil
-}
-
-func _RegisterDeviceNotificationW_Available() bool {
-	return procRegisterDeviceNotificationW.Find() == nil
 }
 
 func _RegisterRawInputDevices(pRawInputDevices []_RAWINPUTDEVICE) error {
@@ -1627,10 +1611,6 @@ func _SetProcessDpiAwarenessContext(value _DPI_AWARENESS_CONTEXT) error {
 		return fmt.Errorf("glfwwin: SetProcessDpiAwarenessContext failed: %w", e)
 	}
 	return nil
-}
-
-func _SetProcessDpiAwarenessContext_Available() bool {
-	return procSetProcessDpiAwarenessContext.Find() == nil
 }
 
 func _SetThreadExecutionState(esFlags _EXECUTION_STATE) _EXECUTION_STATE {
