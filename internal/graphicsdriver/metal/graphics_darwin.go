@@ -29,7 +29,7 @@ import (
 )
 
 // #cgo CFLAGS: -x objective-c
-// #cgo !ios CFLAGS: -mmacosx-version-min=10.14
+// #cgo !ios CFLAGS: -mmacosx-version-min=10.12
 // #cgo LDFLAGS: -framework Foundation
 //
 // #import <Foundation/Foundation.h>
@@ -56,9 +56,9 @@ const source = `#include <metal_stdlib>
 using namespace metal;
 
 struct VertexIn {
-  packed_float2 position;
-  packed_float2 tex;
-  packed_float4 color;
+  float2 position;
+  float2 tex;
+  float4 color;
 };
 
 struct VertexOut {

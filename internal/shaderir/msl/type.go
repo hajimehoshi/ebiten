@@ -64,10 +64,10 @@ func opString(op shaderir.Op) string {
 	return fmt.Sprintf("?(unexpected operator: %d)", op)
 }
 
-func typeString(t *shaderir.Type, packed bool, ref bool) string {
+func typeString(t *shaderir.Type, ref bool) string {
 	switch t.Main {
 	case shaderir.Array:
-		st := typeString(&t.Sub[0], packed, false)
+		st := typeString(&t.Sub[0], false)
 		t := fmt.Sprintf("array<%s, %d>", st, t.Length)
 		if ref {
 			t += "&"
@@ -76,7 +76,7 @@ func typeString(t *shaderir.Type, packed bool, ref bool) string {
 	case shaderir.Struct:
 		panic("msl: a struct is not implemented")
 	default:
-		t := basicTypeString(t.Main, packed)
+		t := basicTypeString(t.Main)
 		if ref {
 			t += "&"
 		}
@@ -84,7 +84,7 @@ func typeString(t *shaderir.Type, packed bool, ref bool) string {
 	}
 }
 
-func basicTypeString(t shaderir.BasicType, packed bool) string {
+func basicTypeString(t shaderir.BasicType) string {
 	switch t {
 	case shaderir.None:
 		return "?(none)"
@@ -95,19 +95,10 @@ func basicTypeString(t shaderir.BasicType, packed bool) string {
 	case shaderir.Float:
 		return "float"
 	case shaderir.Vec2:
-		if packed {
-			return "packed_float2"
-		}
 		return "float2"
 	case shaderir.Vec3:
-		if packed {
-			return "packed_float3"
-		}
 		return "float3"
 	case shaderir.Vec4:
-		if packed {
-			return "packed_float4"
-		}
 		return "float4"
 	case shaderir.Mat2:
 		return "float2x2"

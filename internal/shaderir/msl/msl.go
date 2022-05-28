@@ -72,7 +72,7 @@ func Compile(p *shaderir.Program, vertex, fragment string) (shader string) {
 		lines = append(lines, "")
 		lines = append(lines, "struct Attributes {")
 		for i, a := range p.Attributes {
-			lines = append(lines, fmt.Sprintf("\t%s;", c.varDecl(p, &a, fmt.Sprintf("M%d", i), true, false)))
+			lines = append(lines, fmt.Sprintf("\t%s;", c.varDecl(p, &a, fmt.Sprintf("M%d", i), false)))
 		}
 		lines = append(lines, "};")
 	}
@@ -82,7 +82,7 @@ func Compile(p *shaderir.Program, vertex, fragment string) (shader string) {
 		lines = append(lines, "struct Varyings {")
 		lines = append(lines, "\tfloat4 Position [[position]];")
 		for i, v := range p.Varyings {
-			lines = append(lines, fmt.Sprintf("\t%s;", c.varDecl(p, &v, fmt.Sprintf("M%d", i), false, false)))
+			lines = append(lines, fmt.Sprintf("\t%s;", c.varDecl(p, &v, fmt.Sprintf("M%d", i), false)))
 		}
 		lines = append(lines, "};")
 	}
@@ -108,7 +108,7 @@ func Compile(p *shaderir.Program, vertex, fragment string) (shader string) {
 			"\tconst device Attributes* attributes [[buffer(0)]]")
 		for i, u := range p.Uniforms {
 			lines[len(lines)-1] += ","
-			lines = append(lines, fmt.Sprintf("\tconstant %s [[buffer(%d)]]", c.varDecl(p, &u, fmt.Sprintf("U%d", i), false, true), i+1))
+			lines = append(lines, fmt.Sprintf("\tconstant %s [[buffer(%d)]]", c.varDecl(p, &u, fmt.Sprintf("U%d", i), true), i+1))
 		}
 		for i := 0; i < p.TextureNum; i++ {
 			lines[len(lines)-1] += ","
@@ -130,7 +130,7 @@ func Compile(p *shaderir.Program, vertex, fragment string) (shader string) {
 			"\tVaryings varyings [[stage_in]]")
 		for i, u := range p.Uniforms {
 			lines[len(lines)-1] += ","
-			lines = append(lines, fmt.Sprintf("\tconstant %s [[buffer(%d)]]", c.varDecl(p, &u, fmt.Sprintf("U%d", i), false, true), i+1))
+			lines = append(lines, fmt.Sprintf("\tconstant %s [[buffer(%d)]]", c.varDecl(p, &u, fmt.Sprintf("U%d", i), true), i+1))
 		}
 		for i := 0; i < p.TextureNum; i++ {
 			lines[len(lines)-1] += ","
@@ -153,7 +153,7 @@ func Compile(p *shaderir.Program, vertex, fragment string) (shader string) {
 		for i, t := range c.structTypes {
 			stlines = append(stlines, fmt.Sprintf("struct S%d {", i))
 			for j, st := range t.Sub {
-				stlines = append(stlines, fmt.Sprintf("\t%s;", c.varDecl(p, &st, fmt.Sprintf("M%d", j), false, false)))
+				stlines = append(stlines, fmt.Sprintf("\t%s;", c.varDecl(p, &st, fmt.Sprintf("M%d", j), false)))
 			}
 			stlines = append(stlines, "};")
 		}
@@ -169,18 +169,18 @@ func Compile(p *shaderir.Program, vertex, fragment string) (shader string) {
 	return ls
 }
 
-func (c *compileContext) typ(p *shaderir.Program, t *shaderir.Type, packed bool, ref bool) string {
+func (c *compileContext) typ(p *shaderir.Program, t *shaderir.Type) string {
 	switch t.Main {
 	case shaderir.None:
 		return "void"
 	case shaderir.Struct:
 		return c.structName(p, t)
 	default:
-		return typeString(t, packed, ref)
+		return typeString(t, false)
 	}
 }
 
-func (c *compileContext) varDecl(p *shaderir.Program, t *shaderir.Type, varname string, packed bool, ref bool) string {
+func (c *compileContext) varDecl(p *shaderir.Program, t *shaderir.Type, varname string, ref bool) string {
 	switch t.Main {
 	case shaderir.None:
 		return "?(none)"
@@ -191,7 +191,7 @@ func (c *compileContext) varDecl(p *shaderir.Program, t *shaderir.Type, varname 
 		}
 		return fmt.Sprintf("%s %s", s, varname)
 	default:
-		t := typeString(t, packed, ref)
+		t := typeString(t, ref)
 		return fmt.Sprintf("%s %s", t, varname)
 	}
 }
@@ -209,9 +209,9 @@ func (c *compileContext) varInit(p *shaderir.Program, t *shaderir.Type) string {
 	case shaderir.Int:
 		return "0"
 	case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
-		return fmt.Sprintf("%s(0)", basicTypeString(t.Main, false))
+		return fmt.Sprintf("%s(0)", basicTypeString(t.Main))
 	default:
-		t := c.typ(p, t, false, false)
+		t := c.typ(p, t)
 		panic(fmt.Sprintf("?(unexpected type: %s)", t))
 	}
 }
@@ -221,7 +221,7 @@ func (c *compileContext) function(p *shaderir.Program, f *shaderir.Func, prototy
 
 	// Uniform variables and texture variables. In Metal, non-const global variables are not available.
 	for i, u := range p.Uniforms {
-		args = append(args, "constant "+c.varDecl(p, &u, fmt.Sprintf("U%d", i), false, true))
+		args = append(args, "constant "+c.varDecl(p, &u, fmt.Sprintf("U%d", i), true))
 	}
 	for i := 0; i < p.TextureNum; i++ {
 		args = append(args, fmt.Sprintf("texture2d<float> T%d", i))
@@ -229,11 +229,11 @@ func (c *compileContext) function(p *shaderir.Program, f *shaderir.Func, prototy
 
 	var idx int
 	for _, t := range f.InParams {
-		args = append(args, c.varDecl(p, &t, fmt.Sprintf("l%d", idx), false, false))
+		args = append(args, c.varDecl(p, &t, fmt.Sprintf("l%d", idx), false))
 		idx++
 	}
 	for _, t := range f.OutParams {
-		args = append(args, "thread "+c.varDecl(p, &t, fmt.Sprintf("l%d", idx), false, true))
+		args = append(args, "thread "+c.varDecl(p, &t, fmt.Sprintf("l%d", idx), true))
 		idx++
 	}
 	argsstr := "void"
@@ -241,7 +241,7 @@ func (c *compileContext) function(p *shaderir.Program, f *shaderir.Func, prototy
 		argsstr = strings.Join(args, ", ")
 	}
 
-	t := c.typ(p, &f.Return, false, false)
+	t := c.typ(p, &f.Return)
 	sig := fmt.Sprintf("%s F%d(%s)", t, f.Index, argsstr)
 
 	var lines []string
@@ -323,7 +323,7 @@ func (c *compileContext) initVariable(p *shaderir.Program, topBlock, block *shad
 
 	var lines []string
 	if decl {
-		lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, c.varDecl(p, &t, name, false, false), c.varInit(p, &t)))
+		lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, c.varDecl(p, &t, name, false), c.varInit(p, &t)))
 	} else {
 		lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, name, c.varInit(p, &t)))
 	}
@@ -477,7 +477,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			t := s.ForVarType
 			init := constantToNumberLiteral(ct, s.ForInit)
 			end := constantToNumberLiteral(ct, s.ForEnd)
-			ts := typeString(&t, false, false)
+			ts := typeString(&t, false)
 			lines = append(lines, fmt.Sprintf("%sfor (%s %s = %s; %s %s %s; %s) {", idt, ts, v, init, v, op, end, delta))
 			lines = append(lines, c.block(p, topBlock, s.Blocks[0], level+1)...)
 			lines = append(lines, fmt.Sprintf("%s}", idt))

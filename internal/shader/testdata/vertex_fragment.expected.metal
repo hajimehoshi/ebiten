@@ -1,7 +1,7 @@
 struct Attributes {
-	packed_float2 M0;
-	packed_float2 M1;
-	packed_float4 M2;
+	float2 M0;
+	float2 M1;
+	float4 M2;
 };
 
 struct Varyings {

@@ -14,7 +14,7 @@
 
 // Package mtl provides access to Apple's Metal API (https://developer.apple.com/documentation/metal).
 //
-// Package mtl requires macOS version 10.14 or newer.
+// Package mtl requires macOS version 10.12 or newer.
 //
 // This package is in very early stages of development.
 // The API will change when opportunities for improvement are discovered; it is not yet frozen.
@@ -28,7 +28,7 @@ import (
 	"unsafe"
 )
 
-// #cgo !ios CFLAGS: -mmacosx-version-min=10.14
+// #cgo !ios CFLAGS: -mmacosx-version-min=10.12
 // #cgo LDFLAGS: -framework Metal -framework CoreGraphics -framework Foundation
 //
 // #include "mtl_darwin.h"
