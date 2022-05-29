@@ -44,3 +44,18 @@ func isXbox() bool {
 	t := C.XSystemGetDeviceType()
 	return t != _XSystemDeviceType_Unknown && t != _XSystemDeviceType_Pc
 }
+
+func monitorResolution() (int, int) {
+	switch C.XSystemGetDeviceType() {
+	case _XSystemDeviceType_XboxOne, _XSystemDeviceType_XboxOneS:
+		return 1920, 1080
+	case _XSystemDeviceType_XboxScarlettLockhart:
+		// Series S
+		return 2560, 1440
+	case _XSystemDeviceType_XboxOneX, _XSystemDeviceType_XboxOneXDevkit, _XSystemDeviceType_XboxScarlettAnaconda, _XSystemDeviceType_XboxScarlettDevkit:
+		// Series X
+		return 3840, 2160
+	default:
+		return 1920, 1080
+	}
+}

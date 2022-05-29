@@ -20,3 +20,7 @@ package glfwwin
 func isXbox() bool {
 	return false
 }
+
+func monitorResolution() (int, int) {
+	panic("glfwwin: monitorResolution is not implemented in this environment")
+}

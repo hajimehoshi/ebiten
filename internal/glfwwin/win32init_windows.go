@@ -259,9 +259,25 @@ func platformInit() error {
 		return err
 	}
 	if isXbox() {
-		// TODO: Create a dummy window.
-		// The resolution can be deterined based on a device.
-		// See https://github.com/microsoft/Xbox-GDK-Samples/blob/1f44bdabed6e340170e2c7d1007500e4dff897bb/Samples/IntroGraphics/SimpleDynamicResources/Main.cpp#L118-L148
+		// On Xbox, APIs to get monitors are not available.
+		// Create a pseudo monitor instance instead.
+		w, h := monitorResolution()
+		mode := &VidMode{
+			Width:       w,
+			Height:      h,
+			RedBits:     8,
+			GreenBits:   8,
+			BlueBits:    8,
+			RefreshRate: 0, // TODO: Is it possible to get an appropriate refresh rate?
+		}
+		m := &Monitor{
+			name:        "Xbox Monitor",
+			modes:       []*VidMode{mode},
+			currentMode: mode,
+		}
+		if err := inputMonitor(m, Connected, _GLFW_INSERT_LAST); err != nil {
+			return err
+		}
 	} else {
 		if err := pollMonitorsWin32(); err != nil {
 			return err
