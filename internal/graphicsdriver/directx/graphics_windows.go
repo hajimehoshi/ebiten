@@ -20,6 +20,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -32,18 +33,24 @@ import (
 
 const frameCount = 2
 
-const is64bit = uint64(^uintptr(0)) == ^uint64(0)
-
 // isDirectXAvailable indicates whether DirectX is available or not.
-// In 32bit machines, DirectX is not used because
-//   1) The functions syscall.Syscall cannot accept 64bit values as one argument
-//   2) The struct layouts can be different
-// TODO: Support DirectX for 32bit machines (#2088).
-var isDirectXAvailable = is64bit && theGraphics.initializeDevice() == nil
+var (
+	isDirectXAvailable     bool
+	isDirectXAvailableOnce sync.Once
+)
 
 var theGraphics Graphics
 
 func Get() *Graphics {
+	isDirectXAvailableOnce.Do(func() {
+		const is64bit = uint64(^uintptr(0)) == ^uint64(0)
+
+		// In 32bit machines, DirectX is not used because
+		//   1) The functions syscall.Syscall cannot accept 64bit values as one argument
+		//   2) The struct layouts can be different
+		// TODO: Support DirectX for 32bit machines (#2088).
+		isDirectXAvailable = is64bit && theGraphics.initializeDevice() == nil
+	})
 	if !isDirectXAvailable {
 		return nil
 	}
