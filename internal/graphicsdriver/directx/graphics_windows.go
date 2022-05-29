@@ -277,7 +277,7 @@ func (g *Graphics) initializeDeviceDesktop(useWARP bool, useDebugLayer bool) (fe
 }
 
 func (g *Graphics) initializeDeviceXbox(useWARP bool, useDebugLayer bool) (ferr error) {
-	if err := d3d12x().Load(); err != nil {
+	if err := d3d12x.Load(); err != nil {
 		return err
 	}
 

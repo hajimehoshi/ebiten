@@ -22,5 +22,9 @@ func IsXbox() bool {
 }
 
 func MonitorResolution() (int, int) {
-	panic("microsoftgdk: MonitorResolution is not implemented in this environment")
+	return 0, 0
+}
+
+func D3D12DLLName() string {
+	return ""
 }

@@ -59,3 +59,14 @@ func MonitorResolution() (int, int) {
 		return 1920, 1080
 	}
 }
+
+func D3D12DLLName() string {
+	switch C.XSystemGetDeviceType() {
+	case _XSystemDeviceType_XboxOne, _XSystemDeviceType_XboxOneS, _XSystemDeviceType_XboxOneX, _XSystemDeviceType_XboxOneXDevkit:
+		return "d3d12_x.dll"
+	case _XSystemDeviceType_XboxScarlettLockhart, _XSystemDeviceType_XboxScarlettAnaconda, _XSystemDeviceType_XboxScarlettDevkit:
+		return "d3d12_xs.dll"
+	default:
+		return ""
+	}
+}

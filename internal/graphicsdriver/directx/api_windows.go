@@ -19,11 +19,12 @@ import (
 	"math"
 	"reflect"
 	"runtime"
-	"sync"
 	"syscall"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 )
 
 type (
@@ -875,29 +876,15 @@ type _D3D12XBOX_CREATE_DEVICE_PARAMETERS struct {
 
 var (
 	d3d12       = windows.NewLazySystemDLL("d3d12.dll")
+	d3d12x      = windows.NewLazySystemDLL(microsoftgdk.D3D12DLLName())
 	d3dcompiler = windows.NewLazySystemDLL("d3dcompiler_47.dll")
 	dxgi        = windows.NewLazySystemDLL("dxgi.dll")
 
-	d3d12xDLL  *windows.LazyDLL
-	d3d12xOnce sync.Once
-)
-
-func d3d12x() *windows.LazyDLL {
-	d3d12xOnce.Do(func() {
-		d3d12xDLL = windows.NewLazySystemDLL("d3d12_xs.dll")
-		if d3d12xDLL.Load() != nil {
-			d3d12xDLL = windows.NewLazySystemDLL("d3d12_x.dll")
-		}
-	})
-	return d3d12xDLL
-}
-
-var (
 	procD3D12CreateDevice           = d3d12.NewProc("D3D12CreateDevice")
 	procD3D12GetDebugInterface      = d3d12.NewProc("D3D12GetDebugInterface")
 	procD3D12SerializeRootSignature = d3d12.NewProc("D3D12SerializeRootSignature")
 
-	procD3D12XboxCreateDevice = d3d12x().NewProc("D3D12XboxCreateDevice")
+	procD3D12XboxCreateDevice = d3d12x.NewProc("D3D12XboxCreateDevice")
 
 	procD3DCompile = d3dcompiler.NewProc("D3DCompile")
 
