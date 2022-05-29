@@ -122,6 +122,10 @@ func createIcon(image *Image, xhot, yhot int, icon bool) (_HICON, error) {
 }
 
 func getFullWindowSize(style uint32, exStyle uint32, contentWidth, contentHeight int, dpi uint32) (fullWidth, fullHeight int, err error) {
+	if isXbox() {
+		return contentWidth, contentHeight, nil
+	}
+
 	rect := _RECT{
 		left:   0,
 		top:    0,
@@ -1211,7 +1215,7 @@ func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) er
 
 	handleToWindow[w.win32.handle] = w
 
-	if _IsWindows7OrGreater() {
+	if !isXbox() && _IsWindows7OrGreater() {
 		if err := _ChangeWindowMessageFilterEx(w.win32.handle, _WM_DROPFILES, _MSGFLT_ALLOW, nil); err != nil {
 			return err
 		}
@@ -1228,7 +1232,7 @@ func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) er
 	// Adjust window rect to account for DPI scaling of the window frame and
 	// (if enabled) DPI scaling of the content area
 	// This cannot be done until we know what monitor the window was placed on
-	if w.monitor == nil {
+	if !isXbox() && w.monitor == nil {
 		rect := _RECT{
 			left:   0,
 			top:    0,
@@ -1294,7 +1298,9 @@ func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) er
 		}
 	}
 
-	_DragAcceptFiles(w.win32.handle, true)
+	if !isXbox() {
+		_DragAcceptFiles(w.win32.handle, true)
+	}
 
 	if fbconfig.transparent {
 		if err := w.updateFramebufferTransparency(); err != nil {
