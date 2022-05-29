@@ -261,8 +261,7 @@ func (m *Monitor) GetVideoMode() (*VidMode, error) {
 	if !_glfw.initialized {
 		return nil, NotInitialized
 	}
-	m.currentMode = m.platformGetVideoMode()
-	return m.currentMode, nil
+	return m.platformGetVideoMode(), nil
 }
 
 // SetGamma is not implemented.

@@ -204,8 +204,7 @@ type Monitor struct {
 
 	window *Window
 
-	modes       []*VidMode
-	currentMode *VidMode
+	modes []*VidMode
 
 	win32 struct {
 		handle _HMONITOR
