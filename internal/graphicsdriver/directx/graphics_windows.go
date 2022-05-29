@@ -38,6 +38,7 @@ const is64bit = uint64(^uintptr(0)) == ^uint64(0)
 // In 32bit machines, DirectX is not used because
 //   1) The functions syscall.Syscall cannot accept 64bit values as one argument
 //   2) The struct layouts can be different
+// TODO: Support DirectX for 32bit machines (#2088).
 var isDirectXAvailable = is64bit && theGraphics.initializeDevice() == nil
 
 var theGraphics Graphics
