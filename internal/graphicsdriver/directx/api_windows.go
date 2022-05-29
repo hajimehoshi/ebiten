@@ -19,10 +19,15 @@ import (
 	"math"
 	"reflect"
 	"runtime"
+	"sync"
 	"syscall"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+)
+
+type (
+	_BOOL int32
 )
 
 func boolToUintptr(v bool) uintptr {
@@ -49,6 +54,10 @@ const (
 	_D3D12_MIN_DEPTH                         = 0.0
 	_D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION    = 16384
 	_D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES = 0xffffffff
+	_D3D12_SDK_VERSION                       = (_D3D12_SDK_VERSION_MAJOR << 16) | _D3D12_SDK_VERSION_MINOR
+	_D3D12_SDK_VERSION_MAJOR                 = 2
+	_D3D12_SDK_VERSION_MINOR                 = 4
+	_D3D12XBOX_DEFAULT_SIZE_BYTES            = 0xffffffff
 )
 
 type _D3D_FEATURE_LEVEL int32
@@ -471,6 +480,21 @@ const (
 	_D3D12_TEXTURE_LAYOUT_64KB_STANDARD_SWIZZLE  _D3D12_TEXTURE_LAYOUT = 3
 )
 
+type _D3D12XBOX_CREATE_DEVICE_FLAGS int32
+
+type _D3D12XBOX_PROCESS_DEBUG_FLAGS int32
+
+const (
+	_D3D12XBOX_PROCESS_DEBUG_FLAG_NONE                          _D3D12XBOX_PROCESS_DEBUG_FLAGS = 0x0
+	_D3D12XBOX_PROCESS_DEBUG_FLAG_DEBUG                         _D3D12XBOX_PROCESS_DEBUG_FLAGS = 0x00000001
+	_D3D12_PROCESS_DEBUG_FLAG_DEBUG_LAYER_ENABLED               _D3D12XBOX_PROCESS_DEBUG_FLAGS = _D3D12XBOX_PROCESS_DEBUG_FLAG_DEBUG
+	_D3D12XBOX_PROCESS_DEBUG_FLAG_INSTRUMENTED                  _D3D12XBOX_PROCESS_DEBUG_FLAGS = 0x00100000
+	_D3D12XBOX_PROCESS_DEBUG_FLAG_VALIDATED                     _D3D12XBOX_PROCESS_DEBUG_FLAGS = _D3D12XBOX_PROCESS_DEBUG_FLAG_DEBUG
+	_D3D12XBOX_PROCESS_DEBUG_FLAG_NULL_GPU                      _D3D12XBOX_PROCESS_DEBUG_FLAGS = 0x00400000
+	_D3D12XBOX_PROCESS_DEBUG_FLAG_ENABLE_COMMON_STATE_PROMOTION _D3D12XBOX_PROCESS_DEBUG_FLAGS = 0x01000000
+	_D3D12XBOX_PROCESS_DEBUG_FLAG_ENHANCED_VALIDATION           _D3D12XBOX_PROCESS_DEBUG_FLAGS = 0x02000000
+)
+
 type _DXGI_ALPHA_MODE uint32
 
 const (
@@ -537,8 +561,8 @@ var (
 )
 
 type _D3D12_BLEND_DESC struct {
-	AlphaToCoverageEnable  int32
-	IndependentBlendEnable int32
+	AlphaToCoverageEnable  _BOOL
+	IndependentBlendEnable _BOOL
 	RenderTarget           [8]_D3D12_RENDER_TARGET_BLEND_DESC
 }
 
@@ -584,10 +608,10 @@ type _D3D12_DEPTH_STENCIL_VIEW_DESC struct {
 }
 
 type _D3D12_DEPTH_STENCIL_DESC struct {
-	DepthEnable      int32
+	DepthEnable      _BOOL
 	DepthWriteMask   _D3D12_DEPTH_WRITE_MASK
 	DepthFunc        _D3D12_COMPARISON_FUNC
-	StencilEnable    int32
+	StencilEnable    _BOOL
 	StencilReadMask  uint8
 	StencilWriteMask uint8
 	FrontFace        _D3D12_DEPTH_STENCILOP_DESC
@@ -680,13 +704,13 @@ type _D3D12_RANGE struct {
 type _D3D12_RASTERIZER_DESC struct {
 	FillMode              _D3D12_FILL_MODE
 	CullMode              _D3D12_CULL_MODE
-	FrontCounterClockwise int32
+	FrontCounterClockwise _BOOL
 	DepthBias             int32
 	DepthBiasClamp        float32
 	SlopeScaledDepthBias  float32
-	DepthClipEnable       int32
-	MultisampleEnable     int32
-	AntialiasedLineEnable int32
+	DepthClipEnable       _BOOL
+	MultisampleEnable     _BOOL
+	AntialiasedLineEnable _BOOL
 	ForcedSampleCount     uint32
 	ConservativeRaster    _D3D12_CONSERVATIVE_RASTERIZATION_MODE
 }
@@ -829,14 +853,51 @@ type _D3D12_VIEWPORT struct {
 	MaxDepth float32
 }
 
+type _D3D12XBOX_CREATE_DEVICE_PARAMETERS struct {
+	Version                              uint32
+	ProcessDebugFlags                    _D3D12XBOX_PROCESS_DEBUG_FLAGS
+	GraphicsCommandQueueRingSizeBytes    uint32
+	pOffchipTessellationBuffer           _D3D12_GPU_VIRTUAL_ADDRESS
+	GraphicsScratchMemorySizeBytes       uint32
+	ComputeScratchMemorySizeBytes        uint32
+	DisableGeometryShaderAllocations     _BOOL
+	DisableTessellationShaderAllocations _BOOL
+
+	// These members are for Xbox Series.
+	DisableDXR                             _BOOL
+	DisableAutomaticDPBBBreakBatchEvents   _BOOL
+	pDXRStackBuffer                        _D3D12_GPU_VIRTUAL_ADDRESS
+	DXRStackBufferOverrideSizeBytes        uint32
+	CreateDeviceFlags                      _D3D12XBOX_CREATE_DEVICE_FLAGS
+	AutoHDRPaperWhiteLevelNits             uint32
+	DisableAutomaticCommandSegmentChaining _BOOL
+}
+
 var (
 	d3d12       = windows.NewLazySystemDLL("d3d12.dll")
 	d3dcompiler = windows.NewLazySystemDLL("d3dcompiler_47.dll")
 	dxgi        = windows.NewLazySystemDLL("dxgi.dll")
 
+	d3d12xDLL  *windows.LazyDLL
+	d3d12xOnce sync.Once
+)
+
+func d3d12x() *windows.LazyDLL {
+	d3d12xOnce.Do(func() {
+		d3d12xDLL = windows.NewLazySystemDLL("d3d12_xs.dll")
+		if d3d12xDLL.Load() != nil {
+			d3d12xDLL = windows.NewLazySystemDLL("d3d12_x.dll")
+		}
+	})
+	return d3d12xDLL
+}
+
+var (
 	procD3D12CreateDevice           = d3d12.NewProc("D3D12CreateDevice")
 	procD3D12GetDebugInterface      = d3d12.NewProc("D3D12GetDebugInterface")
 	procD3D12SerializeRootSignature = d3d12.NewProc("D3D12SerializeRootSignature")
+
+	procD3D12XboxCreateDevice = d3d12x().NewProc("D3D12XboxCreateDevice")
 
 	procD3DCompile = d3dcompiler.NewProc("D3DCompile")
 
@@ -875,6 +936,14 @@ func _D3D12SerializeRootSignature(pRootSignature *_D3D12_ROOT_SIGNATURE_DESC, ve
 		return nil, fmt.Errorf("directx: D3D12SerializeRootSignature failed: %w", windows.Errno(r))
 	}
 	return blob, nil
+}
+
+func _D3D12XboxCreateDevice(pAdapter unsafe.Pointer, pParameters *_D3D12XBOX_CREATE_DEVICE_PARAMETERS, riid *windows.GUID, ppDevice *unsafe.Pointer) error {
+	r, _, _ := procD3D12XboxCreateDevice.Call(uintptr(pAdapter), uintptr(unsafe.Pointer(pParameters)), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(ppDevice)))
+	if windows.Handle(r) != windows.S_OK {
+		return fmt.Errorf("directx: D3D12XboxCreateDevice failed: %w", windows.Errno(r))
+	}
+	return nil
 }
 
 func _D3DCompile(srcData []byte, sourceName string, pDefines []_D3D_SHADER_MACRO, pInclude unsafe.Pointer, entryPoint string, target string, flags1 uint32, flags2 uint32) (*_ID3DBlob, error) {
@@ -943,8 +1012,8 @@ type _D3D12_PLACED_SUBRESOURCE_FOOTPRINT struct {
 }
 
 type _D3D12_RENDER_TARGET_BLEND_DESC struct {
-	BlendEnable           int32
-	LogicOpEnable         int32
+	BlendEnable           _BOOL
+	LogicOpEnable         _BOOL
 	SrcBlend              _D3D12_BLEND
 	DestBlend             _D3D12_BLEND
 	BlendOp               _D3D12_BLEND_OP
@@ -999,7 +1068,7 @@ type _DXGI_SWAP_CHAIN_FULLSCREEN_DESC struct {
 	RefreshRate      _DXGI_RATIONAL
 	ScanlineOrdering _DXGI_MODE_SCANLINE_ORDER
 	Scaling          _DXGI_MODE_SCALING
-	Windowed         int32
+	Windowed         _BOOL
 }
 
 type _DXGI_RATIONAL struct {
@@ -1016,7 +1085,7 @@ type _DXGI_SWAP_CHAIN_DESC1 struct {
 	Width       uint32
 	Height      uint32
 	Format      _DXGI_FORMAT
-	Stereo      int32
+	Stereo      _BOOL
 	SampleDesc  _DXGI_SAMPLE_DESC
 	BufferUsage _DXGI_USAGE
 	BufferCount uint32

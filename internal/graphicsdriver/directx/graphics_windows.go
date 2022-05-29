@@ -27,14 +27,15 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
 )
 
 const frameCount = 2
 
-// isDirectXAvailable indicates whether DirectX is available or not.
 var (
+	// isDirectXAvailable indicates whether DirectX is available or not.
 	isDirectXAvailable     bool
 	isDirectXAvailableOnce sync.Once
 )
@@ -159,12 +160,26 @@ func (g *Graphics) initializeDevice() (ferr error) {
 	for _, t := range strings.Split(os.Getenv("EBITEN_DIRECTX"), ",") {
 		switch strings.TrimSpace(t) {
 		case "warp":
+			// TODO: Is WARP available on Xbox?
 			useWARP = true
 		case "debug":
 			useDebugLayer = true
 		}
 	}
 
+	if microsoftgdk.IsXbox() {
+		if err := g.initializeDeviceXbox(useWARP, useDebugLayer); err != nil {
+			return err
+		}
+	} else {
+		if err := g.initializeDeviceDesktop(useWARP, useDebugLayer); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (g *Graphics) initializeDeviceDesktop(useWARP bool, useDebugLayer bool) (ferr error) {
 	if err := d3d12.Load(); err != nil {
 		return err
 	}
@@ -255,6 +270,27 @@ func (g *Graphics) initializeDevice() (ferr error) {
 	}
 
 	if err := _D3D12CreateDevice(unsafe.Pointer(g.adapter), _D3D_FEATURE_LEVEL_11_0, &_IID_ID3D12Device, (*unsafe.Pointer)(unsafe.Pointer(&g.device))); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (g *Graphics) initializeDeviceXbox(useWARP bool, useDebugLayer bool) (ferr error) {
+	if err := d3d12x().Load(); err != nil {
+		return err
+	}
+
+	params := &_D3D12XBOX_CREATE_DEVICE_PARAMETERS{
+		Version:                           _D3D12_SDK_VERSION, // TODO: Can we always use the same value?
+		GraphicsCommandQueueRingSizeBytes: _D3D12XBOX_DEFAULT_SIZE_BYTES,
+		GraphicsScratchMemorySizeBytes:    _D3D12XBOX_DEFAULT_SIZE_BYTES,
+		ComputeScratchMemorySizeBytes:     _D3D12XBOX_DEFAULT_SIZE_BYTES,
+	}
+	if useDebugLayer {
+		params.ProcessDebugFlags = _D3D12_PROCESS_DEBUG_FLAG_DEBUG_LAYER_ENABLED
+	}
+	if err := _D3D12XboxCreateDevice(nil, params, &_IID_ID3D12Device, (*unsafe.Pointer)(unsafe.Pointer(&g.device))); err != nil {
 		return err
 	}
 
