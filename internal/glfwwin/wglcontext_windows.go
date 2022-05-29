@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"strings"
 	"unsafe"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 )
 
 func findPixelFormatAttribValue(attribs []int32, values []int32, attrib int32) int32 {
@@ -329,7 +331,7 @@ func destroyContextWGL(window *Window) error {
 }
 
 func initWGL() error {
-	if isXbox() {
+	if microsoftgdk.IsXbox() {
 		return fmt.Errorf("glfwwin: WGL is not available in Xbox")
 	}
 

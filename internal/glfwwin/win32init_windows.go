@@ -10,6 +10,8 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 )
 
 func createKeyTables() {
@@ -168,7 +170,7 @@ func createHelperWindow() error {
 	_ShowWindow(_glfw.win32.helperWindowHandle, _SW_HIDE)
 
 	// Register for HID device notifications
-	if !isXbox() {
+	if !microsoftgdk.IsXbox() {
 		_GUID_DEVINTERFACE_HID := windows.GUID{
 			Data1: 0x4d1e55b2,
 			Data2: 0xf16f,
@@ -238,7 +240,7 @@ func platformInit() error {
 	createKeyTables()
 
 	if isWindows10CreatorsUpdateOrGreaterWin32() {
-		if !isXbox() {
+		if !microsoftgdk.IsXbox() {
 			if err := _SetProcessDpiAwarenessContext(_DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2); err != nil && !errors.Is(err, windows.ERROR_ACCESS_DENIED) {
 				return err
 			}
@@ -258,10 +260,10 @@ func platformInit() error {
 	if err := createHelperWindow(); err != nil {
 		return err
 	}
-	if isXbox() {
+	if microsoftgdk.IsXbox() {
 		// On Xbox, APIs to get monitors are not available.
 		// Create a pseudo monitor instance instead.
-		w, h := monitorResolution()
+		w, h := microsoftgdk.MonitorResolution()
 		mode := &VidMode{
 			Width:       w,
 			Height:      h,

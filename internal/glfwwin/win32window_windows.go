@@ -13,6 +13,8 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 )
 
 func (w *Window) getWindowStyle() uint32 {
@@ -122,7 +124,7 @@ func createIcon(image *Image, xhot, yhot int, icon bool) (_HICON, error) {
 }
 
 func getFullWindowSize(style uint32, exStyle uint32, contentWidth, contentHeight int, dpi uint32) (fullWidth, fullHeight int, err error) {
-	if isXbox() {
+	if microsoftgdk.IsXbox() {
 		return contentWidth, contentHeight, nil
 	}
 
@@ -718,7 +720,7 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 
 		scancode := uint32((_HIWORD(uint32(lParam)) & (_KF_EXTENDED | 0xff)))
 		if scancode == 0 {
-			if isXbox() {
+			if microsoftgdk.IsXbox() {
 				break
 			}
 			// NOTE: Some synthetic key messages have a scancode of zero
@@ -1215,7 +1217,7 @@ func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) er
 
 	handleToWindow[w.win32.handle] = w
 
-	if !isXbox() && _IsWindows7OrGreater() {
+	if !microsoftgdk.IsXbox() && _IsWindows7OrGreater() {
 		if err := _ChangeWindowMessageFilterEx(w.win32.handle, _WM_DROPFILES, _MSGFLT_ALLOW, nil); err != nil {
 			return err
 		}
@@ -1232,7 +1234,7 @@ func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) er
 	// Adjust window rect to account for DPI scaling of the window frame and
 	// (if enabled) DPI scaling of the content area
 	// This cannot be done until we know what monitor the window was placed on
-	if !isXbox() && w.monitor == nil {
+	if !microsoftgdk.IsXbox() && w.monitor == nil {
 		rect := _RECT{
 			left:   0,
 			top:    0,
@@ -1298,7 +1300,7 @@ func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) er
 		}
 	}
 
-	if !isXbox() {
+	if !microsoftgdk.IsXbox() {
 		_DragAcceptFiles(w.win32.handle, true)
 	}
 
@@ -1343,7 +1345,7 @@ func registerWindowClassWin32() error {
 	// In the original GLFW implementation, an embedded resource GLFW_ICON is used if possible.
 	// See https://www.glfw.org/docs/3.3/group__window.html
 
-	if !isXbox() {
+	if !microsoftgdk.IsXbox() {
 		icon, err := _LoadImageW(0, _IDI_APPLICATION, _IMAGE_ICON, 0, 0, _LR_DEFAULTSIZE|_LR_SHARED)
 		if err != nil {
 			return err
@@ -2129,7 +2131,7 @@ func (c *Cursor) platformCreateCursor(image *Image, xhot, yhot int) error {
 }
 
 func (c *Cursor) platformCreateStandardCursor(shape StandardCursor) error {
-	if isXbox() {
+	if microsoftgdk.IsXbox() {
 		return nil
 	}
 

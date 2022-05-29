@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !microsoftgdk
-// +build !microsoftgdk
+//go:build !windows || !microsoftgdk
+// +build !windows !microsoftgdk
 
-package glfwwin
+package microsoftgdk
 
-func isXbox() bool {
+func IsXbox() bool {
 	return false
 }
 
-func monitorResolution() (int, int) {
-	panic("glfwwin: monitorResolution is not implemented in this environment")
+func MonitorResolution() (int, int) {
+	panic("microsoftgdk: MonitorResolution is not implemented in this environment")
 }

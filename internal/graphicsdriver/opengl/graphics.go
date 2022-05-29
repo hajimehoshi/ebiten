@@ -19,12 +19,16 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
 var theGraphics Graphics
 
 func Get() *Graphics {
+	if microsoftgdk.IsXbox() {
+		return nil
+	}
 	return &theGraphics
 }
 

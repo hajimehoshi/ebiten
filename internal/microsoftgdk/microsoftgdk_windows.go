@@ -15,7 +15,7 @@
 //go:build microsoftgdk
 // +build microsoftgdk
 
-package glfwwin
+package microsoftgdk
 
 // Unfortunately, some functions like XSystemGetDeviceType is not implemented in a DLL,
 // so LoadLibrary is not available.
@@ -40,12 +40,12 @@ const (
 	_XSystemDeviceType_XboxScarlettDevkit   = 0x08
 )
 
-func isXbox() bool {
+func IsXbox() bool {
 	t := C.XSystemGetDeviceType()
 	return t != _XSystemDeviceType_Unknown && t != _XSystemDeviceType_Pc
 }
 
-func monitorResolution() (int, int) {
+func MonitorResolution() (int, int) {
 	switch C.XSystemGetDeviceType() {
 	case _XSystemDeviceType_XboxOne, _XSystemDeviceType_XboxOneS:
 		return 1920, 1080

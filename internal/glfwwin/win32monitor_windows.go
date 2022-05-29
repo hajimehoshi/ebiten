@@ -10,6 +10,8 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 )
 
 func monitorCallback(handle _HMONITOR, dc _HDC, rect *_RECT, monitor *Monitor /* _LPARAM */) uintptr /* _BOOL */ {
@@ -66,7 +68,7 @@ func createMonitor(adapter *_DISPLAY_DEVICEW, display *_DISPLAY_DEVICEW) (*Monit
 }
 
 func pollMonitorsWin32() error {
-	if isXbox() {
+	if microsoftgdk.IsXbox() {
 		return nil
 	}
 
@@ -234,7 +236,7 @@ func getMonitorContentScaleWin32(handle _HMONITOR) (xscale, yscale float32, err 
 }
 
 func (m *Monitor) platformGetMonitorPos() (xpos, ypos int, ok bool) {
-	if isXbox() {
+	if microsoftgdk.IsXbox() {
 		return 0, 0, true
 	}
 
@@ -246,7 +248,7 @@ func (m *Monitor) platformGetMonitorPos() (xpos, ypos int, ok bool) {
 }
 
 func (m *Monitor) platformGetMonitorContentScale() (xscale, yscale float32, err error) {
-	if isXbox() {
+	if microsoftgdk.IsXbox() {
 		return 1, 1, nil
 	}
 
@@ -254,8 +256,8 @@ func (m *Monitor) platformGetMonitorContentScale() (xscale, yscale float32, err 
 }
 
 func (m *Monitor) platformGetMonitorWorkarea() (xpos, ypos, width, height int) {
-	if isXbox() {
-		w, h := monitorResolution()
+	if microsoftgdk.IsXbox() {
+		w, h := microsoftgdk.MonitorResolution()
 		return 0, 0, w, h
 	}
 
@@ -320,7 +322,7 @@ loop:
 }
 
 func (m *Monitor) platformGetVideoMode() *VidMode {
-	if isXbox() {
+	if microsoftgdk.IsXbox() {
 		return m.modes[0]
 	}
 
