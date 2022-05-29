@@ -620,7 +620,7 @@ func (h *_D3D12_GPU_DESCRIPTOR_HANDLE) Offset(offsetInDescriptors int32, descrip
 type _D3D12_GPU_VIRTUAL_ADDRESS uint64
 
 type _D3D12_GRAPHICS_PIPELINE_STATE_DESC struct {
-	pRootSignature        *iD3D12RootSignature
+	pRootSignature        *_ID3D12RootSignature
 	VS                    _D3D12_SHADER_BYTECODE
 	PS                    _D3D12_SHADER_BYTECODE
 	DS                    _D3D12_SHADER_BYTECODE
@@ -718,7 +718,7 @@ type _D3D12_RESOURCE_DESC struct {
 }
 
 type _D3D12_RESOURCE_TRANSITION_BARRIER struct {
-	pResource   *iD3D12Resource1
+	pResource   *_ID3D12Resource1
 	Subresource uint32
 	StateBefore _D3D12_RESOURCE_STATES
 	StateAfter  _D3D12_RESOURCE_STATES
@@ -802,13 +802,13 @@ type _D3D12_TEX2D_SRV struct {
 }
 
 type _D3D12_TEXTURE_COPY_LOCATION_PlacedFootPrint struct {
-	pResource       *iD3D12Resource1
+	pResource       *_ID3D12Resource1
 	Type            _D3D12_TEXTURE_COPY_TYPE
 	PlacedFootprint _D3D12_PLACED_SUBRESOURCE_FOOTPRINT
 }
 
 type _D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex struct {
-	pResource        *iD3D12Resource1
+	pResource        *_ID3D12Resource1
 	Type             _D3D12_TEXTURE_COPY_TYPE
 	SubresourceIndex uint32
 	_                [unsafe.Sizeof(_D3D12_PLACED_SUBRESOURCE_FOOTPRINT{}) - unsafe.Sizeof(uint32(0))]byte // A padding for union
@@ -843,7 +843,7 @@ var (
 	procCreateDXGIFactory2 = dxgi.NewProc("CreateDXGIFactory2")
 )
 
-func d3D12CreateDevice(pAdapter unsafe.Pointer, minimumFeatureLevel _D3D_FEATURE_LEVEL, riid *windows.GUID, ppDevice *unsafe.Pointer) error {
+func _D3D12CreateDevice(pAdapter unsafe.Pointer, minimumFeatureLevel _D3D_FEATURE_LEVEL, riid *windows.GUID, ppDevice *unsafe.Pointer) error {
 	r, _, _ := procD3D12CreateDevice.Call(uintptr(pAdapter), uintptr(minimumFeatureLevel), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(ppDevice)))
 	if ppDevice == nil && windows.Handle(r) != windows.S_FALSE {
 		return fmt.Errorf("directx: D3D12CreateDevice failed: %w", windows.Errno(r))
@@ -854,8 +854,8 @@ func d3D12CreateDevice(pAdapter unsafe.Pointer, minimumFeatureLevel _D3D_FEATURE
 	return nil
 }
 
-func d3D12GetDebugInterface() (*iD3D12Debug, error) {
-	var debug *iD3D12Debug
+func _D3D12GetDebugInterface() (*_ID3D12Debug, error) {
+	var debug *_ID3D12Debug
 	r, _, _ := procD3D12GetDebugInterface.Call(uintptr(unsafe.Pointer(&_IID_ID3D12Debug)), uintptr(unsafe.Pointer(&debug)))
 	if windows.Handle(r) != windows.S_OK {
 		return nil, fmt.Errorf("directx: D3D12GetDebugInterface failed: %w", windows.Errno(r))
@@ -863,9 +863,9 @@ func d3D12GetDebugInterface() (*iD3D12Debug, error) {
 	return debug, nil
 }
 
-func d3D12SerializeRootSignature(pRootSignature *_D3D12_ROOT_SIGNATURE_DESC, version _D3D_ROOT_SIGNATURE_VERSION) (*iD3DBlob, error) {
-	var blob *iD3DBlob
-	var errorBlob *iD3DBlob
+func _D3D12SerializeRootSignature(pRootSignature *_D3D12_ROOT_SIGNATURE_DESC, version _D3D_ROOT_SIGNATURE_VERSION) (*_ID3DBlob, error) {
+	var blob *_ID3DBlob
+	var errorBlob *_ID3DBlob
 	r, _, _ := procD3D12SerializeRootSignature.Call(uintptr(unsafe.Pointer(pRootSignature)), uintptr(version), uintptr(unsafe.Pointer(&blob)), uintptr(unsafe.Pointer(&errorBlob)))
 	if windows.Handle(r) != windows.S_OK {
 		if errorBlob != nil {
@@ -877,8 +877,8 @@ func d3D12SerializeRootSignature(pRootSignature *_D3D12_ROOT_SIGNATURE_DESC, ver
 	return blob, nil
 }
 
-func d3DCompile(srcData []byte, sourceName string, pDefines []_D3D_SHADER_MACRO, pInclude unsafe.Pointer, entryPoint string, target string, flags1 uint32, flags2 uint32) (*iD3DBlob, error) {
-	// TODO: Define iD3DInclude for pInclude, but is it possible in Go?
+func _D3DCompile(srcData []byte, sourceName string, pDefines []_D3D_SHADER_MACRO, pInclude unsafe.Pointer, entryPoint string, target string, flags1 uint32, flags2 uint32) (*_ID3DBlob, error) {
+	// TODO: Define _ID3DInclude for pInclude, but is it possible in Go?
 
 	var defs unsafe.Pointer
 	if len(pDefines) > 0 {
@@ -887,8 +887,8 @@ func d3DCompile(srcData []byte, sourceName string, pDefines []_D3D_SHADER_MACRO,
 	sourceNameBytes := append([]byte(sourceName), 0)
 	entryPointBytes := append([]byte(entryPoint), 0)
 	targetBytes := append([]byte(target), 0)
-	var code *iD3DBlob
-	var errorMsgs *iD3DBlob
+	var code *_ID3DBlob
+	var errorMsgs *_ID3DBlob
 	r, _, _ := procD3DCompile.Call(
 		uintptr(unsafe.Pointer(&srcData[0])), uintptr(len(srcData)), uintptr(unsafe.Pointer(&sourceNameBytes[0])),
 		uintptr(defs), uintptr(unsafe.Pointer(pInclude)), uintptr(unsafe.Pointer(&entryPointBytes[0])),
@@ -909,8 +909,8 @@ func d3DCompile(srcData []byte, sourceName string, pDefines []_D3D_SHADER_MACRO,
 	return code, nil
 }
 
-func createDXGIFactory2(flags uint32) (*iDXGIFactory4, error) {
-	var factory *iDXGIFactory4
+func _CreateDXGIFactory2(flags uint32) (*_IDXGIFactory4, error) {
+	var factory *_IDXGIFactory4
 	r, _, _ := procCreateDXGIFactory2.Call(uintptr(flags), uintptr(unsafe.Pointer(&_IID_IDXGIFactory4)), uintptr(unsafe.Pointer(&factory)))
 	if windows.Handle(r) != windows.S_OK {
 		return nil, fmt.Errorf("directx: CreateDXGIFactory2 failed: %w", windows.Errno(r))
@@ -1031,11 +1031,11 @@ type _LUID struct {
 	HighPart int32
 }
 
-type iD3D12CommandAllocator struct {
-	vtbl *iD3D12CommandAllocator_Vtbl
+type _ID3D12CommandAllocator struct {
+	vtbl *_ID3D12CommandAllocator_Vtbl
 }
 
-type iD3D12CommandAllocator_Vtbl struct {
+type _ID3D12CommandAllocator_Vtbl struct {
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1048,11 +1048,11 @@ type iD3D12CommandAllocator_Vtbl struct {
 	Reset                   uintptr
 }
 
-func (i *iD3D12CommandAllocator) Release() {
+func (i *_ID3D12CommandAllocator) Release() {
 	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 }
 
-func (i *iD3D12CommandAllocator) Reset() error {
+func (i *_ID3D12CommandAllocator) Reset() error {
 	r, _, _ := syscall.Syscall(i.vtbl.Reset, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 	if windows.Handle(r) != windows.S_OK {
 		return fmt.Errorf("directx: ID3D12CommandAllocator::Reset failed: %w", windows.Errno(r))
@@ -1060,11 +1060,11 @@ func (i *iD3D12CommandAllocator) Reset() error {
 	return nil
 }
 
-type iD3D12CommandQueue struct {
-	vtbl *iD3D12CommandQueue_Vtbl
+type _ID3D12CommandQueue struct {
+	vtbl *_ID3D12CommandQueue_Vtbl
 }
 
-type iD3D12CommandQueue_Vtbl struct {
+type _ID3D12CommandQueue_Vtbl struct {
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1087,13 +1087,13 @@ type iD3D12CommandQueue_Vtbl struct {
 	GetDesc                 uintptr
 }
 
-func (i *iD3D12CommandQueue) ExecuteCommandLists(ppCommandLists []*iD3D12GraphicsCommandList) {
+func (i *_ID3D12CommandQueue) ExecuteCommandLists(ppCommandLists []*_ID3D12GraphicsCommandList) {
 	syscall.Syscall(i.vtbl.ExecuteCommandLists, 3, uintptr(unsafe.Pointer(i)),
 		uintptr(len(ppCommandLists)), uintptr(unsafe.Pointer(&ppCommandLists[0])))
 	runtime.KeepAlive(ppCommandLists)
 }
 
-func (i *iD3D12CommandQueue) Signal(signal *iD3D12Fence, value uint64) error {
+func (i *_ID3D12CommandQueue) Signal(signal *_ID3D12Fence, value uint64) error {
 	r, _, _ := syscall.Syscall(i.vtbl.Signal, 3, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(signal)), uintptr(value))
 	runtime.KeepAlive(signal)
@@ -1103,15 +1103,15 @@ func (i *iD3D12CommandQueue) Signal(signal *iD3D12Fence, value uint64) error {
 	return nil
 }
 
-func (i *iD3D12CommandQueue) Release() {
+func (i *_ID3D12CommandQueue) Release() {
 	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 }
 
-type iD3D12Debug struct {
-	vtbl *iD3D12Debug_Vtbl
+type _ID3D12Debug struct {
+	vtbl *_ID3D12Debug_Vtbl
 }
 
-type iD3D12Debug_Vtbl struct {
+type _ID3D12Debug_Vtbl struct {
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1119,23 +1119,23 @@ type iD3D12Debug_Vtbl struct {
 	EnableDebugLayer uintptr
 }
 
-func (i *iD3D12Debug) As(debug **iD3D12Debug3) {
-	*debug = (*iD3D12Debug3)(unsafe.Pointer(i))
+func (i *_ID3D12Debug) As(debug **_ID3D12Debug3) {
+	*debug = (*_ID3D12Debug3)(unsafe.Pointer(i))
 }
 
-func (i *iD3D12Debug) EnableDebugLayer() {
+func (i *_ID3D12Debug) EnableDebugLayer() {
 	syscall.Syscall(i.vtbl.EnableDebugLayer, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 }
 
-func (i *iD3D12Debug) Release() {
+func (i *_ID3D12Debug) Release() {
 	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 }
 
-type iD3D12Debug3 struct {
-	vtbl *iD3D12Debug3_Vtbl
+type _ID3D12Debug3 struct {
+	vtbl *_ID3D12Debug3_Vtbl
 }
 
-type iD3D12Debug3_Vtbl struct {
+type _ID3D12Debug3_Vtbl struct {
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1146,15 +1146,15 @@ type iD3D12Debug3_Vtbl struct {
 	SetGPUBasedValidationFlags                  uintptr
 }
 
-func (i *iD3D12Debug3) SetEnableGPUBasedValidation(enable bool) {
+func (i *_ID3D12Debug3) SetEnableGPUBasedValidation(enable bool) {
 	syscall.Syscall(i.vtbl.SetEnableGPUBasedValidation, 2, uintptr(unsafe.Pointer(i)), boolToUintptr(enable), 0)
 }
 
-type iD3D12DebugCommandList struct {
-	vtbl *iD3D12DebugCommandList_Vtbl
+type _ID3D12DebugCommandList struct {
+	vtbl *_ID3D12DebugCommandList_Vtbl
 }
 
-type iD3D12DebugCommandList_Vtbl struct {
+type _ID3D12DebugCommandList_Vtbl struct {
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1164,7 +1164,7 @@ type iD3D12DebugCommandList_Vtbl struct {
 	GetFeatureMask      uintptr
 }
 
-func (i *iD3D12DebugCommandList) SetFeatureMask(mask _D3D12_DEBUG_FEATURE) error {
+func (i *_ID3D12DebugCommandList) SetFeatureMask(mask _D3D12_DEBUG_FEATURE) error {
 	r, _, _ := syscall.Syscall(i.vtbl.SetFeatureMask, 2, uintptr(unsafe.Pointer(i)), uintptr(mask), 0)
 	if windows.Handle(r) != windows.S_OK {
 		return fmt.Errorf("directx: ID3D12DebugCommandList::SetFeatureMask failed: %w", windows.Errno(r))
@@ -1172,11 +1172,11 @@ func (i *iD3D12DebugCommandList) SetFeatureMask(mask _D3D12_DEBUG_FEATURE) error
 	return nil
 }
 
-type iD3D12DescriptorHeap struct {
-	vtbl *iD3D12DescriptrHeap_Vtbl
+type _ID3D12DescriptorHeap struct {
+	vtbl *_ID3D12DescriptrHeap_Vtbl
 }
 
-type iD3D12DescriptrHeap_Vtbl struct {
+type _ID3D12DescriptrHeap_Vtbl struct {
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1191,7 +1191,7 @@ type iD3D12DescriptrHeap_Vtbl struct {
 	GetGPUDescriptorHandleForHeapStart uintptr
 }
 
-func (i *iD3D12DescriptorHeap) GetCPUDescriptorHandleForHeapStart() _D3D12_CPU_DESCRIPTOR_HANDLE {
+func (i *_ID3D12DescriptorHeap) GetCPUDescriptorHandleForHeapStart() _D3D12_CPU_DESCRIPTOR_HANDLE {
 	// There is a bug in the header file:
 	// https://stackoverflow.com/questions/34118929/getcpudescriptorhandleforheapstart-stack-corruption
 	var handle _D3D12_CPU_DESCRIPTOR_HANDLE
@@ -1199,22 +1199,22 @@ func (i *iD3D12DescriptorHeap) GetCPUDescriptorHandleForHeapStart() _D3D12_CPU_D
 	return handle
 }
 
-func (i *iD3D12DescriptorHeap) GetGPUDescriptorHandleForHeapStart() _D3D12_GPU_DESCRIPTOR_HANDLE {
+func (i *_ID3D12DescriptorHeap) GetGPUDescriptorHandleForHeapStart() _D3D12_GPU_DESCRIPTOR_HANDLE {
 	// This has the same issue as GetCPUDescriptorHandleForHeapStart.
 	var handle _D3D12_GPU_DESCRIPTOR_HANDLE
 	syscall.Syscall(i.vtbl.GetGPUDescriptorHandleForHeapStart, 2, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(&handle)), 0)
 	return handle
 }
 
-func (i *iD3D12DescriptorHeap) Release() {
+func (i *_ID3D12DescriptorHeap) Release() {
 	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 }
 
-type iD3D12Device struct {
-	vtbl *iD3D12Device_Vtbl
+type _ID3D12Device struct {
+	vtbl *_ID3D12Device_Vtbl
 }
 
-type iD3D12Device_Vtbl struct {
+type _ID3D12Device_Vtbl struct {
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1262,8 +1262,8 @@ type iD3D12Device_Vtbl struct {
 	GetAdapterLuid                   uintptr
 }
 
-func (i *iD3D12Device) CreateCommandAllocator(typ _D3D12_COMMAND_LIST_TYPE) (*iD3D12CommandAllocator, error) {
-	var commandAllocator *iD3D12CommandAllocator
+func (i *_ID3D12Device) CreateCommandAllocator(typ _D3D12_COMMAND_LIST_TYPE) (*_ID3D12CommandAllocator, error) {
+	var commandAllocator *_ID3D12CommandAllocator
 	r, _, _ := syscall.Syscall6(i.vtbl.CreateCommandAllocator, 4, uintptr(unsafe.Pointer(i)),
 		uintptr(typ), uintptr(unsafe.Pointer(&_IID_ID3D12CommandAllocator)), uintptr(unsafe.Pointer(&commandAllocator)),
 		0, 0)
@@ -1273,8 +1273,8 @@ func (i *iD3D12Device) CreateCommandAllocator(typ _D3D12_COMMAND_LIST_TYPE) (*iD
 	return commandAllocator, nil
 }
 
-func (i *iD3D12Device) CreateCommandList(nodeMask uint32, typ _D3D12_COMMAND_LIST_TYPE, pCommandAllocator *iD3D12CommandAllocator, pInitialState *iD3D12PipelineState) (*iD3D12GraphicsCommandList, error) {
-	var commandList *iD3D12GraphicsCommandList
+func (i *_ID3D12Device) CreateCommandList(nodeMask uint32, typ _D3D12_COMMAND_LIST_TYPE, pCommandAllocator *_ID3D12CommandAllocator, pInitialState *_ID3D12PipelineState) (*_ID3D12GraphicsCommandList, error) {
+	var commandList *_ID3D12GraphicsCommandList
 	r, _, _ := syscall.Syscall9(i.vtbl.CreateCommandList, 7,
 		uintptr(unsafe.Pointer(i)), uintptr(nodeMask), uintptr(typ),
 		uintptr(unsafe.Pointer(pCommandAllocator)), uintptr(unsafe.Pointer(pInitialState)), uintptr(unsafe.Pointer(&_IID_ID3D12GraphicsCommandList)),
@@ -1287,8 +1287,8 @@ func (i *iD3D12Device) CreateCommandList(nodeMask uint32, typ _D3D12_COMMAND_LIS
 	return commandList, nil
 }
 
-func (i *iD3D12Device) CreateCommittedResource(pHeapProperties *_D3D12_HEAP_PROPERTIES, heapFlags _D3D12_HEAP_FLAGS, pDesc *_D3D12_RESOURCE_DESC, initialResourceState _D3D12_RESOURCE_STATES, pOptimizedClearValue *_D3D12_CLEAR_VALUE) (*iD3D12Resource1, error) {
-	var resource *iD3D12Resource1
+func (i *_ID3D12Device) CreateCommittedResource(pHeapProperties *_D3D12_HEAP_PROPERTIES, heapFlags _D3D12_HEAP_FLAGS, pDesc *_D3D12_RESOURCE_DESC, initialResourceState _D3D12_RESOURCE_STATES, pOptimizedClearValue *_D3D12_CLEAR_VALUE) (*_ID3D12Resource1, error) {
+	var resource *_ID3D12Resource1
 	r, _, _ := syscall.Syscall9(i.vtbl.CreateCommittedResource, 8,
 		uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(pHeapProperties)), uintptr(heapFlags),
 		uintptr(unsafe.Pointer(pDesc)), uintptr(initialResourceState), uintptr(unsafe.Pointer(pOptimizedClearValue)),
@@ -1302,8 +1302,8 @@ func (i *iD3D12Device) CreateCommittedResource(pHeapProperties *_D3D12_HEAP_PROP
 	return resource, nil
 }
 
-func (i *iD3D12Device) CreateCommandQueue(desc *_D3D12_COMMAND_QUEUE_DESC) (*iD3D12CommandQueue, error) {
-	var commandQueue *iD3D12CommandQueue
+func (i *_ID3D12Device) CreateCommandQueue(desc *_D3D12_COMMAND_QUEUE_DESC) (*_ID3D12CommandQueue, error) {
+	var commandQueue *_ID3D12CommandQueue
 	r, _, _ := syscall.Syscall6(i.vtbl.CreateCommandQueue, 4, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(desc)), uintptr(unsafe.Pointer(&_IID_ID3D12CommandQueue)), uintptr(unsafe.Pointer(&commandQueue)),
 		0, 0)
@@ -1314,14 +1314,14 @@ func (i *iD3D12Device) CreateCommandQueue(desc *_D3D12_COMMAND_QUEUE_DESC) (*iD3
 	return commandQueue, nil
 }
 
-func (i *iD3D12Device) CreateConstantBufferView(pDesc *_D3D12_CONSTANT_BUFFER_VIEW_DESC, destDescriptor _D3D12_CPU_DESCRIPTOR_HANDLE) {
+func (i *_ID3D12Device) CreateConstantBufferView(pDesc *_D3D12_CONSTANT_BUFFER_VIEW_DESC, destDescriptor _D3D12_CPU_DESCRIPTOR_HANDLE) {
 	syscall.Syscall(i.vtbl.CreateConstantBufferView, 3, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(pDesc)), uintptr(destDescriptor.ptr))
 	runtime.KeepAlive(pDesc)
 }
 
-func (i *iD3D12Device) CreateDescriptorHeap(desc *_D3D12_DESCRIPTOR_HEAP_DESC) (*iD3D12DescriptorHeap, error) {
-	var descriptorHeap *iD3D12DescriptorHeap
+func (i *_ID3D12Device) CreateDescriptorHeap(desc *_D3D12_DESCRIPTOR_HEAP_DESC) (*_ID3D12DescriptorHeap, error) {
+	var descriptorHeap *_ID3D12DescriptorHeap
 	r, _, _ := syscall.Syscall6(i.vtbl.CreateDescriptorHeap, 4, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(desc)), uintptr(unsafe.Pointer(&_IID_ID3D12DescriptorHeap)), uintptr(unsafe.Pointer(&descriptorHeap)),
 		0, 0)
@@ -1332,7 +1332,7 @@ func (i *iD3D12Device) CreateDescriptorHeap(desc *_D3D12_DESCRIPTOR_HEAP_DESC) (
 	return descriptorHeap, nil
 }
 
-func (i *iD3D12Device) CreateDepthStencilView(pResource *iD3D12Resource1, pDesc *_D3D12_DEPTH_STENCIL_VIEW_DESC, destDescriptor _D3D12_CPU_DESCRIPTOR_HANDLE) {
+func (i *_ID3D12Device) CreateDepthStencilView(pResource *_ID3D12Resource1, pDesc *_D3D12_DEPTH_STENCIL_VIEW_DESC, destDescriptor _D3D12_CPU_DESCRIPTOR_HANDLE) {
 	syscall.Syscall6(i.vtbl.CreateDepthStencilView, 4, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(pResource)), uintptr(unsafe.Pointer(pDesc)), destDescriptor.ptr,
 		0, 0)
@@ -1340,9 +1340,9 @@ func (i *iD3D12Device) CreateDepthStencilView(pResource *iD3D12Resource1, pDesc 
 	runtime.KeepAlive(pDesc)
 }
 
-func (i *iD3D12Device) CreateFence(initialValue uint64, flags _D3D12_FENCE_FLAGS) (*iD3D12Fence, error) {
+func (i *_ID3D12Device) CreateFence(initialValue uint64, flags _D3D12_FENCE_FLAGS) (*_ID3D12Fence, error) {
 	// TODO: Does this work on a 32bit machine?
-	var fence *iD3D12Fence
+	var fence *_ID3D12Fence
 	r, _, _ := syscall.Syscall6(i.vtbl.CreateFence, 5, uintptr(unsafe.Pointer(i)),
 		uintptr(initialValue), uintptr(flags), uintptr(unsafe.Pointer(&_IID_ID3D12Fence)), uintptr(unsafe.Pointer(&fence)),
 		0)
@@ -1352,8 +1352,8 @@ func (i *iD3D12Device) CreateFence(initialValue uint64, flags _D3D12_FENCE_FLAGS
 	return fence, nil
 }
 
-func (i *iD3D12Device) CreateGraphicsPipelineState(pDesc *_D3D12_GRAPHICS_PIPELINE_STATE_DESC) (*iD3D12PipelineState, error) {
-	var pipelineState *iD3D12PipelineState
+func (i *_ID3D12Device) CreateGraphicsPipelineState(pDesc *_D3D12_GRAPHICS_PIPELINE_STATE_DESC) (*_ID3D12PipelineState, error) {
+	var pipelineState *_ID3D12PipelineState
 	r, _, _ := syscall.Syscall6(i.vtbl.CreateGraphicsPipelineState, 4, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(pDesc)), uintptr(unsafe.Pointer(&_IID_ID3D12PipelineState)), uintptr(unsafe.Pointer(&pipelineState)),
 		0, 0)
@@ -1364,7 +1364,7 @@ func (i *iD3D12Device) CreateGraphicsPipelineState(pDesc *_D3D12_GRAPHICS_PIPELI
 	return pipelineState, nil
 }
 
-func (i *iD3D12Device) CreateRenderTargetView(pResource *iD3D12Resource1, pDesc *_D3D12_RENDER_TARGET_VIEW_DESC, destDescriptor _D3D12_CPU_DESCRIPTOR_HANDLE) {
+func (i *_ID3D12Device) CreateRenderTargetView(pResource *_ID3D12Resource1, pDesc *_D3D12_RENDER_TARGET_VIEW_DESC, destDescriptor _D3D12_CPU_DESCRIPTOR_HANDLE) {
 	syscall.Syscall6(i.vtbl.CreateRenderTargetView, 4, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(pResource)), uintptr(unsafe.Pointer(pDesc)), destDescriptor.ptr,
 		0, 0)
@@ -1372,8 +1372,8 @@ func (i *iD3D12Device) CreateRenderTargetView(pResource *iD3D12Resource1, pDesc 
 	runtime.KeepAlive(pDesc)
 }
 
-func (i *iD3D12Device) CreateRootSignature(nodeMask uint32, pBlobWithRootSignature uintptr, blobLengthInBytes uintptr) (*iD3D12RootSignature, error) {
-	var signature *iD3D12RootSignature
+func (i *_ID3D12Device) CreateRootSignature(nodeMask uint32, pBlobWithRootSignature uintptr, blobLengthInBytes uintptr) (*_ID3D12RootSignature, error) {
+	var signature *_ID3D12RootSignature
 	r, _, _ := syscall.Syscall6(i.vtbl.CreateRootSignature, 6, uintptr(unsafe.Pointer(i)),
 		uintptr(nodeMask), pBlobWithRootSignature, blobLengthInBytes,
 		uintptr(unsafe.Pointer(&_IID_ID3D12RootSignature)), uintptr(unsafe.Pointer(&signature)))
@@ -1383,13 +1383,13 @@ func (i *iD3D12Device) CreateRootSignature(nodeMask uint32, pBlobWithRootSignatu
 	return signature, nil
 }
 
-func (i *iD3D12Device) CreateSampler(pDesc *_D3D12_SAMPLER_DESC, destDescriptor _D3D12_CPU_DESCRIPTOR_HANDLE) {
+func (i *_ID3D12Device) CreateSampler(pDesc *_D3D12_SAMPLER_DESC, destDescriptor _D3D12_CPU_DESCRIPTOR_HANDLE) {
 	syscall.Syscall(i.vtbl.CreateSampler, 3, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(pDesc)), destDescriptor.ptr)
 	runtime.KeepAlive(pDesc)
 }
 
-func (i *iD3D12Device) CreateShaderResourceView(pResource *iD3D12Resource1, pDesc *_D3D12_SHADER_RESOURCE_VIEW_DESC, destDescriptor _D3D12_CPU_DESCRIPTOR_HANDLE) {
+func (i *_ID3D12Device) CreateShaderResourceView(pResource *_ID3D12Resource1, pDesc *_D3D12_SHADER_RESOURCE_VIEW_DESC, destDescriptor _D3D12_CPU_DESCRIPTOR_HANDLE) {
 	syscall.Syscall6(i.vtbl.CreateShaderResourceView, 4, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(pResource)), uintptr(unsafe.Pointer(pDesc)), destDescriptor.ptr,
 		0, 0)
@@ -1397,7 +1397,7 @@ func (i *iD3D12Device) CreateShaderResourceView(pResource *iD3D12Resource1, pDes
 	runtime.KeepAlive(pDesc)
 }
 
-func (i *iD3D12Device) GetCopyableFootprints(pResourceDesc *_D3D12_RESOURCE_DESC, firstSubresource uint32, numSubresources uint32, baseOffset uint64) (layouts _D3D12_PLACED_SUBRESOURCE_FOOTPRINT, numRows uint, rowSizeInBytes uint64, totalBytes uint64) {
+func (i *_ID3D12Device) GetCopyableFootprints(pResourceDesc *_D3D12_RESOURCE_DESC, firstSubresource uint32, numSubresources uint32, baseOffset uint64) (layouts _D3D12_PLACED_SUBRESOURCE_FOOTPRINT, numRows uint, rowSizeInBytes uint64, totalBytes uint64) {
 	syscall.Syscall9(i.vtbl.GetCopyableFootprints, 9, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(pResourceDesc)), uintptr(firstSubresource), uintptr(numSubresources),
 		uintptr(baseOffset), uintptr(unsafe.Pointer(&layouts)), uintptr(unsafe.Pointer(&numRows)),
@@ -1406,13 +1406,13 @@ func (i *iD3D12Device) GetCopyableFootprints(pResourceDesc *_D3D12_RESOURCE_DESC
 	return
 }
 
-func (i *iD3D12Device) GetDescriptorHandleIncrementSize(descriptorHeapType _D3D12_DESCRIPTOR_HEAP_TYPE) uint32 {
+func (i *_ID3D12Device) GetDescriptorHandleIncrementSize(descriptorHeapType _D3D12_DESCRIPTOR_HEAP_TYPE) uint32 {
 	r, _, _ := syscall.Syscall(i.vtbl.GetDescriptorHandleIncrementSize, 2, uintptr(unsafe.Pointer(i)),
 		uintptr(descriptorHeapType), 0)
 	return uint32(r)
 }
 
-func (i *iD3D12Device) GetDeviceRemovedReason() error {
+func (i *_ID3D12Device) GetDeviceRemovedReason() error {
 	r, _, _ := syscall.Syscall(i.vtbl.GetDeviceRemovedReason, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 	if windows.Handle(r) != windows.S_OK {
 		return fmt.Errorf("directx: ID3D12Device::GetDeviceRemovedReason failed: %w", windows.Errno(r))
@@ -1420,11 +1420,11 @@ func (i *iD3D12Device) GetDeviceRemovedReason() error {
 	return nil
 }
 
-type iD3D12Fence struct {
-	vtbl *iD3D12Fence_Vtbl
+type _ID3D12Fence struct {
+	vtbl *_ID3D12Fence_Vtbl
 }
 
-type iD3D12Fence_Vtbl struct {
+type _ID3D12Fence_Vtbl struct {
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1439,17 +1439,17 @@ type iD3D12Fence_Vtbl struct {
 	Signal                  uintptr
 }
 
-func (i *iD3D12Fence) GetCompletedValue() uint64 {
+func (i *_ID3D12Fence) GetCompletedValue() uint64 {
 	// TODO: Does this work on a 32bit machine?
 	r, _, _ := syscall.Syscall(i.vtbl.GetCompletedValue, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 	return uint64(r)
 }
 
-func (i *iD3D12Fence) Release() {
+func (i *_ID3D12Fence) Release() {
 	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 }
 
-func (i *iD3D12Fence) SetEventOnCompletion(value uint64, hEvent windows.Handle) error {
+func (i *_ID3D12Fence) SetEventOnCompletion(value uint64, hEvent windows.Handle) error {
 	// TODO: Does this work on a 32bit machine?
 	r, _, _ := syscall.Syscall(i.vtbl.SetEventOnCompletion, 3, uintptr(unsafe.Pointer(i)),
 		uintptr(value), uintptr(hEvent))
@@ -1459,11 +1459,11 @@ func (i *iD3D12Fence) SetEventOnCompletion(value uint64, hEvent windows.Handle) 
 	return nil
 }
 
-type iD3D12GraphicsCommandList struct {
-	vtbl *iD3D12GraphicsCommandList_Vtbl
+type _ID3D12GraphicsCommandList struct {
+	vtbl *_ID3D12GraphicsCommandList_Vtbl
 }
 
-type iD3D12GraphicsCommandList_Vtbl struct {
+type _ID3D12GraphicsCommandList_Vtbl struct {
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1527,7 +1527,7 @@ type iD3D12GraphicsCommandList_Vtbl struct {
 	ExecuteIndirect                    uintptr
 }
 
-func (i *iD3D12GraphicsCommandList) ClearDepthStencilView(depthStencilView _D3D12_CPU_DESCRIPTOR_HANDLE, clearFlags _D3D12_CLEAR_FLAGS, depth float32, stencil uint8, numRects uint32, pRects *_D3D12_RECT) {
+func (i *_ID3D12GraphicsCommandList) ClearDepthStencilView(depthStencilView _D3D12_CPU_DESCRIPTOR_HANDLE, clearFlags _D3D12_CLEAR_FLAGS, depth float32, stencil uint8, numRects uint32, pRects *_D3D12_RECT) {
 	syscall.Syscall9(i.vtbl.ClearDepthStencilView, 7, uintptr(unsafe.Pointer(i)),
 		depthStencilView.ptr, uintptr(clearFlags), uintptr(math.Float32bits(depth)),
 		uintptr(stencil), uintptr(numRects), uintptr(unsafe.Pointer(pRects)),
@@ -1535,14 +1535,14 @@ func (i *iD3D12GraphicsCommandList) ClearDepthStencilView(depthStencilView _D3D1
 	runtime.KeepAlive(pRects)
 }
 
-func (i *iD3D12GraphicsCommandList) ClearRenderTargetView(pRenderTargetView _D3D12_CPU_DESCRIPTOR_HANDLE, colorRGBA [4]float32, numRects uint32, pRects *_D3D12_RECT) {
+func (i *_ID3D12GraphicsCommandList) ClearRenderTargetView(pRenderTargetView _D3D12_CPU_DESCRIPTOR_HANDLE, colorRGBA [4]float32, numRects uint32, pRects *_D3D12_RECT) {
 	syscall.Syscall6(i.vtbl.ClearRenderTargetView, 5, uintptr(unsafe.Pointer(i)),
 		pRenderTargetView.ptr, uintptr(unsafe.Pointer(&colorRGBA[0])), uintptr(numRects), uintptr(unsafe.Pointer(pRects)),
 		0)
 	runtime.KeepAlive(pRenderTargetView)
 }
 
-func (i *iD3D12GraphicsCommandList) Close() error {
+func (i *_ID3D12GraphicsCommandList) Close() error {
 	r, _, _ := syscall.Syscall(i.vtbl.Close, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 	if windows.Handle(r) != windows.S_OK {
 		return fmt.Errorf("directx: ID3D12GraphicsCommandList::Close failed: %w", windows.Errno(r))
@@ -1550,7 +1550,7 @@ func (i *iD3D12GraphicsCommandList) Close() error {
 	return nil
 }
 
-func (i *iD3D12GraphicsCommandList) CopyTextureRegion_PlacedFootPrint_SubresourceIndex(pDst *_D3D12_TEXTURE_COPY_LOCATION_PlacedFootPrint, dstX uint32, dstY uint32, dstZ uint32, pSrc *_D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex, pSrcBox *_D3D12_BOX) {
+func (i *_ID3D12GraphicsCommandList) CopyTextureRegion_PlacedFootPrint_SubresourceIndex(pDst *_D3D12_TEXTURE_COPY_LOCATION_PlacedFootPrint, dstX uint32, dstY uint32, dstZ uint32, pSrc *_D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex, pSrcBox *_D3D12_BOX) {
 	syscall.Syscall9(i.vtbl.CopyTextureRegion, 7, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(pDst)), uintptr(dstX), uintptr(dstY),
 		uintptr(dstZ), uintptr(unsafe.Pointer(pSrc)), uintptr(unsafe.Pointer(pSrcBox)),
@@ -1560,7 +1560,7 @@ func (i *iD3D12GraphicsCommandList) CopyTextureRegion_PlacedFootPrint_Subresourc
 	runtime.KeepAlive(pSrcBox)
 }
 
-func (i *iD3D12GraphicsCommandList) CopyTextureRegion_SubresourceIndex_PlacedFootPrint(pDst *_D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex, dstX uint32, dstY uint32, dstZ uint32, pSrc *_D3D12_TEXTURE_COPY_LOCATION_PlacedFootPrint, pSrcBox *_D3D12_BOX) {
+func (i *_ID3D12GraphicsCommandList) CopyTextureRegion_SubresourceIndex_PlacedFootPrint(pDst *_D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex, dstX uint32, dstY uint32, dstZ uint32, pSrc *_D3D12_TEXTURE_COPY_LOCATION_PlacedFootPrint, pSrcBox *_D3D12_BOX) {
 	syscall.Syscall9(i.vtbl.CopyTextureRegion, 7, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(pDst)), uintptr(dstX), uintptr(dstY),
 		uintptr(dstZ), uintptr(unsafe.Pointer(pSrc)), uintptr(unsafe.Pointer(pSrcBox)),
@@ -1570,30 +1570,30 @@ func (i *iD3D12GraphicsCommandList) CopyTextureRegion_SubresourceIndex_PlacedFoo
 	runtime.KeepAlive(pSrcBox)
 }
 
-func (i *iD3D12GraphicsCommandList) DrawIndexedInstanced(indexCountPerInstance uint32, instanceCount uint32, startIndexLocation uint32, baseVertexLocation int32, startInstanceLocation uint32) {
+func (i *_ID3D12GraphicsCommandList) DrawIndexedInstanced(indexCountPerInstance uint32, instanceCount uint32, startIndexLocation uint32, baseVertexLocation int32, startInstanceLocation uint32) {
 	syscall.Syscall6(i.vtbl.DrawIndexedInstanced, 6, uintptr(unsafe.Pointer(i)),
 		uintptr(indexCountPerInstance), uintptr(instanceCount), uintptr(startIndexLocation), uintptr(baseVertexLocation), uintptr(startInstanceLocation))
 }
 
-func (i *iD3D12GraphicsCommandList) IASetIndexBuffer(pView *_D3D12_INDEX_BUFFER_VIEW) {
+func (i *_ID3D12GraphicsCommandList) IASetIndexBuffer(pView *_D3D12_INDEX_BUFFER_VIEW) {
 	syscall.Syscall(i.vtbl.IASetIndexBuffer, 2, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(pView)), 0)
 	runtime.KeepAlive(pView)
 }
 
-func (i *iD3D12GraphicsCommandList) IASetPrimitiveTopology(primitiveTopology _D3D_PRIMITIVE_TOPOLOGY) {
+func (i *_ID3D12GraphicsCommandList) IASetPrimitiveTopology(primitiveTopology _D3D_PRIMITIVE_TOPOLOGY) {
 	syscall.Syscall(i.vtbl.IASetPrimitiveTopology, 2, uintptr(unsafe.Pointer(i)),
 		uintptr(primitiveTopology), 0)
 }
 
-func (i *iD3D12GraphicsCommandList) IASetVertexBuffers(startSlot uint32, numViews uint32, pViews *_D3D12_VERTEX_BUFFER_VIEW) {
+func (i *_ID3D12GraphicsCommandList) IASetVertexBuffers(startSlot uint32, numViews uint32, pViews *_D3D12_VERTEX_BUFFER_VIEW) {
 	syscall.Syscall6(i.vtbl.IASetVertexBuffers, 4, uintptr(unsafe.Pointer(i)),
 		uintptr(startSlot), uintptr(numViews), uintptr(unsafe.Pointer(pViews)),
 		0, 0)
 	runtime.KeepAlive(pViews)
 }
 
-func (i *iD3D12GraphicsCommandList) OMSetRenderTargets(numRenderTargetDescriptors uint32, pRenderTargetDescriptors *_D3D12_CPU_DESCRIPTOR_HANDLE, rtsSingleHandleToDescriptorRange bool, pDepthStencilDescriptor *_D3D12_CPU_DESCRIPTOR_HANDLE) {
+func (i *_ID3D12GraphicsCommandList) OMSetRenderTargets(numRenderTargetDescriptors uint32, pRenderTargetDescriptors *_D3D12_CPU_DESCRIPTOR_HANDLE, rtsSingleHandleToDescriptorRange bool, pDepthStencilDescriptor *_D3D12_CPU_DESCRIPTOR_HANDLE) {
 	syscall.Syscall6(i.vtbl.OMSetRenderTargets, 5, uintptr(unsafe.Pointer(i)),
 		uintptr(numRenderTargetDescriptors), uintptr(unsafe.Pointer(pRenderTargetDescriptors)), boolToUintptr(rtsSingleHandleToDescriptorRange), uintptr(unsafe.Pointer(pDepthStencilDescriptor)),
 		0)
@@ -1601,11 +1601,11 @@ func (i *iD3D12GraphicsCommandList) OMSetRenderTargets(numRenderTargetDescriptor
 	runtime.KeepAlive(pDepthStencilDescriptor)
 }
 
-func (i *iD3D12GraphicsCommandList) OMSetStencilRef(stencilRef uint32) {
+func (i *_ID3D12GraphicsCommandList) OMSetStencilRef(stencilRef uint32) {
 	syscall.Syscall(i.vtbl.OMSetStencilRef, 2, uintptr(unsafe.Pointer(i)), uintptr(stencilRef), 0)
 }
 
-func (i *iD3D12GraphicsCommandList) QueryInterface(riid *windows.GUID, ppvObject *unsafe.Pointer) error {
+func (i *_ID3D12GraphicsCommandList) QueryInterface(riid *windows.GUID, ppvObject *unsafe.Pointer) error {
 	r, _, _ := syscall.Syscall(i.vtbl.QueryInterface, 3, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(ppvObject)))
 	runtime.KeepAlive(riid)
@@ -1615,11 +1615,11 @@ func (i *iD3D12GraphicsCommandList) QueryInterface(riid *windows.GUID, ppvObject
 	return nil
 }
 
-func (i *iD3D12GraphicsCommandList) Release() {
+func (i *_ID3D12GraphicsCommandList) Release() {
 	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 }
 
-func (i *iD3D12GraphicsCommandList) Reset(pAllocator *iD3D12CommandAllocator, pInitialState *iD3D12PipelineState) error {
+func (i *_ID3D12GraphicsCommandList) Reset(pAllocator *_ID3D12CommandAllocator, pInitialState *_ID3D12PipelineState) error {
 	r, _, _ := syscall.Syscall(i.vtbl.Reset, 3, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(pAllocator)), uintptr(unsafe.Pointer(pInitialState)))
 	runtime.KeepAlive(pAllocator)
@@ -1630,52 +1630,52 @@ func (i *iD3D12GraphicsCommandList) Reset(pAllocator *iD3D12CommandAllocator, pI
 	return nil
 }
 
-func (i *iD3D12GraphicsCommandList) ResourceBarrier(numBarriers uint32, pBarriers *_D3D12_RESOURCE_BARRIER_Transition) {
+func (i *_ID3D12GraphicsCommandList) ResourceBarrier(numBarriers uint32, pBarriers *_D3D12_RESOURCE_BARRIER_Transition) {
 	syscall.Syscall(i.vtbl.ResourceBarrier, 3, uintptr(unsafe.Pointer(i)),
 		uintptr(numBarriers), uintptr(unsafe.Pointer(pBarriers)))
 	runtime.KeepAlive(pBarriers)
 }
 
-func (i *iD3D12GraphicsCommandList) RSSetViewports(numViewports uint32, pViewports *_D3D12_VIEWPORT) {
+func (i *_ID3D12GraphicsCommandList) RSSetViewports(numViewports uint32, pViewports *_D3D12_VIEWPORT) {
 	syscall.Syscall(i.vtbl.RSSetViewports, 3, uintptr(unsafe.Pointer(i)),
 		uintptr(numViewports), uintptr(unsafe.Pointer(pViewports)))
 	runtime.KeepAlive(pViewports)
 }
 
-func (i *iD3D12GraphicsCommandList) RSSetScissorRects(numRects uint32, pRects *_D3D12_RECT) {
+func (i *_ID3D12GraphicsCommandList) RSSetScissorRects(numRects uint32, pRects *_D3D12_RECT) {
 	syscall.Syscall(i.vtbl.RSSetScissorRects, 3, uintptr(unsafe.Pointer(i)),
 		uintptr(numRects), uintptr(unsafe.Pointer(pRects)))
 	runtime.KeepAlive(pRects)
 }
 
-func (i *iD3D12GraphicsCommandList) SetDescriptorHeaps(ppDescriptorHeaps []*iD3D12DescriptorHeap) {
+func (i *_ID3D12GraphicsCommandList) SetDescriptorHeaps(ppDescriptorHeaps []*_ID3D12DescriptorHeap) {
 	syscall.Syscall(i.vtbl.SetDescriptorHeaps, 3, uintptr(unsafe.Pointer(i)),
 		uintptr(len(ppDescriptorHeaps)), uintptr(unsafe.Pointer(&ppDescriptorHeaps[0])))
 	runtime.KeepAlive(ppDescriptorHeaps)
 }
 
-func (i *iD3D12GraphicsCommandList) SetGraphicsRootDescriptorTable(rootParameterIndex uint32, baseDescriptor _D3D12_GPU_DESCRIPTOR_HANDLE) {
+func (i *_ID3D12GraphicsCommandList) SetGraphicsRootDescriptorTable(rootParameterIndex uint32, baseDescriptor _D3D12_GPU_DESCRIPTOR_HANDLE) {
 	syscall.Syscall(i.vtbl.SetGraphicsRootDescriptorTable, 3, uintptr(unsafe.Pointer(i)),
 		uintptr(rootParameterIndex), uintptr(baseDescriptor.ptr))
 }
 
-func (i *iD3D12GraphicsCommandList) SetGraphicsRootSignature(pRootSignature *iD3D12RootSignature) {
+func (i *_ID3D12GraphicsCommandList) SetGraphicsRootSignature(pRootSignature *_ID3D12RootSignature) {
 	syscall.Syscall(i.vtbl.SetGraphicsRootSignature, 2, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(pRootSignature)), 0)
 	runtime.KeepAlive(pRootSignature)
 }
 
-func (i *iD3D12GraphicsCommandList) SetPipelineState(pPipelineState *iD3D12PipelineState) {
+func (i *_ID3D12GraphicsCommandList) SetPipelineState(pPipelineState *_ID3D12PipelineState) {
 	syscall.Syscall(i.vtbl.SetPipelineState, 2, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(pPipelineState)), 0)
 	runtime.KeepAlive(pPipelineState)
 }
 
-type iD3D12PipelineState struct {
-	vtbl *iD3D12PipelineState_Vtbl
+type _ID3D12PipelineState struct {
+	vtbl *_ID3D12PipelineState_Vtbl
 }
 
-type iD3D12PipelineState_Vtbl struct {
+type _ID3D12PipelineState_Vtbl struct {
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1688,15 +1688,15 @@ type iD3D12PipelineState_Vtbl struct {
 	GetCachedBlob           uintptr
 }
 
-func (i *iD3D12PipelineState) Release() {
+func (i *_ID3D12PipelineState) Release() {
 	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 }
 
-type iD3D12Resource1 struct {
-	vtbl *iD3D12Resource1_Vtbl
+type _ID3D12Resource1 struct {
+	vtbl *_ID3D12Resource1_Vtbl
 }
 
-type iD3D12Resource1_Vtbl struct {
+type _ID3D12Resource1_Vtbl struct {
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1716,18 +1716,18 @@ type iD3D12Resource1_Vtbl struct {
 	GetProtectedResourceSession uintptr
 }
 
-func (i *iD3D12Resource1) GetDesc() _D3D12_RESOURCE_DESC {
+func (i *_ID3D12Resource1) GetDesc() _D3D12_RESOURCE_DESC {
 	var resourceDesc _D3D12_RESOURCE_DESC
 	syscall.Syscall(i.vtbl.GetDesc, 2, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(&resourceDesc)), 0)
 	return resourceDesc
 }
 
-func (i *iD3D12Resource1) GetGPUVirtualAddress() _D3D12_GPU_VIRTUAL_ADDRESS {
+func (i *_ID3D12Resource1) GetGPUVirtualAddress() _D3D12_GPU_VIRTUAL_ADDRESS {
 	r, _, _ := syscall.Syscall(i.vtbl.GetGPUVirtualAddress, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 	return _D3D12_GPU_VIRTUAL_ADDRESS(r)
 }
 
-func (i *iD3D12Resource1) Map(subresource uint32, pReadRange *_D3D12_RANGE) (unsafe.Pointer, error) {
+func (i *_ID3D12Resource1) Map(subresource uint32, pReadRange *_D3D12_RANGE) (unsafe.Pointer, error) {
 	var data unsafe.Pointer
 	r, _, _ := syscall.Syscall6(i.vtbl.Map, 4, uintptr(unsafe.Pointer(i)),
 		uintptr(subresource), uintptr(unsafe.Pointer(pReadRange)), uintptr(unsafe.Pointer(&data)),
@@ -1739,11 +1739,11 @@ func (i *iD3D12Resource1) Map(subresource uint32, pReadRange *_D3D12_RANGE) (uns
 	return data, nil
 }
 
-func (i *iD3D12Resource1) Release() {
+func (i *_ID3D12Resource1) Release() {
 	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 }
 
-func (i *iD3D12Resource1) Unmap(subresource uint32, pWrittenRange *_D3D12_RANGE) error {
+func (i *_ID3D12Resource1) Unmap(subresource uint32, pWrittenRange *_D3D12_RANGE) error {
 	r, _, _ := syscall.Syscall(i.vtbl.Unmap, 3, uintptr(unsafe.Pointer(i)),
 		uintptr(subresource), uintptr(unsafe.Pointer(pWrittenRange)))
 	runtime.KeepAlive(pWrittenRange)
@@ -1753,11 +1753,11 @@ func (i *iD3D12Resource1) Unmap(subresource uint32, pWrittenRange *_D3D12_RANGE)
 	return nil
 }
 
-type iD3DBlob struct {
-	vtbl *iD3DBlob_Vtbl
+type _ID3DBlob struct {
+	vtbl *_ID3DBlob_Vtbl
 }
 
-type iD3DBlob_Vtbl struct {
+type _ID3DBlob_Vtbl struct {
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1766,23 +1766,23 @@ type iD3DBlob_Vtbl struct {
 	GetBufferSize    uintptr
 }
 
-func (i *iD3DBlob) GetBufferPointer() uintptr {
+func (i *_ID3DBlob) GetBufferPointer() uintptr {
 	r, _, _ := syscall.Syscall(i.vtbl.GetBufferPointer, 1, uintptr(unsafe.Pointer(i)),
 		0, 0)
 	return r
 }
 
-func (i *iD3DBlob) GetBufferSize() uintptr {
+func (i *_ID3DBlob) GetBufferSize() uintptr {
 	r, _, _ := syscall.Syscall(i.vtbl.GetBufferSize, 1, uintptr(unsafe.Pointer(i)),
 		0, 0)
 	return r
 }
 
-func (i *iD3DBlob) Release() {
+func (i *_ID3DBlob) Release() {
 	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 }
 
-func (i *iD3DBlob) String() string {
+func (i *_ID3DBlob) String() string {
 	var str string
 	h := (*reflect.StringHeader)(unsafe.Pointer(&str))
 	h.Data = i.GetBufferPointer()
@@ -1790,11 +1790,11 @@ func (i *iD3DBlob) String() string {
 	return str
 }
 
-type iDXGIAdapter1 struct {
-	vtbl *iDXGIAdapter1_Vtbl
+type _IDXGIAdapter1 struct {
+	vtbl *_IDXGIAdapter1_Vtbl
 }
 
-type iDXGIAdapter1_Vtbl struct {
+type _IDXGIAdapter1_Vtbl struct {
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1809,11 +1809,11 @@ type iDXGIAdapter1_Vtbl struct {
 	GetDesc1                uintptr
 }
 
-func (i *iDXGIAdapter1) Release() {
+func (i *_IDXGIAdapter1) Release() {
 	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 }
 
-func (i *iDXGIAdapter1) GetDesc1() (*_DXGI_ADAPTER_DESC1, error) {
+func (i *_IDXGIAdapter1) GetDesc1() (*_DXGI_ADAPTER_DESC1, error) {
 	var desc _DXGI_ADAPTER_DESC1
 	r, _, _ := syscall.Syscall(i.vtbl.GetDesc1, 2, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(&desc)), 0)
 	if windows.Handle(r) != windows.S_OK {
@@ -1822,11 +1822,11 @@ func (i *iDXGIAdapter1) GetDesc1() (*_DXGI_ADAPTER_DESC1, error) {
 	return &desc, nil
 }
 
-type iDXGIFactory4 struct {
-	vtbl *iDXGIFactory4_Vtbl
+type _IDXGIFactory4 struct {
+	vtbl *_IDXGIFactory4_Vtbl
 }
 
-type iDXGIFactory4_Vtbl struct {
+type _IDXGIFactory4_Vtbl struct {
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1858,8 +1858,8 @@ type iDXGIFactory4_Vtbl struct {
 	EnumWarpAdapter               uintptr
 }
 
-func (i *iDXGIFactory4) CreateSwapChainForComposition(pDevice unsafe.Pointer, pDesc *_DXGI_SWAP_CHAIN_DESC1, pRestrictToOutput *iDXGIOutput) (*iDXGISwapChain1, error) {
-	var swapChain *iDXGISwapChain1
+func (i *_IDXGIFactory4) CreateSwapChainForComposition(pDevice unsafe.Pointer, pDesc *_DXGI_SWAP_CHAIN_DESC1, pRestrictToOutput *_IDXGIOutput) (*_IDXGISwapChain1, error) {
+	var swapChain *_IDXGISwapChain1
 	r, _, _ := syscall.Syscall6(i.vtbl.CreateSwapChainForComposition, 5,
 		uintptr(unsafe.Pointer(i)), uintptr(pDevice), uintptr(unsafe.Pointer(pDesc)),
 		uintptr(unsafe.Pointer(pRestrictToOutput)), uintptr(unsafe.Pointer(&swapChain)), 0)
@@ -1871,8 +1871,8 @@ func (i *iDXGIFactory4) CreateSwapChainForComposition(pDevice unsafe.Pointer, pD
 	return swapChain, nil
 }
 
-func (i *iDXGIFactory4) CreateSwapChainForHwnd(pDevice unsafe.Pointer, hWnd windows.HWND, pDesc *_DXGI_SWAP_CHAIN_DESC1, pFullscreenDesc *_DXGI_SWAP_CHAIN_FULLSCREEN_DESC, pRestrictToOutput *iDXGIOutput) (*iDXGISwapChain1, error) {
-	var swapChain *iDXGISwapChain1
+func (i *_IDXGIFactory4) CreateSwapChainForHwnd(pDevice unsafe.Pointer, hWnd windows.HWND, pDesc *_DXGI_SWAP_CHAIN_DESC1, pFullscreenDesc *_DXGI_SWAP_CHAIN_FULLSCREEN_DESC, pRestrictToOutput *_IDXGIOutput) (*_IDXGISwapChain1, error) {
+	var swapChain *_IDXGISwapChain1
 	r, _, _ := syscall.Syscall9(i.vtbl.CreateSwapChainForHwnd, 7,
 		uintptr(unsafe.Pointer(i)), uintptr(pDevice), uintptr(hWnd),
 		uintptr(unsafe.Pointer(pDesc)), uintptr(unsafe.Pointer(pFullscreenDesc)), uintptr(unsafe.Pointer(pRestrictToOutput)),
@@ -1886,8 +1886,8 @@ func (i *iDXGIFactory4) CreateSwapChainForHwnd(pDevice unsafe.Pointer, hWnd wind
 	return swapChain, nil
 }
 
-func (i *iDXGIFactory4) EnumAdapters1(adapter uint32) (*iDXGIAdapter1, error) {
-	var ptr *iDXGIAdapter1
+func (i *_IDXGIFactory4) EnumAdapters1(adapter uint32) (*_IDXGIAdapter1, error) {
+	var ptr *_IDXGIAdapter1
 	r, _, _ := syscall.Syscall(i.vtbl.EnumAdapters1, 3, uintptr(unsafe.Pointer(i)), uintptr(adapter), uintptr(unsafe.Pointer(&ptr)))
 	if windows.Handle(r) != windows.S_OK {
 		return nil, fmt.Errorf("directx: IDXGIFactory4::EnumAdapters1 failed: %w", windows.Errno(r))
@@ -1895,8 +1895,8 @@ func (i *iDXGIFactory4) EnumAdapters1(adapter uint32) (*iDXGIAdapter1, error) {
 	return ptr, nil
 }
 
-func (i *iDXGIFactory4) EnumWarpAdapter() (*iDXGIAdapter1, error) {
-	var ptr *iDXGIAdapter1
+func (i *_IDXGIFactory4) EnumWarpAdapter() (*_IDXGIAdapter1, error) {
+	var ptr *_IDXGIAdapter1
 	r, _, _ := syscall.Syscall(i.vtbl.EnumWarpAdapter, 3, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(&_IID_IDXGIAdapter1)), uintptr(unsafe.Pointer(&ptr)))
 	if windows.Handle(r) != windows.S_OK {
 		return nil, fmt.Errorf("directx: IDXGIFactory4::EnumWarpAdapter failed: %w", windows.Errno(r))
@@ -1904,15 +1904,15 @@ func (i *iDXGIFactory4) EnumWarpAdapter() (*iDXGIAdapter1, error) {
 	return ptr, nil
 }
 
-func (i *iDXGIFactory4) Release() {
+func (i *_IDXGIFactory4) Release() {
 	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 }
 
-type iDXGIOutput struct {
-	vtbl *iDXGIOutput_Vtbl
+type _IDXGIOutput struct {
+	vtbl *_IDXGIOutput_Vtbl
 }
 
-type iDXGIOutput_Vtbl struct {
+type _IDXGIOutput_Vtbl struct {
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1935,11 +1935,11 @@ type iDXGIOutput_Vtbl struct {
 	GetFrameStatistics          uintptr
 }
 
-type iD3D12RootSignature struct {
-	vtbl *iD3D12RootSignature_Vtbl
+type _ID3D12RootSignature struct {
+	vtbl *_ID3D12RootSignature_Vtbl
 }
 
-type iD3D12RootSignature_Vtbl struct {
+type _ID3D12RootSignature_Vtbl struct {
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1951,15 +1951,15 @@ type iD3D12RootSignature_Vtbl struct {
 	GetDevice               uintptr
 }
 
-func (i *iD3D12RootSignature) Release() {
+func (i *_ID3D12RootSignature) Release() {
 	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 }
 
-type iDXGISwapChain1 struct {
-	vtbl *iDXGISwapChain1_Vtbl
+type _IDXGISwapChain1 struct {
+	vtbl *_IDXGISwapChain1_Vtbl
 }
 
-type iDXGISwapChain1_Vtbl struct {
+type _IDXGISwapChain1_Vtbl struct {
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -1992,15 +1992,15 @@ type iDXGISwapChain1_Vtbl struct {
 	GetRotation              uintptr
 }
 
-func (i *iDXGISwapChain1) As(swapChain **iDXGISwapChain4) {
-	*swapChain = (*iDXGISwapChain4)(unsafe.Pointer(i))
+func (i *_IDXGISwapChain1) As(swapChain **_IDXGISwapChain4) {
+	*swapChain = (*_IDXGISwapChain4)(unsafe.Pointer(i))
 }
 
-type iDXGISwapChain4 struct {
-	vtbl *iDXGISwapChain4_Vtbl
+type _IDXGISwapChain4 struct {
+	vtbl *_IDXGISwapChain4_Vtbl
 }
 
-type iDXGISwapChain4_Vtbl struct {
+type _IDXGISwapChain4_Vtbl struct {
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -2046,8 +2046,8 @@ type iDXGISwapChain4_Vtbl struct {
 	SetHDRMetaData                uintptr
 }
 
-func (i *iDXGISwapChain4) GetBuffer(buffer uint32) (*iD3D12Resource1, error) {
-	var resource *iD3D12Resource1
+func (i *_IDXGISwapChain4) GetBuffer(buffer uint32) (*_ID3D12Resource1, error) {
+	var resource *_ID3D12Resource1
 	r, _, _ := syscall.Syscall6(i.vtbl.GetBuffer, 4, uintptr(unsafe.Pointer(i)),
 		uintptr(buffer), uintptr(unsafe.Pointer(&_IID_ID3D12Resource1)), uintptr(unsafe.Pointer(&resource)),
 		0, 0)
@@ -2057,12 +2057,12 @@ func (i *iDXGISwapChain4) GetBuffer(buffer uint32) (*iD3D12Resource1, error) {
 	return resource, nil
 }
 
-func (i *iDXGISwapChain4) GetCurrentBackBufferIndex() uint32 {
+func (i *_IDXGISwapChain4) GetCurrentBackBufferIndex() uint32 {
 	r, _, _ := syscall.Syscall(i.vtbl.GetCurrentBackBufferIndex, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 	return uint32(r)
 }
 
-func (i *iDXGISwapChain4) Present(syncInterval uint32, flags uint32) error {
+func (i *_IDXGISwapChain4) Present(syncInterval uint32, flags uint32) error {
 	r, _, _ := syscall.Syscall(i.vtbl.Present, 3, uintptr(unsafe.Pointer(i)), uintptr(syncInterval), uintptr(flags))
 	if windows.Handle(r) != windows.S_OK {
 		return fmt.Errorf("directx: IDXGISwapChain4::Present failed: %w", windows.Errno(r))
@@ -2070,7 +2070,7 @@ func (i *iDXGISwapChain4) Present(syncInterval uint32, flags uint32) error {
 	return nil
 }
 
-func (i *iDXGISwapChain4) ResizeBuffers(bufferCount uint32, width uint32, height uint32, newFormat _DXGI_FORMAT, swapChainFlags uint32) error {
+func (i *_IDXGISwapChain4) ResizeBuffers(bufferCount uint32, width uint32, height uint32, newFormat _DXGI_FORMAT, swapChainFlags uint32) error {
 	r, _, _ := syscall.Syscall6(i.vtbl.ResizeBuffers, 6,
 		uintptr(unsafe.Pointer(i)), uintptr(bufferCount), uintptr(width),
 		uintptr(height), uintptr(newFormat), uintptr(swapChainFlags))
@@ -2080,6 +2080,6 @@ func (i *iDXGISwapChain4) ResizeBuffers(bufferCount uint32, width uint32, height
 	return nil
 }
 
-func (i *iDXGISwapChain4) Release() {
+func (i *_IDXGISwapChain4) Release() {
 	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 }

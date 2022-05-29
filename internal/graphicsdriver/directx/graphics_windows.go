@@ -88,14 +88,14 @@ func init() {
 }
 
 type Graphics struct {
-	debug             *iD3D12Debug
-	device            *iD3D12Device
-	commandQueue      *iD3D12CommandQueue
-	rtvDescriptorHeap *iD3D12DescriptorHeap
+	debug             *_ID3D12Debug
+	device            *_ID3D12Device
+	commandQueue      *_ID3D12CommandQueue
+	rtvDescriptorHeap *_ID3D12DescriptorHeap
 	rtvDescriptorSize uint32
-	renderTargets     [frameCount]*iD3D12Resource1
+	renderTargets     [frameCount]*_ID3D12Resource1
 
-	fences      [frameCount]*iD3D12Fence
+	fences      [frameCount]*_ID3D12Fence
 	fenceValues [frameCount]uint64
 
 	// fenceWaitEvent is an event.
@@ -105,25 +105,25 @@ type Graphics struct {
 	// drawCommandAllocators are command allocators for a 3D engine (DrawIndexedInstanced).
 	// For the word 'engine', see https://docs.microsoft.com/en-us/windows/win32/direct3d12/user-mode-heap-synchronization.
 	// The term 'draw' is used instead of '3D' in this package.
-	drawCommandAllocators [frameCount]*iD3D12CommandAllocator
+	drawCommandAllocators [frameCount]*_ID3D12CommandAllocator
 
 	// copyCommandAllocators are command allocators for a copy engine (CopyTextureRegion).
-	copyCommandAllocators [frameCount]*iD3D12CommandAllocator
+	copyCommandAllocators [frameCount]*_ID3D12CommandAllocator
 
 	// drawCommandList is a command list for a 3D engine (DrawIndexedInstanced).
-	drawCommandList *iD3D12GraphicsCommandList
+	drawCommandList *_ID3D12GraphicsCommandList
 
 	// copyCommandList is a command list for a copy engine (CopyTextureRegion).
-	copyCommandList *iD3D12GraphicsCommandList
+	copyCommandList *_ID3D12GraphicsCommandList
 
 	// drawCommandList and copyCommandList are exclusive: if one is not empty, the other must be empty.
 
-	vertices [frameCount][]*iD3D12Resource1
-	indices  [frameCount][]*iD3D12Resource1
+	vertices [frameCount][]*_ID3D12Resource1
+	indices  [frameCount][]*_ID3D12Resource1
 
-	factory   *iDXGIFactory4
-	adapter   *iDXGIAdapter1
-	swapChain *iDXGISwapChain4
+	factory   *_IDXGIFactory4
+	adapter   *_IDXGIAdapter1
+	swapChain *_IDXGISwapChain4
 
 	window windows.HWND
 
@@ -167,7 +167,7 @@ func (g *Graphics) initializeDevice() (ferr error) {
 
 	// The debug interface is optional and might not exist.
 	if useDebugLayer {
-		d, err := d3D12GetDebugInterface()
+		d, err := _D3D12GetDebugInterface()
 		if err != nil {
 			return err
 		}
@@ -185,7 +185,7 @@ func (g *Graphics) initializeDevice() (ferr error) {
 	if g.debug != nil {
 		flag = _DXGI_CREATE_FACTORY_DEBUG
 	}
-	f, err := createDXGIFactory2(flag)
+	f, err := _CreateDXGIFactory2(flag)
 	if err != nil {
 		return err
 	}
@@ -228,7 +228,7 @@ func (g *Graphics) initializeDevice() (ferr error) {
 				a.Release()
 				continue
 			}
-			if err := d3D12CreateDevice(unsafe.Pointer(a), _D3D_FEATURE_LEVEL_11_0, &_IID_ID3D12Device, nil); err != nil {
+			if err := _D3D12CreateDevice(unsafe.Pointer(a), _D3D_FEATURE_LEVEL_11_0, &_IID_ID3D12Device, nil); err != nil {
 				a.Release()
 				continue
 			}
@@ -247,7 +247,7 @@ func (g *Graphics) initializeDevice() (ferr error) {
 		return errors.New("directx: DirectX 12 is not supported")
 	}
 
-	if err := d3D12CreateDevice(unsafe.Pointer(g.adapter), _D3D_FEATURE_LEVEL_11_0, &_IID_ID3D12Device, (*unsafe.Pointer)(unsafe.Pointer(&g.device))); err != nil {
+	if err := _D3D12CreateDevice(unsafe.Pointer(g.adapter), _D3D_FEATURE_LEVEL_11_0, &_IID_ID3D12Device, (*unsafe.Pointer)(unsafe.Pointer(&g.device))); err != nil {
 		return err
 	}
 
@@ -380,7 +380,7 @@ func (g *Graphics) Initialize() (ferr error) {
 	return nil
 }
 
-func createBuffer(device *iD3D12Device, bufferSize uint64, heapType _D3D12_HEAP_TYPE) (*iD3D12Resource1, error) {
+func createBuffer(device *_ID3D12Device, bufferSize uint64, heapType _D3D12_HEAP_TYPE) (*_ID3D12Resource1, error) {
 	state := _D3D12_RESOURCE_STATE_GENERIC_READ
 	if heapType == _D3D12_HEAP_TYPE_READBACK {
 		state = _D3D12_RESOURCE_STATE_COPY_DEST
@@ -586,7 +586,7 @@ func (g *Graphics) End(present bool) error {
 	if err := g.drawCommandList.Close(); err != nil {
 		return err
 	}
-	g.commandQueue.ExecuteCommandLists([]*iD3D12GraphicsCommandList{g.drawCommandList})
+	g.commandQueue.ExecuteCommandLists([]*_ID3D12GraphicsCommandList{g.drawCommandList})
 
 	// Release vertices and indices buffers when too many ones were created.
 	// This is needed espciallly for testings, where present is always false.
@@ -689,12 +689,12 @@ func (g *Graphics) releaseCommandAllocators(frameIndex int) error {
 // flushCommandList executes commands in the command list and waits for its completion.
 //
 // TODO: This is not efficient. Is it possible to make two command lists work in parallel?
-func (g *Graphics) flushCommandList(commandList *iD3D12GraphicsCommandList) error {
+func (g *Graphics) flushCommandList(commandList *_ID3D12GraphicsCommandList) error {
 	if err := commandList.Close(); err != nil {
 		return err
 	}
 
-	g.commandQueue.ExecuteCommandLists([]*iD3D12GraphicsCommandList{commandList})
+	g.commandQueue.ExecuteCommandLists([]*_ID3D12GraphicsCommandList{commandList})
 
 	if err := g.waitForCommandQueue(); err != nil {
 		return err
@@ -1165,7 +1165,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 	return nil
 }
 
-func (g *Graphics) drawTriangles(pipelineState *iD3D12PipelineState, srcs [graphics.ShaderImageNum]*Image, flattenUniforms []float32, indexLen int, indexOffset int) error {
+func (g *Graphics) drawTriangles(pipelineState *_ID3D12PipelineState, srcs [graphics.ShaderImageNum]*Image, flattenUniforms []float32, indexLen int, indexOffset int) error {
 	if err := g.pipelineStates.useGraphicsPipelineState(g.device, g.drawCommandList, g.frameIndex, pipelineState, srcs, flattenUniforms); err != nil {
 		return err
 	}
@@ -1202,15 +1202,15 @@ type Image struct {
 	screen   bool
 
 	state                  _D3D12_RESOURCE_STATES
-	texture                *iD3D12Resource1
-	stencil                *iD3D12Resource1
+	texture                *_ID3D12Resource1
+	stencil                *_ID3D12Resource1
 	layouts                _D3D12_PLACED_SUBRESOURCE_FOOTPRINT
 	numRows                uint
 	totalBytes             uint64
-	uploadingStagingBuffer *iD3D12Resource1
-	readingStagingBuffer   *iD3D12Resource1
-	rtvDescriptorHeap      *iD3D12DescriptorHeap
-	dsvDescriptorHeap      *iD3D12DescriptorHeap
+	uploadingStagingBuffer *_ID3D12Resource1
+	readingStagingBuffer   *_ID3D12Resource1
+	rtvDescriptorHeap      *_ID3D12DescriptorHeap
+	dsvDescriptorHeap      *_ID3D12DescriptorHeap
 }
 
 func (i *Image) ID() graphicsdriver.ImageID {
@@ -1396,14 +1396,14 @@ func (i *Image) ReplacePixels(args []*graphicsdriver.ReplacePixelsArgs) error {
 	return nil
 }
 
-func (i *Image) resource() *iD3D12Resource1 {
+func (i *Image) resource() *_ID3D12Resource1 {
 	if i.screen {
 		return i.graphics.renderTargets[i.graphics.frameIndex]
 	}
 	return i.texture
 }
 
-func (i *Image) transiteState(commandList *iD3D12GraphicsCommandList, newState _D3D12_RESOURCE_STATES) {
+func (i *Image) transiteState(commandList *_ID3D12GraphicsCommandList, newState _D3D12_RESOURCE_STATES) {
 	if i.state == newState {
 		return
 	}
@@ -1428,7 +1428,7 @@ func (i *Image) internalSize() (int, int) {
 	return graphics.InternalImageSize(i.width), graphics.InternalImageSize(i.height)
 }
 
-func (i *Image) setAsRenderTarget(device *iD3D12Device, useStencil bool) error {
+func (i *Image) setAsRenderTarget(device *_ID3D12Device, useStencil bool) error {
 	i.transiteState(i.graphics.drawCommandList, _D3D12_RESOURCE_STATE_RENDER_TARGET)
 
 	if err := i.ensureRenderTargetView(device); err != nil {
@@ -1459,7 +1459,7 @@ func (i *Image) setAsRenderTarget(device *iD3D12Device, useStencil bool) error {
 	return nil
 }
 
-func (i *Image) ensureRenderTargetView(device *iD3D12Device) error {
+func (i *Image) ensureRenderTargetView(device *_ID3D12Device) error {
 	if i.screen {
 		return nil
 	}
@@ -1485,7 +1485,7 @@ func (i *Image) ensureRenderTargetView(device *iD3D12Device) error {
 	return nil
 }
 
-func (i *Image) ensureDepthStencilView(device *iD3D12Device) error {
+func (i *Image) ensureDepthStencilView(device *_ID3D12Device) error {
 	if i.screen {
 		return nil
 	}
@@ -1576,9 +1576,9 @@ type Shader struct {
 	id             graphicsdriver.ShaderID
 	uniformTypes   []shaderir.Type
 	uniformOffsets []int
-	vertexShader   *iD3DBlob
-	pixelShader    *iD3DBlob
-	pipelineStates map[pipelineStateKey]*iD3D12PipelineState
+	vertexShader   *_ID3DBlob
+	pixelShader    *_ID3DBlob
+	pipelineStates map[pipelineStateKey]*_ID3D12PipelineState
 }
 
 func (s *Shader) ID() graphicsdriver.ShaderID {
@@ -1605,7 +1605,7 @@ func (s *Shader) disposeImpl() {
 	}
 }
 
-func (s *Shader) pipelineState(compositeMode graphicsdriver.CompositeMode, stencilMode stencilMode) (*iD3D12PipelineState, error) {
+func (s *Shader) pipelineState(compositeMode graphicsdriver.CompositeMode, stencilMode stencilMode) (*_ID3D12PipelineState, error) {
 	key := pipelineStateKey{
 		compositeMode: compositeMode,
 		stencilMode:   stencilMode,
@@ -1619,7 +1619,7 @@ func (s *Shader) pipelineState(compositeMode graphicsdriver.CompositeMode, stenc
 		return nil, err
 	}
 	if s.pipelineStates == nil {
-		s.pipelineStates = map[pipelineStateKey]*iD3D12PipelineState{}
+		s.pipelineStates = map[pipelineStateKey]*_ID3D12PipelineState{}
 	}
 	s.pipelineStates[key] = state
 	return state, nil

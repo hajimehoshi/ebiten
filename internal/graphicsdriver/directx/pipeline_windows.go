@@ -262,24 +262,24 @@ float4 PSMain(PSInput input) : SV_TARGET {
 }
 
 type pipelineStates struct {
-	rootSignature *iD3D12RootSignature
+	rootSignature *_ID3D12RootSignature
 
-	cache map[builtinPipelineStatesKey]*iD3D12PipelineState
+	cache map[builtinPipelineStatesKey]*_ID3D12PipelineState
 
 	// builtinShaders is a set of the built-in vertex/pixel shaders that are never released.
-	builtinShaders []*iD3DBlob
+	builtinShaders []*_ID3DBlob
 
-	shaderDescriptorHeap *iD3D12DescriptorHeap
+	shaderDescriptorHeap *_ID3D12DescriptorHeap
 	shaderDescriptorSize uint32
 
-	samplerDescriptorHeap *iD3D12DescriptorHeap
+	samplerDescriptorHeap *_ID3D12DescriptorHeap
 
-	constantBuffers [frameCount][]*iD3D12Resource1
+	constantBuffers [frameCount][]*_ID3D12Resource1
 }
 
 const numConstantBufferAndSourceTextures = 1 + graphics.ShaderImageNum
 
-func (p *pipelineStates) initialize(device *iD3D12Device) (ferr error) {
+func (p *pipelineStates) initialize(device *_ID3D12Device) (ferr error) {
 	// Create a CBV/SRV/UAV descriptor heap.
 	//   5n+0:        constants
 	//   5n+m (1<=4): textures
@@ -325,7 +325,7 @@ func (p *pipelineStates) initialize(device *iD3D12Device) (ferr error) {
 	return nil
 }
 
-func (p *pipelineStates) builtinGraphicsPipelineState(device *iD3D12Device, key builtinPipelineStatesKey) (*iD3D12PipelineState, error) {
+func (p *pipelineStates) builtinGraphicsPipelineState(device *_ID3D12Device, key builtinPipelineStatesKey) (*_ID3D12PipelineState, error) {
 	state, ok := p.cache[key]
 	if ok {
 		return state, nil
@@ -348,13 +348,13 @@ func (p *pipelineStates) builtinGraphicsPipelineState(device *iD3D12Device, key 
 		return nil, err
 	}
 	if p.cache == nil {
-		p.cache = map[builtinPipelineStatesKey]*iD3D12PipelineState{}
+		p.cache = map[builtinPipelineStatesKey]*_ID3D12PipelineState{}
 	}
 	p.cache[key] = s
 	return s, nil
 }
 
-func (p *pipelineStates) useGraphicsPipelineState(device *iD3D12Device, commandList *iD3D12GraphicsCommandList, frameIndex int, pipelineState *iD3D12PipelineState, srcs [graphics.ShaderImageNum]*Image, uniforms []float32) error {
+func (p *pipelineStates) useGraphicsPipelineState(device *_ID3D12Device, commandList *_ID3D12GraphicsCommandList, frameIndex int, pipelineState *_ID3D12PipelineState, srcs [graphics.ShaderImageNum]*Image, uniforms []float32) error {
 	idx := len(p.constantBuffers[frameIndex])
 	if idx >= numDescriptorsPerFrame*2 {
 		return fmt.Errorf("directx: too many constant buffers")
@@ -432,7 +432,7 @@ func (p *pipelineStates) useGraphicsPipelineState(device *iD3D12Device, commandL
 	}
 	commandList.SetGraphicsRootSignature(rs)
 
-	commandList.SetDescriptorHeaps([]*iD3D12DescriptorHeap{
+	commandList.SetDescriptorHeaps([]*_ID3D12DescriptorHeap{
 		p.shaderDescriptorHeap,
 		p.samplerDescriptorHeap,
 	})
@@ -448,7 +448,7 @@ func (p *pipelineStates) useGraphicsPipelineState(device *iD3D12Device, commandL
 	return nil
 }
 
-func (p *pipelineStates) ensureRootSignature(device *iD3D12Device) (rootSignature *iD3D12RootSignature, ferr error) {
+func (p *pipelineStates) ensureRootSignature(device *_ID3D12Device) (rootSignature *_ID3D12RootSignature, ferr error) {
 	if p.rootSignature != nil {
 		return p.rootSignature, nil
 	}
@@ -503,7 +503,7 @@ func (p *pipelineStates) ensureRootSignature(device *iD3D12Device) (rootSignatur
 	}
 
 	// Create a root signature.
-	sig, err := d3D12SerializeRootSignature(&_D3D12_ROOT_SIGNATURE_DESC{
+	sig, err := _D3D12SerializeRootSignature(&_D3D12_ROOT_SIGNATURE_DESC{
 		NumParameters:     uint32(len(rootParams)),
 		pParameters:       &rootParams[0],
 		NumStaticSamplers: 0,
@@ -530,9 +530,9 @@ func (p *pipelineStates) ensureRootSignature(device *iD3D12Device) (rootSignatur
 	return p.rootSignature, nil
 }
 
-func newShader(source []byte, defs []_D3D_SHADER_MACRO) (vsh, psh *iD3DBlob, ferr error) {
+func newShader(source []byte, defs []_D3D_SHADER_MACRO) (vsh, psh *_ID3DBlob, ferr error) {
 	// Create a shader
-	v, err := d3DCompile(source, "shader", defs, nil, "VSMain", "vs_5_0", 0, 0)
+	v, err := _D3DCompile(source, "shader", defs, nil, "VSMain", "vs_5_0", 0, 0)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -542,7 +542,7 @@ func newShader(source []byte, defs []_D3D_SHADER_MACRO) (vsh, psh *iD3DBlob, fer
 		}
 	}()
 
-	p, err := d3DCompile(source, "shader", defs, nil, "PSMain", "ps_5_0", 0, 0)
+	p, err := _D3DCompile(source, "shader", defs, nil, "PSMain", "ps_5_0", 0, 0)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -555,7 +555,7 @@ func newShader(source []byte, defs []_D3D_SHADER_MACRO) (vsh, psh *iD3DBlob, fer
 	return v, p, nil
 }
 
-func (p *pipelineStates) newPipelineState(device *iD3D12Device, vsh, psh *iD3DBlob, compositeMode graphicsdriver.CompositeMode, stencilMode stencilMode, screen bool) (state *iD3D12PipelineState, ferr error) {
+func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3DBlob, compositeMode graphicsdriver.CompositeMode, stencilMode stencilMode, screen bool) (state *_ID3D12PipelineState, ferr error) {
 	rootSignature, err := p.ensureRootSignature(device)
 	if err != nil {
 		return nil, err
