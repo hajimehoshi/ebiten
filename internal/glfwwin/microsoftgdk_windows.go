@@ -17,34 +17,30 @@
 
 package glfwwin
 
-// This file does not include the headers of Microsoft GDK in order to compile easier.
-// In order to compile this, create a dummy DLL with empty implementations like below,
-// and link it.
-//
-//     #include <stdint.h>
-//     __declspec(dllexport) __cdecl uint32_t XSystemGetDeviceType(void) {
-//       return 0;
-//     }
-//
 // Unfortunately, some functions like XSystemGetDeviceType is not implemented in a DLL,
 // so LoadLibrary is not available.
-
-// typedef enum {
-//    Unknown              = 0x00,
-//    Pc                   = 0x01,
-//    XboxOne              = 0x02,
-//    XboxOneS             = 0x03,
-//    XboxOneX             = 0x04,
-//    XboxOneXDevkit       = 0x05,
-//    XboxScarlettLockhart = 0x06,
-//    XboxScarlettAnaconda = 0x07,
-//    XboxScarlettDevkit   = 0x08,
-// } XSystemDeviceType;
 //
-// XSystemDeviceType XSystemGetDeviceType(void);
+// When creating a c-archive file with the build tag microsoftgdk, create a dummy DLL
+// from dummy.c, and link it.
+
+// #include <stdint.h>
+//
+// uint32_t XSystemGetDeviceType(void);
 import "C"
+
+const (
+	_XSystemDeviceType_Unknown              = 0x00
+	_XSystemDeviceType_Pc                   = 0x01
+	_XSystemDeviceType_XboxOne              = 0x02
+	_XSystemDeviceType_XboxOneS             = 0x03
+	_XSystemDeviceType_XboxOneX             = 0x04
+	_XSystemDeviceType_XboxOneXDevkit       = 0x05
+	_XSystemDeviceType_XboxScarlettLockhart = 0x06
+	_XSystemDeviceType_XboxScarlettAnaconda = 0x07
+	_XSystemDeviceType_XboxScarlettDevkit   = 0x08
+)
 
 func isXbox() bool {
 	t := C.XSystemGetDeviceType()
-	return t != C.Unknown && t != C.Pc
+	return t != _XSystemDeviceType_Unknown && t != _XSystemDeviceType_Pc
 }
