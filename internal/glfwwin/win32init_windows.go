@@ -271,9 +271,8 @@ func platformInit() error {
 			RefreshRate: 0, // TODO: Is it possible to get an appropriate refresh rate?
 		}
 		m := &Monitor{
-			name:        "Xbox Monitor",
-			modes:       []*VidMode{mode},
-			currentMode: mode,
+			name:  "Xbox Monitor",
+			modes: []*VidMode{mode},
 		}
 		if err := inputMonitor(m, Connected, _GLFW_INSERT_LAST); err != nil {
 			return err

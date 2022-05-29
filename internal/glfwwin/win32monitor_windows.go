@@ -234,6 +234,10 @@ func getMonitorContentScaleWin32(handle _HMONITOR) (xscale, yscale float32, err 
 }
 
 func (m *Monitor) platformGetMonitorPos() (xpos, ypos int, ok bool) {
+	if isXbox() {
+		return 0, 0, true
+	}
+
 	dm, ok := _EnumDisplaySettingsExW(m.win32.adapterName, _ENUM_CURRENT_SETTINGS, _EDS_ROTATEDMODE)
 	if !ok {
 		return 0, 0, false
@@ -242,10 +246,19 @@ func (m *Monitor) platformGetMonitorPos() (xpos, ypos int, ok bool) {
 }
 
 func (m *Monitor) platformGetMonitorContentScale() (xscale, yscale float32, err error) {
+	if isXbox() {
+		return 1, 1, nil
+	}
+
 	return getMonitorContentScaleWin32(m.win32.handle)
 }
 
 func (m *Monitor) platformGetMonitorWorkarea() (xpos, ypos, width, height int) {
+	if isXbox() {
+		w, h := monitorResolution()
+		return 0, 0, w, h
+	}
+
 	mi, ok := _GetMonitorInfoW(m.win32.handle)
 	if !ok {
 		return 0, 0, 0, 0
@@ -307,6 +320,10 @@ loop:
 }
 
 func (m *Monitor) platformGetVideoMode() *VidMode {
+	if isXbox() {
+		return m.modes[0]
+	}
+
 	dm, _ := _EnumDisplaySettingsW(m.win32.adapterName, _ENUM_CURRENT_SETTINGS)
 	r, g, b := splitBPP(int(dm.dmBitsPerPel))
 	return &VidMode{
