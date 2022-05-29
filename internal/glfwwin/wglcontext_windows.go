@@ -329,6 +329,10 @@ func destroyContextWGL(window *Window) error {
 }
 
 func initWGL() error {
+	if isXbox() {
+		return fmt.Errorf("glfwwin: WGL is not available in Xbox")
+	}
+
 	if _glfw.wgl.inited {
 		return nil
 	}
