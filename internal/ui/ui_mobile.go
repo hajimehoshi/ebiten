@@ -436,8 +436,8 @@ func (u *userInterfaceImpl) Input() *Input {
 	return &u.input
 }
 
-func (u *userInterfaceImpl) Window() *Window {
-	return &Window{}
+func (u *userInterfaceImpl) Window() Window {
+	return &nullWindow{}
 }
 
 type Touch struct {

@@ -31,6 +31,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
+	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
@@ -104,7 +105,7 @@ type userInterfaceImpl struct {
 	fpsModeInited bool
 
 	input   Input
-	iwindow Window
+	iwindow glfwWindow
 
 	sizeCallback                   glfw.SizeCallback
 	closeCallback                  glfw.CloseCallback
@@ -1403,7 +1404,10 @@ func (u *userInterfaceImpl) Input() *Input {
 	return &u.input
 }
 
-func (u *userInterfaceImpl) Window() *Window {
+func (u *userInterfaceImpl) Window() Window {
+	if microsoftgdk.IsXbox() {
+		return &nullWindow{}
+	}
 	return &u.iwindow
 }
 
