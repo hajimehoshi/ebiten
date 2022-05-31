@@ -139,6 +139,7 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 			window.Destroy()
 		}
 	}()
+	_glfw.windows = append(_glfw.windows, window)
 
 	// Open the actual window and create its context
 	if err := window.platformCreateWindow(&wndconfig, &ctxconfig, &fbconfig); err != nil {
@@ -312,7 +313,7 @@ func (w *Window) Destroy() error {
 	}
 
 	// Clear all callbacks to avoid exposing a half torn-down w object
-	//memset(&w.callbacks, 0, sizeof(w.callbacks))
+	// TODO: Clear w.callbacks
 
 	// The w's context must not be current on another thread when the
 	// w is destroyed
@@ -323,6 +324,15 @@ func (w *Window) Destroy() error {
 	if uintptr(unsafe.Pointer(w)) == current {
 		if err := (*Window)(nil).MakeContextCurrent(); err != nil {
 			return err
+		}
+	}
+
+	for i, window := range _glfw.windows {
+		if window == w {
+			copy(_glfw.windows[i:], _glfw.windows[i+1:])
+			_glfw.windows[len(_glfw.windows)-1] = nil
+			_glfw.windows = _glfw.windows[:len(_glfw.windows)-1]
+			break
 		}
 	}
 

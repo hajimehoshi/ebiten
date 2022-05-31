@@ -93,6 +93,7 @@ func inputMonitor(monitor *Monitor, action PeripheralEvent, placement int) error
 		for i, m := range _glfw.monitors {
 			if m == monitor {
 				copy(_glfw.monitors[i:], _glfw.monitors[i+1:])
+				_glfw.monitors[len(_glfw.monitors)-1] = nil
 				_glfw.monitors = _glfw.monitors[:len(_glfw.monitors)-1]
 				break
 			}
