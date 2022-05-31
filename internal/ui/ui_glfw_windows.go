@@ -28,6 +28,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/directx"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
+	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 )
 
 type graphicsDriverGetterImpl struct {
@@ -155,6 +156,10 @@ func (u *userInterfaceImpl) dipToGLFWPixel(x float64, monitor *glfw.Monitor) flo
 }
 
 func (u *userInterfaceImpl) adjustWindowPosition(x, y int, monitor *glfw.Monitor) (int, int) {
+	if microsoftgdk.IsXbox() {
+		return x, y
+	}
+
 	mx, my := monitor.GetPos()
 	// As the video width/height might be wrong,
 	// adjust x/y at least to enable to handle the window (#328)
@@ -172,6 +177,10 @@ func (u *userInterfaceImpl) adjustWindowPosition(x, y int, monitor *glfw.Monitor
 }
 
 func initialMonitorByOS() (*glfw.Monitor, error) {
+	if microsoftgdk.IsXbox() {
+		return glfw.GetPrimaryMonitor(), nil
+	}
+
 	px, py, err := _GetCursorPos()
 	if err != nil {
 		return nil, err
@@ -190,6 +199,9 @@ func initialMonitorByOS() (*glfw.Monitor, error) {
 }
 
 func monitorFromWindowByOS(w *glfw.Window) *glfw.Monitor {
+	if microsoftgdk.IsXbox() {
+		return glfw.GetPrimaryMonitor()
+	}
 	return monitorFromWin32Window(windows.HWND(w.GetWin32Window()))
 }
 
