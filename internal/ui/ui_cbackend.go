@@ -143,6 +143,6 @@ func (*userInterfaceImpl) Input() *Input {
 	return &theUI.input
 }
 
-func (*userInterfaceImpl) Window() *Window {
-	return &Window{}
+func (*userInterfaceImpl) Window() Window {
+	return &nullWindow{}
 }
