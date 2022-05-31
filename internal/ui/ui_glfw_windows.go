@@ -63,25 +63,25 @@ func (*graphicsDriverGetterImpl) getMetal() graphicsdriver.Graphics {
 }
 
 const (
-	smCyCaption             = 4
-	monitorDefaultToNearest = 2
+	_SM_CYCAPTION             = 4
+	_MONITOR_DEFAULTTONEAREST = 2
 )
 
-type rect struct {
+type _RECT struct {
 	left   int32
 	top    int32
 	right  int32
 	bottom int32
 }
 
-type monitorInfo struct {
+type _MONITORINFO struct {
 	cbSize    uint32
-	rcMonitor rect
-	rcWork    rect
+	rcMonitor _RECT
+	rcWork    _RECT
 	dwFlags   uint32
 }
 
-type point struct {
+type _POINT struct {
 	x int32
 	y int32
 }
@@ -95,7 +95,7 @@ var (
 	procGetCursorPos      = user32.NewProc("GetCursorPos")
 )
 
-func getSystemMetrics(nIndex int) (int32, error) {
+func _GetSystemMetrics(nIndex int) (int32, error) {
 	r, _, _ := procGetSystemMetrics.Call(uintptr(nIndex))
 	if int32(r) == 0 {
 		// GetLastError doesn't provide an extended information.
@@ -105,24 +105,27 @@ func getSystemMetrics(nIndex int) (int32, error) {
 	return int32(r), nil
 }
 
-func monitorFromWindow_(hwnd windows.HWND, dwFlags uint32) uintptr {
+func _MonitorFromWindow(hwnd windows.HWND, dwFlags uint32) uintptr {
 	r, _, _ := procMonitorFromWindow.Call(uintptr(hwnd), uintptr(dwFlags))
 	return r
 }
 
-func getMonitorInfoW(hMonitor uintptr, lpmi *monitorInfo) error {
-	r, _, e := procGetMonitorInfoW.Call(hMonitor, uintptr(unsafe.Pointer(lpmi)))
+func _GetMonitorInfoW(hMonitor uintptr) (_MONITORINFO, error) {
+	mi := _MONITORINFO{}
+	mi.cbSize = uint32(unsafe.Sizeof(mi))
+
+	r, _, e := procGetMonitorInfoW.Call(hMonitor, uintptr(unsafe.Pointer(&mi)))
 	if int32(r) == 0 {
 		if e != nil && e != windows.ERROR_SUCCESS {
-			return fmt.Errorf("ui: GetMonitorInfoW failed: error code: %w", e)
+			return _MONITORINFO{}, fmt.Errorf("ui: GetMonitorInfoW failed: error code: %w", e)
 		}
-		return fmt.Errorf("ui: GetMonitorInfoW failed: returned 0")
+		return _MONITORINFO{}, fmt.Errorf("ui: GetMonitorInfoW failed: returned 0")
 	}
-	return nil
+	return mi, nil
 }
 
-func getCursorPos() (int32, int32, error) {
-	var pt point
+func _GetCursorPos() (int32, int32, error) {
+	var pt _POINT
 	r, _, e := procGetCursorPos.Call(uintptr(unsafe.Pointer(&pt)))
 	if int32(r) == 0 {
 		if e != nil && e != windows.ERROR_SUCCESS {
@@ -158,7 +161,7 @@ func (u *userInterfaceImpl) adjustWindowPosition(x, y int, monitor *glfw.Monitor
 	if x < mx {
 		x = mx
 	}
-	t, err := getSystemMetrics(smCyCaption)
+	t, err := _GetSystemMetrics(_SM_CYCAPTION)
 	if err != nil {
 		panic(err)
 	}
@@ -169,7 +172,7 @@ func (u *userInterfaceImpl) adjustWindowPosition(x, y int, monitor *glfw.Monitor
 }
 
 func initialMonitorByOS() (*glfw.Monitor, error) {
-	px, py, err := getCursorPos()
+	px, py, err := _GetCursorPos()
 	if err != nil {
 		return nil, err
 	}
@@ -194,15 +197,14 @@ func monitorFromWin32Window(w windows.HWND) *glfw.Monitor {
 	// Get the current monitor by the window handle instead of the window position. It is because the window
 	// position is not relaiable in some cases e.g. when the window is put across multiple monitors.
 
-	m := monitorFromWindow_(w, monitorDefaultToNearest)
+	m := _MonitorFromWindow(w, _MONITOR_DEFAULTTONEAREST)
 	if m == 0 {
 		// monitorFromWindow can return error on Wine. Ignore this.
 		return nil
 	}
 
-	mi := monitorInfo{}
-	mi.cbSize = uint32(unsafe.Sizeof(mi))
-	if err := getMonitorInfoW(m, &mi); err != nil {
+	mi, err := _GetMonitorInfoW(m)
+	if err != nil {
 		panic(err)
 	}
 
