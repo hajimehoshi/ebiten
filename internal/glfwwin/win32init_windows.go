@@ -241,9 +241,9 @@ func platformInit() error {
 
 	if isWindows10CreatorsUpdateOrGreaterWin32() {
 		if !microsoftgdk.IsXbox() {
-			if err := _SetProcessDpiAwarenessContext(_DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2); err != nil && !errors.Is(err, windows.ERROR_ACCESS_DENIED) {
-				return err
-			}
+			// Ignore the error as SetProcessDpiAwarenessContext returns an error on Steam Deck (#2113).
+			// This seems an issue in Wine and/or Proton, but there is nothing we can do.
+			_ = _SetProcessDpiAwarenessContext(_DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)
 		}
 	} else if _IsWindows8Point1OrGreater() {
 		if err := _SetProcessDpiAwareness(_PROCESS_PER_MONITOR_DPI_AWARE); err != nil && !errors.Is(err, windows.ERROR_ACCESS_DENIED) {
