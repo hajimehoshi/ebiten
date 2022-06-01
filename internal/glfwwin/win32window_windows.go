@@ -1520,6 +1520,10 @@ func (w *Window) platformSetWindowIcon(images []*Image) error {
 }
 
 func (w *Window) platformGetWindowPos() (xpos, ypos int, err error) {
+	if microsoftgdk.IsXbox() {
+		return 0, 0, nil
+	}
+
 	var pos _POINT
 	if err := _ClientToScreen(w.win32.handle, &pos); err != nil {
 		return 0, 0, err
@@ -1528,6 +1532,10 @@ func (w *Window) platformGetWindowPos() (xpos, ypos int, err error) {
 }
 
 func (w *Window) platformSetWindowPos(xpos, ypos int) error {
+	if microsoftgdk.IsXbox() {
+		return nil
+	}
+
 	rect := _RECT{
 		left:   int32(xpos),
 		top:    int32(ypos),
@@ -1695,6 +1703,10 @@ func (w *Window) platformRequestWindowAttention() {
 }
 
 func (w *Window) platformFocusWindow() error {
+	if microsoftgdk.IsXbox() {
+		return nil
+	}
+
 	if err := _BringWindowToTop(w.win32.handle); err != nil {
 		return err
 	}
@@ -1843,22 +1855,38 @@ func (w *Window) platformWindowFocused() bool {
 }
 
 func (w *Window) platformWindowIconified() bool {
+	if microsoftgdk.IsXbox() {
+		return false
+	}
 	return _IsIconic(w.win32.handle)
 }
 
 func (w *Window) platformWindowVisible() bool {
+	if microsoftgdk.IsXbox() {
+		return true
+	}
 	return _IsWindowVisible(w.win32.handle)
 }
 
 func (w *Window) platformWindowMaximized() bool {
+	if microsoftgdk.IsXbox() {
+		return false
+	}
 	return _IsZoomed(w.win32.handle)
 }
 
 func (w *Window) platformWindowHovered() (bool, error) {
+	if microsoftgdk.IsXbox() {
+		return true, nil
+	}
 	return w.cursorInContentArea()
 }
 
 func (w *Window) platformFramebufferTransparent() bool {
+	if microsoftgdk.IsXbox() {
+		return false
+	}
+
 	if !w.win32.transparent {
 		return false
 	}
@@ -2080,8 +2108,10 @@ func (w *Window) platformGetCursorPos() (xpos, ypos float64, err error) {
 	if err != nil {
 		return 0, 0, err
 	}
-	if err := _ScreenToClient(w.win32.handle, &pos); err != nil {
-		return 0, 0, err
+	if !microsoftgdk.IsXbox() {
+		if err := _ScreenToClient(w.win32.handle, &pos); err != nil {
+			return 0, 0, err
+		}
 	}
 	return float64(pos.x), float64(pos.y), nil
 }
@@ -2096,8 +2126,10 @@ func (w *Window) platformSetCursorPos(xpos, ypos float64) error {
 	w.win32.lastCursorPosX = int(pos.x)
 	w.win32.lastCursorPosY = int(pos.y)
 
-	if err := _ClientToScreen(w.win32.handle, &pos); err != nil {
-		return err
+	if !microsoftgdk.IsXbox() {
+		if err := _ClientToScreen(w.win32.handle, &pos); err != nil {
+			return err
+		}
 	}
 	if err := _SetCursorPos(pos.x, pos.y); err != nil {
 		return err
