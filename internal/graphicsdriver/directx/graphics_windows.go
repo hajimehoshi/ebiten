@@ -101,7 +101,7 @@ type Graphics struct {
 	commandQueue      *_ID3D12CommandQueue
 	rtvDescriptorHeap *_ID3D12DescriptorHeap
 	rtvDescriptorSize uint32
-	renderTargets     [frameCount]*_ID3D12Resource1
+	renderTargets     [frameCount]*_ID3D12Resource
 
 	fences      [frameCount]*_ID3D12Fence
 	fenceValues [frameCount]uint64
@@ -126,8 +126,8 @@ type Graphics struct {
 
 	// drawCommandList and copyCommandList are exclusive: if one is not empty, the other must be empty.
 
-	vertices [frameCount][]*_ID3D12Resource1
-	indices  [frameCount][]*_ID3D12Resource1
+	vertices [frameCount][]*_ID3D12Resource
+	indices  [frameCount][]*_ID3D12Resource
 
 	factory   *_IDXGIFactory4
 	adapter   *_IDXGIAdapter1
@@ -423,7 +423,7 @@ func (g *Graphics) Initialize() (ferr error) {
 	return nil
 }
 
-func createBuffer(device *_ID3D12Device, bufferSize uint64, heapType _D3D12_HEAP_TYPE) (*_ID3D12Resource1, error) {
+func createBuffer(device *_ID3D12Device, bufferSize uint64, heapType _D3D12_HEAP_TYPE) (*_ID3D12Resource, error) {
 	state := _D3D12_RESOURCE_STATE_GENERIC_READ
 	if heapType == _D3D12_HEAP_TYPE_READBACK {
 		state = _D3D12_RESOURCE_STATE_COPY_DEST
@@ -1245,13 +1245,13 @@ type Image struct {
 	screen   bool
 
 	state                  _D3D12_RESOURCE_STATES
-	texture                *_ID3D12Resource1
-	stencil                *_ID3D12Resource1
+	texture                *_ID3D12Resource
+	stencil                *_ID3D12Resource
 	layouts                _D3D12_PLACED_SUBRESOURCE_FOOTPRINT
 	numRows                uint
 	totalBytes             uint64
-	uploadingStagingBuffer *_ID3D12Resource1
-	readingStagingBuffer   *_ID3D12Resource1
+	uploadingStagingBuffer *_ID3D12Resource
+	readingStagingBuffer   *_ID3D12Resource
 	rtvDescriptorHeap      *_ID3D12DescriptorHeap
 	dsvDescriptorHeap      *_ID3D12DescriptorHeap
 }
@@ -1439,7 +1439,7 @@ func (i *Image) ReplacePixels(args []*graphicsdriver.ReplacePixelsArgs) error {
 	return nil
 }
 
-func (i *Image) resource() *_ID3D12Resource1 {
+func (i *Image) resource() *_ID3D12Resource {
 	if i.screen {
 		return i.graphics.renderTargets[i.graphics.frameIndex]
 	}

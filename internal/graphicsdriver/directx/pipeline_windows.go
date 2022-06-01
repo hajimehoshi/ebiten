@@ -274,7 +274,7 @@ type pipelineStates struct {
 
 	samplerDescriptorHeap *_ID3D12DescriptorHeap
 
-	constantBuffers [frameCount][]*_ID3D12Resource1
+	constantBuffers [frameCount][]*_ID3D12Resource
 }
 
 const numConstantBufferAndSourceTextures = 1 + graphics.ShaderImageNum

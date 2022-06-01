@@ -554,7 +554,7 @@ var (
 	_IID_ID3D12Fence               = windows.GUID{Data1: 0x0a753dcf, Data2: 0xc4d8, Data3: 0x4b91, Data4: [...]byte{0xad, 0xf6, 0xbe, 0x5a, 0x60, 0xd9, 0x5a, 0x76}}
 	_IID_ID3D12GraphicsCommandList = windows.GUID{Data1: 0x5b160d0f, Data2: 0xac1b, Data3: 0x4185, Data4: [...]byte{0x8b, 0xa8, 0xb3, 0xae, 0x42, 0xa5, 0xa4, 0x55}}
 	_IID_ID3D12PipelineState       = windows.GUID{Data1: 0x765a30f3, Data2: 0xf624, Data3: 0x4c6f, Data4: [...]byte{0xa8, 0x28, 0xac, 0xe9, 0x48, 0x62, 0x24, 0x45}}
-	_IID_ID3D12Resource1           = windows.GUID{Data1: 0x9D5E227A, Data2: 0x4430, Data3: 0x4161, Data4: [...]byte{0x88, 0xB3, 0x3E, 0xCA, 0x6B, 0xB1, 0x6E, 0x19}}
+	_IID_ID3D12Resource            = windows.GUID{Data1: 0x696442be, Data2: 0xa72e, Data3: 0x4059, Data4: [...]byte{0xbc, 0x79, 0x5b, 0x5c, 0x98, 0x04, 0x0f, 0xad}}
 	_IID_ID3D12RootSignature       = windows.GUID{Data1: 0xc54a6b66, Data2: 0x72df, Data3: 0x4ee8, Data4: [...]byte{0x8b, 0xe5, 0xa9, 0x46, 0xa1, 0x42, 0x92, 0x14}}
 
 	_IID_IDXGIAdapter1 = windows.GUID{Data1: 0x29038f61, Data2: 0x3839, Data3: 0x4626, Data4: [...]byte{0x91, 0xfd, 0x08, 0x68, 0x79, 0x01, 0x1a, 0x05}}
@@ -743,7 +743,7 @@ type _D3D12_RESOURCE_DESC struct {
 }
 
 type _D3D12_RESOURCE_TRANSITION_BARRIER struct {
-	pResource   *_ID3D12Resource1
+	pResource   *_ID3D12Resource
 	Subresource uint32
 	StateBefore _D3D12_RESOURCE_STATES
 	StateAfter  _D3D12_RESOURCE_STATES
@@ -827,13 +827,13 @@ type _D3D12_TEX2D_SRV struct {
 }
 
 type _D3D12_TEXTURE_COPY_LOCATION_PlacedFootPrint struct {
-	pResource       *_ID3D12Resource1
+	pResource       *_ID3D12Resource
 	Type            _D3D12_TEXTURE_COPY_TYPE
 	PlacedFootprint _D3D12_PLACED_SUBRESOURCE_FOOTPRINT
 }
 
 type _D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex struct {
-	pResource        *_ID3D12Resource1
+	pResource        *_ID3D12Resource
 	Type             _D3D12_TEXTURE_COPY_TYPE
 	SubresourceIndex uint32
 	_                [unsafe.Sizeof(_D3D12_PLACED_SUBRESOURCE_FOOTPRINT{}) - unsafe.Sizeof(uint32(0))]byte // A padding for union
@@ -1343,12 +1343,12 @@ func (i *_ID3D12Device) CreateCommandList(nodeMask uint32, typ _D3D12_COMMAND_LI
 	return commandList, nil
 }
 
-func (i *_ID3D12Device) CreateCommittedResource(pHeapProperties *_D3D12_HEAP_PROPERTIES, heapFlags _D3D12_HEAP_FLAGS, pDesc *_D3D12_RESOURCE_DESC, initialResourceState _D3D12_RESOURCE_STATES, pOptimizedClearValue *_D3D12_CLEAR_VALUE) (*_ID3D12Resource1, error) {
-	var resource *_ID3D12Resource1
+func (i *_ID3D12Device) CreateCommittedResource(pHeapProperties *_D3D12_HEAP_PROPERTIES, heapFlags _D3D12_HEAP_FLAGS, pDesc *_D3D12_RESOURCE_DESC, initialResourceState _D3D12_RESOURCE_STATES, pOptimizedClearValue *_D3D12_CLEAR_VALUE) (*_ID3D12Resource, error) {
+	var resource *_ID3D12Resource
 	r, _, _ := syscall.Syscall9(i.vtbl.CreateCommittedResource, 8,
 		uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(pHeapProperties)), uintptr(heapFlags),
 		uintptr(unsafe.Pointer(pDesc)), uintptr(initialResourceState), uintptr(unsafe.Pointer(pOptimizedClearValue)),
-		uintptr(unsafe.Pointer(&_IID_ID3D12Resource1)), uintptr(unsafe.Pointer(&resource)), 0)
+		uintptr(unsafe.Pointer(&_IID_ID3D12Resource)), uintptr(unsafe.Pointer(&resource)), 0)
 	runtime.KeepAlive(pHeapProperties)
 	runtime.KeepAlive(pDesc)
 	runtime.KeepAlive(pOptimizedClearValue)
@@ -1388,7 +1388,7 @@ func (i *_ID3D12Device) CreateDescriptorHeap(desc *_D3D12_DESCRIPTOR_HEAP_DESC) 
 	return descriptorHeap, nil
 }
 
-func (i *_ID3D12Device) CreateDepthStencilView(pResource *_ID3D12Resource1, pDesc *_D3D12_DEPTH_STENCIL_VIEW_DESC, destDescriptor _D3D12_CPU_DESCRIPTOR_HANDLE) {
+func (i *_ID3D12Device) CreateDepthStencilView(pResource *_ID3D12Resource, pDesc *_D3D12_DEPTH_STENCIL_VIEW_DESC, destDescriptor _D3D12_CPU_DESCRIPTOR_HANDLE) {
 	syscall.Syscall6(i.vtbl.CreateDepthStencilView, 4, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(pResource)), uintptr(unsafe.Pointer(pDesc)), destDescriptor.ptr,
 		0, 0)
@@ -1420,7 +1420,7 @@ func (i *_ID3D12Device) CreateGraphicsPipelineState(pDesc *_D3D12_GRAPHICS_PIPEL
 	return pipelineState, nil
 }
 
-func (i *_ID3D12Device) CreateRenderTargetView(pResource *_ID3D12Resource1, pDesc *_D3D12_RENDER_TARGET_VIEW_DESC, destDescriptor _D3D12_CPU_DESCRIPTOR_HANDLE) {
+func (i *_ID3D12Device) CreateRenderTargetView(pResource *_ID3D12Resource, pDesc *_D3D12_RENDER_TARGET_VIEW_DESC, destDescriptor _D3D12_CPU_DESCRIPTOR_HANDLE) {
 	syscall.Syscall6(i.vtbl.CreateRenderTargetView, 4, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(pResource)), uintptr(unsafe.Pointer(pDesc)), destDescriptor.ptr,
 		0, 0)
@@ -1445,7 +1445,7 @@ func (i *_ID3D12Device) CreateSampler(pDesc *_D3D12_SAMPLER_DESC, destDescriptor
 	runtime.KeepAlive(pDesc)
 }
 
-func (i *_ID3D12Device) CreateShaderResourceView(pResource *_ID3D12Resource1, pDesc *_D3D12_SHADER_RESOURCE_VIEW_DESC, destDescriptor _D3D12_CPU_DESCRIPTOR_HANDLE) {
+func (i *_ID3D12Device) CreateShaderResourceView(pResource *_ID3D12Resource, pDesc *_D3D12_SHADER_RESOURCE_VIEW_DESC, destDescriptor _D3D12_CPU_DESCRIPTOR_HANDLE) {
 	syscall.Syscall6(i.vtbl.CreateShaderResourceView, 4, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(pResource)), uintptr(unsafe.Pointer(pDesc)), destDescriptor.ptr,
 		0, 0)
@@ -1748,63 +1748,60 @@ func (i *_ID3D12PipelineState) Release() {
 	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 }
 
-type _ID3D12Resource1 struct {
-	vtbl *_ID3D12Resource1_Vtbl
+type _ID3D12Resource struct {
+	vtbl *_ID3D12Resource_Vtbl
 }
 
-type _ID3D12Resource1_Vtbl struct {
+type _ID3D12Resource_Vtbl struct {
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
 
-	GetPrivateData              uintptr
-	SetPrivateData              uintptr
-	SetPrivateDataInterface     uintptr
-	SetName                     uintptr
-	GetDevice                   uintptr
-	Map                         uintptr
-	Unmap                       uintptr
-	GetDesc                     uintptr
-	GetGPUVirtualAddress        uintptr
-	WriteToSubresource          uintptr
-	ReadFromSubresource         uintptr
-	GetHeapProperties           uintptr
-	GetProtectedResourceSession uintptr
+	GetPrivateData          uintptr
+	SetPrivateData          uintptr
+	SetPrivateDataInterface uintptr
+	SetName                 uintptr
+	GetDevice               uintptr
+	Map                     uintptr
+	Unmap                   uintptr
+	GetDesc                 uintptr
+	GetGPUVirtualAddress    uintptr
+	WriteToSubresource      uintptr
 }
 
-func (i *_ID3D12Resource1) GetDesc() _D3D12_RESOURCE_DESC {
+func (i *_ID3D12Resource) GetDesc() _D3D12_RESOURCE_DESC {
 	var resourceDesc _D3D12_RESOURCE_DESC
 	syscall.Syscall(i.vtbl.GetDesc, 2, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(&resourceDesc)), 0)
 	return resourceDesc
 }
 
-func (i *_ID3D12Resource1) GetGPUVirtualAddress() _D3D12_GPU_VIRTUAL_ADDRESS {
+func (i *_ID3D12Resource) GetGPUVirtualAddress() _D3D12_GPU_VIRTUAL_ADDRESS {
 	r, _, _ := syscall.Syscall(i.vtbl.GetGPUVirtualAddress, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 	return _D3D12_GPU_VIRTUAL_ADDRESS(r)
 }
 
-func (i *_ID3D12Resource1) Map(subresource uint32, pReadRange *_D3D12_RANGE) (unsafe.Pointer, error) {
+func (i *_ID3D12Resource) Map(subresource uint32, pReadRange *_D3D12_RANGE) (unsafe.Pointer, error) {
 	var data unsafe.Pointer
 	r, _, _ := syscall.Syscall6(i.vtbl.Map, 4, uintptr(unsafe.Pointer(i)),
 		uintptr(subresource), uintptr(unsafe.Pointer(pReadRange)), uintptr(unsafe.Pointer(&data)),
 		0, 0)
 	runtime.KeepAlive(pReadRange)
 	if windows.Handle(r) != windows.S_OK {
-		return nil, fmt.Errorf("directx: ID3D12Resource1::Map failed: %w", windows.Errno(r))
+		return nil, fmt.Errorf("directx: ID3D12Resource::Map failed: %w", windows.Errno(r))
 	}
 	return data, nil
 }
 
-func (i *_ID3D12Resource1) Release() {
+func (i *_ID3D12Resource) Release() {
 	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 }
 
-func (i *_ID3D12Resource1) Unmap(subresource uint32, pWrittenRange *_D3D12_RANGE) error {
+func (i *_ID3D12Resource) Unmap(subresource uint32, pWrittenRange *_D3D12_RANGE) error {
 	r, _, _ := syscall.Syscall(i.vtbl.Unmap, 3, uintptr(unsafe.Pointer(i)),
 		uintptr(subresource), uintptr(unsafe.Pointer(pWrittenRange)))
 	runtime.KeepAlive(pWrittenRange)
 	if windows.Handle(r) != windows.S_OK {
-		return fmt.Errorf("directx: ID3D12Resource1::Unmap failed: %w", windows.Errno(r))
+		return fmt.Errorf("directx: ID3D12Resource::Unmap failed: %w", windows.Errno(r))
 	}
 	return nil
 }
@@ -2102,10 +2099,10 @@ type _IDXGISwapChain4_Vtbl struct {
 	SetHDRMetaData                uintptr
 }
 
-func (i *_IDXGISwapChain4) GetBuffer(buffer uint32) (*_ID3D12Resource1, error) {
-	var resource *_ID3D12Resource1
+func (i *_IDXGISwapChain4) GetBuffer(buffer uint32) (*_ID3D12Resource, error) {
+	var resource *_ID3D12Resource
 	r, _, _ := syscall.Syscall6(i.vtbl.GetBuffer, 4, uintptr(unsafe.Pointer(i)),
-		uintptr(buffer), uintptr(unsafe.Pointer(&_IID_ID3D12Resource1)), uintptr(unsafe.Pointer(&resource)),
+		uintptr(buffer), uintptr(unsafe.Pointer(&_IID_ID3D12Resource)), uintptr(unsafe.Pointer(&resource)),
 		0, 0)
 	if windows.Handle(r) != windows.S_OK {
 		return nil, fmt.Errorf("directx: IDXGISwapChain4::GetBuffer failed: %w", windows.Errno(r))
