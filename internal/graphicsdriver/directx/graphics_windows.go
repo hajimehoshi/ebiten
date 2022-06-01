@@ -874,7 +874,7 @@ func (g *Graphics) NewImage(width, height int) (graphicsdriver.Image, error) {
 		return nil, err
 	}
 
-	layouts, numRows, _, totalBytes := g.device.GetCopyableFootprints(&desc, 0, 1, 0)
+	layouts, _, _, totalBytes := g.device.GetCopyableFootprints(&desc, 0, 1, 0)
 
 	i := &Image{
 		graphics:   g,
@@ -884,7 +884,6 @@ func (g *Graphics) NewImage(width, height int) (graphicsdriver.Image, error) {
 		texture:    t,
 		state:      state,
 		layouts:    layouts,
-		numRows:    numRows,
 		totalBytes: totalBytes,
 	}
 	g.addImage(i)
@@ -1248,7 +1247,6 @@ type Image struct {
 	texture                *_ID3D12Resource
 	stencil                *_ID3D12Resource
 	layouts                _D3D12_PLACED_SUBRESOURCE_FOOTPRINT
-	numRows                uint
 	totalBytes             uint64
 	uploadingStagingBuffer *_ID3D12Resource
 	readingStagingBuffer   *_ID3D12Resource
