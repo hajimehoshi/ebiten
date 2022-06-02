@@ -338,7 +338,7 @@ func (d *iDirectInput8W) CreateDevice(rguid *windows.GUID, lplpDirectInputDevice
 		uintptr(unsafe.Pointer(d)),
 		uintptr(unsafe.Pointer(rguid)), uintptr(unsafe.Pointer(lplpDirectInputDevice)), uintptr(pUnkOuter),
 		0, 0)
-	if windows.Handle(r) != _DI_OK {
+	if uint32(r) != _DI_OK {
 		return fmt.Errorf("gamepad: IDirectInput8::CreateDevice failed: %w", directInputError(syscall.Errno(r)))
 	}
 	return nil
@@ -349,7 +349,7 @@ func (d *iDirectInput8W) EnumDevices(dwDevType uint32, lpCallback uintptr, pvRef
 		uintptr(unsafe.Pointer(d)),
 		uintptr(dwDevType), lpCallback, uintptr(pvRef), uintptr(dwFlags),
 		0)
-	if windows.Handle(r) != _DI_OK {
+	if uint32(r) != _DI_OK {
 		return fmt.Errorf("gamepad: IDirectInput8::EnumDevices failed: %w", directInputError(syscall.Errno(r)))
 	}
 	return nil
@@ -397,7 +397,7 @@ type iDirectInputDevice8W_Vtbl struct {
 
 func (d *iDirectInputDevice8W) Acquire() error {
 	r, _, _ := syscall.Syscall(d.vtbl.Acquire, 1, uintptr(unsafe.Pointer(d)), 0, 0)
-	if windows.Handle(r) != _DI_OK && windows.Handle(r) != _SI_FALSE {
+	if uint32(r) != _DI_OK && uint32(r) != _SI_FALSE {
 		return fmt.Errorf("gamepad: IDirectInputDevice8::Acquire failed: %w", directInputError(syscall.Errno(r)))
 	}
 	return nil
@@ -408,7 +408,7 @@ func (d *iDirectInputDevice8W) EnumObjects(lpCallback uintptr, pvRef unsafe.Poin
 		uintptr(unsafe.Pointer(d)),
 		lpCallback, uintptr(pvRef), uintptr(dwFlags),
 		0, 0)
-	if windows.Handle(r) != _DI_OK {
+	if uint32(r) != _DI_OK {
 		return fmt.Errorf("gamepad: IDirectInputDevice8::EnumObjects failed: %w", directInputError(syscall.Errno(r)))
 	}
 	return nil
@@ -416,7 +416,7 @@ func (d *iDirectInputDevice8W) EnumObjects(lpCallback uintptr, pvRef unsafe.Poin
 
 func (d *iDirectInputDevice8W) GetCapabilities(lpDIDevCaps *_DIDEVCAPS) error {
 	r, _, _ := syscall.Syscall(d.vtbl.GetCapabilities, 2, uintptr(unsafe.Pointer(d)), uintptr(unsafe.Pointer(lpDIDevCaps)), 0)
-	if windows.Handle(r) != _DI_OK {
+	if uint32(r) != _DI_OK {
 		return fmt.Errorf("gamepad: IDirectInputDevice8::GetCapabilities failed: %w", directInputError(syscall.Errno(r)))
 	}
 	return nil
@@ -424,7 +424,7 @@ func (d *iDirectInputDevice8W) GetCapabilities(lpDIDevCaps *_DIDEVCAPS) error {
 
 func (d *iDirectInputDevice8W) GetDeviceState(cbData uint32, lpvData unsafe.Pointer) error {
 	r, _, _ := syscall.Syscall(d.vtbl.GetDeviceState, 3, uintptr(unsafe.Pointer(d)), uintptr(cbData), uintptr(lpvData))
-	if windows.Handle(r) != _DI_OK {
+	if uint32(r) != _DI_OK {
 		return fmt.Errorf("gamepad: IDirectInputDevice8::GetDeviceState failed: %w", directInputError(syscall.Errno(r)))
 	}
 	return nil
@@ -432,7 +432,7 @@ func (d *iDirectInputDevice8W) GetDeviceState(cbData uint32, lpvData unsafe.Poin
 
 func (d *iDirectInputDevice8W) Poll() error {
 	r, _, _ := syscall.Syscall(d.vtbl.Poll, 1, uintptr(unsafe.Pointer(d)), 0, 0)
-	if windows.Handle(r) != _DI_OK && windows.Handle(r) != _DI_NOEFFECT {
+	if uint32(r) != _DI_OK && uint32(r) != _DI_NOEFFECT {
 		return fmt.Errorf("gamepad: IDirectInputDevice8::Poll failed: %w", directInputError(syscall.Errno(r)))
 	}
 	return nil
@@ -445,7 +445,7 @@ func (d *iDirectInputDevice8W) Release() uint32 {
 
 func (d *iDirectInputDevice8W) SetDataFormat(lpdf *_DIDATAFORMAT) error {
 	r, _, _ := syscall.Syscall(d.vtbl.SetDataFormat, 2, uintptr(unsafe.Pointer(d)), uintptr(unsafe.Pointer(lpdf)), 0)
-	if windows.Handle(r) != _DI_OK {
+	if uint32(r) != _DI_OK {
 		return fmt.Errorf("gamepad: IDirectInputDevice8::SetDataFormat failed: %w", directInputError(syscall.Errno(r)))
 	}
 	return nil
@@ -453,7 +453,7 @@ func (d *iDirectInputDevice8W) SetDataFormat(lpdf *_DIDATAFORMAT) error {
 
 func (d *iDirectInputDevice8W) SetProperty(rguidProp uintptr, pdiph *_DIPROPHEADER) error {
 	r, _, _ := syscall.Syscall(d.vtbl.SetProperty, 3, uintptr(unsafe.Pointer(d)), rguidProp, uintptr(unsafe.Pointer(pdiph)))
-	if windows.Handle(r) != _DI_OK && windows.Handle(r) != _DI_PROPNOEFFECT {
+	if uint32(r) != _DI_OK && uint32(r) != _DI_PROPNOEFFECT {
 		return fmt.Errorf("gamepad: IDirectInputDevice8::SetProperty failed: %w", directInputError(syscall.Errno(r)))
 	}
 	return nil
