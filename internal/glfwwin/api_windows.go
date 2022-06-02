@@ -1070,9 +1070,9 @@ func _DragQueryPoint(hDrop _HDROP) (_POINT, bool) {
 }
 
 func _DwmEnableBlurBehindWindow(hWnd windows.HWND, pBlurBehind *_DWM_BLURBEHIND) error {
-	r, _, e := procDwmEnableBlurBehindWindow.Call(uintptr(hWnd), uintptr(unsafe.Pointer(pBlurBehind)))
+	r, _, _ := procDwmEnableBlurBehindWindow.Call(uintptr(hWnd), uintptr(unsafe.Pointer(pBlurBehind)))
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("glfwwin: DwmEnableBlurBehindWindow failed: %w", e)
+		return fmt.Errorf("glfwwin: DwmEnableBlurBehindWindow failed: %w", windows.Errno(uint32(r)))
 	}
 	return nil
 }
@@ -1080,26 +1080,26 @@ func _DwmEnableBlurBehindWindow(hWnd windows.HWND, pBlurBehind *_DWM_BLURBEHIND)
 func _DwmGetColorizationColor() (uint32, bool, error) {
 	var colorization uint32
 	var opaqueBlend int32
-	r, _, e := procDwmGetColorizationColor.Call(uintptr(unsafe.Pointer(&colorization)), uintptr(unsafe.Pointer(&opaqueBlend)))
+	r, _, _ := procDwmGetColorizationColor.Call(uintptr(unsafe.Pointer(&colorization)), uintptr(unsafe.Pointer(&opaqueBlend)))
 	if uint32(r) != uint32(windows.S_OK) {
-		return 0, false, fmt.Errorf("glfwwin: DwmGetColorizationColor failed: %w", e)
+		return 0, false, fmt.Errorf("glfwwin: DwmGetColorizationColor failed: %w", windows.Errno(uint32(r)))
 	}
 	return colorization, opaqueBlend != 0, nil
 }
 
 func _DwmFlush() error {
-	r, _, e := procDwmFlush.Call()
+	r, _, _ := procDwmFlush.Call()
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("glfwwin: DwmFlush failed: %w", e)
+		return fmt.Errorf("glfwwin: DwmFlush failed: %w", windows.Errno(uint32(r)))
 	}
 	return nil
 }
 
 func _DwmIsCompositionEnabled() (bool, error) {
 	var enabled int32
-	r, _, e := procDwmIsCompositionEnabled.Call(uintptr(unsafe.Pointer(&enabled)))
+	r, _, _ := procDwmIsCompositionEnabled.Call(uintptr(unsafe.Pointer(&enabled)))
 	if uint32(r) != uint32(windows.S_OK) {
-		return false, fmt.Errorf("glfwwin: DwmIsCompositionEnabled failed: %w", e)
+		return false, fmt.Errorf("glfwwin: DwmIsCompositionEnabled failed: %w", windows.Errno(uint32(r)))
 	}
 	return enabled != 0, nil
 }
@@ -1301,9 +1301,9 @@ func _GetMonitorInfoW_Ex(hMonitor _HMONITOR) (_MONITORINFOEXW, bool) {
 }
 
 func _GetDpiForMonitor(hmonitor _HMONITOR, dpiType _MONITOR_DPI_TYPE) (dpiX, dpiY uint32, err error) {
-	r, _, e := procGetDpiForMonitor.Call(uintptr(hmonitor), uintptr(dpiType), uintptr(unsafe.Pointer(&dpiX)), uintptr(unsafe.Pointer(&dpiY)))
+	r, _, _ := procGetDpiForMonitor.Call(uintptr(hmonitor), uintptr(dpiType), uintptr(unsafe.Pointer(&dpiX)), uintptr(unsafe.Pointer(&dpiY)))
 	if uint32(r) != uint32(windows.S_OK) {
-		return 0, 0, fmt.Errorf("glfwwin: GetDpiForMonitor failed: %w", e)
+		return 0, 0, fmt.Errorf("glfwwin: GetDpiForMonitor failed: %w", windows.Errno(uint32(r)))
 	}
 	return dpiX, dpiY, nil
 }
@@ -1598,9 +1598,9 @@ func _SetProcessDPIAware() bool {
 }
 
 func _SetProcessDpiAwareness(value _PROCESS_DPI_AWARENESS) error {
-	r, _, e := procSetProcessDpiAwareness.Call(uintptr(value))
+	r, _, _ := procSetProcessDpiAwareness.Call(uintptr(value))
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("glfwwin: SetProcessDpiAwareness failed: %w", e)
+		return fmt.Errorf("glfwwin: SetProcessDpiAwareness failed: %w", syscall.Errno(uint32(r)))
 	}
 	return nil
 }
