@@ -420,9 +420,7 @@ func (p *pipelineStates) useGraphicsPipelineState(device *iD3D12Device, commandL
 	}
 	copyFloat32s(m, uniforms)
 
-	if err := cb.Unmap(0, nil); err != nil {
-		return err
-	}
+	cb.Unmap(0, nil)
 
 	commandList.SetPipelineState(pipelineState)
 
