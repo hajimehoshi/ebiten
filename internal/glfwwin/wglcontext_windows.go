@@ -242,9 +242,8 @@ func swapBuffersWGL(window *Window) error {
 		// HACK: Use DwmFlush when desktop composition is enabled
 		if enabled {
 			for i := 0; i < window.context.wgl.interval; i++ {
-				if err := _DwmFlush(); err != nil {
-					return err
-				}
+				// Ignore an error from DWM functions as they might not be implemented e.g. on Proton (#2113).
+				_ = _DwmFlush()
 			}
 		}
 	}
@@ -269,10 +268,10 @@ func swapIntervalWGL(interval int) error {
 		enabled := _IsWindows8OrGreater()
 
 		if !enabled {
-			var err error
-			enabled, err = _DwmIsCompositionEnabled()
-			if err != nil {
-				return err
+			e, err := _DwmIsCompositionEnabled()
+			// Ignore an error from DWM functions as they might not be implemented e.g. on Proton (#2113).
+			if err == nil {
+				enabled = e
 			}
 		}
 
