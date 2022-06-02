@@ -1600,7 +1600,7 @@ func _SetProcessDPIAware() bool {
 func _SetProcessDpiAwareness(value _PROCESS_DPI_AWARENESS) error {
 	r, _, _ := procSetProcessDpiAwareness.Call(uintptr(value))
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("glfwwin: SetProcessDpiAwareness failed: %w", syscall.Errno(uint32(r)))
+		return fmt.Errorf("glfwwin: SetProcessDpiAwareness failed: %w", windows.Errno(uint32(r)))
 	}
 	return nil
 }
