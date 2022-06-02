@@ -1796,14 +1796,10 @@ func (i *_ID3D12Resource) Release() {
 	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 }
 
-func (i *_ID3D12Resource) Unmap(subresource uint32, pWrittenRange *_D3D12_RANGE) error {
-	r, _, _ := syscall.Syscall(i.vtbl.Unmap, 3, uintptr(unsafe.Pointer(i)),
+func (i *_ID3D12Resource) Unmap(subresource uint32, pWrittenRange *_D3D12_RANGE) {
+	syscall.Syscall(i.vtbl.Unmap, 3, uintptr(unsafe.Pointer(i)),
 		uintptr(subresource), uintptr(unsafe.Pointer(pWrittenRange)))
 	runtime.KeepAlive(pWrittenRange)
-	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("directx: ID3D12Resource::Unmap failed: %w", windows.Errno(r))
-	}
-	return nil
 }
 
 type _ID3DBlob struct {

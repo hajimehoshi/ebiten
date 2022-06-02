@@ -829,18 +829,14 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) (ferr error
 		return err
 	}
 	copyFloat32s(m, vertices)
-	if err := g.vertices[g.frameIndex][vidx].Unmap(0, nil); err != nil {
-		return err
-	}
+	g.vertices[g.frameIndex][vidx].Unmap(0, nil)
 
 	m, err = g.indices[g.frameIndex][iidx].Map(0, &_D3D12_RANGE{0, 0})
 	if err != nil {
 		return err
 	}
 	copyUint16s(m, indices)
-	if err := g.indices[g.frameIndex][iidx].Unmap(0, nil); err != nil {
-		return err
-	}
+	g.indices[g.frameIndex][iidx].Unmap(0, nil)
 
 	return nil
 }
@@ -1372,9 +1368,7 @@ func (i *Image) ReadPixels(buf []byte) error {
 		copy(buf[j*i.width*4:(j+1)*i.width*4], dstBytes[j*int(i.layouts.Footprint.RowPitch):])
 	}
 
-	if err := i.readingStagingBuffer.Unmap(0, nil); err != nil {
-		return err
-	}
+	i.readingStagingBuffer.Unmap(0, nil)
 
 	return nil
 }
@@ -1430,9 +1424,7 @@ func (i *Image) ReplacePixels(args []*graphicsdriver.ReplacePixelsArgs) error {
 			})
 	}
 
-	if err := i.uploadingStagingBuffer.Unmap(0, nil); err != nil {
-		return err
-	}
+	i.uploadingStagingBuffer.Unmap(0, nil)
 
 	return nil
 }
