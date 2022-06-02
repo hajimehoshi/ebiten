@@ -894,10 +894,10 @@ var (
 func _D3D12CreateDevice(pAdapter unsafe.Pointer, minimumFeatureLevel _D3D_FEATURE_LEVEL, riid *windows.GUID, ppDevice *unsafe.Pointer) error {
 	r, _, _ := procD3D12CreateDevice.Call(uintptr(pAdapter), uintptr(minimumFeatureLevel), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(ppDevice)))
 	if ppDevice == nil && uint32(r) != uint32(windows.S_FALSE) {
-		return fmt.Errorf("directx: D3D12CreateDevice failed: %w", windows.Errno(r))
+		return fmt.Errorf("directx: D3D12CreateDevice failed: %w", windows.Errno(uint32(r)))
 	}
 	if ppDevice != nil && uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("directx: D3D12CreateDevice failed: %w", windows.Errno(r))
+		return fmt.Errorf("directx: D3D12CreateDevice failed: %w", windows.Errno(uint32(r)))
 	}
 	return nil
 }
@@ -906,7 +906,7 @@ func _D3D12GetDebugInterface() (*_ID3D12Debug, error) {
 	var debug *_ID3D12Debug
 	r, _, _ := procD3D12GetDebugInterface.Call(uintptr(unsafe.Pointer(&_IID_ID3D12Debug)), uintptr(unsafe.Pointer(&debug)))
 	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: D3D12GetDebugInterface failed: %w", windows.Errno(r))
+		return nil, fmt.Errorf("directx: D3D12GetDebugInterface failed: %w", windows.Errno(uint32(r)))
 	}
 	return debug, nil
 }
@@ -918,9 +918,9 @@ func _D3D12SerializeRootSignature(pRootSignature *_D3D12_ROOT_SIGNATURE_DESC, ve
 	if uint32(r) != uint32(windows.S_OK) {
 		if errorBlob != nil {
 			defer errorBlob.Release()
-			return nil, fmt.Errorf("directx: D3D12SerializeRootSignature failed: %s: %w", errorBlob.String(), windows.Errno(r))
+			return nil, fmt.Errorf("directx: D3D12SerializeRootSignature failed: %s: %w", errorBlob.String(), windows.Errno(uint32(r)))
 		}
-		return nil, fmt.Errorf("directx: D3D12SerializeRootSignature failed: %w", windows.Errno(r))
+		return nil, fmt.Errorf("directx: D3D12SerializeRootSignature failed: %w", windows.Errno(uint32(r)))
 	}
 	return blob, nil
 }
@@ -928,7 +928,7 @@ func _D3D12SerializeRootSignature(pRootSignature *_D3D12_ROOT_SIGNATURE_DESC, ve
 func _D3D12XboxCreateDevice(pAdapter unsafe.Pointer, pParameters *_D3D12XBOX_CREATE_DEVICE_PARAMETERS, riid *windows.GUID, ppDevice *unsafe.Pointer) error {
 	r, _, _ := procD3D12XboxCreateDevice.Call(uintptr(pAdapter), uintptr(unsafe.Pointer(pParameters)), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(ppDevice)))
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("directx: D3D12XboxCreateDevice failed: %w", windows.Errno(r))
+		return fmt.Errorf("directx: D3D12XboxCreateDevice failed: %w", windows.Errno(uint32(r)))
 	}
 	return nil
 }
@@ -958,9 +958,9 @@ func _D3DCompile(srcData []byte, sourceName string, pDefines []_D3D_SHADER_MACRO
 	if uint32(r) != uint32(windows.S_OK) {
 		if errorMsgs != nil {
 			defer errorMsgs.Release()
-			return nil, fmt.Errorf("directx: D3DCompile failed: %s: %w", errorMsgs.String(), windows.Errno(r))
+			return nil, fmt.Errorf("directx: D3DCompile failed: %s: %w", errorMsgs.String(), windows.Errno(uint32(r)))
 		}
-		return nil, fmt.Errorf("directx: D3DCompile failed: %w", windows.Errno(r))
+		return nil, fmt.Errorf("directx: D3DCompile failed: %w", windows.Errno(uint32(r)))
 	}
 	return code, nil
 }
@@ -969,7 +969,7 @@ func _CreateDXGIFactory2(flags uint32) (*_IDXGIFactory4, error) {
 	var factory *_IDXGIFactory4
 	r, _, _ := procCreateDXGIFactory2.Call(uintptr(flags), uintptr(unsafe.Pointer(&_IID_IDXGIFactory4)), uintptr(unsafe.Pointer(&factory)))
 	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: CreateDXGIFactory2 failed: %w", windows.Errno(r))
+		return nil, fmt.Errorf("directx: CreateDXGIFactory2 failed: %w", windows.Errno(uint32(r)))
 	}
 	return factory, nil
 }
@@ -1111,7 +1111,7 @@ func (i *_ID3D12CommandAllocator) Release() {
 func (i *_ID3D12CommandAllocator) Reset() error {
 	r, _, _ := syscall.Syscall(i.vtbl.Reset, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("directx: ID3D12CommandAllocator::Reset failed: %w", windows.Errno(r))
+		return fmt.Errorf("directx: ID3D12CommandAllocator::Reset failed: %w", windows.Errno(uint32(r)))
 	}
 	return nil
 }
@@ -1154,7 +1154,7 @@ func (i *_ID3D12CommandQueue) Signal(signal *_ID3D12Fence, value uint64) error {
 		uintptr(unsafe.Pointer(signal)), uintptr(value))
 	runtime.KeepAlive(signal)
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("directx: ID3D12CommandQueue::Signal failed: %w", windows.Errno(r))
+		return fmt.Errorf("directx: ID3D12CommandQueue::Signal failed: %w", windows.Errno(uint32(r)))
 	}
 	return nil
 }
@@ -1223,7 +1223,7 @@ type _ID3D12DebugCommandList_Vtbl struct {
 func (i *_ID3D12DebugCommandList) SetFeatureMask(mask _D3D12_DEBUG_FEATURE) error {
 	r, _, _ := syscall.Syscall(i.vtbl.SetFeatureMask, 2, uintptr(unsafe.Pointer(i)), uintptr(mask), 0)
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("directx: ID3D12DebugCommandList::SetFeatureMask failed: %w", windows.Errno(r))
+		return fmt.Errorf("directx: ID3D12DebugCommandList::SetFeatureMask failed: %w", windows.Errno(uint32(r)))
 	}
 	return nil
 }
@@ -1324,7 +1324,7 @@ func (i *_ID3D12Device) CreateCommandAllocator(typ _D3D12_COMMAND_LIST_TYPE) (*_
 		uintptr(typ), uintptr(unsafe.Pointer(&_IID_ID3D12CommandAllocator)), uintptr(unsafe.Pointer(&commandAllocator)),
 		0, 0)
 	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: ID3D12Device::CreateCommandAllocator failed: %w", windows.Errno(r))
+		return nil, fmt.Errorf("directx: ID3D12Device::CreateCommandAllocator failed: %w", windows.Errno(uint32(r)))
 	}
 	return commandAllocator, nil
 }
@@ -1338,7 +1338,7 @@ func (i *_ID3D12Device) CreateCommandList(nodeMask uint32, typ _D3D12_COMMAND_LI
 	runtime.KeepAlive(pCommandAllocator)
 	runtime.KeepAlive(pInitialState)
 	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: ID3D12Device::CreateCommandList failed: %w", windows.Errno(r))
+		return nil, fmt.Errorf("directx: ID3D12Device::CreateCommandList failed: %w", windows.Errno(uint32(r)))
 	}
 	return commandList, nil
 }
@@ -1353,7 +1353,7 @@ func (i *_ID3D12Device) CreateCommittedResource(pHeapProperties *_D3D12_HEAP_PRO
 	runtime.KeepAlive(pDesc)
 	runtime.KeepAlive(pOptimizedClearValue)
 	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: ID3D12Device::CreateCommittedResource failed: %w", windows.Errno(r))
+		return nil, fmt.Errorf("directx: ID3D12Device::CreateCommittedResource failed: %w", windows.Errno(uint32(r)))
 	}
 	return resource, nil
 }
@@ -1365,7 +1365,7 @@ func (i *_ID3D12Device) CreateCommandQueue(desc *_D3D12_COMMAND_QUEUE_DESC) (*_I
 		0, 0)
 	runtime.KeepAlive(desc)
 	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: ID3D12Device::CreateCommandQueue failed: %w", windows.Errno(r))
+		return nil, fmt.Errorf("directx: ID3D12Device::CreateCommandQueue failed: %w", windows.Errno(uint32(r)))
 	}
 	return commandQueue, nil
 }
@@ -1383,7 +1383,7 @@ func (i *_ID3D12Device) CreateDescriptorHeap(desc *_D3D12_DESCRIPTOR_HEAP_DESC) 
 		0, 0)
 	runtime.KeepAlive(desc)
 	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: ID3D12Device::CreateDescriptorHeap failed: %w", windows.Errno(r))
+		return nil, fmt.Errorf("directx: ID3D12Device::CreateDescriptorHeap failed: %w", windows.Errno(uint32(r)))
 	}
 	return descriptorHeap, nil
 }
@@ -1403,7 +1403,7 @@ func (i *_ID3D12Device) CreateFence(initialValue uint64, flags _D3D12_FENCE_FLAG
 		uintptr(initialValue), uintptr(flags), uintptr(unsafe.Pointer(&_IID_ID3D12Fence)), uintptr(unsafe.Pointer(&fence)),
 		0)
 	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: ID3D12Device::CreateFence failed: %w", windows.Errno(r))
+		return nil, fmt.Errorf("directx: ID3D12Device::CreateFence failed: %w", windows.Errno(uint32(r)))
 	}
 	return fence, nil
 }
@@ -1415,7 +1415,7 @@ func (i *_ID3D12Device) CreateGraphicsPipelineState(pDesc *_D3D12_GRAPHICS_PIPEL
 		0, 0)
 	runtime.KeepAlive(pDesc)
 	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: ID3D12Device::CreateGraphicsPipelineState failed: %w", windows.Errno(r))
+		return nil, fmt.Errorf("directx: ID3D12Device::CreateGraphicsPipelineState failed: %w", windows.Errno(uint32(r)))
 	}
 	return pipelineState, nil
 }
@@ -1434,7 +1434,7 @@ func (i *_ID3D12Device) CreateRootSignature(nodeMask uint32, pBlobWithRootSignat
 		uintptr(nodeMask), pBlobWithRootSignature, blobLengthInBytes,
 		uintptr(unsafe.Pointer(&_IID_ID3D12RootSignature)), uintptr(unsafe.Pointer(&signature)))
 	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: ID3D12Device::CreateRootSignature failed: %w", windows.Errno(r))
+		return nil, fmt.Errorf("directx: ID3D12Device::CreateRootSignature failed: %w", windows.Errno(uint32(r)))
 	}
 	return signature, nil
 }
@@ -1471,7 +1471,7 @@ func (i *_ID3D12Device) GetDescriptorHandleIncrementSize(descriptorHeapType _D3D
 func (i *_ID3D12Device) GetDeviceRemovedReason() error {
 	r, _, _ := syscall.Syscall(i.vtbl.GetDeviceRemovedReason, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("directx: ID3D12Device::GetDeviceRemovedReason failed: %w", windows.Errno(r))
+		return fmt.Errorf("directx: ID3D12Device::GetDeviceRemovedReason failed: %w", windows.Errno(uint32(r)))
 	}
 	return nil
 }
@@ -1510,7 +1510,7 @@ func (i *_ID3D12Fence) SetEventOnCompletion(value uint64, hEvent windows.Handle)
 	r, _, _ := syscall.Syscall(i.vtbl.SetEventOnCompletion, 3, uintptr(unsafe.Pointer(i)),
 		uintptr(value), uintptr(hEvent))
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("directx: ID3D12Fence::SetEventOnCompletion failed: %w", windows.Errno(r))
+		return fmt.Errorf("directx: ID3D12Fence::SetEventOnCompletion failed: %w", windows.Errno(uint32(r)))
 	}
 	return nil
 }
@@ -1601,7 +1601,7 @@ func (i *_ID3D12GraphicsCommandList) ClearRenderTargetView(pRenderTargetView _D3
 func (i *_ID3D12GraphicsCommandList) Close() error {
 	r, _, _ := syscall.Syscall(i.vtbl.Close, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("directx: ID3D12GraphicsCommandList::Close failed: %w", windows.Errno(r))
+		return fmt.Errorf("directx: ID3D12GraphicsCommandList::Close failed: %w", windows.Errno(uint32(r)))
 	}
 	return nil
 }
@@ -1666,7 +1666,7 @@ func (i *_ID3D12GraphicsCommandList) QueryInterface(riid *windows.GUID, ppvObjec
 		uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(ppvObject)))
 	runtime.KeepAlive(riid)
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("directx: ID3D12GraphicsCommandList::QueryInterface failed: %w", windows.Errno(r))
+		return fmt.Errorf("directx: ID3D12GraphicsCommandList::QueryInterface failed: %w", windows.Errno(uint32(r)))
 	}
 	return nil
 }
@@ -1681,7 +1681,7 @@ func (i *_ID3D12GraphicsCommandList) Reset(pAllocator *_ID3D12CommandAllocator, 
 	runtime.KeepAlive(pAllocator)
 	runtime.KeepAlive(pInitialState)
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("directx: ID3D12GraphicsCommandList::Reset failed: %w", windows.Errno(r))
+		return fmt.Errorf("directx: ID3D12GraphicsCommandList::Reset failed: %w", windows.Errno(uint32(r)))
 	}
 	return nil
 }
@@ -1787,7 +1787,7 @@ func (i *_ID3D12Resource) Map(subresource uint32, pReadRange *_D3D12_RANGE) (uns
 		0, 0)
 	runtime.KeepAlive(pReadRange)
 	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: ID3D12Resource::Map failed: %w", windows.Errno(r))
+		return nil, fmt.Errorf("directx: ID3D12Resource::Map failed: %w", windows.Errno(uint32(r)))
 	}
 	return data, nil
 }
@@ -1866,7 +1866,7 @@ func (i *_IDXGIAdapter1) GetDesc1() (*_DXGI_ADAPTER_DESC1, error) {
 	var desc _DXGI_ADAPTER_DESC1
 	r, _, _ := syscall.Syscall(i.vtbl.GetDesc1, 2, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(&desc)), 0)
 	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: IDXGIAdapter1::GetDesc1 failed: %w", windows.Errno(r))
+		return nil, fmt.Errorf("directx: IDXGIAdapter1::GetDesc1 failed: %w", windows.Errno(uint32(r)))
 	}
 	return &desc, nil
 }
@@ -1915,7 +1915,7 @@ func (i *_IDXGIFactory4) CreateSwapChainForComposition(pDevice unsafe.Pointer, p
 	runtime.KeepAlive(pDesc)
 	runtime.KeepAlive(pRestrictToOutput)
 	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: IDXGIFactory4::CreateSwapChainForComposition failed: %w", windows.Errno(r))
+		return nil, fmt.Errorf("directx: IDXGIFactory4::CreateSwapChainForComposition failed: %w", windows.Errno(uint32(r)))
 	}
 	return swapChain, nil
 }
@@ -1930,7 +1930,7 @@ func (i *_IDXGIFactory4) CreateSwapChainForHwnd(pDevice unsafe.Pointer, hWnd win
 	runtime.KeepAlive(pFullscreenDesc)
 	runtime.KeepAlive(pRestrictToOutput)
 	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: IDXGIFactory4::CreateSwapChainForHwnd failed: %w", windows.Errno(r))
+		return nil, fmt.Errorf("directx: IDXGIFactory4::CreateSwapChainForHwnd failed: %w", windows.Errno(uint32(r)))
 	}
 	return swapChain, nil
 }
@@ -1939,7 +1939,7 @@ func (i *_IDXGIFactory4) EnumAdapters1(adapter uint32) (*_IDXGIAdapter1, error) 
 	var ptr *_IDXGIAdapter1
 	r, _, _ := syscall.Syscall(i.vtbl.EnumAdapters1, 3, uintptr(unsafe.Pointer(i)), uintptr(adapter), uintptr(unsafe.Pointer(&ptr)))
 	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: IDXGIFactory4::EnumAdapters1 failed: %w", windows.Errno(r))
+		return nil, fmt.Errorf("directx: IDXGIFactory4::EnumAdapters1 failed: %w", windows.Errno(uint32(r)))
 	}
 	return ptr, nil
 }
@@ -1948,7 +1948,7 @@ func (i *_IDXGIFactory4) EnumWarpAdapter() (*_IDXGIAdapter1, error) {
 	var ptr *_IDXGIAdapter1
 	r, _, _ := syscall.Syscall(i.vtbl.EnumWarpAdapter, 3, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(&_IID_IDXGIAdapter1)), uintptr(unsafe.Pointer(&ptr)))
 	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: IDXGIFactory4::EnumWarpAdapter failed: %w", windows.Errno(r))
+		return nil, fmt.Errorf("directx: IDXGIFactory4::EnumWarpAdapter failed: %w", windows.Errno(uint32(r)))
 	}
 	return ptr, nil
 }
@@ -2101,7 +2101,7 @@ func (i *_IDXGISwapChain4) GetBuffer(buffer uint32) (*_ID3D12Resource, error) {
 		uintptr(buffer), uintptr(unsafe.Pointer(&_IID_ID3D12Resource)), uintptr(unsafe.Pointer(&resource)),
 		0, 0)
 	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: IDXGISwapChain4::GetBuffer failed: %w", windows.Errno(r))
+		return nil, fmt.Errorf("directx: IDXGISwapChain4::GetBuffer failed: %w", windows.Errno(uint32(r)))
 	}
 	return resource, nil
 }
@@ -2114,7 +2114,7 @@ func (i *_IDXGISwapChain4) GetCurrentBackBufferIndex() uint32 {
 func (i *_IDXGISwapChain4) Present(syncInterval uint32, flags uint32) error {
 	r, _, _ := syscall.Syscall(i.vtbl.Present, 3, uintptr(unsafe.Pointer(i)), uintptr(syncInterval), uintptr(flags))
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("directx: IDXGISwapChain4::Present failed: %w", windows.Errno(r))
+		return fmt.Errorf("directx: IDXGISwapChain4::Present failed: %w", windows.Errno(uint32(r)))
 	}
 	return nil
 }
@@ -2124,7 +2124,7 @@ func (i *_IDXGISwapChain4) ResizeBuffers(bufferCount uint32, width uint32, heigh
 		uintptr(unsafe.Pointer(i)), uintptr(bufferCount), uintptr(width),
 		uintptr(height), uintptr(newFormat), uintptr(swapChainFlags))
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("directx: IDXGISwapChain4::ResizeBuffers failed: %w", windows.Errno(r))
+		return fmt.Errorf("directx: IDXGISwapChain4::ResizeBuffers failed: %w", windows.Errno(uint32(r)))
 	}
 	return nil
 }
