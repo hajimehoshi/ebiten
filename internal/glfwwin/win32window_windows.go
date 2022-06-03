@@ -368,8 +368,7 @@ func (w *Window) updateFramebufferTransparency() error {
 
 	composition, err := _DwmIsCompositionEnabled()
 	if err != nil {
-		// Ignore an error from DWM functions as they might not be implemented e.g. on Proton (#2113).
-		return nil
+		return err
 	}
 	if !composition {
 		return nil
@@ -379,8 +378,7 @@ func (w *Window) updateFramebufferTransparency() error {
 	if !_IsWindows8OrGreater() {
 		_, opaque, err = _DwmGetColorizationColor()
 		if err != nil {
-			// Ignore an error from DWM functions as they might not be implemented e.g. on Proton (#2113).
-			return nil
+			return err
 		}
 	}
 
@@ -396,9 +394,9 @@ func (w *Window) updateFramebufferTransparency() error {
 			hRgnBlur: region,
 			fEnable:  1, // true
 		}
-
-		// Ignore an error from DWM functions as they might not be implemented e.g. on Proton (#2113).
-		_ = _DwmEnableBlurBehindWindow(w.win32.handle, &bb)
+		if err := _DwmEnableBlurBehindWindow(w.win32.handle, &bb); err != nil {
+			return err
+		}
 	} else {
 		// HACK: Disable framebuffer transparency on Windows 7 when the
 		//       colorization color is opaque, because otherwise the window
@@ -407,9 +405,9 @@ func (w *Window) updateFramebufferTransparency() error {
 		bb := _DWM_BLURBEHIND{
 			dwFlags: _DWM_BB_ENABLE,
 		}
-
-		// Ignore an error from DWM functions as they might not be implemented e.g. on Proton (#2113).
-		_ = _DwmEnableBlurBehindWindow(w.win32.handle, &bb)
+		if err := _DwmEnableBlurBehindWindow(w.win32.handle, &bb); err != nil {
+			return err
+		}
 	}
 	return nil
 }
