@@ -166,9 +166,9 @@ func _CallWindowProcW(lpPrevWndFunc uintptr, hWnd uintptr, msg uint32, wParam, l
 	return r
 }
 
-func _GetActiveWindow() uintptr {
+func _GetActiveWindow() windows.HWND {
 	h, _, _ := procGetActiveWindow.Call()
-	return h
+	return windows.HWND(h)
 }
 
 func _GetRawInputDeviceInfoW(hDevice windows.Handle, uiCommand uint32, pData unsafe.Pointer, pcb *uint32) (uint32, error) {
@@ -193,7 +193,7 @@ func _GetRawInputDeviceList(pRawInputDeviceList *_RAWINPUTDEVICELIST, puiNumDevi
 	return uint32(r), nil
 }
 
-func _SetWindowLongPtrW(hWnd uintptr, nIndex int32, dwNewLong uintptr) (uintptr, error) {
+func _SetWindowLongPtrW(hWnd windows.HWND, nIndex int32, dwNewLong uintptr) (uintptr, error) {
 	var p *windows.LazyProc
 	if procSetWindowLongPtrW.Find() == nil {
 		// 64-Bit Windows.
@@ -202,7 +202,7 @@ func _SetWindowLongPtrW(hWnd uintptr, nIndex int32, dwNewLong uintptr) (uintptr,
 		// 32-Bit Windows.
 		p = procSetWindowLongW
 	}
-	h, _, e := p.Call(hWnd, uintptr(nIndex), dwNewLong)
+	h, _, e := p.Call(uintptr(hWnd), uintptr(nIndex), dwNewLong)
 	if h == 0 {
 		if e != nil && e != windows.ERROR_SUCCESS {
 			return 0, fmt.Errorf("gamepad: SetWindowLongPtrW failed: %w", e)
