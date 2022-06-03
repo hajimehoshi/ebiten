@@ -1531,19 +1531,19 @@ func (i *Image) ensureDepthStencilView(device *iD3D12Device) error {
 	return nil
 }
 
-func copyFloat32s(dst uintptr, src []float32) {
+func copyFloat32s(dst unsafe.Pointer, src []float32) {
 	var dsts []float32
 	h := (*reflect.SliceHeader)(unsafe.Pointer(&dsts))
-	h.Data = dst
+	h.Data = uintptr(dst)
 	h.Len = len(src)
 	h.Cap = len(src)
 	copy(dsts, src)
 }
 
-func copyUint16s(dst uintptr, src []uint16) {
+func copyUint16s(dst unsafe.Pointer, src []uint16) {
 	var dsts []uint16
 	h := (*reflect.SliceHeader)(unsafe.Pointer(&dsts))
-	h.Data = dst
+	h.Data = uintptr(dst)
 	h.Len = len(src)
 	h.Cap = len(src)
 	copy(dsts, src)
