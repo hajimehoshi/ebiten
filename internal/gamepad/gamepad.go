@@ -60,6 +60,10 @@ func Get(id ID) *Gamepad {
 	return theGamepads.get(id)
 }
 
+func SetNativeWindow(nativeWindow uintptr) {
+	theGamepads.setNativeWindow(nativeWindow)
+}
+
 func (g *gamepads) appendGamepadIDs(ids []ID) []ID {
 	g.m.Lock()
 	defer g.m.Unlock()
@@ -155,6 +159,16 @@ func (g *gamepads) remove(cond func(*Gamepad) bool) {
 		if cond(gp) {
 			g.gamepads[i] = nil
 		}
+	}
+}
+
+func (g *gamepads) setNativeWindow(nativeWindow uintptr) {
+	g.m.Lock()
+	defer g.m.Unlock()
+
+	var n interface{} = &g.nativeGamepads
+	if n, ok := n.(interface{ setNativeWindow(uintptr) }); ok {
+		n.setNativeWindow(nativeWindow)
 	}
 }
 

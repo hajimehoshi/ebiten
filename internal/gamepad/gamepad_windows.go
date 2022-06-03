@@ -113,6 +113,7 @@ type nativeGamepads struct {
 	enumDevicesCallback uintptr
 	enumObjectsCallback uintptr
 
+	nativeWindow  windows.HWND
 	deviceChanged int32
 	err           error
 }
@@ -518,7 +519,8 @@ func (g *nativeGamepads) update(gamepads *gamepads) error {
 		if g.wndProcCallback == 0 {
 			g.wndProcCallback = windows.NewCallback(g.wndProc)
 		}
-		h, err := _SetWindowLongPtrW(_GetActiveWindow(), _GWL_WNDPROC, g.wndProcCallback)
+		// Note that a Win32API GetActiveWindow doesn't work on Xbox.
+		h, err := _SetWindowLongPtrW(g.nativeWindow, _GWL_WNDPROC, g.wndProcCallback)
 		if err != nil {
 			return err
 		}
@@ -541,6 +543,10 @@ func (g *nativeGamepads) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintp
 		atomic.StoreInt32(&g.deviceChanged, 1)
 	}
 	return _CallWindowProcW(g.origWndProc, hWnd, uMsg, wParam, lParam)
+}
+
+func (g *nativeGamepads) setNativeWindow(nativeWindow uintptr) {
+	g.nativeWindow = windows.HWND(nativeWindow)
 }
 
 type nativeGamepad struct {

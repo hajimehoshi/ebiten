@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/devicescale"
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
@@ -920,6 +921,8 @@ func (u *userInterfaceImpl) init() error {
 	if g, ok := u.graphicsDriver.(interface{ SetWindow(uintptr) }); ok {
 		g.SetWindow(u.nativeWindow())
 	}
+
+	gamepad.SetNativeWindow(u.nativeWindow())
 
 	return nil
 }
