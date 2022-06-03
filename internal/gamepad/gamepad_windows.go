@@ -197,25 +197,27 @@ func (g *nativeGamepads) directInput8Create(hinst uintptr, dwVersion uint32, rii
 	r, _, _ := syscall.Syscall6(g.procDirectInput8Create, 5,
 		hinst, uintptr(dwVersion), uintptr(unsafe.Pointer(riidltf)), uintptr(unsafe.Pointer(ppvOut)), uintptr(punkOuter),
 		0)
-	if r != _DI_OK {
-		return fmt.Errorf("gamepad: DirectInput8Create failed: %w", directInputError(syscall.Errno(r)))
+	if uint32(r) != _DI_OK {
+		return fmt.Errorf("gamepad: DirectInput8Create failed: %w", directInputError(r))
 	}
 	return nil
 }
 
 func (g *nativeGamepads) xinputGetCapabilities(dwUserIndex uint32, dwFlags uint32, pCapabilities *xinputCapabilities) error {
+	// XInputGetCapabilities doesn't call SetLastError and returns an error code directly.
 	r, _, _ := syscall.Syscall(g.procXInputGetCapabilities, 3,
 		uintptr(dwUserIndex), uintptr(dwFlags), uintptr(unsafe.Pointer(pCapabilities)))
-	if e := syscall.Errno(r); e != windows.ERROR_SUCCESS {
+	if e := syscall.Errno(uint32(r)); e != windows.ERROR_SUCCESS {
 		return fmt.Errorf("gamepad: XInputGetCapabilities failed: %w", e)
 	}
 	return nil
 }
 
 func (g *nativeGamepads) xinputGetState(dwUserIndex uint32, pState *xinputState) error {
+	// XInputGetState doesn't call SetLastError and returns an error code directly.
 	r, _, _ := syscall.Syscall(g.procXInputGetState, 2,
 		uintptr(dwUserIndex), uintptr(unsafe.Pointer(pState)), 0)
-	if e := syscall.Errno(r); e != windows.ERROR_SUCCESS {
+	if e := syscall.Errno(uint32(r)); e != windows.ERROR_SUCCESS {
 		return fmt.Errorf("gamepad: XInputGetCapabilities failed: %w", e)
 	}
 	return nil
