@@ -101,7 +101,7 @@ var xinputButtons = []uint16{
 
 type nativeGamepads struct {
 	dinput8    windows.Handle
-	dinput8API *iDirectInput8W
+	dinput8API *_IDirectInput8W
 	xinput     windows.Handle
 
 	procDirectInput8Create    uintptr
@@ -123,7 +123,7 @@ type dinputObject struct {
 }
 
 type enumObjectsContext struct {
-	device      *iDirectInputDevice8W
+	device      *_IDirectInputDevice8W
 	objects     []dinputObject
 	axisCount   int
 	sliderCount int
@@ -174,12 +174,12 @@ func (g *nativeGamepads) init(gamepads *gamepads) error {
 	}
 
 	if g.dinput8 != 0 {
-		m, err := getModuleHandleW()
+		m, err := _GetModuleHandleW()
 		if err != nil {
 			return err
 		}
 
-		var api *iDirectInput8W
+		var api *_IDirectInput8W
 		if err := g.directInput8Create(m, _DIRECTINPUT_VERSION, &_IID_IDirectInput8W, &api, nil); err != nil {
 			return err
 		}
@@ -193,7 +193,7 @@ func (g *nativeGamepads) init(gamepads *gamepads) error {
 	return nil
 }
 
-func (g *nativeGamepads) directInput8Create(hinst uintptr, dwVersion uint32, riidltf *windows.GUID, ppvOut **iDirectInput8W, punkOuter unsafe.Pointer) error {
+func (g *nativeGamepads) directInput8Create(hinst uintptr, dwVersion uint32, riidltf *windows.GUID, ppvOut **_IDirectInput8W, punkOuter unsafe.Pointer) error {
 	r, _, _ := syscall.Syscall6(g.procDirectInput8Create, 5,
 		hinst, uintptr(dwVersion), uintptr(unsafe.Pointer(riidltf)), uintptr(unsafe.Pointer(ppvOut)), uintptr(punkOuter),
 		0)
@@ -203,7 +203,7 @@ func (g *nativeGamepads) directInput8Create(hinst uintptr, dwVersion uint32, rii
 	return nil
 }
 
-func (g *nativeGamepads) xinputGetCapabilities(dwUserIndex uint32, dwFlags uint32, pCapabilities *xinputCapabilities) error {
+func (g *nativeGamepads) xinputGetCapabilities(dwUserIndex uint32, dwFlags uint32, pCapabilities *_XINPUT_CAPABILITIES) error {
 	// XInputGetCapabilities doesn't call SetLastError and returns an error code directly.
 	r, _, _ := syscall.Syscall(g.procXInputGetCapabilities, 3,
 		uintptr(dwUserIndex), uintptr(dwFlags), uintptr(unsafe.Pointer(pCapabilities)))
@@ -213,7 +213,7 @@ func (g *nativeGamepads) xinputGetCapabilities(dwUserIndex uint32, dwFlags uint3
 	return nil
 }
 
-func (g *nativeGamepads) xinputGetState(dwUserIndex uint32, pState *xinputState) error {
+func (g *nativeGamepads) xinputGetState(dwUserIndex uint32, pState *_XINPUT_STATE) error {
 	// XInputGetState doesn't call SetLastError and returns an error code directly.
 	r, _, _ := syscall.Syscall(g.procXInputGetState, 2,
 		uintptr(dwUserIndex), uintptr(unsafe.Pointer(pState)), 0)
@@ -245,7 +245,7 @@ func (g *nativeGamepads) detectConnection(gamepads *gamepads) error {
 				continue
 			}
 
-			var xic xinputCapabilities
+			var xic _XINPUT_CAPABILITIES
 			if err := g.xinputGetCapabilities(uint32(i), 0, &xic); err != nil {
 				if !errors.Is(err, windows.ERROR_DEVICE_NOT_CONNECTED) {
 					return err
@@ -305,7 +305,7 @@ func (g *nativeGamepads) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTANCEW, p
 		return _DIENUM_CONTINUE
 	}
 
-	var device *iDirectInputDevice8W
+	var device *_IDirectInputDevice8W
 	if err := g.dinput8API.CreateDevice(&lpddi.guidInstance, &device, nil); err != nil {
 		g.err = err
 		return _DIENUM_STOP
@@ -400,14 +400,14 @@ func (g *nativeGamepads) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTANCEW, p
 
 func supportsXInput(guid windows.GUID) (bool, error) {
 	var count uint32
-	if r, err := getRawInputDeviceList(nil, &count); err != nil {
+	if r, err := _GetRawInputDeviceList(nil, &count); err != nil {
 		return false, err
 	} else if r != 0 {
 		return false, nil
 	}
 
 	ridl := make([]_RAWINPUTDEVICELIST, count)
-	if _, err := getRawInputDeviceList(&ridl[0], &count); err != nil {
+	if _, err := _GetRawInputDeviceList(&ridl[0], &count); err != nil {
 		return false, err
 	}
 
@@ -420,7 +420,7 @@ func supportsXInput(guid windows.GUID) (bool, error) {
 			cbSize: uint32(unsafe.Sizeof(_RID_DEVICE_INFO{})),
 		}
 		size := uint32(unsafe.Sizeof(rdi))
-		if _, err := getRawInputDeviceInfoW(ridl[i].hDevice, _RIDI_DEVICEINFO, unsafe.Pointer(&rdi), &size); err != nil {
+		if _, err := _GetRawInputDeviceInfoW(ridl[i].hDevice, _RIDI_DEVICEINFO, unsafe.Pointer(&rdi), &size); err != nil {
 			return false, err
 		}
 
@@ -430,7 +430,7 @@ func supportsXInput(guid windows.GUID) (bool, error) {
 
 		var name [256]uint16
 		size = uint32(unsafe.Sizeof(name))
-		if _, err := getRawInputDeviceInfoW(ridl[i].hDevice, _RIDI_DEVICENAME, unsafe.Pointer(&name[0]), &size); err != nil {
+		if _, err := _GetRawInputDeviceInfoW(ridl[i].hDevice, _RIDI_DEVICENAME, unsafe.Pointer(&name[0]), &size); err != nil {
 			return false, err
 		}
 
@@ -518,7 +518,7 @@ func (g *nativeGamepads) update(gamepads *gamepads) error {
 		if g.wndProcCallback == 0 {
 			g.wndProcCallback = windows.NewCallback(g.wndProc)
 		}
-		h, err := setWindowLongPtrW(getActiveWindow(), _GWL_WNDPROC, g.wndProcCallback)
+		h, err := _SetWindowLongPtrW(_GetActiveWindow(), _GWL_WNDPROC, g.wndProcCallback)
 		if err != nil {
 			return err
 		}
@@ -540,11 +540,11 @@ func (g *nativeGamepads) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintp
 	case _WM_DEVICECHANGE:
 		atomic.StoreInt32(&g.deviceChanged, 1)
 	}
-	return callWindowProcW(g.origWndProc, hWnd, uMsg, wParam, lParam)
+	return _CallWindowProcW(g.origWndProc, hWnd, uMsg, wParam, lParam)
 }
 
 type nativeGamepad struct {
-	dinputDevice  *iDirectInputDevice8W
+	dinputDevice  *_IDirectInputDevice8W
 	dinputObjects []dinputObject
 	dinputGUID    windows.GUID
 	dinputAxes    []float64
@@ -552,7 +552,7 @@ type nativeGamepad struct {
 	dinputHats    []int
 
 	xinputIndex int
-	xinputState xinputState
+	xinputState _XINPUT_STATE
 }
 
 func (*nativeGamepad) hasOwnStandardLayoutMapping() bool {
@@ -659,7 +659,7 @@ func (g *nativeGamepad) update(gamepads *gamepads) (err error) {
 		return nil
 	}
 
-	var state xinputState
+	var state _XINPUT_STATE
 	if err := gamepads.xinputGetState(uint32(g.xinputIndex), &state); err != nil {
 		if !errors.Is(err, windows.ERROR_DEVICE_NOT_CONNECTED) {
 			return err

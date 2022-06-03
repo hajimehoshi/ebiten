@@ -139,8 +139,7 @@ var (
 	kernel32 = windows.NewLazySystemDLL("kernel32.dll")
 	user32   = windows.NewLazySystemDLL("user32.dll")
 
-	procGetCurrentThreadId = kernel32.NewProc("GetCurrentThreadId")
-	procGetModuleHandleW   = kernel32.NewProc("GetModuleHandleW")
+	procGetModuleHandleW = kernel32.NewProc("GetModuleHandleW")
 
 	procCallWindowProcW        = user32.NewProc("CallWindowProcW")
 	procGetActiveWindow        = user32.NewProc("GetActiveWindow")
@@ -151,12 +150,7 @@ var (
 	procSetWindowLongPtrW = user32.NewProc("SetWindowLongPtrW") // 64-Bit Windows version.
 )
 
-func getCurrentThreadId() uint32 {
-	t, _, _ := procGetCurrentThreadId.Call()
-	return uint32(t)
-}
-
-func getModuleHandleW() (uintptr, error) {
+func _GetModuleHandleW() (uintptr, error) {
 	m, _, e := procGetModuleHandleW.Call(0)
 	if m == 0 {
 		if e != nil && e != windows.ERROR_SUCCESS {
@@ -167,17 +161,17 @@ func getModuleHandleW() (uintptr, error) {
 	return m, nil
 }
 
-func callWindowProcW(lpPrevWndFunc uintptr, hWnd uintptr, msg uint32, wParam, lParam uintptr) uintptr {
+func _CallWindowProcW(lpPrevWndFunc uintptr, hWnd uintptr, msg uint32, wParam, lParam uintptr) uintptr {
 	r, _, _ := procCallWindowProcW.Call(lpPrevWndFunc, hWnd, uintptr(msg), wParam, lParam)
 	return r
 }
 
-func getActiveWindow() uintptr {
+func _GetActiveWindow() uintptr {
 	h, _, _ := procGetActiveWindow.Call()
 	return h
 }
 
-func getRawInputDeviceInfoW(hDevice windows.Handle, uiCommand uint32, pData unsafe.Pointer, pcb *uint32) (uint32, error) {
+func _GetRawInputDeviceInfoW(hDevice windows.Handle, uiCommand uint32, pData unsafe.Pointer, pcb *uint32) (uint32, error) {
 	r, _, e := procGetRawInputDeviceInfoW.Call(uintptr(hDevice), uintptr(uiCommand), uintptr(pData), uintptr(unsafe.Pointer(pcb)))
 	if uint32(r) == ^uint32(0) {
 		if e != nil && e != windows.ERROR_SUCCESS {
@@ -188,7 +182,7 @@ func getRawInputDeviceInfoW(hDevice windows.Handle, uiCommand uint32, pData unsa
 	return uint32(r), nil
 }
 
-func getRawInputDeviceList(pRawInputDeviceList *_RAWINPUTDEVICELIST, puiNumDevices *uint32) (uint32, error) {
+func _GetRawInputDeviceList(pRawInputDeviceList *_RAWINPUTDEVICELIST, puiNumDevices *uint32) (uint32, error) {
 	r, _, e := procGetRawInputDeviceList.Call(uintptr(unsafe.Pointer(pRawInputDeviceList)), uintptr(unsafe.Pointer(puiNumDevices)), unsafe.Sizeof(_RAWINPUTDEVICELIST{}))
 	if uint32(r) == ^uint32(0) {
 		if e != nil && e != windows.ERROR_SUCCESS {
@@ -199,7 +193,7 @@ func getRawInputDeviceList(pRawInputDeviceList *_RAWINPUTDEVICELIST, puiNumDevic
 	return uint32(r), nil
 }
 
-func setWindowLongPtrW(hWnd uintptr, nIndex int32, dwNewLong uintptr) (uintptr, error) {
+func _SetWindowLongPtrW(hWnd uintptr, nIndex int32, dwNewLong uintptr) (uintptr, error) {
 	var p *windows.LazyProc
 	if procSetWindowLongPtrW.Find() == nil {
 		// 64-Bit Windows.
@@ -314,11 +308,11 @@ type _DIPROPRANGE struct {
 	lMax int32
 }
 
-type iDirectInput8W struct {
-	vtbl *iDirectInput8W_Vtbl
+type _IDirectInput8W struct {
+	vtbl *_IDirectInput8W_Vtbl
 }
 
-type iDirectInput8W_Vtbl struct {
+type _IDirectInput8W_Vtbl struct {
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -333,7 +327,7 @@ type iDirectInput8W_Vtbl struct {
 	ConfigureDevices       uintptr
 }
 
-func (d *iDirectInput8W) CreateDevice(rguid *windows.GUID, lplpDirectInputDevice **iDirectInputDevice8W, pUnkOuter unsafe.Pointer) error {
+func (d *_IDirectInput8W) CreateDevice(rguid *windows.GUID, lplpDirectInputDevice **_IDirectInputDevice8W, pUnkOuter unsafe.Pointer) error {
 	r, _, _ := syscall.Syscall6(d.vtbl.CreateDevice, 4,
 		uintptr(unsafe.Pointer(d)),
 		uintptr(unsafe.Pointer(rguid)), uintptr(unsafe.Pointer(lplpDirectInputDevice)), uintptr(pUnkOuter),
@@ -344,7 +338,7 @@ func (d *iDirectInput8W) CreateDevice(rguid *windows.GUID, lplpDirectInputDevice
 	return nil
 }
 
-func (d *iDirectInput8W) EnumDevices(dwDevType uint32, lpCallback uintptr, pvRef unsafe.Pointer, dwFlags uint32) error {
+func (d *_IDirectInput8W) EnumDevices(dwDevType uint32, lpCallback uintptr, pvRef unsafe.Pointer, dwFlags uint32) error {
 	r, _, _ := syscall.Syscall6(d.vtbl.EnumDevices, 5,
 		uintptr(unsafe.Pointer(d)),
 		uintptr(dwDevType), lpCallback, uintptr(pvRef), uintptr(dwFlags),
@@ -355,11 +349,11 @@ func (d *iDirectInput8W) EnumDevices(dwDevType uint32, lpCallback uintptr, pvRef
 	return nil
 }
 
-type iDirectInputDevice8W struct {
-	vtbl *iDirectInputDevice8W_Vtbl
+type _IDirectInputDevice8W struct {
+	vtbl *_IDirectInputDevice8W_Vtbl
 }
 
-type iDirectInputDevice8W_Vtbl struct {
+type _IDirectInputDevice8W_Vtbl struct {
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
@@ -395,7 +389,7 @@ type iDirectInputDevice8W_Vtbl struct {
 	GetImageInfo             uintptr
 }
 
-func (d *iDirectInputDevice8W) Acquire() error {
+func (d *_IDirectInputDevice8W) Acquire() error {
 	r, _, _ := syscall.Syscall(d.vtbl.Acquire, 1, uintptr(unsafe.Pointer(d)), 0, 0)
 	if uint32(r) != _DI_OK && uint32(r) != _SI_FALSE {
 		return fmt.Errorf("gamepad: IDirectInputDevice8::Acquire failed: %w", directInputError(r))
@@ -403,7 +397,7 @@ func (d *iDirectInputDevice8W) Acquire() error {
 	return nil
 }
 
-func (d *iDirectInputDevice8W) EnumObjects(lpCallback uintptr, pvRef unsafe.Pointer, dwFlags uint32) error {
+func (d *_IDirectInputDevice8W) EnumObjects(lpCallback uintptr, pvRef unsafe.Pointer, dwFlags uint32) error {
 	r, _, _ := syscall.Syscall6(d.vtbl.EnumObjects, 4,
 		uintptr(unsafe.Pointer(d)),
 		lpCallback, uintptr(pvRef), uintptr(dwFlags),
@@ -414,7 +408,7 @@ func (d *iDirectInputDevice8W) EnumObjects(lpCallback uintptr, pvRef unsafe.Poin
 	return nil
 }
 
-func (d *iDirectInputDevice8W) GetCapabilities(lpDIDevCaps *_DIDEVCAPS) error {
+func (d *_IDirectInputDevice8W) GetCapabilities(lpDIDevCaps *_DIDEVCAPS) error {
 	r, _, _ := syscall.Syscall(d.vtbl.GetCapabilities, 2, uintptr(unsafe.Pointer(d)), uintptr(unsafe.Pointer(lpDIDevCaps)), 0)
 	if uint32(r) != _DI_OK {
 		return fmt.Errorf("gamepad: IDirectInputDevice8::GetCapabilities failed: %w", directInputError(r))
@@ -422,7 +416,7 @@ func (d *iDirectInputDevice8W) GetCapabilities(lpDIDevCaps *_DIDEVCAPS) error {
 	return nil
 }
 
-func (d *iDirectInputDevice8W) GetDeviceState(cbData uint32, lpvData unsafe.Pointer) error {
+func (d *_IDirectInputDevice8W) GetDeviceState(cbData uint32, lpvData unsafe.Pointer) error {
 	r, _, _ := syscall.Syscall(d.vtbl.GetDeviceState, 3, uintptr(unsafe.Pointer(d)), uintptr(cbData), uintptr(lpvData))
 	if uint32(r) != _DI_OK {
 		return fmt.Errorf("gamepad: IDirectInputDevice8::GetDeviceState failed: %w", directInputError(r))
@@ -430,7 +424,7 @@ func (d *iDirectInputDevice8W) GetDeviceState(cbData uint32, lpvData unsafe.Poin
 	return nil
 }
 
-func (d *iDirectInputDevice8W) Poll() error {
+func (d *_IDirectInputDevice8W) Poll() error {
 	r, _, _ := syscall.Syscall(d.vtbl.Poll, 1, uintptr(unsafe.Pointer(d)), 0, 0)
 	if uint32(r) != _DI_OK && uint32(r) != _DI_NOEFFECT {
 		return fmt.Errorf("gamepad: IDirectInputDevice8::Poll failed: %w", directInputError(r))
@@ -438,12 +432,12 @@ func (d *iDirectInputDevice8W) Poll() error {
 	return nil
 }
 
-func (d *iDirectInputDevice8W) Release() uint32 {
+func (d *_IDirectInputDevice8W) Release() uint32 {
 	r, _, _ := syscall.Syscall(d.vtbl.Release, 1, uintptr(unsafe.Pointer(d)), 0, 0)
 	return uint32(r)
 }
 
-func (d *iDirectInputDevice8W) SetDataFormat(lpdf *_DIDATAFORMAT) error {
+func (d *_IDirectInputDevice8W) SetDataFormat(lpdf *_DIDATAFORMAT) error {
 	r, _, _ := syscall.Syscall(d.vtbl.SetDataFormat, 2, uintptr(unsafe.Pointer(d)), uintptr(unsafe.Pointer(lpdf)), 0)
 	if uint32(r) != _DI_OK {
 		return fmt.Errorf("gamepad: IDirectInputDevice8::SetDataFormat failed: %w", directInputError(r))
@@ -451,7 +445,7 @@ func (d *iDirectInputDevice8W) SetDataFormat(lpdf *_DIDATAFORMAT) error {
 	return nil
 }
 
-func (d *iDirectInputDevice8W) SetProperty(rguidProp uintptr, pdiph *_DIPROPHEADER) error {
+func (d *_IDirectInputDevice8W) SetProperty(rguidProp uintptr, pdiph *_DIPROPHEADER) error {
 	r, _, _ := syscall.Syscall(d.vtbl.SetProperty, 3, uintptr(unsafe.Pointer(d)), rguidProp, uintptr(unsafe.Pointer(pdiph)))
 	if uint32(r) != _DI_OK && uint32(r) != _DI_PROPNOEFFECT {
 		return fmt.Errorf("gamepad: IDirectInputDevice8::SetProperty failed: %w", directInputError(r))
@@ -480,15 +474,15 @@ type _RAWINPUTDEVICELIST struct {
 	dwType  uint32
 }
 
-type xinputCapabilities struct {
+type _XINPUT_CAPABILITIES struct {
 	typ       byte
 	subType   byte
 	flags     uint16
-	gamepad   xinputGamepad
-	vibration xinputVibration
+	gamepad   _XINPUT_GAMEPAD
+	vibration _XINPUT_VIBRATION
 }
 
-type xinputGamepad struct {
+type _XINPUT_GAMEPAD struct {
 	wButtons      uint16
 	bLeftTrigger  byte
 	bRightTrigger byte
@@ -498,12 +492,12 @@ type xinputGamepad struct {
 	sThumbRY      int16
 }
 
-type xinputState struct {
+type _XINPUT_STATE struct {
 	dwPacketNumber uint32
-	Gamepad        xinputGamepad
+	Gamepad        _XINPUT_GAMEPAD
 }
 
-type xinputVibration struct {
+type _XINPUT_VIBRATION struct {
 	wLeftMotorSpeed  uint16
 	wRightMotorSpeed uint16
 }
