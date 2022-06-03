@@ -1780,14 +1780,24 @@ func (i *_ID3D12Resource) GetGPUVirtualAddress() _D3D12_GPU_VIRTUAL_ADDRESS {
 	return _D3D12_GPU_VIRTUAL_ADDRESS(r)
 }
 
-func (i *_ID3D12Resource) Map(subresource uint32, pReadRange *_D3D12_RANGE) (unsafe.Pointer, error) {
-	var data unsafe.Pointer
+func (i *_ID3D12Resource) Map(subresource uint32, pReadRange *_D3D12_RANGE) (uintptr, error) {
+	var retryCount int
+retry:
+	var data uintptr
 	r, _, _ := syscall.Syscall6(i.vtbl.Map, 4, uintptr(unsafe.Pointer(i)),
 		uintptr(subresource), uintptr(unsafe.Pointer(pReadRange)), uintptr(unsafe.Pointer(&data)),
 		0, 0)
 	runtime.KeepAlive(pReadRange)
 	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: ID3D12Resource::Map failed: HRESULT(%d)", uint32(r))
+		return 0, fmt.Errorf("directx: ID3D12Resource::Map failed: HRESULT(%d)", uint32(r))
+	}
+	if data == 0 {
+		// This is very mysterious, but sometimes Map fails especially on tests with Warp and/or Proton (Steam Deck) (#2113).
+		if retryCount >= 5 {
+			return 0, fmt.Errorf("directx: ID3D12Resource::Map failed: nothing is mapped")
+		}
+		retryCount++
+		goto retry
 	}
 	return data, nil
 }
