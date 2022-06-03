@@ -142,7 +142,6 @@ var (
 	procGetModuleHandleW = kernel32.NewProc("GetModuleHandleW")
 
 	procCallWindowProcW        = user32.NewProc("CallWindowProcW")
-	procGetActiveWindow        = user32.NewProc("GetActiveWindow")
 	procGetRawInputDeviceInfoW = user32.NewProc("GetRawInputDeviceInfoW")
 	procGetRawInputDeviceList  = user32.NewProc("GetRawInputDeviceList")
 
@@ -164,11 +163,6 @@ func _GetModuleHandleW() (uintptr, error) {
 func _CallWindowProcW(lpPrevWndFunc uintptr, hWnd uintptr, msg uint32, wParam, lParam uintptr) uintptr {
 	r, _, _ := procCallWindowProcW.Call(lpPrevWndFunc, hWnd, uintptr(msg), wParam, lParam)
 	return r
-}
-
-func _GetActiveWindow() windows.HWND {
-	h, _, _ := procGetActiveWindow.Call()
-	return windows.HWND(h)
 }
 
 func _GetRawInputDeviceInfoW(hDevice windows.Handle, uiCommand uint32, pData unsafe.Pointer, pcb *uint32) (uint32, error) {
