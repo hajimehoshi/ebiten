@@ -38,6 +38,7 @@ func boolToUintptr(v bool) uintptr {
 	return 0
 }
 
+//go:nosplit
 func syscallN(ptr uintptr, args ...uintptr) (r1, r2 uintptr, e windows.Errno) {
 	if ptr == 0 {
 		panic("directx: function pointer must not be 0")
@@ -1790,22 +1791,12 @@ func (i *_ID3D12Resource) GetGPUVirtualAddress() _D3D12_GPU_VIRTUAL_ADDRESS {
 }
 
 func (i *_ID3D12Resource) Map(subresource uint32, pReadRange *_D3D12_RANGE) (uintptr, error) {
-	var retryCount int
-retry:
 	var data uintptr
 	r, _, _ := syscallN(i.vtbl.Map, uintptr(unsafe.Pointer(i)),
 		uintptr(subresource), uintptr(unsafe.Pointer(pReadRange)), uintptr(unsafe.Pointer(&data)))
 	runtime.KeepAlive(pReadRange)
 	if uint32(r) != uint32(windows.S_OK) {
 		return 0, fmt.Errorf("directx: ID3D12Resource::Map failed: HRESULT(%d)", uint32(r))
-	}
-	if data == 0 {
-		// This is very mysterious, but sometimes Map fails especially on tests with Warp and/or Proton (Steam Deck) (#2113).
-		if retryCount >= 5 {
-			return 0, fmt.Errorf("directx: ID3D12Resource::Map failed: nothing is mapped")
-		}
-		retryCount++
-		goto retry
 	}
 	return data, nil
 }
