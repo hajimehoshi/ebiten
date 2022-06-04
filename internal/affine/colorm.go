@@ -520,10 +520,21 @@ func (c colorMImplScale) Equals(other ColorM) bool {
 func (c *colorMImplBodyTranslate) Equals(other ColorM) bool {
 	var lhsb [16]float32
 	var lhst [4]float32
-	other.Elements(&lhsb, &lhst)
-	rhsb := &c.body
-	rhst := &c.translate
-	return lhsb == *rhsb && lhst == *rhst
+
+	// Calling a method of an interface type escapes arguments to heap (#2119).
+	// Instead, cast `other` to a concrete type and call `Elements` functions of it.
+	switch other := other.(type) {
+	case ColorMIdentity:
+		other.Elements(&lhsb, &lhst)
+	case colorMImplScale:
+		other.Elements(&lhsb, &lhst)
+	case *colorMImplBodyTranslate:
+		other.Elements(&lhsb, &lhst)
+	default:
+		panic("affine: unexpected ColorM implementation")
+	}
+
+	return lhsb == c.body && lhst == c.translate
 }
 
 func (c ColorMIdentity) Concat(other ColorM) ColorM {
