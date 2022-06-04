@@ -552,7 +552,20 @@ func (c colorMImplScale) Concat(other ColorM) ColorM {
 
 	var lhsb [16]float32
 	var lhst [4]float32
-	other.Elements(&lhsb, &lhst)
+
+	// Calling a method of an interface type escapes arguments to heap (#2119).
+	// Instead, cast `other` to a concrete type and call `Elements` functions of it.
+	switch other := other.(type) {
+	case ColorMIdentity:
+		other.Elements(&lhsb, &lhst)
+	case colorMImplScale:
+		other.Elements(&lhsb, &lhst)
+	case *colorMImplBodyTranslate:
+		other.Elements(&lhsb, &lhst)
+	default:
+		panic("affine: unexpected ColorM implementation")
+	}
+
 	s := &c.scale
 	return &colorMImplBodyTranslate{
 		body: [...]float32{
@@ -572,7 +585,20 @@ func (c *colorMImplBodyTranslate) Concat(other ColorM) ColorM {
 
 	var lhsb [16]float32
 	var lhst [4]float32
-	other.Elements(&lhsb, &lhst)
+
+	// Calling a method of an interface type escapes arguments to heap (#2119).
+	// Instead, cast `other` to a concrete type and call `Elements` functions of it.
+	switch other := other.(type) {
+	case ColorMIdentity:
+		other.Elements(&lhsb, &lhst)
+	case colorMImplScale:
+		other.Elements(&lhsb, &lhst)
+	case *colorMImplBodyTranslate:
+		other.Elements(&lhsb, &lhst)
+	default:
+		panic("affine: unexpected ColorM implementation")
+	}
+
 	rhsb := &c.body
 	rhst := &c.translate
 
