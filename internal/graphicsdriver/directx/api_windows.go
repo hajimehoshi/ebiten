@@ -1319,6 +1319,47 @@ type _ID3D12Device_Vtbl struct {
 	CreateCommandSignature           uintptr
 	GetResourceTiling                uintptr
 	GetAdapterLuid                   uintptr
+
+	// These members are for Xbox.
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	CreateCommandList_Xbox uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
 }
 
 func (i *_ID3D12Device) CreateCommandAllocator(typ _D3D12_COMMAND_LIST_TYPE) (*_ID3D12CommandAllocator, error) {
@@ -1334,10 +1375,28 @@ func (i *_ID3D12Device) CreateCommandAllocator(typ _D3D12_COMMAND_LIST_TYPE) (*_
 
 func (i *_ID3D12Device) CreateCommandList(nodeMask uint32, typ _D3D12_COMMAND_LIST_TYPE, pCommandAllocator *_ID3D12CommandAllocator, pInitialState *_ID3D12PipelineState) (*_ID3D12GraphicsCommandList, error) {
 	var commandList *_ID3D12GraphicsCommandList
-	r, _, _ := syscall.Syscall9(i.vtbl.CreateCommandList, 7,
-		uintptr(unsafe.Pointer(i)), uintptr(nodeMask), uintptr(typ),
-		uintptr(unsafe.Pointer(pCommandAllocator)), uintptr(unsafe.Pointer(pInitialState)), uintptr(unsafe.Pointer(&_IID_ID3D12GraphicsCommandList)),
-		uintptr(unsafe.Pointer(&commandList)), 0, 0)
+	var r uintptr
+	if microsoftgdk.IsXbox() {
+		desc := struct {
+			Member1 _D3D12_COMMAND_LIST_TYPE
+			Member2 int32
+			Member3 uint32
+			Member4 uint32
+		}{
+			Member1: typ,
+			Member2: 0,
+			Member3: nodeMask,
+			Member4: 0,
+		}
+		r, _, _ = syscall.Syscall6(i.vtbl.CreateCommandList_Xbox, 6,
+			uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(&desc)), uintptr(unsafe.Pointer(pCommandAllocator)),
+			uintptr(unsafe.Pointer(pInitialState)), uintptr(unsafe.Pointer(&_IID_ID3D12GraphicsCommandList)), uintptr(unsafe.Pointer(&commandList)))
+	} else {
+		r, _, _ = syscall.Syscall9(i.vtbl.CreateCommandList, 7,
+			uintptr(unsafe.Pointer(i)), uintptr(nodeMask), uintptr(typ),
+			uintptr(unsafe.Pointer(pCommandAllocator)), uintptr(unsafe.Pointer(pInitialState)), uintptr(unsafe.Pointer(&_IID_ID3D12GraphicsCommandList)),
+			uintptr(unsafe.Pointer(&commandList)), 0, 0)
+	}
 	runtime.KeepAlive(pCommandAllocator)
 	runtime.KeepAlive(pInitialState)
 	if uint32(r) != uint32(windows.S_OK) {
