@@ -712,6 +712,9 @@ func NewImage(width, height int) *Image {
 }
 
 func (i *Image) SetIsolated(isolated bool) {
+	if i.backend != nil {
+		panic("atlas: SetIsolated must be called before its backend is allocated")
+	}
 	i.isolated = isolated
 }
 
