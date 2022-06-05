@@ -306,11 +306,16 @@ func (g *nativeGamepad) update(gamepad *gamepads) error {
 			return fmt.Errorf("gamepad: Read failed: %w", err)
 		}
 
+		const (
+			offsetTyp   = unsafe.Offsetof(input_event{}.typ)
+			offsetCode  = unsafe.Offsetof(input_event{}.code)
+			offsetValue = unsafe.Offsetof(input_event{}.value)
+		)
 		// time is not used.
 		e := input_event{
-			typ:   uint16(buf[16]) | uint16(buf[17])<<8,
-			code:  uint16(buf[18]) | uint16(buf[19])<<8,
-			value: int32(buf[20]) | int32(buf[21])<<8 | int32(buf[22])<<16 | int32(buf[23])<<24,
+			typ:   uint16(buf[offsetTyp]) | uint16(buf[offsetTyp+1])<<8,
+			code:  uint16(buf[offsetCode]) | uint16(buf[offsetCode+1])<<8,
+			value: int32(buf[offsetValue]) | int32(buf[offsetValue+1])<<8 | int32(buf[offsetValue+2])<<16 | int32(buf[offsetValue+3])<<24,
 		}
 
 		if e.typ == unix.EV_SYN {
