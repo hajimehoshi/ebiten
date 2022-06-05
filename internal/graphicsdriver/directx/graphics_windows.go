@@ -506,7 +506,7 @@ func (g *Graphics) initSwapChain(width, height int) (ferr error) {
 
 	// MakeWindowAssociation should be called after swap chain creation.
 	// https://docs.microsoft.com/en-us/windows/win32/api/dxgi/nf-dxgi-idxgifactory-makewindowassociation
-	if err := g.factory.MakeWindowAssociation(g.window, _DXGI_MWA_NO_WINDOW_CHANGES | _DXGI_MWA_NO_ALT_ENTER); err != nil {
+	if err := g.factory.MakeWindowAssociation(g.window, _DXGI_MWA_NO_WINDOW_CHANGES|_DXGI_MWA_NO_ALT_ENTER); err != nil {
 		return err
 	}
 
