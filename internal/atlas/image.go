@@ -211,7 +211,7 @@ type Image struct {
 	width    int
 	height   int
 	disposed bool
-	isolate  bool
+	isolated bool
 	volatile bool
 	screen   bool
 
@@ -711,8 +711,8 @@ func NewImage(width, height int) *Image {
 	}
 }
 
-func (i *Image) SetIsolate(isolate bool) {
-	i.isolate = isolate
+func (i *Image) SetIsolated(isolated bool) {
+	i.isolated = isolated
 }
 
 func (i *Image) SetVolatile(volatile bool) {
@@ -730,7 +730,7 @@ func (i *Image) canBePutOnAtlas() bool {
 	if minSize == 0 || maxSize == 0 {
 		panic("atlas: minSize or maxSize must be initialized")
 	}
-	if i.isolate {
+	if i.isolated {
 		return false
 	}
 	if i.volatile {
