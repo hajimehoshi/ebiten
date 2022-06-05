@@ -245,11 +245,11 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFac
 	if c.offscreen == nil {
 		c.offscreen = c.game.NewOffscreenImage(ow, oh)
 
-		// Keep the offscreen an independent image from an atlas (#1938).
+		// Keep the offscreen an isolate image from an atlas (#1938).
 		// The shader program for the screen is special and doesn't work well with an image on an atlas.
 		// An image on an atlas is surrounded by a transparent edge,
 		// and the shader program unexpectedly picks the pixel on the edges.
-		c.offscreen.mipmap.SetIndependent(true)
+		c.offscreen.mipmap.SetIsolate(true)
 	}
 
 	return ow, oh

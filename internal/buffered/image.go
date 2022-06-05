@@ -66,16 +66,16 @@ func (i *Image) initialize() {
 	i.img = atlas.NewImage(i.width, i.height)
 }
 
-func (i *Image) SetIndependent(independent bool) {
+func (i *Image) SetIsolate(isolate bool) {
 	if maybeCanAddDelayedCommand() {
 		if tryAddDelayedCommand(func() error {
-			i.SetIndependent(independent)
+			i.SetIsolate(isolate)
 			return nil
 		}) {
 			return
 		}
 	}
-	i.img.SetIndependent(independent)
+	i.img.SetIsolate(isolate)
 }
 
 func (i *Image) SetVolatile(volatile bool) {

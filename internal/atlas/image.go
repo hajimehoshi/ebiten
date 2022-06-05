@@ -208,12 +208,12 @@ func init() {
 
 // Image is a rectangle pixel set that might be on an atlas.
 type Image struct {
-	width       int
-	height      int
-	disposed    bool
-	independent bool
-	volatile    bool
-	screen      bool
+	width    int
+	height   int
+	disposed bool
+	isolate  bool
+	volatile bool
+	screen   bool
 
 	backend *backend
 
@@ -711,8 +711,8 @@ func NewImage(width, height int) *Image {
 	}
 }
 
-func (i *Image) SetIndependent(independent bool) {
-	i.independent = independent
+func (i *Image) SetIsolate(isolate bool) {
+	i.isolate = isolate
 }
 
 func (i *Image) SetVolatile(volatile bool) {
@@ -730,7 +730,7 @@ func (i *Image) canBePutOnAtlas() bool {
 	if minSize == 0 || maxSize == 0 {
 		panic("atlas: minSize or maxSize must be initialized")
 	}
-	if i.independent {
+	if i.isolate {
 		return false
 	}
 	if i.volatile {
