@@ -460,7 +460,12 @@ func (g *Graphics) initSwapChain(width, height int) (ferr error) {
 		}
 	}()
 
-	// TODO: Call factory.MakeWindowAssociation not to support fullscreen transitions?
+	// MakeWindowAssociation should be called after swap chain creation.
+	// https://docs.microsoft.com/en-us/windows/win32/api/dxgi/nf-dxgi-idxgifactory-makewindowassociation
+	if err := g.factory.MakeWindowAssociation(g.window, _DXGI_MWA_NO_WINDOW_CHANGES | _DXGI_MWA_NO_ALT_ENTER); err != nil {
+		return err
+	}
+
 	// TODO: Get the current buffer index?
 
 	if err := g.createRenderTargetViews(); err != nil {

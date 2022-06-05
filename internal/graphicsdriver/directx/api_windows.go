@@ -517,6 +517,9 @@ const (
 	_DXGI_CREATE_FACTORY_DEBUG = 0x01
 
 	_DXGI_ERROR_NOT_FOUND = windows.Errno(0x887A0002)
+
+	_DXGI_MWA_NO_ALT_ENTER      = 0x2
+	_DXGI_MWA_NO_WINDOW_CHANGES = 0x1
 )
 
 var (
@@ -1898,6 +1901,14 @@ func (i *iDXGIFactory4) EnumWarpAdapter() (*iDXGIAdapter1, error) {
 		return nil, fmt.Errorf("directx: IDXGIFactory4::EnumWarpAdapter failed: %w", windows.Errno(r))
 	}
 	return ptr, nil
+}
+
+func (i *iDXGIFactory4) MakeWindowAssociation(windowHandle windows.HWND, flags uint32) error {
+	r, _, _ := syscall.Syscall(i.vtbl.MakeWindowAssociation, 3, uintptr(unsafe.Pointer(i)), uintptr(windowHandle), uintptr(flags))
+	if uint32(r) != uint32(windows.S_OK) {
+		return fmt.Errorf("directx: IDXGIFactory4::MakeWIndowAssociation failed: HRESULT(%d)", uint32(r))
+	}
+	return nil
 }
 
 func (i *iDXGIFactory4) Release() {
