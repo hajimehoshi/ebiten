@@ -149,15 +149,16 @@ func ensureEmptyImage() *Image {
 // The returned image is cleared.
 //
 // Note that Dispose is not called automatically.
-func NewImage(width, height int) *Image {
+func NewImage(width, height int, imageType ImageType) *Image {
 	if !graphicsDriverInitialized {
 		panic("restorable: graphics driver must be ready at NewImage but not")
 	}
 
 	i := &Image{
-		image:  graphicscommand.NewImage(width, height, false),
-		width:  width,
-		height: height,
+		image:     graphicscommand.NewImage(width, height, imageType == ImageTypeScreenFramebuffer),
+		width:     width,
+		height:    height,
+		imageType: imageType,
 	}
 	clearImage(i.image)
 	theImages.add(i)
@@ -201,8 +202,7 @@ func (i *Image) Extend(width, height int) *Image {
 		panic(fmt.Sprintf("restorable: the original size (%d, %d) cannot be extended to (%d, %d)", i.width, i.height, width, height))
 	}
 
-	newImg := NewImage(width, height)
-	newImg.SetVolatile(i.imageType == ImageTypeVolatile)
+	newImg := NewImage(width, height, i.imageType)
 
 	// Use DrawTriangles instead of ReplacePixels because the image i might be stale and not have its pixels
 	// information.
@@ -228,23 +228,6 @@ func (i *Image) Extend(width, height int) *Image {
 	i.Dispose()
 
 	return newImg
-}
-
-// NewScreenFramebufferImage creates a special image that framebuffer is one for the screen.
-//
-// The returned image is cleared.
-//
-// Note that Dispose is not called automatically.
-func NewScreenFramebufferImage(width, height int) *Image {
-	i := &Image{
-		image:     graphicscommand.NewImage(width, height, true),
-		width:     width,
-		height:    height,
-		imageType: ImageTypeScreenFramebuffer,
-	}
-	clearImage(i.image)
-	theImages.add(i)
-	return i
 }
 
 // quadVertices returns vertices to render a quad. These values are passed to graphicscommand.Image.

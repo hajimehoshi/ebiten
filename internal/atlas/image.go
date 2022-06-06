@@ -283,8 +283,11 @@ func (i *Image) ensureIsolated() {
 	sy0 /= float32(sh)
 	sx1 /= float32(sw)
 	sy1 /= float32(sh)
-	newImg := restorable.NewImage(w, h)
-	newImg.SetVolatile(i.volatile)
+	typ := restorable.ImageTypeRegular
+	if i.volatile {
+		typ = restorable.ImageTypeVolatile
+	}
+	newImg := restorable.NewImage(w, h, typ)
 	vs := []float32{
 		dx0, dy0, sx0, sy0, 1, 1, 1, 1,
 		dx1, dy0, sx1, sy0, 1, 1, 1, 1,
@@ -757,16 +760,19 @@ func (i *Image) allocate(putOnAtlas bool) {
 	if i.screen {
 		// A screen image doesn't have a padding.
 		i.backend = &backend{
-			restorable: restorable.NewScreenFramebufferImage(i.width, i.height),
+			restorable: restorable.NewImage(i.width, i.height, restorable.ImageTypeScreenFramebuffer),
 		}
 		return
 	}
 
 	if !putOnAtlas || !i.canBePutOnAtlas() {
-		i.backend = &backend{
-			restorable: restorable.NewImage(i.width+2*paddingSize, i.height+2*paddingSize),
+		typ := restorable.ImageTypeRegular
+		if i.volatile {
+			typ = restorable.ImageTypeVolatile
 		}
-		i.backend.restorable.SetVolatile(i.volatile)
+		i.backend = &backend{
+			restorable: restorable.NewImage(i.width+2*paddingSize, i.height+2*paddingSize, typ),
+		}
 		return
 	}
 
@@ -785,11 +791,14 @@ func (i *Image) allocate(putOnAtlas bool) {
 		size *= 2
 	}
 
+	typ := restorable.ImageTypeRegular
+	if i.volatile {
+		typ = restorable.ImageTypeVolatile
+	}
 	b := &backend{
-		restorable: restorable.NewImage(size, size),
+		restorable: restorable.NewImage(size, size, typ),
 		page:       packing.NewPage(size, maxSize),
 	}
-	b.restorable.SetVolatile(i.volatile)
 	theBackends = append(theBackends, b)
 
 	n := b.page.Alloc(i.width+2*paddingSize, i.height+2*paddingSize)
