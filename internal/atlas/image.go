@@ -323,9 +323,11 @@ func (i *Image) putOnAtlas(graphicsDriver graphicsdriver.Graphics) error {
 	if !i.canBePutOnAtlas() {
 		panic("atlas: putOnAtlas cannot be called on a image that cannot be on an atlas")
 	}
+	if i.volatile {
+		panic("atlas: a volatile image cannot be put on an atlas")
+	}
 
 	newI := NewImage(i.width, i.height)
-	newI.SetVolatile(i.volatile)
 
 	if restorable.NeedsRestoring() {
 		// If the underlying graphics driver requires restoring from the context lost, the pixel data is
