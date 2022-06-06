@@ -127,7 +127,7 @@ func ensureEmptyImage() *Image {
 	// w and h are the empty image's size. They indicate the 1x1 image with 1px padding around.
 	const w, h = 3, 3
 	emptyImage = &Image{
-		image:    graphicscommand.NewImage(w, h),
+		image:    graphicscommand.NewImage(w, h, false),
 		width:    w,
 		height:   h,
 		priority: true,
@@ -155,7 +155,7 @@ func NewImage(width, height int) *Image {
 	}
 
 	i := &Image{
-		image:  graphicscommand.NewImage(width, height),
+		image:  graphicscommand.NewImage(width, height, false),
 		width:  width,
 		height: height,
 	}
@@ -237,7 +237,7 @@ func (i *Image) Extend(width, height int) *Image {
 // Note that Dispose is not called automatically.
 func NewScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
-		image:     graphicscommand.NewScreenFramebufferImage(width, height),
+		image:     graphicscommand.NewImage(width, height, true),
 		width:     width,
 		height:    height,
 		imageType: ImageTypeScreenFramebuffer,
@@ -600,13 +600,13 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 	case ImageTypeScreenFramebuffer:
 		// The screen image should also be recreated because framebuffer might
 		// be changed.
-		i.image = graphicscommand.NewScreenFramebufferImage(w, h)
+		i.image = graphicscommand.NewImage(w, h, true)
 		i.basePixels = Pixels{}
 		i.clearDrawTrianglesHistory()
 		i.stale = false
 		return nil
 	case ImageTypeVolatile:
-		i.image = graphicscommand.NewImage(w, h)
+		i.image = graphicscommand.NewImage(w, h, false)
 		clearImage(i.image)
 		return nil
 	}
@@ -615,7 +615,7 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 		panic("restorable: pixels must not be stale when restoring")
 	}
 
-	gimg := graphicscommand.NewImage(w, h)
+	gimg := graphicscommand.NewImage(w, h, false)
 	// Clear the image explicitly.
 	if i != ensureEmptyImage() {
 		// As clearImage uses emptyImage, clearImage cannot be called on emptyImage.

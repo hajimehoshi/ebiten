@@ -615,6 +615,7 @@ type newImageCommand struct {
 	result *Image
 	width  int
 	height int
+	screen bool
 }
 
 func (c *newImageCommand) String() string {
@@ -623,29 +624,12 @@ func (c *newImageCommand) String() string {
 
 // Exec executes a newImageCommand.
 func (c *newImageCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
-	i, err := graphicsDriver.NewImage(c.width, c.height)
-	if err != nil {
-		return err
-	}
-	c.result.image = i
-	return nil
-}
-
-// newScreenFramebufferImageCommand is a command to create a special image for the screen.
-type newScreenFramebufferImageCommand struct {
-	result *Image
-	width  int
-	height int
-}
-
-func (c *newScreenFramebufferImageCommand) String() string {
-	return fmt.Sprintf("new-screen-framebuffer-image: result: %d, width: %d, height: %d", c.result.id, c.width, c.height)
-}
-
-// Exec executes a newScreenFramebufferImageCommand.
-func (c *newScreenFramebufferImageCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
 	var err error
-	c.result.image, err = graphicsDriver.NewScreenFramebufferImage(c.width, c.height)
+	if c.screen {
+		c.result.image, err = graphicsDriver.NewScreenFramebufferImage(c.width, c.height)
+	} else {
+		c.result.image, err = graphicsDriver.NewImage(c.width, c.height)
+	}
 	return err
 }
 

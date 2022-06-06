@@ -57,32 +57,18 @@ func genNextID() int {
 // NewImage returns a new image.
 //
 // Note that the image is not initialized yet.
-func NewImage(width, height int) *Image {
+func NewImage(width, height int, screenFramebuffer bool) *Image {
 	i := &Image{
 		width:  width,
 		height: height,
+		screen: screenFramebuffer,
 		id:     genNextID(),
 	}
 	c := &newImageCommand{
 		result: i,
 		width:  width,
 		height: height,
-	}
-	theCommandQueue.Enqueue(c)
-	return i
-}
-
-func NewScreenFramebufferImage(width, height int) *Image {
-	i := &Image{
-		width:  width,
-		height: height,
-		screen: true,
-		id:     genNextID(),
-	}
-	c := &newScreenFramebufferImageCommand{
-		result: i,
-		width:  width,
-		height: height,
+		screen: screenFramebuffer,
 	}
 	theCommandQueue.Enqueue(c)
 	return i
