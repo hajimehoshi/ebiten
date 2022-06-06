@@ -619,7 +619,7 @@ type newImageCommand struct {
 }
 
 func (c *newImageCommand) String() string {
-	return fmt.Sprintf("new-image: result: %d, width: %d, height: %d", c.result.id, c.width, c.height)
+	return fmt.Sprintf("new-image: result: %d, width: %d, height: %d, screen: %t", c.result.id, c.width, c.height, c.screen)
 }
 
 // Exec executes a newImageCommand.
