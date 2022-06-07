@@ -86,8 +86,8 @@ const (
 	// ImageTypeRegular indicates the image is a regular image.
 	ImageTypeRegular ImageType = iota
 
-	// ImageTypeScreenFramebuffer indicates the image is used as an actual screen.
-	ImageTypeScreenFramebuffer
+	// ImageTypeScreen indicates the image is used as an actual screen.
+	ImageTypeScreen
 
 	// ImageTypeVolatile indicates the image is cleared whenever a frame starts.
 	ImageTypeVolatile
@@ -155,7 +155,7 @@ func NewImage(width, height int, imageType ImageType) *Image {
 	}
 
 	i := &Image{
-		image:     graphicscommand.NewImage(width, height, imageType == ImageTypeScreenFramebuffer),
+		image:     graphicscommand.NewImage(width, height, imageType == ImageTypeScreen),
 		width:     width,
 		height:    height,
 		imageType: imageType,
@@ -313,7 +313,7 @@ func (i *Image) ReplacePixels(pixels []byte, mask []byte, x, y, width, height in
 		i.image.ReplacePixels(make([]byte, 4*width*height), nil, x, y, width, height)
 	}
 
-	if !NeedsRestoring() || i.imageType == ImageTypeScreenFramebuffer || i.imageType == ImageTypeVolatile {
+	if !NeedsRestoring() || i.imageType == ImageTypeScreen || i.imageType == ImageTypeVolatile {
 		i.makeStale()
 		return
 	}
@@ -387,7 +387,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [gra
 		}
 	}
 
-	if srcstale || i.imageType == ImageTypeScreenFramebuffer || !NeedsRestoring() || i.imageType == ImageTypeVolatile {
+	if srcstale || i.imageType == ImageTypeScreen || !NeedsRestoring() || i.imageType == ImageTypeVolatile {
 		i.makeStale()
 	} else {
 		i.appendDrawTrianglesHistory(srcs, offsets, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, shader, uniforms, evenOdd)
@@ -412,7 +412,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [gra
 
 // appendDrawTrianglesHistory appends a draw-image history item to the image.
 func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
-	if i.stale || i.imageType == ImageTypeVolatile || i.imageType == ImageTypeScreenFramebuffer {
+	if i.stale || i.imageType == ImageTypeVolatile || i.imageType == ImageTypeScreen {
 		return
 	}
 	// TODO: Would it be possible to merge draw image history items?
@@ -518,7 +518,7 @@ func (i *Image) resolveStale(graphicsDriver graphicsdriver.Graphics) error {
 	if i.imageType == ImageTypeVolatile {
 		return nil
 	}
-	if i.imageType == ImageTypeScreenFramebuffer {
+	if i.imageType == ImageTypeScreen {
 		return nil
 	}
 	if !i.stale {
@@ -580,7 +580,7 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 	// Do not dispose the image here. The image should be already disposed.
 
 	switch i.imageType {
-	case ImageTypeScreenFramebuffer:
+	case ImageTypeScreen:
 		// The screen image should also be recreated because framebuffer might
 		// be changed.
 		i.image = graphicscommand.NewImage(w, h, true)

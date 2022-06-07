@@ -94,7 +94,7 @@ func RestoreIfNeeded(graphicsDriver graphicsdriver.Graphics) error {
 			// This assumes that if there is one image that is invalidated, all images are invalidated.
 			for img := range theImages.images {
 				// The screen image might not have a texture. Skip this.
-				if img.imageType == ImageTypeScreenFramebuffer {
+				if img.imageType == ImageTypeScreen {
 					continue
 				}
 				var err error

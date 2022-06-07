@@ -760,7 +760,7 @@ func (i *Image) allocate(putOnAtlas bool) {
 	if i.screen {
 		// A screen image doesn't have a padding.
 		i.backend = &backend{
-			restorable: restorable.NewImage(i.width, i.height, restorable.ImageTypeScreenFramebuffer),
+			restorable: restorable.NewImage(i.width, i.height, restorable.ImageTypeScreen),
 		}
 		return
 	}
