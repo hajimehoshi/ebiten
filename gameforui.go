@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -34,7 +35,17 @@ func (c *gameForUI) NewOffscreenImage(width, height int) *ui.Image {
 		c.offscreen.Dispose()
 		c.offscreen = nil
 	}
-	c.offscreen = NewImage(width, height)
+
+	// Keep the offscreen an isolated image from an atlas (#1938).
+	// The shader program for the screen is special and doesn't work well with an image on an atlas.
+	// An image on an atlas is surrounded by a transparent edge,
+	// and the shader program unexpectedly picks the pixel on the edges.
+	imageType := atlas.ImageTypeIsolated
+	if ui.IsScreenClearedEveryFrame() {
+		// A violatile image is also always isolated.
+		imageType = atlas.ImageTypeVolatile
+	}
+	c.offscreen = newImage(width, height, imageType)
 	return c.offscreen.image
 }
 

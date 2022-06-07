@@ -19,6 +19,7 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
+	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -35,36 +36,13 @@ type Mipmap struct {
 	imgs     map[int]*buffered.Image
 }
 
-func New(width, height int) *Mipmap {
+func New(width, height int, imageType atlas.ImageType) *Mipmap {
 	return &Mipmap{
-		width:  width,
-		height: height,
-		orig:   buffered.NewImage(width, height),
+		width:    width,
+		height:   height,
+		orig:     buffered.NewImage(width, height, imageType),
+		volatile: imageType == atlas.ImageTypeVolatile,
 	}
-}
-
-func NewScreenFramebufferMipmap(width, height int) *Mipmap {
-	return &Mipmap{
-		width:  width,
-		height: height,
-		orig:   buffered.NewScreenFramebufferImage(width, height),
-	}
-}
-
-func (m *Mipmap) SetIsolated(isolated bool) {
-	m.orig.SetIsolated(isolated)
-}
-
-func (m *Mipmap) SetVolatile(volatile bool) {
-	if m.volatile == volatile {
-		return
-	}
-
-	m.volatile = volatile
-	if m.volatile {
-		m.disposeMipmaps()
-	}
-	m.orig.SetVolatile(volatile)
 }
 
 func (m *Mipmap) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name string, blackbg bool) error {
@@ -203,8 +181,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		m.setImg(level, nil)
 		return nil
 	}
-	s := buffered.NewImage(w2, h2)
-	s.SetVolatile(m.volatile)
+	s := buffered.NewImage(w2, h2, atlas.ImageTypeVolatile)
 
 	dstRegion := graphicsdriver.Region{
 		X:      0,

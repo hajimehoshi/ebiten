@@ -16,6 +16,7 @@ package ui
 
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
+	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
@@ -36,25 +37,12 @@ type Image struct {
 	volatile bool
 }
 
-func NewImage(width, height int) *Image {
+func NewImage(width, height int, imageType atlas.ImageType) *Image {
 	return &Image{
-		mipmap: mipmap.New(width, height),
+		mipmap: mipmap.New(width, height, imageType),
 		width:  width,
 		height: height,
 	}
-}
-
-func newScreenFramebufferImage(width, height int) *Image {
-	return &Image{
-		mipmap: mipmap.NewScreenFramebufferMipmap(width, height),
-		width:  width,
-		height: height,
-	}
-}
-
-func (i *Image) setVolatile(volatile bool) {
-	i.volatile = volatile
-	i.mipmap.SetVolatile(volatile)
 }
 
 func (i *Image) MarkDisposed() {
@@ -112,7 +100,7 @@ func DumpImages(dir string) error {
 }
 
 var (
-	emptyImage = NewImage(3, 3)
+	emptyImage = NewImage(3, 3, atlas.ImageTypeRegular)
 )
 
 func init() {

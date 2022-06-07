@@ -20,6 +20,7 @@ import (
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
+	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -787,6 +788,10 @@ func (i *Image) ReplacePixels(pixels []byte) {
 //
 // NewImage panics if RunGame already finishes.
 func NewImage(width, height int) *Image {
+	return newImage(width, height, atlas.ImageTypeRegular)
+}
+
+func newImage(width, height int, imageType atlas.ImageType) *Image {
 	if isRunGameEnded() {
 		panic(fmt.Sprintf("ebiten: NewImage cannot be called after RunGame finishes"))
 	}
@@ -797,7 +802,7 @@ func NewImage(width, height int) *Image {
 		panic(fmt.Sprintf("ebiten: height at NewImage must be positive but %d", height))
 	}
 	i := &Image{
-		image:  ui.NewImage(width, height),
+		image:  ui.NewImage(width, height, imageType),
 		bounds: image.Rect(0, 0, width, height),
 	}
 	i.addr = i
@@ -839,7 +844,7 @@ func NewImageFromImage(source image.Image) *Image {
 	}
 
 	i := &Image{
-		image:  ui.NewImage(width, height),
+		image:  ui.NewImage(width, height, atlas.ImageTypeRegular),
 		bounds: image.Rect(0, 0, width, height),
 	}
 	i.addr = i

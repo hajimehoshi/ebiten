@@ -206,14 +206,21 @@ func init() {
 	backendsM.Lock()
 }
 
+type ImageType int
+
+const (
+	ImageTypeRegular ImageType = iota
+	ImageTypeScreen
+	ImageTypeVolatile
+	ImageTypeIsolated
+)
+
 // Image is a rectangle pixel set that might be on an atlas.
 type Image struct {
-	width    int
-	height   int
-	disposed bool
-	isolated bool
-	volatile bool
-	screen   bool
+	width     int
+	height    int
+	imageType ImageType
+	disposed  bool
 
 	backend *backend
 
@@ -284,7 +291,7 @@ func (i *Image) ensureIsolated() {
 	sx1 /= float32(sw)
 	sy1 /= float32(sh)
 	typ := restorable.ImageTypeRegular
-	if i.volatile {
+	if i.imageType == ImageTypeVolatile {
 		typ = restorable.ImageTypeVolatile
 	}
 	newImg := restorable.NewImage(w, h, typ)
@@ -326,11 +333,8 @@ func (i *Image) putOnAtlas(graphicsDriver graphicsdriver.Graphics) error {
 	if !i.canBePutOnAtlas() {
 		panic("atlas: putOnAtlas cannot be called on a image that cannot be on an atlas")
 	}
-	if i.volatile {
-		panic("atlas: a volatile image cannot be put on an atlas")
-	}
 
-	newI := NewImage(i.width, i.height)
+	newI := NewImage(i.width, i.height, i.imageType)
 
 	if restorable.NeedsRestoring() {
 		// If the underlying graphics driver requires restoring from the context lost, the pixel data is
@@ -433,7 +437,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 
 	var dx, dy float32
 	// A screen image doesn't have its padding.
-	if !i.screen {
+	if i.imageType != ImageTypeScreen {
 		x, y, _, _ := i.regionWithPadding()
 		dx = float32(x) + paddingSize
 		dy = float32(y) + paddingSize
@@ -708,43 +712,20 @@ func (i *Image) dispose(markDisposed bool) {
 	theBackends = append(theBackends[:index], theBackends[index+1:]...)
 }
 
-func NewImage(width, height int) *Image {
+func NewImage(width, height int, imageType ImageType) *Image {
 	// Actual allocation is done lazily, and the lock is not needed.
 	return &Image{
-		width:  width,
-		height: height,
+		width:     width,
+		height:    height,
+		imageType: imageType,
 	}
-}
-
-func (i *Image) SetIsolated(isolated bool) {
-	if i.backend != nil {
-		panic("atlas: SetIsolated must be called before its backend is allocated")
-	}
-	i.isolated = isolated
-}
-
-func (i *Image) SetVolatile(volatile bool) {
-	i.volatile = volatile
-	if i.backend == nil {
-		return
-	}
-	if i.volatile {
-		i.ensureIsolated()
-	}
-	i.backend.restorable.SetVolatile(i.volatile)
 }
 
 func (i *Image) canBePutOnAtlas() bool {
 	if minSize == 0 || maxSize == 0 {
 		panic("atlas: minSize or maxSize must be initialized")
 	}
-	if i.isolated {
-		return false
-	}
-	if i.volatile {
-		return false
-	}
-	if i.screen {
+	if i.imageType != ImageTypeRegular {
 		return false
 	}
 	return i.width+2*paddingSize <= maxSize && i.height+2*paddingSize <= maxSize
@@ -757,7 +738,7 @@ func (i *Image) allocate(putOnAtlas bool) {
 
 	runtime.SetFinalizer(i, (*Image).MarkDisposed)
 
-	if i.screen {
+	if i.imageType == ImageTypeScreen {
 		// A screen image doesn't have a padding.
 		i.backend = &backend{
 			restorable: restorable.NewImage(i.width, i.height, restorable.ImageTypeScreen),
@@ -767,7 +748,7 @@ func (i *Image) allocate(putOnAtlas bool) {
 
 	if !putOnAtlas || !i.canBePutOnAtlas() {
 		typ := restorable.ImageTypeRegular
-		if i.volatile {
+		if i.imageType == ImageTypeVolatile {
 			typ = restorable.ImageTypeVolatile
 		}
 		i.backend = &backend{
@@ -792,7 +773,7 @@ func (i *Image) allocate(putOnAtlas bool) {
 	}
 
 	typ := restorable.ImageTypeRegular
-	if i.volatile {
+	if i.imageType == ImageTypeVolatile {
 		typ = restorable.ImageTypeVolatile
 	}
 	b := &backend{
@@ -814,16 +795,6 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path stri
 	defer backendsM.Unlock()
 
 	return i.backend.restorable.Dump(graphicsDriver, path, blackbg, image.Rect(paddingSize, paddingSize, paddingSize+i.width, paddingSize+i.height))
-}
-
-func NewScreenFramebufferImage(width, height int) *Image {
-	// Actual allocation is done lazily.
-	i := &Image{
-		width:  width,
-		height: height,
-		screen: true,
-	}
-	return i
 }
 
 func EndFrame(graphicsDriver graphicsdriver.Graphics) error {

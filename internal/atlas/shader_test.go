@@ -29,7 +29,7 @@ import (
 func TestShaderFillTwice(t *testing.T) {
 	const w, h = 1, 1
 
-	dst := atlas.NewImage(w, h)
+	dst := atlas.NewImage(w, h, atlas.ImageTypeRegular)
 
 	vs := quadVertices(w, h, 0, 0, 1)
 	is := graphics.QuadIndices()
@@ -60,10 +60,10 @@ func TestShaderFillTwice(t *testing.T) {
 func TestImageDrawTwice(t *testing.T) {
 	const w, h = 1, 1
 
-	dst := atlas.NewImage(w, h)
-	src0 := atlas.NewImage(w, h)
+	dst := atlas.NewImage(w, h, atlas.ImageTypeRegular)
+	src0 := atlas.NewImage(w, h, atlas.ImageTypeRegular)
 	src0.ReplacePixels([]byte{0xff, 0xff, 0xff, 0xff}, nil)
-	src1 := atlas.NewImage(w, h)
+	src1 := atlas.NewImage(w, h, atlas.ImageTypeRegular)
 	src1.ReplacePixels([]byte{0x80, 0x80, 0x80, 0xff}, nil)
 
 	vs := quadVertices(w, h, 0, 0, 1)

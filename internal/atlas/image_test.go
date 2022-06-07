@@ -60,25 +60,25 @@ const bigSize = 2049
 func TestEnsureIsolated(t *testing.T) {
 	// Create img1 and img2 with this size so that the next images are allocated
 	// with non-upper-left location.
-	img1 := atlas.NewImage(bigSize, 100)
+	img1 := atlas.NewImage(bigSize, 100, atlas.ImageTypeRegular)
 	defer img1.MarkDisposed()
 	// Ensure img1's region is allocated.
 	img1.ReplacePixels(make([]byte, 4*bigSize*100), nil)
 
-	img2 := atlas.NewImage(100, bigSize)
+	img2 := atlas.NewImage(100, bigSize, atlas.ImageTypeRegular)
 	defer img2.MarkDisposed()
 	img2.ReplacePixels(make([]byte, 4*100*bigSize), nil)
 
 	const size = 32
 
-	img3 := atlas.NewImage(size/2, size/2)
+	img3 := atlas.NewImage(size/2, size/2, atlas.ImageTypeRegular)
 	defer img3.MarkDisposed()
 	img3.ReplacePixels(make([]byte, (size/2)*(size/2)*4), nil)
 
-	img4 := atlas.NewImage(size, size)
+	img4 := atlas.NewImage(size, size, atlas.ImageTypeRegular)
 	defer img4.MarkDisposed()
 
-	img5 := atlas.NewImage(size/2, size/2)
+	img5 := atlas.NewImage(size/2, size/2, atlas.ImageTypeRegular)
 	defer img3.MarkDisposed()
 
 	pix := make([]byte, size*size*4)
@@ -155,18 +155,18 @@ func TestEnsureIsolated(t *testing.T) {
 func TestReputOnAtlas(t *testing.T) {
 	const size = 16
 
-	img0 := atlas.NewImage(size, size)
+	img0 := atlas.NewImage(size, size, atlas.ImageTypeRegular)
 	defer img0.MarkDisposed()
 	img0.ReplacePixels(make([]byte, 4*size*size), nil)
 
-	img1 := atlas.NewImage(size, size)
+	img1 := atlas.NewImage(size, size, atlas.ImageTypeRegular)
 	defer img1.MarkDisposed()
 	img1.ReplacePixels(make([]byte, 4*size*size), nil)
 	if got, want := img1.IsOnAtlasForTesting(), true; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
-	img2 := atlas.NewImage(size, size)
+	img2 := atlas.NewImage(size, size, atlas.ImageTypeRegular)
 	defer img2.MarkDisposed()
 	pix := make([]byte, 4*size*size)
 	for j := 0; j < size; j++ {
@@ -179,8 +179,8 @@ func TestReputOnAtlas(t *testing.T) {
 	}
 	img2.ReplacePixels(pix, nil)
 
-	img3 := atlas.NewImage(size, size)
-	img3.SetVolatile(true)
+	// Create a volatile image. This should always be isolated.
+	img3 := atlas.NewImage(size, size, atlas.ImageTypeVolatile)
 	defer img3.MarkDisposed()
 	img1.ReplacePixels(make([]byte, 4*size*size), nil)
 	if got, want := img3.IsOnAtlasForTesting(), false; got != want {
@@ -303,7 +303,7 @@ func TestReputOnAtlas(t *testing.T) {
 
 func TestExtend(t *testing.T) {
 	const w0, h0 = 100, 100
-	img0 := atlas.NewImage(w0, h0)
+	img0 := atlas.NewImage(w0, h0, atlas.ImageTypeRegular)
 	defer img0.MarkDisposed()
 
 	p0 := make([]byte, 4*w0*h0)
@@ -316,7 +316,7 @@ func TestExtend(t *testing.T) {
 	img0.ReplacePixels(p0, nil)
 
 	const w1, h1 = minImageSizeForTesting + 1, 100
-	img1 := atlas.NewImage(w1, h1)
+	img1 := atlas.NewImage(w1, h1, atlas.ImageTypeRegular)
 	defer img1.MarkDisposed()
 
 	p1 := make([]byte, 4*w1*h1)
@@ -370,9 +370,9 @@ func TestExtend(t *testing.T) {
 
 func TestReplacePixelsAfterDrawTriangles(t *testing.T) {
 	const w, h = 256, 256
-	src := atlas.NewImage(w, h)
+	src := atlas.NewImage(w, h, atlas.ImageTypeRegular)
 	defer src.MarkDisposed()
-	dst := atlas.NewImage(w, h)
+	dst := atlas.NewImage(w, h, atlas.ImageTypeRegular)
 	defer dst.MarkDisposed()
 
 	pix := make([]byte, 4*w*h)
@@ -418,9 +418,9 @@ func TestReplacePixelsAfterDrawTriangles(t *testing.T) {
 // Issue #887
 func TestSmallImages(t *testing.T) {
 	const w, h = 4, 8
-	src := atlas.NewImage(w, h)
+	src := atlas.NewImage(w, h, atlas.ImageTypeRegular)
 	defer src.MarkDisposed()
-	dst := atlas.NewImage(w, h)
+	dst := atlas.NewImage(w, h, atlas.ImageTypeRegular)
 	defer dst.MarkDisposed()
 
 	pix := make([]byte, 4*w*h)
@@ -463,11 +463,11 @@ func TestSmallImages(t *testing.T) {
 // Issue #887
 func TestLongImages(t *testing.T) {
 	const w, h = 1, 6
-	src := atlas.NewImage(w, h)
+	src := atlas.NewImage(w, h, atlas.ImageTypeRegular)
 	defer src.MarkDisposed()
 
 	const dstW, dstH = 256, 256
-	dst := atlas.NewImage(dstW, dstH)
+	dst := atlas.NewImage(dstW, dstH, atlas.ImageTypeRegular)
 	defer dst.MarkDisposed()
 
 	pix := make([]byte, 4*w*h)
@@ -511,11 +511,11 @@ func TestLongImages(t *testing.T) {
 func TestDisposeImmediately(t *testing.T) {
 	// This tests restorable.Image.ClearPixels is called but ReplacePixels is not called.
 
-	img0 := atlas.NewImage(16, 16)
+	img0 := atlas.NewImage(16, 16, atlas.ImageTypeRegular)
 	img0.EnsureIsolatedForTesting()
 	defer img0.MarkDisposed()
 
-	img1 := atlas.NewImage(16, 16)
+	img1 := atlas.NewImage(16, 16, atlas.ImageTypeRegular)
 	img1.EnsureIsolatedForTesting()
 	defer img1.MarkDisposed()
 
@@ -524,12 +524,12 @@ func TestDisposeImmediately(t *testing.T) {
 
 // Issue #1028
 func TestExtendWithBigImage(t *testing.T) {
-	img0 := atlas.NewImage(1, 1)
+	img0 := atlas.NewImage(1, 1, atlas.ImageTypeRegular)
 	defer img0.MarkDisposed()
 
 	img0.ReplacePixels(make([]byte, 4*1*1), nil)
 
-	img1 := atlas.NewImage(minImageSizeForTesting+1, minImageSizeForTesting+1)
+	img1 := atlas.NewImage(minImageSizeForTesting+1, minImageSizeForTesting+1, atlas.ImageTypeRegular)
 	defer img1.MarkDisposed()
 
 	img1.ReplacePixels(make([]byte, 4*(minImageSizeForTesting+1)*(minImageSizeForTesting+1)), nil)
@@ -539,7 +539,7 @@ func TestExtendWithBigImage(t *testing.T) {
 func TestMaxImageSize(t *testing.T) {
 	// This tests that a too-big image is allocated correctly.
 	s := maxImageSizeForTesting - 2*atlas.PaddingSize
-	img := atlas.NewImage(s, s)
+	img := atlas.NewImage(s, s, atlas.ImageTypeRegular)
 	defer img.MarkDisposed()
 	img.ReplacePixels(make([]byte, 4*s*s), nil)
 }
@@ -552,7 +552,7 @@ func Disable_TestMinImageSize(t *testing.T) {
 	// This tests that extending a backend works correctly.
 	// Though the image size is minimum size of the backend, extending the backend happens due to the paddings.
 	s := minImageSizeForTesting
-	img := atlas.NewImage(s, s)
+	img := atlas.NewImage(s, s, atlas.ImageTypeRegular)
 	defer img.MarkDisposed()
 	img.ReplacePixels(make([]byte, 4*s*s), nil)
 }
@@ -561,11 +561,11 @@ func Disable_TestMinImageSize(t *testing.T) {
 func TestDisposedAndReputOnAtlas(t *testing.T) {
 	const size = 16
 
-	src := atlas.NewImage(size, size)
+	src := atlas.NewImage(size, size, atlas.ImageTypeRegular)
 	defer src.MarkDisposed()
-	src2 := atlas.NewImage(size, size)
+	src2 := atlas.NewImage(size, size, atlas.ImageTypeRegular)
 	defer src2.MarkDisposed()
-	dst := atlas.NewImage(size, size)
+	dst := atlas.NewImage(size, size, atlas.ImageTypeRegular)
 	defer dst.MarkDisposed()
 
 	// Use src as a render target so that src is not on an atlas.
@@ -609,11 +609,11 @@ func TestDisposedAndReputOnAtlas(t *testing.T) {
 func TestImageIsNotReputOnAtlasWithoutUsingAsSource(t *testing.T) {
 	const size = 16
 
-	src := atlas.NewImage(size, size)
+	src := atlas.NewImage(size, size, atlas.ImageTypeRegular)
 	defer src.MarkDisposed()
-	src2 := atlas.NewImage(size, size)
+	src2 := atlas.NewImage(size, size, atlas.ImageTypeRegular)
 	defer src2.MarkDisposed()
-	dst := atlas.NewImage(size, size)
+	dst := atlas.NewImage(size, size, atlas.ImageTypeRegular)
 	defer dst.MarkDisposed()
 
 	// Use src as a render target so that src is not on an atlas.

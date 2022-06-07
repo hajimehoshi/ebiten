@@ -21,6 +21,7 @@ import (
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
+	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
@@ -149,13 +150,6 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 		w, h := c.offscreen.width, c.offscreen.height
 		c.offscreen.MarkDisposed()
 		c.offscreen = c.game.NewOffscreenImage(w, h)
-
-		// TODO: Give volatile/isolated property to the constructor.
-		if theGlobalState.isScreenClearedEveryFrame() {
-			c.offscreen.setVolatile(true)
-		} else {
-			c.offscreen.mipmap.SetIsolated(true)
-		}
 	}
 
 	// Even though updateCount == 0, the offscreen is cleared and Draw is called.
@@ -244,7 +238,7 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFac
 		}
 	}
 	if c.screen == nil {
-		c.screen = newScreenFramebufferImage(sw, sh)
+		c.screen = NewImage(sw, sh, atlas.ImageTypeScreen)
 	}
 
 	if c.offscreen != nil {
@@ -255,17 +249,6 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFac
 	}
 	if c.offscreen == nil {
 		c.offscreen = c.game.NewOffscreenImage(ow, oh)
-
-		// TODO: Give volatile/isolated property to the constructor.
-		if theGlobalState.isScreenClearedEveryFrame() {
-			c.offscreen.setVolatile(true)
-		} else {
-			// Keep the offscreen an isolated image from an atlas (#1938).
-			// The shader program for the screen is special and doesn't work well with an image on an atlas.
-			// An image on an atlas is surrounded by a transparent edge,
-			// and the shader program unexpectedly picks the pixel on the edges.
-			c.offscreen.mipmap.SetIsolated(true)
-		}
 	}
 
 	return ow, oh

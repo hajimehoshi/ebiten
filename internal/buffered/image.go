@@ -45,70 +45,25 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 	return atlas.EndFrame(graphicsDriver)
 }
 
-func NewImage(width, height int) *Image {
+func NewImage(width, height int, imageType atlas.ImageType) *Image {
 	i := &Image{
 		width:  width,
 		height: height,
 	}
-	i.initialize()
+	i.initialize(imageType)
 	return i
 }
 
-func (i *Image) initialize() {
+func (i *Image) initialize(imageType atlas.ImageType) {
 	if maybeCanAddDelayedCommand() {
 		if tryAddDelayedCommand(func() error {
-			i.initialize()
+			i.initialize(imageType)
 			return nil
 		}) {
 			return
 		}
 	}
-	i.img = atlas.NewImage(i.width, i.height)
-}
-
-func (i *Image) SetIsolated(isolated bool) {
-	if maybeCanAddDelayedCommand() {
-		if tryAddDelayedCommand(func() error {
-			i.SetIsolated(isolated)
-			return nil
-		}) {
-			return
-		}
-	}
-	i.img.SetIsolated(isolated)
-}
-
-func (i *Image) SetVolatile(volatile bool) {
-	if maybeCanAddDelayedCommand() {
-		if tryAddDelayedCommand(func() error {
-			i.SetVolatile(volatile)
-			return nil
-		}) {
-			return
-		}
-	}
-	i.img.SetVolatile(volatile)
-}
-
-func NewScreenFramebufferImage(width, height int) *Image {
-	i := &Image{}
-	i.initializeAsScreenFramebuffer(width, height)
-	return i
-}
-
-func (i *Image) initializeAsScreenFramebuffer(width, height int) {
-	if maybeCanAddDelayedCommand() {
-		if tryAddDelayedCommand(func() error {
-			i.initializeAsScreenFramebuffer(width, height)
-			return nil
-		}) {
-			return
-		}
-	}
-
-	i.img = atlas.NewScreenFramebufferImage(width, height)
-	i.width = width
-	i.height = height
+	i.img = atlas.NewImage(i.width, i.height, imageType)
 }
 
 func (i *Image) invalidatePixels() {
