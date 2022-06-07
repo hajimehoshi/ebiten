@@ -30,9 +30,10 @@ func SetPanicOnErrorOnReadingPixelsForTesting(value bool) {
 }
 
 type Image struct {
-	mipmap *mipmap.Mipmap
-	width  int
-	height int
+	mipmap   *mipmap.Mipmap
+	width    int
+	height   int
+	volatile bool
 }
 
 func NewImage(width, height int) *Image {
@@ -49,6 +50,11 @@ func newScreenFramebufferImage(width, height int) *Image {
 		width:  width,
 		height: height,
 	}
+}
+
+func (i *Image) setVolatile(volatile bool) {
+	i.volatile = volatile
+	i.mipmap.SetVolatile(volatile)
 }
 
 func (i *Image) MarkDisposed() {

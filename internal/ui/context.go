@@ -145,7 +145,18 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 }
 
 func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
-	c.offscreen.mipmap.SetVolatile(theGlobalState.isScreenClearedEveryFrame())
+	if c.offscreen.volatile != theGlobalState.isScreenClearedEveryFrame() {
+		w, h := c.offscreen.width, c.offscreen.height
+		c.offscreen.MarkDisposed()
+		c.offscreen = c.game.NewOffscreenImage(w, h)
+
+		// TODO: Give volatile/isolated property to the constructor.
+		if theGlobalState.isScreenClearedEveryFrame() {
+			c.offscreen.setVolatile(true)
+		} else {
+			c.offscreen.mipmap.SetIsolated(true)
+		}
+	}
 
 	// Even though updateCount == 0, the offscreen is cleared and Draw is called.
 	// Draw should not update the game state and then the screen should not be updated without Update, but
@@ -245,11 +256,16 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFac
 	if c.offscreen == nil {
 		c.offscreen = c.game.NewOffscreenImage(ow, oh)
 
-		// Keep the offscreen an isolated image from an atlas (#1938).
-		// The shader program for the screen is special and doesn't work well with an image on an atlas.
-		// An image on an atlas is surrounded by a transparent edge,
-		// and the shader program unexpectedly picks the pixel on the edges.
-		c.offscreen.mipmap.SetIsolated(true)
+		// TODO: Give volatile/isolated property to the constructor.
+		if theGlobalState.isScreenClearedEveryFrame() {
+			c.offscreen.setVolatile(true)
+		} else {
+			// Keep the offscreen an isolated image from an atlas (#1938).
+			// The shader program for the screen is special and doesn't work well with an image on an atlas.
+			// An image on an atlas is surrounded by a transparent edge,
+			// and the shader program unexpectedly picks the pixel on the edges.
+			c.offscreen.mipmap.SetIsolated(true)
+		}
 	}
 
 	return ow, oh
