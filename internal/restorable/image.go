@@ -90,6 +90,11 @@ const (
 	ImageTypeScreen
 
 	// ImageTypeVolatile indicates the image is cleared whenever a frame starts.
+	//
+	// Regular non-volatile images need to record drawing history or read its pixels from GPU if necessary so that all
+	// the images can be restored automatically from the context lost. However, such recording the drawing history or
+	// reading pixels from GPU are expensive operations. Volatile images can skip such oprations, but the image content
+	// is cleared every frame instead.
 	ImageTypeVolatile
 )
 
@@ -163,29 +168,6 @@ func NewImage(width, height int, imageType ImageType) *Image {
 	clearImage(i.image)
 	theImages.add(i)
 	return i
-}
-
-// SetVolatile sets the volatile state of the image.
-//
-// Regular non-volatile images need to record drawing history or read its pixels from GPU if necessary so that all
-// the images can be restored automatically from the context lost. However, such recording the drawing history or
-// reading pixels from GPU are expensive operations. Volatile images can skip such oprations, but the image content
-// is cleared every frame instead.
-func (i *Image) SetVolatile(volatile bool) {
-	switch i.imageType {
-	case ImageTypeRegular:
-		if volatile {
-			i.imageType = ImageTypeVolatile
-			i.makeStale()
-		}
-	case ImageTypeVolatile:
-		if !volatile {
-			i.imageType = ImageTypeRegular
-			i.makeStale()
-		}
-	default:
-		panic(fmt.Sprintf("restorable: unexpected image type: %d", i.imageType))
-	}
 }
 
 // Extend extends the image by the given size.
