@@ -270,6 +270,10 @@ func (i *Image) ClearPixels(x, y, width, height int) {
 	i.ReplacePixels(nil, nil, x, y, width, height)
 }
 
+func (i *Image) needsRestoring() bool {
+	return i.imageType == ImageTypeRegular
+}
+
 // ReplacePixels replaces the image pixels with the given pixels slice.
 //
 // The specified region must not be overlapped with other regions by ReplacePixels.
@@ -295,7 +299,7 @@ func (i *Image) ReplacePixels(pixels []byte, mask []byte, x, y, width, height in
 		i.image.ReplacePixels(make([]byte, 4*width*height), nil, x, y, width, height)
 	}
 
-	if !NeedsRestoring() || i.imageType == ImageTypeScreen || i.imageType == ImageTypeVolatile {
+	if !NeedsRestoring() || !i.needsRestoring() {
 		i.makeStale()
 		return
 	}
@@ -369,7 +373,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [gra
 		}
 	}
 
-	if srcstale || i.imageType == ImageTypeScreen || !NeedsRestoring() || i.imageType == ImageTypeVolatile {
+	if srcstale || !NeedsRestoring() || !i.needsRestoring() {
 		i.makeStale()
 	} else {
 		i.appendDrawTrianglesHistory(srcs, offsets, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, shader, uniforms, evenOdd)
@@ -394,9 +398,10 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [gra
 
 // appendDrawTrianglesHistory appends a draw-image history item to the image.
 func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
-	if i.stale || i.imageType == ImageTypeVolatile || i.imageType == ImageTypeScreen {
+	if i.stale || !i.needsRestoring() {
 		return
 	}
+
 	// TODO: Would it be possible to merge draw image history items?
 	const maxDrawTrianglesHistoryNum = 1024
 	if len(i.drawTrianglesHistory)+1 > maxDrawTrianglesHistoryNum {
@@ -496,11 +501,7 @@ func (i *Image) resolveStale(graphicsDriver graphicsdriver.Graphics) error {
 	if !NeedsRestoring() {
 		return nil
 	}
-
-	if i.imageType == ImageTypeVolatile {
-		return nil
-	}
-	if i.imageType == ImageTypeScreen {
+	if !i.needsRestoring() {
 		return nil
 	}
 	if !i.stale {
