@@ -42,6 +42,7 @@ func NewShader(ir *shaderir.Program) *Shader {
 // A function from finalizer must not be blocked, but disposing operation can be blocked.
 // Defer this operation until it becomes safe. (#913)
 func (s *Shader) MarkDisposed() {
+	// As MarkDisposed can be invoked from finalizers, backendsM should not be used.
 	deferredM.Lock()
 	deferred = append(deferred, func() {
 		s.dispose()

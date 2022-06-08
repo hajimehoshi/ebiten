@@ -656,6 +656,7 @@ func (i *Image) at(graphicsDriver graphicsdriver.Graphics, x, y int) (byte, byte
 // A function from finalizer must not be blocked, but disposing operation can be blocked.
 // Defer this operation until it becomes safe. (#913)
 func (i *Image) MarkDisposed() {
+	// As MarkDisposed can be invoked from finalizers, backendsM should not be used.
 	deferredM.Lock()
 	deferred = append(deferred, func() {
 		i.dispose(true)
