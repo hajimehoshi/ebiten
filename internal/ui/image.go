@@ -39,9 +39,10 @@ type Image struct {
 
 func NewImage(width, height int, imageType atlas.ImageType) *Image {
 	return &Image{
-		mipmap: mipmap.New(width, height, imageType),
-		width:  width,
-		height: height,
+		mipmap:   mipmap.New(width, height, imageType),
+		width:    width,
+		height:   height,
+		volatile: imageType == atlas.ImageTypeVolatile,
 	}
 }
 
