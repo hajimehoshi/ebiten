@@ -20,7 +20,6 @@ import (
 
 const (
 	BaseCountToPutOnAtlas = baseCountToPutOnAtlas
-	PaddingSize           = paddingSize
 )
 
 func PutImagesOnAtlasForTesting(graphicsDriver graphicsdriver.Graphics) error {
@@ -42,6 +41,10 @@ func SetImageSizeForTesting(min, max int) {
 func ResetImageSizeForTesting() {
 	minSize = oldMinSize
 	maxSize = oldMaxSize
+}
+
+func (i *Image) PaddingSizeForTesting() int {
+	return i.paddingSize()
 }
 
 func (i *Image) IsOnAtlasForTesting() bool {

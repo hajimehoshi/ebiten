@@ -537,11 +537,15 @@ func TestExtendWithBigImage(t *testing.T) {
 
 // Issue #1217
 func TestMaxImageSize(t *testing.T) {
+	img0 := atlas.NewImage(1, 1, atlas.ImageTypeRegular)
+	defer img0.MarkDisposed()
+	paddingSize := img0.PaddingSizeForTesting()
+
 	// This tests that a too-big image is allocated correctly.
-	s := maxImageSizeForTesting - 2*atlas.PaddingSize
-	img := atlas.NewImage(s, s, atlas.ImageTypeRegular)
-	defer img.MarkDisposed()
-	img.ReplacePixels(make([]byte, 4*s*s), nil)
+	s := maxImageSizeForTesting - 2*paddingSize
+	img1 := atlas.NewImage(s, s, atlas.ImageTypeRegular)
+	defer img1.MarkDisposed()
+	img1.ReplacePixels(make([]byte, 4*s*s), nil)
 }
 
 // Issue #1217 (disabled)
