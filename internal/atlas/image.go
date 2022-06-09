@@ -206,7 +206,7 @@ const (
 	ImageTypeRegular ImageType = iota
 	ImageTypeScreen
 	ImageTypeVolatile
-	ImageTypeIsolated
+	ImageTypeUnmanaged
 )
 
 // Image is a rectangle pixel set that might be on an atlas.

@@ -36,11 +36,11 @@ func (c *gameForUI) NewOffscreenImage(width, height int) *ui.Image {
 		c.offscreen = nil
 	}
 
-	// Keep the offscreen an isolated image from an atlas (#1938).
+	// Keep the offscreen an unmanaged image that is always isolated from an atlas (#1938).
 	// The shader program for the screen is special and doesn't work well with an image on an atlas.
 	// An image on an atlas is surrounded by a transparent edge,
 	// and the shader program unexpectedly picks the pixel on the edges.
-	imageType := atlas.ImageTypeIsolated
+	imageType := atlas.ImageTypeUnmanaged
 	if ui.IsScreenClearedEveryFrame() {
 		// A violatile image is also always isolated.
 		imageType = atlas.ImageTypeVolatile
