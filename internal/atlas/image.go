@@ -259,13 +259,10 @@ func (i *Image) resetUsedAsSourceCount() {
 }
 
 func (i *Image) paddingSize() int {
-	// TODO: Do not use paddigns for ImageTypeVolatile and ImageTypeIsoalted.
-	// There is a contradiction with the comment in gameforui.go.
-	// See also #1938 and #2131
-	if i.imageType == ImageTypeScreen {
-		return 0
+	if i.imageType == ImageTypeRegular {
+		return 1
 	}
-	return 1
+	return 0
 }
 
 func (i *Image) ensureIsolated() {
@@ -551,7 +548,17 @@ func (i *Image) replacePixels(pix []byte, mask []byte) {
 		panic(fmt.Sprintf("atlas: len(p) must be %d but %d", l, len(pix)))
 	}
 
-	// TODO: Just copy pix and mask and pass them as they are when i.paddingSize() == 0
+	if i.paddingSize() == 0 {
+		pix2 := make([]byte, len(pix))
+		copy(pix2, pix)
+		var mask2 []byte
+		if mask != nil {
+			mask2 = make([]byte, len(mask))
+			copy(mask2, mask)
+		}
+		i.backend.restorable.ReplacePixels(pix2, mask2, px, py, pw, ph)
+		return
+	}
 
 	pixb := theTemporaryBytes.alloc(4 * pw * ph)
 
