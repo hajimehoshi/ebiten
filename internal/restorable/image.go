@@ -127,7 +127,7 @@ func ensureEmptyImage() *Image {
 		return emptyImage
 	}
 
-	// Initialize the empty image lazily. Some functions like NeedsRestoring might not work at the initial phase.
+	// Initialize the empty image lazily. Some functions like needsRestoring might not work at the initial phase.
 
 	// w and h are the empty image's size. They indicate the 1x1 image with 1px padding around.
 	const w, h = 3, 3
@@ -299,7 +299,7 @@ func (i *Image) ReplacePixels(pixels []byte, mask []byte, x, y, width, height in
 		i.image.ReplacePixels(make([]byte, 4*width*height), nil, x, y, width, height)
 	}
 
-	if !NeedsRestoring() || !i.needsRestoring() {
+	if !needsRestoring() || !i.needsRestoring() {
 		i.makeStale()
 		return
 	}
@@ -373,7 +373,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [gra
 		}
 	}
 
-	if srcstale || !NeedsRestoring() || !i.needsRestoring() {
+	if srcstale || !needsRestoring() || !i.needsRestoring() {
 		i.makeStale()
 	} else {
 		i.appendDrawTrianglesHistory(srcs, offsets, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, shader, uniforms, evenOdd)
@@ -498,7 +498,7 @@ func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error 
 
 // resolveStale resolves the image's 'stale' state.
 func (i *Image) resolveStale(graphicsDriver graphicsdriver.Graphics) error {
-	if !NeedsRestoring() {
+	if !needsRestoring() {
 		return nil
 	}
 	if !i.needsRestoring() {

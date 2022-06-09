@@ -29,8 +29,8 @@ var forceRestoring = false
 
 var needsRestoringByGraphicsDriver bool
 
-// NeedsRestoring reports whether restoring process works or not.
-func NeedsRestoring() bool {
+// needsRestoring reports whether restoring process works or not.
+func needsRestoring() bool {
 	return forceRestoring || needsRestoringByGraphicsDriver
 }
 
@@ -70,7 +70,7 @@ func ResolveStaleImages(graphicsDriver graphicsdriver.Graphics) error {
 	if err := graphicscommand.FlushCommands(graphicsDriver); err != nil {
 		return err
 	}
-	if !NeedsRestoring() {
+	if !needsRestoring() {
 		return nil
 	}
 	return theImages.resolveStaleImages(graphicsDriver)
@@ -80,7 +80,7 @@ func ResolveStaleImages(graphicsDriver graphicsdriver.Graphics) error {
 //
 // Restoring means to make all *graphicscommand.Image objects have their textures and framebuffers.
 func RestoreIfNeeded(graphicsDriver graphicsdriver.Graphics) error {
-	if !NeedsRestoring() {
+	if !needsRestoring() {
 		return nil
 	}
 
@@ -195,7 +195,7 @@ func (i *images) makeStaleIfDependingOnShader(shader *Shader) {
 //
 // Restoring means to make all *graphicscommand.Image objects have their textures and framebuffers.
 func (i *images) restore(graphicsDriver graphicsdriver.Graphics) error {
-	if !NeedsRestoring() {
+	if !needsRestoring() {
 		panic("restorable: restore cannot be called when restoring is disabled")
 	}
 

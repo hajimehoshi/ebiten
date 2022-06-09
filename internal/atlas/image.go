@@ -341,37 +341,18 @@ func (i *Image) putOnAtlas(graphicsDriver graphicsdriver.Graphics) error {
 
 	newI := NewImage(i.width, i.height, ImageTypeRegular)
 
-	if restorable.NeedsRestoring() {
-		// If the underlying graphics driver requires restoring from the context lost, the pixel data is
-		// needed. An image on an atlas must have its complete pixel data in this case.
-		pixels := make([]byte, 4*i.width*i.height)
-		for y := 0; y < i.height; y++ {
-			for x := 0; x < i.width; x++ {
-				r, g, b, a, err := i.at(graphicsDriver, x+i.paddingSize(), y+i.paddingSize())
-				if err != nil {
-					return err
-				}
-				pixels[4*(i.width*y+x)] = r
-				pixels[4*(i.width*y+x)+1] = g
-				pixels[4*(i.width*y+x)+2] = b
-				pixels[4*(i.width*y+x)+3] = a
-			}
-		}
-		newI.replacePixels(pixels, nil)
-	} else {
-		// If the underlying graphics driver doesn't require restoring from the context lost, just a regular
-		// rendering works.
-		w, h := float32(i.width), float32(i.height)
-		vs := graphics.QuadVertices(0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
-		is := graphics.QuadIndices()
-		dr := graphicsdriver.Region{
-			X:      0,
-			Y:      0,
-			Width:  w,
-			Height: h,
-		}
-		newI.drawTriangles([graphics.ShaderImageNum]*Image{i}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false, true)
+	// If the underlying graphics driver doesn't require restoring from the context lost, just a regular
+	// rendering works.
+	w, h := float32(i.width), float32(i.height)
+	vs := graphics.QuadVertices(0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	is := graphics.QuadIndices()
+	dr := graphicsdriver.Region{
+		X:      0,
+		Y:      0,
+		Width:  w,
+		Height: h,
 	}
+	newI.drawTriangles([graphics.ShaderImageNum]*Image{i}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false, true)
 
 	newI.moveTo(i)
 	i.usedAsSourceCount = 0
