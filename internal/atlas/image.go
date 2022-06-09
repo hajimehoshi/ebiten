@@ -335,7 +335,11 @@ func (i *Image) putOnAtlas(graphicsDriver graphicsdriver.Graphics) error {
 		panic("atlas: putOnAtlas cannot be called on a image that cannot be on an atlas")
 	}
 
-	newI := NewImage(i.width, i.height, i.imageType)
+	if i.imageType != ImageTypeRegular {
+		panic(fmt.Sprintf("atlas: the image type must be ImageTypeRegular but %d", i.imageType))
+	}
+
+	newI := NewImage(i.width, i.height, ImageTypeRegular)
 
 	if restorable.NeedsRestoring() {
 		// If the underlying graphics driver requires restoring from the context lost, the pixel data is
