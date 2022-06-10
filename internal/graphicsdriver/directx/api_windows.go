@@ -1675,6 +1675,53 @@ type _ID3D12GraphicsCommandList_Vtbl struct {
 	BeginEvent                         uintptr
 	EndEvent                           uintptr
 	ExecuteIndirect                    uintptr
+
+	// These members are for Xbox.
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	CopyTextureRegion_Xbox uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
+	_                      uintptr
 }
 
 func (i *_ID3D12GraphicsCommandList) ClearDepthStencilView(depthStencilView _D3D12_CPU_DESCRIPTOR_HANDLE, clearFlags _D3D12_CLEAR_FLAGS, depth float32, stencil uint8, numRects uint32, pRects *_D3D12_RECT) {
@@ -1701,20 +1748,34 @@ func (i *_ID3D12GraphicsCommandList) Close() error {
 }
 
 func (i *_ID3D12GraphicsCommandList) CopyTextureRegion_PlacedFootPrint_SubresourceIndex(pDst *_D3D12_TEXTURE_COPY_LOCATION_PlacedFootPrint, dstX uint32, dstY uint32, dstZ uint32, pSrc *_D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex, pSrcBox *_D3D12_BOX) {
-	syscall.Syscall9(i.vtbl.CopyTextureRegion, 7, uintptr(unsafe.Pointer(i)),
-		uintptr(unsafe.Pointer(pDst)), uintptr(dstX), uintptr(dstY),
-		uintptr(dstZ), uintptr(unsafe.Pointer(pSrc)), uintptr(unsafe.Pointer(pSrcBox)),
-		0, 0)
+	if microsoftgdk.IsXbox() {
+		syscall.Syscall9(i.vtbl.CopyTextureRegion_Xbox, 8, uintptr(unsafe.Pointer(i)),
+			uintptr(unsafe.Pointer(pDst)), uintptr(dstX), uintptr(dstY),
+			uintptr(dstZ), uintptr(unsafe.Pointer(pSrc)), uintptr(unsafe.Pointer(pSrcBox)),
+			0, 0)
+	} else {
+		syscall.Syscall9(i.vtbl.CopyTextureRegion, 7, uintptr(unsafe.Pointer(i)),
+			uintptr(unsafe.Pointer(pDst)), uintptr(dstX), uintptr(dstY),
+			uintptr(dstZ), uintptr(unsafe.Pointer(pSrc)), uintptr(unsafe.Pointer(pSrcBox)),
+			0, 0)
+	}
 	runtime.KeepAlive(pDst)
 	runtime.KeepAlive(pSrc)
 	runtime.KeepAlive(pSrcBox)
 }
 
 func (i *_ID3D12GraphicsCommandList) CopyTextureRegion_SubresourceIndex_PlacedFootPrint(pDst *_D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex, dstX uint32, dstY uint32, dstZ uint32, pSrc *_D3D12_TEXTURE_COPY_LOCATION_PlacedFootPrint, pSrcBox *_D3D12_BOX) {
-	syscall.Syscall9(i.vtbl.CopyTextureRegion, 7, uintptr(unsafe.Pointer(i)),
-		uintptr(unsafe.Pointer(pDst)), uintptr(dstX), uintptr(dstY),
-		uintptr(dstZ), uintptr(unsafe.Pointer(pSrc)), uintptr(unsafe.Pointer(pSrcBox)),
-		0, 0)
+	if microsoftgdk.IsXbox() {
+		syscall.Syscall9(i.vtbl.CopyTextureRegion_Xbox, 8, uintptr(unsafe.Pointer(i)),
+			uintptr(unsafe.Pointer(pDst)), uintptr(dstX), uintptr(dstY),
+			uintptr(dstZ), uintptr(unsafe.Pointer(pSrc)), uintptr(unsafe.Pointer(pSrcBox)),
+			0, 0)
+	} else {
+		syscall.Syscall9(i.vtbl.CopyTextureRegion, 7, uintptr(unsafe.Pointer(i)),
+			uintptr(unsafe.Pointer(pDst)), uintptr(dstX), uintptr(dstY),
+			uintptr(dstZ), uintptr(unsafe.Pointer(pSrc)), uintptr(unsafe.Pointer(pSrcBox)),
+			0, 0)
+	}
 	runtime.KeepAlive(pDst)
 	runtime.KeepAlive(pSrc)
 	runtime.KeepAlive(pSrcBox)
