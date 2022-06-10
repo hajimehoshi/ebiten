@@ -561,6 +561,21 @@ func Disable_TestMinImageSize(t *testing.T) {
 	img.ReplacePixels(make([]byte, 4*s*s), nil)
 }
 
+func TestMaxImageSizeExceeded(t *testing.T) {
+	// This tests that a too-big image is allocated correctly.
+	s := maxImageSizeForTesting
+	img := atlas.NewImage(s+1, s, atlas.ImageTypeRegular)
+	defer img.MarkDisposed()
+
+	defer func() {
+		if err := recover(); err == nil {
+			t.Errorf("ReplacePixels must panic but not")
+		}
+	}()
+
+	img.ReplacePixels(make([]byte, 4*(s+1)*s), nil)
+}
+
 // Issue #1421
 func TestDisposedAndReputOnAtlas(t *testing.T) {
 	const size = 16

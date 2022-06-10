@@ -745,6 +745,10 @@ func (i *Image) allocate(putOnAtlas bool) {
 	}
 
 	if !putOnAtlas || !i.canBePutOnAtlas() {
+		if i.width+2*i.paddingSize() > maxSize || i.height+2*i.paddingSize() > maxSize {
+			panic(fmt.Sprintf("atlas: the image being put on an atlas is too big: width: %d, height: %d", i.width, i.height))
+		}
+
 		typ := restorable.ImageTypeRegular
 		if i.imageType == ImageTypeVolatile {
 			typ = restorable.ImageTypeVolatile
@@ -815,8 +819,14 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 		if len(theBackends) != 0 {
 			panic("atlas: all the images must be not on an atlas before the game starts")
 		}
-		minSize = 1024
-		maxSize = restorable.MaxImageSize(graphicsDriver)
+
+		// minSize and maxSize can already be set for testings.
+		if minSize == 0 {
+			minSize = 1024
+		}
+		if maxSize == 0 {
+			maxSize = restorable.MaxImageSize(graphicsDriver)
+		}
 	})
 	if err != nil {
 		return err
