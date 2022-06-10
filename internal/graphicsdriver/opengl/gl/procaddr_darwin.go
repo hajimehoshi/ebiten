@@ -3,7 +3,7 @@
 package gl
 
 import (
-	"github.com/ebiten/purego"
+	"github.com/ebitengine/purego"
 )
 
 var opengl = purego.Dlopen("/System/Library/Frameworks/OpenGL.framework/Versions/Current/OpenGL", purego.RTLD_GLOBAL)

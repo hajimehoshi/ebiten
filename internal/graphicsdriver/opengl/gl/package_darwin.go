@@ -6,7 +6,7 @@ import (
 	"errors"
 	"unsafe"
 
-	"github.com/ebiten/purego"
+	"github.com/ebitengine/purego"
 )
 
 var (
