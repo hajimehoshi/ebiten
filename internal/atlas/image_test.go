@@ -561,6 +561,15 @@ func Disable_TestMinImageSize(t *testing.T) {
 	img.ReplacePixels(make([]byte, 4*s*s), nil)
 }
 
+func TestMaxImageSizeJust(t *testing.T) {
+	s := maxImageSizeForTesting
+	// An unmanged image never belongs to an atlas and doesn't have its paddings.
+	// TODO: Should we allow such this size for ImageTypeRegular?
+	img := atlas.NewImage(s, s, atlas.ImageTypeUnmanaged)
+	defer img.MarkDisposed()
+	img.ReplacePixels(make([]byte, 4*s*s), nil)
+}
+
 func TestMaxImageSizeExceeded(t *testing.T) {
 	// This tests that a too-big image is allocated correctly.
 	s := maxImageSizeForTesting
