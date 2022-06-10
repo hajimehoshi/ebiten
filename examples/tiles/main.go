@@ -36,7 +36,6 @@ const (
 
 const (
 	tileSize = 16
-	tileXNum = 25
 )
 
 var (
@@ -64,6 +63,9 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+	w, _ := tilesImage.Size()
+	tileXNum := w / tileSize
+
 	// Draw each tile with each DrawImage call.
 	// As the source images of all DrawImage calls are always same,
 	// this rendering is done very efficiently.
