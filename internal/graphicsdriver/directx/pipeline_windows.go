@@ -312,6 +312,10 @@ func (p *pipelineStates) initialize(device *_ID3D12Device) (ferr error) {
 	}
 	p.samplerDescriptorHeap = samplerH
 
+	h, err := p.samplerDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+	if err != nil {
+		return err
+	}
 	device.CreateSampler(&_D3D12_SAMPLER_DESC{
 		Filter:         _D3D12_FILTER_MIN_MAG_MIP_POINT,
 		AddressU:       _D3D12_TEXTURE_ADDRESS_MODE_WRAP,
@@ -320,7 +324,7 @@ func (p *pipelineStates) initialize(device *_ID3D12Device) (ferr error) {
 		ComparisonFunc: _D3D12_COMPARISON_FUNC_NEVER,
 		MinLOD:         -math.MaxFloat32,
 		MaxLOD:         math.MaxFloat32,
-	}, p.samplerDescriptorHeap.GetCPUDescriptorHandleForHeapStart())
+	}, h)
 
 	return nil
 }
@@ -388,7 +392,10 @@ func (p *pipelineStates) useGraphicsPipelineState(device *_ID3D12Device, command
 		}
 		p.constantBuffers[frameIndex][idx] = cb
 
-		h := p.shaderDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+		h, err := p.shaderDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+		if err != nil {
+			return err
+		}
 		h.Offset(int32(frameIndex*numDescriptorsPerFrame+numConstantBufferAndSourceTextures*idx), p.shaderDescriptorSize)
 		device.CreateConstantBufferView(&_D3D12_CONSTANT_BUFFER_VIEW_DESC{
 			BufferLocation: cb.GetGPUVirtualAddress(),
@@ -396,7 +403,10 @@ func (p *pipelineStates) useGraphicsPipelineState(device *_ID3D12Device, command
 		}, h)
 	}
 
-	h := p.shaderDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+	h, err := p.shaderDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+	if err != nil {
+		return err
+	}
 	h.Offset(int32(frameIndex*numDescriptorsPerFrame+numConstantBufferAndSourceTextures*idx), p.shaderDescriptorSize)
 	for _, src := range srcs {
 		h.Offset(1, p.shaderDescriptorSize)
@@ -436,12 +446,19 @@ func (p *pipelineStates) useGraphicsPipelineState(device *_ID3D12Device, command
 	})
 
 	// Match the indices with rootParams in graphicsPipelineState.
-	gh := p.shaderDescriptorHeap.GetGPUDescriptorHandleForHeapStart()
+	gh, err := p.shaderDescriptorHeap.GetGPUDescriptorHandleForHeapStart()
+	if err != nil {
+		return err
+	}
 	gh.Offset(int32(frameIndex*numDescriptorsPerFrame+numConstantBufferAndSourceTextures*idx), p.shaderDescriptorSize)
 	commandList.SetGraphicsRootDescriptorTable(0, gh)
 	gh.Offset(1, p.shaderDescriptorSize)
 	commandList.SetGraphicsRootDescriptorTable(1, gh)
-	commandList.SetGraphicsRootDescriptorTable(2, p.samplerDescriptorHeap.GetGPUDescriptorHandleForHeapStart())
+	sh, err := p.samplerDescriptorHeap.GetGPUDescriptorHandleForHeapStart()
+	if err != nil {
+		return err
+	}
+	commandList.SetGraphicsRootDescriptorTable(2, sh)
 
 	return nil
 }

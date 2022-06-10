@@ -571,7 +571,10 @@ func (g *Graphics) resizeSwapChain(width, height int) error {
 
 func (g *Graphics) createRenderTargetViews() (ferr error) {
 	// Create frame resources.
-	h := g.rtvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+	h, err := g.rtvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+	if err != nil {
+		return err
+	}
 	for i := 0; i < frameCount; i++ {
 		r, err := g.swapChain.GetBuffer(uint32(i))
 		if err != nil {
@@ -1474,19 +1477,28 @@ func (i *Image) setAsRenderTarget(device *_ID3D12Device, useStencil bool) error 
 	}
 
 	if i.screen {
-		rtv := i.graphics.rtvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+		rtv, err := i.graphics.rtvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+		if err != nil {
+			return err
+		}
 		rtv.Offset(int32(i.graphics.frameIndex), i.graphics.rtvDescriptorSize)
 		i.graphics.drawCommandList.OMSetRenderTargets(1, &rtv, false, nil)
 		return nil
 	}
 
-	rtv := i.rtvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+	rtv, err := i.rtvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+	if err != nil {
+		return err
+	}
 	var dsv *_D3D12_CPU_DESCRIPTOR_HANDLE
 	if useStencil {
 		if err := i.ensureDepthStencilView(device); err != nil {
 			return err
 		}
-		v := i.dsvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+		v, err := i.dsvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+		if err != nil {
+			return err
+		}
 		dsv = &v
 
 		i.graphics.drawCommandList.ClearDepthStencilView(v, _D3D12_CLEAR_FLAG_STENCIL, 0, 0, 0, nil)
@@ -1517,7 +1529,10 @@ func (i *Image) ensureRenderTargetView(device *_ID3D12Device) error {
 	}
 	i.rtvDescriptorHeap = h
 
-	rtv := i.rtvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+	rtv, err := i.rtvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+	if err != nil {
+		return err
+	}
 	device.CreateRenderTargetView(i.texture, nil, rtv)
 
 	return nil
@@ -1543,7 +1558,10 @@ func (i *Image) ensureDepthStencilView(device *_ID3D12Device) error {
 	}
 	i.dsvDescriptorHeap = h
 
-	dsv := i.dsvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+	dsv, err := i.dsvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+	if err != nil {
+		return err
+	}
 	if i.stencil == nil {
 		s, err := device.CreateCommittedResource(&_D3D12_HEAP_PROPERTIES{
 			Type:                 _D3D12_HEAP_TYPE_DEFAULT,

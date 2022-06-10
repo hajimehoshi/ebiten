@@ -1250,19 +1250,51 @@ type _ID3D12DescriptrHeap_Vtbl struct {
 	GetGPUDescriptorHandleForHeapStart uintptr
 }
 
-func (i *_ID3D12DescriptorHeap) GetCPUDescriptorHandleForHeapStart() _D3D12_CPU_DESCRIPTOR_HANDLE {
+func (i *_ID3D12DescriptorHeap) GetCPUDescriptorHandleForHeapStart() (_D3D12_CPU_DESCRIPTOR_HANDLE, error) {
+	if microsoftgdk.IsXbox() {
+		r, _, e := syscall.Syscall(i.vtbl.GetCPUDescriptorHandleForHeapStart, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+		if r == 0 {
+			return _D3D12_CPU_DESCRIPTOR_HANDLE{}, fmt.Errorf("directx: ID3D12DescriptorHeap::GetCPUDescriptorHandleForHeapStart failed: %w", e)
+		}
+		return _D3D12_CPU_DESCRIPTOR_HANDLE{
+			ptr: r,
+		}, nil
+	}
+
 	// There is a bug in the header file:
 	// https://stackoverflow.com/questions/34118929/getcpudescriptorhandleforheapstart-stack-corruption
 	var handle _D3D12_CPU_DESCRIPTOR_HANDLE
-	syscall.Syscall(i.vtbl.GetCPUDescriptorHandleForHeapStart, 2, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(&handle)), 0)
-	return handle
+	_, _, e := syscall.Syscall(i.vtbl.GetCPUDescriptorHandleForHeapStart, 2, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(&handle)), 0)
+	if handle.ptr == 0 {
+		return _D3D12_CPU_DESCRIPTOR_HANDLE{}, fmt.Errorf("directx: ID3D12DescriptorHeap::GetCPUDescriptorHandleForHeapStart failed: %w", e)
+	}
+	return handle, nil
 }
 
-func (i *_ID3D12DescriptorHeap) GetGPUDescriptorHandleForHeapStart() _D3D12_GPU_DESCRIPTOR_HANDLE {
+func (i *_ID3D12DescriptorHeap) GetGPUDescriptorHandleForHeapStart() (_D3D12_GPU_DESCRIPTOR_HANDLE, error) {
+	if microsoftgdk.IsXbox() {
+		r1, r2, e := syscall.Syscall(i.vtbl.GetGPUDescriptorHandleForHeapStart, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+		var ptr uint64
+		if unsafe.Sizeof(uintptr(0)) == 4 {
+			ptr = uint64(r1) | uint64(r2)<<32
+		} else {
+			ptr = uint64(r1)
+		}
+		if ptr == 0 {
+			return _D3D12_GPU_DESCRIPTOR_HANDLE{}, fmt.Errorf("directx: ID3D12DescriptorHeap::GetGPUDescriptorHandleForHeapStart failed: %w", e)
+		}
+		return _D3D12_GPU_DESCRIPTOR_HANDLE{
+			ptr: ptr,
+		}, nil
+	}
+
 	// This has the same issue as GetCPUDescriptorHandleForHeapStart.
 	var handle _D3D12_GPU_DESCRIPTOR_HANDLE
-	syscall.Syscall(i.vtbl.GetGPUDescriptorHandleForHeapStart, 2, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(&handle)), 0)
-	return handle
+	_, _, e := syscall.Syscall(i.vtbl.GetGPUDescriptorHandleForHeapStart, 2, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(&handle)), 0)
+	if handle.ptr == 0 {
+		return _D3D12_GPU_DESCRIPTOR_HANDLE{}, fmt.Errorf("directx: ID3D12DescriptorHeap::GetGPUDescriptorHandleForHeapStart failed: %w", e)
+	}
+	return handle, nil
 }
 
 func (i *_ID3D12DescriptorHeap) Release() {
