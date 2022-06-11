@@ -20,3 +20,24 @@
 __declspec(dllexport) __cdecl uint32_t XSystemGetDeviceType(void) {
   return 0;
 }
+
+__declspec(dllexport) __cdecl void Ebitengine_ID3D12GraphicsCommandList_DrawIndexedInstanced(void* i, uint32_t indexCountPerInstance, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation) {
+}
+
+__declspec(dllexport) __cdecl void Ebitengine_ID3D12GraphicsCommandList_IASetIndexBuffer(void* i, void* pView) {
+}
+
+__declspec(dllexport) __cdecl void Ebitengine_ID3D12GraphicsCommandList_IASetPrimitiveTopology(void* i, int32_t primitiveTopology) {
+}
+
+__declspec(dllexport) __cdecl void Ebitengine_ID3D12GraphicsCommandList_IASetVertexBuffers(void* i, uint32_t startSlot, uint32_t numViews, void* pViews) {
+}
+
+__declspec(dllexport) __cdecl void Ebitengine_ID3D12GraphicsCommandList_OMSetStencilRef(void* i, uint32_t stencilRef) {
+}
+
+__declspec(dllexport) __cdecl void Ebitengine_ID3D12GraphicsCommandList_SetGraphicsRootDescriptorTable(void* i, uint32_t rootParameterIndex, uint64_t baseDescriptorPtr) {
+}
+
+__declspec(dllexport) __cdecl void Ebitengine_ID3D12GraphicsCommandList_SetPipelineState(void* i, void* pPipelineState) {
+}

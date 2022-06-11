@@ -1782,22 +1782,38 @@ func (i *_ID3D12GraphicsCommandList) CopyTextureRegion_SubresourceIndex_PlacedFo
 }
 
 func (i *_ID3D12GraphicsCommandList) DrawIndexedInstanced(indexCountPerInstance uint32, instanceCount uint32, startIndexLocation uint32, baseVertexLocation int32, startInstanceLocation uint32) {
+	if microsoftgdk.IsXbox() {
+		_ID3D12GraphicsCommandList_DrawIndexedInstanced(i, indexCountPerInstance, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation)
+		return
+	}
 	syscall.Syscall6(i.vtbl.DrawIndexedInstanced, 6, uintptr(unsafe.Pointer(i)),
 		uintptr(indexCountPerInstance), uintptr(instanceCount), uintptr(startIndexLocation), uintptr(baseVertexLocation), uintptr(startInstanceLocation))
 }
 
 func (i *_ID3D12GraphicsCommandList) IASetIndexBuffer(pView *_D3D12_INDEX_BUFFER_VIEW) {
+	if microsoftgdk.IsXbox() {
+		_ID3D12GraphicsCommandList_IASetIndexBuffer(i, pView)
+		return
+	}
 	syscall.Syscall(i.vtbl.IASetIndexBuffer, 2, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(pView)), 0)
 	runtime.KeepAlive(pView)
 }
 
 func (i *_ID3D12GraphicsCommandList) IASetPrimitiveTopology(primitiveTopology _D3D_PRIMITIVE_TOPOLOGY) {
+	if microsoftgdk.IsXbox() {
+		_ID3D12GraphicsCommandList_IASetPrimitiveTopology(i, primitiveTopology)
+		return
+	}
 	syscall.Syscall(i.vtbl.IASetPrimitiveTopology, 2, uintptr(unsafe.Pointer(i)),
 		uintptr(primitiveTopology), 0)
 }
 
 func (i *_ID3D12GraphicsCommandList) IASetVertexBuffers(startSlot uint32, numViews uint32, pViews *_D3D12_VERTEX_BUFFER_VIEW) {
+	if microsoftgdk.IsXbox() {
+		_ID3D12GraphicsCommandList_IASetVertexBuffers(i, startSlot, numViews, pViews)
+		return
+	}
 	syscall.Syscall6(i.vtbl.IASetVertexBuffers, 4, uintptr(unsafe.Pointer(i)),
 		uintptr(startSlot), uintptr(numViews), uintptr(unsafe.Pointer(pViews)),
 		0, 0)
@@ -1813,6 +1829,10 @@ func (i *_ID3D12GraphicsCommandList) OMSetRenderTargets(numRenderTargetDescripto
 }
 
 func (i *_ID3D12GraphicsCommandList) OMSetStencilRef(stencilRef uint32) {
+	if microsoftgdk.IsXbox() {
+		_ID3D12GraphicsCommandList_OMSetStencilRef(i, stencilRef)
+		return
+	}
 	syscall.Syscall(i.vtbl.OMSetStencilRef, 2, uintptr(unsafe.Pointer(i)), uintptr(stencilRef), 0)
 }
 
@@ -1866,6 +1886,10 @@ func (i *_ID3D12GraphicsCommandList) SetDescriptorHeaps(ppDescriptorHeaps []*_ID
 }
 
 func (i *_ID3D12GraphicsCommandList) SetGraphicsRootDescriptorTable(rootParameterIndex uint32, baseDescriptor _D3D12_GPU_DESCRIPTOR_HANDLE) {
+	if microsoftgdk.IsXbox() {
+		_ID3D12GraphicsCommandList_SetGraphicsRootDescriptorTable(i, rootParameterIndex, baseDescriptor)
+		return
+	}
 	syscall.Syscall(i.vtbl.SetGraphicsRootDescriptorTable, 3, uintptr(unsafe.Pointer(i)),
 		uintptr(rootParameterIndex), uintptr(baseDescriptor.ptr))
 }
@@ -1877,6 +1901,10 @@ func (i *_ID3D12GraphicsCommandList) SetGraphicsRootSignature(pRootSignature *_I
 }
 
 func (i *_ID3D12GraphicsCommandList) SetPipelineState(pPipelineState *_ID3D12PipelineState) {
+	if microsoftgdk.IsXbox() {
+		_ID3D12GraphicsCommandList_SetPipelineState(i, pPipelineState)
+		return
+	}
 	syscall.Syscall(i.vtbl.SetPipelineState, 2, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(pPipelineState)), 0)
 	runtime.KeepAlive(pPipelineState)
