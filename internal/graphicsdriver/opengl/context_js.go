@@ -124,7 +124,6 @@ func (c *context) initGL() error {
 
 	var gl js.Value
 
-	// TODO: Define id?
 	if doc := js.Global().Get("document"); doc.Truthy() {
 		canvas := c.canvas
 		attr := js.Global().Get("Object").New()
