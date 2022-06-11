@@ -15,6 +15,7 @@
 package ui
 
 import (
+	"fmt"
 	"syscall/js"
 	"time"
 
@@ -437,6 +438,8 @@ func init() {
 	document.Get("head").Call("appendChild", meta)
 
 	canvas = document.Call("createElement", "canvas")
+	now := time.Now().UnixNano()
+	canvas.Set("id", fmt.Sprintf("ebitengine-%d.%d", now/1e9, (now%1e9)/1e6))
 	canvas.Set("width", 16)
 	canvas.Set("height", 16)
 
@@ -617,6 +620,9 @@ func (u *userInterfaceImpl) Run(game Game) error {
 		return err
 	}
 	u.graphicsDriver = g
+	if g, ok := u.graphicsDriver.(interface{ SetCanvasID(string) }); ok {
+		g.SetCanvasID(canvas.Get("id").String())
+	}
 	return <-u.loop(game)
 }
 
