@@ -690,4 +690,51 @@ func TestImageIsNotReputOnAtlasWithoutUsingAsSource(t *testing.T) {
 	}
 }
 
+func TestImageReplacePixelsModify(t *testing.T) {
+	for _, typ := range []atlas.ImageType{atlas.ImageTypeRegular, atlas.ImageTypeVolatile, atlas.ImageTypeUnmanaged} {
+		const size = 16
+		img := atlas.NewImage(size, size, typ)
+		defer img.MarkDisposed()
+		pix := make([]byte, 4*size*size)
+		for j := 0; j < size; j++ {
+			for i := 0; i < size; i++ {
+				pix[4*(i+j*size)] = byte(i + j)
+				pix[4*(i+j*size)+1] = byte(i + j)
+				pix[4*(i+j*size)+2] = byte(i + j)
+				pix[4*(i+j*size)+3] = byte(i + j)
+			}
+		}
+		img.ReplacePixels(pix, nil)
+
+		// Modify pix after ReplacePixels.
+		for j := 0; j < size; j++ {
+			for i := 0; i < size; i++ {
+				pix[4*(i+j*size)] = 0
+				pix[4*(i+j*size)+1] = 0
+				pix[4*(i+j*size)+2] = 0
+				pix[4*(i+j*size)+3] = 0
+			}
+		}
+
+		// Check the pixels are the original ones.
+		pix, err := img.Pixels(ui.GraphicsDriverForTesting())
+		if err != nil {
+			t.Fatal(err)
+		}
+		for j := 0; j < size; j++ {
+			for i := 0; i < size; i++ {
+				want := color.RGBA{byte(i + j), byte(i + j), byte(i + j), byte(i + j)}
+				r := pix[4*(size*j+i)]
+				g := pix[4*(size*j+i)+1]
+				b := pix[4*(size*j+i)+2]
+				a := pix[4*(size*j+i)+3]
+				got := color.RGBA{r, g, b, a}
+				if got != want {
+					t.Errorf("Type: %d, At(%d, %d): got: %v, want: %v", typ, i, j, got, want)
+				}
+			}
+		}
+	}
+}
+
 // TODO: Add tests to extend image on an atlas out of the main loop

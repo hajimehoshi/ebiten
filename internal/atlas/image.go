@@ -532,6 +532,7 @@ func (i *Image) replacePixels(pix []byte, mask []byte) {
 	}
 
 	if i.paddingSize() == 0 {
+		// Copy pixels in the case when pix is modified before the graphics command is executed.
 		pix2 := make([]byte, len(pix))
 		copy(pix2, pix)
 		var mask2 []byte
