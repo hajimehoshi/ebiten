@@ -969,3 +969,129 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestShaderOptionsNegativeBounds(t *testing.T) {
+	const w, h = 16, 16
+
+	s, err := ebiten.NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	r := imageSrc0At(texCoord).r
+	g := imageSrc1At(texCoord).g
+	return vec4(r, g, 0, 1)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const offset0 = -4
+	src0 := ebiten.NewImageWithOptions(image.Rect(offset0, offset0, w+offset0, h+offset0), nil)
+	pix0 := make([]byte, 4*w*h)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			if 2 <= i && i < 10 && 3 <= j && j < 11 {
+				pix0[4*(j*w+i)] = 0xff
+				pix0[4*(j*w+i)+1] = 0
+				pix0[4*(j*w+i)+2] = 0
+				pix0[4*(j*w+i)+3] = 0xff
+			}
+		}
+	}
+	src0.ReplacePixels(pix0)
+	src0 = src0.SubImage(image.Rect(2+offset0, 3+offset0, 10+offset0, 11+offset0)).(*ebiten.Image)
+
+	const offset1 = -6
+	src1 := ebiten.NewImageWithOptions(image.Rect(offset1, offset1, w+offset1, h+offset1), nil)
+	pix1 := make([]byte, 4*w*h)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			if 6 <= i && i < 14 && 8 <= j && j < 16 {
+				pix1[4*(j*w+i)] = 0
+				pix1[4*(j*w+i)+1] = 0xff
+				pix1[4*(j*w+i)+2] = 0
+				pix1[4*(j*w+i)+3] = 0xff
+			}
+		}
+	}
+	src1.ReplacePixels(pix1)
+	src1 = src1.SubImage(image.Rect(6+offset1, 8+offset1, 14+offset1, 16+offset1)).(*ebiten.Image)
+
+	const offset2 = -2
+	testPixels := func(testname string, dst *ebiten.Image) {
+		for j := offset2; j < h+offset2; j++ {
+			for i := offset2; i < w+offset2; i++ {
+				got := dst.At(i, j).(color.RGBA)
+				var want color.RGBA
+				if 0 <= i && i < w/2 && 0 <= j && j < h/2 {
+					want = color.RGBA{0xff, 0xff, 0, 0xff}
+				}
+				if got != want {
+					t.Errorf("%s dst.At(%d, %d): got: %v, want: %v", testname, i, j, got, want)
+				}
+			}
+		}
+	}
+
+	t.Run("DrawRectShader", func(t *testing.T) {
+		dst := ebiten.NewImageWithOptions(image.Rect(offset2, offset2, w+offset2, h+offset2), nil)
+		op := &ebiten.DrawRectShaderOptions{}
+		op.Images[0] = src0
+		op.Images[1] = src1
+		dst.DrawRectShader(w/2, h/2, s, op)
+		testPixels("DrawRectShader", dst)
+	})
+
+	t.Run("DrawTrianglesShader", func(t *testing.T) {
+		dst := ebiten.NewImageWithOptions(image.Rect(offset2, offset2, w+offset2, h+offset2), nil)
+		vs := []ebiten.Vertex{
+			{
+				DstX:   0,
+				DstY:   0,
+				SrcX:   2 + offset0,
+				SrcY:   3 + offset0,
+				ColorR: 1,
+				ColorG: 1,
+				ColorB: 1,
+				ColorA: 1,
+			},
+			{
+				DstX:   w / 2,
+				DstY:   0,
+				SrcX:   10 + offset0,
+				SrcY:   3 + offset0,
+				ColorR: 1,
+				ColorG: 1,
+				ColorB: 1,
+				ColorA: 1,
+			},
+			{
+				DstX:   0,
+				DstY:   h / 2,
+				SrcX:   2 + offset0,
+				SrcY:   11 + offset0,
+				ColorR: 1,
+				ColorG: 1,
+				ColorB: 1,
+				ColorA: 1,
+			},
+			{
+				DstX:   w / 2,
+				DstY:   h / 2,
+				SrcX:   10 + offset0,
+				SrcY:   11 + offset0,
+				ColorR: 1,
+				ColorG: 1,
+				ColorB: 1,
+				ColorA: 1,
+			},
+		}
+		is := []uint16{0, 1, 2, 1, 2, 3}
+
+		op := &ebiten.DrawTrianglesShaderOptions{}
+		op.Images[0] = src0
+		op.Images[1] = src1
+		dst.DrawTrianglesShader(vs, is, s, op)
+		testPixels("DrawTrianglesShader", dst)
+	})
+}

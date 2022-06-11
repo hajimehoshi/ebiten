@@ -2889,3 +2889,235 @@ func TestImageNewImageFromEbitenImage(t *testing.T) {
 		}
 	}
 }
+
+func TestImageOptionsUnmanaged(t *testing.T) {
+	const (
+		w = 16
+		h = 16
+	)
+
+	pix := make([]byte, 4*w*h)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			idx := 4 * (i + j*w)
+			pix[idx] = byte(i)
+			pix[idx+1] = byte(j)
+			pix[idx+2] = 0
+			pix[idx+3] = 0xff
+		}
+	}
+
+	op := &ebiten.NewImageOptions{
+		Unmanaged: true,
+	}
+	img := ebiten.NewImageWithOptions(image.Rect(0, 0, w, h), op)
+	img.ReplacePixels(pix)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := img.At(i, j)
+			want := color.RGBA{byte(i), byte(j), 0, 0xff}
+			if got != want {
+				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestImageOptionsNegativeBoundsReplacePixels(t *testing.T) {
+	const (
+		w = 16
+		h = 16
+	)
+
+	pix0 := make([]byte, 4*w*h)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			idx := 4 * (i + j*w)
+			pix0[idx] = byte(i)
+			pix0[idx+1] = byte(j)
+			pix0[idx+2] = 0
+			pix0[idx+3] = 0xff
+		}
+	}
+
+	const offset = -8
+	img := ebiten.NewImageWithOptions(image.Rect(offset, offset, w+offset, h+offset), nil)
+	img.ReplacePixels(pix0)
+
+	for j := offset; j < h+offset; j++ {
+		for i := offset; i < w+offset; i++ {
+			got := img.At(i, j)
+			want := color.RGBA{byte(i - offset), byte(j - offset), 0, 0xff}
+			if got != want {
+				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+
+	pix1 := make([]byte, 4*(w/2)*(h/2))
+	for j := 0; j < h/2; j++ {
+		for i := 0; i < w/2; i++ {
+			idx := 4 * (i + j*w/2)
+			pix1[idx] = 0
+			pix1[idx+1] = 0
+			pix1[idx+2] = 0xff
+			pix1[idx+3] = 0xff
+		}
+	}
+
+	const offset2 = -4
+	sub := image.Rect(offset2, offset2, w/2+offset2, h/2+offset2)
+	img.SubImage(sub).(*ebiten.Image).ReplacePixels(pix1)
+	for j := offset; j < h+offset; j++ {
+		for i := offset; i < w+offset; i++ {
+			got := img.At(i, j)
+			want := color.RGBA{byte(i - offset), byte(j - offset), 0, 0xff}
+			if image.Pt(i, j).In(sub) {
+				want = color.RGBA{0, 0, 0xff, 0xff}
+			}
+			if got != want {
+				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestImageOptionsNegativeBoundsSet(t *testing.T) {
+	const (
+		w = 16
+		h = 16
+	)
+
+	pix0 := make([]byte, 4*w*h)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			idx := 4 * (i + j*w)
+			pix0[idx] = byte(i)
+			pix0[idx+1] = byte(j)
+			pix0[idx+2] = 0
+			pix0[idx+3] = 0xff
+		}
+	}
+
+	const offset = -8
+	img := ebiten.NewImageWithOptions(image.Rect(offset, offset, w+offset, h+offset), nil)
+	img.ReplacePixels(pix0)
+	img.Set(-1, -2, color.RGBA{0, 0, 0, 0})
+
+	for j := offset; j < h+offset; j++ {
+		for i := offset; i < w+offset; i++ {
+			got := img.At(i, j)
+			want := color.RGBA{byte(i - offset), byte(j - offset), 0, 0xff}
+			if i == -1 && j == -2 {
+				want = color.RGBA{0, 0, 0, 0}
+			}
+			if got != want {
+				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestImageOptionsNegativeBoundsDrawImage(t *testing.T) {
+	const (
+		w      = 16
+		h      = 16
+		offset = -8
+	)
+	dst := ebiten.NewImageWithOptions(image.Rect(offset, offset, w+offset, h+offset), nil)
+	src := ebiten.NewImageWithOptions(image.Rect(-1, -1, 1, 1), nil)
+	pix := make([]byte, 4*2*2)
+	for i := range pix {
+		pix[i] = 0xff
+	}
+	src.ReplacePixels(pix)
+
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(-1, -1)
+	op.GeoM.Scale(2, 3)
+	dst.DrawImage(src, op)
+	for j := offset; j < h+offset; j++ {
+		for i := offset; i < w+offset; i++ {
+			got := dst.At(i, j)
+			var want color.RGBA
+			if -2 <= i && i < 2 && -3 <= j && j < 3 {
+				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
+			}
+			if got != want {
+				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestImageOptionsNegativeBoundsDrawTriangles(t *testing.T) {
+	const (
+		w      = 16
+		h      = 16
+		offset = -8
+	)
+	dst := ebiten.NewImageWithOptions(image.Rect(offset, offset, w+offset, h+offset), nil)
+	src := ebiten.NewImageWithOptions(image.Rect(-1, -1, 1, 1), nil)
+	pix := make([]byte, 4*2*2)
+	for i := range pix {
+		pix[i] = 0xff
+	}
+	src.ReplacePixels(pix)
+	vs := []ebiten.Vertex{
+		{
+			DstX:   -2,
+			DstY:   -3,
+			SrcX:   -1,
+			SrcY:   -1,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   2,
+			DstY:   -3,
+			SrcX:   1,
+			SrcY:   -1,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   -2,
+			DstY:   3,
+			SrcX:   -1,
+			SrcY:   1,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   2,
+			DstY:   3,
+			SrcX:   1,
+			SrcY:   1,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+	}
+	is := []uint16{0, 1, 2, 1, 2, 3}
+	dst.DrawTriangles(vs, is, src, nil)
+	for j := offset; j < h+offset; j++ {
+		for i := offset; i < w+offset; i++ {
+			got := dst.At(i, j)
+			var want color.RGBA
+			if -2 <= i && i < 2 && -3 <= j && j < 3 {
+				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
+			}
+			if got != want {
+				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}

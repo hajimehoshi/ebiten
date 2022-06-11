@@ -15,6 +15,8 @@
 package ebiten
 
 import (
+	"image"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
@@ -45,7 +47,7 @@ func (c *gameForUI) NewOffscreenImage(width, height int) *ui.Image {
 		// A violatile image is also always isolated.
 		imageType = atlas.ImageTypeVolatile
 	}
-	c.offscreen = newImage(width, height, imageType)
+	c.offscreen = newImage(image.Rect(0, 0, width, height), imageType)
 	return c.offscreen.image
 }
 

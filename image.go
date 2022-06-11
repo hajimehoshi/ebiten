@@ -111,6 +111,47 @@ type DrawImageOptions struct {
 	Filter Filter
 }
 
+// adjustPosition converts the position in the *ebiten.Image coordinate to the *ui.Image coordinate.
+func (i *Image) adjustPosition(x, y int) (int, int) {
+	if i.isSubImage() {
+		or := i.original.Bounds()
+		x -= or.Min.X
+		y -= or.Min.Y
+		return x, y
+	}
+
+	r := i.Bounds()
+	x -= r.Min.X
+	y -= r.Min.Y
+	return x, y
+}
+
+// adjustPositionF32 converts the position in the *ebiten.Image coordinate to the *ui.Image coordinate.
+func (i *Image) adjustPositionF32(x, y float32) (float32, float32) {
+	if i.isSubImage() {
+		or := i.original.Bounds()
+		x -= float32(or.Min.X)
+		y -= float32(or.Min.Y)
+		return x, y
+	}
+
+	r := i.Bounds()
+	x -= float32(r.Min.X)
+	y -= float32(r.Min.Y)
+	return x, y
+}
+
+func (i *Image) adjustedRegion() graphicsdriver.Region {
+	b := i.Bounds()
+	x, y := i.adjustPosition(b.Min.X, b.Min.Y)
+	return graphicsdriver.Region{
+		X:      float32(x),
+		Y:      float32(y),
+		Width:  float32(b.Dx()),
+		Height: float32(b.Dy()),
+	}
+}
+
 // DrawImage draws the given image on the image i.
 //
 // DrawImage accepts the options. For details, see the document of
@@ -156,37 +197,30 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		return
 	}
 
-	dstBounds := i.Bounds()
-	dstRegion := graphicsdriver.Region{
-		X:      float32(dstBounds.Min.X),
-		Y:      float32(dstBounds.Min.Y),
-		Width:  float32(dstBounds.Dx()),
-		Height: float32(dstBounds.Dy()),
-	}
-
 	// Calculate vertices before locking because the user can do anything in
 	// options.ImageParts interface without deadlock (e.g. Call Image functions).
 	if options == nil {
 		options = &DrawImageOptions{}
 	}
 
-	bounds := img.Bounds()
 	mode := graphicsdriver.CompositeMode(options.CompositeMode)
 	filter := graphicsdriver.Filter(options.Filter)
 
+	if offsetX, offsetY := i.adjustPosition(0, 0); offsetX != 0 || offsetY != 0 {
+		options.GeoM.Translate(float64(offsetX), float64(offsetY))
+	}
 	a, b, c, d, tx, ty := options.GeoM.elements32()
 
-	sx0 := float32(bounds.Min.X)
-	sy0 := float32(bounds.Min.Y)
-	sx1 := float32(bounds.Max.X)
-	sy1 := float32(bounds.Max.Y)
+	bounds := img.Bounds()
+	sx0, sy0 := img.adjustPosition(bounds.Min.X, bounds.Min.Y)
+	sx1, sy1 := img.adjustPosition(bounds.Max.X, bounds.Max.Y)
 	colorm, cr, cg, cb, ca := colorMToScale(options.ColorM.affineColorM())
-	vs := graphics.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, cr, cg, cb, ca)
+	vs := graphics.QuadVertices(float32(sx0), float32(sy0), float32(sx1), float32(sy1), a, b, c, d, tx, ty, cr, cg, cb, ca)
 	is := graphics.QuadIndices()
 
 	srcs := [graphics.ShaderImageNum]*ui.Image{img.image}
 
-	i.image.DrawTriangles(srcs, vs, is, colorm, mode, filter, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false, canSkipMipmap(options.GeoM, filter))
+	i.image.DrawTriangles(srcs, vs, is, colorm, mode, filter, graphicsdriver.AddressUnsafe, i.adjustedRegion(), graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false, canSkipMipmap(options.GeoM, filter))
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -311,14 +345,6 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	}
 	// TODO: Check the maximum value of indices and len(vertices)?
 
-	dstBounds := i.Bounds()
-	dstRegion := graphicsdriver.Region{
-		X:      float32(dstBounds.Min.X),
-		Y:      float32(dstBounds.Min.Y),
-		Width:  float32(dstBounds.Dx()),
-		Height: float32(dstBounds.Dy()),
-	}
-
 	if options == nil {
 		options = &DrawTrianglesOptions{}
 	}
@@ -328,13 +354,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	address := graphicsdriver.Address(options.Address)
 	var sr graphicsdriver.Region
 	if address != graphicsdriver.AddressUnsafe {
-		b := img.Bounds()
-		sr = graphicsdriver.Region{
-			X:      float32(b.Min.X),
-			Y:      float32(b.Min.Y),
-			Width:  float32(b.Dx()),
-			Height: float32(b.Dy()),
-		}
+		sr = img.adjustedRegion()
 	}
 
 	filter := graphicsdriver.Filter(options.Filter)
@@ -342,11 +362,14 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	colorm, cr, cg, cb, ca := colorMToScale(options.ColorM.affineColorM())
 
 	vs := graphics.Vertices(len(vertices))
+	dst := i
 	for i, v := range vertices {
-		vs[i*graphics.VertexFloatNum] = v.DstX
-		vs[i*graphics.VertexFloatNum+1] = v.DstY
-		vs[i*graphics.VertexFloatNum+2] = v.SrcX
-		vs[i*graphics.VertexFloatNum+3] = v.SrcY
+		dx, dy := dst.adjustPositionF32(v.DstX, v.DstY)
+		vs[i*graphics.VertexFloatNum] = dx
+		vs[i*graphics.VertexFloatNum+1] = dy
+		sx, sy := img.adjustPositionF32(v.SrcX, v.SrcY)
+		vs[i*graphics.VertexFloatNum+2] = sx
+		vs[i*graphics.VertexFloatNum+3] = sy
 		vs[i*graphics.VertexFloatNum+4] = v.ColorR * cr
 		vs[i*graphics.VertexFloatNum+5] = v.ColorG * cg
 		vs[i*graphics.VertexFloatNum+6] = v.ColorB * cb
@@ -357,7 +380,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	srcs := [graphics.ShaderImageNum]*ui.Image{img.image}
 
-	i.image.DrawTriangles(srcs, vs, is, colorm, mode, filter, address, dstRegion, sr, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, options.FillRule == EvenOdd, false)
+	i.image.DrawTriangles(srcs, vs, is, colorm, mode, filter, address, i.adjustedRegion(), sr, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, options.FillRule == EvenOdd, false)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
@@ -377,7 +400,7 @@ type DrawTrianglesShaderOptions struct {
 	Uniforms map[string]interface{}
 
 	// Images is a set of the source images.
-	// All the image must be the same size.
+	// All the image must be the same bounds.
 	Images [4]*Image
 
 	// FillRule indicates the rule how an overlapped region is rendered.
@@ -427,14 +450,6 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	}
 	// TODO: Check the maximum value of indices and len(vertices)?
 
-	dstBounds := i.Bounds()
-	dstRegion := graphicsdriver.Region{
-		X:      float32(dstBounds.Min.X),
-		Y:      float32(dstBounds.Min.Y),
-		Width:  float32(dstBounds.Dx()),
-		Height: float32(dstBounds.Dy()),
-	}
-
 	if options == nil {
 		options = &DrawTrianglesShaderOptions{}
 	}
@@ -442,11 +457,18 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	mode := graphicsdriver.CompositeMode(options.CompositeMode)
 
 	vs := graphics.Vertices(len(vertices))
+	dst := i
+	src := options.Images[0]
 	for i, v := range vertices {
-		vs[i*graphics.VertexFloatNum] = v.DstX
-		vs[i*graphics.VertexFloatNum+1] = v.DstY
-		vs[i*graphics.VertexFloatNum+2] = v.SrcX
-		vs[i*graphics.VertexFloatNum+3] = v.SrcY
+		dx, dy := dst.adjustPositionF32(v.DstX, v.DstY)
+		vs[i*graphics.VertexFloatNum] = dx
+		vs[i*graphics.VertexFloatNum+1] = dy
+		sx, sy := v.SrcX, v.SrcY
+		if src != nil {
+			sx, sy = src.adjustPositionF32(sx, sy)
+		}
+		vs[i*graphics.VertexFloatNum+2] = sx
+		vs[i*graphics.VertexFloatNum+3] = sy
 		vs[i*graphics.VertexFloatNum+4] = v.ColorR
 		vs[i*graphics.VertexFloatNum+5] = v.ColorG
 		vs[i*graphics.VertexFloatNum+6] = v.ColorB
@@ -475,22 +497,12 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		imgs[i] = img.image
 	}
 
-	var sx, sy float32
-	if options.Images[0] != nil {
-		b := options.Images[0].Bounds()
-		sx = float32(b.Min.X)
-		sy = float32(b.Min.Y)
-	}
-
+	var sx, sy int
 	var sr graphicsdriver.Region
 	if img := options.Images[0]; img != nil {
 		b := img.Bounds()
-		sr = graphicsdriver.Region{
-			X:      float32(b.Min.X),
-			Y:      float32(b.Min.Y),
-			Width:  float32(b.Dx()),
-			Height: float32(b.Dy()),
-		}
+		sx, sy = img.adjustPosition(b.Min.X, b.Min.Y)
+		sr = img.adjustedRegion()
 	}
 
 	var offsets [graphics.ShaderImageNum - 1][2]float32
@@ -499,11 +511,14 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 			continue
 		}
 		b := img.Bounds()
-		offsets[i][0] = -sx + float32(b.Min.X)
-		offsets[i][1] = -sy + float32(b.Min.Y)
+		x, y := img.adjustPosition(b.Min.X, b.Min.Y)
+		// (sx, sy) is the left-upper position of the first image.
+		// Calculate the direction between the current image's left-upper position and the first one's.
+		offsets[i][0] = float32(x - sx)
+		offsets[i][1] = float32(y - sy)
 	}
 
-	i.image.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), options.FillRule == EvenOdd, false)
+	i.image.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), options.FillRule == EvenOdd, false)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
@@ -527,7 +542,7 @@ type DrawRectShaderOptions struct {
 	Uniforms map[string]interface{}
 
 	// Images is a set of the source images.
-	// All the image must be the same size with the rectangle.
+	// All the image must be the same bounds.
 	Images [4]*Image
 }
 
@@ -554,14 +569,6 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		return
 	}
 
-	dstBounds := i.Bounds()
-	dstRegion := graphicsdriver.Region{
-		X:      float32(dstBounds.Min.X),
-		Y:      float32(dstBounds.Min.Y),
-		Width:  float32(dstBounds.Dx()),
-		Height: float32(dstBounds.Dy()),
-	}
-
 	if options == nil {
 		options = &DrawRectShaderOptions{}
 	}
@@ -582,27 +589,20 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		imgs[i] = img.image
 	}
 
-	var sx, sy float32
-	if options.Images[0] != nil {
-		b := options.Images[0].Bounds()
-		sx = float32(b.Min.X)
-		sy = float32(b.Min.Y)
-	}
-
-	a, b, c, d, tx, ty := options.GeoM.elements32()
-	vs := graphics.QuadVertices(sx, sy, sx+float32(width), sy+float32(height), a, b, c, d, tx, ty, 1, 1, 1, 1)
-	is := graphics.QuadIndices()
-
+	var sx, sy int
 	var sr graphicsdriver.Region
 	if img := options.Images[0]; img != nil {
 		b := img.Bounds()
-		sr = graphicsdriver.Region{
-			X:      float32(b.Min.X),
-			Y:      float32(b.Min.Y),
-			Width:  float32(b.Dx()),
-			Height: float32(b.Dy()),
-		}
+		sx, sy = img.adjustPosition(b.Min.X, b.Min.Y)
+		sr = img.adjustedRegion()
 	}
+
+	if offsetX, offsetY := i.adjustPosition(0, 0); offsetX != 0 || offsetY != 0 {
+		options.GeoM.Translate(float64(offsetX), float64(offsetY))
+	}
+	a, b, c, d, tx, ty := options.GeoM.elements32()
+	vs := graphics.QuadVertices(float32(sx), float32(sy), float32(sx+width), float32(sy+height), a, b, c, d, tx, ty, 1, 1, 1, 1)
+	is := graphics.QuadIndices()
 
 	var offsets [graphics.ShaderImageNum - 1][2]float32
 	for i, img := range options.Images[1:] {
@@ -610,11 +610,14 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 			continue
 		}
 		b := img.Bounds()
-		offsets[i][0] = -sx + float32(b.Min.X)
-		offsets[i][1] = -sy + float32(b.Min.Y)
+		x, y := img.adjustPosition(b.Min.X, b.Min.Y)
+		// (sx, sy) is the left-upper position of the first image.
+		// Calculate the direction between the current image's left-upper position and the first one's.
+		offsets[i][0] = float32(x - sx)
+		offsets[i][1] = float32(y - sy)
 	}
 
-	i.image.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), false, canSkipMipmap(options.GeoM, graphicsdriver.FilterNearest))
+	i.image.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), false, canSkipMipmap(options.GeoM, graphicsdriver.FilterNearest))
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.
@@ -706,7 +709,7 @@ func (i *Image) at(x, y int) (r, g, b, a uint8) {
 	if !image.Pt(x, y).In(i.Bounds()) {
 		return 0, 0, 0, 0
 	}
-	return i.image.At(x, y)
+	return i.image.At(i.adjustPosition(x, y))
 }
 
 // Set sets the color at (x, y).
@@ -729,6 +732,7 @@ func (i *Image) Set(x, y int, clr color.Color) {
 	}
 
 	r, g, b, a := clr.RGBA()
+	x, y = i.adjustPosition(x, y)
 	i.image.ReplacePixels([]byte{byte(r >> 8), byte(g >> 8), byte(b >> 8), byte(a >> 8)}, x, y, 1, 1)
 }
 
@@ -772,10 +776,11 @@ func (i *Image) ReplacePixels(pixels []byte) {
 	}
 
 	r := i.Bounds()
+	x, y := i.adjustPosition(r.Min.X, r.Min.Y)
 	// Do not need to copy pixels here.
 	// * In internal/mipmap, pixels are copied when necessary.
 	// * In internal/atlas, pixels are copied to make its paddings.
-	i.image.ReplacePixels(pixels, r.Min.X, r.Min.Y, r.Dx(), r.Dy())
+	i.image.ReplacePixels(pixels, x, y, r.Dx(), r.Dy())
 }
 
 // NewImage returns an empty image.
@@ -788,22 +793,57 @@ func (i *Image) ReplacePixels(pixels []byte) {
 //
 // NewImage panics if RunGame already finishes.
 func NewImage(width, height int) *Image {
-	return newImage(width, height, atlas.ImageTypeRegular)
+	return newImage(image.Rect(0, 0, width, height), atlas.ImageTypeRegular)
 }
 
-func newImage(width, height int, imageType atlas.ImageType) *Image {
+// NewImageOptions represents options for NewImage.
+type NewImageOptions struct {
+	// Unmanaged represents whether the image is unmanaged or not.
+	// The default (zero) value is false, that means the image is managed.
+	//
+	// An unmanged image is never on an internal automatic texture atlas.
+	// A regular image is a part of an internal texture atlas, and locating them is done automatically in Ebitengine.
+	// NewUnmanagedImage is useful when you want finer controls over the image for performance and memory reasons.
+	Unmanaged bool
+}
+
+// NewImageWithOptions returns an empty image with the given bounds and the options.
+//
+// If width or height is less than 1 or more than device-dependent maximum size, NewImageWithOptions panics.
+//
+// The rendering origin position is (0, 0) of the given bounds.
+// If DrawImage is called on a new image created by NewImageOptions,
+// for example, the center of scaling and rotating is (0, 0), that might not be a left-upper position.
+//
+// NewImageWithOptions should be called only when necessary.
+// For example, you should avoid to call NewImageWithOptions every Update or Draw call.
+// Reusing the same image by Clear is much more efficient than creating a new image.
+//
+// NewImageWithOptions panics if RunGame already finishes.
+func NewImageWithOptions(bounds image.Rectangle, options *NewImageOptions) *Image {
+	imageType := atlas.ImageTypeRegular
+	if options != nil && options.Unmanaged {
+		imageType = atlas.ImageTypeUnmanaged
+	}
+	return newImage(bounds, imageType)
+}
+
+func newImage(bounds image.Rectangle, imageType atlas.ImageType) *Image {
 	if isRunGameEnded() {
 		panic(fmt.Sprintf("ebiten: NewImage cannot be called after RunGame finishes"))
 	}
+
+	width, height := bounds.Dx(), bounds.Dy()
 	if width <= 0 {
 		panic(fmt.Sprintf("ebiten: width at NewImage must be positive but %d", width))
 	}
 	if height <= 0 {
 		panic(fmt.Sprintf("ebiten: height at NewImage must be positive but %d", height))
 	}
+
 	i := &Image{
 		image:  ui.NewImage(width, height, imageType),
-		bounds: image.Rect(0, 0, width, height),
+		bounds: bounds,
 	}
 	i.addr = i
 	return i
