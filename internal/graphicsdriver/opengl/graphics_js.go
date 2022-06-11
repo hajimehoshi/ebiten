@@ -14,6 +14,10 @@
 
 package opengl
 
-func (g *Graphics) SetCanvasID(id string) {
-	g.context.canvasID = id
+import (
+	"syscall/js"
+)
+
+func (g *Graphics) SetCanvas(canvas js.Value) {
+	g.context.canvas = canvas
 }

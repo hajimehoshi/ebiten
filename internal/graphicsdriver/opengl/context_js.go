@@ -110,7 +110,7 @@ func uint8ArrayToSlice(value js.Value, length int) []byte {
 
 type contextImpl struct {
 	gl            *gl
-	canvasID      string
+	canvas        js.Value
 	lastProgramID programID
 	webGLVersion  webGLVersion
 }
@@ -126,7 +126,7 @@ func (c *context) initGL() error {
 
 	// TODO: Define id?
 	if doc := js.Global().Get("document"); doc.Truthy() {
-		canvas := doc.Call("getElementById", c.canvasID)
+		canvas := c.canvas
 		attr := js.Global().Get("Object").New()
 		attr.Set("alpha", true)
 		attr.Set("premultipliedAlpha", true)
