@@ -887,7 +887,8 @@ var (
 	procD3D12GetDebugInterface      = d3d12.NewProc("D3D12GetDebugInterface")
 	procD3D12SerializeRootSignature = d3d12.NewProc("D3D12SerializeRootSignature")
 
-	procD3D12XboxCreateDevice = d3d12x.NewProc("D3D12XboxCreateDevice")
+	procD3D12SerializeRootSignature_Xbox = d3d12x.NewProc("D3D12SerializeRootSignature")
+	procD3D12XboxCreateDevice            = d3d12x.NewProc("D3D12XboxCreateDevice")
 
 	procD3DCompile = d3dcompiler.NewProc("D3DCompile")
 
@@ -917,7 +918,13 @@ func _D3D12GetDebugInterface() (*_ID3D12Debug, error) {
 func _D3D12SerializeRootSignature(pRootSignature *_D3D12_ROOT_SIGNATURE_DESC, version _D3D_ROOT_SIGNATURE_VERSION) (*_ID3DBlob, error) {
 	var blob *_ID3DBlob
 	var errorBlob *_ID3DBlob
-	r, _, _ := procD3D12SerializeRootSignature.Call(uintptr(unsafe.Pointer(pRootSignature)), uintptr(version), uintptr(unsafe.Pointer(&blob)), uintptr(unsafe.Pointer(&errorBlob)))
+	var proc *windows.LazyProc
+	if microsoftgdk.IsXbox() {
+		proc = procD3D12SerializeRootSignature_Xbox
+	} else {
+		proc = procD3D12SerializeRootSignature
+	}
+	r, _, _ := proc.Call(uintptr(unsafe.Pointer(pRootSignature)), uintptr(version), uintptr(unsafe.Pointer(&blob)), uintptr(unsafe.Pointer(&errorBlob)))
 	if uint32(r) != uint32(windows.S_OK) {
 		if errorBlob != nil {
 			defer errorBlob.Release()
