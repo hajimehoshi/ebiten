@@ -1843,16 +1843,6 @@ func (i *_ID3D12GraphicsCommandList) OMSetStencilRef(stencilRef uint32) {
 	syscall.Syscall(i.vtbl.OMSetStencilRef, 2, uintptr(unsafe.Pointer(i)), uintptr(stencilRef), 0)
 }
 
-func (i *_ID3D12GraphicsCommandList) QueryInterface(riid *windows.GUID, ppvObject *unsafe.Pointer) error {
-	r, _, _ := syscall.Syscall(i.vtbl.QueryInterface, 3, uintptr(unsafe.Pointer(i)),
-		uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(ppvObject)))
-	runtime.KeepAlive(riid)
-	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("directx: ID3D12GraphicsCommandList::QueryInterface failed: HRESULT(%d)", uint32(r))
-	}
-	return nil
-}
-
 func (i *_ID3D12GraphicsCommandList) Release() {
 	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 }
