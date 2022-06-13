@@ -676,10 +676,6 @@ func (u *userInterfaceImpl) createWindow(width, height int) error {
 	u.window.SetTitle(u.title)
 	// Icons are set after every frame. They don't have to be cared here.
 
-	u.registerWindowSetSizeCallback()
-	u.registerWindowCloseCallback()
-	u.registerWindowFramebufferSizeCallback()
-
 	u.updateWindowSizeLimits()
 
 	return nil
@@ -919,6 +915,12 @@ func (u *userInterfaceImpl) init() error {
 	if g, ok := u.graphicsDriver.(interface{ SetWindow(uintptr) }); ok {
 		g.SetWindow(u.nativeWindow())
 	}
+
+	// Register callbacks after the window initialization done.
+	// The callback might cause swapping frames, that assumes the window is already set (#2137).
+	u.registerWindowSetSizeCallback()
+	u.registerWindowCloseCallback()
+	u.registerWindowFramebufferSizeCallback()
 
 	return nil
 }
