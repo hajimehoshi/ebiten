@@ -21,6 +21,18 @@ __declspec(dllexport) __cdecl uint32_t XSystemGetDeviceType(void) {
   return 0;
 }
 
+__declspec(dllexport) __cdecl void Ebitengine_ID3D12GraphicsCommandList_ClearDepthStencilView(void* i, uintptr_t depthStencilView, int32_t clearFlags, float depth, uint8_t stencil, uint32_t numRects, void* pRects) {
+}
+
+__declspec(dllexport) __cdecl void Ebitengine_ID3D12GraphicsCommandList_ClearRenderTargetView(void* i, uintptr_t pRenderTargetView, void* colorRGBA, uint32_t numRects, void* pRects) {
+}
+
+__declspec(dllexport) __cdecl uintptr_t Ebitengine_ID3D12GraphicsCommandList_Close(void* i) {
+}
+
+__declspec(dllexport) __cdecl void Ebitengine_ID3D12GraphicsCommandList_CopyTextureRegion(void* i, void* pDst, uint32_t dstX, uint32_t dstY, uint32_t dstZ, void* pSrc, void* pSrcBox) {
+}
+
 __declspec(dllexport) __cdecl void Ebitengine_ID3D12GraphicsCommandList_DrawIndexedInstanced(void* i, uint32_t indexCountPerInstance, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation) {
 }
 
@@ -33,10 +45,35 @@ __declspec(dllexport) __cdecl void Ebitengine_ID3D12GraphicsCommandList_IASetPri
 __declspec(dllexport) __cdecl void Ebitengine_ID3D12GraphicsCommandList_IASetVertexBuffers(void* i, uint32_t startSlot, uint32_t numViews, void* pViews) {
 }
 
+__declspec(dllexport) __cdecl void Ebitengine_ID3D12GraphicsCommandList_OMSetRenderTargets(void* i, uint32_t numRenderTargetDescriptors, void* pRenderTargetDescriptors, int rtsSingleHandleToDescriptorRange, void* pDepthStencilDescriptor) {
+}
+
 __declspec(dllexport) __cdecl void Ebitengine_ID3D12GraphicsCommandList_OMSetStencilRef(void* i, uint32_t stencilRef) {
 }
 
+__declspec(dllexport) __cdecl void Ebitengine_ID3D12GraphicsCommandList_Release(void* i) {
+}
+
+__declspec(dllexport) __cdecl uintptr_t Ebitengine_ID3D12GraphicsCommandList_Reset(void* i, void* pAllocator, void* pInitialStatexo) {
+  return 0;
+}
+
+__declspec(dllexport) __cdecl void Ebitengine_ID3D12GraphicsCommandList_ResourceBarrier(void* i, uint32_t numBarriers, void* pBarriers) {
+}
+
+__declspec(dllexport) __cdecl void Ebitengine_ID3D12GraphicsCommandList_RSSetViewports(void* i, uint32_t numViewports, void* pViewports) {
+}
+
+__declspec(dllexport) __cdecl void Ebitengine_ID3D12GraphicsCommandList_RSSetScissorRects(void* i, uint32_t numRects, void* pRects) {
+}
+
+__declspec(dllexport) __cdecl void Ebitengine_ID3D12GraphicsCommandList_SetDescriptorHeaps(void* i, uint32_t numDescriptorHeaps, void* ppDescriptorHeaps) {
+}
+
 __declspec(dllexport) __cdecl void Ebitengine_ID3D12GraphicsCommandList_SetGraphicsRootDescriptorTable(void* i, uint32_t rootParameterIndex, uint64_t baseDescriptorPtr) {
+}
+
+__declspec(dllexport) __cdecl void Ebitengine_ID3D12GraphicsCommandList_SetGraphicsRootSignature(void* i, void* pRootSignature) {
 }
 
 __declspec(dllexport) __cdecl void Ebitengine_ID3D12GraphicsCommandList_SetPipelineState(void* i, void* pPipelineState) {
