@@ -76,8 +76,12 @@ func _ID3D12GraphicsCommandList_IASetPrimitiveTopology(i *_ID3D12GraphicsCommand
 	C.Ebitengine_ID3D12GraphicsCommandList_IASetPrimitiveTopology(unsafe.Pointer(i), C.int32_t(primitiveTopology))
 }
 
-func _ID3D12GraphicsCommandList_IASetVertexBuffers(i *_ID3D12GraphicsCommandList, startSlot uint32, pViews []_D3D12_VERTEX_BUFFER_VIEW) {
-	C.Ebitengine_ID3D12GraphicsCommandList_IASetVertexBuffers(unsafe.Pointer(i), C.uint32_t(startSlot), C.uint32_t(len(pViews)), unsafe.Pointer(&pViews[0]))
+func _ID3D12GraphicsCommandList_IASetVertexBuffers(i *_ID3D12GraphicsCommandList, startSlot uint32, views []_D3D12_VERTEX_BUFFER_VIEW) {
+	var pViews *_D3D12_VERTEX_BUFFER_VIEW
+	if len(views) > 0 {
+		pViews = &views[0]
+	}
+	C.Ebitengine_ID3D12GraphicsCommandList_IASetVertexBuffers(unsafe.Pointer(i), C.uint32_t(startSlot), C.uint32_t(len(views)), unsafe.Pointer(pViews))
 }
 
 func _ID3D12GraphicsCommandList_OMSetStencilRef(i *_ID3D12GraphicsCommandList, stencilRef uint32) {
