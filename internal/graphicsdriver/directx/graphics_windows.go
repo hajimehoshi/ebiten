@@ -424,7 +424,7 @@ func (g *Graphics) Initialize() (ferr error) {
 }
 
 func createBuffer(device *_ID3D12Device, bufferSize uint64, heapType _D3D12_HEAP_TYPE) (*_ID3D12Resource, error) {
-	state := _D3D12_RESOURCE_STATE_GENERIC_READ
+	state := _D3D12_RESOURCE_STATE_GENERIC_READ()
 	if heapType == _D3D12_HEAP_TYPE_READBACK {
 		state = _D3D12_RESOURCE_STATE_COPY_DEST
 	}
