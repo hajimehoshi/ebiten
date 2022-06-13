@@ -1819,10 +1819,10 @@ func (i *_ID3D12GraphicsCommandList) DrawIndexedInstanced(indexCountPerInstance 
 func (i *_ID3D12GraphicsCommandList) IASetIndexBuffer(pView *_D3D12_INDEX_BUFFER_VIEW) {
 	if microsoftgdk.IsXbox() {
 		_ID3D12GraphicsCommandList_IASetIndexBuffer(i, pView)
-		return
+	} else {
+		syscall.Syscall(i.vtbl.IASetIndexBuffer, 2, uintptr(unsafe.Pointer(i)),
+			uintptr(unsafe.Pointer(pView)), 0)
 	}
-	syscall.Syscall(i.vtbl.IASetIndexBuffer, 2, uintptr(unsafe.Pointer(i)),
-		uintptr(unsafe.Pointer(pView)), 0)
 	runtime.KeepAlive(pView)
 }
 
@@ -1839,10 +1839,11 @@ func (i *_ID3D12GraphicsCommandList) IASetVertexBuffers(startSlot uint32, pViews
 	if microsoftgdk.IsXbox() {
 		_ID3D12GraphicsCommandList_IASetVertexBuffers(i, startSlot, pViews)
 		return
+	} else {
+		syscall.Syscall6(i.vtbl.IASetVertexBuffers, 4, uintptr(unsafe.Pointer(i)),
+			uintptr(startSlot), uintptr(len(pViews)), uintptr(unsafe.Pointer(&pViews[0])),
+			0, 0)
 	}
-	syscall.Syscall6(i.vtbl.IASetVertexBuffers, 4, uintptr(unsafe.Pointer(i)),
-		uintptr(startSlot), uintptr(len(pViews)), uintptr(unsafe.Pointer(&pViews[0])),
-		0, 0)
 	runtime.KeepAlive(pViews)
 }
 
@@ -1919,10 +1920,10 @@ func (i *_ID3D12GraphicsCommandList) SetGraphicsRootSignature(pRootSignature *_I
 func (i *_ID3D12GraphicsCommandList) SetPipelineState(pPipelineState *_ID3D12PipelineState) {
 	if microsoftgdk.IsXbox() {
 		_ID3D12GraphicsCommandList_SetPipelineState(i, pPipelineState)
-		return
+	} else {
+		syscall.Syscall(i.vtbl.SetPipelineState, 2, uintptr(unsafe.Pointer(i)),
+			uintptr(unsafe.Pointer(pPipelineState)), 0)
 	}
-	syscall.Syscall(i.vtbl.SetPipelineState, 2, uintptr(unsafe.Pointer(i)),
-		uintptr(unsafe.Pointer(pPipelineState)), 0)
 	runtime.KeepAlive(pPipelineState)
 }
 
