@@ -29,7 +29,7 @@ func _ID3D12GraphicsCommandList_IASetPrimitiveTopology(i *_ID3D12GraphicsCommand
 	panic("not implemented")
 }
 
-func _ID3D12GraphicsCommandList_IASetVertexBuffers(i *_ID3D12GraphicsCommandList, startSlot uint32, numViews uint32, pViews *_D3D12_VERTEX_BUFFER_VIEW) {
+func _ID3D12GraphicsCommandList_IASetVertexBuffers(i *_ID3D12GraphicsCommandList, startSlot uint32, pViews []_D3D12_VERTEX_BUFFER_VIEW) {
 	panic("not implemented")
 }
 

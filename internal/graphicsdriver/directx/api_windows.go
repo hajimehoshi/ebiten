@@ -1750,17 +1750,17 @@ type _ID3D12GraphicsCommandList_Vtbl struct {
 	_                      uintptr
 }
 
-func (i *_ID3D12GraphicsCommandList) ClearDepthStencilView(depthStencilView _D3D12_CPU_DESCRIPTOR_HANDLE, clearFlags _D3D12_CLEAR_FLAGS, depth float32, stencil uint8, numRects uint32, pRects *_D3D12_RECT) {
+func (i *_ID3D12GraphicsCommandList) ClearDepthStencilView(depthStencilView _D3D12_CPU_DESCRIPTOR_HANDLE, clearFlags _D3D12_CLEAR_FLAGS, depth float32, stencil uint8, pRects []_D3D12_RECT) {
 	syscall.Syscall9(i.vtbl.ClearDepthStencilView, 7, uintptr(unsafe.Pointer(i)),
 		depthStencilView.ptr, uintptr(clearFlags), uintptr(math.Float32bits(depth)),
-		uintptr(stencil), uintptr(numRects), uintptr(unsafe.Pointer(pRects)),
+		uintptr(stencil), uintptr(len(pRects)), uintptr(unsafe.Pointer(&pRects[0])),
 		0, 0)
 	runtime.KeepAlive(pRects)
 }
 
-func (i *_ID3D12GraphicsCommandList) ClearRenderTargetView(pRenderTargetView _D3D12_CPU_DESCRIPTOR_HANDLE, colorRGBA [4]float32, numRects uint32, pRects *_D3D12_RECT) {
+func (i *_ID3D12GraphicsCommandList) ClearRenderTargetView(pRenderTargetView _D3D12_CPU_DESCRIPTOR_HANDLE, colorRGBA [4]float32, pRects []_D3D12_RECT) {
 	syscall.Syscall6(i.vtbl.ClearRenderTargetView, 5, uintptr(unsafe.Pointer(i)),
-		pRenderTargetView.ptr, uintptr(unsafe.Pointer(&colorRGBA[0])), uintptr(numRects), uintptr(unsafe.Pointer(pRects)),
+		pRenderTargetView.ptr, uintptr(unsafe.Pointer(&colorRGBA[0])), uintptr(len(pRects)), uintptr(unsafe.Pointer(&pRects[0])),
 		0)
 	runtime.KeepAlive(pRenderTargetView)
 }
@@ -1835,13 +1835,13 @@ func (i *_ID3D12GraphicsCommandList) IASetPrimitiveTopology(primitiveTopology _D
 		uintptr(primitiveTopology), 0)
 }
 
-func (i *_ID3D12GraphicsCommandList) IASetVertexBuffers(startSlot uint32, numViews uint32, pViews *_D3D12_VERTEX_BUFFER_VIEW) {
+func (i *_ID3D12GraphicsCommandList) IASetVertexBuffers(startSlot uint32, pViews []_D3D12_VERTEX_BUFFER_VIEW) {
 	if microsoftgdk.IsXbox() {
-		_ID3D12GraphicsCommandList_IASetVertexBuffers(i, startSlot, numViews, pViews)
+		_ID3D12GraphicsCommandList_IASetVertexBuffers(i, startSlot, pViews)
 		return
 	}
 	syscall.Syscall6(i.vtbl.IASetVertexBuffers, 4, uintptr(unsafe.Pointer(i)),
-		uintptr(startSlot), uintptr(numViews), uintptr(unsafe.Pointer(pViews)),
+		uintptr(startSlot), uintptr(len(pViews)), uintptr(unsafe.Pointer(&pViews[0])),
 		0, 0)
 	runtime.KeepAlive(pViews)
 }
@@ -1877,21 +1877,21 @@ func (i *_ID3D12GraphicsCommandList) Reset(pAllocator *_ID3D12CommandAllocator, 
 	return nil
 }
 
-func (i *_ID3D12GraphicsCommandList) ResourceBarrier(numBarriers uint32, pBarriers *_D3D12_RESOURCE_BARRIER_Transition) {
+func (i *_ID3D12GraphicsCommandList) ResourceBarrier(pBarriers []_D3D12_RESOURCE_BARRIER_Transition) {
 	syscall.Syscall(i.vtbl.ResourceBarrier, 3, uintptr(unsafe.Pointer(i)),
-		uintptr(numBarriers), uintptr(unsafe.Pointer(pBarriers)))
+		uintptr(len(pBarriers)), uintptr(unsafe.Pointer(&pBarriers[0])))
 	runtime.KeepAlive(pBarriers)
 }
 
-func (i *_ID3D12GraphicsCommandList) RSSetViewports(numViewports uint32, pViewports *_D3D12_VIEWPORT) {
+func (i *_ID3D12GraphicsCommandList) RSSetViewports(pViewports []_D3D12_VIEWPORT) {
 	syscall.Syscall(i.vtbl.RSSetViewports, 3, uintptr(unsafe.Pointer(i)),
-		uintptr(numViewports), uintptr(unsafe.Pointer(pViewports)))
+		uintptr(len(pViewports)), uintptr(unsafe.Pointer(&pViewports[0])))
 	runtime.KeepAlive(pViewports)
 }
 
-func (i *_ID3D12GraphicsCommandList) RSSetScissorRects(numRects uint32, pRects *_D3D12_RECT) {
+func (i *_ID3D12GraphicsCommandList) RSSetScissorRects(pRects []_D3D12_RECT) {
 	syscall.Syscall(i.vtbl.RSSetScissorRects, 3, uintptr(unsafe.Pointer(i)),
-		uintptr(numRects), uintptr(unsafe.Pointer(pRects)))
+		uintptr(len(pRects)), uintptr(unsafe.Pointer(&pRects[0])))
 	runtime.KeepAlive(pRects)
 }
 

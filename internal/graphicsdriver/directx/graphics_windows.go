@@ -1115,26 +1115,32 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 	}
 
 	w, h := dst.internalSize()
-	g.drawCommandList.RSSetViewports(1, &_D3D12_VIEWPORT{
-		TopLeftX: 0,
-		TopLeftY: 0,
-		Width:    float32(w),
-		Height:   float32(h),
-		MinDepth: _D3D12_MIN_DEPTH,
-		MaxDepth: _D3D12_MAX_DEPTH,
+	g.drawCommandList.RSSetViewports([]_D3D12_VIEWPORT{
+		{
+			TopLeftX: 0,
+			TopLeftY: 0,
+			Width:    float32(w),
+			Height:   float32(h),
+			MinDepth: _D3D12_MIN_DEPTH,
+			MaxDepth: _D3D12_MAX_DEPTH,
+		},
 	})
-	g.drawCommandList.RSSetScissorRects(1, &_D3D12_RECT{
-		left:   int32(dstRegion.X),
-		top:    int32(dstRegion.Y),
-		right:  int32(dstRegion.X + dstRegion.Width),
-		bottom: int32(dstRegion.Y + dstRegion.Height),
+	g.drawCommandList.RSSetScissorRects([]_D3D12_RECT{
+		{
+			left:   int32(dstRegion.X),
+			top:    int32(dstRegion.Y),
+			right:  int32(dstRegion.X + dstRegion.Width),
+			bottom: int32(dstRegion.Y + dstRegion.Height),
+		},
 	})
 
 	g.drawCommandList.IASetPrimitiveTopology(_D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
-	g.drawCommandList.IASetVertexBuffers(0, 1, &_D3D12_VERTEX_BUFFER_VIEW{
-		BufferLocation: g.vertices[g.frameIndex][len(g.vertices[g.frameIndex])-1].GetGPUVirtualAddress(),
-		SizeInBytes:    graphics.IndicesNum * graphics.VertexFloatNum * uint32(unsafe.Sizeof(float32(0))),
-		StrideInBytes:  graphics.VertexFloatNum * uint32(unsafe.Sizeof(float32(0))),
+	g.drawCommandList.IASetVertexBuffers(0, []_D3D12_VERTEX_BUFFER_VIEW{
+		{
+			BufferLocation: g.vertices[g.frameIndex][len(g.vertices[g.frameIndex])-1].GetGPUVirtualAddress(),
+			SizeInBytes:    graphics.IndicesNum * graphics.VertexFloatNum * uint32(unsafe.Sizeof(float32(0))),
+			StrideInBytes:  graphics.VertexFloatNum * uint32(unsafe.Sizeof(float32(0))),
+		},
 	})
 	g.drawCommandList.IASetIndexBuffer(&_D3D12_INDEX_BUFFER_VIEW{
 		BufferLocation: g.indices[g.frameIndex][len(g.indices[g.frameIndex])-1].GetGPUVirtualAddress(),
@@ -1449,14 +1455,16 @@ func (i *Image) transiteState(commandList *_ID3D12GraphicsCommandList, newState 
 		return
 	}
 
-	commandList.ResourceBarrier(1, &_D3D12_RESOURCE_BARRIER_Transition{
-		Type:  _D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
-		Flags: _D3D12_RESOURCE_BARRIER_FLAG_NONE,
-		Transition: _D3D12_RESOURCE_TRANSITION_BARRIER{
-			pResource:   i.resource(),
-			Subresource: _D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
-			StateBefore: i.state,
-			StateAfter:  newState,
+	commandList.ResourceBarrier([]_D3D12_RESOURCE_BARRIER_Transition{
+		{
+			Type:  _D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+			Flags: _D3D12_RESOURCE_BARRIER_FLAG_NONE,
+			Transition: _D3D12_RESOURCE_TRANSITION_BARRIER{
+				pResource:   i.resource(),
+				Subresource: _D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+				StateBefore: i.state,
+				StateAfter:  newState,
+			},
 		},
 	})
 	i.state = newState
@@ -1501,7 +1509,7 @@ func (i *Image) setAsRenderTarget(device *_ID3D12Device, useStencil bool) error 
 		}
 		dsv = &v
 
-		i.graphics.drawCommandList.ClearDepthStencilView(v, _D3D12_CLEAR_FLAG_STENCIL, 0, 0, 0, nil)
+		i.graphics.drawCommandList.ClearDepthStencilView(v, _D3D12_CLEAR_FLAG_STENCIL, 0, 0, nil)
 		i.graphics.drawCommandList.OMSetStencilRef(0)
 	}
 	i.graphics.drawCommandList.OMSetRenderTargets(1, &rtv, false, dsv) // TODO: Pass depth-stencil here!
