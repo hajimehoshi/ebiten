@@ -400,7 +400,7 @@ type DrawTrianglesShaderOptions struct {
 	Uniforms map[string]interface{}
 
 	// Images is a set of the source images.
-	// All the image must be the same bounds.
+	// All the images must be the same sizes.
 	Images [4]*Image
 
 	// FillRule indicates the rule how an overlapped region is rendered.
@@ -542,7 +542,7 @@ type DrawRectShaderOptions struct {
 	Uniforms map[string]interface{}
 
 	// Images is a set of the source images.
-	// All the image must be the same bounds.
+	// All the images must be the same sizes.
 	Images [4]*Image
 }
 
