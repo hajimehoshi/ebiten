@@ -513,7 +513,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		b := img.Bounds()
 		x, y := img.adjustPosition(b.Min.X, b.Min.Y)
 		// (sx, sy) is the left-upper position of the first image.
-		// Calculate the direction between the current image's left-upper position and the first one's.
+		// Calculate the distance between the current image's left-upper position and the first one's.
 		offsets[i][0] = float32(x - sx)
 		offsets[i][1] = float32(y - sy)
 	}
@@ -612,7 +612,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		b := img.Bounds()
 		x, y := img.adjustPosition(b.Min.X, b.Min.Y)
 		// (sx, sy) is the left-upper position of the first image.
-		// Calculate the direction between the current image's left-upper position and the first one's.
+		// Calculate the distance between the current image's left-upper position and the first one's.
 		offsets[i][0] = float32(x - sx)
 		offsets[i][1] = float32(y - sy)
 	}
