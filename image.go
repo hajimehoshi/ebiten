@@ -815,6 +815,8 @@ type NewImageOptions struct {
 // If DrawImage is called on a new image created by NewImageOptions,
 // for example, the center of scaling and rotating is (0, 0), that might not be a left-upper position.
 //
+// If options is nil, the default setting is used.
+//
 // NewImageWithOptions should be called only when necessary.
 // For example, you should avoid to call NewImageWithOptions every Update or Draw call.
 // Reusing the same image by Clear is much more efficient than creating a new image.
@@ -859,19 +861,62 @@ func newImage(bounds image.Rectangle, imageType atlas.ImageType) *Image {
 //
 // NewImageFromImage panics if RunGame already finishes.
 //
-// The returned image's origin is always (0, 0). The source's bounds are not respected.
+// The returned image's left-upper position is always (0, 0). The source's bounds are not respected.
 func NewImageFromImage(source image.Image) *Image {
-	if isRunGameEnded() {
-		panic(fmt.Sprintf("ebiten: NewImage cannot be called after RunGame finishes"))
+	return NewImageFromImageWithOptions(source, nil)
+}
+
+// NewImageFromImageOptions represents options for NewImageFromImage.
+type NewImageFromImageOptions struct {
+	// Unmanaged represents whether the image is unmanaged or not.
+	// The default (zero) value is false, that means the image is managed.
+	//
+	// An unmanged image is never on an internal automatic texture atlas.
+	// A regular image is a part of an internal texture atlas, and locating them is done automatically in Ebitengine.
+	// NewUnmanagedImage is useful when you want finer controls over the image for performance and memory reasons.
+	Unmanaged bool
+
+	// PreserveBounds represents whether the new image's bounds are the same as the given image.
+	// The default (zero) value is false, that means the new image's left-upper position is adjusted to (0, 0).
+	PreserveBounds bool
+}
+
+// NewImageFromImageWithOptions creates a new image with the given image (source) with the given options.
+//
+// If source's width or height is less than 1 or more than device-dependent maximum size, NewImageFromImageWithOptions panics.
+//
+// If options is nil, the default setting is used.
+//
+// NewImageFromImageWithOptions should be called only when necessary.
+// For example, you should avoid to call NewImageFromImageWithOptions every Update or Draw call.
+// Reusing the same image by Clear and ReplacePixels is much more efficient than creating a new image.
+//
+// NewImageFromImageWithOptions panics if RunGame already finishes.
+func NewImageFromImageWithOptions(source image.Image, options *NewImageFromImageOptions) *Image {
+	if options == nil {
+		options = &NewImageFromImageOptions{}
 	}
 
-	size := source.Bounds().Size()
-	i := NewImage(size.X, size.Y)
+	var r image.Rectangle
+	if options.PreserveBounds {
+		r = source.Bounds()
+	} else {
+		size := source.Bounds().Size()
+		r = image.Rect(0, 0, size.X, size.Y)
+	}
+	i := NewImageWithOptions(r, &NewImageOptions{
+		Unmanaged: options.Unmanaged,
+	})
 
 	// If the given image is an Ebitengine image, use DrawImage instead of reading pixels from the source.
 	// This works even before the game loop runs.
 	if source, ok := source.(*Image); ok {
-		i.DrawImage(source, nil)
+		op := &DrawImageOptions{}
+		if options.PreserveBounds {
+			b := source.Bounds()
+			op.GeoM.Translate(float64(b.Min.X), float64(b.Min.Y))
+		}
+		i.DrawImage(source, op)
 		return i
 	}
 

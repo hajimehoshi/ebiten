@@ -3045,7 +3045,7 @@ func TestImageOptionsNegativeBoundsDrawImage(t *testing.T) {
 				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
 			}
 			if got != want {
-				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}
 	}
@@ -3115,6 +3115,65 @@ func TestImageOptionsNegativeBoundsDrawTriangles(t *testing.T) {
 			if -2 <= i && i < 2 && -3 <= j && j < 3 {
 				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
 			}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestImageFromImageOptions(t *testing.T) {
+	r := image.Rect(-2, -3, 4, 5)
+	pix := make([]byte, 4*r.Dx()*r.Dy())
+	for i := range pix {
+		pix[i] = 0xff
+	}
+	src := &image.RGBA{
+		Pix:    pix,
+		Stride: 4 * 2,
+		Rect:   r,
+	}
+
+	op := &ebiten.NewImageFromImageOptions{
+		PreserveBounds: true,
+	}
+	img := ebiten.NewImageFromImageWithOptions(src, op)
+	if got, want := img.Bounds(), r; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	for j := r.Min.Y; j < r.Max.Y; j++ {
+		for i := r.Min.X; i < r.Max.X; i++ {
+			got := img.At(i, j)
+			want := color.RGBA{0xff, 0xff, 0xff, 0xff}
+			if got != want {
+				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestImageFromEbitenImageOptions(t *testing.T) {
+	r := image.Rect(-2, -3, 4, 5)
+	src := ebiten.NewImageWithOptions(r, nil)
+	pix := make([]byte, 4*r.Dx()*r.Dy())
+	for i := range pix {
+		pix[i] = 0xff
+	}
+	src.ReplacePixels(pix)
+
+	op := &ebiten.NewImageFromImageOptions{
+		PreserveBounds: true,
+	}
+	img := ebiten.NewImageFromImageWithOptions(src, op)
+	if got, want := img.Bounds(), r; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	for j := r.Min.Y; j < r.Max.Y; j++ {
+		for i := r.Min.X; i < r.Max.X; i++ {
+			got := img.At(i, j)
+			want := color.RGBA{0xff, 0xff, 0xff, 0xff}
 			if got != want {
 				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
