@@ -865,29 +865,15 @@ func NewImageFromImage(source image.Image) *Image {
 		panic(fmt.Sprintf("ebiten: NewImage cannot be called after RunGame finishes"))
 	}
 
+	size := source.Bounds().Size()
+	i := NewImage(size.X, size.Y)
+
 	// If the given image is an Ebitengine image, use DrawImage instead of reading pixels from the source.
 	// This works even before the game loop runs.
 	if source, ok := source.(*Image); ok {
-		size := source.Bounds().Size()
-		i := NewImage(size.X, size.Y)
 		i.DrawImage(source, nil)
 		return i
 	}
-
-	size := source.Bounds().Size()
-	width, height := size.X, size.Y
-	if width <= 0 {
-		panic(fmt.Sprintf("ebiten: source width at NewImageFromImage must be positive but %d", width))
-	}
-	if height <= 0 {
-		panic(fmt.Sprintf("ebiten: source height at NewImageFromImage must be positive but %d", height))
-	}
-
-	i := &Image{
-		image:  ui.NewImage(width, height, atlas.ImageTypeRegular),
-		bounds: image.Rect(0, 0, width, height),
-	}
-	i.addr = i
 
 	i.ReplacePixels(imageToBytes(source))
 	return i
