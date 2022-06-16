@@ -27,18 +27,15 @@ type graphicsDriverGetterImpl struct {
 	gomobileBuild bool
 }
 
-func (g *graphicsDriverGetterImpl) getAuto() graphicsdriver.Graphics {
+func (g *graphicsDriverGetterImpl) newAuto() (graphicsdriver.Graphics, error) {
 	if m := g.getMetal(); m != nil {
-		return m
+		return m, nil
 	}
-	return g.getOpenGL()
+	return g.newOpenGL()
 }
 
-func (*graphicsDriverGetterImpl) getOpenGL() graphicsdriver.Graphics {
-	if g := opengl.Get(); g != nil {
-		return g
-	}
-	return nil
+func (*graphicsDriverGetterImpl) newOpenGL() (graphicsdriver.Graphics, error) {
+	return opengl.NewGraphics()
 }
 
 func (*graphicsDriverGetterImpl) getDirectX() graphicsdriver.Graphics {

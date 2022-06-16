@@ -22,8 +22,8 @@ import (
 )
 
 type graphicsDriverGetter interface {
-	getAuto() graphicsdriver.Graphics
-	getOpenGL() graphicsdriver.Graphics
+	newAuto() (graphicsdriver.Graphics, error)
+	newOpenGL() (graphicsdriver.Graphics, error)
 	getDirectX() graphicsdriver.Graphics
 	getMetal() graphicsdriver.Graphics
 }
@@ -33,15 +33,23 @@ func chooseGraphicsDriver(getter graphicsDriverGetter) (graphicsdriver.Graphics,
 
 	switch env := os.Getenv(envName); env {
 	case "", "auto":
-		if g := getter.getAuto(); g != nil {
-			return g, nil
+		g, err := getter.newAuto()
+		if err != nil {
+			return nil, err
 		}
-		return nil, fmt.Errorf("ui: no graphics library is available")
+		if g == nil {
+			return nil, fmt.Errorf("ui: no graphics library is available")
+		}
+		return g, nil
 	case "opengl":
-		if g := getter.getOpenGL(); g != nil {
-			return g, nil
+		g, err := getter.newOpenGL()
+		if err != nil {
+			return nil, err
 		}
-		return nil, fmt.Errorf("ui: %s=%s is specified but OpenGL is not available", envName, env)
+		if g == nil {
+			return nil, fmt.Errorf("ui: %s=%s is specified but OpenGL is not available", envName, env)
+		}
+		return g, nil
 	case "directx":
 		if g := getter.getDirectX(); g != nil {
 			return g, nil

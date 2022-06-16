@@ -23,13 +23,15 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
-var theGraphics Graphics
-
-func Get() *Graphics {
+// NewGraphics creates an implementation of graphicsdriver.Graphcis for OpenGL.
+// The returned graphics value is nil iff the error is not nil.
+func NewGraphics() (graphicsdriver.Graphics, error) {
 	if microsoftgdk.IsXbox() {
-		return nil
+		return nil, fmt.Errorf("opengl: OpenGL is not supported on Xbox")
 	}
-	return &theGraphics
+	g := &Graphics{}
+	g.init()
+	return g, nil
 }
 
 type activatedTexture struct {

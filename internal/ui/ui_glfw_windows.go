@@ -35,18 +35,15 @@ type graphicsDriverGetterImpl struct {
 	transparent bool
 }
 
-func (g *graphicsDriverGetterImpl) getAuto() graphicsdriver.Graphics {
+func (g *graphicsDriverGetterImpl) newAuto() (graphicsdriver.Graphics, error) {
 	if d := g.getDirectX(); d != nil {
-		return d
+		return d, nil
 	}
-	return g.getOpenGL()
+	return g.newOpenGL()
 }
 
-func (*graphicsDriverGetterImpl) getOpenGL() graphicsdriver.Graphics {
-	if g := opengl.Get(); g != nil {
-		return g
-	}
-	return nil
+func (*graphicsDriverGetterImpl) newOpenGL() (graphicsdriver.Graphics, error) {
+	return opengl.NewGraphics()
 }
 
 func (g *graphicsDriverGetterImpl) getDirectX() graphicsdriver.Graphics {
