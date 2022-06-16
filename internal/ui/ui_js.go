@@ -609,7 +609,7 @@ func (u *userInterfaceImpl) Run(game Game) error {
 		}
 	}
 	u.running = true
-	g, err := chooseGraphicsDriver(&graphicsDriverCreatorImpl{})
+	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{})
 	if err != nil {
 		return err
 	}

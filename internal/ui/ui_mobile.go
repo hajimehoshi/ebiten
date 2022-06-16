@@ -270,7 +270,7 @@ func (u *userInterfaceImpl) run(game Game, mainloop bool) (err error) {
 	}()
 
 	u.context = newContext(game)
-	g, err := chooseGraphicsDriver(&graphicsDriverCreatorImpl{
+	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
 		gomobileBuild: mainloop,
 	})
 	if err != nil {

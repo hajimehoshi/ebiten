@@ -354,7 +354,7 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 	}
 
 	// Initialize isMetalAvailable on the main thread.
-	// TODO: Now ui.chooseGraphicsDriver is called on the main thread. Add an assertion.
+	// TODO: Now ui.newGraphicsDriver is called on the main thread. Add an assertion.
 
 	// On old mac devices like iMac 2011, Metal is not supported (#779).
 	// TODO: Is there a better way to check whether Metal is available or not?

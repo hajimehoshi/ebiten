@@ -28,7 +28,7 @@ type graphicsDriverCreator interface {
 	newMetal() (graphicsdriver.Graphics, error)
 }
 
-func chooseGraphicsDriver(creator graphicsDriverCreator) (graphicsdriver.Graphics, error) {
+func newGraphicsDriver(creator graphicsDriverCreator) (graphicsdriver.Graphics, error) {
 	const envName = "EBITEN_GRAPHICS_LIBRARY"
 
 	switch env := os.Getenv(envName); env {

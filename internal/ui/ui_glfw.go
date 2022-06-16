@@ -834,7 +834,7 @@ func (u *userInterfaceImpl) init() error {
 	}
 	glfw.WindowHint(glfw.TransparentFramebuffer, glfwTransparent)
 
-	g, err := chooseGraphicsDriver(&graphicsDriverCreatorImpl{
+	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
 		transparent: transparent,
 	})
 	if err != nil {
