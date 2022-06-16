@@ -1,4 +1,4 @@
-// Copyright 2018 The Ebiten Authors
+// Copyright 2022 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,21 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build android || ios
-// +build android ios
+//go:build !android && !ios
+// +build !android,!ios
 
 package opengl
 
-import (
-	"golang.org/x/mobile/gl"
-
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gles"
-)
-
 func (g *Graphics) init() {
-	g.context.ctx = gles.DefaultContext{}
-}
-
-func (g *Graphics) SetGomobileGLContext(context gl.Context) {
-	g.context.ctx = gles.NewGomobileContext(context)
+	// Do nothing.
 }
