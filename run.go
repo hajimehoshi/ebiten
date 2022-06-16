@@ -205,8 +205,9 @@ func isRunGameEnded() bool {
 // The adopted monitor is the 'current' monitor which the window belongs to.
 // The returned value can be given to Run or SetSize function if the perfectly fit fullscreen is needed.
 //
-// On browsers, ScreenSizeInFullscreen returns the 'window' (global object) size, not 'screen' size since an Ebitengine
-// game should not know the outside of the window object.
+// On browsers, ScreenSizeInFullscreen returns the 'window' (global object) size, not 'screen' size.
+// ScreenSizeInFullscreen's returning value is different from the actual screen size and this is a known issue (#2145).
+// For browsers, it is recommended to use Screen API (https://developer.mozilla.org/en-US/docs/Web/API/Screen) if needed.
 //
 // On mobiles, ScreenSizeInFullscreen returns (0, 0) so far.
 //
