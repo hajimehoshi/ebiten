@@ -248,36 +248,40 @@ package ui
 import "C"
 
 import (
+	"fmt"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
-type graphicsDriverGetterImpl struct {
+type graphicsDriverCreatorImpl struct {
 	transparent bool
 }
 
-func (g *graphicsDriverGetterImpl) newAuto() (graphicsdriver.Graphics, error) {
-	if m := g.getMetal(); m != nil {
+func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, error) {
+	m, err1 := g.newMetal()
+	if err1 == nil {
 		return m, nil
 	}
-	return g.newOpenGL()
+	o, err2 := g.newOpenGL()
+	if err2 == nil {
+		return o, nil
+	}
+	return nil, fmt.Errorf("ui: failed to choose graphics drivers: Metal: %v, OpenGL: %v", err1, err2)
 }
 
-func (*graphicsDriverGetterImpl) newOpenGL() (graphicsdriver.Graphics, error) {
+func (*graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {
 	return opengl.NewGraphics()
 }
 
-func (*graphicsDriverGetterImpl) getDirectX() graphicsdriver.Graphics {
+func (*graphicsDriverCreatorImpl) getDirectX() graphicsdriver.Graphics {
 	return nil
 }
 
-func (*graphicsDriverGetterImpl) getMetal() graphicsdriver.Graphics {
-	if m := metal.Get(); m != nil {
-		return m
-	}
-	return nil
+func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
+	return metal.NewGraphics()
 }
 
 // clearVideoModeScaleCache must be called from the main thread.

@@ -19,7 +19,6 @@ import (
 	"math"
 	"sort"
 	"strings"
-	"sync"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -347,35 +346,24 @@ const (
 	noStencil
 )
 
-var (
-	// isMetalAvailable reports whether Metal is available or not.
-	isMetalAvailable     bool
-	isMetalAvailableOnce sync.Once
-)
-
-var theGraphics Graphics
-
-func Get() *Graphics {
-	isMetalAvailableOnce.Do(func() {
-		if !supportsMetal() {
-			return
-		}
-
-		// Initialize isMetalAvailable on the main thread.
-		// TODO: Now ui.chooseGraphicsDriver is called on the main thread. Add an assertion.
-
-		// On old mac devices like iMac 2011, Metal is not supported (#779).
-		// TODO: Is there a better way to check whether Metal is available or not?
-		// It seems OK to call MTLCreateSystemDefaultDevice multiple times, so this should be fine.
-		if _, ok := mtl.CreateSystemDefaultDevice(); !ok {
-			return
-		}
-		isMetalAvailable = true
-	})
-	if !isMetalAvailable {
-		return nil
+// NewGraphics creates an implementation of graphicsdriver.Graphcis for Metal.
+// The returned graphics value is nil iff the error is not nil.
+func NewGraphics() (graphicsdriver.Graphics, error) {
+	if !supportsMetal() {
+		return nil, fmt.Errorf("metal: Metal is not supported in this environment")
 	}
-	return &theGraphics
+
+	// Initialize isMetalAvailable on the main thread.
+	// TODO: Now ui.chooseGraphicsDriver is called on the main thread. Add an assertion.
+
+	// On old mac devices like iMac 2011, Metal is not supported (#779).
+	// TODO: Is there a better way to check whether Metal is available or not?
+	// It seems OK to call MTLCreateSystemDefaultDevice multiple times, so this should be fine.
+	if _, ok := mtl.CreateSystemDefaultDevice(); !ok {
+		return nil, fmt.Errorf("metal: mtl.CreateSystemDefaultDevice failed")
+	}
+
+	return &Graphics{}, nil
 }
 
 func (g *Graphics) Begin() error {

@@ -21,19 +21,19 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
-type graphicsDriverGetter interface {
+type graphicsDriverCreator interface {
 	newAuto() (graphicsdriver.Graphics, error)
 	newOpenGL() (graphicsdriver.Graphics, error)
 	getDirectX() graphicsdriver.Graphics
-	getMetal() graphicsdriver.Graphics
+	newMetal() (graphicsdriver.Graphics, error)
 }
 
-func chooseGraphicsDriver(getter graphicsDriverGetter) (graphicsdriver.Graphics, error) {
+func chooseGraphicsDriver(creator graphicsDriverCreator) (graphicsdriver.Graphics, error) {
 	const envName = "EBITEN_GRAPHICS_LIBRARY"
 
 	switch env := os.Getenv(envName); env {
 	case "", "auto":
-		g, err := getter.newAuto()
+		g, err := creator.newAuto()
 		if err != nil {
 			return nil, err
 		}
@@ -42,7 +42,7 @@ func chooseGraphicsDriver(getter graphicsDriverGetter) (graphicsdriver.Graphics,
 		}
 		return g, nil
 	case "opengl":
-		g, err := getter.newOpenGL()
+		g, err := creator.newOpenGL()
 		if err != nil {
 			return nil, err
 		}
@@ -51,15 +51,19 @@ func chooseGraphicsDriver(getter graphicsDriverGetter) (graphicsdriver.Graphics,
 		}
 		return g, nil
 	case "directx":
-		if g := getter.getDirectX(); g != nil {
+		if g := creator.getDirectX(); g != nil {
 			return g, nil
 		}
 		return nil, fmt.Errorf("ui: %s=%s is specified but DirectX is not available.", envName, env)
 	case "metal":
-		if g := getter.getMetal(); g != nil {
-			return g, nil
+		g, err := creator.newMetal()
+		if err != nil {
+			return nil, err
 		}
-		return nil, fmt.Errorf("ui: %s=%s is specified but Metal is not available", envName, env)
+		if g == nil {
+			return nil, fmt.Errorf("ui: %s=%s is specified but Metal is not available", envName, env)
+		}
+		return g, nil
 	default:
 		return nil, fmt.Errorf("ui: an unsupported graphics library is specified: %s", env)
 	}

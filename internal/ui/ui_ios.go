@@ -18,40 +18,42 @@
 package ui
 
 import (
+	"fmt"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
-type graphicsDriverGetterImpl struct {
+type graphicsDriverCreatorImpl struct {
 	gomobileBuild bool
 }
 
-func (g *graphicsDriverGetterImpl) newAuto() (graphicsdriver.Graphics, error) {
-	if m := g.getMetal(); m != nil {
+func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, error) {
+	m, err1 := g.newMetal()
+	if err1 == nil {
 		return m, nil
 	}
-	return g.newOpenGL()
+	o, err2 := g.newOpenGL()
+	if err2 == nil {
+		return o, nil
+	}
+	return nil, fmt.Errorf("ui: failed to choose graphics drivers: Metal: %v, OpenGL: %v", err1, err2)
 }
 
-func (*graphicsDriverGetterImpl) newOpenGL() (graphicsdriver.Graphics, error) {
+func (*graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {
 	return opengl.NewGraphics()
 }
 
-func (*graphicsDriverGetterImpl) getDirectX() graphicsdriver.Graphics {
+func (*graphicsDriverCreatorImpl) getDirectX() graphicsdriver.Graphics {
 	return nil
 }
 
-func (g *graphicsDriverGetterImpl) getMetal() graphicsdriver.Graphics {
-	// When gomobile-build is used, GL functions must be called via
-	// gl.Context so that they are called on the appropriate thread.
+func (g *graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
 	if g.gomobileBuild {
-		return nil
+		return nil, fmt.Errorf("ui: Metal is not available with gomobile-build")
 	}
-	if m := metal.Get(); m != nil {
-		return m
-	}
-	return nil
+	return metal.NewGraphics()
 }
 
 func SetUIView(uiview uintptr) {

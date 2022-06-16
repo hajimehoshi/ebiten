@@ -25,22 +25,22 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
-type graphicsDriverGetterImpl struct{}
+type graphicsDriverCreatorImpl struct{}
 
-func (g *graphicsDriverGetterImpl) newAuto() (graphicsdriver.Graphics, error) {
+func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, error) {
 	return g.newOpenGL()
 }
 
-func (*graphicsDriverGetterImpl) newOpenGL() (graphicsdriver.Graphics, error) {
+func (*graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {
 	return opengl.NewGraphics()
 }
 
-func (*graphicsDriverGetterImpl) getDirectX() graphicsdriver.Graphics {
+func (*graphicsDriverCreatorImpl) getDirectX() graphicsdriver.Graphics {
 	return nil
 }
 
-func (*graphicsDriverGetterImpl) getMetal() graphicsdriver.Graphics {
-	return nil
+func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
+	return nil, nil
 }
 
 const deviceScaleFactor = 1
@@ -58,7 +58,7 @@ type userInterfaceImpl struct {
 
 func (u *userInterfaceImpl) Run(game Game) error {
 	u.context = newContext(game)
-	g, err := chooseGraphicsDriver(&graphicsDriverGetterImpl{})
+	g, err := chooseGraphicsDriver(&graphicsDriverCreatorImpl{})
 	if err != nil {
 		return err
 	}

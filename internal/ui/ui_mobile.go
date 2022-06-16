@@ -270,7 +270,7 @@ func (u *userInterfaceImpl) run(game Game, mainloop bool) (err error) {
 	}()
 
 	u.context = newContext(game)
-	g, err := chooseGraphicsDriver(&graphicsDriverGetterImpl{
+	g, err := chooseGraphicsDriver(&graphicsDriverCreatorImpl{
 		gomobileBuild: mainloop,
 	})
 	if err != nil {
@@ -279,6 +279,8 @@ func (u *userInterfaceImpl) run(game Game, mainloop bool) (err error) {
 	u.graphicsDriver = g
 
 	if mainloop {
+		// When gomobile-build is used, GL functions must be called via
+		// gl.Context so that they are called on the appropriate thread.
 		ctx := <-glContextCh
 		g.(*opengl.Graphics).SetGomobileGLContext(ctx)
 	} else {

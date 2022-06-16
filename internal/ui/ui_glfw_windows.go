@@ -31,22 +31,22 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 )
 
-type graphicsDriverGetterImpl struct {
+type graphicsDriverCreatorImpl struct {
 	transparent bool
 }
 
-func (g *graphicsDriverGetterImpl) newAuto() (graphicsdriver.Graphics, error) {
+func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, error) {
 	if d := g.getDirectX(); d != nil {
 		return d, nil
 	}
 	return g.newOpenGL()
 }
 
-func (*graphicsDriverGetterImpl) newOpenGL() (graphicsdriver.Graphics, error) {
+func (*graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {
 	return opengl.NewGraphics()
 }
 
-func (g *graphicsDriverGetterImpl) getDirectX() graphicsdriver.Graphics {
+func (g *graphicsDriverCreatorImpl) getDirectX() graphicsdriver.Graphics {
 	if g.transparent {
 		return nil
 	}
@@ -56,8 +56,8 @@ func (g *graphicsDriverGetterImpl) getDirectX() graphicsdriver.Graphics {
 	return nil
 }
 
-func (*graphicsDriverGetterImpl) getMetal() graphicsdriver.Graphics {
-	return nil
+func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
+	return nil, nil
 }
 
 const (
