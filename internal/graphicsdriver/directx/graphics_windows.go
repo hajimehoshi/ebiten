@@ -45,7 +45,7 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 	}
 
 	g := &Graphics{}
-	if err := g.initializeDevice(); err != nil {
+	if err := g.initialize(); err != nil {
 		return nil, err
 	}
 	return g, nil
@@ -145,7 +145,7 @@ type Graphics struct {
 	pipelineStates
 }
 
-func (g *Graphics) initializeDevice() (ferr error) {
+func (g *Graphics) initialize() (ferr error) {
 	var (
 		useWARP       bool
 		useDebugLayer bool
@@ -161,18 +161,18 @@ func (g *Graphics) initializeDevice() (ferr error) {
 	}
 
 	if microsoftgdk.IsXbox() {
-		if err := g.initializeDeviceXbox(useWARP, useDebugLayer); err != nil {
+		if err := g.initializeXbox(useWARP, useDebugLayer); err != nil {
 			return err
 		}
 	} else {
-		if err := g.initializeDeviceDesktop(useWARP, useDebugLayer); err != nil {
+		if err := g.initializeDesktop(useWARP, useDebugLayer); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (g *Graphics) initializeDeviceDesktop(useWARP bool, useDebugLayer bool) (ferr error) {
+func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool) (ferr error) {
 	if err := d3d12.Load(); err != nil {
 		return err
 	}
@@ -266,10 +266,14 @@ func (g *Graphics) initializeDeviceDesktop(useWARP bool, useDebugLayer bool) (fe
 		return err
 	}
 
+	if err := g.initializeMembers(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (g *Graphics) initializeDeviceXbox(useWARP bool, useDebugLayer bool) (ferr error) {
+func (g *Graphics) initializeXbox(useWARP bool, useDebugLayer bool) (ferr error) {
 	if err := d3d12x.Load(); err != nil {
 		return err
 	}
@@ -287,10 +291,14 @@ func (g *Graphics) initializeDeviceXbox(useWARP bool, useDebugLayer bool) (ferr 
 		return err
 	}
 
+	if err := g.initializeMembers(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (g *Graphics) Initialize() (ferr error) {
+func (g *Graphics) initializeMembers() (ferr error) {
 	// Create an event for a fence.
 	e, err := windows.CreateEvent(nil, 0, 0, nil)
 	if err != nil {
@@ -413,6 +421,11 @@ func (g *Graphics) Initialize() (ferr error) {
 		return err
 	}
 
+	return nil
+}
+
+func (g *Graphics) Initialize() (err error) {
+	// Initialization should already be done.
 	return nil
 }
 
