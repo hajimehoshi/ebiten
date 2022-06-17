@@ -346,6 +346,14 @@ const (
 	noStencil
 )
 
+var creatingSystemDefaultDeviceSucceeded bool
+
+func init() {
+	// mtl.CreateSystemDefaultDevice must be called on the main thread (#2147).
+	_, ok := mtl.CreateSystemDefaultDevice()
+	creatingSystemDefaultDeviceSucceeded = ok
+}
+
 // NewGraphics creates an implementation of graphicsdriver.Graphcis for Metal.
 // The returned graphics value is nil iff the error is not nil.
 func NewGraphics() (graphicsdriver.Graphics, error) {
@@ -353,13 +361,10 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 		return nil, fmt.Errorf("metal: Metal is not supported in this environment")
 	}
 
-	// Initialize isMetalAvailable on the main thread.
-	// TODO: Now ui.newGraphicsDriver is called on the main thread. Add an assertion.
-
 	// On old mac devices like iMac 2011, Metal is not supported (#779).
 	// TODO: Is there a better way to check whether Metal is available or not?
 	// It seems OK to call MTLCreateSystemDefaultDevice multiple times, so this should be fine.
-	if _, ok := mtl.CreateSystemDefaultDevice(); !ok {
+	if !creatingSystemDefaultDeviceSucceeded {
 		return nil, fmt.Errorf("metal: mtl.CreateSystemDefaultDevice failed")
 	}
 
