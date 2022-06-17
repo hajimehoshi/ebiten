@@ -33,6 +33,8 @@ import (
 
 const frameCount = 2
 
+// NewGraphics creates an implementation of graphicsdriver.Graphcis for DirectX.
+// The returned graphics value is nil iff the error is not nil.
 func NewGraphics() (graphicsdriver.Graphics, error) {
 	const is64bit = uint64(^uintptr(0)) == ^uint64(0)
 
@@ -159,6 +161,9 @@ func (g *Graphics) initialize() (ferr error) {
 			useDebugLayer = true
 		}
 	}
+
+	// Initialize not only a device but also other members like fences.
+	// Even if initializing a device succeeds, initializing a fence might fail (#2142).
 
 	if microsoftgdk.IsXbox() {
 		if err := g.initializeXbox(useWARP, useDebugLayer); err != nil {
