@@ -36,24 +36,26 @@ type graphicsDriverCreatorImpl struct {
 }
 
 func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, error) {
-	if d := g.getDirectX(); d != nil {
+	d, err1 := g.newDirectX()
+	if err1 == nil {
 		return d, nil
 	}
-	return g.newOpenGL()
+	o, err2 := g.newOpenGL()
+	if err2 == nil {
+		return o, nil
+	}
+	return nil, fmt.Errorf("ui: failed to choose graphics drivers: DirectX: %v, OpenGL: %v", err1, err2)
 }
 
 func (*graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {
 	return opengl.NewGraphics()
 }
 
-func (g *graphicsDriverCreatorImpl) getDirectX() graphicsdriver.Graphics {
+func (g *graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error) {
 	if g.transparent {
-		return nil
+		return nil, fmt.Errorf("ui: DirectX is not available with a transparent window")
 	}
-	if d := directx.Get(); d != nil {
-		return d
-	}
-	return nil
+	return directx.NewGraphics()
 }
 
 func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {

@@ -24,7 +24,7 @@ import (
 type graphicsDriverCreator interface {
 	newAuto() (graphicsdriver.Graphics, error)
 	newOpenGL() (graphicsdriver.Graphics, error)
-	getDirectX() graphicsdriver.Graphics
+	newDirectX() (graphicsdriver.Graphics, error)
 	newMetal() (graphicsdriver.Graphics, error)
 }
 
@@ -51,10 +51,14 @@ func newGraphicsDriver(creator graphicsDriverCreator) (graphicsdriver.Graphics, 
 		}
 		return g, nil
 	case "directx":
-		if g := creator.getDirectX(); g != nil {
-			return g, nil
+		g, err := creator.newDirectX()
+		if err != nil {
+			return nil, err
 		}
-		return nil, fmt.Errorf("ui: %s=%s is specified but DirectX is not available.", envName, env)
+		if g == nil {
+			return nil, fmt.Errorf("ui: %s=%s is specified but DirectX is not available.", envName, env)
+		}
+		return g, nil
 	case "metal":
 		g, err := creator.newMetal()
 		if err != nil {

@@ -20,7 +20,6 @@ import (
 	"os"
 	"reflect"
 	"strings"
-	"sync"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -34,28 +33,22 @@ import (
 
 const frameCount = 2
 
-var (
-	// isDirectXAvailable indicates whether DirectX is available or not.
-	isDirectXAvailable     bool
-	isDirectXAvailableOnce sync.Once
-)
+func NewGraphics() (graphicsdriver.Graphics, error) {
+	const is64bit = uint64(^uintptr(0)) == ^uint64(0)
 
-var theGraphics Graphics
-
-func Get() *Graphics {
-	isDirectXAvailableOnce.Do(func() {
-		const is64bit = uint64(^uintptr(0)) == ^uint64(0)
-
-		// In 32bit machines, DirectX is not used because
-		//   1) The functions syscall.Syscall cannot accept 64bit values as one argument
-		//   2) The struct layouts can be different
-		// TODO: Support DirectX for 32bit machines (#2088).
-		isDirectXAvailable = is64bit && theGraphics.initializeDevice() == nil
-	})
-	if !isDirectXAvailable {
-		return nil
+	// In 32bit machines, DirectX is not used because
+	//   1) The functions syscall.Syscall cannot accept 64bit values as one argument
+	//   2) The struct layouts can be different
+	// TODO: Support DirectX for 32bit machines (#2088).
+	if !is64bit {
+		return nil, fmt.Errorf("directx: DirectX is not available on a 32bit machine")
 	}
-	return &theGraphics
+
+	g := &Graphics{}
+	if err := g.initializeDevice(); err != nil {
+		return nil, err
+	}
+	return g, nil
 }
 
 var inputElementDescs []_D3D12_INPUT_ELEMENT_DESC

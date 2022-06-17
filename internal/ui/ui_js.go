@@ -35,8 +35,8 @@ func (*graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {
 	return opengl.NewGraphics()
 }
 
-func (*graphicsDriverCreatorImpl) getDirectX() graphicsdriver.Graphics {
-	return nil
+func (*graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error) {
+	return nil, nil
 }
 
 func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
