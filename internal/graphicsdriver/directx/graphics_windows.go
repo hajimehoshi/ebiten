@@ -674,6 +674,7 @@ func (g *Graphics) End(present bool) error {
 			return err
 		}
 
+		// TODO: nextIndex should be GetCurrentBackBufferIndex on desktops, right? (#2034)
 		nextIndex := (g.frameIndex + 1) % frameCount
 		if err := g.waitForCommandQueueForFrame(nextIndex); err != nil {
 			return err
