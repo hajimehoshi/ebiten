@@ -91,12 +91,13 @@ func init() {
 }
 
 type Graphics struct {
-	debug             *_ID3D12Debug
-	device            *_ID3D12Device
-	commandQueue      *_ID3D12CommandQueue
-	rtvDescriptorHeap *_ID3D12DescriptorHeap
-	rtvDescriptorSize uint32
-	renderTargets     [frameCount]*_ID3D12Resource
+	debug              *_ID3D12Debug
+	device             *_ID3D12Device
+	commandQueue       *_ID3D12CommandQueue
+	rtvDescriptorHeap  *_ID3D12DescriptorHeap
+	rtvDescriptorSize  uint32
+	renderTargets      [frameCount]*_ID3D12Resource
+	framePipelineToken _D3D12XBOX_FRAME_PIPELINE_TOKEN
 
 	fence          *_ID3D12Fence
 	fenceValues    [frameCount]uint64
@@ -127,6 +128,9 @@ type Graphics struct {
 	window windows.HWND
 
 	frameIndex int
+
+	// frameStarted is true since Begin until End with present
+	frameStarted bool
 
 	images         map[graphicsdriver.ImageID]*Image
 	screenImage    *Image
@@ -281,6 +285,31 @@ func (g *Graphics) initializeXbox(useWARP bool, useDebugLayer bool) (ferr error)
 	}
 
 	if err := g.initializeMembers(); err != nil {
+		return err
+	}
+
+	var dxgiDevice *_IDXGIDevice
+	if err := g.device.QueryInterface(&_IID_IDXGIDevice, (*unsafe.Pointer)(unsafe.Pointer(dxgiDevice))); err != nil {
+		return err
+	}
+	defer dxgiDevice.Release()
+
+	dxgiAdapter, err := dxgiDevice.GetAdapter()
+	if err != nil {
+		return err
+	}
+	defer dxgiAdapter.Release()
+
+	dxgiOutput, err := dxgiAdapter.EnumOutputs(0)
+	if err != nil {
+		return err
+	}
+	defer dxgiOutput.Release()
+
+	if err := g.device.SetFrameIntervalX(dxgiOutput, _D3D12XBOX_FRAME_INTERVAL_60_HZ, frameCount-1, _D3D12XBOX_FRAME_INTERVAL_FLAG_NONE); err != nil {
+		return err
+	}
+	if err := g.device.ScheduleFrameEventX(_D3D12XBOX_FRAME_EVENT_ORIGIN, 0, nil, _D3D12XBOX_SCHEDULE_FRAME_EVENT_FLAG_NONE); err != nil {
 		return err
 	}
 
@@ -456,19 +485,30 @@ func (g *Graphics) updateSwapChain(width, height int) error {
 	}
 
 	if g.swapChain == nil {
-		if err := g.initSwapChain(width, height); err != nil {
-			return err
+		if microsoftgdk.IsXbox() {
+			if err := g.initSwapChainXbox(width, height); err != nil {
+				return err
+			}
+		} else {
+			if err := g.initSwapChainDesktop(width, height); err != nil {
+				return err
+			}
 		}
-	} else {
-		if err := g.resizeSwapChain(width, height); err != nil {
-			return err
-		}
+		return nil
+	}
+
+	if microsoftgdk.IsXbox() {
+		return errors.New("directx: resizing should never happen on Xbox")
+	}
+
+	if err := g.resizeSwapChainDesktop(width, height); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (g *Graphics) initSwapChain(width, height int) (ferr error) {
+func (g *Graphics) initSwapChainDesktop(width, height int) (ferr error) {
 	// Create a swap chain.
 	//
 	// DXGI_ALPHA_MODE_PREMULTIPLIED doesn't work with a HWND well.
@@ -506,7 +546,7 @@ func (g *Graphics) initSwapChain(width, height int) (ferr error) {
 
 	// TODO: Get the current buffer index?
 
-	if err := g.createRenderTargetViews(); err != nil {
+	if err := g.createRenderTargetViewsDesktop(); err != nil {
 		return err
 	}
 
@@ -515,7 +555,59 @@ func (g *Graphics) initSwapChain(width, height int) (ferr error) {
 	return nil
 }
 
-func (g *Graphics) resizeSwapChain(width, height int) error {
+func (g *Graphics) initSwapChainXbox(width, height int) (ferr error) {
+	h, err := g.rtvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < frameCount; i++ {
+		r, err := g.device.CreateCommittedResource(&_D3D12_HEAP_PROPERTIES{
+			Type:                 _D3D12_HEAP_TYPE_DEFAULT,
+			CPUPageProperty:      _D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+			MemoryPoolPreference: _D3D12_MEMORY_POOL_UNKNOWN,
+			CreationNodeMask:     1,
+			VisibleNodeMask:      1,
+		}, _D3D12_HEAP_FLAG_ALLOW_DISPLAY, &_D3D12_RESOURCE_DESC{
+			Dimension:        _D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+			Alignment:        0,
+			Width:            uint64(width),
+			Height:           uint32(height),
+			DepthOrArraySize: 1,
+			MipLevels:        1, // Use a single mipmap level
+			Format:           _DXGI_FORMAT_B8G8R8A8_UNORM,
+			SampleDesc: _DXGI_SAMPLE_DESC{
+				Count:   1,
+				Quality: 0,
+			},
+			Layout: _D3D12_TEXTURE_LAYOUT_UNKNOWN,
+			Flags:  _D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET,
+		}, _D3D12_RESOURCE_STATE_PRESENT, &_D3D12_CLEAR_VALUE{
+			Format: _DXGI_FORMAT_B8G8R8A8_UNORM,
+		})
+		if err != nil {
+			return err
+		}
+
+		g.renderTargets[i] = r
+		defer func(i int) {
+			if ferr != nil {
+				g.renderTargets[i].Release()
+				g.renderTargets[i] = nil
+			}
+		}(i)
+
+		g.device.CreateRenderTargetView(r, &_D3D12_RENDER_TARGET_VIEW_DESC{
+			Format:        _DXGI_FORMAT_B8G8R8A8_UNORM,
+			ViewDimension: _D3D12_RTV_DIMENSION_TEXTURE2D,
+		}, h)
+		h.Offset(1, g.rtvDescriptorSize)
+	}
+
+	return nil
+}
+
+func (g *Graphics) resizeSwapChainDesktop(width, height int) error {
 	if err := g.flushCommandList(g.copyCommandList); err != nil {
 		return err
 	}
@@ -549,7 +641,7 @@ func (g *Graphics) resizeSwapChain(width, height int) error {
 		return err
 	}
 
-	if err := g.createRenderTargetViews(); err != nil {
+	if err := g.createRenderTargetViewsDesktop(); err != nil {
 		return err
 	}
 
@@ -566,7 +658,7 @@ func (g *Graphics) resizeSwapChain(width, height int) error {
 	return nil
 }
 
-func (g *Graphics) createRenderTargetViews() (ferr error) {
+func (g *Graphics) createRenderTargetViewsDesktop() (ferr error) {
 	// Create frame resources.
 	h, err := g.rtvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
 	if err != nil {
@@ -598,6 +690,14 @@ func (g *Graphics) SetWindow(window uintptr) {
 }
 
 func (g *Graphics) Begin() error {
+	if microsoftgdk.IsXbox() && !g.frameStarted {
+		g.framePipelineToken = _D3D12XBOX_FRAME_PIPELINE_TOKEN_NULL
+		if err := g.device.WaitFrameEventX(_D3D12XBOX_FRAME_EVENT_ORIGIN, windows.INFINITE, nil, _D3D12XBOX_WAIT_FRAME_EVENT_FLAG_NONE, &g.framePipelineToken); err != nil {
+			return err
+		}
+	}
+	g.frameStarted = true
+
 	if err := g.drawCommandList.Reset(g.drawCommandAllocators[g.frameIndex], nil); err != nil {
 		return err
 	}
@@ -640,16 +740,14 @@ func (g *Graphics) End(present bool) error {
 	g.pipelineStates.resetConstantBuffers(g.frameIndex)
 
 	if present {
-		if g.swapChain == nil {
-			return fmt.Errorf("directx: the swap chain is not initialized yet at End")
-		}
-
-		var syncInterval uint32
-		if g.vsyncEnabled {
-			syncInterval = 1
-		}
-		if err := g.swapChain.Present(syncInterval, 0); err != nil {
-			return err
+		if microsoftgdk.IsXbox() {
+			if err := g.presentXbox(); err != nil {
+				return err
+			}
+		} else {
+			if err := g.presentDesktop(); err != nil {
+				return err
+			}
 		}
 
 		if err := g.moveToNextFrame(); err != nil {
@@ -661,7 +759,35 @@ func (g *Graphics) End(present bool) error {
 		if err := g.resetCommandAllocators(g.frameIndex); err != nil {
 			return err
 		}
+
+		g.frameStarted = false
 	}
+
+	return nil
+}
+
+func (g *Graphics) presentDesktop() error {
+	if g.swapChain == nil {
+		return fmt.Errorf("directx: the swap chain is not initialized yet at End")
+	}
+
+	var syncInterval uint32
+	if g.vsyncEnabled {
+		syncInterval = 1
+	}
+	if err := g.swapChain.Present(syncInterval, 0); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (g *Graphics) presentXbox() error {
+	g.commandQueue.PresentX(1, &_D3D12XBOX_PRESENT_PLANE_PARAMETERS{
+		Token:         g.framePipelineToken,
+		ResourceCount: 1,
+		ppResources:   &g.renderTargets[g.frameIndex],
+	}, nil)
 	return nil
 }
 

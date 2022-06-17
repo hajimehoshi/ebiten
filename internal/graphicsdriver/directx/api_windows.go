@@ -41,7 +41,6 @@ func boolToUintptr(v bool) uintptr {
 // Reference:
 // * https://github.com/microsoft/DirectX-Headers
 // * https://github.com/microsoft/win32metadata
-// * https://raw.githubusercontent.com/microsoft/win32metadata/master/generation/WinSDK/RecompiledIdlHeaders/um/d3d12.h
 
 const (
 	_D3D12_APPEND_ALIGNED_ELEMENT            = 0xffffffff
@@ -258,7 +257,8 @@ const (
 type _D3D12_HEAP_FLAGS int32
 
 const (
-	_D3D12_HEAP_FLAG_NONE _D3D12_HEAP_FLAGS = 0
+	_D3D12_HEAP_FLAG_NONE          _D3D12_HEAP_FLAGS = 0
+	_D3D12_HEAP_FLAG_ALLOW_DISPLAY _D3D12_HEAP_FLAGS = 0x8
 )
 
 type _D3D12_HEAP_TYPE int32
@@ -414,6 +414,10 @@ const (
 type _D3D12_RTV_DIMENSION int32
 
 const (
+	_D3D12_RTV_DIMENSION_TEXTURE2D _D3D12_RTV_DIMENSION = 4
+)
+
+const (
 	_D3D12_SHADER_COMPONENT_MAPPING_MASK                                     = 0x7
 	_D3D12_SHADER_COMPONENT_MAPPING_SHIFT                                    = 3
 	_D3D12_SHADER_COMPONENT_MAPPING_ALWAYS_SET_BIT_AVOIDING_ZEROMEM_MISTAKES = 1 << (_D3D12_SHADER_COMPONENT_MAPPING_SHIFT * 4)
@@ -502,6 +506,36 @@ const (
 
 type _D3D12XBOX_CREATE_DEVICE_FLAGS int32
 
+type _D3D12XBOX_FRAME_EVENT_TYPE int32
+
+const (
+	_D3D12XBOX_FRAME_EVENT_ORIGIN _D3D12XBOX_FRAME_EVENT_TYPE = 0
+)
+
+type _D3D12XBOX_FRAME_INTERVAL_FLAGS int32
+
+const (
+	_D3D12XBOX_FRAME_INTERVAL_FLAG_NONE _D3D12XBOX_FRAME_INTERVAL_FLAGS = 0x0
+)
+
+type _D3D12XBOX_FRAME_PIPELINE_TOKEN uint64
+
+const (
+	_D3D12XBOX_FRAME_PIPELINE_TOKEN_NULL _D3D12XBOX_FRAME_PIPELINE_TOKEN = 0
+)
+
+type _D3D12XBOX_PRESENT_DESC_TITLE_PERFORMANCE_OVERLAY_FLAGS int32
+
+type _D3D12XBOX_PRESENT_DESC_TYPE int32
+
+type _D3D12XBOX_PRESENT_FLAGS int32
+
+type _D3D12XBOX_PRESENT_PLANE_FLAGS int32
+
+type _D3D12XBOX_PRESENT_PLANE_SCALE_FILTER int32
+
+type _D3D12XBOX_PRESENT_PLANE_DESC_TYPE int32
+
 type _D3D12XBOX_PROCESS_DEBUG_FLAGS int32
 
 const (
@@ -515,6 +549,22 @@ const (
 	_D3D12XBOX_PROCESS_DEBUG_FLAG_ENHANCED_VALIDATION           _D3D12XBOX_PROCESS_DEBUG_FLAGS = 0x02000000
 )
 
+type _D3D12XBOX_SCHEDULE_FRAME_EVENT_FLAGS int32
+
+const (
+	_D3D12XBOX_SCHEDULE_FRAME_EVENT_FLAG_NONE _D3D12XBOX_SCHEDULE_FRAME_EVENT_FLAGS = 0x0
+)
+
+type _D3D12XBOX_WAIT_FRAME_EVENT_FLAGS int32
+
+const (
+	_D3D12XBOX_WAIT_FRAME_EVENT_FLAG_NONE _D3D12XBOX_WAIT_FRAME_EVENT_FLAGS = 0x0
+)
+
+const (
+	_D3D12XBOX_FRAME_INTERVAL_60_HZ = 16667
+)
+
 type _DXGI_ALPHA_MODE uint32
 
 const (
@@ -524,6 +574,8 @@ const (
 	_DXGI_ALPHA_MODE_IGNORE        _DXGI_ALPHA_MODE = 3
 	_DXGI_ALPHA_MODE_FORCE_DWORD   _DXGI_ALPHA_MODE = 0xffffffff
 )
+
+type _DXGI_COLOR_SPACE_TYPE int32
 
 type _DXGI_FORMAT int32
 
@@ -580,6 +632,7 @@ var (
 	_IID_ID3D12RootSignature       = windows.GUID{Data1: 0xc54a6b66, Data2: 0x72df, Data3: 0x4ee8, Data4: [...]byte{0x8b, 0xe5, 0xa9, 0x46, 0xa1, 0x42, 0x92, 0x14}}
 
 	_IID_IDXGIAdapter1 = windows.GUID{Data1: 0x29038f61, Data2: 0x3839, Data3: 0x4626, Data4: [...]byte{0x91, 0xfd, 0x08, 0x68, 0x79, 0x01, 0x1a, 0x05}}
+	_IID_IDXGIDevice   = windows.GUID{Data1: 0x99cdbe06, Data2: 0xc52d, Data3: 0xa562, Data4: [...]byte{0x8d, 0x0a, 0xc4, 0x2f, 0xe3, 0x33, 0xf9, 0x47}}
 	_IID_IDXGIFactory4 = windows.GUID{Data1: 0x1bc6ea02, Data2: 0xef36, Data3: 0x464f, Data4: [...]byte{0xbf, 0x0c, 0x21, 0xca, 0x39, 0xe5, 0x16, 0x8a}}
 )
 
@@ -896,6 +949,62 @@ type _D3D12XBOX_CREATE_DEVICE_PARAMETERS struct {
 	DisableAutomaticCommandSegmentChaining _BOOL
 }
 
+type _D3D12XBOX_PRESENT_DESC_TITLE_PERFORMANCE_OVERLAY struct {
+	Flags                  _D3D12XBOX_PRESENT_DESC_TITLE_PERFORMANCE_OVERLAY_FLAGS
+	RenderResolutionWidth  uint16
+	RenderResolutionHeight uint16
+	MaxResolutionWidth     uint16
+	MaxResolutionHeight    uint16
+}
+
+type _D3D12XBOX_PRESENT_PARAMETERS struct {
+	ImmediateThresholdPercent float32
+	ViewCount                 uint32
+	ExtendedDescCount         uint32
+	pExtendedDescs            *_D3D12XBOX_PRESENT_DESC
+	Flags                     _D3D12XBOX_PRESENT_FLAGS
+}
+
+type _D3D12XBOX_PRESENT_DESC struct {
+	Type             _D3D12XBOX_PRESENT_DESC_TYPE
+	TitlePerfOverlay _D3D12XBOX_PRESENT_DESC_TITLE_PERFORMANCE_OVERLAY
+}
+
+type _D3D12XBOX_PRESENT_PLANE_DESC struct {
+	Type _D3D12XBOX_PRESENT_PLANE_DESC_TYPE
+}
+
+type _D3D12XBOX_PRESENT_PLANE_PARAMETERS struct {
+	Token              _D3D12XBOX_FRAME_PIPELINE_TOKEN
+	ResourceCount      uint32
+	ppResources        **_ID3D12Resource
+	pSrcViewRects      *_D3D12_RECT
+	pDestPlacementBase *_D3D12XBOX_VIEW_RECT
+	ColorSpace         _DXGI_COLOR_SPACE_TYPE
+	ScaleFilter        _D3D12XBOX_PRESENT_PLANE_SCALE_FILTER
+	ExtendedDescCount  uint32
+	pExtendedDescs     *_D3D12XBOX_PRESENT_PLANE_DESC
+	Flags              _D3D12XBOX_PRESENT_PLANE_FLAGS
+}
+
+type _D3D12XBOX_SCHEDULE_FRAME_OBJECT_LIST struct {
+	Count    uint32
+	pObjects *windows.Handle
+}
+
+type _D3D12XBOX_VIEW_RECT struct {
+	left   float32
+	top    float32
+	right  float32
+	bottom float32
+}
+
+type _D3D12XBOX_WAIT_FRAME_OBJECT_LIST struct {
+	Count                uint32
+	pObjects             *windows.Handle
+	pSignaledObjectIndex *uint32
+}
+
 var (
 	d3d12       = windows.NewLazySystemDLL("d3d12.dll")
 	d3d12x      = windows.NewLazySystemDLL(microsoftgdk.D3D12DLLName())
@@ -1169,13 +1278,39 @@ type _ID3D12CommandQueue_Vtbl struct {
 	Wait                    uintptr
 	GetTimestampFrequency   uintptr
 	GetClockCalibration     uintptr
-	GetDesc                 uintptr
+	GetDesc                 uintptr // Is this another function for Xbox?
+
+	// These members are for Xbox.
+	_        uintptr
+	_        uintptr
+	_        uintptr
+	_        uintptr
+	_        uintptr
+	_        uintptr
+	_        uintptr
+	_        uintptr // Is this GetDesc for Xbox?
+	_        uintptr
+	_        uintptr
+	_        uintptr
+	PresentX uintptr
+	_        uintptr
+	_        uintptr
 }
 
 func (i *_ID3D12CommandQueue) ExecuteCommandLists(ppCommandLists []*_ID3D12GraphicsCommandList) {
 	syscall.Syscall(i.vtbl.ExecuteCommandLists, 3, uintptr(unsafe.Pointer(i)),
 		uintptr(len(ppCommandLists)), uintptr(unsafe.Pointer(&ppCommandLists[0])))
 	runtime.KeepAlive(ppCommandLists)
+}
+
+func (i *_ID3D12CommandQueue) PresentX(planeCount uint32, pPlaneParameters *_D3D12XBOX_PRESENT_PLANE_PARAMETERS, pPresentParameters *_D3D12XBOX_PRESENT_PARAMETERS) error {
+	r, _, _ := syscall.Syscall6(i.vtbl.PresentX, 4, uintptr(unsafe.Pointer(i)), uintptr(planeCount), uintptr(unsafe.Pointer(pPlaneParameters)), uintptr(unsafe.Pointer(pPresentParameters)), 0, 0)
+	runtime.KeepAlive(pPlaneParameters)
+	runtime.KeepAlive(pPresentParameters)
+	if uint32(r) != uint32(windows.S_OK) {
+		return fmt.Errorf("directx: ID3D12CommandQueue::PresentX failed: HRESULT(%d)", uint32(r))
+	}
+	return nil
 }
 
 func (i *_ID3D12CommandQueue) Signal(signal *_ID3D12Fence, value uint64) error {
@@ -1379,45 +1514,49 @@ type _ID3D12Device_Vtbl struct {
 	GetAdapterLuid                   uintptr
 
 	// These members are for Xbox.
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	CreateCommandList_Xbox uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
-	_                      uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	CreateCommandListX  uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	SetFrameIntervalX   uintptr
+	ScheduleFrameEventX uintptr
+	WaitFrameEventX     uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
+	_                   uintptr
 }
 
 func (i *_ID3D12Device) CreateCommandAllocator(typ _D3D12_COMMAND_LIST_TYPE) (*_ID3D12CommandAllocator, error) {
@@ -1446,7 +1585,7 @@ func (i *_ID3D12Device) CreateCommandList(nodeMask uint32, typ _D3D12_COMMAND_LI
 			Member3: nodeMask,
 			Member4: 0,
 		}
-		r, _, _ = syscall.Syscall6(i.vtbl.CreateCommandList_Xbox, 6,
+		r, _, _ = syscall.Syscall6(i.vtbl.CreateCommandListX, 6,
 			uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(&desc)), uintptr(unsafe.Pointer(pCommandAllocator)),
 			uintptr(unsafe.Pointer(pInitialState)), uintptr(unsafe.Pointer(&_IID_ID3D12GraphicsCommandList)), uintptr(unsafe.Pointer(&commandList)))
 	} else {
@@ -1592,6 +1731,42 @@ func (i *_ID3D12Device) GetDeviceRemovedReason() error {
 	r, _, _ := syscall.Syscall(i.vtbl.GetDeviceRemovedReason, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 	if uint32(r) != uint32(windows.S_OK) {
 		return fmt.Errorf("directx: ID3D12Device::GetDeviceRemovedReason failed: HRESULT(%d)", uint32(r))
+	}
+	return nil
+}
+
+func (i *_ID3D12Device) ScheduleFrameEventX(typ _D3D12XBOX_FRAME_EVENT_TYPE, intervalOffsetInMicroseconds uint32, pAncillarySignalList *_D3D12XBOX_SCHEDULE_FRAME_OBJECT_LIST, flags _D3D12XBOX_SCHEDULE_FRAME_EVENT_FLAGS) error {
+	r, _, _ := syscall.Syscall6(i.vtbl.ScheduleFrameEventX, 5, uintptr(unsafe.Pointer(i)), uintptr(typ), uintptr(intervalOffsetInMicroseconds), uintptr(unsafe.Pointer(pAncillarySignalList)), uintptr(flags), 0)
+	runtime.KeepAlive(pAncillarySignalList)
+	if uint32(r) != uint32(windows.S_OK) {
+		return fmt.Errorf("directx: ID3D12Device::ScheduleFrameEventX failed: HRESULT(%d)", uint32(r))
+	}
+	return nil
+}
+
+func (i *_ID3D12Device) SetFrameIntervalX(pOutputSyncTarget *_IDXGIOutput, lengthInMicroseconds uint32, periodInIntervals uint32, flags _D3D12XBOX_FRAME_INTERVAL_FLAGS) error {
+	r, _, _ := syscall.Syscall6(i.vtbl.SetFrameIntervalX, 5, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(pOutputSyncTarget)), uintptr(lengthInMicroseconds), uintptr(periodInIntervals), uintptr(flags), 0)
+	runtime.KeepAlive(pOutputSyncTarget)
+	if uint32(r) != uint32(windows.S_OK) {
+		return fmt.Errorf("directx: ID3D12Device::SetFrameIntervalX failed: HRESULT(%d)", uint32(r))
+	}
+	return nil
+}
+
+func (i *_ID3D12Device) QueryInterface(riid *windows.GUID, ppvObject *unsafe.Pointer) error {
+	r, _, _ := syscall.Syscall(i.vtbl.QueryInterface, 3, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(ppvObject)))
+	if uint32(r) != uint32(windows.S_OK) {
+		return fmt.Errorf("directx: ID3D12Device::QueryInterface failed: HRESULT(%d)", uint32(r))
+	}
+	return nil
+}
+
+func (i *_ID3D12Device) WaitFrameEventX(typ _D3D12XBOX_FRAME_EVENT_TYPE, timeOutInMs uint32, pAncillaryWaitList *_D3D12XBOX_WAIT_FRAME_OBJECT_LIST, flags _D3D12XBOX_WAIT_FRAME_EVENT_FLAGS, pToken *_D3D12XBOX_FRAME_PIPELINE_TOKEN) error {
+	r, _, _ := syscall.Syscall6(i.vtbl.WaitFrameEventX, 6, uintptr(unsafe.Pointer(i)), uintptr(typ), uintptr(timeOutInMs), uintptr(unsafe.Pointer(pAncillaryWaitList)), uintptr(flags), uintptr(unsafe.Pointer(pToken)))
+	runtime.KeepAlive(pAncillaryWaitList)
+	runtime.KeepAlive(pToken)
+	if uint32(r) != uint32(windows.S_OK) {
+		return fmt.Errorf("directx: ID3D12Device::WaitFrameEventX failed: HRESULT(%d)", uint32(r))
 	}
 	return nil
 }
@@ -2065,6 +2240,37 @@ func (i *_ID3DBlob) String() string {
 	return str
 }
 
+type _IDXGIAdapter struct {
+	vtbl *_IDXGIAdapter1_Vtbl
+}
+
+type _IDXGIAdapter_Vtbl struct {
+	QueryInterface uintptr
+	AddRef         uintptr
+	Release        uintptr
+
+	SetPrivateData          uintptr
+	SetPrivateDataInterface uintptr
+	GetPrivateData          uintptr
+	GetParent               uintptr
+	EnumOutputs             uintptr
+	GetDesc                 uintptr
+	CheckInterfaceSupport   uintptr
+}
+
+func (i *_IDXGIAdapter) EnumOutputs(output uint32) (*_IDXGIOutput, error) {
+	var pOutput *_IDXGIOutput
+	r, _, _ := syscall.Syscall(i.vtbl.EnumOutputs, 3, uintptr(unsafe.Pointer(i)), uintptr(output), uintptr(unsafe.Pointer(&pOutput)))
+	if uint32(r) != uint32(windows.S_OK) {
+		return nil, fmt.Errorf("directx: IDXGIAdapter::EnumOutputs failed: HRESULT(%d)", uint32(r))
+	}
+	return pOutput, nil
+}
+
+func (i *_IDXGIAdapter) Release() {
+	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+}
+
 type _IDXGIAdapter1 struct {
 	vtbl *_IDXGIAdapter1_Vtbl
 }
@@ -2095,6 +2301,39 @@ func (i *_IDXGIAdapter1) GetDesc1() (*_DXGI_ADAPTER_DESC1, error) {
 		return nil, fmt.Errorf("directx: IDXGIAdapter1::GetDesc1 failed: HRESULT(%d)", uint32(r))
 	}
 	return &desc, nil
+}
+
+type _IDXGIDevice struct {
+	vtbl *_IDXGIDevice_Vtbl
+}
+
+type _IDXGIDevice_Vtbl struct {
+	QueryInterface uintptr
+	AddRef         uintptr
+	Release        uintptr
+
+	SetPrivateData          uintptr
+	SetPrivateDataInterface uintptr
+	GetPrivateData          uintptr
+	GetParent               uintptr
+	GetAdapter              uintptr
+	CreateSurface           uintptr
+	QueryResourceResidency  uintptr
+	SetGPUThreadPriority    uintptr
+	GetGPUThreadPriority    uintptr
+}
+
+func (i *_IDXGIDevice) GetAdapter() (*_IDXGIAdapter, error) {
+	var adapter *_IDXGIAdapter
+	r, _, _ := syscall.Syscall(i.vtbl.GetAdapter, 2, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(&adapter)), 0)
+	if uint32(r) != uint32(windows.S_OK) {
+		return nil, fmt.Errorf("directx: IDXGIDevice::GetAdapter failed: HRESULT(%d)", uint32(r))
+	}
+	return adapter, nil
+}
+
+func (i *_IDXGIDevice) Release() {
+	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 }
 
 type _IDXGIFactory4 struct {
@@ -2216,6 +2455,10 @@ type _IDXGIOutput_Vtbl struct {
 	SetDisplaySurface           uintptr
 	GetDisplaySurfaceData       uintptr
 	GetFrameStatistics          uintptr
+}
+
+func (i *_IDXGIOutput) Release() {
+	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 }
 
 type _ID3D12RootSignature struct {
