@@ -612,13 +612,6 @@ func (g *Graphics) SetWindow(window uintptr) {
 }
 
 func (g *Graphics) Begin() error {
-	g.frameIndex = 0
-	// The swap chain is initialized when NewScreenFramebufferImage is called.
-	// This must be called at the first frame.
-	if g.swapChain != nil {
-		g.frameIndex = int(g.swapChain.GetCurrentBackBufferIndex())
-	}
-
 	if err := g.drawCommandList.Reset(g.drawCommandAllocators[g.frameIndex], nil); err != nil {
 		return err
 	}
@@ -691,6 +684,9 @@ func (g *Graphics) End(present bool) error {
 		if err := g.releaseCommandAllocators(nextIndex); err != nil {
 			return err
 		}
+
+		// Move to the next frame.
+		g.frameIndex = int(g.swapChain.GetCurrentBackBufferIndex())
 	}
 	return nil
 }
