@@ -781,7 +781,9 @@ func (g *Graphics) waitForCommandQueue() error {
 	defer f.Release()
 
 	const expected uint64 = 1
-	g.commandQueue.Signal(f, expected)
+	if err := g.commandQueue.Signal(f, expected); err != nil {
+		return err
+	}
 	if f.GetCompletedValue() < expected {
 		if err := f.SetEventOnCompletion(expected, g.fenceWaitEvent); err != nil {
 			return err
