@@ -1002,10 +1002,6 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 		shader = g.shaders[shaderID]
 	}
 
-	if err := dst.setAsRenderTarget(g.device, evenOdd); err != nil {
-		return err
-	}
-
 	var srcImages [graphics.ShaderImageNum]*Image
 	for i, srcID := range srcs {
 		src := g.images[srcID]
@@ -1126,7 +1122,6 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 		},
 	})
 
-	g.drawCommandList.IASetPrimitiveTopology(_D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
 	g.drawCommandList.IASetVertexBuffers(0, []_D3D12_VERTEX_BUFFER_VIEW{
 		{
 			BufferLocation: g.vertices[g.frameIndex][len(g.vertices[g.frameIndex])-1].GetGPUVirtualAddress(),
@@ -1134,11 +1129,15 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 			StrideInBytes:  graphics.VertexFloatNum * uint32(unsafe.Sizeof(float32(0))),
 		},
 	})
-	g.drawCommandList.IASetIndexBuffer(&_D3D12_INDEX_BUFFER_VIEW{
-		BufferLocation: g.indices[g.frameIndex][len(g.indices[g.frameIndex])-1].GetGPUVirtualAddress(),
-		SizeInBytes:    graphics.IndicesNum * uint32(unsafe.Sizeof(uint16(0))),
-		Format:         _DXGI_FORMAT_R16_UINT,
-	})
+
+	setIndices := func() {
+		g.drawCommandList.IASetPrimitiveTopology(_D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
+		g.drawCommandList.IASetIndexBuffer(&_D3D12_INDEX_BUFFER_VIEW{
+			BufferLocation: g.indices[g.frameIndex][len(g.indices[g.frameIndex])-1].GetGPUVirtualAddress(),
+			SizeInBytes:    graphics.IndicesNum * uint32(unsafe.Sizeof(uint16(0))),
+			Format:         _DXGI_FORMAT_R16_UINT,
+		})
+	}
 
 	if shader == nil {
 		key := builtinPipelineStatesKey{
@@ -1150,6 +1149,14 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 		}
 
 		if evenOdd {
+			if err := dst.setAsRenderTarget(g.device, evenOdd); err != nil {
+				return err
+			}
+			if err := dst.clearStencilBuffer(g.device); err != nil {
+				return err
+			}
+			setIndices()
+
 			key.stencilMode = prepareStencil
 			s, err := g.pipelineStates.builtinGraphicsPipelineState(g.device, key)
 			if err != nil {
@@ -1158,6 +1165,11 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 			if err := g.drawTriangles(s, srcImages, flattenUniforms, indexLen, indexOffset); err != nil {
 				return err
 			}
+
+			if err := dst.setAsRenderTarget(g.device, evenOdd); err != nil {
+				return err
+			}
+			setIndices()
 
 			key.stencilMode = drawWithStencil
 			s, err = g.pipelineStates.builtinGraphicsPipelineState(g.device, key)
@@ -1168,6 +1180,11 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 				return err
 			}
 		} else {
+			if err := dst.setAsRenderTarget(g.device, evenOdd); err != nil {
+				return err
+			}
+			setIndices()
+
 			key.stencilMode = noStencil
 			s, err := g.pipelineStates.builtinGraphicsPipelineState(g.device, key)
 			if err != nil {
@@ -1180,6 +1197,14 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 
 	} else {
 		if evenOdd {
+			if err := dst.setAsRenderTarget(g.device, evenOdd); err != nil {
+				return err
+			}
+			if err := dst.clearStencilBuffer(g.device); err != nil {
+				return err
+			}
+			setIndices()
+
 			s, err := shader.pipelineState(mode, prepareStencil)
 			if err != nil {
 				return err
@@ -1187,6 +1212,11 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 			if err := g.drawTriangles(s, srcImages, flattenUniforms, indexLen, indexOffset); err != nil {
 				return err
 			}
+
+			if err := dst.setAsRenderTarget(g.device, evenOdd); err != nil {
+				return err
+			}
+			setIndices()
 
 			s, err = shader.pipelineState(mode, drawWithStencil)
 			if err != nil {
@@ -1196,6 +1226,11 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 				return err
 			}
 		} else {
+			if err := dst.setAsRenderTarget(g.device, evenOdd); err != nil {
+				return err
+			}
+			setIndices()
+
 			s, err := shader.pipelineState(mode, noStencil)
 			if err != nil {
 				return err
@@ -1518,12 +1553,22 @@ func (i *Image) setAsRenderTarget(device *_ID3D12Device, useStencil bool) error 
 			return err
 		}
 		dsv = &v
-
-		i.graphics.drawCommandList.ClearDepthStencilView(v, _D3D12_CLEAR_FLAG_STENCIL, 0, 0, nil)
 		i.graphics.drawCommandList.OMSetStencilRef(0)
 	}
 	i.graphics.drawCommandList.OMSetRenderTargets([]_D3D12_CPU_DESCRIPTOR_HANDLE{rtv}, false, dsv) // TODO: Pass depth-stencil here!
 
+	return nil
+}
+
+func (i *Image) clearStencilBuffer(device *_ID3D12Device) error {
+	if err := i.ensureDepthStencilView(device); err != nil {
+		return err
+	}
+	dsv, err := i.dsvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+	if err != nil {
+		return err
+	}
+	i.graphics.drawCommandList.ClearDepthStencilView(dsv, _D3D12_CLEAR_FLAG_STENCIL, 0, 0, nil)
 	return nil
 }
 

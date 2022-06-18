@@ -619,6 +619,10 @@ func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3D
 	if screen {
 		rtvFormat = _DXGI_FORMAT_B8G8R8A8_UNORM
 	}
+	dsvFormat := _DXGI_FORMAT_UNKNOWN
+	if stencilMode != noStencil {
+		dsvFormat = _DXGI_FORMAT_D24_UNORM_S8_UINT
+	}
 
 	// Create a pipeline state.
 	srcOp, dstOp := compositeMode.Operations()
@@ -674,7 +678,7 @@ func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3D
 		RTVFormats: [8]_DXGI_FORMAT{
 			rtvFormat,
 		},
-		DSVFormat: _DXGI_FORMAT_D24_UNORM_S8_UINT,
+		DSVFormat: dsvFormat,
 		SampleDesc: _DXGI_SAMPLE_DESC{
 			Count:   1,
 			Quality: 0,
