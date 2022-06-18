@@ -462,7 +462,7 @@ func (g *Graphics) initSwapChain(width, height int) (ferr error) {
 
 	// MakeWindowAssociation should be called after swap chain creation.
 	// https://docs.microsoft.com/en-us/windows/win32/api/dxgi/nf-dxgi-idxgifactory-makewindowassociation
-	if err := g.factory.MakeWindowAssociation(g.window, _DXGI_MWA_NO_WINDOW_CHANGES | _DXGI_MWA_NO_ALT_ENTER); err != nil {
+	if err := g.factory.MakeWindowAssociation(g.window, _DXGI_MWA_NO_WINDOW_CHANGES|_DXGI_MWA_NO_ALT_ENTER); err != nil {
 		return err
 	}
 
@@ -582,8 +582,7 @@ func (g *Graphics) End(present bool) error {
 		return err
 	}
 
-	// The screen image can be nil when resizing the window (#2081).
-	if present && g.screenImage != nil {
+	if present {
 		g.screenImage.transiteState(g.drawCommandList, _D3D12_RESOURCE_STATE_PRESENT)
 	}
 
@@ -839,7 +838,7 @@ func (g *Graphics) NewImage(width, height int) (graphicsdriver.Image, error) {
 		width:      width,
 		height:     height,
 		texture:    t,
-		state:      state,
+		states:     [frameCount]_D3D12_RESOURCE_STATES{state},
 		layouts:    layouts,
 		numRows:    numRows,
 		totalBytes: totalBytes,
@@ -859,9 +858,10 @@ func (g *Graphics) NewScreenFramebufferImage(width, height int) (graphicsdriver.
 		width:    width,
 		height:   height,
 		screen:   true,
-		state:    _D3D12_RESOURCE_STATE_PRESENT,
+		states:   [frameCount]_D3D12_RESOURCE_STATES{0, 0},
 	}
 	g.addImage(i)
+	g.screenImage = i
 	return i, nil
 }
 
@@ -873,17 +873,11 @@ func (g *Graphics) addImage(img *Image) {
 		panic(fmt.Sprintf("directx: image ID %d was already registered", img.id))
 	}
 	g.images[img.id] = img
-	if img.screen {
-		g.screenImage = img
-	}
 }
 
 func (g *Graphics) removeImage(img *Image) {
 	delete(g.images, img.id)
 	g.disposedImages[g.frameIndex] = append(g.disposedImages[g.frameIndex], img)
-	if img.screen {
-		g.screenImage = nil
-	}
 }
 
 func (g *Graphics) addShader(s *Shader) {
@@ -1201,7 +1195,7 @@ type Image struct {
 	height   int
 	screen   bool
 
-	state                  _D3D12_RESOURCE_STATES
+	states                 [frameCount]_D3D12_RESOURCE_STATES
 	texture                *iD3D12Resource1
 	stencil                *iD3D12Resource1
 	layouts                _D3D12_PLACED_SUBRESOURCE_FOOTPRINT
@@ -1399,8 +1393,23 @@ func (i *Image) resource() *iD3D12Resource1 {
 	return i.texture
 }
 
+func (i *Image) state() _D3D12_RESOURCE_STATES {
+	if i.screen {
+		return i.states[i.graphics.frameIndex]
+	}
+	return i.states[0]
+}
+
+func (i *Image) setState(newState _D3D12_RESOURCE_STATES) {
+	if i.screen {
+		i.states[i.graphics.frameIndex] = newState
+		return
+	}
+	i.states[0] = newState
+}
+
 func (i *Image) transiteState(commandList *iD3D12GraphicsCommandList, newState _D3D12_RESOURCE_STATES) {
-	if i.state == newState {
+	if i.state() == newState {
 		return
 	}
 
@@ -1410,11 +1419,11 @@ func (i *Image) transiteState(commandList *iD3D12GraphicsCommandList, newState _
 		Transition: _D3D12_RESOURCE_TRANSITION_BARRIER{
 			pResource:   i.resource(),
 			Subresource: _D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
-			StateBefore: i.state,
+			StateBefore: i.state(),
 			StateAfter:  newState,
 		},
 	})
-	i.state = newState
+	i.setState(newState)
 }
 
 func (i *Image) internalSize() (int, int) {
