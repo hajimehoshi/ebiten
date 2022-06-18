@@ -1543,19 +1543,21 @@ func (i *Image) setAsRenderTarget(device *_ID3D12Device, useStencil bool) error 
 	if err != nil {
 		return err
 	}
-	var dsv *_D3D12_CPU_DESCRIPTOR_HANDLE
-	if useStencil {
-		if err := i.ensureDepthStencilView(device); err != nil {
-			return err
-		}
-		v, err := i.dsvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
-		if err != nil {
-			return err
-		}
-		dsv = &v
-		i.graphics.drawCommandList.OMSetStencilRef(0)
+
+	if !useStencil {
+		i.graphics.drawCommandList.OMSetRenderTargets([]_D3D12_CPU_DESCRIPTOR_HANDLE{rtv}, false, nil)
+		return nil
 	}
-	i.graphics.drawCommandList.OMSetRenderTargets([]_D3D12_CPU_DESCRIPTOR_HANDLE{rtv}, false, dsv) // TODO: Pass depth-stencil here!
+
+	if err := i.ensureDepthStencilView(device); err != nil {
+		return err
+	}
+	dsv, err := i.dsvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+	if err != nil {
+		return err
+	}
+	i.graphics.drawCommandList.OMSetStencilRef(0)
+	i.graphics.drawCommandList.OMSetRenderTargets([]_D3D12_CPU_DESCRIPTOR_HANDLE{rtv}, false, &dsv)
 
 	return nil
 }
@@ -1603,7 +1605,7 @@ func (i *Image) ensureRenderTargetView(device *_ID3D12Device) error {
 
 func (i *Image) ensureDepthStencilView(device *_ID3D12Device) error {
 	if i.screen {
-		return nil
+		return fmt.Errorf("directx: stencils are not available on the screen framebuffer")
 	}
 
 	if i.dsvDescriptorHeap != nil {
