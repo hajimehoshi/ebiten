@@ -1492,6 +1492,9 @@ func (i *Image) setAsRenderTarget(device *_ID3D12Device, useStencil bool) error 
 	}
 
 	if i.screen {
+		if useStencil {
+			return fmt.Errorf("directx: stencils are not available on the screen framebuffer")
+		}
 		rtv, err := i.graphics.rtvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
 		if err != nil {
 			return err
