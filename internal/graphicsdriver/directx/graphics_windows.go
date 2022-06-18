@@ -1497,7 +1497,7 @@ func (i *Image) setAsRenderTarget(device *_ID3D12Device, useStencil bool) error 
 			return err
 		}
 		rtv.Offset(int32(i.graphics.frameIndex), i.graphics.rtvDescriptorSize)
-		i.graphics.drawCommandList.OMSetRenderTargets(1, &rtv, false, nil)
+		i.graphics.drawCommandList.OMSetRenderTargets([]_D3D12_CPU_DESCRIPTOR_HANDLE{rtv}, false, nil)
 		return nil
 	}
 
@@ -1519,7 +1519,7 @@ func (i *Image) setAsRenderTarget(device *_ID3D12Device, useStencil bool) error 
 		i.graphics.drawCommandList.ClearDepthStencilView(v, _D3D12_CLEAR_FLAG_STENCIL, 0, 0, nil)
 		i.graphics.drawCommandList.OMSetStencilRef(0)
 	}
-	i.graphics.drawCommandList.OMSetRenderTargets(1, &rtv, false, dsv) // TODO: Pass depth-stencil here!
+	i.graphics.drawCommandList.OMSetRenderTargets([]_D3D12_CPU_DESCRIPTOR_HANDLE{rtv}, false, dsv) // TODO: Pass depth-stencil here!
 
 	return nil
 }

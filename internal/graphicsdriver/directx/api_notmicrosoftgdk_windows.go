@@ -53,7 +53,7 @@ func _ID3D12GraphicsCommandList_IASetVertexBuffers(i *_ID3D12GraphicsCommandList
 	panic("not implemented")
 }
 
-func _ID3D12GraphicsCommandList_OMSetRenderTargets(i *_ID3D12GraphicsCommandList, numRenderTargetDescriptors uint32, pRenderTargetDescriptors *_D3D12_CPU_DESCRIPTOR_HANDLE, rtsSingleHandleToDescriptorRange bool, pDepthStencilDescriptor *_D3D12_CPU_DESCRIPTOR_HANDLE) {
+func _ID3D12GraphicsCommandList_OMSetRenderTargets(i *_ID3D12GraphicsCommandList, renderTargetDescriptors []_D3D12_CPU_DESCRIPTOR_HANDLE, rtsSingleHandleToDescriptorRange bool, pDepthStencilDescriptor *_D3D12_CPU_DESCRIPTOR_HANDLE) {
 	panic("not implemented")
 }
 

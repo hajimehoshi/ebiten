@@ -159,12 +159,16 @@ func _ID3D12GraphicsCommandList_IASetVertexBuffers(i *_ID3D12GraphicsCommandList
 	C.Ebitengine_ID3D12GraphicsCommandList_IASetVertexBuffers(unsafe.Pointer(i), C.uint32_t(startSlot), C.uint32_t(len(views)), unsafe.Pointer(pViews))
 }
 
-func _ID3D12GraphicsCommandList_OMSetRenderTargets(i *_ID3D12GraphicsCommandList, numRenderTargetDescriptors uint32, pRenderTargetDescriptors *_D3D12_CPU_DESCRIPTOR_HANDLE, rtsSingleHandleToDescriptorRange bool, pDepthStencilDescriptor *_D3D12_CPU_DESCRIPTOR_HANDLE) {
+func _ID3D12GraphicsCommandList_OMSetRenderTargets(i *_ID3D12GraphicsCommandList, renderTargetDescriptors []_D3D12_CPU_DESCRIPTOR_HANDLE, rtsSingleHandleToDescriptorRange bool, pDepthStencilDescriptor *_D3D12_CPU_DESCRIPTOR_HANDLE) {
+	var pRenderTargetDescriptors *_D3D12_CPU_DESCRIPTOR_HANDLE
+	if len(renderTargetDescriptors) > 0 {
+		pRenderTargetDescriptors = &renderTargetDescriptors[0]
+	}
 	v := 0
 	if rtsSingleHandleToDescriptorRange {
 		v = 1
 	}
-	C.Ebitengine_ID3D12GraphicsCommandList_OMSetRenderTargets(unsafe.Pointer(i), C.uint32_t(numRenderTargetDescriptors), unsafe.Pointer(pRenderTargetDescriptors), C.int(v), unsafe.Pointer(pDepthStencilDescriptor))
+	C.Ebitengine_ID3D12GraphicsCommandList_OMSetRenderTargets(unsafe.Pointer(i), C.uint32_t(len(renderTargetDescriptors)), unsafe.Pointer(pRenderTargetDescriptors), C.int(v), unsafe.Pointer(pDepthStencilDescriptor))
 }
 
 func _ID3D12GraphicsCommandList_OMSetStencilRef(i *_ID3D12GraphicsCommandList, stencilRef uint32) {
