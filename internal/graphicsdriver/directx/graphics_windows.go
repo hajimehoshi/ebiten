@@ -98,11 +98,8 @@ type Graphics struct {
 	rtvDescriptorSize uint32
 	renderTargets     [frameCount]*_ID3D12Resource
 
-	fences      [frameCount]*_ID3D12Fence
-	fenceValues [frameCount]uint64
-
-	// fenceWaitEvent is an event.
-	// As all the Graphics functions work in a single thread, only one event is enough for multiple fences.
+	fence          *_ID3D12Fence
+	fenceValues    [frameCount]uint64
 	fenceWaitEvent windows.Handle
 
 	// drawCommandAllocators are command allocators for a 3D engine (DrawIndexedInstanced).
@@ -162,7 +159,7 @@ func (g *Graphics) initialize() (ferr error) {
 		}
 	}
 
-	// Initialize not only a device but also other members like fences.
+	// Initialize not only a device but also other members like a fence.
 	// Even if initializing a device succeeds, initializing a fence might fail (#2142).
 
 	if microsoftgdk.IsXbox() {
@@ -355,20 +352,19 @@ func (g *Graphics) initializeMembers() (ferr error) {
 		}(i)
 	}
 
-	// Create frame fences.
-	for i := 0; i < frameCount; i++ {
-		f, err := g.device.CreateFence(0, _D3D12_FENCE_FLAG_NONE)
-		if err != nil {
-			return err
-		}
-		g.fences[i] = f
-		defer func(i int) {
-			if ferr != nil {
-				g.fences[i].Release()
-				g.fences[i] = nil
-			}
-		}(i)
+	// Create a frame fence.
+	f, err := g.device.CreateFence(0, _D3D12_FENCE_FLAG_NONE)
+	if err != nil {
+		return err
 	}
+	g.fence = f
+	defer func() {
+		if ferr != nil {
+			g.fence.Release()
+			g.fence = nil
+		}
+	}()
+	g.fenceValues[g.frameIndex]++
 
 	// Create command lists.
 	dcl, err := g.device.CreateCommandList(0, _D3D12_COMMAND_LIST_TYPE_DIRECT, g.drawCommandAllocators[0], nil)
@@ -546,14 +542,16 @@ func (g *Graphics) resizeSwapChain(width, height int) error {
 		return err
 	}
 
+	if err := g.waitForCommandQueue(); err != nil {
+		return err
+	}
+	g.releaseResources(g.frameIndex)
+	if err := g.resetCommandAllocators(g.frameIndex); err != nil {
+		return err
+	}
+
 	for i := 0; i < frameCount; i++ {
-		if err := g.waitForCommandQueueForFrame(i); err != nil {
-			return err
-		}
-		g.releaseResources(i)
-		if err := g.releaseCommandAllocators(i); err != nil {
-			return err
-		}
+		g.fenceValues[i] = g.fenceValues[g.frameIndex]
 	}
 
 	for _, r := range g.renderTargets {
@@ -568,6 +566,7 @@ func (g *Graphics) resizeSwapChain(width, height int) error {
 		return err
 	}
 
+	// TODO: Reset 0 on Xbox
 	g.frameIndex = int(g.swapChain.GetCurrentBackBufferIndex())
 
 	if err := g.drawCommandList.Reset(g.drawCommandAllocators[g.frameIndex], nil); err != nil {
@@ -667,42 +666,38 @@ func (g *Graphics) End(present bool) error {
 			return err
 		}
 
-		// Wait for the previous frame.
-		fence := g.fences[g.frameIndex]
-		g.fenceValues[g.frameIndex]++
-		if err := g.commandQueue.Signal(fence, g.fenceValues[g.frameIndex]); err != nil {
+		if err := g.moveToNextFrame(); err != nil {
 			return err
 		}
 
-		// TODO: nextIndex should be GetCurrentBackBufferIndex on desktops, right? (#2034)
-		nextIndex := (g.frameIndex + 1) % frameCount
-		if err := g.waitForCommandQueueForFrame(nextIndex); err != nil {
+		g.releaseResources(g.frameIndex)
+		g.releaseVerticesAndIndices(g.frameIndex)
+		if err := g.resetCommandAllocators(g.frameIndex); err != nil {
 			return err
 		}
-
-		g.releaseResources(nextIndex)
-		g.releaseVerticesAndIndices(nextIndex)
-		if err := g.releaseCommandAllocators(nextIndex); err != nil {
-			return err
-		}
-
-		// Move to the next frame.
-		g.frameIndex = int(g.swapChain.GetCurrentBackBufferIndex())
 	}
 	return nil
 }
 
-func (g *Graphics) waitForCommandQueueForFrame(frameIndex int) error {
-	expected := g.fenceValues[frameIndex]
-	actual := g.fences[frameIndex].GetCompletedValue()
-	if actual < expected {
-		if err := g.fences[frameIndex].SetEventOnCompletion(expected, g.fenceWaitEvent); err != nil {
+func (g *Graphics) moveToNextFrame() error {
+	fv := g.fenceValues[g.frameIndex]
+	if err := g.commandQueue.Signal(g.fence, fv); err != nil {
+		return err
+	}
+
+	// Update the frame index.
+	// TODO: The calculation might be different in Xbox.
+	g.frameIndex = int(g.swapChain.GetCurrentBackBufferIndex())
+
+	if g.fence.GetCompletedValue() < g.fenceValues[g.frameIndex] {
+		if err := g.fence.SetEventOnCompletion(fv, g.fenceWaitEvent); err != nil {
 			return err
 		}
 		if _, err := windows.WaitForSingleObject(g.fenceWaitEvent, windows.INFINITE); err != nil {
 			return err
 		}
 	}
+	g.fenceValues[g.frameIndex] = fv + 1
 	return nil
 }
 
@@ -734,7 +729,7 @@ func (g *Graphics) releaseVerticesAndIndices(frameIndex int) {
 	g.indices[frameIndex] = g.indices[frameIndex][:0]
 }
 
-func (g *Graphics) releaseCommandAllocators(frameIndex int) error {
+func (g *Graphics) resetCommandAllocators(frameIndex int) error {
 	if err := g.drawCommandAllocators[frameIndex].Reset(); err != nil {
 		return err
 	}
@@ -774,24 +769,17 @@ func (g *Graphics) flushCommandList(commandList *_ID3D12GraphicsCommandList) err
 }
 
 func (g *Graphics) waitForCommandQueue() error {
-	f, err := g.device.CreateFence(0, _D3D12_FENCE_FLAG_NONE)
-	if err != nil {
+	fv := g.fenceValues[g.frameIndex]
+	if err := g.commandQueue.Signal(g.fence, fv); err != nil {
 		return err
 	}
-	defer f.Release()
-
-	const expected uint64 = 1
-	if err := g.commandQueue.Signal(f, expected); err != nil {
+	if err := g.fence.SetEventOnCompletion(fv, g.fenceWaitEvent); err != nil {
 		return err
 	}
-	if f.GetCompletedValue() < expected {
-		if err := f.SetEventOnCompletion(expected, g.fenceWaitEvent); err != nil {
-			return err
-		}
-		if _, err := windows.WaitForSingleObject(g.fenceWaitEvent, windows.INFINITE); err != nil {
-			return err
-		}
+	if _, err := windows.WaitForSingleObject(g.fenceWaitEvent, windows.INFINITE); err != nil {
+		return err
 	}
+	g.fenceValues[g.frameIndex]++
 	return nil
 }
 
