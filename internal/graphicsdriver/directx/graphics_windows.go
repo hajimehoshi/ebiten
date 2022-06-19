@@ -1156,6 +1156,15 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 		}
 	}
 
+	// Release constant buffers when too many ones were created.
+	// This is needed espciallly for testings, where present is always false.
+	if len(g.pipelineStates.constantBuffers[g.frameIndex]) >= 16 {
+		if err := g.flushCommandList(g.drawCommandList); err != nil {
+			return err
+		}
+		g.pipelineStates.releaseConstantBuffers(g.frameIndex)
+	}
+
 	return nil
 }
 
@@ -1165,15 +1174,6 @@ func (g *Graphics) drawTriangles(pipelineState *iD3D12PipelineState, srcs [graph
 	}
 
 	g.drawCommandList.DrawIndexedInstanced(uint32(indexLen), 1, uint32(indexOffset), 0, 0)
-
-	// Release constant buffers when too many ones were created.
-	// This is needed espciallly for testings, where present is always false.
-	if len(g.pipelineStates.constantBuffers[g.frameIndex]) >= 16 {
-		if err := g.flushCommandList(g.drawCommandList); err != nil {
-			return err
-		}
-		g.pipelineStates.releaseConstantBuffers(g.frameIndex)
-	}
 
 	return nil
 }
