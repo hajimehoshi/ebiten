@@ -1130,14 +1130,20 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 		},
 	})
 
-	setIndices := func() {
-		g.drawCommandList.IASetPrimitiveTopology(_D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
-		g.drawCommandList.IASetIndexBuffer(&_D3D12_INDEX_BUFFER_VIEW{
-			BufferLocation: g.indices[g.frameIndex][len(g.indices[g.frameIndex])-1].GetGPUVirtualAddress(),
-			SizeInBytes:    graphics.IndicesNum * uint32(unsafe.Sizeof(uint16(0))),
-			Format:         _DXGI_FORMAT_R16_UINT,
-		})
+	if err := dst.setAsRenderTarget(g.device, evenOdd); err != nil {
+		return err
 	}
+	if evenOdd {
+		if err := dst.clearStencilBuffer(g.device); err != nil {
+			return err
+		}
+	}
+	g.drawCommandList.IASetPrimitiveTopology(_D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
+	g.drawCommandList.IASetIndexBuffer(&_D3D12_INDEX_BUFFER_VIEW{
+		BufferLocation: g.indices[g.frameIndex][len(g.indices[g.frameIndex])-1].GetGPUVirtualAddress(),
+		SizeInBytes:    graphics.IndicesNum * uint32(unsafe.Sizeof(uint16(0))),
+		Format:         _DXGI_FORMAT_R16_UINT,
+	})
 
 	if shader == nil {
 		key := builtinPipelineStatesKey{
@@ -1149,14 +1155,6 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 		}
 
 		if evenOdd {
-			if err := dst.setAsRenderTarget(g.device, evenOdd); err != nil {
-				return err
-			}
-			if err := dst.clearStencilBuffer(g.device); err != nil {
-				return err
-			}
-			setIndices()
-
 			key.stencilMode = prepareStencil
 			s, err := g.pipelineStates.builtinGraphicsPipelineState(g.device, key)
 			if err != nil {
@@ -1165,11 +1163,6 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 			if err := g.drawTriangles(s, srcImages, flattenUniforms, indexLen, indexOffset); err != nil {
 				return err
 			}
-
-			if err := dst.setAsRenderTarget(g.device, evenOdd); err != nil {
-				return err
-			}
-			setIndices()
 
 			key.stencilMode = drawWithStencil
 			s, err = g.pipelineStates.builtinGraphicsPipelineState(g.device, key)
@@ -1180,11 +1173,6 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 				return err
 			}
 		} else {
-			if err := dst.setAsRenderTarget(g.device, evenOdd); err != nil {
-				return err
-			}
-			setIndices()
-
 			key.stencilMode = noStencil
 			s, err := g.pipelineStates.builtinGraphicsPipelineState(g.device, key)
 			if err != nil {
@@ -1197,14 +1185,6 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 
 	} else {
 		if evenOdd {
-			if err := dst.setAsRenderTarget(g.device, evenOdd); err != nil {
-				return err
-			}
-			if err := dst.clearStencilBuffer(g.device); err != nil {
-				return err
-			}
-			setIndices()
-
 			s, err := shader.pipelineState(mode, prepareStencil)
 			if err != nil {
 				return err
@@ -1212,11 +1192,6 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 			if err := g.drawTriangles(s, srcImages, flattenUniforms, indexLen, indexOffset); err != nil {
 				return err
 			}
-
-			if err := dst.setAsRenderTarget(g.device, evenOdd); err != nil {
-				return err
-			}
-			setIndices()
 
 			s, err = shader.pipelineState(mode, drawWithStencil)
 			if err != nil {
@@ -1226,11 +1201,6 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 				return err
 			}
 		} else {
-			if err := dst.setAsRenderTarget(g.device, evenOdd); err != nil {
-				return err
-			}
-			setIndices()
-
 			s, err := shader.pipelineState(mode, noStencil)
 			if err != nil {
 				return err
@@ -1239,6 +1209,15 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 				return err
 			}
 		}
+	}
+
+	// Release constant buffers when too many ones were created.
+	// This is needed espciallly for testings, where present is always false.
+	if len(g.pipelineStates.constantBuffers[g.frameIndex]) >= 16 {
+		if err := g.flushCommandList(g.drawCommandList); err != nil {
+			return err
+		}
+		g.pipelineStates.releaseConstantBuffers(g.frameIndex)
 	}
 
 	return nil
@@ -1250,15 +1229,6 @@ func (g *Graphics) drawTriangles(pipelineState *_ID3D12PipelineState, srcs [grap
 	}
 
 	g.drawCommandList.DrawIndexedInstanced(uint32(indexLen), 1, uint32(indexOffset), 0, 0)
-
-	// Release constant buffers when too many ones were created.
-	// This is needed espciallly for testings, where present is always false.
-	if len(g.pipelineStates.constantBuffers[g.frameIndex]) >= 16 {
-		if err := g.flushCommandList(g.drawCommandList); err != nil {
-			return err
-		}
-		g.pipelineStates.releaseConstantBuffers(g.frameIndex)
-	}
 
 	return nil
 }
