@@ -685,8 +685,11 @@ func (g *Graphics) moveToNextFrame() error {
 	}
 
 	// Update the frame index.
-	// TODO: The calculation might be different in Xbox.
-	g.frameIndex = int(g.swapChain.GetCurrentBackBufferIndex())
+	if microsoftgdk.IsXbox() {
+		g.frameIndex = (g.frameIndex + 1) % frameCount
+	} else {
+		g.frameIndex = int(g.swapChain.GetCurrentBackBufferIndex())
+	}
 
 	if g.fence.GetCompletedValue() < g.fenceValues[g.frameIndex] {
 		if err := g.fence.SetEventOnCompletion(fv, g.fenceWaitEvent); err != nil {
