@@ -996,6 +996,9 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 	}
 
 	dst := g.images[dstID]
+	if err := dst.setAsRenderTarget(g.device, evenOdd); err != nil {
+		return err
+	}
 
 	var shader *Shader
 	if shaderID != graphicsdriver.InvalidShaderID {
@@ -1122,6 +1125,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 		},
 	})
 
+	g.drawCommandList.IASetPrimitiveTopology(_D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
 	g.drawCommandList.IASetVertexBuffers(0, []_D3D12_VERTEX_BUFFER_VIEW{
 		{
 			BufferLocation: g.vertices[g.frameIndex][len(g.vertices[g.frameIndex])-1].GetGPUVirtualAddress(),
@@ -1129,16 +1133,6 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 			StrideInBytes:  graphics.VertexFloatNum * uint32(unsafe.Sizeof(float32(0))),
 		},
 	})
-
-	if err := dst.setAsRenderTarget(g.device, evenOdd); err != nil {
-		return err
-	}
-	if evenOdd {
-		if err := dst.clearStencilBuffer(g.device); err != nil {
-			return err
-		}
-	}
-	g.drawCommandList.IASetPrimitiveTopology(_D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
 	g.drawCommandList.IASetIndexBuffer(&_D3D12_INDEX_BUFFER_VIEW{
 		BufferLocation: g.indices[g.frameIndex][len(g.indices[g.frameIndex])-1].GetGPUVirtualAddress(),
 		SizeInBytes:    graphics.IndicesNum * uint32(unsafe.Sizeof(uint16(0))),
@@ -1528,19 +1522,8 @@ func (i *Image) setAsRenderTarget(device *_ID3D12Device, useStencil bool) error 
 	}
 	i.graphics.drawCommandList.OMSetStencilRef(0)
 	i.graphics.drawCommandList.OMSetRenderTargets([]_D3D12_CPU_DESCRIPTOR_HANDLE{rtv}, false, &dsv)
-
-	return nil
-}
-
-func (i *Image) clearStencilBuffer(device *_ID3D12Device) error {
-	if err := i.ensureDepthStencilView(device); err != nil {
-		return err
-	}
-	dsv, err := i.dsvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
-	if err != nil {
-		return err
-	}
 	i.graphics.drawCommandList.ClearDepthStencilView(dsv, _D3D12_CLEAR_FLAG_STENCIL, 0, 0, nil)
+
 	return nil
 }
 
