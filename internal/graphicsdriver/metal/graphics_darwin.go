@@ -331,9 +331,10 @@ type Graphics struct {
 	src *Image
 	dst *Image
 
-	transparent  bool
-	maxImageSize int
-	tmpTextures  []mtl.Texture
+	transparent             bool
+	maxImageSize            int
+	tmpTextures             []mtl.Texture
+	needCommitReplacePixels bool
 
 	pool unsafe.Pointer
 }
@@ -881,6 +882,17 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion graph
 }
 
 func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageNum]graphicsdriver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, colorM graphicsdriver.ColorM, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
+	// Resolve all the replace-pixels commands before rendering with vertices (#2154).
+	// TODO: Find a better way to sync a copy-engine and a draw-engine with MTLFence.
+	if g.needCommitReplacePixels {
+		if g.cb != (mtl.CommandBuffer{}) {
+			g.cb.Commit()
+			g.cb.WaitUntilCompleted()
+			g.cb = mtl.CommandBuffer{}
+		}
+		g.needCommitReplacePixels = false
+	}
+
 	dst := g.images[dstID]
 
 	if dst.screen {
@@ -1269,6 +1281,7 @@ func (i *Image) ReplacePixels(args []*graphicsdriver.ReplacePixelsArgs) error {
 		bce.CopyFromTexture(t, 0, 0, so, ss, i.texture, 0, 0, do)
 	}
 	bce.EndEncoding()
+	g.needCommitReplacePixels = true
 
 	return nil
 }
