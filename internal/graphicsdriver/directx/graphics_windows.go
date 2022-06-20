@@ -122,7 +122,6 @@ type Graphics struct {
 	indices  [frameCount][]*_ID3D12Resource
 
 	factory   *_IDXGIFactory4
-	adapter   *_IDXGIAdapter1
 	swapChain *_IDXGISwapChain4
 
 	window windows.HWND
@@ -214,19 +213,14 @@ func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool) (ferr err
 		}
 	}()
 
+	var adapter *_IDXGIAdapter1
 	if useWARP {
 		a, err := g.factory.EnumWarpAdapter()
 		if err != nil {
 			return err
 		}
-
-		g.adapter = a
-		defer func() {
-			if ferr != nil {
-				g.adapter.Release()
-				g.adapter = nil
-			}
-		}()
+		defer a.Release()
+		adapter = a
 	} else {
 		for i := 0; ; i++ {
 			a, err := g.factory.EnumAdapters1(uint32(i))
@@ -236,35 +230,28 @@ func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool) (ferr err
 			if err != nil {
 				return err
 			}
+			defer a.Release()
+			adapter = a
 
-			desc, err := a.GetDesc1()
+			desc, err := adapter.GetDesc1()
 			if err != nil {
 				return err
 			}
 			if desc.Flags&_DXGI_ADAPTER_FLAG_SOFTWARE != 0 {
-				a.Release()
 				continue
 			}
-			if err := _D3D12CreateDevice(unsafe.Pointer(a), _D3D_FEATURE_LEVEL_11_0, &_IID_ID3D12Device, nil); err != nil {
-				a.Release()
+			if err := _D3D12CreateDevice(unsafe.Pointer(adapter), _D3D_FEATURE_LEVEL_11_0, &_IID_ID3D12Device, nil); err != nil {
 				continue
 			}
-			g.adapter = a
-			defer func() {
-				if ferr != nil {
-					g.adapter.Release()
-					g.adapter = nil
-				}
-			}()
 			break
 		}
 	}
 
-	if g.adapter == nil {
+	if adapter == nil {
 		return errors.New("directx: DirectX 12 is not supported")
 	}
 
-	if err := _D3D12CreateDevice(unsafe.Pointer(g.adapter), _D3D_FEATURE_LEVEL_11_0, &_IID_ID3D12Device, (*unsafe.Pointer)(unsafe.Pointer(&g.device))); err != nil {
+	if err := _D3D12CreateDevice(unsafe.Pointer(adapter), _D3D_FEATURE_LEVEL_11_0, &_IID_ID3D12Device, (*unsafe.Pointer)(unsafe.Pointer(&g.device))); err != nil {
 		return err
 	}
 
