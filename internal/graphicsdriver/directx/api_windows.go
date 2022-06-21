@@ -1755,6 +1755,8 @@ func (i *_ID3D12Device) SetFrameIntervalX(pOutputSyncTarget *_IDXGIOutput, lengt
 
 func (i *_ID3D12Device) QueryInterface(riid *windows.GUID, ppvObject *unsafe.Pointer) error {
 	r, _, _ := syscall.Syscall(i.vtbl.QueryInterface, 3, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(ppvObject)))
+	runtime.KeepAlive(riid)
+	runtime.KeepAlive(ppvObject)
 	if uint32(r) != uint32(windows.S_OK) {
 		return fmt.Errorf("directx: ID3D12Device::QueryInterface failed: HRESULT(%d)", uint32(r))
 	}

@@ -289,7 +289,7 @@ func (g *Graphics) initializeXbox(useWARP bool, useDebugLayer bool) (ferr error)
 	}
 
 	var dxgiDevice *_IDXGIDevice
-	if err := g.device.QueryInterface(&_IID_IDXGIDevice, (*unsafe.Pointer)(unsafe.Pointer(dxgiDevice))); err != nil {
+	if err := g.device.QueryInterface(&_IID_IDXGIDevice, (*unsafe.Pointer)(unsafe.Pointer(&dxgiDevice))); err != nil {
 		return err
 	}
 	defer dxgiDevice.Release()
