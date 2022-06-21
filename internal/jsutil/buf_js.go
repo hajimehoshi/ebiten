@@ -18,8 +18,6 @@ import (
 	"syscall/js"
 )
 
-var go2cpp = js.Global().Get("go2cpp").Truthy()
-
 var (
 	object       = js.Global().Get("Object")
 	arrayBuffer  = js.Global().Get("ArrayBuffer")
@@ -28,10 +26,12 @@ var (
 )
 
 var (
+	temporaryArrayBufferByteLength = 16
+
 	// temporaryArrayBuffer is a temporary buffer used at gl.readPixels or gl.texSubImage2D.
 	// The read data is converted to Go's byte slice as soon as possible.
 	// To avoid often allocating ArrayBuffer, reuse the buffer whenever possible.
-	temporaryArrayBuffer = arrayBuffer.New(16)
+	temporaryArrayBuffer = arrayBuffer.New(temporaryArrayBufferByteLength)
 
 	// temporaryUint8Array is a Uint8ArrayBuffer whose underlying buffer is always temporaryArrayBuffer.
 	temporaryUint8Array = uint8Array.New(temporaryArrayBuffer)
@@ -40,54 +40,14 @@ var (
 	temporaryFloat32Array = float32Array.New(temporaryArrayBuffer)
 )
 
-var (
-	temporaryArrayBufferByteLengthFunc  js.Value
-	temporaryUint8ArrayByteLengthFunc   js.Value
-	temporaryFloat32ArrayByteLengthFunc js.Value
-)
-
-func init() {
-	if go2cpp {
-		return
-	}
-	temporaryArrayBufferByteLengthFunc = object.Call("getOwnPropertyDescriptor", arrayBuffer.Get("prototype"), "byteLength").Get("get").Call("bind", temporaryArrayBuffer)
-	temporaryUint8ArrayByteLengthFunc = object.Call("getOwnPropertyDescriptor", object.Call("getPrototypeOf", uint8Array).Get("prototype"), "byteLength").Get("get").Call("bind", temporaryUint8Array)
-	temporaryFloat32ArrayByteLengthFunc = object.Call("getOwnPropertyDescriptor", object.Call("getPrototypeOf", float32Array).Get("prototype"), "byteLength").Get("get").Call("bind", temporaryFloat32Array)
-}
-
-func temporaryArrayBufferByteLength() int {
-	if go2cpp {
-		return temporaryArrayBuffer.Get("byteLength").Int()
-	}
-	return temporaryArrayBufferByteLengthFunc.Invoke().Int()
-}
-
-func temporaryUint8ArrayByteLength() int {
-	if go2cpp {
-		return temporaryUint8Array.Get("byteLength").Int()
-	}
-	return temporaryUint8ArrayByteLengthFunc.Invoke().Int()
-}
-
-func temporaryFloat32ArrayByteLength() int {
-	if go2cpp {
-		return temporaryFloat32Array.Get("byteLength").Int()
-	}
-	return temporaryFloat32ArrayByteLengthFunc.Invoke().Int()
-}
-
 func ensureTemporaryArrayBufferSize(byteLength int) {
-	bufl := temporaryArrayBufferByteLength()
-	if bufl < byteLength {
+	if bufl := temporaryArrayBufferByteLength; bufl < byteLength {
 		for bufl < byteLength {
 			bufl *= 2
 		}
+		temporaryArrayBufferByteLength = bufl
 		temporaryArrayBuffer = arrayBuffer.New(bufl)
-	}
-	if temporaryUint8ArrayByteLength() < bufl {
 		temporaryUint8Array = uint8Array.New(temporaryArrayBuffer)
-	}
-	if temporaryFloat32ArrayByteLength() < bufl {
 		temporaryFloat32Array = float32Array.New(temporaryArrayBuffer)
 	}
 }
