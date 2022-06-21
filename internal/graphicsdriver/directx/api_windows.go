@@ -1747,7 +1747,8 @@ func (i *_ID3D12Device) ScheduleFrameEventX(typ _D3D12XBOX_FRAME_EVENT_TYPE, int
 func (i *_ID3D12Device) SetFrameIntervalX(pOutputSyncTarget *_IDXGIOutput, lengthInMicroseconds uint32, periodInIntervals uint32, flags _D3D12XBOX_FRAME_INTERVAL_FLAGS) error {
 	r, _, _ := syscall.Syscall6(i.vtbl.SetFrameIntervalX, 5, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(pOutputSyncTarget)), uintptr(lengthInMicroseconds), uintptr(periodInIntervals), uintptr(flags), 0)
 	runtime.KeepAlive(pOutputSyncTarget)
-	if uint32(r) != uint32(windows.S_OK) {
+	// S_FALSE means the call was successful but the new frame interval is not yet in effect.
+	if uint32(r) != uint32(windows.S_OK) && uint32(r) != uint32(windows.S_FALSE) {
 		return fmt.Errorf("directx: ID3D12Device::SetFrameIntervalX failed: HRESULT(%d)", uint32(r))
 	}
 	return nil
