@@ -274,7 +274,8 @@ type pipelineStates struct {
 
 	samplerDescriptorHeap *_ID3D12DescriptorHeap
 
-	constantBuffers [frameCount][]*_ID3D12Resource
+	constantBuffers    [frameCount][]*_ID3D12Resource
+	constantBufferMaps [frameCount][]uintptr
 }
 
 const numConstantBufferAndSourceTextures = 1 + graphics.ShaderImageNum
@@ -366,8 +367,10 @@ func (p *pipelineStates) useGraphicsPipelineState(device *_ID3D12Device, command
 
 	if cap(p.constantBuffers[frameIndex]) > idx {
 		p.constantBuffers[frameIndex] = p.constantBuffers[frameIndex][:idx+1]
+		p.constantBufferMaps[frameIndex] = p.constantBufferMaps[frameIndex][:idx+1]
 	} else {
 		p.constantBuffers[frameIndex] = append(p.constantBuffers[frameIndex], nil)
+		p.constantBufferMaps[frameIndex] = append(p.constantBufferMaps[frameIndex], 0)
 	}
 
 	const bufferSizeAlignement = 256
@@ -377,10 +380,13 @@ func (p *pipelineStates) useGraphicsPipelineState(device *_ID3D12Device, command
 	}
 
 	cb := p.constantBuffers[frameIndex][idx]
+	m := p.constantBufferMaps[frameIndex][idx]
 	if cb != nil {
 		if uint32(cb.GetDesc().Width) < bufferSize {
+			p.constantBuffers[frameIndex][idx].Unmap(0, nil)
 			p.constantBuffers[frameIndex][idx].Release()
 			p.constantBuffers[frameIndex][idx] = nil
+			p.constantBufferMaps[frameIndex][idx] = 0
 			cb = nil
 		}
 	}
@@ -401,6 +407,15 @@ func (p *pipelineStates) useGraphicsPipelineState(device *_ID3D12Device, command
 			BufferLocation: cb.GetGPUVirtualAddress(),
 			SizeInBytes:    bufferSize,
 		}, h)
+
+		m, err = cb.Map(0, &_D3D12_RANGE{0, 0})
+		if err != nil {
+			return err
+		}
+		p.constantBufferMaps[frameIndex][idx] = m
+	}
+	if m == 0 {
+		return fmt.Errorf("directx: ID3D12Resource::Map failed")
 	}
 
 	h, err := p.shaderDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
@@ -424,13 +439,7 @@ func (p *pipelineStates) useGraphicsPipelineState(device *_ID3D12Device, command
 	}
 
 	// Update the constant buffer.
-	m, err := cb.Map(0, &_D3D12_RANGE{0, 0})
-	if err != nil {
-		return err
-	}
 	copyFloat32s(m, uniforms)
-
-	cb.Unmap(0, nil)
 
 	commandList.SetPipelineState(pipelineState)
 
