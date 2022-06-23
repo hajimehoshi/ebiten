@@ -9,11 +9,11 @@ require (
 	github.com/hajimehoshi/file2byteslice v0.0.0-20210813153925-5340248a8f41
 	github.com/hajimehoshi/go-mp3 v0.3.3
 	github.com/hajimehoshi/oto/v2 v2.2.0-alpha.3
-	github.com/jakecoffman/cp v1.1.0
-	github.com/jezek/xgb v1.0.0
+	github.com/jakecoffman/cp v1.2.0
+	github.com/jezek/xgb v1.0.1
 	github.com/jfreymuth/oggvorbis v1.0.3
-	golang.org/x/image v0.0.0-20220321031419-a8550c1d254a
+	golang.org/x/image v0.0.0-20220617043117-41969df76e82
 	golang.org/x/mobile v0.0.0-20220518205345-8578da9835fd
-	golang.org/x/sys v0.0.0-20220408201424-a24fb2fb8a0f
-	golang.org/x/tools v0.1.10
+	golang.org/x/sys v0.0.0-20220622161953-175b2fd9d664
+	golang.org/x/tools v0.1.11
 )
