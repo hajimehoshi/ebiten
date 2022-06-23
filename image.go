@@ -82,7 +82,8 @@ func (i *Image) Fill(clr color.Color) {
 		caf = float32(ca) / 0xffff
 	}
 	b := i.Bounds()
-	i.image.Fill(crf, cgf, cbf, caf, b.Min.X, b.Min.Y, b.Dx(), b.Dy())
+	x, y := i.adjustPosition(b.Min.X, b.Min.Y)
+	i.image.Fill(crf, cgf, cbf, caf, x, y, b.Dx(), b.Dy())
 }
 
 func canSkipMipmap(geom GeoM, filter graphicsdriver.Filter) bool {

@@ -3180,3 +3180,67 @@ func TestImageFromEbitenImageOptions(t *testing.T) {
 		}
 	}
 }
+
+// Issue #2159
+func TestImageOptionsFill(t *testing.T) {
+	r0 := image.Rect(-2, -3, 4, 5)
+	img := ebiten.NewImageWithOptions(r0, nil)
+	img.Fill(color.RGBA{0xff, 0, 0, 0xff})
+	for j := r0.Min.Y; j < r0.Max.Y; j++ {
+		for i := r0.Min.X; i < r0.Max.X; i++ {
+			got := img.At(i, j)
+			want := color.RGBA{0xff, 0, 0, 0xff}
+			if got != want {
+				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+
+	r1 := image.Rect(-1, -2, 3, 4)
+	img.SubImage(r1).(*ebiten.Image).Fill(color.RGBA{0, 0xff, 0, 0xff})
+	for j := r0.Min.Y; j < r0.Max.Y; j++ {
+		for i := r0.Min.X; i < r0.Max.X; i++ {
+			got := img.At(i, j)
+			want := color.RGBA{0xff, 0, 0, 0xff}
+			if image.Pt(i, j).In(r1) {
+				want = color.RGBA{0, 0xff, 0, 0xff}
+			}
+			if got != want {
+				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+// Issue #2159
+func TestImageOptionsClear(t *testing.T) {
+	r0 := image.Rect(-2, -3, 4, 5)
+	img := ebiten.NewImageWithOptions(r0, nil)
+	img.Fill(color.RGBA{0xff, 0, 0, 0xff})
+	img.Clear()
+	for j := r0.Min.Y; j < r0.Max.Y; j++ {
+		for i := r0.Min.X; i < r0.Max.X; i++ {
+			got := img.At(i, j)
+			want := color.RGBA{0, 0, 0, 0}
+			if got != want {
+				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+
+	img.Fill(color.RGBA{0xff, 0, 0, 0xff})
+	r1 := image.Rect(-1, -2, 3, 4)
+	img.SubImage(r1).(*ebiten.Image).Clear()
+	for j := r0.Min.Y; j < r0.Max.Y; j++ {
+		for i := r0.Min.X; i < r0.Max.X; i++ {
+			got := img.At(i, j)
+			want := color.RGBA{0xff, 0, 0, 0xff}
+			if image.Pt(i, j).In(r1) {
+				want = color.RGBA{0, 0, 0, 0}
+			}
+			if got != want {
+				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
