@@ -266,12 +266,21 @@ func (u *userInterfaceImpl) setRunning(running bool) {
 }
 
 func (u *userInterfaceImpl) getWindowSizeLimitsInDIP() (minw, minh, maxw, maxh int) {
+	if microsoftgdk.IsXbox() {
+		return glfw.DontCare, glfw.DontCare, glfw.DontCare, glfw.DontCare
+	}
+
 	u.m.RLock()
 	defer u.m.RUnlock()
 	return u.minWindowWidthInDIP, u.minWindowHeightInDIP, u.maxWindowWidthInDIP, u.maxWindowHeightInDIP
 }
 
 func (u *userInterfaceImpl) setWindowSizeLimitsInDIP(minw, minh, maxw, maxh int) bool {
+	if microsoftgdk.IsXbox() {
+		// Do nothing. The size is always fixed.
+		return false
+	}
+
 	u.m.RLock()
 	defer u.m.RUnlock()
 	if u.minWindowWidthInDIP == minw && u.minWindowHeightInDIP == minh && u.maxWindowWidthInDIP == maxw && u.maxWindowHeightInDIP == maxh {
@@ -378,6 +387,10 @@ func (u *userInterfaceImpl) setIconImages(iconImages []image.Image) {
 }
 
 func (u *userInterfaceImpl) getInitWindowPositionInDIP() (int, int) {
+	if microsoftgdk.IsXbox() {
+		return 0, 0
+	}
+
 	u.m.RLock()
 	defer u.m.RUnlock()
 	if u.initWindowPositionXInDIP != invalidPos && u.initWindowPositionYInDIP != invalidPos {
@@ -387,6 +400,10 @@ func (u *userInterfaceImpl) getInitWindowPositionInDIP() (int, int) {
 }
 
 func (u *userInterfaceImpl) setInitWindowPositionInDIP(x, y int) {
+	if microsoftgdk.IsXbox() {
+		return
+	}
+
 	u.m.Lock()
 	defer u.m.Unlock()
 
@@ -396,6 +413,10 @@ func (u *userInterfaceImpl) setInitWindowPositionInDIP(x, y int) {
 }
 
 func (u *userInterfaceImpl) getInitWindowSizeInDIP() (int, int) {
+	if microsoftgdk.IsXbox() {
+		return microsoftgdk.MonitorResolution()
+	}
+
 	u.m.Lock()
 	w, h := u.initWindowWidthInDIP, u.initWindowHeightInDIP
 	u.m.Unlock()
@@ -403,12 +424,20 @@ func (u *userInterfaceImpl) getInitWindowSizeInDIP() (int, int) {
 }
 
 func (u *userInterfaceImpl) setInitWindowSizeInDIP(width, height int) {
+	if microsoftgdk.IsXbox() {
+		return
+	}
+
 	u.m.Lock()
 	u.initWindowWidthInDIP, u.initWindowHeightInDIP = width, height
 	u.m.Unlock()
 }
 
 func (u *userInterfaceImpl) isInitWindowFloating() bool {
+	if microsoftgdk.IsXbox() {
+		return false
+	}
+
 	u.m.RLock()
 	f := u.initWindowFloating
 	u.m.RUnlock()
@@ -416,12 +445,17 @@ func (u *userInterfaceImpl) isInitWindowFloating() bool {
 }
 
 func (u *userInterfaceImpl) setInitWindowFloating(floating bool) {
+	if microsoftgdk.IsXbox() {
+		return
+	}
+
 	u.m.Lock()
 	u.initWindowFloating = floating
 	u.m.Unlock()
 }
 
 func (u *userInterfaceImpl) isInitWindowMaximized() bool {
+	// TODO: Is this always true on Xbox?
 	u.m.RLock()
 	m := u.initWindowMaximized
 	u.m.RUnlock()
@@ -455,6 +489,10 @@ func (u *userInterfaceImpl) isWindowBeingClosed() bool {
 }
 
 func (u *userInterfaceImpl) isInitFocused() bool {
+	if microsoftgdk.IsXbox() {
+		return true
+	}
+
 	u.m.RLock()
 	v := u.initFocused
 	u.m.RUnlock()
@@ -462,6 +500,10 @@ func (u *userInterfaceImpl) isInitFocused() bool {
 }
 
 func (u *userInterfaceImpl) setInitFocused(focused bool) {
+	if microsoftgdk.IsXbox() {
+		return
+	}
+
 	u.m.Lock()
 	u.initFocused = focused
 	u.m.Unlock()
@@ -1190,6 +1232,11 @@ func (u *userInterfaceImpl) adjustWindowSizeBasedOnSizeLimitsInDIP(width, height
 
 // setWindowSize must be called from the main thread.
 func (u *userInterfaceImpl) setWindowSizeInDIP(width, height int, fullscreen bool) {
+	if microsoftgdk.IsXbox() {
+		// Do nothing. The size is always fixed.
+		return
+	}
+
 	width, height = u.adjustWindowSizeBasedOnSizeLimitsInDIP(width, height)
 
 	u.graphicsDriver.SetFullscreen(fullscreen)
@@ -1507,6 +1554,10 @@ func (u *userInterfaceImpl) restoreWindow() {
 
 // setWindowDecorated must be called from the main thread.
 func (u *userInterfaceImpl) setWindowDecorated(decorated bool) {
+	if microsoftgdk.IsXbox() {
+		return
+	}
+
 	if u.setSizeCallbackEnabled {
 		u.setSizeCallbackEnabled = false
 		defer func() {
@@ -1527,6 +1578,10 @@ func (u *userInterfaceImpl) setWindowDecorated(decorated bool) {
 
 // setWindowFloating must be called from the main thread.
 func (u *userInterfaceImpl) setWindowFloating(floating bool) {
+	if microsoftgdk.IsXbox() {
+		return
+	}
+
 	if u.setSizeCallbackEnabled {
 		u.setSizeCallbackEnabled = false
 		defer func() {
@@ -1542,6 +1597,10 @@ func (u *userInterfaceImpl) setWindowFloating(floating bool) {
 
 // setWindowResizingMode must be called from the main thread.
 func (u *userInterfaceImpl) setWindowResizingMode(mode WindowResizingMode) {
+	if microsoftgdk.IsXbox() {
+		return
+	}
+
 	if u.windowResizingMode == mode {
 		return
 	}
@@ -1569,6 +1628,11 @@ func (u *userInterfaceImpl) setWindowResizingMode(mode WindowResizingMode) {
 //
 // setWindowPositionInDIP must be called from the main thread.
 func (u *userInterfaceImpl) setWindowPositionInDIP(x, y int, monitor *glfw.Monitor) {
+	if microsoftgdk.IsXbox() {
+		// Do nothing. The position is always fixed.
+		return
+	}
+
 	if u.setSizeCallbackEnabled {
 		u.setSizeCallbackEnabled = false
 		defer func() {
