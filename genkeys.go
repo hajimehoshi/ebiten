@@ -469,6 +469,7 @@ const ebitenKeysTmpl = `{{.License}}
 package ebiten
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -521,6 +522,21 @@ func keyNameToKeyCode(name string) (Key, bool) {
 		return Key{{$name}}, true
 	{{end}}}
 	return 0, false
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (k Key) MarshalText() ([]byte, error) {
+	return []byte(k.String()), nil
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler
+func (k *Key) UnmarshalText(text []byte) error {
+	key, ok := keyNameToKeyCode(string(text))
+	if !ok {
+		return fmt.Errorf("ebiten: unexpected key name: %s", string(text))
+	}
+	*k = key
+	return nil
 }
 `
 
