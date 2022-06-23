@@ -10,7 +10,7 @@ Ebitengine (formerly known as Ebiten) is an open source game library for the Go 
 * [Website (ebiten.org)](https://ebiten.org)
 * [API Reference](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2)
 * [Cheat Sheet](https://ebiten.org/documents/cheatsheet.html)
-* [Awesome Ebiten](https://github.com/sedyh/awesome-ebiten)
+* [Awesome Ebitengine](https://github.com/sedyh/awesome-ebitengine)
 
 ![Overview](https://ebiten.org/images/overview2.png)
 
