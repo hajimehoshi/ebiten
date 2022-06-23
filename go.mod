@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/ebitengine/purego v0.0.0-20220619034157-bda3acfed6e9
-	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220516021902-eb3e265c7661
+	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220622232848-a6c407ee30a0
 	github.com/hajimehoshi/bitmapfont/v2 v2.2.0
 	github.com/hajimehoshi/file2byteslice v0.0.0-20210813153925-5340248a8f41
 	github.com/hajimehoshi/go-mp3 v0.3.3
