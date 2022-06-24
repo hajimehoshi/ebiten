@@ -38,7 +38,8 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 	if err := atlas.BeginFrame(graphicsDriver); err != nil {
 		return err
 	}
-	return flushDelayedCommands()
+	flushDelayedCommands()
+	return nil
 }
 
 func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
@@ -56,9 +57,8 @@ func NewImage(width, height int, imageType atlas.ImageType) *Image {
 
 func (i *Image) initialize(imageType atlas.ImageType) {
 	if maybeCanAddDelayedCommand() {
-		if tryAddDelayedCommand(func() error {
+		if tryAddDelayedCommand(func() {
 			i.initialize(imageType)
-			return nil
 		}) {
 			return
 		}
@@ -87,9 +87,8 @@ func (i *Image) resolvePendingPixels(keepPendingPixels bool) {
 
 func (i *Image) MarkDisposed() {
 	if maybeCanAddDelayedCommand() {
-		if tryAddDelayedCommand(func() error {
+		if tryAddDelayedCommand(func() {
 			i.MarkDisposed()
-			return nil
 		}) {
 			return
 		}
@@ -137,9 +136,8 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) {
 	if maybeCanAddDelayedCommand() {
 		copied := make([]byte, len(pix))
 		copy(copied, pix)
-		if tryAddDelayedCommand(func() error {
+		if tryAddDelayedCommand(func() {
 			i.ReplacePixels(copied, x, y, width, height)
-			return nil
 		}) {
 			return
 		}
@@ -192,10 +190,9 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 	}
 
 	if maybeCanAddDelayedCommand() {
-		if tryAddDelayedCommand(func() error {
+		if tryAddDelayedCommand(func() {
 			// Arguments are not copied. Copying is the caller's responsibility.
 			i.DrawTriangles(srcs, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd)
-			return nil
 		}) {
 			return
 		}
@@ -236,9 +233,8 @@ func NewShader(ir *shaderir.Program) *Shader {
 
 func (s *Shader) initialize(ir *shaderir.Program) {
 	if maybeCanAddDelayedCommand() {
-		if tryAddDelayedCommand(func() error {
+		if tryAddDelayedCommand(func() {
 			s.initialize(ir)
-			return nil
 		}) {
 			return
 		}
@@ -248,9 +244,8 @@ func (s *Shader) initialize(ir *shaderir.Program) {
 
 func (s *Shader) MarkDisposed() {
 	if maybeCanAddDelayedCommand() {
-		if tryAddDelayedCommand(func() error {
+		if tryAddDelayedCommand(func() {
 			s.MarkDisposed()
-			return nil
 		}) {
 			return
 		}

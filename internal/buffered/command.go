@@ -23,24 +23,20 @@ var (
 	// delayedCommands represents a queue for image operations that are ordered before the game starts
 	// (BeginFrame). Before the game starts, the package shareable doesn't determine the minimum/maximum texture
 	// sizes (#879).
-	delayedCommands = []func() error{}
+	delayedCommands = []func(){}
 
 	delayedCommandsM       sync.Mutex
 	delayedCommandsFlushed uint32
 )
 
-func flushDelayedCommands() error {
+func flushDelayedCommands() {
 	fs := getDelayedFuncsAndClear()
 	for _, f := range fs {
-		if err := f(); err != nil {
-			return err
-		}
+		f()
 	}
-	return nil
-
 }
 
-func getDelayedFuncsAndClear() []func() error {
+func getDelayedFuncsAndClear() []func() {
 	if atomic.LoadUint32(&delayedCommandsFlushed) == 0 {
 		// Outline the slow-path to expect the fast-path is inlined.
 		return getDelayedFuncsAndClearSlow()
@@ -48,14 +44,14 @@ func getDelayedFuncsAndClear() []func() error {
 	return nil
 }
 
-func getDelayedFuncsAndClearSlow() []func() error {
+func getDelayedFuncsAndClearSlow() []func() {
 	delayedCommandsM.Lock()
 	defer delayedCommandsM.Unlock()
 
 	if delayedCommandsFlushed == 0 {
 		defer atomic.StoreUint32(&delayedCommandsFlushed, 1)
 
-		fs := make([]func() error, len(delayedCommands))
+		fs := make([]func(), len(delayedCommands))
 		copy(fs, delayedCommands)
 		delayedCommands = nil
 		return fs
@@ -71,13 +67,13 @@ func maybeCanAddDelayedCommand() bool {
 	return atomic.LoadUint32(&delayedCommandsFlushed) == 0
 }
 
-func tryAddDelayedCommand(f func() error) bool {
+func tryAddDelayedCommand(f func()) bool {
 	delayedCommandsM.Lock()
 	defer delayedCommandsM.Unlock()
 
 	if delayedCommandsFlushed == 0 {
-		delayedCommands = append(delayedCommands, func() error {
-			return f()
+		delayedCommands = append(delayedCommands, func() {
+			f()
 		})
 		return true
 	}
