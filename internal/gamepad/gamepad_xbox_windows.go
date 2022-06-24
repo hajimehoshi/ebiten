@@ -17,13 +17,12 @@
 
 package gamepad
 
-import (
-	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
-)
+type nativeGamepadsXbox struct{}
 
-func newNativeGamepadsImpl() nativeGamepads {
-	if microsoftgdk.IsXbox() {
-		return &nativeGamepadsXbox{}
-	}
-	return &nativeGamepadsDesktop{}
+func (n *nativeGamepadsXbox) init(gamepads *gamepads) error {
+	return nil
+}
+
+func (n *nativeGamepadsXbox) update(gamepads *gamepads) error {
+	return nil
 }
