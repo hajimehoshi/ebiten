@@ -79,7 +79,9 @@ func (u *userInterfaceImpl) Update() error {
 		return nil
 	}
 
-	gamepad.Update()
+	if err := gamepad.Update(); err != nil {
+		return err
+	}
 
 	renderCh <- struct{}{}
 	go func() {

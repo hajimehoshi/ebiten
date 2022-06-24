@@ -203,6 +203,8 @@ func (i *Input) update(window *glfw.Window, context *context) error {
 		i.cursorX, i.cursorY = int(cx), int(cy)
 	}
 
-	gamepad.Update()
+	if err := gamepad.Update(); err != nil {
+		return err
+	}
 	return nil
 }

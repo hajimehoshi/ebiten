@@ -290,7 +290,9 @@ func (u *userInterfaceImpl) updateImpl(force bool) error {
 		return nil
 	}
 
-	gamepad.Update()
+	if err := gamepad.Update(); err != nil {
+		return err
+	}
 	u.input.updateForGo2Cpp()
 
 	a := u.DeviceScaleFactor()
