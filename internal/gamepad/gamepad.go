@@ -40,7 +40,7 @@ type gamepads struct {
 	gamepads []*Gamepad
 	m        sync.Mutex
 
-	nativeGamepads
+	native nativeGamepads
 }
 
 var theGamepads gamepads
@@ -81,13 +81,13 @@ func (g *gamepads) update() error {
 	defer g.m.Unlock()
 
 	if !g.inited {
-		if err := g.nativeGamepads.init(g); err != nil {
+		if err := g.native.init(g); err != nil {
 			return err
 		}
 		g.inited = true
 	}
 
-	if err := g.nativeGamepads.update(g); err != nil {
+	if err := g.native.update(g); err != nil {
 		return err
 	}
 
@@ -166,7 +166,7 @@ func (g *gamepads) setNativeWindow(nativeWindow uintptr) {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	var n interface{} = &g.nativeGamepads
+	var n interface{} = &g.native
 	if n, ok := n.(interface{ setNativeWindow(uintptr) }); ok {
 		n.setNativeWindow(nativeWindow)
 	}
@@ -177,14 +177,14 @@ type Gamepad struct {
 	sdlID string
 	m     sync.Mutex
 
-	nativeGamepad
+	native nativeGamepad
 }
 
 func (g *Gamepad) update(gamepads *gamepads) error {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	return g.nativeGamepad.update(gamepads)
+	return g.native.update(gamepads)
 }
 
 // Name is concurrent-safe.
@@ -207,7 +207,7 @@ func (g *Gamepad) AxisCount() int {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	return g.nativeGamepad.axisCount()
+	return g.native.axisCount()
 }
 
 // ButtonCount is concurrent-safe.
@@ -215,7 +215,7 @@ func (g *Gamepad) ButtonCount() int {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	return g.nativeGamepad.buttonCount()
+	return g.native.buttonCount()
 }
 
 // HatCount is concurrent-safe.
@@ -223,7 +223,7 @@ func (g *Gamepad) HatCount() int {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	return g.nativeGamepad.hatCount()
+	return g.native.hatCount()
 }
 
 // Axis is concurrent-safe.
@@ -231,7 +231,7 @@ func (g *Gamepad) Axis(axis int) float64 {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	return g.nativeGamepad.axisValue(axis)
+	return g.native.axisValue(axis)
 }
 
 // Button is concurrent-safe.
@@ -239,7 +239,7 @@ func (g *Gamepad) Button(button int) bool {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	return g.nativeGamepad.isButtonPressed(button)
+	return g.native.isButtonPressed(button)
 }
 
 // Hat is concurrent-safe.
@@ -247,7 +247,7 @@ func (g *Gamepad) Hat(hat int) int {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	return g.nativeGamepad.hatState(hat)
+	return g.native.hatState(hat)
 }
 
 // IsStandardLayoutAvailable is concurrent-safe.
@@ -258,7 +258,7 @@ func (g *Gamepad) IsStandardLayoutAvailable() bool {
 	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
 		return true
 	}
-	return g.hasOwnStandardLayoutMapping()
+	return g.native.hasOwnStandardLayoutMapping()
 }
 
 // StandardAxisValue is concurrent-safe.
@@ -266,8 +266,8 @@ func (g *Gamepad) StandardAxisValue(axis gamepaddb.StandardAxis) float64 {
 	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
 		return gamepaddb.AxisValue(g.sdlID, axis, g)
 	}
-	if g.hasOwnStandardLayoutMapping() {
-		return g.nativeGamepad.axisValue(int(axis))
+	if g.native.hasOwnStandardLayoutMapping() {
+		return g.native.axisValue(int(axis))
 	}
 	return 0
 }
@@ -277,8 +277,8 @@ func (g *Gamepad) StandardButtonValue(button gamepaddb.StandardButton) float64 {
 	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
 		return gamepaddb.ButtonValue(g.sdlID, button, g)
 	}
-	if g.hasOwnStandardLayoutMapping() {
-		return g.nativeGamepad.buttonValue(int(button))
+	if g.native.hasOwnStandardLayoutMapping() {
+		return g.native.buttonValue(int(button))
 	}
 	return 0
 }
@@ -288,8 +288,8 @@ func (g *Gamepad) IsStandardButtonPressed(button gamepaddb.StandardButton) bool 
 	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
 		return gamepaddb.IsButtonPressed(g.sdlID, button, g)
 	}
-	if g.hasOwnStandardLayoutMapping() {
-		return g.nativeGamepad.isButtonPressed(int(button))
+	if g.native.hasOwnStandardLayoutMapping() {
+		return g.native.isButtonPressed(int(button))
 	}
 	return false
 }
@@ -299,5 +299,5 @@ func (g *Gamepad) Vibrate(duration time.Duration, strongMagnitude float64, weakM
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	g.nativeGamepad.vibrate(duration, strongMagnitude, weakMagnitude)
+	g.native.vibrate(duration, strongMagnitude, weakMagnitude)
 }

@@ -73,7 +73,7 @@ func (g *nativeGamepads) update(gamepads *gamepads) error {
 
 		// The gamepad is not registered yet, register this.
 		gamepad := gamepads.find(func(gamepad *Gamepad) bool {
-			return index == gamepad.index
+			return index == gamepad.native.index
 		})
 		if gamepad == nil {
 			name := gp.Get("id").String()
@@ -84,15 +84,15 @@ func (g *nativeGamepads) update(gamepads *gamepads) error {
 			copy(sdlID[:], []byte(name))
 
 			gamepad = gamepads.add(name, hex.EncodeToString(sdlID[:]))
-			gamepad.index = index
-			gamepad.mapping = gp.Get("mapping").String()
+			gamepad.native.index = index
+			gamepad.native.mapping = gp.Get("mapping").String()
 		}
-		gamepad.value = gp
+		gamepad.native.value = gp
 	}
 
 	// Remove an unused gamepads.
 	gamepads.remove(func(gamepad *Gamepad) bool {
-		_, ok := g.indices[gamepad.index]
+		_, ok := g.indices[gamepad.native.index]
 		return !ok
 	})
 

@@ -92,7 +92,7 @@ func (g *nativeGamepads) init(gamepads *gamepads) error {
 
 func (*nativeGamepads) openGamepad(gamepads *gamepads, path string) (err error) {
 	if gamepads.find(func(gamepad *Gamepad) bool {
-		return gamepad.path == path
+		return gamepad.native.path == path
 	}) != nil {
 		return nil
 	}
@@ -165,10 +165,10 @@ func (*nativeGamepads) openGamepad(gamepads *gamepads, path string) (err error) 
 	}
 
 	gp := gamepads.add(name, sdlID)
-	gp.path = path
-	gp.fd = fd
+	gp.native.path = path
+	gp.native.fd = fd
 	runtime.SetFinalizer(gp, func(gp *Gamepad) {
-		gp.close()
+		gp.native.close()
 	})
 
 	var axisCount int
@@ -178,33 +178,33 @@ func (*nativeGamepads) openGamepad(gamepads *gamepads, path string) (err error) 
 		if !isBitSet(keyBits, code) {
 			continue
 		}
-		gp.keyMap[code-_BTN_MISC] = buttonCount
+		gp.native.keyMap[code-_BTN_MISC] = buttonCount
 		buttonCount++
 	}
 	for code := 0; code < _ABS_CNT; code++ {
-		gp.absMap[code] = -1
+		gp.native.absMap[code] = -1
 		if !isBitSet(absBits, code) {
 			continue
 		}
 		if code >= _ABS_HAT0X && code <= _ABS_HAT3Y {
-			gp.absMap[code] = hatCount
+			gp.native.absMap[code] = hatCount
 			hatCount++
 			// Skip Y.
 			code++
 			continue
 		}
-		if err := ioctl(gp.fd, uint(_EVIOCGABS(uint(code))), unsafe.Pointer(&gp.absInfo[code])); err != nil {
+		if err := ioctl(gp.native.fd, uint(_EVIOCGABS(uint(code))), unsafe.Pointer(&gp.native.absInfo[code])); err != nil {
 			return fmt.Errorf("gamepad: ioctl for an abs at openGamepad failed: %w", err)
 		}
-		gp.absMap[code] = axisCount
+		gp.native.absMap[code] = axisCount
 		axisCount++
 	}
 
-	gp.axisCount_ = axisCount
-	gp.buttonCount_ = buttonCount
-	gp.hatCount_ = hatCount
+	gp.native.axisCount_ = axisCount
+	gp.native.buttonCount_ = buttonCount
+	gp.native.hatCount_ = hatCount
 
-	if err := gp.pollAbsState(); err != nil {
+	if err := gp.native.pollAbsState(); err != nil {
 		return err
 	}
 
@@ -248,9 +248,9 @@ func (g *nativeGamepads) update(gamepads *gamepads) error {
 		}
 		if e.Mask&unix.IN_DELETE != 0 {
 			if gp := gamepads.find(func(gamepad *Gamepad) bool {
-				return gamepad.path == path
+				return gamepad.native.path == path
 			}); gp != nil {
-				gp.close()
+				gp.native.close()
 				gamepads.remove(func(gamepad *Gamepad) bool {
 					return gamepad == gp
 				})

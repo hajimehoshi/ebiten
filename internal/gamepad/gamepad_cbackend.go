@@ -47,27 +47,27 @@ func (g *nativeGamepads) update(gamepads *gamepads) error {
 		g.ids[gp.ID] = struct{}{}
 
 		gamepad := gamepads.find(func(gamepad *Gamepad) bool {
-			return gamepad.id == gp.ID
+			return gamepad.native.id == gp.ID
 		})
 		if gamepad == nil {
 			gamepad = gamepads.add("", "")
-			gamepad.id = gp.ID
-			gamepad.standard = gp.Standard
-			gamepad.axisValues = make([]float64, gp.AxisCount)
-			gamepad.buttonPressed = make([]bool, gp.ButtonCount)
-			gamepad.buttonValues = make([]float64, gp.ButtonCount)
+			gamepad.native.id = gp.ID
+			gamepad.native.standard = gp.Standard
+			gamepad.native.axisValues = make([]float64, gp.AxisCount)
+			gamepad.native.buttonPressed = make([]bool, gp.ButtonCount)
+			gamepad.native.buttonValues = make([]float64, gp.ButtonCount)
 		}
 
 		gamepad.m.Lock()
-		copy(gamepad.axisValues, gp.AxisValues[:])
-		copy(gamepad.buttonValues, gp.ButtonValues[:])
-		copy(gamepad.buttonPressed, gp.ButtonPressed[:])
+		copy(gamepad.native.axisValues, gp.AxisValues[:])
+		copy(gamepad.native.buttonValues, gp.ButtonValues[:])
+		copy(gamepad.native.buttonPressed, gp.ButtonPressed[:])
 		gamepad.m.Unlock()
 	}
 
 	// Remove an unused gamepads.
 	gamepads.remove(func(gamepad *Gamepad) bool {
-		_, ok := g.ids[gamepad.id]
+		_, ok := g.ids[gamepad.native.id]
 		return !ok
 	})
 

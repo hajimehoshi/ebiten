@@ -53,10 +53,10 @@ func (g *gamepads) addAndroidGamepad(androidDeviceID int, name, sdlID string, ax
 	defer g.m.Unlock()
 
 	gp := g.add(name, sdlID)
-	gp.androidDeviceID = androidDeviceID
-	gp.axes = make([]float64, axisCount)
-	gp.buttons = make([]bool, buttonCount)
-	gp.hats = make([]int, hatCount)
+	gp.native.androidDeviceID = androidDeviceID
+	gp.native.axes = make([]float64, axisCount)
+	gp.native.buttons = make([]bool, buttonCount)
+	gp.native.hats = make([]int, hatCount)
 }
 
 func (g *gamepads) removeAndroidGamepad(androidDeviceID int) {
@@ -64,7 +64,7 @@ func (g *gamepads) removeAndroidGamepad(androidDeviceID int) {
 	defer g.m.Unlock()
 
 	g.remove(func(gamepad *Gamepad) bool {
-		return gamepad.androidDeviceID == androidDeviceID
+		return gamepad.native.androidDeviceID == androidDeviceID
 	})
 }
 
@@ -73,7 +73,7 @@ func (g *gamepads) updateAndroidGamepadAxis(androidDeviceID int, axis int, value
 	defer g.m.Unlock()
 
 	gp := g.find(func(gamepad *Gamepad) bool {
-		return gamepad.androidDeviceID == androidDeviceID
+		return gamepad.native.androidDeviceID == androidDeviceID
 	})
 	if gp == nil {
 		return
@@ -86,7 +86,7 @@ func (g *gamepads) updateAndroidGamepadButton(androidDeviceID int, button Button
 	defer g.m.Unlock()
 
 	gp := g.find(func(gamepad *Gamepad) bool {
-		return gamepad.androidDeviceID == androidDeviceID
+		return gamepad.native.androidDeviceID == androidDeviceID
 	})
 	if gp == nil {
 		return
@@ -99,7 +99,7 @@ func (g *gamepads) updateAndroidGamepadHat(androidDeviceID int, hat int, dir And
 	defer g.m.Unlock()
 
 	gp := g.find(func(gamepad *Gamepad) bool {
-		return gamepad.androidDeviceID == androidDeviceID
+		return gamepad.native.androidDeviceID == androidDeviceID
 	})
 	if gp == nil {
 		return
@@ -111,30 +111,30 @@ func (g *Gamepad) updateAndroidGamepadAxis(axis int, value float64) {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	if axis < 0 || axis >= len(g.axes) {
+	if axis < 0 || axis >= len(g.native.axes) {
 		return
 	}
-	g.axes[axis] = value
+	g.native.axes[axis] = value
 }
 
 func (g *Gamepad) updateAndroidGamepadButton(button Button, pressed bool) {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	if button < 0 || int(button) >= len(g.buttons) {
+	if button < 0 || int(button) >= len(g.native.buttons) {
 		return
 	}
-	g.buttons[button] = pressed
+	g.native.buttons[button] = pressed
 }
 
 func (g *Gamepad) updateAndroidGamepadHat(hat int, dir AndroidHatDirection, value int) {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	if hat < 0 || hat >= len(g.hats) {
+	if hat < 0 || hat >= len(g.native.hats) {
 		return
 	}
-	v := g.hats[hat]
+	v := g.native.hats[hat]
 	switch dir {
 	case AndroidHatDirectionX:
 		switch {
@@ -161,5 +161,5 @@ func (g *Gamepad) updateAndroidGamepadHat(hat int, dir AndroidHatDirection, valu
 	default:
 		panic(fmt.Sprintf("gamepad: invalid direction: %d", dir))
 	}
-	g.hats[hat] = v
+	g.native.hats[hat] = v
 }

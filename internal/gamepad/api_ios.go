@@ -407,14 +407,14 @@ func (g *gamepads) addIOSGamepad(controller C.uintptr_t, prop *C.struct_Controll
 	name := C.GoString(&prop.name[0])
 	sdlID := C.GoStringN(&prop.guid[0], 16)
 	gp := g.add(name, sdlID)
-	gp.controller = uintptr(controller)
-	gp.axes = make([]float64, prop.nAxes)
-	gp.buttons = make([]bool, prop.nButtons+prop.nHats*4)
-	gp.hats = make([]int, prop.nHats)
-	gp.buttonMask = uint16(prop.buttonMask)
-	gp.hasDualshockTouchpad = bool(prop.hasDualshockTouchpad)
-	gp.hasXboxPaddles = bool(prop.hasXboxPaddles)
-	gp.hasXboxShareButton = bool(prop.hasXboxShareButton)
+	gp.native.controller = uintptr(controller)
+	gp.native.axes = make([]float64, prop.nAxes)
+	gp.native.buttons = make([]bool, prop.nButtons+prop.nHats*4)
+	gp.native.hats = make([]int, prop.nHats)
+	gp.native.buttonMask = uint16(prop.buttonMask)
+	gp.native.hasDualshockTouchpad = bool(prop.hasDualshockTouchpad)
+	gp.native.hasXboxPaddles = bool(prop.hasXboxPaddles)
+	gp.native.hasXboxShareButton = bool(prop.hasXboxShareButton)
 }
 
 func (g *gamepads) removeIOSGamepad(controller C.uintptr_t) {
@@ -422,7 +422,7 @@ func (g *gamepads) removeIOSGamepad(controller C.uintptr_t) {
 	defer g.m.Unlock()
 
 	g.remove(func(gamepad *Gamepad) bool {
-		return gamepad.controller == uintptr(controller)
+		return gamepad.native.controller == uintptr(controller)
 	})
 }
 

@@ -241,7 +241,7 @@ func (g *nativeGamepads) detectConnection(gamepads *gamepads) error {
 
 		for i := 0; i < xuserMaxCount; i++ {
 			if gamepads.find(func(g *Gamepad) bool {
-				return g.dinputDevice == nil && g.xinputIndex == i
+				return g.native.dinputDevice == nil && g.native.xinputIndex == i
 			}) != nil {
 				continue
 			}
@@ -278,7 +278,7 @@ func (g *nativeGamepads) detectConnection(gamepads *gamepads) error {
 			}
 
 			gp := gamepads.add(name, sdlID)
-			gp.xinputIndex = i
+			gp.native.xinputIndex = i
 		}
 	}
 	return nil
@@ -292,7 +292,7 @@ func (g *nativeGamepads) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTANCEW, p
 	}
 
 	if gamepads.find(func(g *Gamepad) bool {
-		return g.dinputGUID == lpddi.guidInstance
+		return g.native.dinputGUID == lpddi.guidInstance
 	}) != nil {
 		return _DIENUM_CONTINUE
 	}
@@ -389,12 +389,12 @@ func (g *nativeGamepads) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTANCEW, p
 	}
 
 	gp := gamepads.add(name, sdlID)
-	gp.dinputDevice = device
-	gp.dinputObjects = ctx.objects
-	gp.dinputGUID = lpddi.guidInstance
-	gp.dinputAxes = make([]float64, ctx.axisCount+ctx.sliderCount)
-	gp.dinputButtons = make([]bool, ctx.buttonCount)
-	gp.dinputHats = make([]int, ctx.povCount)
+	gp.native.dinputDevice = device
+	gp.native.dinputObjects = ctx.objects
+	gp.native.dinputGUID = lpddi.guidInstance
+	gp.native.dinputAxes = make([]float64, ctx.axisCount+ctx.sliderCount)
+	gp.native.dinputButtons = make([]bool, ctx.buttonCount)
+	gp.native.dinputHats = make([]int, ctx.povCount)
 
 	return _DIENUM_CONTINUE
 }
@@ -576,7 +576,7 @@ func (g *nativeGamepad) update(gamepads *gamepads) (err error) {
 			return
 		}
 		gamepads.remove(func(gamepad *Gamepad) bool {
-			return &gamepad.nativeGamepad == g
+			return &gamepad.native == g
 		})
 	}()
 
@@ -666,7 +666,7 @@ func (g *nativeGamepad) update(gamepads *gamepads) (err error) {
 	}
 
 	var state _XINPUT_STATE
-	if err := gamepads.xinputGetState(uint32(g.xinputIndex), &state); err != nil {
+	if err := gamepads.native.xinputGetState(uint32(g.xinputIndex), &state); err != nil {
 		if !errors.Is(err, windows.ERROR_DEVICE_NOT_CONNECTED) {
 			return err
 		}
