@@ -43,7 +43,14 @@ type gamepads struct {
 	native nativeGamepads
 }
 
-var theGamepads gamepads
+type nativeGamepads interface {
+	init(gamepads *gamepads) error
+	update(gamepads *gamepads) error
+}
+
+var theGamepads = gamepads{
+	native: newNativeGamepadsImpl(),
+}
 
 // AppendGamepadIDs is concurrent-safe.
 func AppendGamepadIDs(ids []ID) []ID {
@@ -166,7 +173,7 @@ func (g *gamepads) setNativeWindow(nativeWindow uintptr) {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	var n interface{} = &g.native
+	var n interface{} = g.native
 	if n, ok := n.(interface{ setNativeWindow(uintptr) }); ok {
 		n.setNativeWindow(nativeWindow)
 	}
@@ -178,6 +185,19 @@ type Gamepad struct {
 	m     sync.Mutex
 
 	native nativeGamepad
+}
+
+type nativeGamepad interface {
+	update(gamepads *gamepads) error
+	hasOwnStandardLayoutMapping() bool
+	axisCount() int
+	buttonCount() int
+	hatCount() int
+	axisValue(axis int) float64
+	buttonValue(button int) float64
+	isButtonPressed(button int) bool
+	hatState(hat int) int
+	vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64)
 }
 
 func (g *Gamepad) update(gamepads *gamepads) error {

@@ -99,7 +99,7 @@ var xinputButtons = []uint16{
 	_XINPUT_GAMEPAD_RIGHT_THUMB,
 }
 
-type nativeGamepads struct {
+type nativeGamepadsImpl struct {
 	dinput8    windows.Handle
 	dinput8API *_IDirectInput8W
 	xinput     windows.Handle
@@ -118,6 +118,10 @@ type nativeGamepads struct {
 	err           error
 }
 
+func newNativeGamepadsImpl() nativeGamepads {
+	return &nativeGamepadsImpl{}
+}
+
 type dinputObject struct {
 	objectType dinputObjectType
 	index      int
@@ -132,7 +136,7 @@ type enumObjectsContext struct {
 	povCount    int
 }
 
-func (g *nativeGamepads) init(gamepads *gamepads) error {
+func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
 	// As there is no guarantee that the DLL exists, NewLazySystemDLL is not available.
 	// TODO: Is there a 'system' version of LoadLibrary?
 	if h, err := windows.LoadLibrary("dinput8.dll"); err == nil {
@@ -194,7 +198,7 @@ func (g *nativeGamepads) init(gamepads *gamepads) error {
 	return nil
 }
 
-func (g *nativeGamepads) directInput8Create(hinst uintptr, dwVersion uint32, riidltf *windows.GUID, ppvOut **_IDirectInput8W, punkOuter unsafe.Pointer) error {
+func (g *nativeGamepadsImpl) directInput8Create(hinst uintptr, dwVersion uint32, riidltf *windows.GUID, ppvOut **_IDirectInput8W, punkOuter unsafe.Pointer) error {
 	r, _, _ := syscall.Syscall6(g.procDirectInput8Create, 5,
 		hinst, uintptr(dwVersion), uintptr(unsafe.Pointer(riidltf)), uintptr(unsafe.Pointer(ppvOut)), uintptr(punkOuter),
 		0)
@@ -204,7 +208,7 @@ func (g *nativeGamepads) directInput8Create(hinst uintptr, dwVersion uint32, rii
 	return nil
 }
 
-func (g *nativeGamepads) xinputGetCapabilities(dwUserIndex uint32, dwFlags uint32, pCapabilities *_XINPUT_CAPABILITIES) error {
+func (g *nativeGamepadsImpl) xinputGetCapabilities(dwUserIndex uint32, dwFlags uint32, pCapabilities *_XINPUT_CAPABILITIES) error {
 	// XInputGetCapabilities doesn't call SetLastError and returns an error code directly.
 	r, _, _ := syscall.Syscall(g.procXInputGetCapabilities, 3,
 		uintptr(dwUserIndex), uintptr(dwFlags), uintptr(unsafe.Pointer(pCapabilities)))
@@ -214,7 +218,7 @@ func (g *nativeGamepads) xinputGetCapabilities(dwUserIndex uint32, dwFlags uint3
 	return nil
 }
 
-func (g *nativeGamepads) xinputGetState(dwUserIndex uint32, pState *_XINPUT_STATE) error {
+func (g *nativeGamepadsImpl) xinputGetState(dwUserIndex uint32, pState *_XINPUT_STATE) error {
 	// XInputGetState doesn't call SetLastError and returns an error code directly.
 	r, _, _ := syscall.Syscall(g.procXInputGetState, 2,
 		uintptr(dwUserIndex), uintptr(unsafe.Pointer(pState)), 0)
@@ -224,7 +228,7 @@ func (g *nativeGamepads) xinputGetState(dwUserIndex uint32, pState *_XINPUT_STAT
 	return nil
 }
 
-func (g *nativeGamepads) detectConnection(gamepads *gamepads) error {
+func (g *nativeGamepadsImpl) detectConnection(gamepads *gamepads) error {
 	if g.dinput8 != 0 {
 		if g.enumDevicesCallback == 0 {
 			g.enumDevicesCallback = windows.NewCallback(g.dinput8EnumDevicesCallback)
@@ -241,7 +245,8 @@ func (g *nativeGamepads) detectConnection(gamepads *gamepads) error {
 
 		for i := 0; i < xuserMaxCount; i++ {
 			if gamepads.find(func(g *Gamepad) bool {
-				return g.native.dinputDevice == nil && g.native.xinputIndex == i
+				n := g.native.(*nativeGamepadImpl)
+				return n.dinputDevice == nil && n.xinputIndex == i
 			}) != nil {
 				continue
 			}
@@ -278,13 +283,15 @@ func (g *nativeGamepads) detectConnection(gamepads *gamepads) error {
 			}
 
 			gp := gamepads.add(name, sdlID)
-			gp.native.xinputIndex = i
+			gp.native = &nativeGamepadImpl{
+				xinputIndex: i,
+			}
 		}
 	}
 	return nil
 }
 
-func (g *nativeGamepads) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTANCEW, pvRef unsafe.Pointer) uintptr {
+func (g *nativeGamepadsImpl) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTANCEW, pvRef unsafe.Pointer) uintptr {
 	gamepads := (*gamepads)(pvRef)
 
 	if g.err != nil {
@@ -292,7 +299,7 @@ func (g *nativeGamepads) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTANCEW, p
 	}
 
 	if gamepads.find(func(g *Gamepad) bool {
-		return g.native.dinputGUID == lpddi.guidInstance
+		return g.native.(*nativeGamepadImpl).dinputGUID == lpddi.guidInstance
 	}) != nil {
 		return _DIENUM_CONTINUE
 	}
@@ -389,12 +396,14 @@ func (g *nativeGamepads) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTANCEW, p
 	}
 
 	gp := gamepads.add(name, sdlID)
-	gp.native.dinputDevice = device
-	gp.native.dinputObjects = ctx.objects
-	gp.native.dinputGUID = lpddi.guidInstance
-	gp.native.dinputAxes = make([]float64, ctx.axisCount+ctx.sliderCount)
-	gp.native.dinputButtons = make([]bool, ctx.buttonCount)
-	gp.native.dinputHats = make([]int, ctx.povCount)
+	gp.native = &nativeGamepadImpl{
+		dinputDevice:  device,
+		dinputObjects: ctx.objects,
+		dinputGUID:    lpddi.guidInstance,
+		dinputAxes:    make([]float64, ctx.axisCount+ctx.sliderCount),
+		dinputButtons: make([]bool, ctx.buttonCount),
+		dinputHats:    make([]int, ctx.povCount),
+	}
 
 	return _DIENUM_CONTINUE
 }
@@ -443,7 +452,7 @@ func supportsXInput(guid windows.GUID) (bool, error) {
 	return false, nil
 }
 
-func (g *nativeGamepads) dinputDevice8EnumObjectsCallback(lpddoi *_DIDEVICEOBJECTINSTANCEW, pvRef unsafe.Pointer) uintptr {
+func (g *nativeGamepadsImpl) dinputDevice8EnumObjectsCallback(lpddoi *_DIDEVICEOBJECTINSTANCEW, pvRef unsafe.Pointer) uintptr {
 	ctx := (*enumObjectsContext)(pvRef)
 
 	switch {
@@ -511,7 +520,7 @@ func (g *nativeGamepads) dinputDevice8EnumObjectsCallback(lpddoi *_DIDEVICEOBJEC
 	return _DIENUM_CONTINUE
 }
 
-func (g *nativeGamepads) update(gamepads *gamepads) error {
+func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 	if g.err != nil {
 		return g.err
 	}
@@ -537,7 +546,7 @@ func (g *nativeGamepads) update(gamepads *gamepads) error {
 	return nil
 }
 
-func (g *nativeGamepads) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintptr) uintptr {
+func (g *nativeGamepadsImpl) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintptr) uintptr {
 	switch uMsg {
 	case _WM_DEVICECHANGE:
 		atomic.StoreInt32(&g.deviceChanged, 1)
@@ -545,11 +554,11 @@ func (g *nativeGamepads) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintp
 	return _CallWindowProcW(g.origWndProc, hWnd, uMsg, wParam, lParam)
 }
 
-func (g *nativeGamepads) setNativeWindow(nativeWindow uintptr) {
+func (g *nativeGamepadsImpl) setNativeWindow(nativeWindow uintptr) {
 	g.nativeWindow = windows.HWND(nativeWindow)
 }
 
-type nativeGamepad struct {
+type nativeGamepadImpl struct {
 	dinputDevice  *_IDirectInputDevice8W
 	dinputObjects []dinputObject
 	dinputGUID    windows.GUID
@@ -561,22 +570,22 @@ type nativeGamepad struct {
 	xinputState _XINPUT_STATE
 }
 
-func (*nativeGamepad) hasOwnStandardLayoutMapping() bool {
+func (*nativeGamepadImpl) hasOwnStandardLayoutMapping() bool {
 	return false
 }
 
-func (g *nativeGamepad) usesDInput() bool {
+func (g *nativeGamepadImpl) usesDInput() bool {
 	return g.dinputDevice != nil
 }
 
-func (g *nativeGamepad) update(gamepads *gamepads) (err error) {
+func (g *nativeGamepadImpl) update(gamepads *gamepads) (err error) {
 	var disconnected bool
 	defer func() {
 		if !disconnected && err == nil {
 			return
 		}
 		gamepads.remove(func(gamepad *Gamepad) bool {
-			return &gamepad.native == g
+			return gamepad.native == g
 		})
 	}()
 
@@ -666,7 +675,7 @@ func (g *nativeGamepad) update(gamepads *gamepads) (err error) {
 	}
 
 	var state _XINPUT_STATE
-	if err := gamepads.native.xinputGetState(uint32(g.xinputIndex), &state); err != nil {
+	if err := gamepads.native.(*nativeGamepadsImpl).xinputGetState(uint32(g.xinputIndex), &state); err != nil {
 		if !errors.Is(err, windows.ERROR_DEVICE_NOT_CONNECTED) {
 			return err
 		}
@@ -677,28 +686,28 @@ func (g *nativeGamepad) update(gamepads *gamepads) (err error) {
 	return nil
 }
 
-func (g *nativeGamepad) axisCount() int {
+func (g *nativeGamepadImpl) axisCount() int {
 	if g.usesDInput() {
 		return len(g.dinputAxes)
 	}
 	return 6
 }
 
-func (g *nativeGamepad) buttonCount() int {
+func (g *nativeGamepadImpl) buttonCount() int {
 	if g.usesDInput() {
 		return len(g.dinputButtons)
 	}
 	return len(xinputButtons)
 }
 
-func (g *nativeGamepad) hatCount() int {
+func (g *nativeGamepadImpl) hatCount() int {
 	if g.usesDInput() {
 		return len(g.dinputHats)
 	}
 	return 1
 }
 
-func (g *nativeGamepad) axisValue(axis int) float64 {
+func (g *nativeGamepadImpl) axisValue(axis int) float64 {
 	if g.usesDInput() {
 		if axis < 0 || axis >= len(g.dinputAxes) {
 			return 0
@@ -724,7 +733,7 @@ func (g *nativeGamepad) axisValue(axis int) float64 {
 	return v
 }
 
-func (g *nativeGamepad) isButtonPressed(button int) bool {
+func (g *nativeGamepadImpl) isButtonPressed(button int) bool {
 	if g.usesDInput() {
 		if button < 0 || button >= len(g.dinputButtons) {
 			return false
@@ -738,11 +747,11 @@ func (g *nativeGamepad) isButtonPressed(button int) bool {
 	return g.xinputState.Gamepad.wButtons&xinputButtons[button] != 0
 }
 
-func (g *nativeGamepad) buttonValue(button int) float64 {
+func (g *nativeGamepadImpl) buttonValue(button int) float64 {
 	panic("gamepad: buttonValue is not implemented")
 }
 
-func (g *nativeGamepad) hatState(hat int) int {
+func (g *nativeGamepadImpl) hatState(hat int) int {
 	if g.usesDInput() {
 		if hat < 0 || hat >= len(g.dinputHats) {
 			return 0
@@ -769,6 +778,6 @@ func (g *nativeGamepad) hatState(hat int) int {
 	return v
 }
 
-func (g *nativeGamepad) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
 	// TODO: Implement this (#1452)
 }

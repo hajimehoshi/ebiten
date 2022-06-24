@@ -21,18 +21,22 @@ import (
 	"time"
 )
 
-type nativeGamepads struct{}
+type nativeGamepadsImpl struct{}
 
-func (*nativeGamepads) init(gamepads *gamepads) error {
+func newNativeGamepadsImpl() nativeGamepads {
+	return &nativeGamepadsImpl{}
+}
+
+func (*nativeGamepadsImpl) init(gamepads *gamepads) error {
 	initializeIOSGamepads()
 	return nil
 }
 
-func (*nativeGamepads) update(gamepads *gamepads) error {
+func (*nativeGamepadsImpl) update(gamepads *gamepads) error {
 	return nil
 }
 
-type nativeGamepad struct {
+type nativeGamepadImpl struct {
 	controller           uintptr
 	buttonMask           uint16
 	hasDualshockTouchpad bool
@@ -44,52 +48,52 @@ type nativeGamepad struct {
 	hats    []int
 }
 
-func (g *nativeGamepad) update(gamepad *gamepads) error {
+func (g *nativeGamepadImpl) update(gamepad *gamepads) error {
 	g.updateIOSGamepad()
 	return nil
 }
 
-func (*nativeGamepad) hasOwnStandardLayoutMapping() bool {
+func (*nativeGamepadImpl) hasOwnStandardLayoutMapping() bool {
 	return false
 }
 
-func (g *nativeGamepad) axisCount() int {
+func (g *nativeGamepadImpl) axisCount() int {
 	return len(g.axes)
 }
 
-func (g *nativeGamepad) buttonCount() int {
+func (g *nativeGamepadImpl) buttonCount() int {
 	return len(g.buttons)
 }
 
-func (g *nativeGamepad) hatCount() int {
+func (g *nativeGamepadImpl) hatCount() int {
 	return len(g.hats)
 }
 
-func (g *nativeGamepad) axisValue(axis int) float64 {
+func (g *nativeGamepadImpl) axisValue(axis int) float64 {
 	if axis < 0 || axis >= len(g.axes) {
 		return 0
 	}
 	return g.axes[axis]
 }
 
-func (g *nativeGamepad) isButtonPressed(button int) bool {
+func (g *nativeGamepadImpl) isButtonPressed(button int) bool {
 	if button < 0 || button >= len(g.buttons) {
 		return false
 	}
 	return g.buttons[button]
 }
 
-func (*nativeGamepad) buttonValue(button int) float64 {
+func (*nativeGamepadImpl) buttonValue(button int) float64 {
 	panic("gamepad: buttonValue is not implemented")
 }
 
-func (g *nativeGamepad) hatState(hat int) int {
+func (g *nativeGamepadImpl) hatState(hat int) int {
 	if hat < 0 || hat >= len(g.hats) {
 		return 0
 	}
 	return g.hats[hat]
 }
 
-func (g *nativeGamepad) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
 	// TODO: Implement this (#1452)
 }

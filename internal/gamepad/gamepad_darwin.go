@@ -59,14 +59,18 @@ import (
 // void ebitenGamepadRemovalCallback(void *ctx, IOReturn res, void *sender, IOHIDDeviceRef device);
 import "C"
 
-type nativeGamepads struct {
+type nativeGamepadsImpl struct {
 	hidManager      C.IOHIDManagerRef
 	devicesToAdd    []C.IOHIDDeviceRef
 	devicesToRemove []C.IOHIDDeviceRef
 	devicesM        sync.Mutex
 }
 
-func (g *nativeGamepads) init(gamepads *gamepads) error {
+func newNativeGamepadsImpl() nativeGamepads {
+	return &nativeGamepadsImpl{}
+}
+
+func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
 	var dicts []C.CFDictionaryRef
 
 	page := C.kHIDPage_GenericDesktop
@@ -135,28 +139,31 @@ func (g *nativeGamepads) init(gamepads *gamepads) error {
 
 //export ebitenGamepadMatchingCallback
 func ebitenGamepadMatchingCallback(ctx unsafe.Pointer, res C.IOReturn, sender unsafe.Pointer, device C.IOHIDDeviceRef) {
-	theGamepads.native.devicesM.Lock()
-	defer theGamepads.native.devicesM.Unlock()
-	theGamepads.native.devicesToAdd = append(theGamepads.native.devicesToAdd, device)
+	n := theGamepads.native.(*nativeGamepadsImpl)
+	n.devicesM.Lock()
+	defer n.devicesM.Unlock()
+	n.devicesToAdd = append(n.devicesToAdd, device)
 }
 
 //export ebitenGamepadRemovalCallback
 func ebitenGamepadRemovalCallback(ctx unsafe.Pointer, res C.IOReturn, sender unsafe.Pointer, device C.IOHIDDeviceRef) {
-	theGamepads.native.devicesM.Lock()
-	defer theGamepads.native.devicesM.Unlock()
-	theGamepads.native.devicesToRemove = append(theGamepads.native.devicesToRemove, device)
+	n := theGamepads.native.(*nativeGamepadsImpl)
+	n.devicesM.Lock()
+	defer n.devicesM.Unlock()
+	n.devicesToRemove = append(n.devicesToRemove, device)
 }
 
-func (g *nativeGamepads) update(gamepads *gamepads) error {
-	theGamepads.native.devicesM.Lock()
-	defer theGamepads.native.devicesM.Unlock()
+func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
+	n := theGamepads.native.(*nativeGamepadsImpl)
+	n.devicesM.Lock()
+	defer n.devicesM.Unlock()
 
 	for _, device := range g.devicesToAdd {
 		g.addDevice(device, gamepads)
 	}
 	for _, device := range g.devicesToRemove {
 		gamepads.remove(func(g *Gamepad) bool {
-			return g.native.device == device
+			return g.native.(*nativeGamepadImpl).device == device
 		})
 	}
 	g.devicesToAdd = g.devicesToAdd[:0]
@@ -164,9 +171,9 @@ func (g *nativeGamepads) update(gamepads *gamepads) error {
 	return nil
 }
 
-func (g *nativeGamepads) addDevice(device C.IOHIDDeviceRef, gamepads *gamepads) {
+func (g *nativeGamepadsImpl) addDevice(device C.IOHIDDeviceRef, gamepads *gamepads) {
 	if gamepads.find(func(g *Gamepad) bool {
-		return g.native.device == device
+		return g.native.(*nativeGamepadImpl).device == device
 	}) != nil {
 		return
 	}
@@ -211,8 +218,11 @@ func (g *nativeGamepads) addDevice(device C.IOHIDDeviceRef, gamepads *gamepads) 
 	elements := C.IOHIDDeviceCopyMatchingElements(device, 0, C.kIOHIDOptionsTypeNone)
 	defer C.CFRelease(C.CFTypeRef(elements))
 
+	n := &nativeGamepadImpl{
+		device: device,
+	}
 	gp := gamepads.add(name, sdlID)
-	gp.native.device = device
+	gp.native = n
 
 	for i := C.CFIndex(0); i < C.CFArrayGetCount(elements); i++ {
 		native := (C.IOHIDElementRef)(C.CFArrayGetValueAtIndex(elements, i))
@@ -236,27 +246,27 @@ func (g *nativeGamepads) addDevice(device C.IOHIDDeviceRef, gamepads *gamepads) 
 			case C.kHIDUsage_GD_X, C.kHIDUsage_GD_Y, C.kHIDUsage_GD_Z,
 				C.kHIDUsage_GD_Rx, C.kHIDUsage_GD_Ry, C.kHIDUsage_GD_Rz,
 				C.kHIDUsage_GD_Slider, C.kHIDUsage_GD_Dial, C.kHIDUsage_GD_Wheel:
-				gp.native.axes = append(gp.native.axes, element{
+				n.axes = append(n.axes, element{
 					native:  native,
 					usage:   int(usage),
-					index:   len(gp.native.axes),
+					index:   len(n.axes),
 					minimum: int(C.IOHIDElementGetLogicalMin(native)),
 					maximum: int(C.IOHIDElementGetLogicalMax(native)),
 				})
 			case C.kHIDUsage_GD_Hatswitch:
-				gp.native.hats = append(gp.native.hats, element{
+				n.hats = append(n.hats, element{
 					native:  native,
 					usage:   int(usage),
-					index:   len(gp.native.hats),
+					index:   len(n.hats),
 					minimum: int(C.IOHIDElementGetLogicalMin(native)),
 					maximum: int(C.IOHIDElementGetLogicalMax(native)),
 				})
 			case C.kHIDUsage_GD_DPadUp, C.kHIDUsage_GD_DPadRight, C.kHIDUsage_GD_DPadDown, C.kHIDUsage_GD_DPadLeft,
 				C.kHIDUsage_GD_SystemMainMenu, C.kHIDUsage_GD_Select, C.kHIDUsage_GD_Start:
-				gp.native.buttons = append(gp.native.buttons, element{
+				n.buttons = append(n.buttons, element{
 					native:  native,
 					usage:   int(usage),
-					index:   len(gp.native.buttons),
+					index:   len(n.buttons),
 					minimum: int(C.IOHIDElementGetLogicalMin(native)),
 					maximum: int(C.IOHIDElementGetLogicalMax(native)),
 				})
@@ -264,28 +274,28 @@ func (g *nativeGamepads) addDevice(device C.IOHIDDeviceRef, gamepads *gamepads) 
 		case C.kHIDPage_Simulation:
 			switch usage {
 			case C.kHIDUsage_Sim_Accelerator, C.kHIDUsage_Sim_Brake, C.kHIDUsage_Sim_Throttle, C.kHIDUsage_Sim_Rudder, C.kHIDUsage_Sim_Steering:
-				gp.native.axes = append(gp.native.axes, element{
+				n.axes = append(n.axes, element{
 					native:  native,
 					usage:   int(usage),
-					index:   len(gp.native.axes),
+					index:   len(n.axes),
 					minimum: int(C.IOHIDElementGetLogicalMin(native)),
 					maximum: int(C.IOHIDElementGetLogicalMax(native)),
 				})
 			}
 		case C.kHIDPage_Button, C.kHIDPage_Consumer:
-			gp.native.buttons = append(gp.native.buttons, element{
+			n.buttons = append(n.buttons, element{
 				native:  native,
 				usage:   int(usage),
-				index:   len(gp.native.buttons),
+				index:   len(n.buttons),
 				minimum: int(C.IOHIDElementGetLogicalMin(native)),
 				maximum: int(C.IOHIDElementGetLogicalMax(native)),
 			})
 		}
 	}
 
-	sort.Stable(gp.native.axes)
-	sort.Stable(gp.native.buttons)
-	sort.Stable(gp.native.hats)
+	sort.Stable(n.axes)
+	sort.Stable(n.buttons)
+	sort.Stable(n.hats)
 }
 
 type element struct {
@@ -316,7 +326,7 @@ func (e elements) Swap(i, j int) {
 	e[i], e[j] = e[j], e[i]
 }
 
-type nativeGamepad struct {
+type nativeGamepadImpl struct {
 	device  C.IOHIDDeviceRef
 	axes    elements
 	buttons elements
@@ -327,7 +337,7 @@ type nativeGamepad struct {
 	hatValues    []int
 }
 
-func (g *nativeGamepad) elementValue(e *element) int {
+func (g *nativeGamepadImpl) elementValue(e *element) int {
 	var valueRef C.IOHIDValueRef
 	if C.IOHIDDeviceGetValue(g.device, e.native, &valueRef) == C.kIOReturnSuccess {
 		return int(C.IOHIDValueGetIntegerValue(valueRef))
@@ -336,7 +346,7 @@ func (g *nativeGamepad) elementValue(e *element) int {
 	return 0
 }
 
-func (g *nativeGamepad) update(gamepads *gamepads) error {
+func (g *nativeGamepadImpl) update(gamepads *gamepads) error {
 	if cap(g.axisValues) < len(g.axes) {
 		g.axisValues = make([]float64, len(g.axes))
 	}
@@ -392,47 +402,47 @@ func (g *nativeGamepad) update(gamepads *gamepads) error {
 	return nil
 }
 
-func (g *nativeGamepad) hasOwnStandardLayoutMapping() bool {
+func (g *nativeGamepadImpl) hasOwnStandardLayoutMapping() bool {
 	return false
 }
 
-func (g *nativeGamepad) axisCount() int {
+func (g *nativeGamepadImpl) axisCount() int {
 	return len(g.axisValues)
 }
 
-func (g *nativeGamepad) buttonCount() int {
+func (g *nativeGamepadImpl) buttonCount() int {
 	return len(g.buttonValues)
 }
 
-func (g *nativeGamepad) hatCount() int {
+func (g *nativeGamepadImpl) hatCount() int {
 	return len(g.hatValues)
 }
 
-func (g *nativeGamepad) axisValue(axis int) float64 {
+func (g *nativeGamepadImpl) axisValue(axis int) float64 {
 	if axis < 0 || axis >= len(g.axisValues) {
 		return 0
 	}
 	return g.axisValues[axis]
 }
 
-func (g *nativeGamepad) buttonValue(button int) float64 {
+func (g *nativeGamepadImpl) buttonValue(button int) float64 {
 	panic("gamepad: buttonValue is not implemented")
 }
 
-func (g *nativeGamepad) isButtonPressed(button int) bool {
+func (g *nativeGamepadImpl) isButtonPressed(button int) bool {
 	if button < 0 || button >= len(g.buttonValues) {
 		return false
 	}
 	return g.buttonValues[button]
 }
 
-func (g *nativeGamepad) hatState(hat int) int {
+func (g *nativeGamepadImpl) hatState(hat int) int {
 	if hat < 0 || hat >= len(g.hatValues) {
 		return hatCentered
 	}
 	return g.hatValues[hat]
 }
 
-func (g *nativeGamepad) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
 	// TODO: Implement this (#1452)
 }

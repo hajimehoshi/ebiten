@@ -25,15 +25,19 @@ var (
 	go2cpp = js.Global().Get("go2cpp")
 )
 
-type nativeGamepads struct {
+type nativeGamepadsImpl struct {
 	indices map[int]struct{}
 }
 
-func (g *nativeGamepads) init(gamepads *gamepads) error {
+func newNativeGamepadsImpl() nativeGamepads {
+	return &nativeGamepadsImpl{}
+}
+
+func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
 	return nil
 }
 
-func (g *nativeGamepads) update(gamepads *gamepads) error {
+func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 	// TODO: Use the gamepad events instead of navigator.getGamepads after go2cpp is removed.
 
 	defer func() {
@@ -73,7 +77,7 @@ func (g *nativeGamepads) update(gamepads *gamepads) error {
 
 		// The gamepad is not registered yet, register this.
 		gamepad := gamepads.find(func(gamepad *Gamepad) bool {
-			return index == gamepad.native.index
+			return index == gamepad.native.(*nativeGamepadImpl).index
 		})
 		if gamepad == nil {
 			name := gp.Get("id").String()
@@ -84,28 +88,30 @@ func (g *nativeGamepads) update(gamepads *gamepads) error {
 			copy(sdlID[:], []byte(name))
 
 			gamepad = gamepads.add(name, hex.EncodeToString(sdlID[:]))
-			gamepad.native.index = index
-			gamepad.native.mapping = gp.Get("mapping").String()
+			gamepad.native = &nativeGamepadImpl{
+				index:   index,
+				mapping: gp.Get("mapping").String(),
+			}
 		}
-		gamepad.native.value = gp
+		gamepad.native.(*nativeGamepadImpl).value = gp
 	}
 
 	// Remove an unused gamepads.
 	gamepads.remove(func(gamepad *Gamepad) bool {
-		_, ok := g.indices[gamepad.native.index]
+		_, ok := g.indices[gamepad.native.(*nativeGamepadImpl).index]
 		return !ok
 	})
 
 	return nil
 }
 
-type nativeGamepad struct {
+type nativeGamepadImpl struct {
 	value   js.Value
 	index   int
 	mapping string
 }
 
-func (g *nativeGamepad) hasOwnStandardLayoutMapping() bool {
+func (g *nativeGamepadImpl) hasOwnStandardLayoutMapping() bool {
 	// With go2cpp, the controller must have the standard
 	if go2cpp.Truthy() {
 		return true
@@ -113,23 +119,23 @@ func (g *nativeGamepad) hasOwnStandardLayoutMapping() bool {
 	return g.mapping == "standard"
 }
 
-func (g *nativeGamepad) update(gamepads *gamepads) error {
+func (g *nativeGamepadImpl) update(gamepads *gamepads) error {
 	return nil
 }
 
-func (g *nativeGamepad) axisCount() int {
+func (g *nativeGamepadImpl) axisCount() int {
 	return g.value.Get("axes").Length()
 }
 
-func (g *nativeGamepad) buttonCount() int {
+func (g *nativeGamepadImpl) buttonCount() int {
 	return g.value.Get("buttons").Length()
 }
 
-func (g *nativeGamepad) hatCount() int {
+func (g *nativeGamepadImpl) hatCount() int {
 	return 0
 }
 
-func (g *nativeGamepad) axisValue(axis int) float64 {
+func (g *nativeGamepadImpl) axisValue(axis int) float64 {
 	axes := g.value.Get("axes")
 	if axis < 0 || axis >= axes.Length() {
 		return 0
@@ -137,7 +143,7 @@ func (g *nativeGamepad) axisValue(axis int) float64 {
 	return axes.Index(axis).Float()
 }
 
-func (g *nativeGamepad) buttonValue(button int) float64 {
+func (g *nativeGamepadImpl) buttonValue(button int) float64 {
 	buttons := g.value.Get("buttons")
 	if button < 0 || button >= buttons.Length() {
 		return 0
@@ -145,7 +151,7 @@ func (g *nativeGamepad) buttonValue(button int) float64 {
 	return buttons.Index(button).Get("value").Float()
 }
 
-func (g *nativeGamepad) isButtonPressed(button int) bool {
+func (g *nativeGamepadImpl) isButtonPressed(button int) bool {
 	buttons := g.value.Get("buttons")
 	if button < 0 || button >= buttons.Length() {
 		return false
@@ -153,11 +159,11 @@ func (g *nativeGamepad) isButtonPressed(button int) bool {
 	return buttons.Index(button).Get("pressed").Bool()
 }
 
-func (g *nativeGamepad) hatState(hat int) int {
+func (g *nativeGamepadImpl) hatState(hat int) int {
 	return hatCentered
 }
 
-func (g *nativeGamepad) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
 	// vibrationActuator is avaialble on Chrome.
 	if va := g.value.Get("vibrationActuator"); va.Truthy() {
 		if !va.Get("playEffect").Truthy() {

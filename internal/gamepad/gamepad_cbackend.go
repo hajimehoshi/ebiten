@@ -23,16 +23,20 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/cbackend"
 )
 
-type nativeGamepads struct {
+type nativeGamepadsImpl struct {
 	gamepads []cbackend.Gamepad
 	ids      map[int]struct{}
 }
 
-func (*nativeGamepads) init(gamepads *gamepads) error {
+func newNativeGamepadsImpl() nativeGamepads {
+	return &nativeGamepadsImpl{}
+}
+
+func (*nativeGamepadsImpl) init(gamepads *gamepads) error {
 	return nil
 }
 
-func (g *nativeGamepads) update(gamepads *gamepads) error {
+func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 	g.gamepads = g.gamepads[:0]
 	g.gamepads = cbackend.AppendGamepads(g.gamepads)
 
@@ -47,34 +51,37 @@ func (g *nativeGamepads) update(gamepads *gamepads) error {
 		g.ids[gp.ID] = struct{}{}
 
 		gamepad := gamepads.find(func(gamepad *Gamepad) bool {
-			return gamepad.native.id == gp.ID
+			return gamepad.native.(*nativeGamepadImpl).id == gp.ID
 		})
 		if gamepad == nil {
 			gamepad = gamepads.add("", "")
-			gamepad.native.id = gp.ID
-			gamepad.native.standard = gp.Standard
-			gamepad.native.axisValues = make([]float64, gp.AxisCount)
-			gamepad.native.buttonPressed = make([]bool, gp.ButtonCount)
-			gamepad.native.buttonValues = make([]float64, gp.ButtonCount)
+			gamepad.native = &nativeGamepadImpl{
+				id:            gp.ID,
+				standard:      gp.Standard,
+				axisValues:    make([]float64, gp.AxisCount),
+				buttonPressed: make([]bool, gp.ButtonCount),
+				buttonValues:  make([]float64, gp.ButtonCount),
+			}
 		}
 
 		gamepad.m.Lock()
-		copy(gamepad.native.axisValues, gp.AxisValues[:])
-		copy(gamepad.native.buttonValues, gp.ButtonValues[:])
-		copy(gamepad.native.buttonPressed, gp.ButtonPressed[:])
+		n := gamepad.native.(*nativeGamepadImpl)
+		copy(n.axisValues, gp.AxisValues[:])
+		copy(n.buttonValues, gp.ButtonValues[:])
+		copy(n.buttonPressed, gp.ButtonPressed[:])
 		gamepad.m.Unlock()
 	}
 
 	// Remove an unused gamepads.
 	gamepads.remove(func(gamepad *Gamepad) bool {
-		_, ok := g.ids[gamepad.native.id]
+		_, ok := g.ids[gamepad.native.(*nativeGamepadImpl).id]
 		return !ok
 	})
 
 	return nil
 }
 
-type nativeGamepad struct {
+type nativeGamepadImpl struct {
 	id       int
 	standard bool
 
@@ -83,51 +90,51 @@ type nativeGamepad struct {
 	buttonValues  []float64
 }
 
-func (*nativeGamepad) update(gamepad *gamepads) error {
+func (*nativeGamepadImpl) update(gamepad *gamepads) error {
 	return nil
 }
 
-func (g *nativeGamepad) hasOwnStandardLayoutMapping() bool {
+func (g *nativeGamepadImpl) hasOwnStandardLayoutMapping() bool {
 	return g.standard
 }
 
-func (g *nativeGamepad) axisCount() int {
+func (g *nativeGamepadImpl) axisCount() int {
 	return len(g.axisValues)
 }
 
-func (g *nativeGamepad) buttonCount() int {
+func (g *nativeGamepadImpl) buttonCount() int {
 	return len(g.buttonValues)
 }
 
-func (g *nativeGamepad) hatCount() int {
+func (g *nativeGamepadImpl) hatCount() int {
 	return 0
 }
 
-func (g *nativeGamepad) axisValue(axis int) float64 {
+func (g *nativeGamepadImpl) axisValue(axis int) float64 {
 	if axis < 0 || axis >= len(g.axisValues) {
 		return 0
 	}
 	return g.axisValues[axis]
 }
 
-func (g *nativeGamepad) isButtonPressed(button int) bool {
+func (g *nativeGamepadImpl) isButtonPressed(button int) bool {
 	if button < 0 || button >= len(g.buttonPressed) {
 		return false
 	}
 	return g.buttonPressed[button]
 }
 
-func (g *nativeGamepad) buttonValue(button int) float64 {
+func (g *nativeGamepadImpl) buttonValue(button int) float64 {
 	if button < 0 || button >= len(g.buttonValues) {
 		return 0
 	}
 	return g.buttonValues[button]
 }
 
-func (*nativeGamepad) hatState(hat int) int {
+func (*nativeGamepadImpl) hatState(hat int) int {
 	return hatCentered
 }
 
-func (g *nativeGamepad) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
 	cbackend.VibrateGamepad(g.id, duration, strongMagnitude, weakMagnitude)
 }

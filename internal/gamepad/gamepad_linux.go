@@ -37,12 +37,16 @@ func isBitSet(s []byte, bit int) bool {
 	return s[bit/8]&(1<<(bit%8)) != 0
 }
 
-type nativeGamepads struct {
+type nativeGamepadsImpl struct {
 	inotify int
 	watch   int
 }
 
-func (g *nativeGamepads) init(gamepads *gamepads) error {
+func newNativeGamepadsImpl() nativeGamepads {
+	return &nativeGamepadsImpl{}
+}
+
+func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
 	// Check the existence of the directory `dirName`.
 	var stat unix.Stat_t
 	if err := unix.Stat(dirName, &stat); err != nil {
@@ -90,9 +94,9 @@ func (g *nativeGamepads) init(gamepads *gamepads) error {
 	return nil
 }
 
-func (*nativeGamepads) openGamepad(gamepads *gamepads, path string) (err error) {
+func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err error) {
 	if gamepads.find(func(gamepad *Gamepad) bool {
-		return gamepad.native.path == path
+		return gamepad.native.(*nativeGamepadImpl).path == path
 	}) != nil {
 		return nil
 	}
@@ -164,11 +168,14 @@ func (*nativeGamepads) openGamepad(gamepads *gamepads, path string) (err error) 
 			bs[0], bs[1], bs[2], bs[3], bs[4], bs[5], bs[6], bs[7], bs[8], bs[9], bs[10], bs[11])
 	}
 
+	n := &nativeGamepadImpl{
+		path: path,
+		fd:   fd,
+	}
 	gp := gamepads.add(name, sdlID)
-	gp.native.path = path
-	gp.native.fd = fd
+	gp.native = n
 	runtime.SetFinalizer(gp, func(gp *Gamepad) {
-		gp.native.close()
+		n.close()
 	})
 
 	var axisCount int
@@ -178,40 +185,40 @@ func (*nativeGamepads) openGamepad(gamepads *gamepads, path string) (err error) 
 		if !isBitSet(keyBits, code) {
 			continue
 		}
-		gp.native.keyMap[code-_BTN_MISC] = buttonCount
+		n.keyMap[code-_BTN_MISC] = buttonCount
 		buttonCount++
 	}
 	for code := 0; code < _ABS_CNT; code++ {
-		gp.native.absMap[code] = -1
+		n.absMap[code] = -1
 		if !isBitSet(absBits, code) {
 			continue
 		}
 		if code >= _ABS_HAT0X && code <= _ABS_HAT3Y {
-			gp.native.absMap[code] = hatCount
+			n.absMap[code] = hatCount
 			hatCount++
 			// Skip Y.
 			code++
 			continue
 		}
-		if err := ioctl(gp.native.fd, uint(_EVIOCGABS(uint(code))), unsafe.Pointer(&gp.native.absInfo[code])); err != nil {
+		if err := ioctl(n.fd, uint(_EVIOCGABS(uint(code))), unsafe.Pointer(&n.absInfo[code])); err != nil {
 			return fmt.Errorf("gamepad: ioctl for an abs at openGamepad failed: %w", err)
 		}
-		gp.native.absMap[code] = axisCount
+		n.absMap[code] = axisCount
 		axisCount++
 	}
 
-	gp.native.axisCount_ = axisCount
-	gp.native.buttonCount_ = buttonCount
-	gp.native.hatCount_ = hatCount
+	n.axisCount_ = axisCount
+	n.buttonCount_ = buttonCount
+	n.hatCount_ = hatCount
 
-	if err := gp.native.pollAbsState(); err != nil {
+	if err := n.pollAbsState(); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (g *nativeGamepads) update(gamepads *gamepads) error {
+func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 	if g.inotify <= 0 {
 		return nil
 	}
@@ -248,9 +255,9 @@ func (g *nativeGamepads) update(gamepads *gamepads) error {
 		}
 		if e.Mask&unix.IN_DELETE != 0 {
 			if gp := gamepads.find(func(gamepad *Gamepad) bool {
-				return gamepad.native.path == path
+				return gamepad.native.(*nativeGamepadImpl).path == path
 			}); gp != nil {
-				gp.native.close()
+				gp.native.(*nativeGamepadImpl).close()
 				gamepads.remove(func(gamepad *Gamepad) bool {
 					return gamepad == gp
 				})
@@ -262,7 +269,7 @@ func (g *nativeGamepads) update(gamepads *gamepads) error {
 	return nil
 }
 
-type nativeGamepad struct {
+type nativeGamepadImpl struct {
 	fd      int
 	path    string
 	keyMap  [_KEY_CNT - _BTN_MISC]int
@@ -279,14 +286,14 @@ type nativeGamepad struct {
 	hatCount_    int
 }
 
-func (g *nativeGamepad) close() {
+func (g *nativeGamepadImpl) close() {
 	if g.fd != 0 {
 		unix.Close(g.fd)
 	}
 	g.fd = 0
 }
 
-func (g *nativeGamepad) update(gamepad *gamepads) error {
+func (g *nativeGamepadImpl) update(gamepad *gamepads) error {
 	if g.fd == 0 {
 		return nil
 	}
@@ -344,7 +351,7 @@ func (g *nativeGamepad) update(gamepad *gamepads) error {
 	return nil
 }
 
-func (g *nativeGamepad) pollAbsState() error {
+func (g *nativeGamepadImpl) pollAbsState() error {
 	for code := 0; code < _ABS_CNT; code++ {
 		if g.absMap[code] < 0 {
 			continue
@@ -357,7 +364,7 @@ func (g *nativeGamepad) pollAbsState() error {
 	return nil
 }
 
-func (g *nativeGamepad) handleAbsEvent(code int, value int32) {
+func (g *nativeGamepadImpl) handleAbsEvent(code int, value int32) {
 	index := g.absMap[code]
 
 	if code >= _ABS_HAT0X && code <= _ABS_HAT3Y {
@@ -399,47 +406,47 @@ func (g *nativeGamepad) handleAbsEvent(code int, value int32) {
 	g.axes[index] = v
 }
 
-func (*nativeGamepad) hasOwnStandardLayoutMapping() bool {
+func (*nativeGamepadImpl) hasOwnStandardLayoutMapping() bool {
 	return false
 }
 
-func (g *nativeGamepad) axisCount() int {
+func (g *nativeGamepadImpl) axisCount() int {
 	return g.axisCount_
 }
 
-func (g *nativeGamepad) buttonCount() int {
+func (g *nativeGamepadImpl) buttonCount() int {
 	return g.buttonCount_
 }
 
-func (g *nativeGamepad) hatCount() int {
+func (g *nativeGamepadImpl) hatCount() int {
 	return g.hatCount_
 }
 
-func (g *nativeGamepad) axisValue(axis int) float64 {
+func (g *nativeGamepadImpl) axisValue(axis int) float64 {
 	if axis < 0 || axis >= g.axisCount_ {
 		return 0
 	}
 	return g.axes[axis]
 }
 
-func (g *nativeGamepad) isButtonPressed(button int) bool {
+func (g *nativeGamepadImpl) isButtonPressed(button int) bool {
 	if button < 0 || button >= g.buttonCount_ {
 		return false
 	}
 	return g.buttons[button]
 }
 
-func (*nativeGamepad) buttonValue(button int) float64 {
+func (*nativeGamepadImpl) buttonValue(button int) float64 {
 	panic("gamepad: buttonValue is not implemented")
 }
 
-func (g *nativeGamepad) hatState(hat int) int {
+func (g *nativeGamepadImpl) hatState(hat int) int {
 	if hat < 0 || hat >= g.hatCount_ {
 		return hatCentered
 	}
 	return g.hats[hat]
 }
 
-func (g *nativeGamepad) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
 	// TODO: Implement this (#1452)
 }
