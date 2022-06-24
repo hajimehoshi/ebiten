@@ -229,12 +229,32 @@ type Shader struct {
 }
 
 func NewShader(ir *shaderir.Program) *Shader {
-	return &Shader{
-		shader: atlas.NewShader(ir),
+	s := &Shader{}
+	s.initialize(ir)
+	return s
+}
+
+func (s *Shader) initialize(ir *shaderir.Program) {
+	if maybeCanAddDelayedCommand() {
+		if tryAddDelayedCommand(func() error {
+			s.initialize(ir)
+			return nil
+		}) {
+			return
+		}
 	}
+	s.shader = atlas.NewShader(ir)
 }
 
 func (s *Shader) MarkDisposed() {
+	if maybeCanAddDelayedCommand() {
+		if tryAddDelayedCommand(func() error {
+			s.MarkDisposed()
+			return nil
+		}) {
+			return
+		}
+	}
 	s.shader.MarkDisposed()
 	s.shader = nil
 }
