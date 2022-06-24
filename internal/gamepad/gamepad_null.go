@@ -21,53 +21,57 @@ import (
 	"time"
 )
 
-type nativeGamepads struct{}
+type nativeGamepadsImpl struct{}
 
-func (*nativeGamepads) init(gamepads *gamepads) error {
+func newNativeGamepadsImpl() nativeGamepads {
+	return &nativeGamepadsImpl{}
+}
+
+func (*nativeGamepadsImpl) init(gamepads *gamepads) error {
 	return nil
 }
 
-func (*nativeGamepads) update(gamepads *gamepads) error {
+func (*nativeGamepadsImpl) update(gamepads *gamepads) error {
 	return nil
 }
 
-type nativeGamepad struct{}
+type nativeGamepadImpl struct{}
 
-func (*nativeGamepad) update(gamepad *gamepads) error {
+func (*nativeGamepadImpl) update(gamepad *gamepads) error {
 	return nil
 }
 
-func (*nativeGamepad) hasOwnStandardLayoutMapping() bool {
+func (*nativeGamepadImpl) hasOwnStandardLayoutMapping() bool {
 	return false
 }
 
-func (*nativeGamepad) axisCount() int {
+func (*nativeGamepadImpl) axisCount() int {
 	return 0
 }
 
-func (*nativeGamepad) buttonCount() int {
+func (*nativeGamepadImpl) buttonCount() int {
 	return 0
 }
 
-func (*nativeGamepad) hatCount() int {
+func (*nativeGamepadImpl) hatCount() int {
 	return 0
 }
 
-func (*nativeGamepad) axisValue(axis int) float64 {
+func (*nativeGamepadImpl) axisValue(axis int) float64 {
 	return 0
 }
 
-func (*nativeGamepad) isButtonPressed(button int) bool {
+func (*nativeGamepadImpl) isButtonPressed(button int) bool {
 	return false
 }
 
-func (*nativeGamepad) buttonValue(button int) float64 {
+func (*nativeGamepadImpl) buttonValue(button int) float64 {
 	panic("gamepad: buttonValue is not implemented")
 }
 
-func (*nativeGamepad) hatState(hat int) int {
+func (*nativeGamepadImpl) hatState(hat int) int {
 	return hatCentered
 }
 
-func (g *nativeGamepad) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
 }
