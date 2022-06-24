@@ -17,19 +17,34 @@
 
 package gamepad
 
-type nativeGamepadsXbox struct {
-	gameInput *_IGameInput
-}
+import (
+	"fmt"
+	"unsafe"
 
-func (n *nativeGamepadsXbox) init(gamepads *gamepads) error {
-	g, err := _GameInputCreate()
-	if err != nil {
-		return err
+	"golang.org/x/sys/windows"
+)
+
+var (
+	gameInput = windows.NewLazySystemDLL("GameInput.dll")
+
+	procGameInputCreate = gameInput.NewProc("GameInputCreate")
+)
+
+func _GameInputCreate() (*_IGameInput, error) {
+	var gameInput *_IGameInput
+	r, _, _ := procGameInputCreate.Call(uintptr(unsafe.Pointer(&gameInput)))
+	if uint32(r) != uint32(windows.S_OK) {
+		return nil, fmt.Errorf("gamepad: GameInputCreate failed: HRESULT(%d)", uint32(r))
 	}
-	n.gameInput = g
-	return nil
+	return gameInput, nil
 }
 
-func (n *nativeGamepadsXbox) update(gamepads *gamepads) error {
-	return nil
+type _IGameInput struct {
+	vtbl *_IGameInput_Vtbl
+}
+
+type _IGameInput_Vtbl struct {
+	QueryInterface uintptr
+	AddRef         uintptr
+	Release        uintptr
 }
