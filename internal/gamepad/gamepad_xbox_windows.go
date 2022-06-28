@@ -17,8 +17,27 @@
 
 package gamepad
 
+import (
+	"unsafe"
+
+	"golang.org/x/sys/windows"
+)
+
 type nativeGamepadsXbox struct {
-	gameInput *_IGameInput
+	gameInput         *_IGameInput
+	deviceCallbackPtr uintptr
+	token             _GameInputCallbackToken
+}
+
+func xboxDeviceCallback(
+	callbackToken _GameInputCallbackToken,
+	context unsafe.Pointer,
+	device *_IGameInputDevice,
+	timestamp uint64,
+	currentStatus _GameInputDeviceStatus,
+	previousStatus _GameInputDeviceStatus) uintptr {
+	// TODO: Implement this.
+	return 0
 }
 
 func (n *nativeGamepadsXbox) init(gamepads *gamepads) error {
@@ -26,7 +45,21 @@ func (n *nativeGamepadsXbox) init(gamepads *gamepads) error {
 	if err != nil {
 		return err
 	}
+
 	n.gameInput = g
+	n.deviceCallbackPtr = windows.NewCallbackCDecl(xboxDeviceCallback)
+
+	if err := n.gameInput.RegisterDeviceCallback(
+		nil,
+		_GameInputKindGamepad,
+		_GameInputDeviceConnected,
+		_GameInputBlockingEnumeration,
+		nil,
+		n.deviceCallbackPtr,
+		&n.token,
+	); err != nil {
+		return err
+	}
 	return nil
 }
 
