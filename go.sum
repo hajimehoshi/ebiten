@@ -1,6 +1,6 @@
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/ebitengine/purego v0.0.0-20220627011213-674eeb43a23f h1:hyDHAtiqnxzoJkYgx/kkU9bNJ/qbrZA1hKP0TOX2dgM=
-github.com/ebitengine/purego v0.0.0-20220627011213-674eeb43a23f/go.mod h1:Eh8I3yvknDYZeCuXH9kRNaPuHEwvXDCk378o9xszmHg=
+github.com/ebitengine/purego v0.0.0-20220629143800-0a7163731eab h1:GHslKjCls+AxLWDLQpRfbovF2s4EZy5E5szb6+zZoPw=
+github.com/ebitengine/purego v0.0.0-20220629143800-0a7163731eab/go.mod h1:Eh8I3yvknDYZeCuXH9kRNaPuHEwvXDCk378o9xszmHg=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220622232848-a6c407ee30a0 h1:ZWsNtyC3mgUL48DikCfjkyiaRYZ3OL2XBfn7JJs2/ZE=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220622232848-a6c407ee30a0/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
 github.com/hajimehoshi/bitmapfont/v2 v2.2.0 h1:E6vzlchynZj6OVohVKFqWkKW348EmDW62K5zPXDi7A8=
