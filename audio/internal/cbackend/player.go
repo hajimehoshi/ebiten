@@ -275,16 +275,6 @@ func (p *playerImpl) Seek(offset int64, whence int) (int64, error) {
 	return s.Seek(offset, whence)
 }
 
-func (p *Player) Reset() {
-	p.p.Reset()
-}
-
-func (p *playerImpl) Reset() {
-	p.m.Lock()
-	defer p.m.Unlock()
-	p.resetImpl()
-}
-
 func (p *playerImpl) resetImpl() {
 	if p.state == playerClosed {
 		return

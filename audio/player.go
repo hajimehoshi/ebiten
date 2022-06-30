@@ -27,7 +27,6 @@ type player interface {
 	Pause()
 	Play()
 	IsPlaying() bool
-	Reset()
 	Volume() float64
 	SetVolume(volume float64)
 	UnplayedBufferSize() int

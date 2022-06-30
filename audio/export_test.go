@@ -79,12 +79,6 @@ func (p *dummyPlayer) IsPlaying() bool {
 	return p.playing
 }
 
-func (p *dummyPlayer) Reset() {
-	p.m.Lock()
-	defer p.m.Unlock()
-	p.playing = false
-}
-
 func (p *dummyPlayer) Volume() float64 {
 	return p.volume
 }
