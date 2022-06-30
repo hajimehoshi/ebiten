@@ -46,7 +46,7 @@ func (c *ColorM) affineColorM() affine.ColorM {
 
 // String returns a string representation of ColorM.
 func (c *ColorM) String() string {
-	return affine.ColorMString(c.affineColorM())
+	return c.affineColorM().String()
 }
 
 // Reset resets the ColorM as identity.

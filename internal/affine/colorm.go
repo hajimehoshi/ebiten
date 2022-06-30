@@ -42,6 +42,8 @@ var (
 // Before applying a matrix, a color is un-multiplied, and after applying the matrix,
 // the color is multiplied again.
 type ColorM interface {
+	String() string
+
 	IsIdentity() bool
 	ScaleOnly() bool
 	At(i, j int) float32
@@ -71,7 +73,7 @@ type ColorM interface {
 	scaleElements() (r, g, b, a float32)
 }
 
-func ColorMString(c ColorM) string {
+func colorMString(c ColorM) string {
 	var b [16]float32
 	var t [4]float32
 	c.Elements(&b, &t)
@@ -91,6 +93,18 @@ type colorMImplScale struct {
 type colorMImplBodyTranslate struct {
 	body      [16]float32
 	translate [4]float32
+}
+
+func (c ColorMIdentity) String() string {
+	return "Identity[]"
+}
+
+func (c colorMImplScale) String() string {
+	return fmt.Sprintf("Scale[%f, %f, %f, %f]", c.scale[0], c.scale[1], c.scale[2], c.scale[3])
+}
+
+func (c *colorMImplBodyTranslate) String() string {
+	return colorMString(c)
 }
 
 func clamp(x float32) float32 {
