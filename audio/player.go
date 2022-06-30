@@ -33,6 +33,7 @@ type player interface {
 	UnplayedBufferSize() int
 	Err() error
 	SetBufferSize(bufferSize int)
+	io.Seeker
 	io.Closer
 }
 
@@ -267,13 +268,11 @@ func (p *playerImpl) Seek(offset time.Duration) error {
 		return err
 	}
 
-	if p.player.IsPlaying() {
-		defer func() {
-			p.player.Play()
-		}()
+	pos := p.stream.timeDurationToPos(offset)
+	if _, err := p.player.Seek(pos, io.SeekStart); err != nil {
+		return err
 	}
-	p.player.Reset()
-	return p.stream.Seek(offset)
+	return nil
 }
 
 func (p *playerImpl) Err() error {
@@ -338,7 +337,25 @@ func (s *timeStream) Read(buf []byte) (int, error) {
 	return n, err
 }
 
-func (s *timeStream) Seek(offset time.Duration) error {
+func (s *timeStream) Seek(offset int64, whence int) (int64, error) {
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	seeker, ok := s.r.(io.Seeker)
+	if !ok {
+		// TODO: Should this return an error?
+		panic("audio: the source must be io.Seeker when seeking but not")
+	}
+	pos, err := seeker.Seek(offset, whence)
+	if err != nil {
+		return pos, err
+	}
+
+	s.pos = pos
+	return pos, nil
+}
+
+func (s *timeStream) timeDurationToPos(offset time.Duration) int64 {
 	s.m.Lock()
 	defer s.m.Unlock()
 
@@ -348,17 +365,7 @@ func (s *timeStream) Seek(offset time.Duration) error {
 	o -= o % bytesPerSample
 	o += s.pos % bytesPerSample
 
-	seeker, ok := s.r.(io.Seeker)
-	if !ok {
-		panic("audio: the source must be io.Seeker when seeking but not")
-	}
-	pos, err := seeker.Seek(o, io.SeekStart)
-	if err != nil {
-		return err
-	}
-
-	s.pos = pos
-	return nil
+	return o
 }
 
 func (s *timeStream) Current() int64 {
