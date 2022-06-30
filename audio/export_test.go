@@ -104,6 +104,10 @@ func (p *dummyPlayer) Err() error {
 func (p *dummyPlayer) SetBufferSize(bufferSize int) {
 }
 
+func (p *dummyPlayer) Seek(offset int64, whence int) (int64, error) {
+	return 0, nil
+}
+
 func (p *dummyPlayer) Close() error {
 	p.m.Lock()
 	defer p.m.Unlock()
