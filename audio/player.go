@@ -21,7 +21,7 @@ import (
 	"time"
 )
 
-// player is exactly same as the interface oto.Player.
+// player is almost the same as the interface oto.Player.
 // This is defined in order to remove the dependency on Oto from this file.
 type player interface {
 	Pause()
