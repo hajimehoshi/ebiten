@@ -761,6 +761,11 @@ var (
 //
 // This conversion uses RGB to/from YCrCb conversion.
 func ChangeHSV(c ColorM, hueTheta float64, saturationScale float32, valueScale float32) ColorM {
+	if hueTheta == 0 && saturationScale == 1 {
+		v := valueScale
+		return c.Scale(v, v, v, 1)
+	}
+
 	sin, cos := math.Sincos(hueTheta)
 	s32, c32 := float32(sin), float32(cos)
 	c = c.Concat(rgbToYCbCr)
