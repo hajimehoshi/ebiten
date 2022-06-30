@@ -259,6 +259,7 @@ func (p *playerImpl) Seek(offset int64, whence int) (int64, error) {
 	p.m.Lock()
 	defer p.m.Unlock()
 
+	// If a player is playing, keep playing even after this seeking.
 	if p.state == playerPlay {
 		defer p.playImpl()
 	}
