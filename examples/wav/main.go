@@ -58,11 +58,11 @@ func NewGame() (*Game, error) {
 	//         return err
 	//     }
 	//
-	//     d, err := wav.Decode(g.audioContext, f)
+	//     d, err := wav.DecodeWithoutResampling(f)
 	//     ...
 
 	// Decode wav-formatted data and retrieve decoded PCM stream.
-	d, err := wav.Decode(g.audioContext, bytes.NewReader(raudio.Jab_wav))
+	d, err := wav.DecodeWithoutResampling(bytes.NewReader(raudio.Jab_wav))
 	if err != nil {
 		return nil, err
 	}

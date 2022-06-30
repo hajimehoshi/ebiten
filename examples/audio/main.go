@@ -134,13 +134,13 @@ func NewPlayer(game *Game, audioContext *audio.Context, musicType musicType) (*P
 	switch musicType {
 	case typeOgg:
 		var err error
-		s, err = vorbis.Decode(audioContext, bytes.NewReader(raudio.Ragtime_ogg))
+		s, err = vorbis.DecodeWithoutResampling(bytes.NewReader(raudio.Ragtime_ogg))
 		if err != nil {
 			return nil, err
 		}
 	case typeMP3:
 		var err error
-		s, err = mp3.Decode(audioContext, bytes.NewReader(raudio.Ragtime_mp3))
+		s, err = mp3.DecodeWithoutResampling(bytes.NewReader(raudio.Ragtime_mp3))
 		if err != nil {
 			return nil, err
 		}
@@ -174,7 +174,7 @@ func NewPlayer(game *Game, audioContext *audio.Context, musicType musicType) (*P
 
 	player.audioPlayer.Play()
 	go func() {
-		s, err := wav.Decode(audioContext, bytes.NewReader(raudio.Jab_wav))
+		s, err := wav.DecodeWithSampleRate(sampleRate, bytes.NewReader(raudio.Jab_wav))
 		if err != nil {
 			log.Fatal(err)
 			return

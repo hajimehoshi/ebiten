@@ -57,7 +57,27 @@ func (s *Stream) Length() int64 {
 	return s.orig.Length()
 }
 
-// DecodeWithSampleRate decodes MP3 source and returns a decoded stream.
+// DecodeWithoutResampling decodes an MP3 source and returns a decoded stream.
+//
+// DecodeWithoutResampling returns error when decoding fails or IO error happens.
+//
+// The returned Stream's Seek is available only when src is an io.Seeker.
+//
+// A Stream doesn't close src even if src implements io.Closer.
+// Closing the source is src owner's responsibility.
+func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
+	d, err := mp3.NewDecoder(src)
+	if err != nil {
+		return nil, err
+	}
+	s := &Stream{
+		orig:       d,
+		resampling: nil,
+	}
+	return s, nil
+}
+
+// DecodeWithSampleRate decodes an MP3 source and returns a decoded stream.
 //
 // DecodeWithSampleRate returns error when decoding fails or IO error happens.
 //

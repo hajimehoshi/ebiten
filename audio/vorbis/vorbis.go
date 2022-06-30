@@ -139,6 +139,35 @@ func decode(in io.Reader) (*decoded, int, int, error) {
 	return d, r.Channels(), r.SampleRate(), nil
 }
 
+// DecodeWithoutResampling decodes Ogg/Vorbis data to playable stream.
+//
+// DecodeWithoutResampling returns error when decoding fails or IO error happens.
+//
+// The returned Stream's Seek is available only when src is an io.Seeker.
+//
+// A Stream doesn't close src even if src implements io.Closer.
+// Closing the source is src owner's responsibility.
+func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
+	decoded, channelNum, _, err := decode(src)
+	if err != nil {
+		return nil, err
+	}
+	if channelNum != 1 && channelNum != 2 {
+		return nil, fmt.Errorf("vorbis: number of channels must be 1 or 2 but was %d", channelNum)
+	}
+	var s io.ReadSeeker = decoded
+	size := decoded.Length()
+	if channelNum == 1 {
+		s = convert.NewStereo16(s, true, false)
+		size *= 2
+	}
+	stream := &Stream{
+		decoded: s,
+		size:    size,
+	}
+	return stream, nil
+}
+
 // DecodeWithSampleRate decodes Ogg/Vorbis data to playable stream.
 //
 // DecodeWithSampleRate returns error when decoding fails or IO error happens.

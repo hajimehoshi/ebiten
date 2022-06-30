@@ -109,6 +109,21 @@ func (s *stream) Seek(offset int64, whence int) (int64, error) {
 //
 // DecodeWithSampleRate returns error when decoding fails or IO error happens.
 //
+// The returned Stream's Seek is available only when src is an io.Seeker.
+//
+// A Stream doesn't close src even if src implements io.Closer.
+// Closing the source is src owner's responsibility.
+func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
+	return decode(src, nil)
+}
+
+// DecodeWithSampleRate decodes WAV (RIFF) data to playable stream.
+//
+// The format must be 1 or 2 channels, 8bit or 16bit little endian PCM.
+// The format is converted into 2 channels and 16bit.
+//
+// DecodeWithSampleRate returns error when decoding fails or IO error happens.
+//
 // DecodeWithSampleRate automatically resamples the stream to fit with sampleRate if necessary.
 //
 // The returned Stream's Seek is available only when src is an io.Seeker.
@@ -116,6 +131,10 @@ func (s *stream) Seek(offset int64, whence int) (int64, error) {
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
 func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
+	return decode(src, &sampleRate)
+}
+
+func decode(src io.Reader, sampleRate *int) (*Stream, error) {
 	buf := make([]byte, 12)
 	n, err := io.ReadFull(src, buf)
 	if n != len(buf) {
@@ -182,9 +201,9 @@ chunks:
 				return nil, fmt.Errorf("wav: bits per sample must be 8 or 16 but was %d", bitsPerSample)
 			}
 			origSampleRate := int64(buf[4]) | int64(buf[5])<<8 | int64(buf[6])<<16 | int64(buf[7])<<24
-			if int64(sampleRate) != origSampleRate {
+			if sampleRate != nil && int64(*sampleRate) != origSampleRate {
 				sampleRateFrom = int(origSampleRate)
-				sampleRateTo = sampleRate
+				sampleRateTo = *sampleRate
 			}
 			headerSize += size
 		case bytes.Equal(buf[0:4], []byte("data")):

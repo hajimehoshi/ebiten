@@ -70,7 +70,7 @@ func (g *Game) initAudio() {
 
 	// Decode an Ogg file.
 	// oggS is a decoded io.ReadCloser and io.Seeker.
-	oggS, err := vorbis.Decode(g.audioContext, bytes.NewReader(raudio.Ragtime_ogg))
+	oggS, err := vorbis.DecodeWithoutResampling(bytes.NewReader(raudio.Ragtime_ogg))
 	if err != nil {
 		log.Fatal(err)
 	}
