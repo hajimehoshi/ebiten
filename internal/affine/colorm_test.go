@@ -328,3 +328,12 @@ func TestColorMConcat(t *testing.T) {
 		}
 	}
 }
+
+// Issue #2170
+func TestColorMChangeHSVScale(t *testing.T) {
+	var c affine.ColorM = affine.ColorMIdentity{}
+	c = affine.ChangeHSV(c, 0, 1, 0.12345)
+	if got, want := c.ScaleOnly(), true; got != want {
+		t.Errorf("got: %t, want: %t", got, want)
+	}
+}
