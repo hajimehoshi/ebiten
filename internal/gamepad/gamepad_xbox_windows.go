@@ -18,6 +18,7 @@
 package gamepad
 
 import (
+	"time"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -29,17 +30,6 @@ type nativeGamepadsXbox struct {
 	token             _GameInputCallbackToken
 }
 
-func xboxDeviceCallback(
-	callbackToken _GameInputCallbackToken,
-	context unsafe.Pointer,
-	device *_IGameInputDevice,
-	timestamp uint64,
-	currentStatus _GameInputDeviceStatus,
-	previousStatus _GameInputDeviceStatus) uintptr {
-	// TODO: Implement this.
-	return 0
-}
-
 func (n *nativeGamepadsXbox) init(gamepads *gamepads) error {
 	g, err := _GameInputCreate()
 	if err != nil {
@@ -47,14 +37,14 @@ func (n *nativeGamepadsXbox) init(gamepads *gamepads) error {
 	}
 
 	n.gameInput = g
-	n.deviceCallbackPtr = windows.NewCallbackCDecl(xboxDeviceCallback)
+	n.deviceCallbackPtr = windows.NewCallbackCDecl(n.deviceCallback)
 
 	if err := n.gameInput.RegisterDeviceCallback(
 		nil,
-		_GameInputKindGamepad,
+		_GameInputKindAny,
 		_GameInputDeviceConnected,
 		_GameInputBlockingEnumeration,
-		nil,
+		unsafe.Pointer(gamepads),
 		n.deviceCallbackPtr,
 		&n.token,
 	); err != nil {
@@ -65,4 +55,68 @@ func (n *nativeGamepadsXbox) init(gamepads *gamepads) error {
 
 func (n *nativeGamepadsXbox) update(gamepads *gamepads) error {
 	return nil
+}
+
+func (n *nativeGamepadsXbox) deviceCallback(callbackToken _GameInputCallbackToken, context unsafe.Pointer, device *_IGameInputDevice, timestamp uint64, currentStatus _GameInputDeviceStatus, previousStatus _GameInputDeviceStatus) uintptr {
+	gps := (*gamepads)(context)
+
+	// Connected.
+	if currentStatus&_GameInputDeviceConnected != 0 {
+		// TODO: Give a good name and a SDL ID.
+		gp := gps.add("", "00000000000000000000000000000000")
+		gp.native = &nativeGamepadXbox{
+			gameInputDevice: device,
+		}
+		return 0
+	}
+
+	// Disconnected.
+	gps.remove(func(gamepad *Gamepad) bool {
+		return gamepad.native.(*nativeGamepadXbox).gameInputDevice == device
+	})
+
+	return 0
+}
+
+type nativeGamepadXbox struct {
+	gameInputDevice *_IGameInputDevice
+}
+
+func (n *nativeGamepadXbox) update(gamepads *gamepads) error {
+	return nil
+}
+
+func (n *nativeGamepadXbox) hasOwnStandardLayoutMapping() bool {
+	return true
+}
+
+func (n *nativeGamepadXbox) axisCount() int {
+	return 0
+}
+
+func (n *nativeGamepadXbox) buttonCount() int {
+	return 0
+}
+
+func (n *nativeGamepadXbox) hatCount() int {
+	return 0
+}
+
+func (n *nativeGamepadXbox) axisValue(axis int) float64 {
+	return 0
+}
+
+func (n *nativeGamepadXbox) buttonValue(button int) float64 {
+	return 0
+}
+
+func (n *nativeGamepadXbox) isButtonPressed(button int) bool {
+	return false
+}
+
+func (n *nativeGamepadXbox) hatState(hat int) int {
+	return 0
+}
+
+func (n *nativeGamepadXbox) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
 }
