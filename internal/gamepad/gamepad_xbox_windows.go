@@ -22,7 +22,49 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
+
+func standardButtonToGamepadInputGamepadButton(b gamepaddb.StandardButton) (_GameInputGamepadButtons, bool) {
+	switch b {
+	case gamepaddb.StandardButtonRightBottom:
+		return _GameInputGamepadA, true
+	case gamepaddb.StandardButtonRightRight:
+		return _GameInputGamepadB, true
+	case gamepaddb.StandardButtonRightLeft:
+		return _GameInputGamepadX, true
+	case gamepaddb.StandardButtonRightTop:
+		return _GameInputGamepadY, true
+	case gamepaddb.StandardButtonFrontTopLeft:
+		return _GameInputGamepadLeftShoulder, true
+	case gamepaddb.StandardButtonFrontTopRight:
+		return _GameInputGamepadRightShoulder, true
+	case gamepaddb.StandardButtonFrontBottomLeft:
+		return 0, false // Use leftTrigger instead.
+	case gamepaddb.StandardButtonFrontBottomRight:
+		return 0, false // Use rightTrigger instead.
+	case gamepaddb.StandardButtonCenterLeft:
+		return _GameInputGamepadView, true
+	case gamepaddb.StandardButtonCenterRight:
+		return _GameInputGamepadMenu, true
+	case gamepaddb.StandardButtonLeftStick:
+		return _GameInputGamepadLeftThumbstick, true
+	case gamepaddb.StandardButtonRightStick:
+		return _GameInputGamepadRightThumbstick, true
+	case gamepaddb.StandardButtonLeftTop:
+		return _GameInputGamepadDPadUp, true
+	case gamepaddb.StandardButtonLeftBottom:
+		return _GameInputGamepadDPadDown, true
+	case gamepaddb.StandardButtonLeftLeft:
+		return _GameInputGamepadDPadLeft, true
+	case gamepaddb.StandardButtonLeftRight:
+		return _GameInputGamepadDPadRight, true
+	case gamepaddb.StandardButtonCenterCenter:
+		return 0, false
+	}
+	return 0, false
+}
 
 type nativeGamepadsXbox struct {
 	gameInput         *_IGameInput
@@ -41,7 +83,7 @@ func (n *nativeGamepadsXbox) init(gamepads *gamepads) error {
 
 	if err := n.gameInput.RegisterDeviceCallback(
 		nil,
-		_GameInputKindAny,
+		_GameInputKindGamepad,
 		_GameInputDeviceConnected,
 		_GameInputBlockingEnumeration,
 		unsafe.Pointer(gamepads),
@@ -80,9 +122,22 @@ func (n *nativeGamepadsXbox) deviceCallback(callbackToken _GameInputCallbackToke
 
 type nativeGamepadXbox struct {
 	gameInputDevice *_IGameInputDevice
+	state           _GameInputGamepadState
 }
 
 func (n *nativeGamepadXbox) update(gamepads *gamepads) error {
+	gameInput := gamepads.native.(*nativeGamepadsXbox).gameInput
+	r, err := gameInput.GetCurrentReading(_GameInputKindGamepad, n.gameInputDevice)
+	if err != nil {
+		return err
+	}
+
+	state, ok := r.GetGamepadState()
+	if !ok {
+		n.state = _GameInputGamepadState{}
+		return nil
+	}
+	n.state = state
 	return nil
 }
 
@@ -91,11 +146,11 @@ func (n *nativeGamepadXbox) hasOwnStandardLayoutMapping() bool {
 }
 
 func (n *nativeGamepadXbox) axisCount() int {
-	return 0
+	return int(gamepaddb.StandardAxisMax) + 1
 }
 
 func (n *nativeGamepadXbox) buttonCount() int {
-	return 0
+	return int(gamepaddb.StandardButtonMax) + 1
 }
 
 func (n *nativeGamepadXbox) hatCount() int {
@@ -103,14 +158,55 @@ func (n *nativeGamepadXbox) hatCount() int {
 }
 
 func (n *nativeGamepadXbox) axisValue(axis int) float64 {
+	switch gamepaddb.StandardAxis(axis) {
+	case gamepaddb.StandardAxisLeftStickHorizontal:
+		return float64(n.state.leftThumbstickX)
+	case gamepaddb.StandardAxisLeftStickVertical:
+		return float64(n.state.leftThumbstickY)
+	case gamepaddb.StandardAxisRightStickHorizontal:
+		return float64(n.state.rightThumbstickX)
+	case gamepaddb.StandardAxisRightStickVertical:
+		return float64(n.state.rightThumbstickY)
+	}
 	return 0
 }
 
 func (n *nativeGamepadXbox) buttonValue(button int) float64 {
+	switch gamepaddb.StandardButton(button) {
+	case gamepaddb.StandardButtonFrontBottomLeft:
+		return float64(n.state.leftTrigger)
+	case gamepaddb.StandardButtonFrontBottomRight:
+		return float64(n.state.rightTrigger)
+	}
+	b, ok := standardButtonToGamepadInputGamepadButton(gamepaddb.StandardButton(button))
+	if !ok {
+		return 0
+	}
+	if n.state.buttons&b != 0 {
+		return 1
+	}
 	return 0
 }
 
 func (n *nativeGamepadXbox) isButtonPressed(button int) bool {
+	// Use XInput's trigger dead zone.
+	// See https://source.chromium.org/chromium/chromium/src/+/main:device/gamepad/public/cpp/gamepad.h;l=22-23;drc=6997f8a177359bb99598988ed5e900841984d242
+	// TODO: Integrate this value with the same one in the package gamepaddb.
+	const threshold = 30.0 / 255.0
+	switch gamepaddb.StandardButton(button) {
+	case gamepaddb.StandardButtonFrontBottomLeft:
+		return n.state.leftTrigger >= threshold
+	case gamepaddb.StandardButtonFrontBottomRight:
+		return n.state.rightTrigger >= threshold
+	}
+
+	b, ok := standardButtonToGamepadInputGamepadButton(gamepaddb.StandardButton(button))
+	if !ok {
+		return false
+	}
+	if n.state.buttons&b != 0 {
+		return true
+	}
 	return false
 }
 

@@ -32,14 +32,6 @@ var (
 	procGameInputCreate = gameInput.NewProc("GameInputCreate")
 )
 
-type _GameInputEnumerationKind int32
-
-const (
-	_GameInputNoEnumeration       _GameInputEnumerationKind = 0
-	_GameInputAsyncEnumeration    _GameInputEnumerationKind = 1
-	_GameInputBlockingEnumeration _GameInputEnumerationKind = 2
-)
-
 type _GameInputCallbackToken uint64
 
 type _GameInputDeviceStatus int32
@@ -56,6 +48,34 @@ const (
 	_GameInputDeviceWireless      _GameInputDeviceStatus = 0x00000080
 	_GameInputDeviceUserIdle      _GameInputDeviceStatus = 0x00100000
 	_GameInputDeviceAnyStatus     _GameInputDeviceStatus = 0x00FFFFFF
+)
+
+type _GameInputEnumerationKind int32
+
+const (
+	_GameInputNoEnumeration       _GameInputEnumerationKind = 0
+	_GameInputAsyncEnumeration    _GameInputEnumerationKind = 1
+	_GameInputBlockingEnumeration _GameInputEnumerationKind = 2
+)
+
+type _GameInputGamepadButtons int32
+
+const (
+	_GameInputGamepadNone            _GameInputGamepadButtons = 0x00000000
+	_GameInputGamepadMenu            _GameInputGamepadButtons = 0x00000001
+	_GameInputGamepadView            _GameInputGamepadButtons = 0x00000002
+	_GameInputGamepadA               _GameInputGamepadButtons = 0x00000004
+	_GameInputGamepadB               _GameInputGamepadButtons = 0x00000008
+	_GameInputGamepadX               _GameInputGamepadButtons = 0x00000010
+	_GameInputGamepadY               _GameInputGamepadButtons = 0x00000020
+	_GameInputGamepadDPadUp          _GameInputGamepadButtons = 0x00000040
+	_GameInputGamepadDPadDown        _GameInputGamepadButtons = 0x00000080
+	_GameInputGamepadDPadLeft        _GameInputGamepadButtons = 0x00000100
+	_GameInputGamepadDPadRight       _GameInputGamepadButtons = 0x00000200
+	_GameInputGamepadLeftShoulder    _GameInputGamepadButtons = 0x00000400
+	_GameInputGamepadRightShoulder   _GameInputGamepadButtons = 0x00000800
+	_GameInputGamepadLeftThumbstick  _GameInputGamepadButtons = 0x00001000
+	_GameInputGamepadRightThumbstick _GameInputGamepadButtons = 0x00002000
 )
 
 type _GameInputKind int32
@@ -78,6 +98,16 @@ const (
 	_GameInputKindUiNavigation     _GameInputKind = 0x01000000
 	_GameInputKindAny              _GameInputKind = 0x0FFFFFFF
 )
+
+type _GameInputGamepadState struct {
+	buttons          _GameInputGamepadButtons
+	leftTrigger      float32
+	rightTrigger     float32
+	leftThumbstickX  float32
+	leftThumbstickY  float32
+	rightThumbstickX float32
+	rightThumbstickY float32
+}
 
 func _GameInputCreate() (*_IGameInput, error) {
 	var gameInput *_IGameInput
@@ -116,6 +146,18 @@ type _IGameInput_Vtbl struct {
 	FindDeviceFromPlatformString   uintptr
 	EnableOemDeviceSupport         uintptr
 	SetFocusPolicy                 uintptr
+}
+
+func (i *_IGameInput) GetCurrentReading(inputKind _GameInputKind, device *_IGameInputDevice) (*_IGameInputReading, error) {
+	var reading *_IGameInputReading
+	r, _, _ := syscall.Syscall6(i.vtbl.GetCurrentReading, 4, uintptr(unsafe.Pointer(i)),
+		uintptr(inputKind), uintptr(unsafe.Pointer(device)), uintptr(unsafe.Pointer(&reading)),
+		0, 0)
+	runtime.KeepAlive(device)
+	if uint32(r) != uint32(windows.S_OK) {
+		return nil, fmt.Errorf("gamepad: IGameInput::GetCurrentReading failed: HRESULT(%d)", uint32(r))
+	}
+	return reading, nil
 }
 
 func (i *_IGameInput) RegisterDeviceCallback(device *_IGameInputDevice,
@@ -164,4 +206,43 @@ type _IGameInputDevice_Vtbl struct {
 	ExecuteRawDeviceIoControl       uintptr
 	AcquireExclusiveRawDeviceAccess uintptr
 	ReleaseExclusiveRawDeviceAccess uintptr
+}
+
+type _IGameInputReading struct {
+	vtbl *_IGameInputReading_Vtbl
+}
+
+type _IGameInputReading_Vtbl struct {
+	QueryInterface uintptr
+	AddRef         uintptr
+	Release        uintptr
+
+	GetInputKind             uintptr
+	GetSequenceNumber        uintptr
+	GetTimestamp             uintptr
+	GetDevice                uintptr
+	GetRawReport             uintptr
+	GetControllerAxisCount   uintptr
+	GetControllerAxisState   uintptr
+	GetControllerButtonCount uintptr
+	GetControllerButtonState uintptr
+	GetControllerSwitchCount uintptr
+	GetControllerSwitchState uintptr
+	GetKeyCount              uintptr
+	GetKeyState              uintptr
+	GetMouseState            uintptr
+	GetTouchCount            uintptr
+	GetTouchState            uintptr
+	GetMotionState           uintptr
+	GetArcadeStickState      uintptr
+	GetFlightStickState      uintptr
+	GetGamepadState          uintptr
+	GetRacingWheelState      uintptr
+	GetUiNavigationState     uintptr
+}
+
+func (i *_IGameInputReading) GetGamepadState() (_GameInputGamepadState, bool) {
+	var state _GameInputGamepadState
+	r, _, _ := syscall.Syscall(i.vtbl.GetGamepadState, 2, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(&state)), 0)
+	return state, int32(r) != 0
 }
