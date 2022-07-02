@@ -20,6 +20,7 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 var (
@@ -58,4 +59,26 @@ func DrawRect(dst *ebiten.Image, x, y, width, height float64, clr color.Color) {
 	// Filter must be 'nearest' filter (default).
 	// Linear filtering would make edges blurred.
 	dst.DrawImage(emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image), op)
+}
+
+// DrawCircle draws a circle on given destination dst.
+//
+// DrawCircle is intended to be used mainly for debugging or prototyping puropose.
+func DrawCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color) {
+	var path vector.Path
+	red, green, blue, alpha := clr.RGBA()
+
+	path.Arc(cx, cy, r, 0, 2*math.Pi, vector.Clockwise)
+	op := &ebiten.DrawTrianglesOptions{
+		FillRule: ebiten.FillAll,
+	}
+
+	verticles, indices := path.AppendVerticesAndIndicesForFilling(nil, nil)
+	for i := range verticles {
+		verticles[i].ColorR = float32(red) / 0xffff
+		verticles[i].ColorG = float32(green) / 0xffff
+		verticles[i].ColorB = float32(blue) / 0xffff
+		verticles[i].ColorA = float32(alpha) / 0xffff
+	}
+	dst.DrawTriangles(verticles, indices, emptySubImage, op)
 }
