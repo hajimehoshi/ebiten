@@ -64,17 +64,19 @@ func DrawRect(dst *ebiten.Image, x, y, width, height float64, clr color.Color) {
 // DrawCircle draws a circle on given destination dst.
 //
 // DrawCircle is intended to be used mainly for debugging or prototyping puropose.
-func DrawCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color) {
+func DrawCircle(dst *ebiten.Image, cx, cy, r float64, clr color.Color) {
 	var path vector.Path
 	rd, g, b, a := clr.RGBA()
 
-	path.Arc(cx, cy, r, 0, 2*math.Pi, vector.Clockwise)
+	path.Arc(float32(cx), float32(cy), float32(r), 0, 2*math.Pi, vector.Clockwise)
 	op := &ebiten.DrawTrianglesOptions{
 		FillRule: ebiten.FillAll,
 	}
 
 	verticles, indices := path.AppendVerticesAndIndicesForFilling(nil, nil)
 	for i := range verticles {
+		verticles[i].SrcX = 1
+		verticles[i].SrcY = 1
 		verticles[i].ColorR = float32(rd) / 0xffff
 		verticles[i].ColorG = float32(g) / 0xffff
 		verticles[i].ColorB = float32(b) / 0xffff
