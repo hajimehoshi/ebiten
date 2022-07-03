@@ -38,12 +38,97 @@ type Image struct {
 
 	bounds   image.Rectangle
 	original *Image
+
+	setVerticesCache map[[2]int][4]byte
+}
+
+var emptyImage *Image
+
+func init() {
+	img := NewImage(3, 3)
+	img.Fill(color.White)
+	emptyImage = img.SubImage(image.Rect(1, 1, 2, 2)).(*Image)
 }
 
 func (i *Image) copyCheck() {
 	if i.addr != i {
 		panic("ebiten: illegal use of non-zero Image copied by value")
 	}
+}
+
+func (i *Image) resolveSetVerticesCacheIfNeeded() {
+	if i.isSubImage() {
+		i = i.original
+	}
+
+	if len(i.setVerticesCache) == 0 {
+		return
+	}
+
+	l := len(i.setVerticesCache)
+	vs := make([]float32, l*graphics.VertexFloatNum*4)
+	is := make([]uint16, l*6)
+	sx, sy := emptyImage.adjustPositionF32(1, 1)
+	var idx uint16
+	for p, c := range i.setVerticesCache {
+		dx := float32(p[0])
+		dy := float32(p[1])
+
+		var crf, cgf, cbf, caf float32
+		if c[3] != 0 {
+			crf = float32(c[0]) / float32(c[3])
+			cgf = float32(c[1]) / float32(c[3])
+			cbf = float32(c[2]) / float32(c[3])
+			caf = float32(c[3]) / 0xff
+		}
+
+		vs[graphics.VertexFloatNum*4*idx] = dx
+		vs[graphics.VertexFloatNum*4*idx+1] = dy
+		vs[graphics.VertexFloatNum*4*idx+2] = sx
+		vs[graphics.VertexFloatNum*4*idx+3] = sy
+		vs[graphics.VertexFloatNum*4*idx+4] = crf
+		vs[graphics.VertexFloatNum*4*idx+5] = cgf
+		vs[graphics.VertexFloatNum*4*idx+6] = cbf
+		vs[graphics.VertexFloatNum*4*idx+7] = caf
+		vs[graphics.VertexFloatNum*4*idx+8] = dx + 1
+		vs[graphics.VertexFloatNum*4*idx+9] = dy
+		vs[graphics.VertexFloatNum*4*idx+10] = sx + 1
+		vs[graphics.VertexFloatNum*4*idx+11] = sy
+		vs[graphics.VertexFloatNum*4*idx+12] = crf
+		vs[graphics.VertexFloatNum*4*idx+13] = cgf
+		vs[graphics.VertexFloatNum*4*idx+14] = cbf
+		vs[graphics.VertexFloatNum*4*idx+15] = caf
+		vs[graphics.VertexFloatNum*4*idx+16] = dx
+		vs[graphics.VertexFloatNum*4*idx+17] = dy + 1
+		vs[graphics.VertexFloatNum*4*idx+18] = sx
+		vs[graphics.VertexFloatNum*4*idx+19] = sy + 1
+		vs[graphics.VertexFloatNum*4*idx+20] = crf
+		vs[graphics.VertexFloatNum*4*idx+21] = cgf
+		vs[graphics.VertexFloatNum*4*idx+22] = cbf
+		vs[graphics.VertexFloatNum*4*idx+23] = caf
+		vs[graphics.VertexFloatNum*4*idx+24] = dx + 1
+		vs[graphics.VertexFloatNum*4*idx+25] = dy + 1
+		vs[graphics.VertexFloatNum*4*idx+26] = sx + 1
+		vs[graphics.VertexFloatNum*4*idx+27] = sy + 1
+		vs[graphics.VertexFloatNum*4*idx+28] = crf
+		vs[graphics.VertexFloatNum*4*idx+29] = cgf
+		vs[graphics.VertexFloatNum*4*idx+30] = cbf
+		vs[graphics.VertexFloatNum*4*idx+31] = caf
+
+		is[6*idx] = 4 * idx
+		is[6*idx+1] = 4*idx + 1
+		is[6*idx+2] = 4*idx + 2
+		is[6*idx+3] = 4*idx + 1
+		is[6*idx+4] = 4*idx + 2
+		is[6*idx+5] = 4*idx + 3
+
+		idx++
+	}
+
+	srcs := [graphics.ShaderImageNum]*ui.Image{emptyImage.image}
+	i.image.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, i.adjustedRegion(), graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false, true)
+
+	i.setVerticesCache = nil
 }
 
 // Size returns the size of the image.
@@ -72,6 +157,10 @@ func (i *Image) Clear() {
 // When the image is disposed, Fill does nothing.
 func (i *Image) Fill(clr color.Color) {
 	i.copyCheck()
+	if i.isDisposed() {
+		return
+	}
+	i.setVerticesCache = nil
 
 	var crf, cgf, cbf, caf float32
 	cr, cg, cb, ca := clr.RGBA()
@@ -197,6 +286,9 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	if i.isDisposed() {
 		return
 	}
+
+	img.resolveSetVerticesCacheIfNeeded()
+	i.resolveSetVerticesCacheIfNeeded()
 
 	// Calculate vertices before locking because the user can do anything in
 	// options.ImageParts interface without deadlock (e.g. Call Image functions).
@@ -346,6 +438,9 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	}
 	// TODO: Check the maximum value of indices and len(vertices)?
 
+	img.resolveSetVerticesCacheIfNeeded()
+	i.resolveSetVerticesCacheIfNeeded()
+
 	if options == nil {
 		options = &DrawTrianglesOptions{}
 	}
@@ -451,6 +546,8 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	}
 	// TODO: Check the maximum value of indices and len(vertices)?
 
+	i.resolveSetVerticesCacheIfNeeded()
+
 	if options == nil {
 		options = &DrawTrianglesShaderOptions{}
 	}
@@ -495,6 +592,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 				panic("ebiten: all the source images must be the same size with the rectangle")
 			}
 		}
+		img.resolveSetVerticesCacheIfNeeded()
 		imgs[i] = img.image
 	}
 
@@ -570,6 +668,8 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		return
 	}
 
+	i.resolveSetVerticesCacheIfNeeded()
+
 	if options == nil {
 		options = &DrawRectShaderOptions{}
 	}
@@ -587,6 +687,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		if w, h := img.Size(); width != w || height != h {
 			panic("ebiten: all the source images must be the same size with the rectangle")
 		}
+		img.resolveSetVerticesCacheIfNeeded()
 		imgs[i] = img.image
 	}
 
@@ -703,14 +804,18 @@ func (i *Image) RGBA64At(x, y int) color.RGBA64 {
 	return color.RGBA64{uint16(r) * 0x101, uint16(g) * 0x101, uint16(b) * 0x101, uint16(a) * 0x101}
 }
 
-func (i *Image) at(x, y int) (r, g, b, a uint8) {
+func (i *Image) at(x, y int) (r, g, b, a byte) {
 	if i.isDisposed() {
 		return 0, 0, 0, 0
 	}
 	if !image.Pt(x, y).In(i.Bounds()) {
 		return 0, 0, 0, 0
 	}
-	return i.image.At(i.adjustPosition(x, y))
+	x, y = i.adjustPosition(x, y)
+	if c, ok := i.setVerticesCache[[2]int{x, y}]; ok {
+		return c[0], c[1], c[2], c[3]
+	}
+	return i.image.At(x, y)
 }
 
 // Set sets the color at (x, y).
@@ -732,9 +837,17 @@ func (i *Image) Set(x, y int, clr color.Color) {
 		i = i.original
 	}
 
-	r, g, b, a := clr.RGBA()
-	x, y = i.adjustPosition(x, y)
-	i.image.ReplacePixels([]byte{byte(r >> 8), byte(g >> 8), byte(b >> 8), byte(a >> 8)}, x, y, 1, 1)
+	if i.setVerticesCache == nil {
+		i.setVerticesCache = map[[2]int][4]byte{}
+	}
+	dx, dy := i.adjustPosition(x, y)
+	cr, cg, cb, ca := clr.RGBA()
+	i.setVerticesCache[[2]int{dx, dy}] = [4]byte{byte(cr / 0x101), byte(cg / 0x101), byte(cb / 0x101), byte(ca / 0x101)}
+	// TODO: This fails with 2049 or more. In theory this should work with 10000. Investigate why (#2178).
+	// Probably this is because the vertices number exceeds 65536 (=2048*32), but why is there such a limitation?
+	if len(i.setVerticesCache) >= 2048 {
+		i.resolveSetVerticesCacheIfNeeded()
+	}
 }
 
 // Dispose disposes the image data.
@@ -757,6 +870,7 @@ func (i *Image) Dispose() {
 	}
 	i.image.MarkDisposed()
 	i.image = nil
+	i.setVerticesCache = nil
 }
 
 // ReplacePixels replaces the pixels of the image with p.
@@ -775,6 +889,8 @@ func (i *Image) ReplacePixels(pixels []byte) {
 	if i.isDisposed() {
 		return
 	}
+
+	i.resolveSetVerticesCacheIfNeeded()
 
 	r := i.Bounds()
 	x, y := i.adjustPosition(r.Min.X, r.Min.Y)
