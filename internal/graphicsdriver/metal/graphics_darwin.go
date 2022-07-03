@@ -328,9 +328,6 @@ type Graphics struct {
 	shaders      map[graphicsdriver.ShaderID]*Shader
 	nextShaderID graphicsdriver.ShaderID
 
-	src *Image
-	dst *Image
-
 	transparent  bool
 	maxImageSize int
 	tmpTextures  []mtl.Texture

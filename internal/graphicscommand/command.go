@@ -38,11 +38,6 @@ type command interface {
 	Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error
 }
 
-type size struct {
-	width  float32
-	height float32
-}
-
 type drawTrianglesCommandPool struct {
 	pool []*drawTrianglesCommand
 }
