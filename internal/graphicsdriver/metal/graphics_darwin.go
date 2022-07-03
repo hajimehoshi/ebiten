@@ -1191,7 +1191,6 @@ func (i *Image) syncTexture() {
 	bce.EndEncoding()
 
 	cb.Commit()
-	// TODO: Are fences available here?
 	cb.WaitUntilCompleted()
 }
 
