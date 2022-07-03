@@ -69,9 +69,7 @@ func DrawCircle(dst *ebiten.Image, cx, cy, r float64, clr color.Color) {
 	rd, g, b, a := clr.RGBA()
 
 	path.Arc(float32(cx), float32(cy), float32(r), 0, 2*math.Pi, vector.Clockwise)
-	op := &ebiten.DrawTrianglesOptions{
-		FillRule: ebiten.FillAll,
-	}
+	op := &ebiten.DrawTrianglesOptions{}
 
 	verticles, indices := path.AppendVerticesAndIndicesForFilling(nil, nil)
 	for i := range verticles {
