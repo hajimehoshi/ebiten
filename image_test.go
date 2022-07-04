@@ -2175,12 +2175,16 @@ func TestImageDrawTrianglesShaderInterpolatesValues(t *testing.T) {
 
 // Issue #1137
 func TestImageDrawOver(t *testing.T) {
-	dst := ebiten.NewImage(320, 240)
+	const (
+		w = 320
+		h = 240
+	)
+	dst := ebiten.NewImage(w, h)
 	src := image.NewUniform(color.RGBA{0xff, 0, 0, 0xff})
 	// This must not cause infinite-loop.
 	draw.Draw(dst, dst.Bounds(), src, image.ZP, draw.Over)
-	for j := 0; j < 240; j++ {
-		for i := 0; i < 320; i++ {
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
 			got := dst.At(i, j)
 			want := color.RGBA{0xff, 0, 0, 0xff}
 			if got != want {

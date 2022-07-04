@@ -66,10 +66,10 @@ func (i *Image) resolveSetVerticesCacheIfNeeded() {
 	}
 
 	l := len(i.setVerticesCache)
-	vs := make([]float32, l*graphics.VertexFloatNum*4)
+	vs := graphics.Vertices(l * 4)
 	is := make([]uint16, l*6)
 	sx, sy := emptyImage.adjustPositionF32(1, 1)
-	var idx uint16
+	var idx int
 	for p, c := range i.setVerticesCache {
 		dx := float32(p[0])
 		dy := float32(p[1])
@@ -115,20 +115,19 @@ func (i *Image) resolveSetVerticesCacheIfNeeded() {
 		vs[graphics.VertexFloatNum*4*idx+30] = cbf
 		vs[graphics.VertexFloatNum*4*idx+31] = caf
 
-		is[6*idx] = 4 * idx
-		is[6*idx+1] = 4*idx + 1
-		is[6*idx+2] = 4*idx + 2
-		is[6*idx+3] = 4*idx + 1
-		is[6*idx+4] = 4*idx + 2
-		is[6*idx+5] = 4*idx + 3
+		is[6*idx] = uint16(4 * idx)
+		is[6*idx+1] = uint16(4*idx + 1)
+		is[6*idx+2] = uint16(4*idx + 2)
+		is[6*idx+3] = uint16(4*idx + 1)
+		is[6*idx+4] = uint16(4*idx + 2)
+		is[6*idx+5] = uint16(4*idx + 3)
 
 		idx++
 	}
+	i.setVerticesCache = nil
 
 	srcs := [graphics.ShaderImageNum]*ui.Image{emptyImage.image}
 	i.image.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, i.adjustedRegion(), graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false, true)
-
-	i.setVerticesCache = nil
 }
 
 // Size returns the size of the image.
@@ -843,9 +842,8 @@ func (i *Image) Set(x, y int, clr color.Color) {
 	dx, dy := i.adjustPosition(x, y)
 	cr, cg, cb, ca := clr.RGBA()
 	i.setVerticesCache[[2]int{dx, dy}] = [4]byte{byte(cr / 0x101), byte(cg / 0x101), byte(cb / 0x101), byte(ca / 0x101)}
-	// TODO: This fails with 2049 or more. In theory this should work with 10000. Investigate why (#2178).
-	// Probably this is because the vertices number exceeds 65536 (=2048*32), but why is there such a limitation?
-	if len(i.setVerticesCache) >= 2048 {
+	// One square requires 6 indices (= 2 triangles).
+	if len(i.setVerticesCache) >= graphics.IndicesNum/6 {
 		i.resolveSetVerticesCacheIfNeeded()
 	}
 }
