@@ -3244,3 +3244,105 @@ func TestImageOptionsClear(t *testing.T) {
 		}
 	}
 }
+
+// Issue #2178
+func TestImageTooManyDrawImage(t *testing.T) {
+	src := ebiten.NewImage(1, 1)
+	src.Fill(color.RGBA{0xff, 0xff, 0xff, 0xff})
+
+	const (
+		w = 256
+		h = 256
+	)
+	dst := ebiten.NewImage(w, h)
+
+	op := &ebiten.DrawImageOptions{}
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			op.GeoM.Reset()
+			op.GeoM.Translate(float64(i), float64(j))
+			dst.DrawImage(src, op)
+		}
+	}
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			if got, want := dst.At(i, j), (color.RGBA{0xff, 0xff, 0xff, 0xff}); got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+// Issue #2178
+func TestImageTooManyDrawTriangles(t *testing.T) {
+	img := ebiten.NewImage(3, 3)
+	img.Fill(color.RGBA{0xff, 0xff, 0xff, 0xff})
+	src := img.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
+
+	const (
+		w = 128
+		h = 64
+	)
+	dst := ebiten.NewImage(w, h)
+
+	var vertices []ebiten.Vertex
+	var indices []uint16
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			n := uint16(len(vertices))
+			vertices = append(vertices,
+				ebiten.Vertex{
+					DstX:   float32(i),
+					DstY:   float32(j),
+					SrcX:   1,
+					SrcY:   1,
+					ColorR: 1,
+					ColorG: 1,
+					ColorB: 1,
+					ColorA: 1,
+				},
+				ebiten.Vertex{
+					DstX:   float32(i) + 1,
+					DstY:   float32(j),
+					SrcX:   2,
+					SrcY:   1,
+					ColorR: 1,
+					ColorG: 1,
+					ColorB: 1,
+					ColorA: 1,
+				},
+				ebiten.Vertex{
+					DstX:   float32(i),
+					DstY:   float32(j) + 1,
+					SrcX:   1,
+					SrcY:   2,
+					ColorR: 1,
+					ColorG: 1,
+					ColorB: 1,
+					ColorA: 1,
+				},
+				ebiten.Vertex{
+					DstX:   float32(i) + 1,
+					DstY:   float32(j) + 1,
+					SrcX:   2,
+					SrcY:   2,
+					ColorR: 1,
+					ColorG: 1,
+					ColorB: 1,
+					ColorA: 1,
+				},
+			)
+			indices = append(indices, n, n+1, n+2, n+1, n+2, n+3)
+		}
+	}
+	dst.DrawTriangles(vertices, indices, src, nil)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			if got, want := dst.At(i, j), (color.RGBA{0xff, 0xff, 0xff, 0xff}); got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
