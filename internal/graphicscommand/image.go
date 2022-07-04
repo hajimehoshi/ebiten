@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"image"
 	"os"
-	"runtime"
 	"sort"
 	"strings"
 
@@ -55,11 +54,6 @@ func genNextID() int {
 	return id
 }
 
-var (
-	dummyDst *Image
-	dummySrc *Image
-)
-
 // NewImage returns a new image.
 //
 // Note that the image is not initialized yet.
@@ -94,9 +88,9 @@ func NewScreenFramebufferImage(width, height int) *Image {
 	return i
 }
 
-func (i *Image) resolveBufferedReplacePixels() bool {
+func (i *Image) resolveBufferedReplacePixels() {
 	if len(i.bufferedRP) == 0 {
-		return false
+		return
 	}
 	c := &replacePixelsCommand{
 		dst:  i,
@@ -104,8 +98,6 @@ func (i *Image) resolveBufferedReplacePixels() bool {
 	}
 	theCommandQueue.Enqueue(c)
 	i.bufferedRP = nil
-
-	return true
 }
 
 func (i *Image) Dispose() {
@@ -150,16 +142,13 @@ func (i *Image) InternalSize() (int, int) {
 // If the source image is not specified, i.e., src is nil and there is no image in the uniform variables, the
 // elements for the source image are not used.
 func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, clr affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
-	var needDummyRendering bool
 	if shader == nil {
 		// Fast path for rendering without a shader (#1355).
 		img := srcs[0]
 		if img.screen {
 			panic("graphicscommand: the screen image cannot be the rendering source")
 		}
-		if img.resolveBufferedReplacePixels() {
-			needDummyRendering = true
-		}
+		img.resolveBufferedReplacePixels()
 	} else {
 		for _, src := range srcs {
 			if src == nil {
@@ -168,31 +157,10 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, offsets [gra
 			if src.screen {
 				panic("graphicscommand: the screen image cannot be the rendering source")
 			}
-			if src.resolveBufferedReplacePixels() {
-				needDummyRendering = true
-			}
+			src.resolveBufferedReplacePixels()
 		}
 	}
-	if i.resolveBufferedReplacePixels() {
-		needDummyRendering = true
-	}
-
-	// On Metal, using an image just after ReplacePixel might fail (#2154).
-	// This is a very dirty hack but there seemed no other way.
-	// In order to reproduce the issue, run:
-	//
-	//     go test ./internal/processtest/ -run=/issue2154.go -count=100
-	//
-	// TODO: Detect the graphics library and apply this logic only when the graphics library is Metal.
-	if runtime.GOOS == "darwin" && needDummyRendering {
-		if dummyDst == nil {
-			dummyDst = NewImage(1, 1)
-		}
-		if dummySrc == nil {
-			dummySrc = NewImage(1, 1)
-		}
-		dummyDst.DrawTriangles([graphics.ShaderImageNum]*Image{dummySrc}, [graphics.ShaderImageNum - 1][2]float32{}, make([]float32, 8*3), []uint16{0, 1, 2}, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, graphicsdriver.Region{}, graphicsdriver.Region{}, nil, nil, false)
-	}
+	i.resolveBufferedReplacePixels()
 
 	theCommandQueue.EnqueueDrawTrianglesCommand(i, srcs, offsets, vertices, indices, clr, mode, filter, address, dstRegion, srcRegion, shader, uniforms, evenOdd)
 }
