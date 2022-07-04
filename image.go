@@ -127,7 +127,7 @@ func (i *Image) resolveSetVerticesCacheIfNeeded() {
 	i.setVerticesCache = nil
 
 	srcs := [graphics.ShaderImageNum]*ui.Image{emptyImage.image}
-	i.image.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, i.adjustedRegion(), graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false, true)
+	i.image.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, i.adjustedRegion(), graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false, true)
 }
 
 // Size returns the size of the image.

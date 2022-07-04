@@ -3350,3 +3350,29 @@ func TestImageTooManyDrawTriangles(t *testing.T) {
 		}
 	}
 }
+
+func TestImageSetOverSet(t *testing.T) {
+	img := ebiten.NewImage(1, 1)
+	img.Set(0, 0, color.RGBA{0xff, 0xff, 0xff, 0xff})
+	if got, want := img.At(0, 0), (color.RGBA{0xff, 0xff, 0xff, 0xff}); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	// Apply the change by 'Set' by calling DrawImage.
+	dummy := ebiten.NewImage(1, 1)
+	img.DrawImage(dummy, nil)
+	if got, want := img.At(0, 0), (color.RGBA{0xff, 0xff, 0xff, 0xff}); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	img.Set(0, 0, color.RGBA{0x80, 0x80, 0x80, 0x80})
+	if got, want := img.At(0, 0), (color.RGBA{0x80, 0x80, 0x80, 0x80}); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	// Apply the change by 'Set' again.
+	img.DrawImage(dummy, nil)
+	if got, want := img.At(0, 0), (color.RGBA{0x80, 0x80, 0x80, 0x80}); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
