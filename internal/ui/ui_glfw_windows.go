@@ -182,7 +182,10 @@ func initialMonitorByOS() (*glfw.Monitor, error) {
 	}
 
 	px, py, err := _GetCursorPos()
-	if err != nil && !errors.Is(err, windows.ERROR_ACCESS_DENIED) {
+	if err != nil {
+		if errors.Is(err, windows.ERROR_ACCESS_DENIED) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	x, y := int(px), int(py)
