@@ -2072,6 +2072,10 @@ func (i *iDXGISwapChain4) GetCurrentBackBufferIndex() uint32 {
 func (i *iDXGISwapChain4) Present(syncInterval uint32, flags uint32) error {
 	r, _, _ := syscall.Syscall(i.vtbl.Present, 3, uintptr(unsafe.Pointer(i)), uintptr(syncInterval), uintptr(flags))
 	if windows.Handle(r) != windows.S_OK {
+		// During a screen lock, Present fails (#2179).
+		if windows.Handle(r) == windows.DXGI_STATUS_OCCLUDED {
+			return nil
+		}
 		return fmt.Errorf("directx: IDXGISwapChain4::Present failed: %w", windows.Errno(r))
 	}
 	return nil

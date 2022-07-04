@@ -18,6 +18,7 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 	"runtime"
 	"unsafe"
@@ -169,7 +170,7 @@ func (u *userInterfaceImpl) adjustWindowPosition(x, y int, monitor *glfw.Monitor
 
 func initialMonitorByOS() (*glfw.Monitor, error) {
 	px, py, err := getCursorPos()
-	if err != nil {
+	if err != nil && !errors.Is(err, windows.ERROR_ACCESS_DENIED) {
 		return nil, err
 	}
 	x, y := int(px), int(py)
