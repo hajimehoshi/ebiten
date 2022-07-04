@@ -18,6 +18,7 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 	"runtime"
 	"unsafe"
@@ -181,7 +182,7 @@ func initialMonitorByOS() (*glfw.Monitor, error) {
 	}
 
 	px, py, err := _GetCursorPos()
-	if err != nil {
+	if err != nil && !errors.Is(err, windows.ERROR_ACCESS_DENIED) {
 		return nil, err
 	}
 	x, y := int(px), int(py)

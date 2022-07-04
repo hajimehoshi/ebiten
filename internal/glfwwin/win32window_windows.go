@@ -6,6 +6,7 @@
 package glfwwin
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"reflect"
@@ -307,6 +308,9 @@ func (w *Window) cursorInContentArea() (bool, error) {
 
 	pos, err := _GetCursorPos()
 	if err != nil {
+		if errors.Is(err, windows.ERROR_ACCESS_DENIED) {
+			return false, nil
+		}
 		return false, err
 	}
 	if _WindowFromPoint(pos) != w.win32.handle {
@@ -2108,6 +2112,9 @@ func platformPostEmptyEvent() error {
 func (w *Window) platformGetCursorPos() (xpos, ypos float64, err error) {
 	pos, err := _GetCursorPos()
 	if err != nil {
+		if errors.Is(err, windows.ERROR_ACCESS_DENIED) {
+			return 0, 0, nil
+		}
 		return 0, 0, err
 	}
 	if !microsoftgdk.IsXbox() {
