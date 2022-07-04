@@ -45,7 +45,7 @@ func init() {
 	baseImage.Fill(color.White)
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
-			baseImage.Set(j, i, color.Black)
+			baseImage.Set(i, j, color.Black)
 		}
 	}
 	derivedImage.DrawImage(baseImage, nil)
