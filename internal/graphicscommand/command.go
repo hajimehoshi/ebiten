@@ -523,37 +523,11 @@ func (c *replacePixelsCommand) String() string {
 
 // Exec executes the replacePixelsCommand.
 func (c *replacePixelsCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
-	var lastArgIdx int
-	for i, a := range c.args {
-		if a.Mask == nil {
-			continue
-		}
-		if len(c.args[lastArgIdx:i]) > 0 {
-			c.dst.image.ReplacePixels(c.args[lastArgIdx:i])
-			lastArgIdx = i
-		}
-
-		orig := make([]byte, 4*c.dst.width*c.dst.height)
-		if err := c.dst.image.ReadPixels(orig); err != nil {
-			return err
-		}
-		for j := 0; j < a.Height; j++ {
-			for i := 0; i < a.Width; i++ {
-				idx := j*a.Width + i
-				if a.Mask[idx/8]>>(idx%8)&1 == 0 {
-					srcIdx := (a.Y+j)*c.dst.width + a.X + i
-					copy(a.Pixels[4*idx:4*(idx+1)], orig[4*srcIdx:4*(srcIdx+1)])
-				}
-			}
-		}
-
-		a.Mask = nil
+	if len(c.args) == 0 {
+		return nil
 	}
-
-	if len(c.args[lastArgIdx:]) > 0 {
-		if err := c.dst.image.ReplacePixels(c.args[lastArgIdx:]); err != nil {
-			return err
-		}
+	if err := c.dst.image.ReplacePixels(c.args); err != nil {
+		return err
 	}
 	return nil
 }

@@ -495,15 +495,19 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 }
 
 // ReplacePixels replaces the pixels on the image.
-func (i *Image) ReplacePixels(pix []byte, mask []byte) {
+func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	i.replacePixels(pix, mask)
+	i.replacePixels(pix, x, y, width, height)
 }
 
-func (i *Image) replacePixels(pix []byte, mask []byte) {
+func (i *Image) replacePixels(pix []byte, x, y, width, height int) {
 	if i.disposed {
 		panic("atlas: the image must not be disposed at replacePixels")
+	}
+
+	if l := 4 * width * height; len(pix) != l {
+		panic(fmt.Sprintf("atlas: len(p) must be %d but %d", l, len(pix)))
 	}
 
 	i.resetUsedAsSourceCount()
@@ -516,29 +520,20 @@ func (i *Image) replacePixels(pix []byte, mask []byte) {
 	}
 
 	px, py, pw, ph := i.regionWithPadding()
-	if pix == nil {
-		if mask != nil {
-			panic("atlas: mask must be nil when pix is nil")
+
+	if x != 0 || y != 0 || width != i.width || height != i.height || i.paddingSize() == 0 {
+		x += px + i.paddingSize()
+		y += py + i.paddingSize()
+
+		if pix == nil {
+			i.backend.restorable.ReplacePixels(nil, x, y, width, height)
+			return
 		}
-		i.backend.restorable.ReplacePixels(nil, nil, px, py, pw, ph)
-		return
-	}
 
-	ow, oh := pw-2*i.paddingSize(), ph-2*i.paddingSize()
-	if l := 4 * ow * oh; len(pix) != l {
-		panic(fmt.Sprintf("atlas: len(p) must be %d but %d", l, len(pix)))
-	}
-
-	if i.paddingSize() == 0 {
 		// Copy pixels in the case when pix is modified before the graphics command is executed.
-		pix2 := make([]byte, len(pix))
+		pix2 := theTemporaryBytes.alloc(len(pix))
 		copy(pix2, pix)
-		var mask2 []byte
-		if mask != nil {
-			mask2 = make([]byte, len(mask))
-			copy(mask2, mask)
-		}
-		i.backend.restorable.ReplacePixels(pix2, mask2, px, py, pw, ph)
+		i.backend.restorable.ReplacePixels(pix2, x, y, width, height)
 		return
 	}
 
@@ -546,6 +541,7 @@ func (i *Image) replacePixels(pix []byte, mask []byte) {
 
 	// Clear the edges. pixb might not be zero-cleared.
 	// TODO: These loops assume that paddingSize is 1.
+	// TODO: Is clearing edges explicitly really needed?
 	const paddingSize = 1
 	if paddingSize != i.paddingSize() {
 		panic(fmt.Sprintf("atlas: replacePixels assumes the padding is always 1 but the actual padding was %d", i.paddingSize()))
@@ -567,45 +563,13 @@ func (i *Image) replacePixels(pix []byte, mask []byte) {
 	}
 
 	// Copy the content.
-	for j := 0; j < oh; j++ {
-		copy(pixb[4*((j+paddingSize)*pw+paddingSize):], pix[4*j*ow:4*(j+1)*ow])
+	for j := 0; j < height; j++ {
+		copy(pixb[4*((j+paddingSize)*pw+paddingSize):], pix[4*j*width:4*(j+1)*width])
 	}
 
-	// Add the paddings to the mask if needed.
-	if mask != nil {
-		origMask := mask
-		mask = theTemporaryBytes.alloc((pw*ph-1)/8 + 1)
-		// Clear the allocated region explicitly (#2089).
-		for i := range mask {
-			mask[i] = 0
-		}
-		for i := 0; i < pw; i++ {
-			// Top edge
-			idx := i
-			mask[idx/8] |= 1 << (idx % 8)
-			// Bottom edge
-			idx = (ph-1)*pw + i
-			mask[idx/8] |= 1 << (idx % 8)
-		}
-		for j := 1; j < ph-1; j++ {
-			// Left edge
-			idx := j * pw
-			mask[idx/8] |= 1 << (idx % 8)
-			// Right edge
-			idx = j*pw + pw - 1
-			mask[idx/8] |= 1 << (idx % 8)
-
-			// Content
-			for i := 1; i < pw-1; i++ {
-				idx := j*pw + i
-				origIdx := (j-paddingSize)*(pw-paddingSize*2) + i - paddingSize
-				origValue := (origMask[origIdx/8] >> (origIdx % 8)) & 1
-				mask[idx/8] |= origValue << (idx % 8)
-			}
-		}
-	}
-
-	i.backend.restorable.ReplacePixels(pixb, mask, px, py, pw, ph)
+	x += px
+	y += py
+	i.backend.restorable.ReplacePixels(pixb, x, y, pw, ph)
 }
 
 func (img *Image) Pixels(graphicsDriver graphicsdriver.Graphics) ([]byte, error) {

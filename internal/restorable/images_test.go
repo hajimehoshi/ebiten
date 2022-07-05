@@ -61,7 +61,7 @@ func TestRestore(t *testing.T) {
 	defer img0.Dispose()
 
 	clr0 := color.RGBA{0x00, 0x00, 0x00, 0xff}
-	img0.ReplacePixels([]byte{clr0.R, clr0.G, clr0.B, clr0.A}, nil, 0, 0, 1, 1)
+	img0.ReplacePixels([]byte{clr0.R, clr0.G, clr0.B, clr0.A}, 0, 0, 1, 1)
 	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +135,7 @@ func TestRestoreChain(t *testing.T) {
 		}
 	}()
 	clr := color.RGBA{0x00, 0x00, 0x00, 0xff}
-	imgs[0].ReplacePixels([]byte{clr.R, clr.G, clr.B, clr.A}, nil, 0, 0, 1, 1)
+	imgs[0].ReplacePixels([]byte{clr.R, clr.G, clr.B, clr.A}, 0, 0, 1, 1)
 	for i := 0; i < num-1; i++ {
 		vs := quadVertices(imgs[i], 1, 1, 0, 0)
 		is := graphics.QuadIndices()
@@ -180,11 +180,11 @@ func TestRestoreChain2(t *testing.T) {
 	}()
 
 	clr0 := color.RGBA{0xff, 0x00, 0x00, 0xff}
-	imgs[0].ReplacePixels([]byte{clr0.R, clr0.G, clr0.B, clr0.A}, nil, 0, 0, w, h)
+	imgs[0].ReplacePixels([]byte{clr0.R, clr0.G, clr0.B, clr0.A}, 0, 0, w, h)
 	clr7 := color.RGBA{0x00, 0xff, 0x00, 0xff}
-	imgs[7].ReplacePixels([]byte{clr7.R, clr7.G, clr7.B, clr7.A}, nil, 0, 0, w, h)
+	imgs[7].ReplacePixels([]byte{clr7.R, clr7.G, clr7.B, clr7.A}, 0, 0, w, h)
 	clr8 := color.RGBA{0x00, 0x00, 0xff, 0xff}
-	imgs[8].ReplacePixels([]byte{clr8.R, clr8.G, clr8.B, clr8.A}, nil, 0, 0, w, h)
+	imgs[8].ReplacePixels([]byte{clr8.R, clr8.G, clr8.B, clr8.A}, 0, 0, w, h)
 
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
@@ -234,7 +234,7 @@ func TestRestoreOverrideSource(t *testing.T) {
 	}()
 	clr0 := color.RGBA{0x00, 0x00, 0x00, 0xff}
 	clr1 := color.RGBA{0x00, 0x00, 0x01, 0xff}
-	img1.ReplacePixels([]byte{clr0.R, clr0.G, clr0.B, clr0.A}, nil, 0, 0, w, h)
+	img1.ReplacePixels([]byte{clr0.R, clr0.G, clr0.B, clr0.A}, 0, 0, w, h)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
 		X:      0,
@@ -244,7 +244,7 @@ func TestRestoreOverrideSource(t *testing.T) {
 	}
 	img2.DrawTriangles([graphics.ShaderImageNum]*restorable.Image{img1}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(img1, w, h, 0, 0), is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
 	img3.DrawTriangles([graphics.ShaderImageNum]*restorable.Image{img2}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(img2, w, h, 0, 0), is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
-	img0.ReplacePixels([]byte{clr1.R, clr1.G, clr1.B, clr1.A}, nil, 0, 0, w, h)
+	img0.ReplacePixels([]byte{clr1.R, clr1.G, clr1.B, clr1.A}, 0, 0, w, h)
 	img1.DrawTriangles([graphics.ShaderImageNum]*restorable.Image{img0}, [graphics.ShaderImageNum - 1][2]float32{}, quadVertices(img0, w, h, 0, 0), is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
 	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
@@ -417,7 +417,7 @@ func TestRestoreComplexGraph(t *testing.T) {
 func newImageFromImage(rgba *image.RGBA) *restorable.Image {
 	s := rgba.Bounds().Size()
 	img := restorable.NewImage(s.X, s.Y, restorable.ImageTypeRegular)
-	img.ReplacePixels(rgba.Pix, nil, 0, 0, s.X, s.Y)
+	img.ReplacePixels(rgba.Pix, 0, 0, s.X, s.Y)
 	return img
 }
 
@@ -491,7 +491,7 @@ func TestReplacePixels(t *testing.T) {
 	for i := range pix {
 		pix[i] = 0xff
 	}
-	img.ReplacePixels(pix, nil, 5, 7, 4, 4)
+	img.ReplacePixels(pix, 5, 7, 4, 4)
 	// Check the region (5, 7)-(9, 11). Outside state is indeterministic.
 	for j := 7; j < 11; j++ {
 		for i := 5; i < 9; i++ {
@@ -547,7 +547,7 @@ func TestDrawTrianglesAndReplacePixels(t *testing.T) {
 		Height: 1,
 	}
 	img1.DrawTriangles([graphics.ShaderImageNum]*restorable.Image{img0}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
-	img1.ReplacePixels([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, nil, 0, 0, 2, 1)
+	img1.ReplacePixels([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 0, 0, 2, 1)
 
 	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
 		t.Fatal(err)
@@ -618,7 +618,7 @@ func TestReplacePixelsPart(t *testing.T) {
 
 	img := restorable.NewImage(4, 4, restorable.ImageTypeRegular)
 	// This doesn't make the image stale. Its base pixels are available.
-	img.ReplacePixels(pix, nil, 1, 1, 2, 2)
+	img.ReplacePixels(pix, 1, 1, 2, 2)
 
 	cases := []struct {
 		i    int
@@ -693,7 +693,7 @@ func TestReplacePixelsOnly(t *testing.T) {
 	defer img1.Dispose()
 
 	for i := 0; i < w*h; i += 5 {
-		img0.ReplacePixels([]byte{1, 2, 3, 4}, nil, i%w, i/w, 1, 1)
+		img0.ReplacePixels([]byte{1, 2, 3, 4}, i%w, i/w, 1, 1)
 	}
 
 	vs := quadVertices(img0, 1, 1, 0, 0)
@@ -705,7 +705,7 @@ func TestReplacePixelsOnly(t *testing.T) {
 		Height: 1,
 	}
 	img1.DrawTriangles([graphics.ShaderImageNum]*restorable.Image{img0}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
-	img0.ReplacePixels([]byte{5, 6, 7, 8}, nil, 0, 0, 1, 1)
+	img0.ReplacePixels([]byte{5, 6, 7, 8}, 0, 0, 1, 1)
 
 	// BasePixelsForTesting is available without GPU accessing.
 	for j := 0; j < h; j++ {
@@ -747,14 +747,14 @@ func TestReadPixelsFromVolatileImage(t *testing.T) {
 	src := restorable.NewImage(w, h, restorable.ImageTypeRegular)
 
 	// First, make sure that dst has pixels
-	dst.ReplacePixels(make([]byte, 4*w*h), nil, 0, 0, w, h)
+	dst.ReplacePixels(make([]byte, 4*w*h), 0, 0, w, h)
 
 	// Second, draw src to dst. If the implementation is correct, dst becomes stale.
 	pix := make([]byte, 4*w*h)
 	for i := range pix {
 		pix[i] = 0xff
 	}
-	src.ReplacePixels(pix, nil, 0, 0, w, h)
+	src.ReplacePixels(pix, 0, 0, w, h)
 	vs := quadVertices(src, 1, 1, 0, 0)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
@@ -791,7 +791,7 @@ func TestAllowReplacePixelsAfterDrawTriangles(t *testing.T) {
 		Height: h,
 	}
 	dst.DrawTriangles([graphics.ShaderImageNum]*restorable.Image{src}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
-	dst.ReplacePixels(make([]byte, 4*w*h), nil, 0, 0, w, h)
+	dst.ReplacePixels(make([]byte, 4*w*h), 0, 0, w, h)
 	// ReplacePixels for a whole image doesn't panic.
 }
 
@@ -815,7 +815,7 @@ func TestDisallowReplacePixelsForPartAfterDrawTriangles(t *testing.T) {
 		Height: h,
 	}
 	dst.DrawTriangles([graphics.ShaderImageNum]*restorable.Image{src}, [graphics.ShaderImageNum - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
-	dst.ReplacePixels(make([]byte, 4), nil, 0, 0, 1, 1)
+	dst.ReplacePixels(make([]byte, 4), 0, 0, 1, 1)
 }
 
 func TestExtend(t *testing.T) {
@@ -837,7 +837,7 @@ func TestExtend(t *testing.T) {
 		}
 	}
 
-	orig.ReplacePixels(pix, nil, 0, 0, w, h)
+	orig.ReplacePixels(pix, 0, 0, w, h)
 	extended := orig.Extend(w*2, h*2) // After this, orig is already disposed.
 
 	for j := 0; j < h*2; j++ {
@@ -860,13 +860,13 @@ func TestExtend(t *testing.T) {
 func TestClearPixels(t *testing.T) {
 	const w, h = 16, 16
 	img := restorable.NewImage(w, h, restorable.ImageTypeRegular)
-	img.ReplacePixels(make([]byte, 4*4*4), nil, 0, 0, 4, 4)
-	img.ReplacePixels(make([]byte, 4*4*4), nil, 4, 0, 4, 4)
+	img.ReplacePixels(make([]byte, 4*4*4), 0, 0, 4, 4)
+	img.ReplacePixels(make([]byte, 4*4*4), 4, 0, 4, 4)
 	img.ClearPixels(0, 0, 4, 4)
 	img.ClearPixels(4, 0, 4, 4)
 
 	// After clearing, the regions will be available again.
-	img.ReplacePixels(make([]byte, 4*8*4), nil, 0, 0, 8, 4)
+	img.ReplacePixels(make([]byte, 4*8*4), 0, 0, 8, 4)
 }
 
 func TestMutateSlices(t *testing.T) {
@@ -880,7 +880,7 @@ func TestMutateSlices(t *testing.T) {
 		pix[4*i+2] = byte(i)
 		pix[4*i+3] = 0xff
 	}
-	src.ReplacePixels(pix, nil, 0, 0, w, h)
+	src.ReplacePixels(pix, 0, 0, w, h)
 
 	vs := quadVertices(src, w, h, 0, 0)
 	is := make([]uint16, len(graphics.QuadIndices()))
@@ -937,7 +937,7 @@ func TestOverlappedPixels(t *testing.T) {
 			pix0[idx+3] = 0xff
 		}
 	}
-	dst.ReplacePixels(pix0, nil, 0, 0, 2, 2)
+	dst.ReplacePixels(pix0, 0, 0, 2, 2)
 
 	pix1 := make([]byte, 4*2*2)
 	for j := 0; j < 2; j++ {
@@ -949,7 +949,7 @@ func TestOverlappedPixels(t *testing.T) {
 			pix1[idx+3] = 0xff
 		}
 	}
-	dst.ReplacePixels(pix1, nil, 1, 1, 2, 2)
+	dst.ReplacePixels(pix1, 1, 1, 2, 2)
 
 	wantColors := []color.RGBA{
 		{0xff, 0, 0, 0xff},
@@ -978,7 +978,7 @@ func TestOverlappedPixels(t *testing.T) {
 		}
 	}
 
-	dst.ReplacePixels(nil, nil, 1, 0, 2, 2)
+	dst.ReplacePixels(nil, 1, 0, 2, 2)
 
 	wantColors = []color.RGBA{
 		{0xff, 0, 0, 0xff},
@@ -1017,7 +1017,7 @@ func TestOverlappedPixels(t *testing.T) {
 			pix2[idx+3] = 0xff
 		}
 	}
-	dst.ReplacePixels(pix2, nil, 1, 1, 2, 2)
+	dst.ReplacePixels(pix2, 1, 1, 2, 2)
 
 	wantColors = []color.RGBA{
 		{0xff, 0, 0, 0xff},
@@ -1031,154 +1031,6 @@ func TestOverlappedPixels(t *testing.T) {
 		{0, 0, 0, 0},
 		{0, 0, 0xff, 0xff},
 		{0, 0, 0xff, 0xff},
-	}
-	for j := 0; j < 3; j++ {
-		for i := 0; i < 3; i++ {
-			r, g, b, a, err := dst.At(ui.GraphicsDriverForTesting(), i, j)
-			if err != nil {
-				t.Fatal(err)
-			}
-			got := color.RGBA{r, g, b, a}
-			want := wantColors[3*j+i]
-			if got != want {
-				t.Errorf("color at (%d, %d): got %v, want: %v", i, j, got, want)
-			}
-		}
-	}
-
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
-		t.Fatal(err)
-	}
-	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
-		t.Fatal(err)
-	}
-
-	for j := 0; j < 3; j++ {
-		for i := 0; i < 3; i++ {
-			r, g, b, a, err := dst.At(ui.GraphicsDriverForTesting(), i, j)
-			if err != nil {
-				t.Fatal(err)
-			}
-			got := color.RGBA{r, g, b, a}
-			want := wantColors[3*j+i]
-			if got != want {
-				t.Errorf("color at (%d, %d): got %v, want: %v", i, j, got, want)
-			}
-		}
-	}
-}
-
-func TestReplacePixelsWithMask(t *testing.T) {
-	dst := restorable.NewImage(3, 3, restorable.ImageTypeRegular)
-
-	pix0 := make([]byte, 4*2*2)
-	for j := 0; j < 2; j++ {
-		for i := 0; i < 2; i++ {
-			idx := 4 * (j*2 + i)
-			pix0[idx] = 0xff
-			pix0[idx+1] = 0
-			pix0[idx+2] = 0
-			pix0[idx+3] = 0xff
-		}
-	}
-	dst.ReplacePixels(pix0, nil, 0, 0, 2, 2)
-
-	pix1 := make([]byte, 4*2*2)
-	for j := 0; j < 2; j++ {
-		for i := 0; i < 2; i++ {
-			idx := 4 * (j*2 + i)
-			pix1[idx] = 0
-			pix1[idx+1] = 0xff
-			pix1[idx+2] = 0
-			pix1[idx+3] = 0xff
-		}
-	}
-
-	mask1 := []byte{0b00001110}
-	dst.ReplacePixels(pix1, mask1, 1, 1, 2, 2)
-
-	wantColors := []color.RGBA{
-		{0xff, 0, 0, 0xff},
-		{0xff, 0, 0, 0xff},
-		{0, 0, 0, 0},
-
-		{0xff, 0, 0, 0xff},
-		{0xff, 0, 0, 0xff},
-		{0, 0xff, 0, 0xff},
-
-		{0, 0, 0, 0},
-		{0, 0xff, 0, 0xff},
-		{0, 0xff, 0, 0xff},
-	}
-	for j := 0; j < 3; j++ {
-		for i := 0; i < 3; i++ {
-			r, g, b, a, err := dst.At(ui.GraphicsDriverForTesting(), i, j)
-			if err != nil {
-				t.Fatal(err)
-			}
-			got := color.RGBA{r, g, b, a}
-			want := wantColors[3*j+i]
-			if got != want {
-				t.Errorf("color at (%d, %d): got %v, want: %v", i, j, got, want)
-			}
-		}
-	}
-
-	dst.ReplacePixels(nil, nil, 1, 0, 2, 2)
-
-	wantColors = []color.RGBA{
-		{0xff, 0, 0, 0xff},
-		{0, 0, 0, 0},
-		{0, 0, 0, 0},
-
-		{0xff, 0, 0, 0xff},
-		{0, 0, 0, 0},
-		{0, 0, 0, 0},
-
-		{0, 0, 0, 0},
-		{0, 0xff, 0, 0xff},
-		{0, 0xff, 0, 0xff},
-	}
-	for j := 0; j < 3; j++ {
-		for i := 0; i < 3; i++ {
-			r, g, b, a, err := dst.At(ui.GraphicsDriverForTesting(), i, j)
-			if err != nil {
-				t.Fatal(err)
-			}
-			got := color.RGBA{r, g, b, a}
-			want := wantColors[3*j+i]
-			if got != want {
-				t.Errorf("color at (%d, %d): got %v, want: %v", i, j, got, want)
-			}
-		}
-	}
-
-	// Update the same region with pix1/mask1.
-	pix2 := make([]byte, 4*2*2)
-	for j := 0; j < 2; j++ {
-		for i := 0; i < 2; i++ {
-			idx := 4 * (j*2 + i)
-			pix2[idx] = 0
-			pix2[idx+1] = 0
-			pix2[idx+2] = 0xff
-			pix2[idx+3] = 0xff
-		}
-	}
-	mask2 := []byte{0b00000111}
-	dst.ReplacePixels(pix2, mask2, 1, 1, 2, 2)
-
-	wantColors = []color.RGBA{
-		{0xff, 0, 0, 0xff},
-		{0, 0, 0, 0},
-		{0, 0, 0, 0},
-
-		{0xff, 0, 0, 0xff},
-		{0, 0, 0xff, 0xff},
-		{0, 0, 0xff, 0xff},
-
-		{0, 0, 0, 0},
-		{0, 0, 0xff, 0xff},
-		{0, 0xff, 0, 0xff},
 	}
 	for j := 0; j < 3; j++ {
 		for i := 0; i < 3; i++ {

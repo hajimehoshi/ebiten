@@ -62,9 +62,9 @@ func TestImageDrawTwice(t *testing.T) {
 
 	dst := atlas.NewImage(w, h, atlas.ImageTypeRegular)
 	src0 := atlas.NewImage(w, h, atlas.ImageTypeRegular)
-	src0.ReplacePixels([]byte{0xff, 0xff, 0xff, 0xff}, nil)
+	src0.ReplacePixels([]byte{0xff, 0xff, 0xff, 0xff}, 0, 0, w, h)
 	src1 := atlas.NewImage(w, h, atlas.ImageTypeRegular)
-	src1.ReplacePixels([]byte{0x80, 0x80, 0x80, 0xff}, nil)
+	src1.ReplacePixels([]byte{0x80, 0x80, 0x80, 0xff}, 0, 0, w, h)
 
 	vs := quadVertices(w, h, 0, 0, 1)
 	is := graphics.QuadIndices()

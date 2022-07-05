@@ -29,9 +29,7 @@ type Image struct {
 	width  int
 	height int
 
-	pixels               []byte
-	mask                 []byte
-	needsToResolvePixels bool
+	pixels []byte
 }
 
 func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
@@ -68,21 +66,6 @@ func (i *Image) initialize(imageType atlas.ImageType) {
 
 func (i *Image) invalidatePixels() {
 	i.pixels = nil
-	i.mask = nil
-	i.needsToResolvePixels = false
-}
-
-func (i *Image) resolvePendingPixels(keepPendingPixels bool) {
-	if !i.needsToResolvePixels {
-		return
-	}
-
-	i.img.ReplacePixels(i.pixels, i.mask)
-	if !keepPendingPixels {
-		i.pixels = nil
-		i.mask = nil
-	}
-	i.needsToResolvePixels = false
 }
 
 func (i *Image) MarkDisposed() {
@@ -102,14 +85,7 @@ func (img *Image) At(graphicsDriver graphicsdriver.Graphics, x, y int) (r, g, b,
 
 	idx := (y*img.width + x)
 	if img.pixels != nil {
-		if img.mask == nil {
-			return img.pixels[4*idx], img.pixels[4*idx+1], img.pixels[4*idx+2], img.pixels[4*idx+3], nil
-		}
-		if img.mask[idx/8]<<(idx%8)&1 != 0 {
-			return img.pixels[4*idx], img.pixels[4*idx+1], img.pixels[4*idx+2], img.pixels[4*idx+3], nil
-		}
-
-		img.resolvePendingPixels(false)
+		return img.pixels[4*idx], img.pixels[4*idx+1], img.pixels[4*idx+2], img.pixels[4*idx+3], nil
 	}
 
 	pix, err := img.img.Pixels(graphicsDriver)
@@ -117,8 +93,6 @@ func (img *Image) At(graphicsDriver graphicsdriver.Graphics, x, y int) (r, g, b,
 		return 0, 0, 0, 0, err
 	}
 	img.pixels = pix
-	// When pixels represents the whole pixels, the mask is not needed.
-	img.mask = nil
 	return img.pixels[4*idx], img.pixels[4*idx+1], img.pixels[4*idx+2], img.pixels[4*idx+3], nil
 }
 
@@ -143,40 +117,8 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) {
 		}
 	}
 
-	if x == 0 && y == 0 && width == i.width && height == i.height {
-		i.invalidatePixels()
-		i.img.ReplacePixels(pix, nil)
-		return
-	}
-
-	// TODO: If width/height is big enough, ReplacePixels can be called instead of replacePendingPixels.
-	// Check if this is efficient.
-
-	i.replacePendingPixels(pix, x, y, width, height)
-}
-
-func (img *Image) replacePendingPixels(pix []byte, x, y, width, height int) {
-	if img.pixels == nil {
-		img.pixels = make([]byte, 4*img.width*img.height)
-		if img.mask == nil {
-			img.mask = make([]byte, (img.width*img.height-1)/8+1)
-		}
-	}
-	for j := 0; j < height; j++ {
-		copy(img.pixels[4*((j+y)*img.width+x):], pix[4*j*width:4*(j+1)*width])
-	}
-
-	// A mask is created only when partial regions are replaced by replacePendingPixels.
-	if img.mask != nil {
-		for j := 0; j < height; j++ {
-			for i := 0; i < width; i++ {
-				idx := (y+j)*img.width + x + i
-				img.mask[idx/8] |= 1 << (idx % 8)
-			}
-		}
-	}
-
-	img.needsToResolvePixels = true
+	i.invalidatePixels()
+	i.img.ReplacePixels(pix, x, y, width, height)
 }
 
 // DrawTriangles draws the src image with the given vertices.
@@ -203,22 +145,19 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 	if shader == nil {
 		// Fast path for rendering without a shader (#1355).
 		img := srcs[0]
-		img.resolvePendingPixels(true)
 		imgs[0] = img.img
 	} else {
 		for i, img := range srcs {
 			if img == nil {
 				continue
 			}
-			img.resolvePendingPixels(true)
 			imgs[i] = img.img
 		}
 		s = shader.shader
 	}
-	i.resolvePendingPixels(false)
 
-	i.img.DrawTriangles(imgs, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, s, uniforms, evenOdd)
 	i.invalidatePixels()
+	i.img.DrawTriangles(imgs, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, s, uniforms, evenOdd)
 }
 
 type Shader struct {

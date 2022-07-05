@@ -24,7 +24,6 @@ import (
 type pixelsRecord struct {
 	rect image.Rectangle
 	pix  []byte
-	mask []byte
 }
 
 func (p *pixelsRecord) clearIfOverlapped(rect image.Rectangle) {
@@ -43,40 +42,11 @@ func (p *pixelsRecord) clearIfOverlapped(rect image.Rectangle) {
 	}
 }
 
-func (p *pixelsRecord) merge(pix []byte, mask []byte) {
-	if len(p.pix) != len(pix) {
-		panic(fmt.Sprintf("restorable: len(p.pix) (%d) and len(pix) (%d) must match but not", len(p.pix), len(pix)))
-	}
-
-	if mask == nil {
-		p.pix = pix
-		return
-	}
-
-	if p.mask == nil {
-		p.mask = mask
-	}
-	if len(p.mask) != len(mask) {
-		panic(fmt.Sprintf("restorable: len(p.mask) (%d) and len(mask) (%d) must match but not", len(p.mask), len(mask)))
-	}
-
-	for i := 0; i < len(p.pix)/4; i++ {
-		if mask[i/8]>>(i%8)&1 == 0 {
-			continue
-		}
-		p.mask[i/8] |= 1 << (i % 8)
-		copy(p.pix[4*i:4*(i+1)], pix[4*i:4*(i+1)])
-	}
-}
-
 func (p *pixelsRecord) at(x, y int) (r, g, b, a byte, ok bool) {
 	if !image.Pt(x, y).In(p.rect) {
 		return 0, 0, 0, 0, false
 	}
 	idx := ((y-p.rect.Min.Y)*p.rect.Dx() + (x - p.rect.Min.X))
-	if p.mask != nil && p.mask[idx/8]>>(idx%8)&1 == 0 {
-		return 0, 0, 0, 0, false
-	}
 	return p.pix[4*idx], p.pix[4*idx+1], p.pix[4*idx+2], p.pix[4*idx+3], true
 }
 
@@ -84,7 +54,7 @@ type pixelsRecords struct {
 	records []*pixelsRecord
 }
 
-func (pr *pixelsRecords) addOrReplace(pixels []byte, mask []byte, x, y, width, height int) {
+func (pr *pixelsRecords) addOrReplace(pixels []byte, x, y, width, height int) {
 	if len(pixels) != 4*width*height {
 		msg := fmt.Sprintf("restorable: len(pixels) must be 4*%d*%d = %d but %d", width, height, 4*width*height, len(pixels))
 		if pixels == nil {
@@ -94,29 +64,6 @@ func (pr *pixelsRecords) addOrReplace(pixels []byte, mask []byte, x, y, width, h
 	}
 
 	rect := image.Rect(x, y, x+width, y+height)
-	if mask != nil {
-		// If a mask is specified, try merging the records.
-		var merged bool
-		for idx := len(pr.records) - 1; idx >= 0; idx-- {
-			if r := pr.records[idx]; r.rect.Overlaps(rect) {
-				if r.rect == rect {
-					r.merge(pixels, mask)
-					merged = true
-				}
-				// If there is an overlap with other regions in the existing records,
-				// give up modifying them and just add a record.
-				break
-			}
-		}
-		if !merged {
-			pr.records = append(pr.records, &pixelsRecord{
-				rect: rect,
-				pix:  pixels,
-				mask: mask,
-			})
-		}
-		return
-	}
 
 	// Remove or update the duplicated records first.
 	var n int
@@ -171,6 +118,6 @@ func (pr *pixelsRecords) at(i, j int) (r, g, b, a byte, ok bool) {
 func (pr *pixelsRecords) apply(img *graphicscommand.Image) {
 	// TODO: Isn't this too heavy? Can we merge the operations?
 	for _, r := range pr.records {
-		img.ReplacePixels(r.pix, r.mask, r.rect.Min.X, r.rect.Min.Y, r.rect.Dx(), r.rect.Dy())
+		img.ReplacePixels(r.pix, r.rect.Min.X, r.rect.Min.Y, r.rect.Dx(), r.rect.Dy())
 	}
 }
