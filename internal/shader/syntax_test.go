@@ -1351,3 +1351,83 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		t.Errorf("error must be non-nil but was nil")
 	}
 }
+
+// Issue #2184
+func TestSyntaxBuiltinFuncType(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "a := vec2(1); _ = a", err: false},
+		{stmt: "a := vec2(1.0); _ = a", err: false},
+		{stmt: "i := 1; a := vec2(i); _ = a", err: false},
+		{stmt: "i := 1.0; a := vec2(i); _ = a", err: false},
+		{stmt: "a := vec2(vec2(1)); _ = a", err: false},
+		{stmt: "a := vec2(vec3(1)); _ = a", err: true},
+
+		{stmt: "a := vec2(1, 1); _ = a", err: false},
+		{stmt: "a := vec2(1.0, 1.0); _ = a", err: false},
+		{stmt: "i := 1; a := vec2(i, i); _ = a", err: false},
+		{stmt: "i := 1.0; a := vec2(i, i); _ = a", err: false},
+		{stmt: "a := vec2(vec2(1), 1); _ = a", err: true},
+		{stmt: "a := vec2(1, vec2(1)); _ = a", err: true},
+		{stmt: "a := vec2(vec2(1), vec2(1)); _ = a", err: true},
+		{stmt: "a := vec2(1, 1, 1); _ = a", err: true},
+
+		{stmt: "a := vec3(1); _ = a", err: false},
+		{stmt: "a := vec3(1.0); _ = a", err: false},
+		{stmt: "i := 1; a := vec3(i); _ = a", err: false},
+		{stmt: "i := 1.0; a := vec3(i); _ = a", err: false},
+		{stmt: "a := vec3(vec3(1)); _ = a", err: false},
+		{stmt: "a := vec3(vec2(1)); _ = a", err: true},
+		{stmt: "a := vec3(vec4(1)); _ = a", err: true},
+
+		{stmt: "a := vec3(1, 1, 1); _ = a", err: false},
+		{stmt: "a := vec3(1.0, 1.0, 1.0); _ = a", err: false},
+		{stmt: "i := 1; a := vec3(i, i, i); _ = a", err: false},
+		{stmt: "i := 1.0; a := vec3(i, i, i); _ = a", err: false},
+		{stmt: "a := vec3(vec2(1), 1); _ = a", err: false},
+		{stmt: "a := vec3(1, vec2(1)); _ = a", err: false},
+		{stmt: "a := vec3(vec3(1), 1); _ = a", err: true},
+		{stmt: "a := vec3(1, vec3(1)); _ = a", err: true},
+		{stmt: "a := vec3(vec3(1), vec3(1), vec3(1)); _ = a", err: true},
+		{stmt: "a := vec3(1, 1, 1, 1); _ = a", err: true},
+
+		{stmt: "a := vec4(1); _ = a", err: false},
+		{stmt: "a := vec4(1.0); _ = a", err: false},
+		{stmt: "i := 1; a := vec4(i); _ = a", err: false},
+		{stmt: "i := 1.0; a := vec4(i); _ = a", err: false},
+		{stmt: "a := vec4(vec4(1)); _ = a", err: false},
+		{stmt: "a := vec4(vec2(1)); _ = a", err: true},
+		{stmt: "a := vec4(vec3(1)); _ = a", err: true},
+
+		{stmt: "a := vec4(1, 1, 1, 1); _ = a", err: false},
+		{stmt: "a := vec4(1.0, 1.0, 1.0, 1.0); _ = a", err: false},
+		{stmt: "i := 1; a := vec4(i, i, i, i); _ = a", err: false},
+		{stmt: "i := 1.0; a := vec4(i, i, i, i); _ = a", err: false},
+		{stmt: "a := vec4(vec2(1), 1, 1); _ = a", err: false},
+		{stmt: "a := vec4(1, vec2(1), 1); _ = a", err: false},
+		{stmt: "a := vec4(1, 1, vec2(1)); _ = a", err: false},
+		{stmt: "a := vec4(vec2(1), vec2(1)); _ = a", err: false},
+		{stmt: "a := vec4(vec3(1), 1); _ = a", err: false},
+		{stmt: "a := vec4(1, vec3(1)); _ = a", err: false},
+		{stmt: "a := vec4(vec4(1), 1); _ = a", err: true},
+		{stmt: "a := vec4(1, vec4(1)); _ = a", err: true},
+		{stmt: "a := vec4(vec4(1), vec4(1), vec4(1), vec4(1)); _ = a", err: true},
+		{stmt: "a := vec4(1, 1, 1, 1, 1); _ = a", err: true},
+	}
+
+	for _, c := range cases {
+		_, err := compileToIR([]byte(fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	%s
+	return position
+}`, c.stmt)))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", c.stmt, err)
+		}
+	}
+}

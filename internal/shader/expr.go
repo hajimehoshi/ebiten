@@ -379,34 +379,58 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 			var t shaderir.Type
 			switch callee.BuiltinFunc {
 			case shaderir.BoolF:
+				// TODO: Check arg types.
 				t = shaderir.Type{Main: shaderir.Bool}
 			case shaderir.IntF:
+				// TODO: Check arg types.
 				t = shaderir.Type{Main: shaderir.Int}
 			case shaderir.FloatF:
+				// TODO: Check arg types.
 				t = shaderir.Type{Main: shaderir.Float}
 			case shaderir.Vec2F:
+				if err := checkArgsForVec2BuiltinFunc(args, argts); err != nil {
+					cs.addError(e.Pos(), err.Error())
+					return nil, nil, nil, false
+				}
 				t = shaderir.Type{Main: shaderir.Vec2}
 			case shaderir.Vec3F:
+				if err := checkArgsForVec3BuiltinFunc(args, argts); err != nil {
+					cs.addError(e.Pos(), err.Error())
+					return nil, nil, nil, false
+				}
 				t = shaderir.Type{Main: shaderir.Vec3}
 			case shaderir.Vec4F:
+				if err := checkArgsForVec4BuiltinFunc(args, argts); err != nil {
+					cs.addError(e.Pos(), err.Error())
+					return nil, nil, nil, false
+				}
 				t = shaderir.Type{Main: shaderir.Vec4}
 			case shaderir.Mat2F:
+				// TODO: Check arg types.
 				t = shaderir.Type{Main: shaderir.Mat2}
 			case shaderir.Mat3F:
+				// TODO: Check arg types.
 				t = shaderir.Type{Main: shaderir.Mat3}
 			case shaderir.Mat4F:
+				// TODO: Check arg types.
 				t = shaderir.Type{Main: shaderir.Mat4}
 			case shaderir.Step:
+				// TODO: Check arg types.
 				t = argts[1]
 			case shaderir.Smoothstep:
+				// TODO: Check arg types.
 				t = argts[2]
 			case shaderir.Length, shaderir.Distance, shaderir.Dot:
+				// TODO: Check arg types.
 				t = shaderir.Type{Main: shaderir.Float}
 			case shaderir.Cross:
+				// TODO: Check arg types.
 				t = shaderir.Type{Main: shaderir.Vec3}
 			case shaderir.Texture2DF:
+				// TODO: Check arg types.
 				t = shaderir.Type{Main: shaderir.Vec4}
 			default:
+				// TODO: Check arg types?
 				// If the argument is a non-typed constant value, treat is as a float value (#1874).
 				if args[0].Type == shaderir.NumberExpr && args[0].ConstType == shaderir.ConstTypeNone {
 					args[0].ConstType = shaderir.ConstTypeFloat

@@ -98,3 +98,124 @@ func (cs *compileState) parseType(block *block, expr ast.Expr) (shaderir.Type, b
 		return shaderir.Type{}, false
 	}
 }
+
+func canBeFloatImplicitly(expr shaderir.Expr, t shaderir.Type) bool {
+	// TODO: For integers, should only constants be allowed?
+	if t.Main == shaderir.Int {
+		return true
+	}
+	if t.Main == shaderir.Float {
+		return true
+	}
+	if expr.Const != nil {
+		if expr.Const.Kind() == gconstant.Int {
+			return true
+		}
+		if expr.Const.Kind() == gconstant.Float {
+			return true
+		}
+	}
+	return false
+}
+
+func checkArgsForVec2BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) error {
+	if len(args) != len(argts) {
+		return fmt.Errorf("the number of arguments and types doesn't match: %d vs %d", len(args), len(argts))
+	}
+
+	switch len(args) {
+	case 1:
+		if canBeFloatImplicitly(args[0], argts[0]) {
+			return nil
+		}
+		if argts[0].Main == shaderir.Vec2 {
+			return nil
+		}
+		return fmt.Errorf("invalid arguments for vec2: (%s)", argts[0].String())
+	case 2:
+		if canBeFloatImplicitly(args[0], argts[0]) && canBeFloatImplicitly(args[1], argts[1]) {
+			return nil
+		}
+		return fmt.Errorf("invalid arguments for vec2: (%s, %s)", argts[0].String(), argts[1].String())
+	default:
+		return fmt.Errorf("too many arguments for vec2")
+	}
+}
+
+func checkArgsForVec3BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) error {
+	if len(args) != len(argts) {
+		return fmt.Errorf("the number of arguments and types doesn't match: %d vs %d", len(args), len(argts))
+	}
+
+	switch len(args) {
+	case 1:
+		if canBeFloatImplicitly(args[0], argts[0]) {
+			return nil
+		}
+		if argts[0].Main == shaderir.Vec3 {
+			return nil
+		}
+		return fmt.Errorf("invalid arguments for vec3: (%s)", argts[0].String())
+	case 2:
+		if canBeFloatImplicitly(args[0], argts[0]) && argts[1].Main == shaderir.Vec2 {
+			return nil
+		}
+		if argts[0].Main == shaderir.Vec2 && canBeFloatImplicitly(args[1], argts[1]) {
+			return nil
+		}
+		return fmt.Errorf("invalid arguments for vec3: (%s, %s)", argts[0].String(), argts[1].String())
+	case 3:
+		if canBeFloatImplicitly(args[0], argts[0]) && canBeFloatImplicitly(args[1], argts[1]) && canBeFloatImplicitly(args[2], argts[2]) {
+			return nil
+		}
+		return fmt.Errorf("invalid arguments for vec3: (%s, %s, %s)", argts[0].String(), argts[1].String(), argts[2].String())
+	default:
+		return fmt.Errorf("too many arguments for vec3")
+	}
+}
+
+func checkArgsForVec4BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) error {
+	if len(args) != len(argts) {
+		return fmt.Errorf("the number of arguments and types doesn't match: %d vs %d", len(args), len(argts))
+	}
+
+	switch len(args) {
+	case 1:
+		if canBeFloatImplicitly(args[0], argts[0]) {
+			return nil
+		}
+		if argts[0].Main == shaderir.Vec4 {
+			return nil
+		}
+		return fmt.Errorf("invalid arguments for vec4: (%s)", argts[0].String())
+	case 2:
+		if canBeFloatImplicitly(args[0], argts[0]) && argts[1].Main == shaderir.Vec3 {
+			return nil
+		}
+		if argts[0].Main == shaderir.Vec2 && argts[1].Main == shaderir.Vec2 {
+			return nil
+		}
+		if argts[0].Main == shaderir.Vec3 && canBeFloatImplicitly(args[1], argts[1]) {
+			return nil
+		}
+		return fmt.Errorf("invalid arguments for vec4: (%s, %s)", argts[0].String(), argts[1].String())
+	case 3:
+		if canBeFloatImplicitly(args[0], argts[0]) && canBeFloatImplicitly(args[1], argts[1]) && argts[2].Main == shaderir.Vec2 {
+			return nil
+		}
+		if canBeFloatImplicitly(args[0], argts[0]) && argts[1].Main == shaderir.Vec2 && canBeFloatImplicitly(args[2], argts[2]) {
+			return nil
+		}
+		if argts[0].Main == shaderir.Vec2 && canBeFloatImplicitly(args[1], argts[1]) && canBeFloatImplicitly(args[2], argts[2]) {
+			return nil
+		}
+		return fmt.Errorf("invalid arguments for vec4: (%s, %s, %s)", argts[0].String(), argts[1].String(), argts[2].String())
+	case 4:
+		if canBeFloatImplicitly(args[0], argts[0]) && canBeFloatImplicitly(args[1], argts[1]) && canBeFloatImplicitly(args[2], argts[2]) && canBeFloatImplicitly(args[3], argts[3]) {
+			return nil
+		}
+		return fmt.Errorf("invalid arguments for vec4: (%s, %s, %s, %s)", argts[0].String(), argts[1].String(), argts[2].String(), argts[3].String())
+	default:
+		return fmt.Errorf("too many arguments for vec4")
+	}
+}
