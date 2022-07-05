@@ -495,8 +495,6 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 }
 
 // ReplacePixels replaces the pixels on the image.
-// ReplacePixels cannot take a region due to the current implementation.
-// internal/restorable.Image has to record the areas of replaced pixels, and the areas must not be overlapped so far.
 func (i *Image) ReplacePixels(pix []byte, mask []byte) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
