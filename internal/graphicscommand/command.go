@@ -334,8 +334,9 @@ func (c *drawTrianglesCommand) String() string {
 		dst += " (screen)"
 	}
 
+	shader := "default shader"
 	if c.shader != nil {
-		return fmt.Sprintf("draw-triangles: dst: %s, shader, num of indices: %d, mode %s", dst, c.nindices, mode)
+		shader = "custom shader"
 	}
 
 	filter := ""
@@ -376,7 +377,7 @@ func (c *drawTrianglesCommand) String() string {
 
 	r := fmt.Sprintf("(x:%d, y:%d, width:%d, height:%d)",
 		int(c.dstRegion.X), int(c.dstRegion.Y), int(c.dstRegion.Width), int(c.dstRegion.Height))
-	return fmt.Sprintf("draw-triangles: dst: %s <- src: [%s], dst region: %s, num of indices: %d, colorm: %s, mode: %s, filter: %s, address: %s, even-odd: %t", dst, strings.Join(srcstrs[:], ", "), r, c.nindices, c.color, mode, filter, address, c.evenOdd)
+	return fmt.Sprintf("draw-triangles: dst: %s <- src: [%s], %s, dst region: %s, num of indices: %d, colorm: %s, mode: %s, filter: %s, address: %s, even-odd: %t", dst, strings.Join(srcstrs[:], ", "), shader, r, c.nindices, c.color, mode, filter, address, c.evenOdd)
 }
 
 // Exec executes the drawTrianglesCommand.
