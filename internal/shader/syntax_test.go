@@ -1358,6 +1358,33 @@ func TestSyntaxBuiltinFuncType(t *testing.T) {
 		stmt string
 		err  bool
 	}{
+		{stmt: "a := bool(false); _ = a", err: false},
+		{stmt: "i := false; a := bool(i); _ = a", err: false},
+		{stmt: "a := bool(1); _ = a", err: true},
+		{stmt: "a := bool(1.0); _ = a", err: true},
+		{stmt: "a := bool(); _ = a", err: true},
+		{stmt: "a := bool(false, true); _ = a", err: true},
+
+		{stmt: "a := int(1); _ = a", err: false},
+		{stmt: "a := int(1.0); _ = a", err: false},
+		{stmt: "i := 1; a := int(i); _ = a", err: false},
+		{stmt: "i := 1.0; a := int(i); _ = a", err: false},
+		{stmt: "i := 1.1; a := int(i); _ = a", err: false},
+		{stmt: "a := int(1.1); _ = a", err: true},
+		{stmt: "a := int(false); _ = a", err: true},
+		{stmt: "a := int(); _ = a", err: true},
+		{stmt: "a := int(1, 2); _ = a", err: true},
+
+		{stmt: "a := float(1); _ = a", err: false},
+		{stmt: "a := float(1.0); _ = a", err: false},
+		{stmt: "a := float(1.1); _ = a", err: false},
+		{stmt: "i := 1; a := float(i); _ = a", err: false},
+		{stmt: "i := 1.0; a := float(i); _ = a", err: false},
+		{stmt: "i := 1.1; a := float(i); _ = a", err: false},
+		{stmt: "a := float(false); _ = a", err: true},
+		{stmt: "a := float(); _ = a", err: true},
+		{stmt: "a := float(1, 2); _ = a", err: true},
+
 		{stmt: "a := vec2(1); _ = a", err: false},
 		{stmt: "a := vec2(1.0); _ = a", err: false},
 		{stmt: "i := 1; a := vec2(i); _ = a", err: false},

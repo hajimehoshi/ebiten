@@ -119,6 +119,54 @@ func canBeFloatImplicitly(expr shaderir.Expr, t shaderir.Type) bool {
 	return false
 }
 
+func checkArgsForBoolBuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) error {
+	if len(args) != len(argts) {
+		return fmt.Errorf("the number of arguments and types doesn't match: %d vs %d", len(args), len(argts))
+	}
+
+	if len(args) != 1 {
+		return fmt.Errorf("number of bool's arguments must be 1 but %d", len(args))
+	}
+	if argts[0].Main == shaderir.Bool {
+		return nil
+	}
+	if args[0].Const != nil && args[0].Const.Kind() == gconstant.Bool {
+		return nil
+	}
+	return fmt.Errorf("invalid arguments for bool: (%s)", argts[0].String())
+}
+
+func checkArgsForIntBuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) error {
+	if len(args) != len(argts) {
+		return fmt.Errorf("the number of arguments and types doesn't match: %d vs %d", len(args), len(argts))
+	}
+
+	if len(args) != 1 {
+		return fmt.Errorf("number of int's arguments must be 1 but %d", len(args))
+	}
+	if argts[0].Main == shaderir.Int || argts[0].Main == shaderir.Float {
+		return nil
+	}
+	if args[0].Const != nil && canTruncateToInteger(args[0].Const) {
+		return nil
+	}
+	return fmt.Errorf("invalid arguments for int: (%s)", argts[0].String())
+}
+
+func checkArgsForFloatBuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) error {
+	if len(args) != len(argts) {
+		return fmt.Errorf("the number of arguments and types doesn't match: %d vs %d", len(args), len(argts))
+	}
+
+	if len(args) != 1 {
+		return fmt.Errorf("number of float's arguments must be 1 but %d", len(args))
+	}
+	if canBeFloatImplicitly(args[0], argts[0]) {
+		return nil
+	}
+	return fmt.Errorf("invalid arguments for float: (%s)", argts[0].String())
+}
+
 func checkArgsForVec2BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) error {
 	if len(args) != len(argts) {
 		return fmt.Errorf("the number of arguments and types doesn't match: %d vs %d", len(args), len(argts))
@@ -137,7 +185,7 @@ func checkArgsForVec2BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 			return nil
 		}
 	default:
-		return fmt.Errorf("too many arguments for vec2")
+		return fmt.Errorf("invalid number of arguments for vec2")
 	}
 
 	var str []string
@@ -172,7 +220,7 @@ func checkArgsForVec3BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 			return nil
 		}
 	default:
-		return fmt.Errorf("too many arguments for vec3")
+		return fmt.Errorf("invalid number of arguments for vec3")
 	}
 
 	var str []string
@@ -220,7 +268,7 @@ func checkArgsForVec4BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 			return nil
 		}
 	default:
-		return fmt.Errorf("too many arguments for vec4")
+		return fmt.Errorf("invalid number of arguments for vec4")
 	}
 
 	var str []string

@@ -346,7 +346,15 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 					},
 				}, []shaderir.Type{{Main: shaderir.Int}}, stmts, true
 			case shaderir.IntF:
-				if args[0].Type == shaderir.NumberExpr && canTruncateToInteger(args[0].Const) {
+				if len(args) != 1 {
+					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 1 but %d", callee.BuiltinFunc, len(args)))
+					return nil, nil, nil, false
+				}
+				if args[0].Type == shaderir.NumberExpr {
+					if !canTruncateToInteger(args[0].Const) {
+						cs.addError(e.Pos(), fmt.Sprintf("cannot convert %s to type int", args[0].Const.String()))
+						return nil, nil, nil, false
+					}
 					return []shaderir.Expr{
 						{
 							Type:      shaderir.NumberExpr,
@@ -356,14 +364,20 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 					}, []shaderir.Type{{Main: shaderir.Int}}, stmts, true
 				}
 			case shaderir.FloatF:
+				if len(args) != 1 {
+					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 1 but %d", callee.BuiltinFunc, len(args)))
+					return nil, nil, nil, false
+				}
 				if args[0].Type == shaderir.NumberExpr {
-					return []shaderir.Expr{
-						{
-							Type:      shaderir.NumberExpr,
-							Const:     gconstant.ToFloat(args[0].Const),
-							ConstType: shaderir.ConstTypeFloat,
-						},
-					}, []shaderir.Type{{Main: shaderir.Float}}, stmts, true
+					if args[0].Const.Kind() == gconstant.Int || args[0].Const.Kind() == gconstant.Float {
+						return []shaderir.Expr{
+							{
+								Type:      shaderir.NumberExpr,
+								Const:     gconstant.ToFloat(args[0].Const),
+								ConstType: shaderir.ConstTypeFloat,
+							},
+						}, []shaderir.Type{{Main: shaderir.Float}}, stmts, true
+					}
 				}
 			case shaderir.Atan:
 				if len(args) != 1 {
@@ -379,13 +393,22 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 			var t shaderir.Type
 			switch callee.BuiltinFunc {
 			case shaderir.BoolF:
-				// TODO: Check arg types.
+				if err := checkArgsForBoolBuiltinFunc(args, argts); err != nil {
+					cs.addError(e.Pos(), err.Error())
+					return nil, nil, nil, false
+				}
 				t = shaderir.Type{Main: shaderir.Bool}
 			case shaderir.IntF:
-				// TODO: Check arg types.
+				if err := checkArgsForIntBuiltinFunc(args, argts); err != nil {
+					cs.addError(e.Pos(), err.Error())
+					return nil, nil, nil, false
+				}
 				t = shaderir.Type{Main: shaderir.Int}
 			case shaderir.FloatF:
-				// TODO: Check arg types.
+				if err := checkArgsForFloatBuiltinFunc(args, argts); err != nil {
+					cs.addError(e.Pos(), err.Error())
+					return nil, nil, nil, false
+				}
 				t = shaderir.Type{Main: shaderir.Float}
 			case shaderir.Vec2F:
 				if err := checkArgsForVec2BuiltinFunc(args, argts); err != nil {
