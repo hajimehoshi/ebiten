@@ -346,11 +346,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 					},
 				}, []shaderir.Type{{Main: shaderir.Int}}, stmts, true
 			case shaderir.IntF:
-				if len(args) != 1 {
-					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 1 but %d", callee.BuiltinFunc, len(args)))
-					return nil, nil, nil, false
-				}
-				if args[0].Type == shaderir.NumberExpr {
+				if len(args) == 1 && args[0].Type == shaderir.NumberExpr {
 					if !canTruncateToInteger(args[0].Const) {
 						cs.addError(e.Pos(), fmt.Sprintf("cannot convert %s to type int", args[0].Const.String()))
 						return nil, nil, nil, false
@@ -364,11 +360,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 					}, []shaderir.Type{{Main: shaderir.Int}}, stmts, true
 				}
 			case shaderir.FloatF:
-				if len(args) != 1 {
-					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 1 but %d", callee.BuiltinFunc, len(args)))
-					return nil, nil, nil, false
-				}
-				if args[0].Type == shaderir.NumberExpr {
+				if len(args) == 1 && args[0].Type == shaderir.NumberExpr {
 					if args[0].Const.Kind() == gconstant.Int || args[0].Const.Kind() == gconstant.Float {
 						return []shaderir.Expr{
 							{
@@ -379,17 +371,9 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 						}, []shaderir.Type{{Main: shaderir.Float}}, stmts, true
 					}
 				}
-			case shaderir.Atan:
-				if len(args) != 1 {
-					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 1 but %d", callee.BuiltinFunc, len(args)))
-					return nil, nil, nil, false
-				}
-			case shaderir.Atan2:
-				if len(args) != 2 {
-					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 2 but %d", callee.BuiltinFunc, len(args)))
-					return nil, nil, nil, false
-				}
 			}
+
+			// Process the expression as a regular function call.
 			var t shaderir.Type
 			switch callee.BuiltinFunc {
 			case shaderir.BoolF:
@@ -446,6 +430,30 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 					return nil, nil, nil, false
 				}
 				t = shaderir.Type{Main: shaderir.Mat4}
+			case shaderir.Atan:
+				if len(args) != 1 {
+					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 1 but %d", callee.BuiltinFunc, len(args)))
+					return nil, nil, nil, false
+				}
+				// TODO: Check arg types.
+				// If the argument is a non-typed constant value, treat is as a float value (#1874).
+				if args[0].Type == shaderir.NumberExpr && args[0].ConstType == shaderir.ConstTypeNone {
+					args[0].ConstType = shaderir.ConstTypeFloat
+					argts[0] = shaderir.Type{Main: shaderir.Float}
+				}
+				t = argts[0]
+			case shaderir.Atan2:
+				if len(args) != 2 {
+					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 2 but %d", callee.BuiltinFunc, len(args)))
+					return nil, nil, nil, false
+				}
+				// TODO: Check arg types.
+				// If the argument is a non-typed constant value, treat is as a float value (#1874).
+				if args[0].Type == shaderir.NumberExpr && args[0].ConstType == shaderir.ConstTypeNone {
+					args[0].ConstType = shaderir.ConstTypeFloat
+					argts[0] = shaderir.Type{Main: shaderir.Float}
+				}
+				t = argts[0]
 			case shaderir.Step:
 				// TODO: Check arg types.
 				t = argts[1]
@@ -462,7 +470,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 				// TODO: Check arg types.
 				t = shaderir.Type{Main: shaderir.Vec4}
 			default:
-				// TODO: Check arg types?
+				// TODO: Check arg types.
 				// If the argument is a non-typed constant value, treat is as a float value (#1874).
 				if args[0].Type == shaderir.NumberExpr && args[0].ConstType == shaderir.ConstTypeNone {
 					args[0].ConstType = shaderir.ConstTypeFloat
