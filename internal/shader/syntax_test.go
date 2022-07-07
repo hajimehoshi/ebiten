@@ -444,7 +444,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	return true
 }
 `)); err != nil {
-		t.Errorf("error must be nil but was non-nil")
+		t.Error(err)
 	}
 }
 
@@ -927,6 +927,39 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	return vec4(a)
 }`)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var x float = true
+	_ = x
+	return vec4(0)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var x bool = true
+	_ = x
+	return vec4(0)
+}
+`)); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var x int = 1.0
+	_ = x
+	return vec4(0)
+}
+`)); err != nil {
+		t.Error(err)
 	}
 }
 

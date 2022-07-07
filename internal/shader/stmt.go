@@ -773,8 +773,15 @@ func canAssign(re *shaderir.Expr, lt *shaderir.Type, rt *shaderir.Type) bool {
 	if lt.Equal(rt) {
 		return true
 	}
-	if re.Type == shaderir.NumberExpr && (lt.Main == shaderir.Float || lt.Main == shaderir.Int || lt.Main == shaderir.Bool) {
-		return true
+	if re.Type == shaderir.NumberExpr {
+		switch lt.Main {
+		case shaderir.Bool:
+			return re.Const.Kind() == gconstant.Bool
+		case shaderir.Int:
+			return canTruncateToInteger(re.Const)
+		case shaderir.Float:
+			return gconstant.ToFloat(re.Const).Kind() != gconstant.Unknown
+		}
 	}
 	return false
 }
