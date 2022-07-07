@@ -406,13 +406,22 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 				}
 				t = shaderir.Type{Main: shaderir.Vec4}
 			case shaderir.Mat2F:
-				// TODO: Check arg types.
+				if err := checkArgsForMat2BuiltinFunc(args, argts); err != nil {
+					cs.addError(e.Pos(), err.Error())
+					return nil, nil, nil, false
+				}
 				t = shaderir.Type{Main: shaderir.Mat2}
 			case shaderir.Mat3F:
-				// TODO: Check arg types.
+				if err := checkArgsForMat3BuiltinFunc(args, argts); err != nil {
+					cs.addError(e.Pos(), err.Error())
+					return nil, nil, nil, false
+				}
 				t = shaderir.Type{Main: shaderir.Mat3}
 			case shaderir.Mat4F:
-				// TODO: Check arg types.
+				if err := checkArgsForMat4BuiltinFunc(args, argts); err != nil {
+					cs.addError(e.Pos(), err.Error())
+					return nil, nil, nil, false
+				}
 				t = shaderir.Type{Main: shaderir.Mat4}
 			case shaderir.Step:
 				// TODO: Check arg types.
