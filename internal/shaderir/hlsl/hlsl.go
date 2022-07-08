@@ -390,7 +390,12 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			}
 			return fmt.Sprintf("%s(%s)", op, expr(&e.Exprs[0]))
 		case shaderir.Binary:
-			if e.Op == shaderir.MatrixMul {
+			switch e.Op {
+			case shaderir.VectorEqualOp:
+				return fmt.Sprintf("all(%s == %s)", expr(&e.Exprs[0]), expr(&e.Exprs[1]))
+			case shaderir.VectorNotEqualOp:
+				return fmt.Sprintf("!all(%s == %s)", expr(&e.Exprs[0]), expr(&e.Exprs[1]))
+			case shaderir.MatrixMul:
 				// If either is a matrix, use the mul function.
 				// Swap the order of the lhs and the rhs since matrices are row-major in HLSL.
 				return fmt.Sprintf("mul(%s, %s)", expr(&e.Exprs[1]), expr(&e.Exprs[0]))

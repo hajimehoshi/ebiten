@@ -104,6 +104,14 @@ func (t *Type) FloatNum() int {
 	}
 }
 
+func (t *Type) IsVector() bool {
+	switch t.Main {
+	case Vec2, Vec3, Vec4:
+		return true
+	}
+	return false
+}
+
 func (t *Type) IsMatrix() bool {
 	switch t.Main {
 	case Mat2, Mat3, Mat4:

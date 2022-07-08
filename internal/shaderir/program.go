@@ -149,6 +149,8 @@ const (
 	GreaterThanEqualOp
 	EqualOp
 	NotEqualOp
+	VectorEqualOp
+	VectorNotEqualOp
 	And
 	Xor
 	Or
@@ -186,8 +188,14 @@ func OpFromToken(t token.Token, lhs, rhs Type) (Op, bool) {
 	case token.GEQ:
 		return GreaterThanEqualOp, true
 	case token.EQL:
+		if lhs.IsVector() || rhs.IsVector() {
+			return VectorEqualOp, true
+		}
 		return EqualOp, true
 	case token.NEQ:
+		if lhs.IsVector() || rhs.IsVector() {
+			return VectorNotEqualOp, true
+		}
 		return NotEqualOp, true
 	case token.AND:
 		return And, true

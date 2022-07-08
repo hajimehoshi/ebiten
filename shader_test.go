@@ -1095,3 +1095,37 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		testPixels("DrawTrianglesShader", dst)
 	})
 }
+
+// Issue #2186
+func TestShaderVectorEqual(t *testing.T) {
+	const w, h = 16, 16
+
+	dst := ebiten.NewImage(w, h)
+	s, err := ebiten.NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := vec3(1)
+	b := vec3(1)
+	if a == b {
+		return vec4(1, 0, 0, 1)
+	} else {
+		return vec4(0, 1, 0, 1)
+	}
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dst.DrawRectShader(w, h, s, nil)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{0xff, 0, 0x00, 0xff}
+			if !sameColors(got, want, 2) {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
