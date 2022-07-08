@@ -46,9 +46,9 @@ func opString(op shaderir.Op) string {
 		return ">"
 	case shaderir.GreaterThanEqualOp:
 		return ">="
-	case shaderir.EqualOp:
+	case shaderir.EqualOp, shaderir.VectorEqualOp:
 		return "=="
-	case shaderir.NotEqualOp:
+	case shaderir.NotEqualOp, shaderir.VectorNotEqualOp:
 		return "!="
 	case shaderir.And:
 		return "&"
