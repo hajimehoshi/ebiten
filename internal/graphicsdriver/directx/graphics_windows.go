@@ -114,8 +114,12 @@ type Graphics struct {
 	// drawCommandList is a command list for a 3D engine (DrawIndexedInstanced).
 	drawCommandList *_ID3D12GraphicsCommandList
 
+	needFlushDrawCommandList bool
+
 	// copyCommandList is a command list for a copy engine (CopyTextureRegion).
 	copyCommandList *_ID3D12GraphicsCommandList
+
+	needFlushCopyCommandList bool
 
 	// drawCommandList and copyCommandList are exclusive: if one is not empty, the other must be empty.
 
@@ -864,6 +868,19 @@ func (g *Graphics) resetCommandAllocators(frameIndex int) error {
 //
 // TODO: This is not efficient. Is it possible to make two command lists work in parallel?
 func (g *Graphics) flushCommandList(commandList *_ID3D12GraphicsCommandList) error {
+	switch commandList {
+	case g.drawCommandList:
+		if !g.needFlushDrawCommandList {
+			return nil
+		}
+		g.needFlushDrawCommandList = false
+	case g.copyCommandList:
+		if !g.needFlushCopyCommandList {
+			return nil
+		}
+		g.needFlushCopyCommandList = false
+	}
+
 	if err := commandList.Close(); err != nil {
 		return err
 	}
@@ -1227,6 +1244,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 	}
 
 	w, h := dst.internalSize()
+	g.needFlushDrawCommandList = true
 	g.drawCommandList.RSSetViewports([]_D3D12_VIEWPORT{
 		{
 			TopLeftX: 0,
@@ -1470,6 +1488,7 @@ func (i *Image) ReadPixels(buf []byte) error {
 		Type:             _D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
 		SubresourceIndex: 0,
 	}
+	i.graphics.needFlushCopyCommandList = true
 	i.graphics.copyCommandList.CopyTextureRegion_PlacedFootPrint_SubresourceIndex(
 		&dst, 0, 0, 0, &src, &_D3D12_BOX{
 			left:   0,
@@ -1518,6 +1537,8 @@ func (i *Image) ReplacePixels(args []*graphicsdriver.ReplacePixelsArgs) error {
 	if err != nil {
 		return err
 	}
+
+	i.graphics.needFlushCopyCommandList = true
 
 	var srcBytes []byte
 	h := (*reflect.SliceHeader)(unsafe.Pointer(&srcBytes))
