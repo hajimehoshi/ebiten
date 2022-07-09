@@ -238,8 +238,12 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 				continue
 			}
 			frameworkName := filepath.Base(buildO)
-			frameworkName = frameworkName[:len(frameworkName)-len(".xcframework")] + ".framework"
-			dir := filepath.Join(buildO, name, frameworkName, "Versions", "A")
+			frameworkNameBase := frameworkName[:len(frameworkName)-len(".xcframework")]
+			// The first character must be an upper case (#2192).
+			// TODO: strings.Title is used here for the consistency with gomobile (see cmd/gomobile/bind_iosapp.go).
+			// As strings.Title is deprecated, golang.org/x/text/cases should be used.
+			frameworkNameBase = strings.Title(frameworkNameBase)
+			dir := filepath.Join(buildO, name, frameworkNameBase+".framework", "Versions", "A")
 
 			if err := ioutil.WriteFile(filepath.Join(dir, "Headers", prefixUpper+"EbitenViewController.h"), []byte(replacePrefixes(objcH)), 0644); err != nil {
 				return err
