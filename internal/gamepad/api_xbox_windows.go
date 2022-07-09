@@ -32,7 +32,31 @@ var (
 	procGameInputCreate = gameInput.NewProc("GameInputCreate")
 )
 
+const _APP_LOCAL_DEVICE_ID_SIZE = 32
+
 type _GameInputCallbackToken uint64
+
+type _GameInputDeviceCapabilities int32
+
+const (
+	_GameInputDeviceCapabilityNone            _GameInputDeviceCapabilities = 0x00000000
+	_GameInputDeviceCapabilityAudio           _GameInputDeviceCapabilities = 0x00000001
+	_GameInputDeviceCapabilityPluginModule    _GameInputDeviceCapabilities = 0x00000002
+	_GameInputDeviceCapabilityPowerOff        _GameInputDeviceCapabilities = 0x00000004
+	_GameInputDeviceCapabilitySynchronization _GameInputDeviceCapabilities = 0x00000008
+	_GameInputDeviceCapabilityWireless        _GameInputDeviceCapabilities = 0x00000010
+)
+
+type _GameInputDeviceFamily int32
+
+const (
+	_GameInputFamilyVirtual   _GameInputDeviceFamily = -1
+	_GameInputFamilyAggregate _GameInputDeviceFamily = 0
+	_GameInputFamilyXboxOne   _GameInputDeviceFamily = 1
+	_GameInputFamilyXbox360   _GameInputDeviceFamily = 2
+	_GameInputFamilyHid       _GameInputDeviceFamily = 3
+	_GameInputFamilyI8042     _GameInputDeviceFamily = 4
+)
 
 type _GameInputDeviceStatus int32
 
@@ -56,6 +80,19 @@ const (
 	_GameInputNoEnumeration       _GameInputEnumerationKind = 0
 	_GameInputAsyncEnumeration    _GameInputEnumerationKind = 1
 	_GameInputBlockingEnumeration _GameInputEnumerationKind = 2
+)
+
+type _GameInputFeedbackAxes int32
+
+const (
+	_GameInputFeedbackAxisNone     _GameInputFeedbackAxes = 0x00000000
+	_GameInputFeedbackAxisLinearX  _GameInputFeedbackAxes = 0x00000001
+	_GameInputFeedbackAxisLinearY  _GameInputFeedbackAxes = 0x00000002
+	_GameInputFeedbackAxisLinearZ  _GameInputFeedbackAxes = 0x00000004
+	_GameInputFeedbackAxisAngularX _GameInputFeedbackAxes = 0x00000008
+	_GameInputFeedbackAxisAngularY _GameInputFeedbackAxes = 0x00000010
+	_GameInputFeedbackAxisAngularZ _GameInputFeedbackAxes = 0x00000020
+	_GameInputFeedbackAxisNormal   _GameInputFeedbackAxes = 0x00000040
 )
 
 type _GameInputGamepadButtons int32
@@ -99,6 +136,320 @@ const (
 	_GameInputKindAny              _GameInputKind = 0x0FFFFFFF
 )
 
+type _GameInputLabel int32
+
+const (
+	_GameInputLabelUnknown                  _GameInputLabel = -1
+	_GameInputLabelNone                     _GameInputLabel = 0
+	_GameInputLabelXboxGuide                _GameInputLabel = 1
+	_GameInputLabelXboxBack                 _GameInputLabel = 2
+	_GameInputLabelXboxStart                _GameInputLabel = 3
+	_GameInputLabelXboxMenu                 _GameInputLabel = 4
+	_GameInputLabelXboxView                 _GameInputLabel = 5
+	_GameInputLabelXboxA                    _GameInputLabel = 7
+	_GameInputLabelXboxB                    _GameInputLabel = 8
+	_GameInputLabelXboxX                    _GameInputLabel = 9
+	_GameInputLabelXboxY                    _GameInputLabel = 10
+	_GameInputLabelXboxDPadUp               _GameInputLabel = 11
+	_GameInputLabelXboxDPadDown             _GameInputLabel = 12
+	_GameInputLabelXboxDPadLeft             _GameInputLabel = 13
+	_GameInputLabelXboxDPadRight            _GameInputLabel = 14
+	_GameInputLabelXboxLeftShoulder         _GameInputLabel = 15
+	_GameInputLabelXboxLeftTrigger          _GameInputLabel = 16
+	_GameInputLabelXboxLeftStickButton      _GameInputLabel = 17
+	_GameInputLabelXboxRightShoulder        _GameInputLabel = 18
+	_GameInputLabelXboxRightTrigger         _GameInputLabel = 19
+	_GameInputLabelXboxRightStickButton     _GameInputLabel = 20
+	_GameInputLabelXboxPaddle1              _GameInputLabel = 21
+	_GameInputLabelXboxPaddle2              _GameInputLabel = 22
+	_GameInputLabelXboxPaddle3              _GameInputLabel = 23
+	_GameInputLabelXboxPaddle4              _GameInputLabel = 24
+	_GameInputLabelLetterA                  _GameInputLabel = 25
+	_GameInputLabelLetterB                  _GameInputLabel = 26
+	_GameInputLabelLetterC                  _GameInputLabel = 27
+	_GameInputLabelLetterD                  _GameInputLabel = 28
+	_GameInputLabelLetterE                  _GameInputLabel = 29
+	_GameInputLabelLetterF                  _GameInputLabel = 30
+	_GameInputLabelLetterG                  _GameInputLabel = 31
+	_GameInputLabelLetterH                  _GameInputLabel = 32
+	_GameInputLabelLetterI                  _GameInputLabel = 33
+	_GameInputLabelLetterJ                  _GameInputLabel = 34
+	_GameInputLabelLetterK                  _GameInputLabel = 35
+	_GameInputLabelLetterL                  _GameInputLabel = 36
+	_GameInputLabelLetterM                  _GameInputLabel = 37
+	_GameInputLabelLetterN                  _GameInputLabel = 38
+	_GameInputLabelLetterO                  _GameInputLabel = 39
+	_GameInputLabelLetterP                  _GameInputLabel = 40
+	_GameInputLabelLetterQ                  _GameInputLabel = 41
+	_GameInputLabelLetterR                  _GameInputLabel = 42
+	_GameInputLabelLetterS                  _GameInputLabel = 43
+	_GameInputLabelLetterT                  _GameInputLabel = 44
+	_GameInputLabelLetterU                  _GameInputLabel = 45
+	_GameInputLabelLetterV                  _GameInputLabel = 46
+	_GameInputLabelLetterW                  _GameInputLabel = 47
+	_GameInputLabelLetterX                  _GameInputLabel = 48
+	_GameInputLabelLetterY                  _GameInputLabel = 49
+	_GameInputLabelLetterZ                  _GameInputLabel = 50
+	_GameInputLabelNumber0                  _GameInputLabel = 51
+	_GameInputLabelNumber1                  _GameInputLabel = 52
+	_GameInputLabelNumber2                  _GameInputLabel = 53
+	_GameInputLabelNumber3                  _GameInputLabel = 54
+	_GameInputLabelNumber4                  _GameInputLabel = 55
+	_GameInputLabelNumber5                  _GameInputLabel = 56
+	_GameInputLabelNumber6                  _GameInputLabel = 57
+	_GameInputLabelNumber7                  _GameInputLabel = 58
+	_GameInputLabelNumber8                  _GameInputLabel = 59
+	_GameInputLabelNumber9                  _GameInputLabel = 60
+	_GameInputLabelArrowUp                  _GameInputLabel = 61
+	_GameInputLabelArrowUpRight             _GameInputLabel = 62
+	_GameInputLabelArrowRight               _GameInputLabel = 63
+	_GameInputLabelArrowDownRight           _GameInputLabel = 64
+	_GameInputLabelArrowDown                _GameInputLabel = 65
+	_GameInputLabelArrowDownLLeft           _GameInputLabel = 66
+	_GameInputLabelArrowLeft                _GameInputLabel = 67
+	_GameInputLabelArrowUpLeft              _GameInputLabel = 68
+	_GameInputLabelArrowUpDown              _GameInputLabel = 69
+	_GameInputLabelArrowLeftRight           _GameInputLabel = 70
+	_GameInputLabelArrowUpDownLeftRight     _GameInputLabel = 71
+	_GameInputLabelArrowClockwise           _GameInputLabel = 72
+	_GameInputLabelArrowCounterClockwise    _GameInputLabel = 73
+	_GameInputLabelArrowReturn              _GameInputLabel = 74
+	_GameInputLabelIconBranding             _GameInputLabel = 75
+	_GameInputLabelIconHome                 _GameInputLabel = 76
+	_GameInputLabelIconMenu                 _GameInputLabel = 77
+	_GameInputLabelIconCross                _GameInputLabel = 78
+	_GameInputLabelIconCircle               _GameInputLabel = 79
+	_GameInputLabelIconSquare               _GameInputLabel = 80
+	_GameInputLabelIconTriangle             _GameInputLabel = 81
+	_GameInputLabelIconStar                 _GameInputLabel = 82
+	_GameInputLabelIconDPadUp               _GameInputLabel = 83
+	_GameInputLabelIconDPadDown             _GameInputLabel = 84
+	_GameInputLabelIconDPadLeft             _GameInputLabel = 85
+	_GameInputLabelIconDPadRight            _GameInputLabel = 86
+	_GameInputLabelIconDialClockwise        _GameInputLabel = 87
+	_GameInputLabelIconDialCounterClockwise _GameInputLabel = 88
+	_GameInputLabelIconSliderLeftRight      _GameInputLabel = 89
+	_GameInputLabelIconSliderUpDown         _GameInputLabel = 90
+	_GameInputLabelIconWheelUpDown          _GameInputLabel = 91
+	_GameInputLabelIconPlus                 _GameInputLabel = 92
+	_GameInputLabelIconMinus                _GameInputLabel = 93
+	_GameInputLabelIconSuspension           _GameInputLabel = 94
+	_GameInputLabelHome                     _GameInputLabel = 95
+	_GameInputLabelGuide                    _GameInputLabel = 96
+	_GameInputLabelMode                     _GameInputLabel = 97
+	_GameInputLabelSelect                   _GameInputLabel = 98
+	_GameInputLabelMenu                     _GameInputLabel = 99
+	_GameInputLabelView                     _GameInputLabel = 100
+	_GameInputLabelBack                     _GameInputLabel = 101
+	_GameInputLabelStart                    _GameInputLabel = 102
+	_GameInputLabelOptions                  _GameInputLabel = 103
+	_GameInputLabelShare                    _GameInputLabel = 104
+	_GameInputLabelUp                       _GameInputLabel = 105
+	_GameInputLabelDown                     _GameInputLabel = 106
+	_GameInputLabelLeft                     _GameInputLabel = 107
+	_GameInputLabelRight                    _GameInputLabel = 108
+	_GameInputLabelLB                       _GameInputLabel = 109
+	_GameInputLabelLT                       _GameInputLabel = 110
+	_GameInputLabelLSB                      _GameInputLabel = 111
+	_GameInputLabelL1                       _GameInputLabel = 112
+	_GameInputLabelL2                       _GameInputLabel = 113
+	_GameInputLabelL3                       _GameInputLabel = 114
+	_GameInputLabelRB                       _GameInputLabel = 115
+	_GameInputLabelRT                       _GameInputLabel = 116
+	_GameInputLabelRSB                      _GameInputLabel = 117
+	_GameInputLabelR1                       _GameInputLabel = 118
+	_GameInputLabelR2                       _GameInputLabel = 119
+	_GameInputLabelR3                       _GameInputLabel = 120
+	_GameInputLabelP1                       _GameInputLabel = 121
+	_GameInputLabelP2                       _GameInputLabel = 122
+	_GameInputLabelP3                       _GameInputLabel = 123
+	_GameInputLabelP4                       _GameInputLabel = 124
+)
+
+type _GameInputLocation int32
+
+const (
+	_GameInputLocationUnknown  _GameInputLocation = -1
+	_GameInputLocationChassis  _GameInputLocation = 0
+	_GameInputLocationDisplay  _GameInputLocation = 1
+	_GameInputLocationAxis     _GameInputLocation = 2
+	_GameInputLocationButton   _GameInputLocation = 3
+	_GameInputLocationSwitch   _GameInputLocation = 4
+	_GameInputLocationKey      _GameInputLocation = 5
+	_GameInputLocationTouchPad _GameInputLocation = 6
+)
+
+type _GameInputRumbleMotors int32
+
+const (
+	_GameInputRumbleNone          _GameInputRumbleMotors = 0x00000000
+	_GameInputRumbleLowFrequency  _GameInputRumbleMotors = 0x00000001
+	_GameInputRumbleHighFrequency _GameInputRumbleMotors = 0x00000002
+	_GameInputRumbleLeftTrigger   _GameInputRumbleMotors = 0x00000004
+	_GameInputRumbleRightTrigger  _GameInputRumbleMotors = 0x00000008
+)
+
+type _GameInputSwitchKind int32
+
+const (
+	_GameInputUnknownSwitchKind _GameInputSwitchKind = -1
+	_GameInput2WaySwitch        _GameInputSwitchKind = 0
+	_GameInput4WaySwitch        _GameInputSwitchKind = 1
+	_GameInput8WaySwitch        _GameInputSwitchKind = 2
+)
+
+type _APP_LOCAL_DEVICE_ID struct {
+	value [_APP_LOCAL_DEVICE_ID_SIZE]byte
+}
+
+type _GameInputArcadeStickInfo struct {
+	// TODO: Implement this
+}
+
+type _GameInputControllerAxisInfo struct {
+	mappedInputKinds  _GameInputKind
+	label             _GameInputLabel
+	isContinuous      bool // Assume that the byte size of C++'s bool is 1.
+	isNonlinear       bool
+	isQuantized       bool
+	hasRestValue      bool
+	restValue         float32
+	resolution        uint64
+	legacyDInputIndex uint16
+	legacyHidIndex    uint16
+	rawReportIndex    uint32
+	inputReport       *_GameInputRawDeviceReportInfo
+	inputReportItem   *_GameInputRawDeviceReportItemInfo
+}
+
+type _GameInputControllerButtonInfo struct {
+	mappedInputKinds  _GameInputKind
+	label             _GameInputLabel
+	legacyDInputIndex uint16
+	legacyHidIndex    uint16
+	rawReportIndex    uint32
+	inputReport       *_GameInputRawDeviceReportInfo
+	inputReportItem   *_GameInputRawDeviceReportItemInfo
+}
+
+type _GameInputControllerSwitchInfo struct {
+	mappedInputKinds  _GameInputKind
+	label             _GameInputLabel
+	positionLabels    [9]_GameInputLabel
+	kind              _GameInputSwitchKind
+	legacyDInputIndex uint16
+	legacyHidIndex    uint16
+	rawReportIndex    uint32
+	inputReport       *_GameInputRawDeviceReportInfo
+	inputReportItem   *_GameInputRawDeviceReportItemInfo
+}
+
+type _GameInputDeviceInfo struct {
+	infoSize                 uint32
+	vendorId                 uint16
+	productId                uint16
+	revisionNumber           uint16
+	interfaceNumber          uint8
+	collectionNumber         uint8
+	usage                    _GameInputUsage
+	hardwareVersion          _GameInputVersion
+	firmwareVersion          _GameInputVersion
+	deviceId                 _APP_LOCAL_DEVICE_ID
+	deviceRootId             _APP_LOCAL_DEVICE_ID
+	deviceFamily             _GameInputDeviceFamily
+	capabilities             _GameInputDeviceCapabilities
+	supportedInput           _GameInputKind
+	supportedRumbleMotors    _GameInputRumbleMotors
+	inputReportCount         uint32
+	outputReportCount        uint32
+	featureReportCount       uint32
+	controllerAxisCount      uint32
+	controllerButtonCount    uint32
+	controllerSwitchCount    uint32
+	touchPointCount          uint32
+	touchSensorCount         uint32
+	forceFeedbackMotorCount  uint32
+	hapticFeedbackMotorCount uint32
+	deviceStringCount        uint32
+	deviceDescriptorSize     uint32
+	inputReportInfo          *_GameInputRawDeviceReportInfo
+	outputReportInfo         *_GameInputRawDeviceReportInfo
+	featureReportInfo        *_GameInputRawDeviceReportInfo
+	controllerAxisInfo       *_GameInputControllerAxisInfo
+	controllerButtonInfo     *_GameInputControllerButtonInfo
+	controllerSwitchInfo     *_GameInputControllerSwitchInfo
+	keyboardInfo             *_GameInputKeyboardInfo
+	mouseInfo                *_GameInputMouseInfo
+	touchSensorInfo          *_GameInputTouchSensorInfo
+	motionInfo               *_GameInputMotionInfo
+	arcadeStickInfo          *_GameInputArcadeStickInfo
+	flightStickInfo          *_GameInputFlightStickInfo
+	gamepadInfo              *_GameInputGamepadInfo
+	racingWheelInfo          *_GameInputRacingWheelInfo
+	uiNavigationInfo         *_GameInputUiNavigationInfo
+	forceFeedbackMotorInfo   *_GameInputForceFeedbackMotorInfo
+	hapticFeedbackMotorInfo  *_GameInputHapticFeedbackMotorInfo
+	displayName              *_GameInputString
+	deviceStrings            *_GameInputString
+	deviceDescriptorData     unsafe.Pointer
+}
+
+type _GameInputFlightStickInfo struct {
+	// TODO: Implement this
+}
+
+type _GameInputForceFeedbackMotorInfo struct {
+	supportedAxes                     _GameInputFeedbackAxes
+	location                          _GameInputLocation
+	locationId                        uint32
+	maxSimultaneousEffects            uint32
+	isConstantEffectSupported         bool
+	isRampEffectSupported             bool
+	isSineWaveEffectSupported         bool
+	isSquareWaveEffectSupported       bool
+	isTriangleWaveEffectSupported     bool
+	isSawtoothUpWaveEffectSupported   bool
+	isSawtoothDownWaveEffectSupported bool
+	isSpringEffectSupported           bool
+	isFrictionEffectSupported         bool
+	isDamperEffectSupported           bool
+	isInertiaEffectSupported          bool
+}
+
+type _GameInputHapticFeedbackMotorInfo struct {
+	mappedRumbleMotors _GameInputRumbleMotors
+	location           _GameInputLocation
+	locationId         uint32
+	waveformCount      uint32
+	waveformInfo       *_GameInputHapticWaveformInfo
+}
+
+type _GameInputHapticWaveformInfo struct {
+	usage                  _GameInputUsage
+	isDurationSupported    bool
+	isIntensitySupported   bool
+	isRepeatSupported      bool
+	isRepeatDelaySupported bool
+	defaultDuration        uint64
+}
+
+type _GameInputGamepadInfo struct {
+	menuButtonLabel            _GameInputLabel
+	viewButtonLabel            _GameInputLabel
+	aButtonLabel               _GameInputLabel
+	bButtonLabel               _GameInputLabel
+	xButtonLabel               _GameInputLabel
+	yButtonLabel               _GameInputLabel
+	dpadUpLabel                _GameInputLabel
+	dpadDownLabel              _GameInputLabel
+	dpadLeftLabel              _GameInputLabel
+	dpadRightLabel             _GameInputLabel
+	leftShoulderButtonLabel    _GameInputLabel
+	rightShoulderButtonLabel   _GameInputLabel
+	leftThumbstickButtonLabel  _GameInputLabel
+	rightThumbstickButtonLabel _GameInputLabel
+}
+
 type _GameInputGamepadState struct {
 	buttons          _GameInputGamepadButtons
 	leftTrigger      float32
@@ -109,11 +460,65 @@ type _GameInputGamepadState struct {
 	rightThumbstickY float32
 }
 
+type _GameInputKeyboardInfo struct {
+	// TODO: Implement this
+}
+
+type _GameInputMotionInfo struct {
+	// TODO: Implement this
+}
+
+type _GameInputMouseInfo struct {
+	// TODO: Implement this
+}
+
+type _GameInputRacingWheelInfo struct {
+	// TODO: Implement this
+}
+
+type _GameInputRawDeviceItemCollectionInfo struct {
+	// TODO: Implement this
+}
+
+type _GameInputRawDeviceReportInfo struct {
+	// TODO: Implement this
+}
+
+type _GameInputRawDeviceReportItemInfo struct {
+	// TODO: Implement this
+}
+
 type _GameInputRumbleParams struct {
 	lowFrequency  float32
 	highFrequency float32
 	leftTrigger   float32
 	rightTrigger  float32
+}
+
+type _GameInputString struct {
+	sizeInBytes    uint32
+	codePointCount uint32
+	data           *byte
+}
+
+type _GameInputTouchSensorInfo struct {
+	// TODO: Implement this
+}
+
+type _GameInputUiNavigationInfo struct {
+	// TODO: Implement this
+}
+
+type _GameInputUsage struct {
+	page uint16
+	id   uint16
+}
+
+type _GameInputVersion struct {
+	major    uint16
+	minor    uint16
+	build    uint16
+	revision uint16
 }
 
 func _GameInputCreate() (*_IGameInput, error) {
@@ -213,6 +618,12 @@ type _IGameInputDevice_Vtbl struct {
 	ExecuteRawDeviceIoControl       uintptr
 	AcquireExclusiveRawDeviceAccess uintptr
 	ReleaseExclusiveRawDeviceAccess uintptr
+}
+
+func (i *_IGameInputDevice) GetDeviceInfo() *_GameInputDeviceInfo {
+	r, _, _ := syscall.Syscall(i.vtbl.GetDeviceInfo, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+	// The lifetime of the returned value is the same as i.
+	return (*_GameInputDeviceInfo)(unsafe.Pointer(r))
 }
 
 func (i *_IGameInputDevice) SetRumbleState(params *_GameInputRumbleParams, timestamp uint64) {
