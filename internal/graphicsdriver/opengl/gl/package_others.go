@@ -5,7 +5,7 @@
 
 package gl
 
-// #cgo linux,!ebitencbackend freebsd,!ebitencbackend openbsd,!ebitencbackend pkg-config: gl
+// #cgo linux,!ebitenginecbackend && !ebitencbackend freebsd,!ebitencbackend openbsd,!ebitencbackend pkg-config: gl
 //
 // #ifndef APIENTRY
 //   #define APIENTRY

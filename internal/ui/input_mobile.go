@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build (android || ios) && !ebitencbackend
+//go:build (android || ios) && !ebitenginecbackend && !ebitencbackend
 // +build android ios
+// +build !ebitenginecbackend
 // +build !ebitencbackend
 
 package ui

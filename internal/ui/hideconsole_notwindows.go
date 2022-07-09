@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !windows || ebitencbackend
-// +build !windows ebitencbackend
+//go:build !windows || ebitenginecbackend || ebitencbackend
+// +build !windows ebitenginecbackend ebitencbackend
 
 package ui
 

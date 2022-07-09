@@ -830,12 +830,12 @@ func main() {
 			buildTag = "//go:build !js" +
 				"\n// +build !js"
 		case filepath.Join("internal", "ui", "keys_mobile.go"):
-			buildTag = "//go:build (android || ios) && !ebitencbackend" +
+			buildTag = "//go:build (android || ios) && !ebitenginecbackend && !ebitencbackend" +
 				"\n// +build android ios" +
-				"\n// +build !ebitencbackend"
+				"\n// +build !ebitenginecbackend && !ebitencbackend"
 		case filepath.Join("internal", "ui", "keys_glfw.go"):
-			buildTag = "//go:build !android && !ios && !js && !ebitencbackend" +
-				"\n// +build !android,!ios,!js,!ebitencbackend"
+			buildTag = "//go:build !android && !ios && !js && !ebitenginecbackend && !ebitencbackend" +
+				"\n// +build !android,!ios,!js,!ebitenginecbackend && !ebitencbackend"
 		}
 		// NOTE: According to godoc, maps are automatically sorted by key.
 		if err := tmpl.Execute(f, struct {

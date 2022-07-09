@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !darwin && !js && !windows && !ebitencbackend
-// +build !android,!darwin,!js,!windows,!ebitencbackend
+//go:build !android && !darwin && !js && !windows && !ebitenginecbackend && !ebitencbackend
+// +build !android,!darwin,!js,!windows,!ebitenginecbackend,!ebitencbackend
 
 package ui
 

@@ -101,7 +101,8 @@ jobs:
       - name: go build (cbackend)
         if: ${{ !startsWith(matrix.os, 'windows-') }}
         run: |
-          go build -tags=example,ebitencbackend -v ./...
+          go build -tags=example,ebitenginecbackend -v ./...
+          go build -tags=example,ebitencbackend -v ./... # For backward compatibility. Remove this in the future (#2190).
 
       - name: go test
         # TODO: Add more test environments (#1305)
