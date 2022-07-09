@@ -142,7 +142,7 @@ func (i *imageDumper) update() error {
 					i.dumpInternalImagesKey = key
 				}
 			} else {
-				fmt.Fprintf(os.Stderr, "%s is disabled. Specify a build tag 'ebitenginedebug' to enable it.\n", envInternalImagesKey)
+				fmt.Fprintf(os.Stderr, "EBITENGINE_INTERNAL_IMAGES_KEY is disabled. Specify a build tag 'ebitenginedebug' to enable it.\n")
 			}
 		}
 	}
