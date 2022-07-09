@@ -23,6 +23,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -87,6 +88,28 @@ func (g *Game) Update() error {
 			for b := ebiten.StandardGamepadButton(0); b <= ebiten.StandardGamepadButtonMax; b++ {
 				// Log button events.
 				if inpututil.IsStandardGamepadButtonJustPressed(id, b) {
+					var strong float64
+					var weak float64
+					switch b {
+					case ebiten.StandardGamepadButtonLeftTop,
+						ebiten.StandardGamepadButtonLeftLeft,
+						ebiten.StandardGamepadButtonLeftRight,
+						ebiten.StandardGamepadButtonLeftBottom:
+						weak = 0.5
+					case ebiten.StandardGamepadButtonRightTop,
+						ebiten.StandardGamepadButtonRightLeft,
+						ebiten.StandardGamepadButtonRightRight,
+						ebiten.StandardGamepadButtonRightBottom:
+						strong = 0.5
+					}
+					if strong > 0 || weak > 0 {
+						op := &ebiten.VibrateGamepadOptions{
+							Duration:        200 * time.Millisecond,
+							StrongMagnitude: strong,
+							WeakMagnitude:   weak,
+						}
+						ebiten.VibrateGamepad(id, op)
+					}
 					log.Printf("standard button pressed: id: %d, button: %d", id, b)
 				}
 				if inpututil.IsStandardGamepadButtonJustReleased(id, b) {
