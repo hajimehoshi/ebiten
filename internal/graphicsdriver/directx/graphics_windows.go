@@ -103,6 +103,8 @@ type Graphics struct {
 	fenceValues    [frameCount]uint64
 	fenceWaitEvent windows.Handle
 
+	allowTearing bool
+
 	// drawCommandAllocators are command allocators for a 3D engine (DrawIndexedInstanced).
 	// For the word 'engine', see https://docs.microsoft.com/en-us/windows/win32/direct3d12/user-mode-heap-synchronization.
 	// The term 'draw' is used instead of '3D' in this package.
@@ -266,6 +268,15 @@ func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool) (ferr err
 
 	if err := _D3D12CreateDevice(unsafe.Pointer(adapter), _D3D_FEATURE_LEVEL_11_0, &_IID_ID3D12Device, (*unsafe.Pointer)(unsafe.Pointer(&g.device))); err != nil {
 		return err
+	}
+
+	var factory *_IDXGIFactory5
+	if err := g.factory.QueryInterface(&_IID_IDXGIFactory5, (*unsafe.Pointer)(unsafe.Pointer(&factory))); err == nil && factory != nil {
+		defer factory.Release()
+		var allowTearing int32
+		if err := factory.CheckFeatureSupport(_DXGI_FEATURE_PRESENT_ALLOW_TEARING, unsafe.Pointer(&allowTearing), uint32(unsafe.Sizeof(allowTearing))); err == nil && allowTearing != 0 {
+			g.allowTearing = true
+		}
 	}
 
 	if err := g.initializeMembers(); err != nil {
@@ -524,7 +535,7 @@ func (g *Graphics) initSwapChainDesktop(width, height int) (ferr error) {
 	//
 	//     IDXGIFactory::CreateSwapChain: Alpha blended swapchains must be created with CreateSwapChainForComposition,
 	//     or CreateSwapChainForCoreWindow with the DXGI_SWAP_CHAIN_FLAG_FOREGROUND_LAYER flag
-	s, err := g.factory.CreateSwapChainForHwnd(unsafe.Pointer(g.commandQueue), g.window, &_DXGI_SWAP_CHAIN_DESC1{
+	desc := &_DXGI_SWAP_CHAIN_DESC1{
 		Width:       uint32(width),
 		Height:      uint32(height),
 		Format:      _DXGI_FORMAT_B8G8R8A8_UNORM,
@@ -535,7 +546,11 @@ func (g *Graphics) initSwapChainDesktop(width, height int) (ferr error) {
 			Count:   1,
 			Quality: 0,
 		},
-	}, nil, nil)
+	}
+	if g.allowTearing {
+		desc.Flags |= uint32(_DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING)
+	}
+	s, err := g.factory.CreateSwapChainForHwnd(unsafe.Pointer(g.commandQueue), g.window, desc, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -781,10 +796,13 @@ func (g *Graphics) presentDesktop() error {
 	}
 
 	var syncInterval uint32
+	var flags _DXGI_PRESENT
 	if g.vsyncEnabled {
 		syncInterval = 1
+	} else if g.allowTearing {
+		flags |= _DXGI_PRESENT_ALLOW_TEARING
 	}
-	if err := g.swapChain.Present(syncInterval, 0); err != nil {
+	if err := g.swapChain.Present(syncInterval, uint32(flags)); err != nil {
 		return err
 	}
 
