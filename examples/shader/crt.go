@@ -46,7 +46,10 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	Y := f.y * f.y
 	YY := Y * Y
 	whichmask := fract(pos.x * -0.4999)
-	mask := 1.0 + float(whichmask < 0.5)*-MASK_DARK
+	mask := 1.0
+	if whichmask < 0.5 {
+		mask -= MASK_DARK
+	}
 
 	clr := imageSrc2At(p*size + origin).rgb
 	scanLineWeight := (BRIGHTBOOST - LOWLUMSCAN*(Y-2.05*YY))
