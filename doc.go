@@ -63,7 +63,7 @@
 //
 // `EBITENGINE_INTERNAL_IMAGES_KEY` environment variable specifies the key
 // to dump all the internal images. This is valid only when the build tag
-// 'ebitendebug' is specified. This works only on desktops.
+// 'ebitenginedebug' is specified. This works only on desktops.
 //
 // `EBITENGINE_GRAPHICS_LIBRARY` environment variable specifies the graphics library.
 // If the specified graphics library is not available, RunGame returns an error.
@@ -82,12 +82,12 @@
 //
 // Build tags
 //
-// `ebitendebug` outputs a log of graphics commands. This is useful to know what happens in Ebitengine. In general, the
+// `ebitenginedebug` outputs a log of graphics commands. This is useful to know what happens in Ebitengine. In general, the
 // number of graphics commands affects the performance of your game.
 //
-// `ebitenwebgl1` forces to use WebGL 1 on browsers.
+// `ebitenginewebgl1` forces to use WebGL 1 on browsers.
 //
-// `ebitensinglethread` disables Ebitengine's thread safety to unlock maximum performance. If you use this you will have
+// `ebitenginesinglethread` disables Ebitengine's thread safety to unlock maximum performance. If you use this you will have
 // to manage threads yourself. Functions like IsKeyPressed will no longer be concurrent-safe with this build tag.
 // They must be called from the main thread or the same goroutine as the given game's callback functions like Update
 // to RunGame.
