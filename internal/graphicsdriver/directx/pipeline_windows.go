@@ -555,8 +555,10 @@ func (p *pipelineStates) ensureRootSignature(device *_ID3D12Device) (rootSignatu
 }
 
 func newShader(source []byte, defs []_D3D_SHADER_MACRO) (vsh, psh *_ID3DBlob, ferr error) {
+	var flag uint32 = uint32(_D3DCOMPILE_OPTIMIZATION_LEVEL3)
+
 	// Create a shader
-	v, err := _D3DCompile(source, "shader", defs, nil, "VSMain", "vs_5_0", 0, 0)
+	v, err := _D3DCompile(source, "shader", defs, nil, "VSMain", "vs_5_0", flag, 0)
 	if err != nil {
 		return nil, nil, fmt.Errorf("directx: D3DCompile for VSMain failed, original source: %s, %w", string(source), err)
 	}
@@ -566,7 +568,7 @@ func newShader(source []byte, defs []_D3D_SHADER_MACRO) (vsh, psh *_ID3DBlob, fe
 		}
 	}()
 
-	p, err := _D3DCompile(source, "shader", defs, nil, "PSMain", "ps_5_0", 0, 0)
+	p, err := _D3DCompile(source, "shader", defs, nil, "PSMain", "ps_5_0", flag, 0)
 	if err != nil {
 		return nil, nil, fmt.Errorf("directx: D3DCompile for PSMain failed, original source: %s, %w", string(source), err)
 	}

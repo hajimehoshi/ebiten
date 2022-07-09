@@ -60,6 +60,12 @@ const (
 	_D3D12XBOX_DEFAULT_SIZE_BYTES            = 0xffffffff
 )
 
+type _D3DCOMPILE uint32
+
+const (
+	_D3DCOMPILE_OPTIMIZATION_LEVEL3 _D3DCOMPILE = (1 << 15)
+)
+
 type _D3D_FEATURE_LEVEL int32
 
 const (
