@@ -22,6 +22,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -135,7 +136,7 @@ func (i *imageDumper) update() error {
 		}
 
 		if keyname := envInternalImagesKey(); keyname != "" {
-			if isDebug {
+			if debug.IsDebug {
 				if key, ok := keyNameToKeyCode(keyname); ok {
 					i.hasDumpInternalImagesKey = true
 					i.dumpInternalImagesKey = key
