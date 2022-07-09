@@ -152,7 +152,12 @@ func (g *Graphics) initialize() (ferr error) {
 		useWARP       bool
 		useDebugLayer bool
 	)
-	for _, t := range strings.Split(os.Getenv("EBITEN_DIRECTX"), ",") {
+	env := os.Getenv("EBITENGINE_DIRECTX")
+	if env == "" {
+		// For backward compatibility, read the EBITEN_ version.
+		env = os.Getenv("EBITEN_DIRECTX")
+	}
+	for _, t := range strings.Split(env, ",") {
 		switch strings.TrimSpace(t) {
 		case "warp":
 			// TODO: Is WARP available on Xbox?

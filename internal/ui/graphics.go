@@ -29,9 +29,15 @@ type graphicsDriverCreator interface {
 }
 
 func newGraphicsDriver(creator graphicsDriverCreator) (graphicsdriver.Graphics, error) {
-	const envName = "EBITEN_GRAPHICS_LIBRARY"
+	envName := "EBITENGINE_GRAPHICS_LIBRARY"
+	env := os.Getenv(envName)
+	if env == "" {
+		// For backward compatibility, read the EBITEN_ version.
+		envName = "EBITEN_GRAPHICS_LIBRARY"
+		env = os.Getenv(envName)
+	}
 
-	switch env := os.Getenv(envName); env {
+	switch env {
 	case "", "auto":
 		g, err := creator.newAuto()
 		if err != nil {

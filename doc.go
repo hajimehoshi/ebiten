@@ -56,16 +56,16 @@
 //
 // Environment variables
 //
-// `EBITEN_SCREENSHOT_KEY` environment variable specifies the key
+// `EBITENGINE_SCREENSHOT_KEY` environment variable specifies the key
 // to take a screenshot. For example, if you run your game with
-// `EBITEN_SCREENSHOT_KEY=q`, you can take a game screen's screenshot
+// `EBITENGINE_SCREENSHOT_KEY=q`, you can take a game screen's screenshot
 // by pressing Q key. This works only on desktops.
 //
-// `EBITEN_INTERNAL_IMAGES_KEY` environment variable specifies the key
+// `EBITENGINE_INTERNAL_IMAGES_KEY` environment variable specifies the key
 // to dump all the internal images. This is valid only when the build tag
 // 'ebitendebug' is specified. This works only on desktops.
 //
-// `EBITEN_GRAPHICS_LIBRARY` environment variable specifies the graphics library.
+// `EBITENGINE_GRAPHICS_LIBRARY` environment variable specifies the graphics library.
 // If the specified graphics library is not available, RunGame returns an error.
 // This can take one of the following value:
 //
@@ -74,7 +74,7 @@
 //     "directx": DirectX. This works only on Windows.
 //     "metal":   Metal. This works only on macOS or iOS.
 //
-// `EBITEN_DIRECTX` environment variable specifies various parameters for DirectX.
+// `EBITENGINE_DIRECTX` environment variable specifies various parameters for DirectX.
 // You can specify multiple values separated by a comma. The default value is empty (i.e. no parameters).
 //
 //     "warp":  Use WARP (i.e. software rendering).
