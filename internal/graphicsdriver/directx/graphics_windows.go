@@ -661,7 +661,11 @@ func (g *Graphics) resizeSwapChainDesktop(width, height int) error {
 		r.Release()
 	}
 
-	if err := g.swapChain.ResizeBuffers(frameCount, uint32(width), uint32(height), _DXGI_FORMAT_B8G8R8A8_UNORM, 0); err != nil {
+	var flag uint32
+	if g.allowTearing {
+		flag |= uint32(_DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING)
+	}
+	if err := g.swapChain.ResizeBuffers(frameCount, uint32(width), uint32(height), _DXGI_FORMAT_B8G8R8A8_UNORM, flag); err != nil {
 		return err
 	}
 
