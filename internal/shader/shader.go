@@ -261,7 +261,7 @@ func (cs *compileState) parse(f *ast.File) {
 			}
 		}
 
-		inParams, outParams := cs.parseFuncParams(&cs.global, fd)
+		inParams, outParams, ret := cs.parseFuncParams(&cs.global, fd)
 		var inT, outT []shaderir.Type
 		for _, v := range inParams {
 			inT = append(inT, v.typ)
@@ -276,6 +276,7 @@ func (cs *compileState) parse(f *ast.File) {
 				Index:     len(cs.funcs),
 				InParams:  inT,
 				OutParams: outT,
+				Return:    ret,
 				Block:     &shaderir.Block{},
 			},
 		})
@@ -620,7 +621,7 @@ func (s *compileState) parseConstant(block *block, vs *ast.ValueSpec) ([]constan
 	return cs, true
 }
 
-func (cs *compileState) parseFuncParams(block *block, d *ast.FuncDecl) (in, out []variable) {
+func (cs *compileState) parseFuncParams(block *block, d *ast.FuncDecl) (in, out []variable, ret shaderir.Type) {
 	for _, f := range d.Type.Params.List {
 		t, ok := cs.parseType(block, f.Type)
 		if !ok {
@@ -657,6 +658,12 @@ func (cs *compileState) parseFuncParams(block *block, d *ast.FuncDecl) (in, out 
 			}
 		}
 	}
+
+	if len(out) == 1 && out[0].name == "" {
+		ret = out[0].typ
+		out = nil
+	}
+
 	return
 }
 
@@ -674,7 +681,7 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 		return function{}, false
 	}
 
-	inParams, outParams := cs.parseFuncParams(block, d)
+	inParams, outParams, returnType := cs.parseFuncParams(block, d)
 
 	checkVaryings := func(vs []variable) {
 		if len(cs.ir.Varyings) != len(vs) {
@@ -695,11 +702,15 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 				cs.ir.Attributes = append(cs.ir.Attributes, v.typ)
 			}
 
-			// The first out-param is treated as gl_Position in GLSL.
+			// For the vertex entry, a parameter (variable) is used as a returning value.
+			// For example, GLSL doesn't treat gl_Position as a returning value.
 			if len(outParams) == 0 {
-				cs.addError(d.Pos(), fmt.Sprintf("vertex entry point must have at least one returning vec4 value for a position"))
-				return function{}, false
+				outParams = append(outParams, variable{
+					typ: shaderir.Type{Main: shaderir.Vec4},
+				})
 			}
+
+			// The first out-param is treated as gl_Position in GLSL.
 			if outParams[0].typ.Main != shaderir.Vec4 {
 				cs.addError(d.Pos(), fmt.Sprintf("vertex entry point must have at least one returning vec4 value for a position"))
 				return function{}, false
@@ -724,11 +735,14 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 				return function{}, false
 			}
 
-			if len(outParams) != 1 {
-				cs.addError(d.Pos(), fmt.Sprintf("fragment entry point must have one returning vec4 value for a color"))
-				return function{}, false
+			// For the fragment entry, a parameter (variable) is used as a returning value.
+			// For example, GLSL doesn't treat gl_FragColor as a returning value.
+			if len(outParams) == 0 {
+				outParams = append(outParams, variable{
+					typ: shaderir.Type{Main: shaderir.Vec4},
+				})
 			}
-			if outParams[0].typ.Main != shaderir.Vec4 {
+			if len(outParams) != 1 || outParams[0].typ.Main != shaderir.Vec4 {
 				cs.addError(d.Pos(), fmt.Sprintf("fragment entry point must have one returning vec4 value for a color"))
 				return function{}, false
 			}
@@ -744,12 +758,12 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 		}
 	}
 
-	b, ok := cs.parseBlock(block, d.Name.Name, d.Body.List, inParams, outParams, true)
+	b, ok := cs.parseBlock(block, d.Name.Name, d.Body.List, inParams, outParams, returnType, true)
 	if !ok {
 		return function{}, false
 	}
 
-	if len(outParams) > 0 {
+	if len(outParams) > 0 || returnType.Main != shaderir.None {
 		var hasReturn func(stmts []shaderir.Stmt) bool
 		hasReturn = func(stmts []shaderir.Stmt) bool {
 			for _, stmt := range stmts {
@@ -785,12 +799,13 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 		ir: shaderir.Func{
 			InParams:  inT,
 			OutParams: outT,
+			Return:    returnType,
 			Block:     b.ir,
 		},
 	}, true
 }
 
-func (cs *compileState) parseBlock(outer *block, fname string, stmts []ast.Stmt, inParams, outParams []variable, checkLocalVariableUsage bool) (*block, bool) {
+func (cs *compileState) parseBlock(outer *block, fname string, stmts []ast.Stmt, inParams, outParams []variable, returnType shaderir.Type, checkLocalVariableUsage bool) (*block, bool) {
 	var vars []variable
 	if outer == &cs.global {
 		vars = make([]variable, 0, len(inParams)+len(outParams))
@@ -838,7 +853,7 @@ func (cs *compileState) parseBlock(outer *block, fname string, stmts []ast.Stmt,
 	}
 
 	for _, stmt := range stmts {
-		ss, ok := cs.parseStmt(block, fname, stmt, inParams, outParams)
+		ss, ok := cs.parseStmt(block, fname, stmt, inParams, outParams, returnType)
 		if !ok {
 			return nil, false
 		}

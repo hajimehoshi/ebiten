@@ -1,19 +1,17 @@
-void F0(in vec2 l0, out int l1);
-void F1(in vec2 l0, out int l1);
+int F0(in vec2 l0);
+int F1(in vec2 l0);
 
-void F0(in vec2 l0, out int l1) {
-	int l2[2];
-	l2[0] = 0;
-	l2[1] = 0;
-	l1 = 2;
-	return;
+int F0(in vec2 l0) {
+	int l1[2];
+	l1[0] = 0;
+	l1[1] = 0;
+	return 2;
 }
 
-void F1(in vec2 l0, out int l1) {
-	int l2[3];
-	l2[0] = 0;
-	l2[1] = 0;
-	l2[2] = 0;
-	l1 = 3;
-	return;
+int F1(in vec2 l0) {
+	int l1[3];
+	l1[0] = 0;
+	l1[1] = 0;
+	l1[2] = 0;
+	return 3;
 }

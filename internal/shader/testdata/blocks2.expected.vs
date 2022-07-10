@@ -1,14 +1,12 @@
-void F0(out vec2 l0);
+vec2 F0(void);
 
-void F0(out vec2 l0) {
-	bool l1 = false;
-	l1 = true;
+vec2 F0(void) {
+	bool l0 = false;
+	l0 = true;
 	{
-		int l2 = 0;
-		l2 = 0;
-		l0 = vec2(l2);
-		return;
+		int l1 = 0;
+		l1 = 0;
+		return vec2(l1);
 	}
-	l0 = vec2(1.0);
-	return;
+	return vec2(1.0);
 }

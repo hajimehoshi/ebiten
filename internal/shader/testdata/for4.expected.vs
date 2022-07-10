@@ -1,24 +1,22 @@
-void F0(in int l0, out int l1);
-void F1(out int l0);
+int F0(in int l0);
+int F1(void);
 
-void F0(in int l0, out int l1) {
-	l1 = l0;
-	return;
+int F0(in int l0) {
+	return l0;
 }
 
-void F1(out int l0) {
-	int l1 = 0;
-	int l3 = 0;
-	l1 = 0;
-	for (int l2 = 0; l2 < 10; l2++) {
+int F1(void) {
+	int l0 = 0;
+	int l2 = 0;
+	l0 = 0;
+	for (int l1 = 0; l1 < 10; l1++) {
+		int l2 = 0;
 		int l3 = 0;
-		int l4 = 0;
-		F0(l2, l3);
-		l4 = l3;
-		l1 = (l1) + (l4);
+		l2 = F0(l1);
+		l3 = l2;
+		l0 = (l0) + (l3);
 	}
-	l3 = 0;
-	l1 = (l1) + (l3);
-	l0 = l1;
-	return;
+	l2 = 0;
+	l0 = (l0) + (l2);
+	return l0;
 }

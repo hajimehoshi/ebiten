@@ -1,16 +1,15 @@
-void F0(in vec2 l0, out vec4 l1);
+vec4 F0(in vec2 l0);
 void F1(out float l0, out float l1);
 
-void F0(in vec2 l0, out vec4 l1) {
+vec4 F0(in vec2 l0) {
+	float l1 = float(0);
 	float l2 = float(0);
 	float l3 = float(0);
 	float l4 = float(0);
-	float l5 = float(0);
-	F1(l2, l3);
+	F1(l1, l2);
+	l3 = l1;
 	l4 = l2;
-	l5 = l3;
-	l1 = vec4(l0, l4, l4);
-	return;
+	return vec4(l0, l3, l3);
 }
 
 void F1(out float l0, out float l1) {

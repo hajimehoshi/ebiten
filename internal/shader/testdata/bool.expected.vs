@@ -1,6 +1,5 @@
-void F0(out bool l0);
+bool F0(void);
 
-void F0(out bool l0) {
-	l0 = true;
-	return;
+bool F0(void) {
+	return true;
 }

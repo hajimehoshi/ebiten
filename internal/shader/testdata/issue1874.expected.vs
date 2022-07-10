@@ -1,6 +1,5 @@
-void F0(out float l0);
+float F0(void);
 
-void F0(out float l0) {
-	l0 = (sin(1.0000000000e-01)) + (cos(2.0000000000e-01));
-	return;
+float F0(void) {
+	return (sin(1.0000000000e-01)) + (cos(2.0000000000e-01));
 }

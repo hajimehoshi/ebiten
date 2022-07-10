@@ -1,12 +1,10 @@
-void F0(out float l0);
-void F1(out int l0);
+float F0(void);
+int F1(void);
 
-void F0(out float l0) {
-	l0 = 1.0;
-	return;
+float F0(void) {
+	return 1.0;
 }
 
-void F1(out int l0) {
-	l0 = 2;
-	return;
+int F1(void) {
+	return 2;
 }

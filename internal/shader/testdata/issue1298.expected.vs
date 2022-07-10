@@ -1,8 +1,7 @@
-void F0(in float l0, out int l1);
+int F0(in float l0);
 
-void F0(in float l0, out int l1) {
-	int l2 = 0;
-	l2 = int(l0);
-	l1 = l2;
-	return;
+int F0(in float l0) {
+	int l1 = 0;
+	l1 = int(l0);
+	return l1;
 }

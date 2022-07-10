@@ -1,11 +1,10 @@
-void F0(out int l0);
+int F0(void);
 
-void F0(out int l0) {
-	int l1 = 0;
-	l1 = 1;
-	l1 = (l1) * (2);
-	l1 = (l1) + (2);
-	l1 = (2) - (l1);
-	l0 = l1;
-	return;
+int F0(void) {
+	int l0 = 0;
+	l0 = 1;
+	l0 = (l0) * (2);
+	l0 = (l0) + (2);
+	l0 = (2) - (l0);
+	return l0;
 }

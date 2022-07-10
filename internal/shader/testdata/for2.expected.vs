@@ -1,22 +1,21 @@
-void F0(out vec2 l0);
+vec2 F0(void);
 
-void F0(out vec2 l0) {
-	vec2 l1 = vec2(0);
-	vec2 l3 = vec2(0);
-	l1 = vec2(0.0);
-	for (int l2 = 0; l2 < 100; l2++) {
-		(l1).x = ((l1).x) + (float(l2));
-		if (((l1).x) >= (100.0)) {
+vec2 F0(void) {
+	vec2 l0 = vec2(0);
+	vec2 l2 = vec2(0);
+	l0 = vec2(0.0);
+	for (int l1 = 0; l1 < 100; l1++) {
+		(l0).x = ((l0).x) + (float(l1));
+		if (((l0).x) >= (100.0)) {
 			break;
 		}
 	}
-	l3 = vec2(0.0);
-	for (float l4 = 10.0; l4 >= 0.0; l4 -= 2.0) {
-		if (((l3).x) < (100.0)) {
+	l2 = vec2(0.0);
+	for (float l3 = 10.0; l3 >= 0.0; l3 -= 2.0) {
+		if (((l2).x) < (100.0)) {
 			continue;
 		}
-		(l3).x = ((l3).x) + (l4);
+		(l2).x = ((l2).x) + (l3);
 	}
-	l0 = l1;
-	return;
+	return l0;
 }

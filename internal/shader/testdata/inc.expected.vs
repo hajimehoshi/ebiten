@@ -1,12 +1,11 @@
-void F0(out vec2 l0);
+vec2 F0(void);
 
-void F0(out vec2 l0) {
+vec2 F0(void) {
+	int l0 = 0;
 	int l1 = 0;
-	int l2 = 0;
-	l1 = 0;
-	l1 = (l1) + (1);
-	l2 = 1;
-	l2 = (l2) - (1);
-	l0 = vec2(l1, l2);
-	return;
+	l0 = 0;
+	l0 = (l0) + (1);
+	l1 = 1;
+	l1 = (l1) - (1);
+	return vec2(l0, l1);
 }
