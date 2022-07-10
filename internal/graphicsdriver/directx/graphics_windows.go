@@ -338,7 +338,7 @@ func (g *Graphics) initializeXbox(useWARP bool, useDebugLayer bool) (ferr error)
 
 func (g *Graphics) initializeMembers() (ferr error) {
 	// Create an event for a fence.
-	e, err := windows.CreateEvent(nil, 0, 0, nil)
+	e, err := windows.CreateEventEx(nil, nil, 0, windows.EVENT_MODIFY_STATE|windows.SYNCHRONIZE)
 	if err != nil {
 		return fmt.Errorf("directx: CreateEvent failed: %w", err)
 	}
