@@ -534,32 +534,12 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 				return nil, nil, nil, false
 			}
 
-			idx := block.totalLocalVariableNum()
-			block.vars = append(block.vars, variable{
-				typ: t,
-			})
-
-			// Calling the function should be done eariler to treat out-params correctly.
-			stmts = append(stmts, shaderir.Stmt{
-				Type: shaderir.Assign,
-				Exprs: []shaderir.Expr{
-					{
-						Type:  shaderir.LocalVariable,
-						Index: idx,
-					},
-					{
-						Type:  shaderir.Call,
-						Exprs: append([]shaderir.Expr{callee}, args...),
-					},
-				},
-			})
-
 			// The actual expression here is just a local variable that includes the result of the
 			// function call.
 			return []shaderir.Expr{
 				{
-					Type:  shaderir.LocalVariable,
-					Index: idx,
+					Type:  shaderir.Call,
+					Exprs: append([]shaderir.Expr{callee}, args...),
 				},
 			}, []shaderir.Type{t}, stmts, true
 		}

@@ -12,13 +12,9 @@ float F1(in float l0) {
 }
 
 int F2(void) {
-	int l0 = 0;
-	l0 = F0(1);
-	return l0;
+	return F0(1);
 }
 
 float F3(void) {
-	float l0 = float(0);
-	l0 = F1(1.0);
-	return l0;
+	return F1(1.0);
 }
