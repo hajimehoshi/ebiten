@@ -442,62 +442,66 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			}
 		}
 
-		for i, r := range stmt.Results {
-			exprs, ts, ss, ok := cs.parseExpr(block, r, true)
+		var exprs []shaderir.Expr
+		var types []shaderir.Type
+		for _, r := range stmt.Results {
+			es, ts, ss, ok := cs.parseExpr(block, r, true)
 			if !ok {
 				return nil, false
 			}
 			stmts = append(stmts, ss...)
 
-			if len(exprs) > 1 {
-				if len(stmt.Results) > 1 || len(outParams) == 1 {
-					cs.addError(r.Pos(), "single-value context and multiple-value context cannot be mixed")
-					return nil, false
-				}
+			if len(es) > 1 && (len(stmt.Results) > 1 || len(outParams) == 1) {
+				cs.addError(r.Pos(), "single-value context and multiple-value context cannot be mixed")
+				return nil, false
 			}
 
 			if len(outParams) > 1 && len(stmt.Results) == 1 {
-				if len(exprs) == 1 {
+				if len(es) == 1 {
 					cs.addError(stmt.Pos(), fmt.Sprintf("the number of returning variables must be %d but %d", len(outParams), len(stmt.Results)))
 					return nil, false
 				}
-				if len(exprs) > 1 && len(exprs) != len(outParams) {
-					cs.addError(stmt.Pos(), fmt.Sprintf("the number of returning variables must be %d but %d", len(outParams), len(exprs)))
+				if len(es) > 1 && len(es) != len(outParams) {
+					cs.addError(stmt.Pos(), fmt.Sprintf("the number of returning variables must be %d but %d", len(outParams), len(es)))
 					return nil, false
 				}
 			}
 
-			for j, t := range ts {
-				expr := exprs[j]
-				if expr.Type == shaderir.NumberExpr {
-					switch outParams[i+j].typ.Main {
-					case shaderir.Int:
-						if !cs.forceToInt(stmt, &expr) {
-							return nil, false
-						}
-						t = shaderir.Type{Main: shaderir.Int}
-					case shaderir.Float:
-						t = shaderir.Type{Main: shaderir.Float}
-					}
-				}
-
-				if !t.Equal(&outParams[i+j].typ) {
-					cs.addError(stmt.Pos(), fmt.Sprintf("cannot use type %s as type %s in return argument", t.String(), &outParams[i].typ))
-					return nil, false
-				}
-
-				stmts = append(stmts, shaderir.Stmt{
-					Type: shaderir.Assign,
-					Exprs: []shaderir.Expr{
-						{
-							Type:  shaderir.LocalVariable,
-							Index: len(inParams) + i + j,
-						},
-						expr,
-					},
-				})
-			}
+			exprs = append(exprs, es...)
+			types = append(types, ts...)
 		}
+
+		for i, t := range types {
+			expr := exprs[i]
+			if expr.Type == shaderir.NumberExpr {
+				switch outParams[i].typ.Main {
+				case shaderir.Int:
+					if !cs.forceToInt(stmt, &expr) {
+						return nil, false
+					}
+					t = shaderir.Type{Main: shaderir.Int}
+				case shaderir.Float:
+					t = shaderir.Type{Main: shaderir.Float}
+				}
+			}
+
+			if !t.Equal(&outParams[i].typ) {
+				cs.addError(stmt.Pos(), fmt.Sprintf("cannot use type %s as type %s in return argument", t.String(), &outParams[i].typ))
+				return nil, false
+			}
+
+			stmts = append(stmts, shaderir.Stmt{
+				Type: shaderir.Assign,
+				Exprs: []shaderir.Expr{
+					{
+						Type:  shaderir.LocalVariable,
+						Index: len(inParams) + i,
+					},
+					expr,
+				},
+			})
+		}
+
 		stmts = append(stmts, shaderir.Stmt{
 			Type: shaderir.Return,
 		})
