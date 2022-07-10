@@ -93,11 +93,9 @@ func imageSrc%[1]dUnsafeAt(pos vec2) vec4 {
 
 func imageSrc%[1]dAt(pos vec2) vec4 {
 	// pos is the position in texels of the source texture (= 0th image's texture).
-	return texture2D(__t%[1]d, %[2]s) *
-		step(__textureSourceRegionOrigin.x, pos.x) *
-		(1 - step(__textureSourceRegionOrigin.x + __textureSourceRegionSize.x, pos.x)) *
-		step(__textureSourceRegionOrigin.y, pos.y) *
-		(1 - step(__textureSourceRegionOrigin.y + __textureSourceRegionSize.y, pos.y))
+	// If pos is in the region, the result is (1, 1). Otherwise, either element is 0.
+	in := step(__textureSourceRegionOrigin, pos) - step(__textureSourceRegionOrigin + __textureSourceRegionSize, pos)
+	return texture2D(__t%[1]d, %[2]s) * in.x * in.y
 }
 `, i, pos)
 	}
