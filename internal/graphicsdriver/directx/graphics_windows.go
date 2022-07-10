@@ -836,7 +836,7 @@ func (g *Graphics) moveToNextFrame() error {
 	}
 
 	if g.fence.GetCompletedValue() < g.fenceValues[g.frameIndex] {
-		if err := g.fence.SetEventOnCompletion(fv, g.fenceWaitEvent); err != nil {
+		if err := g.fence.SetEventOnCompletion(g.fenceValues[g.frameIndex], g.fenceWaitEvent); err != nil {
 			return err
 		}
 		if _, err := windows.WaitForSingleObject(g.fenceWaitEvent, windows.INFINITE); err != nil {
