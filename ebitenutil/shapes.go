@@ -70,14 +70,14 @@ func DrawCircle(dst *ebiten.Image, cx, cy, r float64, clr color.Color) {
 
 	path.Arc(float32(cx), float32(cy), float32(r), 0, 2*math.Pi, vector.Clockwise)
 
-	verticles, indices := path.AppendVerticesAndIndicesForFilling(nil, nil)
-	for i := range verticles {
-		verticles[i].SrcX = 1
-		verticles[i].SrcY = 1
-		verticles[i].ColorR = float32(rd) / 0xffff
-		verticles[i].ColorG = float32(g) / 0xffff
-		verticles[i].ColorB = float32(b) / 0xffff
-		verticles[i].ColorA = float32(a) / 0xffff
+	vertices, indices := path.AppendVerticesAndIndicesForFilling(nil, nil)
+	for i := range vertices {
+		vertices[i].SrcX = 1
+		vertices[i].SrcY = 1
+		vertices[i].ColorR = float32(rd) / 0xffff
+		vertices[i].ColorG = float32(g) / 0xffff
+		vertices[i].ColorB = float32(b) / 0xffff
+		vertices[i].ColorA = float32(a) / 0xffff
 	}
-	dst.DrawTriangles(verticles, indices, emptySubImage, nil)
+	dst.DrawTriangles(vertices, indices, emptySubImage, nil)
 }
