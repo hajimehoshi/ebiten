@@ -403,8 +403,8 @@ func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Imag
 	}
 
 	// TODO: Would it be possible to merge draw image history items?
-	const maxDrawTrianglesHistoryNum = 1024
-	if len(i.drawTrianglesHistory)+1 > maxDrawTrianglesHistoryNum {
+	const maxDrawTrianglesHistoryCount = 1024
+	if len(i.drawTrianglesHistory)+1 > maxDrawTrianglesHistoryCount {
 		i.makeStale()
 		return
 	}
