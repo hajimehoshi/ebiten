@@ -76,7 +76,7 @@ type Game interface {
 }
 
 // DefaultTPS represents a default ticks per second, that represents how many times game updating happens in a second.
-const DefaultTPS = ui.DefaultTPS
+const DefaultTPS = clock.DefaultTPS
 
 // CurrentFPS returns the current number of FPS (frames per second), that represents
 // how many swapping buffer happens per second.
@@ -417,7 +417,7 @@ func ScheduleFrame() {
 //
 // MaxTPS is concurrent-safe.
 func MaxTPS() int {
-	return ui.TPS()
+	return clock.TPS()
 }
 
 // CurrentTPS returns the current TPS (ticks per second),
@@ -447,7 +447,7 @@ const UncappedTPS = SyncWithFPS
 //
 // SetMaxTPS is concurrent-safe.
 func SetMaxTPS(tps int) {
-	ui.SetTPS(tps)
+	clock.SetTPS(tps)
 }
 
 // IsScreenTransparent reports whether the window is transparent.

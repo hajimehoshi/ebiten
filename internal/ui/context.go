@@ -30,8 +30,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
-const DefaultTPS = clock.DefaultTPS
-
 type Game interface {
 	NewOffscreenImage(width, height int) *Image
 	Layout(outsideWidth, outsideHeight int) (int, int)
@@ -351,14 +349,6 @@ func FPSMode() FPSModeType {
 func SetFPSMode(fpsMode FPSModeType) {
 	theGlobalState.setFPSMode(fpsMode)
 	theUI.SetFPSMode(fpsMode)
-}
-
-func TPS() int {
-	return clock.TPS()
-}
-
-func SetTPS(tps int) {
-	clock.SetTPS(tps)
 }
 
 func IsScreenClearedEveryFrame() bool {
