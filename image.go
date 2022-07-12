@@ -398,10 +398,10 @@ type DrawTrianglesOptions struct {
 	FillRule FillRule
 }
 
-// MaxIndicesCount is the maximum number of indices for DrawTriangles.
+// MaxIndicesCount is the maximum number of indices for DrawTriangles and DrawTrianglesShader.
 const MaxIndicesCount = graphics.IndicesCount
 
-// MaxIndicesNum is the maximum number of indices for DrawTriangles.
+// MaxIndicesNum is the maximum number of indices for DrawTriangles and DrawTrianglesShader.
 //
 // Deprecated: as of v2.4. Use MaxIndicesCount instead.
 const MaxIndicesNum = graphics.IndicesCount
