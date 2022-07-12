@@ -30,7 +30,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
-const DefaultTPS = 60
+const DefaultTPS = clock.DefaultTPS
 
 type Game interface {
 	NewOffscreenImage(width, height int) *Image
@@ -62,7 +62,7 @@ func newContext(game Game) *context {
 
 func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
-	return c.updateFrameImpl(graphicsDriver, clock.Update(theGlobalState.tps()), outsideWidth, outsideHeight, deviceScaleFactor)
+	return c.updateFrameImpl(graphicsDriver, clock.Update(), outsideWidth, outsideHeight, deviceScaleFactor)
 }
 
 func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
@@ -283,7 +283,6 @@ func (c *context) screenScaleAndOffsets() (float64, float64, float64) {
 }
 
 var theGlobalState = globalState{
-	tps_:                       DefaultTPS,
 	isScreenClearedEveryFrame_: 1,
 	screenFilterEnabled_:       1,
 }
@@ -295,7 +294,6 @@ type globalState struct {
 	errM sync.Mutex
 
 	fpsMode_                   int32
-	tps_                       int32
 	isScreenClearedEveryFrame_ int32
 	screenFilterEnabled_       int32
 }
@@ -320,20 +318,6 @@ func (g *globalState) fpsMode() FPSModeType {
 
 func (g *globalState) setFPSMode(fpsMode FPSModeType) {
 	atomic.StoreInt32(&g.fpsMode_, int32(fpsMode))
-}
-
-func (g *globalState) tps() int {
-	if g.fpsMode() == FPSModeVsyncOffMinimum {
-		return clock.SyncWithFPS
-	}
-	return int(atomic.LoadInt32(&g.tps_))
-}
-
-func (g *globalState) setTPS(tps int) {
-	if tps < 0 && tps != clock.SyncWithFPS {
-		panic("ui: tps must be >= 0 or SyncWithFPS")
-	}
-	atomic.StoreInt32(&g.tps_, int32(tps))
 }
 
 func (g *globalState) isScreenClearedEveryFrame() bool {
@@ -370,11 +354,11 @@ func SetFPSMode(fpsMode FPSModeType) {
 }
 
 func TPS() int {
-	return theGlobalState.tps()
+	return clock.TPS()
 }
 
 func SetTPS(tps int) {
-	theGlobalState.setTPS(tps)
+	clock.SetTPS(tps)
 }
 
 func IsScreenClearedEveryFrame() bool {

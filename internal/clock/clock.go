@@ -20,7 +20,15 @@ import (
 	"time"
 )
 
+const (
+	DefaultTPS  = 60
+	SyncWithFPS = -1
+)
+
 var (
+	// tps represents TPS (ticks per second).
+	tps = DefaultTPS
+
 	lastNow int64
 
 	// lastSystemTime is the last system time in the previous Update.
@@ -127,16 +135,14 @@ func updateFPSAndTPS(now int64, count int) {
 	tpsCount = 0
 }
 
-const SyncWithFPS = -1
-
 // Update updates the inner clock state and returns an integer value
-// indicating how many times the game should update based on given tps.
-// tps represents TPS (ticks per second).
+// indicating how many times the game should update based on the current tps.
+//
 // If tps is SyncWithFPS, Update always returns 1.
 // If tps <= 0 and not SyncWithFPS, Update always returns 0.
 //
 // Update is expected to be called per frame.
-func Update(tps int) int {
+func Update() int {
 	m.Lock()
 	defer m.Unlock()
 
@@ -156,4 +162,16 @@ func Update(tps int) int {
 	updateFPSAndTPS(n, c)
 
 	return c
+}
+
+func SetTPS(newTPS int) {
+	m.Lock()
+	defer m.Unlock()
+	tps = newTPS
+}
+
+func TPS() int {
+	m.Lock()
+	defer m.Unlock()
+	return tps
 }
