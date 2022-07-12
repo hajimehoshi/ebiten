@@ -159,10 +159,10 @@ func init() {
 }
 
 const (
-	blockWidth     = 10
-	blockHeight    = 10
-	fieldBlockNumX = 10
-	fieldBlockNumY = 20
+	blockWidth       = 10
+	blockHeight      = 10
+	fieldBlockCountX = 10
+	fieldBlockCountY = 20
 )
 
 func drawBlock(r *ebiten.Image, block BlockType, x, y int, clr ebiten.ColorM) {
@@ -180,7 +180,7 @@ func drawBlock(r *ebiten.Image, block BlockType, x, y int, clr ebiten.ColorM) {
 
 func (p *Piece) InitialPosition() (int, int) {
 	size := len(p.blocks)
-	x := (fieldBlockNumX - size) / 2
+	x := (fieldBlockCountX - size) / 2
 	y := 0
 Loop:
 	for j := 0; j < size; j++ {

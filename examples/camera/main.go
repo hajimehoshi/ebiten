@@ -38,8 +38,8 @@ const (
 )
 
 const (
-	tileSize = 16
-	tileXNum = 25
+	tileSize   = 16
+	tileXCount = 25
 )
 
 const (
@@ -175,8 +175,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			op := &ebiten.DrawImageOptions{}
 			op.GeoM.Translate(float64((i%worldSizeX)*tileSize), float64((i/worldSizeX)*tileSize))
 
-			sx := (t % tileXNum) * tileSize
-			sy := (t / tileXNum) * tileSize
+			sx := (t % tileXCount) * tileSize
+			sy := (t / tileXCount) * tileSize
 			g.world.DrawImage(tilesImage.SubImage(image.Rect(sx, sy, sx+tileSize, sy+tileSize)).(*ebiten.Image), op)
 		}
 	}

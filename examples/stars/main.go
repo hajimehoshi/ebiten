@@ -31,7 +31,7 @@ const (
 	screenWidth  = 640
 	screenHeight = 480
 	scale        = 64
-	starsNum     = 1024
+	starsCount   = 1024
 )
 
 type Star struct {
@@ -69,12 +69,12 @@ func (s *Star) Draw(screen *ebiten.Image) {
 }
 
 type Game struct {
-	stars [starsNum]Star
+	stars [starsCount]Star
 }
 
 func NewGame() *Game {
 	g := &Game{}
-	for i := 0; i < starsNum; i++ {
+	for i := 0; i < starsCount; i++ {
 		g.stars[i].Init()
 	}
 	return g
@@ -82,14 +82,14 @@ func NewGame() *Game {
 
 func (g *Game) Update() error {
 	x, y := ebiten.CursorPosition()
-	for i := 0; i < starsNum; i++ {
+	for i := 0; i < starsCount; i++ {
 		g.stars[i].Update(float64(x*scale), float64(y*scale))
 	}
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	for i := 0; i < starsNum; i++ {
+	for i := 0; i < starsCount; i++ {
 		g.stars[i].Draw(screen)
 	}
 }

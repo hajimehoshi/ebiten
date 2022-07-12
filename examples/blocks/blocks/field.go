@@ -22,7 +22,7 @@ const maxFlushCount = 20
 
 // Field represents a game field with block states.
 type Field struct {
-	blocks              [fieldBlockNumX][fieldBlockNumY]BlockType
+	blocks              [fieldBlockCountX][fieldBlockCountY]BlockType
 	flushCount          int
 	onEndFlushAnimating func(int)
 }
@@ -30,13 +30,13 @@ type Field struct {
 // IsBlocked returns a boolean value indicating whether
 // there is a block at position (x, y) on the field.
 func (f *Field) IsBlocked(x, y int) bool {
-	if x < 0 || fieldBlockNumX <= x {
+	if x < 0 || fieldBlockCountX <= x {
 		return true
 	}
 	if y < 0 {
 		return false
 	}
-	if fieldBlockNumY <= y {
+	if fieldBlockCountY <= y {
 		return true
 	}
 	return f.blocks[x][y] != BlockTypeNone
@@ -116,7 +116,7 @@ func (f *Field) SetEndFlushAnimating(fn func(lines int)) {
 // flushable returns a boolean value indicating whether
 // there is a flushable line in the field.
 func (f *Field) flushable() bool {
-	for j := fieldBlockNumY - 1; 0 <= j; j-- {
+	for j := fieldBlockCountY - 1; 0 <= j; j-- {
 		if f.flushableLine(j) {
 			return true
 		}
@@ -127,7 +127,7 @@ func (f *Field) flushable() bool {
 // flushableLine returns a boolean value indicating whether
 // the line j is flushabled or not.
 func (f *Field) flushableLine(j int) bool {
-	for i := 0; i < fieldBlockNumX; i++ {
+	for i := 0; i < fieldBlockCountX; i++ {
 		if f.blocks[i][j] == BlockTypeNone {
 			return false
 		}
@@ -140,13 +140,13 @@ func (f *Field) setBlock(x, y int, blockType BlockType) {
 }
 
 func (f *Field) endFlushAnimating() int {
-	flushedLineNum := 0
-	for j := fieldBlockNumY - 1; 0 <= j; j-- {
-		if f.flushLine(j + flushedLineNum) {
-			flushedLineNum++
+	flushedLineCount := 0
+	for j := fieldBlockCountY - 1; 0 <= j; j-- {
+		if f.flushLine(j + flushedLineCount) {
+			flushedLineCount++
 		}
 	}
-	return flushedLineNum
+	return flushedLineCount
 }
 
 // flushLine flushes the line j if possible, and if the line is flushed,
@@ -155,17 +155,17 @@ func (f *Field) endFlushAnimating() int {
 // flushLine returns a boolean value indicating whether
 // the line is actually flushed.
 func (f *Field) flushLine(j int) bool {
-	for i := 0; i < fieldBlockNumX; i++ {
+	for i := 0; i < fieldBlockCountX; i++ {
 		if f.blocks[i][j] == BlockTypeNone {
 			return false
 		}
 	}
 	for j2 := j; 1 <= j2; j2-- {
-		for i := 0; i < fieldBlockNumX; i++ {
+		for i := 0; i < fieldBlockCountX; i++ {
 			f.blocks[i][j2] = f.blocks[i][j2-1]
 		}
 	}
-	for i := 0; i < fieldBlockNumX; i++ {
+	for i := 0; i < fieldBlockCountX; i++ {
 		f.blocks[i][0] = BlockTypeNone
 	}
 	return true
@@ -204,13 +204,13 @@ func flushingColor(rate float64) ebiten.ColorM {
 
 func (f *Field) Draw(r *ebiten.Image, x, y int) {
 	fc := flushingColor(float64(f.flushCount) / maxFlushCount)
-	for j := 0; j < fieldBlockNumY; j++ {
+	for j := 0; j < fieldBlockCountY; j++ {
 		if f.flushableLine(j) {
-			for i := 0; i < fieldBlockNumX; i++ {
+			for i := 0; i < fieldBlockCountX; i++ {
 				drawBlock(r, f.blocks[i][j], i*blockWidth+x, j*blockHeight+y, fc)
 			}
 		} else {
-			for i := 0; i < fieldBlockNumX; i++ {
+			for i := 0; i < fieldBlockCountX; i++ {
 				drawBlock(r, f.blocks[i][j], i*blockWidth+x, j*blockHeight+y, ebiten.ColorM{})
 			}
 		}

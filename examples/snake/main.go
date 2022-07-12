@@ -30,11 +30,11 @@ import (
 )
 
 const (
-	screenWidth  = 640
-	screenHeight = 480
-	gridSize     = 10
-	xNumInScreen = screenWidth / gridSize
-	yNumInScreen = screenHeight / gridSize
+	screenWidth        = 640
+	screenHeight       = 480
+	gridSize           = 10
+	xGridCountInScreen = screenWidth / gridSize
+	yGridCountInScreen = screenHeight / gridSize
 )
 
 const (
@@ -83,8 +83,8 @@ func (g *Game) collidesWithSelf() bool {
 func (g *Game) collidesWithWall() bool {
 	return g.snakeBody[0].X < 0 ||
 		g.snakeBody[0].Y < 0 ||
-		g.snakeBody[0].X >= xNumInScreen ||
-		g.snakeBody[0].Y >= yNumInScreen
+		g.snakeBody[0].X >= xGridCountInScreen ||
+		g.snakeBody[0].Y >= yGridCountInScreen
 }
 
 func (g *Game) needsToMoveSnake() bool {
@@ -96,8 +96,8 @@ func (g *Game) reset() {
 	g.apple.Y = 3 * gridSize
 	g.moveTime = 4
 	g.snakeBody = g.snakeBody[:1]
-	g.snakeBody[0].X = xNumInScreen / 2
-	g.snakeBody[0].Y = yNumInScreen / 2
+	g.snakeBody[0].X = xGridCountInScreen / 2
+	g.snakeBody[0].Y = yGridCountInScreen / 2
 	g.score = 0
 	g.level = 1
 	g.moveDirection = dirNone
@@ -130,8 +130,8 @@ func (g *Game) Update() error {
 		}
 
 		if g.collidesWithApple() {
-			g.apple.X = rand.Intn(xNumInScreen - 1)
-			g.apple.Y = rand.Intn(yNumInScreen - 1)
+			g.apple.X = rand.Intn(xGridCountInScreen - 1)
+			g.apple.Y = rand.Intn(yGridCountInScreen - 1)
 			g.snakeBody = append(g.snakeBody, Position{
 				X: g.snakeBody[len(g.snakeBody)-1].X,
 				Y: g.snakeBody[len(g.snakeBody)-1].Y,
@@ -195,8 +195,8 @@ func newGame() *Game {
 		moveTime:  4,
 		snakeBody: make([]Position, 1),
 	}
-	g.snakeBody[0].X = xNumInScreen / 2
-	g.snakeBody[0].Y = yNumInScreen / 2
+	g.snakeBody[0].X = xGridCountInScreen / 2
+	g.snakeBody[0].Y = yGridCountInScreen / 2
 	return g
 }
 

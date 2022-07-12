@@ -187,8 +187,8 @@ func (s *GameScene) drawBackground(r *ebiten.Image) {
 }
 
 const (
-	fieldWidth  = blockWidth * fieldBlockNumX
-	fieldHeight = blockHeight * fieldBlockNumY
+	fieldWidth  = blockWidth * fieldBlockCountX
+	fieldHeight = blockHeight * fieldBlockCountY
 )
 
 func (s *GameScene) choosePiece() *Piece {

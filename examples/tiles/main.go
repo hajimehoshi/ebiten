@@ -64,20 +64,20 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	w, _ := tilesImage.Size()
-	tileXNum := w / tileSize
+	tileXCount := w / tileSize
 
 	// Draw each tile with each DrawImage call.
 	// As the source images of all DrawImage calls are always same,
 	// this rendering is done very efficiently.
 	// For more detail, see https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2#Image.DrawImage
-	const xNum = screenWidth / tileSize
+	const xCount = screenWidth / tileSize
 	for _, l := range g.layers {
 		for i, t := range l {
 			op := &ebiten.DrawImageOptions{}
-			op.GeoM.Translate(float64((i%xNum)*tileSize), float64((i/xNum)*tileSize))
+			op.GeoM.Translate(float64((i%xCount)*tileSize), float64((i/xCount)*tileSize))
 
-			sx := (t % tileXNum) * tileSize
-			sy := (t / tileXNum) * tileSize
+			sx := (t % tileXCount) * tileSize
+			sy := (t / tileXCount) * tileSize
 			screen.DrawImage(tilesImage.SubImage(image.Rect(sx, sy, sx+tileSize, sy+tileSize)).(*ebiten.Image), op)
 		}
 	}
