@@ -59,7 +59,7 @@ type Graphics interface {
 	NewShader(program *shaderir.Program) (Shader, error)
 
 	// DrawTriangles draws an image onto another image with the given parameters.
-	DrawTriangles(dst ImageID, srcs [graphics.ShaderImageNum]ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shader ShaderID, indexLen int, indexOffset int, mode CompositeMode, colorM ColorM, filter Filter, address Address, dstRegion, srcRegion Region, uniforms [][]float32, evenOdd bool) error
+	DrawTriangles(dst ImageID, srcs [graphics.ShaderImageCount]ImageID, offsets [graphics.ShaderImageCount - 1][2]float32, shader ShaderID, indexLen int, indexOffset int, mode CompositeMode, colorM ColorM, filter Filter, address Address, dstRegion, srcRegion Region, uniforms [][]float32, evenOdd bool) error
 }
 
 // GraphicsNotReady represents that the graphics driver is not ready for recovering from the context lost.

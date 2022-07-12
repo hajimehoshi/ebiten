@@ -956,7 +956,7 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) (ferr error
 	}
 	if g.vertices[g.frameIndex][vidx] == nil {
 		// TODO: Use the default heap for efficienty. See the official example HelloTriangle.
-		vs, err := createBuffer(g.device, graphics.IndicesNum*graphics.VertexFloatNum*uint64(unsafe.Sizeof(float32(0))), _D3D12_HEAP_TYPE_UPLOAD)
+		vs, err := createBuffer(g.device, graphics.IndicesCount*graphics.VertexFloatCount*uint64(unsafe.Sizeof(float32(0))), _D3D12_HEAP_TYPE_UPLOAD)
 		if err != nil {
 			return err
 		}
@@ -976,7 +976,7 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) (ferr error
 		g.indices[g.frameIndex] = append(g.indices[g.frameIndex], nil)
 	}
 	if g.indices[g.frameIndex][iidx] == nil {
-		is, err := createBuffer(g.device, graphics.IndicesNum*uint64(unsafe.Sizeof(uint16(0))), _D3D12_HEAP_TYPE_UPLOAD)
+		is, err := createBuffer(g.device, graphics.IndicesCount*uint64(unsafe.Sizeof(uint16(0))), _D3D12_HEAP_TYPE_UPLOAD)
 		if err != nil {
 			return err
 		}
@@ -1150,7 +1150,7 @@ func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, 
 	return s, nil
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.ShaderImageNum]graphicsdriver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, colorM graphicsdriver.ColorM, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.ShaderImageCount]graphicsdriver.ImageID, offsets [graphics.ShaderImageCount - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, colorM graphicsdriver.ColorM, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
 	if err := g.flushCommandList(g.copyCommandList); err != nil {
 		return err
 	}
@@ -1165,7 +1165,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 		shader = g.shaders[shaderID]
 	}
 
-	var srcImages [graphics.ShaderImageNum]*Image
+	var srcImages [graphics.ShaderImageCount]*Image
 	for i, srcID := range srcs {
 		src := g.images[srcID]
 		if src == nil {
@@ -1226,7 +1226,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 	} else {
 		// TODO: This logic is very similar to Metal's. Let's unify them.
 		dw, dh := dst.internalSize()
-		us := make([][]float32, graphics.PreservedUniformVariablesNum+len(uniforms))
+		us := make([][]float32, graphics.PreservedUniformVariablesCount+len(uniforms))
 		us[graphics.TextureDestinationSizeUniformVariableIndex] = []float32{float32(dw), float32(dh)}
 		usizes := make([]float32, 2*len(srcs))
 		for i, src := range srcImages {
@@ -1259,7 +1259,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 		}
 
 		for i, u := range uniforms {
-			us[graphics.PreservedUniformVariablesNum+i] = u
+			us[graphics.PreservedUniformVariablesCount+i] = u
 		}
 
 		flattenUniforms = shader.uniformsToFloat32s(us)
@@ -1290,13 +1290,13 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 	g.drawCommandList.IASetVertexBuffers(0, []_D3D12_VERTEX_BUFFER_VIEW{
 		{
 			BufferLocation: g.vertices[g.frameIndex][len(g.vertices[g.frameIndex])-1].GetGPUVirtualAddress(),
-			SizeInBytes:    graphics.IndicesNum * graphics.VertexFloatNum * uint32(unsafe.Sizeof(float32(0))),
-			StrideInBytes:  graphics.VertexFloatNum * uint32(unsafe.Sizeof(float32(0))),
+			SizeInBytes:    graphics.IndicesCount * graphics.VertexFloatCount * uint32(unsafe.Sizeof(float32(0))),
+			StrideInBytes:  graphics.VertexFloatCount * uint32(unsafe.Sizeof(float32(0))),
 		},
 	})
 	g.drawCommandList.IASetIndexBuffer(&_D3D12_INDEX_BUFFER_VIEW{
 		BufferLocation: g.indices[g.frameIndex][len(g.indices[g.frameIndex])-1].GetGPUVirtualAddress(),
-		SizeInBytes:    graphics.IndicesNum * uint32(unsafe.Sizeof(uint16(0))),
+		SizeInBytes:    graphics.IndicesCount * uint32(unsafe.Sizeof(uint16(0))),
 		Format:         _DXGI_FORMAT_R16_UINT,
 	})
 
@@ -1378,7 +1378,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 	return nil
 }
 
-func (g *Graphics) drawTriangles(pipelineState *_ID3D12PipelineState, srcs [graphics.ShaderImageNum]*Image, flattenUniforms []float32, indexLen int, indexOffset int) error {
+func (g *Graphics) drawTriangles(pipelineState *_ID3D12PipelineState, srcs [graphics.ShaderImageCount]*Image, flattenUniforms []float32, indexLen int, indexOffset int) error {
 	if err := g.pipelineStates.useGraphicsPipelineState(g.device, g.drawCommandList, g.frameIndex, pipelineState, srcs, flattenUniforms); err != nil {
 		return err
 	}

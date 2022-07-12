@@ -212,8 +212,8 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 		1, 1, 1, 1)
 	is := graphics.QuadIndices()
 
-	srcs := [graphics.ShaderImageNum]*Image{c.offscreen}
-	c.screen.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, filter, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false, true)
+	srcs := [graphics.ShaderImageCount]*Image{c.offscreen}
+	c.screen.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, filter, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, nil, nil, false, true)
 }
 
 func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {

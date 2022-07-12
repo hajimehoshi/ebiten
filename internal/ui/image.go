@@ -54,8 +54,8 @@ func (i *Image) MarkDisposed() {
 	i.mipmap = nil
 }
 
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, canSkipMipmap bool) {
-	var srcMipmaps [graphics.ShaderImageNum]*mipmap.Mipmap
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, canSkipMipmap bool) {
+	var srcMipmaps [graphics.ShaderImageCount]*mipmap.Mipmap
 	for i, src := range srcs {
 		if src == nil {
 			continue
@@ -131,7 +131,7 @@ func (i *Image) Fill(r, g, b, a float32, x, y, width, height int) {
 		r, g, b, a)
 	is := graphics.QuadIndices()
 
-	srcs := [graphics.ShaderImageNum]*Image{emptyImage}
+	srcs := [graphics.ShaderImageCount]*Image{emptyImage}
 
-	i.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false, true)
+	i.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, nil, nil, false, true)
 }

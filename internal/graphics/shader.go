@@ -76,9 +76,9 @@ var __textureSourceRegionSize vec2
 func imageSrcRegionOnTexture() (vec2, vec2) {
 	return __textureSourceRegionOrigin, __textureSourceRegionSize
 }
-`, ShaderImageNum, ShaderImageNum-1)
+`, ShaderImageCount, ShaderImageCount-1)
 
-	for i := 0; i < ShaderImageNum; i++ {
+	for i := 0; i < ShaderImageCount; i++ {
 		pos := "pos"
 		if i >= 1 {
 			// Convert the position in texture0's texels to the target texture texels.
@@ -124,7 +124,7 @@ func CompileShader(src []byte) (*shaderir.Program, error) {
 		vert = "__vertex"
 		frag = "Fragment"
 	)
-	ir, err := shader.Compile(fs, f, vert, frag, ShaderImageNum)
+	ir, err := shader.Compile(fs, f, vert, frag, ShaderImageCount)
 	if err != nil {
 		return nil, err
 	}

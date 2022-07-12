@@ -792,7 +792,7 @@ func (g *Graphics) flushRenderCommandEncoderIfNeeded() {
 	g.lastDst = nil
 }
 
-func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion graphicsdriver.Region, srcs [graphics.ShaderImageNum]*Image, indexLen int, indexOffset int, uniforms [][]float32, stencilMode stencilMode) error {
+func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion graphicsdriver.Region, srcs [graphics.ShaderImageCount]*Image, indexLen int, indexOffset int, uniforms [][]float32, stencilMode stencilMode) error {
 	// When prepareing a stencil buffer, flush the current render command encoder
 	// to make sure the stencil buffer is cleared when loading.
 	// TODO: What about clearing the stencil buffer by vertices?
@@ -874,14 +874,14 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion graph
 	return nil
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageNum]graphicsdriver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, colorM graphicsdriver.ColorM, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, offsets [graphics.ShaderImageCount - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, colorM graphicsdriver.ColorM, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
 	dst := g.images[dstID]
 
 	if dst.screen {
 		g.view.update()
 	}
 
-	var srcs [graphics.ShaderImageNum]*Image
+	var srcs [graphics.ShaderImageCount]*Image
 	for i, srcID := range srcIDs {
 		srcs[i] = g.images[srcID]
 	}
@@ -948,7 +948,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 			}
 		}
 
-		uniformVars = make([][]float32, graphics.PreservedUniformVariablesNum+len(uniforms))
+		uniformVars = make([][]float32, graphics.PreservedUniformVariablesCount+len(uniforms))
 
 		// Set the destination texture size.
 		dw, dh := dst.internalSize()
@@ -998,7 +998,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 
 		// Set the additional uniform variables.
 		for i, v := range uniforms {
-			const offset = graphics.PreservedUniformVariablesNum
+			const offset = graphics.PreservedUniformVariablesCount
 			t := g.shaders[shaderID].ir.Uniforms[offset+i]
 			switch t.Main {
 			case shaderir.Mat3:

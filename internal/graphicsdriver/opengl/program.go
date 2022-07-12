@@ -64,7 +64,7 @@ func (a *arrayBufferLayout) totalBytes() int {
 
 // newArrayBuffer creates OpenGL's buffer object for the array buffer.
 func (a *arrayBufferLayout) newArrayBuffer(context *context) buffer {
-	return context.newArrayBuffer(a.totalBytes() * graphics.IndicesNum)
+	return context.newArrayBuffer(a.totalBytes() * graphics.IndicesCount)
 }
 
 // enable starts using the array buffer.
@@ -108,9 +108,9 @@ var theArrayBufferLayout = arrayBufferLayout{
 }
 
 func init() {
-	vertexFloatNum := theArrayBufferLayout.totalBytes() / floatSizeInBytes
-	if graphics.VertexFloatNum != vertexFloatNum {
-		panic(fmt.Sprintf("vertex float num must be %d but %d", graphics.VertexFloatNum, vertexFloatNum))
+	vertexFloatCount := theArrayBufferLayout.totalBytes() / floatSizeInBytes
+	if graphics.VertexFloatCount != vertexFloatCount {
+		panic(fmt.Sprintf("vertex float num must be %d but %d", graphics.VertexFloatCount, vertexFloatCount))
 	}
 }
 
@@ -222,7 +222,7 @@ func (s *openGLState) reset(context *context) error {
 	// Note that the indices passed to NewElementArrayBuffer is not under GC management
 	// in opengl package due to unsafe-way.
 	// See NewElementArrayBuffer in context_mobile.go.
-	s.elementArrayBuffer = context.newElementArrayBuffer(graphics.IndicesNum * 2)
+	s.elementArrayBuffer = context.newElementArrayBuffer(graphics.IndicesCount * 2)
 
 	return nil
 }
@@ -264,7 +264,7 @@ func (g *Graphics) textureVariableName(idx int) string {
 }
 
 // useProgram uses the program (programTexture).
-func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textures [graphics.ShaderImageNum]textureVariable) error {
+func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textures [graphics.ShaderImageCount]textureVariable) error {
 	if !g.state.lastProgram.equal(program) {
 		g.context.useProgram(program)
 		if g.state.lastProgram.equal(zeroProgram) {

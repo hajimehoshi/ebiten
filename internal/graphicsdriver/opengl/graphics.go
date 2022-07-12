@@ -180,7 +180,7 @@ func (g *Graphics) uniformVariableName(idx int) string {
 	return name
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageNum]graphicsdriver.ImageID, offsets [graphics.ShaderImageNum - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, colorM graphicsdriver.ColorM, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, offsets [graphics.ShaderImageCount - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, colorM graphicsdriver.ColorM, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
 	destination := g.images[dstID]
 
 	g.drawCalled = true
@@ -257,7 +257,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 		shader := g.shaders[shaderID]
 		program = shader.p
 
-		ulen := graphics.PreservedUniformVariablesNum + len(uniforms)
+		ulen := graphics.PreservedUniformVariablesCount + len(uniforms)
 		if cap(g.uniformVars) < ulen {
 			g.uniformVars = make([]uniformVariable, ulen)
 		} else {
@@ -339,14 +339,14 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 		}
 
 		for i, v := range uniforms {
-			const offset = graphics.PreservedUniformVariablesNum
+			const offset = graphics.PreservedUniformVariablesCount
 			g.uniformVars[i+offset].name = g.uniformVariableName(i + offset)
 			g.uniformVars[i+offset].value = v
 			g.uniformVars[i+offset].typ = shader.ir.Uniforms[i+offset]
 		}
 	}
 
-	var imgs [graphics.ShaderImageNum]textureVariable
+	var imgs [graphics.ShaderImageCount]textureVariable
 	for i, srcID := range srcIDs {
 		if srcID == graphicsdriver.InvalidImageID {
 			continue

@@ -278,7 +278,7 @@ type pipelineStates struct {
 	constantBufferMaps [frameCount][]uintptr
 }
 
-const numConstantBufferAndSourceTextures = 1 + graphics.ShaderImageNum
+const numConstantBufferAndSourceTextures = 1 + graphics.ShaderImageCount
 
 func (p *pipelineStates) initialize(device *_ID3D12Device) (ferr error) {
 	// Create a CBV/SRV/UAV descriptor heap.
@@ -359,7 +359,7 @@ func (p *pipelineStates) builtinGraphicsPipelineState(device *_ID3D12Device, key
 	return s, nil
 }
 
-func (p *pipelineStates) useGraphicsPipelineState(device *_ID3D12Device, commandList *_ID3D12GraphicsCommandList, frameIndex int, pipelineState *_ID3D12PipelineState, srcs [graphics.ShaderImageNum]*Image, uniforms []float32) error {
+func (p *pipelineStates) useGraphicsPipelineState(device *_ID3D12Device, commandList *_ID3D12GraphicsCommandList, frameIndex int, pipelineState *_ID3D12PipelineState, srcs [graphics.ShaderImageCount]*Image, uniforms []float32) error {
 	idx := len(p.constantBuffers[frameIndex])
 	if idx >= numDescriptorsPerFrame*2 {
 		return fmt.Errorf("directx: too many constant buffers")
@@ -486,7 +486,7 @@ func (p *pipelineStates) ensureRootSignature(device *_ID3D12Device) (rootSignatu
 	}
 	srv := _D3D12_DESCRIPTOR_RANGE{
 		RangeType:                         _D3D12_DESCRIPTOR_RANGE_TYPE_SRV, // t0
-		NumDescriptors:                    graphics.ShaderImageNum,
+		NumDescriptors:                    graphics.ShaderImageCount,
 		BaseShaderRegister:                0,
 		RegisterSpace:                     0,
 		OffsetInDescriptorsFromTableStart: _D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND,

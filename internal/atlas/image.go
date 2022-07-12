@@ -303,8 +303,8 @@ func (i *Image) ensureIsolated() {
 		dx1, dy1, sx1, sy1, 1, 1, 1, 1,
 	}
 	is := graphics.QuadIndices()
-	srcs := [graphics.ShaderImageNum]*restorable.Image{i.backend.restorable}
-	var offsets [graphics.ShaderImageNum - 1][2]float32
+	srcs := [graphics.ShaderImageCount]*restorable.Image{i.backend.restorable}
+	var offsets [graphics.ShaderImageCount - 1][2]float32
 	dstRegion := graphicsdriver.Region{
 		X:      float32(i.paddingSize()),
 		Y:      float32(i.paddingSize()),
@@ -350,7 +350,7 @@ func (i *Image) putOnAtlas(graphicsDriver graphicsdriver.Graphics) error {
 		Width:  w,
 		Height: h,
 	}
-	newI.drawTriangles([graphics.ShaderImageNum]*Image{i}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false, true)
+	newI.drawTriangles([graphics.ShaderImageCount]*Image{i}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, nil, nil, false, true)
 
 	newI.moveTo(i)
 	i.usedAsSourceCount = 0
@@ -397,13 +397,13 @@ func (i *Image) processSrc(src *Image) {
 //   5: Color G
 //   6: Color B
 //   7: Color Y
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	i.drawTriangles(srcs, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd, false)
 }
 
-func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, keepOnAtlas bool) {
+func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, keepOnAtlas bool) {
 	if i.disposed {
 		panic("atlas: the drawing target image must not be disposed (DrawTriangles)")
 	}
@@ -436,7 +436,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		sw, sh := srcs[0].backend.restorable.InternalSize()
 		swf, shf := float32(sw), float32(sh)
 		n := len(vertices)
-		for i := 0; i < n; i += graphics.VertexFloatNum {
+		for i := 0; i < n; i += graphics.VertexFloatCount {
 			vertices[i] = adjustDestinationPixel(vertices[i] + dx)
 			vertices[i+1] = adjustDestinationPixel(vertices[i+1] + dy)
 			vertices[i+2] = (vertices[i+2] + oxf) / swf
@@ -450,15 +450,15 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		}
 	} else {
 		n := len(vertices)
-		for i := 0; i < n; i += graphics.VertexFloatNum {
+		for i := 0; i < n; i += graphics.VertexFloatCount {
 			vertices[i] = adjustDestinationPixel(vertices[i] + dx)
 			vertices[i+1] = adjustDestinationPixel(vertices[i+1] + dy)
 		}
 	}
 
-	var offsets [graphics.ShaderImageNum - 1][2]float32
+	var offsets [graphics.ShaderImageCount - 1][2]float32
 	var s *restorable.Shader
-	var imgs [graphics.ShaderImageNum]*restorable.Image
+	var imgs [graphics.ShaderImageCount]*restorable.Image
 	if shader == nil {
 		// Fast path for rendering without a shader (#1355).
 		imgs[0] = srcs[0].backend.restorable

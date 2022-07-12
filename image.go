@@ -82,38 +82,38 @@ func (i *Image) resolveSetVerticesCacheIfNeeded() {
 			caf = float32(c[3]) / 0xff
 		}
 
-		vs[graphics.VertexFloatNum*4*idx] = dx
-		vs[graphics.VertexFloatNum*4*idx+1] = dy
-		vs[graphics.VertexFloatNum*4*idx+2] = sx
-		vs[graphics.VertexFloatNum*4*idx+3] = sy
-		vs[graphics.VertexFloatNum*4*idx+4] = crf
-		vs[graphics.VertexFloatNum*4*idx+5] = cgf
-		vs[graphics.VertexFloatNum*4*idx+6] = cbf
-		vs[graphics.VertexFloatNum*4*idx+7] = caf
-		vs[graphics.VertexFloatNum*4*idx+8] = dx + 1
-		vs[graphics.VertexFloatNum*4*idx+9] = dy
-		vs[graphics.VertexFloatNum*4*idx+10] = sx + 1
-		vs[graphics.VertexFloatNum*4*idx+11] = sy
-		vs[graphics.VertexFloatNum*4*idx+12] = crf
-		vs[graphics.VertexFloatNum*4*idx+13] = cgf
-		vs[graphics.VertexFloatNum*4*idx+14] = cbf
-		vs[graphics.VertexFloatNum*4*idx+15] = caf
-		vs[graphics.VertexFloatNum*4*idx+16] = dx
-		vs[graphics.VertexFloatNum*4*idx+17] = dy + 1
-		vs[graphics.VertexFloatNum*4*idx+18] = sx
-		vs[graphics.VertexFloatNum*4*idx+19] = sy + 1
-		vs[graphics.VertexFloatNum*4*idx+20] = crf
-		vs[graphics.VertexFloatNum*4*idx+21] = cgf
-		vs[graphics.VertexFloatNum*4*idx+22] = cbf
-		vs[graphics.VertexFloatNum*4*idx+23] = caf
-		vs[graphics.VertexFloatNum*4*idx+24] = dx + 1
-		vs[graphics.VertexFloatNum*4*idx+25] = dy + 1
-		vs[graphics.VertexFloatNum*4*idx+26] = sx + 1
-		vs[graphics.VertexFloatNum*4*idx+27] = sy + 1
-		vs[graphics.VertexFloatNum*4*idx+28] = crf
-		vs[graphics.VertexFloatNum*4*idx+29] = cgf
-		vs[graphics.VertexFloatNum*4*idx+30] = cbf
-		vs[graphics.VertexFloatNum*4*idx+31] = caf
+		vs[graphics.VertexFloatCount*4*idx] = dx
+		vs[graphics.VertexFloatCount*4*idx+1] = dy
+		vs[graphics.VertexFloatCount*4*idx+2] = sx
+		vs[graphics.VertexFloatCount*4*idx+3] = sy
+		vs[graphics.VertexFloatCount*4*idx+4] = crf
+		vs[graphics.VertexFloatCount*4*idx+5] = cgf
+		vs[graphics.VertexFloatCount*4*idx+6] = cbf
+		vs[graphics.VertexFloatCount*4*idx+7] = caf
+		vs[graphics.VertexFloatCount*4*idx+8] = dx + 1
+		vs[graphics.VertexFloatCount*4*idx+9] = dy
+		vs[graphics.VertexFloatCount*4*idx+10] = sx + 1
+		vs[graphics.VertexFloatCount*4*idx+11] = sy
+		vs[graphics.VertexFloatCount*4*idx+12] = crf
+		vs[graphics.VertexFloatCount*4*idx+13] = cgf
+		vs[graphics.VertexFloatCount*4*idx+14] = cbf
+		vs[graphics.VertexFloatCount*4*idx+15] = caf
+		vs[graphics.VertexFloatCount*4*idx+16] = dx
+		vs[graphics.VertexFloatCount*4*idx+17] = dy + 1
+		vs[graphics.VertexFloatCount*4*idx+18] = sx
+		vs[graphics.VertexFloatCount*4*idx+19] = sy + 1
+		vs[graphics.VertexFloatCount*4*idx+20] = crf
+		vs[graphics.VertexFloatCount*4*idx+21] = cgf
+		vs[graphics.VertexFloatCount*4*idx+22] = cbf
+		vs[graphics.VertexFloatCount*4*idx+23] = caf
+		vs[graphics.VertexFloatCount*4*idx+24] = dx + 1
+		vs[graphics.VertexFloatCount*4*idx+25] = dy + 1
+		vs[graphics.VertexFloatCount*4*idx+26] = sx + 1
+		vs[graphics.VertexFloatCount*4*idx+27] = sy + 1
+		vs[graphics.VertexFloatCount*4*idx+28] = crf
+		vs[graphics.VertexFloatCount*4*idx+29] = cgf
+		vs[graphics.VertexFloatCount*4*idx+30] = cbf
+		vs[graphics.VertexFloatCount*4*idx+31] = caf
 
 		is[6*idx] = uint16(4 * idx)
 		is[6*idx+1] = uint16(4*idx + 1)
@@ -126,8 +126,8 @@ func (i *Image) resolveSetVerticesCacheIfNeeded() {
 	}
 	i.setVerticesCache = nil
 
-	srcs := [graphics.ShaderImageNum]*ui.Image{emptyImage.image}
-	i.image.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, i.adjustedRegion(), graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false, true)
+	srcs := [graphics.ShaderImageCount]*ui.Image{emptyImage.image}
+	i.image.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, i.adjustedRegion(), graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, nil, nil, false, true)
 }
 
 // Size returns the size of the image.
@@ -310,9 +310,9 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	vs := graphics.QuadVertices(float32(sx0), float32(sy0), float32(sx1), float32(sy1), a, b, c, d, tx, ty, cr, cg, cb, ca)
 	is := graphics.QuadIndices()
 
-	srcs := [graphics.ShaderImageNum]*ui.Image{img.image}
+	srcs := [graphics.ShaderImageCount]*ui.Image{img.image}
 
-	i.image.DrawTriangles(srcs, vs, is, colorm, mode, filter, graphicsdriver.AddressUnsafe, i.adjustedRegion(), graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false, canSkipMipmap(options.GeoM, filter))
+	i.image.DrawTriangles(srcs, vs, is, colorm, mode, filter, graphicsdriver.AddressUnsafe, i.adjustedRegion(), graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, nil, nil, false, canSkipMipmap(options.GeoM, filter))
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -398,8 +398,13 @@ type DrawTrianglesOptions struct {
 	FillRule FillRule
 }
 
+// MaxIndicesCount is the maximum number of indices for DrawTriangles.
+const MaxIndicesCount = graphics.IndicesCount
+
 // MaxIndicesNum is the maximum number of indices for DrawTriangles.
-const MaxIndicesNum = graphics.IndicesNum
+//
+// Deprecated: as of v2.4. Use MaxIndicesCount instead.
+const MaxIndicesNum = graphics.IndicesCount
 
 // DrawTriangles draws triangles with the specified vertices and their indices.
 //
@@ -412,7 +417,7 @@ const MaxIndicesNum = graphics.IndicesNum
 //
 // If len(indices) is not multiple of 3, DrawTriangles panics.
 //
-// If len(indices) is more than MaxIndicesNum, DrawTriangles panics.
+// If len(indices) is more than MaxIndicesCount, DrawTriangles panics.
 //
 // The rule in which DrawTriangles works effectively is same as DrawImage's.
 //
@@ -432,8 +437,8 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	if len(indices)%3 != 0 {
 		panic("ebiten: len(indices) % 3 must be 0")
 	}
-	if len(indices) > MaxIndicesNum {
-		panic("ebiten: len(indices) must be <= MaxIndicesNum")
+	if len(indices) > MaxIndicesCount {
+		panic("ebiten: len(indices) must be <= MaxIndicesCount")
 	}
 	// TODO: Check the maximum value of indices and len(vertices)?
 
@@ -460,22 +465,22 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	dst := i
 	for i, v := range vertices {
 		dx, dy := dst.adjustPositionF32(v.DstX, v.DstY)
-		vs[i*graphics.VertexFloatNum] = dx
-		vs[i*graphics.VertexFloatNum+1] = dy
+		vs[i*graphics.VertexFloatCount] = dx
+		vs[i*graphics.VertexFloatCount+1] = dy
 		sx, sy := img.adjustPositionF32(v.SrcX, v.SrcY)
-		vs[i*graphics.VertexFloatNum+2] = sx
-		vs[i*graphics.VertexFloatNum+3] = sy
-		vs[i*graphics.VertexFloatNum+4] = v.ColorR * cr
-		vs[i*graphics.VertexFloatNum+5] = v.ColorG * cg
-		vs[i*graphics.VertexFloatNum+6] = v.ColorB * cb
-		vs[i*graphics.VertexFloatNum+7] = v.ColorA * ca
+		vs[i*graphics.VertexFloatCount+2] = sx
+		vs[i*graphics.VertexFloatCount+3] = sy
+		vs[i*graphics.VertexFloatCount+4] = v.ColorR * cr
+		vs[i*graphics.VertexFloatCount+5] = v.ColorG * cg
+		vs[i*graphics.VertexFloatCount+6] = v.ColorB * cb
+		vs[i*graphics.VertexFloatCount+7] = v.ColorA * ca
 	}
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
-	srcs := [graphics.ShaderImageNum]*ui.Image{img.image}
+	srcs := [graphics.ShaderImageCount]*ui.Image{img.image}
 
-	i.image.DrawTriangles(srcs, vs, is, colorm, mode, filter, address, i.adjustedRegion(), sr, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, options.FillRule == EvenOdd, false)
+	i.image.DrawTriangles(srcs, vs, is, colorm, mode, filter, address, i.adjustedRegion(), sr, [graphics.ShaderImageCount - 1][2]float32{}, nil, nil, options.FillRule == EvenOdd, false)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
@@ -510,7 +515,7 @@ type DrawTrianglesShaderOptions struct {
 
 func init() {
 	var op DrawTrianglesShaderOptions
-	if got, want := len(op.Images), graphics.ShaderImageNum; got != want {
+	if got, want := len(op.Images), graphics.ShaderImageCount; got != want {
 		panic(fmt.Sprintf("ebiten: len((DrawTrianglesShaderOptions{}).Images) must be %d but %d", want, got))
 	}
 }
@@ -523,7 +528,7 @@ func init() {
 //
 // If len(indices) is not multiple of 3, DrawTrianglesShader panics.
 //
-// If len(indices) is more than MaxIndicesNum, DrawTrianglesShader panics.
+// If len(indices) is more than MaxIndicesCount, DrawTrianglesShader panics.
 //
 // When a specified image is non-nil and is disposed, DrawTrianglesShader panics.
 //
@@ -540,8 +545,8 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	if len(indices)%3 != 0 {
 		panic("ebiten: len(indices) % 3 must be 0")
 	}
-	if len(indices) > MaxIndicesNum {
-		panic("ebiten: len(indices) must be <= MaxIndicesNum")
+	if len(indices) > MaxIndicesCount {
+		panic("ebiten: len(indices) must be <= MaxIndicesCount")
 	}
 	// TODO: Check the maximum value of indices and len(vertices)?
 
@@ -558,23 +563,23 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 	src := options.Images[0]
 	for i, v := range vertices {
 		dx, dy := dst.adjustPositionF32(v.DstX, v.DstY)
-		vs[i*graphics.VertexFloatNum] = dx
-		vs[i*graphics.VertexFloatNum+1] = dy
+		vs[i*graphics.VertexFloatCount] = dx
+		vs[i*graphics.VertexFloatCount+1] = dy
 		sx, sy := v.SrcX, v.SrcY
 		if src != nil {
 			sx, sy = src.adjustPositionF32(sx, sy)
 		}
-		vs[i*graphics.VertexFloatNum+2] = sx
-		vs[i*graphics.VertexFloatNum+3] = sy
-		vs[i*graphics.VertexFloatNum+4] = v.ColorR
-		vs[i*graphics.VertexFloatNum+5] = v.ColorG
-		vs[i*graphics.VertexFloatNum+6] = v.ColorB
-		vs[i*graphics.VertexFloatNum+7] = v.ColorA
+		vs[i*graphics.VertexFloatCount+2] = sx
+		vs[i*graphics.VertexFloatCount+3] = sy
+		vs[i*graphics.VertexFloatCount+4] = v.ColorR
+		vs[i*graphics.VertexFloatCount+5] = v.ColorG
+		vs[i*graphics.VertexFloatCount+6] = v.ColorB
+		vs[i*graphics.VertexFloatCount+7] = v.ColorA
 	}
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
-	var imgs [graphics.ShaderImageNum]*ui.Image
+	var imgs [graphics.ShaderImageCount]*ui.Image
 	var imgw, imgh int
 	for i, img := range options.Images {
 		if img == nil {
@@ -603,7 +608,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		sr = img.adjustedRegion()
 	}
 
-	var offsets [graphics.ShaderImageNum - 1][2]float32
+	var offsets [graphics.ShaderImageCount - 1][2]float32
 	for i, img := range options.Images[1:] {
 		if img == nil {
 			continue
@@ -646,7 +651,7 @@ type DrawRectShaderOptions struct {
 
 func init() {
 	var op DrawRectShaderOptions
-	if got, want := len(op.Images), graphics.ShaderImageNum; got != want {
+	if got, want := len(op.Images), graphics.ShaderImageCount; got != want {
 		panic(fmt.Sprintf("ebiten: len((DrawRectShaderOptions{}).Images) must be %d but %d", want, got))
 	}
 }
@@ -675,7 +680,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 
 	mode := graphicsdriver.CompositeMode(options.CompositeMode)
 
-	var imgs [graphics.ShaderImageNum]*ui.Image
+	var imgs [graphics.ShaderImageCount]*ui.Image
 	for i, img := range options.Images {
 		if img == nil {
 			continue
@@ -705,7 +710,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	vs := graphics.QuadVertices(float32(sx), float32(sy), float32(sx+width), float32(sy+height), a, b, c, d, tx, ty, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 
-	var offsets [graphics.ShaderImageNum - 1][2]float32
+	var offsets [graphics.ShaderImageCount - 1][2]float32
 	for i, img := range options.Images[1:] {
 		if img == nil {
 			continue
@@ -843,7 +848,7 @@ func (i *Image) Set(x, y int, clr color.Color) {
 	cr, cg, cb, ca := clr.RGBA()
 	i.setVerticesCache[[2]int{dx, dy}] = [4]byte{byte(cr / 0x101), byte(cg / 0x101), byte(cb / 0x101), byte(ca / 0x101)}
 	// One square requires 6 indices (= 2 triangles).
-	if len(i.setVerticesCache) >= graphics.IndicesNum/6 {
+	if len(i.setVerticesCache) >= graphics.IndicesCount/6 {
 		i.resolveSetVerticesCacheIfNeeded()
 	}
 }

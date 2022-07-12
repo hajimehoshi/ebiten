@@ -58,7 +58,7 @@ func (m *Mipmap) At(graphicsDriver graphicsdriver.Graphics, x, y int) (r, g, b, 
 	return m.orig.At(graphicsDriver, x, y)
 }
 
-func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, canSkipMipmap bool) {
+func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, canSkipMipmap bool) {
 	if len(indices) == 0 {
 		return
 	}
@@ -68,7 +68,7 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices [
 	if !canSkipMipmap && srcs[0] != nil && !srcs[0].volatile && filter != graphicsdriver.FilterScreen {
 		level = math.MaxInt32
 		for i := 0; i < len(indices)/3; i++ {
-			const n = graphics.VertexFloatNum
+			const n = graphics.VertexFloatCount
 			dx0 := vertices[n*indices[3*i]+0]
 			dy0 := vertices[n*indices[3*i]+1]
 			sx0 := vertices[n*indices[3*i]+2]
@@ -101,14 +101,14 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageNum]*Mipmap, vertices [
 		s = shader.shader
 	}
 
-	var imgs [graphics.ShaderImageNum]*buffered.Image
+	var imgs [graphics.ShaderImageCount]*buffered.Image
 	for i, src := range srcs {
 		if src == nil {
 			continue
 		}
 		if level != 0 {
 			if img := src.level(level); img != nil {
-				const n = graphics.VertexFloatNum
+				const n = graphics.VertexFloatCount
 				s := float32(pow2(level))
 				for i := 0; i < len(vertices)/n; i++ {
 					vertices[i*n+2] /= s
@@ -189,7 +189,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		Width:  float32(w2),
 		Height: float32(h2),
 	}
-	s.DrawTriangles([graphics.ShaderImageNum]*buffered.Image{src}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, filter, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, false)
+	s.DrawTriangles([graphics.ShaderImageCount]*buffered.Image{src}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, filter, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, nil, nil, false)
 	m.setImg(level, s)
 
 	return m.imgs[level]

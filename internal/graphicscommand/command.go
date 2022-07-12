@@ -109,13 +109,13 @@ func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
 
 // mustUseDifferentVertexBuffer reports whether a differnt vertex buffer must be used.
 func mustUseDifferentVertexBuffer(nextNumVertexFloats, nextNumIndices int) bool {
-	return nextNumVertexFloats > graphics.IndicesNum*graphics.VertexFloatNum || nextNumIndices > graphics.IndicesNum
+	return nextNumVertexFloats > graphics.IndicesCount*graphics.VertexFloatCount || nextNumIndices > graphics.IndicesCount
 }
 
 // EnqueueDrawTrianglesCommand enqueues a drawing-image command.
-func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageNum]*Image, offsets [graphics.ShaderImageNum - 1][2]float32, vertices []float32, indices []uint16, color affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
-	if len(indices) > graphics.IndicesNum {
-		panic(fmt.Sprintf("graphicscommand: len(indices) must be <= graphics.IndicesNum but not at EnqueueDrawTrianglesCommand: len(indices): %d, graphics.IndicesNum: %d", len(indices), graphics.IndicesNum))
+func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, color affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
+	if len(indices) > graphics.IndicesCount {
+		panic(fmt.Sprintf("graphicscommand: len(indices) must be <= graphics.IndicesCount but not at EnqueueDrawTrianglesCommand: len(indices): %d, graphics.IndicesCount: %d", len(indices), graphics.IndicesCount))
 	}
 
 	split := false
@@ -128,7 +128,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	// Assume that all the image sizes are same.
 	// Assume that the images are packed from the front in the slice srcs.
 	q.appendVertices(vertices, srcs[0])
-	q.appendIndices(indices, uint16(q.tmpNumVertexFloats/graphics.VertexFloatNum))
+	q.appendIndices(indices, uint16(q.tmpNumVertexFloats/graphics.VertexFloatCount))
 	q.tmpNumVertexFloats += len(vertices)
 	q.tmpNumIndices += len(indices)
 
@@ -214,8 +214,8 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
 		nc := 0
 		for _, c := range cs {
 			if dtc, ok := c.(*drawTrianglesCommand); ok {
-				if dtc.numIndices() > graphics.IndicesNum {
-					panic(fmt.Sprintf("graphicscommand: dtc.NumIndices() must be <= graphics.IndicesNum but not at Flush: dtc.NumIndices(): %d, graphics.IndicesNum: %d", dtc.numIndices(), graphics.IndicesNum))
+				if dtc.numIndices() > graphics.IndicesCount {
+					panic(fmt.Sprintf("graphicscommand: dtc.NumIndices() must be <= graphics.IndicesCount but not at Flush: dtc.NumIndices(): %d, graphics.IndicesCount: %d", dtc.numIndices(), graphics.IndicesCount))
 				}
 				if nc > 0 && mustUseDifferentVertexBuffer(nv+dtc.numVertices(), ne+dtc.numIndices()) {
 					break
@@ -279,8 +279,8 @@ func FlushCommands(graphicsDriver graphicsdriver.Graphics) error {
 // drawTrianglesCommand represents a drawing command to draw an image on another image.
 type drawTrianglesCommand struct {
 	dst       *Image
-	srcs      [graphics.ShaderImageNum]*Image
-	offsets   [graphics.ShaderImageNum - 1][2]float32
+	srcs      [graphics.ShaderImageCount]*Image
+	offsets   [graphics.ShaderImageCount - 1][2]float32
 	vertices  []float32
 	nindices  int
 	color     affine.ColorM
@@ -363,7 +363,7 @@ func (c *drawTrianglesCommand) String() string {
 		panic(fmt.Sprintf("graphicscommand: invalid address: %d", c.address))
 	}
 
-	var srcstrs [graphics.ShaderImageNum]string
+	var srcstrs [graphics.ShaderImageCount]string
 	for i, src := range c.srcs {
 		if src == nil {
 			srcstrs[i] = "(nil)"
@@ -388,7 +388,7 @@ func (c *drawTrianglesCommand) Exec(graphicsDriver graphicsdriver.Graphics, inde
 	}
 
 	var shaderID graphicsdriver.ShaderID = graphicsdriver.InvalidShaderID
-	var imgs [graphics.ShaderImageNum]graphicsdriver.ImageID
+	var imgs [graphics.ShaderImageCount]graphicsdriver.ImageID
 	if c.shader != nil {
 		shaderID = c.shader.shader.ID()
 		for i, src := range c.srcs {
@@ -423,7 +423,7 @@ func (c *drawTrianglesCommand) addNumIndices(n int) {
 
 // CanMergeWithDrawTrianglesCommand returns a boolean value indicating whether the other drawTrianglesCommand can be merged
 // with the drawTrianglesCommand c.
-func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageNum]*Image, vertices []float32, color affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) bool {
+func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, vertices []float32, color affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) bool {
 	if c.shader != shader {
 		return false
 	}
@@ -486,9 +486,9 @@ func dstRegionFromVertices(vertices []float32) (minX, minY, maxX, maxY float32) 
 	maxX = negInf32
 	maxY = negInf32
 
-	for i := 0; i < len(vertices)/graphics.VertexFloatNum; i++ {
-		x := vertices[graphics.VertexFloatNum*i]
-		y := vertices[graphics.VertexFloatNum*i+1]
+	for i := 0; i < len(vertices)/graphics.VertexFloatCount; i++ {
+		x := vertices[graphics.VertexFloatCount*i]
+		y := vertices[graphics.VertexFloatCount*i+1]
 		if x < minX {
 			minX = x
 		}

@@ -19,11 +19,11 @@ import (
 )
 
 const (
-	ShaderImageNum = 4
+	ShaderImageCount = 4
 
-	// PreservedUniformVariablesNum represents the number of preserved uniform variables.
+	// PreservedUniformVariablesCount represents the number of preserved uniform variables.
 	// Any shaders in Ebiten must have these uniform variables.
-	PreservedUniformVariablesNum = 1 + // the destination texture size
+	PreservedUniformVariablesCount = 1 + // the destination texture size
 		1 + // the texture sizes array
 		1 + // the texture destination region's origin
 		1 + // the texture destination region's size
@@ -43,8 +43,8 @@ const (
 )
 
 const (
-	IndicesNum     = (1 << 16) / 3 * 3 // Adjust num for triangles.
-	VertexFloatNum = 8
+	IndicesCount     = (1 << 16) / 3 * 3 // Adjust num for triangles.
+	VertexFloatCount = 8
 )
 
 var (
@@ -70,7 +70,7 @@ type verticesBackend struct {
 }
 
 func verticesBackendFloat32Size(size int) int {
-	l := 128 * VertexFloatNum
+	l := 128 * VertexFloatCount
 	for l < size {
 		l *= 2
 	}
@@ -88,7 +88,7 @@ func (v *verticesBackend) slice(n int) []float32 {
 	v.m.Lock()
 	defer v.m.Unlock()
 
-	need := n * VertexFloatNum
+	need := n * VertexFloatCount
 	if len(v.backend) < v.pos+need {
 		v.backend = make([]float32, max(len(v.backend)*2, verticesBackendFloat32Size(need)))
 		v.pos = 0
@@ -148,7 +148,7 @@ func QuadVertices(sx0, sy0, sx1, sy1 float32, a, b, c, d, tx, ty float32, cr, cg
 	vs := theVerticesBackend.slice(4)
 
 	// This function is very performance-sensitive and implement in a very dumb way.
-	_ = vs[:4*VertexFloatNum]
+	_ = vs[:4*VertexFloatCount]
 
 	vs[0] = tx
 	vs[1] = ty
