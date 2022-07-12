@@ -40,15 +40,15 @@ func TestGC(t *testing.T) {
 	defer teardown()
 
 	p, _ := context.NewPlayer(bytes.NewReader(make([]byte, 4)))
-	got := audio.PlayersNumForTesting()
+	got := audio.PlayersCountForTesting()
 	if want := 0; got != want {
-		t.Errorf("PlayersNum(): got: %d, want: %d", got, want)
+		t.Errorf("PlayersCountForTesting(): got: %d, want: %d", got, want)
 	}
 
 	p.Play()
-	got = audio.PlayersNumForTesting()
+	got = audio.PlayersCountForTesting()
 	if want := 1; got != want {
-		t.Errorf("PlayersNum() after Play: got: %d, want: %d", got, want)
+		t.Errorf("PlayersCountForTesting() after Play: got: %d, want: %d", got, want)
 	}
 
 	runtime.KeepAlive(p)
@@ -56,7 +56,7 @@ func TestGC(t *testing.T) {
 	runtime.GC()
 
 	for i := 0; i < 10; i++ {
-		got = audio.PlayersNumForTesting()
+		got = audio.PlayersCountForTesting()
 		if want := 0; got == want {
 			return
 		}

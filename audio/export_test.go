@@ -140,7 +140,7 @@ func UpdateForTesting() error {
 	return nil
 }
 
-func PlayersNumForTesting() int {
+func PlayersCountForTesting() int {
 	c := CurrentContext()
 	c.m.Lock()
 	n := len(c.players)
