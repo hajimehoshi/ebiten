@@ -62,7 +62,7 @@ func newContext(game Game) *context {
 
 func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
-	return c.updateFrameImpl(graphicsDriver, clock.Update(theGlobalState.maxTPS()), outsideWidth, outsideHeight, deviceScaleFactor)
+	return c.updateFrameImpl(graphicsDriver, clock.Update(theGlobalState.tps()), outsideWidth, outsideHeight, deviceScaleFactor)
 }
 
 func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
@@ -283,7 +283,7 @@ func (c *context) screenScaleAndOffsets() (float64, float64, float64) {
 }
 
 var theGlobalState = globalState{
-	maxTPS_:                    DefaultTPS,
+	tps_:                       DefaultTPS,
 	isScreenClearedEveryFrame_: 1,
 	screenFilterEnabled_:       1,
 }
@@ -295,7 +295,7 @@ type globalState struct {
 	errM sync.Mutex
 
 	fpsMode_                   int32
-	maxTPS_                    int32
+	tps_                       int32
 	isScreenClearedEveryFrame_ int32
 	screenFilterEnabled_       int32
 }
@@ -322,18 +322,18 @@ func (g *globalState) setFPSMode(fpsMode FPSModeType) {
 	atomic.StoreInt32(&g.fpsMode_, int32(fpsMode))
 }
 
-func (g *globalState) maxTPS() int {
+func (g *globalState) tps() int {
 	if g.fpsMode() == FPSModeVsyncOffMinimum {
 		return clock.SyncWithFPS
 	}
-	return int(atomic.LoadInt32(&g.maxTPS_))
+	return int(atomic.LoadInt32(&g.tps_))
 }
 
-func (g *globalState) setMaxTPS(tps int) {
+func (g *globalState) setTPS(tps int) {
 	if tps < 0 && tps != clock.SyncWithFPS {
 		panic("ui: tps must be >= 0 or SyncWithFPS")
 	}
-	atomic.StoreInt32(&g.maxTPS_, int32(tps))
+	atomic.StoreInt32(&g.tps_, int32(tps))
 }
 
 func (g *globalState) isScreenClearedEveryFrame() bool {
@@ -369,12 +369,12 @@ func SetFPSMode(fpsMode FPSModeType) {
 	theUI.SetFPSMode(fpsMode)
 }
 
-func MaxTPS() int {
-	return theGlobalState.maxTPS()
+func TPS() int {
+	return theGlobalState.tps()
 }
 
-func SetMaxTPS(tps int) {
-	theGlobalState.setMaxTPS(tps)
+func SetTPS(tps int) {
+	theGlobalState.setTPS(tps)
 }
 
 func IsScreenClearedEveryFrame() bool {

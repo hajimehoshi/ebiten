@@ -417,11 +417,11 @@ func ScheduleFrame() {
 //
 // MaxTPS is concurrent-safe.
 func MaxTPS() int {
-	return ui.MaxTPS()
+	return ui.TPS()
 }
 
 // CurrentTPS returns the current TPS (ticks per second),
-// that represents how many update function is called in a second.
+// that represents how many Update function is called in a second.
 //
 // This value is for measurement and/or debug, and your game logic should not rely on this value.
 //
@@ -447,7 +447,7 @@ const UncappedTPS = SyncWithFPS
 //
 // SetMaxTPS is concurrent-safe.
 func SetMaxTPS(tps int) {
-	ui.SetMaxTPS(tps)
+	ui.SetTPS(tps)
 }
 
 // IsScreenTransparent reports whether the window is transparent.
