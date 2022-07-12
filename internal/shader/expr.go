@@ -517,7 +517,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 
 		var outParams []int
 		for _, p := range f.ir.OutParams {
-			idx := block.totalLocalVariableNum()
+			idx := block.totalLocalVariableCount()
 			block.vars = append(block.vars, variable{
 				typ: p,
 			})
@@ -736,7 +736,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 			t.Length = len(e.Elts)
 		}
 
-		idx := block.totalLocalVariableNum()
+		idx := block.totalLocalVariableCount()
 		block.vars = append(block.vars, variable{
 			typ: t,
 		})

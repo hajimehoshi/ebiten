@@ -95,10 +95,10 @@ type block struct {
 	ir *shaderir.Block
 }
 
-func (b *block) totalLocalVariableNum() int {
+func (b *block) totalLocalVariableCount() int {
 	c := len(b.vars)
 	if b.outer != nil {
-		c += b.outer.totalLocalVariableNum()
+		c += b.outer.totalLocalVariableCount()
 	}
 	return c
 }
@@ -354,7 +354,7 @@ func (cs *compileState) parseDecl(b *block, d ast.Decl) ([]shaderir.Stmt, bool) 
 				}
 
 				// base must be obtained before adding the variables.
-				base := b.totalLocalVariableNum()
+				base := b.totalLocalVariableCount()
 				for _, v := range vs {
 					b.addNamedLocalVariable(v.name, v.typ, d.Pos())
 				}
