@@ -21,7 +21,6 @@ import (
 
 var (
 	stringKeydown    = js.ValueOf("keydown")
-	stringKeypress   = js.ValueOf("keypress")
 	stringKeyup      = js.ValueOf("keyup")
 	stringMousedown  = js.ValueOf("mousedown")
 	stringMouseup    = js.ValueOf("mouseup")
@@ -198,41 +197,28 @@ func (i *Input) updateFromEvent(e js.Value) {
 	// overhead (#1437).
 	switch t := e.Get("type"); {
 	case t.Equal(stringKeydown):
+		if str := e.Get("key").String(); isKeyString(str) {
+			for _, r := range str {
+				if unicode.IsPrint(r) {
+					i.runeBuffer = append(i.runeBuffer, r)
+				}
+			}
+		}
+
 		c := e.Get("code")
 		if c.Type() != js.TypeString {
-			code := e.Get("keyCode").Int()
-			if edgeKeyCodeToUIKey[code] == KeyArrowUp ||
-				edgeKeyCodeToUIKey[code] == KeyArrowDown ||
-				edgeKeyCodeToUIKey[code] == KeyArrowLeft ||
-				edgeKeyCodeToUIKey[code] == KeyArrowRight ||
-				edgeKeyCodeToUIKey[code] == KeyBackspace ||
-				edgeKeyCodeToUIKey[code] == KeyTab {
-				e.Call("preventDefault")
-			}
-			i.keyDownEdge(code)
+			i.keyDownEdge(e.Get("keyCode").Int())
 			return
-		}
-		if c.Equal(uiKeyToJSKey[KeyArrowUp]) ||
-			c.Equal(uiKeyToJSKey[KeyArrowDown]) ||
-			c.Equal(uiKeyToJSKey[KeyArrowLeft]) ||
-			c.Equal(uiKeyToJSKey[KeyArrowRight]) ||
-			c.Equal(uiKeyToJSKey[KeyBackspace]) ||
-			c.Equal(uiKeyToJSKey[KeyTab]) {
-			e.Call("preventDefault")
 		}
 		i.keyDown(c)
-	case t.Equal(stringKeypress):
-		if r := rune(e.Get("charCode").Int()); unicode.IsPrint(r) {
-			i.runeBuffer = append(i.runeBuffer, r)
-		}
 	case t.Equal(stringKeyup):
-		if e.Get("code").Type() != js.TypeString {
+		c := e.Get("code")
+		if c.Type() != js.TypeString {
 			// Assume that UA is Edge.
-			code := e.Get("keyCode").Int()
-			i.keyUpEdge(code)
+			i.keyUpEdge(e.Get("keyCode").Int())
 			return
 		}
-		i.keyUp(e.Get("code"))
+		i.keyUp(c)
 	case t.Equal(stringMousedown):
 		button := e.Get("button").Int()
 		i.mouseDown(button)
@@ -312,4 +298,32 @@ func (i *Input) updateForGo2Cpp() {
 			Y: y.Int(),
 		}
 	}
+}
+
+func isKeyString(str string) bool {
+	// From https://www.w3.org/TR/uievents-key/#keys-unicode,
+	//
+	//     A key string is a string containing a 0 or 1 non-control characters
+	//     ("base" characters) followed by 0 or more combining characters. The
+	//     string MUST be in Normalized Form C (NFC) as described in
+	//     [UnicodeNormalizationForms].
+	//
+	//     A non-control character is any valid Unicode character except those
+	//     that are part of the "Other, Control" ("Cc") General Category.
+	//
+	//     A combining character is any valid Unicode character in the "Mark,
+	//     Spacing Combining" ("Mc") General Category or with a non-zero
+	//     Combining Class.
+	for i, r := range str {
+		if i == 0 {
+			if unicode.Is(unicode.Cc, r) {
+				return false
+			}
+			continue
+		}
+		if !unicode.Is(unicode.Mc, r) {
+			return false
+		}
+	}
+	return true
 }

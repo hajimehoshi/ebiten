@@ -509,12 +509,6 @@ func setCanvasEventHandlers(v js.Value) {
 		v.Call("focus")
 
 		e := args[0]
-		// Don't 'preventDefault' on keydown events or keypress events wouldn't work (#715).
-		theUI.input.updateFromEvent(e)
-		return nil
-	}))
-	v.Call("addEventListener", "keypress", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		e := args[0]
 		e.Call("preventDefault")
 		theUI.input.updateFromEvent(e)
 		return nil
