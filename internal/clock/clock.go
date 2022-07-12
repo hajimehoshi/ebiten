@@ -54,16 +54,14 @@ func init() {
 
 func ActualFPS() float64 {
 	m.Lock()
-	v := actualFPS
-	m.Unlock()
-	return v
+	defer m.Unlock()
+	return actualFPS
 }
 
 func ActualTPS() float64 {
 	m.Lock()
-	v := actualTPS
-	m.Unlock()
-	return v
+	defer m.Unlock()
+	return actualTPS
 }
 
 func max(a, b int64) int64 {
