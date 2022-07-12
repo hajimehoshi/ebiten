@@ -31,7 +31,7 @@ var (
 
 	lastNow int64
 
-	// lastSystemTime is the last system time in the previous Update.
+	// lastSystemTime is the last system time in the previous UpdateFrame.
 	// lastSystemTime indicates the logical time in the game, so this can be bigger than the curren time.
 	lastSystemTime int64
 
@@ -133,14 +133,14 @@ func updateFPSAndTPS(now int64, count int) {
 	tpsCount = 0
 }
 
-// Update updates the inner clock state and returns an integer value
+// UpdateFrame updates the inner clock state and returns an integer value
 // indicating how many times the game should update based on the current tps.
 //
-// If tps is SyncWithFPS, Update always returns 1.
-// If tps <= 0 and not SyncWithFPS, Update always returns 0.
+// If tps is SyncWithFPS, UpdateFrame always returns 1.
+// If tps <= 0 and not SyncWithFPS, UpdateFrame always returns 0.
 //
-// Update is expected to be called per frame.
-func Update() int {
+// UpdateFrame is expected to be called once per frame.
+func UpdateFrame() int {
 	m.Lock()
 	defer m.Unlock()
 
