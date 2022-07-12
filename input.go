@@ -168,15 +168,22 @@ func GamepadIDs() []GamepadID {
 	return AppendGamepadIDs(nil)
 }
 
-// GamepadAxisNum returns the number of axes of the gamepad (id).
+// GamepadAxisCount returns the number of axes of the gamepad (id).
 //
-// GamepadAxisNum is concurrent-safe.
-func GamepadAxisNum(id GamepadID) int {
+// GamepadAxisCount is concurrent-safe.
+func GamepadAxisCount(id GamepadID) int {
 	g := gamepad.Get(id)
 	if g == nil {
 		return 0
 	}
 	return g.AxisCount()
+}
+
+// GamepadAxisNum returns the number of axes of the gamepad (id).
+//
+// Deprecated: as of v2.4. Use GamepadAxisCount instead.
+func GamepadAxisNum(id GamepadID) int {
+	return GamepadAxisCount(id)
 }
 
 // GamepadAxisValue returns a float value [-1.0 - 1.0] of the given gamepad (id)'s axis (axis).
@@ -197,10 +204,10 @@ func GamepadAxis(id GamepadID, axis int) float64 {
 	return GamepadAxisValue(id, axis)
 }
 
-// GamepadButtonNum returns the number of the buttons of the given gamepad (id).
+// GamepadButtonCount returns the number of the buttons of the given gamepad (id).
 //
-// GamepadButtonNum is concurrent-safe.
-func GamepadButtonNum(id GamepadID) int {
+// GamepadButtonCount is concurrent-safe.
+func GamepadButtonCount(id GamepadID) int {
 	g := gamepad.Get(id)
 	if g == nil {
 		return 0
@@ -208,6 +215,13 @@ func GamepadButtonNum(id GamepadID) int {
 
 	// For backward compatibility, hats are treated as buttons in GLFW.
 	return g.ButtonCount() + g.HatCount()*4
+}
+
+// GamepadButtonNum returns the number of the buttons of the given gamepad (id).
+//
+// Deprecated: as of v2.4. Use GamepadButtonCount instead.
+func GamepadButtonNum(id GamepadID) int {
+	return GamepadButtonCount(id)
 }
 
 // IsGamepadButtonPressed reports whether the given button of the gamepad (id) is pressed or not.

@@ -123,7 +123,7 @@ func (c *gamepadConfig) initializeIfNeeded() {
 	// For example, on PS4 controllers, L2/R2's axes valuse can be -1.0.
 	if c.defaultAxesValues == nil {
 		c.defaultAxesValues = map[int]float64{}
-		na := ebiten.GamepadAxisNum(c.gamepadID)
+		na := ebiten.GamepadAxisCount(c.gamepadID)
 		for a := 0; a < na; a++ {
 			c.defaultAxesValues[a] = ebiten.GamepadAxisValue(c.gamepadID, a)
 		}
@@ -149,7 +149,7 @@ func (c *gamepadConfig) Scan(b virtualGamepadButton) bool {
 	delete(c.buttons, b)
 	delete(c.axes, b)
 
-	ebn := ebiten.GamepadButton(ebiten.GamepadButtonNum(c.gamepadID))
+	ebn := ebiten.GamepadButton(ebiten.GamepadButtonCount(c.gamepadID))
 	for eb := ebiten.GamepadButton(0); eb < ebn; eb++ {
 		if _, ok := c.assignedButtons[eb]; ok {
 			continue
@@ -161,7 +161,7 @@ func (c *gamepadConfig) Scan(b virtualGamepadButton) bool {
 		}
 	}
 
-	na := ebiten.GamepadAxisNum(c.gamepadID)
+	na := ebiten.GamepadAxisCount(c.gamepadID)
 	for a := 0; a < na; a++ {
 		v := ebiten.GamepadAxisValue(c.gamepadID, a)
 		const delta = 0.25
