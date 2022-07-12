@@ -282,7 +282,7 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 	}
 
 	for _, u := range uniforms {
-		if got, expected := len(u.value), u.typ.FloatNum(); got != expected {
+		if got, expected := len(u.value), u.typ.FloatCount(); got != expected {
 			// Copy a shaderir.Type value once. Do not pass u.typ directly to fmt.Errorf arguments, or
 			// the value u would be allocated on heap.
 			typ := u.typ

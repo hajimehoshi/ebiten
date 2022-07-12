@@ -94,7 +94,7 @@ func (s *Shader) convertUniforms(uniforms map[string]interface{}) [][]float32 {
 			continue
 		}
 		t := s.uniformNameToType[name]
-		us[idx] = make([]float32, t.FloatNum())
+		us[idx] = make([]float32, t.FloatCount())
 	}
 
 	// TODO: Panic if uniforms include an invalid name

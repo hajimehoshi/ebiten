@@ -79,7 +79,7 @@ func calculateMemoryOffsets(uniforms []shaderir.Type) []int {
 			// TODO: What if the array has 2 or more dimensions?
 			head = align(head)
 			offsets = append(offsets, head)
-			n := u.Sub[0].FloatNum()
+			n := u.Sub[0].FloatCount()
 			switch u.Sub[0].Main {
 			case shaderir.Mat2:
 				n = 6

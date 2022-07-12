@@ -81,7 +81,7 @@ func (t *Type) String() string {
 	}
 }
 
-func (t *Type) FloatNum() int {
+func (t *Type) FloatCount() int {
 	switch t.Main {
 	case Float:
 		return 1
@@ -98,7 +98,7 @@ func (t *Type) FloatNum() int {
 	case Mat4:
 		return 16
 	case Array:
-		return t.Length * t.Sub[0].FloatNum()
+		return t.Length * t.Sub[0].FloatCount()
 	default: // TODO: Parse a struct correctly
 		return -1
 	}
