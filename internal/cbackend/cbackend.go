@@ -165,8 +165,8 @@ func VibrateGamepad(id int, duration time.Duration, strongMagnitude float64, wea
 
 var onReadCallback func(buf []float32)
 
-func OpenAudio(sampleRate, channelNum int, onRead func(buf []float32)) {
-	C.EbitenOpenAudioProxy(C.int(sampleRate), C.int(channelNum))
+func OpenAudio(sampleRate, channelCount int, onRead func(buf []float32)) {
+	C.EbitenOpenAudioProxy(C.int(sampleRate), C.int(channelCount))
 	onReadCallback = onRead
 }
 

@@ -187,14 +187,14 @@ chunks:
 			if format != 1 {
 				return nil, fmt.Errorf("wav: format must be linear PCM")
 			}
-			channelNum := int(buf[2]) | int(buf[3])<<8
-			switch channelNum {
+			channelCount := int(buf[2]) | int(buf[3])<<8
+			switch channelCount {
 			case 1:
 				mono = true
 			case 2:
 				mono = false
 			default:
-				return nil, fmt.Errorf("wav: channel num must be 1 or 2 but was %d", channelNum)
+				return nil, fmt.Errorf("wav: number of channels must be 1 or 2 but was %d", channelCount)
 			}
 			bitsPerSample = int(buf[14]) | int(buf[15])<<8
 			if bitsPerSample != 8 && bitsPerSample != 16 {

@@ -148,16 +148,16 @@ func decode(in io.Reader) (*decoded, int, int, error) {
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
 func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
-	decoded, channelNum, _, err := decode(src)
+	decoded, channelCount, _, err := decode(src)
 	if err != nil {
 		return nil, err
 	}
-	if channelNum != 1 && channelNum != 2 {
-		return nil, fmt.Errorf("vorbis: number of channels must be 1 or 2 but was %d", channelNum)
+	if channelCount != 1 && channelCount != 2 {
+		return nil, fmt.Errorf("vorbis: number of channels must be 1 or 2 but was %d", channelCount)
 	}
 	var s io.ReadSeeker = decoded
 	size := decoded.Length()
-	if channelNum == 1 {
+	if channelCount == 1 {
 		s = convert.NewStereo16(s, true, false)
 		size *= 2
 	}
@@ -179,16 +179,16 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
 func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
-	decoded, channelNum, origSampleRate, err := decode(src)
+	decoded, channelCount, origSampleRate, err := decode(src)
 	if err != nil {
 		return nil, err
 	}
-	if channelNum != 1 && channelNum != 2 {
-		return nil, fmt.Errorf("vorbis: number of channels must be 1 or 2 but was %d", channelNum)
+	if channelCount != 1 && channelCount != 2 {
+		return nil, fmt.Errorf("vorbis: number of channels must be 1 or 2 but was %d", channelCount)
 	}
 	var s io.ReadSeeker = decoded
 	size := decoded.Length()
-	if channelNum == 1 {
+	if channelCount == 1 {
 		s = convert.NewStereo16(s, true, false)
 		size *= 2
 	}

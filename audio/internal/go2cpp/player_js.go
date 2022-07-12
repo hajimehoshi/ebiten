@@ -26,16 +26,16 @@ import (
 type Context struct {
 	v               js.Value
 	sampleRate      int
-	channelNum      int
+	channelCount    int
 	bitDepthInBytes int
 }
 
-func NewContext(sampleRate int, channelNum, bitDepthInBytes int) *Context {
-	v := js.Global().Get("go2cpp").Call("createAudio", sampleRate, channelNum, bitDepthInBytes)
+func NewContext(sampleRate int, channelCount, bitDepthInBytes int) *Context {
+	v := js.Global().Get("go2cpp").Call("createAudio", sampleRate, channelCount, bitDepthInBytes)
 	return &Context{
 		v:               v,
 		sampleRate:      sampleRate,
-		channelNum:      channelNum,
+		channelCount:    channelCount,
 		bitDepthInBytes: bitDepthInBytes,
 	}
 }
@@ -73,7 +73,7 @@ func (c *Context) Err() error {
 
 func (c *Context) oneBufferSize() int {
 	// TODO: This must be audio.oneBufferSize(p.context.sampleRate). Avoid the duplication.
-	return c.sampleRate * c.channelNum * c.bitDepthInBytes / 4
+	return c.sampleRate * c.channelCount * c.bitDepthInBytes / 4
 }
 
 func (c *Context) MaxBufferSize() int {

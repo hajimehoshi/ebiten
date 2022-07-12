@@ -23,8 +23,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/cbackend"
 )
 
-func newContext(sampleRate, channelNum, bitDepthInBytes int) (context, chan struct{}, error) {
-	ctx, ready, err := cbackend.NewContext(sampleRate, channelNum, bitDepthInBytes)
+func newContext(sampleRate, channelCount, bitDepthInBytes int) (context, chan struct{}, error) {
+	ctx, ready, err := cbackend.NewContext(sampleRate, channelCount, bitDepthInBytes)
 	return &contextProxy{ctx}, ready, err
 }
 

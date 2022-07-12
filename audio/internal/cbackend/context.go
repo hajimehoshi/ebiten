@@ -25,20 +25,20 @@ import (
 
 type Context struct {
 	sampleRate      int
-	channelNum      int
+	channelCount    int
 	bitDepthInBytes int
 
 	players *players
 }
 
-func NewContext(sampleRate, channelNum, bitDepthInBytes int) (*Context, chan struct{}, error) {
+func NewContext(sampleRate, channelCount, bitDepthInBytes int) (*Context, chan struct{}, error) {
 	c := &Context{
 		sampleRate:      sampleRate,
-		channelNum:      channelNum,
+		channelCount:    channelCount,
 		bitDepthInBytes: bitDepthInBytes,
 		players:         newPlayers(),
 	}
-	cbackend.OpenAudio(sampleRate, channelNum, c.players.read)
+	cbackend.OpenAudio(sampleRate, channelCount, c.players.read)
 	ready := make(chan struct{})
 	close(ready)
 	return c, ready, nil
@@ -63,5 +63,5 @@ func (c *Context) Err() error {
 }
 
 func (c *Context) defaultBufferSize() int {
-	return c.sampleRate * c.channelNum * c.bitDepthInBytes / 2 // 0.5[s]
+	return c.sampleRate * c.channelCount * c.bitDepthInBytes / 2 // 0.5[s]
 }

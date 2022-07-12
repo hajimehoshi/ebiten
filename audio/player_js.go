@@ -25,13 +25,13 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/go2cpp"
 )
 
-func newContext(sampleRate, channelNum, bitDepthInBytes int) (context, chan struct{}, error) {
+func newContext(sampleRate, channelCount, bitDepthInBytes int) (context, chan struct{}, error) {
 	if js.Global().Get("go2cpp").Truthy() {
 		ready := make(chan struct{})
 		close(ready)
-		return otoContextToContext(go2cpp.NewContext(sampleRate, channelNum, bitDepthInBytes)), ready, nil
+		return otoContextToContext(go2cpp.NewContext(sampleRate, channelCount, bitDepthInBytes)), ready, nil
 	}
 
-	ctx, ready, err := oto.NewContext(sampleRate, channelNum, bitDepthInBytes)
+	ctx, ready, err := oto.NewContext(sampleRate, channelCount, bitDepthInBytes)
 	return otoContextToContext(ctx), ready, err
 }
