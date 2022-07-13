@@ -361,7 +361,7 @@ func (p *pipelineStates) builtinGraphicsPipelineState(device *_ID3D12Device, key
 
 func (p *pipelineStates) useGraphicsPipelineState(device *_ID3D12Device, commandList *_ID3D12GraphicsCommandList, frameIndex int, pipelineState *_ID3D12PipelineState, srcs [graphics.ShaderImageCount]*Image, uniforms []float32) error {
 	idx := len(p.constantBuffers[frameIndex])
-	if idx >= numDescriptorsPerFrame*2 {
+	if idx >= numDescriptorsPerFrame {
 		return fmt.Errorf("directx: too many constant buffers")
 	}
 
