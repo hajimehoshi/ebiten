@@ -23,7 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
-const numDescriptorsPerFrame = 256
+const numDescriptorsPerFrame = 16
 
 func operationToBlend(c graphicsdriver.Operation, alpha bool) _D3D12_BLEND {
 	switch c {
@@ -402,7 +402,8 @@ func (p *pipelineStates) useGraphicsPipelineState(device *_ID3D12Device, command
 		if err != nil {
 			return err
 		}
-		h.Offset(int32(frameIndex*numDescriptorsPerFrame+numConstantBufferAndSourceTextures*idx), p.shaderDescriptorSize)
+		offset := int32(numConstantBufferAndSourceTextures * (frameIndex*numDescriptorsPerFrame + idx))
+		h.Offset(offset, p.shaderDescriptorSize)
 		device.CreateConstantBufferView(&_D3D12_CONSTANT_BUFFER_VIEW_DESC{
 			BufferLocation: cb.GetGPUVirtualAddress(),
 			SizeInBytes:    bufferSize,
@@ -422,7 +423,8 @@ func (p *pipelineStates) useGraphicsPipelineState(device *_ID3D12Device, command
 	if err != nil {
 		return err
 	}
-	h.Offset(int32(frameIndex*numDescriptorsPerFrame+numConstantBufferAndSourceTextures*idx), p.shaderDescriptorSize)
+	offset := int32(numConstantBufferAndSourceTextures * (frameIndex*numDescriptorsPerFrame + idx))
+	h.Offset(offset, p.shaderDescriptorSize)
 	for _, src := range srcs {
 		h.Offset(1, p.shaderDescriptorSize)
 		if src == nil {
@@ -459,9 +461,8 @@ func (p *pipelineStates) useGraphicsPipelineState(device *_ID3D12Device, command
 	if err != nil {
 		return err
 	}
-	gh.Offset(int32(frameIndex*numDescriptorsPerFrame+numConstantBufferAndSourceTextures*idx), p.shaderDescriptorSize)
+	gh.Offset(offset, p.shaderDescriptorSize)
 	commandList.SetGraphicsRootDescriptorTable(0, gh)
-	gh.Offset(1, p.shaderDescriptorSize)
 	commandList.SetGraphicsRootDescriptorTable(1, gh)
 	sh, err := p.samplerDescriptorHeap.GetGPUDescriptorHandleForHeapStart()
 	if err != nil {
@@ -482,21 +483,21 @@ func (p *pipelineStates) ensureRootSignature(device *_ID3D12Device) (rootSignatu
 		NumDescriptors:                    1,
 		BaseShaderRegister:                0,
 		RegisterSpace:                     0,
-		OffsetInDescriptorsFromTableStart: _D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND,
+		OffsetInDescriptorsFromTableStart: 0,
 	}
 	srv := _D3D12_DESCRIPTOR_RANGE{
 		RangeType:                         _D3D12_DESCRIPTOR_RANGE_TYPE_SRV, // t0
 		NumDescriptors:                    graphics.ShaderImageCount,
 		BaseShaderRegister:                0,
 		RegisterSpace:                     0,
-		OffsetInDescriptorsFromTableStart: _D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND,
+		OffsetInDescriptorsFromTableStart: 1,
 	}
 	sampler := _D3D12_DESCRIPTOR_RANGE{
 		RangeType:                         _D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, // s0
 		NumDescriptors:                    1,
 		BaseShaderRegister:                0,
 		RegisterSpace:                     0,
-		OffsetInDescriptorsFromTableStart: _D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND,
+		OffsetInDescriptorsFromTableStart: 0,
 	}
 
 	rootParams := [...]_D3D12_ROOT_PARAMETER{
