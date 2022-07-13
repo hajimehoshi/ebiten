@@ -705,12 +705,16 @@ func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3D
 
 func (p *pipelineStates) releaseConstantBuffers(frameIndex int) {
 	for i := range p.constantBuffers[frameIndex] {
+		p.constantBuffers[frameIndex][i].Unmap(0, nil)
 		p.constantBuffers[frameIndex][i].Release()
 		p.constantBuffers[frameIndex][i] = nil
+		p.constantBufferMaps[frameIndex][i] = 0
 	}
 	p.constantBuffers[frameIndex] = p.constantBuffers[frameIndex][:0]
+	p.constantBufferMaps[frameIndex] = p.constantBufferMaps[frameIndex][:0]
 }
 
 func (p *pipelineStates) resetConstantBuffers(frameIndex int) {
 	p.constantBuffers[frameIndex] = p.constantBuffers[frameIndex][:0]
+	p.constantBufferMaps[frameIndex] = p.constantBufferMaps[frameIndex][:0]
 }
