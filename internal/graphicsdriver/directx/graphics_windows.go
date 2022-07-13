@@ -593,7 +593,7 @@ func (g *Graphics) End(present bool) error {
 
 	// Release vertices and indices buffers when too many ones were created.
 	// This is needed espciallly for testings, where present is always false.
-	if len(g.vertices[g.frameIndex]) >= 16 {
+	if len(g.vertices[g.frameIndex]) >= numDescriptorsPerFrame {
 		if err := g.waitForCommandQueue(); err != nil {
 			return err
 		}
