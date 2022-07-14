@@ -632,10 +632,13 @@ func (g *Graphics) initSwapChainXbox(width, height int) (ferr error) {
 }
 
 func (g *Graphics) resizeSwapChainDesktop(width, height int) error {
-	if err := g.flushCommandList(g.copyCommandList, g.drawCommandList); err != nil {
+	if err := g.flushCommandList(g.copyCommandList); err != nil {
 		return err
 	}
 	if err := g.copyCommandList.Close(); err != nil {
+		return err
+	}
+	if err := g.flushCommandList(g.drawCommandList); err != nil {
 		return err
 	}
 	if err := g.drawCommandList.Close(); err != nil {
@@ -746,18 +749,22 @@ func (g *Graphics) Begin() error {
 func (g *Graphics) End(present bool) error {
 	// The swap chain might still be nil when Begin-End is invoked not by a frame (e.g., Image.At).
 
-	if present {
-		g.screenImage.transiteState(g.drawCommandList, _D3D12_RESOURCE_STATE_PRESENT)
-	}
-	if err := g.flushCommandList(g.copyCommandList, g.drawCommandList); err != nil {
+	// As copyCommandList and drawCommandList are exclusive, the order should not matter here.
+	if err := g.flushCommandList(g.copyCommandList); err != nil {
 		return err
 	}
 	if err := g.copyCommandList.Close(); err != nil {
 		return err
 	}
+
+	if present {
+		g.screenImage.transiteState(g.drawCommandList, _D3D12_RESOURCE_STATE_PRESENT)
+	}
+
 	if err := g.drawCommandList.Close(); err != nil {
 		return err
 	}
+	g.commandQueue.ExecuteCommandLists([]*_ID3D12GraphicsCommandList{g.drawCommandList})
 
 	// Release vertices and indices buffers when too many ones were created.
 	// This is needed espciallly for testings, where present is always false.
@@ -878,56 +885,44 @@ func (g *Graphics) releaseVerticesAndIndices(frameIndex int) {
 // flushCommandList executes commands in the command list and waits for its completion.
 //
 // TODO: This is not efficient. Is it possible to make two command lists work in parallel?
-func (g *Graphics) flushCommandList(commandLists ...*_ID3D12GraphicsCommandList) error {
-	var flushingCommandLists []*_ID3D12GraphicsCommandList
-	for _, commandList := range commandLists {
-		switch commandList {
-		case g.drawCommandList:
-			if !g.needFlushDrawCommandList {
-				continue
-			}
-			g.needFlushDrawCommandList = false
-			flushingCommandLists = append(flushingCommandLists, commandList)
-		case g.copyCommandList:
-			if !g.needFlushCopyCommandList {
-				continue
-			}
-			g.needFlushCopyCommandList = false
-			flushingCommandLists = append(flushingCommandLists, commandList)
+func (g *Graphics) flushCommandList(commandList *_ID3D12GraphicsCommandList) error {
+	switch commandList {
+	case g.drawCommandList:
+		if !g.needFlushDrawCommandList {
+			return nil
 		}
-	}
-
-	if len(flushingCommandLists) == 0 {
-		return nil
-	}
-
-	for _, commandList := range flushingCommandLists {
-		if err := commandList.Close(); err != nil {
-			return err
+		g.needFlushDrawCommandList = false
+	case g.copyCommandList:
+		if !g.needFlushCopyCommandList {
+			return nil
 		}
+		g.needFlushCopyCommandList = false
 	}
 
-	g.commandQueue.ExecuteCommandLists(flushingCommandLists)
+	if err := commandList.Close(); err != nil {
+		return err
+	}
+
+	g.commandQueue.ExecuteCommandLists([]*_ID3D12GraphicsCommandList{commandList})
+
 	if err := g.waitForCommandQueue(); err != nil {
 		return err
 	}
 
-	for _, commandList := range flushingCommandLists {
-		switch commandList {
-		case g.drawCommandList:
-			if err := g.drawCommandAllocators[g.frameIndex].Reset(); err != nil {
-				return err
-			}
-			if err := commandList.Reset(g.drawCommandAllocators[g.frameIndex], nil); err != nil {
-				return err
-			}
-		case g.copyCommandList:
-			if err := g.copyCommandAllocators[g.frameIndex].Reset(); err != nil {
-				return err
-			}
-			if err := commandList.Reset(g.copyCommandAllocators[g.frameIndex], nil); err != nil {
-				return err
-			}
+	switch commandList {
+	case g.drawCommandList:
+		if err := g.drawCommandAllocators[g.frameIndex].Reset(); err != nil {
+			return err
+		}
+		if err := commandList.Reset(g.drawCommandAllocators[g.frameIndex], nil); err != nil {
+			return err
+		}
+	case g.copyCommandList:
+		if err := g.copyCommandAllocators[g.frameIndex].Reset(); err != nil {
+			return err
+		}
+		if err := commandList.Reset(g.copyCommandAllocators[g.frameIndex], nil); err != nil {
+			return err
 		}
 	}
 
