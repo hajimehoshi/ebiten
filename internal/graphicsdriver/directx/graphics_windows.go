@@ -758,7 +758,9 @@ func (g *Graphics) End(present bool) error {
 	}
 
 	if present {
-		g.screenImage.transiteState(g.drawCommandList, _D3D12_RESOURCE_STATE_PRESENT)
+		if rb, ok := g.screenImage.transiteState(_D3D12_RESOURCE_STATE_PRESENT); ok {
+			g.drawCommandList.ResourceBarrier([]_D3D12_RESOURCE_BARRIER_Transition{rb})
+		}
 	}
 
 	if err := g.drawCommandList.Close(); err != nil {
@@ -1158,13 +1160,9 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 	}
 
 	dst := g.images[dstID]
-	if err := dst.setAsRenderTarget(g.device, evenOdd); err != nil {
-		return err
-	}
-
-	var shader *Shader
-	if shaderID != graphicsdriver.InvalidShaderID {
-		shader = g.shaders[shaderID]
+	var resourceBarriers []_D3D12_RESOURCE_BARRIER_Transition
+	if rb, ok := dst.transiteState(_D3D12_RESOURCE_STATE_RENDER_TARGET); ok {
+		resourceBarriers = append(resourceBarriers, rb)
 	}
 
 	var srcImages [graphics.ShaderImageCount]*Image
@@ -1174,7 +1172,22 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 			continue
 		}
 		srcImages[i] = src
-		src.transiteState(g.drawCommandList, _D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+		if rb, ok := src.transiteState(_D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE); ok {
+			resourceBarriers = append(resourceBarriers, rb)
+		}
+	}
+
+	if len(resourceBarriers) > 0 {
+		g.drawCommandList.ResourceBarrier(resourceBarriers)
+	}
+
+	if err := dst.setAsRenderTarget(g.drawCommandList, g.device, evenOdd); err != nil {
+		return err
+	}
+
+	var shader *Shader
+	if shaderID != graphicsdriver.InvalidShaderID {
+		shader = g.shaders[shaderID]
 	}
 
 	var flattenUniforms []float32
@@ -1494,7 +1507,9 @@ func (i *Image) ReadPixels(buf []byte) error {
 		return err
 	}
 
-	i.transiteState(i.graphics.copyCommandList, _D3D12_RESOURCE_STATE_COPY_SOURCE)
+	if rb, ok := i.transiteState(_D3D12_RESOURCE_STATE_COPY_SOURCE); ok {
+		i.graphics.copyCommandList.ResourceBarrier([]_D3D12_RESOURCE_BARRIER_Transition{rb})
+	}
 
 	m, err := i.readingStagingBuffer.Map(0, &_D3D12_RANGE{0, 0})
 	if err != nil {
@@ -1554,7 +1569,9 @@ func (i *Image) ReplacePixels(args []*graphicsdriver.ReplacePixelsArgs) error {
 		return err
 	}
 
-	i.transiteState(i.graphics.copyCommandList, _D3D12_RESOURCE_STATE_COPY_DEST)
+	if rb, ok := i.transiteState(_D3D12_RESOURCE_STATE_COPY_DEST); ok {
+		i.graphics.copyCommandList.ResourceBarrier([]_D3D12_RESOURCE_BARRIER_Transition{rb})
+	}
 
 	m, err := i.uploadingStagingBuffer.Map(0, &_D3D12_RANGE{0, 0})
 	if err != nil {
@@ -1621,24 +1638,23 @@ func (i *Image) setState(newState _D3D12_RESOURCE_STATES) {
 	i.states[0] = newState
 }
 
-func (i *Image) transiteState(commandList *_ID3D12GraphicsCommandList, newState _D3D12_RESOURCE_STATES) {
+func (i *Image) transiteState(newState _D3D12_RESOURCE_STATES) (_D3D12_RESOURCE_BARRIER_Transition, bool) {
 	if i.state() == newState {
-		return
+		return _D3D12_RESOURCE_BARRIER_Transition{}, false
 	}
-
-	commandList.ResourceBarrier([]_D3D12_RESOURCE_BARRIER_Transition{
-		{
-			Type:  _D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
-			Flags: _D3D12_RESOURCE_BARRIER_FLAG_NONE,
-			Transition: _D3D12_RESOURCE_TRANSITION_BARRIER{
-				pResource:   i.resource(),
-				Subresource: _D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
-				StateBefore: i.state(),
-				StateAfter:  newState,
-			},
-		},
-	})
+	oldState := i.state()
 	i.setState(newState)
+
+	return _D3D12_RESOURCE_BARRIER_Transition{
+		Type:  _D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+		Flags: _D3D12_RESOURCE_BARRIER_FLAG_NONE,
+		Transition: _D3D12_RESOURCE_TRANSITION_BARRIER{
+			pResource:   i.resource(),
+			Subresource: _D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+			StateBefore: oldState,
+			StateAfter:  newState,
+		},
+	}, true
 }
 
 func (i *Image) internalSize() (int, int) {
@@ -1648,9 +1664,7 @@ func (i *Image) internalSize() (int, int) {
 	return graphics.InternalImageSize(i.width), graphics.InternalImageSize(i.height)
 }
 
-func (i *Image) setAsRenderTarget(device *_ID3D12Device, useStencil bool) error {
-	i.transiteState(i.graphics.drawCommandList, _D3D12_RESOURCE_STATE_RENDER_TARGET)
-
+func (i *Image) setAsRenderTarget(drawCommandList *_ID3D12GraphicsCommandList, device *_ID3D12Device, useStencil bool) error {
 	if err := i.ensureRenderTargetView(device); err != nil {
 		return err
 	}
@@ -1664,7 +1678,7 @@ func (i *Image) setAsRenderTarget(device *_ID3D12Device, useStencil bool) error 
 			return err
 		}
 		rtv.Offset(int32(i.graphics.frameIndex), i.graphics.rtvDescriptorSize)
-		i.graphics.drawCommandList.OMSetRenderTargets([]_D3D12_CPU_DESCRIPTOR_HANDLE{rtv}, false, nil)
+		drawCommandList.OMSetRenderTargets([]_D3D12_CPU_DESCRIPTOR_HANDLE{rtv}, false, nil)
 		return nil
 	}
 
@@ -1674,7 +1688,7 @@ func (i *Image) setAsRenderTarget(device *_ID3D12Device, useStencil bool) error 
 	}
 
 	if !useStencil {
-		i.graphics.drawCommandList.OMSetRenderTargets([]_D3D12_CPU_DESCRIPTOR_HANDLE{rtv}, false, nil)
+		drawCommandList.OMSetRenderTargets([]_D3D12_CPU_DESCRIPTOR_HANDLE{rtv}, false, nil)
 		return nil
 	}
 
@@ -1685,9 +1699,9 @@ func (i *Image) setAsRenderTarget(device *_ID3D12Device, useStencil bool) error 
 	if err != nil {
 		return err
 	}
-	i.graphics.drawCommandList.OMSetStencilRef(0)
-	i.graphics.drawCommandList.OMSetRenderTargets([]_D3D12_CPU_DESCRIPTOR_HANDLE{rtv}, false, &dsv)
-	i.graphics.drawCommandList.ClearDepthStencilView(dsv, _D3D12_CLEAR_FLAG_STENCIL, 0, 0, nil)
+	drawCommandList.OMSetStencilRef(0)
+	drawCommandList.OMSetRenderTargets([]_D3D12_CPU_DESCRIPTOR_HANDLE{rtv}, false, &dsv)
+	drawCommandList.ClearDepthStencilView(dsv, _D3D12_CLEAR_FLAG_STENCIL, 0, 0, nil)
 
 	return nil
 }
