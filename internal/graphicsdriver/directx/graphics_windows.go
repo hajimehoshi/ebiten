@@ -649,9 +649,6 @@ func (g *Graphics) resizeSwapChainDesktop(width, height int) error {
 		return err
 	}
 	g.releaseResources(g.frameIndex)
-	if err := g.resetCommandAllocators(g.frameIndex); err != nil {
-		return err
-	}
 
 	for i := 0; i < frameCount; i++ {
 		g.fenceValues[i] = g.fenceValues[g.frameIndex]
@@ -797,9 +794,6 @@ func (g *Graphics) End(present bool) error {
 
 		g.releaseResources(g.frameIndex)
 		g.releaseVerticesAndIndices(g.frameIndex)
-		if err := g.resetCommandAllocators(g.frameIndex); err != nil {
-			return err
-		}
 
 		g.frameStarted = false
 	}
@@ -886,17 +880,6 @@ func (g *Graphics) releaseVerticesAndIndices(frameIndex int) {
 		g.indices[frameIndex][i] = nil
 	}
 	g.indices[frameIndex] = g.indices[frameIndex][:0]
-}
-
-func (g *Graphics) resetCommandAllocators(frameIndex int) error {
-	if err := g.drawCommandAllocators[frameIndex].Reset(); err != nil {
-		return err
-	}
-	if err := g.copyCommandAllocators[frameIndex].Reset(); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // flushCommandList executes commands in the command list and waits for its completion.
@@ -1386,8 +1369,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 	}
 
 	// Release constant buffers when too many ones were created.
-	// This is needed espciallly for testings, where present is always false.
-	if len(g.pipelineStates.constantBuffers[g.frameIndex]) >= 16 {
+	if len(g.pipelineStates.constantBuffers[g.frameIndex]) >= numDescriptorsPerFrame {
 		if err := g.flushCommandList(g.drawCommandList); err != nil {
 			return err
 		}
