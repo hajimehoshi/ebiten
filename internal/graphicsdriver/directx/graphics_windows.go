@@ -970,6 +970,18 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 		return err
 	}
 
+	// Release constant buffers when too many ones were created.
+	numPipelines := 1
+	if evenOdd {
+		numPipelines = 2
+	}
+	if len(g.pipelineStates.constantBuffers[g.frameIndex])+numPipelines > numDescriptorsPerFrame {
+		if err := g.flushCommandList(g.drawCommandList); err != nil {
+			return err
+		}
+		g.pipelineStates.releaseConstantBuffers(g.frameIndex)
+	}
+
 	dst := g.images[dstID]
 
 	var shader *Shader
@@ -1173,15 +1185,6 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 				return err
 			}
 		}
-	}
-
-	// Release constant buffers when too many ones were created.
-	// This is needed espciallly for testings, where present is always false.
-	if len(g.pipelineStates.constantBuffers[g.frameIndex]) >= 16 {
-		if err := g.flushCommandList(g.drawCommandList); err != nil {
-			return err
-		}
-		g.pipelineStates.releaseConstantBuffers(g.frameIndex)
 	}
 
 	return nil
