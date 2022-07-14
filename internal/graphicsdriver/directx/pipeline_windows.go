@@ -23,7 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
-const numDescriptorsPerFrame = 16
+const numDescriptorsPerFrame = 32
 
 func operationToBlend(c graphicsdriver.Operation, alpha bool) _D3D12_BLEND {
 	switch c {
