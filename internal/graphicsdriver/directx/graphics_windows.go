@@ -515,7 +515,14 @@ func (g *Graphics) resizeSwapChain(width, height int) error {
 
 	g.frameIndex = int(g.swapChain.GetCurrentBackBufferIndex())
 
+	if err := g.drawCommandAllocators[g.frameIndex].Reset(); err != nil {
+		return err
+	}
 	if err := g.drawCommandList.Reset(g.drawCommandAllocators[g.frameIndex], nil); err != nil {
+		return err
+	}
+
+	if err := g.copyCommandAllocators[g.frameIndex].Reset(); err != nil {
 		return err
 	}
 	if err := g.copyCommandList.Reset(g.copyCommandAllocators[g.frameIndex], nil); err != nil {
@@ -561,10 +568,16 @@ func (g *Graphics) Begin() error {
 		g.frameIndex = int(g.swapChain.GetCurrentBackBufferIndex())
 	}
 
+	if err := g.drawCommandAllocators[g.frameIndex].Reset(); err != nil {
+		return err
+	}
 	if err := g.drawCommandList.Reset(g.drawCommandAllocators[g.frameIndex], nil); err != nil {
 		return err
 	}
 
+	if err := g.copyCommandAllocators[g.frameIndex].Reset(); err != nil {
+		return err
+	}
 	if err := g.copyCommandList.Reset(g.copyCommandAllocators[g.frameIndex], nil); err != nil {
 		return err
 	}
@@ -705,10 +718,16 @@ func (g *Graphics) flushCommandList(commandList *iD3D12GraphicsCommandList) erro
 
 	switch commandList {
 	case g.drawCommandList:
+		if err := g.drawCommandAllocators[g.frameIndex].Reset(); err != nil {
+			return err
+		}
 		if err := commandList.Reset(g.drawCommandAllocators[g.frameIndex], nil); err != nil {
 			return err
 		}
 	case g.copyCommandList:
+		if err := g.copyCommandAllocators[g.frameIndex].Reset(); err != nil {
+			return err
+		}
 		if err := commandList.Reset(g.copyCommandAllocators[g.frameIndex], nil); err != nil {
 			return err
 		}
