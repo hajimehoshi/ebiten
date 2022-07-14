@@ -3376,3 +3376,47 @@ func TestImageSetOverSet(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+// Issue #2204
+func TestImageTooManyConstantBuffersInDirectX(t *testing.T) {
+	src := ebiten.NewImage(3, 3)
+	src.Fill(color.White)
+	src = src.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
+
+	vs := []ebiten.Vertex{
+		{
+			DstX: 0, DstY: 0, SrcX: 1, SrcY: 1,
+			ColorR: 1, ColorG: 1, ColorB: 1, ColorA: 1,
+		},
+		{
+			DstX: 16, DstY: 0, SrcX: 1, SrcY: 1,
+			ColorR: 1, ColorG: 1, ColorB: 1, ColorA: 1,
+		},
+		{
+			DstX: 0, DstY: 16, SrcX: 1, SrcY: 1,
+			ColorR: 1, ColorG: 1, ColorB: 1, ColorA: 1,
+		},
+		{
+			DstX: 16, DstY: 16, SrcX: 1, SrcY: 1,
+			ColorR: 1, ColorG: 1, ColorB: 1, ColorA: 1,
+		},
+	}
+	is := []uint16{0, 1, 2, 1, 2, 3}
+
+	dst0 := ebiten.NewImage(16, 16)
+	dst1 := ebiten.NewImage(16, 16)
+	op := &ebiten.DrawTrianglesOptions{
+		FillRule: ebiten.EvenOdd,
+	}
+	for i := 0; i < 100; i++ {
+		dst0.DrawTriangles(vs, is, src, op)
+		dst1.DrawTriangles(vs, is, src, op)
+	}
+
+	if got, want := dst0.At(0, 0), (color.RGBA{0xff, 0xff, 0xff, 0xff}); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	if got, want := dst1.At(0, 0), (color.RGBA{0xff, 0xff, 0xff, 0xff}); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}

@@ -1160,6 +1160,18 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 		return err
 	}
 
+	// Release constant buffers when too many ones were created.
+	numPipelines := 1
+	if evenOdd {
+		numPipelines = 2
+	}
+	if len(g.pipelineStates.constantBuffers[g.frameIndex])+numPipelines > numDescriptorsPerFrame {
+		if err := g.flushCommandList(g.drawCommandList); err != nil {
+			return err
+		}
+		g.pipelineStates.releaseConstantBuffers(g.frameIndex)
+	}
+
 	dst := g.images[dstID]
 	var resourceBarriers []_D3D12_RESOURCE_BARRIER_Transition
 	if rb, ok := dst.transiteState(_D3D12_RESOURCE_STATE_RENDER_TARGET); ok {
@@ -1380,14 +1392,6 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 				return err
 			}
 		}
-	}
-
-	// Release constant buffers when too many ones were created.
-	if len(g.pipelineStates.constantBuffers[g.frameIndex]) >= numDescriptorsPerFrame {
-		if err := g.flushCommandList(g.drawCommandList); err != nil {
-			return err
-		}
-		g.pipelineStates.releaseConstantBuffers(g.frameIndex)
 	}
 
 	return nil
