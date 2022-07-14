@@ -769,8 +769,9 @@ func (g *Graphics) End(present bool) error {
 	g.commandQueue.ExecuteCommandLists([]*_ID3D12GraphicsCommandList{g.drawCommandList})
 
 	// Release vertices and indices buffers when too many ones were created.
+	// The threshold is an arbitrary number.
 	// This is needed espciallly for testings, where present is always false.
-	if len(g.vertices[g.frameIndex]) >= numDescriptorsPerFrame {
+	if len(g.vertices[g.frameIndex]) >= 16 {
 		if err := g.waitForCommandQueue(); err != nil {
 			return err
 		}
