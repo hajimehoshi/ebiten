@@ -229,6 +229,7 @@ func (n *nativeGamepadXbox) hatState(hat int) int {
 
 func (n *nativeGamepadXbox) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
 	if strongMagnitude <= 0 && weakMagnitude <= 0 {
+		n.vib = false
 		n.gameInputDevice.SetRumbleState(&_GameInputRumbleParams{
 			lowFrequency:  0,
 			highFrequency: 0,
