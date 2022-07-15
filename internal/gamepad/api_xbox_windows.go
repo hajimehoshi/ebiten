@@ -109,6 +109,13 @@ type _GameInputGamepadState struct {
 	rightThumbstickY float32
 }
 
+type _GameInputRumbleParams struct {
+	lowFrequency  float32
+	highFrequency float32
+	leftTrigger   float32
+	rightTrigger  float32
+}
+
 func _GameInputCreate() (*_IGameInput, error) {
 	var gameInput *_IGameInput
 	r, _, _ := procGameInputCreate.Call(uintptr(unsafe.Pointer(&gameInput)))
@@ -249,4 +256,9 @@ func (i *_IGameInputReading) GetGamepadState() (_GameInputGamepadState, bool) {
 
 func (i *_IGameInputReading) Release() {
 	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+}
+
+func (i *_IGameInputDevice) SetRumbleState(params *_GameInputRumbleParams, timestamp uint64) {
+	syscall.Syscall(i.vtbl.SetRumbleState, 3, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(params)), uintptr(timestamp))
+	runtime.KeepAlive(params)
 }

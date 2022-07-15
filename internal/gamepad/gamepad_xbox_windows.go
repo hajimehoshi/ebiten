@@ -123,6 +123,9 @@ func (n *nativeGamepadsXbox) deviceCallback(callbackToken _GameInputCallbackToke
 type nativeGamepadXbox struct {
 	gameInputDevice *_IGameInputDevice
 	state           _GameInputGamepadState
+
+	vib    bool
+	vibEnd time.Time
 }
 
 func (n *nativeGamepadXbox) update(gamepads *gamepads) error {
@@ -139,6 +142,15 @@ func (n *nativeGamepadXbox) update(gamepads *gamepads) error {
 		return nil
 	}
 	n.state = state
+
+	if n.vib && time.Now().Sub(n.vibEnd) >= 0 {
+		n.gameInputDevice.SetRumbleState(&_GameInputRumbleParams{
+			lowFrequency:  0,
+			highFrequency: 0,
+		}, 0)
+		n.vib = false
+	}
+
 	return nil
 }
 
@@ -216,4 +228,17 @@ func (n *nativeGamepadXbox) hatState(hat int) int {
 }
 
 func (n *nativeGamepadXbox) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	if strongMagnitude <= 0 && weakMagnitude <= 0 {
+		n.gameInputDevice.SetRumbleState(&_GameInputRumbleParams{
+			lowFrequency:  0,
+			highFrequency: 0,
+		}, 0)
+		return
+	}
+	n.vib = true
+	n.vibEnd = time.Now().Add(duration)
+	n.gameInputDevice.SetRumbleState(&_GameInputRumbleParams{
+		lowFrequency:  float32(strongMagnitude),
+		highFrequency: float32(weakMagnitude),
+	}, 0)
 }
