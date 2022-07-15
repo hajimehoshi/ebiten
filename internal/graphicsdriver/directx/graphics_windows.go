@@ -1160,7 +1160,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 		return err
 	}
 
-	// Release constant buffers when too many ones were created.
+	// Release constant buffers when too many ones will be created.
 	numPipelines := 1
 	if evenOdd {
 		numPipelines = 2
