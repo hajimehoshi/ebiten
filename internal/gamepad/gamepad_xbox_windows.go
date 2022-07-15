@@ -162,11 +162,11 @@ func (n *nativeGamepadXbox) axisValue(axis int) float64 {
 	case gamepaddb.StandardAxisLeftStickHorizontal:
 		return float64(n.state.leftThumbstickX)
 	case gamepaddb.StandardAxisLeftStickVertical:
-		return float64(n.state.leftThumbstickY)
+		return -float64(n.state.leftThumbstickY)
 	case gamepaddb.StandardAxisRightStickHorizontal:
 		return float64(n.state.rightThumbstickX)
 	case gamepaddb.StandardAxisRightStickVertical:
-		return float64(n.state.rightThumbstickY)
+		return -float64(n.state.rightThumbstickY)
 	}
 	return 0
 }
