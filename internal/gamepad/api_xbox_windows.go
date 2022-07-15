@@ -215,6 +215,11 @@ type _IGameInputDevice_Vtbl struct {
 	ReleaseExclusiveRawDeviceAccess uintptr
 }
 
+func (i *_IGameInputDevice) SetRumbleState(params *_GameInputRumbleParams, timestamp uint64) {
+	syscall.Syscall(i.vtbl.SetRumbleState, 3, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(params)), uintptr(timestamp))
+	runtime.KeepAlive(params)
+}
+
 type _IGameInputReading struct {
 	vtbl *_IGameInputReading_Vtbl
 }
@@ -256,9 +261,4 @@ func (i *_IGameInputReading) GetGamepadState() (_GameInputGamepadState, bool) {
 
 func (i *_IGameInputReading) Release() {
 	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
-}
-
-func (i *_IGameInputDevice) SetRumbleState(params *_GameInputRumbleParams, timestamp uint64) {
-	syscall.Syscall(i.vtbl.SetRumbleState, 3, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(params)), uintptr(timestamp))
-	runtime.KeepAlive(params)
 }
