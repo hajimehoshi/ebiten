@@ -246,3 +246,7 @@ func (i *_IGameInputReading) GetGamepadState() (_GameInputGamepadState, bool) {
 	r, _, _ := syscall.Syscall(i.vtbl.GetGamepadState, 2, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(&state)), 0)
 	return state, int32(r) != 0
 }
+
+func (i *_IGameInputReading) Release() {
+	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+}

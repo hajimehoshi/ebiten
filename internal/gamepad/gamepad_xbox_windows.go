@@ -131,6 +131,7 @@ func (n *nativeGamepadXbox) update(gamepads *gamepads) error {
 	if err != nil {
 		return err
 	}
+	defer r.Release()
 
 	state, ok := r.GetGamepadState()
 	if !ok {
