@@ -583,6 +583,9 @@ func (g *nativeGamepadDesktop) update(gamepads *gamepads) (err error) {
 		gamepads.remove(func(gamepad *Gamepad) bool {
 			return gamepad.native == g
 		})
+		if g.dinputDevice != nil {
+			g.dinputDevice.Release()
+		}
 	}()
 
 	if g.usesDInput() {
