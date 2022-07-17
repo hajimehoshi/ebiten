@@ -130,7 +130,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 	screen.DrawTriangles(g.vertices, indices, emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image), op)
 
-	msg := fmt.Sprintf("TPS: %0.2f\n%d-gon\nPress <- or -> to change the number of the vertices", ebiten.CurrentTPS(), g.ngon)
+	msg := fmt.Sprintf("TPS: %0.2f\n%d-gon\nPress <- or -> to change the number of the vertices", ebiten.ActualTPS(), g.ngon)
 	ebitenutil.DebugPrint(screen, msg)
 }
 

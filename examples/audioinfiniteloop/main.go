@@ -86,7 +86,7 @@ audio.NewInfiniteLoopWithIntro.
 
 Intro:   0[s] - %[2]d[s]
 Loop:    %[2]d[s] - %[3]d[s]
-Current: %0.2[4]f[s]`, ebiten.CurrentTPS(), introLengthInSecond, introLengthInSecond+loopLengthInSecond, float64(pos)/float64(time.Second))
+Current: %0.2[4]f[s]`, ebiten.ActualTPS(), introLengthInSecond, introLengthInSecond+loopLengthInSecond, float64(pos)/float64(time.Second))
 	ebitenutil.DebugPrint(screen, msg)
 }
 

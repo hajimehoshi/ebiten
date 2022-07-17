@@ -91,7 +91,7 @@ func NewGame() *Game {
 }
 
 func (g *Game) Update() error {
-	g.space.Step(1.0 / float64(ebiten.MaxTPS()))
+	g.space.Step(1.0 / float64(ebiten.TPS()))
 	return nil
 }
 
@@ -107,7 +107,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		screen.DrawImage(dot, op)
 	})
 
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()))
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

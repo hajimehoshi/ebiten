@@ -129,7 +129,7 @@ type Game struct {
 
 func (g *Game) Update() error {
 	// Change the text color for each second.
-	if g.counter%ebiten.MaxTPS() == 0 {
+	if g.counter%ebiten.TPS() == 0 {
 		g.kanjiText = ""
 		for j := 0; j < 4; j++ {
 			for i := 0; i < 8; i++ {
@@ -151,7 +151,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	const x = 20
 
 	// Draw info
-	msg := fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS())
+	msg := fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS())
 	text.Draw(screen, msg, mplusNormalFont, x, 40, color.White)
 
 	// Draw the sample text

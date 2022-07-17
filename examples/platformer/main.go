@@ -153,7 +153,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.gopher.draw(screen)
 
 	// Show the message
-	msg := fmt.Sprintf("TPS: %0.2f\nPress the space key to jump.", ebiten.CurrentTPS())
+	msg := fmt.Sprintf("TPS: %0.2f\nPress the space key to jump.", ebiten.ActualTPS())
 	ebitenutil.DebugPrint(screen, msg)
 }
 

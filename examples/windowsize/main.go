@@ -126,7 +126,7 @@ func (g *game) Update() error {
 	runnableOnUnfocused := ebiten.IsRunnableOnUnfocused()
 	cursorMode := ebiten.CursorMode()
 	fpsMode := ebiten.FPSMode()
-	tps := ebiten.MaxTPS()
+	tps := ebiten.TPS()
 	decorated := ebiten.IsWindowDecorated()
 	positionX, positionY := ebiten.WindowPosition()
 	g.transparent = ebiten.IsScreenTransparent()
@@ -257,7 +257,7 @@ func (g *game) Update() error {
 	restore := false
 	if ebiten.IsWindowMaximized() || ebiten.IsWindowMinimized() {
 		if *flagAutoRestore {
-			restore = g.count%ebiten.MaxTPS() == 0
+			restore = g.count%ebiten.TPS() == 0
 		} else {
 			restore = inpututil.IsKeyJustPressed(ebiten.KeyE)
 		}
@@ -277,7 +277,7 @@ func (g *game) Update() error {
 	if fpsMode != ebiten.FPSMode() {
 		ebiten.SetFPSMode(fpsMode)
 	}
-	ebiten.SetMaxTPS(tps)
+	ebiten.SetTPS(tps)
 	ebiten.SetWindowDecorated(decorated)
 	if toUpdateWindowPosition {
 		ebiten.SetWindowPosition(positionX, positionY)
@@ -318,7 +318,7 @@ func (g *game) Draw(screen *ebiten.Image) {
 	minw, minh, maxw, maxh := ebiten.WindowSizeLimits()
 	cx, cy := ebiten.CursorPosition()
 	tpsStr := "Sync with FPS"
-	if t := ebiten.MaxTPS(); t != ebiten.SyncWithFPS {
+	if t := ebiten.TPS(); t != ebiten.SyncWithFPS {
 		tpsStr = fmt.Sprintf("%d", t)
 	}
 
@@ -360,7 +360,7 @@ Window size limitation: (%d, %d) - (%d, %d)
 Cursor: (%d, %d)
 TPS: Current: %0.2f / Max: %s
 FPS: %0.2f
-Device Scale Factor: %0.2f`, msgM, msgR, fg, wx, wy, ww, wh, minw, minh, maxw, maxh, cx, cy, ebiten.CurrentTPS(), tpsStr, ebiten.CurrentFPS(), ebiten.DeviceScaleFactor())
+Device Scale Factor: %0.2f`, msgM, msgR, fg, wx, wy, ww, wh, minw, minh, maxw, maxh, cx, cy, ebiten.ActualTPS(), tpsStr, ebiten.ActualFPS(), ebiten.DeviceScaleFactor())
 	ebitenutil.DebugPrint(screen, msg)
 }
 

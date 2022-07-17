@@ -369,7 +369,7 @@ Press U to switch the runnable-on-unfocused state
 Press A to switch Ogg and MP3 (Current: %s)
 Current Time: %s
 Current Volume: %d/128
-Type: %s`, ebiten.CurrentTPS(), p.musicType,
+Type: %s`, ebiten.ActualTPS(), p.musicType,
 		currentTimeStr, int(p.audioPlayer.Volume()*128), p.musicType)
 	ebitenutil.DebugPrint(screen, msg)
 }

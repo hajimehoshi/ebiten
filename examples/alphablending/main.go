@@ -43,7 +43,7 @@ type Game struct {
 
 func (g *Game) Update() error {
 	g.count++
-	g.count %= ebiten.MaxTPS() * 10
+	g.count %= ebiten.TPS() * 10
 	return nil
 }
 

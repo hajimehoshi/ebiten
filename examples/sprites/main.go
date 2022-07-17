@@ -206,7 +206,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	msg := fmt.Sprintf(`TPS: %0.2f
 FPS: %0.2f
 Num of sprites: %d
-Press <- or -> to change the number of sprites`, ebiten.CurrentTPS(), ebiten.CurrentFPS(), g.sprites.num)
+Press <- or -> to change the number of sprites`, ebiten.ActualTPS(), ebiten.ActualFPS(), g.sprites.num)
 	ebitenutil.DebugPrint(screen, msg)
 }
 

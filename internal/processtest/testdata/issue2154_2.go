@@ -75,7 +75,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	// The blow 3 line matters to reproduce #2154.
 	mx, my := ebiten.CursorPosition()
-	msg := fmt.Sprintf("TPS: %.01f; FPS: %.01f; cursor: (%d, %d)", ebiten.CurrentTPS(), ebiten.CurrentFPS(), mx, my)
+	msg := fmt.Sprintf("TPS: %.01f; FPS: %.01f; cursor: (%d, %d)", ebiten.ActualTPS(), ebiten.ActualFPS(), mx, my)
 	ebitenutil.DebugPrint(screen, msg)
 }
 

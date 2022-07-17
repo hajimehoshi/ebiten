@@ -270,7 +270,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	// Draw the message.
 	tutorial := "Space: Move forward\nLeft/Right: Rotate"
-	msg := fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f\n%s", ebiten.CurrentTPS(), ebiten.CurrentFPS(), tutorial)
+	msg := fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f\n%s", ebiten.ActualTPS(), ebiten.ActualFPS(), tutorial)
 	ebitenutil.DebugPrint(screen, msg)
 }
 

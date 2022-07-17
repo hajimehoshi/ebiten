@@ -178,7 +178,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	v, i = rect(300-float32(cf), 50, 120, 120, color.RGBA{0x00, 0x80, 0x00, 0x80})
 	screen.DrawTriangles(v, i, src, nil)
 
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()))
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

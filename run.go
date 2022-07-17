@@ -31,8 +31,8 @@ type Game interface {
 	// that the time delta between two Updates is always 1 / TPS [s] (1/60[s] by default). As Ebitengine already
 	// adjusts the number of Update calls, you don't have to measure time deltas in Update by e.g. OS timers.
 	//
-	// An actual TPS is available by CurrentTPS(), and the result might slightly differ from your expected TPS,
-	// but still, your game logic should stick to the fixed time delta and should not rely on CurrentTPS() value.
+	// An actual TPS is available by ActualTPS(), and the result might slightly differ from your expected TPS,
+	// but still, your game logic should stick to the fixed time delta and should not rely on ActualTPS() value.
 	// This API is for just measurement and/or debugging. In the long run, the number of Update calls should be
 	// adjusted based on the set TPS on average.
 	//
@@ -78,17 +78,25 @@ type Game interface {
 // DefaultTPS represents a default ticks per second, that represents how many times game updating happens in a second.
 const DefaultTPS = clock.DefaultTPS
 
-// CurrentFPS returns the current number of FPS (frames per second), that represents
+// ActualFPS returns the current number of FPS (frames per second), that represents
 // how many swapping buffer happens per second.
 //
-// On some environments, CurrentFPS doesn't return a reliable value since vsync doesn't work well there.
-// If you want to measure the application's speed, Use CurrentTPS.
+// On some environments, ActualFPS doesn't return a reliable value since vsync doesn't work well there.
+// If you want to measure the application's speed, Use ActualTPS.
 //
 // This value is for measurement and/or debug, and your game logic should not rely on this value.
 //
-// CurrentFPS is concurrent-safe.
-func CurrentFPS() float64 {
+// ActualFPS is concurrent-safe.
+func ActualFPS() float64 {
 	return clock.ActualFPS()
+}
+
+// CurrentFPS returns the current number of FPS (frames per second), that represents
+// how many swapping buffer happens per second.
+//
+// Deprecated: as of v2.4. Use ActualFPS instead.
+func CurrentFPS() float64 {
+	return ActualFPS()
 }
 
 var (
@@ -387,7 +395,7 @@ const (
 	//
 	// In FPSModeVsyncOffMinimum, the game's Update and Draw are called only when
 	// 1) new inputting except for gamepads is detected, or 2) ScheduleFrame is called.
-	// In FPSModeVsyncOffMinimum, TPS is SyncWithFPS no matter what TPS is specified at SetMaxTPS.
+	// In FPSModeVsyncOffMinimum, TPS is SyncWithFPS no matter what TPS is specified at SetTPS.
 	FPSModeVsyncOffMinimum FPSModeType = ui.FPSModeVsyncOffMinimum
 )
 
@@ -413,21 +421,36 @@ func ScheduleFrame() {
 	ui.Get().ScheduleFrame()
 }
 
+// TPS returns the current maximum TPS.
+//
+// TPS is concurrent-safe.
+func TPS() int {
+	return clock.TPS()
+}
+
 // MaxTPS returns the current maximum TPS.
 //
-// MaxTPS is concurrent-safe.
+// Deprecated: as of v2.4. Use TPS instead.
 func MaxTPS() int {
-	return clock.TPS()
+	return TPS()
+}
+
+// ActualTPS returns the current TPS (ticks per second),
+// that represents how many Update function is called in a second.
+//
+// This value is for measurement and/or debug, and your game logic should not rely on this value.
+//
+// ActualTPS is concurrent-safe.
+func ActualTPS() float64 {
+	return clock.ActualTPS()
 }
 
 // CurrentTPS returns the current TPS (ticks per second),
 // that represents how many Update function is called in a second.
 //
-// This value is for measurement and/or debug, and your game logic should not rely on this value.
-//
-// CurrentTPS is concurrent-safe.
+// Deprecated: as of v2.4. Use ActualTPS instead.
 func CurrentTPS() float64 {
-	return clock.ActualTPS()
+	return ActualTPS()
 }
 
 // SyncWithFPS is a special TPS value that means TPS syncs with FPS.
@@ -438,16 +461,24 @@ const SyncWithFPS = clock.SyncWithFPS
 // Deprecated: as of v2.2. Use SyncWithFPS instead.
 const UncappedTPS = SyncWithFPS
 
-// SetMaxTPS sets the maximum TPS (ticks per second),
+// SetTPS sets the maximum TPS (ticks per second),
 // that represents how many updating function is called per second.
 // The initial value is 60.
 //
 // If tps is SyncWithFPS, TPS is uncapped and the game is updated per frame.
-// If tps is negative but not SyncWithFPS, SetMaxTPS panics.
+// If tps is negative but not SyncWithFPS, SetTPS panics.
 //
-// SetMaxTPS is concurrent-safe.
-func SetMaxTPS(tps int) {
+// SetTPS is concurrent-safe.
+func SetTPS(tps int) {
 	clock.SetTPS(tps)
+}
+
+// SetMaxTPS sets the maximum TPS (ticks per second),
+// that represents how many updating function is called per second.
+//
+// Deprecated: as of v2.4. Use SetTPS instead.
+func SetMaxTPS(tps int) {
+	SetTPS(tps)
 }
 
 // IsScreenTransparent reports whether the window is transparent.

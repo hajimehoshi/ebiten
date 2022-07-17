@@ -164,7 +164,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		s.draw(screen)
 	}
 
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f\nSprites: %d", ebiten.CurrentTPS(), g.sprites.Len()))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f\nSprites: %d", ebiten.ActualTPS(), g.sprites.Len()))
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

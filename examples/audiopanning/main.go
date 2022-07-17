@@ -108,7 +108,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 This is an example using
 stereo audio panning.
 Current: %0.2f[s]
-Panning: %.2f`, ebiten.CurrentTPS(), float64(pos)/float64(time.Second), g.panning)
+Panning: %.2f`, ebiten.ActualTPS(), float64(pos)/float64(time.Second), g.panning)
 	ebitenutil.DebugPrint(screen, msg)
 
 	// draw image to show where the sound is at related to the screen

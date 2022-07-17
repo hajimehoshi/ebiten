@@ -326,7 +326,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(g.canvas, nil)
 	ebitenutil.DebugPrintAt(
 		screen,
-		fmt.Sprintf("TPS: %0.2f, FPS: %0.2f", ebiten.CurrentTPS(), ebiten.CurrentFPS()),
+		fmt.Sprintf("TPS: %0.2f, FPS: %0.2f", ebiten.ActualTPS(), ebiten.ActualFPS()),
 		1, 0,
 	)
 	ebitenutil.DebugPrintAt(
@@ -351,7 +351,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	ebiten.SetMaxTPS(250)
+	ebiten.SetTPS(250)
 	ebiten.SetWindowSize(width*scale, height*scale)
 	ebiten.SetWindowTitle("Squirals (Ebiten Demo)")
 	if err := ebiten.RunGame(NewGame()); err != nil {

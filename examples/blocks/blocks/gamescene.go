@@ -238,7 +238,7 @@ func (s *GameScene) Update(state *GameState) error {
 		return nil
 	}
 
-	maxLandingCount := ebiten.MaxTPS()
+	maxLandingCount := ebiten.TPS()
 	if s.currentPiece == nil {
 		s.initCurrentPiece(s.choosePiece())
 	}
