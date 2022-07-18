@@ -255,7 +255,8 @@ func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool) (ferr err
 			if desc.Flags&_DXGI_ADAPTER_FLAG_SOFTWARE != 0 {
 				continue
 			}
-			if _, err := _D3D12CreateDevice(unsafe.Pointer(adapter), _D3D_FEATURE_LEVEL_11_0, &_IID_ID3D12Device); err != nil {
+			// Test D3D12CreateDevice without creating an actual device.
+			if _, err := _D3D12CreateDevice(unsafe.Pointer(adapter), _D3D_FEATURE_LEVEL_11_0, &_IID_ID3D12Device, false); err != nil {
 				continue
 			}
 			break
@@ -266,7 +267,7 @@ func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool) (ferr err
 		return errors.New("directx: DirectX 12 is not supported")
 	}
 
-	d, err := _D3D12CreateDevice(unsafe.Pointer(adapter), _D3D_FEATURE_LEVEL_11_0, &_IID_ID3D12Device)
+	d, err := _D3D12CreateDevice(unsafe.Pointer(adapter), _D3D_FEATURE_LEVEL_11_0, &_IID_ID3D12Device, true)
 	if err != nil {
 		return err
 	}

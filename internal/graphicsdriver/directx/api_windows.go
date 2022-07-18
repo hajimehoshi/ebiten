@@ -1048,9 +1048,13 @@ var (
 	procCreateDXGIFactory2 = dxgi.NewProc("CreateDXGIFactory2")
 )
 
-func _D3D12CreateDevice(pAdapter unsafe.Pointer, minimumFeatureLevel _D3D_FEATURE_LEVEL, riid *windows.GUID) (unsafe.Pointer, error) {
+func _D3D12CreateDevice(pAdapter unsafe.Pointer, minimumFeatureLevel _D3D_FEATURE_LEVEL, riid *windows.GUID, createDevice bool) (unsafe.Pointer, error) {
 	var v unsafe.Pointer
-	r, _, _ := procD3D12CreateDevice.Call(uintptr(pAdapter), uintptr(minimumFeatureLevel), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(&v)))
+	var pv *unsafe.Pointer
+	if createDevice {
+		pv = &v
+	}
+	r, _, _ := procD3D12CreateDevice.Call(uintptr(pAdapter), uintptr(minimumFeatureLevel), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(pv)))
 	if v == nil && uint32(r) != uint32(windows.S_FALSE) {
 		return nil, fmt.Errorf("directx: D3D12CreateDevice failed: HRESULT(%d)", uint32(r))
 	}
