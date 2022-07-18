@@ -255,7 +255,7 @@ func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool) (ferr err
 			if desc.Flags&_DXGI_ADAPTER_FLAG_SOFTWARE != 0 {
 				continue
 			}
-			if err := _D3D12CreateDevice(unsafe.Pointer(adapter), _D3D_FEATURE_LEVEL_11_0, &_IID_ID3D12Device, nil); err != nil {
+			if _, err := _D3D12CreateDevice(unsafe.Pointer(adapter), _D3D_FEATURE_LEVEL_11_0, &_IID_ID3D12Device); err != nil {
 				continue
 			}
 			break
@@ -266,12 +266,14 @@ func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool) (ferr err
 		return errors.New("directx: DirectX 12 is not supported")
 	}
 
-	if err := _D3D12CreateDevice(unsafe.Pointer(adapter), _D3D_FEATURE_LEVEL_11_0, &_IID_ID3D12Device, (*unsafe.Pointer)(unsafe.Pointer(&g.device))); err != nil {
+	d, err := _D3D12CreateDevice(unsafe.Pointer(adapter), _D3D_FEATURE_LEVEL_11_0, &_IID_ID3D12Device)
+	if err != nil {
 		return err
 	}
+	g.device = (*_ID3D12Device)(d)
 
-	var factory *_IDXGIFactory5
-	if err := g.factory.QueryInterface(&_IID_IDXGIFactory5, (*unsafe.Pointer)(unsafe.Pointer(&factory))); err == nil && factory != nil {
+	if f, err := g.factory.QueryInterface(&_IID_IDXGIFactory5); err == nil && f != nil {
+		factory := (*_IDXGIFactory5)(f)
 		defer factory.Release()
 		var allowTearing int32
 		if err := factory.CheckFeatureSupport(_DXGI_FEATURE_PRESENT_ALLOW_TEARING, unsafe.Pointer(&allowTearing), uint32(unsafe.Sizeof(allowTearing))); err == nil && allowTearing != 0 {
@@ -300,18 +302,21 @@ func (g *Graphics) initializeXbox(useWARP bool, useDebugLayer bool) (ferr error)
 	if useDebugLayer {
 		params.ProcessDebugFlags = _D3D12_PROCESS_DEBUG_FLAG_DEBUG_LAYER_ENABLED
 	}
-	if err := _D3D12XboxCreateDevice(nil, params, &_IID_ID3D12Device, (*unsafe.Pointer)(unsafe.Pointer(&g.device))); err != nil {
+	d, err := _D3D12XboxCreateDevice(nil, params, &_IID_ID3D12Device)
+	if err != nil {
 		return err
 	}
+	g.device = (*_ID3D12Device)(d)
 
 	if err := g.initializeMembers(); err != nil {
 		return err
 	}
 
-	var dxgiDevice *_IDXGIDevice
-	if err := g.device.QueryInterface(&_IID_IDXGIDevice, (*unsafe.Pointer)(unsafe.Pointer(&dxgiDevice))); err != nil {
+	dd, err := g.device.QueryInterface(&_IID_IDXGIDevice)
+	if err != nil {
 		return err
 	}
+	dxgiDevice := (*_IDXGIDevice)(dd)
 	defer dxgiDevice.Release()
 
 	dxgiAdapter, err := dxgiDevice.GetAdapter()

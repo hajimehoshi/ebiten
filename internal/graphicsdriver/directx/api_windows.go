@@ -1048,15 +1048,16 @@ var (
 	procCreateDXGIFactory2 = dxgi.NewProc("CreateDXGIFactory2")
 )
 
-func _D3D12CreateDevice(pAdapter unsafe.Pointer, minimumFeatureLevel _D3D_FEATURE_LEVEL, riid *windows.GUID, ppDevice *unsafe.Pointer) error {
-	r, _, _ := procD3D12CreateDevice.Call(uintptr(pAdapter), uintptr(minimumFeatureLevel), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(ppDevice)))
-	if ppDevice == nil && uint32(r) != uint32(windows.S_FALSE) {
-		return fmt.Errorf("directx: D3D12CreateDevice failed: HRESULT(%d)", uint32(r))
+func _D3D12CreateDevice(pAdapter unsafe.Pointer, minimumFeatureLevel _D3D_FEATURE_LEVEL, riid *windows.GUID) (unsafe.Pointer, error) {
+	var v unsafe.Pointer
+	r, _, _ := procD3D12CreateDevice.Call(uintptr(pAdapter), uintptr(minimumFeatureLevel), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(&v)))
+	if v == nil && uint32(r) != uint32(windows.S_FALSE) {
+		return nil, fmt.Errorf("directx: D3D12CreateDevice failed: HRESULT(%d)", uint32(r))
 	}
-	if ppDevice != nil && uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("directx: D3D12CreateDevice failed: HRESULT(%d)", uint32(r))
+	if v != nil && uint32(r) != uint32(windows.S_OK) {
+		return nil, fmt.Errorf("directx: D3D12CreateDevice failed: HRESULT(%d)", uint32(r))
 	}
-	return nil
+	return v, nil
 }
 
 func _D3D12GetDebugInterface() (*_ID3D12Debug, error) {
@@ -1088,12 +1089,13 @@ func _D3D12SerializeRootSignature(pRootSignature *_D3D12_ROOT_SIGNATURE_DESC, ve
 	return blob, nil
 }
 
-func _D3D12XboxCreateDevice(pAdapter unsafe.Pointer, pParameters *_D3D12XBOX_CREATE_DEVICE_PARAMETERS, riid *windows.GUID, ppDevice *unsafe.Pointer) error {
-	r, _, _ := procD3D12XboxCreateDevice.Call(uintptr(pAdapter), uintptr(unsafe.Pointer(pParameters)), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(ppDevice)))
+func _D3D12XboxCreateDevice(pAdapter unsafe.Pointer, pParameters *_D3D12XBOX_CREATE_DEVICE_PARAMETERS, riid *windows.GUID) (unsafe.Pointer, error) {
+	var v unsafe.Pointer
+	r, _, _ := procD3D12XboxCreateDevice.Call(uintptr(pAdapter), uintptr(unsafe.Pointer(pParameters)), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(&v)))
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("directx: D3D12XboxCreateDevice failed: HRESULT(%d)", uint32(r))
+		return nil, fmt.Errorf("directx: D3D12XboxCreateDevice failed: HRESULT(%d)", uint32(r))
 	}
-	return nil
+	return v, nil
 }
 
 func _D3DCompile(srcData []byte, sourceName string, pDefines []_D3D_SHADER_MACRO, pInclude unsafe.Pointer, entryPoint string, target string, flags1 uint32, flags2 uint32) (*_ID3DBlob, error) {
@@ -1779,14 +1781,14 @@ func (i *_ID3D12Device) SetFrameIntervalX(pOutputSyncTarget *_IDXGIOutput, lengt
 	return nil
 }
 
-func (i *_ID3D12Device) QueryInterface(riid *windows.GUID, ppvObject *unsafe.Pointer) error {
-	r, _, _ := syscall.Syscall(i.vtbl.QueryInterface, 3, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(ppvObject)))
+func (i *_ID3D12Device) QueryInterface(riid *windows.GUID) (unsafe.Pointer, error) {
+	var v unsafe.Pointer
+	r, _, _ := syscall.Syscall(i.vtbl.QueryInterface, 3, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(&v)))
 	runtime.KeepAlive(riid)
-	runtime.KeepAlive(ppvObject)
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("directx: ID3D12Device::QueryInterface failed: HRESULT(%d)", uint32(r))
+		return nil, fmt.Errorf("directx: ID3D12Device::QueryInterface failed: HRESULT(%d)", uint32(r))
 	}
-	return nil
+	return v, nil
 }
 
 func (i *_ID3D12Device) WaitFrameEventX(typ _D3D12XBOX_FRAME_EVENT_TYPE, timeOutInMs uint32, pAncillaryWaitList *_D3D12XBOX_WAIT_FRAME_OBJECT_LIST, flags _D3D12XBOX_WAIT_FRAME_EVENT_FLAGS, pToken *_D3D12XBOX_FRAME_PIPELINE_TOKEN) error {
@@ -2454,14 +2456,14 @@ func (i *_IDXGIFactory4) MakeWindowAssociation(windowHandle windows.HWND, flags 
 	return nil
 }
 
-func (i *_IDXGIFactory4) QueryInterface(riid *windows.GUID, ppvObject *unsafe.Pointer) error {
-	r, _, _ := syscall.Syscall(i.vtbl.QueryInterface, 3, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(ppvObject)))
+func (i *_IDXGIFactory4) QueryInterface(riid *windows.GUID) (unsafe.Pointer, error) {
+	var v unsafe.Pointer
+	r, _, _ := syscall.Syscall(i.vtbl.QueryInterface, 3, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(&v)))
 	runtime.KeepAlive(riid)
-	runtime.KeepAlive(ppvObject)
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("directx: IDXGIFactory4::QueryInterface failed: HRESULT(%d)", uint32(r))
+		return nil, fmt.Errorf("directx: IDXGIFactory4::QueryInterface failed: HRESULT(%d)", uint32(r))
 	}
-	return nil
+	return v, nil
 }
 
 func (i *_IDXGIFactory4) Release() {
