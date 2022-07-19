@@ -1047,6 +1047,9 @@ func (g *Graphics) NewImage(width, height int) (graphicsdriver.Image, error) {
 	}
 
 	layouts, _, _, totalBytes := g.device.GetCopyableFootprints(&desc, 0, 1, 0)
+	if totalBytes == 1<<64-1 {
+		return nil, fmt.Errorf("directx: GetCopyableFootprints returned an invalid total bytes")
+	}
 
 	i := &Image{
 		graphics:   g,
