@@ -286,6 +286,14 @@ func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool) (ferr err
 		return err
 	}
 
+	// GetOpyableFootprints might return an invalid value with Wine (#2114).
+	// To check this early, call NewImage here.
+	i, err := g.NewImage(1, 1)
+	if err != nil {
+		return err
+	}
+	i.Dispose()
+
 	return nil
 }
 
@@ -1047,7 +1055,7 @@ func (g *Graphics) NewImage(width, height int) (graphicsdriver.Image, error) {
 	}
 
 	layouts, _, _, totalBytes := g.device.GetCopyableFootprints(&desc, 0, 1, 0)
-	if totalBytes == 1<<64-1 {
+	if totalBytes == ^uint64(0) {
 		return nil, fmt.Errorf("directx: GetCopyableFootprints returned an invalid total bytes")
 	}
 
