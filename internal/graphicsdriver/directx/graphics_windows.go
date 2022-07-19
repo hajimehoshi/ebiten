@@ -286,7 +286,7 @@ func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool) (ferr err
 		return err
 	}
 
-	// GetOpyableFootprints might return an invalid value with Wine (#2114).
+	// GetCopyableFootprints might return an invalid value with Wine (#2114).
 	// To check this early, call NewImage here.
 	i, err := g.NewImage(1, 1)
 	if err != nil {
