@@ -1,8 +1,8 @@
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/ebitengine/purego v0.0.0-20220629143800-0a7163731eab h1:GHslKjCls+AxLWDLQpRfbovF2s4EZy5E5szb6+zZoPw=
 github.com/ebitengine/purego v0.0.0-20220629143800-0a7163731eab/go.mod h1:Eh8I3yvknDYZeCuXH9kRNaPuHEwvXDCk378o9xszmHg=
-github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220622232848-a6c407ee30a0 h1:ZWsNtyC3mgUL48DikCfjkyiaRYZ3OL2XBfn7JJs2/ZE=
-github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220622232848-a6c407ee30a0/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
+github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220712193148-63cf1f4ef61f h1:w3h343WgVLKLITcSpwecCDcq0FO8pAv6A/UG86hhFtY=
+github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220712193148-63cf1f4ef61f/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
 github.com/hajimehoshi/bitmapfont/v2 v2.2.0 h1:E6vzlchynZj6OVohVKFqWkKW348EmDW62K5zPXDi7A8=
 github.com/hajimehoshi/bitmapfont/v2 v2.2.0/go.mod h1:Llj2wTYXMuCTJEw2ATNIO6HbFPOoBYPs08qLdFAxOsQ=
 github.com/hajimehoshi/file2byteslice v0.0.0-20210813153925-5340248a8f41 h1:s01qIIRG7vN/5ndLwkDktjx44ulFk6apvAjVBYR50Yo=
@@ -13,8 +13,8 @@ github.com/hajimehoshi/oto v0.6.1 h1:7cJz/zRQV4aJvMSSRqzN2TImoVVMpE0BCY4nrNJaDOM
 github.com/hajimehoshi/oto v0.6.1/go.mod h1:0QXGEkbuJRohbJaxr7ZQSxnju7hEhseiPx2hrh6raOI=
 github.com/hajimehoshi/oto/v2 v2.3.0-alpha.5 h1:wIhM+mhT6tKtEqaj/ur5eu4DzoD+FvhSvg8bws+RpT4=
 github.com/hajimehoshi/oto/v2 v2.3.0-alpha.5/go.mod h1:seWLbgHH7AyUMYKfKYT9pg7PhUu9/SisyJvNTT+ASQo=
-github.com/jakecoffman/cp v1.2.0 h1:ZdCFqHglNYJibiIeRvpAktJ7ZuWUnh0cnBsZNKVbY3A=
-github.com/jakecoffman/cp v1.2.0/go.mod h1:JjY/Fp6d8E1CHnu74gWNnU0+b9VzEdUVPoJxg2PsTQg=
+github.com/jakecoffman/cp v1.2.1 h1:zkhc2Gpo9l4NLUZfeG3j33+3bQD7MkqPa+n5PdX+5mI=
+github.com/jakecoffman/cp v1.2.1/go.mod h1:JjY/Fp6d8E1CHnu74gWNnU0+b9VzEdUVPoJxg2PsTQg=
 github.com/jezek/xgb v1.0.1 h1:YUGhxps0aR7J2Xplbs23OHnV1mWaxFVcOl9b+1RQkt8=
 github.com/jezek/xgb v1.0.1/go.mod h1:nrhwO0FX/enq75I7Y7G8iN1ubpSGZEiA3v9e9GyRFlk=
 github.com/jfreymuth/oggvorbis v1.0.3 h1:MLNGGyhOMiVcvea9Dp5+gbs2SAwqwQbtrWnonYa0M0Y=
@@ -62,8 +62,9 @@ golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1/go.mod h1:oPkhp1MJrh7nUepCBc
 golang.org/x/sys v0.0.0-20210616045830-e2b7044e8c71/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20210809222454-d867a43fc93e/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20211019181941-9d821ace8654/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
-golang.org/x/sys v0.0.0-20220712014510-0a85c31ab51e h1:NHvCuwuS43lGnYhten69ZWqi2QOj/CiDNcKbVqwVoew=
 golang.org/x/sys v0.0.0-20220712014510-0a85c31ab51e/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 h1:0A+M6Uqn+Eje4kHMK80dtF3JCXC4ykBgQG4Fe06QRhQ=
+golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.3/go.mod h1:5Zoc/QRtKVWzQhOtBMvqHzDpF6irO9z98xDceosuGiQ=
