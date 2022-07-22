@@ -119,3 +119,18 @@ func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
 func Decode(context *audio.Context, src io.Reader) (*Stream, error) {
 	return DecodeWithSampleRate(context.SampleRate(), src)
 }
+
+// Resample explicitly resamples a stream to fit a new sample rate
+func Resample(s *Stream, sampleRate int) *Stream {
+	if s.orig.SampleRate() == sampleRate && s.resampling == nil {
+		return s
+	} else if s.orig.SampleRate() == sampleRate {
+		s = &Stream{s.orig, nil}
+		return s
+	}
+	s = &Stream{
+		s.orig,
+		convert.NewResampling(s.orig, s.orig.Length(), s.orig.SampleRate(), sampleRate),
+	}
+	return s
+}

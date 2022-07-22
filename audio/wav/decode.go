@@ -26,8 +26,9 @@ import (
 
 // Stream is a decoded audio stream.
 type Stream struct {
-	inner io.ReadSeeker
-	size  int64
+	inner      io.ReadSeeker
+	sampleRate int
+	size       int64
 }
 
 // Read is implementation of io.Reader's Read.
@@ -157,6 +158,7 @@ func decode(src io.Reader, sampleRate *int) (*Stream, error) {
 	sampleRateTo := 0
 	mono := false
 	bitsPerSample := 0
+	origSampleRate := int64(0)
 chunks:
 	for {
 		buf := make([]byte, 8)
@@ -200,7 +202,7 @@ chunks:
 			if bitsPerSample != 8 && bitsPerSample != 16 {
 				return nil, fmt.Errorf("wav: bits per sample must be 8 or 16 but was %d", bitsPerSample)
 			}
-			origSampleRate := int64(buf[4]) | int64(buf[5])<<8 | int64(buf[6])<<16 | int64(buf[7])<<24
+			origSampleRate = int64(buf[4]) | int64(buf[5])<<8 | int64(buf[6])<<16 | int64(buf[7])<<24
 			if sampleRate != nil && int64(*sampleRate) != origSampleRate {
 				sampleRateFrom = int(origSampleRate)
 				sampleRateTo = *sampleRate
@@ -237,12 +239,14 @@ chunks:
 			dataSize *= 2
 		}
 	}
+	destSampleRate := int(origSampleRate)
 	if sampleRateFrom != sampleRateTo {
 		r := convert.NewResampling(s, dataSize, sampleRateFrom, sampleRateTo)
 		s = r
 		dataSize = r.Length()
+		destSampleRate = sampleRateTo
 	}
-	ss := &Stream{inner: s, size: dataSize}
+	ss := &Stream{inner: s, size: dataSize, sampleRate: destSampleRate}
 	return ss, nil
 }
 
@@ -263,4 +267,15 @@ chunks:
 // Deprecated: as of v2.1. Use DecodeWithSampleRate instead.
 func Decode(context *audio.Context, src io.Reader) (*Stream, error) {
 	return DecodeWithSampleRate(context.SampleRate(), src)
+}
+
+// Resample explicitly resamples a stream to fit a new sample rate
+//
+// if original sample rate matches the new one, nothing happens
+func Resample(s *Stream, sampleRate int) *Stream {
+	if s.sampleRate == sampleRate {
+		return s
+	}
+	r := convert.NewResampling(s.inner, s.size, s.sampleRate, sampleRate)
+	return &Stream{inner: r, size: r.Length()}
 }
