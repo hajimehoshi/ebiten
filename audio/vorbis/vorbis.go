@@ -27,9 +27,8 @@ import (
 
 // Stream is a decoded audio stream.
 type Stream struct {
-	decoded    io.ReadSeeker
-	sampleRate int
-	size       int64
+	decoded io.ReadSeeker
+	size    int64
 }
 
 // Read is implementation of io.Reader's Read.
@@ -149,7 +148,7 @@ func decode(in io.Reader) (*decoded, int, int, error) {
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
 func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
-	decoded, channelCount, origSampleRate, err := decode(src)
+	decoded, channelCount, _, err := decode(src)
 	if err != nil {
 		return nil, err
 	}
@@ -163,9 +162,8 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 		size *= 2
 	}
 	stream := &Stream{
-		decoded:    s,
-		sampleRate: origSampleRate,
-		size:       size,
+		decoded: s,
+		size:    size,
 	}
 	return stream, nil
 }
@@ -199,7 +197,7 @@ func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
 		s = r
 		size = r.Length()
 	}
-	stream := &Stream{decoded: s, sampleRate: origSampleRate, size: size}
+	stream := &Stream{decoded: s, size: size}
 	return stream, nil
 }
 
