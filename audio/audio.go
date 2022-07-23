@@ -437,9 +437,12 @@ func (h *hookImpl) AppendHookOnBeforeUpdate(f func() error) {
 	hooks.AppendHookOnBeforeUpdate(f)
 }
 
-// Resample explicitly resamples a stream to fit a new sample rate.
+// Resample converts the sample rate of the given stream.
+// size is the length of the source stream in bytes.
+// from is the original sample rate.
+// to is the target sample rate.
 //
-// If original sample rate matches the new one, Resample returns source as it is.
+// If the original sample rate equals to the new one, Resample returns source as it is.
 func Resample(source io.ReadSeeker, size int64, from, to int) io.ReadSeeker {
 	if from == to {
 		return source
