@@ -40,6 +40,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hajimehoshi/ebiten/v2/audio/internal/convert"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
@@ -434,4 +435,14 @@ func (h *hookImpl) OnResumeAudio(f func() error) {
 
 func (h *hookImpl) AppendHookOnBeforeUpdate(f func() error) {
 	hooks.AppendHookOnBeforeUpdate(f)
+}
+
+// Resample explicitly resamples a stream to fit a new sample rate.
+//
+// If original sample rate matches the new one, Resample returns source as it is.
+func Resample(source io.ReadSeeker, size int64, from, to int) io.ReadSeeker {
+	if from == to {
+		return source
+	}
+	return convert.NewResampling(source, size, from, to)
 }
