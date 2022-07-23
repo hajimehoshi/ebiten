@@ -274,7 +274,7 @@ type Player struct {
 
 // NewPlayer creates a new player with the given stream.
 //
-// src's format must be linear PCM (16bits little endian, 2 channel stereo)
+// src's format must be linear PCM (signed 16bits little endian, 2 channel stereo)
 // without a header (e.g. RIFF header).
 // The sample rate must be same as that of the audio context.
 //
