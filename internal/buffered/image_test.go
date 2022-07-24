@@ -73,7 +73,7 @@ func TestMain(m *testing.M) {
 		m:     m,
 		endCh: endCh,
 	}
-	if err := ebiten.RunGame(g); err != nil && err != regularTermination {
+	if err := ebiten.RunGame(g); err != nil && !errors.Is(err, regularTermination) {
 		panic(err)
 	}
 

@@ -86,7 +86,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func main() {
 	ebiten.SetWindowTitle("Test")
 
-	if err := ebiten.RunGame(&Game{}); err != nil && err != regularTermination {
+	if err := ebiten.RunGame(&Game{}); err != nil && !errors.Is(err, regularTermination) {
 		panic(err)
 	}
 }

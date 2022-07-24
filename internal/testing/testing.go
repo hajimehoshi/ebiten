@@ -46,7 +46,7 @@ func MainWithRunLoop(m *testing.M) {
 	g := &game{
 		m: m,
 	}
-	if err := ebiten.RunGame(g); err != nil && err != regularTermination {
+	if err := ebiten.RunGame(g); err != nil && !errors.Is(err, regularTermination) {
 		panic(err)
 	}
 	os.Exit(g.code)

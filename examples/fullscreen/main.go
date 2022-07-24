@@ -127,7 +127,7 @@ func main() {
 
 	ebiten.SetFullscreen(true)
 	ebiten.SetWindowTitle("Fullscreen (Ebiten Demo)")
-	if err := ebiten.RunGame(&Game{}); err != nil && err != regularTermination {
+	if err := ebiten.RunGame(&Game{}); err != nil && !errors.Is(err, regularTermination) {
 		log.Fatal(err)
 	}
 }

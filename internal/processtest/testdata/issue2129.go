@@ -64,7 +64,7 @@ func (g *Game) Layout(width, height int) (int, int) {
 }
 
 func main() {
-	if err := ebiten.RunGame(&Game{}); err != nil && err != regularTermination {
+	if err := ebiten.RunGame(&Game{}); err != nil && !errors.Is(err, regularTermination) {
 		panic(err)
 	}
 }
