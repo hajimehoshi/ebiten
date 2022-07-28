@@ -36,7 +36,7 @@ type Game interface {
 	// This API is for just measurement and/or debugging. In the long run, the number of Update calls should be
 	// adjusted based on the set TPS on average.
 	//
-	// An actual time detal between two Updates might be bigger than expected. In this case, your game's
+	// An actual time delta between two Updates might be bigger than expected. In this case, your game's
 	// Update or Draw takes longer than they should. In this case, there is nothing other than optimizing
 	// your game implementation.
 	//
