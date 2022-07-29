@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate file2byteslice -package=vorbis_test -input=./test_mono.ogg -output=./testmonoogg_test.go -var=test_mono_ogg
-//go:generate file2byteslice -package=vorbis_test -input=./test_tooshort.ogg -output=./testtooshortogg_test.go -var=test_tooshort_ogg
+//go:generate go run github.com/hajimehoshi/file2byteslice/cmd/file2byteslice -package=vorbis_test -input=./test_mono.ogg -output=./testmonoogg_test.go -var=test_mono_ogg
+//go:generate go run github.com/hajimehoshi/file2byteslice/cmd/file2byteslice -package=vorbis_test -input=./test_tooshort.ogg -output=./testtooshortogg_test.go -var=test_tooshort_ogg
 //go:generate gofmt -s -w .
 
 package vorbis

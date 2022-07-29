@@ -13,7 +13,7 @@
 // limitations under the License.
 
 //go:generate png2compressedrgba -input text.png -output /tmp/compressedTextRGBA
-//go:generate file2byteslice -input /tmp/compressedTextRGBA -output textrgba.go -package assets -var compressedTextRGBA
+//go:generate go run github.com/hajimehoshi/file2byteslice/cmd/file2byteslice -input /tmp/compressedTextRGBA -output textrgba.go -package assets -var compressedTextRGBA
 //go:generate gofmt -s -w .
 
 package assets
