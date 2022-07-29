@@ -294,6 +294,11 @@ func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool) (ferr err
 	}
 	i.Dispose()
 
+	// Check whether an unexpected error happens or not: DXGI_ERROR_DEVICE_HUNG (#2198).
+	if _, err := g.pipelineStates.builtinGraphicsPipelineState(g.device, builtinPipelineStatesKey{}); err != nil {
+		return err
+	}
+
 	return nil
 }
 
