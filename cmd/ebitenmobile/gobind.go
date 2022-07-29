@@ -419,11 +419,16 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
 
     @Override
     public boolean onTouchEvent(MotionEvent e) {
+        // getActionIndex returns a valid value only for the action whose index is the returned value of getActionIndex (#2220).
+        // See https://developer.android.com/reference/android/view/MotionEvent#getActionMasked().
+        // For other pointers, treat their actions as MotionEvent.ACTION_MOVE.
+        int touchIndex = e.getActionIndex();
         for (int i = 0; i < e.getPointerCount(); i++) {
             int id = e.getPointerId(i);
             int x = (int)e.getX(i);
             int y = (int)e.getY(i);
-            Ebitenmobileview.updateTouchesOnAndroid(e.getActionMasked(), id, (int)pxToDp(x), (int)pxToDp(y));
+            int action = (i == touchIndex) ? e.getActionMasked() : MotionEvent.ACTION_MOVE;
+            Ebitenmobileview.updateTouchesOnAndroid(action, id, (int)pxToDp(x), (int)pxToDp(y));
         }
         return true;
     }
