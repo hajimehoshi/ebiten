@@ -294,6 +294,7 @@ type globalState struct {
 	fpsMode_                   int32
 	isScreenClearedEveryFrame_ int32
 	screenFilterEnabled_       int32
+	graphicsLibrary            GraphicsLibrary
 }
 
 func (g *globalState) error() error {
@@ -365,4 +366,8 @@ func IsScreenFilterEnabled() bool {
 
 func SetScreenFilterEnabled(enabled bool) {
 	theGlobalState.setScreenFilterEnabled(enabled)
+}
+
+func GetGraphicsLibrary() GraphicsLibrary {
+	return theGlobalState.graphicsLibrary
 }

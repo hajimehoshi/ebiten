@@ -16,6 +16,7 @@ package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 // Filter represents the type of texture filter to be used when an image is maginified or minified.
@@ -82,3 +83,21 @@ const (
 	// c_out = c_src * c_dst
 	CompositeModeMultiply CompositeMode = CompositeMode(graphicsdriver.CompositeModeMultiply)
 )
+
+type GraphicsLibrary = ui.GraphicsLibrary
+
+const (
+	GraphicsLibraryUnknown = ui.GraphicsLibraryUnknown
+	GraphicsLibraryOpenGL  = ui.GraphicsLibraryOpenGL
+	GraphicsLibraryDirectX = ui.GraphicsLibraryDirectX
+	GraphicsLibraryMetal   = ui.GraphicsLibraryMetal
+)
+
+type DebugInfo struct {
+	GraphicsLibrary GraphicsLibrary
+}
+
+// ReadDebugInfo writes debug info (e.g. current graphics library) into a provided struct.
+func ReadDebugInfo(d *DebugInfo) {
+	d.GraphicsLibrary = ui.GetGraphicsLibrary()
+}
