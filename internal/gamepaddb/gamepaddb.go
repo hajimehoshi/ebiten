@@ -92,10 +92,10 @@ var additionalGLFWGamepads = []byte(`
 `)
 
 func init() {
-	if _, err := Update(gamecontrollerdbTxt); err != nil {
+	if err := Update(gamecontrollerdbTxt); err != nil {
 		panic(err)
 	}
-	if _, err := Update(additionalGLFWGamepads); err != nil {
+	if err := Update(additionalGLFWGamepads); err != nil {
 		panic(err)
 	}
 }
@@ -139,11 +139,18 @@ func parseLine(line string, platform platform) (id string, name string, buttons 
 		return "", "", nil, nil, nil
 	}
 	tokens := strings.Split(line, ",")
+	if len(tokens) < 2 {
+		return "", "", nil, nil, fmt.Errorf("gamepaddb: syntax error")
+	}
+
 	for _, token := range tokens[2:] {
 		if len(token) == 0 {
 			continue
 		}
 		tks := strings.Split(token, ":")
+		if len(tks) < 2 {
+			return "", "", nil, nil, fmt.Errorf("gamepaddb: syntax error")
+		}
 
 		// Note that the platform part is listed in the definition of SDL_GetPlatform.
 		if tks[0] == "platform" {
@@ -501,7 +508,7 @@ func IsButtonPressed(id string, button StandardButton, state GamepadState) bool 
 // The string must be in the format of SDL_GameControllerDB.
 //
 // Update works atomically. If an error happens, nothing is updated.
-func Update(mappingData []byte) (bool, error) {
+func Update(mappingData []byte) error {
 	mappingsM.Lock()
 	defer mappingsM.Unlock()
 
@@ -519,11 +526,11 @@ func Update(mappingData []byte) (bool, error) {
 	for {
 		line, err := r.ReadString('\n')
 		if err != nil && err != io.EOF {
-			return false, err
+			return err
 		}
 		id, name, buttons, axes, err1 := parseLine(line, currentPlatform)
 		if err1 != nil {
-			return false, err1
+			return err1
 		}
 		if id != "" {
 			lines = append(lines, parsedLine{
@@ -544,7 +551,7 @@ func Update(mappingData []byte) (bool, error) {
 		gamepadAxisMappings[l.id] = l.axes
 	}
 
-	return true, nil
+	return nil
 }
 
 func addAndroidDefaultMappings(id string) bool {

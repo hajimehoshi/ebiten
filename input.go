@@ -335,7 +335,10 @@ func IsStandardGamepadLayoutAvailable(id GamepadID) bool {
 //
 // UpdateStandardGamepadLayoutMappings works atomically. If an error happens, nothing is updated.
 func UpdateStandardGamepadLayoutMappings(mappings string) (bool, error) {
-	return gamepaddb.Update([]byte(mappings))
+	if err := gamepaddb.Update([]byte(mappings)); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // TouchID represents a touch's identifier.
