@@ -26,7 +26,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io"
 	"runtime"
 	"strconv"
 	"strings"
@@ -513,7 +512,7 @@ func Update(mappingData []byte) error {
 	defer mappingsM.Unlock()
 
 	buf := bytes.NewBuffer(mappingData)
-	r := bufio.NewReader(buf)
+	s := bufio.NewScanner(buf)
 
 	type parsedLine struct {
 		id      string
@@ -523,14 +522,11 @@ func Update(mappingData []byte) error {
 	}
 	var lines []parsedLine
 
-	for {
-		line, err := r.ReadString('\n')
-		if err != nil && err != io.EOF {
+	for s.Scan() {
+		line := s.Text()
+		id, name, buttons, axes, err := parseLine(line, currentPlatform)
+		if err != nil {
 			return err
-		}
-		id, name, buttons, axes, err1 := parseLine(line, currentPlatform)
-		if err1 != nil {
-			return err1
 		}
 		if id != "" {
 			lines = append(lines, parsedLine{
@@ -540,9 +536,10 @@ func Update(mappingData []byte) error {
 				axes:    axes,
 			})
 		}
-		if err == io.EOF {
-			break
-		}
+	}
+
+	if err := s.Err(); err != nil {
+		return err
 	}
 
 	for _, l := range lines {
