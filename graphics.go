@@ -101,6 +101,7 @@ const (
 
 // DebugInfo is a struct to store debug info about the graphics.
 type DebugInfo struct {
+	// GraphicsLibrary represents the graphics library currently in use.
 	GraphicsLibrary GraphicsLibrary
 }
 
