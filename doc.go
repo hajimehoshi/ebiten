@@ -67,6 +67,7 @@
 //
 // `EBITENGINE_GRAPHICS_LIBRARY` environment variable specifies the graphics library.
 // If the specified graphics library is not available, RunGame returns an error.
+// This environment variable can also be set programmatically through os.Setenv before RunGame is called.
 // This can take one of the following value:
 //
 //     "auto":    Ebitengine chooses the graphics library automatically. This is the default value.
