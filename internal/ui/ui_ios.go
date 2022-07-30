@@ -29,16 +29,16 @@ type graphicsDriverCreatorImpl struct {
 	gomobileBuild bool
 }
 
-func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, error) {
+func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {
 	m, err1 := g.newMetal()
 	if err1 == nil {
-		return m, nil
+		return m, GraphicsLibraryMetal, nil
 	}
 	o, err2 := g.newOpenGL()
 	if err2 == nil {
-		return o, nil
+		return o, GraphicsLibraryMetal, nil
 	}
-	return nil, fmt.Errorf("ui: failed to choose graphics drivers: Metal: %v, OpenGL: %v", err1, err2)
+	return nil, GraphicsLibraryUnknown, fmt.Errorf("ui: failed to choose graphics drivers: Metal: %v, OpenGL: %v", err1, err2)
 }
 
 func (*graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {

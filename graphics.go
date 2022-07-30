@@ -16,6 +16,7 @@ package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 // Filter represents the type of texture filter to be used when an image is maginified or minified.
@@ -82,3 +83,29 @@ const (
 	// c_out = c_src * c_dst
 	CompositeModeMultiply CompositeMode = CompositeMode(graphicsdriver.CompositeModeMultiply)
 )
+
+// GraphicsLibrary represets graphics libraries supported by the engine.
+type GraphicsLibrary = ui.GraphicsLibrary
+
+const (
+	// GraphicsLibraryUnknown represents the state at which graphics library cannot be determined,
+	// e.g. hasn't loaded yet or failed to initialize.
+	GraphicsLibraryUnknown = ui.GraphicsLibraryUnknown
+	// GraphicsLibraryOpenGL current graphics library used is OpenGL.
+	GraphicsLibraryOpenGL = ui.GraphicsLibraryOpenGL
+	// GraphicsLibraryDirectX current graphics library used is Microsoft DirectX.
+	GraphicsLibraryDirectX = ui.GraphicsLibraryDirectX
+	// GraphicsLibraryMetal current graphics library used is Apple's Metal.
+	GraphicsLibraryMetal = ui.GraphicsLibraryMetal
+)
+
+// DebugInfo is a struct to store debug info about the graphics.
+type DebugInfo struct {
+	// GraphicsLibrary represents the graphics library currently in use.
+	GraphicsLibrary GraphicsLibrary
+}
+
+// ReadDebugInfo writes debug info (e.g. current graphics library) into a provided struct.
+func ReadDebugInfo(d *DebugInfo) {
+	d.GraphicsLibrary = ui.GetGraphicsLibrary()
+}

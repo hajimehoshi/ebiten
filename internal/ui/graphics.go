@@ -22,7 +22,7 @@ import (
 )
 
 type graphicsDriverCreator interface {
-	newAuto() (graphicsdriver.Graphics, error)
+	newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error)
 	newOpenGL() (graphicsdriver.Graphics, error)
 	newDirectX() (graphicsdriver.Graphics, error)
 	newMetal() (graphicsdriver.Graphics, error)
@@ -39,13 +39,14 @@ func newGraphicsDriver(creator graphicsDriverCreator) (graphicsdriver.Graphics, 
 
 	switch env {
 	case "", "auto":
-		g, err := creator.newAuto()
+		g, lib, err := creator.newAuto()
 		if err != nil {
 			return nil, err
 		}
 		if g == nil {
 			return nil, fmt.Errorf("ui: no graphics library is available")
 		}
+		theGlobalState.setGraphicsLibrary(lib)
 		return g, nil
 	case "opengl":
 		g, err := creator.newOpenGL()
@@ -55,6 +56,7 @@ func newGraphicsDriver(creator graphicsDriverCreator) (graphicsdriver.Graphics, 
 		if g == nil {
 			return nil, fmt.Errorf("ui: %s=%s is specified but OpenGL is not available", envName, env)
 		}
+		theGlobalState.setGraphicsLibrary(GraphicsLibraryOpenGL)
 		return g, nil
 	case "directx":
 		g, err := creator.newDirectX()
@@ -64,6 +66,7 @@ func newGraphicsDriver(creator graphicsDriverCreator) (graphicsdriver.Graphics, 
 		if g == nil {
 			return nil, fmt.Errorf("ui: %s=%s is specified but DirectX is not available.", envName, env)
 		}
+		theGlobalState.setGraphicsLibrary(GraphicsLibraryDirectX)
 		return g, nil
 	case "metal":
 		g, err := creator.newMetal()
@@ -73,6 +76,7 @@ func newGraphicsDriver(creator graphicsDriverCreator) (graphicsdriver.Graphics, 
 		if g == nil {
 			return nil, fmt.Errorf("ui: %s=%s is specified but Metal is not available", envName, env)
 		}
+		theGlobalState.setGraphicsLibrary(GraphicsLibraryMetal)
 		return g, nil
 	default:
 		return nil, fmt.Errorf("ui: an unsupported graphics library is specified: %s", env)
