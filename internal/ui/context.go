@@ -294,7 +294,7 @@ type globalState struct {
 	fpsMode_                   int32
 	isScreenClearedEveryFrame_ int32
 	screenFilterEnabled_       int32
-	graphicsLibrary            GraphicsLibrary
+	graphicsLibrary            int32
 }
 
 func (g *globalState) error() error {
@@ -343,6 +343,14 @@ func (g *globalState) setScreenFilterEnabled(enabled bool) {
 	atomic.StoreInt32(&g.screenFilterEnabled_, v)
 }
 
+func (g *globalState) storeGraphicsLibrary(library GraphicsLibrary) {
+	atomic.StoreInt32(&g.graphicsLibrary, int32(library))
+}
+
+func (g *globalState) loadGraphicsLibrary() GraphicsLibrary {
+	return GraphicsLibrary(atomic.LoadInt32(&g.graphicsLibrary))
+}
+
 func FPSMode() FPSModeType {
 	return theGlobalState.fpsMode()
 }
@@ -369,5 +377,5 @@ func SetScreenFilterEnabled(enabled bool) {
 }
 
 func GetGraphicsLibrary() GraphicsLibrary {
-	return theGlobalState.graphicsLibrary
+	return theGlobalState.loadGraphicsLibrary()
 }
