@@ -1428,9 +1428,10 @@ func (w *Window) platformDestroyWindow() error {
 	}
 
 	if w.win32.handle != 0 {
-		_RemovePropW(w.win32.handle, "GLFW")
-		if err := _DestroyWindow(w.win32.handle); err != nil {
-			return err
+		if !microsoftgdk.IsXbox() {
+			if err := _DestroyWindow(w.win32.handle); err != nil {
+				return err
+			}
 		}
 		delete(handleToWindow, w.win32.handle)
 		w.win32.handle = 0

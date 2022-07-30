@@ -295,8 +295,10 @@ func platformTerminate() error {
 	}
 
 	if _glfw.win32.helperWindowHandle != 0 {
-		if err := _DestroyWindow(_glfw.win32.helperWindowHandle); err != nil {
-			return err
+		if !microsoftgdk.IsXbox() {
+			if err := _DestroyWindow(_glfw.win32.helperWindowHandle); err != nil {
+				return err
+			}
 		}
 	}
 

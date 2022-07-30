@@ -821,7 +821,6 @@ var (
 	procRegisterRawInputDevices       = user32.NewProc("RegisterRawInputDevices")
 	procReleaseCapture                = user32.NewProc("ReleaseCapture")
 	procReleaseDC                     = user32.NewProc("ReleaseDC")
-	procRemovePropW                   = user32.NewProc("RemovePropW")
 	procScreenToClient                = user32.NewProc("ScreenToClient")
 	procSendMessageW                  = user32.NewProc("SendMessageW")
 	procSetCapture                    = user32.NewProc("SetCapture")
@@ -1496,22 +1495,6 @@ func _ReleaseCapture() error {
 func _ReleaseDC(hWnd windows.HWND, hDC _HDC) int32 {
 	r, _, _ := procReleaseDC.Call(uintptr(hWnd), uintptr(hDC))
 	return int32(r)
-}
-
-func _RemovePropW(hWnd windows.HWND, str string) windows.Handle {
-	var lpString *uint16
-	if str != "" {
-		var err error
-		lpString, err = windows.UTF16PtrFromString(str)
-		if err != nil {
-			panic("glfwwin: str must not include a NUL character")
-		}
-	}
-
-	r, _, _ := procRemovePropW.Call(uintptr(hWnd), uintptr(unsafe.Pointer(lpString)))
-	runtime.KeepAlive(lpString)
-
-	return windows.Handle(r)
 }
 
 func _RtlVerifyVersionInfo(versionInfo *_OSVERSIONINFOEXW, typeMask uint32, conditionMask uint64) int32 {
