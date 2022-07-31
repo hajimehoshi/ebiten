@@ -12,26 +12,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <stdint.h>
-
-typedef unsigned long uint_t;
-
-void *MakeMetalLayer();
-
-uint16_t MetalLayer_PixelFormat(void *metalLayer);
-void MetalLayer_SetDevice(void *metalLayer, void *device);
-void MetalLayer_SetOpaque(void *metalLayer, unsigned char opaque);
-const char *MetalLayer_SetPixelFormat(void *metalLayer, uint16_t pixelFormat);
-const char *MetalLayer_SetMaximumDrawableCount(void *metalLayer,
-                                               uint_t maximumDrawableCount);
-void MetalLayer_SetDisplaySyncEnabled(void *metalLayer,
-                                      uint8_t displaySyncEnabled);
 void MetalLayer_SetDrawableSize(void *metalLayer, double width, double height);
-void MetalLayer_SetPresentsWithTransaction(void *metalLayer,
-                                           uint8_t presentsWithTransaction);
-void *MetalLayer_NextDrawable(void *metalLayer);
-void MetalLayer_SetFramebufferOnly(void *metalLayer, uint8_t framebufferOnly);
-uint8_t MetalLayer_PresentsWithTransaction(void *metalLayer);
-
-void *MetalDrawable_Texture(void *drawable);
-void MetalDrawable_Present(void *drawable);

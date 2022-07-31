@@ -22,22 +22,13 @@ package metal
 //
 // #import <Foundation/Foundation.h>
 //
-// static int getMacOSMajorVersion() {
-//   NSOperatingSystemVersion version = [[NSProcessInfo processInfo] operatingSystemVersion];
-//   return (int)version.majorVersion;
-// }
-//
-// static int getMacOSMinorVersion() {
-//   NSOperatingSystemVersion version = [[NSProcessInfo processInfo] operatingSystemVersion];
-//   return (int)version.minorVersion;
-// }
+// static int isOperatingSystemAtLeastVersion(NSOperatingSystemVersion v) {
+//	return (int)[[NSProcessInfo processInfo] isOperatingSystemAtLeastVersion:v];
+//}
 import "C"
 
 func supportsMetal() bool {
 	// On macOS 10.11 El Capitan, there is a rendering issue on Metal (#781).
 	// Use the OpenGL in macOS 10.11 or older.
-	if C.getMacOSMajorVersion() <= 10 && C.getMacOSMinorVersion() <= 11 {
-		return false
-	}
-	return true
+	return C.isOperatingSystemAtLeastVersion(C.NSOperatingSystemVersion{majorVersion: 10, minorVersion: 11, patchVersion: 0}) != 0
 }

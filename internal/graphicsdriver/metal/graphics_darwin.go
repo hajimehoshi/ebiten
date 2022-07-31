@@ -21,6 +21,7 @@ import (
 	"strings"
 	"unsafe"
 
+	"github.com/ebitengine/purego/objc"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca"
@@ -28,20 +29,19 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
-// #cgo CFLAGS: -x objective-c
-// #cgo !ios CFLAGS: -mmacosx-version-min=10.12
-// #cgo LDFLAGS: -framework Foundation
-//
-// #import <Foundation/Foundation.h>
-//
-// static void* allocAutoreleasePool() {
-//   return [[NSAutoreleasePool alloc] init];
-// }
-//
-// static void releaseAutoreleasePool(void* pool) {
-//   [(NSAutoreleasePool*)pool release];
-// }
-import "C"
+var (
+	_NSAutoreleasePool = objc.GetClass("NSAutoreleasePool\x00")
+	_new               = objc.RegisterName("new\x00")
+	_release           = objc.RegisterName("release\x00")
+)
+
+func allocAutoreleasePool() objc.ID {
+	return objc.ID(_NSAutoreleasePool).Send(_new)
+}
+
+func releaseAutoreleasePool(pool objc.ID) {
+	pool.Send(_release)
+}
 
 const source = `#include <metal_stdlib>
 
@@ -371,14 +371,14 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 func (g *Graphics) Begin() error {
 	// NSAutoreleasePool is required to release drawable correctly (#847).
 	// https://developer.apple.com/library/archive/documentation/3DDrawing/Conceptual/MTLBestPracticesGuide/Drawables.html
-	g.pool = C.allocAutoreleasePool()
+	g.pool = unsafe.Pointer(allocAutoreleasePool())
 	return nil
 }
 
 func (g *Graphics) End(present bool) error {
 	g.flushIfNeeded(present)
 	g.screenDrawable = ca.MetalDrawable{}
-	C.releaseAutoreleasePool(g.pool)
+	releaseAutoreleasePool(objc.ID(g.pool))
 	g.pool = nil
 	return nil
 }

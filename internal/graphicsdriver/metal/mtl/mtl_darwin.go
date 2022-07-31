@@ -25,6 +25,10 @@ package mtl
 import (
 	"errors"
 	"fmt"
+	"github.com/ebitengine/purego"
+	"github.com/ebitengine/purego/objc"
+	"reflect"
+	"runtime"
 	"unsafe"
 )
 
@@ -338,6 +342,11 @@ const (
 	CommandBufferStatusError       CommandBufferStatus = 5 // Execution of the command buffer was aborted due to an error during execution.
 )
 
+var (
+	metal                         = purego.Dlopen("/System/Library/Frameworks/Metal.framework/Versions/Current/Metal", purego.RTLD_GLOBAL)
+	_MTLCreateSystemDefaultDevice = purego.Dlsym(metal, "MTLCreateSystemDefaultDevice")
+)
+
 // Resource represents a memory allocation for storing specialized data
 // that is accessible to the GPU.
 //
@@ -457,20 +466,114 @@ type Device struct {
 	Name string
 }
 
+type _NSError struct {
+	objc.ID
+}
+
+func _NSStringtoGoString(nsstring objc.ID) string {
+	// this will be nicer with unsafe.Slice once ebitengine requires 1.17
+	// reflect.SliceHeader is used because it will force Go to copy the string
+	// into Go memory when casted to a string
+	return string(*(*[]byte)(unsafe.Pointer(&reflect.SliceHeader{Data: uintptr(nsstring.Send(sel_UTF8String)), Len: int(nsstring.Send(sel_length))})))
+}
+
+var (
+	class_NSString                    = objc.GetClass("NSString\x00")
+	class_MTLRenderPipelineDescriptor = objc.GetClass("MTLRenderPipelineDescriptor\x00")
+	class_MTLTextureDescriptor        = objc.GetClass("MTLTextureDescriptor\x00")
+	class_MTLDepthStencilDescriptor   = objc.GetClass("MTLDepthStencilDescriptor\x00")
+)
+
+var (
+	sel_UTF8String                                                               = objc.RegisterName("UTF8String\x00")
+	sel_length                                                                   = objc.RegisterName("length\x00")
+	sel_isHeadless                                                               = objc.RegisterName("isHeadless\x00")
+	sel_isLowPower                                                               = objc.RegisterName("isLowPower\x00")
+	sel_name                                                                     = objc.RegisterName("name\x00")
+	sel_supportsFeatureSet                                                       = objc.RegisterName("supportsFeatureSet:\x00")
+	sel_newCommandQueue                                                          = objc.RegisterName("newCommandQueue\x00")
+	sel_newLibraryWithSource_options_error                                       = objc.RegisterName("newLibraryWithSource:options:error:\x00")
+	sel_alloc                                                                    = objc.RegisterName("alloc\x00")
+	sel_release                                                                  = objc.RegisterName("release\x00")
+	sel_retain                                                                   = objc.RegisterName("retain\x00")
+	sel_new                                                                      = objc.RegisterName("new\x00")
+	sel_initWithBytes_length_encoding                                            = objc.RegisterName("initWithBytes:length:encoding:\x00")
+	sel_localizedDescription                                                     = objc.RegisterName("localizedDescription\x00")
+	sel_setVertexFunction                                                        = objc.RegisterName("setVertexFunction:\x00")
+	sel_setFragmentFunction                                                      = objc.RegisterName("setFragmentFunction:\x00")
+	sel_colorAttachments                                                         = objc.RegisterName("colorAttachments\x00")
+	sel_objectAtIndexedSubscript                                                 = objc.RegisterName("objectAtIndexedSubscript:\x00")
+	sel_setPixelFormat                                                           = objc.RegisterName("setPixelFormat:\x00")
+	sel_setBlendingEnabled                                                       = objc.RegisterName("setBlendingEnabled:\x00")
+	sel_setDestinationAlphaBlendFactor                                           = objc.RegisterName("setDestinationAlphaBlendFactor:\x00")
+	sel_setDestinationRGBBlendFactor                                             = objc.RegisterName("setDestinationRGBBlendFactor:\x00")
+	sel_setSourceAlphaBlendFactor                                                = objc.RegisterName("setSourceAlphaBlendFactor:\x00")
+	sel_setSourceRGBBlendFactor                                                  = objc.RegisterName("setSourceRGBBlendFactor:\x00")
+	sel_setWriteMask                                                             = objc.RegisterName("setWriteMask:\x00")
+	sel_setStencilAttachmentPixelFormat                                          = objc.RegisterName("setStencilAttachmentPixelFormat:")
+	sel_newRenderPipelineStateWithDescriptor_error                               = objc.RegisterName("newRenderPipelineStateWithDescriptor:error:\x00")
+	sel_newBufferWithBytes_length_options                                        = objc.RegisterName("newBufferWithBytes:length:options:\x00")
+	sel_newBufferWithLength_options                                              = objc.RegisterName("newBufferWithLength:options:\x00")
+	sel_setTextureType                                                           = objc.RegisterName("setTextureType:\x00")
+	sel_setWidth                                                                 = objc.RegisterName("setWidth:\x00")
+	sel_setHeight                                                                = objc.RegisterName("setHeight:\x00")
+	sel_width                                                                    = objc.RegisterName("width\x00")
+	sel_height                                                                   = objc.RegisterName("height\x00")
+	sel_setStorageMode                                                           = objc.RegisterName("setStorageMode:\x00")
+	sel_setUsage                                                                 = objc.RegisterName("setUsage:\x00")
+	sel_newTextureWithDescriptor                                                 = objc.RegisterName("newTextureWithDescriptor:\x00")
+	sel_commandBuffer                                                            = objc.RegisterName("commandBuffer\x00")
+	sel_status                                                                   = objc.RegisterName("status\x00")
+	sel_presentDrawable                                                          = objc.RegisterName("presentDrawable:")
+	sel_commit                                                                   = objc.RegisterName("commit\x00")
+	sel_waitUntilCompleted                                                       = objc.RegisterName("waitUntilCompleted\x00")
+	sel_waitUntilScheduled                                                       = objc.RegisterName("waitUntilScheduled\x00")
+	sel_blitCommandEncoder                                                       = objc.RegisterName("blitCommandEncoder\x00")
+	sel_endEncoding                                                              = objc.RegisterName("endEncoding\x00")
+	sel_setRenderPipelineState                                                   = objc.RegisterName("setRenderPipelineState:\x00")
+	sel_setVertexBuffer_offset_atIndex                                           = objc.RegisterName("setVertexBuffer:offset:atIndex:\x00")
+	sel_setVertexBytes_length_atIndex                                            = objc.RegisterName("setVertexBytes:length:atIndex:\x00")
+	sel_setFragmentBytes_length_atIndex                                          = objc.RegisterName("setFragmentBytes:length:atIndex:\x00")
+	sel_setFragmentTexture_atIndex                                               = objc.RegisterName("setFragmentTexture:atIndex:\x00")
+	sel_setDepthStencilState                                                     = objc.RegisterName("setDepthStencilState:\x00")
+	sel_drawPrimitives_vertexStart_vertexCount                                   = objc.RegisterName("drawPrimitives:vertexStart:vertexCount:\x00")
+	sel_drawIndexedPrimitives_indexCount_indexType_indexBuffer_indexBufferOffset = objc.RegisterName("drawIndexedPrimitives:indexCount:indexType:indexBuffer:indexBufferOffset:\x00")
+	sel_synchronizeResource                                                      = objc.RegisterName("synchronizeResource:\x00")
+	sel_synchronizeTexture_slice_level                                           = objc.RegisterName("synchronizeTexture:slice:level:\x00")
+	sel_newFunctionWithName                                                      = objc.RegisterName("newFunctionWithName:\x00")
+	sel_backFaceStencil                                                          = objc.RegisterName("backFaceStencil\x00")
+	sel_frontFaceStencil                                                         = objc.RegisterName("frontFaceStencil\x00")
+	sel_setStencilFailureOperation                                               = objc.RegisterName("setStencilFailureOperation:\x00")
+	sel_setDepthFailureOperation                                                 = objc.RegisterName("setDepthFailureOperation:\x00")
+	sel_setDepthStencilPassOperation                                             = objc.RegisterName("setDepthStencilPassOperation:")
+	sel_setStencilCompareFunction                                                = objc.RegisterName("setStencilCompareFunction:\x00")
+	sel_newDepthStencilStateWithDescriptor                                       = objc.RegisterName("newDepthStencilStateWithDescriptor:\x00")
+)
+
 // CreateSystemDefaultDevice returns the preferred system default Metal device.
 //
 // Reference: https://developer.apple.com/documentation/metal/1433401-mtlcreatesystemdefaultdevice.
 func CreateSystemDefaultDevice() (Device, bool) {
-	d := C.CreateSystemDefaultDevice()
-	if d.Device == nil {
+	d, _, _ := purego.SyscallN(_MTLCreateSystemDefaultDevice)
+	if d == 0 {
 		return Device{}, false
 	}
+	var (
+		headless bool
+		lowPower bool
+		name     string
+	)
+	if runtime.GOOS != "ios" {
+		headless = int(objc.ID(d).Send(sel_isHeadless)) != 0
+		lowPower = int(objc.ID(d).Send(sel_isLowPower)) != 0
+	}
+	name = _NSStringtoGoString(objc.ID(d).Send(sel_name))
 
 	return Device{
-		device:   d.Device,
-		Headless: d.Headless != 0,
-		LowPower: d.LowPower != 0,
-		Name:     C.GoString(d.Name),
+		device:   unsafe.Pointer(d),
+		Headless: headless,
+		LowPower: lowPower,
+		Name:     name,
 	}, true
 }
 
@@ -481,14 +584,14 @@ func (d Device) Device() unsafe.Pointer { return d.device }
 //
 // Reference: https://developer.apple.com/documentation/metal/mtldevice/1433418-supportsfeatureset.
 func (d Device) SupportsFeatureSet(fs FeatureSet) bool {
-	return C.Device_SupportsFeatureSet(d.device, C.uint16_t(fs)) != 0
+	return objc.ID(d.device).Send(sel_supportsFeatureSet, uintptr(fs)) != 0
 }
 
 // MakeCommandQueue creates a serial command submission queue.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtldevice/1433388-makecommandqueue.
 func (d Device) MakeCommandQueue() CommandQueue {
-	return CommandQueue{C.Device_MakeCommandQueue(d.device)}
+	return CommandQueue{unsafe.Pointer(objc.ID(d.device).Send(sel_newCommandQueue))}
 }
 
 // MakeLibrary creates a new library that contains
@@ -496,44 +599,49 @@ func (d Device) MakeCommandQueue() CommandQueue {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtldevice/1433431-makelibrary.
 func (d Device) MakeLibrary(source string, opt CompileOptions) (Library, error) {
-	cs := C.CString(source)
-	defer C.free(unsafe.Pointer(cs))
-
-	l := C.Device_MakeLibrary(d.device, cs, C.size_t(len(source)))
-	if l.Library == nil {
-		return Library{}, errors.New(C.GoString(l.Error))
+	var err _NSError
+	l := objc.ID(d.device).Send(
+		sel_newLibraryWithSource_options_error,
+		objc.ID(class_NSString).Send(sel_alloc).
+			Send(sel_initWithBytes_length_encoding,
+				unsafe.Pointer(&(*(*[]byte)(unsafe.Pointer(&source)))[0]), len(source), _NSUTF8StringEncoding),
+		0,
+		unsafe.Pointer(&err),
+	)
+	if l == 0 {
+		return Library{}, errors.New(_NSStringtoGoString(err.Send(sel_localizedDescription)))
 	}
 
-	return Library{l.Library}, nil
+	return Library{unsafe.Pointer(l)}, nil
 }
 
 // MakeRenderPipelineState creates a render pipeline state object.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtldevice/1433369-makerenderpipelinestate.
 func (d Device) MakeRenderPipelineState(rpd RenderPipelineDescriptor) (RenderPipelineState, error) {
-	blendingEnabled := 0
-	if rpd.ColorAttachments[0].BlendingEnabled {
-		blendingEnabled = 1
-	}
-	c := &rpd.ColorAttachments[0]
-	descriptor := C.struct_RenderPipelineDescriptor{
-		VertexFunction:                              rpd.VertexFunction.function,
-		FragmentFunction:                            rpd.FragmentFunction.function,
-		ColorAttachment0PixelFormat:                 C.uint16_t(c.PixelFormat),
-		ColorAttachment0BlendingEnabled:             C.uint8_t(blendingEnabled),
-		ColorAttachment0DestinationAlphaBlendFactor: C.uint8_t(c.DestinationAlphaBlendFactor),
-		ColorAttachment0DestinationRGBBlendFactor:   C.uint8_t(c.DestinationRGBBlendFactor),
-		ColorAttachment0SourceAlphaBlendFactor:      C.uint8_t(c.SourceAlphaBlendFactor),
-		ColorAttachment0SourceRGBBlendFactor:        C.uint8_t(c.SourceRGBBlendFactor),
-		ColorAttachment0WriteMask:                   C.uint8_t(c.WriteMask),
-		StencilAttachmentPixelFormat:                C.uint8_t(rpd.StencilAttachmentPixelFormat),
-	}
-	rps := C.Device_MakeRenderPipelineState(d.device, descriptor)
-	if rps.RenderPipelineState == nil {
-		return RenderPipelineState{}, errors.New(C.GoString(rps.Error))
+	renderPipelineDescriptor := objc.ID(class_MTLRenderPipelineDescriptor).Send(sel_new)
+	renderPipelineDescriptor.Send(sel_setVertexFunction, rpd.VertexFunction.function)
+	renderPipelineDescriptor.Send(sel_setFragmentFunction, rpd.FragmentFunction.function)
+	colorAttachments0 := renderPipelineDescriptor.Send(sel_colorAttachments).Send(sel_objectAtIndexedSubscript, 0)
+	colorAttachments0.Send(sel_setPixelFormat, uintptr(rpd.ColorAttachments[0].PixelFormat))
+	colorAttachments0.Send(sel_setBlendingEnabled, rpd.ColorAttachments[0].BlendingEnabled)
+	colorAttachments0.Send(sel_setDestinationAlphaBlendFactor, uintptr(rpd.ColorAttachments[0].DestinationAlphaBlendFactor))
+	colorAttachments0.Send(sel_setDestinationRGBBlendFactor, uintptr(rpd.ColorAttachments[0].DestinationRGBBlendFactor))
+	colorAttachments0.Send(sel_setSourceAlphaBlendFactor, uintptr(rpd.ColorAttachments[0].SourceAlphaBlendFactor))
+	colorAttachments0.Send(sel_setSourceRGBBlendFactor, uintptr(rpd.ColorAttachments[0].SourceRGBBlendFactor))
+	colorAttachments0.Send(sel_setWriteMask, uintptr(rpd.ColorAttachments[0].WriteMask))
+	renderPipelineDescriptor.Send(sel_setStencilAttachmentPixelFormat, uintptr(rpd.StencilAttachmentPixelFormat))
+	var err _NSError
+	renderPipelineState := objc.ID(d.device).Send(sel_newRenderPipelineStateWithDescriptor_error,
+		renderPipelineDescriptor,
+		unsafe.Pointer(&err),
+	)
+	renderPipelineDescriptor.Send(sel_release)
+	if renderPipelineState == 0 {
+		return RenderPipelineState{}, errors.New(_NSStringtoGoString(err.Send(sel_localizedDescription)))
 	}
 
-	return RenderPipelineState{rps.RenderPipelineState}, nil
+	return RenderPipelineState{unsafe.Pointer(renderPipelineState)}, nil
 }
 
 // MakeBufferWithBytes allocates a new buffer of a given length
@@ -541,14 +649,14 @@ func (d Device) MakeRenderPipelineState(rpd RenderPipelineDescriptor) (RenderPip
 //
 // Reference: https://developer.apple.com/documentation/metal/mtldevice/1433429-makebuffer.
 func (d Device) MakeBufferWithBytes(bytes unsafe.Pointer, length uintptr, opt ResourceOptions) Buffer {
-	return Buffer{C.Device_MakeBufferWithBytes(d.device, bytes, C.size_t(length), C.uint16_t(opt))}
+	return Buffer{unsafe.Pointer(objc.ID(d.device).Send(sel_newBufferWithBytes_length_options, bytes, length, uintptr(opt)))}
 }
 
 // MakeBufferWithLength allocates a new zero-filled buffer of a given length.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtldevice/1433375-newbufferwithlength
 func (d Device) MakeBufferWithLength(length uintptr, opt ResourceOptions) Buffer {
-	return Buffer{C.Device_MakeBufferWithLength(d.device, C.size_t(length), C.uint16_t(opt))}
+	return Buffer{unsafe.Pointer(objc.ID(d.device).Send(sel_newBufferWithLength_options, length, uintptr(opt)))}
 }
 
 // MakeTexture creates a texture object with privately owned storage
@@ -556,16 +664,17 @@ func (d Device) MakeBufferWithLength(length uintptr, opt ResourceOptions) Buffer
 //
 // Reference: https://developer.apple.com/documentation/metal/mtldevice/1433425-maketexture.
 func (d Device) MakeTexture(td TextureDescriptor) Texture {
-	descriptor := C.struct_TextureDescriptor{
-		TextureType: C.uint16_t(td.TextureType),
-		PixelFormat: C.uint16_t(td.PixelFormat),
-		Width:       C.uint_t(td.Width),
-		Height:      C.uint_t(td.Height),
-		StorageMode: C.uint8_t(td.StorageMode),
-		Usage:       C.uint8_t(td.Usage),
-	}
+	textureDescriptor := objc.ID(class_MTLTextureDescriptor).Send(sel_new)
+	textureDescriptor.Send(sel_setTextureType, uintptr(td.TextureType))
+	textureDescriptor.Send(sel_setPixelFormat, uintptr(td.PixelFormat))
+	textureDescriptor.Send(sel_setWidth, uintptr(td.Width))
+	textureDescriptor.Send(sel_setHeight, uintptr(td.Height))
+	textureDescriptor.Send(sel_setStorageMode, uintptr(td.StorageMode))
+	textureDescriptor.Send(sel_setUsage, uintptr(td.Usage))
+	texture := objc.ID(d.device).Send(sel_newTextureWithDescriptor, textureDescriptor)
+	textureDescriptor.Send(sel_release)
 	return Texture{
-		texture: C.Device_MakeTexture(d.device, descriptor),
+		texture: unsafe.Pointer(texture),
 	}
 }
 
@@ -573,18 +682,21 @@ func (d Device) MakeTexture(td TextureDescriptor) Texture {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtldevice/1433412-makedepthstencilstate
 func (d Device) MakeDepthStencilState(dsd DepthStencilDescriptor) DepthStencilState {
-	descriptor := C.struct_DepthStencilDescriptor{
-		BackFaceStencilStencilFailureOperation:    C.uint8_t(dsd.BackFaceStencil.StencilFailureOperation),
-		BackFaceStencilDepthFailureOperation:      C.uint8_t(dsd.BackFaceStencil.DepthFailureOperation),
-		BackFaceStencilDepthStencilPassOperation:  C.uint8_t(dsd.BackFaceStencil.DepthStencilPassOperation),
-		BackFaceStencilStencilCompareFunction:     C.uint8_t(dsd.BackFaceStencil.StencilCompareFunction),
-		FrontFaceStencilStencilFailureOperation:   C.uint8_t(dsd.FrontFaceStencil.StencilFailureOperation),
-		FrontFaceStencilDepthFailureOperation:     C.uint8_t(dsd.FrontFaceStencil.DepthFailureOperation),
-		FrontFaceStencilDepthStencilPassOperation: C.uint8_t(dsd.FrontFaceStencil.DepthStencilPassOperation),
-		FrontFaceStencilStencilCompareFunction:    C.uint8_t(dsd.FrontFaceStencil.StencilCompareFunction),
-	}
+	depthStencilDescriptor := objc.ID(class_MTLDepthStencilDescriptor).Send(sel_new)
+	backFaceStencil := depthStencilDescriptor.Send(sel_backFaceStencil)
+	backFaceStencil.Send(sel_setStencilFailureOperation, uintptr(dsd.BackFaceStencil.StencilFailureOperation))
+	backFaceStencil.Send(sel_setDepthFailureOperation, uintptr(dsd.BackFaceStencil.DepthFailureOperation))
+	backFaceStencil.Send(sel_setDepthStencilPassOperation, uintptr(dsd.BackFaceStencil.DepthStencilPassOperation))
+	backFaceStencil.Send(sel_setStencilCompareFunction, uintptr(dsd.BackFaceStencil.StencilCompareFunction)) //TODO
+	frontFaceStencil := depthStencilDescriptor.Send(sel_frontFaceStencil)
+	frontFaceStencil.Send(sel_setStencilFailureOperation, uintptr(dsd.FrontFaceStencil.StencilFailureOperation))
+	frontFaceStencil.Send(sel_setDepthFailureOperation, uintptr(dsd.FrontFaceStencil.DepthFailureOperation))
+	frontFaceStencil.Send(sel_setDepthStencilPassOperation, uintptr(dsd.FrontFaceStencil.DepthStencilPassOperation))
+	frontFaceStencil.Send(sel_setStencilCompareFunction, uintptr(dsd.FrontFaceStencil.StencilCompareFunction))
+	depthStencilState := objc.ID(d.device).Send(sel_newDepthStencilStateWithDescriptor, depthStencilDescriptor)
+	depthStencilDescriptor.Send(sel_release)
 	return DepthStencilState{
-		depthStencilState: C.Device_MakeDepthStencilState(d.device, descriptor),
+		depthStencilState: unsafe.Pointer(depthStencilState),
 	}
 }
 
@@ -613,14 +725,14 @@ type CommandQueue struct {
 }
 
 func (c CommandQueue) Release() {
-	C.CommandQueue_Release(c.commandQueue)
+	objc.ID(c.commandQueue).Send(sel_release)
 }
 
 // MakeCommandBuffer creates a command buffer.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlcommandqueue/1508686-makecommandbuffer.
 func (cq CommandQueue) MakeCommandBuffer() CommandBuffer {
-	return CommandBuffer{C.CommandQueue_MakeCommandBuffer(cq.commandQueue)}
+	return CommandBuffer{unsafe.Pointer(objc.ID(cq.commandQueue).Send(sel_commandBuffer))}
 }
 
 // CommandBuffer is a container that stores encoded commands
@@ -632,46 +744,46 @@ type CommandBuffer struct {
 }
 
 func (cb CommandBuffer) Retain() {
-	C.CommandBuffer_Retain(cb.commandBuffer)
+	objc.ID(cb.commandBuffer).Send(sel_retain)
 }
 
 func (cb CommandBuffer) Release() {
-	C.CommandBuffer_Release(cb.commandBuffer)
+	objc.ID(cb.commandBuffer).Send(sel_release)
 }
 
 // Status returns the current stage in the lifetime of the command buffer.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlcommandbuffer/1443048-status
 func (cb CommandBuffer) Status() CommandBufferStatus {
-	return CommandBufferStatus(C.CommandBuffer_Status(cb.commandBuffer))
+	return CommandBufferStatus(objc.ID(cb.commandBuffer).Send(sel_status))
 }
 
 // PresentDrawable registers a drawable presentation to occur as soon as possible.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlcommandbuffer/1443029-presentdrawable.
 func (cb CommandBuffer) PresentDrawable(d Drawable) {
-	C.CommandBuffer_PresentDrawable(cb.commandBuffer, d.Drawable())
+	objc.ID(cb.commandBuffer).Send(sel_presentDrawable, d.Drawable())
 }
 
 // Commit commits this command buffer for execution as soon as possible.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlcommandbuffer/1443003-commit.
 func (cb CommandBuffer) Commit() {
-	C.CommandBuffer_Commit(cb.commandBuffer)
+	objc.ID(cb.commandBuffer).Send(sel_commit)
 }
 
 // WaitUntilCompleted waits for the execution of this command buffer to complete.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlcommandbuffer/1443039-waituntilcompleted.
 func (cb CommandBuffer) WaitUntilCompleted() {
-	C.CommandBuffer_WaitUntilCompleted(cb.commandBuffer)
+	objc.ID(cb.commandBuffer).Send(sel_waitUntilCompleted)
 }
 
 // WaitUntilScheduled blocks execution of the current thread until the command buffer is scheduled.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlcommandbuffer/1443036-waituntilscheduled.
 func (cb CommandBuffer) WaitUntilScheduled() {
-	C.CommandBuffer_WaitUntilScheduled(cb.commandBuffer)
+	objc.ID(cb.commandBuffer).Send(sel_waitUntilScheduled)
 }
 
 // MakeRenderCommandEncoder creates an encoder object that can
@@ -701,7 +813,8 @@ func (cb CommandBuffer) MakeRenderCommandEncoder(rpd RenderPassDescriptor) Rende
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlcommandbuffer/1443001-makeblitcommandencoder.
 func (cb CommandBuffer) MakeBlitCommandEncoder() BlitCommandEncoder {
-	return BlitCommandEncoder{CommandEncoder{C.CommandBuffer_MakeBlitCommandEncoder(cb.commandBuffer)}}
+	ce := objc.ID(cb.commandBuffer).Send(sel_blitCommandEncoder)
+	return BlitCommandEncoder{CommandEncoder{*(*unsafe.Pointer)(unsafe.Pointer(&ce))}}
 }
 
 // CommandEncoder is an encoder that writes sequential GPU commands
@@ -716,7 +829,7 @@ type CommandEncoder struct {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlcommandencoder/1458038-endencoding.
 func (ce CommandEncoder) EndEncoding() {
-	C.CommandEncoder_EndEncoding(ce.commandEncoder)
+	objc.ID(ce.commandEncoder).Send(sel_endEncoding)
 }
 
 // RenderCommandEncoder is an encoder that specifies graphics-rendering commands
@@ -728,14 +841,14 @@ type RenderCommandEncoder struct {
 }
 
 func (rce RenderCommandEncoder) Release() {
-	C.RenderCommandEncoder_Release(rce.commandEncoder)
+	objc.ID(rce.commandEncoder).Send(sel_release)
 }
 
 // SetRenderPipelineState sets the current render pipeline state object.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlrendercommandencoder/1515811-setrenderpipelinestate.
 func (rce RenderCommandEncoder) SetRenderPipelineState(rps RenderPipelineState) {
-	C.RenderCommandEncoder_SetRenderPipelineState(rce.commandEncoder, rps.renderPipelineState)
+	objc.ID(rce.commandEncoder).Send(sel_setRenderPipelineState, rps.renderPipelineState)
 }
 
 func (rce RenderCommandEncoder) SetViewport(viewport Viewport) {
@@ -754,25 +867,25 @@ func (rce RenderCommandEncoder) SetScissorRect(scissorRect ScissorRect) {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlrendercommandencoder/1515829-setvertexbuffer.
 func (rce RenderCommandEncoder) SetVertexBuffer(buf Buffer, offset, index int) {
-	C.RenderCommandEncoder_SetVertexBuffer(rce.commandEncoder, buf.buffer, C.uint_t(offset), C.uint_t(index))
+	objc.ID(rce.commandEncoder).Send(sel_setVertexBuffer_offset_atIndex, buf.buffer, offset, index)
 }
 
 // SetVertexBytes sets a block of data for the vertex function.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlrendercommandencoder/1515846-setvertexbytes.
 func (rce RenderCommandEncoder) SetVertexBytes(bytes unsafe.Pointer, length uintptr, index int) {
-	C.RenderCommandEncoder_SetVertexBytes(rce.commandEncoder, bytes, C.size_t(length), C.uint_t(index))
+	objc.ID(rce.commandEncoder).Send(sel_setVertexBytes_length_atIndex, bytes, length, index)
 }
 
 func (rce RenderCommandEncoder) SetFragmentBytes(bytes unsafe.Pointer, length uintptr, index int) {
-	C.RenderCommandEncoder_SetFragmentBytes(rce.commandEncoder, bytes, C.size_t(length), C.uint_t(index))
+	objc.ID(rce.commandEncoder).Send(sel_setFragmentBytes_length_atIndex, bytes, length, index)
 }
 
 // SetFragmentTexture sets a texture for the fragment function at an index in the texture argument table.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlrendercommandencoder/1515390-setfragmenttexture
 func (rce RenderCommandEncoder) SetFragmentTexture(texture Texture, index int) {
-	C.RenderCommandEncoder_SetFragmentTexture(rce.commandEncoder, texture.texture, C.uint_t(index))
+	objc.ID(rce.commandEncoder).Send(sel_setFragmentTexture_atIndex, texture.texture, index)
 }
 
 func (rce RenderCommandEncoder) SetBlendColor(red, green, blue, alpha float32) {
@@ -783,7 +896,7 @@ func (rce RenderCommandEncoder) SetBlendColor(red, green, blue, alpha float32) {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlrendercommandencoder/1516119-setdepthstencilstate
 func (rce RenderCommandEncoder) SetDepthStencilState(depthStencilState DepthStencilState) {
-	C.RenderCommandEncoder_SetDepthStencilState(rce.commandEncoder, depthStencilState.depthStencilState)
+	objc.ID(rce.commandEncoder).Send(sel_setDepthStencilState, depthStencilState.depthStencilState)
 }
 
 // DrawPrimitives renders one instance of primitives using vertex data
@@ -791,14 +904,16 @@ func (rce RenderCommandEncoder) SetDepthStencilState(depthStencilState DepthSten
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlrendercommandencoder/1516326-drawprimitives.
 func (rce RenderCommandEncoder) DrawPrimitives(typ PrimitiveType, vertexStart, vertexCount int) {
-	C.RenderCommandEncoder_DrawPrimitives(rce.commandEncoder, C.uint8_t(typ), C.uint_t(vertexStart), C.uint_t(vertexCount))
+	objc.ID(rce.commandEncoder).Send(sel_drawPrimitives_vertexStart_vertexCount, uintptr(typ), vertexStart, vertexCount)
 }
 
 // DrawIndexedPrimitives encodes a command to render one instance of primitives using an index list specified in a buffer.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlrendercommandencoder/1515542-drawindexedprimitives
 func (rce RenderCommandEncoder) DrawIndexedPrimitives(typ PrimitiveType, indexCount int, indexType IndexType, indexBuffer Buffer, indexBufferOffset int) {
-	C.RenderCommandEncoder_DrawIndexedPrimitives(rce.commandEncoder, C.uint8_t(typ), C.uint_t(indexCount), C.uint8_t(indexType), indexBuffer.buffer, C.uint_t(indexBufferOffset))
+	objc.ID(rce.commandEncoder).Send(
+		sel_drawIndexedPrimitives_indexCount_indexType_indexBuffer_indexBufferOffset,
+		uintptr(typ), indexCount, uintptr(indexType), indexBuffer.buffer, indexBufferOffset)
 }
 
 // BlitCommandEncoder is an encoder that specifies resource copy
@@ -814,11 +929,17 @@ type BlitCommandEncoder struct {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlblitcommandencoder/1400775-synchronize.
 func (bce BlitCommandEncoder) Synchronize(resource Resource) {
-	C.BlitCommandEncoder_Synchronize(bce.commandEncoder, resource.resource())
+	if runtime.GOOS == "ios" {
+		return
+	}
+	objc.ID(bce.commandEncoder).Send(sel_synchronizeResource, resource.resource())
 }
 
 func (bce BlitCommandEncoder) SynchronizeTexture(texture Texture, slice int, level int) {
-	C.BlitCommandEncoder_SynchronizeTexture(bce.commandEncoder, texture.texture, C.uint_t(slice), C.uint_t(level))
+	if runtime.GOOS == "ios" {
+		return
+	}
+	objc.ID(bce.commandEncoder).Send(sel_synchronizeTexture_slice_level, texture.texture, slice, level)
 }
 
 func (bce BlitCommandEncoder) CopyFromTexture(sourceTexture Texture, sourceSlice int, sourceLevel int, sourceOrigin Origin, sourceSize Size, destinationTexture Texture, destinationSlice int, destinationLevel int, destinationOrigin Origin) {
@@ -832,16 +953,22 @@ type Library struct {
 	library unsafe.Pointer
 }
 
+const _NSUTF8StringEncoding = 4
+
 // MakeFunction returns a pre-compiled, non-specialized function.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtllibrary/1515524-makefunction.
 func (l Library) MakeFunction(name string) (Function, error) {
-	f := C.Library_MakeFunction(l.library, C.CString(name))
-	if f == nil {
+	f := objc.ID(l.library).Send(sel_newFunctionWithName,
+		objc.ID(class_NSString).
+			Send(sel_alloc).
+			Send(sel_initWithBytes_length_encoding,
+				unsafe.Pointer(&(*(*[]byte)(unsafe.Pointer(&name)))[0]), len(name), _NSUTF8StringEncoding),
+	)
+	if f == 0 {
 		return Function{}, fmt.Errorf("function %q not found", name)
 	}
-
-	return Function{f}, nil
+	return Function{unsafe.Pointer(f)}, nil
 }
 
 // Texture is a memory allocation for storing formatted
@@ -861,7 +988,7 @@ func NewTexture(texture unsafe.Pointer) Texture {
 func (t Texture) resource() unsafe.Pointer { return t.texture }
 
 func (t Texture) Release() {
-	C.Texture_Release(t.texture)
+	objc.ID(t.texture).Send(sel_release)
 }
 
 // GetBytes copies a block of pixels from the storage allocation of texture
@@ -885,14 +1012,14 @@ func (t Texture) ReplaceRegion(region Region, level int, pixelBytes unsafe.Point
 //
 // Reference: https://developer.apple.com/documentation/metal/mtltexture/1515339-width
 func (t Texture) Width() int {
-	return int(C.Texture_Width(t.texture))
+	return int(objc.ID(t.texture).Send(sel_width))
 }
 
 // Height is the height of the texture image for the base level mipmap, in pixels.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtltexture/1515938-height
 func (t Texture) Height() int {
-	return int(C.Texture_Height(t.texture))
+	return int(objc.ID(t.texture).Send(sel_height))
 }
 
 // Buffer is a memory allocation for storing unformatted data
@@ -906,7 +1033,7 @@ type Buffer struct {
 func (b Buffer) resource() unsafe.Pointer { return b.buffer }
 
 func (b Buffer) Length() uintptr {
-	return uintptr(C.Buffer_Length(b.buffer))
+	return uintptr(objc.ID(b.buffer).Send(sel_length))
 }
 
 func (b Buffer) CopyToContents(data unsafe.Pointer, lengthInBytes uintptr) {
@@ -914,11 +1041,11 @@ func (b Buffer) CopyToContents(data unsafe.Pointer, lengthInBytes uintptr) {
 }
 
 func (b Buffer) Retain() {
-	C.Buffer_Retain(b.buffer)
+	objc.ID(b.buffer).Send(sel_retain)
 }
 
 func (b Buffer) Release() {
-	C.Buffer_Release(b.buffer)
+	objc.ID(b.buffer).Send(sel_release)
 }
 
 func (b Buffer) Native() unsafe.Pointer {
@@ -933,7 +1060,7 @@ type Function struct {
 }
 
 func (f Function) Release() {
-	C.Function_Release(f.function)
+	objc.ID(f.function).Send(sel_release)
 }
 
 // RenderPipelineState contains the graphics functions
@@ -945,7 +1072,7 @@ type RenderPipelineState struct {
 }
 
 func (r RenderPipelineState) Release() {
-	C.RenderPipelineState_Release(r.renderPipelineState)
+	objc.ID(r.renderPipelineState).Send(sel_release)
 }
 
 // Region is a rectangular block of pixels in an image or texture,
@@ -1049,7 +1176,7 @@ type DepthStencilState struct {
 }
 
 func (d DepthStencilState) Release() {
-	C.DepthStencilState_Release(d.depthStencilState)
+	objc.ID(d.depthStencilState).Send(sel_release)
 }
 
 // DepthStencilDescriptor is an object that configures new MTLDepthStencilState objects.
