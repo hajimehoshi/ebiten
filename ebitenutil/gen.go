@@ -54,16 +54,25 @@ func run() error {
 		lines = append(lines, line)
 	}
 
-	d := font.Drawer{
-		Dst:  image.NewRGBA(image.Rect(0, 0, charWidth*32, lineHeight*8)),
-		Src:  image.NewUniform(color.White),
-		Face: bitmapfont.Face,
-		Dot:  fixed.P(dotX, dotY),
-	}
-	for _, line := range lines {
-		d.Dot.X = fixed.I(dotX)
-		d.DrawString(line)
-		d.Dot.Y += fixed.I(lineHeight)
+	dst := image.NewRGBA(image.Rect(0, 0, charWidth*32+1, lineHeight*8+1))
+	for i, clr := range []color.Color{color.RGBA{0, 0, 0, 0x80}, color.White} {
+		var offsetX int
+		var offsetY int
+		if i == 0 {
+			offsetX = 1
+			offsetY = 1
+		}
+		d := font.Drawer{
+			Dst:  dst,
+			Src:  image.NewUniform(clr),
+			Face: bitmapfont.Face,
+			Dot:  fixed.P(dotX+offsetX, dotY+offsetY),
+		}
+		for _, line := range lines {
+			d.Dot.X = fixed.I(dotX + offsetX)
+			d.DrawString(line)
+			d.Dot.Y += fixed.I(lineHeight)
+		}
 	}
 
 	f, err := os.Create("text.png")
@@ -72,7 +81,7 @@ func run() error {
 	}
 	defer f.Close()
 
-	if err := png.Encode(f, d.Dst); err != nil {
+	if err := png.Encode(f, dst); err != nil {
 		return err
 	}
 

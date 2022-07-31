@@ -49,15 +49,11 @@ func DebugPrint(image *ebiten.Image, str string) {
 //
 // The available runes are in U+0000 to U+00FF, which is C0 Controls and Basic Latin and C1 Controls and Latin-1 Supplement.
 func DebugPrintAt(image *ebiten.Image, str string, x, y int) {
-	drawDebugText(image, str, x+1, y+1, true)
-	drawDebugText(image, str, x, y, false)
+	drawDebugText(image, str, x, y)
 }
 
-func drawDebugText(rt *ebiten.Image, str string, ox, oy int, shadow bool) {
+func drawDebugText(rt *ebiten.Image, str string, ox, oy int) {
 	op := &ebiten.DrawImageOptions{}
-	if shadow {
-		op.ColorM.Scale(0, 0, 0, 0.5)
-	}
 	x := 0
 	y := 0
 	w, _ := debugPrintTextImage.Size()
