@@ -1,6 +1,6 @@
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/ebitengine/purego v0.0.0-20220629143800-0a7163731eab h1:GHslKjCls+AxLWDLQpRfbovF2s4EZy5E5szb6+zZoPw=
-github.com/ebitengine/purego v0.0.0-20220629143800-0a7163731eab/go.mod h1:Eh8I3yvknDYZeCuXH9kRNaPuHEwvXDCk378o9xszmHg=
+github.com/ebitengine/purego v0.0.0-20220729024107-78cdc2949de6 h1:kc3Im5Yj31aW0r3VdXHk+urwClkQilDBAYYp0TXeqE8=
+github.com/ebitengine/purego v0.0.0-20220729024107-78cdc2949de6/go.mod h1:Eh8I3yvknDYZeCuXH9kRNaPuHEwvXDCk378o9xszmHg=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220712193148-63cf1f4ef61f h1:w3h343WgVLKLITcSpwecCDcq0FO8pAv6A/UG86hhFtY=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220712193148-63cf1f4ef61f/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
 github.com/hajimehoshi/bitmapfont/v2 v2.2.0 h1:E6vzlchynZj6OVohVKFqWkKW348EmDW62K5zPXDi7A8=
@@ -11,8 +11,8 @@ github.com/hajimehoshi/go-mp3 v0.3.3 h1:cWnfRdpye2m9ElSoVqneYRcpt/l3ijttgjMeQh+r
 github.com/hajimehoshi/go-mp3 v0.3.3/go.mod h1:qMJj/CSDxx6CGHiZeCgbiq2DSUkbK0UbtXShQcnfyMM=
 github.com/hajimehoshi/oto v0.6.1 h1:7cJz/zRQV4aJvMSSRqzN2TImoVVMpE0BCY4nrNJaDOM=
 github.com/hajimehoshi/oto v0.6.1/go.mod h1:0QXGEkbuJRohbJaxr7ZQSxnju7hEhseiPx2hrh6raOI=
-github.com/hajimehoshi/oto/v2 v2.3.0-alpha.6 h1:fy/gxnf2ppdB2FfDjYC81Y+j2s7Q1CWQ8REqzHWuckg=
-github.com/hajimehoshi/oto/v2 v2.3.0-alpha.6/go.mod h1:seWLbgHH7AyUMYKfKYT9pg7PhUu9/SisyJvNTT+ASQo=
+github.com/hajimehoshi/oto/v2 v2.3.0-alpha.6.0.20220731114605-28d09e31b4dc h1:NsOu/Zdhmrb4S1UcZf89wyhv4Eqb/J4vba6uELYANtU=
+github.com/hajimehoshi/oto/v2 v2.3.0-alpha.6.0.20220731114605-28d09e31b4dc/go.mod h1:ZH5KyijkM53TgspdS9sArUe7vv9EP7x4aNYJAmfGhvE=
 github.com/jakecoffman/cp v1.2.1 h1:zkhc2Gpo9l4NLUZfeG3j33+3bQD7MkqPa+n5PdX+5mI=
 github.com/jakecoffman/cp v1.2.1/go.mod h1:JjY/Fp6d8E1CHnu74gWNnU0+b9VzEdUVPoJxg2PsTQg=
 github.com/jezek/xgb v1.0.1 h1:YUGhxps0aR7J2Xplbs23OHnV1mWaxFVcOl9b+1RQkt8=
