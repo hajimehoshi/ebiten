@@ -132,10 +132,3 @@ void Texture_ReplaceRegion(void *texture, struct Region region, uint_t level,
                                withBytes:bytes
                              bytesPerRow:(NSUInteger)bytesPerRow];
 }
-
-void Buffer_CopyToContents(void *buffer, void *data, size_t lengthInBytes) {
-  memcpy(((id<MTLBuffer>)buffer).contents, data, lengthInBytes);
-#if !TARGET_OS_IPHONE
-  [(id<MTLBuffer>)buffer didModifyRange:NSMakeRange(0, lengthInBytes)];
-#endif
-}

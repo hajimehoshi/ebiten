@@ -515,10 +515,12 @@ var (
 	sel_newBufferWithBytes_length_options                                        = objc.RegisterName("newBufferWithBytes:length:options:\x00")
 	sel_newBufferWithLength_options                                              = objc.RegisterName("newBufferWithLength:options:\x00")
 	sel_setTextureType                                                           = objc.RegisterName("setTextureType:\x00")
+	sel_didModifyRange                                                           = objc.RegisterName("didModifyRange:\x00")
 	sel_setWidth                                                                 = objc.RegisterName("setWidth:\x00")
 	sel_setHeight                                                                = objc.RegisterName("setHeight:\x00")
 	sel_width                                                                    = objc.RegisterName("width\x00")
 	sel_height                                                                   = objc.RegisterName("height\x00")
+	sel_contents                                                                 = objc.RegisterName("contents\x00")
 	sel_setStorageMode                                                           = objc.RegisterName("setStorageMode:\x00")
 	sel_setUsage                                                                 = objc.RegisterName("setUsage:\x00")
 	sel_newTextureWithDescriptor                                                 = objc.RegisterName("newTextureWithDescriptor:\x00")
@@ -1037,7 +1039,14 @@ func (b Buffer) Length() uintptr {
 }
 
 func (b Buffer) CopyToContents(data unsafe.Pointer, lengthInBytes uintptr) {
-	C.Buffer_CopyToContents(b.buffer, data, C.size_t(lengthInBytes))
+	contents := objc.ID(b.buffer).Send(sel_contents)
+	// use unsafe.Slice when ebitengine reaches 1.17
+	contentSlice := *(*[]byte)(unsafe.Pointer(&reflect.SliceHeader{Data: uintptr(contents), Len: int(lengthInBytes), Cap: int(lengthInBytes)}))
+	dataSlice := *(*[]byte)(unsafe.Pointer(&reflect.SliceHeader{Data: uintptr(data), Len: int(lengthInBytes), Cap: int(lengthInBytes)}))
+	copy(contentSlice, dataSlice)
+	if runtime.GOOS != "ios" {
+		objc.ID(b.buffer).Send(sel_didModifyRange, 0, lengthInBytes)
+	}
 }
 
 func (b Buffer) Retain() {
