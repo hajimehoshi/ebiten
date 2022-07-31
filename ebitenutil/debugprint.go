@@ -12,19 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:generate go run gen.go
+//go:generate go run github.com/hajimehoshi/file2byteslice/cmd/file2byteslice -input text.png -output text.png.go -package ebitenutil -var textPng
+
 package ebitenutil
 
 import (
+	"bytes"
 	"image"
+	_ "image/png"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil/internal/assets"
 )
 
 var (
-	debugPrintTextImage     = ebiten.NewImageFromImage(assets.CreateTextImage())
+	debugPrintTextImage     *ebiten.Image
 	debugPrintTextSubImages = map[rune]*ebiten.Image{}
 )
+
+func init() {
+	img, _, err := image.Decode(bytes.NewReader(textPng))
+	if err != nil {
+		panic(err)
+	}
+	debugPrintTextImage = ebiten.NewImageFromImage(img)
+}
 
 // DebugPrint draws the string str on the image on left top corner.
 //
@@ -51,8 +63,8 @@ func drawDebugText(rt *ebiten.Image, str string, ox, oy int, shadow bool) {
 	w, _ := debugPrintTextImage.Size()
 	for _, c := range str {
 		const (
-			cw = assets.CharWidth
-			ch = assets.CharHeight
+			cw = 6
+			ch = 16
 		)
 		if c == '\n' {
 			x = 0
