@@ -12,10 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build !js
+// +build !js
+
 package glfw
 
-func (w *Window) GetCocoaWindow() uintptr {
-	r := libglfw.call("glfwGetCocoaWindow", w.w)
-	panicError()
-	return r
+type (
+	CharModsCallback        func(window uintptr, char rune, mods ModifierKey)
+	CloseCallback           func(window uintptr)
+	FramebufferSizeCallback func(window uintptr, width int, height int)
+	MonitorCallback         func(monitor uintptr, event PeripheralEvent)
+	ScrollCallback          func(window uintptr, xoff *float64, yoff *float64)
+	SizeCallback            func(window uintptr, width int, height int)
+)
+
+type VidMode struct {
+	Width       int
+	Height      int
+	RedBits     int
+	GreenBits   int
+	BlueBits    int
+	RefreshRate int
 }
