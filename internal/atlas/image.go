@@ -572,29 +572,32 @@ func (i *Image) replacePixels(pix []byte, x, y, width, height int) {
 	i.backend.restorable.ReplacePixels(pixb, x, y, pw, ph)
 }
 
-func (img *Image) Pixels(graphicsDriver graphicsdriver.Graphics) ([]byte, error) {
+func (img *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
 	x := img.paddingSize()
 	y := img.paddingSize()
 
-	bs := make([]byte, 4*img.width*img.height)
+	if got, want := len(pixels), 4*img.width*img.height; got != want {
+		return fmt.Errorf("atlas: len(pixels) must be %d but %d", want, got)
+	}
+
 	idx := 0
 	for j := y; j < y+img.height; j++ {
 		for i := x; i < x+img.width; i++ {
 			r, g, b, a, err := img.at(graphicsDriver, i, j)
 			if err != nil {
-				return nil, err
+				return err
 			}
-			bs[4*idx] = r
-			bs[4*idx+1] = g
-			bs[4*idx+2] = b
-			bs[4*idx+3] = a
+			pixels[4*idx] = r
+			pixels[4*idx+1] = g
+			pixels[4*idx+2] = b
+			pixels[4*idx+3] = a
 			idx++
 		}
 	}
-	return bs, nil
+	return nil
 }
 
 func (i *Image) at(graphicsDriver graphicsdriver.Graphics, x, y int) (byte, byte, byte, byte, error) {

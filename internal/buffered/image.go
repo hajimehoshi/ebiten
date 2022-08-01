@@ -80,20 +80,20 @@ func (i *Image) MarkDisposed() {
 	i.img.MarkDisposed()
 }
 
-func (img *Image) At(graphicsDriver graphicsdriver.Graphics, x, y int) (r, g, b, a byte, err error) {
+func (i *Image) At(graphicsDriver graphicsdriver.Graphics, x, y int) (r, g, b, a byte, err error) {
 	checkDelayedCommandsFlushed("At")
 
-	idx := (y*img.width + x)
-	if img.pixels != nil {
-		return img.pixels[4*idx], img.pixels[4*idx+1], img.pixels[4*idx+2], img.pixels[4*idx+3], nil
+	idx := (y*i.width + x)
+	if i.pixels != nil {
+		return i.pixels[4*idx], i.pixels[4*idx+1], i.pixels[4*idx+2], i.pixels[4*idx+3], nil
 	}
 
-	pix, err := img.img.Pixels(graphicsDriver)
-	if err != nil {
+	pix := make([]byte, 4*i.width*i.height)
+	if err := i.img.ReadPixels(graphicsDriver, pix); err != nil {
 		return 0, 0, 0, 0, err
 	}
-	img.pixels = pix
-	return img.pixels[4*idx], img.pixels[4*idx+1], img.pixels[4*idx+2], img.pixels[4*idx+3], nil
+	i.pixels = pix
+	return i.pixels[4*idx], i.pixels[4*idx+1], i.pixels[4*idx+2], i.pixels[4*idx+3], nil
 }
 
 func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name string, blackbg bool) error {
