@@ -54,7 +54,7 @@ func run() error {
 		lines = append(lines, line)
 	}
 
-	dst := image.NewRGBA(image.Rect(0, 0, charWidth*32+1, lineHeight*8+1))
+	dst := image.NewRGBA(image.Rect(0, 0, charWidth*32, lineHeight*8))
 	for i, clr := range []color.Color{color.RGBA{0, 0, 0, 0x80}, color.White} {
 		var offsetX int
 		var offsetY int
