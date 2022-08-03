@@ -33,7 +33,7 @@ import (
 
 const frameCount = 2
 
-// NewGraphics creates an implementation of graphicsdriver.Graphcis for DirectX.
+// NewGraphics creates an implementation of graphicsdriver.Graphics for DirectX.
 // The returned graphics value is nil iff the error is not nil.
 func NewGraphics() (graphicsdriver.Graphics, error) {
 	const is64bit = uint64(^uintptr(0)) == ^uint64(0)
@@ -974,7 +974,7 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) (ferr error
 		g.vertices[g.frameIndex] = append(g.vertices[g.frameIndex], nil)
 	}
 	if g.vertices[g.frameIndex][vidx] == nil {
-		// TODO: Use the default heap for efficienty. See the official example HelloTriangle.
+		// TODO: Use the default heap for efficiently. See the official example HelloTriangle.
 		vs, err := createBuffer(g.device, graphics.IndicesCount*graphics.VertexFloatCount*uint64(unsafe.Sizeof(float32(0))), _D3D12_HEAP_TYPE_UPLOAD)
 		if err != nil {
 			return err

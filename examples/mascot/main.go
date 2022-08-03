@@ -100,7 +100,7 @@ func (m *mascot) Update() error {
 		m.vx16 = 64
 	}
 
-	// Accelarate the mascot in the Y direction.
+	// Accelerate the mascot in the Y direction.
 	m.vy16 += 8
 	m.y16 += m.vy16
 

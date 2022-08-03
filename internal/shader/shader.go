@@ -685,12 +685,12 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 
 	checkVaryings := func(vs []variable) {
 		if len(cs.ir.Varyings) != len(vs) {
-			cs.addError(d.Pos(), fmt.Sprintf("the number of vertex entry point's returning values and the number of framgent entry point's params must be the same"))
+			cs.addError(d.Pos(), fmt.Sprintf("the number of vertex entry point's returning values and the number of fragment entry point's params must be the same"))
 			return
 		}
 		for i, t := range cs.ir.Varyings {
 			if t.Main != vs[i].typ.Main {
-				cs.addError(d.Pos(), fmt.Sprintf("vertex entry point's returning value types and framgent entry point's param types must match"))
+				cs.addError(d.Pos(), fmt.Sprintf("vertex entry point's returning value types and fragment entry point's param types must match"))
 			}
 		}
 	}

@@ -21,7 +21,7 @@ import (
 var isGo2Cpp bool = js.Global().Get("go2cpp").Truthy()
 
 func bufferSize() int {
-	// On some devices targetted by go2cpp, 8192 is not enough. Use x2 bytes.
+	// On some devices targeted by go2cpp, 8192 is not enough. Use x2 bytes.
 	if isGo2Cpp {
 		return 16384
 	}
