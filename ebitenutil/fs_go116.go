@@ -30,6 +30,7 @@ import (
 // if you want to load a PNG image, you'd need to add `_ "image/png"` to the import section.
 func NewImageFromFileSystem(fs fs.FS, path string) (*ebiten.Image, image.Image, error) {
 	file, err := fs.Open(path)
+	defer file.Close()
 	if err != nil {
 		return nil, nil, err
 	}
