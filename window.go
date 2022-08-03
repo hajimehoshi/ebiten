@@ -116,14 +116,14 @@ func SetWindowTitle(title string) {
 //
 // For desktops, see the document of glfwSetWindowIcon of GLFW 3.2:
 //
-//     This function sets the icon of the specified window.
-//     If passed an array of candidate images, those of or closest to the sizes
-//     desired by the system are selected.
-//     If no images are specified, the window reverts to its default icon.
+//	This function sets the icon of the specified window.
+//	If passed an array of candidate images, those of or closest to the sizes
+//	desired by the system are selected.
+//	If no images are specified, the window reverts to its default icon.
 //
-//     The desired image sizes varies depending on platform and system settings.
-//     The selected images will be rescaled as needed.
-//     Good sizes include 16x16, 32x32 and 48x48.
+//	The desired image sizes varies depending on platform and system settings.
+//	The selected images will be rescaled as needed.
+//	Good sizes include 16x16, 32x32 and 48x48.
 //
 // As macOS windows don't have icons, SetWindowIcon doesn't work on macOS.
 //

@@ -320,12 +320,12 @@ func IsStandardGamepadLayoutAvailable(id GamepadID) bool {
 //
 // A platform field in a line corresponds with a GOOS like the following:
 //
-//    "Windows":  GOOS=windows
-//    "Mac OS X": GOOS=darwin (not ios)
-//    "Linux":    GOOS=linux (not android)
-//    "Android":  GOOS=android
-//    "iOS":      GOOS=ios
-//    "":         Any GOOS
+//	"Windows":  GOOS=windows
+//	"Mac OS X": GOOS=darwin (not ios)
+//	"Linux":    GOOS=linux (not android)
+//	"Android":  GOOS=android
+//	"iOS":      GOOS=ios
+//	"":         Any GOOS
 //
 // On platforms where gamepad mappings are not managed by Ebiten, this always returns false and nil.
 //

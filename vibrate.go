@@ -39,7 +39,7 @@ type VibrateOptions struct {
 //
 // On Android, this line is required in the manifest setting to use Vibrate:
 //
-//     <uses-permission android:name="android.permission.VIBRATE"/>
+//	<uses-permission android:name="android.permission.VIBRATE"/>
 //
 // On Android, Magnitude in the options is recognized only when the API Level is 26 or newer.
 // Otherwise, Magnitude is ignored.
