@@ -155,8 +155,8 @@ var textM sync.Mutex
 //
 // If you want to adjust the position of the text, these functions are useful:
 //
-//     * text.BoundString:                     the rendered bounds of the given text.
-//     * golang.org/x/image/font.Face.Metrics: the metrics of the face.
+//   - text.BoundString:                     the rendered bounds of the given text.
+//   - golang.org/x/image/font.Face.Metrics: the metrics of the face.
 //
 // The '\n' newline character puts the following text on the next line.
 // Line height is based on Metrics().Height of the font.
@@ -170,9 +170,9 @@ var textM sync.Mutex
 //
 // Draw/DrawWithOptions and CacheGlyphs are implemented like this:
 //
-//     Draw        = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
-//                 + Draw them onto the destination by `(*ebiten.Image).DrawImage`
-//     CacheGlyphs = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
+//	Draw        = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
+//	            + Draw them onto the destination by `(*ebiten.Image).DrawImage`
+//	CacheGlyphs = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
 //
 // Be careful that the passed font face is held by this package and is never released.
 // This is a known issue (#498).
@@ -195,8 +195,8 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 //
 // If you want to adjust the position of the text, these functions are useful:
 //
-//     * text.BoundString:                     the rendered bounds of the given text.
-//     * golang.org/x/image/font.Face.Metrics: the metrics of the face.
+//   - text.BoundString:                     the rendered bounds of the given text.
+//   - golang.org/x/image/font.Face.Metrics: the metrics of the face.
 //
 // The '\n' newline character puts the following text on the next line.
 // Line height is based on Metrics().Height of the font.
@@ -210,9 +210,9 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 //
 // Draw/DrawWithOptions and CacheGlyphs are implemented like this:
 //
-//     Draw        = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
-//                 + Draw them onto the destination by `(*ebiten.Image).DrawImage`
-//     CacheGlyphs = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
+//	Draw        = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
+//	            + Draw them onto the destination by `(*ebiten.Image).DrawImage`
+//	CacheGlyphs = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
 //
 // Be careful that the passed font face is held by this package and is never released.
 // This is a known issue (#498).
@@ -327,9 +327,9 @@ func BoundString(face font.Face, text string) image.Rectangle {
 //
 // Draw/DrawWithOptions and CacheGlyphs are implemented like this:
 //
-//     Draw        = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
-//                 + Draw them onto the destination by `(*ebiten.Image).DrawImage`
-//     CacheGlyphs = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
+//	Draw        = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
+//	            + Draw them onto the destination by `(*ebiten.Image).DrawImage`
+//	CacheGlyphs = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
 //
 // Draw automatically creates and caches necessary glyphs, so usually you don't have to call CacheGlyphs
 // explicitly. However, for example, when you call Draw for each rune of one big text, Draw tries to create the glyph
