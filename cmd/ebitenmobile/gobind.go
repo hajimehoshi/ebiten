@@ -826,8 +826,8 @@ class EbitenSurfaceView extends GLSurfaceView implements RenderRequester {
     }
 
     @Override
-    public synchronized void setExplicitRenderingMode(boolean explictRendering) {
-        if (explictRendering) {
+    public synchronized void setExplicitRenderingMode(boolean explicitRendering) {
+        if (explicitRendering) {
             setRenderMode(RENDERMODE_WHEN_DIRTY);
         } else {
             setRenderMode(RENDERMODE_CONTINUOUSLY);
