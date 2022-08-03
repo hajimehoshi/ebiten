@@ -23,7 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
-// NewGraphics creates an implementation of graphicsdriver.Graphcis for OpenGL.
+// NewGraphics creates an implementation of graphicsdriver.Graphics for OpenGL.
 // The returned graphics value is nil iff the error is not nil.
 func NewGraphics() (graphicsdriver.Graphics, error) {
 	if microsoftgdk.IsXbox() {

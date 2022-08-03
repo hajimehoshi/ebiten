@@ -1315,7 +1315,7 @@ func (u *userInterfaceImpl) setWindowSizeInDIPImpl(width, height int, fullscreen
 			v := m.GetVideoMode()
 			u.window.SetMonitor(m, 0, 0, v.Width, v.Height, v.RefreshRate)
 
-			// Swapping buffer is necesary to prevent the image lag (#1004).
+			// Swapping buffer is necessary to prevent the image lag (#1004).
 			// TODO: This might not work when vsync is disabled.
 			if u.graphicsDriver.IsGL() {
 				glfw.PollEvents()

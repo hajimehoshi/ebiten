@@ -388,7 +388,7 @@ func (f faceWithLineHeight) Metrics() font.Metrics {
 	return m
 }
 
-// Glyphs is infomation to render one glyph.
+// Glyphs is information to render one glyph.
 type Glyph struct {
 	// Rune is a character for this glyph.
 	Rune rune

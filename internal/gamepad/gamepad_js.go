@@ -164,7 +164,7 @@ func (g *nativeGamepadImpl) hatState(hat int) int {
 }
 
 func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
-	// vibrationActuator is avaialble on Chrome.
+	// vibrationActuator is available on Chrome.
 	if va := g.value.Get("vibrationActuator"); va.Truthy() {
 		if !va.Get("playEffect").Truthy() {
 			return
