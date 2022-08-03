@@ -22,3 +22,6 @@ jobs:
           reporter: ${{ steps.reporter.outputs.value }}
           pattern: |
             *.go
+          exclude: |
+            ./.git/*
+            ./examples/resources/*
