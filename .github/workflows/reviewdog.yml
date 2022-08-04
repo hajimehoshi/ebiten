@@ -16,7 +16,7 @@ jobs:
           if_true: "github-pr-review"
           if_false: "github-check"
       - name: Generate list of generated files
-        uses: gh640/command-result-action@v1  # see https://gotohayato.com/content/558/
+        uses: gh640/command-result-action@v1
         id: generate
         with:
           command: grep -l -F "DO NOT EDIT" -R .
