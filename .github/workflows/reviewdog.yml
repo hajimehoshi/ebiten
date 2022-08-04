@@ -18,7 +18,6 @@ jobs:
       - name: misspell
         uses: reviewdog/action-misspell@v1
         with:
-          github_token: ${{ secrets.github_token }}
           reporter: ${{ steps.reporter.outputs.value }}
           pattern: |
             *.go
