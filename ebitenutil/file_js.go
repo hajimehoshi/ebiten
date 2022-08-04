@@ -28,6 +28,13 @@ func (f *file) Close() error {
 	return nil
 }
 
+// OpenFile opens a file and returns a stream for its data.
+//
+// The path parts should be separated with slash '/' on any environments.
+//
+// OpenFile doesn't work on mobiles.
+//
+// Deprecated: as of v2.4. Use os.Open on desktops and http.Get on browsers instead.
 func OpenFile(path string) (ReadSeekCloser, error) {
 	res, err := http.Get(path)
 	if err != nil {
