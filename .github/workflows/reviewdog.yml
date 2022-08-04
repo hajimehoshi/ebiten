@@ -15,6 +15,11 @@ jobs:
           cond: ${{ github.event_name == 'pull_request' }}
           if_true: "github-pr-review"
           if_false: "github-check"
+      - name: Generate list of generated files
+        uses: gh640/command-result-action@v1  # see https://gotohayato.com/content/558/
+        id: generate
+        with:
+          command: grep -l -F "DO NOT EDIT" -R .
       - name: misspell
         uses: reviewdog/action-misspell@v1
         with:
@@ -23,4 +28,4 @@ jobs:
             *.go
           exclude: |
             ./.git/*
-            ./examples/resources/*
+            ${{ steps.generate.outputs.stdout }}
