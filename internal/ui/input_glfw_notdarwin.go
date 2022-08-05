@@ -29,7 +29,7 @@ func (i *Input) updateKeys(window *glfw.Window) {
 	if i.keyPressed == nil {
 		i.keyPressed = map[glfw.Key]bool{}
 	}
-	for gk := range glfwKeyToUIKey {
+	for _, gk := range uiKeyToGLFWKey {
 		i.keyPressed[gk] = window.GetKey(gk) == glfw.Press
 	}
 }

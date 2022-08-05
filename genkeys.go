@@ -663,11 +663,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
-var glfwKeyToUIKey = map[glfw.Key]Key{
-{{range $dname, $gname := .UIKeyNameToGLFWKeyName}}glfw.Key{{$gname}}: Key{{$dname}},
-{{end}}
-}
-
 var uiKeyToGLFWKey = map[Key]glfw.Key{
 {{range $dname, $gname := .UIKeyNameToGLFWKeyName}}Key{{$dname}}: glfw.Key{{$gname}},
 {{end}}
