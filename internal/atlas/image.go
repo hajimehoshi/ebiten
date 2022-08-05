@@ -572,45 +572,20 @@ func (i *Image) replacePixels(pix []byte, x, y, width, height int) {
 	i.backend.restorable.ReplacePixels(pixb, x, y, pw, ph)
 }
 
-func (img *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte) error {
+func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
-	x := img.paddingSize()
-	y := img.paddingSize()
-
-	if got, want := len(pixels), 4*img.width*img.height; got != want {
-		return fmt.Errorf("atlas: len(pixels) must be %d but %d", want, got)
-	}
-
-	idx := 0
-	for j := y; j < y+img.height; j++ {
-		for i := x; i < x+img.width; i++ {
-			r, g, b, a, err := img.at(graphicsDriver, i, j)
-			if err != nil {
-				return err
-			}
-			pixels[4*idx] = r
-			pixels[4*idx+1] = g
-			pixels[4*idx+2] = b
-			pixels[4*idx+3] = a
-			idx++
+	if i.backend == nil || i.backend.restorable == nil {
+		for i := range pixels {
+			pixels[i] = 0
 		}
-	}
-	return nil
-}
-
-func (i *Image) at(graphicsDriver graphicsdriver.Graphics, x, y int) (byte, byte, byte, byte, error) {
-	if i.backend == nil {
-		return 0, 0, 0, 0, nil
+		return nil
 	}
 
+	ps := i.paddingSize()
 	ox, oy, w, h := i.regionWithPadding()
-	if x < 0 || y < 0 || x >= w || y >= h {
-		return 0, 0, 0, 0, nil
-	}
-
-	return i.backend.restorable.At(graphicsDriver, x+ox, y+oy)
+	return i.backend.restorable.ReadPixels(graphicsDriver, pixels, ox+ps, oy+ps, w-ps*2, h-ps*2)
 }
 
 // MarkDisposed marks the image as disposed. The actual operation is deferred.
