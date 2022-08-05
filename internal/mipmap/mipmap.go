@@ -55,7 +55,11 @@ func (m *Mipmap) ReplacePixels(pix []byte, x, y, width, height int) {
 }
 
 func (m *Mipmap) At(graphicsDriver graphicsdriver.Graphics, x, y int) (r, g, b, a byte, err error) {
-	return m.orig.At(graphicsDriver, x, y)
+	var pix [4]byte
+	if err := m.orig.ReadPixels(graphicsDriver, pix[:], x, y, 1, 1); err != nil {
+		return 0, 0, 0, 0, err
+	}
+	return pix[0], pix[1], pix[2], pix[3], nil
 }
 
 func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, canSkipMipmap bool) {
