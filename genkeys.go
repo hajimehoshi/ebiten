@@ -20,6 +20,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -38,6 +39,7 @@ var (
 	androidKeyToUIKeyName       map[int]string
 	gbuildKeyToUIKeyName        map[key.Code]string
 	uiKeyNameToJSKey            map[string]string
+	uiKeyNameToCGKey            map[string]string
 	edgeKeyCodeToName           map[int]string
 	oldEbitenKeyNameToUIKeyName map[string]string
 )
@@ -301,6 +303,64 @@ func init() {
 		"MetaRight":      "MetaRight",
 	}
 
+	// https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_code_values
+	// Missing keys:
+	//
+	//   - kVK_Function
+	//   - kVK_VolumeUp
+	//   - kVK_VolumeDown
+	//   - kVK_Mute
+	//   - kVK_Help
+	//   - kVK_ISO_Section ("IntlBackslash")
+	//   - kVK_JIS_Yen ("IntlYen")
+	//   - kVK_JIS_Underscore ("IntlRo")
+	//   - kVK_JIS_KeypadComma ("NumpadComma")
+	//   - kVK_JIS_Eisu
+	//   - kVK_JIS_Kana
+	uiKeyNameToCGKey = map[string]string{
+		"Equal":          "kVK_ANSI_Equal",
+		"Minus":          "kVK_ANSI_Minus",
+		"BracketRight":   "kVK_ANSI_RightBracket",
+		"BracketLeft":    "kVK_ANSI_LeftBracket",
+		"Quote":          "kVK_ANSI_Quote",
+		"Semicolon":      "kVK_ANSI_Semicolon",
+		"Backslash":      "kVK_ANSI_Backslash",
+		"Comma":          "kVK_ANSI_Comma",
+		"Slash":          "kVK_ANSI_Slash",
+		"Period":         "kVK_ANSI_Period",
+		"Backquote":      "kVK_ANSI_Grave",
+		"NumpadDecimal":  "kVK_ANSI_KeypadDecimal",
+		"NumpadMultiply": "kVK_ANSI_KeypadMultiply",
+		"NumpadAdd":      "kVK_ANSI_KeypadPlus",
+		"NumLock":        "kVK_ANSI_KeypadClear",
+		"NumpadDivide":   "kVK_ANSI_KeypadDivide",
+		"NumpadEnter":    "kVK_ANSI_KeypadEnter",
+		"NumpadSubtract": "kVK_ANSI_KeypadMinus",
+		"NumpadEqual":    "kVK_ANSI_KeypadEquals",
+		"Enter":          "kVK_Return",
+		"Tab":            "kVK_Tab",
+		"Space":          "kVK_Space",
+		"Backspace":      "kVK_Delete",
+		"Escape":         "kVK_Escape",
+		"MetaLeft":       "kVK_Command",
+		"ShiftLeft":      "kVK_Shift",
+		"CapsLock":       "kVK_CapsLock",
+		"AltLeft":        "kVK_Option",
+		"ControlLeft":    "kVK_Control",
+		"ShiftRight":     "kVK_RightShift",
+		"AltRight":       "kVK_RightOption",
+		"ControlRight":   "kVK_RightControl",
+		"Home":           "kVK_Home",
+		"PageUp":         "kVK_PageUp",
+		"Delete":         "kVK_ForwardDelete",
+		"End":            "kVK_End",
+		"PageDown":       "kVK_PageDown",
+		"ArrowLeft":      "kVK_LeftArrow",
+		"ArrowRight":     "kVK_RightArrow",
+		"ArrowDown":      "kVK_DownArrow",
+		"ArrowUp":        "kVK_UpArrow",
+	}
+
 	// ASCII: 0 - 9
 	for c := '0'; c <= '9'; c++ {
 		glfwKeyNameToGLFWKey[string(c)] = glfw.Key0 + glfw.Key(c) - '0'
@@ -315,6 +375,7 @@ func init() {
 			gbuildKeyToUIKeyName[key.Code1+key.Code(c)-'1'] = name
 		}
 		uiKeyNameToJSKey[name] = name
+		uiKeyNameToCGKey[name] = fmt.Sprintf("kVK_ANSI_%d", c-'0')
 	}
 	// ASCII: A - Z
 	for c := 'A'; c <= 'Z'; c++ {
@@ -323,6 +384,7 @@ func init() {
 		androidKeyToUIKeyName[29+int(c)-'A'] = string(c)
 		gbuildKeyToUIKeyName[key.CodeA+key.Code(c)-'A'] = string(c)
 		uiKeyNameToJSKey[string(c)] = "Key" + string(c)
+		uiKeyNameToCGKey[string(c)] = "kVK_ANSI_" + string(c)
 	}
 	// Function keys
 	for i := 1; i <= 12; i++ {
@@ -332,6 +394,7 @@ func init() {
 		androidKeyToUIKeyName[131+i-1] = name
 		gbuildKeyToUIKeyName[key.CodeF1+key.Code(i)-1] = name
 		uiKeyNameToJSKey[name] = name
+		uiKeyNameToCGKey[name] = fmt.Sprintf("kVK_F%d", i)
 	}
 	// Numpad
 	// https://www.w3.org/TR/uievents-code/#key-numpad-section
@@ -348,6 +411,7 @@ func init() {
 			gbuildKeyToUIKeyName[key.CodeKeypad1+key.Code(c)-'1'] = name
 		}
 		uiKeyNameToJSKey[name] = name
+		uiKeyNameToCGKey[name] = fmt.Sprintf("kVK_ANSI_Keypad%d", c-'0')
 	}
 
 	// Keys for backward compatibility
@@ -633,6 +697,18 @@ var edgeKeyCodeToUIKey = map[int]Key{
 }
 `
 
+const uiDarwinKeysTmpl = `{{.License}}
+
+{{.DoNotEdit}}
+
+package ui
+
+var uiKeyToCGKey = map[Key]int{
+{{range $uname, $cname := .UIKeyNameToCGKey}}Key{{$uname}}: {{$cname}},
+{{end}}
+}
+`
+
 const glfwKeysTmpl = `{{.License}}
 
 {{.DoNotEdit}}
@@ -805,6 +881,7 @@ func main() {
 		filepath.Join("internal", "ui", "keys_glfw.go"):                uiGLFWKeysTmpl,
 		filepath.Join("internal", "ui", "keys_mobile.go"):              uiMobileKeysTmpl,
 		filepath.Join("internal", "ui", "keys_js.go"):                  uiJSKeysTmpl,
+		filepath.Join("internal", "ui", "keys_darwin.go"):              uiDarwinKeysTmpl,
 		filepath.Join("keys.go"):                                       ebitenKeysTmpl,
 		filepath.Join("mobile", "ebitenmobileview", "keys_android.go"): mobileAndroidKeysTmpl,
 	} {
@@ -836,6 +913,9 @@ func main() {
 		case filepath.Join("internal", "ui", "keys_glfw.go"):
 			buildTag = "//go:build !android && !ios && !js && !ebitenginecbackend && !ebitencbackend" +
 				"\n// +build !android,!ios,!js,!ebitenginecbackend && !ebitencbackend"
+		case filepath.Join("internal", "ui", "keys_darwin.go"):
+			buildTag = "//go:build !ios" +
+				"\n// +build !ios"
 		}
 		// NOTE: According to godoc, maps are automatically sorted by key.
 		if err := tmpl.Execute(f, struct {
@@ -843,6 +923,7 @@ func main() {
 			DoNotEdit                   string
 			BuildTag                    string
 			UIKeyNameToJSKey            map[string]string
+			UIKeyNameToCGKey            map[string]string
 			EdgeKeyCodeToName           map[int]string
 			EbitenKeyNames              []string
 			EbitenKeyNamesWithoutOld    []string
@@ -858,6 +939,7 @@ func main() {
 			DoNotEdit:                   doNotEdit,
 			BuildTag:                    buildTag,
 			UIKeyNameToJSKey:            uiKeyNameToJSKey,
+			UIKeyNameToCGKey:            uiKeyNameToCGKey,
 			EdgeKeyCodeToName:           edgeKeyCodeToName,
 			EbitenKeyNames:              ebitenKeyNames,
 			EbitenKeyNamesWithoutOld:    ebitenKeyNamesWithoutOld,
