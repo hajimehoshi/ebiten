@@ -819,7 +819,9 @@ func (i *Image) at(x, y int) (r, g, b, a byte) {
 	if c, ok := i.setVerticesCache[[2]int{x, y}]; ok {
 		return c[0], c[1], c[2], c[3]
 	}
-	return i.image.At(x, y)
+	var pix [4]byte
+	i.image.ReadPixels(pix[:], x, y, 1, 1)
+	return pix[0], pix[1], pix[2], pix[3]
 }
 
 // Set sets the color at (x, y).
