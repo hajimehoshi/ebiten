@@ -36,6 +36,13 @@ func (i *Input) updateKeys(window *glfw.Window) {
 		i.keyPressed = map[C.CGKeyCode]bool{}
 	}
 
+	if window.GetAttrib(glfw.Focused) != glfw.True {
+		for _, cgKey := range uiKeyToCGKey {
+			i.keyPressed[C.CGKeyCode(cgKey)] = false
+		}
+		return
+	}
+
 	// Record the key states instead of calling CGEventSourceKeyState every time at IsKeyPressed.
 	// There is an assumption that the key states never change during one tick.
 	// Without this assumption, some functions in inpututil would not work correctly.
