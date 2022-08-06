@@ -27,6 +27,7 @@ import (
 )
 
 type Input struct {
+	keyPressed         map[glfw.Key]bool
 	mouseButtonPressed map[glfw.MouseButton]bool
 	onceCallback       sync.Once
 	scrollX            float64
@@ -36,8 +37,6 @@ type Input struct {
 	touches            map[TouchID]pos // TODO: Implement this (#417)
 	runeBuffer         []rune
 	ui                 *userInterfaceImpl
-
-	nativeInput
 }
 
 type pos struct {
@@ -81,6 +80,21 @@ func (i *Input) TouchPosition(id TouchID) (x, y int) {
 		}
 	}
 	return 0, 0
+}
+
+func (i *Input) IsKeyPressed(key Key) bool {
+	if !i.ui.isRunning() {
+		return false
+	}
+
+	i.ui.m.Lock()
+	defer i.ui.m.Unlock()
+
+	gk, ok := uiKeyToGLFWKey[key]
+	if !ok {
+		return false
+	}
+	return i.keyPressed[gk]
 }
 
 func (i *Input) AppendInputChars(runes []rune) []rune {
@@ -165,7 +179,12 @@ func (i *Input) update(window *glfw.Window, context *context) error {
 			i.scrollY = yoff
 		}))
 	})
-	i.updateKeys(window)
+	if i.keyPressed == nil {
+		i.keyPressed = map[glfw.Key]bool{}
+	}
+	for _, gk := range uiKeyToGLFWKey {
+		i.keyPressed[gk] = window.GetKey(gk) == glfw.Press
+	}
 	if i.mouseButtonPressed == nil {
 		i.mouseButtonPressed = map[glfw.MouseButton]bool{}
 	}
