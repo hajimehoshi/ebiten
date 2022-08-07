@@ -72,7 +72,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 }
 
 func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) {
-	i.mipmap.ReplacePixels(pix, x, y, width, height)
+	i.mipmap.WritePixels(pix, x, y, width, height)
 }
 
 func (i *Image) ReadPixels(pixels []byte, x, y, width, height int) {
