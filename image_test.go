@@ -110,6 +110,21 @@ func TestImagePixels(t *testing.T) {
 			}
 		}
 	}
+
+	pix := make([]byte, 4*w*h)
+	if err := img0.ReadPixels(pix); err != nil {
+		t.Fatal(err)
+	}
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			idx := 4 * (j*w + i)
+			got := color.RGBA{pix[idx], pix[idx+1], pix[idx+2], pix[idx+3]}
+			want := color.RGBAModel.Convert(img.At(i, j))
+			if got != want {
+				t.Errorf("(%d, %d): got %v; want %v", i, j, got, want)
+			}
+		}
+	}
 }
 
 func TestImageComposition(t *testing.T) {

@@ -777,6 +777,37 @@ func (i *Image) ColorModel() color.Model {
 	return color.RGBAModel
 }
 
+// ReadPixels reads the image's pixels from the image.
+//
+// ReadPixels loads pixels from GPU to system memory if necessary, which means that ReadPixels can be slow.
+//
+// ReadPixels always sets a transparent color if the image is disposed.
+//
+// len(pixels) must be 4*width*height. If the sizes don't match, ReadPixels returns an error.
+//
+// Note that an important logic should not rely on values returned by ReadPixels, since
+// the returned values can include very slight differences between some machines.
+//
+// ReadPixels can't be called outside the main loop (ebiten.Run's updating function) starts.
+func (i *Image) ReadPixels(pixels []byte) error {
+	b := i.Bounds()
+	if got, want := len(pixels), 4*b.Dx()*b.Dy(); got != want {
+		return fmt.Errorf("ebiten: len(pixels) must be %d but %d at ReadPixels", want, got)
+	}
+
+	if i.isDisposed() {
+		for i := range pixels {
+			pixels[i] = 0
+		}
+		return nil
+	}
+
+	i.resolveSetVerticesCacheIfNeeded()
+
+	x, y := i.adjustPosition(b.Min.X, b.Min.Y)
+	return i.image.ReadPixels(pixels, x, y, b.Dx(), b.Dy())
+}
+
 // At returns the color of the image at (x, y).
 //
 // At loads pixels from GPU to system memory if necessary, which means that At can be slow.
@@ -819,9 +850,7 @@ func (i *Image) at(x, y int) (r, g, b, a byte) {
 	if c, ok := i.setVerticesCache[[2]int{x, y}]; ok {
 		return c[0], c[1], c[2], c[3]
 	}
-	var pix [4]byte
-	i.image.ReadPixels(pix[:], x, y, 1, 1)
-	return pix[0], pix[1], pix[2], pix[3]
+	return i.image.At(x, y)
 }
 
 // Set sets the color at (x, y).
