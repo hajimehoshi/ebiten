@@ -120,9 +120,9 @@ func (i *Image) ensureStencilBuffer() error {
 	return nil
 }
 
-func (i *Image) ReplacePixels(args []*graphicsdriver.ReplacePixelsArgs) error {
+func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 	if i.screen {
-		return errors.New("opengl: ReplacePixels cannot be called on the screen")
+		return errors.New("opengl: WritePixels cannot be called on the screen")
 	}
 	if len(args) == 0 {
 		return nil

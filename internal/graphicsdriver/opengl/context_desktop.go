@@ -487,7 +487,7 @@ func (c *context) needsRestoring() bool {
 	return false
 }
 
-func (c *context) texSubImage2D(t textureNative, args []*graphicsdriver.ReplacePixelsArgs) {
+func (c *context) texSubImage2D(t textureNative, args []*graphicsdriver.WritePixelsArgs) {
 	c.bindTexture(t)
 	for _, a := range args {
 		gl.TexSubImage2D(gl.TEXTURE_2D, 0, int32(a.X), int32(a.Y), int32(a.Width), int32(a.Height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(a.Pixels))

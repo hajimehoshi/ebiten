@@ -611,7 +611,7 @@ func (c *context) canUsePBO() bool {
 	return false
 }
 
-func (c *context) texSubImage2D(t textureNative, args []*graphicsdriver.ReplacePixelsArgs) {
+func (c *context) texSubImage2D(t textureNative, args []*graphicsdriver.WritePixelsArgs) {
 	c.bindTexture(t)
 	gl := c.gl
 	for _, a := range args {

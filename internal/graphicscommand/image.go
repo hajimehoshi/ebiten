@@ -43,7 +43,7 @@ type Image struct {
 	// have its graphicsdriver.Image.
 	id int
 
-	bufferedRP []*graphicsdriver.ReplacePixelsArgs
+	bufferedRP []*graphicsdriver.WritePixelsArgs
 }
 
 var nextID = 1
@@ -74,11 +74,11 @@ func NewImage(width, height int, screenFramebuffer bool) *Image {
 	return i
 }
 
-func (i *Image) resolveBufferedReplacePixels() {
+func (i *Image) resolveBufferedWritePixels() {
 	if len(i.bufferedRP) == 0 {
 		return
 	}
-	c := &replacePixelsCommand{
+	c := &writePixelsCommand{
 		dst:  i,
 		args: i.bufferedRP,
 	}
@@ -134,7 +134,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [g
 		if img.screen {
 			panic("graphicscommand: the screen image cannot be the rendering source")
 		}
-		img.resolveBufferedReplacePixels()
+		img.resolveBufferedWritePixels()
 	} else {
 		for _, src := range srcs {
 			if src == nil {
@@ -143,10 +143,10 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [g
 			if src.screen {
 				panic("graphicscommand: the screen image cannot be the rendering source")
 			}
-			src.resolveBufferedReplacePixels()
+			src.resolveBufferedWritePixels()
 		}
 	}
-	i.resolveBufferedReplacePixels()
+	i.resolveBufferedWritePixels()
 
 	theCommandQueue.EnqueueDrawTrianglesCommand(i, srcs, offsets, vertices, indices, clr, mode, filter, address, dstRegion, srcRegion, shader, uniforms, evenOdd)
 }
@@ -154,7 +154,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [g
 // ReadPixels reads the image's pixels.
 // ReadPixels returns an error when an error happens in the graphics driver.
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, buf []byte) error {
-	i.resolveBufferedReplacePixels()
+	i.resolveBufferedWritePixels()
 	c := &readPixelsCommand{
 		img:    i,
 		result: buf,
@@ -166,8 +166,8 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, buf []byte) e
 	return nil
 }
 
-func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
-	i.bufferedRP = append(i.bufferedRP, &graphicsdriver.ReplacePixelsArgs{
+func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
+	i.bufferedRP = append(i.bufferedRP, &graphicsdriver.WritePixelsArgs{
 		Pixels: pixels,
 		X:      x,
 		Y:      y,

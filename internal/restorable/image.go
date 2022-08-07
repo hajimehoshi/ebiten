@@ -292,12 +292,12 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	theImages.makeStaleIfDependingOn(i)
 
 	if pixels != nil {
-		i.image.ReplacePixels(pixels, x, y, width, height)
+		i.image.WritePixels(pixels, x, y, width, height)
 	} else {
 		// TODO: When pixels == nil, we don't have to care the pixel state there. In such cases, the image
 		// accepts only ReplacePixels and not Fill or DrawTriangles.
 		// TODO: Separate Image struct into two: images for only-ReplacePixels, and the others.
-		i.image.ReplacePixels(make([]byte, 4*width*height), x, y, width, height)
+		i.image.WritePixels(make([]byte, 4*width*height), x, y, width, height)
 	}
 
 	if !needsRestoring() || !i.needsRestoring() {

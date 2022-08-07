@@ -512,22 +512,22 @@ func mightOverlapDstRegions(vertices1, vertices2 []float32) bool {
 	return minX1 < maxX2+mergin && minX2 < maxX1+mergin && minY1 < maxY2+mergin && minY2 < maxY1+mergin
 }
 
-// replacePixelsCommand represents a command to replace pixels of an image.
-type replacePixelsCommand struct {
+// writePixelsCommand represents a command to replace pixels of an image.
+type writePixelsCommand struct {
 	dst  *Image
-	args []*graphicsdriver.ReplacePixelsArgs
+	args []*graphicsdriver.WritePixelsArgs
 }
 
-func (c *replacePixelsCommand) String() string {
-	return fmt.Sprintf("replace-pixels: dst: %d, len(args): %d", c.dst.id, len(c.args))
+func (c *writePixelsCommand) String() string {
+	return fmt.Sprintf("write-pixels: dst: %d, len(args): %d", c.dst.id, len(c.args))
 }
 
-// Exec executes the replacePixelsCommand.
-func (c *replacePixelsCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
+// Exec executes the writePixelsCommand.
+func (c *writePixelsCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
 	if len(c.args) == 0 {
 		return nil
 	}
-	if err := c.dst.image.ReplacePixels(c.args); err != nil {
+	if err := c.dst.image.WritePixels(c.args); err != nil {
 		return err
 	}
 	return nil
