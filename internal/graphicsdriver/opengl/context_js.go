@@ -96,7 +96,7 @@ const (
 )
 
 var (
-	webGL2MightBeAvailable = !forceWebGL1 && (js.Global().Get("WebGL2RenderingContext").Truthy() || js.Global().Get("go2cpp").Truthy())
+	webGL2MightBeAvailable = !forceWebGL1 && (js.Global().Get("WebGL2RenderingContext").Truthy())
 )
 
 func uint8ArrayToSlice(value js.Value, length int) []byte {
@@ -152,9 +152,6 @@ func (c *context) initGL() error {
 		if !gl.Truthy() {
 			return fmt.Errorf("opengl: getContext failed")
 		}
-	} else if go2cpp := js.Global().Get("go2cpp"); go2cpp.Truthy() {
-		gl = go2cpp.Get("gl")
-		c.webGLVersion = webGLVersion2
 	}
 
 	c.gl = c.newGL(gl)
