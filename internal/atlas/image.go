@@ -228,7 +228,7 @@ type Image struct {
 	// usedAsSourceCount is increased if the image is used as a rendering source, or set to 0 if the image is
 	// modified.
 	//
-	// ReplacePixels doesn't affect this value since ReplacePixels can be done on images on an atlas.
+	// WritePixels doesn't affect this value since WritePixels can be done on images on an atlas.
 	usedAsSourceCount int
 
 	// isolatedCount represents how many times the image on a texture atlas is changed into an isolated image.
@@ -494,8 +494,8 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	}
 }
 
-// ReplacePixels replaces the pixels on the image.
-func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) {
+// WritePixels replaces the pixels on the image.
+func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	i.replacePixels(pix, x, y, width, height)

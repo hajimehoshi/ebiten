@@ -135,7 +135,7 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) {
 	}
 
 	i.invalidatePixels()
-	i.img.ReplacePixels(pix, x, y, width, height)
+	i.img.WritePixels(pix, x, y, width, height)
 }
 
 // DrawTriangles draws the src image with the given vertices.
