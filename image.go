@@ -28,7 +28,7 @@ import (
 
 // Image represents a rectangle set of pixels.
 // The pixel format is alpha-premultiplied RGBA.
-// Image implements image.Image and draw.Image.
+// Image implements the standard image.Image and draw.Image interfaces.
 type Image struct {
 	// addr holds self to check copying.
 	// See strings.Builder for similar examples.
@@ -765,6 +765,8 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 }
 
 // Bounds returns the bounds of the image.
+//
+// Bounds implements the standard image.Image's Bounds.
 func (i *Image) Bounds() image.Rectangle {
 	if i.isDisposed() {
 		panic("ebiten: the image is already disposed")
@@ -773,6 +775,8 @@ func (i *Image) Bounds() image.Rectangle {
 }
 
 // ColorModel returns the color model of the image.
+//
+// ColorModel implements the standard image.Image's ColorModel.
 func (i *Image) ColorModel() color.Model {
 	return color.RGBAModel
 }
@@ -782,6 +786,8 @@ func (i *Image) ColorModel() color.Model {
 // ReadPixels loads pixels from GPU to system memory if necessary, which means that ReadPixels can be slow.
 //
 // ReadPixels always sets a transparent color if the image is disposed.
+//
+// ReadPixels returns an error when an error occurs during reading pixels from GPU.
 //
 // len(pixels) must be 4*width*height. If the sizes don't match, ReadPixels returns an error.
 //
@@ -810,6 +816,8 @@ func (i *Image) ReadPixels(pixels []byte) error {
 
 // At returns the color of the image at (x, y).
 //
+// At implements the standard image.Image's At.
+//
 // At loads pixels from GPU to system memory if necessary, which means that At can be slow.
 //
 // At always returns a transparent color if the image is disposed.
@@ -823,7 +831,7 @@ func (i *Image) At(x, y int) color.Color {
 	return color.RGBA{r, g, b, a}
 }
 
-// RGBA64At implements image.RGBA64Image's RGBA64At.
+// RGBA64At implements the standard image.RGBA64Image's RGBA64At.
 //
 // RGBA64At loads pixels from GPU to system memory if necessary, which means
 // that RGBA64At can be slow.
@@ -854,6 +862,8 @@ func (i *Image) at(x, y int) (r, g, b, a byte) {
 }
 
 // Set sets the color at (x, y).
+//
+// Set implements the standard draw.Image's Set.
 //
 // Set loads pixels from GPU to system memory if necessary, which means that Set can be slow.
 //
