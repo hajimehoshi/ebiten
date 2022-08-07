@@ -112,9 +112,7 @@ func TestImagePixels(t *testing.T) {
 	}
 
 	pix := make([]byte, 4*w*h)
-	if err := img0.ReadPixels(pix); err != nil {
-		t.Fatal(err)
-	}
+	img0.ReadPixels(pix)
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			idx := 4 * (j*w + i)

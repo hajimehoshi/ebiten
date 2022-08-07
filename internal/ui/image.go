@@ -75,25 +75,18 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) {
 	i.mipmap.ReplacePixels(pix, x, y, width, height)
 }
 
-func (i *Image) ReadPixels(pixels []byte, x, y, width, height int) error {
-	return theUI.readPixels(i.mipmap, pixels, x, y, width, height)
-}
-
-func (i *Image) At(x, y int) (r, g, b, a byte) {
+func (i *Image) ReadPixels(pixels []byte, x, y, width, height int) {
 	// Check the error existence and avoid unnecessary calls.
 	if theGlobalState.error() != nil {
-		return 0, 0, 0, 0
+		return
 	}
 
-	var pix [4]byte
-	if err := theUI.readPixels(i.mipmap, pix[:], x, y, 1, 1); err != nil {
+	if err := theUI.readPixels(i.mipmap, pixels, x, y, width, height); err != nil {
 		if panicOnErrorOnReadingPixels {
 			panic(err)
 		}
 		theGlobalState.setError(err)
-		return 0, 0, 0, 0
 	}
-	return pix[0], pix[1], pix[2], pix[3]
 }
 
 func (i *Image) DumpScreenshot(name string, blackbg bool) error {
