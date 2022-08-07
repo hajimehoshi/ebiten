@@ -783,11 +783,16 @@ func (i *Image) ColorModel() color.Model {
 
 // ReadPixels reads the image's pixels from the image.
 //
+// The given pixels represent RGBA pre-multiplied alpha values.
+//
 // ReadPixels loads pixels from GPU to system memory if necessary, which means that ReadPixels can be slow.
 //
 // ReadPixels always sets a transparent color if the image is disposed.
 //
-// len(pixels) must be 4*width*height. If the sizes don't match, ReadPixels panics.
+// len(pixels) must be 4 * (bounds width) * (bounds height).
+// If len(pixels) is not correct, ReadPixels panics.
+//
+// ReadPixels also works on a sub-image.
 //
 // Note that an important logic should not rely on values returned by ReadPixels, since
 // the returned values can include very slight differences between some machines.
@@ -917,14 +922,14 @@ func (i *Image) Dispose() {
 	i.setVerticesCache = nil
 }
 
-// ReplacePixels replaces the pixels of the image with p.
+// ReplacePixels replaces the pixels of the image.
 //
-// The given p must represent RGBA pre-multiplied alpha values.
-// len(pix) must equal to 4 * (bounds width) * (bounds height).
+// The given pixels are treated as RGBA pre-multiplied alpha values.
 //
-// ReplacePixels works on a sub-image.
+// len(pix) must be 4 * (bounds width) * (bounds height).
+// If len(pix) is not correct, WritePixels panics.
 //
-// When len(pix) is not appropriate, ReplacePixels panics.
+// ReplacePixels also works on a sub-image.
 //
 // When the image is disposed, ReplacePixels does nothing.
 func (i *Image) ReplacePixels(pixels []byte) {
