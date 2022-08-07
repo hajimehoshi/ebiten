@@ -155,7 +155,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [g
 // ReadPixels returns an error when an error happens in the graphics driver.
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, buf []byte) error {
 	i.resolveBufferedReplacePixels()
-	c := &pixelsCommand{
+	c := &readPixelsCommand{
 		img:    i,
 		result: buf,
 	}

@@ -533,21 +533,21 @@ func (c *replacePixelsCommand) Exec(graphicsDriver graphicsdriver.Graphics, inde
 	return nil
 }
 
-type pixelsCommand struct {
+type readPixelsCommand struct {
 	result []byte
 	img    *Image
 }
 
-// Exec executes a pixelsCommand.
-func (c *pixelsCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
+// Exec executes a readPixelsCommand.
+func (c *readPixelsCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
 	if err := c.img.image.ReadPixels(c.result); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *pixelsCommand) String() string {
-	return fmt.Sprintf("pixels: image: %d", c.img.id)
+func (c *readPixelsCommand) String() string {
+	return fmt.Sprintf("read-pixels: image: %d", c.img.id)
 }
 
 // disposeImageCommand represents a command to dispose an image.
