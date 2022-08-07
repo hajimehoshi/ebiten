@@ -50,7 +50,7 @@ func (m *Mipmap) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name str
 }
 
 func (m *Mipmap) ReplacePixels(pix []byte, x, y, width, height int) {
-	m.orig.ReplacePixels(pix, x, y, width, height)
+	m.orig.WritePixels(pix, x, y, width, height)
 	m.disposeMipmaps()
 }
 

@@ -118,8 +118,8 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name stri
 	return i.img.DumpScreenshot(graphicsDriver, name, blackbg)
 }
 
-// ReplacePixels replaces the pixels at the specified region.
-func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) {
+// WritePixels replaces the pixels at the specified region.
+func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
 	if l := 4 * width * height; len(pix) != l {
 		panic(fmt.Sprintf("buffered: len(pix) was %d but must be %d", len(pix), l))
 	}
@@ -128,7 +128,7 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) {
 		copied := make([]byte, len(pix))
 		copy(copied, pix)
 		if tryAddDelayedCommand(func() {
-			i.ReplacePixels(copied, x, y, width, height)
+			i.WritePixels(copied, x, y, width, height)
 		}) {
 			return
 		}
