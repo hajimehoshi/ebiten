@@ -71,7 +71,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	i.mipmap.DrawTriangles(srcMipmaps, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, s, uniforms, evenOdd, canSkipMipmap)
 }
 
-func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) {
+func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
 	i.mipmap.WritePixels(pix, x, y, width, height)
 }
 
@@ -106,8 +106,8 @@ func init() {
 	for i := range pix {
 		pix[i] = 0xff
 	}
-	// As emptyImage is used at Fill, use ReplacePixels instead.
-	emptyImage.ReplacePixels(pix, 0, 0, emptyImage.width, emptyImage.height)
+	// As emptyImage is used at Fill, use WritePixels instead.
+	emptyImage.WritePixels(pix, 0, 0, emptyImage.width, emptyImage.height)
 }
 
 func (i *Image) clear() {

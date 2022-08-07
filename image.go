@@ -941,7 +941,7 @@ func (i *Image) ReplacePixels(pixels []byte) {
 	// Do not need to copy pixels here.
 	// * In internal/mipmap, pixels are copied when necessary.
 	// * In internal/atlas, pixels are copied to make its paddings.
-	i.image.ReplacePixels(pixels, x, y, r.Dx(), r.Dy())
+	i.image.WritePixels(pixels, x, y, r.Dx(), r.Dy())
 }
 
 // NewImage returns an empty image.
