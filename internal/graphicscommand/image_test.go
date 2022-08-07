@@ -72,7 +72,7 @@ func TestClear(t *testing.T) {
 	}
 }
 
-func TestReplacePixelsPartAfterDrawTriangles(t *testing.T) {
+func TestWritePixelsPartAfterDrawTriangles(t *testing.T) {
 	const w, h = 32, 32
 	clr := graphicscommand.NewImage(w, h, false)
 	src := graphicscommand.NewImage(w/2, h/2, false)
@@ -87,7 +87,7 @@ func TestReplacePixelsPartAfterDrawTriangles(t *testing.T) {
 	}
 	dst.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{clr}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeClear, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
 	dst.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{src}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
-	dst.ReplacePixels(make([]byte, 4), 0, 0, 1, 1)
+	dst.WritePixels(make([]byte, 4), 0, 0, 1, 1)
 
 	// TODO: Check the result.
 }
