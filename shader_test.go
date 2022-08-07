@@ -287,7 +287,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			}
 		}
 	}
-	src0.ReplacePixels(pix0)
+	src0.WritePixels(pix0)
 	src0 = src0.SubImage(image.Rect(2, 3, 10, 11)).(*ebiten.Image)
 
 	src1 := ebiten.NewImage(w, h)
@@ -302,7 +302,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			}
 		}
 	}
-	src1.ReplacePixels(pix1)
+	src1.WritePixels(pix1)
 	src1 = src1.SubImage(image.Rect(6, 8, 14, 16)).(*ebiten.Image)
 
 	testPixels := func(testname string, dst *ebiten.Image) {
@@ -412,7 +412,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			pix[4*(j*w+i)+3] = 0xff
 		}
 	}
-	src.ReplacePixels(pix)
+	src.WritePixels(pix)
 
 	op := &ebiten.DrawRectShaderOptions{}
 	op.Images[0] = src
@@ -470,7 +470,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			pix[4*(j*w+i)+3] = 0xff
 		}
 	}
-	src.ReplacePixels(pix)
+	src.WritePixels(pix)
 
 	op := &ebiten.DrawRectShaderOptions{}
 	op.Images[0] = src
@@ -998,7 +998,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			}
 		}
 	}
-	src0.ReplacePixels(pix0)
+	src0.WritePixels(pix0)
 	src0 = src0.SubImage(image.Rect(2+offset0, 3+offset0, 10+offset0, 11+offset0)).(*ebiten.Image)
 
 	const offset1 = -6
@@ -1014,7 +1014,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			}
 		}
 	}
-	src1.ReplacePixels(pix1)
+	src1.WritePixels(pix1)
 	src1 = src1.SubImage(image.Rect(6+offset1, 8+offset1, 14+offset1, 16+offset1)).(*ebiten.Image)
 
 	const offset2 = -2

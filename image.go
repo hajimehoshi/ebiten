@@ -922,17 +922,17 @@ func (i *Image) Dispose() {
 	i.setVerticesCache = nil
 }
 
-// ReplacePixels replaces the pixels of the image.
+// WritePixels replaces the pixels of the image.
 //
 // The given pixels are treated as RGBA pre-multiplied alpha values.
 //
 // len(pix) must be 4 * (bounds width) * (bounds height).
 // If len(pix) is not correct, WritePixels panics.
 //
-// ReplacePixels also works on a sub-image.
+// WritePixels also works on a sub-image.
 //
-// When the image is disposed, ReplacePixels does nothing.
-func (i *Image) ReplacePixels(pixels []byte) {
+// When the image is disposed, WritePixels does nothing.
+func (i *Image) WritePixels(pixels []byte) {
 	i.copyCheck()
 
 	if i.isDisposed() {
@@ -947,6 +947,13 @@ func (i *Image) ReplacePixels(pixels []byte) {
 	// * In internal/mipmap, pixels are copied when necessary.
 	// * In internal/atlas, pixels are copied to make its paddings.
 	i.image.WritePixels(pixels, x, y, r.Dx(), r.Dy())
+}
+
+// ReplacePixels replaces the pixels of the image.
+//
+// Deprecated: as of v2.4. Use WritePixels instead.
+func (i *Image) ReplacePixels(pixels []byte) {
+	i.WritePixels(pixels)
 }
 
 // NewImage returns an empty image.
@@ -1023,7 +1030,7 @@ func newImage(bounds image.Rectangle, imageType atlas.ImageType) *Image {
 //
 // NewImageFromImage should be called only when necessary.
 // For example, you should avoid to call NewImageFromImage every Update or Draw call.
-// Reusing the same image by Clear and ReplacePixels is much more efficient than creating a new image.
+// Reusing the same image by Clear and WritePixels is much more efficient than creating a new image.
 //
 // NewImageFromImage panics if RunGame already finishes.
 //
@@ -1055,7 +1062,7 @@ type NewImageFromImageOptions struct {
 //
 // NewImageFromImageWithOptions should be called only when necessary.
 // For example, you should avoid to call NewImageFromImageWithOptions every Update or Draw call.
-// Reusing the same image by Clear and ReplacePixels is much more efficient than creating a new image.
+// Reusing the same image by Clear and WritePixels is much more efficient than creating a new image.
 //
 // NewImageFromImageWithOptions panics if RunGame already finishes.
 func NewImageFromImageWithOptions(source image.Image, options *NewImageFromImageOptions) *Image {
@@ -1086,7 +1093,7 @@ func NewImageFromImageWithOptions(source image.Image, options *NewImageFromImage
 		return i
 	}
 
-	i.ReplacePixels(imageToBytes(source))
+	i.WritePixels(imageToBytes(source))
 	return i
 }
 

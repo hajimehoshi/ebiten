@@ -186,7 +186,7 @@ func drawKey(t *ebiten.Image, name string, x, y, width int) {
 			}
 		}
 	}
-	img.ReplacePixels(p)
+	img.WritePixels(p)
 	const offset = 4
 	text.Draw(img, name, arcadeFont, offset, arcadeFontSize+offset+1, color.White)
 

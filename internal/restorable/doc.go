@@ -37,7 +37,7 @@
 // In other words, If A.DrawImage(B, ...) is called,
 // it can be said that the image A depends on the image B.
 //
-// * Fill, ReplacePixels and Dispose
+// * Fill, WritePixels and Dispose
 //
 // These functions are also drawing functions and the target image stores the pixel data
 // instead of draw image history items. There is no dependency here.

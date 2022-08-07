@@ -86,7 +86,7 @@ func createRandomIconImage() image.Image {
 			}
 		}
 	}
-	img.ReplacePixels(pix)
+	img.WritePixels(pix)
 
 	return img
 }

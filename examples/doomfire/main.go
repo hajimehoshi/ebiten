@@ -134,7 +134,7 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.renderFire()
-	screen.ReplacePixels(g.pixels)
+	screen.WritePixels(g.pixels)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

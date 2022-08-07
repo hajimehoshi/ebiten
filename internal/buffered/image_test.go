@@ -231,7 +231,7 @@ func TestSetAndFillBeforeMain(t *testing.T) {
 	}
 }
 
-var testSetAndReplacePixelsBeforeMainResult = func() testResult {
+var testSetAndWritePixelsBeforeMainResult = func() testResult {
 	clr := color.RGBA{1, 2, 3, 4}
 	img := ebiten.NewImage(16, 16)
 	img.Set(0, 0, clr)
@@ -242,7 +242,7 @@ var testSetAndReplacePixelsBeforeMainResult = func() testResult {
 		pix[4*i+2] = 7
 		pix[4*i+3] = 8
 	}
-	img.ReplacePixels(pix)
+	img.WritePixels(pix)
 	img.Set(1, 0, clr)
 
 	ch := make(chan color.RGBA, 1)
@@ -258,16 +258,16 @@ var testSetAndReplacePixelsBeforeMainResult = func() testResult {
 	}
 }()
 
-func TestSetAndReplacePixelsBeforeMain(t *testing.T) {
-	got := <-testSetAndReplacePixelsBeforeMainResult.got
-	want := testSetAndReplacePixelsBeforeMainResult.want
+func TestSetAndWritePixelsBeforeMain(t *testing.T) {
+	got := <-testSetAndWritePixelsBeforeMainResult.got
+	want := testSetAndWritePixelsBeforeMainResult.want
 
 	if got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
 
-var testReplacePixelsAndModifyBeforeMainResult = func() testResult {
+var testWritePixelsAndModifyBeforeMainResult = func() testResult {
 	img := ebiten.NewImage(16, 16)
 	pix := make([]byte, 4*16*16)
 	for i := 0; i < len(pix)/4; i++ {
@@ -276,8 +276,8 @@ var testReplacePixelsAndModifyBeforeMainResult = func() testResult {
 		pix[4*i+2] = 3
 		pix[4*i+3] = 4
 	}
-	img.ReplacePixels(pix)
-	// After calling ReplacePixels, modifying pix must not affect the result.
+	img.WritePixels(pix)
+	// After calling WritePixels, modifying pix must not affect the result.
 	for i := 0; i < len(pix)/4; i++ {
 		pix[4*i] = 5
 		pix[4*i+1] = 6
@@ -298,13 +298,13 @@ var testReplacePixelsAndModifyBeforeMainResult = func() testResult {
 	}
 }()
 
-func TestReplacePixelsAndModifyBeforeMain(t *testing.T) {
-	got := <-testReplacePixelsAndModifyBeforeMainResult.got
-	want := testReplacePixelsAndModifyBeforeMainResult.want
+func TestWritePixelsAndModifyBeforeMain(t *testing.T) {
+	got := <-testWritePixelsAndModifyBeforeMainResult.got
+	want := testWritePixelsAndModifyBeforeMainResult.want
 
 	if got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
 
-// TODO: Add tests for shaders and ReplacePixels to check resolvePendingPiexles works correctly.
+// TODO: Add tests for shaders and WritePixels to check resolvePendingPiexles works correctly.
