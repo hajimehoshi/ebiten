@@ -106,7 +106,7 @@ func TestImagePixels(t *testing.T) {
 			got := img0.At(i, j)
 			want := color.RGBAModel.Convert(img.At(i, j))
 			if got != want {
-				t.Errorf("img0 At(%d, %d): got %#v; want %#v", i, j, got, want)
+				t.Errorf("img0 At(%d, %d): got %v; want %v", i, j, got, want)
 			}
 		}
 	}
@@ -162,7 +162,7 @@ func TestImageComposition(t *testing.T) {
 			c1 := img_12_3.At(i, j).(color.RGBA)
 			c2 := img_1_23.At(i, j).(color.RGBA)
 			if !sameColors(c1, c2, 1) {
-				t.Errorf("img_12_3.At(%d, %d) = %#v; img_1_23.At(%[1]d, %[2]d) = %#[4]v", i, j, c1, c2)
+				t.Errorf("img_12_3.At(%d, %d) = %v; img_1_23.At(%[1]d, %[2]d) = %#[4]v", i, j, c1, c2)
 			}
 			if c1.A == 0 {
 				t.Fatalf("img_12_3.At(%d, %d).A = 0; nothing is rendered?", i, j)
@@ -286,7 +286,7 @@ func TestImageReplacePixels(t *testing.T) {
 			got := img0.At(i, j)
 			want := img.At(i, j)
 			if got != want {
-				t.Errorf("img0 At(%d, %d): got %#v; want %#v", i, j, got, want)
+				t.Errorf("img0 At(%d, %d): got %v; want %v", i, j, got, want)
 			}
 		}
 	}
@@ -305,7 +305,7 @@ func TestImageReplacePixels(t *testing.T) {
 			got := img0.At(i, j)
 			want := color.RGBA{0x80, 0x80, 0x80, 0x80}
 			if got != want {
-				t.Errorf("img0 At(%d, %d): got %#v; want %#v", i, j, got, want)
+				t.Errorf("img0 At(%d, %d): got %v; want %v", i, j, got, want)
 			}
 		}
 	}
@@ -366,7 +366,7 @@ func TestImageCompositeModeLighter(t *testing.T) {
 			want.B = uint8(min(0xff, int(want.B)+3))
 			want.A = uint8(min(0xff, int(want.A)+4))
 			if got != want {
-				t.Errorf("img1 At(%d, %d): got %#v; want %#v", i, j, got, want)
+				t.Errorf("img1 At(%d, %d): got %v; want %v", i, j, got, want)
 			}
 		}
 	}
@@ -393,17 +393,17 @@ func TestNewImageFromSubImage(t *testing.T) {
 	sw, sh := subImg.Bounds().Dx(), subImg.Bounds().Dy()
 	w2, h2 := eimg.Size()
 	if w2 != sw {
-		t.Errorf("eimg Width: got %#v; want %#v", w2, sw)
+		t.Errorf("eimg Width: got %v; want %v", w2, sw)
 	}
 	if h2 != sh {
-		t.Errorf("eimg Width: got %#v; want %#v", h2, sh)
+		t.Errorf("eimg Width: got %v; want %v", h2, sh)
 	}
 	for j := 0; j < h2; j++ {
 		for i := 0; i < w2; i++ {
 			got := eimg.At(i, j)
 			want := color.RGBAModel.Convert(img.At(i+1, j+1))
 			if got != want {
-				t.Errorf("img0 At(%d, %d): got %#v; want %#v", i, j, got, want)
+				t.Errorf("img0 At(%d, %d): got %v; want %v", i, j, got, want)
 			}
 		}
 	}
@@ -428,7 +428,7 @@ func TestImageFill(t *testing.T) {
 			got := img.At(i, j)
 			want := color.RGBA{0x80, 0x80, 0x80, 0x80}
 			if got != want {
-				t.Errorf("img At(%d, %d): got %#v; want %#v", i, j, got, want)
+				t.Errorf("img At(%d, %d): got %v; want %v", i, j, got, want)
 			}
 		}
 	}
@@ -444,7 +444,7 @@ func TestImageClear(t *testing.T) {
 			got := img.At(i, j)
 			want := color.RGBA{0xff, 0xff, 0xff, 0xff}
 			if got != want {
-				t.Errorf("img At(%d, %d): got %#v; want %#v", i, j, got, want)
+				t.Errorf("img At(%d, %d): got %v; want %v", i, j, got, want)
 			}
 		}
 	}
@@ -454,7 +454,7 @@ func TestImageClear(t *testing.T) {
 			got := img.At(i, j)
 			want := color.RGBA{}
 			if got != want {
-				t.Errorf("img At(%d, %d): got %#v; want %#v", i, j, got, want)
+				t.Errorf("img At(%d, %d): got %v; want %v", i, j, got, want)
 			}
 		}
 	}
@@ -624,7 +624,7 @@ func TestImageTooManyFill(t *testing.T) {
 		got := dst.At(i, 0).(color.RGBA)
 		want := color.RGBA{c, c, c, 0xff}
 		if !sameColors(got, want, 1) {
-			t.Errorf("dst.At(%d, %d): got %#v, want: %#v", i, 0, got, want)
+			t.Errorf("dst.At(%d, %d): got %v, want: %v", i, 0, got, want)
 		}
 	}
 }
@@ -659,7 +659,7 @@ func TestImageLinearGraduation(t *testing.T) {
 		for i := 1; i < w-1; i++ {
 			c := img1.At(i, j).(color.RGBA)
 			if c.R == 0 || c.R == 0xff {
-				t.Errorf("img1.At(%d, %d).R must be in between 0x01 and 0xfe but %#v", i, j, c)
+				t.Errorf("img1.At(%d, %d).R must be in between 0x01 and 0xfe but %v", i, j, c)
 			}
 		}
 	}
@@ -700,7 +700,7 @@ func TestImageOutside(t *testing.T) {
 				got := dst.At(i, j).(color.RGBA)
 				want := color.RGBA{0, 0, 0, 0}
 				if got != want {
-					t.Errorf("src(x: %d, y: %d, w: %d, h: %d), dst At(%d, %d): got %#v, want: %#v", c.X, c.Y, c.Width, c.Height, i, j, got, want)
+					t.Errorf("src(x: %d, y: %d, w: %d, h: %d), dst At(%d, %d): got %v, want: %v", c.X, c.Y, c.Width, c.Height, i, j, got, want)
 				}
 			}
 		}
@@ -726,7 +726,7 @@ func TestImageOutsideUpperLeft(t *testing.T) {
 			got := dst1.At(i, j).(color.RGBA)
 			want := dst2.At(i, j).(color.RGBA)
 			if got != want {
-				t.Errorf("got: dst1.At(%d, %d): %#v, want: dst2.At(%d, %d): %#v", i, j, got, i, j, want)
+				t.Errorf("got: dst1.At(%d, %d): %v, want: dst2.At(%d, %d): %v", i, j, got, i, j, want)
 			}
 		}
 	}
@@ -755,7 +755,7 @@ func TestImageSize1(t *testing.T) {
 	got := src.At(0, 0).(color.RGBA)
 	want := color.RGBA{0xff, 0xff, 0xff, 0xff}
 	if !sameColors(got, want, 1) {
-		t.Errorf("got: %#v, want: %#v", got, want)
+		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
 
@@ -787,7 +787,7 @@ func Skip_TestImageSize4096(t *testing.T) {
 		got := dst.At(i, j).(color.RGBA)
 		want := color.RGBA{uint8(i + j), uint8((i + j) >> 8), uint8((i + j) >> 16), 0xff}
 		if got != want {
-			t.Errorf("At(%d, %d): got: %#v, want: %#v", i, j, got, want)
+			t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
 		}
 	}
 	for j := 4095; j < 4096; j++ {
@@ -795,7 +795,7 @@ func Skip_TestImageSize4096(t *testing.T) {
 		got := dst.At(i, j).(color.RGBA)
 		want := color.RGBA{uint8(i + j), uint8((i + j) >> 8), uint8((i + j) >> 16), 0xff}
 		if got != want {
-			t.Errorf("At(%d, %d): got: %#v, want: %#v", i, j, got, want)
+			t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
 		}
 	}
 }
@@ -848,7 +848,7 @@ loop:
 					want = color.RGBA{0xff, 0, 0, 0xff}
 				}
 				if got != want {
-					t.Errorf("At(%d, %d) (height=%d, scale=%d/%d): got: %#v, want: %#v", 0, i+j, h, i, h, got, want)
+					t.Errorf("At(%d, %d) (height=%d, scale=%d/%d): got: %v, want: %v", 0, i+j, h, i, h, got, want)
 					continue loop
 				}
 			}
@@ -886,7 +886,7 @@ func TestImageSprites(t *testing.T) {
 			got := dst.At(i*4, j*4).(color.RGBA)
 			want := color.RGBA{0xff, 0xff, 0xff, 0xff}
 			if !sameColors(got, want, 1) {
-				t.Errorf("dst.At(%d, %d): got %#v, want: %#v", i*4, j*4, got, want)
+				t.Errorf("dst.At(%d, %d): got %v, want: %v", i*4, j*4, got, want)
 			}
 		}
 	}
@@ -931,7 +931,7 @@ func Disabled_TestImageMipmap(t *testing.T) {
 			got := gotDst.At(i, j).(color.RGBA)
 			want := wantDst.At(i, j).(color.RGBA)
 			if !sameColors(got, want, 1) {
-				t.Errorf("At(%d, %d): got: %#v, want: %#v", i, j, got, want)
+				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}
 	}
@@ -979,7 +979,7 @@ func Disabled_TestImageMipmapNegativeDet(t *testing.T) {
 			got := gotDst.At(i, j).(color.RGBA)
 			want := wantDst.At(i, j).(color.RGBA)
 			if !sameColors(got, want, 1) {
-				t.Errorf("At(%d, %d): got: %#v, want: %#v", i, j, got, want)
+				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 			if got.A > 0 {
 				allZero = false
@@ -1017,7 +1017,7 @@ func TestImageMipmapColor(t *testing.T) {
 		want := color.RGBA{0, 0xff, 0xff, 0xff}
 		got := img0.At(128, 0)
 		if got != want {
-			t.Errorf("want: %#v, got: %#v", want, got)
+			t.Errorf("want: %v, got: %v", want, got)
 		}
 	}
 }
