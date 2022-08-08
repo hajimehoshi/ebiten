@@ -20,20 +20,40 @@ package audio
 import (
 	"io"
 
-	"github.com/hajimehoshi/ebiten/v2/audio/internal/cbackend"
+	"github.com/hajimehoshi/oto/v2/mux"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/cbackend"
 )
 
 func newContext(sampleRate, channelCount, bitDepthInBytes int) (context, chan struct{}, error) {
-	ctx, ready, err := cbackend.NewContext(sampleRate, channelCount, bitDepthInBytes)
-	return &contextProxy{ctx}, ready, err
+	ready := make(chan struct{})
+	close(ready)
+
+	c := &contextProxy{mux.New(sampleRate, channelCount, bitDepthInBytes)}
+	cbackend.OpenAudio(sampleRate, channelCount, c.mux.ReadFloat32s)
+	return c, ready, nil
 }
 
 // contextProxy is a proxy between cbackend.Context and context.
 type contextProxy struct {
-	*cbackend.Context
+	mux *mux.Mux
 }
 
 // NewPlayer implements context.
 func (c *contextProxy) NewPlayer(r io.Reader) player {
-	return c.Context.NewPlayer(r)
+	return c.mux.NewPlayer(r)
+}
+
+func (c *contextProxy) Suspend() error {
+	// Do nothing so far.
+	return nil
+}
+
+func (c *contextProxy) Resume() error {
+	// Do nothing so far.
+	return nil
+}
+
+func (c *contextProxy) Err() error {
+	return nil
 }
