@@ -54,7 +54,6 @@ package cbackend
 // // Audio
 // typedef void (*OnReadCallback)(float* buf, size_t length);
 // void EbitenOpenAudio(int sample_rate, int channel_num, OnReadCallback on_read_callback);
-// void EbitenCloseAudio();
 //
 // void EbitenAudioOnReadCallback(float* buf, size_t length);
 // static void EbitenOpenAudioProxy(int sample_rate, int channel_num) {
@@ -168,10 +167,6 @@ var onReadCallback func(buf []float32)
 func OpenAudio(sampleRate, channelCount int, onRead func(buf []float32)) {
 	C.EbitenOpenAudioProxy(C.int(sampleRate), C.int(channelCount))
 	onReadCallback = onRead
-}
-
-func CloseAudio() {
-	C.EbitenCloseAudio()
 }
 
 //export EbitenAudioOnReadCallback
