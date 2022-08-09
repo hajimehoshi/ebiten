@@ -147,13 +147,13 @@ package ui
 //
 //   // Even though EbitenWindowDelegate is used, this hack is still required.
 //   // toggleFullscreen doesn't work when the window is not resizable.
-//   bool origResizable = window.styleMask & NSWindowStyleMaskResizable;
-//   if (!origResizable) {
-//     window.styleMask |= NSWindowStyleMaskResizable;
+//   bool origFullscreen = window.collectionBehavior & NSWindowCollectionBehaviorFullScreenPrimary;
+//   if (!origFullscreen) {
+//     window.collectionBehavior |= NSWindowCollectionBehaviorFullScreenPrimary;
 //   }
 //   [window toggleFullScreen:nil];
-//   if (!origResizable) {
-//     window.styleMask &= ~NSWindowStyleMaskResizable;
+//   if (!origFullscreen) {
+//     window.collectionBehavior &= ~NSWindowCollectionBehaviorFullScreenPrimary;
 //   }
 // }
 //
