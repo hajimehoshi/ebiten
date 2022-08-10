@@ -1470,6 +1470,7 @@ func (u *userInterfaceImpl) Window() Window {
 
 // maximizeWindow must be called from the main thread.
 func (u *userInterfaceImpl) maximizeWindow() {
+	// TODO: Can we remove this condition?
 	if u.isNativeFullscreen() {
 		return
 	}
@@ -1482,25 +1483,28 @@ func (u *userInterfaceImpl) maximizeWindow() {
 	}
 	u.window.Maximize()
 
-	if !u.isFullscreen() {
-		// On Linux/UNIX, maximizing might not finish even though Maximize returns. Just wait for its finish.
-		// Do not check this in the fullscreen since apparently the condition can never be true.
-		for u.window.GetAttrib(glfw.Maximized) != glfw.True {
-			glfw.PollEvents()
-		}
-
-		// Call setWindowSize explicitly in order to update the rendering since the callback is disabled now.
-		// Do not call setWindowSize in the fullscreen mode since setWindowSize requires the window size
-		// before the fullscreen, while window.GetSize() returns the desktop screen size in the fullscreen mode.
-		w, h := u.window.GetSize()
-		ww := int(u.dipFromGLFWPixel(float64(w), u.currentMonitor()))
-		wh := int(u.dipFromGLFWPixel(float64(h), u.currentMonitor()))
-		u.setWindowSizeInDIP(ww, wh, u.isFullscreen())
+	if u.isFullscreen() {
+		return
 	}
+
+	// On Linux/UNIX, maximizing might not finish even though Maximize returns. Just wait for its finish.
+	// Do not check this in the fullscreen since apparently the condition can never be true.
+	for u.window.GetAttrib(glfw.Maximized) != glfw.True {
+		glfw.PollEvents()
+	}
+
+	// Call setWindowSize explicitly in order to update the rendering since the callback is disabled now.
+	// Do not call setWindowSize in the fullscreen mode since setWindowSize requires the window size
+	// before the fullscreen, while window.GetSize() returns the desktop screen size in the fullscreen mode.
+	w, h := u.window.GetSize()
+	ww := int(u.dipFromGLFWPixel(float64(w), u.currentMonitor()))
+	wh := int(u.dipFromGLFWPixel(float64(h), u.currentMonitor()))
+	u.setWindowSizeInDIP(ww, wh, u.isFullscreen())
 }
 
 // iconifyWindow must be called from the main thread.
 func (u *userInterfaceImpl) iconifyWindow() {
+	// Iconifying a native fullscreen window on macOS is forbidden.
 	if u.isNativeFullscreen() {
 		return
 	}
