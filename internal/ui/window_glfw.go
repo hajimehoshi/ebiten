@@ -105,7 +105,7 @@ func (w *glfwWindow) IsMaximized() bool {
 	}
 	var v bool
 	w.ui.t.Call(func() {
-		v = w.ui.window.GetAttrib(glfw.Maximized) == glfw.True
+		v = w.ui.window.GetAttrib(glfw.Maximized) == glfw.True && !w.ui.isNativeFullscreen()
 	})
 	return v
 }
