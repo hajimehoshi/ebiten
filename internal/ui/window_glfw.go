@@ -45,10 +45,6 @@ func (w *glfwWindow) SetDecorated(decorated bool) {
 	}
 
 	w.ui.t.Call(func() {
-		if w.ui.isNativeFullscreen() {
-			return
-		}
-
 		w.ui.setWindowDecorated(decorated)
 	})
 }
@@ -75,9 +71,6 @@ func (w *glfwWindow) SetResizingMode(mode WindowResizingMode) {
 		return
 	}
 	w.ui.t.Call(func() {
-		if w.ui.isNativeFullscreen() {
-			return
-		}
 		w.ui.setWindowResizingMode(mode)
 	})
 }
@@ -99,9 +92,6 @@ func (w *glfwWindow) SetFloating(floating bool) {
 		return
 	}
 	w.ui.t.Call(func() {
-		if w.ui.isNativeFullscreen() {
-			return
-		}
 		w.ui.setWindowFloating(floating)
 	})
 }
