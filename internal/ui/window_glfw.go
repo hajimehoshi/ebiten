@@ -113,10 +113,11 @@ func (w *glfwWindow) IsMaximized() bool {
 func (w *glfwWindow) Maximize() {
 	// Do not allow maximizing the window when the window is not resizable.
 	// On Windows, it is possible to restore the window from being maximized by mouse-dragging,
-	// and this can be an unexpected behavior.
+	// and this can be an unexpected behavior (#1990).
 	if w.ResizingMode() != WindowResizingModeEnabled {
-		panic("ui: a window to maximize must be resizable")
+		return
 	}
+
 	if !w.ui.isRunning() {
 		w.ui.setInitWindowMaximized(true)
 		return
