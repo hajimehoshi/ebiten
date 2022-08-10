@@ -65,8 +65,6 @@ type userInterfaceImpl struct {
 	maxWindowHeightInDIP int
 
 	running              uint32
-	origWindowPosX       int
-	origWindowPosY       int
 	runnableOnUnfocused  bool
 	fpsMode              FPSModeType
 	iconImages           []image.Image
@@ -117,6 +115,8 @@ type userInterfaceImpl struct {
 	// t is the main thread == the rendering thread.
 	t thread.Thread
 	m sync.RWMutex
+
+	native userInterfaceImplNative
 }
 
 const (
@@ -132,8 +132,6 @@ func init() {
 		minWindowHeightInDIP:     glfw.DontCare,
 		maxWindowWidthInDIP:      glfw.DontCare,
 		maxWindowHeightInDIP:     glfw.DontCare,
-		origWindowPosX:           invalidPos,
-		origWindowPosY:           invalidPos,
 		initCursorMode:           CursorModeVisible,
 		initWindowDecorated:      true,
 		initWindowPositionXInDIP: invalidPos,
@@ -143,6 +141,7 @@ func init() {
 		initFocused:              true,
 		fpsMode:                  FPSModeVsyncOn,
 	}
+	theUI.native.initialize()
 	theUI.input.ui = &theUI.userInterfaceImpl
 	theUI.iwindow.ui = &theUI.userInterfaceImpl
 }
@@ -1660,23 +1659,6 @@ func (u *userInterfaceImpl) setWindowTitle(title string) {
 	}
 
 	u.window.SetTitle(title)
-}
-
-func (u *userInterfaceImpl) origWindowPos() (int, int) {
-	if x, y, ok := u.origWindowPosByOS(); ok {
-		return x, y
-	}
-	return u.origWindowPosX, u.origWindowPosY
-}
-
-func (u *userInterfaceImpl) setOrigWindowPos(x, y int) {
-	// TODO: The original position should be updated at a 'PosCallback'.
-
-	if u.setOrigWindowPosByOS(x, y) {
-		return
-	}
-	u.origWindowPosX = x
-	u.origWindowPosY = y
 }
 
 // forceToRefreshIfNeeded forces to refresh the framebuffer by resizing the window quickly.

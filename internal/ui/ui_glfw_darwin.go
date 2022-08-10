@@ -287,6 +287,9 @@ func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
 // clearVideoModeScaleCache must be called from the main thread.
 func clearVideoModeScaleCache() {}
 
+type userInterfaceImplNative struct {
+}
+
 // dipFromGLFWMonitorPixel must be called from the main thread.
 func (u *userInterfaceImpl) dipFromGLFWMonitorPixel(x float64, monitor *glfw.Monitor) float64 {
 	return x
@@ -391,23 +394,25 @@ func initializeWindowAfterCreation(w *glfw.Window) {
 	C.initializeWindow(C.uintptr_t(w.GetCocoaWindow()))
 }
 
-func (u *userInterfaceImpl) origWindowPosByOS() (int, int, bool) {
+func (u *userInterfaceImpl) origWindowPos() (int, int) {
 	if !u.isNativeFullscreen() {
-		return invalidPos, invalidPos, true
+		return invalidPos, invalidPos
 	}
 	var cx, cy C.int
 	C.windowOriginalPosition(C.uintptr_t(u.window.GetCocoaWindow()), &cx, &cy)
 	x := int(cx)
 	y := flipY(int(cy)) - u.windowHeightInDIP
-	return x, y, true
+	return x, y
 }
 
-func (u *userInterfaceImpl) setOrigWindowPosByOS(x, y int) bool {
+func (u *userInterfaceImpl) setOrigWindowPos(x, y int) {
 	if !u.isNativeFullscreen() {
-		return true
+		return
 	}
 	cx := C.int(x)
 	cy := C.int(flipY(y + u.windowHeightInDIP))
 	C.setWindowOriginalPosition(C.uintptr_t(u.window.GetCocoaWindow()), cx, cy)
-	return true
+}
+
+func (u *userInterfaceImplNative) initialize() {
 }

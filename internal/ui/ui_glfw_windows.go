@@ -137,6 +137,11 @@ func _GetCursorPos() (int32, int32, error) {
 	return pt.x, pt.y, nil
 }
 
+type userInterfaceImplNative struct {
+	origWindowPosX int
+	origWindowPosY int
+}
+
 // clearVideoModeScaleCache must be called from the main thread.
 func clearVideoModeScaleCache() {}
 
@@ -262,10 +267,16 @@ func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) 
 func initializeWindowAfterCreation(w *glfw.Window) {
 }
 
-func (u *userInterfaceImpl) origWindowPosByOS() (int, int, bool) {
-	return 0, 0, false
+func (u *userInterfaceImpl) origWindowPos() (int, int) {
+	return u.native.origWindowPosX, u.native.origWindowPosY
 }
 
-func (u *userInterfaceImpl) setOrigWindowPosByOS(x, y int) bool {
-	return false
+func (u *userInterfaceImpl) setOrigWindowPos(x, y int) {
+	u.native.origWindowPosX = x
+	u.native.origWindowPosY = y
+}
+
+func (u *userInterfaceImplNative) initialize() {
+	u.origWindowPosX = invalidPos
+	u.origWindowPosY = invalidPos
 }
