@@ -143,8 +143,10 @@ func videoModeScaleUncached(m *glfw.Monitor) float64 {
 }
 
 type userInterfaceImplNative struct {
-	origWindowPosX int
-	origWindowPosY int
+	origWindowPosX        int
+	origWindowPosY        int
+	origWindowWidthInDIP  int
+	origWindowHeightInDIP int
 }
 
 // dipFromGLFWMonitorPixel must be called from the main thread.
@@ -243,6 +245,15 @@ func (u *userInterfaceImpl) origWindowPos() (int, int) {
 func (u *userInterfaceImpl) setOrigWindowPos(x, y int) {
 	u.native.origWindowPosX = x
 	u.native.origWindowPosY = y
+}
+
+func (u *userInterfaceImpl) origWindowSizeInDIP() (int, int) {
+	return u.native.origWindowWidthInDIP, u.native.origWindowHeightInDIP
+}
+
+func (u *userInterfaceImpl) setOrigWindowSizeInDIP(width, height int) {
+	u.native.origWindowWidthInDIP = width
+	u.native.origWindowHeightInDIP = height
 }
 
 func (u *userInterfaceImplNative) initialize() {

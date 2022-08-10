@@ -56,9 +56,6 @@ type userInterfaceImpl struct {
 	title   string
 	window  *glfw.Window
 
-	windowWidthInDIP  int
-	windowHeightInDIP int
-
 	minWindowWidthInDIP  int
 	minWindowHeightInDIP int
 	maxWindowWidthInDIP  int
@@ -555,7 +552,7 @@ func (u *userInterfaceImpl) SetFullscreen(fullscreen bool) {
 		if u.isFullscreen() == fullscreen {
 			return
 		}
-		w, h := u.windowWidthInDIP, u.windowHeightInDIP
+		w, h := u.origWindowSizeInDIP()
 		u.setWindowSizeInDIP(w, h, fullscreen)
 	})
 }
@@ -972,7 +969,7 @@ func (u *userInterfaceImpl) init() error {
 }
 
 func (u *userInterfaceImpl) updateSize() {
-	ww, wh := u.windowWidthInDIP, u.windowHeightInDIP
+	ww, wh := u.origWindowSizeInDIP()
 	u.setWindowSizeInDIP(ww, wh, u.isFullscreen())
 }
 
@@ -993,11 +990,12 @@ func (u *userInterfaceImpl) outsideSize() (float64, float64) {
 	}
 
 	if u.window.GetAttrib(glfw.Iconified) == glfw.True {
-		return float64(u.windowWidthInDIP), float64(u.windowHeightInDIP)
+		w, h := u.origWindowSizeInDIP()
+		return float64(w), float64(h)
 	}
 
-	// Instead of u.windowWidthInDIP and u.windowHeightInDIP, use the actual window size
-	// here. On Windows, the specified size at SetSize and the actual window size might
+	// Instead of u.origWindowSizeInDIP(), use the actual window size here.
+	// On Windows, the specified size at SetSize and the actual window size might
 	// not match (#1163).
 	ww, wh := u.window.GetSize()
 	w := u.dipFromGLFWPixel(float64(ww), u.currentMonitor())
@@ -1245,7 +1243,7 @@ func (u *userInterfaceImpl) setWindowSizeInDIP(width, height int, fullscreen boo
 	u.graphicsDriver.SetFullscreen(fullscreen)
 
 	scale := u.deviceScaleFactor(u.currentMonitor())
-	if u.windowWidthInDIP == width && u.windowHeightInDIP == height && u.isFullscreen() == fullscreen && u.lastDeviceScaleFactor == scale {
+	if ow, oh := u.origWindowSizeInDIP(); ow == width && oh == height && u.isFullscreen() == fullscreen && u.lastDeviceScaleFactor == scale {
 		return
 	}
 
@@ -1280,8 +1278,7 @@ func (u *userInterfaceImpl) setWindowSizeInDIP(width, height int, fullscreen boo
 	u.adjustViewSize()
 
 	// As width might be updated, update windowWidth/Height here.
-	u.windowWidthInDIP = width
-	u.windowHeightInDIP = height
+	u.setOrigWindowSizeInDIP(width, height)
 }
 
 func (u *userInterfaceImpl) minimumWindowWidth() int {
