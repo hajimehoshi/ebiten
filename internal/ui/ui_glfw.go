@@ -1056,9 +1056,7 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 	// The vsync state might be changed in other places (e.g., the SetSizeCallback).
 	// Also, when toggling to fullscreen, vsync state might be reset unexpectedly (#1787).
 	u.updateVsync()
-
 	u.updateSize()
-	outsideWidth, outsideHeight := u.outsideSize()
 
 	if u.fpsMode != FPSModeVsyncOffMinimum {
 		// TODO: Updating the input can be skipped when clock.Update returns 0 (#1367).
@@ -1082,6 +1080,7 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 		return 0, 0, err
 	}
 
+	outsideWidth, outsideHeight := u.outsideSize()
 	return outsideWidth, outsideHeight, nil
 }
 
