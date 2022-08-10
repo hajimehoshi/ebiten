@@ -1325,43 +1325,44 @@ func (u *userInterfaceImpl) setWindowSizeInDIPImpl(width, height int, fullscreen
 				u.swapBuffers()
 			}
 		}
-	} else {
-		if mw := u.minimumWindowWidth(); width < mw {
-			width = mw
-		}
-		if u.isNativeFullscreenAvailable() && u.isNativeFullscreen() {
-			u.setNativeFullscreen(false)
-		} else if !u.isNativeFullscreenAvailable() && u.window.GetMonitor() != nil {
-			ww := int(u.dipToGLFWPixel(float64(width), u.currentMonitor()))
-			wh := int(u.dipToGLFWPixel(float64(height), u.currentMonitor()))
-			u.window.SetMonitor(nil, 0, 0, ww, wh, 0)
-			glfw.PollEvents()
-			u.swapBuffers()
-		}
+		return
+	}
 
-		if x, y := u.origWindowPos(); x != invalidPos && y != invalidPos {
+	if mw := u.minimumWindowWidth(); width < mw {
+		width = mw
+	}
+	if u.isNativeFullscreenAvailable() && u.isNativeFullscreen() {
+		u.setNativeFullscreen(false)
+	} else if !u.isNativeFullscreenAvailable() && u.window.GetMonitor() != nil {
+		ww := int(u.dipToGLFWPixel(float64(width), u.currentMonitor()))
+		wh := int(u.dipToGLFWPixel(float64(height), u.currentMonitor()))
+		u.window.SetMonitor(nil, 0, 0, ww, wh, 0)
+		glfw.PollEvents()
+		u.swapBuffers()
+	}
+
+	if x, y := u.origWindowPos(); x != invalidPos && y != invalidPos {
+		u.window.SetPos(x, y)
+		// Dirty hack for macOS (#703). Rendering doesn't work correctly with one SetPos, but
+		// work with two or more SetPos.
+		if runtime.GOOS == "darwin" {
+			u.window.SetPos(x+1, y)
 			u.window.SetPos(x, y)
-			// Dirty hack for macOS (#703). Rendering doesn't work correctly with one SetPos, but
-			// work with two or more SetPos.
-			if runtime.GOOS == "darwin" {
-				u.window.SetPos(x+1, y)
-				u.window.SetPos(x, y)
-			}
-			u.setOrigWindowPos(invalidPos, invalidPos)
 		}
+		u.setOrigWindowPos(invalidPos, invalidPos)
+	}
 
-		// Set the window size after the position. The order matters.
-		// In the opposite order, the window size might not be correct when going back from fullscreen with multi monitors.
-		oldW, oldH := u.window.GetSize()
-		newW := int(u.dipToGLFWPixel(float64(width), u.currentMonitor()))
-		newH := int(u.dipToGLFWPixel(float64(height), u.currentMonitor()))
-		if oldW != newW || oldH != newH {
-			// Just after SetSize, GetSize is not reliable especially on Linux/UNIX.
-			// Let's wait for FramebufferSize callback in any cases.
-			u.waitForFramebufferSizeCallback(u.window, func() {
-				u.window.SetSize(newW, newH)
-			})
-		}
+	// Set the window size after the position. The order matters.
+	// In the opposite order, the window size might not be correct when going back from fullscreen with multi monitors.
+	oldW, oldH := u.window.GetSize()
+	newW := int(u.dipToGLFWPixel(float64(width), u.currentMonitor()))
+	newH := int(u.dipToGLFWPixel(float64(height), u.currentMonitor()))
+	if oldW != newW || oldH != newH {
+		// Just after SetSize, GetSize is not reliable especially on Linux/UNIX.
+		// Let's wait for FramebufferSize callback in any cases.
+		u.waitForFramebufferSizeCallback(u.window, func() {
+			u.window.SetSize(newW, newH)
+		})
 	}
 }
 
