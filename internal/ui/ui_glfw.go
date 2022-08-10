@@ -747,7 +747,8 @@ func (u *userInterfaceImpl) registerWindowSetSizeCallback() {
 				u.setWindowSizeInDIP(w, h, u.isFullscreen())
 			}
 
-			outsideWidth, outsideHeight := u.updateSize()
+			u.updateSize()
+			outsideWidth, outsideHeight := u.outsideSize()
 			deviceScaleFactor := u.deviceScaleFactor(u.currentMonitor())
 
 			// In the game's update, u.t.Call might be called.
@@ -970,34 +971,37 @@ func (u *userInterfaceImpl) init() error {
 	return nil
 }
 
-func (u *userInterfaceImpl) updateSize() (float64, float64) {
+func (u *userInterfaceImpl) updateSize() {
 	ww, wh := u.windowWidthInDIP, u.windowHeightInDIP
 	u.setWindowSizeInDIP(ww, wh, u.isFullscreen())
+}
 
-	var w, h float64
+func (u *userInterfaceImpl) outsideSize() (float64, float64) {
 	if u.isFullscreen() && !u.isNativeFullscreen() {
 		// On Linux, the window size is not reliable just after making the window
 		// fullscreened. Use the monitor size.
 		// On macOS's native fullscreen, the window's size returns a more precise size
 		// reflecting the adjustment of the view size (#1745).
+		var w, h float64
 		if m := u.currentMonitor(); m != nil {
 			v := m.GetVideoMode()
 			ww, wh := v.Width, v.Height
 			w = u.dipFromGLFWMonitorPixel(float64(ww), m)
 			h = u.dipFromGLFWMonitorPixel(float64(wh), m)
 		}
-	} else if u.window.GetAttrib(glfw.Iconified) == glfw.True {
-		w = float64(u.windowWidthInDIP)
-		h = float64(u.windowHeightInDIP)
-	} else {
-		// Instead of u.windowWidthInDIP and u.windowHeightInDIP, use the actual window size
-		// here. On Windows, the specified size at SetSize and the actual window size might
-		// not match (#1163).
-		ww, wh := u.window.GetSize()
-		w = u.dipFromGLFWPixel(float64(ww), u.currentMonitor())
-		h = u.dipFromGLFWPixel(float64(wh), u.currentMonitor())
+		return w, h
 	}
 
+	if u.window.GetAttrib(glfw.Iconified) == glfw.True {
+		return float64(u.windowWidthInDIP), float64(u.windowHeightInDIP)
+	}
+
+	// Instead of u.windowWidthInDIP and u.windowHeightInDIP, use the actual window size
+	// here. On Windows, the specified size at SetSize and the actual window size might
+	// not match (#1163).
+	ww, wh := u.window.GetSize()
+	w := u.dipFromGLFWPixel(float64(ww), u.currentMonitor())
+	h := u.dipFromGLFWPixel(float64(wh), u.currentMonitor())
 	return w, h
 }
 
@@ -1053,7 +1057,8 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 	// Also, when toggling to fullscreen, vsync state might be reset unexpectedly (#1787).
 	u.updateVsync()
 
-	outsideWidth, outsideHeight := u.updateSize()
+	u.updateSize()
+	outsideWidth, outsideHeight := u.outsideSize()
 
 	if u.fpsMode != FPSModeVsyncOffMinimum {
 		// TODO: Updating the input can be skipped when clock.Update returns 0 (#1367).
