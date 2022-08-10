@@ -246,6 +246,6 @@ func (u *userInterfaceImpl) setOrigWindowPos(x, y int) {
 }
 
 func (u *userInterfaceImplNative) initialize() {
-	u.native.origWindowPosX = invalidPos
-	u.native.origWindowPosY = invalidPos
+	u.origWindowPosX = invalidPos
+	u.origWindowPosY = invalidPos
 }
