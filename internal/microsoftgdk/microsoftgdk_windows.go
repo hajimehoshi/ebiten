@@ -22,10 +22,25 @@ package microsoftgdk
 
 // #include <stdint.h>
 //
+// uint32_t XGameRuntimeInitialize(void);
 // uint32_t XSystemGetDeviceType(void);
 import "C"
 
+import (
+	"fmt"
+
+	"golang.org/x/sys/windows"
+)
+
+var (
+	kernel32 = windows.NewLazyDLL("kernel32")
+
+	procGetACP = kernel32.NewProc("GetACP")
+)
+
 const (
+	_CP_UTF8 = 65001
+
 	_XSystemDeviceType_Unknown              = 0x00
 	_XSystemDeviceType_Pc                   = 0x01
 	_XSystemDeviceType_XboxOne              = 0x02
@@ -36,6 +51,11 @@ const (
 	_XSystemDeviceType_XboxScarlettAnaconda = 0x07
 	_XSystemDeviceType_XboxScarlettDevkit   = 0x08
 )
+
+func _GetACP() uint32 {
+	r, _, _ := procGetACP.Call()
+	return uint32(r)
+}
 
 func IsXbox() bool {
 	t := C.XSystemGetDeviceType()
@@ -65,5 +85,14 @@ func D3D12DLLName() string {
 		return "d3d12_xs.dll"
 	default:
 		return ""
+	}
+}
+
+func init() {
+	if r := C.XGameRuntimeInitialize(); uint32(r) != uint32(windows.S_OK) {
+		panic(fmt.Sprintf("microsoftgdk: XSystemGetDeviceType failed: HRESULT(%d)", r))
+	}
+	if got, want := _GetACP(), uint32(_CP_UTF8); got != want {
+		panic(fmt.Sprintf("microsoftgdk: GetACP(): got %d, want %d", got, want))
 	}
 }
