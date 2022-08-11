@@ -19,9 +19,6 @@ package microsoftgdk
 
 // Unfortunately, some functions like XSystemGetDeviceType is not implemented in a DLL,
 // so LoadLibrary is not available.
-//
-// When creating a c-archive file with the build tag microsoftgdk, create a dummy DLL
-// from dummy.c, and link it.
 
 // #include <stdint.h>
 //
