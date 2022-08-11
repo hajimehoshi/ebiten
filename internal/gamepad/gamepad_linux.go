@@ -27,6 +27,8 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/unix"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
 const dirName = "/dev/input"
@@ -407,6 +409,14 @@ func (g *nativeGamepadImpl) handleAbsEvent(code int, value int32) {
 }
 
 func (*nativeGamepadImpl) hasOwnStandardLayoutMapping() bool {
+	return false
+}
+
+func (*nativeGamepadImpl) isStandardAxisAvailableInOwnMapping(axis gamepaddb.StandardAxis) bool {
+	return false
+}
+
+func (*nativeGamepadImpl) isStandardButtonAvailableInOwnMapping(button gamepaddb.StandardButton) bool {
 	return false
 }
 

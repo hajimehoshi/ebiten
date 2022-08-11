@@ -389,6 +389,23 @@ func Name(id string) string {
 	return gamepadNames[id]
 }
 
+func HasStandardAxis(id string, axis StandardAxis) bool {
+	mappingsM.RLock()
+	defer mappingsM.RUnlock()
+
+	mappings := axisMappings(id)
+	if mappings == nil {
+		return false
+	}
+
+	mapping := mappings[axis]
+	if mapping == nil {
+		return false
+	}
+
+	return true
+}
+
 func AxisValue(id string, axis StandardAxis, state GamepadState) float64 {
 	mappingsM.RLock()
 	defer mappingsM.RUnlock()
@@ -427,6 +444,23 @@ func AxisValue(id string, axis StandardAxis, state GamepadState) float64 {
 	}
 
 	return 0
+}
+
+func HasStandardButton(id string, button StandardButton) bool {
+	mappingsM.RLock()
+	defer mappingsM.RUnlock()
+
+	mappings := buttonMappings(id)
+	if mappings == nil {
+		return false
+	}
+
+	mapping := mappings[button]
+	if mapping == nil {
+		return false
+	}
+
+	return true
 }
 
 func ButtonValue(id string, button StandardButton, state GamepadState) float64 {
