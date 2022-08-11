@@ -190,6 +190,8 @@ type Gamepad struct {
 type nativeGamepad interface {
 	update(gamepads *gamepads) error
 	hasOwnStandardLayoutMapping() bool
+	isStandardAxisAvailableInOwnMapping(axis gamepaddb.StandardAxis) bool
+	isStandardButtonAvailableInOwnMapping(button gamepaddb.StandardButton) bool
 	axisCount() int
 	buttonCount() int
 	hatCount() int
@@ -279,6 +281,28 @@ func (g *Gamepad) IsStandardLayoutAvailable() bool {
 		return true
 	}
 	return g.native.hasOwnStandardLayoutMapping()
+}
+
+// IsStandardAxisAvailable is concurrent safe.
+func (g *Gamepad) IsStandardAxisAvailable(button gamepaddb.StandardAxis) bool {
+	g.m.Lock()
+	defer g.m.Unlock()
+
+	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
+		return gamepaddb.HasStandardAxis(g.sdlID, button)
+	}
+	return g.native.isStandardAxisAvailableInOwnMapping(button)
+}
+
+// IsStandardButtonAvailable is concurrent safe.
+func (g *Gamepad) IsStandardButtonAvailable(button gamepaddb.StandardButton) bool {
+	g.m.Lock()
+	defer g.m.Unlock()
+
+	if gamepaddb.HasStandardLayoutMapping(g.sdlID) {
+		return gamepaddb.HasStandardButton(g.sdlID, button)
+	}
+	return g.native.isStandardButtonAvailableInOwnMapping(button)
 }
 
 // StandardAxisValue is concurrent-safe.

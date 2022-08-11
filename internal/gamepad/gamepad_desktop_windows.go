@@ -28,6 +28,8 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
 type dinputObjectType int
@@ -568,6 +570,14 @@ type nativeGamepadDesktop struct {
 }
 
 func (*nativeGamepadDesktop) hasOwnStandardLayoutMapping() bool {
+	return false
+}
+
+func (*nativeGamepadDesktop) isStandardAxisAvailableInOwnMapping(axis gamepaddb.StandardAxis) bool {
+	return false
+}
+
+func (*nativeGamepadDesktop) isStandardButtonAvailableInOwnMapping(button gamepaddb.StandardButton) bool {
 	return false
 }
 

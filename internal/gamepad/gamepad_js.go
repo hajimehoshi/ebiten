@@ -18,6 +18,8 @@ import (
 	"encoding/hex"
 	"syscall/js"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
 var (
@@ -112,6 +114,20 @@ type nativeGamepadImpl struct {
 
 func (g *nativeGamepadImpl) hasOwnStandardLayoutMapping() bool {
 	return g.mapping == "standard"
+}
+
+func (g *nativeGamepadImpl) isStandardAxisAvailableInOwnMapping(axis gamepaddb.StandardAxis) bool {
+	if !g.hasOwnStandardLayoutMapping() {
+		return false
+	}
+	return axis >= 0 && int(axis) < g.axisCount()
+}
+
+func (g *nativeGamepadImpl) isStandardButtonAvailableInOwnMapping(button gamepaddb.StandardButton) bool {
+	if !g.hasOwnStandardLayoutMapping() {
+		return false
+	}
+	return button >= 0 && int(button) < g.buttonCount()
 }
 
 func (g *nativeGamepadImpl) update(gamepads *gamepads) error {

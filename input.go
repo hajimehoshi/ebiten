@@ -303,6 +303,28 @@ func IsStandardGamepadLayoutAvailable(id GamepadID) bool {
 	return g.IsStandardLayoutAvailable()
 }
 
+// IsStandardGamepadAxisAvailable reports whether the standard gamepad axis is available on the gamepad (id).
+//
+// IsStandardGamepadAxisAvailable is concurrent-safe.
+func IsStandardGamepadAxisAvailable(id GamepadID, axis StandardGamepadAxis) bool {
+	g := gamepad.Get(id)
+	if g == nil {
+		return false
+	}
+	return g.IsStandardAxisAvailable(axis)
+}
+
+// IsStandardGamepadButtonAvailable reports whether the standard gamepad button is available on the gamepad (id).
+//
+// IsStandardGamepadButtonAvailable is concurrent-safe.
+func IsStandardGamepadButtonAvailable(id GamepadID, button StandardGamepadButton) bool {
+	g := gamepad.Get(id)
+	if g == nil {
+		return false
+	}
+	return g.IsStandardButtonAvailable(button)
+}
+
 // UpdateStandardGamepadLayoutMappings parses the specified string mappings in SDL_GameControllerDB format and
 // updates the gamepad layout definitions.
 //
