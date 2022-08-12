@@ -780,6 +780,7 @@ func (u *userInterfaceImpl) registerWindowCloseCallback() {
 			if !u.isWindowClosingHandled() {
 				return
 			}
+			u.window.Focus()
 			u.window.SetShouldClose(false)
 		})
 	}
