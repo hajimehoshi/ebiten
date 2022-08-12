@@ -311,10 +311,10 @@ func BoundString(face font.Face, text string) image.Rectangle {
 	}
 
 	return image.Rect(
-		int(math.Floor(fixed26_6ToFloat64(bounds.Min.X))),
-		int(math.Floor(fixed26_6ToFloat64(bounds.Min.Y))),
-		int(math.Ceil(fixed26_6ToFloat64(bounds.Max.X))),
-		int(math.Ceil(fixed26_6ToFloat64(bounds.Max.Y))),
+		bounds.Min.X.Floor(),
+		bounds.Min.Y.Floor(),
+		bounds.Max.X.Ceil(),
+		bounds.Max.Y.Ceil(),
 	)
 }
 
