@@ -50,21 +50,10 @@ package nintendosdk
 // int EbitenGetTouchNum();
 // void EbitenGetTouches(struct Touch* touches);
 // void EbitenVibrateGamepad(int id, double durationInSeconds, double strongMagnitude, double weakMagnitude);
-//
-// // Audio
-// typedef void (*OnReadCallback)(float* buf, size_t length);
-// void EbitenOpenAudio(int sample_rate, int channel_num, OnReadCallback on_read_callback);
-//
-// void EbitenAudioOnReadCallback(float* buf, size_t length);
-// static void EbitenOpenAudioProxy(int sample_rate, int channel_num) {
-//   EbitenOpenAudio(sample_rate, channel_num, EbitenAudioOnReadCallback);
-// }
 import "C"
 
 import (
-	"reflect"
 	"time"
-	"unsafe"
 )
 
 type Gamepad struct {
@@ -160,21 +149,4 @@ func AppendTouches(touches []Touch) []Touch {
 
 func VibrateGamepad(id int, duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
 	C.EbitenVibrateGamepad(C.int(id), C.double(float64(duration)/float64(time.Second)), C.double(strongMagnitude), C.double(weakMagnitude))
-}
-
-var onReadCallback func(buf []float32)
-
-func OpenAudio(sampleRate, channelCount int, onRead func(buf []float32)) {
-	C.EbitenOpenAudioProxy(C.int(sampleRate), C.int(channelCount))
-	onReadCallback = onRead
-}
-
-//export EbitenAudioOnReadCallback
-func EbitenAudioOnReadCallback(buf *C.float, length C.size_t) {
-	var s []float32
-	h := (*reflect.SliceHeader)(unsafe.Pointer(&s))
-	h.Data = uintptr(unsafe.Pointer(buf))
-	h.Len = int(length)
-	h.Cap = int(length)
-	onReadCallback(s)
 }
