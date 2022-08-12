@@ -22,7 +22,6 @@ import (
 
 var (
 	object = js.Global().Get("Object")
-	go2cpp = js.Global().Get("go2cpp")
 )
 
 type nativeGamepadsImpl struct {
@@ -38,7 +37,7 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
 }
 
 func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
-	// TODO: Use the gamepad events instead of navigator.getGamepads after go2cpp is removed.
+	// TODO: Use the gamepad events instead of navigator.getGamepads.
 
 	defer func() {
 		for k := range g.indices {
@@ -112,10 +111,6 @@ type nativeGamepadImpl struct {
 }
 
 func (g *nativeGamepadImpl) hasOwnStandardLayoutMapping() bool {
-	// With go2cpp, the controller must have the standard
-	if go2cpp.Truthy() {
-		return true
-	}
 	return g.mapping == "standard"
 }
 
@@ -164,7 +159,7 @@ func (g *nativeGamepadImpl) hatState(hat int) int {
 }
 
 func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
-	// vibrationActuator is avaialble on Chrome.
+	// vibrationActuator is available on Chrome.
 	if va := g.value.Get("vibrationActuator"); va.Truthy() {
 		if !va.Get("playEffect").Truthy() {
 			return

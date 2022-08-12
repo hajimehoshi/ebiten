@@ -59,7 +59,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func main() {
 	// Run a game loop at least for one frame to ensure the shader disposed.
-	if err := ebiten.RunGame(&Game{}); err != nil && err != regularTermination {
+	if err := ebiten.RunGame(&Game{}); err != nil && !errors.Is(err, regularTermination) {
 		panic(err)
 	}
 }

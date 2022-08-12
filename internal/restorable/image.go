@@ -54,13 +54,14 @@ func (p *Pixels) Clear(x, y, width, height int) {
 	p.pixelsRecords.clear(x, y, width, height)
 }
 
-func (p *Pixels) At(i, j int) (byte, byte, byte, byte) {
-	if p.pixelsRecords != nil {
-		if r, g, b, a, ok := p.pixelsRecords.at(i, j); ok {
-			return r, g, b, a
+func (p *Pixels) ReadPixels(pixels []byte, x, y, width, height, imageWidth, imageHeight int) {
+	if p.pixelsRecords == nil {
+		for i := range pixels {
+			pixels[i] = 0
 		}
+		return
 	}
-	return 0, 0, 0, 0
+	p.pixelsRecords.readPixels(pixels, x, y, width, height, imageWidth, imageHeight)
 }
 
 // drawTrianglesHistoryItem is an item for history of draw-image commands.
@@ -344,14 +345,14 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 //
 // The vertex floats are:
 //
-//   0: Destination X in pixels
-//   1: Destination Y in pixels
-//   2: Source X in texels
-//   3: Source Y in texels
-//   4: Color R [0.0-1.0]
-//   5: Color G
-//   6: Color B
-//   7: Color Y
+//	0: Destination X in pixels
+//	1: Destination Y in pixels
+//	2: Source X in texels
+//	3: Source Y in texels
+//	4: Color R [0.0-1.0]
+//	5: Color G
+//	6: Color B
+//	7: Color Y
 func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
 	if i.priority {
 		panic("restorable: DrawTriangles cannot be called on a priority image")
@@ -447,20 +448,15 @@ func (i *Image) readPixelsFromGPUIfNeeded(graphicsDriver graphicsdriver.Graphics
 	return nil
 }
 
-// At returns a color value at (x, y).
-//
-// Note that this must not be called until context is available.
-func (i *Image) At(graphicsDriver graphicsdriver.Graphics, x, y int) (byte, byte, byte, byte, error) {
-	if x < 0 || y < 0 || i.width <= x || i.height <= y {
-		return 0, 0, 0, 0, nil
-	}
-
+func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, x, y, width, height int) error {
 	if err := i.readPixelsFromGPUIfNeeded(graphicsDriver); err != nil {
-		return 0, 0, 0, 0, err
+		return err
 	}
-
-	r, g, b, a := i.basePixels.At(x, y)
-	return r, g, b, a, nil
+	if got, want := len(pixels), 4*width*height; got != want {
+		return fmt.Errorf("restorable: len(pixels) must be %d but %d at ReadPixels", want, got)
+	}
+	i.basePixels.ReadPixels(pixels, x, y, width, height, i.width, i.height)
+	return nil
 }
 
 // makeStaleIfDependingOn makes the image stale if the image depends on target.

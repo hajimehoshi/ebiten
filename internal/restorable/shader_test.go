@@ -75,7 +75,7 @@ func TestShader(t *testing.T) {
 	}
 
 	want := color.RGBA{0xff, 0, 0, 0xff}
-	got := pixelsToColor(img.BasePixelsForTesting(), 0, 0)
+	got := pixelsToColor(img.BasePixelsForTesting(), 0, 0, 1, 1)
 	if !sameColors(got, want, 1) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -112,7 +112,7 @@ func TestShaderChain(t *testing.T) {
 
 	for i, img := range imgs {
 		want := color.RGBA{0xff, 0, 0, 0xff}
-		got := pixelsToColor(img.BasePixelsForTesting(), 0, 0)
+		got := pixelsToColor(img.BasePixelsForTesting(), 0, 0, 1, 1)
 		if !sameColors(got, want, 1) {
 			t.Errorf("%d: got %v, want %v", i, got, want)
 		}
@@ -151,7 +151,7 @@ func TestShaderMultipleSources(t *testing.T) {
 	}
 
 	want := color.RGBA{0x40, 0x80, 0xc0, 0xff}
-	got := pixelsToColor(dst.BasePixelsForTesting(), 0, 0)
+	got := pixelsToColor(dst.BasePixelsForTesting(), 0, 0, 1, 1)
 	if !sameColors(got, want, 1) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -192,7 +192,7 @@ func TestShaderMultipleSourcesOnOneTexture(t *testing.T) {
 	}
 
 	want := color.RGBA{0x40, 0x80, 0xc0, 0xff}
-	got := pixelsToColor(dst.BasePixelsForTesting(), 0, 0)
+	got := pixelsToColor(dst.BasePixelsForTesting(), 0, 0, 1, 1)
 	if !sameColors(got, want, 1) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -223,7 +223,7 @@ func TestShaderDispose(t *testing.T) {
 	}
 
 	want := color.RGBA{0xff, 0, 0, 0xff}
-	got := pixelsToColor(img.BasePixelsForTesting(), 0, 0)
+	got := pixelsToColor(img.BasePixelsForTesting(), 0, 0, 1, 1)
 	if !sameColors(got, want, 1) {
 		t.Errorf("got %v, want %v", got, want)
 	}

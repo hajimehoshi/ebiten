@@ -27,8 +27,9 @@ import (
 
 type graphicsDriverCreatorImpl struct{}
 
-func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, error) {
-	return g.newOpenGL()
+func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {
+	graphics, err := g.newOpenGL()
+	return graphics, GraphicsLibraryOpenGL, err
 }
 
 func (*graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {
@@ -99,7 +100,6 @@ var (
 	canvas                js.Value
 	requestAnimationFrame = js.Global().Get("requestAnimationFrame")
 	setTimeout            = js.Global().Get("setTimeout")
-	go2cpp                = js.Global().Get("go2cpp")
 )
 
 var (
@@ -108,9 +108,6 @@ var (
 )
 
 func init() {
-	if go2cpp.Truthy() {
-		return
-	}
 	documentHasFocus = document.Get("hasFocus").Call("bind", document)
 	documentHidden = js.Global().Get("Object").Call("getOwnPropertyDescriptor", js.Global().Get("Document").Get("prototype"), "hidden").Get("get").Call("bind", document)
 }
@@ -237,20 +234,15 @@ func (u *userInterfaceImpl) DeviceScaleFactor() float64 {
 }
 
 func (u *userInterfaceImpl) outsideSize() (float64, float64) {
-	switch {
-	case document.Truthy():
+	if document.Truthy() {
 		body := document.Get("body")
 		bw := body.Get("clientWidth").Float()
 		bh := body.Get("clientHeight").Float()
 		return bw, bh
-	case go2cpp.Truthy():
-		w := go2cpp.Get("screenWidth").Float()
-		h := go2cpp.Get("screenHeight").Float()
-		return w, h
-	default:
-		// Node.js
-		return 640, 480
 	}
+
+	// Node.js
+	return 640, 480
 }
 
 func (u *userInterfaceImpl) suspended() bool {
@@ -261,10 +253,6 @@ func (u *userInterfaceImpl) suspended() bool {
 }
 
 func (u *userInterfaceImpl) isFocused() bool {
-	if go2cpp.Truthy() {
-		return true
-	}
-
 	if !documentHasFocus.Invoke().Bool() {
 		return false
 	}
@@ -293,7 +281,6 @@ func (u *userInterfaceImpl) updateImpl(force bool) error {
 	if err := gamepad.Update(); err != nil {
 		return err
 	}
-	u.input.updateForGo2Cpp()
 
 	a := u.DeviceScaleFactor()
 	if u.lastDeviceScaleFactor != a {
@@ -617,15 +604,12 @@ func (u *userInterfaceImpl) Run(game Game) error {
 }
 
 func (u *userInterfaceImpl) updateScreenSize() {
-	switch {
-	case document.Truthy():
+	if document.Truthy() {
 		body := document.Get("body")
 		bw := int(body.Get("clientWidth").Float() * u.DeviceScaleFactor())
 		bh := int(body.Get("clientHeight").Float() * u.DeviceScaleFactor())
 		canvas.Set("width", bw)
 		canvas.Set("height", bh)
-	case go2cpp.Truthy():
-		// TODO: Implement this
 	}
 }
 

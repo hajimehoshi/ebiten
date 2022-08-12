@@ -146,29 +146,6 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 		return nil, err
 	}
 
-	if ctxconfig.client != NoAPI {
-		if err := window.refreshContextAttribs(&ctxconfig); err != nil {
-			return nil, err
-		}
-	}
-
-	if window.monitor != nil {
-		if wndconfig.centerCursor {
-			if err := window.centerCursorInContentArea(); err != nil {
-				return nil, err
-			}
-		}
-	} else {
-		if wndconfig.visible {
-			window.platformShowWindow()
-			if wndconfig.focused {
-				if err := window.platformFocusWindow(); err != nil {
-					return nil, err
-				}
-			}
-		}
-	}
-
 	return window, nil
 }
 

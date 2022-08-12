@@ -18,7 +18,7 @@
 //
 //     curl --location --remote-name https://raw.githubusercontent.com/gabomdq/SDL_GameControllerDB/master/gamecontrollerdb.txt
 
-//go:generate file2byteslice -package gamepaddb -input=./gamecontrollerdb.txt -output=./gamecontrollerdb.txt.go -var=gamecontrollerdbTxt
+//go:generate go run github.com/hajimehoshi/file2byteslice/cmd/file2byteslice -package gamepaddb -input=./gamecontrollerdb.txt -output=./gamecontrollerdb.txt.go -var=gamecontrollerdbTxt
 
 package gamepaddb
 
@@ -26,7 +26,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io"
 	"runtime"
 	"strconv"
 	"strings"
@@ -92,10 +91,10 @@ var additionalGLFWGamepads = []byte(`
 `)
 
 func init() {
-	if _, err := Update(gamecontrollerdbTxt); err != nil {
+	if err := Update(gamecontrollerdbTxt); err != nil {
 		panic(err)
 	}
-	if _, err := Update(additionalGLFWGamepads); err != nil {
+	if err := Update(additionalGLFWGamepads); err != nil {
 		panic(err)
 	}
 }
@@ -139,11 +138,18 @@ func parseLine(line string, platform platform) (id string, name string, buttons 
 		return "", "", nil, nil, nil
 	}
 	tokens := strings.Split(line, ",")
+	if len(tokens) < 2 {
+		return "", "", nil, nil, fmt.Errorf("gamepaddb: syntax error")
+	}
+
 	for _, token := range tokens[2:] {
 		if len(token) == 0 {
 			continue
 		}
 		tks := strings.Split(token, ":")
+		if len(tks) < 2 {
+			return "", "", nil, nil, fmt.Errorf("gamepaddb: syntax error")
+		}
 
 		// Note that the platform part is listed in the definition of SDL_GetPlatform.
 		if tks[0] == "platform" {
@@ -501,12 +507,12 @@ func IsButtonPressed(id string, button StandardButton, state GamepadState) bool 
 // The string must be in the format of SDL_GameControllerDB.
 //
 // Update works atomically. If an error happens, nothing is updated.
-func Update(mappingData []byte) (bool, error) {
+func Update(mappingData []byte) error {
 	mappingsM.Lock()
 	defer mappingsM.Unlock()
 
 	buf := bytes.NewBuffer(mappingData)
-	r := bufio.NewReader(buf)
+	s := bufio.NewScanner(buf)
 
 	type parsedLine struct {
 		id      string
@@ -516,14 +522,11 @@ func Update(mappingData []byte) (bool, error) {
 	}
 	var lines []parsedLine
 
-	for {
-		line, err := r.ReadString('\n')
-		if err != nil && err != io.EOF {
-			return false, err
-		}
-		id, name, buttons, axes, err1 := parseLine(line, currentPlatform)
-		if err1 != nil {
-			return false, err1
+	for s.Scan() {
+		line := s.Text()
+		id, name, buttons, axes, err := parseLine(line, currentPlatform)
+		if err != nil {
+			return err
 		}
 		if id != "" {
 			lines = append(lines, parsedLine{
@@ -533,9 +536,10 @@ func Update(mappingData []byte) (bool, error) {
 				axes:    axes,
 			})
 		}
-		if err == io.EOF {
-			break
-		}
+	}
+
+	if err := s.Err(); err != nil {
+		return err
 	}
 
 	for _, l := range lines {
@@ -544,7 +548,7 @@ func Update(mappingData []byte) (bool, error) {
 		gamepadAxisMappings[l.id] = l.axes
 	}
 
-	return true, nil
+	return nil
 }
 
 func addAndroidDefaultMappings(id string) bool {

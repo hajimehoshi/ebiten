@@ -107,7 +107,7 @@ func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
 	q.nindices += len(indices)
 }
 
-// mustUseDifferentVertexBuffer reports whether a differnt vertex buffer must be used.
+// mustUseDifferentVertexBuffer reports whether a different vertex buffer must be used.
 func mustUseDifferentVertexBuffer(nextNumVertexFloats, nextNumIndices int) bool {
 	return nextNumVertexFloats > graphics.IndicesCount*graphics.VertexFloatCount || nextNumIndices > graphics.IndicesCount
 }

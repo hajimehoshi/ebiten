@@ -54,8 +54,8 @@ func (m *Mipmap) ReplacePixels(pix []byte, x, y, width, height int) {
 	m.disposeMipmaps()
 }
 
-func (m *Mipmap) At(graphicsDriver graphicsdriver.Graphics, x, y int) (r, g, b, a byte, err error) {
-	return m.orig.At(graphicsDriver, x, y)
+func (m *Mipmap) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, x, y, width, height int) error {
+	return m.orig.ReadPixels(graphicsDriver, pixels, x, y, width, height)
 }
 
 func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, canSkipMipmap bool) {

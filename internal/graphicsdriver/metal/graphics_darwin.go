@@ -351,13 +351,9 @@ func init() {
 	creatingSystemDefaultDeviceSucceeded = ok
 }
 
-// NewGraphics creates an implementation of graphicsdriver.Graphcis for Metal.
+// NewGraphics creates an implementation of graphicsdriver.Graphics for Metal.
 // The returned graphics value is nil iff the error is not nil.
 func NewGraphics() (graphicsdriver.Graphics, error) {
-	if !supportsMetal() {
-		return nil, fmt.Errorf("metal: Metal is not supported in this environment")
-	}
-
 	// On old mac devices like iMac 2011, Metal is not supported (#779).
 	// TODO: Is there a better way to check whether Metal is available or not?
 	// It seems OK to call MTLCreateSystemDefaultDevice multiple times, so this should be fine.

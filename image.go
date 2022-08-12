@@ -258,14 +258,14 @@ func (i *Image) adjustedRegion() graphicsdriver.Region {
 // DrawImage works more efficiently as batches
 // when the successive calls of DrawImages satisfy the below conditions:
 //
-//   * All render targets are same (A in A.DrawImage(B, op))
-//   * Either all ColorM element values are same or all the ColorM have only
-//      diagonal ('scale') elements
-//     * If only (*ColorM).Scale is applied to a ColorM, the ColorM has only
-//       diagonal elements. The other ColorM functions might modify the other
-//       elements.
-//   * All CompositeMode values are same
-//   * All Filter values are same
+//   - All render targets are same (A in A.DrawImage(B, op))
+//   - Either all ColorM element values are same or all the ColorM have only
+//     diagonal ('scale') elements
+//   - If only (*ColorM).Scale is applied to a ColorM, the ColorM has only
+//     diagonal elements. The other ColorM functions might modify the other
+//     elements.
+//   - All CompositeMode values are same
+//   - All Filter values are same
 //
 // Even when all the above conditions are satisfied, multiple draw commands can
 // be used in really rare cases. Ebitengine images usually share an internal
@@ -819,7 +819,9 @@ func (i *Image) at(x, y int) (r, g, b, a byte) {
 	if c, ok := i.setVerticesCache[[2]int{x, y}]; ok {
 		return c[0], c[1], c[2], c[3]
 	}
-	return i.image.At(x, y)
+	var pix [4]byte
+	i.image.ReadPixels(pix[:], x, y, 1, 1)
+	return pix[0], pix[1], pix[2], pix[3]
 }
 
 // Set sets the color at (x, y).

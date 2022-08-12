@@ -36,16 +36,16 @@ type graphicsDriverCreatorImpl struct {
 	transparent bool
 }
 
-func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, error) {
+func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {
 	d, err1 := g.newDirectX()
 	if err1 == nil {
-		return d, nil
+		return d, GraphicsLibraryDirectX, nil
 	}
 	o, err2 := g.newOpenGL()
 	if err2 == nil {
-		return o, nil
+		return o, GraphicsLibraryOpenGL, nil
 	}
-	return nil, fmt.Errorf("ui: failed to choose graphics drivers: DirectX: %v, OpenGL: %v", err1, err2)
+	return nil, GraphicsLibraryUnknown, fmt.Errorf("ui: failed to choose graphics drivers: DirectX: %v, OpenGL: %v", err1, err2)
 }
 
 func (*graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {

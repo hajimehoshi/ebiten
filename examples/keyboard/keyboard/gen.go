@@ -340,7 +340,7 @@ func (g *game) Layout(outw, outh int) (int, int) {
 
 func main() {
 	g := &game{}
-	if err := ebiten.RunGame(g); err != regularTermination {
+	if err := ebiten.RunGame(g); err != nil && !errors.Is(err, regularTermination) {
 		log.Fatal(err)
 	}
 	if err := outputKeyRectsGo(g.rects); err != nil {

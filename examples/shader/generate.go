@@ -17,11 +17,11 @@
 
 package main
 
-//go:generate file2byteslice -package=main -input=default.go -output=default_go.go -var=default_go -buildtags=example
-//go:generate file2byteslice -package=main -input=texel.go -output=texel_go.go -var=texel_go -buildtags=example
-//go:generate file2byteslice -package=main -input=lighting.go -output=lighting_go.go -var=lighting_go -buildtags=example
-//go:generate file2byteslice -package=main -input=radialblur.go -output=radialblur_go.go -var=radialblur_go -buildtags=example
-//go:generate file2byteslice -package=main -input=chromaticaberration.go -output=chromaticaberration_go.go -var=chromaticaberration_go -buildtags=example
-//go:generate file2byteslice -package=main -input=dissolve.go -output=dissolve_go.go -var=dissolve_go -buildtags=example
-//go:generate file2byteslice -package=main -input=water.go -output=water_go.go -var=water_go -buildtags=example
-//go:generate file2byteslice -package=main -input=crt.go -output=crt_go.go -var=crt_go -buildtags=example
+//go:generate go run github.com/hajimehoshi/file2byteslice/cmd/file2byteslice -package=main -input=default.go -output=default_go.go -var=default_go -buildtags=example
+//go:generate go run github.com/hajimehoshi/file2byteslice/cmd/file2byteslice -package=main -input=texel.go -output=texel_go.go -var=texel_go -buildtags=example
+//go:generate go run github.com/hajimehoshi/file2byteslice/cmd/file2byteslice -package=main -input=lighting.go -output=lighting_go.go -var=lighting_go -buildtags=example
+//go:generate go run github.com/hajimehoshi/file2byteslice/cmd/file2byteslice -package=main -input=radialblur.go -output=radialblur_go.go -var=radialblur_go -buildtags=example
+//go:generate go run github.com/hajimehoshi/file2byteslice/cmd/file2byteslice -package=main -input=chromaticaberration.go -output=chromaticaberration_go.go -var=chromaticaberration_go -buildtags=example
+//go:generate go run github.com/hajimehoshi/file2byteslice/cmd/file2byteslice -package=main -input=dissolve.go -output=dissolve_go.go -var=dissolve_go -buildtags=example
+//go:generate go run github.com/hajimehoshi/file2byteslice/cmd/file2byteslice -package=main -input=water.go -output=water_go.go -var=water_go -buildtags=example
+//go:generate go run github.com/hajimehoshi/file2byteslice/cmd/file2byteslice -package=main -input=crt.go -output=crt_go.go -var=crt_go -buildtags=example

@@ -175,6 +175,7 @@ func (g *nativeGamepadsDesktop) init(gamepads *gamepads) error {
 	}
 
 	if g.dinput8 != 0 {
+		// TODO: Use _GetModuleHandleExW to align with GLFW v3.3.8.
 		m, err := _GetModuleHandleW()
 		if err != nil {
 			return err

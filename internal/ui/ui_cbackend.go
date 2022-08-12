@@ -27,8 +27,9 @@ import (
 
 type graphicsDriverCreatorImpl struct{}
 
-func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, error) {
-	return g.newOpenGL()
+func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {
+	graphics, err := g.newOpenGL()
+	return graphics, GraphicsLibraryOpenGL, err
 }
 
 func (*graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {

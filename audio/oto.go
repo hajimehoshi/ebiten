@@ -23,6 +23,11 @@ import (
 	"github.com/hajimehoshi/oto/v2"
 )
 
+func newContext(sampleRate, channelCount, bitDepthInBytes int) (context, chan struct{}, error) {
+	ctx, ready, err := oto.NewContext(sampleRate, channelCount, bitDepthInBytes)
+	return otoContextToContext(ctx), ready, err
+}
+
 // otoContext is an interface for *oto.Context.
 type otoContext interface {
 	NewPlayer(io.Reader) oto.Player

@@ -202,7 +202,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func main() {
 	ebiten.SetFullscreen(true)
 	ebiten.SetWindowTitle("Sprites HD (Ebiten Demo)")
-	if err := ebiten.RunGame(&Game{}); err != nil && err != regularTermination {
+	if err := ebiten.RunGame(&Game{}); err != nil && !errors.Is(err, regularTermination) {
 		log.Fatal(err)
 	}
 }

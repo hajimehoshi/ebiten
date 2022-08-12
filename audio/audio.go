@@ -15,9 +15,10 @@
 // Package audio provides audio players.
 //
 // The stream format must be 16-bit little endian and 2 channels. The format is as follows:
-//   [data]      = [sample 1] [sample 2] [sample 3] ...
-//   [sample *]  = [channel 1] ...
-//   [channel *] = [byte 1] [byte 2] ...
+//
+//	[data]      = [sample 1] [sample 2] [sample 3] ...
+//	[sample *]  = [channel 1] ...
+//	[channel *] = [byte 1] [byte 2] ...
 //
 // An audio context (audio.Context object) has a sample rate you can specify and all streams you want to play must have the same
 // sample rate. However, decoders in e.g. audio/mp3 package adjust sample rate automatically,
@@ -40,6 +41,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hajimehoshi/ebiten/v2/audio/internal/convert"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
@@ -274,7 +276,7 @@ type Player struct {
 
 // NewPlayer creates a new player with the given stream.
 //
-// src's format must be linear PCM (16bits little endian, 2 channel stereo)
+// src's format must be linear PCM (signed 16bits little endian, 2 channel stereo)
 // without a header (e.g. RIFF header).
 // The sample rate must be same as that of the audio context.
 //
@@ -434,4 +436,17 @@ func (h *hookImpl) OnResumeAudio(f func() error) {
 
 func (h *hookImpl) AppendHookOnBeforeUpdate(f func() error) {
 	hooks.AppendHookOnBeforeUpdate(f)
+}
+
+// Resample converts the sample rate of the given stream.
+// size is the length of the source stream in bytes.
+// from is the original sample rate.
+// to is the target sample rate.
+//
+// If the original sample rate equals to the new one, Resample returns source as it is.
+func Resample(source io.ReadSeeker, size int64, from, to int) io.ReadSeeker {
+	if from == to {
+		return source
+	}
+	return convert.NewResampling(source, size, from, to)
 }

@@ -82,6 +82,21 @@ func (i *Input) TouchPosition(id TouchID) (x, y int) {
 	return 0, 0
 }
 
+func (i *Input) IsKeyPressed(key Key) bool {
+	if !i.ui.isRunning() {
+		return false
+	}
+
+	i.ui.m.Lock()
+	defer i.ui.m.Unlock()
+
+	gk, ok := uiKeyToGLFWKey[key]
+	if !ok {
+		return false
+	}
+	return i.keyPressed[gk]
+}
+
 func (i *Input) AppendInputChars(runes []rune) []rune {
 	if !i.ui.isRunning() {
 		return nil
@@ -101,20 +116,6 @@ func (i *Input) resetForTick() {
 	defer i.ui.m.Unlock()
 	i.runeBuffer = i.runeBuffer[:0]
 	i.scrollX, i.scrollY = 0, 0
-}
-
-func (i *Input) IsKeyPressed(key Key) bool {
-	if !i.ui.isRunning() {
-		return false
-	}
-
-	i.ui.m.Lock()
-	defer i.ui.m.Unlock()
-	if i.keyPressed == nil {
-		i.keyPressed = map[glfw.Key]bool{}
-	}
-	gk, ok := uiKeyToGLFWKey[key]
-	return ok && i.keyPressed[gk]
 }
 
 func (i *Input) IsMouseButtonPressed(button MouseButton) bool {
@@ -181,7 +182,7 @@ func (i *Input) update(window *glfw.Window, context *context) error {
 	if i.keyPressed == nil {
 		i.keyPressed = map[glfw.Key]bool{}
 	}
-	for gk := range glfwKeyToUIKey {
+	for _, gk := range uiKeyToGLFWKey {
 		i.keyPressed[gk] = window.GetKey(gk) == glfw.Press
 	}
 	if i.mouseButtonPressed == nil {

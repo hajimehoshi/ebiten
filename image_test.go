@@ -623,7 +623,7 @@ func BenchmarkDrawImage(b *testing.B) {
 	}
 }
 
-func TestImageLinearGradiation(t *testing.T) {
+func TestImageLinearGraduation(t *testing.T) {
 	img0 := ebiten.NewImage(2, 2)
 	img0.ReplacePixels([]byte{
 		0xff, 0x00, 0x00, 0xff,

@@ -48,8 +48,8 @@ func TestShaderFillTwice(t *testing.T) {
 	s1 := atlas.NewShader(etesting.ShaderProgramFill(0x80, 0x80, 0x80, 0xff))
 	dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, s1, nil, false)
 
-	pix, err := dst.Pixels(g)
-	if err != nil {
+	pix := make([]byte, 4*w*h)
+	if err := dst.ReadPixels(g, pix); err != nil {
 		t.Error(err)
 	}
 	if got, want := (color.RGBA{pix[0], pix[1], pix[2], pix[3]}), (color.RGBA{0x80, 0x80, 0x80, 0xff}); got != want {
@@ -80,8 +80,8 @@ func TestImageDrawTwice(t *testing.T) {
 	vs = quadVertices(w, h, 0, 0, 1)
 	dst.DrawTriangles([graphics.ShaderImageCount]*atlas.Image{src1}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, nil, nil, false)
 
-	pix, err := dst.Pixels(ui.GraphicsDriverForTesting())
-	if err != nil {
+	pix := make([]byte, 4*w*h)
+	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix); err != nil {
 		t.Error(err)
 	}
 	if got, want := (color.RGBA{pix[0], pix[1], pix[2], pix[3]}), (color.RGBA{0x80, 0x80, 0x80, 0xff}); got != want {

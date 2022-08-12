@@ -36,7 +36,7 @@ type Game interface {
 	// This API is for just measurement and/or debugging. In the long run, the number of Update calls should be
 	// adjusted based on the set TPS on average.
 	//
-	// An actual time detal between two Updates might be bigger than expected. In this case, your game's
+	// An actual time delta between two Updates might be bigger than expected. In this case, your game's
 	// Update or Draw takes longer than they should. In this case, there is nothing other than optimizing
 	// your game implementation.
 	//
@@ -183,8 +183,10 @@ func (i *imageDumperGame) Layout(outsideWidth, outsideHeight int) (screenWidth, 
 // TPS (ticks per second) is 60 by default.
 // This is not related to framerate (display's refresh rate).
 //
-// RunGame returns error when 1) error happens in the underlying graphics driver, 2) audio error happens or
-// 3) f returns error. In the case of 3), RunGame returns the same error.
+// RunGame returns error when 1) an error happens in the underlying graphics driver, 2) an audio error happens
+// or 3) f returns an error. In the case of 3), RunGame returns the same error so far, but it is recommended to
+// use errors.Is when you check the returned error is the error you want, rather than comparing the values
+// with == or != directly.
 //
 // The size unit is device-independent pixel.
 //

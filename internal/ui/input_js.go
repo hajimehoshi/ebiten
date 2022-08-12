@@ -277,29 +277,6 @@ func (in *Input) updateTouchesFromEvent(e js.Value) {
 	}
 }
 
-func (i *Input) updateForGo2Cpp() {
-	if !go2cpp.Truthy() {
-		return
-	}
-
-	for k := range i.touches {
-		delete(i.touches, k)
-	}
-	touchCount := go2cpp.Get("touchCount").Int()
-	for idx := 0; idx < touchCount; idx++ {
-		id := go2cpp.Call("getTouchId", idx)
-		x := go2cpp.Call("getTouchX", idx)
-		y := go2cpp.Call("getTouchY", idx)
-		if i.touches == nil {
-			i.touches = map[TouchID]pos{}
-		}
-		i.touches[TouchID(id.Int())] = pos{
-			X: x.Int(),
-			Y: y.Int(),
-		}
-	}
-}
-
 func isKeyString(str string) bool {
 	// From https://www.w3.org/TR/uievents-key/#keys-unicode,
 	//

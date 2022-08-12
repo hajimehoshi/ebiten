@@ -83,7 +83,6 @@ func createKeyTables() {
 	_glfw.win32.keycodes[0x151] = KeyPageDown
 	_glfw.win32.keycodes[0x149] = KeyPageUp
 	_glfw.win32.keycodes[0x045] = KeyPause
-	_glfw.win32.keycodes[0x146] = KeyPause
 	_glfw.win32.keycodes[0x039] = KeySpace
 	_glfw.win32.keycodes[0x00F] = KeyTab
 	_glfw.win32.keycodes[0x03A] = KeyCapsLock
@@ -153,12 +152,7 @@ func createKeyTables() {
 }
 
 func createHelperWindow() error {
-	m, err := _GetModuleHandleW("")
-	if err != nil {
-		return err
-	}
-
-	h, err := _CreateWindowExW(_WS_EX_OVERLAPPEDWINDOW, _GLFW_WNDCLASSNAME, "GLFW message window", _WS_CLIPSIBLINGS|_WS_CLIPCHILDREN, 0, 0, 1, 1, 0, 0, _HINSTANCE(m), nil)
+	h, err := _CreateWindowExW(_WS_EX_OVERLAPPEDWINDOW, _GLFW_WNDCLASSNAME, "GLFW message window", _WS_CLIPSIBLINGS|_WS_CLIPCHILDREN, 0, 0, 1, 1, 0, 0, _glfw.win32.instance, nil)
 	if err != nil {
 		return err
 	}
@@ -237,6 +231,12 @@ func platformInit() error {
 	// Changing the foreground lock timeout was removed from the original code.
 	// See https://github.com/glfw/glfw/commit/58b48a3a00d9c2a5ca10cc23069a71d8773cc7a4
 
+	m, err := _GetModuleHandleExW(_GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|_GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, unsafe.Pointer(&_glfw))
+	if err != nil {
+		return err
+	}
+	_glfw.win32.instance = _HINSTANCE(m)
+
 	createKeyTables()
 
 	if isWindows10CreatorsUpdateOrGreaterWin32() {
@@ -295,8 +295,10 @@ func platformTerminate() error {
 	}
 
 	if _glfw.win32.helperWindowHandle != 0 {
-		if err := _DestroyWindow(_glfw.win32.helperWindowHandle); err != nil {
-			return err
+		if !microsoftgdk.IsXbox() {
+			if err := _DestroyWindow(_glfw.win32.helperWindowHandle); err != nil {
+				return err
+			}
 		}
 	}
 

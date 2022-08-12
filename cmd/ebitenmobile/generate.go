@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate file2byteslice -package=main -input=gobind.go -output=gobind.src.go -var gobindsrc
+//go:generate go run github.com/hajimehoshi/file2byteslice/cmd/file2byteslice -package=main -input=gobind.go -output=gobind.src.go -var gobindsrc
 
 package main

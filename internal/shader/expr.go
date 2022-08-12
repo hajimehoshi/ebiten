@@ -487,7 +487,7 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 		}
 
 		if callee.Type != shaderir.FunctionExpr {
-			cs.addError(e.Pos(), fmt.Sprintf("function callee must be a funciton name but %s", e.Fun))
+			cs.addError(e.Pos(), fmt.Sprintf("function callee must be a function name but %s", e.Fun))
 			return nil, nil, nil, false
 		}
 

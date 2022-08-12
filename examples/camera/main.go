@@ -111,7 +111,7 @@ func (c *Camera) ScreenToWorld(posX, posY int) (float64, float64) {
 		inverseMatrix.Invert()
 		return inverseMatrix.Apply(float64(posX), float64(posY))
 	} else {
-		// When scaling it can happend that matrix is not invertable
+		// When scaling it can happened that matrix is not invertable
 		return math.NaN(), math.NaN()
 	}
 }

@@ -389,14 +389,14 @@ func (i *Image) processSrc(src *Image) {
 //
 // The vertex floats are:
 //
-//   0: Destination X in pixels
-//   1: Destination Y in pixels
-//   2: Source X in pixels (the upper-left is (0, 0))
-//   3: Source Y in pixels
-//   4: Color R [0.0-1.0]
-//   5: Color G
-//   6: Color B
-//   7: Color Y
+//	0: Destination X in pixels
+//	1: Destination Y in pixels
+//	2: Source X in pixels (the upper-left is (0, 0))
+//	3: Source Y in pixels
+//	4: Color R [0.0-1.0]
+//	5: Color G
+//	6: Color B
+//	7: Color Y
 func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
@@ -572,42 +572,20 @@ func (i *Image) replacePixels(pix []byte, x, y, width, height int) {
 	i.backend.restorable.ReplacePixels(pixb, x, y, pw, ph)
 }
 
-func (img *Image) Pixels(graphicsDriver graphicsdriver.Graphics) ([]byte, error) {
+func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
-	x := img.paddingSize()
-	y := img.paddingSize()
-
-	bs := make([]byte, 4*img.width*img.height)
-	idx := 0
-	for j := y; j < y+img.height; j++ {
-		for i := x; i < x+img.width; i++ {
-			r, g, b, a, err := img.at(graphicsDriver, i, j)
-			if err != nil {
-				return nil, err
-			}
-			bs[4*idx] = r
-			bs[4*idx+1] = g
-			bs[4*idx+2] = b
-			bs[4*idx+3] = a
-			idx++
+	if i.backend == nil || i.backend.restorable == nil {
+		for i := range pixels {
+			pixels[i] = 0
 		}
-	}
-	return bs, nil
-}
-
-func (i *Image) at(graphicsDriver graphicsdriver.Graphics, x, y int) (byte, byte, byte, byte, error) {
-	if i.backend == nil {
-		return 0, 0, 0, 0, nil
+		return nil
 	}
 
+	ps := i.paddingSize()
 	ox, oy, w, h := i.regionWithPadding()
-	if x < 0 || y < 0 || x >= w || y >= h {
-		return 0, 0, 0, 0, nil
-	}
-
-	return i.backend.restorable.At(graphicsDriver, x+ox, y+oy)
+	return i.backend.restorable.ReadPixels(graphicsDriver, pixels, ox+ps, oy+ps, w-ps*2, h-ps*2)
 }
 
 // MarkDisposed marks the image as disposed. The actual operation is deferred.
