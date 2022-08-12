@@ -15,7 +15,7 @@
 //go:build nintendosdk
 // +build nintendosdk
 
-package cbackend
+package nintendosdk
 
 // #cgo !darwin LDFLAGS: -Wl,-unresolved-symbols=ignore-all
 // #cgo darwin LDFLAGS: -Wl,-undefined,dynamic_lookup

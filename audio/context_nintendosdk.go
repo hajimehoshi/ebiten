@@ -22,7 +22,7 @@ import (
 
 	"github.com/hajimehoshi/oto/v2/mux"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/cbackend"
+	"github.com/hajimehoshi/ebiten/v2/internal/nintendosdk"
 )
 
 func newContext(sampleRate, channelCount, bitDepthInBytes int) (context, chan struct{}, error) {
@@ -30,11 +30,10 @@ func newContext(sampleRate, channelCount, bitDepthInBytes int) (context, chan st
 	close(ready)
 
 	c := &contextProxy{mux.New(sampleRate, channelCount, bitDepthInBytes)}
-	cbackend.OpenAudio(sampleRate, channelCount, c.mux.ReadFloat32s)
+	nintendosdk.OpenAudio(sampleRate, channelCount, c.mux.ReadFloat32s)
 	return c, ready, nil
 }
 
-// contextProxy is a proxy between cbackend.Context and context.
 type contextProxy struct {
 	mux *mux.Mux
 }

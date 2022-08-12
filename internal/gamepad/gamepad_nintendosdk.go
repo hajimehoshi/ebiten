@@ -20,12 +20,12 @@ package gamepad
 import (
 	"time"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/cbackend"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
+	"github.com/hajimehoshi/ebiten/v2/internal/nintendosdk"
 )
 
 type nativeGamepadsImpl struct {
-	gamepads []cbackend.Gamepad
+	gamepads []nintendosdk.Gamepad
 	ids      map[int]struct{}
 }
 
@@ -39,7 +39,7 @@ func (*nativeGamepadsImpl) init(gamepads *gamepads) error {
 
 func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 	g.gamepads = g.gamepads[:0]
-	g.gamepads = cbackend.AppendGamepads(g.gamepads)
+	g.gamepads = nintendosdk.AppendGamepads(g.gamepads)
 
 	for id := range g.ids {
 		delete(g.ids, id)
@@ -147,5 +147,5 @@ func (*nativeGamepadImpl) hatState(hat int) int {
 }
 
 func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
-	cbackend.VibrateGamepad(g.id, duration, strongMagnitude, weakMagnitude)
+	nintendosdk.VibrateGamepad(g.id, duration, strongMagnitude, weakMagnitude)
 }

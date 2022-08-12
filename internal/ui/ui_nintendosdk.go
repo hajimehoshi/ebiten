@@ -20,9 +20,9 @@ package ui
 import (
 	"runtime"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/cbackend"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
+	"github.com/hajimehoshi/ebiten/v2/internal/nintendosdk"
 )
 
 type graphicsDriverCreatorImpl struct{}
@@ -64,17 +64,17 @@ func (u *userInterfaceImpl) Run(game Game) error {
 		return err
 	}
 	u.graphicsDriver = g
-	cbackend.InitializeGame()
+	nintendosdk.InitializeGame()
 	for {
-		cbackend.BeginFrame()
+		nintendosdk.BeginFrame()
 		u.input.update(u.context)
 
-		w, h := cbackend.ScreenSize()
+		w, h := nintendosdk.ScreenSize()
 		if err := u.context.updateFrame(u.graphicsDriver, float64(w), float64(h), deviceScaleFactor); err != nil {
 			return err
 		}
 
-		cbackend.EndFrame()
+		nintendosdk.EndFrame()
 	}
 }
 
