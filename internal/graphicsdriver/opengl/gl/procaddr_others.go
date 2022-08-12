@@ -19,10 +19,10 @@ package gl
 
 /*
 #cgo linux freebsd openbsd CFLAGS: -DTAG_POSIX
-#cgo linux,!nintendosdk,!ebitencbackend freebsd,!nintendosdk,!ebitencbackend openbsd,!nintendosdk,!ebitencbackend pkg-config: gl
-#cgo egl CFLAGS: -DTAG_EGL
-#cgo egl,!nintendosdk,!ebitencbackend pkg-config: egl
-#cgo nintendosdk ebitencbackend LDFLAGS: -Wl,-unresolved-symbols=ignore-all
+#cgo linux,!nintendosdk freebsd,!nintendosdk openbsd,!nintendosdk pkg-config: gl
+#cgo egl nintendosdk CFLAGS: -DTAG_EGL
+#cgo egl,!nintendosdk pkg-config: egl
+#cgo nintendosdk LDFLAGS: -Wl,-unresolved-symbols=ignore-all
 
 // Check the EGL tag first as it takes priority over the platform's default
 // configuration of WGL/GLX/CGL.

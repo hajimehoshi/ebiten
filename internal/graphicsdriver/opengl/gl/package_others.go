@@ -5,7 +5,7 @@
 
 package gl
 
-// #cgo linux,!nintendosdk,!ebitencbackend freebsd,!nintendosdk,!ebitencbackend openbsd,!nintendosdk,!ebitencbackend pkg-config: gl
+// #cgo linux,!nintendosdk freebsd,!nintendosdk openbsd,!nintendosdk pkg-config: gl
 //
 // #ifndef APIENTRY
 //   #define APIENTRY

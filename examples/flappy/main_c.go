@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build example && (ebitencbackend || (windows && cgo))
+//go:build example && (nintendosdk || microsoftgdk)
 // +build example
-// +build ebitencbackend windows,cgo
+// +build nintendosdk microsoftgdk
 
-// This file is for some special environments using `ebitencbackend`.
+// This file is for some special environments using 'nintendosdk' or 'microsoftgdk'.
 // You usually don't have to care about this file.
 // Actually this example works without this file in usual cases.
 

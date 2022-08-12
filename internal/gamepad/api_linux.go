@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !nintendosdk && !ebitencbackend
-// +build !android,!nintendosdk,!ebitencbackend
+//go:build !android && !nintendosdk
+// +build !android,!nintendosdk
 
 package gamepad
 
