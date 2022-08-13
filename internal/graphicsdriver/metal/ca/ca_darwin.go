@@ -27,18 +27,9 @@ import (
 
 	"github.com/ebitengine/purego"
 	"github.com/ebitengine/purego/objc"
+	"github.com/hajimehoshi/ebiten/v2/internal/cocoasdk"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
-
-// Suppress the warnings about availability guard with -Wno-unguarded-availability-new.
-// It is because old Xcode (8 or older?) does not accept @available syntax.
-
-// #cgo CFLAGS: -Wno-unguarded-availability-new
-// #cgo !ios CFLAGS: -mmacosx-version-min=10.12
-// #cgo LDFLAGS: -framework QuartzCore -framework Foundation -framework CoreGraphics
-//
-// #include "ca_darwin.h"
-import "C"
 
 // Layer is an object that manages image-based content and
 // allows you to perform animations on that content.
@@ -77,7 +68,9 @@ func MakeMetalLayer() MetalLayer {
 }
 
 // Layer implements the Layer interface.
-func (ml MetalLayer) Layer() unsafe.Pointer { return unsafe.Pointer(ml.metalLayer) }
+func (ml MetalLayer) Layer() unsafe.Pointer {
+	return *(*unsafe.Pointer)(unsafe.Pointer(&ml.metalLayer))
+}
 
 // PixelFormat returns the pixel format of textures for rendering layer content.
 //
@@ -142,7 +135,14 @@ func (ml MetalLayer) SetDisplaySyncEnabled(enabled bool) {
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478174-drawablesize.
 func (ml MetalLayer) SetDrawableSize(width, height int) {
-	C.MetalLayer_SetDrawableSize(unsafe.Pointer(ml.metalLayer), C.double(width), C.double(height))
+	//TODO: once objc supports calling functions with struct arguments replace this with just a ID.Send call
+	var sel_setDrawableSize = objc.RegisterName("setDrawableSize:\x00")
+	sig := cocoasdk.InstanceMethodSignatureForSelector(objc.ID(objc.GetClass("CAMetalLayer\x00")), sel_setDrawableSize)
+	inv := cocoasdk.InvocationWithMethodSignature(sig)
+	inv.SetTarget(ml.metalLayer)
+	inv.SetSelector(sel_setDrawableSize)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&cocoasdk.CGSize{float64(width), float64(height)}), 2)
+	inv.Invoke()
 }
 
 // NextDrawable returns a Metal drawable.
@@ -185,13 +185,15 @@ type MetalDrawable struct {
 }
 
 // Drawable implements the mtl.Drawable interface.
-func (md MetalDrawable) Drawable() unsafe.Pointer { return unsafe.Pointer(md.metalDrawable) }
+func (md MetalDrawable) Drawable() unsafe.Pointer {
+	return *(*unsafe.Pointer)(unsafe.Pointer(&md.metalDrawable))
+}
 
 // Texture returns a Metal texture object representing the drawable object's content.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametaldrawable/1478159-texture.
 func (md MetalDrawable) Texture() mtl.Texture {
-	return mtl.NewTexture(unsafe.Pointer(md.metalDrawable.Send(objc.RegisterName("texture\x00"))))
+	return mtl.NewTexture(md.metalDrawable.Send(objc.RegisterName("texture\x00")))
 }
 
 // Present presents the drawable onscreen as soon as possible.

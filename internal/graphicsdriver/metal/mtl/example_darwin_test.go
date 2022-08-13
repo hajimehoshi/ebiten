@@ -28,6 +28,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
 
+// for these tests to pass Metal must be linked directly.
+// it is not needed for any of the others nor for Ebitengine to work properly.
+//go:cgo_import_dynamic _ _ "Metal.framework/Metal"
+
 func Example_listDevices() {
 	device, ok := mtl.CreateSystemDefaultDevice()
 	if !ok {
