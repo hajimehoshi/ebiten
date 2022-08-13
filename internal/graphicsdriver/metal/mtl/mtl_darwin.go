@@ -30,7 +30,7 @@ import (
 
 	"github.com/ebitengine/purego"
 	"github.com/ebitengine/purego/objc"
-	"github.com/hajimehoshi/ebiten/v2/internal/cocoasdk"
+	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 )
 
 // FeatureSet defines a specific platform, hardware, and software configuration.
@@ -816,8 +816,8 @@ func (cb CommandBuffer) MakeRenderCommandEncoder(rpd RenderPassDescriptor) Rende
 	colorAttachments0.Send(sel_setLoadAction, int(rpd.ColorAttachments[0].LoadAction))
 	colorAttachments0.Send(sel_setStoreAction, int(rpd.ColorAttachments[0].StoreAction))
 	colorAttachments0.Send(sel_setTexture, rpd.ColorAttachments[0].Texture.texture)
-	sig := cocoasdk.InstanceMethodSignatureForSelector(colorAttachments0.Send(sel_class), sel_setClearColor)
-	inv := cocoasdk.InvocationWithMethodSignature(sig)
+	sig := cocoa.InstanceMethodSignatureForSelector(colorAttachments0.Send(sel_class), sel_setClearColor)
+	inv := cocoa.InvocationWithMethodSignature(sig)
 	inv.SetTarget(colorAttachments0)
 	inv.SetSelector(sel_setClearColor)
 	inv.SetArgumentAtIndex(unsafe.Pointer(&rpd.ColorAttachments[0].ClearColor), 2)
@@ -875,7 +875,7 @@ func (rce RenderCommandEncoder) SetRenderPipelineState(rps RenderPipelineState) 
 }
 
 func (rce RenderCommandEncoder) SetViewport(viewport Viewport) {
-	inv := cocoasdk.InvocationWithMethodSignature(cocoasdk.NSMethodSignature_SignatureWithObjCTypes("v@:{MTLViewport=dddddd}"))
+	inv := cocoa.InvocationWithMethodSignature(cocoa.NSMethodSignature_SignatureWithObjCTypes("v@:{MTLViewport=dddddd}"))
 	inv.SetTarget(objc.ID(rce.commandEncoder))
 	inv.SetSelector(sel_setViewport)
 	inv.SetArgumentAtIndex(unsafe.Pointer(&viewport), 2)
@@ -886,7 +886,7 @@ func (rce RenderCommandEncoder) SetViewport(viewport Viewport) {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlrendercommandencoder/1515583-setscissorrect
 func (rce RenderCommandEncoder) SetScissorRect(scissorRect ScissorRect) {
-	inv := cocoasdk.InvocationWithMethodSignature(cocoasdk.NSMethodSignature_SignatureWithObjCTypes("v@:{MTLScissorRect=qqqq}"))
+	inv := cocoa.InvocationWithMethodSignature(cocoa.NSMethodSignature_SignatureWithObjCTypes("v@:{MTLScissorRect=qqqq}"))
 	inv.SetTarget(objc.ID(rce.commandEncoder))
 	inv.SetSelector(sel_setScissorRect)
 	inv.SetArgumentAtIndex(unsafe.Pointer(&scissorRect), 2)
@@ -920,7 +920,7 @@ func (rce RenderCommandEncoder) SetFragmentTexture(texture Texture, index int) {
 }
 
 func (rce RenderCommandEncoder) SetBlendColor(red, green, blue, alpha float32) {
-	inv := cocoasdk.InvocationWithMethodSignature(cocoasdk.NSMethodSignature_SignatureWithObjCTypes("v@:ffff"))
+	inv := cocoa.InvocationWithMethodSignature(cocoa.NSMethodSignature_SignatureWithObjCTypes("v@:ffff"))
 	inv.SetTarget(objc.ID(rce.commandEncoder))
 	inv.SetSelector(sel_setBlendColorRedGreenBlueAlpha)
 	inv.SetArgumentAtIndex(unsafe.Pointer(&red), 2)
@@ -981,7 +981,7 @@ func (bce BlitCommandEncoder) SynchronizeTexture(texture Texture, slice int, lev
 }
 
 func (bce BlitCommandEncoder) CopyFromTexture(sourceTexture Texture, sourceSlice int, sourceLevel int, sourceOrigin Origin, sourceSize Size, destinationTexture Texture, destinationSlice int, destinationLevel int, destinationOrigin Origin) {
-	inv := cocoasdk.InvocationWithMethodSignature(cocoasdk.NSMethodSignature_SignatureWithObjCTypes("v@:@QQ{MTLOrigin=qqq}{MTLSize=qqq}@QQ{MTLOrigin=qqq}"))
+	inv := cocoa.InvocationWithMethodSignature(cocoa.NSMethodSignature_SignatureWithObjCTypes("v@:@QQ{MTLOrigin=qqq}{MTLSize=qqq}@QQ{MTLOrigin=qqq}"))
 	inv.SetTarget(objc.ID(bce.commandEncoder))
 	inv.SetSelector(sel_copyFromTexture_sourceSlice_sourceLevel_sourceOrigin_sourceSize_toTexture_destinationSlice_destinationLevel_destinationOrigin)
 	inv.SetArgumentAtIndex(unsafe.Pointer(&sourceTexture), 2)
@@ -1046,7 +1046,7 @@ func (t Texture) Release() {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtltexture/1515751-getbytes.
 func (t Texture) GetBytes(pixelBytes *byte, bytesPerRow uintptr, region Region, level int) {
-	inv := cocoasdk.InvocationWithMethodSignature(cocoasdk.NSMethodSignature_SignatureWithObjCTypes("v@:^vQ{MTLRegion={MTLOrigin=qqq}{MTLSize=qqq}}Q"))
+	inv := cocoa.InvocationWithMethodSignature(cocoa.NSMethodSignature_SignatureWithObjCTypes("v@:^vQ{MTLRegion={MTLOrigin=qqq}{MTLSize=qqq}}Q"))
 	inv.SetTarget(t.texture)
 	inv.SetSelector(sel_getBytes_bytesPerRow_fromRegion_mipmapLevel)
 	inv.SetArgumentAtIndex(unsafe.Pointer(&pixelBytes), 2)
@@ -1060,7 +1060,7 @@ func (t Texture) GetBytes(pixelBytes *byte, bytesPerRow uintptr, region Region, 
 //
 // Reference: https://developer.apple.com/documentation/metal/mtltexture/1515464-replaceregion
 func (t Texture) ReplaceRegion(region Region, level int, pixelBytes unsafe.Pointer, bytesPerRow int) {
-	inv := cocoasdk.InvocationWithMethodSignature(cocoasdk.NSMethodSignature_SignatureWithObjCTypes("v@:{MTLRegion={MTLOrigin=qqq}{MTLSize=qqq}}Q^vQ"))
+	inv := cocoa.InvocationWithMethodSignature(cocoa.NSMethodSignature_SignatureWithObjCTypes("v@:{MTLRegion={MTLOrigin=qqq}{MTLSize=qqq}}Q^vQ"))
 	inv.SetTarget(t.texture)
 	inv.SetSelector(sel_replaceRegion_mipmapLevel_withBytes_bytesPerRow)
 	inv.SetArgumentAtIndex(unsafe.Pointer(&region), 2)

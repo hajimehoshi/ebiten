@@ -27,7 +27,7 @@ import (
 	"github.com/ebitengine/purego"
 	"github.com/ebitengine/purego/objc"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/cocoasdk"
+	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
 
@@ -139,11 +139,11 @@ func (ml MetalLayer) SetDisplaySyncEnabled(enabled bool) {
 func (ml MetalLayer) SetDrawableSize(width, height int) {
 	// TODO: once objc supports calling functions with struct arguments replace this with just a ID.Send call
 	var sel_setDrawableSize = objc.RegisterName("setDrawableSize:")
-	sig := cocoasdk.InstanceMethodSignatureForSelector(objc.ID(objc.GetClass("CAMetalLayer")), sel_setDrawableSize)
-	inv := cocoasdk.InvocationWithMethodSignature(sig)
+	sig := cocoa.InstanceMethodSignatureForSelector(objc.ID(objc.GetClass("CAMetalLayer")), sel_setDrawableSize)
+	inv := cocoa.InvocationWithMethodSignature(sig)
 	inv.SetTarget(ml.metalLayer)
 	inv.SetSelector(sel_setDrawableSize)
-	inv.SetArgumentAtIndex(unsafe.Pointer(&cocoasdk.CGSize{Width: float64(width), Height: float64(height)}), 2)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&cocoa.CGSize{Width: float64(width), Height: float64(height)}), 2)
 	inv.Invoke()
 }
 
