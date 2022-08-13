@@ -26,7 +26,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"runtime"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -488,6 +487,7 @@ var (
 )
 
 var (
+	sel_respondsToSelector                                                                                                            = objc.RegisterName("respondsToSelector:")
 	sel_class                                                                                                                         = objc.RegisterName("class")
 	sel_UTF8String                                                                                                                    = objc.RegisterName("UTF8String")
 	sel_length                                                                                                                        = objc.RegisterName("length")
@@ -581,7 +581,9 @@ func CreateSystemDefaultDevice() (Device, bool) {
 		lowPower bool
 		name     string
 	)
-	if runtime.GOOS != "ios" {
+	// if it responds to one of these selectors it will respond to both
+	// they are both only available on macOS starting at 10.11
+	if objc.ID(d).Send(sel_respondsToSelector, sel_isHeadless) != 0 {
 		headless = int(objc.ID(d).Send(sel_isHeadless)) != 0
 		lowPower = int(objc.ID(d).Send(sel_isLowPower)) != 0
 	}
@@ -965,17 +967,17 @@ type BlitCommandEncoder struct {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlblitcommandencoder/1400775-synchronize.
 func (bce BlitCommandEncoder) Synchronize(resource Resource) {
-	if runtime.GOOS == "ios" {
+	if bce.commandEncoder.Send(sel_respondsToSelector, sel_synchronizeResource) == 0 {
 		return
 	}
-	objc.ID(bce.commandEncoder).Send(sel_synchronizeResource, resource.resource())
+	bce.commandEncoder.Send(sel_synchronizeResource, resource.resource())
 }
 
 func (bce BlitCommandEncoder) SynchronizeTexture(texture Texture, slice int, level int) {
-	if runtime.GOOS == "ios" {
+	if bce.commandEncoder.Send(sel_respondsToSelector, sel_synchronizeTexture_slice_level) == 0 {
 		return
 	}
-	objc.ID(bce.commandEncoder).Send(sel_synchronizeTexture_slice_level, texture.texture, slice, level)
+	bce.commandEncoder.Send(sel_synchronizeTexture_slice_level, texture.texture, slice, level)
 }
 
 func (bce BlitCommandEncoder) CopyFromTexture(sourceTexture Texture, sourceSlice int, sourceLevel int, sourceOrigin Origin, sourceSize Size, destinationTexture Texture, destinationSlice int, destinationLevel int, destinationOrigin Origin) {
@@ -1110,8 +1112,8 @@ func (b Buffer) CopyToContents(data unsafe.Pointer, lengthInBytes uintptr) {
 	dataHeader.Len = int(lengthInBytes)
 	dataHeader.Cap = int(lengthInBytes)
 	copy(contentSlice, dataSlice)
-	if runtime.GOOS != "ios" {
-		objc.ID(b.buffer).Send(sel_didModifyRange, 0, lengthInBytes)
+	if b.buffer.Send(sel_respondsToSelector, sel_didModifyRange) != 0 {
+		b.buffer.Send(sel_didModifyRange, 0, lengthInBytes)
 	}
 }
 
