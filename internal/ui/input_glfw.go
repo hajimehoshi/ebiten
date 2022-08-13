@@ -76,3 +76,11 @@ func (u *userInterfaceImpl) updateInputState() error {
 	}
 	return nil
 }
+
+func KeyName(key Key) string {
+	gk, ok := uiKeyToGLFWKey[key]
+	if !ok {
+		return ""
+	}
+	return glfw.GetKeyName(gk, 0)
+}

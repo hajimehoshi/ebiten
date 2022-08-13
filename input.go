@@ -69,6 +69,10 @@ func IsKeyPressed(key Key) bool {
 	return theInputState.isKeyPressed(key)
 }
 
+func KeyName(key Key) string {
+	return ui.KeyName(ui.Key(key))
+}
+
 // CursorPosition returns a position of a mouse cursor relative to the game screen (window). The cursor position is
 // 'logical' position and this considers the scale of the screen.
 //
