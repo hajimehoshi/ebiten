@@ -18,11 +18,11 @@ import (
 	"github.com/ebitengine/purego/objc"
 )
 
-var class_NSMethodSignature = objc.GetClass("NSMethodSignature\x00")
+var class_NSMethodSignature = objc.GetClass("NSMethodSignature")
 
 var (
-	sel_instanceMethodSignatureForSelector = objc.RegisterName("instanceMethodSignatureForSelector:\x00")
-	sel_signatureWithObjCTypes             = objc.RegisterName("signatureWithObjCTypes:\x00")
+	sel_instanceMethodSignatureForSelector = objc.RegisterName("instanceMethodSignatureForSelector:")
+	sel_signatureWithObjCTypes             = objc.RegisterName("signatureWithObjCTypes:")
 )
 
 type NSMethodSignature objc.ID

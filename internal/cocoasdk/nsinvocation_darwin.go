@@ -20,16 +20,16 @@ import (
 	"github.com/ebitengine/purego/objc"
 )
 
-var class_NSInvocation = objc.GetClass("NSInvocation\x00")
+var class_NSInvocation = objc.GetClass("NSInvocation")
 
 var (
-	sel_invocationWithMethodSignature = objc.RegisterName("invocationWithMethodSignature:\x00")
+	sel_invocationWithMethodSignature = objc.RegisterName("invocationWithMethodSignature:")
 
-	sel_setSelector        = objc.RegisterName("setSelector:\x00")
-	sel_setTarget          = objc.RegisterName("setTarget:\x00")
-	sel_setArgumentAtIndex = objc.RegisterName("setArgument:atIndex:\x00")
-	sel_getReturnValue     = objc.RegisterName("getReturnValue:\x00")
-	sel_invoke             = objc.RegisterName("invoke\x00")
+	sel_setSelector        = objc.RegisterName("setSelector:")
+	sel_setTarget          = objc.RegisterName("setTarget:")
+	sel_setArgumentAtIndex = objc.RegisterName("setArgument:atIndex:")
+	sel_getReturnValue     = objc.RegisterName("getReturnValue:")
+	sel_invoke             = objc.RegisterName("invoke")
 )
 
 type NSInvocation struct {

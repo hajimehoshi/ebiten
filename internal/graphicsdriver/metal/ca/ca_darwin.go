@@ -59,10 +59,10 @@ var (
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer.
 func MakeMetalLayer() MetalLayer {
-	layer := objc.ID(objc.GetClass("CAMetalLayer\x00")).Send(objc.RegisterName("new\x00"))
+	layer := objc.ID(objc.GetClass("CAMetalLayer")).Send(objc.RegisterName("new"))
 	if runtime.GOOS != "ios" {
 		colorspace, _, _ := purego.SyscallN(_CGColorSpaceCreateWithName, **(**uintptr)(unsafe.Pointer(&kCGColorSpaceDisplayP3))) // Dlsym returns pointer to symbol so dereference it
-		layer.Send(objc.RegisterName("setColorspace:\x00"), colorspace)
+		layer.Send(objc.RegisterName("setColorspace:"), colorspace)
 		purego.SyscallN(_CGColorSpaceRelease, colorspace)
 	}
 	return MetalLayer{layer}
@@ -77,19 +77,19 @@ func (ml MetalLayer) Layer() unsafe.Pointer {
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478155-pixelformat.
 func (ml MetalLayer) PixelFormat() mtl.PixelFormat {
-	return mtl.PixelFormat(ml.metalLayer.Send(objc.RegisterName("pixelFormat\x00")))
+	return mtl.PixelFormat(ml.metalLayer.Send(objc.RegisterName("pixelFormat")))
 }
 
 // SetDevice sets the Metal device responsible for the layer's drawable resources.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478163-device.
 func (ml MetalLayer) SetDevice(device mtl.Device) {
-	ml.metalLayer.Send(objc.RegisterName("setDevice:\x00"), uintptr(device.Device()))
+	ml.metalLayer.Send(objc.RegisterName("setDevice:"), uintptr(device.Device()))
 }
 
 // SetOpaque a Boolean value indicating whether the layer contains completely opaque content.
 func (ml MetalLayer) SetOpaque(opaque bool) {
-	ml.metalLayer.Send(objc.RegisterName("setOpaque:\x00"), opaque)
+	ml.metalLayer.Send(objc.RegisterName("setOpaque:"), opaque)
 }
 
 // SetPixelFormat controls the pixel format of textures for rendering layer content.
@@ -118,7 +118,7 @@ func (ml MetalLayer) SetMaximumDrawableCount(count int) {
 	if count < 2 || count > 3 {
 		panic(errors.New(fmt.Sprintf("failed trying to set maximumDrawableCount to %d outside of the valid range of [2, 3]", count)))
 	}
-	ml.metalLayer.Send(objc.RegisterName("setMaximumDrawableCount:\x00"), count)
+	ml.metalLayer.Send(objc.RegisterName("setMaximumDrawableCount:"), count)
 }
 
 // SetDisplaySyncEnabled controls whether the Metal layer and its drawables
@@ -129,7 +129,7 @@ func (ml MetalLayer) SetDisplaySyncEnabled(enabled bool) {
 	if runtime.GOOS == "ios" {
 		return
 	}
-	ml.metalLayer.Send(objc.RegisterName("setDisplaySyncEnabled:\x00"), enabled)
+	ml.metalLayer.Send(objc.RegisterName("setDisplaySyncEnabled:"), enabled)
 }
 
 // SetDrawableSize sets the size, in pixels, of textures for rendering layer content.
@@ -137,8 +137,8 @@ func (ml MetalLayer) SetDisplaySyncEnabled(enabled bool) {
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478174-drawablesize.
 func (ml MetalLayer) SetDrawableSize(width, height int) {
 	// TODO: once objc supports calling functions with struct arguments replace this with just a ID.Send call
-	var sel_setDrawableSize = objc.RegisterName("setDrawableSize:\x00")
-	sig := cocoasdk.InstanceMethodSignatureForSelector(objc.ID(objc.GetClass("CAMetalLayer\x00")), sel_setDrawableSize)
+	var sel_setDrawableSize = objc.RegisterName("setDrawableSize:")
+	sig := cocoasdk.InstanceMethodSignatureForSelector(objc.ID(objc.GetClass("CAMetalLayer")), sel_setDrawableSize)
 	inv := cocoasdk.InvocationWithMethodSignature(sig)
 	inv.SetTarget(ml.metalLayer)
 	inv.SetSelector(sel_setDrawableSize)
@@ -150,7 +150,7 @@ func (ml MetalLayer) SetDrawableSize(width, height int) {
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478172-nextdrawable.
 func (ml MetalLayer) NextDrawable() (MetalDrawable, error) {
-	md := ml.metalLayer.Send(objc.RegisterName("nextDrawable\x00"))
+	md := ml.metalLayer.Send(objc.RegisterName("nextDrawable"))
 	if md == 0 {
 		return MetalDrawable{}, errors.New("nextDrawable returned nil")
 	}
@@ -161,21 +161,21 @@ func (ml MetalLayer) NextDrawable() (MetalDrawable, error) {
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478157-presentswithtransaction
 func (ml MetalLayer) PresentsWithTransaction() bool {
-	return ml.metalLayer.Send(objc.RegisterName("presentsWithTransaction\x00")) != 0
+	return ml.metalLayer.Send(objc.RegisterName("presentsWithTransaction")) != 0
 }
 
 // SetPresentsWithTransaction sets a Boolean value that determines whether the layer presents its content using a Core Animation transaction.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478157-presentswithtransaction
 func (ml MetalLayer) SetPresentsWithTransaction(presentsWithTransaction bool) {
-	ml.metalLayer.Send(objc.RegisterName("setPresentsWithTransaction:\x00"), presentsWithTransaction)
+	ml.metalLayer.Send(objc.RegisterName("setPresentsWithTransaction:"), presentsWithTransaction)
 }
 
 // SetFramebufferOnly sets a Boolean value that determines whether the layer’s textures are used only for rendering.
 //
 // https://developer.apple.com/documentation/quartzcore/cametallayer/1478168-framebufferonly
 func (ml MetalLayer) SetFramebufferOnly(framebufferOnly bool) {
-	ml.metalLayer.Send(objc.RegisterName("setFramebufferOnly:\x00"), framebufferOnly)
+	ml.metalLayer.Send(objc.RegisterName("setFramebufferOnly:"), framebufferOnly)
 }
 
 // MetalDrawable is a displayable resource that can be rendered or written to by Metal.
@@ -194,12 +194,12 @@ func (md MetalDrawable) Drawable() unsafe.Pointer {
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametaldrawable/1478159-texture.
 func (md MetalDrawable) Texture() mtl.Texture {
-	return mtl.NewTexture(md.metalDrawable.Send(objc.RegisterName("texture\x00")))
+	return mtl.NewTexture(md.metalDrawable.Send(objc.RegisterName("texture")))
 }
 
 // Present presents the drawable onscreen as soon as possible.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtldrawable/1470284-present.
 func (md MetalDrawable) Present() {
-	md.metalDrawable.Send(objc.RegisterName("present\x00"))
+	md.metalDrawable.Send(objc.RegisterName("present"))
 }

@@ -41,7 +41,7 @@ func NewWindow(window uintptr) Window {
 //
 // Reference: https://developer.apple.com/documentation/appkit/nswindow/1419160-contentview.
 func (w Window) ContentView() View {
-	return View{objc.ID(w.window).Send(objc.RegisterName("contentView\x00"))}
+	return View{objc.ID(w.window).Send(objc.RegisterName("contentView"))}
 }
 
 // View is the infrastructure for drawing, printing, and handling events in an app.
@@ -55,19 +55,19 @@ type View struct {
 //
 // Reference: https://developer.apple.com/documentation/appkit/nsview/1483298-layer.
 func (v View) SetLayer(l ca.Layer) {
-	v.view.Send(objc.RegisterName("setLayer:\x00"), uintptr(l.Layer()))
+	v.view.Send(objc.RegisterName("setLayer:"), uintptr(l.Layer()))
 }
 
 // SetWantsLayer sets v.wantsLayer to wantsLayer.
 //
 // Reference: https://developer.apple.com/documentation/appkit/nsview/1483695-wantslayer.
 func (v View) SetWantsLayer(wantsLayer bool) {
-	v.view.Send(objc.RegisterName("setWantsLayer:\x00"), wantsLayer)
+	v.view.Send(objc.RegisterName("setWantsLayer:"), wantsLayer)
 }
 
 // IsInFullScreenMode returns a boolean value indicating whether the view is in full screen mode.
 //
 // Reference: https://developer.apple.com/documentation/appkit/nsview/1483337-infullscreenmode.
 func (v View) IsInFullScreenMode() bool {
-	return v.view.Send(objc.RegisterName("isInFullScreenMode\x00")) != 0
+	return v.view.Send(objc.RegisterName("isInFullScreenMode")) != 0
 }
