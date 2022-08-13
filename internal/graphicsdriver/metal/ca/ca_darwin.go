@@ -27,6 +27,7 @@ import (
 
 	"github.com/ebitengine/purego"
 	"github.com/ebitengine/purego/objc"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoasdk"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
@@ -135,7 +136,7 @@ func (ml MetalLayer) SetDisplaySyncEnabled(enabled bool) {
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478174-drawablesize.
 func (ml MetalLayer) SetDrawableSize(width, height int) {
-	//TODO: once objc supports calling functions with struct arguments replace this with just a ID.Send call
+	// TODO: once objc supports calling functions with struct arguments replace this with just a ID.Send call
 	var sel_setDrawableSize = objc.RegisterName("setDrawableSize:\x00")
 	sig := cocoasdk.InstanceMethodSignatureForSelector(objc.ID(objc.GetClass("CAMetalLayer\x00")), sel_setDrawableSize)
 	inv := cocoasdk.InvocationWithMethodSignature(sig)

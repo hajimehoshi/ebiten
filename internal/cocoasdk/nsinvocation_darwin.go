@@ -15,8 +15,9 @@
 package cocoasdk
 
 import (
-	"github.com/ebitengine/purego/objc"
 	"unsafe"
+
+	"github.com/ebitengine/purego/objc"
 )
 
 var class_NSInvocation = objc.GetClass("NSInvocation\x00")
