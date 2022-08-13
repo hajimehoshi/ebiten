@@ -40,8 +40,8 @@ func InvocationWithMethodSignature(sig NSMethodSignature) NSInvocation {
 	return NSInvocation{objc.ID(class_NSInvocation).Send(sel_invocationWithMethodSignature, objc.ID(sig))}
 }
 
-func (inv NSInvocation) SetSelector(cmd objc.SEL) {
-	inv.Send(sel_setSelector, cmd)
+func (inv NSInvocation) SetSelector(_cmd objc.SEL) {
+	inv.Send(sel_setSelector, _cmd)
 }
 
 func (inv NSInvocation) SetTarget(target objc.ID) {
