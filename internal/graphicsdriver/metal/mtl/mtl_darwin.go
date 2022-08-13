@@ -472,7 +472,11 @@ func _NSStringtoGoString(nsstring objc.ID) string {
 	// this will be nicer with unsafe.Slice once ebitengine requires 1.17
 	// reflect.SliceHeader is used because it will force Go to copy the string
 	// into Go memory when casted to a string
-	return string(*(*[]byte)(unsafe.Pointer(&reflect.SliceHeader{Data: uintptr(nsstring.Send(sel_UTF8String)), Len: int(nsstring.Send(sel_length))})))
+	var s []byte
+	header := (*reflect.SliceHeader)(unsafe.Pointer(&s))
+	header.Data = uintptr(nsstring.Send(sel_UTF8String))
+	header.Len = int(nsstring.Send(sel_length))
+	return string(s)
 }
 
 var (
@@ -1093,10 +1097,18 @@ func (b Buffer) Length() uintptr {
 }
 
 func (b Buffer) CopyToContents(data unsafe.Pointer, lengthInBytes uintptr) {
-	contents := objc.ID(b.buffer).Send(sel_contents)
+	contents := b.buffer.Send(sel_contents)
 	// use unsafe.Slice when ebitengine reaches 1.17
-	contentSlice := *(*[]byte)(unsafe.Pointer(&reflect.SliceHeader{Data: uintptr(contents), Len: int(lengthInBytes), Cap: int(lengthInBytes)}))
-	dataSlice := *(*[]byte)(unsafe.Pointer(&reflect.SliceHeader{Data: uintptr(data), Len: int(lengthInBytes), Cap: int(lengthInBytes)}))
+	var contentSlice []byte
+	contentHeader := (*reflect.SliceHeader)(unsafe.Pointer(&contentSlice))
+	contentHeader.Data = uintptr(contents)
+	contentHeader.Len = int(lengthInBytes)
+	contentHeader.Cap = int(lengthInBytes)
+	var dataSlice []byte
+	dataHeader := (*reflect.SliceHeader)(unsafe.Pointer(&dataSlice))
+	dataHeader.Data = uintptr(data)
+	dataHeader.Len = int(lengthInBytes)
+	dataHeader.Cap = int(lengthInBytes)
 	copy(contentSlice, dataSlice)
 	if runtime.GOOS != "ios" {
 		objc.ID(b.buffer).Send(sel_didModifyRange, 0, lengthInBytes)
