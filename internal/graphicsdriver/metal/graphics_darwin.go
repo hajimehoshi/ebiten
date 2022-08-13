@@ -30,17 +30,17 @@ import (
 )
 
 var (
-	_NSAutoreleasePool = objc.GetClass("NSAutoreleasePool\x00")
-	_new               = objc.RegisterName("new\x00")
-	_release           = objc.RegisterName("release\x00")
+	class_NSAutoreleasePool = objc.GetClass("NSAutoreleasePool\x00")
+	sel_new                 = objc.RegisterName("new\x00")
+	sel_release             = objc.RegisterName("release\x00")
 )
 
 func allocAutoreleasePool() objc.ID {
-	return objc.ID(_NSAutoreleasePool).Send(_new)
+	return objc.ID(class_NSAutoreleasePool).Send(sel_new)
 }
 
 func releaseAutoreleasePool(pool objc.ID) {
-	pool.Send(_release)
+	pool.Send(sel_release)
 }
 
 const source = `#include <metal_stdlib>
