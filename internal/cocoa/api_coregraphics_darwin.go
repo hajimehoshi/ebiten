@@ -14,6 +14,8 @@
 
 package cocoa
 
+type CGFloat float64
+
 type CGSize struct {
-	Width, Height float64
+	Width, Height CGFloat
 }
