@@ -143,7 +143,7 @@ func (ml MetalLayer) SetDrawableSize(width, height int) {
 	inv := cocoa.InvocationWithMethodSignature(sig)
 	inv.SetTarget(ml.metalLayer)
 	inv.SetSelector(sel_setDrawableSize)
-	inv.SetArgumentAtIndex(unsafe.Pointer(&cocoa.CGSize{Width: float64(width), Height: float64(height)}), 2)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&cocoa.CGSize{Width: cocoa.CGFloat(width), Height: cocoa.CGFloat(height)}), 2)
 	inv.Invoke()
 }
 
