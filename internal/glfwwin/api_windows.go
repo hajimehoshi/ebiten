@@ -845,6 +845,7 @@ var (
 	procSetWindowTextW                = user32.NewProc("SetWindowTextW")
 	procShowWindow                    = user32.NewProc("ShowWindow")
 	procSystemParametersInfoW         = user32.NewProc("SystemParametersInfoW")
+	procToUnicode                     = user32.NewProc("ToUnicode")
 	procTranslateMessage              = user32.NewProc("TranslateMessage")
 	procTrackMouseEvent               = user32.NewProc("TrackMouseEvent")
 	procUnregisterClassW              = user32.NewProc("UnregisterClassW")
@@ -1716,6 +1717,24 @@ func _TlsSetValue(dwTlsIndex uint32, lpTlsValue uintptr) error {
 		return fmt.Errorf("glfwwin: TlsSetValue failed: %w", e)
 	}
 	return nil
+}
+
+func _ToUnicode(wVirtualKey uint32, wScanCode uint32, keyState []byte, buff []uint16, cchBuff int32, wFlags uint32) int32 {
+	var lpKeyState *byte
+	if len(keyState) > 0 {
+		lpKeyState = &keyState[0]
+	}
+	var pwszBuff *uint16
+	if len(buff) > 0 {
+		pwszBuff = &buff[0]
+	}
+
+	r, _, _ := procToUnicode.Call(uintptr(wVirtualKey), uintptr(wScanCode), uintptr(unsafe.Pointer(lpKeyState)),
+		uintptr(unsafe.Pointer(pwszBuff)), uintptr(cchBuff), uintptr(wFlags))
+	runtime.KeepAlive(lpKeyState)
+	runtime.KeepAlive(pwszBuff)
+
+	return int32(r)
 }
 
 func _TranslateMessage(lpMsg *_MSG) bool {

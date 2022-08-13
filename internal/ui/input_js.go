@@ -167,3 +167,51 @@ func isKeyString(str string) bool {
 	}
 	return true
 }
+
+var (
+	jsKeyboard                     = js.Global().Get("navigator").Get("keyboard")
+	jsKeyboardGetLayoutMap         js.Value
+	jsKeyboardGetLayoutMapCh       chan js.Value
+	jsKeyboardGetLayoutMapCallback js.Func
+)
+
+func init() {
+	if !jsKeyboard.Truthy() {
+		return
+	}
+
+	jsKeyboardGetLayoutMap = jsKeyboard.Get("getLayoutMap").Call("bind", jsKeyboard)
+	jsKeyboardGetLayoutMapCh = make(chan js.Value, 1)
+	jsKeyboardGetLayoutMapCallback = js.FuncOf(func(this js.Value, args []js.Value) any {
+		jsKeyboardGetLayoutMapCh <- args[0]
+		return nil
+	})
+}
+
+func KeyName(key Key) string {
+	return theUI.keyName(key)
+}
+
+func (u *userInterfaceImpl) keyName(key Key) string {
+	if !u.running {
+		return ""
+	}
+
+	// keyboardLayoutMap is reset every tick.
+	if u.keyboardLayoutMap.IsUndefined() {
+		if !jsKeyboard.Truthy() {
+			return ""
+		}
+
+		// Invoke getLayoutMap every tick to detect the keyboard change.
+		// TODO: Calling this every tick might be inefficient. Is there a way to detect a keyboard change?
+		jsKeyboardGetLayoutMap.Invoke().Call("then", jsKeyboardGetLayoutMapCallback)
+		u.keyboardLayoutMap = <-jsKeyboardGetLayoutMapCh
+	}
+
+	n := u.keyboardLayoutMap.Call("get", uiKeyToJSKey[key])
+	if n.IsUndefined() {
+		return ""
+	}
+	return n.String()
+}

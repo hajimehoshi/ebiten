@@ -69,6 +69,19 @@ func IsKeyPressed(key Key) bool {
 	return theInputState.isKeyPressed(key)
 }
 
+// KeyName returns a key name for the current keyboard layout.
+// For example, KeyName(KeyQ) returns 'q' for a QWERTY keyboard, and returns 'a' for an AZERTY keyboard.
+//
+// KeyName returns an empty string if 1) the key doesn't have a phisical key name, 2) the platform doesn't support KeyName,
+// or 3) the main loop doesn't start yet.
+//
+// KeyName is supported by desktops and browsers.
+//
+// KeyName is concurrent-safe.
+func KeyName(key Key) string {
+	return ui.KeyName(ui.Key(key))
+}
+
 // CursorPosition returns a position of a mouse cursor relative to the game screen (window). The cursor position is
 // 'logical' position and this considers the scale of the screen.
 //

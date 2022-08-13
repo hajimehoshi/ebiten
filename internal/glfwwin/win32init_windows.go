@@ -151,6 +151,47 @@ func createKeyTables() {
 	}
 }
 
+func updateKeyNamesWin32() {
+	for i := range _glfw.win32.keynames {
+		_glfw.win32.keynames[i] = ""
+	}
+
+	var state [256]byte
+
+	for key := KeySpace; key <= KeyLast; key++ {
+		scancode := _glfw.win32.scancodes[key]
+		if scancode == -1 {
+			continue
+		}
+
+		var vk uint32
+		if key >= KeyKP0 && key <= KeyKPAdd {
+			vks := []uint32{
+				_VK_NUMPAD0, _VK_NUMPAD1, _VK_NUMPAD2, _VK_NUMPAD3,
+				_VK_NUMPAD4, _VK_NUMPAD5, _VK_NUMPAD6, _VK_NUMPAD7,
+				_VK_NUMPAD8, _VK_NUMPAD9, _VK_DECIMAL, _VK_DIVIDE,
+				_VK_MULTIPLY, _VK_SUBTRACT, _VK_ADD,
+			}
+			vk = vks[key-KeyKP0]
+		} else {
+			vk = _MapVirtualKeyW(uint32(scancode), _MAPVK_VSC_TO_VK)
+		}
+
+		var chars [16]uint16
+		length := _ToUnicode(vk, uint32(scancode), state[:], chars[:], int32(len(chars)), 0)
+		if length == -1 {
+			// This is a dead key, so we need a second simulated key press
+			// to make it output its own character (usually a diacritic)
+			length = _ToUnicode(vk, uint32(scancode), state[:], chars[:], int32(len(chars)), 0)
+		}
+		if length < 1 {
+			continue
+		}
+
+		_glfw.win32.keynames[key] = windows.UTF16ToString(chars[:length])
+	}
+}
+
 func createHelperWindow() error {
 	h, err := _CreateWindowExW(_WS_EX_OVERLAPPEDWINDOW, _GLFW_WNDCLASSNAME, "GLFW message window", _WS_CLIPSIBLINGS|_WS_CLIPCHILDREN, 0, 0, 1, 1, 0, 0, _glfw.win32.instance, nil)
 	if err != nil {
@@ -238,6 +279,7 @@ func platformInit() error {
 	_glfw.win32.instance = _HINSTANCE(m)
 
 	createKeyTables()
+	updateKeyNamesWin32()
 
 	if isWindows10CreatorsUpdateOrGreaterWin32() {
 		if !microsoftgdk.IsXbox() {

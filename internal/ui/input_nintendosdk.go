@@ -37,3 +37,7 @@ func (u *userInterfaceImpl) updateInputState() {
 		}
 	}
 }
+
+func KeyName(key Key) string {
+	return ""
+}

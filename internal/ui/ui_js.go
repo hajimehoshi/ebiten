@@ -91,6 +91,8 @@ type userInterfaceImpl struct {
 	origCursorX int
 	origCursorY int
 
+	keyboardLayoutMap js.Value
+
 	m sync.Mutex
 }
 
@@ -686,6 +688,7 @@ func (u *userInterfaceImpl) readInputState(inputState *InputState) {
 }
 
 func (u *userInterfaceImpl) resetForTick() {
+	u.keyboardLayoutMap = js.Value{}
 }
 
 func (u *userInterfaceImpl) Window() Window {

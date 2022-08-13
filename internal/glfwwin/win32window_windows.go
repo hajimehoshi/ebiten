@@ -690,7 +690,8 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 		return 0
 
 	case _WM_INPUTLANGCHANGE:
-		// Do nothing
+		updateKeyNamesWin32()
+		return 0
 
 	case _WM_CHAR, _WM_SYSCHAR:
 		if wParam >= 0xd800 && wParam <= 0xdbff {
@@ -2202,6 +2203,13 @@ func (w *Window) platformSetCursorMode(mode int) error {
 	}
 
 	return nil
+}
+
+func platformGetScancodeName(scancode int) (string, error) {
+	if scancode < 0 || scancode > (_KF_EXTENDED|0xff) || _glfw.win32.keycodes[scancode] == KeyUnknown {
+		return "", fmt.Errorf("glwfwin: invalid scancode %d: %w", scancode, InvalidValue)
+	}
+	return _glfw.win32.keynames[_glfw.win32.keycodes[scancode]], nil
 }
 
 func platformGetKeyScancode(key Key) int {

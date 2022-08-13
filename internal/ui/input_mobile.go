@@ -51,3 +51,8 @@ func (u *userInterfaceImpl) updateInputState(keys map[Key]struct{}, runes []rune
 		}
 	}
 }
+
+func KeyName(key Key) string {
+	// TODO: Implement this.
+	return ""
+}
