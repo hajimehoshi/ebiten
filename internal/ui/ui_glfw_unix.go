@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !darwin && !js && !windows && !ebitenginecbackend && !ebitencbackend
-// +build !android,!darwin,!js,!windows,!ebitenginecbackend,!ebitencbackend
+//go:build !android && !darwin && !js && !windows && !nintendosdk
+// +build !android,!darwin,!js,!windows,!nintendosdk
 
 package ui
 
@@ -142,6 +142,13 @@ func videoModeScaleUncached(m *glfw.Monitor) float64 {
 	return 1
 }
 
+type userInterfaceImplNative struct {
+	origWindowPosX        int
+	origWindowPosY        int
+	origWindowWidthInDIP  int
+	origWindowHeightInDIP int
+}
+
 // dipFromGLFWMonitorPixel must be called from the main thread.
 func (u *userInterfaceImpl) dipFromGLFWMonitorPixel(x float64, monitor *glfw.Monitor) float64 {
 	return x / (videoModeScale(monitor) * u.deviceScaleFactor(monitor))
@@ -231,10 +238,25 @@ func initializeWindowAfterCreation(w *glfw.Window) {
 	// For more details, see the discussion in #1829.
 }
 
-func (u *userInterfaceImpl) origWindowPosByOS() (int, int, bool) {
-	return 0, 0, false
+func (u *userInterfaceImpl) origWindowPos() (int, int) {
+	return u.native.origWindowPosX, u.native.origWindowPosY
 }
 
-func (u *userInterfaceImpl) setOrigWindowPosByOS(x, y int) bool {
-	return false
+func (u *userInterfaceImpl) setOrigWindowPos(x, y int) {
+	u.native.origWindowPosX = x
+	u.native.origWindowPosY = y
+}
+
+func (u *userInterfaceImpl) origWindowSizeInDIP() (int, int) {
+	return u.native.origWindowWidthInDIP, u.native.origWindowHeightInDIP
+}
+
+func (u *userInterfaceImpl) setOrigWindowSizeInDIP(width, height int) {
+	u.native.origWindowWidthInDIP = width
+	u.native.origWindowHeightInDIP = height
+}
+
+func (u *userInterfaceImplNative) initialize() {
+	u.origWindowPosX = invalidPos
+	u.origWindowPosY = invalidPos
 }

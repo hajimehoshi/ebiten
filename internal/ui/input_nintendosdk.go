@@ -12,21 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ebitenginecbackend || ebitencbackend
-// +build ebitenginecbackend ebitencbackend
+//go:build nintendosdk
+// +build nintendosdk
 
 package ui
 
 import (
 	"sync"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/cbackend"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
+	"github.com/hajimehoshi/ebiten/v2/internal/nintendosdk"
 )
 
 type Input struct {
-	gamepads []cbackend.Gamepad
-	touches  []cbackend.Touch
+	gamepads []nintendosdk.Gamepad
+	touches  []nintendosdk.Touch
 
 	m sync.Mutex
 }
@@ -38,7 +38,7 @@ func (i *Input) update(context *context) {
 	gamepad.Update()
 
 	i.touches = i.touches[:0]
-	i.touches = cbackend.AppendTouches(i.touches)
+	i.touches = nintendosdk.AppendTouches(i.touches)
 
 	for idx, t := range i.touches {
 		x, y := context.adjustPosition(float64(t.X), float64(t.Y), deviceScaleFactor)

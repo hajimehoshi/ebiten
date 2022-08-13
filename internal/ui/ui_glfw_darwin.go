@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !ios && !ebitenginecbackend && !ebitencbackend
-// +build !ios,!ebitenginecbackend,!ebitencbackend
+//go:build !ios && !nintendosdk
+// +build !ios,!nintendosdk
 
 package ui
 
@@ -25,6 +25,8 @@ package ui
 // @interface EbitenWindowDelegate : NSObject <NSWindowDelegate>
 // // origPos is the window's original position. This is valid only when the application is in the fullscreen mode.
 // @property CGPoint origPos;
+// // origSize is the window's original size.
+// @property CGSize origSize;
 // @end
 //
 // @implementation EbitenWindowDelegate {
@@ -85,6 +87,7 @@ package ui
 //   NSWindow* window = (NSWindow*)[notification object];
 //   [self pushResizableState:window];
 //   self->_origPos = [window frame].origin;
+//   self->_origSize = [window frame].size;
 // }
 //
 // - (void)windowDidEnterFullScreen:(NSNotification *)notification {
@@ -100,7 +103,10 @@ package ui
 // - (void)windowDidExitFullScreen:(NSNotification *)notification {
 //   NSWindow* window = (NSWindow*)[notification object];
 //   [self popResizableState:window];
-//   [window setFrameOrigin:self->_origPos];
+//   CGRect frame;
+//   frame.origin = self->_origPos;
+//   frame.size = self->_origSize;
+//   [window setFrame:frame display:YES];
 // }
 //
 // @end
@@ -147,13 +153,13 @@ package ui
 //
 //   // Even though EbitenWindowDelegate is used, this hack is still required.
 //   // toggleFullscreen doesn't work when the window is not resizable.
-//   bool origResizable = window.styleMask & NSWindowStyleMaskResizable;
-//   if (!origResizable) {
-//     window.styleMask |= NSWindowStyleMaskResizable;
+//   bool origFullscreen = window.collectionBehavior & NSWindowCollectionBehaviorFullScreenPrimary;
+//   if (!origFullscreen) {
+//     window.collectionBehavior |= NSWindowCollectionBehaviorFullScreenPrimary;
 //   }
 //   [window toggleFullScreen:nil];
-//   if (!origResizable) {
-//     window.styleMask &= ~NSWindowStyleMaskResizable;
+//   if (!origFullscreen) {
+//     window.collectionBehavior &= ~NSWindowCollectionBehaviorFullScreenPrimary;
 //   }
 // }
 //
@@ -190,9 +196,8 @@ package ui
 //
 // static void windowOriginalPosition(uintptr_t windowPtr, int* x, int* y) {
 //   NSWindow* window = (NSWindow*)windowPtr;
-//   CGPoint pos;
 //   EbitenWindowDelegate* delegate = (EbitenWindowDelegate*)window.delegate;
-//   pos = delegate.origPos;
+//   CGPoint pos = delegate.origPos;
 //   *x = pos.x;
 //   *y = pos.y;
 // }
@@ -204,6 +209,23 @@ package ui
 //   pos.x = x;
 //   pos.y = y;
 //   delegate.origPos = pos;
+// }
+//
+// static void windowOriginalSize(uintptr_t windowPtr, int* width, int* height) {
+//   NSWindow* window = (NSWindow*)windowPtr;
+//   EbitenWindowDelegate* delegate = (EbitenWindowDelegate*)window.delegate;
+//   CGSize size = delegate.origSize;
+//   *width = size.width;
+//   *height = size.height;
+// }
+//
+// static void setWindowOriginalSize(uintptr_t windowPtr, int width, int height) {
+//   NSWindow* window = (NSWindow*)windowPtr;
+//   EbitenWindowDelegate* delegate = (EbitenWindowDelegate*)window.delegate;
+//   CGSize size;
+//   size.width = width;
+//   size.height = height;
+//   delegate.origSize = size;
 // }
 //
 // static void setNativeCursor(int cursorID) {
@@ -286,6 +308,8 @@ func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
 
 // clearVideoModeScaleCache must be called from the main thread.
 func clearVideoModeScaleCache() {}
+
+type userInterfaceImplNative struct{}
 
 // dipFromGLFWMonitorPixel must be called from the main thread.
 func (u *userInterfaceImpl) dipFromGLFWMonitorPixel(x float64, monitor *glfw.Monitor) float64 {
@@ -391,23 +415,42 @@ func initializeWindowAfterCreation(w *glfw.Window) {
 	C.initializeWindow(C.uintptr_t(w.GetCocoaWindow()))
 }
 
-func (u *userInterfaceImpl) origWindowPosByOS() (int, int, bool) {
+func (u *userInterfaceImpl) origWindowPos() (int, int) {
 	if !u.isNativeFullscreen() {
-		return invalidPos, invalidPos, true
+		return invalidPos, invalidPos
 	}
 	var cx, cy C.int
 	C.windowOriginalPosition(C.uintptr_t(u.window.GetCocoaWindow()), &cx, &cy)
 	x := int(cx)
-	y := flipY(int(cy)) - u.windowHeightInDIP
-	return x, y, true
+	_, h := u.origWindowSizeInDIP()
+	y := flipY(int(cy)) - h
+	return x, y
 }
 
-func (u *userInterfaceImpl) setOrigWindowPosByOS(x, y int) bool {
+func (u *userInterfaceImpl) setOrigWindowPos(x, y int) {
 	if !u.isNativeFullscreen() {
-		return true
+		return
 	}
 	cx := C.int(x)
-	cy := C.int(flipY(y + u.windowHeightInDIP))
+	_, h := u.origWindowSizeInDIP()
+	cy := C.int(flipY(y + h))
 	C.setWindowOriginalPosition(C.uintptr_t(u.window.GetCocoaWindow()), cx, cy)
-	return true
+}
+
+func (u *userInterfaceImpl) origWindowSizeInDIP() (int, int) {
+	// TODO: Make these values consistent with the original positions that are updated only when the app is in fullscreen.
+	var cw, ch C.int
+	C.windowOriginalSize(C.uintptr_t(u.window.GetCocoaWindow()), &cw, &ch)
+	w := int(u.dipFromGLFWPixel(float64(cw), u.currentMonitor()))
+	h := int(u.dipFromGLFWPixel(float64(ch), u.currentMonitor()))
+	return w, h
+}
+
+func (u *userInterfaceImpl) setOrigWindowSizeInDIP(width, height int) {
+	cw := C.int(u.dipFromGLFWPixel(float64(width), u.currentMonitor()))
+	ch := C.int(u.dipFromGLFWPixel(float64(height), u.currentMonitor()))
+	C.setWindowOriginalSize(C.uintptr_t(u.window.GetCocoaWindow()), cw, ch)
+}
+
+func (u *userInterfaceImplNative) initialize() {
 }

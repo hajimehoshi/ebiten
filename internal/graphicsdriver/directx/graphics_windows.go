@@ -1578,9 +1578,9 @@ func (i *Image) ReadPixels(buf []byte) error {
 	return nil
 }
 
-func (i *Image) ReplacePixels(args []*graphicsdriver.ReplacePixelsArgs) error {
+func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 	if i.screen {
-		return errors.New("directx: ReplacePixels cannot be called on the screen")
+		return errors.New("directx: WritePixels cannot be called on the screen")
 	}
 
 	if err := i.graphics.flushCommandList(i.graphics.drawCommandList); err != nil {

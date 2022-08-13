@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !ebitenginecbackend && !ebitencbackend
-// +build !ebitenginecbackend,!ebitencbackend
-
 package audio
 
 import (
@@ -25,7 +22,7 @@ import (
 
 func newContext(sampleRate, channelCount, bitDepthInBytes int) (context, chan struct{}, error) {
 	ctx, ready, err := oto.NewContext(sampleRate, channelCount, bitDepthInBytes)
-	return otoContextToContext(ctx), ready, err
+	return &contextProxy{ctx}, ready, err
 }
 
 // otoContext is an interface for *oto.Context.
@@ -44,8 +41,4 @@ type contextProxy struct {
 // NewPlayer implements context.
 func (c *contextProxy) NewPlayer(r io.Reader) player {
 	return c.otoContext.NewPlayer(r).(player)
-}
-
-func otoContextToContext(ctx otoContext) context {
-	return &contextProxy{ctx}
 }

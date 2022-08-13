@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !ios && !ebitenginecbackend && !ebitencbackend
-// +build !ios,!ebitenginecbackend,!ebitencbackend
+//go:build !ios && !nintendosdk
+// +build !ios,!nintendosdk
 
 package gamepad
 
@@ -24,6 +24,8 @@ import (
 	"sync"
 	"time"
 	"unsafe"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
 // #cgo LDFLAGS: -framework CoreFoundation -framework IOKit
@@ -403,6 +405,14 @@ func (g *nativeGamepadImpl) update(gamepads *gamepads) error {
 }
 
 func (g *nativeGamepadImpl) hasOwnStandardLayoutMapping() bool {
+	return false
+}
+
+func (g *nativeGamepadImpl) isStandardAxisAvailableInOwnMapping(axis gamepaddb.StandardAxis) bool {
+	return false
+}
+
+func (g *nativeGamepadImpl) isStandardButtonAvailableInOwnMapping(button gamepaddb.StandardButton) bool {
 	return false
 }
 

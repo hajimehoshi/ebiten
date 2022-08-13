@@ -49,8 +49,8 @@ func (m *Mipmap) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name str
 	return m.orig.DumpScreenshot(graphicsDriver, name, blackbg)
 }
 
-func (m *Mipmap) ReplacePixels(pix []byte, x, y, width, height int) {
-	m.orig.ReplacePixels(pix, x, y, width, height)
+func (m *Mipmap) WritePixels(pix []byte, x, y, width, height int) {
+	m.orig.WritePixels(pix, x, y, width, height)
 	m.disposeMipmaps()
 }
 

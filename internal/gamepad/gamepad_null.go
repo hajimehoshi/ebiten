@@ -19,6 +19,8 @@ package gamepad
 
 import (
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
 type nativeGamepadsImpl struct{}
@@ -42,6 +44,14 @@ func (*nativeGamepadImpl) update(gamepad *gamepads) error {
 }
 
 func (*nativeGamepadImpl) hasOwnStandardLayoutMapping() bool {
+	return false
+}
+
+func (*nativeGamepadImpl) isStandardAxisAvailableInOwnMapping(axis gamepaddb.StandardAxis) bool {
+	return false
+}
+
+func (*nativeGamepadImpl) isStandardButtonAvailableInOwnMapping(button gamepaddb.StandardButton) bool {
 	return false
 }
 

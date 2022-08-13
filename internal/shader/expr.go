@@ -469,6 +469,14 @@ func (cs *compileState) parseExpr(block *block, expr ast.Expr, markLocalVariable
 			case shaderir.Texture2DF:
 				// TODO: Check arg types.
 				t = shaderir.Type{Main: shaderir.Vec4}
+			case shaderir.DiscardF:
+				if len(args) != 0 {
+					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 0 but %d", callee.BuiltinFunc, len(args)))
+				}
+				stmts = append(stmts, shaderir.Stmt{
+					Type: shaderir.Discard,
+				})
+				return nil, nil, stmts, true
 			default:
 				// TODO: Check arg types.
 				// If the argument is a non-typed constant value, treat is as a float value (#1874).

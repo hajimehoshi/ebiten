@@ -106,7 +106,20 @@ func TestImagePixels(t *testing.T) {
 			got := img0.At(i, j)
 			want := color.RGBAModel.Convert(img.At(i, j))
 			if got != want {
-				t.Errorf("img0 At(%d, %d): got %#v; want %#v", i, j, got, want)
+				t.Errorf("img0 At(%d, %d): got %v; want %v", i, j, got, want)
+			}
+		}
+	}
+
+	pix := make([]byte, 4*w*h)
+	img0.ReadPixels(pix)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			idx := 4 * (j*w + i)
+			got := color.RGBA{pix[idx], pix[idx+1], pix[idx+2], pix[idx+3]}
+			want := color.RGBAModel.Convert(img.At(i, j))
+			if got != want {
+				t.Errorf("(%d, %d): got %v; want %v", i, j, got, want)
 			}
 		}
 	}
@@ -147,7 +160,7 @@ func TestImageComposition(t *testing.T) {
 			c1 := img_12_3.At(i, j).(color.RGBA)
 			c2 := img_1_23.At(i, j).(color.RGBA)
 			if !sameColors(c1, c2, 1) {
-				t.Errorf("img_12_3.At(%d, %d) = %#v; img_1_23.At(%[1]d, %[2]d) = %#[4]v", i, j, c1, c2)
+				t.Errorf("img_12_3.At(%d, %d) = %v; img_1_23.At(%[1]d, %[2]d) = %#[4]v", i, j, c1, c2)
 			}
 			if c1.A == 0 {
 				t.Fatalf("img_12_3.At(%d, %d).A = 0; nothing is rendered?", i, j)
@@ -248,7 +261,7 @@ func TestImageDotByDotInversion(t *testing.T) {
 	}
 }
 
-func TestImageReplacePixels(t *testing.T) {
+func TestImageWritePixels(t *testing.T) {
 	// Create a dummy image so that the shared texture is used and origImg's position is shfited.
 	dummyImg := ebiten.NewImageFromImage(image.NewRGBA(image.Rect(0, 0, 16, 16)))
 	defer dummyImg.Dispose()
@@ -265,13 +278,13 @@ func TestImageReplacePixels(t *testing.T) {
 	size := img.Bounds().Size()
 	img0 := ebiten.NewImage(size.X, size.Y)
 
-	img0.ReplacePixels(img.Pix)
+	img0.WritePixels(img.Pix)
 	for j := 0; j < img0.Bounds().Size().Y; j++ {
 		for i := 0; i < img0.Bounds().Size().X; i++ {
 			got := img0.At(i, j)
 			want := img.At(i, j)
 			if got != want {
-				t.Errorf("img0 At(%d, %d): got %#v; want %#v", i, j, got, want)
+				t.Errorf("img0 At(%d, %d): got %v; want %v", i, j, got, want)
 			}
 		}
 	}
@@ -280,7 +293,7 @@ func TestImageReplacePixels(t *testing.T) {
 	for i := range p {
 		p[i] = 0x80
 	}
-	img0.ReplacePixels(p)
+	img0.WritePixels(p)
 	// Even if p is changed after calling ReplacePixel, img0 uses the original values.
 	for i := range p {
 		p[i] = 0
@@ -290,22 +303,22 @@ func TestImageReplacePixels(t *testing.T) {
 			got := img0.At(i, j)
 			want := color.RGBA{0x80, 0x80, 0x80, 0x80}
 			if got != want {
-				t.Errorf("img0 At(%d, %d): got %#v; want %#v", i, j, got, want)
+				t.Errorf("img0 At(%d, %d): got %v; want %v", i, j, got, want)
 			}
 		}
 	}
 }
 
-func TestImageReplacePixelsNil(t *testing.T) {
+func TestImageWritePixelsNil(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
-			t.Errorf("ReplacePixels(nil) must panic")
+			t.Errorf("WritePixels(nil) must panic")
 		}
 	}()
 
 	img := ebiten.NewImage(16, 16)
 	img.Fill(color.White)
-	img.ReplacePixels(nil)
+	img.WritePixels(nil)
 }
 
 func TestImageDispose(t *testing.T) {
@@ -351,7 +364,7 @@ func TestImageCompositeModeLighter(t *testing.T) {
 			want.B = uint8(min(0xff, int(want.B)+3))
 			want.A = uint8(min(0xff, int(want.A)+4))
 			if got != want {
-				t.Errorf("img1 At(%d, %d): got %#v; want %#v", i, j, got, want)
+				t.Errorf("img1 At(%d, %d): got %v; want %v", i, j, got, want)
 			}
 		}
 	}
@@ -378,17 +391,17 @@ func TestNewImageFromSubImage(t *testing.T) {
 	sw, sh := subImg.Bounds().Dx(), subImg.Bounds().Dy()
 	w2, h2 := eimg.Size()
 	if w2 != sw {
-		t.Errorf("eimg Width: got %#v; want %#v", w2, sw)
+		t.Errorf("eimg Width: got %v; want %v", w2, sw)
 	}
 	if h2 != sh {
-		t.Errorf("eimg Width: got %#v; want %#v", h2, sh)
+		t.Errorf("eimg Width: got %v; want %v", h2, sh)
 	}
 	for j := 0; j < h2; j++ {
 		for i := 0; i < w2; i++ {
 			got := eimg.At(i, j)
 			want := color.RGBAModel.Convert(img.At(i+1, j+1))
 			if got != want {
-				t.Errorf("img0 At(%d, %d): got %#v; want %#v", i, j, got, want)
+				t.Errorf("img0 At(%d, %d): got %v; want %v", i, j, got, want)
 			}
 		}
 	}
@@ -413,7 +426,7 @@ func TestImageFill(t *testing.T) {
 			got := img.At(i, j)
 			want := color.RGBA{0x80, 0x80, 0x80, 0x80}
 			if got != want {
-				t.Errorf("img At(%d, %d): got %#v; want %#v", i, j, got, want)
+				t.Errorf("img At(%d, %d): got %v; want %v", i, j, got, want)
 			}
 		}
 	}
@@ -429,7 +442,7 @@ func TestImageClear(t *testing.T) {
 			got := img.At(i, j)
 			want := color.RGBA{0xff, 0xff, 0xff, 0xff}
 			if got != want {
-				t.Errorf("img At(%d, %d): got %#v; want %#v", i, j, got, want)
+				t.Errorf("img At(%d, %d): got %v; want %v", i, j, got, want)
 			}
 		}
 	}
@@ -439,7 +452,7 @@ func TestImageClear(t *testing.T) {
 			got := img.At(i, j)
 			want := color.RGBA{}
 			if got != want {
-				t.Errorf("img At(%d, %d): got %#v; want %#v", i, j, got, want)
+				t.Errorf("img At(%d, %d): got %v; want %v", i, j, got, want)
 			}
 		}
 	}
@@ -473,7 +486,7 @@ func TestImageEdge(t *testing.T) {
 			pixels[idx+3] = 0xff
 		}
 	}
-	img0.ReplacePixels(pixels)
+	img0.WritePixels(pixels)
 	img1 := ebiten.NewImage(img1Width, img1Height)
 	red := color.RGBA{0xff, 0, 0, 0xff}
 	transparent := color.RGBA{0, 0, 0, 0}
@@ -609,7 +622,7 @@ func TestImageTooManyFill(t *testing.T) {
 		got := dst.At(i, 0).(color.RGBA)
 		want := color.RGBA{c, c, c, 0xff}
 		if !sameColors(got, want, 1) {
-			t.Errorf("dst.At(%d, %d): got %#v, want: %#v", i, 0, got, want)
+			t.Errorf("dst.At(%d, %d): got %v, want: %v", i, 0, got, want)
 		}
 	}
 }
@@ -625,7 +638,7 @@ func BenchmarkDrawImage(b *testing.B) {
 
 func TestImageLinearGraduation(t *testing.T) {
 	img0 := ebiten.NewImage(2, 2)
-	img0.ReplacePixels([]byte{
+	img0.WritePixels([]byte{
 		0xff, 0x00, 0x00, 0xff,
 		0x00, 0xff, 0x00, 0xff,
 		0x00, 0x00, 0xff, 0xff,
@@ -644,7 +657,7 @@ func TestImageLinearGraduation(t *testing.T) {
 		for i := 1; i < w-1; i++ {
 			c := img1.At(i, j).(color.RGBA)
 			if c.R == 0 || c.R == 0xff {
-				t.Errorf("img1.At(%d, %d).R must be in between 0x01 and 0xfe but %#v", i, j, c)
+				t.Errorf("img1.At(%d, %d).R must be in between 0x01 and 0xfe but %v", i, j, c)
 			}
 		}
 	}
@@ -685,7 +698,7 @@ func TestImageOutside(t *testing.T) {
 				got := dst.At(i, j).(color.RGBA)
 				want := color.RGBA{0, 0, 0, 0}
 				if got != want {
-					t.Errorf("src(x: %d, y: %d, w: %d, h: %d), dst At(%d, %d): got %#v, want: %#v", c.X, c.Y, c.Width, c.Height, i, j, got, want)
+					t.Errorf("src(x: %d, y: %d, w: %d, h: %d), dst At(%d, %d): got %v, want: %v", c.X, c.Y, c.Width, c.Height, i, j, got, want)
 				}
 			}
 		}
@@ -711,7 +724,7 @@ func TestImageOutsideUpperLeft(t *testing.T) {
 			got := dst1.At(i, j).(color.RGBA)
 			want := dst2.At(i, j).(color.RGBA)
 			if got != want {
-				t.Errorf("got: dst1.At(%d, %d): %#v, want: dst2.At(%d, %d): %#v", i, j, got, i, j, want)
+				t.Errorf("got: dst1.At(%d, %d): %v, want: dst2.At(%d, %d): %v", i, j, got, i, j, want)
 			}
 		}
 	}
@@ -740,7 +753,7 @@ func TestImageSize1(t *testing.T) {
 	got := src.At(0, 0).(color.RGBA)
 	want := color.RGBA{0xff, 0xff, 0xff, 0xff}
 	if !sameColors(got, want, 1) {
-		t.Errorf("got: %#v, want: %#v", got, want)
+		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
 
@@ -765,14 +778,14 @@ func Skip_TestImageSize4096(t *testing.T) {
 		pix[idx+2] = uint8((i + j) >> 16)
 		pix[idx+3] = 0xff
 	}
-	src.ReplacePixels(pix)
+	src.WritePixels(pix)
 	dst.DrawImage(src, nil)
 	for i := 4095; i < 4096; i++ {
 		j := 4095
 		got := dst.At(i, j).(color.RGBA)
 		want := color.RGBA{uint8(i + j), uint8((i + j) >> 8), uint8((i + j) >> 16), 0xff}
 		if got != want {
-			t.Errorf("At(%d, %d): got: %#v, want: %#v", i, j, got, want)
+			t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
 		}
 	}
 	for j := 4095; j < 4096; j++ {
@@ -780,7 +793,7 @@ func Skip_TestImageSize4096(t *testing.T) {
 		got := dst.At(i, j).(color.RGBA)
 		want := color.RGBA{uint8(i + j), uint8((i + j) >> 8), uint8((i + j) >> 16), 0xff}
 		if got != want {
-			t.Errorf("At(%d, %d): got: %#v, want: %#v", i, j, got, want)
+			t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
 		}
 	}
 }
@@ -815,7 +828,7 @@ loop:
 			pix[4*i] = 0xff
 			pix[4*i+3] = 0xff
 		}
-		src.ReplacePixels(pix)
+		src.WritePixels(pix)
 
 		_, dh := dst.Size()
 		for i := 0; i < dh; {
@@ -833,7 +846,7 @@ loop:
 					want = color.RGBA{0xff, 0, 0, 0xff}
 				}
 				if got != want {
-					t.Errorf("At(%d, %d) (height=%d, scale=%d/%d): got: %#v, want: %#v", 0, i+j, h, i, h, got, want)
+					t.Errorf("At(%d, %d) (height=%d, scale=%d/%d): got: %v, want: %v", 0, i+j, h, i, h, got, want)
 					continue loop
 				}
 			}
@@ -871,7 +884,7 @@ func TestImageSprites(t *testing.T) {
 			got := dst.At(i*4, j*4).(color.RGBA)
 			want := color.RGBA{0xff, 0xff, 0xff, 0xff}
 			if !sameColors(got, want, 1) {
-				t.Errorf("dst.At(%d, %d): got %#v, want: %#v", i*4, j*4, got, want)
+				t.Errorf("dst.At(%d, %d): got %v, want: %v", i*4, j*4, got, want)
 			}
 		}
 	}
@@ -916,7 +929,7 @@ func Disabled_TestImageMipmap(t *testing.T) {
 			got := gotDst.At(i, j).(color.RGBA)
 			want := wantDst.At(i, j).(color.RGBA)
 			if !sameColors(got, want, 1) {
-				t.Errorf("At(%d, %d): got: %#v, want: %#v", i, j, got, want)
+				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}
 	}
@@ -964,7 +977,7 @@ func Disabled_TestImageMipmapNegativeDet(t *testing.T) {
 			got := gotDst.At(i, j).(color.RGBA)
 			want := wantDst.At(i, j).(color.RGBA)
 			if !sameColors(got, want, 1) {
-				t.Errorf("At(%d, %d): got: %#v, want: %#v", i, j, got, want)
+				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 			if got.A > 0 {
 				allZero = false
@@ -1002,7 +1015,7 @@ func TestImageMipmapColor(t *testing.T) {
 		want := color.RGBA{0, 0xff, 0xff, 0xff}
 		got := img0.At(128, 0)
 		if got != want {
-			t.Errorf("want: %#v, got: %#v", want, got)
+			t.Errorf("want: %v, got: %v", want, got)
 		}
 	}
 }
@@ -1166,7 +1179,7 @@ func TestImageLinearFilterGlitch(t *testing.T) {
 			}
 		}
 	}
-	src.ReplacePixels(pix)
+	src.WritePixels(pix)
 
 	for _, f := range []ebiten.Filter{ebiten.FilterNearest, ebiten.FilterLinear} {
 		op := &ebiten.DrawImageOptions{}
@@ -1216,7 +1229,7 @@ func TestImageLinearFilterGlitch2(t *testing.T) {
 			idx++
 		}
 	}
-	src.ReplacePixels(pix)
+	src.WritePixels(pix)
 
 	op := &ebiten.DrawImageOptions{}
 	op.Filter = ebiten.FilterLinear
@@ -1259,7 +1272,7 @@ func TestImageAddressRepeat(t *testing.T) {
 			}
 		}
 	}
-	src.ReplacePixels(pix)
+	src.WritePixels(pix)
 
 	vs := []ebiten.Vertex{
 		{
@@ -1340,7 +1353,7 @@ func TestImageAddressRepeatNegativePosition(t *testing.T) {
 			}
 		}
 	}
-	src.ReplacePixels(pix)
+	src.WritePixels(pix)
 
 	vs := []ebiten.Vertex{
 		{
@@ -1400,16 +1413,16 @@ func TestImageAddressRepeatNegativePosition(t *testing.T) {
 	}
 }
 
-func TestImageReplacePixelsAfterClear(t *testing.T) {
+func TestImageWritePixelsAfterClear(t *testing.T) {
 	const w, h = 256, 256
 	img := ebiten.NewImage(w, h)
-	img.ReplacePixels(make([]byte, 4*w*h))
+	img.WritePixels(make([]byte, 4*w*h))
 	// Clear used to call DrawImage to clear the image, which was the cause of crash. It is because after
-	// DrawImage is called, ReplacePixels for a region is forbidden.
+	// DrawImage is called, WritePixels for a region is forbidden.
 	//
-	// Now ReplacePixels was always called at Clear instead.
+	// Now WritePixels was always called at Clear instead.
 	img.Clear()
-	img.ReplacePixels(make([]byte, 4*w*h))
+	img.WritePixels(make([]byte, 4*w*h))
 
 	// The test passes if this doesn't crash.
 }
@@ -1527,7 +1540,7 @@ func TestImageAlphaOnBlack(t *testing.T) {
 			}
 		}
 	}
-	src0.ReplacePixels(pix0)
+	src0.WritePixels(pix0)
 
 	pix1 := make([]byte, 4*w*h)
 	for j := 0; j < h; j++ {
@@ -1545,7 +1558,7 @@ func TestImageAlphaOnBlack(t *testing.T) {
 			}
 		}
 	}
-	src1.ReplacePixels(pix1)
+	src1.WritePixels(pix1)
 
 	dst0.Fill(color.Black)
 	dst1.Fill(color.Black)
@@ -1595,7 +1608,7 @@ func TestImageDrawTrianglesWithSubImage(t *testing.T) {
 			}
 		}
 	}
-	src.ReplacePixels(pix)
+	src.WritePixels(pix)
 
 	vs := []ebiten.Vertex{
 		{
@@ -1851,7 +1864,7 @@ func TestImageDrawTrianglesAndMutateArgs(t *testing.T) {
 	}
 }
 
-func TestImageReplacePixelsOnSubImage(t *testing.T) {
+func TestImageWritePixelsOnSubImage(t *testing.T) {
 	dst := ebiten.NewImage(17, 31)
 	dst.Fill(color.RGBA{0xff, 0, 0, 0xff})
 
@@ -1867,7 +1880,7 @@ func TestImageReplacePixelsOnSubImage(t *testing.T) {
 		}
 	}
 	r0 := image.Rect(4, 5, 9, 8)
-	dst.SubImage(r0).(*ebiten.Image).ReplacePixels(pix0)
+	dst.SubImage(r0).(*ebiten.Image).WritePixels(pix0)
 
 	pix1 := make([]byte, 4*5*3)
 	idx = 0
@@ -1881,7 +1894,7 @@ func TestImageReplacePixelsOnSubImage(t *testing.T) {
 		}
 	}
 	r1 := image.Rect(11, 10, 16, 13)
-	dst.SubImage(r1).(*ebiten.Image).ReplacePixels(pix1)
+	dst.SubImage(r1).(*ebiten.Image).WritePixels(pix1)
 
 	// Clear the pixels. This should not affect the result.
 	idx = 0
@@ -2271,7 +2284,7 @@ func TestImageFloatTranslate(t *testing.T) {
 						pix[4*(j*w+i)+3] = 0xff
 					}
 				}
-				src.ReplacePixels(pix)
+				src.WritePixels(pix)
 				check(src)
 			})
 
@@ -2284,7 +2297,7 @@ func TestImageFloatTranslate(t *testing.T) {
 						pix[4*(j*(w*s)+i)+3] = 0xff
 					}
 				}
-				src.ReplacePixels(pix)
+				src.WritePixels(pix)
 				check(src.SubImage(image.Rect(0, 0, w, h)).(*ebiten.Image))
 			})
 		})
@@ -2316,7 +2329,7 @@ func TestImageColorMCopy(t *testing.T) {
 }
 
 // TODO: Do we have to guarantee this behavior? See #1222
-func TestImageReplacePixelsAndModifyPixels(t *testing.T) {
+func TestImageWritePixelsAndModifyPixels(t *testing.T) {
 	const w, h = 16, 16
 	dst := ebiten.NewImage(w, h)
 	src := ebiten.NewImage(w, h)
@@ -2332,9 +2345,9 @@ func TestImageReplacePixelsAndModifyPixels(t *testing.T) {
 		}
 	}
 
-	src.ReplacePixels(pix)
+	src.WritePixels(pix)
 
-	// Modify pix after ReplacePixels
+	// Modify pix after WritePixels
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
 			idx := 4 * (i + j*w)
@@ -2869,7 +2882,7 @@ func TestImageNewImageFromEbitenImage(t *testing.T) {
 	}
 
 	img0 := ebiten.NewImage(w, h)
-	img0.ReplacePixels(pix)
+	img0.WritePixels(pix)
 	img1 := ebiten.NewImageFromImage(img0)
 
 	for j := 0; j < h; j++ {
@@ -2915,7 +2928,7 @@ func TestImageOptionsUnmanaged(t *testing.T) {
 		Unmanaged: true,
 	}
 	img := ebiten.NewImageWithOptions(image.Rect(0, 0, w, h), op)
-	img.ReplacePixels(pix)
+	img.WritePixels(pix)
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
@@ -2928,7 +2941,7 @@ func TestImageOptionsUnmanaged(t *testing.T) {
 	}
 }
 
-func TestImageOptionsNegativeBoundsReplacePixels(t *testing.T) {
+func TestImageOptionsNegativeBoundsWritePixels(t *testing.T) {
 	const (
 		w = 16
 		h = 16
@@ -2947,7 +2960,7 @@ func TestImageOptionsNegativeBoundsReplacePixels(t *testing.T) {
 
 	const offset = -8
 	img := ebiten.NewImageWithOptions(image.Rect(offset, offset, w+offset, h+offset), nil)
-	img.ReplacePixels(pix0)
+	img.WritePixels(pix0)
 
 	for j := offset; j < h+offset; j++ {
 		for i := offset; i < w+offset; i++ {
@@ -2972,7 +2985,7 @@ func TestImageOptionsNegativeBoundsReplacePixels(t *testing.T) {
 
 	const offset2 = -4
 	sub := image.Rect(offset2, offset2, w/2+offset2, h/2+offset2)
-	img.SubImage(sub).(*ebiten.Image).ReplacePixels(pix1)
+	img.SubImage(sub).(*ebiten.Image).WritePixels(pix1)
 	for j := offset; j < h+offset; j++ {
 		for i := offset; i < w+offset; i++ {
 			got := img.At(i, j)
@@ -3006,7 +3019,7 @@ func TestImageOptionsNegativeBoundsSet(t *testing.T) {
 
 	const offset = -8
 	img := ebiten.NewImageWithOptions(image.Rect(offset, offset, w+offset, h+offset), nil)
-	img.ReplacePixels(pix0)
+	img.WritePixels(pix0)
 	img.Set(-1, -2, color.RGBA{0, 0, 0, 0})
 
 	for j := offset; j < h+offset; j++ {
@@ -3035,7 +3048,7 @@ func TestImageOptionsNegativeBoundsDrawImage(t *testing.T) {
 	for i := range pix {
 		pix[i] = 0xff
 	}
-	src.ReplacePixels(pix)
+	src.WritePixels(pix)
 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(-1, -1)
@@ -3067,7 +3080,7 @@ func TestImageOptionsNegativeBoundsDrawTriangles(t *testing.T) {
 	for i := range pix {
 		pix[i] = 0xff
 	}
-	src.ReplacePixels(pix)
+	src.WritePixels(pix)
 	vs := []ebiten.Vertex{
 		{
 			DstX:   -2,
@@ -3164,7 +3177,7 @@ func TestImageFromEbitenImageOptions(t *testing.T) {
 	for i := range pix {
 		pix[i] = 0xff
 	}
-	src.ReplacePixels(pix)
+	src.WritePixels(pix)
 
 	op := &ebiten.NewImageFromImageOptions{
 		PreserveBounds: true,

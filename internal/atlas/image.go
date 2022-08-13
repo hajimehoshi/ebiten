@@ -228,7 +228,7 @@ type Image struct {
 	// usedAsSourceCount is increased if the image is used as a rendering source, or set to 0 if the image is
 	// modified.
 	//
-	// ReplacePixels doesn't affect this value since ReplacePixels can be done on images on an atlas.
+	// WritePixels doesn't affect this value since WritePixels can be done on images on an atlas.
 	usedAsSourceCount int
 
 	// isolatedCount represents how many times the image on a texture atlas is changed into an isolated image.
@@ -494,8 +494,8 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	}
 }
 
-// ReplacePixels replaces the pixels on the image.
-func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) {
+// WritePixels replaces the pixels on the image.
+func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	i.replacePixels(pix, x, y, width, height)
@@ -526,14 +526,14 @@ func (i *Image) replacePixels(pix []byte, x, y, width, height int) {
 		y += py + i.paddingSize()
 
 		if pix == nil {
-			i.backend.restorable.ReplacePixels(nil, x, y, width, height)
+			i.backend.restorable.WritePixels(nil, x, y, width, height)
 			return
 		}
 
 		// Copy pixels in the case when pix is modified before the graphics command is executed.
 		pix2 := theTemporaryBytes.alloc(len(pix))
 		copy(pix2, pix)
-		i.backend.restorable.ReplacePixels(pix2, x, y, width, height)
+		i.backend.restorable.WritePixels(pix2, x, y, width, height)
 		return
 	}
 
@@ -569,7 +569,7 @@ func (i *Image) replacePixels(pix []byte, x, y, width, height int) {
 
 	x += px
 	y += py
-	i.backend.restorable.ReplacePixels(pixb, x, y, pw, ph)
+	i.backend.restorable.WritePixels(pixb, x, y, pw, ph)
 }
 
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte) error {

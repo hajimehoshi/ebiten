@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !ebitenginecbackend && !ebitencbackend
-// +build !ebitenginecbackend,!ebitencbackend
+//go:build !nintendosdk
+// +build !nintendosdk
 
 package ui
 

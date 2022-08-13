@@ -92,4 +92,8 @@
 // to manage threads yourself. Functions like IsKeyPressed will no longer be concurrent-safe with this build tag.
 // They must be called from the main thread or the same goroutine as the given game's callback functions like Update
 // to RunGame.
+//
+// `microsoftgdk` is for Microsoft GDK (e.g. Xbox).
+//
+// `nintendosdk` is for NintendoSDK (e.g. Nintendo Switch).
 package ebiten

@@ -85,7 +85,7 @@ func (gm *Game) updateOffscreen(centerX, centerY, size float64) {
 			gm.offscreenPix[p+3] = 0xff
 		}
 	}
-	gm.offscreen.ReplacePixels(gm.offscreenPix)
+	gm.offscreen.WritePixels(gm.offscreenPix)
 }
 
 func (g *Game) Update() error {

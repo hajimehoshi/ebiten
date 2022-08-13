@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !ios && !js && !ebitenginecbackend && !ebitencbackend
-// +build !android,!ios,!js,!ebitenginecbackend,!ebitencbackend
+//go:build !android && !ios && !js && !nintendosdk
+// +build !android,!ios,!js,!nintendosdk
 
 package ui
 
@@ -45,10 +45,6 @@ func (w *glfwWindow) SetDecorated(decorated bool) {
 	}
 
 	w.ui.t.Call(func() {
-		if w.ui.isNativeFullscreen() {
-			return
-		}
-
 		w.ui.setWindowDecorated(decorated)
 	})
 }
@@ -75,9 +71,6 @@ func (w *glfwWindow) SetResizingMode(mode WindowResizingMode) {
 		return
 	}
 	w.ui.t.Call(func() {
-		if w.ui.isNativeFullscreen() {
-			return
-		}
 		w.ui.setWindowResizingMode(mode)
 	})
 }
@@ -99,9 +92,6 @@ func (w *glfwWindow) SetFloating(floating bool) {
 		return
 	}
 	w.ui.t.Call(func() {
-		if w.ui.isNativeFullscreen() {
-			return
-		}
 		w.ui.setWindowFloating(floating)
 	})
 }
@@ -115,7 +105,7 @@ func (w *glfwWindow) IsMaximized() bool {
 	}
 	var v bool
 	w.ui.t.Call(func() {
-		v = w.ui.window.GetAttrib(glfw.Maximized) == glfw.True
+		v = w.ui.window.GetAttrib(glfw.Maximized) == glfw.True && !w.ui.isNativeFullscreen()
 	})
 	return v
 }
@@ -123,10 +113,11 @@ func (w *glfwWindow) IsMaximized() bool {
 func (w *glfwWindow) Maximize() {
 	// Do not allow maximizing the window when the window is not resizable.
 	// On Windows, it is possible to restore the window from being maximized by mouse-dragging,
-	// and this can be an unexpected behavior.
+	// and this can be an unexpected behavior (#1990).
 	if w.ResizingMode() != WindowResizingModeEnabled {
-		panic("ui: a window to maximize must be resizable")
+		return
 	}
+
 	if !w.ui.isRunning() {
 		w.ui.setInitWindowMaximized(true)
 		return
@@ -199,11 +190,10 @@ func (w *glfwWindow) Size() (int, int) {
 		ww, wh := w.ui.getInitWindowSizeInDIP()
 		return w.ui.adjustWindowSizeBasedOnSizeLimitsInDIP(ww, wh)
 	}
-	ww, wh := 0, 0
+	var ww, wh int
 	w.ui.t.Call(func() {
-		// Unlike origWindowPos, windowWidth/HeightInDPI is always updated via the callback.
-		ww = w.ui.windowWidthInDIP
-		wh = w.ui.windowHeightInDIP
+		// Unlike origWindowPos, origWindowSizeInDPI is always updated via the callback.
+		ww, wh = w.ui.origWindowSizeInDIP()
 	})
 	return ww, wh
 }
@@ -214,13 +204,6 @@ func (w *glfwWindow) SetSize(width, height int) {
 		return
 	}
 	w.ui.t.Call(func() {
-		// When a window is a native fullscreen, forcing to resize the window might leave unexpected image lags.
-		// Forbid this.
-		// TODO: Remove this condition (#1590).
-		if w.ui.isNativeFullscreen() {
-			return
-		}
-
 		w.ui.setWindowSizeInDIP(width, height, w.ui.isFullscreen())
 	})
 }

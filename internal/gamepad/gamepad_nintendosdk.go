@@ -12,19 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ebitenginecbackend || ebitencbackend
-// +build ebitenginecbackend ebitencbackend
+//go:build nintendosdk
+// +build nintendosdk
 
 package gamepad
 
 import (
 	"time"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/cbackend"
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
+	"github.com/hajimehoshi/ebiten/v2/internal/nintendosdk"
 )
 
 type nativeGamepadsImpl struct {
-	gamepads []cbackend.Gamepad
+	gamepads []nintendosdk.Gamepad
 	ids      map[int]struct{}
 }
 
@@ -38,7 +39,7 @@ func (*nativeGamepadsImpl) init(gamepads *gamepads) error {
 
 func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 	g.gamepads = g.gamepads[:0]
-	g.gamepads = cbackend.AppendGamepads(g.gamepads)
+	g.gamepads = nintendosdk.AppendGamepads(g.gamepads)
 
 	for id := range g.ids {
 		delete(g.ids, id)
@@ -98,6 +99,16 @@ func (g *nativeGamepadImpl) hasOwnStandardLayoutMapping() bool {
 	return g.standard
 }
 
+func (g *nativeGamepadImpl) isStandardAxisAvailableInOwnMapping(axis gamepaddb.StandardAxis) bool {
+	// TODO: Implement this on the C side.
+	return axis >= 0 && int(axis) < len(g.axisValues)
+}
+
+func (g *nativeGamepadImpl) isStandardButtonAvailableInOwnMapping(button gamepaddb.StandardButton) bool {
+	// TODO: Implement this on the C side.
+	return button >= 0 && int(button) < len(g.buttonValues)
+}
+
 func (g *nativeGamepadImpl) axisCount() int {
 	return len(g.axisValues)
 }
@@ -136,5 +147,5 @@ func (*nativeGamepadImpl) hatState(hat int) int {
 }
 
 func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
-	cbackend.VibrateGamepad(g.id, duration, strongMagnitude, weakMagnitude)
+	nintendosdk.VibrateGamepad(g.id, duration, strongMagnitude, weakMagnitude)
 }

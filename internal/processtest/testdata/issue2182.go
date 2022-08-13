@@ -46,7 +46,7 @@ func init() {
 	baseImage.Fill(color.White)
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
-			baseImage.SubImage(image.Rect(i, j, i+1, j+1)).(*ebiten.Image).ReplacePixels([]byte{0, 0, 0, 0xff})
+			baseImage.SubImage(image.Rect(i, j, i+1, j+1)).(*ebiten.Image).WritePixels([]byte{0, 0, 0, 0xff})
 		}
 	}
 	derivedImage.DrawImage(baseImage, nil)

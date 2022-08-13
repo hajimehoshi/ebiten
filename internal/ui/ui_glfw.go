@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !ios && !js && !ebitenginecbackend && !ebitencbackend
-// +build !android,!ios,!js,!ebitenginecbackend,!ebitencbackend
+//go:build !android && !ios && !js && !nintendosdk
+// +build !android,!ios,!js,!nintendosdk
 
 package ui
 
@@ -56,17 +56,12 @@ type userInterfaceImpl struct {
 	title   string
 	window  *glfw.Window
 
-	windowWidthInDIP  int
-	windowHeightInDIP int
-
 	minWindowWidthInDIP  int
 	minWindowHeightInDIP int
 	maxWindowWidthInDIP  int
 	maxWindowHeightInDIP int
 
 	running              uint32
-	origWindowPosX       int
-	origWindowPosY       int
 	runnableOnUnfocused  bool
 	fpsMode              FPSModeType
 	iconImages           []image.Image
@@ -117,6 +112,8 @@ type userInterfaceImpl struct {
 	// t is the main thread == the rendering thread.
 	t thread.Thread
 	m sync.RWMutex
+
+	native userInterfaceImplNative
 }
 
 const (
@@ -132,8 +129,6 @@ func init() {
 		minWindowHeightInDIP:     glfw.DontCare,
 		maxWindowWidthInDIP:      glfw.DontCare,
 		maxWindowHeightInDIP:     glfw.DontCare,
-		origWindowPosX:           invalidPos,
-		origWindowPosY:           invalidPos,
 		initCursorMode:           CursorModeVisible,
 		initWindowDecorated:      true,
 		initWindowPositionXInDIP: invalidPos,
@@ -143,6 +138,7 @@ func init() {
 		initFocused:              true,
 		fpsMode:                  FPSModeVsyncOn,
 	}
+	theUI.native.initialize()
 	theUI.input.ui = &theUI.userInterfaceImpl
 	theUI.iwindow.ui = &theUI.userInterfaceImpl
 }
@@ -556,7 +552,7 @@ func (u *userInterfaceImpl) SetFullscreen(fullscreen bool) {
 		if u.isFullscreen() == fullscreen {
 			return
 		}
-		w, h := u.windowWidthInDIP, u.windowHeightInDIP
+		w, h := u.origWindowSizeInDIP()
 		u.setWindowSizeInDIP(w, h, fullscreen)
 	})
 }
@@ -748,7 +744,8 @@ func (u *userInterfaceImpl) registerWindowSetSizeCallback() {
 				u.setWindowSizeInDIP(w, h, u.isFullscreen())
 			}
 
-			outsideWidth, outsideHeight := u.updateSize()
+			u.updateSize()
+			outsideWidth, outsideHeight := u.outsideSize()
 			deviceScaleFactor := u.deviceScaleFactor(u.currentMonitor())
 
 			// In the game's update, u.t.Call might be called.
@@ -783,6 +780,7 @@ func (u *userInterfaceImpl) registerWindowCloseCallback() {
 			if !u.isWindowClosingHandled() {
 				return
 			}
+			u.window.Focus()
 			u.window.SetShouldClose(false)
 		})
 	}
@@ -971,34 +969,38 @@ func (u *userInterfaceImpl) init() error {
 	return nil
 }
 
-func (u *userInterfaceImpl) updateSize() (float64, float64) {
-	ww, wh := u.windowWidthInDIP, u.windowHeightInDIP
+func (u *userInterfaceImpl) updateSize() {
+	ww, wh := u.origWindowSizeInDIP()
 	u.setWindowSizeInDIP(ww, wh, u.isFullscreen())
+}
 
-	var w, h float64
+func (u *userInterfaceImpl) outsideSize() (float64, float64) {
 	if u.isFullscreen() && !u.isNativeFullscreen() {
 		// On Linux, the window size is not reliable just after making the window
 		// fullscreened. Use the monitor size.
 		// On macOS's native fullscreen, the window's size returns a more precise size
 		// reflecting the adjustment of the view size (#1745).
+		var w, h float64
 		if m := u.currentMonitor(); m != nil {
 			v := m.GetVideoMode()
 			ww, wh := v.Width, v.Height
 			w = u.dipFromGLFWMonitorPixel(float64(ww), m)
 			h = u.dipFromGLFWMonitorPixel(float64(wh), m)
 		}
-	} else if u.window.GetAttrib(glfw.Iconified) == glfw.True {
-		w = float64(u.windowWidthInDIP)
-		h = float64(u.windowHeightInDIP)
-	} else {
-		// Instead of u.windowWidthInDIP and u.windowHeightInDIP, use the actual window size
-		// here. On Windows, the specified size at SetSize and the actual window size might
-		// not match (#1163).
-		ww, wh := u.window.GetSize()
-		w = u.dipFromGLFWPixel(float64(ww), u.currentMonitor())
-		h = u.dipFromGLFWPixel(float64(wh), u.currentMonitor())
+		return w, h
 	}
 
+	if u.window.GetAttrib(glfw.Iconified) == glfw.True {
+		w, h := u.origWindowSizeInDIP()
+		return float64(w), float64(h)
+	}
+
+	// Instead of u.origWindowSizeInDIP(), use the actual window size here.
+	// On Windows, the specified size at SetSize and the actual window size might
+	// not match (#1163).
+	ww, wh := u.window.GetSize()
+	w := u.dipFromGLFWPixel(float64(ww), u.currentMonitor())
+	h := u.dipFromGLFWPixel(float64(wh), u.currentMonitor())
 	return w, h
 }
 
@@ -1053,8 +1055,7 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 	// The vsync state might be changed in other places (e.g., the SetSizeCallback).
 	// Also, when toggling to fullscreen, vsync state might be reset unexpectedly (#1787).
 	u.updateVsync()
-
-	outsideWidth, outsideHeight := u.updateSize()
+	u.updateSize()
 
 	if u.fpsMode != FPSModeVsyncOffMinimum {
 		// TODO: Updating the input can be skipped when clock.Update returns 0 (#1367).
@@ -1078,6 +1079,7 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 		return 0, 0, err
 	}
 
+	outsideWidth, outsideHeight := u.outsideSize()
 	return outsideWidth, outsideHeight, nil
 }
 
@@ -1242,7 +1244,7 @@ func (u *userInterfaceImpl) setWindowSizeInDIP(width, height int, fullscreen boo
 	u.graphicsDriver.SetFullscreen(fullscreen)
 
 	scale := u.deviceScaleFactor(u.currentMonitor())
-	if u.windowWidthInDIP == width && u.windowHeightInDIP == height && u.isFullscreen() == fullscreen && u.lastDeviceScaleFactor == scale {
+	if ow, oh := u.origWindowSizeInDIP(); ow == width && oh == height && u.isFullscreen() == fullscreen && u.lastDeviceScaleFactor == scale {
 		return
 	}
 
@@ -1277,8 +1279,7 @@ func (u *userInterfaceImpl) setWindowSizeInDIP(width, height int, fullscreen boo
 	u.adjustViewSize()
 
 	// As width might be updated, update windowWidth/Height here.
-	u.windowWidthInDIP = width
-	u.windowHeightInDIP = height
+	u.setOrigWindowSizeInDIP(width, height)
 }
 
 func (u *userInterfaceImpl) minimumWindowWidth() int {
@@ -1322,43 +1323,44 @@ func (u *userInterfaceImpl) setWindowSizeInDIPImpl(width, height int, fullscreen
 				u.swapBuffers()
 			}
 		}
-	} else {
-		if mw := u.minimumWindowWidth(); width < mw {
-			width = mw
-		}
-		if u.isNativeFullscreenAvailable() && u.isNativeFullscreen() {
-			u.setNativeFullscreen(false)
-		} else if !u.isNativeFullscreenAvailable() && u.window.GetMonitor() != nil {
-			ww := int(u.dipToGLFWPixel(float64(width), u.currentMonitor()))
-			wh := int(u.dipToGLFWPixel(float64(height), u.currentMonitor()))
-			u.window.SetMonitor(nil, 0, 0, ww, wh, 0)
-			glfw.PollEvents()
-			u.swapBuffers()
-		}
+		return
+	}
 
-		if x, y := u.origWindowPos(); x != invalidPos && y != invalidPos {
+	if mw := u.minimumWindowWidth(); width < mw {
+		width = mw
+	}
+	if u.isNativeFullscreenAvailable() && u.isNativeFullscreen() {
+		u.setNativeFullscreen(false)
+	} else if !u.isNativeFullscreenAvailable() && u.window.GetMonitor() != nil {
+		ww := int(u.dipToGLFWPixel(float64(width), u.currentMonitor()))
+		wh := int(u.dipToGLFWPixel(float64(height), u.currentMonitor()))
+		u.window.SetMonitor(nil, 0, 0, ww, wh, 0)
+		glfw.PollEvents()
+		u.swapBuffers()
+	}
+
+	if x, y := u.origWindowPos(); x != invalidPos && y != invalidPos {
+		u.window.SetPos(x, y)
+		// Dirty hack for macOS (#703). Rendering doesn't work correctly with one SetPos, but
+		// work with two or more SetPos.
+		if runtime.GOOS == "darwin" {
+			u.window.SetPos(x+1, y)
 			u.window.SetPos(x, y)
-			// Dirty hack for macOS (#703). Rendering doesn't work correctly with one SetPos, but
-			// work with two or more SetPos.
-			if runtime.GOOS == "darwin" {
-				u.window.SetPos(x+1, y)
-				u.window.SetPos(x, y)
-			}
-			u.setOrigWindowPos(invalidPos, invalidPos)
 		}
+		u.setOrigWindowPos(invalidPos, invalidPos)
+	}
 
-		// Set the window size after the position. The order matters.
-		// In the opposite order, the window size might not be correct when going back from fullscreen with multi monitors.
-		oldW, oldH := u.window.GetSize()
-		newW := int(u.dipToGLFWPixel(float64(width), u.currentMonitor()))
-		newH := int(u.dipToGLFWPixel(float64(height), u.currentMonitor()))
-		if oldW != newW || oldH != newH {
-			// Just after SetSize, GetSize is not reliable especially on Linux/UNIX.
-			// Let's wait for FramebufferSize callback in any cases.
-			u.waitForFramebufferSizeCallback(u.window, func() {
-				u.window.SetSize(newW, newH)
-			})
-		}
+	// Set the window size after the position. The order matters.
+	// In the opposite order, the window size might not be correct when going back from fullscreen with multi monitors.
+	oldW, oldH := u.window.GetSize()
+	newW := int(u.dipToGLFWPixel(float64(width), u.currentMonitor()))
+	newH := int(u.dipToGLFWPixel(float64(height), u.currentMonitor()))
+	if oldW != newW || oldH != newH {
+		// Just after SetSize, GetSize is not reliable especially on Linux/UNIX.
+		// Let's wait for FramebufferSize callback in any cases.
+		u.waitForFramebufferSizeCallback(u.window, func() {
+			u.window.SetSize(newW, newH)
+		})
 	}
 }
 
@@ -1469,6 +1471,7 @@ func (u *userInterfaceImpl) Window() Window {
 
 // maximizeWindow must be called from the main thread.
 func (u *userInterfaceImpl) maximizeWindow() {
+	// TODO: Can we remove this condition?
 	if u.isNativeFullscreen() {
 		return
 	}
@@ -1481,25 +1484,28 @@ func (u *userInterfaceImpl) maximizeWindow() {
 	}
 	u.window.Maximize()
 
-	if !u.isFullscreen() {
-		// On Linux/UNIX, maximizing might not finish even though Maximize returns. Just wait for its finish.
-		// Do not check this in the fullscreen since apparently the condition can never be true.
-		for u.window.GetAttrib(glfw.Maximized) != glfw.True {
-			glfw.PollEvents()
-		}
-
-		// Call setWindowSize explicitly in order to update the rendering since the callback is disabled now.
-		// Do not call setWindowSize in the fullscreen mode since setWindowSize requires the window size
-		// before the fullscreen, while window.GetSize() returns the desktop screen size in the fullscreen mode.
-		w, h := u.window.GetSize()
-		ww := int(u.dipFromGLFWPixel(float64(w), u.currentMonitor()))
-		wh := int(u.dipFromGLFWPixel(float64(h), u.currentMonitor()))
-		u.setWindowSizeInDIP(ww, wh, u.isFullscreen())
+	if u.isFullscreen() {
+		return
 	}
+
+	// On Linux/UNIX, maximizing might not finish even though Maximize returns. Just wait for its finish.
+	// Do not check this in the fullscreen since apparently the condition can never be true.
+	for u.window.GetAttrib(glfw.Maximized) != glfw.True {
+		glfw.PollEvents()
+	}
+
+	// Call setWindowSize explicitly in order to update the rendering since the callback is disabled now.
+	// Do not call setWindowSize in the fullscreen mode since setWindowSize requires the window size
+	// before the fullscreen, while window.GetSize() returns the desktop screen size in the fullscreen mode.
+	w, h := u.window.GetSize()
+	ww := int(u.dipFromGLFWPixel(float64(w), u.currentMonitor()))
+	wh := int(u.dipFromGLFWPixel(float64(h), u.currentMonitor()))
+	u.setWindowSizeInDIP(ww, wh, u.isFullscreen())
 }
 
 // iconifyWindow must be called from the main thread.
 func (u *userInterfaceImpl) iconifyWindow() {
+	// Iconifying a native fullscreen window on macOS is forbidden.
 	if u.isNativeFullscreen() {
 		return
 	}
@@ -1660,23 +1666,6 @@ func (u *userInterfaceImpl) setWindowTitle(title string) {
 	}
 
 	u.window.SetTitle(title)
-}
-
-func (u *userInterfaceImpl) origWindowPos() (int, int) {
-	if x, y, ok := u.origWindowPosByOS(); ok {
-		return x, y
-	}
-	return u.origWindowPosX, u.origWindowPosY
-}
-
-func (u *userInterfaceImpl) setOrigWindowPos(x, y int) {
-	// TODO: The original position should be updated at a 'PosCallback'.
-
-	if u.setOrigWindowPosByOS(x, y) {
-		return
-	}
-	u.origWindowPosX = x
-	u.origWindowPosY = y
 }
 
 // forceToRefreshIfNeeded forces to refresh the framebuffer by resizing the window quickly.

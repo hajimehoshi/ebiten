@@ -56,8 +56,6 @@ func IsWindowDecorated() bool {
 // SetWindowDecorated works only on desktops.
 // SetWindowDecorated does nothing on other platforms.
 //
-// SetWindowDecorated does nothing on macOS when the window is fullscreened.
-//
 // SetWindowDecorated is concurrent-safe.
 func SetWindowDecorated(decorated bool) {
 	ui.Get().Window().SetDecorated(decorated)
@@ -73,8 +71,6 @@ func WindowResizingMode() WindowResizingModeType {
 }
 
 // SetWindowResizingMode sets the mode in which a user resizes the window.
-//
-// SetWindowResizingMode does nothing on macOS when the window is fullscreened.
 //
 // SetWindowResizingMode is concurrent-safe.
 func SetWindowResizingMode(mode WindowResizingModeType) {
@@ -140,7 +136,7 @@ func SetWindowIcon(iconImages []image.Image) {
 //
 // WindowPosition panics if the main loop does not start yet.
 //
-// WindowPosition returns the last window position in fullscreen mode.
+// WindowPosition returns the original window position in fullscreen mode.
 //
 // WindowPosition returns (0, 0) on browsers and mobiles.
 //
@@ -153,7 +149,7 @@ func WindowPosition() (x, y int) {
 // The origin position is the left-upper corner of the current monitor.
 // The unit is device-independent pixels.
 //
-// SetWindowPosition does nothing in fullscreen mode.
+// SetWindowPosition sets the original window position in fullscreen mode.
 //
 // SetWindowPosition does nothing on browsers and mobiles.
 //
@@ -179,7 +175,7 @@ func initializeWindowPositionIfNeeded(width, height int) {
 // WindowSize returns the window size on desktops.
 // WindowSize returns (0, 0) on other environments.
 //
-// In fullscreen mode, WindowSize returns the original window size.
+// WindowSize returns the original window size in fullscreen mode.
 //
 // WindowSize is concurrent-safe.
 func WindowSize() (int, int) {
@@ -189,7 +185,7 @@ func WindowSize() (int, int) {
 // SetWindowSize sets the window size on desktops.
 // SetWindowSize does nothing on other environments.
 //
-// In fullscreen mode, SetWindowSize sets the original window size.
+// SetWindowSize sets the original window size in fullscreen mode.
 //
 // SetWindowSize panics if width or height is not a positive number.
 //
@@ -230,8 +226,6 @@ func IsWindowFloating() bool {
 //
 // SetWindowFloating does nothing on browsers or mobiles.
 //
-// SetWindowFloating does nothing on macOS when the window is fullscreened.
-//
 // SetWindowFloating is concurrent-safe.
 func SetWindowFloating(float bool) {
 	ui.Get().Window().SetFloating(float)
@@ -239,7 +233,7 @@ func SetWindowFloating(float bool) {
 
 // MaximizeWindow maximizes the window.
 //
-// MaximizeWindow panics when the window is not resizable (WindowResizingModeEnabled).
+// MaximizeWindow does nothing when the window is not resizable (WindowResizingModeEnabled).
 //
 // MaximizeWindow does nothing on browsers or mobiles.
 //

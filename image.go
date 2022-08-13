@@ -28,7 +28,7 @@ import (
 
 // Image represents a rectangle set of pixels.
 // The pixel format is alpha-premultiplied RGBA.
-// Image implements image.Image and draw.Image.
+// Image implements the standard image.Image and draw.Image interfaces.
 type Image struct {
 	// addr holds self to check copying.
 	// See strings.Builder for similar examples.
@@ -765,6 +765,8 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 }
 
 // Bounds returns the bounds of the image.
+//
+// Bounds implements the standard image.Image's Bounds.
 func (i *Image) Bounds() image.Rectangle {
 	if i.isDisposed() {
 		panic("ebiten: the image is already disposed")
@@ -773,11 +775,51 @@ func (i *Image) Bounds() image.Rectangle {
 }
 
 // ColorModel returns the color model of the image.
+//
+// ColorModel implements the standard image.Image's ColorModel.
 func (i *Image) ColorModel() color.Model {
 	return color.RGBAModel
 }
 
+// ReadPixels reads the image's pixels from the image.
+//
+// The given pixels represent RGBA pre-multiplied alpha values.
+//
+// ReadPixels loads pixels from GPU to system memory if necessary, which means that ReadPixels can be slow.
+//
+// ReadPixels always sets a transparent color if the image is disposed.
+//
+// len(pixels) must be 4 * (bounds width) * (bounds height).
+// If len(pixels) is not correct, ReadPixels panics.
+//
+// ReadPixels also works on a sub-image.
+//
+// Note that an important logic should not rely on values returned by ReadPixels, since
+// the returned values can include very slight differences between some machines.
+//
+// ReadPixels can't be called outside the main loop (ebiten.Run's updating function) starts.
+func (i *Image) ReadPixels(pixels []byte) {
+	b := i.Bounds()
+	if got, want := len(pixels), 4*b.Dx()*b.Dy(); got != want {
+		panic(fmt.Sprintf("ebiten: len(pixels) must be %d but %d at ReadPixels", want, got))
+	}
+
+	if i.isDisposed() {
+		for i := range pixels {
+			pixels[i] = 0
+		}
+		return
+	}
+
+	i.resolveSetVerticesCacheIfNeeded()
+
+	x, y := i.adjustPosition(b.Min.X, b.Min.Y)
+	i.image.ReadPixels(pixels, x, y, b.Dx(), b.Dy())
+}
+
 // At returns the color of the image at (x, y).
+//
+// At implements the standard image.Image's At.
 //
 // At loads pixels from GPU to system memory if necessary, which means that At can be slow.
 //
@@ -792,7 +834,7 @@ func (i *Image) At(x, y int) color.Color {
 	return color.RGBA{r, g, b, a}
 }
 
-// RGBA64At implements image.RGBA64Image's RGBA64At.
+// RGBA64At implements the standard image.RGBA64Image's RGBA64At.
 //
 // RGBA64At loads pixels from GPU to system memory if necessary, which means
 // that RGBA64At can be slow.
@@ -825,6 +867,8 @@ func (i *Image) at(x, y int) (r, g, b, a byte) {
 }
 
 // Set sets the color at (x, y).
+//
+// Set implements the standard draw.Image's Set.
 //
 // Set loads pixels from GPU to system memory if necessary, which means that Set can be slow.
 //
@@ -878,17 +922,17 @@ func (i *Image) Dispose() {
 	i.setVerticesCache = nil
 }
 
-// ReplacePixels replaces the pixels of the image with p.
+// WritePixels replaces the pixels of the image.
 //
-// The given p must represent RGBA pre-multiplied alpha values.
-// len(pix) must equal to 4 * (bounds width) * (bounds height).
+// The given pixels are treated as RGBA pre-multiplied alpha values.
 //
-// ReplacePixels works on a sub-image.
+// len(pix) must be 4 * (bounds width) * (bounds height).
+// If len(pix) is not correct, WritePixels panics.
 //
-// When len(pix) is not appropriate, ReplacePixels panics.
+// WritePixels also works on a sub-image.
 //
-// When the image is disposed, ReplacePixels does nothing.
-func (i *Image) ReplacePixels(pixels []byte) {
+// When the image is disposed, WritePixels does nothing.
+func (i *Image) WritePixels(pixels []byte) {
 	i.copyCheck()
 
 	if i.isDisposed() {
@@ -902,7 +946,14 @@ func (i *Image) ReplacePixels(pixels []byte) {
 	// Do not need to copy pixels here.
 	// * In internal/mipmap, pixels are copied when necessary.
 	// * In internal/atlas, pixels are copied to make its paddings.
-	i.image.ReplacePixels(pixels, x, y, r.Dx(), r.Dy())
+	i.image.WritePixels(pixels, x, y, r.Dx(), r.Dy())
+}
+
+// ReplacePixels replaces the pixels of the image.
+//
+// Deprecated: as of v2.4. Use WritePixels instead.
+func (i *Image) ReplacePixels(pixels []byte) {
+	i.WritePixels(pixels)
 }
 
 // NewImage returns an empty image.
@@ -979,7 +1030,7 @@ func newImage(bounds image.Rectangle, imageType atlas.ImageType) *Image {
 //
 // NewImageFromImage should be called only when necessary.
 // For example, you should avoid to call NewImageFromImage every Update or Draw call.
-// Reusing the same image by Clear and ReplacePixels is much more efficient than creating a new image.
+// Reusing the same image by Clear and WritePixels is much more efficient than creating a new image.
 //
 // NewImageFromImage panics if RunGame already finishes.
 //
@@ -1011,7 +1062,7 @@ type NewImageFromImageOptions struct {
 //
 // NewImageFromImageWithOptions should be called only when necessary.
 // For example, you should avoid to call NewImageFromImageWithOptions every Update or Draw call.
-// Reusing the same image by Clear and ReplacePixels is much more efficient than creating a new image.
+// Reusing the same image by Clear and WritePixels is much more efficient than creating a new image.
 //
 // NewImageFromImageWithOptions panics if RunGame already finishes.
 func NewImageFromImageWithOptions(source image.Image, options *NewImageFromImageOptions) *Image {
@@ -1042,7 +1093,7 @@ func NewImageFromImageWithOptions(source image.Image, options *NewImageFromImage
 		return i
 	}
 
-	i.ReplacePixels(imageToBytes(source))
+	i.WritePixels(imageToBytes(source))
 	return i
 }
 

@@ -154,13 +154,17 @@ func standardMap(id ebiten.GamepadID) string {
 	for b, str := range standardButtonToString {
 		placeholder := "[" + str + strings.Repeat(" ", 4-len(str)) + "]"
 		v := ebiten.StandardGamepadButtonValue(id, b)
-		if ebiten.IsStandardGamepadButtonPressed(id, b) {
+		switch {
+		case !ebiten.IsStandardGamepadButtonAvailable(id, b):
+			m = strings.Replace(m, placeholder, "  --  ", 1)
+		case ebiten.IsStandardGamepadButtonPressed(id, b):
 			m = strings.Replace(m, placeholder, fmt.Sprintf("[%0.2f]", v), 1)
-		} else {
+		default:
 			m = strings.Replace(m, placeholder, fmt.Sprintf(" %0.2f ", v), 1)
 		}
 	}
 
+	// TODO: Use ebiten.IsStandardGamepadAxisAvailable
 	m += fmt.Sprintf("    Left Stick:  X: %+0.2f, Y: %+0.2f\n    Right Stick: X: %+0.2f, Y: %+0.2f",
 		ebiten.StandardGamepadAxisValue(id, ebiten.StandardGamepadAxisLeftStickHorizontal),
 		ebiten.StandardGamepadAxisValue(id, ebiten.StandardGamepadAxisLeftStickVertical),

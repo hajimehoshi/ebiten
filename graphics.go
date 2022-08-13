@@ -91,11 +91,14 @@ const (
 	// GraphicsLibraryUnknown represents the state at which graphics library cannot be determined,
 	// e.g. hasn't loaded yet or failed to initialize.
 	GraphicsLibraryUnknown = ui.GraphicsLibraryUnknown
-	// GraphicsLibraryOpenGL current graphics library used is OpenGL.
+
+	// GraphicsLibraryOpenGL represents the graphics library OpenGL.
 	GraphicsLibraryOpenGL = ui.GraphicsLibraryOpenGL
-	// GraphicsLibraryDirectX current graphics library used is Microsoft DirectX.
+
+	// GraphicsLibraryDirectX represents the graphics library Microsoft DirectX.
 	GraphicsLibraryDirectX = ui.GraphicsLibraryDirectX
-	// GraphicsLibraryMetal current graphics library used is Apple's Metal.
+
+	// GraphicsLibraryMetal represents the graphics library Apple's Metal.
 	GraphicsLibraryMetal = ui.GraphicsLibraryMetal
 )
 

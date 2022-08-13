@@ -66,18 +66,18 @@ func (w *Window) Destroy() {
 	}
 }
 
+func (w *Window) Focus() {
+	if err := (*glfwwin.Window)(w).Focus(); err != nil {
+		panic(err)
+	}
+}
+
 func (w *Window) GetAttrib(attrib Hint) int {
 	r, err := (*glfwwin.Window)(w).GetAttrib(glfwwin.Hint(attrib))
 	if err != nil {
 		panic(err)
 	}
 	return r
-}
-
-func (w *Window) SetAttrib(attrib Hint, value int) {
-	if err := (*glfwwin.Window)(w).SetAttrib(glfwwin.Hint(attrib), value); err != nil {
-		panic(err)
-	}
 }
 
 func (w *Window) GetCursorPos() (x, y float64) {
@@ -162,6 +162,12 @@ func (w *Window) Maximize() {
 
 func (w *Window) Restore() {
 	if err := (*glfwwin.Window)(w).Restore(); err != nil {
+		panic(err)
+	}
+}
+
+func (w *Window) SetAttrib(attrib Hint, value int) {
+	if err := (*glfwwin.Window)(w).SetAttrib(glfwwin.Hint(attrib), value); err != nil {
 		panic(err)
 	}
 }

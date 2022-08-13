@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !ebitenginecbackend && !ebitencbackend
-// +build !ebitenginecbackend,!ebitencbackend
+//go:build !nintendosdk
+// +build !nintendosdk
 
 package gamepad
 
@@ -156,6 +156,27 @@ func (n *nativeGamepadXbox) update(gamepads *gamepads) error {
 
 func (n *nativeGamepadXbox) hasOwnStandardLayoutMapping() bool {
 	return true
+}
+
+func (n *nativeGamepadXbox) isStandardAxisAvailableInOwnMapping(axis gamepaddb.StandardAxis) bool {
+	switch gamepaddb.StandardAxis(axis) {
+	case gamepaddb.StandardAxisLeftStickHorizontal,
+		gamepaddb.StandardAxisLeftStickVertical,
+		gamepaddb.StandardAxisRightStickHorizontal,
+		gamepaddb.StandardAxisRightStickVertical:
+		return true
+	}
+	return false
+}
+
+func (n *nativeGamepadXbox) isStandardButtonAvailableInOwnMapping(button gamepaddb.StandardButton) bool {
+	switch gamepaddb.StandardButton(button) {
+	case gamepaddb.StandardButtonFrontBottomLeft,
+		gamepaddb.StandardButtonFrontBottomRight:
+		return true
+	}
+	_, ok := standardButtonToGamepadInputGamepadButton(button)
+	return ok
 }
 
 func (n *nativeGamepadXbox) axisCount() int {

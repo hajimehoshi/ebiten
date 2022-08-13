@@ -70,12 +70,12 @@ type Image interface {
 	Dispose()
 	IsInvalidated() bool
 	ReadPixels(buf []byte) error
-	ReplacePixels(args []*ReplacePixelsArgs) error
+	WritePixels(args []*WritePixelsArgs) error
 }
 
 type ImageID int
 
-type ReplacePixelsArgs struct {
+type WritePixelsArgs struct {
 	Pixels []byte
 	X      int
 	Y      int

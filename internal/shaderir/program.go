@@ -265,6 +265,7 @@ const (
 	Dfdx        BuiltinFunc = "dfdx"
 	Dfdy        BuiltinFunc = "dfdy"
 	Fwidth      BuiltinFunc = "fwidth"
+	DiscardF    BuiltinFunc = "discard"
 )
 
 func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
@@ -317,7 +318,8 @@ func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
 		Texture2DF,
 		Dfdx,
 		Dfdy,
-		Fwidth:
+		Fwidth,
+		DiscardF:
 		return BuiltinFunc(str), true
 	}
 	return "", false

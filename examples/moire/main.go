@@ -93,7 +93,7 @@ func (g *game) Update() error {
 }
 
 func (g *game) Draw(screen *ebiten.Image) {
-	screen.ReplacePixels(getDots(screen.Size()))
+	screen.WritePixels(getDots(screen.Size()))
 }
 
 func main() {

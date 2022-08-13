@@ -143,9 +143,9 @@ func ensureEmptyImage() *Image {
 		pix[i] = 0xff
 	}
 
-	// As emptyImage is the source at clearImage, initialize this with ReplacePixels, not clearImage.
+	// As emptyImage is the source at clearImage, initialize this with WritePixels, not clearImage.
 	// This operation is also important when restoring emptyImage.
-	emptyImage.ReplacePixels(pix, 0, 0, w, h)
+	emptyImage.WritePixels(pix, 0, 0, w, h)
 	theImages.add(emptyImage)
 	return emptyImage
 }
@@ -177,7 +177,7 @@ func NewImage(width, height int, imageType ImageType) *Image {
 //
 // If the given size (width and height) is smaller than the source image, ExtendImage panics.
 //
-// The image must be ReplacePixels-only image. Extend panics when Fill or DrawTriangles are applied on the image.
+// The image must be WritePixels-only image. Extend panics when Fill or DrawTriangles are applied on the image.
 //
 // Extend panics when the image is stale.
 func (i *Image) Extend(width, height int) *Image {
@@ -187,7 +187,7 @@ func (i *Image) Extend(width, height int) *Image {
 
 	newImg := NewImage(width, height, i.imageType)
 
-	// Use DrawTriangles instead of ReplacePixels because the image i might be stale and not have its pixels
+	// Use DrawTriangles instead of WritePixels because the image i might be stale and not have its pixels
 	// information.
 	srcs := [graphics.ShaderImageCount]*Image{i}
 	var offsets [graphics.ShaderImageCount - 1][2]float32
@@ -202,7 +202,7 @@ func (i *Image) Extend(width, height int) *Image {
 	}
 	newImg.DrawTriangles(srcs, offsets, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
 
-	// Overwrite the history as if the image newImg is created only by ReplacePixels. Now drawTrianglesHistory
+	// Overwrite the history as if the image newImg is created only by WritePixels. Now drawTrianglesHistory
 	// and basePixels cannot be mixed.
 	newImg.clearDrawTrianglesHistory()
 	newImg.basePixels = i.basePixels
@@ -266,19 +266,19 @@ func (i *Image) makeStale() {
 	// the former image can be restored from the latest state of the latter image.
 }
 
-// ClearPixels clears the specified region by ReplacePixels.
+// ClearPixels clears the specified region by WritePixels.
 func (i *Image) ClearPixels(x, y, width, height int) {
-	i.ReplacePixels(nil, x, y, width, height)
+	i.WritePixels(nil, x, y, width, height)
 }
 
 func (i *Image) needsRestoring() bool {
 	return i.imageType == ImageTypeRegular
 }
 
-// ReplacePixels replaces the image pixels with the given pixels slice.
+// WritePixels replaces the image pixels with the given pixels slice.
 //
-// The specified region must not be overlapped with other regions by ReplacePixels.
-func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
+// The specified region must not be overlapped with other regions by WritePixels.
+func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 	if width <= 0 || height <= 0 {
 		panic("restorable: width/height must be positive")
 	}
@@ -292,12 +292,12 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	theImages.makeStaleIfDependingOn(i)
 
 	if pixels != nil {
-		i.image.ReplacePixels(pixels, x, y, width, height)
+		i.image.WritePixels(pixels, x, y, width, height)
 	} else {
 		// TODO: When pixels == nil, we don't have to care the pixel state there. In such cases, the image
-		// accepts only ReplacePixels and not Fill or DrawTriangles.
-		// TODO: Separate Image struct into two: images for only-ReplacePixels, and the others.
-		i.image.ReplacePixels(make([]byte, 4*width*height), x, y, width, height)
+		// accepts only WritePixels and not Fill or DrawTriangles.
+		// TODO: Separate Image struct into two: images for WritePixels-only, and the others.
+		i.image.WritePixels(make([]byte, 4*width*height), x, y, width, height)
 	}
 
 	if !needsRestoring() || !i.needsRestoring() {
@@ -322,7 +322,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 
 	// drawTrianglesHistory and basePixels cannot be mixed.
 	if len(i.drawTrianglesHistory) > 0 {
-		panic("restorable: ReplacePixels for a part after DrawTriangles is forbidden")
+		panic("restorable: WritePixels for a part after DrawTriangles is forbidden")
 	}
 
 	if i.stale {

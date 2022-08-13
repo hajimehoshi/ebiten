@@ -170,9 +170,9 @@ var textM sync.Mutex
 //
 // Draw/DrawWithOptions and CacheGlyphs are implemented like this:
 //
-//	Draw        = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
+//	Draw        = Create glyphs by `(*ebiten.Image).WritePixels` and put them into the cache if necessary
 //	            + Draw them onto the destination by `(*ebiten.Image).DrawImage`
-//	CacheGlyphs = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
+//	CacheGlyphs = Create glyphs by `(*ebiten.Image).WritePixels` and put them into the cache if necessary
 //
 // Be careful that the passed font face is held by this package and is never released.
 // This is a known issue (#498).
@@ -210,9 +210,9 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 //
 // Draw/DrawWithOptions and CacheGlyphs are implemented like this:
 //
-//	Draw        = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
+//	Draw        = Create glyphs by `(*ebiten.Image).WritePixels` and put them into the cache if necessary
 //	            + Draw them onto the destination by `(*ebiten.Image).DrawImage`
-//	CacheGlyphs = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
+//	CacheGlyphs = Create glyphs by `(*ebiten.Image).WritePixels` and put them into the cache if necessary
 //
 // Be careful that the passed font face is held by this package and is never released.
 // This is a known issue (#498).
@@ -311,10 +311,10 @@ func BoundString(face font.Face, text string) image.Rectangle {
 	}
 
 	return image.Rect(
-		int(math.Floor(fixed26_6ToFloat64(bounds.Min.X))),
-		int(math.Floor(fixed26_6ToFloat64(bounds.Min.Y))),
-		int(math.Ceil(fixed26_6ToFloat64(bounds.Max.X))),
-		int(math.Ceil(fixed26_6ToFloat64(bounds.Max.Y))),
+		bounds.Min.X.Floor(),
+		bounds.Min.Y.Floor(),
+		bounds.Max.X.Ceil(),
+		bounds.Max.Y.Ceil(),
 	)
 }
 
@@ -327,14 +327,14 @@ func BoundString(face font.Face, text string) image.Rectangle {
 //
 // Draw/DrawWithOptions and CacheGlyphs are implemented like this:
 //
-//	Draw        = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
+//	Draw        = Create glyphs by `(*ebiten.Image).WritePixels` and put them into the cache if necessary
 //	            + Draw them onto the destination by `(*ebiten.Image).DrawImage`
-//	CacheGlyphs = Create glyphs by `(*ebiten.Image).ReplacePixels` and put them into the cache if necessary
+//	CacheGlyphs = Create glyphs by `(*ebiten.Image).WritePixels` and put them into the cache if necessary
 //
 // Draw automatically creates and caches necessary glyphs, so usually you don't have to call CacheGlyphs
 // explicitly. However, for example, when you call Draw for each rune of one big text, Draw tries to create the glyph
 // cache and render it for each rune. This is very inefficient because creating a glyph image and rendering it are
-// different operations (`(*ebiten.Image).ReplacePixels` and `(*ebiten.Image).DrawImage`) and can never be merged as
+// different operations (`(*ebiten.Image).WritePixels` and `(*ebiten.Image).DrawImage`) and can never be merged as
 // one draw call. CacheGlyphs creates necessary glyphs without rendering them so that these operations are likely
 // merged into one draw call regardless of the size of the text.
 //

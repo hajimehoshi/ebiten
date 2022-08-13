@@ -49,7 +49,7 @@ type Graphics struct {
 	nextShaderID graphicsdriver.ShaderID
 	shaders      map[graphicsdriver.ShaderID]*Shader
 
-	// drawCalled is true just after Draw is called. This holds true until ReplacePixels is called.
+	// drawCalled is true just after Draw is called. This holds true until WritePixels is called.
 	drawCalled bool
 
 	uniformVariableNameCache map[int]string
