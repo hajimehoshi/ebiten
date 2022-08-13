@@ -82,8 +82,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 
 	keyStrs := []string{}
-	for _, p := range g.keys {
-		keyStrs = append(keyStrs, p.String())
+	for _, k := range g.keys {
+		keyStrs = append(keyStrs, k.String())
 	}
 	ebitenutil.DebugPrint(screen, strings.Join(keyStrs, ", "))
 }
