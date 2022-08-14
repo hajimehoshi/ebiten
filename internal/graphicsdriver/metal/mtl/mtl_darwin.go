@@ -816,7 +816,7 @@ func (cb CommandBuffer) MakeRenderCommandEncoder(rpd RenderPassDescriptor) Rende
 	colorAttachments0.Send(sel_setLoadAction, int(rpd.ColorAttachments[0].LoadAction))
 	colorAttachments0.Send(sel_setStoreAction, int(rpd.ColorAttachments[0].StoreAction))
 	colorAttachments0.Send(sel_setTexture, rpd.ColorAttachments[0].Texture.texture)
-	sig := cocoa.InstanceMethodSignatureForSelector(colorAttachments0.Send(sel_class), sel_setClearColor)
+	sig := cocoa.NSMethodSignature_InstanceMethodSignatureForSelector(colorAttachments0.Send(sel_class), sel_setClearColor)
 	inv := cocoa.InvocationWithMethodSignature(sig)
 	inv.SetTarget(colorAttachments0)
 	inv.SetSelector(sel_setClearColor)

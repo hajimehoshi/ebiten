@@ -27,7 +27,7 @@ var (
 
 type NSMethodSignature objc.ID
 
-func InstanceMethodSignatureForSelector(self objc.ID, _cmd objc.SEL) NSMethodSignature {
+func NSMethodSignature_InstanceMethodSignatureForSelector(self objc.ID, _cmd objc.SEL) NSMethodSignature {
 	return NSMethodSignature(self.Send(sel_instanceMethodSignatureForSelector, _cmd))
 }
 

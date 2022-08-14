@@ -139,7 +139,7 @@ func (ml MetalLayer) SetDisplaySyncEnabled(enabled bool) {
 func (ml MetalLayer) SetDrawableSize(width, height int) {
 	// TODO: once objc supports calling functions with struct arguments replace this with just a ID.Send call
 	var sel_setDrawableSize = objc.RegisterName("setDrawableSize:")
-	sig := cocoa.InstanceMethodSignatureForSelector(objc.ID(objc.GetClass("CAMetalLayer")), sel_setDrawableSize)
+	sig := cocoa.NSMethodSignature_InstanceMethodSignatureForSelector(objc.ID(objc.GetClass("CAMetalLayer")), sel_setDrawableSize)
 	inv := cocoa.InvocationWithMethodSignature(sig)
 	inv.SetTarget(ml.metalLayer)
 	inv.SetSelector(sel_setDrawableSize)
