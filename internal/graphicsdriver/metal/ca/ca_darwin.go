@@ -22,6 +22,7 @@ package ca
 import (
 	"errors"
 	"fmt"
+	"runtime"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -59,10 +60,9 @@ var (
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer.
 func MakeMetalLayer() MetalLayer {
 	layer := objc.ID(objc.GetClass("CAMetalLayer")).Send(objc.RegisterName("new"))
-	sel_setColorspace := objc.RegisterName("setColorspace:")
-	if layer.Send(objc.RegisterName("respondsToSelector:"), sel_setColorspace) != 0 {
+	if runtime.GOOS != "ios" {
 		colorspace, _, _ := purego.SyscallN(_CGColorSpaceCreateWithName, **(**uintptr)(unsafe.Pointer(&kCGColorSpaceDisplayP3))) // Dlsym returns pointer to symbol so dereference it
-		layer.Send(sel_setColorspace, colorspace)
+		layer.Send(objc.RegisterName("setColorspace:"), colorspace)
 		purego.SyscallN(_CGColorSpaceRelease, colorspace)
 	}
 	return MetalLayer{layer}
@@ -126,11 +126,10 @@ func (ml MetalLayer) SetMaximumDrawableCount(count int) {
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/2887087-displaysyncenabled.
 func (ml MetalLayer) SetDisplaySyncEnabled(enabled bool) {
-	var sel_setDispalySyncEnabled = objc.RegisterName("setDisplaySyncEnabled:")
-	if ml.metalLayer.Send(objc.RegisterName("respondsToSelector:"), sel_setDispalySyncEnabled) == 0 {
+	if runtime.GOOS == "ios" {
 		return
 	}
-	ml.metalLayer.Send(sel_setDispalySyncEnabled, enabled)
+	ml.metalLayer.Send(objc.RegisterName("setDisplaySyncEnabled:"), enabled)
 }
 
 // SetDrawableSize sets the size, in pixels, of textures for rendering layer content.
