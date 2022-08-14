@@ -30,9 +30,9 @@ import (
 )
 
 var (
-	class_NSAutoreleasePool = objc.GetClass("NSAutoreleasePool\x00")
-	sel_new                 = objc.RegisterName("new\x00")
-	sel_release             = objc.RegisterName("release\x00")
+	class_NSAutoreleasePool = objc.GetClass("NSAutoreleasePool")
+	sel_new                 = objc.RegisterName("new")
+	sel_release             = objc.RegisterName("release")
 )
 
 func allocAutoreleasePool() objc.ID {
