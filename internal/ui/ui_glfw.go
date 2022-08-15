@@ -1686,3 +1686,8 @@ func (u *userInterfaceImpl) forceToRefreshIfNeeded() {
 	glfw.PollEvents()
 	time.Sleep(time.Millisecond)
 }
+
+// isWindowMaximized must be called from the main thread.
+func (u *userInterfaceImpl) isWindowMaximized() bool {
+	return u.window.GetAttrib(glfw.Maximized) == glfw.True && !u.isNativeFullscreen()
+}

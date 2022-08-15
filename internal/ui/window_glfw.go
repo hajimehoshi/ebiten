@@ -19,6 +19,7 @@ package ui
 
 import (
 	"image"
+	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
@@ -105,7 +106,7 @@ func (w *glfwWindow) IsMaximized() bool {
 	}
 	var v bool
 	w.ui.t.Call(func() {
-		v = w.ui.window.GetAttrib(glfw.Maximized) == glfw.True && !w.ui.isNativeFullscreen()
+		v = w.ui.isWindowMaximized()
 	})
 	return v
 }
@@ -200,10 +201,16 @@ func (w *glfwWindow) Size() (int, int) {
 
 func (w *glfwWindow) SetSize(width, height int) {
 	if !w.ui.isRunning() {
+		// If the window is initially maximized, the set size is ignored anyway.
 		w.ui.setInitWindowSizeInDIP(width, height)
 		return
 	}
 	w.ui.t.Call(func() {
+		if w.ui.isWindowMaximized() && runtime.GOOS != "darwin" {
+			return
+		}
+		// TODO: Do not call setWindowSizeInDIP directly here (#1816).
+		// Instead, can we call (*Window).SetSize?
 		w.ui.setWindowSizeInDIP(width, height, w.ui.isFullscreen())
 	})
 }
