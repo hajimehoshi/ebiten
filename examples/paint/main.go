@@ -56,8 +56,19 @@ func init() {
 	})
 }
 
+type touch struct {
+	id  ebiten.TouchID
+	pos pos
+}
+
+type pos struct {
+	x int
+	y int
+}
+
 type Game struct {
-	touches []ebiten.TouchID
+	cursor  pos
+	touches []touch
 	count   int
 
 	canvasImage *ebiten.Image
@@ -80,12 +91,23 @@ func (g *Game) Update() error {
 		g.paint(g.canvasImage, mx, my)
 		drawn = true
 	}
+	g.cursor = pos{
+		x: mx,
+		y: my,
+	}
 
 	// Paint the brush by touches
-	g.touches = ebiten.AppendTouchIDs(g.touches[:0])
-	for _, t := range g.touches {
-		x, y := ebiten.TouchPosition(t)
+	g.touches = g.touches[:0]
+	for _, id := range ebiten.AppendTouchIDs(nil) {
+		x, y := ebiten.TouchPosition(id)
 		g.paint(g.canvasImage, x, y)
+		g.touches = append(g.touches, touch{
+			id: id,
+			pos: pos{
+				x: x,
+				y: y,
+			},
+		})
 		drawn = true
 	}
 	if drawn {
@@ -109,11 +131,9 @@ func (g *Game) paint(canvas *ebiten.Image, x, y int) {
 func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(g.canvasImage, nil)
 
-	mx, my := ebiten.CursorPosition()
-	msg := fmt.Sprintf("(%d, %d)", mx, my)
+	msg := fmt.Sprintf("(%d, %d)", g.cursor.x, g.cursor.y)
 	for _, t := range g.touches {
-		x, y := ebiten.TouchPosition(t)
-		msg += fmt.Sprintf("\n(%d, %d) touch %d", x, y, t)
+		msg += fmt.Sprintf("\n(%d, %d) touch %d", t.pos.x, t.pos.y, t.id)
 	}
 	ebitenutil.DebugPrint(screen, msg)
 }
