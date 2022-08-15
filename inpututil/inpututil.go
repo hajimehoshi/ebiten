@@ -23,6 +23,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
+type pos struct {
+	x int
+	y int
+}
+
 type inputState struct {
 	keyDurations     []int
 	prevKeyDurations []int
@@ -41,7 +46,9 @@ type inputState struct {
 
 	touchIDs           map[ebiten.TouchID]struct{}
 	touchDurations     map[ebiten.TouchID]int
+	touchPositions     map[ebiten.TouchID]pos
 	prevTouchDurations map[ebiten.TouchID]int
+	prevTouchPositions map[ebiten.TouchID]pos
 
 	gamepadIDsBuf []ebiten.GamepadID
 	touchIDsBuf   []ebiten.TouchID
@@ -67,7 +74,9 @@ var theInputState = &inputState{
 
 	touchIDs:           map[ebiten.TouchID]struct{}{},
 	touchDurations:     map[ebiten.TouchID]int{},
+	touchPositions:     map[ebiten.TouchID]pos{},
 	prevTouchDurations: map[ebiten.TouchID]int{},
+	prevTouchPositions: map[ebiten.TouchID]pos{},
 }
 
 func init() {
@@ -172,12 +181,18 @@ func (i *inputState) update() {
 
 	// Touches
 
-	// Copy the touch durations.
+	// Copy the touch durations and positions.
 	for id := range i.prevTouchDurations {
 		delete(i.prevTouchDurations, id)
 	}
 	for id := range i.touchDurations {
 		i.prevTouchDurations[id] = i.touchDurations[id]
+	}
+	for id := range i.prevTouchPositions {
+		delete(i.prevTouchPositions, id)
+	}
+	for id := range i.touchPositions {
+		i.prevTouchPositions[id] = i.touchPositions[id]
 	}
 
 	for id := range i.touchIDs {
@@ -187,10 +202,13 @@ func (i *inputState) update() {
 	for _, id := range i.touchIDsBuf {
 		i.touchIDs[id] = struct{}{}
 		i.touchDurations[id]++
+		x, y := ebiten.TouchPosition(id)
+		i.touchPositions[id] = pos{x: x, y: y}
 	}
 	for id := range i.touchDurations {
 		if _, ok := i.touchIDs[id]; !ok {
 			delete(i.touchDurations, id)
+			delete(i.touchPositions, id)
 		}
 	}
 }
@@ -403,18 +421,21 @@ func StandardGamepadButtonPressDuration(id ebiten.GamepadID, button ebiten.Stand
 //
 // AppendJustPressedTouchIDs is concurrent safe.
 func AppendJustPressedTouchIDs(touchIDs []ebiten.TouchID) []ebiten.TouchID {
-	origLen := len(touchIDs)
 	theInputState.m.RLock()
+	defer theInputState.m.RUnlock()
+
+	origLen := len(touchIDs)
 	for id, s := range theInputState.touchDurations {
 		if s == 1 {
 			touchIDs = append(touchIDs, id)
 		}
 	}
-	theInputState.m.RUnlock()
+
 	s := touchIDs[origLen:]
 	sort.Slice(s, func(a, b int) bool {
 		return s[a] < s[b]
 	})
+
 	return touchIDs
 }
 
@@ -425,15 +446,39 @@ func JustPressedTouchIDs() []ebiten.TouchID {
 	return AppendJustPressedTouchIDs(nil)
 }
 
+// AppendJustReleasedTouchIDs append touch IDs that are released just in the current tick to touchIDs,
+// and returns the extended buffer.
+// Giving a slice that already has enough capacity works efficiently.
+//
+// AppendJustReleasedTouchIDs is concurrent safe.
+func AppendJustReleasedTouchIDs(touchIDs []ebiten.TouchID) []ebiten.TouchID {
+	theInputState.m.RLock()
+	defer theInputState.m.RUnlock()
+
+	origLen := len(touchIDs)
+	for id := range theInputState.prevTouchDurations {
+		if theInputState.touchDurations[id] == 0 && theInputState.prevTouchDurations[id] > 0 {
+			touchIDs = append(touchIDs, id)
+		}
+	}
+
+	s := touchIDs[origLen:]
+	sort.Slice(s, func(a, b int) bool {
+		return s[a] < s[b]
+	})
+
+	return touchIDs
+}
+
 // IsTouchJustReleased returns a boolean value indicating
 // whether the given touch is released just in the current tick.
 //
 // IsTouchJustReleased is concurrent safe.
 func IsTouchJustReleased(id ebiten.TouchID) bool {
 	theInputState.m.RLock()
-	r := theInputState.touchDurations[id] == 0 && theInputState.prevTouchDurations[id] > 0
-	theInputState.m.RUnlock()
-	return r
+	defer theInputState.m.RUnlock()
+
+	return theInputState.touchDurations[id] == 0 && theInputState.prevTouchDurations[id] > 0
 }
 
 // TouchPressDuration returns how long the touch remains in ticks (Update).
@@ -444,4 +489,16 @@ func TouchPressDuration(id ebiten.TouchID) int {
 	s := theInputState.touchDurations[id]
 	theInputState.m.RUnlock()
 	return s
+}
+
+// TouchPositionInPreviousTick returns the position in the previous tick.
+// If the touch is a just-released touch, TouchPositionInPreviousTick returns the last position of the touch.
+//
+// TouchJustReleasedPosition is concurrent safe.
+func TouchPositionInPreviousTick(id ebiten.TouchID) (int, int) {
+	theInputState.m.RLock()
+	defer theInputState.m.RUnlock()
+
+	p := theInputState.prevTouchPositions[id]
+	return p.x, p.y
 }
