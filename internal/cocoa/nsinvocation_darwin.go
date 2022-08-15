@@ -36,7 +36,7 @@ type NSInvocation struct {
 	objc.ID
 }
 
-func InvocationWithMethodSignature(sig NSMethodSignature) NSInvocation {
+func NSInvocation_invocationWithMethodSignature(sig NSMethodSignature) NSInvocation {
 	return NSInvocation{objc.ID(class_NSInvocation).Send(sel_invocationWithMethodSignature, objc.ID(sig))}
 }
 
