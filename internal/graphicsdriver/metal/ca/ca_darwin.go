@@ -60,7 +60,7 @@ var (
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer.
 func MakeMetalLayer() MetalLayer {
 	layer := objc.ID(objc.GetClass("CAMetalLayer")).Send(objc.RegisterName("new"))
-	if runtime.GOOS != "ios" {
+	if !cocoa.IsIOS {
 		colorspace, _, _ := purego.SyscallN(_CGColorSpaceCreateWithName, **(**uintptr)(unsafe.Pointer(&kCGColorSpaceDisplayP3))) // Dlsym returns pointer to symbol so dereference it
 		layer.Send(objc.RegisterName("setColorspace:"), colorspace)
 		purego.SyscallN(_CGColorSpaceRelease, colorspace)

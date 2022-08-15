@@ -581,7 +581,7 @@ func CreateSystemDefaultDevice() (Device, bool) {
 		lowPower bool
 		name     string
 	)
-	if runtime.GOOS != "ios" {
+	if !cocoa.IsIOS {
 		headless = int(objc.ID(d).Send(sel_isHeadless)) != 0
 		lowPower = int(objc.ID(d).Send(sel_isLowPower)) != 0
 	}
@@ -1110,7 +1110,7 @@ func (b Buffer) CopyToContents(data unsafe.Pointer, lengthInBytes uintptr) {
 	dataHeader.Len = int(lengthInBytes)
 	dataHeader.Cap = int(lengthInBytes)
 	copy(contentSlice, dataSlice)
-	if runtime.GOOS != "ios" {
+	if !cocoa.IsIOS {
 		objc.ID(b.buffer).Send(sel_didModifyRange, 0, lengthInBytes)
 	}
 }
