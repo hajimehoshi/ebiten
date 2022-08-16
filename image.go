@@ -701,11 +701,6 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		b := img.Bounds()
 		sx, sy = img.adjustPosition(b.Min.X, b.Min.Y)
 		sr = img.adjustedRegion()
-	} else {
-		sr = graphicsdriver.Region{
-			Width:  float32(width),
-			Height: float32(height),
-		}
 	}
 
 	if offsetX, offsetY := i.adjustPosition(0, 0); offsetX != 0 || offsetY != 0 {
