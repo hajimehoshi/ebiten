@@ -15,9 +15,10 @@
 package cocoa
 
 import (
-	"github.com/ebitengine/purego/objc"
 	"reflect"
 	"unsafe"
+
+	"github.com/ebitengine/purego/objc"
 )
 
 var (
