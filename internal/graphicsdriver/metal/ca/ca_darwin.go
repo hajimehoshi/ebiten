@@ -22,7 +22,6 @@ package ca
 import (
 	"errors"
 	"fmt"
-	"runtime"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -126,7 +125,7 @@ func (ml MetalLayer) SetMaximumDrawableCount(count int) {
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/2887087-displaysyncenabled.
 func (ml MetalLayer) SetDisplaySyncEnabled(enabled bool) {
-	if runtime.GOOS == "ios" {
+	if cocoa.IsIOS {
 		return
 	}
 	ml.metalLayer.Send(objc.RegisterName("setDisplaySyncEnabled:"), enabled)

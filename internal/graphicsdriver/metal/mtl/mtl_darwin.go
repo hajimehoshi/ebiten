@@ -26,11 +26,11 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"runtime"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
 	"github.com/ebitengine/purego/objc"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 )
 
@@ -965,14 +965,14 @@ type BlitCommandEncoder struct {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlblitcommandencoder/1400775-synchronize.
 func (bce BlitCommandEncoder) Synchronize(resource Resource) {
-	if runtime.GOOS == "ios" {
+	if cocoa.IsIOS {
 		return
 	}
 	objc.ID(bce.commandEncoder).Send(sel_synchronizeResource, resource.resource())
 }
 
 func (bce BlitCommandEncoder) SynchronizeTexture(texture Texture, slice int, level int) {
-	if runtime.GOOS == "ios" {
+	if cocoa.IsIOS {
 		return
 	}
 	objc.ID(bce.commandEncoder).Send(sel_synchronizeTexture_slice_level, texture.texture, slice, level)
