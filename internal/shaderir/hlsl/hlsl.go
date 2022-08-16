@@ -26,7 +26,6 @@ import (
 
 const (
 	vsOut = "varyings"
-	psOut = "psOut"
 )
 
 type compileContext struct {
@@ -147,11 +146,7 @@ func Compile(p *shaderir.Program) (string, []int) {
 	if p.FragmentFunc.Block != nil && len(p.FragmentFunc.Block.Stmts) > 0 {
 		lines = append(lines, "")
 		lines = append(lines, fmt.Sprintf("float4 PSMain(Varyings %s) : SV_TARGET {", vsOut))
-		lines = append(lines, fmt.Sprintf("\tfloat4 %s = 0.0;", psOut))
 		lines = append(lines, c.block(p, p.FragmentFunc.Block, p.FragmentFunc.Block, 0)...)
-		if last := fmt.Sprintf("\treturn %s;", psOut); lines[len(lines)-1] != last {
-			lines = append(lines, last)
-		}
 		lines = append(lines, "}")
 	}
 
@@ -311,10 +306,8 @@ func (c *compileContext) localVariableName(p *shaderir.Program, topBlock *shader
 			return fmt.Sprintf("%s.Position", vsOut)
 		case idx < nv+1:
 			return fmt.Sprintf("%s.M%d", vsOut, idx-1)
-		case idx == nv+1:
-			return psOut
 		default:
-			return fmt.Sprintf("l%d", idx-(nv+2))
+			return fmt.Sprintf("l%d", idx-(nv+1))
 		}
 	default:
 		return fmt.Sprintf("l%d", idx)
@@ -525,15 +518,14 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			switch {
 			case topBlock == p.VertexFunc.Block:
 				lines = append(lines, fmt.Sprintf("%sreturn %s;", idt, vsOut))
-			case topBlock == p.FragmentFunc.Block:
-				lines = append(lines, fmt.Sprintf("%sreturn %s;", idt, psOut))
 			case len(s.Exprs) == 0:
 				lines = append(lines, idt+"return;")
 			default:
 				lines = append(lines, fmt.Sprintf("%sreturn %s;", idt, expr(&s.Exprs[0])))
 			}
 		case shaderir.Discard:
-			lines = append(lines, idt+"discard;")
+			// 'discard' is invoked only in the fragment shader entry point.
+			lines = append(lines, idt+"discard;", idt+"return float4(0.0, 0.0, 0.0, 0.0);")
 		default:
 			lines = append(lines, fmt.Sprintf("%s?(unexpected stmt: %d)", idt, s.Type))
 		}

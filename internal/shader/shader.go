@@ -704,6 +704,8 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 
 			// For the vertex entry, a parameter (variable) is used as a returning value.
 			// For example, GLSL doesn't treat gl_Position as a returning value.
+			// TODO: This can be resolved by having an indirect function like what the fragment entry already does.
+			// See internal/shaderir/glsl.adjustProgram.
 			if len(outParams) == 0 {
 				outParams = append(outParams, variable{
 					typ: shaderir.Type{Main: shaderir.Vec4},
@@ -735,14 +737,7 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 				return function{}, false
 			}
 
-			// For the fragment entry, a parameter (variable) is used as a returning value.
-			// For example, GLSL doesn't treat gl_FragColor as a returning value.
-			if len(outParams) == 0 {
-				outParams = append(outParams, variable{
-					typ: shaderir.Type{Main: shaderir.Vec4},
-				})
-			}
-			if len(outParams) != 1 || outParams[0].typ.Main != shaderir.Vec4 {
+			if len(outParams) != 0 || returnType.Main != shaderir.Vec4 {
 				cs.addError(d.Pos(), fmt.Sprintf("fragment entry point must have one returning vec4 value for a color"))
 				return function{}, false
 			}

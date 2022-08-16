@@ -26,7 +26,5 @@ vertex Varyings Vertex(
 fragment float4 Fragment(
 	Varyings varyings [[stage_in]],
 	constant float2& U0 [[buffer(1)]]) {
-	float4 out = float4(0);
-	out = float4((varyings.Position).x, (varyings.M0).y, (varyings.M1).z, 1.0);
-	return out;
+	return float4((varyings.Position).x, (varyings.M0).y, (varyings.M1).z, 1.0);
 }
