@@ -1198,10 +1198,11 @@ func TestShaderDrawRect(t *testing.T) {
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// Adjust texCoord into [0, 1].
+	t := texCoord
 	origin, size := imageSrcRegionOnTexture()
-	texCoord -= origin
-	texCoord /= size
-	if texCoord.x >= 0.5 && texCoord.y >= 0.5 {
+	t -= origin
+	t /= size
+	if t.x >= 0.5 && t.y >= 0.5 {
 		return vec4(1, 0, 0, 1)
 	}
 	return vec4(0, 1, 0, 1)
