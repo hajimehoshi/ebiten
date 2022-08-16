@@ -473,6 +473,7 @@ func _NSStringtoGoString(nsstring objc.ID) string {
 	header := (*reflect.SliceHeader)(unsafe.Pointer(&s))
 	header.Data = uintptr(nsstring.Send(sel_UTF8String))
 	header.Len = int(nsstring.Send(sel_length))
+	header.Cap = header.Len
 	return string(s)
 }
 
