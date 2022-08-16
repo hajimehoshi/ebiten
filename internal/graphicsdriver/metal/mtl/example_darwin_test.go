@@ -17,6 +17,7 @@ package mtl_test
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ebitengine/purego"
 	"image"
 	"image/color"
 	"log"
@@ -28,9 +29,14 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
 
-// for these tests to pass Metal must be linked directly.
-// it is not needed for any of the others nor for Ebitengine to work properly.
-//go:cgo_import_dynamic _ _ "Metal.framework/Metal"
+func init() {
+	// for these tests to pass Metal must be linked directly.
+	// it is not needed for any of the others nor for Ebitengine to work properly.
+	//go:cgo_import_dynamic _ _ "Metal.framework/Metal"
+
+	// It is also necessary for CoreGraphics to be linked
+	purego.Dlopen("/System/Library/Frameworks/CoreGraphics.framework/Versions/Current/CoreGraphics", purego.RTLD_GLOBAL)
+}
 
 func Example_listDevices() {
 	device, ok := mtl.CreateSystemDefaultDevice()

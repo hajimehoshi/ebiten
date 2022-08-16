@@ -340,9 +340,6 @@ const (
 var (
 	metal                         = purego.Dlopen("Metal.framework/Metal", purego.RTLD_GLOBAL)
 	_MTLCreateSystemDefaultDevice = purego.Dlsym(metal, "MTLCreateSystemDefaultDevice")
-
-	_ = purego.Dlopen("/System/Library/Frameworks/CoreGraphics.framework/Versions/Current/CoreGraphics", purego.RTLD_GLOBAL)
-	_ = purego.Dlopen("Foundation.framework/Foundation", purego.RTLD_GLOBAL)
 )
 
 // Resource represents a memory allocation for storing specialized data
