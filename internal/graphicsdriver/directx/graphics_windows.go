@@ -20,6 +20,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"time"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -149,6 +150,12 @@ type Graphics struct {
 
 	vsyncEnabled bool
 	transparent  bool
+
+	// occluded reports whether the screen is invisible or not.
+	occluded bool
+
+	// lastTime is the last time for rendering.
+	lastTime time.Time
 
 	pipelineStates
 }
@@ -825,14 +832,32 @@ func (g *Graphics) presentDesktop() error {
 
 	var syncInterval uint32
 	var flags _DXGI_PRESENT
-	if g.vsyncEnabled {
-		syncInterval = 1
-	} else if g.allowTearing {
-		flags |= _DXGI_PRESENT_ALLOW_TEARING
+	if g.occluded {
+		// The screen is not visible. Test whether we can resume.
+		flags |= _DXGI_PRESENT_TEST
+	} else {
+		// Do actual rendering only when the screen is visible.
+		if g.vsyncEnabled {
+			syncInterval = 1
+		} else if g.allowTearing {
+			flags |= _DXGI_PRESENT_ALLOW_TEARING
+		}
 	}
-	if err := g.swapChain.Present(syncInterval, uint32(flags)); err != nil {
+
+	occluded, err := g.swapChain.Present(syncInterval, uint32(flags))
+	if err != nil {
 		return err
 	}
+	g.occluded = occluded
+
+	// Reduce FPS when the screen is invisible.
+	now := time.Now()
+	if g.occluded {
+		if delta := 100*time.Millisecond - now.Sub(g.lastTime); delta > 0 {
+			time.Sleep(delta)
+		}
+	}
+	g.lastTime = now
 
 	return nil
 }

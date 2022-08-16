@@ -608,6 +608,7 @@ type _DXGI_MODE_SCALING int32
 type _DXGI_PRESENT uint32
 
 const (
+	_DXGI_PRESENT_TEST          _DXGI_PRESENT = 0x00000001
 	_DXGI_PRESENT_ALLOW_TEARING _DXGI_PRESENT = 0x00000200
 )
 
@@ -2684,16 +2685,16 @@ func (i *_IDXGISwapChain4) GetCurrentBackBufferIndex() uint32 {
 	return uint32(r)
 }
 
-func (i *_IDXGISwapChain4) Present(syncInterval uint32, flags uint32) error {
+func (i *_IDXGISwapChain4) Present(syncInterval uint32, flags uint32) (occluded bool, err error) {
 	r, _, _ := syscall.Syscall(i.vtbl.Present, 3, uintptr(unsafe.Pointer(i)), uintptr(syncInterval), uintptr(flags))
 	if uint32(r) != uint32(windows.S_OK) {
 		// During a screen lock, Present fails (#2179).
 		if uint32(r) == uint32(windows.DXGI_STATUS_OCCLUDED) {
-			return nil
+			return true, nil
 		}
-		return fmt.Errorf("directx: IDXGISwapChain4::Present failed: HRESULT(%d)", uint32(r))
+		return false, fmt.Errorf("directx: IDXGISwapChain4::Present failed: HRESULT(%d)", uint32(r))
 	}
-	return nil
+	return false, nil
 }
 
 func (i *_IDXGISwapChain4) ResizeBuffers(bufferCount uint32, width uint32, height uint32, newFormat _DXGI_FORMAT, swapChainFlags uint32) error {
