@@ -1181,3 +1181,69 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 }
+
+// Issue #2166
+func TestShaderDrawRect(t *testing.T) {
+	const (
+		dstW = 16
+		dstH = 16
+		srcW = 8
+		srcH = 8
+	)
+
+	dst := ebiten.NewImage(dstW, dstH)
+	src := ebiten.NewImage(srcW, srcH)
+
+	s, err := ebiten.NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	// Adjust texCoord into [0, 1].
+	origin, size := imageSrcRegionOnTexture()
+	texCoord -= origin
+	texCoord /= size
+	if texCoord.x >= 0.5 && texCoord.y >= 0.5 {
+		return vec4(1, 0, 0, 1)
+	}
+	return vec4(0, 1, 0, 1)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, withSrc := range []bool{false, true} {
+		withSrc := withSrc
+		title := "WithSrc"
+		if !withSrc {
+			title = "WithoutSrc"
+		}
+		t.Run(title, func(t *testing.T) {
+			const (
+				offsetX = (dstW - srcW) / 2
+				offsetY = (dstH - srcH) / 2
+			)
+			op := &ebiten.DrawRectShaderOptions{}
+			op.GeoM.Translate(offsetX, offsetY)
+			if withSrc {
+				op.Images[0] = src
+			}
+			dst.DrawRectShader(srcW, srcH, s, op)
+			for j := 0; j < dstH; j++ {
+				for i := 0; i < dstW; i++ {
+					got := dst.At(i, j).(color.RGBA)
+					var want color.RGBA
+					if offsetX <= i && i < offsetX+srcW && offsetY <= j && j < offsetY+srcH {
+						if offsetX+srcW/2 <= i && offsetY+srcH/2 <= j {
+							want = color.RGBA{0xff, 0, 0, 0xff}
+						} else {
+							want = color.RGBA{0, 0xff, 0, 0xff}
+						}
+					}
+					if got != want {
+						t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+					}
+				}
+			}
+		})
+	}
+}
