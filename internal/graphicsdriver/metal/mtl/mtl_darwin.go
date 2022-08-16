@@ -598,7 +598,7 @@ func (d Device) MakeLibrary(source string, opt CompileOptions) (Library, error) 
 	var err cocoa.NSError
 	l := objc.ID(d.device).Send(
 		sel_newLibraryWithSource_options_error,
-		cocoa.NSString_alloc().InitWithUTF8String(source),
+		cocoa.NSString_alloc().InitWithUTF8String(source).ID,
 		0,
 		unsafe.Pointer(&err),
 	)
@@ -982,7 +982,7 @@ type Library struct {
 // Reference: https://developer.apple.com/documentation/metal/mtllibrary/1515524-makefunction.
 func (l Library) MakeFunction(name string) (Function, error) {
 	f := objc.ID(l.library).Send(sel_newFunctionWithName,
-		cocoa.NSString_alloc().InitWithUTF8String(name),
+		cocoa.NSString_alloc().InitWithUTF8String(name).ID,
 	)
 	if f == 0 {
 		return Function{}, fmt.Errorf("function %q not found", name)
