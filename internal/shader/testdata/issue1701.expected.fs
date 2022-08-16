@@ -1,5 +1,6 @@
 void F2(void);
 void F3(void);
+void F5(in vec4 l0, out vec4 l1);
 
 void F2(void) {
 }
@@ -8,8 +9,14 @@ void F3(void) {
 	F2();
 }
 
-void main(void) {
+void F5(in vec4 l0, out vec4 l1) {
 	F3();
-	gl_FragColor = vec4(0.0);
+	l1 = vec4(0.0);
 	return;
+}
+
+void main(void) {
+	vec4 l0 = vec4(0);
+	F5(gl_FragCoord, l0);
+	gl_FragColor = l0;
 }

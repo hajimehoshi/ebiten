@@ -1019,12 +1019,20 @@ uniform float U0;
 varying float V0;
 varying vec2 V1;
 
+void F0(in vec4 l0, in float l1, in vec2 l2, out vec4 l3);
+
+void F0(in vec4 l0, in float l1, in vec2 l2, out vec4 l3) {
+	float l4 = float(0);
+	vec2 l5 = vec2(0);
+	l3 = l0;
+	l4 = l1;
+	l5 = l2;
+}
+
 void main(void) {
-	float l0 = float(0);
-	vec2 l1 = vec2(0);
-	gl_FragColor = gl_FragCoord;
-	l0 = V0;
-	l1 = V1;
+	vec4 l0 = vec4(0);
+	F0(gl_FragCoord, V0, V1, l0);
+	gl_FragColor = l0;
 }`,
 		},
 	}

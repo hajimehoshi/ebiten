@@ -92,6 +92,8 @@ func (c *compileContext) structName(p *shaderir.Program, t *shaderir.Type) strin
 }
 
 func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentShader string) {
+	p = adjustProgram(p)
+
 	c := &compileContext{
 		version:     version,
 		structNames: map[string]string{},
@@ -624,4 +626,110 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 	}
 
 	return lines
+}
+
+func adjustProgram(p *shaderir.Program) *shaderir.Program {
+	if p.FragmentFunc.Block == nil {
+		return p
+	}
+
+	// Shallow-clone the program in order not to modify p itself.
+	newP := *p
+
+	// Create a new slice not to affect the original p.
+	newP.Funcs = make([]shaderir.Func, len(p.Funcs))
+	copy(newP.Funcs, p.Funcs)
+
+	// Create a new function whose body is the same is the fragment shader's entry point.
+	// The entry point will call this.
+	// This indirect call is needed for these issues:
+	// - Assignment to gl_FragColor doesn't work (#2245)
+	// - There are some odd compilers that don't work with early returns and gl_FragColor (#2247)
+
+	// Determine a unique index of the new function.
+	var funcIdx int
+	for _, f := range newP.Funcs {
+		if funcIdx <= f.Index {
+			funcIdx = f.Index + 1
+		}
+	}
+
+	// For parameters of a fragment func, see the comment in internal/shaderir/program.go.
+	inParams := make([]shaderir.Type, 1+len(newP.Varyings))
+	inParams[0] = shaderir.Type{
+		Main: shaderir.Vec4, // gl_FragCoord
+	}
+	copy(inParams[1:], newP.Varyings)
+
+	outParams := make([]shaderir.Type, 1)
+	outParams[0] = shaderir.Type{
+		Main: shaderir.Vec4, // gl_FragColor
+	}
+
+	newP.Funcs = append(newP.Funcs, shaderir.Func{
+		Index:     funcIdx,
+		InParams:  inParams,
+		OutParams: outParams,
+		Return:    shaderir.Type{},
+		Block:     newP.FragmentFunc.Block,
+	})
+
+	// Create an AST to call the new function.
+	call := []shaderir.Expr{
+		{
+			Type:  shaderir.FunctionExpr,
+			Index: funcIdx,
+		},
+	}
+	for i := 0; i < 1+len(newP.Varyings); i++ {
+		call = append(call, shaderir.Expr{
+			Type:  shaderir.LocalVariable,
+			Index: i,
+		})
+	}
+	call = append(call, shaderir.Expr{
+		Type:  shaderir.LocalVariable,
+		Index: 1 + len(newP.Varyings) + 1, // l0 as an out parameter.
+	})
+
+	// Replace the entry point with just calling the new function.
+	stmts := []shaderir.Stmt{
+		{
+			Type: shaderir.ExprStmt,
+			Exprs: []shaderir.Expr{
+				{
+					Type:  shaderir.Call,
+					Exprs: call,
+				},
+			},
+		},
+		{
+			Type: shaderir.Assign,
+			Exprs: []shaderir.Expr{
+				// gl_FragColor
+				{
+					Type:  shaderir.LocalVariable,
+					Index: 1 + len(newP.Varyings),
+				},
+				// l0
+				{
+					Type:  shaderir.LocalVariable,
+					Index: 1 + len(newP.Varyings) + 1,
+				},
+			},
+		},
+	}
+	newP.FragmentFunc = shaderir.FragmentFunc{
+		Block: &shaderir.Block{
+			LocalVars: []shaderir.Type{
+				{
+					Main: shaderir.Vec4,
+				},
+			},
+			LocalVarIndexOffset: 1 + len(newP.Varyings) + 1,
+			Stmts:               stmts,
+		},
+	}
+
+	return &newP
 }
