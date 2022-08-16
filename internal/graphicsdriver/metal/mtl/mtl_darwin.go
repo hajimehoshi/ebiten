@@ -461,24 +461,7 @@ type Device struct {
 	Name string
 }
 
-type _NSError struct {
-	objc.ID
-}
-
-func _NSStringtoGoString(nsstring objc.ID) string {
-	// this will be nicer with unsafe.Slice once ebitengine requires 1.17
-	// reflect.SliceHeader is used because it will force Go to copy the string
-	// into Go memory when casted to a string
-	var s []byte
-	header := (*reflect.SliceHeader)(unsafe.Pointer(&s))
-	header.Data = uintptr(nsstring.Send(sel_UTF8String))
-	header.Len = int(nsstring.Send(sel_length))
-	header.Cap = header.Len
-	return string(s)
-}
-
 var (
-	class_NSString                    = objc.GetClass("NSString")
 	class_MTLRenderPipelineDescriptor = objc.GetClass("MTLRenderPipelineDescriptor")
 	class_MTLTextureDescriptor        = objc.GetClass("MTLTextureDescriptor")
 	class_MTLDepthStencilDescriptor   = objc.GetClass("MTLDepthStencilDescriptor")
@@ -487,7 +470,6 @@ var (
 
 var (
 	sel_class                                                                                                                         = objc.RegisterName("class")
-	sel_UTF8String                                                                                                                    = objc.RegisterName("UTF8String")
 	sel_length                                                                                                                        = objc.RegisterName("length")
 	sel_isHeadless                                                                                                                    = objc.RegisterName("isHeadless")
 	sel_isLowPower                                                                                                                    = objc.RegisterName("isLowPower")
@@ -495,11 +477,9 @@ var (
 	sel_supportsFeatureSet                                                                                                            = objc.RegisterName("supportsFeatureSet:")
 	sel_newCommandQueue                                                                                                               = objc.RegisterName("newCommandQueue")
 	sel_newLibraryWithSource_options_error                                                                                            = objc.RegisterName("newLibraryWithSource:options:error:")
-	sel_alloc                                                                                                                         = objc.RegisterName("alloc")
 	sel_release                                                                                                                       = objc.RegisterName("release")
 	sel_retain                                                                                                                        = objc.RegisterName("retain")
 	sel_new                                                                                                                           = objc.RegisterName("new")
-	sel_initWithBytes_length_encoding                                                                                                 = objc.RegisterName("initWithBytes:length:encoding:")
 	sel_localizedDescription                                                                                                          = objc.RegisterName("localizedDescription")
 	sel_setVertexFunction                                                                                                             = objc.RegisterName("setVertexFunction:")
 	sel_setFragmentFunction                                                                                                           = objc.RegisterName("setFragmentFunction:")
@@ -583,7 +563,7 @@ func CreateSystemDefaultDevice() (Device, bool) {
 		headless = int(objc.ID(d).Send(sel_isHeadless)) != 0
 		lowPower = int(objc.ID(d).Send(sel_isLowPower)) != 0
 	}
-	name = _NSStringtoGoString(objc.ID(d).Send(sel_name))
+	name = cocoa.NSString{ID: objc.ID(d).Send(sel_name)}.String()
 
 	return Device{
 		device:   objc.ID(d),
@@ -615,17 +595,15 @@ func (d Device) MakeCommandQueue() CommandQueue {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtldevice/1433431-makelibrary.
 func (d Device) MakeLibrary(source string, opt CompileOptions) (Library, error) {
-	var err _NSError
+	var err cocoa.NSError
 	l := objc.ID(d.device).Send(
 		sel_newLibraryWithSource_options_error,
-		objc.ID(class_NSString).Send(sel_alloc).
-			Send(sel_initWithBytes_length_encoding,
-				unsafe.Pointer(&(*(*[]byte)(unsafe.Pointer(&source)))[0]), len(source), _NSUTF8StringEncoding),
+		cocoa.NSString_alloc().InitWithUTF8String(source),
 		0,
 		unsafe.Pointer(&err),
 	)
 	if l == 0 {
-		return Library{}, errors.New(_NSStringtoGoString(err.Send(sel_localizedDescription)))
+		return Library{}, errors.New(cocoa.NSString{ID: err.Send(sel_localizedDescription)}.String())
 	}
 
 	return Library{l}, nil
@@ -647,14 +625,14 @@ func (d Device) MakeRenderPipelineState(rpd RenderPipelineDescriptor) (RenderPip
 	colorAttachments0.Send(sel_setSourceRGBBlendFactor, uintptr(rpd.ColorAttachments[0].SourceRGBBlendFactor))
 	colorAttachments0.Send(sel_setWriteMask, uintptr(rpd.ColorAttachments[0].WriteMask))
 	renderPipelineDescriptor.Send(sel_setStencilAttachmentPixelFormat, uintptr(rpd.StencilAttachmentPixelFormat))
-	var err _NSError
+	var err cocoa.NSError
 	renderPipelineState := objc.ID(d.device).Send(sel_newRenderPipelineStateWithDescriptor_error,
 		renderPipelineDescriptor,
 		unsafe.Pointer(&err),
 	)
 	renderPipelineDescriptor.Send(sel_release)
 	if renderPipelineState == 0 {
-		return RenderPipelineState{}, errors.New(_NSStringtoGoString(err.Send(sel_localizedDescription)))
+		return RenderPipelineState{}, errors.New(cocoa.NSString{ID: err.Send(sel_localizedDescription)}.String())
 	}
 
 	return RenderPipelineState{renderPipelineState}, nil
@@ -812,7 +790,7 @@ func (cb CommandBuffer) MakeRenderCommandEncoder(rpd RenderPassDescriptor) Rende
 	colorAttachments0.Send(sel_setLoadAction, int(rpd.ColorAttachments[0].LoadAction))
 	colorAttachments0.Send(sel_setStoreAction, int(rpd.ColorAttachments[0].StoreAction))
 	colorAttachments0.Send(sel_setTexture, rpd.ColorAttachments[0].Texture.texture)
-	sig := cocoa.NSMethodSignature_InstanceMethodSignatureForSelector(colorAttachments0.Send(sel_class), sel_setClearColor)
+	sig := cocoa.NSMethodSignature_instanceMethodSignatureForSelector(colorAttachments0.Send(sel_class), sel_setClearColor)
 	inv := cocoa.NSInvocation_invocationWithMethodSignature(sig)
 	inv.SetTarget(colorAttachments0)
 	inv.SetSelector(sel_setClearColor)
@@ -871,7 +849,7 @@ func (rce RenderCommandEncoder) SetRenderPipelineState(rps RenderPipelineState) 
 }
 
 func (rce RenderCommandEncoder) SetViewport(viewport Viewport) {
-	inv := cocoa.NSInvocation_invocationWithMethodSignature(cocoa.NSMethodSignature_SignatureWithObjCTypes("v@:{MTLViewport=dddddd}"))
+	inv := cocoa.NSInvocation_invocationWithMethodSignature(cocoa.NSMethodSignature_signatureWithObjCTypes("v@:{MTLViewport=dddddd}"))
 	inv.SetTarget(objc.ID(rce.commandEncoder))
 	inv.SetSelector(sel_setViewport)
 	inv.SetArgumentAtIndex(unsafe.Pointer(&viewport), 2)
@@ -882,7 +860,7 @@ func (rce RenderCommandEncoder) SetViewport(viewport Viewport) {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlrendercommandencoder/1515583-setscissorrect
 func (rce RenderCommandEncoder) SetScissorRect(scissorRect ScissorRect) {
-	inv := cocoa.NSInvocation_invocationWithMethodSignature(cocoa.NSMethodSignature_SignatureWithObjCTypes("v@:{MTLScissorRect=qqqq}"))
+	inv := cocoa.NSInvocation_invocationWithMethodSignature(cocoa.NSMethodSignature_signatureWithObjCTypes("v@:{MTLScissorRect=qqqq}"))
 	inv.SetTarget(objc.ID(rce.commandEncoder))
 	inv.SetSelector(sel_setScissorRect)
 	inv.SetArgumentAtIndex(unsafe.Pointer(&scissorRect), 2)
@@ -916,7 +894,7 @@ func (rce RenderCommandEncoder) SetFragmentTexture(texture Texture, index int) {
 }
 
 func (rce RenderCommandEncoder) SetBlendColor(red, green, blue, alpha float32) {
-	inv := cocoa.NSInvocation_invocationWithMethodSignature(cocoa.NSMethodSignature_SignatureWithObjCTypes("v@:ffff"))
+	inv := cocoa.NSInvocation_invocationWithMethodSignature(cocoa.NSMethodSignature_signatureWithObjCTypes("v@:ffff"))
 	inv.SetTarget(objc.ID(rce.commandEncoder))
 	inv.SetSelector(sel_setBlendColorRedGreenBlueAlpha)
 	inv.SetArgumentAtIndex(unsafe.Pointer(&red), 2)
@@ -977,7 +955,7 @@ func (bce BlitCommandEncoder) SynchronizeTexture(texture Texture, slice int, lev
 }
 
 func (bce BlitCommandEncoder) CopyFromTexture(sourceTexture Texture, sourceSlice int, sourceLevel int, sourceOrigin Origin, sourceSize Size, destinationTexture Texture, destinationSlice int, destinationLevel int, destinationOrigin Origin) {
-	inv := cocoa.NSInvocation_invocationWithMethodSignature(cocoa.NSMethodSignature_SignatureWithObjCTypes("v@:@QQ{MTLOrigin=qqq}{MTLSize=qqq}@QQ{MTLOrigin=qqq}"))
+	inv := cocoa.NSInvocation_invocationWithMethodSignature(cocoa.NSMethodSignature_signatureWithObjCTypes("v@:@QQ{MTLOrigin=qqq}{MTLSize=qqq}@QQ{MTLOrigin=qqq}"))
 	inv.SetTarget(objc.ID(bce.commandEncoder))
 	inv.SetSelector(sel_copyFromTexture_sourceSlice_sourceLevel_sourceOrigin_sourceSize_toTexture_destinationSlice_destinationLevel_destinationOrigin)
 	inv.SetArgumentAtIndex(unsafe.Pointer(&sourceTexture), 2)
@@ -999,17 +977,12 @@ type Library struct {
 	library objc.ID
 }
 
-const _NSUTF8StringEncoding = 4
-
 // MakeFunction returns a pre-compiled, non-specialized function.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtllibrary/1515524-makefunction.
 func (l Library) MakeFunction(name string) (Function, error) {
 	f := objc.ID(l.library).Send(sel_newFunctionWithName,
-		objc.ID(class_NSString).
-			Send(sel_alloc).
-			Send(sel_initWithBytes_length_encoding,
-				unsafe.Pointer(&(*(*[]byte)(unsafe.Pointer(&name)))[0]), len(name), _NSUTF8StringEncoding),
+		cocoa.NSString_alloc().InitWithUTF8String(name),
 	)
 	if f == 0 {
 		return Function{}, fmt.Errorf("function %q not found", name)
@@ -1042,7 +1015,7 @@ func (t Texture) Release() {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtltexture/1515751-getbytes.
 func (t Texture) GetBytes(pixelBytes *byte, bytesPerRow uintptr, region Region, level int) {
-	inv := cocoa.NSInvocation_invocationWithMethodSignature(cocoa.NSMethodSignature_SignatureWithObjCTypes("v@:^vQ{MTLRegion={MTLOrigin=qqq}{MTLSize=qqq}}Q"))
+	inv := cocoa.NSInvocation_invocationWithMethodSignature(cocoa.NSMethodSignature_signatureWithObjCTypes("v@:^vQ{MTLRegion={MTLOrigin=qqq}{MTLSize=qqq}}Q"))
 	inv.SetTarget(t.texture)
 	inv.SetSelector(sel_getBytes_bytesPerRow_fromRegion_mipmapLevel)
 	inv.SetArgumentAtIndex(unsafe.Pointer(&pixelBytes), 2)
@@ -1056,7 +1029,7 @@ func (t Texture) GetBytes(pixelBytes *byte, bytesPerRow uintptr, region Region, 
 //
 // Reference: https://developer.apple.com/documentation/metal/mtltexture/1515464-replaceregion
 func (t Texture) ReplaceRegion(region Region, level int, pixelBytes unsafe.Pointer, bytesPerRow int) {
-	inv := cocoa.NSInvocation_invocationWithMethodSignature(cocoa.NSMethodSignature_SignatureWithObjCTypes("v@:{MTLRegion={MTLOrigin=qqq}{MTLSize=qqq}}Q^vQ"))
+	inv := cocoa.NSInvocation_invocationWithMethodSignature(cocoa.NSMethodSignature_signatureWithObjCTypes("v@:{MTLRegion={MTLOrigin=qqq}{MTLSize=qqq}}Q^vQ"))
 	inv.SetTarget(t.texture)
 	inv.SetSelector(sel_replaceRegion_mipmapLevel_withBytes_bytesPerRow)
 	inv.SetArgumentAtIndex(unsafe.Pointer(&region), 2)
