@@ -32,6 +32,8 @@ var (
 	sel_invoke             = objc.RegisterName("invoke")
 )
 
+// NSInvocation is being used to call functions that can't be called directly with purego.SyscallN.
+// See the downsides of that function for what it cannot do.
 type NSInvocation struct {
 	objc.ID
 }

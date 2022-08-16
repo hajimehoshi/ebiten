@@ -31,6 +31,10 @@ func NSMethodSignature_InstanceMethodSignatureForSelector(self objc.ID, _cmd obj
 	return NSMethodSignature(self.Send(sel_instanceMethodSignatureForSelector, _cmd))
 }
 
+// NSMethodSignature_SignatureWithObjCTypes takes a string that represents the type signature of a method.
+// It follows the encoding specified in the Apple Docs.
+//
+// [Apple Docs]: https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html#//apple_ref/doc/uid/TP40008048-CH100
 func NSMethodSignature_SignatureWithObjCTypes(types string) NSMethodSignature {
 	return NSMethodSignature(objc.ID(class_NSMethodSignature).Send(sel_signatureWithObjCTypes, types))
 }
