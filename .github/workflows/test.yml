@@ -98,10 +98,10 @@ jobs:
           file flappy
           rm flappy
 
-      - name: go build (cbackend)
+      - name: go build (NintendoSDK)
         if: ${{ !startsWith(matrix.os, 'windows-') }}
         run: |
-          go build -tags=example,ebitenginecbackend -v ./...
+          go build -tags=example,nintendosdk -v ./...
           go build -tags=example,ebitencbackend -v ./... # For backward compatibility. Remove this in the future (#2190).
 
       - name: go test
