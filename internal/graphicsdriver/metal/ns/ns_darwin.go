@@ -20,15 +20,9 @@
 package ns
 
 import (
-	"unsafe"
-
+	"github.com/ebitengine/purego/objc"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca"
 )
-
-// #cgo !ios CFLAGS: -mmacosx-version-min=10.12
-//
-// #include "ns_darwin.h"
-import "C"
 
 // Window is a window that an app displays on the screen.
 //
@@ -47,37 +41,33 @@ func NewWindow(window uintptr) Window {
 //
 // Reference: https://developer.apple.com/documentation/appkit/nswindow/1419160-contentview.
 func (w Window) ContentView() View {
-	return View{C.Window_ContentView(C.uintptr_t(w.window))}
+	return View{objc.ID(w.window).Send(objc.RegisterName("contentView"))}
 }
 
 // View is the infrastructure for drawing, printing, and handling events in an app.
 //
 // Reference: https://developer.apple.com/documentation/appkit/nsview.
 type View struct {
-	view unsafe.Pointer
+	view objc.ID
 }
 
 // SetLayer sets v.layer to l.
 //
 // Reference: https://developer.apple.com/documentation/appkit/nsview/1483298-layer.
 func (v View) SetLayer(l ca.Layer) {
-	C.View_SetLayer(v.view, l.Layer())
+	v.view.Send(objc.RegisterName("setLayer:"), uintptr(l.Layer()))
 }
 
 // SetWantsLayer sets v.wantsLayer to wantsLayer.
 //
 // Reference: https://developer.apple.com/documentation/appkit/nsview/1483695-wantslayer.
 func (v View) SetWantsLayer(wantsLayer bool) {
-	if wantsLayer {
-		C.View_SetWantsLayer(v.view, 1)
-	} else {
-		C.View_SetWantsLayer(v.view, 0)
-	}
+	v.view.Send(objc.RegisterName("setWantsLayer:"), wantsLayer)
 }
 
 // IsInFullScreenMode returns a boolean value indicating whether the view is in full screen mode.
 //
 // Reference: https://developer.apple.com/documentation/appkit/nsview/1483337-infullscreenmode.
 func (v View) IsInFullScreenMode() bool {
-	return C.View_IsInFullScreenMode(v.view) != 0
+	return v.view.Send(objc.RegisterName("isInFullScreenMode")) != 0
 }

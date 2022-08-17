@@ -17,8 +17,11 @@
 
 package metal
 
-// #cgo CFLAGS: -x objective-c
-// #cgo LDFLAGS: -framework UIKit
+// Suppress the warnings about availability guard with -Wno-unguarded-availability-new.
+// It is because old Xcode (8 or older?) does not accept @available syntax.
+
+// #cgo CFLAGS: -Wno-unguarded-availability-new -x objective-c
+// #cgo LDFLAGS: -framework UIKit -framework QuartzCore -framework Foundation -framework CoreGraphics
 //
 // #import <UIKit/UIKit.h>
 //
