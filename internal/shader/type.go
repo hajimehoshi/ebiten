@@ -23,7 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
-func (cs *compileState) parseType(block *block, expr ast.Expr) (shaderir.Type, bool) {
+func (cs *compileState) parseType(block *block, fname string, expr ast.Expr) (shaderir.Type, bool) {
 	switch t := expr.(type) {
 	case *ast.Ident:
 		switch t.Name {
@@ -58,7 +58,7 @@ func (cs *compileState) parseType(block *block, expr ast.Expr) (shaderir.Type, b
 		if _, ok := t.Len.(*ast.Ellipsis); ok {
 			length = -1 // Determine the length later.
 		} else {
-			exprs, _, _, ok := cs.parseExpr(block, t.Len, true)
+			exprs, _, _, ok := cs.parseExpr(block, fname, t.Len, true)
 			if !ok {
 				return shaderir.Type{}, false
 			}
@@ -78,7 +78,7 @@ func (cs *compileState) parseType(block *block, expr ast.Expr) (shaderir.Type, b
 			length = int(l)
 		}
 
-		elm, ok := cs.parseType(block, t.Elt)
+		elm, ok := cs.parseType(block, fname, t.Elt)
 		if !ok {
 			return shaderir.Type{}, false
 		}

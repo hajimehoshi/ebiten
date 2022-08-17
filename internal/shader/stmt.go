@@ -62,13 +62,13 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			}
 			stmts = append(stmts, ss...)
 		case token.ADD_ASSIGN, token.SUB_ASSIGN, token.MUL_ASSIGN, token.QUO_ASSIGN, token.REM_ASSIGN:
-			rhs, rts, ss, ok := cs.parseExpr(block, stmt.Rhs[0], true)
+			rhs, rts, ss, ok := cs.parseExpr(block, fname, stmt.Rhs[0], true)
 			if !ok {
 				return nil, false
 			}
 			stmts = append(stmts, ss...)
 
-			lhs, lts, ss, ok := cs.parseExpr(block, stmt.Lhs[0], true)
+			lhs, lts, ss, ok := cs.parseExpr(block, fname, stmt.Lhs[0], true)
 			if !ok {
 				return nil, false
 			}
@@ -177,7 +177,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			},
 		})
 	case *ast.DeclStmt:
-		ss, ok := cs.parseDecl(block, stmt.Decl)
+		ss, ok := cs.parseDecl(block, fname, stmt.Decl)
 		if !ok {
 			return nil, false
 		}
@@ -228,7 +228,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		vartype := pseudoBlock.vars[0].typ
 		init := ss[0].Exprs[1].Const
 
-		exprs, ts, ss, ok := cs.parseExpr(pseudoBlock, stmt.Cond, true)
+		exprs, ts, ss, ok := cs.parseExpr(pseudoBlock, fname, stmt.Cond, true)
 		if !ok {
 			return nil, false
 		}
@@ -356,7 +356,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			return stmts, true
 		}
 
-		exprs, ts, ss, ok := cs.parseExpr(block, stmt.Cond, true)
+		exprs, ts, ss, ok := cs.parseExpr(block, fname, stmt.Cond, true)
 		if !ok {
 			return nil, false
 		}
@@ -401,7 +401,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		})
 
 	case *ast.IncDecStmt:
-		exprs, _, ss, ok := cs.parseExpr(block, stmt.X, true)
+		exprs, _, ss, ok := cs.parseExpr(block, fname, stmt.X, true)
 		if !ok {
 			return nil, false
 		}
@@ -445,7 +445,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		var exprs []shaderir.Expr
 		var types []shaderir.Type
 		for _, r := range stmt.Results {
-			es, ts, ss, ok := cs.parseExpr(block, r, true)
+			es, ts, ss, ok := cs.parseExpr(block, fname, r, true)
 			if !ok {
 				return nil, false
 			}
@@ -544,7 +544,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			return nil, false
 		}
 
-		exprs, _, ss, ok := cs.parseExpr(block, stmt.X, true)
+		exprs, _, ss, ok := cs.parseExpr(block, fname, stmt.X, true)
 		if !ok {
 			return nil, false
 		}
@@ -582,7 +582,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 	for i, e := range lhs {
 		if len(lhs) == len(rhs) {
 			// Prase RHS first for the order of the statements.
-			r, rts, ss, ok := cs.parseExpr(block, rhs[i], true)
+			r, rts, ss, ok := cs.parseExpr(block, fname, rhs[i], true)
 			if !ok {
 				return nil, false
 			}
@@ -619,7 +619,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				return nil, false
 			}
 
-			l, lts, ss, ok := cs.parseExpr(block, lhs[i], false)
+			l, lts, ss, ok := cs.parseExpr(block, fname, lhs[i], false)
 			if !ok {
 				return nil, false
 			}
@@ -714,7 +714,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 			if i == 0 {
 				var ss []shaderir.Stmt
 				var ok bool
-				rhsExprs, rhsTypes, ss, ok = cs.parseExpr(block, rhs[0], true)
+				rhsExprs, rhsTypes, ss, ok = cs.parseExpr(block, fname, rhs[0], true)
 				if !ok {
 					return nil, false
 				}
@@ -743,7 +743,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				block.addNamedLocalVariable(name, t, e.Pos())
 			}
 
-			l, lts, ss, ok := cs.parseExpr(block, lhs[i], false)
+			l, lts, ss, ok := cs.parseExpr(block, fname, lhs[i], false)
 			if !ok {
 				return nil, false
 			}

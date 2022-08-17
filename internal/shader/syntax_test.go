@@ -1575,3 +1575,42 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 }
+
+// Issue #2248
+func TestSyntaxDiscard(t *testing.T) {
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	if true {
+		discard()
+	}
+	return vec4(0)
+}
+`)); err != nil {
+		t.Error(err)
+	}
+	// discard without return doesn't work so far.
+	// TODO: Allow discard without return.
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	discard()
+	return vec4(0)
+}
+`)); err != nil {
+		t.Error(err)
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func foo() {
+	discard()
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	foo()
+	return vec4(0)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
+}
