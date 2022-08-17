@@ -17,13 +17,13 @@ package mtl_test
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ebitengine/purego"
 	"image"
 	"image/color"
 	"log"
 	"os"
 	"unsafe"
 
+	"github.com/ebitengine/purego"
 	"golang.org/x/image/math/f32"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
