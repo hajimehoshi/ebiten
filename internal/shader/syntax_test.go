@@ -1945,6 +1945,59 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 }
 
 // Issue #2184
+func TestSyntaxBuiltinFuncSmoothstepType(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "a := smoothstep(); _ = a", err: true},
+		{stmt: "a := smoothstep(1); _ = a", err: true},
+		{stmt: "a := smoothstep(false, false); _ = a", err: true},
+		{stmt: "a := smoothstep(1, 1); _ = a", err: true},
+		{stmt: "a := smoothstep(false, false, false); _ = a", err: true},
+		{stmt: "a := smoothstep(1, 1, 1); _ = a", err: false},
+		{stmt: "a := smoothstep(1.0, 1, 1); _ = a", err: false},
+		{stmt: "a := smoothstep(1, 1.0, 1); _ = a", err: false},
+		{stmt: "a := smoothstep(1, 1, 1.0); _ = a", err: false},
+		{stmt: "a := smoothstep(1, vec2(1), 1); _ = a", err: true},
+		{stmt: "a := smoothstep(1, 1, vec2(1)); _ = a", err: false},
+		{stmt: "a := smoothstep(1, 1, vec3(1)); _ = a", err: false},
+		{stmt: "a := smoothstep(1, 1, vec4(1)); _ = a", err: false},
+		{stmt: "a := smoothstep(1, vec2(1), vec2(1)); _ = a", err: true},
+		{stmt: "a := smoothstep(vec2(1), 1, 1); _ = a", err: true},
+		{stmt: "a := smoothstep(vec2(1), 1, vec2(1)); _ = a", err: true},
+		{stmt: "a := smoothstep(vec2(1), vec2(1), 1); _ = a", err: true},
+		{stmt: "a := smoothstep(vec2(1), vec2(1), vec2(1)); _ = a", err: false},
+		{stmt: "a := smoothstep(vec2(1), vec2(1), vec3(1)); _ = a", err: true},
+		{stmt: "a := smoothstep(vec3(1), 1, 1); _ = a", err: true},
+		{stmt: "a := smoothstep(vec3(1), 1, vec3(1)); _ = a", err: true},
+		{stmt: "a := smoothstep(vec3(1), vec3(1), 1); _ = a", err: true},
+		{stmt: "a := smoothstep(vec3(1), vec3(1), vec3(1)); _ = a", err: false},
+		{stmt: "a := smoothstep(vec4(1), 1, 1); _ = a", err: true},
+		{stmt: "a := smoothstep(vec4(1), 1, vec4(1)); _ = a", err: true},
+		{stmt: "a := smoothstep(vec4(1), vec4(1), 1); _ = a", err: true},
+		{stmt: "a := smoothstep(vec4(1), vec4(1), vec4(1)); _ = a", err: false},
+		{stmt: "a := smoothstep(1, 1, 1, 1); _ = a", err: true},
+	}
+
+	for _, c := range cases {
+		stmt := c.stmt
+		src := fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	%s
+	return position
+}`, stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", stmt, err)
+		}
+	}
+}
+
+// Issue #2184
 func TestSyntaxBuiltinFuncCrossType(t *testing.T) {
 	cases := []struct {
 		stmt string
