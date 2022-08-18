@@ -338,10 +338,9 @@ func (p *Player) draw(screen *ebiten.Image) {
 
 	// Draw the cursor on the bar.
 	c := p.current
-	cw, ch := 8, 20
-	cx := int(time.Duration(w)*c/p.total) + x - cw/2
-	cy := y - (ch-h)/2
-	ebitenutil.DrawRect(screen, float64(cx), float64(cy), float64(cw), float64(ch), playerCurrentColor)
+	cx := float64(x) + float64(w)*float64(p.current)/float64(p.total)
+	cy := float64(y) + float64(h)/2
+	ebitenutil.DrawCircle(screen, cx, cy, 12, playerCurrentColor)
 
 	// Compose the curren time text.
 	m := (c / time.Minute) % 100
