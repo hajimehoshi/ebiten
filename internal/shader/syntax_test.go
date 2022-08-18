@@ -2152,3 +2152,40 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 }
+
+// Issue #2184
+func TestSyntaxBuiltinFuncTransposeType(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "a := transpose(); _ = a", err: true},
+		{stmt: "a := transpose(false); _ = a", err: true},
+		{stmt: "a := transpose(1); _ = a", err: true},
+		{stmt: "a := transpose(1.0); _ = a", err: true},
+		{stmt: "a := transpose(int(1)); _ = a", err: true},
+		{stmt: "a := transpose(vec2(1)); _ = a", err: true},
+		{stmt: "a := transpose(vec3(1)); _ = a", err: true},
+		{stmt: "a := transpose(vec4(1)); _ = a", err: true},
+		{stmt: "a := transpose(mat2(1)); _ = a", err: false},
+		{stmt: "a := transpose(mat3(1)); _ = a", err: false},
+		{stmt: "a := transpose(mat4(1)); _ = a", err: false},
+		{stmt: "a := transpose(1, 1); _ = a", err: true},
+	}
+
+	for _, c := range cases {
+		stmt := c.stmt
+		src := fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	%s
+	return position
+}`, stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", stmt, err)
+		}
+	}
+}

@@ -572,9 +572,17 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					args[0].ConstType = shaderir.ConstTypeFloat
 					argts[0] = shaderir.Type{Main: shaderir.Float}
 				}
-				if argts[0].Main != shaderir.Float && argts[0].Main != shaderir.Vec2 && argts[0].Main != shaderir.Vec3 && argts[0].Main != shaderir.Vec4 {
-					cs.addError(e.Pos(), fmt.Sprintf("cannot use %s as float, vec2, vec3, or vec4 value in argument to %s", argts[0].String(), callee.BuiltinFunc))
-					return nil, nil, nil, false
+				switch callee.BuiltinFunc {
+				case shaderir.Transpose:
+					if argts[0].Main != shaderir.Mat2 && argts[0].Main != shaderir.Mat3 && argts[0].Main != shaderir.Mat4 {
+						cs.addError(e.Pos(), fmt.Sprintf("cannot use %s as mat2, mat3, or mat4 value in argument to %s", argts[0].String(), callee.BuiltinFunc))
+						return nil, nil, nil, false
+					}
+				default:
+					if argts[0].Main != shaderir.Float && argts[0].Main != shaderir.Vec2 && argts[0].Main != shaderir.Vec3 && argts[0].Main != shaderir.Vec4 {
+						cs.addError(e.Pos(), fmt.Sprintf("cannot use %s as float, vec2, vec3, or vec4 value in argument to %s", argts[0].String(), callee.BuiltinFunc))
+						return nil, nil, nil, false
+					}
 				}
 				if callee.BuiltinFunc == shaderir.Length {
 					t = shaderir.Type{Main: shaderir.Float}
