@@ -430,9 +430,6 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					return nil, nil, nil, false
 				}
 				t = shaderir.Type{Main: shaderir.Mat4}
-			case shaderir.Smoothstep:
-				// TODO: Check arg types.
-				t = argts[2]
 			case shaderir.Texture2DF:
 				// TODO: Check arg types.
 				t = shaderir.Type{Main: shaderir.Vec4}
@@ -450,7 +447,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				})
 				return nil, nil, stmts, true
 
-			case shaderir.Clamp, shaderir.Mix:
+			case shaderir.Clamp, shaderir.Mix, shaderir.Smoothstep:
 				// 3 arguments
 				if len(args) != 3 {
 					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 3 but %d", callee.BuiltinFunc, len(args)))
@@ -483,9 +480,19 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 						cs.addError(e.Pos(), fmt.Sprintf("the third arguments for %s must equal to the first/second argument %s or float but %s", callee.BuiltinFunc, argts[0].String(), argts[2].String()))
 						return nil, nil, nil, false
 					}
+				case shaderir.Smoothstep:
+					if (!argts[0].Equal(&argts[1]) || !argts[0].Equal(&argts[2])) && (argts[0].Main != shaderir.Float || argts[1].Main != shaderir.Float) {
+						cs.addError(e.Pos(), fmt.Sprintf("the first and the second arguments for %s must equal to the third argument %s or float but %s and %s", callee.BuiltinFunc, argts[2].String(), argts[0].String(), argts[1].String()))
+						return nil, nil, nil, false
+					}
 				}
 
-				t = argts[0]
+				switch callee.BuiltinFunc {
+				case shaderir.Smoothstep:
+					t = argts[2]
+				default:
+					t = argts[0]
+				}
 
 			case shaderir.Atan2, shaderir.Mod, shaderir.Min, shaderir.Max, shaderir.Step, shaderir.Distance, shaderir.Dot, shaderir.Cross, shaderir.Reflect:
 				// 2 arguments
