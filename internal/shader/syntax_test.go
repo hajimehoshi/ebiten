@@ -1843,6 +1843,62 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 }
 
 // Issue #2184
+func TestSyntaxBuiltinFuncTripleArgsType(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "a := {{.Func}}(); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1); _ = a", err: true},
+		{stmt: "a := {{.Func}}(false, false); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1, 1); _ = a", err: true},
+		{stmt: "a := {{.Func}}(false, false, false); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1, 1, 1); _ = a", err: false},
+		{stmt: "a := {{.Func}}(1.0, 1, 1); _ = a", err: false},
+		{stmt: "a := {{.Func}}(1, 1.0, 1); _ = a", err: false},
+		{stmt: "a := {{.Func}}(1, 1, 1.0); _ = a", err: false},
+		{stmt: "a := {{.Func}}(1, vec2(1), 1); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1, 1, vec2(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1, vec2(1), vec2(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec2(1), 1, 1); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec2(1), 1, vec2(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec2(1), vec2(1), 1); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec2(1), vec2(1), vec2(1)); _ = a", err: false},
+		{stmt: "a := {{.Func}}(vec2(1), vec2(1), vec3(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec3(1), 1, 1); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec3(1), 1, vec3(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec3(1), vec3(1), 1); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec3(1), vec3(1), vec3(1)); _ = a", err: false},
+		{stmt: "a := {{.Func}}(vec4(1), 1, 1); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec4(1), 1, vec4(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec4(1), vec4(1), 1); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec4(1), vec4(1), vec4(1)); _ = a", err: false},
+		{stmt: "a := {{.Func}}(1, 1, 1, 1); _ = a", err: true},
+	}
+
+	funcs := []string{
+		"faceforward",
+	}
+	for _, c := range cases {
+		for _, f := range funcs {
+			stmt := strings.ReplaceAll(c.stmt, "{{.Func}}", f)
+			src := fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	%s
+	return position
+}`, stmt)
+			_, err := compileToIR([]byte(src))
+			if err == nil && c.err {
+				t.Errorf("%s must return an error but does not", stmt)
+			} else if err != nil && !c.err {
+				t.Errorf("%s must not return nil but returned %v", stmt, err)
+			}
+		}
+	}
+}
+
+// Issue #2184
 func TestSyntaxBuiltinFuncClampType(t *testing.T) {
 	cases := []struct {
 		stmt string
