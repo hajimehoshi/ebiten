@@ -430,9 +430,6 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					return nil, nil, nil, false
 				}
 				t = shaderir.Type{Main: shaderir.Mat4}
-			case shaderir.Step:
-				// TODO: Check arg types.
-				t = argts[1]
 			case shaderir.Smoothstep:
 				// TODO: Check arg types.
 				t = argts[2]
@@ -478,7 +475,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 
 				t = argts[0]
 
-			case shaderir.Atan2, shaderir.Mod, shaderir.Min, shaderir.Max, shaderir.Distance, shaderir.Dot, shaderir.Cross, shaderir.Reflect:
+			case shaderir.Atan2, shaderir.Mod, shaderir.Min, shaderir.Max, shaderir.Step, shaderir.Distance, shaderir.Dot, shaderir.Cross, shaderir.Reflect:
 				// 2 arguments
 				if len(args) != 2 {
 					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 2 but %d", callee.BuiltinFunc, len(args)))
@@ -503,6 +500,11 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 						cs.addError(e.Pos(), fmt.Sprintf("the second argument for %s must equal to the first argument %s or float but %s", callee.BuiltinFunc, argts[0].String(), argts[1].String()))
 						return nil, nil, nil, false
 					}
+				case shaderir.Step:
+					if !argts[0].Equal(&argts[1]) && argts[0].Main != shaderir.Float {
+						cs.addError(e.Pos(), fmt.Sprintf("the first argument for %s must equal to the second argument %s or float but %s", callee.BuiltinFunc, argts[1].String(), argts[0].String()))
+						return nil, nil, nil, false
+					}
 				case shaderir.Cross:
 					for i := range argts {
 						if argts[i].Main != shaderir.Vec3 {
@@ -516,9 +518,12 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 						return nil, nil, nil, false
 					}
 				}
-				if callee.BuiltinFunc == shaderir.Distance || callee.BuiltinFunc == shaderir.Dot {
+				switch callee.BuiltinFunc {
+				case shaderir.Distance, shaderir.Dot:
 					t = shaderir.Type{Main: shaderir.Float}
-				} else {
+				case shaderir.Step:
+					t = argts[1]
+				default:
 					t = argts[0]
 				}
 
