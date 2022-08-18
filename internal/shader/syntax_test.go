@@ -1873,6 +1873,58 @@ func TestSyntaxBuiltinFuncClampType(t *testing.T) {
 		{stmt: "a := clamp(vec4(1), 1, vec4(1)); _ = a", err: true},
 		{stmt: "a := clamp(vec4(1), vec4(1), 1); _ = a", err: true},
 		{stmt: "a := clamp(vec4(1), vec4(1), vec4(1)); _ = a", err: false},
+		{stmt: "a := clamp(1, 1, 1, 1); _ = a", err: true},
+	}
+
+	for _, c := range cases {
+		stmt := c.stmt
+		src := fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	%s
+	return position
+}`, stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", stmt, err)
+		}
+	}
+}
+
+// Issue #2184
+func TestSyntaxBuiltinFuncMixType(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "a := mix(); _ = a", err: true},
+		{stmt: "a := mix(1); _ = a", err: true},
+		{stmt: "a := mix(false, false); _ = a", err: true},
+		{stmt: "a := mix(1, 1); _ = a", err: true},
+		{stmt: "a := mix(false, false, false); _ = a", err: true},
+		{stmt: "a := mix(1, 1, 1); _ = a", err: false},
+		{stmt: "a := mix(1.0, 1, 1); _ = a", err: false},
+		{stmt: "a := mix(1, 1.0, 1); _ = a", err: false},
+		{stmt: "a := mix(1, 1, 1.0); _ = a", err: false},
+		{stmt: "a := mix(1, vec2(1), 1); _ = a", err: true},
+		{stmt: "a := mix(1, 1, vec2(1)); _ = a", err: true},
+		{stmt: "a := mix(1, vec2(1), vec2(1)); _ = a", err: true},
+		{stmt: "a := mix(vec2(1), 1, 1); _ = a", err: true},
+		{stmt: "a := mix(vec2(1), 1, vec2(1)); _ = a", err: true},
+		{stmt: "a := mix(vec2(1), vec2(1), 1); _ = a", err: false}, // The thrid argument can be a float.
+		{stmt: "a := mix(vec2(1), vec2(1), vec2(1)); _ = a", err: false},
+		{stmt: "a := mix(vec2(1), vec2(1), vec3(1)); _ = a", err: true},
+		{stmt: "a := mix(vec3(1), 1, 1); _ = a", err: true},
+		{stmt: "a := mix(vec3(1), 1, vec3(1)); _ = a", err: true},
+		{stmt: "a := mix(vec3(1), vec3(1), 1); _ = a", err: false}, // The thrid argument can be a float.
+		{stmt: "a := mix(vec3(1), vec3(1), vec3(1)); _ = a", err: false},
+		{stmt: "a := mix(vec4(1), 1, 1); _ = a", err: true},
+		{stmt: "a := mix(vec4(1), 1, vec4(1)); _ = a", err: true},
+		{stmt: "a := mix(vec4(1), vec4(1), 1); _ = a", err: false}, // The thrid argument can be a float.
+		{stmt: "a := mix(vec4(1), vec4(1), vec4(1)); _ = a", err: false},
+		{stmt: "a := mix(1, 1, 1, 1); _ = a", err: true},
 	}
 
 	for _, c := range cases {
