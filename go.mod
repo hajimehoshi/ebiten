@@ -11,7 +11,7 @@ require (
 	github.com/hajimehoshi/oto/v2 v2.3.0-alpha.6.0.20220812115039-c71b4c444598
 	github.com/jakecoffman/cp v1.2.1
 	github.com/jezek/xgb v1.0.1
-	github.com/jfreymuth/oggvorbis v1.0.3
+	github.com/jfreymuth/oggvorbis v1.0.4
 	golang.org/x/image v0.0.0-20220722155232-062f8c9fd539
 	golang.org/x/mobile v0.0.0-20220722155234-aaac322e2105
 	golang.org/x/sys v0.0.0-20220804214406-8e32c043e418
