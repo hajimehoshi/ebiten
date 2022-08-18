@@ -1236,3 +1236,36 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestShaderRadiansDegrees(t *testing.T) {
+	const (
+		w = 16
+		h = 16
+	)
+
+	dst := ebiten.NewImage(w, h)
+
+	s, err := ebiten.NewShader([]byte(`package main
+
+const PI = 3.14159265358979323846264338327950288419716939937511
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	x := degrees(PI/2) / 180
+	return vec4(x, 0, 0, 1)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dst.DrawRectShader(w, h, s, nil)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{0x80, 0, 0, 0xff}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
