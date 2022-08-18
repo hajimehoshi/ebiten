@@ -133,6 +133,7 @@ const (
 	Mat2
 	Mat3
 	Mat4
+	Texture
 	Array
 	Struct
 )
