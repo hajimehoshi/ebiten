@@ -453,6 +453,31 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				})
 				return nil, nil, stmts, true
 
+			case shaderir.Clamp:
+				// 3 arguments
+				if len(args) != 3 {
+					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 3 but %d", callee.BuiltinFunc, len(args)))
+					return nil, nil, nil, false
+				}
+				for i := range args {
+					// If the argument is a non-typed constant value, treat this as a float value (#1874).
+					if args[i].Type == shaderir.NumberExpr && args[i].ConstType == shaderir.ConstTypeNone && gconstant.ToFloat(args[i].Const).Kind() != gconstant.Unknown {
+						args[i].Const = gconstant.ToFloat(args[i].Const)
+						args[i].ConstType = shaderir.ConstTypeFloat
+						argts[i] = shaderir.Type{Main: shaderir.Float}
+					}
+					if argts[i].Main != shaderir.Float && argts[i].Main != shaderir.Vec2 && argts[i].Main != shaderir.Vec3 && argts[i].Main != shaderir.Vec4 {
+						cs.addError(e.Pos(), fmt.Sprintf("cannot use %s as float, vec2, vec3, or vec4 value in argument to %s", argts[i].String(), callee.BuiltinFunc))
+						return nil, nil, nil, false
+					}
+				}
+				if (!argts[0].Equal(&argts[1]) || !argts[0].Equal(&argts[2])) && (argts[1].Main != shaderir.Float || argts[2].Main != shaderir.Float) {
+					cs.addError(e.Pos(), fmt.Sprintf("the second and the third arguments for %s must equal to the first argument %s or float but %s and %s", callee.BuiltinFunc, argts[0].String(), argts[1].String(), argts[2].String()))
+					return nil, nil, nil, false
+				}
+
+				t = argts[0]
+
 			case shaderir.Atan2, shaderir.Mod, shaderir.Min, shaderir.Max, shaderir.Distance, shaderir.Dot, shaderir.Cross, shaderir.Reflect:
 				// 2 arguments
 				if len(args) != 2 {
