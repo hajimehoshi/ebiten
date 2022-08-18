@@ -447,7 +447,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				})
 				return nil, nil, stmts, true
 
-			case shaderir.Clamp, shaderir.Mix, shaderir.Smoothstep, shaderir.Faceforward:
+			case shaderir.Clamp, shaderir.Mix, shaderir.Smoothstep, shaderir.Faceforward, shaderir.Refract:
 				// 3 arguments
 				if len(args) != 3 {
 					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 3 but %d", callee.BuiltinFunc, len(args)))
@@ -483,6 +483,15 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				case shaderir.Smoothstep:
 					if (!argts[0].Equal(&argts[1]) || !argts[0].Equal(&argts[2])) && (argts[0].Main != shaderir.Float || argts[1].Main != shaderir.Float) {
 						cs.addError(e.Pos(), fmt.Sprintf("the first and the second arguments for %s must equal to the third argument %s or float but %s and %s", callee.BuiltinFunc, argts[2].String(), argts[0].String(), argts[1].String()))
+						return nil, nil, nil, false
+					}
+				case shaderir.Refract:
+					if !argts[0].Equal(&argts[1]) {
+						cs.addError(e.Pos(), fmt.Sprintf("%s and %s don't match in argument to %s", argts[0].String(), argts[1].String(), callee.BuiltinFunc))
+						return nil, nil, nil, false
+					}
+					if argts[2].Main != shaderir.Float {
+						cs.addError(e.Pos(), fmt.Sprintf("cannot use %s as float value in argument to %s", argts[2].String(), callee.BuiltinFunc))
 						return nil, nil, nil, false
 					}
 				default:

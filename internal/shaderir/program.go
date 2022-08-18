@@ -259,6 +259,7 @@ const (
 	Normalize   BuiltinFunc = "normalize"
 	Faceforward BuiltinFunc = "faceforward"
 	Reflect     BuiltinFunc = "reflect"
+	Refract     BuiltinFunc = "refract"
 	Transpose   BuiltinFunc = "transpose"
 	Texture2DF  BuiltinFunc = "texture2D"
 	Dfdx        BuiltinFunc = "dfdx"
@@ -313,6 +314,7 @@ func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
 		Normalize,
 		Faceforward,
 		Reflect,
+		Refract,
 		Transpose,
 		Texture2DF,
 		Dfdx,
