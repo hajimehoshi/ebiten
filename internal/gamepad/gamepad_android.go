@@ -99,6 +99,6 @@ func (g *nativeGamepadImpl) hatState(hat int) int {
 	return g.hats[hat]
 }
 
-func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude, weakMagnitude float64) {
 	// TODO: Implement this (#1452)
 }

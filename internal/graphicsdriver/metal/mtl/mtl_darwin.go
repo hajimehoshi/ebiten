@@ -329,7 +329,7 @@ const (
 type CommandBufferStatus uint8
 
 const (
-	CommandBufferStatusNotEnqueued CommandBufferStatus = 0 //The command buffer is not enqueued yet.
+	CommandBufferStatusNotEnqueued CommandBufferStatus = 0 // The command buffer is not enqueued yet.
 	CommandBufferStatusEnqueued    CommandBufferStatus = 1 // The command buffer is enqueued.
 	CommandBufferStatusCommitted   CommandBufferStatus = 2 // The command buffer is committed for execution.
 	CommandBufferStatusScheduled   CommandBufferStatus = 3 // The command buffer is scheduled.
@@ -681,7 +681,7 @@ func (d Device) MakeDepthStencilState(dsd DepthStencilDescriptor) DepthStencilSt
 	backFaceStencil.Send(sel_setStencilFailureOperation, uintptr(dsd.BackFaceStencil.StencilFailureOperation))
 	backFaceStencil.Send(sel_setDepthFailureOperation, uintptr(dsd.BackFaceStencil.DepthFailureOperation))
 	backFaceStencil.Send(sel_setDepthStencilPassOperation, uintptr(dsd.BackFaceStencil.DepthStencilPassOperation))
-	backFaceStencil.Send(sel_setStencilCompareFunction, uintptr(dsd.BackFaceStencil.StencilCompareFunction)) //TODO
+	backFaceStencil.Send(sel_setStencilCompareFunction, uintptr(dsd.BackFaceStencil.StencilCompareFunction)) // TODO
 	frontFaceStencil := depthStencilDescriptor.Send(sel_frontFaceStencil)
 	frontFaceStencil.Send(sel_setStencilFailureOperation, uintptr(dsd.FrontFaceStencil.StencilFailureOperation))
 	frontFaceStencil.Send(sel_setDepthFailureOperation, uintptr(dsd.FrontFaceStencil.DepthFailureOperation))
@@ -785,8 +785,8 @@ func (cb CommandBuffer) WaitUntilScheduled() {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlcommandbuffer/1442999-makerendercommandencoder.
 func (cb CommandBuffer) MakeRenderCommandEncoder(rpd RenderPassDescriptor) RenderCommandEncoder {
-	var renderPassDescriptor = objc.ID(class_MTLRenderPassDescriptor).Send(sel_new)
-	var colorAttachments0 = renderPassDescriptor.Send(sel_colorAttachments).Send(sel_objectAtIndexedSubscript, 0)
+	renderPassDescriptor := objc.ID(class_MTLRenderPassDescriptor).Send(sel_new)
+	colorAttachments0 := renderPassDescriptor.Send(sel_colorAttachments).Send(sel_objectAtIndexedSubscript, 0)
 	colorAttachments0.Send(sel_setLoadAction, int(rpd.ColorAttachments[0].LoadAction))
 	colorAttachments0.Send(sel_setStoreAction, int(rpd.ColorAttachments[0].StoreAction))
 	colorAttachments0.Send(sel_setTexture, rpd.ColorAttachments[0].Texture.texture)
@@ -796,11 +796,11 @@ func (cb CommandBuffer) MakeRenderCommandEncoder(rpd RenderPassDescriptor) Rende
 	inv.SetSelector(sel_setClearColor)
 	inv.SetArgumentAtIndex(unsafe.Pointer(&rpd.ColorAttachments[0].ClearColor), 2)
 	inv.Invoke()
-	var stencilAttachment = renderPassDescriptor.Send(sel_stencilAttachment)
+	stencilAttachment := renderPassDescriptor.Send(sel_stencilAttachment)
 	stencilAttachment.Send(sel_setLoadAction, int(rpd.StencilAttachment.LoadAction))
 	stencilAttachment.Send(sel_setStoreAction, int(rpd.StencilAttachment.StoreAction))
 	stencilAttachment.Send(sel_setTexture, rpd.StencilAttachment.Texture.texture)
-	var rce = cb.commandBuffer.Send(sel_renderCommandEncoderWithDescriptor, renderPassDescriptor)
+	rce := cb.commandBuffer.Send(sel_renderCommandEncoderWithDescriptor, renderPassDescriptor)
 	renderPassDescriptor.Send(sel_release)
 	return RenderCommandEncoder{CommandEncoder{rce}}
 }
@@ -947,14 +947,14 @@ func (bce BlitCommandEncoder) Synchronize(resource Resource) {
 	bce.commandEncoder.Send(sel_synchronizeResource, resource.resource())
 }
 
-func (bce BlitCommandEncoder) SynchronizeTexture(texture Texture, slice int, level int) {
+func (bce BlitCommandEncoder) SynchronizeTexture(texture Texture, slice, level int) {
 	if cocoa.IsIOS {
 		return
 	}
 	bce.commandEncoder.Send(sel_synchronizeTexture_slice_level, texture.texture, slice, level)
 }
 
-func (bce BlitCommandEncoder) CopyFromTexture(sourceTexture Texture, sourceSlice int, sourceLevel int, sourceOrigin Origin, sourceSize Size, destinationTexture Texture, destinationSlice int, destinationLevel int, destinationOrigin Origin) {
+func (bce BlitCommandEncoder) CopyFromTexture(sourceTexture Texture, sourceSlice, sourceLevel int, sourceOrigin Origin, sourceSize Size, destinationTexture Texture, destinationSlice, destinationLevel int, destinationOrigin Origin) {
 	inv := cocoa.NSInvocation_invocationWithMethodSignature(cocoa.NSMethodSignature_signatureWithObjCTypes("v@:@QQ{MTLOrigin=qqq}{MTLSize=qqq}@QQ{MTLOrigin=qqq}"))
 	inv.SetTarget(bce.commandEncoder)
 	inv.SetSelector(sel_copyFromTexture_sourceSlice_sourceLevel_sourceOrigin_sourceSize_toTexture_destinationSlice_destinationLevel_destinationOrigin)

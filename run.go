@@ -99,9 +99,7 @@ func CurrentFPS() float64 {
 	return ActualFPS()
 }
 
-var (
-	isRunGameEnded_ = int32(0)
-)
+var isRunGameEnded_ = int32(0)
 
 // SetScreenClearedEveryFrame enables or disables the clearing of the screen at the beginning of each frame.
 // The default value is true and the screen is cleared each frame by default.

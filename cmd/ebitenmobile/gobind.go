@@ -81,8 +81,8 @@ func invokeOriginalGobind(lang string) (pkgName string, err error) {
 }
 
 func run() error {
-	writeFile := func(filename string, content string) error {
-		if err := ioutil.WriteFile(filepath.Join(*outdir, filename), []byte(content), 0644); err != nil {
+	writeFile := func(filename, content string) error {
+		if err := ioutil.WriteFile(filepath.Join(*outdir, filename), []byte(content), 0o644); err != nil {
 			return err
 		}
 		return nil

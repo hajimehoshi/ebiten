@@ -22,9 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
-var (
-	object = js.Global().Get("Object")
-)
+var object = js.Global().Get("Object")
 
 type nativeGamepadsImpl struct {
 	indices map[int]struct{}
@@ -174,7 +172,7 @@ func (g *nativeGamepadImpl) hatState(hat int) int {
 	return hatCentered
 }
 
-func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude, weakMagnitude float64) {
 	// vibrationActuator is available on Chrome.
 	if va := g.value.Get("vibrationActuator"); va.Truthy() {
 		if !va.Get("playEffect").Truthy() {

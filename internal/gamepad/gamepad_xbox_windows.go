@@ -99,7 +99,7 @@ func (n *nativeGamepadsXbox) update(gamepads *gamepads) error {
 	return nil
 }
 
-func (n *nativeGamepadsXbox) deviceCallback(callbackToken _GameInputCallbackToken, context unsafe.Pointer, device *_IGameInputDevice, timestamp uint64, currentStatus _GameInputDeviceStatus, previousStatus _GameInputDeviceStatus) uintptr {
+func (n *nativeGamepadsXbox) deviceCallback(callbackToken _GameInputCallbackToken, context unsafe.Pointer, device *_IGameInputDevice, timestamp uint64, currentStatus, previousStatus _GameInputDeviceStatus) uintptr {
 	gps := (*gamepads)(context)
 
 	// Connected.
@@ -248,7 +248,7 @@ func (n *nativeGamepadXbox) hatState(hat int) int {
 	return 0
 }
 
-func (n *nativeGamepadXbox) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+func (n *nativeGamepadXbox) vibrate(duration time.Duration, strongMagnitude, weakMagnitude float64) {
 	if strongMagnitude <= 0 && weakMagnitude <= 0 {
 		n.vib = false
 		n.gameInputDevice.SetRumbleState(&_GameInputRumbleParams{

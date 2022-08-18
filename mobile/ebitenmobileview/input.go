@@ -32,9 +32,7 @@ var (
 	touches = map[ui.TouchID]position{}
 )
 
-var (
-	touchSlice []ui.Touch
-)
+var touchSlice []ui.Touch
 
 func updateInput() {
 	touchSlice = touchSlice[:0]

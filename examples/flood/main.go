@@ -47,8 +47,7 @@ var (
 	}
 )
 
-type Game struct {
-}
+type Game struct{}
 
 func (g *Game) Update() error {
 	return nil

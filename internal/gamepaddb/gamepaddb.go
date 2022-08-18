@@ -129,7 +129,7 @@ var (
 	mappingsM             sync.RWMutex
 )
 
-func parseLine(line string, platform platform) (id string, name string, buttons map[StandardButton]*mapping, axes map[StandardAxis]*mapping, err error) {
+func parseLine(line string, platform platform) (id, name string, buttons map[StandardButton]*mapping, axes map[StandardAxis]*mapping, err error) {
 	line = strings.TrimSpace(line)
 	if len(line) == 0 {
 		return "", "", nil, nil, nil

@@ -25,7 +25,7 @@ import (
 
 const gomobileHash = "aaac322e2105241d1ac9a25b03d4e916ac6e42c6"
 
-func runCommand(command string, args []string, env []string) error {
+func runCommand(command string, args, env []string) error {
 	if buildX || buildN {
 		for _, e := range env {
 			fmt.Printf("%s ", e)
@@ -130,7 +130,7 @@ import (
 	_ "golang.org/x/mobile/cmd/gobind"
 	_ "golang.org/x/mobile/cmd/gomobile"
 )
-`, buildtags, modname)), 0644); err != nil {
+`, buildtags, modname)), 0o644); err != nil {
 		return tmp, err
 	}
 
@@ -158,10 +158,10 @@ import (
 		return tmp, err
 	}
 
-	if err := os.Mkdir("src", 0755); err != nil {
+	if err := os.Mkdir("src", 0o755); err != nil {
 		return tmp, err
 	}
-	if err := ioutil.WriteFile(filepath.Join("src", "gobind.go"), gobindsrc, 0644); err != nil {
+	if err := ioutil.WriteFile(filepath.Join("src", "gobind.go"), gobindsrc, 0o644); err != nil {
 		return tmp, err
 	}
 

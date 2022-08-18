@@ -195,7 +195,7 @@ func (g *Graphics) initialize() (ferr error) {
 	return nil
 }
 
-func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool) (ferr error) {
+func (g *Graphics) initializeDesktop(useWARP, useDebugLayer bool) (ferr error) {
 	if err := d3d12.Load(); err != nil {
 		return err
 	}
@@ -304,7 +304,7 @@ func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool) (ferr err
 	return nil
 }
 
-func (g *Graphics) initializeXbox(useWARP bool, useDebugLayer bool) (ferr error) {
+func (g *Graphics) initializeXbox(useWARP, useDebugLayer bool) (ferr error) {
 	if err := d3d12x.Load(); err != nil {
 		return err
 	}
@@ -1189,7 +1189,7 @@ func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, 
 	return s, nil
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.ShaderImageCount]graphicsdriver.ImageID, offsets [graphics.ShaderImageCount - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, colorM graphicsdriver.ColorM, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.ShaderImageCount]graphicsdriver.ImageID, offsets [graphics.ShaderImageCount - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen, indexOffset int, mode graphicsdriver.CompositeMode, colorM graphicsdriver.ColorM, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
 	if err := g.flushCommandList(g.copyCommandList); err != nil {
 		return err
 	}
@@ -1431,7 +1431,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 	return nil
 }
 
-func (g *Graphics) drawTriangles(pipelineState *_ID3D12PipelineState, srcs [graphics.ShaderImageCount]*Image, flattenUniforms []float32, indexLen int, indexOffset int) error {
+func (g *Graphics) drawTriangles(pipelineState *_ID3D12PipelineState, srcs [graphics.ShaderImageCount]*Image, flattenUniforms []float32, indexLen, indexOffset int) error {
 	if err := g.pipelineStates.useGraphicsPipelineState(g.device, g.drawCommandList, g.frameIndex, pipelineState, srcs, flattenUniforms); err != nil {
 		return err
 	}

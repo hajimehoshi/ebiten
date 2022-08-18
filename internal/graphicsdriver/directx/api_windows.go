@@ -1103,7 +1103,7 @@ func _D3D12XboxCreateDevice(pAdapter unsafe.Pointer, pParameters *_D3D12XBOX_CRE
 	return v, nil
 }
 
-func _D3DCompile(srcData []byte, sourceName string, pDefines []_D3D_SHADER_MACRO, pInclude unsafe.Pointer, entryPoint string, target string, flags1 uint32, flags2 uint32) (*_ID3DBlob, error) {
+func _D3DCompile(srcData []byte, sourceName string, pDefines []_D3D_SHADER_MACRO, pInclude unsafe.Pointer, entryPoint, target string, flags1, flags2 uint32) (*_ID3DBlob, error) {
 	// TODO: Define _ID3DInclude for pInclude, but is it possible in Go?
 
 	var defs unsafe.Pointer
@@ -1719,7 +1719,7 @@ func (i *_ID3D12Device) CreateRenderTargetView(pResource *_ID3D12Resource, pDesc
 	runtime.KeepAlive(pDesc)
 }
 
-func (i *_ID3D12Device) CreateRootSignature(nodeMask uint32, pBlobWithRootSignature uintptr, blobLengthInBytes uintptr) (*_ID3D12RootSignature, error) {
+func (i *_ID3D12Device) CreateRootSignature(nodeMask uint32, pBlobWithRootSignature, blobLengthInBytes uintptr) (*_ID3D12RootSignature, error) {
 	var signature *_ID3D12RootSignature
 	r, _, _ := syscall.Syscall6(i.vtbl.CreateRootSignature, 6, uintptr(unsafe.Pointer(i)),
 		uintptr(nodeMask), pBlobWithRootSignature, blobLengthInBytes,
@@ -1744,7 +1744,7 @@ func (i *_ID3D12Device) CreateShaderResourceView(pResource *_ID3D12Resource, pDe
 	runtime.KeepAlive(pDesc)
 }
 
-func (i *_ID3D12Device) GetCopyableFootprints(pResourceDesc *_D3D12_RESOURCE_DESC, firstSubresource uint32, numSubresources uint32, baseOffset uint64) (layouts _D3D12_PLACED_SUBRESOURCE_FOOTPRINT, numRows uint, rowSizeInBytes uint64, totalBytes uint64) {
+func (i *_ID3D12Device) GetCopyableFootprints(pResourceDesc *_D3D12_RESOURCE_DESC, firstSubresource, numSubresources uint32, baseOffset uint64) (layouts _D3D12_PLACED_SUBRESOURCE_FOOTPRINT, numRows uint, rowSizeInBytes, totalBytes uint64) {
 	syscall.Syscall9(i.vtbl.GetCopyableFootprints, 9, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(pResourceDesc)), uintptr(firstSubresource), uintptr(numSubresources),
 		uintptr(baseOffset), uintptr(unsafe.Pointer(&layouts)), uintptr(unsafe.Pointer(&numRows)),
@@ -1776,7 +1776,7 @@ func (i *_ID3D12Device) ScheduleFrameEventX(typ _D3D12XBOX_FRAME_EVENT_TYPE, int
 	return nil
 }
 
-func (i *_ID3D12Device) SetFrameIntervalX(pOutputSyncTarget *_IDXGIOutput, lengthInMicroseconds uint32, periodInIntervals uint32, flags _D3D12XBOX_FRAME_INTERVAL_FLAGS) error {
+func (i *_ID3D12Device) SetFrameIntervalX(pOutputSyncTarget *_IDXGIOutput, lengthInMicroseconds, periodInIntervals uint32, flags _D3D12XBOX_FRAME_INTERVAL_FLAGS) error {
 	r, _, _ := syscall.Syscall6(i.vtbl.SetFrameIntervalX, 5, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(pOutputSyncTarget)), uintptr(lengthInMicroseconds), uintptr(periodInIntervals), uintptr(flags), 0)
 	runtime.KeepAlive(pOutputSyncTarget)
 	// S_FALSE means the call was successful but the new frame interval is not yet in effect.
@@ -1958,7 +1958,7 @@ func (i *_ID3D12GraphicsCommandList) Close() error {
 	return nil
 }
 
-func (i *_ID3D12GraphicsCommandList) CopyTextureRegion_PlacedFootPrint_SubresourceIndex(pDst *_D3D12_TEXTURE_COPY_LOCATION_PlacedFootPrint, dstX uint32, dstY uint32, dstZ uint32, pSrc *_D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex, pSrcBox *_D3D12_BOX) {
+func (i *_ID3D12GraphicsCommandList) CopyTextureRegion_PlacedFootPrint_SubresourceIndex(pDst *_D3D12_TEXTURE_COPY_LOCATION_PlacedFootPrint, dstX, dstY, dstZ uint32, pSrc *_D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex, pSrcBox *_D3D12_BOX) {
 	if microsoftgdk.IsXbox() {
 		_ID3D12GraphicsCommandList_CopyTextureRegion(i, unsafe.Pointer(pDst), dstX, dstY, dstZ, unsafe.Pointer(pSrc), pSrcBox)
 	} else {
@@ -1972,7 +1972,7 @@ func (i *_ID3D12GraphicsCommandList) CopyTextureRegion_PlacedFootPrint_Subresour
 	runtime.KeepAlive(pSrcBox)
 }
 
-func (i *_ID3D12GraphicsCommandList) CopyTextureRegion_SubresourceIndex_PlacedFootPrint(pDst *_D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex, dstX uint32, dstY uint32, dstZ uint32, pSrc *_D3D12_TEXTURE_COPY_LOCATION_PlacedFootPrint, pSrcBox *_D3D12_BOX) {
+func (i *_ID3D12GraphicsCommandList) CopyTextureRegion_SubresourceIndex_PlacedFootPrint(pDst *_D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex, dstX, dstY, dstZ uint32, pSrc *_D3D12_TEXTURE_COPY_LOCATION_PlacedFootPrint, pSrcBox *_D3D12_BOX) {
 	if microsoftgdk.IsXbox() {
 		_ID3D12GraphicsCommandList_CopyTextureRegion(i, unsafe.Pointer(pDst), dstX, dstY, dstZ, unsafe.Pointer(pSrc), pSrcBox)
 	} else {
@@ -1986,7 +1986,7 @@ func (i *_ID3D12GraphicsCommandList) CopyTextureRegion_SubresourceIndex_PlacedFo
 	runtime.KeepAlive(pSrcBox)
 }
 
-func (i *_ID3D12GraphicsCommandList) DrawIndexedInstanced(indexCountPerInstance uint32, instanceCount uint32, startIndexLocation uint32, baseVertexLocation int32, startInstanceLocation uint32) {
+func (i *_ID3D12GraphicsCommandList) DrawIndexedInstanced(indexCountPerInstance, instanceCount, startIndexLocation uint32, baseVertexLocation int32, startInstanceLocation uint32) {
 	if microsoftgdk.IsXbox() {
 		_ID3D12GraphicsCommandList_DrawIndexedInstanced(i, indexCountPerInstance, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation)
 		return
@@ -2685,7 +2685,7 @@ func (i *_IDXGISwapChain4) GetCurrentBackBufferIndex() uint32 {
 	return uint32(r)
 }
 
-func (i *_IDXGISwapChain4) Present(syncInterval uint32, flags uint32) (occluded bool, err error) {
+func (i *_IDXGISwapChain4) Present(syncInterval, flags uint32) (occluded bool, err error) {
 	r, _, _ := syscall.Syscall(i.vtbl.Present, 3, uintptr(unsafe.Pointer(i)), uintptr(syncInterval), uintptr(flags))
 	if uint32(r) != uint32(windows.S_OK) {
 		// During a screen lock, Present fails (#2179).
@@ -2697,7 +2697,7 @@ func (i *_IDXGISwapChain4) Present(syncInterval uint32, flags uint32) (occluded 
 	return false, nil
 }
 
-func (i *_IDXGISwapChain4) ResizeBuffers(bufferCount uint32, width uint32, height uint32, newFormat _DXGI_FORMAT, swapChainFlags uint32) error {
+func (i *_IDXGISwapChain4) ResizeBuffers(bufferCount, width, height uint32, newFormat _DXGI_FORMAT, swapChainFlags uint32) error {
 	r, _, _ := syscall.Syscall6(i.vtbl.ResizeBuffers, 6,
 		uintptr(unsafe.Pointer(i)), uintptr(bufferCount), uintptr(width),
 		uintptr(height), uintptr(newFormat), uintptr(swapChainFlags))

@@ -38,9 +38,7 @@ const (
 	frameCount  = 8
 )
 
-var (
-	runnerImage *ebiten.Image
-)
+var runnerImage *ebiten.Image
 
 type Game struct {
 	count int

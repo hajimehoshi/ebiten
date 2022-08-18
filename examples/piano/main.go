@@ -34,9 +34,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/text"
 )
 
-var (
-	arcadeFont font.Face
-)
+var arcadeFont font.Face
 
 func init() {
 	tt, err := opentype.Parse(fonts.PressStart2P_ttf)
@@ -135,9 +133,7 @@ func init() {
 	}()
 }
 
-var (
-	pianoImage = ebiten.NewImage(screenWidth, screenHeight)
-)
+var pianoImage = ebiten.NewImage(screenWidth, screenHeight)
 
 func init() {
 	const (
@@ -165,26 +161,24 @@ func init() {
 	}
 }
 
-var (
-	keys = []ebiten.Key{
-		ebiten.KeyQ,
-		ebiten.KeyA,
-		ebiten.KeyW,
-		ebiten.KeyS,
-		ebiten.KeyD,
-		ebiten.KeyR,
-		ebiten.KeyF,
-		ebiten.KeyT,
-		ebiten.KeyG,
-		ebiten.KeyH,
-		ebiten.KeyU,
-		ebiten.KeyJ,
-		ebiten.KeyI,
-		ebiten.KeyK,
-		ebiten.KeyO,
-		ebiten.KeyL,
-	}
-)
+var keys = []ebiten.Key{
+	ebiten.KeyQ,
+	ebiten.KeyA,
+	ebiten.KeyW,
+	ebiten.KeyS,
+	ebiten.KeyD,
+	ebiten.KeyR,
+	ebiten.KeyF,
+	ebiten.KeyT,
+	ebiten.KeyG,
+	ebiten.KeyH,
+	ebiten.KeyU,
+	ebiten.KeyJ,
+	ebiten.KeyI,
+	ebiten.KeyK,
+	ebiten.KeyO,
+	ebiten.KeyL,
+}
 
 type Game struct {
 	audioContext *audio.Context

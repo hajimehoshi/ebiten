@@ -31,7 +31,6 @@ func init() {
 		panic(err)
 	}
 	imageBlocks = ebiten.NewImageFromImage(img)
-
 }
 
 type Angle int
@@ -253,5 +252,4 @@ func (p *Piece) Draw(r *ebiten.Image, x, y int, angle Angle) {
 			}
 		}
 	}
-
 }

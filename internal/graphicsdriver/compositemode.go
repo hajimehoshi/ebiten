@@ -52,7 +52,7 @@ const (
 	DstColor
 )
 
-func (c CompositeMode) Operations() (src Operation, dst Operation) {
+func (c CompositeMode) Operations() (src, dst Operation) {
 	switch c {
 	case CompositeModeSourceOver:
 		return One, OneMinusSrcAlpha

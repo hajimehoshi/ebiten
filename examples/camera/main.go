@@ -48,9 +48,7 @@ const (
 	worldSizeX  = worldWidth / tileSize
 )
 
-var (
-	tilesImage *ebiten.Image
-)
+var tilesImage *ebiten.Image
 
 func init() {
 	// Decode an image from the image file's byte slice.

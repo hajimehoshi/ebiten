@@ -37,9 +37,7 @@ const (
 	maxAngle     = 256
 )
 
-var (
-	ebitenImage *ebiten.Image
-)
+var ebitenImage *ebiten.Image
 
 func init() {
 	// Decode an image from the image file's byte slice.

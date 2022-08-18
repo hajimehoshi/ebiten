@@ -49,33 +49,33 @@ func (DefaultContext) ActiveTexture(texture uint32) {
 	C.glActiveTexture(C.GLenum(texture))
 }
 
-func (DefaultContext) AttachShader(program uint32, shader uint32) {
+func (DefaultContext) AttachShader(program, shader uint32) {
 	C.glAttachShader(C.GLuint(program), C.GLuint(shader))
 }
 
-func (DefaultContext) BindAttribLocation(program uint32, index uint32, name string) {
+func (DefaultContext) BindAttribLocation(program, index uint32, name string) {
 	s, free := cString(name)
 	defer free()
 	C.glBindAttribLocation(C.GLuint(program), C.GLuint(index), (*C.GLchar)(unsafe.Pointer(s)))
 }
 
-func (DefaultContext) BindBuffer(target uint32, buffer uint32) {
+func (DefaultContext) BindBuffer(target, buffer uint32) {
 	C.glBindBuffer(C.GLenum(target), C.GLuint(buffer))
 }
 
-func (DefaultContext) BindFramebuffer(target uint32, framebuffer uint32) {
+func (DefaultContext) BindFramebuffer(target, framebuffer uint32) {
 	C.glBindFramebuffer(C.GLenum(target), C.GLuint(framebuffer))
 }
 
-func (DefaultContext) BindRenderbuffer(target uint32, renderbuffer uint32) {
+func (DefaultContext) BindRenderbuffer(target, renderbuffer uint32) {
 	C.glBindRenderbuffer(C.GLenum(target), C.GLuint(renderbuffer))
 }
 
-func (DefaultContext) BindTexture(target uint32, texture uint32) {
+func (DefaultContext) BindTexture(target, texture uint32) {
 	C.glBindTexture(C.GLenum(target), C.GLuint(texture))
 }
 
-func (DefaultContext) BlendFunc(sfactor uint32, dfactor uint32) {
+func (DefaultContext) BlendFunc(sfactor, dfactor uint32) {
 	C.glBlendFunc(C.GLenum(sfactor), C.GLenum(dfactor))
 }
 
@@ -163,11 +163,11 @@ func (DefaultContext) Flush() {
 	C.glFlush()
 }
 
-func (DefaultContext) FramebufferRenderbuffer(target uint32, attachment uint32, renderbuffertarget uint32, renderbuffer uint32) {
+func (DefaultContext) FramebufferRenderbuffer(target, attachment, renderbuffertarget, renderbuffer uint32) {
 	C.glFramebufferRenderbuffer(C.GLenum(target), C.GLenum(attachment), C.GLenum(renderbuffertarget), C.GLuint(renderbuffer))
 }
 
-func (DefaultContext) FramebufferTexture2D(target uint32, attachment uint32, textarget uint32, texture uint32, level int32) {
+func (DefaultContext) FramebufferTexture2D(target, attachment, textarget, texture uint32, level int32) {
 	C.glFramebufferTexture2D(C.GLenum(target), C.GLenum(attachment), C.GLenum(textarget), C.GLuint(texture), C.GLint(level))
 }
 
@@ -203,7 +203,7 @@ func (DefaultContext) GetIntegerv(dst []int32, pname uint32) {
 	C.glGetIntegerv(C.GLenum(pname), (*C.GLint)(unsafe.Pointer(&dst[0])))
 }
 
-func (DefaultContext) GetProgramiv(dst []int32, program uint32, pname uint32) {
+func (DefaultContext) GetProgramiv(dst []int32, program, pname uint32) {
 	C.glGetProgramiv(C.GLuint(program), C.GLenum(pname), (*C.GLint)(unsafe.Pointer(&dst[0])))
 }
 
@@ -220,7 +220,7 @@ func (d DefaultContext) GetProgramInfoLog(program uint32) string {
 	return string(buf[:length])
 }
 
-func (DefaultContext) GetShaderiv(dst []int32, shader uint32, pname uint32) {
+func (DefaultContext) GetShaderiv(dst []int32, shader, pname uint32) {
 	C.glGetShaderiv(C.GLuint(shader), C.GLenum(pname), (*C.GLint)(unsafe.Pointer(&dst[0])))
 }
 
@@ -237,7 +237,7 @@ func (d DefaultContext) GetShaderInfoLog(shader uint32) string {
 	return string(buf[:length])
 }
 
-func (DefaultContext) GetShaderPrecisionFormat(shadertype uint32, precisiontype uint32) (rangeLow, rangeHigh, precision int) {
+func (DefaultContext) GetShaderPrecisionFormat(shadertype, precisiontype uint32) (rangeLow, rangeHigh, precision int) {
 	var r [2]int32
 	var p int32
 	C.glGetShaderPrecisionFormat(C.GLenum(shadertype), C.GLenum(precisiontype), (*C.GLint)(unsafe.Pointer(&r[0])), (*C.GLint)(unsafe.Pointer(&p)))
@@ -274,11 +274,11 @@ func (DefaultContext) PixelStorei(pname uint32, param int32) {
 	C.glPixelStorei(C.GLenum(pname), C.GLint(param))
 }
 
-func (DefaultContext) ReadPixels(dst []byte, x int32, y int32, width int32, height int32, format uint32, xtype uint32) {
+func (DefaultContext) ReadPixels(dst []byte, x, y, width, height int32, format, xtype uint32) {
 	C.glReadPixels(C.GLint(x), C.GLint(y), C.GLsizei(width), C.GLsizei(height), C.GLenum(format), C.GLenum(xtype), unsafe.Pointer(&dst[0]))
 }
 
-func (DefaultContext) RenderbufferStorage(target uint32, internalFormat uint32, width int32, height int32) {
+func (DefaultContext) RenderbufferStorage(target, internalFormat uint32, width, height int32) {
 	C.glRenderbufferStorage(C.GLenum(target), C.GLenum(internalFormat), C.GLsizei(width), C.GLsizei(height))
 }
 
@@ -300,7 +300,7 @@ func (DefaultContext) StencilOp(sfail, dpfail, dppass uint32) {
 	C.glStencilOp(C.GLenum(sfail), C.GLenum(dpfail), C.GLenum(dppass))
 }
 
-func (DefaultContext) TexImage2D(target uint32, level int32, internalformat int32, width int32, height int32, format uint32, xtype uint32, pixels []byte) {
+func (DefaultContext) TexImage2D(target uint32, level, internalformat, width, height int32, format, xtype uint32, pixels []byte) {
 	var p *byte
 	if pixels != nil {
 		p = &pixels[0]
@@ -308,11 +308,11 @@ func (DefaultContext) TexImage2D(target uint32, level int32, internalformat int3
 	C.glTexImage2D(C.GLenum(target), C.GLint(level), C.GLint(internalformat), C.GLsizei(width), C.GLsizei(height), 0 /* border */, C.GLenum(format), C.GLenum(xtype), unsafe.Pointer(p))
 }
 
-func (DefaultContext) TexParameteri(target uint32, pname uint32, param int32) {
+func (DefaultContext) TexParameteri(target, pname uint32, param int32) {
 	C.glTexParameteri(C.GLenum(target), C.GLenum(pname), C.GLint(param))
 }
 
-func (DefaultContext) TexSubImage2D(target uint32, level int32, xoffset int32, yoffset int32, width int32, height int32, format uint32, xtype uint32, pixels []byte) {
+func (DefaultContext) TexSubImage2D(target uint32, level, xoffset, yoffset, width, height int32, format, xtype uint32, pixels []byte) {
 	C.glTexSubImage2D(C.GLenum(target), C.GLint(level), C.GLint(xoffset), C.GLint(yoffset), C.GLsizei(width), C.GLsizei(height), C.GLenum(format), C.GLenum(xtype), unsafe.Pointer(&pixels[0]))
 }
 
@@ -324,7 +324,7 @@ func (DefaultContext) Uniform1fv(location int32, value []float32) {
 	C.glUniform1fv(C.GLint(location), C.GLsizei(len(value)), (*C.GLfloat)(unsafe.Pointer(&value[0])))
 }
 
-func (DefaultContext) Uniform1i(location int32, v0 int32) {
+func (DefaultContext) Uniform1i(location, v0 int32) {
 	C.glUniform1i(C.GLint(location), C.GLint(v0))
 }
 
@@ -360,6 +360,6 @@ func (DefaultContext) VertexAttribPointer(index uint32, size int32, xtype uint32
 	C.glVertexAttribPointer(C.GLuint(index), C.GLint(size), C.GLenum(xtype), glBool(normalized), C.GLsizei(stride), unsafe.Pointer(uintptr(offset)))
 }
 
-func (DefaultContext) Viewport(x int32, y int32, width int32, height int32) {
+func (DefaultContext) Viewport(x, y, width, height int32) {
 	C.glViewport(C.GLint(x), C.GLint(y), C.GLsizei(width), C.GLsizei(height))
 }

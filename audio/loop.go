@@ -57,7 +57,7 @@ func NewInfiniteLoop(src io.ReadSeeker, length int64) *InfiniteLoop {
 // In this case, try to add more (about 0.1[s]) data to src after the loop end.
 // If src has data after the loop end, an InfiniteLoop uses part of the data to blend with the loop start
 // to make the loop joint smooth.
-func NewInfiniteLoopWithIntro(src io.ReadSeeker, introLength int64, loopLength int64) *InfiniteLoop {
+func NewInfiniteLoopWithIntro(src io.ReadSeeker, introLength, loopLength int64) *InfiniteLoop {
 	return &InfiniteLoop{
 		src:     src,
 		lstart:  introLength / bytesPerSample * bytesPerSample,

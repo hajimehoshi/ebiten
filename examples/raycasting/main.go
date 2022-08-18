@@ -160,7 +160,7 @@ func rayCasting(cx, cy float64, objects []object) []line {
 	}
 
 	// Sort rays based on angle, otherwise light triangles will not come out right
-	sort.Slice(rays, func(i int, j int) bool {
+	sort.Slice(rays, func(i, j int) bool {
 		return rays[i].angle() < rays[j].angle()
 	})
 	return rays

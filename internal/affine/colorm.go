@@ -760,7 +760,7 @@ var (
 // valueScale is a value to scale value (a.k.a. brightness).
 //
 // This conversion uses RGB to/from YCrCb conversion.
-func ChangeHSV(c ColorM, hueTheta float64, saturationScale float32, valueScale float32) ColorM {
+func ChangeHSV(c ColorM, hueTheta float64, saturationScale, valueScale float32) ColorM {
 	if hueTheta == 0 && saturationScale == 1 {
 		v := valueScale
 		return c.Scale(v, v, v, 1)

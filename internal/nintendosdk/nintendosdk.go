@@ -147,6 +147,6 @@ func AppendTouches(touches []Touch) []Touch {
 	return touches
 }
 
-func VibrateGamepad(id int, duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+func VibrateGamepad(id int, duration time.Duration, strongMagnitude, weakMagnitude float64) {
 	C.EbitenVibrateGamepad(C.int(id), C.double(float64(duration)/float64(time.Second)), C.double(strongMagnitude), C.double(weakMagnitude))
 }

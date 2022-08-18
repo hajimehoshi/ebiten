@@ -33,12 +33,9 @@ const (
 	screenHeight = 480
 )
 
-var (
-	ebitenImage *ebiten.Image
-)
+var ebitenImage *ebiten.Image
 
-type Game struct {
-}
+type Game struct{}
 
 func (g *Game) Update() error {
 	return nil

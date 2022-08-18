@@ -38,9 +38,7 @@ const (
 	tileSize = 16
 )
 
-var (
-	tilesImage *ebiten.Image
-)
+var tilesImage *ebiten.Image
 
 func init() {
 	// Decode an image from the image file's byte slice.

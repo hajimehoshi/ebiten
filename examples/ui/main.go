@@ -105,7 +105,7 @@ type Input struct {
 	mouseButtonState int
 }
 
-func drawNinePatches(dst *ebiten.Image, dstRect image.Rectangle, srcRect image.Rectangle) {
+func drawNinePatches(dst *ebiten.Image, dstRect, srcRect image.Rectangle) {
 	srcX := srcRect.Min.X
 	srcY := srcRect.Min.Y
 	srcW := srcRect.Dx()

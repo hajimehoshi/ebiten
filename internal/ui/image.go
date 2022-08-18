@@ -54,7 +54,7 @@ func (i *Image) MarkDisposed() {
 	i.mipmap = nil
 }
 
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, canSkipMipmap bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd, canSkipMipmap bool) {
 	var srcMipmaps [graphics.ShaderImageCount]*mipmap.Mipmap
 	for i, src := range srcs {
 		if src == nil {
@@ -97,9 +97,7 @@ func DumpImages(dir string) error {
 	return theUI.dumpImages(dir)
 }
 
-var (
-	emptyImage = NewImage(3, 3, atlas.ImageTypeRegular)
-)
+var emptyImage = NewImage(3, 3, atlas.ImageTypeRegular)
 
 func init() {
 	pix := make([]byte, 4*emptyImage.width*emptyImage.height)

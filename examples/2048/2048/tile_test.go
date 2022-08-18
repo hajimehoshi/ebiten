@@ -15,10 +15,10 @@
 package twenty48_test
 
 import (
-	"github.com/hajimehoshi/ebiten/v2/examples/2048/2048"
-
 	"fmt"
 	"testing"
+
+	twenty48 "github.com/hajimehoshi/ebiten/v2/examples/2048/2048"
 )
 
 func cellsToTiles(cells []int, size int) map[*twenty48.Tile]struct{} {

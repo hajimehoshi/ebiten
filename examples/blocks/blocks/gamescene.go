@@ -147,9 +147,7 @@ func NewGameScene() *GameScene {
 	}
 }
 
-var (
-	lightGray ebiten.ColorM
-)
+var lightGray ebiten.ColorM
 
 func init() {
 	id := ebiten.ColorM{}

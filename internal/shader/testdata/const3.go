@@ -1,10 +1,12 @@
 package main
 
-const a = 1
-const b float = 1
-const c int = 1
-const d, e = 1, 1.0
-const f = false
+const (
+	a          = 1
+	b    float = 1
+	c    int   = 1
+	d, e       = 1, 1.0
+	f          = false
+)
 
 func Foo() {
 	l0 := 1

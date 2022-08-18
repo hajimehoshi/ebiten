@@ -40,31 +40,31 @@ func (g *GomobileContext) ActiveTexture(texture uint32) {
 	g.ctx.ActiveTexture(gl.Enum(texture))
 }
 
-func (g *GomobileContext) AttachShader(program uint32, shader uint32) {
+func (g *GomobileContext) AttachShader(program, shader uint32) {
 	g.ctx.AttachShader(gmProgram(program), gl.Shader{Value: shader})
 }
 
-func (g *GomobileContext) BindAttribLocation(program uint32, index uint32, name string) {
+func (g *GomobileContext) BindAttribLocation(program, index uint32, name string) {
 	g.ctx.BindAttribLocation(gmProgram(program), gl.Attrib{Value: uint(index)}, name)
 }
 
-func (g *GomobileContext) BindBuffer(target uint32, buffer uint32) {
+func (g *GomobileContext) BindBuffer(target, buffer uint32) {
 	g.ctx.BindBuffer(gl.Enum(target), gl.Buffer{Value: buffer})
 }
 
-func (g *GomobileContext) BindFramebuffer(target uint32, framebuffer uint32) {
+func (g *GomobileContext) BindFramebuffer(target, framebuffer uint32) {
 	g.ctx.BindFramebuffer(gl.Enum(target), gl.Framebuffer{Value: framebuffer})
 }
 
-func (g *GomobileContext) BindRenderbuffer(target uint32, renderbuffer uint32) {
+func (g *GomobileContext) BindRenderbuffer(target, renderbuffer uint32) {
 	g.ctx.BindRenderbuffer(gl.Enum(target), gl.Renderbuffer{Value: renderbuffer})
 }
 
-func (g *GomobileContext) BindTexture(target uint32, texture uint32) {
+func (g *GomobileContext) BindTexture(target, texture uint32) {
 	g.ctx.BindTexture(gl.Enum(target), gl.Texture{Value: texture})
 }
 
-func (g *GomobileContext) BlendFunc(sfactor uint32, dfactor uint32) {
+func (g *GomobileContext) BlendFunc(sfactor, dfactor uint32) {
 	g.ctx.BlendFunc(gl.Enum(sfactor), gl.Enum(dfactor))
 }
 
@@ -163,11 +163,11 @@ func (g *GomobileContext) Flush() {
 	g.ctx.Flush()
 }
 
-func (g *GomobileContext) FramebufferRenderbuffer(target uint32, attachment uint32, renderbuffertarget uint32, renderbuffer uint32) {
+func (g *GomobileContext) FramebufferRenderbuffer(target, attachment, renderbuffertarget, renderbuffer uint32) {
 	g.ctx.FramebufferRenderbuffer(gl.Enum(target), gl.Enum(attachment), gl.Enum(renderbuffertarget), gl.Renderbuffer{Value: renderbuffer})
 }
 
-func (g *GomobileContext) FramebufferTexture2D(target uint32, attachment uint32, textarget uint32, texture uint32, level int32) {
+func (g *GomobileContext) FramebufferTexture2D(target, attachment, textarget, texture uint32, level int32) {
 	g.ctx.FramebufferTexture2D(gl.Enum(target), gl.Enum(attachment), gl.Enum(textarget), gl.Texture{Value: texture}, int(level))
 }
 
@@ -211,7 +211,7 @@ func (g *GomobileContext) GetIntegerv(dst []int32, pname uint32) {
 	g.ctx.GetIntegerv(dst, gl.Enum(pname))
 }
 
-func (g *GomobileContext) GetProgramiv(dst []int32, program uint32, pname uint32) {
+func (g *GomobileContext) GetProgramiv(dst []int32, program, pname uint32) {
 	dst[0] = int32(g.ctx.GetProgrami(gmProgram(program), gl.Enum(pname)))
 }
 
@@ -219,7 +219,7 @@ func (g *GomobileContext) GetProgramInfoLog(program uint32) string {
 	return g.ctx.GetProgramInfoLog(gmProgram(program))
 }
 
-func (g *GomobileContext) GetShaderiv(dst []int32, shader uint32, pname uint32) {
+func (g *GomobileContext) GetShaderiv(dst []int32, shader, pname uint32) {
 	dst[0] = int32(g.ctx.GetShaderi(gl.Shader{Value: shader}, gl.Enum(pname)))
 }
 
@@ -227,7 +227,7 @@ func (g *GomobileContext) GetShaderInfoLog(shader uint32) string {
 	return g.ctx.GetShaderInfoLog(gl.Shader{Value: shader})
 }
 
-func (g *GomobileContext) GetShaderPrecisionFormat(shadertype uint32, precisiontype uint32) (rangeLow, rangeHigh, precision int) {
+func (g *GomobileContext) GetShaderPrecisionFormat(shadertype, precisiontype uint32) (rangeLow, rangeHigh, precision int) {
 	return g.ctx.GetShaderPrecisionFormat(gl.Enum(shadertype), gl.Enum(precisiontype))
 }
 
@@ -259,11 +259,11 @@ func (g *GomobileContext) PixelStorei(pname uint32, param int32) {
 	g.ctx.PixelStorei(gl.Enum(pname), param)
 }
 
-func (g *GomobileContext) ReadPixels(dst []byte, x int32, y int32, width int32, height int32, format uint32, xtype uint32) {
+func (g *GomobileContext) ReadPixels(dst []byte, x, y, width, height int32, format, xtype uint32) {
 	g.ctx.ReadPixels(dst, int(x), int(y), int(width), int(height), gl.Enum(format), gl.Enum(xtype))
 }
 
-func (g *GomobileContext) RenderbufferStorage(target uint32, internalFormat uint32, width int32, height int32) {
+func (g *GomobileContext) RenderbufferStorage(target, internalFormat uint32, width, height int32) {
 	g.ctx.RenderbufferStorage(gl.Enum(target), gl.Enum(internalFormat), int(width), int(height))
 }
 
@@ -283,15 +283,15 @@ func (g *GomobileContext) StencilOp(sfail, dpfail, dppass uint32) {
 	g.ctx.StencilOp(gl.Enum(sfail), gl.Enum(dpfail), gl.Enum(dppass))
 }
 
-func (g *GomobileContext) TexImage2D(target uint32, level int32, internalformat int32, width int32, height int32, format uint32, xtype uint32, pixels []byte) {
+func (g *GomobileContext) TexImage2D(target uint32, level, internalformat, width, height int32, format, xtype uint32, pixels []byte) {
 	g.ctx.TexImage2D(gl.Enum(target), int(level), int(internalformat), int(width), int(height), gl.Enum(format), gl.Enum(xtype), pixels)
 }
 
-func (g *GomobileContext) TexParameteri(target uint32, pname uint32, param int32) {
+func (g *GomobileContext) TexParameteri(target, pname uint32, param int32) {
 	g.ctx.TexParameteri(gl.Enum(target), gl.Enum(pname), int(param))
 }
 
-func (g *GomobileContext) TexSubImage2D(target uint32, level int32, xoffset int32, yoffset int32, width int32, height int32, format uint32, xtype uint32, pixels []byte) {
+func (g *GomobileContext) TexSubImage2D(target uint32, level, xoffset, yoffset, width, height int32, format, xtype uint32, pixels []byte) {
 	g.ctx.TexSubImage2D(gl.Enum(target), int(level), int(xoffset), int(yoffset), int(width), int(height), gl.Enum(format), gl.Enum(xtype), pixels)
 }
 
@@ -303,7 +303,7 @@ func (g *GomobileContext) Uniform1fv(location int32, value []float32) {
 	g.ctx.Uniform1fv(gl.Uniform{Value: location}, value)
 }
 
-func (g *GomobileContext) Uniform1i(location int32, v0 int32) {
+func (g *GomobileContext) Uniform1i(location, v0 int32) {
 	g.ctx.Uniform1i(gl.Uniform{Value: location}, int(v0))
 }
 
@@ -348,6 +348,6 @@ func (g *GomobileContext) VertexAttribPointer(index uint32, size int32, xtype ui
 	g.ctx.VertexAttribPointer(gl.Attrib{Value: uint(index)}, int(size), gl.Enum(xtype), normalized, int(stride), int(offset))
 }
 
-func (g *GomobileContext) Viewport(x int32, y int32, width int32, height int32) {
+func (g *GomobileContext) Viewport(x, y, width, height int32) {
 	g.ctx.Viewport(int(x), int(y), int(width), int(height))
 }

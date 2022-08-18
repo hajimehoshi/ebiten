@@ -207,7 +207,7 @@ func (g *nativeGamepadsDesktop) directInput8Create(hinst uintptr, dwVersion uint
 	return nil
 }
 
-func (g *nativeGamepadsDesktop) xinputGetCapabilities(dwUserIndex uint32, dwFlags uint32, pCapabilities *_XINPUT_CAPABILITIES) error {
+func (g *nativeGamepadsDesktop) xinputGetCapabilities(dwUserIndex, dwFlags uint32, pCapabilities *_XINPUT_CAPABILITIES) error {
 	// XInputGetCapabilities doesn't call SetLastError and returns an error code directly.
 	r, _, _ := syscall.Syscall(g.procXInputGetCapabilities, 3,
 		uintptr(dwUserIndex), uintptr(dwFlags), uintptr(unsafe.Pointer(pCapabilities)))
@@ -788,6 +788,6 @@ func (g *nativeGamepadDesktop) hatState(hat int) int {
 	return v
 }
 
-func (g *nativeGamepadDesktop) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+func (g *nativeGamepadDesktop) vibrate(duration time.Duration, strongMagnitude, weakMagnitude float64) {
 	// TODO: Implement this (#1452)
 }

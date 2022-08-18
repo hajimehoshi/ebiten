@@ -284,7 +284,8 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 	for _, prefix := range []string{
 		"OpenGL ES-CM ",
 		"OpenGL ES-CL ",
-		"OpenGL ES "} {
+		"OpenGL ES ",
+	} {
 		if strings.HasPrefix(version, prefix) {
 			version = version[len(prefix):]
 			w.context.client = OpenGLESAPI

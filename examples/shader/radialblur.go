@@ -17,9 +17,11 @@
 
 package main
 
-var Time float
-var Cursor vec2
-var ScreenSize vec2
+var (
+	Time       float
+	Cursor     vec2
+	ScreenSize vec2
+)
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	dir := normalize(position.xy - Cursor)

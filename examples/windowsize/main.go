@@ -63,9 +63,7 @@ const (
 	initScreenScale  = 1
 )
 
-var (
-	gophersImage *ebiten.Image
-)
+var gophersImage *ebiten.Image
 
 func createRandomIconImage() image.Image {
 	const size = 32

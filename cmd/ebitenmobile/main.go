@@ -244,7 +244,7 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 			frameworkNameBase = strings.Title(frameworkNameBase)
 			dir := filepath.Join(buildO, name, frameworkNameBase+".framework", "Versions", "A")
 
-			if err := ioutil.WriteFile(filepath.Join(dir, "Headers", prefixUpper+"EbitenViewController.h"), []byte(replacePrefixes(objcH)), 0644); err != nil {
+			if err := ioutil.WriteFile(filepath.Join(dir, "Headers", prefixUpper+"EbitenViewController.h"), []byte(replacePrefixes(objcH)), 0o644); err != nil {
 				return err
 			}
 			// TODO: Remove 'Ebitenmobileview.objc.h' here. Now it is hard since there is a header file importing
@@ -261,12 +261,12 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 				}
 			}
 
-			w, err := os.OpenFile(filepath.Join(dir, "Modules", "module.modulemap"), os.O_WRONLY, 0644)
+			w, err := os.OpenFile(filepath.Join(dir, "Modules", "module.modulemap"), os.O_WRONLY, 0o644)
 			if err != nil {
 				return err
 			}
 			defer w.Close()
-			var mmVals = struct {
+			mmVals := struct {
 				Module  string
 				Headers []string
 			}{

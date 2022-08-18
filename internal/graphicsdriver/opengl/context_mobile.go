@@ -387,7 +387,7 @@ func (c *context) uniformFloats(p program, location string, v []float32, typ sha
 	return true
 }
 
-func (c *context) vertexAttribPointer(index int, size int, stride int, offset int) {
+func (c *context) vertexAttribPointer(index, size, stride, offset int) {
 	c.ctx.VertexAttribPointer(uint32(index), int32(size), gles.FLOAT, false, int32(stride), offset)
 }
 
@@ -433,7 +433,7 @@ func (c *context) deleteBuffer(b buffer) {
 	c.ctx.DeleteBuffers([]uint32{uint32(b)})
 }
 
-func (c *context) drawElements(len int, offsetInBytes int) {
+func (c *context) drawElements(len, offsetInBytes int) {
 	c.ctx.DrawElements(gles.TRIANGLES, int32(len), gles.UNSIGNED_SHORT, offsetInBytes)
 }
 

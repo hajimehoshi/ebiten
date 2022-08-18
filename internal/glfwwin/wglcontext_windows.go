@@ -13,7 +13,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 )
 
-func findPixelFormatAttribValue(attribs []int32, values []int32, attrib int32) int32 {
+func findPixelFormatAttribValue(attribs, values []int32, attrib int32) int32 {
 	for i := range attribs {
 		if attribs[i] == attrib {
 			return values[i]

@@ -46,7 +46,7 @@ type World struct {
 }
 
 // NewWorld creates a new world.
-func NewWorld(width, height int, maxInitLiveCells int) *World {
+func NewWorld(width, height, maxInitLiveCells int) *World {
 	w := &World{
 		area:   make([]bool, width*height),
 		width:  width,

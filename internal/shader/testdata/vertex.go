@@ -1,6 +1,6 @@
 package main
 
-func Vertex(position vec2, texCoord vec2, color vec4) (position vec4, texCoord vec2, color vec4) {
+func Vertex(position, texCoord vec2, color vec4) (position vec4, texCoord vec2, color vec4) {
 	projectionMatrix := mat4(
 		2/ScreenSize.x, 0, 0, 0,
 		0, 2/ScreenSize.y, 0, 0,

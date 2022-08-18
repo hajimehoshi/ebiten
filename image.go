@@ -749,7 +749,7 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 	}
 
 	// Keep the original image's reference not to dispose that by GC.
-	var orig = i
+	orig := i
 	if i.isSubImage() {
 		orig = i.original
 	}

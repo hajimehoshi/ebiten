@@ -33,9 +33,7 @@ const (
 	screenHeight = 480
 )
 
-var (
-	brushImage *ebiten.Image
-)
+var brushImage *ebiten.Image
 
 func init() {
 	const (

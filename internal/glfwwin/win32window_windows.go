@@ -124,7 +124,7 @@ func createIcon(image *Image, xhot, yhot int, icon bool) (_HICON, error) {
 	return handle, nil
 }
 
-func getFullWindowSize(style uint32, exStyle uint32, contentWidth, contentHeight int, dpi uint32) (fullWidth, fullHeight int, err error) {
+func getFullWindowSize(style, exStyle uint32, contentWidth, contentHeight int, dpi uint32) (fullWidth, fullHeight int, err error) {
 	if microsoftgdk.IsXbox() {
 		return contentWidth, contentHeight, nil
 	}

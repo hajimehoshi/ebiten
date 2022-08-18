@@ -7,8 +7,8 @@ func Foo() vec2 {
 }
 
 func Foo2() vec2 {
-	var x = Float() * 1
-	var y = 1 * Float()
+	x := Float() * 1
+	y := 1 * Float()
 	return vec2(x, y)
 }
 

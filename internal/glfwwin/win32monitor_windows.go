@@ -25,7 +25,7 @@ func monitorCallback(handle _HMONITOR, dc _HDC, rect *_RECT, monitor *Monitor /*
 
 var monitorCallbackPtr = windows.NewCallbackCDecl(monitorCallback)
 
-func createMonitor(adapter *_DISPLAY_DEVICEW, display *_DISPLAY_DEVICEW) (*Monitor, error) {
+func createMonitor(adapter, display *_DISPLAY_DEVICEW) (*Monitor, error) {
 	var name string
 	if display != nil {
 		name = windows.UTF16ToString(display.DeviceString[:])

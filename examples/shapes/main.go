@@ -33,9 +33,7 @@ const (
 	screenHeight = 480
 )
 
-var (
-	emptyImage = ebiten.NewImage(3, 3)
-)
+var emptyImage = ebiten.NewImage(3, 3)
 
 func init() {
 	emptyImage.Fill(color.White)

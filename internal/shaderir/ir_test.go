@@ -52,14 +52,14 @@ func returnStmt(expr shaderir.Expr) shaderir.Stmt {
 	}
 }
 
-func assignStmt(lhs shaderir.Expr, rhs shaderir.Expr) shaderir.Stmt {
+func assignStmt(lhs, rhs shaderir.Expr) shaderir.Stmt {
 	return shaderir.Stmt{
 		Type:  shaderir.Assign,
 		Exprs: []shaderir.Expr{lhs, rhs},
 	}
 }
 
-func ifStmt(cond shaderir.Expr, block *shaderir.Block, elseBlock *shaderir.Block) shaderir.Stmt {
+func ifStmt(cond shaderir.Expr, block, elseBlock *shaderir.Block) shaderir.Stmt {
 	return shaderir.Stmt{
 		Type:   shaderir.If,
 		Exprs:  []shaderir.Expr{cond},

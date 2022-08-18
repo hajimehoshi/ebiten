@@ -133,11 +133,11 @@ func _ID3D12GraphicsCommandList_Close(i *_ID3D12GraphicsCommandList) uintptr {
 	return uintptr(r)
 }
 
-func _ID3D12GraphicsCommandList_CopyTextureRegion(i *_ID3D12GraphicsCommandList, pDst unsafe.Pointer, dstX uint32, dstY uint32, dstZ uint32, pSrc unsafe.Pointer, pSrcBox *_D3D12_BOX) {
+func _ID3D12GraphicsCommandList_CopyTextureRegion(i *_ID3D12GraphicsCommandList, pDst unsafe.Pointer, dstX, dstY, dstZ uint32, pSrc unsafe.Pointer, pSrcBox *_D3D12_BOX) {
 	C.Ebitengine_ID3D12GraphicsCommandList_CopyTextureRegion(unsafe.Pointer(i), pDst, C.uint32_t(dstX), C.uint32_t(dstY), C.uint32_t(dstZ), pSrc, unsafe.Pointer(pSrcBox))
 }
 
-func _ID3D12GraphicsCommandList_DrawIndexedInstanced(i *_ID3D12GraphicsCommandList, indexCountPerInstance uint32, instanceCount uint32, startIndexLocation uint32, baseVertexLocation int32, startInstanceLocation uint32) {
+func _ID3D12GraphicsCommandList_DrawIndexedInstanced(i *_ID3D12GraphicsCommandList, indexCountPerInstance, instanceCount, startIndexLocation uint32, baseVertexLocation int32, startInstanceLocation uint32) {
 	C.Ebitengine_ID3D12GraphicsCommandList_DrawIndexedInstanced(unsafe.Pointer(i),
 		C.uint32_t(indexCountPerInstance), C.uint32_t(instanceCount), C.uint32_t(startIndexLocation),
 		C.int32_t(baseVertexLocation), C.uint32_t(startInstanceLocation))

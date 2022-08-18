@@ -61,10 +61,12 @@ func (s *Star) Update(x, y float64) {
 }
 
 func (s *Star) Draw(screen *ebiten.Image) {
-	c := color.RGBA{R: uint8(0xbb * s.brightness / 0xff),
+	c := color.RGBA{
+		R: uint8(0xbb * s.brightness / 0xff),
 		G: uint8(0xdd * s.brightness / 0xff),
 		B: uint8(0xff * s.brightness / 0xff),
-		A: 0xff}
+		A: 0xff,
+	}
 	ebitenutil.DrawLine(screen, s.fromx/scale, s.fromy/scale, s.tox/scale, s.toy/scale, c)
 }
 

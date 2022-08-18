@@ -174,7 +174,7 @@ func (g *Game) updateGroundImage(ground *ebiten.Image) {
 }
 
 // drawGroundImage draws the ground image to the given screen image.
-func (g *Game) drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
+func (g *Game) drawGroundImage(screen, ground *ebiten.Image) {
 	g.perspectiveGroundImage.Clear()
 	gw, _ := ground.Size()
 	pw, ph := g.perspectiveGroundImage.Size()

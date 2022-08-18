@@ -36,7 +36,7 @@ func RemoveAndroidGamepad(androidDeviceID int) {
 	theGamepads.removeAndroidGamepad(androidDeviceID)
 }
 
-func UpdateAndroidGamepadAxis(androidDeviceID int, axis int, value float64) {
+func UpdateAndroidGamepadAxis(androidDeviceID, axis int, value float64) {
 	theGamepads.updateAndroidGamepadAxis(androidDeviceID, axis, value)
 }
 
@@ -44,7 +44,7 @@ func UpdateAndroidGamepadButton(androidDeviceID int, button Button, pressed bool
 	theGamepads.updateAndroidGamepadButton(androidDeviceID, button, pressed)
 }
 
-func UpdateAndroidGamepadHat(androidDeviceID int, hat int, dir AndroidHatDirection, value int) {
+func UpdateAndroidGamepadHat(androidDeviceID, hat int, dir AndroidHatDirection, value int) {
 	theGamepads.updateAndroidGamepadHat(androidDeviceID, hat, dir, value)
 }
 
@@ -70,7 +70,7 @@ func (g *gamepads) removeAndroidGamepad(androidDeviceID int) {
 	})
 }
 
-func (g *gamepads) updateAndroidGamepadAxis(androidDeviceID int, axis int, value float64) {
+func (g *gamepads) updateAndroidGamepadAxis(androidDeviceID, axis int, value float64) {
 	g.m.Lock()
 	defer g.m.Unlock()
 
@@ -96,7 +96,7 @@ func (g *gamepads) updateAndroidGamepadButton(androidDeviceID int, button Button
 	gp.updateAndroidGamepadButton(button, pressed)
 }
 
-func (g *gamepads) updateAndroidGamepadHat(androidDeviceID int, hat int, dir AndroidHatDirection, value int) {
+func (g *gamepads) updateAndroidGamepadHat(androidDeviceID, hat int, dir AndroidHatDirection, value int) {
 	g.m.Lock()
 	defer g.m.Unlock()
 

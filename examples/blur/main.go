@@ -32,9 +32,7 @@ const (
 	screenHeight = 480
 )
 
-var (
-	gophersImage *ebiten.Image
-)
+var gophersImage *ebiten.Image
 
 type Game struct{}
 

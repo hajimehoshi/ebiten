@@ -160,7 +160,7 @@ func _GetModuleHandleW() (uintptr, error) {
 	return m, nil
 }
 
-func _CallWindowProcW(lpPrevWndFunc uintptr, hWnd uintptr, msg uint32, wParam, lParam uintptr) uintptr {
+func _CallWindowProcW(lpPrevWndFunc, hWnd uintptr, msg uint32, wParam, lParam uintptr) uintptr {
 	r, _, _ := procCallWindowProcW.Call(lpPrevWndFunc, hWnd, uintptr(msg), wParam, lParam)
 	return r
 }

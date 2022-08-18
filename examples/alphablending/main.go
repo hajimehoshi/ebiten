@@ -33,9 +33,7 @@ const (
 	screenHeight = 240
 )
 
-var (
-	ebitenImage *ebiten.Image
-)
+var ebitenImage *ebiten.Image
 
 type Game struct {
 	count int

@@ -14,6 +14,4 @@
 
 package ebiten
 
-var (
-	ImageToBytes = imageToBytes
-)
+var ImageToBytes = imageToBytes

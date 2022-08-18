@@ -199,7 +199,7 @@ type nativeGamepad interface {
 	buttonValue(button int) float64
 	isButtonPressed(button int) bool
 	hatState(hat int) int
-	vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64)
+	vibrate(duration time.Duration, strongMagnitude, weakMagnitude float64)
 }
 
 func (g *Gamepad) update(gamepads *gamepads) error {
@@ -339,7 +339,7 @@ func (g *Gamepad) IsStandardButtonPressed(button gamepaddb.StandardButton) bool 
 }
 
 // Vibrate is concurrent-safe.
-func (g *Gamepad) Vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+func (g *Gamepad) Vibrate(duration time.Duration, strongMagnitude, weakMagnitude float64) {
 	g.m.Lock()
 	defer g.m.Unlock()
 

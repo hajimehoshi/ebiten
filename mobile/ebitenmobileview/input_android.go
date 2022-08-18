@@ -180,7 +180,7 @@ var androidAxisIDToHatID2 = map[int]int{
 	axisHatY: 1,
 }
 
-func UpdateTouchesOnAndroid(action int, id int, x, y int) {
+func UpdateTouchesOnAndroid(action, id, x, y int) {
 	switch action {
 	case 0x00, 0x05, 0x02: // ACTION_DOWN, ACTION_POINTER_DOWN, ACTION_MOVE
 		touches[ui.TouchID(id)] = position{x, y}
@@ -191,7 +191,7 @@ func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 	}
 }
 
-func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int) {
+func OnKeyDownOnAndroid(keyCode, unicodeChar, source, deviceID int) {
 	switch {
 	case source&sourceGamepad == sourceGamepad:
 		// A gamepad can be detected as a keyboard. Detect the device as a gamepad first.
@@ -211,7 +211,7 @@ func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int) 
 	}
 }
 
-func OnKeyUpOnAndroid(keyCode int, source int, deviceID int) {
+func OnKeyUpOnAndroid(keyCode, source, deviceID int) {
 	switch {
 	case source&sourceGamepad == sourceGamepad:
 		// A gamepad can be detected as a keyboard. Detect the device as a gamepad first.
@@ -228,7 +228,7 @@ func OnKeyUpOnAndroid(keyCode int, source int, deviceID int) {
 	}
 }
 
-func OnGamepadAxesOrHatsChanged(deviceID int, axisID int, value float32) {
+func OnGamepadAxesOrHatsChanged(deviceID, axisID int, value float32) {
 	if axis, ok := androidAxisIDToAxisID[axisID]; ok {
 		gamepad.UpdateAndroidGamepadAxis(deviceID, axis, float64(value))
 		return
@@ -254,7 +254,7 @@ func OnGamepadAxesOrHatsChanged(deviceID int, axisID int, value float32) {
 	}
 }
 
-func OnGamepadAdded(deviceID int, name string, buttonCount int, axisCount int, hatCount int, descriptor string, vendorID int, productID int, buttonMask int, axisMask int) {
+func OnGamepadAdded(deviceID int, name string, buttonCount, axisCount, hatCount int, descriptor string, vendorID, productID, buttonMask, axisMask int) {
 	// This emulates the implementation of Android_AddJoystick.
 	// https://github.com/libsdl-org/SDL/blob/0e9560aea22818884921e5e5064953257bfe7fa7/src/joystick/android/SDL_sysjoystick.c#L386
 	const SDL_HARDWARE_BUS_BLUETOOTH = 0x05

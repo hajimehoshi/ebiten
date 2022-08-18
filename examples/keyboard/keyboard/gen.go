@@ -41,9 +41,7 @@ const (
 	arcadeFontSize = 8
 )
 
-var (
-	arcadeFont font.Face
-)
+var arcadeFont font.Face
 
 func init() {
 	f, err := os.Open(filepath.Join("..", "..", "resources", "fonts", "pressstart2p.ttf"))

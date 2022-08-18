@@ -789,7 +789,7 @@ func toDefaultType(v gconstant.Value) shaderir.Type {
 	return shaderir.Type{}
 }
 
-func canAssign(re *shaderir.Expr, lt *shaderir.Type, rt *shaderir.Type) bool {
+func canAssign(re *shaderir.Expr, lt, rt *shaderir.Type) bool {
 	if lt.Equal(rt) {
 		return true
 	}

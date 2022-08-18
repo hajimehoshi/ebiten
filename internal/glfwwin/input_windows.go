@@ -90,7 +90,7 @@ func (w *Window) inputMouseClick(button MouseButton, action Action, mods Modifie
 	}
 }
 
-func (w *Window) inputCursorPos(xpos float64, ypos float64) {
+func (w *Window) inputCursorPos(xpos, ypos float64) {
 	if w.virtualCursorPosX == xpos && w.virtualCursorPosY == ypos {
 		return
 	}

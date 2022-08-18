@@ -31,9 +31,7 @@ const (
 	arcadeFontBaseSize = 8
 )
 
-var (
-	arcadeFonts map[int]font.Face
-)
+var arcadeFonts map[int]font.Face
 
 func getArcadeFonts(scale int) font.Face {
 	if arcadeFonts == nil {
@@ -70,9 +68,7 @@ func textWidth(str string) int {
 	return maxW
 }
 
-var (
-	shadowColor = color.NRGBA{0, 0, 0, 0x80}
-)
+var shadowColor = color.NRGBA{0, 0, 0, 0x80}
 
 func drawTextWithShadow(rt *ebiten.Image, str string, x, y, scale int, clr color.Color) {
 	offsetY := arcadeFontBaseSize * scale

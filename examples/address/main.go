@@ -47,7 +47,7 @@ func init() {
 	ebitenImage = ebiten.NewImageFromImage(img)
 }
 
-func drawRect(screen *ebiten.Image, img *ebiten.Image, x, y, width, height float32, address ebiten.Address, msg string) {
+func drawRect(screen, img *ebiten.Image, x, y, width, height float32, address ebiten.Address, msg string) {
 	sx, sy := -width/2, -height/2
 	vs := []ebiten.Vertex{
 		{

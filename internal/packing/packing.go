@@ -31,7 +31,7 @@ type Page struct {
 	rollbackExtension func()
 }
 
-func NewPage(initSize int, maxSize int) *Page {
+func NewPage(initSize, maxSize int) *Page {
 	return &Page{
 		size:    initSize,
 		maxSize: maxSize,

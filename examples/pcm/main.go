@@ -54,7 +54,7 @@ var score = strings.Replace(
 	" ", "", -1)
 
 // square fills out with square wave values with the specified volume, frequency and sequence.
-func square(out []int16, volume float64, freq float64, sequence float64) {
+func square(out []int16, volume, freq, sequence float64) {
 	if freq == 0 {
 		for i := 0; i < len(out); i++ {
 			out[i] = 0

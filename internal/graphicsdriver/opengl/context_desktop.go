@@ -420,7 +420,7 @@ func (c *context) uniformFloats(p program, location string, v []float32, typ sha
 	return true
 }
 
-func (c *context) vertexAttribPointer(index int, size int, stride int, offset int) {
+func (c *context) vertexAttribPointer(index, size, stride, offset int) {
 	gl.VertexAttribPointer(uint32(index), int32(size), gl.FLOAT, false, int32(stride), uintptr(offset))
 }
 
@@ -469,7 +469,7 @@ func (c *context) deleteBuffer(b buffer) {
 	gl.DeleteBuffers(1, &bb)
 }
 
-func (c *context) drawElements(len int, offsetInBytes int) {
+func (c *context) drawElements(len, offsetInBytes int) {
 	gl.DrawElements(gl.TRIANGLES, int32(len), gl.UNSIGNED_SHORT, uintptr(offsetInBytes))
 }
 

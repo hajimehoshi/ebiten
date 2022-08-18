@@ -146,6 +146,6 @@ func (*nativeGamepadImpl) hatState(hat int) int {
 	return hatCentered
 }
 
-func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude, weakMagnitude float64) {
 	nintendosdk.VibrateGamepad(g.id, duration, strongMagnitude, weakMagnitude)
 }

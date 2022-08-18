@@ -36,11 +36,11 @@ func ToCloseCallback(cb func(window *Window)) CloseCallback {
 	}
 }
 
-func ToFramebufferSizeCallback(cb func(window *Window, width int, height int)) FramebufferSizeCallback {
+func ToFramebufferSizeCallback(cb func(window *Window, width, height int)) FramebufferSizeCallback {
 	if cb == nil {
 		return nil
 	}
-	return func(window *glfwwin.Window, width int, height int) {
+	return func(window *glfwwin.Window, width, height int) {
 		cb((*Window)(window), width, height)
 	}
 }
@@ -54,20 +54,20 @@ func ToMonitorCallback(cb func(monitor *Monitor, event PeripheralEvent)) Monitor
 	}
 }
 
-func ToScrollCallback(cb func(window *Window, xoff float64, yoff float64)) ScrollCallback {
+func ToScrollCallback(cb func(window *Window, xoff, yoff float64)) ScrollCallback {
 	if cb == nil {
 		return nil
 	}
-	return func(window *glfwwin.Window, xoff float64, yoff float64) {
+	return func(window *glfwwin.Window, xoff, yoff float64) {
 		cb((*Window)(window), xoff, yoff)
 	}
 }
 
-func ToSizeCallback(cb func(window *Window, width int, height int)) SizeCallback {
+func ToSizeCallback(cb func(window *Window, width, height int)) SizeCallback {
 	if cb == nil {
 		return nil
 	}
-	return func(window *glfwwin.Window, width int, height int) {
+	return func(window *glfwwin.Window, width, height int) {
 		cb((*Window)(window), width, height)
 	}
 }

@@ -114,7 +114,7 @@ func (t *Tile) NextValue() int {
 }
 
 // NewTile creates a new Tile object.
-func NewTile(value int, x, y int) *Tile {
+func NewTile(value, x, y int) *Tile {
 	return &Tile{
 		current: TileData{
 			value: value,
@@ -326,7 +326,7 @@ func mean(a, b int, rate float64) int {
 	return int(float64(a)*(1-rate) + float64(b)*rate)
 }
 
-func meanF(a, b float64, rate float64) float64 {
+func meanF(a, b, rate float64) float64 {
 	return a*(1-rate) + b*rate
 }
 
@@ -335,9 +335,7 @@ const (
 	tileMargin = 4
 )
 
-var (
-	tileImage = ebiten.NewImage(tileSize, tileSize)
-)
+var tileImage = ebiten.NewImage(tileSize, tileSize)
 
 func init() {
 	tileImage.Fill(color.White)

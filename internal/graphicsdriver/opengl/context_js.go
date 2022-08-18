@@ -95,9 +95,7 @@ const (
 	webGLVersion2
 )
 
-var (
-	webGL2MightBeAvailable = !forceWebGL1 && (js.Global().Get("WebGL2RenderingContext").Truthy())
-)
+var webGL2MightBeAvailable = !forceWebGL1 && (js.Global().Get("WebGL2RenderingContext").Truthy())
 
 func uint8ArrayToSlice(value js.Value, length int) []byte {
 	if l := value.Get("byteLength").Int(); length > l {
@@ -519,7 +517,7 @@ func (c *context) uniformFloats(p program, location string, v []float32, typ sha
 	return true
 }
 
-func (c *context) vertexAttribPointer(index int, size int, stride int, offset int) {
+func (c *context) vertexAttribPointer(index, size, stride, offset int) {
 	gl := c.gl
 	gl.vertexAttribPointer.Invoke(index, size, gles.FLOAT, false, stride, offset)
 }
@@ -587,7 +585,7 @@ func (c *context) deleteBuffer(b buffer) {
 	gl.deleteBuffer.Invoke(js.Value(b))
 }
 
-func (c *context) drawElements(len int, offsetInBytes int) {
+func (c *context) drawElements(len, offsetInBytes int) {
 	gl := c.gl
 	gl.drawElements.Invoke(gles.TRIANGLES, len, gles.UNSIGNED_SHORT, offsetInBytes)
 }

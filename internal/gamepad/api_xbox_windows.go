@@ -173,7 +173,8 @@ func (i *_IGameInput) RegisterDeviceCallback(device *_IGameInputDevice,
 	enumerationKind _GameInputEnumerationKind,
 	context unsafe.Pointer,
 	callbackFunc uintptr,
-	callbackToken *_GameInputCallbackToken) error {
+	callbackToken *_GameInputCallbackToken,
+) error {
 	r, _, _ := syscall.Syscall9(i.vtbl.RegisterDeviceCallback, 8, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(device)), uintptr(inputKind), uintptr(statusFilter),
 		uintptr(enumerationKind), uintptr(context), callbackFunc,

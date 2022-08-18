@@ -34,9 +34,7 @@ const (
 
 const mosaicRatio = 16
 
-var (
-	gophersImage *ebiten.Image
-)
+var gophersImage *ebiten.Image
 
 func init() {
 	// Decode an image from the image file's byte slice.

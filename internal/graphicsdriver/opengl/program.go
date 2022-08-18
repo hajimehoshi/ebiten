@@ -203,7 +203,6 @@ func (s *openGLState) reset(context *context) error {
 					shaderVertexModelviewNative,
 					shaderFragmentColorMatrixNative,
 				}, theArrayBufferLayout.names())
-
 				if err != nil {
 					return err
 				}

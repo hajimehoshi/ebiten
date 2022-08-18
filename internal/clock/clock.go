@@ -71,7 +71,7 @@ func max(a, b int64) int64 {
 	return a
 }
 
-func calcCountFromTPS(tps int64, now int64) int {
+func calcCountFromTPS(tps, now int64) int {
 	if tps == 0 {
 		return 0
 	}

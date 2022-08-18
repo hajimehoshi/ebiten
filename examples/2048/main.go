@@ -21,7 +21,7 @@ import (
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/examples/2048/2048"
+	twenty48 "github.com/hajimehoshi/ebiten/v2/examples/2048/2048"
 )
 
 func main() {

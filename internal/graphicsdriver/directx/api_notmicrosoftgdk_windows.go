@@ -33,11 +33,11 @@ func _ID3D12GraphicsCommandList_Close(i *_ID3D12GraphicsCommandList) uintptr {
 	panic("not implemented")
 }
 
-func _ID3D12GraphicsCommandList_CopyTextureRegion(i *_ID3D12GraphicsCommandList, pDst unsafe.Pointer, dstX uint32, dstY uint32, dstZ uint32, pSrc unsafe.Pointer, pSrcBox *_D3D12_BOX) {
+func _ID3D12GraphicsCommandList_CopyTextureRegion(i *_ID3D12GraphicsCommandList, pDst unsafe.Pointer, dstX, dstY, dstZ uint32, pSrc unsafe.Pointer, pSrcBox *_D3D12_BOX) {
 	panic("not implemented")
 }
 
-func _ID3D12GraphicsCommandList_DrawIndexedInstanced(i *_ID3D12GraphicsCommandList, indexCountPerInstance uint32, instanceCount uint32, startIndexLocation uint32, baseVertexLocation int32, startInstanceLocation uint32) {
+func _ID3D12GraphicsCommandList_DrawIndexedInstanced(i *_ID3D12GraphicsCommandList, indexCountPerInstance, instanceCount, startIndexLocation uint32, baseVertexLocation int32, startInstanceLocation uint32) {
 	panic("not implemented")
 }
 

@@ -103,7 +103,7 @@ func (c *ColorM) RotateHue(theta float64) {
 // valueScale is a value to scale value (a.k.a. brightness).
 //
 // This conversion uses RGB to/from YCrCb conversion.
-func (c *ColorM) ChangeHSV(hueTheta float64, saturationScale float64, valueScale float64) {
+func (c *ColorM) ChangeHSV(hueTheta, saturationScale, valueScale float64) {
 	c.impl = affine.ChangeHSV(c.affineColorM(), hueTheta, float32(saturationScale), float32(valueScale))
 }
 

@@ -34,9 +34,7 @@ const (
 	screenHeight = 240
 )
 
-var (
-	bgImage *ebiten.Image
-)
+var bgImage *ebiten.Image
 
 func init() {
 	// Decode an image from the image file's byte slice.

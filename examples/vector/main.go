@@ -202,7 +202,7 @@ func drawWave(screen *ebiten.Image, counter int) {
 	var path vector.Path
 
 	const npoints = 8
-	indexToPoint := func(i int, counter int) (float32, float32) {
+	indexToPoint := func(i, counter int) (float32, float32) {
 		x, y := float32(i*screenWidth/(npoints-1)), float32(screenHeight/2)
 		y += float32(30 * math.Sin(float64(counter)*2*math.Pi/float64(maxCounter(i))))
 		return x, y

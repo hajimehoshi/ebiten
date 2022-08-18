@@ -30,9 +30,7 @@ const (
 	maxIt        = 128
 )
 
-var (
-	palette [maxIt]byte
-)
+var palette [maxIt]byte
 
 func init() {
 	for i := range palette {

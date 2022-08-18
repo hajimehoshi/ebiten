@@ -36,9 +36,7 @@ const (
 	screenHeight = 480
 )
 
-var (
-	gophersImage *ebiten.Image
-)
+var gophersImage *ebiten.Image
 
 // clamp clamps v to the range [min, max].
 func clamp(v, min, max int) int {

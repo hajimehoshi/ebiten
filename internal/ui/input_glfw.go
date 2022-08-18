@@ -171,7 +171,7 @@ func (i *Input) update(window *glfw.Window, context *context) error {
 			defer i.ui.m.Unlock()
 			i.runeBuffer = append(i.runeBuffer, char)
 		}))
-		window.SetScrollCallback(glfw.ToScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
+		window.SetScrollCallback(glfw.ToScrollCallback(func(w *glfw.Window, xoff, yoff float64) {
 			// As this function is called from GLFW callbacks, the current thread is main.
 			i.ui.m.Lock()
 			defer i.ui.m.Unlock()

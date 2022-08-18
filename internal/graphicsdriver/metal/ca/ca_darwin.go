@@ -136,7 +136,7 @@ func (ml MetalLayer) SetDisplaySyncEnabled(enabled bool) {
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478174-drawablesize.
 func (ml MetalLayer) SetDrawableSize(width, height int) {
 	// TODO: once objc supports calling functions with struct arguments replace this with just a ID.Send call
-	var sel_setDrawableSize = objc.RegisterName("setDrawableSize:")
+	sel_setDrawableSize := objc.RegisterName("setDrawableSize:")
 	sig := cocoa.NSMethodSignature_instanceMethodSignatureForSelector(objc.ID(objc.GetClass("CAMetalLayer")), sel_setDrawableSize)
 	inv := cocoa.NSInvocation_invocationWithMethodSignature(sig)
 	inv.SetTarget(ml.metalLayer)

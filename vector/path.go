@@ -73,7 +73,7 @@ func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 }
 
 // isPointCloseToSegment detects the distance between a segment (x0, y0)-(x1, y1) and a point (x, y) is less than allow.
-func isPointCloseToSegment(x, y, x0, y0, x1, y1 float32, allow float32) bool {
+func isPointCloseToSegment(x, y, x0, y0, x1, y1, allow float32) bool {
 	// Line passing through (x0, y0) and (x1, y1) in the form of ax + by + c = 0
 	a := y1 - y0
 	b := -(x1 - x0)

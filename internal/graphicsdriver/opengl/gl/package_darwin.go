@@ -103,31 +103,31 @@ func ActiveTexture(texture uint32) {
 	purego.SyscallN(gpActiveTexture, uintptr(texture))
 }
 
-func AttachShader(program uint32, shader uint32) {
+func AttachShader(program, shader uint32) {
 	purego.SyscallN(gpAttachShader, uintptr(program), uintptr(shader))
 }
 
-func BindAttribLocation(program uint32, index uint32, name *uint8) {
+func BindAttribLocation(program, index uint32, name *uint8) {
 	purego.SyscallN(gpBindAttribLocation, uintptr(program), uintptr(index), uintptr(unsafe.Pointer(name)))
 }
 
-func BindBuffer(target uint32, buffer uint32) {
+func BindBuffer(target, buffer uint32) {
 	purego.SyscallN(gpBindBuffer, uintptr(target), uintptr(buffer))
 }
 
-func BindFramebufferEXT(target uint32, framebuffer uint32) {
+func BindFramebufferEXT(target, framebuffer uint32) {
 	purego.SyscallN(gpBindFramebufferEXT, uintptr(target), uintptr(framebuffer))
 }
 
-func BindRenderbufferEXT(target uint32, renderbuffer uint32) {
+func BindRenderbufferEXT(target, renderbuffer uint32) {
 	purego.SyscallN(gpBindRenderbufferEXT, uintptr(target), uintptr(renderbuffer))
 }
 
-func BindTexture(target uint32, texture uint32) {
+func BindTexture(target, texture uint32) {
 	purego.SyscallN(gpBindTexture, uintptr(target), uintptr(texture))
 }
 
-func BlendFunc(sfactor uint32, dfactor uint32) {
+func BlendFunc(sfactor, dfactor uint32) {
 	purego.SyscallN(gpBlendFunc, uintptr(sfactor), uintptr(dfactor))
 }
 
@@ -135,7 +135,7 @@ func BufferData(target uint32, size int, data unsafe.Pointer, usage uint32) {
 	purego.SyscallN(gpBufferData, uintptr(target), uintptr(size), uintptr(data), uintptr(usage))
 }
 
-func BufferSubData(target uint32, offset int, size int, data unsafe.Pointer) {
+func BufferSubData(target uint32, offset, size int, data unsafe.Pointer) {
 	purego.SyscallN(gpBufferSubData, uintptr(target), uintptr(offset), uintptr(size), uintptr(data))
 }
 
@@ -148,7 +148,7 @@ func Clear(mask uint32) {
 	purego.SyscallN(gpClear, uintptr(mask))
 }
 
-func ColorMask(red bool, green bool, blue bool, alpha bool) {
+func ColorMask(red, green, blue, alpha bool) {
 	purego.SyscallN(gpColorMask, uintptr(boolToInt(red)), uintptr(boolToInt(green)), uintptr(boolToInt(blue)), uintptr(boolToInt(alpha)))
 }
 
@@ -214,11 +214,11 @@ func Flush() {
 	purego.SyscallN(gpFlush)
 }
 
-func FramebufferRenderbufferEXT(target uint32, attachment uint32, renderbuffertarget uint32, renderbuffer uint32) {
+func FramebufferRenderbufferEXT(target, attachment, renderbuffertarget, renderbuffer uint32) {
 	purego.SyscallN(gpFramebufferRenderbufferEXT, uintptr(target), uintptr(attachment), uintptr(renderbuffertarget), uintptr(renderbuffer))
 }
 
-func FramebufferTexture2DEXT(target uint32, attachment uint32, textarget uint32, texture uint32, level int32) {
+func FramebufferTexture2DEXT(target, attachment, textarget, texture uint32, level int32) {
 	purego.SyscallN(gpFramebufferTexture2DEXT, uintptr(target), uintptr(attachment), uintptr(textarget), uintptr(texture), uintptr(level))
 }
 
@@ -238,10 +238,11 @@ func GenTextures(n int32, textures *uint32) {
 	purego.SyscallN(gpGenTextures, uintptr(n), uintptr(unsafe.Pointer(textures)))
 }
 
-func GetDoublei_v(target uint32, index uint32, data *float64) {
+func GetDoublei_v(target, index uint32, data *float64) {
 	purego.SyscallN(gpGetDoublei_v, uintptr(target), uintptr(index), uintptr(unsafe.Pointer(data)))
 }
-func GetDoublei_vEXT(pname uint32, index uint32, params *float64) {
+
+func GetDoublei_vEXT(pname, index uint32, params *float64) {
 	purego.SyscallN(gpGetDoublei_vEXT, uintptr(pname), uintptr(index), uintptr(unsafe.Pointer(params)))
 }
 
@@ -249,24 +250,28 @@ func GetError() uint32 {
 	ret, _, _ := purego.SyscallN(gpGetError)
 	return uint32(ret)
 }
-func GetFloati_v(target uint32, index uint32, data *float32) {
+
+func GetFloati_v(target, index uint32, data *float32) {
 	purego.SyscallN(gpGetFloati_v, uintptr(target), uintptr(index), uintptr(unsafe.Pointer(data)))
 }
-func GetFloati_vEXT(pname uint32, index uint32, params *float32) {
+
+func GetFloati_vEXT(pname, index uint32, params *float32) {
 	purego.SyscallN(gpGetFloati_vEXT, uintptr(pname), uintptr(index), uintptr(unsafe.Pointer(params)))
 }
 
-func GetIntegeri_v(target uint32, index uint32, data *int32) {
+func GetIntegeri_v(target, index uint32, data *int32) {
 	purego.SyscallN(gpGetIntegeri_v, uintptr(target), uintptr(index), uintptr(unsafe.Pointer(data)))
 }
-func GetIntegerui64i_vNV(value uint32, index uint32, result *uint64) {
+
+func GetIntegerui64i_vNV(value, index uint32, result *uint64) {
 	purego.SyscallN(gpGetIntegerui64i_vNV, uintptr(value), uintptr(index), uintptr(unsafe.Pointer(result)))
 }
+
 func GetIntegerv(pname uint32, data *int32) {
 	purego.SyscallN(gpGetIntegerv, uintptr(pname), uintptr(unsafe.Pointer(data)))
 }
 
-func GetPointeri_vEXT(pname uint32, index uint32, params *unsafe.Pointer) {
+func GetPointeri_vEXT(pname, index uint32, params *unsafe.Pointer) {
 	purego.SyscallN(gpGetPointeri_vEXT, uintptr(pname), uintptr(index), uintptr(unsafe.Pointer(params)))
 }
 
@@ -274,7 +279,7 @@ func GetProgramInfoLog(program uint32, bufSize int32, length *int32, infoLog *ui
 	purego.SyscallN(gpGetProgramInfoLog, uintptr(program), uintptr(bufSize), uintptr(unsafe.Pointer(length)), uintptr(unsafe.Pointer(infoLog)))
 }
 
-func GetProgramiv(program uint32, pname uint32, params *int32) {
+func GetProgramiv(program, pname uint32, params *int32) {
 	purego.SyscallN(gpGetProgramiv, uintptr(program), uintptr(pname), uintptr(unsafe.Pointer(params)))
 }
 
@@ -282,14 +287,15 @@ func GetShaderInfoLog(shader uint32, bufSize int32, length *int32, infoLog *uint
 	purego.SyscallN(gpGetShaderInfoLog, uintptr(shader), uintptr(bufSize), uintptr(unsafe.Pointer(length)), uintptr(unsafe.Pointer(infoLog)))
 }
 
-func GetShaderiv(shader uint32, pname uint32, params *int32) {
+func GetShaderiv(shader, pname uint32, params *int32) {
 	purego.SyscallN(gpGetShaderiv, uintptr(shader), uintptr(pname), uintptr(unsafe.Pointer(params)))
 }
 
-func GetTransformFeedbacki64_v(xfb uint32, pname uint32, index uint32, param *int64) {
+func GetTransformFeedbacki64_v(xfb, pname, index uint32, param *int64) {
 	purego.SyscallN(gpGetTransformFeedbacki64_v, uintptr(xfb), uintptr(pname), uintptr(index), uintptr(unsafe.Pointer(param)))
 }
-func GetTransformFeedbacki_v(xfb uint32, pname uint32, index uint32, param *int32) {
+
+func GetTransformFeedbacki_v(xfb, pname, index uint32, param *int32) {
 	purego.SyscallN(gpGetTransformFeedbacki_v, uintptr(xfb), uintptr(pname), uintptr(index), uintptr(unsafe.Pointer(param)))
 }
 
@@ -298,13 +304,15 @@ func GetUniformLocation(program uint32, name *uint8) int32 {
 	return int32(ret)
 }
 
-func GetUnsignedBytei_vEXT(target uint32, index uint32, data *uint8) {
+func GetUnsignedBytei_vEXT(target, index uint32, data *uint8) {
 	purego.SyscallN(gpGetUnsignedBytei_vEXT, uintptr(target), uintptr(index), uintptr(unsafe.Pointer(data)))
 }
-func GetVertexArrayIntegeri_vEXT(vaobj uint32, index uint32, pname uint32, param *int32) {
+
+func GetVertexArrayIntegeri_vEXT(vaobj, index, pname uint32, param *int32) {
 	purego.SyscallN(gpGetVertexArrayIntegeri_vEXT, uintptr(vaobj), uintptr(index), uintptr(pname), uintptr(unsafe.Pointer(param)))
 }
-func GetVertexArrayPointeri_vEXT(vaobj uint32, index uint32, pname uint32, param *unsafe.Pointer) {
+
+func GetVertexArrayPointeri_vEXT(vaobj, index, pname uint32, param *unsafe.Pointer) {
 	purego.SyscallN(gpGetVertexArrayPointeri_vEXT, uintptr(vaobj), uintptr(index), uintptr(pname), uintptr(unsafe.Pointer(param)))
 }
 
@@ -336,15 +344,15 @@ func PixelStorei(pname uint32, param int32) {
 	purego.SyscallN(gpPixelStorei, uintptr(pname), uintptr(param))
 }
 
-func ReadPixels(x int32, y int32, width int32, height int32, format uint32, xtype uint32, pixels unsafe.Pointer) {
+func ReadPixels(x, y, width, height int32, format, xtype uint32, pixels unsafe.Pointer) {
 	purego.SyscallN(gpReadPixels, uintptr(x), uintptr(y), uintptr(width), uintptr(height), uintptr(format), uintptr(xtype), uintptr(pixels))
 }
 
-func RenderbufferStorageEXT(target uint32, internalformat uint32, width int32, height int32) {
+func RenderbufferStorageEXT(target, internalformat uint32, width, height int32) {
 	purego.SyscallN(gpRenderbufferStorageEXT, uintptr(target), uintptr(internalformat), uintptr(width), uintptr(height))
 }
 
-func Scissor(x int32, y int32, width int32, height int32) {
+func Scissor(x, y, width, height int32) {
 	purego.SyscallN(gpScissor, uintptr(x), uintptr(y), uintptr(width), uintptr(height))
 }
 
@@ -356,19 +364,19 @@ func StencilFunc(xfunc uint32, ref int32, mask uint32) {
 	purego.SyscallN(gpStencilFunc, uintptr(xfunc), uintptr(ref), uintptr(mask))
 }
 
-func StencilOp(fail uint32, zfail uint32, zpass uint32) {
+func StencilOp(fail, zfail, zpass uint32) {
 	purego.SyscallN(gpStencilOp, uintptr(fail), uintptr(zfail), uintptr(zpass))
 }
 
-func TexImage2D(target uint32, level int32, internalformat int32, width int32, height int32, border int32, format uint32, xtype uint32, pixels unsafe.Pointer) {
+func TexImage2D(target uint32, level, internalformat, width, height, border int32, format, xtype uint32, pixels unsafe.Pointer) {
 	purego.SyscallN(gpTexImage2D, uintptr(target), uintptr(level), uintptr(internalformat), uintptr(width), uintptr(height), uintptr(border), uintptr(format), uintptr(xtype), uintptr(pixels))
 }
 
-func TexParameteri(target uint32, pname uint32, param int32) {
+func TexParameteri(target, pname uint32, param int32) {
 	purego.SyscallN(gpTexParameteri, uintptr(target), uintptr(pname), uintptr(param))
 }
 
-func TexSubImage2D(target uint32, level int32, xoffset int32, yoffset int32, width int32, height int32, format uint32, xtype uint32, pixels unsafe.Pointer) {
+func TexSubImage2D(target uint32, level, xoffset, yoffset, width, height int32, format, xtype uint32, pixels unsafe.Pointer) {
 	purego.SyscallN(gpTexSubImage2D, uintptr(target), uintptr(level), uintptr(xoffset), uintptr(yoffset), uintptr(width), uintptr(height), uintptr(format), uintptr(xtype), uintptr(pixels))
 }
 
@@ -376,35 +384,35 @@ func Uniform1f(location int32, v0 float32) {
 	Uniform1fv(location, 1, (*float32)(Ptr([]float32{v0})))
 }
 
-func Uniform1i(location int32, v0 int32) {
+func Uniform1i(location, v0 int32) {
 	purego.SyscallN(gpUniform1i, uintptr(location), uintptr(v0))
 }
 
-func Uniform1fv(location int32, count int32, value *float32) {
+func Uniform1fv(location, count int32, value *float32) {
 	purego.SyscallN(gpUniform1fv, uintptr(location), uintptr(count), uintptr(unsafe.Pointer(value)))
 }
 
-func Uniform2fv(location int32, count int32, value *float32) {
+func Uniform2fv(location, count int32, value *float32) {
 	purego.SyscallN(gpUniform2fv, uintptr(location), uintptr(count), uintptr(unsafe.Pointer(value)))
 }
 
-func Uniform3fv(location int32, count int32, value *float32) {
+func Uniform3fv(location, count int32, value *float32) {
 	purego.SyscallN(gpUniform3fv, uintptr(location), uintptr(count), uintptr(unsafe.Pointer(value)))
 }
 
-func Uniform4fv(location int32, count int32, value *float32) {
+func Uniform4fv(location, count int32, value *float32) {
 	purego.SyscallN(gpUniform4fv, uintptr(location), uintptr(count), uintptr(unsafe.Pointer(value)))
 }
 
-func UniformMatrix2fv(location int32, count int32, transpose bool, value *float32) {
+func UniformMatrix2fv(location, count int32, transpose bool, value *float32) {
 	purego.SyscallN(gpUniformMatrix2fv, uintptr(location), uintptr(count), uintptr(boolToInt(transpose)), uintptr(unsafe.Pointer(value)))
 }
 
-func UniformMatrix3fv(location int32, count int32, transpose bool, value *float32) {
+func UniformMatrix3fv(location, count int32, transpose bool, value *float32) {
 	purego.SyscallN(gpUniformMatrix3fv, uintptr(location), uintptr(count), uintptr(boolToInt(transpose)), uintptr(unsafe.Pointer(value)))
 }
 
-func UniformMatrix4fv(location int32, count int32, transpose bool, value *float32) {
+func UniformMatrix4fv(location, count int32, transpose bool, value *float32) {
 	purego.SyscallN(gpUniformMatrix4fv, uintptr(location), uintptr(count), uintptr(boolToInt(transpose)), uintptr(unsafe.Pointer(value)))
 }
 
@@ -416,7 +424,7 @@ func VertexAttribPointer(index uint32, size int32, xtype uint32, normalized bool
 	purego.SyscallN(gpVertexAttribPointer, uintptr(index), uintptr(size), uintptr(xtype), uintptr(boolToInt(normalized)), uintptr(stride), uintptr(pointer))
 }
 
-func Viewport(x int32, y int32, width int32, height int32) {
+func Viewport(x, y, width, height int32) {
 	purego.SyscallN(gpViewport, uintptr(x), uintptr(y), uintptr(width), uintptr(height))
 }
 

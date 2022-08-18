@@ -47,17 +47,13 @@ const (
 	VertexFloatCount = 8
 )
 
-var (
-	quadIndices = []uint16{0, 1, 2, 1, 2, 3}
-)
+var quadIndices = []uint16{0, 1, 2, 1, 2, 3}
 
 func QuadIndices() []uint16 {
 	return quadIndices
 }
 
-var (
-	theVerticesBackend = &verticesBackend{}
-)
+var theVerticesBackend = &verticesBackend{}
 
 // TODO: The logic is very similar to atlas.temporaryPixels. Unify them.
 
@@ -138,7 +134,7 @@ func LockAndResetVertices(f func() error) error {
 // QuadVertices returns a float32 slice for a quadrangle.
 // QuadVertices returns a slice that never overlaps with other slices returned this function,
 // and users can do optimization based on this fact.
-func QuadVertices(sx0, sy0, sx1, sy1 float32, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32) []float32 {
+func QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, cr, cg, cb, ca float32) []float32 {
 	x := sx1 - sx0
 	y := sy1 - sy0
 	ax, by, cx, dy := a*x, b*y, c*x, d*y

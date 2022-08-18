@@ -30,9 +30,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
-var (
-	monotonicClock int64
-)
+var monotonicClock int64
 
 func now() int64 {
 	return monotonicClock
@@ -67,9 +65,7 @@ func drawGlyph(dst *ebiten.Image, face font.Face, r rune, img *ebiten.Image, dx,
 	dst.DrawImage(img, op2)
 }
 
-var (
-	glyphBoundsCache = map[font.Face]map[rune]fixed.Rectangle26_6{}
-)
+var glyphBoundsCache = map[font.Face]map[rune]fixed.Rectangle26_6{}
 
 func getGlyphBounds(face font.Face, r rune) fixed.Rectangle26_6 {
 	if _, ok := glyphBoundsCache[face]; !ok {
@@ -88,9 +84,7 @@ type glyphImageCacheEntry struct {
 	atime int64
 }
 
-var (
-	glyphImageCache = map[font.Face]map[rune]*glyphImageCacheEntry{}
-)
+var glyphImageCache = map[font.Face]map[rune]*glyphImageCacheEntry{}
 
 func getGlyphImage(face font.Face, r rune) *ebiten.Image {
 	if _, ok := glyphImageCache[face]; !ok {
