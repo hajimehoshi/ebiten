@@ -130,11 +130,13 @@ func decode(in io.Reader) (*decoded, int, int, error) {
 		posInBytes: 0,
 		decoder:    r,
 	}
-	if _, err := d.Read(make([]byte, 65536)); err != nil && err != io.EOF {
-		return nil, 0, 0, err
-	}
-	if _, err := d.Seek(0, io.SeekStart); err != nil {
-		return nil, 0, 0, err
+	if _, ok := in.(io.Seeker); ok {
+		if _, err := d.Read(make([]byte, 65536)); err != nil && err != io.EOF {
+			return nil, 0, 0, err
+		}
+		if _, err := d.Seek(0, io.SeekStart); err != nil {
+			return nil, 0, 0, err
+		}
 	}
 	return d, r.Channels(), r.SampleRate(), nil
 }

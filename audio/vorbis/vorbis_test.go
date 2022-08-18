@@ -16,6 +16,7 @@ package vorbis_test
 
 import (
 	"bytes"
+	"io"
 	"testing"
 
 	"github.com/jfreymuth/oggvorbis"
@@ -65,4 +66,22 @@ func TestTooShort(t *testing.T) {
 	if got != want {
 		t.Errorf("s.Length(): got: %d, want: %d", got, want)
 	}
+}
+
+type reader struct {
+	r io.Reader
+}
+
+func (r *reader) Read(buf []byte) (int, error) {
+	return r.r.Read(buf)
+}
+
+func TestNonSeeker(t *testing.T) {
+	bs := test_tooshort_ogg
+
+	s, err := vorbis.DecodeWithSampleRate(audioContext.SampleRate(), &reader{r: bytes.NewReader(bs)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = s
 }
