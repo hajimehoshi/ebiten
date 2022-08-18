@@ -361,7 +361,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				}
 			case shaderir.FloatF:
 				if len(args) == 1 && args[0].Type == shaderir.NumberExpr {
-					if args[0].Const.Kind() == gconstant.Int || args[0].Const.Kind() == gconstant.Float {
+					if gconstant.ToFloat(args[0].Const).Kind() != gconstant.Unknown {
 						return []shaderir.Expr{
 							{
 								Type:      shaderir.NumberExpr,
@@ -430,39 +430,12 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					return nil, nil, nil, false
 				}
 				t = shaderir.Type{Main: shaderir.Mat4}
-			case shaderir.Atan:
-				if len(args) != 1 {
-					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 1 but %d", callee.BuiltinFunc, len(args)))
-					return nil, nil, nil, false
-				}
-				// TODO: Check arg types.
-				// If the argument is a non-typed constant value, treat is as a float value (#1874).
-				if args[0].Type == shaderir.NumberExpr && args[0].ConstType == shaderir.ConstTypeNone {
-					args[0].ConstType = shaderir.ConstTypeFloat
-					argts[0] = shaderir.Type{Main: shaderir.Float}
-				}
-				t = argts[0]
-			case shaderir.Atan2:
-				if len(args) != 2 {
-					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 2 but %d", callee.BuiltinFunc, len(args)))
-					return nil, nil, nil, false
-				}
-				// TODO: Check arg types.
-				// If the argument is a non-typed constant value, treat is as a float value (#1874).
-				if args[0].Type == shaderir.NumberExpr && args[0].ConstType == shaderir.ConstTypeNone {
-					args[0].ConstType = shaderir.ConstTypeFloat
-					argts[0] = shaderir.Type{Main: shaderir.Float}
-				}
-				t = argts[0]
 			case shaderir.Step:
 				// TODO: Check arg types.
 				t = argts[1]
 			case shaderir.Smoothstep:
 				// TODO: Check arg types.
 				t = argts[2]
-			case shaderir.Length, shaderir.Distance, shaderir.Dot:
-				// TODO: Check arg types.
-				t = shaderir.Type{Main: shaderir.Float}
 			case shaderir.Cross:
 				// TODO: Check arg types.
 				t = shaderir.Type{Main: shaderir.Vec3}
@@ -472,22 +445,70 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			case shaderir.DiscardF:
 				if len(args) != 0 {
 					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 0 but %d", callee.BuiltinFunc, len(args)))
+					return nil, nil, nil, false
 				}
 				if fname != cs.fragmentEntry {
 					cs.addError(e.Pos(), fmt.Sprintf("discard is available only in %s", cs.fragmentEntry))
+					return nil, nil, nil, false
 				}
 				stmts = append(stmts, shaderir.Stmt{
 					Type: shaderir.Discard,
 				})
 				return nil, nil, stmts, true
+			case shaderir.Atan2, shaderir.Mod, shaderir.Min, shaderir.Max, shaderir.Distance, shaderir.Dot, shaderir.Reflect:
+				if len(args) != 2 {
+					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 2 but %d", callee.BuiltinFunc, len(args)))
+					return nil, nil, nil, false
+				}
+				for i := range args {
+					// If the argument is a non-typed constant value, treat this as a float value (#1874).
+					if args[i].Type == shaderir.NumberExpr && args[i].ConstType == shaderir.ConstTypeNone && gconstant.ToFloat(args[i].Const).Kind() != gconstant.Unknown {
+						args[i].Const = gconstant.ToFloat(args[i].Const)
+						args[i].ConstType = shaderir.ConstTypeFloat
+						argts[i] = shaderir.Type{Main: shaderir.Float}
+					}
+					if argts[i].Main != shaderir.Float && argts[i].Main != shaderir.Vec2 && argts[i].Main != shaderir.Vec3 && argts[i].Main != shaderir.Vec4 {
+						cs.addError(e.Pos(), fmt.Sprintf("cannot use %s as float, vec2, vec3, or vec4 value in argument to %s", argts[i].String(), callee.BuiltinFunc))
+						return nil, nil, nil, false
+					}
+				}
+
+				if callee.BuiltinFunc == shaderir.Mod || callee.BuiltinFunc == shaderir.Min || callee.BuiltinFunc == shaderir.Max {
+					if !argts[0].Equal(&argts[1]) && argts[1].Main != shaderir.Float {
+						cs.addError(e.Pos(), fmt.Sprintf("the second argument for %s must equal to the first argument %s or float but %s", callee.BuiltinFunc, argts[0].String(), argts[1].String()))
+						return nil, nil, nil, false
+					}
+				} else {
+					if !argts[0].Equal(&argts[1]) {
+						cs.addError(e.Pos(), fmt.Sprintf("%s and %s don't match in argument to %s", argts[0].String(), argts[1].String(), callee.BuiltinFunc))
+						return nil, nil, nil, false
+					}
+				}
+				if callee.BuiltinFunc == shaderir.Distance || callee.BuiltinFunc == shaderir.Dot {
+					t = shaderir.Type{Main: shaderir.Float}
+				} else {
+					t = argts[0]
+				}
 			default:
-				// TODO: Check arg types.
-				// If the argument is a non-typed constant value, treat is as a float value (#1874).
-				if args[0].Type == shaderir.NumberExpr && args[0].ConstType == shaderir.ConstTypeNone {
+				if len(args) != 1 {
+					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 1 but %d", callee.BuiltinFunc, len(args)))
+					return nil, nil, nil, false
+				}
+				// If the argument is a non-typed constant value, treat this as a float value (#1874).
+				if args[0].Type == shaderir.NumberExpr && args[0].ConstType == shaderir.ConstTypeNone && gconstant.ToFloat(args[0].Const).Kind() != gconstant.Unknown {
+					args[0].Const = gconstant.ToFloat(args[0].Const)
 					args[0].ConstType = shaderir.ConstTypeFloat
 					argts[0] = shaderir.Type{Main: shaderir.Float}
 				}
-				t = argts[0]
+				if argts[0].Main != shaderir.Float && argts[0].Main != shaderir.Vec2 && argts[0].Main != shaderir.Vec3 && argts[0].Main != shaderir.Vec4 {
+					cs.addError(e.Pos(), fmt.Sprintf("cannot use %s as float, vec2, vec3, or vec4 value in argument to %s", argts[0].String(), callee.BuiltinFunc))
+					return nil, nil, nil, false
+				}
+				if callee.BuiltinFunc == shaderir.Length {
+					t = shaderir.Type{Main: shaderir.Float}
+				} else {
+					t = argts[0]
+				}
 			}
 			return []shaderir.Expr{
 				{

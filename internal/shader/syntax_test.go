@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"go/parser"
 	"go/token"
+	"strings"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/shader"
@@ -1392,7 +1393,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 }
 
 // Issue #2184
-func TestSyntaxBuiltinFuncType(t *testing.T) {
+func TestSyntaxConstructorFuncType(t *testing.T) {
 	cases := []struct {
 		stmt string
 		err  bool
@@ -1612,5 +1613,182 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 }
 `)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
+	}
+}
+
+// Issue #2184
+func TestSyntaxBuiltinFuncSingleArgType(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "a := {{.Func}}(); _ = a", err: true},
+		{stmt: "a := {{.Func}}(false); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1); _ = a", err: false},
+		{stmt: "a := {{.Func}}(1.0); _ = a", err: false},
+		{stmt: "a := {{.Func}}(int(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec2(1)); _ = a", err: false},
+		{stmt: "a := {{.Func}}(vec3(1)); _ = a", err: false},
+		{stmt: "a := {{.Func}}(vec4(1)); _ = a", err: false},
+		{stmt: "a := {{.Func}}(mat2(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(mat3(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(mat4(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1, 1); _ = a", err: true},
+	}
+
+	funcs := []string{
+		"sin",
+		"cos",
+		"tan",
+		"asin",
+		"acos",
+		"atan",
+		"pow",
+		"exp",
+		"log",
+		"exp2",
+		"log2",
+		"sqrt",
+		"inversesqrt",
+		"abs",
+		"sign",
+		"floor",
+		"ceil",
+		"fract",
+		"length",
+		"normalize",
+		"dfdx",
+		"dfdy",
+		"fwidth",
+	}
+	for _, c := range cases {
+		for _, f := range funcs {
+			stmt := strings.ReplaceAll(c.stmt, "{{.Func}}", f)
+			src := fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	%s
+	return position
+}`, stmt)
+			_, err := compileToIR([]byte(src))
+			if err == nil && c.err {
+				t.Errorf("%s must return an error but does not", stmt)
+			} else if err != nil && !c.err {
+				t.Errorf("%s must not return nil but returned %v", stmt, err)
+			}
+		}
+	}
+}
+
+// Issue #2184
+func TestSyntaxBuiltinFuncDoubleArgsType(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "a := {{.Func}}(); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1); _ = a", err: true},
+		{stmt: "a := {{.Func}}(false, false); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1, 1); _ = a", err: false},
+		{stmt: "a := {{.Func}}(1.0, 1); _ = a", err: false},
+		{stmt: "a := {{.Func}}(1, 1.0); _ = a", err: false},
+		{stmt: "a := {{.Func}}(int(1), int(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1, vec2(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1, vec3(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1, vec4(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec2(1), 1); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec2(1), vec2(1)); _ = a", err: false},
+		{stmt: "a := {{.Func}}(vec2(1), vec3(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec2(1), vec4(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec3(1), 1); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec3(1), vec2(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec3(1), vec3(1)); _ = a", err: false},
+		{stmt: "a := {{.Func}}(vec3(1), vec4(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec4(1), 1); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec4(1), vec2(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec4(1), vec3(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec4(1), vec4(1)); _ = a", err: false},
+		{stmt: "a := {{.Func}}(mat2(1), mat2(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1, 1, 1); _ = a", err: true},
+	}
+
+	funcs := []string{
+		"atan2",
+		"distance",
+		"dot",
+		"reflect",
+	}
+	for _, c := range cases {
+		for _, f := range funcs {
+			stmt := strings.ReplaceAll(c.stmt, "{{.Func}}", f)
+			src := fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	%s
+	return position
+}`, stmt)
+			_, err := compileToIR([]byte(src))
+			if err == nil && c.err {
+				t.Errorf("%s must return an error but does not", stmt)
+			} else if err != nil && !c.err {
+				t.Errorf("%s must not return nil but returned %v", stmt, err)
+			}
+		}
+	}
+}
+
+// Issue #2184
+func TestSyntaxBuiltinFuncDoubleArgsType2(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "a := {{.Func}}(); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1); _ = a", err: true},
+		{stmt: "a := {{.Func}}(false, false); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1, 1); _ = a", err: false},
+		{stmt: "a := {{.Func}}(1.0, 1); _ = a", err: false},
+		{stmt: "a := {{.Func}}(1, 1.0); _ = a", err: false},
+		{stmt: "a := {{.Func}}(int(1), int(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1, vec2(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1, vec3(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1, vec4(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec2(1), 1); _ = a", err: false}, // The second argument can be a scalar.
+		{stmt: "a := {{.Func}}(vec2(1), vec2(1)); _ = a", err: false},
+		{stmt: "a := {{.Func}}(vec2(1), vec3(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec2(1), vec4(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec3(1), 1); _ = a", err: false}, // The second argument can be a scalar.
+		{stmt: "a := {{.Func}}(vec3(1), vec2(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec3(1), vec3(1)); _ = a", err: false},
+		{stmt: "a := {{.Func}}(vec3(1), vec4(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec4(1), 1); _ = a", err: false}, // The second argument can be a scalar.
+		{stmt: "a := {{.Func}}(vec4(1), vec2(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec4(1), vec3(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(vec4(1), vec4(1)); _ = a", err: false},
+		{stmt: "a := {{.Func}}(mat2(1), mat2(1)); _ = a", err: true},
+		{stmt: "a := {{.Func}}(1, 1, 1); _ = a", err: true},
+	}
+
+	funcs := []string{
+		"mod",
+		"min",
+		"max",
+	}
+	for _, c := range cases {
+		for _, f := range funcs {
+			stmt := strings.ReplaceAll(c.stmt, "{{.Func}}", f)
+			src := fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	%s
+	return position
+}`, stmt)
+			_, err := compileToIR([]byte(src))
+			if err == nil && c.err {
+				t.Errorf("%s must return an error but does not", stmt)
+			} else if err != nil && !c.err {
+				t.Errorf("%s must not return nil but returned %v", stmt, err)
+			}
+		}
 	}
 }
