@@ -436,9 +436,6 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			case shaderir.Smoothstep:
 				// TODO: Check arg types.
 				t = argts[2]
-			case shaderir.Cross:
-				// TODO: Check arg types.
-				t = shaderir.Type{Main: shaderir.Vec3}
 			case shaderir.Texture2DF:
 				// TODO: Check arg types.
 				t = shaderir.Type{Main: shaderir.Vec4}
@@ -455,7 +452,9 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					Type: shaderir.Discard,
 				})
 				return nil, nil, stmts, true
-			case shaderir.Atan2, shaderir.Mod, shaderir.Min, shaderir.Max, shaderir.Distance, shaderir.Dot, shaderir.Reflect:
+
+			case shaderir.Atan2, shaderir.Mod, shaderir.Min, shaderir.Max, shaderir.Distance, shaderir.Dot, shaderir.Cross, shaderir.Reflect:
+				// 2 arguments
 				if len(args) != 2 {
 					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 2 but %d", callee.BuiltinFunc, len(args)))
 					return nil, nil, nil, false
@@ -473,12 +472,20 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					}
 				}
 
-				if callee.BuiltinFunc == shaderir.Mod || callee.BuiltinFunc == shaderir.Min || callee.BuiltinFunc == shaderir.Max {
+				switch callee.BuiltinFunc {
+				case shaderir.Mod, shaderir.Min, shaderir.Max:
 					if !argts[0].Equal(&argts[1]) && argts[1].Main != shaderir.Float {
 						cs.addError(e.Pos(), fmt.Sprintf("the second argument for %s must equal to the first argument %s or float but %s", callee.BuiltinFunc, argts[0].String(), argts[1].String()))
 						return nil, nil, nil, false
 					}
-				} else {
+				case shaderir.Cross:
+					for i := range argts {
+						if argts[i].Main != shaderir.Vec3 {
+							cs.addError(e.Pos(), fmt.Sprintf("cannot use %s as vec3 value in argument to %s", argts[i].String(), callee.BuiltinFunc))
+							return nil, nil, nil, false
+						}
+					}
+				default:
 					if !argts[0].Equal(&argts[1]) {
 						cs.addError(e.Pos(), fmt.Sprintf("%s and %s don't match in argument to %s", argts[0].String(), argts[1].String(), callee.BuiltinFunc))
 						return nil, nil, nil, false
@@ -489,7 +496,9 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				} else {
 					t = argts[0]
 				}
+
 			default:
+				// 1 argument
 				if len(args) != 1 {
 					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 1 but %d", callee.BuiltinFunc, len(args)))
 					return nil, nil, nil, false
