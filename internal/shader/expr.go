@@ -431,7 +431,18 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				}
 				t = shaderir.Type{Main: shaderir.Mat4}
 			case shaderir.Texture2DF:
-				// TODO: Check arg types.
+				if len(args) != 2 {
+					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 2 but %d", callee.BuiltinFunc, len(args)))
+					return nil, nil, nil, false
+				}
+				if argts[0].Main != shaderir.Texture {
+					cs.addError(e.Pos(), fmt.Sprintf("cannot use %s as texture value in argument to %s", argts[0].String(), callee.BuiltinFunc))
+					return nil, nil, nil, false
+				}
+				if argts[1].Main != shaderir.Vec2 {
+					cs.addError(e.Pos(), fmt.Sprintf("cannot use %s as vec2 value in argument to %s", argts[1].String(), callee.BuiltinFunc))
+					return nil, nil, nil, false
+				}
 				t = shaderir.Type{Main: shaderir.Vec4}
 			case shaderir.DiscardF:
 				if len(args) != 0 {
@@ -744,7 +755,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					Type:  shaderir.TextureVariable,
 					Index: i,
 				},
-			}, nil, nil, true
+			}, []shaderir.Type{{Main: shaderir.Texture}}, nil, true
 		}
 		if e.Name == "true" || e.Name == "false" {
 			return []shaderir.Expr{
