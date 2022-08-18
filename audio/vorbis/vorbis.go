@@ -44,6 +44,8 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 }
 
 // Length returns the size of decoded stream in bytes.
+//
+// If the source is not io.Seeker, Length returns 0.
 func (s *Stream) Length() int64 {
 	return s.size
 }

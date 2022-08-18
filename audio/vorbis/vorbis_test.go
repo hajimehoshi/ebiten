@@ -83,5 +83,10 @@ func TestNonSeeker(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_ = s
+
+	got := s.Length()
+	want := int64(0)
+	if got != want {
+		t.Errorf("s.Length(): got: %d, want: %d", got, want)
+	}
 }
