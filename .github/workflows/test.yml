@@ -99,7 +99,7 @@ jobs:
           rm flappy
 
       - name: go build (NintendoSDK)
-        if: ${{ !startsWith(matrix.os, 'windows-') }}
+        if: ${{ startsWith(matrix.os, 'ubuntu-') }}
         run: |
           go build -tags=example,nintendosdk -v ./...
           go build -tags=example,ebitencbackend -v ./... # For backward compatibility. Remove this in the future (#2190).
