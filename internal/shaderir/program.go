@@ -224,8 +224,8 @@ const (
 	Mat2F       BuiltinFunc = "mat2"
 	Mat3F       BuiltinFunc = "mat3"
 	Mat4F       BuiltinFunc = "mat4"
-	Radians     BuiltinFunc = "radians"
-	Degrees     BuiltinFunc = "degrees"
+	Radians     BuiltinFunc = "radians" // This function is not used yet (#2253)
+	Degrees     BuiltinFunc = "degrees" // This function is not used yet (#2253)
 	Sin         BuiltinFunc = "sin"
 	Cos         BuiltinFunc = "cos"
 	Tan         BuiltinFunc = "tan"
