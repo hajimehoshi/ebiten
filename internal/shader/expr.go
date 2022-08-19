@@ -29,11 +29,15 @@ func canTruncateToInteger(v gconstant.Value) bool {
 	return gconstant.ToInt(v).Kind() != gconstant.Unknown
 }
 
+func canTruncateToFloat(v gconstant.Value) bool {
+	return gconstant.ToFloat(v).Kind() != gconstant.Unknown
+}
+
 func isUntypedInteger(expr *shaderir.Expr) bool {
 	return expr.Const.Kind() == gconstant.Int && expr.ConstType == shaderir.ConstTypeNone
 }
 
-func isModAvailable(lhs, rhs *shaderir.Expr) bool {
+func isModAvailableForConsts(lhs, rhs *shaderir.Expr) bool {
 	// % is available only when
 	// 1) both are untyped integers
 	// 2) either is an typed integer and the other is truncatable to an integer
@@ -47,6 +51,78 @@ func isModAvailable(lhs, rhs *shaderir.Expr) bool {
 		return true
 	}
 	return false
+}
+
+func canCompare(lhs, rhs *shaderir.Expr, lhst, rhst shaderir.Type) bool {
+	switch {
+	case lhs.Const != nil && rhs.Const != nil:
+		switch {
+		case lhs.ConstType == shaderir.ConstTypeNone && rhs.ConstType == shaderir.ConstTypeNone:
+			if canTruncateToFloat(lhs.Const) && canTruncateToFloat(rhs.Const) {
+				return true
+			}
+			if canTruncateToInteger(lhs.Const) && canTruncateToInteger(rhs.Const) {
+				return true
+			}
+			return lhs.Const.Kind() == rhs.Const.Kind()
+		case lhs.ConstType == shaderir.ConstTypeNone:
+			switch rhs.ConstType {
+			case shaderir.ConstTypeFloat:
+				return canTruncateToFloat(lhs.Const)
+			case shaderir.ConstTypeInt:
+				return canTruncateToInteger(lhs.Const)
+			}
+		case rhs.ConstType == shaderir.ConstTypeNone:
+			switch lhs.ConstType {
+			case shaderir.ConstTypeInt:
+				return canTruncateToInteger(rhs.Const)
+			case shaderir.ConstTypeFloat:
+				return canTruncateToFloat(rhs.Const)
+			}
+		}
+		return lhs.ConstType == rhs.ConstType
+
+	case lhs.Const != nil:
+		switch lhs.ConstType {
+		case shaderir.ConstTypeNone:
+			if rhst.Main == shaderir.Float {
+				return canTruncateToFloat(lhs.Const)
+			}
+			if rhst.Main == shaderir.Int {
+				return canTruncateToInteger(lhs.Const)
+			}
+		case shaderir.ConstTypeFloat:
+			return rhst.Main == shaderir.Float
+		case shaderir.ConstTypeInt:
+			return rhst.Main == shaderir.Int
+		case shaderir.ConstTypeBool:
+			return rhst.Main == shaderir.Bool
+		}
+
+	case rhs.Const != nil:
+		switch rhs.ConstType {
+		case shaderir.ConstTypeNone:
+			if lhst.Main == shaderir.Float {
+				return canTruncateToFloat(rhs.Const)
+			}
+			if lhst.Main == shaderir.Int {
+				return canTruncateToInteger(rhs.Const)
+			}
+		case shaderir.ConstTypeFloat:
+			return lhst.Main == shaderir.Float
+		case shaderir.ConstTypeInt:
+			return lhst.Main == shaderir.Int
+		case shaderir.ConstTypeBool:
+			return lhst.Main == shaderir.Bool
+		}
+	}
+
+	// Comparing matrices are forbidden (#2187).
+	if lhst.IsMatrix() || rhst.IsMatrix() {
+		return false
+	}
+
+	return lhst.Equal(&rhst)
 }
 
 func goConstantKindString(k gconstant.Kind) string {
@@ -127,11 +203,15 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			var t shaderir.Type
 			switch op {
 			case token.EQL, token.NEQ, token.LSS, token.LEQ, token.GTR, token.GEQ:
+				if !canCompare(&lhs[0], &rhs[0], lhst, rhst) {
+					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), op, rhst.String()))
+					return nil, nil, nil, false
+				}
 				v = gconstant.MakeBool(gconstant.Compare(lhs[0].Const, op, rhs[0].Const))
 				t = shaderir.Type{Main: shaderir.Bool}
 			default:
 				if op == token.REM {
-					if !isModAvailable(&lhs[0], &rhs[0]) {
+					if !isModAvailableForConsts(&lhs[0], &rhs[0]) {
 						var wrongTypeName string
 						if lhs[0].Const.Kind() != gconstant.Int {
 							wrongTypeName = goConstantKindString(lhs[0].Const.Kind())
@@ -173,7 +253,10 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		var t shaderir.Type
 		switch {
 		case op == shaderir.LessThanOp || op == shaderir.LessThanEqualOp || op == shaderir.GreaterThanOp || op == shaderir.GreaterThanEqualOp || op == shaderir.EqualOp || op == shaderir.NotEqualOp || op == shaderir.VectorEqualOp || op == shaderir.VectorNotEqualOp || op == shaderir.AndAnd || op == shaderir.OrOr:
-			// TODO: Check types of the operands.
+			if !canCompare(&lhs[0], &rhs[0], lhst, rhst) {
+				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
+				return nil, nil, nil, false
+			}
 			t = shaderir.Type{Main: shaderir.Bool}
 		case lhs[0].Const != nil && rhs[0].Const == nil:
 			switch rhst.Main {

@@ -2189,3 +2189,153 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 }
+
+// Issue #2187
+func TestSyntaxEqual(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "_ = false == true", err: false},
+		{stmt: "_ = false != true", err: false},
+		{stmt: "_ = false == 1", err: true},
+		{stmt: "_ = false != 1", err: true},
+		{stmt: "_ = false == 1.0", err: true},
+		{stmt: "_ = false != 1.0", err: true},
+		{stmt: "_ = false == 1.1", err: true},
+		{stmt: "_ = false != 1.1", err: true},
+		{stmt: "a, b := false, true; _ = a == b", err: false},
+		{stmt: "a, b := false, true; _ = a != b", err: false},
+		{stmt: "a, b := false, 1; _ = a == b", err: true},
+		{stmt: "a, b := false, 1; _ = a != b", err: true},
+		{stmt: "a, b := false, 1.0; _ = a == b", err: true},
+		{stmt: "a, b := false, 1.0; _ = a != b", err: true},
+		{stmt: "a, b := false, 1.1; _ = a == b", err: true},
+		{stmt: "a, b := false, 1.1; _ = a != b", err: true},
+		{stmt: "a, b := false, vec2(1); _ = a == b", err: true},
+		{stmt: "a, b := false, vec2(1); _ = a != b", err: true},
+		{stmt: "a, b := false, mat2(1); _ = a == b", err: true},
+		{stmt: "a, b := false, mat2(1); _ = a != b", err: true},
+
+		{stmt: "_ = 1 == true", err: true},
+		{stmt: "_ = 1 != true", err: true},
+		{stmt: "_ = 1 == 1", err: false},
+		{stmt: "_ = 1 != 1", err: false},
+		{stmt: "_ = 1 == 1.0", err: false},
+		{stmt: "_ = 1 != 1.0", err: false},
+		{stmt: "_ = 1 == 1.1", err: false},
+		{stmt: "_ = 1 != 1.1", err: false},
+		{stmt: "a, b := 1, true; _ = a == b", err: true},
+		{stmt: "a, b := 1, true; _ = a != b", err: true},
+		{stmt: "a, b := 1, 1; _ = a == b", err: false},
+		{stmt: "a, b := 1, 1; _ = a != b", err: false},
+		{stmt: "a, b := 1, 1.0; _ = a == b", err: true},
+		{stmt: "a, b := 1, 1.0; _ = a != b", err: true},
+		{stmt: "a, b := 1, 1.1; _ = a == b", err: true},
+		{stmt: "a, b := 1, 1.1; _ = a != b", err: true},
+		{stmt: "a, b := 1, vec2(1); _ = a == b", err: true},
+		{stmt: "a, b := 1, vec2(1); _ = a != b", err: true},
+		{stmt: "a, b := 1, mat2(1); _ = a == b", err: true},
+		{stmt: "a, b := 1, mat2(1); _ = a != b", err: true},
+
+		{stmt: "_ = 1.0 == true", err: true},
+		{stmt: "_ = 1.0 != true", err: true},
+		{stmt: "_ = 1.0 == 1", err: false},
+		{stmt: "_ = 1.0 != 1", err: false},
+		{stmt: "_ = 1.0 == 1.0", err: false},
+		{stmt: "_ = 1.0 != 1.0", err: false},
+		{stmt: "_ = 1.0 == 1.1", err: false},
+		{stmt: "_ = 1.0 != 1.1", err: false},
+		{stmt: "a, b := 1.0, true; _ = a == b", err: true},
+		{stmt: "a, b := 1.0, true; _ = a != b", err: true},
+		{stmt: "a, b := 1.0, 1; _ = a == b", err: true},
+		{stmt: "a, b := 1.0, 1; _ = a != b", err: true},
+		{stmt: "a, b := 1.0, 1.0; _ = a == b", err: false},
+		{stmt: "a, b := 1.0, 1.0; _ = a != b", err: false},
+		{stmt: "a, b := 1.0, 1.1; _ = a == b", err: false},
+		{stmt: "a, b := 1.0, 1.1; _ = a != b", err: false},
+		{stmt: "a, b := 1.0, vec2(1); _ = a == b", err: true},
+		{stmt: "a, b := 1.0, vec2(1); _ = a != b", err: true},
+		{stmt: "a, b := 1.0, mat2(1); _ = a == b", err: true},
+		{stmt: "a, b := 1.0, mat2(1); _ = a != b", err: true},
+
+		{stmt: "_ = 1.1 == true", err: true},
+		{stmt: "_ = 1.1 != true", err: true},
+		{stmt: "_ = 1.1 == 1", err: false},
+		{stmt: "_ = 1.1 != 1", err: false},
+		{stmt: "_ = 1.1 == 1.0", err: false},
+		{stmt: "_ = 1.1 != 1.0", err: false},
+		{stmt: "_ = 1.1 == 1.1", err: false},
+		{stmt: "_ = 1.1 != 1.1", err: false},
+		{stmt: "a, b := 1.1, true; _ = a == b", err: true},
+		{stmt: "a, b := 1.1, true; _ = a != b", err: true},
+		{stmt: "a, b := 1.1, 1; _ = a == b", err: true},
+		{stmt: "a, b := 1.1, 1; _ = a != b", err: true},
+		{stmt: "a, b := 1.1, 1.0; _ = a == b", err: false},
+		{stmt: "a, b := 1.1, 1.0; _ = a != b", err: false},
+		{stmt: "a, b := 1.1, 1.1; _ = a == b", err: false},
+		{stmt: "a, b := 1.1, 1.1; _ = a != b", err: false},
+		{stmt: "a, b := 1.1, vec2(1); _ = a == b", err: true},
+		{stmt: "a, b := 1.1, vec2(1); _ = a != b", err: true},
+		{stmt: "a, b := 1.1, mat2(1); _ = a == b", err: true},
+		{stmt: "a, b := 1.1, mat2(1); _ = a != b", err: true},
+
+		{stmt: "_ = vec2(1) == true", err: true},
+		{stmt: "_ = vec2(1) != true", err: true},
+		{stmt: "_ = vec2(1) == 1", err: true},
+		{stmt: "_ = vec2(1) != 1", err: true},
+		{stmt: "_ = vec2(1) == 1.0", err: true},
+		{stmt: "_ = vec2(1) != 1.0", err: true},
+		{stmt: "_ = vec2(1) == 1.1", err: true},
+		{stmt: "_ = vec2(1) != 1.1", err: true},
+		{stmt: "a, b := vec2(1), true; _ = a == b", err: true},
+		{stmt: "a, b := vec2(1), true; _ = a != b", err: true},
+		{stmt: "a, b := vec2(1), 1; _ = a == b", err: true},
+		{stmt: "a, b := vec2(1), 1; _ = a != b", err: true},
+		{stmt: "a, b := vec2(1), 1.0; _ = a == b", err: true},
+		{stmt: "a, b := vec2(1), 1.0; _ = a != b", err: true},
+		{stmt: "a, b := vec2(1), 1.1; _ = a == b", err: true},
+		{stmt: "a, b := vec2(1), 1.1; _ = a != b", err: true},
+		{stmt: "a, b := vec2(1), vec2(1); _ = a == b", err: false},
+		{stmt: "a, b := vec2(1), vec2(1); _ = a != b", err: false},
+		{stmt: "a, b := vec2(1), mat2(1); _ = a == b", err: true},
+		{stmt: "a, b := vec2(1), mat2(1); _ = a != b", err: true},
+
+		{stmt: "_ = mat2(1) == true", err: true},
+		{stmt: "_ = mat2(1) != true", err: true},
+		{stmt: "_ = mat2(1) == 1", err: true},
+		{stmt: "_ = mat2(1) != 1", err: true},
+		{stmt: "_ = mat2(1) == 1.0", err: true},
+		{stmt: "_ = mat2(1) != 1.0", err: true},
+		{stmt: "_ = mat2(1) == 1.1", err: true},
+		{stmt: "_ = mat2(1) != 1.1", err: true},
+		{stmt: "a, b := mat2(1), true; _ = a == b", err: true},
+		{stmt: "a, b := mat2(1), true; _ = a != b", err: true},
+		{stmt: "a, b := mat2(1), 1; _ = a == b", err: true},
+		{stmt: "a, b := mat2(1), 1; _ = a != b", err: true},
+		{stmt: "a, b := mat2(1), 1.0; _ = a == b", err: true},
+		{stmt: "a, b := mat2(1), 1.0; _ = a != b", err: true},
+		{stmt: "a, b := mat2(1), 1.1; _ = a == b", err: true},
+		{stmt: "a, b := mat2(1), 1.1; _ = a != b", err: true},
+		{stmt: "a, b := mat2(1), vec2(1); _ = a == b", err: true},
+		{stmt: "a, b := mat2(1), vec2(1); _ = a != b", err: true},
+		{stmt: "a, b := mat2(1), mat2(1); _ = a == b", err: true}, // Comparing matrices are not allowed.
+		{stmt: "a, b := mat2(1), mat2(1); _ = a != b", err: true}, // Comparing matrices are not allowed.
+	}
+
+	for _, c := range cases {
+		stmt := c.stmt
+		src := fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	%s
+	return position
+}`, stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", stmt, err)
+		}
+	}
+}
