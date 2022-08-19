@@ -53,7 +53,11 @@ func isModAvailableForConsts(lhs, rhs *shaderir.Expr) bool {
 	return false
 }
 
-func canCompare(lhs, rhs *shaderir.Expr, lhst, rhst shaderir.Type) bool {
+func canApplyBinaryOp(lhs, rhs *shaderir.Expr, lhst, rhst shaderir.Type, op shaderir.Op) bool {
+	if op == shaderir.AndAnd || op == shaderir.OrOr {
+		return lhst.Main == shaderir.Bool && rhst.Main == shaderir.Bool
+	}
+
 	switch {
 	case lhs.Const != nil && rhs.Const != nil:
 		switch {
@@ -202,12 +206,23 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			var v gconstant.Value
 			var t shaderir.Type
 			switch op {
-			case token.EQL, token.NEQ, token.LSS, token.LEQ, token.GTR, token.GEQ:
-				if !canCompare(&lhs[0], &rhs[0], lhst, rhst) {
+			case token.EQL, token.NEQ, token.LSS, token.LEQ, token.GTR, token.GEQ, token.LAND, token.LOR:
+				op2, ok := shaderir.OpFromToken(op, lhst, rhst)
+				if !ok {
+					cs.addError(e.Pos(), fmt.Sprintf("unexpected operator: %s", op))
+					return nil, nil, nil, false
+				}
+				if !canApplyBinaryOp(&lhs[0], &rhs[0], lhst, rhst, op2) {
 					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), op, rhst.String()))
 					return nil, nil, nil, false
 				}
-				v = gconstant.MakeBool(gconstant.Compare(lhs[0].Const, op, rhs[0].Const))
+				switch op {
+				case token.LAND, token.LOR:
+					b := gconstant.BoolVal(gconstant.BinaryOp(lhs[0].Const, op, rhs[0].Const))
+					v = gconstant.MakeBool(b)
+				default:
+					v = gconstant.MakeBool(gconstant.Compare(lhs[0].Const, op, rhs[0].Const))
+				}
 				t = shaderir.Type{Main: shaderir.Bool}
 			default:
 				if op == token.REM {
@@ -253,7 +268,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		var t shaderir.Type
 		switch {
 		case op == shaderir.LessThanOp || op == shaderir.LessThanEqualOp || op == shaderir.GreaterThanOp || op == shaderir.GreaterThanEqualOp || op == shaderir.EqualOp || op == shaderir.NotEqualOp || op == shaderir.VectorEqualOp || op == shaderir.VectorNotEqualOp || op == shaderir.AndAnd || op == shaderir.OrOr:
-			if !canCompare(&lhs[0], &rhs[0], lhst, rhst) {
+			if !canApplyBinaryOp(&lhs[0], &rhs[0], lhst, rhst, op) {
 				cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 				return nil, nil, nil, false
 			}
