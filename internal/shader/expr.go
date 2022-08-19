@@ -115,7 +115,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		stmts = append(stmts, ss...)
 		rhst := ts[0]
 
-		if lhs[0].Type == shaderir.NumberExpr && rhs[0].Type == shaderir.NumberExpr {
+		if lhs[0].Const != nil && rhs[0].Const != nil {
 			op := e.Op
 			// https://golang.org/pkg/go/constant/#BinaryOp
 			// "To force integer division of Int operands, use op == token.QUO_ASSIGN instead of
@@ -175,7 +175,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		case op == shaderir.LessThanOp || op == shaderir.LessThanEqualOp || op == shaderir.GreaterThanOp || op == shaderir.GreaterThanEqualOp || op == shaderir.EqualOp || op == shaderir.NotEqualOp || op == shaderir.VectorEqualOp || op == shaderir.VectorNotEqualOp || op == shaderir.AndAnd || op == shaderir.OrOr:
 			// TODO: Check types of the operands.
 			t = shaderir.Type{Main: shaderir.Bool}
-		case lhs[0].Type == shaderir.NumberExpr && rhs[0].Type != shaderir.NumberExpr:
+		case lhs[0].Const != nil && rhs[0].Const == nil:
 			switch rhst.Main {
 			case shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
 				if op != shaderir.MatrixMul {
@@ -196,7 +196,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				lhs[0].ConstType = shaderir.ConstTypeInt
 			}
 			t = rhst
-		case lhs[0].Type != shaderir.NumberExpr && rhs[0].Type == shaderir.NumberExpr:
+		case lhs[0].Const == nil && rhs[0].Const != nil:
 			switch lhst.Main {
 			case shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
 				if op != shaderir.MatrixMul && op != shaderir.Div {
@@ -346,7 +346,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					},
 				}, []shaderir.Type{{Main: shaderir.Int}}, stmts, true
 			case shaderir.IntF:
-				if len(args) == 1 && args[0].Type == shaderir.NumberExpr {
+				if len(args) == 1 && args[0].Const != nil {
 					if !canTruncateToInteger(args[0].Const) {
 						cs.addError(e.Pos(), fmt.Sprintf("cannot convert %s to type int", args[0].Const.String()))
 						return nil, nil, nil, false
@@ -360,7 +360,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					}, []shaderir.Type{{Main: shaderir.Int}}, stmts, true
 				}
 			case shaderir.FloatF:
-				if len(args) == 1 && args[0].Type == shaderir.NumberExpr {
+				if len(args) == 1 && args[0].Const != nil {
 					if gconstant.ToFloat(args[0].Const).Kind() != gconstant.Unknown {
 						return []shaderir.Expr{
 							{
@@ -466,7 +466,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				}
 				for i := range args {
 					// If the argument is a non-typed constant value, treat this as a float value (#1874).
-					if args[i].Type == shaderir.NumberExpr && args[i].ConstType == shaderir.ConstTypeNone && gconstant.ToFloat(args[i].Const).Kind() != gconstant.Unknown {
+					if args[i].Const != nil && args[i].ConstType == shaderir.ConstTypeNone && gconstant.ToFloat(args[i].Const).Kind() != gconstant.Unknown {
 						args[i].Const = gconstant.ToFloat(args[i].Const)
 						args[i].ConstType = shaderir.ConstTypeFloat
 						argts[i] = shaderir.Type{Main: shaderir.Float}
@@ -527,7 +527,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				}
 				for i := range args {
 					// If the argument is a non-typed constant value, treat this as a float value (#1874).
-					if args[i].Type == shaderir.NumberExpr && args[i].ConstType == shaderir.ConstTypeNone && gconstant.ToFloat(args[i].Const).Kind() != gconstant.Unknown {
+					if args[i].Const != nil && args[i].ConstType == shaderir.ConstTypeNone && gconstant.ToFloat(args[i].Const).Kind() != gconstant.Unknown {
 						args[i].Const = gconstant.ToFloat(args[i].Const)
 						args[i].ConstType = shaderir.ConstTypeFloat
 						argts[i] = shaderir.Type{Main: shaderir.Float}
@@ -578,7 +578,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					return nil, nil, nil, false
 				}
 				// If the argument is a non-typed constant value, treat this as a float value (#1874).
-				if args[0].Type == shaderir.NumberExpr && args[0].ConstType == shaderir.ConstTypeNone && gconstant.ToFloat(args[0].Const).Kind() != gconstant.Unknown {
+				if args[0].Const != nil && args[0].ConstType == shaderir.ConstTypeNone && gconstant.ToFloat(args[0].Const).Kind() != gconstant.Unknown {
 					args[0].Const = gconstant.ToFloat(args[0].Const)
 					args[0].ConstType = shaderir.ConstTypeFloat
 					argts[0] = shaderir.Type{Main: shaderir.Float}
@@ -626,7 +626,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		}
 
 		for i, p := range f.ir.InParams {
-			if args[i].Type == shaderir.NumberExpr && p.Main == shaderir.Int {
+			if args[i].Const != nil && p.Main == shaderir.Int {
 				if !cs.forceToInt(e, &args[i]) {
 					return nil, nil, nil, false
 				}
@@ -816,7 +816,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			return nil, nil, nil, false
 		}
 
-		if exprs[0].Type == shaderir.NumberExpr {
+		if exprs[0].Const != nil {
 			v := gconstant.UnaryOp(e.Op, exprs[0].Const, 0)
 			t := shaderir.Type{Main: shaderir.Int}
 			if v.Kind() == gconstant.Float {
@@ -919,7 +919,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			return nil, nil, nil, false
 		}
 		idx := exprs[0]
-		if idx.Type == shaderir.NumberExpr {
+		if idx.Const != nil {
 			if !canTruncateToInteger(idx.Const) {
 				cs.addError(e.Pos(), fmt.Sprintf("constant %s truncated to integer", idx.Const.String()))
 				return nil, nil, nil, false

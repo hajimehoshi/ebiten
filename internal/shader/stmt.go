@@ -220,7 +220,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			return nil, false
 		}
 		varidx := ss[0].Exprs[0].Index
-		if ss[0].Exprs[1].Type != shaderir.NumberExpr {
+		if ss[0].Exprs[1].Const == nil {
 			cs.addError(stmt.Pos(), msg)
 			return nil, false
 		}
@@ -261,7 +261,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			cs.addError(stmt.Pos(), msg)
 			return nil, false
 		}
-		if exprs[0].Exprs[1].Type != shaderir.NumberExpr {
+		if exprs[0].Exprs[1].Const == nil {
 			cs.addError(stmt.Pos(), msg)
 			return nil, false
 		}
@@ -299,7 +299,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			cs.addError(stmt.Pos(), msg)
 			return nil, false
 		}
-		if postSs[0].Exprs[1].Exprs[1].Type != shaderir.NumberExpr {
+		if postSs[0].Exprs[1].Exprs[1].Const == nil {
 			cs.addError(stmt.Pos(), msg)
 			return nil, false
 		}
@@ -479,7 +479,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			} else {
 				outT = outParams[i].typ
 			}
-			if expr.Type == shaderir.NumberExpr {
+			if expr.Const != nil {
 				switch outT.Main {
 				case shaderir.Int:
 					if !cs.forceToInt(stmt, &expr) {
@@ -652,7 +652,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 			}
 			allblank = false
 
-			if r[0].Type == shaderir.NumberExpr {
+			if r[0].Const != nil {
 				t, ok := block.findLocalVariableByIndex(l[0].Index)
 				if !ok {
 					cs.addError(pos, fmt.Sprintf("unexpected local variable index: %d", l[0].Index))
@@ -793,7 +793,7 @@ func canAssign(re *shaderir.Expr, lt *shaderir.Type, rt *shaderir.Type) bool {
 	if lt.Equal(rt) {
 		return true
 	}
-	if re.Type == shaderir.NumberExpr {
+	if re.Const != nil {
 		switch lt.Main {
 		case shaderir.Bool:
 			return re.Const.Kind() == gconstant.Bool
