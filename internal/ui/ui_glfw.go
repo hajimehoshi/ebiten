@@ -747,10 +747,13 @@ func (u *userInterfaceImpl) registerWindowCloseCallback() {
 
 // registerWindowFramebufferSizeCallback must be called from the main thread.
 func (u *userInterfaceImpl) registerWindowFramebufferSizeCallback() {
-	if u.defaultFramebufferSizeCallback == 0 {
+	if u.defaultFramebufferSizeCallback == 0 && runtime.GOOS != "darwin" {
 		// When the window gets resized (either by manual window resize or a window
 		// manager), glfw sends a framebuffer size callback which we need to handle (#1960).
 		// This event is the only way to handle the size change at least on i3 window manager.
+		//
+		// When a decorating state changes, the callback of arguments might be an unexpected value on macOS (#2257)
+		// Then, do not register this callback on macOS.
 		u.defaultFramebufferSizeCallback = glfw.ToFramebufferSizeCallback(func(_ *glfw.Window, w, h int) {
 			if u.isFullscreen() {
 				return
