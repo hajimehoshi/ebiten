@@ -289,6 +289,11 @@ func (u *userInterfaceImpl) setWindowSizeLimitsInDIP(minw, minh, maxw, maxh int)
 	return true
 }
 
+func (u *userInterfaceImpl) areWindowSizeLimitsSpecified() bool {
+	minw, minh, maxw, maxh := u.getWindowSizeLimitsInDIP()
+	return minw != glfw.DontCare || minh != glfw.DontCare || maxw != glfw.DontCare || maxh != glfw.DontCare
+}
+
 func (u *userInterfaceImpl) isInitFullscreen() bool {
 	u.m.RLock()
 	v := u.initFullscreen
