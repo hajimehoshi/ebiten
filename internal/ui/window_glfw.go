@@ -119,6 +119,11 @@ func (w *glfwWindow) Maximize() {
 		return
 	}
 
+	minw, minh, maxw, maxh := w.ui.getWindowSizeLimitsInDIP()
+	if minw != glfw.DontCare || minh != glfw.DontCare || maxw != glfw.DontCare || maxh != glfw.DontCare {
+		return
+	}
+
 	if !w.ui.isRunning() {
 		w.ui.setInitWindowMaximized(true)
 		return
