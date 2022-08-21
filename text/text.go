@@ -149,7 +149,7 @@ var textM sync.Mutex
 // (x, y) represents a 'dot' (period) position.
 // This means that if the given text consisted of a single character ".",
 // it would be positioned at the given position (x, y).
-// Be careful that this doesn't represent left-upper corner position.
+// Be careful that this doesn't represent upper-left corner position.
 //
 // clr is the color for text rendering.
 //
@@ -190,7 +190,7 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 // face is the font for text rendering.
 // op is the options to draw glyph images.
 // The origin point is a 'dot' (period) position.
-// Be careful that the origin point is not left-upper corner position of dst.
+// Be careful that the origin point is not upper-left corner position of dst.
 // The default glyph color is while. op's ColorM adjusts the color.
 //
 // If you want to adjust the position of the text, these functions are useful:
