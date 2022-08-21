@@ -974,7 +974,7 @@ type NewImageOptions struct {
 	// Unmanaged represents whether the image is unmanaged or not.
 	// The default (zero) value is false, that means the image is managed.
 	//
-	// An unmanged image is never on an internal automatic texture atlas.
+	// An unmanaged image is never on an internal automatic texture atlas.
 	// A regular image is a part of an internal texture atlas, and locating them is done automatically in Ebitengine.
 	// Unmanaged is useful when you want finer controls over the image for performance and memory reasons.
 	Unmanaged bool
@@ -1044,7 +1044,7 @@ type NewImageFromImageOptions struct {
 	// Unmanaged represents whether the image is unmanaged or not.
 	// The default (zero) value is false, that means the image is managed.
 	//
-	// An unmanged image is never on an internal automatic texture atlas.
+	// An unmanaged image is never on an internal automatic texture atlas.
 	// A regular image is a part of an internal texture atlas, and locating them is done automatically in Ebitengine.
 	// Unmanaged is useful when you want finer controls over the image for performance and memory reasons.
 	Unmanaged bool
