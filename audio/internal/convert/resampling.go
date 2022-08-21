@@ -243,10 +243,3 @@ func (r *Resampling) Seek(offset int64, whence int) (int64, error) {
 	}
 	return r.pos, nil
 }
-
-func (r *Resampling) Close() error {
-	if closer, ok := r.source.(io.Closer); ok {
-		return closer.Close()
-	}
-	panic("audio/internal/convert: r.source must be io.Closer")
-}
