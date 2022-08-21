@@ -323,7 +323,7 @@ type Vertex struct {
 
 	// SrcX and SrcY represents a point on a source image.
 	// Be careful that SrcX/SrcY coordinates are on the image's bounds.
-	// This means that a left-upper point of a sub-image might not be (0, 0).
+	// This means that a upper-left point of a sub-image might not be (0, 0).
 	SrcX float32
 	SrcY float32
 
@@ -615,8 +615,8 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		}
 		b := img.Bounds()
 		x, y := img.adjustPosition(b.Min.X, b.Min.Y)
-		// (sx, sy) is the left-upper position of the first image.
-		// Calculate the distance between the current image's left-upper position and the first one's.
+		// (sx, sy) is the upper-left position of the first image.
+		// Calculate the distance between the current image's upper-left position and the first one's.
 		offsets[i][0] = float32(x - sx)
 		offsets[i][1] = float32(y - sy)
 	}
@@ -717,8 +717,8 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		}
 		b := img.Bounds()
 		x, y := img.adjustPosition(b.Min.X, b.Min.Y)
-		// (sx, sy) is the left-upper position of the first image.
-		// Calculate the distance between the current image's left-upper position and the first one's.
+		// (sx, sy) is the upper-left position of the first image.
+		// Calculate the distance between the current image's upper-left position and the first one's.
 		offsets[i][0] = float32(x - sx)
 		offsets[i][1] = float32(y - sy)
 	}
@@ -986,7 +986,7 @@ type NewImageOptions struct {
 //
 // The rendering origin position is (0, 0) of the given bounds.
 // If DrawImage is called on a new image created by NewImageOptions,
-// for example, the center of scaling and rotating is (0, 0), that might not be a left-upper position.
+// for example, the center of scaling and rotating is (0, 0), that might not be a upper-left position.
 //
 // If options is nil, the default setting is used.
 //
@@ -1034,7 +1034,7 @@ func newImage(bounds image.Rectangle, imageType atlas.ImageType) *Image {
 //
 // NewImageFromImage panics if RunGame already finishes.
 //
-// The returned image's left-upper position is always (0, 0). The source's bounds are not respected.
+// The returned image's upper-left position is always (0, 0). The source's bounds are not respected.
 func NewImageFromImage(source image.Image) *Image {
 	return NewImageFromImageWithOptions(source, nil)
 }
@@ -1050,7 +1050,7 @@ type NewImageFromImageOptions struct {
 	Unmanaged bool
 
 	// PreserveBounds represents whether the new image's bounds are the same as the given image.
-	// The default (zero) value is false, that means the new image's left-upper position is adjusted to (0, 0).
+	// The default (zero) value is false, that means the new image's upper-left position is adjusted to (0, 0).
 	PreserveBounds bool
 }
 
