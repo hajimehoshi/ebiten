@@ -976,7 +976,7 @@ type NewImageOptions struct {
 	//
 	// An unmanged image is never on an internal automatic texture atlas.
 	// A regular image is a part of an internal texture atlas, and locating them is done automatically in Ebitengine.
-	// NewUnmanagedImage is useful when you want finer controls over the image for performance and memory reasons.
+	// Unmanaged is useful when you want finer controls over the image for performance and memory reasons.
 	Unmanaged bool
 }
 
@@ -1046,7 +1046,7 @@ type NewImageFromImageOptions struct {
 	//
 	// An unmanged image is never on an internal automatic texture atlas.
 	// A regular image is a part of an internal texture atlas, and locating them is done automatically in Ebitengine.
-	// NewUnmanagedImage is useful when you want finer controls over the image for performance and memory reasons.
+	// Unmanaged is useful when you want finer controls over the image for performance and memory reasons.
 	Unmanaged bool
 
 	// PreserveBounds represents whether the new image's bounds are the same as the given image.
