@@ -196,6 +196,9 @@ var Termination = ui.RegularTermination
 // use errors.Is when you check the returned error is the error you want, rather than comparing the values
 // with == or != directly.
 //
+// If you want to terminate a game on desktops, it is totally fine to define your own error value, return it at
+// Update, and check whether the returned error value from RunGame is the same as the value you defined.
+//
 // The size unit is device-independent pixel.
 //
 // Don't call RunGame twice or more in one process.
