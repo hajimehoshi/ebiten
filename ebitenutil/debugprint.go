@@ -13,7 +13,7 @@
 // limitations under the License.
 
 //go:generate go run gen.go
-//go:generate go run github.com/hajimehoshi/file2byteslice/cmd/file2byteslice -input text.png -output text.png.go -package ebitenutil -var textPng
+//go:generate go run github.com/hajimehoshi/file2byteslice/cmd/file2byteslice@v1.0.0 -input text.png -output text.png.go -package ebitenutil -var textPng
 
 package ebitenutil
 

@@ -26,10 +26,10 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"text/template"
 
-	"github.com/hajimehoshi/file2byteslice"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
 
@@ -247,15 +247,16 @@ func outputKeyboardImage() (map[ebiten.Key]image.Rectangle, error) {
 		return nil, err
 	}
 
-	out, err := os.Create("../../resources/images/keyboard/keyboard.go")
-	if err != nil {
+	cmd := exec.Command("go", "run", "github.com/hajimehoshi/file2byteslice/cmd/file2byteslice@v1.0.0",
+		"-output", "../../resources/images/keyboard/keyboard.go",
+		"-package", "keyboard",
+		"-var", "Keyboard_png")
+	cmd.Stdin = &buf
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
 		return nil, err
 	}
-	defer out.Close()
 
-	if err := file2byteslice.Write(out, &buf, false, "", "keyboard", "Keyboard_png"); err != nil {
-		return nil, err
-	}
 	return keyMap, nil
 }
 
