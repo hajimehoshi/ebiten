@@ -6,7 +6,6 @@ require (
 	github.com/ebitengine/purego v0.0.0-20220820193322-ffec45151ddb
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220806181222-55e207c401ad
 	github.com/hajimehoshi/bitmapfont/v2 v2.2.1
-	github.com/hajimehoshi/file2byteslice v0.0.0-20210813153925-5340248a8f41
 	github.com/hajimehoshi/go-mp3 v0.3.3
 	github.com/hajimehoshi/oto/v2 v2.4.0-alpha.0.20220820194526-65562ecb133c
 	github.com/jakecoffman/cp v1.2.1
