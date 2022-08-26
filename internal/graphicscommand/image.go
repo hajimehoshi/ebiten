@@ -15,8 +15,8 @@
 package graphicscommand
 
 import (
-	"bytes"
 	"image"
+	"io"
 	"sort"
 	"strconv"
 	"strings"
@@ -190,25 +190,26 @@ func (i *Image) IsInvalidated() bool {
 	return i.image.IsInvalidated()
 }
 
-// FormatPath replaces * in the given path with the Image's ID.
-func (i *Image) FormatPath(path string) string {
-	return strings.ReplaceAll(path, "*", strconv.Itoa(i.id))
+// DumpName formats the given pattern as a dump filename for the given image.
+// In the pattern, '*' is replaced with the image's ID.
+func (i *Image) DumpName(pattern string) string {
+	return strings.ReplaceAll(pattern, "*", strconv.Itoa(i.id))
 }
 
-// DumpBytes dumps the image as PNG data.
+// DumpTo dumps the image to the specified writer.
 //
 // If blackbg is true, any alpha values in the dumped image will be 255.
 //
 // This is for testing usage.
-func (i *Image) DumpBytes(graphicsDriver graphicsdriver.Graphics, blackbg bool, rect image.Rectangle) ([]byte, error) {
+func (i *Image) DumpTo(graphicsDriver graphicsdriver.Graphics, blackbg bool, rect image.Rectangle, w io.Writer) error {
 	// Screen image cannot be dumped.
 	if i.screen {
-		return nil, nil
+		return nil
 	}
 
 	pix := make([]byte, 4*i.width*i.height)
 	if err := i.ReadPixels(graphicsDriver, pix); err != nil {
-		return nil, err
+		return err
 	}
 
 	if blackbg {
@@ -217,17 +218,17 @@ func (i *Image) DumpBytes(graphicsDriver graphicsdriver.Graphics, blackbg bool, 
 		}
 	}
 
-	f := &bytes.Buffer{}
-	if err := png.Encode(f, (&image.RGBA{
+	if err := png.Encode(w, (&image.RGBA{
 		Pix:    pix,
 		Stride: 4 * i.width,
 		Rect:   image.Rect(0, 0, i.width, i.height),
 	}).SubImage(rect)); err != nil {
-		return nil, err
+		return err
 	}
 
-	return f.Bytes(), nil
+	return nil
 }
+
 
 func LogImagesInfo(images []*Image) {
 	sort.Slice(images, func(a, b int) bool {

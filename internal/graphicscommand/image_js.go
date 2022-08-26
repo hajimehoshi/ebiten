@@ -4,6 +4,7 @@
 package graphicscommand
 
 import (
+	"bytes"
 	"image"
 	"path/filepath"
 	"syscall/js"
@@ -12,23 +13,23 @@ import (
 )
 
 func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool, rect image.Rectangle) error {
-	data, err := i.DumpBytes(graphicsDriver, blackbg, rect)
-	if err != nil {
-		return err
-	}
-
-	// screen image
-	if data == nil {
+	// Screen image cannot be dumped.
+	if i.screen {
 		return nil
 	}
 
-	path = i.FormatPath(path)
+	path = i.DumpName(path)
 	path = filepath.Base(path)
 
 	global := js.Global()
 
-	jsData := global.Get("Uint8Array").New(len(data))
-	_ = js.CopyBytesToJS(jsData, data)
+	buf := &bytes.Buffer{}
+	if err := i.DumpTo(graphicsDriver, blackbg, rect, buf); err != nil {
+		return err
+	}
+
+	jsData := global.Get("Uint8Array").New(buf.Len())
+	_ = js.CopyBytesToJS(jsData, buf.Bytes())
 
 	a := global.Get("document").Call("createElement", "a")
 	blob := global.Get("Blob").New(

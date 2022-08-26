@@ -22,7 +22,6 @@ import (
 	"os"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
-	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 func takeScreenshot(screen *Image) error {
@@ -37,22 +36,6 @@ func takeScreenshot(screen *Image) error {
 	}
 
 	if _, err := fmt.Fprintf(os.Stderr, "Saved screenshot: %s\n", newname); err != nil {
-		return err
-	}
-	return nil
-}
-
-func dumpInternalImages() error {
-	dir, err := availableFilename("internalimages_", "")
-	if err != nil {
-		return err
-	}
-
-	if err := ui.DumpImages(dir); err != nil {
-		return err
-	}
-
-	if _, err := fmt.Fprintf(os.Stderr, "Dumped the internal images at: %s\n", dir); err != nil {
 		return err
 	}
 	return nil

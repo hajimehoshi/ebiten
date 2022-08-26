@@ -34,17 +34,12 @@ func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) error {
 	zw := zip.NewWriter(buf)
 
 	for img := range theImages.images {
-		data, err := img.image.DumpBytes(graphicsDriver, false, image.Rect(0, 0, img.width, img.height))
+		f, err := zw.Create(img.image.DumpName("*.png"))
 		if err != nil {
 			return err
 		}
 
-		f, err := zw.Create(img.image.FormatPath("*.png"))
-		if err != nil {
-			return err
-		}
-
-		if _, err := f.Write(data); err != nil {
+		if err := img.image.DumpTo(graphicsDriver, false, image.Rect(0, 0, img.width, img.height), f); err != nil {
 			return err
 		}
 	}

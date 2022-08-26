@@ -19,7 +19,10 @@ package ebiten
 
 import (
 	"fmt"
+	"os"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 // availableFilename returns a filename that is valid as a new file or directory.
@@ -32,3 +35,18 @@ func availableFilename(prefix, postfix string) (string, error) {
 	return name, nil
 }
 
+func dumpInternalImages() error {
+	dir, err := availableFilename("internalimages_", "")
+	if err != nil {
+		return err
+	}
+
+	if err := ui.DumpImages(dir); err != nil {
+		return err
+	}
+
+	if _, err := fmt.Fprintf(os.Stderr, "Dumped the internal images at: %s\n", dir); err != nil {
+		return err
+	}
+	return nil
+}
