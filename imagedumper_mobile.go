@@ -1,4 +1,4 @@
-// Copyright 2017 The Ebiten Authors
+// Copyright 2022 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,29 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !js
-// +build !js
+//go:build android || ios
+// +build android ios
 
-package restorable
+package ebiten
 
-import (
-	"image"
-	"os"
-	"path/filepath"
-
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-)
-
-// DumpImages dumps all the current images to the specified directory.
-//
-// This is for testing usage.
-func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) error {
-	for img := range theImages.images {
-		if err := img.Dump(graphicsDriver, filepath.Join(dir, "*.png"), false, image.Rect(0, 0, img.width, img.height)); err != nil {
-			return err
-		}
-	}
-	return nil
+type imageDumper struct {
+	g Game
 }
 
+func (i *imageDumper) update() error {
+	return i.g.Update()
+}
 
+func (i *imageDumper) dump(screen *Image) error {
+	// Do nothing
+	return nil
+}
