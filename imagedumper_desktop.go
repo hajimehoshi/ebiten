@@ -12,39 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !ios && !js
-// +build !android,!ios,!js
+//go:build !android && !ios
+// +build !android,!ios
 
 package ebiten
 
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
-
-// availableFilename returns a filename that is valid as a new file or directory.
-func availableFilename(prefix, postfix string) (string, error) {
-	const datetimeFormat = "20060102030405"
-
-	now := time.Now()
-	name := fmt.Sprintf("%s%s%s", prefix, now.Format(datetimeFormat), postfix)
-	for i := 1; ; i++ {
-		if _, err := os.Stat(name); err != nil {
-			if os.IsNotExist(err) {
-				break
-			}
-			if !os.IsNotExist(err) {
-				return "", err
-			}
-		}
-		name = fmt.Sprintf("%s%s_%d%s", prefix, now.Format(datetimeFormat), i, postfix)
-	}
-	return name, nil
-}
 
 func takeScreenshot(screen *Image) error {
 	newname, err := availableFilename("screenshot_", ".png")

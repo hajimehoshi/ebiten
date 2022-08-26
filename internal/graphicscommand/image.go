@@ -15,11 +15,9 @@
 package graphicscommand
 
 import (
-	"fmt"
+	"bytes"
 	"image"
-	"os"
 	"sort"
-	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
@@ -190,28 +188,20 @@ func (i *Image) IsInvalidated() bool {
 	return i.image.IsInvalidated()
 }
 
-// Dump dumps the image to the specified path.
-// In the path, '*' is replaced with the image's ID.
+// DumpBytes dumps the image as PNG data.
 //
 // If blackbg is true, any alpha values in the dumped image will be 255.
 //
 // This is for testing usage.
-func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool, rect image.Rectangle) error {
+func (i *Image) DumpBytes(graphicsDriver graphicsdriver.Graphics, blackbg bool, rect image.Rectangle) ([]byte, error) {
 	// Screen image cannot be dumped.
 	if i.screen {
-		return nil
+		panic("graphicscommand: DumpBytes cannot be called on the screen image")
 	}
-
-	path = strings.ReplaceAll(path, "*", fmt.Sprintf("%d", i.id))
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
 
 	pix := make([]byte, 4*i.width*i.height)
 	if err := i.ReadPixels(graphicsDriver, pix); err != nil {
-		return err
+		return nil, err
 	}
 
 	if blackbg {
@@ -220,14 +210,16 @@ func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackb
 		}
 	}
 
+	f := &bytes.Buffer{}
 	if err := png.Encode(f, (&image.RGBA{
 		Pix:    pix,
 		Stride: 4 * i.width,
 		Rect:   image.Rect(0, 0, i.width, i.height),
 	}).SubImage(rect)); err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+
+	return f.Bytes(), nil
 }
 
 func LogImagesInfo(images []*Image) {

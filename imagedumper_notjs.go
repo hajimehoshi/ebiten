@@ -12,20 +12,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build android || ios
-// +build android ios
+//go:build !js
+// +build !js
 
 package ebiten
 
-type imageDumper struct {
-	g Game
+import (
+	"fmt"
+	"os"
+	"time"
+)
+
+// availableFilename returns a filename that is valid as a new file or directory.
+func availableFilename(prefix, postfix string) (string, error) {
+	const datetimeFormat = "20060102030405"
+
+	now := time.Now()
+	name := fmt.Sprintf("%s%s%s", prefix, now.Format(datetimeFormat), postfix)
+	for i := 1; ; i++ {
+		if _, err := os.Stat(name); err != nil {
+			if os.IsNotExist(err) {
+				break
+			}
+			if !os.IsNotExist(err) {
+				return "", err
+			}
+		}
+		name = fmt.Sprintf("%s%s_%d%s", prefix, now.Format(datetimeFormat), i, postfix)
+	}
+	return name, nil
 }
 
-func (i *imageDumper) update() error {
-	return i.g.Update()
-}
 
-func (i *imageDumper) dump(screen *Image) error {
-	// Do nothing
-	return nil
-}
