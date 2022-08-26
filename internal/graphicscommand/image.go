@@ -18,6 +18,8 @@ import (
 	"bytes"
 	"image"
 	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
@@ -188,6 +190,11 @@ func (i *Image) IsInvalidated() bool {
 	return i.image.IsInvalidated()
 }
 
+// FormatPath replaces * in the given path with the Image's ID.
+func (i *Image) FormatPath(path string) string {
+	return strings.ReplaceAll(path, "*", strconv.Itoa(i.id))
+}
+
 // DumpBytes dumps the image as PNG data.
 //
 // If blackbg is true, any alpha values in the dumped image will be 255.
@@ -196,7 +203,7 @@ func (i *Image) IsInvalidated() bool {
 func (i *Image) DumpBytes(graphicsDriver graphicsdriver.Graphics, blackbg bool, rect image.Rectangle) ([]byte, error) {
 	// Screen image cannot be dumped.
 	if i.screen {
-		panic("graphicscommand: DumpBytes cannot be called on the screen image")
+		return nil, nil
 	}
 
 	pix := make([]byte, 4*i.width*i.height)

@@ -4,10 +4,8 @@
 package graphicscommand
 
 import (
-	"fmt"
 	"image"
 	"path/filepath"
-	"strings"
 	"syscall/js"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -19,7 +17,12 @@ func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackb
 		return err
 	}
 
-	path = strings.ReplaceAll(path, "*", fmt.Sprintf("%d", i.id))
+	// screen image
+	if data == nil {
+		return nil
+	}
+
+	path = i.FormatPath(path)
 	path = filepath.Base(path)
 
 	global := js.Global()

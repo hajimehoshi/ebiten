@@ -4,10 +4,8 @@
 package graphicscommand
 
 import (
-	"fmt"
 	"image"
 	"os"
-	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
@@ -18,7 +16,12 @@ func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackb
 		return err
 	}
 
-	path = strings.ReplaceAll(path, "*", fmt.Sprintf("%d", i.id))
+	// screen image
+	if data == nil {
+		return nil
+	}
+
+	path = i.FormatPath(path)
 	f, err := os.Create(path)
 	if err != nil {
 		return err
