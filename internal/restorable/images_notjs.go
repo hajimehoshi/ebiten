@@ -19,7 +19,6 @@ package restorable
 
 import (
 	"image"
-	"os"
 	"path/filepath"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
