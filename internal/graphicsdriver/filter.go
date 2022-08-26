@@ -19,7 +19,6 @@ type Filter int
 const (
 	FilterNearest Filter = iota
 	FilterLinear
-	FilterScreen
 )
 
 type Address int
