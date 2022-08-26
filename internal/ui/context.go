@@ -36,6 +36,7 @@ var Scale float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	sourceSize := imageSrcTextureSize()
+	// texelSize is one pixel size in texel sizes.
 	texelSize := 1 / sourceSize
 	halfScaledTexelSize := texelSize / 2 / Scale
 
@@ -51,8 +52,15 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	c2 := imageSrc0UnsafeAt(vec2(p0.x, p1.y))
 	c3 := imageSrc0UnsafeAt(p1)
 
-	rateCenter := vec2(1, 1) - halfScaledTexelSize
-	rate := clamp(((fract(p0 * sourceSize) - rateCenter) * Scale) + rateCenter, 0, 1)
+	// p is the p1 value in one pixel assuming that the pixel's upper-left is (0, 0) and the lower-right is (1, 1).
+	p := fract(p1 * sourceSize)
+
+	// rate indicates how much the 4 colors are mixed. rate is in between [0, 1].
+	//
+	//     0 <= p < 1/Scale: The rate is in between [0, 1)   
+	//     1/Scale <= p:     Don't care. Adjacent colors (e.g. c0 vs c1 in an X direction) should be the same.
+	rate := clamp(p*Scale, 0, 1)
+
 	return mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y)
 }
 `
