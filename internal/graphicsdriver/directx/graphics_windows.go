@@ -1528,7 +1528,7 @@ func (i *Image) ensureReadingStagingBuffer() error {
 	return nil
 }
 
-func (i *Image) ReadPixels(buf []byte) error {
+func (i *Image) ReadPixels(buf []byte, x, y, width, height int) error {
 	if i.screen {
 		return errors.New("directx: Pixels cannot be called on the screen")
 	}
@@ -1562,12 +1562,12 @@ func (i *Image) ReadPixels(buf []byte) error {
 	}
 	i.graphics.needFlushCopyCommandList = true
 	i.graphics.copyCommandList.CopyTextureRegion_PlacedFootPrint_SubresourceIndex(
-		&dst, 0, 0, 0, &src, &_D3D12_BOX{
+		&dst, uint32(x), uint32(y), 0, &src, &_D3D12_BOX{
 			left:   0,
 			top:    0,
 			front:  0,
-			right:  uint32(i.width),
-			bottom: uint32(i.height),
+			right:  uint32(width),
+			bottom: uint32(height),
 			back:   1,
 		})
 
@@ -1581,8 +1581,8 @@ func (i *Image) ReadPixels(buf []byte) error {
 	h.Len = int(i.totalBytes)
 	h.Cap = int(i.totalBytes)
 
-	for j := 0; j < i.height; j++ {
-		copy(buf[j*i.width*4:(j+1)*i.width*4], dstBytes[j*int(i.layouts.Footprint.RowPitch):])
+	for j := 0; j < height; j++ {
+		copy(buf[j*width*4:(j+1)*width*4], dstBytes[j*int(i.layouts.Footprint.RowPitch):])
 	}
 
 	i.readingStagingBuffer.Unmap(0, nil)

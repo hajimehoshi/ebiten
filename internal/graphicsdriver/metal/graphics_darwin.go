@@ -1104,16 +1104,17 @@ func (i *Image) syncTexture() {
 	cb.WaitUntilCompleted()
 }
 
-func (i *Image) ReadPixels(buf []byte) error {
-	if got, want := len(buf), 4*i.width*i.height; got != want {
+func (i *Image) ReadPixels(buf []byte, x, y, width, height int) error {
+	if got, want := len(buf), 4*width*height; got != want {
 		return fmt.Errorf("metal: len(buf) must be %d but %d at ReadPixels", want, got)
 	}
 
 	i.graphics.flushIfNeeded(false)
 	i.syncTexture()
 
-	i.texture.GetBytes(&buf[0], uintptr(4*i.width), mtl.Region{
-		Size: mtl.Size{Width: i.width, Height: i.height, Depth: 1},
+	i.texture.GetBytes(&buf[0], uintptr(4*width), mtl.Region{
+		Origin: mtl.Origin{X: x, Y: y},
+		Size:   mtl.Size{Width: width, Height: height, Depth: 1},
 	}, 0)
 	return nil
 }

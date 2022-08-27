@@ -151,10 +151,14 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [g
 
 // ReadPixels reads the image's pixels.
 // ReadPixels returns an error when an error happens in the graphics driver.
-func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, buf []byte) error {
+func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, buf []byte, x, y, width, height int) error {
 	i.resolveBufferedWritePixels()
 	c := &readPixelsCommand{
 		img:    i,
+		x:      x,
+		y:      y,
+		width:  width,
+		height: height,
 		result: buf,
 	}
 	theCommandQueue.Enqueue(c)
@@ -200,7 +204,7 @@ func (i *Image) dumpTo(w io.Writer, graphicsDriver graphicsdriver.Graphics, blac
 	}
 
 	pix := make([]byte, 4*i.width*i.height)
-	if err := i.ReadPixels(graphicsDriver, pix); err != nil {
+	if err := i.ReadPixels(graphicsDriver, pix, 0, 0, i.width, i.height); err != nil {
 		return err
 	}
 

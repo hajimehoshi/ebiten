@@ -534,11 +534,15 @@ func (c *writePixelsCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexO
 type readPixelsCommand struct {
 	result []byte
 	img    *Image
+	x      int
+	y      int
+	width  int
+	height int
 }
 
 // Exec executes a readPixelsCommand.
 func (c *readPixelsCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
-	if err := c.img.image.ReadPixels(c.result); err != nil {
+	if err := c.img.image.ReadPixels(c.result, c.x, c.y, c.width, c.height); err != nil {
 		return err
 	}
 	return nil

@@ -148,12 +148,12 @@ func (c *context) bindFramebufferImpl(f framebufferNative) {
 	c.ctx.BindFramebuffer(gles.FRAMEBUFFER, uint32(f))
 }
 
-func (c *context) framebufferPixels(buf []byte, f *framebuffer, width, height int) {
+func (c *context) framebufferPixels(buf []byte, f *framebuffer, x, y, width, height int) {
 	c.ctx.Flush()
 
 	c.bindFramebuffer(f.native)
 
-	c.ctx.ReadPixels(buf, 0, 0, int32(width), int32(height), gles.RGBA, gles.UNSIGNED_BYTE)
+	c.ctx.ReadPixels(buf, int32(x), int32(y), int32(width), int32(height), gles.RGBA, gles.UNSIGNED_BYTE)
 }
 
 func (c *context) framebufferPixelsToBuffer(f *framebuffer, buffer buffer, width, height int) {

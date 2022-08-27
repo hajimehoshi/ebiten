@@ -62,12 +62,12 @@ func (i *Image) setViewport() error {
 	return nil
 }
 
-func (i *Image) ReadPixels(buf []byte) error {
+func (i *Image) ReadPixels(buf []byte, x, y, width, height int) error {
 	if err := i.ensureFramebuffer(); err != nil {
 		return err
 	}
 
-	i.graphics.context.framebufferPixels(buf, i.framebuffer, i.width, i.height)
+	i.graphics.context.framebufferPixels(buf, i.framebuffer, x, y, width, height)
 	return nil
 }
 

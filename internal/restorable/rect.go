@@ -128,3 +128,11 @@ func (pr *pixelsRecords) apply(img *graphicscommand.Image) {
 		img.WritePixels(r.pix, r.rect.Min.X, r.rect.Min.Y, r.rect.Dx(), r.rect.Dy())
 	}
 }
+
+func (pr *pixelsRecords) region() image.Rectangle {
+	var rect image.Rectangle
+	for _, r := range pr.records {
+		rect = rect.Union(r.rect)
+	}
+	return rect
+}

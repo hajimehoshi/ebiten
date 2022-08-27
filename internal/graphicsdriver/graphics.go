@@ -69,7 +69,7 @@ type Image interface {
 	ID() ImageID
 	Dispose()
 	IsInvalidated() bool
-	ReadPixels(buf []byte) error
+	ReadPixels(buf []byte, x, y, width, height int) error
 	WritePixels(args []*WritePixelsArgs) error
 }
 
