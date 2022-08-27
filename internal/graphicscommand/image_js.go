@@ -42,7 +42,7 @@ func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackb
 	}
 
 	jsData := global.Get("Uint8Array").New(buf.Len())
-	_ = js.CopyBytesToJS(jsData, buf.Bytes())
+	js.CopyBytesToJS(jsData, buf.Bytes())
 
 	a := global.Get("document").Call("createElement", "a")
 	blob := global.Get("Blob").New(
