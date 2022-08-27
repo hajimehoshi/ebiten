@@ -53,7 +53,7 @@ For installation on desktops, see [the installation instruction](https://ebiten.
 - [Discord](https://discord.gg/3tVdM5H8cC)
 - `#ebitengine` channel in [Gophers Slack](https://blog.gopheracademy.com/gophers-slack-community/)
 - [GitHub Discussion](https://github.com/hajimehoshi/ebiten/discussions)
-- [`r/ebiten` in Reddit](https://www.reddit.com/r/ebiten/)
+- [`r/ebitengine` in Reddit](https://www.reddit.com/r/ebitengine/)
 
 ## License
 
