@@ -59,7 +59,7 @@
 // `EBITENGINE_SCREENSHOT_KEY` environment variable specifies the key
 // to take a screenshot. For example, if you run your game with
 // `EBITENGINE_SCREENSHOT_KEY=q`, you can take a game screen's screenshot
-// by pressing Q key. This works only on desktops.
+// by pressing Q key. This works only on desktops and browsers.
 //
 // `EBITENGINE_INTERNAL_IMAGES_KEY` environment variable specifies the key
 // to dump all the internal images. This is valid only when the build tag
