@@ -221,7 +221,6 @@ func (i *Image) dumpTo(w io.Writer, graphicsDriver graphicsdriver.Graphics, blac
 	return nil
 }
 
-
 func LogImagesInfo(images []*Image) {
 	sort.Slice(images, func(a, b int) bool {
 		return images[a].id < images[b].id
