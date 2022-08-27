@@ -45,6 +45,10 @@ type Game interface {
 	//
 	// After the first frame, Update might not be called or might be called once
 	// or more for one frame. The frequency is determined by the current TPS (tick-per-second).
+	//
+	// If the error returned is nil, game execution proceeds normally.
+	// If the error returned is RegularTermination, game execution halts, but does not return an error from RunGame.
+	// If the error returned is any other non-nil value, game execution halts and the error is returned from RunGame.
 	Update() error
 
 	// Draw draws the game screen by one frame.
@@ -167,6 +171,9 @@ func (i *imageDumperGame) Layout(outsideWidth, outsideHeight int) (screenWidth, 
 	return i.game.Layout(outsideWidth, outsideHeight)
 }
 
+// RegularTermination is a special error which indicates Game termination without error.
+var RegularTermination = ui.RegularTermination
+
 // RunGame starts the main loop and runs the game.
 // game's Update function is called every tick to update the game logic.
 // game's Draw function is called every frame to draw the screen.
@@ -202,9 +209,10 @@ func RunGame(game Game) error {
 		game: game,
 	})
 	if err := ui.Get().Run(g); err != nil {
-		if err == ui.RegularTermination {
+		if errors.Is(err, ui.RegularTermination) {
 			return nil
 		}
+
 		return err
 	}
 	return nil
@@ -216,7 +224,7 @@ func isRunGameEnded() bool {
 
 // ScreenSizeInFullscreen returns the size in device-independent pixels when the game is fullscreen.
 // The adopted monitor is the 'current' monitor which the window belongs to.
-// The returned value can be given to Run or SetSize function if the perfectly fit fullscreen is needed.
+// The returned value can be given to SetSize function if the perfectly fit fullscreen is needed.
 //
 // On browsers, ScreenSizeInFullscreen returns the 'window' (global object) size, not 'screen' size.
 // ScreenSizeInFullscreen's returning value is different from the actual screen size and this is a known issue (#2145).
@@ -228,8 +236,8 @@ func isRunGameEnded() bool {
 // the Game interface's Layout function instead. If you are making a not-fullscreen application but the application's
 // behavior depends on the monitor size, ScreenSizeInFullscreen is useful.
 //
-// ScreenSizeInFullscreen must be called on the main thread before ebiten.Run, and is concurrent-safe after
-// ebiten.Run.
+// ScreenSizeInFullscreen must be called on the main thread before ebiten.RunGame, and is concurrent-safe after
+// ebiten.RunGame.
 func ScreenSizeInFullscreen() (int, int) {
 	return ui.Get().ScreenSizeInFullscreen()
 }
