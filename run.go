@@ -192,12 +192,12 @@ var Termination = ui.RegularTermination
 // This is not related to framerate (display's refresh rate).
 //
 // RunGame returns error when 1) an error happens in the underlying graphics driver, 2) an audio error happens
-// or 3) f returns an error. In the case of 3), RunGame returns the same error so far, but it is recommended to
+// or 3) Update returns an error. In the case of 3), RunGame returns the same error so far, but it is recommended to
 // use errors.Is when you check the returned error is the error you want, rather than comparing the values
 // with == or != directly.
 //
-// If you want to terminate a game on desktops, it is totally fine to define your own error value, return it at
-// Update, and check whether the returned error value from RunGame is the same as the value you defined.
+// If you want to terminate a game on desktops, it is recommended to return Termination at Update, which will halt
+// execution without returning an error value from RunGame.
 //
 // The size unit is device-independent pixel.
 //
