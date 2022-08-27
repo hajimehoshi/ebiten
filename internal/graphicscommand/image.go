@@ -188,12 +188,12 @@ func (i *Image) IsInvalidated() bool {
 	return i.image.IsInvalidated()
 }
 
-// DumpTo dumps the image to the specified writer.
+// dumpTo dumps the image to the specified writer.
 //
 // If blackbg is true, any alpha values in the dumped image will be 255.
 //
 // This is for testing usage.
-func (i *Image) DumpTo(graphicsDriver graphicsdriver.Graphics, blackbg bool, rect image.Rectangle, w io.Writer) error {
+func (i *Image) dumpTo(graphicsDriver graphicsdriver.Graphics, blackbg bool, rect image.Rectangle, w io.Writer) error {
 	// Screen image cannot be dumped.
 	if i.screen {
 		return nil

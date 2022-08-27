@@ -40,7 +40,7 @@ func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackb
 	global := js.Global()
 
 	buf := &bytes.Buffer{}
-	if err := i.DumpTo(graphicsDriver, blackbg, rect, buf); err != nil {
+	if err := i.dumpTo(graphicsDriver, blackbg, rect, buf); err != nil {
 		return err
 	}
 
