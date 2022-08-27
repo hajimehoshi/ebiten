@@ -19,7 +19,6 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"image"
 	"image/color"
