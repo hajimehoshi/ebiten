@@ -81,12 +81,15 @@
 //	"warp":  Use WARP (i.e. software rendering).
 //	"debug": Use a debug layer.
 //
+// `EBITENGINE_OPENGL` environment variable specifies various parameters for OpenGL.
+// You can specify multiple values separated by a comma. The default value is empty (i.e. no parameters).
+//
+//	"webgl1": Use WebGL 1. This is valid only on browsers.
+//
 // # Build tags
 //
 // `ebitenginedebug` outputs a log of graphics commands. This is useful to know what happens in Ebitengine. In general, the
 // number of graphics commands affects the performance of your game.
-//
-// `ebitenginewebgl1` forces to use WebGL 1 on browsers.
 //
 // `ebitenginesinglethread` disables Ebitengine's thread safety to unlock maximum performance. If you use this you will have
 // to manage threads yourself. Functions like IsKeyPressed will no longer be concurrent-safe with this build tag.

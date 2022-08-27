@@ -17,6 +17,8 @@ package opengl
 import (
 	"errors"
 	"fmt"
+	"os"
+	"strings"
 	"syscall/js"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -95,9 +97,16 @@ const (
 	webGLVersion2
 )
 
-var (
-	webGL2MightBeAvailable = !forceWebGL1 && (js.Global().Get("WebGL2RenderingContext").Truthy())
-)
+func webGL2MightBeAvailable() bool {
+	env := os.Getenv("EBITENGINE_OPENGL")
+	for _, t := range strings.Split(env, ",") {
+		switch strings.TrimSpace(t) {
+		case "webgl1":
+			return false
+		}
+	}
+	return js.Global().Get("WebGL2RenderingContext").Truthy()
+}
 
 func uint8ArrayToSlice(value js.Value, length int) []byte {
 	if l := value.Get("byteLength").Int(); length > l {
@@ -131,7 +140,7 @@ func (c *context) initGL() error {
 		attr.Set("premultipliedAlpha", true)
 		attr.Set("stencil", true)
 
-		if webGL2MightBeAvailable {
+		if webGL2MightBeAvailable() {
 			gl = canvas.Call("getContext", "webgl2", attr)
 			if gl.Truthy() {
 				c.webGLVersion = webGLVersion2
