@@ -218,6 +218,7 @@ func (i *Image) Extend(width, height int) *Image {
 	newImg.clearDrawTrianglesHistory()
 	newImg.basePixels = i.basePixels
 	newImg.stale = i.stale
+	newImg.staleRegion = i.staleRegion
 
 	i.Dispose()
 
