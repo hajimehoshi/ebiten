@@ -38,8 +38,8 @@ import (
 )
 
 var (
-	gophersImage       *ebiten.Image
-	mplusFont          font.Face
+	gophersImage *ebiten.Image
+	mplusFont    font.Face
 )
 
 func init() {

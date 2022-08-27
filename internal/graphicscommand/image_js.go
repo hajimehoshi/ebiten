@@ -55,4 +55,3 @@ func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackb
 
 	return nil
 }
-
