@@ -15,11 +15,9 @@
 package graphicscommand
 
 import (
-	"fmt"
 	"image"
-	"os"
+	"io"
 	"sort"
-	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
@@ -190,24 +188,16 @@ func (i *Image) IsInvalidated() bool {
 	return i.image.IsInvalidated()
 }
 
-// Dump dumps the image to the specified path.
-// In the path, '*' is replaced with the image's ID.
+// dumpTo dumps the image to the specified writer.
 //
 // If blackbg is true, any alpha values in the dumped image will be 255.
 //
 // This is for testing usage.
-func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool, rect image.Rectangle) error {
+func (i *Image) dumpTo(w io.Writer, graphicsDriver graphicsdriver.Graphics, blackbg bool, rect image.Rectangle) error {
 	// Screen image cannot be dumped.
 	if i.screen {
 		return nil
 	}
-
-	path = strings.ReplaceAll(path, "*", fmt.Sprintf("%d", i.id))
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
 
 	pix := make([]byte, 4*i.width*i.height)
 	if err := i.ReadPixels(graphicsDriver, pix); err != nil {
@@ -220,13 +210,14 @@ func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackb
 		}
 	}
 
-	if err := png.Encode(f, (&image.RGBA{
+	if err := png.Encode(w, (&image.RGBA{
 		Pix:    pix,
 		Stride: 4 * i.width,
 		Rect:   image.Rect(0, 0, i.width, i.height),
 	}).SubImage(rect)); err != nil {
 		return err
 	}
+
 	return nil
 }
 

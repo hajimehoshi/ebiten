@@ -12,14 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !ios && !js
-// +build !android,!ios,!js
+//go:build !android && !ios
+// +build !android,!ios
 
 package ebiten
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"syscall"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
@@ -34,7 +36,7 @@ func availableFilename(prefix, postfix string) (string, error) {
 	name := fmt.Sprintf("%s%s%s", prefix, now.Format(datetimeFormat), postfix)
 	for i := 1; ; i++ {
 		if _, err := os.Stat(name); err != nil {
-			if os.IsNotExist(err) {
+			if os.IsNotExist(err) || errors.Is(err, syscall.ENOSYS) {
 				break
 			}
 			if !os.IsNotExist(err) {
