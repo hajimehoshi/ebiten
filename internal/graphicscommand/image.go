@@ -193,7 +193,7 @@ func (i *Image) IsInvalidated() bool {
 // If blackbg is true, any alpha values in the dumped image will be 255.
 //
 // This is for testing usage.
-func (i *Image) dumpTo(graphicsDriver graphicsdriver.Graphics, blackbg bool, rect image.Rectangle, w io.Writer) error {
+func (i *Image) dumpTo(w io.Writer, graphicsDriver graphicsdriver.Graphics, blackbg bool, rect image.Rectangle) error {
 	// Screen image cannot be dumped.
 	if i.screen {
 		return nil

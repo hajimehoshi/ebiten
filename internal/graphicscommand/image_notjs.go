@@ -39,7 +39,7 @@ func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackb
 	}
 	defer f.Close()
 
-	if err := i.dumpTo(graphicsDriver, blackbg, rect, f); err != nil {
+	if err := i.dumpTo(f, graphicsDriver, blackbg, rect); err != nil {
 		return err
 	}
 
