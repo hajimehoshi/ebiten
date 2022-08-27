@@ -20,6 +20,8 @@ package graphicscommand
 import (
 	"image"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
@@ -30,7 +32,7 @@ func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackb
 		return nil
 	}
 
-	path = i.DumpName(path)
+	path = strings.ReplaceAll(path, "*", strconv.Itoa(i.id))
 	f, err := os.Create(path)
 	if err != nil {
 		return err

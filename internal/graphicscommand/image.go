@@ -18,8 +18,6 @@ import (
 	"image"
 	"io"
 	"sort"
-	"strconv"
-	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
@@ -188,12 +186,6 @@ func (i *Image) IsInvalidated() bool {
 		return false
 	}
 	return i.image.IsInvalidated()
-}
-
-// DumpName formats the given pattern as a dump filename for the given image.
-// In the pattern, '*' is replaced with the image's ID.
-func (i *Image) DumpName(pattern string) string {
-	return strings.ReplaceAll(pattern, "*", strconv.Itoa(i.id))
 }
 
 // DumpTo dumps the image to the specified writer.

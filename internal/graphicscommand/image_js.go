@@ -21,6 +21,8 @@ import (
 	"bytes"
 	"image"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"syscall/js"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -32,7 +34,7 @@ func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackb
 		return nil
 	}
 
-	path = i.DumpName(path)
+	path = strings.ReplaceAll(path, "*", strconv.Itoa(i.id))
 	path = filepath.Base(path)
 
 	global := js.Global()
