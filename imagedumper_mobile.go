@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build android || ios || js
-// +build android ios js
+//go:build android || ios
+// +build android ios
 
 package ebiten
 
