@@ -139,15 +139,13 @@ func (g *Game) init() {
 	}
 }
 
-var regularTermination = errors.New("regular termination")
-
 func (g *Game) Update() error {
 	if !g.inited {
 		g.init()
 	}
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyQ) {
-		return regularTermination
+		return ebiten.Termination
 	}
 
 	// Decrease the number of the sprites.
@@ -202,7 +200,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func main() {
 	ebiten.SetFullscreen(true)
 	ebiten.SetWindowTitle("Sprites HD (Ebiten Demo)")
-	if err := ebiten.RunGame(&Game{}); err != nil && !errors.Is(err, regularTermination) {
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }
