@@ -122,8 +122,7 @@ jobs:
       - name: go test (Windows 386)
         if: ${{ startsWith(matrix.os, 'windows-') }}
         run: |
-          # TODO: Enable this after DirectX is supported on 32bit machines (#2088)
-          # env GOARCH=386 go test -tags=example ${{ !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
+          env GOARCH=386 go test -tags=example ${{ !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
 
       - name: go test (Wasm)
         # TODO: Investigate times out on Windows. (#1313)

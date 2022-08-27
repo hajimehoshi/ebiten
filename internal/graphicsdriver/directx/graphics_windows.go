@@ -37,16 +37,6 @@ const frameCount = 2
 // NewGraphics creates an implementation of graphicsdriver.Graphics for DirectX.
 // The returned graphics value is nil iff the error is not nil.
 func NewGraphics() (graphicsdriver.Graphics, error) {
-	const is64bit = uint64(^uintptr(0)) == ^uint64(0)
-
-	// In 32bit machines, DirectX is not used because
-	//   1) The functions syscall.Syscall cannot accept 64bit values as one argument
-	//   2) The struct layouts can be different
-	// TODO: Support DirectX for 32bit machines (#2088).
-	if !is64bit {
-		return nil, fmt.Errorf("directx: DirectX is not available on a 32bit machine")
-	}
-
 	g := &Graphics{}
 	if err := g.initialize(); err != nil {
 		return nil, err

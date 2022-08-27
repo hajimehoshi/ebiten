@@ -407,7 +407,7 @@ func (p *pipelineStates) useGraphicsPipelineState(device *_ID3D12Device, command
 			ViewDimension:           _D3D12_SRV_DIMENSION_TEXTURE2D,
 			Shader4ComponentMapping: _D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
 			Texture2D: _D3D12_TEX2D_SRV{
-				MipLevels: 1,
+				MipLevels: 1, // TODO: Can this be 0?
 			},
 		}, h)
 	}

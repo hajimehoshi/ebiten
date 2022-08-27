@@ -27,6 +27,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 )
 
+const is64bit = unsafe.Sizeof(uintptr(0)) == 8
+
 type (
 	_BOOL int32
 )
@@ -700,15 +702,6 @@ func (h *_D3D12_CPU_DESCRIPTOR_HANDLE) Offset(offsetInDescriptors int32, descrip
 	h.ptr += uintptr(offsetInDescriptors) * uintptr(descriptorIncrementSize)
 }
 
-type _D3D12_DEPTH_STENCIL_VIEW_DESC struct {
-	Format        _DXGI_FORMAT
-	ViewDimension _D3D12_DSV_DIMENSION
-	Flags         _D3D12_DSV_FLAGS
-	_             [4]byte                                      // A padding (TODO: This can be different on 32bit)
-	Texture2D     _D3D12_TEX2D_DSV                             // Union
-	_             [12 - unsafe.Sizeof(_D3D12_TEX2D_DSV{})]byte // A padding for union
-}
-
 type _D3D12_DEPTH_STENCIL_DESC struct {
 	DepthEnable      _BOOL
 	DepthWriteMask   _D3D12_DEPTH_WRITE_MASK
@@ -830,19 +823,6 @@ type _D3D12_RESOURCE_BARRIER_Transition struct {
 	Transition _D3D12_RESOURCE_TRANSITION_BARRIER
 }
 
-type _D3D12_RESOURCE_DESC struct {
-	Dimension        _D3D12_RESOURCE_DIMENSION
-	Alignment        uint64
-	Width            uint64
-	Height           uint32
-	DepthOrArraySize uint16
-	MipLevels        uint16
-	Format           _DXGI_FORMAT
-	SampleDesc       _DXGI_SAMPLE_DESC
-	Layout           _D3D12_TEXTURE_LAYOUT
-	Flags            _D3D12_RESOURCE_FLAGS
-}
-
 type _D3D12_RESOURCE_TRANSITION_BARRIER struct {
 	pResource   *_ID3D12Resource
 	Subresource uint32
@@ -853,12 +833,6 @@ type _D3D12_RESOURCE_TRANSITION_BARRIER struct {
 type _D3D12_ROOT_DESCRIPTOR_TABLE struct {
 	NumDescriptorRanges uint32
 	pDescriptorRanges   *_D3D12_DESCRIPTOR_RANGE
-}
-
-type _D3D12_ROOT_PARAMETER struct {
-	ParameterType    _D3D12_ROOT_PARAMETER_TYPE
-	DescriptorTable  _D3D12_ROOT_DESCRIPTOR_TABLE // Union
-	ShaderVisibility _D3D12_SHADER_VISIBILITY
 }
 
 type _D3D12_ROOT_SIGNATURE_DESC struct {
@@ -878,9 +852,9 @@ type _D3D12_SHADER_RESOURCE_VIEW_DESC struct {
 	Format                  _DXGI_FORMAT
 	ViewDimension           _D3D12_SRV_DIMENSION
 	Shader4ComponentMapping uint32
-	_                       [4]byte                                      // A padding (TODO: This can be different on 32bit)
+	_                       [4]byte                                      // Padding (This is the same for 32bit and 64bit architectures)
 	Texture2D               _D3D12_TEX2D_SRV                             // Union
-	_                       [24 - unsafe.Sizeof(_D3D12_TEX2D_SRV{})]byte // A padding for union
+	_                       [24 - unsafe.Sizeof(_D3D12_TEX2D_SRV{})]byte // Padding for union (D3D12_TEX2D_ARRAY_SRV (24bits) is the biggest)
 }
 
 type _D3D12_SO_DECLARATION_ENTRY struct {
@@ -1346,8 +1320,14 @@ func (i *_ID3D12CommandQueue) PresentX(planeCount uint32, pPlaneParameters *_D3D
 }
 
 func (i *_ID3D12CommandQueue) Signal(signal *_ID3D12Fence, value uint64) error {
-	r, _, _ := syscall.Syscall(i.vtbl.Signal, 3, uintptr(unsafe.Pointer(i)),
-		uintptr(unsafe.Pointer(signal)), uintptr(value))
+	var r uintptr
+	if is64bit {
+		r, _, _ = syscall.Syscall(i.vtbl.Signal, 3, uintptr(unsafe.Pointer(i)),
+			uintptr(unsafe.Pointer(signal)), uintptr(value))
+	} else {
+		r, _, _ = syscall.Syscall6(i.vtbl.Signal, 4, uintptr(unsafe.Pointer(i)),
+			uintptr(unsafe.Pointer(signal)), uintptr(value), uintptr(value>>32), 0, 0)
+	}
 	runtime.KeepAlive(signal)
 	if uint32(r) != uint32(windows.S_OK) {
 		return fmt.Errorf("directx: ID3D12CommandQueue::Signal failed: HRESULT(%d)", uint32(r))
@@ -1468,10 +1448,10 @@ func (i *_ID3D12DescriptorHeap) GetGPUDescriptorHandleForHeapStart() (_D3D12_GPU
 	if microsoftgdk.IsXbox() {
 		r1, r2, e := syscall.Syscall(i.vtbl.GetGPUDescriptorHandleForHeapStart, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 		var ptr uint64
-		if unsafe.Sizeof(uintptr(0)) == 4 {
-			ptr = uint64(r1) | uint64(r2)<<32
-		} else {
+		if is64bit {
 			ptr = uint64(r1)
+		} else {
+			ptr = uint64(r1) | (uint64(r2) << 32)
 		}
 		if ptr == 0 {
 			return _D3D12_GPU_DESCRIPTOR_HANDLE{}, fmt.Errorf("directx: ID3D12DescriptorHeap::GetGPUDescriptorHandleForHeapStart failed: %w", e)
@@ -1663,7 +1643,7 @@ func (i *_ID3D12Device) CreateCommandQueue(desc *_D3D12_COMMAND_QUEUE_DESC) (*_I
 
 func (i *_ID3D12Device) CreateConstantBufferView(pDesc *_D3D12_CONSTANT_BUFFER_VIEW_DESC, destDescriptor _D3D12_CPU_DESCRIPTOR_HANDLE) {
 	syscall.Syscall(i.vtbl.CreateConstantBufferView, 3, uintptr(unsafe.Pointer(i)),
-		uintptr(unsafe.Pointer(pDesc)), uintptr(destDescriptor.ptr))
+		uintptr(unsafe.Pointer(pDesc)), destDescriptor.ptr)
 	runtime.KeepAlive(pDesc)
 }
 
@@ -1680,6 +1660,9 @@ func (i *_ID3D12Device) CreateDescriptorHeap(desc *_D3D12_DESCRIPTOR_HEAP_DESC) 
 }
 
 func (i *_ID3D12Device) CreateDepthStencilView(pResource *_ID3D12Resource, pDesc *_D3D12_DEPTH_STENCIL_VIEW_DESC, destDescriptor _D3D12_CPU_DESCRIPTOR_HANDLE) {
+	if pDesc != nil {
+		panic("directx: D3D12_DEPTH_STENCIL_VIEW_DESC is not implemented yet (especially for 32bit machine)")
+	}
 	syscall.Syscall6(i.vtbl.CreateDepthStencilView, 4, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(pResource)), uintptr(unsafe.Pointer(pDesc)), destDescriptor.ptr,
 		0, 0)
@@ -1688,11 +1671,17 @@ func (i *_ID3D12Device) CreateDepthStencilView(pResource *_ID3D12Resource, pDesc
 }
 
 func (i *_ID3D12Device) CreateFence(initialValue uint64, flags _D3D12_FENCE_FLAGS) (*_ID3D12Fence, error) {
-	// TODO: Does this work on a 32bit machine?
 	var fence *_ID3D12Fence
-	r, _, _ := syscall.Syscall6(i.vtbl.CreateFence, 5, uintptr(unsafe.Pointer(i)),
-		uintptr(initialValue), uintptr(flags), uintptr(unsafe.Pointer(&_IID_ID3D12Fence)), uintptr(unsafe.Pointer(&fence)),
-		0)
+	var r uintptr
+	if is64bit {
+		r, _, _ = syscall.Syscall6(i.vtbl.CreateFence, 5, uintptr(unsafe.Pointer(i)),
+			uintptr(initialValue), uintptr(flags), uintptr(unsafe.Pointer(&_IID_ID3D12Fence)), uintptr(unsafe.Pointer(&fence)),
+			0)
+	} else {
+		r, _, _ = syscall.Syscall6(i.vtbl.CreateFence, 6, uintptr(unsafe.Pointer(i)),
+			uintptr(initialValue), uintptr(initialValue>>32), uintptr(flags),
+			uintptr(unsafe.Pointer(&_IID_ID3D12Fence)), uintptr(unsafe.Pointer(&fence)))
+	}
 	if uint32(r) != uint32(windows.S_OK) {
 		return nil, fmt.Errorf("directx: ID3D12Device::CreateFence failed: HRESULT(%d)", uint32(r))
 	}
@@ -1745,10 +1734,18 @@ func (i *_ID3D12Device) CreateShaderResourceView(pResource *_ID3D12Resource, pDe
 }
 
 func (i *_ID3D12Device) GetCopyableFootprints(pResourceDesc *_D3D12_RESOURCE_DESC, firstSubresource uint32, numSubresources uint32, baseOffset uint64) (layouts _D3D12_PLACED_SUBRESOURCE_FOOTPRINT, numRows uint, rowSizeInBytes uint64, totalBytes uint64) {
-	syscall.Syscall9(i.vtbl.GetCopyableFootprints, 9, uintptr(unsafe.Pointer(i)),
-		uintptr(unsafe.Pointer(pResourceDesc)), uintptr(firstSubresource), uintptr(numSubresources),
-		uintptr(baseOffset), uintptr(unsafe.Pointer(&layouts)), uintptr(unsafe.Pointer(&numRows)),
-		uintptr(unsafe.Pointer(&rowSizeInBytes)), uintptr(unsafe.Pointer(&totalBytes)))
+	if is64bit {
+		syscall.Syscall9(i.vtbl.GetCopyableFootprints, 9, uintptr(unsafe.Pointer(i)),
+			uintptr(unsafe.Pointer(pResourceDesc)), uintptr(firstSubresource), uintptr(numSubresources),
+			uintptr(baseOffset), uintptr(unsafe.Pointer(&layouts)), uintptr(unsafe.Pointer(&numRows)),
+			uintptr(unsafe.Pointer(&rowSizeInBytes)), uintptr(unsafe.Pointer(&totalBytes)))
+	} else {
+		syscall.Syscall12(i.vtbl.GetCopyableFootprints, 10, uintptr(unsafe.Pointer(i)),
+			uintptr(unsafe.Pointer(pResourceDesc)), uintptr(firstSubresource), uintptr(numSubresources),
+			uintptr(baseOffset), uintptr(baseOffset>>32), uintptr(unsafe.Pointer(&layouts)),
+			uintptr(unsafe.Pointer(&numRows)), uintptr(unsafe.Pointer(&rowSizeInBytes)), uintptr(unsafe.Pointer(&totalBytes)),
+			0, 0)
+	}
 	runtime.KeepAlive(pResourceDesc)
 	return
 }
@@ -1826,9 +1823,12 @@ type _ID3D12Fence_Vtbl struct {
 }
 
 func (i *_ID3D12Fence) GetCompletedValue() uint64 {
-	// TODO: Does this work on a 32bit machine?
-	r, _, _ := syscall.Syscall(i.vtbl.GetCompletedValue, 1, uintptr(unsafe.Pointer(i)), 0, 0)
-	return uint64(r)
+	r1, r2, _ := syscall.Syscall(i.vtbl.GetCompletedValue, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+	if is64bit {
+		return uint64(r1)
+	} else {
+		return uint64(r1) | (uint64(r2) << 32)
+	}
 }
 
 func (i *_ID3D12Fence) Release() {
@@ -1836,9 +1836,14 @@ func (i *_ID3D12Fence) Release() {
 }
 
 func (i *_ID3D12Fence) SetEventOnCompletion(value uint64, hEvent windows.Handle) error {
-	// TODO: Does this work on a 32bit machine?
-	r, _, _ := syscall.Syscall(i.vtbl.SetEventOnCompletion, 3, uintptr(unsafe.Pointer(i)),
-		uintptr(value), uintptr(hEvent))
+	var r uintptr
+	if is64bit {
+		r, _, _ = syscall.Syscall(i.vtbl.SetEventOnCompletion, 3, uintptr(unsafe.Pointer(i)),
+			uintptr(value), uintptr(hEvent))
+	} else {
+		r, _, _ = syscall.Syscall6(i.vtbl.SetEventOnCompletion, 4, uintptr(unsafe.Pointer(i)),
+			uintptr(value), uintptr(value>>32), uintptr(hEvent), 0, 0)
+	}
 	if uint32(r) != uint32(windows.S_OK) {
 		return fmt.Errorf("directx: ID3D12Fence::SetEventOnCompletion failed: HRESULT(%d)", uint32(r))
 	}
@@ -2139,8 +2144,13 @@ func (i *_ID3D12GraphicsCommandList) SetGraphicsRootDescriptorTable(rootParamete
 		_ID3D12GraphicsCommandList_SetGraphicsRootDescriptorTable(i, rootParameterIndex, baseDescriptor)
 		return
 	}
-	syscall.Syscall(i.vtbl.SetGraphicsRootDescriptorTable, 3, uintptr(unsafe.Pointer(i)),
-		uintptr(rootParameterIndex), uintptr(baseDescriptor.ptr))
+	if is64bit {
+		syscall.Syscall(i.vtbl.SetGraphicsRootDescriptorTable, 3, uintptr(unsafe.Pointer(i)),
+			uintptr(rootParameterIndex), uintptr(baseDescriptor.ptr))
+	} else {
+		syscall.Syscall6(i.vtbl.SetGraphicsRootDescriptorTable, 4, uintptr(unsafe.Pointer(i)),
+			uintptr(rootParameterIndex), uintptr(baseDescriptor.ptr), uintptr(baseDescriptor.ptr>>32), 0, 0)
+	}
 }
 
 func (i *_ID3D12GraphicsCommandList) SetGraphicsRootSignature(pRootSignature *_ID3D12RootSignature) {
@@ -2212,8 +2222,12 @@ func (i *_ID3D12Resource) GetDesc() _D3D12_RESOURCE_DESC {
 }
 
 func (i *_ID3D12Resource) GetGPUVirtualAddress() _D3D12_GPU_VIRTUAL_ADDRESS {
-	r, _, _ := syscall.Syscall(i.vtbl.GetGPUVirtualAddress, 1, uintptr(unsafe.Pointer(i)), 0, 0)
-	return _D3D12_GPU_VIRTUAL_ADDRESS(r)
+	r1, r2, _ := syscall.Syscall(i.vtbl.GetGPUVirtualAddress, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+	if is64bit {
+		return _D3D12_GPU_VIRTUAL_ADDRESS(r1)
+	} else {
+		return _D3D12_GPU_VIRTUAL_ADDRESS(uint64(r1) | (uint64(r2) << 32))
+	}
 }
 
 func (i *_ID3D12Resource) Map(subresource uint32, pReadRange *_D3D12_RANGE) (uintptr, error) {
