@@ -17,11 +17,7 @@
 
 package main
 
-import (
-	"errors"
-
-	"github.com/hajimehoshi/ebiten/v2"
-)
+import "github.com/hajimehoshi/ebiten/v2"
 
 func init() {
 	s, err := ebiten.NewShader([]byte(`
@@ -36,8 +32,6 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	s.Dispose()
 }
 
-var regularTermination = errors.New("regular termination")
-
 type Game struct {
 	counter int
 }
@@ -45,7 +39,7 @@ type Game struct {
 func (g *Game) Update() error {
 	g.counter++
 	if g.counter > 1 {
-		return regularTermination
+		return ebiten.Termination
 	}
 	return nil
 }
@@ -59,7 +53,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func main() {
 	// Run a game loop at least for one frame to ensure the shader disposed.
-	if err := ebiten.RunGame(&Game{}); err != nil && !errors.Is(err, regularTermination) {
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		panic(err)
 	}
 }

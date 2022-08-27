@@ -18,14 +18,11 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
-
-var regularTermination = errors.New("regular termination")
 
 type Game struct {
 	dst   *ebiten.Image
@@ -94,7 +91,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			return fmt.Errorf("phase: %d, got: %v, want: %v", g.phase, got, want)
 		}
 
-		return regularTermination
+		return ebiten.Termination
 	}
 
 	return nil
@@ -108,7 +105,7 @@ func (g *Game) Layout(width, height int) (int, int) {
 }
 
 func main() {
-	if err := ebiten.RunGame(&Game{}); err != nil && !errors.Is(err, regularTermination) {
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		panic(err)
 	}
 }

@@ -18,7 +18,6 @@
 package main
 
 import (
-	"errors"
 	"image"
 	"image/color"
 	"math"
@@ -30,8 +29,6 @@ import (
 	"golang.org/x/image/font/gofont/goregular"
 	"golang.org/x/image/font/opentype"
 )
-
-var regularTermination = errors.New("regular termination")
 
 var (
 	emptyImage        = ebiten.NewImage(3, 3)
@@ -62,7 +59,7 @@ type Game struct {
 func (g *Game) Update() error {
 	g.counter++
 	if g.counter > 16 {
-		return regularTermination
+		return ebiten.Termination
 	}
 	return nil
 }
@@ -87,7 +84,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 func main() {
-	if err := ebiten.RunGame(&Game{}); err != nil && !errors.Is(err, regularTermination) {
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		panic(err)
 	}
 
