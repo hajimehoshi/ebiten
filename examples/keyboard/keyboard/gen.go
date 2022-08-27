@@ -316,8 +316,6 @@ func outputKeyRectsGo(k map[ebiten.Key]image.Rectangle) error {
 	})
 }
 
-var regularTermination = errors.New("regular termination")
-
 type game struct {
 	rects map[ebiten.Key]image.Rectangle
 }
@@ -328,7 +326,7 @@ func (g *game) Update() error {
 	if err != nil {
 		return err
 	}
-	return regularTermination
+	return ebiten.Termination
 }
 
 func (g *game) Draw(_ *ebiten.Image) {
@@ -340,7 +338,7 @@ func (g *game) Layout(outw, outh int) (int, int) {
 
 func main() {
 	g := &game{}
-	if err := ebiten.RunGame(g); err != nil && !errors.Is(err, regularTermination) {
+	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
 	if err := outputKeyRectsGo(g.rects); err != nil {

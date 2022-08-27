@@ -15,7 +15,6 @@
 package buffered_test
 
 import (
-	"errors"
 	"image/color"
 	"os"
 	"testing"
@@ -34,8 +33,6 @@ func runOnMainThread(f func()) {
 	<-ch
 }
 
-var regularTermination = errors.New("regular termination")
-
 type game struct {
 	m     *testing.M
 	endCh chan struct{}
@@ -47,7 +44,7 @@ func (g *game) Update() error {
 	case f := <-mainCh:
 		f()
 	case <-g.endCh:
-		return regularTermination
+		return ebiten.Termination
 	}
 	return nil
 }
@@ -73,7 +70,7 @@ func TestMain(m *testing.M) {
 		m:     m,
 		endCh: endCh,
 	}
-	if err := ebiten.RunGame(g); err != nil && !errors.Is(err, regularTermination) {
+	if err := ebiten.RunGame(g); err != nil {
 		panic(err)
 	}
 

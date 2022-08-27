@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"errors"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
@@ -47,7 +48,7 @@ type Game interface {
 	// or more for one frame. The frequency is determined by the current TPS (tick-per-second).
 	//
 	// If the error returned is nil, game execution proceeds normally.
-	// If the error returned is RegularTermination, game execution halts, but does not return an error from RunGame.
+	// If the error returned is Termination, game execution halts, but does not return an error from RunGame.
 	// If the error returned is any other non-nil value, game execution halts and the error is returned from RunGame.
 	Update() error
 
@@ -171,8 +172,8 @@ func (i *imageDumperGame) Layout(outsideWidth, outsideHeight int) (screenWidth, 
 	return i.game.Layout(outsideWidth, outsideHeight)
 }
 
-// RegularTermination is a special error which indicates Game termination without error.
-var RegularTermination = ui.RegularTermination
+// Termination is a special error which indicates Game termination without error.
+var Termination = ui.RegularTermination
 
 // RunGame starts the main loop and runs the game.
 // game's Update function is called every tick to update the game logic.
@@ -206,7 +207,7 @@ func RunGame(game Game) error {
 		game: game,
 	})
 	if err := ui.Get().Run(g); err != nil {
-		if errors.Is(err, ui.RegularTermination) {
+		if errors.Is(err, Termination) {
 			return nil
 		}
 

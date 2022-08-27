@@ -17,13 +17,7 @@
 
 package main
 
-import (
-	"errors"
-
-	"github.com/hajimehoshi/ebiten/v2"
-)
-
-var regularTermination = errors.New("regular termination")
+import "github.com/hajimehoshi/ebiten/v2"
 
 type Game struct {
 	count int
@@ -39,7 +33,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 `
 	g.count++
 	if g.count == 16 {
-		return regularTermination
+		return ebiten.Termination
 	}
 
 	if g.count < 8 {
@@ -64,7 +58,7 @@ func (g *Game) Layout(width, height int) (int, int) {
 }
 
 func main() {
-	if err := ebiten.RunGame(&Game{}); err != nil && !errors.Is(err, regularTermination) {
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		panic(err)
 	}
 }

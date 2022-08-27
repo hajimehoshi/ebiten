@@ -41,7 +41,6 @@ import (
 var (
 	gophersImage       *ebiten.Image
 	mplusFont          font.Face
-	regularTermination = errors.New("regular termination")
 )
 
 func init() {
@@ -86,7 +85,7 @@ func (g *Game) Update() error {
 		}
 	}
 	if runtime.GOOS != "js" && ebiten.IsKeyPressed(ebiten.KeyQ) {
-		return regularTermination
+		return ebiten.Termination
 	}
 	return nil
 }
@@ -130,7 +129,7 @@ func main() {
 
 	ebiten.SetFullscreen(true)
 	ebiten.SetWindowTitle("Fullscreen (Ebiten Demo)")
-	if err := ebiten.RunGame(&Game{}); err != nil && !errors.Is(err, regularTermination) {
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }
