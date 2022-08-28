@@ -126,7 +126,7 @@ jobs:
 
       - name: go test (Wasm)
         # TODO: Investigate times out on Windows. (#1313)
-        if: ${{ !startsWith(matrix.os, 'windows-') && !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') }}
+        if: ${{ !startsWith(matrix.os, 'windows-') }}
         run: |
           env GOOS=js GOARCH=wasm go test -tags=example ${{ !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
           env GOOS=js GOARCH=wasm EBITENGINE_OPENGL=webgl1 go test -tags=example ${{ !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
