@@ -49,8 +49,8 @@ jobs:
           cd /tmp/wasmbrowsertest
           go mod init foo
           go get github.com/agnivade/wasmbrowsertest
-          go build -o wasmbrowsertest github.com/agnivade/wasmbrowsertest
-          mv ./wasmbrowsertest $(go env GOPATH)/bin/go_js_wasm_exec
+          go build -o wasmbrowsertest${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }} github.com/agnivade/wasmbrowsertest
+          mv ./wasmbrowsertest${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }} $(go env GOPATH)/bin/go_js_wasm_exec${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }}
 
       - name: Prepare ebitenmobile test
         if: ${{ !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') }}
@@ -125,8 +125,6 @@ jobs:
           env GOARCH=386 go test -tags=example ${{ !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
 
       - name: go test (Wasm)
-        # TODO: Investigate times out on Windows. (#1313)
-        if: ${{ !startsWith(matrix.os, 'windows-') }}
         run: |
           env GOOS=js GOARCH=wasm go test -tags=example ${{ !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
           env GOOS=js GOARCH=wasm EBITENGINE_OPENGL=webgl1 go test -tags=example ${{ !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
