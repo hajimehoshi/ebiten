@@ -133,7 +133,7 @@ func main() {
 	ebitenImage = ebiten.NewImageFromImage(img)
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("Audio Panning Loop (Ebiten Demo)")
+	ebiten.SetWindowTitle("Audio Panning Loop (Ebitengine Demo)")
 	g := &Game{}
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)

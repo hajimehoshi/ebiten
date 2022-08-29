@@ -67,7 +67,7 @@ func main() {
 	g := &Game{x: 0.0, y: 0.0}
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("Wheel (Ebiten Demo)")
+	ebiten.SetWindowTitle("Wheel (Ebitengine Demo)")
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}

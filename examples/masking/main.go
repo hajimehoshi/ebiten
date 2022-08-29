@@ -167,7 +167,7 @@ func min(a, b int) int {
 
 func main() {
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
-	ebiten.SetWindowTitle("Masking (Ebiten Demo)")
+	ebiten.SetWindowTitle("Masking (Ebitengine Demo)")
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}

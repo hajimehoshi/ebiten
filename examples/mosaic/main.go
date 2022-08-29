@@ -81,7 +81,7 @@ func main() {
 		gophersRenderTarget: ebiten.NewImage(w/mosaicRatio, h/mosaicRatio),
 	}
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
-	ebiten.SetWindowTitle("Mosaic (Ebiten Demo)")
+	ebiten.SetWindowTitle("Mosaic (Ebitengine Demo)")
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}

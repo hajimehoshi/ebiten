@@ -127,7 +127,7 @@ func main() {
 	initFont()
 
 	ebiten.SetFullscreen(true)
-	ebiten.SetWindowTitle("Fullscreen (Ebiten Demo)")
+	ebiten.SetWindowTitle("Fullscreen (Ebitengine Demo)")
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}

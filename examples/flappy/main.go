@@ -437,7 +437,7 @@ func (g *Game) drawGopher(screen *ebiten.Image) {
 
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("Flappy Gopher (Ebiten Demo)")
+	ebiten.SetWindowTitle("Flappy Gopher (Ebitengine Demo)")
 	if err := ebiten.RunGame(NewGame()); err != nil {
 		panic(err)
 	}

@@ -313,7 +313,7 @@ func main() {
 	g.objects = append(g.objects, object{rect(150, 50, 30, 60)})
 
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
-	ebiten.SetWindowTitle("Ray casting and shadows (Ebiten demo)")
+	ebiten.SetWindowTitle("Ray casting and shadows (Ebitengine Demo)")
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}

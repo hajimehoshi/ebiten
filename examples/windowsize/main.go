@@ -450,7 +450,7 @@ func main() {
 		ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	}
 
-	const title = "Window Size (Ebiten Demo)"
+	const title = "Window Size (Ebitengine Demo)"
 	ww := int(float64(g.width) * initScreenScale)
 	wh := int(float64(g.height) * initScreenScale)
 	ebiten.SetWindowSize(ww, wh)

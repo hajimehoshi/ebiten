@@ -62,7 +62,7 @@ func removeAll(path string) error {
 }
 
 func runGo(args ...string) error {
-	// TODO: Remove this after Ebiten drops the support of Go 1.15 and older.
+	// TODO: Remove this after Ebitengine drops the support of Go 1.15 and older.
 	// GO111MODULE is on by default as of Go 1.16.
 	env := []string{
 		"GO111MODULE=on",

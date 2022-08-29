@@ -297,7 +297,7 @@ func OnContextLost() {
 	theImages.contextLost = true
 }
 
-// canDetectContextLostExplicitly reports whether Ebiten can detect a context lost in an explicit way.
+// canDetectContextLostExplicitly reports whether Ebitengine can detect a context lost in an explicit way.
 // On Android, a context lost can be detected via GLSurfaceView.Renderer.onSurfaceCreated.
 // On iOS w/ OpenGL ES, this can be detected only when gomobile-build is used.
 var canDetectContextLostExplicitly = runtime.GOOS == "android"

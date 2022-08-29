@@ -104,7 +104,7 @@ func main() {
 		log.Fatal(err)
 	}
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("WAV (Ebiten Demo)")
+	ebiten.SetWindowTitle("WAV (Ebitengine Demo)")
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}

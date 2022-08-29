@@ -23,8 +23,8 @@ import (
 
 // WindowResizingModeType represents a mode in which a user resizes the window.
 //
-// Regardless of the resizing mode, an Ebiten application can still change the window size or make
-// the window fullscreen by calling Ebiten functions.
+// Regardless of the resizing mode, an Ebitengine application can still change the window size or make
+// the window fullscreen by calling Ebitengine functions.
 type WindowResizingModeType = ui.WindowResizingMode
 
 // WindowResizingModeTypes

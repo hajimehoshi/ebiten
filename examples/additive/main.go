@@ -81,7 +81,7 @@ func main() {
 	ebitenImage = ebiten.NewImageFromImage(img)
 
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
-	ebiten.SetWindowTitle("Additive Blending (Ebiten Demo)")
+	ebiten.SetWindowTitle("Additive Blending (Ebitengine Demo)")
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}

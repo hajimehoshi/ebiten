@@ -333,7 +333,7 @@ func IsStandardGamepadButtonAvailable(id GamepadID, button StandardGamepadButton
 //
 // One or more input definitions can be provided separated by newlines.
 // In particular, it is valid to pass an entire gamecontrollerdb.txt file.
-// Note though that Ebiten already includes its own copy of this file,
+// Note though that Ebitengine already includes its own copy of this file,
 // so this call should only be necessary to add mappings for hardware not supported yet;
 // ideally games using the StandardGamepad* functions should allow the user to provide mappings and
 // then call this function if provided.
@@ -349,7 +349,7 @@ func IsStandardGamepadButtonAvailable(id GamepadID, button StandardGamepadButton
 //	"iOS":      GOOS=ios
 //	"":         Any GOOS
 //
-// On platforms where gamepad mappings are not managed by Ebiten, this always returns false and nil.
+// On platforms where gamepad mappings are not managed by Ebitengine, this always returns false and nil.
 //
 // UpdateStandardGamepadLayoutMappings is concurrent-safe.
 //

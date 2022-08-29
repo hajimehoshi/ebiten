@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// ebitenmobile is a wrapper of gomobile for Ebiten.
+// ebitenmobile is a wrapper of gomobile for Ebitengine.
 //
 // For the usage, see https://ebiten.org/documents/mobile.html.
 //
@@ -220,7 +220,7 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 	}
 
 	if buildOS == "darwin" {
-		// TODO: Use os.ReadDir after Ebiten stops supporting Go 1.15.
+		// TODO: Use os.ReadDir after Ebitengine stops supporting Go 1.15.
 		f, err := os.Open(buildO)
 		if err != nil {
 			return err

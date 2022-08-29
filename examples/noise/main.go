@@ -74,7 +74,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func main() {
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
-	ebiten.SetWindowTitle("Noise (Ebiten Demo)")
+	ebiten.SetWindowTitle("Noise (Ebitengine Demo)")
 	g := &Game{
 		noiseImage: image.NewRGBA(image.Rect(0, 0, screenWidth, screenHeight)),
 	}

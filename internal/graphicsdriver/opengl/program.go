@@ -88,7 +88,7 @@ func (a *arrayBufferLayout) disable(context *context) {
 	}
 }
 
-// theArrayBufferLayout is the array buffer layout for Ebiten.
+// theArrayBufferLayout is the array buffer layout for Ebitengine.
 var theArrayBufferLayout = arrayBufferLayout{
 	// Note that GL_MAX_VERTEX_ATTRIBS is at least 16.
 	parts: []arrayBufferLayoutPart{

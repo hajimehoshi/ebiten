@@ -58,7 +58,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func main() {
 	ebiten.SetWindowClosingHandled(true)
-	ebiten.SetWindowTitle("Window Closing (Ebiten Demo)")
+	ebiten.SetWindowTitle("Window Closing (Ebitengine Demo)")
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}

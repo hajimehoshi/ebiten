@@ -145,7 +145,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	ebiten.SetWindowSize(screenWidth*6, screenHeight*6)
-	ebiten.SetWindowTitle("Doom Fire (Ebiten Demo)")
+	ebiten.SetWindowTitle("Doom Fire (Ebitengine Demo)")
 	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}

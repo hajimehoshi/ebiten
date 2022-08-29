@@ -102,7 +102,7 @@ func main() {
 	ebitenImage = ebiten.NewImageFromImage(img)
 
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
-	ebiten.SetWindowTitle("Flood fill with solid colors (Ebiten Demo)")
+	ebiten.SetWindowTitle("Flood fill with solid colors (Ebitengine Demo)")
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}

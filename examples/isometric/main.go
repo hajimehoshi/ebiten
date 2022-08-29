@@ -24,7 +24,7 @@ import (
 )
 
 func main() {
-	ebiten.SetWindowTitle("Isometric (Ebiten Demo)")
+	ebiten.SetWindowTitle("Isometric (Ebitengine Demo)")
 	ebiten.SetWindowSize(640, 480)
 	ebiten.SetWindowResizable(true)
 

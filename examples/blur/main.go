@@ -64,7 +64,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			op.GeoM.Translate(float64(i), 244+float64(j))
 			// This is a blur based on the CompositerModeSourceOver composition mode,
 			// which is basically (GL_ONE, GL_ONE_MINUS_SRC_ALPHA). ColorM acts
-			// on unpremultiplied colors, but all Ebiten internal colors are
+			// on unpremultiplied colors, but all Ebitengine internal colors are
 			// premultiplied, meaning this mode is regular alpha blending,
 			// computing each destination pixel as srcPix * alpha + dstPix * (1 - alpha).
 			//
@@ -103,7 +103,7 @@ func main() {
 	gophersImage = ebiten.NewImageFromImage(img)
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("Blur (Ebiten Demo)")
+	ebiten.SetWindowTitle("Blur (Ebitengine Demo)")
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
