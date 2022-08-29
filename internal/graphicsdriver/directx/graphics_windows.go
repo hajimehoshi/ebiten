@@ -1239,6 +1239,10 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 		var esBody [16]float32
 		var esTranslate [4]float32
 		colorM.Elements(&esBody, &esTranslate)
+		scale := float32(0)
+		if filter == graphicsdriver.FilterScreen {
+			scale = float32(dst.width) / float32(srcImages[0].width)
+		}
 
 		flattenUniforms = []float32{
 			float32(screenWidth),
@@ -1269,6 +1273,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 			srcRegion.Y,
 			srcRegion.X + srcRegion.Width,
 			srcRegion.Y + srcRegion.Height,
+			scale,
 		}
 	} else {
 		// TODO: This logic is very similar to Metal's. Let's unify them.

@@ -30,41 +30,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
-const screenShader = `package main
-
-var Scale float
-
-func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	sourceSize := imageSrcTextureSize()
-	// texelSize is one pixel size in texel sizes.
-	texelSize := 1 / sourceSize
-	halfScaledTexelSize := texelSize / 2 / Scale
-
-	// Shift 1/512 [texel] to avoid the tie-breaking issue.
-	// As all the vertex positions are aligned to 1/16 [pixel], this shiting should work in most cases.
-	pos := texCoord
-	p0 := pos - halfScaledTexelSize + (texelSize / 512)
-	p1 := pos + halfScaledTexelSize + (texelSize / 512)
-
-	// Texels must be in the source rect, so it is not necessary to check.
-	c0 := imageSrc0UnsafeAt(p0)
-	c1 := imageSrc0UnsafeAt(vec2(p1.x, p0.y))
-	c2 := imageSrc0UnsafeAt(vec2(p0.x, p1.y))
-	c3 := imageSrc0UnsafeAt(p1)
-
-	// p is the p1 value in one pixel assuming that the pixel's upper-left is (0, 0) and the lower-right is (1, 1).
-	p := fract(p1 * sourceSize)
-
-	// rate indicates how much the 4 colors are mixed. rate is in between [0, 1].
-	//
-	//     0 <= p <= 1/Scale: The rate is in between [0, 1]
-	//     1/Scale < p:       Don't care. Adjacent colors (e.g. c0 vs c1 in an X direction) should be the same.
-	rate := clamp(p*Scale, 0, 1)
-
-	return mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y)
-}
-`
-
 type Game interface {
 	NewOffscreenImage(width, height int) *Image
 	Layout(outsideWidth, outsideHeight int) (int, int)
@@ -83,8 +48,6 @@ type context struct {
 	// The following members must be protected by the mutex m.
 	outsideWidth  float64
 	outsideHeight float64
-
-	screenShader *Shader
 
 	m sync.Mutex
 }
@@ -144,15 +107,6 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 			err = err1
 		}
 	}()
-
-	// Create a shader for the screen if necessary.
-	if c.screenShader == nil {
-		ir, err := graphics.CompileShader([]byte(screenShader))
-		if err != nil {
-			return err
-		}
-		c.screenShader = NewShader(ir)
-	}
 
 	// ForceUpdate can be invoked even if the context is not initialized yet (#1591).
 	if w, h := c.layoutGame(outsideWidth, outsideHeight, deviceScaleFactor); w == 0 || h == 0 {
@@ -232,16 +186,15 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 	gty += offsetY
 
 	var filter graphicsdriver.Filter
-	var screenFilter bool
 	switch {
 	case !theGlobalState.isScreenFilterEnabled():
 		filter = graphicsdriver.FilterNearest
 	case math.Floor(s) == s:
 		filter = graphicsdriver.FilterNearest
 	case s > 1:
-		screenFilter = true
+		filter = graphicsdriver.FilterScreen
 	default:
-		// screenShader works with >=1 scale, but does not well with <1 scale.
+		// FilterScreen works with >=1 scale, but does not well with <1 scale.
 		// Use regular FilterLinear instead so far (#669).
 		filter = graphicsdriver.FilterLinear
 	}
@@ -260,17 +213,7 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 	is := graphics.QuadIndices()
 
 	srcs := [graphics.ShaderImageCount]*Image{c.offscreen}
-	var shader *Shader
-	var uniforms [][]float32
-	if screenFilter {
-		shader = c.screenShader
-		dstWidth := c.screen.width
-		srcWidth := c.offscreen.width
-		uniforms = shader.ConvertUniforms(map[string]interface{}{
-			"Scale": float32(dstWidth) / float32(srcWidth),
-		})
-	}
-	c.screen.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, filter, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, shader, uniforms, false, true)
+	c.screen.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, filter, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, nil, nil, false, true)
 }
 
 func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {

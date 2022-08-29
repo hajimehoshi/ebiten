@@ -345,6 +345,8 @@ func (c *drawTrianglesCommand) String() string {
 		filter = "nearest"
 	case graphicsdriver.FilterLinear:
 		filter = "linear"
+	case graphicsdriver.FilterScreen:
+		filter = "screen"
 	default:
 		panic(fmt.Sprintf("graphicscommand: invalid filter: %d", c.filter))
 	}

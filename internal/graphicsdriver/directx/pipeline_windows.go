@@ -73,6 +73,9 @@ func (k *builtinPipelineStatesKey) defs() ([]_D3D_SHADER_MACRO, error) {
 	case graphicsdriver.FilterLinear:
 		name := []byte("FILTER_LINEAR\x00")
 		defs = append(defs, _D3D_SHADER_MACRO{&name[0], &defval[0]})
+	case graphicsdriver.FilterScreen:
+		name := []byte("FILTER_SCREEN\x00")
+		defs = append(defs, _D3D_SHADER_MACRO{&name[0], &defval[0]})
 	default:
 		return nil, fmt.Errorf("directx: invalid filter: %d", k.filter)
 	}
@@ -110,6 +113,10 @@ cbuffer ShaderParameter : register(b0) {
   float4x4 color_matrix_body;
   float4 color_matrix_translation;
   float4 source_region;
+
+  // This member should be the last not to create a new sector.
+  // https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-packing-rules
+  float scale;
 }
 
 PSInput VSMain(float2 position : POSITION, float2 tex : TEXCOORD, float4 color : COLOR) {
@@ -213,6 +220,25 @@ float4 PSMain(PSInput input) : SV_TARGET {
   float4 color = lerp(lerp(c0, c1, rate.x), lerp(c2, c3, rate.x), rate.y);
 #endif // defined(FILTER_LINEAR)
 
+#if defined(FILTER_SCREEN)
+  float2 pos = input.texcoord;
+  float2 texel_size = 1.0 / source_size;
+  float2 half_scaled_texel_size = texel_size / 2.0 / scale;
+
+  float2 p0 = pos - half_scaled_texel_size + (texel_size / 512.0);
+  float2 p1 = pos + half_scaled_texel_size + (texel_size / 512.0);
+
+  float4 c0 = tex.Sample(samp, p0);
+  float4 c1 = tex.Sample(samp, float2(p1.x, p0.y));
+  float4 c2 = tex.Sample(samp, float2(p0.x, p1.y));
+  float4 c3 = tex.Sample(samp, p1);
+  // Texels must be in the source rect, so it is not necessary to check that like linear filter.
+
+  float2 rate_center = float2(1.0, 1.0) - half_scaled_texel_size;
+  float2 rate = clamp(((frac(p0 * source_size) - rate_center) * scale) + rate_center, 0.0, 1.0);
+  float4 color = lerp(lerp(c0, c1, rate.x), lerp(c2, c3, rate.x), rate.y);
+#endif // defined(FILTER_SCREEN)
+
 #if defined(USE_COLOR_MATRIX)
   // Un-premultiply alpha.
   // When the alpha is 0, 1.0 - sign(alpha) is 1.0, which means division does nothing.
@@ -225,6 +251,8 @@ float4 PSMain(PSInput input) : SV_TARGET {
   color *= input.color;
   // Clamp the output.
   color.rgb = min(color.rgb, color.a);
+  return color;
+#elif defined(FILTER_SCREEN)
   return color;
 #else
   return input.color * color;

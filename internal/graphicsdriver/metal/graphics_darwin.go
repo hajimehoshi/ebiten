@@ -33,6 +33,7 @@ const source = `#include <metal_stdlib>
 
 #define FILTER_NEAREST {{.FilterNearest}}
 #define FILTER_LINEAR {{.FilterLinear}}
+#define FILTER_SCREEN {{.FilterScreen}}
 
 #define ADDRESS_CLAMP_TO_ZERO {{.AddressClampToZero}}
 #define ADDRESS_REPEAT {{.AddressRepeat}}
@@ -183,6 +184,25 @@ struct ColorFromTexel<FILTER_LINEAR, address> {
   }
 };
 
+template<uint8_t address>
+struct ColorFromTexel<FILTER_SCREEN, address> {
+  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, constant float4& source_region, float scale) {
+    const float2 texel_size = 1 / source_size;
+
+    float2 p0 = v.tex - texel_size / 2.0 / scale + (texel_size / 512.0);
+    float2 p1 = v.tex + texel_size / 2.0 / scale + (texel_size / 512.0);
+
+    float4 c0 = texture.sample(texture_sampler, p0);
+    float4 c1 = texture.sample(texture_sampler, float2(p1.x, p0.y));
+    float4 c2 = texture.sample(texture_sampler, float2(p0.x, p1.y));
+    float4 c3 = texture.sample(texture_sampler, p1);
+
+    float2 rate_center = float2(1.0, 1.0) - texel_size / 2.0 / scale;
+    float2 rate = clamp(((fract(p0 * source_size) - rate_center) * scale) + rate_center, 0.0, 1.0);
+    return mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
+  }
+};
+
 template<bool useColorM, uint8_t filter, uint8_t address>
 struct FragmentShaderImpl {
   inline float4 Do(
@@ -204,6 +224,20 @@ struct FragmentShaderImpl {
       c *= v.color;
     }
     return c;
+  }
+};
+
+template<bool useColorM, uint8_t address>
+struct FragmentShaderImpl<useColorM, FILTER_SCREEN, address> {
+  inline float4 Do(
+      VertexOut v,
+      texture2d<float> texture,
+      constant float2& source_size,
+      constant float4x4& color_matrix_body,
+      constant float4& color_matrix_translation,
+      constant float4& source_region,
+      constant float& scale) {
+    return ColorFromTexel<FILTER_SCREEN, address>().Do(v, texture, source_size, source_region, scale);
   }
 };
 
@@ -238,6 +272,8 @@ FragmentShaderFunc(1, FILTER_NEAREST, ADDRESS_REPEAT)
 FragmentShaderFunc(1, FILTER_LINEAR, ADDRESS_REPEAT)
 FragmentShaderFunc(1, FILTER_NEAREST, ADDRESS_UNSAFE)
 FragmentShaderFunc(1, FILTER_LINEAR, ADDRESS_UNSAFE)
+
+FragmentShaderFunc(0, FILTER_SCREEN, ADDRESS_UNSAFE)
 
 #undef FragmentShaderFuncName
 `
@@ -572,6 +608,7 @@ func (g *Graphics) Initialize() error {
 	replaces := map[string]string{
 		"{{.FilterNearest}}":      fmt.Sprintf("%d", graphicsdriver.FilterNearest),
 		"{{.FilterLinear}}":       fmt.Sprintf("%d", graphicsdriver.FilterLinear),
+		"{{.FilterScreen}}":       fmt.Sprintf("%d", graphicsdriver.FilterScreen),
 		"{{.AddressClampToZero}}": fmt.Sprintf("%d", graphicsdriver.AddressClampToZero),
 		"{{.AddressRepeat}}":      fmt.Sprintf("%d", graphicsdriver.AddressRepeat),
 		"{{.AddressUnsafe}}":      fmt.Sprintf("%d", graphicsdriver.AddressUnsafe),
@@ -589,6 +626,27 @@ func (g *Graphics) Initialize() error {
 	if err != nil {
 		return err
 	}
+	fs, err := lib.MakeFunction(
+		fmt.Sprintf("FragmentShader_%d_%d_%d", 0, graphicsdriver.FilterScreen, graphicsdriver.AddressUnsafe))
+	if err != nil {
+		return err
+	}
+	rpld := mtl.RenderPipelineDescriptor{
+		VertexFunction:   vs,
+		FragmentFunction: fs,
+	}
+	rpld.ColorAttachments[0].PixelFormat = g.view.colorPixelFormat()
+	rpld.ColorAttachments[0].BlendingEnabled = true
+	rpld.ColorAttachments[0].DestinationAlphaBlendFactor = mtl.BlendFactorZero
+	rpld.ColorAttachments[0].DestinationRGBBlendFactor = mtl.BlendFactorZero
+	rpld.ColorAttachments[0].SourceAlphaBlendFactor = mtl.BlendFactorOne
+	rpld.ColorAttachments[0].SourceRGBBlendFactor = mtl.BlendFactorOne
+	rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskAll
+	rps, err := g.view.getMTLDevice().MakeRenderPipelineState(rpld)
+	if err != nil {
+		return err
+	}
+	g.screenRPS = rps
 
 	for _, screen := range []bool{false, true} {
 		for _, cm := range []bool{false, true} {
@@ -813,19 +871,23 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 	rpss := map[stencilMode]mtl.RenderPipelineState{}
 	var uniformVars [][]float32
 	if shaderID == graphicsdriver.InvalidShaderID {
-		for _, stencil := range []stencilMode{
-			prepareStencil,
-			drawWithStencil,
-			noStencil,
-		} {
-			rpss[stencil] = g.rpss[rpsKey{
-				screen:        dst.screen,
-				useColorM:     !colorM.IsIdentity(),
-				filter:        filter,
-				address:       address,
-				compositeMode: mode,
-				stencilMode:   stencil,
-			}]
+		if dst.screen && filter == graphicsdriver.FilterScreen {
+			rpss[noStencil] = g.screenRPS
+		} else {
+			for _, stencil := range []stencilMode{
+				prepareStencil,
+				drawWithStencil,
+				noStencil,
+			} {
+				rpss[stencil] = g.rpss[rpsKey{
+					screen:        dst.screen,
+					useColorM:     !colorM.IsIdentity(),
+					filter:        filter,
+					address:       address,
+					compositeMode: mode,
+					stencilMode:   stencil,
+				}]
+			}
 		}
 
 		w, h := dst.internalSize()
@@ -838,6 +900,10 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 		var esBody [16]float32
 		var esTranslate [4]float32
 		colorM.Elements(&esBody, &esTranslate)
+		scale := float32(0)
+		if filter == graphicsdriver.FilterScreen {
+			scale = float32(dst.width) / float32(srcs[0].width)
+		}
 		uniformVars = [][]float32{
 			{float32(w), float32(h)},
 			sourceSize,
@@ -849,6 +915,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 				srcRegion.X + srcRegion.Width,
 				srcRegion.Y + srcRegion.Height,
 			},
+			{scale},
 		}
 	} else {
 		for _, stencil := range []stencilMode{

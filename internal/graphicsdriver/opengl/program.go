@@ -191,6 +191,7 @@ func (s *openGLState) reset(context *context) error {
 			for _, f := range []graphicsdriver.Filter{
 				graphicsdriver.FilterNearest,
 				graphicsdriver.FilterLinear,
+				graphicsdriver.FilterScreen,
 			} {
 				shaderFragmentColorMatrixNative, err := context.newFragmentShader(fragmentShaderStr(c, f, a))
 				if err != nil {

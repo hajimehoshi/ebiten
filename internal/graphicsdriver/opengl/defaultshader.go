@@ -83,6 +83,8 @@ func fragmentShaderStr(useColorM bool, filter graphicsdriver.Filter, address gra
 		defs = append(defs, "#define FILTER_NEAREST")
 	case graphicsdriver.FilterLinear:
 		defs = append(defs, "#define FILTER_LINEAR")
+	case graphicsdriver.FilterScreen:
+		defs = append(defs, "#define FILTER_SCREEN")
 	default:
 		panic(fmt.Sprintf("opengl: invalid filter: %d", filter))
 	}
@@ -148,6 +150,10 @@ uniform vec4 color_matrix_translation;
 #endif
 
 uniform highp vec2 source_size;
+
+#if defined(FILTER_SCREEN)
+uniform highp float scale;
+#endif
 
 varying highp vec2 varying_tex;
 varying highp vec4 varying_color_scale;
@@ -229,6 +235,27 @@ void main(void) {
   color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
 #endif  // defined(FILTER_LINEAR)
 
+#if defined(FILTER_SCREEN)
+  highp vec2 texel_size = 1.0 / source_size;
+  highp vec2 half_scaled_texel_size = texel_size / 2.0 / scale;
+
+  highp vec2 p0 = pos - half_scaled_texel_size + (texel_size / 512.0);
+  highp vec2 p1 = pos + half_scaled_texel_size + (texel_size / 512.0);
+
+  vec4 c0 = texture2D(T0, p0);
+  vec4 c1 = texture2D(T0, vec2(p1.x, p0.y));
+  vec4 c2 = texture2D(T0, vec2(p0.x, p1.y));
+  vec4 c3 = texture2D(T0, p1);
+  // Texels must be in the source rect, so it is not necessary to check that like linear filter.
+
+  vec2 rate_center = vec2(1.0, 1.0) - half_scaled_texel_size;
+  vec2 rate = clamp(((fract(p0 * source_size) - rate_center) * scale) + rate_center, 0.0, 1.0);
+  gl_FragColor = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
+
+  // Assume that a color matrix and color vector values are not used with FILTER_SCREEN.
+
+#else
+
 # if defined(USE_COLOR_MATRIX)
   // Un-premultiply alpha.
   // When the alpha is 0, 1.0 - sign(alpha) is 1.0, which means division does nothing.
@@ -248,6 +275,9 @@ void main(void) {
 # endif  // defined(USE_COLOR_MATRIX)
 
   gl_FragColor = color;
+
+#endif  // defined(FILTER_SCREEN)
+
 }
 `
 )
