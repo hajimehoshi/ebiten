@@ -22,6 +22,7 @@ import (
 
 func newContext(sampleRate, channelCount, bitDepthInBytes int) (context, chan struct{}, error) {
 	ctx, ready, err := oto.NewContext(sampleRate, channelCount, bitDepthInBytes)
+	err = addErrorInfoForContextCreation(err)
 	return &contextProxy{ctx}, ready, err
 }
 
