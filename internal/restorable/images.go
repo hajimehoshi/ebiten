@@ -15,8 +15,6 @@
 package restorable
 
 import (
-	"image"
-	"path/filepath"
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
@@ -125,12 +123,12 @@ func RestoreIfNeeded(graphicsDriver graphicsdriver.Graphics) error {
 //
 // This is for testing usage.
 func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) error {
+	images := make([]*graphicscommand.Image, 0, len(theImages.images))
 	for img := range theImages.images {
-		if err := img.Dump(graphicsDriver, filepath.Join(dir, "*.png"), false, image.Rect(0, 0, img.width, img.height)); err != nil {
-			return err
-		}
+		images = append(images, img.image)
 	}
-	return nil
+
+	return graphicscommand.DumpImages(images, graphicsDriver, dir)
 }
 
 // add adds img to the images.

@@ -18,6 +18,8 @@ import (
 	"image"
 	"io"
 	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
@@ -190,6 +192,10 @@ func (i *Image) IsInvalidated() bool {
 		return false
 	}
 	return i.image.IsInvalidated()
+}
+
+func (i *Image) dumpName(path string) string {
+	return strings.ReplaceAll(path, "*", strconv.Itoa(i.id))
 }
 
 // dumpTo dumps the image to the specified writer.
