@@ -194,16 +194,16 @@ func (i *Image) IsInvalidated() bool {
 	return i.image.IsInvalidated()
 }
 
-func (i *Image) DumpName(path string) string {
+func (i *Image) dumpName(path string) string {
 	return strings.ReplaceAll(path, "*", strconv.Itoa(i.id))
 }
 
-// DumpTo dumps the image to the specified writer.
+// dumpTo dumps the image to the specified writer.
 //
 // If blackbg is true, any alpha values in the dumped image will be 255.
 //
 // This is for testing usage.
-func (i *Image) DumpTo(w io.Writer, graphicsDriver graphicsdriver.Graphics, blackbg bool, rect image.Rectangle) error {
+func (i *Image) dumpTo(w io.Writer, graphicsDriver graphicsdriver.Graphics, blackbg bool, rect image.Rectangle) error {
 	// Screen image cannot be dumped.
 	if i.screen {
 		return nil

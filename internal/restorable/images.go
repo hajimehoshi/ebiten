@@ -119,6 +119,18 @@ func RestoreIfNeeded(graphicsDriver graphicsdriver.Graphics) error {
 	return theImages.restore(graphicsDriver)
 }
 
+// DumpImages dumps all the current images to the specified directory.
+//
+// This is for testing usage.
+func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) error {
+	images := make([]*graphicscommand.Image, 0, len(theImages.images))
+	for img := range theImages.images {
+		images = append(images, img.image)
+	}
+
+	return graphicscommand.DumpImages(images, graphicsDriver, dir)
+}
+
 // add adds img to the images.
 func (i *images) add(img *Image) {
 	i.images[img] = struct{}{}

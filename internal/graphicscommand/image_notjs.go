@@ -20,6 +20,7 @@ package graphicscommand
 import (
 	"image"
 	"os"
+	"path/filepath"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
@@ -30,16 +31,32 @@ func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackb
 		return nil
 	}
 
-	path = i.DumpName(path)
+	path = i.dumpName(path)
 	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	if err := i.DumpTo(f, graphicsDriver, blackbg, rect); err != nil {
+	if err := i.dumpTo(f, graphicsDriver, blackbg, rect); err != nil {
 		return err
 	}
 
+	return nil
+}
+
+// DumpImages dumps all the current images to the specified directory.
+//
+// This is for testing usage.
+func DumpImages(images []*Image, graphicsDriver graphicsdriver.Graphics, dir string) error {
+	if err := os.Mkdir(dir, 0755); err != nil {
+		return err
+	}
+
+	for _, img := range images {
+		if err := img.Dump(graphicsDriver, filepath.Join(dir, "*.png"), false, image.Rect(0, 0, img.width, img.height)); err != nil {
+			return err
+		}
+	}
 	return nil
 }
