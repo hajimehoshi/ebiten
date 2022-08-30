@@ -23,7 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
-func jsDownload(buf *bytes.Buffer, mime string, path string) {
+func download(buf *bytes.Buffer, mime string, path string) {
 	global := js.Global()
 
 	jsData := global.Get("Uint8Array").New(buf.Len())
@@ -50,7 +50,7 @@ func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackb
 		return err
 	}
 
-	jsDownload(buf, "image/png", i.dumpName(path))
+	download(buf, "image/png", i.dumpName(path))
 
 	return nil
 }
@@ -75,7 +75,7 @@ func DumpImages(images []*Image, graphicsDriver graphicsdriver.Graphics, dir str
 
 	zw.Close()
 
-	jsDownload(buf, "archive/zip", dir+".zip")
+	download(buf, "archive/zip", dir+".zip")
 
 	return nil
 }

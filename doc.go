@@ -63,7 +63,7 @@
 //
 // `EBITENGINE_INTERNAL_IMAGES_KEY` environment variable specifies the key
 // to dump all the internal images. This is valid only when the build tag
-// 'ebitenginedebug' is specified. This works only on desktops.
+// 'ebitenginedebug' is specified. This works only on desktops and browsers.
 //
 // `EBITENGINE_GRAPHICS_LIBRARY` environment variable specifies the graphics library.
 // If the specified graphics library is not available, RunGame returns an error.
