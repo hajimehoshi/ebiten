@@ -15,31 +15,28 @@
 //go:build !js
 // +build !js
 
-package graphicscommand
+package restorable
 
 import (
 	"image"
 	"os"
+	"path/filepath"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
-func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool, rect image.Rectangle) error {
-	// Screen image cannot be dumped.
-	if i.screen {
-		return nil
-	}
-
-	path = i.DumpName(path)
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	if err := i.DumpTo(f, graphicsDriver, blackbg, rect); err != nil {
+// DumpImages dumps all the current images to the specified directory.
+//
+// This is for testing usage.
+func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) error {
+	if err := os.Mkdir(dir, 0755); err != nil {
 		return err
 	}
 
+	for img := range theImages.images {
+		if err := img.Dump(graphicsDriver, filepath.Join(dir, "*.png"), false, image.Rect(0, 0, img.width, img.height)); err != nil {
+			return err
+		}
+	}
 	return nil
 }

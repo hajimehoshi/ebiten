@@ -18,6 +18,8 @@ import (
 	"image"
 	"io"
 	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
@@ -192,12 +194,16 @@ func (i *Image) IsInvalidated() bool {
 	return i.image.IsInvalidated()
 }
 
-// dumpTo dumps the image to the specified writer.
+func (i *Image) DumpName(path string) string {
+	return strings.ReplaceAll(path, "*", strconv.Itoa(i.id))
+}
+
+// DumpTo dumps the image to the specified writer.
 //
 // If blackbg is true, any alpha values in the dumped image will be 255.
 //
 // This is for testing usage.
-func (i *Image) dumpTo(w io.Writer, graphicsDriver graphicsdriver.Graphics, blackbg bool, rect image.Rectangle) error {
+func (i *Image) DumpTo(w io.Writer, graphicsDriver graphicsdriver.Graphics, blackbg bool, rect image.Rectangle) error {
 	// Screen image cannot be dumped.
 	if i.screen {
 		return nil

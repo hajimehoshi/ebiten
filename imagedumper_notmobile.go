@@ -71,10 +71,6 @@ func dumpInternalImages() error {
 		return err
 	}
 
-	if err := os.Mkdir(dir, 0755); err != nil {
-		return err
-	}
-
 	if err := ui.DumpImages(dir); err != nil {
 		return err
 	}

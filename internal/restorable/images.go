@@ -15,8 +15,6 @@
 package restorable
 
 import (
-	"image"
-	"path/filepath"
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
@@ -119,18 +117,6 @@ func RestoreIfNeeded(graphicsDriver graphicsdriver.Graphics) error {
 		return err
 	}
 	return theImages.restore(graphicsDriver)
-}
-
-// DumpImages dumps all the current images to the specified directory.
-//
-// This is for testing usage.
-func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) error {
-	for img := range theImages.images {
-		if err := img.Dump(graphicsDriver, filepath.Join(dir, "*.png"), false, image.Rect(0, 0, img.width, img.height)); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // add adds img to the images.
