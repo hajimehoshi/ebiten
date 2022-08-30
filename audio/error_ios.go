@@ -18,7 +18,7 @@
 package audio
 
 // #cgo CFLAGS: -x objective-c
-// #cgo LDFLAGS: -framework UIKit
+// #cgo LDFLAGS: -framework Foundation -framework UIKit
 //
 // #import <UIKit/UIKit.h>
 //
