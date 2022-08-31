@@ -111,12 +111,16 @@ func NewContext(sampleRate int) *Context {
 	h := getHook()
 	h.OnSuspendAudio(func() error {
 		c.semaphore <- struct{}{}
-		c.playerFactory.suspend()
+		if err := c.playerFactory.suspend(); err != nil {
+			return err
+		}
 		return nil
 	})
 	h.OnResumeAudio(func() error {
 		<-c.semaphore
-		c.playerFactory.resume()
+		if err := c.playerFactory.resume(); err != nil {
+			return err
+		}
 		return nil
 	})
 
