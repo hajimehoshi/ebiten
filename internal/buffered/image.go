@@ -113,7 +113,7 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 	return nil
 }
 
-func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name string, blackbg bool) error {
+func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name string, blackbg bool) (string, error) {
 	checkDelayedCommandsFlushed("Dump")
 	return i.img.DumpScreenshot(graphicsDriver, name, blackbg)
 }

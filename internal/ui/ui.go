@@ -95,10 +95,10 @@ func (u *UserInterface) readPixels(mipmap *mipmap.Mipmap, pixels []byte, x, y, w
 	return mipmap.ReadPixels(u.graphicsDriver, pixels, x, y, width, height)
 }
 
-func (u *UserInterface) dumpScreenshot(mipmap *mipmap.Mipmap, name string, blackbg bool) error {
+func (u *UserInterface) dumpScreenshot(mipmap *mipmap.Mipmap, name string, blackbg bool) (string, error) {
 	return mipmap.DumpScreenshot(u.graphicsDriver, name, blackbg)
 }
 
-func (u *UserInterface) dumpImages(dir string) error {
+func (u *UserInterface) dumpImages(dir string) (string, error) {
 	return atlas.DumpImages(u.graphicsDriver, dir)
 }

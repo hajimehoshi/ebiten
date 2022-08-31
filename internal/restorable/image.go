@@ -668,7 +668,7 @@ func (i *Image) isInvalidated(graphicsDriver graphicsdriver.Graphics) (bool, err
 	return i.image.IsInvalidated(), nil
 }
 
-func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool, rect image.Rectangle) error {
+func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool, rect image.Rectangle) (string, error) {
 	return i.image.Dump(graphicsDriver, path, blackbg, rect)
 }
 

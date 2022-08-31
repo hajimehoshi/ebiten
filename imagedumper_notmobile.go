@@ -18,64 +18,39 @@
 package ebiten
 
 import (
-	"errors"
 	"fmt"
 	"os"
-	"syscall"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
-// availableFilename returns a filename that is valid as a new file or directory.
-func availableFilename(prefix, postfix string) (string, error) {
+func datetimeForFilename() string {
 	const datetimeFormat = "20060102030405"
-
 	now := time.Now()
-	name := fmt.Sprintf("%s%s%s", prefix, now.Format(datetimeFormat), postfix)
-	for i := 1; ; i++ {
-		if _, err := os.Stat(name); err != nil {
-			if os.IsNotExist(err) || errors.Is(err, syscall.ENOSYS) {
-				break
-			}
-			if !os.IsNotExist(err) {
-				return "", err
-			}
-		}
-		name = fmt.Sprintf("%s%s_%d%s", prefix, now.Format(datetimeFormat), i, postfix)
-	}
-	return name, nil
+	return now.Format(datetimeFormat)
 }
 
 func takeScreenshot(screen *Image) error {
-	newname, err := availableFilename("screenshot_", ".png")
+	name := "screenshot_" + datetimeForFilename() + ".png"
+	blackbg := !IsScreenTransparent()
+	dumpedName, err := screen.image.DumpScreenshot(name, blackbg)
 	if err != nil {
 		return err
 	}
-
-	blackbg := !IsScreenTransparent()
-	if err := screen.image.DumpScreenshot(newname, blackbg); err != nil {
-		return err
-	}
-
-	if _, err := fmt.Fprintf(os.Stderr, "Saved screenshot: %s\n", newname); err != nil {
+	if _, err := fmt.Fprintf(os.Stderr, "Saved screenshot: %s\n", dumpedName); err != nil {
 		return err
 	}
 	return nil
 }
 
 func dumpInternalImages() error {
-	dir, err := availableFilename("internalimages_", "")
+	dumpedDir, err := ui.DumpImages("internalimages_" + datetimeForFilename())
 	if err != nil {
 		return err
 	}
-
-	if err := ui.DumpImages(dir); err != nil {
-		return err
-	}
-
-	if _, err := fmt.Fprintf(os.Stderr, "Dumped the internal images at: %s\n", dir); err != nil {
+	if _, err := fmt.Fprintf(os.Stderr, "Dumped the internal images at: %s\n", dumpedDir); err != nil {
 		return err
 	}
 	return nil

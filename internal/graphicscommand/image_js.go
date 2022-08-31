@@ -39,26 +39,26 @@ func download(buf *bytes.Buffer, mime string, path string) {
 	a.Call("click")
 }
 
-func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool, rect image.Rectangle) error {
+func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool, rect image.Rectangle) (string, error) {
 	// Screen image cannot be dumped.
 	if i.screen {
-		return nil
+		return "", nil
 	}
 
 	buf := &bytes.Buffer{}
 	if err := i.dumpTo(buf, graphicsDriver, blackbg, rect); err != nil {
-		return err
+		return "", err
 	}
 
 	download(buf, "image/png", i.dumpName(path))
 
-	return nil
+	return path, nil
 }
 
 // DumpImages dumps all the specified images to the specified directory.
 //
 // This is for testing usage.
-func DumpImages(images []*Image, graphicsDriver graphicsdriver.Graphics, dir string) error {
+func DumpImages(images []*Image, graphicsDriver graphicsdriver.Graphics, dir string) (string, error) {
 	buf := &bytes.Buffer{}
 	zw := zip.NewWriter(buf)
 
@@ -70,17 +70,18 @@ func DumpImages(images []*Image, graphicsDriver graphicsdriver.Graphics, dir str
 
 		f, err := zw.Create(img.dumpName("*.png"))
 		if err != nil {
-			return err
+			return "", err
 		}
 
 		if err := img.dumpTo(f, graphicsDriver, false, image.Rect(0, 0, img.width, img.height)); err != nil {
-			return err
+			return "", err
 		}
 	}
 
 	zw.Close()
 
-	download(buf, "archive/zip", dir+".zip")
+	zip := dir + ".zip"
+	download(buf, "archive/zip", zip)
 
-	return nil
+	return zip, nil
 }

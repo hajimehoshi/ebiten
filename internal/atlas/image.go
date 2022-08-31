@@ -733,7 +733,7 @@ func (i *Image) allocate(putOnAtlas bool) {
 	i.node = n
 }
 
-func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool) error {
+func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool) (string, error) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
@@ -786,7 +786,7 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 	return nil
 }
 
-func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) error {
+func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) (string, error) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	return restorable.DumpImages(graphicsDriver, dir)

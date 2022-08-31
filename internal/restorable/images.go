@@ -122,7 +122,7 @@ func RestoreIfNeeded(graphicsDriver graphicsdriver.Graphics) error {
 // DumpImages dumps all the current images to the specified directory.
 //
 // This is for testing usage.
-func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) error {
+func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) (string, error) {
 	images := make([]*graphicscommand.Image, 0, len(theImages.images))
 	for img := range theImages.images {
 		images = append(images, img.image)

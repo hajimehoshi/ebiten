@@ -89,11 +89,11 @@ func (i *Image) ReadPixels(pixels []byte, x, y, width, height int) {
 	}
 }
 
-func (i *Image) DumpScreenshot(name string, blackbg bool) error {
+func (i *Image) DumpScreenshot(name string, blackbg bool) (string, error) {
 	return theUI.dumpScreenshot(i.mipmap, name, blackbg)
 }
 
-func DumpImages(dir string) error {
+func DumpImages(dir string) (string, error) {
 	return theUI.dumpImages(dir)
 }
 

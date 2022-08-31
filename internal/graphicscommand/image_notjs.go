@@ -18,6 +18,8 @@
 package graphicscommand
 
 import (
+	"errors"
+	"fmt"
 	"image"
 	"os"
 	"path/filepath"
@@ -25,38 +27,74 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
-func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool, rect image.Rectangle) error {
-	// Screen image cannot be dumped.
-	if i.screen {
-		return nil
+func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool, rect image.Rectangle) (string, error) {
+	p, err := availableFilename(path)
+	if err != nil {
+		return "", err
 	}
+	path = p
 
 	path = i.dumpName(path)
 	f, err := os.Create(path)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer f.Close()
 
 	if err := i.dumpTo(f, graphicsDriver, blackbg, rect); err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return path, nil
 }
 
 // DumpImages dumps all the current images to the specified directory.
 //
 // This is for testing usage.
-func DumpImages(images []*Image, graphicsDriver graphicsdriver.Graphics, dir string) error {
+func DumpImages(images []*Image, graphicsDriver graphicsdriver.Graphics, dir string) (string, error) {
+	d, err := availableFilename(dir)
+	if err != nil {
+		return "", err
+	}
+	dir = d
+
 	if err := os.Mkdir(dir, 0755); err != nil {
-		return err
+		return "", err
 	}
 
 	for _, img := range images {
-		if err := img.Dump(graphicsDriver, filepath.Join(dir, "*.png"), false, image.Rect(0, 0, img.width, img.height)); err != nil {
-			return err
+		// Screen image cannot be dumped.
+		if img.screen {
+			continue
+		}
+
+		f, err := os.Create(filepath.Join(dir, img.dumpName("*.png")))
+		if err != nil {
+			return "", err
+		}
+		defer f.Close()
+
+		if err := img.dumpTo(f, graphicsDriver, false, image.Rect(0, 0, img.width, img.height)); err != nil {
+			return "", err
 		}
 	}
-	return nil
+
+	return dir, nil
+}
+
+// availableFilename returns a filename that is valid as a new file or directory.
+func availableFilename(name string) (string, error) {
+	ext := filepath.Ext(name)
+	base := name[:len(name)-len(ext)]
+
+	for i := 1; ; i++ {
+		if _, err := os.Stat(name); err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				break
+			}
+			return "", err
+		}
+		name = fmt.Sprintf("%s_%d%s", base, i, ext)
+	}
+	return name, nil
 }

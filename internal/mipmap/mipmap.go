@@ -45,7 +45,7 @@ func New(width, height int, imageType atlas.ImageType) *Mipmap {
 	}
 }
 
-func (m *Mipmap) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name string, blackbg bool) error {
+func (m *Mipmap) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name string, blackbg bool) (string, error) {
 	return m.orig.DumpScreenshot(graphicsDriver, name, blackbg)
 }
 
