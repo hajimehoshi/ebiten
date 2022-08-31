@@ -15,6 +15,7 @@
 package graphicscommand
 
 import (
+	"fmt"
 	"image"
 	"io"
 	"sort"
@@ -204,9 +205,8 @@ func (i *Image) dumpName(path string) string {
 //
 // This is for testing usage.
 func (i *Image) dumpTo(w io.Writer, graphicsDriver graphicsdriver.Graphics, blackbg bool, rect image.Rectangle) error {
-	// Screen image cannot be dumped.
 	if i.screen {
-		return nil
+		return fmt.Errorf("graphicscommand: a screen image cannot be dumped")
 	}
 
 	pix := make([]byte, 4*i.width*i.height)

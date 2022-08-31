@@ -63,6 +63,11 @@ func DumpImages(images []*Image, graphicsDriver graphicsdriver.Graphics, dir str
 	zw := zip.NewWriter(buf)
 
 	for _, img := range images {
+		// Screen image cannot be dumped.
+		if img.screen {
+			continue
+		}
+
 		f, err := zw.Create(img.dumpName("*.png"))
 		if err != nil {
 			return err
