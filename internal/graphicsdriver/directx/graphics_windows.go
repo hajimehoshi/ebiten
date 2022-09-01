@@ -684,10 +684,14 @@ func (g *Graphics) resizeSwapChainDesktop(width, height int) error {
 	// TODO: Reset 0 on Xbox
 	g.frameIndex = int(g.swapChain.GetCurrentBackBufferIndex())
 
-	// Do not reset the command allocators here (#2249).
-	// The command allocators are reset at flushCommnadList.
-
+	if err := g.drawCommandAllocators[g.frameIndex].Reset(); err != nil {
+		return err
+	}
 	if err := g.drawCommandList.Reset(g.drawCommandAllocators[g.frameIndex], nil); err != nil {
+		return err
+	}
+
+	if err := g.copyCommandAllocators[g.frameIndex].Reset(); err != nil {
 		return err
 	}
 	if err := g.copyCommandList.Reset(g.copyCommandAllocators[g.frameIndex], nil); err != nil {
@@ -737,10 +741,14 @@ func (g *Graphics) Begin() error {
 	}
 	g.frameStarted = true
 
-	// Do not reset the command allocators here (#2249).
-	// The command allocators are reset at flushCommnadList.
-
+	if err := g.drawCommandAllocators[g.frameIndex].Reset(); err != nil {
+		return err
+	}
 	if err := g.drawCommandList.Reset(g.drawCommandAllocators[g.frameIndex], nil); err != nil {
+		return err
+	}
+
+	if err := g.copyCommandAllocators[g.frameIndex].Reset(); err != nil {
 		return err
 	}
 	if err := g.copyCommandList.Reset(g.copyCommandAllocators[g.frameIndex], nil); err != nil {
