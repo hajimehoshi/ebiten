@@ -576,6 +576,10 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
+	// In the tests, BeginFrame might not be called often and then images might not be disposed (#2292).
+	// To prevent memory leaks, resolve the deferred functions here.
+	resolveDeferred()
+
 	if i.backend == nil || i.backend.restorable == nil {
 		for i := range pixels {
 			pixels[i] = 0

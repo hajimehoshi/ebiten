@@ -778,6 +778,7 @@ func (g *Graphics) End(present bool) error {
 		if err := g.waitForCommandQueue(); err != nil {
 			return err
 		}
+		g.releaseResources(g.frameIndex)
 		g.releaseVerticesAndIndices(g.frameIndex)
 	}
 
