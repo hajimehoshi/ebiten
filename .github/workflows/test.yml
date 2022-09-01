@@ -78,6 +78,11 @@ jobs:
           go install .github/workflows/vettools/atomicalign.go
           go vet -vettool=$(which atomicalign)${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }} -tags=example -v ./...
 
+      - name: go vet (error check)
+        run: |
+          go install .github/workflows/vettools/errcheck.go
+          go vet -vettool=$(which errcheck)${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }} -tags=example -v ./...
+
       - name: go build
         run: |
           go build -tags=example -v ./...
