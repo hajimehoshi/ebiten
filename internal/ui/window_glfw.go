@@ -119,7 +119,7 @@ func (w *glfwWindow) Maximize() {
 		return
 	}
 
-	if w.ui.areWindowSizeLimitsSpecified() {
+	if !w.ui.isWindowMaximizable() {
 		return
 	}
 
@@ -150,7 +150,7 @@ func (w *glfwWindow) Minimize() {
 }
 
 func (w *glfwWindow) Restore() {
-	if w.ui.areWindowSizeLimitsSpecified() {
+	if !w.ui.isWindowMaximizable() {
 		return
 	}
 	if !w.ui.isRunning() {
