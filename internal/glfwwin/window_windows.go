@@ -420,6 +420,11 @@ func (w *Window) SetSizeLimits(minwidth, minheight, maxwidth, maxheight int) err
 	if err := w.platformSetWindowSizeLimits(minwidth, minheight, maxwidth, maxheight); err != nil {
 		return err
 	}
+
+	if err := w.updateWindowStyles(); err != nil {
+		return err
+	}
+
 	return nil
 }
 

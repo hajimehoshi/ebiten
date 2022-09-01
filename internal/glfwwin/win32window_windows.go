@@ -28,7 +28,10 @@ func (w *Window) getWindowStyle() uint32 {
 		if w.decorated {
 			style |= _WS_CAPTION
 			if w.resizable {
-				style |= _WS_MAXIMIZEBOX | _WS_THICKFRAME
+				style |= _WS_THICKFRAME
+				if w.maxwidth == DontCare && w.maxheight == DontCare {
+					style |= _WS_MAXIMIZEBOX
+				}
 			}
 		} else {
 			style |= _WS_POPUP
