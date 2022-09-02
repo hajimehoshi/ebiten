@@ -1334,9 +1334,15 @@ func (u *userInterfaceImpl) setWindowSizeInDIPImpl(width, height int, fullscreen
 		return
 	}
 
+	// Get the original window position and size before changing the state of fullscreen.
+	// TODO: Rename this to origWindowPosInDIP?
+	origX, origY := u.origWindowPos()
+
 	if mw := u.minimumWindowWidth(); width < mw {
 		width = mw
 	}
+
+	wasFullscreen := u.isFullscreen()
 	if u.isNativeFullscreenAvailable() && u.isNativeFullscreen() {
 		u.setNativeFullscreen(false)
 	} else if !u.isNativeFullscreenAvailable() && u.window.GetMonitor() != nil {
@@ -1347,14 +1353,18 @@ func (u *userInterfaceImpl) setWindowSizeInDIPImpl(width, height int, fullscreen
 		u.swapBuffers()
 	}
 
-	// TODO: origWindowPos should always return invalidPos, then this logic should not be needed.
-	if x, y := u.origWindowPos(); x != invalidPos && y != invalidPos {
-		u.window.SetPos(x, y)
+	if wasFullscreen {
+		// glfw.PollEvents is necessary for macOS to enable (*glfw.Window).SetPos and SetSize (#2296).
+		glfw.PollEvents()
+	}
+
+	if origX != invalidPos && origY != invalidPos {
+		u.window.SetPos(origX, origY)
 		// Dirty hack for macOS (#703). Rendering doesn't work correctly with one SetPos, but
 		// work with two or more SetPos.
 		if runtime.GOOS == "darwin" {
-			u.window.SetPos(x+1, y)
-			u.window.SetPos(x, y)
+			u.window.SetPos(origX+1, origY)
+			u.window.SetPos(origX, origY)
 		}
 		u.setOrigWindowPos(invalidPos, invalidPos)
 	}

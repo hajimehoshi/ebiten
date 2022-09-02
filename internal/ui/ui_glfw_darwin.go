@@ -103,6 +103,7 @@ package ui
 // - (void)windowDidExitFullScreen:(NSNotification *)notification {
 //   NSWindow* window = (NSWindow*)[notification object];
 //   [self popResizableState:window];
+//   // Do not call setFrame here (#2295). setFrame here causes unexpected results.
 // }
 //
 // @end
