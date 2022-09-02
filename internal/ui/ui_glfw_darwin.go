@@ -22,14 +22,14 @@ package ui
 //
 // #import <AppKit/AppKit.h>
 //
-// @interface EbitenWindowDelegate : NSObject <NSWindowDelegate>
+// @interface EbitengineWindowDelegate : NSObject <NSWindowDelegate>
 // // origPos is the window's original position. This is valid only when the application is in the fullscreen mode.
 // @property CGPoint origPos;
 // // origSize is the window's original size.
 // @property CGSize origSize;
 // @end
 //
-// @implementation EbitenWindowDelegate {
+// @implementation EbitengineWindowDelegate {
 //   id<NSWindowDelegate> origDelegate_;
 //   bool origResizable_;
 // }
@@ -111,7 +111,7 @@ package ui
 // static void initializeWindow(uintptr_t windowPtr) {
 //   NSWindow* window = (NSWindow*)windowPtr;
 //   // This delegate is never released. This assumes that the window lives until the process lives.
-//   window.delegate = [[EbitenWindowDelegate alloc] initWithOrigDelegate:window.delegate];
+//   window.delegate = [[EbitengineWindowDelegate alloc] initWithOrigDelegate:window.delegate];
 // }
 //
 // static void currentMonitorPos(uintptr_t windowPtr, int* x, int* y) {
@@ -148,7 +148,7 @@ package ui
 //     return;
 //   }
 //
-//   // Even though EbitenWindowDelegate is used, this hack is still required.
+//   // Even though EbitengineWindowDelegate is used, this hack is still required.
 //   // toggleFullscreen doesn't work when the window is not resizable.
 //   bool origFullscreen = window.collectionBehavior & NSWindowCollectionBehaviorFullScreenPrimary;
 //   if (!origFullscreen) {
@@ -193,7 +193,7 @@ package ui
 //
 // static void windowOriginalPosition(uintptr_t windowPtr, int* x, int* y) {
 //   NSWindow* window = (NSWindow*)windowPtr;
-//   EbitenWindowDelegate* delegate = (EbitenWindowDelegate*)window.delegate;
+//   EbitengineWindowDelegate* delegate = (EbitengineWindowDelegate*)window.delegate;
 //   CGPoint pos = delegate.origPos;
 //   *x = pos.x;
 //   *y = pos.y;
@@ -201,7 +201,7 @@ package ui
 //
 // static void setWindowOriginalPosition(uintptr_t windowPtr, int x, int y) {
 //   NSWindow* window = (NSWindow*)windowPtr;
-//   EbitenWindowDelegate* delegate = (EbitenWindowDelegate*)window.delegate;
+//   EbitengineWindowDelegate* delegate = (EbitengineWindowDelegate*)window.delegate;
 //   CGPoint pos;
 //   pos.x = x;
 //   pos.y = y;
@@ -210,7 +210,7 @@ package ui
 //
 // static void windowOriginalSize(uintptr_t windowPtr, int* width, int* height) {
 //   NSWindow* window = (NSWindow*)windowPtr;
-//   EbitenWindowDelegate* delegate = (EbitenWindowDelegate*)window.delegate;
+//   EbitengineWindowDelegate* delegate = (EbitengineWindowDelegate*)window.delegate;
 //   CGSize size = delegate.origSize;
 //   *width = size.width;
 //   *height = size.height;
@@ -218,7 +218,7 @@ package ui
 //
 // static void setWindowOriginalSize(uintptr_t windowPtr, int width, int height) {
 //   NSWindow* window = (NSWindow*)windowPtr;
-//   EbitenWindowDelegate* delegate = (EbitenWindowDelegate*)window.delegate;
+//   EbitengineWindowDelegate* delegate = (EbitengineWindowDelegate*)window.delegate;
 //   CGSize size;
 //   size.width = width;
 //   size.height = height;
