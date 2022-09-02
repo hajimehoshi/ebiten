@@ -1335,7 +1335,6 @@ func (u *userInterfaceImpl) setWindowSizeInDIPImpl(width, height int, fullscreen
 	}
 
 	// Get the original window position and size before changing the state of fullscreen.
-	// TODO: Rename this to origWindowPosInDIP?
 	origX, origY := u.origWindowPos()
 
 	if mw := u.minimumWindowWidth(); width < mw {
