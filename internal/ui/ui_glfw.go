@@ -1347,6 +1347,7 @@ func (u *userInterfaceImpl) setWindowSizeInDIPImpl(width, height int, fullscreen
 		u.swapBuffers()
 	}
 
+	// TODO: origWindowPos should always return invalidPos, then this logic should not be needed.
 	if x, y := u.origWindowPos(); x != invalidPos && y != invalidPos {
 		u.window.SetPos(x, y)
 		// Dirty hack for macOS (#703). Rendering doesn't work correctly with one SetPos, but

@@ -103,10 +103,6 @@ package ui
 // - (void)windowDidExitFullScreen:(NSNotification *)notification {
 //   NSWindow* window = (NSWindow*)[notification object];
 //   [self popResizableState:window];
-//   CGRect frame;
-//   frame.origin = self->_origPos;
-//   frame.size = self->_origSize;
-//   [window setFrame:frame display:YES];
 // }
 //
 // @end
