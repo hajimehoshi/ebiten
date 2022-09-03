@@ -149,7 +149,7 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 	cname := make([]byte, 256)
 	name := "Unknown"
 	// TODO: Is it OK to ignore the error here?
-	if err := ioctl(fd, uint(_EVIOCGNAME(uint(len(name)))), unsafe.Pointer(&cname[0])); err == nil {
+	if err := ioctl(fd, uint(_EVIOCGNAME(uint(len(cname)))), unsafe.Pointer(&cname[0])); err == nil {
 		name = unix.ByteSliceToString(cname)
 	}
 
