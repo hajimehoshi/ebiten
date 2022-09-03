@@ -98,6 +98,11 @@ type userInterfaceImpl struct {
 	initScreenTransparent    bool
 	initFocused              bool
 
+	origWindowPosX        int
+	origWindowPosY        int
+	origWindowWidthInDIP  int
+	origWindowHeightInDIP int
+
 	fpsModeInited bool
 
 	input   Input
@@ -112,8 +117,6 @@ type userInterfaceImpl struct {
 	// t is the main thread == the rendering thread.
 	t thread.Thread
 	m sync.RWMutex
-
-	native userInterfaceImplNative
 }
 
 const (
@@ -137,8 +140,9 @@ func init() {
 		initWindowHeightInDIP:    480,
 		initFocused:              true,
 		fpsMode:                  FPSModeVsyncOn,
+		origWindowPosX:           invalidPos,
+		origWindowPosY:           invalidPos,
 	}
-	theUI.native.initialize()
 	theUI.input.ui = &theUI.userInterfaceImpl
 	theUI.iwindow.ui = &theUI.userInterfaceImpl
 }
@@ -1708,4 +1712,22 @@ func (u *userInterfaceImpl) forceToRefreshIfNeeded() {
 // isWindowMaximized must be called from the main thread.
 func (u *userInterfaceImpl) isWindowMaximized() bool {
 	return u.window.GetAttrib(glfw.Maximized) == glfw.True && !u.isNativeFullscreen()
+}
+
+func (u *userInterfaceImpl) origWindowPos() (int, int) {
+	return u.origWindowPosX, u.origWindowPosY
+}
+
+func (u *userInterfaceImpl) setOrigWindowPos(x, y int) {
+	u.origWindowPosX = x
+	u.origWindowPosY = y
+}
+
+func (u *userInterfaceImpl) origWindowSizeInDIP() (int, int) {
+	return u.origWindowWidthInDIP, u.origWindowHeightInDIP
+}
+
+func (u *userInterfaceImpl) setOrigWindowSizeInDIP(width, height int) {
+	u.origWindowWidthInDIP = width
+	u.origWindowHeightInDIP = height
 }
