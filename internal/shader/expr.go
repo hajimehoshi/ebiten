@@ -617,7 +617,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					t = argts[0]
 				}
 
-			case shaderir.Atan2, shaderir.Mod, shaderir.Min, shaderir.Max, shaderir.Step, shaderir.Distance, shaderir.Dot, shaderir.Cross, shaderir.Reflect:
+			case shaderir.Atan2, shaderir.Pow, shaderir.Mod, shaderir.Min, shaderir.Max, shaderir.Step, shaderir.Distance, shaderir.Dot, shaderir.Cross, shaderir.Reflect:
 				// 2 arguments
 				if len(args) != 2 {
 					cs.addError(e.Pos(), fmt.Sprintf("number of %s's arguments must be 2 but %d", callee.BuiltinFunc, len(args)))
