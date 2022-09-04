@@ -1643,7 +1643,6 @@ func TestSyntaxBuiltinFuncSingleArgType(t *testing.T) {
 		"asin",
 		"acos",
 		"atan",
-		"pow",
 		"exp",
 		"log",
 		"exp2",
@@ -1714,6 +1713,7 @@ func TestSyntaxBuiltinFuncDoubleArgsType(t *testing.T) {
 
 	funcs := []string{
 		"atan2",
+		"pow",
 		"distance",
 		"dot",
 		"reflect",
