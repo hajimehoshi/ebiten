@@ -104,6 +104,23 @@ jobs:
           go build -tags=example,nintendosdk -v ./...
           go build -tags=example,ebitencbackend -v ./... # For backward compatibility. Remove this in the future (#2190).
 
+      - name: go mod vendor
+        run: |
+          mkdir /tmp/vendoring
+          cd /tmp/vendoring
+          go mod init foo
+          # TODO: Is there a way to create a complete list of Ebitengine sub-packages?
+          echo 'package main' > main.go
+          echo 'import (' >> main.go
+          echo '  _ "github.com/hajimehoshi/ebiten/v2"' >> main.go
+          echo '  _ "github.com/hajimehoshi/ebiten/v2/audio"' >> main.go
+          echo ')' >> main.go
+          echo 'func main() {}' >> main.go
+          go mod edit -replace github.com/hajimehoshi/ebiten/v2=$GITHUB_WORKSPACE
+          go mod tidy
+          go mod vendor
+          go build -v .
+
       - name: go test
         # TODO: Add more test environments (#1305)
         if: ${{ startsWith(matrix.os, 'ubuntu-') || startsWith(matrix.os, 'windows-') }}
