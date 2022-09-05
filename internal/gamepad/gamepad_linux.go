@@ -108,6 +108,10 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 		if err == unix.EACCES {
 			return nil
 		}
+		// This happens with the Snap sandbox.
+		if err == unix.EPERM {
+			return nil
+		}
 		// This happens just after a disconnection.
 		if err == unix.ENOENT {
 			return nil
