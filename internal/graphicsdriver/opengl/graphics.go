@@ -244,15 +244,6 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 				typ:   shaderir.Type{Main: shaderir.Vec2},
 			})
 		}
-
-		if filter == graphicsdriver.FilterScreen {
-			scale := float32(destination.width) / float32(g.images[srcIDs[0]].width)
-			g.uniformVars = append(g.uniformVars, uniformVariable{
-				name:  "scale",
-				value: []float32{scale},
-				typ:   shaderir.Type{Main: shaderir.Float},
-			})
-		}
 	} else {
 		shader := g.shaders[shaderID]
 		program = shader.p
