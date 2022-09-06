@@ -25,6 +25,7 @@ package gamepaddb
 import (
 	"bufio"
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"runtime"
 	"strconv"
@@ -344,11 +345,8 @@ func buttonMappings(id string) map[StandardButton]*mapping {
 		return m
 	}
 	if currentPlatform == platformAndroid {
-		// If the gamepad is not an HID API, use the default mapping on Android.
-		if id[14] != 'h' {
-			if addAndroidDefaultMappings(id) {
-				return gamepadButtonMappings[id]
-			}
+		if addAndroidDefaultMappings(id) {
+			return gamepadButtonMappings[id]
 		}
 	}
 	return nil
@@ -359,11 +357,8 @@ func axisMappings(id string) map[StandardAxis]*mapping {
 		return m
 	}
 	if currentPlatform == platformAndroid {
-		// If the gamepad is not an HID API, use the default mapping on Android.
-		if id[14] != 'h' {
-			if addAndroidDefaultMappings(id) {
-				return gamepadAxisMappings[id]
-			}
+		if addAndroidDefaultMappings(id) {
+			return gamepadAxisMappings[id]
 		}
 	}
 	return nil
@@ -622,8 +617,12 @@ func addAndroidDefaultMappings(id string) bool {
 		(1 << SDLControllerButtonX) |
 		(1 << SDLControllerButtonY))
 
-	buttonMask := uint16(id[12]) | (uint16(id[13]) << 8)
-	axisMask := uint16(id[14]) | (uint16(id[15]) << 8)
+	idBytes, err := hex.DecodeString(id)
+	if err != nil {
+		return false
+	}
+	buttonMask := uint16(idBytes[12]) | (uint16(idBytes[13]) << 8)
+	axisMask := uint16(idBytes[14]) | (uint16(idBytes[15]) << 8)
 	if buttonMask == 0 && axisMask == 0 {
 		return false
 	}
