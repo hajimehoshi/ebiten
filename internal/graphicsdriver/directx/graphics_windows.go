@@ -1407,7 +1407,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 
 	} else {
 		if evenOdd {
-			s, err := shader.pipelineState(mode, prepareStencil)
+			s, err := shader.pipelineState(mode, prepareStencil, dst.screen)
 			if err != nil {
 				return err
 			}
@@ -1415,7 +1415,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 				return err
 			}
 
-			s, err = shader.pipelineState(mode, drawWithStencil)
+			s, err = shader.pipelineState(mode, drawWithStencil, dst.screen)
 			if err != nil {
 				return err
 			}
@@ -1423,7 +1423,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 				return err
 			}
 		} else {
-			s, err := shader.pipelineState(mode, noStencil)
+			s, err := shader.pipelineState(mode, noStencil, dst.screen)
 			if err != nil {
 				return err
 			}
@@ -1866,6 +1866,7 @@ const (
 type pipelineStateKey struct {
 	compositeMode graphicsdriver.CompositeMode
 	stencilMode   stencilMode
+	screen        bool
 }
 
 type Shader struct {
@@ -1902,16 +1903,17 @@ func (s *Shader) disposeImpl() {
 	}
 }
 
-func (s *Shader) pipelineState(compositeMode graphicsdriver.CompositeMode, stencilMode stencilMode) (*_ID3D12PipelineState, error) {
+func (s *Shader) pipelineState(compositeMode graphicsdriver.CompositeMode, stencilMode stencilMode, screen bool) (*_ID3D12PipelineState, error) {
 	key := pipelineStateKey{
 		compositeMode: compositeMode,
 		stencilMode:   stencilMode,
+		screen:        screen,
 	}
 	if state, ok := s.pipelineStates[key]; ok {
 		return state, nil
 	}
 
-	state, err := s.graphics.pipelineStates.newPipelineState(s.graphics.device, s.vertexShader, s.pixelShader, compositeMode, stencilMode, false)
+	state, err := s.graphics.pipelineStates.newPipelineState(s.graphics.device, s.vertexShader, s.pixelShader, compositeMode, stencilMode, screen)
 	if err != nil {
 		return nil, err
 	}
