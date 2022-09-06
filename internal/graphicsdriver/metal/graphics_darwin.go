@@ -854,7 +854,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 			noStencil,
 		} {
 			var err error
-			rpss[stencil], err = g.shaders[shaderID].RenderPipelineState(g.view, mode, stencil, dst.screen)
+			rpss[stencil], err = g.shaders[shaderID].RenderPipelineState(&g.view, mode, stencil, dst.screen)
 			if err != nil {
 				return err
 			}

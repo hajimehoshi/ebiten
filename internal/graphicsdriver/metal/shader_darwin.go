@@ -86,7 +86,7 @@ func (s *Shader) init(device mtl.Device) error {
 	return nil
 }
 
-func (s *Shader) RenderPipelineState(view view, compositeMode graphicsdriver.CompositeMode, stencilMode stencilMode, screen bool) (mtl.RenderPipelineState, error) {
+func (s *Shader) RenderPipelineState(view *view, compositeMode graphicsdriver.CompositeMode, stencilMode stencilMode, screen bool) (mtl.RenderPipelineState, error) {
 	key := shaderRpsKey{
 		compositeMode: compositeMode,
 		stencilMode:   stencilMode,
