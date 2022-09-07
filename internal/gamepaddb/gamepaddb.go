@@ -633,41 +633,43 @@ func addAndroidDefaultMappings(id string) bool {
 	gamepadButtonMappings[id] = map[StandardButton]*mapping{}
 	gamepadAxisMappings[id] = map[StandardAxis]*mapping{}
 
+	// For mappings, see mobile/ebitenmobileview/input_android.go.
+
 	if buttonMask&(1<<SDLControllerButtonA) != 0 {
 		gamepadButtonMappings[id][StandardButtonRightBottom] = &mapping{
 			Type:  mappingTypeButton,
-			Index: SDLControllerButtonA,
+			Index: 0,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonB) != 0 {
 		gamepadButtonMappings[id][StandardButtonRightRight] = &mapping{
 			Type:  mappingTypeButton,
-			Index: SDLControllerButtonB,
+			Index: 1,
 		}
 	} else {
 		// Use the back button as "B" for easy UI navigation with TV remotes.
 		gamepadButtonMappings[id][StandardButtonRightRight] = &mapping{
 			Type:  mappingTypeButton,
-			Index: SDLControllerButtonBack,
+			Index: 13,
 		}
 		buttonMask &^= uint16(1) << SDLControllerButtonBack
 	}
 	if buttonMask&(1<<SDLControllerButtonX) != 0 {
 		gamepadButtonMappings[id][StandardButtonRightLeft] = &mapping{
 			Type:  mappingTypeButton,
-			Index: SDLControllerButtonX,
+			Index: 3,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonY) != 0 {
 		gamepadButtonMappings[id][StandardButtonRightTop] = &mapping{
 			Type:  mappingTypeButton,
-			Index: SDLControllerButtonY,
+			Index: 4,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonBack) != 0 {
 		gamepadButtonMappings[id][StandardButtonCenterLeft] = &mapping{
 			Type:  mappingTypeButton,
-			Index: SDLControllerButtonBack,
+			Index: 13,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonGuide) != 0 {
@@ -681,33 +683,36 @@ func addAndroidDefaultMappings(id string) bool {
 	if buttonMask&(1<<SDLControllerButtonStart) != 0 {
 		gamepadButtonMappings[id][StandardButtonCenterRight] = &mapping{
 			Type:  mappingTypeButton,
-			Index: SDLControllerButtonStart,
+			Index: 12,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonLeftStick) != 0 {
 		gamepadButtonMappings[id][StandardButtonLeftStick] = &mapping{
 			Type:  mappingTypeButton,
-			Index: SDLControllerButtonLeftStick,
+			Index: 10,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonRightStick) != 0 {
 		gamepadButtonMappings[id][StandardButtonRightStick] = &mapping{
 			Type:  mappingTypeButton,
-			Index: SDLControllerButtonRightStick,
+			Index: 11,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonLeftShoulder) != 0 {
 		gamepadButtonMappings[id][StandardButtonFrontTopLeft] = &mapping{
 			Type:  mappingTypeButton,
-			Index: SDLControllerButtonLeftShoulder,
+			Index: 6,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonRightShoulder) != 0 {
 		gamepadButtonMappings[id][StandardButtonFrontTopRight] = &mapping{
 			Type:  mappingTypeButton,
-			Index: SDLControllerButtonRightShoulder,
+			Index: 7,
 		}
 	}
+
+	// TODO: Assign DPAD buttons correctly (#2308).
+
 	if buttonMask&(1<<SDLControllerButtonDpadUp) != 0 {
 		gamepadButtonMappings[id][StandardButtonLeftTop] = &mapping{
 			Type:  mappingTypeButton,
