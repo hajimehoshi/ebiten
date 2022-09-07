@@ -545,8 +545,14 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
             return;
         }
 
-        // Use the same number of SDL buttons. See internal/gamepaddb/sdl.go.
-        int nbuttons = 15;
+        boolean[] keyExistences = inputDevice.hasKeys(gamepadButtons);
+        int nbuttons = 0;
+        for (int i = 0; i < gamepadButtons.length; i++) {
+            if (!keyExistences[i]) {
+                break;
+            }
+            nbuttons++;
+        }
 
         int naxes = 0;
         int nhats2 = 0;

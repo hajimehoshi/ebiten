@@ -581,7 +581,37 @@ func Update(mappingData []byte) error {
 }
 
 func addAndroidDefaultMappings(id string) bool {
+	// See https://github.com/libsdl-org/SDL/blob/120c76c84bbce4c1bfed4e9eb74e10678bd83120/include/SDL_gamecontroller.h#L655-L680
+	const (
+		SDLControllerButtonA             = 0
+		SDLControllerButtonB             = 1
+		SDLControllerButtonX             = 2
+		SDLControllerButtonY             = 3
+		SDLControllerButtonBack          = 4
+		SDLControllerButtonGuide         = 5
+		SDLControllerButtonStart         = 6
+		SDLControllerButtonLeftStick     = 7
+		SDLControllerButtonRightStick    = 8
+		SDLControllerButtonLeftShoulder  = 9
+		SDLControllerButtonRightShoulder = 10
+		SDLControllerButtonDpadUp        = 11
+		SDLControllerButtonDpadDown      = 12
+		SDLControllerButtonDpadLeft      = 13
+		SDLControllerButtonDpadRight     = 14
+	)
+
+	// See https://github.com/libsdl-org/SDL/blob/120c76c84bbce4c1bfed4e9eb74e10678bd83120/include/SDL_gamecontroller.h#L550-L560
+	const (
+		SDLControllerAxisLeftX        = 0
+		SDLControllerAxisLeftY        = 1
+		SDLControllerAxisRightX       = 2
+		SDLControllerAxisRightY       = 3
+		SDLControllerAxisTriggerLeft  = 4
+		SDLControllerAxisTriggerRight = 5
+	)
+
 	// See https://github.com/libsdl-org/SDL/blob/120c76c84bbce4c1bfed4e9eb74e10678bd83120/src/joystick/SDL_gamecontroller.c#L468-L568
+
 	const faceButtonMask = ((1 << SDLControllerButtonA) |
 		(1 << SDLControllerButtonB) |
 		(1 << SDLControllerButtonX) |

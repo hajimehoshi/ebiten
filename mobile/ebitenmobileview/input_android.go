@@ -21,7 +21,6 @@ import (
 	"unicode"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
-	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -74,18 +73,38 @@ const (
 
 // TODO: Can we map these values to the standard gamepad buttons?
 
-var androidKeyToSDLButton = map[int]int{
-	keycodeButtonA:      gamepaddb.SDLControllerButtonA,
-	keycodeButtonB:      gamepaddb.SDLControllerButtonB,
-	keycodeButtonX:      gamepaddb.SDLControllerButtonX,
-	keycodeButtonY:      gamepaddb.SDLControllerButtonY,
-	keycodeButtonL1:     gamepaddb.SDLControllerButtonLeftShoulder,
-	keycodeButtonR1:     gamepaddb.SDLControllerButtonRightShoulder,
-	keycodeButtonThumbl: gamepaddb.SDLControllerButtonLeftStick,
-	keycodeButtonThumbr: gamepaddb.SDLControllerButtonRightStick,
-	keycodeButtonStart:  gamepaddb.SDLControllerButtonStart,
-	keycodeButtonSelect: gamepaddb.SDLControllerButtonBack,
-	keycodeButtonMode:   gamepaddb.SDLControllerButtonGuide,
+var androidKeyToGamepadButton = map[int]gamepad.Button{
+	keycodeButtonA:      gamepad.Button0,
+	keycodeButtonB:      gamepad.Button1,
+	keycodeButtonC:      gamepad.Button2,
+	keycodeButtonX:      gamepad.Button3,
+	keycodeButtonY:      gamepad.Button4,
+	keycodeButtonZ:      gamepad.Button5,
+	keycodeButtonL1:     gamepad.Button6,
+	keycodeButtonR1:     gamepad.Button7,
+	keycodeButtonL2:     gamepad.Button8,
+	keycodeButtonR2:     gamepad.Button9,
+	keycodeButtonThumbl: gamepad.Button10,
+	keycodeButtonThumbr: gamepad.Button11,
+	keycodeButtonStart:  gamepad.Button12,
+	keycodeButtonSelect: gamepad.Button13,
+	keycodeButtonMode:   gamepad.Button14,
+	keycodeButton1:      gamepad.Button15,
+	keycodeButton2:      gamepad.Button16,
+	keycodeButton3:      gamepad.Button17,
+	keycodeButton4:      gamepad.Button18,
+	keycodeButton5:      gamepad.Button19,
+	keycodeButton6:      gamepad.Button20,
+	keycodeButton7:      gamepad.Button21,
+	keycodeButton8:      gamepad.Button22,
+	keycodeButton9:      gamepad.Button23,
+	keycodeButton10:     gamepad.Button24,
+	keycodeButton11:     gamepad.Button25,
+	keycodeButton12:     gamepad.Button26,
+	keycodeButton13:     gamepad.Button27,
+	keycodeButton14:     gamepad.Button28,
+	keycodeButton15:     gamepad.Button29,
+	keycodeButton16:     gamepad.Button30,
 }
 
 // Axis constant definitions for joysticks only.
@@ -124,16 +143,39 @@ const (
 	axisGeneric16 = 0x0000002f
 )
 
-var androidAxisToSDLAxis = map[int]int{
-	axisX:        gamepaddb.SDLControllerAxisLeftX,
-	axisY:        gamepaddb.SDLControllerAxisLeftY,
-	axisRx:       gamepaddb.SDLControllerAxisRightX,
-	axisRy:       gamepaddb.SDLControllerAxisRightY,
-	axisLtrigger: gamepaddb.SDLControllerAxisTriggerLeft,
-	axisRtrigger: gamepaddb.SDLControllerAxisTriggerRight,
+var androidAxisIDToAxisID = map[int]int{
+	axisX:         0,
+	axisY:         1,
+	axisZ:         2,
+	axisRx:        3,
+	axisRy:        4,
+	axisRz:        5,
+	axisLtrigger:  6,
+	axisRtrigger:  7,
+	axisThrottle:  8,
+	axisRudder:    9,
+	axisWheel:     10,
+	axisGas:       11,
+	axisBrake:     12,
+	axisGeneric1:  13,
+	axisGeneric2:  14,
+	axisGeneric3:  15,
+	axisGeneric4:  16,
+	axisGeneric5:  17,
+	axisGeneric6:  18,
+	axisGeneric7:  19,
+	axisGeneric8:  20,
+	axisGeneric9:  21,
+	axisGeneric10: 22,
+	axisGeneric11: 23,
+	axisGeneric12: 24,
+	axisGeneric13: 25,
+	axisGeneric14: 26,
+	axisGeneric15: 27,
+	axisGeneric16: 28,
 }
 
-var androidAxisToHatID2 = map[int]int{
+var androidAxisIDToHatID2 = map[int]int{
 	axisHatX: 0,
 	axisHatY: 1,
 }
@@ -153,8 +195,8 @@ func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int) 
 	switch {
 	case source&sourceGamepad == sourceGamepad:
 		// A gamepad can be detected as a keyboard. Detect the device as a gamepad first.
-		if button, ok := androidKeyToSDLButton[keyCode]; ok {
-			gamepad.UpdateAndroidGamepadButton(deviceID, gamepad.Button(button), true)
+		if button, ok := androidKeyToGamepadButton[keyCode]; ok {
+			gamepad.UpdateAndroidGamepadButton(deviceID, button, true)
 		}
 	case source&sourceJoystick == sourceJoystick:
 		// DPAD keys can come here, but they are also treated as an axis at a motion event. Ignore them.
@@ -173,8 +215,8 @@ func OnKeyUpOnAndroid(keyCode int, source int, deviceID int) {
 	switch {
 	case source&sourceGamepad == sourceGamepad:
 		// A gamepad can be detected as a keyboard. Detect the device as a gamepad first.
-		if button, ok := androidKeyToSDLButton[keyCode]; ok {
-			gamepad.UpdateAndroidGamepadButton(deviceID, gamepad.Button(button), false)
+		if button, ok := androidKeyToGamepadButton[keyCode]; ok {
+			gamepad.UpdateAndroidGamepadButton(deviceID, button, false)
 		}
 	case source&sourceJoystick == sourceJoystick:
 		// DPAD keys can come here, but they are also treated as an axis at a motion event. Ignore them.
@@ -187,12 +229,12 @@ func OnKeyUpOnAndroid(keyCode int, source int, deviceID int) {
 }
 
 func OnGamepadAxesOrHatsChanged(deviceID int, axisID int, value float32) {
-	if axis, ok := androidAxisToSDLAxis[axisID]; ok {
+	if axis, ok := androidAxisIDToAxisID[axisID]; ok {
 		gamepad.UpdateAndroidGamepadAxis(deviceID, axis, float64(value))
 		return
 	}
 
-	if hid2, ok := androidAxisToHatID2[axisID]; ok {
+	if hid2, ok := androidAxisIDToHatID2[axisID]; ok {
 		const (
 			hatUp    = 1
 			hatRight = 2
