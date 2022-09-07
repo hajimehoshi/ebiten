@@ -741,7 +741,7 @@ func addAndroidDefaultMappings(id string) bool {
 	if axisMask&(1<<SDLControllerAxisLeftX) != 0 {
 		gamepadAxisMappings[id][StandardAxisLeftStickHorizontal] = &mapping{
 			Type:       mappingTypeAxis,
-			Index:      SDLControllerAxisLeftX,
+			Index:      0,
 			AxisScale:  1,
 			AxisOffset: 0,
 		}
@@ -749,23 +749,27 @@ func addAndroidDefaultMappings(id string) bool {
 	if axisMask&(1<<SDLControllerAxisLeftY) != 0 {
 		gamepadAxisMappings[id][StandardAxisLeftStickVertical] = &mapping{
 			Type:       mappingTypeAxis,
-			Index:      SDLControllerAxisLeftY,
+			Index:      1,
 			AxisScale:  1,
 			AxisOffset: 0,
 		}
 	}
 	if axisMask&(1<<SDLControllerAxisRightX) != 0 {
+		// https://developer.android.com/reference/android/view/MotionEvent#AXIS_Z
+		// > On game pads with two analog joysticks, this axis is often reinterpreted to report the absolute X position of the second joystick instead.
 		gamepadAxisMappings[id][StandardAxisRightStickHorizontal] = &mapping{
 			Type:       mappingTypeAxis,
-			Index:      SDLControllerAxisRightX,
+			Index:      2,
 			AxisScale:  1,
 			AxisOffset: 0,
 		}
 	}
 	if axisMask&(1<<SDLControllerAxisRightY) != 0 {
+		// https://developer.android.com/reference/android/view/MotionEvent#AXIS_RZ
+		// > On game pads with two analog joysticks, this axis is often reinterpreted to report the absolute Y position of the second joystick instead.
 		gamepadAxisMappings[id][StandardAxisRightStickVertical] = &mapping{
 			Type:       mappingTypeAxis,
-			Index:      SDLControllerAxisRightY,
+			Index:      5,
 			AxisScale:  1,
 			AxisOffset: 0,
 		}
@@ -773,17 +777,17 @@ func addAndroidDefaultMappings(id string) bool {
 	if axisMask&(1<<SDLControllerAxisTriggerLeft) != 0 {
 		gamepadButtonMappings[id][StandardButtonFrontBottomLeft] = &mapping{
 			Type:       mappingTypeAxis,
-			Index:      SDLControllerAxisTriggerLeft,
-			AxisScale:  1,
-			AxisOffset: 0,
+			Index:      6,
+			AxisScale:  2,
+			AxisOffset: -1,
 		}
 	}
 	if axisMask&(1<<SDLControllerAxisTriggerRight) != 0 {
 		gamepadButtonMappings[id][StandardButtonFrontBottomRight] = &mapping{
 			Type:       mappingTypeAxis,
-			Index:      SDLControllerAxisTriggerRight,
-			AxisScale:  1,
-			AxisOffset: 0,
+			Index:      7,
+			AxisScale:  2,
+			AxisOffset: -1,
 		}
 	}
 

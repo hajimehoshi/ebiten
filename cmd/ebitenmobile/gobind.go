@@ -550,7 +550,7 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         for (int i = 0; i < axes.length; i++) {
             InputDevice.MotionRange range = inputDevice.getMotionRange(axes[i], InputDevice.SOURCE_JOYSTICK);
             if (range == null) {
-                break;
+                continue;
             }
             if (range.getAxis() == MotionEvent.AXIS_HAT_X || range.getAxis() == MotionEvent.AXIS_HAT_Y) {
                 nhats2++;
