@@ -254,7 +254,7 @@ func OnGamepadAxesOrHatsChanged(deviceID int, axisID int, value float32) {
 	}
 }
 
-func OnGamepadAdded(deviceID int, name string, buttonCount int, axisCount int, hatCount int, descriptor string, vendorID int, productID int, buttonMask int, axisMask int) {
+func OnGamepadAdded(deviceID int, name string, axisCount int, hatCount int, descriptor string, vendorID int, productID int, buttonMask int, axisMask int) {
 	// This emulates the implementation of Android_AddJoystick.
 	// https://github.com/libsdl-org/SDL/blob/0e9560aea22818884921e5e5064953257bfe7fa7/src/joystick/android/SDL_sysjoystick.c#L386
 	const SDL_HARDWARE_BUS_BLUETOOTH = 0x05
@@ -280,7 +280,7 @@ func OnGamepadAdded(deviceID int, name string, buttonCount int, axisCount int, h
 	sdlid[14] = byte(axisMask)
 	sdlid[15] = byte(axisMask >> 8)
 
-	gamepad.AddAndroidGamepad(deviceID, name, hex.EncodeToString(sdlid[:]), axisCount, buttonCount, hatCount)
+	gamepad.AddAndroidGamepad(deviceID, name, hex.EncodeToString(sdlid[:]), axisCount, hatCount)
 }
 
 func OnInputDeviceRemoved(deviceID int) {

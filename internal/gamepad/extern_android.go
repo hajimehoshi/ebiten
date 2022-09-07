@@ -28,8 +28,8 @@ const (
 	AndroidHatDirectionY
 )
 
-func AddAndroidGamepad(androidDeviceID int, name, sdlID string, axisCount, buttonCount, hatCount int) {
-	theGamepads.addAndroidGamepad(androidDeviceID, name, sdlID, axisCount, buttonCount, hatCount)
+func AddAndroidGamepad(androidDeviceID int, name, sdlID string, axisCount, hatCount int) {
+	theGamepads.addAndroidGamepad(androidDeviceID, name, sdlID, axisCount, hatCount)
 }
 
 func RemoveAndroidGamepad(androidDeviceID int) {
@@ -48,7 +48,7 @@ func UpdateAndroidGamepadHat(androidDeviceID int, hat int, dir AndroidHatDirecti
 	theGamepads.updateAndroidGamepadHat(androidDeviceID, hat, dir, value)
 }
 
-func (g *gamepads) addAndroidGamepad(androidDeviceID int, name, sdlID string, axisCount, buttonCount, hatCount int) {
+func (g *gamepads) addAndroidGamepad(androidDeviceID int, name, sdlID string, axisCount, hatCount int) {
 	g.m.Lock()
 	defer g.m.Unlock()
 
@@ -56,7 +56,7 @@ func (g *gamepads) addAndroidGamepad(androidDeviceID int, name, sdlID string, ax
 	gp.native = &nativeGamepadImpl{
 		androidDeviceID: androidDeviceID,
 		axes:            make([]float64, axisCount),
-		buttons:         make([]bool, buttonCount),
+		buttons:         make([]bool, ButtonCount),
 		hats:            make([]int, hatCount),
 	}
 }

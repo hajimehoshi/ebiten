@@ -545,15 +545,6 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
             return;
         }
 
-        boolean[] keyExistences = inputDevice.hasKeys(gamepadButtons);
-        int nbuttons = 0;
-        for (int i = 0; i < gamepadButtons.length; i++) {
-            if (!keyExistences[i]) {
-                break;
-            }
-            nbuttons++;
-        }
-
         int naxes = 0;
         int nhats2 = 0;
         for (int i = 0; i < axes.length; i++) {
@@ -576,7 +567,7 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         int buttonMask = getButtonMask(inputDevice);
         int axisMask = getAxisMask(inputDevice);
 
-        Ebitenmobileview.onGamepadAdded(deviceId, inputDevice.getName(), nbuttons, naxes, nhats2/2, descriptor, vendorId, productId, buttonMask, axisMask);
+        Ebitenmobileview.onGamepadAdded(deviceId, inputDevice.getName(), naxes, nhats2/2, descriptor, vendorId, productId, buttonMask, axisMask);
     }
 
     // The implementation is copied from SDL:
