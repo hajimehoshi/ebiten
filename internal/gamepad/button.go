@@ -51,4 +51,4 @@ const (
 	Button31
 )
 
-const ButtonNum = 32
+const ButtonCount = 32

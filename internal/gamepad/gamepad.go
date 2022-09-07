@@ -102,7 +102,7 @@ func (g *gamepads) update() error {
 	// recognized as gamepads by OSes. In this case, the number of the 'buttons' can exceeds the
 	// maximum. Skip such devices as a tentative solution (#1173, #2039).
 	g.remove(func(gamepad *Gamepad) bool {
-		return gamepad.ButtonCount() > ButtonNum
+		return gamepad.ButtonCount() > ButtonCount
 	})
 
 	for _, gp := range g.gamepads {
