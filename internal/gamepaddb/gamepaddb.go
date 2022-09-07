@@ -341,25 +341,29 @@ func toStandardGamepadAxis(str string) (StandardAxis, bool) {
 }
 
 func buttonMappings(id string) map[StandardButton]*mapping {
-	if m, ok := gamepadButtonMappings[id]; ok {
-		return m
-	}
+	// TODO: Use the database instead of the original mapping (#2308).
+	// The buttons and axes assignments should be fixed.
 	if currentPlatform == platformAndroid {
 		if addAndroidDefaultMappings(id) {
 			return gamepadButtonMappings[id]
 		}
 	}
+	if m, ok := gamepadButtonMappings[id]; ok {
+		return m
+	}
 	return nil
 }
 
 func axisMappings(id string) map[StandardAxis]*mapping {
-	if m, ok := gamepadAxisMappings[id]; ok {
-		return m
-	}
+	// TODO: Use the database instead of the original mapping (#2308).
+	// The buttons and axes assignments should be fixed.
 	if currentPlatform == platformAndroid {
 		if addAndroidDefaultMappings(id) {
 			return gamepadAxisMappings[id]
 		}
+	}
+	if m, ok := gamepadAxisMappings[id]; ok {
+		return m
 	}
 	return nil
 }
@@ -711,30 +715,32 @@ func addAndroidDefaultMappings(id string) bool {
 		}
 	}
 
-	// TODO: Assign DPAD buttons correctly (#2308).
-
 	if buttonMask&(1<<SDLControllerButtonDpadUp) != 0 {
 		gamepadButtonMappings[id][StandardButtonLeftTop] = &mapping{
-			Type:  mappingTypeButton,
-			Index: SDLControllerButtonDpadUp,
+			Type:     mappingTypeHat,
+			Index:    0,
+			HatState: HatUp,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonDpadDown) != 0 {
 		gamepadButtonMappings[id][StandardButtonLeftBottom] = &mapping{
-			Type:  mappingTypeButton,
-			Index: SDLControllerButtonDpadDown,
+			Type:     mappingTypeHat,
+			Index:    0,
+			HatState: HatDown,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonDpadLeft) != 0 {
 		gamepadButtonMappings[id][StandardButtonLeftLeft] = &mapping{
-			Type:  mappingTypeButton,
-			Index: SDLControllerButtonDpadLeft,
+			Type:     mappingTypeHat,
+			Index:    0,
+			HatState: HatLeft,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonDpadRight) != 0 {
 		gamepadButtonMappings[id][StandardButtonLeftRight] = &mapping{
-			Type:  mappingTypeButton,
-			Index: SDLControllerButtonDpadRight,
+			Type:     mappingTypeHat,
+			Index:    0,
+			HatState: HatRight,
 		}
 	}
 
