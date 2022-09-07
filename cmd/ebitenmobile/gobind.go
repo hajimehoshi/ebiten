@@ -564,7 +564,7 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         int productId = inputDevice.getProductId();
 
         // These values are required to calculate SDL's GUID.
-        int buttonMask = getButtonMask(inputDevice);
+        int buttonMask = getButtonMask(inputDevice, nhats2/2);
         int axisMask = getAxisMask(inputDevice);
 
         Ebitenmobileview.onGamepadAdded(deviceId, inputDevice.getName(), naxes, nhats2/2, descriptor, vendorId, productId, buttonMask, axisMask);
@@ -572,8 +572,8 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
 
     // The implementation is copied from SDL:
     // https://github.com/libsdl-org/SDL/blob/0e9560aea22818884921e5e5064953257bfe7fa7/android-project/app/src/main/java/org/libsdl/app/SDLControllerManager.java#L308
-    private int getButtonMask(InputDevice joystickDevice) {
-        int button_mask = 0;
+    private int getButtonMask(InputDevice joystickDevice, int nhats) {
+        int buttonMask = 0;
         int[] keys = new int[] {
             KeyEvent.KEYCODE_BUTTON_A,
             KeyEvent.KEYCODE_BUTTON_B,
@@ -655,13 +655,21 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
             0xFFFFFFFF,  // 15 -> ??
             0xFFFFFFFF,  // 16 -> ??
         };
-        boolean[] has_keys = joystickDevice.hasKeys(keys);
+        boolean[] hasKeys = joystickDevice.hasKeys(keys);
         for (int i = 0; i < keys.length; ++i) {
-            if (has_keys[i]) {
-                button_mask |= masks[i];
+            if (hasKeys[i]) {
+                buttonMask |= masks[i];
             }
         }
-        return button_mask;
+        // https://github.com/libsdl-org/SDL/blob/47f2373dc13b66c48bf4024fcdab53cd0bdd59bb/src/joystick/android/SDL_sysjoystick.c#L360-L367
+        if (nhats > 0) {
+            // Add Dpad buttons.
+            buttonMask |= 1 << 11;
+            buttonMask |= 1 << 12;
+            buttonMask |= 1 << 13;
+            buttonMask |= 1 << 14;
+        }
+        return buttonMask;
     }
 
     private int getAxisMask(InputDevice joystickDevice) {
