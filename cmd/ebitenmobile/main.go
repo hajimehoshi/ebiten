@@ -225,7 +225,9 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 		if err != nil {
 			return err
 		}
-		defer f.Close()
+		defer func() {
+			_ = f.Close()
+		}()
 
 		names, err := f.Readdirnames(-1)
 		if err != nil {
@@ -265,7 +267,9 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 			if err != nil {
 				return err
 			}
-			defer w.Close()
+			defer func() {
+				_ = w.Close()
+			}()
 			var mmVals = struct {
 				Module  string
 				Headers []string

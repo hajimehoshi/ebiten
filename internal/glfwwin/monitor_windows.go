@@ -82,12 +82,16 @@ func inputMonitor(monitor *Monitor, action PeripheralEvent, placement int) error
 				if err != nil {
 					return err
 				}
-				window.platformSetWindowMonitor(nil, 0, 0, width, height, 0)
+				if err := window.platformSetWindowMonitor(nil, 0, 0, width, height, 0); err != nil {
+					return err
+				}
 				xoff, yoff, _, _, err := window.platformGetWindowFrameSize()
 				if err != nil {
 					return err
 				}
-				window.platformSetWindowPos(xoff, yoff)
+				if err := window.platformSetWindowPos(xoff, yoff); err != nil {
+					return err
+				}
 			}
 		}
 		for i, m := range _glfw.monitors {

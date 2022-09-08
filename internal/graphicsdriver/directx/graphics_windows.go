@@ -860,12 +860,11 @@ func (g *Graphics) presentDesktop() error {
 }
 
 func (g *Graphics) presentXbox() error {
-	g.commandQueue.PresentX(1, &_D3D12XBOX_PRESENT_PLANE_PARAMETERS{
+	return g.commandQueue.PresentX(1, &_D3D12XBOX_PRESENT_PLANE_PARAMETERS{
 		Token:         g.framePipelineToken,
 		ResourceCount: 1,
 		ppResources:   &g.renderTargets[g.frameIndex],
 	}, nil)
-	return nil
 }
 
 func (g *Graphics) moveToNextFrame() error {

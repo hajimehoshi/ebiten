@@ -78,7 +78,7 @@ func DumpImages(images []*Image, graphicsDriver graphicsdriver.Graphics, dir str
 		}
 	}
 
-	zw.Close()
+	_ = zw.Close()
 
 	zip := dir + ".zip"
 	download(buf, "archive/zip", zip)

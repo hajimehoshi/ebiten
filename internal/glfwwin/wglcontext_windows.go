@@ -208,7 +208,7 @@ func (w *Window) choosePixelFormat(ctxconfig *ctxconfig, fbconfig_ *fbconfig) (i
 func makeContextCurrentWGL(window *Window) error {
 	if window != nil {
 		if err := wglMakeCurrent(window.context.wgl.dc, window.context.wgl.handle); err != nil {
-			_glfw.contextSlot.set(0)
+			_ = _glfw.contextSlot.set(0)
 			return err
 		}
 		if err := _glfw.contextSlot.set(uintptr(unsafe.Pointer(window))); err != nil {
@@ -216,7 +216,7 @@ func makeContextCurrentWGL(window *Window) error {
 		}
 	} else {
 		if err := wglMakeCurrent(0, 0); err != nil {
-			_glfw.contextSlot.set(0)
+			_ = _glfw.contextSlot.set(0)
 			return err
 		}
 		if err := _glfw.contextSlot.set(0); err != nil {
@@ -378,8 +378,8 @@ func initWGL() error {
 	prc := wglGetCurrentContext()
 
 	if err := wglMakeCurrent(dc, rc); err != nil {
-		wglMakeCurrent(pdc, prc)
-		wglDeleteContext(rc)
+		_ = wglMakeCurrent(pdc, prc)
+		_ = wglDeleteContext(rc)
 		return err
 	}
 

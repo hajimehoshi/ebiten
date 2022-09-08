@@ -67,6 +67,6 @@ func hideConsoleWindowOnWindows() {
 	if pid == cpid {
 		// The current process created its own console. Hide this.
 		// Ignore error.
-		freeConsole()
+		_ = freeConsole()
 	}
 }

@@ -36,7 +36,7 @@ func terminate() error {
 func Init() (ferr error) {
 	defer func() {
 		if ferr != nil {
-			terminate()
+			_ = terminate()
 		}
 	}()
 
