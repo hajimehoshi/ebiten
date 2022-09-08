@@ -111,7 +111,7 @@ func prepareGomobileCommands() (string, error) {
 		return tmp, err
 	}
 	defer func() {
-		os.Chdir(pwd)
+		_ = os.Chdir(pwd)
 	}()
 
 	const (

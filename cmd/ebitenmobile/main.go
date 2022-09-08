@@ -117,7 +117,7 @@ func main() {
 	flagset.StringVar(&bindClasspath, "classpath", "", "")
 	flagset.StringVar(&bindBootClasspath, "bootclasspath", "", "")
 
-	flagset.Parse(args[1:])
+	_ = flagset.Parse(args[1:])
 
 	buildTarget, err := osFromBuildTarget(buildTarget)
 	if err != nil {
@@ -136,7 +136,7 @@ func main() {
 	dir, err := prepareGomobileCommands()
 	defer func() {
 		if dir != "" && !buildWork {
-			removeAll(dir)
+			_ = removeAll(dir)
 		}
 	}()
 	if err != nil {

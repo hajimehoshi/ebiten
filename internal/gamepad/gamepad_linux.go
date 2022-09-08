@@ -337,7 +337,9 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) error {
 				g.dropped = true
 			case _SYN_REPORT:
 				g.dropped = false
-				g.pollAbsState()
+				if err := g.pollAbsState(); err != nil {
+					return fmt.Errorf("gamepad: poll absolute state: %w", err)
+				}
 			}
 		}
 		if g.dropped {

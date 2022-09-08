@@ -339,7 +339,7 @@ func NewPlayerFromBytes(context *Context, src []byte) *Player {
 func (p *Player) finalize() {
 	runtime.SetFinalizer(p, nil)
 	if !p.IsPlaying() {
-		p.Close()
+		_ = p.Close()
 	}
 }
 

@@ -1,0 +1,8 @@
+// for internal/png generated code
+(io.ReadCloser).Close
+(*compress/zlib.Writer).Close
+
+// closing files and sockets is generally safe
+(*os.File).Close
+golang.org/x/sys/unix.Close
+(io/fs.File).Close

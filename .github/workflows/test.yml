@@ -76,7 +76,7 @@ jobs:
       - name: go vet (atomic align, error check)
         run: |
           go install .github/workflows/vettools/vettools.go
-          go vet -vettool=$(which vettools)${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }} -tags=example -v ./...
+          go vet -vettool=$(which vettools)${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }} -tags=example -v -errcheck.exclude=$PWD/.github/workflows/vettools/errcheck_excludes.txt ./...
 
       - name: go build
         run: |
