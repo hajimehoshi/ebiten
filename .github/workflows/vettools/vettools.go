@@ -1,4 +1,4 @@
-// Copyright 2021 The Ebiten Authors
+// Copyright 2022 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,10 +18,11 @@
 package main
 
 import (
+	"github.com/kisielk/errcheck/errcheck"
 	"golang.org/x/tools/go/analysis/multichecker"
 	"golang.org/x/tools/go/analysis/passes/atomicalign"
 )
 
 func main() {
-	multichecker.Main(atomicalign.Analyzer)
+	multichecker.Main(atomicalign.Analyzer, errcheck.Analyzer)
 }

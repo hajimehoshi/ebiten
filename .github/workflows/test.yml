@@ -73,15 +73,10 @@ jobs:
         run: |
           go vet -tags=example -v ./...
 
-      - name: go vet (atomic align)
+      - name: go vet (atomic align, error check)
         run: |
-          go install .github/workflows/vettools/atomicalign.go
-          go vet -vettool=$(which atomicalign)${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }} -tags=example -v ./...
-
-      - name: go vet (error check)
-        run: |
-          go install .github/workflows/vettools/errcheck.go
-          go vet -vettool=$(which errcheck)${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }} -tags=example -v ./...
+          go install .github/workflows/vettools/vettools.go
+          go vet -vettool=$(which vettools)${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }} -tags=example -v ./...
 
       - name: go build
         run: |
