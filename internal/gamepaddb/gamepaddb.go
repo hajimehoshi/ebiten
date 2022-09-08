@@ -341,29 +341,25 @@ func toStandardGamepadAxis(str string) (StandardAxis, bool) {
 }
 
 func buttonMappings(id string) map[StandardButton]*mapping {
-	// TODO: Use the database instead of the original mapping (#2308).
-	// The buttons and axes assignments should be fixed.
+	if m, ok := gamepadButtonMappings[id]; ok {
+		return m
+	}
 	if currentPlatform == platformAndroid {
 		if addAndroidDefaultMappings(id) {
 			return gamepadButtonMappings[id]
 		}
 	}
-	if m, ok := gamepadButtonMappings[id]; ok {
-		return m
-	}
 	return nil
 }
 
 func axisMappings(id string) map[StandardAxis]*mapping {
-	// TODO: Use the database instead of the original mapping (#2308).
-	// The buttons and axes assignments should be fixed.
+	if m, ok := gamepadAxisMappings[id]; ok {
+		return m
+	}
 	if currentPlatform == platformAndroid {
 		if addAndroidDefaultMappings(id) {
 			return gamepadAxisMappings[id]
 		}
-	}
-	if m, ok := gamepadAxisMappings[id]; ok {
-		return m
 	}
 	return nil
 }
@@ -585,35 +581,6 @@ func Update(mappingData []byte) error {
 }
 
 func addAndroidDefaultMappings(id string) bool {
-	// See https://github.com/libsdl-org/SDL/blob/120c76c84bbce4c1bfed4e9eb74e10678bd83120/include/SDL_gamecontroller.h#L655-L680
-	const (
-		SDLControllerButtonA             = 0
-		SDLControllerButtonB             = 1
-		SDLControllerButtonX             = 2
-		SDLControllerButtonY             = 3
-		SDLControllerButtonBack          = 4
-		SDLControllerButtonGuide         = 5
-		SDLControllerButtonStart         = 6
-		SDLControllerButtonLeftStick     = 7
-		SDLControllerButtonRightStick    = 8
-		SDLControllerButtonLeftShoulder  = 9
-		SDLControllerButtonRightShoulder = 10
-		SDLControllerButtonDpadUp        = 11
-		SDLControllerButtonDpadDown      = 12
-		SDLControllerButtonDpadLeft      = 13
-		SDLControllerButtonDpadRight     = 14
-	)
-
-	// See https://github.com/libsdl-org/SDL/blob/120c76c84bbce4c1bfed4e9eb74e10678bd83120/include/SDL_gamecontroller.h#L550-L560
-	const (
-		SDLControllerAxisLeftX        = 0
-		SDLControllerAxisLeftY        = 1
-		SDLControllerAxisRightX       = 2
-		SDLControllerAxisRightY       = 3
-		SDLControllerAxisTriggerLeft  = 4
-		SDLControllerAxisTriggerRight = 5
-	)
-
 	// See https://github.com/libsdl-org/SDL/blob/120c76c84bbce4c1bfed4e9eb74e10678bd83120/src/joystick/SDL_gamecontroller.c#L468-L568
 
 	const faceButtonMask = ((1 << SDLControllerButtonA) |
@@ -642,38 +609,38 @@ func addAndroidDefaultMappings(id string) bool {
 	if buttonMask&(1<<SDLControllerButtonA) != 0 {
 		gamepadButtonMappings[id][StandardButtonRightBottom] = &mapping{
 			Type:  mappingTypeButton,
-			Index: 0,
+			Index: SDLControllerButtonA,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonB) != 0 {
 		gamepadButtonMappings[id][StandardButtonRightRight] = &mapping{
 			Type:  mappingTypeButton,
-			Index: 1,
+			Index: SDLControllerButtonB,
 		}
 	} else {
 		// Use the back button as "B" for easy UI navigation with TV remotes.
 		gamepadButtonMappings[id][StandardButtonRightRight] = &mapping{
 			Type:  mappingTypeButton,
-			Index: 13,
+			Index: SDLControllerButtonBack,
 		}
 		buttonMask &^= uint16(1) << SDLControllerButtonBack
 	}
 	if buttonMask&(1<<SDLControllerButtonX) != 0 {
 		gamepadButtonMappings[id][StandardButtonRightLeft] = &mapping{
 			Type:  mappingTypeButton,
-			Index: 3,
+			Index: SDLControllerButtonX,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonY) != 0 {
 		gamepadButtonMappings[id][StandardButtonRightTop] = &mapping{
 			Type:  mappingTypeButton,
-			Index: 4,
+			Index: SDLControllerButtonY,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonBack) != 0 {
 		gamepadButtonMappings[id][StandardButtonCenterLeft] = &mapping{
 			Type:  mappingTypeButton,
-			Index: 13,
+			Index: SDLControllerButtonBack,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonGuide) != 0 {
@@ -687,67 +654,63 @@ func addAndroidDefaultMappings(id string) bool {
 	if buttonMask&(1<<SDLControllerButtonStart) != 0 {
 		gamepadButtonMappings[id][StandardButtonCenterRight] = &mapping{
 			Type:  mappingTypeButton,
-			Index: 12,
+			Index: SDLControllerButtonStart,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonLeftStick) != 0 {
 		gamepadButtonMappings[id][StandardButtonLeftStick] = &mapping{
 			Type:  mappingTypeButton,
-			Index: 10,
+			Index: SDLControllerButtonLeftStick,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonRightStick) != 0 {
 		gamepadButtonMappings[id][StandardButtonRightStick] = &mapping{
 			Type:  mappingTypeButton,
-			Index: 11,
+			Index: SDLControllerButtonRightStick,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonLeftShoulder) != 0 {
 		gamepadButtonMappings[id][StandardButtonFrontTopLeft] = &mapping{
 			Type:  mappingTypeButton,
-			Index: 6,
+			Index: SDLControllerButtonLeftShoulder,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonRightShoulder) != 0 {
 		gamepadButtonMappings[id][StandardButtonFrontTopRight] = &mapping{
 			Type:  mappingTypeButton,
-			Index: 7,
+			Index: SDLControllerButtonRightShoulder,
 		}
 	}
 
 	if buttonMask&(1<<SDLControllerButtonDpadUp) != 0 {
 		gamepadButtonMappings[id][StandardButtonLeftTop] = &mapping{
-			Type:     mappingTypeHat,
-			Index:    0,
-			HatState: HatUp,
+			Type:  mappingTypeButton,
+			Index: SDLControllerButtonDpadUp,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonDpadDown) != 0 {
 		gamepadButtonMappings[id][StandardButtonLeftBottom] = &mapping{
-			Type:     mappingTypeHat,
-			Index:    0,
-			HatState: HatDown,
+			Type:  mappingTypeButton,
+			Index: SDLControllerButtonDpadDown,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonDpadLeft) != 0 {
 		gamepadButtonMappings[id][StandardButtonLeftLeft] = &mapping{
-			Type:     mappingTypeHat,
-			Index:    0,
-			HatState: HatLeft,
+			Type:  mappingTypeButton,
+			Index: SDLControllerButtonDpadLeft,
 		}
 	}
 	if buttonMask&(1<<SDLControllerButtonDpadRight) != 0 {
 		gamepadButtonMappings[id][StandardButtonLeftRight] = &mapping{
-			Type:     mappingTypeHat,
-			Index:    0,
-			HatState: HatRight,
+			Type:  mappingTypeButton,
+			Index: SDLControllerButtonDpadRight,
 		}
 	}
 
 	if axisMask&(1<<SDLControllerAxisLeftX) != 0 {
 		gamepadAxisMappings[id][StandardAxisLeftStickHorizontal] = &mapping{
 			Type:       mappingTypeAxis,
-			Index:      0,
+			Index:      SDLControllerAxisLeftX,
 			AxisScale:  1,
 			AxisOffset: 0,
 		}
@@ -755,27 +718,23 @@ func addAndroidDefaultMappings(id string) bool {
 	if axisMask&(1<<SDLControllerAxisLeftY) != 0 {
 		gamepadAxisMappings[id][StandardAxisLeftStickVertical] = &mapping{
 			Type:       mappingTypeAxis,
-			Index:      1,
+			Index:      SDLControllerAxisLeftY,
 			AxisScale:  1,
 			AxisOffset: 0,
 		}
 	}
 	if axisMask&(1<<SDLControllerAxisRightX) != 0 {
-		// https://developer.android.com/reference/android/view/MotionEvent#AXIS_Z
-		// > On game pads with two analog joysticks, this axis is often reinterpreted to report the absolute X position of the second joystick instead.
 		gamepadAxisMappings[id][StandardAxisRightStickHorizontal] = &mapping{
 			Type:       mappingTypeAxis,
-			Index:      2,
+			Index:      SDLControllerAxisRightX,
 			AxisScale:  1,
 			AxisOffset: 0,
 		}
 	}
 	if axisMask&(1<<SDLControllerAxisRightY) != 0 {
-		// https://developer.android.com/reference/android/view/MotionEvent#AXIS_RZ
-		// > On game pads with two analog joysticks, this axis is often reinterpreted to report the absolute Y position of the second joystick instead.
 		gamepadAxisMappings[id][StandardAxisRightStickVertical] = &mapping{
 			Type:       mappingTypeAxis,
-			Index:      5,
+			Index:      SDLControllerAxisRightY,
 			AxisScale:  1,
 			AxisOffset: 0,
 		}
@@ -783,17 +742,17 @@ func addAndroidDefaultMappings(id string) bool {
 	if axisMask&(1<<SDLControllerAxisTriggerLeft) != 0 {
 		gamepadButtonMappings[id][StandardButtonFrontBottomLeft] = &mapping{
 			Type:       mappingTypeAxis,
-			Index:      6,
-			AxisScale:  2,
-			AxisOffset: -1,
+			Index:      SDLControllerAxisTriggerLeft,
+			AxisScale:  1,
+			AxisOffset: 0,
 		}
 	}
 	if axisMask&(1<<SDLControllerAxisTriggerRight) != 0 {
 		gamepadButtonMappings[id][StandardButtonFrontBottomRight] = &mapping{
 			Type:       mappingTypeAxis,
-			Index:      7,
-			AxisScale:  2,
-			AxisOffset: -1,
+			Index:      SDLControllerAxisTriggerRight,
+			AxisScale:  1,
+			AxisOffset: 0,
 		}
 	}
 
