@@ -33,8 +33,8 @@ func main() {
 	}
 
 	for _, filename := range []string{
-		"errcheck-excludes.txt",
-		"errcheck-excludes-" + GOOS + ".txt",
+		".errcheck_excludes",
+		".errcheck_excludes_" + GOOS,
 	} {
 		if _, err := os.Stat(filename); err == nil {
 			errcheck.Analyzer.Flags.Set("exclude", filename)
