@@ -1,2 +1,0 @@
-syscall.Syscall
-(*golang.org/x/sys/windows.LazyProc).Call
