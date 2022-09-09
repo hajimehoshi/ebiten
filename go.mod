@@ -11,7 +11,6 @@ require (
 	github.com/jakecoffman/cp v1.2.1
 	github.com/jezek/xgb v1.0.1
 	github.com/jfreymuth/oggvorbis v1.0.4
-	github.com/kisielk/errcheck v1.6.2 // indirect
 	golang.org/x/image v0.0.0-20220722155232-062f8c9fd539
 	golang.org/x/mobile v0.0.0-20220722155234-aaac322e2105
 	golang.org/x/sys v0.0.0-20220818161305-2296e01440c6

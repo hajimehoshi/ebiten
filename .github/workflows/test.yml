@@ -76,7 +76,7 @@ jobs:
       - name: go vet (atomic align, error check)
         if: ${{ !startsWith(matrix.os, 'windows-') }} # TODO: Fix go vet errors on Windows. (#1306)
         run: |
-          go install .github/workflows/vettools/vettools.go
+          (cd .github/workflows/vettools; go install .)
           go vet -vettool=$(which vettools)${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }} -tags=example -v ./...
 
       - name: go build
