@@ -204,7 +204,9 @@ func (p *Player) update() error {
 	if p.audioPlayer.IsPlaying() {
 		p.current = p.audioPlayer.Current()
 	}
-	p.seekBarIfNeeded()
+	if err := p.seekBarIfNeeded(); err != nil {
+		return err
+	}
 	p.switchPlayStateIfNeeded()
 	p.playSEIfNeeded()
 	p.updateVolumeIfNeeded()
@@ -312,23 +314,26 @@ func (p *Player) justPressedPosition() (int, int, bool) {
 	return 0, 0, false
 }
 
-func (p *Player) seekBarIfNeeded() {
+func (p *Player) seekBarIfNeeded() error {
 	// Calculate the next seeking position from the current cursor position.
 	x, y, ok := p.justPressedPosition()
 	if !ok {
-		return
+		return nil
 	}
 	bx, by, bw, bh := playerBarRect()
 	const padding = 4
 	if y < by-padding || by+bh+padding <= y {
-		return
+		return nil
 	}
 	if x < bx || bx+bw <= x {
-		return
+		return nil
 	}
 	pos := time.Duration(x-bx) * p.total / time.Duration(bw)
 	p.current = pos
-	p.audioPlayer.Seek(pos)
+	if err := p.audioPlayer.Seek(pos); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (p *Player) draw(screen *ebiten.Image) {
@@ -420,7 +425,9 @@ func (g *Game) Update() error {
 			panic("not reached")
 		}
 
-		g.musicPlayer.Close()
+		if err := g.musicPlayer.Close(); err != nil {
+			return err
+		}
 		g.musicPlayer = nil
 
 		go func() {
