@@ -100,43 +100,43 @@ func boolToUintptr(b bool) uintptr {
 }
 
 func ActiveTexture(texture uint32) {
-	syscall.Syscall(gpActiveTexture, 1, uintptr(texture), 0, 0)
+	_, _, _ = syscall.Syscall(gpActiveTexture, 1, uintptr(texture), 0, 0)
 }
 
 func AttachShader(program uint32, shader uint32) {
-	syscall.Syscall(gpAttachShader, 2, uintptr(program), uintptr(shader), 0)
+	_, _, _ = syscall.Syscall(gpAttachShader, 2, uintptr(program), uintptr(shader), 0)
 }
 
 func BindAttribLocation(program uint32, index uint32, name *uint8) {
-	syscall.Syscall(gpBindAttribLocation, 3, uintptr(program), uintptr(index), uintptr(unsafe.Pointer(name)))
+	_, _, _ = syscall.Syscall(gpBindAttribLocation, 3, uintptr(program), uintptr(index), uintptr(unsafe.Pointer(name)))
 }
 
 func BindBuffer(target uint32, buffer uint32) {
-	syscall.Syscall(gpBindBuffer, 2, uintptr(target), uintptr(buffer), 0)
+	_, _, _ = syscall.Syscall(gpBindBuffer, 2, uintptr(target), uintptr(buffer), 0)
 }
 
 func BindFramebufferEXT(target uint32, framebuffer uint32) {
-	syscall.Syscall(gpBindFramebufferEXT, 2, uintptr(target), uintptr(framebuffer), 0)
+	_, _, _ = syscall.Syscall(gpBindFramebufferEXT, 2, uintptr(target), uintptr(framebuffer), 0)
 }
 
 func BindRenderbufferEXT(target uint32, renderbuffer uint32) {
-	syscall.Syscall(gpBindRenderbufferEXT, 2, uintptr(target), uintptr(renderbuffer), 0)
+	_, _, _ = syscall.Syscall(gpBindRenderbufferEXT, 2, uintptr(target), uintptr(renderbuffer), 0)
 }
 
 func BindTexture(target uint32, texture uint32) {
-	syscall.Syscall(gpBindTexture, 2, uintptr(target), uintptr(texture), 0)
+	_, _, _ = syscall.Syscall(gpBindTexture, 2, uintptr(target), uintptr(texture), 0)
 }
 
 func BlendFunc(sfactor uint32, dfactor uint32) {
-	syscall.Syscall(gpBlendFunc, 2, uintptr(sfactor), uintptr(dfactor), 0)
+	_, _, _ = syscall.Syscall(gpBlendFunc, 2, uintptr(sfactor), uintptr(dfactor), 0)
 }
 
 func BufferData(target uint32, size int, data unsafe.Pointer, usage uint32) {
-	syscall.Syscall6(gpBufferData, 4, uintptr(target), uintptr(size), uintptr(data), uintptr(usage), 0, 0)
+	_, _, _ = syscall.Syscall6(gpBufferData, 4, uintptr(target), uintptr(size), uintptr(data), uintptr(usage), 0, 0)
 }
 
 func BufferSubData(target uint32, offset int, size int, data unsafe.Pointer) {
-	syscall.Syscall6(gpBufferSubData, 4, uintptr(target), uintptr(offset), uintptr(size), uintptr(data), 0, 0)
+	_, _, _ = syscall.Syscall6(gpBufferSubData, 4, uintptr(target), uintptr(offset), uintptr(size), uintptr(data), 0, 0)
 }
 
 func CheckFramebufferStatusEXT(target uint32) uint32 {
@@ -145,15 +145,15 @@ func CheckFramebufferStatusEXT(target uint32) uint32 {
 }
 
 func Clear(mask uint32) {
-	syscall.Syscall(gpClear, 1, uintptr(mask), 0, 0)
+	_, _, _ = syscall.Syscall(gpClear, 1, uintptr(mask), 0, 0)
 }
 
 func ColorMask(red bool, green bool, blue bool, alpha bool) {
-	syscall.Syscall6(gpColorMask, 4, boolToUintptr(red), boolToUintptr(green), boolToUintptr(blue), boolToUintptr(alpha), 0, 0)
+	_, _, _ = syscall.Syscall6(gpColorMask, 4, boolToUintptr(red), boolToUintptr(green), boolToUintptr(blue), boolToUintptr(alpha), 0, 0)
 }
 
 func CompileShader(shader uint32) {
-	syscall.Syscall(gpCompileShader, 1, uintptr(shader), 0, 0)
+	_, _, _ = syscall.Syscall(gpCompileShader, 1, uintptr(shader), 0, 0)
 }
 
 func CreateProgram() uint32 {
@@ -167,82 +167,82 @@ func CreateShader(xtype uint32) uint32 {
 }
 
 func DeleteBuffers(n int32, buffers *uint32) {
-	syscall.Syscall(gpDeleteBuffers, 2, uintptr(n), uintptr(unsafe.Pointer(buffers)), 0)
+	_, _, _ = syscall.Syscall(gpDeleteBuffers, 2, uintptr(n), uintptr(unsafe.Pointer(buffers)), 0)
 }
 
 func DeleteFramebuffersEXT(n int32, framebuffers *uint32) {
-	syscall.Syscall(gpDeleteFramebuffersEXT, 2, uintptr(n), uintptr(unsafe.Pointer(framebuffers)), 0)
+	_, _, _ = syscall.Syscall(gpDeleteFramebuffersEXT, 2, uintptr(n), uintptr(unsafe.Pointer(framebuffers)), 0)
 }
 
 func DeleteProgram(program uint32) {
-	syscall.Syscall(gpDeleteProgram, 1, uintptr(program), 0, 0)
+	_, _, _ = syscall.Syscall(gpDeleteProgram, 1, uintptr(program), 0, 0)
 }
 
 func DeleteRenderbuffersEXT(n int32, renderbuffers *uint32) {
-	syscall.Syscall(gpDeleteRenderbuffersEXT, 2, uintptr(n), uintptr(unsafe.Pointer(renderbuffers)), 0)
+	_, _, _ = syscall.Syscall(gpDeleteRenderbuffersEXT, 2, uintptr(n), uintptr(unsafe.Pointer(renderbuffers)), 0)
 }
 
 func DeleteShader(shader uint32) {
-	syscall.Syscall(gpDeleteShader, 1, uintptr(shader), 0, 0)
+	_, _, _ = syscall.Syscall(gpDeleteShader, 1, uintptr(shader), 0, 0)
 }
 
 func DeleteTextures(n int32, textures *uint32) {
-	syscall.Syscall(gpDeleteTextures, 2, uintptr(n), uintptr(unsafe.Pointer(textures)), 0)
+	_, _, _ = syscall.Syscall(gpDeleteTextures, 2, uintptr(n), uintptr(unsafe.Pointer(textures)), 0)
 }
 
 func Disable(cap uint32) {
-	syscall.Syscall(gpDisable, 1, uintptr(cap), 0, 0)
+	_, _, _ = syscall.Syscall(gpDisable, 1, uintptr(cap), 0, 0)
 }
 
 func DisableVertexAttribArray(index uint32) {
-	syscall.Syscall(gpDisableVertexAttribArray, 1, uintptr(index), 0, 0)
+	_, _, _ = syscall.Syscall(gpDisableVertexAttribArray, 1, uintptr(index), 0, 0)
 }
 
 func DrawElements(mode uint32, count int32, xtype uint32, indices uintptr) {
-	syscall.Syscall6(gpDrawElements, 4, uintptr(mode), uintptr(count), uintptr(xtype), uintptr(indices), 0, 0)
+	_, _, _ = syscall.Syscall6(gpDrawElements, 4, uintptr(mode), uintptr(count), uintptr(xtype), uintptr(indices), 0, 0)
 }
 
 func Enable(cap uint32) {
-	syscall.Syscall(gpEnable, 1, uintptr(cap), 0, 0)
+	_, _, _ = syscall.Syscall(gpEnable, 1, uintptr(cap), 0, 0)
 }
 
 func EnableVertexAttribArray(index uint32) {
-	syscall.Syscall(gpEnableVertexAttribArray, 1, uintptr(index), 0, 0)
+	_, _, _ = syscall.Syscall(gpEnableVertexAttribArray, 1, uintptr(index), 0, 0)
 }
 
 func Flush() {
-	syscall.Syscall(gpFlush, 0, 0, 0, 0)
+	_, _, _ = syscall.Syscall(gpFlush, 0, 0, 0, 0)
 }
 
 func FramebufferRenderbufferEXT(target uint32, attachment uint32, renderbuffertarget uint32, renderbuffer uint32) {
-	syscall.Syscall6(gpFramebufferRenderbufferEXT, 4, uintptr(target), uintptr(attachment), uintptr(renderbuffertarget), uintptr(renderbuffer), 0, 0)
+	_, _, _ = syscall.Syscall6(gpFramebufferRenderbufferEXT, 4, uintptr(target), uintptr(attachment), uintptr(renderbuffertarget), uintptr(renderbuffer), 0, 0)
 }
 
 func FramebufferTexture2DEXT(target uint32, attachment uint32, textarget uint32, texture uint32, level int32) {
-	syscall.Syscall6(gpFramebufferTexture2DEXT, 5, uintptr(target), uintptr(attachment), uintptr(textarget), uintptr(texture), uintptr(level), 0)
+	_, _, _ = syscall.Syscall6(gpFramebufferTexture2DEXT, 5, uintptr(target), uintptr(attachment), uintptr(textarget), uintptr(texture), uintptr(level), 0)
 }
 
 func GenBuffers(n int32, buffers *uint32) {
-	syscall.Syscall(gpGenBuffers, 2, uintptr(n), uintptr(unsafe.Pointer(buffers)), 0)
+	_, _, _ = syscall.Syscall(gpGenBuffers, 2, uintptr(n), uintptr(unsafe.Pointer(buffers)), 0)
 }
 
 func GenFramebuffersEXT(n int32, framebuffers *uint32) {
-	syscall.Syscall(gpGenFramebuffersEXT, 2, uintptr(n), uintptr(unsafe.Pointer(framebuffers)), 0)
+	_, _, _ = syscall.Syscall(gpGenFramebuffersEXT, 2, uintptr(n), uintptr(unsafe.Pointer(framebuffers)), 0)
 }
 
 func GenRenderbuffersEXT(n int32, renderbuffers *uint32) {
-	syscall.Syscall(gpGenRenderbuffersEXT, 2, uintptr(n), uintptr(unsafe.Pointer(renderbuffers)), 0)
+	_, _, _ = syscall.Syscall(gpGenRenderbuffersEXT, 2, uintptr(n), uintptr(unsafe.Pointer(renderbuffers)), 0)
 }
 
 func GenTextures(n int32, textures *uint32) {
-	syscall.Syscall(gpGenTextures, 2, uintptr(n), uintptr(unsafe.Pointer(textures)), 0)
+	_, _, _ = syscall.Syscall(gpGenTextures, 2, uintptr(n), uintptr(unsafe.Pointer(textures)), 0)
 }
 
 func GetDoublei_v(target uint32, index uint32, data *float64) {
-	syscall.Syscall(gpGetDoublei_v, 3, uintptr(target), uintptr(index), uintptr(unsafe.Pointer(data)))
+	_, _, _ = syscall.Syscall(gpGetDoublei_v, 3, uintptr(target), uintptr(index), uintptr(unsafe.Pointer(data)))
 }
 func GetDoublei_vEXT(pname uint32, index uint32, params *float64) {
-	syscall.Syscall(gpGetDoublei_vEXT, 3, uintptr(pname), uintptr(index), uintptr(unsafe.Pointer(params)))
+	_, _, _ = syscall.Syscall(gpGetDoublei_vEXT, 3, uintptr(pname), uintptr(index), uintptr(unsafe.Pointer(params)))
 }
 
 func GetError() uint32 {
@@ -250,47 +250,47 @@ func GetError() uint32 {
 	return uint32(ret)
 }
 func GetFloati_v(target uint32, index uint32, data *float32) {
-	syscall.Syscall(gpGetFloati_v, 3, uintptr(target), uintptr(index), uintptr(unsafe.Pointer(data)))
+	_, _, _ = syscall.Syscall(gpGetFloati_v, 3, uintptr(target), uintptr(index), uintptr(unsafe.Pointer(data)))
 }
 func GetFloati_vEXT(pname uint32, index uint32, params *float32) {
-	syscall.Syscall(gpGetFloati_vEXT, 3, uintptr(pname), uintptr(index), uintptr(unsafe.Pointer(params)))
+	_, _, _ = syscall.Syscall(gpGetFloati_vEXT, 3, uintptr(pname), uintptr(index), uintptr(unsafe.Pointer(params)))
 }
 
 func GetIntegeri_v(target uint32, index uint32, data *int32) {
-	syscall.Syscall(gpGetIntegeri_v, 3, uintptr(target), uintptr(index), uintptr(unsafe.Pointer(data)))
+	_, _, _ = syscall.Syscall(gpGetIntegeri_v, 3, uintptr(target), uintptr(index), uintptr(unsafe.Pointer(data)))
 }
 func GetIntegerui64i_vNV(value uint32, index uint32, result *uint64) {
-	syscall.Syscall(gpGetIntegerui64i_vNV, 3, uintptr(value), uintptr(index), uintptr(unsafe.Pointer(result)))
+	_, _, _ = syscall.Syscall(gpGetIntegerui64i_vNV, 3, uintptr(value), uintptr(index), uintptr(unsafe.Pointer(result)))
 }
 func GetIntegerv(pname uint32, data *int32) {
-	syscall.Syscall(gpGetIntegerv, 2, uintptr(pname), uintptr(unsafe.Pointer(data)), 0)
+	_, _, _ = syscall.Syscall(gpGetIntegerv, 2, uintptr(pname), uintptr(unsafe.Pointer(data)), 0)
 }
 
 func GetPointeri_vEXT(pname uint32, index uint32, params *unsafe.Pointer) {
-	syscall.Syscall(gpGetPointeri_vEXT, 3, uintptr(pname), uintptr(index), uintptr(unsafe.Pointer(params)))
+	_, _, _ = syscall.Syscall(gpGetPointeri_vEXT, 3, uintptr(pname), uintptr(index), uintptr(unsafe.Pointer(params)))
 }
 
 func GetProgramInfoLog(program uint32, bufSize int32, length *int32, infoLog *uint8) {
-	syscall.Syscall6(gpGetProgramInfoLog, 4, uintptr(program), uintptr(bufSize), uintptr(unsafe.Pointer(length)), uintptr(unsafe.Pointer(infoLog)), 0, 0)
+	_, _, _ = syscall.Syscall6(gpGetProgramInfoLog, 4, uintptr(program), uintptr(bufSize), uintptr(unsafe.Pointer(length)), uintptr(unsafe.Pointer(infoLog)), 0, 0)
 }
 
 func GetProgramiv(program uint32, pname uint32, params *int32) {
-	syscall.Syscall(gpGetProgramiv, 3, uintptr(program), uintptr(pname), uintptr(unsafe.Pointer(params)))
+	_, _, _ = syscall.Syscall(gpGetProgramiv, 3, uintptr(program), uintptr(pname), uintptr(unsafe.Pointer(params)))
 }
 
 func GetShaderInfoLog(shader uint32, bufSize int32, length *int32, infoLog *uint8) {
-	syscall.Syscall6(gpGetShaderInfoLog, 4, uintptr(shader), uintptr(bufSize), uintptr(unsafe.Pointer(length)), uintptr(unsafe.Pointer(infoLog)), 0, 0)
+	_, _, _ = syscall.Syscall6(gpGetShaderInfoLog, 4, uintptr(shader), uintptr(bufSize), uintptr(unsafe.Pointer(length)), uintptr(unsafe.Pointer(infoLog)), 0, 0)
 }
 
 func GetShaderiv(shader uint32, pname uint32, params *int32) {
-	syscall.Syscall(gpGetShaderiv, 3, uintptr(shader), uintptr(pname), uintptr(unsafe.Pointer(params)))
+	_, _, _ = syscall.Syscall(gpGetShaderiv, 3, uintptr(shader), uintptr(pname), uintptr(unsafe.Pointer(params)))
 }
 
 func GetTransformFeedbacki64_v(xfb uint32, pname uint32, index uint32, param *int64) {
-	syscall.Syscall6(gpGetTransformFeedbacki64_v, 4, uintptr(xfb), uintptr(pname), uintptr(index), uintptr(unsafe.Pointer(param)), 0, 0)
+	_, _, _ = syscall.Syscall6(gpGetTransformFeedbacki64_v, 4, uintptr(xfb), uintptr(pname), uintptr(index), uintptr(unsafe.Pointer(param)), 0, 0)
 }
 func GetTransformFeedbacki_v(xfb uint32, pname uint32, index uint32, param *int32) {
-	syscall.Syscall6(gpGetTransformFeedbacki_v, 4, uintptr(xfb), uintptr(pname), uintptr(index), uintptr(unsafe.Pointer(param)), 0, 0)
+	_, _, _ = syscall.Syscall6(gpGetTransformFeedbacki_v, 4, uintptr(xfb), uintptr(pname), uintptr(index), uintptr(unsafe.Pointer(param)), 0, 0)
 }
 
 func GetUniformLocation(program uint32, name *uint8) int32 {
@@ -299,13 +299,13 @@ func GetUniformLocation(program uint32, name *uint8) int32 {
 }
 
 func GetUnsignedBytei_vEXT(target uint32, index uint32, data *uint8) {
-	syscall.Syscall(gpGetUnsignedBytei_vEXT, 3, uintptr(target), uintptr(index), uintptr(unsafe.Pointer(data)))
+	_, _, _ = syscall.Syscall(gpGetUnsignedBytei_vEXT, 3, uintptr(target), uintptr(index), uintptr(unsafe.Pointer(data)))
 }
 func GetVertexArrayIntegeri_vEXT(vaobj uint32, index uint32, pname uint32, param *int32) {
-	syscall.Syscall6(gpGetVertexArrayIntegeri_vEXT, 4, uintptr(vaobj), uintptr(index), uintptr(pname), uintptr(unsafe.Pointer(param)), 0, 0)
+	_, _, _ = syscall.Syscall6(gpGetVertexArrayIntegeri_vEXT, 4, uintptr(vaobj), uintptr(index), uintptr(pname), uintptr(unsafe.Pointer(param)), 0, 0)
 }
 func GetVertexArrayPointeri_vEXT(vaobj uint32, index uint32, pname uint32, param *unsafe.Pointer) {
-	syscall.Syscall6(gpGetVertexArrayPointeri_vEXT, 4, uintptr(vaobj), uintptr(index), uintptr(pname), uintptr(unsafe.Pointer(param)), 0, 0)
+	_, _, _ = syscall.Syscall6(gpGetVertexArrayPointeri_vEXT, 4, uintptr(vaobj), uintptr(index), uintptr(pname), uintptr(unsafe.Pointer(param)), 0, 0)
 }
 
 func IsFramebufferEXT(framebuffer uint32) bool {
@@ -329,95 +329,95 @@ func IsTexture(texture uint32) bool {
 }
 
 func LinkProgram(program uint32) {
-	syscall.Syscall(gpLinkProgram, 1, uintptr(program), 0, 0)
+	_, _, _ = syscall.Syscall(gpLinkProgram, 1, uintptr(program), 0, 0)
 }
 
 func PixelStorei(pname uint32, param int32) {
-	syscall.Syscall(gpPixelStorei, 2, uintptr(pname), uintptr(param), 0)
+	_, _, _ = syscall.Syscall(gpPixelStorei, 2, uintptr(pname), uintptr(param), 0)
 }
 
 func ReadPixels(x int32, y int32, width int32, height int32, format uint32, xtype uint32, pixels unsafe.Pointer) {
-	syscall.Syscall9(gpReadPixels, 7, uintptr(x), uintptr(y), uintptr(width), uintptr(height), uintptr(format), uintptr(xtype), uintptr(pixels), 0, 0)
+	_, _, _ = syscall.Syscall9(gpReadPixels, 7, uintptr(x), uintptr(y), uintptr(width), uintptr(height), uintptr(format), uintptr(xtype), uintptr(pixels), 0, 0)
 }
 
 func RenderbufferStorageEXT(target uint32, internalformat uint32, width int32, height int32) {
-	syscall.Syscall6(gpRenderbufferStorageEXT, 4, uintptr(target), uintptr(internalformat), uintptr(width), uintptr(height), 0, 0)
+	_, _, _ = syscall.Syscall6(gpRenderbufferStorageEXT, 4, uintptr(target), uintptr(internalformat), uintptr(width), uintptr(height), 0, 0)
 }
 
 func Scissor(x int32, y int32, width int32, height int32) {
-	syscall.Syscall6(gpScissor, 4, uintptr(x), uintptr(y), uintptr(width), uintptr(height), 0, 0)
+	_, _, _ = syscall.Syscall6(gpScissor, 4, uintptr(x), uintptr(y), uintptr(width), uintptr(height), 0, 0)
 }
 
 func ShaderSource(shader uint32, count int32, xstring **uint8, length *int32) {
-	syscall.Syscall6(gpShaderSource, 4, uintptr(shader), uintptr(count), uintptr(unsafe.Pointer(xstring)), uintptr(unsafe.Pointer(length)), 0, 0)
+	_, _, _ = syscall.Syscall6(gpShaderSource, 4, uintptr(shader), uintptr(count), uintptr(unsafe.Pointer(xstring)), uintptr(unsafe.Pointer(length)), 0, 0)
 }
 
 func StencilFunc(xfunc uint32, ref int32, mask uint32) {
-	syscall.Syscall(gpStencilFunc, 3, uintptr(xfunc), uintptr(ref), uintptr(mask))
+	_, _, _ = syscall.Syscall(gpStencilFunc, 3, uintptr(xfunc), uintptr(ref), uintptr(mask))
 }
 
 func StencilOp(fail uint32, zfail uint32, zpass uint32) {
-	syscall.Syscall(gpStencilOp, 3, uintptr(fail), uintptr(zfail), uintptr(zpass))
+	_, _, _ = syscall.Syscall(gpStencilOp, 3, uintptr(fail), uintptr(zfail), uintptr(zpass))
 }
 
 func TexImage2D(target uint32, level int32, internalformat int32, width int32, height int32, border int32, format uint32, xtype uint32, pixels unsafe.Pointer) {
-	syscall.Syscall9(gpTexImage2D, 9, uintptr(target), uintptr(level), uintptr(internalformat), uintptr(width), uintptr(height), uintptr(border), uintptr(format), uintptr(xtype), uintptr(pixels))
+	_, _, _ = syscall.Syscall9(gpTexImage2D, 9, uintptr(target), uintptr(level), uintptr(internalformat), uintptr(width), uintptr(height), uintptr(border), uintptr(format), uintptr(xtype), uintptr(pixels))
 }
 
 func TexParameteri(target uint32, pname uint32, param int32) {
-	syscall.Syscall(gpTexParameteri, 3, uintptr(target), uintptr(pname), uintptr(param))
+	_, _, _ = syscall.Syscall(gpTexParameteri, 3, uintptr(target), uintptr(pname), uintptr(param))
 }
 
 func TexSubImage2D(target uint32, level int32, xoffset int32, yoffset int32, width int32, height int32, format uint32, xtype uint32, pixels unsafe.Pointer) {
-	syscall.Syscall9(gpTexSubImage2D, 9, uintptr(target), uintptr(level), uintptr(xoffset), uintptr(yoffset), uintptr(width), uintptr(height), uintptr(format), uintptr(xtype), uintptr(pixels))
+	_, _, _ = syscall.Syscall9(gpTexSubImage2D, 9, uintptr(target), uintptr(level), uintptr(xoffset), uintptr(yoffset), uintptr(width), uintptr(height), uintptr(format), uintptr(xtype), uintptr(pixels))
 }
 
 func Uniform1f(location int32, v0 float32) {
-	syscall.Syscall(gpUniform1f, 2, uintptr(location), uintptr(math.Float32bits(v0)), 0)
+	_, _, _ = syscall.Syscall(gpUniform1f, 2, uintptr(location), uintptr(math.Float32bits(v0)), 0)
 }
 
 func Uniform1i(location int32, v0 int32) {
-	syscall.Syscall(gpUniform1i, 2, uintptr(location), uintptr(v0), 0)
+	_, _, _ = syscall.Syscall(gpUniform1i, 2, uintptr(location), uintptr(v0), 0)
 }
 
 func Uniform1fv(location int32, count int32, value *float32) {
-	syscall.Syscall(gpUniform1fv, 3, uintptr(location), uintptr(count), uintptr(unsafe.Pointer(value)))
+	_, _, _ = syscall.Syscall(gpUniform1fv, 3, uintptr(location), uintptr(count), uintptr(unsafe.Pointer(value)))
 }
 
 func Uniform2fv(location int32, count int32, value *float32) {
-	syscall.Syscall(gpUniform2fv, 3, uintptr(location), uintptr(count), uintptr(unsafe.Pointer(value)))
+	_, _, _ = syscall.Syscall(gpUniform2fv, 3, uintptr(location), uintptr(count), uintptr(unsafe.Pointer(value)))
 }
 
 func Uniform3fv(location int32, count int32, value *float32) {
-	syscall.Syscall(gpUniform3fv, 3, uintptr(location), uintptr(count), uintptr(unsafe.Pointer(value)))
+	_, _, _ = syscall.Syscall(gpUniform3fv, 3, uintptr(location), uintptr(count), uintptr(unsafe.Pointer(value)))
 }
 
 func Uniform4fv(location int32, count int32, value *float32) {
-	syscall.Syscall(gpUniform4fv, 3, uintptr(location), uintptr(count), uintptr(unsafe.Pointer(value)))
+	_, _, _ = syscall.Syscall(gpUniform4fv, 3, uintptr(location), uintptr(count), uintptr(unsafe.Pointer(value)))
 }
 
 func UniformMatrix2fv(location int32, count int32, transpose bool, value *float32) {
-	syscall.Syscall6(gpUniformMatrix2fv, 4, uintptr(location), uintptr(count), boolToUintptr(transpose), uintptr(unsafe.Pointer(value)), 0, 0)
+	_, _, _ = syscall.Syscall6(gpUniformMatrix2fv, 4, uintptr(location), uintptr(count), boolToUintptr(transpose), uintptr(unsafe.Pointer(value)), 0, 0)
 }
 
 func UniformMatrix3fv(location int32, count int32, transpose bool, value *float32) {
-	syscall.Syscall6(gpUniformMatrix3fv, 4, uintptr(location), uintptr(count), boolToUintptr(transpose), uintptr(unsafe.Pointer(value)), 0, 0)
+	_, _, _ = syscall.Syscall6(gpUniformMatrix3fv, 4, uintptr(location), uintptr(count), boolToUintptr(transpose), uintptr(unsafe.Pointer(value)), 0, 0)
 }
 
 func UniformMatrix4fv(location int32, count int32, transpose bool, value *float32) {
-	syscall.Syscall6(gpUniformMatrix4fv, 4, uintptr(location), uintptr(count), boolToUintptr(transpose), uintptr(unsafe.Pointer(value)), 0, 0)
+	_, _, _ = syscall.Syscall6(gpUniformMatrix4fv, 4, uintptr(location), uintptr(count), boolToUintptr(transpose), uintptr(unsafe.Pointer(value)), 0, 0)
 }
 
 func UseProgram(program uint32) {
-	syscall.Syscall(gpUseProgram, 1, uintptr(program), 0, 0)
+	_, _, _ = syscall.Syscall(gpUseProgram, 1, uintptr(program), 0, 0)
 }
 
 func VertexAttribPointer(index uint32, size int32, xtype uint32, normalized bool, stride int32, pointer uintptr) {
-	syscall.Syscall6(gpVertexAttribPointer, 6, uintptr(index), uintptr(size), uintptr(xtype), boolToUintptr(normalized), uintptr(stride), uintptr(pointer))
+	_, _, _ = syscall.Syscall6(gpVertexAttribPointer, 6, uintptr(index), uintptr(size), uintptr(xtype), boolToUintptr(normalized), uintptr(stride), uintptr(pointer))
 }
 
 func Viewport(x int32, y int32, width int32, height int32) {
-	syscall.Syscall6(gpViewport, 4, uintptr(x), uintptr(y), uintptr(width), uintptr(height), 0, 0)
+	_, _, _ = syscall.Syscall6(gpViewport, 4, uintptr(x), uintptr(y), uintptr(width), uintptr(height), 0, 0)
 }
 
 // InitWithProcAddrFunc intializes the package using the specified OpenGL
