@@ -142,11 +142,17 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 	}
 
 	if !isBitSet(evBits, unix.EV_KEY) {
-		_ = unix.Close(fd)
+		if err := unix.Close(fd); err != nil {
+			return err
+		}
+
 		return nil
 	}
 	if !isBitSet(evBits, unix.EV_ABS) {
-		_ = unix.Close(fd)
+		if err := unix.Close(fd); err != nil {
+			return err
+		}
+
 		return nil
 	}
 

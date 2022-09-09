@@ -246,7 +246,9 @@ func (g *Game) Update() error {
 		g.cameraX += 2
 		if g.isKeyJustPressed() {
 			g.vy16 = -96
-			_ = g.jumpPlayer.Rewind()
+			if err := g.jumpPlayer.Rewind(); err != nil {
+				return err
+			}
 			g.jumpPlayer.Play()
 		}
 		g.y16 += g.vy16
@@ -258,7 +260,9 @@ func (g *Game) Update() error {
 		}
 
 		if g.hit() {
-			_ = g.hitPlayer.Rewind()
+			if err := g.hitPlayer.Rewind(); err != nil {
+				return err
+			}
 			g.hitPlayer.Play()
 			g.mode = ModeGameOver
 			g.gameoverCount = 30

@@ -105,7 +105,11 @@ adapterLoop:
 			for i, monitor := range disconnected {
 				if monitor != nil && monitor.win32.displayName == windows.UTF16ToString(display.DeviceName[:]) {
 					disconnected[i] = nil
-					_ = _EnumDisplayMonitors(0, nil, monitorCallbackPtr, _LPARAM(unsafe.Pointer(_glfw.monitors[i])))
+					err := _EnumDisplayMonitors(0, nil, monitorCallbackPtr, _LPARAM(unsafe.Pointer(_glfw.monitors[i])))
+					if err != nil {
+						return err
+					}
+
 					continue displayLoop
 				}
 			}
