@@ -18,10 +18,28 @@
 package main
 
 import (
+	"os"
+	"runtime"
+
+	"github.com/kisielk/errcheck/errcheck"
 	"golang.org/x/tools/go/analysis/multichecker"
 	"golang.org/x/tools/go/analysis/passes/atomicalign"
 )
 
 func main() {
-	multichecker.Main(atomicalign.Analyzer)
+	GOOS, ok := os.LookupEnv("GOOS")
+	if !ok {
+		GOOS = runtime.GOOS
+	}
+
+	for _, filename := range []string{
+		".errcheck_excludes",
+		".errcheck_excludes_" + GOOS,
+	} {
+		if _, err := os.Stat(filename); err == nil {
+			errcheck.Analyzer.Flags.Set("exclude", filename)
+		}
+	}
+
+	multichecker.Main(atomicalign.Analyzer, errcheck.Analyzer)
 }

@@ -1,0 +1,4 @@
+syscall.Syscall
+syscall.Syscall6
+syscall.Syscall9
+syscall.Syscall12

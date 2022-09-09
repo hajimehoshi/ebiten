@@ -44,7 +44,9 @@ func NewImageFromURL(url string) (*ebiten.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 
 	img, _, err := image.Decode(res.Body)
 	if err != nil {

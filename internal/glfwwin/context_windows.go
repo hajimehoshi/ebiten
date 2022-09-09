@@ -444,7 +444,9 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 	syscall.Syscall(glClear, 1, GL_COLOR_BUFFER_BIT, 0, 0)
 
 	if w.doublebuffer {
-		w.context.swapBuffers(w)
+		if err := w.context.swapBuffers(w); err != nil {
+			return err
+		}
 	}
 
 	return nil
