@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: MIT
 
+//go:build darwin || windows
+// +build darwin windows
+
 package gl
 
 import (
