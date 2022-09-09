@@ -1,4 +1,4 @@
-// Copyright 2021 The Ebiten Authors
+// Copyright 2022 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@ package main
 
 import (
 	"os"
-	"runtime"
 
 	"github.com/kisielk/errcheck/errcheck"
 	"golang.org/x/tools/go/analysis/multichecker"
@@ -24,19 +23,9 @@ import (
 )
 
 func main() {
-	GOOS, ok := os.LookupEnv("GOOS")
-	if !ok {
-		GOOS = runtime.GOOS
+	filename := ".errcheck_excludes"
+	if _, err := os.Stat(filename); err == nil {
+		errcheck.Analyzer.Flags.Set("exclude", filename)
 	}
-
-	for _, filename := range []string{
-		".errcheck_excludes",
-		".errcheck_excludes_" + GOOS,
-	} {
-		if _, err := os.Stat(filename); err == nil {
-			errcheck.Analyzer.Flags.Set("exclude", filename)
-		}
-	}
-
 	multichecker.Main(atomicalign.Analyzer, errcheck.Analyzer)
 }

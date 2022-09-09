@@ -55,8 +55,8 @@ package directx
 //     void Ebitengine_ID3D12GraphicsCommandList_OMSetStencilRef(void* i, uint32_t stencilRef) {
 //         static_cast<ID3D12GraphicsCommandList*>(i)->OMSetStencilRef(stencilRef);
 //     }
-//     void Ebitengine_ID3D12GraphicsCommandList_Release(void* i) {
-//         static_cast<ID3D12GraphicsCommandList*>(i)->Release();
+//     uint32_t Ebitengine_ID3D12GraphicsCommandList_Release(void* i) {
+//         return static_cast<uint32_t>(static_cast<ID3D12GraphicsCommandList*>(i)->Release());
 //     }
 //     uintptr_t Ebitengine_ID3D12GraphicsCommandList_Reset(void* i, void* pAllocator, void* pInitialState) {
 //         auto r = static_cast<ID3D12GraphicsCommandList*>(i)->Reset(static_cast<ID3D12CommandAllocator*>(pAllocator), static_cast<ID3D12PipelineState*>(pInitialState));
@@ -97,7 +97,7 @@ package directx
 // void Ebitengine_ID3D12GraphicsCommandList_IASetVertexBuffers(void* i, uint32_t startSlot, uint32_t numViews, void* pViews);
 // void Ebitengine_ID3D12GraphicsCommandList_OMSetRenderTargets(void* i, uint32_t numRenderTargetDescriptors, void* pRenderTargetDescriptors, int rtsSingleHandleToDescriptorRange, void* pDepthStencilDescriptor);
 // void Ebitengine_ID3D12GraphicsCommandList_OMSetStencilRef(void* i, uint32_t stencilRef);
-// void Ebitengine_ID3D12GraphicsCommandList_Release(void* i);
+// uint32_t Ebitengine_ID3D12GraphicsCommandList_Release(void* i);
 // uintptr_t Ebitengine_ID3D12GraphicsCommandList_Reset(void* i, void* pAllocator, void* pInitialState);
 // void Ebitengine_ID3D12GraphicsCommandList_ResourceBarrier(void* i, uint32_t numBarriers, void* pBarriers);
 // void Ebitengine_ID3D12GraphicsCommandList_RSSetViewports(void* i, uint32_t numViewports, void* pViewports);
@@ -175,8 +175,8 @@ func _ID3D12GraphicsCommandList_OMSetStencilRef(i *_ID3D12GraphicsCommandList, s
 	C.Ebitengine_ID3D12GraphicsCommandList_OMSetStencilRef(unsafe.Pointer(i), C.uint32_t(stencilRef))
 }
 
-func _ID3D12GraphicsCommandList_Release(i *_ID3D12GraphicsCommandList) {
-	C.Ebitengine_ID3D12GraphicsCommandList_Release(unsafe.Pointer(i))
+func _ID3D12GraphicsCommandList_Release(i *_ID3D12GraphicsCommandList) uint32 {
+	return uint32(C.Ebitengine_ID3D12GraphicsCommandList_Release(unsafe.Pointer(i)))
 }
 
 func _ID3D12GraphicsCommandList_Reset(i *_ID3D12GraphicsCommandList, pAllocator *_ID3D12CommandAllocator, pInitialState *_ID3D12PipelineState) uintptr {
