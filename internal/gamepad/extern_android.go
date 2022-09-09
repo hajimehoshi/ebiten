@@ -149,26 +149,8 @@ func (g *Gamepad) updateAndroidGamepadHat(hat int, xValue, yValue int) {
 
 	// Update the gamepad buttons in addition to hats.
 	// See https://github.com/libsdl-org/SDL/blob/47f2373dc13b66c48bf4024fcdab53cd0bdd59bb/src/joystick/android/SDL_sysjoystick.c#L290-L301
-	switch {
-	case xValue < 0:
-		n.buttons[gamepaddb.SDLControllerButtonDpadLeft] = true
-		n.buttons[gamepaddb.SDLControllerButtonDpadRight] = false
-	case xValue > 0:
-		n.buttons[gamepaddb.SDLControllerButtonDpadLeft] = false
-		n.buttons[gamepaddb.SDLControllerButtonDpadRight] = true
-	default:
-		n.buttons[gamepaddb.SDLControllerButtonDpadLeft] = false
-		n.buttons[gamepaddb.SDLControllerButtonDpadRight] = false
-	}
-	switch {
-	case yValue < 0:
-		n.buttons[gamepaddb.SDLControllerButtonDpadUp] = true
-		n.buttons[gamepaddb.SDLControllerButtonDpadDown] = false
-	case yValue > 0:
-		n.buttons[gamepaddb.SDLControllerButtonDpadUp] = false
-		n.buttons[gamepaddb.SDLControllerButtonDpadDown] = true
-	default:
-		n.buttons[gamepaddb.SDLControllerButtonDpadUp] = false
-		n.buttons[gamepaddb.SDLControllerButtonDpadDown] = false
-	}
+	n.buttons[gamepaddb.SDLControllerButtonDpadLeft] = v&hatLeft != 0
+	n.buttons[gamepaddb.SDLControllerButtonDpadRight] = v&hatRight != 0
+	n.buttons[gamepaddb.SDLControllerButtonDpadUp] = v&hatUp != 0
+	n.buttons[gamepaddb.SDLControllerButtonDpadDown] = v&hatDown != 0
 }
