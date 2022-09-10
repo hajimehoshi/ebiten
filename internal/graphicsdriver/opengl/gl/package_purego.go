@@ -430,118 +430,118 @@ func Viewport(x int32, y int32, width int32, height int32) {
 func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	gpActiveTexture = getProcAddr("glActiveTexture")
 	if gpActiveTexture == 0 {
-		return errors.New("glActiveTexture")
+		return errors.New("gl: glActiveTexture is missing")
 	}
 	gpAttachShader = getProcAddr("glAttachShader")
 	if gpAttachShader == 0 {
-		return errors.New("glAttachShader")
+		return errors.New("gl: glAttachShader is missing")
 	}
 	gpBindAttribLocation = getProcAddr("glBindAttribLocation")
 	if gpBindAttribLocation == 0 {
-		return errors.New("glBindAttribLocation")
+		return errors.New("gl: glBindAttribLocation is missing")
 	}
 	gpBindBuffer = getProcAddr("glBindBuffer")
 	if gpBindBuffer == 0 {
-		return errors.New("glBindBuffer")
+		return errors.New("gl: glBindBuffer is missing")
 	}
 	gpBindFramebufferEXT = getProcAddr("glBindFramebufferEXT")
 	gpBindRenderbufferEXT = getProcAddr("glBindRenderbufferEXT")
 	gpBindTexture = getProcAddr("glBindTexture")
 	if gpBindTexture == 0 {
-		return errors.New("glBindTexture")
+		return errors.New("gl: glBindTexture is missing")
 	}
 	gpBlendFunc = getProcAddr("glBlendFunc")
 	if gpBlendFunc == 0 {
-		return errors.New("glBlendFunc")
+		return errors.New("gl: glBlendFunc is missing")
 	}
 	gpBufferData = getProcAddr("glBufferData")
 	if gpBufferData == 0 {
-		return errors.New("glBufferData")
+		return errors.New("gl: glBufferData is missing")
 	}
 	gpBufferSubData = getProcAddr("glBufferSubData")
 	if gpBufferSubData == 0 {
-		return errors.New("glBufferSubData")
+		return errors.New("gl: glBufferSubData is missing")
 	}
 	gpCheckFramebufferStatusEXT = getProcAddr("glCheckFramebufferStatusEXT")
 	gpClear = getProcAddr("glClear")
 	if gpClear == 0 {
-		return errors.New("glClear")
+		return errors.New("gl: glClear is missing")
 	}
 	gpColorMask = getProcAddr("glColorMask")
 	if gpColorMask == 0 {
-		return errors.New("glColorMask")
+		return errors.New("gl: glColorMask is missing")
 	}
 	gpCompileShader = getProcAddr("glCompileShader")
 	if gpCompileShader == 0 {
-		return errors.New("glCompileShader")
+		return errors.New("gl: glCompileShader is missing")
 	}
 	gpCreateProgram = getProcAddr("glCreateProgram")
 	if gpCreateProgram == 0 {
-		return errors.New("glCreateProgram")
+		return errors.New("gl: glCreateProgram is missing")
 	}
 	gpCreateShader = getProcAddr("glCreateShader")
 	if gpCreateShader == 0 {
-		return errors.New("glCreateShader")
+		return errors.New("gl: glCreateShader is missing")
 	}
 	gpDeleteBuffers = getProcAddr("glDeleteBuffers")
 	if gpDeleteBuffers == 0 {
-		return errors.New("glDeleteBuffers")
+		return errors.New("gl: glDeleteBuffers is missing")
 	}
 	gpDeleteFramebuffersEXT = getProcAddr("glDeleteFramebuffersEXT")
 	gpDeleteProgram = getProcAddr("glDeleteProgram")
 	if gpDeleteProgram == 0 {
-		return errors.New("glDeleteProgram")
+		return errors.New("gl: glDeleteProgram is missing")
 	}
 	gpDeleteRenderbuffersEXT = getProcAddr("glDeleteRenderbuffersEXT")
 	gpDeleteShader = getProcAddr("glDeleteShader")
 	if gpDeleteShader == 0 {
-		return errors.New("glDeleteShader")
+		return errors.New("gl: glDeleteShader is missing")
 	}
 	gpDeleteTextures = getProcAddr("glDeleteTextures")
 	if gpDeleteTextures == 0 {
-		return errors.New("glDeleteTextures")
+		return errors.New("gl: glDeleteTextures is missing")
 	}
 	gpDisable = getProcAddr("glDisable")
 	if gpDisable == 0 {
-		return errors.New("glDisable")
+		return errors.New("gl: glDisable is missing")
 	}
 	gpDisableVertexAttribArray = getProcAddr("glDisableVertexAttribArray")
 	if gpDisableVertexAttribArray == 0 {
-		return errors.New("glDisableVertexAttribArray")
+		return errors.New("gl: glDisableVertexAttribArray is missing")
 	}
 	gpDrawElements = getProcAddr("glDrawElements")
 	if gpDrawElements == 0 {
-		return errors.New("glDrawElements")
+		return errors.New("gl: glDrawElements is missing")
 	}
 	gpEnable = getProcAddr("glEnable")
 	if gpEnable == 0 {
-		return errors.New("glEnable")
+		return errors.New("gl: glEnable is missing")
 	}
 	gpEnableVertexAttribArray = getProcAddr("glEnableVertexAttribArray")
 	if gpEnableVertexAttribArray == 0 {
-		return errors.New("glEnableVertexAttribArray")
+		return errors.New("gl: glEnableVertexAttribArray is missing")
 	}
 	gpFlush = getProcAddr("glFlush")
 	if gpFlush == 0 {
-		return errors.New("glFlush")
+		return errors.New("gl: glFlush is missing")
 	}
 	gpFramebufferRenderbufferEXT = getProcAddr("glFramebufferRenderbufferEXT")
 	gpFramebufferTexture2DEXT = getProcAddr("glFramebufferTexture2DEXT")
 	gpGenBuffers = getProcAddr("glGenBuffers")
 	if gpGenBuffers == 0 {
-		return errors.New("glGenBuffers")
+		return errors.New("gl: glGenBuffers is missing")
 	}
 	gpGenFramebuffersEXT = getProcAddr("glGenFramebuffersEXT")
 	gpGenRenderbuffersEXT = getProcAddr("glGenRenderbuffersEXT")
 	gpGenTextures = getProcAddr("glGenTextures")
 	if gpGenTextures == 0 {
-		return errors.New("glGenTextures")
+		return errors.New("gl: glGenTextures is missing")
 	}
 	gpGetDoublei_v = getProcAddr("glGetDoublei_v")
 	gpGetDoublei_vEXT = getProcAddr("glGetDoublei_vEXT")
 	gpGetError = getProcAddr("glGetError")
 	if gpGetError == 0 {
-		return errors.New("glGetError")
+		return errors.New("gl: glGetError is missing")
 	}
 	gpGetFloati_v = getProcAddr("glGetFloati_v")
 	gpGetFloati_vEXT = getProcAddr("glGetFloati_vEXT")
@@ -549,30 +549,30 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	gpGetIntegerui64i_vNV = getProcAddr("glGetIntegerui64i_vNV")
 	gpGetIntegerv = getProcAddr("glGetIntegerv")
 	if gpGetIntegerv == 0 {
-		return errors.New("glGetIntegerv")
+		return errors.New("gl: glGetIntegerv is missing")
 	}
 	gpGetPointeri_vEXT = getProcAddr("glGetPointeri_vEXT")
 	gpGetProgramInfoLog = getProcAddr("glGetProgramInfoLog")
 	if gpGetProgramInfoLog == 0 {
-		return errors.New("glGetProgramInfoLog")
+		return errors.New("gl: glGetProgramInfoLog is missing")
 	}
 	gpGetProgramiv = getProcAddr("glGetProgramiv")
 	if gpGetProgramiv == 0 {
-		return errors.New("glGetProgramiv")
+		return errors.New("gl: glGetProgramiv is missing")
 	}
 	gpGetShaderInfoLog = getProcAddr("glGetShaderInfoLog")
 	if gpGetShaderInfoLog == 0 {
-		return errors.New("glGetShaderInfoLog")
+		return errors.New("gl: glGetShaderInfoLog is missing")
 	}
 	gpGetShaderiv = getProcAddr("glGetShaderiv")
 	if gpGetShaderiv == 0 {
-		return errors.New("glGetShaderiv")
+		return errors.New("gl: glGetShaderiv is missing")
 	}
 	gpGetTransformFeedbacki64_v = getProcAddr("glGetTransformFeedbacki64_v")
 	gpGetTransformFeedbacki_v = getProcAddr("glGetTransformFeedbacki_v")
 	gpGetUniformLocation = getProcAddr("glGetUniformLocation")
 	if gpGetUniformLocation == 0 {
-		return errors.New("glGetUniformLocation")
+		return errors.New("gl: glGetUniformLocation is missing")
 	}
 	gpGetUnsignedBytei_vEXT = getProcAddr("glGetUnsignedBytei_vEXT")
 	gpGetVertexArrayIntegeri_vEXT = getProcAddr("glGetVertexArrayIntegeri_vEXT")
@@ -580,101 +580,101 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	gpIsFramebufferEXT = getProcAddr("glIsFramebufferEXT")
 	gpIsProgram = getProcAddr("glIsProgram")
 	if gpIsProgram == 0 {
-		return errors.New("glIsProgram")
+		return errors.New("gl: glIsProgram is missing")
 	}
 	gpIsRenderbufferEXT = getProcAddr("glIsRenderbufferEXT")
 	gpIsTexture = getProcAddr("glIsTexture")
 	if gpIsTexture == 0 {
-		return errors.New("glIsTexture")
+		return errors.New("gl: glIsTexture is missing")
 	}
 	gpLinkProgram = getProcAddr("glLinkProgram")
 	if gpLinkProgram == 0 {
-		return errors.New("glLinkProgram")
+		return errors.New("gl: glLinkProgram is missing")
 	}
 	gpPixelStorei = getProcAddr("glPixelStorei")
 	if gpPixelStorei == 0 {
-		return errors.New("glPixelStorei")
+		return errors.New("gl: glPixelStorei is missing")
 	}
 	gpReadPixels = getProcAddr("glReadPixels")
 	if gpReadPixels == 0 {
-		return errors.New("glReadPixels")
+		return errors.New("gl: glReadPixels is missing")
 	}
 	gpRenderbufferStorageEXT = getProcAddr("glRenderbufferStorageEXT")
 	gpScissor = getProcAddr("glScissor")
 	if gpScissor == 0 {
-		return errors.New("glScissor")
+		return errors.New("gl: glScissor is missing")
 	}
 	gpShaderSource = getProcAddr("glShaderSource")
 	if gpShaderSource == 0 {
-		return errors.New("glShaderSource")
+		return errors.New("gl: glShaderSource is missing")
 	}
 	gpStencilFunc = getProcAddr("glStencilFunc")
 	if gpStencilFunc == 0 {
-		return errors.New("glStencilFunc")
+		return errors.New("gl: glStencilFunc is missing")
 	}
 	gpStencilOp = getProcAddr("glStencilOp")
 	if gpStencilOp == 0 {
-		return errors.New("glStencilOp")
+		return errors.New("gl: glStencilOp is missing")
 	}
 	gpTexImage2D = getProcAddr("glTexImage2D")
 	if gpTexImage2D == 0 {
-		return errors.New("glTexImage2D")
+		return errors.New("gl: glTexImage2D is missing")
 	}
 	gpTexParameteri = getProcAddr("glTexParameteri")
 	if gpTexParameteri == 0 {
-		return errors.New("glTexParameteri")
+		return errors.New("gl: glTexParameteri is missing")
 	}
 	gpTexSubImage2D = getProcAddr("glTexSubImage2D")
 	if gpTexSubImage2D == 0 {
-		return errors.New("glTexSubImage2D")
+		return errors.New("gl: glTexSubImage2D is missing")
 	}
 	gpUniform1f = getProcAddr("glUniform1f")
 	if gpUniform1f == 0 {
-		return errors.New("glUniform1f")
+		return errors.New("gl: glUniform1f is missing")
 	}
 	gpUniform1i = getProcAddr("glUniform1i")
 	if gpUniform1i == 0 {
-		return errors.New("glUniform1i")
+		return errors.New("gl: glUniform1i is missing")
 	}
 	gpUniform1fv = getProcAddr("glUniform1fv")
 	if gpUniform1fv == 0 {
-		return errors.New("glUniform1fv")
+		return errors.New("gl: glUniform1fv is missing")
 	}
 	gpUniform2fv = getProcAddr("glUniform2fv")
 	if gpUniform2fv == 0 {
-		return errors.New("glUniform2fv")
+		return errors.New("gl: glUniform2fv is missing")
 	}
 	gpUniform3fv = getProcAddr("glUniform3fv")
 	if gpUniform3fv == 0 {
-		return errors.New("glUniform3fv")
+		return errors.New("gl: glUniform3fv is missing")
 	}
 	gpUniform4fv = getProcAddr("glUniform4fv")
 	if gpUniform4fv == 0 {
-		return errors.New("glUniform4fv")
+		return errors.New("gl: glUniform4fv is missing")
 	}
 	gpUniformMatrix2fv = getProcAddr("glUniformMatrix2fv")
 	if gpUniformMatrix2fv == 0 {
-		return errors.New("glUniformMatrix2fv")
+		return errors.New("gl: glUniformMatrix2fv is missing")
 	}
 	gpUniformMatrix3fv = getProcAddr("glUniformMatrix3fv")
 	if gpUniformMatrix3fv == 0 {
-		return errors.New("glUniformMatrix3fv")
+		return errors.New("gl: glUniformMatrix3fv is missing")
 	}
 	gpUniformMatrix4fv = getProcAddr("glUniformMatrix4fv")
 	if gpUniformMatrix4fv == 0 {
-		return errors.New("glUniformMatrix4fv")
+		return errors.New("gl: glUniformMatrix4fv is missing")
 	}
 	gpUseProgram = getProcAddr("glUseProgram")
 	if gpUseProgram == 0 {
-		return errors.New("glUseProgram")
+		return errors.New("gl: glUseProgram is missing")
 	}
 	gpVertexAttribPointer = getProcAddr("glVertexAttribPointer")
 	if gpVertexAttribPointer == 0 {
-		return errors.New("glVertexAttribPointer")
+		return errors.New("gl: glVertexAttribPointer is missing")
 	}
 	gpViewport = getProcAddr("glViewport")
 	if gpViewport == 0 {
-		return errors.New("glViewport")
+		return errors.New("gl: glViewport is missing")
 	}
 	return nil
 }
