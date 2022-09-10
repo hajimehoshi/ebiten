@@ -8,7 +8,7 @@ require (
 	github.com/hajimehoshi/bitmapfont/v2 v2.2.1
 	github.com/hajimehoshi/file2byteslice v0.0.0-20210813153925-5340248a8f41
 	github.com/hajimehoshi/go-mp3 v0.3.3
-	github.com/hajimehoshi/oto/v2 v2.3.1-0.20220910094328-5e8852515542
+	github.com/hajimehoshi/oto/v2 v2.3.1-0.20220910100607-fe3c41e6c426
 	github.com/jakecoffman/cp v1.2.1
 	github.com/jezek/xgb v1.0.1
 	github.com/jfreymuth/oggvorbis v1.0.4
