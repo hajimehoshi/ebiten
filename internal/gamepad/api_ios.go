@@ -390,6 +390,10 @@ package gamepad
 // }
 import "C"
 
+import (
+	"encoding/hex"
+)
+
 //export ebitenAddGamepad
 func ebitenAddGamepad(controller C.uintptr_t, prop *C.struct_ControllerProperty) {
 	theGamepads.addIOSGamepad(controller, prop)
@@ -405,7 +409,7 @@ func (g *gamepads) addIOSGamepad(controller C.uintptr_t, prop *C.struct_Controll
 	defer g.m.Unlock()
 
 	name := C.GoString(&prop.name[0])
-	sdlID := C.GoStringN(&prop.guid[0], 16)
+	sdlID := hex.EncodeToString([]byte(C.GoStringN(&prop.guid[0], 16)))
 	gp := g.add(name, sdlID)
 	gp.native = &nativeGamepadImpl{
 		controller:           uintptr(controller),
