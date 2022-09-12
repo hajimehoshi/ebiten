@@ -30,6 +30,8 @@ package gles
 //   #define GLES_SILENCE_DEPRECATION
 //   #include <OpenGLES/ES2/glext.h>
 // #endif
+//
+// #include <stdlib.h>
 import "C"
 
 import (
@@ -54,8 +56,8 @@ func (DefaultContext) AttachShader(program uint32, shader uint32) {
 }
 
 func (DefaultContext) BindAttribLocation(program uint32, index uint32, name string) {
-	s, free := cString(name)
-	defer free()
+	s := C.CString(name)
+	defer C.free(unsafe.Pointer(s))
 	C.glBindAttribLocation(C.GLuint(program), C.GLuint(index), (*C.GLchar)(unsafe.Pointer(s)))
 }
 
@@ -245,8 +247,8 @@ func (DefaultContext) GetShaderPrecisionFormat(shadertype uint32, precisiontype 
 }
 
 func (DefaultContext) GetUniformLocation(program uint32, name string) int32 {
-	s, free := cString(name)
-	defer free()
+	s := C.CString(name)
+	defer C.free(unsafe.Pointer(s))
 	return int32(C.glGetUniformLocation(C.GLuint(program), (*C.GLchar)(unsafe.Pointer(s))))
 }
 
@@ -289,7 +291,7 @@ func (DefaultContext) Scissor(x, y, width, height int32) {
 func (DefaultContext) ShaderSource(shader uint32, xstring string) {
 	s, free := cStringPtr(xstring)
 	defer free()
-	C.glShaderSource(C.GLuint(shader), 1, (**C.GLchar)(unsafe.Pointer(s)), nil)
+	C.glShaderSource(C.GLuint(shader), 1, (**C.GLchar)(s), nil)
 }
 
 func (DefaultContext) StencilFunc(func_ uint32, ref int32, mask uint32) {
