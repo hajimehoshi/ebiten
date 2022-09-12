@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !ios && !js
-// +build !android,!ios,!js
+//go:build android || ios || opengles
+// +build android ios opengles
 
 package opengl
 
@@ -22,5 +22,5 @@ import (
 )
 
 func (c *context) glslVersion() glsl.GLSLVersion {
-	return glsl.GLSLVersionDefault
+	return glsl.GLSLVersionES100
 }

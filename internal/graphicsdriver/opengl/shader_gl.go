@@ -1,4 +1,4 @@
-// Copyright 2018 The Ebiten Authors
+// Copyright 2020 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,31 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build !android && !ios && !js && !opengles
+// +build !android,!ios,!js,!opengles
+
 package opengl
 
 import (
-	"reflect"
-	"unsafe"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
 )
 
-func float32sToBytes(v []float32) []byte {
-	f32h := (*reflect.SliceHeader)(unsafe.Pointer(&v))
-
-	var b []byte
-	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
-	bh.Data = f32h.Data
-	bh.Len = len(v) * 4
-	bh.Cap = len(v) * 4
-	return b
-}
-
-func uint16sToBytes(v []uint16) []byte {
-	u16h := (*reflect.SliceHeader)(unsafe.Pointer(&v))
-
-	var b []byte
-	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
-	bh.Data = u16h.Data
-	bh.Len = len(v) * 2
-	bh.Cap = len(v) * 2
-	return b
+func (c *context) glslVersion() glsl.GLSLVersion {
+	return glsl.GLSLVersionDefault
 }

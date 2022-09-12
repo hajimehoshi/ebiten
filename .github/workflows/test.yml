@@ -143,6 +143,12 @@ jobs:
           sudo apt-get install libasound2-dev:i386 libgl1-mesa-dev:i386 libxcursor-dev:i386 libxi-dev:i386 libxinerama-dev:i386 libxrandr-dev:i386 libxxf86vm-dev:i386
           env CGO_ENABLED=1 GOARCH=386 go test -tags=example ${{ !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
 
+      - name: go test (Linux OpenGL ES)
+        if: ${{ startsWith(matrix.os, 'ubuntu-') }}
+        run: |
+          sudo apt-get install libgles2-mesa-dev
+          env EBITENGINE_GRAPHICS_LIBRARY=opengl go test -tags=example,opengles ${{ !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
+
       - name: go test (Windows 386)
         if: ${{ startsWith(matrix.os, 'windows-') }}
         run: |

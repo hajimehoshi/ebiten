@@ -1,4 +1,4 @@
-// Copyright 2018 The Ebiten Authors
+// Copyright 2022 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,31 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package opengl
+//go:build !android && !ios && !js && !nintendosdk && opengles
+// +build !android,!ios,!js,!nintendosdk,opengles
+
+package ui
 
 import (
-	"reflect"
-	"unsafe"
+	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
-func float32sToBytes(v []float32) []byte {
-	f32h := (*reflect.SliceHeader)(unsafe.Pointer(&v))
-
-	var b []byte
-	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
-	bh.Data = f32h.Data
-	bh.Len = len(v) * 4
-	bh.Cap = len(v) * 4
-	return b
-}
-
-func uint16sToBytes(v []uint16) []byte {
-	u16h := (*reflect.SliceHeader)(unsafe.Pointer(&v))
-
-	var b []byte
-	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
-	bh.Data = u16h.Data
-	bh.Len = len(v) * 2
-	bh.Cap = len(v) * 2
-	return b
+func setGLFWClientAPI() {
+	glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLESAPI)
+	glfw.WindowHint(glfw.ContextVersionMajor, 2)
+	glfw.WindowHint(glfw.ContextVersionMinor, 0)
 }
