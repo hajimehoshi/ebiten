@@ -801,13 +801,7 @@ func TestAllowWritePixelsAfterDrawTriangles(t *testing.T) {
 	// WritePixels for a whole image doesn't panic.
 }
 
-func TestDisallowWritePixelsForPartAfterDrawTriangles(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("WritePixels for a part after DrawTriangles must panic but not")
-		}
-	}()
-
+func TestAllowWritePixelsForPartAfterDrawTriangles(t *testing.T) {
 	const w, h = 16, 16
 	src := restorable.NewImage(w, h, restorable.ImageTypeRegular)
 	dst := restorable.NewImage(w, h, restorable.ImageTypeRegular)
@@ -822,6 +816,7 @@ func TestDisallowWritePixelsForPartAfterDrawTriangles(t *testing.T) {
 	}
 	dst.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{src}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
 	dst.WritePixels(make([]byte, 4), 0, 0, 1, 1)
+	// WritePixels for a part of image doesn't panic.
 }
 
 func TestExtend(t *testing.T) {

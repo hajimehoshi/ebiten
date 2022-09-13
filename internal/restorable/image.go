@@ -322,7 +322,8 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 
 	// drawTrianglesHistory and basePixels cannot be mixed.
 	if len(i.drawTrianglesHistory) > 0 {
-		panic("restorable: WritePixels for a part after DrawTriangles is forbidden")
+		i.makeStale()
+		return
 	}
 
 	if i.stale {
