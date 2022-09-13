@@ -661,11 +661,8 @@ func (i *Image) Dispose() {
 //
 // If an image is invalidated, GL context is lost and all the images should be restored asap.
 func (i *Image) isInvalidated(graphicsDriver graphicsdriver.Graphics) (bool, error) {
-	// FlushCommands is required because c.offscreen.impl might not have an actual texture.
-	if err := graphicscommand.FlushCommands(graphicsDriver); err != nil {
-		return false, err
-	}
-	return i.image.IsInvalidated(), nil
+	// IsInvalidated flushes the commands internally.
+	return i.image.IsInvalidated(graphicsDriver)
 }
 
 func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool, rect image.Rectangle) (string, error) {

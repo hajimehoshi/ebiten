@@ -625,6 +625,20 @@ func (c *newShaderCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOff
 	return nil
 }
 
+type isInvalidatedCommand struct {
+	result bool
+	image  *Image
+}
+
+func (c *isInvalidatedCommand) String() string {
+	return fmt.Sprintf("is-invalidated: image: %d", c.image.id)
+}
+
+func (c *isInvalidatedCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
+	c.result = c.image.image.IsInvalidated()
+	return nil
+}
+
 // InitializeGraphicsDriverState initialize the current graphics driver state.
 func InitializeGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) (err error) {
 	runOnRenderingThread(func() {
