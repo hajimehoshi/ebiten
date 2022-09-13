@@ -213,8 +213,7 @@ func (i *Image) Extend(width, height int) *Image {
 	}
 	newImg.DrawTriangles(srcs, offsets, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
 
-	// Overwrite the history as if the image newImg is created only by WritePixels. Now drawTrianglesHistory
-	// and basePixels cannot be mixed.
+	// Overwrite the history as if the image newImg is created only by WritePixels.
 	newImg.clearDrawTrianglesHistory()
 	newImg.basePixels = i.basePixels
 	newImg.stale = i.stale
@@ -336,7 +335,7 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 		return
 	}
 
-	// drawTrianglesHistory and basePixels cannot be mixed.
+	// Records for DrawTriangles cannot come after records for WritePixels.
 	if len(i.drawTrianglesHistory) > 0 {
 		i.makeStale(image.Rect(0, 0, i.width, i.height))
 		return
