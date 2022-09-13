@@ -498,12 +498,12 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	i.replacePixels(pix, x, y, width, height)
+	i.writePixels(pix, x, y, width, height)
 }
 
-func (i *Image) replacePixels(pix []byte, x, y, width, height int) {
+func (i *Image) writePixels(pix []byte, x, y, width, height int) {
 	if i.disposed {
-		panic("atlas: the image must not be disposed at replacePixels")
+		panic("atlas: the image must not be disposed at writePixels")
 	}
 
 	if l := 4 * width * height; len(pix) != l {
@@ -544,7 +544,7 @@ func (i *Image) replacePixels(pix []byte, x, y, width, height int) {
 	// TODO: Is clearing edges explicitly really needed?
 	const paddingSize = 1
 	if paddingSize != i.paddingSize() {
-		panic(fmt.Sprintf("atlas: replacePixels assumes the padding is always 1 but the actual padding was %d", i.paddingSize()))
+		panic(fmt.Sprintf("atlas: writePixels assumes the padding is always 1 but the actual padding was %d", i.paddingSize()))
 	}
 	rowPixels := 4 * pw
 	for i := 0; i < rowPixels; i++ {
