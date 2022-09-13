@@ -314,7 +314,8 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 		i.image.WritePixels(make([]byte, 4*width*height), x, y, width, height)
 	}
 
-	if !needsRestoring() || !i.needsRestoring() {
+	// Even if the image is already stale, call makeStale to extend the stale region.
+	if !needsRestoring() || !i.needsRestoring() || i.stale {
 		i.makeStale(image.Rect(x, y, x+width, y+height))
 		return
 	}
@@ -338,11 +339,6 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 	// drawTrianglesHistory and basePixels cannot be mixed.
 	if len(i.drawTrianglesHistory) > 0 {
 		i.makeStale(image.Rect(0, 0, i.width, i.height))
-		return
-	}
-
-	if i.stale {
-		// TODO: panic here?
 		return
 	}
 
