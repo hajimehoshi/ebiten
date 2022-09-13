@@ -450,9 +450,6 @@ func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Imag
 
 func (i *Image) readPixelsFromGPUIfNeeded(graphicsDriver graphicsdriver.Graphics) error {
 	if len(i.drawTrianglesHistory) > 0 || i.stale {
-		if err := graphicscommand.FlushCommands(graphicsDriver); err != nil {
-			return err
-		}
 		if err := i.readPixelsFromGPU(graphicsDriver); err != nil {
 			return err
 		}
