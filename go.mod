@@ -1,6 +1,6 @@
 module github.com/hajimehoshi/ebiten/v2
 
-go 1.15
+go 1.16
 
 require (
 	github.com/ebitengine/purego v0.0.0-20220910041003-a51c01493ff9
