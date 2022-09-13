@@ -491,7 +491,11 @@ func (i *Image) makeStaleIfDependingOnShader(shader *Shader) {
 // readPixelsFromGPU reads the pixels from GPU and resolves the image's 'stale' state.
 func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error {
 	i.basePixels = Pixels{}
-	if r := i.staleRegion; !r.Empty() {
+	r := i.staleRegion
+	if len(i.drawTrianglesHistory) > 0 {
+		r = image.Rect(0, 0, i.width, i.height)
+	}
+	if !r.Empty() {
 		pix := make([]byte, 4*r.Dx()*r.Dy())
 		if err := i.image.ReadPixels(graphicsDriver, pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
 			return err

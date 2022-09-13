@@ -1073,3 +1073,30 @@ func TestOverlappedPixels(t *testing.T) {
 		}
 	}
 }
+
+// Issue #2324
+func TestDrawTrianglesAndReadPixels(t *testing.T) {
+	const w, h = 1, 1
+	src := restorable.NewImage(w, h, restorable.ImageTypeRegular)
+	dst := restorable.NewImage(w, h, restorable.ImageTypeRegular)
+
+	src.WritePixels([]byte{0x80, 0x80, 0x80, 0x80}, 0, 0, 1, 1)
+
+	vs := quadVertices(src, w, h, 0, 0)
+	is := graphics.QuadIndices()
+	dr := graphicsdriver.Region{
+		X:      0,
+		Y:      0,
+		Width:  w,
+		Height: h,
+	}
+	dst.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{src}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
+
+	pix := make([]byte, 4*w*h)
+	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix, 0, 0, w, h); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := (color.RGBA{pix[0], pix[1], pix[2], pix[3]}), (color.RGBA{0x80, 0x80, 0x80, 0x80}); !sameColors(got, want, 1) {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
