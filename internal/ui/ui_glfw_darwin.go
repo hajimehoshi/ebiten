@@ -22,105 +22,101 @@ package ui
 //
 // #import <AppKit/AppKit.h>
 //
-// @interface EbitengineWindowDelegate : NSObject <NSWindowDelegate>
-// @end
-//
-// @implementation EbitengineWindowDelegate {
-//   id<NSWindowDelegate> origDelegate_;
-//   bool origResizable_;
-// }
-//
-// - (instancetype)initWithOrigDelegate:(id<NSWindowDelegate>)origDelegate {
-//   self = [super init];
-//   if (self != nil) {
-//     origDelegate_ = origDelegate;
-//   }
-//   return self;
-// }
-//
-// // The method set of origDelegate_ must sync with GLFWWindowDelegate's implementation.
-// // See cocoa_window.m in GLFW.
-// - (BOOL)windowShouldClose:(id)sender {
-//   return [origDelegate_ windowShouldClose:sender];
-// }
-// - (void)windowDidResize:(NSNotification *)notification {
-//   [origDelegate_ windowDidResize:notification];
-// }
-// - (void)windowDidMove:(NSNotification *)notification {
-//   [origDelegate_ windowDidMove:notification];
-// }
-// - (void)windowDidMiniaturize:(NSNotification *)notification {
-//   [origDelegate_ windowDidMiniaturize:notification];
-// }
-// - (void)windowDidDeminiaturize:(NSNotification *)notification {
-//   [origDelegate_ windowDidDeminiaturize:notification];
-// }
-// - (void)windowDidBecomeKey:(NSNotification *)notification {
-//   [origDelegate_ windowDidBecomeKey:notification];
-// }
-// - (void)windowDidResignKey:(NSNotification *)notification {
-//   [origDelegate_ windowDidResignKey:notification];
-// }
-// - (void)windowDidChangeOcclusionState:(NSNotification* )notification {
-//   [origDelegate_ windowDidChangeOcclusionState:notification];
-// }
-//
-// - (void)pushResizableState:(NSWindow*)window {
-//   origResizable_ = window.styleMask & NSWindowStyleMaskResizable;
-//   if (!origResizable_) {
-//     window.styleMask |= NSWindowStyleMaskResizable;
-//   }
-// }
-//
-// - (void)popResizableState:(NSWindow*)window {
-//   if (!origResizable_) {
-//     window.styleMask &= ~NSWindowStyleMaskResizable;
-//   }
-//   origResizable_ = false;
-// }
-//
-// - (void)windowWillEnterFullScreen:(NSNotification *)notification {
-//   NSWindow* window = (NSWindow*)[notification object];
-//   [self pushResizableState:window];
-// }
-//
-// - (void)windowDidEnterFullScreen:(NSNotification *)notification {
-//   NSWindow* window = (NSWindow*)[notification object];
-//   [self popResizableState:window];
-// }
-//
-// - (void)windowWillExitFullScreen:(NSNotification *)notification {
-//   NSWindow* window = (NSWindow*)[notification object];
-//   [self pushResizableState:window];
-// }
-//
-// - (void)windowDidExitFullScreen:(NSNotification *)notification {
-//   NSWindow* window = (NSWindow*)[notification object];
-//   [self popResizableState:window];
-//   // Do not call setFrame here (#2295). setFrame here causes unexpected results.
-// }
-//
-// @end
-//
 import "C"
-
 import (
 	"fmt"
-	"github.com/ebitengine/purego/objc"
-	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 	"unsafe"
 
+	"github.com/ebitengine/purego/objc"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
-var EbitengineWindowDelegate objc.Class
+var class_EbitengineWindowDelegate objc.Class
 
 func init() {
-	//EbitengineWindowDelegate = objc.AllocateClassPair(objc.GetClass("NSObject"), "EbitengineWindowDelegate", 0)
-	//EbitengineWindowDelegate.Register()
+	class_EbitengineWindowDelegate = objc.AllocateClassPair(objc.GetClass("NSObject"), "EbitengineWindowDelegate", 0)
+	protocol := objc.GetProtocol("NSWindowDelegate")
+	class_EbitengineWindowDelegate.AddProtocol(protocol)
+	class_EbitengineWindowDelegate.AddIvar("origDelegate", objc.ID(0), "@")
+	class_EbitengineWindowDelegate.AddIvar("origResizable", false, "B")
+	origDelegateOffset := class_EbitengineWindowDelegate.InstanceVariable("origDelegate").Offset()
+	origResizableOffset := class_EbitengineWindowDelegate.InstanceVariable("origResizable").Offset()
+	getOrigDelegate := func(self objc.ID) objc.ID {
+		return *(*objc.ID)(unsafe.Pointer(uintptr(unsafe.Pointer(self)) + origDelegateOffset))
+	}
+	getResizable := func(self objc.ID) bool {
+		return *(*bool)(unsafe.Pointer(uintptr(unsafe.Pointer(self)) + origResizableOffset))
+	}
+	setResizable := func(self objc.ID, resizable bool) {
+		*(*bool)(unsafe.Pointer(uintptr(unsafe.Pointer(self)) + origResizableOffset)) = resizable
+	}
+	pushResizableState := func(self, w objc.ID) {
+		window := cocoa.NSWindow{ID: w}
+		setResizable(self, window.StyleMask()&cocoa.NSWindowStyleMaskResizable != 0)
+		if !getResizable(self) {
+			window.SetStyleMask(window.StyleMask() | cocoa.NSWindowStyleMaskResizable)
+		}
+	}
+	popResizableState := func(self, w objc.ID) {
+		window := cocoa.NSWindow{ID: w}
+		if !getResizable(self) {
+			window.SetStyleMask(window.StyleMask() & ^uint(cocoa.NSWindowStyleMaskResizable))
+		}
+		setResizable(self, false)
+	}
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("initWithOrigDelegate:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, origDelegate objc.ID) objc.ID {
+		self = self.SendSuper(objc.RegisterName("init"))
+		if self != 0 {
+			*(*objc.ID)(unsafe.Pointer(uintptr(unsafe.Pointer(self)) + origDelegateOffset)) = origDelegate
+		}
+		return self
+	}), "@@:B")
+	// The method set of origDelegate_ must sync with GLFWWindowDelegate's implementation.
+	// See cocoa_window.m in GLFW.
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowShouldClose:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) int {
+		return int(getOrigDelegate(self).Send(objc.RegisterName("windowShouldClose:"), notification))
+	}), "B@:@")
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidResize:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
+		getOrigDelegate(self).Send(objc.RegisterName("windowDidResize:"), notification)
+	}), "v@:@")
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidMove:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
+		getOrigDelegate(self).Send(objc.RegisterName("windowDidMove:"), notification)
+	}), "v@:@")
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidMiniaturize:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
+		getOrigDelegate(self).Send(objc.RegisterName("windowDidMiniaturize:"), notification)
+	}), "v@:@")
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidDeminiaturize:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
+		getOrigDelegate(self).Send(objc.RegisterName("windowDidDeminiaturize:"), notification)
+	}), "v@:@")
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidBecomeKey:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
+		getOrigDelegate(self).Send(objc.RegisterName("windowDidBecomeKey:"), notification)
+	}), "v@:@")
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidResignKey:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
+		getOrigDelegate(self).Send(objc.RegisterName("windowDidResignKey:"), notification)
+	}), "v@:@")
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidChangeOcclusionState:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
+		getOrigDelegate(self).Send(objc.RegisterName("windowDidChangeOcclusionState:"), notification)
+	}), "v@:@")
+
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowWillEnterFullScreen:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
+		pushResizableState(self, cocoa.NSNotification{ID: notification}.Object())
+	}), "v@:@")
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidEnterFullScreen:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
+		popResizableState(self, cocoa.NSNotification{ID: notification}.Object())
+	}), "v@:@")
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowWillExitFullScreen:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
+		pushResizableState(self, cocoa.NSNotification{ID: notification}.Object())
+	}), "v@:@")
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidExitFullScreen:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
+		popResizableState(self, cocoa.NSNotification{ID: notification}.Object())
+		// Do not call setFrame here (#2295). setFrame here causes unexpected results.
+	}), "v@:@")
+	class_EbitengineWindowDelegate.Register()
 
 }
 
@@ -343,11 +339,6 @@ func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) 
 	objc.ID(u.window.GetCocoaWindow()).Send(objc.RegisterName("setCollectionBehavior:"), collectionBehavior)
 }
 
-//	static void initializeWindow(uintptr_t windowPtr) {
-//	  NSWindow* window = (NSWindow*)windowPtr;
-//	  // This delegate is never released. This assumes that the window lives until the process lives.
-//	  window.delegate = [[EbitengineWindowDelegate alloc] initWithOrigDelegate:window.delegate];
-//	}
 func initializeWindowAfterCreation(w *glfw.Window) {
 	// TODO: Register NSWindowWillEnterFullScreenNotification and so on.
 	// Enable resizing temporary before making the window fullscreen.

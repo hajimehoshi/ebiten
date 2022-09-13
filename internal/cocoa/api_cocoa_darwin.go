@@ -69,7 +69,10 @@ var (
 )
 
 const NSWindowCollectionBehaviorFullScreenPrimary = 1 << 7
-const NSWindowStyleMaskFullScreen = 1 << 14
+const (
+	NSWindowStyleMaskResizable  = 1 << 3
+	NSWindowStyleMaskFullScreen = 1 << 14
+)
 
 type CGFloat = float64
 
