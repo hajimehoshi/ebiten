@@ -70,7 +70,7 @@ func init() {
 		return
 	}
 
-	if isIOS {
+	if runtime.GOOS == "ios" {
 		currentPlatform = platformIOS
 		return
 	}
