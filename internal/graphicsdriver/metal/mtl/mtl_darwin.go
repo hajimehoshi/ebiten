@@ -26,6 +26,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"runtime"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -559,7 +560,7 @@ func CreateSystemDefaultDevice() (Device, bool) {
 		lowPower bool
 		name     string
 	)
-	if !cocoa.IsIOS {
+	if runtime.GOOS != "ios" {
 		headless = int(objc.ID(d).Send(sel_isHeadless)) != 0
 		lowPower = int(objc.ID(d).Send(sel_isLowPower)) != 0
 	}
@@ -941,14 +942,14 @@ type BlitCommandEncoder struct {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlblitcommandencoder/1400775-synchronize.
 func (bce BlitCommandEncoder) Synchronize(resource Resource) {
-	if cocoa.IsIOS {
+	if runtime.GOOS == "ios" {
 		return
 	}
 	bce.commandEncoder.Send(sel_synchronizeResource, resource.resource())
 }
 
 func (bce BlitCommandEncoder) SynchronizeTexture(texture Texture, slice int, level int) {
-	if cocoa.IsIOS {
+	if runtime.GOOS == "ios" {
 		return
 	}
 	bce.commandEncoder.Send(sel_synchronizeTexture_slice_level, texture.texture, slice, level)
@@ -1081,7 +1082,7 @@ func (b Buffer) CopyToContents(data unsafe.Pointer, lengthInBytes uintptr) {
 	dataHeader.Len = int(lengthInBytes)
 	dataHeader.Cap = int(lengthInBytes)
 	copy(contentSlice, dataSlice)
-	if !cocoa.IsIOS {
+	if runtime.GOOS != "ios" {
 		b.buffer.Send(sel_didModifyRange, 0, lengthInBytes)
 	}
 }
