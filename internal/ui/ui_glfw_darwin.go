@@ -17,12 +17,6 @@
 
 package ui
 
-// #cgo CFLAGS: -x objective-c
-// #cgo LDFLAGS: -framework AppKit
-//
-// #import <AppKit/AppKit.h>
-//
-import "C"
 import (
 	"fmt"
 	"unsafe"
@@ -216,7 +210,6 @@ func initialMonitorByOS() (*glfw.Monitor, error) {
 }
 
 func monitorFromWindowByOS(w *glfw.Window) *glfw.Monitor {
-	var x, y int
 	window := cocoa.NSWindow{ID: objc.ID(w.GetCocoaWindow())}
 	pool := cocoa.NSAutoreleasePool_new()
 	screen := cocoa.NSScreen_mainScreen()
@@ -227,13 +220,10 @@ func monitorFromWindowByOS(w *glfw.Window) *glfw.Monitor {
 	}
 	screenDictionary := screen.DeviceDescription()
 	screenID := cocoa.NSNumber{ID: screenDictionary.ObjectForKey(cocoa.NSString_alloc().InitWithUTF8String("NSScreenNumber").ID)}
-	aID := screenID.UnsignedIntValue() //CGDirectDisplayID
-	var bounds C.CGRect = C.CGDisplayBounds(C.CGDirectDisplayID(aID))
-	x = int(bounds.origin.x)
-	y = int(bounds.origin.y)
+	aID := uintptr(screenID.UnsignedIntValue()) //CGDirectDisplayID
 	pool.Release()
 	for _, m := range ensureMonitors() {
-		if x == m.x && y == m.y {
+		if m.m.GetCocoaMonitor() == aID {
 			return m.m
 		}
 	}
