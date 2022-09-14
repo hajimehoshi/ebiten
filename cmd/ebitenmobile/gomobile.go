@@ -15,6 +15,7 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -22,6 +23,9 @@ import (
 	"path/filepath"
 	"runtime"
 )
+
+//go:embed gobind.go
+var gobind_go []byte
 
 const gomobileHash = "aaac322e2105241d1ac9a25b03d4e916ac6e42c6"
 
@@ -156,7 +160,7 @@ import (
 	if err := os.Mkdir("src", 0755); err != nil {
 		return tmp, err
 	}
-	if err := ioutil.WriteFile(filepath.Join("src", "gobind.go"), gobindsrc, 0644); err != nil {
+	if err := ioutil.WriteFile(filepath.Join("src", "gobind.go"), gobind_go, 0644); err != nil {
 		return tmp, err
 	}
 
