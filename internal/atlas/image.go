@@ -799,6 +799,12 @@ func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) (string, err
 func adjustDestinationPixel(x float32) float32 {
 	// Avoid the center of the pixel, which is problematic (#929, #1171).
 	// Instead, align the vertices with about 1/3 pixels.
+	//
+	// The intention here is roughly this code:
+	//
+	//     float32(math.Floor((float64(x)+1.0/6.0)*3) / 3)
+	//
+	// The actual implementation is more optimized than the above implementation.
 	ix := float32(math.Floor(float64(x)))
 	frac := x - ix
 	switch {

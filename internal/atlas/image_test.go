@@ -737,4 +737,10 @@ func TestImageWritePixelsModify(t *testing.T) {
 	}
 }
 
+func BenchmarkAdjustPixel(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		atlas.AdjustDestinationPixelForTesting(float32(i) / 17)
+	}
+}
+
 // TODO: Add tests to extend image on an atlas out of the main loop
