@@ -191,7 +191,7 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 // op is the options to draw glyph images.
 // The origin point is a 'dot' (period) position.
 // Be careful that the origin point is not upper-left corner position of dst.
-// The default glyph color is while. op's ColorM adjusts the color.
+// The default glyph color is white. op's ColorM adjusts the color.
 //
 // If you want to adjust the position of the text, these functions are useful:
 //
