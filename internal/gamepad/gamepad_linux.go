@@ -19,7 +19,7 @@ package gamepad
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -77,7 +77,7 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
 		g.watch = watch
 	}
 
-	ents, err := ioutil.ReadDir(dirName)
+	ents, err := os.ReadDir(dirName)
 	if err != nil {
 		return fmt.Errorf("gamepad: ReadDir(%s) failed: %w", dirName, err)
 	}

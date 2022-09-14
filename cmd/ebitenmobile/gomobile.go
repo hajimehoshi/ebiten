@@ -17,7 +17,6 @@ package main
 import (
 	_ "embed"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -79,7 +78,7 @@ func exe(filename string) string {
 }
 
 func prepareGomobileCommands() (string, error) {
-	tmp, err := ioutil.TempDir("", "ebitenmobile-")
+	tmp, err := os.MkdirTemp("", "ebitenmobile-")
 	if err != nil {
 		return "", err
 	}
@@ -121,7 +120,7 @@ func prepareGomobileCommands() (string, error) {
 	if err := runGo("mod", "init", modname); err != nil {
 		return tmp, err
 	}
-	if err := ioutil.WriteFile("tools.go", []byte(fmt.Sprintf(`%s
+	if err := os.WriteFile("tools.go", []byte(fmt.Sprintf(`%s
 
 package %s
 
@@ -160,7 +159,7 @@ import (
 	if err := os.Mkdir("src", 0755); err != nil {
 		return tmp, err
 	}
-	if err := ioutil.WriteFile(filepath.Join("src", "gobind.go"), gobind_go, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join("src", "gobind.go"), gobind_go, 0644); err != nil {
 		return tmp, err
 	}
 

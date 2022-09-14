@@ -19,11 +19,9 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"image"
 	"image/color"
 	"image/png"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -46,13 +44,7 @@ var (
 )
 
 func init() {
-	f, err := os.Open(filepath.Join("..", "..", "resources", "fonts", "pressstart2p.ttf"))
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-
-	b, err := ioutil.ReadAll(f)
+	b, err := os.ReadFile(filepath.Join("..", "..", "resources", "fonts", "pressstart2p.ttf"))
 	if err != nil {
 		log.Fatal(err)
 	}

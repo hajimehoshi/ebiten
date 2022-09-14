@@ -21,7 +21,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -82,7 +81,7 @@ func invokeOriginalGobind(lang string) (pkgName string, err error) {
 
 func run() error {
 	writeFile := func(filename string, content string) error {
-		if err := ioutil.WriteFile(filepath.Join(*outdir, filename), []byte(content), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(*outdir, filename), []byte(content), 0644); err != nil {
 			return err
 		}
 		return nil
