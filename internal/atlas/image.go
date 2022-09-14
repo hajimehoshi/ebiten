@@ -17,7 +17,6 @@ package atlas
 import (
 	"fmt"
 	"image"
-	"math"
 	"runtime"
 	"sync"
 
@@ -805,7 +804,11 @@ func adjustDestinationPixel(x float32) float32 {
 	//     float32(math.Floor((float64(x)+1.0/6.0)*3) / 3)
 	//
 	// The actual implementation is more optimized than the above implementation.
-	ix := float32(math.Floor(float64(x)))
+	var ix float32
+	ix = float32(int(x))
+	if x < 0 && x != ix {
+		ix -= 1
+	}
 	frac := x - ix
 	switch {
 	case frac < 3.0/16.0:
