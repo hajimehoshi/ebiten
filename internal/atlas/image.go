@@ -804,8 +804,7 @@ func adjustDestinationPixel(x float32) float32 {
 	//     float32(math.Floor((float64(x)+1.0/6.0)*3) / 3)
 	//
 	// The actual implementation is more optimized than the above implementation.
-	var ix float32
-	ix = float32(int(x))
+	ix := float32(int(x))
 	if x < 0 && x != ix {
 		ix -= 1
 	}
