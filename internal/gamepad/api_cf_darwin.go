@@ -50,10 +50,10 @@ var (
 	procCFStringGetCString        = purego.Dlsym(corefoundation, "CFStringGetCString")
 	procCFStringCreateWithCString = purego.Dlsym(corefoundation, "CFStringCreateWithCString")
 
-	kCFTypeDictionaryKeyCallBacks   = (*_CFDictionaryKeyCallBacks)(unsafe.Pointer(purego.Dlsym(corefoundation, "kCFTypeDictionaryKeyCallBacks")))
-	kCFTypeDictionaryValueCallBacks = (*_CFDictionaryValueCallBacks)(unsafe.Pointer(purego.Dlsym(corefoundation, "kCFTypeDictionaryValueCallBacks")))
-	kCFTypeArrayCallBacks           = (*_CFArrayCallBacks)(unsafe.Pointer(purego.Dlsym(corefoundation, "kCFTypeArrayCallBacks")))
-	kCFRunLoopDefaultMode           = *(*_CFRunLoopMode)(unsafe.Pointer(purego.Dlsym(corefoundation, "kCFRunLoopDefaultMode")))
+	kCFTypeDictionaryKeyCallBacks   = purego.Dlsym(corefoundation, "kCFTypeDictionaryKeyCallBacks")
+	kCFTypeDictionaryValueCallBacks = purego.Dlsym(corefoundation, "kCFTypeDictionaryValueCallBacks")
+	kCFTypeArrayCallBacks           = purego.Dlsym(corefoundation, "kCFTypeArrayCallBacks")
+	kCFRunLoopDefaultMode           = purego.Dlsym(corefoundation, "kCFRunLoopDefaultMode")
 )
 
 func _CFNumberCreate(allocator _CFAllocatorRef, theType _CFNumberType, valuePtr unsafe.Pointer) _CFNumberRef {
