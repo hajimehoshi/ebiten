@@ -87,13 +87,17 @@ func createIcon(image *Image, xhot, yhot int, icon bool) (_HICON, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer _DeleteObject(_HGDIOBJ(color))
+	defer func() {
+		_ = _DeleteObject(_HGDIOBJ(color))
+	}()
 
 	mask, err := _CreateBitmap(int32(image.Width), int32(image.Height), 1, 1, nil)
 	if err != nil {
 		return 0, err
 	}
-	defer _DeleteObject(_HGDIOBJ(mask))
+	defer func() {
+		_ = _DeleteObject(_HGDIOBJ(mask))
+	}()
 
 	source := image.Pixels
 	var target []byte
@@ -396,7 +400,9 @@ func (w *Window) updateFramebufferTransparency() error {
 		if err != nil {
 			return err
 		}
-		defer _DeleteObject(_HGDIOBJ(region))
+		defer func() {
+			_ = _DeleteObject(_HGDIOBJ(region))
+		}()
 
 		bb := _DWM_BLURBEHIND{
 			dwFlags:  _DWM_BB_ENABLE | _DWM_BB_BLURREGION,
@@ -1444,7 +1450,9 @@ func (w *Window) platformDestroyWindow() error {
 	}
 
 	if w.context.destroy != nil {
-		w.context.destroy(w)
+		if err := w.context.destroy(w); err != nil {
+			return err
+		}
 	}
 
 	if _glfw.win32.disabledCursorWindow == w {

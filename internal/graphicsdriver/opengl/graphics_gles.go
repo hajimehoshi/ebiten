@@ -12,9 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !ios
-// +build !ios
+//go:build android || ios || opengles
+// +build android ios opengles
 
-package cocoa
+package opengl
 
-const IsIOS = false
+import (
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gles"
+)
+
+func (g *Graphics) init() {
+	g.context.ctx = gles.DefaultContext{}
+}

@@ -213,8 +213,7 @@ func (i *Image) Extend(width, height int) *Image {
 	}
 	newImg.DrawTriangles(srcs, offsets, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
 
-	// Overwrite the history as if the image newImg is created only by WritePixels. Now drawTrianglesHistory
-	// and basePixels cannot be mixed.
+	// Overwrite the history as if the image newImg is created only by WritePixels.
 	newImg.clearDrawTrianglesHistory()
 	newImg.basePixels = i.basePixels
 	newImg.stale = i.stale
@@ -314,7 +313,8 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 		i.image.WritePixels(make([]byte, 4*width*height), x, y, width, height)
 	}
 
-	if !needsRestoring() || !i.needsRestoring() {
+	// Even if the image is already stale, call makeStale to extend the stale region.
+	if !needsRestoring() || !i.needsRestoring() || i.stale {
 		i.makeStale(image.Rect(x, y, x+width, y+height))
 		return
 	}
@@ -335,13 +335,9 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 		return
 	}
 
-	// drawTrianglesHistory and basePixels cannot be mixed.
+	// Records for DrawTriangles cannot come after records for WritePixels.
 	if len(i.drawTrianglesHistory) > 0 {
-		panic("restorable: WritePixels for a part after DrawTriangles is forbidden")
-	}
-
-	if i.stale {
-		// TODO: panic here?
+		i.makeStale(image.Rect(0, 0, i.width, i.height))
 		return
 	}
 
@@ -453,9 +449,6 @@ func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Imag
 
 func (i *Image) readPixelsFromGPUIfNeeded(graphicsDriver graphicsdriver.Graphics) error {
 	if len(i.drawTrianglesHistory) > 0 || i.stale {
-		if err := graphicscommand.FlushCommands(graphicsDriver); err != nil {
-			return err
-		}
 		if err := i.readPixelsFromGPU(graphicsDriver); err != nil {
 			return err
 		}
@@ -496,12 +489,12 @@ func (i *Image) makeStaleIfDependingOnShader(shader *Shader) {
 
 // readPixelsFromGPU reads the pixels from GPU and resolves the image's 'stale' state.
 func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error {
-	if !i.stale {
-		panic("restorable: the image must be stale at readPixelsFromGPU")
-	}
-
 	i.basePixels = Pixels{}
-	if r := i.staleRegion; !r.Empty() {
+	r := i.staleRegion
+	if len(i.drawTrianglesHistory) > 0 {
+		r = image.Rect(0, 0, i.width, i.height)
+	}
+	if !r.Empty() {
 		pix := make([]byte, 4*r.Dx()*r.Dy())
 		if err := i.image.ReadPixels(graphicsDriver, pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
 			return err
@@ -661,11 +654,8 @@ func (i *Image) Dispose() {
 //
 // If an image is invalidated, GL context is lost and all the images should be restored asap.
 func (i *Image) isInvalidated(graphicsDriver graphicsdriver.Graphics) (bool, error) {
-	// FlushCommands is required because c.offscreen.impl might not have an actual texture.
-	if err := graphicscommand.FlushCommands(graphicsDriver); err != nil {
-		return false, err
-	}
-	return i.image.IsInvalidated(), nil
+	// IsInvalidated flushes the commands internally.
+	return i.image.IsInvalidated(graphicsDriver)
 }
 
 func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool, rect image.Rectangle) (string, error) {

@@ -61,7 +61,7 @@ func _ID3D12GraphicsCommandList_OMSetStencilRef(i *_ID3D12GraphicsCommandList, s
 	panic("not implemented")
 }
 
-func _ID3D12GraphicsCommandList_Release(i *_ID3D12GraphicsCommandList) {
+func _ID3D12GraphicsCommandList_Release(i *_ID3D12GraphicsCommandList) uint32 {
 	panic("not implemented")
 }
 

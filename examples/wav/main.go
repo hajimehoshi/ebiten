@@ -80,7 +80,10 @@ func (g *Game) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyP) {
 		// As audioPlayer has one stream and remembers the playing position,
 		// rewinding is needed before playing when reusing audioPlayer.
-		g.audioPlayer.Rewind()
+		if err := g.audioPlayer.Rewind(); err != nil {
+			return err
+		}
+
 		g.audioPlayer.Play()
 	}
 	return nil

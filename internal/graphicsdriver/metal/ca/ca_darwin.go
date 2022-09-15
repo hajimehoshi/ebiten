@@ -22,6 +22,7 @@ package ca
 import (
 	"errors"
 	"fmt"
+	"runtime"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -59,7 +60,7 @@ var (
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer.
 func MakeMetalLayer() MetalLayer {
 	layer := objc.ID(objc.GetClass("CAMetalLayer")).Send(objc.RegisterName("new"))
-	if !cocoa.IsIOS {
+	if runtime.GOOS != "ios" {
 		colorspace, _, _ := purego.SyscallN(_CGColorSpaceCreateWithName, **(**uintptr)(unsafe.Pointer(&kCGColorSpaceDisplayP3))) // Dlsym returns pointer to symbol so dereference it
 		layer.Send(objc.RegisterName("setColorspace:"), colorspace)
 		purego.SyscallN(_CGColorSpaceRelease, colorspace)
@@ -125,7 +126,7 @@ func (ml MetalLayer) SetMaximumDrawableCount(count int) {
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/2887087-displaysyncenabled.
 func (ml MetalLayer) SetDisplaySyncEnabled(enabled bool) {
-	if cocoa.IsIOS {
+	if runtime.GOOS == "ios" {
 		return
 	}
 	ml.metalLayer.Send(objc.RegisterName("setDisplaySyncEnabled:"), enabled)

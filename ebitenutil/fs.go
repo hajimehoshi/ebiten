@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License
 
-//go:build go1.16
-// +build go1.16
-
 package ebitenutil
 
 import (
@@ -33,7 +30,9 @@ func NewImageFromFileSystem(fs fs.FS, path string) (*ebiten.Image, image.Image, 
 	if err != nil {
 		return nil, nil, err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 	img, _, err := image.Decode(file)
 	if err != nil {
 		return nil, nil, err

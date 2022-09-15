@@ -65,17 +65,7 @@ type commandQueue struct {
 
 	// vertices represents a vertices data in OpenGL's array buffer.
 	vertices []float32
-
-	// nvertices represents the current length of vertices.
-	// nvertices must <= len(vertices).
-	// vertices is never shrunk since re-extending a vertices buffer is heavy.
-	//
-	// TODO: This is a number of float32 values, not a number of vertices.
-	// Rename or fix the program.
-	nvertices int
-
 	indices  []uint16
-	nindices int
 
 	tmpNumVertexFloats int
 	tmpNumIndices      int
@@ -86,25 +76,12 @@ type commandQueue struct {
 // theCommandQueue is the command queue for the current process.
 var theCommandQueue = &commandQueue{}
 
-// appendVertices appends vertices to the queue.
-func (q *commandQueue) appendVertices(vertices []float32, src *Image) {
-	if len(q.vertices) < q.nvertices+len(vertices) {
-		n := q.nvertices + len(vertices) - len(q.vertices)
-		q.vertices = append(q.vertices, make([]float32, n)...)
-	}
-	copy(q.vertices[q.nvertices:], vertices)
-	q.nvertices += len(vertices)
-}
-
 func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
-	if len(q.indices) < q.nindices+len(indices) {
-		n := q.nindices + len(indices) - len(q.indices)
-		q.indices = append(q.indices, make([]uint16, n)...)
-	}
+	n := len(q.indices)
+	q.indices = append(q.indices, indices...)
 	for i := range indices {
-		q.indices[q.nindices+i] = indices[i] + offset
+		q.indices[n+i] += offset
 	}
-	q.nindices += len(indices)
 }
 
 // mustUseDifferentVertexBuffer reports whether a different vertex buffer must be used.
@@ -127,7 +104,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 
 	// Assume that all the image sizes are same.
 	// Assume that the images are packed from the front in the slice srcs.
-	q.appendVertices(vertices, srcs[0])
+	q.vertices = append(q.vertices, vertices...)
 	q.appendIndices(indices, uint16(q.tmpNumVertexFloats/graphics.VertexFloatCount))
 	q.tmpNumVertexFloats += len(vertices)
 	q.tmpNumIndices += len(indices)
@@ -174,7 +151,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 }
 
 func (q *commandQueue) lastVertices(n int) []float32 {
-	return q.vertices[q.nvertices-n : q.nvertices]
+	return q.vertices[len(q.vertices)-n : len(q.vertices)]
 }
 
 // Enqueue enqueues a drawing command other than a draw-triangles command.
@@ -264,8 +241,8 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
 		q.commands[i] = nil
 	}
 	q.commands = q.commands[:0]
-	q.nvertices = 0
-	q.nindices = 0
+	q.vertices = q.vertices[:0]
+	q.indices = q.indices[:0]
 	q.tmpNumVertexFloats = 0
 	q.tmpNumIndices = 0
 	return nil
@@ -622,6 +599,20 @@ func (c *newShaderCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOff
 		return err
 	}
 	c.result.shader = s
+	return nil
+}
+
+type isInvalidatedCommand struct {
+	result bool
+	image  *Image
+}
+
+func (c *isInvalidatedCommand) String() string {
+	return fmt.Sprintf("is-invalidated: image: %d", c.image.id)
+}
+
+func (c *isInvalidatedCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
+	c.result = c.image.image.IsInvalidated()
 	return nil
 }
 

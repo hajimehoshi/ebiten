@@ -23,7 +23,6 @@ import (
 	"go/format"
 	"go/parser"
 	"go/token"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -72,12 +71,6 @@ func run() error {
 	}
 
 	for _, f := range files {
-		in, err := os.Open(filepath.Join(dir, f))
-		if err != nil {
-			return err
-		}
-		defer in.Close()
-
 		out, err := os.Create(prefix + f)
 		if err != nil {
 			return err
@@ -86,7 +79,7 @@ func run() error {
 
 		// TODO: Remove call of RegisterDecoder
 
-		data, err := ioutil.ReadAll(in)
+		data, err := os.ReadFile(filepath.Join(dir, f))
 		if err != nil {
 			return err
 		}

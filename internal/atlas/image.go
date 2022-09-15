@@ -17,7 +17,6 @@ package atlas
 import (
 	"fmt"
 	"image"
-	"math"
 	"runtime"
 	"sync"
 
@@ -498,12 +497,12 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	i.replacePixels(pix, x, y, width, height)
+	i.writePixels(pix, x, y, width, height)
 }
 
-func (i *Image) replacePixels(pix []byte, x, y, width, height int) {
+func (i *Image) writePixels(pix []byte, x, y, width, height int) {
 	if i.disposed {
-		panic("atlas: the image must not be disposed at replacePixels")
+		panic("atlas: the image must not be disposed at writePixels")
 	}
 
 	if l := 4 * width * height; len(pix) != l {
@@ -544,7 +543,7 @@ func (i *Image) replacePixels(pix []byte, x, y, width, height int) {
 	// TODO: Is clearing edges explicitly really needed?
 	const paddingSize = 1
 	if paddingSize != i.paddingSize() {
-		panic(fmt.Sprintf("atlas: replacePixels assumes the padding is always 1 but the actual padding was %d", i.paddingSize()))
+		panic(fmt.Sprintf("atlas: writePixels assumes the padding is always 1 but the actual padding was %d", i.paddingSize()))
 	}
 	rowPixels := 4 * pw
 	for i := 0; i < rowPixels; i++ {
@@ -799,7 +798,16 @@ func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) (string, err
 func adjustDestinationPixel(x float32) float32 {
 	// Avoid the center of the pixel, which is problematic (#929, #1171).
 	// Instead, align the vertices with about 1/3 pixels.
-	ix := float32(math.Floor(float64(x)))
+	//
+	// The intention here is roughly this code:
+	//
+	//     float32(math.Floor((float64(x)+1.0/6.0)*3) / 3)
+	//
+	// The actual implementation is more optimized than the above implementation.
+	ix := float32(int(x))
+	if x < 0 && x != ix {
+		ix -= 1
+	}
 	frac := x - ix
 	switch {
 	case frac < 3.0/16.0:

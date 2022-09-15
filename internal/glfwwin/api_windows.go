@@ -1049,11 +1049,11 @@ func _DragAcceptFiles(hWnd windows.HWND, accept bool) {
 	if accept {
 		fAccept = 1
 	}
-	procDragAcceptFiles.Call(uintptr(hWnd), fAccept)
+	_, _, _ = procDragAcceptFiles.Call(uintptr(hWnd), fAccept)
 }
 
 func _DragFinish(hDrop _HDROP) {
-	procDragFinish.Call(uintptr(hDrop))
+	_, _, _ = procDragFinish.Call(uintptr(hDrop))
 }
 
 func _DragQueryFileW(hDrop _HDROP, iFile uint32, file []uint16) uint32 {

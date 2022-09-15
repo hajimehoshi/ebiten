@@ -16,7 +16,7 @@ package convert_test
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"math"
 	"testing"
 
@@ -70,7 +70,7 @@ func TestResampling(t *testing.T) {
 	for _, c := range cases {
 		inB := newSoundBytes(c.In)
 		outS := convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), c.In, c.Out)
-		gotB, err := ioutil.ReadAll(outS)
+		gotB, err := io.ReadAll(outS)
 		if err != nil {
 			t.Fatal(err)
 		}

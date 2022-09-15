@@ -380,7 +380,7 @@ func (g *nativeGamepadImpl) update(gamepads *gamepads) error {
 	}
 
 	for i, b := range g.buttons {
-		g.buttonValues[i] = g.elementValue(&b) > 0
+		g.buttonValues[i] = (g.elementValue(&b) - b.minimum) > 0
 	}
 
 	hatStates := []int{
@@ -394,7 +394,7 @@ func (g *nativeGamepadImpl) update(gamepads *gamepads) error {
 		hatLeftUp,
 	}
 	for i, h := range g.hats {
-		if state := g.elementValue(&h); state < 0 || state >= len(hatStates) {
+		if state := g.elementValue(&h) - h.minimum; state < 0 || state >= len(hatStates) {
 			g.hatValues[i] = hatCentered
 		} else {
 			g.hatValues[i] = hatStates[state]

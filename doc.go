@@ -99,4 +99,6 @@
 // `microsoftgdk` is for Microsoft GDK (e.g. Xbox).
 //
 // `nintendosdk` is for NintendoSDK (e.g. Nintendo Switch).
+//
+// `opengles` uses OpenGL ES (2) instead of OpenGL.
 package ebiten

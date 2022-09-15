@@ -1,4 +1,4 @@
-// Copyright 2022 The Ebitengine Authors
+// Copyright 2022 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,11 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !ios
-// +build !android,!ios
+package main
 
-package opengl
+import (
+	"os"
 
-func (g *Graphics) init() {
-	// Do nothing.
+	"github.com/kisielk/errcheck/errcheck"
+	"golang.org/x/tools/go/analysis/multichecker"
+	"golang.org/x/tools/go/analysis/passes/atomicalign"
+)
+
+func main() {
+	filename := ".errcheck_excludes"
+	if _, err := os.Stat(filename); err == nil {
+		errcheck.Analyzer.Flags.Set("exclude", filename)
+	}
+	multichecker.Main(atomicalign.Analyzer, errcheck.Analyzer)
 }
