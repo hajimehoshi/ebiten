@@ -18,13 +18,11 @@
 package main
 
 import (
-	"bytes"
 	"image"
 	"image/color"
 	"image/png"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"text/template"
 
@@ -234,18 +232,13 @@ func outputKeyboardImage() (map[ebiten.Key]image.Rectangle, error) {
 		y += height
 	}
 
-	var buf bytes.Buffer
-	if err := png.Encode(&buf, img); err != nil {
+	out, err := os.Create(filepath.Join("..", "..", "resources", "images", "keyboard", "keyboard.png"))
+	if err != nil {
 		return nil, err
 	}
+	defer out.Close()
 
-	cmd := exec.Command("go", "run", "github.com/hajimehoshi/file2byteslice/cmd/file2byteslice@v1.0.0",
-		"-output", "../../resources/images/keyboard/keyboard.go",
-		"-package", "keyboard",
-		"-var", "Keyboard_png")
-	cmd.Stdin = &buf
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
+	if err := png.Encode(out, img); err != nil {
 		return nil, err
 	}
 
