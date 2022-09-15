@@ -22,103 +22,218 @@ package ui
 //
 // #import <AppKit/AppKit.h>
 //
+// @interface EbitengineWindowDelegate : NSObject <NSWindowDelegate>
+// @end
+//
+// @implementation EbitengineWindowDelegate {
+//   id<NSWindowDelegate> origDelegate_;
+//   bool origResizable_;
+// }
+//
+// - (instancetype)initWithOrigDelegate:(id<NSWindowDelegate>)origDelegate {
+//   self = [super init];
+//   if (self != nil) {
+//     origDelegate_ = origDelegate;
+//   }
+//   return self;
+// }
+//
+// // The method set of origDelegate_ must sync with GLFWWindowDelegate's implementation.
+// // See cocoa_window.m in GLFW.
+// - (BOOL)windowShouldClose:(id)sender {
+//   return [origDelegate_ windowShouldClose:sender];
+// }
+// - (void)windowDidResize:(NSNotification *)notification {
+//   [origDelegate_ windowDidResize:notification];
+// }
+// - (void)windowDidMove:(NSNotification *)notification {
+//   [origDelegate_ windowDidMove:notification];
+// }
+// - (void)windowDidMiniaturize:(NSNotification *)notification {
+//   [origDelegate_ windowDidMiniaturize:notification];
+// }
+// - (void)windowDidDeminiaturize:(NSNotification *)notification {
+//   [origDelegate_ windowDidDeminiaturize:notification];
+// }
+// - (void)windowDidBecomeKey:(NSNotification *)notification {
+//   [origDelegate_ windowDidBecomeKey:notification];
+// }
+// - (void)windowDidResignKey:(NSNotification *)notification {
+//   [origDelegate_ windowDidResignKey:notification];
+// }
+// - (void)windowDidChangeOcclusionState:(NSNotification* )notification {
+//   [origDelegate_ windowDidChangeOcclusionState:notification];
+// }
+//
+// - (void)pushResizableState:(NSWindow*)window {
+//   origResizable_ = window.styleMask & NSWindowStyleMaskResizable;
+//   if (!origResizable_) {
+//     window.styleMask |= NSWindowStyleMaskResizable;
+//   }
+// }
+//
+// - (void)popResizableState:(NSWindow*)window {
+//   if (!origResizable_) {
+//     window.styleMask &= ~NSWindowStyleMaskResizable;
+//   }
+//   origResizable_ = false;
+// }
+//
+// - (void)windowWillEnterFullScreen:(NSNotification *)notification {
+//   NSWindow* window = (NSWindow*)[notification object];
+//   [self pushResizableState:window];
+// }
+//
+// - (void)windowDidEnterFullScreen:(NSNotification *)notification {
+//   NSWindow* window = (NSWindow*)[notification object];
+//   [self popResizableState:window];
+// }
+//
+// - (void)windowWillExitFullScreen:(NSNotification *)notification {
+//   NSWindow* window = (NSWindow*)[notification object];
+//   [self pushResizableState:window];
+// }
+//
+// - (void)windowDidExitFullScreen:(NSNotification *)notification {
+//   NSWindow* window = (NSWindow*)[notification object];
+//   [self popResizableState:window];
+//   // Do not call setFrame here (#2295). setFrame here causes unexpected results.
+// }
+//
+// @end
+//
+// static void initializeWindow(uintptr_t windowPtr) {
+//   NSWindow* window = (NSWindow*)windowPtr;
+//   // This delegate is never released. This assumes that the window lives until the process lives.
+//   window.delegate = [[EbitengineWindowDelegate alloc] initWithOrigDelegate:window.delegate];
+// }
+//
+// static void currentMonitorPos(uintptr_t windowPtr, int* x, int* y) {
+//   @autoreleasepool {
+//     NSScreen* screen = [NSScreen mainScreen];
+//     if (windowPtr) {
+//       NSWindow* window = (NSWindow*)windowPtr;
+//       if ([window isVisible]) {
+//         // When the window is visible, the window is already initialized.
+//         // [NSScreen mainScreen] sometimes tells a lie when the window is put across monitors (#703).
+//         screen = [window screen];
+//       }
+//     }
+//     NSDictionary* screenDictionary = [screen deviceDescription];
+//     NSNumber* screenID = [screenDictionary objectForKey:@"NSScreenNumber"];
+//     CGDirectDisplayID aID = [screenID unsignedIntValue];
+//     const CGRect bounds = CGDisplayBounds(aID);
+//     *x = bounds.origin.x;
+//     *y = bounds.origin.y;
+//   }
+// }
+//
+// static bool isNativeFullscreen(uintptr_t windowPtr) {
+//   if (!windowPtr) {
+//     return false;
+//   }
+//   NSWindow* window = (NSWindow*)windowPtr;
+//   return (window.styleMask & NSWindowStyleMaskFullScreen) != 0;
+// }
+//
+// static void setNativeFullscreen(uintptr_t windowPtr, bool fullscreen) {
+//   NSWindow* window = (NSWindow*)windowPtr;
+//   if (((window.styleMask & NSWindowStyleMaskFullScreen) != 0) == fullscreen) {
+//     return;
+//   }
+//
+//   // Even though EbitengineWindowDelegate is used, this hack is still required.
+//   // toggleFullscreen doesn't work when the window is not resizable.
+//   bool origFullscreen = window.collectionBehavior & NSWindowCollectionBehaviorFullScreenPrimary;
+//   if (!origFullscreen) {
+//     window.collectionBehavior |= NSWindowCollectionBehaviorFullScreenPrimary;
+//   }
+//   [window toggleFullScreen:nil];
+//   if (!origFullscreen) {
+//     window.collectionBehavior &= ~NSWindowCollectionBehaviorFullScreenPrimary;
+//   }
+// }
+//
+// static void adjustViewSize(uintptr_t windowPtr) {
+//   NSWindow* window = (NSWindow*)windowPtr;
+//   if ((window.styleMask & NSWindowStyleMaskFullScreen) == 0) {
+//     return;
+//   }
+//
+//   // Apparently, adjusting the view size is not needed as of macOS 12 (#1745).
+//   static int majorVersion = 0;
+//   if (majorVersion == 0) {
+//     majorVersion = [[NSProcessInfo processInfo] operatingSystemVersion].majorVersion;
+//   }
+//   if (majorVersion >= 12) {
+//     return;
+//   }
+//
+//   // Reduce the view height (#1745).
+//   // https://stackoverflow.com/questions/27758027/sprite-kit-serious-fps-issue-in-full-screen-mode-on-os-x
+//   CGSize windowSize = [window frame].size;
+//   NSView* view = [window contentView];
+//   CGSize viewSize = [view frame].size;
+//   if (windowSize.width != viewSize.width || windowSize.height != viewSize.height) {
+//     return;
+//   }
+//   viewSize.width--;
+//   [view setFrameSize:viewSize];
+//
+//   // NSColor.blackColor (0, 0, 0, 1) didn't work.
+//   // Use the transparent color instead.
+//   [window setBackgroundColor: [NSColor colorWithSRGBRed:0 green:0 blue:0 alpha:0]];
+// }
+//
+// static void setNativeCursor(int cursorID) {
+//   id cursor = [[NSCursor class] performSelector:@selector(arrowCursor)];
+//   switch (cursorID) {
+//   case 0:
+//     cursor = [[NSCursor class] performSelector:@selector(arrowCursor)];
+//     break;
+//   case 1:
+//     cursor = [[NSCursor class] performSelector:@selector(IBeamCursor)];
+//     break;
+//   case 2:
+//     cursor = [[NSCursor class] performSelector:@selector(crosshairCursor)];
+//     break;
+//   case 3:
+//     cursor = [[NSCursor class] performSelector:@selector(pointingHandCursor)];
+//     break;
+//   case 4:
+//     cursor = [[NSCursor class] performSelector:@selector(_windowResizeEastWestCursor)];
+//     break;
+//   case 5:
+//     cursor = [[NSCursor class] performSelector:@selector(_windowResizeNorthSouthCursor)];
+//     break;
+//   }
+//   [cursor push];
+// }
+//
+// static void currentMouseLocation(int* x, int* y) {
+//   NSPoint location = [NSEvent mouseLocation];
+//   *x = (int)(location.x);
+//   *y = (int)(location.y);
+// }
+//
+// static void setAllowFullscreen(uintptr_t windowPtr, bool allowFullscreen) {
+//   NSWindow* window = (NSWindow*)windowPtr;
+//   if (allowFullscreen) {
+//     window.collectionBehavior |= NSWindowCollectionBehaviorFullScreenPrimary;
+//   } else {
+//     window.collectionBehavior &= ~NSWindowCollectionBehaviorFullScreenPrimary;
+//   }
+// }
 import "C"
+
 import (
 	"fmt"
-	"unsafe"
 
-	"github.com/ebitengine/purego/objc"
-
-	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
-
-var class_EbitengineWindowDelegate objc.Class
-
-func init() {
-	class_EbitengineWindowDelegate = objc.AllocateClassPair(objc.GetClass("NSObject"), "EbitengineWindowDelegate", 0)
-	protocol := objc.GetProtocol("NSWindowDelegate")
-	class_EbitengineWindowDelegate.AddProtocol(protocol)
-	class_EbitengineWindowDelegate.AddIvar("origDelegate", objc.ID(0), "@")
-	class_EbitengineWindowDelegate.AddIvar("origResizable", false, "B")
-	origDelegateOffset := class_EbitengineWindowDelegate.InstanceVariable("origDelegate").Offset()
-	origResizableOffset := class_EbitengineWindowDelegate.InstanceVariable("origResizable").Offset()
-	getOrigDelegate := func(self objc.ID) objc.ID {
-		return *(*objc.ID)(unsafe.Pointer(uintptr(unsafe.Pointer(self)) + origDelegateOffset))
-	}
-	getResizable := func(self objc.ID) bool {
-		return *(*bool)(unsafe.Pointer(uintptr(unsafe.Pointer(self)) + origResizableOffset))
-	}
-	setResizable := func(self objc.ID, resizable bool) {
-		*(*bool)(unsafe.Pointer(uintptr(unsafe.Pointer(self)) + origResizableOffset)) = resizable
-	}
-	pushResizableState := func(self, w objc.ID) {
-		window := cocoa.NSWindow{ID: w}
-		setResizable(self, window.StyleMask()&cocoa.NSWindowStyleMaskResizable != 0)
-		if !getResizable(self) {
-			window.SetStyleMask(window.StyleMask() | cocoa.NSWindowStyleMaskResizable)
-		}
-	}
-	popResizableState := func(self, w objc.ID) {
-		window := cocoa.NSWindow{ID: w}
-		if !getResizable(self) {
-			window.SetStyleMask(window.StyleMask() & ^uint(cocoa.NSWindowStyleMaskResizable))
-		}
-		setResizable(self, false)
-	}
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("initWithOrigDelegate:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, origDelegate objc.ID) objc.ID {
-		self = self.SendSuper(objc.RegisterName("init"))
-		if self != 0 {
-			*(*objc.ID)(unsafe.Pointer(uintptr(unsafe.Pointer(self)) + origDelegateOffset)) = origDelegate
-		}
-		return self
-	}), "@@:B")
-	// The method set of origDelegate_ must sync with GLFWWindowDelegate's implementation.
-	// See cocoa_window.m in GLFW.
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowShouldClose:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) int {
-		return int(getOrigDelegate(self).Send(objc.RegisterName("windowShouldClose:"), notification))
-	}), "B@:@")
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidResize:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
-		getOrigDelegate(self).Send(objc.RegisterName("windowDidResize:"), notification)
-	}), "v@:@")
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidMove:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
-		getOrigDelegate(self).Send(objc.RegisterName("windowDidMove:"), notification)
-	}), "v@:@")
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidMiniaturize:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
-		getOrigDelegate(self).Send(objc.RegisterName("windowDidMiniaturize:"), notification)
-	}), "v@:@")
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidDeminiaturize:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
-		getOrigDelegate(self).Send(objc.RegisterName("windowDidDeminiaturize:"), notification)
-	}), "v@:@")
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidBecomeKey:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
-		getOrigDelegate(self).Send(objc.RegisterName("windowDidBecomeKey:"), notification)
-	}), "v@:@")
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidResignKey:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
-		getOrigDelegate(self).Send(objc.RegisterName("windowDidResignKey:"), notification)
-	}), "v@:@")
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidChangeOcclusionState:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
-		getOrigDelegate(self).Send(objc.RegisterName("windowDidChangeOcclusionState:"), notification)
-	}), "v@:@")
-
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowWillEnterFullScreen:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
-		pushResizableState(self, cocoa.NSNotification{ID: notification}.Object())
-	}), "v@:@")
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidEnterFullScreen:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
-		popResizableState(self, cocoa.NSNotification{ID: notification}.Object())
-	}), "v@:@")
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowWillExitFullScreen:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
-		pushResizableState(self, cocoa.NSNotification{ID: notification}.Object())
-	}), "v@:@")
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidExitFullScreen:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
-		popResizableState(self, cocoa.NSNotification{ID: notification}.Object())
-		// Do not call setFrame here (#2295). setFrame here causes unexpected results.
-	}), "v@:@")
-	class_EbitengineWindowDelegate.Register()
-
-}
 
 type graphicsDriverCreatorImpl struct {
 	transparent bool
@@ -185,22 +300,9 @@ func flipY(y int) int {
 	return y
 }
 
-var class_NSEvent = objc.GetClass("NSEvent")
-var sel_mouseLocation = objc.RegisterName("mouseLocation")
-
-func currentMouseLocation() (x, y int) {
-	sig := cocoa.NSMethodSignature_signatureWithObjCTypes("{NSPoint=dd}@:")
-	inv := cocoa.NSInvocation_invocationWithMethodSignature(sig)
-	inv.SetTarget(objc.ID(class_NSEvent))
-	inv.SetSelector(sel_mouseLocation)
-	inv.Invoke()
-	var point cocoa.NSPoint
-	inv.GetReturnValue(unsafe.Pointer(&point))
-	return int(point.X), int(point.Y)
-}
-
 func initialMonitorByOS() (*glfw.Monitor, error) {
-	var cx, cy = currentMouseLocation()
+	var cx, cy C.int
+	C.currentMouseLocation(&cx, &cy)
 	x, y := int(cx), flipY(int(cy))
 
 	// Find the monitor including the cursor.
@@ -216,21 +318,7 @@ func initialMonitorByOS() (*glfw.Monitor, error) {
 
 func monitorFromWindowByOS(w *glfw.Window) *glfw.Monitor {
 	var x, y C.int
-	window := cocoa.NSWindow{ID: objc.ID(w.GetCocoaWindow())}
-	pool := cocoa.NSAutoreleasePool_new()
-	screen := cocoa.NSScreen_mainScreen()
-	if window.ID != 0 && window.IsVisibile() {
-		// When the window is visible, the window is already initialized.
-		// [NSScreen mainScreen] sometimes tells a lie when the window is put across monitors (#703).
-		screen = window.Screen()
-	}
-	screenDictionary := screen.DeviceDescription()
-	screenID := cocoa.NSNumber{ID: screenDictionary.ObjectForKey(cocoa.NSString_alloc().InitWithUTF8String("NSScreenNumber").ID)}
-	aID := screenID.UnsignedIntValue() //CGDirectDisplayID
-	var bounds C.CGRect = C.CGDisplayBounds(C.CGDirectDisplayID(aID))
-	x = C.int(bounds.origin.x)
-	y = C.int(bounds.origin.y)
-	pool.Release()
+	C.currentMonitorPos(C.uintptr_t(w.GetCocoaWindow()), &x, &y)
 	for _, m := range ensureMonitors() {
 		if int(x) == m.x && int(y) == m.y {
 			return m.m
@@ -244,29 +332,11 @@ func (u *userInterfaceImpl) nativeWindow() uintptr {
 }
 
 func (u *userInterfaceImpl) isNativeFullscreen() bool {
-	return cocoa.NSWindow{ID: objc.ID(u.window.GetCocoaWindow())}.StyleMask()&cocoa.NSWindowStyleMaskFullScreen != 0
+	return bool(C.isNativeFullscreen(C.uintptr_t(u.window.GetCocoaWindow())))
 }
 
 func (u *userInterfaceImpl) setNativeCursor(shape CursorShape) {
-	class_NSCursor := objc.GetClass("NSCursor")
-	NSCursor := objc.ID(class_NSCursor).Send(objc.RegisterName("class"))
-	var sel_performSelector = objc.RegisterName("performSelector:")
-	cursor := NSCursor.Send(sel_performSelector, objc.RegisterName("arrowCursor"))
-	switch shape {
-	case 0:
-		cursor = NSCursor.Send(sel_performSelector, objc.RegisterName("arrowCursor"))
-	case 1:
-		cursor = NSCursor.Send(sel_performSelector, objc.RegisterName("IBeamCursor"))
-	case 2:
-		cursor = NSCursor.Send(sel_performSelector, objc.RegisterName("crosshairCursor"))
-	case 3:
-		cursor = NSCursor.Send(sel_performSelector, objc.RegisterName("pointHandCursor"))
-	case 4:
-		cursor = NSCursor.Send(sel_performSelector, objc.RegisterName("_windowResizeEastWestCursor"))
-	case 5:
-		cursor = NSCursor.Send(sel_performSelector, objc.RegisterName("_windowResizeNorthSouthCursor"))
-	}
-	cursor.Send(objc.RegisterName("push"))
+	C.setNativeCursor(C.int(shape))
 }
 
 func (u *userInterfaceImpl) isNativeFullscreenAvailable() bool {
@@ -275,76 +345,27 @@ func (u *userInterfaceImpl) isNativeFullscreenAvailable() bool {
 	return true
 }
 
-var sel_collectionBehavior = objc.RegisterName("collectionBehavior")
-var sel_setCollectionBehavior = objc.RegisterName("setCollectionBehavior:")
-
 func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) {
 	// Toggling fullscreen might ignore events like keyUp. Ensure that events are fired.
 	glfw.WaitEventsTimeout(0.1)
-	var window = cocoa.NSWindow{ID: objc.ID(u.window.GetCocoaWindow())}
-	if window.StyleMask()&cocoa.NSWindowStyleMaskFullScreen != 0 == fullscreen {
-		return
-	}
-	// Even though EbitengineWindowDelegate is used, this hack is still required.
-	// toggleFullscreen doesn't work when the window is not resizable.
-	var origFullScreen = window.Send(sel_collectionBehavior)&cocoa.NSWindowCollectionBehaviorFullScreenPrimary != 0
-	if !origFullScreen {
-		window.Send(sel_setCollectionBehavior, window.Send(sel_collectionBehavior)|cocoa.NSWindowCollectionBehaviorFullScreenPrimary)
-	}
-	window.Send(objc.RegisterName("toggleFullScreen:"), 0)
-	if !origFullScreen {
-		window.Send(sel_setCollectionBehavior, window.Send(sel_collectionBehavior)&cocoa.NSWindowCollectionBehaviorFullScreenPrimary)
-	}
+	C.setNativeFullscreen(C.uintptr_t(u.window.GetCocoaWindow()), C.bool(fullscreen))
 }
 
 func (u *userInterfaceImpl) adjustViewSize() {
 	if u.graphicsDriver.IsGL() {
 		return
 	}
-	window := cocoa.NSWindow{ID: objc.ID(u.window.GetCocoaWindow())}
-	if window.StyleMask()&cocoa.NSWindowStyleMaskFullScreen == 0 {
-		return
-	}
-	// Apparently, adjusting the view size is not needed as of macOS 12 (#1745).
-	if cocoa.NSProcessInfo_processInfo().IsOperatingSystemAtLeastVersion(cocoa.NSOperatingSystemVersion{
-		Major: 12,
-	}) {
-		return
-	}
-
-	// Reduce the view height (#1745).
-	// https://stackoverflow.com/questions/27758027/sprite-kit-serious-fps-issue-in-full-screen-mode-on-os-x
-	windowSize := window.Frame().Size
-	view := window.ContentView()
-	viewSize := view.Frame().Size
-	if windowSize.Width != viewSize.Width || windowSize.Height != viewSize.Height {
-		return
-	}
-	viewSize.Width--
-	view.SetFrameSize(viewSize)
-	// NSColor.blackColor (0, 0, 0, 1) didn't work.
-	// Use the transparent color instead.
-	window.SetBackgroundColor(cocoa.NSColor_colorWithSRGBRedGreenBlueAlpha(0, 0, 0, 0))
+	C.adjustViewSize(C.uintptr_t(u.window.GetCocoaWindow()))
 }
 
 func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) {
 	allowFullscreen := mode == WindowResizingModeOnlyFullscreenEnabled ||
 		mode == WindowResizingModeEnabled
-	var collectionBehavior = int(objc.ID(u.window.GetCocoaWindow()).Send(sel_collectionBehavior))
-	if allowFullscreen {
-		collectionBehavior |= cocoa.NSWindowCollectionBehaviorFullScreenPrimary
-	} else {
-		collectionBehavior &= ^cocoa.NSWindowCollectionBehaviorFullScreenPrimary
-	}
-	objc.ID(u.window.GetCocoaWindow()).Send(objc.RegisterName("setCollectionBehavior:"), collectionBehavior)
+	C.setAllowFullscreen(C.uintptr_t(u.window.GetCocoaWindow()), C.bool(allowFullscreen))
 }
 
 func initializeWindowAfterCreation(w *glfw.Window) {
 	// TODO: Register NSWindowWillEnterFullScreenNotification and so on.
 	// Enable resizing temporary before making the window fullscreen.
-	var nswindow = objc.ID(w.GetCocoaWindow())
-	var class_EbitengineWindowDelegate = objc.GetClass("EbitengineWindowDelegate")
-	var sel_delegate = objc.RegisterName("delegate")
-	var delegate = objc.ID(class_EbitengineWindowDelegate).Send(objc.RegisterName("alloc")).Send(objc.RegisterName("initWithOrigDelegate:"), nswindow.Send(sel_delegate))
-	nswindow.Send(objc.RegisterName("setDelegate:"), delegate)
+	C.initializeWindow(C.uintptr_t(w.GetCocoaWindow()))
 }
