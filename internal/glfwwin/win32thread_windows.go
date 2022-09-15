@@ -6,7 +6,7 @@
 package glfwwin
 
 func (t *tls) create() error {
-	if t.win32.allocated {
+	if t.state.allocated {
 		panic("glfwwin: TLS must not be allocated")
 	}
 
@@ -14,34 +14,34 @@ func (t *tls) create() error {
 	if err != nil {
 		return err
 	}
-	t.win32.index = i
-	t.win32.allocated = true
+	t.state.index = i
+	t.state.allocated = true
 	return nil
 }
 
 func (t *tls) destroy() error {
-	if t.win32.allocated {
-		if err := _TlsFree(t.win32.index); err != nil {
+	if t.state.allocated {
+		if err := _TlsFree(t.state.index); err != nil {
 			return err
 		}
 	}
-	t.win32.allocated = false
-	t.win32.index = 0
+	t.state.allocated = false
+	t.state.index = 0
 	return nil
 }
 
 func (t *tls) get() (uintptr, error) {
-	if !t.win32.allocated {
+	if !t.state.allocated {
 		panic("glfwwin: TLS must be allocated")
 	}
 
-	return _TlsGetValue(t.win32.index)
+	return _TlsGetValue(t.state.index)
 }
 
 func (t *tls) set(value uintptr) error {
-	if !t.win32.allocated {
+	if !t.state.allocated {
 		panic("glfwwin: TLS must be allocated")
 	}
 
-	return _TlsSetValue(t.win32.index, value)
+	return _TlsSetValue(t.state.index, value)
 }

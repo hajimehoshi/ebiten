@@ -15,153 +15,153 @@ import (
 )
 
 func createKeyTables() {
-	for i := range _glfw.win32.keycodes {
-		_glfw.win32.keycodes[i] = -1
+	for i := range _glfw.state.keycodes {
+		_glfw.state.keycodes[i] = -1
 	}
-	for i := range _glfw.win32.scancodes {
-		_glfw.win32.keycodes[i] = -1
+	for i := range _glfw.state.scancodes {
+		_glfw.state.keycodes[i] = -1
 	}
 
-	_glfw.win32.keycodes[0x00B] = Key0
-	_glfw.win32.keycodes[0x002] = Key1
-	_glfw.win32.keycodes[0x003] = Key2
-	_glfw.win32.keycodes[0x004] = Key3
-	_glfw.win32.keycodes[0x005] = Key4
-	_glfw.win32.keycodes[0x006] = Key5
-	_glfw.win32.keycodes[0x007] = Key6
-	_glfw.win32.keycodes[0x008] = Key7
-	_glfw.win32.keycodes[0x009] = Key8
-	_glfw.win32.keycodes[0x00A] = Key9
-	_glfw.win32.keycodes[0x01E] = KeyA
-	_glfw.win32.keycodes[0x030] = KeyB
-	_glfw.win32.keycodes[0x02E] = KeyC
-	_glfw.win32.keycodes[0x020] = KeyD
-	_glfw.win32.keycodes[0x012] = KeyE
-	_glfw.win32.keycodes[0x021] = KeyF
-	_glfw.win32.keycodes[0x022] = KeyG
-	_glfw.win32.keycodes[0x023] = KeyH
-	_glfw.win32.keycodes[0x017] = KeyI
-	_glfw.win32.keycodes[0x024] = KeyJ
-	_glfw.win32.keycodes[0x025] = KeyK
-	_glfw.win32.keycodes[0x026] = KeyL
-	_glfw.win32.keycodes[0x032] = KeyM
-	_glfw.win32.keycodes[0x031] = KeyN
-	_glfw.win32.keycodes[0x018] = KeyO
-	_glfw.win32.keycodes[0x019] = KeyP
-	_glfw.win32.keycodes[0x010] = KeyQ
-	_glfw.win32.keycodes[0x013] = KeyR
-	_glfw.win32.keycodes[0x01F] = KeyS
-	_glfw.win32.keycodes[0x014] = KeyT
-	_glfw.win32.keycodes[0x016] = KeyU
-	_glfw.win32.keycodes[0x02F] = KeyV
-	_glfw.win32.keycodes[0x011] = KeyW
-	_glfw.win32.keycodes[0x02D] = KeyX
-	_glfw.win32.keycodes[0x015] = KeyY
-	_glfw.win32.keycodes[0x02C] = KeyZ
+	_glfw.state.keycodes[0x00B] = Key0
+	_glfw.state.keycodes[0x002] = Key1
+	_glfw.state.keycodes[0x003] = Key2
+	_glfw.state.keycodes[0x004] = Key3
+	_glfw.state.keycodes[0x005] = Key4
+	_glfw.state.keycodes[0x006] = Key5
+	_glfw.state.keycodes[0x007] = Key6
+	_glfw.state.keycodes[0x008] = Key7
+	_glfw.state.keycodes[0x009] = Key8
+	_glfw.state.keycodes[0x00A] = Key9
+	_glfw.state.keycodes[0x01E] = KeyA
+	_glfw.state.keycodes[0x030] = KeyB
+	_glfw.state.keycodes[0x02E] = KeyC
+	_glfw.state.keycodes[0x020] = KeyD
+	_glfw.state.keycodes[0x012] = KeyE
+	_glfw.state.keycodes[0x021] = KeyF
+	_glfw.state.keycodes[0x022] = KeyG
+	_glfw.state.keycodes[0x023] = KeyH
+	_glfw.state.keycodes[0x017] = KeyI
+	_glfw.state.keycodes[0x024] = KeyJ
+	_glfw.state.keycodes[0x025] = KeyK
+	_glfw.state.keycodes[0x026] = KeyL
+	_glfw.state.keycodes[0x032] = KeyM
+	_glfw.state.keycodes[0x031] = KeyN
+	_glfw.state.keycodes[0x018] = KeyO
+	_glfw.state.keycodes[0x019] = KeyP
+	_glfw.state.keycodes[0x010] = KeyQ
+	_glfw.state.keycodes[0x013] = KeyR
+	_glfw.state.keycodes[0x01F] = KeyS
+	_glfw.state.keycodes[0x014] = KeyT
+	_glfw.state.keycodes[0x016] = KeyU
+	_glfw.state.keycodes[0x02F] = KeyV
+	_glfw.state.keycodes[0x011] = KeyW
+	_glfw.state.keycodes[0x02D] = KeyX
+	_glfw.state.keycodes[0x015] = KeyY
+	_glfw.state.keycodes[0x02C] = KeyZ
 
-	_glfw.win32.keycodes[0x028] = KeyApostrophe
-	_glfw.win32.keycodes[0x02B] = KeyBackslash
-	_glfw.win32.keycodes[0x033] = KeyComma
-	_glfw.win32.keycodes[0x00D] = KeyEqual
-	_glfw.win32.keycodes[0x029] = KeyGraveAccent
-	_glfw.win32.keycodes[0x01A] = KeyLeftBracket
-	_glfw.win32.keycodes[0x00C] = KeyMinus
-	_glfw.win32.keycodes[0x034] = KeyPeriod
-	_glfw.win32.keycodes[0x01B] = KeyRightBracket
-	_glfw.win32.keycodes[0x027] = KeySemicolon
-	_glfw.win32.keycodes[0x035] = KeySlash
-	_glfw.win32.keycodes[0x056] = KeyWorld2
+	_glfw.state.keycodes[0x028] = KeyApostrophe
+	_glfw.state.keycodes[0x02B] = KeyBackslash
+	_glfw.state.keycodes[0x033] = KeyComma
+	_glfw.state.keycodes[0x00D] = KeyEqual
+	_glfw.state.keycodes[0x029] = KeyGraveAccent
+	_glfw.state.keycodes[0x01A] = KeyLeftBracket
+	_glfw.state.keycodes[0x00C] = KeyMinus
+	_glfw.state.keycodes[0x034] = KeyPeriod
+	_glfw.state.keycodes[0x01B] = KeyRightBracket
+	_glfw.state.keycodes[0x027] = KeySemicolon
+	_glfw.state.keycodes[0x035] = KeySlash
+	_glfw.state.keycodes[0x056] = KeyWorld2
 
-	_glfw.win32.keycodes[0x00E] = KeyBackspace
-	_glfw.win32.keycodes[0x153] = KeyDelete
-	_glfw.win32.keycodes[0x14F] = KeyEnd
-	_glfw.win32.keycodes[0x01C] = KeyEnter
-	_glfw.win32.keycodes[0x001] = KeyEscape
-	_glfw.win32.keycodes[0x147] = KeyHome
-	_glfw.win32.keycodes[0x152] = KeyInsert
-	_glfw.win32.keycodes[0x15D] = KeyMenu
-	_glfw.win32.keycodes[0x151] = KeyPageDown
-	_glfw.win32.keycodes[0x149] = KeyPageUp
-	_glfw.win32.keycodes[0x045] = KeyPause
-	_glfw.win32.keycodes[0x039] = KeySpace
-	_glfw.win32.keycodes[0x00F] = KeyTab
-	_glfw.win32.keycodes[0x03A] = KeyCapsLock
-	_glfw.win32.keycodes[0x145] = KeyNumLock
-	_glfw.win32.keycodes[0x046] = KeyScrollLock
-	_glfw.win32.keycodes[0x03B] = KeyF1
-	_glfw.win32.keycodes[0x03C] = KeyF2
-	_glfw.win32.keycodes[0x03D] = KeyF3
-	_glfw.win32.keycodes[0x03E] = KeyF4
-	_glfw.win32.keycodes[0x03F] = KeyF5
-	_glfw.win32.keycodes[0x040] = KeyF6
-	_glfw.win32.keycodes[0x041] = KeyF7
-	_glfw.win32.keycodes[0x042] = KeyF8
-	_glfw.win32.keycodes[0x043] = KeyF9
-	_glfw.win32.keycodes[0x044] = KeyF10
-	_glfw.win32.keycodes[0x057] = KeyF11
-	_glfw.win32.keycodes[0x058] = KeyF12
-	_glfw.win32.keycodes[0x064] = KeyF13
-	_glfw.win32.keycodes[0x065] = KeyF14
-	_glfw.win32.keycodes[0x066] = KeyF15
-	_glfw.win32.keycodes[0x067] = KeyF16
-	_glfw.win32.keycodes[0x068] = KeyF17
-	_glfw.win32.keycodes[0x069] = KeyF18
-	_glfw.win32.keycodes[0x06A] = KeyF19
-	_glfw.win32.keycodes[0x06B] = KeyF20
-	_glfw.win32.keycodes[0x06C] = KeyF21
-	_glfw.win32.keycodes[0x06D] = KeyF22
-	_glfw.win32.keycodes[0x06E] = KeyF23
-	_glfw.win32.keycodes[0x076] = KeyF24
-	_glfw.win32.keycodes[0x038] = KeyLeftAlt
-	_glfw.win32.keycodes[0x01D] = KeyLeftControl
-	_glfw.win32.keycodes[0x02A] = KeyLeftShift
-	_glfw.win32.keycodes[0x15B] = KeyLeftSuper
-	_glfw.win32.keycodes[0x137] = KeyPrintScreen
-	_glfw.win32.keycodes[0x138] = KeyRightAlt
-	_glfw.win32.keycodes[0x11D] = KeyRightControl
-	_glfw.win32.keycodes[0x036] = KeyRightShift
-	_glfw.win32.keycodes[0x15C] = KeyRightSuper
-	_glfw.win32.keycodes[0x150] = KeyDown
-	_glfw.win32.keycodes[0x14B] = KeyLeft
-	_glfw.win32.keycodes[0x14D] = KeyRight
-	_glfw.win32.keycodes[0x148] = KeyUp
+	_glfw.state.keycodes[0x00E] = KeyBackspace
+	_glfw.state.keycodes[0x153] = KeyDelete
+	_glfw.state.keycodes[0x14F] = KeyEnd
+	_glfw.state.keycodes[0x01C] = KeyEnter
+	_glfw.state.keycodes[0x001] = KeyEscape
+	_glfw.state.keycodes[0x147] = KeyHome
+	_glfw.state.keycodes[0x152] = KeyInsert
+	_glfw.state.keycodes[0x15D] = KeyMenu
+	_glfw.state.keycodes[0x151] = KeyPageDown
+	_glfw.state.keycodes[0x149] = KeyPageUp
+	_glfw.state.keycodes[0x045] = KeyPause
+	_glfw.state.keycodes[0x039] = KeySpace
+	_glfw.state.keycodes[0x00F] = KeyTab
+	_glfw.state.keycodes[0x03A] = KeyCapsLock
+	_glfw.state.keycodes[0x145] = KeyNumLock
+	_glfw.state.keycodes[0x046] = KeyScrollLock
+	_glfw.state.keycodes[0x03B] = KeyF1
+	_glfw.state.keycodes[0x03C] = KeyF2
+	_glfw.state.keycodes[0x03D] = KeyF3
+	_glfw.state.keycodes[0x03E] = KeyF4
+	_glfw.state.keycodes[0x03F] = KeyF5
+	_glfw.state.keycodes[0x040] = KeyF6
+	_glfw.state.keycodes[0x041] = KeyF7
+	_glfw.state.keycodes[0x042] = KeyF8
+	_glfw.state.keycodes[0x043] = KeyF9
+	_glfw.state.keycodes[0x044] = KeyF10
+	_glfw.state.keycodes[0x057] = KeyF11
+	_glfw.state.keycodes[0x058] = KeyF12
+	_glfw.state.keycodes[0x064] = KeyF13
+	_glfw.state.keycodes[0x065] = KeyF14
+	_glfw.state.keycodes[0x066] = KeyF15
+	_glfw.state.keycodes[0x067] = KeyF16
+	_glfw.state.keycodes[0x068] = KeyF17
+	_glfw.state.keycodes[0x069] = KeyF18
+	_glfw.state.keycodes[0x06A] = KeyF19
+	_glfw.state.keycodes[0x06B] = KeyF20
+	_glfw.state.keycodes[0x06C] = KeyF21
+	_glfw.state.keycodes[0x06D] = KeyF22
+	_glfw.state.keycodes[0x06E] = KeyF23
+	_glfw.state.keycodes[0x076] = KeyF24
+	_glfw.state.keycodes[0x038] = KeyLeftAlt
+	_glfw.state.keycodes[0x01D] = KeyLeftControl
+	_glfw.state.keycodes[0x02A] = KeyLeftShift
+	_glfw.state.keycodes[0x15B] = KeyLeftSuper
+	_glfw.state.keycodes[0x137] = KeyPrintScreen
+	_glfw.state.keycodes[0x138] = KeyRightAlt
+	_glfw.state.keycodes[0x11D] = KeyRightControl
+	_glfw.state.keycodes[0x036] = KeyRightShift
+	_glfw.state.keycodes[0x15C] = KeyRightSuper
+	_glfw.state.keycodes[0x150] = KeyDown
+	_glfw.state.keycodes[0x14B] = KeyLeft
+	_glfw.state.keycodes[0x14D] = KeyRight
+	_glfw.state.keycodes[0x148] = KeyUp
 
-	_glfw.win32.keycodes[0x052] = KeyKP0
-	_glfw.win32.keycodes[0x04F] = KeyKP1
-	_glfw.win32.keycodes[0x050] = KeyKP2
-	_glfw.win32.keycodes[0x051] = KeyKP3
-	_glfw.win32.keycodes[0x04B] = KeyKP4
-	_glfw.win32.keycodes[0x04C] = KeyKP5
-	_glfw.win32.keycodes[0x04D] = KeyKP6
-	_glfw.win32.keycodes[0x047] = KeyKP7
-	_glfw.win32.keycodes[0x048] = KeyKP8
-	_glfw.win32.keycodes[0x049] = KeyKP9
-	_glfw.win32.keycodes[0x04E] = KeyKPAdd
-	_glfw.win32.keycodes[0x053] = KeyKPDecimal
-	_glfw.win32.keycodes[0x135] = KeyKPDivide
-	_glfw.win32.keycodes[0x11C] = KeyKPEnter
-	_glfw.win32.keycodes[0x059] = KeyKPEqual
-	_glfw.win32.keycodes[0x037] = KeyKPMultiply
-	_glfw.win32.keycodes[0x04A] = KeyKPSubtract
+	_glfw.state.keycodes[0x052] = KeyKP0
+	_glfw.state.keycodes[0x04F] = KeyKP1
+	_glfw.state.keycodes[0x050] = KeyKP2
+	_glfw.state.keycodes[0x051] = KeyKP3
+	_glfw.state.keycodes[0x04B] = KeyKP4
+	_glfw.state.keycodes[0x04C] = KeyKP5
+	_glfw.state.keycodes[0x04D] = KeyKP6
+	_glfw.state.keycodes[0x047] = KeyKP7
+	_glfw.state.keycodes[0x048] = KeyKP8
+	_glfw.state.keycodes[0x049] = KeyKP9
+	_glfw.state.keycodes[0x04E] = KeyKPAdd
+	_glfw.state.keycodes[0x053] = KeyKPDecimal
+	_glfw.state.keycodes[0x135] = KeyKPDivide
+	_glfw.state.keycodes[0x11C] = KeyKPEnter
+	_glfw.state.keycodes[0x059] = KeyKPEqual
+	_glfw.state.keycodes[0x037] = KeyKPMultiply
+	_glfw.state.keycodes[0x04A] = KeyKPSubtract
 
 	for scancode := 0; scancode < 512; scancode++ {
-		if _glfw.win32.keycodes[scancode] > 0 {
-			_glfw.win32.scancodes[_glfw.win32.keycodes[scancode]] = scancode
+		if _glfw.state.keycodes[scancode] > 0 {
+			_glfw.state.scancodes[_glfw.state.keycodes[scancode]] = scancode
 		}
 	}
 }
 
 func createHelperWindow() error {
-	h, err := _CreateWindowExW(_WS_EX_OVERLAPPEDWINDOW, _GLFW_WNDCLASSNAME, "GLFW message window", _WS_CLIPSIBLINGS|_WS_CLIPCHILDREN, 0, 0, 1, 1, 0, 0, _glfw.win32.instance, nil)
+	h, err := _CreateWindowExW(_WS_EX_OVERLAPPEDWINDOW, _GLFW_WNDCLASSNAME, "GLFW message window", _WS_CLIPSIBLINGS|_WS_CLIPCHILDREN, 0, 0, 1, 1, 0, 0, _glfw.state.instance, nil)
 	if err != nil {
 		return err
 	}
 
-	_glfw.win32.helperWindowHandle = h
+	_glfw.state.helperWindowHandle = h
 
 	// HACK: The command to the first ShowWindow call is ignored if the parent
 	//       process passed along a STARTUPINFO, so clear that with a no-op call
-	_ShowWindow(_glfw.win32.helperWindowHandle, _SW_HIDE)
+	_ShowWindow(_glfw.state.helperWindowHandle, _SW_HIDE)
 
 	// Register for HID device notifications
 	if !microsoftgdk.IsXbox() {
@@ -176,15 +176,15 @@ func createHelperWindow() error {
 		dbi.dbcc_size = uint32(unsafe.Sizeof(dbi))
 		dbi.dbcc_devicetype = _DBT_DEVTYP_DEVICEINTERFACE
 		dbi.dbcc_classguid = _GUID_DEVINTERFACE_HID
-		notify, err := _RegisterDeviceNotificationW(windows.Handle(_glfw.win32.helperWindowHandle), unsafe.Pointer(&dbi), _DEVICE_NOTIFY_WINDOW_HANDLE)
+		notify, err := _RegisterDeviceNotificationW(windows.Handle(_glfw.state.helperWindowHandle), unsafe.Pointer(&dbi), _DEVICE_NOTIFY_WINDOW_HANDLE)
 		if err != nil {
 			return err
 		}
-		_glfw.win32.deviceNotificationHandle = notify
+		_glfw.state.deviceNotificationHandle = notify
 	}
 
 	var msg _MSG
-	for _PeekMessageW(&msg, _glfw.win32.helperWindowHandle, 0, 0, _PM_REMOVE) {
+	for _PeekMessageW(&msg, _glfw.state.helperWindowHandle, 0, 0, _PM_REMOVE) {
 		_TranslateMessage(&msg)
 		_DispatchMessageW(&msg)
 	}
@@ -235,7 +235,7 @@ func platformInit() error {
 	if err != nil {
 		return err
 	}
-	_glfw.win32.instance = _HINSTANCE(m)
+	_glfw.state.instance = _HINSTANCE(m)
 
 	createKeyTables()
 
@@ -288,15 +288,15 @@ func platformInit() error {
 }
 
 func platformTerminate() error {
-	if _glfw.win32.deviceNotificationHandle != 0 {
-		if err := _UnregisterDeviceNotification(_glfw.win32.deviceNotificationHandle); err != nil {
+	if _glfw.state.deviceNotificationHandle != 0 {
+		if err := _UnregisterDeviceNotification(_glfw.state.deviceNotificationHandle); err != nil {
 			return err
 		}
 	}
 
-	if _glfw.win32.helperWindowHandle != 0 {
+	if _glfw.state.helperWindowHandle != 0 {
 		if !microsoftgdk.IsXbox() {
-			if err := _DestroyWindow(_glfw.win32.helperWindowHandle); err != nil {
+			if err := _DestroyWindow(_glfw.state.helperWindowHandle); err != nil {
 				return err
 			}
 		}
