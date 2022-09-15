@@ -67,7 +67,7 @@ func init() {
 		}
 		setResizable(self, false)
 	}
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("initWithOrigDelegate:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, origDelegate objc.ID) objc.ID {
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("initWithOrigDelegate:"), objc.NewIMP(func(self objc.ID, cmd objc.SEL, origDelegate objc.ID) objc.ID {
 		self = self.SendSuper(objc.RegisterName("init"))
 		if self != 0 {
 			selfPtr := *(**uintptr)(unsafe.Pointer(&self))
@@ -77,41 +77,41 @@ func init() {
 	}), "@@:B")
 	// The method set of origDelegate_ must sync with GLFWWindowDelegate's implementation.
 	// See cocoa_window.m in GLFW.
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowShouldClose:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) int {
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowShouldClose:"), objc.NewIMP(func(self objc.ID, cmd objc.SEL, notification objc.ID) int {
 		return int(getOrigDelegate(self).Send(objc.RegisterName("windowShouldClose:"), notification))
 	}), "B@:@")
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidResize:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
-		getOrigDelegate(self).Send(_cmd, notification)
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidResize:"), objc.NewIMP(func(self objc.ID, cmd objc.SEL, notification objc.ID) {
+		getOrigDelegate(self).Send(cmd, notification)
 	}), "v@:@")
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidMove:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
-		getOrigDelegate(self).Send(_cmd, notification)
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidMove:"), objc.NewIMP(func(self objc.ID, cmd objc.SEL, notification objc.ID) {
+		getOrigDelegate(self).Send(cmd, notification)
 	}), "v@:@")
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidMiniaturize:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
-		getOrigDelegate(self).Send(_cmd, notification)
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidMiniaturize:"), objc.NewIMP(func(self objc.ID, cmd objc.SEL, notification objc.ID) {
+		getOrigDelegate(self).Send(cmd, notification)
 	}), "v@:@")
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidDeminiaturize:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
-		getOrigDelegate(self).Send(_cmd, notification)
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidDeminiaturize:"), objc.NewIMP(func(self objc.ID, cmd objc.SEL, notification objc.ID) {
+		getOrigDelegate(self).Send(cmd, notification)
 	}), "v@:@")
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidBecomeKey:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
-		getOrigDelegate(self).Send(_cmd, notification)
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidBecomeKey:"), objc.NewIMP(func(self objc.ID, cmd objc.SEL, notification objc.ID) {
+		getOrigDelegate(self).Send(cmd, notification)
 	}), "v@:@")
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidResignKey:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
-		getOrigDelegate(self).Send(_cmd, notification)
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidResignKey:"), objc.NewIMP(func(self objc.ID, cmd objc.SEL, notification objc.ID) {
+		getOrigDelegate(self).Send(cmd, notification)
 	}), "v@:@")
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidChangeOcclusionState:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
-		getOrigDelegate(self).Send(_cmd, notification)
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidChangeOcclusionState:"), objc.NewIMP(func(self objc.ID, cmd objc.SEL, notification objc.ID) {
+		getOrigDelegate(self).Send(cmd, notification)
 	}), "v@:@")
 
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowWillEnterFullScreen:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowWillEnterFullScreen:"), objc.NewIMP(func(self objc.ID, cmd objc.SEL, notification objc.ID) {
 		pushResizableState(self, cocoa.NSNotification{ID: notification}.Object())
 	}), "v@:@")
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidEnterFullScreen:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidEnterFullScreen:"), objc.NewIMP(func(self objc.ID, cmd objc.SEL, notification objc.ID) {
 		popResizableState(self, cocoa.NSNotification{ID: notification}.Object())
 	}), "v@:@")
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowWillExitFullScreen:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowWillExitFullScreen:"), objc.NewIMP(func(self objc.ID, cmd objc.SEL, notification objc.ID) {
 		pushResizableState(self, cocoa.NSNotification{ID: notification}.Object())
 	}), "v@:@")
-	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidExitFullScreen:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, notification objc.ID) {
+	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("windowDidExitFullScreen:"), objc.NewIMP(func(self objc.ID, cmd objc.SEL, notification objc.ID) {
 		popResizableState(self, cocoa.NSNotification{ID: notification}.Object())
 		// Do not call setFrame here (#2295). setFrame here causes unexpected results.
 	}), "v@:@")

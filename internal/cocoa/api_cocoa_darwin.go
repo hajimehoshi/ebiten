@@ -212,8 +212,8 @@ func NSInvocation_invocationWithMethodSignature(sig NSMethodSignature) NSInvocat
 	return NSInvocation{objc.ID(class_NSInvocation).Send(sel_invocationWithMethodSignature, sig.ID)}
 }
 
-func (i NSInvocation) SetSelector(_cmd objc.SEL) {
-	i.Send(sel_setSelector, _cmd)
+func (i NSInvocation) SetSelector(cmd objc.SEL) {
+	i.Send(sel_setSelector, cmd)
 }
 
 func (i NSInvocation) SetTarget(target objc.ID) {
@@ -240,8 +240,8 @@ type NSMethodSignature struct {
 	objc.ID
 }
 
-func NSMethodSignature_instanceMethodSignatureForSelector(self objc.ID, _cmd objc.SEL) NSMethodSignature {
-	return NSMethodSignature{self.Send(sel_instanceMethodSignatureForSelector, _cmd)}
+func NSMethodSignature_instanceMethodSignatureForSelector(self objc.ID, cmd objc.SEL) NSMethodSignature {
+	return NSMethodSignature{self.Send(sel_instanceMethodSignatureForSelector, cmd)}
 }
 
 // NSMethodSignature_signatureWithObjCTypes takes a string that represents the type signature of a method.
