@@ -19,6 +19,7 @@ package main
 
 import (
 	"bytes"
+	_ "embed"
 	"image"
 	_ "image/png"
 	"log"
@@ -27,6 +28,32 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	resources "github.com/hajimehoshi/ebiten/v2/examples/resources/images/shader"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+)
+
+var (
+	//go:embed default.go
+	default_go []byte
+
+	//go:embed texel.go
+	texel_go []byte
+
+	//go:embed lighting.go
+	lighting_go []byte
+
+	//go:embed radialblur.go
+	radialblur_go []byte
+
+	//go:embed chromaticaberration.go
+	chromaticaberration_go []byte
+
+	//go:embed dissolve.go
+	dissolve_go []byte
+
+	//go:embed water.go
+	water_go []byte
+
+	//go:embed crt.go
+	crt_go []byte
 )
 
 const (

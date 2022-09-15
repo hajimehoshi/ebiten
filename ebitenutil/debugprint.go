@@ -13,17 +13,20 @@
 // limitations under the License.
 
 //go:generate go run gen.go
-//go:generate go run github.com/hajimehoshi/file2byteslice/cmd/file2byteslice@v1.0.0 -input text.png -output text.png.go -package ebitenutil -var textPng
 
 package ebitenutil
 
 import (
 	"bytes"
+	_ "embed"
 	"image"
 	_ "image/png"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
+
+//go:embed text.png
+var text_png []byte
 
 var (
 	debugPrintTextImage     *ebiten.Image
@@ -31,7 +34,7 @@ var (
 )
 
 func init() {
-	img, _, err := image.Decode(bytes.NewReader(textPng))
+	img, _, err := image.Decode(bytes.NewReader(text_png))
 	if err != nil {
 		panic(err)
 	}
