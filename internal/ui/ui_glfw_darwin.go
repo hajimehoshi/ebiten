@@ -222,7 +222,7 @@ func monitorFromWindowByOS(w *glfw.Window) *glfw.Monitor {
 	}
 	screenDictionary := screen.DeviceDescription()
 	screenID := cocoa.NSNumber{ID: screenDictionary.ObjectForKey(cocoa.NSString_alloc().InitWithUTF8String("NSScreenNumber").ID)}
-	aID := uintptr(screenID.UnsignedIntValue()) //CGDirectDisplayID
+	aID := uintptr(screenID.UnsignedIntValue()) // CGDirectDisplayID
 	pool.Release()
 	for _, m := range ensureMonitors() {
 		if m.m.GetCocoaMonitor() == aID {
