@@ -52,7 +52,6 @@ var (
 	sel_processInfo                        = objc.RegisterName("processInfo")
 	sel_isOperatingSystemAtLeastVersion    = objc.RegisterName("isOperatingSystemAtLeastVersion:")
 	sel_frame                              = objc.RegisterName("frame")
-	sel_size                               = objc.RegisterName("size")
 	sel_contentView                        = objc.RegisterName("contentView")
 	sel_setBackgroundColor                 = objc.RegisterName("setBackgroundColor:")
 	sel_colorWithSRGBRedGreenBlueAlpha     = objc.RegisterName("colorWithSRGBRed:green:blue:alpha:")
@@ -69,6 +68,7 @@ var (
 )
 
 const NSWindowCollectionBehaviorFullScreenPrimary = 1 << 7
+
 const (
 	NSWindowStyleMaskResizable  = 1 << 3
 	NSWindowStyleMaskFullScreen = 1 << 14
