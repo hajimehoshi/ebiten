@@ -116,7 +116,6 @@ func init() {
 		// Do not call setFrame here (#2295). setFrame here causes unexpected results.
 	}), "v@:@")
 	class_EbitengineWindowDelegate.Register()
-
 }
 
 type graphicsDriverCreatorImpl struct {
