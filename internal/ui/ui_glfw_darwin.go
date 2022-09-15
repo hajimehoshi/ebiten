@@ -199,8 +199,7 @@ func currentMouseLocation() (x, y int) {
 }
 
 func initialMonitorByOS() (*glfw.Monitor, error) {
-	var cx, cy = currentMouseLocation()
-	x, y := int(cx), flipY(int(cy))
+	x, y := currentMouseLocation()
 
 	// Find the monitor including the cursor.
 	for _, m := range ensureMonitors() {
@@ -276,13 +275,13 @@ var sel_setCollectionBehavior = objc.RegisterName("setCollectionBehavior:")
 func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) {
 	// Toggling fullscreen might ignore events like keyUp. Ensure that events are fired.
 	glfw.WaitEventsTimeout(0.1)
-	var window = cocoa.NSWindow{ID: objc.ID(u.window.GetCocoaWindow())}
+	window := cocoa.NSWindow{ID: objc.ID(u.window.GetCocoaWindow())}
 	if window.StyleMask()&cocoa.NSWindowStyleMaskFullScreen != 0 == fullscreen {
 		return
 	}
 	// Even though EbitengineWindowDelegate is used, this hack is still required.
 	// toggleFullscreen doesn't work when the window is not resizable.
-	var origFullScreen = window.Send(sel_collectionBehavior)&cocoa.NSWindowCollectionBehaviorFullScreenPrimary != 0
+	origFullScreen := window.Send(sel_collectionBehavior)&cocoa.NSWindowCollectionBehaviorFullScreenPrimary != 0
 	if !origFullScreen {
 		window.Send(sel_setCollectionBehavior, window.Send(sel_collectionBehavior)|cocoa.NSWindowCollectionBehaviorFullScreenPrimary)
 	}
@@ -325,7 +324,7 @@ func (u *userInterfaceImpl) adjustViewSize() {
 func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) {
 	allowFullscreen := mode == WindowResizingModeOnlyFullscreenEnabled ||
 		mode == WindowResizingModeEnabled
-	var collectionBehavior = int(objc.ID(u.window.GetCocoaWindow()).Send(sel_collectionBehavior))
+	collectionBehavior := int(objc.ID(u.window.GetCocoaWindow()).Send(sel_collectionBehavior))
 	if allowFullscreen {
 		collectionBehavior |= cocoa.NSWindowCollectionBehaviorFullScreenPrimary
 	} else {
@@ -337,9 +336,8 @@ func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) 
 func initializeWindowAfterCreation(w *glfw.Window) {
 	// TODO: Register NSWindowWillEnterFullScreenNotification and so on.
 	// Enable resizing temporary before making the window fullscreen.
-	var nswindow = objc.ID(w.GetCocoaWindow())
-	var class_EbitengineWindowDelegate = objc.GetClass("EbitengineWindowDelegate")
-	var sel_delegate = objc.RegisterName("delegate")
-	var delegate = objc.ID(class_EbitengineWindowDelegate).Send(objc.RegisterName("alloc")).Send(objc.RegisterName("initWithOrigDelegate:"), nswindow.Send(sel_delegate))
+	nswindow := objc.ID(w.GetCocoaWindow())
+	sel_delegate := objc.RegisterName("delegate")
+	delegate := objc.ID(class_EbitengineWindowDelegate).Send(objc.RegisterName("alloc")).Send(objc.RegisterName("initWithOrigDelegate:"), nswindow.Send(sel_delegate))
 	nswindow.Send(objc.RegisterName("setDelegate:"), delegate)
 }
