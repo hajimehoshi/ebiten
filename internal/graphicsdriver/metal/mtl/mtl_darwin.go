@@ -682,7 +682,7 @@ func (d Device) MakeDepthStencilState(dsd DepthStencilDescriptor) DepthStencilSt
 	backFaceStencil.Send(sel_setStencilFailureOperation, uintptr(dsd.BackFaceStencil.StencilFailureOperation))
 	backFaceStencil.Send(sel_setDepthFailureOperation, uintptr(dsd.BackFaceStencil.DepthFailureOperation))
 	backFaceStencil.Send(sel_setDepthStencilPassOperation, uintptr(dsd.BackFaceStencil.DepthStencilPassOperation))
-	backFaceStencil.Send(sel_setStencilCompareFunction, uintptr(dsd.BackFaceStencil.StencilCompareFunction)) //TODO
+	backFaceStencil.Send(sel_setStencilCompareFunction, uintptr(dsd.BackFaceStencil.StencilCompareFunction)) // TODO
 	frontFaceStencil := depthStencilDescriptor.Send(sel_frontFaceStencil)
 	frontFaceStencil.Send(sel_setStencilFailureOperation, uintptr(dsd.FrontFaceStencil.StencilFailureOperation))
 	frontFaceStencil.Send(sel_setDepthFailureOperation, uintptr(dsd.FrontFaceStencil.DepthFailureOperation))
