@@ -327,7 +327,7 @@ func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) 
 	if allowFullscreen {
 		collectionBehavior |= cocoa.NSWindowCollectionBehaviorFullScreenPrimary
 	} else {
-		collectionBehavior &= ^cocoa.NSWindowCollectionBehaviorFullScreenPrimary
+		collectionBehavior &^= cocoa.NSWindowCollectionBehaviorFullScreenPrimary
 	}
 	objc.ID(u.window.GetCocoaWindow()).Send(objc.RegisterName("setCollectionBehavior:"), collectionBehavior)
 }
