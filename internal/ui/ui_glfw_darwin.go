@@ -244,7 +244,7 @@ func (u *userInterfaceImpl) isNativeFullscreen() bool {
 func (u *userInterfaceImpl) setNativeCursor(shape CursorShape) {
 	class_NSCursor := objc.GetClass("NSCursor")
 	NSCursor := objc.ID(class_NSCursor).Send(objc.RegisterName("class"))
-	var sel_performSelector = objc.RegisterName("performSelector:")
+	sel_performSelector := objc.RegisterName("performSelector:")
 	cursor := NSCursor.Send(sel_performSelector, objc.RegisterName("arrowCursor"))
 	switch shape {
 	case 0:
