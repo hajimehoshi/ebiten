@@ -3,7 +3,7 @@ module github.com/hajimehoshi/ebiten/v2
 go 1.16
 
 require (
-	github.com/ebitengine/purego v0.0.0-20220910041003-a51c01493ff9
+	github.com/ebitengine/purego v0.2.0-alpha.0.20220915044048-aa1b0f680473
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220806181222-55e207c401ad
 	github.com/hajimehoshi/bitmapfont/v2 v2.2.1
 	github.com/hajimehoshi/go-mp3 v0.3.3

@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 	"unsafe"
@@ -28,43 +29,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
-// #cgo LDFLAGS: -framework CoreFoundation -framework IOKit
-//
-// #include <ForceFeedback/ForceFeedback.h>
-// #include <IOKit/hid/IOHIDLib.h>
-//
-// static CFStringRef cfStringRefIOHIDVendorIDKey() {
-//   return CFSTR(kIOHIDVendorIDKey);
-// }
-//
-// static CFStringRef cfStringRefIOHIDProductIDKey() {
-//   return CFSTR(kIOHIDProductIDKey);
-// }
-//
-// static CFStringRef cfStringRefIOHIDVersionNumberKey() {
-//   return CFSTR(kIOHIDVersionNumberKey);
-// }
-//
-// static CFStringRef cfStringRefIOHIDProductKey() {
-//   return CFSTR(kIOHIDProductKey);
-// }
-//
-// static CFStringRef cfStringRefIOHIDDeviceUsagePageKey() {
-//   return CFSTR(kIOHIDDeviceUsagePageKey);
-// }
-//
-// static CFStringRef cfStringRefIOHIDDeviceUsageKey() {
-//   return CFSTR(kIOHIDDeviceUsageKey);
-// }
-//
-// void ebitenGamepadMatchingCallback(void *ctx, IOReturn res, void *sender, IOHIDDeviceRef device);
-// void ebitenGamepadRemovalCallback(void *ctx, IOReturn res, void *sender, IOHIDDeviceRef device);
-import "C"
-
 type nativeGamepadsImpl struct {
-	hidManager      C.IOHIDManagerRef
-	devicesToAdd    []C.IOHIDDeviceRef
-	devicesToRemove []C.IOHIDDeviceRef
+	hidManager      _IOHIDManagerRef
+	devicesToAdd    []_IOHIDDeviceRef
+	devicesToRemove []_IOHIDDeviceRef
 	devicesM        sync.Mutex
 }
 
@@ -73,82 +41,80 @@ func newNativeGamepadsImpl() nativeGamepads {
 }
 
 func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
-	var dicts []C.CFDictionaryRef
+	var dicts []_CFDictionaryRef
 
-	page := C.kHIDPage_GenericDesktop
+	page := kHIDPage_GenericDesktop
 	for _, usage := range []uint{
-		C.kHIDUsage_GD_Joystick,
-		C.kHIDUsage_GD_GamePad,
-		C.kHIDUsage_GD_MultiAxisController,
+		kHIDUsage_GD_Joystick,
+		kHIDUsage_GD_GamePad,
+		kHIDUsage_GD_MultiAxisController,
 	} {
-		pageRef := C.CFNumberCreate(C.kCFAllocatorDefault, C.kCFNumberIntType, unsafe.Pointer(&page))
+		pageRef := _CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, unsafe.Pointer(&page))
 		if pageRef == 0 {
 			return errors.New("gamepad: CFNumberCreate returned nil")
 		}
-		defer C.CFRelease(C.CFTypeRef(pageRef))
+		defer _CFRelease(_CFTypeRef(pageRef))
 
-		usageRef := C.CFNumberCreate(C.kCFAllocatorDefault, C.kCFNumberIntType, unsafe.Pointer(&usage))
+		usageRef := _CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, unsafe.Pointer(&usage))
 		if usageRef == 0 {
 			return errors.New("gamepad: CFNumberCreate returned nil")
 		}
-		defer C.CFRelease(C.CFTypeRef(usageRef))
+		defer _CFRelease(_CFTypeRef(usageRef))
 
-		keys := []C.CFStringRef{
-			C.cfStringRefIOHIDDeviceUsagePageKey(),
-			C.cfStringRefIOHIDDeviceUsageKey(),
+		keys := []_CFStringRef{
+			_CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDDeviceUsagePageKey, kCFStringEncodingUTF8),
+			_CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDDeviceUsageKey, kCFStringEncodingUTF8),
 		}
-		values := []C.CFNumberRef{
+		values := []_CFNumberRef{
 			pageRef,
 			usageRef,
 		}
 
-		dict := C.CFDictionaryCreate(C.kCFAllocatorDefault,
+		dict := _CFDictionaryCreate(kCFAllocatorDefault,
 			(*unsafe.Pointer)(unsafe.Pointer(&keys[0])),
 			(*unsafe.Pointer)(unsafe.Pointer(&values[0])),
-			C.CFIndex(len(keys)), &C.kCFTypeDictionaryKeyCallBacks, &C.kCFTypeDictionaryValueCallBacks)
+			_CFIndex(len(keys)), *(**_CFDictionaryKeyCallBacks)(unsafe.Pointer(&kCFTypeDictionaryKeyCallBacks)), *(**_CFDictionaryValueCallBacks)(unsafe.Pointer(&kCFTypeDictionaryValueCallBacks)))
 		if dict == 0 {
 			return errors.New("gamepad: CFDictionaryCreate returned nil")
 		}
-		defer C.CFRelease(C.CFTypeRef(dict))
+		defer _CFRelease(_CFTypeRef(dict))
 
 		dicts = append(dicts, dict)
 	}
 
-	matching := C.CFArrayCreate(C.kCFAllocatorDefault,
+	matching := _CFArrayCreate(kCFAllocatorDefault,
 		(*unsafe.Pointer)(unsafe.Pointer(&dicts[0])),
-		C.CFIndex(len(dicts)), &C.kCFTypeArrayCallBacks)
+		_CFIndex(len(dicts)), *(**_CFArrayCallBacks)(unsafe.Pointer(&kCFTypeArrayCallBacks)))
 	if matching == 0 {
 		return errors.New("gamepad: CFArrayCreateMutable returned nil")
 	}
-	defer C.CFRelease(C.CFTypeRef(matching))
+	defer _CFRelease(_CFTypeRef(matching))
 
-	g.hidManager = C.IOHIDManagerCreate(C.kCFAllocatorDefault, C.kIOHIDOptionsTypeNone)
-	if C.IOHIDManagerOpen(g.hidManager, C.kIOHIDOptionsTypeNone) != C.kIOReturnSuccess {
+	g.hidManager = _IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone)
+	if _IOHIDManagerOpen(g.hidManager, kIOHIDOptionsTypeNone) != kIOReturnSuccess {
 		return errors.New("gamepad: IOHIDManagerOpen failed")
 	}
 
-	C.IOHIDManagerSetDeviceMatchingMultiple(g.hidManager, matching)
-	C.IOHIDManagerRegisterDeviceMatchingCallback(g.hidManager, C.IOHIDDeviceCallback(C.ebitenGamepadMatchingCallback), nil)
-	C.IOHIDManagerRegisterDeviceRemovalCallback(g.hidManager, C.IOHIDDeviceCallback(C.ebitenGamepadRemovalCallback), nil)
+	_IOHIDManagerSetDeviceMatchingMultiple(g.hidManager, matching)
+	_IOHIDManagerRegisterDeviceMatchingCallback(g.hidManager, ebitenGamepadMatchingCallback, nil)
+	_IOHIDManagerRegisterDeviceRemovalCallback(g.hidManager, ebitenGamepadRemovalCallback, nil)
 
-	C.IOHIDManagerScheduleWithRunLoop(g.hidManager, C.CFRunLoopGetMain(), C.kCFRunLoopDefaultMode)
+	_IOHIDManagerScheduleWithRunLoop(g.hidManager, _CFRunLoopGetMain(), **(**_CFStringRef)(unsafe.Pointer(&kCFRunLoopDefaultMode)))
 
 	// Execute the run loop once in order to register any initially-attached gamepads.
-	C.CFRunLoopRunInMode(C.kCFRunLoopDefaultMode, 0, 0 /* false */)
+	_CFRunLoopRunInMode(**(**_CFStringRef)(unsafe.Pointer(&kCFRunLoopDefaultMode)), 0, false)
 
 	return nil
 }
 
-//export ebitenGamepadMatchingCallback
-func ebitenGamepadMatchingCallback(ctx unsafe.Pointer, res C.IOReturn, sender unsafe.Pointer, device C.IOHIDDeviceRef) {
+func ebitenGamepadMatchingCallback(ctx unsafe.Pointer, res _IOReturn, sender unsafe.Pointer, device _IOHIDDeviceRef) {
 	n := theGamepads.native.(*nativeGamepadsImpl)
 	n.devicesM.Lock()
 	defer n.devicesM.Unlock()
 	n.devicesToAdd = append(n.devicesToAdd, device)
 }
 
-//export ebitenGamepadRemovalCallback
-func ebitenGamepadRemovalCallback(ctx unsafe.Pointer, res C.IOReturn, sender unsafe.Pointer, device C.IOHIDDeviceRef) {
+func ebitenGamepadRemovalCallback(ctx unsafe.Pointer, res _IOReturn, sender unsafe.Pointer, device _IOHIDDeviceRef) {
 	n := theGamepads.native.(*nativeGamepadsImpl)
 	n.devicesM.Lock()
 	defer n.devicesM.Unlock()
@@ -173,7 +139,7 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 	return nil
 }
 
-func (g *nativeGamepadsImpl) addDevice(device C.IOHIDDeviceRef, gamepads *gamepads) {
+func (g *nativeGamepadsImpl) addDevice(device _IOHIDDeviceRef, gamepads *gamepads) {
 	if gamepads.find(func(g *Gamepad) bool {
 		return g.native.(*nativeGamepadImpl).device == device
 	}) != nil {
@@ -181,25 +147,25 @@ func (g *nativeGamepadsImpl) addDevice(device C.IOHIDDeviceRef, gamepads *gamepa
 	}
 
 	name := "Unknown"
-	if prop := C.IOHIDDeviceGetProperty(device, C.cfStringRefIOHIDProductKey()); prop != 0 {
-		var cstr [256]C.char
-		C.CFStringGetCString(C.CFStringRef(prop), &cstr[0], C.CFIndex(len(cstr)), C.kCFStringEncodingUTF8)
-		name = C.GoString(&cstr[0])
+	if prop := _IOHIDDeviceGetProperty(_IOHIDDeviceRef(device), _CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDProductKey, kCFStringEncodingUTF8)); prop != 0 {
+		var cstr [256]byte
+		_CFStringGetCString(_CFStringRef(prop), cstr[:], kCFStringEncodingUTF8)
+		name = strings.TrimRight(string(cstr[:]), "\x00")
 	}
 
 	var vendor uint32
-	if prop := C.IOHIDDeviceGetProperty(device, C.cfStringRefIOHIDVendorIDKey()); prop != 0 {
-		C.CFNumberGetValue(C.CFNumberRef(prop), C.kCFNumberSInt32Type, unsafe.Pointer(&vendor))
+	if prop := _IOHIDDeviceGetProperty(_IOHIDDeviceRef(device), _CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDVendorIDKey, kCFStringEncodingUTF8)); prop != 0 {
+		_CFNumberGetValue(_CFNumberRef(prop), kCFNumberSInt32Type, unsafe.Pointer(&vendor))
 	}
 
 	var product uint32
-	if prop := C.IOHIDDeviceGetProperty(device, C.cfStringRefIOHIDProductIDKey()); prop != 0 {
-		C.CFNumberGetValue(C.CFNumberRef(prop), C.kCFNumberSInt32Type, unsafe.Pointer(&product))
+	if prop := _IOHIDDeviceGetProperty(_IOHIDDeviceRef(device), _CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDProductIDKey, kCFStringEncodingUTF8)); prop != 0 {
+		_CFNumberGetValue(_CFNumberRef(prop), kCFNumberSInt32Type, unsafe.Pointer(&product))
 	}
 
 	var version uint32
-	if prop := C.IOHIDDeviceGetProperty(device, C.cfStringRefIOHIDVersionNumberKey()); prop != 0 {
-		C.CFNumberGetValue(C.CFNumberRef(prop), C.kCFNumberSInt32Type, unsafe.Pointer(&version))
+	if prop := _IOHIDDeviceGetProperty(_IOHIDDeviceRef(device), _CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDVersionNumberKey, kCFStringEncodingUTF8)); prop != 0 {
+		_CFNumberGetValue(_CFNumberRef(prop), kCFNumberSInt32Type, unsafe.Pointer(&version))
 	}
 
 	var sdlID string
@@ -217,8 +183,8 @@ func (g *nativeGamepadsImpl) addDevice(device C.IOHIDDeviceRef, gamepads *gamepa
 			bs[0], bs[1], bs[2], bs[3], bs[4], bs[5], bs[6], bs[7], bs[8], bs[9], bs[10], bs[11])
 	}
 
-	elements := C.IOHIDDeviceCopyMatchingElements(device, 0, C.kIOHIDOptionsTypeNone)
-	defer C.CFRelease(C.CFTypeRef(elements))
+	elements := _IOHIDDeviceCopyMatchingElements(device, 0, kIOHIDOptionsTypeNone)
+	defer _CFRelease(_CFTypeRef(elements))
 
 	n := &nativeGamepadImpl{
 		device: device,
@@ -226,71 +192,71 @@ func (g *nativeGamepadsImpl) addDevice(device C.IOHIDDeviceRef, gamepads *gamepa
 	gp := gamepads.add(name, sdlID)
 	gp.native = n
 
-	for i := C.CFIndex(0); i < C.CFArrayGetCount(elements); i++ {
-		native := (C.IOHIDElementRef)(C.CFArrayGetValueAtIndex(elements, i))
-		if C.CFGetTypeID(C.CFTypeRef(native)) != C.IOHIDElementGetTypeID() {
+	for i := _CFIndex(0); i < _CFArrayGetCount(_CFArrayRef(elements)); i++ {
+		native := (_IOHIDElementRef)(_CFArrayGetValueAtIndex(_CFArrayRef(elements), i))
+		if _CFGetTypeID(_CFTypeRef(native)) != _IOHIDElementGetTypeID() {
 			continue
 		}
 
-		typ := C.IOHIDElementGetType(native)
-		if typ != C.kIOHIDElementTypeInput_Axis &&
-			typ != C.kIOHIDElementTypeInput_Button &&
-			typ != C.kIOHIDElementTypeInput_Misc {
+		typ := _IOHIDElementGetType(native)
+		if typ != kIOHIDElementTypeInput_Axis &&
+			typ != kIOHIDElementTypeInput_Button &&
+			typ != kIOHIDElementTypeInput_Misc {
 			continue
 		}
 
-		usage := C.IOHIDElementGetUsage(native)
-		page := C.IOHIDElementGetUsagePage(native)
+		usage := _IOHIDElementGetUsage(native)
+		page := _IOHIDElementGetUsagePage(native)
 
 		switch page {
-		case C.kHIDPage_GenericDesktop:
+		case kHIDPage_GenericDesktop:
 			switch usage {
-			case C.kHIDUsage_GD_X, C.kHIDUsage_GD_Y, C.kHIDUsage_GD_Z,
-				C.kHIDUsage_GD_Rx, C.kHIDUsage_GD_Ry, C.kHIDUsage_GD_Rz,
-				C.kHIDUsage_GD_Slider, C.kHIDUsage_GD_Dial, C.kHIDUsage_GD_Wheel:
+			case kHIDUsage_GD_X, kHIDUsage_GD_Y, kHIDUsage_GD_Z,
+				kHIDUsage_GD_Rx, kHIDUsage_GD_Ry, kHIDUsage_GD_Rz,
+				kHIDUsage_GD_Slider, kHIDUsage_GD_Dial, kHIDUsage_GD_Wheel:
 				n.axes = append(n.axes, element{
 					native:  native,
 					usage:   int(usage),
 					index:   len(n.axes),
-					minimum: int(C.IOHIDElementGetLogicalMin(native)),
-					maximum: int(C.IOHIDElementGetLogicalMax(native)),
+					minimum: int(_IOHIDElementGetLogicalMin(native)),
+					maximum: int(_IOHIDElementGetLogicalMax(native)),
 				})
-			case C.kHIDUsage_GD_Hatswitch:
+			case kHIDUsage_GD_Hatswitch:
 				n.hats = append(n.hats, element{
 					native:  native,
 					usage:   int(usage),
 					index:   len(n.hats),
-					minimum: int(C.IOHIDElementGetLogicalMin(native)),
-					maximum: int(C.IOHIDElementGetLogicalMax(native)),
+					minimum: int(_IOHIDElementGetLogicalMin(native)),
+					maximum: int(_IOHIDElementGetLogicalMax(native)),
 				})
-			case C.kHIDUsage_GD_DPadUp, C.kHIDUsage_GD_DPadRight, C.kHIDUsage_GD_DPadDown, C.kHIDUsage_GD_DPadLeft,
-				C.kHIDUsage_GD_SystemMainMenu, C.kHIDUsage_GD_Select, C.kHIDUsage_GD_Start:
+			case kHIDUsage_GD_DPadUp, kHIDUsage_GD_DPadRight, kHIDUsage_GD_DPadDown, kHIDUsage_GD_DPadLeft,
+				kHIDUsage_GD_SystemMainMenu, kHIDUsage_GD_Select, kHIDUsage_GD_Start:
 				n.buttons = append(n.buttons, element{
 					native:  native,
 					usage:   int(usage),
 					index:   len(n.buttons),
-					minimum: int(C.IOHIDElementGetLogicalMin(native)),
-					maximum: int(C.IOHIDElementGetLogicalMax(native)),
+					minimum: int(_IOHIDElementGetLogicalMin(native)),
+					maximum: int(_IOHIDElementGetLogicalMax(native)),
 				})
 			}
-		case C.kHIDPage_Simulation:
+		case kHIDPage_Simulation:
 			switch usage {
-			case C.kHIDUsage_Sim_Accelerator, C.kHIDUsage_Sim_Brake, C.kHIDUsage_Sim_Throttle, C.kHIDUsage_Sim_Rudder, C.kHIDUsage_Sim_Steering:
+			case kHIDUsage_Sim_Accelerator, kHIDUsage_Sim_Brake, kHIDUsage_Sim_Throttle, kHIDUsage_Sim_Rudder, kHIDUsage_Sim_Steering:
 				n.axes = append(n.axes, element{
 					native:  native,
 					usage:   int(usage),
 					index:   len(n.axes),
-					minimum: int(C.IOHIDElementGetLogicalMin(native)),
-					maximum: int(C.IOHIDElementGetLogicalMax(native)),
+					minimum: int(_IOHIDElementGetLogicalMin(native)),
+					maximum: int(_IOHIDElementGetLogicalMax(native)),
 				})
 			}
-		case C.kHIDPage_Button, C.kHIDPage_Consumer:
+		case kHIDPage_Button, kHIDPage_Consumer:
 			n.buttons = append(n.buttons, element{
 				native:  native,
 				usage:   int(usage),
 				index:   len(n.buttons),
-				minimum: int(C.IOHIDElementGetLogicalMin(native)),
-				maximum: int(C.IOHIDElementGetLogicalMax(native)),
+				minimum: int(_IOHIDElementGetLogicalMin(native)),
+				maximum: int(_IOHIDElementGetLogicalMax(native)),
 			})
 		}
 	}
@@ -301,7 +267,7 @@ func (g *nativeGamepadsImpl) addDevice(device C.IOHIDDeviceRef, gamepads *gamepa
 }
 
 type element struct {
-	native  C.IOHIDElementRef
+	native  _IOHIDElementRef
 	usage   int
 	index   int
 	minimum int
@@ -329,7 +295,7 @@ func (e elements) Swap(i, j int) {
 }
 
 type nativeGamepadImpl struct {
-	device  C.IOHIDDeviceRef
+	device  _IOHIDDeviceRef
 	axes    elements
 	buttons elements
 	hats    elements
@@ -340,11 +306,10 @@ type nativeGamepadImpl struct {
 }
 
 func (g *nativeGamepadImpl) elementValue(e *element) int {
-	var valueRef C.IOHIDValueRef
-	if C.IOHIDDeviceGetValue(g.device, e.native, &valueRef) == C.kIOReturnSuccess {
-		return int(C.IOHIDValueGetIntegerValue(valueRef))
+	var valueRef _IOHIDValueRef
+	if _IOHIDDeviceGetValue(g.device, e.native, &valueRef) == kIOReturnSuccess {
+		return int(_IOHIDValueGetIntegerValue(valueRef))
 	}
-
 	return 0
 }
 
