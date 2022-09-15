@@ -73,7 +73,7 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
 		dict := _CFDictionaryCreate(kCFAllocatorDefault,
 			(*unsafe.Pointer)(unsafe.Pointer(&keys[0])),
 			(*unsafe.Pointer)(unsafe.Pointer(&values[0])),
-			_CFIndex(len(keys)), *(**_CFDictionaryKeyCallBacks)(unsafe.Pointer(&kCFTypeDictionaryKeyCallBacks)), *(**_CFDictionaryValueCallBacks)(unsafe.Pointer(&kCFTypeDictionaryValueCallBacks)))
+			_CFIndex(len(keys)), kCFTypeDictionaryKeyCallBacks, kCFTypeDictionaryValueCallBacks)
 		if dict == 0 {
 			return errors.New("gamepad: CFDictionaryCreate returned nil")
 		}
@@ -84,7 +84,7 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
 
 	matching := _CFArrayCreate(kCFAllocatorDefault,
 		(*unsafe.Pointer)(unsafe.Pointer(&dicts[0])),
-		_CFIndex(len(dicts)), *(**_CFArrayCallBacks)(unsafe.Pointer(&kCFTypeArrayCallBacks)))
+		_CFIndex(len(dicts)), kCFTypeArrayCallBacks)
 	if matching == 0 {
 		return errors.New("gamepad: CFArrayCreateMutable returned nil")
 	}
@@ -99,10 +99,10 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
 	_IOHIDManagerRegisterDeviceMatchingCallback(g.hidManager, ebitenGamepadMatchingCallback, nil)
 	_IOHIDManagerRegisterDeviceRemovalCallback(g.hidManager, ebitenGamepadRemovalCallback, nil)
 
-	_IOHIDManagerScheduleWithRunLoop(g.hidManager, _CFRunLoopGetMain(), **(**_CFStringRef)(unsafe.Pointer(&kCFRunLoopDefaultMode)))
+	_IOHIDManagerScheduleWithRunLoop(g.hidManager, _CFRunLoopGetMain(), kCFRunLoopDefaultMode)
 
 	// Execute the run loop once in order to register any initially-attached gamepads.
-	_CFRunLoopRunInMode(**(**_CFStringRef)(unsafe.Pointer(&kCFRunLoopDefaultMode)), 0, false)
+	_CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0, false)
 
 	return nil
 }

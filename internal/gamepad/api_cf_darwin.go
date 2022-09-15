@@ -1,17 +1,3 @@
-// Copyright 2022 The Ebitengine Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package gamepad
 
 import (
@@ -64,10 +50,10 @@ var (
 	procCFStringGetCString        = purego.Dlsym(corefoundation, "CFStringGetCString")
 	procCFStringCreateWithCString = purego.Dlsym(corefoundation, "CFStringCreateWithCString")
 
-	kCFTypeDictionaryKeyCallBacks   = purego.Dlsym(corefoundation, "kCFTypeDictionaryKeyCallBacks")
-	kCFTypeDictionaryValueCallBacks = purego.Dlsym(corefoundation, "kCFTypeDictionaryValueCallBacks")
-	kCFTypeArrayCallBacks           = purego.Dlsym(corefoundation, "kCFTypeArrayCallBacks")
-	kCFRunLoopDefaultMode           = purego.Dlsym(corefoundation, "kCFRunLoopDefaultMode")
+	kCFTypeDictionaryKeyCallBacks   = (*_CFDictionaryKeyCallBacks)(unsafe.Pointer(purego.Dlsym(corefoundation, "kCFTypeDictionaryKeyCallBacks")))
+	kCFTypeDictionaryValueCallBacks = (*_CFDictionaryValueCallBacks)(unsafe.Pointer(purego.Dlsym(corefoundation, "kCFTypeDictionaryValueCallBacks")))
+	kCFTypeArrayCallBacks           = (*_CFArrayCallBacks)(unsafe.Pointer(purego.Dlsym(corefoundation, "kCFTypeArrayCallBacks")))
+	kCFRunLoopDefaultMode           = *(*_CFRunLoopMode)(unsafe.Pointer(purego.Dlsym(corefoundation, "kCFRunLoopDefaultMode")))
 )
 
 func _CFNumberCreate(allocator _CFAllocatorRef, theType _CFNumberType, valuePtr unsafe.Pointer) _CFNumberRef {
@@ -110,14 +96,14 @@ func _CFRunLoopGetMain() _CFRunLoopRef {
 }
 
 func _CFRunLoopRunInMode(mode _CFRunLoopMode, seconds _CFTimeInterval, returnAfterSourceHandled bool) _CFRunLoopRunResult {
-	var b uintptr
+	var b uintptr = 0
 	if returnAfterSourceHandled {
 		b = 1
 	}
 	if seconds != 0 {
 		panic("corefoundation: seconds greater than 0 is not supported")
 	}
-	// TODO: support floats
+	//TODO: support floats
 	ret, _, _ := purego.SyscallN(procCFRunLoopRunInMode, uintptr(mode), b)
 	return _CFRunLoopRunResult(ret)
 }
