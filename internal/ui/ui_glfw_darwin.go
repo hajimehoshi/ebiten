@@ -42,13 +42,16 @@ func init() {
 	origDelegateOffset := class_EbitengineWindowDelegate.InstanceVariable("origDelegate").Offset()
 	origResizableOffset := class_EbitengineWindowDelegate.InstanceVariable("origResizable").Offset()
 	getOrigDelegate := func(self objc.ID) objc.ID {
-		return *(*objc.ID)(unsafe.Pointer(uintptr(unsafe.Pointer(self)) + origDelegateOffset))
+		selfPtr := *(**uintptr)(unsafe.Pointer(&self))
+		return *(*objc.ID)(unsafe.Pointer(uintptr(unsafe.Pointer(selfPtr)) + origDelegateOffset))
 	}
 	getResizable := func(self objc.ID) bool {
-		return *(*bool)(unsafe.Pointer(uintptr(unsafe.Pointer(self)) + origResizableOffset))
+		selfPtr := *(**uintptr)(unsafe.Pointer(&self))
+		return *(*bool)(unsafe.Pointer(uintptr(unsafe.Pointer(selfPtr)) + origResizableOffset))
 	}
 	setResizable := func(self objc.ID, resizable bool) {
-		*(*bool)(unsafe.Pointer(uintptr(unsafe.Pointer(self)) + origResizableOffset)) = resizable
+		selfPtr := *(**uintptr)(unsafe.Pointer(&self))
+		*(*bool)(unsafe.Pointer(uintptr(unsafe.Pointer(selfPtr)) + origResizableOffset)) = resizable
 	}
 	pushResizableState := func(self, w objc.ID) {
 		window := cocoa.NSWindow{ID: w}
@@ -67,7 +70,8 @@ func init() {
 	class_EbitengineWindowDelegate.AddMethod(objc.RegisterName("initWithOrigDelegate:"), objc.NewIMP(func(self objc.ID, _cmd objc.SEL, origDelegate objc.ID) objc.ID {
 		self = self.SendSuper(objc.RegisterName("init"))
 		if self != 0 {
-			*(*objc.ID)(unsafe.Pointer(uintptr(unsafe.Pointer(self)) + origDelegateOffset)) = origDelegate
+			selfPtr := *(**uintptr)(unsafe.Pointer(&self))
+			*(*objc.ID)(unsafe.Pointer(uintptr(unsafe.Pointer(selfPtr)) + origDelegateOffset)) = origDelegate
 		}
 		return self
 	}), "@@:B")
