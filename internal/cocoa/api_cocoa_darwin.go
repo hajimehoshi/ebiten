@@ -94,7 +94,6 @@ type NSInteger = int
 
 type NSPoint = CGPoint
 type NSRect = CGRect
-type NSSize = CGSize
 
 type NSError struct {
 	objc.ID
