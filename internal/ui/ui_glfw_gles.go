@@ -1,4 +1,4 @@
-// Copyright 2021 The Ebiten Authors
+// Copyright 2022 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,9 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build darwin && ios
-// +build darwin,ios
+//go:build !android && !ios && !js && !nintendosdk && opengles
+// +build !android,!ios,!js,!nintendosdk,opengles
 
-package gamepaddb
+package ui
 
-const isIOS = true
+import (
+	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
+)
+
+func setGLFWClientAPI() {
+	glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLESAPI)
+	glfw.WindowHint(glfw.ContextVersionMajor, 2)
+	glfw.WindowHint(glfw.ContextVersionMinor, 0)
+}

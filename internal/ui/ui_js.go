@@ -82,6 +82,8 @@ type userInterfaceImpl struct {
 
 	lastDeviceScaleFactor float64
 
+	err error
+
 	context *context
 	input   Input
 }
@@ -324,6 +326,10 @@ func (u *userInterfaceImpl) loop(game Game) <-chan error {
 
 	var cf js.Func
 	f := func() {
+		if u.err != nil {
+			errCh <- u.err
+			return
+		}
 		if u.needsUpdate() {
 			u.onceUpdateCalled = true
 			u.renderingScheduled = false
@@ -482,8 +488,9 @@ func init() {
 func setWindowEventHandlers(v js.Value) {
 	v.Call("addEventListener", "resize", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		theUI.updateScreenSize()
-		if err := theUI.updateImpl(true); err != nil {
-			panic(err)
+		if err := theUI.updateImpl(true); err != nil && theUI.err != nil {
+			theUI.err = err
+			return nil
 		}
 		return nil
 	}))
@@ -497,13 +504,19 @@ func setCanvasEventHandlers(v js.Value) {
 
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.updateFromEvent(e)
+		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+			theUI.err = err
+			return nil
+		}
 		return nil
 	}))
 	v.Call("addEventListener", "keyup", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.updateFromEvent(e)
+		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+			theUI.err = err
+			return nil
+		}
 		return nil
 	}))
 
@@ -514,25 +527,37 @@ func setCanvasEventHandlers(v js.Value) {
 
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.updateFromEvent(e)
+		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+			theUI.err = err
+			return nil
+		}
 		return nil
 	}))
 	v.Call("addEventListener", "mouseup", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.updateFromEvent(e)
+		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+			theUI.err = err
+			return nil
+		}
 		return nil
 	}))
 	v.Call("addEventListener", "mousemove", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.updateFromEvent(e)
+		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+			theUI.err = err
+			return nil
+		}
 		return nil
 	}))
 	v.Call("addEventListener", "wheel", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.updateFromEvent(e)
+		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+			theUI.err = err
+			return nil
+		}
 		return nil
 	}))
 
@@ -543,19 +568,28 @@ func setCanvasEventHandlers(v js.Value) {
 
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.updateFromEvent(e)
+		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+			theUI.err = err
+			return nil
+		}
 		return nil
 	}))
 	v.Call("addEventListener", "touchend", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.updateFromEvent(e)
+		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+			theUI.err = err
+			return nil
+		}
 		return nil
 	}))
 	v.Call("addEventListener", "touchmove", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.updateFromEvent(e)
+		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+			theUI.err = err
+			return nil
+		}
 		return nil
 	}))
 
@@ -575,11 +609,11 @@ func setCanvasEventHandlers(v js.Value) {
 	}))
 }
 
-func (u *userInterfaceImpl) forceUpdateOnMinimumFPSMode() {
+func (u *userInterfaceImpl) forceUpdateOnMinimumFPSMode() error {
 	if u.fpsMode != FPSModeVsyncOffMinimum {
-		return
+		return nil
 	}
-	u.updateImpl(true)
+	return u.updateImpl(true)
 }
 
 func (u *userInterfaceImpl) Run(game Game) error {

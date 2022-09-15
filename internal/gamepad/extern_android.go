@@ -18,14 +18,7 @@
 package gamepad
 
 import (
-	"fmt"
-)
-
-type AndroidHatDirection int
-
-const (
-	AndroidHatDirectionX AndroidHatDirection = iota
-	AndroidHatDirectionY
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
 func AddAndroidGamepad(androidDeviceID int, name, sdlID string, axisCount, hatCount int) {
@@ -44,8 +37,8 @@ func UpdateAndroidGamepadButton(androidDeviceID int, button Button, pressed bool
 	theGamepads.updateAndroidGamepadButton(androidDeviceID, button, pressed)
 }
 
-func UpdateAndroidGamepadHat(androidDeviceID int, hat int, dir AndroidHatDirection, value int) {
-	theGamepads.updateAndroidGamepadHat(androidDeviceID, hat, dir, value)
+func UpdateAndroidGamepadHat(androidDeviceID int, hat int, xValue, yValue int) {
+	theGamepads.updateAndroidGamepadHat(androidDeviceID, hat, xValue, yValue)
 }
 
 func (g *gamepads) addAndroidGamepad(androidDeviceID int, name, sdlID string, axisCount, hatCount int) {
@@ -56,7 +49,7 @@ func (g *gamepads) addAndroidGamepad(androidDeviceID int, name, sdlID string, ax
 	gp.native = &nativeGamepadImpl{
 		androidDeviceID: androidDeviceID,
 		axes:            make([]float64, axisCount),
-		buttons:         make([]bool, ButtonCount),
+		buttons:         make([]bool, gamepaddb.SDLControllerButtonMax+1),
 		hats:            make([]int, hatCount),
 	}
 }
@@ -96,7 +89,7 @@ func (g *gamepads) updateAndroidGamepadButton(androidDeviceID int, button Button
 	gp.updateAndroidGamepadButton(button, pressed)
 }
 
-func (g *gamepads) updateAndroidGamepadHat(androidDeviceID int, hat int, dir AndroidHatDirection, value int) {
+func (g *gamepads) updateAndroidGamepadHat(androidDeviceID int, hat int, xValue, yValue int) {
 	g.m.Lock()
 	defer g.m.Unlock()
 
@@ -106,7 +99,7 @@ func (g *gamepads) updateAndroidGamepadHat(androidDeviceID int, hat int, dir And
 	if gp == nil {
 		return
 	}
-	gp.updateAndroidGamepadHat(hat, dir, value)
+	gp.updateAndroidGamepadHat(hat, xValue, yValue)
 }
 
 func (g *Gamepad) updateAndroidGamepadAxis(axis int, value float64) {
@@ -131,7 +124,7 @@ func (g *Gamepad) updateAndroidGamepadButton(button Button, pressed bool) {
 	n.buttons[button] = pressed
 }
 
-func (g *Gamepad) updateAndroidGamepadHat(hat int, dir AndroidHatDirection, value int) {
+func (g *Gamepad) updateAndroidGamepadHat(hat int, xValue, yValue int) {
 	g.m.Lock()
 	defer g.m.Unlock()
 
@@ -139,32 +132,25 @@ func (g *Gamepad) updateAndroidGamepadHat(hat int, dir AndroidHatDirection, valu
 	if hat < 0 || hat >= len(n.hats) {
 		return
 	}
-	v := n.hats[hat]
-	switch dir {
-	case AndroidHatDirectionX:
-		switch {
-		case value < 0:
-			v |= hatLeft
-			v &^= hatRight
-		case value > 0:
-			v &^= hatLeft
-			v |= hatRight
-		default:
-			v &^= (hatLeft | hatRight)
-		}
-	case AndroidHatDirectionY:
-		switch {
-		case value < 0:
-			v |= hatUp
-			v &^= hatDown
-		case value > 0:
-			v &^= hatUp
-			v |= hatDown
-		default:
-			v &^= (hatUp | hatDown)
-		}
-	default:
-		panic(fmt.Sprintf("gamepad: invalid direction: %d", dir))
+	var v int
+	switch {
+	case xValue < 0:
+		v |= hatLeft
+	case xValue > 0:
+		v |= hatRight
+	}
+	switch {
+	case yValue < 0:
+		v |= hatUp
+	case yValue > 0:
+		v |= hatDown
 	}
 	n.hats[hat] = v
+
+	// Update the gamepad buttons in addition to hats.
+	// See https://github.com/libsdl-org/SDL/blob/47f2373dc13b66c48bf4024fcdab53cd0bdd59bb/src/joystick/android/SDL_sysjoystick.c#L290-L301
+	n.buttons[gamepaddb.SDLControllerButtonDpadLeft] = v&hatLeft != 0
+	n.buttons[gamepaddb.SDLControllerButtonDpadRight] = v&hatRight != 0
+	n.buttons[gamepaddb.SDLControllerButtonDpadUp] = v&hatUp != 0
+	n.buttons[gamepaddb.SDLControllerButtonDpadDown] = v&hatDown != 0
 }

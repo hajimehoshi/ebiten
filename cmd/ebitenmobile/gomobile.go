@@ -15,13 +15,16 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 )
+
+//go:embed gobind.go
+var gobind_go []byte
 
 const gomobileHash = "aaac322e2105241d1ac9a25b03d4e916ac6e42c6"
 
@@ -62,12 +65,7 @@ func removeAll(path string) error {
 }
 
 func runGo(args ...string) error {
-	// TODO: Remove this after Ebitengine drops the support of Go 1.15 and older.
-	// GO111MODULE is on by default as of Go 1.16.
-	env := []string{
-		"GO111MODULE=on",
-	}
-	return runCommand("go", args, env)
+	return runCommand("go", args, nil)
 }
 
 // exe adds the .exe extension to the given filename.
@@ -80,7 +78,7 @@ func exe(filename string) string {
 }
 
 func prepareGomobileCommands() (string, error) {
-	tmp, err := ioutil.TempDir("", "ebitenmobile-")
+	tmp, err := os.MkdirTemp("", "ebitenmobile-")
 	if err != nil {
 		return "", err
 	}
@@ -111,7 +109,7 @@ func prepareGomobileCommands() (string, error) {
 		return tmp, err
 	}
 	defer func() {
-		os.Chdir(pwd)
+		_ = os.Chdir(pwd)
 	}()
 
 	const (
@@ -122,7 +120,7 @@ func prepareGomobileCommands() (string, error) {
 	if err := runGo("mod", "init", modname); err != nil {
 		return tmp, err
 	}
-	if err := ioutil.WriteFile("tools.go", []byte(fmt.Sprintf(`%s
+	if err := os.WriteFile("tools.go", []byte(fmt.Sprintf(`%s
 
 package %s
 
@@ -161,7 +159,7 @@ import (
 	if err := os.Mkdir("src", 0755); err != nil {
 		return tmp, err
 	}
-	if err := ioutil.WriteFile(filepath.Join("src", "gobind.go"), gobindsrc, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join("src", "gobind.go"), gobind_go, 0644); err != nil {
 		return tmp, err
 	}
 

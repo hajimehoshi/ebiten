@@ -19,7 +19,7 @@ package gamepad
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -77,7 +77,7 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
 		g.watch = watch
 	}
 
-	ents, err := ioutil.ReadDir(dirName)
+	ents, err := os.ReadDir(dirName)
 	if err != nil {
 		return fmt.Errorf("gamepad: ReadDir(%s) failed: %w", dirName, err)
 	}
@@ -120,7 +120,7 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 	}
 	defer func() {
 		if err != nil {
-			unix.Close(fd)
+			_ = unix.Close(fd)
 		}
 	}()
 
@@ -142,11 +142,17 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 	}
 
 	if !isBitSet(evBits, unix.EV_KEY) {
-		unix.Close(fd)
+		if err := unix.Close(fd); err != nil {
+			return err
+		}
+
 		return nil
 	}
 	if !isBitSet(evBits, unix.EV_ABS) {
-		unix.Close(fd)
+		if err := unix.Close(fd); err != nil {
+			return err
+		}
+
 		return nil
 	}
 
@@ -294,7 +300,7 @@ type nativeGamepadImpl struct {
 
 func (g *nativeGamepadImpl) close() {
 	if g.fd != 0 {
-		unix.Close(g.fd)
+		_ = unix.Close(g.fd)
 	}
 	g.fd = 0
 }
@@ -337,7 +343,9 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) error {
 				g.dropped = true
 			case _SYN_REPORT:
 				g.dropped = false
-				g.pollAbsState()
+				if err := g.pollAbsState(); err != nil {
+					return fmt.Errorf("gamepad: poll absolute state: %w", err)
+				}
 			}
 		}
 		if g.dropped {

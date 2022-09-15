@@ -801,13 +801,7 @@ func TestAllowWritePixelsAfterDrawTriangles(t *testing.T) {
 	// WritePixels for a whole image doesn't panic.
 }
 
-func TestDisallowWritePixelsForPartAfterDrawTriangles(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("WritePixels for a part after DrawTriangles must panic but not")
-		}
-	}()
-
+func TestAllowWritePixelsForPartAfterDrawTriangles(t *testing.T) {
 	const w, h = 16, 16
 	src := restorable.NewImage(w, h, restorable.ImageTypeRegular)
 	dst := restorable.NewImage(w, h, restorable.ImageTypeRegular)
@@ -822,6 +816,7 @@ func TestDisallowWritePixelsForPartAfterDrawTriangles(t *testing.T) {
 	}
 	dst.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{src}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
 	dst.WritePixels(make([]byte, 4), 0, 0, 1, 1)
+	// WritePixels for a part of image doesn't panic.
 }
 
 func TestExtend(t *testing.T) {
@@ -1076,5 +1071,32 @@ func TestOverlappedPixels(t *testing.T) {
 				t.Errorf("color at (%d, %d): got %v, want: %v", i, j, got, want)
 			}
 		}
+	}
+}
+
+// Issue #2324
+func TestDrawTrianglesAndReadPixels(t *testing.T) {
+	const w, h = 1, 1
+	src := restorable.NewImage(w, h, restorable.ImageTypeRegular)
+	dst := restorable.NewImage(w, h, restorable.ImageTypeRegular)
+
+	src.WritePixels([]byte{0x80, 0x80, 0x80, 0x80}, 0, 0, 1, 1)
+
+	vs := quadVertices(src, w, h, 0, 0)
+	is := graphics.QuadIndices()
+	dr := graphicsdriver.Region{
+		X:      0,
+		Y:      0,
+		Width:  w,
+		Height: h,
+	}
+	dst.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{src}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
+
+	pix := make([]byte, 4*w*h)
+	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix, 0, 0, w, h); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := (color.RGBA{pix[0], pix[1], pix[2], pix[3]}), (color.RGBA{0x80, 0x80, 0x80, 0x80}); !sameColors(got, want, 1) {
+		t.Errorf("got: %v, want: %v", got, want)
 	}
 }

@@ -23,7 +23,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -117,7 +116,7 @@ func main() {
 	flagset.StringVar(&bindClasspath, "classpath", "", "")
 	flagset.StringVar(&bindBootClasspath, "bootclasspath", "", "")
 
-	flagset.Parse(args[1:])
+	_ = flagset.Parse(args[1:])
 
 	buildTarget, err := osFromBuildTarget(buildTarget)
 	if err != nil {
@@ -136,7 +135,7 @@ func main() {
 	dir, err := prepareGomobileCommands()
 	defer func() {
 		if dir != "" && !buildWork {
-			removeAll(dir)
+			_ = removeAll(dir)
 		}
 	}()
 	if err != nil {
@@ -225,7 +224,9 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 		if err != nil {
 			return err
 		}
-		defer f.Close()
+		defer func() {
+			_ = f.Close()
+		}()
 
 		names, err := f.Readdirnames(-1)
 		if err != nil {
@@ -244,13 +245,13 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 			frameworkNameBase = strings.Title(frameworkNameBase)
 			dir := filepath.Join(buildO, name, frameworkNameBase+".framework", "Versions", "A")
 
-			if err := ioutil.WriteFile(filepath.Join(dir, "Headers", prefixUpper+"EbitenViewController.h"), []byte(replacePrefixes(objcH)), 0644); err != nil {
+			if err := os.WriteFile(filepath.Join(dir, "Headers", prefixUpper+"EbitenViewController.h"), []byte(replacePrefixes(objcH)), 0644); err != nil {
 				return err
 			}
 			// TODO: Remove 'Ebitenmobileview.objc.h' here. Now it is hard since there is a header file importing
 			// that header file.
 
-			fs, err := ioutil.ReadDir(filepath.Join(dir, "Headers"))
+			fs, err := os.ReadDir(filepath.Join(dir, "Headers"))
 			if err != nil {
 				return err
 			}
@@ -265,7 +266,9 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 			if err != nil {
 				return err
 			}
-			defer w.Close()
+			defer func() {
+				_ = w.Close()
+			}()
 			var mmVals = struct {
 				Module  string
 				Headers []string

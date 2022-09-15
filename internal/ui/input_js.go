@@ -192,7 +192,7 @@ func (i *Input) mouseUp(code int) {
 	i.mouseButtonPressed[code] = false
 }
 
-func (i *Input) updateFromEvent(e js.Value) {
+func (i *Input) updateFromEvent(e js.Value) error {
 	// Avoid using js.Value.String() as String creates a Uint8Array via a TextEncoder and causes a heavy
 	// overhead (#1437).
 	switch t := e.Get("type"); {
@@ -208,7 +208,7 @@ func (i *Input) updateFromEvent(e js.Value) {
 		c := e.Get("code")
 		if c.Type() != js.TypeString {
 			i.keyDownEdge(e.Get("keyCode").Int())
-			return
+			return nil
 		}
 		i.keyDown(c)
 	case t.Equal(stringKeyup):
@@ -216,7 +216,7 @@ func (i *Input) updateFromEvent(e js.Value) {
 		if c.Type() != js.TypeString {
 			// Assume that UA is Edge.
 			i.keyUpEdge(e.Get("keyCode").Int())
-			return
+			return nil
 		}
 		i.keyUp(c)
 	case t.Equal(stringMousedown):
@@ -237,7 +237,7 @@ func (i *Input) updateFromEvent(e js.Value) {
 		i.updateTouchesFromEvent(e)
 	}
 
-	i.ui.forceUpdateOnMinimumFPSMode()
+	return i.ui.forceUpdateOnMinimumFPSMode()
 }
 
 func (i *Input) setMouseCursorFromEvent(e js.Value) {

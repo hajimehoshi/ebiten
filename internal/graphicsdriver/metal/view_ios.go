@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ios
-// +build ios
-
 package metal
 
 // Suppress the warnings about availability guard with -Wno-unguarded-availability-new.

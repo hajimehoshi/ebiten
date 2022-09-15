@@ -612,7 +612,7 @@ func (g *nativeGamepadDesktop) update(gamepads *gamepads) (err error) {
 				return err
 			}
 			// Acquire can return an error just after a gamepad is disconnected. Ignore the error.
-			g.dinputDevice.Acquire()
+			_ = g.dinputDevice.Acquire()
 			if err := g.dinputDevice.Poll(); err != nil {
 				if !errors.Is(err, directInputError(_DIERR_NOTACQUIRED)) && !errors.Is(err, directInputError(_DIERR_INPUTLOST)) {
 					return err

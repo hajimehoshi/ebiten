@@ -334,7 +334,7 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 		// Read back context flags (OpenGL 3.0 and above)
 		if w.context.major >= 3 {
 			var flags int32
-			syscall.Syscall(getIntegerv, 2, GL_CONTEXT_FLAGS, uintptr(unsafe.Pointer(&flags)), 0)
+			_, _, _ = syscall.Syscall(getIntegerv, 2, GL_CONTEXT_FLAGS, uintptr(unsafe.Pointer(&flags)), 0)
 
 			if flags&GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT != 0 {
 				w.context.forward = true
@@ -363,7 +363,7 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 		// Read back OpenGL context profile (OpenGL 3.2 and above)
 		if w.context.major >= 4 || (w.context.major == 3 && w.context.minor >= 2) {
 			var mask int32
-			syscall.Syscall(getIntegerv, 2, GL_CONTEXT_PROFILE_MASK, uintptr(unsafe.Pointer(&mask)), 0)
+			_, _, _ = syscall.Syscall(getIntegerv, 2, GL_CONTEXT_PROFILE_MASK, uintptr(unsafe.Pointer(&mask)), 0)
 
 			if mask&GL_CONTEXT_COMPATIBILITY_PROFILE_BIT != 0 {
 				w.context.profile = OpenGLCompatProfile
@@ -394,7 +394,7 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 			//       only present from 3.0 while the extension applies from 1.1
 
 			var strategy int32
-			syscall.Syscall(getIntegerv, 2, GL_RESET_NOTIFICATION_STRATEGY_ARB, uintptr(unsafe.Pointer(&strategy)), 0)
+			_, _, _ = syscall.Syscall(getIntegerv, 2, GL_RESET_NOTIFICATION_STRATEGY_ARB, uintptr(unsafe.Pointer(&strategy)), 0)
 
 			if strategy == GL_LOSE_CONTEXT_ON_RESET_ARB {
 				w.context.robustness = LoseContextOnReset
@@ -413,7 +413,7 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 			//       one, so we can reuse them here
 
 			var strategy int32
-			syscall.Syscall(getIntegerv, 2, GL_RESET_NOTIFICATION_STRATEGY_ARB, uintptr(unsafe.Pointer(&strategy)), 0)
+			_, _, _ = syscall.Syscall(getIntegerv, 2, GL_RESET_NOTIFICATION_STRATEGY_ARB, uintptr(unsafe.Pointer(&strategy)), 0)
 
 			if strategy == GL_LOSE_CONTEXT_ON_RESET_ARB {
 				w.context.robustness = LoseContextOnReset
@@ -429,7 +429,7 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 	}
 	if ok {
 		var behavior int32
-		syscall.Syscall(getIntegerv, 2, GL_CONTEXT_RELEASE_BEHAVIOR, uintptr(unsafe.Pointer(&behavior)), 0)
+		_, _, _ = syscall.Syscall(getIntegerv, 2, GL_CONTEXT_RELEASE_BEHAVIOR, uintptr(unsafe.Pointer(&behavior)), 0)
 
 		if behavior == GL_NONE {
 			w.context.release = ReleaseBehaviorNone
@@ -441,10 +441,12 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 	// Clearing the front buffer to black to avoid garbage pixels left over from
 	// previous uses of our bit of VRAM
 	glClear := w.context.getProcAddress("glClear")
-	syscall.Syscall(glClear, 1, GL_COLOR_BUFFER_BIT, 0, 0)
+	_, _, _ = syscall.Syscall(glClear, 1, GL_COLOR_BUFFER_BIT, 0, 0)
 
 	if w.doublebuffer {
-		w.context.swapBuffers(w)
+		if err := w.context.swapBuffers(w); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -551,7 +553,7 @@ func ExtensionSupported(extension string) (bool, error) {
 
 		glGetIntegerv := window.context.getProcAddress("glGetIntegerv")
 		var count int32
-		syscall.Syscall(glGetIntegerv, 2, GL_NUM_EXTENSIONS, uintptr(unsafe.Pointer(&count)), 0)
+		_, _, _ = syscall.Syscall(glGetIntegerv, 2, GL_NUM_EXTENSIONS, uintptr(unsafe.Pointer(&count)), 0)
 
 		glGetStringi := window.context.getProcAddress("glGetStringi")
 		for i := 0; i < int(count); i++ {
