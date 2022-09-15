@@ -110,7 +110,7 @@ func _CFRunLoopGetMain() _CFRunLoopRef {
 }
 
 func _CFRunLoopRunInMode(mode _CFRunLoopMode, seconds _CFTimeInterval, returnAfterSourceHandled bool) _CFRunLoopRunResult {
-	var b uintptr = 0
+	var b uintptr
 	if returnAfterSourceHandled {
 		b = 1
 	}

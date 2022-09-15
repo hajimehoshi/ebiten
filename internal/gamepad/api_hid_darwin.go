@@ -79,8 +79,8 @@ type _IOHIDManagerRef uintptr
 type _IOHIDDeviceRef uintptr
 type _IOHIDElementRef uintptr
 type _IOHIDValueRef uintptr
-type _IOReturn int
-type _IOHIDElementType uint
+type _IOReturn int32
+type _IOHIDElementType uint32
 
 type _IOHIDDeviceCallback func(context unsafe.Pointer, result _IOReturn, sender unsafe.Pointer, device _IOHIDDeviceRef)
 
