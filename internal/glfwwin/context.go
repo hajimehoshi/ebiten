@@ -17,8 +17,6 @@ import (
 	"unsafe"
 
 	"github.com/ebitengine/purego"
-
-	"golang.org/x/sys/windows"
 )
 
 func checkValidContextConfig(ctxconfig *ctxconfig) error {
@@ -276,7 +274,7 @@ func (w *Window) refreshContextAttribs(ctxconfig *ctxconfig) (ferr error) {
 	}
 
 	r, _, _ := purego.SyscallN(getString, 1, GL_VERSION, 0, 0)
-	version := windows.BytePtrToString((*byte)(unsafe.Pointer(r)))
+	version := GoString(r)
 	if version == "" {
 		if ctxconfig.client == OpenGLAPI {
 			return fmt.Errorf("glfwwin: OpenGL version string retrieval is broken: %w", PlatformError)
@@ -566,7 +564,7 @@ func ExtensionSupported(extension string) (bool, error) {
 				return false, fmt.Errorf("glfwwin: extension string retrieval is broken: %w", PlatformError)
 			}
 
-			en := windows.BytePtrToString((*byte)(unsafe.Pointer(r)))
+			en := GoString(r)
 			if en == extension {
 				return true, nil
 			}
@@ -580,7 +578,7 @@ func ExtensionSupported(extension string) (bool, error) {
 			return false, fmt.Errorf("glfwwin: extension string retrieval is broken: %w", PlatformError)
 		}
 
-		extensions := windows.BytePtrToString((*byte)(unsafe.Pointer(r)))
+		extensions := GoString(r)
 		for _, str := range strings.Split(extensions, " ") {
 			if str == extension {
 				return true, nil

@@ -1865,3 +1865,7 @@ func _WindowFromPoint(point _POINT) windows.HWND {
 	}
 	return windows.HWND(r)
 }
+
+func GoString(p uintptr) string {
+	return windows.BytePtrToString((*byte)(unsafe.Pointer(p)))
+}

@@ -14,10 +14,16 @@
 
 package glfw
 
+import (
+	"github.com/hajimehoshi/ebiten/v2/internal/glfwwin"
+)
+
 func (w *Window) GetCocoaWindow() uintptr {
-	return uintptr(w.w.GetCocoaWindow())
+	r, _ := (*glfwwin.Window)(w).GetCocoaWindow()
+	return uintptr(r)
 }
 
 func (m *Monitor) GetCocoaMonitor() uintptr {
-	return m.m.GetCocoaMonitor()
+	r, _ := (*glfwwin.Monitor)(m).GetCocoaMonitor()
+	return uintptr(r)
 }

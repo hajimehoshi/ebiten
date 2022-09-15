@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build darwin || windows
+// +build darwin windows
+
 package glfw
 
 import (
