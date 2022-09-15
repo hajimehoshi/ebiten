@@ -117,7 +117,7 @@ func _CFRunLoopRunInMode(mode _CFRunLoopMode, seconds _CFTimeInterval, returnAft
 	if seconds != 0 {
 		panic("corefoundation: seconds greater than 0 is not supported")
 	}
-	//TODO: support floats
+	// TODO: support floats
 	ret, _, _ := purego.SyscallN(procCFRunLoopRunInMode, uintptr(mode), b)
 	return _CFRunLoopRunResult(ret)
 }
