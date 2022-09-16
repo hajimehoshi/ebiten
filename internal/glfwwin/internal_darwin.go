@@ -33,21 +33,23 @@ type platformCursorState struct {
 }
 
 type platformTLSState struct {
+	allocated bool
+	key       pthread_key
 }
 
 type platformLibraryState struct {
 	//    CGEventSourceRef    eventSource;
-	//    id                  delegate;
+	delegate objc.ID
 	//    GLFWbool            cursorHidden;
 	//    TISInputSourceRef   inputSource;
 	//    IOHIDManagerRef     hidManager;
 	//    id                  unicodeData;
-	//    id                  helper;
+	helper objc.ID
 	//    id                  keyUpMonitor;
 	//    id                  nibObjects;
 	//
 	//    char                keynames[GLFW_KEY_LAST + 1][17];
-	//    short int           keycodes[256];
+	keycodes  [256]Key
 	scancodes [KeyLast + 1]int
 	//    short int           scancodes[GLFW_KEY_LAST + 1];
 	//    char*               clipboardString;

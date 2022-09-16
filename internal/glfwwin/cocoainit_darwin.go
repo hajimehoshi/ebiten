@@ -1,27 +1,97 @@
 package glfwwin
 
-func platformInit() error {
-	panic("NOT IMPLEMENTED")
-	//@autoreleasepool {
+import (
+	"fmt"
+	"github.com/ebitengine/purego/objc"
+	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
+	"log"
+)
+
+var (
+	class_GLFWHelper              objc.Class
+	class_GLFWApplicationDelegate objc.Class
+)
+var sel_doNothing = objc.RegisterName("doNothing:")
+
+func init() {
+	class_GLFWHelper = objc.AllocateClassPair(objc.GetClass("NSObject"), "GLFWHelper", 0)
+	// TODO: implement this
+	//- (void)selectedKeyboardInputSourceChanged:(NSObject* )object
+	//{
+	//    updateUnicodeData();
+	//}
+	class_GLFWHelper.AddMethod(sel_doNothing, objc.NewIMP(func(self objc.ID, cmd objc.SEL, object objc.ID) {
+		// does nothing :)
+	}), "v@:@")
+	class_GLFWHelper.Register()
+	class_GLFWApplicationDelegate = objc.AllocateClassPair(objc.GetClass("NSObject"), "GLFWApplicationDelegate", 0)
+	class_GLFWApplicationDelegate.AddProtocol(objc.GetProtocol("NSApplicationDelegate"))
+	// TODO: implement these
+	//- (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender
+	//{
+	//    for (_GLFWwindow* window = _glfw.windowListHead;  window;  window = window->next)
+	//        _glfwInputWindowCloseRequest(window);
 	//
-	//    _glfw.ns.helper = [[GLFWHelper alloc] init];
+	//    return NSTerminateCancel;
+	//}
 	//
-	//    [NSThread detachNewThreadSelector:@selector(doNothing:)
-	//                             toTarget:_glfw.ns.helper
-	//                           withObject:nil];
-	//
-	//    [NSApplication sharedApplication];
-	//
-	//    _glfw.ns.delegate = [[GLFWApplicationDelegate alloc] init];
-	//    if (_glfw.ns.delegate == nil)
+	//- (void)applicationDidChangeScreenParameters:(NSNotification *) notification
+	//{
+	//    for (_GLFWwindow* window = _glfw.windowListHead;  window;  window = window->next)
 	//    {
-	//        _glfwInputError(GLFW_PLATFORM_ERROR,
-	//                        "Cocoa: Failed to create application delegate");
-	//        return GLFW_FALSE;
+	//        if (window->context.client != NO_API)
+	//            [window->context.nsgl.object update];
 	//    }
 	//
-	//    [NSApp setDelegate:_glfw.ns.delegate];
+	//    _glfwPollMonitorsCocoa();
+	//}
 	//
+	//- (void)applicationWillFinishLaunching:(NSNotification *)notification
+	//{
+	//    if (_glfw.hints.init.state.menubar)
+	//    {
+	//        // Menu bar setup must go between sharedApplication and finishLaunching
+	//        // in order to properly emulate the behavior of NSApplicationMain
+	//
+	//        if ([[NSBundle mainBundle] pathForResource:@"MainMenu" ofType:@"nib"])
+	//        {
+	//            [[NSBundle mainBundle] loadNibNamed:@"MainMenu"
+	//                                          owner:NSApp
+	//                                topLevelObjects:&_glfw.state.nibObjects];
+	//        }
+	//        else
+	//            createMenuBar();
+	//    }
+	//}
+	//
+	//- (void)applicationDidFinishLaunching:(NSNotification *)notification
+	//{
+	//    _glfwPostEmptyEventCocoa();
+	//    [NSApp stop:nil];
+	//}
+	//
+	//- (void)applicationDidHide:(NSNotification *)notification
+	//{
+	//    for (int i = 0;  i < _glfw.monitorCount;  i++)
+	//        _glfwRestoreVideoModeCocoa(_glfw.monitors[i]);
+	//}
+	class_GLFWApplicationDelegate.Register()
+}
+
+func platformInit() error {
+	pool := cocoa.NSAutoreleasePool_new()
+	_glfw.state.helper = objc.ID(class_GLFWHelper).Send(sel_alloc).Send(sel_init)
+	cocoa.NSThread_detachNewThreadSelectorToTargetWithObject(sel_doNothing, _glfw.state.helper, 0)
+
+	NSApp := cocoa.NSApplication_sharedApplication()
+
+	_glfw.state.delegate = objc.ID(class_GLFWApplicationDelegate).Send(sel_alloc).Send(sel_init)
+	if _glfw.state.delegate == 0 {
+		return fmt.Errorf("cocoa: failed to create application delegate")
+	}
+
+	NSApp.SetDelegate(_glfw.state.delegate)
+	log.Println("platformInit: todo...")
 	//    NSEvent* (^block)(NSEvent*) = ^ NSEvent* (NSEvent* event)
 	//    {
 	//        if ([event modifierFlags] & NSEventModifierFlagCommand)
@@ -30,11 +100,11 @@ func platformInit() error {
 	//        return event;
 	//    };
 	//
-	//    _glfw.ns.keyUpMonitor =
+	//    _glfw.state.keyUpMonitor =
 	//        [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyUp
 	//                                              handler:block];
 	//
-	//    if (_glfw.hints.init.ns.chdir)
+	//    if (_glfw.hints.init.state.chdir)
 	//        changeToResourcesDirectory();
 	//
 	//    // Press and Hold prevents some keys from emitting repeated characters
@@ -42,21 +112,21 @@ func platformInit() error {
 	//    [[NSUserDefaults standardUserDefaults] registerDefaults:defaults];
 	//
 	//    [[NSNotificationCenter defaultCenter]
-	//        addObserver:_glfw.ns.helper
+	//        addObserver:_glfw.state.helper
 	//           selector:@selector(selectedKeyboardInputSourceChanged:)
 	//               name:NSTextInputContextKeyboardSelectionDidChangeNotification
 	//             object:nil];
+
+	createKeyTables()
+
+	//    _glfw.state.eventSource = CGEventSourceCreate(kCGEventSourceStateHIDSystemState);
+	//    if (!_glfw.state.eventSource)
+	//        return FALSE;
 	//
-	//    createKeyTables();
-	//
-	//    _glfw.ns.eventSource = CGEventSourceCreate(kCGEventSourceStateHIDSystemState);
-	//    if (!_glfw.ns.eventSource)
-	//        return GLFW_FALSE;
-	//
-	//    CGEventSourceSetLocalEventsSuppressionInterval(_glfw.ns.eventSource, 0.0);
+	//    CGEventSourceSetLocalEventsSuppressionInterval(_glfw.state.eventSource, 0.0);
 	//
 	//    if (!initializeTIS())
-	//        return GLFW_FALSE;
+	//        return FALSE;
 	//
 	//    _glfwPollMonitorsCocoa();
 	//
@@ -64,58 +134,188 @@ func platformInit() error {
 	//        [NSApp run];
 	//
 	//    // In case we are unbundled, make us a proper UI application
-	//    if (_glfw.hints.init.ns.menubar)
+	//    if (_glfw.hints.init.state.menubar)
 	//        [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
-	//
-	//    return GLFW_TRUE;
-	//
-	//    } // autoreleasepool
+	pool.Release()
+	return nil
 }
 
 func platformTerminate() error {
 	panic("NOT IMPLEMENTED")
 	//@autoreleasepool {
 	//
-	//    if (_glfw.ns.inputSource)
+	//    if (_glfw.state.inputSource)
 	//    {
-	//        CFRelease(_glfw.ns.inputSource);
-	//        _glfw.ns.inputSource = NULL;
-	//        _glfw.ns.unicodeData = nil;
+	//        CFRelease(_glfw.state.inputSource);
+	//        _glfw.state.inputSource = NULL;
+	//        _glfw.state.unicodeData = nil;
 	//    }
 	//
-	//    if (_glfw.ns.eventSource)
+	//    if (_glfw.state.eventSource)
 	//    {
-	//        CFRelease(_glfw.ns.eventSource);
-	//        _glfw.ns.eventSource = NULL;
+	//        CFRelease(_glfw.state.eventSource);
+	//        _glfw.state.eventSource = NULL;
 	//    }
 	//
-	//    if (_glfw.ns.delegate)
+	//    if (_glfw.state.delegate)
 	//    {
 	//        [NSApp setDelegate:nil];
-	//        [_glfw.ns.delegate release];
-	//        _glfw.ns.delegate = nil;
+	//        [_glfw.state.delegate release];
+	//        _glfw.state.delegate = nil;
 	//    }
 	//
-	//    if (_glfw.ns.helper)
+	//    if (_glfw.state.helper)
 	//    {
 	//        [[NSNotificationCenter defaultCenter]
-	//            removeObserver:_glfw.ns.helper
+	//            removeObserver:_glfw.state.helper
 	//                      name:NSTextInputContextKeyboardSelectionDidChangeNotification
 	//                    object:nil];
 	//        [[NSNotificationCenter defaultCenter]
-	//            removeObserver:_glfw.ns.helper];
-	//        [_glfw.ns.helper release];
-	//        _glfw.ns.helper = nil;
+	//            removeObserver:_glfw.state.helper];
+	//        [_glfw.state.helper release];
+	//        _glfw.state.helper = nil;
 	//    }
 	//
-	//    if (_glfw.ns.keyUpMonitor)
-	//        [NSEvent removeMonitor:_glfw.ns.keyUpMonitor];
+	//    if (_glfw.state.keyUpMonitor)
+	//        [NSEvent removeMonitor:_glfw.state.keyUpMonitor];
 	//
-	//    _glfw_free(_glfw.ns.clipboardString);
+	//    _glfw_free(_glfw.state.clipboardString);
 	//
 	//    _glfwTerminateNSGL();
 	//    _glfwTerminateEGL();
 	//    _glfwTerminateOSMesa();
 	//
 	//    } // autoreleasepool
+}
+
+// Create key code translation tables
+func createKeyTables() {
+	for i := range _glfw.state.keycodes {
+		_glfw.state.keycodes[i] = -1
+	}
+	for i := range _glfw.state.scancodes {
+		_glfw.state.scancodes[i] = -1
+	}
+
+	_glfw.state.keycodes[0x1D] = Key0
+	_glfw.state.keycodes[0x12] = Key1
+	_glfw.state.keycodes[0x13] = Key2
+	_glfw.state.keycodes[0x14] = Key3
+	_glfw.state.keycodes[0x15] = Key4
+	_glfw.state.keycodes[0x17] = Key5
+	_glfw.state.keycodes[0x16] = Key6
+	_glfw.state.keycodes[0x1A] = Key7
+	_glfw.state.keycodes[0x1C] = Key8
+	_glfw.state.keycodes[0x19] = Key9
+	_glfw.state.keycodes[0x00] = KeyA
+	_glfw.state.keycodes[0x0B] = KeyB
+	_glfw.state.keycodes[0x08] = KeyC
+	_glfw.state.keycodes[0x02] = KeyD
+	_glfw.state.keycodes[0x0E] = KeyE
+	_glfw.state.keycodes[0x03] = KeyF
+	_glfw.state.keycodes[0x05] = KeyG
+	_glfw.state.keycodes[0x04] = KeyH
+	_glfw.state.keycodes[0x22] = KeyI
+	_glfw.state.keycodes[0x26] = KeyJ
+	_glfw.state.keycodes[0x28] = KeyK
+	_glfw.state.keycodes[0x25] = KeyL
+	_glfw.state.keycodes[0x2E] = KeyM
+	_glfw.state.keycodes[0x2D] = KeyN
+	_glfw.state.keycodes[0x1F] = KeyO
+	_glfw.state.keycodes[0x23] = KeyP
+	_glfw.state.keycodes[0x0C] = KeyQ
+	_glfw.state.keycodes[0x0F] = KeyR
+	_glfw.state.keycodes[0x01] = KeyS
+	_glfw.state.keycodes[0x11] = KeyT
+	_glfw.state.keycodes[0x20] = KeyU
+	_glfw.state.keycodes[0x09] = KeyV
+	_glfw.state.keycodes[0x0D] = KeyW
+	_glfw.state.keycodes[0x07] = KeyX
+	_glfw.state.keycodes[0x10] = KeyY
+	_glfw.state.keycodes[0x06] = KeyZ
+
+	_glfw.state.keycodes[0x27] = KeyApostrophe
+	_glfw.state.keycodes[0x2A] = KeyBackslash
+	_glfw.state.keycodes[0x2B] = KeyComma
+	_glfw.state.keycodes[0x18] = KeyEqual
+	_glfw.state.keycodes[0x32] = KeyGraveAccent
+	_glfw.state.keycodes[0x21] = KeyLeftBracket
+	_glfw.state.keycodes[0x1B] = KeyMinus
+	_glfw.state.keycodes[0x2F] = KeyPeriod
+	_glfw.state.keycodes[0x1E] = KeyRightBracket
+	_glfw.state.keycodes[0x29] = KeySemicolon
+	_glfw.state.keycodes[0x2C] = KeySlash
+	_glfw.state.keycodes[0x0A] = KeyWorld1
+
+	_glfw.state.keycodes[0x33] = KeyBackspace
+	_glfw.state.keycodes[0x39] = KeyCapsLock
+	_glfw.state.keycodes[0x75] = KeyDelete
+	_glfw.state.keycodes[0x7D] = KeyDown
+	_glfw.state.keycodes[0x77] = KeyEnd
+	_glfw.state.keycodes[0x24] = KeyEnter
+	_glfw.state.keycodes[0x35] = KeyEscape
+	_glfw.state.keycodes[0x7A] = KeyF1
+	_glfw.state.keycodes[0x78] = KeyF2
+	_glfw.state.keycodes[0x63] = KeyF3
+	_glfw.state.keycodes[0x76] = KeyF4
+	_glfw.state.keycodes[0x60] = KeyF5
+	_glfw.state.keycodes[0x61] = KeyF6
+	_glfw.state.keycodes[0x62] = KeyF7
+	_glfw.state.keycodes[0x64] = KeyF8
+	_glfw.state.keycodes[0x65] = KeyF9
+	_glfw.state.keycodes[0x6D] = KeyF10
+	_glfw.state.keycodes[0x67] = KeyF11
+	_glfw.state.keycodes[0x6F] = KeyF12
+	_glfw.state.keycodes[0x69] = KeyPrintScreen
+	_glfw.state.keycodes[0x6B] = KeyF14
+	_glfw.state.keycodes[0x71] = KeyF15
+	_glfw.state.keycodes[0x6A] = KeyF16
+	_glfw.state.keycodes[0x40] = KeyF17
+	_glfw.state.keycodes[0x4F] = KeyF18
+	_glfw.state.keycodes[0x50] = KeyF19
+	_glfw.state.keycodes[0x5A] = KeyF20
+	_glfw.state.keycodes[0x73] = KeyHome
+	_glfw.state.keycodes[0x72] = KeyInsert
+	_glfw.state.keycodes[0x7B] = KeyLeft
+	_glfw.state.keycodes[0x3A] = KeyLeftAlt
+	_glfw.state.keycodes[0x3B] = KeyLeftControl
+	_glfw.state.keycodes[0x38] = KeyLeftShift
+	_glfw.state.keycodes[0x37] = KeyLeftSuper
+	_glfw.state.keycodes[0x6E] = KeyMenu
+	_glfw.state.keycodes[0x47] = KeyNumLock
+	_glfw.state.keycodes[0x79] = KeyPageDown
+	_glfw.state.keycodes[0x74] = KeyPageUp
+	_glfw.state.keycodes[0x7C] = KeyRight
+	_glfw.state.keycodes[0x3D] = KeyRightAlt
+	_glfw.state.keycodes[0x3E] = KeyRightControl
+	_glfw.state.keycodes[0x3C] = KeyRightShift
+	_glfw.state.keycodes[0x36] = KeyRightSuper
+	_glfw.state.keycodes[0x31] = KeySpace
+	_glfw.state.keycodes[0x30] = KeyTab
+	_glfw.state.keycodes[0x7E] = KeyUp
+
+	_glfw.state.keycodes[0x52] = KeyKP0
+	_glfw.state.keycodes[0x53] = KeyKP1
+	_glfw.state.keycodes[0x54] = KeyKP2
+	_glfw.state.keycodes[0x55] = KeyKP3
+	_glfw.state.keycodes[0x56] = KeyKP4
+	_glfw.state.keycodes[0x57] = KeyKP5
+	_glfw.state.keycodes[0x58] = KeyKP6
+	_glfw.state.keycodes[0x59] = KeyKP7
+	_glfw.state.keycodes[0x5B] = KeyKP8
+	_glfw.state.keycodes[0x5C] = KeyKP9
+	_glfw.state.keycodes[0x45] = KeyKPAdd
+	_glfw.state.keycodes[0x41] = KeyKPDecimal
+	_glfw.state.keycodes[0x4B] = KeyKPDivide
+	_glfw.state.keycodes[0x4C] = KeyKPEnter
+	_glfw.state.keycodes[0x51] = KeyKPEqual
+	_glfw.state.keycodes[0x43] = KeyKPMultiply
+	_glfw.state.keycodes[0x4E] = KeyKPSubtract
+
+	for scancode := 0; scancode < 256; scancode++ {
+		// Store the reverse translation for faster key name lookup
+		if _glfw.state.keycodes[scancode] >= 0 {
+			_glfw.state.scancodes[_glfw.state.keycodes[scancode]] = scancode
+		}
+	}
 }

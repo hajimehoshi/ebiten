@@ -1,8 +1,14 @@
 package glfwwin
 
 import (
+	"github.com/ebitengine/purego/objc"
 	"reflect"
 	"unsafe"
+)
+
+var (
+	sel_alloc = objc.RegisterName("alloc")
+	sel_init  = objc.RegisterName("init")
 )
 
 func GoString(p uintptr) string {
