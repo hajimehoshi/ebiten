@@ -171,7 +171,7 @@ func (w NSWindow) Frame() NSRect {
 	inv.SetTarget(w.ID)
 	inv.SetSelector(sel_frame)
 	inv.Invoke()
-	rect := NSRect{}
+	var rect NSRect
 	inv.GetReturnValue(unsafe.Pointer(&rect))
 	return rect
 }
@@ -197,7 +197,7 @@ func (v NSView) Frame() NSRect {
 	inv := NSInvocation_invocationWithMethodSignature(sig)
 	inv.SetSelector(sel_frame)
 	inv.InvokeWithTarget(v.ID)
-	rect := NSRect{}
+	var rect NSRect
 	inv.GetReturnValue(unsafe.Pointer(&rect))
 	return rect
 }
