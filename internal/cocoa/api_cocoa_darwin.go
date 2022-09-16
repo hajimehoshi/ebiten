@@ -26,6 +26,11 @@ var (
 	class_NSMethodSignature = objc.GetClass("NSMethodSignature")
 	class_NSAutoreleasePool = objc.GetClass("NSAutoreleasePool")
 	class_NSString          = objc.GetClass("NSString")
+	class_NSProcessInfo     = objc.GetClass("NSProcessInfo")
+	class_NSColor           = objc.GetClass("NSColor")
+	class_NSWindow          = objc.GetClass("NSWindow")
+	class_NSView            = objc.GetClass("NSView")
+	class_NSScreen          = objc.GetClass("NSScreen")
 )
 
 var (
@@ -38,21 +43,163 @@ var (
 	sel_setArgumentAtIndex                 = objc.RegisterName("setArgument:atIndex:")
 	sel_getReturnValue                     = objc.RegisterName("getReturnValue:")
 	sel_invoke                             = objc.RegisterName("invoke")
+	sel_invokeWithTarget                   = objc.RegisterName("invokeWithTarget:")
 	sel_instanceMethodSignatureForSelector = objc.RegisterName("instanceMethodSignatureForSelector:")
 	sel_signatureWithObjCTypes             = objc.RegisterName("signatureWithObjCTypes:")
 	sel_initWithUTF8String                 = objc.RegisterName("initWithUTF8String:")
 	sel_UTF8String                         = objc.RegisterName("UTF8String")
 	sel_length                             = objc.RegisterName("length")
+	sel_processInfo                        = objc.RegisterName("processInfo")
+	sel_isOperatingSystemAtLeastVersion    = objc.RegisterName("isOperatingSystemAtLeastVersion:")
+	sel_frame                              = objc.RegisterName("frame")
+	sel_contentView                        = objc.RegisterName("contentView")
+	sel_setBackgroundColor                 = objc.RegisterName("setBackgroundColor:")
+	sel_colorWithSRGBRedGreenBlueAlpha     = objc.RegisterName("colorWithSRGBRed:green:blue:alpha:")
+	sel_setFrameSize                       = objc.RegisterName("setFrameSize:")
+	sel_object                             = objc.RegisterName("object")
+	sel_styleMask                          = objc.RegisterName("styleMask")
+	sel_setStyleMask                       = objc.RegisterName("setStyleMask:")
+	sel_mainScreen                         = objc.RegisterName("mainScreen")
+	sel_screen                             = objc.RegisterName("screen")
+	sel_isVisible                          = objc.RegisterName("isVisible")
+	sel_deviceDescription                  = objc.RegisterName("deviceDescription")
+	sel_objectForKey                       = objc.RegisterName("objectForKey:")
+	sel_unsignedIntValue                   = objc.RegisterName("unsignedIntValue")
 )
 
-type CGFloat float64
+const NSWindowCollectionBehaviorFullScreenPrimary = 1 << 7
+
+const (
+	NSWindowStyleMaskResizable  = 1 << 3
+	NSWindowStyleMaskFullScreen = 1 << 14
+)
+
+type CGFloat = float64
 
 type CGSize struct {
 	Width, Height CGFloat
 }
 
+type CGPoint struct {
+	X, Y float64
+}
+
+type CGRect struct {
+	Origin CGPoint
+	Size   CGSize
+}
+
+type NSUInteger = uint
+type NSInteger = int
+
+type NSPoint = CGPoint
+type NSRect = CGRect
+type NSSize = CGSize
+
 type NSError struct {
 	objc.ID
+}
+
+type NSColor struct {
+	objc.ID
+}
+
+func NSColor_colorWithSRGBRedGreenBlueAlpha(red, green, blue, alpha CGFloat) (color NSColor) {
+	sig := NSMethodSignature_signatureWithObjCTypes("@@:ffff")
+	inv := NSInvocation_invocationWithMethodSignature(sig)
+	inv.SetSelector(sel_colorWithSRGBRedGreenBlueAlpha)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&red), 2)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&green), 3)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&blue), 4)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&alpha), 5)
+	inv.InvokeWithTarget(objc.ID(class_NSColor))
+	inv.GetReturnValue(unsafe.Pointer(&color))
+	return color
+}
+
+type NSOperatingSystemVersion struct {
+	Major, Minor, Patch NSInteger
+}
+
+type NSProcessInfo struct {
+	objc.ID
+}
+
+func NSProcessInfo_processInfo() NSProcessInfo {
+	return NSProcessInfo{objc.ID(class_NSProcessInfo).Send(sel_processInfo)}
+}
+
+func (p NSProcessInfo) IsOperatingSystemAtLeastVersion(version NSOperatingSystemVersion) bool {
+	sig := NSMethodSignature_instanceMethodSignatureForSelector(objc.ID(class_NSProcessInfo), sel_isOperatingSystemAtLeastVersion)
+	inv := NSInvocation_invocationWithMethodSignature(sig)
+	inv.SetTarget(p.ID)
+	inv.SetSelector(sel_isOperatingSystemAtLeastVersion)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&version), 2)
+	inv.Invoke()
+	var ret int
+	inv.GetReturnValue(unsafe.Pointer(&ret))
+	return ret != 0
+}
+
+type NSWindow struct {
+	objc.ID
+}
+
+func (w NSWindow) StyleMask() NSUInteger {
+	return NSUInteger(w.Send(sel_styleMask))
+}
+
+func (w NSWindow) SetStyleMask(styleMask NSUInteger) {
+	w.Send(sel_setStyleMask, styleMask)
+}
+
+func (w NSWindow) SetBackgroundColor(color NSColor) {
+	w.Send(sel_setBackgroundColor, color.ID)
+}
+
+func (w NSWindow) IsVisibile() bool {
+	return w.Send(sel_isVisible) != 0
+}
+
+func (w NSWindow) Screen() NSScreen {
+	return NSScreen{w.Send(sel_screen)}
+}
+
+func (w NSWindow) Frame() NSRect {
+	sig := NSMethodSignature_instanceMethodSignatureForSelector(objc.ID(class_NSWindow), sel_frame)
+	inv := NSInvocation_invocationWithMethodSignature(sig)
+	inv.SetTarget(w.ID)
+	inv.SetSelector(sel_frame)
+	inv.Invoke()
+	var rect NSRect
+	inv.GetReturnValue(unsafe.Pointer(&rect))
+	return rect
+}
+
+func (w NSWindow) ContentView() NSView {
+	return NSView{w.Send(sel_contentView)}
+}
+
+type NSView struct {
+	objc.ID
+}
+
+func (v NSView) SetFrameSize(size CGSize) {
+	sig := NSMethodSignature_instanceMethodSignatureForSelector(objc.ID(class_NSView), sel_setFrameSize)
+	inv := NSInvocation_invocationWithMethodSignature(sig)
+	inv.SetSelector(sel_setFrameSize)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&size), 2)
+	inv.InvokeWithTarget(v.ID)
+}
+
+func (v NSView) Frame() NSRect {
+	sig := NSMethodSignature_instanceMethodSignatureForSelector(objc.ID(class_NSView), sel_frame)
+	inv := NSInvocation_invocationWithMethodSignature(sig)
+	inv.SetSelector(sel_frame)
+	inv.InvokeWithTarget(v.ID)
+	var rect NSRect
+	inv.GetReturnValue(unsafe.Pointer(&rect))
+	return rect
 }
 
 // NSInvocation is being used to call functions that can't be called directly with purego.SyscallN.
@@ -65,24 +212,28 @@ func NSInvocation_invocationWithMethodSignature(sig NSMethodSignature) NSInvocat
 	return NSInvocation{objc.ID(class_NSInvocation).Send(sel_invocationWithMethodSignature, sig.ID)}
 }
 
-func (inv NSInvocation) SetSelector(cmd objc.SEL) {
-	inv.Send(sel_setSelector, cmd)
+func (i NSInvocation) SetSelector(cmd objc.SEL) {
+	i.Send(sel_setSelector, cmd)
 }
 
-func (inv NSInvocation) SetTarget(target objc.ID) {
-	inv.Send(sel_setTarget, target)
+func (i NSInvocation) SetTarget(target objc.ID) {
+	i.Send(sel_setTarget, target)
 }
 
-func (inv NSInvocation) SetArgumentAtIndex(arg unsafe.Pointer, idx int) {
-	inv.Send(sel_setArgumentAtIndex, arg, idx)
+func (i NSInvocation) SetArgumentAtIndex(arg unsafe.Pointer, idx int) {
+	i.Send(sel_setArgumentAtIndex, arg, idx)
 }
 
-func (inv NSInvocation) GetReturnValue(ret unsafe.Pointer) {
-	inv.Send(sel_getReturnValue, ret)
+func (i NSInvocation) GetReturnValue(ret unsafe.Pointer) {
+	i.Send(sel_getReturnValue, ret)
 }
 
-func (inv NSInvocation) Invoke() {
-	inv.Send(sel_invoke)
+func (i NSInvocation) Invoke() {
+	i.Send(sel_invoke)
+}
+
+func (i NSInvocation) InvokeWithTarget(target objc.ID) {
+	i.Send(sel_invokeWithTarget, target)
 }
 
 type NSMethodSignature struct {
@@ -109,8 +260,8 @@ func NSAutoreleasePool_new() NSAutoreleasePool {
 	return NSAutoreleasePool{objc.ID(class_NSAutoreleasePool).Send(sel_new)}
 }
 
-func (pool NSAutoreleasePool) Release() {
-	pool.Send(sel_release)
+func (p NSAutoreleasePool) Release() {
+	p.Send(sel_release)
 }
 
 type NSString struct {
@@ -135,4 +286,40 @@ func (s NSString) String() string {
 	header.Len = int(s.Send(sel_length))
 	header.Cap = header.Len
 	return string(b)
+}
+
+type NSNotification struct {
+	objc.ID
+}
+
+func (n NSNotification) Object() objc.ID {
+	return n.Send(sel_object)
+}
+
+type NSScreen struct {
+	objc.ID
+}
+
+func NSScreen_mainScreen() NSScreen {
+	return NSScreen{objc.ID(class_NSScreen).Send(sel_mainScreen)}
+}
+
+func (s NSScreen) DeviceDescription() NSDictionary {
+	return NSDictionary{s.Send(sel_deviceDescription)}
+}
+
+type NSDictionary struct {
+	objc.ID
+}
+
+func (d NSDictionary) ObjectForKey(object objc.ID) objc.ID {
+	return d.Send(sel_objectForKey, object)
+}
+
+type NSNumber struct {
+	objc.ID
+}
+
+func (n NSNumber) UnsignedIntValue() uint {
+	return uint(n.Send(sel_unsignedIntValue))
 }

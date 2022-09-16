@@ -17,3 +17,7 @@ package glfw
 func (w *Window) GetCocoaWindow() uintptr {
 	return uintptr(w.w.GetCocoaWindow())
 }
+
+func (m *Monitor) GetCocoaMonitor() uintptr {
+	return m.m.GetCocoaMonitor()
+}
