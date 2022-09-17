@@ -18,13 +18,12 @@
 //
 //     curl --location --remote-name https://raw.githubusercontent.com/gabomdq/SDL_GameControllerDB/master/gamecontrollerdb.txt
 
-//go:generate go run github.com/hajimehoshi/file2byteslice/cmd/file2byteslice@v1.0.0 -package gamepaddb -input=./gamecontrollerdb.txt -output=./gamecontrollerdb.txt.go -var=gamecontrollerdbTxt
-
 package gamepaddb
 
 import (
 	"bufio"
 	"bytes"
+	_ "embed"
 	"encoding/hex"
 	"fmt"
 	"runtime"
@@ -32,6 +31,9 @@ import (
 	"strings"
 	"sync"
 )
+
+//go:embed gamecontrollerdb.txt
+var gamecontrollerdb_txt []byte
 
 type platform int
 
@@ -92,7 +94,7 @@ var additionalGLFWGamepads = []byte(`
 `)
 
 func init() {
-	if err := Update(gamecontrollerdbTxt); err != nil {
+	if err := Update(gamecontrollerdb_txt); err != nil {
 		panic(err)
 	}
 	if err := Update(additionalGLFWGamepads); err != nil {
