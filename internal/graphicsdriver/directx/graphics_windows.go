@@ -1499,17 +1499,19 @@ func (*Image) IsInvalidated() bool {
 	return false
 }
 
-func (i *Image) ensureUploadingStagingBuffer(size uint64) (*_ID3D12Resource, error) {
-	if i.uploadingStagingBuffer != nil && i.uploadingStagingBuffer.GetDesc().Width < size {
-		i.uploadingStagingBuffer.Release()
-		i.uploadingStagingBuffer = nil
-	}
+func (i *Image) ensureUploadingStagingBuffer() (*_ID3D12Resource, error) {
+	// Unlike readingStagingBuffer, uploadingStagingBuffer's lifetime is not determined and cannot recreate easily.
+	// Then, keep using the same uploadingStagingBuffer for one image.
 
 	if i.uploadingStagingBuffer != nil {
 		return i.uploadingStagingBuffer, nil
 	}
 
-	usb, err := createBuffer(i.graphics.device, size, _D3D12_HEAP_TYPE_UPLOAD)
+	iw, ih := graphics.InternalImageSize(i.width), graphics.InternalImageSize(i.height)
+	alignedWidth := align(4 * iw)
+	size := alignedWidth * ih
+
+	usb, err := createBuffer(i.graphics.device, uint64(size), _D3D12_HEAP_TYPE_UPLOAD)
 	if err != nil {
 		return nil, err
 	}
@@ -1617,9 +1619,7 @@ func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 		return err
 	}
 
-	iw, ih := graphics.InternalImageSize(i.width), graphics.InternalImageSize(i.height)
-	alignedWidth := align(4 * iw)
-	usb, err := i.ensureUploadingStagingBuffer(uint64(alignedWidth * ih))
+	usb, err := i.ensureUploadingStagingBuffer()
 	if err != nil {
 		return err
 	}
@@ -1634,6 +1634,9 @@ func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 	}
 
 	i.graphics.needFlushCopyCommandList = true
+
+	iw, ih := graphics.InternalImageSize(i.width), graphics.InternalImageSize(i.height)
+	alignedWidth := align(4 * iw)
 
 	var srcBytes []byte
 	h := (*reflect.SliceHeader)(unsafe.Pointer(&srcBytes))
