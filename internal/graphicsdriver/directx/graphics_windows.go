@@ -1627,7 +1627,9 @@ func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 		for j := 0; j < a.Height; j++ {
 			copy(srcBytes[(a.Y+j)*int(i.layouts.Footprint.RowPitch)+a.X*4:], a.Pixels[j*a.Width*4:(j+1)*a.Width*4])
 		}
+	}
 
+	for _, a := range args {
 		dst := _D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex{
 			pResource:        i.texture,
 			Type:             _D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
