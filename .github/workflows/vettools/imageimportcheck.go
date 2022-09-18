@@ -45,7 +45,7 @@ type imageImportCheckError struct {
 
 func runImageImportCheck(pass *analysis.Pass) (interface{}, error) {
 	pkgPath := pass.Pkg.Path()
-	if strings.HasPrefix(pkgPath, "github.com/hajimehoshi/ebiten/v2/example") {
+	if strings.HasPrefix(pkgPath, "github.com/hajimehoshi/ebiten/v2/examples/") {
 		return nil, nil
 	}
 	if strings.HasSuffix(pkgPath, "_test") {
@@ -53,7 +53,7 @@ func runImageImportCheck(pass *analysis.Pass) (interface{}, error) {
 	}
 
 	// TODO: Remove this exception after v3 is released (#2336).
-	if strings.HasPrefix(pkgPath, "github.com/hajimehoshi/ebiten/v2/ebitenutil") {
+	if pkgPath == "github.com/hajimehoshi/ebiten/v2/ebitenutil" {
 		return nil, nil
 	}
 
