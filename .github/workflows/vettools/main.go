@@ -23,9 +23,9 @@ import (
 )
 
 func main() {
-	filename := ".errcheck_excludes"
+	const filename = ".errcheck_excludes"
 	if _, err := os.Stat(filename); err == nil {
 		errcheck.Analyzer.Flags.Set("exclude", filename)
 	}
-	multichecker.Main(atomicalign.Analyzer, errcheck.Analyzer)
+	multichecker.Main(atomicalign.Analyzer, errcheck.Analyzer, imageImportCheckAnalyzer)
 }

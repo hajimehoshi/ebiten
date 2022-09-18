@@ -73,7 +73,7 @@ jobs:
         run: |
           go vet -tags=example -v ./...
 
-      - name: go vet (atomic align, error check)
+      - name: go vet (vettool)
         run: |
           (cd .github/workflows/vettools; go install .)
           go vet -vettool=$(which vettools)${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }} -tags=example -v ./...
