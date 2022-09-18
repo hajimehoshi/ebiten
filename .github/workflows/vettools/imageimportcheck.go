@@ -26,7 +26,7 @@ import (
 
 // imageImportCheckAnalyzer is an analyzer to check whether unexpected `image/*` packages are imported.
 // Importing `image/gif`, `image/jpeg`, and `image/png` registers their recorders at `init` functions, so
-// have affect the result of `image.Decode`. Ebitengine should not have such side-effects.
+// it affects the result of `image.Decode`. Ebitengine should not have such side-effects.
 var imageImportCheckAnalyzer = &analysis.Analyzer{
 	Name:       "imageimportcheck",
 	Doc:        "check importing image/gif, image/jpeg, and image/png packages",
