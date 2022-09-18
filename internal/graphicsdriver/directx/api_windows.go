@@ -59,6 +59,7 @@ const (
 	_D3D12_SDK_VERSION                       = (_D3D12_SDK_VERSION_MAJOR << 16) | _D3D12_SDK_VERSION_MINOR
 	_D3D12_SDK_VERSION_MAJOR                 = 2
 	_D3D12_SDK_VERSION_MINOR                 = 4
+	_D3D12_TEXTURE_DATA_PITCH_ALIGNMENT      = 256
 	_D3D12XBOX_DEFAULT_SIZE_BYTES            = 0xffffffff
 )
 

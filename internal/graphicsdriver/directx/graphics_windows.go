@@ -1075,20 +1075,13 @@ func (g *Graphics) NewImage(width, height int) (graphicsdriver.Image, error) {
 		return nil, err
 	}
 
-	layouts, _, _, totalBytes := g.device.GetCopyableFootprints(&desc, 0, 1, 0)
-	if totalBytes == ^uint64(0) {
-		return nil, fmt.Errorf("directx: GetCopyableFootprints returned an invalid total bytes")
-	}
-
 	i := &Image{
-		graphics:   g,
-		id:         g.genNextImageID(),
-		width:      width,
-		height:     height,
-		texture:    t,
-		states:     [frameCount]_D3D12_RESOURCE_STATES{state},
-		layouts:    layouts,
-		totalBytes: totalBytes,
+		graphics: g,
+		id:       g.genNextImageID(),
+		width:    width,
+		height:   height,
+		texture:  t,
+		states:   [frameCount]_D3D12_RESOURCE_STATES{state},
 	}
 	g.addImage(i)
 	return i, nil
@@ -1460,8 +1453,6 @@ type Image struct {
 	states                 [frameCount]_D3D12_RESOURCE_STATES
 	texture                *_ID3D12Resource
 	stencil                *_ID3D12Resource
-	layouts                _D3D12_PLACED_SUBRESOURCE_FOOTPRINT
-	totalBytes             uint64
 	uploadingStagingBuffer *_ID3D12Resource
 	readingStagingBuffer   *_ID3D12Resource
 	rtvDescriptorHeap      *_ID3D12DescriptorHeap
@@ -1508,28 +1499,40 @@ func (*Image) IsInvalidated() bool {
 	return false
 }
 
-func (i *Image) ensureUploadingStagingBuffer() error {
+func (i *Image) ensureUploadingStagingBuffer(size uint64) (*_ID3D12Resource, error) {
+	if i.uploadingStagingBuffer != nil && i.uploadingStagingBuffer.GetDesc().Width < size {
+		i.uploadingStagingBuffer.Release()
+		i.uploadingStagingBuffer = nil
+	}
+
 	if i.uploadingStagingBuffer != nil {
-		return nil
+		return i.uploadingStagingBuffer, nil
 	}
-	var err error
-	i.uploadingStagingBuffer, err = createBuffer(i.graphics.device, i.totalBytes, _D3D12_HEAP_TYPE_UPLOAD)
+
+	usb, err := createBuffer(i.graphics.device, size, _D3D12_HEAP_TYPE_UPLOAD)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	i.uploadingStagingBuffer = usb
+	return usb, nil
 }
 
-func (i *Image) ensureReadingStagingBuffer() error {
+func (i *Image) ensureReadingStagingBuffer(size uint64) (*_ID3D12Resource, error) {
+	if i.readingStagingBuffer != nil && i.readingStagingBuffer.GetDesc().Width < size {
+		i.readingStagingBuffer.Release()
+		i.readingStagingBuffer = nil
+	}
+
 	if i.readingStagingBuffer != nil {
-		return nil
+		return i.readingStagingBuffer, nil
 	}
-	var err error
-	i.readingStagingBuffer, err = createBuffer(i.graphics.device, i.totalBytes, _D3D12_HEAP_TYPE_READBACK)
+
+	rsb, err := createBuffer(i.graphics.device, size, _D3D12_HEAP_TYPE_READBACK)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	i.readingStagingBuffer = rsb
+	return rsb, nil
 }
 
 func (i *Image) ReadPixels(buf []byte, x, y, width, height int) error {
@@ -1541,7 +1544,9 @@ func (i *Image) ReadPixels(buf []byte, x, y, width, height int) error {
 		return err
 	}
 
-	if err := i.ensureReadingStagingBuffer(); err != nil {
+	alignedWidth := align(4 * width)
+	rsb, err := i.ensureReadingStagingBuffer(uint64(alignedWidth * height))
+	if err != nil {
 		return err
 	}
 
@@ -1549,15 +1554,24 @@ func (i *Image) ReadPixels(buf []byte, x, y, width, height int) error {
 		i.graphics.copyCommandList.ResourceBarrier([]_D3D12_RESOURCE_BARRIER_Transition{rb})
 	}
 
-	m, err := i.readingStagingBuffer.Map(0, &_D3D12_RANGE{0, 0})
+	m, err := rsb.Map(0, &_D3D12_RANGE{0, 0})
 	if err != nil {
 		return err
 	}
 
 	dst := _D3D12_TEXTURE_COPY_LOCATION_PlacedFootPrint{
-		pResource:       i.readingStagingBuffer,
-		Type:            _D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
-		PlacedFootprint: i.layouts,
+		pResource: rsb,
+		Type:      _D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
+		PlacedFootprint: _D3D12_PLACED_SUBRESOURCE_FOOTPRINT{
+			Offset: 0,
+			Footprint: _D3D12_SUBRESOURCE_FOOTPRINT{
+				Format:   _DXGI_FORMAT_R8G8B8A8_UNORM,
+				Width:    uint32(width),
+				Height:   uint32(height),
+				Depth:    1,
+				RowPitch: uint32(alignedWidth),
+			},
+		},
 	}
 	src := _D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex{
 		pResource:        i.texture,
@@ -1582,14 +1596,14 @@ func (i *Image) ReadPixels(buf []byte, x, y, width, height int) error {
 	var dstBytes []byte
 	h := (*reflect.SliceHeader)(unsafe.Pointer(&dstBytes))
 	h.Data = uintptr(m)
-	h.Len = int(i.totalBytes)
-	h.Cap = int(i.totalBytes)
+	h.Len = alignedWidth * height
+	h.Cap = alignedWidth * height
 
 	for j := 0; j < height; j++ {
-		copy(buf[j*width*4:(j+1)*width*4], dstBytes[j*int(i.layouts.Footprint.RowPitch):])
+		copy(buf[j*width*4:(j+1)*width*4], dstBytes[j*alignedWidth:])
 	}
 
-	i.readingStagingBuffer.Unmap(0, nil)
+	rsb.Unmap(0, nil)
 
 	return nil
 }
@@ -1603,7 +1617,10 @@ func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 		return err
 	}
 
-	if err := i.ensureUploadingStagingBuffer(); err != nil {
+	iw, ih := graphics.InternalImageSize(i.width), graphics.InternalImageSize(i.height)
+	alignedWidth := align(4 * iw)
+	usb, err := i.ensureUploadingStagingBuffer(uint64(alignedWidth * ih))
+	if err != nil {
 		return err
 	}
 
@@ -1611,7 +1628,7 @@ func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 		i.graphics.copyCommandList.ResourceBarrier([]_D3D12_RESOURCE_BARRIER_Transition{rb})
 	}
 
-	m, err := i.uploadingStagingBuffer.Map(0, &_D3D12_RANGE{0, 0})
+	m, err := usb.Map(0, &_D3D12_RANGE{0, 0})
 	if err != nil {
 		return err
 	}
@@ -1621,11 +1638,11 @@ func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 	var srcBytes []byte
 	h := (*reflect.SliceHeader)(unsafe.Pointer(&srcBytes))
 	h.Data = uintptr(m)
-	h.Len = int(i.totalBytes)
-	h.Cap = int(i.totalBytes)
+	h.Len = alignedWidth * ih
+	h.Cap = alignedWidth * ih
 	for _, a := range args {
 		for j := 0; j < a.Height; j++ {
-			copy(srcBytes[(a.Y+j)*int(i.layouts.Footprint.RowPitch)+a.X*4:], a.Pixels[j*a.Width*4:(j+1)*a.Width*4])
+			copy(srcBytes[(a.Y+j)*alignedWidth+a.X*4:], a.Pixels[j*a.Width*4:(j+1)*a.Width*4])
 		}
 
 		dst := _D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex{
@@ -1634,9 +1651,18 @@ func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 			SubresourceIndex: 0,
 		}
 		src := _D3D12_TEXTURE_COPY_LOCATION_PlacedFootPrint{
-			pResource:       i.uploadingStagingBuffer,
-			Type:            _D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
-			PlacedFootprint: i.layouts,
+			pResource: usb,
+			Type:      _D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
+			PlacedFootprint: _D3D12_PLACED_SUBRESOURCE_FOOTPRINT{
+				Offset: 0,
+				Footprint: _D3D12_SUBRESOURCE_FOOTPRINT{
+					Format:   _DXGI_FORMAT_R8G8B8A8_UNORM,
+					Width:    uint32(iw),
+					Height:   uint32(ih),
+					Depth:    1,
+					RowPitch: uint32(alignedWidth),
+				},
+			},
 		}
 		i.graphics.copyCommandList.CopyTextureRegion_SubresourceIndex_PlacedFootPrint(
 			&dst, uint32(a.X), uint32(a.Y), 0, &src, &_D3D12_BOX{
@@ -1649,7 +1675,7 @@ func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 			})
 	}
 
-	i.uploadingStagingBuffer.Unmap(0, nil)
+	usb.Unmap(0, nil)
 
 	return nil
 }
@@ -2014,4 +2040,11 @@ func (s *Shader) uniformsToFloat32s(uniforms [][]float32) []float32 {
 		}
 	}
 	return fs
+}
+
+func align(x int) int {
+	if x%_D3D12_TEXTURE_DATA_PITCH_ALIGNMENT == 0 {
+		return x
+	}
+	return (((x - 1) / _D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) + 1) * _D3D12_TEXTURE_DATA_PITCH_ALIGNMENT
 }
