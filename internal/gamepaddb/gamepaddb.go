@@ -225,14 +225,30 @@ func parseMappingElement(str string) (*mapping, error) {
 
 		if str[0] == '+' {
 			numstr = str[2:]
+			// Only use the positive half, i.e. 0..1.
 			min = 0
 		} else if str[0] == '-' {
 			numstr = str[2:]
-			max = 0
+			// Only use the negative half, i.e. -1..0,
+			// but invert the sense so 0 does not "press" buttons.
+			//
+			// In other words, this is the same as '+' but with the input axis
+			// value reversed.
+			//
+			// See SDL's source:
+			// https://github.com/libsdl-org/SDL/blob/f398d8a42422c049d77c744658f1cd2bb011ed4a/src/joystick/SDL_gamecontroller.c#L960
+			min, max = 0, min
 		}
 
+		// Map min..max to -1..+1.
+		//
+		// See SDL's source:
+		// https://github.com/libsdl-org/SDL/blob/f398d8a42422c049d77c744658f1cd2bb011ed4a/src/joystick/SDL_gamecontroller.c#L276
+		// then simplify assuming output range -1..+1.
+		//
+		// Yields:
 		scale := 2 / (max - min)
-		offset := -(max + min)
+		offset := -(max + min) / (max - min)
 		if tilda {
 			scale = -scale
 			offset = -offset
