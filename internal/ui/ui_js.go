@@ -15,6 +15,7 @@
 package ui
 
 import (
+	"sync"
 	"syscall/js"
 	"time"
 
@@ -84,6 +85,8 @@ type userInterfaceImpl struct {
 
 	context *context
 	input   Input
+
+	m sync.Mutex
 }
 
 func init() {
@@ -273,6 +276,10 @@ func (u *userInterfaceImpl) update() error {
 }
 
 func (u *userInterfaceImpl) updateImpl(force bool) error {
+	// Guard updateImpl as this function cannot be invoked until this finishes (#2339).
+	u.m.Lock()
+	defer u.m.Unlock()
+
 	// context can be nil when an event is fired but the loop doesn't start yet (#1928).
 	if u.context == nil {
 		return nil
@@ -482,9 +489,14 @@ func init() {
 func setWindowEventHandlers(v js.Value) {
 	v.Call("addEventListener", "resize", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		theUI.updateScreenSize()
-		if err := theUI.updateImpl(true); err != nil {
-			panic(err)
-		}
+
+		// updateImpl can block. Use goroutine.
+		// See https://pkg.go.dev/syscall/js#FuncOf.
+		go func() {
+			if err := theUI.updateImpl(true); err != nil {
+				panic(err)
+			}
+		}()
 		return nil
 	}))
 }
@@ -579,7 +591,14 @@ func (u *userInterfaceImpl) forceUpdateOnMinimumFPSMode() {
 	if u.fpsMode != FPSModeVsyncOffMinimum {
 		return
 	}
-	u.updateImpl(true)
+
+	// updateImpl can block. Use goroutine.
+	// See https://pkg.go.dev/syscall/js#FuncOf.
+	go func() {
+		if err := u.updateImpl(true); err != nil {
+			panic(err)
+		}
+	}()
 }
 
 func (u *userInterfaceImpl) Run(game Game) error {
