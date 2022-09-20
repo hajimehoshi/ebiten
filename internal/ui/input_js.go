@@ -237,7 +237,8 @@ func (i *Input) updateFromEvent(e js.Value) error {
 		i.updateTouchesFromEvent(e)
 	}
 
-	return i.ui.forceUpdateOnMinimumFPSMode()
+	i.ui.forceUpdateOnMinimumFPSMode()
+	return nil
 }
 
 func (i *Input) setMouseCursorFromEvent(e js.Value) {
