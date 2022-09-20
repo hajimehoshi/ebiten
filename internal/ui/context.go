@@ -283,7 +283,16 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFac
 	c.outsideWidth = outsideWidth
 	c.outsideHeight = outsideHeight
 
-	ow, oh := c.game.Layout(int(outsideWidth), int(outsideHeight))
+	// Adjust the outside size to integer values.
+	// Even if the original value is less than 1, the value must be a positive integer (#2340).
+	iow, ioh := int(outsideWidth), int(outsideHeight)
+	if iow == 0 {
+		iow = 1
+	}
+	if ioh == 0 {
+		ioh = 1
+	}
+	ow, oh := c.game.Layout(iow, ioh)
 	if ow <= 0 || oh <= 0 {
 		panic("ui: Layout must return positive numbers")
 	}
