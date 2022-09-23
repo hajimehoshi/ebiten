@@ -275,7 +275,7 @@ func (i *Image) adjustedRegion() graphicsdriver.Region {
 // Another case is when you use an offscreen as a render source. An offscreen
 // doesn't share the texture atlas with high probability.
 //
-// For more performance tips, see https://ebiten.org/documents/performancetips.html
+// For more performance tips, see https://ebitengine.org/en/documents/performancetips.html
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	i.copyCheck()
 
@@ -524,7 +524,7 @@ func init() {
 //
 // Vertex contains color values, which can be interpreted for any purpose by the shader.
 //
-// For the details about the shader, see https://ebiten.org/documents/shader.html.
+// For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 //
 // If len(indices) is not multiple of 3, DrawTrianglesShader panics.
 //
@@ -658,7 +658,7 @@ func init() {
 
 // DrawRectShader draws a rectangle with the specified width and height with the specified shader.
 //
-// For the details about the shader, see https://ebiten.org/documents/shader.html.
+// For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 //
 // When one of the specified image is non-nil and is disposed, DrawRectShader panics.
 //

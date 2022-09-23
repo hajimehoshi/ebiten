@@ -21,7 +21,7 @@ import (
 
 // Shader represents a compiled shader program.
 //
-// For the details about the shader, see https://ebiten.org/documents/shader.html.
+// For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 type Shader struct {
 	shader *ui.Shader
 }
@@ -30,7 +30,7 @@ type Shader struct {
 //
 // If the compilation fails, NewShader returns an error.
 //
-// For the details about the shader, see https://ebiten.org/documents/shader.html.
+// For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 func NewShader(src []byte) (*Shader, error) {
 	ir, err := graphics.CompileShader(src)
 	if err != nil {

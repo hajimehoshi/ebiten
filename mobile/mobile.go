@@ -16,7 +16,7 @@
 //
 // This package is used when you use `ebitenmobile bind`.
 //
-// For usage, see https://ebiten.org/documents/mobile.html.
+// For usage, see https://ebitengine.org/en/documents/mobile.html.
 package mobile
 
 import (
