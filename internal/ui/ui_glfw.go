@@ -561,8 +561,7 @@ func (u *userInterfaceImpl) SetFullscreen(fullscreen bool) {
 		if u.isFullscreen() == fullscreen {
 			return
 		}
-		w, h := u.origWindowSizeInDIP()
-		u.setWindowSizeInDIP(w, h, fullscreen)
+		u.setWindowSizeInDIP(u.origWindowWidthInDIP, u.origWindowHeightInDIP, fullscreen)
 	})
 }
 
@@ -980,8 +979,7 @@ func (u *userInterfaceImpl) init() error {
 }
 
 func (u *userInterfaceImpl) updateSize() {
-	ww, wh := u.origWindowSizeInDIP()
-	u.setWindowSizeInDIP(ww, wh, u.isFullscreen())
+	u.setWindowSizeInDIP(u.origWindowWidthInDIP, u.origWindowHeightInDIP, u.isFullscreen())
 }
 
 func (u *userInterfaceImpl) outsideSize() (float64, float64) {
@@ -1001,11 +999,10 @@ func (u *userInterfaceImpl) outsideSize() (float64, float64) {
 	}
 
 	if u.window.GetAttrib(glfw.Iconified) == glfw.True {
-		w, h := u.origWindowSizeInDIP()
-		return float64(w), float64(h)
+		return float64(u.origWindowWidthInDIP), float64(u.origWindowHeightInDIP)
 	}
 
-	// Instead of u.origWindowSizeInDIP(), use the actual window size here.
+	// Instead of u.origWindow{Width,Height}InDIP, use the actual window size here.
 	// On Windows, the specified size at SetSize and the actual window size might
 	// not match (#1163).
 	ww, wh := u.window.GetSize()
@@ -1243,6 +1240,9 @@ func (u *userInterfaceImpl) adjustWindowSizeBasedOnSizeLimitsInDIP(width, height
 }
 
 // setWindowSize must be called from the main thread.
+//
+// TODO: Split this function into two: setting members and calling (*glfw.Window).SetSize.
+// This function is invoked from the SetSize callback, but calling (*glfw.Window).SetSize from the callback is odd (#1816).
 func (u *userInterfaceImpl) setWindowSizeInDIP(width, height int, fullscreen bool) {
 	if microsoftgdk.IsXbox() {
 		// Do nothing. The size is always fixed.
@@ -1254,7 +1254,7 @@ func (u *userInterfaceImpl) setWindowSizeInDIP(width, height int, fullscreen boo
 	u.graphicsDriver.SetFullscreen(fullscreen)
 
 	scale := u.deviceScaleFactor(u.currentMonitor())
-	if ow, oh := u.origWindowSizeInDIP(); ow == width && oh == height && u.isFullscreen() == fullscreen && u.lastDeviceScaleFactor == scale {
+	if u.origWindowWidthInDIP == width && u.origWindowHeightInDIP == height && u.isFullscreen() == fullscreen && u.lastDeviceScaleFactor == scale {
 		return
 	}
 
@@ -1266,6 +1266,9 @@ func (u *userInterfaceImpl) setWindowSizeInDIP(width, height int, fullscreen boo
 	}
 
 	u.lastDeviceScaleFactor = scale
+
+	u.origWindowWidthInDIP = width
+	u.origWindowHeightInDIP = height
 
 	// To make sure the current existing framebuffers are rendered,
 	// swap buffers here before SetSize is called.
@@ -1287,9 +1290,6 @@ func (u *userInterfaceImpl) setWindowSizeInDIP(width, height int, fullscreen boo
 	u.updateWindowSizeLimits()
 
 	u.adjustViewSize()
-
-	// As width might be updated, update windowWidth/Height here.
-	u.setOrigWindowSizeInDIP(width, height)
 }
 
 func (u *userInterfaceImpl) minimumWindowWidth() int {
@@ -1719,13 +1719,4 @@ func (u *userInterfaceImpl) origWindowPos() (int, int) {
 func (u *userInterfaceImpl) setOrigWindowPos(x, y int) {
 	u.origWindowPosX = x
 	u.origWindowPosY = y
-}
-
-func (u *userInterfaceImpl) origWindowSizeInDIP() (int, int) {
-	return u.origWindowWidthInDIP, u.origWindowHeightInDIP
-}
-
-func (u *userInterfaceImpl) setOrigWindowSizeInDIP(width, height int) {
-	u.origWindowWidthInDIP = width
-	u.origWindowHeightInDIP = height
 }

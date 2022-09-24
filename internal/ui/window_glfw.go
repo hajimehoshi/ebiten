@@ -200,8 +200,9 @@ func (w *glfwWindow) Size() (int, int) {
 	}
 	var ww, wh int
 	w.ui.t.Call(func() {
-		// Unlike origWindowPos, origWindowSizeInDPI is always updated via the callback.
-		ww, wh = w.ui.origWindowSizeInDIP()
+		// Unlike origWindowPos, origWindow{Width,Height}InDPI are always updated via the callback.
+		ww = w.ui.origWindowWidthInDIP
+		wh = w.ui.origWindowHeightInDIP
 	})
 	return ww, wh
 }
@@ -216,8 +217,6 @@ func (w *glfwWindow) SetSize(width, height int) {
 		if w.ui.isWindowMaximized() && runtime.GOOS != "darwin" {
 			return
 		}
-		// TODO: Do not call setWindowSizeInDIP directly here (#1816).
-		// Instead, can we call (*Window).SetSize?
 		w.ui.setWindowSizeInDIP(width, height, w.ui.isFullscreen())
 	})
 }
