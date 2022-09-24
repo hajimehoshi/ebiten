@@ -2389,6 +2389,7 @@ func TestTypeRedeclaration(t *testing.T) {
 	}{
 		{stmt: "type Foo int; type Foo int", err: true},
 		{stmt: "type Foo int; type Foo float", err: true},
+		{stmt: "type Foo int; { type Foo int }", err: false},
 		{stmt: "type Foo int; type Bar int", err: false},
 	}
 
