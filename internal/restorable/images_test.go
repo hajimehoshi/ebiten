@@ -806,6 +806,12 @@ func TestAllowWritePixelsForPartAfterDrawTriangles(t *testing.T) {
 	src := restorable.NewImage(w, h, restorable.ImageTypeRegular)
 	dst := restorable.NewImage(w, h, restorable.ImageTypeRegular)
 
+	pix := make([]byte, 4*w*h)
+	for i := range pix {
+		pix[i] = 0xff
+	}
+	src.WritePixels(pix, 0, 0, w, h)
+
 	vs := quadVertices(src, w, h, 0, 0)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
@@ -815,8 +821,32 @@ func TestAllowWritePixelsForPartAfterDrawTriangles(t *testing.T) {
 		Height: h,
 	}
 	dst.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{src}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
-	dst.WritePixels(make([]byte, 4), 0, 0, 1, 1)
+	dst.WritePixels(make([]byte, 4*2*2), 0, 0, 2, 2)
 	// WritePixels for a part of image doesn't panic.
+
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
+		t.Fatal(err)
+	}
+	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
+		t.Fatal(err)
+	}
+
+	result := make([]byte, 4*w*h)
+	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), result, 0, 0, w, h); err != nil {
+		t.Fatal(err)
+	}
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := color.RGBA{result[4*(j*w+i)], result[4*(j*w+i)+1], result[4*(j*w+i)+2], result[4*(j*w+i)+3]}
+			var want color.RGBA
+			if i >= 2 || j >= 2 {
+				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
+			}
+			if got != want {
+				t.Errorf("color at (%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
 }
 
 func TestExtend(t *testing.T) {
