@@ -315,8 +315,15 @@ func (cs *compileState) parseDecl(b *block, fname string, d ast.Decl) ([]shaderi
 				if !ok {
 					return nil, false
 				}
+				n := s.Name.Name
+				for _, t := range b.types {
+					if t.name == n {
+						cs.addError(s.Pos(), fmt.Sprintf("%s redeclared in this block", n))
+						return nil, false
+					}
+				}
 				b.types = append(b.types, typ{
-					name: s.Name.Name,
+					name: n,
 					ir:   t,
 				})
 			}
