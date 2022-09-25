@@ -1035,10 +1035,7 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 	}
 
 	if u.isInitFullscreen() {
-		w, h := u.window.GetSize()
-		ww := int(u.dipFromGLFWPixel(float64(w), u.currentMonitor()))
-		wh := int(u.dipFromGLFWPixel(float64(h), u.currentMonitor()))
-		u.setWindowSizeInDIP(ww, wh, true)
+		u.setWindowSizeInDIP(u.origWindowWidthInDIP, u.origWindowHeightInDIP, true)
 		u.setInitFullscreen(false)
 	}
 
