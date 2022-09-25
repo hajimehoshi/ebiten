@@ -1241,14 +1241,6 @@ func (u *userInterfaceImpl) setWindowSizeInDIP(width, height int, fullscreen boo
 	}
 
 	width, height = u.adjustWindowSizeBasedOnSizeLimitsInDIP(width, height)
-
-	u.graphicsDriver.SetFullscreen(fullscreen)
-
-	scale := u.deviceScaleFactor(u.currentMonitor())
-	if u.origWindowWidthInDIP == width && u.origWindowHeightInDIP == height && u.isFullscreen() == fullscreen && u.lastDeviceScaleFactor == scale {
-		return
-	}
-
 	if width < 1 {
 		width = 1
 	}
@@ -1256,6 +1248,12 @@ func (u *userInterfaceImpl) setWindowSizeInDIP(width, height int, fullscreen boo
 		height = 1
 	}
 
+	u.graphicsDriver.SetFullscreen(fullscreen)
+
+	scale := u.deviceScaleFactor(u.currentMonitor())
+	if u.origWindowWidthInDIP == width && u.origWindowHeightInDIP == height && u.isFullscreen() == fullscreen && u.lastDeviceScaleFactor == scale {
+		return
+	}
 	u.lastDeviceScaleFactor = scale
 
 	u.origWindowWidthInDIP = width
