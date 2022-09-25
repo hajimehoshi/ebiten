@@ -728,11 +728,15 @@ func (u *userInterfaceImpl) createWindow(width, height int) error {
 }
 
 func (u *userInterfaceImpl) beginFrame() {
-	u.inFrame = true
+	u.t.Call(func() {
+		u.inFrame = true
+	})
 }
 
 func (u *userInterfaceImpl) endFrame() {
-	u.inFrame = false
+	u.t.Call(func() {
+		u.inFrame = false
+	})
 }
 
 // registerWindowSetSizeCallback must be called from the main thread.
