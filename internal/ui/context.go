@@ -94,12 +94,12 @@ func newContext(game Game) *context {
 	}
 }
 
-func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
+func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *userInterfaceImpl) error {
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
-	return c.updateFrameImpl(graphicsDriver, clock.UpdateFrame(), outsideWidth, outsideHeight, deviceScaleFactor)
+	return c.updateFrameImpl(graphicsDriver, clock.UpdateFrame(), outsideWidth, outsideHeight, deviceScaleFactor, ui)
 }
 
-func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
+func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *userInterfaceImpl) error {
 	n := 1
 	if graphicsDriver.IsDirectX() {
 		// On DirectX, both framebuffers in the swap chain should be updated.
@@ -107,20 +107,20 @@ func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsi
 		n = 2
 	}
 	for i := 0; i < n; i++ {
-		if err := c.updateFrameImpl(graphicsDriver, 1, outsideWidth, outsideHeight, deviceScaleFactor); err != nil {
+		if err := c.updateFrameImpl(graphicsDriver, 1, outsideWidth, outsideHeight, deviceScaleFactor, ui); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64) (err error) {
+func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *userInterfaceImpl) (err error) {
 	if err := theGlobalState.error(); err != nil {
 		return err
 	}
 
-	theUI.beginFrame()
-	defer theUI.endFrame()
+	ui.beginFrame()
+	defer ui.endFrame()
 
 	// The given outside size can be 0 e.g. just after restoring from the fullscreen mode on Windows (#1589)
 	// Just ignore such cases. Otherwise, creating a zero-sized framebuffer causes a panic.
@@ -180,7 +180,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		if err := theGlobalState.error(); err != nil {
 			return err
 		}
-		theUI.resetForTick()
+		ui.resetForTick()
 	}
 
 	// Draw the game.

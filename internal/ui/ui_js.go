@@ -299,11 +299,11 @@ func (u *userInterfaceImpl) updateImpl(force bool) error {
 
 	w, h := u.outsideSize()
 	if force {
-		if err := u.context.forceUpdateFrame(u.graphicsDriver, w, h, u.DeviceScaleFactor()); err != nil {
+		if err := u.context.forceUpdateFrame(u.graphicsDriver, w, h, u.DeviceScaleFactor(), u); err != nil {
 			return err
 		}
 	} else {
-		if err := u.context.updateFrame(u.graphicsDriver, w, h, u.DeviceScaleFactor()); err != nil {
+		if err := u.context.updateFrame(u.graphicsDriver, w, h, u.DeviceScaleFactor(), u); err != nil {
 			return err
 		}
 	}

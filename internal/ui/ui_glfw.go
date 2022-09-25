@@ -766,7 +766,7 @@ func (u *userInterfaceImpl) registerWindowSetSizeCallback() {
 			// In order to call it safely, use runOnAnotherThreadFromMainThread.
 			var err error
 			u.runOnAnotherThreadFromMainThread(func() {
-				err = u.context.forceUpdateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor)
+				err = u.context.forceUpdateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor, u)
 			})
 			if err != nil {
 				u.err = err
@@ -1118,7 +1118,7 @@ func (u *userInterfaceImpl) loop() error {
 			return err
 		}
 
-		if err := u.context.updateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor); err != nil {
+		if err := u.context.updateFrame(u.graphicsDriver, outsideWidth, outsideHeight, deviceScaleFactor, u); err != nil {
 			return err
 		}
 
