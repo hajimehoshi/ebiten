@@ -217,7 +217,7 @@ func (w *glfwWindow) SetSize(width, height int) {
 		if w.ui.isWindowMaximized() && runtime.GOOS != "darwin" {
 			return
 		}
-		w.ui.setWindowSizeInDIP(width, height, w.ui.isFullscreen())
+		w.ui.setWindowSizeInDIP(width, height)
 	})
 }
 
