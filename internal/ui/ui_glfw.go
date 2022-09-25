@@ -70,9 +70,7 @@ type userInterfaceImpl struct {
 	windowBeingClosed    bool
 	windowResizingMode   WindowResizingMode
 	justAfterResized     bool
-
-	// setSizeCallbackEnabled must be accessed from the main thread.
-	setSizeCallbackEnabled bool
+	inFrame              bool
 
 	// err must be accessed from the main thread.
 	err error
@@ -729,14 +727,18 @@ func (u *userInterfaceImpl) createWindow(width, height int) error {
 	return nil
 }
 
+func (u *userInterfaceImpl) beginFrame() {
+	u.inFrame = true
+}
+
+func (u *userInterfaceImpl) endFrame() {
+	u.inFrame = false
+}
+
 // registerWindowSetSizeCallback must be called from the main thread.
 func (u *userInterfaceImpl) registerWindowSetSizeCallback() {
 	if u.sizeCallback == nil {
 		u.sizeCallback = glfw.ToSizeCallback(func(_ *glfw.Window, width, height int) {
-			if !u.setSizeCallbackEnabled {
-				return
-			}
-
 			u.adjustViewSizeAfterFullscreen()
 
 			if u.window.GetAttrib(glfw.Resizable) == glfw.False {
@@ -749,7 +751,12 @@ func (u *userInterfaceImpl) registerWindowSetSizeCallback() {
 			if width != 0 || height != 0 {
 				w := int(u.dipFromGLFWPixel(float64(width), u.currentMonitor()))
 				h := int(u.dipFromGLFWPixel(float64(height), u.currentMonitor()))
-				u.setWindowSizeInDIP(w, h)
+				u.setWindowSizeInDIP(w, h, false)
+			}
+
+			// Now the state is in a frame. (force)UpdateFrame cannot be called recursively.
+			if u.inFrame {
+				return
 			}
 
 			outsideWidth, outsideHeight := u.outsideSize()
@@ -816,7 +823,7 @@ func (u *userInterfaceImpl) registerWindowFramebufferSizeCallback() {
 			s := u.deviceScaleFactor(u.currentMonitor())
 			ww := int(float64(w) / s)
 			wh := int(float64(h) / s)
-			u.setWindowSizeInDIP(ww, wh)
+			u.setWindowSizeInDIP(ww, wh, false)
 		})
 	}
 	u.window.SetFramebufferSizeCallback(u.defaultFramebufferSizeCallback)
@@ -931,8 +938,6 @@ func (u *userInterfaceImpl) init() error {
 		return err
 	}
 
-	u.setSizeCallbackEnabled = true
-
 	// The position must be set before the size is set (#1982).
 	// setWindowSize refers the current monitor's device scale.
 	// TODO: currentMonitor is very hard to use correctly. Refactor this.
@@ -951,7 +956,7 @@ func (u *userInterfaceImpl) init() error {
 		wy = max
 	}
 	u.setWindowPositionInDIP(wx, wy, u.initMonitor)
-	u.setWindowSizeInDIP(ww, wh)
+	u.setWindowSizeInDIP(ww, wh, true)
 
 	// Maximizing a window requires a proper size and position. Call Maximize here (#1117).
 	if u.isInitWindowMaximized() {
@@ -1231,10 +1236,7 @@ func (u *userInterfaceImpl) adjustWindowSizeBasedOnSizeLimitsInDIP(width, height
 }
 
 // setWindowSize must be called from the main thread.
-//
-// TODO: Split this function into two: setting members and calling (*glfw.Window).SetSize.
-// This function is invoked from the SetSize callback, but calling (*glfw.Window).SetSize from the callback is odd (#1816).
-func (u *userInterfaceImpl) setWindowSizeInDIP(width, height int) {
+func (u *userInterfaceImpl) setWindowSizeInDIP(width, height int, callSetSize bool) {
 	if microsoftgdk.IsXbox() {
 		// Do nothing. The size is always fixed.
 		return
@@ -1261,18 +1263,7 @@ func (u *userInterfaceImpl) setWindowSizeInDIP(width, height int) {
 	// swap buffers here before SetSize is called.
 	u.swapBuffers()
 
-	// Disable the callback of SetSize. This callback can be invoked by SetMonitor or SetSize.
-	// ForceUpdateFrame is called from the callback.
-	// While setWindowSize can be called from UpdateFrame,
-	// calling ForceUpdateFrame inside UpdateFrame is illegal (#1505).
-	if u.setSizeCallbackEnabled {
-		u.setSizeCallbackEnabled = false
-		defer func() {
-			u.setSizeCallbackEnabled = true
-		}()
-	}
-
-	if !u.isFullscreen() {
+	if !u.isFullscreen() && callSetSize {
 		// Set the window size after the position. The order matters.
 		// In the opposite order, the window size might not be correct when going back from fullscreen with multi monitors.
 		oldW, oldH := u.window.GetSize()
@@ -1296,17 +1287,6 @@ func (u *userInterfaceImpl) setFullscreen(fullscreen bool) {
 		return
 	}
 	u.graphicsDriver.SetFullscreen(fullscreen)
-
-	// Disable the callback of SetSize. This callback can be invoked by SetMonitor or SetSize.
-	// ForceUpdateFrame is called from the callback.
-	// While setWindowSize can be called from UpdateFrame,
-	// calling ForceUpdateFrame inside UpdateFrame is illegal (#1505).
-	if u.setSizeCallbackEnabled {
-		u.setSizeCallbackEnabled = false
-		defer func() {
-			u.setSizeCallbackEnabled = true
-		}()
-	}
 
 	// Enter the fullscreen.
 	if fullscreen {
@@ -1503,31 +1483,17 @@ func (u *userInterfaceImpl) maximizeWindow() {
 		return
 	}
 
-	if u.setSizeCallbackEnabled {
-		u.setSizeCallbackEnabled = false
-		defer func() {
-			u.setSizeCallbackEnabled = true
-		}()
-	}
-	u.window.Maximize()
-
 	if u.isFullscreen() {
 		return
 	}
+
+	u.window.Maximize()
 
 	// On Linux/UNIX, maximizing might not finish even though Maximize returns. Just wait for its finish.
 	// Do not check this in the fullscreen since apparently the condition can never be true.
 	for u.window.GetAttrib(glfw.Maximized) != glfw.True {
 		glfw.PollEvents()
 	}
-
-	// Call setWindowSize explicitly in order to update the rendering since the callback is disabled now.
-	// Do not call setWindowSize in the fullscreen mode since setWindowSize requires the window size
-	// before the fullscreen, while window.GetSize() returns the desktop screen size in the fullscreen mode.
-	w, h := u.window.GetSize()
-	ww := int(u.dipFromGLFWPixel(float64(w), u.currentMonitor()))
-	wh := int(u.dipFromGLFWPixel(float64(h), u.currentMonitor()))
-	u.setWindowSizeInDIP(ww, wh)
 }
 
 // iconifyWindow must be called from the main thread.
@@ -1537,32 +1503,16 @@ func (u *userInterfaceImpl) iconifyWindow() {
 		return
 	}
 
-	if u.setSizeCallbackEnabled {
-		u.setSizeCallbackEnabled = false
-		defer func() {
-			u.setSizeCallbackEnabled = true
-		}()
-	}
 	u.window.Iconify()
 
 	// On Linux/UNIX, iconifying might not finish even though Iconify returns. Just wait for its finish.
 	for u.window.GetAttrib(glfw.Iconified) != glfw.True {
 		glfw.PollEvents()
 	}
-
-	// After iconifiying, the window is invisible and setWindowSize doesn't have to be called.
-	// Rather, the window size might be (0, 0) and it might be impossible to call setWindowSize (#1585).
 }
 
 // restoreWindow must be called from the main thread.
 func (u *userInterfaceImpl) restoreWindow() {
-	if u.setSizeCallbackEnabled {
-		u.setSizeCallbackEnabled = false
-		defer func() {
-			u.setSizeCallbackEnabled = true
-		}()
-	}
-
 	u.window.Restore()
 
 	// On Linux/UNIX, restoring might not finish even though Restore returns (#1608). Just wait for its finish.
@@ -1573,16 +1523,6 @@ func (u *userInterfaceImpl) restoreWindow() {
 			time.Sleep(time.Second / 60)
 		}
 	}
-
-	// Call setWindowSize explicitly in order to update the rendering since the callback is disabled now.
-	// Do not call setWindowSize in the fullscreen mode since setWindowSize requires the window size
-	// before the fullscreen, while window.GetSize() returns the desktop screen size in the fullscreen mode.
-	if !u.isFullscreen() {
-		w, h := u.window.GetSize()
-		ww := int(u.dipFromGLFWPixel(float64(w), u.currentMonitor()))
-		wh := int(u.dipFromGLFWPixel(float64(h), u.currentMonitor()))
-		u.setWindowSizeInDIP(ww, wh)
-	}
 }
 
 // setWindowDecorated must be called from the main thread.
@@ -1591,12 +1531,6 @@ func (u *userInterfaceImpl) setWindowDecorated(decorated bool) {
 		return
 	}
 
-	if u.setSizeCallbackEnabled {
-		u.setSizeCallbackEnabled = false
-		defer func() {
-			u.setSizeCallbackEnabled = true
-		}()
-	}
 	v := glfw.False
 	if decorated {
 		v = glfw.True
@@ -1615,12 +1549,6 @@ func (u *userInterfaceImpl) setWindowFloating(floating bool) {
 		return
 	}
 
-	if u.setSizeCallbackEnabled {
-		u.setSizeCallbackEnabled = false
-		defer func() {
-			u.setSizeCallbackEnabled = true
-		}()
-	}
 	v := glfw.False
 	if floating {
 		v = glfw.True
@@ -1636,13 +1564,6 @@ func (u *userInterfaceImpl) setWindowResizingMode(mode WindowResizingMode) {
 
 	if u.windowResizingMode == mode {
 		return
-	}
-
-	if u.setSizeCallbackEnabled {
-		u.setSizeCallbackEnabled = false
-		defer func() {
-			u.setSizeCallbackEnabled = true
-		}()
 	}
 
 	u.windowResizingMode = mode
@@ -1666,13 +1587,6 @@ func (u *userInterfaceImpl) setWindowPositionInDIP(x, y int, monitor *glfw.Monit
 		return
 	}
 
-	if u.setSizeCallbackEnabled {
-		u.setSizeCallbackEnabled = false
-		defer func() {
-			u.setSizeCallbackEnabled = true
-		}()
-	}
-
 	mx, my := monitor.GetPos()
 	xf := u.dipToGLFWPixel(float64(x), monitor)
 	yf := u.dipToGLFWPixel(float64(y), monitor)
@@ -1685,13 +1599,6 @@ func (u *userInterfaceImpl) setWindowPositionInDIP(x, y int, monitor *glfw.Monit
 
 // setWindowTitle must be called from the main thread.
 func (u *userInterfaceImpl) setWindowTitle(title string) {
-	if u.setSizeCallbackEnabled {
-		u.setSizeCallbackEnabled = false
-		defer func() {
-			u.setSizeCallbackEnabled = true
-		}()
-	}
-
 	u.window.SetTitle(title)
 }
 
