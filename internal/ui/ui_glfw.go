@@ -70,7 +70,7 @@ type userInterfaceImpl struct {
 	windowBeingClosed    bool
 	windowResizingMode   WindowResizingMode
 	justAfterResized     bool
-	inFrame              bool
+	inFrame              uint32
 
 	// err must be accessed from the main thread.
 	err error
@@ -728,15 +728,11 @@ func (u *userInterfaceImpl) createWindow(width, height int) error {
 }
 
 func (u *userInterfaceImpl) beginFrame() {
-	u.t.Call(func() {
-		u.inFrame = true
-	})
+	atomic.StoreUint32(&u.inFrame, 1)
 }
 
 func (u *userInterfaceImpl) endFrame() {
-	u.t.Call(func() {
-		u.inFrame = false
-	})
+	atomic.StoreUint32(&u.inFrame, 0)
 }
 
 // registerWindowSetSizeCallback must be called from the main thread.
@@ -759,7 +755,7 @@ func (u *userInterfaceImpl) registerWindowSetSizeCallback() {
 			}
 
 			// Now the state is in a frame. (force)UpdateFrame cannot be called recursively.
-			if u.inFrame {
+			if atomic.LoadUint32(&u.inFrame) != 0 {
 				return
 			}
 
