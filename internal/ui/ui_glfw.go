@@ -1241,8 +1241,8 @@ func (u *userInterfaceImpl) setWindowSizeInDIP(width, height int) {
 	}
 
 	width, height = u.adjustWindowSizeBasedOnSizeLimitsInDIP(width, height)
-	if width < 1 {
-		width = 1
+	if m := u.minimumWindowWidth(); width < m {
+		width = m
 	}
 	if height < 1 {
 		height = 1
@@ -1334,10 +1334,6 @@ func (u *userInterfaceImpl) setWindowSizeInDIPImpl(width, height int, fullscreen
 
 	// Get the original window position and size before changing the state of fullscreen.
 	origX, origY := u.origWindowPos()
-
-	if mw := u.minimumWindowWidth(); width < mw {
-		width = mw
-	}
 
 	wasFullscreen := u.isFullscreen()
 	if u.isNativeFullscreenAvailable() && u.isNativeFullscreen() {
