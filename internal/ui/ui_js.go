@@ -702,3 +702,9 @@ func (u *userInterfaceImpl) Input() *Input {
 func (u *userInterfaceImpl) Window() Window {
 	return &nullWindow{}
 }
+
+func (u *userInterfaceImpl) beginFrame() {
+}
+
+func (u *userInterfaceImpl) endFrame() {
+}

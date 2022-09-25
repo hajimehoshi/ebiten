@@ -472,3 +472,9 @@ func (u *userInterfaceImpl) ScheduleFrame() {
 		u.renderRequester.RequestRenderIfNeeded()
 	}
 }
+
+func (u *userInterfaceImpl) beginFrame() {
+}
+
+func (u *userInterfaceImpl) endFrame() {
+}
