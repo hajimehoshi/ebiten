@@ -282,11 +282,11 @@ func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) {
 	// toggleFullscreen doesn't work when the window is not resizable.
 	origFullScreen := window.Send(sel_collectionBehavior)&cocoa.NSWindowCollectionBehaviorFullScreenPrimary != 0
 	if !origFullScreen {
-		window.Send(sel_setCollectionBehavior, window.Send(sel_collectionBehavior)|cocoa.NSWindowCollectionBehaviorFullScreenPrimary)
+		window.Send(sel_setCollectionBehavior, cocoa.NSUInteger(window.Send(sel_collectionBehavior))|cocoa.NSWindowCollectionBehaviorFullScreenPrimary)
 	}
 	window.Send(objc.RegisterName("toggleFullScreen:"), 0)
 	if !origFullScreen {
-		window.Send(sel_setCollectionBehavior, window.Send(sel_collectionBehavior)&cocoa.NSWindowCollectionBehaviorFullScreenPrimary)
+		window.Send(sel_setCollectionBehavior, cocoa.NSUInteger(window.Send(sel_collectionBehavior))&^cocoa.NSUInteger(cocoa.NSWindowCollectionBehaviorFullScreenPrimary))
 	}
 }
 
