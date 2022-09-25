@@ -752,7 +752,6 @@ func (u *userInterfaceImpl) registerWindowSetSizeCallback() {
 				u.setWindowSizeInDIP(w, h, u.isFullscreen())
 			}
 
-			u.updateSize()
 			outsideWidth, outsideHeight := u.outsideSize()
 			deviceScaleFactor := u.deviceScaleFactor(u.currentMonitor())
 
@@ -978,10 +977,6 @@ func (u *userInterfaceImpl) init() error {
 	return nil
 }
 
-func (u *userInterfaceImpl) updateSize() {
-	u.setWindowSizeInDIP(u.origWindowWidthInDIP, u.origWindowHeightInDIP, u.isFullscreen())
-}
-
 func (u *userInterfaceImpl) outsideSize() (float64, float64) {
 	if u.isFullscreen() && !u.isNativeFullscreen() {
 		// On Linux, the window size is not reliable just after making the window
@@ -1062,7 +1057,6 @@ func (u *userInterfaceImpl) update() (float64, float64, error) {
 	// The vsync state might be changed in other places (e.g., the SetSizeCallback).
 	// Also, when toggling to fullscreen, vsync state might be reset unexpectedly (#1787).
 	u.updateVsync()
-	u.updateSize()
 
 	if u.fpsMode != FPSModeVsyncOffMinimum {
 		// TODO: Updating the input can be skipped when clock.Update returns 0 (#1367).
