@@ -178,7 +178,7 @@ func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) {
 	panic(fmt.Sprintf("ui: setNativeFullscreen is not implemented in this environment: %s", runtime.GOOS))
 }
 
-func (u *userInterfaceImpl) adjustViewSize() {
+func (u *userInterfaceImpl) adjustViewSizeAfterFullscreen() {
 }
 
 func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) {

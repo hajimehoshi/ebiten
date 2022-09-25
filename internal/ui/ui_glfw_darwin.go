@@ -290,14 +290,16 @@ func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) {
 	}
 }
 
-func (u *userInterfaceImpl) adjustViewSize() {
+func (u *userInterfaceImpl) adjustViewSizeAfterFullscreen() {
 	if u.graphicsDriver.IsGL() {
 		return
 	}
+
 	window := cocoa.NSWindow{ID: objc.ID(u.window.GetCocoaWindow())}
 	if window.StyleMask()&cocoa.NSWindowStyleMaskFullScreen == 0 {
 		return
 	}
+
 	// Apparently, adjusting the view size is not needed as of macOS 12 (#1745).
 	if cocoa.NSProcessInfo_processInfo().IsOperatingSystemAtLeastVersion(cocoa.NSOperatingSystemVersion{
 		Major: 12,
@@ -315,6 +317,7 @@ func (u *userInterfaceImpl) adjustViewSize() {
 	}
 	viewSize.Width--
 	view.SetFrameSize(viewSize)
+
 	// NSColor.blackColor (0, 0, 0, 1) didn't work.
 	// Use the transparent color instead.
 	window.SetBackgroundColor(cocoa.NSColor_colorWithSRGBRedGreenBlueAlpha(0, 0, 0, 0))
