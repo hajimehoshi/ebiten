@@ -131,6 +131,8 @@ func (i *Image) resolveSetVerticesCacheIfNeeded() {
 }
 
 // Size returns the size of the image.
+//
+// Deprecated: Use (*ebiten.Image).Bounds() instead.
 func (i *Image) Size() (width, height int) {
 	s := i.Bounds().Size()
 	return s.X, s.Y
