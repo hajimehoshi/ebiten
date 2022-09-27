@@ -181,7 +181,12 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		m.setImg(level, nil)
 		return nil
 	}
-	s := buffered.NewImage(w2, h2, atlas.ImageTypeVolatile)
+
+	t := atlas.ImageTypeRegular
+	if m.volatile {
+		t = atlas.ImageTypeVolatile
+	}
+	s := buffered.NewImage(w2, h2, t)
 
 	dstRegion := graphicsdriver.Region{
 		X:      0,
