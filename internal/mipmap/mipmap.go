@@ -26,22 +26,30 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
+func canUseMipmap(imageType atlas.ImageType) bool {
+	switch imageType {
+	case atlas.ImageTypeRegular, atlas.ImageTypeUnmanaged:
+		return true
+	}
+	return false
+}
+
 // Mipmap is a set of buffered.Image sorted by the order of mipmap level.
 // The level 0 image is a regular image and higher-level images are used for mipmap.
 type Mipmap struct {
-	width    int
-	height   int
-	volatile bool
-	orig     *buffered.Image
-	imgs     map[int]*buffered.Image
+	width     int
+	height    int
+	imageType atlas.ImageType
+	orig      *buffered.Image
+	imgs      map[int]*buffered.Image
 }
 
 func New(width, height int, imageType atlas.ImageType) *Mipmap {
 	return &Mipmap{
-		width:    width,
-		height:   height,
-		orig:     buffered.NewImage(width, height, imageType),
-		volatile: imageType == atlas.ImageTypeVolatile,
+		width:     width,
+		height:    height,
+		orig:      buffered.NewImage(width, height, imageType),
+		imageType: imageType,
 	}
 }
 
@@ -65,7 +73,7 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices
 
 	level := 0
 	// TODO: Do we need to check all the sources' states of being volatile?
-	if !canSkipMipmap && srcs[0] != nil && !srcs[0].volatile {
+	if !canSkipMipmap && srcs[0] != nil && canUseMipmap(srcs[0].imageType) {
 		level = math.MaxInt32
 		for i := 0; i < len(indices)/3; i++ {
 			const n = graphics.VertexFloatCount
@@ -137,8 +145,8 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		panic("mipmap: level must be non-zero at level")
 	}
 
-	if m.volatile {
-		panic("mipmap: mipmap images for a volatile image is not implemented yet")
+	if !canUseMipmap(m.imageType) {
+		panic("mipmap: mipmap images for a volatile or a screen image is not implemented yet")
 	}
 
 	if img, ok := m.imgs[level]; ok {
@@ -182,11 +190,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		return nil
 	}
 
-	t := atlas.ImageTypeRegular
-	if m.volatile {
-		t = atlas.ImageTypeVolatile
-	}
-	s := buffered.NewImage(w2, h2, t)
+	s := buffered.NewImage(w2, h2, m.imageType)
 
 	dstRegion := graphicsdriver.Region{
 		X:      0,
