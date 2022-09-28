@@ -32,14 +32,11 @@ import (
 type Image struct {
 	// addr holds self to check copying.
 	// See strings.Builder for similar examples.
-	addr *Image
-
-	image *ui.Image
-
-	bounds   image.Rectangle
-	original *Image
-
+	addr             *Image
+	image            *ui.Image
+	original         *Image
 	setVerticesCache map[[2]int][4]byte
+	bounds           image.Rectangle
 }
 
 var emptyImage *Image
