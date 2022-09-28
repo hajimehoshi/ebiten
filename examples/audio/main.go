@@ -51,12 +51,12 @@ const (
 var (
 	playerBarColor     = color.RGBA{0x80, 0x80, 0x80, 0xff}
 	playerCurrentColor = color.RGBA{0xff, 0xff, 0xff, 0xff}
-)
 
-var (
 	playButtonImage  *ebiten.Image
 	pauseButtonImage *ebiten.Image
 	alertButtonImage *ebiten.Image
+
+	sePlayer *audio.Player
 )
 
 func init() {
@@ -247,7 +247,12 @@ func (p *Player) playSEIfNeeded() {
 	if !p.shouldPlaySE() {
 		return
 	}
-	sePlayer := p.audioContext.NewPlayerFromBytes(p.seBytes)
+	if sePlayer == nil {
+		sePlayer = p.audioContext.NewPlayerFromBytes(p.seBytes)
+	} else {
+		sePlayer.Pause()
+		sePlayer.Rewind()
+	}
 	sePlayer.Play()
 }
 
