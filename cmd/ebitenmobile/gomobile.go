@@ -26,7 +26,7 @@ import (
 //go:embed gobind.go
 var gobind_go []byte
 
-const gomobileHash = "aaac322e2105241d1ac9a25b03d4e916ac6e42c6"
+const gomobileHash = "fa6bcb0768357a704787d34228c0cd44d0ed58c7"
 
 func runCommand(command string, args []string, env []string) error {
 	if buildX || buildN {
