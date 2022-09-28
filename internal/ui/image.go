@@ -35,6 +35,8 @@ type Image struct {
 	width    int
 	height   int
 	volatile bool
+
+	dotsCache map[[2]int][4]byte
 }
 
 func NewImage(width, height int, imageType atlas.ImageType) *Image {
@@ -52,14 +54,18 @@ func (i *Image) MarkDisposed() {
 	}
 	i.mipmap.MarkDisposed()
 	i.mipmap = nil
+	i.dotsCache = nil
 }
 
 func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, canSkipMipmap bool) {
+	i.resolveDotsCacheIfNeeded()
+
 	var srcMipmaps [graphics.ShaderImageCount]*mipmap.Mipmap
 	for i, src := range srcs {
 		if src == nil {
 			continue
 		}
+		src.resolveDotsCacheIfNeeded()
 		srcMipmaps[i] = src.mipmap
 	}
 
@@ -72,6 +78,23 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 }
 
 func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
+	if width == 1 && height == 1 {
+		if i.dotsCache == nil {
+			i.dotsCache = map[[2]int][4]byte{}
+		}
+
+		var clr [4]byte
+		copy(clr[:], pix)
+		i.dotsCache[[2]int{x, y}] = clr
+
+		// One square requires 6 indices (= 2 triangles).
+		if len(i.dotsCache) >= graphics.IndicesCount/6 {
+			i.resolveDotsCacheIfNeeded()
+		}
+		return
+	}
+
+	i.resolveDotsCacheIfNeeded()
 	i.mipmap.WritePixels(pix, x, y, width, height)
 }
 
@@ -79,6 +102,17 @@ func (i *Image) ReadPixels(pixels []byte, x, y, width, height int) {
 	// Check the error existence and avoid unnecessary calls.
 	if theGlobalState.error() != nil {
 		return
+	}
+
+	if width == 1 && height == 1 {
+		if c, ok := i.dotsCache[[2]int{x, y}]; ok {
+			copy(pixels, c[:])
+			return
+		}
+		// Do not call resolveDotsCacheIfNeeded here. This would slow (image/draw).Draw.
+		// See ebiten.TestImageDrawOver.
+	} else {
+		i.resolveDotsCacheIfNeeded()
 	}
 
 	if err := theUI.readPixels(i.mipmap, pixels, x, y, width, height); err != nil {
@@ -91,6 +125,82 @@ func (i *Image) ReadPixels(pixels []byte, x, y, width, height int) {
 
 func (i *Image) DumpScreenshot(name string, blackbg bool) (string, error) {
 	return theUI.dumpScreenshot(i.mipmap, name, blackbg)
+}
+
+func (i *Image) resolveDotsCacheIfNeeded() {
+	if len(i.dotsCache) == 0 {
+		return
+	}
+
+	l := len(i.dotsCache)
+	vs := graphics.Vertices(l * 4)
+	is := make([]uint16, l*6)
+	sx, sy := float32(1), float32(1)
+	var idx int
+	for p, c := range i.dotsCache {
+		dx := float32(p[0])
+		dy := float32(p[1])
+
+		var crf, cgf, cbf, caf float32
+		if c[3] != 0 {
+			crf = float32(c[0]) / float32(c[3])
+			cgf = float32(c[1]) / float32(c[3])
+			cbf = float32(c[2]) / float32(c[3])
+			caf = float32(c[3]) / 0xff
+		}
+
+		vs[graphics.VertexFloatCount*4*idx] = dx
+		vs[graphics.VertexFloatCount*4*idx+1] = dy
+		vs[graphics.VertexFloatCount*4*idx+2] = sx
+		vs[graphics.VertexFloatCount*4*idx+3] = sy
+		vs[graphics.VertexFloatCount*4*idx+4] = crf
+		vs[graphics.VertexFloatCount*4*idx+5] = cgf
+		vs[graphics.VertexFloatCount*4*idx+6] = cbf
+		vs[graphics.VertexFloatCount*4*idx+7] = caf
+		vs[graphics.VertexFloatCount*4*idx+8] = dx + 1
+		vs[graphics.VertexFloatCount*4*idx+9] = dy
+		vs[graphics.VertexFloatCount*4*idx+10] = sx + 1
+		vs[graphics.VertexFloatCount*4*idx+11] = sy
+		vs[graphics.VertexFloatCount*4*idx+12] = crf
+		vs[graphics.VertexFloatCount*4*idx+13] = cgf
+		vs[graphics.VertexFloatCount*4*idx+14] = cbf
+		vs[graphics.VertexFloatCount*4*idx+15] = caf
+		vs[graphics.VertexFloatCount*4*idx+16] = dx
+		vs[graphics.VertexFloatCount*4*idx+17] = dy + 1
+		vs[graphics.VertexFloatCount*4*idx+18] = sx
+		vs[graphics.VertexFloatCount*4*idx+19] = sy + 1
+		vs[graphics.VertexFloatCount*4*idx+20] = crf
+		vs[graphics.VertexFloatCount*4*idx+21] = cgf
+		vs[graphics.VertexFloatCount*4*idx+22] = cbf
+		vs[graphics.VertexFloatCount*4*idx+23] = caf
+		vs[graphics.VertexFloatCount*4*idx+24] = dx + 1
+		vs[graphics.VertexFloatCount*4*idx+25] = dy + 1
+		vs[graphics.VertexFloatCount*4*idx+26] = sx + 1
+		vs[graphics.VertexFloatCount*4*idx+27] = sy + 1
+		vs[graphics.VertexFloatCount*4*idx+28] = crf
+		vs[graphics.VertexFloatCount*4*idx+29] = cgf
+		vs[graphics.VertexFloatCount*4*idx+30] = cbf
+		vs[graphics.VertexFloatCount*4*idx+31] = caf
+
+		is[6*idx] = uint16(4 * idx)
+		is[6*idx+1] = uint16(4*idx + 1)
+		is[6*idx+2] = uint16(4*idx + 2)
+		is[6*idx+3] = uint16(4*idx + 1)
+		is[6*idx+4] = uint16(4*idx + 2)
+		is[6*idx+5] = uint16(4*idx + 3)
+
+		idx++
+	}
+	i.dotsCache = nil
+
+	srcs := [graphics.ShaderImageCount]*mipmap.Mipmap{emptyImage.mipmap}
+	dr := graphicsdriver.Region{
+		X:      0,
+		Y:      0,
+		Width:  float32(i.width),
+		Height: float32(i.height),
+	}
+	i.mipmap.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, nil, nil, false, true)
 }
 
 func DumpImages(dir string) (string, error) {
