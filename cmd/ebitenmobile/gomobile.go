@@ -21,12 +21,14 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
+
+	// Add a dependency on gomobile in order to get the version via debug.ReadBuildInfo().
+	_ "golang.org/x/mobile/geom"
 )
 
 //go:embed gobind.go
 var gobind_go []byte
-
-const gomobileHash = "fa6bcb0768357a704787d34228c0cd44d0ed58c7"
 
 func runCommand(command string, args []string, env []string) error {
 	if buildX || buildN {
@@ -132,10 +134,15 @@ import (
 		return tmp, err
 	}
 
+	h, err := gomobileHash()
+	if err != nil {
+		return tmp, err
+	}
+
 	// To record gomobile to go.sum for Go 1.16 and later, go-get gomobile instaed of golang.org/x/mobile (#1487).
 	// This also records gobind as gomobile depends on gobind indirectly.
 	// Using `...` doesn't work on Windows since mobile/internal/mobileinit cannot be compiled on Windows w/o Cgo (#1493).
-	if err := runGo("get", "golang.org/x/mobile/cmd/gomobile@"+gomobileHash); err != nil {
+	if err := runGo("get", "golang.org/x/mobile/cmd/gomobile@"+h); err != nil {
 		return tmp, err
 	}
 	if localgm := os.Getenv("EBITENMOBILE_GOMOBILE"); localgm != "" {
@@ -172,4 +179,17 @@ import (
 	}
 
 	return tmp, nil
+}
+
+func gomobileHash() (string, error) {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return "", fmt.Errorf("ebitenmobile: debug.ReadBuildInfo failed")
+	}
+	for _, m := range info.Deps {
+		if m.Path == "golang.org/x/mobile" {
+			return m.Version, nil
+		}
+	}
+	return "", fmt.Errorf("ebitenmobile: getting the gomobile version failed")
 }
