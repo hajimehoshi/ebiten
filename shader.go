@@ -15,7 +15,12 @@
 package ebiten
 
 import (
+	"fmt"
+	"sync"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -50,4 +55,35 @@ func (s *Shader) Dispose() {
 
 func (s *Shader) convertUniforms(uniforms map[string]interface{}) [][]float32 {
 	return s.shader.ConvertUniforms(uniforms)
+}
+
+type builtinShaderKey struct {
+	filter  graphicsdriver.Filter
+	address graphicsdriver.Address
+}
+
+var (
+	builtinShaders  = map[builtinShaderKey]*Shader{}
+	builtinShadersM sync.Mutex
+)
+
+func builtinShader(filter graphicsdriver.Filter, address graphicsdriver.Address) *Shader {
+	builtinShadersM.Lock()
+	defer builtinShadersM.Unlock()
+
+	key := builtinShaderKey{
+		filter:  filter,
+		address: address,
+	}
+	if s, ok := builtinShaders[key]; ok {
+		return s
+	}
+
+	src := builtinshader.Shader(filter, address)
+	s, err := NewShader(src)
+	if err != nil {
+		panic(fmt.Sprintf("ebiten: NewShader for a built-in shader failed: %v", err))
+	}
+	builtinShaders[key] = s
+	return s
 }
