@@ -1236,3 +1236,36 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestShaderDrawRectColorScale(t *testing.T) {
+	const w, h = 16, 16
+
+	dst := ebiten.NewImage(w, h)
+	s, err := ebiten.NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return color
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	op := &ebiten.DrawRectShaderOptions{}
+	op.ColorScale.SetR(4.0 / 8.0)
+	op.ColorScale.SetG(5.0 / 8.0)
+	op.ColorScale.SetB(6.0 / 8.0)
+	op.ColorScale.SetA(7.0 / 8.0)
+	op.ColorScale.Scale(1.0/4.0, 2.0/4.0, 3.0/4.0, 4.0/4.0)
+	dst.DrawRectShader(w, h, s, op)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{0x20, 0x50, 0x90, 0xe0}
+			if !sameColors(got, want, 1) {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}

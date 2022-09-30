@@ -547,6 +547,11 @@ type DrawRectShaderOptions struct {
 	// The default (zero) value is identity, which draws the rectangle at (0, 0).
 	GeoM GeoM
 
+	// ColorScale is a scale of color.
+	// This scaling values are passed to the `color vec4` argument of the Fragment function in a Kage program.
+	// The default (zero) value is identity, which is (1, 1, 1, 1).
+	ColorScale ColorScale
+
 	// CompositeMode is a composite mode to draw.
 	// The default (zero) value is regular alpha blending.
 	CompositeMode CompositeMode
@@ -619,7 +624,8 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		options.GeoM.Translate(float64(offsetX), float64(offsetY))
 	}
 	a, b, c, d, tx, ty := options.GeoM.elements32()
-	vs := graphics.QuadVertices(float32(sx), float32(sy), float32(sx+width), float32(sy+height), a, b, c, d, tx, ty, 1, 1, 1, 1)
+	cr, cg, cb, ca := options.ColorScale.elements()
+	vs := graphics.QuadVertices(float32(sx), float32(sy), float32(sx+width), float32(sy+height), a, b, c, d, tx, ty, cr, cg, cb, ca)
 	is := graphics.QuadIndices()
 
 	var offsets [graphics.ShaderImageCount - 1][2]float32
