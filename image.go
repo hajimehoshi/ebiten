@@ -402,8 +402,6 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
-//
-// This API is experimental.
 type DrawTrianglesShaderOptions struct {
 	// CompositeMode is a composite mode to draw.
 	// The default (zero) value is regular alpha blending.
@@ -451,8 +449,6 @@ func init() {
 // When a specified image is non-nil and is disposed, DrawTrianglesShader panics.
 //
 // When the image i is disposed, DrawTrianglesShader does nothing.
-//
-// This API is experimental.
 func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader *Shader, options *DrawTrianglesShaderOptions) {
 	i.copyCheck()
 
@@ -540,8 +536,6 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
-//
-// This API is experimental.
 type DrawRectShaderOptions struct {
 	// GeoM is a geometry matrix to draw.
 	// The default (zero) value is identity, which draws the rectangle at (0, 0).
@@ -583,8 +577,6 @@ func init() {
 // When one of the specified image is non-nil and is disposed, DrawRectShader panics.
 //
 // When the image i is disposed, DrawRectShader does nothing.
-//
-// This API is experimental.
 func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawRectShaderOptions) {
 	i.copyCheck()
 
