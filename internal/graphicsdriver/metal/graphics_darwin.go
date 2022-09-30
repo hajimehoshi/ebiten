@@ -834,7 +834,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 		}
 		var esBody [16]float32
 		var esTranslate [4]float32
-		colorM.Elements(&esBody, &esTranslate)
+		colorM.Elements(esBody[:], esTranslate[:])
 		uniformVars = [][]float32{
 			{float32(w), float32(h)},
 			sourceSize,
