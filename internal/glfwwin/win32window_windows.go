@@ -28,7 +28,10 @@ func (w *Window) getWindowStyle() uint32 {
 		if w.decorated {
 			style |= _WS_CAPTION
 			if w.resizable {
-				style |= _WS_MAXIMIZEBOX | _WS_THICKFRAME
+				style |= _WS_THICKFRAME
+				if w.maxwidth == DontCare && w.maxheight == DontCare {
+					style |= _WS_MAXIMIZEBOX
+				}
 			}
 		} else {
 			style |= _WS_POPUP
@@ -84,13 +87,17 @@ func createIcon(image *Image, xhot, yhot int, icon bool) (_HICON, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer _DeleteObject(_HGDIOBJ(color))
+	defer func() {
+		_ = _DeleteObject(_HGDIOBJ(color))
+	}()
 
 	mask, err := _CreateBitmap(int32(image.Width), int32(image.Height), 1, 1, nil)
 	if err != nil {
 		return 0, err
 	}
-	defer _DeleteObject(_HGDIOBJ(mask))
+	defer func() {
+		_ = _DeleteObject(_HGDIOBJ(mask))
+	}()
 
 	source := image.Pixels
 	var target []byte
@@ -393,7 +400,9 @@ func (w *Window) updateFramebufferTransparency() error {
 		if err != nil {
 			return err
 		}
-		defer _DeleteObject(_HGDIOBJ(region))
+		defer func() {
+			_ = _DeleteObject(_HGDIOBJ(region))
+		}()
 
 		bb := _DWM_BLURBEHIND{
 			dwFlags:  _DWM_BB_ENABLE | _DWM_BB_BLURREGION,
@@ -736,6 +745,21 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 			// NOTE: Some synthetic key messages have a scancode of zero
 			// HACK: Map the virtual key back to a usable scancode
 			scancode = _MapVirtualKeyW(uint32(wParam), _MAPVK_VK_TO_VSC)
+		}
+
+		// HACK: Alt+PrtSc has a different scancode than just PrtSc
+		if scancode == 0x54 {
+			scancode = 0x137
+		}
+
+		// HACK: Ctrl+Pause has a different scancode than just Pause
+		if scancode == 0x146 {
+			scancode = 0x45
+		}
+
+		// HACK: CJK IME sets the extended bit for right Shift
+		if scancode == 0x136 {
+			scancode = 0x36
 		}
 
 		key := _glfw.win32.keycodes[scancode]
@@ -1186,15 +1210,17 @@ func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) er
 
 	var xpos, ypos, fullWidth, fullHeight int32
 	if w.monitor != nil {
+		mi, ok := _GetMonitorInfoW(w.monitor.win32.handle)
+		if !ok {
+			return fmt.Errorf("glfwwin: GetMonitorInfoW failed")
+		}
 		// NOTE: This window placement is temporary and approximate, as the
 		//       correct position and size cannot be known until the monitor
 		//       video mode has been picked in _glfwSetVideoModeWin32
-		x, y, _ := w.monitor.platformGetMonitorPos()
-		xpos, ypos = int32(x), int32(y)
-
-		mode := w.monitor.platformGetVideoMode()
-		fullWidth = int32(mode.Width)
-		fullHeight = int32(mode.Height)
+		xpos = mi.rcMonitor.left
+		ypos = mi.rcMonitor.top
+		fullWidth = mi.rcMonitor.right - mi.rcMonitor.left
+		fullHeight = mi.rcMonitor.bottom - mi.rcMonitor.top
 	} else {
 		xpos = _CW_USEDEFAULT
 		ypos = _CW_USEDEFAULT
@@ -1211,15 +1237,10 @@ func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) er
 		fullWidth, fullHeight = int32(w), int32(h)
 	}
 
-	m, err := _GetModuleHandleW("")
-	if err != nil {
-		return err
-	}
-
 	h, err := _CreateWindowExW(exStyle, _GLFW_WNDCLASSNAME, wndconfig.title, style, xpos, ypos, fullWidth, fullHeight,
 		0, // No parent window
 		0, // No window menu
-		_HINSTANCE(m), unsafe.Pointer(wndconfig))
+		_glfw.win32.instance, unsafe.Pointer(wndconfig))
 	if err != nil {
 		return err
 	}
@@ -1335,11 +1356,7 @@ func registerWindowClassWin32() error {
 	wc.cbSize = uint32(unsafe.Sizeof(wc))
 	wc.style = _CS_HREDRAW | _CS_VREDRAW | _CS_OWNDC
 	wc.lpfnWndProc = _WNDPROC(windowProcPtr)
-	module, err := _GetModuleHandleW("")
-	if err != nil {
-		return err
-	}
-	wc.hInstance = _HINSTANCE(module)
+	wc.hInstance = _glfw.win32.instance
 	cursor, err := _LoadCursorW(0, _IDC_ARROW)
 	if err != nil {
 		return err
@@ -1370,11 +1387,7 @@ func registerWindowClassWin32() error {
 }
 
 func unregisterWindowClassWin32() error {
-	m, err := _GetModuleHandleW("")
-	if err != nil {
-		return err
-	}
-	if err := _UnregisterClassW(_GLFW_WNDCLASSNAME, _HINSTANCE(m)); err != nil {
+	if err := _UnregisterClassW(_GLFW_WNDCLASSNAME, _glfw.win32.instance); err != nil {
 		return err
 	}
 	return nil
@@ -1394,6 +1407,9 @@ func (w *Window) platformCreateWindow(wndconfig *wndconfig, ctxconfig *ctxconfig
 				return err
 			}
 		}
+		if err := w.refreshContextAttribs(ctxconfig); err != nil {
+			return err
+		}
 	}
 
 	if w.monitor != nil {
@@ -1406,6 +1422,20 @@ func (w *Window) platformCreateWindow(wndconfig *wndconfig, ctxconfig *ctxconfig
 		}
 		if err := w.fitToMonitor(); err != nil {
 			return err
+		}
+		if wndconfig.centerCursor {
+			if err := w.centerCursorInContentArea(); err != nil {
+				return err
+			}
+		}
+	} else {
+		if wndconfig.visible {
+			w.platformShowWindow()
+			if wndconfig.focused {
+				if err := w.platformFocusWindow(); err != nil {
+					return err
+				}
+			}
 		}
 	}
 
@@ -1420,7 +1450,9 @@ func (w *Window) platformDestroyWindow() error {
 	}
 
 	if w.context.destroy != nil {
-		w.context.destroy(w)
+		if err := w.context.destroy(w); err != nil {
+			return err
+		}
 	}
 
 	if _glfw.win32.disabledCursorWindow == w {

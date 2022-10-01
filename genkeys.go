@@ -599,11 +599,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
-var glfwKeyToUIKey = map[glfw.Key]Key{
-{{range $dname, $gname := .UIKeyNameToGLFWKeyName}}glfw.Key{{$gname}}: Key{{$dname}},
-{{end}}
-}
-
 var uiKeyToGLFWKey = map[Key]glfw.Key{
 {{range $dname, $gname := .UIKeyNameToGLFWKeyName}}Key{{$dname}}: glfw.Key{{$gname}},
 {{end}}
@@ -830,12 +825,12 @@ func main() {
 			buildTag = "//go:build !js" +
 				"\n// +build !js"
 		case filepath.Join("internal", "ui", "keys_mobile.go"):
-			buildTag = "//go:build (android || ios) && !ebitenginecbackend && !ebitencbackend" +
+			buildTag = "//go:build (android || ios) && !nintendosdk" +
 				"\n// +build android ios" +
-				"\n// +build !ebitenginecbackend && !ebitencbackend"
+				"\n// +build !nintendosdk"
 		case filepath.Join("internal", "ui", "keys_glfw.go"):
-			buildTag = "//go:build !android && !ios && !js && !ebitenginecbackend && !ebitencbackend" +
-				"\n// +build !android,!ios,!js,!ebitenginecbackend && !ebitencbackend"
+			buildTag = "//go:build !android && !ios && !js && !nintendosdk" +
+				"\n// +build !android,!ios,!js,!nintendosdk"
 		}
 		// NOTE: According to godoc, maps are automatically sorted by key.
 		if err := tmpl.Execute(f, struct {

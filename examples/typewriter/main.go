@@ -102,7 +102,7 @@ func main() {
 	}
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("TypeWriter (Ebiten Demo)")
+	ebiten.SetWindowTitle("TypeWriter (Ebitengine Demo)")
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}

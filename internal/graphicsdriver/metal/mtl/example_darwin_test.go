@@ -23,10 +23,20 @@ import (
 	"os"
 	"unsafe"
 
+	"github.com/ebitengine/purego"
 	"golang.org/x/image/math/f32"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
+
+func init() {
+	// for these tests to pass Metal must be linked directly.
+	// it is not needed for any of the others nor for Ebitengine to work properly.
+	//go:cgo_import_dynamic _ _ "Metal.framework/Metal"
+
+	// It is also necessary for CoreGraphics to be linked
+	purego.Dlopen("/System/Library/Frameworks/CoreGraphics.framework/Versions/Current/CoreGraphics", purego.RTLD_GLOBAL)
+}
 
 func Example_listDevices() {
 	device, ok := mtl.CreateSystemDefaultDevice()

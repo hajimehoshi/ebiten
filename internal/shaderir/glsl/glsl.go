@@ -92,6 +92,8 @@ func (c *compileContext) structName(p *shaderir.Program, t *shaderir.Type) strin
 }
 
 func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentShader string) {
+	p = adjustProgram(p)
+
 	c := &compileContext{
 		version:     version,
 		structNames: map[string]string{},
@@ -428,13 +430,8 @@ func (c *compileContext) localVariableName(p *shaderir.Program, topBlock *shader
 			return "gl_FragCoord"
 		case idx < nv+1:
 			return fmt.Sprintf("V%d", idx-1)
-		case idx == nv+1:
-			if c.version == GLSLVersionES300 {
-				return "fragColor"
-			}
-			return "gl_FragColor"
 		default:
-			return fmt.Sprintf("l%d", idx-(nv+2))
+			return fmt.Sprintf("l%d", idx-(nv+1))
 		}
 	default:
 		return fmt.Sprintf("l%d", idx)
@@ -611,17 +608,108 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 		case shaderir.Break:
 			lines = append(lines, idt+"break;")
 		case shaderir.Return:
-			if len(s.Exprs) == 0 {
+			switch {
+			case topBlock == p.FragmentFunc.Block:
+				token := "gl_FragColor"
+				if c.version == GLSLVersionES300 {
+					token = "fragColor"
+				}
+				lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, token, expr(&s.Exprs[0])))
+				// The 'return' statement is not required so far, as the fragment entrypoint has only one sentence so far. See adjustProgram implementation.
+			case len(s.Exprs) == 0:
 				lines = append(lines, idt+"return;")
-			} else {
+			default:
 				lines = append(lines, fmt.Sprintf("%sreturn %s;", idt, expr(&s.Exprs[0])))
 			}
 		case shaderir.Discard:
-			lines = append(lines, idt+"discard;")
+			// 'discard' is invoked only in the fragment shader entry point.
+			lines = append(lines, idt+"discard;", idt+"return vec4(0.0);")
 		default:
 			lines = append(lines, fmt.Sprintf("%s?(unexpected stmt: %d)", idt, s.Type))
 		}
 	}
 
 	return lines
+}
+
+func adjustProgram(p *shaderir.Program) *shaderir.Program {
+	if p.FragmentFunc.Block == nil {
+		return p
+	}
+
+	// Shallow-clone the program in order not to modify p itself.
+	newP := *p
+
+	// Create a new slice not to affect the original p.
+	newP.Funcs = make([]shaderir.Func, len(p.Funcs))
+	copy(newP.Funcs, p.Funcs)
+
+	// Create a new function whose body is the same is the fragment shader's entry point.
+	// The entry point will call this.
+	// This indirect call is needed for these issues:
+	// - Assignment to gl_FragColor doesn't work (#2245)
+	// - There are some odd compilers that don't work with early returns and gl_FragColor (#2247)
+
+	// Determine a unique index of the new function.
+	var funcIdx int
+	for _, f := range newP.Funcs {
+		if funcIdx <= f.Index {
+			funcIdx = f.Index + 1
+		}
+	}
+
+	// For parameters of a fragment func, see the comment in internal/shaderir/program.go.
+	inParams := make([]shaderir.Type, 1+len(newP.Varyings))
+	inParams[0] = shaderir.Type{
+		Main: shaderir.Vec4, // gl_FragCoord
+	}
+	copy(inParams[1:], newP.Varyings)
+
+	newP.Funcs = append(newP.Funcs, shaderir.Func{
+		Index:     funcIdx,
+		InParams:  inParams,
+		OutParams: nil,
+		Return: shaderir.Type{
+			Main: shaderir.Vec4,
+		},
+		Block: newP.FragmentFunc.Block,
+	})
+
+	// Create an AST to call the new function.
+	call := []shaderir.Expr{
+		{
+			Type:  shaderir.FunctionExpr,
+			Index: funcIdx,
+		},
+	}
+	for i := 0; i < 1+len(newP.Varyings); i++ {
+		call = append(call, shaderir.Expr{
+			Type:  shaderir.LocalVariable,
+			Index: i,
+		})
+	}
+
+	// Replace the entry point with just calling the new function.
+	stmts := []shaderir.Stmt{
+		{
+			// Return: This will be replaced with assignment to gl_FragColor.
+			Type: shaderir.Return,
+			Exprs: []shaderir.Expr{
+				// The function call
+				{
+					Type:  shaderir.Call,
+					Exprs: call,
+				},
+			},
+		},
+	}
+	newP.FragmentFunc = shaderir.FragmentFunc{
+		Block: &shaderir.Block{
+			LocalVars:           nil,
+			LocalVarIndexOffset: 1 + len(newP.Varyings) + 1,
+			Stmts:               stmts,
+		},
+	}
+
+	return &newP
 }

@@ -15,8 +15,6 @@
 package restorable
 
 import (
-	"image"
-	"path/filepath"
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
@@ -124,13 +122,13 @@ func RestoreIfNeeded(graphicsDriver graphicsdriver.Graphics) error {
 // DumpImages dumps all the current images to the specified directory.
 //
 // This is for testing usage.
-func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) error {
+func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) (string, error) {
+	images := make([]*graphicscommand.Image, 0, len(theImages.images))
 	for img := range theImages.images {
-		if err := img.Dump(graphicsDriver, filepath.Join(dir, "*.png"), false, image.Rect(0, 0, img.width, img.height)); err != nil {
-			return err
-		}
+		images = append(images, img.image)
 	}
-	return nil
+
+	return graphicscommand.DumpImages(images, graphicsDriver, dir)
 }
 
 // add adds img to the images.
@@ -297,7 +295,7 @@ func OnContextLost() {
 	theImages.contextLost = true
 }
 
-// canDetectContextLostExplicitly reports whether Ebiten can detect a context lost in an explicit way.
+// canDetectContextLostExplicitly reports whether Ebitengine can detect a context lost in an explicit way.
 // On Android, a context lost can be detected via GLSurfaceView.Renderer.onSurfaceCreated.
 // On iOS w/ OpenGL ES, this can be detected only when gomobile-build is used.
 var canDetectContextLostExplicitly = runtime.GOOS == "android"

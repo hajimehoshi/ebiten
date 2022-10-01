@@ -19,6 +19,8 @@ import (
 )
 
 // ReadSeekCloser is io.ReadSeeker and io.Closer.
+//
+// Deprecated: as of v2.4. Use io.ReadSeekCloser instead.
 type ReadSeekCloser interface {
 	io.ReadSeeker
 	io.Closer

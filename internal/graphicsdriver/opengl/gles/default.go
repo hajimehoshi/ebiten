@@ -12,24 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build android || ios
-// +build android ios
+//go:build android || ios || opengles
+// +build android ios opengles
 
 package gles
 
-// #cgo android CFLAGS:  -Dos_android
-// #cgo android LDFLAGS: -lGLESv2
-// #cgo ios     CFLAGS:  -Dos_ios
-// #cgo ios     LDFLAGS: -framework OpenGLES
+// #cgo !darwin          CFLAGS:     -Dos_notdarwin
+// #cgo darwin           CFLAGS:     -Dos_darwin
+// #cgo !android,!darwin pkg-config: glesv2
+// #cgo android          LDFLAGS:    -lGLESv2
+// #cgo darwin           LDFLAGS:    -framework OpenGLES
 //
-// #if defined(os_android)
-//   #include <GLES2/gl2.h>
-// #endif
-//
-// #if defined(os_ios)
+// #if defined(os_darwin)
 //   #define GLES_SILENCE_DEPRECATION
 //   #include <OpenGLES/ES2/glext.h>
 // #endif
+//
+// #if defined(os_notdarwin)
+//   #include <GLES2/gl2.h>
+// #endif
+//
+// #include <stdlib.h>
 import "C"
 
 import (
@@ -54,8 +57,8 @@ func (DefaultContext) AttachShader(program uint32, shader uint32) {
 }
 
 func (DefaultContext) BindAttribLocation(program uint32, index uint32, name string) {
-	s, free := cString(name)
-	defer free()
+	s := C.CString(name)
+	defer C.free(unsafe.Pointer(s))
 	C.glBindAttribLocation(C.GLuint(program), C.GLuint(index), (*C.GLchar)(unsafe.Pointer(s)))
 }
 
@@ -245,8 +248,8 @@ func (DefaultContext) GetShaderPrecisionFormat(shadertype uint32, precisiontype 
 }
 
 func (DefaultContext) GetUniformLocation(program uint32, name string) int32 {
-	s, free := cString(name)
-	defer free()
+	s := C.CString(name)
+	defer C.free(unsafe.Pointer(s))
 	return int32(C.glGetUniformLocation(C.GLuint(program), (*C.GLchar)(unsafe.Pointer(s))))
 }
 
@@ -289,7 +292,7 @@ func (DefaultContext) Scissor(x, y, width, height int32) {
 func (DefaultContext) ShaderSource(shader uint32, xstring string) {
 	s, free := cStringPtr(xstring)
 	defer free()
-	C.glShaderSource(C.GLuint(shader), 1, (**C.GLchar)(unsafe.Pointer(s)), nil)
+	C.glShaderSource(C.GLuint(shader), 1, (**C.GLchar)(s), nil)
 }
 
 func (DefaultContext) StencilFunc(func_ uint32, ref int32, mask uint32) {

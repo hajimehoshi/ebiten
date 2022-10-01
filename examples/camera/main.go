@@ -54,9 +54,6 @@ var (
 
 func init() {
 	// Decode an image from the image file's byte slice.
-	// Now the byte slice is generated with //go:generate for Go 1.15 or older.
-	// If you use Go 1.16 or newer, it is strongly recommended to use //go:embed to embed the image file.
-	// See https://pkg.go.dev/embed for more details.
 	img, _, err := image.Decode(bytes.NewReader(images.Tiles_png))
 	if err != nil {
 		log.Fatal(err)
@@ -111,7 +108,7 @@ func (c *Camera) ScreenToWorld(posX, posY int) (float64, float64) {
 		inverseMatrix.Invert()
 		return inverseMatrix.Apply(float64(posX), float64(posY))
 	} else {
-		// When scaling it can happend that matrix is not invertable
+		// When scaling it can happened that matrix is not invertable
 		return math.NaN(), math.NaN()
 	}
 }
@@ -260,7 +257,7 @@ func main() {
 	g.world = ebiten.NewImage(worldWidth, worldHeight)
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("Tiles (Ebiten Demo)")
+	ebiten.SetWindowTitle("Tiles (Ebitengine Demo)")
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}

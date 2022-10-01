@@ -17,6 +17,8 @@ package opengl
 import (
 	"errors"
 	"fmt"
+	"os"
+	"strings"
 	"syscall/js"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -95,9 +97,16 @@ const (
 	webGLVersion2
 )
 
-var (
-	webGL2MightBeAvailable = !forceWebGL1 && (js.Global().Get("WebGL2RenderingContext").Truthy() || js.Global().Get("go2cpp").Truthy())
-)
+func webGL2MightBeAvailable() bool {
+	env := os.Getenv("EBITENGINE_OPENGL")
+	for _, t := range strings.Split(env, ",") {
+		switch strings.TrimSpace(t) {
+		case "webgl1":
+			return false
+		}
+	}
+	return js.Global().Get("WebGL2RenderingContext").Truthy()
+}
 
 func uint8ArrayToSlice(value js.Value, length int) []byte {
 	if l := value.Get("byteLength").Int(); length > l {
@@ -131,7 +140,7 @@ func (c *context) initGL() error {
 		attr.Set("premultipliedAlpha", true)
 		attr.Set("stencil", true)
 
-		if webGL2MightBeAvailable {
+		if webGL2MightBeAvailable() {
 			gl = canvas.Call("getContext", "webgl2", attr)
 			if gl.Truthy() {
 				c.webGLVersion = webGLVersion2
@@ -152,9 +161,6 @@ func (c *context) initGL() error {
 		if !gl.Truthy() {
 			return fmt.Errorf("opengl: getContext failed")
 		}
-	} else if go2cpp := js.Global().Get("go2cpp"); go2cpp.Truthy() {
-		gl = go2cpp.Get("gl")
-		c.webGLVersion = webGLVersion2
 	}
 
 	c.gl = c.newGL(gl)
@@ -236,14 +242,14 @@ func (c *context) bindFramebufferImpl(f framebufferNative) {
 	gl.bindFramebuffer.Invoke(gles.FRAMEBUFFER, js.Value(f))
 }
 
-func (c *context) framebufferPixels(buf []byte, f *framebuffer, width, height int) {
+func (c *context) framebufferPixels(buf []byte, f *framebuffer, x, y, width, height int) {
 	gl := c.gl
 
 	c.bindFramebuffer(f.native)
 
 	l := 4 * width * height
 	p := jsutil.TemporaryUint8ArrayFromUint8Slice(l, nil)
-	gl.readPixels.Invoke(0, 0, width, height, gles.RGBA, gles.UNSIGNED_BYTE, p)
+	gl.readPixels.Invoke(x, y, width, height, gles.RGBA, gles.UNSIGNED_BYTE, p)
 	copy(buf, uint8ArrayToSlice(p, l))
 }
 
@@ -614,7 +620,7 @@ func (c *context) canUsePBO() bool {
 	return false
 }
 
-func (c *context) texSubImage2D(t textureNative, args []*graphicsdriver.ReplacePixelsArgs) {
+func (c *context) texSubImage2D(t textureNative, args []*graphicsdriver.WritePixelsArgs) {
 	c.bindTexture(t)
 	gl := c.gl
 	for _, a := range args {

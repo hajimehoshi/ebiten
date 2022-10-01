@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !ebitenginecbackend && !ebitencbackend
-// +build !android,!ebitenginecbackend,!ebitencbackend
+//go:build !android && !nintendosdk
+// +build !android,!nintendosdk
 
 package gamepad
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -27,6 +27,8 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/unix"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
 const dirName = "/dev/input"
@@ -75,7 +77,7 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
 		g.watch = watch
 	}
 
-	ents, err := ioutil.ReadDir(dirName)
+	ents, err := os.ReadDir(dirName)
 	if err != nil {
 		return fmt.Errorf("gamepad: ReadDir(%s) failed: %w", dirName, err)
 	}
@@ -106,6 +108,10 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 		if err == unix.EACCES {
 			return nil
 		}
+		// This happens with the Snap sandbox.
+		if err == unix.EPERM {
+			return nil
+		}
 		// This happens just after a disconnection.
 		if err == unix.ENOENT {
 			return nil
@@ -114,7 +120,7 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 	}
 	defer func() {
 		if err != nil {
-			unix.Close(fd)
+			_ = unix.Close(fd)
 		}
 	}()
 
@@ -136,18 +142,24 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 	}
 
 	if !isBitSet(evBits, unix.EV_KEY) {
-		unix.Close(fd)
+		if err := unix.Close(fd); err != nil {
+			return err
+		}
+
 		return nil
 	}
 	if !isBitSet(evBits, unix.EV_ABS) {
-		unix.Close(fd)
+		if err := unix.Close(fd); err != nil {
+			return err
+		}
+
 		return nil
 	}
 
 	cname := make([]byte, 256)
 	name := "Unknown"
 	// TODO: Is it OK to ignore the error here?
-	if err := ioctl(fd, uint(_EVIOCGNAME(uint(len(name)))), unsafe.Pointer(&cname[0])); err == nil {
+	if err := ioctl(fd, uint(_EVIOCGNAME(uint(len(cname)))), unsafe.Pointer(&cname[0])); err == nil {
 		name = unix.ByteSliceToString(cname)
 	}
 
@@ -288,7 +300,7 @@ type nativeGamepadImpl struct {
 
 func (g *nativeGamepadImpl) close() {
 	if g.fd != 0 {
-		unix.Close(g.fd)
+		_ = unix.Close(g.fd)
 	}
 	g.fd = 0
 }
@@ -331,7 +343,9 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) error {
 				g.dropped = true
 			case _SYN_REPORT:
 				g.dropped = false
-				g.pollAbsState()
+				if err := g.pollAbsState(); err != nil {
+					return fmt.Errorf("gamepad: poll absolute state: %w", err)
+				}
 			}
 		}
 		if g.dropped {
@@ -407,6 +421,14 @@ func (g *nativeGamepadImpl) handleAbsEvent(code int, value int32) {
 }
 
 func (*nativeGamepadImpl) hasOwnStandardLayoutMapping() bool {
+	return false
+}
+
+func (*nativeGamepadImpl) isStandardAxisAvailableInOwnMapping(axis gamepaddb.StandardAxis) bool {
+	return false
+}
+
+func (*nativeGamepadImpl) isStandardButtonAvailableInOwnMapping(button gamepaddb.StandardButton) bool {
 	return false
 }
 

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !darwin && !js && !windows && !ebitenginecbackend && !ebitencbackend
-// +build !android,!darwin,!js,!windows,!ebitenginecbackend,!ebitencbackend
+//go:build !android && !darwin && !js && !windows && !nintendosdk
+// +build !android,!darwin,!js,!windows,!nintendosdk
 
 package ui
 
@@ -214,7 +214,7 @@ func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) {
 	panic(fmt.Sprintf("ui: setNativeFullscreen is not implemented in this environment: %s", runtime.GOOS))
 }
 
-func (u *userInterfaceImpl) adjustViewSize() {
+func (u *userInterfaceImpl) adjustViewSizeAfterFullscreen() {
 }
 
 func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) {
@@ -229,12 +229,4 @@ func initializeWindowAfterCreation(w *glfw.Window) {
 	// Calling Hide is problematic especially on XWayland and/or Sway.
 	// Apparently the window state is inconsistent just after the window is created, but we are not sure.
 	// For more details, see the discussion in #1829.
-}
-
-func (u *userInterfaceImpl) origWindowPosByOS() (int, int, bool) {
-	return 0, 0, false
-}
-
-func (u *userInterfaceImpl) setOrigWindowPosByOS(x, y int) bool {
-	return false
 }

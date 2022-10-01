@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ios && !ebitenginecbackend && !ebitencbackend
-// +build ios,!ebitenginecbackend,!ebitencbackend
+//go:build !nintendosdk
+// +build !nintendosdk
 
 package gamepad
 
@@ -390,6 +390,11 @@ package gamepad
 // }
 import "C"
 
+import (
+	"encoding/hex"
+	"unsafe"
+)
+
 //export ebitenAddGamepad
 func ebitenAddGamepad(controller C.uintptr_t, prop *C.struct_ControllerProperty) {
 	theGamepads.addIOSGamepad(controller, prop)
@@ -405,7 +410,7 @@ func (g *gamepads) addIOSGamepad(controller C.uintptr_t, prop *C.struct_Controll
 	defer g.m.Unlock()
 
 	name := C.GoString(&prop.name[0])
-	sdlID := C.GoStringN(&prop.guid[0], 16)
+	sdlID := hex.EncodeToString(C.GoBytes(unsafe.Pointer(&prop.guid[0]), 16))
 	gp := g.add(name, sdlID)
 	gp.native = &nativeGamepadImpl{
 		controller:           uintptr(controller),

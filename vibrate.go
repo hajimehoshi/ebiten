@@ -39,7 +39,7 @@ type VibrateOptions struct {
 //
 // On Android, this line is required in the manifest setting to use Vibrate:
 //
-//     <uses-permission android:name="android.permission.VIBRATE"/>
+//	<uses-permission android:name="android.permission.VIBRATE"/>
 //
 // On Android, Magnitude in the options is recognized only when the API Level is 26 or newer.
 // Otherwise, Magnitude is ignored.
@@ -63,7 +63,7 @@ type VibrateGamepadOptions struct {
 	// The value is in between 0 and 1.
 	StrongMagnitude float64
 
-	// StrongMagnitude is the rumble intensity of a high-frequency rumble motor.
+	// WeakMagnitude is the rumble intensity of a high-frequency rumble motor.
 	// The value is in between 0 and 1.
 	WeakMagnitude float64
 }

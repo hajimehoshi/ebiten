@@ -44,9 +44,6 @@ var (
 
 func init() {
 	// Decode an image from the image file's byte slice.
-	// Now the byte slice is generated with //go:generate for Go 1.15 or older.
-	// If you use Go 1.16 or newer, it is strongly recommended to use //go:embed to embed the image file.
-	// See https://pkg.go.dev/embed for more details.
 	img1, _, err := image.Decode(bytes.NewReader(rmascot.Out01_png))
 	if err != nil {
 		log.Fatal(err)
@@ -100,7 +97,7 @@ func (m *mascot) Update() error {
 		m.vx16 = 64
 	}
 
-	// Accelarate the mascot in the Y direction.
+	// Accelerate the mascot in the Y direction.
 	m.vy16 += 8
 	m.y16 += m.vy16
 

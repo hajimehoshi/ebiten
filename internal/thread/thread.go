@@ -14,7 +14,7 @@
 
 package thread
 
-// Thread defines threading behavior in Ebiten.
+// Thread defines threading behavior in Ebitengine.
 type Thread interface {
 	Call(func())
 	Loop()

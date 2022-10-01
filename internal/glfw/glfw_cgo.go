@@ -105,6 +105,10 @@ func (w *Window) Destroy() {
 	theWindows.remove(w.w)
 }
 
+func (w *Window) Focus() {
+	w.w.Focus()
+}
+
 func (w *Window) GetAttrib(attrib Hint) int {
 	return w.w.GetAttrib(glfw.Hint(attrib))
 }

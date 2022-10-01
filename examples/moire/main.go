@@ -15,7 +15,7 @@
 //go:build example
 // +build example
 
-// This example is just to check if Ebiten can draw fine checker pattern evenly.
+// This example is just to check if Ebitengine can draw fine checker pattern evenly.
 // If there is something wrong in the implementation, the result might include
 // uneven patterns (#459).
 package main
@@ -93,7 +93,7 @@ func (g *game) Update() error {
 }
 
 func (g *game) Draw(screen *ebiten.Image) {
-	screen.ReplacePixels(getDots(screen.Size()))
+	screen.WritePixels(getDots(screen.Size()))
 }
 
 func main() {
@@ -101,7 +101,7 @@ func main() {
 		scale: initScreenScale,
 	}
 	ebiten.SetWindowSize(screenWidth*initScreenScale, screenHeight*initScreenScale)
-	ebiten.SetWindowTitle("Moire (Ebiten Demo)")
+	ebiten.SetWindowTitle("Moire (Ebitengine Demo)")
 	ebiten.SetWindowResizable(true)
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)

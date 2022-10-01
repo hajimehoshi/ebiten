@@ -28,18 +28,17 @@ import (
 
 // Image represents a rectangle set of pixels.
 // The pixel format is alpha-premultiplied RGBA.
-// Image implements image.Image and draw.Image.
+// Image implements the standard image.Image and draw.Image interfaces.
 type Image struct {
 	// addr holds self to check copying.
 	// See strings.Builder for similar examples.
-	addr *Image
-
-	image *ui.Image
-
-	bounds   image.Rectangle
+	addr     *Image
+	image    *ui.Image
 	original *Image
+	bounds   image.Rectangle
 
-	setVerticesCache map[[2]int][4]byte
+	// Do not add a 'cache' member that are resolved lazily.
+	// This tends to forget resolving the cache easily (#2362).
 }
 
 var emptyImage *Image
@@ -54,80 +53,6 @@ func (i *Image) copyCheck() {
 	if i.addr != i {
 		panic("ebiten: illegal use of non-zero Image copied by value")
 	}
-}
-
-func (i *Image) resolveSetVerticesCacheIfNeeded() {
-	if i.isSubImage() {
-		i = i.original
-	}
-
-	if len(i.setVerticesCache) == 0 {
-		return
-	}
-
-	l := len(i.setVerticesCache)
-	vs := graphics.Vertices(l * 4)
-	is := make([]uint16, l*6)
-	sx, sy := emptyImage.adjustPositionF32(1, 1)
-	var idx int
-	for p, c := range i.setVerticesCache {
-		dx := float32(p[0])
-		dy := float32(p[1])
-
-		var crf, cgf, cbf, caf float32
-		if c[3] != 0 {
-			crf = float32(c[0]) / float32(c[3])
-			cgf = float32(c[1]) / float32(c[3])
-			cbf = float32(c[2]) / float32(c[3])
-			caf = float32(c[3]) / 0xff
-		}
-
-		vs[graphics.VertexFloatCount*4*idx] = dx
-		vs[graphics.VertexFloatCount*4*idx+1] = dy
-		vs[graphics.VertexFloatCount*4*idx+2] = sx
-		vs[graphics.VertexFloatCount*4*idx+3] = sy
-		vs[graphics.VertexFloatCount*4*idx+4] = crf
-		vs[graphics.VertexFloatCount*4*idx+5] = cgf
-		vs[graphics.VertexFloatCount*4*idx+6] = cbf
-		vs[graphics.VertexFloatCount*4*idx+7] = caf
-		vs[graphics.VertexFloatCount*4*idx+8] = dx + 1
-		vs[graphics.VertexFloatCount*4*idx+9] = dy
-		vs[graphics.VertexFloatCount*4*idx+10] = sx + 1
-		vs[graphics.VertexFloatCount*4*idx+11] = sy
-		vs[graphics.VertexFloatCount*4*idx+12] = crf
-		vs[graphics.VertexFloatCount*4*idx+13] = cgf
-		vs[graphics.VertexFloatCount*4*idx+14] = cbf
-		vs[graphics.VertexFloatCount*4*idx+15] = caf
-		vs[graphics.VertexFloatCount*4*idx+16] = dx
-		vs[graphics.VertexFloatCount*4*idx+17] = dy + 1
-		vs[graphics.VertexFloatCount*4*idx+18] = sx
-		vs[graphics.VertexFloatCount*4*idx+19] = sy + 1
-		vs[graphics.VertexFloatCount*4*idx+20] = crf
-		vs[graphics.VertexFloatCount*4*idx+21] = cgf
-		vs[graphics.VertexFloatCount*4*idx+22] = cbf
-		vs[graphics.VertexFloatCount*4*idx+23] = caf
-		vs[graphics.VertexFloatCount*4*idx+24] = dx + 1
-		vs[graphics.VertexFloatCount*4*idx+25] = dy + 1
-		vs[graphics.VertexFloatCount*4*idx+26] = sx + 1
-		vs[graphics.VertexFloatCount*4*idx+27] = sy + 1
-		vs[graphics.VertexFloatCount*4*idx+28] = crf
-		vs[graphics.VertexFloatCount*4*idx+29] = cgf
-		vs[graphics.VertexFloatCount*4*idx+30] = cbf
-		vs[graphics.VertexFloatCount*4*idx+31] = caf
-
-		is[6*idx] = uint16(4 * idx)
-		is[6*idx+1] = uint16(4*idx + 1)
-		is[6*idx+2] = uint16(4*idx + 2)
-		is[6*idx+3] = uint16(4*idx + 1)
-		is[6*idx+4] = uint16(4*idx + 2)
-		is[6*idx+5] = uint16(4*idx + 3)
-
-		idx++
-	}
-	i.setVerticesCache = nil
-
-	srcs := [graphics.ShaderImageCount]*ui.Image{emptyImage.image}
-	i.image.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, i.adjustedRegion(), graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, nil, nil, false, true)
 }
 
 // Size returns the size of the image.
@@ -159,7 +84,6 @@ func (i *Image) Fill(clr color.Color) {
 	if i.isDisposed() {
 		return
 	}
-	i.setVerticesCache = nil
 
 	var crf, cgf, cbf, caf float32
 	cr, cg, cb, ca := clr.RGBA()
@@ -258,14 +182,14 @@ func (i *Image) adjustedRegion() graphicsdriver.Region {
 // DrawImage works more efficiently as batches
 // when the successive calls of DrawImages satisfy the below conditions:
 //
-//   * All render targets are same (A in A.DrawImage(B, op))
-//   * Either all ColorM element values are same or all the ColorM have only
-//      diagonal ('scale') elements
-//     * If only (*ColorM).Scale is applied to a ColorM, the ColorM has only
-//       diagonal elements. The other ColorM functions might modify the other
-//       elements.
-//   * All CompositeMode values are same
-//   * All Filter values are same
+//   - All render targets are same (A in A.DrawImage(B, op))
+//   - Either all ColorM element values are same or all the ColorM have only
+//     diagonal ('scale') elements
+//   - If only (*ColorM).Scale is applied to a ColorM, the ColorM has only
+//     diagonal elements. The other ColorM functions might modify the other
+//     elements.
+//   - All CompositeMode values are same
+//   - All Filter values are same
 //
 // Even when all the above conditions are satisfied, multiple draw commands can
 // be used in really rare cases. Ebitengine images usually share an internal
@@ -275,7 +199,7 @@ func (i *Image) adjustedRegion() graphicsdriver.Region {
 // Another case is when you use an offscreen as a render source. An offscreen
 // doesn't share the texture atlas with high probability.
 //
-// For more performance tips, see https://ebiten.org/documents/performancetips.html
+// For more performance tips, see https://ebitengine.org/en/documents/performancetips.html
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	i.copyCheck()
 
@@ -285,9 +209,6 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	if i.isDisposed() {
 		return
 	}
-
-	img.resolveSetVerticesCacheIfNeeded()
-	i.resolveSetVerticesCacheIfNeeded()
 
 	// Calculate vertices before locking because the user can do anything in
 	// options.ImageParts interface without deadlock (e.g. Call Image functions).
@@ -323,7 +244,7 @@ type Vertex struct {
 
 	// SrcX and SrcY represents a point on a source image.
 	// Be careful that SrcX/SrcY coordinates are on the image's bounds.
-	// This means that a left-upper point of a sub-image might not be (0, 0).
+	// This means that a upper-left point of a sub-image might not be (0, 0).
 	SrcX float32
 	SrcY float32
 
@@ -372,8 +293,6 @@ type DrawTrianglesOptions struct {
 	// ColorM is a color matrix to draw.
 	// The default (zero) value is identity, which doesn't change any color.
 	// ColorM is applied before vertex color scale is applied.
-	//
-	// If Shader is not nil, ColorM is ignored.
 	ColorM ColorM
 
 	// CompositeMode is a composite mode to draw.
@@ -442,9 +361,6 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	}
 	// TODO: Check the maximum value of indices and len(vertices)?
 
-	img.resolveSetVerticesCacheIfNeeded()
-	i.resolveSetVerticesCacheIfNeeded()
-
 	if options == nil {
 		options = &DrawTrianglesOptions{}
 	}
@@ -484,8 +400,6 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
-//
-// This API is experimental.
 type DrawTrianglesShaderOptions struct {
 	// CompositeMode is a composite mode to draw.
 	// The default (zero) value is regular alpha blending.
@@ -524,7 +438,7 @@ func init() {
 //
 // Vertex contains color values, which can be interpreted for any purpose by the shader.
 //
-// For the details about the shader, see https://ebiten.org/documents/shader.html.
+// For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 //
 // If len(indices) is not multiple of 3, DrawTrianglesShader panics.
 //
@@ -533,8 +447,6 @@ func init() {
 // When a specified image is non-nil and is disposed, DrawTrianglesShader panics.
 //
 // When the image i is disposed, DrawTrianglesShader does nothing.
-//
-// This API is experimental.
 func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader *Shader, options *DrawTrianglesShaderOptions) {
 	i.copyCheck()
 
@@ -549,8 +461,6 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		panic("ebiten: len(indices) must be <= MaxIndicesCount")
 	}
 	// TODO: Check the maximum value of indices and len(vertices)?
-
-	i.resolveSetVerticesCacheIfNeeded()
 
 	if options == nil {
 		options = &DrawTrianglesShaderOptions{}
@@ -596,7 +506,6 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 				panic("ebiten: all the source images must be the same size with the rectangle")
 			}
 		}
-		img.resolveSetVerticesCacheIfNeeded()
 		imgs[i] = img.image
 	}
 
@@ -615,8 +524,8 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		}
 		b := img.Bounds()
 		x, y := img.adjustPosition(b.Min.X, b.Min.Y)
-		// (sx, sy) is the left-upper position of the first image.
-		// Calculate the distance between the current image's left-upper position and the first one's.
+		// (sx, sy) is the upper-left position of the first image.
+		// Calculate the distance between the current image's upper-left position and the first one's.
 		offsets[i][0] = float32(x - sx)
 		offsets[i][1] = float32(y - sy)
 	}
@@ -625,12 +534,15 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
-//
-// This API is experimental.
 type DrawRectShaderOptions struct {
 	// GeoM is a geometry matrix to draw.
 	// The default (zero) value is identity, which draws the rectangle at (0, 0).
 	GeoM GeoM
+
+	// ColorScale is a scale of color.
+	// This scaling values are passed to the `color vec4` argument of the Fragment function in a Kage program.
+	// The default (zero) value is identity, which is (1, 1, 1, 1).
+	ColorScale ColorScale
 
 	// CompositeMode is a composite mode to draw.
 	// The default (zero) value is regular alpha blending.
@@ -658,21 +570,17 @@ func init() {
 
 // DrawRectShader draws a rectangle with the specified width and height with the specified shader.
 //
-// For the details about the shader, see https://ebiten.org/documents/shader.html.
+// For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 //
 // When one of the specified image is non-nil and is disposed, DrawRectShader panics.
 //
 // When the image i is disposed, DrawRectShader does nothing.
-//
-// This API is experimental.
 func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawRectShaderOptions) {
 	i.copyCheck()
 
 	if i.isDisposed() {
 		return
 	}
-
-	i.resolveSetVerticesCacheIfNeeded()
 
 	if options == nil {
 		options = &DrawRectShaderOptions{}
@@ -691,7 +599,6 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		if w, h := img.Size(); width != w || height != h {
 			panic("ebiten: all the source images must be the same size with the rectangle")
 		}
-		img.resolveSetVerticesCacheIfNeeded()
 		imgs[i] = img.image
 	}
 
@@ -707,7 +614,8 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		options.GeoM.Translate(float64(offsetX), float64(offsetY))
 	}
 	a, b, c, d, tx, ty := options.GeoM.elements32()
-	vs := graphics.QuadVertices(float32(sx), float32(sy), float32(sx+width), float32(sy+height), a, b, c, d, tx, ty, 1, 1, 1, 1)
+	cr, cg, cb, ca := options.ColorScale.elements()
+	vs := graphics.QuadVertices(float32(sx), float32(sy), float32(sx+width), float32(sy+height), a, b, c, d, tx, ty, cr, cg, cb, ca)
 	is := graphics.QuadIndices()
 
 	var offsets [graphics.ShaderImageCount - 1][2]float32
@@ -717,8 +625,8 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		}
 		b := img.Bounds()
 		x, y := img.adjustPosition(b.Min.X, b.Min.Y)
-		// (sx, sy) is the left-upper position of the first image.
-		// Calculate the distance between the current image's left-upper position and the first one's.
+		// (sx, sy) is the upper-left position of the first image.
+		// Calculate the distance between the current image's upper-left position and the first one's.
 		offsets[i][0] = float32(x - sx)
 		offsets[i][1] = float32(y - sy)
 	}
@@ -765,6 +673,8 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 }
 
 // Bounds returns the bounds of the image.
+//
+// Bounds implements the standard image.Image's Bounds.
 func (i *Image) Bounds() image.Rectangle {
 	if i.isDisposed() {
 		panic("ebiten: the image is already disposed")
@@ -773,11 +683,49 @@ func (i *Image) Bounds() image.Rectangle {
 }
 
 // ColorModel returns the color model of the image.
+//
+// ColorModel implements the standard image.Image's ColorModel.
 func (i *Image) ColorModel() color.Model {
 	return color.RGBAModel
 }
 
+// ReadPixels reads the image's pixels from the image.
+//
+// The given pixels represent RGBA pre-multiplied alpha values.
+//
+// ReadPixels loads pixels from GPU to system memory if necessary, which means that ReadPixels can be slow.
+//
+// ReadPixels always sets a transparent color if the image is disposed.
+//
+// len(pixels) must be 4 * (bounds width) * (bounds height).
+// If len(pixels) is not correct, ReadPixels panics.
+//
+// ReadPixels also works on a sub-image.
+//
+// Note that an important logic should not rely on values returned by ReadPixels, since
+// the returned values can include very slight differences between some machines.
+//
+// ReadPixels can't be called outside the main loop (ebiten.Run's updating function) starts.
+func (i *Image) ReadPixels(pixels []byte) {
+	b := i.Bounds()
+	if got, want := len(pixels), 4*b.Dx()*b.Dy(); got != want {
+		panic(fmt.Sprintf("ebiten: len(pixels) must be %d but %d at ReadPixels", want, got))
+	}
+
+	if i.isDisposed() {
+		for i := range pixels {
+			pixels[i] = 0
+		}
+		return
+	}
+
+	x, y := i.adjustPosition(b.Min.X, b.Min.Y)
+	i.image.ReadPixels(pixels, x, y, b.Dx(), b.Dy())
+}
+
 // At returns the color of the image at (x, y).
+//
+// At implements the standard image.Image's At.
 //
 // At loads pixels from GPU to system memory if necessary, which means that At can be slow.
 //
@@ -792,7 +740,7 @@ func (i *Image) At(x, y int) color.Color {
 	return color.RGBA{r, g, b, a}
 }
 
-// RGBA64At implements image.RGBA64Image's RGBA64At.
+// RGBA64At implements the standard image.RGBA64Image's RGBA64At.
 //
 // RGBA64At loads pixels from GPU to system memory if necessary, which means
 // that RGBA64At can be slow.
@@ -815,14 +763,16 @@ func (i *Image) at(x, y int) (r, g, b, a byte) {
 	if !image.Pt(x, y).In(i.Bounds()) {
 		return 0, 0, 0, 0
 	}
+
 	x, y = i.adjustPosition(x, y)
-	if c, ok := i.setVerticesCache[[2]int{x, y}]; ok {
-		return c[0], c[1], c[2], c[3]
-	}
-	return i.image.At(x, y)
+	var pix [4]byte
+	i.image.ReadPixels(pix[:], x, y, 1, 1)
+	return pix[0], pix[1], pix[2], pix[3]
 }
 
 // Set sets the color at (x, y).
+//
+// Set implements the standard draw.Image's Set.
 //
 // Set loads pixels from GPU to system memory if necessary, which means that Set can be slow.
 //
@@ -841,16 +791,9 @@ func (i *Image) Set(x, y int, clr color.Color) {
 		i = i.original
 	}
 
-	if i.setVerticesCache == nil {
-		i.setVerticesCache = map[[2]int][4]byte{}
-	}
 	dx, dy := i.adjustPosition(x, y)
 	cr, cg, cb, ca := clr.RGBA()
-	i.setVerticesCache[[2]int{dx, dy}] = [4]byte{byte(cr / 0x101), byte(cg / 0x101), byte(cb / 0x101), byte(ca / 0x101)}
-	// One square requires 6 indices (= 2 triangles).
-	if len(i.setVerticesCache) >= graphics.IndicesCount/6 {
-		i.resolveSetVerticesCacheIfNeeded()
-	}
+	i.image.WritePixels([]byte{byte(cr / 0x101), byte(cg / 0x101), byte(cb / 0x101), byte(ca / 0x101)}, dx, dy, 1, 1)
 }
 
 // Dispose disposes the image data.
@@ -873,34 +816,38 @@ func (i *Image) Dispose() {
 	}
 	i.image.MarkDisposed()
 	i.image = nil
-	i.setVerticesCache = nil
 }
 
-// ReplacePixels replaces the pixels of the image with p.
+// WritePixels replaces the pixels of the image.
 //
-// The given p must represent RGBA pre-multiplied alpha values.
-// len(pix) must equal to 4 * (bounds width) * (bounds height).
+// The given pixels are treated as RGBA pre-multiplied alpha values.
 //
-// ReplacePixels works on a sub-image.
+// len(pix) must be 4 * (bounds width) * (bounds height).
+// If len(pix) is not correct, WritePixels panics.
 //
-// When len(pix) is not appropriate, ReplacePixels panics.
+// WritePixels also works on a sub-image.
 //
-// When the image is disposed, ReplacePixels does nothing.
-func (i *Image) ReplacePixels(pixels []byte) {
+// When the image is disposed, WritePixels does nothing.
+func (i *Image) WritePixels(pixels []byte) {
 	i.copyCheck()
 
 	if i.isDisposed() {
 		return
 	}
 
-	i.resolveSetVerticesCacheIfNeeded()
-
 	r := i.Bounds()
 	x, y := i.adjustPosition(r.Min.X, r.Min.Y)
 	// Do not need to copy pixels here.
 	// * In internal/mipmap, pixels are copied when necessary.
 	// * In internal/atlas, pixels are copied to make its paddings.
-	i.image.ReplacePixels(pixels, x, y, r.Dx(), r.Dy())
+	i.image.WritePixels(pixels, x, y, r.Dx(), r.Dy())
+}
+
+// ReplacePixels replaces the pixels of the image.
+//
+// Deprecated: as of v2.4. Use WritePixels instead.
+func (i *Image) ReplacePixels(pixels []byte) {
+	i.WritePixels(pixels)
 }
 
 // NewImage returns an empty image.
@@ -921,9 +868,9 @@ type NewImageOptions struct {
 	// Unmanaged represents whether the image is unmanaged or not.
 	// The default (zero) value is false, that means the image is managed.
 	//
-	// An unmanged image is never on an internal automatic texture atlas.
+	// An unmanaged image is never on an internal automatic texture atlas.
 	// A regular image is a part of an internal texture atlas, and locating them is done automatically in Ebitengine.
-	// NewUnmanagedImage is useful when you want finer controls over the image for performance and memory reasons.
+	// Unmanaged is useful when you want finer controls over the image for performance and memory reasons.
 	Unmanaged bool
 }
 
@@ -933,7 +880,7 @@ type NewImageOptions struct {
 //
 // The rendering origin position is (0, 0) of the given bounds.
 // If DrawImage is called on a new image created by NewImageOptions,
-// for example, the center of scaling and rotating is (0, 0), that might not be a left-upper position.
+// for example, the center of scaling and rotating is (0, 0), that might not be a upper-left position.
 //
 // If options is nil, the default setting is used.
 //
@@ -977,11 +924,11 @@ func newImage(bounds image.Rectangle, imageType atlas.ImageType) *Image {
 //
 // NewImageFromImage should be called only when necessary.
 // For example, you should avoid to call NewImageFromImage every Update or Draw call.
-// Reusing the same image by Clear and ReplacePixels is much more efficient than creating a new image.
+// Reusing the same image by Clear and WritePixels is much more efficient than creating a new image.
 //
 // NewImageFromImage panics if RunGame already finishes.
 //
-// The returned image's left-upper position is always (0, 0). The source's bounds are not respected.
+// The returned image's upper-left position is always (0, 0). The source's bounds are not respected.
 func NewImageFromImage(source image.Image) *Image {
 	return NewImageFromImageWithOptions(source, nil)
 }
@@ -991,13 +938,13 @@ type NewImageFromImageOptions struct {
 	// Unmanaged represents whether the image is unmanaged or not.
 	// The default (zero) value is false, that means the image is managed.
 	//
-	// An unmanged image is never on an internal automatic texture atlas.
+	// An unmanaged image is never on an internal automatic texture atlas.
 	// A regular image is a part of an internal texture atlas, and locating them is done automatically in Ebitengine.
-	// NewUnmanagedImage is useful when you want finer controls over the image for performance and memory reasons.
+	// Unmanaged is useful when you want finer controls over the image for performance and memory reasons.
 	Unmanaged bool
 
 	// PreserveBounds represents whether the new image's bounds are the same as the given image.
-	// The default (zero) value is false, that means the new image's left-upper position is adjusted to (0, 0).
+	// The default (zero) value is false, that means the new image's upper-left position is adjusted to (0, 0).
 	PreserveBounds bool
 }
 
@@ -1009,7 +956,7 @@ type NewImageFromImageOptions struct {
 //
 // NewImageFromImageWithOptions should be called only when necessary.
 // For example, you should avoid to call NewImageFromImageWithOptions every Update or Draw call.
-// Reusing the same image by Clear and ReplacePixels is much more efficient than creating a new image.
+// Reusing the same image by Clear and WritePixels is much more efficient than creating a new image.
 //
 // NewImageFromImageWithOptions panics if RunGame already finishes.
 func NewImageFromImageWithOptions(source image.Image, options *NewImageFromImageOptions) *Image {
@@ -1040,7 +987,7 @@ func NewImageFromImageWithOptions(source image.Image, options *NewImageFromImage
 		return i
 	}
 
-	i.ReplacePixels(imageToBytes(source))
+	i.WritePixels(imageToBytes(source))
 	return i
 }
 

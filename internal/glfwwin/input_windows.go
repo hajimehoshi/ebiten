@@ -335,7 +335,7 @@ func CreateCursor(image *Image, xhot, yhot int) (*Cursor, error) {
 	_glfw.cursors = append(_glfw.cursors, cursor)
 
 	if err := cursor.platformCreateCursor(image, xhot, yhot); err != nil {
-		cursor.Destroy()
+		_ = cursor.Destroy()
 		return nil, err
 	}
 
@@ -360,7 +360,7 @@ func CreateStandardCursor(shape StandardCursor) (*Cursor, error) {
 	_glfw.cursors = append(_glfw.cursors, cursor)
 
 	if err := cursor.platformCreateStandardCursor(shape); err != nil {
-		cursor.Destroy()
+		_ = cursor.Destroy()
 		return nil, err
 	}
 

@@ -54,10 +54,6 @@ func NewGame() *Game {
 }
 
 func (g *Game) Update() error {
-	// TODO: DeviceScaleFactor() might return different values for different monitors.
-	// Add a mode to adjust the screen size along with the current device scale (#705).
-	// Now this example uses the device scale initialized at the beginning of this application.
-
 	if g.highDPIImage != nil {
 		return nil
 	}
@@ -112,7 +108,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func main() {
 	ebiten.SetWindowSize(640, 480)
-	ebiten.SetWindowTitle("High DPI (Ebiten Demo)")
+	ebiten.SetWindowTitle("High DPI (Ebitengine Demo)")
 	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}

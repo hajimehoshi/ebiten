@@ -62,12 +62,12 @@ func (i *Image) setViewport() error {
 	return nil
 }
 
-func (i *Image) ReadPixels(buf []byte) error {
+func (i *Image) ReadPixels(buf []byte, x, y, width, height int) error {
 	if err := i.ensureFramebuffer(); err != nil {
 		return err
 	}
 
-	i.graphics.context.framebufferPixels(buf, i.framebuffer, i.width, i.height)
+	i.graphics.context.framebufferPixels(buf, i.framebuffer, x, y, width, height)
 	return nil
 }
 
@@ -120,9 +120,9 @@ func (i *Image) ensureStencilBuffer() error {
 	return nil
 }
 
-func (i *Image) ReplacePixels(args []*graphicsdriver.ReplacePixelsArgs) error {
+func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 	if i.screen {
-		return errors.New("opengl: ReplacePixels cannot be called on the screen")
+		return errors.New("opengl: WritePixels cannot be called on the screen")
 	}
 	if len(args) == 0 {
 		return nil

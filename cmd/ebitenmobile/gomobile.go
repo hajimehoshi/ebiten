@@ -15,15 +15,20 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
+
+	// Add a dependency on gomobile in order to get the version via debug.ReadBuildInfo().
+	_ "golang.org/x/mobile/geom"
 )
 
-const gomobileHash = "8578da9835fd365e78a6e63048c103b27a53a82c"
+//go:embed gobind.go
+var gobind_go []byte
 
 func runCommand(command string, args []string, env []string) error {
 	if buildX || buildN {
@@ -62,12 +67,7 @@ func removeAll(path string) error {
 }
 
 func runGo(args ...string) error {
-	// TODO: Remove this after Ebiten drops the support of Go 1.15 and older.
-	// GO111MODULE is on by default as of Go 1.16.
-	env := []string{
-		"GO111MODULE=on",
-	}
-	return runCommand("go", args, env)
+	return runCommand("go", args, nil)
 }
 
 // exe adds the .exe extension to the given filename.
@@ -80,7 +80,7 @@ func exe(filename string) string {
 }
 
 func prepareGomobileCommands() (string, error) {
-	tmp, err := ioutil.TempDir("", "ebitenmobile-")
+	tmp, err := os.MkdirTemp("", "ebitenmobile-")
 	if err != nil {
 		return "", err
 	}
@@ -111,7 +111,7 @@ func prepareGomobileCommands() (string, error) {
 		return tmp, err
 	}
 	defer func() {
-		os.Chdir(pwd)
+		_ = os.Chdir(pwd)
 	}()
 
 	const (
@@ -122,7 +122,7 @@ func prepareGomobileCommands() (string, error) {
 	if err := runGo("mod", "init", modname); err != nil {
 		return tmp, err
 	}
-	if err := ioutil.WriteFile("tools.go", []byte(fmt.Sprintf(`%s
+	if err := os.WriteFile("tools.go", []byte(fmt.Sprintf(`%s
 
 package %s
 
@@ -134,10 +134,15 @@ import (
 		return tmp, err
 	}
 
+	h, err := gomobileHash()
+	if err != nil {
+		return tmp, err
+	}
+
 	// To record gomobile to go.sum for Go 1.16 and later, go-get gomobile instaed of golang.org/x/mobile (#1487).
 	// This also records gobind as gomobile depends on gobind indirectly.
 	// Using `...` doesn't work on Windows since mobile/internal/mobileinit cannot be compiled on Windows w/o Cgo (#1493).
-	if err := runGo("get", "golang.org/x/mobile/cmd/gomobile@"+gomobileHash); err != nil {
+	if err := runGo("get", "golang.org/x/mobile/cmd/gomobile@"+h); err != nil {
 		return tmp, err
 	}
 	if localgm := os.Getenv("EBITENMOBILE_GOMOBILE"); localgm != "" {
@@ -161,7 +166,7 @@ import (
 	if err := os.Mkdir("src", 0755); err != nil {
 		return tmp, err
 	}
-	if err := ioutil.WriteFile(filepath.Join("src", "gobind.go"), gobindsrc, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join("src", "gobind.go"), gobind_go, 0644); err != nil {
 		return tmp, err
 	}
 
@@ -174,4 +179,17 @@ import (
 	}
 
 	return tmp, nil
+}
+
+func gomobileHash() (string, error) {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return "", fmt.Errorf("ebitenmobile: debug.ReadBuildInfo failed")
+	}
+	for _, m := range info.Deps {
+		if m.Path == "golang.org/x/mobile" {
+			return m.Version, nil
+		}
+	}
+	return "", fmt.Errorf("ebitenmobile: getting the gomobile version failed")
 }

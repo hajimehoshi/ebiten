@@ -985,7 +985,7 @@ varying vec2 V1;`,
 							{Main: shaderir.Float},
 							{Main: shaderir.Vec2},
 						},
-						3+1,
+						3,
 						assignStmt(
 							localVariableExpr(3),
 							localVariableExpr(0),
@@ -994,8 +994,7 @@ varying vec2 V1;`,
 							localVariableExpr(4),
 							localVariableExpr(1),
 						),
-						assignStmt(
-							localVariableExpr(5),
+						returnStmt(
 							localVariableExpr(2),
 						),
 					),
@@ -1019,12 +1018,18 @@ uniform float U0;
 varying float V0;
 varying vec2 V1;
 
+vec4 F0(in vec4 l0, in float l1, in vec2 l2);
+
+vec4 F0(in vec4 l0, in float l1, in vec2 l2) {
+	float l3 = float(0);
+	vec2 l4 = vec2(0);
+	l3 = l0;
+	l4 = l1;
+	return l2;
+}
+
 void main(void) {
-	float l0 = float(0);
-	vec2 l1 = vec2(0);
-	gl_FragColor = gl_FragCoord;
-	l0 = V0;
-	l1 = V1;
+	gl_FragColor = F0(gl_FragCoord, V0, V1);
 }`,
 		},
 	}

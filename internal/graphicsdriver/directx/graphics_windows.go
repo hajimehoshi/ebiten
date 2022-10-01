@@ -20,6 +20,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"time"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -33,19 +34,9 @@ import (
 
 const frameCount = 2
 
-// NewGraphics creates an implementation of graphicsdriver.Graphcis for DirectX.
+// NewGraphics creates an implementation of graphicsdriver.Graphics for DirectX.
 // The returned graphics value is nil iff the error is not nil.
 func NewGraphics() (graphicsdriver.Graphics, error) {
-	const is64bit = uint64(^uintptr(0)) == ^uint64(0)
-
-	// In 32bit machines, DirectX is not used because
-	//   1) The functions syscall.Syscall cannot accept 64bit values as one argument
-	//   2) The struct layouts can be different
-	// TODO: Support DirectX for 32bit machines (#2088).
-	if !is64bit {
-		return nil, fmt.Errorf("directx: DirectX is not available on a 32bit machine")
-	}
-
 	g := &Graphics{}
 	if err := g.initialize(); err != nil {
 		return nil, err
@@ -133,7 +124,8 @@ type Graphics struct {
 
 	window windows.HWND
 
-	frameIndex int
+	frameIndex          int
+	prevBeginFrameIndex int
 
 	// frameStarted is true since Begin until End with present
 	frameStarted bool
@@ -149,6 +141,12 @@ type Graphics struct {
 
 	vsyncEnabled bool
 	transparent  bool
+
+	// occluded reports whether the screen is invisible or not.
+	occluded bool
+
+	// lastTime is the last time for rendering.
+	lastTime time.Time
 
 	pipelineStates
 }
@@ -687,6 +685,8 @@ func (g *Graphics) resizeSwapChainDesktop(width, height int) error {
 	// TODO: Reset 0 on Xbox
 	g.frameIndex = int(g.swapChain.GetCurrentBackBufferIndex())
 
+	// TODO: Are these resetting necessary?
+
 	if err := g.drawCommandAllocators[g.frameIndex].Reset(); err != nil {
 		return err
 	}
@@ -744,14 +744,17 @@ func (g *Graphics) Begin() error {
 	}
 	g.frameStarted = true
 
-	if err := g.drawCommandAllocators[g.frameIndex].Reset(); err != nil {
-		return err
+	if g.prevBeginFrameIndex != g.frameIndex {
+		if err := g.drawCommandAllocators[g.frameIndex].Reset(); err != nil {
+			return err
+		}
+		if err := g.copyCommandAllocators[g.frameIndex].Reset(); err != nil {
+			return err
+		}
 	}
-	if err := g.drawCommandList.Reset(g.drawCommandAllocators[g.frameIndex], nil); err != nil {
-		return err
-	}
+	g.prevBeginFrameIndex = g.frameIndex
 
-	if err := g.copyCommandAllocators[g.frameIndex].Reset(); err != nil {
+	if err := g.drawCommandList.Reset(g.drawCommandAllocators[g.frameIndex], nil); err != nil {
 		return err
 	}
 	if err := g.copyCommandList.Reset(g.copyCommandAllocators[g.frameIndex], nil); err != nil {
@@ -789,6 +792,7 @@ func (g *Graphics) End(present bool) error {
 		if err := g.waitForCommandQueue(); err != nil {
 			return err
 		}
+		g.releaseResources(g.frameIndex)
 		g.releaseVerticesAndIndices(g.frameIndex)
 	}
 
@@ -825,25 +829,42 @@ func (g *Graphics) presentDesktop() error {
 
 	var syncInterval uint32
 	var flags _DXGI_PRESENT
-	if g.vsyncEnabled {
-		syncInterval = 1
-	} else if g.allowTearing {
-		flags |= _DXGI_PRESENT_ALLOW_TEARING
+	if g.occluded {
+		// The screen is not visible. Test whether we can resume.
+		flags |= _DXGI_PRESENT_TEST
+	} else {
+		// Do actual rendering only when the screen is visible.
+		if g.vsyncEnabled {
+			syncInterval = 1
+		} else if g.allowTearing {
+			flags |= _DXGI_PRESENT_ALLOW_TEARING
+		}
 	}
-	if err := g.swapChain.Present(syncInterval, uint32(flags)); err != nil {
+
+	occluded, err := g.swapChain.Present(syncInterval, uint32(flags))
+	if err != nil {
 		return err
 	}
+	g.occluded = occluded
+
+	// Reduce FPS when the screen is invisible.
+	now := time.Now()
+	if g.occluded {
+		if delta := 100*time.Millisecond - now.Sub(g.lastTime); delta > 0 {
+			time.Sleep(delta)
+		}
+	}
+	g.lastTime = now
 
 	return nil
 }
 
 func (g *Graphics) presentXbox() error {
-	g.commandQueue.PresentX(1, &_D3D12XBOX_PRESENT_PLANE_PARAMETERS{
+	return g.commandQueue.PresentX(1, &_D3D12XBOX_PRESENT_PLANE_PARAMETERS{
 		Token:         g.framePipelineToken,
 		ResourceCount: 1,
 		ppResources:   &g.renderTargets[g.frameIndex],
 	}, nil)
-	return nil
 }
 
 func (g *Graphics) moveToNextFrame() error {
@@ -974,7 +995,7 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) (ferr error
 		g.vertices[g.frameIndex] = append(g.vertices[g.frameIndex], nil)
 	}
 	if g.vertices[g.frameIndex][vidx] == nil {
-		// TODO: Use the default heap for efficienty. See the official example HelloTriangle.
+		// TODO: Use the default heap for efficiently. See the official example HelloTriangle.
 		vs, err := createBuffer(g.device, graphics.IndicesCount*graphics.VertexFloatCount*uint64(unsafe.Sizeof(float32(0))), _D3D12_HEAP_TYPE_UPLOAD)
 		if err != nil {
 			return err
@@ -1231,11 +1252,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 		}
 		var esBody [16]float32
 		var esTranslate [4]float32
-		colorM.Elements(&esBody, &esTranslate)
-		scale := float32(0)
-		if filter == graphicsdriver.FilterScreen {
-			scale = float32(dst.width) / float32(srcImages[0].width)
-		}
+		colorM.Elements(esBody[:], esTranslate[:])
 
 		flattenUniforms = []float32{
 			float32(screenWidth),
@@ -1266,7 +1283,6 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 			srcRegion.Y,
 			srcRegion.X + srcRegion.Width,
 			srcRegion.Y + srcRegion.Height,
-			scale,
 		}
 	} else {
 		// TODO: This logic is very similar to Metal's. Let's unify them.
@@ -1385,7 +1401,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 
 	} else {
 		if evenOdd {
-			s, err := shader.pipelineState(mode, prepareStencil)
+			s, err := shader.pipelineState(mode, prepareStencil, dst.screen)
 			if err != nil {
 				return err
 			}
@@ -1393,7 +1409,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 				return err
 			}
 
-			s, err = shader.pipelineState(mode, drawWithStencil)
+			s, err = shader.pipelineState(mode, drawWithStencil, dst.screen)
 			if err != nil {
 				return err
 			}
@@ -1401,7 +1417,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 				return err
 			}
 		} else {
-			s, err := shader.pipelineState(mode, noStencil)
+			s, err := shader.pipelineState(mode, noStencil, dst.screen)
 			if err != nil {
 				return err
 			}
@@ -1516,7 +1532,7 @@ func (i *Image) ensureReadingStagingBuffer() error {
 	return nil
 }
 
-func (i *Image) ReadPixels(buf []byte) error {
+func (i *Image) ReadPixels(buf []byte, x, y, width, height int) error {
 	if i.screen {
 		return errors.New("directx: Pixels cannot be called on the screen")
 	}
@@ -1550,12 +1566,12 @@ func (i *Image) ReadPixels(buf []byte) error {
 	}
 	i.graphics.needFlushCopyCommandList = true
 	i.graphics.copyCommandList.CopyTextureRegion_PlacedFootPrint_SubresourceIndex(
-		&dst, 0, 0, 0, &src, &_D3D12_BOX{
+		&dst, uint32(x), uint32(y), 0, &src, &_D3D12_BOX{
 			left:   0,
 			top:    0,
 			front:  0,
-			right:  uint32(i.width),
-			bottom: uint32(i.height),
+			right:  uint32(width),
+			bottom: uint32(height),
 			back:   1,
 		})
 
@@ -1569,8 +1585,8 @@ func (i *Image) ReadPixels(buf []byte) error {
 	h.Len = int(i.totalBytes)
 	h.Cap = int(i.totalBytes)
 
-	for j := 0; j < i.height; j++ {
-		copy(buf[j*i.width*4:(j+1)*i.width*4], dstBytes[j*int(i.layouts.Footprint.RowPitch):])
+	for j := 0; j < height; j++ {
+		copy(buf[j*width*4:(j+1)*width*4], dstBytes[j*int(i.layouts.Footprint.RowPitch):])
 	}
 
 	i.readingStagingBuffer.Unmap(0, nil)
@@ -1578,9 +1594,9 @@ func (i *Image) ReadPixels(buf []byte) error {
 	return nil
 }
 
-func (i *Image) ReplacePixels(args []*graphicsdriver.ReplacePixelsArgs) error {
+func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 	if i.screen {
-		return errors.New("directx: ReplacePixels cannot be called on the screen")
+		return errors.New("directx: WritePixels cannot be called on the screen")
 	}
 
 	if err := i.graphics.flushCommandList(i.graphics.drawCommandList); err != nil {
@@ -1611,7 +1627,9 @@ func (i *Image) ReplacePixels(args []*graphicsdriver.ReplacePixelsArgs) error {
 		for j := 0; j < a.Height; j++ {
 			copy(srcBytes[(a.Y+j)*int(i.layouts.Footprint.RowPitch)+a.X*4:], a.Pixels[j*a.Width*4:(j+1)*a.Width*4])
 		}
+	}
 
+	for _, a := range args {
 		dst := _D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex{
 			pResource:        i.texture,
 			Type:             _D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
@@ -1844,6 +1862,7 @@ const (
 type pipelineStateKey struct {
 	compositeMode graphicsdriver.CompositeMode
 	stencilMode   stencilMode
+	screen        bool
 }
 
 type Shader struct {
@@ -1880,16 +1899,17 @@ func (s *Shader) disposeImpl() {
 	}
 }
 
-func (s *Shader) pipelineState(compositeMode graphicsdriver.CompositeMode, stencilMode stencilMode) (*_ID3D12PipelineState, error) {
+func (s *Shader) pipelineState(compositeMode graphicsdriver.CompositeMode, stencilMode stencilMode, screen bool) (*_ID3D12PipelineState, error) {
 	key := pipelineStateKey{
 		compositeMode: compositeMode,
 		stencilMode:   stencilMode,
+		screen:        screen,
 	}
 	if state, ok := s.pipelineStates[key]; ok {
 		return state, nil
 	}
 
-	state, err := s.graphics.pipelineStates.newPipelineState(s.graphics.device, s.vertexShader, s.pixelShader, compositeMode, stencilMode, false)
+	state, err := s.graphics.pipelineStates.newPipelineState(s.graphics.device, s.vertexShader, s.pixelShader, compositeMode, stencilMode, screen)
 	if err != nil {
 		return nil, err
 	}

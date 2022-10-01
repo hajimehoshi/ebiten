@@ -19,3 +19,7 @@ func (w *Window) GetCocoaWindow() uintptr {
 	panicError()
 	return r
 }
+
+func (m *Monitor) GetCocoaMonitor() uintptr {
+	return m.m.GetCocoaMonitor()
+}

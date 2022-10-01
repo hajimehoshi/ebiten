@@ -47,7 +47,7 @@ type ColorM interface {
 	IsIdentity() bool
 	ScaleOnly() bool
 	At(i, j int) float32
-	Elements(body *[16]float32, translate *[4]float32)
+	Elements(body []float32, translate []float32)
 	Apply(clr color.Color) color.Color
 
 	// IsInvertible returns a boolean value indicating
@@ -76,7 +76,7 @@ type ColorM interface {
 func colorMString(c ColorM) string {
 	var b [16]float32
 	var t [4]float32
-	c.Elements(&b, &t)
+	c.Elements(b[:], t[:])
 	return fmt.Sprintf("[[%f, %f, %f, %f, %f], [%f, %f, %f, %f, %f], [%f, %f, %f, %f, %f], [%f, %f, %f, %f, %f]]",
 		b[0], b[4], b[8], b[12], t[0],
 		b[1], b[5], b[9], b[13], t[1],
@@ -255,7 +255,7 @@ func (c *colorMImplBodyTranslate) Apply(clr color.Color) color.Color {
 	}
 }
 
-func (c ColorMIdentity) Elements(body *[16]float32, translate *[4]float32) {
+func (c ColorMIdentity) Elements(body []float32, translate []float32) {
 	body[0] = 1
 	body[1] = 0
 	body[2] = 0
@@ -278,7 +278,7 @@ func (c ColorMIdentity) Elements(body *[16]float32, translate *[4]float32) {
 	translate[3] = 0
 }
 
-func (c colorMImplScale) Elements(body *[16]float32, translate *[4]float32) {
+func (c colorMImplScale) Elements(body []float32, translate []float32) {
 	body[0] = c.scale[0]
 	body[1] = 0
 	body[2] = 0
@@ -301,9 +301,9 @@ func (c colorMImplScale) Elements(body *[16]float32, translate *[4]float32) {
 	translate[3] = 0
 }
 
-func (c *colorMImplBodyTranslate) Elements(body *[16]float32, translate *[4]float32) {
-	copy(body[:], c.body[:])
-	copy(translate[:], c.translate[:])
+func (c *colorMImplBodyTranslate) Elements(body []float32, translate []float32) {
+	copy(body, c.body[:])
+	copy(translate, c.translate[:])
 }
 
 func (c *colorMImplBodyTranslate) det() float32 {
@@ -496,7 +496,7 @@ func ColorMSetElement(c ColorM, i, j int, element float32) ColorM {
 		body: colorMIdentityBody,
 	}
 	if !c.IsIdentity() {
-		c.Elements(&newImpl.body, &newImpl.translate)
+		c.Elements(newImpl.body[:], newImpl.translate[:])
 	}
 	if j < (ColorMDim - 1) {
 		newImpl.body[i+j*(ColorMDim-1)] = element
@@ -539,11 +539,11 @@ func (c *colorMImplBodyTranslate) Equals(other ColorM) bool {
 	// Instead, cast `other` to a concrete type and call `Elements` functions of it.
 	switch other := other.(type) {
 	case ColorMIdentity:
-		other.Elements(&lhsb, &lhst)
+		other.Elements(lhsb[:], lhst[:])
 	case colorMImplScale:
-		other.Elements(&lhsb, &lhst)
+		other.Elements(lhsb[:], lhst[:])
 	case *colorMImplBodyTranslate:
-		other.Elements(&lhsb, &lhst)
+		other.Elements(lhsb[:], lhst[:])
 	default:
 		panic("affine: unexpected ColorM implementation")
 	}
@@ -571,11 +571,11 @@ func (c colorMImplScale) Concat(other ColorM) ColorM {
 	// Instead, cast `other` to a concrete type and call `Elements` functions of it.
 	switch other := other.(type) {
 	case ColorMIdentity:
-		other.Elements(&lhsb, &lhst)
+		other.Elements(lhsb[:], lhst[:])
 	case colorMImplScale:
-		other.Elements(&lhsb, &lhst)
+		other.Elements(lhsb[:], lhst[:])
 	case *colorMImplBodyTranslate:
-		other.Elements(&lhsb, &lhst)
+		other.Elements(lhsb[:], lhst[:])
 	default:
 		panic("affine: unexpected ColorM implementation")
 	}
@@ -604,11 +604,11 @@ func (c *colorMImplBodyTranslate) Concat(other ColorM) ColorM {
 	// Instead, cast `other` to a concrete type and call `Elements` functions of it.
 	switch other := other.(type) {
 	case ColorMIdentity:
-		other.Elements(&lhsb, &lhst)
+		other.Elements(lhsb[:], lhst[:])
 	case colorMImplScale:
-		other.Elements(&lhsb, &lhst)
+		other.Elements(lhsb[:], lhst[:])
 	case *colorMImplBodyTranslate:
-		other.Elements(&lhsb, &lhst)
+		other.Elements(lhsb[:], lhst[:])
 	default:
 		panic("affine: unexpected ColorM implementation")
 	}

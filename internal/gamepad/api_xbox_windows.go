@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !ebitenginecbackend && !ebitencbackend
-// +build !ebitenginecbackend,!ebitencbackend
+//go:build !nintendosdk
+// +build !nintendosdk
 
 package gamepad
 
@@ -216,7 +216,7 @@ type _IGameInputDevice_Vtbl struct {
 }
 
 func (i *_IGameInputDevice) SetRumbleState(params *_GameInputRumbleParams, timestamp uint64) {
-	syscall.Syscall(i.vtbl.SetRumbleState, 3, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(params)), uintptr(timestamp))
+	_, _, _ = syscall.Syscall(i.vtbl.SetRumbleState, 3, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(params)), uintptr(timestamp))
 	runtime.KeepAlive(params)
 }
 
@@ -259,6 +259,7 @@ func (i *_IGameInputReading) GetGamepadState() (_GameInputGamepadState, bool) {
 	return state, int32(r) != 0
 }
 
-func (i *_IGameInputReading) Release() {
-	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+func (i *_IGameInputReading) Release() uint32 {
+	r, _, _ := syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+	return uint32(r)
 }

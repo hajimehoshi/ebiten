@@ -140,7 +140,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("Polygons (Ebiten Demo)")
+	ebiten.SetWindowTitle("Polygons (Ebitengine Demo)")
 	if err := ebiten.RunGame(&Game{ngon: 10}); err != nil {
 		log.Fatal(err)
 	}

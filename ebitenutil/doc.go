@@ -12,5 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package ebitenutil provides utility functions for Ebiten.
+// Package ebitenutil provides utility functions for Ebitengine.
 package ebitenutil

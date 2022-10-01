@@ -192,7 +192,7 @@ func (i *Input) mouseUp(code int) {
 	i.mouseButtonPressed[code] = false
 }
 
-func (i *Input) updateFromEvent(e js.Value) {
+func (i *Input) updateFromEvent(e js.Value) error {
 	// Avoid using js.Value.String() as String creates a Uint8Array via a TextEncoder and causes a heavy
 	// overhead (#1437).
 	switch t := e.Get("type"); {
@@ -208,7 +208,7 @@ func (i *Input) updateFromEvent(e js.Value) {
 		c := e.Get("code")
 		if c.Type() != js.TypeString {
 			i.keyDownEdge(e.Get("keyCode").Int())
-			return
+			return nil
 		}
 		i.keyDown(c)
 	case t.Equal(stringKeyup):
@@ -216,7 +216,7 @@ func (i *Input) updateFromEvent(e js.Value) {
 		if c.Type() != js.TypeString {
 			// Assume that UA is Edge.
 			i.keyUpEdge(e.Get("keyCode").Int())
-			return
+			return nil
 		}
 		i.keyUp(c)
 	case t.Equal(stringMousedown):
@@ -238,6 +238,7 @@ func (i *Input) updateFromEvent(e js.Value) {
 	}
 
 	i.ui.forceUpdateOnMinimumFPSMode()
+	return nil
 }
 
 func (i *Input) setMouseCursorFromEvent(e js.Value) {
@@ -273,29 +274,6 @@ func (in *Input) updateTouchesFromEvent(e js.Value) {
 		in.touches[id] = pos{
 			X: jj.Get("clientX").Int(),
 			Y: jj.Get("clientY").Int(),
-		}
-	}
-}
-
-func (i *Input) updateForGo2Cpp() {
-	if !go2cpp.Truthy() {
-		return
-	}
-
-	for k := range i.touches {
-		delete(i.touches, k)
-	}
-	touchCount := go2cpp.Get("touchCount").Int()
-	for idx := 0; idx < touchCount; idx++ {
-		id := go2cpp.Call("getTouchId", idx)
-		x := go2cpp.Call("getTouchX", idx)
-		y := go2cpp.Call("getTouchY", idx)
-		if i.touches == nil {
-			i.touches = map[TouchID]pos{}
-		}
-		i.touches[TouchID(id.Int())] = pos{
-			X: x.Int(),
-			Y: y.Int(),
 		}
 	}
 }

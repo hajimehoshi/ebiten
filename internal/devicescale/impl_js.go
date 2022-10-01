@@ -19,10 +19,6 @@ import (
 )
 
 func impl(x, y int) float64 {
-	if go2cpp := js.Global().Get("go2cpp"); go2cpp.Truthy() {
-		return go2cpp.Get("devicePixelRatio").Float()
-	}
-
 	window := js.Global().Get("window")
 	if !window.Truthy() {
 		return 1

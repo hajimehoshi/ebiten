@@ -56,10 +56,10 @@ You don't have to update existing files' license comments.
 
 ## Implementation details
 
-See the [documents](https://ebiten.org/documents/implementation.html) about internal implementation.
+See the [documents](https://ebitengine.org/en/documents/implementation.html) about internal implementation.
 
 ## Fixing the documentation
 
-Ebitengine's documentations are managed at [ebiten/ebiten.org](https://github.com/ebiten/ebiten.org).  
+Ebitengine's documentations are managed at [ebiten/ebitengine.org](https://github.com/ebitengine/ebitengine.org).
 
-Before submitting a documentation PR, read through the [README](https://github.com/ebiten/ebiten.org/blob/main/README.md) in that repo.
+Before submitting a documentation PR, read through the [README](https://github.com/ebitengine/ebitengine.org/blob/main/README.md) in that repo.

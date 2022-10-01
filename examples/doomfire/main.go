@@ -134,7 +134,7 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.renderFire()
-	screen.ReplacePixels(g.pixels)
+	screen.WritePixels(g.pixels)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -145,7 +145,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	ebiten.SetWindowSize(screenWidth*6, screenHeight*6)
-	ebiten.SetWindowTitle("Doom Fire (Ebiten Demo)")
+	ebiten.SetWindowTitle("Doom Fire (Ebitengine Demo)")
 	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}

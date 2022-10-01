@@ -18,18 +18,14 @@
 package main
 
 import (
-	"bytes"
-	"errors"
 	"image"
 	"image/color"
 	"image/png"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"text/template"
 
-	"github.com/hajimehoshi/file2byteslice"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
 
@@ -46,13 +42,7 @@ var (
 )
 
 func init() {
-	f, err := os.Open(filepath.Join("..", "..", "resources", "fonts", "pressstart2p.ttf"))
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-
-	b, err := ioutil.ReadAll(f)
+	b, err := os.ReadFile(filepath.Join("..", "..", "resources", "fonts", "pressstart2p.ttf"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -186,7 +176,7 @@ func drawKey(t *ebiten.Image, name string, x, y, width int) {
 			}
 		}
 	}
-	img.ReplacePixels(p)
+	img.WritePixels(p)
 	const offset = 4
 	text.Draw(img, name, arcadeFont, offset, arcadeFontSize+offset+1, color.White)
 
@@ -242,20 +232,16 @@ func outputKeyboardImage() (map[ebiten.Key]image.Rectangle, error) {
 		y += height
 	}
 
-	var buf bytes.Buffer
-	if err := png.Encode(&buf, img); err != nil {
-		return nil, err
-	}
-
-	out, err := os.Create("../../resources/images/keyboard/keyboard.go")
+	out, err := os.Create(filepath.Join("..", "..", "resources", "images", "keyboard", "keyboard.png"))
 	if err != nil {
 		return nil, err
 	}
 	defer out.Close()
 
-	if err := file2byteslice.Write(out, &buf, false, "", "keyboard", "Keyboard_png"); err != nil {
+	if err := png.Encode(out, img); err != nil {
 		return nil, err
 	}
+
 	return keyMap, nil
 }
 
@@ -316,8 +302,6 @@ func outputKeyRectsGo(k map[ebiten.Key]image.Rectangle) error {
 	})
 }
 
-var regularTermination = errors.New("regular termination")
-
 type game struct {
 	rects map[ebiten.Key]image.Rectangle
 }
@@ -328,7 +312,7 @@ func (g *game) Update() error {
 	if err != nil {
 		return err
 	}
-	return regularTermination
+	return ebiten.Termination
 }
 
 func (g *game) Draw(_ *ebiten.Image) {
@@ -340,7 +324,7 @@ func (g *game) Layout(outw, outh int) (int, int) {
 
 func main() {
 	g := &game{}
-	if err := ebiten.RunGame(g); err != nil && !errors.Is(err, regularTermination) {
+	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
 	if err := outputKeyRectsGo(g.rects); err != nil {

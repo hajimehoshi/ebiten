@@ -12,37 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !ios
-// +build !android,!ios
-
 package ebitenutil
 
 import (
 	"image"
 	"io"
+	"net/http"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
-
-// NewImageFromFile loads the file with path and returns ebiten.Image and image.Image.
-//
-// Image decoders must be imported when using NewImageFromFile. For example,
-// if you want to load a PNG image, you'd need to add `_ "image/png"` to the import section.
-//
-// How to solve path depends on your environment. This varies on your desktop or web browser.
-// Note that this doesn't work on mobiles.
-//
-// For productions, instead of using NewImageFromFile, it is safer to embed your resources with go:embed.
-func NewImageFromFile(path string) (*ebiten.Image, image.Image, error) {
-	file, err := OpenFile(path)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer func() {
-		_ = file.Close()
-	}()
-	return NewImageFromReader(file)
-}
 
 // NewImageFromReader loads from the io.Reader and returns ebiten.Image and image.Image.
 //
@@ -55,4 +33,26 @@ func NewImageFromReader(reader io.Reader) (*ebiten.Image, image.Image, error) {
 	}
 	img2 := ebiten.NewImageFromImage(img)
 	return img2, img, err
+}
+
+// NewImageFromURL creates a new ebiten.Image from the given URL.
+//
+// Image decoders must be imported when using NewImageFromURL. For example,
+// if you want to load a PNG image, you'd need to add `_ "image/png"` to the import section.
+func NewImageFromURL(url string) (*ebiten.Image, error) {
+	res, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = res.Body.Close()
+	}()
+
+	img, _, err := image.Decode(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	eimg := ebiten.NewImageFromImage(img)
+	return eimg, nil
 }

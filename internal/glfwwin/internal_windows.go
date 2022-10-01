@@ -254,6 +254,7 @@ type library struct {
 	}
 
 	win32 struct {
+		instance                 _HINSTANCE
 		helperWindowHandle       windows.HWND
 		deviceNotificationHandle _HDEVNOTIFY
 		acquiredMonitorCount     int

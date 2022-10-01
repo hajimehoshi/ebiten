@@ -17,7 +17,6 @@ package atlas
 import (
 	"fmt"
 	"image"
-	"math"
 	"runtime"
 	"sync"
 
@@ -228,7 +227,7 @@ type Image struct {
 	// usedAsSourceCount is increased if the image is used as a rendering source, or set to 0 if the image is
 	// modified.
 	//
-	// ReplacePixels doesn't affect this value since ReplacePixels can be done on images on an atlas.
+	// WritePixels doesn't affect this value since WritePixels can be done on images on an atlas.
 	usedAsSourceCount int
 
 	// isolatedCount represents how many times the image on a texture atlas is changed into an isolated image.
@@ -389,14 +388,14 @@ func (i *Image) processSrc(src *Image) {
 //
 // The vertex floats are:
 //
-//   0: Destination X in pixels
-//   1: Destination Y in pixels
-//   2: Source X in pixels (the upper-left is (0, 0))
-//   3: Source Y in pixels
-//   4: Color R [0.0-1.0]
-//   5: Color G
-//   6: Color B
-//   7: Color Y
+//	0: Destination X in pixels
+//	1: Destination Y in pixels
+//	2: Source X in pixels (the upper-left is (0, 0))
+//	3: Source Y in pixels
+//	4: Color R [0.0-1.0]
+//	5: Color G
+//	6: Color B
+//	7: Color Y
 func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
@@ -494,16 +493,16 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	}
 }
 
-// ReplacePixels replaces the pixels on the image.
-func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) {
+// WritePixels replaces the pixels on the image.
+func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	i.replacePixels(pix, x, y, width, height)
+	i.writePixels(pix, x, y, width, height)
 }
 
-func (i *Image) replacePixels(pix []byte, x, y, width, height int) {
+func (i *Image) writePixels(pix []byte, x, y, width, height int) {
 	if i.disposed {
-		panic("atlas: the image must not be disposed at replacePixels")
+		panic("atlas: the image must not be disposed at writePixels")
 	}
 
 	if l := 4 * width * height; len(pix) != l {
@@ -526,14 +525,14 @@ func (i *Image) replacePixels(pix []byte, x, y, width, height int) {
 		y += py + i.paddingSize()
 
 		if pix == nil {
-			i.backend.restorable.ReplacePixels(nil, x, y, width, height)
+			i.backend.restorable.WritePixels(nil, x, y, width, height)
 			return
 		}
 
 		// Copy pixels in the case when pix is modified before the graphics command is executed.
 		pix2 := theTemporaryBytes.alloc(len(pix))
 		copy(pix2, pix)
-		i.backend.restorable.ReplacePixels(pix2, x, y, width, height)
+		i.backend.restorable.WritePixels(pix2, x, y, width, height)
 		return
 	}
 
@@ -544,7 +543,7 @@ func (i *Image) replacePixels(pix []byte, x, y, width, height int) {
 	// TODO: Is clearing edges explicitly really needed?
 	const paddingSize = 1
 	if paddingSize != i.paddingSize() {
-		panic(fmt.Sprintf("atlas: replacePixels assumes the padding is always 1 but the actual padding was %d", i.paddingSize()))
+		panic(fmt.Sprintf("atlas: writePixels assumes the padding is always 1 but the actual padding was %d", i.paddingSize()))
 	}
 	rowPixels := 4 * pw
 	for i := 0; i < rowPixels; i++ {
@@ -569,45 +568,27 @@ func (i *Image) replacePixels(pix []byte, x, y, width, height int) {
 
 	x += px
 	y += py
-	i.backend.restorable.ReplacePixels(pixb, x, y, pw, ph)
+	i.backend.restorable.WritePixels(pixb, x, y, pw, ph)
 }
 
-func (img *Image) Pixels(graphicsDriver graphicsdriver.Graphics) ([]byte, error) {
+func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
-	x := img.paddingSize()
-	y := img.paddingSize()
+	// In the tests, BeginFrame might not be called often and then images might not be disposed (#2292).
+	// To prevent memory leaks, resolve the deferred functions here.
+	resolveDeferred()
 
-	bs := make([]byte, 4*img.width*img.height)
-	idx := 0
-	for j := y; j < y+img.height; j++ {
-		for i := x; i < x+img.width; i++ {
-			r, g, b, a, err := img.at(graphicsDriver, i, j)
-			if err != nil {
-				return nil, err
-			}
-			bs[4*idx] = r
-			bs[4*idx+1] = g
-			bs[4*idx+2] = b
-			bs[4*idx+3] = a
-			idx++
+	if i.backend == nil || i.backend.restorable == nil {
+		for i := range pixels {
+			pixels[i] = 0
 		}
-	}
-	return bs, nil
-}
-
-func (i *Image) at(graphicsDriver graphicsdriver.Graphics, x, y int) (byte, byte, byte, byte, error) {
-	if i.backend == nil {
-		return 0, 0, 0, 0, nil
+		return nil
 	}
 
+	ps := i.paddingSize()
 	ox, oy, w, h := i.regionWithPadding()
-	if x < 0 || y < 0 || x >= w || y >= h {
-		return 0, 0, 0, 0, nil
-	}
-
-	return i.backend.restorable.At(graphicsDriver, x+ox, y+oy)
+	return i.backend.restorable.ReadPixels(graphicsDriver, pixels, ox+ps, oy+ps, w-ps*2, h-ps*2)
 }
 
 // MarkDisposed marks the image as disposed. The actual operation is deferred.
@@ -755,7 +736,7 @@ func (i *Image) allocate(putOnAtlas bool) {
 	i.node = n
 }
 
-func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool) error {
+func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool) (string, error) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
@@ -808,7 +789,7 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 	return nil
 }
 
-func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) error {
+func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) (string, error) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	return restorable.DumpImages(graphicsDriver, dir)
@@ -817,7 +798,16 @@ func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) error {
 func adjustDestinationPixel(x float32) float32 {
 	// Avoid the center of the pixel, which is problematic (#929, #1171).
 	// Instead, align the vertices with about 1/3 pixels.
-	ix := float32(math.Floor(float64(x)))
+	//
+	// The intention here is roughly this code:
+	//
+	//     float32(math.Floor((float64(x)+1.0/6.0)*3) / 3)
+	//
+	// The actual implementation is more optimized than the above implementation.
+	ix := float32(int(x))
+	if x < 0 && x != ix {
+		ix -= 1
+	}
 	frac := x - ix
 	switch {
 	case frac < 3.0/16.0:

@@ -26,6 +26,7 @@ import (
 type shaderRpsKey struct {
 	compositeMode graphicsdriver.CompositeMode
 	stencilMode   stencilMode
+	screen        bool
 }
 
 type Shader struct {
@@ -85,11 +86,13 @@ func (s *Shader) init(device mtl.Device) error {
 	return nil
 }
 
-func (s *Shader) RenderPipelineState(device mtl.Device, compositeMode graphicsdriver.CompositeMode, stencilMode stencilMode) (mtl.RenderPipelineState, error) {
-	if rps, ok := s.rpss[shaderRpsKey{
+func (s *Shader) RenderPipelineState(view *view, compositeMode graphicsdriver.CompositeMode, stencilMode stencilMode, screen bool) (mtl.RenderPipelineState, error) {
+	key := shaderRpsKey{
 		compositeMode: compositeMode,
 		stencilMode:   stencilMode,
-	}]; ok {
+		screen:        screen,
+	}
+	if rps, ok := s.rpss[key]; ok {
 		return rps, nil
 	}
 
@@ -102,7 +105,11 @@ func (s *Shader) RenderPipelineState(device mtl.Device, compositeMode graphicsdr
 	}
 
 	// TODO: For the precise pixel format, whether the render target is the screen or not must be considered.
-	rpld.ColorAttachments[0].PixelFormat = mtl.PixelFormatRGBA8UNorm
+	pix := mtl.PixelFormatRGBA8UNorm
+	if screen {
+		pix = view.colorPixelFormat()
+	}
+	rpld.ColorAttachments[0].PixelFormat = pix
 	rpld.ColorAttachments[0].BlendingEnabled = true
 
 	src, dst := compositeMode.Operations()
@@ -116,14 +123,11 @@ func (s *Shader) RenderPipelineState(device mtl.Device, compositeMode graphicsdr
 		rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskAll
 	}
 
-	rps, err := device.MakeRenderPipelineState(rpld)
+	rps, err := view.getMTLDevice().MakeRenderPipelineState(rpld)
 	if err != nil {
 		return mtl.RenderPipelineState{}, err
 	}
 
-	s.rpss[shaderRpsKey{
-		compositeMode: compositeMode,
-		stencilMode:   stencilMode,
-	}] = rps
+	s.rpss[key] = rps
 	return rps, nil
 }

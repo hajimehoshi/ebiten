@@ -133,6 +133,7 @@ const (
 	Mat2
 	Mat3
 	Mat4
+	Texture
 	Array
 	Struct
 )
@@ -193,10 +194,8 @@ func (p *Program) LocalVariableType(topBlock, block *Block, idx int) Type {
 			return Type{Main: Vec4}
 		case idx < nv+1:
 			return p.Varyings[idx-1]
-		case idx == nv+1:
-			return Type{Main: Vec4}
 		default:
-			return localVariableType(p, topBlock, block, idx-(nv+2))
+			return localVariableType(p, topBlock, block, idx-(nv+1))
 		}
 	default:
 		return localVariableType(p, topBlock, block, idx)

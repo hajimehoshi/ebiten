@@ -15,9 +15,10 @@
 // Package audio provides audio players.
 //
 // The stream format must be 16-bit little endian and 2 channels. The format is as follows:
-//   [data]      = [sample 1] [sample 2] [sample 3] ...
-//   [sample *]  = [channel 1] ...
-//   [channel *] = [byte 1] [byte 2] ...
+//
+//	[data]      = [sample 1] [sample 2] [sample 3] ...
+//	[sample *]  = [channel 1] ...
+//	[channel *] = [byte 1] [byte 2] ...
 //
 // An audio context (audio.Context object) has a sample rate you can specify and all streams you want to play must have the same
 // sample rate. However, decoders in e.g. audio/mp3 package adjust sample rate automatically,
@@ -110,12 +111,16 @@ func NewContext(sampleRate int) *Context {
 	h := getHook()
 	h.OnSuspendAudio(func() error {
 		c.semaphore <- struct{}{}
-		c.playerFactory.suspend()
+		if err := c.playerFactory.suspend(); err != nil {
+			return err
+		}
 		return nil
 	})
 	h.OnResumeAudio(func() error {
 		<-c.semaphore
-		c.playerFactory.resume()
+		if err := c.playerFactory.resume(); err != nil {
+			return err
+		}
 		return nil
 	})
 
@@ -334,7 +339,7 @@ func NewPlayerFromBytes(context *Context, src []byte) *Player {
 func (p *Player) finalize() {
 	runtime.SetFinalizer(p, nil)
 	if !p.IsPlaying() {
-		p.Close()
+		_ = p.Close()
 	}
 }
 

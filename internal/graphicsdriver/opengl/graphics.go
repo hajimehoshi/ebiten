@@ -23,7 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
-// NewGraphics creates an implementation of graphicsdriver.Graphcis for OpenGL.
+// NewGraphics creates an implementation of graphicsdriver.Graphics for OpenGL.
 // The returned graphics value is nil iff the error is not nil.
 func NewGraphics() (graphicsdriver.Graphics, error) {
 	if microsoftgdk.IsXbox() {
@@ -49,7 +49,7 @@ type Graphics struct {
 	nextShaderID graphicsdriver.ShaderID
 	shaders      map[graphicsdriver.ShaderID]*Shader
 
-	// drawCalled is true just after Draw is called. This holds true until ReplacePixels is called.
+	// drawCalled is true just after Draw is called. This holds true until WritePixels is called.
 	drawCalled bool
 
 	uniformVariableNameCache map[int]string
@@ -224,7 +224,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 			// ColorM's elements are immutable. It's OK to hold the reference without copying.
 			var esBody [16]float32
 			var esTranslate [4]float32
-			colorM.Elements(&esBody, &esTranslate)
+			colorM.Elements(esBody[:], esTranslate[:])
 			g.uniformVars = append(g.uniformVars, uniformVariable{
 				name:  "color_matrix_body",
 				value: esBody[:],
@@ -242,15 +242,6 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 				name:  "source_size",
 				value: []float32{float32(sw), float32(sh)},
 				typ:   shaderir.Type{Main: shaderir.Vec2},
-			})
-		}
-
-		if filter == graphicsdriver.FilterScreen {
-			scale := float32(destination.width) / float32(g.images[srcIDs[0]].width)
-			g.uniformVars = append(g.uniformVars, uniformVariable{
-				name:  "scale",
-				value: []float32{scale},
-				typ:   shaderir.Type{Main: shaderir.Float},
 			})
 		}
 	} else {

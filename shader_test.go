@@ -287,7 +287,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			}
 		}
 	}
-	src0.ReplacePixels(pix0)
+	src0.WritePixels(pix0)
 	src0 = src0.SubImage(image.Rect(2, 3, 10, 11)).(*ebiten.Image)
 
 	src1 := ebiten.NewImage(w, h)
@@ -302,7 +302,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			}
 		}
 	}
-	src1.ReplacePixels(pix1)
+	src1.WritePixels(pix1)
 	src1 = src1.SubImage(image.Rect(6, 8, 14, 16)).(*ebiten.Image)
 
 	testPixels := func(testname string, dst *ebiten.Image) {
@@ -412,7 +412,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			pix[4*(j*w+i)+3] = 0xff
 		}
 	}
-	src.ReplacePixels(pix)
+	src.WritePixels(pix)
 
 	op := &ebiten.DrawRectShaderOptions{}
 	op.Images[0] = src
@@ -470,7 +470,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			pix[4*(j*w+i)+3] = 0xff
 		}
 	}
-	src.ReplacePixels(pix)
+	src.WritePixels(pix)
 
 	op := &ebiten.DrawRectShaderOptions{}
 	op.Images[0] = src
@@ -998,7 +998,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			}
 		}
 	}
-	src0.ReplacePixels(pix0)
+	src0.WritePixels(pix0)
 	src0 = src0.SubImage(image.Rect(2+offset0, 3+offset0, 10+offset0, 11+offset0)).(*ebiten.Image)
 
 	const offset1 = -6
@@ -1014,7 +1014,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			}
 		}
 	}
-	src1.ReplacePixels(pix1)
+	src1.WritePixels(pix1)
 	src1 = src1.SubImage(image.Rect(6+offset1, 8+offset1, 14+offset1, 16+offset1)).(*ebiten.Image)
 
 	const offset2 = -2
@@ -1124,6 +1124,146 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			got := dst.At(i, j).(color.RGBA)
 			want := color.RGBA{0xff, 0, 0x00, 0xff}
 			if !sameColors(got, want, 2) {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+// Issue #1969
+func TestShaderDiscard(t *testing.T) {
+	const w, h = 16, 16
+
+	dst := ebiten.NewImage(w, h)
+	dst.Fill(color.RGBA{0xff, 0, 0, 0xff})
+
+	src := ebiten.NewImage(w, h)
+	pix := make([]byte, 4*w*h)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			if i >= w/2 || j >= h/2 {
+				continue
+			}
+			pix[4*(j*w+i)+3] = 0xff
+		}
+	}
+	src.WritePixels(pix)
+
+	s, err := ebiten.NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	p := imageSrc0At(texCoord)
+	if p.a == 0 {
+		discard()
+	} else {
+		return vec4(0, 1, 0, 1)
+	}
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	op := &ebiten.DrawRectShaderOptions{}
+	op.Images[0] = src
+	dst.DrawRectShader(w, h, s, op)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{0, 0xff, 0x00, 0xff}
+			if i >= w/2 || j >= h/2 {
+				want = color.RGBA{0xff, 0, 0x00, 0xff}
+			}
+			if !sameColors(got, want, 2) {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+// Issue #2245, #2247
+func TestShaderDrawRect(t *testing.T) {
+	const (
+		dstW = 16
+		dstH = 16
+		srcW = 8
+		srcH = 8
+	)
+
+	dst := ebiten.NewImage(dstW, dstH)
+	src := ebiten.NewImage(srcW, srcH)
+
+	s, err := ebiten.NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	// Adjust texCoord into [0, 1].
+	origin, size := imageSrcRegionOnTexture()
+	texCoord -= origin
+	texCoord /= size
+	if texCoord.x >= 0.5 && texCoord.y >= 0.5 {
+		return vec4(1, 0, 0, 1)
+	}
+	return vec4(0, 1, 0, 1)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const (
+		offsetX = (dstW - srcW) / 2
+		offsetY = (dstH - srcH) / 2
+	)
+	op := &ebiten.DrawRectShaderOptions{}
+	op.GeoM.Translate(offsetX, offsetY)
+	op.Images[0] = src
+	dst.DrawRectShader(srcW, srcH, s, op)
+	for j := 0; j < dstH; j++ {
+		for i := 0; i < dstW; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			var want color.RGBA
+			if offsetX <= i && i < offsetX+srcW && offsetY <= j && j < offsetY+srcH {
+				if offsetX+srcW/2 <= i && offsetY+srcH/2 <= j {
+					want = color.RGBA{0xff, 0, 0, 0xff}
+				} else {
+					want = color.RGBA{0, 0xff, 0, 0xff}
+				}
+			}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestShaderDrawRectColorScale(t *testing.T) {
+	const w, h = 16, 16
+
+	dst := ebiten.NewImage(w, h)
+	s, err := ebiten.NewShader([]byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return color
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	op := &ebiten.DrawRectShaderOptions{}
+	op.ColorScale.SetR(4.0 / 8.0)
+	op.ColorScale.SetG(5.0 / 8.0)
+	op.ColorScale.SetB(6.0 / 8.0)
+	op.ColorScale.SetA(7.0 / 8.0)
+	op.ColorScale.Scale(1.0/4.0, 2.0/4.0, 3.0/4.0, 4.0/4.0)
+	dst.DrawRectShader(w, h, s, op)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{0x20, 0x50, 0x90, 0xe0}
+			if !sameColors(got, want, 1) {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}

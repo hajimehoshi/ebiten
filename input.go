@@ -303,6 +303,28 @@ func IsStandardGamepadLayoutAvailable(id GamepadID) bool {
 	return g.IsStandardLayoutAvailable()
 }
 
+// IsStandardGamepadAxisAvailable reports whether the standard gamepad axis is available on the gamepad (id).
+//
+// IsStandardGamepadAxisAvailable is concurrent-safe.
+func IsStandardGamepadAxisAvailable(id GamepadID, axis StandardGamepadAxis) bool {
+	g := gamepad.Get(id)
+	if g == nil {
+		return false
+	}
+	return g.IsStandardAxisAvailable(axis)
+}
+
+// IsStandardGamepadButtonAvailable reports whether the standard gamepad button is available on the gamepad (id).
+//
+// IsStandardGamepadButtonAvailable is concurrent-safe.
+func IsStandardGamepadButtonAvailable(id GamepadID, button StandardGamepadButton) bool {
+	g := gamepad.Get(id)
+	if g == nil {
+		return false
+	}
+	return g.IsStandardButtonAvailable(button)
+}
+
 // UpdateStandardGamepadLayoutMappings parses the specified string mappings in SDL_GameControllerDB format and
 // updates the gamepad layout definitions.
 //
@@ -311,7 +333,7 @@ func IsStandardGamepadLayoutAvailable(id GamepadID) bool {
 //
 // One or more input definitions can be provided separated by newlines.
 // In particular, it is valid to pass an entire gamecontrollerdb.txt file.
-// Note though that Ebiten already includes its own copy of this file,
+// Note though that Ebitengine already includes its own copy of this file,
 // so this call should only be necessary to add mappings for hardware not supported yet;
 // ideally games using the StandardGamepad* functions should allow the user to provide mappings and
 // then call this function if provided.
@@ -320,14 +342,14 @@ func IsStandardGamepadLayoutAvailable(id GamepadID) bool {
 //
 // A platform field in a line corresponds with a GOOS like the following:
 //
-//    "Windows":  GOOS=windows
-//    "Mac OS X": GOOS=darwin (not ios)
-//    "Linux":    GOOS=linux (not android)
-//    "Android":  GOOS=android
-//    "iOS":      GOOS=ios
-//    "":         Any GOOS
+//	"Windows":  GOOS=windows
+//	"Mac OS X": GOOS=darwin (not ios)
+//	"Linux":    GOOS=linux (not android)
+//	"Android":  GOOS=android
+//	"iOS":      GOOS=ios
+//	"":         Any GOOS
 //
-// On platforms where gamepad mappings are not managed by Ebiten, this always returns false and nil.
+// On platforms where gamepad mappings are not managed by Ebitengine, this always returns false and nil.
 //
 // UpdateStandardGamepadLayoutMappings is concurrent-safe.
 //
@@ -360,7 +382,7 @@ func AppendTouchIDs(touches []TouchID) []TouchID {
 
 // TouchIDs returns the current touch states.
 //
-// Deperecated: as of v2.2. Use AppendTouchIDs instead.
+// Deprecated: as of v2.2. Use AppendTouchIDs instead.
 func TouchIDs() []TouchID {
 	return AppendTouchIDs(nil)
 }

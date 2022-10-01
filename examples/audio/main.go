@@ -27,7 +27,6 @@ import (
 	"image/color"
 	_ "image/png"
 	"io"
-	"io/ioutil"
 	"log"
 	"time"
 
@@ -179,7 +178,7 @@ func NewPlayer(game *Game, audioContext *audio.Context, musicType musicType) (*P
 			log.Fatal(err)
 			return
 		}
-		b, err := ioutil.ReadAll(s)
+		b, err := io.ReadAll(s)
 		if err != nil {
 			log.Fatal(err)
 			return
@@ -204,7 +203,9 @@ func (p *Player) update() error {
 	if p.audioPlayer.IsPlaying() {
 		p.current = p.audioPlayer.Current()
 	}
-	p.seekBarIfNeeded()
+	if err := p.seekBarIfNeeded(); err != nil {
+		return err
+	}
 	p.switchPlayStateIfNeeded()
 	p.playSEIfNeeded()
 	p.updateVolumeIfNeeded()
@@ -312,23 +313,26 @@ func (p *Player) justPressedPosition() (int, int, bool) {
 	return 0, 0, false
 }
 
-func (p *Player) seekBarIfNeeded() {
+func (p *Player) seekBarIfNeeded() error {
 	// Calculate the next seeking position from the current cursor position.
 	x, y, ok := p.justPressedPosition()
 	if !ok {
-		return
+		return nil
 	}
 	bx, by, bw, bh := playerBarRect()
 	const padding = 4
 	if y < by-padding || by+bh+padding <= y {
-		return
+		return nil
 	}
 	if x < bx || bx+bw <= x {
-		return
+		return nil
 	}
 	pos := time.Duration(x-bx) * p.total / time.Duration(bw)
 	p.current = pos
-	p.audioPlayer.Seek(pos)
+	if err := p.audioPlayer.Seek(pos); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (p *Player) draw(screen *ebiten.Image) {
@@ -338,10 +342,9 @@ func (p *Player) draw(screen *ebiten.Image) {
 
 	// Draw the cursor on the bar.
 	c := p.current
-	cw, ch := 8, 20
-	cx := int(time.Duration(w)*c/p.total) + x - cw/2
-	cy := y - (ch-h)/2
-	ebitenutil.DrawRect(screen, float64(cx), float64(cy), float64(cw), float64(ch), playerCurrentColor)
+	cx := float64(x) + float64(w)*float64(p.current)/float64(p.total)
+	cy := float64(y) + float64(h)/2
+	ebitenutil.DrawCircle(screen, cx, cy, 12, playerCurrentColor)
 
 	// Compose the curren time text.
 	m := (c / time.Minute) % 100
@@ -421,7 +424,9 @@ func (g *Game) Update() error {
 			panic("not reached")
 		}
 
-		g.musicPlayer.Close()
+		if err := g.musicPlayer.Close(); err != nil {
+			return err
+		}
 		g.musicPlayer = nil
 
 		go func() {
@@ -454,7 +459,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("Audio (Ebiten Demo)")
+	ebiten.SetWindowTitle("Audio (Ebitengine Demo)")
 	g, err := NewGame()
 	if err != nil {
 		log.Fatal(err)

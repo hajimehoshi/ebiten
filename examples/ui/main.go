@@ -47,9 +47,6 @@ var (
 
 func init() {
 	// Decode an image from the image file's byte slice.
-	// Now the byte slice is generated with //go:generate for Go 1.15 or older.
-	// If you use Go 1.16 or newer, it is strongly recommended to use //go:embed to embed the image file.
-	// See https://pkg.go.dev/embed for more details.
 	img, _, err := image.Decode(bytes.NewReader(images.UI_png))
 	if err != nil {
 		log.Fatal(err)
@@ -78,8 +75,8 @@ const (
 	imageTypeButton imageType = iota
 	imageTypeButtonPressed
 	imageTypeTextBox
-	imageTypeVScollBarBack
-	imageTypeVScollBarFront
+	imageTypeVScrollBarBack
+	imageTypeVScrollBarFront
 	imageTypeCheckBox
 	imageTypeCheckBoxPressed
 	imageTypeCheckBoxMark
@@ -89,8 +86,8 @@ var imageSrcRects = map[imageType]image.Rectangle{
 	imageTypeButton:          image.Rect(0, 0, 16, 16),
 	imageTypeButtonPressed:   image.Rect(16, 0, 32, 16),
 	imageTypeTextBox:         image.Rect(0, 16, 16, 32),
-	imageTypeVScollBarBack:   image.Rect(16, 16, 24, 32),
-	imageTypeVScollBarFront:  image.Rect(24, 16, 32, 32),
+	imageTypeVScrollBarBack:  image.Rect(16, 16, 24, 32),
+	imageTypeVScrollBarFront: image.Rect(24, 16, 32, 32),
 	imageTypeCheckBox:        image.Rect(0, 32, 16, 48),
 	imageTypeCheckBoxPressed: image.Rect(16, 32, 32, 48),
 	imageTypeCheckBoxMark:    image.Rect(32, 32, 48, 48),
@@ -284,10 +281,10 @@ func (v *VScrollBar) Update(contentHeight int) {
 
 func (v *VScrollBar) Draw(dst *ebiten.Image) {
 	sd := image.Rect(v.X, v.Y, v.X+VScrollBarWidth, v.Y+v.Height)
-	drawNinePatches(dst, sd, imageSrcRects[imageTypeVScollBarBack])
+	drawNinePatches(dst, sd, imageSrcRects[imageTypeVScrollBarBack])
 
 	if v.thumbRate < 1 {
-		drawNinePatches(dst, v.thumbRect(), imageSrcRects[imageTypeVScollBarFront])
+		drawNinePatches(dst, v.thumbRect(), imageSrcRects[imageTypeVScrollBarFront])
 	}
 }
 
@@ -508,7 +505,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("UI (Ebiten Demo)")
+	ebiten.SetWindowTitle("UI (Ebitengine Demo)")
 	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}

@@ -202,7 +202,7 @@ func newGame() *Game {
 
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("Snake (Ebiten Demo)")
+	ebiten.SetWindowTitle("Snake (Ebitengine Demo)")
 	if err := ebiten.RunGame(newGame()); err != nil {
 		log.Fatal(err)
 	}

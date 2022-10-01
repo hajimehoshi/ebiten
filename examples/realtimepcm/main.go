@@ -135,7 +135,7 @@ func (g *Game) Update() error {
 		g.player.Play()
 
 		// Adjust the buffer size to reflect the audio source changes in real time.
-		// Note that Ebiten doesn't guarantee the audio quality when the buffer size is modified.
+		// Note that Ebitengine doesn't guarantee the audio quality when the buffer size is modified.
 		// 1/20[s] should work in most cases, but this might cause glitches in some environments.
 		g.player.SetBufferSize(time.Second / 20)
 	}
@@ -153,7 +153,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("Real Time PCM (Ebiten Demo)")
+	ebiten.SetWindowTitle("Real Time PCM (Ebitengine Demo)")
 	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}

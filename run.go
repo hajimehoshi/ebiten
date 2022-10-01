@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"errors"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
@@ -45,6 +46,10 @@ type Game interface {
 	//
 	// After the first frame, Update might not be called or might be called once
 	// or more for one frame. The frequency is determined by the current TPS (tick-per-second).
+	//
+	// If the error returned is nil, game execution proceeds normally.
+	// If the error returned is Termination, game execution halts, but does not return an error from RunGame.
+	// If the error returned is any other non-nil value, game execution halts and the error is returned from RunGame.
 	Update() error
 
 	// Draw draws the game screen by one frame.
@@ -167,6 +172,9 @@ func (i *imageDumperGame) Layout(outsideWidth, outsideHeight int) (screenWidth, 
 	return i.game.Layout(outsideWidth, outsideHeight)
 }
 
+// Termination is a special error which indicates Game termination without error.
+var Termination = ui.RegularTermination
+
 // RunGame starts the main loop and runs the game.
 // game's Update function is called every tick to update the game logic.
 // game's Draw function is called every frame to draw the screen.
@@ -184,9 +192,12 @@ func (i *imageDumperGame) Layout(outsideWidth, outsideHeight int) (screenWidth, 
 // This is not related to framerate (display's refresh rate).
 //
 // RunGame returns error when 1) an error happens in the underlying graphics driver, 2) an audio error happens
-// or 3) f returns an error. In the case of 3), RunGame returns the same error so far, but it is recommended to
+// or 3) Update returns an error. In the case of 3), RunGame returns the same error so far, but it is recommended to
 // use errors.Is when you check the returned error is the error you want, rather than comparing the values
 // with == or != directly.
+//
+// If you want to terminate a game on desktops, it is recommended to return Termination at Update, which will halt
+// execution without returning an error value from RunGame.
 //
 // The size unit is device-independent pixel.
 //
@@ -199,9 +210,10 @@ func RunGame(game Game) error {
 		game: game,
 	})
 	if err := ui.Get().Run(g); err != nil {
-		if err == ui.RegularTermination {
+		if errors.Is(err, Termination) {
 			return nil
 		}
+
 		return err
 	}
 	return nil
@@ -213,7 +225,7 @@ func isRunGameEnded() bool {
 
 // ScreenSizeInFullscreen returns the size in device-independent pixels when the game is fullscreen.
 // The adopted monitor is the 'current' monitor which the window belongs to.
-// The returned value can be given to Run or SetSize function if the perfectly fit fullscreen is needed.
+// The returned value can be given to SetSize function if the perfectly fit fullscreen is needed.
 //
 // On browsers, ScreenSizeInFullscreen returns the 'window' (global object) size, not 'screen' size.
 // ScreenSizeInFullscreen's returning value is different from the actual screen size and this is a known issue (#2145).
@@ -225,8 +237,8 @@ func isRunGameEnded() bool {
 // the Game interface's Layout function instead. If you are making a not-fullscreen application but the application's
 // behavior depends on the monitor size, ScreenSizeInFullscreen is useful.
 //
-// ScreenSizeInFullscreen must be called on the main thread before ebiten.Run, and is concurrent-safe after
-// ebiten.Run.
+// ScreenSizeInFullscreen must be called on the main thread before ebiten.RunGame, and is concurrent-safe after
+// ebiten.RunGame.
 func ScreenSizeInFullscreen() (int, int) {
 	return ui.Get().ScreenSizeInFullscreen()
 }

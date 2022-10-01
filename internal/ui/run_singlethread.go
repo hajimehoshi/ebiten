@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !ios && !js && !ebitenginecbackend && !ebitencbackend && (ebitenginesinglethread || ebitensinglethread)
+//go:build !android && !ios && !js && !nintendosdk && (ebitenginesinglethread || ebitensinglethread)
 // +build !android
 // +build !ios
 // +build !js
-// +build !ebitenginecbackend
-// +build !ebitencbackend
+// +build !nintendosdk
 // +build ebitenginesinglethread ebitensinglethread
 
 package ui

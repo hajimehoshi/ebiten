@@ -19,7 +19,6 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -34,20 +33,17 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text"
 )
 
 var (
-	gophersImage       *ebiten.Image
-	mplusFont          font.Face
-	regularTermination = errors.New("regular termination")
+	gophersImage *ebiten.Image
+	mplusFont    font.Face
 )
 
 func init() {
 	// Decode an image from the image file's byte slice.
-	// Now the byte slice is generated with //go:generate for Go 1.15 or older.
-	// If you use Go 1.16 or newer, it is strongly recommended to use //go:embed to embed the image file.
-	// See https://pkg.go.dev/embed for more details.
 	img, _, err := image.Decode(bytes.NewReader(images.Gophers_jpg))
 	if err != nil {
 		log.Fatal(err)
@@ -79,11 +75,13 @@ type Game struct {
 func (g *Game) Update() error {
 	g.count++
 
-	if runtime.GOOS == "js" && ebiten.IsKeyPressed(ebiten.KeyF) {
-		ebiten.SetFullscreen(true)
+	if runtime.GOOS == "js" {
+		if ebiten.IsKeyPressed(ebiten.KeyF) || len(inpututil.AppendJustPressedTouchIDs(nil)) > 0 {
+			ebiten.SetFullscreen(true)
+		}
 	}
 	if runtime.GOOS != "js" && ebiten.IsKeyPressed(ebiten.KeyQ) {
-		return regularTermination
+		return ebiten.Termination
 	}
 	return nil
 }
@@ -105,7 +103,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	fw, fh := ebiten.ScreenSizeInFullscreen()
 	msg := "This is an example of the finest fullscreen.\n"
 	if runtime.GOOS == "js" {
-		msg += "Press F to enter fullscreen (again).\n"
+		msg += "Press F or touch the screen to enter fullscreen (again).\n"
 	} else {
 		msg += "Press Q to quit.\n"
 	}
@@ -126,8 +124,8 @@ func main() {
 	initFont()
 
 	ebiten.SetFullscreen(true)
-	ebiten.SetWindowTitle("Fullscreen (Ebiten Demo)")
-	if err := ebiten.RunGame(&Game{}); err != nil && !errors.Is(err, regularTermination) {
+	ebiten.SetWindowTitle("Fullscreen (Ebitengine Demo)")
+	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
 }

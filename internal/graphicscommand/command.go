@@ -65,17 +65,7 @@ type commandQueue struct {
 
 	// vertices represents a vertices data in OpenGL's array buffer.
 	vertices []float32
-
-	// nvertices represents the current length of vertices.
-	// nvertices must <= len(vertices).
-	// vertices is never shrunk since re-extending a vertices buffer is heavy.
-	//
-	// TODO: This is a number of float32 values, not a number of vertices.
-	// Rename or fix the program.
-	nvertices int
-
 	indices  []uint16
-	nindices int
 
 	tmpNumVertexFloats int
 	tmpNumIndices      int
@@ -86,28 +76,15 @@ type commandQueue struct {
 // theCommandQueue is the command queue for the current process.
 var theCommandQueue = &commandQueue{}
 
-// appendVertices appends vertices to the queue.
-func (q *commandQueue) appendVertices(vertices []float32, src *Image) {
-	if len(q.vertices) < q.nvertices+len(vertices) {
-		n := q.nvertices + len(vertices) - len(q.vertices)
-		q.vertices = append(q.vertices, make([]float32, n)...)
-	}
-	copy(q.vertices[q.nvertices:], vertices)
-	q.nvertices += len(vertices)
-}
-
 func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
-	if len(q.indices) < q.nindices+len(indices) {
-		n := q.nindices + len(indices) - len(q.indices)
-		q.indices = append(q.indices, make([]uint16, n)...)
-	}
+	n := len(q.indices)
+	q.indices = append(q.indices, indices...)
 	for i := range indices {
-		q.indices[q.nindices+i] = indices[i] + offset
+		q.indices[n+i] += offset
 	}
-	q.nindices += len(indices)
 }
 
-// mustUseDifferentVertexBuffer reports whether a differnt vertex buffer must be used.
+// mustUseDifferentVertexBuffer reports whether a different vertex buffer must be used.
 func mustUseDifferentVertexBuffer(nextNumVertexFloats, nextNumIndices int) bool {
 	return nextNumVertexFloats > graphics.IndicesCount*graphics.VertexFloatCount || nextNumIndices > graphics.IndicesCount
 }
@@ -127,7 +104,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 
 	// Assume that all the image sizes are same.
 	// Assume that the images are packed from the front in the slice srcs.
-	q.appendVertices(vertices, srcs[0])
+	q.vertices = append(q.vertices, vertices...)
 	q.appendIndices(indices, uint16(q.tmpNumVertexFloats/graphics.VertexFloatCount))
 	q.tmpNumVertexFloats += len(vertices)
 	q.tmpNumIndices += len(indices)
@@ -174,7 +151,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 }
 
 func (q *commandQueue) lastVertices(n int) []float32 {
-	return q.vertices[q.nvertices-n : q.nvertices]
+	return q.vertices[len(q.vertices)-n : len(q.vertices)]
 }
 
 // Enqueue enqueues a drawing command other than a draw-triangles command.
@@ -264,8 +241,8 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
 		q.commands[i] = nil
 	}
 	q.commands = q.commands[:0]
-	q.nvertices = 0
-	q.nindices = 0
+	q.vertices = q.vertices[:0]
+	q.indices = q.indices[:0]
 	q.tmpNumVertexFloats = 0
 	q.tmpNumIndices = 0
 	return nil
@@ -345,8 +322,6 @@ func (c *drawTrianglesCommand) String() string {
 		filter = "nearest"
 	case graphicsdriver.FilterLinear:
 		filter = "linear"
-	case graphicsdriver.FilterScreen:
-		filter = "screen"
 	default:
 		panic(fmt.Sprintf("graphicscommand: invalid filter: %d", c.filter))
 	}
@@ -512,42 +487,46 @@ func mightOverlapDstRegions(vertices1, vertices2 []float32) bool {
 	return minX1 < maxX2+mergin && minX2 < maxX1+mergin && minY1 < maxY2+mergin && minY2 < maxY1+mergin
 }
 
-// replacePixelsCommand represents a command to replace pixels of an image.
-type replacePixelsCommand struct {
+// writePixelsCommand represents a command to replace pixels of an image.
+type writePixelsCommand struct {
 	dst  *Image
-	args []*graphicsdriver.ReplacePixelsArgs
+	args []*graphicsdriver.WritePixelsArgs
 }
 
-func (c *replacePixelsCommand) String() string {
-	return fmt.Sprintf("replace-pixels: dst: %d, len(args): %d", c.dst.id, len(c.args))
+func (c *writePixelsCommand) String() string {
+	return fmt.Sprintf("write-pixels: dst: %d, len(args): %d", c.dst.id, len(c.args))
 }
 
-// Exec executes the replacePixelsCommand.
-func (c *replacePixelsCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
+// Exec executes the writePixelsCommand.
+func (c *writePixelsCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
 	if len(c.args) == 0 {
 		return nil
 	}
-	if err := c.dst.image.ReplacePixels(c.args); err != nil {
+	if err := c.dst.image.WritePixels(c.args); err != nil {
 		return err
 	}
 	return nil
 }
 
-type pixelsCommand struct {
+type readPixelsCommand struct {
 	result []byte
 	img    *Image
+	x      int
+	y      int
+	width  int
+	height int
 }
 
-// Exec executes a pixelsCommand.
-func (c *pixelsCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
-	if err := c.img.image.ReadPixels(c.result); err != nil {
+// Exec executes a readPixelsCommand.
+func (c *readPixelsCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
+	if err := c.img.image.ReadPixels(c.result, c.x, c.y, c.width, c.height); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *pixelsCommand) String() string {
-	return fmt.Sprintf("pixels: image: %d", c.img.id)
+func (c *readPixelsCommand) String() string {
+	return fmt.Sprintf("read-pixels: image: %d", c.img.id)
 }
 
 // disposeImageCommand represents a command to dispose an image.
@@ -620,6 +599,20 @@ func (c *newShaderCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOff
 		return err
 	}
 	c.result.shader = s
+	return nil
+}
+
+type isInvalidatedCommand struct {
+	result bool
+	image  *Image
+}
+
+func (c *isInvalidatedCommand) String() string {
+	return fmt.Sprintf("is-invalidated: image: %d", c.image.id)
+}
+
+func (c *isInvalidatedCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
+	c.result = c.image.image.IsInvalidated()
 	return nil
 }
 

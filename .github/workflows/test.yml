@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        go: ['1.15.x', '1.16.x', '1.17.x', '1.18.x', '1.19.0-rc.2']
+        go: ['1.16.x', '1.17.x', '1.18.x', '1.19.x']
     name: Test with Go ${{ matrix.go }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
@@ -29,6 +29,7 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: ${{ matrix.go }}
+          cache: true
 
       - name: Setup JDK
         uses: actions/setup-java@v2
@@ -49,11 +50,11 @@ jobs:
           cd /tmp/wasmbrowsertest
           go mod init foo
           go get github.com/agnivade/wasmbrowsertest
-          go build -o wasmbrowsertest github.com/agnivade/wasmbrowsertest
-          mv ./wasmbrowsertest $(go env GOPATH)/bin/go_js_wasm_exec
+          go build -o wasmbrowsertest${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }} github.com/agnivade/wasmbrowsertest
+          mv ./wasmbrowsertest${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }} $(go env GOPATH)/bin/go_js_wasm_exec${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }}
 
       - name: Prepare ebitenmobile test
-        if: ${{ !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') }}
+        if: ${{ !startsWith(matrix.go, '1.16.') }}
         run: |
           local_ebiten=$(pwd)
           cd /tmp
@@ -72,10 +73,10 @@ jobs:
         run: |
           go vet -tags=example -v ./...
 
-      - name: go vet (atomic align)
+      - name: go vet (vettool)
         run: |
-          go install .github/workflows/vettools/atomicalign.go
-          go vet -vettool=$(which atomicalign)${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }} -tags=example -v ./...
+          (cd .github/workflows/vettools; go install .)
+          go vet -vettool=$(which vettools)${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }} -tags=example -v ./...
 
       - name: go build
         run: |
@@ -85,11 +86,17 @@ jobs:
           # See also https://go.googlesource.com/vscode-go/+/HEAD/docs/debugging.md#launch and the issue #2120.
           go build -tags=example "-gcflags=all=-N -l" -v ./...
           env GOOS=js GOARCH=wasm go build -tags=example -v ./...
-          env GOOS=windows GOARCH=amd64 go build -tags=example -v ./...
           env GOOS=windows GOARCH=386 go build -tags=example -v ./...
+          env GOOS=windows GOARCH=amd64 go build -tags=example -v ./...
+          env GOOS=windows GOARCH=arm go build -tags=example -v ./...
+
+      - name: go build (Windows ARM64)
+        if: ${{ !startsWith(matrix.go, '1.16.') }}
+        run: |
+          env GOOS=windows GOARCH=arm64 go build -tags=example -v ./...
 
       - name: go build (macOS)
-        if: ${{ startsWith(matrix.os, 'macos-') && !startsWith(matrix.go, '1.15.') }}
+        if: ${{ startsWith(matrix.os, 'macos-') }}
         run: |
           env CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -tags=example -v ./...
           env CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -tags=example -o flappy_amd64 -v ./examples/flappy
@@ -98,17 +105,34 @@ jobs:
           file flappy
           rm flappy
 
-      - name: go build (cbackend)
-        if: ${{ !startsWith(matrix.os, 'windows-') }}
+      - name: go build (NintendoSDK)
+        if: ${{ startsWith(matrix.os, 'ubuntu-') }}
         run: |
-          go build -tags=example,ebitenginecbackend -v ./...
+          go build -tags=example,nintendosdk -v ./...
           go build -tags=example,ebitencbackend -v ./... # For backward compatibility. Remove this in the future (#2190).
+
+      - name: go mod vendor
+        run: |
+          mkdir /tmp/vendoring
+          cd /tmp/vendoring
+          go mod init foo
+          # TODO: Is there a way to create a complete list of Ebitengine sub-packages?
+          echo 'package main' > main.go
+          echo 'import (' >> main.go
+          echo '  _ "github.com/hajimehoshi/ebiten/v2"' >> main.go
+          echo '  _ "github.com/hajimehoshi/ebiten/v2/audio"' >> main.go
+          echo ')' >> main.go
+          echo 'func main() {}' >> main.go
+          go mod edit -replace github.com/hajimehoshi/ebiten/v2=$GITHUB_WORKSPACE
+          go mod tidy
+          go mod vendor
+          go build -v .
 
       - name: go test
         # TODO: Add more test environments (#1305)
         if: ${{ startsWith(matrix.os, 'ubuntu-') || startsWith(matrix.os, 'windows-') }}
         run: |
-          go test -tags=example ${{ !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
+          go test -tags=example ${{ !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
 
       - name: go test (Linux 386)
         if: ${{ startsWith(matrix.os, 'ubuntu-') }}
@@ -117,34 +141,36 @@ jobs:
           sudo apt-get update
           sudo apt-get install gcc-multilib
           sudo apt-get install libasound2-dev:i386 libgl1-mesa-dev:i386 libxcursor-dev:i386 libxi-dev:i386 libxinerama-dev:i386 libxrandr-dev:i386 libxxf86vm-dev:i386
-          env CGO_ENABLED=1 GOARCH=386 go test -tags=example ${{ !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
+          env CGO_ENABLED=1 GOARCH=386 go test -tags=example ${{ !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
+
+      - name: go test (Linux OpenGL ES)
+        if: ${{ startsWith(matrix.os, 'ubuntu-') }}
+        run: |
+          sudo apt-get install libgles2-mesa-dev
+          env EBITENGINE_GRAPHICS_LIBRARY=opengl go test -tags=example,opengles ${{ !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
 
       - name: go test (Windows 386)
         if: ${{ startsWith(matrix.os, 'windows-') }}
         run: |
-          # TODO: Enable this after DirectX is supported on 32bit machines (#2088)
-          # env GOARCH=386 go test -tags=example ${{ !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
+          env GOARCH=386 go test -tags=example ${{ !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
 
       - name: go test (Wasm)
-        # TODO: Investigate times out on Windows. (#1313)
-        if: ${{ !startsWith(matrix.os, 'windows-') && !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') }}
         run: |
-          # TODO: Add -shuffle=on after agnivade/wasmbrowsertest#23 is fixed.
-          env GOOS=js GOARCH=wasm go test -tags=example -v ./...
-          env GOOS=js GOARCH=wasm go test -tags=example,ebitenginewebgl1 -v ./...
+          env GOOS=js GOARCH=wasm go test -tags=example ${{ !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
+          env GOOS=js GOARCH=wasm EBITENGINE_OPENGL=webgl1 go test -tags=example ${{ !startsWith(matrix.go, '1.16.') && '-shuffle=on' || '' }} -v ./...
 
       - name: Install ebitenmobile
         run: |
           go install ./cmd/ebitenmobile
 
       - name: ebitenmobile bind (Android)
-        if: ${{ !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') }}
+        if: ${{ !startsWith(matrix.go, '1.16.') }}
         run: |
           cd /tmp/go-inovation
-          ebitenmobile bind -target android -javapkg com.hajimehoshi.goinovation -o inovation.aar -v github.com/hajimehoshi/go-inovation/mobile
+          ebitenmobile bind -target android -androidapi 19 -javapkg com.hajimehoshi.goinovation -o inovation.aar -v github.com/hajimehoshi/go-inovation/mobile
 
       - name: ebitenmobile bind (iOS)
-        if: ${{ startsWith(matrix.os, 'macos-') && !startsWith(matrix.go, '1.15.') && !startsWith(matrix.go, '1.16.') }}
+        if: ${{ startsWith(matrix.os, 'macos-') && !startsWith(matrix.go, '1.16.') }}
         run: |
           cd /tmp/go-inovation
           ebitenmobile bind -target ios -o Inovation.xcframework -v github.com/hajimehoshi/go-inovation/mobile

@@ -18,11 +18,12 @@ import (
 	"encoding/hex"
 	"syscall/js"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
 var (
 	object = js.Global().Get("Object")
-	go2cpp = js.Global().Get("go2cpp")
 )
 
 type nativeGamepadsImpl struct {
@@ -38,7 +39,7 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
 }
 
 func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
-	// TODO: Use the gamepad events instead of navigator.getGamepads after go2cpp is removed.
+	// TODO: Use the gamepad events instead of navigator.getGamepads.
 
 	defer func() {
 		for k := range g.indices {
@@ -112,11 +113,21 @@ type nativeGamepadImpl struct {
 }
 
 func (g *nativeGamepadImpl) hasOwnStandardLayoutMapping() bool {
-	// With go2cpp, the controller must have the standard
-	if go2cpp.Truthy() {
-		return true
-	}
 	return g.mapping == "standard"
+}
+
+func (g *nativeGamepadImpl) isStandardAxisAvailableInOwnMapping(axis gamepaddb.StandardAxis) bool {
+	if !g.hasOwnStandardLayoutMapping() {
+		return false
+	}
+	return axis >= 0 && int(axis) < g.axisCount()
+}
+
+func (g *nativeGamepadImpl) isStandardButtonAvailableInOwnMapping(button gamepaddb.StandardButton) bool {
+	if !g.hasOwnStandardLayoutMapping() {
+		return false
+	}
+	return button >= 0 && int(button) < g.buttonCount()
 }
 
 func (g *nativeGamepadImpl) update(gamepads *gamepads) error {
@@ -164,7 +175,7 @@ func (g *nativeGamepadImpl) hatState(hat int) int {
 }
 
 func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
-	// vibrationActuator is avaialble on Chrome.
+	// vibrationActuator is available on Chrome.
 	if va := g.value.Get("vibrationActuator"); va.Truthy() {
 		if !va.Get("playEffect").Truthy() {
 			return

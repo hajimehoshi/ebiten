@@ -171,7 +171,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		g.pixels = make([]byte, screenWidth*screenHeight*4)
 	}
 	g.world.Draw(g.pixels)
-	screen.ReplacePixels(g.pixels)
+	screen.WritePixels(g.pixels)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -184,7 +184,7 @@ func main() {
 	}
 
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
-	ebiten.SetWindowTitle("Game of Life (Ebiten Demo)")
+	ebiten.SetWindowTitle("Game of Life (Ebitengine Demo)")
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}

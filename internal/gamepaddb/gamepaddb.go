@@ -18,19 +18,22 @@
 //
 //     curl --location --remote-name https://raw.githubusercontent.com/gabomdq/SDL_GameControllerDB/master/gamecontrollerdb.txt
 
-//go:generate go run github.com/hajimehoshi/file2byteslice/cmd/file2byteslice -package gamepaddb -input=./gamecontrollerdb.txt -output=./gamecontrollerdb.txt.go -var=gamecontrollerdbTxt
-
 package gamepaddb
 
 import (
 	"bufio"
 	"bytes"
+	_ "embed"
+	"encoding/hex"
 	"fmt"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 )
+
+//go:embed gamecontrollerdb.txt
+var gamecontrollerdb_txt []byte
 
 type platform int
 
@@ -69,7 +72,7 @@ func init() {
 		return
 	}
 
-	if isIOS {
+	if runtime.GOOS == "ios" {
 		currentPlatform = platformIOS
 		return
 	}
@@ -91,7 +94,7 @@ var additionalGLFWGamepads = []byte(`
 `)
 
 func init() {
-	if err := Update(gamecontrollerdbTxt); err != nil {
+	if err := Update(gamecontrollerdb_txt); err != nil {
 		panic(err)
 	}
 	if err := Update(additionalGLFWGamepads); err != nil {
@@ -225,14 +228,30 @@ func parseMappingElement(str string) (*mapping, error) {
 
 		if str[0] == '+' {
 			numstr = str[2:]
+			// Only use the positive half, i.e. 0..1.
 			min = 0
 		} else if str[0] == '-' {
 			numstr = str[2:]
-			max = 0
+			// Only use the negative half, i.e. -1..0,
+			// but invert the sense so 0 does not "press" buttons.
+			//
+			// In other words, this is the same as '+' but with the input axis
+			// value reversed.
+			//
+			// See SDL's source:
+			// https://github.com/libsdl-org/SDL/blob/f398d8a42422c049d77c744658f1cd2bb011ed4a/src/joystick/SDL_gamecontroller.c#L960
+			min, max = 0, min
 		}
 
+		// Map min..max to -1..+1.
+		//
+		// See SDL's source:
+		// https://github.com/libsdl-org/SDL/blob/f398d8a42422c049d77c744658f1cd2bb011ed4a/src/joystick/SDL_gamecontroller.c#L276
+		// then simplify assuming output range -1..+1.
+		//
+		// Yields:
 		scale := 2 / (max - min)
-		offset := -(max + min)
+		offset := -(max + min) / (max - min)
 		if tilda {
 			scale = -scale
 			offset = -offset
@@ -344,11 +363,8 @@ func buttonMappings(id string) map[StandardButton]*mapping {
 		return m
 	}
 	if currentPlatform == platformAndroid {
-		// If the gamepad is not an HID API, use the default mapping on Android.
-		if id[14] != 'h' {
-			if addAndroidDefaultMappings(id) {
-				return gamepadButtonMappings[id]
-			}
+		if addAndroidDefaultMappings(id) {
+			return gamepadButtonMappings[id]
 		}
 	}
 	return nil
@@ -359,11 +375,8 @@ func axisMappings(id string) map[StandardAxis]*mapping {
 		return m
 	}
 	if currentPlatform == platformAndroid {
-		// If the gamepad is not an HID API, use the default mapping on Android.
-		if id[14] != 'h' {
-			if addAndroidDefaultMappings(id) {
-				return gamepadAxisMappings[id]
-			}
+		if addAndroidDefaultMappings(id) {
+			return gamepadAxisMappings[id]
 		}
 	}
 	return nil
@@ -387,6 +400,23 @@ func Name(id string) string {
 	defer mappingsM.RUnlock()
 
 	return gamepadNames[id]
+}
+
+func HasStandardAxis(id string, axis StandardAxis) bool {
+	mappingsM.RLock()
+	defer mappingsM.RUnlock()
+
+	mappings := axisMappings(id)
+	if mappings == nil {
+		return false
+	}
+
+	mapping := mappings[axis]
+	if mapping == nil {
+		return false
+	}
+
+	return true
 }
 
 func AxisValue(id string, axis StandardAxis, state GamepadState) float64 {
@@ -427,6 +457,23 @@ func AxisValue(id string, axis StandardAxis, state GamepadState) float64 {
 	}
 
 	return 0
+}
+
+func HasStandardButton(id string, button StandardButton) bool {
+	mappingsM.RLock()
+	defer mappingsM.RUnlock()
+
+	mappings := buttonMappings(id)
+	if mappings == nil {
+		return false
+	}
+
+	mapping := mappings[button]
+	if mapping == nil {
+		return false
+	}
+
+	return true
 }
 
 func ButtonValue(id string, button StandardButton, state GamepadState) float64 {
@@ -552,35 +599,6 @@ func Update(mappingData []byte) error {
 }
 
 func addAndroidDefaultMappings(id string) bool {
-	// See https://github.com/libsdl-org/SDL/blob/120c76c84bbce4c1bfed4e9eb74e10678bd83120/include/SDL_gamecontroller.h#L655-L680
-	const (
-		SDLControllerButtonA             = 0
-		SDLControllerButtonB             = 1
-		SDLControllerButtonX             = 2
-		SDLControllerButtonY             = 3
-		SDLControllerButtonBack          = 4
-		SDLControllerButtonGuide         = 5
-		SDLControllerButtonStart         = 6
-		SDLControllerButtonLeftStick     = 7
-		SDLControllerButtonRightStick    = 8
-		SDLControllerButtonLeftShoulder  = 9
-		SDLControllerButtonRightShoulder = 10
-		SDLControllerButtonDpadUp        = 11
-		SDLControllerButtonDpadDown      = 12
-		SDLControllerButtonDpadLeft      = 13
-		SDLControllerButtonDpadRight     = 14
-	)
-
-	// See https://github.com/libsdl-org/SDL/blob/120c76c84bbce4c1bfed4e9eb74e10678bd83120/include/SDL_gamecontroller.h#L550-L560
-	const (
-		SDLControllerAxisLeftX        = 0
-		SDLControllerAxisLeftY        = 1
-		SDLControllerAxisRightX       = 2
-		SDLControllerAxisRightY       = 3
-		SDLControllerAxisTriggerLeft  = 4
-		SDLControllerAxisTriggerRight = 5
-	)
-
 	// See https://github.com/libsdl-org/SDL/blob/120c76c84bbce4c1bfed4e9eb74e10678bd83120/src/joystick/SDL_gamecontroller.c#L468-L568
 
 	const faceButtonMask = ((1 << SDLControllerButtonA) |
@@ -588,8 +606,12 @@ func addAndroidDefaultMappings(id string) bool {
 		(1 << SDLControllerButtonX) |
 		(1 << SDLControllerButtonY))
 
-	buttonMask := uint16(id[12]) | (uint16(id[13]) << 8)
-	axisMask := uint16(id[14]) | (uint16(id[15]) << 8)
+	idBytes, err := hex.DecodeString(id)
+	if err != nil {
+		return false
+	}
+	buttonMask := uint16(idBytes[12]) | (uint16(idBytes[13]) << 8)
+	axisMask := uint16(idBytes[14]) | (uint16(idBytes[15]) << 8)
 	if buttonMask == 0 && axisMask == 0 {
 		return false
 	}
@@ -599,6 +621,8 @@ func addAndroidDefaultMappings(id string) bool {
 
 	gamepadButtonMappings[id] = map[StandardButton]*mapping{}
 	gamepadAxisMappings[id] = map[StandardAxis]*mapping{}
+
+	// For mappings, see mobile/ebitenmobileview/input_android.go.
 
 	if buttonMask&(1<<SDLControllerButtonA) != 0 {
 		gamepadButtonMappings[id][StandardButtonRightBottom] = &mapping{
@@ -675,6 +699,7 @@ func addAndroidDefaultMappings(id string) bool {
 			Index: SDLControllerButtonRightShoulder,
 		}
 	}
+
 	if buttonMask&(1<<SDLControllerButtonDpadUp) != 0 {
 		gamepadButtonMappings[id][StandardButtonLeftTop] = &mapping{
 			Type:  mappingTypeButton,

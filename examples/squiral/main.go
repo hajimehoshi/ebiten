@@ -353,7 +353,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func main() {
 	ebiten.SetTPS(250)
 	ebiten.SetWindowSize(width*scale, height*scale)
-	ebiten.SetWindowTitle("Squirals (Ebiten Demo)")
+	ebiten.SetWindowTitle("Squirals (Ebitengine Demo)")
 	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}

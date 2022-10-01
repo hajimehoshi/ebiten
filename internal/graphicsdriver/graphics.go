@@ -36,7 +36,7 @@ const (
 type ColorM interface {
 	IsIdentity() bool
 	At(i, j int) float32
-	Elements(body *[16]float32, translate *[4]float32)
+	Elements(body []float32, translate []float32)
 }
 
 type Graphics interface {
@@ -69,13 +69,13 @@ type Image interface {
 	ID() ImageID
 	Dispose()
 	IsInvalidated() bool
-	ReadPixels(buf []byte) error
-	ReplacePixels(args []*ReplacePixelsArgs) error
+	ReadPixels(buf []byte, x, y, width, height int) error
+	WritePixels(args []*WritePixelsArgs) error
 }
 
 type ImageID int
 
-type ReplacePixelsArgs struct {
+type WritePixelsArgs struct {
 	Pixels []byte
 	X      int
 	Y      int

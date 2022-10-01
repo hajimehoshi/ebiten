@@ -136,7 +136,7 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 	}
 	defer func() {
 		if ferr != nil {
-			window.Destroy()
+			_ = window.Destroy()
 		}
 	}()
 	_glfw.windows = append(_glfw.windows, window)
@@ -144,29 +144,6 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 	// Open the actual window and create its context
 	if err := window.platformCreateWindow(&wndconfig, &ctxconfig, &fbconfig); err != nil {
 		return nil, err
-	}
-
-	if ctxconfig.client != NoAPI {
-		if err := window.refreshContextAttribs(&ctxconfig); err != nil {
-			return nil, err
-		}
-	}
-
-	if window.monitor != nil {
-		if wndconfig.centerCursor {
-			if err := window.centerCursorInContentArea(); err != nil {
-				return nil, err
-			}
-		}
-	} else {
-		if wndconfig.visible {
-			window.platformShowWindow()
-			if wndconfig.focused {
-				if err := window.platformFocusWindow(); err != nil {
-					return nil, err
-				}
-			}
-		}
 	}
 
 	return window, nil
@@ -336,7 +313,10 @@ func (w *Window) Destroy() error {
 		}
 	}
 
-	w.platformDestroyWindow()
+	if err := w.platformDestroyWindow(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -443,6 +423,11 @@ func (w *Window) SetSizeLimits(minwidth, minheight, maxwidth, maxheight int) err
 	if err := w.platformSetWindowSizeLimits(minwidth, minheight, maxwidth, maxheight); err != nil {
 		return err
 	}
+
+	if err := w.updateWindowStyles(); err != nil {
+		return err
+	}
+
 	return nil
 }
 

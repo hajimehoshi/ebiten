@@ -21,20 +21,16 @@ package ca
 
 import (
 	"errors"
+	"fmt"
+	"runtime"
 	"unsafe"
 
+	"github.com/ebitengine/purego"
+	"github.com/ebitengine/purego/objc"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
-
-// Suppress the warnings about availability guard with -Wno-unguarded-availability-new.
-// It is because old Xcode (8 or older?) does not accept @available syntax.
-
-// #cgo CFLAGS: -Wno-unguarded-availability-new
-// #cgo !ios CFLAGS: -mmacosx-version-min=10.12
-// #cgo LDFLAGS: -framework QuartzCore -framework Foundation -framework CoreGraphics
-//
-// #include "ca_darwin.h"
-import "C"
 
 // Layer is an object that manages image-based content and
 // allows you to perform animations on that content.
@@ -49,40 +45,51 @@ type Layer interface {
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer.
 type MetalLayer struct {
-	metalLayer unsafe.Pointer
+	metalLayer objc.ID
 }
+
+var (
+	coreGraphics                = purego.Dlopen("/System/Library/Frameworks/CoreGraphics.framework/Versions/Current/CoreGraphics", purego.RTLD_GLOBAL)
+	_CGColorSpaceCreateWithName = purego.Dlsym(coreGraphics, "CGColorSpaceCreateWithName")
+	_CGColorSpaceRelease        = purego.Dlsym(coreGraphics, "CGColorSpaceRelease")
+	kCGColorSpaceDisplayP3      = purego.Dlsym(coreGraphics, "kCGColorSpaceDisplayP3")
+)
 
 // MakeMetalLayer creates a new Core Animation Metal layer.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer.
 func MakeMetalLayer() MetalLayer {
-	return MetalLayer{C.MakeMetalLayer()}
+	layer := objc.ID(objc.GetClass("CAMetalLayer")).Send(objc.RegisterName("new"))
+	if runtime.GOOS != "ios" {
+		colorspace, _, _ := purego.SyscallN(_CGColorSpaceCreateWithName, **(**uintptr)(unsafe.Pointer(&kCGColorSpaceDisplayP3))) // Dlsym returns pointer to symbol so dereference it
+		layer.Send(objc.RegisterName("setColorspace:"), colorspace)
+		purego.SyscallN(_CGColorSpaceRelease, colorspace)
+	}
+	return MetalLayer{layer}
 }
 
 // Layer implements the Layer interface.
-func (ml MetalLayer) Layer() unsafe.Pointer { return ml.metalLayer }
+func (ml MetalLayer) Layer() unsafe.Pointer {
+	return *(*unsafe.Pointer)(unsafe.Pointer(&ml.metalLayer))
+}
 
 // PixelFormat returns the pixel format of textures for rendering layer content.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478155-pixelformat.
 func (ml MetalLayer) PixelFormat() mtl.PixelFormat {
-	return mtl.PixelFormat(C.MetalLayer_PixelFormat(ml.metalLayer))
+	return mtl.PixelFormat(ml.metalLayer.Send(objc.RegisterName("pixelFormat")))
 }
 
 // SetDevice sets the Metal device responsible for the layer's drawable resources.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478163-device.
 func (ml MetalLayer) SetDevice(device mtl.Device) {
-	C.MetalLayer_SetDevice(ml.metalLayer, device.Device())
+	ml.metalLayer.Send(objc.RegisterName("setDevice:"), uintptr(device.Device()))
 }
 
 // SetOpaque a Boolean value indicating whether the layer contains completely opaque content.
 func (ml MetalLayer) SetOpaque(opaque bool) {
-	if opaque {
-		C.MetalLayer_SetOpaque(ml.metalLayer, 1)
-	} else {
-		C.MetalLayer_SetOpaque(ml.metalLayer, 0)
-	}
+	ml.metalLayer.Send(objc.RegisterName("setOpaque:"), opaque)
 }
 
 // SetPixelFormat controls the pixel format of textures for rendering layer content.
@@ -93,10 +100,12 @@ func (ml MetalLayer) SetOpaque(opaque bool) {
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478155-pixelformat.
 func (ml MetalLayer) SetPixelFormat(pf mtl.PixelFormat) {
-	e := C.MetalLayer_SetPixelFormat(ml.metalLayer, C.uint16_t(pf))
-	if e != nil {
-		panic(errors.New(C.GoString(e)))
+	switch pf {
+	case mtl.PixelFormatRGBA8UNorm, mtl.PixelFormatRGBA8UNormSRGB, mtl.PixelFormatBGRA8UNorm, mtl.PixelFormatBGRA8UNormSRGB, mtl.PixelFormatStencil8:
+	default:
+		panic(errors.New(fmt.Sprintf("invalid pixel format %d", pf)))
 	}
+	ml.metalLayer.Send(objc.RegisterName("setPixelFormat:"), uint(pf))
 }
 
 // SetMaximumDrawableCount controls the number of Metal drawables in the resource pool
@@ -106,10 +115,10 @@ func (ml MetalLayer) SetPixelFormat(pf mtl.PixelFormat) {
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/2938720-maximumdrawablecount.
 func (ml MetalLayer) SetMaximumDrawableCount(count int) {
-	e := C.MetalLayer_SetMaximumDrawableCount(ml.metalLayer, C.uint_t(count))
-	if e != nil {
-		panic(errors.New(C.GoString(e)))
+	if count < 2 || count > 3 {
+		panic(errors.New(fmt.Sprintf("failed trying to set maximumDrawableCount to %d outside of the valid range of [2, 3]", count)))
 	}
+	ml.metalLayer.Send(objc.RegisterName("setMaximumDrawableCount:"), count)
 }
 
 // SetDisplaySyncEnabled controls whether the Metal layer and its drawables
@@ -117,30 +126,34 @@ func (ml MetalLayer) SetMaximumDrawableCount(count int) {
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/2887087-displaysyncenabled.
 func (ml MetalLayer) SetDisplaySyncEnabled(enabled bool) {
-	switch enabled {
-	case true:
-		C.MetalLayer_SetDisplaySyncEnabled(ml.metalLayer, 1)
-	case false:
-		C.MetalLayer_SetDisplaySyncEnabled(ml.metalLayer, 0)
+	if runtime.GOOS == "ios" {
+		return
 	}
+	ml.metalLayer.Send(objc.RegisterName("setDisplaySyncEnabled:"), enabled)
 }
 
 // SetDrawableSize sets the size, in pixels, of textures for rendering layer content.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478174-drawablesize.
 func (ml MetalLayer) SetDrawableSize(width, height int) {
-	C.MetalLayer_SetDrawableSize(ml.metalLayer, C.double(width), C.double(height))
+	// TODO: once objc supports calling functions with struct arguments replace this with just a ID.Send call
+	var sel_setDrawableSize = objc.RegisterName("setDrawableSize:")
+	sig := cocoa.NSMethodSignature_instanceMethodSignatureForSelector(objc.ID(objc.GetClass("CAMetalLayer")), sel_setDrawableSize)
+	inv := cocoa.NSInvocation_invocationWithMethodSignature(sig)
+	inv.SetTarget(ml.metalLayer)
+	inv.SetSelector(sel_setDrawableSize)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&cocoa.CGSize{Width: cocoa.CGFloat(width), Height: cocoa.CGFloat(height)}), 2)
+	inv.Invoke()
 }
 
 // NextDrawable returns a Metal drawable.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478172-nextdrawable.
 func (ml MetalLayer) NextDrawable() (MetalDrawable, error) {
-	md := C.MetalLayer_NextDrawable(ml.metalLayer)
-	if md == nil {
+	md := ml.metalLayer.Send(objc.RegisterName("nextDrawable"))
+	if md == 0 {
 		return MetalDrawable{}, errors.New("nextDrawable returned nil")
 	}
-
 	return MetalDrawable{md}, nil
 }
 
@@ -148,52 +161,45 @@ func (ml MetalLayer) NextDrawable() (MetalDrawable, error) {
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478157-presentswithtransaction
 func (ml MetalLayer) PresentsWithTransaction() bool {
-	return C.MetalLayer_PresentsWithTransaction(ml.metalLayer) != 0
+	return ml.metalLayer.Send(objc.RegisterName("presentsWithTransaction")) != 0
 }
 
 // SetPresentsWithTransaction sets a Boolean value that determines whether the layer presents its content using a Core Animation transaction.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478157-presentswithtransaction
 func (ml MetalLayer) SetPresentsWithTransaction(presentsWithTransaction bool) {
-	if presentsWithTransaction {
-		C.MetalLayer_SetPresentsWithTransaction(ml.metalLayer, 1)
-	} else {
-		C.MetalLayer_SetPresentsWithTransaction(ml.metalLayer, 0)
-	}
+	ml.metalLayer.Send(objc.RegisterName("setPresentsWithTransaction:"), presentsWithTransaction)
 }
 
 // SetFramebufferOnly sets a Boolean value that determines whether the layer’s textures are used only for rendering.
 //
 // https://developer.apple.com/documentation/quartzcore/cametallayer/1478168-framebufferonly
 func (ml MetalLayer) SetFramebufferOnly(framebufferOnly bool) {
-	switch framebufferOnly {
-	case true:
-		C.MetalLayer_SetFramebufferOnly(ml.metalLayer, 1)
-	case false:
-		C.MetalLayer_SetFramebufferOnly(ml.metalLayer, 0)
-	}
+	ml.metalLayer.Send(objc.RegisterName("setFramebufferOnly:"), framebufferOnly)
 }
 
 // MetalDrawable is a displayable resource that can be rendered or written to by Metal.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametaldrawable.
 type MetalDrawable struct {
-	metalDrawable unsafe.Pointer
+	metalDrawable objc.ID
 }
 
 // Drawable implements the mtl.Drawable interface.
-func (md MetalDrawable) Drawable() unsafe.Pointer { return md.metalDrawable }
+func (md MetalDrawable) Drawable() unsafe.Pointer {
+	return *(*unsafe.Pointer)(unsafe.Pointer(&md.metalDrawable))
+}
 
 // Texture returns a Metal texture object representing the drawable object's content.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametaldrawable/1478159-texture.
 func (md MetalDrawable) Texture() mtl.Texture {
-	return mtl.NewTexture(C.MetalDrawable_Texture(md.metalDrawable))
+	return mtl.NewTexture(md.metalDrawable.Send(objc.RegisterName("texture")))
 }
 
 // Present presents the drawable onscreen as soon as possible.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtldrawable/1470284-present.
 func (md MetalDrawable) Present() {
-	C.MetalDrawable_Present(md.metalDrawable)
+	md.metalDrawable.Send(objc.RegisterName("present"))
 }

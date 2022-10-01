@@ -30,6 +30,40 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
+const screenShader = `package main
+
+var Scale vec2
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	sourceSize := imageSrcTextureSize()
+	// texelSize is one pixel size in texel sizes.
+	texelSize := 1 / sourceSize
+	halfScaledTexelSize := texelSize / 2 / Scale
+
+	// Shift 1/512 [texel] to avoid the tie-breaking issue.
+	// As all the vertex positions are aligned to 1/16 [pixel], this shiting should work in most cases.
+	pos := texCoord
+	p0 := pos - halfScaledTexelSize + (texelSize / 512)
+	p1 := pos + halfScaledTexelSize + (texelSize / 512)
+
+	// Texels must be in the source rect, so it is not necessary to check.
+	c0 := imageSrc0UnsafeAt(p0)
+	c1 := imageSrc0UnsafeAt(vec2(p1.x, p0.y))
+	c2 := imageSrc0UnsafeAt(vec2(p0.x, p1.y))
+	c3 := imageSrc0UnsafeAt(p1)
+
+	// p is the p1 value in one pixel assuming that the pixel's upper-left is (0, 0) and the lower-right is (1, 1).
+	p := fract(p1 * sourceSize)
+
+	// rate indicates how much the 4 colors are mixed. rate is in between [0, 1].
+	//
+	//     0 <= p <= 1/Scale: The rate is in between [0, 1]
+	//     1/Scale < p:       Don't care. Adjacent colors (e.g. c0 vs c1 in an X direction) should be the same.
+	rate := clamp(p*Scale, 0, 1)
+	return mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y)
+}
+`
+
 type Game interface {
 	NewOffscreenImage(width, height int) *Image
 	Layout(outsideWidth, outsideHeight int) (int, int)
@@ -49,6 +83,8 @@ type context struct {
 	outsideWidth  float64
 	outsideHeight float64
 
+	screenShader *Shader
+
 	m sync.Mutex
 }
 
@@ -58,12 +94,12 @@ func newContext(game Game) *context {
 	}
 }
 
-func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
+func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *userInterfaceImpl) error {
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
-	return c.updateFrameImpl(graphicsDriver, clock.UpdateFrame(), outsideWidth, outsideHeight, deviceScaleFactor)
+	return c.updateFrameImpl(graphicsDriver, clock.UpdateFrame(), outsideWidth, outsideHeight, deviceScaleFactor, ui)
 }
 
-func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
+func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *userInterfaceImpl) error {
 	n := 1
 	if graphicsDriver.IsDirectX() {
 		// On DirectX, both framebuffers in the swap chain should be updated.
@@ -71,17 +107,20 @@ func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsi
 		n = 2
 	}
 	for i := 0; i < n; i++ {
-		if err := c.updateFrameImpl(graphicsDriver, 1, outsideWidth, outsideHeight, deviceScaleFactor); err != nil {
+		if err := c.updateFrameImpl(graphicsDriver, 1, outsideWidth, outsideHeight, deviceScaleFactor, ui); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64) (err error) {
+func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *userInterfaceImpl) (err error) {
 	if err := theGlobalState.error(); err != nil {
 		return err
 	}
+
+	ui.beginFrame()
+	defer ui.endFrame()
 
 	// The given outside size can be 0 e.g. just after restoring from the fullscreen mode on Windows (#1589)
 	// Just ignore such cases. Otherwise, creating a zero-sized framebuffer causes a panic.
@@ -108,6 +147,15 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		}
 	}()
 
+	// Create a shader for the screen if necessary.
+	if c.screenShader == nil {
+		ir, err := graphics.CompileShader([]byte(screenShader))
+		if err != nil {
+			return err
+		}
+		c.screenShader = NewShader(ir)
+	}
+
 	// ForceUpdate can be invoked even if the context is not initialized yet (#1591).
 	if w, h := c.layoutGame(outsideWidth, outsideHeight, deviceScaleFactor); w == 0 || h == 0 {
 		return nil
@@ -132,7 +180,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		if err := theGlobalState.error(); err != nil {
 			return err
 		}
-		theUI.resetForTick()
+		ui.resetForTick()
 	}
 
 	// Draw the game.
@@ -186,15 +234,16 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 	gty += offsetY
 
 	var filter graphicsdriver.Filter
+	var screenFilter bool
 	switch {
 	case !theGlobalState.isScreenFilterEnabled():
 		filter = graphicsdriver.FilterNearest
 	case math.Floor(s) == s:
 		filter = graphicsdriver.FilterNearest
 	case s > 1:
-		filter = graphicsdriver.FilterScreen
+		screenFilter = true
 	default:
-		// FilterScreen works with >=1 scale, but does not well with <1 scale.
+		// screenShader works with >=1 scale, but does not well with <1 scale.
 		// Use regular FilterLinear instead so far (#669).
 		filter = graphicsdriver.FilterLinear
 	}
@@ -213,7 +262,21 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 	is := graphics.QuadIndices()
 
 	srcs := [graphics.ShaderImageCount]*Image{c.offscreen}
-	c.screen.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, filter, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, nil, nil, false, true)
+
+	var shader *Shader
+	var uniforms [][]float32
+	if screenFilter {
+		shader = c.screenShader
+		dstWidth, dstHeight := c.screen.width, c.screen.height
+		srcWidth, srcHeight := c.offscreen.width, c.offscreen.height
+		uniforms = shader.ConvertUniforms(map[string]interface{}{
+			"Scale": []float32{
+				float32(dstWidth) / float32(srcWidth),
+				float32(dstHeight) / float32(srcHeight),
+			},
+		})
+	}
+	c.screen.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, filter, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, shader, uniforms, false, true)
 }
 
 func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {
@@ -223,7 +286,16 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFac
 	c.outsideWidth = outsideWidth
 	c.outsideHeight = outsideHeight
 
-	ow, oh := c.game.Layout(int(outsideWidth), int(outsideHeight))
+	// Adjust the outside size to integer values.
+	// Even if the original value is less than 1, the value must be a positive integer (#2340).
+	iow, ioh := int(outsideWidth), int(outsideHeight)
+	if iow == 0 {
+		iow = 1
+	}
+	if ioh == 0 {
+		ioh = 1
+	}
+	ow, oh := c.game.Layout(iow, ioh)
 	if ow <= 0 || oh <= 0 {
 		panic("ui: Layout must return positive numbers")
 	}

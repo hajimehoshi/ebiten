@@ -12,10 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build (android || ios) && !ebitenginecbackend && !ebitencbackend
+//go:build (android || ios) && !nintendosdk
 // +build android ios
-// +build !ebitenginecbackend
-// +build !ebitencbackend
+// +build !nintendosdk
 
 package ui
 
@@ -329,7 +328,7 @@ func (u *userInterfaceImpl) update() error {
 	}()
 
 	w, h := u.outsideSize()
-	if err := u.context.updateFrame(u.graphicsDriver, w, h, deviceScale()); err != nil {
+	if err := u.context.updateFrame(u.graphicsDriver, w, h, deviceScale(), u); err != nil {
 		return err
 	}
 	return nil
@@ -472,4 +471,10 @@ func (u *userInterfaceImpl) ScheduleFrame() {
 	if u.renderRequester != nil && u.fpsMode == FPSModeVsyncOffMinimum {
 		u.renderRequester.RequestRenderIfNeeded()
 	}
+}
+
+func (u *userInterfaceImpl) beginFrame() {
+}
+
+func (u *userInterfaceImpl) endFrame() {
 }

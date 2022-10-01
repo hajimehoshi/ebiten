@@ -22,7 +22,7 @@ const (
 	ShaderImageCount = 4
 
 	// PreservedUniformVariablesCount represents the number of preserved uniform variables.
-	// Any shaders in Ebiten must have these uniform variables.
+	// Any shaders in Ebitengine must have these uniform variables.
 	PreservedUniformVariablesCount = 1 + // the destination texture size
 		1 + // the texture sizes array
 		1 + // the texture destination region's origin

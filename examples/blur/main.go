@@ -64,7 +64,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			op.GeoM.Translate(float64(i), 244+float64(j))
 			// This is a blur based on the CompositerModeSourceOver composition mode,
 			// which is basically (GL_ONE, GL_ONE_MINUS_SRC_ALPHA). ColorM acts
-			// on unpremultiplied colors, but all Ebiten internal colors are
+			// on unpremultiplied colors, but all Ebitengine internal colors are
 			// premultiplied, meaning this mode is regular alpha blending,
 			// computing each destination pixel as srcPix * alpha + dstPix * (1 - alpha).
 			//
@@ -93,9 +93,6 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func main() {
 	// Decode an image from the image file's byte slice.
-	// Now the byte slice is generated with //go:generate for Go 1.15 or older.
-	// If you use Go 1.16 or newer, it is strongly recommended to use //go:embed to embed the image file.
-	// See https://pkg.go.dev/embed for more details.
 	img, _, err := image.Decode(bytes.NewReader(images.FiveYears_jpg))
 	if err != nil {
 		log.Fatal(err)
@@ -103,7 +100,7 @@ func main() {
 	gophersImage = ebiten.NewImageFromImage(img)
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("Blur (Ebiten Demo)")
+	ebiten.SetWindowTitle("Blur (Ebitengine Demo)")
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}

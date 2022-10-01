@@ -16,6 +16,7 @@ package buffered
 
 import (
 	"fmt"
+	"image"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
@@ -80,29 +81,45 @@ func (i *Image) MarkDisposed() {
 	i.img.MarkDisposed()
 }
 
-func (img *Image) At(graphicsDriver graphicsdriver.Graphics, x, y int) (r, g, b, a byte, err error) {
-	checkDelayedCommandsFlushed("At")
+func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, x, y, width, height int) error {
+	checkDelayedCommandsFlushed("ReadPixels")
 
-	idx := (y*img.width + x)
-	if img.pixels != nil {
-		return img.pixels[4*idx], img.pixels[4*idx+1], img.pixels[4*idx+2], img.pixels[4*idx+3], nil
+	r := image.Rect(x, y, x+width, y+height).Intersect(image.Rect(0, 0, i.width, i.height))
+	if r.Empty() {
+		for i := range pixels {
+			pixels[i] = 0
+		}
+		return nil
 	}
 
-	pix, err := img.img.Pixels(graphicsDriver)
-	if err != nil {
-		return 0, 0, 0, 0, err
+	if i.pixels == nil {
+		pix := make([]byte, 4*i.width*i.height)
+		if err := i.img.ReadPixels(graphicsDriver, pix); err != nil {
+			return err
+		}
+		i.pixels = pix
 	}
-	img.pixels = pix
-	return img.pixels[4*idx], img.pixels[4*idx+1], img.pixels[4*idx+2], img.pixels[4*idx+3], nil
+
+	dstBaseX := r.Min.X - x
+	dstBaseY := r.Min.Y - y
+	srcBaseX := r.Min.X
+	srcBaseY := r.Min.Y
+	lineWidth := 4 * r.Dx()
+	for j := 0; j < r.Dy(); j++ {
+		dstX := 4 * ((dstBaseY+j)*width + dstBaseX)
+		srcX := 4 * ((srcBaseY+j)*i.width + srcBaseX)
+		copy(pixels[dstX:dstX+lineWidth], i.pixels[srcX:srcX+lineWidth])
+	}
+	return nil
 }
 
-func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name string, blackbg bool) error {
+func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name string, blackbg bool) (string, error) {
 	checkDelayedCommandsFlushed("Dump")
 	return i.img.DumpScreenshot(graphicsDriver, name, blackbg)
 }
 
-// ReplacePixels replaces the pixels at the specified region.
-func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) {
+// WritePixels replaces the pixels at the specified region.
+func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
 	if l := 4 * width * height; len(pix) != l {
 		panic(fmt.Sprintf("buffered: len(pix) was %d but must be %d", len(pix), l))
 	}
@@ -111,14 +128,14 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) {
 		copied := make([]byte, len(pix))
 		copy(copied, pix)
 		if tryAddDelayedCommand(func() {
-			i.ReplacePixels(copied, x, y, width, height)
+			i.WritePixels(copied, x, y, width, height)
 		}) {
 			return
 		}
 	}
 
 	i.invalidatePixels()
-	i.img.ReplacePixels(pix, x, y, width, height)
+	i.img.WritePixels(pix, x, y, width, height)
 }
 
 // DrawTriangles draws the src image with the given vertices.

@@ -15,6 +15,7 @@
 package ui
 
 import (
+	"sync"
 	"syscall/js"
 	"time"
 
@@ -82,8 +83,12 @@ type userInterfaceImpl struct {
 
 	lastDeviceScaleFactor float64
 
+	err error
+
 	context *context
 	input   Input
+
+	m sync.Mutex
 }
 
 func init() {
@@ -100,7 +105,6 @@ var (
 	canvas                js.Value
 	requestAnimationFrame = js.Global().Get("requestAnimationFrame")
 	setTimeout            = js.Global().Get("setTimeout")
-	go2cpp                = js.Global().Get("go2cpp")
 )
 
 var (
@@ -109,9 +113,6 @@ var (
 )
 
 func init() {
-	if go2cpp.Truthy() {
-		return
-	}
 	documentHasFocus = document.Get("hasFocus").Call("bind", document)
 	documentHidden = js.Global().Get("Object").Call("getOwnPropertyDescriptor", js.Global().Get("Document").Get("prototype"), "hidden").Get("get").Call("bind", document)
 }
@@ -238,20 +239,15 @@ func (u *userInterfaceImpl) DeviceScaleFactor() float64 {
 }
 
 func (u *userInterfaceImpl) outsideSize() (float64, float64) {
-	switch {
-	case document.Truthy():
+	if document.Truthy() {
 		body := document.Get("body")
 		bw := body.Get("clientWidth").Float()
 		bh := body.Get("clientHeight").Float()
 		return bw, bh
-	case go2cpp.Truthy():
-		w := go2cpp.Get("screenWidth").Float()
-		h := go2cpp.Get("screenHeight").Float()
-		return w, h
-	default:
-		// Node.js
-		return 640, 480
 	}
+
+	// Node.js
+	return 640, 480
 }
 
 func (u *userInterfaceImpl) suspended() bool {
@@ -262,10 +258,6 @@ func (u *userInterfaceImpl) suspended() bool {
 }
 
 func (u *userInterfaceImpl) isFocused() bool {
-	if go2cpp.Truthy() {
-		return true
-	}
-
 	if !documentHasFocus.Invoke().Bool() {
 		return false
 	}
@@ -286,6 +278,10 @@ func (u *userInterfaceImpl) update() error {
 }
 
 func (u *userInterfaceImpl) updateImpl(force bool) error {
+	// Guard updateImpl as this function cannot be invoked until this finishes (#2339).
+	u.m.Lock()
+	defer u.m.Unlock()
+
 	// context can be nil when an event is fired but the loop doesn't start yet (#1928).
 	if u.context == nil {
 		return nil
@@ -294,7 +290,6 @@ func (u *userInterfaceImpl) updateImpl(force bool) error {
 	if err := gamepad.Update(); err != nil {
 		return err
 	}
-	u.input.updateForGo2Cpp()
 
 	a := u.DeviceScaleFactor()
 	if u.lastDeviceScaleFactor != a {
@@ -304,11 +299,11 @@ func (u *userInterfaceImpl) updateImpl(force bool) error {
 
 	w, h := u.outsideSize()
 	if force {
-		if err := u.context.forceUpdateFrame(u.graphicsDriver, w, h, u.DeviceScaleFactor()); err != nil {
+		if err := u.context.forceUpdateFrame(u.graphicsDriver, w, h, u.DeviceScaleFactor(), u); err != nil {
 			return err
 		}
 	} else {
-		if err := u.context.updateFrame(u.graphicsDriver, w, h, u.DeviceScaleFactor()); err != nil {
+		if err := u.context.updateFrame(u.graphicsDriver, w, h, u.DeviceScaleFactor(), u); err != nil {
 			return err
 		}
 	}
@@ -338,6 +333,10 @@ func (u *userInterfaceImpl) loop(game Game) <-chan error {
 
 	var cf js.Func
 	f := func() {
+		if u.err != nil {
+			errCh <- u.err
+			return
+		}
 		if u.needsUpdate() {
 			u.onceUpdateCalled = true
 			u.renderingScheduled = false
@@ -496,9 +495,15 @@ func init() {
 func setWindowEventHandlers(v js.Value) {
 	v.Call("addEventListener", "resize", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		theUI.updateScreenSize()
-		if err := theUI.updateImpl(true); err != nil {
-			panic(err)
-		}
+
+		// updateImpl can block. Use goroutine.
+		// See https://pkg.go.dev/syscall/js#FuncOf.
+		go func() {
+			if err := theUI.updateImpl(true); err != nil && theUI.err != nil {
+				theUI.err = err
+				return
+			}
+		}()
 		return nil
 	}))
 }
@@ -511,13 +516,19 @@ func setCanvasEventHandlers(v js.Value) {
 
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.updateFromEvent(e)
+		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+			theUI.err = err
+			return nil
+		}
 		return nil
 	}))
 	v.Call("addEventListener", "keyup", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.updateFromEvent(e)
+		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+			theUI.err = err
+			return nil
+		}
 		return nil
 	}))
 
@@ -528,25 +539,37 @@ func setCanvasEventHandlers(v js.Value) {
 
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.updateFromEvent(e)
+		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+			theUI.err = err
+			return nil
+		}
 		return nil
 	}))
 	v.Call("addEventListener", "mouseup", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.updateFromEvent(e)
+		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+			theUI.err = err
+			return nil
+		}
 		return nil
 	}))
 	v.Call("addEventListener", "mousemove", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.updateFromEvent(e)
+		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+			theUI.err = err
+			return nil
+		}
 		return nil
 	}))
 	v.Call("addEventListener", "wheel", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.updateFromEvent(e)
+		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+			theUI.err = err
+			return nil
+		}
 		return nil
 	}))
 
@@ -557,19 +580,28 @@ func setCanvasEventHandlers(v js.Value) {
 
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.updateFromEvent(e)
+		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+			theUI.err = err
+			return nil
+		}
 		return nil
 	}))
 	v.Call("addEventListener", "touchend", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.updateFromEvent(e)
+		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+			theUI.err = err
+			return nil
+		}
 		return nil
 	}))
 	v.Call("addEventListener", "touchmove", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
-		theUI.input.updateFromEvent(e)
+		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
+			theUI.err = err
+			return nil
+		}
 		return nil
 	}))
 
@@ -593,7 +625,14 @@ func (u *userInterfaceImpl) forceUpdateOnMinimumFPSMode() {
 	if u.fpsMode != FPSModeVsyncOffMinimum {
 		return
 	}
-	u.updateImpl(true)
+
+	// updateImpl can block. Use goroutine.
+	// See https://pkg.go.dev/syscall/js#FuncOf.
+	go func() {
+		if err := u.updateImpl(true); err != nil && u.err != nil {
+			u.err = err
+		}
+	}()
 }
 
 func (u *userInterfaceImpl) Run(game Game) error {
@@ -618,15 +657,12 @@ func (u *userInterfaceImpl) Run(game Game) error {
 }
 
 func (u *userInterfaceImpl) updateScreenSize() {
-	switch {
-	case document.Truthy():
+	if document.Truthy() {
 		body := document.Get("body")
 		bw := int(body.Get("clientWidth").Float() * u.DeviceScaleFactor())
 		bh := int(body.Get("clientHeight").Float() * u.DeviceScaleFactor())
 		canvas.Set("width", bw)
 		canvas.Set("height", bh)
-	case go2cpp.Truthy():
-		// TODO: Implement this
 	}
 }
 
@@ -665,4 +701,10 @@ func (u *userInterfaceImpl) Input() *Input {
 
 func (u *userInterfaceImpl) Window() Window {
 	return &nullWindow{}
+}
+
+func (u *userInterfaceImpl) beginFrame() {
+}
+
+func (u *userInterfaceImpl) endFrame() {
 }

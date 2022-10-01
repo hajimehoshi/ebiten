@@ -82,7 +82,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	ebiten.SetWindowTitle("Vibrate (Ebiten Demo)")
+	ebiten.SetWindowTitle("Vibrate (Ebitengine Demo)")
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}

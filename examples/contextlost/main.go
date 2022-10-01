@@ -63,7 +63,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	if g.lost {
 		// When the context is lost, skip rendering. Usually this logic should not be required, but when the
 		// context lost happens by the API explicitly, Draw can be called even after the data in GPU
-		// disappered.
+		// disappeared.
 		return
 	}
 
@@ -90,9 +90,6 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func main() {
 	// Decode an image from the image file's byte slice.
-	// Now the byte slice is generated with //go:generate for Go 1.15 or older.
-	// If you use Go 1.16 or newer, it is strongly recommended to use //go:embed to embed the image file.
-	// See https://pkg.go.dev/embed for more details.
 	img, _, err := image.Decode(bytes.NewReader(images.Gophers_jpg))
 	if err != nil {
 		log.Fatal(err)
@@ -106,7 +103,7 @@ func main() {
 	}
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("Context Lost (Ebiten Demo)")
+	ebiten.SetWindowTitle("Context Lost (Ebitengine Demo)")
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}

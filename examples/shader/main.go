@@ -19,6 +19,7 @@ package main
 
 import (
 	"bytes"
+	_ "embed"
 	"image"
 	_ "image/png"
 	"log"
@@ -27,6 +28,32 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	resources "github.com/hajimehoshi/ebiten/v2/examples/resources/images/shader"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+)
+
+var (
+	//go:embed default.go
+	default_go []byte
+
+	//go:embed texel.go
+	texel_go []byte
+
+	//go:embed lighting.go
+	lighting_go []byte
+
+	//go:embed radialblur.go
+	radialblur_go []byte
+
+	//go:embed chromaticaberration.go
+	chromaticaberration_go []byte
+
+	//go:embed dissolve.go
+	dissolve_go []byte
+
+	//go:embed water.go
+	water_go []byte
+
+	//go:embed crt.go
+	crt_go []byte
 )
 
 const (
@@ -43,9 +70,6 @@ var (
 
 func init() {
 	// Decode an image from the image file's byte slice.
-	// Now the byte slice is generated with //go:generate for Go 1.15 or older.
-	// If you use Go 1.16 or newer, it is strongly recommended to use //go:embed to embed the image file.
-	// See https://pkg.go.dev/embed for more details.
 	img, _, err := image.Decode(bytes.NewReader(resources.Gopher_png))
 	if err != nil {
 		log.Fatal(err)
@@ -149,7 +173,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("Shader (Ebiten Demo)")
+	ebiten.SetWindowTitle("Shader (Ebitengine Demo)")
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}

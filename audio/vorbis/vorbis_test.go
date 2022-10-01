@@ -16,12 +16,22 @@ package vorbis_test
 
 import (
 	"bytes"
+	_ "embed"
+	"io"
 	"testing"
 
 	"github.com/jfreymuth/oggvorbis"
 
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/audio/vorbis"
+)
+
+var (
+	//go:embed test_mono.ogg
+	test_mono_ogg []byte
+
+	//go:embed test_tooshort.ogg
+	test_tooshort_ogg []byte
 )
 
 var audioContext = audio.NewContext(44100)
@@ -62,6 +72,29 @@ func TestTooShort(t *testing.T) {
 
 	got := s.Length()
 	want := int64(79424)
+	if got != want {
+		t.Errorf("s.Length(): got: %d, want: %d", got, want)
+	}
+}
+
+type reader struct {
+	r io.Reader
+}
+
+func (r *reader) Read(buf []byte) (int, error) {
+	return r.r.Read(buf)
+}
+
+func TestNonSeeker(t *testing.T) {
+	bs := test_tooshort_ogg
+
+	s, err := vorbis.DecodeWithSampleRate(audioContext.SampleRate(), &reader{r: bytes.NewReader(bs)})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got := s.Length()
+	want := int64(0)
 	if got != want {
 		t.Errorf("s.Length(): got: %d, want: %d", got, want)
 	}

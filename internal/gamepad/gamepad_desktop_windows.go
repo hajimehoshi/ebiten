@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !ebitenginecbackend && !ebitencbackend
-// +build !ebitenginecbackend,!ebitencbackend
+//go:build !nintendosdk
+// +build !nintendosdk
 
 package gamepad
 
@@ -28,6 +28,8 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
 type dinputObjectType int
@@ -175,6 +177,7 @@ func (g *nativeGamepadsDesktop) init(gamepads *gamepads) error {
 	}
 
 	if g.dinput8 != 0 {
+		// TODO: Use _GetModuleHandleExW to align with GLFW v3.3.8.
 		m, err := _GetModuleHandleW()
 		if err != nil {
 			return err
@@ -570,6 +573,14 @@ func (*nativeGamepadDesktop) hasOwnStandardLayoutMapping() bool {
 	return false
 }
 
+func (*nativeGamepadDesktop) isStandardAxisAvailableInOwnMapping(axis gamepaddb.StandardAxis) bool {
+	return false
+}
+
+func (*nativeGamepadDesktop) isStandardButtonAvailableInOwnMapping(button gamepaddb.StandardButton) bool {
+	return false
+}
+
 func (g *nativeGamepadDesktop) usesDInput() bool {
 	return g.dinputDevice != nil
 }
@@ -601,7 +612,7 @@ func (g *nativeGamepadDesktop) update(gamepads *gamepads) (err error) {
 				return err
 			}
 			// Acquire can return an error just after a gamepad is disconnected. Ignore the error.
-			g.dinputDevice.Acquire()
+			_ = g.dinputDevice.Acquire()
 			if err := g.dinputDevice.Poll(); err != nil {
 				if !errors.Is(err, directInputError(_DIERR_NOTACQUIRED)) && !errors.Is(err, directInputError(_DIERR_INPUTLOST)) {
 					return err

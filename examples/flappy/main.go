@@ -246,7 +246,9 @@ func (g *Game) Update() error {
 		g.cameraX += 2
 		if g.isKeyJustPressed() {
 			g.vy16 = -96
-			g.jumpPlayer.Rewind()
+			if err := g.jumpPlayer.Rewind(); err != nil {
+				return err
+			}
 			g.jumpPlayer.Play()
 		}
 		g.y16 += g.vy16
@@ -258,7 +260,9 @@ func (g *Game) Update() error {
 		}
 
 		if g.hit() {
-			g.hitPlayer.Rewind()
+			if err := g.hitPlayer.Rewind(); err != nil {
+				return err
+			}
 			g.hitPlayer.Play()
 			g.mode = ModeGameOver
 			g.gameoverCount = 30
@@ -437,7 +441,7 @@ func (g *Game) drawGopher(screen *ebiten.Image) {
 
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("Flappy Gopher (Ebiten Demo)")
+	ebiten.SetWindowTitle("Flappy Gopher (Ebitengine Demo)")
 	if err := ebiten.RunGame(NewGame()); err != nil {
 		panic(err)
 	}

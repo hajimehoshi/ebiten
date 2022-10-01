@@ -57,7 +57,7 @@ func TestClear(t *testing.T) {
 	dst.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{src}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeClear, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
 
 	pix := make([]byte, 4*w*h)
-	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix); err != nil {
+	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix, 0, 0, w, h); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < h/2; j++ {
@@ -72,7 +72,7 @@ func TestClear(t *testing.T) {
 	}
 }
 
-func TestReplacePixelsPartAfterDrawTriangles(t *testing.T) {
+func TestWritePixelsPartAfterDrawTriangles(t *testing.T) {
 	const w, h = 32, 32
 	clr := graphicscommand.NewImage(w, h, false)
 	src := graphicscommand.NewImage(w/2, h/2, false)
@@ -87,7 +87,7 @@ func TestReplacePixelsPartAfterDrawTriangles(t *testing.T) {
 	}
 	dst.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{clr}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeClear, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
 	dst.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{src}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
-	dst.ReplacePixels(make([]byte, 4), 0, 0, 1, 1)
+	dst.WritePixels(make([]byte, 4), 0, 0, 1, 1)
 
 	// TODO: Check the result.
 }
@@ -111,7 +111,7 @@ func TestShader(t *testing.T) {
 	dst.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, s, nil, false)
 
 	pix := make([]byte, 4*w*h)
-	if err := dst.ReadPixels(g, pix); err != nil {
+	if err := dst.ReadPixels(g, pix, 0, 0, w, h); err != nil {
 		t.Fatal(err)
 	}
 	for j := 0; j < h; j++ {

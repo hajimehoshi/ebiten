@@ -26,36 +26,44 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
+func canUseMipmap(imageType atlas.ImageType) bool {
+	switch imageType {
+	case atlas.ImageTypeRegular, atlas.ImageTypeUnmanaged:
+		return true
+	}
+	return false
+}
+
 // Mipmap is a set of buffered.Image sorted by the order of mipmap level.
 // The level 0 image is a regular image and higher-level images are used for mipmap.
 type Mipmap struct {
-	width    int
-	height   int
-	volatile bool
-	orig     *buffered.Image
-	imgs     map[int]*buffered.Image
+	width     int
+	height    int
+	imageType atlas.ImageType
+	orig      *buffered.Image
+	imgs      map[int]*buffered.Image
 }
 
 func New(width, height int, imageType atlas.ImageType) *Mipmap {
 	return &Mipmap{
-		width:    width,
-		height:   height,
-		orig:     buffered.NewImage(width, height, imageType),
-		volatile: imageType == atlas.ImageTypeVolatile,
+		width:     width,
+		height:    height,
+		orig:      buffered.NewImage(width, height, imageType),
+		imageType: imageType,
 	}
 }
 
-func (m *Mipmap) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name string, blackbg bool) error {
+func (m *Mipmap) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name string, blackbg bool) (string, error) {
 	return m.orig.DumpScreenshot(graphicsDriver, name, blackbg)
 }
 
-func (m *Mipmap) ReplacePixels(pix []byte, x, y, width, height int) {
-	m.orig.ReplacePixels(pix, x, y, width, height)
+func (m *Mipmap) WritePixels(pix []byte, x, y, width, height int) {
+	m.orig.WritePixels(pix, x, y, width, height)
 	m.disposeMipmaps()
 }
 
-func (m *Mipmap) At(graphicsDriver graphicsdriver.Graphics, x, y int) (r, g, b, a byte, err error) {
-	return m.orig.At(graphicsDriver, x, y)
+func (m *Mipmap) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, x, y, width, height int) error {
+	return m.orig.ReadPixels(graphicsDriver, pixels, x, y, width, height)
 }
 
 func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, canSkipMipmap bool) {
@@ -65,7 +73,7 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices
 
 	level := 0
 	// TODO: Do we need to check all the sources' states of being volatile?
-	if !canSkipMipmap && srcs[0] != nil && !srcs[0].volatile && filter != graphicsdriver.FilterScreen {
+	if !canSkipMipmap && srcs[0] != nil && canUseMipmap(srcs[0].imageType) {
 		level = math.MaxInt32
 		for i := 0; i < len(indices)/3; i++ {
 			const n = graphics.VertexFloatCount
@@ -137,8 +145,8 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		panic("mipmap: level must be non-zero at level")
 	}
 
-	if m.volatile {
-		panic("mipmap: mipmap images for a volatile image is not implemented yet")
+	if !canUseMipmap(m.imageType) {
+		panic("mipmap: mipmap images for a volatile or a screen image is not implemented yet")
 	}
 
 	if img, ok := m.imgs[level]; ok {
@@ -181,7 +189,8 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		m.setImg(level, nil)
 		return nil
 	}
-	s := buffered.NewImage(w2, h2, atlas.ImageTypeVolatile)
+
+	s := buffered.NewImage(w2, h2, m.imageType)
 
 	dstRegion := graphicsdriver.Region{
 		X:      0,
@@ -225,10 +234,6 @@ func (m *Mipmap) disposeMipmaps() {
 // mipmapLevel returns an appropriate mipmap level for the given distance.
 func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, filter graphicsdriver.Filter) int {
 	const maxLevel = 6
-
-	if filter == graphicsdriver.FilterScreen {
-		return 0
-	}
 
 	d := (dx1-dx0)*(dx1-dx0) + (dy1-dy0)*(dy1-dy0)
 	s := (sx1-sx0)*(sx1-sx0) + (sy1-sy0)*(sy1-sy0)

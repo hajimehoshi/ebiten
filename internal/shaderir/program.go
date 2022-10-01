@@ -51,8 +51,7 @@ type VertexFunc struct {
 
 // FragmentFunc takes pseudo params, and the number is len(varyings) + 2.
 // If index == 0, the param represents the coordinate of the fragment (gl_FragCoord in GLSL).
-// If index == len(varyings), the param represents (index-1)th verying variable.
-// If index == len(varyings)+1, the param is an out-param representing the color of the pixel (gl_FragColor in GLSL).
+// If 0 < index <= len(varyings), the param represents (index-1)th verying variable.
 type FragmentFunc struct {
 	Block *Block
 }
@@ -225,8 +224,8 @@ const (
 	Mat2F       BuiltinFunc = "mat2"
 	Mat3F       BuiltinFunc = "mat3"
 	Mat4F       BuiltinFunc = "mat4"
-	Radians     BuiltinFunc = "radians"
-	Degrees     BuiltinFunc = "degrees"
+	Radians     BuiltinFunc = "radians" // This function is not used yet (#2253)
+	Degrees     BuiltinFunc = "degrees" // This function is not used yet (#2253)
 	Sin         BuiltinFunc = "sin"
 	Cos         BuiltinFunc = "cos"
 	Tan         BuiltinFunc = "tan"
@@ -260,11 +259,13 @@ const (
 	Normalize   BuiltinFunc = "normalize"
 	Faceforward BuiltinFunc = "faceforward"
 	Reflect     BuiltinFunc = "reflect"
+	Refract     BuiltinFunc = "refract"
 	Transpose   BuiltinFunc = "transpose"
 	Texture2DF  BuiltinFunc = "texture2D"
 	Dfdx        BuiltinFunc = "dfdx"
 	Dfdy        BuiltinFunc = "dfdy"
 	Fwidth      BuiltinFunc = "fwidth"
+	DiscardF    BuiltinFunc = "discard"
 )
 
 func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
@@ -313,11 +314,13 @@ func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
 		Normalize,
 		Faceforward,
 		Reflect,
+		Refract,
 		Transpose,
 		Texture2DF,
 		Dfdx,
 		Dfdy,
-		Fwidth:
+		Fwidth,
+		DiscardF:
 		return BuiltinFunc(str), true
 	}
 	return "", false
