@@ -3433,3 +3433,69 @@ func TestImageTooManyConstantBuffersInDirectX(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+func TestImageColorMAndScale(t *testing.T) {
+	const w, h = 16, 16
+	dst := ebiten.NewImage(w, h)
+	src := ebiten.NewImage(w, h)
+
+	src.Fill(color.RGBA{0x80, 0x80, 0x80, 0x80})
+	vs := []ebiten.Vertex{
+		{
+			SrcX:   0,
+			SrcY:   0,
+			DstX:   0,
+			DstY:   0,
+			ColorR: 0.5,
+			ColorG: 0.25,
+			ColorB: 0.5,
+			ColorA: 0.75,
+		},
+		{
+			SrcX:   w,
+			SrcY:   0,
+			DstX:   w,
+			DstY:   0,
+			ColorR: 0.5,
+			ColorG: 0.25,
+			ColorB: 0.5,
+			ColorA: 0.75,
+		},
+		{
+			SrcX:   0,
+			SrcY:   h,
+			DstX:   0,
+			DstY:   h,
+			ColorR: 0.5,
+			ColorG: 0.25,
+			ColorB: 0.5,
+			ColorA: 0.75,
+		},
+		{
+			SrcX:   w,
+			SrcY:   h,
+			DstX:   w,
+			DstY:   h,
+			ColorR: 0.5,
+			ColorG: 0.25,
+			ColorB: 0.5,
+			ColorA: 0.75,
+		},
+	}
+	is := []uint16{0, 1, 2, 1, 2, 3}
+	op := &ebiten.DrawTrianglesOptions{}
+	op.ColorM.Translate(0.25, 0.25, 0.25, 0)
+	dst.DrawTriangles(vs, is, src, op)
+
+	got := dst.At(0, 0).(color.RGBA)
+	alphaBeforeScale := 0.5
+	want := color.RGBA{
+		byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.5 * 0.75)),
+		byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.25 * 0.75)),
+		byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.5 * 0.75)),
+		byte(math.Floor(0xff * alphaBeforeScale * 0.75)),
+	}
+	if !sameColors(got, want, 2) {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
