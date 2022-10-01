@@ -221,8 +221,7 @@ float4 PSMain(PSInput input) : SV_TARGET {
   color = mul(color_matrix_body, color) + color_matrix_translation;
   // Premultiply alpha
   color.rgb *= color.a;
-  // Apply color scale.
-  color *= input.color;
+  // Do not apply the color scale as the scale should always be (1, 1, 1, 1) when a color matrix is used.
   // Clamp the output.
   color.rgb = min(color.rgb, color.a);
   return color;
