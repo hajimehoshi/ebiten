@@ -197,6 +197,7 @@ struct FragmentShaderImpl {
       c.rgb /= c.a + (1.0 - sign(c.a));
       c = (color_matrix_body * c) + color_matrix_translation;
       c.rgb *= c.a;
+      c *= v.color;
       c.rgb = min(c.rgb, c.a);
     } else {
       c *= v.color;
