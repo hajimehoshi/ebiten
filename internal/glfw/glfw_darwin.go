@@ -182,6 +182,11 @@ func (w *Window) GetSize() (int, int) {
 	return int(width), int(height)
 }
 
+func (w *Window) Focus() {
+	libglfw.call("glfwFocusWindow", w.w)
+	panicError()
+}
+
 func (w *Window) Hide() {
 	libglfw.call("glfwHideWindow", w.w)
 	panicError()

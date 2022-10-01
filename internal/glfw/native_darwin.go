@@ -21,5 +21,7 @@ func (w *Window) GetCocoaWindow() uintptr {
 }
 
 func (m *Monitor) GetCocoaMonitor() uintptr {
-	return m.m.GetCocoaMonitor()
+	r := libglfw.call("glfwGetCocoaMonitor", m.m)
+	panicError()
+	return r
 }

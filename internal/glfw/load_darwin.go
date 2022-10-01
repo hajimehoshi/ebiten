@@ -110,7 +110,7 @@ func goGLFWErrorCallback(code uintptr, desc *byte) uintptr {
 
 func init() {
 	//TODO: figure out how to locate file
-	lib := purego.Dlopen("libglfw.3.3.7.dylib", purego.RTLD_GLOBAL)
+	lib := purego.Dlopen("libglfw.3.3.8.dylib", purego.RTLD_GLOBAL)
 	if lib == 0 {
 		panic("could not open libglfw.dylib")
 	}
