@@ -132,7 +132,12 @@ func init() {
 	if err != nil {
 		panic(fmt.Errorf("glfw: %w", err))
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			panic(fmt.Errorf("glfw: %w", err))
+		}
+	}(file)
 	_, err = file.Write(library)
 	if err != nil {
 		panic(fmt.Errorf("glfw: %w", err))
