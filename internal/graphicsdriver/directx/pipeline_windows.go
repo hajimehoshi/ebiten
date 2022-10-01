@@ -175,7 +175,7 @@ float4 PSMain(PSInput input) : SV_TARGET {
   float2 pos = input.texcoord;
   float2 texel_size = 1.0 / source_size;
 
-  // Shift 1/512 [texel] to avoid the tie-breaking issue.
+  // Shift 1/512 [texel] to avoid the tie-breaking issue (#1212).
   // As all the vertex positions are aligned to 1/16 [pixel], this shiting should work in most cases.
   float2 p0 = pos - (texel_size) / 2.0 + (texel_size / 512.0);
   float2 p1 = pos + (texel_size) / 2.0 + (texel_size / 512.0);

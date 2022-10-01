@@ -129,7 +129,7 @@ struct ColorFromTexel<FILTER_LINEAR, ADDRESS_UNSAFE> {
   inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, constant float4& source_region) {
     const float2 texel_size = 1 / source_size;
 
-    // Shift 1/512 [texel] to avoid the tie-breaking issue.
+    // Shift 1/512 [texel] to avoid the tie-breaking issue (#1212).
     // As all the vertex positions are aligned to 1/16 [pixel], this shiting should work in most cases.
     float2 p0 = v.tex - texel_size / 2.0 + (texel_size / 512.0);
     float2 p1 = v.tex + texel_size / 2.0 + (texel_size / 512.0);
@@ -149,7 +149,7 @@ struct ColorFromTexel<FILTER_LINEAR, address> {
   inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, constant float4& source_region) {
     const float2 texel_size = 1 / source_size;
 
-    // Shift 1/512 [texel] to avoid the tie-breaking issue.
+    // Shift 1/512 [texel] to avoid the tie-breaking issue (#1212).
     // As all the vertex positions are aligned to 1/16 [pixel], this shiting should work in most cases.
     float2 p0 = v.tex - texel_size / 2.0 + (texel_size / 512.0);
     float2 p1 = v.tex + texel_size / 2.0 + (texel_size / 512.0);
