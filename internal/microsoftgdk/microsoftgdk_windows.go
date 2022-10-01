@@ -90,7 +90,7 @@ func D3D12DLLName() string {
 
 func init() {
 	if r := C.XGameRuntimeInitialize(); uint32(r) != uint32(windows.S_OK) {
-		panic(fmt.Sprintf("microsoftgdk: XSystemGetDeviceType failed: HRESULT(%d)", r))
+		panic(fmt.Sprintf("microsoftgdk: XSystemGetDeviceType failed: HRESULT(%d)", uint32(r)))
 	}
 	if got, want := _GetACP(), uint32(_CP_UTF8); got != want {
 		panic(fmt.Sprintf("microsoftgdk: GetACP(): got %d, want %d", got, want))
