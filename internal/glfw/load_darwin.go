@@ -1,10 +1,17 @@
 package glfw
 
 import (
+	_ "embed"
 	"fmt"
-	"github.com/ebitengine/purego"
+	"os"
+	"path"
 	"unsafe"
+
+	"github.com/ebitengine/purego"
 )
+
+//go:embed libglfw.3.3.8.dylib
+var library []byte
 
 var libglfw *dylib
 
@@ -25,7 +32,9 @@ func (d dylib) call(name string, args ...uintptr) uintptr {
 }
 
 func (d dylib) unload() error {
-	//TODO:
+	if purego.Dlclose(d.lib) {
+		return fmt.Errorf("glfw: %s", purego.Dlerror())
+	}
 	return nil
 }
 
@@ -109,10 +118,29 @@ func goGLFWErrorCallback(code uintptr, desc *byte) uintptr {
 }
 
 func init() {
-	//TODO: figure out how to locate file
-	lib := purego.Dlopen("libglfw.3.3.8.dylib", purego.RTLD_GLOBAL)
+	dir, err := os.UserCacheDir()
+	if err != nil {
+		panic(fmt.Errorf("glfw: %w", err))
+	}
+	filePath := path.Join(dir, "ebitengine")
+	err = os.MkdirAll(filePath, 0750)
+	if err != nil {
+		panic(fmt.Errorf("glfw: %w", err))
+	}
+	filePath = path.Join(filePath, "libglfw3.3.8.dylib")
+	file, err := os.Create(filePath)
+	if err != nil {
+		panic(fmt.Errorf("glfw: %w", err))
+	}
+	defer file.Close()
+	_, err = file.Write(library)
+	if err != nil {
+		panic(fmt.Errorf("glfw: %w", err))
+	}
+
+	lib := purego.Dlopen(filePath, purego.RTLD_GLOBAL)
 	if lib == 0 {
-		panic("could not open libglfw.dylib")
+		panic(fmt.Errorf("glfw: %s", purego.Dlerror()))
 	}
 	libglfw = &dylib{
 		lib: lib,
