@@ -132,7 +132,7 @@ PSInput VSMain(float2 position : POSITION, float2 tex : TEXCOORD, float4 color :
 Texture2D tex : register(t0);
 SamplerState samp : register(s0);
 
-float euclideanMod(float x, float y) {
+float2 euclideanMod(float2 x, float2 y) {
   // Assume that y is always positive.
   return x - y * floor(x/y);
 }
@@ -145,7 +145,7 @@ float2 adjustTexelByAddress(float2 p, float4 source_region) {
 #if defined(ADDRESS_REPEAT)
   float2 o = float2(source_region[0], source_region[1]);
   float2 size = float2(source_region[2] - source_region[0], source_region[3] - source_region[1]);
-  return float2(euclideanMod((p.x - o.x), size.x) + o.x, euclideanMod((p.y - o.y), size.y) + o.y);
+  return euclideanMod((p - o), size) + o;
 #endif
 
 #if defined(ADDRESS_UNSAFE)

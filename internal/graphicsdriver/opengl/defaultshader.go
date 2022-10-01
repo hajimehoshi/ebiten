@@ -160,7 +160,7 @@ highp vec2 adjustTexelByAddress(highp vec2 p, highp vec4 source_region) {
 #if defined(ADDRESS_REPEAT)
   highp vec2 o = vec2(source_region[0], source_region[1]);
   highp vec2 size = vec2(source_region[2] - source_region[0], source_region[3] - source_region[1]);
-  return vec2(mod((p.x - o.x), size.x) + o.x, mod((p.y - o.y), size.y) + o.y);
+  return mod((p - o), size) + o;
 #endif
 
 #if defined(ADDRESS_UNSAFE)
