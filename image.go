@@ -293,8 +293,6 @@ type DrawTrianglesOptions struct {
 	// ColorM is a color matrix to draw.
 	// The default (zero) value is identity, which doesn't change any color.
 	// ColorM is applied before vertex color scale is applied.
-	//
-	// If Shader is not nil, ColorM is ignored.
 	ColorM ColorM
 
 	// CompositeMode is a composite mode to draw.
