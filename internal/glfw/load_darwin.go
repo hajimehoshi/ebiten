@@ -127,7 +127,7 @@ func init() {
 	if err != nil {
 		panic(fmt.Errorf("glfw: %w", err))
 	}
-	filePath = path.Join(filePath, "libglfw3.3.8.dylib")
+	filePath = path.Join(filePath, "libglfw.3.3.8.dylib")
 	file, err := os.Create(filePath)
 	if err != nil {
 		panic(fmt.Errorf("glfw: %w", err))
