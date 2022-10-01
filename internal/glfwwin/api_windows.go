@@ -24,6 +24,12 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+type handleError windows.Handle
+
+func (h handleError) Error() string {
+	return fmt.Sprintf("HANDLE(%d)", h)
+}
+
 // math.MaxUint was added at Go 1.17. See https://github.com/golang/go/issues/28538
 const (
 	intSize = 32 << (^uint(0) >> 63)
@@ -1312,7 +1318,7 @@ func _GetMonitorInfoW_Ex(hMonitor _HMONITOR) (_MONITORINFOEXW, bool) {
 func _GetDpiForMonitor(hmonitor _HMONITOR, dpiType _MONITOR_DPI_TYPE) (dpiX, dpiY uint32, err error) {
 	r, _, _ := procGetDpiForMonitor.Call(uintptr(hmonitor), uintptr(dpiType), uintptr(unsafe.Pointer(&dpiX)), uintptr(unsafe.Pointer(&dpiY)))
 	if uint32(r) != uint32(windows.S_OK) {
-		return 0, 0, fmt.Errorf("glfwwin: GetDpiForMonitor failed: %w", windows.Errno(uint32(r)))
+		return 0, 0, fmt.Errorf("glfwwin: GetDpiForMonitor failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return dpiX, dpiY, nil
 }
@@ -1593,7 +1599,7 @@ func _SetProcessDPIAware() bool {
 func _SetProcessDpiAwareness(value _PROCESS_DPI_AWARENESS) error {
 	r, _, _ := procSetProcessDpiAwareness.Call(uintptr(value))
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("glfwwin: SetProcessDpiAwareness failed: %w", windows.Errno(uint32(r)))
+		return fmt.Errorf("glfwwin: SetProcessDpiAwareness failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return nil
 }

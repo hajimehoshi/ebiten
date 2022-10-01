@@ -246,7 +246,7 @@ func platformInit() error {
 			_ = _SetProcessDpiAwarenessContext(_DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)
 		}
 	} else if _IsWindows8Point1OrGreater() {
-		if err := _SetProcessDpiAwareness(_PROCESS_PER_MONITOR_DPI_AWARE); err != nil && !errors.Is(err, windows.ERROR_ACCESS_DENIED) {
+		if err := _SetProcessDpiAwareness(_PROCESS_PER_MONITOR_DPI_AWARE); err != nil && !errors.Is(err, handleError(windows.E_ACCESSDENIED)) {
 			return err
 		}
 	} else if _IsWindowsVistaOrGreater() {

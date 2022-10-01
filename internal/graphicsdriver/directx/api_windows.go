@@ -27,6 +27,12 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 )
 
+type handleError windows.Handle
+
+func (h handleError) Error() string {
+	return fmt.Sprintf("HANDLE(%d)", h)
+}
+
 type (
 	_BOOL int32
 )
@@ -637,7 +643,7 @@ const (
 
 	_DXGI_CREATE_FACTORY_DEBUG = 0x01
 
-	_DXGI_ERROR_NOT_FOUND = windows.Errno(0x887A0002)
+	_DXGI_ERROR_NOT_FOUND = handleError(0x887A0002)
 
 	_DXGI_MWA_NO_ALT_ENTER      = 0x2
 	_DXGI_MWA_NO_WINDOW_CHANGES = 0x1
@@ -2439,7 +2445,7 @@ func (i *_IDXGIFactory4) EnumAdapters1(adapter uint32) (*_IDXGIAdapter1, error) 
 	var ptr *_IDXGIAdapter1
 	r, _, _ := syscall.Syscall(i.vtbl.EnumAdapters1, 3, uintptr(unsafe.Pointer(i)), uintptr(adapter), uintptr(unsafe.Pointer(&ptr)))
 	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: IDXGIFactory4::EnumAdapters1 failed: HRESULT(%d)", uint32(r))
+		return nil, fmt.Errorf("directx: IDXGIFactory4::EnumAdapters1 failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return ptr, nil
 }
