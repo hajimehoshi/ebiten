@@ -455,31 +455,24 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	}
 
 	var offsets [graphics.ShaderImageCount - 1][2]float32
-	var s *restorable.Shader
 	var imgs [graphics.ShaderImageCount]*restorable.Image
-	if shader == nil {
-		// Fast path for rendering without a shader (#1355).
-		imgs[0] = srcs[0].backend.restorable
-	} else {
-		for i, subimageOffset := range subimageOffsets {
-			src := srcs[i+1]
-			if src == nil {
-				continue
-			}
-			ox, oy, _, _ := src.regionWithPadding()
-			offsets[i][0] = float32(ox+src.paddingSize()) - oxf + subimageOffset[0]
-			offsets[i][1] = float32(oy+src.paddingSize()) - oyf + subimageOffset[1]
+	for i, subimageOffset := range subimageOffsets {
+		src := srcs[i+1]
+		if src == nil {
+			continue
 		}
-		s = shader.shader
-		for i, src := range srcs {
-			if src == nil {
-				continue
-			}
-			imgs[i] = src.backend.restorable
+		ox, oy, _, _ := src.regionWithPadding()
+		offsets[i][0] = float32(ox+src.paddingSize()) - oxf + subimageOffset[0]
+		offsets[i][1] = float32(oy+src.paddingSize()) - oyf + subimageOffset[1]
+	}
+	for i, src := range srcs {
+		if src == nil {
+			continue
 		}
+		imgs[i] = src.backend.restorable
 	}
 
-	i.backend.restorable.DrawTriangles(imgs, offsets, vertices, indices, mode, dstRegion, srcRegion, s, uniforms, evenOdd)
+	i.backend.restorable.DrawTriangles(imgs, offsets, vertices, indices, mode, dstRegion, srcRegion, shader.shader, uniforms, evenOdd)
 
 	for _, src := range srcs {
 		if src == nil {

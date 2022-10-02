@@ -156,24 +156,16 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		}
 	}
 
-	var s *atlas.Shader
 	var imgs [graphics.ShaderImageCount]*atlas.Image
-	if shader == nil {
-		// Fast path for rendering without a shader (#1355).
-		img := srcs[0]
-		imgs[0] = img.img
-	} else {
-		for i, img := range srcs {
-			if img == nil {
-				continue
-			}
-			imgs[i] = img.img
+	for i, img := range srcs {
+		if img == nil {
+			continue
 		}
-		s = shader.shader
+		imgs[i] = img.img
 	}
 
 	i.invalidatePixels()
-	i.img.DrawTriangles(imgs, vertices, indices, mode, dstRegion, srcRegion, subimageOffsets, s, uniforms, evenOdd)
+	i.img.DrawTriangles(imgs, vertices, indices, mode, dstRegion, srcRegion, subimageOffsets, shader.shader, uniforms, evenOdd)
 }
 
 type Shader struct {

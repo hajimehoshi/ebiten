@@ -328,22 +328,16 @@ func (c *drawTrianglesCommand) Exec(graphicsDriver graphicsdriver.Graphics, inde
 		return nil
 	}
 
-	var shaderID graphicsdriver.ShaderID = graphicsdriver.InvalidShaderID
 	var imgs [graphics.ShaderImageCount]graphicsdriver.ImageID
-	if c.shader != nil {
-		shaderID = c.shader.shader.ID()
-		for i, src := range c.srcs {
-			if src == nil {
-				imgs[i] = graphicsdriver.InvalidImageID
-				continue
-			}
-			imgs[i] = src.image.ID()
+	for i, src := range c.srcs {
+		if src == nil {
+			imgs[i] = graphicsdriver.InvalidImageID
+			continue
 		}
-	} else {
-		imgs[0] = c.srcs[0].image.ID()
+		imgs[i] = src.image.ID()
 	}
 
-	return graphicsDriver.DrawTriangles(c.dst.image.ID(), imgs, c.offsets, shaderID, c.nindices, indexOffset, c.mode, c.dstRegion, c.srcRegion, c.uniforms, c.evenOdd)
+	return graphicsDriver.DrawTriangles(c.dst.image.ID(), imgs, c.offsets, c.shader.shader.ID(), c.nindices, indexOffset, c.mode, c.dstRegion, c.srcRegion, c.uniforms, c.evenOdd)
 }
 
 func (c *drawTrianglesCommand) numVertices() int {

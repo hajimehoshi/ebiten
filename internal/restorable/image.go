@@ -387,21 +387,14 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [g
 		i.appendDrawTrianglesHistory(srcs, offsets, vertices, indices, mode, dstRegion, srcRegion, shader, uniforms, evenOdd)
 	}
 
-	var s *graphicscommand.Shader
 	var imgs [graphics.ShaderImageCount]*graphicscommand.Image
-	if shader == nil {
-		// Fast path for rendering without a shader (#1355).
-		imgs[0] = srcs[0].image
-	} else {
-		for i, src := range srcs {
-			if src == nil {
-				continue
-			}
-			imgs[i] = src.image
+	for i, src := range srcs {
+		if src == nil {
+			continue
 		}
-		s = shader.shader
+		imgs[i] = src.image
 	}
-	i.image.DrawTriangles(imgs, offsets, vertices, indices, mode, dstRegion, srcRegion, s, uniforms, evenOdd)
+	i.image.DrawTriangles(imgs, offsets, vertices, indices, mode, dstRegion, srcRegion, shader.shader, uniforms, evenOdd)
 }
 
 // appendDrawTrianglesHistory appends a draw-image history item to the image.
