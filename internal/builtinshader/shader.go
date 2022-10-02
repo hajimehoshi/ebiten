@@ -71,7 +71,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	p0 := texCoord - texelSize/2 + texelSize/512
 	p1 := texCoord + texelSize/2 + texelSize/512
 
-{{if eq .Address .AddressRpeat}}
+{{if eq .Address .AddressRepeat}}
 	p0 = adjustTexelForAddressRepeat(p0)
 	p1 = adjustTexelForAddressRepeat(p1)
 {{end}}
