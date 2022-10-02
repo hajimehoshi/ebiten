@@ -233,7 +233,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	srcs := [graphics.ShaderImageCount]*ui.Image{img.image}
 
 	useColorM := !colorm.IsIdentity()
-	shader := builtinShader(builtinshader.Filter(filter), builtinshader.AddressUnsafe, useColorM)
+	shader := builtinShader(filter, builtinshader.AddressUnsafe, useColorM)
 	var uniforms [][]float32
 	if useColorM {
 		var body [16]float32
@@ -443,7 +443,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	srcs := [graphics.ShaderImageCount]*ui.Image{img.image}
 
 	useColorM := !colorm.IsIdentity()
-	shader := builtinShader(builtinshader.Filter(filter), builtinshader.Address(address), useColorM)
+	shader := builtinShader(filter, address, useColorM)
 	var uniforms [][]float32
 	if useColorM {
 		var body [16]float32
