@@ -174,7 +174,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	}
 
 	i.invalidatePixels()
-	i.img.DrawTriangles(imgs, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, s, uniforms, evenOdd)
+	i.img.DrawTriangles(imgs, vertices, indices, mode, dstRegion, srcRegion, subimageOffsets, s, uniforms, evenOdd)
 }
 
 type Shader struct {
