@@ -15,7 +15,12 @@
 package restorable
 
 import (
+	"fmt"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
@@ -42,4 +47,26 @@ func (s *Shader) Dispose() {
 
 func (s *Shader) restore() {
 	s.shader = graphicscommand.NewShader(s.ir)
+}
+
+var (
+	NearestFilterShader *Shader
+	LinearFilterShader  *Shader
+)
+
+func init() {
+	{
+		ir, err := graphics.CompileShader([]byte(builtinshader.Shader(graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, false)))
+		if err != nil {
+			panic(fmt.Sprintf("restorable: compiling the nearest shader failed: %v", err))
+		}
+		NearestFilterShader = NewShader(ir)
+	}
+	{
+		ir, err := graphics.CompileShader([]byte(builtinshader.Shader(graphicsdriver.FilterLinear, graphicsdriver.AddressUnsafe, false)))
+		if err != nil {
+			panic(fmt.Sprintf("restorable: compiling the linear shader failed: %v", err))
+		}
+		LinearFilterShader = NewShader(ir)
+	}
 }

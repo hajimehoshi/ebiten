@@ -23,12 +23,12 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
-	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
+	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 )
 
 const screenShaderSrc = `package main
@@ -66,9 +66,9 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 `
 
 var (
-	screenShader  *Shader
-	nearestShader *Shader
-	linearShader  *Shader
+	screenShader        *Shader
+	nearestFilterShader = &Shader{shader: mipmap.NearestFilterShader}
+	linearFilterShader  = &Shader{shader: mipmap.LinearFilterShader}
 )
 
 func init() {
@@ -78,20 +78,6 @@ func init() {
 			panic(fmt.Sprintf("ui: compiling the screen shader failed: %v", err))
 		}
 		screenShader = NewShader(ir)
-	}
-	{
-		ir, err := graphics.CompileShader([]byte(builtinshader.Shader(graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, false)))
-		if err != nil {
-			panic(fmt.Sprintf("ui: compiling the nearest shader failed: %v", err))
-		}
-		nearestShader = NewShader(ir)
-	}
-	{
-		ir, err := graphics.CompileShader([]byte(builtinshader.Shader(graphicsdriver.FilterLinear, graphicsdriver.AddressUnsafe, false)))
-		if err != nil {
-			panic(fmt.Sprintf("ui: compiling the linear shader failed: %v", err))
-		}
-		linearShader = NewShader(ir)
 	}
 }
 
@@ -256,15 +242,15 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 	var shader *Shader
 	switch {
 	case !theGlobalState.isScreenFilterEnabled():
-		shader = nearestShader
+		shader = nearestFilterShader
 	case math.Floor(s) == s:
-		shader = nearestShader
+		shader = nearestFilterShader
 	case s > 1:
 		shader = screenShader
 	default:
 		// screenShader works with >=1 scale, but does not well with <1 scale.
 		// Use regular FilterLinear instead so far (#669).
-		shader = linearShader
+		shader = linearFilterShader
 	}
 
 	dstRegion := graphicsdriver.Region{

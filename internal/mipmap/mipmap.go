@@ -155,12 +155,12 @@ func (m *Mipmap) level(level int) *buffered.Image {
 
 	var src *buffered.Image
 	var vs []float32
-	var filter graphicsdriver.Filter
+	shader := NearestFilterShader
 	switch {
 	case level == 1:
 		src = m.orig
 		vs = graphics.QuadVertices(0, 0, float32(m.width), float32(m.height), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
-		filter = graphicsdriver.FilterLinear
+		shader = LinearFilterShader
 	case level > 1:
 		src = m.level(level - 1)
 		if src == nil {
@@ -170,7 +170,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		w := sizeForLevel(m.width, level-1)
 		h := sizeForLevel(m.height, level-1)
 		vs = graphics.QuadVertices(0, 0, float32(w), float32(h), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
-		filter = graphicsdriver.FilterLinear
+		shader = LinearFilterShader
 	default:
 		panic(fmt.Sprintf("mipmap: invalid level: %d", level))
 	}
@@ -198,7 +198,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		Width:  float32(w2),
 		Height: float32(h2),
 	}
-	s.DrawTriangles([graphics.ShaderImageCount]*buffered.Image{src}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, filter, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, nil, nil, false)
+	s.DrawTriangles([graphics.ShaderImageCount]*buffered.Image{src}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, nil, false)
 	m.setImg(level, s)
 
 	return m.imgs[level]
@@ -302,3 +302,8 @@ func (s *Shader) MarkDisposed() {
 	s.shader.MarkDisposed()
 	s.shader = nil
 }
+
+var (
+	NearestFilterShader = &Shader{shader: buffered.NearestFilterShader}
+	LinearFilterShader  = &Shader{shader: buffered.LinearFilterShader}
+)

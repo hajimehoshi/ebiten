@@ -58,3 +58,8 @@ func (s *Shader) dispose() {
 	s.shader.Dispose()
 	s.shader = nil
 }
+
+var (
+	NearestFilterShader = &Shader{shader: restorable.NearestFilterShader}
+	LinearFilterShader  = &Shader{shader: restorable.LinearFilterShader}
+)
