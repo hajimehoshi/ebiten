@@ -286,12 +286,29 @@ const (
 	EvenOdd
 )
 
+// ColorScaleFormat is the format of color scales in vertices.
+type ColorScaleFormat int
+
+const (
+	// ColorScaleFormatStraightAlpha indicates color scales in vertices are
+	// straight-alpha encoded color multiplier.
+	ColorScaleFormatStraightAlpha ColorScaleFormat = iota
+
+	// ColorScaleFormatStraightAlpha indicates color scales in vertices are
+	// premultiplied-alpha encoded color multiplier.
+	ColorScaleFormatPremultipliedAlpha
+)
+
 // DrawTrianglesOptions represents options for DrawTriangles.
 type DrawTrianglesOptions struct {
 	// ColorM is a color matrix to draw.
 	// The default (zero) value is identity, which doesn't change any color.
 	// ColorM is applied before vertex color scale is applied.
 	ColorM ColorM
+
+	// ColorScaleFormat is the format of color scales in vertices.
+	// The default (zero) value is ColorScaleFormatStraightAlpha.
+	ColorScaleFormat
 
 	// CompositeMode is a composite mode to draw.
 	// The default (zero) value is regular alpha blending.
@@ -377,17 +394,32 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	vs := graphics.Vertices(len(vertices))
 	dst := i
-	for i, v := range vertices {
-		dx, dy := dst.adjustPositionF32(v.DstX, v.DstY)
-		vs[i*graphics.VertexFloatCount] = dx
-		vs[i*graphics.VertexFloatCount+1] = dy
-		sx, sy := img.adjustPositionF32(v.SrcX, v.SrcY)
-		vs[i*graphics.VertexFloatCount+2] = sx
-		vs[i*graphics.VertexFloatCount+3] = sy
-		vs[i*graphics.VertexFloatCount+4] = v.ColorR * v.ColorA * cr
-		vs[i*graphics.VertexFloatCount+5] = v.ColorG * v.ColorA * cg
-		vs[i*graphics.VertexFloatCount+6] = v.ColorB * v.ColorA * cb
-		vs[i*graphics.VertexFloatCount+7] = v.ColorA * ca
+	if options.ColorScaleFormat == ColorScaleFormatStraightAlpha {
+		for i, v := range vertices {
+			dx, dy := dst.adjustPositionF32(v.DstX, v.DstY)
+			vs[i*graphics.VertexFloatCount] = dx
+			vs[i*graphics.VertexFloatCount+1] = dy
+			sx, sy := img.adjustPositionF32(v.SrcX, v.SrcY)
+			vs[i*graphics.VertexFloatCount+2] = sx
+			vs[i*graphics.VertexFloatCount+3] = sy
+			vs[i*graphics.VertexFloatCount+4] = v.ColorR * v.ColorA * cr
+			vs[i*graphics.VertexFloatCount+5] = v.ColorG * v.ColorA * cg
+			vs[i*graphics.VertexFloatCount+6] = v.ColorB * v.ColorA * cb
+			vs[i*graphics.VertexFloatCount+7] = v.ColorA * ca
+		}
+	} else {
+		for i, v := range vertices {
+			dx, dy := dst.adjustPositionF32(v.DstX, v.DstY)
+			vs[i*graphics.VertexFloatCount] = dx
+			vs[i*graphics.VertexFloatCount+1] = dy
+			sx, sy := img.adjustPositionF32(v.SrcX, v.SrcY)
+			vs[i*graphics.VertexFloatCount+2] = sx
+			vs[i*graphics.VertexFloatCount+3] = sy
+			vs[i*graphics.VertexFloatCount+4] = v.ColorR * cr
+			vs[i*graphics.VertexFloatCount+5] = v.ColorG * cg
+			vs[i*graphics.VertexFloatCount+6] = v.ColorB * cb
+			vs[i*graphics.VertexFloatCount+7] = v.ColorA * ca
+		}
 	}
 	is := make([]uint16, len(indices))
 	copy(is, indices)
