@@ -97,8 +97,8 @@ func (i *Image) Fill(clr color.Color) {
 	i.image.Fill(crf, cgf, cbf, caf, x, y, b.Dx(), b.Dy())
 }
 
-func canSkipMipmap(geom GeoM, filter graphicsdriver.Filter) bool {
-	if filter != graphicsdriver.FilterLinear {
+func canSkipMipmap(geom GeoM, filter builtinshader.Filter) bool {
+	if filter != builtinshader.FilterLinear {
 		return true
 	}
 	return geom.det2x2() >= 0.999
@@ -216,7 +216,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	}
 
 	mode := graphicsdriver.CompositeMode(options.CompositeMode)
-	filter := graphicsdriver.Filter(options.Filter)
+	filter := builtinshader.Filter(options.Filter)
 
 	if offsetX, offsetY := i.adjustPosition(0, 0); offsetX != 0 || offsetY != 0 {
 		options.GeoM.Translate(float64(offsetX), float64(offsetY))
@@ -233,7 +233,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	srcs := [graphics.ShaderImageCount]*ui.Image{img.image}
 
 	useColorM := !colorm.IsIdentity()
-	shader := builtinShader(graphicsdriver.Filter(filter), graphicsdriver.AddressUnsafe, useColorM)
+	shader := builtinShader(builtinshader.Filter(filter), builtinshader.AddressUnsafe, useColorM)
 	var uniforms [][]float32
 	if useColorM {
 		var body [16]float32
@@ -281,13 +281,13 @@ type Address int
 
 const (
 	// AddressUnsafe means there is no guarantee when the texture coodinates are out of range.
-	AddressUnsafe Address = Address(graphicsdriver.AddressUnsafe)
+	AddressUnsafe Address = Address(builtinshader.AddressUnsafe)
 
 	// AddressClampToZero means that out-of-range texture coordinates return 0 (transparent).
-	AddressClampToZero Address = Address(graphicsdriver.AddressClampToZero)
+	AddressClampToZero Address = Address(builtinshader.AddressClampToZero)
 
 	// AddressRepeat means that texture coordinates wrap to the other side of the texture.
-	AddressRepeat Address = Address(graphicsdriver.AddressRepeat)
+	AddressRepeat Address = Address(builtinshader.AddressRepeat)
 )
 
 // FillRule is the rule whether an overlapped region is rendered with DrawTriangles(Shader).
@@ -398,13 +398,13 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	mode := graphicsdriver.CompositeMode(options.CompositeMode)
 
-	address := graphicsdriver.Address(options.Address)
+	address := builtinshader.Address(options.Address)
 	var sr graphicsdriver.Region
-	if address != graphicsdriver.AddressUnsafe {
+	if address != builtinshader.AddressUnsafe {
 		sr = img.adjustedRegion()
 	}
 
-	filter := graphicsdriver.Filter(options.Filter)
+	filter := builtinshader.Filter(options.Filter)
 
 	colorm, cr, cg, cb, ca := colorMToScale(options.ColorM.affineColorM())
 
@@ -443,7 +443,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	srcs := [graphics.ShaderImageCount]*ui.Image{img.image}
 
 	useColorM := !colorm.IsIdentity()
-	shader := builtinShader(graphicsdriver.Filter(filter), graphicsdriver.Address(address), useColorM)
+	shader := builtinShader(builtinshader.Filter(filter), builtinshader.Address(address), useColorM)
 	var uniforms [][]float32
 	if useColorM {
 		var body [16]float32
@@ -455,7 +455,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, mode, i.adjustedRegion(), sr, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, options.FillRule == EvenOdd, filter != graphicsdriver.FilterLinear)
+	i.image.DrawTriangles(srcs, vs, is, mode, i.adjustedRegion(), sr, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, options.FillRule == EvenOdd, filter != builtinshader.FilterLinear)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.

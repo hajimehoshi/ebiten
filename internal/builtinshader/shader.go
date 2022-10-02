@@ -19,8 +19,21 @@ import (
 	"fmt"
 	"sync"
 	"text/template"
+)
 
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+type Filter int
+
+const (
+	FilterNearest Filter = iota
+	FilterLinear
+)
+
+type Address int
+
+const (
+	AddressUnsafe Address = iota
+	AddressClampToZero
+	AddressRepeat
 )
 
 const (
@@ -29,8 +42,8 @@ const (
 )
 
 type key struct {
-	Filter    graphicsdriver.Filter
-	Address   graphicsdriver.Address
+	Filter    Filter
+	Address   Address
 	UseColorM bool
 }
 
@@ -117,7 +130,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 // Shader returns the built-in shader based on the given parameters.
 //
 // The returned shader always uses a color matrix so far.
-func Shader(filter graphicsdriver.Filter, address graphicsdriver.Address, useColorM bool) []byte {
+func Shader(filter Filter, address Address, useColorM bool) []byte {
 	shadersM.Lock()
 	defer shadersM.Unlock()
 
@@ -132,22 +145,22 @@ func Shader(filter graphicsdriver.Filter, address graphicsdriver.Address, useCol
 
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, struct {
-		Filter             graphicsdriver.Filter
-		FilterNearest      graphicsdriver.Filter
-		FilterLinear       graphicsdriver.Filter
-		Address            graphicsdriver.Address
-		AddressUnsafe      graphicsdriver.Address
-		AddressClampToZero graphicsdriver.Address
-		AddressRepeat      graphicsdriver.Address
+		Filter             Filter
+		FilterNearest      Filter
+		FilterLinear       Filter
+		Address            Address
+		AddressUnsafe      Address
+		AddressClampToZero Address
+		AddressRepeat      Address
 		UseColorM          bool
 	}{
 		Filter:             filter,
-		FilterNearest:      graphicsdriver.FilterNearest,
-		FilterLinear:       graphicsdriver.FilterLinear,
+		FilterNearest:      FilterNearest,
+		FilterLinear:       FilterLinear,
 		Address:            address,
-		AddressUnsafe:      graphicsdriver.AddressUnsafe,
-		AddressClampToZero: graphicsdriver.AddressClampToZero,
-		AddressRepeat:      graphicsdriver.AddressRepeat,
+		AddressUnsafe:      AddressUnsafe,
+		AddressClampToZero: AddressClampToZero,
+		AddressRepeat:      AddressRepeat,
 		UseColorM:          useColorM,
 	}); err != nil {
 		panic(fmt.Sprintf("builtinshader: tmpl.Execute failed: %v", err))

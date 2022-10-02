@@ -20,7 +20,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -58,8 +57,8 @@ func (s *Shader) convertUniforms(uniforms map[string]interface{}) [][]float32 {
 }
 
 type builtinShaderKey struct {
-	filter    graphicsdriver.Filter
-	address   graphicsdriver.Address
+	filter    builtinshader.Filter
+	address   builtinshader.Address
 	useColorM bool
 }
 
@@ -68,7 +67,7 @@ var (
 	builtinShadersM sync.Mutex
 )
 
-func builtinShader(filter graphicsdriver.Filter, address graphicsdriver.Address, useColorM bool) *Shader {
+func builtinShader(filter builtinshader.Filter, address builtinshader.Address, useColorM bool) *Shader {
 	builtinShadersM.Lock()
 	defer builtinShadersM.Unlock()
 
@@ -82,11 +81,11 @@ func builtinShader(filter graphicsdriver.Filter, address graphicsdriver.Address,
 	}
 
 	var shader *Shader
-	if address == graphicsdriver.AddressUnsafe && !useColorM {
+	if address == builtinshader.AddressUnsafe && !useColorM {
 		switch filter {
-		case graphicsdriver.FilterNearest:
+		case builtinshader.FilterNearest:
 			shader = &Shader{shader: ui.NearestFilterShader}
-		case graphicsdriver.FilterLinear:
+		case builtinshader.FilterLinear:
 			shader = &Shader{shader: ui.LinearFilterShader}
 		}
 	} else {

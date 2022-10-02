@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
@@ -24,10 +25,10 @@ type Filter int
 
 const (
 	// FilterNearest represents nearest (crisp-edged) filter
-	FilterNearest Filter = Filter(graphicsdriver.FilterNearest)
+	FilterNearest Filter = Filter(builtinshader.FilterNearest)
 
 	// FilterLinear represents linear filter
-	FilterLinear Filter = Filter(graphicsdriver.FilterLinear)
+	FilterLinear Filter = Filter(builtinshader.FilterLinear)
 )
 
 // CompositeMode represents Porter-Duff composition mode.
