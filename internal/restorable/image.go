@@ -603,11 +603,6 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 	i.basePixels.Apply(gimg)
 
 	for _, c := range i.drawTrianglesHistory {
-		var s *graphicscommand.Shader
-		if c.shader != nil {
-			s = c.shader.shader
-		}
-
 		var imgs [graphics.ShaderImageCount]*graphicscommand.Image
 		for i, img := range c.images {
 			if img == nil {
@@ -618,7 +613,7 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 			}
 			imgs[i] = img.image
 		}
-		gimg.DrawTriangles(imgs, c.offsets, c.vertices, c.indices, c.mode, c.dstRegion, c.srcRegion, s, c.uniforms, c.evenOdd)
+		gimg.DrawTriangles(imgs, c.offsets, c.vertices, c.indices, c.mode, c.dstRegion, c.srcRegion, c.shader.shader, c.uniforms, c.evenOdd)
 	}
 
 	if len(i.drawTrianglesHistory) > 0 {

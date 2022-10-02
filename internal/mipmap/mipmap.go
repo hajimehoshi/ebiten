@@ -104,11 +104,6 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices
 		}
 	}
 
-	var s *buffered.Shader
-	if shader != nil {
-		s = shader.shader
-	}
-
 	var imgs [graphics.ShaderImageCount]*buffered.Image
 	for i, src := range srcs {
 		if src == nil {
@@ -129,7 +124,7 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices
 		imgs[i] = src.orig
 	}
 
-	m.orig.DrawTriangles(imgs, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, s, uniforms, evenOdd)
+	m.orig.DrawTriangles(imgs, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, shader.shader, uniforms, evenOdd)
 	m.disposeMipmaps()
 }
 

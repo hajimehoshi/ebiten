@@ -69,12 +69,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		srcMipmaps[i] = src.mipmap
 	}
 
-	var s *mipmap.Shader
-	if shader != nil {
-		s = shader.shader
-	}
-
-	i.mipmap.DrawTriangles(srcMipmaps, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, s, uniforms, evenOdd, canSkipMipmap)
+	i.mipmap.DrawTriangles(srcMipmaps, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, shader.shader, uniforms, evenOdd, canSkipMipmap)
 }
 
 func (i *Image) WritePixels(pix []byte, x, y, width, height int) {

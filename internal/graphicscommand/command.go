@@ -304,11 +304,6 @@ func (c *drawTrianglesCommand) String() string {
 		dst += " (screen)"
 	}
 
-	shader := "default shader"
-	if c.shader != nil {
-		shader = "custom shader"
-	}
-
 	var srcstrs [graphics.ShaderImageCount]string
 	for i, src := range c.srcs {
 		if src == nil {
@@ -323,7 +318,7 @@ func (c *drawTrianglesCommand) String() string {
 
 	r := fmt.Sprintf("(x:%d, y:%d, width:%d, height:%d)",
 		int(c.dstRegion.X), int(c.dstRegion.Y), int(c.dstRegion.Width), int(c.dstRegion.Height))
-	return fmt.Sprintf("draw-triangles: dst: %s <- src: [%s], %s, dst region: %s, num of indices: %d, mode: %s, even-odd: %t", dst, strings.Join(srcstrs[:], ", "), shader, r, c.nindices, mode, c.evenOdd)
+	return fmt.Sprintf("draw-triangles: dst: %s <- src: [%s], dst region: %s, num of indices: %d, mode: %s, even-odd: %t", dst, strings.Join(srcstrs[:], ", "), r, c.nindices, mode, c.evenOdd)
 }
 
 // Exec executes the drawTrianglesCommand.
