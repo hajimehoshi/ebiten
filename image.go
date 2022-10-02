@@ -262,10 +262,12 @@ type Vertex struct {
 
 	// ColorR/ColorG/ColorB/ColorA represents color scaling values.
 	// Their interpretation depends on the concrete draw call used:
-	// - DrawTriangles: straight-alpha encoded color multiplier.
+	// - DrawTriangles: straight-alpha or premultiplied-alpha encoded color multiplier.
+	//   The format is determined by ColorScaleFormat in DrawTrianglesOptions.
 	//   If ColorA is 0, the vertex is fully transparent and color is ignored.
 	//   If ColorA is 1, the vertex has the color (ColorR, ColorG, ColorB).
-	//   Vertex colors are interpolated linearly respecting alpha.
+	//   Vertex colors are converted to premultiplied-alpha internally and
+	//   interpolated linearly respecting alpha.
 	// - DrawTrianglesShader: arbitrary floating point values sent to the shader.
 	//   These are interpolated linearly and independently from each other.
 	ColorR float32
