@@ -109,7 +109,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// Un-premultiply alpha.
 	// When the alpha is 0, 1-sign(alpha) is 1.0, which means division does nothing.
 	clr.rgb /= clr.a + (1-sign(clr.a))
-	// Apply the clr matrix or scale.
+	// Apply the clr matrix.
 	clr = (ColorMBody * clr) + ColorMTranslation
 	// Premultiply alpha
 	clr.rgb *= clr.a
