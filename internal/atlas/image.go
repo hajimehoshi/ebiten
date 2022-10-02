@@ -310,7 +310,7 @@ func (i *Image) ensureIsolated() {
 		Width:  float32(w - 2*i.paddingSize()),
 		Height: float32(h - 2*i.paddingSize()),
 	}
-	newImg.DrawTriangles(srcs, offsets, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, NearestFilterShader.shader, nil, false)
+	newImg.DrawTriangles(srcs, offsets, vs, is, graphicsdriver.CompositeModeCopy, dstRegion, graphicsdriver.Region{}, NearestFilterShader.shader, nil, false)
 
 	i.dispose(false)
 	i.backend = &backend{
@@ -480,7 +480,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		}
 	}
 
-	i.backend.restorable.DrawTriangles(imgs, offsets, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, s, uniforms, evenOdd)
+	i.backend.restorable.DrawTriangles(imgs, offsets, vertices, indices, mode, dstRegion, srcRegion, s, uniforms, evenOdd)
 
 	for _, src := range srcs {
 		if src == nil {
