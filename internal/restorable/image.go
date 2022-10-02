@@ -257,7 +257,7 @@ func clearImage(i *graphicscommand.Image) {
 		Width:  float32(dw),
 		Height: float32(dh),
 	}
-	i.DrawTriangles(srcs, offsets, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeClear, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, NearestFilterShader.shader, nil, false)
+	i.DrawTriangles(srcs, offsets, vs, is, graphicsdriver.CompositeModeClear, dstRegion, graphicsdriver.Region{}, NearestFilterShader.shader, nil, false)
 }
 
 // BasePixelsForTesting returns the image's basePixels for testing.
@@ -405,7 +405,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [g
 		}
 		s = shader.shader
 	}
-	i.image.DrawTriangles(imgs, offsets, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, s, uniforms, evenOdd)
+	i.image.DrawTriangles(imgs, offsets, vertices, indices, mode, dstRegion, srcRegion, s, uniforms, evenOdd)
 }
 
 // appendDrawTrianglesHistory appends a draw-image history item to the image.
@@ -618,7 +618,7 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 			}
 			imgs[i] = img.image
 		}
-		gimg.DrawTriangles(imgs, c.offsets, c.vertices, c.indices, c.colorm, c.mode, c.filter, c.address, c.dstRegion, c.srcRegion, s, c.uniforms, c.evenOdd)
+		gimg.DrawTriangles(imgs, c.offsets, c.vertices, c.indices, c.mode, c.dstRegion, c.srcRegion, s, c.uniforms, c.evenOdd)
 	}
 
 	if len(i.drawTrianglesHistory) > 0 {

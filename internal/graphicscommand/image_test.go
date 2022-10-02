@@ -19,7 +19,6 @@ import (
 	"image/color"
 	"testing"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
@@ -66,7 +65,7 @@ func TestClear(t *testing.T) {
 		Width:  w,
 		Height: h,
 	}
-	dst.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{src}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeClear, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nearestFilterShader, nil, false)
+	dst.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{src}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, graphicsdriver.CompositeModeClear, dr, graphicsdriver.Region{}, nearestFilterShader, nil, false)
 
 	pix := make([]byte, 4*w*h)
 	if err := dst.ReadPixels(ui.GraphicsDriverForTesting(), pix, 0, 0, w, h); err != nil {
@@ -97,8 +96,8 @@ func TestWritePixelsPartAfterDrawTriangles(t *testing.T) {
 		Width:  w,
 		Height: h,
 	}
-	dst.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{clr}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeClear, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nearestFilterShader, nil, false)
-	dst.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{src}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nearestFilterShader, nil, false)
+	dst.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{clr}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, graphicsdriver.CompositeModeClear, dr, graphicsdriver.Region{}, nearestFilterShader, nil, false)
+	dst.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{src}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, graphicsdriver.CompositeModeSourceOver, dr, graphicsdriver.Region{}, nearestFilterShader, nil, false)
 	dst.WritePixels(make([]byte, 4), 0, 0, 1, 1)
 
 	// TODO: Check the result.
@@ -116,11 +115,11 @@ func TestShader(t *testing.T) {
 		Width:  w,
 		Height: h,
 	}
-	dst.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{clr}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeClear, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nearestFilterShader, nil, false)
+	dst.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{clr}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, graphicsdriver.CompositeModeClear, dr, graphicsdriver.Region{}, nearestFilterShader, nil, false)
 
 	g := ui.GraphicsDriverForTesting()
 	s := graphicscommand.NewShader(etesting.ShaderProgramFill(0xff, 0, 0, 0xff))
-	dst.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeSourceOver, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, s, nil, false)
+	dst.DrawTriangles([graphics.ShaderImageCount]*graphicscommand.Image{}, [graphics.ShaderImageCount - 1][2]float32{}, vs, is, graphicsdriver.CompositeModeSourceOver, dr, graphicsdriver.Region{}, s, nil, false)
 
 	pix := make([]byte, 4*w*h)
 	if err := dst.ReadPixels(g, pix, 0, 0, w, h); err != nil {
