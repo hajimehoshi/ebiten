@@ -15,7 +15,6 @@
 package ui
 
 import (
-	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -57,7 +56,7 @@ func (i *Image) MarkDisposed() {
 	i.dotsCache = nil
 }
 
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, canSkipMipmap bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, mode graphicsdriver.CompositeMode, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, canSkipMipmap bool) {
 	i.resolveDotsCacheIfNeeded()
 
 	var srcMipmaps [graphics.ShaderImageCount]*mipmap.Mipmap
@@ -231,5 +230,5 @@ func (i *Image) Fill(r, g, b, a float32, x, y, width, height int) {
 
 	srcs := [graphics.ShaderImageCount]*Image{emptyImage}
 
-	i.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true)
+	i.DrawTriangles(srcs, vs, is, graphicsdriver.CompositeModeCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true)
 }

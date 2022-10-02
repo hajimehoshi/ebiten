@@ -245,7 +245,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, mode, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, i.adjustedRegion(), graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, false, canSkipMipmap(options.GeoM, filter))
+	i.image.DrawTriangles(srcs, vs, is, mode, i.adjustedRegion(), graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, false, canSkipMipmap(options.GeoM, filter))
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -455,7 +455,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, mode, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, i.adjustedRegion(), sr, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, options.FillRule == EvenOdd, filter != graphicsdriver.FilterLinear)
+	i.image.DrawTriangles(srcs, vs, is, mode, i.adjustedRegion(), sr, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, options.FillRule == EvenOdd, filter != graphicsdriver.FilterLinear)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
@@ -589,7 +589,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		offsets[i][1] = float32(y - sy)
 	}
 
-	i.image.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), options.FillRule == EvenOdd, true)
+	i.image.DrawTriangles(imgs, vs, is, mode, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), options.FillRule == EvenOdd, true)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
@@ -690,7 +690,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		offsets[i][1] = float32(y - sy)
 	}
 
-	i.image.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), false, true)
+	i.image.DrawTriangles(imgs, vs, is, mode, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), false, true)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.

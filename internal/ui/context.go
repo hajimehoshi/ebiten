@@ -20,7 +20,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
@@ -279,7 +278,7 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 			},
 		})
 	}
-	c.screen.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, shader, uniforms, false, true)
+	c.screen.DrawTriangles(srcs, vs, is, graphicsdriver.CompositeModeCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, shader, uniforms, false, true)
 }
 
 func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {
