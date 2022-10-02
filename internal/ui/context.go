@@ -281,12 +281,15 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 
 	dstWidth, dstHeight := c.screen.width, c.screen.height
 	srcWidth, srcHeight := c.offscreen.width, c.offscreen.height
-	uniforms := shader.ConvertUniforms(map[string]interface{}{
-		"Scale": []float32{
-			float32(dstWidth) / float32(srcWidth),
-			float32(dstHeight) / float32(srcHeight),
-		},
-	})
+	var uniforms [][]float32
+	if shader == c.screenShader {
+		uniforms = shader.ConvertUniforms(map[string]interface{}{
+			"Scale": []float32{
+				float32(dstWidth) / float32(srcWidth),
+				float32(dstHeight) / float32(srcHeight),
+			},
+		})
+	}
 	c.screen.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, shader, uniforms, false, true)
 }
 
