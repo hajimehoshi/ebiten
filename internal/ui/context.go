@@ -23,6 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
+	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -83,7 +84,9 @@ type context struct {
 	outsideWidth  float64
 	outsideHeight float64
 
-	screenShader *Shader
+	screenShader  *Shader
+	nearestShader *Shader
+	linearShader  *Shader
 
 	m sync.Mutex
 }
@@ -154,6 +157,20 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 			return err
 		}
 		c.screenShader = NewShader(ir)
+	}
+	if c.nearestShader == nil {
+		ir, err := graphics.CompileShader([]byte(builtinshader.Shader(graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, false)))
+		if err != nil {
+			return err
+		}
+		c.nearestShader = NewShader(ir)
+	}
+	if c.linearShader == nil {
+		ir, err := graphics.CompileShader([]byte(builtinshader.Shader(graphicsdriver.FilterLinear, graphicsdriver.AddressUnsafe, false)))
+		if err != nil {
+			return err
+		}
+		c.linearShader = NewShader(ir)
 	}
 
 	// ForceUpdate can be invoked even if the context is not initialized yet (#1591).
@@ -233,19 +250,18 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 	gtx += offsetX
 	gty += offsetY
 
-	var filter graphicsdriver.Filter
-	var screenFilter bool
+	var shader *Shader
 	switch {
 	case !theGlobalState.isScreenFilterEnabled():
-		filter = graphicsdriver.FilterNearest
+		shader = c.nearestShader
 	case math.Floor(s) == s:
-		filter = graphicsdriver.FilterNearest
+		shader = c.nearestShader
 	case s > 1:
-		screenFilter = true
+		shader = c.screenShader
 	default:
 		// screenShader works with >=1 scale, but does not well with <1 scale.
 		// Use regular FilterLinear instead so far (#669).
-		filter = graphicsdriver.FilterLinear
+		shader = c.linearShader
 	}
 
 	dstRegion := graphicsdriver.Region{
@@ -263,20 +279,15 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 
 	srcs := [graphics.ShaderImageCount]*Image{c.offscreen}
 
-	var shader *Shader
-	var uniforms [][]float32
-	if screenFilter {
-		shader = c.screenShader
-		dstWidth, dstHeight := c.screen.width, c.screen.height
-		srcWidth, srcHeight := c.offscreen.width, c.offscreen.height
-		uniforms = shader.ConvertUniforms(map[string]interface{}{
-			"Scale": []float32{
-				float32(dstWidth) / float32(srcWidth),
-				float32(dstHeight) / float32(srcHeight),
-			},
-		})
-	}
-	c.screen.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, filter, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, shader, uniforms, false, true)
+	dstWidth, dstHeight := c.screen.width, c.screen.height
+	srcWidth, srcHeight := c.offscreen.width, c.offscreen.height
+	uniforms := shader.ConvertUniforms(map[string]interface{}{
+		"Scale": []float32{
+			float32(dstWidth) / float32(srcWidth),
+			float32(dstHeight) / float32(srcHeight),
+		},
+	})
+	c.screen.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, shader, uniforms, false, true)
 }
 
 func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {
