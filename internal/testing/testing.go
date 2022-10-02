@@ -41,7 +41,8 @@ func (*game) Layout(int, int) (int, int) {
 func MainWithRunLoop(m *testing.M) {
 	// Run an Ebiten process so that (*Image).At is available.
 	g := &game{
-		m: m,
+		m:    m,
+		code: 1,
 	}
 	if err := ebiten.RunGame(g); err != nil {
 		panic(err)
