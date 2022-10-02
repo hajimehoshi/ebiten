@@ -125,7 +125,7 @@ PSInput VSMain(float2 position : POSITION, float2 tex : TEXCOORD, float4 color :
   PSInput result;
   result.position = mul(projectionMatrix, float4(position, 0, 1));
   result.texcoord = tex;
-  result.color = float4(color.rgb, 1) * color.a;
+  result.color = color;
   return result;
 }
 

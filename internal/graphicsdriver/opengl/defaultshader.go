@@ -115,9 +115,7 @@ varying vec4 varying_color_scale;
 
 void main(void) {
   varying_tex = A1;
-
-  // Fragment shader wants premultiplied alpha.
-  varying_color_scale = vec4(A2.rgb, 1) * A2.a;
+  varying_color_scale = A2;
 
   mat4 projection_matrix = mat4(
     vec4(2.0 / viewport_size.x, 0, 0, 0),

@@ -70,8 +70,7 @@ vertex VertexOut VertexShader(
   VertexOut out = {
     .position = projectionMatrix * float4(in.position, 0, 1),
     .tex = in.tex,
-    // Fragment shader wants premultiplied alpha.
-    .color = float4(in.color.rgb, 1) * in.color.a,
+    .color = in.color,
   };
 
   return out;

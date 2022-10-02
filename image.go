@@ -87,12 +87,10 @@ func (i *Image) Fill(clr color.Color) {
 
 	var crf, cgf, cbf, caf float32
 	cr, cg, cb, ca := clr.RGBA()
-	if ca != 0 {
-		crf = float32(cr) / float32(ca)
-		cgf = float32(cg) / float32(ca)
-		cbf = float32(cb) / float32(ca)
-		caf = float32(ca) / 0xffff
-	}
+	crf = float32(cr) / 0xffff
+	cgf = float32(cg) / 0xffff
+	cbf = float32(cb) / 0xffff
+	caf = float32(ca) / 0xffff
 	b := i.Bounds()
 	x, y := i.adjustPosition(b.Min.X, b.Min.Y)
 	i.image.Fill(crf, cgf, cbf, caf, x, y, b.Dx(), b.Dy())
@@ -386,9 +384,9 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		sx, sy := img.adjustPositionF32(v.SrcX, v.SrcY)
 		vs[i*graphics.VertexFloatCount+2] = sx
 		vs[i*graphics.VertexFloatCount+3] = sy
-		vs[i*graphics.VertexFloatCount+4] = v.ColorR * cr
-		vs[i*graphics.VertexFloatCount+5] = v.ColorG * cg
-		vs[i*graphics.VertexFloatCount+6] = v.ColorB * cb
+		vs[i*graphics.VertexFloatCount+4] = v.ColorR * v.ColorA * cr
+		vs[i*graphics.VertexFloatCount+5] = v.ColorG * v.ColorA * cg
+		vs[i*graphics.VertexFloatCount+6] = v.ColorB * v.ColorA * cb
 		vs[i*graphics.VertexFloatCount+7] = v.ColorA * ca
 	}
 	is := make([]uint16, len(indices))
@@ -994,14 +992,9 @@ func NewImageFromImageWithOptions(source image.Image, options *NewImageFromImage
 // colorMToScale returns a new color matrix and color sclaes that equal to the given matrix in terms of the effect.
 //
 // If the given matrix is merely a scaling matrix, colorMToScale returns
-// an identity matrix and its scaling factors. This is useful to optimize
-// the rendering speed by avoiding the use of the color matrix and instead
-// multiplying all vertex colors by the scale.
-//
-// NOTE: this is only safe when not using a custom Kage shader,
-// as custom shaders may be using vertex colors for different purposes
-// than colorization. However, currently there are no Ebitengine APIs that
-// support both shaders and color matrices.
+// an identity matrix and its scaling factors in premultiplied-alpha format.
+// This is useful to optimize the rendering speed by avoiding the use of the
+// color matrix and instead multiplying all vertex colors by the scale.
 func colorMToScale(colorm affine.ColorM) (newColorM affine.ColorM, r, g, b, a float32) {
 	if colorm.IsIdentity() {
 		return colorm, 1, 1, 1, 1
@@ -1010,6 +1003,7 @@ func colorMToScale(colorm affine.ColorM) (newColorM affine.ColorM, r, g, b, a fl
 	if !colorm.ScaleOnly() {
 		return colorm, 1, 1, 1, 1
 	}
+
 	r = colorm.At(0, 0)
 	g = colorm.At(1, 1)
 	b = colorm.At(2, 2)
@@ -1029,5 +1023,5 @@ func colorMToScale(colorm affine.ColorM) (newColorM affine.ColorM, r, g, b, a fl
 		return colorm, 1, 1, 1, 1
 	}
 
-	return affine.ColorMIdentity{}, r, g, b, a
+	return affine.ColorMIdentity{}, r * a, g * a, b * a, a
 }

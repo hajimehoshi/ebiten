@@ -140,14 +140,10 @@ func (i *Image) resolveDotsCacheIfNeeded() {
 	for p, c := range i.dotsCache {
 		dx := float32(p[0])
 		dy := float32(p[1])
-
-		var crf, cgf, cbf, caf float32
-		if c[3] != 0 {
-			crf = float32(c[0]) / float32(c[3])
-			cgf = float32(c[1]) / float32(c[3])
-			cbf = float32(c[2]) / float32(c[3])
-			caf = float32(c[3]) / 0xff
-		}
+		crf := float32(c[0]) / 0xff
+		cgf := float32(c[1]) / 0xff
+		cbf := float32(c[2]) / 0xff
+		caf := float32(c[3]) / 0xff
 
 		vs[graphics.VertexFloatCount*4*idx] = dx
 		vs[graphics.VertexFloatCount*4*idx+1] = dy
