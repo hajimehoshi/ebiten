@@ -196,7 +196,7 @@ func (i *Image) resolveDotsCacheIfNeeded() {
 		Width:  float32(i.width),
 		Height: float32(i.height),
 	}
-	i.mipmap.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, nearestFilterShader.shader, nil, false, true)
+	i.mipmap.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader.shader, nil, false, true)
 }
 
 func DumpImages(dir string) (string, error) {
@@ -236,5 +236,5 @@ func (i *Image) Fill(r, g, b, a float32, x, y, width, height int) {
 
 	srcs := [graphics.ShaderImageCount]*Image{emptyImage}
 
-	i.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, nearestFilterShader, nil, false, true)
+	i.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true)
 }

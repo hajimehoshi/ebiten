@@ -67,8 +67,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 var (
 	screenShader        *Shader
-	nearestFilterShader = &Shader{shader: mipmap.NearestFilterShader}
-	linearFilterShader  = &Shader{shader: mipmap.LinearFilterShader}
+	NearestFilterShader = &Shader{shader: mipmap.NearestFilterShader}
+	LinearFilterShader  = &Shader{shader: mipmap.LinearFilterShader}
 )
 
 func init() {
@@ -242,15 +242,15 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 	var shader *Shader
 	switch {
 	case !theGlobalState.isScreenFilterEnabled():
-		shader = nearestFilterShader
+		shader = NearestFilterShader
 	case math.Floor(s) == s:
-		shader = nearestFilterShader
+		shader = NearestFilterShader
 	case s > 1:
 		shader = screenShader
 	default:
 		// screenShader works with >=1 scale, but does not well with <1 scale.
 		// Use regular FilterLinear instead so far (#669).
-		shader = linearFilterShader
+		shader = LinearFilterShader
 	}
 
 	dstRegion := graphicsdriver.Region{

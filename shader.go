@@ -81,11 +81,23 @@ func builtinShader(filter graphicsdriver.Filter, address graphicsdriver.Address,
 		return s
 	}
 
-	src := builtinshader.Shader(filter, address, useColorM)
-	s, err := NewShader(src)
-	if err != nil {
-		panic(fmt.Sprintf("ebiten: NewShader for a built-in shader failed: %v", err))
+	var shader *Shader
+	if address == graphicsdriver.AddressUnsafe && !useColorM {
+		switch filter {
+		case graphicsdriver.FilterNearest:
+			shader = &Shader{shader: ui.NearestFilterShader}
+		case graphicsdriver.FilterLinear:
+			shader = &Shader{shader: ui.LinearFilterShader}
+		}
+	} else {
+		src := builtinshader.Shader(filter, address, useColorM)
+		s, err := NewShader(src)
+		if err != nil {
+			panic(fmt.Sprintf("ebiten: NewShader for a built-in shader failed: %v", err))
+		}
+		shader = s
 	}
-	builtinShaders[key] = s
-	return s
+
+	builtinShaders[key] = shader
+	return shader
 }
