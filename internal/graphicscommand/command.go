@@ -377,7 +377,7 @@ func (c *drawTrianglesCommand) Exec(graphicsDriver graphicsdriver.Graphics, inde
 		imgs[0] = c.srcs[0].image.ID()
 	}
 
-	return graphicsDriver.DrawTriangles(c.dst.image.ID(), imgs, c.offsets, shaderID, c.nindices, indexOffset, c.mode, c.color, c.filter, c.address, c.dstRegion, c.srcRegion, c.uniforms, c.evenOdd)
+	return graphicsDriver.DrawTriangles(c.dst.image.ID(), imgs, c.offsets, shaderID, c.nindices, indexOffset, c.mode, c.dstRegion, c.srcRegion, c.uniforms, c.evenOdd)
 }
 
 func (c *drawTrianglesCommand) numVertices() int {
