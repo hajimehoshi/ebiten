@@ -406,7 +406,7 @@ func (g *globalState) setScreenClearedEveryFrame(cleared bool) {
 }
 
 func (g *globalState) isScreenFilterEnabled() bool {
-	return graphicsdriver.Filter(atomic.LoadInt32(&g.screenFilterEnabled_)) != 0
+	return atomic.LoadInt32(&g.screenFilterEnabled_) != 0
 }
 
 func (g *globalState) setScreenFilterEnabled(enabled bool) {
