@@ -21,6 +21,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
+	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -231,7 +232,20 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 
 	srcs := [graphics.ShaderImageCount]*ui.Image{img.image}
 
-	i.image.DrawTriangles(srcs, vs, is, colorm, mode, filter, graphicsdriver.AddressUnsafe, i.adjustedRegion(), graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, nil, nil, false, canSkipMipmap(options.GeoM, filter))
+	useColorM := !colorm.IsIdentity()
+	shader := builtinShader(graphicsdriver.Filter(filter), graphicsdriver.AddressUnsafe, useColorM)
+	var uniforms [][]float32
+	if useColorM {
+		var body [16]float32
+		var translation [4]float32
+		colorm.Elements(body[:], translation[:])
+		uniforms = shader.convertUniforms(map[string]interface{}{
+			builtinshader.UniformColorMBody:        body[:],
+			builtinshader.UniformColorMTranslation: translation[:],
+		})
+	}
+
+	i.image.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, mode, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, i.adjustedRegion(), graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, false, canSkipMipmap(options.GeoM, filter))
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -426,7 +440,20 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	srcs := [graphics.ShaderImageCount]*ui.Image{img.image}
 
-	i.image.DrawTriangles(srcs, vs, is, colorm, mode, filter, address, i.adjustedRegion(), sr, [graphics.ShaderImageCount - 1][2]float32{}, nil, nil, options.FillRule == EvenOdd, false)
+	useColorM := !colorm.IsIdentity()
+	shader := builtinShader(graphicsdriver.Filter(filter), graphicsdriver.Address(address), useColorM)
+	var uniforms [][]float32
+	if useColorM {
+		var body [16]float32
+		var translation [4]float32
+		colorm.Elements(body[:], translation[:])
+		uniforms = shader.convertUniforms(map[string]interface{}{
+			builtinshader.UniformColorMBody:        body[:],
+			builtinshader.UniformColorMTranslation: translation[:],
+		})
+	}
+
+	i.image.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, mode, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, i.adjustedRegion(), sr, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, options.FillRule == EvenOdd, false)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
