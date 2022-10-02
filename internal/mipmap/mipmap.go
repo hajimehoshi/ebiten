@@ -124,7 +124,7 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices
 		imgs[i] = src.orig
 	}
 
-	m.orig.DrawTriangles(imgs, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, shader.shader, uniforms, evenOdd)
+	m.orig.DrawTriangles(imgs, vertices, indices, mode, dstRegion, srcRegion, subimageOffsets, shader.shader, uniforms, evenOdd)
 	m.disposeMipmaps()
 }
 
@@ -193,7 +193,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		Width:  float32(w2),
 		Height: float32(h2),
 	}
-	s.DrawTriangles([graphics.ShaderImageCount]*buffered.Image{src}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, nil, false)
+	s.DrawTriangles([graphics.ShaderImageCount]*buffered.Image{src}, vs, is, graphicsdriver.CompositeModeCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, nil, false)
 	m.setImg(level, s)
 
 	return m.imgs[level]
