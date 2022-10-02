@@ -402,18 +402,16 @@ func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs
 	if c.shader != shader {
 		return false
 	}
-	if c.shader != nil {
-		if len(c.uniforms) != len(uniforms) {
+	if len(c.uniforms) != len(uniforms) {
+		return false
+	}
+	for i := range c.uniforms {
+		if len(c.uniforms[i]) != len(uniforms[i]) {
 			return false
 		}
-		for i := range c.uniforms {
-			if len(c.uniforms[i]) != len(uniforms[i]) {
+		for j := range c.uniforms[i] {
+			if c.uniforms[i][j] != uniforms[i][j] {
 				return false
-			}
-			for j := range c.uniforms[i] {
-				if c.uniforms[i][j] != uniforms[i][j] {
-					return false
-				}
 			}
 		}
 	}
