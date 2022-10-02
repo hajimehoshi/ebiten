@@ -89,13 +89,13 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderImageCount]*Mipmap, vertices
 			dy2 := vertices[n*indices[3*i+2]+1]
 			sx2 := vertices[n*indices[3*i+2]+2]
 			sy2 := vertices[n*indices[3*i+2]+3]
-			if l := mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1); level > l {
+			if l := mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, filter); level > l {
 				level = l
 			}
-			if l := mipmapLevelFromDistance(dx1, dy1, dx2, dy2, sx1, sy1, sx2, sy2); level > l {
+			if l := mipmapLevelFromDistance(dx1, dy1, dx2, dy2, sx1, sy1, sx2, sy2, filter); level > l {
 				level = l
 			}
-			if l := mipmapLevelFromDistance(dx2, dy2, dx0, dy0, sx2, sy2, sx0, sy0); level > l {
+			if l := mipmapLevelFromDistance(dx2, dy2, dx0, dy0, sx2, sy2, sx0, sy0, filter); level > l {
 				level = l
 			}
 		}
@@ -232,7 +232,7 @@ func (m *Mipmap) disposeMipmaps() {
 }
 
 // mipmapLevel returns an appropriate mipmap level for the given distance.
-func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32) int {
+func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32, filter graphicsdriver.Filter) int {
 	const maxLevel = 6
 
 	d := (dx1-dx0)*(dx1-dx0) + (dy1-dy0)*(dy1-dy0)
@@ -249,6 +249,10 @@ func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32) int
 
 	// Scale can be zero when the specified scale is extremely small (#1398).
 	if scale == 0 {
+		return 0
+	}
+
+	if filter != graphicsdriver.FilterLinear {
 		return 0
 	}
 
