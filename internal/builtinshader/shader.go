@@ -131,15 +131,24 @@ func Shader(filter graphicsdriver.Filter, address graphicsdriver.Address, useCol
 	}
 
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, map[string]interface{}{
-		"Filter":             filter,
-		"FilterNearest":      graphicsdriver.FilterNearest,
-		"FilterLinear":       graphicsdriver.FilterLinear,
-		"Address":            address,
-		"AddressUnsafe":      graphicsdriver.AddressUnsafe,
-		"AddressClampToZero": graphicsdriver.AddressClampToZero,
-		"AddressRepeat":      graphicsdriver.AddressRepeat,
-		"UseColorM":          useColorM,
+	if err := tmpl.Execute(&buf, struct {
+		Filter             graphicsdriver.Filter
+		FilterNearest      graphicsdriver.Filter
+		FilterLinear       graphicsdriver.Filter
+		Address            graphicsdriver.Address
+		AddressUnsafe      graphicsdriver.Address
+		AddressClampToZero graphicsdriver.Address
+		AddressRepeat      graphicsdriver.Address
+		UseColorM          bool
+	}{
+		Filter:             filter,
+		FilterNearest:      graphicsdriver.FilterNearest,
+		FilterLinear:       graphicsdriver.FilterLinear,
+		Address:            address,
+		AddressUnsafe:      graphicsdriver.AddressUnsafe,
+		AddressClampToZero: graphicsdriver.AddressClampToZero,
+		AddressRepeat:      graphicsdriver.AddressRepeat,
+		UseColorM:          useColorM,
 	}); err != nil {
 		panic(fmt.Sprintf("builtinshader: tmpl.Execute failed: %v", err))
 	}
