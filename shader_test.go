@@ -1256,7 +1256,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	op.ColorScale.SetG(5.0 / 8.0)
 	op.ColorScale.SetB(6.0 / 8.0)
 	op.ColorScale.SetA(7.0 / 8.0)
-	op.ColorScale.Scale(1.0/4.0, 2.0/4.0, 3.0/4.0, 4.0/4.0)
+	op.ColorScale.ScaleWithColor(color.RGBA{0x40, 0x80, 0xc0, 0xff})
 	dst.DrawRectShader(w, h, s, op)
 
 	for j := 0; j < h; j++ {

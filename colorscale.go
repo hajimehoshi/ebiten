@@ -88,9 +88,5 @@ func (c *ColorScale) Scale(r, g, b, a float32) {
 // ScaleWithColor multiplies the given color values to the current scale.
 func (c *ColorScale) ScaleWithColor(clr color.Color) {
 	cr, cg, cb, ca := clr.RGBA()
-	if ca == 0 {
-		c.Scale(0, 0, 0, 0)
-		return
-	}
-	c.Scale(float32(cr)/float32(ca), float32(cg)/float32(ca), float32(cb)/float32(ca), float32(ca)/0xffff)
+	c.Scale(float32(cr)/0xffff, float32(cg)/0xffff, float32(cb)/0xffff, float32(ca)/0xffff)
 }
