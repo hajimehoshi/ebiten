@@ -31,7 +31,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
-const screenShader = `package main
+const screenShaderSrc = `package main
 
 var Scale vec2
 
@@ -65,6 +65,36 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 }
 `
 
+var (
+	screenShader  *Shader
+	nearestShader *Shader
+	linearShader  *Shader
+)
+
+func init() {
+	{
+		ir, err := graphics.CompileShader([]byte(screenShaderSrc))
+		if err != nil {
+			panic(fmt.Sprintf("ui: compiling the screen shader failed: %v", err))
+		}
+		screenShader = NewShader(ir)
+	}
+	{
+		ir, err := graphics.CompileShader([]byte(builtinshader.Shader(graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, false)))
+		if err != nil {
+			panic(fmt.Sprintf("ui: compiling the nearest shader failed: %v", err))
+		}
+		nearestShader = NewShader(ir)
+	}
+	{
+		ir, err := graphics.CompileShader([]byte(builtinshader.Shader(graphicsdriver.FilterLinear, graphicsdriver.AddressUnsafe, false)))
+		if err != nil {
+			panic(fmt.Sprintf("ui: compiling the linear shader failed: %v", err))
+		}
+		linearShader = NewShader(ir)
+	}
+}
+
 type Game interface {
 	NewOffscreenImage(width, height int) *Image
 	Layout(outsideWidth, outsideHeight int) (int, int)
@@ -83,10 +113,6 @@ type context struct {
 	// The following members must be protected by the mutex m.
 	outsideWidth  float64
 	outsideHeight float64
-
-	screenShader  *Shader
-	nearestShader *Shader
-	linearShader  *Shader
 
 	m sync.Mutex
 }
@@ -149,29 +175,6 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 			err = err1
 		}
 	}()
-
-	// Create a shader for the screen if necessary.
-	if c.screenShader == nil {
-		ir, err := graphics.CompileShader([]byte(screenShader))
-		if err != nil {
-			return err
-		}
-		c.screenShader = NewShader(ir)
-	}
-	if c.nearestShader == nil {
-		ir, err := graphics.CompileShader([]byte(builtinshader.Shader(graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, false)))
-		if err != nil {
-			return err
-		}
-		c.nearestShader = NewShader(ir)
-	}
-	if c.linearShader == nil {
-		ir, err := graphics.CompileShader([]byte(builtinshader.Shader(graphicsdriver.FilterLinear, graphicsdriver.AddressUnsafe, false)))
-		if err != nil {
-			return err
-		}
-		c.linearShader = NewShader(ir)
-	}
 
 	// ForceUpdate can be invoked even if the context is not initialized yet (#1591).
 	if w, h := c.layoutGame(outsideWidth, outsideHeight, deviceScaleFactor); w == 0 || h == 0 {
@@ -253,15 +256,15 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 	var shader *Shader
 	switch {
 	case !theGlobalState.isScreenFilterEnabled():
-		shader = c.nearestShader
+		shader = nearestShader
 	case math.Floor(s) == s:
-		shader = c.nearestShader
+		shader = nearestShader
 	case s > 1:
-		shader = c.screenShader
+		shader = screenShader
 	default:
 		// screenShader works with >=1 scale, but does not well with <1 scale.
 		// Use regular FilterLinear instead so far (#669).
-		shader = c.linearShader
+		shader = linearShader
 	}
 
 	dstRegion := graphicsdriver.Region{
@@ -282,7 +285,7 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 	dstWidth, dstHeight := c.screen.width, c.screen.height
 	srcWidth, srcHeight := c.offscreen.width, c.offscreen.height
 	var uniforms [][]float32
-	if shader == c.screenShader {
+	if shader == screenShader {
 		uniforms = shader.ConvertUniforms(map[string]interface{}{
 			"Scale": []float32{
 				float32(dstWidth) / float32(srcWidth),
