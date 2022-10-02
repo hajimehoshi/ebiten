@@ -322,7 +322,7 @@ type DrawTrianglesOptions struct {
 
 	// ColorScaleFormat is the format of color scales in vertices.
 	// The default (zero) value is ColorScaleFormatStraightAlpha.
-	ColorScaleFormat
+	ColorScaleFormat ColorScaleFormat
 
 	// CompositeMode is a composite mode to draw.
 	// The default (zero) value is regular alpha blending.
