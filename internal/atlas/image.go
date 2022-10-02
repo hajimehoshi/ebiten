@@ -418,8 +418,8 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	}
 
 	x, y, _, _ := i.regionWithPadding()
-	dx := float32(x + i.paddingSize())
-	dy := float32(y + i.paddingSize())
+	ps := i.paddingSize()
+	dx, dy := float32(x+ps), float32(y+ps)
 	// TODO: Check if dstRegion does not to violate the region.
 
 	dstRegion.X += dx
@@ -428,9 +428,8 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	var oxf, oyf float32
 	if srcs[0] != nil {
 		ox, oy, _, _ := srcs[0].regionWithPadding()
-		ox += srcs[0].paddingSize()
-		oy += srcs[0].paddingSize()
-		oxf, oyf = float32(ox), float32(oy)
+		ps := srcs[0].paddingSize()
+		oxf, oyf = float32(ox+ps), float32(oy+ps)
 		sw, sh := srcs[0].backend.restorable.InternalSize()
 		swf, shf := float32(sw), float32(sh)
 		n := len(vertices)
@@ -462,8 +461,9 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 			continue
 		}
 		ox, oy, _, _ := src.regionWithPadding()
-		offsets[i][0] = float32(ox+src.paddingSize()) - oxf + subimageOffset[0]
-		offsets[i][1] = float32(oy+src.paddingSize()) - oyf + subimageOffset[1]
+		ps := src.paddingSize()
+		offsets[i][0] = float32(ox+ps) - oxf + subimageOffset[0]
+		offsets[i][1] = float32(oy+ps) - oyf + subimageOffset[1]
 	}
 	for i, src := range srcs {
 		if src == nil {
