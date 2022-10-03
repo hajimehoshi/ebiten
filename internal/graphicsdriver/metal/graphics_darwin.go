@@ -494,21 +494,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 		srcs[i] = g.images[srcID]
 	}
 
-	rpss := map[stencilMode]mtl.RenderPipelineState{}
-	var uniformVars [][]float32
-	for _, stencil := range []stencilMode{
-		prepareStencil,
-		drawWithStencil,
-		noStencil,
-	} {
-		var err error
-		rpss[stencil], err = g.shaders[shaderID].RenderPipelineState(&g.view, mode, stencil, dst.screen)
-		if err != nil {
-			return err
-		}
-	}
-
-	uniformVars = make([][]float32, graphics.PreservedUniformVariablesCount+len(uniforms))
+	uniformVars := make([][]float32, graphics.PreservedUniformVariablesCount+len(uniforms))
 
 	// Set the destination texture size.
 	dw, dh := dst.internalSize()
@@ -589,14 +575,26 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 	}
 
 	if evenOdd {
-		if err := g.draw(rpss[prepareStencil], dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, prepareStencil); err != nil {
+		prepareStencilRpss, err := g.shaders[shaderID].RenderPipelineState(&g.view, mode, prepareStencil, dst.screen)
+		if err != nil {
 			return err
 		}
-		if err := g.draw(rpss[drawWithStencil], dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, drawWithStencil); err != nil {
+		if err := g.draw(prepareStencilRpss, dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, prepareStencil); err != nil {
+			return err
+		}
+		drawWithStencilRpss, err := g.shaders[shaderID].RenderPipelineState(&g.view, mode, drawWithStencil, dst.screen)
+		if err != nil {
+			return err
+		}
+		if err := g.draw(drawWithStencilRpss, dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, drawWithStencil); err != nil {
 			return err
 		}
 	} else {
-		if err := g.draw(rpss[noStencil], dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, noStencil); err != nil {
+		rpss, err := g.shaders[shaderID].RenderPipelineState(&g.view, mode, noStencil, dst.screen)
+		if err != nil {
+			return err
+		}
+		if err := g.draw(rpss, dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, noStencil); err != nil {
 			return err
 		}
 	}
