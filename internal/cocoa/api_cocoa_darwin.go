@@ -18,8 +18,11 @@ import (
 	"reflect"
 	"unsafe"
 
+	"github.com/ebitengine/purego"
 	"github.com/ebitengine/purego/objc"
 )
+
+var _ = purego.Dlopen("Cocoa.framework/Cocoa", purego.RTLD_GLOBAL)
 
 var (
 	class_NSInvocation      = objc.GetClass("NSInvocation")
@@ -28,6 +31,7 @@ var (
 	class_NSString          = objc.GetClass("NSString")
 	class_NSProcessInfo     = objc.GetClass("NSProcessInfo")
 	class_NSColor           = objc.GetClass("NSColor")
+	class_NSCursor          = objc.GetClass("NSCursor")
 	class_NSWindow          = objc.GetClass("NSWindow")
 	class_NSView            = objc.GetClass("NSView")
 	class_NSScreen          = objc.GetClass("NSScreen")
@@ -39,6 +43,7 @@ var (
 	sel_alloc                                       = objc.RegisterName("alloc")
 	sel_new                                         = objc.RegisterName("new")
 	sel_release                                     = objc.RegisterName("release")
+	sel_retain                                      = objc.RegisterName("retain")
 	sel_invocationWithMethodSignature               = objc.RegisterName("invocationWithMethodSignature:")
 	sel_setSelector                                 = objc.RegisterName("setSelector:")
 	sel_setTarget                                   = objc.RegisterName("setTarget:")
@@ -70,6 +75,15 @@ var (
 	sel_detachNewThreadSelector_toTarget_withObject = objc.RegisterName("detachNewThreadSelector:toTarget:withObject:")
 	sel_sharedApplication                           = objc.RegisterName("sharedApplication")
 	sel_setDelegate                                 = objc.RegisterName("setDelegate:")
+	sel_screens                                     = objc.RegisterName("screens")
+	sel_objectAtIndex                               = objc.RegisterName("objectAtIndex:")
+	sel_count                                       = objc.RegisterName("count")
+	sel_respondsToSelector                          = objc.RegisterName("respondsToSelector:")
+	sel_performSelector                             = objc.RegisterName("performSelector:")
+	sel_IBeamCursor                                 = objc.RegisterName("IBeamCursor")
+	sel_crosshairCursor                             = objc.RegisterName("crosshairCursor")
+	sel_pointingHandCursor                          = objc.RegisterName("pointingHandCursor")
+	sel_convertRectToBacking                        = objc.RegisterName("convertRectToBacking:")
 )
 
 const NSWindowCollectionBehaviorFullScreenPrimary = 1 << 7
@@ -100,6 +114,10 @@ type NSInteger = int
 type NSPoint = CGPoint
 type NSRect = CGRect
 type NSSize = CGSize
+
+func NSObject_retain(obj objc.ID) {
+	obj.Send(sel_retain)
+}
 
 type NSError struct {
 	objc.ID
@@ -183,6 +201,30 @@ func (w NSWindow) Frame() NSRect {
 
 func (w NSWindow) ContentView() NSView {
 	return NSView{w.Send(sel_contentView)}
+}
+
+type NSCursor struct {
+	objc.ID
+}
+
+func NSCursor_IBeamCursor() NSCursor {
+	return NSCursor{objc.ID(class_NSCursor).Send(sel_IBeamCursor)}
+}
+
+func NSCursor_crosshairCursor() NSCursor {
+	return NSCursor{objc.ID(class_NSCursor).Send(sel_crosshairCursor)}
+}
+
+func NSCursor_pointingHandCursor() NSCursor {
+	return NSCursor{objc.ID(class_NSCursor).Send(sel_pointingHandCursor)}
+}
+
+func NSCursor_respondsToSelector(sel objc.SEL) bool {
+	return objc.ID(class_NSCursor).Send(sel_respondsToSelector, sel) != 0
+}
+
+func NSCursor_performSelector(sel objc.SEL) objc.ID {
+	return objc.ID(class_NSCursor).Send(sel_performSelector, sel)
 }
 
 type NSView struct {
@@ -309,8 +351,43 @@ func NSScreen_mainScreen() NSScreen {
 	return NSScreen{objc.ID(class_NSScreen).Send(sel_mainScreen)}
 }
 
+func NSScreen_screens() NSArray {
+	return NSArray{objc.ID(class_NSScreen).Send(sel_screens)}
+}
+
+func (s NSScreen) Frame() NSRect {
+	sig := NSMethodSignature_instanceMethodSignatureForSelector(objc.ID(class_NSScreen), sel_frame)
+	inv := NSInvocation_invocationWithMethodSignature(sig)
+	inv.SetSelector(sel_frame)
+	inv.InvokeWithTarget(s.ID)
+	rect := NSRect{}
+	inv.GetReturnValue(unsafe.Pointer(&rect))
+	return rect
+}
+
+func (s NSScreen) ConvertRectToBacking(rect NSRect) NSRect {
+	sig := NSMethodSignature_instanceMethodSignatureForSelector(objc.ID(class_NSScreen), sel_convertRectToBacking)
+	inv := NSInvocation_invocationWithMethodSignature(sig)
+	inv.SetSelector(sel_convertRectToBacking)
+	inv.InvokeWithTarget(s.ID)
+	inv.GetReturnValue(unsafe.Pointer(&rect))
+	return rect
+}
+
 func (s NSScreen) DeviceDescription() NSDictionary {
 	return NSDictionary{s.Send(sel_deviceDescription)}
+}
+
+type NSArray struct {
+	objc.ID
+}
+
+func (a NSArray) Count() NSUInteger {
+	return NSUInteger(a.Send(sel_count))
+}
+
+func (a NSArray) ObjectAtIndex(idx NSUInteger) objc.ID {
+	return a.Send(sel_objectAtIndex, idx)
 }
 
 type NSDictionary struct {

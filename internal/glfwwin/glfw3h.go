@@ -284,12 +284,16 @@ const (
 type StandardCursor int
 
 const (
-	ArrowCursor     StandardCursor = 0x00036001
-	IBeamCursor     StandardCursor = 0x00036002
-	CrosshairCursor StandardCursor = 0x00036003
-	HandCursor      StandardCursor = 0x00036004
-	HResizeCursor   StandardCursor = 0x00036005
-	VResizeCursor   StandardCursor = 0x00036006
+	ArrowCursor      StandardCursor = 0x00036001
+	IBeamCursor      StandardCursor = 0x00036002
+	CrosshairCursor  StandardCursor = 0x00036003
+	HandCursor       StandardCursor = 0x00036004
+	HResizeCursor    StandardCursor = 0x00036005
+	VResizeCursor    StandardCursor = 0x00036006
+	NWSEResizeCursor StandardCursor = 0x00036007
+	NESWResizeCursor StandardCursor = 0x00036008
+	AllResizeCursor  StandardCursor = 0x00036009
+	NotAllowedCursor StandardCursor = 0x0003600A
 )
 
 type Error int

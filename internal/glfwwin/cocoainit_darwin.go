@@ -128,7 +128,10 @@ func platformInit() error {
 	//    if (!initializeTIS())
 	//        return FALSE;
 	//
-	//    _glfwPollMonitorsCocoa();
+	err := pollMonitorsCocoa()
+	if err != nil {
+		return err
+	}
 	//
 	//    if (![[NSRunningApplication currentApplication] isFinishedLaunching])
 	//        [NSApp run];

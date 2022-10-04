@@ -1,6 +1,9 @@
 package glfwwin
 
-import "github.com/ebitengine/purego/objc"
+import (
+	"github.com/ebitengine/purego/objc"
+	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
+)
 
 type platformContextState struct {
 }
@@ -27,9 +30,15 @@ type platformWindowState struct {
 }
 
 type platformMonitorState struct {
+	displayID           _CGDirectDisplayID
+	previousMod         _CGDisplayModeRef
+	unitNumber          uint32
+	screen              cocoa.NSScreen
+	fallbackRefreshRate float64
 }
 
 type platformCursorState struct {
+	object objc.ID
 }
 
 type platformTLSState struct {

@@ -1,7 +1,11 @@
 package glfwwin
 
 import (
+	"github.com/ebitengine/purego"
 	"github.com/ebitengine/purego/objc"
+	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
+	"log"
+	"math"
 	"reflect"
 	"unsafe"
 )
@@ -32,4 +36,64 @@ func GoString(p uintptr) string {
 	h.Cap = length
 	copy(s, src)
 	return string(s)
+}
+
+var (
+	_CoreGraphics                   = purego.Dlopen("CoreGraphics.framework/CoreGraphics", purego.RTLD_GLOBAL)
+	procCGGetOnlineDisplayList      = purego.Dlsym(_CoreGraphics, "CGGetOnlineDisplayList")
+	procCGDisplayIsAsleep           = purego.Dlsym(_CoreGraphics, "CGDisplayIsAsleep")
+	procCGDisplayUnitNumber         = purego.Dlsym(_CoreGraphics, "CGDisplayUnitNumber")
+	procCGDisplayCopyDisplayMode    = purego.Dlsym(_CoreGraphics, "CGDisplayCopyDisplayMode")
+	procCGDisplayModeRelease        = purego.Dlsym(_CoreGraphics, "CGDisplayModeRelease")
+	procCGDisplayModeGetWidth       = purego.Dlsym(_CoreGraphics, "CGDisplayModeGetWidth")
+	procCGDisplayModeGetHeight      = purego.Dlsym(_CoreGraphics, "CGDisplayModeGetHeight")
+	procCGDisplayModeGetRefreshRate = purego.Dlsym(_CoreGraphics, "CGDisplayModeGetRefreshRate")
+)
+
+type _CGDirectDisplayID uint32
+type _CGDisplayModeRef uintptr
+type _CGError uint32
+
+func _CGGetOnlineDisplayList(maxDisplays uint32, onlineDisplays *_CGDirectDisplayID, displayCount *uint32) _CGError {
+	ret, _, _ := purego.SyscallN(procCGGetOnlineDisplayList, uintptr(maxDisplays), uintptr(unsafe.Pointer(onlineDisplays)), uintptr(unsafe.Pointer(displayCount)))
+	return _CGError(ret)
+}
+
+func _CGDisplayIsAsleep(display _CGDirectDisplayID) bool {
+	ret, _, _ := purego.SyscallN(procCGDisplayIsAsleep, uintptr(display))
+	return ret != 0
+}
+
+func _CGDisplayUnitNumber(display _CGDirectDisplayID) uint32 {
+	ret, _, _ := purego.SyscallN(procCGDisplayUnitNumber, uintptr(display))
+	return uint32(ret)
+}
+
+func _CGDisplayBounds(display _CGDirectDisplayID) cocoa.CGRect {
+	log.Println("glfwin: call to _CGDisplayBounds not implemented")
+	return cocoa.CGRect{}
+}
+
+func _CGDisplayCopyDisplayMode(display _CGDirectDisplayID) _CGDisplayModeRef {
+	ret, _, _ := purego.SyscallN(procCGDisplayCopyDisplayMode, uintptr(display))
+	return _CGDisplayModeRef(ret)
+}
+
+func _CGDisplayModeRelease(mode _CGDisplayModeRef) {
+	purego.SyscallN(procCGDisplayModeRelease, uintptr(mode))
+}
+
+func _CGDisplayModeGetWidth(mode _CGDisplayModeRef) uintptr {
+	ret, _, _ := purego.SyscallN(procCGDisplayModeGetWidth, uintptr(mode))
+	return ret
+}
+
+func _CGDisplayModeGetHeight(mode _CGDisplayModeRef) uintptr {
+	ret, _, _ := purego.SyscallN(procCGDisplayModeGetHeight, uintptr(mode))
+	return ret
+}
+
+func _CGDisplayModeGetRefreshRate(mode _CGDisplayModeRef) float64 {
+	_, ret, _ := purego.SyscallN(procCGDisplayModeGetRefreshRate, uintptr(mode))
+	return math.Float64frombits(uint64(ret))
 }

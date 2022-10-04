@@ -1,5 +1,12 @@
 package glfwwin
 
+import (
+	"fmt"
+
+	"github.com/ebitengine/purego/objc"
+	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
+)
+
 func platformGetKeyScancode(key Key) int {
 	return _glfw.state.scancodes[key]
 }
@@ -182,7 +189,60 @@ func (c *Cursor) platformCreateCursor(image *Image, xhot, yhot int) error {
 }
 
 func (c *Cursor) platformCreateStandardCursor(shape StandardCursor) error {
-	panic("NOT IMPLEMENTED")
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+
+	var cursorSelector objc.SEL
+	// HACK: Try to use a private message
+	switch shape {
+	case HResizeCursor:
+		cursorSelector = objc.RegisterName("_windowResizeEastWestCursor")
+	case VResizeCursor:
+		cursorSelector = objc.RegisterName("_windowResizeNorthSouthCursor")
+	case NWSEResizeCursor:
+		cursorSelector = objc.RegisterName("_windowResizeNorthWestSouthEastCursor")
+	case NESWResizeCursor:
+		cursorSelector = objc.RegisterName("_windowResizeNorthEastSouthWestCursor")
+	}
+	if cursorSelector != 0 && cocoa.NSCursor_respondsToSelector(cursorSelector) {
+		object := cocoa.NSCursor_performSelector(cursorSelector)
+		// TODO: check kind
+		//if ([object isKindOfClass:[NSCursor class]]) {
+		c.state.object = object
+		//}
+	}
+	if c.state.object == 0 {
+		switch shape {
+		case ArrowCursor:
+			//cursor->ns.object = [NSCursor arrowCursor];
+			panic("TODO")
+		case IBeamCursor:
+			c.state.object = cocoa.NSCursor_IBeamCursor().ID
+		case CrosshairCursor:
+			c.state.object = cocoa.NSCursor_crosshairCursor().ID
+		case HandCursor:
+			c.state.object = cocoa.NSCursor_pointingHandCursor().ID
+		case HResizeCursor:
+			//cursor->ns.object = [NSCursor resizeLeftRightCursor];
+			panic("TODO")
+		case VResizeCursor:
+			// cursor->ns.object = [NSCursor resizeUpDownCursor];
+			panic("TODO")
+		case AllResizeCursor:
+			// cursor->ns.object = [NSCursor closedHandCursor];
+			panic("TODO")
+		case NotAllowedCursor:
+			//cursor->ns.object = [NSCursor operationNotAllowedCursor];
+			panic("TODO")
+		}
+	}
+
+	if c.state.object == 0 {
+		return fmt.Errorf("cocoa: standard cursor shape unavailable")
+	}
+
+	cocoa.NSObject_retain(c.state.object)
+	return nil
 }
 
 func (c *Cursor) platformDestroyCursor() error {
