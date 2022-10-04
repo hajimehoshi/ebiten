@@ -24,6 +24,8 @@ type initconfig struct {
 }
 
 type wndconfig struct {
+	xpos           int
+	ypos           int
 	width          int
 	height         int
 	title          string
