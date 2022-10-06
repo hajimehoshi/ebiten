@@ -649,6 +649,7 @@ func (i *Image) Dispose() {
 	i.image.Dispose()
 	i.image = nil
 	i.basePixels = Pixels{}
+	i.pixelsForRestore = nil
 	i.clearDrawTrianglesHistory()
 	i.stale = false
 	i.staleRegion = image.Rectangle{}
