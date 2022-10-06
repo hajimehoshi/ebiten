@@ -70,33 +70,6 @@ func (p *Pixels) Region() image.Rectangle {
 	return p.pixelsRecords.region()
 }
 
-// ReturnReusableBytesAndReset tries to return a require size of a byte slice and resets its state.
-// The returned byte slice is not zero-cleared.
-// ReturnReusableBytesAndReset might return nil if p doesn't have a big enough size of a slice.
-func (p *Pixels) ReturnReusableBytesAndReset(n int) []byte {
-	if p.pixelsRecords == nil {
-		return nil
-	}
-
-	defer func() {
-		p.pixelsRecords = nil
-	}()
-
-	if n == 0 {
-		return nil
-	}
-
-	// Search for a reusable byte slice and reuse it to reduce allocations (#2375).
-	var pix []byte
-	for _, r := range p.pixelsRecords.records {
-		if len(r.pix) >= n {
-			pix = r.pix[:n]
-			break
-		}
-	}
-	return pix
-}
-
 // drawTrianglesHistoryItem is an item for history of draw-image commands.
 type drawTrianglesHistoryItem struct {
 	images    [graphics.ShaderImageCount]*Image
@@ -344,14 +317,11 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 
 	if x == 0 && y == 0 && width == w && height == h {
 		if pixels != nil {
-			// pixels can point to a shared region. This function is responsible to copy this.
-			// As the bytePixels will be reset by writing the entire region, an existing byte slice is reusable.
-			newPixels := i.basePixels.ReturnReusableBytesAndReset(len(pixels))
-			if newPixels == nil {
-				newPixels = make([]byte, len(pixels))
-			}
-			copy(newPixels, pixels)
-			i.basePixels.AddOrReplace(newPixels, 0, 0, w, h)
+			// pixels can point to a shared region.
+			// This function is responsible to copy this.
+			copiedPixels := make([]byte, len(pixels))
+			copy(copiedPixels, pixels)
+			i.basePixels.AddOrReplace(copiedPixels, 0, 0, w, h)
 		} else {
 			i.basePixels.Clear(0, 0, w, h)
 		}
@@ -368,10 +338,11 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 	}
 
 	if pixels != nil {
-		// pixels can point to a shared region. This function is responsible to copy this.
-		newPixels := make([]byte, len(pixels))
-		copy(newPixels, pixels)
-		i.basePixels.AddOrReplace(newPixels, x, y, width, height)
+		// pixels can point to a shared region.
+		// This function is responsible to copy this.
+		copiedPixels := make([]byte, len(pixels))
+		copy(copiedPixels, pixels)
+		i.basePixels.AddOrReplace(copiedPixels, x, y, width, height)
 	} else {
 		i.basePixels.Clear(x, y, width, height)
 	}
@@ -504,23 +475,18 @@ func (i *Image) makeStaleIfDependingOnShader(shader *Shader) {
 
 // readPixelsFromGPU reads the pixels from GPU and resolves the image's 'stale' state.
 func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error {
+	i.basePixels = Pixels{}
 	r := i.staleRegion
 	if len(i.drawTrianglesHistory) > 0 {
 		r = image.Rect(0, 0, i.width, i.height)
 	}
-
-	req := 4 * r.Dx() * r.Dy()
-	pix := i.basePixels.ReturnReusableBytesAndReset(req)
 	if !r.Empty() {
-		if pix == nil {
-			pix = make([]byte, req)
-		}
+		pix := make([]byte, 4*r.Dx()*r.Dy())
 		if err := i.image.ReadPixels(graphicsDriver, pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
 			return err
 		}
 		i.basePixels.AddOrReplace(pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy())
 	}
-
 	i.clearDrawTrianglesHistory()
 	i.stale = false
 	i.staleRegion = image.Rectangle{}
@@ -637,10 +603,8 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 	}
 
 	if len(i.drawTrianglesHistory) > 0 {
-		pix := i.basePixels.ReturnReusableBytesAndReset(4 * w * h)
-		if pix == nil {
-			pix = make([]byte, 4*w*h)
-		}
+		i.basePixels = Pixels{}
+		pix := make([]byte, 4*w*h)
 		if err := gimg.ReadPixels(graphicsDriver, pix, 0, 0, w, h); err != nil {
 			return err
 		}
