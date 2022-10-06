@@ -122,6 +122,17 @@ type Image struct {
 	// staleRegion is valid only when stale is true.
 	staleRegion image.Rectangle
 
+	// pixelsForRestore is a cached byte slice for pixels.
+	// pixelsForRestore is just a cache to avoid allocations, and the data might not be reliable.
+	//
+	// pixelsForRestore might be shared by the records of basePixels.
+	// pixelsForRestore should not be modified until basePixels is invalidated.
+	//
+	// pixelsForRestore is an entire pixels of the image or nil.
+	//
+	// pixelsForRestore is for an optimization to reduce slice allocations (#2375).
+	pixelsForRestore []byte
+
 	imageType ImageType
 
 	// priority indicates whether the image is restored in high priority when context-lost happens.
@@ -481,7 +492,16 @@ func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error 
 		r = image.Rect(0, 0, i.width, i.height)
 	}
 	if !r.Empty() {
-		pix := make([]byte, 4*r.Dx()*r.Dy())
+		var pix []byte
+		if r == image.Rect(0, 0, i.width, i.height) {
+			// pixelsForRestore can be reused as basePixels was invalidated.
+			if i.pixelsForRestore == nil {
+				i.pixelsForRestore = make([]byte, 4*r.Dx()*r.Dy())
+			}
+			pix = i.pixelsForRestore
+		} else {
+			pix = make([]byte, 4*r.Dx()*r.Dy())
+		}
 		if err := i.image.ReadPixels(graphicsDriver, pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
 			return err
 		}
@@ -604,11 +624,14 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 
 	if len(i.drawTrianglesHistory) > 0 {
 		i.basePixels = Pixels{}
-		pix := make([]byte, 4*w*h)
-		if err := gimg.ReadPixels(graphicsDriver, pix, 0, 0, w, h); err != nil {
+		// As basePixels was invalidated, pixelsForRestore can be reused.
+		if i.pixelsForRestore == nil {
+			i.pixelsForRestore = make([]byte, 4*w*h)
+		}
+		if err := gimg.ReadPixels(graphicsDriver, i.pixelsForRestore, 0, 0, w, h); err != nil {
 			return err
 		}
-		i.basePixels.AddOrReplace(pix, 0, 0, w, h)
+		i.basePixels.AddOrReplace(i.pixelsForRestore, 0, 0, w, h)
 	}
 
 	i.image = gimg
