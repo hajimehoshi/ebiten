@@ -493,7 +493,7 @@ func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error 
 	}
 	if !r.Empty() {
 		var pix []byte
-		if r == image.Rect(0, 0, i.width, i.height) {
+		if needsRestoring() && i.needsRestoring() && r == image.Rect(0, 0, i.width, i.height) {
 			// pixelsForRestore can be reused as basePixels was invalidated.
 			if i.pixelsForRestore == nil {
 				i.pixelsForRestore = make([]byte, 4*r.Dx()*r.Dy())
