@@ -493,12 +493,13 @@ func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error 
 	}
 	if !r.Empty() {
 		var pix []byte
-		if needsRestoring() && i.needsRestoring() && r == image.Rect(0, 0, i.width, i.height) {
+		if needsRestoring() && i.needsRestoring() {
 			// pixelsForRestore can be reused as basePixels was invalidated.
-			if i.pixelsForRestore == nil {
-				i.pixelsForRestore = make([]byte, 4*r.Dx()*r.Dy())
+			l := 4 * r.Dx() * r.Dy()
+			if len(i.pixelsForRestore) < l {
+				i.pixelsForRestore = make([]byte, l)
 			}
-			pix = i.pixelsForRestore
+			pix = i.pixelsForRestore[:l]
 		} else {
 			pix = make([]byte, 4*r.Dx()*r.Dy())
 		}
@@ -625,13 +626,15 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 	if len(i.drawTrianglesHistory) > 0 {
 		i.basePixels = Pixels{}
 		// As basePixels was invalidated, pixelsForRestore can be reused.
-		if i.pixelsForRestore == nil {
-			i.pixelsForRestore = make([]byte, 4*w*h)
+		l := 4 * w * h
+		if len(i.pixelsForRestore) < l {
+			i.pixelsForRestore = make([]byte, l)
 		}
-		if err := gimg.ReadPixels(graphicsDriver, i.pixelsForRestore, 0, 0, w, h); err != nil {
+		pix := i.pixelsForRestore[:l]
+		if err := gimg.ReadPixels(graphicsDriver, pix, 0, 0, w, h); err != nil {
 			return err
 		}
-		i.basePixels.AddOrReplace(i.pixelsForRestore, 0, 0, w, h)
+		i.basePixels.AddOrReplace(pix, 0, 0, w, h)
 	}
 
 	i.image = gimg
