@@ -91,16 +91,16 @@ type GraphicsLibrary = ui.GraphicsLibrary
 const (
 	// GraphicsLibraryUnknown represents the state at which graphics library cannot be determined,
 	// e.g. hasn't loaded yet or failed to initialize.
-	GraphicsLibraryUnknown = ui.GraphicsLibraryUnknown
+	GraphicsLibraryUnknown GraphicsLibrary = ui.GraphicsLibraryUnknown
 
 	// GraphicsLibraryOpenGL represents the graphics library OpenGL.
-	GraphicsLibraryOpenGL = ui.GraphicsLibraryOpenGL
+	GraphicsLibraryOpenGL GraphicsLibrary = ui.GraphicsLibraryOpenGL
 
 	// GraphicsLibraryDirectX represents the graphics library Microsoft DirectX.
-	GraphicsLibraryDirectX = ui.GraphicsLibraryDirectX
+	GraphicsLibraryDirectX GraphicsLibrary = ui.GraphicsLibraryDirectX
 
 	// GraphicsLibraryMetal represents the graphics library Apple's Metal.
-	GraphicsLibraryMetal = ui.GraphicsLibraryMetal
+	GraphicsLibraryMetal GraphicsLibrary = ui.GraphicsLibraryMetal
 )
 
 // DebugInfo is a struct to store debug info about the graphics.
