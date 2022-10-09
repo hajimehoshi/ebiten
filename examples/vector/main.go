@@ -47,7 +47,7 @@ const (
 	screenHeight = 480
 )
 
-func drawEbitenText(screen *ebiten.Image, scale float32) {
+func drawEbitenText(screen *ebiten.Image, x, y int, scale float32) {
 	var path vector.Path
 
 	// E
@@ -118,8 +118,8 @@ func drawEbitenText(screen *ebiten.Image, scale float32) {
 	}
 	vs, is := path.AppendVerticesAndIndicesForFilling(nil, nil)
 	for i := range vs {
-		vs[i].DstX *= scale
-		vs[i].DstY *= scale
+		vs[i].DstX = (vs[i].DstX + float32(x)) * scale
+		vs[i].DstY = (vs[i].DstY + float32(y)) * scale
 		vs[i].SrcX = 1
 		vs[i].SrcY = 1
 		vs[i].ColorR = 0xdb / float32(0xff)
@@ -133,35 +133,34 @@ func drawEbitenLogo(screen *ebiten.Image, x, y int, scale float32) {
 	const unit = 16
 
 	var path vector.Path
-	xf, yf := float32(x), float32(y)
 
 	// TODO: Add curves
-	path.MoveTo(xf, yf+4*unit)
-	path.LineTo(xf, yf+6*unit)
-	path.LineTo(xf+2*unit, yf+6*unit)
-	path.LineTo(xf+2*unit, yf+5*unit)
-	path.LineTo(xf+3*unit, yf+5*unit)
-	path.LineTo(xf+3*unit, yf+4*unit)
-	path.LineTo(xf+4*unit, yf+4*unit)
-	path.LineTo(xf+4*unit, yf+2*unit)
-	path.LineTo(xf+6*unit, yf+2*unit)
-	path.LineTo(xf+6*unit, yf+1*unit)
-	path.LineTo(xf+5*unit, yf+1*unit)
-	path.LineTo(xf+5*unit, yf)
-	path.LineTo(xf+4*unit, yf)
-	path.LineTo(xf+4*unit, yf+2*unit)
-	path.LineTo(xf+2*unit, yf+2*unit)
-	path.LineTo(xf+2*unit, yf+3*unit)
-	path.LineTo(xf+unit, yf+3*unit)
-	path.LineTo(xf+unit, yf+4*unit)
+	path.MoveTo(0, 4*unit)
+	path.LineTo(0, 6*unit)
+	path.LineTo(2*unit, 6*unit)
+	path.LineTo(2*unit, 5*unit)
+	path.LineTo(3*unit, 5*unit)
+	path.LineTo(3*unit, 4*unit)
+	path.LineTo(4*unit, 4*unit)
+	path.LineTo(4*unit, 2*unit)
+	path.LineTo(6*unit, 2*unit)
+	path.LineTo(6*unit, 1*unit)
+	path.LineTo(5*unit, 1*unit)
+	path.LineTo(5*unit, 0)
+	path.LineTo(4*unit, 0)
+	path.LineTo(4*unit, 2*unit)
+	path.LineTo(2*unit, 2*unit)
+	path.LineTo(2*unit, 3*unit)
+	path.LineTo(unit, 3*unit)
+	path.LineTo(unit, 4*unit)
 
 	op := &ebiten.DrawTrianglesOptions{
 		FillRule: ebiten.EvenOdd,
 	}
 	vs, is := path.AppendVerticesAndIndicesForFilling(nil, nil)
 	for i := range vs {
-		vs[i].DstX *= scale
-		vs[i].DstY *= scale
+		vs[i].DstX = (vs[i].DstX + float32(x)) * scale
+		vs[i].DstY = (vs[i].DstY + float32(y)) * scale
 		vs[i].SrcX = 1
 		vs[i].SrcY = 1
 		vs[i].ColorR = 0xdb / float32(0xff)
@@ -284,9 +283,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		dst = g.offscreen
 	}
 
-	dst.Fill(color.White)
-	drawEbitenText(dst, scale)
-	drawEbitenLogo(dst, 20, 90, scale)
+	dst.Fill(color.RGBA{0xe0, 0xe0, 0xe0, 0xe0})
+	drawEbitenText(dst, 0, 50, scale)
+	drawEbitenLogo(dst, 20, 150, scale)
 	drawArc(dst, g.counter, scale)
 	drawWave(dst, g.counter, scale)
 
