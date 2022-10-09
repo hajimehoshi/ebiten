@@ -20,7 +20,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
@@ -28,9 +27,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
+	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 )
 
-const screenShader = `package main
+const screenShaderSrc = `package main
 
 var Scale vec2
 
@@ -64,6 +64,22 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 }
 `
 
+var (
+	screenShader        *Shader
+	NearestFilterShader = &Shader{shader: mipmap.NearestFilterShader}
+	LinearFilterShader  = &Shader{shader: mipmap.LinearFilterShader}
+)
+
+func init() {
+	{
+		ir, err := graphics.CompileShader([]byte(screenShaderSrc))
+		if err != nil {
+			panic(fmt.Sprintf("ui: compiling the screen shader failed: %v", err))
+		}
+		screenShader = NewShader(ir)
+	}
+}
+
 type Game interface {
 	NewOffscreenImage(width, height int) *Image
 	Layout(outsideWidth, outsideHeight int) (int, int)
@@ -83,8 +99,6 @@ type context struct {
 	outsideWidth  float64
 	outsideHeight float64
 
-	screenShader *Shader
-
 	m sync.Mutex
 }
 
@@ -94,12 +108,12 @@ func newContext(game Game) *context {
 	}
 }
 
-func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
+func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *userInterfaceImpl) error {
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
-	return c.updateFrameImpl(graphicsDriver, clock.UpdateFrame(), outsideWidth, outsideHeight, deviceScaleFactor)
+	return c.updateFrameImpl(graphicsDriver, clock.UpdateFrame(), outsideWidth, outsideHeight, deviceScaleFactor, ui)
 }
 
-func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
+func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *userInterfaceImpl) error {
 	n := 1
 	if graphicsDriver.IsDirectX() {
 		// On DirectX, both framebuffers in the swap chain should be updated.
@@ -107,17 +121,20 @@ func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsi
 		n = 2
 	}
 	for i := 0; i < n; i++ {
-		if err := c.updateFrameImpl(graphicsDriver, 1, outsideWidth, outsideHeight, deviceScaleFactor); err != nil {
+		if err := c.updateFrameImpl(graphicsDriver, 1, outsideWidth, outsideHeight, deviceScaleFactor, ui); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64) (err error) {
+func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64, ui *userInterfaceImpl) (err error) {
 	if err := theGlobalState.error(); err != nil {
 		return err
 	}
+
+	ui.beginFrame()
+	defer ui.endFrame()
 
 	// The given outside size can be 0 e.g. just after restoring from the fullscreen mode on Windows (#1589)
 	// Just ignore such cases. Otherwise, creating a zero-sized framebuffer causes a panic.
@@ -144,15 +161,6 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		}
 	}()
 
-	// Create a shader for the screen if necessary.
-	if c.screenShader == nil {
-		ir, err := graphics.CompileShader([]byte(screenShader))
-		if err != nil {
-			return err
-		}
-		c.screenShader = NewShader(ir)
-	}
-
 	// ForceUpdate can be invoked even if the context is not initialized yet (#1591).
 	if w, h := c.layoutGame(outsideWidth, outsideHeight, deviceScaleFactor); w == 0 || h == 0 {
 		return nil
@@ -177,7 +185,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		if err := theGlobalState.error(); err != nil {
 			return err
 		}
-		theUI.resetForTick()
+		ui.resetForTick()
 	}
 
 	// Draw the game.
@@ -230,19 +238,18 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 	gtx += offsetX
 	gty += offsetY
 
-	var filter graphicsdriver.Filter
-	var screenFilter bool
+	var shader *Shader
 	switch {
 	case !theGlobalState.isScreenFilterEnabled():
-		filter = graphicsdriver.FilterNearest
+		shader = NearestFilterShader
 	case math.Floor(s) == s:
-		filter = graphicsdriver.FilterNearest
+		shader = NearestFilterShader
 	case s > 1:
-		screenFilter = true
+		shader = screenShader
 	default:
 		// screenShader works with >=1 scale, but does not well with <1 scale.
 		// Use regular FilterLinear instead so far (#669).
-		filter = graphicsdriver.FilterLinear
+		shader = LinearFilterShader
 	}
 
 	dstRegion := graphicsdriver.Region{
@@ -260,12 +267,10 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 
 	srcs := [graphics.ShaderImageCount]*Image{c.offscreen}
 
-	var shader *Shader
+	dstWidth, dstHeight := c.screen.width, c.screen.height
+	srcWidth, srcHeight := c.offscreen.width, c.offscreen.height
 	var uniforms [][]float32
-	if screenFilter {
-		shader = c.screenShader
-		dstWidth, dstHeight := c.screen.width, c.screen.height
-		srcWidth, srcHeight := c.offscreen.width, c.offscreen.height
+	if shader == screenShader {
 		uniforms = shader.ConvertUniforms(map[string]interface{}{
 			"Scale": []float32{
 				float32(dstWidth) / float32(srcWidth),
@@ -273,7 +278,7 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 			},
 		})
 	}
-	c.screen.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, filter, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, shader, uniforms, false, true)
+	c.screen.DrawTriangles(srcs, vs, is, graphicsdriver.CompositeModeCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, shader, uniforms, false, true)
 }
 
 func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {
@@ -283,7 +288,16 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFac
 	c.outsideWidth = outsideWidth
 	c.outsideHeight = outsideHeight
 
-	ow, oh := c.game.Layout(int(outsideWidth), int(outsideHeight))
+	// Adjust the outside size to integer values.
+	// Even if the original value is less than 1, the value must be a positive integer (#2340).
+	iow, ioh := int(outsideWidth), int(outsideHeight)
+	if iow == 0 {
+		iow = 1
+	}
+	if ioh == 0 {
+		ioh = 1
+	}
+	ow, oh := c.game.Layout(iow, ioh)
 	if ow <= 0 || oh <= 0 {
 		panic("ui: Layout must return positive numbers")
 	}
@@ -392,7 +406,7 @@ func (g *globalState) setScreenClearedEveryFrame(cleared bool) {
 }
 
 func (g *globalState) isScreenFilterEnabled() bool {
-	return graphicsdriver.Filter(atomic.LoadInt32(&g.screenFilterEnabled_)) != 0
+	return atomic.LoadInt32(&g.screenFilterEnabled_) != 0
 }
 
 func (g *globalState) setScreenFilterEnabled(enabled bool) {

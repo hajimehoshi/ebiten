@@ -339,26 +339,6 @@ func (s NSString) String() string {
 	return string(b)
 }
 
-type NSNotification struct {
-	objc.ID
-}
-
-func (n NSNotification) Object() objc.ID {
-	return n.Send(sel_object)
-}
-
-type NSScreen struct {
-	objc.ID
-}
-
-func NSScreen_mainScreen() NSScreen {
-	return NSScreen{objc.ID(class_NSScreen).Send(sel_mainScreen)}
-}
-
-func NSScreen_screens() NSArray {
-	return NSArray{objc.ID(class_NSScreen).Send(sel_screens)}
-}
-
 func (s NSScreen) Frame() NSRect {
 	sig := NSMethodSignature_instanceMethodSignatureForSelector(objc.ID(class_NSScreen), sel_frame)
 	inv := NSInvocation_invocationWithMethodSignature(sig)
@@ -378,10 +358,6 @@ func (s NSScreen) ConvertRectToBacking(rect NSRect) NSRect {
 	return rect
 }
 
-func (s NSScreen) DeviceDescription() NSDictionary {
-	return NSDictionary{s.Send(sel_deviceDescription)}
-}
-
 type NSArray struct {
 	objc.ID
 }
@@ -392,22 +368,6 @@ func (a NSArray) Count() NSUInteger {
 
 func (a NSArray) ObjectAtIndex(idx NSUInteger) objc.ID {
 	return a.Send(sel_objectAtIndex, idx)
-}
-
-type NSDictionary struct {
-	objc.ID
-}
-
-func (d NSDictionary) ObjectForKey(object objc.ID) objc.ID {
-	return d.Send(sel_objectForKey, object)
-}
-
-type NSNumber struct {
-	objc.ID
-}
-
-func (n NSNumber) UnsignedIntValue() uint {
-	return uint(n.Send(sel_unsignedIntValue))
 }
 
 type NSThread struct {
@@ -428,4 +388,40 @@ func NSApplication_sharedApplication() NSApplication {
 
 func (a NSApplication) SetDelegate(delegate objc.ID) {
 	a.Send(sel_setDelegate, delegate)
+}
+
+type NSNotification struct {
+	objc.ID
+}
+
+func (n NSNotification) Object() objc.ID {
+	return n.Send(sel_object)
+}
+
+type NSScreen struct {
+	objc.ID
+}
+
+func NSScreen_mainScreen() NSScreen {
+	return NSScreen{objc.ID(class_NSScreen).Send(sel_mainScreen)}
+}
+
+func (s NSScreen) DeviceDescription() NSDictionary {
+	return NSDictionary{s.Send(sel_deviceDescription)}
+}
+
+type NSDictionary struct {
+	objc.ID
+}
+
+func (d NSDictionary) ObjectForKey(object objc.ID) objc.ID {
+	return d.Send(sel_objectForKey, object)
+}
+
+type NSNumber struct {
+	objc.ID
+}
+
+func (n NSNumber) UnsignedIntValue() uint {
+	return uint(n.Send(sel_unsignedIntValue))
 }

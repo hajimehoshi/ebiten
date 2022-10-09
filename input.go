@@ -382,7 +382,7 @@ func AppendTouchIDs(touches []TouchID) []TouchID {
 
 // TouchIDs returns the current touch states.
 //
-// Deperecated: as of v2.2. Use AppendTouchIDs instead.
+// Deprecated: as of v2.2. Use AppendTouchIDs instead.
 func TouchIDs() []TouchID {
 	return AppendTouchIDs(nil)
 }

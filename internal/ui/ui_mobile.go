@@ -328,7 +328,7 @@ func (u *userInterfaceImpl) update() error {
 	}()
 
 	w, h := u.outsideSize()
-	if err := u.context.updateFrame(u.graphicsDriver, w, h, deviceScale()); err != nil {
+	if err := u.context.updateFrame(u.graphicsDriver, w, h, deviceScale(), u); err != nil {
 		return err
 	}
 	return nil
@@ -471,4 +471,10 @@ func (u *userInterfaceImpl) ScheduleFrame() {
 	if u.renderRequester != nil && u.fpsMode == FPSModeVsyncOffMinimum {
 		u.renderRequester.RequestRenderIfNeeded()
 	}
+}
+
+func (u *userInterfaceImpl) beginFrame() {
+}
+
+func (u *userInterfaceImpl) endFrame() {
 }

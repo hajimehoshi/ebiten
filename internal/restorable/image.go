@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"image"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -77,10 +76,7 @@ type drawTrianglesHistoryItem struct {
 	offsets   [graphics.ShaderImageCount - 1][2]float32
 	vertices  []float32
 	indices   []uint16
-	colorm    affine.ColorM
 	mode      graphicsdriver.CompositeMode
-	filter    graphicsdriver.Filter
-	address   graphicsdriver.Address
 	dstRegion graphicsdriver.Region
 	srcRegion graphicsdriver.Region
 	shader    *Shader
@@ -125,6 +121,17 @@ type Image struct {
 	// staleRegion indicates the region to restore.
 	// staleRegion is valid only when stale is true.
 	staleRegion image.Rectangle
+
+	// pixelsForRestore is a cached byte slice for pixels.
+	// pixelsForRestore is just a cache to avoid allocations, and the data might not be reliable.
+	//
+	// pixelsForRestore might be shared by the records of basePixels.
+	// pixelsForRestore should not be modified until basePixels is invalidated.
+	//
+	// pixelsForRestore is an entire pixels of the image or nil.
+	//
+	// pixelsForRestore is for an optimization to reduce slice allocations (#2375).
+	pixelsForRestore []byte
 
 	imageType ImageType
 
@@ -211,7 +218,7 @@ func (i *Image) Extend(width, height int) *Image {
 		Width:  float32(sw),
 		Height: float32(sh),
 	}
-	newImg.DrawTriangles(srcs, offsets, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, nil, nil, false)
+	newImg.DrawTriangles(srcs, offsets, vs, is, graphicsdriver.CompositeModeCopy, dr, graphicsdriver.Region{}, NearestFilterShader, nil, false)
 
 	// Overwrite the history as if the image newImg is created only by WritePixels.
 	newImg.clearDrawTrianglesHistory()
@@ -257,7 +264,7 @@ func clearImage(i *graphicscommand.Image) {
 		Width:  float32(dw),
 		Height: float32(dh),
 	}
-	i.DrawTriangles(srcs, offsets, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeClear, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, nil, nil, false)
+	i.DrawTriangles(srcs, offsets, vs, is, graphicsdriver.CompositeModeClear, dstRegion, graphicsdriver.Region{}, NearestFilterShader.shader, nil, false)
 }
 
 // BasePixelsForTesting returns the image's basePixels for testing.
@@ -364,7 +371,7 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 //	5: Color G
 //	6: Color B
 //	7: Color Y
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, mode graphicsdriver.CompositeMode, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
 	if i.priority {
 		panic("restorable: DrawTriangles cannot be called on a priority image")
 	}
@@ -388,28 +395,21 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [g
 	if srcstale || !needsRestoring() || !i.needsRestoring() {
 		i.makeStale(image.Rect(0, 0, i.width, i.height))
 	} else {
-		i.appendDrawTrianglesHistory(srcs, offsets, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, shader, uniforms, evenOdd)
+		i.appendDrawTrianglesHistory(srcs, offsets, vertices, indices, mode, dstRegion, srcRegion, shader, uniforms, evenOdd)
 	}
 
-	var s *graphicscommand.Shader
 	var imgs [graphics.ShaderImageCount]*graphicscommand.Image
-	if shader == nil {
-		// Fast path for rendering without a shader (#1355).
-		imgs[0] = srcs[0].image
-	} else {
-		for i, src := range srcs {
-			if src == nil {
-				continue
-			}
-			imgs[i] = src.image
+	for i, src := range srcs {
+		if src == nil {
+			continue
 		}
-		s = shader.shader
+		imgs[i] = src.image
 	}
-	i.image.DrawTriangles(imgs, offsets, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, s, uniforms, evenOdd)
+	i.image.DrawTriangles(imgs, offsets, vertices, indices, mode, dstRegion, srcRegion, shader.shader, uniforms, evenOdd)
 }
 
 // appendDrawTrianglesHistory appends a draw-image history item to the image.
-func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
+func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, mode graphicsdriver.CompositeMode, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
 	if i.stale || !i.needsRestoring() {
 		return
 	}
@@ -434,10 +434,7 @@ func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Imag
 		offsets:   offsets,
 		vertices:  vs,
 		indices:   is,
-		colorm:    colorm,
 		mode:      mode,
-		filter:    filter,
-		address:   address,
 		dstRegion: dstRegion,
 		srcRegion: srcRegion,
 		shader:    shader,
@@ -495,7 +492,17 @@ func (i *Image) readPixelsFromGPU(graphicsDriver graphicsdriver.Graphics) error 
 		r = image.Rect(0, 0, i.width, i.height)
 	}
 	if !r.Empty() {
-		pix := make([]byte, 4*r.Dx()*r.Dy())
+		var pix []byte
+		if needsRestoring() && i.needsRestoring() {
+			// pixelsForRestore can be reused as basePixels was invalidated.
+			l := 4 * r.Dx() * r.Dy()
+			if len(i.pixelsForRestore) < l {
+				i.pixelsForRestore = make([]byte, l)
+			}
+			pix = i.pixelsForRestore[:l]
+		} else {
+			pix = make([]byte, 4*r.Dx()*r.Dy())
+		}
 		if err := i.image.ReadPixels(graphicsDriver, pix, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
 			return err
 		}
@@ -603,11 +610,6 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 	i.basePixels.Apply(gimg)
 
 	for _, c := range i.drawTrianglesHistory {
-		var s *graphicscommand.Shader
-		if c.shader != nil {
-			s = c.shader.shader
-		}
-
 		var imgs [graphics.ShaderImageCount]*graphicscommand.Image
 		for i, img := range c.images {
 			if img == nil {
@@ -618,12 +620,17 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 			}
 			imgs[i] = img.image
 		}
-		gimg.DrawTriangles(imgs, c.offsets, c.vertices, c.indices, c.colorm, c.mode, c.filter, c.address, c.dstRegion, c.srcRegion, s, c.uniforms, c.evenOdd)
+		gimg.DrawTriangles(imgs, c.offsets, c.vertices, c.indices, c.mode, c.dstRegion, c.srcRegion, c.shader.shader, c.uniforms, c.evenOdd)
 	}
 
 	if len(i.drawTrianglesHistory) > 0 {
 		i.basePixels = Pixels{}
-		pix := make([]byte, 4*w*h)
+		// As basePixels was invalidated, pixelsForRestore can be reused.
+		l := 4 * w * h
+		if len(i.pixelsForRestore) < l {
+			i.pixelsForRestore = make([]byte, l)
+		}
+		pix := i.pixelsForRestore[:l]
 		if err := gimg.ReadPixels(graphicsDriver, pix, 0, 0, w, h); err != nil {
 			return err
 		}
@@ -645,6 +652,7 @@ func (i *Image) Dispose() {
 	i.image.Dispose()
 	i.image = nil
 	i.basePixels = Pixels{}
+	i.pixelsForRestore = nil
 	i.clearDrawTrianglesHistory()
 	i.stale = false
 	i.staleRegion = image.Rectangle{}

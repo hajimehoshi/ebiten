@@ -63,7 +63,7 @@ type VibrateGamepadOptions struct {
 	// The value is in between 0 and 1.
 	StrongMagnitude float64
 
-	// StrongMagnitude is the rumble intensity of a high-frequency rumble motor.
+	// WeakMagnitude is the rumble intensity of a high-frequency rumble motor.
 	// The value is in between 0 and 1.
 	WeakMagnitude float64
 }

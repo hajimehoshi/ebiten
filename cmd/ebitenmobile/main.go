@@ -14,7 +14,7 @@
 
 // ebitenmobile is a wrapper of gomobile for Ebitengine.
 //
-// For the usage, see https://ebiten.org/documents/mobile.html.
+// For the usage, see https://ebitengine.org/en/documents/mobile.html.
 //
 // gomobile's version is fixed by ebitenmobile.
 // You can specify gomobile's version by EBITENMOBILE_GOMOBILE environment variable.

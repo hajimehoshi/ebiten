@@ -24,6 +24,12 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+type handleError windows.Handle
+
+func (h handleError) Error() string {
+	return fmt.Sprintf("HANDLE(%d)", h)
+}
+
 // math.MaxUint was added at Go 1.17. See https://github.com/golang/go/issues/28538
 const (
 	intSize = 32 << (^uint(0) >> 63)
@@ -1073,7 +1079,7 @@ func _DragQueryPoint(hDrop _HDROP) (_POINT, bool) {
 func _DwmEnableBlurBehindWindow(hWnd windows.HWND, pBlurBehind *_DWM_BLURBEHIND) error {
 	r, _, _ := procDwmEnableBlurBehindWindow.Call(uintptr(hWnd), uintptr(unsafe.Pointer(pBlurBehind)))
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("glfwwin: DwmEnableBlurBehindWindow failed: HRESULT(%d)", uint32(r))
+		return fmt.Errorf("glfwwin: DwmEnableBlurBehindWindow failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return nil
 }
@@ -1083,7 +1089,7 @@ func _DwmGetColorizationColor() (uint32, bool, error) {
 	var opaqueBlend int32
 	r, _, _ := procDwmGetColorizationColor.Call(uintptr(unsafe.Pointer(&colorization)), uintptr(unsafe.Pointer(&opaqueBlend)))
 	if uint32(r) != uint32(windows.S_OK) {
-		return 0, false, fmt.Errorf("glfwwin: DwmGetColorizationColor failed: HRESULT(%d)", uint32(r))
+		return 0, false, fmt.Errorf("glfwwin: DwmGetColorizationColor failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return colorization, opaqueBlend != 0, nil
 }
@@ -1091,7 +1097,7 @@ func _DwmGetColorizationColor() (uint32, bool, error) {
 func _DwmFlush() error {
 	r, _, _ := procDwmFlush.Call()
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("glfwwin: DwmFlush failed: HRESULT(%d)", uint32(r))
+		return fmt.Errorf("glfwwin: DwmFlush failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return nil
 }
@@ -1100,7 +1106,7 @@ func _DwmIsCompositionEnabled() (bool, error) {
 	var enabled int32
 	r, _, _ := procDwmIsCompositionEnabled.Call(uintptr(unsafe.Pointer(&enabled)))
 	if uint32(r) != uint32(windows.S_OK) {
-		return false, fmt.Errorf("glfwwin: DwmIsCompositionEnabled failed: HRESULT(%d)", uint32(r))
+		return false, fmt.Errorf("glfwwin: DwmIsCompositionEnabled failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return enabled != 0, nil
 }
@@ -1312,7 +1318,7 @@ func _GetMonitorInfoW_Ex(hMonitor _HMONITOR) (_MONITORINFOEXW, bool) {
 func _GetDpiForMonitor(hmonitor _HMONITOR, dpiType _MONITOR_DPI_TYPE) (dpiX, dpiY uint32, err error) {
 	r, _, _ := procGetDpiForMonitor.Call(uintptr(hmonitor), uintptr(dpiType), uintptr(unsafe.Pointer(&dpiX)), uintptr(unsafe.Pointer(&dpiY)))
 	if uint32(r) != uint32(windows.S_OK) {
-		return 0, 0, fmt.Errorf("glfwwin: GetDpiForMonitor failed: %w", windows.Errno(uint32(r)))
+		return 0, 0, fmt.Errorf("glfwwin: GetDpiForMonitor failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return dpiX, dpiY, nil
 }
@@ -1593,7 +1599,7 @@ func _SetProcessDPIAware() bool {
 func _SetProcessDpiAwareness(value _PROCESS_DPI_AWARENESS) error {
 	r, _, _ := procSetProcessDpiAwareness.Call(uintptr(value))
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("glfwwin: SetProcessDpiAwareness failed: %w", windows.Errno(uint32(r)))
+		return fmt.Errorf("glfwwin: SetProcessDpiAwareness failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return nil
 }

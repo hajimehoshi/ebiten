@@ -27,3 +27,7 @@ func (m *Monitor) GetCocoaMonitor() uintptr {
 	r, _ := (*glfwwin.Monitor)(m).GetCocoaMonitor()
 	return uintptr(r)
 }
+
+func (m *Monitor) GetCocoaMonitor() uintptr {
+	return m.m.GetCocoaMonitor()
+}

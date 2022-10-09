@@ -589,20 +589,3 @@ func ExtensionSupported(extension string) (bool, error) {
 	// Check if extension is in the platform-specific string
 	return window.context.extensionSupported(extension), nil
 }
-
-func GetProcAddress(procname string) (unsafe.Pointer, error) {
-	if !_glfw.initialized {
-		return nil, NotInitialized
-	}
-
-	ptr, err := _glfw.contextSlot.get()
-	if err != nil {
-		return nil, err
-	}
-	window := (*Window)(unsafe.Pointer(ptr))
-	if window == nil {
-		return nil, fmt.Errorf("glfwwin: cannot query entry point without a current OpenGL or OpenGL ES context %w", NoCurrentContext)
-	}
-
-	return unsafe.Pointer(window.context.getProcAddress(procname)), nil
-}

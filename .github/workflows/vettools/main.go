@@ -19,13 +19,19 @@ import (
 
 	"github.com/kisielk/errcheck/errcheck"
 	"golang.org/x/tools/go/analysis/multichecker"
+	"golang.org/x/tools/go/analysis/passes/atomic"
 	"golang.org/x/tools/go/analysis/passes/atomicalign"
+	"golang.org/x/tools/go/analysis/passes/copylock"
 )
 
 func main() {
-	filename := ".errcheck_excludes"
+	const filename = ".errcheck_excludes"
 	if _, err := os.Stat(filename); err == nil {
 		errcheck.Analyzer.Flags.Set("exclude", filename)
 	}
-	multichecker.Main(atomicalign.Analyzer, errcheck.Analyzer)
+	multichecker.Main(atomic.Analyzer,
+		atomicalign.Analyzer,
+		copylock.Analyzer,
+		errcheck.Analyzer,
+		imageImportCheckAnalyzer)
 }

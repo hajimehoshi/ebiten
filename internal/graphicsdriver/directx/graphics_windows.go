@@ -1193,7 +1193,11 @@ func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, 
 	return s, nil
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.ShaderImageCount]graphicsdriver.ImageID, offsets [graphics.ShaderImageCount - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, colorM graphicsdriver.ColorM, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.ShaderImageCount]graphicsdriver.ImageID, offsets [graphics.ShaderImageCount - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
+	if shaderID == graphicsdriver.InvalidShaderID {
+		return fmt.Errorf("directx: shader ID is invalid")
+	}
+
 	if err := g.flushCommandList(g.copyCommandList); err != nil {
 		return err
 	}
@@ -1236,95 +1240,47 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 		return err
 	}
 
-	var shader *Shader
-	if shaderID != graphicsdriver.InvalidShaderID {
-		shader = g.shaders[shaderID]
+	shader := g.shaders[shaderID]
+
+	// TODO: This logic is very similar to Metal's. Let's unify them.
+	dw, dh := dst.internalSize()
+	us := make([][]float32, graphics.PreservedUniformVariablesCount+len(uniforms))
+	us[graphics.TextureDestinationSizeUniformVariableIndex] = []float32{float32(dw), float32(dh)}
+	usizes := make([]float32, 2*len(srcs))
+	for i, src := range srcImages {
+		if src != nil {
+			w, h := src.internalSize()
+			usizes[2*i] = float32(w)
+			usizes[2*i+1] = float32(h)
+		}
+	}
+	us[graphics.TextureSourceSizesUniformVariableIndex] = usizes
+	udorigin := []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
+	us[graphics.TextureDestinationRegionOriginUniformVariableIndex] = udorigin
+	udsize := []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
+	us[graphics.TextureDestinationRegionSizeUniformVariableIndex] = udsize
+	uoffsets := make([]float32, 2*len(offsets))
+	for i, offset := range offsets {
+		uoffsets[2*i] = offset[0]
+		uoffsets[2*i+1] = offset[1]
+	}
+	us[graphics.TextureSourceOffsetsUniformVariableIndex] = uoffsets
+	usorigin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
+	us[graphics.TextureSourceRegionOriginUniformVariableIndex] = usorigin
+	ussize := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
+	us[graphics.TextureSourceRegionSizeUniformVariableIndex] = ussize
+	us[graphics.ProjectionMatrixUniformVariableIndex] = []float32{
+		2 / float32(dw), 0, 0, 0,
+		0, -2 / float32(dh), 0, 0,
+		0, 0, 1, 0,
+		-1, 1, 0, 1,
 	}
 
-	var flattenUniforms []float32
-	if shader == nil {
-		screenWidth, screenHeight := dst.internalSize()
-		var srcWidth, srcHeight float32
-		if filter != graphicsdriver.FilterNearest {
-			w, h := srcImages[0].internalSize()
-			srcWidth = float32(w)
-			srcHeight = float32(h)
-		}
-		var esBody [16]float32
-		var esTranslate [4]float32
-		colorM.Elements(&esBody, &esTranslate)
-
-		flattenUniforms = []float32{
-			float32(screenWidth),
-			float32(screenHeight),
-			srcWidth,
-			srcHeight,
-			esBody[0],
-			esBody[1],
-			esBody[2],
-			esBody[3],
-			esBody[4],
-			esBody[5],
-			esBody[6],
-			esBody[7],
-			esBody[8],
-			esBody[9],
-			esBody[10],
-			esBody[11],
-			esBody[12],
-			esBody[13],
-			esBody[14],
-			esBody[15],
-			esTranslate[0],
-			esTranslate[1],
-			esTranslate[2],
-			esTranslate[3],
-			srcRegion.X,
-			srcRegion.Y,
-			srcRegion.X + srcRegion.Width,
-			srcRegion.Y + srcRegion.Height,
-		}
-	} else {
-		// TODO: This logic is very similar to Metal's. Let's unify them.
-		dw, dh := dst.internalSize()
-		us := make([][]float32, graphics.PreservedUniformVariablesCount+len(uniforms))
-		us[graphics.TextureDestinationSizeUniformVariableIndex] = []float32{float32(dw), float32(dh)}
-		usizes := make([]float32, 2*len(srcs))
-		for i, src := range srcImages {
-			if src != nil {
-				w, h := src.internalSize()
-				usizes[2*i] = float32(w)
-				usizes[2*i+1] = float32(h)
-			}
-		}
-		us[graphics.TextureSourceSizesUniformVariableIndex] = usizes
-		udorigin := []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
-		us[graphics.TextureDestinationRegionOriginUniformVariableIndex] = udorigin
-		udsize := []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
-		us[graphics.TextureDestinationRegionSizeUniformVariableIndex] = udsize
-		uoffsets := make([]float32, 2*len(offsets))
-		for i, offset := range offsets {
-			uoffsets[2*i] = offset[0]
-			uoffsets[2*i+1] = offset[1]
-		}
-		us[graphics.TextureSourceOffsetsUniformVariableIndex] = uoffsets
-		usorigin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
-		us[graphics.TextureSourceRegionOriginUniformVariableIndex] = usorigin
-		ussize := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
-		us[graphics.TextureSourceRegionSizeUniformVariableIndex] = ussize
-		us[graphics.ProjectionMatrixUniformVariableIndex] = []float32{
-			2 / float32(dw), 0, 0, 0,
-			0, -2 / float32(dh), 0, 0,
-			0, 0, 1, 0,
-			-1, 1, 0, 1,
-		}
-
-		for i, u := range uniforms {
-			us[graphics.PreservedUniformVariablesCount+i] = u
-		}
-
-		flattenUniforms = shader.uniformsToFloat32s(us)
+	for i, u := range uniforms {
+		us[graphics.PreservedUniformVariablesCount+i] = u
 	}
+
+	flattenUniforms := shader.uniformsToFloat32s(us)
 
 	w, h := dst.internalSize()
 	g.needFlushDrawCommandList = true
@@ -1361,69 +1317,29 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 		Format:         _DXGI_FORMAT_R16_UINT,
 	})
 
-	if shader == nil {
-		key := builtinPipelineStatesKey{
-			useColorM:     !colorM.IsIdentity(),
-			compositeMode: mode,
-			filter:        filter,
-			address:       address,
-			screen:        dst.screen,
+	if evenOdd {
+		s, err := shader.pipelineState(mode, prepareStencil, dst.screen)
+		if err != nil {
+			return err
+		}
+		if err := g.drawTriangles(s, srcImages, flattenUniforms, indexLen, indexOffset); err != nil {
+			return err
 		}
 
-		if evenOdd {
-			key.stencilMode = prepareStencil
-			s, err := g.pipelineStates.builtinGraphicsPipelineState(g.device, key)
-			if err != nil {
-				return err
-			}
-			if err := g.drawTriangles(s, srcImages, flattenUniforms, indexLen, indexOffset); err != nil {
-				return err
-			}
-
-			key.stencilMode = drawWithStencil
-			s, err = g.pipelineStates.builtinGraphicsPipelineState(g.device, key)
-			if err != nil {
-				return err
-			}
-			if err := g.drawTriangles(s, srcImages, flattenUniforms, indexLen, indexOffset); err != nil {
-				return err
-			}
-		} else {
-			key.stencilMode = noStencil
-			s, err := g.pipelineStates.builtinGraphicsPipelineState(g.device, key)
-			if err != nil {
-				return err
-			}
-			if err := g.drawTriangles(s, srcImages, flattenUniforms, indexLen, indexOffset); err != nil {
-				return err
-			}
+		s, err = shader.pipelineState(mode, drawWithStencil, dst.screen)
+		if err != nil {
+			return err
 		}
-
+		if err := g.drawTriangles(s, srcImages, flattenUniforms, indexLen, indexOffset); err != nil {
+			return err
+		}
 	} else {
-		if evenOdd {
-			s, err := shader.pipelineState(mode, prepareStencil, dst.screen)
-			if err != nil {
-				return err
-			}
-			if err := g.drawTriangles(s, srcImages, flattenUniforms, indexLen, indexOffset); err != nil {
-				return err
-			}
-
-			s, err = shader.pipelineState(mode, drawWithStencil, dst.screen)
-			if err != nil {
-				return err
-			}
-			if err := g.drawTriangles(s, srcImages, flattenUniforms, indexLen, indexOffset); err != nil {
-				return err
-			}
-		} else {
-			s, err := shader.pipelineState(mode, noStencil, dst.screen)
-			if err != nil {
-				return err
-			}
-			if err := g.drawTriangles(s, srcImages, flattenUniforms, indexLen, indexOffset); err != nil {
-				return err
-			}
+		s, err := shader.pipelineState(mode, noStencil, dst.screen)
+		if err != nil {
+			return err
+		}
+		if err := g.drawTriangles(s, srcImages, flattenUniforms, indexLen, indexOffset); err != nil {
+			return err
 		}
 	}
 
@@ -1627,7 +1543,9 @@ func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 		for j := 0; j < a.Height; j++ {
 			copy(srcBytes[(a.Y+j)*int(i.layouts.Footprint.RowPitch)+a.X*4:], a.Pixels[j*a.Width*4:(j+1)*a.Width*4])
 		}
+	}
 
+	for _, a := range args {
 		dst := _D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex{
 			pResource:        i.texture,
 			Type:             _D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,

@@ -19,7 +19,6 @@ import (
 	"math"
 	"strings"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -90,7 +89,7 @@ func mustUseDifferentVertexBuffer(nextNumVertexFloats, nextNumIndices int) bool 
 }
 
 // EnqueueDrawTrianglesCommand enqueues a drawing-image command.
-func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, color affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
+func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, mode graphicsdriver.CompositeMode, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
 	if len(indices) > graphics.IndicesCount {
 		panic(fmt.Sprintf("graphicscommand: len(indices) must be <= graphics.IndicesCount but not at EnqueueDrawTrianglesCommand: len(indices): %d, graphics.IndicesCount: %d", len(indices), graphics.IndicesCount))
 	}
@@ -124,7 +123,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	// TODO: If dst is the screen, reorder the command to be the last.
 	if !split && 0 < len(q.commands) {
 		if last, ok := q.commands[len(q.commands)-1].(*drawTrianglesCommand); ok {
-			if last.CanMergeWithDrawTrianglesCommand(dst, srcs, vertices, color, mode, filter, address, dstRegion, srcRegion, shader, uniforms, evenOdd) {
+			if last.CanMergeWithDrawTrianglesCommand(dst, srcs, vertices, mode, dstRegion, srcRegion, shader, uniforms, evenOdd) {
 				last.setVertices(q.lastVertices(len(vertices) + last.numVertices()))
 				last.addNumIndices(len(indices))
 				return
@@ -138,10 +137,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	c.offsets = offsets
 	c.vertices = q.lastVertices(len(vertices))
 	c.nindices = len(indices)
-	c.color = color
 	c.mode = mode
-	c.filter = filter
-	c.address = address
 	c.dstRegion = dstRegion
 	c.srcRegion = srcRegion
 	c.shader = shader
@@ -260,10 +256,7 @@ type drawTrianglesCommand struct {
 	offsets   [graphics.ShaderImageCount - 1][2]float32
 	vertices  []float32
 	nindices  int
-	color     affine.ColorM
 	mode      graphicsdriver.CompositeMode
-	filter    graphicsdriver.Filter
-	address   graphicsdriver.Address
 	dstRegion graphicsdriver.Region
 	srcRegion graphicsdriver.Region
 	shader    *Shader
@@ -311,33 +304,6 @@ func (c *drawTrianglesCommand) String() string {
 		dst += " (screen)"
 	}
 
-	shader := "default shader"
-	if c.shader != nil {
-		shader = "custom shader"
-	}
-
-	filter := ""
-	switch c.filter {
-	case graphicsdriver.FilterNearest:
-		filter = "nearest"
-	case graphicsdriver.FilterLinear:
-		filter = "linear"
-	default:
-		panic(fmt.Sprintf("graphicscommand: invalid filter: %d", c.filter))
-	}
-
-	address := ""
-	switch c.address {
-	case graphicsdriver.AddressClampToZero:
-		address = "clamp_to_zero"
-	case graphicsdriver.AddressRepeat:
-		address = "repeat"
-	case graphicsdriver.AddressUnsafe:
-		address = "unsafe"
-	default:
-		panic(fmt.Sprintf("graphicscommand: invalid address: %d", c.address))
-	}
-
 	var srcstrs [graphics.ShaderImageCount]string
 	for i, src := range c.srcs {
 		if src == nil {
@@ -352,7 +318,7 @@ func (c *drawTrianglesCommand) String() string {
 
 	r := fmt.Sprintf("(x:%d, y:%d, width:%d, height:%d)",
 		int(c.dstRegion.X), int(c.dstRegion.Y), int(c.dstRegion.Width), int(c.dstRegion.Height))
-	return fmt.Sprintf("draw-triangles: dst: %s <- src: [%s], %s, dst region: %s, num of indices: %d, colorm: %s, mode: %s, filter: %s, address: %s, even-odd: %t", dst, strings.Join(srcstrs[:], ", "), shader, r, c.nindices, c.color, mode, filter, address, c.evenOdd)
+	return fmt.Sprintf("draw-triangles: dst: %s <- src: [%s], dst region: %s, num of indices: %d, mode: %s, even-odd: %t", dst, strings.Join(srcstrs[:], ", "), r, c.nindices, mode, c.evenOdd)
 }
 
 // Exec executes the drawTrianglesCommand.
@@ -362,22 +328,16 @@ func (c *drawTrianglesCommand) Exec(graphicsDriver graphicsdriver.Graphics, inde
 		return nil
 	}
 
-	var shaderID graphicsdriver.ShaderID = graphicsdriver.InvalidShaderID
 	var imgs [graphics.ShaderImageCount]graphicsdriver.ImageID
-	if c.shader != nil {
-		shaderID = c.shader.shader.ID()
-		for i, src := range c.srcs {
-			if src == nil {
-				imgs[i] = graphicsdriver.InvalidImageID
-				continue
-			}
-			imgs[i] = src.image.ID()
+	for i, src := range c.srcs {
+		if src == nil {
+			imgs[i] = graphicsdriver.InvalidImageID
+			continue
 		}
-	} else {
-		imgs[0] = c.srcs[0].image.ID()
+		imgs[i] = src.image.ID()
 	}
 
-	return graphicsDriver.DrawTriangles(c.dst.image.ID(), imgs, c.offsets, shaderID, c.nindices, indexOffset, c.mode, c.color, c.filter, c.address, c.dstRegion, c.srcRegion, c.uniforms, c.evenOdd)
+	return graphicsDriver.DrawTriangles(c.dst.image.ID(), imgs, c.offsets, c.shader.shader.ID(), c.nindices, indexOffset, c.mode, c.dstRegion, c.srcRegion, c.uniforms, c.evenOdd)
 }
 
 func (c *drawTrianglesCommand) numVertices() int {
@@ -398,22 +358,20 @@ func (c *drawTrianglesCommand) addNumIndices(n int) {
 
 // CanMergeWithDrawTrianglesCommand returns a boolean value indicating whether the other drawTrianglesCommand can be merged
 // with the drawTrianglesCommand c.
-func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, vertices []float32, color affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) bool {
+func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, vertices []float32, mode graphicsdriver.CompositeMode, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) bool {
 	if c.shader != shader {
 		return false
 	}
-	if c.shader != nil {
-		if len(c.uniforms) != len(uniforms) {
+	if len(c.uniforms) != len(uniforms) {
+		return false
+	}
+	for i := range c.uniforms {
+		if len(c.uniforms[i]) != len(uniforms[i]) {
 			return false
 		}
-		for i := range c.uniforms {
-			if len(c.uniforms[i]) != len(uniforms[i]) {
+		for j := range c.uniforms[i] {
+			if c.uniforms[i][j] != uniforms[i][j] {
 				return false
-			}
-			for j := range c.uniforms[i] {
-				if c.uniforms[i][j] != uniforms[i][j] {
-					return false
-				}
 			}
 		}
 	}
@@ -423,16 +381,7 @@ func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs
 	if c.srcs != srcs {
 		return false
 	}
-	if !c.color.Equals(color) {
-		return false
-	}
 	if c.mode != mode {
-		return false
-	}
-	if c.filter != filter {
-		return false
-	}
-	if c.address != address {
 		return false
 	}
 	if c.dstRegion != dstRegion {

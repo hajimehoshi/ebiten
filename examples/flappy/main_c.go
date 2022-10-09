@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build example && (nintendosdk || microsoftgdk)
+//go:build example && (microsoftgdk || nintendosdk)
 // +build example
-// +build nintendosdk microsoftgdk
+// +build microsoftgdk nintendosdk
 
-// This file is for some special environments using 'nintendosdk' or 'microsoftgdk'.
+// This file is for some special environments using 'microsoftgdk' or 'nintendosdk'.
 // You usually don't have to care about this file.
 // Actually this example works without this file in usual cases.
 

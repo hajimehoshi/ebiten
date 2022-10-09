@@ -70,7 +70,7 @@ func (u *userInterfaceImpl) Run(game Game) error {
 		u.input.update(u.context)
 
 		w, h := nintendosdk.ScreenSize()
-		if err := u.context.updateFrame(u.graphicsDriver, float64(w), float64(h), deviceScaleFactor); err != nil {
+		if err := u.context.updateFrame(u.graphicsDriver, float64(w), float64(h), deviceScaleFactor, u); err != nil {
 			return err
 		}
 
@@ -143,4 +143,10 @@ func (*userInterfaceImpl) Input() *Input {
 
 func (*userInterfaceImpl) Window() Window {
 	return &nullWindow{}
+}
+
+func (u *userInterfaceImpl) beginFrame() {
+}
+
+func (u *userInterfaceImpl) endFrame() {
 }

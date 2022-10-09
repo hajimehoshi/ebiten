@@ -282,22 +282,24 @@ func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) {
 	// toggleFullscreen doesn't work when the window is not resizable.
 	origFullScreen := window.Send(sel_collectionBehavior)&cocoa.NSWindowCollectionBehaviorFullScreenPrimary != 0
 	if !origFullScreen {
-		window.Send(sel_setCollectionBehavior, window.Send(sel_collectionBehavior)|cocoa.NSWindowCollectionBehaviorFullScreenPrimary)
+		window.Send(sel_setCollectionBehavior, cocoa.NSUInteger(window.Send(sel_collectionBehavior))|cocoa.NSWindowCollectionBehaviorFullScreenPrimary)
 	}
 	window.Send(objc.RegisterName("toggleFullScreen:"), 0)
 	if !origFullScreen {
-		window.Send(sel_setCollectionBehavior, window.Send(sel_collectionBehavior)&cocoa.NSWindowCollectionBehaviorFullScreenPrimary)
+		window.Send(sel_setCollectionBehavior, cocoa.NSUInteger(window.Send(sel_collectionBehavior))&^cocoa.NSUInteger(cocoa.NSWindowCollectionBehaviorFullScreenPrimary))
 	}
 }
 
-func (u *userInterfaceImpl) adjustViewSize() {
+func (u *userInterfaceImpl) adjustViewSizeAfterFullscreen() {
 	if u.graphicsDriver.IsGL() {
 		return
 	}
+
 	window := cocoa.NSWindow{ID: objc.ID(u.window.GetCocoaWindow())}
 	if window.StyleMask()&cocoa.NSWindowStyleMaskFullScreen == 0 {
 		return
 	}
+
 	// Apparently, adjusting the view size is not needed as of macOS 12 (#1745).
 	if cocoa.NSProcessInfo_processInfo().IsOperatingSystemAtLeastVersion(cocoa.NSOperatingSystemVersion{
 		Major: 12,
@@ -315,6 +317,7 @@ func (u *userInterfaceImpl) adjustViewSize() {
 	}
 	viewSize.Width--
 	view.SetFrameSize(viewSize)
+
 	// NSColor.blackColor (0, 0, 0, 1) didn't work.
 	// Use the transparent color instead.
 	window.SetBackgroundColor(cocoa.NSColor_colorWithSRGBRedGreenBlueAlpha(0, 0, 0, 0))

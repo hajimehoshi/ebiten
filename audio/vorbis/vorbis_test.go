@@ -16,6 +16,7 @@ package vorbis_test
 
 import (
 	"bytes"
+	_ "embed"
 	"io"
 	"testing"
 
@@ -23,6 +24,14 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/audio/vorbis"
+)
+
+var (
+	//go:embed test_mono.ogg
+	test_mono_ogg []byte
+
+	//go:embed test_tooshort.ogg
+	test_tooshort_ogg []byte
 )
 
 var audioContext = audio.NewContext(44100)

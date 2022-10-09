@@ -63,7 +63,7 @@ func DrawRect(dst *ebiten.Image, x, y, width, height float64, clr color.Color) {
 
 // DrawCircle draws a circle on given destination dst.
 //
-// DrawCircle is intended to be used mainly for debugging or prototyping puropose.
+// DrawCircle is intended to be used mainly for debugging or prototyping purpose.
 func DrawCircle(dst *ebiten.Image, cx, cy, r float64, clr color.Color) {
 	var path vector.Path
 	rd, g, b, a := clr.RGBA()

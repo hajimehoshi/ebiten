@@ -180,7 +180,11 @@ func (g *Graphics) uniformVariableName(idx int) string {
 	return name
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, offsets [graphics.ShaderImageCount - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, colorM graphicsdriver.ColorM, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, offsets [graphics.ShaderImageCount - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
+	if shaderID == graphicsdriver.InvalidShaderID {
+		return fmt.Errorf("opengl: shader ID is invalid")
+	}
+
 	destination := g.images[dstID]
 
 	g.drawCalled = true
@@ -196,145 +200,95 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 	)
 	g.context.blendFunc(mode)
 
-	var program program
-	if shaderID == graphicsdriver.InvalidShaderID {
-		program = g.state.programs[programKey{
-			useColorM: !colorM.IsIdentity(),
-			filter:    filter,
-			address:   address,
-		}]
+	shader := g.shaders[shaderID]
+	program := shader.p
 
-		dw, dh := destination.framebufferSize()
-		g.uniformVars = append(g.uniformVars, uniformVariable{
-			name:  "viewport_size",
-			value: []float32{float32(dw), float32(dh)},
-			typ:   shaderir.Type{Main: shaderir.Vec2},
-		}, uniformVariable{
-			name: "source_region",
-			value: []float32{
-				srcRegion.X,
-				srcRegion.Y,
-				srcRegion.X + srcRegion.Width,
-				srcRegion.Y + srcRegion.Height,
-			},
-			typ: shaderir.Type{Main: shaderir.Vec4},
-		})
-
-		if !colorM.IsIdentity() {
-			// ColorM's elements are immutable. It's OK to hold the reference without copying.
-			var esBody [16]float32
-			var esTranslate [4]float32
-			colorM.Elements(&esBody, &esTranslate)
-			g.uniformVars = append(g.uniformVars, uniformVariable{
-				name:  "color_matrix_body",
-				value: esBody[:],
-				typ:   shaderir.Type{Main: shaderir.Mat4},
-			}, uniformVariable{
-				name:  "color_matrix_translation",
-				value: esTranslate[:],
-				typ:   shaderir.Type{Main: shaderir.Vec4},
-			})
-		}
-
-		if filter != graphicsdriver.FilterNearest {
-			sw, sh := g.images[srcIDs[0]].framebufferSize()
-			g.uniformVars = append(g.uniformVars, uniformVariable{
-				name:  "source_size",
-				value: []float32{float32(sw), float32(sh)},
-				typ:   shaderir.Type{Main: shaderir.Vec2},
-			})
-		}
+	ulen := graphics.PreservedUniformVariablesCount + len(uniforms)
+	if cap(g.uniformVars) < ulen {
+		g.uniformVars = make([]uniformVariable, ulen)
 	} else {
-		shader := g.shaders[shaderID]
-		program = shader.p
+		g.uniformVars = g.uniformVars[:ulen]
+	}
 
-		ulen := graphics.PreservedUniformVariablesCount + len(uniforms)
-		if cap(g.uniformVars) < ulen {
-			g.uniformVars = make([]uniformVariable, ulen)
-		} else {
-			g.uniformVars = g.uniformVars[:ulen]
-		}
-
-		{
-			const idx = graphics.TextureDestinationSizeUniformVariableIndex
-			w, h := destination.framebufferSize()
-			g.uniformVars[idx].name = g.uniformVariableName(idx)
-			g.uniformVars[idx].value = []float32{float32(w), float32(h)}
-			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-		}
-		{
-			sizes := make([]float32, 2*len(srcIDs))
-			for i, srcID := range srcIDs {
-				if img := g.images[srcID]; img != nil {
-					w, h := img.framebufferSize()
-					sizes[2*i] = float32(w)
-					sizes[2*i+1] = float32(h)
-				}
-
+	{
+		const idx = graphics.TextureDestinationSizeUniformVariableIndex
+		w, h := destination.framebufferSize()
+		g.uniformVars[idx].name = g.uniformVariableName(idx)
+		g.uniformVars[idx].value = []float32{float32(w), float32(h)}
+		g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
+	}
+	{
+		sizes := make([]float32, 2*len(srcIDs))
+		for i, srcID := range srcIDs {
+			if img := g.images[srcID]; img != nil {
+				w, h := img.framebufferSize()
+				sizes[2*i] = float32(w)
+				sizes[2*i+1] = float32(h)
 			}
-			const idx = graphics.TextureSourceSizesUniformVariableIndex
-			g.uniformVars[idx].name = g.uniformVariableName(idx)
-			g.uniformVars[idx].value = sizes
-			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-		}
-		dw, dh := destination.framebufferSize()
-		{
-			origin := []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
-			const idx = graphics.TextureDestinationRegionOriginUniformVariableIndex
-			g.uniformVars[idx].name = g.uniformVariableName(idx)
-			g.uniformVars[idx].value = origin
-			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-		}
-		{
-			size := []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
-			const idx = graphics.TextureDestinationRegionSizeUniformVariableIndex
-			g.uniformVars[idx].name = g.uniformVariableName(idx)
-			g.uniformVars[idx].value = size
-			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-		}
-		{
-			voffsets := make([]float32, 2*len(offsets))
-			for i, o := range offsets {
-				voffsets[2*i] = o[0]
-				voffsets[2*i+1] = o[1]
-			}
-			const idx = graphics.TextureSourceOffsetsUniformVariableIndex
-			g.uniformVars[idx].name = g.uniformVariableName(idx)
-			g.uniformVars[idx].value = voffsets
-			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-		}
-		{
-			origin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
-			const idx = graphics.TextureSourceRegionOriginUniformVariableIndex
-			g.uniformVars[idx].name = g.uniformVariableName(idx)
-			g.uniformVars[idx].value = origin
-			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-		}
-		{
-			size := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
-			const idx = graphics.TextureSourceRegionSizeUniformVariableIndex
-			g.uniformVars[idx].name = g.uniformVariableName(idx)
-			g.uniformVars[idx].value = size
-			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-		}
-		{
-			const idx = graphics.ProjectionMatrixUniformVariableIndex
-			g.uniformVars[idx].name = g.uniformVariableName(idx)
-			g.uniformVars[idx].value = []float32{
-				2 / float32(dw), 0, 0, 0,
-				0, 2 / float32(dh), 0, 0,
-				0, 0, 1, 0,
-				-1, -1, 0, 1,
-			}
-			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-		}
 
-		for i, v := range uniforms {
-			const offset = graphics.PreservedUniformVariablesCount
-			g.uniformVars[i+offset].name = g.uniformVariableName(i + offset)
-			g.uniformVars[i+offset].value = v
-			g.uniformVars[i+offset].typ = shader.ir.Uniforms[i+offset]
 		}
+		const idx = graphics.TextureSourceSizesUniformVariableIndex
+		g.uniformVars[idx].name = g.uniformVariableName(idx)
+		g.uniformVars[idx].value = sizes
+		g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
+	}
+	dw, dh := destination.framebufferSize()
+	{
+		origin := []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
+		const idx = graphics.TextureDestinationRegionOriginUniformVariableIndex
+		g.uniformVars[idx].name = g.uniformVariableName(idx)
+		g.uniformVars[idx].value = origin
+		g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
+	}
+	{
+		size := []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
+		const idx = graphics.TextureDestinationRegionSizeUniformVariableIndex
+		g.uniformVars[idx].name = g.uniformVariableName(idx)
+		g.uniformVars[idx].value = size
+		g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
+	}
+	{
+		voffsets := make([]float32, 2*len(offsets))
+		for i, o := range offsets {
+			voffsets[2*i] = o[0]
+			voffsets[2*i+1] = o[1]
+		}
+		const idx = graphics.TextureSourceOffsetsUniformVariableIndex
+		g.uniformVars[idx].name = g.uniformVariableName(idx)
+		g.uniformVars[idx].value = voffsets
+		g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
+	}
+	{
+		origin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
+		const idx = graphics.TextureSourceRegionOriginUniformVariableIndex
+		g.uniformVars[idx].name = g.uniformVariableName(idx)
+		g.uniformVars[idx].value = origin
+		g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
+	}
+	{
+		size := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
+		const idx = graphics.TextureSourceRegionSizeUniformVariableIndex
+		g.uniformVars[idx].name = g.uniformVariableName(idx)
+		g.uniformVars[idx].value = size
+		g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
+	}
+	{
+		const idx = graphics.ProjectionMatrixUniformVariableIndex
+		g.uniformVars[idx].name = g.uniformVariableName(idx)
+		g.uniformVars[idx].value = []float32{
+			2 / float32(dw), 0, 0, 0,
+			0, 2 / float32(dh), 0, 0,
+			0, 0, 1, 0,
+			-1, -1, 0, 1,
+		}
+		g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
+	}
+
+	for i, v := range uniforms {
+		const offset = graphics.PreservedUniformVariablesCount
+		g.uniformVars[i+offset].name = g.uniformVariableName(i + offset)
+		g.uniformVars[i+offset].value = v
+		g.uniformVars[i+offset].typ = shader.ir.Uniforms[i+offset]
 	}
 
 	var imgs [graphics.ShaderImageCount]textureVariable

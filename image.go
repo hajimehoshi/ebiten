@@ -21,6 +21,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
+	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -32,14 +33,13 @@ import (
 type Image struct {
 	// addr holds self to check copying.
 	// See strings.Builder for similar examples.
-	addr *Image
-
-	image *ui.Image
-
-	bounds   image.Rectangle
+	addr     *Image
+	image    *ui.Image
 	original *Image
+	bounds   image.Rectangle
 
-	setVerticesCache map[[2]int][4]byte
+	// Do not add a 'cache' member that are resolved lazily.
+	// This tends to forget resolving the cache easily (#2362).
 }
 
 var emptyImage *Image
@@ -54,80 +54,6 @@ func (i *Image) copyCheck() {
 	if i.addr != i {
 		panic("ebiten: illegal use of non-zero Image copied by value")
 	}
-}
-
-func (i *Image) resolveSetVerticesCacheIfNeeded() {
-	if i.isSubImage() {
-		i = i.original
-	}
-
-	if len(i.setVerticesCache) == 0 {
-		return
-	}
-
-	l := len(i.setVerticesCache)
-	vs := graphics.Vertices(l * 4)
-	is := make([]uint16, l*6)
-	sx, sy := emptyImage.adjustPositionF32(1, 1)
-	var idx int
-	for p, c := range i.setVerticesCache {
-		dx := float32(p[0])
-		dy := float32(p[1])
-
-		var crf, cgf, cbf, caf float32
-		if c[3] != 0 {
-			crf = float32(c[0]) / float32(c[3])
-			cgf = float32(c[1]) / float32(c[3])
-			cbf = float32(c[2]) / float32(c[3])
-			caf = float32(c[3]) / 0xff
-		}
-
-		vs[graphics.VertexFloatCount*4*idx] = dx
-		vs[graphics.VertexFloatCount*4*idx+1] = dy
-		vs[graphics.VertexFloatCount*4*idx+2] = sx
-		vs[graphics.VertexFloatCount*4*idx+3] = sy
-		vs[graphics.VertexFloatCount*4*idx+4] = crf
-		vs[graphics.VertexFloatCount*4*idx+5] = cgf
-		vs[graphics.VertexFloatCount*4*idx+6] = cbf
-		vs[graphics.VertexFloatCount*4*idx+7] = caf
-		vs[graphics.VertexFloatCount*4*idx+8] = dx + 1
-		vs[graphics.VertexFloatCount*4*idx+9] = dy
-		vs[graphics.VertexFloatCount*4*idx+10] = sx + 1
-		vs[graphics.VertexFloatCount*4*idx+11] = sy
-		vs[graphics.VertexFloatCount*4*idx+12] = crf
-		vs[graphics.VertexFloatCount*4*idx+13] = cgf
-		vs[graphics.VertexFloatCount*4*idx+14] = cbf
-		vs[graphics.VertexFloatCount*4*idx+15] = caf
-		vs[graphics.VertexFloatCount*4*idx+16] = dx
-		vs[graphics.VertexFloatCount*4*idx+17] = dy + 1
-		vs[graphics.VertexFloatCount*4*idx+18] = sx
-		vs[graphics.VertexFloatCount*4*idx+19] = sy + 1
-		vs[graphics.VertexFloatCount*4*idx+20] = crf
-		vs[graphics.VertexFloatCount*4*idx+21] = cgf
-		vs[graphics.VertexFloatCount*4*idx+22] = cbf
-		vs[graphics.VertexFloatCount*4*idx+23] = caf
-		vs[graphics.VertexFloatCount*4*idx+24] = dx + 1
-		vs[graphics.VertexFloatCount*4*idx+25] = dy + 1
-		vs[graphics.VertexFloatCount*4*idx+26] = sx + 1
-		vs[graphics.VertexFloatCount*4*idx+27] = sy + 1
-		vs[graphics.VertexFloatCount*4*idx+28] = crf
-		vs[graphics.VertexFloatCount*4*idx+29] = cgf
-		vs[graphics.VertexFloatCount*4*idx+30] = cbf
-		vs[graphics.VertexFloatCount*4*idx+31] = caf
-
-		is[6*idx] = uint16(4 * idx)
-		is[6*idx+1] = uint16(4*idx + 1)
-		is[6*idx+2] = uint16(4*idx + 2)
-		is[6*idx+3] = uint16(4*idx + 1)
-		is[6*idx+4] = uint16(4*idx + 2)
-		is[6*idx+5] = uint16(4*idx + 3)
-
-		idx++
-	}
-	i.setVerticesCache = nil
-
-	srcs := [graphics.ShaderImageCount]*ui.Image{emptyImage.image}
-	i.image.DrawTriangles(srcs, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, i.adjustedRegion(), graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, nil, nil, false, true)
 }
 
 // Size returns the size of the image.
@@ -159,23 +85,20 @@ func (i *Image) Fill(clr color.Color) {
 	if i.isDisposed() {
 		return
 	}
-	i.setVerticesCache = nil
 
 	var crf, cgf, cbf, caf float32
 	cr, cg, cb, ca := clr.RGBA()
-	if ca != 0 {
-		crf = float32(cr) / float32(ca)
-		cgf = float32(cg) / float32(ca)
-		cbf = float32(cb) / float32(ca)
-		caf = float32(ca) / 0xffff
-	}
+	crf = float32(cr) / 0xffff
+	cgf = float32(cg) / 0xffff
+	cbf = float32(cb) / 0xffff
+	caf = float32(ca) / 0xffff
 	b := i.Bounds()
 	x, y := i.adjustPosition(b.Min.X, b.Min.Y)
 	i.image.Fill(crf, cgf, cbf, caf, x, y, b.Dx(), b.Dy())
 }
 
-func canSkipMipmap(geom GeoM, filter graphicsdriver.Filter) bool {
-	if filter != graphicsdriver.FilterLinear {
+func canSkipMipmap(geom GeoM, filter builtinshader.Filter) bool {
+	if filter != builtinshader.FilterLinear {
 		return true
 	}
 	return geom.det2x2() >= 0.999
@@ -275,7 +198,7 @@ func (i *Image) adjustedRegion() graphicsdriver.Region {
 // Another case is when you use an offscreen as a render source. An offscreen
 // doesn't share the texture atlas with high probability.
 //
-// For more performance tips, see https://ebiten.org/documents/performancetips.html
+// For more performance tips, see https://ebitengine.org/en/documents/performancetips.html
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	i.copyCheck()
 
@@ -286,9 +209,6 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		return
 	}
 
-	img.resolveSetVerticesCacheIfNeeded()
-	i.resolveSetVerticesCacheIfNeeded()
-
 	// Calculate vertices before locking because the user can do anything in
 	// options.ImageParts interface without deadlock (e.g. Call Image functions).
 	if options == nil {
@@ -296,7 +216,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	}
 
 	mode := graphicsdriver.CompositeMode(options.CompositeMode)
-	filter := graphicsdriver.Filter(options.Filter)
+	filter := builtinshader.Filter(options.Filter)
 
 	if offsetX, offsetY := i.adjustPosition(0, 0); offsetX != 0 || offsetY != 0 {
 		options.GeoM.Translate(float64(offsetX), float64(offsetY))
@@ -312,7 +232,20 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 
 	srcs := [graphics.ShaderImageCount]*ui.Image{img.image}
 
-	i.image.DrawTriangles(srcs, vs, is, colorm, mode, filter, graphicsdriver.AddressUnsafe, i.adjustedRegion(), graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, nil, nil, false, canSkipMipmap(options.GeoM, filter))
+	useColorM := !colorm.IsIdentity()
+	shader := builtinShader(filter, builtinshader.AddressUnsafe, useColorM)
+	var uniforms [][]float32
+	if useColorM {
+		var body [16]float32
+		var translation [4]float32
+		colorm.Elements(body[:], translation[:])
+		uniforms = shader.convertUniforms(map[string]interface{}{
+			builtinshader.UniformColorMBody:        body[:],
+			builtinshader.UniformColorMTranslation: translation[:],
+		})
+	}
+
+	i.image.DrawTriangles(srcs, vs, is, mode, i.adjustedRegion(), graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, false, canSkipMipmap(options.GeoM, filter))
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -329,10 +262,12 @@ type Vertex struct {
 
 	// ColorR/ColorG/ColorB/ColorA represents color scaling values.
 	// Their interpretation depends on the concrete draw call used:
-	// - DrawTriangles: straight-alpha encoded color multiplier.
+	// - DrawTriangles: straight-alpha or premultiplied-alpha encoded color multiplier.
+	//   The format is determined by ColorScaleFormat in DrawTrianglesOptions.
 	//   If ColorA is 0, the vertex is fully transparent and color is ignored.
 	//   If ColorA is 1, the vertex has the color (ColorR, ColorG, ColorB).
-	//   Vertex colors are interpolated linearly respecting alpha.
+	//   Vertex colors are converted to premultiplied-alpha internally and
+	//   interpolated linearly respecting alpha.
 	// - DrawTrianglesShader: arbitrary floating point values sent to the shader.
 	//   These are interpolated linearly and independently from each other.
 	ColorR float32
@@ -346,13 +281,13 @@ type Address int
 
 const (
 	// AddressUnsafe means there is no guarantee when the texture coodinates are out of range.
-	AddressUnsafe Address = Address(graphicsdriver.AddressUnsafe)
+	AddressUnsafe Address = Address(builtinshader.AddressUnsafe)
 
 	// AddressClampToZero means that out-of-range texture coordinates return 0 (transparent).
-	AddressClampToZero Address = Address(graphicsdriver.AddressClampToZero)
+	AddressClampToZero Address = Address(builtinshader.AddressClampToZero)
 
 	// AddressRepeat means that texture coordinates wrap to the other side of the texture.
-	AddressRepeat Address = Address(graphicsdriver.AddressRepeat)
+	AddressRepeat Address = Address(builtinshader.AddressRepeat)
 )
 
 // FillRule is the rule whether an overlapped region is rendered with DrawTriangles(Shader).
@@ -367,14 +302,29 @@ const (
 	EvenOdd
 )
 
+// ColorScaleFormat is the format of color scales in vertices.
+type ColorScaleFormat int
+
+const (
+	// ColorScaleFormatStraightAlpha indicates color scales in vertices are
+	// straight-alpha encoded color multiplier.
+	ColorScaleFormatStraightAlpha ColorScaleFormat = iota
+
+	// ColorScaleFormatStraightAlpha indicates color scales in vertices are
+	// premultiplied-alpha encoded color multiplier.
+	ColorScaleFormatPremultipliedAlpha
+)
+
 // DrawTrianglesOptions represents options for DrawTriangles.
 type DrawTrianglesOptions struct {
 	// ColorM is a color matrix to draw.
 	// The default (zero) value is identity, which doesn't change any color.
 	// ColorM is applied before vertex color scale is applied.
-	//
-	// If Shader is not nil, ColorM is ignored.
 	ColorM ColorM
+
+	// ColorScaleFormat is the format of color scales in vertices.
+	// The default (zero) value is ColorScaleFormatStraightAlpha.
+	ColorScaleFormat ColorScaleFormat
 
 	// CompositeMode is a composite mode to draw.
 	// The default (zero) value is regular alpha blending.
@@ -442,50 +392,73 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	}
 	// TODO: Check the maximum value of indices and len(vertices)?
 
-	img.resolveSetVerticesCacheIfNeeded()
-	i.resolveSetVerticesCacheIfNeeded()
-
 	if options == nil {
 		options = &DrawTrianglesOptions{}
 	}
 
 	mode := graphicsdriver.CompositeMode(options.CompositeMode)
 
-	address := graphicsdriver.Address(options.Address)
+	address := builtinshader.Address(options.Address)
 	var sr graphicsdriver.Region
-	if address != graphicsdriver.AddressUnsafe {
+	if address != builtinshader.AddressUnsafe {
 		sr = img.adjustedRegion()
 	}
 
-	filter := graphicsdriver.Filter(options.Filter)
+	filter := builtinshader.Filter(options.Filter)
 
 	colorm, cr, cg, cb, ca := colorMToScale(options.ColorM.affineColorM())
 
 	vs := graphics.Vertices(len(vertices))
 	dst := i
-	for i, v := range vertices {
-		dx, dy := dst.adjustPositionF32(v.DstX, v.DstY)
-		vs[i*graphics.VertexFloatCount] = dx
-		vs[i*graphics.VertexFloatCount+1] = dy
-		sx, sy := img.adjustPositionF32(v.SrcX, v.SrcY)
-		vs[i*graphics.VertexFloatCount+2] = sx
-		vs[i*graphics.VertexFloatCount+3] = sy
-		vs[i*graphics.VertexFloatCount+4] = v.ColorR * cr
-		vs[i*graphics.VertexFloatCount+5] = v.ColorG * cg
-		vs[i*graphics.VertexFloatCount+6] = v.ColorB * cb
-		vs[i*graphics.VertexFloatCount+7] = v.ColorA * ca
+	if options.ColorScaleFormat == ColorScaleFormatStraightAlpha {
+		for i, v := range vertices {
+			dx, dy := dst.adjustPositionF32(v.DstX, v.DstY)
+			vs[i*graphics.VertexFloatCount] = dx
+			vs[i*graphics.VertexFloatCount+1] = dy
+			sx, sy := img.adjustPositionF32(v.SrcX, v.SrcY)
+			vs[i*graphics.VertexFloatCount+2] = sx
+			vs[i*graphics.VertexFloatCount+3] = sy
+			vs[i*graphics.VertexFloatCount+4] = v.ColorR * v.ColorA * cr
+			vs[i*graphics.VertexFloatCount+5] = v.ColorG * v.ColorA * cg
+			vs[i*graphics.VertexFloatCount+6] = v.ColorB * v.ColorA * cb
+			vs[i*graphics.VertexFloatCount+7] = v.ColorA * ca
+		}
+	} else {
+		for i, v := range vertices {
+			dx, dy := dst.adjustPositionF32(v.DstX, v.DstY)
+			vs[i*graphics.VertexFloatCount] = dx
+			vs[i*graphics.VertexFloatCount+1] = dy
+			sx, sy := img.adjustPositionF32(v.SrcX, v.SrcY)
+			vs[i*graphics.VertexFloatCount+2] = sx
+			vs[i*graphics.VertexFloatCount+3] = sy
+			vs[i*graphics.VertexFloatCount+4] = v.ColorR * cr
+			vs[i*graphics.VertexFloatCount+5] = v.ColorG * cg
+			vs[i*graphics.VertexFloatCount+6] = v.ColorB * cb
+			vs[i*graphics.VertexFloatCount+7] = v.ColorA * ca
+		}
 	}
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
 	srcs := [graphics.ShaderImageCount]*ui.Image{img.image}
 
-	i.image.DrawTriangles(srcs, vs, is, colorm, mode, filter, address, i.adjustedRegion(), sr, [graphics.ShaderImageCount - 1][2]float32{}, nil, nil, options.FillRule == EvenOdd, false)
+	useColorM := !colorm.IsIdentity()
+	shader := builtinShader(filter, address, useColorM)
+	var uniforms [][]float32
+	if useColorM {
+		var body [16]float32
+		var translation [4]float32
+		colorm.Elements(body[:], translation[:])
+		uniforms = shader.convertUniforms(map[string]interface{}{
+			builtinshader.UniformColorMBody:        body[:],
+			builtinshader.UniformColorMTranslation: translation[:],
+		})
+	}
+
+	i.image.DrawTriangles(srcs, vs, is, mode, i.adjustedRegion(), sr, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, options.FillRule == EvenOdd, filter != builtinshader.FilterLinear)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
-//
-// This API is experimental.
 type DrawTrianglesShaderOptions struct {
 	// CompositeMode is a composite mode to draw.
 	// The default (zero) value is regular alpha blending.
@@ -524,7 +497,7 @@ func init() {
 //
 // Vertex contains color values, which can be interpreted for any purpose by the shader.
 //
-// For the details about the shader, see https://ebiten.org/documents/shader.html.
+// For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 //
 // If len(indices) is not multiple of 3, DrawTrianglesShader panics.
 //
@@ -533,8 +506,6 @@ func init() {
 // When a specified image is non-nil and is disposed, DrawTrianglesShader panics.
 //
 // When the image i is disposed, DrawTrianglesShader does nothing.
-//
-// This API is experimental.
 func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader *Shader, options *DrawTrianglesShaderOptions) {
 	i.copyCheck()
 
@@ -549,8 +520,6 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		panic("ebiten: len(indices) must be <= MaxIndicesCount")
 	}
 	// TODO: Check the maximum value of indices and len(vertices)?
-
-	i.resolveSetVerticesCacheIfNeeded()
 
 	if options == nil {
 		options = &DrawTrianglesShaderOptions{}
@@ -596,7 +565,6 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 				panic("ebiten: all the source images must be the same size with the rectangle")
 			}
 		}
-		img.resolveSetVerticesCacheIfNeeded()
 		imgs[i] = img.image
 	}
 
@@ -621,16 +589,19 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		offsets[i][1] = float32(y - sy)
 	}
 
-	i.image.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), options.FillRule == EvenOdd, false)
+	i.image.DrawTriangles(imgs, vs, is, mode, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), options.FillRule == EvenOdd, true)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
-//
-// This API is experimental.
 type DrawRectShaderOptions struct {
 	// GeoM is a geometry matrix to draw.
 	// The default (zero) value is identity, which draws the rectangle at (0, 0).
 	GeoM GeoM
+
+	// ColorScale is a scale of color.
+	// This scaling values are passed to the `color vec4` argument of the Fragment function in a Kage program.
+	// The default (zero) value is identity, which is (1, 1, 1, 1).
+	ColorScale ColorScale
 
 	// CompositeMode is a composite mode to draw.
 	// The default (zero) value is regular alpha blending.
@@ -658,21 +629,17 @@ func init() {
 
 // DrawRectShader draws a rectangle with the specified width and height with the specified shader.
 //
-// For the details about the shader, see https://ebiten.org/documents/shader.html.
+// For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 //
 // When one of the specified image is non-nil and is disposed, DrawRectShader panics.
 //
 // When the image i is disposed, DrawRectShader does nothing.
-//
-// This API is experimental.
 func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawRectShaderOptions) {
 	i.copyCheck()
 
 	if i.isDisposed() {
 		return
 	}
-
-	i.resolveSetVerticesCacheIfNeeded()
 
 	if options == nil {
 		options = &DrawRectShaderOptions{}
@@ -691,7 +658,6 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		if w, h := img.Size(); width != w || height != h {
 			panic("ebiten: all the source images must be the same size with the rectangle")
 		}
-		img.resolveSetVerticesCacheIfNeeded()
 		imgs[i] = img.image
 	}
 
@@ -707,7 +673,8 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		options.GeoM.Translate(float64(offsetX), float64(offsetY))
 	}
 	a, b, c, d, tx, ty := options.GeoM.elements32()
-	vs := graphics.QuadVertices(float32(sx), float32(sy), float32(sx+width), float32(sy+height), a, b, c, d, tx, ty, 1, 1, 1, 1)
+	cr, cg, cb, ca := options.ColorScale.elements()
+	vs := graphics.QuadVertices(float32(sx), float32(sy), float32(sx+width), float32(sy+height), a, b, c, d, tx, ty, cr, cg, cb, ca)
 	is := graphics.QuadIndices()
 
 	var offsets [graphics.ShaderImageCount - 1][2]float32
@@ -723,7 +690,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		offsets[i][1] = float32(y - sy)
 	}
 
-	i.image.DrawTriangles(imgs, vs, is, affine.ColorMIdentity{}, mode, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), false, canSkipMipmap(options.GeoM, graphicsdriver.FilterNearest))
+	i.image.DrawTriangles(imgs, vs, is, mode, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), false, true)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.
@@ -736,6 +703,10 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 // A sub-image returned by SubImage can be used as a rendering source and a rendering destination.
 // If a sub-image is used as a rendering source, the image is used as if it is a small image.
 // If a sub-image is used as a rendering destination, the region being rendered is clipped.
+//
+// Successive uses of multiple various regions as rendering destination might not be efficient,
+// even though all the underlying images are the same.
+// It's because such renderings cannot be unified into one internal draw command.
 func (i *Image) SubImage(r image.Rectangle) image.Image {
 	i.copyCheck()
 	if i.isDisposed() {
@@ -811,8 +782,6 @@ func (i *Image) ReadPixels(pixels []byte) {
 		return
 	}
 
-	i.resolveSetVerticesCacheIfNeeded()
-
 	x, y := i.adjustPosition(b.Min.X, b.Min.Y)
 	i.image.ReadPixels(pixels, x, y, b.Dx(), b.Dy())
 }
@@ -857,10 +826,8 @@ func (i *Image) at(x, y int) (r, g, b, a byte) {
 	if !image.Pt(x, y).In(i.Bounds()) {
 		return 0, 0, 0, 0
 	}
+
 	x, y = i.adjustPosition(x, y)
-	if c, ok := i.setVerticesCache[[2]int{x, y}]; ok {
-		return c[0], c[1], c[2], c[3]
-	}
 	var pix [4]byte
 	i.image.ReadPixels(pix[:], x, y, 1, 1)
 	return pix[0], pix[1], pix[2], pix[3]
@@ -887,16 +854,9 @@ func (i *Image) Set(x, y int, clr color.Color) {
 		i = i.original
 	}
 
-	if i.setVerticesCache == nil {
-		i.setVerticesCache = map[[2]int][4]byte{}
-	}
 	dx, dy := i.adjustPosition(x, y)
 	cr, cg, cb, ca := clr.RGBA()
-	i.setVerticesCache[[2]int{dx, dy}] = [4]byte{byte(cr / 0x101), byte(cg / 0x101), byte(cb / 0x101), byte(ca / 0x101)}
-	// One square requires 6 indices (= 2 triangles).
-	if len(i.setVerticesCache) >= graphics.IndicesCount/6 {
-		i.resolveSetVerticesCacheIfNeeded()
-	}
+	i.image.WritePixels([]byte{byte(cr / 0x101), byte(cg / 0x101), byte(cb / 0x101), byte(ca / 0x101)}, dx, dy, 1, 1)
 }
 
 // Dispose disposes the image data.
@@ -919,7 +879,6 @@ func (i *Image) Dispose() {
 	}
 	i.image.MarkDisposed()
 	i.image = nil
-	i.setVerticesCache = nil
 }
 
 // WritePixels replaces the pixels of the image.
@@ -938,8 +897,6 @@ func (i *Image) WritePixels(pixels []byte) {
 	if i.isDisposed() {
 		return
 	}
-
-	i.resolveSetVerticesCacheIfNeeded()
 
 	r := i.Bounds()
 	x, y := i.adjustPosition(r.Min.X, r.Min.Y)
@@ -1100,14 +1057,9 @@ func NewImageFromImageWithOptions(source image.Image, options *NewImageFromImage
 // colorMToScale returns a new color matrix and color sclaes that equal to the given matrix in terms of the effect.
 //
 // If the given matrix is merely a scaling matrix, colorMToScale returns
-// an identity matrix and its scaling factors. This is useful to optimize
-// the rendering speed by avoiding the use of the color matrix and instead
-// multiplying all vertex colors by the scale.
-//
-// NOTE: this is only safe when not using a custom Kage shader,
-// as custom shaders may be using vertex colors for different purposes
-// than colorization. However, currently there are no Ebitengine APIs that
-// support both shaders and color matrices.
+// an identity matrix and its scaling factors in premultiplied-alpha format.
+// This is useful to optimize the rendering speed by avoiding the use of the
+// color matrix and instead multiplying all vertex colors by the scale.
 func colorMToScale(colorm affine.ColorM) (newColorM affine.ColorM, r, g, b, a float32) {
 	if colorm.IsIdentity() {
 		return colorm, 1, 1, 1, 1
@@ -1116,6 +1068,7 @@ func colorMToScale(colorm affine.ColorM) (newColorM affine.ColorM, r, g, b, a fl
 	if !colorm.ScaleOnly() {
 		return colorm, 1, 1, 1, 1
 	}
+
 	r = colorm.At(0, 0)
 	g = colorm.At(1, 1)
 	b = colorm.At(2, 2)
@@ -1135,5 +1088,5 @@ func colorMToScale(colorm affine.ColorM) (newColorM affine.ColorM, r, g, b, a fl
 		return colorm, 1, 1, 1, 1
 	}
 
-	return affine.ColorMIdentity{}, r, g, b, a
+	return affine.ColorMIdentity{}, r * a, g * a, b * a, a
 }
