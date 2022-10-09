@@ -16,3 +16,5 @@ require (
 	golang.org/x/sys v0.0.0-20220818161305-2296e01440c6
 	golang.org/x/tools v0.1.12
 )
+
+replace github.com/ebitengine/purego => /Users/jarrettkuklis/Documents/GolandProjects/purego
