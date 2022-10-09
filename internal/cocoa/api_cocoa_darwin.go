@@ -406,6 +406,10 @@ func NSScreen_mainScreen() NSScreen {
 	return NSScreen{objc.ID(class_NSScreen).Send(sel_mainScreen)}
 }
 
+func NSScreen_screens() NSArray {
+	return NSArray{objc.ID(class_NSScreen).Send(sel_screens)}
+}
+
 func (s NSScreen) DeviceDescription() NSDictionary {
 	return NSDictionary{s.Send(sel_deviceDescription)}
 }
