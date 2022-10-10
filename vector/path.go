@@ -407,10 +407,8 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 			var arc Path
 			arc.MoveTo(c.x, c.y)
 			if da < math.Pi {
-				arc.LineTo(rect[1].x, rect[1].y)
 				arc.Arc(c.x, c.y, op.Width/2, a0, a1, Clockwise)
 			} else {
-				arc.LineTo(rect[3].x, rect[3].y)
 				arc.Arc(c.x, c.y, op.Width/2, a0+math.Pi, a1+math.Pi, CounterClockwise)
 			}
 			arc.MoveTo(c.x, c.y)
