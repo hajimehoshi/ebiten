@@ -434,8 +434,8 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		swf, shf := float32(sw), float32(sh)
 		n := len(vertices)
 		for i := 0; i < n; i += graphics.VertexFloatCount {
-			vertices[i] = adjustDestinationPixel(vertices[i] + dx)
-			vertices[i+1] = adjustDestinationPixel(vertices[i+1] + dy)
+			vertices[i] = vertices[i] + dx
+			vertices[i+1] = vertices[i+1] + dy
 			vertices[i+2] = (vertices[i+2] + oxf) / swf
 			vertices[i+3] = (vertices[i+3] + oyf) / shf
 		}
@@ -448,8 +448,8 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	} else {
 		n := len(vertices)
 		for i := 0; i < n; i += graphics.VertexFloatCount {
-			vertices[i] = adjustDestinationPixel(vertices[i] + dx)
-			vertices[i+1] = adjustDestinationPixel(vertices[i+1] + dy)
+			vertices[i] = vertices[i] + dx
+			vertices[i+1] = vertices[i+1] + dy
 		}
 	}
 
@@ -785,30 +785,4 @@ func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) (string, err
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	return restorable.DumpImages(graphicsDriver, dir)
-}
-
-func adjustDestinationPixel(x float32) float32 {
-	// Avoid the center of the pixel, which is problematic (#929, #1171).
-	// Instead, align the vertices with about 1/3 pixels.
-	//
-	// The intention here is roughly this code:
-	//
-	//     float32(math.Floor((float64(x)+1.0/6.0)*3) / 3)
-	//
-	// The actual implementation is more optimized than the above implementation.
-	ix := float32(int(x))
-	if x < 0 && x != ix {
-		ix -= 1
-	}
-	frac := x - ix
-	switch {
-	case frac < 3.0/16.0:
-		return ix
-	case frac < 8.0/16.0:
-		return ix + 5.0/16.0
-	case frac < 13.0/16.0:
-		return ix + 11.0/16.0
-	default:
-		return ix + 16.0/16.0
-	}
 }

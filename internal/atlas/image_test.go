@@ -736,44 +736,4 @@ func TestImageWritePixelsModify(t *testing.T) {
 	}
 }
 
-func TestAdjustPixel(t *testing.T) {
-	tests := []struct {
-		X     float32
-		Y     float32
-		Delta float32
-	}{
-		{
-			X:     -0.1,
-			Y:     0.9,
-			Delta: 1,
-		},
-		{
-			X:     -1,
-			Y:     0,
-			Delta: 1,
-		},
-		{
-			X:     -1.9,
-			Y:     1.1,
-			Delta: 3,
-		},
-		{
-			X:     -2,
-			Y:     1,
-			Delta: 3,
-		},
-	}
-	for _, tc := range tests {
-		if rx, ry := atlas.AdjustDestinationPixelForTesting(tc.X)+tc.Delta, atlas.AdjustDestinationPixelForTesting(tc.Y); rx != ry {
-			t.Errorf("adjustDestinationPixel(%f) + 1 must equal to adjustDestinationPixel(%f) but not (%f vs %f)", tc.X, tc.Y, rx, ry)
-		}
-	}
-}
-
-func BenchmarkAdjustPixel(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		atlas.AdjustDestinationPixelForTesting(float32(i) / 17)
-	}
-}
-
 // TODO: Add tests to extend image on an atlas out of the main loop
