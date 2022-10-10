@@ -411,7 +411,6 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 			} else {
 				arc.Arc(c.x, c.y, op.Width/2, a0+math.Pi, a1+math.Pi, CounterClockwise)
 			}
-			arc.MoveTo(c.x, c.y)
 			vertices, indices = arc.AppendVerticesAndIndicesForFilling(vertices, indices)
 		}
 	}
