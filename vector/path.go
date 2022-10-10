@@ -287,7 +287,7 @@ func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 func (p *Path) AppendVerticesAndIndicesForFilling(vertices []ebiten.Vertex, indices []uint16) ([]ebiten.Vertex, []uint16) {
 	// TODO: Add tests.
 
-	var base uint16
+	base := uint16(len(vertices))
 	for _, seg := range p.segs {
 		if len(seg) < 3 {
 			continue
