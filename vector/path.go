@@ -396,16 +396,25 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 			// Note that the Y direction and the angle direction are opposite from math's.
 			a0 := float32(math.Atan2(float64(rect[1].y-c.y), float64(rect[1].x-c.x)))
 			a1 := float32(math.Atan2(float64(nextRect[0].y-c.y), float64(nextRect[0].x-c.x)))
-			if a0 == a1 {
+			da := a1 - a0
+			for da < 0 {
+				da += 2 * math.Pi
+			}
+			if da == 0 {
 				continue
 			}
 
-			// Rendering a small pie might cause unexpected holes due to some errors.
-			// Instead, render a full circle.
-			var circle Path
-			circle.MoveTo(rect[1].x, rect[1].y)
-			circle.Arc(c.x, c.y, op.Width/2, 0, 2*math.Pi, Clockwise)
-			vertices, indices = circle.AppendVerticesAndIndicesForFilling(vertices, indices)
+			var arc Path
+			arc.MoveTo(c.x, c.y)
+			if da < math.Pi {
+				arc.LineTo(rect[1].x, rect[1].y)
+				arc.Arc(c.x, c.y, op.Width/2, a0, a1, Clockwise)
+			} else {
+				arc.LineTo(rect[3].x, rect[3].y)
+				arc.Arc(c.x, c.y, op.Width/2, a0+math.Pi, a1+math.Pi, CounterClockwise)
+			}
+			arc.MoveTo(c.x, c.y)
+			vertices, indices = arc.AppendVerticesAndIndicesForFilling(vertices, indices)
 		}
 	}
 	return vertices, indices
