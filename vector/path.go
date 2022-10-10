@@ -278,7 +278,7 @@ func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 
 // AppendVerticesAndIndicesForFilling appends vertices and indices to fill this path and returns them.
 // AppendVerticesAndIndicesForFilling works in a similar way to the built-in append function.
-// If the arguments are nils, AppendVerticesAndIndices returns new slices.
+// If the arguments are nils, AppendVerticesAndIndicesForFilling returns new slices.
 //
 // The returned vertice's SrcX and SrcY are 0, and ColorR, ColorG, ColorB, and ColorA are 1.
 //
@@ -309,6 +309,113 @@ func (p *Path) AppendVerticesAndIndicesForFilling(vertices []ebiten.Vertex, indi
 			indices = append(indices, base, base+uint16(i-1), base+uint16(i))
 		}
 		base += uint16(len(seg))
+	}
+	return vertices, indices
+}
+
+type StrokeOptions struct {
+	Width float32
+}
+
+// AppendVerticesAndIndicesForStroke appends vertices and indices to render a stroke of this path and returns them.
+// AppendVerticesAndIndicesForStroke works in a similar way to the built-in append function.
+// If the arguments are nils, AppendVerticesAndIndicesForStroke returns new slices.
+//
+// The returned vertice's SrcX and SrcY are 0, and ColorR, ColorG, ColorB, and ColorA are 1.
+//
+// The returned values are intended to be passed to DrawTriangles or DrawTrianglesShader with FillAll fill mode, not EvenOdd fill mode.
+func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indices []uint16, op *StrokeOptions) ([]ebiten.Vertex, []uint16) {
+	for _, seg := range p.segs {
+		if len(seg) < 2 {
+			continue
+		}
+
+		var rects [][4]point
+		for i := 0; i < len(seg)-1; i++ {
+			pt := seg[i]
+			if seg[i+1] == pt {
+				continue
+			}
+
+			nextPt := seg[i+1]
+			dx := nextPt.x - pt.x
+			dy := nextPt.y - pt.y
+			dist := float32(math.Sqrt(float64(dx*dx + dy*dy)))
+			extX := (dy) * op.Width / 2 / dist
+			extY := (-dx) * op.Width / 2 / dist
+
+			rects = append(rects, [4]point{
+				{
+					x: pt.x + extX,
+					y: pt.y + extY,
+				},
+				{
+					x: nextPt.x + extX,
+					y: nextPt.y + extY,
+				},
+				{
+					x: pt.x - extX,
+					y: pt.y - extY,
+				},
+				{
+					x: nextPt.x - extX,
+					y: nextPt.y - extY,
+				},
+			})
+		}
+
+		for i, rect := range rects {
+			idx := uint16(len(vertices))
+			for _, pt := range rect {
+				vertices = append(vertices, ebiten.Vertex{
+					DstX:   pt.x,
+					DstY:   pt.y,
+					SrcX:   0,
+					SrcY:   0,
+					ColorR: 1,
+					ColorG: 1,
+					ColorB: 1,
+					ColorA: 1,
+				})
+			}
+			indices = append(indices, idx, idx+1, idx+2, idx+1, idx+2, idx+3)
+
+			if i >= len(rects)-1 {
+				continue
+			}
+
+			// Add line joints.
+			nextRect := rects[i+1]
+
+			// c is the center of the 'end' edge of the current rect (= the second point of the segment).
+			c := point{
+				x: (rect[1].x + rect[3].x) / 2,
+				y: (rect[1].y + rect[3].y) / 2,
+			}
+
+			// Note that the Y direction and the angle direction are opposite from math's.
+			a0 := float32(math.Atan2(float64(rect[1].y-c.y), float64(rect[1].x-c.x)))
+			a1 := float32(math.Atan2(float64(nextRect[0].y-c.y), float64(nextRect[0].x-c.x)))
+			da := a1 - a0
+			for da < 0 {
+				da += 2 * math.Pi
+			}
+			if da == 0 {
+				continue
+			}
+
+			var arc Path
+			arc.MoveTo(c.x, c.y)
+			if da < math.Pi {
+				arc.LineTo(rect[1].x, rect[1].y)
+				arc.Arc(c.x, c.y, op.Width/2, a0, a1, Clockwise)
+			} else {
+				arc.LineTo(rect[3].x, rect[3].y)
+				arc.Arc(c.x, c.y, op.Width/2, a0+math.Pi, a1+math.Pi, CounterClockwise)
+			}
+			arc.MoveTo(c.x, c.y)
+			vertices, indices = arc.AppendVerticesAndIndicesForFilling(vertices, indices)
+		}
 	}
 	return vertices, indices
 }

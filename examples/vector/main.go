@@ -47,7 +47,7 @@ const (
 	screenHeight = 480
 )
 
-func drawEbitenText(screen *ebiten.Image, x, y int, scale float32) {
+func drawEbitenText(screen *ebiten.Image, x, y int, scale float32, line bool) {
 	var path vector.Path
 
 	// E
@@ -113,10 +113,16 @@ func drawEbitenText(screen *ebiten.Image, x, y int, scale float32) {
 	path.LineTo(320, 55)
 	path.LineTo(290, 20)
 
-	op := &ebiten.DrawTrianglesOptions{
-		FillRule: ebiten.EvenOdd,
+	var vs []ebiten.Vertex
+	var is []uint16
+	if line {
+		op := &vector.StrokeOptions{}
+		op.Width = 5
+		vs, is = path.AppendVerticesAndIndicesForStroke(nil, nil, op)
+	} else {
+		vs, is = path.AppendVerticesAndIndicesForFilling(nil, nil)
 	}
-	vs, is := path.AppendVerticesAndIndicesForFilling(nil, nil)
+
 	for i := range vs {
 		vs[i].DstX = (vs[i].DstX + float32(x)) * scale
 		vs[i].DstY = (vs[i].DstY + float32(y)) * scale
@@ -126,10 +132,15 @@ func drawEbitenText(screen *ebiten.Image, x, y int, scale float32) {
 		vs[i].ColorG = 0x56 / float32(0xff)
 		vs[i].ColorB = 0x20 / float32(0xff)
 	}
+
+	op := &ebiten.DrawTrianglesOptions{}
+	if !line {
+		op.FillRule = ebiten.EvenOdd
+	}
 	screen.DrawTriangles(vs, is, emptySubImage, op)
 }
 
-func drawEbitenLogo(screen *ebiten.Image, x, y int, scale float32) {
+func drawEbitenLogo(screen *ebiten.Image, x, y int, scale float32, line bool) {
 	const unit = 16
 
 	var path vector.Path
@@ -154,10 +165,16 @@ func drawEbitenLogo(screen *ebiten.Image, x, y int, scale float32) {
 	path.LineTo(unit, 3*unit)
 	path.LineTo(unit, 4*unit)
 
-	op := &ebiten.DrawTrianglesOptions{
-		FillRule: ebiten.EvenOdd,
+	var vs []ebiten.Vertex
+	var is []uint16
+	if line {
+		op := &vector.StrokeOptions{}
+		op.Width = 5
+		vs, is = path.AppendVerticesAndIndicesForStroke(nil, nil, op)
+	} else {
+		vs, is = path.AppendVerticesAndIndicesForFilling(nil, nil)
 	}
-	vs, is := path.AppendVerticesAndIndicesForFilling(nil, nil)
+
 	for i := range vs {
 		vs[i].DstX = (vs[i].DstX + float32(x)) * scale
 		vs[i].DstY = (vs[i].DstY + float32(y)) * scale
@@ -167,10 +184,15 @@ func drawEbitenLogo(screen *ebiten.Image, x, y int, scale float32) {
 		vs[i].ColorG = 0x56 / float32(0xff)
 		vs[i].ColorB = 0x20 / float32(0xff)
 	}
+
+	op := &ebiten.DrawTrianglesOptions{}
+	if !line {
+		op.FillRule = ebiten.EvenOdd
+	}
 	screen.DrawTriangles(vs, is, emptySubImage, op)
 }
 
-func drawArc(screen *ebiten.Image, count int, scale float32) {
+func drawArc(screen *ebiten.Image, count int, scale float32, line bool) {
 	var path vector.Path
 
 	path.MoveTo(350, 100)
@@ -184,10 +206,16 @@ func drawArc(screen *ebiten.Image, count int, scale float32) {
 	path.MoveTo(550, 100)
 	path.Arc(550, 100, 50, float32(theta1), float32(theta2), vector.Clockwise)
 
-	op := &ebiten.DrawTrianglesOptions{
-		FillRule: ebiten.EvenOdd,
+	var vs []ebiten.Vertex
+	var is []uint16
+	if line {
+		op := &vector.StrokeOptions{}
+		op.Width = 5
+		vs, is = path.AppendVerticesAndIndicesForStroke(nil, nil, op)
+	} else {
+		vs, is = path.AppendVerticesAndIndicesForFilling(nil, nil)
 	}
-	vs, is := path.AppendVerticesAndIndicesForFilling(nil, nil)
+
 	for i := range vs {
 		vs[i].DstX *= scale
 		vs[i].DstY *= scale
@@ -197,6 +225,11 @@ func drawArc(screen *ebiten.Image, count int, scale float32) {
 		vs[i].ColorG = 0xcc / float32(0xff)
 		vs[i].ColorB = 0x66 / float32(0xff)
 	}
+
+	op := &ebiten.DrawTrianglesOptions{}
+	if !line {
+		op.FillRule = ebiten.EvenOdd
+	}
 	screen.DrawTriangles(vs, is, emptySubImage, op)
 }
 
@@ -204,7 +237,7 @@ func maxCounter(index int) int {
 	return 128 + (17*index+32)%64
 }
 
-func drawWave(screen *ebiten.Image, counter int, scale float32) {
+func drawWave(screen *ebiten.Image, counter int, scale float32, line bool) {
 	var path vector.Path
 
 	const npoints = 8
@@ -229,10 +262,16 @@ func drawWave(screen *ebiten.Image, counter int, scale float32) {
 	path.LineTo(screenWidth, screenHeight)
 	path.LineTo(0, screenHeight)
 
-	op := &ebiten.DrawTrianglesOptions{
-		FillRule: ebiten.EvenOdd,
+	var vs []ebiten.Vertex
+	var is []uint16
+	if line {
+		op := &vector.StrokeOptions{}
+		op.Width = 5
+		vs, is = path.AppendVerticesAndIndicesForStroke(nil, nil, op)
+	} else {
+		vs, is = path.AppendVerticesAndIndicesForFilling(nil, nil)
 	}
-	vs, is := path.AppendVerticesAndIndicesForFilling(nil, nil)
+
 	for i := range vs {
 		vs[i].DstX *= scale
 		vs[i].DstY *= scale
@@ -242,6 +281,11 @@ func drawWave(screen *ebiten.Image, counter int, scale float32) {
 		vs[i].ColorG = 0x66 / float32(0xff)
 		vs[i].ColorB = 0xff / float32(0xff)
 	}
+
+	op := &ebiten.DrawTrianglesOptions{}
+	if !line {
+		op.FillRule = ebiten.EvenOdd
+	}
 	screen.DrawTriangles(vs, is, emptySubImage, op)
 }
 
@@ -249,6 +293,7 @@ type Game struct {
 	counter int
 
 	aa        bool
+	line      bool
 	offscreen *ebiten.Image
 }
 
@@ -258,6 +303,11 @@ func (g *Game) Update() error {
 	// Switch anti-alias.
 	if inpututil.IsKeyJustPressed(ebiten.KeyA) {
 		g.aa = !g.aa
+	}
+
+	// Switch lines.
+	if inpututil.IsKeyJustPressed(ebiten.KeyL) {
+		g.line = !g.line
 	}
 
 	return nil
@@ -284,10 +334,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 
 	dst.Fill(color.RGBA{0xe0, 0xe0, 0xe0, 0xe0})
-	drawEbitenText(dst, 0, 50, scale)
-	drawEbitenLogo(dst, 20, 150, scale)
-	drawArc(dst, g.counter, scale)
-	drawWave(dst, g.counter, scale)
+	drawEbitenText(dst, 0, 50, scale, g.line)
+	drawEbitenLogo(dst, 20, 150, scale, g.line)
+	drawArc(dst, g.counter, scale, g.line)
+	drawWave(dst, g.counter, scale, g.line)
 
 	if g.aa {
 		op := &ebiten.DrawImageOptions{}
@@ -296,7 +346,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		screen.DrawImage(g.offscreen, op)
 	}
 
-	msg := fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f\nPress A to switch anti-alias", ebiten.ActualTPS(), ebiten.ActualFPS())
+	msg := fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f", ebiten.ActualTPS(), ebiten.ActualFPS())
+	msg += "\nPress A to switch anti-alias."
+	msg += "\nPress L to switch the fill mode and the line mode."
 	ebitenutil.DebugPrint(screen, msg)
 }
 
