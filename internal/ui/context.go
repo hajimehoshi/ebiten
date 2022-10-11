@@ -267,6 +267,7 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 
 	srcs := [graphics.ShaderImageCount]*Image{c.offscreen}
 
+	// TODO: Calculate the scale in the shader after pixels become the main unit in shaders (#1431)
 	dstWidth, dstHeight := c.screen.width, c.screen.height
 	srcWidth, srcHeight := c.offscreen.width, c.offscreen.height
 	var uniforms [][]float32
