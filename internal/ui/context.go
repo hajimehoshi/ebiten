@@ -32,13 +32,16 @@ import (
 
 const screenShaderSrc = `package main
 
-var Scale vec2
-
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	// TODO: Calculate the scale in the shader after pixels become the main unit in shaders (#1431)
+	_, dr := imageDstRegionOnTexture()
+	_, sr := imageSrcRegionOnTexture()
+	scale := (imageDstTextureSize() * dr) / (imageSrcTextureSize() * sr)
+
 	sourceSize := imageSrcTextureSize()
 	// texelSize is one pixel size in texel sizes.
 	texelSize := 1 / sourceSize
-	halfScaledTexelSize := texelSize / 2 / Scale
+	halfScaledTexelSize := texelSize / 2 / scale
 
 	// Shift 1/512 [texel] to avoid the tie-breaking issue.
 	// As all the vertex positions are aligned to 1/16 [pixel], this shiting should work in most cases.
@@ -59,7 +62,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	//
 	//     0 <= p <= 1/Scale: The rate is in between [0, 1]
 	//     1/Scale < p:       Don't care. Adjacent colors (e.g. c0 vs c1 in an X direction) should be the same.
-	rate := clamp(p*Scale, 0, 1)
+	rate := clamp(p*scale, 0, 1)
 	return mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y)
 }
 `
@@ -258,6 +261,12 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 		Width:  float32(c.screen.width),
 		Height: float32(c.screen.height),
 	}
+	srcRegion := graphicsdriver.Region{
+		X:      0,
+		Y:      0,
+		Width:  float32(c.offscreen.width),
+		Height: float32(c.offscreen.height),
+	}
 
 	vs := graphics.QuadVertices(
 		0, 0, float32(c.offscreen.width), float32(c.offscreen.height),
@@ -267,19 +276,7 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 
 	srcs := [graphics.ShaderImageCount]*Image{c.offscreen}
 
-	// TODO: Calculate the scale in the shader after pixels become the main unit in shaders (#1431)
-	dstWidth, dstHeight := c.screen.width, c.screen.height
-	srcWidth, srcHeight := c.offscreen.width, c.offscreen.height
-	var uniforms [][]float32
-	if shader == screenShader {
-		uniforms = shader.ConvertUniforms(map[string]interface{}{
-			"Scale": []float32{
-				float32(dstWidth) / float32(srcWidth),
-				float32(dstHeight) / float32(srcHeight),
-			},
-		})
-	}
-	c.screen.DrawTriangles(srcs, vs, is, graphicsdriver.CompositeModeCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, shader, uniforms, false, true)
+	c.screen.DrawTriangles(srcs, vs, is, graphicsdriver.CompositeModeCopy, dstRegion, srcRegion, [graphics.ShaderImageCount - 1][2]float32{}, shader, nil, false, true)
 }
 
 func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {
