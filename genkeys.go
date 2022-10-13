@@ -33,13 +33,13 @@ import (
 )
 
 var (
-	glfwKeyNameToGLFWKey        map[string]glfw.Key
-	uiKeyNameToGLFWKeyName      map[string]string
-	androidKeyToUIKeyName       map[int]string
-	gbuildKeyToUIKeyName        map[key.Code]string
-	uiKeyNameToJSKey            map[string]string
-	edgeKeyCodeToName           map[int]string
-	oldEbitenKeyNameToUIKeyName map[string]string
+	glfwKeyNameToGLFWKey            map[string]glfw.Key
+	uiKeyNameToGLFWKeyName          map[string]string
+	androidKeyToUIKeyName           map[int]string
+	gbuildKeyToUIKeyName            map[key.Code]string
+	uiKeyNameToJSKey                map[string]string
+	edgeKeyCodeToName               map[int]string
+	oldEbitengineKeyNameToUIKeyName map[string]string
 )
 
 func init() {
@@ -351,7 +351,7 @@ func init() {
 	}
 
 	// Keys for backward compatibility
-	oldEbitenKeyNameToUIKeyName = map[string]string{
+	oldEbitengineKeyNameToUIKeyName = map[string]string{
 		"0":            "Digit0",
 		"1":            "Digit1",
 		"2":            "Digit2",
@@ -482,7 +482,7 @@ type Key int
 
 // Keys.
 const (
-{{range $index, $name := .EbitenKeyNamesWithoutMods}}Key{{$name}} Key = Key(ui.Key{{$name}})
+{{range $index, $name := .EbitengineKeyNamesWithoutMods}}Key{{$name}} Key = Key(ui.Key{{$name}})
 {{end}}	KeyAlt     Key = Key(ui.KeyReserved0)
 	KeyControl Key = Key(ui.KeyReserved1)
 	KeyShift   Key = Key(ui.KeyReserved2)
@@ -491,13 +491,13 @@ const (
 
 	// Keys for backward compatibility.
 	// Deprecated: as of v2.1.
-{{range $old, $new := .OldEbitenKeyNameToUIKeyName}}Key{{$old}} Key = Key(ui.Key{{$new}})
+{{range $old, $new := .OldEbitengineKeyNameToUIKeyName}}Key{{$old}} Key = Key(ui.Key{{$new}})
 {{end}}
 )
 
 func (k Key) isValid() bool {
 	switch k {
-	{{range $name := .EbitenKeyNamesWithoutOld}}case Key{{$name}}:
+	{{range $name := .EbitengineKeyNamesWithoutOld}}case Key{{$name}}:
 		return true
 	{{end}}
 	default:
@@ -510,7 +510,7 @@ func (k Key) isValid() bool {
 // If k is an undefined key, String returns an empty string.
 func (k Key) String() string {
 	switch k {
-	{{range $name := .EbitenKeyNamesWithoutOld}}case Key{{$name}}:
+	{{range $name := .EbitengineKeyNamesWithoutOld}}case Key{{$name}}:
 		return {{$name | printf "%q"}}
 	{{end}}}
 	return ""
@@ -518,7 +518,7 @@ func (k Key) String() string {
 
 func keyNameToKeyCode(name string) (Key, bool) {
 	switch strings.ToLower(name) {
-	{{range $name := .EbitenKeyNames}}case {{$name | printf "%q" | ToLower}}:
+	{{range $name := .EbitengineKeyNames}}case {{$name | printf "%q" | ToLower}}:
 		return Key{{$name}}, true
 	{{end}}}
 	return 0, false
@@ -778,7 +778,7 @@ func main() {
 		ebitenKeyNamesWithoutOld = append(ebitenKeyNamesWithoutOld, name)
 		ebitenKeyNamesWithoutMods = append(ebitenKeyNamesWithoutMods, name)
 	}
-	for old := range oldEbitenKeyNameToUIKeyName {
+	for old := range oldEbitengineKeyNameToUIKeyName {
 		ebitenKeyNames = append(ebitenKeyNames, old)
 	}
 	// Keys for modifiers
@@ -834,35 +834,35 @@ func main() {
 		}
 		// NOTE: According to godoc, maps are automatically sorted by key.
 		if err := tmpl.Execute(f, struct {
-			License                     string
-			DoNotEdit                   string
-			BuildTag                    string
-			UIKeyNameToJSKey            map[string]string
-			EdgeKeyCodeToName           map[int]string
-			EbitenKeyNames              []string
-			EbitenKeyNamesWithoutOld    []string
-			EbitenKeyNamesWithoutMods   []string
-			GLFWKeyNameToGLFWKey        map[string]glfw.Key
-			UIKeyNames                  []string
-			UIKeyNameToGLFWKeyName      map[string]string
-			AndroidKeyToUIKeyName       map[int]string
-			GBuildKeyToUIKeyName        map[key.Code]string
-			OldEbitenKeyNameToUIKeyName map[string]string
+			License                         string
+			DoNotEdit                       string
+			BuildTag                        string
+			UIKeyNameToJSKey                map[string]string
+			EdgeKeyCodeToName               map[int]string
+			EbitengineKeyNames              []string
+			EbitengineKeyNamesWithoutOld    []string
+			EbitengineKeyNamesWithoutMods   []string
+			GLFWKeyNameToGLFWKey            map[string]glfw.Key
+			UIKeyNames                      []string
+			UIKeyNameToGLFWKeyName          map[string]string
+			AndroidKeyToUIKeyName           map[int]string
+			GBuildKeyToUIKeyName            map[key.Code]string
+			OldEbitengineKeyNameToUIKeyName map[string]string
 		}{
-			License:                     license,
-			DoNotEdit:                   doNotEdit,
-			BuildTag:                    buildTag,
-			UIKeyNameToJSKey:            uiKeyNameToJSKey,
-			EdgeKeyCodeToName:           edgeKeyCodeToName,
-			EbitenKeyNames:              ebitenKeyNames,
-			EbitenKeyNamesWithoutOld:    ebitenKeyNamesWithoutOld,
-			EbitenKeyNamesWithoutMods:   ebitenKeyNamesWithoutMods,
-			GLFWKeyNameToGLFWKey:        glfwKeyNameToGLFWKey,
-			UIKeyNames:                  uiKeyNames,
-			UIKeyNameToGLFWKeyName:      uiKeyNameToGLFWKeyName,
-			AndroidKeyToUIKeyName:       androidKeyToUIKeyName,
-			GBuildKeyToUIKeyName:        gbuildKeyToUIKeyName,
-			OldEbitenKeyNameToUIKeyName: oldEbitenKeyNameToUIKeyName,
+			License:                         license,
+			DoNotEdit:                       doNotEdit,
+			BuildTag:                        buildTag,
+			UIKeyNameToJSKey:                uiKeyNameToJSKey,
+			EdgeKeyCodeToName:               edgeKeyCodeToName,
+			EbitengineKeyNames:              ebitenKeyNames,
+			EbitengineKeyNamesWithoutOld:    ebitenKeyNamesWithoutOld,
+			EbitengineKeyNamesWithoutMods:   ebitenKeyNamesWithoutMods,
+			GLFWKeyNameToGLFWKey:            glfwKeyNameToGLFWKey,
+			UIKeyNames:                      uiKeyNames,
+			UIKeyNameToGLFWKeyName:          uiKeyNameToGLFWKeyName,
+			AndroidKeyToUIKeyName:           androidKeyToUIKeyName,
+			GBuildKeyToUIKeyName:            gbuildKeyToUIKeyName,
+			OldEbitengineKeyNameToUIKeyName: oldEbitengineKeyNameToUIKeyName,
 		}); err != nil {
 			log.Fatal(err)
 		}
