@@ -16,6 +16,8 @@ package ebiten
 
 import (
 	"errors"
+	"image"
+	"image/color"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
@@ -80,6 +82,34 @@ type Game interface {
 	Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int)
 }
 
+// FinalScreen represents the final screen image.
+// FinalScreen implements a part of Image functions.
+type FinalScreen interface {
+	Bounds() image.Rectangle
+	Size() (int, int)
+
+	DrawImage(img *Image, options *DrawImageOptions)
+	DrawTriangles(vertices []Vertex, indices []uint16, img *Image, options *DrawTrianglesOptions)
+	DrawRectShader(width, height int, shader *Shader, options *DrawRectShaderOptions)
+	DrawTrianglesShader(vertices []Vertex, indices []uint16, shader *Shader, options *DrawTrianglesShaderOptions)
+	Clear()
+	Fill(clr color.Color)
+
+	// private prevents other packages from implementing this interface.
+	// A new function might be added to this interface in the future
+	// even if the Ebitengine major version is not updated.
+	private()
+}
+
+// FinalScreenDrawer is an interface for a custom function to render the final screen.
+// For an actual usage, see examples/flappy.
+type FinalScreenDrawer interface {
+	// DrawFinalScreen draws the final screen.
+	// If a game implementing FinalScreenDrawer is passed to RunGame, DrawFinalScreen is called after Draw.
+	// screen is the final screen. offscreen is the offscreen modified at Draw.
+	DrawFinalScreen(screen FinalScreen, offscreen *Image)
+}
+
 // DefaultTPS represents a default ticks per second, that represents how many times game updating happens in a second.
 const DefaultTPS = clock.DefaultTPS
 
@@ -132,6 +162,8 @@ func IsScreenClearedEveryFrame() bool {
 // The default state is true.
 //
 // SetScreenFilterEnabled is concurrent-safe, but takes effect only at the next Draw call.
+//
+// Deprecated: as of v2.5. Use FinalScreenDrawer instead.
 func SetScreenFilterEnabled(enabled bool) {
 	setScreenFilterEnabled(enabled)
 }
@@ -139,6 +171,8 @@ func SetScreenFilterEnabled(enabled bool) {
 // IsScreenFilterEnabled returns true if Ebitengine's "screen" filter is enabled.
 //
 // IsScreenFilterEnabled is concurrent-safe.
+//
+// Deprecated: as of v2.5. Use FinalScreenDrawer instead.
 func IsScreenFilterEnabled() bool {
 	return isScreenFilterEnabled()
 }
@@ -150,6 +184,10 @@ var Termination = ui.RegularTermination
 // game's Update function is called every tick to update the game logic.
 // game's Draw function is called every frame to draw the screen.
 // game's Layout function is called when necessary, and you can specify the logical screen size by the function.
+//
+// If game implements FinalScreenDrawer, its DrawFinalScreen is called after Draw.
+// The argument screen represents the final screen. The argument offscreen is an offscreen modified at Draw.
+// If game does not implement FinalScreenDrawer, the dafault rendering for the final screen is used.
 //
 // game's functions are called on the same goroutine.
 //

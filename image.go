@@ -1090,3 +1090,7 @@ func colorMToScale(colorm affine.ColorM) (newColorM affine.ColorM, r, g, b, a fl
 
 	return affine.ColorMIdentity{}, r * a, g * a, b * a, a
 }
+
+// private implements FinalScreen.
+func (*Image) private() {
+}

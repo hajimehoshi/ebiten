@@ -148,6 +148,11 @@ func (g *gameForUI) DrawOffscreen() error {
 }
 
 func (g *gameForUI) DrawScreen() {
+	if d, ok := g.game.(FinalScreenDrawer); ok {
+		d.DrawFinalScreen(g.screen, g.offscreen)
+		return
+	}
+
 	scale, offsetX, offsetY := g.ScreenScaleAndOffsets()
 	switch {
 	case !isScreenFilterEnabled(), math.Floor(scale) == scale:
