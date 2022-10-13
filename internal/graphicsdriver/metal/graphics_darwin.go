@@ -610,10 +610,6 @@ func (g *Graphics) SetFullscreen(fullscreen bool) {
 	g.view.setFullscreen(fullscreen)
 }
 
-func (g *Graphics) FramebufferYDirection() graphicsdriver.YDirection {
-	return graphicsdriver.Downward
-}
-
 func (g *Graphics) NeedsRestoring() bool {
 	return false
 }

@@ -1149,10 +1149,6 @@ func (g *Graphics) SetVsyncEnabled(enabled bool) {
 func (g *Graphics) SetFullscreen(fullscreen bool) {
 }
 
-func (g *Graphics) FramebufferYDirection() graphicsdriver.YDirection {
-	return graphicsdriver.Downward
-}
-
 func (g *Graphics) NeedsRestoring() bool {
 	return false
 }

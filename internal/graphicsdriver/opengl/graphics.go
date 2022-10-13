@@ -275,11 +275,20 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 	{
 		const idx = graphics.ProjectionMatrixUniformVariableIndex
 		g.uniformVars[idx].name = g.uniformVariableName(idx)
-		g.uniformVars[idx].value = []float32{
-			2 / float32(dw), 0, 0, 0,
-			0, 2 / float32(dh), 0, 0,
-			0, 0, 1, 0,
-			-1, -1, 0, 1,
+		if destination.screen {
+			g.uniformVars[idx].value = []float32{
+				2 / float32(dw), 0, 0, 0,
+				0, -2 / float32(dh), 0, 0,
+				0, 0, 1, 0,
+				-1, 1, 0, 1,
+			}
+		} else {
+			g.uniformVars[idx].value = []float32{
+				2 / float32(dw), 0, 0, 0,
+				0, 2 / float32(dh), 0, 0,
+				0, 0, 1, 0,
+				-1, -1, 0, 1,
+			}
 		}
 		g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
 	}
@@ -332,10 +341,6 @@ func (g *Graphics) SetVsyncEnabled(enabled bool) {
 
 func (g *Graphics) SetFullscreen(fullscreen bool) {
 	// Do nothing
-}
-
-func (g *Graphics) FramebufferYDirection() graphicsdriver.YDirection {
-	return graphicsdriver.Upward
 }
 
 func (g *Graphics) NeedsRestoring() bool {

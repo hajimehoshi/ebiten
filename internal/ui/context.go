@@ -218,35 +218,15 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 		c.screen.clear()
 	}
 
-	ga := 1.0
-	gd := 1.0
-	gtx := 0.0
-	gty := 0.0
-
 	screenScale, offsetX, offsetY := c.screenScaleAndOffsets()
-	s := screenScale
-	switch y := graphicsDriver.FramebufferYDirection(); y {
-	case graphicsdriver.Upward:
-		ga *= s
-		gd *= -s
-		gty += float64(c.offscreen.height) * s
-	case graphicsdriver.Downward:
-		ga *= s
-		gd *= s
-	default:
-		panic(fmt.Sprintf("ui: invalid y-direction: %d", y))
-	}
-
-	gtx += offsetX
-	gty += offsetY
 
 	var shader *Shader
 	switch {
 	case !theGlobalState.isScreenFilterEnabled():
 		shader = NearestFilterShader
-	case math.Floor(s) == s:
+	case math.Floor(screenScale) == screenScale:
 		shader = NearestFilterShader
-	case s > 1:
+	case screenScale > 1:
 		shader = screenShader
 	default:
 		// screenShader works with >=1 scale, but does not well with <1 scale.
@@ -269,7 +249,7 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 
 	vs := graphics.QuadVertices(
 		0, 0, float32(c.offscreen.width), float32(c.offscreen.height),
-		float32(ga), 0, 0, float32(gd), float32(gtx), float32(gty),
+		float32(screenScale), 0, 0, float32(screenScale), float32(offsetX), float32(offsetY),
 		1, 1, 1, 1)
 	is := graphics.QuadIndices()
 

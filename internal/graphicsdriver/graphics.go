@@ -43,7 +43,6 @@ type Graphics interface {
 	NewScreenFramebufferImage(width, height int) (Image, error)
 	SetVsyncEnabled(enabled bool)
 	SetFullscreen(fullscreen bool)
-	FramebufferYDirection() YDirection
 	NeedsRestoring() bool
 	NeedsClearingScreen() bool
 	IsGL() bool
@@ -76,13 +75,6 @@ type WritePixelsArgs struct {
 	Width  int
 	Height int
 }
-
-type YDirection int
-
-const (
-	Upward YDirection = iota
-	Downward
-)
 
 type Shader interface {
 	ID() ShaderID
