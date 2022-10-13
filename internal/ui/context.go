@@ -44,7 +44,6 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	halfScaledTexelSize := texelSize / 2 / scale
 
 	// Shift 1/512 [texel] to avoid the tie-breaking issue.
-	// As all the vertex positions are aligned to 1/16 [pixel], this shiting should work in most cases.
 	pos := texCoord
 	p0 := pos - halfScaledTexelSize + (texelSize / 512)
 	p1 := pos + halfScaledTexelSize + (texelSize / 512)
