@@ -12,14 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !ios
-// +build !android,!ios
-
 package ebiten
 
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
@@ -34,6 +33,14 @@ func datetimeForFilename() string {
 
 func takeScreenshot(screen *Image) error {
 	name := "screenshot_" + datetimeForFilename() + ".png"
+	// Use the home directory for mobiles as a provisional implementation.
+	if runtime.GOOS == "android" || runtime.GOOS == "ios" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return err
+		}
+		name = filepath.Join(home, name)
+	}
 	blackbg := !IsScreenTransparent()
 	dumpedName, err := screen.image.DumpScreenshot(name, blackbg)
 	if err != nil {
@@ -49,6 +56,14 @@ func dumpInternalImages() error {
 	dumpedDir, err := ui.DumpImages("internalimages_" + datetimeForFilename())
 	if err != nil {
 		return err
+	}
+	// Use the home directory for mobiles as a provisional implementation.
+	if runtime.GOOS == "android" || runtime.GOOS == "ios" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return err
+		}
+		dumpedDir = filepath.Join(home, dumpedDir)
 	}
 	if _, err := fmt.Fprintf(os.Stderr, "Dumped the internal images at: %s\n", dumpedDir); err != nil {
 		return err
