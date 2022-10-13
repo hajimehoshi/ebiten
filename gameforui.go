@@ -136,7 +136,8 @@ func (g *gameForUI) DrawOffscreen() {
 	g.game.Draw(g.offscreen)
 }
 
-func (g *gameForUI) DrawScreen(scale, offsetX, offsetY float64) {
+func (g *gameForUI) DrawScreen() {
+	scale, offsetX, offsetY := g.ScreenScaleAndOffsets()
 	switch {
 	case !isScreenFilterEnabled(), math.Floor(scale) == scale:
 		op := &DrawImageOptions{}
@@ -157,4 +158,21 @@ func (g *gameForUI) DrawScreen(scale, offsetX, offsetY float64) {
 		w, h := g.offscreen.Size()
 		g.screen.DrawRectShader(w, h, g.screenShader, op)
 	}
+}
+
+func (g *gameForUI) ScreenScaleAndOffsets() (scale, offsetX, offsetY float64) {
+	if g.screen == nil {
+		return
+	}
+
+	sw, sh := g.screen.Size()
+	ow, oh := g.offscreen.Size()
+	scaleX := float64(sw) / float64(ow)
+	scaleY := float64(sh) / float64(oh)
+	scale = math.Min(scaleX, scaleY)
+	width := float64(ow) * scale
+	height := float64(oh) * scale
+	offsetX = (float64(sw) - width) / 2
+	offsetY = (float64(sh) - height) / 2
+	return
 }

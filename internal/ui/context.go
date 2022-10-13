@@ -39,7 +39,8 @@ type Game interface {
 	Layout(outsideWidth, outsideHeight int) (int, int)
 	Update() error
 	DrawOffscreen()
-	DrawScreen(scale, offsetX, offsteY float64)
+	DrawScreen()
+	ScreenScaleAndOffsets() (scale, offsetX, offsetY float64)
 }
 
 type context struct {
@@ -169,7 +170,7 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 		c.screen.clear()
 	}
 
-	c.game.DrawScreen(c.screenScaleAndOffsets())
+	c.game.DrawScreen()
 }
 
 func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {
@@ -215,28 +216,13 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFac
 }
 
 func (c *context) adjustPosition(x, y float64, deviceScaleFactor float64) (float64, float64) {
-	s, ox, oy := c.screenScaleAndOffsets()
+	s, ox, oy := c.game.ScreenScaleAndOffsets()
 	// The scale 0 indicates that the screen is not initialized yet.
 	// As any cursor values don't make sense, just return NaN.
 	if s == 0 {
 		return math.NaN(), math.NaN()
 	}
 	return (x*deviceScaleFactor - ox) / s, (y*deviceScaleFactor - oy) / s
-}
-
-func (c *context) screenScaleAndOffsets() (float64, float64, float64) {
-	if c.screen == nil {
-		return 0, 0, 0
-	}
-
-	scaleX := float64(c.screen.width) / float64(c.offscreen.width)
-	scaleY := float64(c.screen.height) / float64(c.offscreen.height)
-	scale := math.Min(scaleX, scaleY)
-	width := float64(c.offscreen.width) * scale
-	height := float64(c.offscreen.height) * scale
-	x := (float64(c.screen.width) - width) / 2
-	y := (float64(c.screen.height) - height) / 2
-	return scale, x, y
 }
 
 var theGlobalState = globalState{
