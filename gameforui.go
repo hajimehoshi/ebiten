@@ -95,10 +95,10 @@ func newGameForUI(game Game) *gameForUI {
 	return g
 }
 
-func (c *gameForUI) NewOffscreenImage(width, height int) *ui.Image {
-	if c.offscreen != nil {
-		c.offscreen.Dispose()
-		c.offscreen = nil
+func (g *gameForUI) NewOffscreenImage(width, height int) *ui.Image {
+	if g.offscreen != nil {
+		g.offscreen.Dispose()
+		g.offscreen = nil
 	}
 
 	// Keep the offscreen an unmanaged image that is always isolated from an atlas (#1938).
@@ -110,30 +110,30 @@ func (c *gameForUI) NewOffscreenImage(width, height int) *ui.Image {
 		// A violatile image is also always isolated.
 		imageType = atlas.ImageTypeVolatile
 	}
-	c.offscreen = newImage(image.Rect(0, 0, width, height), imageType)
-	return c.offscreen.image
+	g.offscreen = newImage(image.Rect(0, 0, width, height), imageType)
+	return g.offscreen.image
 }
 
-func (c *gameForUI) NewScreenImage(width, height int) *ui.Image {
-	if c.screen != nil {
-		c.screen.Dispose()
-		c.screen = nil
+func (g *gameForUI) NewScreenImage(width, height int) *ui.Image {
+	if g.screen != nil {
+		g.screen.Dispose()
+		g.screen = nil
 	}
 
-	c.screen = newImage(image.Rect(0, 0, width, height), atlas.ImageTypeScreen)
-	return c.screen.image
+	g.screen = newImage(image.Rect(0, 0, width, height), atlas.ImageTypeScreen)
+	return g.screen.image
 }
 
-func (c *gameForUI) Layout(outsideWidth, outsideHeight int) (int, int) {
-	return c.game.Layout(outsideWidth, outsideHeight)
+func (g *gameForUI) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return g.game.Layout(outsideWidth, outsideHeight)
 }
 
-func (c *gameForUI) Update() error {
-	return c.game.Update()
+func (g *gameForUI) Update() error {
+	return g.game.Update()
 }
 
-func (c *gameForUI) DrawOffscreen() {
-	c.game.Draw(c.offscreen)
+func (g *gameForUI) DrawOffscreen() {
+	g.game.Draw(g.offscreen)
 }
 
 func (g *gameForUI) DrawScreen(scale, offsetX, offsetY float64) {
