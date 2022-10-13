@@ -53,8 +53,6 @@ type context struct {
 	// The following members must be protected by the mutex m.
 	outsideWidth  float64
 	outsideHeight float64
-
-	m sync.Mutex
 }
 
 func newContext(game Game) *context {
@@ -175,9 +173,6 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 }
 
 func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {
-	c.m.Lock()
-	defer c.m.Unlock()
-
 	c.outsideWidth = outsideWidth
 	c.outsideHeight = outsideHeight
 
@@ -230,9 +225,6 @@ func (c *context) adjustPosition(x, y float64, deviceScaleFactor float64) (float
 }
 
 func (c *context) screenScaleAndOffsets() (float64, float64, float64) {
-	c.m.Lock()
-	defer c.m.Unlock()
-
 	if c.screen == nil {
 		return 0, 0, 0
 	}
