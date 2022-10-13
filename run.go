@@ -143,35 +143,6 @@ func IsScreenFilterEnabled() bool {
 	return isScreenFilterEnabled()
 }
 
-type imageDumperGame struct {
-	game Game
-	d    *imageDumper
-	err  error
-}
-
-func (i *imageDumperGame) Update() error {
-	if i.err != nil {
-		return i.err
-	}
-	if i.d == nil {
-		i.d = &imageDumper{g: i.game}
-	}
-	return i.d.update()
-}
-
-func (i *imageDumperGame) Draw(screen *Image) {
-	if i.err != nil {
-		return
-	}
-
-	i.game.Draw(screen)
-	i.err = i.d.dump(screen)
-}
-
-func (i *imageDumperGame) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return i.game.Layout(outsideWidth, outsideHeight)
-}
-
 // Termination is a special error which indicates Game termination without error.
 var Termination = ui.RegularTermination
 
@@ -206,9 +177,7 @@ func RunGame(game Game) error {
 	defer atomic.StoreInt32(&isRunGameEnded_, 1)
 
 	initializeWindowPositionIfNeeded(WindowSize())
-	g := newGameForUI(&imageDumperGame{
-		game: game,
-	})
+	g := newGameForUI(game)
 	if err := ui.Get().Run(g); err != nil {
 		if errors.Is(err, Termination) {
 			return nil

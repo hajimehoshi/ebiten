@@ -57,8 +57,6 @@ func dumpInternalImages() error {
 }
 
 type imageDumper struct {
-	g Game
-
 	keyState map[Key]int
 
 	hasScreenshotKey bool
@@ -91,10 +89,6 @@ func envInternalImagesKey() string {
 func (i *imageDumper) update() error {
 	if i.err != nil {
 		return i.err
-	}
-
-	if err := i.g.Update(); err != nil {
-		return err
 	}
 
 	// If keyState is nil, all values are not initialized.

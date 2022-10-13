@@ -38,7 +38,7 @@ type Game interface {
 	NewScreenImage(width, height int) *Image
 	Layout(outsideWidth, outsideHeight int) (int, int)
 	Update() error
-	DrawOffscreen()
+	DrawOffscreen() error
 	DrawScreen()
 	ScreenScaleAndOffsets() (scale, offsetX, offsetY float64)
 }
@@ -143,14 +143,16 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 	}
 
 	// Draw the game.
-	c.drawGame(graphicsDriver)
+	if err := c.drawGame(graphicsDriver); err != nil {
+		return err
+	}
 
 	// All the vertices data are consumed at the end of the frame, and the data backend can be
 	// available after that. Until then, lock the vertices backend.
 	return nil
 }
 
-func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
+func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) error {
 	if c.offscreen.volatile != theGlobalState.isScreenClearedEveryFrame() {
 		w, h := c.offscreen.width, c.offscreen.height
 		c.offscreen.MarkDisposed()
@@ -163,7 +165,9 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 	if theGlobalState.isScreenClearedEveryFrame() {
 		c.offscreen.clear()
 	}
-	c.game.DrawOffscreen()
+	if err := c.game.DrawOffscreen(); err != nil {
+		return err
+	}
 
 	if graphicsDriver.NeedsClearingScreen() {
 		// This clear is needed for fullscreen mode or some mobile platforms (#622).
@@ -171,6 +175,7 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 	}
 
 	c.game.DrawScreen()
+	return nil
 }
 
 func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {

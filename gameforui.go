@@ -79,6 +79,7 @@ type gameForUI struct {
 	offscreen    *Image
 	screen       *Image
 	screenShader *Shader
+	imageDumper  imageDumper
 }
 
 func newGameForUI(game Game) *gameForUI {
@@ -129,11 +130,21 @@ func (g *gameForUI) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func (g *gameForUI) Update() error {
-	return g.game.Update()
+	if err := g.game.Update(); err != nil {
+		return err
+	}
+	if err := g.imageDumper.update(); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (g *gameForUI) DrawOffscreen() {
+func (g *gameForUI) DrawOffscreen() error {
 	g.game.Draw(g.offscreen)
+	if err := g.imageDumper.dump(g.offscreen); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (g *gameForUI) DrawScreen() {

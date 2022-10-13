@@ -18,11 +18,11 @@
 package ebiten
 
 type imageDumper struct {
-	g Game
 }
 
 func (i *imageDumper) update() error {
-	return i.g.Update()
+	// Do nothing
+	return nil
 }
 
 func (i *imageDumper) dump(screen *Image) error {
