@@ -133,14 +133,14 @@ func IsScreenClearedEveryFrame() bool {
 //
 // SetScreenFilterEnabled is concurrent-safe, but takes effect only at the next Draw call.
 func SetScreenFilterEnabled(enabled bool) {
-	ui.SetScreenFilterEnabled(enabled)
+	setScreenFilterEnabled(enabled)
 }
 
 // IsScreenFilterEnabled returns true if Ebitengine's "screen" filter is enabled.
 //
 // IsScreenFilterEnabled is concurrent-safe.
 func IsScreenFilterEnabled() bool {
-	return ui.IsScreenFilterEnabled()
+	return isScreenFilterEnabled()
 }
 
 type imageDumperGame struct {

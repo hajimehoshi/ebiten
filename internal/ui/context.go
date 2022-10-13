@@ -15,12 +15,10 @@
 package ui
 
 import (
-	"fmt"
 	"math"
 	"sync"
 	"sync/atomic"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
@@ -30,63 +28,18 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 )
 
-const screenShaderSrc = `package main
-
-func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	// TODO: Calculate the scale in the shader after pixels become the main unit in shaders (#1431)
-	_, dr := imageDstRegionOnTexture()
-	_, sr := imageSrcRegionOnTexture()
-	scale := (imageDstTextureSize() * dr) / (imageSrcTextureSize() * sr)
-
-	sourceSize := imageSrcTextureSize()
-	// texelSize is one pixel size in texel sizes.
-	texelSize := 1 / sourceSize
-	halfScaledTexelSize := texelSize / 2 / scale
-
-	// Shift 1/512 [texel] to avoid the tie-breaking issue.
-	pos := texCoord
-	p0 := pos - halfScaledTexelSize + (texelSize / 512)
-	p1 := pos + halfScaledTexelSize + (texelSize / 512)
-
-	// Texels must be in the source rect, so it is not necessary to check.
-	c0 := imageSrc0UnsafeAt(p0)
-	c1 := imageSrc0UnsafeAt(vec2(p1.x, p0.y))
-	c2 := imageSrc0UnsafeAt(vec2(p0.x, p1.y))
-	c3 := imageSrc0UnsafeAt(p1)
-
-	// p is the p1 value in one pixel assuming that the pixel's upper-left is (0, 0) and the lower-right is (1, 1).
-	p := fract(p1 * sourceSize)
-
-	// rate indicates how much the 4 colors are mixed. rate is in between [0, 1].
-	//
-	//     0 <= p <= 1/Scale: The rate is in between [0, 1]
-	//     1/Scale < p:       Don't care. Adjacent colors (e.g. c0 vs c1 in an X direction) should be the same.
-	rate := clamp(p*scale, 0, 1)
-	return mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y)
-}
-`
-
 var (
-	screenShader        *Shader
 	NearestFilterShader = &Shader{shader: mipmap.NearestFilterShader}
 	LinearFilterShader  = &Shader{shader: mipmap.LinearFilterShader}
 )
 
-func init() {
-	{
-		ir, err := graphics.CompileShader([]byte(screenShaderSrc))
-		if err != nil {
-			panic(fmt.Sprintf("ui: compiling the screen shader failed: %v", err))
-		}
-		screenShader = NewShader(ir)
-	}
-}
-
 type Game interface {
 	NewOffscreenImage(width, height int) *Image
+	NewScreenImage(width, height int) *Image
 	Layout(outsideWidth, outsideHeight int) (int, int)
 	Update() error
-	Draw()
+	DrawOffscreen()
+	DrawScreen(scale, offsetX, offsteY float64)
 }
 
 type context struct {
@@ -211,51 +164,14 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) {
 	if theGlobalState.isScreenClearedEveryFrame() {
 		c.offscreen.clear()
 	}
-	c.game.Draw()
+	c.game.DrawOffscreen()
 
 	if graphicsDriver.NeedsClearingScreen() {
 		// This clear is needed for fullscreen mode or some mobile platforms (#622).
 		c.screen.clear()
 	}
 
-	screenScale, offsetX, offsetY := c.screenScaleAndOffsets()
-
-	var shader *Shader
-	switch {
-	case !theGlobalState.isScreenFilterEnabled():
-		shader = NearestFilterShader
-	case math.Floor(screenScale) == screenScale:
-		shader = NearestFilterShader
-	case screenScale > 1:
-		shader = screenShader
-	default:
-		// screenShader works with >=1 scale, but does not well with <1 scale.
-		// Use regular FilterLinear instead so far (#669).
-		shader = LinearFilterShader
-	}
-
-	dstRegion := graphicsdriver.Region{
-		X:      0,
-		Y:      0,
-		Width:  float32(c.screen.width),
-		Height: float32(c.screen.height),
-	}
-	srcRegion := graphicsdriver.Region{
-		X:      0,
-		Y:      0,
-		Width:  float32(c.offscreen.width),
-		Height: float32(c.offscreen.height),
-	}
-
-	vs := graphics.QuadVertices(
-		0, 0, float32(c.offscreen.width), float32(c.offscreen.height),
-		float32(screenScale), 0, 0, float32(screenScale), float32(offsetX), float32(offsetY),
-		1, 1, 1, 1)
-	is := graphics.QuadIndices()
-
-	srcs := [graphics.ShaderImageCount]*Image{c.offscreen}
-
-	c.screen.DrawTriangles(srcs, vs, is, graphicsdriver.CompositeModeCopy, dstRegion, srcRegion, [graphics.ShaderImageCount - 1][2]float32{}, shader, nil, false, true)
+	c.game.DrawScreen(c.screenScaleAndOffsets())
 }
 
 func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {
@@ -287,7 +203,7 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFac
 		}
 	}
 	if c.screen == nil {
-		c.screen = NewImage(sw, sh, atlas.ImageTypeScreen)
+		c.screen = c.game.NewScreenImage(sw, sh)
 	}
 
 	if c.offscreen != nil {
@@ -333,7 +249,6 @@ func (c *context) screenScaleAndOffsets() (float64, float64, float64) {
 
 var theGlobalState = globalState{
 	isScreenClearedEveryFrame_: 1,
-	screenFilterEnabled_:       1,
 }
 
 // globalState represents a global state in this package.
@@ -344,7 +259,6 @@ type globalState struct {
 
 	fpsMode_                   int32
 	isScreenClearedEveryFrame_ int32
-	screenFilterEnabled_       int32
 	graphicsLibrary_           int32
 }
 
@@ -382,18 +296,6 @@ func (g *globalState) setScreenClearedEveryFrame(cleared bool) {
 	atomic.StoreInt32(&g.isScreenClearedEveryFrame_, v)
 }
 
-func (g *globalState) isScreenFilterEnabled() bool {
-	return atomic.LoadInt32(&g.screenFilterEnabled_) != 0
-}
-
-func (g *globalState) setScreenFilterEnabled(enabled bool) {
-	v := int32(0)
-	if enabled {
-		v = 1
-	}
-	atomic.StoreInt32(&g.screenFilterEnabled_, v)
-}
-
 func (g *globalState) setGraphicsLibrary(library GraphicsLibrary) {
 	atomic.StoreInt32(&g.graphicsLibrary_, int32(library))
 }
@@ -417,14 +319,6 @@ func IsScreenClearedEveryFrame() bool {
 
 func SetScreenClearedEveryFrame(cleared bool) {
 	theGlobalState.setScreenClearedEveryFrame(cleared)
-}
-
-func IsScreenFilterEnabled() bool {
-	return theGlobalState.isScreenFilterEnabled()
-}
-
-func SetScreenFilterEnabled(enabled bool) {
-	theGlobalState.setScreenFilterEnabled(enabled)
 }
 
 func GetGraphicsLibrary() GraphicsLibrary {
