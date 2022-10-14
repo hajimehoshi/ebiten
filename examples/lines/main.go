@@ -15,6 +15,7 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"log"
@@ -130,8 +131,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		screen.DrawImage(g.offscreen, op)
 	}
 
-	msg := `Press A to switch anti-aliasing.
-Press C to switch to draw the center lines.`
+	msg := fmt.Sprintf(`FPS: %0.2f, TPS: %0.2f
+Press A to switch anti-aliasing.
+Press C to switch to draw the center lines.`, ebiten.ActualFPS(), ebiten.ActualTPS())
 	ebitenutil.DebugPrint(screen, msg)
 }
 
