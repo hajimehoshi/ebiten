@@ -66,7 +66,7 @@ func TestShader(t *testing.T) {
 	}
 	img.DrawTriangles([graphics.ShaderImageCount]*restorable.Image{}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(nil, 1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.CompositeModeCopy, dr, graphicsdriver.Region{}, s, nil, false)
 
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
 		t.Fatal(err)
 	}
 	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
@@ -102,7 +102,7 @@ func TestShaderChain(t *testing.T) {
 		imgs[i+1].DrawTriangles([graphics.ShaderImageCount]*restorable.Image{imgs[i]}, [graphics.ShaderImageCount - 1][2]float32{}, quadVertices(imgs[i], 1, 1, 0, 0), graphics.QuadIndices(), graphicsdriver.CompositeModeCopy, dr, graphicsdriver.Region{}, s, nil, false)
 	}
 
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
 		t.Fatal(err)
 	}
 	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
@@ -142,7 +142,7 @@ func TestShaderMultipleSources(t *testing.T) {
 	// Clear one of the sources after DrawTriangles. dst should not be affected.
 	clearImage(srcs[0], 1, 1)
 
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
 		t.Fatal(err)
 	}
 	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
@@ -183,7 +183,7 @@ func TestShaderMultipleSourcesOnOneTexture(t *testing.T) {
 	// Clear one of the sources after DrawTriangles. dst should not be affected.
 	clearImage(srcs[0], 3, 1)
 
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
 		t.Fatal(err)
 	}
 	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {
@@ -214,7 +214,7 @@ func TestShaderDispose(t *testing.T) {
 	// stale.
 	s.Dispose()
 
-	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting()); err != nil {
+	if err := restorable.ResolveStaleImages(ui.GraphicsDriverForTesting(), false); err != nil {
 		t.Fatal(err)
 	}
 	if err := restorable.RestoreIfNeeded(ui.GraphicsDriverForTesting()); err != nil {

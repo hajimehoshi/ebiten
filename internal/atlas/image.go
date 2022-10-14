@@ -740,7 +740,7 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 
 	theTemporaryBytes.resetAtFrameEnd()
 
-	return restorable.ResolveStaleImages(graphicsDriver)
+	return restorable.ResolveStaleImages(graphicsDriver, true)
 }
 
 func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {

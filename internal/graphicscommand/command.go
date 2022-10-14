@@ -159,15 +159,15 @@ func (q *commandQueue) Enqueue(command command) {
 }
 
 // Flush flushes the command queue.
-func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics) (err error) {
+func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, present bool) (err error) {
 	runOnRenderingThread(func() {
-		err = q.flush(graphicsDriver)
+		err = q.flush(graphicsDriver, present)
 	})
 	return
 }
 
 // flush must be called the main thread.
-func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
+func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, present bool) error {
 	if len(q.commands) == 0 {
 		return nil
 	}
@@ -179,7 +179,6 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
 	if err := graphicsDriver.Begin(); err != nil {
 		return err
 	}
-	var present bool
 	cs := q.commands
 	for len(cs) > 0 {
 		nv := 0
@@ -195,9 +194,6 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
 				}
 				nv += dtc.numVertices()
 				ne += dtc.numIndices()
-				if dtc.dst.screen {
-					present = true
-				}
 			}
 			nc++
 		}
@@ -244,9 +240,10 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
 	return nil
 }
 
-// FlushCommands flushes the command queue.
-func FlushCommands(graphicsDriver graphicsdriver.Graphics) error {
-	return theCommandQueue.Flush(graphicsDriver)
+// FlushCommands flushes the command queue and present the screen.
+// If present is true, the current screen is used to present.
+func FlushCommands(graphicsDriver graphicsdriver.Graphics, present bool) error {
+	return theCommandQueue.Flush(graphicsDriver, present)
 }
 
 // drawTrianglesCommand represents a drawing command to draw an image on another image.
