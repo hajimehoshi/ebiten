@@ -159,15 +159,15 @@ func (q *commandQueue) Enqueue(command command) {
 }
 
 // Flush flushes the command queue.
-func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, present bool) (err error) {
+func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bool) (err error) {
 	runOnRenderingThread(func() {
-		err = q.flush(graphicsDriver, present)
+		err = q.flush(graphicsDriver, endFrame)
 	})
 	return
 }
 
 // flush must be called the main thread.
-func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, present bool) error {
+func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
 	if len(q.commands) == 0 {
 		return nil
 	}
@@ -223,7 +223,8 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, present boo
 		}
 		cs = cs[nc:]
 	}
-	if err := graphicsDriver.End(present && screenRendered); err != nil {
+	// TODO: Without checking screenRendered, the tests fail on Windows. Investigate this issue.
+	if err := graphicsDriver.End(endFrame && screenRendered); err != nil {
 		return err
 	}
 
@@ -244,10 +245,10 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, present boo
 	return nil
 }
 
-// FlushCommands flushes the command queue and present the screen.
-// If present is true, the current screen is used to present.
-func FlushCommands(graphicsDriver graphicsdriver.Graphics, present bool) error {
-	return theCommandQueue.Flush(graphicsDriver, present)
+// FlushCommands flushes the command queue and present the screen if needed.
+// If endFrame is true, the current screen might be used to present.
+func FlushCommands(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
+	return theCommandQueue.Flush(graphicsDriver, endFrame)
 }
 
 // drawTrianglesCommand represents a drawing command to draw an image on another image.

@@ -52,10 +52,10 @@ var theImages = &images{
 }
 
 // ResolveStaleImages flushes the queued draw commands and resolves all stale images.
-// If present is true, the current screen is used to present when flushing the commands.
+// If endFrame is true, the current screen might be used to present when flushing the commands.
 //
 // ResolveStaleImages is intended to be called at the end of a frame.
-func ResolveStaleImages(graphicsDriver graphicsdriver.Graphics, present bool) error {
+func ResolveStaleImages(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
 	if debug.IsDebug {
 		debug.Logf("Internal image sizes:\n")
 		imgs := make([]*graphicscommand.Image, 0, len(theImages.images))
@@ -65,7 +65,7 @@ func ResolveStaleImages(graphicsDriver graphicsdriver.Graphics, present bool) er
 		graphicscommand.LogImagesInfo(imgs)
 	}
 
-	if err := graphicscommand.FlushCommands(graphicsDriver, present); err != nil {
+	if err := graphicscommand.FlushCommands(graphicsDriver, endFrame); err != nil {
 		return err
 	}
 	if !needsRestoring() {
