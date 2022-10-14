@@ -179,6 +179,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, present boo
 	if err := graphicsDriver.Begin(); err != nil {
 		return err
 	}
+	var screenRendered bool
 	cs := q.commands
 	for len(cs) > 0 {
 		nv := 0
@@ -194,6 +195,9 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, present boo
 				}
 				nv += dtc.numVertices()
 				ne += dtc.numIndices()
+				if dtc.dst.screen {
+					screenRendered = true
+				}
 			}
 			nc++
 		}
@@ -219,7 +223,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, present boo
 		}
 		cs = cs[nc:]
 	}
-	if err := graphicsDriver.End(present); err != nil {
+	if err := graphicsDriver.End(present && screenRendered); err != nil {
 		return err
 	}
 
