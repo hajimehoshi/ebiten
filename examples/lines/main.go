@@ -133,14 +133,16 @@ func (g *Game) drawLine(screen *ebiten.Image, region image.Rectangle, join vecto
 	c1x := float64(region.Max.X - region.Dx()/4)
 	c1y := float64(region.Max.Y - region.Dy()/4)
 	r := float64(min(region.Dx(), region.Dy()) / 4)
-	a := 2 * math.Pi * float64(g.counter) / (10 * ebiten.DefaultTPS)
+	a0 := 2 * math.Pi * float64(g.counter) / (16 * ebiten.DefaultTPS)
+	a1 := 2 * math.Pi * float64(g.counter) / (9 * ebiten.DefaultTPS)
 
 	var path vector.Path
-	sin, cos := math.Sincos(a)
-	path.MoveTo(float32(r*cos+c0x), float32(r*sin+c0y))
-	path.LineTo(float32(-r*cos+c0x), float32(-r*sin+c0y))
-	path.LineTo(float32(r*cos+c1x), float32(r*sin+c1y))
-	path.LineTo(float32(-r*cos+c1x), float32(-r*sin+c1y))
+	sin0, cos0 := math.Sincos(a0)
+	sin1, cos1 := math.Sincos(a1)
+	path.MoveTo(float32(r*cos0+c0x), float32(r*sin0+c0y))
+	path.LineTo(float32(-r*cos0+c0x), float32(-r*sin0+c0y))
+	path.LineTo(float32(r*cos1+c1x), float32(r*sin1+c1y))
+	path.LineTo(float32(-r*cos1+c1x), float32(-r*sin1+c1y))
 
 	// Draw the main line in white.
 	op := &vector.StrokeOptions{}
