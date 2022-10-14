@@ -459,7 +459,7 @@ func (g *GameWithCRTEffect) DrawFinalScreen(screen ebiten.FinalScreen, offscreen
 	if g.crtShader == nil {
 		s, err := ebiten.NewShader(crtGo)
 		if err != nil {
-			panic(fmt.Sprintf("flappy: filed to compiled the CRT shader: %v", err))
+			panic(fmt.Sprintf("flappy: failed to compiled the CRT shader: %v", err))
 		}
 		g.crtShader = s
 	}
