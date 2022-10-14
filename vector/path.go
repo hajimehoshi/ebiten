@@ -313,7 +313,9 @@ func (p *Path) AppendVerticesAndIndicesForFilling(vertices []ebiten.Vertex, indi
 	return vertices, indices
 }
 
+// StokeOptions is options to render a stroke.
 type StrokeOptions struct {
+	// Width is the stroke width in pixels.
 	Width float32
 }
 
