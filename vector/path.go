@@ -69,7 +69,7 @@ func (p *Path) LineTo(x, y float32) {
 //
 // QuadTo updates the current position to (x2, y2).
 func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
-	p.quadTo(x1, y1, x2, y2, 0)
+	p.quadTo(point{x: x1, y: y1}, point{x: x2, y: y2}, 0)
 }
 
 // lineForTwoPoints returns parameters for a line passing through p0 and p1.
@@ -82,12 +82,12 @@ func lineForTwoPoints(p0, p1 point) (a, b, c float32) {
 }
 
 // isPointCloseToSegment detects the distance between a segment (x0, y0)-(x1, y1) and a point (x, y) is less than allow.
-func isPointCloseToSegment(x, y, x0, y0, x1, y1 float32, allow float32) bool {
-	a, b, c := lineForTwoPoints(point{x: x0, y: y0}, point{x: x1, y: y1})
+func isPointCloseToSegment(p, p0, p1 point, allow float32) bool {
+	a, b, c := lineForTwoPoints(p0, p1)
 
 	// The distance between a line ax+by+c=0 and (x0, y0) is
 	//     |ax0 + by0 + c| / √(a² + b²)
-	return allow*allow*(a*a+b*b) > (a*x+b*y+c)*(a*x+b*y+c)
+	return allow*allow*(a*a+b*b) > (a*p.x+b*p.y+c)*(a*p.x+b*p.y+c)
 }
 
 // crossingPointForTwoLines returns a crossing point for two lines.
@@ -101,26 +101,31 @@ func crossingPointForTwoLines(p00, p01, p10, p11 point) point {
 	}
 }
 
-func (p *Path) quadTo(x1, y1, x2, y2 float32, level int) {
+func (p *Path) quadTo(p1, p2 point, level int) {
 	if level > 10 {
 		return
 	}
 
-	x0 := p.cur.x
-	y0 := p.cur.y
-	if isPointCloseToSegment(x1, y1, x0, y0, x2, y2, 0.5) {
-		p.LineTo(x2, y2)
+	p0 := p.cur
+	if isPointCloseToSegment(p1, p0, p2, 0.5) {
+		p.LineTo(p2.x, p2.y)
 		return
 	}
 
-	x01 := (x0 + x1) / 2
-	y01 := (y0 + y1) / 2
-	x12 := (x1 + x2) / 2
-	y12 := (y1 + y2) / 2
-	x012 := (x01 + x12) / 2
-	y012 := (y01 + y12) / 2
-	p.quadTo(x01, y01, x012, y012, level+1)
-	p.quadTo(x12, y12, x2, y2, level+1)
+	p01 := point{
+		x: (p0.x + p1.x) / 2,
+		y: (p0.y + p1.y) / 2,
+	}
+	p12 := point{
+		x: (p1.x + p2.x) / 2,
+		y: (p1.y + p2.y) / 2,
+	}
+	p012 := point{
+		x: (p01.x + p12.x) / 2,
+		y: (p01.y + p12.y) / 2,
+	}
+	p.quadTo(p01, p012, level+1)
+	p.quadTo(p12, p2, level+1)
 }
 
 // CubicTo adds a cubic Bézier curve to the path.
@@ -128,61 +133,74 @@ func (p *Path) quadTo(x1, y1, x2, y2 float32, level int) {
 //
 // CubicTo updates the current position to (x3, y3).
 func (p *Path) CubicTo(x1, y1, x2, y2, x3, y3 float32) {
-	p.cubicTo(x1, y1, x2, y2, x3, y3, 0)
+	p.cubicTo(point{x: x1, y: y1}, point{x: x2, y: y2}, point{x: x3, y: y3}, 0)
 }
 
-func (p *Path) cubicTo(x1, y1, x2, y2, x3, y3 float32, level int) {
+func (p *Path) cubicTo(p1, p2, p3 point, level int) {
 	if level > 10 {
 		return
 	}
 
-	x0 := p.cur.x
-	y0 := p.cur.y
-	if isPointCloseToSegment(x1, y1, x0, y0, x3, y3, 0.5) && isPointCloseToSegment(x2, y2, x0, y0, x3, y3, 0.5) {
-		p.LineTo(x3, y3)
+	p0 := p.cur
+	if isPointCloseToSegment(p1, p0, p3, 0.5) && isPointCloseToSegment(p2, p0, p3, 0.5) {
+		p.LineTo(p3.x, p3.y)
 		return
 	}
 
-	x01 := (x0 + x1) / 2
-	y01 := (y0 + y1) / 2
-	x12 := (x1 + x2) / 2
-	y12 := (y1 + y2) / 2
-	x23 := (x2 + x3) / 2
-	y23 := (y2 + y3) / 2
-	x012 := (x01 + x12) / 2
-	y012 := (y01 + y12) / 2
-	x123 := (x12 + x23) / 2
-	y123 := (y12 + y23) / 2
-	x0123 := (x012 + x123) / 2
-	y0123 := (y012 + y123) / 2
-	p.cubicTo(x01, y01, x012, y012, x0123, y0123, level+1)
-	p.cubicTo(x123, y123, x23, y23, x3, y3, level+1)
+	p01 := point{
+		x: (p0.x + p1.x) / 2,
+		y: (p0.y + p1.y) / 2,
+	}
+	p12 := point{
+		x: (p1.x + p2.x) / 2,
+		y: (p1.y + p2.y) / 2,
+	}
+	p23 := point{
+		x: (p2.x + p3.x) / 2,
+		y: (p2.y + p3.y) / 2,
+	}
+	p012 := point{
+		x: (p01.x + p12.x) / 2,
+		y: (p01.y + p12.y) / 2,
+	}
+	p123 := point{
+		x: (p12.x + p23.x) / 2,
+		y: (p12.y + p23.y) / 2,
+	}
+	p0123 := point{
+		x: (p012.x + p123.x) / 2,
+		y: (p012.y + p123.y) / 2,
+	}
+	p.cubicTo(p01, p012, p0123, level+1)
+	p.cubicTo(p123, p23, p3, level+1)
 }
 
-func normalize(x, y float32) (float32, float32) {
-	len := float32(math.Hypot(float64(x), float64(y)))
-	return x / len, y / len
+func normalize(p point) point {
+	len := float32(math.Hypot(float64(p.x), float64(p.y)))
+	return point{x: p.x / len, y: p.y / len}
 }
 
-func cross(x0, y0, x1, y1 float32) float32 {
-	return x0*y1 - x1*y0
+func cross(p0, p1 point) float32 {
+	return p0.x*p1.y - p1.x*p0.y
 }
 
 // ArcTo adds an arc curve to the path. (x1, y1) is the control point, and (x2, y2) is the destination.
 //
 // ArcTo updates the current position to (x2, y2).
 func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
-	x0 := p.cur.x
-	y0 := p.cur.y
-	dx0 := x0 - x1
-	dy0 := y0 - y1
-	dx1 := x2 - x1
-	dy1 := y2 - y1
-	dx0, dy0 = normalize(dx0, dy0)
-	dx1, dy1 = normalize(dx1, dy1)
+	d0 := point{
+		x: p.cur.x - x1,
+		y: p.cur.y - y1,
+	}
+	d1 := point{
+		x: x2 - x1,
+		y: y2 - y1,
+	}
+	d0 = normalize(d0)
+	d1 = normalize(d1)
 
-	// theta is the angle between two vectors (dx0, dy0) and (dx1, dy1).
-	theta := math.Acos(float64(dx0*dx1 + dy0*dy1))
+	// theta is the angle between two vectors d0 and d1.
+	theta := math.Acos(float64(d0.x*d1.x + d0.y*d1.y))
 	// TODO: When theta is bigger than π/2, the arc should be split into two.
 
 	// dist is the distance between the control point and the arc's begenning and ending points.
@@ -191,22 +209,22 @@ func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 	// TODO: What if dist is too big?
 
 	// (ax0, ay0) is the start of the arc.
-	ax0 := x1 + dx0*dist
-	ay0 := y1 + dy0*dist
+	ax0 := x1 + d0.x*dist
+	ay0 := y1 + d0.y*dist
 
 	var cx, cy, a0, a1 float32
 	var dir Direction
-	if cross(dx0, dy0, dx1, dy1) >= 0 {
-		cx = ax0 - dy0*radius
-		cy = ay0 + dx0*radius
-		a0 = float32(math.Atan2(float64(-dx0), float64(dy0)))
-		a1 = float32(math.Atan2(float64(dx1), float64(-dy1)))
+	if cross(d0, d1) >= 0 {
+		cx = ax0 - d0.y*radius
+		cy = ay0 + d0.x*radius
+		a0 = float32(math.Atan2(float64(-d0.x), float64(d0.y)))
+		a1 = float32(math.Atan2(float64(d1.x), float64(-d1.y)))
 		dir = CounterClockwise
 	} else {
-		cx = ax0 + dy0*radius
-		cy = ay0 - dx0*radius
-		a0 = float32(math.Atan2(float64(dx0), float64(-dy0)))
-		a1 = float32(math.Atan2(float64(-dx1), float64(dy1)))
+		cx = ax0 + d0.y*radius
+		cy = ay0 - d0.x*radius
+		a0 = float32(math.Atan2(float64(d0.x), float64(-d0.y)))
+		a1 = float32(math.Atan2(float64(-d1.x), float64(d1.y)))
 		dir = Clockwise
 	}
 	p.Arc(cx, cy, radius, a0, a1, dir)
