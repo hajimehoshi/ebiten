@@ -175,6 +175,11 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) error {
 	}
 
 	c.game.DrawScreen()
+
+	// The final screen is never used as the rendering source.
+	// Flush its cache here just in case.
+	c.screen.flushCacheIfNeeded()
+
 	return nil
 }
 

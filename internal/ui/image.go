@@ -57,14 +57,14 @@ func (i *Image) MarkDisposed() {
 }
 
 func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, mode graphicsdriver.CompositeMode, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, canSkipMipmap bool) {
-	i.resolveDotsCacheIfNeeded()
+	i.flushCacheIfNeeded()
 
 	var srcMipmaps [graphics.ShaderImageCount]*mipmap.Mipmap
 	for i, src := range srcs {
 		if src == nil {
 			continue
 		}
-		src.resolveDotsCacheIfNeeded()
+		src.flushCacheIfNeeded()
 		srcMipmaps[i] = src.mipmap
 	}
 
@@ -83,12 +83,12 @@ func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
 
 		// One square requires 6 indices (= 2 triangles).
 		if len(i.dotsCache) >= graphics.IndicesCount/6 {
-			i.resolveDotsCacheIfNeeded()
+			i.flushCacheIfNeeded()
 		}
 		return
 	}
 
-	i.resolveDotsCacheIfNeeded()
+	i.flushCacheIfNeeded()
 	i.mipmap.WritePixels(pix, x, y, width, height)
 }
 
@@ -103,10 +103,10 @@ func (i *Image) ReadPixels(pixels []byte, x, y, width, height int) {
 			copy(pixels, c[:])
 			return
 		}
-		// Do not call resolveDotsCacheIfNeeded here. This would slow (image/draw).Draw.
+		// Do not call flushCacheIfNeeded here. This would slow (image/draw).Draw.
 		// See ebiten.TestImageDrawOver.
 	} else {
-		i.resolveDotsCacheIfNeeded()
+		i.flushCacheIfNeeded()
 	}
 
 	if err := theUI.readPixels(i.mipmap, pixels, x, y, width, height); err != nil {
@@ -121,7 +121,7 @@ func (i *Image) DumpScreenshot(name string, blackbg bool) (string, error) {
 	return theUI.dumpScreenshot(i.mipmap, name, blackbg)
 }
 
-func (i *Image) resolveDotsCacheIfNeeded() {
+func (i *Image) flushCacheIfNeeded() {
 	if len(i.dotsCache) == 0 {
 		return
 	}
