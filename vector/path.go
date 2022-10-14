@@ -348,6 +348,15 @@ func (p *Path) AppendVerticesAndIndicesForFilling(vertices []ebiten.Vertex, indi
 	return vertices, indices
 }
 
+// LineCap represents the way in which how the ends of the stroke are rendered.
+type LineCap int
+
+const (
+	LineCapButt LineCap = iota
+	LineCapRound
+	LineCapSquare
+)
+
 // LineJoin represents the way in which how two segments are joined.
 type LineJoin int
 
@@ -361,6 +370,10 @@ const (
 type StrokeOptions struct {
 	// Width is the stroke width in pixels.
 	Width float32
+
+	// LineCap is the way in which how the ends of the stroke are rendered.
+	// The default (zero) value is LineCapButt.
+	LineCap LineCap
 
 	// LineJoin is the way in which how two segments are joined.
 	// The default (zero) value is LineJoiMiter.
@@ -511,6 +524,68 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 				vertices, indices = arc.AppendVerticesAndIndicesForFilling(vertices, indices)
 			}
 		}
+
+		if len(rects) == 0 {
+			continue
+		}
+
+		switch op.LineCap {
+		case LineCapButt:
+			// Do nothing.
+
+		case LineCapRound:
+			startR, endR := rects[0], rects[len(rects)-1]
+			{
+				c := point{
+					x: (startR[0].x + startR[2].x) / 2,
+					y: (startR[0].y + startR[2].y) / 2,
+				}
+				a := float32(math.Atan2(float64(startR[0].y-startR[2].y), float64(startR[0].x-startR[2].x)))
+				var arc Path
+				arc.MoveTo(startR[0].x, startR[0].y)
+				arc.Arc(c.x, c.y, op.Width/2, a, a+math.Pi, CounterClockwise)
+				vertices, indices = arc.AppendVerticesAndIndicesForFilling(vertices, indices)
+			}
+			{
+				c := point{
+					x: (endR[1].x + endR[3].x) / 2,
+					y: (endR[1].y + endR[3].y) / 2,
+				}
+				a := float32(math.Atan2(float64(endR[1].y-endR[3].y), float64(endR[1].x-endR[3].x)))
+				var arc Path
+				arc.MoveTo(endR[1].x, endR[1].y)
+				arc.Arc(c.x, c.y, op.Width/2, a, a+math.Pi, Clockwise)
+				vertices, indices = arc.AppendVerticesAndIndicesForFilling(vertices, indices)
+			}
+
+		case LineCapSquare:
+			startR, endR := rects[0], rects[len(rects)-1]
+			{
+				a := math.Atan2(float64(startR[0].y-startR[1].y), float64(startR[0].x-startR[1].x))
+				s, c := math.Sincos(a)
+				dx, dy := float32(c)*op.Width/2, float32(s)*op.Width/2
+
+				var quad Path
+				quad.MoveTo(startR[0].x, startR[0].y)
+				quad.LineTo(startR[0].x+dx, startR[0].y+dy)
+				quad.LineTo(startR[2].x+dx, startR[2].y+dy)
+				quad.LineTo(startR[2].x, startR[2].y)
+				vertices, indices = quad.AppendVerticesAndIndicesForFilling(vertices, indices)
+			}
+			{
+				a := math.Atan2(float64(endR[1].y-endR[0].y), float64(endR[1].x-endR[0].x))
+				s, c := math.Sincos(a)
+				dx, dy := float32(c)*op.Width/2, float32(s)*op.Width/2
+
+				var quad Path
+				quad.MoveTo(endR[1].x, endR[1].y)
+				quad.LineTo(endR[1].x+dx, endR[1].y+dy)
+				quad.LineTo(endR[3].x+dx, endR[3].y+dy)
+				quad.LineTo(endR[3].x, endR[3].y)
+				vertices, indices = quad.AppendVerticesAndIndicesForFilling(vertices, indices)
+			}
+		}
 	}
+
 	return vertices, indices
 }
