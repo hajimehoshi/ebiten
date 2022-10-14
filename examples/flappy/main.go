@@ -455,7 +455,7 @@ type GameWithCRTEffect struct {
 	crtShader *ebiten.Shader
 }
 
-func (g *GameWithCRTEffect) DrawFinalScreen(screen ebiten.FinalScreen, offscreen *ebiten.Image) {
+func (g *GameWithCRTEffect) DrawFinalScreen(screen ebiten.FinalScreen, offscreen *ebiten.Image, geoM ebiten.GeoM) {
 	if g.crtShader == nil {
 		s, err := ebiten.NewShader(crtGo)
 		if err != nil {
@@ -465,11 +465,10 @@ func (g *GameWithCRTEffect) DrawFinalScreen(screen ebiten.FinalScreen, offscreen
 	}
 
 	ow, oh := offscreen.Size()
-	sw, sh := screen.Size()
 
 	op := &ebiten.DrawRectShaderOptions{}
 	op.Images[0] = offscreen
-	op.GeoM.Scale(float64(sw)/float64(ow), float64(sh)/float64(oh))
+	op.GeoM = geoM
 	screen.DrawRectShader(ow, oh, g.crtShader, op)
 }
 

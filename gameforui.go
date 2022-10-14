@@ -148,29 +148,30 @@ func (g *gameForUI) DrawOffscreen() error {
 }
 
 func (g *gameForUI) DrawScreen() {
+	scale, offsetX, offsetY := g.ScreenScaleAndOffsets()
+	var geoM GeoM
+	geoM.Scale(scale, scale)
+	geoM.Translate(offsetX, offsetY)
+
 	if d, ok := g.game.(FinalScreenDrawer); ok {
-		d.DrawFinalScreen(g.screen, g.offscreen)
+		d.DrawFinalScreen(g.screen, g.offscreen, geoM)
 		return
 	}
 
-	scale, offsetX, offsetY := g.ScreenScaleAndOffsets()
 	switch {
 	case !isScreenFilterEnabled(), math.Floor(scale) == scale:
 		op := &DrawImageOptions{}
-		op.GeoM.Scale(scale, scale)
-		op.GeoM.Translate(offsetX, offsetY)
+		op.GeoM = geoM
 		g.screen.DrawImage(g.offscreen, op)
 	case scale < 1:
 		op := &DrawImageOptions{}
-		op.GeoM.Scale(scale, scale)
-		op.GeoM.Translate(offsetX, offsetY)
+		op.GeoM = geoM
 		op.Filter = FilterLinear
 		g.screen.DrawImage(g.offscreen, op)
 	default:
 		op := &DrawRectShaderOptions{}
 		op.Images[0] = g.offscreen
-		op.GeoM.Scale(scale, scale)
-		op.GeoM.Translate(offsetX, offsetY)
+		op.GeoM = geoM
 		w, h := g.offscreen.Size()
 		g.screen.DrawRectShader(w, h, g.screenShader, op)
 	}

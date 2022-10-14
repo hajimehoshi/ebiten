@@ -107,7 +107,11 @@ type FinalScreenDrawer interface {
 	// DrawFinalScreen draws the final screen.
 	// If a game implementing FinalScreenDrawer is passed to RunGame, DrawFinalScreen is called after Draw.
 	// screen is the final screen. offscreen is the offscreen modified at Draw.
-	DrawFinalScreen(screen FinalScreen, offscreen *Image)
+	//
+	// geoM is the default geometry matrix to render the offscreen onto the final screen.
+	// geoM scales the offscreen to fit the final screen without changing the aspect ratio, and
+	// translates the offscreen to put it on the center of the final screen.
+	DrawFinalScreen(screen FinalScreen, offscreen *Image, geoM GeoM)
 }
 
 // DefaultTPS represents a default ticks per second, that represents how many times game updating happens in a second.
