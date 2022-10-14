@@ -118,6 +118,7 @@ func drawEbitenText(screen *ebiten.Image, x, y int, scale float32, line bool) {
 	if line {
 		op := &vector.StrokeOptions{}
 		op.Width = 5
+		op.LineJoin = vector.LineJoinRound
 		vs, is = path.AppendVerticesAndIndicesForStroke(nil, nil, op)
 	} else {
 		vs, is = path.AppendVerticesAndIndicesForFilling(nil, nil)
@@ -170,6 +171,7 @@ func drawEbitenLogo(screen *ebiten.Image, x, y int, scale float32, line bool) {
 	if line {
 		op := &vector.StrokeOptions{}
 		op.Width = 5
+		op.LineJoin = vector.LineJoinRound
 		vs, is = path.AppendVerticesAndIndicesForStroke(nil, nil, op)
 	} else {
 		vs, is = path.AppendVerticesAndIndicesForFilling(nil, nil)
@@ -211,6 +213,7 @@ func drawArc(screen *ebiten.Image, count int, scale float32, line bool) {
 	if line {
 		op := &vector.StrokeOptions{}
 		op.Width = 5
+		op.LineJoin = vector.LineJoinRound
 		vs, is = path.AppendVerticesAndIndicesForStroke(nil, nil, op)
 	} else {
 		vs, is = path.AppendVerticesAndIndicesForFilling(nil, nil)
@@ -267,6 +270,7 @@ func drawWave(screen *ebiten.Image, counter int, scale float32, line bool) {
 	if line {
 		op := &vector.StrokeOptions{}
 		op.Width = 5
+		op.LineJoin = vector.LineJoinRound
 		vs, is = path.AppendVerticesAndIndicesForStroke(nil, nil, op)
 	} else {
 		vs, is = path.AppendVerticesAndIndicesForFilling(nil, nil)

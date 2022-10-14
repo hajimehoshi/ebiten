@@ -72,16 +72,33 @@ func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 	p.quadTo(x1, y1, x2, y2, 0)
 }
 
+// lineForTwoPoints returns parameters for a line passing through p0 and p1.
+func lineForTwoPoints(p0, p1 point) (a, b, c float32) {
+	// Line passing through p0 and p1 in the form of ax + by + c = 0
+	a = p1.y - p0.y
+	b = -(p1.x - p0.x)
+	c = (p1.x-p0.x)*p0.y - (p1.y-p0.y)*p0.x
+	return
+}
+
 // isPointCloseToSegment detects the distance between a segment (x0, y0)-(x1, y1) and a point (x, y) is less than allow.
 func isPointCloseToSegment(x, y, x0, y0, x1, y1 float32, allow float32) bool {
-	// Line passing through (x0, y0) and (x1, y1) in the form of ax + by + c = 0
-	a := y1 - y0
-	b := -(x1 - x0)
-	c := (x1-x0)*y0 - (y1-y0)*x0
+	a, b, c := lineForTwoPoints(point{x: x0, y: y0}, point{x: x1, y: y1})
 
 	// The distance between a line ax+by+c=0 and (x0, y0) is
 	//     |ax0 + by0 + c| / √(a² + b²)
 	return allow*allow*(a*a+b*b) > (a*x+b*y+c)*(a*x+b*y+c)
+}
+
+// crossingPointForTwoLines returns a crossing point for two lines.
+func crossingPointForTwoLines(p00, p01, p10, p11 point) point {
+	a0, b0, c0 := lineForTwoPoints(p00, p01)
+	a1, b1, c1 := lineForTwoPoints(p10, p11)
+	det := a0*b1 - a1*b0
+	return point{
+		x: (b0*c1 - b1*c0) / det,
+		y: (a1*c0 - a0*c1) / det,
+	}
 }
 
 func (p *Path) quadTo(x1, y1, x2, y2 float32, level int) {
@@ -313,10 +330,23 @@ func (p *Path) AppendVerticesAndIndicesForFilling(vertices []ebiten.Vertex, indi
 	return vertices, indices
 }
 
+// LineJoin represents the way in which how two segments are joined.
+type LineJoin int
+
+const (
+	LineJoinMiter LineJoin = iota
+	LineJoinBevel
+	LineJoinRound
+)
+
 // StokeOptions is options to render a stroke.
 type StrokeOptions struct {
 	// Width is the stroke width in pixels.
 	Width float32
+
+	// LineJoin is the way in which how two segments are joined.
+	// The default (zero) value is LineJoiMiter.
+	LineJoin LineJoin
 }
 
 // AppendVerticesAndIndicesForStroke appends vertices and indices to render a stroke of this path and returns them.
@@ -327,6 +357,10 @@ type StrokeOptions struct {
 //
 // The returned values are intended to be passed to DrawTriangles or DrawTrianglesShader with FillAll fill mode, not EvenOdd fill mode.
 func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indices []uint16, op *StrokeOptions) ([]ebiten.Vertex, []uint16) {
+	if op == nil {
+		return vertices, indices
+	}
+
 	for _, seg := range p.segs {
 		if len(seg) < 2 {
 			continue
@@ -406,14 +440,53 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 				continue
 			}
 
-			var arc Path
-			arc.MoveTo(c.x, c.y)
-			if da < math.Pi {
-				arc.Arc(c.x, c.y, op.Width/2, a0, a1, Clockwise)
-			} else {
-				arc.Arc(c.x, c.y, op.Width/2, a0+math.Pi, a1+math.Pi, CounterClockwise)
+			switch op.LineJoin {
+			case LineJoinMiter:
+				// TODO: Enable to configure this.
+				const miterLimit = 10
+				delta := math.Pi - da
+				exceed := math.Abs(1/math.Sin(float64(delta/2))) > miterLimit
+				var quad Path
+				quad.MoveTo(c.x, c.y)
+				if da < math.Pi {
+					quad.LineTo(rect[1].x, rect[1].y)
+					if !exceed {
+						pt := crossingPointForTwoLines(rect[0], rect[1], nextRect[0], nextRect[1])
+						quad.LineTo(pt.x, pt.y)
+					}
+					quad.LineTo(nextRect[0].x, nextRect[0].y)
+				} else {
+					quad.LineTo(rect[3].x, rect[3].y)
+					if !exceed {
+						pt := crossingPointForTwoLines(rect[2], rect[3], nextRect[2], nextRect[3])
+						quad.LineTo(pt.x, pt.y)
+					}
+					quad.LineTo(nextRect[2].x, nextRect[2].y)
+				}
+				vertices, indices = quad.AppendVerticesAndIndicesForFilling(vertices, indices)
+
+			case LineJoinBevel:
+				var tri Path
+				tri.MoveTo(c.x, c.y)
+				if da < math.Pi {
+					tri.LineTo(rect[1].x, rect[1].y)
+					tri.LineTo(nextRect[0].x, nextRect[0].y)
+				} else {
+					tri.LineTo(rect[3].x, rect[3].y)
+					tri.LineTo(nextRect[2].x, nextRect[2].y)
+				}
+				vertices, indices = tri.AppendVerticesAndIndicesForFilling(vertices, indices)
+
+			case LineJoinRound:
+				var arc Path
+				arc.MoveTo(c.x, c.y)
+				if da < math.Pi {
+					arc.Arc(c.x, c.y, op.Width/2, a0, a1, Clockwise)
+				} else {
+					arc.Arc(c.x, c.y, op.Width/2, a0+math.Pi, a1+math.Pi, CounterClockwise)
+				}
+				vertices, indices = arc.AppendVerticesAndIndicesForFilling(vertices, indices)
 			}
-			vertices, indices = arc.AppendVerticesAndIndicesForFilling(vertices, indices)
 		}
 	}
 	return vertices, indices
