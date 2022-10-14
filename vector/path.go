@@ -365,6 +365,12 @@ type StrokeOptions struct {
 	// LineJoin is the way in which how two segments are joined.
 	// The default (zero) value is LineJoiMiter.
 	LineJoin LineJoin
+
+	// MiterLimit is the miter limit for LineJoinMiter.
+	// For details, see https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-miterlimit.
+	//
+	// The default (zero) value is 0.
+	MiterLimit float32
 }
 
 // AppendVerticesAndIndicesForStroke appends vertices and indices to render a stroke of this path and returns them.
@@ -460,10 +466,9 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 
 			switch op.LineJoin {
 			case LineJoinMiter:
-				// TODO: Enable to configure this.
-				const miterLimit = 10
 				delta := math.Pi - da
-				exceed := math.Abs(1/math.Sin(float64(delta/2))) > miterLimit
+				exceed := float32(math.Abs(1/math.Sin(float64(delta/2)))) > op.MiterLimit
+
 				var quad Path
 				quad.MoveTo(c.x, c.y)
 				if da < math.Pi {

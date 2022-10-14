@@ -95,14 +95,22 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 
 	ow, oh := target.Size()
-	size := min(ow/4, oh/4)
-	offsetX, offsetY := (ow-size*3)/2, (oh-size*3)/2
+	size := min(ow/5, oh/4)
+	offsetX, offsetY := (ow-size*4)/2, (oh-size*3)/2
 
 	// Render the lines on the target.
 	for j := 0; j < 3; j++ {
-		for i, join := range []vector.LineJoin{vector.LineJoinMiter, vector.LineJoinBevel, vector.LineJoinRound} {
+		for i, join := range []vector.LineJoin{
+			vector.LineJoinMiter,
+			vector.LineJoinMiter,
+			vector.LineJoinBevel,
+			vector.LineJoinRound} {
 			r := image.Rect(i*size+offsetX, j*size+offsetY, (i+1)*size+offsetX, (j+1)*size+offsetY)
-			g.drawLine(target, r, join)
+			miterLimit := float32(5)
+			if i == 1 {
+				miterLimit = 10
+			}
+			g.drawLine(target, r, join, miterLimit)
 		}
 	}
 
@@ -119,7 +127,7 @@ Press C to switch to draw the center lines.`
 	ebitenutil.DebugPrint(screen, msg)
 }
 
-func (g *Game) drawLine(screen *ebiten.Image, region image.Rectangle, join vector.LineJoin) {
+func (g *Game) drawLine(screen *ebiten.Image, region image.Rectangle, join vector.LineJoin, miterLimit float32) {
 	c0x := float64(region.Min.X + region.Dx()/4)
 	c0y := float64(region.Min.Y + region.Dy()/4)
 	c1x := float64(region.Max.X - region.Dx()/4)
@@ -137,6 +145,7 @@ func (g *Game) drawLine(screen *ebiten.Image, region image.Rectangle, join vecto
 	// Draw the main line in white.
 	op := &vector.StrokeOptions{}
 	op.LineJoin = join
+	op.MiterLimit = miterLimit
 	op.Width = float32(r / 2)
 	vs, is := path.AppendVerticesAndIndicesForStroke(g.vertices[:0], g.indices[:0], op)
 	for i := range vs {
