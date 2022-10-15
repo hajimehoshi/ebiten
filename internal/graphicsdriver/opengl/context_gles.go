@@ -82,16 +82,6 @@ func getProgramID(p program) programID {
 	return programID(p)
 }
 
-const (
-	zero             = blendFactor(gles.ZERO)
-	one              = blendFactor(gles.ONE)
-	srcAlpha         = blendFactor(gles.SRC_ALPHA)
-	dstAlpha         = blendFactor(gles.DST_ALPHA)
-	oneMinusSrcAlpha = blendFactor(gles.ONE_MINUS_SRC_ALPHA)
-	oneMinusDstAlpha = blendFactor(gles.ONE_MINUS_DST_ALPHA)
-	dstColor         = blendFactor(gles.DST_COLOR)
-)
-
 type contextImpl struct {
 	ctx gles.Context
 }

@@ -16,14 +16,6 @@
 package gles
 
 const (
-	ZERO                = 0
-	ONE                 = 1
-	SRC_ALPHA           = 0x0302
-	DST_ALPHA           = 0x0304
-	ONE_MINUS_SRC_ALPHA = 0x0303
-	ONE_MINUS_DST_ALPHA = 0x0305
-	DST_COLOR           = 0x0306
-
 	ALWAYS               = 0x0207
 	ARRAY_BUFFER         = 0x8892
 	BLEND                = 0x0BE2

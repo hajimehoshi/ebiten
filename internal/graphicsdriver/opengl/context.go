@@ -23,22 +23,32 @@ import (
 
 type blendFactor int
 
+const (
+	glDstAlpha         blendFactor = 0x0304
+	glDstColor         blendFactor = 0x0306
+	glOne              blendFactor = 1
+	glOneMinusDstAlpha blendFactor = 0x0305
+	glOneMinusSrcAlpha blendFactor = 0x0303
+	glSrcAlpha         blendFactor = 0x0302
+	glZero             blendFactor = 0
+)
+
 func convertBlendFactor(op graphicsdriver.BlendFactor) blendFactor {
 	switch op {
 	case graphicsdriver.BlendFactorZero:
-		return zero
+		return glZero
 	case graphicsdriver.BlendFactorOne:
-		return one
+		return glOne
 	case graphicsdriver.BlendFactorSourceAlpha:
-		return srcAlpha
+		return glSrcAlpha
 	case graphicsdriver.BlendFactorDestinationAlpha:
-		return dstAlpha
+		return glDstAlpha
 	case graphicsdriver.BlendFactorOneMinusSourceAlpha:
-		return oneMinusSrcAlpha
+		return glOneMinusSrcAlpha
 	case graphicsdriver.BlendFactorOneMinusDestinationAlpha:
-		return oneMinusDstAlpha
+		return glOneMinusDstAlpha
 	case graphicsdriver.BlendFactorDestinationColor:
-		return dstColor
+		return glDstColor
 	default:
 		panic(fmt.Sprintf("opengl: invalid blend factor %d at convertBlendFactor", op))
 	}
