@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !ios && !opengles
-// +build !android,!ios,!opengles
+//go:build !android && !ios && !js && !opengles
+// +build !android,!ios,!js,!opengles
 
 package opengl
 
