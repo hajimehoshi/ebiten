@@ -29,15 +29,15 @@ func convertBlendFactor(op graphicsdriver.BlendFactor) blendFactor {
 		return zero
 	case graphicsdriver.BlendFactorOne:
 		return one
-	case graphicsdriver.BlendFactorSrcAlpha:
+	case graphicsdriver.BlendFactorSourceAlpha:
 		return srcAlpha
-	case graphicsdriver.BlendFactorDstAlpha:
+	case graphicsdriver.BlendFactorDestinationAlpha:
 		return dstAlpha
-	case graphicsdriver.BlendFactorOneMinusSrcAlpha:
+	case graphicsdriver.BlendFactorOneMinusSourceAlpha:
 		return oneMinusSrcAlpha
-	case graphicsdriver.BlendFactorOneMinusDstAlpha:
+	case graphicsdriver.BlendFactorOneMinusDestinationAlpha:
 		return oneMinusDstAlpha
-	case graphicsdriver.BlendFactorDstColor:
+	case graphicsdriver.BlendFactorDestinationColor:
 		return dstColor
 	default:
 		panic(fmt.Sprintf("opengl: invalid blend factor %d at convertBlendFactor", op))

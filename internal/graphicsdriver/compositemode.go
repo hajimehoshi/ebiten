@@ -45,17 +45,17 @@ type BlendFactor int
 const (
 	BlendFactorZero BlendFactor = iota
 	BlendFactorOne
-	BlendFactorSrcAlpha
-	BlendFactorDstAlpha
-	BlendFactorOneMinusSrcAlpha
-	BlendFactorOneMinusDstAlpha
-	BlendFactorDstColor
+	BlendFactorSourceAlpha
+	BlendFactorDestinationAlpha
+	BlendFactorOneMinusSourceAlpha
+	BlendFactorOneMinusDestinationAlpha
+	BlendFactorDestinationColor
 )
 
 func (c CompositeMode) BlendFactors() (src BlendFactor, dst BlendFactor) {
 	switch c {
 	case CompositeModeSourceOver:
-		return BlendFactorOne, BlendFactorOneMinusSrcAlpha
+		return BlendFactorOne, BlendFactorOneMinusSourceAlpha
 	case CompositeModeClear:
 		return BlendFactorZero, BlendFactorZero
 	case CompositeModeCopy:
@@ -63,25 +63,25 @@ func (c CompositeMode) BlendFactors() (src BlendFactor, dst BlendFactor) {
 	case CompositeModeDestination:
 		return BlendFactorZero, BlendFactorOne
 	case CompositeModeDestinationOver:
-		return BlendFactorOneMinusDstAlpha, BlendFactorOne
+		return BlendFactorOneMinusDestinationAlpha, BlendFactorOne
 	case CompositeModeSourceIn:
-		return BlendFactorDstAlpha, BlendFactorZero
+		return BlendFactorDestinationAlpha, BlendFactorZero
 	case CompositeModeDestinationIn:
-		return BlendFactorZero, BlendFactorSrcAlpha
+		return BlendFactorZero, BlendFactorSourceAlpha
 	case CompositeModeSourceOut:
-		return BlendFactorOneMinusDstAlpha, BlendFactorZero
+		return BlendFactorOneMinusDestinationAlpha, BlendFactorZero
 	case CompositeModeDestinationOut:
-		return BlendFactorZero, BlendFactorOneMinusSrcAlpha
+		return BlendFactorZero, BlendFactorOneMinusSourceAlpha
 	case CompositeModeSourceAtop:
-		return BlendFactorDstAlpha, BlendFactorOneMinusSrcAlpha
+		return BlendFactorDestinationAlpha, BlendFactorOneMinusSourceAlpha
 	case CompositeModeDestinationAtop:
-		return BlendFactorOneMinusDstAlpha, BlendFactorSrcAlpha
+		return BlendFactorOneMinusDestinationAlpha, BlendFactorSourceAlpha
 	case CompositeModeXor:
-		return BlendFactorOneMinusDstAlpha, BlendFactorOneMinusSrcAlpha
+		return BlendFactorOneMinusDestinationAlpha, BlendFactorOneMinusSourceAlpha
 	case CompositeModeLighter:
 		return BlendFactorOne, BlendFactorOne
 	case CompositeModeMultiply:
-		return BlendFactorDstColor, BlendFactorZero
+		return BlendFactorDestinationColor, BlendFactorZero
 	default:
 		panic(fmt.Sprintf("graphicsdriver: invalid composite mode: %d", c))
 	}

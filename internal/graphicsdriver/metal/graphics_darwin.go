@@ -306,15 +306,15 @@ func blendFactorToMetalBlendFactor(c graphicsdriver.BlendFactor) mtl.BlendFactor
 		return mtl.BlendFactorZero
 	case graphicsdriver.BlendFactorOne:
 		return mtl.BlendFactorOne
-	case graphicsdriver.BlendFactorSrcAlpha:
+	case graphicsdriver.BlendFactorSourceAlpha:
 		return mtl.BlendFactorSourceAlpha
-	case graphicsdriver.BlendFactorDstAlpha:
+	case graphicsdriver.BlendFactorDestinationAlpha:
 		return mtl.BlendFactorDestinationAlpha
-	case graphicsdriver.BlendFactorOneMinusSrcAlpha:
+	case graphicsdriver.BlendFactorOneMinusSourceAlpha:
 		return mtl.BlendFactorOneMinusSourceAlpha
-	case graphicsdriver.BlendFactorOneMinusDstAlpha:
+	case graphicsdriver.BlendFactorOneMinusDestinationAlpha:
 		return mtl.BlendFactorOneMinusDestinationAlpha
-	case graphicsdriver.BlendFactorDstColor:
+	case graphicsdriver.BlendFactorDestinationColor:
 		return mtl.BlendFactorDestinationColor
 	default:
 		panic(fmt.Sprintf("metal: invalid operation: %d", c))

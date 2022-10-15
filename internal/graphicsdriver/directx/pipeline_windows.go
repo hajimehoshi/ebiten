@@ -31,15 +31,15 @@ func blendFactorToBlend(c graphicsdriver.BlendFactor, alpha bool) _D3D12_BLEND {
 		return _D3D12_BLEND_ZERO
 	case graphicsdriver.BlendFactorOne:
 		return _D3D12_BLEND_ONE
-	case graphicsdriver.BlendFactorSrcAlpha:
+	case graphicsdriver.BlendFactorSourceAlpha:
 		return _D3D12_BLEND_SRC_ALPHA
-	case graphicsdriver.BlendFactorDstAlpha:
+	case graphicsdriver.BlendFactorDestinationAlpha:
 		return _D3D12_BLEND_DEST_ALPHA
-	case graphicsdriver.BlendFactorOneMinusSrcAlpha:
+	case graphicsdriver.BlendFactorOneMinusSourceAlpha:
 		return _D3D12_BLEND_INV_SRC_ALPHA
-	case graphicsdriver.BlendFactorOneMinusDstAlpha:
+	case graphicsdriver.BlendFactorOneMinusDestinationAlpha:
 		return _D3D12_BLEND_INV_DEST_ALPHA
-	case graphicsdriver.BlendFactorDstColor:
+	case graphicsdriver.BlendFactorDestinationColor:
 		if alpha {
 			return _D3D12_BLEND_DEST_ALPHA
 		}
