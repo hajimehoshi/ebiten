@@ -167,7 +167,7 @@ func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 }
 
 // flush must be called the main thread.
-func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
+func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bool) (err error) {
 	if len(q.commands) == 0 {
 		return nil
 	}
@@ -179,6 +179,29 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 	if err := graphicsDriver.Begin(); err != nil {
 		return err
 	}
+
+	defer func() {
+		// Call End even if an error causes, or the graphics driver's state might be stale (#2388).
+		if err1 := graphicsDriver.End(endFrame); err1 != nil && err == nil {
+			err = err1
+		}
+
+		// Release the commands explicitly (#1803).
+		// Apparently, the part of a slice between len and cap-1 still holds references.
+		// Then, resetting the length by [:0] doesn't release the references.
+		for i, c := range q.commands {
+			if c, ok := c.(*drawTrianglesCommand); ok {
+				q.drawTrianglesCommandPool.put(c)
+			}
+			q.commands[i] = nil
+		}
+		q.commands = q.commands[:0]
+		q.vertices = q.vertices[:0]
+		q.indices = q.indices[:0]
+		q.tmpNumVertexFloats = 0
+		q.tmpNumIndices = 0
+	}()
+
 	cs := q.commands
 	for len(cs) > 0 {
 		nv := 0
@@ -219,24 +242,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 		}
 		cs = cs[nc:]
 	}
-	if err := graphicsDriver.End(endFrame); err != nil {
-		return err
-	}
 
-	// Release the commands explicitly (#1803).
-	// Apparently, the part of a slice between len and cap-1 still holds references.
-	// Then, resetting the length by [:0] doesn't release the references.
-	for i, c := range q.commands {
-		if c, ok := c.(*drawTrianglesCommand); ok {
-			q.drawTrianglesCommandPool.put(c)
-		}
-		q.commands[i] = nil
-	}
-	q.commands = q.commands[:0]
-	q.vertices = q.vertices[:0]
-	q.indices = q.indices[:0]
-	q.tmpNumVertexFloats = 0
-	q.tmpNumIndices = 0
 	return nil
 }
 
