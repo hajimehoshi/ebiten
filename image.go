@@ -215,7 +215,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		options = &DrawImageOptions{}
 	}
 
-	mode := graphicsdriver.CompositeMode(options.CompositeMode)
+	blend := options.CompositeMode.blend()
 	filter := builtinshader.Filter(options.Filter)
 
 	if offsetX, offsetY := i.adjustPosition(0, 0); offsetX != 0 || offsetY != 0 {
@@ -245,7 +245,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, mode, i.adjustedRegion(), graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, false, canSkipMipmap(options.GeoM, filter))
+	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, false, canSkipMipmap(options.GeoM, filter))
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -396,7 +396,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		options = &DrawTrianglesOptions{}
 	}
 
-	mode := graphicsdriver.CompositeMode(options.CompositeMode)
+	blend := options.CompositeMode.blend()
 
 	address := builtinshader.Address(options.Address)
 	var sr graphicsdriver.Region
@@ -455,7 +455,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, mode, i.adjustedRegion(), sr, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, options.FillRule == EvenOdd, filter != builtinshader.FilterLinear)
+	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), sr, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, options.FillRule == EvenOdd, filter != builtinshader.FilterLinear)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
@@ -525,7 +525,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		options = &DrawTrianglesShaderOptions{}
 	}
 
-	mode := graphicsdriver.CompositeMode(options.CompositeMode)
+	blend := options.CompositeMode.blend()
 
 	vs := graphics.Vertices(len(vertices))
 	dst := i
@@ -589,7 +589,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		offsets[i][1] = float32(y - sy)
 	}
 
-	i.image.DrawTriangles(imgs, vs, is, mode, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), options.FillRule == EvenOdd, true)
+	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), options.FillRule == EvenOdd, true)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
@@ -645,7 +645,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		options = &DrawRectShaderOptions{}
 	}
 
-	mode := graphicsdriver.CompositeMode(options.CompositeMode)
+	blend := options.CompositeMode.blend()
 
 	var imgs [graphics.ShaderImageCount]*ui.Image
 	for i, img := range options.Images {
@@ -690,7 +690,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		offsets[i][1] = float32(y - sy)
 	}
 
-	i.image.DrawTriangles(imgs, vs, is, mode, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), false, true)
+	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), false, true)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.

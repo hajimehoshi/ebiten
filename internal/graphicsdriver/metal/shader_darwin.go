@@ -24,9 +24,9 @@ import (
 )
 
 type shaderRpsKey struct {
-	compositeMode graphicsdriver.CompositeMode
-	stencilMode   stencilMode
-	screen        bool
+	blend       graphicsdriver.Blend
+	stencilMode stencilMode
+	screen      bool
 }
 
 type Shader struct {
@@ -86,11 +86,11 @@ func (s *Shader) init(device mtl.Device) error {
 	return nil
 }
 
-func (s *Shader) RenderPipelineState(view *view, compositeMode graphicsdriver.CompositeMode, stencilMode stencilMode, screen bool) (mtl.RenderPipelineState, error) {
+func (s *Shader) RenderPipelineState(view *view, blend graphicsdriver.Blend, stencilMode stencilMode, screen bool) (mtl.RenderPipelineState, error) {
 	key := shaderRpsKey{
-		compositeMode: compositeMode,
-		stencilMode:   stencilMode,
-		screen:        screen,
+		blend:       blend,
+		stencilMode: stencilMode,
+		screen:      screen,
 	}
 	if rps, ok := s.rpss[key]; ok {
 		return rps, nil
@@ -112,11 +112,13 @@ func (s *Shader) RenderPipelineState(view *view, compositeMode graphicsdriver.Co
 	rpld.ColorAttachments[0].PixelFormat = pix
 	rpld.ColorAttachments[0].BlendingEnabled = true
 
-	src, dst := compositeMode.BlendFactors()
-	rpld.ColorAttachments[0].DestinationAlphaBlendFactor = blendFactorToMetalBlendFactor(dst)
-	rpld.ColorAttachments[0].DestinationRGBBlendFactor = blendFactorToMetalBlendFactor(dst)
-	rpld.ColorAttachments[0].SourceAlphaBlendFactor = blendFactorToMetalBlendFactor(src)
-	rpld.ColorAttachments[0].SourceRGBBlendFactor = blendFactorToMetalBlendFactor(src)
+	rpld.ColorAttachments[0].DestinationAlphaBlendFactor = blendFactorToMetalBlendFactor(blend.BlendFactorDestinationAlpha)
+	rpld.ColorAttachments[0].DestinationRGBBlendFactor = blendFactorToMetalBlendFactor(blend.BlendFactorDestinationColor)
+	rpld.ColorAttachments[0].SourceAlphaBlendFactor = blendFactorToMetalBlendFactor(blend.BlendFactorSourceAlpha)
+	rpld.ColorAttachments[0].SourceRGBBlendFactor = blendFactorToMetalBlendFactor(blend.BlendFactorSourceColor)
+	rpld.ColorAttachments[0].AlphaBlendOperation = blendOperationToMetalBlendOperation(blend.BlendOperationAlpha)
+	rpld.ColorAttachments[0].RGBBlendOperation = blendOperationToMetalBlendOperation(blend.BlendOperationColor)
+
 	if stencilMode == prepareStencil {
 		rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskNone
 	} else {

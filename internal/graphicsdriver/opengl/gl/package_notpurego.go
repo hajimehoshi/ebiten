@@ -102,7 +102,8 @@ package gl
 // typedef void  (APIENTRYP GPBINDFRAMEBUFFEREXT)(GLenum  target, GLuint  framebuffer);
 // typedef void  (APIENTRYP GPBINDRENDERBUFFEREXT)(GLenum  target, GLuint  renderbuffer);
 // typedef void  (APIENTRYP GPBINDTEXTURE)(GLenum  target, GLuint  texture);
-// typedef void  (APIENTRYP GPBLENDFUNC)(GLenum  sfactor, GLenum  dfactor);
+// typedef void  (APIENTRYP GPBLENDEQUATIONSEPARATE)(GLenum  modeRGB, GLenum  modeAlpha);
+// typedef void  (APIENTRYP GPBLENDFUNCSEPARATE)(GLenum  srcRGB, GLenum  dstRGB, GLenum  srcAlpha, GLenum  dstAlpha);
 // typedef void  (APIENTRYP GPBUFFERDATA)(GLenum  target, GLsizeiptr  size, const void * data, GLenum  usage);
 // typedef void  (APIENTRYP GPBUFFERSUBDATA)(GLenum  target, GLintptr  offset, GLsizeiptr  size, const void * data);
 // typedef GLenum  (APIENTRYP GPCHECKFRAMEBUFFERSTATUSEXT)(GLenum  target);
@@ -197,8 +198,11 @@ package gl
 // static void  glowBindTexture(GPBINDTEXTURE fnptr, GLenum  target, GLuint  texture) {
 //   (*fnptr)(target, texture);
 // }
-// static void  glowBlendFunc(GPBLENDFUNC fnptr, GLenum  sfactor, GLenum  dfactor) {
-//   (*fnptr)(sfactor, dfactor);
+// static void  glowBlendEquationSeparate(GPBLENDEQUATIONSEPARATE fnptr, GLenum  modeRGB, GLenum  modeAlpha) {
+//   (*fnptr)(modeRGB, modeAlpha);
+// }
+// static void  glowBlendFuncSeparate(GPBLENDFUNCSEPARATE fnptr, GLenum  srcRGB, GLenum  dstRGB, GLenum  srcAlpha, GLenum  dstAlpha) {
+//   (*fnptr)(srcRGB, dstRGB, srcAlpha, dstAlpha);
 // }
 // static void  glowBufferData(GPBUFFERDATA fnptr, GLenum  target, GLsizeiptr  size, const void * data, GLenum  usage) {
 //   (*fnptr)(target, size, data, usage);
@@ -431,7 +435,8 @@ var (
 	gpBindFramebufferEXT          C.GPBINDFRAMEBUFFEREXT
 	gpBindRenderbufferEXT         C.GPBINDRENDERBUFFEREXT
 	gpBindTexture                 C.GPBINDTEXTURE
-	gpBlendFunc                   C.GPBLENDFUNC
+	gpBlendEquationSeparate       C.GPBLENDEQUATIONSEPARATE
+	gpBlendFuncSeparate           C.GPBLENDFUNCSEPARATE
 	gpBufferData                  C.GPBUFFERDATA
 	gpBufferSubData               C.GPBUFFERSUBDATA
 	gpCheckFramebufferStatusEXT   C.GPCHECKFRAMEBUFFERSTATUSEXT
@@ -541,8 +546,12 @@ func BindTexture(target uint32, texture uint32) {
 	C.glowBindTexture(gpBindTexture, (C.GLenum)(target), (C.GLuint)(texture))
 }
 
-func BlendFunc(sfactor uint32, dfactor uint32) {
-	C.glowBlendFunc(gpBlendFunc, (C.GLenum)(sfactor), (C.GLenum)(dfactor))
+func BlendEquationSeparate(modeRGB uint32, modeAlpha uint32) {
+	C.glowBlendEquationSeparate(gpBlendEquationSeparate, (C.GLenum)(modeRGB), (C.GLenum)(modeAlpha))
+}
+
+func BlendFuncSeparate(srcRGB uint32, dstRGB uint32, srcAlpha uint32, dstAlpha uint32) {
+	C.glowBlendFuncSeparate(gpBlendFuncSeparate, (C.GLenum)(srcRGB), (C.GLenum)(dstRGB), (C.GLenum)(srcAlpha), (C.GLenum)(dstAlpha))
 }
 
 func BufferData(target uint32, size int, data unsafe.Pointer, usage uint32) {
@@ -861,9 +870,13 @@ func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
 	if gpBindTexture == nil {
 		return errors.New("gl: glBindTexture is missing")
 	}
-	gpBlendFunc = (C.GPBLENDFUNC)(getProcAddr("glBlendFunc"))
-	if gpBlendFunc == nil {
-		return errors.New("gl: glBlendFunc is missing")
+	gpBlendEquationSeparate = (C.GPBLENDEQUATIONSEPARATE)(getProcAddr("glBlendEquationSeparate"))
+	if gpBlendEquationSeparate == nil {
+		return errors.New("gl: glBlendEquationSeparate is missing")
+	}
+	gpBlendFuncSeparate = (C.GPBLENDFUNCSEPARATE)(getProcAddr("glBlendFuncSeparate"))
+	if gpBlendFuncSeparate == nil {
+		return errors.New("gl: glBlendFuncSeparate is missing")
 	}
 	gpBufferData = (C.GPBUFFERDATA)(getProcAddr("glBufferData"))
 	if gpBufferData == nil {

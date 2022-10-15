@@ -140,7 +140,7 @@ func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
 // DrawTriangles draws the src image with the given vertices.
 //
 // Copying vertices and indices is the caller's responsibility.
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, mode graphicsdriver.CompositeMode, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool) {
 	for _, src := range srcs {
 		if i == src {
 			panic("buffered: Image.DrawTriangles: source images must be different from the receiver")
@@ -150,7 +150,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	if maybeCanAddDelayedCommand() {
 		if tryAddDelayedCommand(func() {
 			// Arguments are not copied. Copying is the caller's responsibility.
-			i.DrawTriangles(srcs, vertices, indices, mode, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd)
+			i.DrawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd)
 		}) {
 			return
 		}
@@ -165,7 +165,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	}
 
 	i.invalidatePixels()
-	i.img.DrawTriangles(imgs, vertices, indices, mode, dstRegion, srcRegion, subimageOffsets, shader.shader, uniforms, evenOdd)
+	i.img.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegion, subimageOffsets, shader.shader, uniforms, evenOdd)
 }
 
 type Shader struct {

@@ -309,7 +309,7 @@ func (i *Image) ensureIsolated() {
 		Width:  float32(w - 2*i.paddingSize()),
 		Height: float32(h - 2*i.paddingSize()),
 	}
-	newImg.DrawTriangles(srcs, offsets, vs, is, graphicsdriver.CompositeModeCopy, dstRegion, graphicsdriver.Region{}, NearestFilterShader.shader, nil, false)
+	newImg.DrawTriangles(srcs, offsets, vs, is, graphicsdriver.BlendCopy, dstRegion, graphicsdriver.Region{}, NearestFilterShader.shader, nil, false)
 
 	i.dispose(false)
 	i.backend = &backend{
@@ -348,7 +348,7 @@ func (i *Image) putOnAtlas(graphicsDriver graphicsdriver.Graphics) error {
 		Width:  w,
 		Height: h,
 	}
-	newI.drawTriangles([graphics.ShaderImageCount]*Image{i}, vs, is, graphicsdriver.CompositeModeCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true)
+	newI.drawTriangles([graphics.ShaderImageCount]*Image{i}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true)
 
 	newI.moveTo(i)
 	i.usedAsSourceCount = 0
@@ -395,13 +395,13 @@ func (i *Image) processSrc(src *Image) {
 //	5: Color G
 //	6: Color B
 //	7: Color Y
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, mode graphicsdriver.CompositeMode, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	i.drawTriangles(srcs, vertices, indices, mode, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd, false)
+	i.drawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd, false)
 }
 
-func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, mode graphicsdriver.CompositeMode, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, keepOnAtlas bool) {
+func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, keepOnAtlas bool) {
 	if i.disposed {
 		panic("atlas: the drawing target image must not be disposed (DrawTriangles)")
 	}
@@ -472,7 +472,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		imgs[i] = src.backend.restorable
 	}
 
-	i.backend.restorable.DrawTriangles(imgs, offsets, vertices, indices, mode, dstRegion, srcRegion, shader.shader, uniforms, evenOdd)
+	i.backend.restorable.DrawTriangles(imgs, offsets, vertices, indices, blend, dstRegion, srcRegion, shader.shader, uniforms, evenOdd)
 
 	for _, src := range srcs {
 		if src == nil {

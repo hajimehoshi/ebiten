@@ -163,7 +163,6 @@ func (c *context) reset() error {
 	c.lastFramebuffer = framebufferNative(js.Null())
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
-	c.lastCompositeMode = graphicsdriver.CompositeModeUnknown
 
 	if err := c.initGL(); err != nil {
 		return err
@@ -175,7 +174,7 @@ func (c *context) reset() error {
 	gl := c.gl
 	gl.enable.Invoke(gles.BLEND)
 	gl.enable.Invoke(gles.SCISSOR_TEST)
-	c.blendFunc(graphicsdriver.CompositeModeSourceOver)
+	c.blend(graphicsdriver.BlendSourceOver)
 	f := gl.getParameter.Invoke(gles.FRAMEBUFFER_BINDING)
 	c.screenFramebuffer = framebufferNative(f)
 
@@ -185,15 +184,22 @@ func (c *context) reset() error {
 	return nil
 }
 
-func (c *context) blendFunc(mode graphicsdriver.CompositeMode) {
-	if c.lastCompositeMode == mode {
+func (c *context) blend(blend graphicsdriver.Blend) {
+	if c.lastBlend == blend {
 		return
 	}
-	c.lastCompositeMode = mode
-	s, d := mode.BlendFactors()
-	s2, d2 := convertBlendFactor(s), convertBlendFactor(d)
+	c.lastBlend = blend
 	gl := c.gl
-	gl.blendFunc.Invoke(int(s2), int(d2))
+	gl.blendFuncSeparate.Invoke(
+		int(convertBlendFactor(blend.BlendFactorSourceColor)),
+		int(convertBlendFactor(blend.BlendFactorDestinationColor)),
+		int(convertBlendFactor(blend.BlendFactorSourceAlpha)),
+		int(convertBlendFactor(blend.BlendFactorDestinationAlpha)),
+	)
+	gl.blendEquationSeparate.Invoke(
+		int(convertBlendOperation(blend.BlendOperationColor)),
+		int(convertBlendOperation(blend.BlendOperationAlpha)),
+	)
 }
 
 func (c *context) scissor(x, y, width, height int) {

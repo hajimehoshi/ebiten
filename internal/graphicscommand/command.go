@@ -89,7 +89,7 @@ func mustUseDifferentVertexBuffer(nextNumVertexFloats, nextNumIndices int) bool 
 }
 
 // EnqueueDrawTrianglesCommand enqueues a drawing-image command.
-func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, mode graphicsdriver.CompositeMode, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
+func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
 	if len(indices) > graphics.IndicesCount {
 		panic(fmt.Sprintf("graphicscommand: len(indices) must be <= graphics.IndicesCount but not at EnqueueDrawTrianglesCommand: len(indices): %d, graphics.IndicesCount: %d", len(indices), graphics.IndicesCount))
 	}
@@ -123,7 +123,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	// TODO: If dst is the screen, reorder the command to be the last.
 	if !split && 0 < len(q.commands) {
 		if last, ok := q.commands[len(q.commands)-1].(*drawTrianglesCommand); ok {
-			if last.CanMergeWithDrawTrianglesCommand(dst, srcs, vertices, mode, dstRegion, srcRegion, shader, uniforms, evenOdd) {
+			if last.CanMergeWithDrawTrianglesCommand(dst, srcs, vertices, blend, dstRegion, srcRegion, shader, uniforms, evenOdd) {
 				last.setVertices(q.lastVertices(len(vertices) + last.numVertices()))
 				last.addNumIndices(len(indices))
 				return
@@ -137,7 +137,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	c.offsets = offsets
 	c.vertices = q.lastVertices(len(vertices))
 	c.nindices = len(indices)
-	c.mode = mode
+	c.blend = blend
 	c.dstRegion = dstRegion
 	c.srcRegion = srcRegion
 	c.shader = shader
@@ -259,7 +259,7 @@ type drawTrianglesCommand struct {
 	offsets   [graphics.ShaderImageCount - 1][2]float32
 	vertices  []float32
 	nindices  int
-	mode      graphicsdriver.CompositeMode
+	blend     graphicsdriver.Blend
 	dstRegion graphicsdriver.Region
 	srcRegion graphicsdriver.Region
 	shader    *Shader
@@ -268,39 +268,14 @@ type drawTrianglesCommand struct {
 }
 
 func (c *drawTrianglesCommand) String() string {
-	mode := ""
-	switch c.mode {
-	case graphicsdriver.CompositeModeSourceOver:
-		mode = "source-over"
-	case graphicsdriver.CompositeModeClear:
-		mode = "clear"
-	case graphicsdriver.CompositeModeCopy:
-		mode = "copy"
-	case graphicsdriver.CompositeModeDestination:
-		mode = "destination"
-	case graphicsdriver.CompositeModeDestinationOver:
-		mode = "destination-over"
-	case graphicsdriver.CompositeModeSourceIn:
-		mode = "source-in"
-	case graphicsdriver.CompositeModeDestinationIn:
-		mode = "destination-in"
-	case graphicsdriver.CompositeModeSourceOut:
-		mode = "source-out"
-	case graphicsdriver.CompositeModeDestinationOut:
-		mode = "destination-out"
-	case graphicsdriver.CompositeModeSourceAtop:
-		mode = "source-atop"
-	case graphicsdriver.CompositeModeDestinationAtop:
-		mode = "destination-atop"
-	case graphicsdriver.CompositeModeXor:
-		mode = "xor"
-	case graphicsdriver.CompositeModeLighter:
-		mode = "lighter"
-	case graphicsdriver.CompositeModeMultiply:
-		mode = "multiply"
-	default:
-		panic(fmt.Sprintf("graphicscommand: invalid composite mode: %d", c.mode))
-	}
+	// TODO: Improve readability
+	blend := fmt.Sprintf("{src-color: %d, src-alpha:  %d, dst-color: %d, dst-alpha: %d, op-color: %d, op-alpha: %d}",
+		c.blend.BlendFactorSourceColor,
+		c.blend.BlendFactorSourceAlpha,
+		c.blend.BlendFactorDestinationColor,
+		c.blend.BlendFactorDestinationAlpha,
+		c.blend.BlendOperationColor,
+		c.blend.BlendOperationAlpha)
 
 	dst := fmt.Sprintf("%d", c.dst.id)
 	if c.dst.screen {
@@ -321,7 +296,7 @@ func (c *drawTrianglesCommand) String() string {
 
 	r := fmt.Sprintf("(x:%d, y:%d, width:%d, height:%d)",
 		int(c.dstRegion.X), int(c.dstRegion.Y), int(c.dstRegion.Width), int(c.dstRegion.Height))
-	return fmt.Sprintf("draw-triangles: dst: %s <- src: [%s], dst region: %s, num of indices: %d, mode: %s, even-odd: %t", dst, strings.Join(srcstrs[:], ", "), r, c.nindices, mode, c.evenOdd)
+	return fmt.Sprintf("draw-triangles: dst: %s <- src: [%s], dst region: %s, num of indices: %d, blend: %s, even-odd: %t", dst, strings.Join(srcstrs[:], ", "), r, c.nindices, blend, c.evenOdd)
 }
 
 // Exec executes the drawTrianglesCommand.
@@ -340,7 +315,7 @@ func (c *drawTrianglesCommand) Exec(graphicsDriver graphicsdriver.Graphics, inde
 		imgs[i] = src.image.ID()
 	}
 
-	return graphicsDriver.DrawTriangles(c.dst.image.ID(), imgs, c.offsets, c.shader.shader.ID(), c.nindices, indexOffset, c.mode, c.dstRegion, c.srcRegion, c.uniforms, c.evenOdd)
+	return graphicsDriver.DrawTriangles(c.dst.image.ID(), imgs, c.offsets, c.shader.shader.ID(), c.nindices, indexOffset, c.blend, c.dstRegion, c.srcRegion, c.uniforms, c.evenOdd)
 }
 
 func (c *drawTrianglesCommand) numVertices() int {
@@ -361,7 +336,7 @@ func (c *drawTrianglesCommand) addNumIndices(n int) {
 
 // CanMergeWithDrawTrianglesCommand returns a boolean value indicating whether the other drawTrianglesCommand can be merged
 // with the drawTrianglesCommand c.
-func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, vertices []float32, mode graphicsdriver.CompositeMode, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) bool {
+func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, vertices []float32, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) bool {
 	if c.shader != shader {
 		return false
 	}
@@ -384,7 +359,7 @@ func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs
 	if c.srcs != srcs {
 		return false
 	}
-	if c.mode != mode {
+	if c.blend != blend {
 		return false
 	}
 	if c.dstRegion != dstRegion {

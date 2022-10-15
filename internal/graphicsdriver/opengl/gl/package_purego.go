@@ -20,7 +20,8 @@ var (
 	gpBindFramebufferEXT          uintptr
 	gpBindRenderbufferEXT         uintptr
 	gpBindTexture                 uintptr
-	gpBlendFunc                   uintptr
+	gpBlendEquationSeparate       uintptr
+	gpBlendFuncSeparate           uintptr
 	gpBufferData                  uintptr
 	gpBufferSubData               uintptr
 	gpCheckFramebufferStatusEXT   uintptr
@@ -130,8 +131,12 @@ func BindTexture(target uint32, texture uint32) {
 	purego.SyscallN(gpBindTexture, uintptr(target), uintptr(texture))
 }
 
-func BlendFunc(sfactor uint32, dfactor uint32) {
-	purego.SyscallN(gpBlendFunc, uintptr(sfactor), uintptr(dfactor))
+func BlendEquationSeparate(modeRGB uint32, modeAlpha uint32) {
+	purego.SyscallN(gpBlendEquationSeparate, uintptr(modeRGB), uintptr(modeAlpha))
+}
+
+func BlendFuncSeparate(srcRGB uint32, dstRGB uint32, srcAlpha uint32, dstAlpha uint32) {
+	purego.SyscallN(gpBlendFuncSeparate, uintptr(srcRGB), uintptr(dstRGB), uintptr(srcAlpha), uintptr(dstAlpha))
 }
 
 func BufferData(target uint32, size int, data unsafe.Pointer, usage uint32) {
@@ -450,9 +455,13 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	if gpBindTexture == 0 {
 		return errors.New("gl: glBindTexture is missing")
 	}
-	gpBlendFunc = getProcAddr("glBlendFunc")
-	if gpBlendFunc == 0 {
-		return errors.New("gl: glBlendFunc is missing")
+	gpBlendEquationSeparate = getProcAddr("glBlendEquationSeparate")
+	if gpBlendEquationSeparate == 0 {
+		return errors.New("gl: glBlendEquationSeparate is missing")
+	}
+	gpBlendFuncSeparate = getProcAddr("glBlendFuncSeparate")
+	if gpBlendFuncSeparate == 0 {
+		return errors.New("gl: glBlendFuncSeparate is missing")
 	}
 	gpBufferData = getProcAddr("glBufferData")
 	if gpBufferData == 0 {

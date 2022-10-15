@@ -78,8 +78,12 @@ func (DefaultContext) BindTexture(target uint32, texture uint32) {
 	C.glBindTexture(C.GLenum(target), C.GLuint(texture))
 }
 
-func (DefaultContext) BlendFunc(sfactor uint32, dfactor uint32) {
-	C.glBlendFunc(C.GLenum(sfactor), C.GLenum(dfactor))
+func (DefaultContext) BlendEquationSeparate(modeRGB uint32, modeAlpha uint32) {
+	C.glBlendEquationSeparate(C.GLenum(modeRGB), C.GLenum(modeAlpha))
+}
+
+func (DefaultContext) BlendFuncSeparate(srcRGB uint32, dstRGB uint32, srcAlpha uint32, dstAlpha uint32) {
+	C.glBlendFuncSeparate(C.GLenum(srcRGB), C.GLenum(dstRGB), C.GLenum(srcAlpha), C.GLenum(dstAlpha))
 }
 
 func (DefaultContext) BufferData(target uint32, size int, data []byte, usage uint32) {

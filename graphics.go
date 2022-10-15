@@ -15,6 +15,8 @@
 package ebiten
 
 import (
+	"fmt"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -41,49 +43,96 @@ type CompositeMode int
 const (
 	// Regular alpha blending
 	// c_out = c_src + c_dst × (1 - α_src)
-	CompositeModeSourceOver CompositeMode = CompositeMode(graphicsdriver.CompositeModeSourceOver)
+	CompositeModeSourceOver CompositeMode = iota
 
 	// c_out = 0
-	CompositeModeClear CompositeMode = CompositeMode(graphicsdriver.CompositeModeClear)
+	CompositeModeClear
 
 	// c_out = c_src
-	CompositeModeCopy CompositeMode = CompositeMode(graphicsdriver.CompositeModeCopy)
+	CompositeModeCopy
 
 	// c_out = c_dst
-	CompositeModeDestination CompositeMode = CompositeMode(graphicsdriver.CompositeModeDestination)
+	CompositeModeDestination
 
 	// c_out = c_src × (1 - α_dst) + c_dst
-	CompositeModeDestinationOver CompositeMode = CompositeMode(graphicsdriver.CompositeModeDestinationOver)
+	CompositeModeDestinationOver
 
 	// c_out = c_src × α_dst
-	CompositeModeSourceIn CompositeMode = CompositeMode(graphicsdriver.CompositeModeSourceIn)
+	CompositeModeSourceIn
 
 	// c_out = c_dst × α_src
-	CompositeModeDestinationIn CompositeMode = CompositeMode(graphicsdriver.CompositeModeDestinationIn)
+	CompositeModeDestinationIn
 
 	// c_out = c_src × (1 - α_dst)
-	CompositeModeSourceOut CompositeMode = CompositeMode(graphicsdriver.CompositeModeSourceOut)
+	CompositeModeSourceOut
 
 	// c_out = c_dst × (1 - α_src)
-	CompositeModeDestinationOut CompositeMode = CompositeMode(graphicsdriver.CompositeModeDestinationOut)
+	CompositeModeDestinationOut
 
 	// c_out = c_src × α_dst + c_dst × (1 - α_src)
-	CompositeModeSourceAtop CompositeMode = CompositeMode(graphicsdriver.CompositeModeSourceAtop)
+	CompositeModeSourceAtop
 
 	// c_out = c_src × (1 - α_dst) + c_dst × α_src
-	CompositeModeDestinationAtop CompositeMode = CompositeMode(graphicsdriver.CompositeModeDestinationAtop)
+	CompositeModeDestinationAtop
 
 	// c_out = c_src × (1 - α_dst) + c_dst × (1 - α_src)
-	CompositeModeXor CompositeMode = CompositeMode(graphicsdriver.CompositeModeXor)
+	CompositeModeXor
 
 	// Sum of source and destination (a.k.a. 'plus' or 'additive')
 	// c_out = c_src + c_dst
-	CompositeModeLighter CompositeMode = CompositeMode(graphicsdriver.CompositeModeLighter)
+	CompositeModeLighter
 
 	// The product of source and destination (a.k.a 'multiply blend mode')
 	// c_out = c_src * c_dst
-	CompositeModeMultiply CompositeMode = CompositeMode(graphicsdriver.CompositeModeMultiply)
+	CompositeModeMultiply
 )
+
+func (c CompositeMode) blend() graphicsdriver.Blend {
+	src, dst := c.blendFactors()
+	return graphicsdriver.Blend{
+		BlendFactorSourceColor:      src,
+		BlendFactorSourceAlpha:      src,
+		BlendFactorDestinationColor: dst,
+		BlendFactorDestinationAlpha: dst,
+		BlendOperationColor:         graphicsdriver.BlendOperationAdd,
+		BlendOperationAlpha:         graphicsdriver.BlendOperationAdd,
+	}
+}
+
+func (c CompositeMode) blendFactors() (src graphicsdriver.BlendFactor, dst graphicsdriver.BlendFactor) {
+	switch c {
+	case CompositeModeSourceOver:
+		return graphicsdriver.BlendFactorOne, graphicsdriver.BlendFactorOneMinusSourceAlpha
+	case CompositeModeClear:
+		return graphicsdriver.BlendFactorZero, graphicsdriver.BlendFactorZero
+	case CompositeModeCopy:
+		return graphicsdriver.BlendFactorOne, graphicsdriver.BlendFactorZero
+	case CompositeModeDestination:
+		return graphicsdriver.BlendFactorZero, graphicsdriver.BlendFactorOne
+	case CompositeModeDestinationOver:
+		return graphicsdriver.BlendFactorOneMinusDestinationAlpha, graphicsdriver.BlendFactorOne
+	case CompositeModeSourceIn:
+		return graphicsdriver.BlendFactorDestinationAlpha, graphicsdriver.BlendFactorZero
+	case CompositeModeDestinationIn:
+		return graphicsdriver.BlendFactorZero, graphicsdriver.BlendFactorSourceAlpha
+	case CompositeModeSourceOut:
+		return graphicsdriver.BlendFactorOneMinusDestinationAlpha, graphicsdriver.BlendFactorZero
+	case CompositeModeDestinationOut:
+		return graphicsdriver.BlendFactorZero, graphicsdriver.BlendFactorOneMinusSourceAlpha
+	case CompositeModeSourceAtop:
+		return graphicsdriver.BlendFactorDestinationAlpha, graphicsdriver.BlendFactorOneMinusSourceAlpha
+	case CompositeModeDestinationAtop:
+		return graphicsdriver.BlendFactorOneMinusDestinationAlpha, graphicsdriver.BlendFactorSourceAlpha
+	case CompositeModeXor:
+		return graphicsdriver.BlendFactorOneMinusDestinationAlpha, graphicsdriver.BlendFactorOneMinusSourceAlpha
+	case CompositeModeLighter:
+		return graphicsdriver.BlendFactorOne, graphicsdriver.BlendFactorOne
+	case CompositeModeMultiply:
+		return graphicsdriver.BlendFactorDestinationColor, graphicsdriver.BlendFactorZero
+	default:
+		panic(fmt.Sprintf("ebiten: invalid composite mode: %d", c))
+	}
+}
 
 // GraphicsLibrary represets graphics libraries supported by the engine.
 type GraphicsLibrary = ui.GraphicsLibrary

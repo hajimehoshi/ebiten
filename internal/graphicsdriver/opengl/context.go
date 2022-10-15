@@ -33,8 +33,14 @@ const (
 	glZero             blendFactor = 0
 )
 
-func convertBlendFactor(op graphicsdriver.BlendFactor) blendFactor {
-	switch op {
+type blendOperation int
+
+const (
+	glAdd blendOperation = 0x104
+)
+
+func convertBlendFactor(f graphicsdriver.BlendFactor) blendFactor {
+	switch f {
 	case graphicsdriver.BlendFactorZero:
 		return glZero
 	case graphicsdriver.BlendFactorOne:
@@ -50,7 +56,16 @@ func convertBlendFactor(op graphicsdriver.BlendFactor) blendFactor {
 	case graphicsdriver.BlendFactorDestinationColor:
 		return glDstColor
 	default:
-		panic(fmt.Sprintf("opengl: invalid blend factor %d at convertBlendFactor", op))
+		panic(fmt.Sprintf("opengl: invalid blend factor %d", f))
+	}
+}
+
+func convertBlendOperation(o graphicsdriver.BlendOperation) blendOperation {
+	switch o {
+	case graphicsdriver.BlendOperationAdd:
+		return glAdd
+	default:
+		panic(fmt.Sprintf("opengl: invalid blend operation %d", o))
 	}
 }
 
@@ -62,7 +77,7 @@ type context struct {
 	lastRenderbuffer   renderbufferNative
 	lastViewportWidth  int
 	lastViewportHeight int
-	lastCompositeMode  graphicsdriver.CompositeMode
+	lastBlend          graphicsdriver.Blend
 	maxTextureSize     int
 	maxTextureSizeOnce sync.Once
 	highp              bool

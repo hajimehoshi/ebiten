@@ -1190,7 +1190,7 @@ func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, 
 	return s, nil
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.ShaderImageCount]graphicsdriver.ImageID, offsets [graphics.ShaderImageCount - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.ShaderImageCount]graphicsdriver.ImageID, offsets [graphics.ShaderImageCount - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
 	if shaderID == graphicsdriver.InvalidShaderID {
 		return fmt.Errorf("directx: shader ID is invalid")
 	}
@@ -1315,7 +1315,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 	})
 
 	if evenOdd {
-		s, err := shader.pipelineState(mode, prepareStencil, dst.screen)
+		s, err := shader.pipelineState(blend, prepareStencil, dst.screen)
 		if err != nil {
 			return err
 		}
@@ -1323,7 +1323,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 			return err
 		}
 
-		s, err = shader.pipelineState(mode, drawWithStencil, dst.screen)
+		s, err = shader.pipelineState(blend, drawWithStencil, dst.screen)
 		if err != nil {
 			return err
 		}
@@ -1331,7 +1331,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 			return err
 		}
 	} else {
-		s, err := shader.pipelineState(mode, noStencil, dst.screen)
+		s, err := shader.pipelineState(blend, noStencil, dst.screen)
 		if err != nil {
 			return err
 		}
@@ -1773,9 +1773,9 @@ const (
 )
 
 type pipelineStateKey struct {
-	compositeMode graphicsdriver.CompositeMode
-	stencilMode   stencilMode
-	screen        bool
+	blend       graphicsdriver.Blend
+	stencilMode stencilMode
+	screen      bool
 }
 
 type Shader struct {
@@ -1812,17 +1812,17 @@ func (s *Shader) disposeImpl() {
 	}
 }
 
-func (s *Shader) pipelineState(compositeMode graphicsdriver.CompositeMode, stencilMode stencilMode, screen bool) (*_ID3D12PipelineState, error) {
+func (s *Shader) pipelineState(blend graphicsdriver.Blend, stencilMode stencilMode, screen bool) (*_ID3D12PipelineState, error) {
 	key := pipelineStateKey{
-		compositeMode: compositeMode,
-		stencilMode:   stencilMode,
-		screen:        screen,
+		blend:       blend,
+		stencilMode: stencilMode,
+		screen:      screen,
 	}
 	if state, ok := s.pipelineStates[key]; ok {
 		return state, nil
 	}
 
-	state, err := s.graphics.pipelineStates.newPipelineState(s.graphics.device, s.vertexShader, s.pixelShader, compositeMode, stencilMode, screen)
+	state, err := s.graphics.pipelineStates.newPipelineState(s.graphics.device, s.vertexShader, s.pixelShader, blend, stencilMode, screen)
 	if err != nil {
 		return nil, err
 	}

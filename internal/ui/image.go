@@ -56,7 +56,7 @@ func (i *Image) MarkDisposed() {
 	i.dotsCache = nil
 }
 
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, mode graphicsdriver.CompositeMode, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, canSkipMipmap bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, canSkipMipmap bool) {
 	i.flushCacheIfNeeded()
 
 	var srcMipmaps [graphics.ShaderImageCount]*mipmap.Mipmap
@@ -68,7 +68,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		srcMipmaps[i] = src.mipmap
 	}
 
-	i.mipmap.DrawTriangles(srcMipmaps, vertices, indices, mode, dstRegion, srcRegion, subimageOffsets, shader.shader, uniforms, evenOdd, canSkipMipmap)
+	i.mipmap.DrawTriangles(srcMipmaps, vertices, indices, blend, dstRegion, srcRegion, subimageOffsets, shader.shader, uniforms, evenOdd, canSkipMipmap)
 }
 
 func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
@@ -190,7 +190,7 @@ func (i *Image) flushCacheIfNeeded() {
 		Width:  float32(i.width),
 		Height: float32(i.height),
 	}
-	i.mipmap.DrawTriangles(srcs, vs, is, graphicsdriver.CompositeModeCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader.shader, nil, false, true)
+	i.mipmap.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader.shader, nil, false, true)
 }
 
 func DumpImages(dir string) (string, error) {
@@ -230,5 +230,5 @@ func (i *Image) Fill(r, g, b, a float32, x, y, width, height int) {
 
 	srcs := [graphics.ShaderImageCount]*Image{emptyImage}
 
-	i.DrawTriangles(srcs, vs, is, graphicsdriver.CompositeModeCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true)
+	i.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true)
 }

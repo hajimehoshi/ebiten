@@ -25,8 +25,8 @@ import (
 
 const numDescriptorsPerFrame = 32
 
-func blendFactorToBlend(c graphicsdriver.BlendFactor, alpha bool) _D3D12_BLEND {
-	switch c {
+func blendFactorToBlend(f graphicsdriver.BlendFactor, alpha bool) _D3D12_BLEND {
+	switch f {
 	case graphicsdriver.BlendFactorZero:
 		return _D3D12_BLEND_ZERO
 	case graphicsdriver.BlendFactorOne:
@@ -40,12 +40,23 @@ func blendFactorToBlend(c graphicsdriver.BlendFactor, alpha bool) _D3D12_BLEND {
 	case graphicsdriver.BlendFactorOneMinusDestinationAlpha:
 		return _D3D12_BLEND_INV_DEST_ALPHA
 	case graphicsdriver.BlendFactorDestinationColor:
+		// D3D12_RENDER_TARGET_BLEND_DESC's *BlendAlpha members don't allow *_COLOR values.
+		// See https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_render_target_blend_desc.
 		if alpha {
 			return _D3D12_BLEND_DEST_ALPHA
 		}
 		return _D3D12_BLEND_DEST_COLOR
 	default:
-		panic(fmt.Sprintf("directx: invalid blend factor: %d", c))
+		panic(fmt.Sprintf("directx: invalid blend factor: %d", f))
+	}
+}
+
+func blendOperationToBlendOp(o graphicsdriver.BlendOperation) _D3D12_BLEND_OP {
+	switch o {
+	case graphicsdriver.BlendOperationAdd:
+		return _D3D12_BLEND_OP_ADD
+	default:
+		panic(fmt.Sprintf("directx: invalid blend operation: %d", o))
 	}
 }
 
@@ -336,7 +347,7 @@ func newShader(source []byte, defs []_D3D_SHADER_MACRO) (vsh, psh *_ID3DBlob, fe
 	return v, p, nil
 }
 
-func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3DBlob, compositeMode graphicsdriver.CompositeMode, stencilMode stencilMode, screen bool) (state *_ID3D12PipelineState, ferr error) {
+func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3DBlob, blend graphicsdriver.Blend, stencilMode stencilMode, screen bool) (state *_ID3D12PipelineState, ferr error) {
 	rootSignature, err := p.ensureRootSignature(device)
 	if err != nil {
 		return nil, err
@@ -391,7 +402,6 @@ func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3D
 	}
 
 	// Create a pipeline state.
-	srcOp, dstOp := compositeMode.BlendFactors()
 	psoDesc := _D3D12_GRAPHICS_PIPELINE_STATE_DESC{
 		pRootSignature: rootSignature,
 		VS: _D3D12_SHADER_BYTECODE{
@@ -409,12 +419,12 @@ func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3D
 				{
 					BlendEnable:           1,
 					LogicOpEnable:         0,
-					SrcBlend:              blendFactorToBlend(srcOp, false),
-					DestBlend:             blendFactorToBlend(dstOp, false),
-					BlendOp:               _D3D12_BLEND_OP_ADD,
-					SrcBlendAlpha:         blendFactorToBlend(srcOp, true),
-					DestBlendAlpha:        blendFactorToBlend(dstOp, true),
-					BlendOpAlpha:          _D3D12_BLEND_OP_ADD,
+					SrcBlend:              blendFactorToBlend(blend.BlendFactorSourceColor, false),
+					DestBlend:             blendFactorToBlend(blend.BlendFactorDestinationColor, false),
+					BlendOp:               blendOperationToBlendOp(blend.BlendOperationColor),
+					SrcBlendAlpha:         blendFactorToBlend(blend.BlendFactorSourceAlpha, true),
+					DestBlendAlpha:        blendFactorToBlend(blend.BlendFactorDestinationAlpha, true),
+					BlendOpAlpha:          blendOperationToBlendOp(blend.BlendOperationAlpha),
 					LogicOp:               _D3D12_LOGIC_OP_NOOP,
 					RenderTargetWriteMask: writeMask,
 				},

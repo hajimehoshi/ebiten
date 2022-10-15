@@ -64,8 +64,12 @@ func (g *GomobileContext) BindTexture(target uint32, texture uint32) {
 	g.ctx.BindTexture(gl.Enum(target), gl.Texture{Value: texture})
 }
 
-func (g *GomobileContext) BlendFunc(sfactor uint32, dfactor uint32) {
-	g.ctx.BlendFunc(gl.Enum(sfactor), gl.Enum(dfactor))
+func (g *GomobileContext) BlendEquationSeparate(modeRGB uint32, modeAlpha uint32) {
+	g.ctx.BlendEquationSeparate(gl.Enum(modeRGB), gl.Enum(modeAlpha))
+}
+
+func (g *GomobileContext) BlendFuncSeparate(srcRGB uint32, dstRGB uint32, srcAlpha uint32, dstAlpha uint32) {
+	g.ctx.BlendFuncSeparate(gl.Enum(srcRGB), gl.Enum(dstRGB), gl.Enum(srcAlpha), gl.Enum(dstAlpha))
 }
 
 func (g *GomobileContext) BufferData(target uint32, size int, data []byte, usage uint32) {

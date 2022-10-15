@@ -317,7 +317,16 @@ func blendFactorToMetalBlendFactor(c graphicsdriver.BlendFactor) mtl.BlendFactor
 	case graphicsdriver.BlendFactorDestinationColor:
 		return mtl.BlendFactorDestinationColor
 	default:
-		panic(fmt.Sprintf("metal: invalid operation: %d", c))
+		panic(fmt.Sprintf("metal: invalid blend factor: %d", c))
+	}
+}
+
+func blendOperationToMetalBlendOperation(o graphicsdriver.BlendOperation) mtl.BlendOperation {
+	switch o {
+	case graphicsdriver.BlendOperationAdd:
+		return mtl.BlendOperationAdd
+	default:
+		panic(fmt.Sprintf("metal: invalid blend operation: %d", o))
 	}
 }
 
@@ -478,7 +487,7 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion graph
 	return nil
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, offsets [graphics.ShaderImageCount - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, offsets [graphics.ShaderImageCount - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
 	if shaderID == graphicsdriver.InvalidShaderID {
 		return fmt.Errorf("metal: shader ID is invalid")
 	}
@@ -575,14 +584,14 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 	}
 
 	if evenOdd {
-		prepareStencilRpss, err := g.shaders[shaderID].RenderPipelineState(&g.view, mode, prepareStencil, dst.screen)
+		prepareStencilRpss, err := g.shaders[shaderID].RenderPipelineState(&g.view, blend, prepareStencil, dst.screen)
 		if err != nil {
 			return err
 		}
 		if err := g.draw(prepareStencilRpss, dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, prepareStencil); err != nil {
 			return err
 		}
-		drawWithStencilRpss, err := g.shaders[shaderID].RenderPipelineState(&g.view, mode, drawWithStencil, dst.screen)
+		drawWithStencilRpss, err := g.shaders[shaderID].RenderPipelineState(&g.view, blend, drawWithStencil, dst.screen)
 		if err != nil {
 			return err
 		}
@@ -590,7 +599,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 			return err
 		}
 	} else {
-		rpss, err := g.shaders[shaderID].RenderPipelineState(&g.view, mode, noStencil, dst.screen)
+		rpss, err := g.shaders[shaderID].RenderPipelineState(&g.view, blend, noStencil, dst.screen)
 		if err != nil {
 			return err
 		}
