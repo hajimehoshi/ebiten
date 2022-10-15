@@ -21,26 +21,26 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
-type operation int
+type blendFactor int
 
-func convertOperation(op graphicsdriver.Operation) operation {
+func convertBlendFactor(op graphicsdriver.BlendFactor) blendFactor {
 	switch op {
-	case graphicsdriver.Zero:
+	case graphicsdriver.BlendFactorZero:
 		return zero
-	case graphicsdriver.One:
+	case graphicsdriver.BlendFactorOne:
 		return one
-	case graphicsdriver.SrcAlpha:
+	case graphicsdriver.BlendFactorSrcAlpha:
 		return srcAlpha
-	case graphicsdriver.DstAlpha:
+	case graphicsdriver.BlendFactorDstAlpha:
 		return dstAlpha
-	case graphicsdriver.OneMinusSrcAlpha:
+	case graphicsdriver.BlendFactorOneMinusSrcAlpha:
 		return oneMinusSrcAlpha
-	case graphicsdriver.OneMinusDstAlpha:
+	case graphicsdriver.BlendFactorOneMinusDstAlpha:
 		return oneMinusDstAlpha
-	case graphicsdriver.DstColor:
+	case graphicsdriver.BlendFactorDstColor:
 		return dstColor
 	default:
-		panic(fmt.Sprintf("opengl: invalid operation %d at convertOperation", op))
+		panic(fmt.Sprintf("opengl: invalid blend factor %d at convertBlendFactor", op))
 	}
 }
 

@@ -83,13 +83,13 @@ func getProgramID(p program) programID {
 }
 
 const (
-	zero             = operation(gl.ZERO)
-	one              = operation(gl.ONE)
-	srcAlpha         = operation(gl.SRC_ALPHA)
-	dstAlpha         = operation(gl.DST_ALPHA)
-	oneMinusSrcAlpha = operation(gl.ONE_MINUS_SRC_ALPHA)
-	oneMinusDstAlpha = operation(gl.ONE_MINUS_DST_ALPHA)
-	dstColor         = operation(gl.DST_COLOR)
+	zero             = blendFactor(gl.ZERO)
+	one              = blendFactor(gl.ONE)
+	srcAlpha         = blendFactor(gl.SRC_ALPHA)
+	dstAlpha         = blendFactor(gl.DST_ALPHA)
+	oneMinusSrcAlpha = blendFactor(gl.ONE_MINUS_SRC_ALPHA)
+	oneMinusDstAlpha = blendFactor(gl.ONE_MINUS_DST_ALPHA)
+	dstColor         = blendFactor(gl.DST_COLOR)
 )
 
 type contextImpl struct {
@@ -127,8 +127,8 @@ func (c *context) blendFunc(mode graphicsdriver.CompositeMode) {
 		return
 	}
 	c.lastCompositeMode = mode
-	s, d := mode.Operations()
-	s2, d2 := convertOperation(s), convertOperation(d)
+	s, d := mode.BlendFactors()
+	s2, d2 := convertBlendFactor(s), convertBlendFactor(d)
 	gl.BlendFunc(uint32(s2), uint32(d2))
 }
 

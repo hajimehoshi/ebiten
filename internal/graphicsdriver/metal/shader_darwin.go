@@ -112,11 +112,11 @@ func (s *Shader) RenderPipelineState(view *view, compositeMode graphicsdriver.Co
 	rpld.ColorAttachments[0].PixelFormat = pix
 	rpld.ColorAttachments[0].BlendingEnabled = true
 
-	src, dst := compositeMode.Operations()
-	rpld.ColorAttachments[0].DestinationAlphaBlendFactor = operationToBlendFactor(dst)
-	rpld.ColorAttachments[0].DestinationRGBBlendFactor = operationToBlendFactor(dst)
-	rpld.ColorAttachments[0].SourceAlphaBlendFactor = operationToBlendFactor(src)
-	rpld.ColorAttachments[0].SourceRGBBlendFactor = operationToBlendFactor(src)
+	src, dst := compositeMode.BlendFactors()
+	rpld.ColorAttachments[0].DestinationAlphaBlendFactor = blendFactorToMetalBlendFactor(dst)
+	rpld.ColorAttachments[0].DestinationRGBBlendFactor = blendFactorToMetalBlendFactor(dst)
+	rpld.ColorAttachments[0].SourceAlphaBlendFactor = blendFactorToMetalBlendFactor(src)
+	rpld.ColorAttachments[0].SourceRGBBlendFactor = blendFactorToMetalBlendFactor(src)
 	if stencilMode == prepareStencil {
 		rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskNone
 	} else {

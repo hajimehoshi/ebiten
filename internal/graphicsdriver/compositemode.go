@@ -40,49 +40,49 @@ const (
 	CompositeModeMax = CompositeModeMultiply
 )
 
-type Operation int
+type BlendFactor int
 
 const (
-	Zero Operation = iota
-	One
-	SrcAlpha
-	DstAlpha
-	OneMinusSrcAlpha
-	OneMinusDstAlpha
-	DstColor
+	BlendFactorZero BlendFactor = iota
+	BlendFactorOne
+	BlendFactorSrcAlpha
+	BlendFactorDstAlpha
+	BlendFactorOneMinusSrcAlpha
+	BlendFactorOneMinusDstAlpha
+	BlendFactorDstColor
 )
 
-func (c CompositeMode) Operations() (src Operation, dst Operation) {
+func (c CompositeMode) BlendFactors() (src BlendFactor, dst BlendFactor) {
 	switch c {
 	case CompositeModeSourceOver:
-		return One, OneMinusSrcAlpha
+		return BlendFactorOne, BlendFactorOneMinusSrcAlpha
 	case CompositeModeClear:
-		return Zero, Zero
+		return BlendFactorZero, BlendFactorZero
 	case CompositeModeCopy:
-		return One, Zero
+		return BlendFactorOne, BlendFactorZero
 	case CompositeModeDestination:
-		return Zero, One
+		return BlendFactorZero, BlendFactorOne
 	case CompositeModeDestinationOver:
-		return OneMinusDstAlpha, One
+		return BlendFactorOneMinusDstAlpha, BlendFactorOne
 	case CompositeModeSourceIn:
-		return DstAlpha, Zero
+		return BlendFactorDstAlpha, BlendFactorZero
 	case CompositeModeDestinationIn:
-		return Zero, SrcAlpha
+		return BlendFactorZero, BlendFactorSrcAlpha
 	case CompositeModeSourceOut:
-		return OneMinusDstAlpha, Zero
+		return BlendFactorOneMinusDstAlpha, BlendFactorZero
 	case CompositeModeDestinationOut:
-		return Zero, OneMinusSrcAlpha
+		return BlendFactorZero, BlendFactorOneMinusSrcAlpha
 	case CompositeModeSourceAtop:
-		return DstAlpha, OneMinusSrcAlpha
+		return BlendFactorDstAlpha, BlendFactorOneMinusSrcAlpha
 	case CompositeModeDestinationAtop:
-		return OneMinusDstAlpha, SrcAlpha
+		return BlendFactorOneMinusDstAlpha, BlendFactorSrcAlpha
 	case CompositeModeXor:
-		return OneMinusDstAlpha, OneMinusSrcAlpha
+		return BlendFactorOneMinusDstAlpha, BlendFactorOneMinusSrcAlpha
 	case CompositeModeLighter:
-		return One, One
+		return BlendFactorOne, BlendFactorOne
 	case CompositeModeMultiply:
-		return DstColor, Zero
+		return BlendFactorDstColor, BlendFactorZero
 	default:
-		panic(fmt.Sprintf("graphics: invalid composite mode: %d", c))
+		panic(fmt.Sprintf("graphicsdriver: invalid composite mode: %d", c))
 	}
 }

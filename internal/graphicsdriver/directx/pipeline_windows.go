@@ -25,27 +25,27 @@ import (
 
 const numDescriptorsPerFrame = 32
 
-func operationToBlend(c graphicsdriver.Operation, alpha bool) _D3D12_BLEND {
+func blendFactorToBlend(c graphicsdriver.BlendFactor, alpha bool) _D3D12_BLEND {
 	switch c {
-	case graphicsdriver.Zero:
+	case graphicsdriver.BlendFactorZero:
 		return _D3D12_BLEND_ZERO
-	case graphicsdriver.One:
+	case graphicsdriver.BlendFactorOne:
 		return _D3D12_BLEND_ONE
-	case graphicsdriver.SrcAlpha:
+	case graphicsdriver.BlendFactorSrcAlpha:
 		return _D3D12_BLEND_SRC_ALPHA
-	case graphicsdriver.DstAlpha:
+	case graphicsdriver.BlendFactorDstAlpha:
 		return _D3D12_BLEND_DEST_ALPHA
-	case graphicsdriver.OneMinusSrcAlpha:
+	case graphicsdriver.BlendFactorOneMinusSrcAlpha:
 		return _D3D12_BLEND_INV_SRC_ALPHA
-	case graphicsdriver.OneMinusDstAlpha:
+	case graphicsdriver.BlendFactorOneMinusDstAlpha:
 		return _D3D12_BLEND_INV_DEST_ALPHA
-	case graphicsdriver.DstColor:
+	case graphicsdriver.BlendFactorDstColor:
 		if alpha {
 			return _D3D12_BLEND_DEST_ALPHA
 		}
 		return _D3D12_BLEND_DEST_COLOR
 	default:
-		panic(fmt.Sprintf("directx: invalid operation: %d", c))
+		panic(fmt.Sprintf("directx: invalid blend factor: %d", c))
 	}
 }
 
@@ -391,7 +391,7 @@ func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3D
 	}
 
 	// Create a pipeline state.
-	srcOp, dstOp := compositeMode.Operations()
+	srcOp, dstOp := compositeMode.BlendFactors()
 	psoDesc := _D3D12_GRAPHICS_PIPELINE_STATE_DESC{
 		pRootSignature: rootSignature,
 		VS: _D3D12_SHADER_BYTECODE{
@@ -409,11 +409,11 @@ func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3D
 				{
 					BlendEnable:           1,
 					LogicOpEnable:         0,
-					SrcBlend:              operationToBlend(srcOp, false),
-					DestBlend:             operationToBlend(dstOp, false),
+					SrcBlend:              blendFactorToBlend(srcOp, false),
+					DestBlend:             blendFactorToBlend(dstOp, false),
 					BlendOp:               _D3D12_BLEND_OP_ADD,
-					SrcBlendAlpha:         operationToBlend(srcOp, true),
-					DestBlendAlpha:        operationToBlend(dstOp, true),
+					SrcBlendAlpha:         blendFactorToBlend(srcOp, true),
+					DestBlendAlpha:        blendFactorToBlend(dstOp, true),
 					BlendOpAlpha:          _D3D12_BLEND_OP_ADD,
 					LogicOp:               _D3D12_LOGIC_OP_NOOP,
 					RenderTargetWriteMask: writeMask,

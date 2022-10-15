@@ -300,21 +300,21 @@ func (g *Graphics) SetTransparent(transparent bool) {
 	g.transparent = transparent
 }
 
-func operationToBlendFactor(c graphicsdriver.Operation) mtl.BlendFactor {
+func blendFactorToMetalBlendFactor(c graphicsdriver.BlendFactor) mtl.BlendFactor {
 	switch c {
-	case graphicsdriver.Zero:
+	case graphicsdriver.BlendFactorZero:
 		return mtl.BlendFactorZero
-	case graphicsdriver.One:
+	case graphicsdriver.BlendFactorOne:
 		return mtl.BlendFactorOne
-	case graphicsdriver.SrcAlpha:
+	case graphicsdriver.BlendFactorSrcAlpha:
 		return mtl.BlendFactorSourceAlpha
-	case graphicsdriver.DstAlpha:
+	case graphicsdriver.BlendFactorDstAlpha:
 		return mtl.BlendFactorDestinationAlpha
-	case graphicsdriver.OneMinusSrcAlpha:
+	case graphicsdriver.BlendFactorOneMinusSrcAlpha:
 		return mtl.BlendFactorOneMinusSourceAlpha
-	case graphicsdriver.OneMinusDstAlpha:
+	case graphicsdriver.BlendFactorOneMinusDstAlpha:
 		return mtl.BlendFactorOneMinusDestinationAlpha
-	case graphicsdriver.DstColor:
+	case graphicsdriver.BlendFactorDstColor:
 		return mtl.BlendFactorDestinationColor
 	default:
 		panic(fmt.Sprintf("metal: invalid operation: %d", c))
