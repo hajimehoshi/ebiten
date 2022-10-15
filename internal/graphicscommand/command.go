@@ -179,7 +179,6 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 	if err := graphicsDriver.Begin(); err != nil {
 		return err
 	}
-	var screenRendered bool
 	cs := q.commands
 	for len(cs) > 0 {
 		nv := 0
@@ -195,9 +194,6 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 				}
 				nv += dtc.numVertices()
 				ne += dtc.numIndices()
-				if dtc.dst.screen {
-					screenRendered = true
-				}
 			}
 			nc++
 		}
@@ -223,8 +219,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 		}
 		cs = cs[nc:]
 	}
-	// TODO: Without checking screenRendered, the tests fail on Windows. Investigate this issue.
-	if err := graphicsDriver.End(endFrame && screenRendered); err != nil {
+	if err := graphicsDriver.End(endFrame); err != nil {
 		return err
 	}
 

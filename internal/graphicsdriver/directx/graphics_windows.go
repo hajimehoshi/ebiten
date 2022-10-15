@@ -774,7 +774,8 @@ func (g *Graphics) End(present bool) error {
 		return err
 	}
 
-	if present {
+	// screenImage can be nil in tests.
+	if present && g.screenImage != nil {
 		if rb, ok := g.screenImage.transiteState(_D3D12_RESOURCE_STATE_PRESENT); ok {
 			g.drawCommandList.ResourceBarrier([]_D3D12_RESOURCE_BARRIER_Transition{rb})
 		}
