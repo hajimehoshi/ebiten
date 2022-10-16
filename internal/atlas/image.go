@@ -37,8 +37,6 @@ type temporaryBytes struct {
 	pixels           []byte
 	pos              int
 	notFullyUsedTime int
-
-	m sync.Mutex
 }
 
 var theTemporaryBytes temporaryBytes
