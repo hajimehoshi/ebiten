@@ -43,7 +43,7 @@ type Image struct {
 	// have its graphicsdriver.Image.
 	id int
 
-	bufferedRP []*graphicsdriver.WritePixelsArgs
+	bufferedWP []*graphicsdriver.WritePixelsArgs
 }
 
 var nextID = 1
@@ -52,6 +52,25 @@ func genNextID() int {
 	id := nextID
 	nextID++
 	return id
+}
+
+// unresolvedImages is the set of unresolved images.
+// An unresolved image is an image that might have an state unsent to the command queue yet.
+var unresolvedImages []*Image
+
+// addUnresolvedImage adds an image to the list of unresolved images.
+func addUnresolvedImage(img *Image) {
+	unresolvedImages = append(unresolvedImages, img)
+}
+
+// resolveImages resolves all the image states unsent to the command queue.
+// resolveImages should be called before flushing commands.
+func resolveImages() {
+	for i, img := range unresolvedImages {
+		img.resolveBufferedWritePixels()
+		unresolvedImages[i] = nil
+	}
+	unresolvedImages = unresolvedImages[:0]
 }
 
 // NewImage returns a new image.
@@ -75,15 +94,15 @@ func NewImage(width, height int, screenFramebuffer bool) *Image {
 }
 
 func (i *Image) resolveBufferedWritePixels() {
-	if len(i.bufferedRP) == 0 {
+	if len(i.bufferedWP) == 0 {
 		return
 	}
 	c := &writePixelsCommand{
 		dst:  i,
-		args: i.bufferedRP,
+		args: i.bufferedWP,
 	}
 	theCommandQueue.Enqueue(c)
-	i.bufferedRP = nil
+	i.bufferedWP = nil
 }
 
 func (i *Image) Dispose() {
@@ -167,13 +186,14 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, buf []byte) e
 }
 
 func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
-	i.bufferedRP = append(i.bufferedRP, &graphicsdriver.WritePixelsArgs{
+	i.bufferedWP = append(i.bufferedWP, &graphicsdriver.WritePixelsArgs{
 		Pixels: pixels,
 		X:      x,
 		Y:      y,
 		Width:  width,
 		Height: height,
 	})
+	addUnresolvedImage(i)
 }
 
 func (i *Image) IsInvalidated() bool {

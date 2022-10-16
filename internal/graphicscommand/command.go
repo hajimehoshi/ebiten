@@ -273,6 +273,8 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
 
 // FlushCommands flushes the command queue.
 func FlushCommands(graphicsDriver graphicsdriver.Graphics) error {
+	resolveImages()
+
 	return theCommandQueue.Flush(graphicsDriver)
 }
 
