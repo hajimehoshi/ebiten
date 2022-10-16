@@ -18,11 +18,14 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
+
+var regularTermination = errors.New("regular termination")
 
 type Game struct {
 	drawCount int
@@ -30,7 +33,7 @@ type Game struct {
 
 func (g *Game) Update() error {
 	if g.drawCount == 2 {
-		return ebiten.Termination
+		return regularTermination
 	}
 	return nil
 }
@@ -56,7 +59,7 @@ func main() {
 	ebiten.SetWindowTitle("Test")
 	ebiten.SetScreenClearedEveryFrame(false)
 
-	if err := ebiten.RunGame(&Game{}); err != nil {
+	if err := ebiten.RunGame(&Game{}); err != nil && !errors.Is(err, regularTermination) {
 		panic(err)
 	}
 }
