@@ -163,6 +163,7 @@ func (c *context) reset() error {
 	c.lastFramebuffer = framebufferNative(js.Null())
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
+	c.lastBlend = graphicsdriver.Blend{}
 
 	if err := c.initGL(); err != nil {
 		return err

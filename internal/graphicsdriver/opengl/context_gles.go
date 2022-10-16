@@ -93,6 +93,7 @@ func (c *context) reset() error {
 	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
+	c.lastBlend = graphicsdriver.Blend{}
 	c.ctx.Enable(gles.BLEND)
 	c.ctx.Enable(gles.SCISSOR_TEST)
 	c.blend(graphicsdriver.BlendSourceOver)
