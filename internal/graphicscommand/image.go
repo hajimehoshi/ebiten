@@ -54,23 +54,22 @@ func genNextID() int {
 	return id
 }
 
-// unresolvedImages is the set of unresolved images.
-// An unresolved image is an image that might have an state unsent to the command queue yet.
-var unresolvedImages []*Image
+// imagesWithBuffers is the set of an image with buffers.
+var imagesWithBuffers []*Image
 
-// addUnresolvedImage adds an image to the list of unresolved images.
-func addUnresolvedImage(img *Image) {
-	unresolvedImages = append(unresolvedImages, img)
+// addImageWithBuffer adds an image to the list of images with unflushed buffers.
+func addImageWithBuffer(img *Image) {
+	imagesWithBuffers = append(imagesWithBuffers, img)
 }
 
-// resolveImages resolves all the image states unsent to the command queue.
-// resolveImages should be called before flushing commands.
-func resolveImages() {
-	for i, img := range unresolvedImages {
-		img.resolveBufferedWritePixels()
-		unresolvedImages[i] = nil
+// flushImageBuffers flushes all the image buffers and send to the command queue.
+// flushImageBuffers should be called before flushing commands.
+func flushImageBuffers() {
+	for i, img := range imagesWithBuffers {
+		img.flushBufferedWritePixels()
+		imagesWithBuffers[i] = nil
 	}
-	unresolvedImages = unresolvedImages[:0]
+	imagesWithBuffers = imagesWithBuffers[:0]
 }
 
 // NewImage returns a new image.
@@ -93,7 +92,7 @@ func NewImage(width, height int, screenFramebuffer bool) *Image {
 	return i
 }
 
-func (i *Image) resolveBufferedWritePixels() {
+func (i *Image) flushBufferedWritePixels() {
 	if len(i.bufferedWP) == 0 {
 		return
 	}
@@ -154,9 +153,9 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [g
 		if src.screen {
 			panic("graphicscommand: the screen image cannot be the rendering source")
 		}
-		src.resolveBufferedWritePixels()
+		src.flushBufferedWritePixels()
 	}
-	i.resolveBufferedWritePixels()
+	i.flushBufferedWritePixels()
 
 	theCommandQueue.EnqueueDrawTrianglesCommand(i, srcs, offsets, vertices, indices, blend, dstRegion, srcRegion, shader, uniforms, evenOdd)
 }
@@ -164,7 +163,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [g
 // ReadPixels reads the image's pixels.
 // ReadPixels returns an error when an error happens in the graphics driver.
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, buf []byte, x, y, width, height int) error {
-	i.resolveBufferedWritePixels()
+	i.flushBufferedWritePixels()
 	c := &readPixelsCommand{
 		img:    i,
 		x:      x,
@@ -188,7 +187,7 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 		Width:  width,
 		Height: height,
 	})
-	addUnresolvedImage(i)
+	addImageWithBuffer(i)
 }
 
 func (i *Image) IsInvalidated(graphicsDriver graphicsdriver.Graphics) (bool, error) {

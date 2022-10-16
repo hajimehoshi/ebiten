@@ -95,7 +95,7 @@ func min(a, b int) int {
 	return b
 }
 
-func resolveDeferred() {
+func flushDeferred() {
 	deferredM.Lock()
 	fs := deferred
 	deferred = nil
@@ -568,8 +568,8 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 	defer backendsM.Unlock()
 
 	// In the tests, BeginFrame might not be called often and then images might not be disposed (#2292).
-	// To prevent memory leaks, resolve the deferred functions here.
-	resolveDeferred()
+	// To prevent memory leaks, flush the deferred functions here.
+	flushDeferred()
 
 	if i.backend == nil || i.backend.restorable == nil {
 		for i := range pixels {
@@ -776,7 +776,7 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 		return err
 	}
 
-	resolveDeferred()
+	flushDeferred()
 	if err := putImagesOnAtlas(graphicsDriver); err != nil {
 		return err
 	}

@@ -35,7 +35,7 @@ type Image struct {
 	height   int
 	volatile bool
 
-	dotsCache map[[2]int][4]byte
+	dotsBuffer map[[2]int][4]byte
 }
 
 func NewImage(width, height int, imageType atlas.ImageType) *Image {
@@ -53,18 +53,18 @@ func (i *Image) MarkDisposed() {
 	}
 	i.mipmap.MarkDisposed()
 	i.mipmap = nil
-	i.dotsCache = nil
+	i.dotsBuffer = nil
 }
 
 func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, canSkipMipmap bool) {
-	i.flushCacheIfNeeded()
+	i.flushBufferIfNeeded()
 
 	var srcMipmaps [graphics.ShaderImageCount]*mipmap.Mipmap
 	for i, src := range srcs {
 		if src == nil {
 			continue
 		}
-		src.flushCacheIfNeeded()
+		src.flushBufferIfNeeded()
 		srcMipmaps[i] = src.mipmap
 	}
 
@@ -73,22 +73,22 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 
 func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
 	if width == 1 && height == 1 {
-		if i.dotsCache == nil {
-			i.dotsCache = map[[2]int][4]byte{}
+		if i.dotsBuffer == nil {
+			i.dotsBuffer = map[[2]int][4]byte{}
 		}
 
 		var clr [4]byte
 		copy(clr[:], pix)
-		i.dotsCache[[2]int{x, y}] = clr
+		i.dotsBuffer[[2]int{x, y}] = clr
 
 		// One square requires 6 indices (= 2 triangles).
-		if len(i.dotsCache) >= graphics.IndicesCount/6 {
-			i.flushCacheIfNeeded()
+		if len(i.dotsBuffer) >= graphics.IndicesCount/6 {
+			i.flushBufferIfNeeded()
 		}
 		return
 	}
 
-	i.flushCacheIfNeeded()
+	i.flushBufferIfNeeded()
 	i.mipmap.WritePixels(pix, x, y, width, height)
 }
 
@@ -99,14 +99,14 @@ func (i *Image) ReadPixels(pixels []byte, x, y, width, height int) {
 	}
 
 	if width == 1 && height == 1 {
-		if c, ok := i.dotsCache[[2]int{x, y}]; ok {
+		if c, ok := i.dotsBuffer[[2]int{x, y}]; ok {
 			copy(pixels, c[:])
 			return
 		}
-		// Do not call flushCacheIfNeeded here. This would slow (image/draw).Draw.
+		// Do not call flushBufferIfNeeded here. This would slow (image/draw).Draw.
 		// See ebiten.TestImageDrawOver.
 	} else {
-		i.flushCacheIfNeeded()
+		i.flushBufferIfNeeded()
 	}
 
 	if err := theUI.readPixels(i.mipmap, pixels, x, y, width, height); err != nil {
@@ -121,17 +121,17 @@ func (i *Image) DumpScreenshot(name string, blackbg bool) (string, error) {
 	return theUI.dumpScreenshot(i.mipmap, name, blackbg)
 }
 
-func (i *Image) flushCacheIfNeeded() {
-	if len(i.dotsCache) == 0 {
+func (i *Image) flushBufferIfNeeded() {
+	if len(i.dotsBuffer) == 0 {
 		return
 	}
 
-	l := len(i.dotsCache)
+	l := len(i.dotsBuffer)
 	vs := graphics.Vertices(l * 4)
 	is := make([]uint16, l*6)
 	sx, sy := float32(1), float32(1)
 	var idx int
-	for p, c := range i.dotsCache {
+	for p, c := range i.dotsBuffer {
 		dx := float32(p[0])
 		dy := float32(p[1])
 		crf := float32(c[0]) / 0xff
@@ -181,7 +181,7 @@ func (i *Image) flushCacheIfNeeded() {
 
 		idx++
 	}
-	i.dotsCache = nil
+	i.dotsBuffer = nil
 
 	srcs := [graphics.ShaderImageCount]*mipmap.Mipmap{emptyImage.mipmap}
 	dr := graphicsdriver.Region{

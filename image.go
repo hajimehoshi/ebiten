@@ -38,8 +38,8 @@ type Image struct {
 	original *Image
 	bounds   image.Rectangle
 
-	// Do not add a 'cache' member that are resolved lazily.
-	// This tends to forget resolving the cache easily (#2362).
+	// Do not add a 'buffering' member that are resolved lazily.
+	// This tends to forget resolving the buffer easily (#2362).
 }
 
 var emptyImage *Image
