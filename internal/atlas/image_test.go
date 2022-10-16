@@ -624,7 +624,7 @@ func TestDisposedAndReputOnAtlas(t *testing.T) {
 	src.MarkDisposed()
 
 	// Force to dispose the image.
-	atlas.ResolveDeferredForTesting()
+	atlas.FlushDeferredForTesting()
 
 	// Confirm that PutImagesOnAtlasForTesting doesn't panic.
 	if err := atlas.PutImagesOnAtlasForTesting(ui.GraphicsDriverForTesting()); err != nil {
