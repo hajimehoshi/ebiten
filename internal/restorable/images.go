@@ -57,7 +57,7 @@ var theImages = &images{
 // all stale images.
 //
 // ResolveStaleImages is intended to be called at the end of a frame.
-func ResolveStaleImages(graphicsDriver graphicsdriver.Graphics) error {
+func ResolveStaleImages(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
 	if debug.IsDebug {
 		debug.Logf("Internal image sizes:\n")
 		imgs := make([]*graphicscommand.Image, 0, len(theImages.images))
@@ -67,7 +67,7 @@ func ResolveStaleImages(graphicsDriver graphicsdriver.Graphics) error {
 		graphicscommand.LogImagesInfo(imgs)
 	}
 
-	if err := graphicscommand.FlushCommands(graphicsDriver); err != nil {
+	if err := graphicscommand.FlushCommands(graphicsDriver, endFrame); err != nil {
 		return err
 	}
 	if !needsRestoring() {

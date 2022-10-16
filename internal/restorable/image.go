@@ -439,7 +439,7 @@ func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Imag
 
 func (i *Image) readPixelsFromGPUIfNeeded(graphicsDriver graphicsdriver.Graphics) error {
 	if len(i.drawTrianglesHistory) > 0 || i.stale {
-		if err := graphicscommand.FlushCommands(graphicsDriver); err != nil {
+		if err := graphicscommand.FlushCommands(graphicsDriver, false); err != nil {
 			return err
 		}
 		if err := i.readPixelsFromGPU(graphicsDriver); err != nil {
@@ -638,7 +638,7 @@ func (i *Image) Dispose() {
 // If an image is invalidated, GL context is lost and all the images should be restored asap.
 func (i *Image) isInvalidated(graphicsDriver graphicsdriver.Graphics) (bool, error) {
 	// FlushCommands is required because c.offscreen.impl might not have an actual texture.
-	if err := graphicscommand.FlushCommands(graphicsDriver); err != nil {
+	if err := graphicscommand.FlushCommands(graphicsDriver, false); err != nil {
 		return false, err
 	}
 	return i.image.IsInvalidated(), nil
