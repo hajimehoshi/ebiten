@@ -15,11 +15,11 @@
 package graphicsdriver
 
 type Blend struct {
-	BlendFactorSourceColor      BlendFactor
+	BlendFactorSourceRGB        BlendFactor
 	BlendFactorSourceAlpha      BlendFactor
-	BlendFactorDestinationColor BlendFactor
+	BlendFactorDestinationRGB   BlendFactor
 	BlendFactorDestinationAlpha BlendFactor
-	BlendOperationColor         BlendOperation
+	BlendOperationRGB           BlendOperation
 	BlendOperationAlpha         BlendOperation
 }
 
@@ -32,7 +32,7 @@ const (
 	BlendFactorDestinationAlpha
 	BlendFactorOneMinusSourceAlpha
 	BlendFactorOneMinusDestinationAlpha
-	BlendFactorDestinationColor
+	BlendFactorDestinationRGB
 )
 
 type BlendOperation byte
@@ -44,28 +44,28 @@ const (
 )
 
 var BlendSourceOver = Blend{
-	BlendFactorSourceColor:      BlendFactorOne,
+	BlendFactorSourceRGB:        BlendFactorOne,
 	BlendFactorSourceAlpha:      BlendFactorOne,
-	BlendFactorDestinationColor: BlendFactorOneMinusSourceAlpha,
+	BlendFactorDestinationRGB:   BlendFactorOneMinusSourceAlpha,
 	BlendFactorDestinationAlpha: BlendFactorOneMinusSourceAlpha,
-	BlendOperationColor:         BlendOperationAdd,
+	BlendOperationRGB:           BlendOperationAdd,
 	BlendOperationAlpha:         BlendOperationAdd,
 }
 
 var BlendClear = Blend{
-	BlendFactorSourceColor:      BlendFactorZero,
+	BlendFactorSourceRGB:        BlendFactorZero,
 	BlendFactorSourceAlpha:      BlendFactorZero,
-	BlendFactorDestinationColor: BlendFactorZero,
+	BlendFactorDestinationRGB:   BlendFactorZero,
 	BlendFactorDestinationAlpha: BlendFactorZero,
-	BlendOperationColor:         BlendOperationAdd,
+	BlendOperationRGB:           BlendOperationAdd,
 	BlendOperationAlpha:         BlendOperationAdd,
 }
 
 var BlendCopy = Blend{
-	BlendFactorSourceColor:      BlendFactorOne,
+	BlendFactorSourceRGB:        BlendFactorOne,
 	BlendFactorSourceAlpha:      BlendFactorOne,
-	BlendFactorDestinationColor: BlendFactorZero,
+	BlendFactorDestinationRGB:   BlendFactorZero,
 	BlendFactorDestinationAlpha: BlendFactorZero,
-	BlendOperationColor:         BlendOperationAdd,
+	BlendOperationRGB:           BlendOperationAdd,
 	BlendOperationAlpha:         BlendOperationAdd,
 }

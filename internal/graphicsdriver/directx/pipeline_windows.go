@@ -39,7 +39,7 @@ func blendFactorToBlend(f graphicsdriver.BlendFactor, alpha bool) _D3D12_BLEND {
 		return _D3D12_BLEND_INV_SRC_ALPHA
 	case graphicsdriver.BlendFactorOneMinusDestinationAlpha:
 		return _D3D12_BLEND_INV_DEST_ALPHA
-	case graphicsdriver.BlendFactorDestinationColor:
+	case graphicsdriver.BlendFactorDestinationRGB:
 		// D3D12_RENDER_TARGET_BLEND_DESC's *BlendAlpha members don't allow *_COLOR values.
 		// See https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_render_target_blend_desc.
 		if alpha {
@@ -423,9 +423,9 @@ func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3D
 				{
 					BlendEnable:           1,
 					LogicOpEnable:         0,
-					SrcBlend:              blendFactorToBlend(blend.BlendFactorSourceColor, false),
-					DestBlend:             blendFactorToBlend(blend.BlendFactorDestinationColor, false),
-					BlendOp:               blendOperationToBlendOp(blend.BlendOperationColor),
+					SrcBlend:              blendFactorToBlend(blend.BlendFactorSourceRGB, false),
+					DestBlend:             blendFactorToBlend(blend.BlendFactorDestinationRGB, false),
+					BlendOp:               blendOperationToBlendOp(blend.BlendOperationRGB),
 					SrcBlendAlpha:         blendFactorToBlend(blend.BlendFactorSourceAlpha, true),
 					DestBlendAlpha:        blendFactorToBlend(blend.BlendFactorDestinationAlpha, true),
 					BlendOpAlpha:          blendOperationToBlendOp(blend.BlendOperationAlpha),

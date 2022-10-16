@@ -24,20 +24,20 @@ import (
 //
 // The default (zero) value is source-over (regular alpha blending).
 type Blend struct {
-	// BlendFactorSourceColor is a factor for source RGB values.
-	BlendFactorSourceColor BlendFactor
+	// BlendFactorSourceRGB is a factor for source RGB values.
+	BlendFactorSourceRGB BlendFactor
 
 	// BlendFactorSourceAlpha is a factor for source alpha values.
 	BlendFactorSourceAlpha BlendFactor
 
-	// BlendFactorDestinationColor is a factor for destination RGB values.
-	BlendFactorDestinationColor BlendFactor
+	// BlendFactorDestinationRGB is a factor for destination RGB values.
+	BlendFactorDestinationRGB BlendFactor
 
 	// BlendFactorDestinationAlpha is a factor for destination apha values.
 	BlendFactorDestinationAlpha BlendFactor
 
-	// BlendOperationColor is an operation for source and destination RGB values.
-	BlendOperationColor BlendOperation
+	// BlendOperationRGB is an operation for source and destination RGB values.
+	BlendOperationRGB BlendOperation
 
 	// BlendOperationAlpha is an operation for source and destination alpha values.
 	BlendOperationAlpha BlendOperation
@@ -45,11 +45,11 @@ type Blend struct {
 
 func (b Blend) internalBlend() graphicsdriver.Blend {
 	return graphicsdriver.Blend{
-		BlendFactorSourceColor:      b.BlendFactorSourceColor.internalBlendFactor(true),
+		BlendFactorSourceRGB:        b.BlendFactorSourceRGB.internalBlendFactor(true),
 		BlendFactorSourceAlpha:      b.BlendFactorSourceAlpha.internalBlendFactor(true),
-		BlendFactorDestinationColor: b.BlendFactorDestinationColor.internalBlendFactor(false),
+		BlendFactorDestinationRGB:   b.BlendFactorDestinationRGB.internalBlendFactor(false),
 		BlendFactorDestinationAlpha: b.BlendFactorDestinationAlpha.internalBlendFactor(false),
-		BlendOperationColor:         b.BlendOperationColor.internalBlendOperation(),
+		BlendOperationRGB:           b.BlendOperationRGB.internalBlendOperation(),
 		BlendOperationAlpha:         b.BlendOperationAlpha.internalBlendOperation(),
 	}
 }
@@ -67,7 +67,7 @@ const (
 	BlendFactorDestinationAlpha
 	BlendFactorOneMinusSourceAlpha
 	BlendFactorOneMinusDestinationAlpha
-	BlendFactorDestinationColor
+	BlendFactorDestinationRGB
 )
 
 func (b BlendFactor) internalBlendFactor(source bool) graphicsdriver.BlendFactor {
@@ -90,8 +90,8 @@ func (b BlendFactor) internalBlendFactor(source bool) graphicsdriver.BlendFactor
 		return graphicsdriver.BlendFactorOneMinusSourceAlpha
 	case BlendFactorOneMinusDestinationAlpha:
 		return graphicsdriver.BlendFactorOneMinusDestinationAlpha
-	case BlendFactorDestinationColor:
-		return graphicsdriver.BlendFactorDestinationColor
+	case BlendFactorDestinationRGB:
+		return graphicsdriver.BlendFactorDestinationRGB
 	default:
 		panic(fmt.Sprintf("ebiten: invalid blend factor: %d", b))
 	}
@@ -135,132 +135,132 @@ var (
 	// BlendSourceOver represents the regular alpha blending.
 	// c_out = c_src + c_dst × (1 - α_src)
 	BlendSourceOver = Blend{
-		BlendFactorSourceColor:      BlendFactorOne,
+		BlendFactorSourceRGB:        BlendFactorOne,
 		BlendFactorSourceAlpha:      BlendFactorOne,
-		BlendFactorDestinationColor: BlendFactorOneMinusSourceAlpha,
+		BlendFactorDestinationRGB:   BlendFactorOneMinusSourceAlpha,
 		BlendFactorDestinationAlpha: BlendFactorOneMinusSourceAlpha,
-		BlendOperationColor:         BlendOperationAdd,
+		BlendOperationRGB:           BlendOperationAdd,
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
 	// c_out = 0
 	BlendClear = Blend{
-		BlendFactorSourceColor:      BlendFactorZero,
+		BlendFactorSourceRGB:        BlendFactorZero,
 		BlendFactorSourceAlpha:      BlendFactorZero,
-		BlendFactorDestinationColor: BlendFactorZero,
+		BlendFactorDestinationRGB:   BlendFactorZero,
 		BlendFactorDestinationAlpha: BlendFactorZero,
-		BlendOperationColor:         BlendOperationAdd,
+		BlendOperationRGB:           BlendOperationAdd,
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
 	// c_out = c_src
 	BlendCopy = Blend{
-		BlendFactorSourceColor:      BlendFactorOne,
+		BlendFactorSourceRGB:        BlendFactorOne,
 		BlendFactorSourceAlpha:      BlendFactorOne,
-		BlendFactorDestinationColor: BlendFactorZero,
+		BlendFactorDestinationRGB:   BlendFactorZero,
 		BlendFactorDestinationAlpha: BlendFactorZero,
-		BlendOperationColor:         BlendOperationAdd,
+		BlendOperationRGB:           BlendOperationAdd,
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
 	// c_out = c_dst
 	BlendDestination = Blend{
-		BlendFactorSourceColor:      BlendFactorZero,
+		BlendFactorSourceRGB:        BlendFactorZero,
 		BlendFactorSourceAlpha:      BlendFactorZero,
-		BlendFactorDestinationColor: BlendFactorOne,
+		BlendFactorDestinationRGB:   BlendFactorOne,
 		BlendFactorDestinationAlpha: BlendFactorOne,
-		BlendOperationColor:         BlendOperationAdd,
+		BlendOperationRGB:           BlendOperationAdd,
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
 	// c_out = c_src × (1 - α_dst) + c_dst
 	BlendDestinationOver = Blend{
-		BlendFactorSourceColor:      BlendFactorOneMinusDestinationAlpha,
+		BlendFactorSourceRGB:        BlendFactorOneMinusDestinationAlpha,
 		BlendFactorSourceAlpha:      BlendFactorOneMinusDestinationAlpha,
-		BlendFactorDestinationColor: BlendFactorOne,
+		BlendFactorDestinationRGB:   BlendFactorOne,
 		BlendFactorDestinationAlpha: BlendFactorOne,
-		BlendOperationColor:         BlendOperationAdd,
+		BlendOperationRGB:           BlendOperationAdd,
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
 	// c_out = c_src × α_dst
 	BlendSourceIn = Blend{
-		BlendFactorSourceColor:      BlendFactorDestinationAlpha,
+		BlendFactorSourceRGB:        BlendFactorDestinationAlpha,
 		BlendFactorSourceAlpha:      BlendFactorDestinationAlpha,
-		BlendFactorDestinationColor: BlendFactorZero,
+		BlendFactorDestinationRGB:   BlendFactorZero,
 		BlendFactorDestinationAlpha: BlendFactorZero,
-		BlendOperationColor:         BlendOperationAdd,
+		BlendOperationRGB:           BlendOperationAdd,
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
 	// c_out = c_dst × α_src
 	BlendDestinationIn = Blend{
-		BlendFactorSourceColor:      BlendFactorZero,
+		BlendFactorSourceRGB:        BlendFactorZero,
 		BlendFactorSourceAlpha:      BlendFactorZero,
-		BlendFactorDestinationColor: BlendFactorSourceAlpha,
+		BlendFactorDestinationRGB:   BlendFactorSourceAlpha,
 		BlendFactorDestinationAlpha: BlendFactorSourceAlpha,
-		BlendOperationColor:         BlendOperationAdd,
+		BlendOperationRGB:           BlendOperationAdd,
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
 	// c_out = c_src × (1 - α_dst)
 	BlendSourceOut = Blend{
-		BlendFactorSourceColor:      BlendFactorOneMinusDestinationAlpha,
+		BlendFactorSourceRGB:        BlendFactorOneMinusDestinationAlpha,
 		BlendFactorSourceAlpha:      BlendFactorOneMinusDestinationAlpha,
-		BlendFactorDestinationColor: BlendFactorZero,
+		BlendFactorDestinationRGB:   BlendFactorZero,
 		BlendFactorDestinationAlpha: BlendFactorZero,
-		BlendOperationColor:         BlendOperationAdd,
+		BlendOperationRGB:           BlendOperationAdd,
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
 	// c_out = c_dst × (1 - α_src)
 	BlendDestinationOut = Blend{
-		BlendFactorSourceColor:      BlendFactorOneMinusDestinationAlpha,
+		BlendFactorSourceRGB:        BlendFactorOneMinusDestinationAlpha,
 		BlendFactorSourceAlpha:      BlendFactorOneMinusDestinationAlpha,
-		BlendFactorDestinationColor: BlendFactorZero,
+		BlendFactorDestinationRGB:   BlendFactorZero,
 		BlendFactorDestinationAlpha: BlendFactorZero,
-		BlendOperationColor:         BlendOperationAdd,
+		BlendOperationRGB:           BlendOperationAdd,
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
 	// c_out = c_src × α_dst + c_dst × (1 - α_src)
 	BlendSourceAtop = Blend{
-		BlendFactorSourceColor:      BlendFactorDestinationAlpha,
+		BlendFactorSourceRGB:        BlendFactorDestinationAlpha,
 		BlendFactorSourceAlpha:      BlendFactorDestinationAlpha,
-		BlendFactorDestinationColor: BlendFactorOneMinusSourceAlpha,
+		BlendFactorDestinationRGB:   BlendFactorOneMinusSourceAlpha,
 		BlendFactorDestinationAlpha: BlendFactorOneMinusSourceAlpha,
-		BlendOperationColor:         BlendOperationAdd,
+		BlendOperationRGB:           BlendOperationAdd,
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
 	// c_out = c_src × (1 - α_dst) + c_dst × α_src
 	BlendDestinationAtop = Blend{
-		BlendFactorSourceColor:      BlendFactorOneMinusDestinationAlpha,
+		BlendFactorSourceRGB:        BlendFactorOneMinusDestinationAlpha,
 		BlendFactorSourceAlpha:      BlendFactorOneMinusDestinationAlpha,
-		BlendFactorDestinationColor: BlendFactorSourceAlpha,
+		BlendFactorDestinationRGB:   BlendFactorSourceAlpha,
 		BlendFactorDestinationAlpha: BlendFactorSourceAlpha,
-		BlendOperationColor:         BlendOperationAdd,
+		BlendOperationRGB:           BlendOperationAdd,
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
 	// c_out = c_src × (1 - α_dst) + c_dst × (1 - α_src)
 	BlendXor = Blend{
-		BlendFactorSourceColor:      BlendFactorOneMinusDestinationAlpha,
+		BlendFactorSourceRGB:        BlendFactorOneMinusDestinationAlpha,
 		BlendFactorSourceAlpha:      BlendFactorOneMinusDestinationAlpha,
-		BlendFactorDestinationColor: BlendFactorOneMinusSourceAlpha,
+		BlendFactorDestinationRGB:   BlendFactorOneMinusSourceAlpha,
 		BlendFactorDestinationAlpha: BlendFactorOneMinusSourceAlpha,
-		BlendOperationColor:         BlendOperationAdd,
+		BlendOperationRGB:           BlendOperationAdd,
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
 	// Sum of source and destination (a.k.a. 'plus' or 'additive')
 	// c_out = c_src + c_dst
 	BlendLighter = Blend{
-		BlendFactorSourceColor:      BlendFactorOne,
+		BlendFactorSourceRGB:        BlendFactorOne,
 		BlendFactorSourceAlpha:      BlendFactorOne,
-		BlendFactorDestinationColor: BlendFactorOne,
+		BlendFactorDestinationRGB:   BlendFactorOne,
 		BlendFactorDestinationAlpha: BlendFactorOne,
-		BlendOperationColor:         BlendOperationAdd,
+		BlendOperationRGB:           BlendOperationAdd,
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 )

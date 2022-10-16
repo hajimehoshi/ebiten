@@ -314,8 +314,8 @@ func blendFactorToMetalBlendFactor(c graphicsdriver.BlendFactor) mtl.BlendFactor
 		return mtl.BlendFactorOneMinusSourceAlpha
 	case graphicsdriver.BlendFactorOneMinusDestinationAlpha:
 		return mtl.BlendFactorOneMinusDestinationAlpha
-	case graphicsdriver.BlendFactorDestinationColor:
-		return mtl.BlendFactorDestinationColor
+	case graphicsdriver.BlendFactorDestinationRGB:
+		return mtl.BlendFactorDestinationRGB
 	default:
 		panic(fmt.Sprintf("metal: invalid blend factor: %d", c))
 	}

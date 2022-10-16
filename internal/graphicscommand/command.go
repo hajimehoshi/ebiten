@@ -277,11 +277,11 @@ type drawTrianglesCommand struct {
 func (c *drawTrianglesCommand) String() string {
 	// TODO: Improve readability
 	blend := fmt.Sprintf("{src-color: %d, src-alpha:  %d, dst-color: %d, dst-alpha: %d, op-color: %d, op-alpha: %d}",
-		c.blend.BlendFactorSourceColor,
+		c.blend.BlendFactorSourceRGB,
 		c.blend.BlendFactorSourceAlpha,
-		c.blend.BlendFactorDestinationColor,
+		c.blend.BlendFactorDestinationRGB,
 		c.blend.BlendFactorDestinationAlpha,
-		c.blend.BlendOperationColor,
+		c.blend.BlendOperationRGB,
 		c.blend.BlendOperationAlpha)
 
 	dst := fmt.Sprintf("%d", c.dst.id)

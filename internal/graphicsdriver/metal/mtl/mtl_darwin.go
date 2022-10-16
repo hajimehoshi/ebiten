@@ -271,11 +271,11 @@ type BlendFactor uint8
 const (
 	BlendFactorZero                     BlendFactor = 0
 	BlendFactorOne                      BlendFactor = 1
-	BlendFactorSourceColor              BlendFactor = 2
+	BlendFactorSourceRGB                BlendFactor = 2
 	BlendFactorOneMinusSourceColor      BlendFactor = 3
 	BlendFactorSourceAlpha              BlendFactor = 4
 	BlendFactorOneMinusSourceAlpha      BlendFactor = 5
-	BlendFactorDestinationColor         BlendFactor = 6
+	BlendFactorDestinationRGB           BlendFactor = 6
 	BlendFactorOneMinusDestinationColor BlendFactor = 7
 	BlendFactorDestinationAlpha         BlendFactor = 8
 	BlendFactorOneMinusDestinationAlpha BlendFactor = 9

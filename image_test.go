@@ -3607,11 +3607,11 @@ func TestImageBlendOperation(t *testing.T) {
 			dst.WritePixels(dstPix)
 			op := &ebiten.DrawImageOptions{}
 			op.Blend = ebiten.Blend{
-				BlendFactorSourceColor:      ebiten.BlendFactorOne,
+				BlendFactorSourceRGB:        ebiten.BlendFactorOne,
 				BlendFactorSourceAlpha:      ebiten.BlendFactorOne,
-				BlendFactorDestinationColor: ebiten.BlendFactorOne,
+				BlendFactorDestinationRGB:   ebiten.BlendFactorOne,
 				BlendFactorDestinationAlpha: ebiten.BlendFactorOne,
-				BlendOperationColor:         cop,
+				BlendOperationRGB:           cop,
 				BlendOperationAlpha:         aop,
 			}
 			dst.DrawImage(src, op)
