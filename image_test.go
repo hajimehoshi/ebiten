@@ -3551,3 +3551,104 @@ func TestImageColorMAndScale(t *testing.T) {
 		})
 	}
 }
+
+func TestImageBlendOperation(t *testing.T) {
+	const w, h = 16, 1
+	dst := ebiten.NewImage(w, h)
+	src := ebiten.NewImage(w, h)
+
+	dstColor := func(i int) (byte, byte, byte, byte) {
+		return byte(4 * i * 17), byte(4*i*17 + 1), byte(4*i*17 + 2), byte(4*i*17 + 3)
+	}
+	srcColor := func(i int) (byte, byte, byte, byte) {
+		return byte(4 * i * 13), byte(4*i*13 + 1), byte(4*i*13 + 2), byte(4*i*13 + 3)
+	}
+	clamp := func(x int) byte {
+		if x > 255 {
+			return 255
+		}
+		if x < 0 {
+			return 0
+		}
+		return byte(x)
+	}
+
+	dstPix := make([]byte, 4*w*h)
+	for i := 0; i < w; i++ {
+		r, g, b, a := dstColor(i)
+		dstPix[4*i] = r
+		dstPix[4*i+1] = g
+		dstPix[4*i+2] = b
+		dstPix[4*i+3] = a
+	}
+	srcPix := make([]byte, 4*w*h)
+	for i := 0; i < w; i++ {
+		r, g, b, a := srcColor(i)
+		srcPix[4*i] = r
+		srcPix[4*i+1] = g
+		srcPix[4*i+2] = b
+		srcPix[4*i+3] = a
+	}
+	src.WritePixels(srcPix)
+
+	colorOperations := []ebiten.BlendOperation{
+		ebiten.BlendOperationAdd,
+		ebiten.BlendOperationSubtract,
+		ebiten.BlendOperationReverseSubtract,
+	}
+	alphaOperations := []ebiten.BlendOperation{
+		ebiten.BlendOperationAdd,
+		ebiten.BlendOperationSubtract,
+		ebiten.BlendOperationReverseSubtract,
+	}
+	for _, cop := range colorOperations {
+		for _, aop := range alphaOperations {
+			// Reset the destination state.
+			dst.WritePixels(dstPix)
+			op := &ebiten.DrawImageOptions{}
+			op.Blend = ebiten.Blend{
+				BlendFactorSourceColor:      ebiten.BlendFactorOne,
+				BlendFactorSourceAlpha:      ebiten.BlendFactorOne,
+				BlendFactorDestinationColor: ebiten.BlendFactorOne,
+				BlendFactorDestinationAlpha: ebiten.BlendFactorOne,
+				BlendOperationColor:         cop,
+				BlendOperationAlpha:         aop,
+			}
+			dst.DrawImage(src, op)
+			for i := 0; i < w; i++ {
+				got := dst.At(i, 0).(color.RGBA)
+
+				sr, sg, sb, sa := srcColor(i)
+				dr, dg, db, da := dstColor(i)
+
+				var want color.RGBA
+				switch cop {
+				case ebiten.BlendOperationAdd:
+					want.R = clamp(int(sr) + int(dr))
+					want.G = clamp(int(sg) + int(dg))
+					want.B = clamp(int(sb) + int(db))
+				case ebiten.BlendOperationSubtract:
+					want.R = clamp(int(sr) - int(dr))
+					want.G = clamp(int(sg) - int(dg))
+					want.B = clamp(int(sb) - int(db))
+				case ebiten.BlendOperationReverseSubtract:
+					want.R = clamp(int(dr) - int(sr))
+					want.G = clamp(int(dg) - int(sg))
+					want.B = clamp(int(db) - int(sb))
+				}
+				switch aop {
+				case ebiten.BlendOperationAdd:
+					want.A = clamp(int(sa) + int(da))
+				case ebiten.BlendOperationSubtract:
+					want.A = clamp(int(sa) - int(da))
+				case ebiten.BlendOperationReverseSubtract:
+					want.A = clamp(int(da) - int(sa))
+				}
+
+				if !sameColors(got, want, 1) {
+					t.Errorf("dst.At(%d, 0): operations: %d, %d: got: %v, want: %v", i, cop, aop, got, want)
+				}
+			}
+		}
+	}
+}

@@ -55,6 +55,10 @@ func blendOperationToBlendOp(o graphicsdriver.BlendOperation) _D3D12_BLEND_OP {
 	switch o {
 	case graphicsdriver.BlendOperationAdd:
 		return _D3D12_BLEND_OP_ADD
+	case graphicsdriver.BlendOperationSubtract:
+		return _D3D12_BLEND_OP_SUBTRACT
+	case graphicsdriver.BlendOperationReverseSubtract:
+		return _D3D12_BLEND_OP_REV_SUBTRACT
 	default:
 		panic(fmt.Sprintf("directx: invalid blend operation: %d", o))
 	}

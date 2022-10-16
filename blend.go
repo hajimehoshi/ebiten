@@ -104,12 +104,24 @@ const (
 	// BlendOperationAdd represents adding the source and destination color.
 	// c_out = factor_src × c_src + factor_dst × c_dst
 	BlendOperationAdd BlendOperation = iota
+
+	// BlendOperationSubtract represents subtracting the source and destination color.
+	// c_out = factor_src × c_src - factor_dst × c_dst
+	BlendOperationSubtract
+
+	// BlendOperationReverseSubtract represents subtracting the source and destination color in a reversed order.
+	// c_out = factor_dst × c_dst - factor_src × c_src
+	BlendOperationReverseSubtract
 )
 
 func (b BlendOperation) internalBlendOperation() graphicsdriver.BlendOperation {
 	switch b {
 	case BlendOperationAdd:
 		return graphicsdriver.BlendOperationAdd
+	case BlendOperationSubtract:
+		return graphicsdriver.BlendOperationSubtract
+	case BlendOperationReverseSubtract:
+		return graphicsdriver.BlendOperationReverseSubtract
 	default:
 		panic(fmt.Sprintf("ebiten: invalid blend operation: %d", b))
 	}

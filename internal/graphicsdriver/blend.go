@@ -39,8 +39,8 @@ type BlendOperation byte
 
 const (
 	BlendOperationAdd BlendOperation = iota
-
-	// TODO: Add more operators
+	BlendOperationSubtract
+	BlendOperationReverseSubtract
 )
 
 var BlendSourceOver = Blend{

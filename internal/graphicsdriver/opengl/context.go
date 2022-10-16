@@ -36,7 +36,9 @@ const (
 type blendOperation int
 
 const (
-	glFuncAdd blendOperation = 0x8006
+	glFuncAdd             blendOperation = 0x8006
+	glFuncReverseSubtract blendOperation = 0x800b
+	glFuncSubtract        blendOperation = 0x800a
 )
 
 func convertBlendFactor(f graphicsdriver.BlendFactor) blendFactor {
@@ -64,6 +66,10 @@ func convertBlendOperation(o graphicsdriver.BlendOperation) blendOperation {
 	switch o {
 	case graphicsdriver.BlendOperationAdd:
 		return glFuncAdd
+	case graphicsdriver.BlendOperationSubtract:
+		return glFuncSubtract
+	case graphicsdriver.BlendOperationReverseSubtract:
+		return glFuncReverseSubtract
 	default:
 		panic(fmt.Sprintf("opengl: invalid blend operation %d", o))
 	}
