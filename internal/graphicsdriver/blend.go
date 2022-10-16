@@ -23,7 +23,7 @@ type Blend struct {
 	BlendOperationAlpha         BlendOperation
 }
 
-type BlendFactor int
+type BlendFactor byte
 
 const (
 	BlendFactorZero BlendFactor = iota
@@ -35,7 +35,7 @@ const (
 	BlendFactorDestinationColor
 )
 
-type BlendOperation int
+type BlendOperation byte
 
 const (
 	BlendOperationAdd BlendOperation = iota
