@@ -35,6 +35,8 @@ type temporaryBytes struct {
 	pixels           []byte
 	pos              int
 	notFullyUsedTime int
+
+	m sync.Mutex
 }
 
 var theTemporaryBytes temporaryBytes
@@ -738,9 +740,12 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path stri
 func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 	backendsM.Lock()
 
-	theTemporaryBytes.resetAtFrameEnd()
+	if err := restorable.ResolveStaleImages(graphicsDriver, true); err != nil {
+		return err
+	}
 
-	return restorable.ResolveStaleImages(graphicsDriver, true)
+	theTemporaryBytes.resetAtFrameEnd()
+	return nil
 }
 
 func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {

@@ -249,6 +249,8 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 // FlushCommands flushes the command queue and present the screen if needed.
 // If endFrame is true, the current screen might be used to present.
 func FlushCommands(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
+	resolveImages()
+
 	return theCommandQueue.Flush(graphicsDriver, endFrame)
 }
 
