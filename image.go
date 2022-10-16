@@ -115,8 +115,15 @@ type DrawImageOptions struct {
 	ColorM ColorM
 
 	// CompositeMode is a composite mode to draw.
-	// The default (zero) value is regular alpha blending.
+	// The default (zero) value is CompositeModeCustom (Blend is used).
+	//
+	// Deprecated: as of v2.5. Use Blend instead.
 	CompositeMode CompositeMode
+
+	// Blend is a blending way of the source color and the destination color.
+	// Blend is used only when CompositeMode is CompositeModeCustom.
+	// The default (zero) value is the regular alpha blending.
+	Blend Blend
 
 	// Filter is a type of texture filter.
 	// The default (zero) value is FilterNearest.
@@ -187,7 +194,7 @@ func (i *Image) adjustedRegion() graphicsdriver.Region {
 //   - If only (*ColorM).Scale is applied to a ColorM, the ColorM has only
 //     diagonal elements. The other ColorM functions might modify the other
 //     elements.
-//   - All CompositeMode values are same
+//   - All CompositeMode/Blend values are same
 //   - All Filter values are same
 //
 // Even when all the above conditions are satisfied, multiple draw commands can
@@ -215,7 +222,12 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		options = &DrawImageOptions{}
 	}
 
-	blend := options.CompositeMode.blend()
+	var blend graphicsdriver.Blend
+	if options.CompositeMode == CompositeModeCustom {
+		blend = options.Blend.internalBlend()
+	} else {
+		blend = options.CompositeMode.blend().internalBlend()
+	}
 	filter := builtinshader.Filter(options.Filter)
 
 	if offsetX, offsetY := i.adjustPosition(0, 0); offsetX != 0 || offsetY != 0 {
@@ -327,8 +339,15 @@ type DrawTrianglesOptions struct {
 	ColorScaleFormat ColorScaleFormat
 
 	// CompositeMode is a composite mode to draw.
-	// The default (zero) value is regular alpha blending.
+	// The default (zero) value is CompositeModeCustom (Blend is used).
+	//
+	// Deprecated: as of v2.5. Use Blend instead.
 	CompositeMode CompositeMode
+
+	// Blend is a blending way of the source color and the destination color.
+	// Blend is used only when CompositeMode is CompositeModeCustom.
+	// The default (zero) value is the regular alpha blending.
+	Blend Blend
 
 	// Filter is a type of texture filter.
 	// The default (zero) value is FilterNearest.
@@ -396,7 +415,12 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		options = &DrawTrianglesOptions{}
 	}
 
-	blend := options.CompositeMode.blend()
+	var blend graphicsdriver.Blend
+	if options.CompositeMode == CompositeModeCustom {
+		blend = options.Blend.internalBlend()
+	} else {
+		blend = options.CompositeMode.blend().internalBlend()
+	}
 
 	address := builtinshader.Address(options.Address)
 	var sr graphicsdriver.Region
@@ -461,8 +485,15 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
 type DrawTrianglesShaderOptions struct {
 	// CompositeMode is a composite mode to draw.
-	// The default (zero) value is regular alpha blending.
+	// The default (zero) value is CompositeModeCustom (Blend is used).
+	//
+	// Deprecated: as of v2.5. Use Blend instead.
 	CompositeMode CompositeMode
+
+	// Blend is a blending way of the source color and the destination color.
+	// Blend is used only when CompositeMode is CompositeModeCustom.
+	// The default (zero) value is the regular alpha blending.
+	Blend Blend
 
 	// Uniforms is a set of uniform variables for the shader.
 	// The keys are the names of the uniform variables.
@@ -525,7 +556,12 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		options = &DrawTrianglesShaderOptions{}
 	}
 
-	blend := options.CompositeMode.blend()
+	var blend graphicsdriver.Blend
+	if options.CompositeMode == CompositeModeCustom {
+		blend = options.Blend.internalBlend()
+	} else {
+		blend = options.CompositeMode.blend().internalBlend()
+	}
 
 	vs := graphics.Vertices(len(vertices))
 	dst := i
@@ -604,8 +640,15 @@ type DrawRectShaderOptions struct {
 	ColorScale ColorScale
 
 	// CompositeMode is a composite mode to draw.
-	// The default (zero) value is regular alpha blending.
+	// The default (zero) value is CompositeModeCustom (Blend is used).
+	//
+	// Deprecated: as of v2.5. Use Blend instead.
 	CompositeMode CompositeMode
+
+	// Blend is a blending way of the source color and the destination color.
+	// Blend is used only when CompositeMode is CompositeModeCustom.
+	// The default (zero) value is the regular alpha blending.
+	Blend Blend
 
 	// Uniforms is a set of uniform variables for the shader.
 	// The keys are the names of the uniform variables.
@@ -645,7 +688,12 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		options = &DrawRectShaderOptions{}
 	}
 
-	blend := options.CompositeMode.blend()
+	var blend graphicsdriver.Blend
+	if options.CompositeMode == CompositeModeCustom {
+		blend = options.Blend.internalBlend()
+	} else {
+		blend = options.CompositeMode.blend().internalBlend()
+	}
 
 	var imgs [graphics.ShaderImageCount]*ui.Image
 	for i, img := range options.Images {

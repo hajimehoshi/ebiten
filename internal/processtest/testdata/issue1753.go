@@ -48,7 +48,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		g.dst = ebiten.NewImage(w, h)
 
 		op := &ebiten.DrawRectShaderOptions{}
-		op.CompositeMode = ebiten.CompositeModeCopy
+		op.Blend = ebiten.BlendCopy
 		op.Uniforms = map[string]interface{}{
 			"Color": []float32{1, 1, 1, 1},
 		}
@@ -78,7 +78,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 
 		op := &ebiten.DrawRectShaderOptions{}
-		op.CompositeMode = ebiten.CompositeModeCopy
+		op.Blend = ebiten.BlendCopy
 		op.Uniforms = map[string]interface{}{
 			"Dummy": float32(0),
 			"R":     float32(0.5),

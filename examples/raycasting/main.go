@@ -234,7 +234,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Subtract ray triangles from shadow
 	opt := &ebiten.DrawTrianglesOptions{}
 	opt.Address = ebiten.AddressRepeat
-	opt.CompositeMode = ebiten.CompositeModeSourceOut
+	opt.Blend = ebiten.BlendSourceOut
 	for i, line := range rays {
 		nextLine := rays[(i+1)%len(rays)]
 

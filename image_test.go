@@ -342,7 +342,7 @@ func min(a, b int) int {
 	return b
 }
 
-func TestImageCompositeModeLighter(t *testing.T) {
+func TestImageBlendLighter(t *testing.T) {
 	img0, _, err := openEbitenImage()
 	if err != nil {
 		t.Fatal(err)
@@ -353,7 +353,7 @@ func TestImageCompositeModeLighter(t *testing.T) {
 	img1 := ebiten.NewImage(w, h)
 	img1.Fill(color.RGBA{0x01, 0x02, 0x03, 0x04})
 	op := &ebiten.DrawImageOptions{}
-	op.CompositeMode = ebiten.CompositeModeLighter
+	op.Blend = ebiten.BlendLighter
 	img1.DrawImage(img0, op)
 	for j := 0; j < img1.Bounds().Size().Y; j++ {
 		for i := 0; i < img1.Bounds().Size().X; i++ {
@@ -2343,7 +2343,7 @@ func TestImageColorMCopy(t *testing.T) {
 	for k := 0; k < 256; k++ {
 		op := &ebiten.DrawImageOptions{}
 		op.ColorM.Translate(1, 1, 1, float64(k)/0xff)
-		op.CompositeMode = ebiten.CompositeModeCopy
+		op.Blend = ebiten.BlendCopy
 		dst.DrawImage(src, op)
 
 		for j := 0; j < h; j++ {

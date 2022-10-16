@@ -52,16 +52,16 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	screen.Fill(color.NRGBA{0x00, 0x40, 0x80, 0xff})
 
-	// Draw the image with 'Source Alpha' composite mode (default).
+	// Draw the image with 'Source Over' blend mode (default).
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(ox, oy)
 	screen.DrawImage(ebitenImage, op)
 
-	// Draw the image with 'Lighter (a.k.a Additive)' composite mode.
+	// Draw the image with 'Lighter (a.k.a Additive)' blend mode.
 	op = &ebiten.DrawImageOptions{}
 	w, _ := ebitenImage.Size()
 	op.GeoM.Translate(ox+float64(w), oy)
-	op.CompositeMode = ebiten.CompositeModeLighter
+	op.Blend = ebiten.BlendLighter
 	screen.DrawImage(ebitenImage, op)
 }
 
