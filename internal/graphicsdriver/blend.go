@@ -32,7 +32,7 @@ const (
 	BlendFactorDestinationAlpha
 	BlendFactorOneMinusSourceAlpha
 	BlendFactorOneMinusDestinationAlpha
-	BlendFactorDestinationRGB
+	BlendFactorDestinationColor
 )
 
 type BlendOperation byte

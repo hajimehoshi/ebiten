@@ -80,7 +80,7 @@ const (
 	// Deprecated: as of v2.5. Use BlendLighter instead.
 	CompositeModeLighter
 
-	// Deprecated: as of v2.5. Use Blend with BlendFactorDestinationRGB and BlendFactorZero instead.
+	// Deprecated: as of v2.5. Use Blend with BlendFactorDestinationColor and BlendFactorZero instead.
 	CompositeModeMultiply
 )
 
@@ -114,8 +114,8 @@ func (c CompositeMode) blend() Blend {
 		return BlendLighter
 	case CompositeModeMultiply:
 		return Blend{
-			BlendFactorSourceRGB:        BlendFactorDestinationRGB,
-			BlendFactorSourceAlpha:      BlendFactorDestinationRGB,
+			BlendFactorSourceRGB:        BlendFactorDestinationColor,
+			BlendFactorSourceAlpha:      BlendFactorDestinationColor,
 			BlendFactorDestinationRGB:   BlendFactorZero,
 			BlendFactorDestinationAlpha: BlendFactorZero,
 			BlendOperationRGB:           BlendOperationAdd,

@@ -67,7 +67,7 @@ const (
 	BlendFactorDestinationAlpha
 	BlendFactorOneMinusSourceAlpha
 	BlendFactorOneMinusDestinationAlpha
-	BlendFactorDestinationRGB
+	BlendFactorDestinationColor
 )
 
 func (b BlendFactor) internalBlendFactor(source bool) graphicsdriver.BlendFactor {
@@ -90,8 +90,8 @@ func (b BlendFactor) internalBlendFactor(source bool) graphicsdriver.BlendFactor
 		return graphicsdriver.BlendFactorOneMinusSourceAlpha
 	case BlendFactorOneMinusDestinationAlpha:
 		return graphicsdriver.BlendFactorOneMinusDestinationAlpha
-	case BlendFactorDestinationRGB:
-		return graphicsdriver.BlendFactorDestinationRGB
+	case BlendFactorDestinationColor:
+		return graphicsdriver.BlendFactorDestinationColor
 	default:
 		panic(fmt.Sprintf("ebiten: invalid blend factor: %d", b))
 	}

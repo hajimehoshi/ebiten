@@ -39,7 +39,7 @@ func blendFactorToBlend(f graphicsdriver.BlendFactor, alpha bool) _D3D12_BLEND {
 		return _D3D12_BLEND_INV_SRC_ALPHA
 	case graphicsdriver.BlendFactorOneMinusDestinationAlpha:
 		return _D3D12_BLEND_INV_DEST_ALPHA
-	case graphicsdriver.BlendFactorDestinationRGB:
+	case graphicsdriver.BlendFactorDestinationColor:
 		// D3D12_RENDER_TARGET_BLEND_DESC's *BlendAlpha members don't allow *_COLOR values.
 		// See https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_render_target_blend_desc.
 		if alpha {

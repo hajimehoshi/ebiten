@@ -275,7 +275,7 @@ const (
 	BlendFactorOneMinusSourceColor      BlendFactor = 3
 	BlendFactorSourceAlpha              BlendFactor = 4
 	BlendFactorOneMinusSourceAlpha      BlendFactor = 5
-	BlendFactorDestinationRGB           BlendFactor = 6
+	BlendFactorDestinationColor         BlendFactor = 6
 	BlendFactorOneMinusDestinationColor BlendFactor = 7
 	BlendFactorDestinationAlpha         BlendFactor = 8
 	BlendFactorOneMinusDestinationAlpha BlendFactor = 9
