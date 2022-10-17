@@ -77,13 +77,58 @@ const (
 	// BlendFactorDefault is the default factor value.
 	// The actual value depends on which source or destination this value is used.
 	BlendFactorDefault BlendFactor = iota
+
+	// BlendFactorZero is a factor:
+	//
+	//     0
 	BlendFactorZero
+
+	// BlendFactorOne is a factor:
+	//
+	//     1
 	BlendFactorOne
+
+	// BlendFactorSourceColor is a factor:
+	//
+	//     (source RGBA)
+	BlendFactorSourceColor
+
+	// BlendFactorOneMinusSourceColor is a factor:
+	//
+	//     1 - (source color)
+	BlendFactorOneMinusSourceColor
+
+	// BlendFactorSourceAlpha is a factor:
+	//
+	//     (source alpha)
 	BlendFactorSourceAlpha
-	BlendFactorDestinationAlpha
+
+	// BlendFactorOneMinusSourceAlpha is a factor:
+	//
+	//     1 - (source alpha)
 	BlendFactorOneMinusSourceAlpha
-	BlendFactorOneMinusDestinationAlpha
+
+	// BlendFactorDestinationColor is a factor:
+	//
+	//     (destination RGBA)
 	BlendFactorDestinationColor
+
+	// BlendFactorOneMinusDestinationColor is a factor:
+	//
+	//     1 - (destination RGBA)
+	BlendFactorOneMinusDestinationColor
+
+	// BlendFactorDestinationAlpha is a factor:
+	//
+	//     (destination alpha)
+	BlendFactorDestinationAlpha
+
+	// BlendFactorOneMinusDestinationAlpha is a factor:
+	//
+	//     1 - (destination alpha)
+	BlendFactorOneMinusDestinationAlpha
+
+	// TODO: Add BlendFactorSourceAlphaSaturated. This might not work well on some platforms like Steam SDK (#2382).
 )
 
 func (b BlendFactor) internalBlendFactor(source bool) graphicsdriver.BlendFactor {
@@ -98,16 +143,22 @@ func (b BlendFactor) internalBlendFactor(source bool) graphicsdriver.BlendFactor
 		return graphicsdriver.BlendFactorZero
 	case BlendFactorOne:
 		return graphicsdriver.BlendFactorOne
+	case BlendFactorSourceColor:
+		return graphicsdriver.BlendFactorSourceColor
+	case BlendFactorOneMinusSourceColor:
+		return graphicsdriver.BlendFactorOneMinusSourceColor
 	case BlendFactorSourceAlpha:
 		return graphicsdriver.BlendFactorSourceAlpha
-	case BlendFactorDestinationAlpha:
-		return graphicsdriver.BlendFactorDestinationAlpha
 	case BlendFactorOneMinusSourceAlpha:
 		return graphicsdriver.BlendFactorOneMinusSourceAlpha
-	case BlendFactorOneMinusDestinationAlpha:
-		return graphicsdriver.BlendFactorOneMinusDestinationAlpha
 	case BlendFactorDestinationColor:
 		return graphicsdriver.BlendFactorDestinationColor
+	case BlendFactorOneMinusDestinationColor:
+		return graphicsdriver.BlendFactorOneMinusDestinationColor
+	case BlendFactorDestinationAlpha:
+		return graphicsdriver.BlendFactorDestinationAlpha
+	case BlendFactorOneMinusDestinationAlpha:
+		return graphicsdriver.BlendFactorOneMinusDestinationAlpha
 	default:
 		panic(fmt.Sprintf("ebiten: invalid blend factor: %d", b))
 	}

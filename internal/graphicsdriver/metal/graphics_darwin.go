@@ -306,16 +306,24 @@ func blendFactorToMetalBlendFactor(c graphicsdriver.BlendFactor) mtl.BlendFactor
 		return mtl.BlendFactorZero
 	case graphicsdriver.BlendFactorOne:
 		return mtl.BlendFactorOne
+	case graphicsdriver.BlendFactorSourceColor:
+		return mtl.BlendFactorSourceColor
+	case graphicsdriver.BlendFactorOneMinusSourceColor:
+		return mtl.BlendFactorOneMinusSourceColor
 	case graphicsdriver.BlendFactorSourceAlpha:
 		return mtl.BlendFactorSourceAlpha
-	case graphicsdriver.BlendFactorDestinationAlpha:
-		return mtl.BlendFactorDestinationAlpha
 	case graphicsdriver.BlendFactorOneMinusSourceAlpha:
 		return mtl.BlendFactorOneMinusSourceAlpha
-	case graphicsdriver.BlendFactorOneMinusDestinationAlpha:
-		return mtl.BlendFactorOneMinusDestinationAlpha
 	case graphicsdriver.BlendFactorDestinationColor:
 		return mtl.BlendFactorDestinationColor
+	case graphicsdriver.BlendFactorOneMinusDestinationColor:
+		return mtl.BlendFactorOneMinusDestinationColor
+	case graphicsdriver.BlendFactorDestinationAlpha:
+		return mtl.BlendFactorDestinationAlpha
+	case graphicsdriver.BlendFactorOneMinusDestinationAlpha:
+		return mtl.BlendFactorOneMinusDestinationAlpha
+	case graphicsdriver.BlendFactorSourceAlphaSaturated:
+		return mtl.BlendFactorSourceAlphaSaturated
 	default:
 		panic(fmt.Sprintf("metal: invalid blend factor: %d", c))
 	}

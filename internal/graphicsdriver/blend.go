@@ -28,11 +28,15 @@ type BlendFactor byte
 const (
 	BlendFactorZero BlendFactor = iota
 	BlendFactorOne
+	BlendFactorSourceColor
+	BlendFactorOneMinusSourceColor
 	BlendFactorSourceAlpha
-	BlendFactorDestinationAlpha
 	BlendFactorOneMinusSourceAlpha
-	BlendFactorOneMinusDestinationAlpha
 	BlendFactorDestinationColor
+	BlendFactorOneMinusDestinationColor
+	BlendFactorDestinationAlpha
+	BlendFactorOneMinusDestinationAlpha
+	BlendFactorSourceAlphaSaturated
 )
 
 type BlendOperation byte

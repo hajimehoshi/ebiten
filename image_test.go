@@ -3647,3 +3647,211 @@ func TestImageBlendOperation(t *testing.T) {
 		}
 	}
 }
+
+func TestImageBlendFactor(t *testing.T) {
+	const w, h = 16, 1
+	dst := ebiten.NewImage(w, h)
+	src := ebiten.NewImage(w, h)
+
+	dstColor := func(i int) (byte, byte, byte, byte) {
+		return byte(4 * i * 17), byte(4*i*17 + 1), byte(4*i*17 + 2), byte(4*i*17 + 3)
+	}
+	srcColor := func(i int) (byte, byte, byte, byte) {
+		return byte(4 * i * 13), byte(4*i*13 + 1), byte(4*i*13 + 2), byte(4*i*13 + 3)
+	}
+	colorToFloats := func(r, g, b, a byte) (float64, float64, float64, float64) {
+		return float64(r) / 0xff, float64(g) / 0xff, float64(b) / 0xff, float64(a) / 0xff
+	}
+	clamp := func(x int) byte {
+		if x > 255 {
+			return 255
+		}
+		if x < 0 {
+			return 0
+		}
+		return byte(x)
+	}
+
+	dstPix := make([]byte, 4*w*h)
+	for i := 0; i < w; i++ {
+		r, g, b, a := dstColor(i)
+		dstPix[4*i] = r
+		dstPix[4*i+1] = g
+		dstPix[4*i+2] = b
+		dstPix[4*i+3] = a
+	}
+	srcPix := make([]byte, 4*w*h)
+	for i := 0; i < w; i++ {
+		r, g, b, a := srcColor(i)
+		srcPix[4*i] = r
+		srcPix[4*i+1] = g
+		srcPix[4*i+2] = b
+		srcPix[4*i+3] = a
+	}
+	src.WritePixels(srcPix)
+
+	factors := []ebiten.BlendFactor{
+		ebiten.BlendFactorZero,
+		ebiten.BlendFactorOne,
+		ebiten.BlendFactorSourceColor,
+		ebiten.BlendFactorOneMinusSourceColor,
+		ebiten.BlendFactorSourceAlpha,
+		ebiten.BlendFactorOneMinusSourceAlpha,
+		ebiten.BlendFactorDestinationColor,
+		ebiten.BlendFactorOneMinusDestinationColor,
+		ebiten.BlendFactorDestinationAlpha,
+		ebiten.BlendFactorOneMinusDestinationAlpha,
+	}
+	for _, srcRGBFactor := range factors {
+		for _, srcAlphaFactor := range factors {
+			for _, dstRGBFactor := range factors {
+				for _, dstAlphaFactor := range factors {
+					// Reset the destination state.
+					dst.WritePixels(dstPix)
+					op := &ebiten.DrawImageOptions{}
+					op.Blend = ebiten.Blend{
+						BlendFactorSourceRGB:        srcRGBFactor,
+						BlendFactorSourceAlpha:      srcAlphaFactor,
+						BlendFactorDestinationRGB:   dstRGBFactor,
+						BlendFactorDestinationAlpha: dstAlphaFactor,
+						BlendOperationRGB:           ebiten.BlendOperationAdd,
+						BlendOperationAlpha:         ebiten.BlendOperationAdd,
+					}
+					dst.DrawImage(src, op)
+					for i := 0; i < w; i++ {
+						got := dst.At(i, 0).(color.RGBA)
+
+						sr, sg, sb, sa := colorToFloats(srcColor(i))
+						dr, dg, db, da := colorToFloats(dstColor(i))
+
+						var r, g, b, a float64
+
+						switch srcRGBFactor {
+						case ebiten.BlendFactorZero:
+							r += 0 * sr
+							g += 0 * sg
+							b += 0 * sb
+						case ebiten.BlendFactorOne:
+							r += 1 * sr
+							g += 1 * sg
+							b += 1 * sb
+						case ebiten.BlendFactorSourceColor:
+							r += sr * sr
+							g += sg * sg
+							b += sb * sb
+						case ebiten.BlendFactorOneMinusSourceColor:
+							r += (1 - sr) * sr
+							g += (1 - sg) * sg
+							b += (1 - sb) * sb
+						case ebiten.BlendFactorSourceAlpha:
+							r += sa * sr
+							g += sa * sg
+							b += sa * sb
+						case ebiten.BlendFactorOneMinusSourceAlpha:
+							r += (1 - sa) * sr
+							g += (1 - sa) * sg
+							b += (1 - sa) * sb
+						case ebiten.BlendFactorDestinationColor:
+							r += dr * sr
+							g += dg * sg
+							b += db * sb
+						case ebiten.BlendFactorOneMinusDestinationColor:
+							r += (1 - dr) * sr
+							g += (1 - dg) * sg
+							b += (1 - db) * sb
+						case ebiten.BlendFactorDestinationAlpha:
+							r += da * sr
+							g += da * sg
+							b += da * sb
+						case ebiten.BlendFactorOneMinusDestinationAlpha:
+							r += (1 - da) * sr
+							g += (1 - da) * sg
+							b += (1 - da) * sb
+						}
+						switch srcAlphaFactor {
+						case ebiten.BlendFactorZero:
+							a += 0 * sa
+						case ebiten.BlendFactorOne:
+							a += 1 * sa
+						case ebiten.BlendFactorSourceColor, ebiten.BlendFactorSourceAlpha:
+							a += sa * sa
+						case ebiten.BlendFactorOneMinusSourceColor, ebiten.BlendFactorOneMinusSourceAlpha:
+							a += (1 - sa) * sa
+						case ebiten.BlendFactorDestinationColor, ebiten.BlendFactorDestinationAlpha:
+							a += da * sa
+						case ebiten.BlendFactorOneMinusDestinationColor, ebiten.BlendFactorOneMinusDestinationAlpha:
+							a += (1 - da) * sa
+						}
+
+						switch dstRGBFactor {
+						case ebiten.BlendFactorZero:
+							r += 0 * dr
+							g += 0 * dg
+							b += 0 * db
+						case ebiten.BlendFactorOne:
+							r += 1 * dr
+							g += 1 * dg
+							b += 1 * db
+						case ebiten.BlendFactorSourceColor:
+							r += sr * dr
+							g += sg * dg
+							b += sb * db
+						case ebiten.BlendFactorOneMinusSourceColor:
+							r += (1 - sr) * dr
+							g += (1 - sg) * dg
+							b += (1 - sb) * db
+						case ebiten.BlendFactorSourceAlpha:
+							r += sa * dr
+							g += sa * dg
+							b += sa * db
+						case ebiten.BlendFactorOneMinusSourceAlpha:
+							r += (1 - sa) * dr
+							g += (1 - sa) * dg
+							b += (1 - sa) * db
+						case ebiten.BlendFactorDestinationColor:
+							r += dr * dr
+							g += dg * dg
+							b += db * db
+						case ebiten.BlendFactorOneMinusDestinationColor:
+							r += (1 - dr) * dr
+							g += (1 - dg) * dg
+							b += (1 - db) * db
+						case ebiten.BlendFactorDestinationAlpha:
+							r += da * dr
+							g += da * dg
+							b += da * db
+						case ebiten.BlendFactorOneMinusDestinationAlpha:
+							r += (1 - da) * dr
+							g += (1 - da) * dg
+							b += (1 - da) * db
+						}
+						switch dstAlphaFactor {
+						case ebiten.BlendFactorZero:
+							a += 0 * da
+						case ebiten.BlendFactorOne:
+							a += 1 * da
+						case ebiten.BlendFactorSourceColor, ebiten.BlendFactorSourceAlpha:
+							a += sa * da
+						case ebiten.BlendFactorOneMinusSourceColor, ebiten.BlendFactorOneMinusSourceAlpha:
+							a += (1 - sa) * da
+						case ebiten.BlendFactorDestinationColor, ebiten.BlendFactorDestinationAlpha:
+							a += da * da
+						case ebiten.BlendFactorOneMinusDestinationColor, ebiten.BlendFactorOneMinusDestinationAlpha:
+							a += (1 - da) * da
+						}
+
+						want := color.RGBA{
+							R: clamp(int(r * 0xff)),
+							G: clamp(int(g * 0xff)),
+							B: clamp(int(b * 0xff)),
+							A: clamp(int(a * 0xff)),
+						}
+						if !sameColors(got, want, 1) {
+							t.Errorf("dst.At(%d, 0): factors: %d, %d, %d, %d: got: %v, want: %v", i, srcRGBFactor, srcAlphaFactor, dstRGBFactor, dstAlphaFactor, got, want)
+						}
+					}
+				}
+			}
+		}
+	}
+}

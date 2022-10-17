@@ -26,26 +26,44 @@ import (
 const numDescriptorsPerFrame = 32
 
 func blendFactorToBlend(f graphicsdriver.BlendFactor, alpha bool) _D3D12_BLEND {
+	// D3D12_RENDER_TARGET_BLEND_DESC's *BlendAlpha members don't allow *_COLOR values.
+	// See https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_render_target_blend_desc.
+
 	switch f {
 	case graphicsdriver.BlendFactorZero:
 		return _D3D12_BLEND_ZERO
 	case graphicsdriver.BlendFactorOne:
 		return _D3D12_BLEND_ONE
+	case graphicsdriver.BlendFactorSourceColor:
+		if alpha {
+			return _D3D12_BLEND_SRC_ALPHA
+		}
+		return _D3D12_BLEND_SRC_COLOR
+	case graphicsdriver.BlendFactorOneMinusSourceColor:
+		if alpha {
+			return _D3D12_BLEND_INV_SRC_ALPHA
+		}
+		return _D3D12_BLEND_INV_SRC_COLOR
 	case graphicsdriver.BlendFactorSourceAlpha:
 		return _D3D12_BLEND_SRC_ALPHA
-	case graphicsdriver.BlendFactorDestinationAlpha:
-		return _D3D12_BLEND_DEST_ALPHA
 	case graphicsdriver.BlendFactorOneMinusSourceAlpha:
 		return _D3D12_BLEND_INV_SRC_ALPHA
-	case graphicsdriver.BlendFactorOneMinusDestinationAlpha:
-		return _D3D12_BLEND_INV_DEST_ALPHA
 	case graphicsdriver.BlendFactorDestinationColor:
-		// D3D12_RENDER_TARGET_BLEND_DESC's *BlendAlpha members don't allow *_COLOR values.
-		// See https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_render_target_blend_desc.
 		if alpha {
 			return _D3D12_BLEND_DEST_ALPHA
 		}
 		return _D3D12_BLEND_DEST_COLOR
+	case graphicsdriver.BlendFactorOneMinusDestinationColor:
+		if alpha {
+			return _D3D12_BLEND_INV_DEST_ALPHA
+		}
+		return _D3D12_BLEND_INV_DEST_COLOR
+	case graphicsdriver.BlendFactorDestinationAlpha:
+		return _D3D12_BLEND_DEST_ALPHA
+	case graphicsdriver.BlendFactorOneMinusDestinationAlpha:
+		return _D3D12_BLEND_INV_DEST_ALPHA
+	case graphicsdriver.BlendFactorSourceAlphaSaturated:
+		return _D3D12_BLEND_SRC_ALPHA_SAT
 	default:
 		panic(fmt.Sprintf("directx: invalid blend factor: %d", f))
 	}

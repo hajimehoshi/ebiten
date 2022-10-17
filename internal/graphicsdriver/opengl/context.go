@@ -24,12 +24,16 @@ import (
 type blendFactor int
 
 const (
-	glDstAlpha         blendFactor = 0x0304
-	glDstColor         blendFactor = 0x0306
+	glDstAlpha         blendFactor = 0x304
+	glDstColor         blendFactor = 0x306
 	glOne              blendFactor = 1
-	glOneMinusDstAlpha blendFactor = 0x0305
-	glOneMinusSrcAlpha blendFactor = 0x0303
-	glSrcAlpha         blendFactor = 0x0302
+	glOneMinusDstAlpha blendFactor = 0x305
+	glOneMinusDstColor blendFactor = 0x307
+	glOneMinusSrcAlpha blendFactor = 0x303
+	glOneMinusSrcColor blendFactor = 0x301
+	glSrcAlpha         blendFactor = 0x302
+	glSrcAlphaSaturate blendFactor = 0x308
+	glSrcColor         blendFactor = 0x300
 	glZero             blendFactor = 0
 )
 
@@ -47,16 +51,24 @@ func convertBlendFactor(f graphicsdriver.BlendFactor) blendFactor {
 		return glZero
 	case graphicsdriver.BlendFactorOne:
 		return glOne
+	case graphicsdriver.BlendFactorSourceColor:
+		return glSrcColor
+	case graphicsdriver.BlendFactorOneMinusSourceColor:
+		return glOneMinusSrcColor
 	case graphicsdriver.BlendFactorSourceAlpha:
 		return glSrcAlpha
-	case graphicsdriver.BlendFactorDestinationAlpha:
-		return glDstAlpha
 	case graphicsdriver.BlendFactorOneMinusSourceAlpha:
 		return glOneMinusSrcAlpha
-	case graphicsdriver.BlendFactorOneMinusDestinationAlpha:
-		return glOneMinusDstAlpha
 	case graphicsdriver.BlendFactorDestinationColor:
 		return glDstColor
+	case graphicsdriver.BlendFactorOneMinusDestinationColor:
+		return glOneMinusDstColor
+	case graphicsdriver.BlendFactorDestinationAlpha:
+		return glDstAlpha
+	case graphicsdriver.BlendFactorOneMinusDestinationAlpha:
+		return glOneMinusDstAlpha
+	case graphicsdriver.BlendFactorSourceAlphaSaturated:
+		return glSrcAlphaSaturate
 	default:
 		panic(fmt.Sprintf("opengl: invalid blend factor %d", f))
 	}
