@@ -108,6 +108,7 @@ func (c *context) blend(blend graphicsdriver.Blend) {
 	if c.lastBlend == blend {
 		return
 	}
+	c.lastBlend = blend
 	c.ctx.BlendFuncSeparate(
 		uint32(convertBlendFactor(blend.BlendFactorSourceRGB)),
 		uint32(convertBlendFactor(blend.BlendFactorDestinationRGB)),
