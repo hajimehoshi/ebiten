@@ -3591,18 +3591,13 @@ func TestImageBlendOperation(t *testing.T) {
 	}
 	src.WritePixels(srcPix)
 
-	colorOperations := []ebiten.BlendOperation{
+	operations := []ebiten.BlendOperation{
 		ebiten.BlendOperationAdd,
 		ebiten.BlendOperationSubtract,
 		ebiten.BlendOperationReverseSubtract,
 	}
-	alphaOperations := []ebiten.BlendOperation{
-		ebiten.BlendOperationAdd,
-		ebiten.BlendOperationSubtract,
-		ebiten.BlendOperationReverseSubtract,
-	}
-	for _, cop := range colorOperations {
-		for _, aop := range alphaOperations {
+	for _, rgbOp := range operations {
+		for _, alphaOp := range operations {
 			// Reset the destination state.
 			dst.WritePixels(dstPix)
 			op := &ebiten.DrawImageOptions{}
@@ -3611,8 +3606,8 @@ func TestImageBlendOperation(t *testing.T) {
 				BlendFactorSourceAlpha:      ebiten.BlendFactorOne,
 				BlendFactorDestinationRGB:   ebiten.BlendFactorOne,
 				BlendFactorDestinationAlpha: ebiten.BlendFactorOne,
-				BlendOperationRGB:           cop,
-				BlendOperationAlpha:         aop,
+				BlendOperationRGB:           rgbOp,
+				BlendOperationAlpha:         alphaOp,
 			}
 			dst.DrawImage(src, op)
 			for i := 0; i < w; i++ {
@@ -3622,7 +3617,7 @@ func TestImageBlendOperation(t *testing.T) {
 				dr, dg, db, da := dstColor(i)
 
 				var want color.RGBA
-				switch cop {
+				switch rgbOp {
 				case ebiten.BlendOperationAdd:
 					want.R = clamp(int(sr) + int(dr))
 					want.G = clamp(int(sg) + int(dg))
@@ -3636,7 +3631,7 @@ func TestImageBlendOperation(t *testing.T) {
 					want.G = clamp(int(dg) - int(sg))
 					want.B = clamp(int(db) - int(sb))
 				}
-				switch aop {
+				switch alphaOp {
 				case ebiten.BlendOperationAdd:
 					want.A = clamp(int(sa) + int(da))
 				case ebiten.BlendOperationSubtract:
@@ -3646,7 +3641,7 @@ func TestImageBlendOperation(t *testing.T) {
 				}
 
 				if !sameColors(got, want, 1) {
-					t.Errorf("dst.At(%d, 0): operations: %d, %d: got: %v, want: %v", i, cop, aop, got, want)
+					t.Errorf("dst.At(%d, 0): operations: %d, %d: got: %v, want: %v", i, rgbOp, alphaOp, got, want)
 				}
 			}
 		}
