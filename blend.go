@@ -22,7 +22,23 @@ import (
 
 // Blend is a blending way of the source color and the destination color.
 //
-// The default (zero) value is source-over (regular alpha blending).
+// The final color is calculated like this:
+//
+//	c_src: source RGB values
+//	c_dst: destination RGB values
+//	c_out: result RGB values
+//	α_src: source alpha values
+//	α_dst: destination alpha values
+//	α_out: result alpha values
+//
+//	c_out = BlendOperationRGB((BlendFactorSourceRGB) × c_src, (BlendFactorDestinationRGB) × c_dst)
+//	α_out = BlendOperationAlpha((BlendFactorSourceAlpha) × α_src, (BlendFactorDestinationAlpha) × α_dst)
+//
+// A blend factor is a factor for source and color destination color values.
+// The default is source-over (regular alpha blending).
+//
+// A blend operation is a binary operator of a source color and a destination color.
+// The default is adding.
 type Blend struct {
 	// BlendFactorSourceRGB is a factor for source RGB values.
 	BlendFactorSourceRGB BlendFactor
@@ -102,15 +118,21 @@ type BlendOperation byte
 
 const (
 	// BlendOperationAdd represents adding the source and destination color.
-	// c_out = factor_src × c_src + factor_dst × c_dst
+	//
+	//     c_out = (BlendFactorSourceRGB) × c_src + (BlendFactorDestinationRGB) × c_dst
+	//     α_out = (BlendFactorSourceAlpha) × α_src + (BlendFactorDestinationAlpha) × α_dst
 	BlendOperationAdd BlendOperation = iota
 
 	// BlendOperationSubtract represents subtracting the source and destination color.
-	// c_out = factor_src × c_src - factor_dst × c_dst
+	//
+	//     c_out = (BlendFactorSourceRGB) × c_src - (BlendFactorDestinationRGB) × c_dst
+	//     α_out = (BlendFactorSourceAlpha) × α_src - (BlendFactorDestinationAlpha) × α_dst
 	BlendOperationSubtract
 
 	// BlendOperationReverseSubtract represents subtracting the source and destination color in a reversed order.
-	// c_out = factor_dst × c_dst - factor_src × c_src
+	//
+	//     c_out = (BlendFactorDestinationRGB) × c_dst - (BlendFactorSourceRGB) × c_src
+	//     α_out = (BlendFactorDestinationAlpha) × α_dst - (BlendFactorSourceAlpha) × α_src
 	BlendOperationReverseSubtract
 )
 
@@ -132,8 +154,10 @@ func (b BlendOperation) internalBlendOperation() graphicsdriver.BlendOperation {
 // In the comments,
 // c_src, c_dst and c_out represent alpha-premultiplied RGB values of source, destination and output respectively. α_src and α_dst represent alpha values of source and destination respectively.
 var (
-	// BlendSourceOver represents the regular alpha blending.
-	// c_out = c_src + c_dst × (1 - α_src)
+	// BlendSourceOver is a preset Blend for the regular alpha blending.
+	//
+	//     c_out = c_src + c_dst × (1 - α_src)
+	//     α_out = α_src + α_dst × (1 - α_src)
 	BlendSourceOver = Blend{
 		BlendFactorSourceRGB:        BlendFactorOne,
 		BlendFactorSourceAlpha:      BlendFactorOne,
@@ -143,7 +167,10 @@ var (
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
-	// c_out = 0
+	// BlendClear is a preset Blend for Porter Duff's 'clear'.
+	//
+	//     c_out = 0
+	//     α_out = 0
 	BlendClear = Blend{
 		BlendFactorSourceRGB:        BlendFactorZero,
 		BlendFactorSourceAlpha:      BlendFactorZero,
@@ -153,7 +180,10 @@ var (
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
-	// c_out = c_src
+	// BlendCopy is a preset Blend for Porter Duff's 'copy'.
+	//
+	//     c_out = c_src
+	//     α_out = α_src
 	BlendCopy = Blend{
 		BlendFactorSourceRGB:        BlendFactorOne,
 		BlendFactorSourceAlpha:      BlendFactorOne,
@@ -163,7 +193,10 @@ var (
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
-	// c_out = c_dst
+	// BlendDestination is a preset Blend for Porter Duff's 'destination'.
+	//
+	//     c_out = c_dst
+	//     α_out = α_dst
 	BlendDestination = Blend{
 		BlendFactorSourceRGB:        BlendFactorZero,
 		BlendFactorSourceAlpha:      BlendFactorZero,
@@ -173,7 +206,10 @@ var (
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
-	// c_out = c_src × (1 - α_dst) + c_dst
+	// BlendDestinationOver is a preset Blend for Porter Duff's 'destination-over'.
+	//
+	//     c_out = c_src × (1 - α_dst) + c_dst
+	//     α_out = α_src × (1 - α_dst) + α_dst
 	BlendDestinationOver = Blend{
 		BlendFactorSourceRGB:        BlendFactorOneMinusDestinationAlpha,
 		BlendFactorSourceAlpha:      BlendFactorOneMinusDestinationAlpha,
@@ -183,7 +219,10 @@ var (
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
-	// c_out = c_src × α_dst
+	// BlendSourceIn is a preset Blend for Porter Duff's 'source-in'.
+	//
+	//     c_out = c_src × α_dst
+	//     α_out = α_src × α_dst
 	BlendSourceIn = Blend{
 		BlendFactorSourceRGB:        BlendFactorDestinationAlpha,
 		BlendFactorSourceAlpha:      BlendFactorDestinationAlpha,
@@ -193,7 +232,10 @@ var (
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
-	// c_out = c_dst × α_src
+	// BlendDestinationIn is a preset Blend for Porter Duff's 'destination-in'.
+	//
+	//     c_out = c_dst × α_src
+	//     α_out = α_dst × α_src
 	BlendDestinationIn = Blend{
 		BlendFactorSourceRGB:        BlendFactorZero,
 		BlendFactorSourceAlpha:      BlendFactorZero,
@@ -203,7 +245,10 @@ var (
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
-	// c_out = c_src × (1 - α_dst)
+	// BlendSourceOut is a preset Blend for Porter Duff's 'source-out'.
+	//
+	//     c_out = c_src × (1 - α_dst)
+	//     α_out = α_src × (1 - α_dst)
 	BlendSourceOut = Blend{
 		BlendFactorSourceRGB:        BlendFactorOneMinusDestinationAlpha,
 		BlendFactorSourceAlpha:      BlendFactorOneMinusDestinationAlpha,
@@ -213,7 +258,10 @@ var (
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
-	// c_out = c_dst × (1 - α_src)
+	// BlendDestinationOut is a preset Blend for Porter Duff's 'destination-out'.
+	//
+	//     c_out = c_dst × (1 - α_src)
+	//     α_out = α_dst × (1 - α_src)
 	BlendDestinationOut = Blend{
 		BlendFactorSourceRGB:        BlendFactorOneMinusDestinationAlpha,
 		BlendFactorSourceAlpha:      BlendFactorOneMinusDestinationAlpha,
@@ -223,7 +271,10 @@ var (
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
-	// c_out = c_src × α_dst + c_dst × (1 - α_src)
+	// BlendSourceAtop is a preset Blend for Porter Duff's 'source-atop'.
+	//
+	//     c_out = c_src × α_dst + c_dst × (1 - α_src)
+	//     α_out = α_src × α_dst + α_dst × (1 - α_src)
 	BlendSourceAtop = Blend{
 		BlendFactorSourceRGB:        BlendFactorDestinationAlpha,
 		BlendFactorSourceAlpha:      BlendFactorDestinationAlpha,
@@ -233,7 +284,10 @@ var (
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
-	// c_out = c_src × (1 - α_dst) + c_dst × α_src
+	// BlendDestinationAtop is a preset Blend for Porter Duff's 'destination-atop'.
+	//
+	//     c_out = c_src × (1 - α_dst) + c_dst × α_src
+	//     α_out = α_src × (1 - α_dst) + α_dst × α_src
 	BlendDestinationAtop = Blend{
 		BlendFactorSourceRGB:        BlendFactorOneMinusDestinationAlpha,
 		BlendFactorSourceAlpha:      BlendFactorOneMinusDestinationAlpha,
@@ -243,7 +297,10 @@ var (
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
-	// c_out = c_src × (1 - α_dst) + c_dst × (1 - α_src)
+	// BlendXor is a preset Blend for Porter Duff's 'xor'.
+	//
+	//     c_out = c_src × (1 - α_dst) + c_dst × (1 - α_src)
+	//     α_out = α_src × (1 - α_dst) + α_dst × (1 - α_src)
 	BlendXor = Blend{
 		BlendFactorSourceRGB:        BlendFactorOneMinusDestinationAlpha,
 		BlendFactorSourceAlpha:      BlendFactorOneMinusDestinationAlpha,
@@ -253,8 +310,11 @@ var (
 		BlendOperationAlpha:         BlendOperationAdd,
 	}
 
-	// Sum of source and destination (a.k.a. 'plus' or 'additive')
-	// c_out = c_src + c_dst
+	// BlendLighter is a preset Blend for Porter Duff's 'lighter'.
+	// This is sum of source and destination (a.k.a. 'plus' or 'additive')
+	//
+	//     c_out = c_src + c_dst
+	//     α_out = α_src + α_dst
 	BlendLighter = Blend{
 		BlendFactorSourceRGB:        BlendFactorOne,
 		BlendFactorSourceAlpha:      BlendFactorOne,
