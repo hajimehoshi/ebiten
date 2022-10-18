@@ -319,6 +319,9 @@ func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 //
 // The returned values are intended to be passed to DrawTriangles or DrawTrianglesShader with EvenOdd fill mode
 // in order to render a complex polygon like a concave polygon, a polygon with holes, or a self-intersecting polygon.
+//
+// The returned vertices and indices should be rendered with a solid (non-transparent) color with the default Blend (source-over).
+// Otherwise, there is no guarantee about the rendering result.
 func (p *Path) AppendVerticesAndIndicesForFilling(vertices []ebiten.Vertex, indices []uint16) ([]ebiten.Vertex, []uint16) {
 	// TODO: Add tests.
 
