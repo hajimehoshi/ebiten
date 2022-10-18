@@ -337,7 +337,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		dst = g.offscreen
 	}
 
-	dst.Fill(color.RGBA{0xe0, 0xe0, 0xe0, 0xe0})
+	dst.Fill(color.RGBA{0xe0, 0xe0, 0xe0, 0xff})
 	drawEbitenText(dst, 0, 50, scale, g.line)
 	drawEbitenLogo(dst, 20, 150, scale, g.line)
 	drawArc(dst, g.counter, scale, g.line)
