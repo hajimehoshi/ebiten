@@ -19,6 +19,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
@@ -153,7 +154,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 }
 
 func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics) error {
-	if c.offscreen.volatile != theGlobalState.isScreenClearedEveryFrame() {
+	if (c.offscreen.imageType == atlas.ImageTypeVolatile) != theGlobalState.isScreenClearedEveryFrame() {
 		w, h := c.offscreen.width, c.offscreen.height
 		c.offscreen.MarkDisposed()
 		c.offscreen = c.game.NewOffscreenImage(w, h)

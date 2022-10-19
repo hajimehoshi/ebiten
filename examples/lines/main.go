@@ -57,8 +57,6 @@ type Game struct {
 	vertices []ebiten.Vertex
 	indices  []uint16
 
-	offscreen *ebiten.Image
-
 	aa         bool
 	showCenter bool
 }
@@ -76,24 +74,6 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	target := screen
-	if g.aa {
-		// Prepare the double-sized offscreen.
-		// This is for anti-aliasing by a pseudo MSAA (multisample anti-aliasing).
-		if g.offscreen != nil {
-			sw, sh := screen.Size()
-			ow, oh := g.offscreen.Size()
-			if ow != sw*2 || oh != sh*2 {
-				g.offscreen.Dispose()
-				g.offscreen = nil
-			}
-		}
-		if g.offscreen == nil {
-			sw, sh := screen.Size()
-			g.offscreen = ebiten.NewImage(sw*2, sh*2)
-		}
-		g.offscreen.Clear()
-		target = g.offscreen
-	}
 
 	joins := []vector.LineJoin{
 		vector.LineJoinMiter,
@@ -121,14 +101,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			}
 			g.drawLine(target, r, cap, join, miterLimit)
 		}
-	}
-
-	if g.aa {
-		// Render the offscreen to the screen.
-		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Scale(0.5, 0.5)
-		op.Filter = ebiten.FilterLinear
-		screen.DrawImage(g.offscreen, op)
 	}
 
 	msg := fmt.Sprintf(`FPS: %0.2f, TPS: %0.2f
@@ -165,7 +137,9 @@ func (g *Game) drawLine(screen *ebiten.Image, region image.Rectangle, cap vector
 		vs[i].SrcX = 1
 		vs[i].SrcY = 1
 	}
-	screen.DrawTriangles(vs, is, emptySubImage, nil)
+	screen.DrawTriangles(vs, is, emptySubImage, &ebiten.DrawTrianglesOptions{
+		AntiAlias: g.aa,
+	})
 
 	// Draw the center line in red.
 	if g.showCenter {
@@ -180,7 +154,9 @@ func (g *Game) drawLine(screen *ebiten.Image, region image.Rectangle, cap vector
 			vs[i].ColorG = 0
 			vs[i].ColorB = 0
 		}
-		screen.DrawTriangles(vs, is, emptySubImage, nil)
+		screen.DrawTriangles(vs, is, emptySubImage, &ebiten.DrawTrianglesOptions{
+			AntiAlias: g.aa,
+		})
 	}
 }
 

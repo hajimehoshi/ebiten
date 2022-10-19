@@ -47,7 +47,7 @@ const (
 	screenHeight = 480
 )
 
-func drawEbitenText(screen *ebiten.Image, x, y int, scale float32, line bool) {
+func drawEbitenText(screen *ebiten.Image, x, y int, aa bool, line bool) {
 	var path vector.Path
 
 	// E
@@ -125,8 +125,8 @@ func drawEbitenText(screen *ebiten.Image, x, y int, scale float32, line bool) {
 	}
 
 	for i := range vs {
-		vs[i].DstX = (vs[i].DstX + float32(x)) * scale
-		vs[i].DstY = (vs[i].DstY + float32(y)) * scale
+		vs[i].DstX = (vs[i].DstX + float32(x))
+		vs[i].DstY = (vs[i].DstY + float32(y))
 		vs[i].SrcX = 1
 		vs[i].SrcY = 1
 		vs[i].ColorR = 0xdb / float32(0xff)
@@ -135,13 +135,14 @@ func drawEbitenText(screen *ebiten.Image, x, y int, scale float32, line bool) {
 	}
 
 	op := &ebiten.DrawTrianglesOptions{}
+	op.AntiAlias = aa
 	if !line {
 		op.FillRule = ebiten.EvenOdd
 	}
 	screen.DrawTriangles(vs, is, emptySubImage, op)
 }
 
-func drawEbitenLogo(screen *ebiten.Image, x, y int, scale float32, line bool) {
+func drawEbitenLogo(screen *ebiten.Image, x, y int, aa bool, line bool) {
 	const unit = 16
 
 	var path vector.Path
@@ -178,8 +179,8 @@ func drawEbitenLogo(screen *ebiten.Image, x, y int, scale float32, line bool) {
 	}
 
 	for i := range vs {
-		vs[i].DstX = (vs[i].DstX + float32(x)) * scale
-		vs[i].DstY = (vs[i].DstY + float32(y)) * scale
+		vs[i].DstX = (vs[i].DstX + float32(x))
+		vs[i].DstY = (vs[i].DstY + float32(y))
 		vs[i].SrcX = 1
 		vs[i].SrcY = 1
 		vs[i].ColorR = 0xdb / float32(0xff)
@@ -188,13 +189,14 @@ func drawEbitenLogo(screen *ebiten.Image, x, y int, scale float32, line bool) {
 	}
 
 	op := &ebiten.DrawTrianglesOptions{}
+	op.AntiAlias = aa
 	if !line {
 		op.FillRule = ebiten.EvenOdd
 	}
 	screen.DrawTriangles(vs, is, emptySubImage, op)
 }
 
-func drawArc(screen *ebiten.Image, count int, scale float32, line bool) {
+func drawArc(screen *ebiten.Image, count int, aa bool, line bool) {
 	var path vector.Path
 
 	path.MoveTo(350, 100)
@@ -220,8 +222,6 @@ func drawArc(screen *ebiten.Image, count int, scale float32, line bool) {
 	}
 
 	for i := range vs {
-		vs[i].DstX *= scale
-		vs[i].DstY *= scale
 		vs[i].SrcX = 1
 		vs[i].SrcY = 1
 		vs[i].ColorR = 0x33 / float32(0xff)
@@ -230,6 +230,7 @@ func drawArc(screen *ebiten.Image, count int, scale float32, line bool) {
 	}
 
 	op := &ebiten.DrawTrianglesOptions{}
+	op.AntiAlias = aa
 	if !line {
 		op.FillRule = ebiten.EvenOdd
 	}
@@ -240,7 +241,7 @@ func maxCounter(index int) int {
 	return 128 + (17*index+32)%64
 }
 
-func drawWave(screen *ebiten.Image, counter int, scale float32, line bool) {
+func drawWave(screen *ebiten.Image, counter int, aa bool, line bool) {
 	var path vector.Path
 
 	const npoints = 8
@@ -277,8 +278,6 @@ func drawWave(screen *ebiten.Image, counter int, scale float32, line bool) {
 	}
 
 	for i := range vs {
-		vs[i].DstX *= scale
-		vs[i].DstY *= scale
 		vs[i].SrcX = 1
 		vs[i].SrcY = 1
 		vs[i].ColorR = 0x33 / float32(0xff)
@@ -287,6 +286,7 @@ func drawWave(screen *ebiten.Image, counter int, scale float32, line bool) {
 	}
 
 	op := &ebiten.DrawTrianglesOptions{}
+	op.AntiAlias = aa
 	if !line {
 		op.FillRule = ebiten.EvenOdd
 	}
@@ -296,9 +296,8 @@ func drawWave(screen *ebiten.Image, counter int, scale float32, line bool) {
 type Game struct {
 	counter int
 
-	aa        bool
-	line      bool
-	offscreen *ebiten.Image
+	aa   bool
+	line bool
 }
 
 func (g *Game) Update() error {
@@ -318,37 +317,13 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	if g.offscreen != nil {
-		w, h := screen.Size()
-		if ow, oh := g.offscreen.Size(); ow != w*2 || oh != h*2 {
-			g.offscreen.Dispose()
-			g.offscreen = nil
-		}
-	}
-	if g.aa && g.offscreen == nil {
-		w, h := screen.Size()
-		g.offscreen = ebiten.NewImage(w*2, h*2)
-	}
-
-	scale := float32(1)
 	dst := screen
-	if g.aa {
-		scale = 2
-		dst = g.offscreen
-	}
 
 	dst.Fill(color.RGBA{0xe0, 0xe0, 0xe0, 0xff})
-	drawEbitenText(dst, 0, 50, scale, g.line)
-	drawEbitenLogo(dst, 20, 150, scale, g.line)
-	drawArc(dst, g.counter, scale, g.line)
-	drawWave(dst, g.counter, scale, g.line)
-
-	if g.aa {
-		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Scale(0.5, 0.5)
-		op.Filter = ebiten.FilterLinear
-		screen.DrawImage(g.offscreen, op)
-	}
+	drawEbitenText(dst, 0, 50, g.aa, g.line)
+	drawEbitenLogo(dst, 20, 150, g.aa, g.line)
+	drawArc(dst, g.counter, g.aa, g.line)
+	drawWave(dst, g.counter, g.aa, g.line)
 
 	msg := fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f", ebiten.ActualTPS(), ebiten.ActualFPS())
 	msg += "\nPress A to switch anti-alias."
