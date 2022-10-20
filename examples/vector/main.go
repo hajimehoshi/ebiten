@@ -320,7 +320,7 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	if g.offscreen != nil {
 		w, h := screen.Size()
-		if ow, oh := g.offscreen.Size(); ow != w || oh != h {
+		if ow, oh := g.offscreen.Size(); ow != w*2 || oh != h*2 {
 			g.offscreen.Dispose()
 			g.offscreen = nil
 		}
