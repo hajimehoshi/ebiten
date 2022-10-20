@@ -31,6 +31,8 @@ func SetPanicOnErrorOnReadingPixelsForTesting(value bool) {
 	panicOnErrorOnReadingPixels = value
 }
 
+const bigOffscreenScale = 2
+
 type Image struct {
 	mipmap    *mipmap.Mipmap
 	width     int
@@ -87,7 +89,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 			default:
 				panic(fmt.Sprintf("ui: unexpected image type: %d", imageType))
 			}
-			i.bigOffscreenBuffer = NewImage(i.width*2, i.height*2, imageType)
+			i.bigOffscreenBuffer = NewImage(i.width*bigOffscreenScale, i.height*bigOffscreenScale, imageType)
 		}
 
 		i.bigOffscreenBufferBlend = blend
@@ -97,27 +99,27 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 			srcs := [graphics.ShaderImageCount]*Image{i}
 			vs := graphics.QuadVertices(
 				0, 0, float32(i.width), float32(i.height),
-				2, 0, 0, 2, 0, 0,
+				bigOffscreenScale, 0, 0, bigOffscreenScale, 0, 0,
 				1, 1, 1, 1)
 			is := graphics.QuadIndices()
 			dstRegion := graphicsdriver.Region{
 				X:      0,
 				Y:      0,
-				Width:  float32(i.width * 2),
-				Height: float32(i.height * 2),
+				Width:  float32(i.width * bigOffscreenScale),
+				Height: float32(i.height * bigOffscreenScale),
 			}
 			i.bigOffscreenBuffer.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true, false)
 		}
 
 		for i := 0; i < len(vertices); i += graphics.VertexFloatCount {
-			vertices[i] *= 2
-			vertices[i+1] *= 2
+			vertices[i] *= bigOffscreenScale
+			vertices[i+1] *= bigOffscreenScale
 		}
 
-		dstRegion.X *= 2
-		dstRegion.Y *= 2
-		dstRegion.Width *= 2
-		dstRegion.Height *= 2
+		dstRegion.X *= bigOffscreenScale
+		dstRegion.Y *= bigOffscreenScale
+		dstRegion.Width *= bigOffscreenScale
+		dstRegion.Height *= bigOffscreenScale
 
 		i.bigOffscreenBuffer.DrawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd, canSkipMipmap, false)
 		i.bigOffscreenBufferDirty = true
@@ -281,8 +283,8 @@ func (i *Image) flushBigOffscreenBufferIfNeeded() {
 
 	srcs := [graphics.ShaderImageCount]*Image{i.bigOffscreenBuffer}
 	vs := graphics.QuadVertices(
-		0, 0, float32(i.width*2), float32(i.height*2),
-		0.5, 0, 0, 0.5, 0, 0,
+		0, 0, float32(i.width*bigOffscreenScale), float32(i.height*bigOffscreenScale),
+		1.0/bigOffscreenScale, 0, 0, 1.0/bigOffscreenScale, 0, 0,
 		1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dstRegion := graphicsdriver.Region{
