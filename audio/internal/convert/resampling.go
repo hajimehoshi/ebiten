@@ -17,14 +17,19 @@ package convert
 import (
 	"io"
 	"math"
+	"sync"
 )
 
-var cosTable = [65536]float64{}
+var lazyInit sync.Once = sync.Once{}
+var cosTable []float64
 
 func init() {
-	for i := range cosTable {
-		cosTable[i] = math.Cos(float64(i) * math.Pi / 2 / float64(len(cosTable)))
-	}
+	lazyInit.Do(func() {
+		cosTable = make([]float64, 65536)
+		for i := range cosTable {
+			cosTable[i] = math.Cos(float64(i) * math.Pi / 2 / float64(len(cosTable)))
+		}
+	})
 }
 
 func fastCos01(x float64) float64 {
