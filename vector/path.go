@@ -248,7 +248,8 @@ func cross(p0, p1 point) float32 {
 	return p0.x*p1.y - p1.x*p0.y
 }
 
-// ArcTo adds an arc curve to the path. (x1, y1) is the control point, and (x2, y2) is the destination.
+// ArcTo adds an arc curve to the path.
+// (x1, y1) is the first control point, and (x2, y2) is the second control point.
 func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 	p0, ok := p.currentPosition()
 	if !ok {
@@ -264,7 +265,6 @@ func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 	}
 	if d0 == (point{}) || d1 == (point{}) {
 		p.LineTo(x1, y1)
-		p.LineTo(x2, y2)
 		return
 	}
 
@@ -300,8 +300,6 @@ func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 		dir = Clockwise
 	}
 	p.Arc(cx, cy, radius, a0, a1, dir)
-
-	p.LineTo(x2, y2)
 }
 
 // Arc adds an arc to the path.

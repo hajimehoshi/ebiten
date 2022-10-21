@@ -212,6 +212,7 @@ func drawArc(screen *ebiten.Image, count int, aa bool, line bool) {
 	x := cx + r*math.Cos(theta1)
 	y := cy + r*math.Sin(theta1)
 	path.ArcTo(450, 100, float32(x), float32(y), 30)
+	path.LineTo(float32(x), float32(y))
 
 	theta2 := math.Pi * float64(count) / 180 / 3
 	path.MoveTo(550, 100)
