@@ -31,15 +31,15 @@ import (
 )
 
 var (
-	emptyImage = ebiten.NewImage(3, 3)
+	whiteImage = ebiten.NewImage(3, 3)
 
-	// emptySubImage is an internal sub image of emptyImage.
-	// Use emptySubImage at DrawTriangles instead of emptyImage in order to avoid bleeding edges.
-	emptySubImage = emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
+	// whiteSubImage is an internal sub image of whiteImage.
+	// Use whiteSubImage at DrawTriangles instead of whiteImage in order to avoid bleeding edges.
+	whiteSubImage = whiteImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
 )
 
 func init() {
-	emptyImage.Fill(color.White)
+	whiteImage.Fill(color.White)
 }
 
 const (
@@ -139,7 +139,7 @@ func drawEbitenText(screen *ebiten.Image, x, y int, aa bool, line bool) {
 	if !line {
 		op.FillRule = ebiten.EvenOdd
 	}
-	screen.DrawTriangles(vs, is, emptySubImage, op)
+	screen.DrawTriangles(vs, is, whiteSubImage, op)
 }
 
 func drawEbitenLogo(screen *ebiten.Image, x, y int, aa bool, line bool) {
@@ -193,7 +193,7 @@ func drawEbitenLogo(screen *ebiten.Image, x, y int, aa bool, line bool) {
 	if !line {
 		op.FillRule = ebiten.EvenOdd
 	}
-	screen.DrawTriangles(vs, is, emptySubImage, op)
+	screen.DrawTriangles(vs, is, whiteSubImage, op)
 }
 
 func drawArc(screen *ebiten.Image, count int, aa bool, line bool) {
@@ -234,7 +234,7 @@ func drawArc(screen *ebiten.Image, count int, aa bool, line bool) {
 	if !line {
 		op.FillRule = ebiten.EvenOdd
 	}
-	screen.DrawTriangles(vs, is, emptySubImage, op)
+	screen.DrawTriangles(vs, is, whiteSubImage, op)
 }
 
 func maxCounter(index int) int {
@@ -290,7 +290,7 @@ func drawWave(screen *ebiten.Image, counter int, aa bool, line bool) {
 	if !line {
 		op.FillRule = ebiten.EvenOdd
 	}
-	screen.DrawTriangles(vs, is, emptySubImage, op)
+	screen.DrawTriangles(vs, is, whiteSubImage, op)
 }
 
 type Game struct {

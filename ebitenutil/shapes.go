@@ -24,12 +24,12 @@ import (
 )
 
 var (
-	emptyImage    = ebiten.NewImage(3, 3)
-	emptySubImage = emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
+	whiteImage    = ebiten.NewImage(3, 3)
+	whiteSubImage = whiteImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
 )
 
 func init() {
-	emptyImage.Fill(color.White)
+	whiteImage.Fill(color.White)
 }
 
 // DrawLine draws a line segment on the given destination dst.
@@ -45,7 +45,7 @@ func DrawLine(dst *ebiten.Image, x1, y1, x2, y2 float64, clr color.Color) {
 	op.ColorM.ScaleWithColor(clr)
 	// Filter must be 'nearest' filter (default).
 	// Linear filtering would make edges blurred.
-	dst.DrawImage(emptySubImage, op)
+	dst.DrawImage(whiteSubImage, op)
 }
 
 // DrawRect draws a rectangle on the given destination dst.
@@ -58,7 +58,7 @@ func DrawRect(dst *ebiten.Image, x, y, width, height float64, clr color.Color) {
 	op.ColorM.ScaleWithColor(clr)
 	// Filter must be 'nearest' filter (default).
 	// Linear filtering would make edges blurred.
-	dst.DrawImage(emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image), op)
+	dst.DrawImage(whiteSubImage, op)
 }
 
 // DrawCircle draws a circle on given destination dst.
@@ -79,5 +79,5 @@ func DrawCircle(dst *ebiten.Image, cx, cy, r float64, clr color.Color) {
 		vertices[i].ColorB = float32(b) / 0xffff
 		vertices[i].ColorA = float32(a) / 0xffff
 	}
-	dst.DrawTriangles(vertices, indices, emptySubImage, nil)
+	dst.DrawTriangles(vertices, indices, whiteSubImage, nil)
 }

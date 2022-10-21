@@ -42,14 +42,6 @@ type Image struct {
 	// This tends to forget resolving the buffer easily (#2362).
 }
 
-var emptyImage *Image
-
-func init() {
-	img := NewImage(3, 3)
-	img.Fill(color.White)
-	emptyImage = img.SubImage(image.Rect(1, 1, 2, 2)).(*Image)
-}
-
 func (i *Image) copyCheck() {
 	if i.addr != i {
 		panic("ebiten: illegal use of non-zero Image copied by value")

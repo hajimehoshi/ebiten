@@ -34,11 +34,11 @@ const (
 )
 
 var (
-	emptyImage = ebiten.NewImage(3, 3)
+	whiteImage = ebiten.NewImage(3, 3)
 )
 
 func init() {
-	emptyImage.Fill(color.White)
+	whiteImage.Fill(color.White)
 }
 
 type Game struct {
@@ -163,7 +163,7 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	src := emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
+	src := whiteImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
 
 	cf := float64(g.count)
 	v, i := line(100, 100, 300, 100, color.RGBA{0xff, 0xff, 0xff, 0xff})

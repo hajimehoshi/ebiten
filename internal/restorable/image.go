@@ -139,18 +139,18 @@ type Image struct {
 	priority bool
 }
 
-var emptyImage *Image
+var whiteImage *Image
 
-func ensureEmptyImage() *Image {
-	if emptyImage != nil {
-		return emptyImage
+func ensureWhiteImage() *Image {
+	if whiteImage != nil {
+		return whiteImage
 	}
 
-	// Initialize the empty image lazily. Some functions like needsRestoring might not work at the initial phase.
+	// Initialize the white image lazily. Some functions like needsRestoring might not work at the initial phase.
 
-	// w and h are the empty image's size. They indicate the 1x1 image with 1px padding around.
+	// w and h are the white image's size. They indicate the 1x1 image with 1px padding around.
 	const w, h = 3, 3
-	emptyImage = &Image{
+	whiteImage = &Image{
 		image:    graphicscommand.NewImage(w, h, false),
 		width:    w,
 		height:   h,
@@ -161,14 +161,14 @@ func ensureEmptyImage() *Image {
 		pix[i] = 0xff
 	}
 
-	// As emptyImage is the source at clearImage, initialize this with WritePixels, not clearImage.
-	// This operation is also important when restoring emptyImage.
-	emptyImage.WritePixels(pix, 0, 0, w, h)
-	theImages.add(emptyImage)
-	return emptyImage
+	// As whiteImage is the source at clearImage, initialize this with WritePixels, not clearImage.
+	// This operation is also important when restoring whiteImage.
+	whiteImage.WritePixels(pix, 0, 0, w, h)
+	theImages.add(whiteImage)
+	return whiteImage
 }
 
-// NewImage creates an empty image with the given size.
+// NewImage creates an white image with the given size.
 //
 // The returned image is cleared.
 //
@@ -244,19 +244,19 @@ func quadVertices(src *Image, dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb
 }
 
 func clearImage(i *graphicscommand.Image) {
-	emptyImage := ensureEmptyImage()
+	whiteImage := ensureWhiteImage()
 
-	if i == emptyImage.image {
-		panic("restorable: fillImage cannot be called on emptyImage")
+	if i == whiteImage.image {
+		panic("restorable: fillImage cannot be called on whiteImage")
 	}
 
 	// This needs to use 'InternalSize' to render the whole region, or edges are unexpectedly cleared on some
 	// devices.
 	dw, dh := i.InternalSize()
-	sw, sh := emptyImage.width, emptyImage.height
-	vs := quadVertices(emptyImage, 0, 0, float32(dw), float32(dh), 1, 1, float32(sw-1), float32(sh-1), 0, 0, 0, 0)
+	sw, sh := whiteImage.width, whiteImage.height
+	vs := quadVertices(whiteImage, 0, 0, float32(dw), float32(dh), 1, 1, float32(sw-1), float32(sh-1), 0, 0, 0, 0)
 	is := graphics.QuadIndices()
-	srcs := [graphics.ShaderImageCount]*graphicscommand.Image{emptyImage.image}
+	srcs := [graphics.ShaderImageCount]*graphicscommand.Image{whiteImage.image}
 	var offsets [graphics.ShaderImageCount - 1][2]float32
 	dstRegion := graphicsdriver.Region{
 		X:      0,
@@ -602,9 +602,9 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 
 	gimg := graphicscommand.NewImage(w, h, false)
 	// Clear the image explicitly.
-	if i != ensureEmptyImage() {
-		// As clearImage uses emptyImage, clearImage cannot be called on emptyImage.
-		// It is OK to skip this since emptyImage has its entire pixel information.
+	if i != ensureWhiteImage() {
+		// As clearImage uses whiteImage, clearImage cannot be called on whiteImage.
+		// It is OK to skip this since whiteImage has its entire pixel information.
 		clearImage(gimg)
 	}
 	i.basePixels.Apply(gimg)

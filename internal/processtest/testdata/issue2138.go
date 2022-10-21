@@ -31,19 +31,19 @@ import (
 )
 
 var (
-	emptyImage        = ebiten.NewImage(3, 3)
+	whiteImage        = ebiten.NewImage(3, 3)
 	debugCircleImage  *ebiten.Image
-	emptyTextureImage = emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
+	whiteTextureImage = whiteImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
 	face              font.Face
 )
 
 func init() {
-	emptyImage.Fill(color.White)
+	whiteImage.Fill(color.White)
 
 	img := image.NewRGBA(image.Rect(0, 0, 20, 20))
 	debugCircleImage = ebiten.NewImageFromImage(img)
 
-	emptyImage.Fill(color.Black)
+	whiteImage.Fill(color.Black)
 
 	f, _ := opentype.Parse(goregular.TTF)
 	face, _ = opentype.NewFace(f, &opentype.FaceOptions{
@@ -74,7 +74,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	p := vector.Path{}
 	p.Arc(100, 100, 6, 0, 2*math.Pi, vector.Clockwise)
 	filling, indicies := p.AppendVerticesAndIndicesForFilling(nil, nil)
-	screen.DrawTriangles(filling, indicies, emptyTextureImage, &ebiten.DrawTrianglesOptions{
+	screen.DrawTriangles(filling, indicies, whiteTextureImage, &ebiten.DrawTrianglesOptions{
 		FillRule: ebiten.EvenOdd,
 	})
 }

@@ -263,7 +263,7 @@ func (i *Image) flushDotsBufferIfNeeded() {
 	}
 	i.dotsBuffer = nil
 
-	srcs := [graphics.ShaderImageCount]*mipmap.Mipmap{emptyImage.mipmap}
+	srcs := [graphics.ShaderImageCount]*mipmap.Mipmap{whiteImage.mipmap}
 	dr := graphicsdriver.Region{
 		X:      0,
 		Y:      0,
@@ -308,16 +308,16 @@ func DumpImages(dir string) (string, error) {
 }
 
 var (
-	emptyImage = NewImage(3, 3, atlas.ImageTypeRegular)
+	whiteImage = NewImage(3, 3, atlas.ImageTypeRegular)
 )
 
 func init() {
-	pix := make([]byte, 4*emptyImage.width*emptyImage.height)
+	pix := make([]byte, 4*whiteImage.width*whiteImage.height)
 	for i := range pix {
 		pix[i] = 0xff
 	}
-	// As emptyImage is used at Fill, use WritePixels instead.
-	emptyImage.WritePixels(pix, 0, 0, emptyImage.width, emptyImage.height)
+	// As whiteImage is used at Fill, use WritePixels instead.
+	whiteImage.WritePixels(pix, 0, 0, whiteImage.width, whiteImage.height)
 }
 
 func (i *Image) clear() {
@@ -333,12 +333,12 @@ func (i *Image) Fill(r, g, b, a float32, x, y, width, height int) {
 	}
 
 	vs := graphics.QuadVertices(
-		1, 1, float32(emptyImage.width-1), float32(emptyImage.height-1),
+		1, 1, float32(whiteImage.width-1), float32(whiteImage.height-1),
 		float32(i.width), 0, 0, float32(i.height), 0, 0,
 		r, g, b, a)
 	is := graphics.QuadIndices()
 
-	srcs := [graphics.ShaderImageCount]*Image{emptyImage}
+	srcs := [graphics.ShaderImageCount]*Image{whiteImage}
 
 	i.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true, false)
 }

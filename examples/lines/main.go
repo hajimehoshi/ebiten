@@ -35,15 +35,15 @@ func min(x, y int) int {
 }
 
 var (
-	emptyImage = ebiten.NewImage(3, 3)
+	whiteImage = ebiten.NewImage(3, 3)
 
-	// emptySubImage is an internal sub image of emptyImage.
-	// Use emptySubImage at DrawTriangles instead of emptyImage in order to avoid bleeding edges.
-	emptySubImage = emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
+	// whiteSubImage is an internal sub image of whiteImage.
+	// Use whiteSubImage at DrawTriangles instead of whiteImage in order to avoid bleeding edges.
+	whiteSubImage = whiteImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
 )
 
 func init() {
-	emptyImage.Fill(color.White)
+	whiteImage.Fill(color.White)
 }
 
 const (
@@ -137,7 +137,7 @@ func (g *Game) drawLine(screen *ebiten.Image, region image.Rectangle, cap vector
 		vs[i].SrcX = 1
 		vs[i].SrcY = 1
 	}
-	screen.DrawTriangles(vs, is, emptySubImage, &ebiten.DrawTrianglesOptions{
+	screen.DrawTriangles(vs, is, whiteSubImage, &ebiten.DrawTrianglesOptions{
 		AntiAlias: g.aa,
 	})
 
@@ -154,7 +154,7 @@ func (g *Game) drawLine(screen *ebiten.Image, region image.Rectangle, cap vector
 			vs[i].ColorG = 0
 			vs[i].ColorB = 0
 		}
-		screen.DrawTriangles(vs, is, emptySubImage, &ebiten.DrawTrianglesOptions{
+		screen.DrawTriangles(vs, is, whiteSubImage, &ebiten.DrawTrianglesOptions{
 			AntiAlias: g.aa,
 		})
 	}

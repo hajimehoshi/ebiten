@@ -2559,9 +2559,9 @@ func TestImageSubImageFill(t *testing.T) {
 }
 
 func TestImageEvenOdd(t *testing.T) {
-	emptyImage := ebiten.NewImage(3, 3)
-	emptyImage.Fill(color.White)
-	emptySubImage := emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
+	whiteImage := ebiten.NewImage(3, 3)
+	whiteImage.Fill(color.White)
+	emptySubImage := whiteImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
 
 	vs0 := []ebiten.Vertex{
 		{
