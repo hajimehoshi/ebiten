@@ -36,31 +36,67 @@ type point struct {
 	y float32
 }
 
-// Path represents a collection of path segments.
-type Path struct {
-	segs [][]point
-	cur  point
+type subpath struct {
+	points []point
+	closed bool
 }
 
-// MoveTo skips the current position of the path to the given position (x, y) without adding any strokes.
+func (s *subpath) pointCount() int {
+	return len(s.points)
+}
+
+func (s *subpath) lastPoint() point {
+	return s.points[len(s.points)-1]
+}
+
+func (s *subpath) appendPoint(pt point) {
+	if s.closed {
+		panic("vector: a closed subpathment cannot append a new point")
+	}
+	if s.lastPoint() == pt {
+		return
+	}
+	s.points = append(s.points, pt)
+}
+
+func (s *subpath) close() {
+	if s.closed {
+		return
+	}
+
+	s.appendPoint(s.points[0])
+	s.closed = true
+}
+
+// Path represents a collection of path subpathments.
+type Path struct {
+	subpaths []*subpath
+	cur      point
+}
+
+// MoveTo starts a new subpath with the given position (x, y) without adding any strokes,
+//
+// MoveTo updates the current position to (x, y).
 func (p *Path) MoveTo(x, y float32) {
 	p.cur = point{x: x, y: y}
-	p.segs = append(p.segs, []point{p.cur})
+	p.subpaths = append(p.subpaths, &subpath{
+		points: []point{p.cur},
+	})
 }
 
 // LineTo adds a line segument to the path, which starts from the current position and ends to the given position (x, y).
 //
 // LineTo updates the current position to (x, y).
 func (p *Path) LineTo(x, y float32) {
-	if len(p.segs) == 0 {
-		p.segs = append(p.segs, []point{{x: x, y: y}})
+	if len(p.subpaths) == 0 || p.subpaths[len(p.subpaths)-1].closed {
+		p.subpaths = append(p.subpaths, &subpath{
+			points: []point{{x: x, y: y}},
+		})
 		p.cur = point{x: x, y: y}
 		return
 	}
-	seg := p.segs[len(p.segs)-1]
-	if seg[len(seg)-1].x != x || seg[len(seg)-1].y != y {
-		p.segs[len(p.segs)-1] = append(seg, point{x: x, y: y})
-	}
+
+	p.subpaths[len(p.subpaths)-1].appendPoint(point{x: x, y: y})
 	p.cur = point{x: x, y: y}
 }
 
@@ -311,6 +347,19 @@ func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 	p.CubicTo(cx0, cy0, cx1, cy1, x1, y1)
 }
 
+// Close adds a new line from the current position to the first position of the current subpath,
+// and marks the current subpath closed.
+// Following operations for this path will start with a new subpath.
+//
+// Close updates the current position to the first position of the current subpath.
+func (p *Path) Close() {
+	if len(p.subpaths) == 0 {
+		return
+	}
+	subpath := p.subpaths[len(p.subpaths)-1]
+	subpath.close()
+}
+
 // AppendVerticesAndIndicesForFilling appends vertices and indices to fill this path and returns them.
 // AppendVerticesAndIndicesForFilling works in a similar way to the built-in append function.
 // If the arguments are nils, AppendVerticesAndIndicesForFilling returns new slices.
@@ -326,11 +375,11 @@ func (p *Path) AppendVerticesAndIndicesForFilling(vertices []ebiten.Vertex, indi
 	// TODO: Add tests.
 
 	base := uint16(len(vertices))
-	for _, seg := range p.segs {
-		if len(seg) < 3 {
+	for _, subpath := range p.subpaths {
+		if subpath.pointCount() < 3 {
 			continue
 		}
-		for i, pt := range seg {
+		for i, pt := range subpath.points {
 			vertices = append(vertices, ebiten.Vertex{
 				DstX:   pt.x,
 				DstY:   pt.y,
@@ -346,7 +395,7 @@ func (p *Path) AppendVerticesAndIndicesForFilling(vertices []ebiten.Vertex, indi
 			}
 			indices = append(indices, base, base+uint16(i-1), base+uint16(i))
 		}
-		base += uint16(len(seg))
+		base += uint16(subpath.pointCount())
 	}
 	return vertices, indices
 }
@@ -372,13 +421,18 @@ const (
 // StokeOptions is options to render a stroke.
 type StrokeOptions struct {
 	// Width is the stroke width in pixels.
+	//
+	// The default (zero) value is 0.
 	Width float32
 
 	// LineCap is the way in which how the ends of the stroke are rendered.
+	// Line caps are not rendered when the subpath is marked as closed.
+	//
 	// The default (zero) value is LineCapButt.
 	LineCap LineCap
 
 	// LineJoin is the way in which how two segments are joined.
+	//
 	// The default (zero) value is LineJoiMiter.
 	LineJoin LineJoin
 
@@ -401,19 +455,16 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 		return vertices, indices
 	}
 
-	for _, seg := range p.segs {
-		if len(seg) < 2 {
+	for _, subpath := range p.subpaths {
+		if subpath.pointCount() < 2 {
 			continue
 		}
 
 		var rects [][4]point
-		for i := 0; i < len(seg)-1; i++ {
-			pt := seg[i]
-			if seg[i+1] == pt {
-				continue
-			}
+		for i := 0; i < subpath.pointCount()-1; i++ {
+			pt := subpath.points[i]
 
-			nextPt := seg[i+1]
+			nextPt := subpath.points[i+1]
 			dx := nextPt.x - pt.x
 			dy := nextPt.y - pt.y
 			dist := float32(math.Sqrt(float64(dx*dx + dy*dy)))
@@ -456,12 +507,15 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 			}
 			indices = append(indices, idx, idx+1, idx+2, idx+1, idx+2, idx+3)
 
-			if i >= len(rects)-1 {
+			// Add line joints.
+			var nextRect [4]point
+			if i < len(rects)-1 {
+				nextRect = rects[i+1]
+			} else if subpath.closed {
+				nextRect = rects[0]
+			} else {
 				continue
 			}
-
-			// Add line joints.
-			nextRect := rects[i+1]
 
 			// c is the center of the 'end' edge of the current rect (= the second point of the segment).
 			c := point{
@@ -529,6 +583,11 @@ func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indic
 		}
 
 		if len(rects) == 0 {
+			continue
+		}
+
+		// If the subpath is closed, do not render line caps.
+		if subpath.closed {
 			continue
 		}
 

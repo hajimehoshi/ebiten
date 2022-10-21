@@ -63,6 +63,7 @@ func drawEbitenText(screen *ebiten.Image, x, y int, aa bool, line bool) {
 	path.LineTo(30, 30)
 	path.LineTo(70, 30)
 	path.LineTo(70, 20)
+	path.Close()
 
 	// B
 	path.MoveTo(80, 20)
@@ -70,12 +71,14 @@ func drawEbitenText(screen *ebiten.Image, x, y int, aa bool, line bool) {
 	path.LineTo(100, 70)
 	path.QuadTo(150, 57.5, 100, 45)
 	path.QuadTo(150, 32.5, 100, 20)
+	path.Close()
 
 	// I
 	path.MoveTo(140, 20)
 	path.LineTo(140, 70)
 	path.LineTo(150, 70)
 	path.LineTo(150, 20)
+	path.Close()
 
 	// T
 	path.MoveTo(160, 20)
@@ -86,6 +89,7 @@ func drawEbitenText(screen *ebiten.Image, x, y int, aa bool, line bool) {
 	path.LineTo(190, 30)
 	path.LineTo(210, 30)
 	path.LineTo(210, 20)
+	path.Close()
 
 	// E
 	path.MoveTo(220, 20)
@@ -100,6 +104,7 @@ func drawEbitenText(screen *ebiten.Image, x, y int, aa bool, line bool) {
 	path.LineTo(230, 30)
 	path.LineTo(270, 30)
 	path.LineTo(270, 20)
+	path.Close()
 
 	// N
 	path.MoveTo(280, 20)
@@ -112,6 +117,7 @@ func drawEbitenText(screen *ebiten.Image, x, y int, aa bool, line bool) {
 	path.LineTo(320, 20)
 	path.LineTo(320, 55)
 	path.LineTo(290, 20)
+	path.Close()
 
 	var vs []ebiten.Vertex
 	var is []uint16
@@ -166,6 +172,7 @@ func drawEbitenLogo(screen *ebiten.Image, x, y int, aa bool, line bool) {
 	path.LineTo(2*unit, 3*unit)
 	path.LineTo(unit, 3*unit)
 	path.LineTo(unit, 4*unit)
+	path.Close()
 
 	var vs []ebiten.Vertex
 	var is []uint16
@@ -209,6 +216,7 @@ func drawArc(screen *ebiten.Image, count int, aa bool, line bool) {
 	theta2 := math.Pi * float64(count) / 180 / 3
 	path.MoveTo(550, 100)
 	path.Arc(550, 100, 50, float32(theta1), float32(theta2), vector.Clockwise)
+	path.Close()
 
 	var vs []ebiten.Vertex
 	var is []uint16
