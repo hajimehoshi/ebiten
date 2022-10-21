@@ -31,6 +31,13 @@ const (
 	CounterClockwise
 )
 
+func abs(x float32) float32 {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
 type point struct {
 	x float32
 	y float32
@@ -63,9 +70,13 @@ func (s *subpath) appendPoint(pt point) {
 	if s.closed {
 		panic("vector: a closed subpathment cannot append a new point")
 	}
-	if s.lastPoint() == pt {
+
+	// Do not add a too close point to the last point.
+	// This can cause unexpected rendering results.
+	if lp := s.lastPoint(); abs(lp.x-pt.x) < 1e-2 && abs(lp.y-pt.y) < 1e-2 {
 		return
 	}
+
 	s.points = append(s.points, pt)
 }
 
