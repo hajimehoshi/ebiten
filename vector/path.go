@@ -452,7 +452,8 @@ type StrokeOptions struct {
 //
 // The returned vertice's SrcX and SrcY are 0, and ColorR, ColorG, ColorB, and ColorA are 1.
 //
-// The returned values are intended to be passed to DrawTriangles or DrawTrianglesShader with FillAll fill mode, not EvenOdd fill mode.
+// The returned values are intended to be passed to DrawTriangles or DrawTrianglesShader with a solid (non-transparent) color.
+// The fill mode doesn't have to be the EvenOdd fill mode.
 func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indices []uint16, op *StrokeOptions) ([]ebiten.Vertex, []uint16) {
 	if op == nil {
 		return vertices, indices
