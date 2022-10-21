@@ -41,6 +41,16 @@ type subpath struct {
 	closed bool
 }
 
+func (s *subpath) currentPosition() (point, bool) {
+	if len(s.points) == 0 {
+		return point{}, false
+	}
+	if s.closed {
+		return point{}, false
+	}
+	return s.points[len(s.points)-1], true
+}
+
 func (s *subpath) pointCount() int {
 	return len(s.points)
 }
@@ -71,42 +81,35 @@ func (s *subpath) close() {
 // Path represents a collection of path subpathments.
 type Path struct {
 	subpaths []*subpath
-	cur      point
 }
 
 // MoveTo starts a new subpath with the given position (x, y) without adding a subpath,
-//
-// MoveTo updates the current position to (x, y).
 func (p *Path) MoveTo(x, y float32) {
-	p.cur = point{x: x, y: y}
 	p.subpaths = append(p.subpaths, &subpath{
-		points: []point{p.cur},
+		points: []point{
+			{x: x, y: y},
+		},
 	})
 }
 
-// LineTo adds a line segument to the path, which starts from the current position and ends to the given position (x, y).
-//
-// LineTo updates the current position to (x, y).
+// LineTo adds a line segument to the path, which starts from the last position of the current subpath
+// and ends to the given position (x, y).
+// If p doesn't have any subpaths or the last subpath is closed, LineTo sets (x, y) as the start position of a new subpath.
 func (p *Path) LineTo(x, y float32) {
 	if len(p.subpaths) == 0 || p.subpaths[len(p.subpaths)-1].closed {
 		p.subpaths = append(p.subpaths, &subpath{
 			points: []point{
-				p.cur,
 				{x: x, y: y},
 			},
 		})
-		p.cur = point{x: x, y: y}
 		return
 	}
 
 	p.subpaths[len(p.subpaths)-1].appendPoint(point{x: x, y: y})
-	p.cur = point{x: x, y: y}
 }
 
 // QuadTo adds a quadratic Bézier curve to the path.
 // (x1, y1) is the control point, and (x2, y2) is the destination.
-//
-// QuadTo updates the current position to (x2, y2).
 func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 	p.quadTo(point{x: x1, y: y1}, point{x: x2, y: y2}, 0)
 }
@@ -140,12 +143,22 @@ func crossingPointForTwoLines(p00, p01, p10, p11 point) point {
 	}
 }
 
+func (p *Path) currentPosition() (point, bool) {
+	if len(p.subpaths) == 0 {
+		return point{}, false
+	}
+	return p.subpaths[len(p.subpaths)-1].currentPosition()
+}
+
 func (p *Path) quadTo(p1, p2 point, level int) {
 	if level > 10 {
 		return
 	}
 
-	p0 := p.cur
+	p0, ok := p.currentPosition()
+	if !ok {
+		p0 = p1
+	}
 	if isPointCloseToSegment(p1, p0, p2, 0.5) {
 		p.LineTo(p2.x, p2.y)
 		return
@@ -169,8 +182,6 @@ func (p *Path) quadTo(p1, p2 point, level int) {
 
 // CubicTo adds a cubic Bézier curve to the path.
 // (x1, y1) and (x2, y2) are the control points, and (x3, y3) is the destination.
-//
-// CubicTo updates the current position to (x3, y3).
 func (p *Path) CubicTo(x1, y1, x2, y2, x3, y3 float32) {
 	p.cubicTo(point{x: x1, y: y1}, point{x: x2, y: y2}, point{x: x3, y: y3}, 0)
 }
@@ -180,7 +191,10 @@ func (p *Path) cubicTo(p1, p2, p3 point, level int) {
 		return
 	}
 
-	p0 := p.cur
+	p0, ok := p.currentPosition()
+	if !ok {
+		p0 = p1
+	}
 	if isPointCloseToSegment(p1, p0, p3, 0.5) && isPointCloseToSegment(p2, p0, p3, 0.5) {
 		p.LineTo(p3.x, p3.y)
 		return
@@ -224,17 +238,25 @@ func cross(p0, p1 point) float32 {
 }
 
 // ArcTo adds an arc curve to the path. (x1, y1) is the control point, and (x2, y2) is the destination.
-//
-// ArcTo updates the current position to (x2, y2).
 func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
+	p0, ok := p.currentPosition()
+	if !ok {
+		p0 = point{x: x1, y: y1}
+	}
 	d0 := point{
-		x: p.cur.x - x1,
-		y: p.cur.y - y1,
+		x: p0.x - x1,
+		y: p0.y - y1,
 	}
 	d1 := point{
 		x: x2 - x1,
 		y: y2 - y1,
 	}
+	if d0 == (point{}) || d1 == (point{}) {
+		p.LineTo(x1, y1)
+		p.LineTo(x2, y2)
+		return
+	}
+
 	d0 = normalize(d0)
 	d1 = normalize(d1)
 
@@ -273,8 +295,6 @@ func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 
 // Arc adds an arc to the path.
 // (x, y) is the center of the arc.
-//
-// Arc updates the current position to the end of the arc.
 func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 	// Adjust the angles.
 	var da float64
@@ -350,11 +370,9 @@ func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 	p.CubicTo(cx0, cy0, cx1, cy1, x1, y1)
 }
 
-// Close adds a new line from the current position to the first position of the current subpath,
+// Close adds a new line from the last position of the current subpath to the first position of the current subpath,
 // and marks the current subpath closed.
 // Following operations for this path will start with a new subpath.
-//
-// Close updates the current position to the first position of the current subpath.
 func (p *Path) Close() {
 	if len(p.subpaths) == 0 {
 		return
