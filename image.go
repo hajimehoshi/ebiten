@@ -367,10 +367,10 @@ type DrawTrianglesOptions struct {
 	FillRule FillRule
 
 	// AntiAlias indicates whether the rendering uses anti-alias or not.
-	// AntiAlias is useful especially when you pass vertices you get from the vector package.
+	// AntiAlias is useful especially when you pass vertices from the vector package.
 	//
 	// AntiAlias increases internal draw calls and might affect performance.
-	// Use `ebitenginedebug` to check the number of draw calls if you care.
+	// Use the build tag `ebitenginedebug` to check the number of draw calls if you care.
 	//
 	// The default (zero) value is false.
 	AntiAlias bool
@@ -526,10 +526,10 @@ type DrawTrianglesShaderOptions struct {
 	FillRule FillRule
 
 	// AntiAlias indicates whether the rendering uses anti-alias or not.
-	// AntiAlias is useful especially when you pass vertices you get from the vector package.
+	// AntiAlias is useful especially when you pass vertices from the vector package.
 	//
 	// AntiAlias increases internal draw calls and might affect performance.
-	// Use `ebitenginedebug` to check the number of draw calls if you care.
+	// Use the build tag `ebitenginedebug` to check the number of draw calls if you care.
 	//
 	// The default (zero) value is false.
 	AntiAlias bool
