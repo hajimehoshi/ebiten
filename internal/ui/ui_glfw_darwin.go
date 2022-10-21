@@ -253,7 +253,7 @@ func (u *userInterfaceImpl) setNativeCursor(shape CursorShape) {
 	case 2:
 		cursor = NSCursor.Send(sel_performSelector, objc.RegisterName("crosshairCursor"))
 	case 3:
-		cursor = NSCursor.Send(sel_performSelector, objc.RegisterName("pointHandCursor"))
+		cursor = NSCursor.Send(sel_performSelector, objc.RegisterName("pointingHandCursor"))
 	case 4:
 		cursor = NSCursor.Send(sel_performSelector, objc.RegisterName("_windowResizeEastWestCursor"))
 	case 5:
