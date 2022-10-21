@@ -32,6 +32,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 const (
@@ -249,7 +250,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	if g.showRays {
 		// Draw rays
 		for _, r := range rays {
-			ebitenutil.DrawLine(screen, r.X1, r.Y1, r.X2, r.Y2, color.RGBA{255, 255, 0, 150})
+			vector.StrokeLine(screen, float32(r.X1), float32(r.Y1), float32(r.X2), float32(r.Y2), 1, color.RGBA{255, 255, 0, 150})
 		}
 	}
 
@@ -261,13 +262,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Draw walls
 	for _, obj := range g.objects {
 		for _, w := range obj.walls {
-			ebitenutil.DrawLine(screen, w.X1, w.Y1, w.X2, w.Y2, color.RGBA{255, 0, 0, 255})
+			vector.StrokeLine(screen, float32(w.X1), float32(w.Y1), float32(w.X2), float32(w.Y2), 1, color.RGBA{255, 0, 0, 255})
 		}
 	}
 
 	// Draw player as a rect
-	ebitenutil.DrawRect(screen, float64(g.px)-2, float64(g.py)-2, 4, 4, color.Black)
-	ebitenutil.DrawRect(screen, float64(g.px)-1, float64(g.py)-1, 2, 2, color.RGBA{255, 100, 100, 255})
+	vector.FillRect(screen, float32(g.px)-2, float32(g.py)-2, 4, 4, color.Black)
+	vector.FillRect(screen, float32(g.px)-1, float32(g.py)-1, 2, 2, color.RGBA{255, 100, 100, 255})
 
 	if g.showRays {
 		ebitenutil.DebugPrintAt(screen, "R: hide rays", padding, 0)

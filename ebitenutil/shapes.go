@@ -35,30 +35,19 @@ func init() {
 // DrawLine draws a line segment on the given destination dst.
 //
 // DrawLine is intended to be used mainly for debugging or prototyping purpose.
+//
+// Deprecated: as of v2.5. Use vector.StrokeLine instead.
 func DrawLine(dst *ebiten.Image, x1, y1, x2, y2 float64, clr color.Color) {
-	length := math.Hypot(x2-x1, y2-y1)
-
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Scale(length, 1)
-	op.GeoM.Rotate(math.Atan2(y2-y1, x2-x1))
-	op.GeoM.Translate(x1, y1)
-	op.ColorM.ScaleWithColor(clr)
-	// Filter must be 'nearest' filter (default).
-	// Linear filtering would make edges blurred.
-	dst.DrawImage(whiteSubImage, op)
+	vector.StrokeLine(dst, float32(x1), float32(y1), float32(x2), float32(y2), 1, clr)
 }
 
 // DrawRect draws a rectangle on the given destination dst.
 //
 // DrawRect is intended to be used mainly for debugging or prototyping purpose.
+//
+// Deprecated: as of v2.5. Use vector.FillRect instead.
 func DrawRect(dst *ebiten.Image, x, y, width, height float64, clr color.Color) {
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Scale(width, height)
-	op.GeoM.Translate(x, y)
-	op.ColorM.ScaleWithColor(clr)
-	// Filter must be 'nearest' filter (default).
-	// Linear filtering would make edges blurred.
-	dst.DrawImage(whiteSubImage, op)
+	vector.FillRect(dst, float32(x), float32(y), float32(width), float32(height), clr)
 }
 
 // DrawCircle draws a circle on given destination dst.

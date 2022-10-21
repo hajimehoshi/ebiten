@@ -39,6 +39,7 @@ import (
 	raudio "github.com/hajimehoshi/ebiten/v2/examples/resources/audio"
 	riaudio "github.com/hajimehoshi/ebiten/v2/examples/resources/images/audio"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 const (
@@ -338,7 +339,7 @@ func (p *Player) seekBarIfNeeded() error {
 func (p *Player) draw(screen *ebiten.Image) {
 	// Draw the bar.
 	x, y, w, h := playerBarRect()
-	ebitenutil.DrawRect(screen, float64(x), float64(y), float64(w), float64(h), playerBarColor)
+	vector.FillRect(screen, float32(x), float32(y), float32(w), float32(h), playerBarColor)
 
 	// Draw the cursor on the bar.
 	c := p.current
