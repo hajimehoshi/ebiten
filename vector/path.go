@@ -74,7 +74,7 @@ type Path struct {
 	cur      point
 }
 
-// MoveTo starts a new subpath with the given position (x, y) without adding any strokes,
+// MoveTo starts a new subpath with the given position (x, y) without adding a subpath,
 //
 // MoveTo updates the current position to (x, y).
 func (p *Path) MoveTo(x, y float32) {
@@ -90,7 +90,10 @@ func (p *Path) MoveTo(x, y float32) {
 func (p *Path) LineTo(x, y float32) {
 	if len(p.subpaths) == 0 || p.subpaths[len(p.subpaths)-1].closed {
 		p.subpaths = append(p.subpaths, &subpath{
-			points: []point{{x: x, y: y}},
+			points: []point{
+				p.cur,
+				{x: x, y: y},
+			},
 		})
 		p.cur = point{x: x, y: y}
 		return
