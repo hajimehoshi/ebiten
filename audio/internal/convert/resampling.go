@@ -17,21 +17,30 @@ package convert
 import (
 	"io"
 	"math"
+	"sync"
 )
 
-var cosTable = [65536]float64{}
+var cosTableOnce sync.Once
 
-func init() {
-	for i := range cosTable {
-		cosTable[i] = math.Cos(float64(i) * math.Pi / 2 / float64(len(cosTable)))
-	}
+// The first time that cosTable is referenced in a
+// function, it should be called via getCosTable()
+var cosTable []float64 = nil
+
+func getCosTable() []float64 {
+	cosTableOnce.Do(func() {
+		cosTable = make([]float64, 65536)
+		for i := range cosTable {
+			cosTable[i] = math.Cos(float64(i) * math.Pi / 2 / float64(len(cosTable)))
+		}
+	})
+	return cosTable
 }
 
 func fastCos01(x float64) float64 {
 	if x < 0 {
 		x = -x
 	}
-	i := int(4 * float64(len(cosTable)) * x)
+	i := int(4 * float64(len(getCosTable())) * x)
 	if 4*len(cosTable) < i {
 		i %= 4 * len(cosTable)
 	}
