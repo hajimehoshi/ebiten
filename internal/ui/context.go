@@ -16,8 +16,6 @@ package ui
 
 import (
 	"math"
-	"sync"
-	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
@@ -234,82 +232,4 @@ func (c *context) adjustPosition(x, y float64, deviceScaleFactor float64) (float
 		return math.NaN(), math.NaN()
 	}
 	return (x*deviceScaleFactor - ox) / s, (y*deviceScaleFactor - oy) / s
-}
-
-var theGlobalState = globalState{
-	isScreenClearedEveryFrame_: 1,
-}
-
-// globalState represents a global state in this package.
-// This is available even before the game loop starts.
-type globalState struct {
-	err_ error
-	errM sync.Mutex
-
-	fpsMode_                   int32
-	isScreenClearedEveryFrame_ int32
-	graphicsLibrary_           int32
-}
-
-func (g *globalState) error() error {
-	g.errM.Lock()
-	defer g.errM.Unlock()
-	return g.err_
-}
-
-func (g *globalState) setError(err error) {
-	g.errM.Lock()
-	defer g.errM.Unlock()
-	if g.err_ == nil {
-		g.err_ = err
-	}
-}
-
-func (g *globalState) fpsMode() FPSModeType {
-	return FPSModeType(atomic.LoadInt32(&g.fpsMode_))
-}
-
-func (g *globalState) setFPSMode(fpsMode FPSModeType) {
-	atomic.StoreInt32(&g.fpsMode_, int32(fpsMode))
-}
-
-func (g *globalState) isScreenClearedEveryFrame() bool {
-	return atomic.LoadInt32(&g.isScreenClearedEveryFrame_) != 0
-}
-
-func (g *globalState) setScreenClearedEveryFrame(cleared bool) {
-	v := int32(0)
-	if cleared {
-		v = 1
-	}
-	atomic.StoreInt32(&g.isScreenClearedEveryFrame_, v)
-}
-
-func (g *globalState) setGraphicsLibrary(library GraphicsLibrary) {
-	atomic.StoreInt32(&g.graphicsLibrary_, int32(library))
-}
-
-func (g *globalState) graphicsLibrary() GraphicsLibrary {
-	return GraphicsLibrary(atomic.LoadInt32(&g.graphicsLibrary_))
-}
-
-func FPSMode() FPSModeType {
-	return theGlobalState.fpsMode()
-}
-
-func SetFPSMode(fpsMode FPSModeType) {
-	theGlobalState.setFPSMode(fpsMode)
-	theUI.SetFPSMode(fpsMode)
-}
-
-func IsScreenClearedEveryFrame() bool {
-	return theGlobalState.isScreenClearedEveryFrame()
-}
-
-func SetScreenClearedEveryFrame(cleared bool) {
-	theGlobalState.setScreenClearedEveryFrame(cleared)
-}
-
-func GetGraphicsLibrary() GraphicsLibrary {
-	return theGlobalState.graphicsLibrary()
 }
