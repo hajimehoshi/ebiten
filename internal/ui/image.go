@@ -192,6 +192,7 @@ func (i *Image) ReadPixels(pixels []byte, x, y, width, height int) {
 }
 
 func (i *Image) DumpScreenshot(name string, blackbg bool) (string, error) {
+	i.flushBufferIfNeeded()
 	return theUI.dumpScreenshot(i.mipmap, name, blackbg)
 }
 
