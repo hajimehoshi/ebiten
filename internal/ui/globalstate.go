@@ -32,6 +32,7 @@ type globalState struct {
 	fpsMode_                   int32
 	isScreenClearedEveryFrame_ int32
 	graphicsLibrary_           int32
+	drawSkipped_               int32
 }
 
 func (g *globalState) error() error {
@@ -76,6 +77,18 @@ func (g *globalState) graphicsLibrary() GraphicsLibrary {
 	return GraphicsLibrary(atomic.LoadInt32(&g.graphicsLibrary_))
 }
 
+func (g *globalState) skipDraw() {
+	atomic.StoreInt32(&g.drawSkipped_, 1)
+}
+
+func (g *globalState) resetDrawSkipped() {
+	atomic.StoreInt32(&g.drawSkipped_, 0)
+}
+
+func (g *globalState) drawSkipped() bool {
+	return atomic.LoadInt32(&g.drawSkipped_) != 0
+}
+
 func FPSMode() FPSModeType {
 	return theGlobalState.fpsMode()
 }
@@ -95,4 +108,8 @@ func SetScreenClearedEveryFrame(cleared bool) {
 
 func GetGraphicsLibrary() GraphicsLibrary {
 	return theGlobalState.graphicsLibrary()
+}
+
+func SkipDraw() {
+	theGlobalState.skipDraw()
 }

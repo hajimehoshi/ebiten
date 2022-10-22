@@ -770,7 +770,7 @@ func (g *Graphics) End(present bool) error {
 
 	g.pipelineStates.resetConstantBuffers(g.frameIndex)
 
-	if present {
+	if present && g.swapChain != nil {
 		if microsoftgdk.IsXbox() {
 			if err := g.presentXbox(); err != nil {
 				return err

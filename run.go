@@ -537,3 +537,7 @@ func SetScreenTransparent(transparent bool) {
 func SetInitFocused(focused bool) {
 	ui.Get().SetInitFocused(focused)
 }
+
+func SkipDraw() {
+	ui.SkipDraw()
+}

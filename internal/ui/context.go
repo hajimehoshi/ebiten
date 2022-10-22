@@ -142,8 +142,16 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 	}
 
 	// Draw the game.
-	if err := c.drawGame(graphicsDriver); err != nil {
-		return err
+	drawSkipped := theGlobalState.drawSkipped()
+	defer func() {
+		if updateCount > 0 {
+			theGlobalState.resetDrawSkipped()
+		}
+	}()
+	if !drawSkipped {
+		if err := c.drawGame(graphicsDriver); err != nil {
+			return err
+		}
 	}
 
 	return nil
