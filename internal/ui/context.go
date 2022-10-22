@@ -146,8 +146,6 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		return err
 	}
 
-	// All the vertices data are consumed at the end of the frame, and the data backend can be
-	// available after that. Until then, lock the vertices backend.
 	return nil
 }
 
