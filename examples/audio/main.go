@@ -339,13 +339,13 @@ func (p *Player) seekBarIfNeeded() error {
 func (p *Player) draw(screen *ebiten.Image) {
 	// Draw the bar.
 	x, y, w, h := playerBarRect()
-	vector.FillRect(screen, float32(x), float32(y), float32(w), float32(h), playerBarColor)
+	vector.DrawFilledRect(screen, float32(x), float32(y), float32(w), float32(h), playerBarColor)
 
 	// Draw the cursor on the bar.
 	c := p.current
 	cx := float32(x) + float32(w)*float32(p.current)/float32(p.total)
 	cy := float32(y) + float32(h)/2
-	vector.FillCircle(screen, cx, cy, 12, playerCurrentColor)
+	vector.DrawFilledCircle(screen, cx, cy, 12, playerCurrentColor)
 
 	// Compose the curren time text.
 	m := (c / time.Minute) % 100

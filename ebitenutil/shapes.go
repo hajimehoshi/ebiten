@@ -44,16 +44,16 @@ func DrawLine(dst *ebiten.Image, x1, y1, x2, y2 float64, clr color.Color) {
 //
 // DrawRect is intended to be used mainly for debugging or prototyping purpose.
 //
-// Deprecated: as of v2.5. Use vector.FillRect instead.
+// Deprecated: as of v2.5. Use vector.DrawFilledRect instead.
 func DrawRect(dst *ebiten.Image, x, y, width, height float64, clr color.Color) {
-	vector.FillRect(dst, float32(x), float32(y), float32(width), float32(height), clr)
+	vector.DrawFilledRect(dst, float32(x), float32(y), float32(width), float32(height), clr)
 }
 
 // DrawCircle draws a circle on given destination dst.
 //
 // DrawCircle is intended to be used mainly for debugging or prototyping purpose.
 //
-// Deprecated: as of v2.5. Use vector.FillCircle instead.
+// Deprecated: as of v2.5. Use vector.DrawFilledCircle instead.
 func DrawCircle(dst *ebiten.Image, cx, cy, r float64, clr color.Color) {
-	vector.FillCircle(dst, float32(cx), float32(cy), float32(r), clr)
+	vector.DrawFilledCircle(dst, float32(cx), float32(cy), float32(r), clr)
 }

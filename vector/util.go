@@ -60,8 +60,8 @@ func StrokeLine(dst *ebiten.Image, x0, y0, x1, y1 float32, strokeWidth float32, 
 	drawVerticesForUtil(dst, vs, is, clr)
 }
 
-// FillRect fills a rectangle with the specified width and color.
-func FillRect(dst *ebiten.Image, x, y, width, height float32, clr color.Color) {
+// DrawFilledRect fills a rectangle with the specified width and color.
+func DrawFilledRect(dst *ebiten.Image, x, y, width, height float32, clr color.Color) {
 	var path Path
 	path.MoveTo(x, y)
 	path.LineTo(x, y+height)
@@ -91,8 +91,8 @@ func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth floa
 	drawVerticesForUtil(dst, vs, is, clr)
 }
 
-// FillCircle filles a circle with the specified center position (cx, cy), the radius (r), width and color.
-func FillCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color) {
+// DrawFilledCircle filles a circle with the specified center position (cx, cy), the radius (r), width and color.
+func DrawFilledCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color) {
 	var path Path
 	path.Arc(float32(cx), float32(cy), float32(r), 0, 2*math.Pi, Clockwise)
 	vs, is := path.AppendVerticesAndIndicesForFilling(nil, nil)
