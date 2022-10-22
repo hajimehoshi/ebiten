@@ -28,7 +28,7 @@ var (
 	cosTableOnce sync.Once
 )
 
-func getCosTable() []float64 {
+func ensureCosTable() []float64 {
 	cosTableOnce.Do(func() {
 		cosTable = make([]float64, 65536)
 		for i := range cosTable {
@@ -42,7 +42,9 @@ func fastCos01(x float64) float64 {
 	if x < 0 {
 		x = -x
 	}
-	i := int(4 * float64(len(getCosTable())) * x)
+
+	cosTable := ensureCosTable()
+	i := int(4 * float64(len(cosTable)) * x)
 	if 4*len(cosTable) < i {
 		i %= 4 * len(cosTable)
 	}
