@@ -20,11 +20,13 @@ import (
 	"sync"
 )
 
-var cosTableOnce sync.Once
-
-// The first time that cosTable is referenced in a
-// function, it should be called via getCosTable()
-var cosTable []float64 = nil
+var (
+	// cosTable contains values of cosine applied to the range [0, π/2).
+	// It must be initialised the first time it is referenced
+	// in a function via its lazy load wrapper getCosTable().
+	cosTable     []float64
+	cosTableOnce sync.Once
+)
 
 func getCosTable() []float64 {
 	cosTableOnce.Do(func() {
