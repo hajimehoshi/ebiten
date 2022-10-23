@@ -147,7 +147,7 @@ func (g *gameForUI) DrawOffscreen() error {
 	return nil
 }
 
-func (g *gameForUI) DrawScreen() {
+func (g *gameForUI) DrawFinalScreen() {
 	scale, offsetX, offsetY := g.ScreenScaleAndOffsets()
 	var geoM GeoM
 	geoM.Scale(scale, scale)

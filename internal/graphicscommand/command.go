@@ -168,7 +168,8 @@ func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 
 // flush must be called the main thread.
 func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bool) (err error) {
-	if len(q.commands) == 0 {
+	// If endFrame is true, Begin/End should be called to ensure the framebuffer is swapped.
+	if len(q.commands) == 0 && !endFrame {
 		return nil
 	}
 

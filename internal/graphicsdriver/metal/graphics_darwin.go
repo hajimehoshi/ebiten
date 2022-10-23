@@ -199,10 +199,14 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) error {
 }
 
 func (g *Graphics) flushIfNeeded(present bool) {
-	if g.cb == (mtl.CommandBuffer{}) {
+	if g.cb == (mtl.CommandBuffer{}) && !present {
 		return
 	}
 	g.flushRenderCommandEncoderIfNeeded()
+
+	if present && g.screenDrawable == (ca.MetalDrawable{}) {
+		g.screenDrawable = g.view.nextDrawable()
+	}
 
 	if !g.view.presentsWithTransaction() && present && g.screenDrawable != (ca.MetalDrawable{}) {
 		g.cb.PresentDrawable(g.screenDrawable)
