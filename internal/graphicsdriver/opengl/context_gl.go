@@ -23,6 +23,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/glconst"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
@@ -101,14 +102,14 @@ func (c *context) reset() error {
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
 	c.lastBlend = graphicsdriver.Blend{}
-	gl.Enable(gl.BLEND)
-	gl.Enable(gl.SCISSOR_TEST)
+	gl.Enable(glconst.BLEND)
+	gl.Enable(glconst.SCISSOR_TEST)
 
 	// Set the source over blending.
 	c.blend(graphicsdriver.BlendSourceOver)
 
 	f := int32(0)
-	gl.GetIntegerv(gl.FRAMEBUFFER_BINDING, &f)
+	gl.GetIntegerv(glconst.FRAMEBUFFER_BINDING, &f)
 	c.screenFramebuffer = framebufferNative(f)
 	return nil
 }
@@ -144,42 +145,42 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 	texture := textureNative(t)
 	c.bindTexture(texture)
 
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+	gl.TexParameteri(glconst.TEXTURE_2D, glconst.TEXTURE_MAG_FILTER, glconst.NEAREST)
+	gl.TexParameteri(glconst.TEXTURE_2D, glconst.TEXTURE_MIN_FILTER, glconst.NEAREST)
+	gl.TexParameteri(glconst.TEXTURE_2D, glconst.TEXTURE_WRAP_S, glconst.CLAMP_TO_EDGE)
+	gl.TexParameteri(glconst.TEXTURE_2D, glconst.TEXTURE_WRAP_T, glconst.CLAMP_TO_EDGE)
 
-	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 4)
+	gl.PixelStorei(glconst.UNPACK_ALIGNMENT, 4)
 	// If data is nil, this just allocates memory and the content is undefined.
 	// https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glTexImage2D.xhtml
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(width), int32(height), 0, gl.RGBA, gl.UNSIGNED_BYTE, nil)
+	gl.TexImage2D(glconst.TEXTURE_2D, 0, glconst.RGBA, int32(width), int32(height), 0, glconst.RGBA, glconst.UNSIGNED_BYTE, nil)
 	return texture, nil
 }
 
 func (c *context) bindFramebufferImpl(f framebufferNative) {
-	gl.BindFramebufferEXT(gl.FRAMEBUFFER, uint32(f))
+	gl.BindFramebufferEXT(glconst.FRAMEBUFFER, uint32(f))
 }
 
 func (c *context) framebufferPixels(buf []byte, f *framebuffer, x, y, width, height int) {
 	gl.Flush()
 	c.bindFramebuffer(f.native)
-	gl.ReadPixels(int32(x), int32(y), int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(buf))
+	gl.ReadPixels(int32(x), int32(y), int32(width), int32(height), glconst.RGBA, glconst.UNSIGNED_BYTE, gl.Ptr(buf))
 }
 
 func (c *context) framebufferPixelsToBuffer(f *framebuffer, buffer buffer, width, height int) {
 	gl.Flush()
 	c.bindFramebuffer(f.native)
-	gl.BindBuffer(gl.PIXEL_PACK_BUFFER, uint32(buffer))
-	gl.ReadPixels(0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, nil)
-	gl.BindBuffer(gl.PIXEL_PACK_BUFFER, 0)
+	gl.BindBuffer(glconst.PIXEL_PACK_BUFFER, uint32(buffer))
+	gl.ReadPixels(0, 0, int32(width), int32(height), glconst.RGBA, glconst.UNSIGNED_BYTE, nil)
+	gl.BindBuffer(glconst.PIXEL_PACK_BUFFER, 0)
 }
 
 func (c *context) activeTexture(idx int) {
-	gl.ActiveTexture(gl.TEXTURE0 + uint32(idx))
+	gl.ActiveTexture(glconst.TEXTURE0 + uint32(idx))
 }
 
 func (c *context) bindTextureImpl(t textureNative) {
-	gl.BindTexture(gl.TEXTURE_2D, uint32(t))
+	gl.BindTexture(glconst.TEXTURE_2D, uint32(t))
 }
 
 func (c *context) deleteTexture(t textureNative) {
@@ -209,13 +210,13 @@ func (c *context) newRenderbuffer(width, height int) (renderbufferNative, error)
 
 	// GL_STENCIL_INDEX8 might not be available with OpenGL 2.1.
 	// https://www.khronos.org/opengl/wiki/Image_Format
-	gl.RenderbufferStorageEXT(gl.RENDERBUFFER, gl.DEPTH24_STENCIL8, int32(width), int32(height))
+	gl.RenderbufferStorageEXT(glconst.RENDERBUFFER, glconst.DEPTH24_STENCIL8, int32(width), int32(height))
 
 	return renderbuffer, nil
 }
 
 func (c *context) bindRenderbufferImpl(r renderbufferNative) {
-	gl.BindRenderbufferEXT(gl.RENDERBUFFER, uint32(r))
+	gl.BindRenderbufferEXT(glconst.RENDERBUFFER, uint32(r))
 }
 
 func (c *context) deleteRenderbuffer(r renderbufferNative) {
@@ -236,13 +237,13 @@ func (c *context) newFramebuffer(texture textureNative) (framebufferNative, erro
 		return 0, errors.New("opengl: creating framebuffer failed")
 	}
 	c.bindFramebuffer(framebufferNative(f))
-	gl.FramebufferTexture2DEXT(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, uint32(texture), 0)
-	s := gl.CheckFramebufferStatusEXT(gl.FRAMEBUFFER)
-	if s != gl.FRAMEBUFFER_COMPLETE {
+	gl.FramebufferTexture2DEXT(glconst.FRAMEBUFFER, glconst.COLOR_ATTACHMENT0, glconst.TEXTURE_2D, uint32(texture), 0)
+	s := gl.CheckFramebufferStatusEXT(glconst.FRAMEBUFFER)
+	if s != glconst.FRAMEBUFFER_COMPLETE {
 		if s != 0 {
 			return 0, fmt.Errorf("opengl: creating framebuffer failed: %v", s)
 		}
-		if e := gl.GetError(); e != gl.NO_ERROR {
+		if e := gl.GetError(); e != glconst.NO_ERROR {
 			return 0, fmt.Errorf("opengl: creating framebuffer failed: (glGetError) %d", e)
 		}
 		return 0, fmt.Errorf("opengl: creating framebuffer failed: unknown error")
@@ -253,8 +254,8 @@ func (c *context) newFramebuffer(texture textureNative) (framebufferNative, erro
 func (c *context) bindStencilBuffer(f framebufferNative, r renderbufferNative) error {
 	c.bindFramebuffer(f)
 
-	gl.FramebufferRenderbufferEXT(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.RENDERBUFFER, uint32(r))
-	if s := gl.CheckFramebufferStatusEXT(gl.FRAMEBUFFER); s != gl.FRAMEBUFFER_COMPLETE {
+	gl.FramebufferRenderbufferEXT(glconst.FRAMEBUFFER, glconst.STENCIL_ATTACHMENT, glconst.RENDERBUFFER, uint32(r))
+	if s := gl.CheckFramebufferStatusEXT(glconst.FRAMEBUFFER); s != glconst.FRAMEBUFFER_COMPLETE {
 		return errors.New(fmt.Sprintf("opengl: glFramebufferRenderbuffer failed: %d", s))
 	}
 	return nil
@@ -278,11 +279,11 @@ func (c *context) deleteFramebuffer(f framebufferNative) {
 }
 
 func (c *context) newVertexShader(source string) (shader, error) {
-	return c.newShader(gl.VERTEX_SHADER, source)
+	return c.newShader(glconst.VERTEX_SHADER, source)
 }
 
 func (c *context) newFragmentShader(source string) (shader, error) {
-	return c.newShader(gl.FRAGMENT_SHADER, source)
+	return c.newShader(glconst.FRAGMENT_SHADER, source)
 }
 
 func (c *context) newShader(shaderType uint32, source string) (shader, error) {
@@ -296,11 +297,11 @@ func (c *context) newShader(shaderType uint32, source string) (shader, error) {
 	gl.CompileShader(s)
 
 	var v int32
-	gl.GetShaderiv(s, gl.COMPILE_STATUS, &v)
-	if v == gl.FALSE {
+	gl.GetShaderiv(s, glconst.COMPILE_STATUS, &v)
+	if v == glconst.FALSE {
 		var l int32
 		var log []byte
-		gl.GetShaderiv(uint32(s), gl.INFO_LOG_LENGTH, &l)
+		gl.GetShaderiv(uint32(s), glconst.INFO_LOG_LENGTH, &l)
 		if l != 0 {
 			log = make([]byte, l)
 			gl.GetShaderInfoLog(s, l, nil, (*uint8)(gl.Ptr(log)))
@@ -332,11 +333,11 @@ func (c *context) newProgram(shaders []shader, attributes []string) (program, er
 
 	gl.LinkProgram(p)
 	var v int32
-	gl.GetProgramiv(p, gl.LINK_STATUS, &v)
-	if v == gl.FALSE {
+	gl.GetProgramiv(p, glconst.LINK_STATUS, &v)
+	if v == glconst.FALSE {
 		var l int32
 		var log []byte
-		gl.GetProgramiv(p, gl.INFO_LOG_LENGTH, &l)
+		gl.GetProgramiv(p, glconst.INFO_LOG_LENGTH, &l)
 		if l != 0 {
 			log = make([]byte, l)
 			gl.GetProgramInfoLog(p, l, nil, (*uint8)(gl.Ptr(log)))
@@ -419,7 +420,7 @@ func (c *context) uniformFloats(p program, location string, v []float32, typ sha
 }
 
 func (c *context) vertexAttribPointer(index int, size int, stride int, offset int) {
-	gl.VertexAttribPointer(uint32(index), int32(size), gl.FLOAT, false, int32(stride), uintptr(offset))
+	gl.VertexAttribPointer(uint32(index), int32(size), glconst.FLOAT, false, int32(stride), uintptr(offset))
 }
 
 func (c *context) enableVertexAttribArray(index int) {
@@ -433,33 +434,33 @@ func (c *context) disableVertexAttribArray(index int) {
 func (c *context) newArrayBuffer(size int) buffer {
 	var b uint32
 	gl.GenBuffers(1, &b)
-	gl.BindBuffer(gl.ARRAY_BUFFER, b)
-	gl.BufferData(gl.ARRAY_BUFFER, size, nil, gl.DYNAMIC_DRAW)
+	gl.BindBuffer(glconst.ARRAY_BUFFER, b)
+	gl.BufferData(glconst.ARRAY_BUFFER, size, nil, glconst.DYNAMIC_DRAW)
 	return buffer(b)
 }
 
 func (c *context) newElementArrayBuffer(size int) buffer {
 	var b uint32
 	gl.GenBuffers(1, &b)
-	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b)
-	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, size, nil, gl.DYNAMIC_DRAW)
+	gl.BindBuffer(glconst.ELEMENT_ARRAY_BUFFER, b)
+	gl.BufferData(glconst.ELEMENT_ARRAY_BUFFER, size, nil, glconst.DYNAMIC_DRAW)
 	return buffer(b)
 }
 
 func (c *context) bindArrayBuffer(b buffer) {
-	gl.BindBuffer(gl.ARRAY_BUFFER, uint32(b))
+	gl.BindBuffer(glconst.ARRAY_BUFFER, uint32(b))
 }
 
 func (c *context) bindElementArrayBuffer(b buffer) {
-	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, uint32(b))
+	gl.BindBuffer(glconst.ELEMENT_ARRAY_BUFFER, uint32(b))
 }
 
 func (c *context) arrayBufferSubData(data []float32) {
-	gl.BufferSubData(gl.ARRAY_BUFFER, 0, len(data)*4, gl.Ptr(data))
+	gl.BufferSubData(glconst.ARRAY_BUFFER, 0, len(data)*4, gl.Ptr(data))
 }
 
 func (c *context) elementArrayBufferSubData(data []uint16) {
-	gl.BufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, len(data)*2, gl.Ptr(data))
+	gl.BufferSubData(glconst.ELEMENT_ARRAY_BUFFER, 0, len(data)*2, gl.Ptr(data))
 }
 
 func (c *context) deleteBuffer(b buffer) {
@@ -468,12 +469,12 @@ func (c *context) deleteBuffer(b buffer) {
 }
 
 func (c *context) drawElements(len int, offsetInBytes int) {
-	gl.DrawElements(gl.TRIANGLES, int32(len), gl.UNSIGNED_SHORT, uintptr(offsetInBytes))
+	gl.DrawElements(glconst.TRIANGLES, int32(len), glconst.UNSIGNED_SHORT, uintptr(offsetInBytes))
 }
 
 func (c *context) maxTextureSizeImpl() int {
 	s := int32(0)
-	gl.GetIntegerv(gl.MAX_TEXTURE_SIZE, &s)
+	gl.GetIntegerv(glconst.MAX_TEXTURE_SIZE, &s)
 	return int(s)
 }
 
@@ -488,27 +489,27 @@ func (c *context) needsRestoring() bool {
 func (c *context) texSubImage2D(t textureNative, args []*graphicsdriver.WritePixelsArgs) {
 	c.bindTexture(t)
 	for _, a := range args {
-		gl.TexSubImage2D(gl.TEXTURE_2D, 0, int32(a.X), int32(a.Y), int32(a.Width), int32(a.Height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(a.Pixels))
+		gl.TexSubImage2D(glconst.TEXTURE_2D, 0, int32(a.X), int32(a.Y), int32(a.Width), int32(a.Height), glconst.RGBA, glconst.UNSIGNED_BYTE, gl.Ptr(a.Pixels))
 	}
 }
 
 func (c *context) enableStencilTest() {
-	gl.Enable(gl.STENCIL_TEST)
+	gl.Enable(glconst.STENCIL_TEST)
 }
 
 func (c *context) disableStencilTest() {
-	gl.Disable(gl.STENCIL_TEST)
+	gl.Disable(glconst.STENCIL_TEST)
 }
 
 func (c *context) beginStencilWithEvenOddRule() {
-	gl.Clear(gl.STENCIL_BUFFER_BIT)
-	gl.StencilFunc(gl.ALWAYS, 0x00, 0xff)
-	gl.StencilOp(gl.KEEP, gl.KEEP, gl.INVERT)
+	gl.Clear(glconst.STENCIL_BUFFER_BIT)
+	gl.StencilFunc(glconst.ALWAYS, 0x00, 0xff)
+	gl.StencilOp(glconst.KEEP, glconst.KEEP, glconst.INVERT)
 	gl.ColorMask(false, false, false, false)
 }
 
 func (c *context) endStencilWithEvenOddRule() {
-	gl.StencilFunc(gl.NOTEQUAL, 0x00, 0xff)
-	gl.StencilOp(gl.KEEP, gl.KEEP, gl.KEEP)
+	gl.StencilFunc(glconst.NOTEQUAL, 0x00, 0xff)
+	gl.StencilOp(glconst.KEEP, glconst.KEEP, glconst.KEEP)
 	gl.ColorMask(true, true, true, true)
 }

@@ -425,6 +425,8 @@ import "C"
 import (
 	"errors"
 	"unsafe"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/glconst"
 )
 
 var (
@@ -733,22 +735,22 @@ func GetVertexArrayPointeri_vEXT(vaobj uint32, index uint32, pname uint32, param
 
 func IsFramebufferEXT(framebuffer uint32) bool {
 	ret := C.glowIsFramebufferEXT(gpIsFramebufferEXT, (C.GLuint)(framebuffer))
-	return ret == TRUE
+	return ret == glconst.TRUE
 }
 
 func IsProgram(program uint32) bool {
 	ret := C.glowIsProgram(gpIsProgram, (C.GLuint)(program))
-	return ret == TRUE
+	return ret == glconst.TRUE
 }
 
 func IsRenderbufferEXT(renderbuffer uint32) bool {
 	ret := C.glowIsRenderbufferEXT(gpIsRenderbufferEXT, (C.GLuint)(renderbuffer))
-	return ret == TRUE
+	return ret == glconst.TRUE
 }
 
 func IsTexture(texture uint32) bool {
 	ret := C.glowIsTexture(gpIsTexture, (C.GLuint)(texture))
-	return ret == TRUE
+	return ret == glconst.TRUE
 }
 
 func LinkProgram(program uint32) {
