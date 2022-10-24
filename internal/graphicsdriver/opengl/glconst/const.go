@@ -1,16 +1,16 @@
-// SPDX-License-Identifier: MIT
-
-// Copyright (c) 2010 Khronos Group.
-// This material may be distributed subject to the terms and conditions
-// set forth in the Open Publication License, v 1.0, 8 June 1999.
-// http://opencontent.org/openpub/.
+// Copyright 2022 The Ebitengine Authors
 //
-// Copyright (c) 1991-2006 Silicon Graphics, Inc.
-// This document is licensed under the SGI Free Software B License.
-// For details, see http://oss.sgi.com/projects/FreeB.
-
-//go:build !js
-// +build !js
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 // Package glconst provides constants to the implementations of Go bindings to
 // OpenGL and OpenGL ES, for packages gl and gles respectively.
