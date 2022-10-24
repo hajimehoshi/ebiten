@@ -25,8 +25,6 @@ import (
 	"strings"
 )
 
-//go:generate go run gen.go
-
 // files that should be compiled
 var filenames = map[string]struct{}{
 	"cocoa_init.m":     {},
