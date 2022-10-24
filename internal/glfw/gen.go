@@ -106,6 +106,7 @@ func run() error {
 			args := []string{
 				"-o", // output
 				objectExt(filepath.Join(build, name)),
+				"-mmacosx-version-min=10.12",
 				"-arch",
 				a.target(),
 				"-c", // compile without linking
