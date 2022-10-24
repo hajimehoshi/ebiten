@@ -24,7 +24,7 @@ import (
 	"github.com/ebitengine/purego"
 )
 
-//go:embed libglfw.3.3.8.dylib
+//go:embed libglfw.3.3.dylib
 var library []byte
 
 var libglfw *dylib
@@ -141,7 +141,7 @@ func init() {
 	if err != nil {
 		panic(fmt.Errorf("glfw: %w", err))
 	}
-	filePath = path.Join(filePath, "libglfw.3.3.8.dylib")
+	filePath = path.Join(filePath, "libglfw.3.3.dylib")
 	file, err := os.Create(filePath)
 	if err != nil {
 		panic(fmt.Errorf("glfw: %w", err))
