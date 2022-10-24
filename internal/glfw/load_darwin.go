@@ -132,12 +132,7 @@ func goGLFWErrorCallback(code uintptr, desc *byte) uintptr {
 }
 
 func init() {
-	dir, err := os.UserCacheDir()
-	if err != nil {
-		panic(fmt.Errorf("glfw: %w", err))
-	}
-	filePath := path.Join(dir, "ebitengine")
-	err = os.MkdirAll(filePath, 0750)
+	filePath, err := os.MkdirTemp("", "ebitengine-glfw-*")
 	if err != nil {
 		panic(fmt.Errorf("glfw: %w", err))
 	}
@@ -151,13 +146,16 @@ func init() {
 		if err != nil {
 			panic(fmt.Errorf("glfw: %w", err))
 		}
+		err = os.Remove(filePath)
+		if err != nil {
+			panic(fmt.Errorf("glfw: %w", err))
+		}
 	}(file)
 	_, err = file.Write(library)
 	if err != nil {
 		panic(fmt.Errorf("glfw: %w", err))
 	}
-
-	lib := purego.Dlopen(filePath, purego.RTLD_GLOBAL)
+	lib := purego.Dlopen(filePath, purego.RTLD_NOW|purego.RTLD_LOCAL)
 	if lib == 0 {
 		panic(fmt.Errorf("glfw: %s", purego.Dlerror()))
 	}
