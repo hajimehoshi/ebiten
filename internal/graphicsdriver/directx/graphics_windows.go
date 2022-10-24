@@ -148,6 +148,9 @@ type Graphics struct {
 	// lastTime is the last time for rendering.
 	lastTime time.Time
 
+	newScreenWidth  int
+	newScreenHeight int
+
 	pipelineStates
 }
 
@@ -533,9 +536,8 @@ func (g *Graphics) updateSwapChain(width, height int) error {
 		return errors.New("directx: resizing should never happen on Xbox")
 	}
 
-	if err := g.resizeSwapChainDesktop(width, height); err != nil {
-		return err
-	}
+	g.newScreenWidth = width
+	g.newScreenHeight = height
 
 	return nil
 }
@@ -644,19 +646,7 @@ func (g *Graphics) initSwapChainXbox(width, height int) (ferr error) {
 }
 
 func (g *Graphics) resizeSwapChainDesktop(width, height int) error {
-	if err := g.flushCommandList(g.copyCommandList); err != nil {
-		return err
-	}
-	if err := g.copyCommandList.Close(); err != nil {
-		return err
-	}
-	if err := g.flushCommandList(g.drawCommandList); err != nil {
-		return err
-	}
-	if err := g.drawCommandList.Close(); err != nil {
-		return err
-	}
-
+	// All resources must be released before ResizeBuffers.
 	if err := g.waitForCommandQueue(); err != nil {
 		return err
 	}
@@ -679,25 +669,6 @@ func (g *Graphics) resizeSwapChainDesktop(width, height int) error {
 	}
 
 	if err := g.createRenderTargetViewsDesktop(); err != nil {
-		return err
-	}
-
-	// TODO: Reset 0 on Xbox
-	g.frameIndex = int(g.swapChain.GetCurrentBackBufferIndex())
-
-	// TODO: Are these resetting necessary?
-
-	if err := g.drawCommandAllocators[g.frameIndex].Reset(); err != nil {
-		return err
-	}
-	if err := g.drawCommandList.Reset(g.drawCommandAllocators[g.frameIndex], nil); err != nil {
-		return err
-	}
-
-	if err := g.copyCommandAllocators[g.frameIndex].Reset(); err != nil {
-		return err
-	}
-	if err := g.copyCommandList.Reset(g.copyCommandAllocators[g.frameIndex], nil); err != nil {
 		return err
 	}
 
@@ -808,6 +779,14 @@ func (g *Graphics) End(present bool) error {
 			if err := g.presentDesktop(); err != nil {
 				return err
 			}
+		}
+
+		if g.newScreenWidth != 0 && g.newScreenHeight != 0 {
+			if err := g.resizeSwapChainDesktop(g.newScreenWidth, g.newScreenHeight); err != nil {
+				return err
+			}
+			g.newScreenWidth = 0
+			g.newScreenHeight = 0
 		}
 
 		if err := g.moveToNextFrame(); err != nil {
