@@ -37,13 +37,15 @@ import "C"
 
 import (
 	"unsafe"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/glconst"
 )
 
 func glBool(x bool) C.GLboolean {
 	if x {
-		return TRUE
+		return glconst.TRUE
 	}
-	return FALSE
+	return glconst.FALSE
 }
 
 type DefaultContext struct{}
@@ -216,7 +218,7 @@ func (DefaultContext) GetProgramiv(dst []int32, program uint32, pname uint32) {
 
 func (d DefaultContext) GetProgramInfoLog(program uint32) string {
 	buflens := make([]int32, 1)
-	d.GetProgramiv(buflens, program, INFO_LOG_LENGTH)
+	d.GetProgramiv(buflens, program, glconst.INFO_LOG_LENGTH)
 	buflen := buflens[0]
 	if buflen == 0 {
 		return ""
@@ -233,7 +235,7 @@ func (DefaultContext) GetShaderiv(dst []int32, shader uint32, pname uint32) {
 
 func (d DefaultContext) GetShaderInfoLog(shader uint32) string {
 	buflens := make([]int32, 1)
-	d.GetShaderiv(buflens, shader, INFO_LOG_LENGTH)
+	d.GetShaderiv(buflens, shader, glconst.INFO_LOG_LENGTH)
 	buflen := buflens[0]
 	if buflen == 0 {
 		return ""
@@ -258,19 +260,19 @@ func (DefaultContext) GetUniformLocation(program uint32, name string) int32 {
 }
 
 func (DefaultContext) IsFramebuffer(framebuffer uint32) bool {
-	return C.glIsFramebuffer(C.GLuint(framebuffer)) != FALSE
+	return C.glIsFramebuffer(C.GLuint(framebuffer)) != glconst.FALSE
 }
 
 func (DefaultContext) IsProgram(program uint32) bool {
-	return C.glIsProgram(C.GLuint(program)) != FALSE
+	return C.glIsProgram(C.GLuint(program)) != glconst.FALSE
 }
 
 func (DefaultContext) IsRenderbuffer(renderbuffer uint32) bool {
-	return C.glIsRenderbuffer(C.GLuint(renderbuffer)) != FALSE
+	return C.glIsRenderbuffer(C.GLuint(renderbuffer)) != glconst.FALSE
 }
 
 func (DefaultContext) IsTexture(texture uint32) bool {
-	return C.glIsTexture(C.GLuint(texture)) != FALSE
+	return C.glIsTexture(C.GLuint(texture)) != glconst.FALSE
 }
 
 func (DefaultContext) LinkProgram(program uint32) {
