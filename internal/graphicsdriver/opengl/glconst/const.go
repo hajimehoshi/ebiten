@@ -13,10 +13,8 @@
 // +build !js
 
 // Package glconst provides constants to the implementations of Go bindings to
-// OpenGL and OpenGL ES, in packages gl and gles respectively.
+// OpenGL and OpenGL ES, for packages gl and gles respectively.
 package glconst
-
-// Constants shared between gl AND gles
 
 const (
 	ALWAYS               = 0x0207
@@ -25,6 +23,7 @@ const (
 	CLAMP_TO_EDGE        = 0x812F
 	COLOR_ATTACHMENT0    = 0x8CE0
 	COMPILE_STATUS       = 0x8B81
+	DEPTH24_STENCIL8     = 0x88F0
 	DYNAMIC_DRAW         = 0x88E8
 	ELEMENT_ARRAY_BUFFER = 0x8893
 	FALSE                = 0
@@ -33,6 +32,7 @@ const (
 	FRAMEBUFFER          = 0x8D40
 	FRAMEBUFFER_BINDING  = 0x8CA6
 	FRAMEBUFFER_COMPLETE = 0x8CD5
+	HIGH_FLOAT           = 0x8DF2
 	INFO_LOG_LENGTH      = 0x8B84
 	INVERT               = 0x150A
 	KEEP                 = 0x1E00
@@ -50,6 +50,7 @@ const (
 	SHORT                = 0x1402
 	STENCIL_ATTACHMENT   = 0x8D20
 	STENCIL_BUFFER_BIT   = 0x0400
+	STENCIL_INDEX8       = 0x8D48
 	STENCIL_TEST         = 0x0B90
 	STREAM_DRAW          = 0x88E0
 	TEXTURE0             = 0x84C0
@@ -65,17 +66,4 @@ const (
 	UNSIGNED_SHORT       = 0x1403
 	VERTEX_SHADER        = 0x8B31
 	WRITE_ONLY           = 0x88B9
-)
-
-// Constants unique to gl
-
-const (
-	DEPTH24_STENCIL8 = 0x88F0
-)
-
-// Constants unique to gles
-
-const (
-	HIGH_FLOAT     = 0x8DF2
-	STENCIL_INDEX8 = 0x8D48
 )
