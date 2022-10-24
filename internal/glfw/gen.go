@@ -74,6 +74,7 @@ func objectExt(s string) string {
 }
 
 func run() error {
+	defer log.Printf("Finished!\n")
 	list := exec.Command("go", "list", "-f", "{{.Dir}}", "github.com/go-gl/glfw/v3.3/glfw")
 	output, err := list.Output()
 	if err != nil {
@@ -96,13 +97,12 @@ func run() error {
 	}
 
 	for _, a := range []arch{archAmd64, archArm64} {
-		log.Printf("Compiling Files for %s\n", a.target())
+		log.Printf("Compiling Files for %s at %s\n", a.target(), build)
 		for _, entry := range dir {
 			if _, ok := filenames[entry.Name()]; !ok {
 				continue
 			}
 			name := entry.Name()
-			//arch := archAmd64
 			args := []string{
 				"-o", // output
 				objectExt(filepath.Join(build, name)),
