@@ -119,13 +119,13 @@ func (c *context) blend(blend graphicsdriver.Blend) {
 		return
 	}
 	c.lastBlend = blend
-	glconst.BLENDFuncSeparate(
+	gl.BlendFuncSeparate(
 		uint32(convertBlendFactor(blend.BlendFactorSourceRGB)),
 		uint32(convertBlendFactor(blend.BlendFactorDestinationRGB)),
 		uint32(convertBlendFactor(blend.BlendFactorSourceAlpha)),
 		uint32(convertBlendFactor(blend.BlendFactorDestinationAlpha)),
 	)
-	glconst.BLENDEquationSeparate(
+	gl.BlendEquationSeparate(
 		uint32(convertBlendOperation(blend.BlendOperationRGB)),
 		uint32(convertBlendOperation(blend.BlendOperationAlpha)),
 	)

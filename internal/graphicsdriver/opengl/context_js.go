@@ -191,13 +191,13 @@ func (c *context) blend(blend graphicsdriver.Blend) {
 	}
 	c.lastBlend = blend
 	gl := c.gl
-	glconst.BLENDFuncSeparate.Invoke(
+	gl.BlendFuncSeparate.Invoke(
 		int(convertBlendFactor(blend.BlendFactorSourceRGB)),
 		int(convertBlendFactor(blend.BlendFactorDestinationRGB)),
 		int(convertBlendFactor(blend.BlendFactorSourceAlpha)),
 		int(convertBlendFactor(blend.BlendFactorDestinationAlpha)),
 	)
-	glconst.BLENDEquationSeparate.Invoke(
+	gl.BlendEquationSeparate.Invoke(
 		int(convertBlendOperation(blend.BlendOperationRGB)),
 		int(convertBlendOperation(blend.BlendOperationAlpha)),
 	)
