@@ -104,6 +104,7 @@ func run() error {
 				"-D__DATE__=",
 				"-D__TIME__=",
 				"-D__TIMESTAMP__=",
+				"-fdebug-prefix-map=" + build + "=.", // relatives any absolute pathes
 				"-arch",
 				a.target(),
 				"-c", // compile without linking
@@ -127,6 +128,7 @@ func run() error {
 		args := []string{
 			"-dynamiclib",
 			"-Wl",
+			"-oso_prefix",
 			"-arch",
 			a.target(),
 			"-framework", "Cocoa", "-framework", "IOKit", "-framework", "CoreFoundation",
@@ -146,10 +148,10 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	/*err = os.Remove("glfw-arm64.dylib")
+	err = os.Remove("glfw-arm64.dylib")
 	if err != nil {
 		return err
-	}*/
+	}
 	os.Remove("glfw-x86_64.dylib")
 	if err != nil {
 		return err
