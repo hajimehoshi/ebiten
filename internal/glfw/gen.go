@@ -18,7 +18,6 @@
 package main
 
 import (
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -74,7 +73,6 @@ func objectExt(s string) string {
 }
 
 func run() error {
-	defer log.Printf("Finished!\n")
 	list := exec.Command("go", "list", "-f", "{{.Dir}}", "github.com/go-gl/glfw/v3.3/glfw")
 	output, err := list.Output()
 	if err != nil {
@@ -86,7 +84,6 @@ func run() error {
 		return err
 	}
 	defer func() {
-		log.Printf("Deleting build files: %s", build)
 		os.RemoveAll(build) // clean up
 	}()
 	csource := source + "/glfw/src"
@@ -97,7 +94,6 @@ func run() error {
 	}
 
 	for _, a := range []arch{archAmd64, archArm64} {
-		log.Printf("Compiling Files for %s at %s\n", a.target(), build)
 		for _, entry := range dir {
 			if _, ok := filenames[entry.Name()]; !ok {
 				continue
@@ -127,7 +123,6 @@ func run() error {
 		if err != nil {
 			return err
 		}
-		log.Printf("Linking for %s\n", a.target())
 		args := []string{
 			"-dynamiclib",
 			"-Wl",
@@ -146,12 +141,10 @@ func run() error {
 		}
 	}
 	// There are now two files: glfw-arm64.dylib and glfw-x86_64.dylib
-	log.Printf("Making universal dylib\n")
 	err = execCommand("lipo", "glfw-arm64.dylib", "glfw-x86_64.dylib", "-output", "libglfw.3.3.dylib", "-create")
 	if err != nil {
 		return err
 	}
-	log.Printf("Deleting temporary dylibs")
 	err = os.Remove("glfw-arm64.dylib")
 	if err != nil {
 		return err
@@ -160,7 +153,6 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	log.Printf("Finished!\n")
 	return nil
 }
 
