@@ -63,6 +63,8 @@ func (a arch) target() string {
 
 func execCommand(name string, args ...string) error {
 	cmd := exec.Command(name, args...)
+	// source: http://blog.llvm.org/2019/11/deterministic-builds-with-clang-and-lld.html
+	cmd.Env = append(os.Environ(), "ZERO_AR_DATE=1")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
@@ -88,9 +90,6 @@ func run() error {
 	}()
 	csource := source + "/glfw/src"
 	includes := source + "/glfw/include"
-
-	// source: http://blog.llvm.org/2019/11/deterministic-builds-with-clang-and-lld.html
-	os.Setenv("ZERO_AR_DATE", "1")
 
 	for _, a := range []arch{archAmd64, archArm64} {
 		for _, name := range filenames {
