@@ -89,21 +89,13 @@ jobs:
           env GOOS=windows GOARCH=386 go build -tags=example -v ./...
           env GOOS=windows GOARCH=amd64 go build -tags=example -v ./...
           env GOOS=windows GOARCH=arm go build -tags=example -v ./...
+          env GOOS=darwin GOARCH=arm64 go build -tags=example -v ./...
+          env GOOS=darwin GOARCH=amd64 go build -tags=example -v ./...
 
       - name: go build (Windows ARM64)
         if: ${{ !startsWith(matrix.go, '1.16.') }}
         run: |
           env GOOS=windows GOARCH=arm64 go build -tags=example -v ./...
-
-      - name: go build (macOS)
-        if: ${{ startsWith(matrix.os, 'macos-') }}
-        run: |
-          env CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -tags=example -v ./...
-          env CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -tags=example -o flappy_amd64 -v ./examples/flappy
-          env CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -tags=example -o flappy_arm64 -v ./examples/flappy
-          lipo -create flappy_amd64 flappy_arm64 -output flappy
-          file flappy
-          rm flappy
 
       - name: go build (NintendoSDK)
         if: ${{ startsWith(matrix.os, 'ubuntu-') }}
