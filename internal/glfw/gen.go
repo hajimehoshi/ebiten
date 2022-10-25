@@ -89,12 +89,16 @@ func run() error {
 	csource := source + "/glfw/src"
 	includes := source + "/glfw/include"
 
+	// source: http://blog.llvm.org/2019/11/deterministic-builds-with-clang-and-lld.html
+	os.Setenv("ZERO_AR_DATE", "1")
+
 	for _, a := range []arch{archAmd64, archArm64} {
 		for _, name := range filenames {
 			args := []string{
 				"-o", // output
 				objectExt(filepath.Join(build, name)),
 				"-mmacosx-version-min=10.12",
+				"-no-canonical-prefixes", // make clang use relative paths for compiler-internal headers
 				"-arch",
 				a.target(),
 				"-c", // compile without linking
