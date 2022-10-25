@@ -24,7 +24,7 @@ import (
 	"github.com/ebitengine/purego"
 )
 
-//go:embed libglfw.3.3.dylib
+//go:embed libglfw.3.3.8.dylib
 var library []byte
 
 var libglfw *dylib

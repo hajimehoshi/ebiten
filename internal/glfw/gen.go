@@ -136,13 +136,13 @@ func run() error {
 		tmp := make([]string, len(args)+len(filenames))
 		copy(tmp[copy(tmp, doto):], args)
 		args = tmp
-		err = execCommand("g++", args...)
+		err = execCommand("clang", args...)
 		if err != nil {
 			return err
 		}
 	}
 	// There are now two files: glfw-arm64.dylib and glfw-x86_64.dylib
-	err = execCommand("lipo", "glfw-arm64.dylib", "glfw-x86_64.dylib", "-output", "libglfw.3.3.dylib", "-create")
+	err = execCommand("lipo", "glfw-arm64.dylib", "glfw-x86_64.dylib", "-output", "internal/glfw/libglfw.3.3.8.dylib", "-create")
 	if err != nil {
 		return err
 	}
