@@ -24,8 +24,6 @@ import (
 	"strings"
 )
 
-//go:generate go run gen.go
-
 // filenames is the list of files that need to be compiled for darwin
 var filenames = []string{
 	"cocoa_init.m",
@@ -144,7 +142,7 @@ func run() error {
 		}
 	}
 	// There are now two files: glfw-arm64.dylib and glfw-x86_64.dylib
-	err = execCommand("lipo", "glfw-arm64.dylib", "glfw-x86_64.dylib", "-output", "internal/glfw/libglfw.3.3.8.dylib", "-create")
+	err = execCommand("lipo", "glfw-arm64.dylib", "glfw-x86_64.dylib", "-output", "libglfw.3.3.8.dylib", "-create")
 	if err != nil {
 		return err
 	}

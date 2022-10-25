@@ -24,6 +24,8 @@ import (
 	"github.com/ebitengine/purego"
 )
 
+//go:generate go run gen.go
+
 //go:embed libglfw.3.3.8.dylib
 var library []byte
 
