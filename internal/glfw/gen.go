@@ -24,6 +24,8 @@ import (
 	"strings"
 )
 
+//go:generate go run main.go
+
 // filenames is the list of files that need to be compiled for darwin
 var filenames = []string{
 	"cocoa_init.m",
@@ -98,6 +100,10 @@ func run() error {
 				objectExt(filepath.Join(build, name)),
 				"-mmacosx-version-min=10.12",
 				"-no-canonical-prefixes", // make clang use relative paths for compiler-internal headers
+				"-Wno-builtin-macro-redefined",
+				"-D__DATE__=",
+				"-D__TIME__=",
+				"-D__TIMESTAMP__=",
 				"-arch",
 				a.target(),
 				"-c", // compile without linking
@@ -140,10 +146,10 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	err = os.Remove("glfw-arm64.dylib")
+	/*err = os.Remove("glfw-arm64.dylib")
 	if err != nil {
 		return err
-	}
+	}*/
 	os.Remove("glfw-x86_64.dylib")
 	if err != nil {
 		return err
