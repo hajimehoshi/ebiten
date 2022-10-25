@@ -144,7 +144,8 @@ func platformInit() error {
 }
 
 func platformTerminate() error {
-	panic("NOT IMPLEMENTED")
+	log.Println("glfw: platformTerminate: NOT IMPLEMENTED")
+	return nil
 	//@autoreleasepool {
 	//
 	//    if (_glfw.state.inputSource)

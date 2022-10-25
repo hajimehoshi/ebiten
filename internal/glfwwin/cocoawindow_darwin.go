@@ -2,6 +2,7 @@ package glfwwin
 
 import (
 	"fmt"
+	"log"
 	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
@@ -252,11 +253,47 @@ func (w *Window) platformCreateWindow(wndconfig *wndconfig, ctxconfig *ctxconfig
 }
 
 func (w *Window) platformDestroyWindow() error {
-	panic("NOT IMPLEMENTED")
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+
+	//    if (_glfw.ns.disabledCursorWindow == window)
+	//        _glfw.ns.disabledCursorWindow = NULL;
+	//
+	//    [window->ns.object orderOut:nil];
+	//
+	//    if (window->monitor)
+	//        releaseMonitor(window);
+	//
+	//    if (window->context.destroy)
+	//        window->context.destroy(window);
+	//
+	win := cocoa.NSWindow{ID: w.state.object}
+	win.SetDelegate(0)
+	//    [window->ns.delegate release];
+	w.state.delegate = 0
+
+	view := cocoa.NSView{ID: w.state.view}
+	_ = view
+	//    [window->ns.view release];
+	w.state.view = 0
+
+	//    [window->ns.object close];
+	//    window->ns.object = nil;
+	//
+	// HACK: Allow Cocoa to catch up before returning
+	return platformPollEvents()
 }
 
 func (w *Window) platformSetWindowTitle(title string) error {
-	panic("NOT IMPLEMENTED")
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+	t := cocoa.NSString_alloc().InitWithUTF8String(title)
+	win := cocoa.NSWindow{w.state.object}
+	win.SetTitle(t)
+	// HACK: Set the miniwindow title explicitly as setTitle: doesn't update it
+	//       if the window lacks NSWindowStyleMaskTitled
+	win.SetMiniwindowTitle(t)
+	return nil
 }
 
 func (w *Window) updateWindowStyles() error {
@@ -288,7 +325,9 @@ func (w *Window) platformMaximizeWindow() error {
 }
 
 func (w *Window) platformShowWindow() {
-	panic("NOT IMPLEMENTED")
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+	cocoa.NSWindow{ID: w.state.object}.OrderFront(0)
 }
 
 func (w *Window) platformHideWindow() {
@@ -328,7 +367,22 @@ func (w *Window) platformSetWindowFloating(enabled bool) error {
 }
 
 func platformPollEvents() error {
-	panic("NOT IMPLEMENTED")
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+	distantPast := cocoa.NSDate_distantPast()
+	for {
+		event := cocoa.NSApp.NextEventMatchingMaskUntilDateInModeDequeue(
+			cocoa.NSEventMaskAny,
+			distantPast,
+			cocoa.NSDefaultRunLoopMode,
+			true,
+		)
+		if event.ID == 0 {
+			break
+		}
+		cocoa.NSApp.SendEvent(event)
+	}
+	return nil
 }
 
 func platformWaitEvents() error {
@@ -348,7 +402,15 @@ func (w *Window) platformRequestWindowAttention() {
 }
 
 func (w *Window) platformFocusWindow() error {
-	panic("NOT IMPLEMENTED")
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+	// Make us the active application
+	// HACK: This is here to prevent applications using only hidden windows from
+	//       being activated, but should probably not be done every time any
+	//       window is shown
+	cocoa.NSApp.ActivateIgnoringOtherApps(true)
+	cocoa.NSWindow{ID: w.state.object}.MakeKeyAndOrderFront(0)
+	return nil
 }
 
 func (w *Window) platformSetWindowOpacity(opacity float32) error {
@@ -372,7 +434,10 @@ func (w *Window) platformGetWindowPos() (xpos, ypos int, err error) {
 }
 
 func (w *Window) platformGetWindowSize() (width, height int, err error) {
-	panic("NOT IMPLEMENTED")
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+	contentRect := cocoa.NSView{ID: w.state.view}.Frame()
+	return int(contentRect.Size.Width), int(contentRect.Size.Height), nil
 }
 
 func (w *Window) platformSetCursorPos(f float64, f2 float64) error {
@@ -380,11 +445,13 @@ func (w *Window) platformSetCursorPos(f float64, f2 float64) error {
 }
 
 func (w *Window) platformSetWindowSize(width, height int) error {
-	panic("NOT IMPLEMENTED")
+	log.Println("glfw: platformSetWindowSize: NOT IMPLEMENTED")
+	return nil
 }
 
 func (w *Window) platformGetCursorPos() (xpos, ypos float64, err error) {
-	panic("NOT IMPLEMENTED")
+	log.Println("glfw: platformGetCursorPos: NOT IMPLEMENTED")
+	return
 }
 
 func (w *Window) platformSetCursorMode(mode int) error {
@@ -392,7 +459,11 @@ func (w *Window) platformSetCursorMode(mode int) error {
 }
 
 func (w *Window) platformSetCursor(cursor *Cursor) error {
-	panic("NOT IMPLEMENTED")
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+	//    if (cursorInContentArea(window))
+	//        updateCursorImage(window);
+	return nil
 }
 
 func (w *Window) platformSetWindowMonitor(monitor *Monitor, xpos, ypos, width, height, refreshRate int) error {
@@ -404,7 +475,8 @@ func (w *Window) platformGetWindowFrameSize() (left, top, right, bottom int, err
 }
 
 func (w *Window) platformSetWindowPos(xpos, ypos int) error {
-	panic("NOT IMPLEMENTED")
+	log.Println("glfw: platformSetWindowPos: NOT IMPLEMENTED")
+	return nil
 }
 
 func platformRawMouseMotionSupported() bool {
@@ -417,7 +489,12 @@ func (w *Window) platformSetRawMouseMotion(enabled bool) error {
 }
 
 func (w *Window) platformWindowFocused() bool {
-	panic("NOT IMPLEMENTED")
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+	return cocoa.NSWindow{w.state.object}.IsKeyWindow()
+	// @autoreleasepool {
+	//    return [window->ns.object isKeyWindow];
+	//    } // autoreleasepool
 }
 
 func (c *Cursor) platformCreateCursor(image *Image, xhot, yhot int) error {
@@ -482,7 +559,8 @@ func (c *Cursor) platformCreateStandardCursor(shape StandardCursor) error {
 }
 
 func (c *Cursor) platformDestroyCursor() error {
-	panic("NOT IMPLEMENTED")
+	log.Println("glfw: platformDestroyCursor: NOT IMPLEMENTED")
+	return nil
 }
 
 func platformSetClipboardString(str string) error {
@@ -494,5 +572,15 @@ func platformGetClipboardString() (string, error) {
 }
 
 func (w *Window) GetCocoaWindow() (uintptr, error) {
-	panic("NOT IMPLEMENTED")
+	//  _GLFWwindow* window = (_GLFWwindow*) handle;
+	//    _GLFW_REQUIRE_INIT_OR_RETURN(nil);
+	//
+	//    if (_glfw.platform.platformID != GLFW_PLATFORM_COCOA)
+	//    {
+	//        _glfwInputError(GLFW_PLATFORM_UNAVAILABLE,
+	//                        "Cocoa: Platform not initialized");
+	//        return NULL;
+	//    }
+	//
+	return uintptr(w.state.object), nil
 }

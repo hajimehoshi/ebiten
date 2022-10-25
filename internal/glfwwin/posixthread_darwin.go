@@ -14,13 +14,18 @@ func (t *tls) create() error {
 }
 
 func (t *tls) destroy() error {
-	panic("NOT IMPLEMENTED")
+	if t.state.allocated {
+		pthread_key_delete(t.state.key)
+	}
+	*t = tls{}
 	return nil
 }
 
 func (t *tls) get() (uintptr, error) {
-	panic("NOT IMPLEMENTED")
-	return 0, nil
+	if !t.state.allocated {
+		panic("glfwwin: TLS must be allocated")
+	}
+	return pthread_getspecific(t.state.key), nil
 }
 
 func (t *tls) set(value uintptr) error {

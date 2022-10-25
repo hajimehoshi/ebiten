@@ -11,7 +11,8 @@ func (m *Monitor) platformAppendVideoModes(monitors []*VidMode) ([]*VidMode, err
 }
 
 func (m *Monitor) GetCocoaMonitor() (uintptr, error) {
-	panic("NOT IMPLEMENTED")
+	//    _GLFW_REQUIRE_INIT_OR_RETURN(kCGNullDirectDisplay);
+	return uintptr(m.state.displayID), nil
 }
 
 func (m *Monitor) platformGetMonitorPos() (xpos, ypos int, ok bool) {
