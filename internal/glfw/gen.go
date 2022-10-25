@@ -24,23 +24,23 @@ import (
 	"strings"
 )
 
-// files that should be compiled
-var filenames = map[string]struct{}{
-	"cocoa_init.m":     {},
-	"cocoa_joystick.m": {},
-	"cocoa_monitor.m":  {},
-	"cocoa_time.c":     {},
-	"cocoa_window.m":   {},
-	"context.c":        {},
-	"egl_context.c":    {},
-	"init.c":           {},
-	"input.c":          {},
-	"monitor.c":        {},
-	"nsgl_context.m":   {},
-	"osmesa_context.c": {},
-	"posix_thread.c":   {},
-	"vulkan.c":         {},
-	"window.c":         {},
+// filenames is the list of files that need to be compiled for darwin
+var filenames = []string{
+	"cocoa_init.m",
+	"cocoa_joystick.m",
+	"cocoa_monitor.m",
+	"cocoa_time.c",
+	"cocoa_window.m",
+	"context.c",
+	"egl_context.c",
+	"init.c",
+	"input.c",
+	"monitor.c",
+	"nsgl_context.m",
+	"osmesa_context.c",
+	"posix_thread.c",
+	"vulkan.c",
+	"window.c",
 }
 
 type arch string
@@ -88,17 +88,9 @@ func run() error {
 	}()
 	csource := source + "/glfw/src"
 	includes := source + "/glfw/include"
-	dir, err := os.ReadDir(csource)
-	if err != nil {
-		return err
-	}
 
 	for _, a := range []arch{archAmd64, archArm64} {
-		for _, entry := range dir {
-			if _, ok := filenames[entry.Name()]; !ok {
-				continue
-			}
-			name := entry.Name()
+		for _, name := range filenames {
 			args := []string{
 				"-o", // output
 				objectExt(filepath.Join(build, name)),
