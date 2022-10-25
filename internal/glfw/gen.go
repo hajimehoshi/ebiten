@@ -24,7 +24,7 @@ import (
 	"strings"
 )
 
-//go:generate go run main.go
+//go:generate go run gen.go
 
 // filenames is the list of files that need to be compiled for darwin
 var filenames = []string{
