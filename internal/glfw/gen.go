@@ -65,6 +65,8 @@ func execCommand(name string, args ...string) error {
 	cmd := exec.Command(name, args...)
 	// source: http://blog.llvm.org/2019/11/deterministic-builds-with-clang-and-lld.html
 	cmd.Env = append(os.Environ(), "ZERO_AR_DATE=1")
+	// source: https://stackoverflow.com/questions/21765444/clang-compiler-produces-different-object-files-from-same-sources
+	cmd.Env = append(cmd.Env, "DYLD_NO_PIE=1")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
@@ -119,24 +121,30 @@ func run() error {
 				return err
 			}
 		}
+		//err = execCommand("ar", []string{"-r", filepath.Join(build, "*.o")})
 		doto, err := filepath.Glob(filepath.Join(build, "*.o"))
 		if err != nil {
 			return err
 		}
 		args := []string{
-			"-dynamiclib",
-			"-Wl",
-			"-oso_prefix",
+			"-dylib",
+			"-dynamic",
+			"-syslibroot", "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+			"-S",
+			"-lSystem",
+			"-demangle",
 			"-arch",
 			a.target(),
-			"-framework", "Cocoa", "-framework", "IOKit", "-framework", "CoreFoundation",
+			"-framework", "Cocoa",
+			"-framework", "IOKit",
+			"-framework", "CoreFoundation",
 			"-o",
 			"glfw-" + a.target() + ".dylib",
 		}
 		tmp := make([]string, len(args)+len(filenames))
 		copy(tmp[copy(tmp, doto):], args)
 		args = tmp
-		err = execCommand("clang", args...)
+		err = execCommand("ld", args...)
 		if err != nil {
 			return err
 		}
@@ -150,7 +158,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	os.Remove("glfw-x86_64.dylib")
+	err = os.Remove("glfw-x86_64.dylib")
 	if err != nil {
 		return err
 	}
