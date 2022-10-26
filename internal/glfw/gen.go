@@ -121,7 +121,6 @@ func run() error {
 				return err
 			}
 		}
-		//err = execCommand("ar", []string{"-r", filepath.Join(build, "*.o")})
 		doto, err := filepath.Glob(filepath.Join(build, "*.o"))
 		if err != nil {
 			return err
@@ -132,7 +131,8 @@ func run() error {
 			"-syslibroot", "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
 			"-S",
 			"-lSystem",
-			"-demangle",
+			"-no_uuid",
+			"-dead_strip",
 			"-arch",
 			a.target(),
 			"-framework", "Cocoa",
@@ -154,10 +154,10 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	err = os.Remove("glfw-arm64.dylib")
+	/*err = os.Remove("glfw-arm64.dylib")
 	if err != nil {
 		return err
-	}
+	}*/
 	err = os.Remove("glfw-x86_64.dylib")
 	if err != nil {
 		return err
