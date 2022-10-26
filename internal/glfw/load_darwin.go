@@ -157,7 +157,7 @@ func init() {
 	if err != nil {
 		panic(fmt.Errorf("glfw: %w", err))
 	}
-	lib := purego.Dlopen(filePath, purego.RTLD_NOW|purego.RTLD_LOCAL)
+	lib := purego.Dlopen(filePath, purego.RTLD_NOW|purego.RTLD_GLOBAL)
 	if lib == 0 {
 		panic(fmt.Errorf("glfw: %s", purego.Dlerror()))
 	}
