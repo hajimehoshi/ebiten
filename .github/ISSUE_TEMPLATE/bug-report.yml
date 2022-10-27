@@ -14,16 +14,16 @@ body:
     label: Operating System
     description: Which Operating System was the bug on?
     options:
-      - Windows
-      - macOS
-      - Linux
-      - FreeBSD
-      - OpenBSD
-      - Android
-      - iOS
-      - Nintendo Switch
-      - Xbox
-      - Web Browsers
+      - label: Windows
+      - label: macOS
+      - label: Linux
+      - label: FreeBSD
+      - label: OpenBSD
+      - label: Android
+      - label: iOS
+      - label: Nintendo Switch
+      - label: Xbox
+      - label: Web Browsers
   validations:
     required: true
 - type: input
