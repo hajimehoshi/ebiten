@@ -1,20 +1,20 @@
 os:windows:
-- '- [X] Windows\n'
+- '- \[X\] Windows\n'
 os:macos:
-- '- [X] macOS\n'
+- '- \[X\] macOS\n'
 os:linux:
-- '- [X] Linux\n'
+- '- \[X\] Linux\n'
 os:freebsd:
-- '- [X] FreeBSD\n'
+- '- \[X\] FreeBSD\n'
 os:openbsd:
-- '- [X] OpenBSD\n'
+- '- \[X\] OpenBSD\n'
 os:android:
-- '- [X] Android\n'
+- '- \[X\] Android\n'
 os:ios:
-- '- [X] iOS\n'
+- '- \[X\] iOS\n'
 os:nintendoswitch:
-- '- [X] Nintendo Switch\n'
+- '- \[X\] Nintendo Switch\n'
 os:xbox:
-- '- [X] Xbox\n'
+- '- \[X\] Xbox\n'
 os:js:
-- '- [X] Web Browsers\n'
+- '- \[X\] Web Browsers\n'
