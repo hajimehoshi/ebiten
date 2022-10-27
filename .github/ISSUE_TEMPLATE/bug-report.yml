@@ -2,8 +2,8 @@ name: Bug Report
 description: Report a bug you've found.
 labels: bug
 body:
-- type: textarea
-  id: version_of_this
+- type: input
+  id: version_of_ebitengine
   attributes:
     label: Ebitengine Version
   validations:
@@ -13,7 +13,7 @@ body:
   attributes:
     label: Operating System
     description: Which Operating System was the bug on?
-    options:
+    checkboxes:
       - Windows
       - macOS
       - Linux
@@ -26,8 +26,8 @@ body:
       - Web Browsers
   validations:
     required: true
-- type: textarea
-  id: version_of_lang
+- type: input
+  id: version_of_go
   attributes:
     label: Go Version
   validations:
