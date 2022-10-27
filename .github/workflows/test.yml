@@ -73,6 +73,11 @@ jobs:
           (cd .github/workflows/vettools; go install .)
           go vet -vettool=$(which vettools)${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }} -tags=example -v ./...
 
+      - name: govulncheck
+        if: ${{ !startsWith(matrix.go, '1.16.') && !startsWith(matrix.go, '1.17.') }}
+        run: |
+          go run golang.org/x/vuln/cmd/govulncheck@latest -tags=example ./...
+
       - name: go build
         run: |
           go build -tags=example -v ./...
