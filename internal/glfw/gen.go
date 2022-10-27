@@ -126,13 +126,7 @@ func run() error {
 			return err
 		}
 		args := []string{
-			"-dylib",
-			"-dynamic",
-			"-syslibroot", "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
-			"-S",
-			"-lSystem",
-			"-no_uuid",
-			"-dead_strip",
+			"-dynamiclib",
 			"-arch",
 			a.target(),
 			"-framework", "Cocoa",
@@ -144,7 +138,8 @@ func run() error {
 		tmp := make([]string, len(args)+len(filenames))
 		copy(tmp[copy(tmp, doto):], args)
 		args = tmp
-		err = execCommand("ld", args...)
+		// use g++ https://stackoverflow.com/questions/3532589/how-to-build-a-dylib-from-several-o-in-mac-os-x-using-gcc
+		err = execCommand("g++", args...)
 		if err != nil {
 			return err
 		}
@@ -154,10 +149,10 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	/*err = os.Remove("glfw-arm64.dylib")
+	err = os.Remove("glfw-arm64.dylib")
 	if err != nil {
 		return err
-	}*/
+	}
 	err = os.Remove("glfw-x86_64.dylib")
 	if err != nil {
 		return err
