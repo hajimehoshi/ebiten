@@ -8,12 +8,12 @@ body:
     label: Ebitengine Version
   validations:
     required: true
-- type: dropdown
+- type: checkboxes
   id: os
   attributes:
     label: Operating System
     description: Which Operating System was the bug on?
-    checkboxes:
+    options:
       - Windows
       - macOS
       - Linux
