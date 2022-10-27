@@ -15,14 +15,15 @@ body:
     description: Which Operating System was the bug on?
     options:
       - Windows
-      - MacOS
+      - macOS
       - Linux
       - FreeBSD
       - OpenBSD
       - Android
       - iOS
       - Nintendo Switch
-      - XBox
+      - Xbox
+      - Web Browsers
   validations:
     required: true
 - type: textarea
