@@ -29,31 +29,27 @@ body:
 - type: input
   id: version_of_go
   attributes:
-    label: Go Version
+    label: Go Version (`go version`)
   validations:
     required: true
 - type: textarea
   id: repro_steps
   attributes:
-    label: What were you doing (steps to reproduce the bug)?
-  validations:
-    required: true
-- type: textarea
-  id: actual_result
-  attributes:
-    label: What actually happened as a result?
+    label: What steps will reproduce the problem?
   validations:
     required: true
 - type: textarea
   id: expected_result
   attributes:
-    label: What did you expect to happen?
+    label: What is the expected result?
   validations:
     required: true
 - type: textarea
-  id: stacktrace
+  id: actual_result
   attributes:
-    label: If you have a stack trace, please add it here.
+    label: What happens instead?
+  validations:
+    required: true
 - type: textarea
   id: additional
   attributes:
