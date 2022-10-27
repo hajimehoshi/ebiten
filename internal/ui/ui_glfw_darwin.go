@@ -55,9 +55,9 @@ func init() {
 	}
 	pushResizableState := func(self, w objc.ID) {
 		window := cocoa.NSWindow{ID: w}
-		setResizable(self, window.StyleMask()&cocoa.NSWindowStyleMaskResizable != 0)
+		setResizable(self, window.StyleMask()&cocoa.NSUInteger(cocoa.NSWindowStyleMaskResizable) != 0)
 		if !getResizable(self) {
-			window.SetStyleMask(window.StyleMask() | cocoa.NSWindowStyleMaskResizable)
+			window.SetStyleMask(window.StyleMask() | cocoa.NSUInteger(cocoa.NSWindowStyleMaskResizable))
 		}
 	}
 	popResizableState := func(self, w objc.ID) {
@@ -237,7 +237,7 @@ func (u *userInterfaceImpl) nativeWindow() uintptr {
 }
 
 func (u *userInterfaceImpl) isNativeFullscreen() bool {
-	return cocoa.NSWindow{ID: objc.ID(u.window.GetCocoaWindow())}.StyleMask()&cocoa.NSWindowStyleMaskFullScreen != 0
+	return cocoa.NSWindow{ID: objc.ID(u.window.GetCocoaWindow())}.StyleMask()&cocoa.NSUInteger(cocoa.NSWindowStyleMaskFullScreen) != 0
 }
 
 func (u *userInterfaceImpl) setNativeCursor(shape CursorShape) {
@@ -275,7 +275,7 @@ func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) {
 	// Toggling fullscreen might ignore events like keyUp. Ensure that events are fired.
 	glfw.WaitEventsTimeout(0.1)
 	window := cocoa.NSWindow{ID: objc.ID(u.window.GetCocoaWindow())}
-	if window.StyleMask()&cocoa.NSWindowStyleMaskFullScreen != 0 == fullscreen {
+	if window.StyleMask()&cocoa.NSUInteger(cocoa.NSWindowStyleMaskFullScreen) != 0 == fullscreen {
 		return
 	}
 	// Even though EbitengineWindowDelegate is used, this hack is still required.
@@ -296,7 +296,7 @@ func (u *userInterfaceImpl) adjustViewSizeAfterFullscreen() {
 	}
 
 	window := cocoa.NSWindow{ID: objc.ID(u.window.GetCocoaWindow())}
-	if window.StyleMask()&cocoa.NSWindowStyleMaskFullScreen == 0 {
+	if window.StyleMask()&cocoa.NSUInteger(cocoa.NSWindowStyleMaskFullScreen) == 0 {
 		return
 	}
 

@@ -11,8 +11,34 @@ import (
 
 var (
 	class_GLFWWindowDelegate objc.Class
-	sel_initWithGlfwWindow   = objc.RegisterName("initWithGlfwWindow")
+	class_GLFWWindow         objc.Class
+
+	sel_initWithGlfwWindow                          = objc.RegisterName("initWithGlfwWindow")
+	sel_initWithContentRect_styleMask_backing_defer = objc.RegisterName("initWithContentRect:styleMask:backing:defer:")
 )
+
+type objcGLFWWindow struct {
+	objc.ID
+}
+
+func glfwWindow_alloc() objcGLFWWindow {
+	return objcGLFWWindow{objc.ID(class_GLFWWindow).Send(sel_alloc)}
+}
+
+func (w objcGLFWWindow) InitWithContentRectStyleMaskBackingDefer(contentRect cocoa.NSRect, style cocoa.NSWindowStyleMask, backing cocoa.NSBackingStoreType, flag bool) objc.ID {
+	sig := cocoa.NSMethodSignature_instanceMethodSignatureForSelector(objc.ID(class_GLFWWindow), sel_initWithContentRect_styleMask_backing_defer)
+	inv := cocoa.NSInvocation_invocationWithMethodSignature(sig)
+	inv.SetTarget(w.ID)
+	inv.SetSelector(sel_initWithContentRect_styleMask_backing_defer)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&contentRect), 2)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&style), 3)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&backing), 4)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&flag), 5)
+	inv.Invoke()
+	var ret objc.ID
+	inv.GetReturnValue(unsafe.Pointer(&ret))
+	return ret
+}
 
 func init() {
 	class_GLFWWindowDelegate = objc.AllocateClassPair(objc.GetClass("NSObject"), "GLFWWindowDelegate", 0)
@@ -125,6 +151,17 @@ func init() {
 		@end
 	*/
 	class_GLFWWindowDelegate.Register()
+
+	class_GLFWWindow = objc.AllocateClassPair(objc.GetClass("NSWindow"), "GLFWWindow", 0)
+	class_GLFWWindow.AddMethod(objc.RegisterName("canBecomeKeyWindow"), objc.NewIMP(func(self objc.ID, cmd objc.SEL) int {
+		// Required for NSWindowStyleMaskBorderless windows
+		return 1 // TODO: support bool callbacks
+	}), "B@:")
+	class_GLFWWindow.AddMethod(objc.RegisterName("canBecomeMainWindow"), objc.NewIMP(func(self objc.ID, cmd objc.SEL) int {
+		// Required for NSWindowStyleMaskBorderless windows
+		return 1 // TODO: support bool callbacks
+	}), "B@:")
+	class_GLFWWindow.Register()
 }
 
 func platformGetKeyScancode(key Key) int {
@@ -133,7 +170,6 @@ func platformGetKeyScancode(key Key) int {
 
 func (w *Window) platformCreateWindow(wndconfig *wndconfig, ctxconfig *ctxconfig, fbconfig *fbconfig) error {
 	w.state.delegate = objc.ID(class_GLFWWindowDelegate).Send(sel_alloc).Send(sel_initWithGlfwWindow, unsafe.Pointer(w))
-	//window->ns.delegate = [[GLFWWindowDelegate alloc] initWithGlfwWindow:window];
 	if w.state.delegate == 0 {
 		return fmt.Errorf("cocoa: failed to create window delegate")
 	}
@@ -167,26 +203,19 @@ func (w *Window) platformCreateWindow(wndconfig *wndconfig, ctxconfig *ctxconfig
 	if w.monitor != nil || !w.decorated {
 		styleMask |= cocoa.NSWindowStyleMaskBorderless
 	} else {
-		styleMask |= (cocoa.NSWindowStyleMaskTitled | cocoa.NSWindowStyleMaskClosable)
+		styleMask |= cocoa.NSWindowStyleMaskTitled | cocoa.NSWindowStyleMaskClosable
 
 		if w.resizable {
 			styleMask |= cocoa.NSWindowStyleMaskResizable
 		}
 
 	}
+	w.state.object = glfwWindow_alloc().InitWithContentRectStyleMaskBackingDefer(contentRect, styleMask, cocoa.NSBackingStoreBuffered, false)
 
-	//    window->ns.object = [[GLFWWindow alloc]
-	//        initWithContentRect:contentRect
-	//                  styleMask:styleMask
-	//                    backing:NSBackingStoreBuffered
-	//                      defer:NO];
-	//
-	//    if (window->ns.object == nil)
-	//    {
-	//        _glfwInputError(GLFW_PLATFORM_ERROR, "Cocoa: Failed to create window");
-	//        return GLFW_FALSE;
-	//    }
-	//
+	if w.state.object == 0 {
+		return fmt.Errorf("cocoa: failed to create window")
+	}
+
 	//    if (window->monitor)
 	//        [window->ns.object setLevel:NSMainMenuWindowLevel + 1];
 	//    else
@@ -335,7 +364,9 @@ func (w *Window) platformHideWindow() {
 }
 
 func (w *Window) platformWindowIconified() bool {
-	panic("NOT IMPLEMENTED")
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+	return cocoa.NSWindow{ID: w.state.object}.IsMiniaturized()
 }
 
 func (w *Window) platformWindowVisible() bool {

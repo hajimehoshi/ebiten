@@ -95,6 +95,8 @@ var (
 	sel_activateIgnoringOtherApps                      = objc.RegisterName("activateIgnoringOtherApps:")
 	sel_makeKeyAndOrderFront                           = objc.RegisterName("makeKeyAndOrderFront:")
 	sel_isKeyWindow                                    = objc.RegisterName("isKeyWindow")
+	sel_isMiniaturized                                 = objc.RegisterName("isMiniaturized")
+	sel_initWithContentRect_styleMask_backing_defer    = objc.RegisterName("initWithContentRect:styleMask:backing:defer:")
 )
 
 var NSDefaultRunLoopMode = *(*NSRunLoopMode)(unsafe.Pointer(purego.Dlsym(Cocoa, "NSDefaultRunLoopMode")))
@@ -102,13 +104,21 @@ var NSApp = *(*NSApplication)(unsafe.Pointer(purego.Dlsym(Cocoa, "NSApp")))
 
 const NSWindowCollectionBehaviorFullScreenPrimary = 1 << 7
 
+type NSBackingStoreType NSUInteger
+
 const (
-	NSWindowStyleMaskBorderless     = 0
-	NSWindowStyleMaskTitled         = 1 << 0
-	NSWindowStyleMaskClosable       = 1 << 1
-	NSWindowStyleMaskMiniaturizable = 1 << 2
-	NSWindowStyleMaskResizable      = 1 << 3
-	NSWindowStyleMaskFullScreen     = 1 << 14
+	NSBackingStoreBuffered NSBackingStoreType = 2
+)
+
+type NSWindowStyleMask NSUInteger
+
+const (
+	NSWindowStyleMaskBorderless     NSWindowStyleMask = 0
+	NSWindowStyleMaskTitled         NSWindowStyleMask = 1 << 0
+	NSWindowStyleMaskClosable       NSWindowStyleMask = 1 << 1
+	NSWindowStyleMaskMiniaturizable NSWindowStyleMask = 1 << 2
+	NSWindowStyleMaskResizable      NSWindowStyleMask = 1 << 3
+	NSWindowStyleMaskFullScreen     NSWindowStyleMask = 1 << 14
 )
 
 type CGFloat = float64
@@ -194,6 +204,25 @@ func (p NSProcessInfo) IsOperatingSystemAtLeastVersion(version NSOperatingSystem
 
 type NSWindow struct {
 	objc.ID
+}
+
+func (w NSWindow) InitWithContentRectStyleMaskBackingDefer(contentRect NSRect, style NSWindowStyleMask, backing NSBackingStoreType, flag bool) NSWindow {
+	sig := NSMethodSignature_instanceMethodSignatureForSelector(objc.ID(class_NSWindow), sel_initWithContentRect_styleMask_backing_defer)
+	inv := NSInvocation_invocationWithMethodSignature(sig)
+	inv.SetTarget(w.ID)
+	inv.SetSelector(sel_initWithContentRect_styleMask_backing_defer)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&contentRect), 2)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&style), 3)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&backing), 4)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&flag), 5)
+	inv.Invoke()
+	var ret objc.ID
+	inv.GetReturnValue(unsafe.Pointer(&ret))
+	return NSWindow{ret}
+}
+
+func (w NSWindow) IsMiniaturized() bool {
+	return w.Send(sel_isMiniaturized) != 0
 }
 
 func (w NSWindow) MakeKeyAndOrderFront(sender objc.ID) {
