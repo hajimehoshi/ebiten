@@ -6,7 +6,7 @@ Also please adhere to our Code of Conduct:
 https://github.com/hajimehoshi/ebiten/blob/main/CODE_OF_CONDUCT.md
 -->
 # What issue is this addressing?
-<!-- Fixes #<issue number> -->
+<!-- Closes #<issue number> -->
 ## What _type_ of issue is this addressing?
 <!-- bug | feature | security -->
 ## What this PR does | solves
