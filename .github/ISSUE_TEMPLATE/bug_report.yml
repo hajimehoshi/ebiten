@@ -1,0 +1,59 @@
+name: Bug Report
+description: Report a bug you've found.
+labels: bug
+body:
+- type: textarea
+  id: version_of_this
+  attributes:
+    label: Ebitengine Version
+  validations:
+    required: true
+- type: dropdown
+  id: os
+  attributes:
+    label: Operating System
+    description: Which Operating System was the bug on?
+    options:
+      - Windows
+      - MacOS
+      - Linux
+      - FreeBSD
+      - OpenBSD
+      - Android
+      - iOS
+      - Nintendo Switch
+      - XBox
+  validations:
+    required: true
+- type: textarea
+  id: version_of_lang
+  attributes:
+    label: Go Version
+  validations:
+    required: true
+- type: textarea
+  id: repro_steps
+  attributes:
+    label: What were you doing (steps to reproduce the bug)?
+  validations:
+    required: true
+- type: textarea
+  id: actual_result
+  attributes:
+    label: What actually happened as a result?
+  validations:
+    required: true
+- type: textarea
+  id: expected_result
+  attributes:
+    label: What did you expect to happen?
+  validations:
+    required: true
+- type: textarea
+  id: stacktrace
+  attributes:
+    label: If you have a stack trace, please add it here.
+- type: textarea
+  id: additional
+  attributes:
+    label: Anything else you feel useful to add?
