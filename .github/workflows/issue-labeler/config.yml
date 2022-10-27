@@ -1,20 +1,20 @@
 os:windows:
-- '\n### Operating System\n\nWindows\n'
+- '- [X] Windows\n'
 os:macos:
-- '\n### Operating System\n\nmacOS\n'
+- '- [X] macOS\n'
 os:linux:
-- '\n### Operating System\n\nLinux\n'
+- '- [X] Linux\n'
 os:freebsd:
-- '\n### Operating System\n\nFreeBSD\n'
+- '- [X] FreeBSD\n'
 os:openbsd:
-- '\n### Operating System\n\nOpenBSD\n'
+- '- [X] OpenBSD\n'
 os:android:
-- '\n### Operating System\n\nAndroid\n'
+- '- [X] Android\n'
 os:ios:
-- '\n### Operating System\n\niOS\n'
+- '- [X] iOS\n'
 os:nintendoswitch:
-- '\n### Operating System\n\nNintendo Switch\n'
+- '- [X] Nintendo Switch\n'
 os:xbox:
-- '\n### Operating System\n\nXbox\n'
+- '- [X] Xbox\n'
 os:js:
-- '\n### Operating System\n\nWeb Browsers\n'
+- '- [X] Web Browsers\n'
