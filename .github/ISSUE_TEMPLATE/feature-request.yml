@@ -1,6 +1,8 @@
 name: Feature Request
 description: Provide details about a feature you'd like to see.
-labels: feature
+labels:
+- feature
+- request
 body:
 - type: textarea
   id: what
