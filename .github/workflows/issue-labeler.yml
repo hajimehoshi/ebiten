@@ -10,6 +10,6 @@ jobs:
     - uses: github/issue-labeler@6ca237433dbbb8e475241b7f38f4600d9e296c57 # v2.5
       with:
         repo-token: "${{ secrets.GITHUB_TOKEN }}"
-        configuration-path: .github/workflows/issue-labeler-config.yml
+        configuration-path: .github/workflows/issue-labeler/config.yml
         not-before: "2022-10-27T17:00:00+11:00"
         enable-versioned-regex: 0
