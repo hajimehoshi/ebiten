@@ -1,20 +1,20 @@
 os:windows:
-- "- \[X\] Windows\n"
+- "- \\[(x|X)\\] Windows\n"
 os:macos:
-- "- \[X\] macOS\n"
+- "- \\[(x|X)\\] macOS\n"
 os:linux:
-- "- \[X\] Linux\n"
+- "- \\[(x|X)\\] Linux\n"
 os:freebsd:
-- "- \[X\] FreeBSD\n"
+- "- \\[(x|X)\\] FreeBSD\n"
 os:openbsd:
-- "- \[X\] OpenBSD\n"
+- "- \\[(x|X)\\] OpenBSD\n"
 os:android:
-- "- \[X\] Android\n"
+- "- \\[(x|X)\\] Android\n"
 os:ios:
-- "- \[X\] iOS\n"
+- "- \\[(x|X)\\] iOS\n"
 os:nintendoswitch:
-- "- \[X\] Nintendo Switch\n"
+- "- \\[(x|X)\\] Nintendo Switch\n"
 os:xbox:
-- "- \[X\] Xbox\n"
+- "- \\[(x|X)\\] Xbox\n"
 os:js:
-- "- \[X\] Web Browsers\n"
+- "- \\[(x|X)\\] Web Browsers\n"
