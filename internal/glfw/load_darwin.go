@@ -144,17 +144,15 @@ func init() {
 		panic(fmt.Errorf("glfw: %w", err))
 	}
 	defer func(file *os.File) {
-		err := file.Close()
-		if err != nil {
+		if err := file.Close(); err != nil {
 			panic(fmt.Errorf("glfw: %w", err))
 		}
-		err = os.Remove(filePath)
-		if err != nil {
+		if err := os.Remove(filePath); err != nil {
 			panic(fmt.Errorf("glfw: %w", err))
 		}
 	}(file)
-	_, err = file.Write(library)
-	if err != nil {
+
+	if _, err := file.Write(library); err != nil {
 		panic(fmt.Errorf("glfw: %w", err))
 	}
 	lib := purego.Dlopen(filePath, purego.RTLD_NOW|purego.RTLD_GLOBAL)
