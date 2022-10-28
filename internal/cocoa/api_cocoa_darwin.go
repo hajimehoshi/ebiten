@@ -44,6 +44,7 @@ var (
 
 var (
 	sel_alloc                                          = objc.RegisterName("alloc")
+	sel_init                                           = objc.RegisterName("init")
 	sel_new                                            = objc.RegisterName("new")
 	sel_release                                        = objc.RegisterName("release")
 	sel_retain                                         = objc.RegisterName("retain")
@@ -157,10 +158,32 @@ const (
 	NSEventMaskAny = NSUIntegerMax
 )
 
+type NSApplicationActivationPolicy NSInteger
+
+const (
+	NSApplicationActivationPolicyRegular NSApplicationActivationPolicy = iota
+)
+
 type NSRunLoopMode NSString
 
 func NSObject_retain(obj objc.ID) {
 	obj.Send(sel_retain)
+}
+
+func NSObject_new(class objc.Class) objc.ID {
+	return objc.ID(class).Send(sel_new)
+}
+
+func NSObject_alloc(class objc.Class) objc.ID {
+	return objc.ID(class).Send(sel_alloc)
+}
+
+func NSObject_init(id objc.ID) objc.ID {
+	return id.Send(sel_init)
+}
+
+func NSObject_release(id objc.ID) objc.ID {
+	return id.Send(sel_release)
 }
 
 type NSError struct {
@@ -480,6 +503,10 @@ type NSApplication struct {
 
 func NSApplication_sharedApplication() NSApplication {
 	return NSApplication{objc.ID(class_NSApplication).Send(sel_sharedApplication)}
+}
+
+func (a NSApplication) SetActivationPolicy(policy NSApplicationActivationPolicy) {
+
 }
 
 func (a NSApplication) Run() {

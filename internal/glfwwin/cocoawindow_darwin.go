@@ -14,28 +14,8 @@ var (
 	class_GLFWWindow         objc.Class
 	class_GLFWContentView    objc.Class
 
-	sel_initWithGlfwWindow                          = objc.RegisterName("initWithGlfwWindow:")
-	sel_initWithContentRect_styleMask_backing_defer = objc.RegisterName("initWithContentRect:styleMask:backing:defer:")
+	sel_initWithGlfwWindow = objc.RegisterName("initWithGlfwWindow:")
 )
-
-type objcGLFWWindow struct {
-	objc.ID
-}
-
-func (w objcGLFWWindow) InitWithContentRectStyleMaskBackingDefer(contentRect cocoa.NSRect, style cocoa.NSWindowStyleMask, backing cocoa.NSBackingStoreType, flag bool) objc.ID {
-	sig := cocoa.NSMethodSignature_instanceMethodSignatureForSelector(objc.ID(class_GLFWWindow), sel_initWithContentRect_styleMask_backing_defer)
-	inv := cocoa.NSInvocation_invocationWithMethodSignature(sig)
-	inv.SetTarget(w.ID)
-	inv.SetSelector(sel_initWithContentRect_styleMask_backing_defer)
-	inv.SetArgumentAtIndex(unsafe.Pointer(&contentRect), 2)
-	inv.SetArgumentAtIndex(unsafe.Pointer(&style), 3)
-	inv.SetArgumentAtIndex(unsafe.Pointer(&backing), 4)
-	inv.SetArgumentAtIndex(unsafe.Pointer(&flag), 5)
-	inv.Invoke()
-	var ret objc.ID
-	inv.GetReturnValue(unsafe.Pointer(&ret))
-	return ret
-}
 
 func init() {
 	{
@@ -119,34 +99,33 @@ func init() {
 			        acquireMonitor(window);
 
 			    _glfwInputWindowIconify(window, GLFW_FALSE);
-			}
+			}*/
 
-			- (void)windowDidBecomeKey:(NSNotification *)notification
-			{
-			    if (_glfw.ns.disabledCursorWindow == window)
-			        _glfwCenterCursorInContentArea(window);
+		class_GLFWWindowDelegate.AddMethod(objc.RegisterName("windowDidBecomeKey:"), objc.NewIMP(func(self objc.ID, cmd objc.SEL, _ objc.ID) {
+			/*if (_glfw.ns.disabledCursorWindow == window)
+				_glfwCenterCursorInContentArea(window);
 
-			    _glfwInputWindowFocus(window, GLFW_TRUE);
-			    updateCursorMode(window);
-			}
+			_glfwInputWindowFocus(window, GLFW_TRUE);
+			updateCursorMode(window);*/
+		}), "v@:@")
 
-			- (void)windowDidResignKey:(NSNotification *)notification
-			{
-			    if (window->monitor && window->autoIconify)
-			        _glfwIconifyWindowCocoa(window);
+		/*- (void)windowDidResignKey:(NSNotification *)notification
+		{
+		    if (window->monitor && window->autoIconify)
+		        _glfwIconifyWindowCocoa(window);
 
-			    _glfwInputWindowFocus(window, GLFW_FALSE);
-			}
+		    _glfwInputWindowFocus(window, GLFW_FALSE);
+		}
 
-			- (void)windowDidChangeOcclusionState:(NSNotification* )notification
-			{
-			    if ([window->ns.object occlusionState] & NSWindowOcclusionStateVisible)
-			        window->ns.occluded = GLFW_FALSE;
-			    else
-			        window->ns.occluded = GLFW_TRUE;
-			}
+		- (void)windowDidChangeOcclusionState:(NSNotification* )notification
+		{
+		    if ([window->ns.object occlusionState] & NSWindowOcclusionStateVisible)
+		        window->ns.occluded = GLFW_FALSE;
+		    else
+		        window->ns.occluded = GLFW_TRUE;
+		}
 
-			@end
+		@end
 		*/
 		class_GLFWWindowDelegate.Register()
 	}
@@ -197,21 +176,16 @@ func init() {
 		//    return [window->ns.object isOpaque];
 		//}
 		//
-		//- (BOOL)canBecomeKeyView
-		//{
-		//    return YES;
-		//}
-		//
-		//- (BOOL)acceptsFirstResponder
-		//{
-		//    return YES;
-		//}
-		//
-		//- (BOOL)wantsUpdateLayer
-		//{
-		//    return YES;
-		//}
-		//
+		class_GLFWContentView.AddMethod(objc.RegisterName("canBecomeKeyView"), objc.NewIMP(func(self objc.ID, cmd objc.SEL) bool {
+			return true
+		}), "B@:")
+		class_GLFWContentView.AddMethod(objc.RegisterName("acceptsFirstResponder"), objc.NewIMP(func(self objc.ID, cmd objc.SEL) bool {
+			return true
+		}), "B@:")
+		// uncomment once updateLayer is implemented
+		//class_GLFWContentView.AddMethod(objc.RegisterName("wantsUpdateLayer"), objc.NewIMP(func(self objc.ID, cmd objc.SEL) bool {
+		//	return true
+		//}), "B@:")
 		//- (void)updateLayer
 		//{
 		//    if (window->context.source == GLFW_NATIVE_CONTEXT_API)
@@ -581,8 +555,8 @@ func platformGetKeyScancode(key Key) int {
 	return _glfw.state.scancodes[key]
 }
 
-func (w *Window) platformCreateWindow(wndconfig *wndconfig, ctxconfig *ctxconfig, fbconfig *fbconfig) error {
-	w.state.delegate = objc.ID(class_GLFWWindowDelegate).Send(sel_alloc).Send(sel_initWithGlfwWindow, unsafe.Pointer(w))
+func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) error {
+	w.state.delegate = cocoa.NSObject_alloc(class_GLFWWindowDelegate).Send(sel_initWithGlfwWindow, unsafe.Pointer(w))
 	if w.state.delegate == 0 {
 		return fmt.Errorf("cocoa: failed to create window delegate")
 	}
@@ -622,11 +596,12 @@ func (w *Window) platformCreateWindow(wndconfig *wndconfig, ctxconfig *ctxconfig
 		}
 
 	}
-	w.state.object = objcGLFWWindow{alloc(class_GLFWWindow)}.InitWithContentRectStyleMaskBackingDefer(contentRect, styleMask, cocoa.NSBackingStoreBuffered, false)
+	w.state.object = cocoa.NSWindow{ID: cocoa.NSObject_alloc(class_GLFWWindow)}.InitWithContentRectStyleMaskBackingDefer(contentRect, styleMask, cocoa.NSBackingStoreBuffered, false).ID
 
 	if w.state.object == 0 {
 		return fmt.Errorf("cocoa: failed to create window")
 	}
+	window := cocoa.NSWindow{w.state.object}
 
 	//    if (window->monitor)
 	//        [window->ns.object setLevel:NSMainMenuWindowLevel + 1];
@@ -665,7 +640,7 @@ func (w *Window) platformCreateWindow(wndconfig *wndconfig, ctxconfig *ctxconfig
 	//    if (strlen(wndconfig->ns.frameName))
 	//        [window->ns.object setFrameAutosaveName:@(wndconfig->ns.frameName)];
 	//
-	w.state.view = alloc(class_GLFWContentView).Send(sel_initWithGlfwWindow, w)
+	w.state.view = cocoa.NSObject_alloc(class_GLFWContentView).Send(sel_initWithGlfwWindow, w)
 	//    window->ns.retina = wndconfig->ns.retina;
 	//
 	//    if (fbconfig->transparent)
@@ -675,7 +650,6 @@ func (w *Window) platformCreateWindow(wndconfig *wndconfig, ctxconfig *ctxconfig
 	//        [window->ns.object setBackgroundColor:[NSColor clearColor]];
 	//    }
 	//
-	window := cocoa.NSWindow{w.state.object}
 	window.SetContentView(w.state.view)
 	window.SetDelegate(w.state.delegate)
 	window.SetTitle(cocoa.NSString_alloc().InitWithUTF8String(wndconfig.title))
@@ -691,6 +665,66 @@ func (w *Window) platformCreateWindow(wndconfig *wndconfig, ctxconfig *ctxconfig
 	//    _glfwGetWindowSizeCocoa(window, &window->ns.width, &window->ns.height);
 	//    _glfwGetFramebufferSizeCocoa(window, &window->ns.fbWidth, &window->ns.fbHeight);
 	//
+	return nil
+}
+
+func (w *Window) platformCreateWindow(wndconfig *wndconfig, ctxconfig *ctxconfig, fbconfig *fbconfig) error {
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+	if err := w.createNativeWindow(wndconfig, fbconfig); err != nil {
+		return err
+	}
+	if ctxconfig.client != NoAPI {
+		panic("cocoa: implement context")
+		//        if (ctxconfig->source == GLFW_NATIVE_CONTEXT_API)
+		//        {
+		//            if (!_glfwInitNSGL())
+		//                return GLFW_FALSE;
+		//            if (!_glfwCreateContextNSGL(window, ctxconfig, fbconfig))
+		//                return GLFW_FALSE;
+		//        }
+		//        else if (ctxconfig->source == GLFW_EGL_CONTEXT_API)
+		//        {
+		//            // EGL implementation on macOS use CALayer* EGLNativeWindowType so we
+		//            // need to get the layer for EGL window surface creation.
+		//            [window->ns.view setWantsLayer:YES];
+		//            window->ns.layer = [window->ns.view layer];
+		//
+		//            if (!_glfwInitEGL())
+		//                return GLFW_FALSE;
+		//            if (!_glfwCreateContextEGL(window, ctxconfig, fbconfig))
+		//                return GLFW_FALSE;
+		//        }
+		//        else if (ctxconfig->source == GLFW_OSMESA_CONTEXT_API)
+		//        {
+		//            if (!_glfwInitOSMesa())
+		//                return GLFW_FALSE;
+		//            if (!_glfwCreateContextOSMesa(window, ctxconfig, fbconfig))
+		//                return GLFW_FALSE;
+		//        }
+		//
+		//        if (!_glfwRefreshContextAttribs(window, ctxconfig))
+		//            return GLFW_FALSE;
+	}
+
+	//    if (wndconfig->mousePassthrough)
+	//        _glfwSetWindowMousePassthroughCocoa(window, GLFW_TRUE);
+
+	if w.monitor != nil {
+		w.platformShowWindow()
+		_ = w.platformFocusWindow() // focus window can't return an error
+		//acquireMonitor(window);
+		//
+		//if (wndconfig->centerCursor)
+		//    _glfwCenterCursorInContentArea(window);
+	} else {
+		if wndconfig.visible {
+			w.platformShowWindow()
+			if wndconfig.focused {
+				_ = w.platformFocusWindow() // focus can't return error
+			}
+		}
+	}
 	return nil
 }
 
@@ -940,9 +974,6 @@ func (w *Window) platformWindowFocused() bool {
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 	return cocoa.NSWindow{w.state.object}.IsKeyWindow()
-	// @autoreleasepool {
-	//    return [window->ns.object isKeyWindow];
-	//    } // autoreleasepool
 }
 
 func (c *Cursor) platformCreateCursor(image *Image, xhot, yhot int) error {
@@ -1020,15 +1051,8 @@ func platformGetClipboardString() (string, error) {
 }
 
 func (w *Window) GetCocoaWindow() (uintptr, error) {
-	//  _GLFWwindow* window = (_GLFWwindow*) handle;
-	//    _GLFW_REQUIRE_INIT_OR_RETURN(nil);
-	//
-	//    if (_glfw.platform.platformID != GLFW_PLATFORM_COCOA)
-	//    {
-	//        _glfwInputError(GLFW_PLATFORM_UNAVAILABLE,
-	//                        "Cocoa: Platform not initialized");
-	//        return NULL;
-	//    }
-	//
+	if !_glfw.initialized {
+		return 0, NotInitialized
+	}
 	return uintptr(w.state.object), nil
 }

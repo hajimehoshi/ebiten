@@ -1,21 +1,15 @@
 package glfwwin
 
 import (
+	"reflect"
+	"unsafe"
+
 	"github.com/ebitengine/purego"
 	"github.com/ebitengine/purego/objc"
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
-	"reflect"
-	"unsafe"
 )
 
-var (
-	sel_alloc = objc.RegisterName("alloc")
-	sel_init  = objc.RegisterName("init")
-)
-
-func alloc(class objc.Class) objc.ID {
-	return objc.ID(class).Send(sel_alloc)
-}
+var sel_init = objc.RegisterName("init")
 
 func GoString(p uintptr) string {
 	if p == 0 {
@@ -41,15 +35,14 @@ func GoString(p uintptr) string {
 }
 
 var (
-	_CoreGraphics                   = purego.Dlopen("CoreGraphics.framework/CoreGraphics", purego.RTLD_GLOBAL)
-	procCGGetOnlineDisplayList      = purego.Dlsym(_CoreGraphics, "CGGetOnlineDisplayList")
-	procCGDisplayIsAsleep           = purego.Dlsym(_CoreGraphics, "CGDisplayIsAsleep")
-	procCGDisplayUnitNumber         = purego.Dlsym(_CoreGraphics, "CGDisplayUnitNumber")
-	procCGDisplayCopyDisplayMode    = purego.Dlsym(_CoreGraphics, "CGDisplayCopyDisplayMode")
-	procCGDisplayModeRelease        = purego.Dlsym(_CoreGraphics, "CGDisplayModeRelease")
-	procCGDisplayModeGetWidth       = purego.Dlsym(_CoreGraphics, "CGDisplayModeGetWidth")
-	procCGDisplayModeGetHeight      = purego.Dlsym(_CoreGraphics, "CGDisplayModeGetHeight")
-	procCGDisplayModeGetRefreshRate = purego.Dlsym(_CoreGraphics, "CGDisplayModeGetRefreshRate")
+	_CoreGraphics                = purego.Dlopen("CoreGraphics.framework/CoreGraphics", purego.RTLD_GLOBAL)
+	procCGGetOnlineDisplayList   = purego.Dlsym(_CoreGraphics, "CGGetOnlineDisplayList")
+	procCGDisplayIsAsleep        = purego.Dlsym(_CoreGraphics, "CGDisplayIsAsleep")
+	procCGDisplayUnitNumber      = purego.Dlsym(_CoreGraphics, "CGDisplayUnitNumber")
+	procCGDisplayCopyDisplayMode = purego.Dlsym(_CoreGraphics, "CGDisplayCopyDisplayMode")
+	procCGDisplayModeRelease     = purego.Dlsym(_CoreGraphics, "CGDisplayModeRelease")
+	procCGDisplayModeGetWidth    = purego.Dlsym(_CoreGraphics, "CGDisplayModeGetWidth")
+	procCGDisplayModeGetHeight   = purego.Dlsym(_CoreGraphics, "CGDisplayModeGetHeight")
 )
 
 type _CGDirectDisplayID uint32

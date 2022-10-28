@@ -21,6 +21,10 @@ var _glfw library
 
 type initconfig struct {
 	hatButtons bool
+	ns         struct {
+		menubar bool
+		chdir   bool
+	}
 }
 
 type wndconfig struct {

@@ -80,12 +80,12 @@ func init() {
 
 func platformInit() error {
 	pool := cocoa.NSAutoreleasePool_new()
-	_glfw.state.helper = objc.ID(class_GLFWHelper).Send(sel_alloc).Send(sel_init)
+	_glfw.state.helper = cocoa.NSObject_new(class_GLFWHelper)
 	cocoa.NSThread_detachNewThreadSelectorToTargetWithObject(sel_doNothing, _glfw.state.helper, 0)
 
 	NSApp := cocoa.NSApplication_sharedApplication()
 
-	_glfw.state.delegate = objc.ID(class_GLFWApplicationDelegate).Send(sel_alloc).Send(sel_init)
+	_glfw.state.delegate = cocoa.NSObject_new(class_GLFWApplicationDelegate)
 	if _glfw.state.delegate == 0 {
 		return fmt.Errorf("cocoa: failed to create application delegate")
 	}
@@ -137,8 +137,9 @@ func platformInit() error {
 	}
 
 	// In case we are unbundled, make us a proper UI application
-	//    if (_glfw.hints.init.state.menubar)
-	//        [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+	if !_glfw.hints.init.ns.menubar {
+		cocoa.NSApp.SetActivationPolicy(cocoa.NSApplicationActivationPolicyRegular)
+	}
 	pool.Release()
 	return nil
 }
