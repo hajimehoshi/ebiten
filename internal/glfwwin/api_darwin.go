@@ -4,8 +4,6 @@ import (
 	"github.com/ebitengine/purego"
 	"github.com/ebitengine/purego/objc"
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
-	"log"
-	"math"
 	"reflect"
 	"unsafe"
 )
@@ -14,6 +12,10 @@ var (
 	sel_alloc = objc.RegisterName("alloc")
 	sel_init  = objc.RegisterName("init")
 )
+
+func alloc(class objc.Class) objc.ID {
+	return objc.ID(class).Send(sel_alloc)
+}
 
 func GoString(p uintptr) string {
 	if p == 0 {
@@ -69,10 +71,7 @@ func _CGDisplayUnitNumber(display _CGDirectDisplayID) uint32 {
 	return uint32(ret)
 }
 
-func _CGDisplayBounds(display _CGDirectDisplayID) cocoa.CGRect {
-	log.Println("glfwin: call to _CGDisplayBounds not implemented")
-	return cocoa.CGRect{}
-}
+var _CGDisplayBounds func(display _CGDirectDisplayID) cocoa.CGRect
 
 func _CGDisplayCopyDisplayMode(display _CGDirectDisplayID) _CGDisplayModeRef {
 	ret, _, _ := purego.SyscallN(procCGDisplayCopyDisplayMode, uintptr(display))
@@ -93,7 +92,9 @@ func _CGDisplayModeGetHeight(mode _CGDisplayModeRef) uintptr {
 	return ret
 }
 
-func _CGDisplayModeGetRefreshRate(mode _CGDisplayModeRef) float64 {
-	_, ret, _ := purego.SyscallN(procCGDisplayModeGetRefreshRate, uintptr(mode))
-	return math.Float64frombits(uint64(ret))
+var _CGDisplayModeGetRefreshRate func(mode _CGDisplayModeRef) float64
+
+func init() {
+	purego.RegisterLibFunc(&_CGDisplayModeGetRefreshRate, _CoreGraphics, "CGDisplayModeGetRefreshRate")
+	purego.RegisterLibFunc(&_CGDisplayBounds, _CoreGraphics, "CGDisplayBounds")
 }

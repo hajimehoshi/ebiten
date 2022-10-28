@@ -97,6 +97,7 @@ var (
 	sel_isKeyWindow                                    = objc.RegisterName("isKeyWindow")
 	sel_isMiniaturized                                 = objc.RegisterName("isMiniaturized")
 	sel_initWithContentRect_styleMask_backing_defer    = objc.RegisterName("initWithContentRect:styleMask:backing:defer:")
+	sel_mouseLocationOutsideOfEventStream              = objc.RegisterName("mouseLocationOutsideOfEventStream")
 )
 
 var NSDefaultRunLoopMode = *(*NSRunLoopMode)(unsafe.Pointer(purego.Dlsym(Cocoa, "NSDefaultRunLoopMode")))
@@ -278,6 +279,16 @@ func (w NSWindow) Frame() NSRect {
 	rect := NSRect{}
 	inv.GetReturnValue(unsafe.Pointer(&rect))
 	return rect
+}
+func (w NSWindow) MouseLocationOutsideOfEventStream() NSPoint {
+	sig := NSMethodSignature_instanceMethodSignatureForSelector(objc.ID(class_NSWindow), sel_mouseLocationOutsideOfEventStream)
+	inv := NSInvocation_invocationWithMethodSignature(sig)
+	inv.SetTarget(w.ID)
+	inv.SetSelector(sel_mouseLocationOutsideOfEventStream)
+	inv.Invoke()
+	point := NSPoint{}
+	inv.GetReturnValue(unsafe.Pointer(&point))
+	return point
 }
 
 func (w NSWindow) ContentView() NSView {
