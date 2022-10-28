@@ -134,11 +134,9 @@ func run() error {
 			"-o",
 			"glfw-" + a.target() + ".dylib",
 		}
-		tmp := make([]string, len(args)+len(filenames))
-		copy(tmp[copy(tmp, doto):], args)
-		args = tmp
+		args = append(doto, args...)
 		// use g++ https://stackoverflow.com/questions/3532589/how-to-build-a-dylib-from-several-o-in-mac-os-x-using-gcc
-		if err := execCommand("g++", args...); err != nil {
+		if err := execCommand("clang++", args...); err != nil {
 			return err
 		}
 	}
