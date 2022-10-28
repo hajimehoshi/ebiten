@@ -55,8 +55,10 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	// If there is no inpnut, skip draw. Ebitengine skips GPU usages in this case.
+	// If there is no inpnut, skip draw.
 	if !g.input && g.introShown {
+		// As SetScreenClearedEveryFrame(false) is called, the screen is not modified.
+		// In this case, Ebitengine optimizes and reduces GPU usages.
 		return
 	}
 
