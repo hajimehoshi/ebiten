@@ -116,8 +116,7 @@ func run() error {
 				"-g",                         // debug info
 				filepath.Join(csource, name), // .c or .m file
 			}
-			err = execCommand("clang", args...)
-			if err != nil {
+			if err := execCommand("clang", args...); err != nil {
 				return err
 			}
 		}
@@ -139,22 +138,18 @@ func run() error {
 		copy(tmp[copy(tmp, doto):], args)
 		args = tmp
 		// use g++ https://stackoverflow.com/questions/3532589/how-to-build-a-dylib-from-several-o-in-mac-os-x-using-gcc
-		err = execCommand("g++", args...)
-		if err != nil {
+		if err := execCommand("g++", args...); err != nil {
 			return err
 		}
 	}
 	// There are now two files: glfw-arm64.dylib and glfw-x86_64.dylib
-	err = execCommand("lipo", "glfw-arm64.dylib", "glfw-x86_64.dylib", "-output", "libglfw.3.3.8.dylib", "-create")
-	if err != nil {
+	if err := execCommand("lipo", "glfw-arm64.dylib", "glfw-x86_64.dylib", "-output", "libglfw.3.3.8.dylib", "-create"); err != nil {
 		return err
 	}
-	err = os.Remove("glfw-arm64.dylib")
-	if err != nil {
+	if err := os.Remove("glfw-arm64.dylib"); err != nil {
 		return err
 	}
-	err = os.Remove("glfw-x86_64.dylib")
-	if err != nil {
+	if err := os.Remove("glfw-x86_64.dylib"); err != nil {
 		return err
 	}
 	return nil
