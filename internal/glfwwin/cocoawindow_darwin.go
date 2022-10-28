@@ -872,7 +872,14 @@ func platformWaitEventsTimeout(timeout float64) error {
 }
 
 func platformPostEmptyEvent() error {
-	panic("NOT IMPLEMENTED")
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+	event := cocoa.NSEvent_otherEventWithTypeLocationModifierFlagsTimestampWindowNumberContextSubtypeData1Data2(
+		cocoa.NSEventTypeApplicationDefined,
+		cocoa.NSMakePoint(0, 0),
+		0, 0, 0, 0, 0, 0, 0)
+	cocoa.NSApp.PostEventAtStart(event, true)
+	return nil
 }
 
 func (w *Window) platformRequestWindowAttention() {

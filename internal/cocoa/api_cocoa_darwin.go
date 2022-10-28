@@ -40,74 +40,79 @@ var (
 	class_NSApplication        = objc.GetClass("NSApplication")
 	class_NSDate               = objc.GetClass("NSDate")
 	class_NSRunningApplication = objc.GetClass("NSRunningApplication")
+	class_NSEvent              = objc.GetClass("NSEvent")
 )
 
 var (
-	sel_alloc                                          = objc.RegisterName("alloc")
-	sel_init                                           = objc.RegisterName("init")
-	sel_new                                            = objc.RegisterName("new")
-	sel_release                                        = objc.RegisterName("release")
-	sel_retain                                         = objc.RegisterName("retain")
-	sel_invocationWithMethodSignature                  = objc.RegisterName("invocationWithMethodSignature:")
-	sel_setSelector                                    = objc.RegisterName("setSelector:")
-	sel_setTarget                                      = objc.RegisterName("setTarget:")
-	sel_setArgumentAtIndex                             = objc.RegisterName("setArgument:atIndex:")
-	sel_getReturnValue                                 = objc.RegisterName("getReturnValue:")
-	sel_invoke                                         = objc.RegisterName("invoke")
-	sel_invokeWithTarget                               = objc.RegisterName("invokeWithTarget:")
-	sel_instanceMethodSignatureForSelector             = objc.RegisterName("instanceMethodSignatureForSelector:")
-	sel_signatureWithObjCTypes                         = objc.RegisterName("signatureWithObjCTypes:")
-	sel_initWithUTF8String                             = objc.RegisterName("initWithUTF8String:")
-	sel_UTF8String                                     = objc.RegisterName("UTF8String")
-	sel_length                                         = objc.RegisterName("length")
-	sel_processInfo                                    = objc.RegisterName("processInfo")
-	sel_isOperatingSystemAtLeastVersion                = objc.RegisterName("isOperatingSystemAtLeastVersion:")
-	sel_frame                                          = objc.RegisterName("frame")
-	sel_contentView                                    = objc.RegisterName("contentView")
-	sel_setBackgroundColor                             = objc.RegisterName("setBackgroundColor:")
-	sel_colorWithSRGBRedGreenBlueAlpha                 = objc.RegisterName("colorWithSRGBRed:green:blue:alpha:")
-	sel_setFrameSize                                   = objc.RegisterName("setFrameSize:")
-	sel_object                                         = objc.RegisterName("object")
-	sel_styleMask                                      = objc.RegisterName("styleMask")
-	sel_setStyleMask                                   = objc.RegisterName("setStyleMask:")
-	sel_mainScreen                                     = objc.RegisterName("mainScreen")
-	sel_screen                                         = objc.RegisterName("screen")
-	sel_isVisible                                      = objc.RegisterName("isVisible")
-	sel_deviceDescription                              = objc.RegisterName("deviceDescription")
-	sel_objectForKey                                   = objc.RegisterName("objectForKey:")
-	sel_unsignedIntValue                               = objc.RegisterName("unsignedIntValue")
-	sel_detachNewThreadSelector_toTarget_withObject    = objc.RegisterName("detachNewThreadSelector:toTarget:withObject:")
-	sel_sharedApplication                              = objc.RegisterName("sharedApplication")
-	sel_setDelegate                                    = objc.RegisterName("setDelegate:")
-	sel_setContentView                                 = objc.RegisterName("setContentView:")
-	sel_screens                                        = objc.RegisterName("screens")
-	sel_objectAtIndex                                  = objc.RegisterName("objectAtIndex:")
-	sel_count                                          = objc.RegisterName("count")
-	sel_respondsToSelector                             = objc.RegisterName("respondsToSelector:")
-	sel_performSelector                                = objc.RegisterName("performSelector:")
-	sel_IBeamCursor                                    = objc.RegisterName("IBeamCursor")
-	sel_crosshairCursor                                = objc.RegisterName("crosshairCursor")
-	sel_pointingHandCursor                             = objc.RegisterName("pointingHandCursor")
-	sel_convertRectToBacking                           = objc.RegisterName("convertRectToBacking:")
-	sel_nextEventMatchingMask_untilDate_inMode_dequeue = objc.RegisterName("nextEventMatchingMask:untilDate:inMode:dequeue:")
-	sel_distantPast                                    = objc.RegisterName("distantPast")
-	sel_sendEvent                                      = objc.RegisterName("sendEvent:")
-	sel_setTitle                                       = objc.RegisterName("setTitle:")
-	sel_setMiniwindowTitle                             = objc.RegisterName("setMiniwindowTitle:")
-	sel_orderFront                                     = objc.RegisterName("orderFront:")
-	sel_activateIgnoringOtherApps                      = objc.RegisterName("activateIgnoringOtherApps:")
-	sel_makeKeyAndOrderFront                           = objc.RegisterName("makeKeyAndOrderFront:")
-	sel_isKeyWindow                                    = objc.RegisterName("isKeyWindow")
-	sel_isMiniaturized                                 = objc.RegisterName("isMiniaturized")
-	sel_initWithContentRect_styleMask_backing_defer    = objc.RegisterName("initWithContentRect:styleMask:backing:defer:")
-	sel_mouseLocationOutsideOfEventStream              = objc.RegisterName("mouseLocationOutsideOfEventStream")
-	sel_currentApplication                             = objc.RegisterName("currentApplication")
-	sel_isFinishedLaunching                            = objc.RegisterName("isFinishedLaunching")
-	sel_run                                            = objc.RegisterName("run")
+	sel_alloc                                                       = objc.RegisterName("alloc")
+	sel_init                                                        = objc.RegisterName("init")
+	sel_new                                                         = objc.RegisterName("new")
+	sel_release                                                     = objc.RegisterName("release")
+	sel_retain                                                      = objc.RegisterName("retain")
+	sel_invocationWithMethodSignature                               = objc.RegisterName("invocationWithMethodSignature:")
+	sel_setSelector                                                 = objc.RegisterName("setSelector:")
+	sel_setTarget                                                   = objc.RegisterName("setTarget:")
+	sel_setArgumentAtIndex                                          = objc.RegisterName("setArgument:atIndex:")
+	sel_getReturnValue                                              = objc.RegisterName("getReturnValue:")
+	sel_invoke                                                      = objc.RegisterName("invoke")
+	sel_invokeWithTarget                                            = objc.RegisterName("invokeWithTarget:")
+	sel_instanceMethodSignatureForSelector                          = objc.RegisterName("instanceMethodSignatureForSelector:")
+	sel_signatureWithObjCTypes                                      = objc.RegisterName("signatureWithObjCTypes:")
+	sel_initWithUTF8String                                          = objc.RegisterName("initWithUTF8String:")
+	sel_UTF8String                                                  = objc.RegisterName("UTF8String")
+	sel_length                                                      = objc.RegisterName("length")
+	sel_processInfo                                                 = objc.RegisterName("processInfo")
+	sel_isOperatingSystemAtLeastVersion                             = objc.RegisterName("isOperatingSystemAtLeastVersion:")
+	sel_frame                                                       = objc.RegisterName("frame")
+	sel_contentView                                                 = objc.RegisterName("contentView")
+	sel_setBackgroundColor                                          = objc.RegisterName("setBackgroundColor:")
+	sel_colorWithSRGBRedGreenBlueAlpha                              = objc.RegisterName("colorWithSRGBRed:green:blue:alpha:")
+	sel_setFrameSize                                                = objc.RegisterName("setFrameSize:")
+	sel_object                                                      = objc.RegisterName("object")
+	sel_styleMask                                                   = objc.RegisterName("styleMask")
+	sel_setStyleMask                                                = objc.RegisterName("setStyleMask:")
+	sel_mainScreen                                                  = objc.RegisterName("mainScreen")
+	sel_screen                                                      = objc.RegisterName("screen")
+	sel_isVisible                                                   = objc.RegisterName("isVisible")
+	sel_deviceDescription                                           = objc.RegisterName("deviceDescription")
+	sel_objectForKey                                                = objc.RegisterName("objectForKey:")
+	sel_unsignedIntValue                                            = objc.RegisterName("unsignedIntValue")
+	sel_detachNewThreadSelector_toTarget_withObject                 = objc.RegisterName("detachNewThreadSelector:toTarget:withObject:")
+	sel_sharedApplication                                           = objc.RegisterName("sharedApplication")
+	sel_setDelegate                                                 = objc.RegisterName("setDelegate:")
+	sel_setContentView                                              = objc.RegisterName("setContentView:")
+	sel_screens                                                     = objc.RegisterName("screens")
+	sel_objectAtIndex                                               = objc.RegisterName("objectAtIndex:")
+	sel_count                                                       = objc.RegisterName("count")
+	sel_respondsToSelector                                          = objc.RegisterName("respondsToSelector:")
+	sel_performSelector                                             = objc.RegisterName("performSelector:")
+	sel_IBeamCursor                                                 = objc.RegisterName("IBeamCursor")
+	sel_crosshairCursor                                             = objc.RegisterName("crosshairCursor")
+	sel_pointingHandCursor                                          = objc.RegisterName("pointingHandCursor")
+	sel_convertRectToBacking                                        = objc.RegisterName("convertRectToBacking:")
+	sel_nextEventMatchingMask_untilDate_inMode_dequeue              = objc.RegisterName("nextEventMatchingMask:untilDate:inMode:dequeue:")
+	sel_distantPast                                                 = objc.RegisterName("distantPast")
+	sel_sendEvent                                                   = objc.RegisterName("sendEvent:")
+	sel_setTitle                                                    = objc.RegisterName("setTitle:")
+	sel_setMiniwindowTitle                                          = objc.RegisterName("setMiniwindowTitle:")
+	sel_orderFront                                                  = objc.RegisterName("orderFront:")
+	sel_activateIgnoringOtherApps                                   = objc.RegisterName("activateIgnoringOtherApps:")
+	sel_makeKeyAndOrderFront                                        = objc.RegisterName("makeKeyAndOrderFront:")
+	sel_isKeyWindow                                                 = objc.RegisterName("isKeyWindow")
+	sel_isMiniaturized                                              = objc.RegisterName("isMiniaturized")
+	sel_initWithContentRect_styleMask_backing_defer                 = objc.RegisterName("initWithContentRect:styleMask:backing:defer:")
+	sel_mouseLocationOutsideOfEventStream                           = objc.RegisterName("mouseLocationOutsideOfEventStream")
+	sel_currentApplication                                          = objc.RegisterName("currentApplication")
+	sel_isFinishedLaunching                                         = objc.RegisterName("isFinishedLaunching")
+	sel_run                                                         = objc.RegisterName("run")
+	sel_setActivationPolicy                                         = objc.RegisterName("setActivationPolicy:")
+	sel_stop                                                        = objc.RegisterName("stop:")
+	sel_otherEventTy_loc_mFlags_timestamp_winNum_ctxt_subtype_d1_d2 = objc.RegisterName("otherEventWithType:location:modifierFlags:timestamp:windowNumber:context:subtype:data1:data2:")
+	sel_postEvent_atStart                                           = objc.RegisterName("postEvent:atStart:")
 )
 
 var NSDefaultRunLoopMode = *(*NSRunLoopMode)(unsafe.Pointer(purego.Dlsym(Cocoa, "NSDefaultRunLoopMode")))
-var NSApp = *(*NSApplication)(unsafe.Pointer(purego.Dlsym(Cocoa, "NSApp")))
+var NSApp = NSApplication_sharedApplication()
 
 const NSWindowCollectionBehaviorFullScreenPrimary = 1 << 7
 
@@ -150,7 +155,15 @@ type NSPoint = CGPoint
 type NSRect = CGRect
 type NSSize = CGSize
 
+type NSTimeInterval float64
+
 type NSEventMask uint64
+type NSEventModifierFlags NSUInteger
+type NSEventType NSUInteger
+
+const (
+	NSEventTypeApplicationDefined NSEventType = 15
+)
 
 const NSUIntegerMax = math.MaxUint
 
@@ -165,6 +178,10 @@ const (
 )
 
 type NSRunLoopMode NSString
+
+func NSMakePoint(x, y CGFloat) NSPoint {
+	return NSPoint{x, y}
+}
 
 func NSObject_retain(obj objc.ID) {
 	obj.Send(sel_retain)
@@ -505,12 +522,20 @@ func NSApplication_sharedApplication() NSApplication {
 	return NSApplication{objc.ID(class_NSApplication).Send(sel_sharedApplication)}
 }
 
-func (a NSApplication) SetActivationPolicy(policy NSApplicationActivationPolicy) {
+func (a NSApplication) PostEventAtStart(event NSEvent, atStart bool) {
+	a.Send(sel_postEvent_atStart, event.ID, atStart)
+}
 
+func (a NSApplication) SetActivationPolicy(policy NSApplicationActivationPolicy) {
+	a.Send(sel_setActivationPolicy, policy)
 }
 
 func (a NSApplication) Run() {
 	a.Send(sel_run)
+}
+
+func (a NSApplication) Stop(obj objc.ID) {
+	a.Send(sel_stop, obj)
 }
 
 func (a NSApplication) ActivateIgnoringOtherApps(b bool) {
@@ -539,6 +564,36 @@ func NSDate_distantPast() NSDate {
 
 type NSEvent struct {
 	objc.ID
+}
+
+//otherEventWithType:(NSEventType)type
+//                       location:(NSPoint)location
+//                  modifierFlags:(NSEventModifierFlags)flags
+//                      timestamp:(NSTimeInterval)time
+//                   windowNumber:(NSInteger)wNum
+//                        context:(NSGraphicsContext *)unusedPassNil
+//                        subtype:(short)subtype
+//                          data1:(NSInteger)d1
+//                          data2:(NSInteger)d2;
+func NSEvent_otherEventWithTypeLocationModifierFlagsTimestampWindowNumberContextSubtypeData1Data2(
+	eventType NSEventType, location NSPoint, flags NSEventModifierFlags, timestamp NSTimeInterval,
+	windowNumber NSInteger, unusedPassNil objc.ID, subtype int16, d1, d2 NSInteger) NSEvent {
+	sig := NSMethodSignature_signatureWithObjCTypes("@@:L{NSPoint=dd}Ldl@sll")
+	inv := NSInvocation_invocationWithMethodSignature(sig)
+	inv.SetSelector(sel_otherEventTy_loc_mFlags_timestamp_winNum_ctxt_subtype_d1_d2)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&eventType), 2)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&location), 3)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&flags), 4)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&timestamp), 5)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&windowNumber), 6)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&unusedPassNil), 7)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&subtype), 8)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&d1), 9)
+	inv.SetArgumentAtIndex(unsafe.Pointer(&d2), 10)
+	inv.InvokeWithTarget(objc.ID(class_NSEvent))
+	event := NSEvent{}
+	inv.GetReturnValue(unsafe.Pointer(&event))
+	return event
 }
 
 type NSNotification struct {

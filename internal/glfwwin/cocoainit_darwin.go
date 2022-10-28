@@ -63,13 +63,11 @@ func init() {
 	//            createMenuBar();
 	//    }
 	//}
-	//
-	//- (void)applicationDidFinishLaunching:(NSNotification *)notification
-	//{
-	//    _glfwPostEmptyEventCocoa();
-	//    [NSApp stop:nil];
-	//}
-	//
+	class_GLFWApplicationDelegate.AddMethod(objc.RegisterName("applicationDidFinishLaunching:"), objc.NewIMP(func(self objc.ID, cmd objc.ID, _ objc.ID) {
+		// _glfwPostEmptyEventCocoa();
+		_ = platformPostEmptyEvent() // cannot return error
+		cocoa.NSApp.Stop(0)
+	}), "v@:@")
 	//- (void)applicationDidHide:(NSNotification *)notification
 	//{
 	//    for (int i = 0;  i < _glfw.monitorCount;  i++)
@@ -79,19 +77,21 @@ func init() {
 }
 
 func platformInit() error {
+
 	pool := cocoa.NSAutoreleasePool_new()
 	_glfw.state.helper = cocoa.NSObject_new(class_GLFWHelper)
 	cocoa.NSThread_detachNewThreadSelectorToTargetWithObject(sel_doNothing, _glfw.state.helper, 0)
 
-	NSApp := cocoa.NSApplication_sharedApplication()
+	cocoa.NSApplication_sharedApplication()
 
 	_glfw.state.delegate = cocoa.NSObject_new(class_GLFWApplicationDelegate)
 	if _glfw.state.delegate == 0 {
 		return fmt.Errorf("cocoa: failed to create application delegate")
 	}
 
-	NSApp.SetDelegate(_glfw.state.delegate)
+	cocoa.NSApp.SetDelegate(_glfw.state.delegate)
 	log.Println("platformInit: todo...")
+
 	//    NSEvent* (^block)(NSEvent*) = ^ NSEvent* (NSEvent* event)
 	//    {
 	//        if ([event modifierFlags] & NSEventModifierFlagCommand)
@@ -128,7 +128,7 @@ func platformInit() error {
 	//    if (!initializeTIS())
 	//        return FALSE;
 	//
-	err := pollMonitorsCocoa()
+	err := platformPollMonitors()
 	if err != nil {
 		return err
 	}

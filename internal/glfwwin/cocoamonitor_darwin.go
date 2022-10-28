@@ -79,7 +79,7 @@ func (m *Monitor) platformGetVideoMode() *VidMode {
 	return &mode
 }
 
-func pollMonitorsCocoa() error {
+func platformPollMonitors() error {
 	var displayCount uint32
 
 	//	  uint32_t displayCount;
