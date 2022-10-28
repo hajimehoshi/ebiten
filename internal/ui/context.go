@@ -54,6 +54,8 @@ type context struct {
 	outsideWidth  float64
 	outsideHeight float64
 
+	isOffscreenDirty bool
+
 	skipCount int
 }
 
@@ -165,14 +167,15 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, forceDraw boo
 		c.offscreen.clear()
 	}
 
-	c.offscreen.dirty = false
+	// isOffscreenDirty is updated when an offscreen's drawCallback.
+	c.isOffscreenDirty = false
 	if err := c.game.DrawOffscreen(); err != nil {
 		return err
 	}
 
 	const maxSkipCount = 3
 
-	if !forceDraw && !theGlobalState.isScreenClearedEveryFrame() && !c.offscreen.dirty {
+	if !forceDraw && !theGlobalState.isScreenClearedEveryFrame() && !c.isOffscreenDirty {
 		if c.skipCount < maxSkipCount {
 			c.skipCount++
 		}
@@ -234,6 +237,9 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFac
 	}
 	if c.offscreen == nil {
 		c.offscreen = c.game.NewOffscreenImage(ow, oh)
+		c.offscreen.drawCallback = func() {
+			c.isOffscreenDirty = true
+		}
 	}
 
 	return ow, oh

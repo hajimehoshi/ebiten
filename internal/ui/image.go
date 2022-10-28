@@ -46,7 +46,9 @@ type Image struct {
 	bigOffscreenBufferBlend graphicsdriver.Blend
 	bigOffscreenBufferDirty bool
 
-	dirty bool
+	// drawCallback is a callback called when DrawTriangles or WritePixels is called.
+	// drawCallback is useful to detect whether the image is manipulated or not after a certain time.
+	drawCallback func()
 }
 
 func NewImage(width, height int, imageType atlas.ImageType) *Image {
@@ -70,11 +72,13 @@ func (i *Image) MarkDisposed() {
 	i.mipmap.MarkDisposed()
 	i.mipmap = nil
 	i.dotsBuffer = nil
-	i.dirty = false
+	i.drawCallback = nil
 }
 
 func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, canSkipMipmap bool, antialias bool) {
-	i.dirty = true
+	if i.drawCallback != nil {
+		i.drawCallback()
+	}
 
 	if antialias {
 		// Flush the other buffer to make the buffers exclusive.
@@ -146,7 +150,9 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 }
 
 func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
-	i.dirty = true
+	if i.drawCallback != nil {
+		i.drawCallback()
+	}
 
 	if width == 1 && height == 1 {
 		// Flush the other buffer to make the buffers exclusive.
