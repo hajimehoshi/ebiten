@@ -587,7 +587,6 @@ func (w *Window) platformCreateWindow(wndconfig *wndconfig, ctxconfig *ctxconfig
 		return fmt.Errorf("cocoa: failed to create window delegate")
 	}
 	var contentRect cocoa.NSRect
-	_ = contentRect
 	if w.monitor != nil {
 		//        GLFWvidmode mode;
 		//        int xpos, ypos;
@@ -676,10 +675,11 @@ func (w *Window) platformCreateWindow(wndconfig *wndconfig, ctxconfig *ctxconfig
 	//        [window->ns.object setBackgroundColor:[NSColor clearColor]];
 	//    }
 	//
-	//    [window->ns.object setContentView:window->ns.view];
+	window := cocoa.NSWindow{w.state.object}
+	window.SetContentView(w.state.view)
+	window.SetDelegate(w.state.delegate)
+	window.SetTitle(cocoa.NSString_alloc().InitWithUTF8String(wndconfig.title))
 	//    [window->ns.object makeFirstResponder:window->ns.view];
-	//    [window->ns.object setTitle:@(wndconfig->title)];
-	//    [window->ns.object setDelegate:window->ns.delegate];
 	//    [window->ns.object setAcceptsMouseMovedEvents:YES];
 	//    [window->ns.object setRestorable:NO];
 	//

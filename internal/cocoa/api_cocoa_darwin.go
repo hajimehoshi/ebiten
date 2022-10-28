@@ -26,19 +26,20 @@ import (
 var Cocoa = purego.Dlopen("Cocoa.framework/Cocoa", purego.RTLD_GLOBAL)
 
 var (
-	class_NSInvocation      = objc.GetClass("NSInvocation")
-	class_NSMethodSignature = objc.GetClass("NSMethodSignature")
-	class_NSAutoreleasePool = objc.GetClass("NSAutoreleasePool")
-	class_NSString          = objc.GetClass("NSString")
-	class_NSProcessInfo     = objc.GetClass("NSProcessInfo")
-	class_NSColor           = objc.GetClass("NSColor")
-	class_NSCursor          = objc.GetClass("NSCursor")
-	class_NSWindow          = objc.GetClass("NSWindow")
-	class_NSView            = objc.GetClass("NSView")
-	class_NSScreen          = objc.GetClass("NSScreen")
-	class_NSThread          = objc.GetClass("NSThread")
-	class_NSApplication     = objc.GetClass("NSApplication")
-	class_NSDate            = objc.GetClass("NSDate")
+	class_NSInvocation         = objc.GetClass("NSInvocation")
+	class_NSMethodSignature    = objc.GetClass("NSMethodSignature")
+	class_NSAutoreleasePool    = objc.GetClass("NSAutoreleasePool")
+	class_NSString             = objc.GetClass("NSString")
+	class_NSProcessInfo        = objc.GetClass("NSProcessInfo")
+	class_NSColor              = objc.GetClass("NSColor")
+	class_NSCursor             = objc.GetClass("NSCursor")
+	class_NSWindow             = objc.GetClass("NSWindow")
+	class_NSView               = objc.GetClass("NSView")
+	class_NSScreen             = objc.GetClass("NSScreen")
+	class_NSThread             = objc.GetClass("NSThread")
+	class_NSApplication        = objc.GetClass("NSApplication")
+	class_NSDate               = objc.GetClass("NSDate")
+	class_NSRunningApplication = objc.GetClass("NSRunningApplication")
 )
 
 var (
@@ -77,6 +78,7 @@ var (
 	sel_detachNewThreadSelector_toTarget_withObject    = objc.RegisterName("detachNewThreadSelector:toTarget:withObject:")
 	sel_sharedApplication                              = objc.RegisterName("sharedApplication")
 	sel_setDelegate                                    = objc.RegisterName("setDelegate:")
+	sel_setContentView                                 = objc.RegisterName("setContentView:")
 	sel_screens                                        = objc.RegisterName("screens")
 	sel_objectAtIndex                                  = objc.RegisterName("objectAtIndex:")
 	sel_count                                          = objc.RegisterName("count")
@@ -98,6 +100,9 @@ var (
 	sel_isMiniaturized                                 = objc.RegisterName("isMiniaturized")
 	sel_initWithContentRect_styleMask_backing_defer    = objc.RegisterName("initWithContentRect:styleMask:backing:defer:")
 	sel_mouseLocationOutsideOfEventStream              = objc.RegisterName("mouseLocationOutsideOfEventStream")
+	sel_currentApplication                             = objc.RegisterName("currentApplication")
+	sel_isFinishedLaunching                            = objc.RegisterName("isFinishedLaunching")
+	sel_run                                            = objc.RegisterName("run")
 )
 
 var NSDefaultRunLoopMode = *(*NSRunLoopMode)(unsafe.Pointer(purego.Dlsym(Cocoa, "NSDefaultRunLoopMode")))
@@ -244,6 +249,9 @@ func (w NSWindow) SetTitle(t NSString) {
 
 func (w NSWindow) SetDelegate(id objc.ID) {
 	w.Send(sel_setDelegate, id)
+}
+func (w NSWindow) SetContentView(id objc.ID) {
+	w.Send(sel_setContentView, id)
 }
 
 func (w NSWindow) SetMiniwindowTitle(t NSString) {
@@ -474,6 +482,10 @@ func NSApplication_sharedApplication() NSApplication {
 	return NSApplication{objc.ID(class_NSApplication).Send(sel_sharedApplication)}
 }
 
+func (a NSApplication) Run() {
+	a.Send(sel_run)
+}
+
 func (a NSApplication) ActivateIgnoringOtherApps(b bool) {
 	a.Send(sel_activateIgnoringOtherApps, b)
 }
@@ -540,4 +552,16 @@ type NSNumber struct {
 
 func (n NSNumber) UnsignedIntValue() uint {
 	return uint(n.Send(sel_unsignedIntValue))
+}
+
+type NSRunningApplication struct {
+	objc.ID
+}
+
+func NSRunningApplication_currentApplication() NSRunningApplication {
+	return NSRunningApplication{objc.ID(class_NSRunningApplication).Send(sel_currentApplication)}
+}
+
+func (a NSRunningApplication) IsFinishedLaunching() bool {
+	return a.Send(sel_isFinishedLaunching) != 0
 }

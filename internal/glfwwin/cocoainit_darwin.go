@@ -132,11 +132,11 @@ func platformInit() error {
 	if err != nil {
 		return err
 	}
-	//
-	//    if (![[NSRunningApplication currentApplication] isFinishedLaunching])
-	//        [NSApp run];
-	//
-	//    // In case we are unbundled, make us a proper UI application
+	if !cocoa.NSRunningApplication_currentApplication().IsFinishedLaunching() {
+		cocoa.NSApp.Run()
+	}
+
+	// In case we are unbundled, make us a proper UI application
 	//    if (_glfw.hints.init.state.menubar)
 	//        [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
 	pool.Release()
