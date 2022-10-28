@@ -83,13 +83,6 @@ func run() error {
 		return err
 	}
 	source := strings.TrimSpace(string(output))
-	build, err := os.MkdirTemp("", "ebitengine-glfw-*")
-	if err != nil {
-		return err
-	}
-	defer func() {
-		os.RemoveAll(build) // clean up
-	}()
 	csource := source + "/glfw/src"
 	includes := source + "/glfw/include"
 
@@ -97,14 +90,13 @@ func run() error {
 		for _, name := range filenames {
 			args := []string{
 				"-o", // output
-				objectExt(filepath.Join(build, name)),
+				objectExt(name),
 				"-mmacosx-version-min=10.12",
 				"-no-canonical-prefixes", // make clang use relative paths for compiler-internal headers
 				"-Wno-builtin-macro-redefined",
 				"-D__DATE__=",
 				"-D__TIME__=",
 				"-D__TIMESTAMP__=",
-				"-fdebug-prefix-map=" + build + "=.", // relatives any absolute pathes
 				"-arch",
 				a.target(),
 				"-c", // compile without linking
@@ -120,7 +112,7 @@ func run() error {
 				return err
 			}
 		}
-		doto, err := filepath.Glob(filepath.Join(build, "*.o"))
+		doto, err := filepath.Glob("*.o")
 		if err != nil {
 			return err
 		}
@@ -138,6 +130,11 @@ func run() error {
 		// use g++ https://stackoverflow.com/questions/3532589/how-to-build-a-dylib-from-several-o-in-mac-os-x-using-gcc
 		if err := execCommand("clang++", args...); err != nil {
 			return err
+		}
+		for _, o := range doto {
+			if err := os.Remove(o); err != nil {
+				return err
+			}
 		}
 	}
 	// There are now two files: glfw-arm64.dylib and glfw-x86_64.dylib
