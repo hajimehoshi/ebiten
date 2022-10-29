@@ -13,13 +13,13 @@ require (
 	github.com/jfreymuth/oggvorbis v1.0.4
 	golang.org/x/image v0.1.0
 	golang.org/x/mobile v0.0.0-20221020085226-b36e6246172e
-	golang.org/x/sys v0.0.0-20220818161305-2296e01440c6
-	golang.org/x/tools v0.1.12
+	golang.org/x/sys v0.1.0
+	golang.org/x/tools v0.2.0
 )
 
 require (
 	github.com/jfreymuth/vorbis v1.0.2 // indirect
 	golang.org/x/exp v0.0.0-20190731235908-ec7cb31e5a56 // indirect
-	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
+	golang.org/x/mod v0.6.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
 )
