@@ -273,14 +273,8 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
 
 // FlushCommands flushes the command queue and present the screen if needed.
 func FlushCommands(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
-	// Resolve unresolved images only when the frame ends.
-	// Resolving in tests might cause test flakiness on browsers (#2391).
-	// TODO: Investigate why.
-	if endFrame {
-		resolveImages()
-	}
-
-	return theCommandQueue.Flush(graphicsDriver)
+	resolveImages()
+	return theCommandQueue.Flush(graphicsDriver, endFrame)
 }
 
 // drawTrianglesCommand represents a drawing command to draw an image on another image.
