@@ -1,6 +1,6 @@
 module github.com/hajimehoshi/ebiten/v2
 
-go 1.16
+go 1.18
 
 require (
 	github.com/ebitengine/purego v0.2.0-alpha.0.20220915044048-aa1b0f680473
@@ -15,4 +15,11 @@ require (
 	golang.org/x/mobile v0.0.0-20221020085226-b36e6246172e
 	golang.org/x/sys v0.0.0-20220818161305-2296e01440c6
 	golang.org/x/tools v0.1.12
+)
+
+require (
+	github.com/jfreymuth/vorbis v1.0.2 // indirect
+	golang.org/x/exp v0.0.0-20190731235908-ec7cb31e5a56 // indirect
+	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
+	golang.org/x/text v0.4.0 // indirect
 )
