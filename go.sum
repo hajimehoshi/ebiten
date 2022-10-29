@@ -1,7 +1,7 @@
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/ebitengine/purego v0.0.0-20220907032450-cf3e27c364c7/go.mod h1:Eh8I3yvknDYZeCuXH9kRNaPuHEwvXDCk378o9xszmHg=
-github.com/ebitengine/purego v0.2.0-alpha.0.20220915044048-aa1b0f680473 h1:gvI3mxzjexvkakZNJkYRZOIWRQTGa8ucsQtQ/tN2VJk=
-github.com/ebitengine/purego v0.2.0-alpha.0.20220915044048-aa1b0f680473/go.mod h1:8K86Hsai2ghNjg9h/9P9tDdLAhUNwqNg10OESLDOam8=
+github.com/ebitengine/purego v0.2.0-alpha.0.20221023182100-d863f555d77d h1:V43Y3vdS9xB2oVYbvjvX46jetrEuKKfNqIuERgS32lI=
+github.com/ebitengine/purego v0.2.0-alpha.0.20221023182100-d863f555d77d/go.mod h1:8K86Hsai2ghNjg9h/9P9tDdLAhUNwqNg10OESLDOam8=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20221017161538-93cebf72946b h1:GgabKamyOYguHqHjSkDACcgoPIz3w0Dis/zJ1wyHHHU=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20221017161538-93cebf72946b/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
 github.com/hajimehoshi/bitmapfont/v2 v2.2.2 h1:4z08Fk1m3pjtlO7BdoP48u5bp/Y8xmKshf44aCXgYpE=
