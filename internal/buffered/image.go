@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"image"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -141,7 +140,7 @@ func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
 // DrawTriangles draws the src image with the given vertices.
 //
 // Copying vertices and indices is the caller's responsibility.
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool) {
 	for _, src := range srcs {
 		if i == src {
 			panic("buffered: Image.DrawTriangles: source images must be different from the receiver")
@@ -151,30 +150,22 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	if maybeCanAddDelayedCommand() {
 		if tryAddDelayedCommand(func() {
 			// Arguments are not copied. Copying is the caller's responsibility.
-			i.DrawTriangles(srcs, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd)
+			i.DrawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd)
 		}) {
 			return
 		}
 	}
 
-	var s *atlas.Shader
 	var imgs [graphics.ShaderImageCount]*atlas.Image
-	if shader == nil {
-		// Fast path for rendering without a shader (#1355).
-		img := srcs[0]
-		imgs[0] = img.img
-	} else {
-		for i, img := range srcs {
-			if img == nil {
-				continue
-			}
-			imgs[i] = img.img
+	for i, img := range srcs {
+		if img == nil {
+			continue
 		}
-		s = shader.shader
+		imgs[i] = img.img
 	}
 
 	i.invalidatePixels()
-	i.img.DrawTriangles(imgs, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, s, uniforms, evenOdd)
+	i.img.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegion, subimageOffsets, shader.shader, uniforms, evenOdd)
 }
 
 type Shader struct {
@@ -209,3 +200,8 @@ func (s *Shader) MarkDisposed() {
 	s.shader.MarkDisposed()
 	s.shader = nil
 }
+
+var (
+	NearestFilterShader = &Shader{shader: atlas.NearestFilterShader}
+	LinearFilterShader  = &Shader{shader: atlas.LinearFilterShader}
+)

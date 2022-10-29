@@ -45,13 +45,8 @@ jobs:
 
       - name: Install wasmbrowsertest
         run: |
-          # TODO: Use go install github.com/agnivade/wasmbrowsertest@... on Go 1.16 or later.
-          mkdir /tmp/wasmbrowsertest
-          cd /tmp/wasmbrowsertest
-          go mod init foo
-          go get github.com/agnivade/wasmbrowsertest
-          go build -o wasmbrowsertest${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }} github.com/agnivade/wasmbrowsertest
-          mv ./wasmbrowsertest${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }} $(go env GOPATH)/bin/go_js_wasm_exec${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }}
+          go install github.com/agnivade/wasmbrowsertest@latest
+          mv $(go env GOPATH)/bin/wasmbrowsertest${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }} $(go env GOPATH)/bin/go_js_wasm_exec${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }}
 
       - name: Prepare ebitenmobile test
         if: ${{ !startsWith(matrix.go, '1.16.') }}
@@ -77,6 +72,11 @@ jobs:
         run: |
           (cd .github/workflows/vettools; go install .)
           go vet -vettool=$(which vettools)${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }} -tags=example -v ./...
+
+      - name: govulncheck
+        if: ${{ !startsWith(matrix.go, '1.16.') && !startsWith(matrix.go, '1.17.') }}
+        run: |
+          go run golang.org/x/vuln/cmd/govulncheck@latest -tags=example ./...
 
       - name: go build
         run: |

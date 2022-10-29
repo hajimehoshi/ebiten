@@ -26,6 +26,7 @@ import (
 	"runtime"
 	"testing"
 	"time"
+	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
@@ -48,6 +49,10 @@ func skipTooSlowTests(t *testing.T) bool {
 	}
 	if runtime.GOOS == "js" {
 		t.Skip("too slow or fragile on Wasm")
+		return true
+	}
+	if runtime.GOOS == "windows" && unsafe.Sizeof(uintptr(0)) == 4 {
+		t.Skip("out of memory often happens on 32bit Windows (#2332)")
 		return true
 	}
 	return false
@@ -342,7 +347,7 @@ func min(a, b int) int {
 	return b
 }
 
-func TestImageCompositeModeLighter(t *testing.T) {
+func TestImageBlendLighter(t *testing.T) {
 	img0, _, err := openEbitenImage()
 	if err != nil {
 		t.Fatal(err)
@@ -353,7 +358,7 @@ func TestImageCompositeModeLighter(t *testing.T) {
 	img1 := ebiten.NewImage(w, h)
 	img1.Fill(color.RGBA{0x01, 0x02, 0x03, 0x04})
 	op := &ebiten.DrawImageOptions{}
-	op.CompositeMode = ebiten.CompositeModeLighter
+	op.Blend = ebiten.BlendLighter
 	img1.DrawImage(img0, op)
 	for j := 0; j < img1.Bounds().Size().Y; j++ {
 		for i := 0; i < img1.Bounds().Size().X; i++ {
@@ -1929,7 +1934,6 @@ func TestImageWritePixelsOnSubImage(t *testing.T) {
 func TestImageDrawTrianglesWithColorM(t *testing.T) {
 	const w, h = 16, 16
 	dst0 := ebiten.NewImage(w, h)
-	dst1 := ebiten.NewImage(w, h)
 	src := ebiten.NewImage(w, h)
 	src.Fill(color.White)
 
@@ -1980,65 +1984,90 @@ func TestImageDrawTrianglesWithColorM(t *testing.T) {
 	is := []uint16{0, 1, 2, 1, 2, 3}
 	dst0.DrawTriangles(vs0, is, src, op)
 
-	vs1 := []ebiten.Vertex{
-		{
-			DstX:   0,
-			DstY:   0,
-			SrcX:   0,
-			SrcY:   0,
-			ColorR: 0.2,
-			ColorG: 0.4,
-			ColorB: 0.6,
-			ColorA: 0.8,
-		},
-		{
-			DstX:   w,
-			DstY:   0,
-			SrcX:   w,
-			SrcY:   0,
-			ColorR: 0.2,
-			ColorG: 0.4,
-			ColorB: 0.6,
-			ColorA: 0.8,
-		},
-		{
-			DstX:   0,
-			DstY:   h,
-			SrcX:   0,
-			SrcY:   h,
-			ColorR: 0.2,
-			ColorG: 0.4,
-			ColorB: 0.6,
-			ColorA: 0.8,
-		},
-		{
-			DstX:   w,
-			DstY:   h,
-			SrcX:   w,
-			SrcY:   h,
-			ColorR: 0.2,
-			ColorG: 0.4,
-			ColorB: 0.6,
-			ColorA: 0.8,
-		},
-	}
-	dst1.DrawTriangles(vs1, is, src, nil)
-
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
-			got := dst0.At(i, j)
-			want := dst1.At(i, j)
-			if got != want {
-				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
+	for _, format := range []ebiten.ColorScaleFormat{
+		ebiten.ColorScaleFormatStraightAlpha,
+		ebiten.ColorScaleFormatPremultipliedAlpha,
+	} {
+		format := format
+		t.Run(fmt.Sprintf("format%d", format), func(t *testing.T) {
+			var cr, cg, cb, ca float32
+			switch format {
+			case ebiten.ColorScaleFormatStraightAlpha:
+				// The values are the same as ColorM.Scale
+				cr = 0.2
+				cg = 0.4
+				cb = 0.6
+				ca = 0.8
+			case ebiten.ColorScaleFormatPremultipliedAlpha:
+				cr = 0.2 * 0.8
+				cg = 0.4 * 0.8
+				cb = 0.6 * 0.8
+				ca = 0.8
 			}
-		}
+			vs1 := []ebiten.Vertex{
+				{
+					DstX:   0,
+					DstY:   0,
+					SrcX:   0,
+					SrcY:   0,
+					ColorR: cr,
+					ColorG: cg,
+					ColorB: cb,
+					ColorA: ca,
+				},
+				{
+					DstX:   w,
+					DstY:   0,
+					SrcX:   w,
+					SrcY:   0,
+					ColorR: cr,
+					ColorG: cg,
+					ColorB: cb,
+					ColorA: ca,
+				},
+				{
+					DstX:   0,
+					DstY:   h,
+					SrcX:   0,
+					SrcY:   h,
+					ColorR: cr,
+					ColorG: cg,
+					ColorB: cb,
+					ColorA: ca,
+				},
+				{
+					DstX:   w,
+					DstY:   h,
+					SrcX:   w,
+					SrcY:   h,
+					ColorR: cr,
+					ColorG: cg,
+					ColorB: cb,
+					ColorA: ca,
+				},
+			}
+
+			dst1 := ebiten.NewImage(w, h)
+			op := &ebiten.DrawTrianglesOptions{}
+			op.ColorScaleFormat = format
+			dst1.DrawTriangles(vs1, is, src, op)
+
+			for j := 0; j < h; j++ {
+				for i := 0; i < w; i++ {
+					got := dst0.At(i, j)
+					want := dst1.At(i, j)
+					if got != want {
+						t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
+					}
+				}
+			}
+		})
 	}
 }
 
 func TestImageDrawTrianglesInterpolatesColors(t *testing.T) {
 	const w, h = 3, 1
 	src := ebiten.NewImage(w, h)
-	dst := ebiten.NewImage(w, h)
 	src.Fill(color.White)
 
 	vs := []ebiten.Vertex{
@@ -2083,25 +2112,38 @@ func TestImageDrawTrianglesInterpolatesColors(t *testing.T) {
 			ColorA: 1,
 		},
 	}
-	dst.Fill(color.RGBA{0x00, 0x00, 0xff, 0xff})
-	op := &ebiten.DrawTrianglesOptions{}
-	is := []uint16{0, 1, 2, 1, 2, 3}
-	dst.DrawTriangles(vs, is, src, op)
 
-	got := dst.At(1, 0).(color.RGBA)
+	for _, format := range []ebiten.ColorScaleFormat{
+		ebiten.ColorScaleFormatStraightAlpha,
+		ebiten.ColorScaleFormatPremultipliedAlpha,
+	} {
+		format := format
+		t.Run(fmt.Sprintf("format%d", format), func(t *testing.T) {
+			dst := ebiten.NewImage(w, h)
+			dst.Fill(color.RGBA{0x00, 0x00, 0xff, 0xff})
 
-	// Correct color interpolation uses the alpha channel and notices that colors on the left side of the texture are fully transparent.
-	want := color.RGBA{0x00, 0x80, 0x80, 0xff}
+			op := &ebiten.DrawTrianglesOptions{}
+			op.ColorScaleFormat = format
 
-	// Interpolation isn't exactly specified, so a range is accepable.
-	diff := math.Max(math.Max(math.Max(
-		math.Abs(float64(got.R)-float64(want.R)),
-		math.Abs(float64(got.G)-float64(want.G))),
-		math.Abs(float64(got.B)-float64(want.B))),
-		math.Abs(float64(got.A)-float64(want.A)))
+			is := []uint16{0, 1, 2, 1, 2, 3}
+			dst.DrawTriangles(vs, is, src, op)
 
-	if diff > 5 {
-		t.Errorf("At(1, 0): got: %v, want: %v", got, want)
+			got := dst.At(1, 0).(color.RGBA)
+
+			// Correct color interpolation uses the alpha channel
+			// and notices that colors on the left side of the texture are fully transparent.
+			var want color.RGBA
+			switch format {
+			case ebiten.ColorScaleFormatStraightAlpha:
+				want = color.RGBA{0x00, 0x80, 0x80, 0xff}
+			case ebiten.ColorScaleFormatPremultipliedAlpha:
+				want = color.RGBA{0x80, 0x80, 0x80, 0xff}
+			}
+
+			if !sameColors(got, want, 2) {
+				t.Errorf("At(1, 0): got: %v, want: %v", got, want)
+			}
+		})
 	}
 }
 
@@ -2174,14 +2216,7 @@ func TestImageDrawTrianglesShaderInterpolatesValues(t *testing.T) {
 	// Shaders get each color value interpolated independently.
 	want := color.RGBA{0x80, 0x80, 0x80, 0xff}
 
-	// Interpolation isn't exactly specified, so a range is accepable.
-	diff := math.Max(math.Max(math.Max(
-		math.Abs(float64(got.R)-float64(want.R)),
-		math.Abs(float64(got.G)-float64(want.G))),
-		math.Abs(float64(got.B)-float64(want.B))),
-		math.Abs(float64(got.A)-float64(want.A)))
-
-	if diff > 5 {
+	if !sameColors(got, want, 2) {
 		t.Errorf("At(1, 0): got: %v, want: %v", got, want)
 	}
 }
@@ -2313,7 +2348,7 @@ func TestImageColorMCopy(t *testing.T) {
 	for k := 0; k < 256; k++ {
 		op := &ebiten.DrawImageOptions{}
 		op.ColorM.Translate(1, 1, 1, float64(k)/0xff)
-		op.CompositeMode = ebiten.CompositeModeCopy
+		op.Blend = ebiten.BlendCopy
 		dst.DrawImage(src, op)
 
 		for j := 0; j < h; j++ {
@@ -2524,9 +2559,9 @@ func TestImageSubImageFill(t *testing.T) {
 }
 
 func TestImageEvenOdd(t *testing.T) {
-	emptyImage := ebiten.NewImage(3, 3)
-	emptyImage.Fill(color.White)
-	emptySubImage := emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
+	whiteImage := ebiten.NewImage(3, 3)
+	whiteImage.Fill(color.White)
+	emptySubImage := whiteImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
 
 	vs0 := []ebiten.Vertex{
 		{
@@ -3436,7 +3471,6 @@ func TestImageTooManyConstantBuffersInDirectX(t *testing.T) {
 
 func TestImageColorMAndScale(t *testing.T) {
 	const w, h = 16, 16
-	dst := ebiten.NewImage(w, h)
 	src := ebiten.NewImage(w, h)
 
 	src.Fill(color.RGBA{0x80, 0x80, 0x80, 0x80})
@@ -3483,19 +3517,427 @@ func TestImageColorMAndScale(t *testing.T) {
 		},
 	}
 	is := []uint16{0, 1, 2, 1, 2, 3}
-	op := &ebiten.DrawTrianglesOptions{}
-	op.ColorM.Translate(0.25, 0.25, 0.25, 0)
-	dst.DrawTriangles(vs, is, src, op)
 
-	got := dst.At(0, 0).(color.RGBA)
-	alphaBeforeScale := 0.5
-	want := color.RGBA{
-		byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.5 * 0.75)),
-		byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.25 * 0.75)),
-		byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.5 * 0.75)),
-		byte(math.Floor(0xff * alphaBeforeScale * 0.75)),
+	for _, format := range []ebiten.ColorScaleFormat{
+		ebiten.ColorScaleFormatStraightAlpha,
+		ebiten.ColorScaleFormatPremultipliedAlpha,
+	} {
+		format := format
+		t.Run(fmt.Sprintf("format%d", format), func(t *testing.T) {
+			dst := ebiten.NewImage(w, h)
+
+			op := &ebiten.DrawTrianglesOptions{}
+			op.ColorM.Translate(0.25, 0.25, 0.25, 0)
+			op.ColorScaleFormat = format
+			dst.DrawTriangles(vs, is, src, op)
+
+			got := dst.At(0, 0).(color.RGBA)
+			alphaBeforeScale := 0.5
+			var want color.RGBA
+			switch format {
+			case ebiten.ColorScaleFormatStraightAlpha:
+				want = color.RGBA{
+					byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.5 * 0.75)),
+					byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.25 * 0.75)),
+					byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.5 * 0.75)),
+					byte(math.Floor(0xff * alphaBeforeScale * 0.75)),
+				}
+			case ebiten.ColorScaleFormatPremultipliedAlpha:
+				want = color.RGBA{
+					byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.5)),
+					byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.25)),
+					byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.5)),
+					byte(math.Floor(0xff * alphaBeforeScale * 0.75)),
+				}
+			}
+			if !sameColors(got, want, 2) {
+				t.Errorf("got: %v, want: %v", got, want)
+			}
+		})
 	}
-	if !sameColors(got, want, 2) {
-		t.Errorf("got: %v, want: %v", got, want)
+}
+
+func TestImageBlendOperation(t *testing.T) {
+	const w, h = 16, 1
+	dst := ebiten.NewImage(w, h)
+	src := ebiten.NewImage(w, h)
+
+	dstColor := func(i int) (byte, byte, byte, byte) {
+		return byte(4 * i * 17), byte(4*i*17 + 1), byte(4*i*17 + 2), byte(4*i*17 + 3)
+	}
+	srcColor := func(i int) (byte, byte, byte, byte) {
+		return byte(4 * i * 13), byte(4*i*13 + 1), byte(4*i*13 + 2), byte(4*i*13 + 3)
+	}
+	clamp := func(x int) byte {
+		if x > 255 {
+			return 255
+		}
+		if x < 0 {
+			return 0
+		}
+		return byte(x)
+	}
+
+	dstPix := make([]byte, 4*w*h)
+	for i := 0; i < w; i++ {
+		r, g, b, a := dstColor(i)
+		dstPix[4*i] = r
+		dstPix[4*i+1] = g
+		dstPix[4*i+2] = b
+		dstPix[4*i+3] = a
+	}
+	srcPix := make([]byte, 4*w*h)
+	for i := 0; i < w; i++ {
+		r, g, b, a := srcColor(i)
+		srcPix[4*i] = r
+		srcPix[4*i+1] = g
+		srcPix[4*i+2] = b
+		srcPix[4*i+3] = a
+	}
+	src.WritePixels(srcPix)
+
+	operations := []ebiten.BlendOperation{
+		ebiten.BlendOperationAdd,
+		ebiten.BlendOperationSubtract,
+		ebiten.BlendOperationReverseSubtract,
+	}
+	for _, rgbOp := range operations {
+		for _, alphaOp := range operations {
+			// Reset the destination state.
+			dst.WritePixels(dstPix)
+			op := &ebiten.DrawImageOptions{}
+			op.Blend = ebiten.Blend{
+				BlendFactorSourceRGB:        ebiten.BlendFactorOne,
+				BlendFactorSourceAlpha:      ebiten.BlendFactorOne,
+				BlendFactorDestinationRGB:   ebiten.BlendFactorOne,
+				BlendFactorDestinationAlpha: ebiten.BlendFactorOne,
+				BlendOperationRGB:           rgbOp,
+				BlendOperationAlpha:         alphaOp,
+			}
+			dst.DrawImage(src, op)
+			for i := 0; i < w; i++ {
+				got := dst.At(i, 0).(color.RGBA)
+
+				sr, sg, sb, sa := srcColor(i)
+				dr, dg, db, da := dstColor(i)
+
+				var want color.RGBA
+				switch rgbOp {
+				case ebiten.BlendOperationAdd:
+					want.R = clamp(int(sr) + int(dr))
+					want.G = clamp(int(sg) + int(dg))
+					want.B = clamp(int(sb) + int(db))
+				case ebiten.BlendOperationSubtract:
+					want.R = clamp(int(sr) - int(dr))
+					want.G = clamp(int(sg) - int(dg))
+					want.B = clamp(int(sb) - int(db))
+				case ebiten.BlendOperationReverseSubtract:
+					want.R = clamp(int(dr) - int(sr))
+					want.G = clamp(int(dg) - int(sg))
+					want.B = clamp(int(db) - int(sb))
+				}
+				switch alphaOp {
+				case ebiten.BlendOperationAdd:
+					want.A = clamp(int(sa) + int(da))
+				case ebiten.BlendOperationSubtract:
+					want.A = clamp(int(sa) - int(da))
+				case ebiten.BlendOperationReverseSubtract:
+					want.A = clamp(int(da) - int(sa))
+				}
+
+				if !sameColors(got, want, 1) {
+					t.Errorf("dst.At(%d, 0): operations: %d, %d: got: %v, want: %v", i, rgbOp, alphaOp, got, want)
+				}
+			}
+		}
+	}
+}
+
+func TestImageBlendFactor(t *testing.T) {
+	if skipTooSlowTests(t) {
+		return
+	}
+
+	const w, h = 16, 1
+	dst := ebiten.NewImage(w, h)
+	src := ebiten.NewImage(w, h)
+
+	dstColor := func(i int) (byte, byte, byte, byte) {
+		return byte(4 * i * 17), byte(4*i*17 + 1), byte(4*i*17 + 2), byte(4*i*17 + 3)
+	}
+	srcColor := func(i int) (byte, byte, byte, byte) {
+		return byte(4 * i * 13), byte(4*i*13 + 1), byte(4*i*13 + 2), byte(4*i*13 + 3)
+	}
+	colorToFloats := func(r, g, b, a byte) (float64, float64, float64, float64) {
+		return float64(r) / 0xff, float64(g) / 0xff, float64(b) / 0xff, float64(a) / 0xff
+	}
+	clamp := func(x int) byte {
+		if x > 255 {
+			return 255
+		}
+		if x < 0 {
+			return 0
+		}
+		return byte(x)
+	}
+
+	dstPix := make([]byte, 4*w*h)
+	for i := 0; i < w; i++ {
+		r, g, b, a := dstColor(i)
+		dstPix[4*i] = r
+		dstPix[4*i+1] = g
+		dstPix[4*i+2] = b
+		dstPix[4*i+3] = a
+	}
+	srcPix := make([]byte, 4*w*h)
+	for i := 0; i < w; i++ {
+		r, g, b, a := srcColor(i)
+		srcPix[4*i] = r
+		srcPix[4*i+1] = g
+		srcPix[4*i+2] = b
+		srcPix[4*i+3] = a
+	}
+	src.WritePixels(srcPix)
+
+	factors := []ebiten.BlendFactor{
+		ebiten.BlendFactorZero,
+		ebiten.BlendFactorOne,
+		ebiten.BlendFactorSourceColor,
+		ebiten.BlendFactorOneMinusSourceColor,
+		ebiten.BlendFactorSourceAlpha,
+		ebiten.BlendFactorOneMinusSourceAlpha,
+		ebiten.BlendFactorDestinationColor,
+		ebiten.BlendFactorOneMinusDestinationColor,
+		ebiten.BlendFactorDestinationAlpha,
+		ebiten.BlendFactorOneMinusDestinationAlpha,
+	}
+	for _, srcRGBFactor := range factors {
+		for _, srcAlphaFactor := range factors {
+			for _, dstRGBFactor := range factors {
+				for _, dstAlphaFactor := range factors {
+					// Reset the destination state.
+					dst.WritePixels(dstPix)
+					op := &ebiten.DrawImageOptions{}
+					op.Blend = ebiten.Blend{
+						BlendFactorSourceRGB:        srcRGBFactor,
+						BlendFactorSourceAlpha:      srcAlphaFactor,
+						BlendFactorDestinationRGB:   dstRGBFactor,
+						BlendFactorDestinationAlpha: dstAlphaFactor,
+						BlendOperationRGB:           ebiten.BlendOperationAdd,
+						BlendOperationAlpha:         ebiten.BlendOperationAdd,
+					}
+					dst.DrawImage(src, op)
+					for i := 0; i < w; i++ {
+						got := dst.At(i, 0).(color.RGBA)
+
+						sr, sg, sb, sa := colorToFloats(srcColor(i))
+						dr, dg, db, da := colorToFloats(dstColor(i))
+
+						var r, g, b, a float64
+
+						switch srcRGBFactor {
+						case ebiten.BlendFactorZero:
+							r += 0 * sr
+							g += 0 * sg
+							b += 0 * sb
+						case ebiten.BlendFactorOne:
+							r += 1 * sr
+							g += 1 * sg
+							b += 1 * sb
+						case ebiten.BlendFactorSourceColor:
+							r += sr * sr
+							g += sg * sg
+							b += sb * sb
+						case ebiten.BlendFactorOneMinusSourceColor:
+							r += (1 - sr) * sr
+							g += (1 - sg) * sg
+							b += (1 - sb) * sb
+						case ebiten.BlendFactorSourceAlpha:
+							r += sa * sr
+							g += sa * sg
+							b += sa * sb
+						case ebiten.BlendFactorOneMinusSourceAlpha:
+							r += (1 - sa) * sr
+							g += (1 - sa) * sg
+							b += (1 - sa) * sb
+						case ebiten.BlendFactorDestinationColor:
+							r += dr * sr
+							g += dg * sg
+							b += db * sb
+						case ebiten.BlendFactorOneMinusDestinationColor:
+							r += (1 - dr) * sr
+							g += (1 - dg) * sg
+							b += (1 - db) * sb
+						case ebiten.BlendFactorDestinationAlpha:
+							r += da * sr
+							g += da * sg
+							b += da * sb
+						case ebiten.BlendFactorOneMinusDestinationAlpha:
+							r += (1 - da) * sr
+							g += (1 - da) * sg
+							b += (1 - da) * sb
+						}
+						switch srcAlphaFactor {
+						case ebiten.BlendFactorZero:
+							a += 0 * sa
+						case ebiten.BlendFactorOne:
+							a += 1 * sa
+						case ebiten.BlendFactorSourceColor, ebiten.BlendFactorSourceAlpha:
+							a += sa * sa
+						case ebiten.BlendFactorOneMinusSourceColor, ebiten.BlendFactorOneMinusSourceAlpha:
+							a += (1 - sa) * sa
+						case ebiten.BlendFactorDestinationColor, ebiten.BlendFactorDestinationAlpha:
+							a += da * sa
+						case ebiten.BlendFactorOneMinusDestinationColor, ebiten.BlendFactorOneMinusDestinationAlpha:
+							a += (1 - da) * sa
+						}
+
+						switch dstRGBFactor {
+						case ebiten.BlendFactorZero:
+							r += 0 * dr
+							g += 0 * dg
+							b += 0 * db
+						case ebiten.BlendFactorOne:
+							r += 1 * dr
+							g += 1 * dg
+							b += 1 * db
+						case ebiten.BlendFactorSourceColor:
+							r += sr * dr
+							g += sg * dg
+							b += sb * db
+						case ebiten.BlendFactorOneMinusSourceColor:
+							r += (1 - sr) * dr
+							g += (1 - sg) * dg
+							b += (1 - sb) * db
+						case ebiten.BlendFactorSourceAlpha:
+							r += sa * dr
+							g += sa * dg
+							b += sa * db
+						case ebiten.BlendFactorOneMinusSourceAlpha:
+							r += (1 - sa) * dr
+							g += (1 - sa) * dg
+							b += (1 - sa) * db
+						case ebiten.BlendFactorDestinationColor:
+							r += dr * dr
+							g += dg * dg
+							b += db * db
+						case ebiten.BlendFactorOneMinusDestinationColor:
+							r += (1 - dr) * dr
+							g += (1 - dg) * dg
+							b += (1 - db) * db
+						case ebiten.BlendFactorDestinationAlpha:
+							r += da * dr
+							g += da * dg
+							b += da * db
+						case ebiten.BlendFactorOneMinusDestinationAlpha:
+							r += (1 - da) * dr
+							g += (1 - da) * dg
+							b += (1 - da) * db
+						}
+						switch dstAlphaFactor {
+						case ebiten.BlendFactorZero:
+							a += 0 * da
+						case ebiten.BlendFactorOne:
+							a += 1 * da
+						case ebiten.BlendFactorSourceColor, ebiten.BlendFactorSourceAlpha:
+							a += sa * da
+						case ebiten.BlendFactorOneMinusSourceColor, ebiten.BlendFactorOneMinusSourceAlpha:
+							a += (1 - sa) * da
+						case ebiten.BlendFactorDestinationColor, ebiten.BlendFactorDestinationAlpha:
+							a += da * da
+						case ebiten.BlendFactorOneMinusDestinationColor, ebiten.BlendFactorOneMinusDestinationAlpha:
+							a += (1 - da) * da
+						}
+
+						want := color.RGBA{
+							R: clamp(int(r * 0xff)),
+							G: clamp(int(g * 0xff)),
+							B: clamp(int(b * 0xff)),
+							A: clamp(int(a * 0xff)),
+						}
+						if !sameColors(got, want, 1) {
+							t.Errorf("dst.At(%d, 0): factors: %d, %d, %d, %d: got: %v, want: %v", i, srcRGBFactor, srcAlphaFactor, dstRGBFactor, dstAlphaFactor, got, want)
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+func TestImageAntiAliasAndBlend(t *testing.T) {
+	const w, h = 16, 16
+
+	dst0 := ebiten.NewImage(w, h)
+	dst1 := ebiten.NewImage(w, h)
+	src := ebiten.NewImage(w, h)
+
+	for _, blend := range []ebiten.Blend{
+		{}, // Default
+		ebiten.BlendClear,
+		ebiten.BlendCopy,
+		ebiten.BlendSourceOver,
+	} {
+		dst0.Fill(color.RGBA{0x24, 0x3f, 0x6a, 0x88})
+		dst1.Fill(color.RGBA{0x24, 0x3f, 0x6a, 0x88})
+		src.Fill(color.RGBA{0x85, 0xa3, 0x08, 0xd3})
+
+		op0 := &ebiten.DrawTrianglesOptions{}
+		op0.Blend = blend
+		op0.AntiAlias = true
+		vs := []ebiten.Vertex{
+			{
+				DstX:   0,
+				DstY:   0,
+				SrcX:   0,
+				SrcY:   0,
+				ColorR: 1,
+				ColorG: 1,
+				ColorB: 1,
+				ColorA: 1,
+			},
+			{
+				DstX:   w,
+				DstY:   0,
+				SrcX:   w,
+				SrcY:   0,
+				ColorR: 1,
+				ColorG: 1,
+				ColorB: 1,
+				ColorA: 1,
+			},
+			{
+				DstX:   0,
+				DstY:   h,
+				SrcX:   0,
+				SrcY:   h,
+				ColorR: 1,
+				ColorG: 1,
+				ColorB: 1,
+				ColorA: 1,
+			},
+			{
+				DstX:   w,
+				DstY:   h,
+				SrcX:   w,
+				SrcY:   h,
+				ColorR: 1,
+				ColorG: 1,
+				ColorB: 1,
+				ColorA: 1,
+			},
+		}
+		is := []uint16{0, 1, 2, 1, 2, 3}
+		dst0.DrawTriangles(vs, is, src, op0)
+		got := dst0.At(0, 0).(color.RGBA)
+
+		op1 := &ebiten.DrawImageOptions{}
+		op1.Blend = blend
+		dst1.DrawImage(src, op1)
+		want := dst1.At(0, 0).(color.RGBA)
+
+		if got != want {
+			t.Errorf("blend: %v, got: %v, want: %v", blend, got, want)
+		}
 	}
 }

@@ -303,5 +303,3 @@ func TestWritePixelsAndModifyBeforeMain(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
-
-// TODO: Add tests for shaders and WritePixels to check resolvePendingPiexles works correctly.

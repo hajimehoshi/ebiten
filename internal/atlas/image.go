@@ -20,7 +20,6 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/packing"
@@ -96,7 +95,7 @@ func min(a, b int) int {
 	return b
 }
 
-func resolveDeferred() {
+func flushDeferred() {
 	deferredM.Lock()
 	fs := deferred
 	deferred = nil
@@ -310,7 +309,7 @@ func (i *Image) ensureIsolated() {
 		Width:  float32(w - 2*i.paddingSize()),
 		Height: float32(h - 2*i.paddingSize()),
 	}
-	newImg.DrawTriangles(srcs, offsets, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, nil, nil, false)
+	newImg.DrawTriangles(srcs, offsets, vs, is, graphicsdriver.BlendCopy, dstRegion, graphicsdriver.Region{}, NearestFilterShader.shader, nil, false)
 
 	i.dispose(false)
 	i.backend = &backend{
@@ -349,7 +348,7 @@ func (i *Image) putOnAtlas(graphicsDriver graphicsdriver.Graphics) error {
 		Width:  w,
 		Height: h,
 	}
-	newI.drawTriangles([graphics.ShaderImageCount]*Image{i}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, nil, nil, false, true)
+	newI.drawTriangles([graphics.ShaderImageCount]*Image{i}, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true)
 
 	newI.moveTo(i)
 	i.usedAsSourceCount = 0
@@ -396,13 +395,13 @@ func (i *Image) processSrc(src *Image) {
 //	5: Color G
 //	6: Color B
 //	7: Color Y
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	i.drawTriangles(srcs, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd, false)
+	i.drawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd, false)
 }
 
-func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, keepOnAtlas bool) {
+func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, keepOnAtlas bool) {
 	if i.disposed {
 		panic("atlas: the drawing target image must not be disposed (DrawTriangles)")
 	}
@@ -419,8 +418,8 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	}
 
 	x, y, _, _ := i.regionWithPadding()
-	dx := float32(x + i.paddingSize())
-	dy := float32(y + i.paddingSize())
+	ps := i.paddingSize()
+	dx, dy := float32(x+ps), float32(y+ps)
 	// TODO: Check if dstRegion does not to violate the region.
 
 	dstRegion.X += dx
@@ -429,15 +428,14 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	var oxf, oyf float32
 	if srcs[0] != nil {
 		ox, oy, _, _ := srcs[0].regionWithPadding()
-		ox += srcs[0].paddingSize()
-		oy += srcs[0].paddingSize()
-		oxf, oyf = float32(ox), float32(oy)
+		ps := srcs[0].paddingSize()
+		oxf, oyf = float32(ox+ps), float32(oy+ps)
 		sw, sh := srcs[0].backend.restorable.InternalSize()
 		swf, shf := float32(sw), float32(sh)
 		n := len(vertices)
 		for i := 0; i < n; i += graphics.VertexFloatCount {
-			vertices[i] = adjustDestinationPixel(vertices[i] + dx)
-			vertices[i+1] = adjustDestinationPixel(vertices[i+1] + dy)
+			vertices[i] = vertices[i] + dx
+			vertices[i+1] = vertices[i+1] + dy
 			vertices[i+2] = (vertices[i+2] + oxf) / swf
 			vertices[i+3] = (vertices[i+3] + oyf) / shf
 		}
@@ -450,37 +448,31 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	} else {
 		n := len(vertices)
 		for i := 0; i < n; i += graphics.VertexFloatCount {
-			vertices[i] = adjustDestinationPixel(vertices[i] + dx)
-			vertices[i+1] = adjustDestinationPixel(vertices[i+1] + dy)
+			vertices[i] = vertices[i] + dx
+			vertices[i+1] = vertices[i+1] + dy
 		}
 	}
 
 	var offsets [graphics.ShaderImageCount - 1][2]float32
-	var s *restorable.Shader
 	var imgs [graphics.ShaderImageCount]*restorable.Image
-	if shader == nil {
-		// Fast path for rendering without a shader (#1355).
-		imgs[0] = srcs[0].backend.restorable
-	} else {
-		for i, subimageOffset := range subimageOffsets {
-			src := srcs[i+1]
-			if src == nil {
-				continue
-			}
-			ox, oy, _, _ := src.regionWithPadding()
-			offsets[i][0] = float32(ox+src.paddingSize()) - oxf + subimageOffset[0]
-			offsets[i][1] = float32(oy+src.paddingSize()) - oyf + subimageOffset[1]
+	for i, subimageOffset := range subimageOffsets {
+		src := srcs[i+1]
+		if src == nil {
+			continue
 		}
-		s = shader.shader
-		for i, src := range srcs {
-			if src == nil {
-				continue
-			}
-			imgs[i] = src.backend.restorable
+		ox, oy, _, _ := src.regionWithPadding()
+		ps := src.paddingSize()
+		offsets[i][0] = float32(ox+ps) - oxf + subimageOffset[0]
+		offsets[i][1] = float32(oy+ps) - oyf + subimageOffset[1]
+	}
+	for i, src := range srcs {
+		if src == nil {
+			continue
 		}
+		imgs[i] = src.backend.restorable
 	}
 
-	i.backend.restorable.DrawTriangles(imgs, offsets, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, s, uniforms, evenOdd)
+	i.backend.restorable.DrawTriangles(imgs, offsets, vertices, indices, blend, dstRegion, srcRegion, shader.shader, uniforms, evenOdd)
 
 	for _, src := range srcs {
 		if src == nil {
@@ -576,8 +568,8 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 	defer backendsM.Unlock()
 
 	// In the tests, BeginFrame might not be called often and then images might not be disposed (#2292).
-	// To prevent memory leaks, resolve the deferred functions here.
-	resolveDeferred()
+	// To prevent memory leaks, flush the deferred functions here.
+	flushDeferred()
 
 	if i.backend == nil || i.backend.restorable == nil {
 		for i := range pixels {
@@ -746,9 +738,12 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path stri
 func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 	backendsM.Lock()
 
-	theTemporaryBytes.resetAtFrameEnd()
+	if err := restorable.ResolveStaleImages(graphicsDriver, true); err != nil {
+		return err
+	}
 
-	return restorable.ResolveStaleImages(graphicsDriver)
+	theTemporaryBytes.resetAtFrameEnd()
+	return nil
 }
 
 func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
@@ -781,7 +776,7 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 		return err
 	}
 
-	resolveDeferred()
+	flushDeferred()
 	if err := putImagesOnAtlas(graphicsDriver); err != nil {
 		return err
 	}
@@ -793,30 +788,4 @@ func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) (string, err
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	return restorable.DumpImages(graphicsDriver, dir)
-}
-
-func adjustDestinationPixel(x float32) float32 {
-	// Avoid the center of the pixel, which is problematic (#929, #1171).
-	// Instead, align the vertices with about 1/3 pixels.
-	//
-	// The intention here is roughly this code:
-	//
-	//     float32(math.Floor((float64(x)+1.0/6.0)*3) / 3)
-	//
-	// The actual implementation is more optimized than the above implementation.
-	ix := float32(int(x))
-	if x < 0 && x != ix {
-		ix -= 1
-	}
-	frac := x - ix
-	switch {
-	case frac < 3.0/16.0:
-		return ix
-	case frac < 8.0/16.0:
-		return ix + 5.0/16.0
-	case frac < 13.0/16.0:
-		return ix + 11.0/16.0
-	default:
-		return ix + 16.0/16.0
-	}
 }

@@ -1,0 +1,56 @@
+name: Bug Report
+description: Report a bug you've found.
+labels: bug
+body:
+- type: input
+  id: version_of_ebitengine
+  attributes:
+    label: Ebitengine Version
+  validations:
+    required: true
+- type: checkboxes
+  id: os
+  attributes:
+    label: Operating System
+    description: Which Operating System was the bug on?
+    options:
+      - label: Windows
+      - label: macOS
+      - label: Linux
+      - label: FreeBSD
+      - label: OpenBSD
+      - label: Android
+      - label: iOS
+      - label: Nintendo Switch
+      - label: Xbox
+      - label: Web Browsers
+  validations:
+    required: true
+- type: input
+  id: version_of_go
+  attributes:
+    label: Go Version (`go version`)
+  validations:
+    required: true
+- type: textarea
+  id: repro_steps
+  attributes:
+    label: What steps will reproduce the problem?
+  validations:
+    required: true
+- type: textarea
+  id: expected_result
+  attributes:
+    label: What is the expected result?
+  validations:
+    required: true
+- type: textarea
+  id: actual_result
+  attributes:
+    label: What happens instead?
+  validations:
+    required: true
+- type: textarea
+  id: additional
+  attributes:
+    label: Anything else you feel useful to add?

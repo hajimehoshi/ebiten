@@ -25,221 +25,65 @@ import (
 
 const numDescriptorsPerFrame = 32
 
-func operationToBlend(c graphicsdriver.Operation, alpha bool) _D3D12_BLEND {
-	switch c {
-	case graphicsdriver.Zero:
+func blendFactorToBlend(f graphicsdriver.BlendFactor, alpha bool) _D3D12_BLEND {
+	// D3D12_RENDER_TARGET_BLEND_DESC's *BlendAlpha members don't allow *_COLOR values.
+	// See https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_render_target_blend_desc.
+
+	switch f {
+	case graphicsdriver.BlendFactorZero:
 		return _D3D12_BLEND_ZERO
-	case graphicsdriver.One:
+	case graphicsdriver.BlendFactorOne:
 		return _D3D12_BLEND_ONE
-	case graphicsdriver.SrcAlpha:
+	case graphicsdriver.BlendFactorSourceColor:
+		if alpha {
+			return _D3D12_BLEND_SRC_ALPHA
+		}
+		return _D3D12_BLEND_SRC_COLOR
+	case graphicsdriver.BlendFactorOneMinusSourceColor:
+		if alpha {
+			return _D3D12_BLEND_INV_SRC_ALPHA
+		}
+		return _D3D12_BLEND_INV_SRC_COLOR
+	case graphicsdriver.BlendFactorSourceAlpha:
 		return _D3D12_BLEND_SRC_ALPHA
-	case graphicsdriver.DstAlpha:
-		return _D3D12_BLEND_DEST_ALPHA
-	case graphicsdriver.OneMinusSrcAlpha:
+	case graphicsdriver.BlendFactorOneMinusSourceAlpha:
 		return _D3D12_BLEND_INV_SRC_ALPHA
-	case graphicsdriver.OneMinusDstAlpha:
-		return _D3D12_BLEND_INV_DEST_ALPHA
-	case graphicsdriver.DstColor:
+	case graphicsdriver.BlendFactorDestinationColor:
 		if alpha {
 			return _D3D12_BLEND_DEST_ALPHA
 		}
 		return _D3D12_BLEND_DEST_COLOR
+	case graphicsdriver.BlendFactorOneMinusDestinationColor:
+		if alpha {
+			return _D3D12_BLEND_INV_DEST_ALPHA
+		}
+		return _D3D12_BLEND_INV_DEST_COLOR
+	case graphicsdriver.BlendFactorDestinationAlpha:
+		return _D3D12_BLEND_DEST_ALPHA
+	case graphicsdriver.BlendFactorOneMinusDestinationAlpha:
+		return _D3D12_BLEND_INV_DEST_ALPHA
+	case graphicsdriver.BlendFactorSourceAlphaSaturated:
+		return _D3D12_BLEND_SRC_ALPHA_SAT
 	default:
-		panic(fmt.Sprintf("directx: invalid operation: %d", c))
+		panic(fmt.Sprintf("directx: invalid blend factor: %d", f))
 	}
 }
 
-type builtinPipelineStatesKey struct {
-	useColorM     bool
-	compositeMode graphicsdriver.CompositeMode
-	filter        graphicsdriver.Filter
-	address       graphicsdriver.Address
-	stencilMode   stencilMode
-	screen        bool
-}
-
-func (k *builtinPipelineStatesKey) defs() ([]_D3D_SHADER_MACRO, error) {
-	var defs []_D3D_SHADER_MACRO
-	defval := []byte("1\x00")
-	if k.useColorM {
-		name := []byte("USE_COLOR_MATRIX\x00")
-		defs = append(defs, _D3D_SHADER_MACRO{&name[0], &defval[0]})
-	}
-
-	switch k.filter {
-	case graphicsdriver.FilterNearest:
-		name := []byte("FILTER_NEAREST\x00")
-		defs = append(defs, _D3D_SHADER_MACRO{&name[0], &defval[0]})
-	case graphicsdriver.FilterLinear:
-		name := []byte("FILTER_LINEAR\x00")
-		defs = append(defs, _D3D_SHADER_MACRO{&name[0], &defval[0]})
+func blendOperationToBlendOp(o graphicsdriver.BlendOperation) _D3D12_BLEND_OP {
+	switch o {
+	case graphicsdriver.BlendOperationAdd:
+		return _D3D12_BLEND_OP_ADD
+	case graphicsdriver.BlendOperationSubtract:
+		return _D3D12_BLEND_OP_SUBTRACT
+	case graphicsdriver.BlendOperationReverseSubtract:
+		return _D3D12_BLEND_OP_REV_SUBTRACT
 	default:
-		return nil, fmt.Errorf("directx: invalid filter: %d", k.filter)
+		panic(fmt.Sprintf("directx: invalid blend operation: %d", o))
 	}
-
-	switch k.address {
-	case graphicsdriver.AddressUnsafe:
-		name := []byte("ADDRESS_UNSAFE\x00")
-		defs = append(defs, _D3D_SHADER_MACRO{&name[0], &defval[0]})
-	case graphicsdriver.AddressClampToZero:
-		name := []byte("ADDRESS_CLAMP_TO_ZERO\x00")
-		defs = append(defs, _D3D_SHADER_MACRO{&name[0], &defval[0]})
-	case graphicsdriver.AddressRepeat:
-		name := []byte("ADDRESS_REPEAT\x00")
-		defs = append(defs, _D3D_SHADER_MACRO{&name[0], &defval[0]})
-	default:
-		return nil, fmt.Errorf("directx: invalid address: %d", k.address)
-	}
-
-	// Termination
-	defs = append(defs, _D3D_SHADER_MACRO{})
-
-	return defs, nil
-}
-
-func (k *builtinPipelineStatesKey) source() []byte {
-	return []byte(`struct PSInput {
-  float4 position : SV_POSITION;
-  float2 texcoord : TEXCOORD0;
-  float4 color : COLOR;
-};
-
-cbuffer ShaderParameter : register(b0) {
-  float2 viewport_size;
-  float2 source_size;
-  float4x4 color_matrix_body;
-  float4 color_matrix_translation;
-  float4 source_region;
-}
-
-PSInput VSMain(float2 position : POSITION, float2 tex : TEXCOORD, float4 color : COLOR) {
-  // In DirectX, the NDC's Y direction (upward) and the framebuffer's Y direction (downward) don't
-  // match. Then, the Y direction must be inverted.
-  float4x4 projectionMatrix = {
-    2.0 / viewport_size.x, 0, 0, -1,
-    0, -2.0 / viewport_size.y, 0, 1,
-    0, 0, 1, 0,
-    0, 0, 0, 1,
-  };
-
-  PSInput result;
-  result.position = mul(projectionMatrix, float4(position, 0, 1));
-  result.texcoord = tex;
-  result.color = float4(color.rgb, 1) * color.a;
-  return result;
-}
-
-Texture2D tex : register(t0);
-SamplerState samp : register(s0);
-
-float2 euclideanMod(float2 x, float2 y) {
-  // Assume that y is always positive.
-  return x - y * floor(x/y);
-}
-
-float2 adjustTexelByAddress(float2 p, float4 source_region) {
-#if defined(ADDRESS_CLAMP_TO_ZERO)
-  return p;
-#endif
-
-#if defined(ADDRESS_REPEAT)
-  float2 o = float2(source_region[0], source_region[1]);
-  float2 size = float2(source_region[2] - source_region[0], source_region[3] - source_region[1]);
-  return euclideanMod((p - o), size) + o;
-#endif
-
-#if defined(ADDRESS_UNSAFE)
-  return p;
-#endif
-}
-
-float4 PSMain(PSInput input) : SV_TARGET {
-#if defined(FILTER_NEAREST)
-# if defined(ADDRESS_UNSAFE)
-  float4 color = tex.Sample(samp, input.texcoord);
-# else
-  float4 color;
-  float2 pos = adjustTexelByAddress(input.texcoord, source_region);
-  if (source_region[0] <= pos.x &&
-      source_region[1] <= pos.y &&
-      pos.x < source_region[2] &&
-      pos.y < source_region[3]) {
-    color = tex.Sample(samp, pos);
-  } else {
-    color = float4(0, 0, 0, 0);
-  }
-# endif // defined(ADDRESS_UNSAFE)
-#endif // defined(FILTER_NEAREST)
-
-#if defined(FILTER_LINEAR)
-  float2 pos = input.texcoord;
-  float2 texel_size = 1.0 / source_size;
-
-  // Shift 1/512 [texel] to avoid the tie-breaking issue (#1212).
-  // As all the vertex positions are aligned to 1/16 [pixel], this shiting should work in most cases.
-  float2 p0 = pos - (texel_size) / 2.0 + (texel_size / 512.0);
-  float2 p1 = pos + (texel_size) / 2.0 + (texel_size / 512.0);
-
-# if !defined(ADDRESS_UNSAFE)
-  p0 = adjustTexelByAddress(p0, source_region);
-  p1 = adjustTexelByAddress(p1, source_region);
-# endif  // !defined(ADDRESS_UNSAFE)
-
-  float4 c0 = tex.Sample(samp, p0);
-  float4 c1 = tex.Sample(samp, float2(p1.x, p0.y));
-  float4 c2 = tex.Sample(samp, float2(p0.x, p1.y));
-  float4 c3 = tex.Sample(samp, p1);
-
-# if !defined(ADDRESS_UNSAFE)
-  if (p0.x < source_region[0]) {
-    c0 = float4(0, 0, 0, 0);
-    c2 = float4(0, 0, 0, 0);
-  }
-  if (p0.y < source_region[1]) {
-    c0 = float4(0, 0, 0, 0);
-    c1 = float4(0, 0, 0, 0);
-  }
-  if (source_region[2] <= p1.x) {
-    c1 = float4(0, 0, 0, 0);
-    c3 = float4(0, 0, 0, 0);
-  }
-  if (source_region[3] <= p1.y) {
-    c2 = float4(0, 0, 0, 0);
-    c3 = float4(0, 0, 0, 0);
-  }
-# endif  // !defined(ADDRESS_UNSAFE)
-
-  float2 rate = frac(p0 * source_size);
-  float4 color = lerp(lerp(c0, c1, rate.x), lerp(c2, c3, rate.x), rate.y);
-#endif // defined(FILTER_LINEAR)
-
-#if defined(USE_COLOR_MATRIX)
-  // Un-premultiply alpha.
-  // When the alpha is 0, 1.0 - sign(alpha) is 1.0, which means division does nothing.
-  color.rgb /= color.a + (1.0 - sign(color.a));
-  // Apply the color matrix or scale.
-  color = mul(color_matrix_body, color) + color_matrix_translation;
-  // Premultiply alpha
-  color.rgb *= color.a;
-  // Apply color scale.
-  color *= input.color;
-  // Clamp the output.
-  color.rgb = min(color.rgb, color.a);
-  return color;
-#else
-  return input.color * color;
-#endif // defined(USE_COLOR_MATRIX)
-
-}`)
 }
 
 type pipelineStates struct {
 	rootSignature *_ID3D12RootSignature
-
-	cache map[builtinPipelineStatesKey]*_ID3D12PipelineState
-
-	// builtinShaders is a set of the built-in vertex/pixel shaders that are never released.
-	builtinShaders []*_ID3DBlob
 
 	shaderDescriptorHeap *_ID3D12DescriptorHeap
 	shaderDescriptorSize uint32
@@ -300,35 +144,6 @@ func (p *pipelineStates) initialize(device *_ID3D12Device) (ferr error) {
 	}, h)
 
 	return nil
-}
-
-func (p *pipelineStates) builtinGraphicsPipelineState(device *_ID3D12Device, key builtinPipelineStatesKey) (*_ID3D12PipelineState, error) {
-	state, ok := p.cache[key]
-	if ok {
-		return state, nil
-	}
-
-	defs, err := key.defs()
-	if err != nil {
-		return nil, err
-	}
-
-	vsh, psh, err := newShader(key.source(), defs)
-	if err != nil {
-		return nil, err
-	}
-	// Keep the shaders. These are never released.
-	p.builtinShaders = append(p.builtinShaders, vsh, psh)
-
-	s, err := p.newPipelineState(device, vsh, psh, key.compositeMode, key.stencilMode, key.screen)
-	if err != nil {
-		return nil, err
-	}
-	if p.cache == nil {
-		p.cache = map[builtinPipelineStatesKey]*_ID3D12PipelineState{}
-	}
-	p.cache[key] = s
-	return s, nil
 }
 
 func (p *pipelineStates) useGraphicsPipelineState(device *_ID3D12Device, commandList *_ID3D12GraphicsCommandList, frameIndex int, pipelineState *_ID3D12PipelineState, srcs [graphics.ShaderImageCount]*Image, uniforms []float32) error {
@@ -554,7 +369,7 @@ func newShader(source []byte, defs []_D3D_SHADER_MACRO) (vsh, psh *_ID3DBlob, fe
 	return v, p, nil
 }
 
-func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3DBlob, compositeMode graphicsdriver.CompositeMode, stencilMode stencilMode, screen bool) (state *_ID3D12PipelineState, ferr error) {
+func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3DBlob, blend graphicsdriver.Blend, stencilMode stencilMode, screen bool) (state *_ID3D12PipelineState, ferr error) {
 	rootSignature, err := p.ensureRootSignature(device)
 	if err != nil {
 		return nil, err
@@ -609,7 +424,6 @@ func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3D
 	}
 
 	// Create a pipeline state.
-	srcOp, dstOp := compositeMode.Operations()
 	psoDesc := _D3D12_GRAPHICS_PIPELINE_STATE_DESC{
 		pRootSignature: rootSignature,
 		VS: _D3D12_SHADER_BYTECODE{
@@ -627,12 +441,12 @@ func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3D
 				{
 					BlendEnable:           1,
 					LogicOpEnable:         0,
-					SrcBlend:              operationToBlend(srcOp, false),
-					DestBlend:             operationToBlend(dstOp, false),
-					BlendOp:               _D3D12_BLEND_OP_ADD,
-					SrcBlendAlpha:         operationToBlend(srcOp, true),
-					DestBlendAlpha:        operationToBlend(dstOp, true),
-					BlendOpAlpha:          _D3D12_BLEND_OP_ADD,
+					SrcBlend:              blendFactorToBlend(blend.BlendFactorSourceRGB, false),
+					DestBlend:             blendFactorToBlend(blend.BlendFactorDestinationRGB, false),
+					BlendOp:               blendOperationToBlendOp(blend.BlendOperationRGB),
+					SrcBlendAlpha:         blendFactorToBlend(blend.BlendFactorSourceAlpha, true),
+					DestBlendAlpha:        blendFactorToBlend(blend.BlendFactorDestinationAlpha, true),
+					BlendOpAlpha:          blendOperationToBlendOp(blend.BlendOperationAlpha),
 					LogicOp:               _D3D12_LOGIC_OP_NOOP,
 					RenderTargetWriteMask: writeMask,
 				},

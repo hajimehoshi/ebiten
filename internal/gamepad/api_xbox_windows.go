@@ -26,6 +26,12 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+type handleError windows.Handle
+
+func (h handleError) Error() string {
+	return fmt.Sprintf("HANDLE(%d)", h)
+}
+
 var (
 	gameInput = windows.NewLazySystemDLL("GameInput.dll")
 
@@ -120,7 +126,7 @@ func _GameInputCreate() (*_IGameInput, error) {
 	var gameInput *_IGameInput
 	r, _, _ := procGameInputCreate.Call(uintptr(unsafe.Pointer(&gameInput)))
 	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("gamepad: GameInputCreate failed: HRESULT(%d)", uint32(r))
+		return nil, fmt.Errorf("gamepad: GameInputCreate failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return gameInput, nil
 }
@@ -162,7 +168,7 @@ func (i *_IGameInput) GetCurrentReading(inputKind _GameInputKind, device *_IGame
 		0, 0)
 	runtime.KeepAlive(device)
 	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("gamepad: IGameInput::GetCurrentReading failed: HRESULT(%d)", uint32(r))
+		return nil, fmt.Errorf("gamepad: IGameInput::GetCurrentReading failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return reading, nil
 }
@@ -181,7 +187,7 @@ func (i *_IGameInput) RegisterDeviceCallback(device *_IGameInputDevice,
 	runtime.KeepAlive(device)
 	runtime.KeepAlive(callbackToken)
 	if uint32(r) != uint32(windows.S_OK) {
-		return fmt.Errorf("gamepad: IGameInput::RegisterDeviceCallback failed: HRESULT(%d)", uint32(r))
+		return fmt.Errorf("gamepad: IGameInput::RegisterDeviceCallback failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return nil
 }

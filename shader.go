@@ -15,6 +15,10 @@
 package ebiten
 
 import (
+	"fmt"
+	"sync"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
@@ -50,4 +54,49 @@ func (s *Shader) Dispose() {
 
 func (s *Shader) convertUniforms(uniforms map[string]interface{}) [][]float32 {
 	return s.shader.ConvertUniforms(uniforms)
+}
+
+type builtinShaderKey struct {
+	filter    builtinshader.Filter
+	address   builtinshader.Address
+	useColorM bool
+}
+
+var (
+	builtinShaders  = map[builtinShaderKey]*Shader{}
+	builtinShadersM sync.Mutex
+)
+
+func builtinShader(filter builtinshader.Filter, address builtinshader.Address, useColorM bool) *Shader {
+	builtinShadersM.Lock()
+	defer builtinShadersM.Unlock()
+
+	key := builtinShaderKey{
+		filter:    filter,
+		address:   address,
+		useColorM: useColorM,
+	}
+	if s, ok := builtinShaders[key]; ok {
+		return s
+	}
+
+	var shader *Shader
+	if address == builtinshader.AddressUnsafe && !useColorM {
+		switch filter {
+		case builtinshader.FilterNearest:
+			shader = &Shader{shader: ui.NearestFilterShader}
+		case builtinshader.FilterLinear:
+			shader = &Shader{shader: ui.LinearFilterShader}
+		}
+	} else {
+		src := builtinshader.Shader(filter, address, useColorM)
+		s, err := NewShader(src)
+		if err != nil {
+			panic(fmt.Sprintf("ebiten: NewShader for a built-in shader failed: %v", err))
+		}
+		shader = s
+	}
+
+	builtinShaders[key] = shader
+	return shader
 }

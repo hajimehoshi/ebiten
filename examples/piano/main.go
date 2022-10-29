@@ -32,6 +32,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 var (
@@ -149,7 +150,7 @@ func init() {
 	for i, k := range whiteKeys {
 		x := i*keyWidth + 36
 		height := 112
-		ebitenutil.DrawRect(pianoImage, float64(x), float64(y), float64(keyWidth-1), float64(height), color.White)
+		vector.DrawFilledRect(pianoImage, float32(x), float32(y), float32(keyWidth-1), float32(height), color.White)
 		text.Draw(pianoImage, k, arcadeFont, x+8, y+height-8, color.Black)
 	}
 
@@ -160,7 +161,7 @@ func init() {
 		}
 		x := i*keyWidth + 24
 		height := 64
-		ebitenutil.DrawRect(pianoImage, float64(x), float64(y), float64(keyWidth-1), float64(height), color.Black)
+		vector.DrawFilledRect(pianoImage, float32(x), float32(y), float32(keyWidth-1), float32(height), color.Black)
 		text.Draw(pianoImage, k, arcadeFont, x+8, y+height-8, color.White)
 	}
 }

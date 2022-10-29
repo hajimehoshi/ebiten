@@ -51,9 +51,6 @@ var (
 
 	//go:embed water.go
 	water_go []byte
-
-	//go:embed crt.go
-	crt_go []byte
 )
 
 const (
@@ -109,7 +106,6 @@ var shaderSrcs = [][]byte{
 	chromaticaberration_go,
 	dissolve_go,
 	water_go,
-	crt_go,
 }
 
 type Game struct {

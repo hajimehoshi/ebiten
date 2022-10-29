@@ -19,7 +19,6 @@ import (
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
@@ -114,12 +113,6 @@ func init() {
 	}
 }
 
-type programKey struct {
-	useColorM bool
-	filter    graphicsdriver.Filter
-	address   graphicsdriver.Address
-}
-
 // openGLState is a state for
 type openGLState struct {
 	// arrayBuffer is OpenGL's array buffer (vertices data).
@@ -127,9 +120,6 @@ type openGLState struct {
 
 	// elementArrayBuffer is OpenGL's element array buffer (indices data).
 	elementArrayBuffer buffer
-
-	// programs is OpenGL's program for rendering a texture.
-	programs map[programKey]program
 
 	lastProgram       program
 	lastUniforms      map[string][]float32
@@ -153,18 +143,6 @@ func (s *openGLState) reset(context *context) error {
 		delete(s.lastUniforms, key)
 	}
 
-	// When context lost happens, deleting programs or buffers is not necessary.
-	// However, it is not assumed that reset is called only when context lost happens.
-	// Let's delete them explicitly.
-	if s.programs == nil {
-		s.programs = map[programKey]program{}
-	} else {
-		for k, p := range s.programs {
-			context.deleteProgram(p)
-			delete(s.programs, k)
-		}
-	}
-
 	// On browsers (at least Chrome), buffers are already detached from the context
 	// and must not be deleted by DeleteBuffer.
 	if runtime.GOOS != "js" {
@@ -173,46 +151,6 @@ func (s *openGLState) reset(context *context) error {
 		}
 		if !s.elementArrayBuffer.equal(zeroBuffer) {
 			context.deleteBuffer(s.elementArrayBuffer)
-		}
-	}
-
-	shaderVertexModelviewNative, err := context.newVertexShader(vertexShaderStr())
-	if err != nil {
-		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
-	}
-	defer context.deleteShader(shaderVertexModelviewNative)
-
-	for _, c := range []bool{false, true} {
-		for _, a := range []graphicsdriver.Address{
-			graphicsdriver.AddressClampToZero,
-			graphicsdriver.AddressRepeat,
-			graphicsdriver.AddressUnsafe,
-		} {
-			for _, f := range []graphicsdriver.Filter{
-				graphicsdriver.FilterNearest,
-				graphicsdriver.FilterLinear,
-			} {
-				shaderFragmentColorMatrixNative, err := context.newFragmentShader(fragmentShaderStr(c, f, a))
-				if err != nil {
-					panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
-				}
-				defer context.deleteShader(shaderFragmentColorMatrixNative)
-
-				program, err := context.newProgram([]shader{
-					shaderVertexModelviewNative,
-					shaderFragmentColorMatrixNative,
-				}, theArrayBufferLayout.names())
-
-				if err != nil {
-					return err
-				}
-
-				s.programs[programKey{
-					useColorM: c,
-					filter:    f,
-					address:   a,
-				}] = program
-			}
 		}
 	}
 

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package gles implements Go bindings to OpenGL ES.
 package gles
 
 type Context interface {
@@ -22,7 +23,8 @@ type Context interface {
 	BindFramebuffer(target uint32, framebuffer uint32)
 	BindRenderbuffer(target uint32, renderbuffer uint32)
 	BindTexture(target uint32, texture uint32)
-	BlendFunc(sfactor uint32, dfactor uint32)
+	BlendEquationSeparate(modeRGB uint32, modeAlpha uint32)
+	BlendFuncSeparate(srcRGB uint32, dstRGB uint32, srcAlpha uint32, dstAlpha uint32)
 	BufferData(target uint32, size int, data []byte, usage uint32)
 	BufferSubData(target uint32, offset int, data []byte)
 	CheckFramebufferStatus(target uint32) uint32

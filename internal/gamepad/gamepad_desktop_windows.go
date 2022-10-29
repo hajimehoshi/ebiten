@@ -202,7 +202,7 @@ func (g *nativeGamepadsDesktop) directInput8Create(hinst uintptr, dwVersion uint
 		hinst, uintptr(dwVersion), uintptr(unsafe.Pointer(riidltf)), uintptr(unsafe.Pointer(ppvOut)), uintptr(punkOuter),
 		0)
 	if uint32(r) != _DI_OK {
-		return fmt.Errorf("gamepad: DirectInput8Create failed: %w", directInputError(r))
+		return fmt.Errorf("gamepad: DirectInput8Create failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return nil
 }
@@ -601,25 +601,25 @@ func (g *nativeGamepadDesktop) update(gamepads *gamepads) (err error) {
 
 	if g.usesDInput() {
 		if err := g.dinputDevice.Poll(); err != nil {
-			if !errors.Is(err, directInputError(_DIERR_NOTACQUIRED)) && !errors.Is(err, directInputError(_DIERR_INPUTLOST)) {
+			if !errors.Is(err, handleError(_DIERR_NOTACQUIRED)) && !errors.Is(err, handleError(_DIERR_INPUTLOST)) {
 				return err
 			}
 		}
 
 		var state _DIJOYSTATE
 		if err := g.dinputDevice.GetDeviceState(uint32(unsafe.Sizeof(state)), unsafe.Pointer(&state)); err != nil {
-			if !errors.Is(err, directInputError(_DIERR_NOTACQUIRED)) && !errors.Is(err, directInputError(_DIERR_INPUTLOST)) {
+			if !errors.Is(err, handleError(_DIERR_NOTACQUIRED)) && !errors.Is(err, handleError(_DIERR_INPUTLOST)) {
 				return err
 			}
 			// Acquire can return an error just after a gamepad is disconnected. Ignore the error.
 			_ = g.dinputDevice.Acquire()
 			if err := g.dinputDevice.Poll(); err != nil {
-				if !errors.Is(err, directInputError(_DIERR_NOTACQUIRED)) && !errors.Is(err, directInputError(_DIERR_INPUTLOST)) {
+				if !errors.Is(err, handleError(_DIERR_NOTACQUIRED)) && !errors.Is(err, handleError(_DIERR_INPUTLOST)) {
 					return err
 				}
 			}
 			if err := g.dinputDevice.GetDeviceState(uint32(unsafe.Sizeof(state)), unsafe.Pointer(&state)); err != nil {
-				if !errors.Is(err, directInputError(_DIERR_NOTACQUIRED)) && !errors.Is(err, directInputError(_DIERR_INPUTLOST)) {
+				if !errors.Is(err, handleError(_DIERR_NOTACQUIRED)) && !errors.Is(err, handleError(_DIERR_INPUTLOST)) {
 					return err
 				}
 				disconnected = true

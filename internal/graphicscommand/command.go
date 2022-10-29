@@ -19,7 +19,6 @@ import (
 	"math"
 	"strings"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -90,7 +89,7 @@ func mustUseDifferentVertexBuffer(nextNumVertexFloats, nextNumIndices int) bool 
 }
 
 // EnqueueDrawTrianglesCommand enqueues a drawing-image command.
-func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, color affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
+func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
 	if len(indices) > graphics.IndicesCount {
 		panic(fmt.Sprintf("graphicscommand: len(indices) must be <= graphics.IndicesCount but not at EnqueueDrawTrianglesCommand: len(indices): %d, graphics.IndicesCount: %d", len(indices), graphics.IndicesCount))
 	}
@@ -124,7 +123,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	// TODO: If dst is the screen, reorder the command to be the last.
 	if !split && 0 < len(q.commands) {
 		if last, ok := q.commands[len(q.commands)-1].(*drawTrianglesCommand); ok {
-			if last.CanMergeWithDrawTrianglesCommand(dst, srcs, vertices, color, mode, filter, address, dstRegion, srcRegion, shader, uniforms, evenOdd) {
+			if last.CanMergeWithDrawTrianglesCommand(dst, srcs, vertices, blend, dstRegion, srcRegion, shader, uniforms, evenOdd) {
 				last.setVertices(q.lastVertices(len(vertices) + last.numVertices()))
 				last.addNumIndices(len(indices))
 				return
@@ -138,10 +137,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	c.offsets = offsets
 	c.vertices = q.lastVertices(len(vertices))
 	c.nindices = len(indices)
-	c.color = color
-	c.mode = mode
-	c.filter = filter
-	c.address = address
+	c.blend = blend
 	c.dstRegion = dstRegion
 	c.srcRegion = srcRegion
 	c.shader = shader
@@ -163,16 +159,17 @@ func (q *commandQueue) Enqueue(command command) {
 }
 
 // Flush flushes the command queue.
-func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics) (err error) {
+func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bool) (err error) {
 	runOnRenderingThread(func() {
-		err = q.flush(graphicsDriver)
+		err = q.flush(graphicsDriver, endFrame)
 	})
 	return
 }
 
 // flush must be called the main thread.
-func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
-	if len(q.commands) == 0 {
+func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bool) (err error) {
+	// If endFrame is true, Begin/End should be called to ensure the framebuffer is swapped.
+	if len(q.commands) == 0 && !endFrame {
 		return nil
 	}
 
@@ -183,7 +180,29 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
 	if err := graphicsDriver.Begin(); err != nil {
 		return err
 	}
-	var present bool
+
+	defer func() {
+		// Call End even if an error causes, or the graphics driver's state might be stale (#2388).
+		if err1 := graphicsDriver.End(endFrame); err1 != nil && err == nil {
+			err = err1
+		}
+
+		// Release the commands explicitly (#1803).
+		// Apparently, the part of a slice between len and cap-1 still holds references.
+		// Then, resetting the length by [:0] doesn't release the references.
+		for i, c := range q.commands {
+			if c, ok := c.(*drawTrianglesCommand); ok {
+				q.drawTrianglesCommandPool.put(c)
+			}
+			q.commands[i] = nil
+		}
+		q.commands = q.commands[:0]
+		q.vertices = q.vertices[:0]
+		q.indices = q.indices[:0]
+		q.tmpNumVertexFloats = 0
+		q.tmpNumIndices = 0
+	}()
+
 	cs := q.commands
 	for len(cs) > 0 {
 		nv := 0
@@ -199,9 +218,6 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
 				}
 				nv += dtc.numVertices()
 				ne += dtc.numIndices()
-				if dtc.dst.screen {
-					present = true
-				}
 			}
 			nc++
 		}
@@ -227,30 +243,21 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
 		}
 		cs = cs[nc:]
 	}
-	if err := graphicsDriver.End(present); err != nil {
-		return err
-	}
 
-	// Release the commands explicitly (#1803).
-	// Apparently, the part of a slice between len and cap-1 still holds references.
-	// Then, resetting the length by [:0] doesn't release the references.
-	for i, c := range q.commands {
-		if c, ok := c.(*drawTrianglesCommand); ok {
-			q.drawTrianglesCommandPool.put(c)
-		}
-		q.commands[i] = nil
-	}
-	q.commands = q.commands[:0]
-	q.vertices = q.vertices[:0]
-	q.indices = q.indices[:0]
-	q.tmpNumVertexFloats = 0
-	q.tmpNumIndices = 0
 	return nil
 }
 
-// FlushCommands flushes the command queue.
-func FlushCommands(graphicsDriver graphicsdriver.Graphics) error {
-	return theCommandQueue.Flush(graphicsDriver)
+// FlushCommands flushes the command queue and present the screen if needed.
+// If endFrame is true, the current screen might be used to present.
+func FlushCommands(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
+	// Flush image buffers only when the frame ends.
+	// Flushing them in tests might cause test flakiness on browsers (#2391).
+	// TODO: Investigate why.
+	if endFrame {
+		flushImageBuffers()
+	}
+
+	return theCommandQueue.Flush(graphicsDriver, endFrame)
 }
 
 // drawTrianglesCommand represents a drawing command to draw an image on another image.
@@ -260,10 +267,7 @@ type drawTrianglesCommand struct {
 	offsets   [graphics.ShaderImageCount - 1][2]float32
 	vertices  []float32
 	nindices  int
-	color     affine.ColorM
-	mode      graphicsdriver.CompositeMode
-	filter    graphicsdriver.Filter
-	address   graphicsdriver.Address
+	blend     graphicsdriver.Blend
 	dstRegion graphicsdriver.Region
 	srcRegion graphicsdriver.Region
 	shader    *Shader
@@ -272,70 +276,18 @@ type drawTrianglesCommand struct {
 }
 
 func (c *drawTrianglesCommand) String() string {
-	mode := ""
-	switch c.mode {
-	case graphicsdriver.CompositeModeSourceOver:
-		mode = "source-over"
-	case graphicsdriver.CompositeModeClear:
-		mode = "clear"
-	case graphicsdriver.CompositeModeCopy:
-		mode = "copy"
-	case graphicsdriver.CompositeModeDestination:
-		mode = "destination"
-	case graphicsdriver.CompositeModeDestinationOver:
-		mode = "destination-over"
-	case graphicsdriver.CompositeModeSourceIn:
-		mode = "source-in"
-	case graphicsdriver.CompositeModeDestinationIn:
-		mode = "destination-in"
-	case graphicsdriver.CompositeModeSourceOut:
-		mode = "source-out"
-	case graphicsdriver.CompositeModeDestinationOut:
-		mode = "destination-out"
-	case graphicsdriver.CompositeModeSourceAtop:
-		mode = "source-atop"
-	case graphicsdriver.CompositeModeDestinationAtop:
-		mode = "destination-atop"
-	case graphicsdriver.CompositeModeXor:
-		mode = "xor"
-	case graphicsdriver.CompositeModeLighter:
-		mode = "lighter"
-	case graphicsdriver.CompositeModeMultiply:
-		mode = "multiply"
-	default:
-		panic(fmt.Sprintf("graphicscommand: invalid composite mode: %d", c.mode))
-	}
+	// TODO: Improve readability
+	blend := fmt.Sprintf("{src-color: %d, src-alpha:  %d, dst-color: %d, dst-alpha: %d, op-color: %d, op-alpha: %d}",
+		c.blend.BlendFactorSourceRGB,
+		c.blend.BlendFactorSourceAlpha,
+		c.blend.BlendFactorDestinationRGB,
+		c.blend.BlendFactorDestinationAlpha,
+		c.blend.BlendOperationRGB,
+		c.blend.BlendOperationAlpha)
 
 	dst := fmt.Sprintf("%d", c.dst.id)
 	if c.dst.screen {
 		dst += " (screen)"
-	}
-
-	shader := "default shader"
-	if c.shader != nil {
-		shader = "custom shader"
-	}
-
-	filter := ""
-	switch c.filter {
-	case graphicsdriver.FilterNearest:
-		filter = "nearest"
-	case graphicsdriver.FilterLinear:
-		filter = "linear"
-	default:
-		panic(fmt.Sprintf("graphicscommand: invalid filter: %d", c.filter))
-	}
-
-	address := ""
-	switch c.address {
-	case graphicsdriver.AddressClampToZero:
-		address = "clamp_to_zero"
-	case graphicsdriver.AddressRepeat:
-		address = "repeat"
-	case graphicsdriver.AddressUnsafe:
-		address = "unsafe"
-	default:
-		panic(fmt.Sprintf("graphicscommand: invalid address: %d", c.address))
 	}
 
 	var srcstrs [graphics.ShaderImageCount]string
@@ -352,7 +304,7 @@ func (c *drawTrianglesCommand) String() string {
 
 	r := fmt.Sprintf("(x:%d, y:%d, width:%d, height:%d)",
 		int(c.dstRegion.X), int(c.dstRegion.Y), int(c.dstRegion.Width), int(c.dstRegion.Height))
-	return fmt.Sprintf("draw-triangles: dst: %s <- src: [%s], %s, dst region: %s, num of indices: %d, colorm: %s, mode: %s, filter: %s, address: %s, even-odd: %t", dst, strings.Join(srcstrs[:], ", "), shader, r, c.nindices, c.color, mode, filter, address, c.evenOdd)
+	return fmt.Sprintf("draw-triangles: dst: %s <- src: [%s], dst region: %s, num of indices: %d, blend: %s, even-odd: %t", dst, strings.Join(srcstrs[:], ", "), r, c.nindices, blend, c.evenOdd)
 }
 
 // Exec executes the drawTrianglesCommand.
@@ -362,22 +314,16 @@ func (c *drawTrianglesCommand) Exec(graphicsDriver graphicsdriver.Graphics, inde
 		return nil
 	}
 
-	var shaderID graphicsdriver.ShaderID = graphicsdriver.InvalidShaderID
 	var imgs [graphics.ShaderImageCount]graphicsdriver.ImageID
-	if c.shader != nil {
-		shaderID = c.shader.shader.ID()
-		for i, src := range c.srcs {
-			if src == nil {
-				imgs[i] = graphicsdriver.InvalidImageID
-				continue
-			}
-			imgs[i] = src.image.ID()
+	for i, src := range c.srcs {
+		if src == nil {
+			imgs[i] = graphicsdriver.InvalidImageID
+			continue
 		}
-	} else {
-		imgs[0] = c.srcs[0].image.ID()
+		imgs[i] = src.image.ID()
 	}
 
-	return graphicsDriver.DrawTriangles(c.dst.image.ID(), imgs, c.offsets, shaderID, c.nindices, indexOffset, c.mode, c.color, c.filter, c.address, c.dstRegion, c.srcRegion, c.uniforms, c.evenOdd)
+	return graphicsDriver.DrawTriangles(c.dst.image.ID(), imgs, c.offsets, c.shader.shader.ID(), c.nindices, indexOffset, c.blend, c.dstRegion, c.srcRegion, c.uniforms, c.evenOdd)
 }
 
 func (c *drawTrianglesCommand) numVertices() int {
@@ -398,22 +344,20 @@ func (c *drawTrianglesCommand) addNumIndices(n int) {
 
 // CanMergeWithDrawTrianglesCommand returns a boolean value indicating whether the other drawTrianglesCommand can be merged
 // with the drawTrianglesCommand c.
-func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, vertices []float32, color affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) bool {
+func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, vertices []float32, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) bool {
 	if c.shader != shader {
 		return false
 	}
-	if c.shader != nil {
-		if len(c.uniforms) != len(uniforms) {
+	if len(c.uniforms) != len(uniforms) {
+		return false
+	}
+	for i := range c.uniforms {
+		if len(c.uniforms[i]) != len(uniforms[i]) {
 			return false
 		}
-		for i := range c.uniforms {
-			if len(c.uniforms[i]) != len(uniforms[i]) {
+		for j := range c.uniforms[i] {
+			if c.uniforms[i][j] != uniforms[i][j] {
 				return false
-			}
-			for j := range c.uniforms[i] {
-				if c.uniforms[i][j] != uniforms[i][j] {
-					return false
-				}
 			}
 		}
 	}
@@ -423,16 +367,7 @@ func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs
 	if c.srcs != srcs {
 		return false
 	}
-	if !c.color.Equals(color) {
-		return false
-	}
-	if c.mode != mode {
-		return false
-	}
-	if c.filter != filter {
-		return false
-	}
-	if c.address != address {
+	if c.blend != blend {
 		return false
 	}
 	if c.dstRegion != dstRegion {

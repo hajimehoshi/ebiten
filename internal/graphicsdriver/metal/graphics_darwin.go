@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"math"
 	"sort"
-	"strings"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
@@ -29,230 +28,9 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
-const source = `#include <metal_stdlib>
-
-#define FILTER_NEAREST {{.FilterNearest}}
-#define FILTER_LINEAR {{.FilterLinear}}
-
-#define ADDRESS_CLAMP_TO_ZERO {{.AddressClampToZero}}
-#define ADDRESS_REPEAT {{.AddressRepeat}}
-#define ADDRESS_UNSAFE {{.AddressUnsafe}}
-
-using namespace metal;
-
-struct VertexIn {
-  float2 position;
-  float2 tex;
-  float4 color;
-};
-
-struct VertexOut {
-  float4 position [[position]];
-  float2 tex;
-  float4 color;
-};
-
-vertex VertexOut VertexShader(
-  uint vid [[vertex_id]],
-  const device VertexIn* vertices [[buffer(0)]],
-  constant float2& viewport_size [[buffer(1)]]
-) {
-  // In Metal, the NDC's Y direction (upward) and the framebuffer's Y direction (downward) don't
-  // match. Then, the Y direction must be inverted.
-  float4x4 projectionMatrix = float4x4(
-    float4(2.0 / viewport_size.x, 0, 0, 0),
-    float4(0, -2.0 / viewport_size.y, 0, 0),
-    float4(0, 0, 1, 0),
-    float4(-1, 1, 0, 1)
-  );
-
-  VertexIn in = vertices[vid];
-  VertexOut out = {
-    .position = projectionMatrix * float4(in.position, 0, 1),
-    .tex = in.tex,
-    // Fragment shader wants premultiplied alpha.
-    .color = float4(in.color.rgb, 1) * in.color.a,
-  };
-
-  return out;
-}
-
-float2 EuclideanMod(float2 x, float2 y) {
-  // Assume that y is always positive.
-  return x - y * floor(x/y);
-}
-
-template<uint8_t address>
-float2 AdjustTexelByAddress(float2 p, float4 source_region);
-
-template<>
-inline float2 AdjustTexelByAddress<ADDRESS_CLAMP_TO_ZERO>(float2 p, float4 source_region) {
-  return p;
-}
-
-template<>
-inline float2 AdjustTexelByAddress<ADDRESS_REPEAT>(float2 p, float4 source_region) {
-  float2 o = float2(source_region[0], source_region[1]);
-  float2 size = float2(source_region[2] - source_region[0], source_region[3] - source_region[1]);
-  return EuclideanMod((p - o), size) + o;
-}
-
-template<uint8_t filter, uint8_t address>
-struct ColorFromTexel;
-
-constexpr sampler texture_sampler{filter::nearest};
-
-template<>
-struct ColorFromTexel<FILTER_NEAREST, ADDRESS_UNSAFE> {
-  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, constant float4& source_region) {
-    float2 p = v.tex;
-    return texture.sample(texture_sampler, p);
-  }
-};
-
-template<uint8_t address>
-struct ColorFromTexel<FILTER_NEAREST, address> {
-  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, constant float4& source_region) {
-    float2 p = AdjustTexelByAddress<address>(v.tex, source_region);
-    if (source_region[0] <= p.x &&
-        source_region[1] <= p.y &&
-        p.x < source_region[2] &&
-        p.y < source_region[3]) {
-      return texture.sample(texture_sampler, p);
-    }
-    return 0.0;
-  }
-};
-
-template<>
-struct ColorFromTexel<FILTER_LINEAR, ADDRESS_UNSAFE> {
-  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, constant float4& source_region) {
-    const float2 texel_size = 1 / source_size;
-
-    // Shift 1/512 [texel] to avoid the tie-breaking issue (#1212).
-    // As all the vertex positions are aligned to 1/16 [pixel], this shiting should work in most cases.
-    float2 p0 = v.tex - texel_size / 2.0 + (texel_size / 512.0);
-    float2 p1 = v.tex + texel_size / 2.0 + (texel_size / 512.0);
-
-    float4 c0 = texture.sample(texture_sampler, p0);
-    float4 c1 = texture.sample(texture_sampler, float2(p1.x, p0.y));
-    float4 c2 = texture.sample(texture_sampler, float2(p0.x, p1.y));
-    float4 c3 = texture.sample(texture_sampler, p1);
-
-    float2 rate = fract(p0 * source_size);
-    return mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
-  }
-};
-
-template<uint8_t address>
-struct ColorFromTexel<FILTER_LINEAR, address> {
-  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, constant float4& source_region) {
-    const float2 texel_size = 1 / source_size;
-
-    // Shift 1/512 [texel] to avoid the tie-breaking issue (#1212).
-    // As all the vertex positions are aligned to 1/16 [pixel], this shiting should work in most cases.
-    float2 p0 = v.tex - texel_size / 2.0 + (texel_size / 512.0);
-    float2 p1 = v.tex + texel_size / 2.0 + (texel_size / 512.0);
-    p0 = AdjustTexelByAddress<address>(p0, source_region);
-    p1 = AdjustTexelByAddress<address>(p1, source_region);
-
-    float4 c0 = texture.sample(texture_sampler, p0);
-    float4 c1 = texture.sample(texture_sampler, float2(p1.x, p0.y));
-    float4 c2 = texture.sample(texture_sampler, float2(p0.x, p1.y));
-    float4 c3 = texture.sample(texture_sampler, p1);
-
-    if (p0.x < source_region[0]) {
-      c0 = 0;
-      c2 = 0;
-    }
-    if (p0.y < source_region[1]) {
-      c0 = 0;
-      c1 = 0;
-    }
-    if (source_region[2] <= p1.x) {
-      c1 = 0;
-      c3 = 0;
-    }
-    if (source_region[3] <= p1.y) {
-      c2 = 0;
-      c3 = 0;
-    }
-
-    float2 rate = fract(p0 * source_size);
-    return mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
-  }
-};
-
-template<bool useColorM, uint8_t filter, uint8_t address>
-struct FragmentShaderImpl {
-  inline float4 Do(
-      VertexOut v,
-      texture2d<float> texture,
-      constant float2& source_size,
-      constant float4x4& color_matrix_body,
-      constant float4& color_matrix_translation,
-      constant float4& source_region) {
-    float4 c = ColorFromTexel<filter, address>().Do(v, texture, source_size, source_region);
-    if (useColorM) {
-      c.rgb /= c.a + (1.0 - sign(c.a));
-      c = (color_matrix_body * c) + color_matrix_translation;
-      c.rgb *= c.a;
-      c *= v.color;
-      c.rgb = min(c.rgb, c.a);
-    } else {
-      c *= v.color;
-    }
-    return c;
-  }
-};
-
-// Define Foo and FooCp macros to force macro replacement.
-// See "6.10.3.1 Argument substitution" in ISO/IEC 9899.
-
-#define FragmentShaderFunc(useColorM, filter, address) \
-  FragmentShaderFuncCp(useColorM, filter, address)
-
-#define FragmentShaderFuncCp(useColorM, filter, address) \
-  fragment float4 FragmentShader_##useColorM##_##filter##_##address( \
-      VertexOut v [[stage_in]], \
-      texture2d<float> texture [[texture(0)]], \
-      constant float2& source_size [[buffer(2)]], \
-      constant float4x4& color_matrix_body [[buffer(3)]], \
-      constant float4& color_matrix_translation [[buffer(4)]], \
-      constant float4& source_region [[buffer(5)]]) { \
-    return FragmentShaderImpl<useColorM, filter, address>().Do( \
-        v, texture, source_size, color_matrix_body, color_matrix_translation, source_region); \
-  }
-
-FragmentShaderFunc(0, FILTER_NEAREST, ADDRESS_CLAMP_TO_ZERO)
-FragmentShaderFunc(0, FILTER_LINEAR, ADDRESS_CLAMP_TO_ZERO)
-FragmentShaderFunc(0, FILTER_NEAREST, ADDRESS_REPEAT)
-FragmentShaderFunc(0, FILTER_LINEAR, ADDRESS_REPEAT)
-FragmentShaderFunc(0, FILTER_NEAREST, ADDRESS_UNSAFE)
-FragmentShaderFunc(0, FILTER_LINEAR, ADDRESS_UNSAFE)
-FragmentShaderFunc(1, FILTER_NEAREST, ADDRESS_CLAMP_TO_ZERO)
-FragmentShaderFunc(1, FILTER_LINEAR, ADDRESS_CLAMP_TO_ZERO)
-FragmentShaderFunc(1, FILTER_NEAREST, ADDRESS_REPEAT)
-FragmentShaderFunc(1, FILTER_LINEAR, ADDRESS_REPEAT)
-FragmentShaderFunc(1, FILTER_NEAREST, ADDRESS_UNSAFE)
-FragmentShaderFunc(1, FILTER_LINEAR, ADDRESS_UNSAFE)
-
-#undef FragmentShaderFuncName
-`
-
-type rpsKey struct {
-	useColorM     bool
-	filter        graphicsdriver.Filter
-	address       graphicsdriver.Address
-	compositeMode graphicsdriver.CompositeMode
-	stencilMode   stencilMode
-	screen        bool
-}
-
 type Graphics struct {
 	view view
 
-	rpss map[rpsKey]mtl.RenderPipelineState
 	cq   mtl.CommandQueue
 	cb   mtl.CommandBuffer
 	rce  mtl.RenderCommandEncoder
@@ -421,10 +199,14 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) error {
 }
 
 func (g *Graphics) flushIfNeeded(present bool) {
-	if g.cb == (mtl.CommandBuffer{}) {
+	if g.cb == (mtl.CommandBuffer{}) && !present {
 		return
 	}
 	g.flushRenderCommandEncoderIfNeeded()
+
+	if present && g.screenDrawable == (ca.MetalDrawable{}) {
+		g.screenDrawable = g.view.nextDrawable()
+	}
 
 	if !g.view.presentsWithTransaction() && present && g.screenDrawable != (ca.MetalDrawable{}) {
 		g.cb.PresentDrawable(g.screenDrawable)
@@ -522,35 +304,51 @@ func (g *Graphics) SetTransparent(transparent bool) {
 	g.transparent = transparent
 }
 
-func operationToBlendFactor(c graphicsdriver.Operation) mtl.BlendFactor {
+func blendFactorToMetalBlendFactor(c graphicsdriver.BlendFactor) mtl.BlendFactor {
 	switch c {
-	case graphicsdriver.Zero:
+	case graphicsdriver.BlendFactorZero:
 		return mtl.BlendFactorZero
-	case graphicsdriver.One:
+	case graphicsdriver.BlendFactorOne:
 		return mtl.BlendFactorOne
-	case graphicsdriver.SrcAlpha:
+	case graphicsdriver.BlendFactorSourceColor:
+		return mtl.BlendFactorSourceColor
+	case graphicsdriver.BlendFactorOneMinusSourceColor:
+		return mtl.BlendFactorOneMinusSourceColor
+	case graphicsdriver.BlendFactorSourceAlpha:
 		return mtl.BlendFactorSourceAlpha
-	case graphicsdriver.DstAlpha:
-		return mtl.BlendFactorDestinationAlpha
-	case graphicsdriver.OneMinusSrcAlpha:
+	case graphicsdriver.BlendFactorOneMinusSourceAlpha:
 		return mtl.BlendFactorOneMinusSourceAlpha
-	case graphicsdriver.OneMinusDstAlpha:
-		return mtl.BlendFactorOneMinusDestinationAlpha
-	case graphicsdriver.DstColor:
+	case graphicsdriver.BlendFactorDestinationColor:
 		return mtl.BlendFactorDestinationColor
+	case graphicsdriver.BlendFactorOneMinusDestinationColor:
+		return mtl.BlendFactorOneMinusDestinationColor
+	case graphicsdriver.BlendFactorDestinationAlpha:
+		return mtl.BlendFactorDestinationAlpha
+	case graphicsdriver.BlendFactorOneMinusDestinationAlpha:
+		return mtl.BlendFactorOneMinusDestinationAlpha
+	case graphicsdriver.BlendFactorSourceAlphaSaturated:
+		return mtl.BlendFactorSourceAlphaSaturated
 	default:
-		panic(fmt.Sprintf("metal: invalid operation: %d", c))
+		panic(fmt.Sprintf("metal: invalid blend factor: %d", c))
+	}
+}
+
+func blendOperationToMetalBlendOperation(o graphicsdriver.BlendOperation) mtl.BlendOperation {
+	switch o {
+	case graphicsdriver.BlendOperationAdd:
+		return mtl.BlendOperationAdd
+	case graphicsdriver.BlendOperationSubtract:
+		return mtl.BlendOperationSubtract
+	case graphicsdriver.BlendOperationReverseSubtract:
+		return mtl.BlendOperationReverseSubtract
+	default:
+		panic(fmt.Sprintf("metal: invalid blend operation: %d", o))
 	}
 }
 
 func (g *Graphics) Initialize() error {
 	// Creating *State objects are expensive and reuse them whenever possible.
 	// See https://developer.apple.com/library/archive/documentation/Miscellaneous/Conceptual/MetalProgrammingGuide/Cmd-Submiss/Cmd-Submiss.html
-
-	// TODO: Release existing rpss
-	if g.rpss == nil {
-		g.rpss = map[rpsKey]mtl.RenderPipelineState{}
-	}
 
 	for _, dss := range g.dsss {
 		dss.Release()
@@ -564,96 +362,6 @@ func (g *Graphics) Initialize() error {
 	}
 	if g.transparent {
 		g.view.ml.SetOpaque(false)
-	}
-
-	replaces := map[string]string{
-		"{{.FilterNearest}}":      fmt.Sprintf("%d", graphicsdriver.FilterNearest),
-		"{{.FilterLinear}}":       fmt.Sprintf("%d", graphicsdriver.FilterLinear),
-		"{{.AddressClampToZero}}": fmt.Sprintf("%d", graphicsdriver.AddressClampToZero),
-		"{{.AddressRepeat}}":      fmt.Sprintf("%d", graphicsdriver.AddressRepeat),
-		"{{.AddressUnsafe}}":      fmt.Sprintf("%d", graphicsdriver.AddressUnsafe),
-	}
-	src := source
-	for k, v := range replaces {
-		src = strings.Replace(src, k, v, -1)
-	}
-
-	lib, err := g.view.getMTLDevice().MakeLibrary(src, mtl.CompileOptions{})
-	if err != nil {
-		return err
-	}
-	vs, err := lib.MakeFunction("VertexShader")
-	if err != nil {
-		return err
-	}
-
-	for _, screen := range []bool{false, true} {
-		for _, cm := range []bool{false, true} {
-			for _, a := range []graphicsdriver.Address{
-				graphicsdriver.AddressClampToZero,
-				graphicsdriver.AddressRepeat,
-				graphicsdriver.AddressUnsafe,
-			} {
-				for _, f := range []graphicsdriver.Filter{
-					graphicsdriver.FilterNearest,
-					graphicsdriver.FilterLinear,
-				} {
-					for c := graphicsdriver.CompositeModeSourceOver; c <= graphicsdriver.CompositeModeMax; c++ {
-						for _, stencil := range []stencilMode{
-							prepareStencil,
-							drawWithStencil,
-							noStencil,
-						} {
-							cmi := 0
-							if cm {
-								cmi = 1
-							}
-							fs, err := lib.MakeFunction(fmt.Sprintf("FragmentShader_%d_%d_%d", cmi, f, a))
-							if err != nil {
-								return err
-							}
-							rpld := mtl.RenderPipelineDescriptor{
-								VertexFunction:   vs,
-								FragmentFunction: fs,
-							}
-							if stencil != noStencil {
-								rpld.StencilAttachmentPixelFormat = mtl.PixelFormatStencil8
-							}
-
-							pix := mtl.PixelFormatRGBA8UNorm
-							if screen {
-								pix = g.view.colorPixelFormat()
-							}
-							rpld.ColorAttachments[0].PixelFormat = pix
-							rpld.ColorAttachments[0].BlendingEnabled = true
-
-							src, dst := c.Operations()
-							rpld.ColorAttachments[0].DestinationAlphaBlendFactor = operationToBlendFactor(dst)
-							rpld.ColorAttachments[0].DestinationRGBBlendFactor = operationToBlendFactor(dst)
-							rpld.ColorAttachments[0].SourceAlphaBlendFactor = operationToBlendFactor(src)
-							rpld.ColorAttachments[0].SourceRGBBlendFactor = operationToBlendFactor(src)
-							if stencil == prepareStencil {
-								rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskNone
-							} else {
-								rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskAll
-							}
-							rps, err := g.view.getMTLDevice().MakeRenderPipelineState(rpld)
-							if err != nil {
-								return err
-							}
-							g.rpss[rpsKey{
-								screen:        screen,
-								useColorM:     cm,
-								filter:        f,
-								address:       a,
-								compositeMode: c,
-								stencilMode:   stencil,
-							}] = rps
-						}
-					}
-				}
-			}
-		}
 	}
 
 	// The stencil reference value is always 0 (default).
@@ -795,7 +503,11 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion graph
 	return nil
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, offsets [graphics.ShaderImageCount - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, colorM graphicsdriver.ColorM, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, offsets [graphics.ShaderImageCount - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
+	if shaderID == graphicsdriver.InvalidShaderID {
+		return fmt.Errorf("metal: shader ID is invalid")
+	}
+
 	dst := g.images[dstID]
 
 	if dst.screen {
@@ -807,149 +519,107 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 		srcs[i] = g.images[srcID]
 	}
 
-	rpss := map[stencilMode]mtl.RenderPipelineState{}
-	var uniformVars [][]float32
-	if shaderID == graphicsdriver.InvalidShaderID {
-		for _, stencil := range []stencilMode{
-			prepareStencil,
-			drawWithStencil,
-			noStencil,
-		} {
-			rpss[stencil] = g.rpss[rpsKey{
-				screen:        dst.screen,
-				useColorM:     !colorM.IsIdentity(),
-				filter:        filter,
-				address:       address,
-				compositeMode: mode,
-				stencilMode:   stencil,
-			}]
+	uniformVars := make([][]float32, graphics.PreservedUniformVariablesCount+len(uniforms))
+
+	// Set the destination texture size.
+	dw, dh := dst.internalSize()
+	uniformVars[graphics.TextureDestinationSizeUniformVariableIndex] = []float32{float32(dw), float32(dh)}
+
+	// Set the source texture sizes.
+	usizes := make([]float32, 2*len(srcs))
+	for i, src := range srcs {
+		if src != nil {
+			w, h := src.internalSize()
+			usizes[2*i] = float32(w)
+			usizes[2*i+1] = float32(h)
 		}
+	}
+	uniformVars[graphics.TextureSourceSizesUniformVariableIndex] = usizes
 
-		w, h := dst.internalSize()
-		sourceSize := []float32{0, 0}
-		if filter != graphicsdriver.FilterNearest {
-			w, h := srcs[0].internalSize()
-			sourceSize[0] = float32(w)
-			sourceSize[1] = float32(h)
-		}
-		var esBody [16]float32
-		var esTranslate [4]float32
-		colorM.Elements(esBody[:], esTranslate[:])
-		uniformVars = [][]float32{
-			{float32(w), float32(h)},
-			sourceSize,
-			esBody[:],
-			esTranslate[:],
-			{
-				srcRegion.X,
-				srcRegion.Y,
-				srcRegion.X + srcRegion.Width,
-				srcRegion.Y + srcRegion.Height,
-			},
-		}
-	} else {
-		for _, stencil := range []stencilMode{
-			prepareStencil,
-			drawWithStencil,
-			noStencil,
-		} {
-			var err error
-			rpss[stencil], err = g.shaders[shaderID].RenderPipelineState(&g.view, mode, stencil, dst.screen)
-			if err != nil {
-				return err
-			}
-		}
+	// Set the destination region's origin.
+	udorigin := []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
+	uniformVars[graphics.TextureDestinationRegionOriginUniformVariableIndex] = udorigin
 
-		uniformVars = make([][]float32, graphics.PreservedUniformVariablesCount+len(uniforms))
+	// Set the destination region's size.
+	udsize := []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
+	uniformVars[graphics.TextureDestinationRegionSizeUniformVariableIndex] = udsize
 
-		// Set the destination texture size.
-		dw, dh := dst.internalSize()
-		uniformVars[graphics.TextureDestinationSizeUniformVariableIndex] = []float32{float32(dw), float32(dh)}
+	// Set the source offsets.
+	uoffsets := make([]float32, 2*len(offsets))
+	for i, offset := range offsets {
+		uoffsets[2*i] = offset[0]
+		uoffsets[2*i+1] = offset[1]
+	}
+	uniformVars[graphics.TextureSourceOffsetsUniformVariableIndex] = uoffsets
 
-		// Set the source texture sizes.
-		usizes := make([]float32, 2*len(srcs))
-		for i, src := range srcs {
-			if src != nil {
-				w, h := src.internalSize()
-				usizes[2*i] = float32(w)
-				usizes[2*i+1] = float32(h)
-			}
-		}
-		uniformVars[graphics.TextureSourceSizesUniformVariableIndex] = usizes
+	// Set the source region's origin of texture0.
+	usorigin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
+	uniformVars[graphics.TextureSourceRegionOriginUniformVariableIndex] = usorigin
 
-		// Set the destination region's origin.
-		udorigin := []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
-		uniformVars[graphics.TextureDestinationRegionOriginUniformVariableIndex] = udorigin
+	// Set the source region's size of texture0.
+	ussize := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
+	uniformVars[graphics.TextureSourceRegionSizeUniformVariableIndex] = ussize
 
-		// Set the destination region's size.
-		udsize := []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
-		uniformVars[graphics.TextureDestinationRegionSizeUniformVariableIndex] = udsize
+	uniformVars[graphics.ProjectionMatrixUniformVariableIndex] = []float32{
+		2 / float32(dw), 0, 0, 0,
+		0, -2 / float32(dh), 0, 0,
+		0, 0, 1, 0,
+		-1, 1, 0, 1,
+	}
 
-		// Set the source offsets.
-		uoffsets := make([]float32, 2*len(offsets))
-		for i, offset := range offsets {
-			uoffsets[2*i] = offset[0]
-			uoffsets[2*i+1] = offset[1]
-		}
-		uniformVars[graphics.TextureSourceOffsetsUniformVariableIndex] = uoffsets
-
-		// Set the source region's origin of texture0.
-		usorigin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
-		uniformVars[graphics.TextureSourceRegionOriginUniformVariableIndex] = usorigin
-
-		// Set the source region's size of texture0.
-		ussize := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
-		uniformVars[graphics.TextureSourceRegionSizeUniformVariableIndex] = ussize
-
-		uniformVars[graphics.ProjectionMatrixUniformVariableIndex] = []float32{
-			2 / float32(dw), 0, 0, 0,
-			0, -2 / float32(dh), 0, 0,
-			0, 0, 1, 0,
-			-1, 1, 0, 1,
-		}
-
-		// Set the additional uniform variables.
-		for i, v := range uniforms {
-			const offset = graphics.PreservedUniformVariablesCount
-			t := g.shaders[shaderID].ir.Uniforms[offset+i]
-			switch t.Main {
+	// Set the additional uniform variables.
+	for i, v := range uniforms {
+		const offset = graphics.PreservedUniformVariablesCount
+		t := g.shaders[shaderID].ir.Uniforms[offset+i]
+		switch t.Main {
+		case shaderir.Mat3:
+			// float3x3 requires 16-byte alignment (#2036).
+			v1 := make([]float32, 12)
+			copy(v1[0:3], v[0:3])
+			copy(v1[4:7], v[3:6])
+			copy(v1[8:11], v[6:9])
+			uniformVars[offset+i] = v1
+		case shaderir.Array:
+			switch t.Sub[0].Main {
 			case shaderir.Mat3:
-				// float3x3 requires 16-byte alignment (#2036).
-				v1 := make([]float32, 12)
-				copy(v1[0:3], v[0:3])
-				copy(v1[4:7], v[3:6])
-				copy(v1[8:11], v[6:9])
-				uniformVars[offset+i] = v1
-			case shaderir.Array:
-				switch t.Sub[0].Main {
-				case shaderir.Mat3:
-					v1 := make([]float32, t.Length*12)
-					for j := 0; j < t.Length; j++ {
-						offset0 := j * 9
-						offset1 := j * 12
-						copy(v1[offset1:offset1+3], v[offset0:offset0+3])
-						copy(v1[offset1+4:offset1+7], v[offset0+3:offset0+6])
-						copy(v1[offset1+8:offset1+11], v[offset0+6:offset0+9])
-					}
-					uniformVars[offset+i] = v1
-				default:
-					uniformVars[offset+i] = v
+				v1 := make([]float32, t.Length*12)
+				for j := 0; j < t.Length; j++ {
+					offset0 := j * 9
+					offset1 := j * 12
+					copy(v1[offset1:offset1+3], v[offset0:offset0+3])
+					copy(v1[offset1+4:offset1+7], v[offset0+3:offset0+6])
+					copy(v1[offset1+8:offset1+11], v[offset0+6:offset0+9])
 				}
+				uniformVars[offset+i] = v1
 			default:
 				uniformVars[offset+i] = v
 			}
+		default:
+			uniformVars[offset+i] = v
 		}
 	}
 
 	if evenOdd {
-		if err := g.draw(rpss[prepareStencil], dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, prepareStencil); err != nil {
+		prepareStencilRpss, err := g.shaders[shaderID].RenderPipelineState(&g.view, blend, prepareStencil, dst.screen)
+		if err != nil {
 			return err
 		}
-		if err := g.draw(rpss[drawWithStencil], dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, drawWithStencil); err != nil {
+		if err := g.draw(prepareStencilRpss, dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, prepareStencil); err != nil {
+			return err
+		}
+		drawWithStencilRpss, err := g.shaders[shaderID].RenderPipelineState(&g.view, blend, drawWithStencil, dst.screen)
+		if err != nil {
+			return err
+		}
+		if err := g.draw(drawWithStencilRpss, dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, drawWithStencil); err != nil {
 			return err
 		}
 	} else {
-		if err := g.draw(rpss[noStencil], dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, noStencil); err != nil {
+		rpss, err := g.shaders[shaderID].RenderPipelineState(&g.view, blend, noStencil, dst.screen)
+		if err != nil {
+			return err
+		}
+		if err := g.draw(rpss, dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, noStencil); err != nil {
 			return err
 		}
 	}
@@ -963,10 +633,6 @@ func (g *Graphics) SetVsyncEnabled(enabled bool) {
 
 func (g *Graphics) SetFullscreen(fullscreen bool) {
 	g.view.setFullscreen(fullscreen)
-}
-
-func (g *Graphics) FramebufferYDirection() graphicsdriver.YDirection {
-	return graphicsdriver.Downward
 }
 
 func (g *Graphics) NeedsRestoring() bool {

@@ -15,27 +15,91 @@
 package ebiten
 
 import (
+	"fmt"
 	"image"
+	"math"
+	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
+const screenShaderSrc = `package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	// TODO: Calculate the scale in the shader after pixels become the main unit in shaders (#1431)
+	_, dr := imageDstRegionOnTexture()
+	_, sr := imageSrcRegionOnTexture()
+	scale := (imageDstTextureSize() * dr) / (imageSrcTextureSize() * sr)
+
+	sourceSize := imageSrcTextureSize()
+	// texelSize is one pixel size in texel sizes.
+	texelSize := 1 / sourceSize
+	halfScaledTexelSize := texelSize / 2 / scale
+
+	// Shift 1/512 [texel] to avoid the tie-breaking issue.
+	pos := texCoord
+	p0 := pos - halfScaledTexelSize + (texelSize / 512)
+	p1 := pos + halfScaledTexelSize + (texelSize / 512)
+
+	// Texels must be in the source rect, so it is not necessary to check.
+	c0 := imageSrc0UnsafeAt(p0)
+	c1 := imageSrc0UnsafeAt(vec2(p1.x, p0.y))
+	c2 := imageSrc0UnsafeAt(vec2(p0.x, p1.y))
+	c3 := imageSrc0UnsafeAt(p1)
+
+	// p is the p1 value in one pixel assuming that the pixel's upper-left is (0, 0) and the lower-right is (1, 1).
+	p := fract(p1 * sourceSize)
+
+	// rate indicates how much the 4 colors are mixed. rate is in between [0, 1].
+	//
+	//     0 <= p <= 1/Scale: The rate is in between [0, 1]
+	//     1/Scale < p:       Don't care. Adjacent colors (e.g. c0 vs c1 in an X direction) should be the same.
+	rate := clamp(p*scale, 0, 1)
+	return mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y)
+}
+`
+
+var screenFilterEnabled = int32(1)
+
+func isScreenFilterEnabled() bool {
+	return atomic.LoadInt32(&screenFilterEnabled) != 0
+}
+
+func setScreenFilterEnabled(enabled bool) {
+	v := int32(0)
+	if enabled {
+		v = 1
+	}
+	atomic.StoreInt32(&screenFilterEnabled, v)
+}
+
 type gameForUI struct {
-	game      Game
-	offscreen *Image
+	game         Game
+	offscreen    *Image
+	screen       *Image
+	screenShader *Shader
+	imageDumper  imageDumper
 }
 
 func newGameForUI(game Game) *gameForUI {
-	return &gameForUI{
+	g := &gameForUI{
 		game: game,
 	}
+
+	s, err := NewShader([]byte(screenShaderSrc))
+	if err != nil {
+		panic(fmt.Sprintf("ebiten: compiling the screen shader failed: %v", err))
+	}
+	g.screenShader = s
+
+	return g
 }
 
-func (c *gameForUI) NewOffscreenImage(width, height int) *ui.Image {
-	if c.offscreen != nil {
-		c.offscreen.Dispose()
-		c.offscreen = nil
+func (g *gameForUI) NewOffscreenImage(width, height int) *ui.Image {
+	if g.offscreen != nil {
+		g.offscreen.Dispose()
+		g.offscreen = nil
 	}
 
 	// Keep the offscreen an unmanaged image that is always isolated from an atlas (#1938).
@@ -47,18 +111,85 @@ func (c *gameForUI) NewOffscreenImage(width, height int) *ui.Image {
 		// A violatile image is also always isolated.
 		imageType = atlas.ImageTypeVolatile
 	}
-	c.offscreen = newImage(image.Rect(0, 0, width, height), imageType)
-	return c.offscreen.image
+	g.offscreen = newImage(image.Rect(0, 0, width, height), imageType)
+	return g.offscreen.image
 }
 
-func (c *gameForUI) Layout(outsideWidth, outsideHeight int) (int, int) {
-	return c.game.Layout(outsideWidth, outsideHeight)
+func (g *gameForUI) NewScreenImage(width, height int) *ui.Image {
+	if g.screen != nil {
+		g.screen.Dispose()
+		g.screen = nil
+	}
+
+	g.screen = newImage(image.Rect(0, 0, width, height), atlas.ImageTypeScreen)
+	return g.screen.image
 }
 
-func (c *gameForUI) Update() error {
-	return c.game.Update()
+func (g *gameForUI) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return g.game.Layout(outsideWidth, outsideHeight)
 }
 
-func (c *gameForUI) Draw() {
-	c.game.Draw(c.offscreen)
+func (g *gameForUI) Update() error {
+	if err := g.game.Update(); err != nil {
+		return err
+	}
+	if err := g.imageDumper.update(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (g *gameForUI) DrawOffscreen() error {
+	g.game.Draw(g.offscreen)
+	if err := g.imageDumper.dump(g.offscreen); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (g *gameForUI) DrawFinalScreen() {
+	scale, offsetX, offsetY := g.ScreenScaleAndOffsets()
+	var geoM GeoM
+	geoM.Scale(scale, scale)
+	geoM.Translate(offsetX, offsetY)
+
+	if d, ok := g.game.(FinalScreenDrawer); ok {
+		d.DrawFinalScreen(g.screen, g.offscreen, geoM)
+		return
+	}
+
+	switch {
+	case !isScreenFilterEnabled(), math.Floor(scale) == scale:
+		op := &DrawImageOptions{}
+		op.GeoM = geoM
+		g.screen.DrawImage(g.offscreen, op)
+	case scale < 1:
+		op := &DrawImageOptions{}
+		op.GeoM = geoM
+		op.Filter = FilterLinear
+		g.screen.DrawImage(g.offscreen, op)
+	default:
+		op := &DrawRectShaderOptions{}
+		op.Images[0] = g.offscreen
+		op.GeoM = geoM
+		w, h := g.offscreen.Size()
+		g.screen.DrawRectShader(w, h, g.screenShader, op)
+	}
+}
+
+func (g *gameForUI) ScreenScaleAndOffsets() (scale, offsetX, offsetY float64) {
+	if g.screen == nil {
+		return
+	}
+
+	sw, sh := g.screen.Size()
+	ow, oh := g.offscreen.Size()
+	scaleX := float64(sw) / float64(ow)
+	scaleY := float64(sh) / float64(oh)
+	scale = math.Min(scaleX, scaleY)
+	width := float64(ow) * scale
+	height := float64(oh) * scale
+	offsetX = (float64(sw) - width) / 2
+	offsetY = (float64(sh) - height) / 2
+	return
 }

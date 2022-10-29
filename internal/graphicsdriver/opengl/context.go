@@ -21,26 +21,69 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
-type operation int
+type blendFactor int
 
-func convertOperation(op graphicsdriver.Operation) operation {
-	switch op {
-	case graphicsdriver.Zero:
-		return zero
-	case graphicsdriver.One:
-		return one
-	case graphicsdriver.SrcAlpha:
-		return srcAlpha
-	case graphicsdriver.DstAlpha:
-		return dstAlpha
-	case graphicsdriver.OneMinusSrcAlpha:
-		return oneMinusSrcAlpha
-	case graphicsdriver.OneMinusDstAlpha:
-		return oneMinusDstAlpha
-	case graphicsdriver.DstColor:
-		return dstColor
+const (
+	glDstAlpha         blendFactor = 0x304
+	glDstColor         blendFactor = 0x306
+	glOne              blendFactor = 1
+	glOneMinusDstAlpha blendFactor = 0x305
+	glOneMinusDstColor blendFactor = 0x307
+	glOneMinusSrcAlpha blendFactor = 0x303
+	glOneMinusSrcColor blendFactor = 0x301
+	glSrcAlpha         blendFactor = 0x302
+	glSrcAlphaSaturate blendFactor = 0x308
+	glSrcColor         blendFactor = 0x300
+	glZero             blendFactor = 0
+)
+
+type blendOperation int
+
+const (
+	glFuncAdd             blendOperation = 0x8006
+	glFuncReverseSubtract blendOperation = 0x800b
+	glFuncSubtract        blendOperation = 0x800a
+)
+
+func convertBlendFactor(f graphicsdriver.BlendFactor) blendFactor {
+	switch f {
+	case graphicsdriver.BlendFactorZero:
+		return glZero
+	case graphicsdriver.BlendFactorOne:
+		return glOne
+	case graphicsdriver.BlendFactorSourceColor:
+		return glSrcColor
+	case graphicsdriver.BlendFactorOneMinusSourceColor:
+		return glOneMinusSrcColor
+	case graphicsdriver.BlendFactorSourceAlpha:
+		return glSrcAlpha
+	case graphicsdriver.BlendFactorOneMinusSourceAlpha:
+		return glOneMinusSrcAlpha
+	case graphicsdriver.BlendFactorDestinationColor:
+		return glDstColor
+	case graphicsdriver.BlendFactorOneMinusDestinationColor:
+		return glOneMinusDstColor
+	case graphicsdriver.BlendFactorDestinationAlpha:
+		return glDstAlpha
+	case graphicsdriver.BlendFactorOneMinusDestinationAlpha:
+		return glOneMinusDstAlpha
+	case graphicsdriver.BlendFactorSourceAlphaSaturated:
+		return glSrcAlphaSaturate
 	default:
-		panic(fmt.Sprintf("opengl: invalid operation %d at convertOperation", op))
+		panic(fmt.Sprintf("opengl: invalid blend factor %d", f))
+	}
+}
+
+func convertBlendOperation(o graphicsdriver.BlendOperation) blendOperation {
+	switch o {
+	case graphicsdriver.BlendOperationAdd:
+		return glFuncAdd
+	case graphicsdriver.BlendOperationSubtract:
+		return glFuncSubtract
+	case graphicsdriver.BlendOperationReverseSubtract:
+		return glFuncReverseSubtract
+	default:
+		panic(fmt.Sprintf("opengl: invalid blend operation %d", o))
 	}
 }
 
@@ -52,7 +95,7 @@ type context struct {
 	lastRenderbuffer   renderbufferNative
 	lastViewportWidth  int
 	lastViewportHeight int
-	lastCompositeMode  graphicsdriver.CompositeMode
+	lastBlend          graphicsdriver.Blend
 	maxTextureSize     int
 	maxTextureSizeOnce sync.Once
 	highp              bool

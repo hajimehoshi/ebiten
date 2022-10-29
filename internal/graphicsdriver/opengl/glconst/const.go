@@ -1,4 +1,4 @@
-// Copyright 2020 The Ebiten Authors
+// Copyright 2022 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,24 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package gles implements Go bindings to OpenGL ES.
-package gles
+// Package glconst provides constants to the implementations of Go bindings to
+// OpenGL and OpenGL ES, for packages gl and gles respectively.
+package glconst
 
 const (
-	ZERO                = 0
-	ONE                 = 1
-	SRC_ALPHA           = 0x0302
-	DST_ALPHA           = 0x0304
-	ONE_MINUS_SRC_ALPHA = 0x0303
-	ONE_MINUS_DST_ALPHA = 0x0305
-	DST_COLOR           = 0x0306
-
 	ALWAYS               = 0x0207
 	ARRAY_BUFFER         = 0x8892
 	BLEND                = 0x0BE2
 	CLAMP_TO_EDGE        = 0x812F
 	COLOR_ATTACHMENT0    = 0x8CE0
 	COMPILE_STATUS       = 0x8B81
+	DEPTH24_STENCIL8     = 0x88F0
 	DYNAMIC_DRAW         = 0x88E8
 	ELEMENT_ARRAY_BUFFER = 0x8893
 	FALSE                = 0
