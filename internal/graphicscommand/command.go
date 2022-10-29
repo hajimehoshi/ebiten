@@ -250,7 +250,13 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 // FlushCommands flushes the command queue and present the screen if needed.
 // If endFrame is true, the current screen might be used to present.
 func FlushCommands(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
-	flushImageBuffers()
+	// Flush image buffers only when the frame ends.
+	// Flushing them in tests might cause test flakiness on browsers (#2391).
+	// TODO: Investigate why.
+	if endFrame {
+		flushImageBuffers()
+	}
+
 	return theCommandQueue.Flush(graphicsDriver, endFrame)
 }
 
