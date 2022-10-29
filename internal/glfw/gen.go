@@ -83,8 +83,8 @@ func run() error {
 		return err
 	}
 	source := strings.TrimSpace(string(output))
-	csource := filepath.Join(source, "/glfw/src")
-	includes := filepath.Join(source, "/glfw/include")
+	csource := filepath.Join(source, "glfw", "src")
+	includes := filepath.Join(source, "glfw", "include")
 
 	for _, a := range []arch{archAmd64, archArm64} {
 		for _, name := range filenames {
@@ -100,12 +100,11 @@ func run() error {
 				"-arch",
 				a.target(),
 				"-c", // compile without linking
-				"-I" + filepath.Join(includes, "include/GLFW/glfw3.h"),       // include glfw3.h
-				"-I" + filepath.Join(includes, "include/GLFW/glfw3native.h"), // include glfw3native.h
+				"-I" + filepath.Join(includes, "include", "GLFW", "glfw3.h"),       // include glfw3.h
+				"-I" + filepath.Join(includes, "include", "GLFW", "glfw3native.h"), // include glfw3native.h
 				"-D_GLFW_COCOA",              // define _GLFW_COCOA
 				"-D_GLFW_BUILD_DLL",          // define _GLFW_BUILD_DLL to build dylib
 				"-Os",                        // optimize for size
-				"-g",                         // debug info
 				filepath.Join(csource, name), // .c or .m file
 			}
 			if err := execCommand("clang", args...); err != nil {
