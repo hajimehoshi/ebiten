@@ -18,25 +18,18 @@
 package gamepad
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"syscall"
 	"time"
 	"unsafe"
 
+	"golang.org/x/sys/unix"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
-
-func byteSliceToString(s []byte) string {
-	if i := bytes.IndexByte(s, 0); i != -1 {
-		s = s[:i]
-	}
-	return string(s)
-}
 
 const dirName = "/dev/input"
 
@@ -57,18 +50,18 @@ func newNativeGamepadsImpl() nativeGamepads {
 
 func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
 	// Check the existence of the directory `dirName`.
-	var stat syscall.Stat_t
-	if err := syscall.Stat(dirName, &stat); err != nil {
-		if err == syscall.ENOENT {
+	var stat unix.Stat_t
+	if err := unix.Stat(dirName, &stat); err != nil {
+		if err == unix.ENOENT {
 			return nil
 		}
 		return fmt.Errorf("gamepad: Stat failed: %w", err)
 	}
-	if stat.Mode&syscall.S_IFDIR == 0 {
+	if stat.Mode&unix.S_IFDIR == 0 {
 		return nil
 	}
 
-	inotify, err := syscall.InotifyInit1(syscall.IN_NONBLOCK | syscall.IN_CLOEXEC)
+	inotify, err := unix.InotifyInit1(unix.IN_NONBLOCK | unix.IN_CLOEXEC)
 	if err != nil {
 		return fmt.Errorf("gamepad: InotifyInit1 failed: %w", err)
 	}
@@ -77,7 +70,7 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
 	if g.inotify > 0 {
 		// Register for IN_ATTRIB to get notified when udev is done.
 		// This works well in practice but the true way is libudev.
-		watch, err := syscall.InotifyAddWatch(g.inotify, dirName, syscall.IN_CREATE|syscall.IN_ATTRIB|syscall.IN_DELETE)
+		watch, err := unix.InotifyAddWatch(g.inotify, dirName, unix.IN_CREATE|unix.IN_ATTRIB|unix.IN_DELETE)
 		if err != nil {
 			return fmt.Errorf("gamepad: InotifyAddWatch failed: %w", err)
 		}
@@ -110,53 +103,53 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 		return nil
 	}
 
-	fd, err := syscall.Open(path, syscall.O_RDONLY|syscall.O_NONBLOCK, 0)
+	fd, err := unix.Open(path, unix.O_RDONLY|unix.O_NONBLOCK, 0)
 	if err != nil {
-		if err == syscall.EACCES {
+		if err == unix.EACCES {
 			return nil
 		}
 		// This happens with the Snap sandbox.
-		if err == syscall.EPERM {
+		if err == unix.EPERM {
 			return nil
 		}
 		// This happens just after a disconnection.
-		if err == syscall.ENOENT {
+		if err == unix.ENOENT {
 			return nil
 		}
 		return fmt.Errorf("gamepad: Open failed: %w", err)
 	}
 	defer func() {
 		if err != nil {
-			_ = syscall.Close(fd)
+			_ = unix.Close(fd)
 		}
 	}()
 
-	evBits := make([]byte, (_EV_CNT+7)/8)
+	evBits := make([]byte, (unix.EV_CNT+7)/8)
 	keyBits := make([]byte, (_KEY_CNT+7)/8)
 	absBits := make([]byte, (_ABS_CNT+7)/8)
 	var id input_id
 	if err := ioctl(fd, _EVIOCGBIT(0, uint(len(evBits))), unsafe.Pointer(&evBits[0])); err != nil {
 		return fmt.Errorf("gamepad: ioctl for evBits failed: %w", err)
 	}
-	if err := ioctl(fd, _EVIOCGBIT(_EV_KEY, uint(len(keyBits))), unsafe.Pointer(&keyBits[0])); err != nil {
+	if err := ioctl(fd, _EVIOCGBIT(unix.EV_KEY, uint(len(keyBits))), unsafe.Pointer(&keyBits[0])); err != nil {
 		return fmt.Errorf("gamepad: ioctl for keyBits failed: %w", err)
 	}
-	if err := ioctl(fd, _EVIOCGBIT(_EV_ABS, uint(len(absBits))), unsafe.Pointer(&absBits[0])); err != nil {
+	if err := ioctl(fd, _EVIOCGBIT(unix.EV_ABS, uint(len(absBits))), unsafe.Pointer(&absBits[0])); err != nil {
 		return fmt.Errorf("gamepad: ioctl for absBits failed: %w", err)
 	}
 	if err := ioctl(fd, _EVIOCGID(), unsafe.Pointer(&id)); err != nil {
 		return fmt.Errorf("gamepad: ioctl for an ID failed: %w", err)
 	}
 
-	if !isBitSet(evBits, _EV_KEY) {
-		if err := syscall.Close(fd); err != nil {
+	if !isBitSet(evBits, unix.EV_KEY) {
+		if err := unix.Close(fd); err != nil {
 			return err
 		}
 
 		return nil
 	}
-	if !isBitSet(evBits, _EV_ABS) {
-		if err := syscall.Close(fd); err != nil {
+	if !isBitSet(evBits, unix.EV_ABS) {
+		if err := unix.Close(fd); err != nil {
 			return err
 		}
 
@@ -167,7 +160,7 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 	name := "Unknown"
 	// TODO: Is it OK to ignore the error here?
 	if err := ioctl(fd, uint(_EVIOCGNAME(uint(len(cname)))), unsafe.Pointer(&cname[0])); err == nil {
-		name = byteSliceToString(cname)
+		name = unix.ByteSliceToString(cname)
 	}
 
 	var sdlID string
@@ -243,9 +236,9 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 	}
 
 	buf := make([]byte, 16384)
-	n, err := syscall.Read(g.inotify, buf[:])
+	n, err := unix.Read(g.inotify, buf[:])
 	if err != nil {
-		if err == syscall.EAGAIN {
+		if err == unix.EAGAIN {
 			return nil
 		}
 		return fmt.Errorf("gamepad: Read failed: %w", err)
@@ -253,26 +246,26 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 	buf = buf[:n]
 
 	for len(buf) > 0 {
-		e := syscall.InotifyEvent{
+		e := unix.InotifyEvent{
 			Wd:     int32(buf[0]) | int32(buf[1])<<8 | int32(buf[2])<<16 | int32(buf[3])<<24,
 			Mask:   uint32(buf[4]) | uint32(buf[5])<<8 | uint32(buf[6])<<16 | uint32(buf[7])<<24,
 			Cookie: uint32(buf[8]) | uint32(buf[9])<<8 | uint32(buf[10])<<16 | uint32(buf[11])<<24,
 			Len:    uint32(buf[12]) | uint32(buf[13])<<8 | uint32(buf[14])<<16 | uint32(buf[15])<<24,
 		}
-		name := byteSliceToString(buf[16 : 16+e.Len-1]) // len includes the null termiinate.
+		name := unix.ByteSliceToString(buf[16 : 16+e.Len-1]) // len includes the null termiinate.
 		buf = buf[16+e.Len:]
 		if !reEvent.MatchString(name) {
 			continue
 		}
 
 		path := filepath.Join(dirName, name)
-		if e.Mask&(syscall.IN_CREATE|syscall.IN_ATTRIB) != 0 {
+		if e.Mask&(unix.IN_CREATE|unix.IN_ATTRIB) != 0 {
 			if err := g.openGamepad(gamepads, path); err != nil {
 				return err
 			}
 			continue
 		}
-		if e.Mask&syscall.IN_DELETE != 0 {
+		if e.Mask&unix.IN_DELETE != 0 {
 			if gp := gamepads.find(func(gamepad *Gamepad) bool {
 				return gamepad.native.(*nativeGamepadImpl).path == path
 			}); gp != nil {
@@ -307,7 +300,7 @@ type nativeGamepadImpl struct {
 
 func (g *nativeGamepadImpl) close() {
 	if g.fd != 0 {
-		_ = syscall.Close(g.fd)
+		_ = unix.Close(g.fd)
 	}
 	g.fd = 0
 }
@@ -320,12 +313,12 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) error {
 	for {
 		buf := make([]byte, unsafe.Sizeof(input_event{}))
 		// TODO: Should the returned byte count be cared?
-		if _, err := syscall.Read(g.fd, buf); err != nil {
-			if err == syscall.EAGAIN {
+		if _, err := unix.Read(g.fd, buf); err != nil {
+			if err == unix.EAGAIN {
 				break
 			}
 			// Disconnected
-			if err == syscall.ENODEV {
+			if err == unix.ENODEV {
 				g.close()
 				return nil
 			}
@@ -344,7 +337,7 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) error {
 			value: int32(buf[offsetValue]) | int32(buf[offsetValue+1])<<8 | int32(buf[offsetValue+2])<<16 | int32(buf[offsetValue+3])<<24,
 		}
 
-		if e.typ == _EV_SYN {
+		if e.typ == unix.EV_SYN {
 			switch e.code {
 			case _SYN_DROPPED:
 				g.dropped = true
@@ -360,12 +353,12 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) error {
 		}
 
 		switch e.typ {
-		case _EV_KEY:
+		case unix.EV_KEY:
 			if int(e.code-_BTN_MISC) < len(g.keyMap) {
 				idx := g.keyMap[e.code-_BTN_MISC]
 				g.buttons[idx] = e.value != 0
 			}
-		case _EV_ABS:
+		case unix.EV_ABS:
 			g.handleAbsEvent(int(e.code), e.value)
 		}
 	}
