@@ -13,6 +13,6 @@ require (
 	github.com/jfreymuth/oggvorbis v1.0.4
 	golang.org/x/image v0.1.0
 	golang.org/x/mobile v0.0.0-20221020085226-b36e6246172e
-	golang.org/x/sys v0.0.0-20220818161305-2296e01440c6
-	golang.org/x/tools v0.1.12
+	golang.org/x/sys v0.1.0
+	golang.org/x/tools v0.2.0
 )
