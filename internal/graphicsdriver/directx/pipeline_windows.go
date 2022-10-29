@@ -228,7 +228,7 @@ func (p *pipelineStates) useGraphicsPipelineState(device *_ID3D12Device, command
 	}
 
 	// Update the constant buffer.
-	copyFloat32s(m, uniforms)
+	copy(unsafe.Slice((*float32)(unsafe.Pointer(m)), len(uniforms)), uniforms)
 
 	commandList.SetPipelineState(pipelineState)
 

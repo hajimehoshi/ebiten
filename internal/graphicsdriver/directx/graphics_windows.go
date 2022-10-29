@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"reflect"
 	"strings"
 	"time"
 	"unsafe"
@@ -1013,14 +1012,14 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) (ferr error
 	if err != nil {
 		return err
 	}
-	copyFloat32s(m, vertices)
+	copy(unsafe.Slice((*float32)(unsafe.Pointer(m)), len(vertices)), vertices)
 	g.vertices[g.frameIndex][vidx].Unmap(0, nil)
 
 	m, err = g.indices[g.frameIndex][iidx].Map(0, &_D3D12_RANGE{0, 0})
 	if err != nil {
 		return err
 	}
-	copyUint16s(m, indices)
+	copy(unsafe.Slice((*uint16)(unsafe.Pointer(m)), len(indices)), indices)
 	g.indices[g.frameIndex][iidx].Unmap(0, nil)
 
 	return nil
@@ -1471,12 +1470,7 @@ func (i *Image) ReadPixels(buf []byte, x, y, width, height int) error {
 		return err
 	}
 
-	var dstBytes []byte
-	h := (*reflect.SliceHeader)(unsafe.Pointer(&dstBytes))
-	h.Data = uintptr(m)
-	h.Len = int(i.totalBytes)
-	h.Cap = int(i.totalBytes)
-
+	dstBytes := unsafe.Slice((*byte)(unsafe.Pointer(m)), i.totalBytes)
 	for j := 0; j < height; j++ {
 		copy(buf[j*width*4:(j+1)*width*4], dstBytes[j*int(i.layouts.Footprint.RowPitch):])
 	}
@@ -1510,11 +1504,7 @@ func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 
 	i.graphics.needFlushCopyCommandList = true
 
-	var srcBytes []byte
-	h := (*reflect.SliceHeader)(unsafe.Pointer(&srcBytes))
-	h.Data = uintptr(m)
-	h.Len = int(i.totalBytes)
-	h.Cap = int(i.totalBytes)
+	srcBytes := unsafe.Slice((*byte)(unsafe.Pointer(m)), i.totalBytes)
 	for _, a := range args {
 		for j := 0; j < a.Height; j++ {
 			copy(srcBytes[(a.Y+j)*int(i.layouts.Footprint.RowPitch)+a.X*4:], a.Pixels[j*a.Width*4:(j+1)*a.Width*4])
@@ -1723,24 +1713,6 @@ func (i *Image) ensureDepthStencilView(device *_ID3D12Device) error {
 	device.CreateDepthStencilView(i.stencil, nil, dsv)
 
 	return nil
-}
-
-func copyFloat32s(dst uintptr, src []float32) {
-	var dsts []float32
-	h := (*reflect.SliceHeader)(unsafe.Pointer(&dsts))
-	h.Data = dst
-	h.Len = len(src)
-	h.Cap = len(src)
-	copy(dsts, src)
-}
-
-func copyUint16s(dst uintptr, src []uint16) {
-	var dsts []uint16
-	h := (*reflect.SliceHeader)(unsafe.Pointer(&dsts))
-	h.Data = dst
-	h.Len = len(src)
-	h.Cap = len(src)
-	copy(dsts, src)
 }
 
 type stencilMode int
