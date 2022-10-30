@@ -63,9 +63,8 @@ jobs:
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
 
       - name: go vet
-        if: ${{ !startsWith(matrix.os, 'windows-') }} # TODO: Fix go vet errors on Windows. (#1306)
         run: |
-          go vet -tags=example -v ./...
+          go list -tags=example ./... | grep -v -x -F -f govetblock.txt | xargs go vet
 
       - name: go vet (vettool)
         run: |
