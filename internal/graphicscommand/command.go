@@ -274,7 +274,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics) error {
 // FlushCommands flushes the command queue and present the screen if needed.
 func FlushCommands(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
 	resolveImages()
-	return theCommandQueue.Flush(graphicsDriver, endFrame)
+	return theCommandQueue.Flush(graphicsDriver)
 }
 
 // drawTrianglesCommand represents a drawing command to draw an image on another image.
