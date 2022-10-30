@@ -64,7 +64,7 @@ jobs:
 
       - name: go vet
         run: |
-          go list -tags=example ./... | grep -v -x -F -f govetblock.txt | xargs go vet
+          go list -tags=example ./... | grep -v -x -F -f .github/workflows/govetblock.txt | xargs go vet
 
       - name: go vet (vettool)
         run: |
