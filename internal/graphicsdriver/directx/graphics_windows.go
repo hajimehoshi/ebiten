@@ -1168,7 +1168,7 @@ func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, 
 	return s, nil
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.ShaderImageCount]graphicsdriver.ImageID, offsets [graphics.ShaderImageCount - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, blend graphicsdriver.Blend, dstRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
 	if shaderID == graphicsdriver.InvalidShaderID {
 		return fmt.Errorf("directx: shader ID is invalid")
 	}
@@ -1217,45 +1217,15 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 
 	shader := g.shaders[shaderID]
 
-	// TODO: This logic is very similar to Metal's. Let's unify them.
-	dw, dh := dst.internalSize()
-	us := make([][]float32, graphics.PreservedUniformVariablesCount+len(uniforms))
-	us[graphics.TextureDestinationSizeUniformVariableIndex] = []float32{float32(dw), float32(dh)}
-	usizes := make([]float32, 2*len(srcs))
-	for i, src := range srcImages {
-		if src != nil {
-			w, h := src.internalSize()
-			usizes[2*i] = float32(w)
-			usizes[2*i+1] = float32(h)
-		}
-	}
-	us[graphics.TextureSourceSizesUniformVariableIndex] = usizes
-	udorigin := []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
-	us[graphics.TextureDestinationRegionOriginUniformVariableIndex] = udorigin
-	udsize := []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
-	us[graphics.TextureDestinationRegionSizeUniformVariableIndex] = udsize
-	uoffsets := make([]float32, 2*len(offsets))
-	for i, offset := range offsets {
-		uoffsets[2*i] = offset[0]
-		uoffsets[2*i+1] = offset[1]
-	}
-	us[graphics.TextureSourceOffsetsUniformVariableIndex] = uoffsets
-	usorigin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
-	us[graphics.TextureSourceRegionOriginUniformVariableIndex] = usorigin
-	ussize := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
-	us[graphics.TextureSourceRegionSizeUniformVariableIndex] = ussize
-	us[graphics.ProjectionMatrixUniformVariableIndex] = []float32{
-		2 / float32(dw), 0, 0, 0,
-		0, -2 / float32(dh), 0, 0,
-		0, 0, 1, 0,
-		-1, 1, 0, 1,
-	}
+	// In DirectX, the NDC's Y direction (upward) and the framebuffer's Y direction (downward) don't
+	// match. Then, the Y direction must be inverted.
+	const idx = graphics.ProjectionMatrixUniformVariableIndex
+	uniforms[idx][1] *= -1
+	uniforms[idx][5] *= -1
+	uniforms[idx][9] *= -1
+	uniforms[idx][13] *= -1
 
-	for i, u := range uniforms {
-		us[graphics.PreservedUniformVariablesCount+i] = u
-	}
-
-	flattenUniforms := shader.uniformsToFloat32s(us)
+	flattenUniforms := shader.uniformsToFloat32s(uniforms)
 
 	w, h := dst.internalSize()
 	g.needFlushDrawCommandList = true
