@@ -216,7 +216,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 		g.uniformVars[i].typ = shader.ir.Uniforms[i]
 	}
 
-	// In OpenGL, the NDC's Y direction (upward), so flip the Y direction for the final framebuffer.
+	// In OpenGL, the NDC's Y direction is upward, so flip the Y direction for the final framebuffer.
 	if destination.screen {
 		const idx = graphics.ProjectionMatrixUniformVariableIndex
 		g.uniformVars[idx].value[1] *= -1
