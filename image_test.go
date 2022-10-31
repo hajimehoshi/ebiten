@@ -3941,3 +3941,28 @@ func TestImageAntiAliasAndBlend(t *testing.T) {
 		}
 	}
 }
+
+func TestImageColorMScale(t *testing.T) {
+	const w, h = 16, 16
+	dst0 := ebiten.NewImage(w, h)
+	dst1 := ebiten.NewImage(w, h)
+	src := ebiten.NewImage(w, h)
+	src.Fill(color.RGBA{0x24, 0x3f, 0x6a, 0x88})
+
+	// As the ColorM is a diagonal matrix, a built-in shader for a color matrix is NOT used.
+	op := &ebiten.DrawImageOptions{}
+	op.ColorM.Scale(0.3, 0.4, 0.5, 0.6)
+	dst0.DrawImage(src, op)
+
+	// As the ColorM is not a diagonal matrix, a built-in shader for a color matrix is used.
+	op = &ebiten.DrawImageOptions{}
+	op.ColorM.Scale(0.3, 0.4, 0.5, 0.6)
+	op.ColorM.Translate(0, 0, 0, 1e-4)
+	dst1.DrawImage(src, op)
+
+	got := dst0.At(0, 0)
+	want := dst1.At(0, 0)
+	if got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
