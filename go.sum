@@ -1,6 +1,6 @@
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/ebitengine/purego v0.2.0-alpha.0.20221019153918-7128aea44c77 h1:EtWqfTv9g2m5Q8YF2hZVlwvBnA1V5ndO9pmwgrA3FNg=
-github.com/ebitengine/purego v0.2.0-alpha.0.20221019153918-7128aea44c77/go.mod h1:8K86Hsai2ghNjg9h/9P9tDdLAhUNwqNg10OESLDOam8=
+github.com/ebitengine/purego v0.2.0-alpha.0.20221031034428-fbeb60f11c96 h1:cpbrL0/9M/Fxq++Lmn9wvWrYLu8xX1nOHIfCnqnG488=
+github.com/ebitengine/purego v0.2.0-alpha.0.20221031034428-fbeb60f11c96/go.mod h1:iIjxzd6CiRiOG0UyXP+V1+jWqUXVjPKLAI0mRfJZTmQ=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20221017161538-93cebf72946b h1:GgabKamyOYguHqHjSkDACcgoPIz3w0Dis/zJ1wyHHHU=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20221017161538-93cebf72946b/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
 github.com/hajimehoshi/bitmapfont/v2 v2.2.2 h1:4z08Fk1m3pjtlO7BdoP48u5bp/Y8xmKshf44aCXgYpE=
@@ -8,8 +8,8 @@ github.com/hajimehoshi/bitmapfont/v2 v2.2.2/go.mod h1:Ua/x9Dkz7M9CU4zr1VHWOqGwjK
 github.com/hajimehoshi/go-mp3 v0.3.3 h1:cWnfRdpye2m9ElSoVqneYRcpt/l3ijttgjMeQh+r+FE=
 github.com/hajimehoshi/go-mp3 v0.3.3/go.mod h1:qMJj/CSDxx6CGHiZeCgbiq2DSUkbK0UbtXShQcnfyMM=
 github.com/hajimehoshi/oto v0.6.1/go.mod h1:0QXGEkbuJRohbJaxr7ZQSxnju7hEhseiPx2hrh6raOI=
-github.com/hajimehoshi/oto/v2 v2.4.0-alpha.4.0.20221029160948-5869492c2dde h1:sw3B5dASNEIQS1y5zaBPjMAiwssx1O90hV4ITUufCH4=
-github.com/hajimehoshi/oto/v2 v2.4.0-alpha.4.0.20221029160948-5869492c2dde/go.mod h1:DNedh21P2X+UKhhBOyHclLlT4QJggA3j+Qtu05P0Jak=
+github.com/hajimehoshi/oto/v2 v2.4.0-alpha.4.0.20221031045127-ca45ab12a793 h1:D8P/s20m/TnjtxuhW7GtTnkHap27aKWiuBy7BUZvksE=
+github.com/hajimehoshi/oto/v2 v2.4.0-alpha.4.0.20221031045127-ca45ab12a793/go.mod h1:GPt3874AibBmZM1H5xx66IwtVl5rSzYCdMORzhjzeqE=
 github.com/jakecoffman/cp v1.2.1 h1:zkhc2Gpo9l4NLUZfeG3j33+3bQD7MkqPa+n5PdX+5mI=
 github.com/jakecoffman/cp v1.2.1/go.mod h1:JjY/Fp6d8E1CHnu74gWNnU0+b9VzEdUVPoJxg2PsTQg=
 github.com/jezek/xgb v1.0.1 h1:YUGhxps0aR7J2Xplbs23OHnV1mWaxFVcOl9b+1RQkt8=
