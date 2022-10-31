@@ -528,7 +528,7 @@ type DrawTrianglesShaderOptions struct {
 }
 
 // Check the number of images.
-var _ [len(DrawTrianglesShaderOptions{}.Images)]int = [graphics.ShaderImageCount]int{}
+var _ [len(DrawTrianglesShaderOptions{}.Images)]struct{} = [graphics.ShaderImageCount]struct{}{}
 
 // DrawTrianglesShader draws triangles with the specified vertices and their indices with the specified shader.
 //
@@ -670,7 +670,7 @@ type DrawRectShaderOptions struct {
 }
 
 // Check the number of images.
-var _ [len(DrawRectShaderOptions{}.Images)]int = [graphics.ShaderImageCount]int{}
+var _ [len(DrawRectShaderOptions{}.Images)]struct{} = [graphics.ShaderImageCount]struct{}{}
 
 // DrawRectShader draws a rectangle with the specified width and height with the specified shader.
 //
