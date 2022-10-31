@@ -527,12 +527,8 @@ type DrawTrianglesShaderOptions struct {
 	AntiAlias bool
 }
 
-func init() {
-	var op DrawTrianglesShaderOptions
-	if got, want := len(op.Images), graphics.ShaderImageCount; got != want {
-		panic(fmt.Sprintf("ebiten: len((DrawTrianglesShaderOptions{}).Images) must be %d but %d", want, got))
-	}
-}
+// Check the number of images.
+var _ [len(DrawTrianglesShaderOptions{}.Images)]struct{} = [graphics.ShaderImageCount]struct{}{}
 
 // DrawTrianglesShader draws triangles with the specified vertices and their indices with the specified shader.
 //
@@ -673,12 +669,8 @@ type DrawRectShaderOptions struct {
 	Images [4]*Image
 }
 
-func init() {
-	var op DrawRectShaderOptions
-	if got, want := len(op.Images), graphics.ShaderImageCount; got != want {
-		panic(fmt.Sprintf("ebiten: len((DrawRectShaderOptions{}).Images) must be %d but %d", want, got))
-	}
-}
+// Check the number of images.
+var _ [len(DrawRectShaderOptions{}.Images)]struct{} = [graphics.ShaderImageCount]struct{}{}
 
 // DrawRectShader draws a rectangle with the specified width and height with the specified shader.
 //

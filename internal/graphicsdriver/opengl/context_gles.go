@@ -21,6 +21,7 @@ package opengl
 import (
 	"errors"
 	"fmt"
+	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/glconst"
@@ -421,11 +422,13 @@ func (c *context) bindElementArrayBuffer(b buffer) {
 }
 
 func (c *context) arrayBufferSubData(data []float32) {
-	c.ctx.BufferSubData(glconst.ARRAY_BUFFER, 0, float32sToBytes(data))
+	s := unsafe.Slice((*byte)(unsafe.Pointer(&data[0])), len(data)*4)
+	c.ctx.BufferSubData(glconst.ARRAY_BUFFER, 0, s)
 }
 
 func (c *context) elementArrayBufferSubData(data []uint16) {
-	c.ctx.BufferSubData(glconst.ELEMENT_ARRAY_BUFFER, 0, uint16sToBytes(data))
+	s := unsafe.Slice((*byte)(unsafe.Pointer(&data[0])), len(data)*2)
+	c.ctx.BufferSubData(glconst.ELEMENT_ARRAY_BUFFER, 0, s)
 }
 
 func (c *context) deleteBuffer(b buffer) {

@@ -18,8 +18,9 @@
 package gamepad
 
 import (
-	"syscall"
 	"unsafe"
+
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -29,11 +30,6 @@ const (
 	_ABS_CNT   = _ABS_MAX + 1
 
 	_BTN_MISC = 0x100
-
-	_EV_ABS = 0x3
-	_EV_CNT = 0x20
-	_EV_KEY = 0x1
-	_EV_SYN = 0x0
 
 	_IOC_NONE  = 0
 	_IOC_WRITE = 1
@@ -90,7 +86,7 @@ type input_absinfo struct {
 }
 
 type input_event struct {
-	time  syscall.Timeval
+	time  unix.Timeval
 	typ   uint16
 	code  uint16
 	value int32
@@ -104,9 +100,9 @@ type input_id struct {
 }
 
 func ioctl(fd int, request uint, ptr unsafe.Pointer) error {
-	r, _, e := syscall.Syscall(syscall.SYS_IOCTL, uintptr(fd), uintptr(request), uintptr(ptr))
+	r, _, e := unix.Syscall(unix.SYS_IOCTL, uintptr(fd), uintptr(request), uintptr(ptr))
 	if r < 0 {
-		return syscall.Errno(e)
+		return unix.Errno(e)
 	}
 	return nil
 }

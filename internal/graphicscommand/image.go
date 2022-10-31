@@ -105,6 +105,7 @@ func (i *Image) flushBufferedWritePixels() {
 }
 
 func (i *Image) Dispose() {
+	i.bufferedWP = nil
 	c := &disposeImageCommand{
 		target: i,
 	}

@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"reflect"
 	"runtime"
 	"unsafe"
 
@@ -100,11 +99,7 @@ func createIcon(image *Image, xhot, yhot int, icon bool) (_HICON, error) {
 	}()
 
 	source := image.Pixels
-	var target []byte
-	h := (*reflect.SliceHeader)(unsafe.Pointer(&target))
-	h.Data = uintptr(unsafe.Pointer(targetPtr))
-	h.Len = len(source)
-	h.Cap = len(source)
+	target := unsafe.Slice((*byte)(unsafe.Pointer(targetPtr)), len(source))
 	for i := 0; i < len(source)/4; i++ {
 		target[4*i] = source[4*i+2]
 		target[4*i+1] = source[4*i+1]

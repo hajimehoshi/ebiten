@@ -503,7 +503,7 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion graph
 	return nil
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, offsets [graphics.ShaderImageCount - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, blend graphicsdriver.Blend, dstRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
 	if shaderID == graphicsdriver.InvalidShaderID {
 		return fmt.Errorf("metal: shader ID is invalid")
 	}
@@ -519,58 +519,20 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 		srcs[i] = g.images[srcID]
 	}
 
-	uniformVars := make([][]float32, graphics.PreservedUniformVariablesCount+len(uniforms))
-
-	// Set the destination texture size.
-	dw, dh := dst.internalSize()
-	uniformVars[graphics.TextureDestinationSizeUniformVariableIndex] = []float32{float32(dw), float32(dh)}
-
-	// Set the source texture sizes.
-	usizes := make([]float32, 2*len(srcs))
-	for i, src := range srcs {
-		if src != nil {
-			w, h := src.internalSize()
-			usizes[2*i] = float32(w)
-			usizes[2*i+1] = float32(h)
-		}
-	}
-	uniformVars[graphics.TextureSourceSizesUniformVariableIndex] = usizes
-
-	// Set the destination region's origin.
-	udorigin := []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
-	uniformVars[graphics.TextureDestinationRegionOriginUniformVariableIndex] = udorigin
-
-	// Set the destination region's size.
-	udsize := []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
-	uniformVars[graphics.TextureDestinationRegionSizeUniformVariableIndex] = udsize
-
-	// Set the source offsets.
-	uoffsets := make([]float32, 2*len(offsets))
-	for i, offset := range offsets {
-		uoffsets[2*i] = offset[0]
-		uoffsets[2*i+1] = offset[1]
-	}
-	uniformVars[graphics.TextureSourceOffsetsUniformVariableIndex] = uoffsets
-
-	// Set the source region's origin of texture0.
-	usorigin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
-	uniformVars[graphics.TextureSourceRegionOriginUniformVariableIndex] = usorigin
-
-	// Set the source region's size of texture0.
-	ussize := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
-	uniformVars[graphics.TextureSourceRegionSizeUniformVariableIndex] = ussize
-
-	uniformVars[graphics.ProjectionMatrixUniformVariableIndex] = []float32{
-		2 / float32(dw), 0, 0, 0,
-		0, -2 / float32(dh), 0, 0,
-		0, 0, 1, 0,
-		-1, 1, 0, 1,
-	}
+	uniformVars := make([][]float32, len(uniforms))
 
 	// Set the additional uniform variables.
 	for i, v := range uniforms {
-		const offset = graphics.PreservedUniformVariablesCount
-		t := g.shaders[shaderID].ir.Uniforms[offset+i]
+		if i == graphics.ProjectionMatrixUniformVariableIndex {
+			// In Metal, the NDC's Y direction (upward) and the framebuffer's Y direction (downward) don't
+			// match. Then, the Y direction must be inverted.
+			v[1] *= -1
+			v[5] *= -1
+			v[9] *= -1
+			v[13] *= -1
+		}
+
+		t := g.shaders[shaderID].ir.Uniforms[i]
 		switch t.Main {
 		case shaderir.Mat3:
 			// float3x3 requires 16-byte alignment (#2036).
@@ -578,7 +540,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 			copy(v1[0:3], v[0:3])
 			copy(v1[4:7], v[3:6])
 			copy(v1[8:11], v[6:9])
-			uniformVars[offset+i] = v1
+			uniformVars[i] = v1
 		case shaderir.Array:
 			switch t.Sub[0].Main {
 			case shaderir.Mat3:
@@ -590,12 +552,12 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 					copy(v1[offset1+4:offset1+7], v[offset0+3:offset0+6])
 					copy(v1[offset1+8:offset1+11], v[offset0+6:offset0+9])
 				}
-				uniformVars[offset+i] = v1
+				uniformVars[i] = v1
 			default:
-				uniformVars[offset+i] = v
+				uniformVars[i] = v
 			}
 		default:
-			uniformVars[offset+i] = v
+			uniformVars[i] = v
 		}
 	}
 

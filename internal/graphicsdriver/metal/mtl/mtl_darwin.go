@@ -25,7 +25,6 @@ package mtl
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"runtime"
 	"unsafe"
 
@@ -1086,18 +1085,7 @@ func (b Buffer) Length() uintptr {
 
 func (b Buffer) CopyToContents(data unsafe.Pointer, lengthInBytes uintptr) {
 	contents := b.buffer.Send(sel_contents)
-	// use unsafe.Slice when ebitengine reaches 1.17
-	var contentSlice []byte
-	contentHeader := (*reflect.SliceHeader)(unsafe.Pointer(&contentSlice))
-	contentHeader.Data = uintptr(contents)
-	contentHeader.Len = int(lengthInBytes)
-	contentHeader.Cap = int(lengthInBytes)
-	var dataSlice []byte
-	dataHeader := (*reflect.SliceHeader)(unsafe.Pointer(&dataSlice))
-	dataHeader.Data = uintptr(data)
-	dataHeader.Len = int(lengthInBytes)
-	dataHeader.Cap = int(lengthInBytes)
-	copy(contentSlice, dataSlice)
+	copy(unsafe.Slice((*byte)(unsafe.Pointer(contents)), lengthInBytes), unsafe.Slice((*byte)(data), lengthInBytes))
 	if runtime.GOOS != "ios" {
 		b.buffer.Send(sel_didModifyRange, 0, lengthInBytes)
 	}

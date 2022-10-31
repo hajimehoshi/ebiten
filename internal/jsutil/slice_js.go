@@ -15,7 +15,6 @@
 package jsutil
 
 import (
-	"reflect"
 	"runtime"
 	"syscall/js"
 	"unsafe"
@@ -32,22 +31,14 @@ func copyUint16SliceToTemporaryArrayBuffer(src []uint16) {
 	if len(src) == 0 {
 		return
 	}
-	h := (*reflect.SliceHeader)(unsafe.Pointer(&src))
-	h.Len *= 2
-	h.Cap *= 2
-	bs := *(*[]byte)(unsafe.Pointer(h))
+	js.CopyBytesToJS(temporaryUint8Array, unsafe.Slice((*byte)(unsafe.Pointer(&src[0])), len(src)*2))
 	runtime.KeepAlive(src)
-	js.CopyBytesToJS(temporaryUint8Array, bs)
 }
 
 func copyFloat32SliceToTemporaryArrayBuffer(src []float32) {
 	if len(src) == 0 {
 		return
 	}
-	h := (*reflect.SliceHeader)(unsafe.Pointer(&src))
-	h.Len *= 4
-	h.Cap *= 4
-	bs := *(*[]byte)(unsafe.Pointer(h))
+	js.CopyBytesToJS(temporaryUint8Array, unsafe.Slice((*byte)(unsafe.Pointer(&src[0])), len(src)*4))
 	runtime.KeepAlive(src)
-	js.CopyBytesToJS(temporaryUint8Array, bs)
 }
