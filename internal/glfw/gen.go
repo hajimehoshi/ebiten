@@ -126,7 +126,6 @@ func run() error {
 			"glfw-" + a.target() + ".dylib",
 		}
 		args = append(doto, args...)
-		// use g++ https://stackoverflow.com/questions/3532589/how-to-build-a-dylib-from-several-o-in-mac-os-x-using-gcc
 		if err := execCommand("clang++", args...); err != nil {
 			return err
 		}
