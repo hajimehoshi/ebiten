@@ -326,7 +326,7 @@ type DrawTrianglesOptions struct {
 	// ColorM is applied before vertex color scale is applied.
 	ColorM ColorM
 
-	// ColorScaleMode is the format of color scales in vertices.
+	// ColorScaleMode is the mode of color scales in vertices.
 	// The default (zero) value is ColorScaleModeStraightAlpha.
 	ColorScaleMode ColorScaleMode
 
