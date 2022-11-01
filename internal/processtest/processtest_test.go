@@ -20,10 +20,11 @@ package processtest_test
 import (
 	"bytes"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	exec "golang.org/x/sys/execabs"
 )
 
 func TestPrograms(t *testing.T) {
