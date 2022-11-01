@@ -887,10 +887,6 @@ func (i *Image) at(x, y int) (r, g, b, a byte) {
 //
 // Set implements the standard draw.Image's Set.
 //
-// Set loads pixels from GPU to system memory if necessary, which means that Set can be slow.
-//
-// In the current implementation, successive calls of Set invokes loading pixels at most once, so this is efficient.
-//
 // If the image is disposed, Set does nothing.
 func (i *Image) Set(x, y int, clr color.Color) {
 	i.copyCheck()
