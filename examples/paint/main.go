@@ -22,6 +22,7 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/colorm"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
@@ -115,14 +116,15 @@ func (g *Game) Update() error {
 
 // paint draws the brush on the given canvas image at the position (x, y).
 func (g *Game) paint(canvas *ebiten.Image, x, y int) {
-	op := &ebiten.DrawImageOptions{}
+	op := &colorm.DrawImageOptions{}
 	op.GeoM.Translate(float64(x), float64(y))
+	var cm colorm.ColorM
 	// Scale the color and rotate the hue so that colors vary on each frame.
-	op.ColorM.Scale(1.0, 0.50, 0.125, 1.0)
+	cm.Scale(1.0, 0.50, 0.125, 1.0)
 	tps := ebiten.TPS()
 	theta := 2.0 * math.Pi * float64(g.count%tps) / float64(tps)
-	op.ColorM.RotateHue(theta)
-	canvas.DrawImage(brushImage, op)
+	cm.RotateHue(theta)
+	colorm.DrawImage(canvas, brushImage, cm, op)
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {

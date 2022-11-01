@@ -22,6 +22,7 @@ import (
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/colorm"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 )
 
@@ -66,20 +67,21 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	// Fill with solid colors
 	for i, c := range colors {
-		op := &ebiten.DrawImageOptions{}
+		op := &colorm.DrawImageOptions{}
 		x := i % 4
 		y := i/4 + 1
 		op.GeoM.Translate(ox+float64(dx*x), oy+float64(dy*y))
 
 		// Reset RGB (not Alpha) 0 forcibly
-		op.ColorM.Scale(0, 0, 0, 1)
+		var cm colorm.ColorM
+		cm.Scale(0, 0, 0, 1)
 
 		// Set color
 		r := float64(c.R) / 0xff
 		g := float64(c.G) / 0xff
 		b := float64(c.B) / 0xff
-		op.ColorM.Translate(r, g, b, 0)
-		screen.DrawImage(ebitenImage, op)
+		cm.Translate(r, g, b, 0)
+		colorm.DrawImage(screen, ebitenImage, cm, op)
 	}
 }
 

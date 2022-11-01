@@ -62,7 +62,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Draw the base (grayed) keyboard image.
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(offsetX, offsetY)
-	op.ColorM.Scale(0.5, 0.5, 0.5, 1)
+	op.ColorScale.Scale(0.5, 0.5, 0.5, 1)
 	screen.DrawImage(keyboardImage, op)
 
 	// Draw the highlighted keys.

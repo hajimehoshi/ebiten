@@ -78,7 +78,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			//   A_{n+1} = A_n * (1 - 1/(n+1)) + a_{n+1} * 1/(n+1)
 			// which is precisely what an alpha blend with alpha 1/(n+1) does.
 			layers++
-			op.ColorM.Scale(1, 1, 1, 1.0/float64(layers))
+			op.ColorScale.ScaleAlpha(1 / float32(layers))
 			screen.DrawImage(gophersImage, op)
 		}
 	}

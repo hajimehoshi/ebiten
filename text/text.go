@@ -181,7 +181,7 @@ var textM sync.Mutex
 func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Color) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(x), float64(y))
-	op.ColorM.ScaleWithColor(clr)
+	op.ColorScale.ScaleWithColor(clr)
 	DrawWithOptions(dst, text, face, op)
 }
 

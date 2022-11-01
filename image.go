@@ -102,8 +102,16 @@ type DrawImageOptions struct {
 	// The default (zero) value is identity, which draws the image at (0, 0).
 	GeoM GeoM
 
+	// ColorScale is a scale of color.
+	// ColorScale is slightly different from ColorM's Scale in terms of alphas:
+	// ColorScale is applied to premultiplied-alpha colors, while ColorM is applied to straight-alpha colors.
+	// The default (zero) value is identity, which is (1, 1, 1, 1).
+	ColorScale ColorScale
+
 	// ColorM is a color matrix to draw.
 	// The default (zero) value is identity, which doesn't change any color.
+	//
+	// Deprecated: as of v2.5. Use ColorScale or the package colorm instead.
 	ColorM ColorM
 
 	// CompositeMode is a composite mode to draw.
@@ -231,6 +239,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	sx0, sy0 := img.adjustPosition(bounds.Min.X, bounds.Min.Y)
 	sx1, sy1 := img.adjustPosition(bounds.Max.X, bounds.Max.Y)
 	colorm, cr, cg, cb, ca := colorMToScale(options.ColorM.affineColorM())
+	cr, cg, cb, ca = options.ColorScale.apply(cr, cg, cb, ca)
 	vs := graphics.QuadVertices(float32(sx0), float32(sy0), float32(sx1), float32(sy1), a, b, c, d, tx, ty, cr, cg, cb, ca)
 	is := graphics.QuadIndices()
 
@@ -324,9 +333,12 @@ type DrawTrianglesOptions struct {
 	// ColorM is a color matrix to draw.
 	// The default (zero) value is identity, which doesn't change any color.
 	// ColorM is applied before vertex color scale is applied.
+	//
+	// Deprecated: as of v2.5. Use the package colorm instead.
 	ColorM ColorM
 
 	// ColorScaleMode is the mode of color scales in vertices.
+	// ColorScaleMode affects the color calculation with vertex colors, but doesn't affect with a color matrix.
 	// The default (zero) value is ColorScaleModeStraightAlpha.
 	ColorScaleMode ColorScaleMode
 

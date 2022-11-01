@@ -127,20 +127,20 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			op.GeoM.Reset()
 			op.GeoM.Translate(x, y)
 			op.GeoM.Translate(gl.X, gl.Y)
-			op.ColorM.Reset()
-			r := 1.0
+			op.ColorScale.Reset()
+			r := float32(1)
 			if i%3 == 0 {
 				r = 0.5
 			}
-			g := 1.0
+			g := float32(1)
 			if i%3 == 1 {
 				g = 0.5
 			}
-			b := 1.0
+			b := float32(1)
 			if i%3 == 2 {
 				b = 0.5
 			}
-			op.ColorM.Scale(r, g, b, 1)
+			op.ColorScale.Scale(r, g, b, 1)
 			screen.DrawImage(gl.Image, op)
 		}
 	}

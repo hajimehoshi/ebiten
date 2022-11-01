@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/colorm"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
@@ -148,17 +149,17 @@ func NewGameScene() *GameScene {
 }
 
 var (
-	lightGray ebiten.ColorM
+	lightGray colorm.ColorM
 )
 
 func init() {
-	id := ebiten.ColorM{}
+	var id colorm.ColorM
 
-	mono := ebiten.ColorM{}
+	var mono colorm.ColorM
 	mono.ChangeHSV(0, 0, 1)
 
-	for j := 0; j < ebiten.ColorMDim-1; j++ {
-		for i := 0; i < ebiten.ColorMDim-1; i++ {
+	for j := 0; j < colorm.Dim-1; j++ {
+		for i := 0; i < colorm.Dim-1; i++ {
 			lightGray.SetElement(i, j, mono.Element(i, j)*0.7+id.Element(i, j)*0.3)
 		}
 	}
@@ -177,13 +178,12 @@ func (s *GameScene) drawBackground(r *ebiten.Image) {
 		scale = scaleH
 	}
 
-	op := &ebiten.DrawImageOptions{}
+	op := &colorm.DrawImageOptions{}
 	op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
 	op.GeoM.Scale(scale, scale)
 	op.GeoM.Translate(ScreenWidth/2, ScreenHeight/2)
-	op.ColorM = lightGray
 	op.Filter = ebiten.FilterLinear
-	r.DrawImage(imageGameBG, op)
+	colorm.DrawImage(r, imageGameBG, lightGray, op)
 }
 
 const (
