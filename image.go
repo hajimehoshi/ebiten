@@ -267,7 +267,7 @@ type Vertex struct {
 	// ColorR/ColorG/ColorB/ColorA represents color scaling values.
 	// Their interpretation depends on the concrete draw call used:
 	// - DrawTriangles: straight-alpha or premultiplied-alpha encoded color multiplier.
-	//   The format is determined by ColorScaleFormat in DrawTrianglesOptions.
+	//   The format is determined by ColorScaleMode in DrawTrianglesOptions.
 	//   If ColorA is 0, the vertex is fully transparent and color is ignored.
 	//   If ColorA is 1, the vertex has the color (ColorR, ColorG, ColorB).
 	//   Vertex colors are converted to premultiplied-alpha internally and
@@ -306,17 +306,17 @@ const (
 	EvenOdd
 )
 
-// ColorScaleFormat is the format of color scales in vertices.
-type ColorScaleFormat int
+// ColorScaleMode is the mode of color scales in vertices.
+type ColorScaleMode int
 
 const (
-	// ColorScaleFormatStraightAlpha indicates color scales in vertices are
+	// ColorScaleModeStraightAlpha indicates color scales in vertices are
 	// straight-alpha encoded color multiplier.
-	ColorScaleFormatStraightAlpha ColorScaleFormat = iota
+	ColorScaleModeStraightAlpha ColorScaleMode = iota
 
-	// ColorScaleFormatStraightAlpha indicates color scales in vertices are
+	// ColorScaleModeStraightAlpha indicates color scales in vertices are
 	// premultiplied-alpha encoded color multiplier.
-	ColorScaleFormatPremultipliedAlpha
+	ColorScaleModePremultipliedAlpha
 )
 
 // DrawTrianglesOptions represents options for DrawTriangles.
@@ -326,9 +326,9 @@ type DrawTrianglesOptions struct {
 	// ColorM is applied before vertex color scale is applied.
 	ColorM ColorM
 
-	// ColorScaleFormat is the format of color scales in vertices.
-	// The default (zero) value is ColorScaleFormatStraightAlpha.
-	ColorScaleFormat ColorScaleFormat
+	// ColorScaleMode is the format of color scales in vertices.
+	// The default (zero) value is ColorScaleModeStraightAlpha.
+	ColorScaleMode ColorScaleMode
 
 	// CompositeMode is a composite mode to draw.
 	// The default (zero) value is CompositeModeCustom (Blend is used).
@@ -435,7 +435,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	vs := graphics.Vertices(len(vertices))
 	dst := i
-	if options.ColorScaleFormat == ColorScaleFormatStraightAlpha {
+	if options.ColorScaleMode == ColorScaleModeStraightAlpha {
 		for i, v := range vertices {
 			dx, dy := dst.adjustPositionF32(v.DstX, v.DstY)
 			vs[i*graphics.VertexFloatCount] = dx
