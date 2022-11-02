@@ -19,7 +19,7 @@ type (
 	CloseCallback           func(window uintptr)
 	FramebufferSizeCallback func(window uintptr, width int, height int)
 	MonitorCallback         func(monitor uintptr, event PeripheralEvent)
-	ScrollCallback          func(window uintptr, xoff *float64, yoff *float64)
+	ScrollCallback          func(window uintptr, xoff float64, yoff float64)
 	SizeCallback            func(window uintptr, width int, height int)
 )
 
