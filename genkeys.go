@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build ignore
-// +build ignore
 
 // The key name convention follows the Web standard: https://www.w3.org/TR/uievents-code/#keyboard-key-codes
 
@@ -822,15 +821,11 @@ func main() {
 		buildTag := ""
 		switch path {
 		case filepath.Join("internal", "glfw", "keys.go"):
-			buildTag = "//go:build !js" +
-				"\n// +build !js"
+			buildTag = "//go:build !js"
 		case filepath.Join("internal", "ui", "keys_mobile.go"):
-			buildTag = "//go:build (android || ios) && !nintendosdk" +
-				"\n// +build android ios" +
-				"\n// +build !nintendosdk"
+			buildTag = "//go:build (android || ios) && !nintendosdk"
 		case filepath.Join("internal", "ui", "keys_glfw.go"):
-			buildTag = "//go:build !android && !ios && !js && !nintendosdk" +
-				"\n// +build !android,!ios,!js,!nintendosdk"
+			buildTag = "//go:build !android && !ios && !js && !nintendosdk"
 		}
 		// NOTE: According to godoc, maps are automatically sorted by key.
 		if err := tmpl.Execute(f, struct {

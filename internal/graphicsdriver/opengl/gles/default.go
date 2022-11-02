@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build android || ios || opengles
-// +build android ios opengles
 
 package gles
 

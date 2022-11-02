@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build !android && !ios && !js && !nintendosdk && !ebitenginesinglethread && !ebitensinglethread
-// +build !android,!ios,!js,!nintendosdk,!ebitenginesinglethread,!ebitensinglethread
 
 package ui
 

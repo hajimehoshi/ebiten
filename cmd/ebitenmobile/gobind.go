@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build ebitenmobilegobind
-// +build ebitenmobilegobind
 
 // gobind is a wrapper of the original gobind. This command adds extra files like a view controller.
 package main

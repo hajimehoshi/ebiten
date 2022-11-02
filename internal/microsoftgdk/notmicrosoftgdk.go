@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build !windows || !microsoftgdk
-// +build !windows !microsoftgdk
 
 package microsoftgdk
 

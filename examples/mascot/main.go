@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build example
-// +build example
 
 // Mascot is a desktop mascot on cross platforms.
 // This is inspired by mattn's gopher (https://github.com/mattn/gopher).

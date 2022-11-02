@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build !android && !ios && !js
-// +build !android,!ios,!js
 
 package ebitenutil
 

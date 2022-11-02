@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build example && !js
-// +build example,!js
 
 package main
 

@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build ignore
-// +build ignore
 
 // Reference: a public domain CRT effect
 // https://github.com/libretro/glsl-shaders/blob/master/crt/shaders/crt-lottes.glsl

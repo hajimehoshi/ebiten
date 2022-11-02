@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build !ebitenginedebug && !ebitendebug
-// +build !ebitenginedebug,!ebitendebug
 
 package debug
 

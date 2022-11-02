@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build ignore
-// +build ignore
 
 package main
 
@@ -32,7 +31,7 @@ func init() {
 		h = 2
 	)
 
-	//src2 := ebiten.NewImage(1, 1)
+	// src2 := ebiten.NewImage(1, 1)
 
 	src0 := ebiten.NewImage(w, h)
 	src0.Fill(color.RGBA{0xff, 0xff, 0xff, 0xff})

@@ -22,7 +22,6 @@
 // DEALINGS IN THE SOFTWARE.
 
 //go:build example
-// +build example
 
 package main
 
