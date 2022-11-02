@@ -31,6 +31,10 @@ jobs:
           go-version: ${{ matrix.go }}
           cache: true
 
+      - name: Install govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+
       - name: Install dependencies
         if: ${{ startsWith(matrix.os, 'ubuntu-') }}
         run: |
@@ -39,4 +43,5 @@ jobs:
 
       - name: govulncheck
         run: |
-          go run golang.org/x/vuln/cmd/govulncheck@latest -tags=example ./...
+          govulncheck -tags=example ./...
+          env GOOS=js GOARCH=wasm govulncheck -tags=example ./...
