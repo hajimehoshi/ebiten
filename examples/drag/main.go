@@ -134,7 +134,7 @@ type Stroke struct {
 
 	// draggingObject represents a object (sprite in this case)
 	// that is being dragged.
-	draggingObject interface{}
+	draggingObject any
 }
 
 func NewStroke(source StrokeSource) *Stroke {
@@ -175,11 +175,11 @@ func (s *Stroke) PositionDiff() (int, int) {
 	return dx, dy
 }
 
-func (s *Stroke) DraggingObject() interface{} {
+func (s *Stroke) DraggingObject() any {
 	return s.draggingObject
 }
 
-func (s *Stroke) SetDraggingObject(object interface{}) {
+func (s *Stroke) SetDraggingObject(object any) {
 	s.draggingObject = object
 }
 

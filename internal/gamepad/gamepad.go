@@ -173,7 +173,7 @@ func (g *gamepads) setNativeWindow(nativeWindow uintptr) {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	var n interface{} = g.native
+	var n any = g.native
 	if n, ok := n.(interface{ setNativeWindow(uintptr) }); ok {
 		n.setNativeWindow(nativeWindow)
 	}

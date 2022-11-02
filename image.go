@@ -243,7 +243,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		var body [16]float32
 		var translation [4]float32
 		colorm.Elements(body[:], translation[:])
-		uniforms = shader.convertUniforms(map[string]interface{}{
+		uniforms = shader.convertUniforms(map[string]any{
 			builtinshader.UniformColorMBody:        body[:],
 			builtinshader.UniformColorMTranslation: translation[:],
 		})
@@ -474,7 +474,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		var body [16]float32
 		var translation [4]float32
 		colorm.Elements(body[:], translation[:])
-		uniforms = shader.convertUniforms(map[string]interface{}{
+		uniforms = shader.convertUniforms(map[string]any{
 			builtinshader.UniformColorMBody:        body[:],
 			builtinshader.UniformColorMTranslation: translation[:],
 		})
@@ -502,7 +502,7 @@ type DrawTrianglesShaderOptions struct {
 	// If the uniform variable type is an array, a vector or a matrix,
 	// you have to specify linearly flattened values as a slice.
 	// For example, if the uniform variable type is [4]vec4, the number of the slice values will be 16.
-	Uniforms map[string]interface{}
+	Uniforms map[string]any
 
 	// Images is a set of the source images.
 	// All the images' sizes must be the same.
@@ -662,7 +662,7 @@ type DrawRectShaderOptions struct {
 	// If the uniform variable type is an array, a vector or a matrix,
 	// you have to specify linearly flattened values as a slice.
 	// For example, if the uniform variable type is [4]vec4, the number of the slice values will be 16.
-	Uniforms map[string]interface{}
+	Uniforms map[string]any
 
 	// Images is a set of the source images.
 	// All the images' sizes must be the same.

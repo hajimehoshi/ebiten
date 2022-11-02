@@ -499,7 +499,7 @@ func TestShaderUniformFirstElement(t *testing.T) {
 	shaders := []struct {
 		Name     string
 		Shader   string
-		Uniforms map[string]interface{}
+		Uniforms map[string]any
 	}{
 		{
 			Name: "float array",
@@ -510,7 +510,7 @@ var C [2]float
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	return vec4(C[0], 1, 1, 1)
 }`,
-			Uniforms: map[string]interface{}{
+			Uniforms: map[string]any{
 				"C": []float32{1, 1},
 			},
 		},
@@ -523,7 +523,7 @@ var C [1]float
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	return vec4(C[0], 1, 1, 1)
 }`,
-			Uniforms: map[string]interface{}{
+			Uniforms: map[string]any{
 				"C": []float32{1},
 			},
 		},
@@ -536,7 +536,7 @@ var C [2]mat2
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	return vec4(C[0][0][0], 1, 1, 1)
 }`,
-			Uniforms: map[string]interface{}{
+			Uniforms: map[string]any{
 				"C": []float32{1, 0, 0, 0, 0, 0, 0, 0},
 			},
 		},
@@ -745,7 +745,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 
 	op := &ebiten.DrawRectShaderOptions{}
-	op.Uniforms = map[string]interface{}{
+	op.Uniforms = map[string]any{
 		"Mat2": []float32{
 			1.0 / 256.0, 2.0 / 256.0,
 			3.0 / 256.0, 4.0 / 256.0,
@@ -783,7 +783,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 
 	op := &ebiten.DrawRectShaderOptions{}
-	op.Uniforms = map[string]interface{}{
+	op.Uniforms = map[string]any{
 		"Mat2": []float32{
 			1.0 / 256.0, 2.0 / 256.0,
 			3.0 / 256.0, 4.0 / 256.0,
@@ -823,7 +823,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 
 	op := &ebiten.DrawRectShaderOptions{}
-	op.Uniforms = map[string]interface{}{
+	op.Uniforms = map[string]any{
 		"Mat3": []float32{
 			1.0 / 256.0, 2.0 / 256.0, 3.0 / 256.0,
 			4.0 / 256.0, 5.0 / 256.0, 6.0 / 256.0,
@@ -862,7 +862,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 
 	op := &ebiten.DrawRectShaderOptions{}
-	op.Uniforms = map[string]interface{}{
+	op.Uniforms = map[string]any{
 		"Mat3": []float32{
 			1.0 / 256.0, 2.0 / 256.0, 3.0 / 256.0,
 			4.0 / 256.0, 5.0 / 256.0, 6.0 / 256.0,
@@ -904,7 +904,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 
 	op := &ebiten.DrawRectShaderOptions{}
-	op.Uniforms = map[string]interface{}{
+	op.Uniforms = map[string]any{
 		"Mat4": []float32{
 			1.0 / 256.0, 2.0 / 256.0, 3.0 / 256.0, 4.0 / 256.0,
 			5.0 / 256.0, 6.0 / 256.0, 7.0 / 256.0, 8.0 / 256.0,
@@ -944,7 +944,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 
 	op := &ebiten.DrawRectShaderOptions{}
-	op.Uniforms = map[string]interface{}{
+	op.Uniforms = map[string]any{
 		"Mat4": []float32{
 			1.0 / 256.0, 2.0 / 256.0, 3.0 / 256.0, 4.0 / 256.0,
 			5.0 / 256.0, 6.0 / 256.0, 7.0 / 256.0, 8.0 / 256.0,

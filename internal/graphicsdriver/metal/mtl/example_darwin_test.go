@@ -86,7 +86,7 @@ func Example_listDevices() {
 
 // printJSON prints label, then v as JSON encoded with indent to stdout. It panics on any error.
 // It's meant to be used by examples to print the output.
-func printJSON(label string, v interface{}) {
+func printJSON(label string, v any) {
 	fmt.Print(label)
 	w := json.NewEncoder(os.Stdout)
 	w.SetIndent("", "\t")
