@@ -858,6 +858,9 @@ func (i *Image) at(x, y int) (r, g, b, a byte) {
 		return 0, 0, 0, 0
 	}
 	x, y = i.adjustPosition(x, y)
+	if i.isSubImage() {
+		i = i.original
+	}
 	if c, ok := i.setVerticesCache[[2]int{x, y}]; ok {
 		return c[0], c[1], c[2], c[3]
 	}

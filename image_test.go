@@ -3433,3 +3433,15 @@ func TestImageTooManyConstantBuffersInDirectX(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+// Issue #2428
+func TestImageSetAndSubImage(t *testing.T) {
+	const w, h = 16, 16
+	img := ebiten.NewImage(w, h)
+	img.Set(1, 1, color.RGBA{0xff, 0, 0, 0xff})
+	got := img.SubImage(image.Rect(0, 0, w, h)).At(1, 1).(color.RGBA)
+	want := color.RGBA{0xff, 0, 0, 0xff}
+	if got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
