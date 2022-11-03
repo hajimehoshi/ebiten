@@ -156,7 +156,9 @@ func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 	runOnRenderingThread(func() {
 		err = q.flush(graphicsDriver, endFrame)
 	})
-	q.float32sBuffer = q.float32sBuffer[:0]
+	if endFrame {
+		q.float32sBuffer = q.float32sBuffer[:0]
+	}
 	return
 }
 
