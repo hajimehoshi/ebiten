@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
@@ -72,7 +73,8 @@ func (s *Shader) ConvertUniforms(uniforms map[string]any) [][]float32 {
 		}
 	}
 
-	us := make([][]float32, len(s.uniformNameToIndex))
+	// Allocate a new slice with an extra capacity. This slice's length is extended at internal/graphicscommand.
+	us := make([][]float32, len(s.uniformNameToIndex), len(s.uniformNameToIndex)+graphics.PreservedUniformVariablesCount)
 	for name, idx := range s.uniformNameToIndex {
 		if v, ok := nameToF32s[name]; ok {
 			us[idx] = v
