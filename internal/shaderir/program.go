@@ -363,25 +363,25 @@ func IsValidSwizzling(s string) bool {
 	return false
 }
 
-func (p *Program) ReferredFuncIndicesInVertexShader() []int {
-	return p.referredFuncIndicesInBlockEntryPoint(p.VertexFunc.Block)
+func (p *Program) ReachableFuncIndicesFromVertexShader() []int {
+	return p.reachableFuncIndicesFromBlockEntryPoint(p.VertexFunc.Block)
 }
 
-func (p *Program) ReferredFuncIndicesInFragmentShader() []int {
-	return p.referredFuncIndicesInBlockEntryPoint(p.FragmentFunc.Block)
+func (p *Program) ReachableFuncIndicesFromFragmentShader() []int {
+	return p.reachableFuncIndicesFromBlockEntryPoint(p.FragmentFunc.Block)
 }
 
-func (p *Program) referredFuncIndicesInBlockEntryPoint(b *Block) []int {
+func (p *Program) reachableFuncIndicesFromBlockEntryPoint(b *Block) []int {
 	indexToFunc := map[int]*Func{}
 	for _, f := range p.Funcs {
 		f := f
 		indexToFunc[f.Index] = &f
 	}
 	visited := map[int]struct{}{}
-	return referredFuncIndicesInBlock(b, indexToFunc, visited)
+	return reachableFuncIndicesFromBlock(b, indexToFunc, visited)
 }
 
-func referredFuncIndicesInBlock(b *Block, indexToFunc map[int]*Func, visited map[int]struct{}) []int {
+func reachableFuncIndicesFromBlock(b *Block, indexToFunc map[int]*Func, visited map[int]struct{}) []int {
 	if b == nil {
 		return nil
 	}
@@ -390,27 +390,27 @@ func referredFuncIndicesInBlock(b *Block, indexToFunc map[int]*Func, visited map
 
 	for _, s := range b.Stmts {
 		for _, e := range s.Exprs {
-			fs = append(fs, referredFuncIndicesInExpr(&e, indexToFunc, visited)...)
+			fs = append(fs, reachableFuncIndicesFromExpr(&e, indexToFunc, visited)...)
 		}
 		for _, bb := range s.Blocks {
-			fs = append(fs, referredFuncIndicesInBlock(bb, indexToFunc, visited)...)
+			fs = append(fs, reachableFuncIndicesFromBlock(bb, indexToFunc, visited)...)
 		}
 	}
 	return fs
 }
 
-func referredFuncIndicesInExpr(e *Expr, indexToFunc map[int]*Func, visited map[int]struct{}) []int {
+func reachableFuncIndicesFromExpr(e *Expr, indexToFunc map[int]*Func, visited map[int]struct{}) []int {
 	var fs []int
 
 	if e.Type == FunctionExpr {
 		if _, ok := visited[e.Index]; !ok {
 			fs = append(fs, e.Index)
 			visited[e.Index] = struct{}{}
-			fs = append(fs, referredFuncIndicesInBlock(indexToFunc[e.Index].Block, indexToFunc, visited)...)
+			fs = append(fs, reachableFuncIndicesFromBlock(indexToFunc[e.Index].Block, indexToFunc, visited)...)
 		}
 	}
 	for _, ee := range e.Exprs {
-		fs = append(fs, referredFuncIndicesInExpr(&ee, indexToFunc, visited)...)
+		fs = append(fs, reachableFuncIndicesFromExpr(&ee, indexToFunc, visited)...)
 	}
 	return fs
 }

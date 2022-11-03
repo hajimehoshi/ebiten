@@ -136,7 +136,7 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 
 		var funcs []*shaderir.Func
 		if p.VertexFunc.Block != nil {
-			indices := p.ReferredFuncIndicesInVertexShader()
+			indices := p.ReachableFuncIndicesFromVertexShader()
 			sort.Ints(indices)
 			funcs = make([]*shaderir.Func, 0, len(indices))
 			for _, idx := range indices {
@@ -234,7 +234,7 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 
 		var funcs []*shaderir.Func
 		if p.VertexFunc.Block != nil {
-			indices := p.ReferredFuncIndicesInFragmentShader()
+			indices := p.ReachableFuncIndicesFromFragmentShader()
 			sort.Ints(indices)
 			funcs = make([]*shaderir.Func, 0, len(indices))
 			for _, idx := range indices {
