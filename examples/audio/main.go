@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build example
-
 // This is an example to implement an audio player.
 // See examples/wav for a simpler example to play a sound file.
 
