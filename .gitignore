@@ -4,3 +4,4 @@
 *.apk
 *.tar.gz
 .vscode
+.idea
