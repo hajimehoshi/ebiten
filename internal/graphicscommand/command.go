@@ -70,6 +70,8 @@ type commandQueue struct {
 	tmpNumIndices      int
 
 	drawTrianglesCommandPool drawTrianglesCommandPool
+
+	float32sBuffer []float32
 }
 
 // theCommandQueue is the command queue for the current process.
@@ -108,7 +110,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	q.tmpNumVertexFloats += len(vertices)
 	q.tmpNumIndices += len(indices)
 
-	uniforms = prependPreservedUniforms(uniforms, dst, srcs, offsets, dstRegion, srcRegion)
+	uniforms = q.prependPreservedUniforms(uniforms, dst, srcs, offsets, dstRegion, srcRegion)
 
 	// Remove unused uniform variables so that more commands can be merged.
 	shader.ir.FilterUniformVariables(uniforms)
@@ -154,6 +156,7 @@ func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 	runOnRenderingThread(func() {
 		err = q.flush(graphicsDriver, endFrame)
 	})
+	q.float32sBuffer = q.float32sBuffer[:0]
 	return
 }
 
@@ -559,15 +562,44 @@ func MaxImageSize(graphicsDriver graphicsdriver.Graphics) int {
 	return size
 }
 
-func prependPreservedUniforms(uniforms [][]float32, dst *Image, srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, dstRegion, srcRegion graphicsdriver.Region) [][]float32 {
-	uniforms = append(make([][]float32, graphics.PreservedUniformVariablesCount), uniforms...)
+func max(a, b int) int {
+	if a < b {
+		return b
+	}
+	return a
+}
+
+func roundUpPower2(x int) int {
+	p2 := 1
+	for p2 < x {
+		p2 *= 2
+	}
+	return p2
+}
+
+func (q *commandQueue) allocFloat32s(n int) []float32 {
+	buf := q.float32sBuffer
+	if len(buf)+n > cap(buf) {
+		buf = make([]float32, 0, max(roundUpPower2(len(buf)+n), 16))
+	}
+	s := buf[len(buf) : len(buf)+n]
+	q.float32sBuffer = buf[:len(buf)+n]
+	return s
+}
+
+func (q *commandQueue) prependPreservedUniforms(uniforms [][]float32, dst *Image, srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, dstRegion, srcRegion graphicsdriver.Region) [][]float32 {
+	uniforms = append(uniforms, make([][]float32, graphics.PreservedUniformVariablesCount)...)
+	copy(uniforms[graphics.PreservedUniformVariablesCount:], uniforms)
 
 	// Set the destination texture size.
 	dw, dh := dst.InternalSize()
-	uniforms[graphics.TextureDestinationSizeUniformVariableIndex] = []float32{float32(dw), float32(dh)}
+	udstsize := q.allocFloat32s(2)
+	udstsize[0] = float32(dw)
+	udstsize[1] = float32(dh)
+	uniforms[graphics.TextureDestinationSizeUniformVariableIndex] = udstsize
 
 	// Set the source texture sizes.
-	usizes := make([]float32, 2*len(srcs))
+	usizes := q.allocFloat32s(2 * len(srcs))
 	for i, src := range srcs {
 		if src != nil {
 			w, h := src.InternalSize()
@@ -578,8 +610,15 @@ func prependPreservedUniforms(uniforms [][]float32, dst *Image, srcs [graphics.S
 	uniforms[graphics.TextureSourceSizesUniformVariableIndex] = usizes
 
 	// Set the destination region.
-	uniforms[graphics.TextureDestinationRegionOriginUniformVariableIndex] = []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
-	uniforms[graphics.TextureDestinationRegionSizeUniformVariableIndex] = []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
+	udstrorig := q.allocFloat32s(2)
+	udstrorig[0] = float32(dstRegion.X) / float32(dw)
+	udstrorig[1] = float32(dstRegion.Y) / float32(dh)
+	uniforms[graphics.TextureDestinationRegionOriginUniformVariableIndex] = udstrorig
+
+	udstrsize := q.allocFloat32s(2)
+	udstrsize[0] = float32(dstRegion.Width) / float32(dw)
+	udstrsize[1] = float32(dstRegion.Height) / float32(dh)
+	uniforms[graphics.TextureDestinationRegionSizeUniformVariableIndex] = udstrsize
 
 	if srcs[0] != nil {
 		w, h := srcs[0].InternalSize()
@@ -594,7 +633,7 @@ func prependPreservedUniforms(uniforms [][]float32, dst *Image, srcs [graphics.S
 	}
 
 	// Set the source offsets.
-	uoffsets := make([]float32, 2*len(offsets))
+	uoffsets := q.allocFloat32s(2 * len(offsets))
 	for i, offset := range offsets {
 		uoffsets[2*i] = offset[0]
 		uoffsets[2*i+1] = offset[1]
@@ -602,15 +641,34 @@ func prependPreservedUniforms(uniforms [][]float32, dst *Image, srcs [graphics.S
 	uniforms[graphics.TextureSourceOffsetsUniformVariableIndex] = uoffsets
 
 	// Set the source region of texture0.
-	uniforms[graphics.TextureSourceRegionOriginUniformVariableIndex] = []float32{float32(srcRegion.X), float32(srcRegion.Y)}
-	uniforms[graphics.TextureSourceRegionSizeUniformVariableIndex] = []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
+	usrcrorig := q.allocFloat32s(2)
+	usrcrorig[0] = float32(srcRegion.X)
+	usrcrorig[1] = float32(srcRegion.Y)
+	uniforms[graphics.TextureSourceRegionOriginUniformVariableIndex] = usrcrorig
 
-	uniforms[graphics.ProjectionMatrixUniformVariableIndex] = []float32{
-		2 / float32(dw), 0, 0, 0,
-		0, 2 / float32(dh), 0, 0,
-		0, 0, 1, 0,
-		-1, -1, 0, 1,
-	}
+	usrcrsize := q.allocFloat32s(2)
+	usrcrsize[0] = float32(srcRegion.Width)
+	usrcrsize[1] = float32(srcRegion.Height)
+	uniforms[graphics.TextureSourceRegionSizeUniformVariableIndex] = usrcrsize
+
+	umatrix := q.allocFloat32s(16)
+	umatrix[0] = 2 / float32(dw)
+	umatrix[1] = 0
+	umatrix[2] = 0
+	umatrix[3] = 0
+	umatrix[4] = 0
+	umatrix[5] = 2 / float32(dh)
+	umatrix[6] = 0
+	umatrix[7] = 0
+	umatrix[8] = 0
+	umatrix[9] = 0
+	umatrix[10] = 1
+	umatrix[11] = 0
+	umatrix[12] = -1
+	umatrix[13] = -1
+	umatrix[14] = 0
+	umatrix[15] = 1
+	uniforms[graphics.ProjectionMatrixUniformVariableIndex] = umatrix
 
 	return uniforms
 }
