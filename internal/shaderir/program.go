@@ -18,6 +18,7 @@ package shaderir
 import (
 	"go/constant"
 	"go/token"
+	"sort"
 	"strings"
 )
 
@@ -363,22 +364,28 @@ func IsValidSwizzling(s string) bool {
 	return false
 }
 
-func (p *Program) ReachableFuncIndicesFromVertexShader() []int {
-	return p.reachableFuncIndicesFromBlockEntryPoint(p.VertexFunc.Block)
+func (p *Program) ReachableFuncsFromVertexShader() []*Func {
+	return p.reachableFuncsFromBlockEntryPoint(p.VertexFunc.Block)
 }
 
-func (p *Program) ReachableFuncIndicesFromFragmentShader() []int {
-	return p.reachableFuncIndicesFromBlockEntryPoint(p.FragmentFunc.Block)
+func (p *Program) ReachableFuncsFromFragmentShader() []*Func {
+	return p.reachableFuncsFromBlockEntryPoint(p.FragmentFunc.Block)
 }
 
-func (p *Program) reachableFuncIndicesFromBlockEntryPoint(b *Block) []int {
+func (p *Program) reachableFuncsFromBlockEntryPoint(b *Block) []*Func {
 	indexToFunc := map[int]*Func{}
 	for _, f := range p.Funcs {
 		f := f
 		indexToFunc[f.Index] = &f
 	}
 	visited := map[int]struct{}{}
-	return reachableFuncIndicesFromBlock(b, indexToFunc, visited)
+	indices := reachableFuncIndicesFromBlock(b, indexToFunc, visited)
+	sort.Ints(indices)
+	funcs := make([]*Func, 0, len(indices))
+	for _, i := range indices {
+		funcs = append(funcs, indexToFunc[i])
+	}
+	return funcs
 }
 
 func reachableFuncIndicesFromBlock(b *Block, indexToFunc map[int]*Func, visited map[int]struct{}) []int {
