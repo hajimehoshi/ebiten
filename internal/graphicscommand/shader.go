@@ -21,10 +21,13 @@ import (
 
 type Shader struct {
 	shader graphicsdriver.Shader
+	ir     *shaderir.Program
 }
 
 func NewShader(ir *shaderir.Program) *Shader {
-	s := &Shader{}
+	s := &Shader{
+		ir: ir,
+	}
 	c := &newShaderCommand{
 		result: s,
 		ir:     ir,

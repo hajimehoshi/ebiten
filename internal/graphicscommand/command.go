@@ -110,6 +110,20 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 
 	uniforms = prependPreservedUniforms(uniforms, dst, srcs, offsets, dstRegion, srcRegion)
 
+	// Remove unused uniform variables so that more commands can be merged.
+	uvs := map[int]struct{}{}
+	for _, i := range shader.ir.ReachableUniformVariablesFromBlock(shader.ir.VertexFunc.Block) {
+		uvs[i] = struct{}{}
+	}
+	for _, i := range shader.ir.ReachableUniformVariablesFromBlock(shader.ir.FragmentFunc.Block) {
+		uvs[i] = struct{}{}
+	}
+	for i := range uniforms {
+		if _, ok := uvs[i]; !ok {
+			uniforms[i] = nil
+		}
+	}
+
 	// TODO: If dst is the screen, reorder the command to be the last.
 	if !split && 0 < len(q.commands) {
 		if last, ok := q.commands[len(q.commands)-1].(*drawTrianglesCommand); ok {
@@ -575,7 +589,6 @@ func prependPreservedUniforms(uniforms [][]float32, dst *Image, srcs [graphics.S
 	uniforms[graphics.TextureSourceSizesUniformVariableIndex] = usizes
 
 	// Set the destination region.
-	// TODO: Set them only when the shader refers this (#2232).
 	uniforms[graphics.TextureDestinationRegionOriginUniformVariableIndex] = []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
 	uniforms[graphics.TextureDestinationRegionSizeUniformVariableIndex] = []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
 
@@ -600,7 +613,6 @@ func prependPreservedUniforms(uniforms [][]float32, dst *Image, srcs [graphics.S
 	uniforms[graphics.TextureSourceOffsetsUniformVariableIndex] = uoffsets
 
 	// Set the source region of texture0.
-	// TODO: Set them only when the shader refers this (#2232).
 	uniforms[graphics.TextureSourceRegionOriginUniformVariableIndex] = []float32{float32(srcRegion.X), float32(srcRegion.Y)}
 	uniforms[graphics.TextureSourceRegionSizeUniformVariableIndex] = []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
 

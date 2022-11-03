@@ -129,7 +129,7 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 
 		var funcs []*shaderir.Func
 		if p.VertexFunc.Block != nil {
-			funcs = p.ReachableFuncsFromVertexShader()
+			funcs = p.ReachableFuncsFromBlock(p.VertexFunc.Block)
 		} else {
 			// When a vertex entry point is not defined, allow to put all the functions. This is useful for testing.
 			funcs = make([]*shaderir.Func, 0, len(p.Funcs))
@@ -222,7 +222,7 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 
 		var funcs []*shaderir.Func
 		if p.VertexFunc.Block != nil {
-			funcs = p.ReachableFuncsFromFragmentShader()
+			funcs = p.ReachableFuncsFromBlock(p.FragmentFunc.Block)
 		} else {
 			// When a fragment entry point is not defined, allow to put all the functions. This is useful for testing.
 			funcs = make([]*shaderir.Func, 0, len(p.Funcs))

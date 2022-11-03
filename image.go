@@ -249,7 +249,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, false, canSkipMipmap(options.GeoM, filter), false)
+	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), img.adjustedRegion(), [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, false, canSkipMipmap(options.GeoM, filter), false)
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -424,11 +424,6 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	}
 
 	address := builtinshader.Address(options.Address)
-	var sr graphicsdriver.Region
-	if address != builtinshader.AddressUnsafe {
-		sr = img.adjustedRegion()
-	}
-
 	filter := builtinshader.Filter(options.Filter)
 
 	colorm, cr, cg, cb, ca := colorMToScale(options.ColorM.affineColorM())
@@ -480,7 +475,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), sr, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, options.FillRule == EvenOdd, filter != builtinshader.FilterLinear, options.AntiAlias)
+	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), img.adjustedRegion(), [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, options.FillRule == EvenOdd, filter != builtinshader.FilterLinear, options.AntiAlias)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.

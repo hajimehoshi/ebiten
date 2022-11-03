@@ -364,15 +364,7 @@ func IsValidSwizzling(s string) bool {
 	return false
 }
 
-func (p *Program) ReachableFuncsFromVertexShader() []*Func {
-	return p.reachableFuncsFromBlockEntryPoint(p.VertexFunc.Block)
-}
-
-func (p *Program) ReachableFuncsFromFragmentShader() []*Func {
-	return p.reachableFuncsFromBlockEntryPoint(p.FragmentFunc.Block)
-}
-
-func (p *Program) reachableFuncsFromBlockEntryPoint(block *Block) []*Func {
+func (p *Program) ReachableFuncsFromBlock(block *Block) []*Func {
 	indexToFunc := map[int]*Func{}
 	for _, f := range p.Funcs {
 		f := f
@@ -426,4 +418,36 @@ func walkExprsInExpr(f func(expr *Expr), expr *Expr) {
 	for _, e := range expr.Exprs {
 		walkExprsInExpr(f, &e)
 	}
+}
+
+func (p *Program) ReachableUniformVariablesFromBlock(block *Block) []int {
+	indexToFunc := map[int]*Func{}
+	for _, f := range p.Funcs {
+		f := f
+		indexToFunc[f.Index] = &f
+	}
+
+	visitedFuncs := map[int]struct{}{}
+	indices := map[int]struct{}{}
+	var f func(expr *Expr)
+	f = func(expr *Expr) {
+		switch expr.Type {
+		case UniformVariable:
+			indices[expr.Index] = struct{}{}
+		case FunctionExpr:
+			if _, ok := visitedFuncs[expr.Index]; ok {
+				return
+			}
+			visitedFuncs[expr.Index] = struct{}{}
+			walkExprs(f, indexToFunc[expr.Index].Block)
+		}
+	}
+	walkExprs(f, block)
+
+	is := make([]int, 0, len(indices))
+	for i := range indices {
+		is = append(is, i)
+	}
+	sort.Ints(is)
+	return is
 }

@@ -484,6 +484,9 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion graph
 	g.rce.SetVertexBuffer(g.vb, 0, 0)
 
 	for i, u := range uniforms {
+		if u == nil {
+			continue
+		}
 		g.rce.SetVertexBytes(unsafe.Pointer(&u[0]), unsafe.Sizeof(u[0])*uintptr(len(u)), i+1)
 		g.rce.SetFragmentBytes(unsafe.Pointer(&u[0]), unsafe.Sizeof(u[0])*uintptr(len(u)), i+1)
 	}
