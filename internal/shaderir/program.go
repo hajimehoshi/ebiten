@@ -31,6 +31,8 @@ type Program struct {
 	Funcs        []Func
 	VertexFunc   VertexFunc
 	FragmentFunc FragmentFunc
+
+	reachableUniforms map[int]struct{}
 }
 
 type Func struct {
@@ -420,7 +422,7 @@ func walkExprsInExpr(f func(expr *Expr), expr *Expr) {
 	}
 }
 
-func (p *Program) ReachableUniformVariablesFromBlock(block *Block) []int {
+func (p *Program) reachableUniformVariablesFromBlock(block *Block) []int {
 	indexToFunc := map[int]*Func{}
 	for _, f := range p.Funcs {
 		f := f
@@ -450,4 +452,21 @@ func (p *Program) ReachableUniformVariablesFromBlock(block *Block) []int {
 	}
 	sort.Ints(is)
 	return is
+}
+
+func (p *Program) FilterUniformVariables(uniforms [][]float32) {
+	if p.reachableUniforms == nil {
+		p.reachableUniforms = map[int]struct{}{}
+		for _, i := range p.reachableUniformVariablesFromBlock(p.VertexFunc.Block) {
+			p.reachableUniforms[i] = struct{}{}
+		}
+		for _, i := range p.reachableUniformVariablesFromBlock(p.FragmentFunc.Block) {
+			p.reachableUniforms[i] = struct{}{}
+		}
+	}
+	for i := range uniforms {
+		if _, ok := p.reachableUniforms[i]; !ok {
+			uniforms[i] = nil
+		}
+	}
 }

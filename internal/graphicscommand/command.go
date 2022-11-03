@@ -111,18 +111,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	uniforms = prependPreservedUniforms(uniforms, dst, srcs, offsets, dstRegion, srcRegion)
 
 	// Remove unused uniform variables so that more commands can be merged.
-	uvs := map[int]struct{}{}
-	for _, i := range shader.ir.ReachableUniformVariablesFromBlock(shader.ir.VertexFunc.Block) {
-		uvs[i] = struct{}{}
-	}
-	for _, i := range shader.ir.ReachableUniformVariablesFromBlock(shader.ir.FragmentFunc.Block) {
-		uvs[i] = struct{}{}
-	}
-	for i := range uniforms {
-		if _, ok := uvs[i]; !ok {
-			uniforms[i] = nil
-		}
-	}
+	shader.ir.FilterUniformVariables(uniforms)
 
 	// TODO: If dst is the screen, reorder the command to be the last.
 	if !split && 0 < len(q.commands) {

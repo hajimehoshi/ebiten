@@ -12,11 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package shader_test
+package shaderir_test
 
 import (
+	"go/parser"
+	"go/token"
 	"testing"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/shader"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
+
+func compileToIR(src []byte) (*shaderir.Program, error) {
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, "", src, parser.AllErrors)
+	if err != nil {
+		return nil, err
+	}
+
+	ir, err := shader.Compile(fset, f, "Vertex", "Fragment", 0)
+	if err != nil {
+		return nil, err
+	}
+
+	return ir, nil
+}
 
 func areIntSlicesEqual(a, b []int) bool {
 	if len(a) != len(b) {
