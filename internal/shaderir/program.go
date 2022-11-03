@@ -372,15 +372,31 @@ func (p *Program) ReachableFuncsFromFragmentShader() []*Func {
 	return p.reachableFuncsFromBlockEntryPoint(p.FragmentFunc.Block)
 }
 
-func (p *Program) reachableFuncsFromBlockEntryPoint(b *Block) []*Func {
+func (p *Program) reachableFuncsFromBlockEntryPoint(block *Block) []*Func {
 	indexToFunc := map[int]*Func{}
 	for _, f := range p.Funcs {
 		f := f
 		indexToFunc[f.Index] = &f
 	}
+
 	visited := map[int]struct{}{}
-	indices := reachableFuncIndicesFromBlock(b, indexToFunc, visited)
+	var indices []int
+	var f func(expr *Expr)
+	f = func(expr *Expr) {
+		if expr.Type != FunctionExpr {
+			return
+		}
+		if _, ok := visited[expr.Index]; ok {
+			return
+		}
+		indices = append(indices, expr.Index)
+		visited[expr.Index] = struct{}{}
+		walkExprs(f, indexToFunc[expr.Index].Block)
+	}
+	walkExprs(f, block)
+
 	sort.Ints(indices)
+
 	funcs := make([]*Func, 0, len(indices))
 	for _, i := range indices {
 		funcs = append(funcs, indexToFunc[i])
@@ -388,36 +404,26 @@ func (p *Program) reachableFuncsFromBlockEntryPoint(b *Block) []*Func {
 	return funcs
 }
 
-func reachableFuncIndicesFromBlock(b *Block, indexToFunc map[int]*Func, visited map[int]struct{}) []int {
-	if b == nil {
-		return nil
+func walkExprs(f func(expr *Expr), block *Block) {
+	if block == nil {
+		return
 	}
-
-	var fs []int
-
-	for _, s := range b.Stmts {
+	for _, s := range block.Stmts {
 		for _, e := range s.Exprs {
-			fs = append(fs, reachableFuncIndicesFromExpr(&e, indexToFunc, visited)...)
+			walkExprsInExpr(f, &e)
 		}
-		for _, bb := range s.Blocks {
-			fs = append(fs, reachableFuncIndicesFromBlock(bb, indexToFunc, visited)...)
+		for _, b := range s.Blocks {
+			walkExprs(f, b)
 		}
 	}
-	return fs
 }
 
-func reachableFuncIndicesFromExpr(e *Expr, indexToFunc map[int]*Func, visited map[int]struct{}) []int {
-	var fs []int
-
-	if e.Type == FunctionExpr {
-		if _, ok := visited[e.Index]; !ok {
-			fs = append(fs, e.Index)
-			visited[e.Index] = struct{}{}
-			fs = append(fs, reachableFuncIndicesFromBlock(indexToFunc[e.Index].Block, indexToFunc, visited)...)
-		}
+func walkExprsInExpr(f func(expr *Expr), expr *Expr) {
+	if expr == nil {
+		return
 	}
-	for _, ee := range e.Exprs {
-		fs = append(fs, reachableFuncIndicesFromExpr(&ee, indexToFunc, visited)...)
+	f(expr)
+	for _, e := range expr.Exprs {
+		walkExprsInExpr(f, &e)
 	}
-	return fs
 }
