@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build android || ios
-// +build android ios
 
 // Package ebitenmobileview offers functions for OpenGL/Metal view of mobiles.
 //

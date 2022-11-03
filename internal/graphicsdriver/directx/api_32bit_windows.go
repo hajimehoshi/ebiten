@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build 386 || arm
-// +build 386 arm
 
 package directx
 

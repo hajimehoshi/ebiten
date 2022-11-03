@@ -13,8 +13,6 @@
 // limitations under the License.
 
 //go:build example && (microsoftgdk || nintendosdk)
-// +build example
-// +build microsoftgdk nintendosdk
 
 // This file is for some special environments using 'microsoftgdk' or 'nintendosdk'.
 // You usually don't have to care about this file.

@@ -116,8 +116,7 @@ func prepareGomobileCommands() (string, error) {
 
 	const (
 		modname   = "ebitenmobiletemporary"
-		buildtags = "//go:build tools" +
-			"\n// +build tools"
+		buildtags = "//go:build tools"
 	)
 	if err := runGo("mod", "init", modname); err != nil {
 		return tmp, err
