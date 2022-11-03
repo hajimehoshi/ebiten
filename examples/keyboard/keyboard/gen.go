@@ -295,7 +295,7 @@ func outputKeyRectsGo(k map[ebiten.Key]image.Rectangle) error {
 	if err != nil {
 		return err
 	}
-	return tmpl.Execute(f, map[string]interface{}{
+	return tmpl.Execute(f, map[string]any{
 		"License":     license,
 		"KeyRectsMap": k,
 	})

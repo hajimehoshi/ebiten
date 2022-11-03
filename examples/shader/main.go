@@ -147,7 +147,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	cx, cy := ebiten.CursorPosition()
 
 	op := &ebiten.DrawRectShaderOptions{}
-	op.Uniforms = map[string]interface{}{
+	op.Uniforms = map[string]any{
 		"Time":       float32(g.time) / 60,
 		"Cursor":     []float32{float32(cx), float32(cy)},
 		"ScreenSize": []float32{float32(w), float32(h)},

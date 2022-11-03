@@ -325,7 +325,7 @@ var eventTmpl = template.Must(template.New("event.go").Parse(`{{.License}}
 
 package {{.Package}}
 
-type Event interface{}
+type Event any
 
 {{range .Events}}// {{.Comment}}
 type {{.Name}} struct {
