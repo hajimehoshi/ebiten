@@ -303,7 +303,7 @@ func (g *Graphics) initializeXbox(useWARP bool, useDebugLayer bool) (ferr error)
 	}
 
 	params := &_D3D12XBOX_CREATE_DEVICE_PARAMETERS{
-		Version:                           _D3D12_SDK_VERSION, // TODO: Can we always use the same value?
+		Version:                           microsoftgdk.D3D12SDKVersion(),
 		GraphicsCommandQueueRingSizeBytes: _D3D12XBOX_DEFAULT_SIZE_BYTES,
 		GraphicsScratchMemorySizeBytes:    _D3D12XBOX_DEFAULT_SIZE_BYTES,
 		ComputeScratchMemorySizeBytes:     _D3D12XBOX_DEFAULT_SIZE_BYTES,

@@ -62,9 +62,6 @@ const (
 	_D3D12_MIN_DEPTH                         = 0.0
 	_D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION    = 16384
 	_D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES = 0xffffffff
-	_D3D12_SDK_VERSION                       = (_D3D12_SDK_VERSION_MAJOR << 16) | _D3D12_SDK_VERSION_MINOR
-	_D3D12_SDK_VERSION_MAJOR                 = 2
-	_D3D12_SDK_VERSION_MINOR                 = 4
 	_D3D12XBOX_DEFAULT_SIZE_BYTES            = 0xffffffff
 )
 

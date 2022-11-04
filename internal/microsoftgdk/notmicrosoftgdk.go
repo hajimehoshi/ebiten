@@ -27,3 +27,7 @@ func MonitorResolution() (int, int) {
 func D3D12DLLName() string {
 	return ""
 }
+
+func D3D12SDKVersion() uint32 {
+	return 0
+}
