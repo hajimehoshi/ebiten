@@ -749,8 +749,8 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 // If a sub-image is used as a rendering source, the image is used as if it is a small image.
 // If a sub-image is used as a rendering destination, the region being rendered is clipped.
 //
-// Successive uses of multiple various regions as rendering destination is efficient
-// when all the underlying images are the same.
+// Successive uses of multiple various regions as rendering destination is still efficient
+// when all the underlying images are the same, but some platforms like browsers might not work efficiently.
 func (i *Image) SubImage(r image.Rectangle) image.Image {
 	i.copyCheck()
 	if i.isDisposed() {
