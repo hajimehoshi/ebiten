@@ -1,4 +1,4 @@
-// Copyright 2019 The Ebiten Authors
+// Copyright 2022 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,13 +30,13 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-//go:embed bindings/EbitenViewController.m
+//go:embed _files/EbitenViewController.m
 var objcM string
 
-//go:embed bindings/EbitenView.java
+//go:embed _files/EbitenView.java
 var viewJava string
 
-//go:embed bindings/EbitenSurfaceView.java
+//go:embed _files/EbitenSurfaceView.java
 var surfaceViewJava string
 
 var (

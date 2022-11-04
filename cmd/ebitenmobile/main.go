@@ -1,4 +1,4 @@
-// Copyright 2019 The Ebiten Authors
+// Copyright 2022 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ const (
 	ebitenmobileCommand = "ebitenmobile"
 )
 
-//go:embed bindings/EbitenViewController.h
+//go:embed _files/EbitenViewController.h
 var objcH string
 
 func init() {

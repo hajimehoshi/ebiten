@@ -1,4 +1,4 @@
-// Copyright 2019 The Ebiten Authors
+// Copyright 2022 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,13 +30,13 @@ import (
 //go:embed gobind.go
 var gobind_go []byte
 
-//go:embed bindings/EbitenViewController.m
+//go:embed _files/EbitenViewController.m
 var objcM []byte
 
-//go:embed bindings/EbitenView.java
+//go:embed _files/EbitenView.java
 var viewJava []byte
 
-//go:embed bindings/EbitenSurfaceView.java
+//go:embed _files/EbitenSurfaceView.java
 var surfaceViewJava []byte
 
 func runCommand(command string, args []string, env []string) error {
@@ -178,16 +178,16 @@ import (
 		return tmp, err
 	}
 
-	if err := os.Mkdir(filepath.Join("src", "bindings"), 0755); err != nil {
+	if err := os.Mkdir(filepath.Join("src", "_files"), 0755); err != nil {
 		return tmp, err
 	}
-	if err := os.WriteFile(filepath.Join("src", "bindings", "EbitenViewController.m"), objcM, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join("src", "_files", "EbitenViewController.m"), objcM, 0644); err != nil {
 		return tmp, err
 	}
-	if err := os.WriteFile(filepath.Join("src", "bindings", "EbitenView.java"), viewJava, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join("src", "_files", "EbitenView.java"), viewJava, 0644); err != nil {
 		return tmp, err
 	}
-	if err := os.WriteFile(filepath.Join("src", "bindings", "EbitenSurfaceView.java"), surfaceViewJava, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join("src", "_files", "EbitenSurfaceView.java"), surfaceViewJava, 0644); err != nil {
 		return tmp, err
 	}
 
