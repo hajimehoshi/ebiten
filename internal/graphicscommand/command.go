@@ -71,7 +71,11 @@ type commandQueue struct {
 
 	drawTrianglesCommandPool drawTrianglesCommandPool
 
-	float32sBuffer []float32
+	// float32sBuffer is a reusable buffer to allocate []float32.
+	// float32sBuffer's index is switched at the end of the frame,
+	//  and the buffer of the original index is kept until the next frame ends.
+	float32sBuffer      [2][]float32
+	float32sBufferIndex int
 }
 
 // theCommandQueue is the command queue for the current process.
@@ -118,9 +122,16 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	// TODO: If dst is the screen, reorder the command to be the last.
 	if !split && 0 < len(q.commands) {
 		if last, ok := q.commands[len(q.commands)-1].(*drawTrianglesCommand); ok {
-			if last.CanMergeWithDrawTrianglesCommand(dst, srcs, vertices, blend, dstRegion, shader, uniforms, evenOdd) {
+			if last.CanMergeWithDrawTrianglesCommand(dst, srcs, vertices, blend, shader, uniforms, evenOdd) {
 				last.setVertices(q.lastVertices(len(vertices) + last.numVertices()))
-				last.addNumIndices(len(indices))
+				if last.dstRegions[len(last.dstRegions)-1].Region == dstRegion {
+					last.dstRegions[len(last.dstRegions)-1].IndexCount += len(indices)
+				} else {
+					last.dstRegions = append(last.dstRegions, graphicsdriver.DstRegion{
+						Region:     dstRegion,
+						IndexCount: len(indices),
+					})
+				}
 				return
 			}
 		}
@@ -130,9 +141,13 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	c.dst = dst
 	c.srcs = srcs
 	c.vertices = q.lastVertices(len(vertices))
-	c.nindices = len(indices)
 	c.blend = blend
-	c.dstRegion = dstRegion
+	c.dstRegions = []graphicsdriver.DstRegion{
+		{
+			Region:     dstRegion,
+			IndexCount: len(indices),
+		},
+	}
 	c.shader = shader
 	c.uniforms = uniforms
 	c.evenOdd = evenOdd
@@ -157,7 +172,9 @@ func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 		err = q.flush(graphicsDriver, endFrame)
 	})
 	if endFrame {
-		q.float32sBuffer = q.float32sBuffer[:0]
+		q.float32sBuffer[q.float32sBufferIndex] = q.float32sBuffer[q.float32sBufferIndex][:0]
+		q.float32sBufferIndex++
+		q.float32sBufferIndex %= len(q.float32sBuffer)
 	}
 	return
 }
@@ -252,15 +269,14 @@ func FlushCommands(graphicsDriver graphicsdriver.Graphics, endFrame bool) error 
 
 // drawTrianglesCommand represents a drawing command to draw an image on another image.
 type drawTrianglesCommand struct {
-	dst       *Image
-	srcs      [graphics.ShaderImageCount]*Image
-	vertices  []float32
-	nindices  int
-	blend     graphicsdriver.Blend
-	dstRegion graphicsdriver.Region
-	shader    *Shader
-	uniforms  [][]float32
-	evenOdd   bool
+	dst        *Image
+	srcs       [graphics.ShaderImageCount]*Image
+	vertices   []float32
+	blend      graphicsdriver.Blend
+	dstRegions []graphicsdriver.DstRegion
+	shader     *Shader
+	uniforms   [][]float32
+	evenOdd    bool
 }
 
 func (c *drawTrianglesCommand) String() string {
@@ -290,15 +306,13 @@ func (c *drawTrianglesCommand) String() string {
 		}
 	}
 
-	r := fmt.Sprintf("(x:%d, y:%d, width:%d, height:%d)",
-		int(c.dstRegion.X), int(c.dstRegion.Y), int(c.dstRegion.Width), int(c.dstRegion.Height))
-	return fmt.Sprintf("draw-triangles: dst: %s <- src: [%s], dst region: %s, num of indices: %d, blend: %s, even-odd: %t", dst, strings.Join(srcstrs[:], ", "), r, c.nindices, blend, c.evenOdd)
+	return fmt.Sprintf("draw-triangles: dst: %s <- src: [%s], num of dst regions: %d, num of indices: %d, blend: %s, even-odd: %t", dst, strings.Join(srcstrs[:], ", "), len(c.dstRegions), c.numIndices(), blend, c.evenOdd)
 }
 
 // Exec executes the drawTrianglesCommand.
 func (c *drawTrianglesCommand) Exec(graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
 	// TODO: Is it ok not to bind any framebuffer here?
-	if c.nindices == 0 {
+	if len(c.dstRegions) == 0 {
 		return nil
 	}
 
@@ -311,7 +325,7 @@ func (c *drawTrianglesCommand) Exec(graphicsDriver graphicsdriver.Graphics, inde
 		imgs[i] = src.image.ID()
 	}
 
-	return graphicsDriver.DrawTriangles(c.dst.image.ID(), imgs, c.shader.shader.ID(), c.nindices, indexOffset, c.blend, c.dstRegion, c.uniforms, c.evenOdd)
+	return graphicsDriver.DrawTriangles(c.dst.image.ID(), imgs, c.shader.shader.ID(), c.dstRegions, indexOffset, c.blend, c.uniforms, c.evenOdd)
 }
 
 func (c *drawTrianglesCommand) numVertices() int {
@@ -319,20 +333,20 @@ func (c *drawTrianglesCommand) numVertices() int {
 }
 
 func (c *drawTrianglesCommand) numIndices() int {
-	return c.nindices
+	var nindices int
+	for _, dstRegion := range c.dstRegions {
+		nindices += dstRegion.IndexCount
+	}
+	return nindices
 }
 
 func (c *drawTrianglesCommand) setVertices(vertices []float32) {
 	c.vertices = vertices
 }
 
-func (c *drawTrianglesCommand) addNumIndices(n int) {
-	c.nindices += n
-}
-
 // CanMergeWithDrawTrianglesCommand returns a boolean value indicating whether the other drawTrianglesCommand can be merged
 // with the drawTrianglesCommand c.
-func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, vertices []float32, blend graphicsdriver.Blend, dstRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) bool {
+func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderImageCount]*Image, vertices []float32, blend graphicsdriver.Blend, shader *Shader, uniforms [][]float32, evenOdd bool) bool {
 	if c.shader != shader {
 		return false
 	}
@@ -356,9 +370,6 @@ func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs
 		return false
 	}
 	if c.blend != blend {
-		return false
-	}
-	if c.dstRegion != dstRegion {
 		return false
 	}
 	if c.evenOdd || evenOdd {
@@ -580,12 +591,12 @@ func roundUpPower2(x int) int {
 }
 
 func (q *commandQueue) allocFloat32s(n int) []float32 {
-	buf := q.float32sBuffer
+	buf := q.float32sBuffer[q.float32sBufferIndex]
 	if len(buf)+n > cap(buf) {
 		buf = make([]float32, 0, max(roundUpPower2(len(buf)+n), 16))
 	}
 	s := buf[len(buf) : len(buf)+n]
-	q.float32sBuffer = buf[:len(buf)+n]
+	q.float32sBuffer[q.float32sBufferIndex] = buf[:len(buf)+n]
 	return s
 }
 

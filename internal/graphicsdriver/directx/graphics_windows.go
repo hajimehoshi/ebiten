@@ -1168,7 +1168,7 @@ func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, 
 	return s, nil
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, blend graphicsdriver.Blend, dstRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms [][]float32, evenOdd bool) error {
 	if shaderID == graphicsdriver.InvalidShaderID {
 		return fmt.Errorf("directx: shader ID is invalid")
 	}
@@ -1239,15 +1239,6 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 			MaxDepth: _D3D12_MAX_DEPTH,
 		},
 	})
-	g.drawCommandList.RSSetScissorRects([]_D3D12_RECT{
-		{
-			left:   int32(dstRegion.X),
-			top:    int32(dstRegion.Y),
-			right:  int32(dstRegion.X + dstRegion.Width),
-			bottom: int32(dstRegion.Y + dstRegion.Height),
-		},
-	})
-
 	g.drawCommandList.IASetPrimitiveTopology(_D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
 	g.drawCommandList.IASetVertexBuffers(0, []_D3D12_VERTEX_BUFFER_VIEW{
 		{
@@ -1262,7 +1253,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 		Format:         _DXGI_FORMAT_R16_UINT,
 	})
 
-	if err := g.pipelineStates.drawTriangles(g.device, g.drawCommandList, g.frameIndex, dst.screen, srcImages, shader, flattenUniforms, blend, indexLen, indexOffset, evenOdd); err != nil {
+	if err := g.pipelineStates.drawTriangles(g.device, g.drawCommandList, g.frameIndex, dst.screen, srcImages, shader, dstRegions, flattenUniforms, blend, indexOffset, evenOdd); err != nil {
 		return err
 	}
 

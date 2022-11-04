@@ -28,6 +28,11 @@ type Region struct {
 	Height float32
 }
 
+type DstRegion struct {
+	Region     Region
+	IndexCount int
+}
+
 const (
 	InvalidImageID  = 0
 	InvalidShaderID = 0
@@ -52,7 +57,7 @@ type Graphics interface {
 	NewShader(program *shaderir.Program) (Shader, error)
 
 	// DrawTriangles draws an image onto another image with the given parameters.
-	DrawTriangles(dst ImageID, srcs [graphics.ShaderImageCount]ImageID, shader ShaderID, indexLen int, indexOffset int, blend Blend, dstRegion Region, uniforms [][]float32, evenOdd bool) error
+	DrawTriangles(dst ImageID, srcs [graphics.ShaderImageCount]ImageID, shader ShaderID, dstRegions []DstRegion, indexOffset int, blend Blend, uniforms [][]float32, evenOdd bool) error
 }
 
 // GraphicsNotReady represents that the graphics driver is not ready for recovering from the context lost.
