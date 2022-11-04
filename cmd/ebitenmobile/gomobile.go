@@ -30,6 +30,15 @@ import (
 //go:embed gobind.go
 var gobind_go []byte
 
+//go:embed _files/EbitenViewController.m
+var objcM []byte
+
+//go:embed _files/EbitenView.java
+var viewJava []byte
+
+//go:embed _files/EbitenSurfaceView.java
+var surfaceViewJava []byte
+
 func runCommand(command string, args []string, env []string) error {
 	if buildX || buildN {
 		for _, e := range env {
@@ -166,6 +175,19 @@ import (
 		return tmp, err
 	}
 	if err := os.WriteFile(filepath.Join("src", "gobind.go"), gobind_go, 0644); err != nil {
+		return tmp, err
+	}
+
+	if err := os.Mkdir(filepath.Join("src", "_files"), 0755); err != nil {
+		return tmp, err
+	}
+	if err := os.WriteFile(filepath.Join("src", "_files", "EbitenViewController.m"), objcM, 0644); err != nil {
+		return tmp, err
+	}
+	if err := os.WriteFile(filepath.Join("src", "_files", "EbitenView.java"), viewJava, 0644); err != nil {
+		return tmp, err
+	}
+	if err := os.WriteFile(filepath.Join("src", "_files", "EbitenSurfaceView.java"), surfaceViewJava, 0644); err != nil {
 		return tmp, err
 	}
 
