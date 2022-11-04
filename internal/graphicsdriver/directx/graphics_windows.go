@@ -1262,41 +1262,9 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 		Format:         _DXGI_FORMAT_R16_UINT,
 	})
 
-	if evenOdd {
-		s, err := shader.pipelineState(blend, prepareStencil, dst.screen)
-		if err != nil {
-			return err
-		}
-		if err := g.drawTriangles(s, srcImages, flattenUniforms, indexLen, indexOffset); err != nil {
-			return err
-		}
-
-		s, err = shader.pipelineState(blend, drawWithStencil, dst.screen)
-		if err != nil {
-			return err
-		}
-		if err := g.drawTriangles(s, srcImages, flattenUniforms, indexLen, indexOffset); err != nil {
-			return err
-		}
-	} else {
-		s, err := shader.pipelineState(blend, noStencil, dst.screen)
-		if err != nil {
-			return err
-		}
-		if err := g.drawTriangles(s, srcImages, flattenUniforms, indexLen, indexOffset); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (g *Graphics) drawTriangles(pipelineState *_ID3D12PipelineState, srcs [graphics.ShaderImageCount]*Image, flattenUniforms []float32, indexLen int, indexOffset int) error {
-	if err := g.pipelineStates.useGraphicsPipelineState(g.device, g.drawCommandList, g.frameIndex, pipelineState, srcs, flattenUniforms); err != nil {
+	if err := g.pipelineStates.drawTriangles(g.device, g.drawCommandList, g.frameIndex, dst.screen, srcImages, shader, flattenUniforms, blend, indexLen, indexOffset, evenOdd); err != nil {
 		return err
 	}
-
-	g.drawCommandList.DrawIndexedInstanced(uint32(indexLen), 1, uint32(indexOffset), 0, 0)
 
 	return nil
 }
