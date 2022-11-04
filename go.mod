@@ -3,7 +3,7 @@ module github.com/hajimehoshi/ebiten/v2
 go 1.18
 
 require (
-	github.com/ebitengine/purego v0.2.0-alpha.0.20221031034428-fbeb60f11c96
+	github.com/ebitengine/purego v0.2.0-alpha.0.20221104133025-13a6f7821dfb
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20221017161538-93cebf72946b
 	github.com/hajimehoshi/bitmapfont/v2 v2.2.2
 	github.com/hajimehoshi/go-mp3 v0.3.3
@@ -23,3 +23,5 @@ require (
 	golang.org/x/mod v0.6.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
 )
+
+replace github.com/hajimehoshi/oto/v2 => /Users/jarrettkuklis/Documents/GolandProjects/oto
