@@ -279,8 +279,8 @@ func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) {
 	}
 	// Even though EbitengineWindowDelegate is used, this hack is still required.
 	// toggleFullscreen doesn't work when the window is not resizable.
-	origFullScreen := window.Send(sel_collectionBehavior)&cocoa.NSWindowCollectionBehaviorFullScreenPrimary != 0
 	origCollectionBehavior := window.Send(sel_collectionBehavior)
+	origFullScreen := origCollectionBehavior&cocoa.NSWindowCollectionBehaviorFullScreenPrimary != 0
 	if !origFullScreen {
 		collectionBehavior := origCollectionBehavior
 		collectionBehavior |= cocoa.NSWindowCollectionBehaviorFullScreenPrimary
