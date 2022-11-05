@@ -1774,7 +1774,8 @@ func (i *_ID3D12Device) GetDeviceRemovedReason() error {
 func (i *_ID3D12Device) ScheduleFrameEventX(typ _D3D12XBOX_FRAME_EVENT_TYPE, intervalOffsetInMicroseconds uint32, pAncillarySignalList *_D3D12XBOX_SCHEDULE_FRAME_OBJECT_LIST, flags _D3D12XBOX_SCHEDULE_FRAME_EVENT_FLAGS) error {
 	r, _, _ := syscall.Syscall6(i.vtbl.ScheduleFrameEventX, 5, uintptr(unsafe.Pointer(i)), uintptr(typ), uintptr(intervalOffsetInMicroseconds), uintptr(unsafe.Pointer(pAncillarySignalList)), uintptr(flags), 0)
 	runtime.KeepAlive(pAncillarySignalList)
-	if uint32(r) != uint32(windows.S_OK) {
+	// The return value might not be S_OK on Xbox One.
+	if int32(r) < 0 {
 		return fmt.Errorf("directx: ID3D12Device::ScheduleFrameEventX failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return nil
