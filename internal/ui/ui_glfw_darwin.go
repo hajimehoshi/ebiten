@@ -149,13 +149,17 @@ package ui
 //
 //   // Even though EbitenWindowDelegate is used, this hack is still required.
 //   // toggleFullscreen doesn't work when the window is not resizable.
-//   bool origFullscreen = window.collectionBehavior & NSWindowCollectionBehaviorFullScreenPrimary;
+//   NSUInteger origCollectionBehavior = window.collectionBehavior;
+//   bool origFullscreen = origCollectionBehavior & NSWindowCollectionBehaviorFullScreenPrimary;
 //   if (!origFullscreen) {
-//     window.collectionBehavior |= NSWindowCollectionBehaviorFullScreenPrimary;
+//     NSUInteger collectionBehavior = origCollectionBehavior;
+//     collectionBehavior |= NSWindowCollectionBehaviorFullScreenPrimary;
+//     collectionBehavior &= ~NSWindowCollectionBehaviorFullScreenNone;
+//     window.collectionBehavior = collectionBehavior;
 //   }
 //   [window toggleFullScreen:nil];
 //   if (!origFullscreen) {
-//     window.collectionBehavior &= ~NSWindowCollectionBehaviorFullScreenPrimary;
+//     window.collectionBehavior = origCollectionBehavior;
 //   }
 // }
 //
@@ -257,11 +261,14 @@ package ui
 //
 // static void setAllowFullscreen(uintptr_t windowPtr, bool allowFullscreen) {
 //   NSWindow* window = (NSWindow*)windowPtr;
+//   uint collectionBehavior = 0;
 //   if (allowFullscreen) {
-//     window.collectionBehavior |= NSWindowCollectionBehaviorFullScreenPrimary;
+//     collectionBehavior |= NSWindowCollectionBehaviorManaged;
+//     collectionBehavior |= NSWindowCollectionBehaviorFullScreenPrimary;
 //   } else {
-//     window.collectionBehavior &= ~NSWindowCollectionBehaviorFullScreenPrimary;
+//     collectionBehavior |= NSWindowCollectionBehaviorFullScreenNone;
 //   }
+//   window.collectionBehavior = collectionBehavior;
 // }
 import "C"
 
