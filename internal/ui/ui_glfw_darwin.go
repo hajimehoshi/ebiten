@@ -280,12 +280,16 @@ func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) {
 	// Even though EbitengineWindowDelegate is used, this hack is still required.
 	// toggleFullscreen doesn't work when the window is not resizable.
 	origFullScreen := window.Send(sel_collectionBehavior)&cocoa.NSWindowCollectionBehaviorFullScreenPrimary != 0
+	origCollectionBehavior := window.Send(sel_collectionBehavior)
 	if !origFullScreen {
-		window.Send(sel_setCollectionBehavior, cocoa.NSUInteger(window.Send(sel_collectionBehavior))|cocoa.NSWindowCollectionBehaviorFullScreenPrimary)
+		collectionBehavior := origCollectionBehavior
+		collectionBehavior |= cocoa.NSWindowCollectionBehaviorFullScreenPrimary
+		collectionBehavior &^= cocoa.NSWindowCollectionBehaviorFullScreenNone
+		window.Send(sel_setCollectionBehavior, cocoa.NSUInteger(collectionBehavior))
 	}
 	window.Send(objc.RegisterName("toggleFullScreen:"), 0)
 	if !origFullScreen {
-		window.Send(sel_setCollectionBehavior, cocoa.NSUInteger(window.Send(sel_collectionBehavior))&^cocoa.NSUInteger(cocoa.NSWindowCollectionBehaviorFullScreenPrimary))
+		window.Send(sel_setCollectionBehavior, cocoa.NSUInteger(cocoa.NSUInteger(origCollectionBehavior)))
 	}
 }
 
@@ -325,11 +329,12 @@ func (u *userInterfaceImpl) adjustViewSizeAfterFullscreen() {
 func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) {
 	allowFullscreen := mode == WindowResizingModeOnlyFullscreenEnabled ||
 		mode == WindowResizingModeEnabled
-	collectionBehavior := int(objc.ID(u.window.GetCocoaWindow()).Send(sel_collectionBehavior))
+	var collectionBehavior uint
 	if allowFullscreen {
+		collectionBehavior |= cocoa.NSWindowCollectionBehaviorManaged
 		collectionBehavior |= cocoa.NSWindowCollectionBehaviorFullScreenPrimary
 	} else {
-		collectionBehavior &^= cocoa.NSWindowCollectionBehaviorFullScreenPrimary
+		collectionBehavior |= cocoa.NSWindowCollectionBehaviorFullScreenNone
 	}
 	objc.ID(u.window.GetCocoaWindow()).Send(objc.RegisterName("setCollectionBehavior:"), collectionBehavior)
 }
