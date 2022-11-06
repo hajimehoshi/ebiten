@@ -7,7 +7,7 @@ require (
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20221017161538-93cebf72946b
 	github.com/hajimehoshi/bitmapfont/v2 v2.2.2
 	github.com/hajimehoshi/go-mp3 v0.3.3
-	github.com/hajimehoshi/oto/v2 v2.4.0-alpha.5.0.20221105141506-9d0b3205a511
+	github.com/hajimehoshi/oto/v2 v2.4.0-alpha.5.0.20221106072715-3e4ccf41042b
 	github.com/jakecoffman/cp v1.2.1
 	github.com/jezek/xgb v1.0.1
 	github.com/jfreymuth/oggvorbis v1.0.4
