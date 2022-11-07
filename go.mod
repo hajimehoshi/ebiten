@@ -3,11 +3,11 @@ module github.com/hajimehoshi/ebiten/v2
 go 1.18
 
 require (
-	github.com/ebitengine/purego v0.2.0-alpha.0.20221104133025-13a6f7821dfb
+	github.com/ebitengine/purego v0.2.0-alpha.0.20221107040104-382f4c69b854
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20221017161538-93cebf72946b
 	github.com/hajimehoshi/bitmapfont/v2 v2.2.2
 	github.com/hajimehoshi/go-mp3 v0.3.4
-	github.com/hajimehoshi/oto/v2 v2.4.0-alpha.5.0.20221106072715-3e4ccf41042b
+	github.com/hajimehoshi/oto/v2 v2.4.0-alpha.5.0.20221107043201-4a2a901e963f
 	github.com/jakecoffman/cp v1.2.1
 	github.com/jezek/xgb v1.0.1
 	github.com/jfreymuth/oggvorbis v1.0.4
