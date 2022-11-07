@@ -31,8 +31,8 @@ func download(buf *bytes.Buffer, mime string, path string) {
 
 	a := global.Get("document").Call("createElement", "a")
 	blob := global.Get("Blob").New(
-		[]interface{}{jsData},
-		map[string]interface{}{"type": mime},
+		[]any{jsData},
+		map[string]any{"type": mime},
 	)
 	a.Set("href", global.Get("URL").Call("createObjectURL", blob))
 	a.Set("download", path)

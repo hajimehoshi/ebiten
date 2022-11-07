@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build ignore
-// +build ignore
 
 package main
 
@@ -24,10 +23,10 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
+	exec "golang.org/x/sys/execabs"
 	"golang.org/x/tools/go/ast/astutil"
 )
 

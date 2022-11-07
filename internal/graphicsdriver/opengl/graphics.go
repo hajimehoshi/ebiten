@@ -180,7 +180,7 @@ func (g *Graphics) uniformVariableName(idx int) string {
 	return name
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, blend graphicsdriver.Blend, dstRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms [][]float32, evenOdd bool) error {
 	if shaderID == graphicsdriver.InvalidShaderID {
 		return fmt.Errorf("opengl: shader ID is invalid")
 	}
@@ -192,12 +192,6 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 	if err := destination.setViewport(); err != nil {
 		return err
 	}
-	g.context.scissor(
-		int(dstRegion.X),
-		int(dstRegion.Y),
-		int(dstRegion.Width),
-		int(dstRegion.Height),
-	)
 	g.context.blend(blend)
 
 	shader := g.shaders[shaderID]
@@ -248,11 +242,24 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 			return err
 		}
 		g.context.enableStencilTest()
-		g.context.beginStencilWithEvenOddRule()
-		g.context.drawElements(indexLen, indexOffset*2)
-		g.context.endStencilWithEvenOddRule()
 	}
-	g.context.drawElements(indexLen, indexOffset*2) // 2 is uint16 size in bytes
+
+	for _, dstRegion := range dstRegions {
+		g.context.scissor(
+			int(dstRegion.Region.X),
+			int(dstRegion.Region.Y),
+			int(dstRegion.Region.Width),
+			int(dstRegion.Region.Height),
+		)
+		if evenOdd {
+			g.context.beginStencilWithEvenOddRule()
+			g.context.drawElements(dstRegion.IndexCount, indexOffset*2)
+			g.context.endStencilWithEvenOddRule()
+		}
+		g.context.drawElements(dstRegion.IndexCount, indexOffset*2) // 2 is uint16 size in bytes
+		indexOffset += dstRegion.IndexCount
+	}
+
 	if evenOdd {
 		g.context.disableStencilTest()
 	}

@@ -43,7 +43,7 @@ type imageImportCheckError struct {
 	Import string
 }
 
-func runImageImportCheck(pass *analysis.Pass) (interface{}, error) {
+func runImageImportCheck(pass *analysis.Pass) (any, error) {
 	pkgPath := pass.Pkg.Path()
 	if strings.HasPrefix(pkgPath, "github.com/hajimehoshi/ebiten/v2/examples/") {
 		return nil, nil

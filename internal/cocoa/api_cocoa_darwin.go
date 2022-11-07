@@ -66,7 +66,11 @@ var (
 	sel_unsignedIntValue                   = objc.RegisterName("unsignedIntValue")
 )
 
-const NSWindowCollectionBehaviorFullScreenPrimary = 1 << 7
+const (
+	NSWindowCollectionBehaviorManaged           = 1 << 2
+	NSWindowCollectionBehaviorFullScreenPrimary = 1 << 7
+	NSWindowCollectionBehaviorFullScreenNone    = 1 << 9
+)
 
 const (
 	NSWindowStyleMaskResizable  = 1 << 3

@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build !darwin && !js && !windows
-// +build !darwin,!js,!windows
 
 package glfw
 

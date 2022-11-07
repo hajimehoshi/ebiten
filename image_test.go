@@ -1984,21 +1984,21 @@ func TestImageDrawTrianglesWithColorM(t *testing.T) {
 	is := []uint16{0, 1, 2, 1, 2, 3}
 	dst0.DrawTriangles(vs0, is, src, op)
 
-	for _, format := range []ebiten.ColorScaleFormat{
-		ebiten.ColorScaleFormatStraightAlpha,
-		ebiten.ColorScaleFormatPremultipliedAlpha,
+	for _, format := range []ebiten.ColorScaleMode{
+		ebiten.ColorScaleModeStraightAlpha,
+		ebiten.ColorScaleModePremultipliedAlpha,
 	} {
 		format := format
 		t.Run(fmt.Sprintf("format%d", format), func(t *testing.T) {
 			var cr, cg, cb, ca float32
 			switch format {
-			case ebiten.ColorScaleFormatStraightAlpha:
+			case ebiten.ColorScaleModeStraightAlpha:
 				// The values are the same as ColorM.Scale
 				cr = 0.2
 				cg = 0.4
 				cb = 0.6
 				ca = 0.8
-			case ebiten.ColorScaleFormatPremultipliedAlpha:
+			case ebiten.ColorScaleModePremultipliedAlpha:
 				cr = 0.2 * 0.8
 				cg = 0.4 * 0.8
 				cb = 0.6 * 0.8
@@ -2049,7 +2049,7 @@ func TestImageDrawTrianglesWithColorM(t *testing.T) {
 
 			dst1 := ebiten.NewImage(w, h)
 			op := &ebiten.DrawTrianglesOptions{}
-			op.ColorScaleFormat = format
+			op.ColorScaleMode = format
 			dst1.DrawTriangles(vs1, is, src, op)
 
 			for j := 0; j < h; j++ {
@@ -2113,9 +2113,9 @@ func TestImageDrawTrianglesInterpolatesColors(t *testing.T) {
 		},
 	}
 
-	for _, format := range []ebiten.ColorScaleFormat{
-		ebiten.ColorScaleFormatStraightAlpha,
-		ebiten.ColorScaleFormatPremultipliedAlpha,
+	for _, format := range []ebiten.ColorScaleMode{
+		ebiten.ColorScaleModeStraightAlpha,
+		ebiten.ColorScaleModePremultipliedAlpha,
 	} {
 		format := format
 		t.Run(fmt.Sprintf("format%d", format), func(t *testing.T) {
@@ -2123,7 +2123,7 @@ func TestImageDrawTrianglesInterpolatesColors(t *testing.T) {
 			dst.Fill(color.RGBA{0x00, 0x00, 0xff, 0xff})
 
 			op := &ebiten.DrawTrianglesOptions{}
-			op.ColorScaleFormat = format
+			op.ColorScaleMode = format
 
 			is := []uint16{0, 1, 2, 1, 2, 3}
 			dst.DrawTriangles(vs, is, src, op)
@@ -2134,9 +2134,9 @@ func TestImageDrawTrianglesInterpolatesColors(t *testing.T) {
 			// and notices that colors on the left side of the texture are fully transparent.
 			var want color.RGBA
 			switch format {
-			case ebiten.ColorScaleFormatStraightAlpha:
+			case ebiten.ColorScaleModeStraightAlpha:
 				want = color.RGBA{0x00, 0x80, 0x80, 0xff}
-			case ebiten.ColorScaleFormatPremultipliedAlpha:
+			case ebiten.ColorScaleModePremultipliedAlpha:
 				want = color.RGBA{0x80, 0x80, 0x80, 0xff}
 			}
 
@@ -3518,9 +3518,9 @@ func TestImageColorMAndScale(t *testing.T) {
 	}
 	is := []uint16{0, 1, 2, 1, 2, 3}
 
-	for _, format := range []ebiten.ColorScaleFormat{
-		ebiten.ColorScaleFormatStraightAlpha,
-		ebiten.ColorScaleFormatPremultipliedAlpha,
+	for _, format := range []ebiten.ColorScaleMode{
+		ebiten.ColorScaleModeStraightAlpha,
+		ebiten.ColorScaleModePremultipliedAlpha,
 	} {
 		format := format
 		t.Run(fmt.Sprintf("format%d", format), func(t *testing.T) {
@@ -3528,21 +3528,21 @@ func TestImageColorMAndScale(t *testing.T) {
 
 			op := &ebiten.DrawTrianglesOptions{}
 			op.ColorM.Translate(0.25, 0.25, 0.25, 0)
-			op.ColorScaleFormat = format
+			op.ColorScaleMode = format
 			dst.DrawTriangles(vs, is, src, op)
 
 			got := dst.At(0, 0).(color.RGBA)
 			alphaBeforeScale := 0.5
 			var want color.RGBA
 			switch format {
-			case ebiten.ColorScaleFormatStraightAlpha:
+			case ebiten.ColorScaleModeStraightAlpha:
 				want = color.RGBA{
 					byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.5 * 0.75)),
 					byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.25 * 0.75)),
 					byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.5 * 0.75)),
 					byte(math.Floor(0xff * alphaBeforeScale * 0.75)),
 				}
-			case ebiten.ColorScaleFormatPremultipliedAlpha:
+			case ebiten.ColorScaleModePremultipliedAlpha:
 				want = color.RGBA{
 					byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.5)),
 					byte(math.Floor(0xff * (0.5/alphaBeforeScale + 0.25) * alphaBeforeScale * 0.25)),
@@ -3962,6 +3962,18 @@ func TestImageColorMScale(t *testing.T) {
 
 	got := dst0.At(0, 0)
 	want := dst1.At(0, 0)
+	if got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+// Issue #2428
+func TestImageSetAndSubImage(t *testing.T) {
+	const w, h = 16, 16
+	img := ebiten.NewImage(w, h)
+	img.Set(1, 1, color.RGBA{0xff, 0, 0, 0xff})
+	got := img.SubImage(image.Rect(0, 0, w, h)).At(1, 1).(color.RGBA)
+	want := color.RGBA{0xff, 0, 0, 0xff}
 	if got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}

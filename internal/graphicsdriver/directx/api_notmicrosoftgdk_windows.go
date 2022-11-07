@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build !microsoftgdk
-// +build !microsoftgdk
 
 package directx
 

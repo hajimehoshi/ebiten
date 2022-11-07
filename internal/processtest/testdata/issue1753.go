@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build ignore
-// +build ignore
 
 package main
 
@@ -49,7 +48,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 		op := &ebiten.DrawRectShaderOptions{}
 		op.Blend = ebiten.BlendCopy
-		op.Uniforms = map[string]interface{}{
+		op.Uniforms = map[string]any{
 			"Color": []float32{1, 1, 1, 1},
 		}
 		g.dst.DrawRectShader(w, h, s, op)
@@ -79,7 +78,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 		op := &ebiten.DrawRectShaderOptions{}
 		op.Blend = ebiten.BlendCopy
-		op.Uniforms = map[string]interface{}{
+		op.Uniforms = map[string]any{
 			"Dummy": float32(0),
 			"R":     float32(0.5),
 			"G":     float32(1),

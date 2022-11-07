@@ -45,15 +45,6 @@ For example, formatting by `go fmt` is required.
 
 You don't have to update existing files' license comments.
 
-## Adding build tags for examples
-
-```go
-//go:build example
-// +build example
-```
-
-`example` is to prevent from installing executions by `go get github.com/hajimehoshi/ebiten/v2/...`.
-
 ## Implementation details
 
 See the [documents](https://ebitengine.org/en/documents/implementation.html) about internal implementation.

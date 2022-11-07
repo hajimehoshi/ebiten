@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build !darwin && !js && !linux && !windows
-// +build !darwin,!js,!linux,!windows
 
 package gamepad
 

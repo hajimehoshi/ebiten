@@ -17,7 +17,7 @@ import (
 //	var data []uint8
 //	...
 //	gl.TexImage2D(glconst.TEXTURE_2D, ..., glconst.UNSIGNED_BYTE, gl.Ptr(&data[0]))
-func Ptr(data interface{}) unsafe.Pointer {
+func Ptr(data any) unsafe.Pointer {
 	if data == nil {
 		return unsafe.Pointer(nil)
 	}

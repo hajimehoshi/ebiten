@@ -44,7 +44,7 @@ func (s *Shader) MarkDisposed() {
 	s.shader = nil
 }
 
-func (s *Shader) ConvertUniforms(uniforms map[string]interface{}) [][]float32 {
+func (s *Shader) ConvertUniforms(uniforms map[string]any) [][]float32 {
 	nameToF32s := map[string][]float32{}
 	for name, v := range uniforms {
 		switch v := v.(type) {

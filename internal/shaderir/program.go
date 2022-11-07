@@ -18,6 +18,7 @@ package shaderir
 import (
 	"go/constant"
 	"go/token"
+	"sort"
 	"strings"
 )
 
@@ -30,6 +31,8 @@ type Program struct {
 	Funcs        []Func
 	VertexFunc   VertexFunc
 	FragmentFunc FragmentFunc
+
+	reachableUniforms map[int]struct{}
 }
 
 type Func struct {
@@ -363,54 +366,107 @@ func IsValidSwizzling(s string) bool {
 	return false
 }
 
-func (p *Program) ReferredFuncIndicesInVertexShader() []int {
-	return p.referredFuncIndicesInBlockEntryPoint(p.VertexFunc.Block)
-}
-
-func (p *Program) ReferredFuncIndicesInFragmentShader() []int {
-	return p.referredFuncIndicesInBlockEntryPoint(p.FragmentFunc.Block)
-}
-
-func (p *Program) referredFuncIndicesInBlockEntryPoint(b *Block) []int {
+func (p *Program) ReachableFuncsFromBlock(block *Block) []*Func {
 	indexToFunc := map[int]*Func{}
 	for _, f := range p.Funcs {
 		f := f
 		indexToFunc[f.Index] = &f
 	}
+
 	visited := map[int]struct{}{}
-	return referredFuncIndicesInBlock(b, indexToFunc, visited)
+	var indices []int
+	var f func(expr *Expr)
+	f = func(expr *Expr) {
+		if expr.Type != FunctionExpr {
+			return
+		}
+		if _, ok := visited[expr.Index]; ok {
+			return
+		}
+		indices = append(indices, expr.Index)
+		visited[expr.Index] = struct{}{}
+		walkExprs(f, indexToFunc[expr.Index].Block)
+	}
+	walkExprs(f, block)
+
+	sort.Ints(indices)
+
+	funcs := make([]*Func, 0, len(indices))
+	for _, i := range indices {
+		funcs = append(funcs, indexToFunc[i])
+	}
+	return funcs
 }
 
-func referredFuncIndicesInBlock(b *Block, indexToFunc map[int]*Func, visited map[int]struct{}) []int {
-	if b == nil {
-		return nil
+func walkExprs(f func(expr *Expr), block *Block) {
+	if block == nil {
+		return
 	}
-
-	var fs []int
-
-	for _, s := range b.Stmts {
+	for _, s := range block.Stmts {
 		for _, e := range s.Exprs {
-			fs = append(fs, referredFuncIndicesInExpr(&e, indexToFunc, visited)...)
+			walkExprsInExpr(f, &e)
 		}
-		for _, bb := range s.Blocks {
-			fs = append(fs, referredFuncIndicesInBlock(bb, indexToFunc, visited)...)
+		for _, b := range s.Blocks {
+			walkExprs(f, b)
 		}
 	}
-	return fs
 }
 
-func referredFuncIndicesInExpr(e *Expr, indexToFunc map[int]*Func, visited map[int]struct{}) []int {
-	var fs []int
+func walkExprsInExpr(f func(expr *Expr), expr *Expr) {
+	if expr == nil {
+		return
+	}
+	f(expr)
+	for _, e := range expr.Exprs {
+		walkExprsInExpr(f, &e)
+	}
+}
 
-	if e.Type == FunctionExpr {
-		if _, ok := visited[e.Index]; !ok {
-			fs = append(fs, e.Index)
-			visited[e.Index] = struct{}{}
-			fs = append(fs, referredFuncIndicesInBlock(indexToFunc[e.Index].Block, indexToFunc, visited)...)
+func (p *Program) reachableUniformVariablesFromBlock(block *Block) []int {
+	indexToFunc := map[int]*Func{}
+	for _, f := range p.Funcs {
+		f := f
+		indexToFunc[f.Index] = &f
+	}
+
+	visitedFuncs := map[int]struct{}{}
+	indices := map[int]struct{}{}
+	var f func(expr *Expr)
+	f = func(expr *Expr) {
+		switch expr.Type {
+		case UniformVariable:
+			indices[expr.Index] = struct{}{}
+		case FunctionExpr:
+			if _, ok := visitedFuncs[expr.Index]; ok {
+				return
+			}
+			visitedFuncs[expr.Index] = struct{}{}
+			walkExprs(f, indexToFunc[expr.Index].Block)
 		}
 	}
-	for _, ee := range e.Exprs {
-		fs = append(fs, referredFuncIndicesInExpr(&ee, indexToFunc, visited)...)
+	walkExprs(f, block)
+
+	is := make([]int, 0, len(indices))
+	for i := range indices {
+		is = append(is, i)
 	}
-	return fs
+	sort.Ints(is)
+	return is
+}
+
+func (p *Program) FilterUniformVariables(uniforms [][]float32) {
+	if p.reachableUniforms == nil {
+		p.reachableUniforms = map[int]struct{}{}
+		for _, i := range p.reachableUniformVariablesFromBlock(p.VertexFunc.Block) {
+			p.reachableUniforms[i] = struct{}{}
+		}
+		for _, i := range p.reachableUniformVariablesFromBlock(p.FragmentFunc.Block) {
+			p.reachableUniforms[i] = struct{}{}
+		}
+	}
+	for i := range uniforms {
+		if _, ok := p.reachableUniforms[i]; !ok {
+			uniforms[i] = nil
+		}
+	}
 }

@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build !android && !ios && !js && !opengles
-// +build !android,!ios,!js,!opengles
 
 package opengl
 

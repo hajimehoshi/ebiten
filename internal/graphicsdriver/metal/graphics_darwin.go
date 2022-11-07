@@ -41,8 +41,8 @@ type Graphics struct {
 	buffers       map[mtl.CommandBuffer][]mtl.Buffer
 	unusedBuffers map[mtl.Buffer]struct{}
 
-	lastDst         *Image
-	lastStencilMode stencilMode
+	lastDst     *Image
+	lastEvenOdd bool
 
 	vb mtl.Buffer
 	ib mtl.Buffer
@@ -421,15 +421,15 @@ func (g *Graphics) flushRenderCommandEncoderIfNeeded() {
 	g.lastDst = nil
 }
 
-func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion graphicsdriver.Region, srcs [graphics.ShaderImageCount]*Image, indexLen int, indexOffset int, uniforms [][]float32, stencilMode stencilMode) error {
+func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs [graphics.ShaderImageCount]*Image, indexOffset int, shader *Shader, uniforms [][]float32, blend graphicsdriver.Blend, evenOdd bool) error {
 	// When prepareing a stencil buffer, flush the current render command encoder
 	// to make sure the stencil buffer is cleared when loading.
 	// TODO: What about clearing the stencil buffer by vertices?
-	if g.lastDst != dst || (g.lastStencilMode == noStencil) != (stencilMode == noStencil) || stencilMode == prepareStencil {
+	if g.lastDst != dst || g.lastEvenOdd != evenOdd || evenOdd {
 		g.flushRenderCommandEncoderIfNeeded()
 	}
 	g.lastDst = dst
-	g.lastStencilMode = stencilMode
+	g.lastEvenOdd = evenOdd
 
 	if g.rce == (mtl.RenderCommandEncoder{}) {
 		rpd := mtl.RenderPassDescriptor{}
@@ -451,7 +451,7 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion graph
 		rpd.ColorAttachments[0].Texture = t
 		rpd.ColorAttachments[0].ClearColor = mtl.ClearColor{}
 
-		if stencilMode == prepareStencil {
+		if evenOdd {
 			dst.ensureStencil()
 			rpd.StencilAttachment.LoadAction = mtl.LoadActionClear
 			rpd.StencilAttachment.StoreAction = mtl.StoreActionDontCare
@@ -464,8 +464,6 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion graph
 		g.rce = g.cb.MakeRenderCommandEncoder(rpd)
 	}
 
-	g.rce.SetRenderPipelineState(rps)
-
 	w, h := dst.internalSize()
 	g.rce.SetViewport(mtl.Viewport{
 		OriginX: 0,
@@ -475,15 +473,12 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion graph
 		ZNear:   -1,
 		ZFar:    1,
 	})
-	g.rce.SetScissorRect(mtl.ScissorRect{
-		X:      int(dstRegion.X),
-		Y:      int(dstRegion.Y),
-		Width:  int(dstRegion.Width),
-		Height: int(dstRegion.Height),
-	})
 	g.rce.SetVertexBuffer(g.vb, 0, 0)
 
 	for i, u := range uniforms {
+		if u == nil {
+			continue
+		}
 		g.rce.SetVertexBytes(unsafe.Pointer(&u[0]), unsafe.Sizeof(u[0])*uintptr(len(u)), i+1)
 		g.rce.SetFragmentBytes(unsafe.Pointer(&u[0]), unsafe.Sizeof(u[0])*uintptr(len(u)), i+1)
 	}
@@ -496,14 +491,60 @@ func (g *Graphics) draw(rps mtl.RenderPipelineState, dst *Image, dstRegion graph
 		}
 	}
 
-	g.rce.SetDepthStencilState(g.dsss[stencilMode])
+	var (
+		prepareStencilRpss  mtl.RenderPipelineState
+		drawWithStencilRpss mtl.RenderPipelineState
+		noStencilRpss       mtl.RenderPipelineState
+	)
+	if evenOdd {
+		s, err := shader.RenderPipelineState(&g.view, blend, prepareStencil, dst.screen)
+		if err != nil {
+			return err
+		}
+		prepareStencilRpss = s
 
-	g.rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, indexLen, mtl.IndexTypeUInt16, g.ib, indexOffset*2)
+		s, err = shader.RenderPipelineState(&g.view, blend, drawWithStencil, dst.screen)
+		if err != nil {
+			return err
+		}
+		drawWithStencilRpss = s
+	} else {
+		s, err := shader.RenderPipelineState(&g.view, blend, noStencil, dst.screen)
+		if err != nil {
+			return err
+		}
+		noStencilRpss = s
+	}
+
+	for _, dstRegion := range dstRegions {
+		g.rce.SetScissorRect(mtl.ScissorRect{
+			X:      int(dstRegion.Region.X),
+			Y:      int(dstRegion.Region.Y),
+			Width:  int(dstRegion.Region.Width),
+			Height: int(dstRegion.Region.Height),
+		})
+
+		if evenOdd {
+			g.rce.SetDepthStencilState(g.dsss[prepareStencil])
+			g.rce.SetRenderPipelineState(prepareStencilRpss)
+			g.rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, dstRegion.IndexCount, mtl.IndexTypeUInt16, g.ib, indexOffset*2)
+
+			g.rce.SetDepthStencilState(g.dsss[drawWithStencil])
+			g.rce.SetRenderPipelineState(drawWithStencilRpss)
+			g.rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, dstRegion.IndexCount, mtl.IndexTypeUInt16, g.ib, indexOffset*2)
+		} else {
+			g.rce.SetDepthStencilState(g.dsss[noStencil])
+			g.rce.SetRenderPipelineState(noStencilRpss)
+			g.rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, dstRegion.IndexCount, mtl.IndexTypeUInt16, g.ib, indexOffset*2)
+		}
+
+		indexOffset += dstRegion.IndexCount
+	}
 
 	return nil
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, blend graphicsdriver.Blend, dstRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms [][]float32, evenOdd bool) error {
 	if shaderID == graphicsdriver.InvalidShaderID {
 		return fmt.Errorf("metal: shader ID is invalid")
 	}
@@ -561,29 +602,8 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 		}
 	}
 
-	if evenOdd {
-		prepareStencilRpss, err := g.shaders[shaderID].RenderPipelineState(&g.view, blend, prepareStencil, dst.screen)
-		if err != nil {
-			return err
-		}
-		if err := g.draw(prepareStencilRpss, dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, prepareStencil); err != nil {
-			return err
-		}
-		drawWithStencilRpss, err := g.shaders[shaderID].RenderPipelineState(&g.view, blend, drawWithStencil, dst.screen)
-		if err != nil {
-			return err
-		}
-		if err := g.draw(drawWithStencilRpss, dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, drawWithStencil); err != nil {
-			return err
-		}
-	} else {
-		rpss, err := g.shaders[shaderID].RenderPipelineState(&g.view, blend, noStencil, dst.screen)
-		if err != nil {
-			return err
-		}
-		if err := g.draw(rpss, dst, dstRegion, srcs, indexLen, indexOffset, uniformVars, noStencil); err != nil {
-			return err
-		}
+	if err := g.draw(dst, dstRegions, srcs, indexOffset, g.shaders[shaderID], uniformVars, blend, evenOdd); err != nil {
+		return err
 	}
 
 	return nil
