@@ -54,8 +54,8 @@ func ToScrollCallback(cb func(window *Window, xoff float64, yoff float64)) Scrol
 	if cb == nil {
 		return nil
 	}
-	return func(window uintptr, xoff *float64, yoff *float64) {
-		cb(theGLFWWindows.get(window), *xoff, *yoff)
+	return func(window uintptr, xoff float64, yoff float64) {
+		cb(theGLFWWindows.get(window), xoff, yoff)
 	}
 }
 
