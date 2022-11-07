@@ -10,7 +10,6 @@
 // For details, see http://oss.sgi.com/projects/FreeB.
 
 //go:build !js
-// +build !js
 
 // Package gl implements Go bindings to OpenGL.
 package gl

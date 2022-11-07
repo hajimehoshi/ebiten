@@ -303,7 +303,7 @@ func (g *Graphics) initializeXbox(useWARP bool, useDebugLayer bool) (ferr error)
 	}
 
 	params := &_D3D12XBOX_CREATE_DEVICE_PARAMETERS{
-		Version:                           _D3D12_SDK_VERSION, // TODO: Can we always use the same value?
+		Version:                           microsoftgdk.D3D12SDKVersion(),
 		GraphicsCommandQueueRingSizeBytes: _D3D12XBOX_DEFAULT_SIZE_BYTES,
 		GraphicsScratchMemorySizeBytes:    _D3D12XBOX_DEFAULT_SIZE_BYTES,
 		ComputeScratchMemorySizeBytes:     _D3D12XBOX_DEFAULT_SIZE_BYTES,
@@ -1168,7 +1168,7 @@ func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, 
 	return s, nil
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, blend graphicsdriver.Blend, dstRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms [][]float32, evenOdd bool) error {
 	if shaderID == graphicsdriver.InvalidShaderID {
 		return fmt.Errorf("directx: shader ID is invalid")
 	}
@@ -1239,15 +1239,6 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 			MaxDepth: _D3D12_MAX_DEPTH,
 		},
 	})
-	g.drawCommandList.RSSetScissorRects([]_D3D12_RECT{
-		{
-			left:   int32(dstRegion.X),
-			top:    int32(dstRegion.Y),
-			right:  int32(dstRegion.X + dstRegion.Width),
-			bottom: int32(dstRegion.Y + dstRegion.Height),
-		},
-	})
-
 	g.drawCommandList.IASetPrimitiveTopology(_D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
 	g.drawCommandList.IASetVertexBuffers(0, []_D3D12_VERTEX_BUFFER_VIEW{
 		{
@@ -1262,41 +1253,9 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 		Format:         _DXGI_FORMAT_R16_UINT,
 	})
 
-	if evenOdd {
-		s, err := shader.pipelineState(blend, prepareStencil, dst.screen)
-		if err != nil {
-			return err
-		}
-		if err := g.drawTriangles(s, srcImages, flattenUniforms, indexLen, indexOffset); err != nil {
-			return err
-		}
-
-		s, err = shader.pipelineState(blend, drawWithStencil, dst.screen)
-		if err != nil {
-			return err
-		}
-		if err := g.drawTriangles(s, srcImages, flattenUniforms, indexLen, indexOffset); err != nil {
-			return err
-		}
-	} else {
-		s, err := shader.pipelineState(blend, noStencil, dst.screen)
-		if err != nil {
-			return err
-		}
-		if err := g.drawTriangles(s, srcImages, flattenUniforms, indexLen, indexOffset); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (g *Graphics) drawTriangles(pipelineState *_ID3D12PipelineState, srcs [graphics.ShaderImageCount]*Image, flattenUniforms []float32, indexLen int, indexOffset int) error {
-	if err := g.pipelineStates.useGraphicsPipelineState(g.device, g.drawCommandList, g.frameIndex, pipelineState, srcs, flattenUniforms); err != nil {
+	if err := g.pipelineStates.drawTriangles(g.device, g.drawCommandList, g.frameIndex, dst.screen, srcImages, shader, dstRegions, flattenUniforms, blend, indexOffset, evenOdd); err != nil {
 		return err
 	}
-
-	g.drawCommandList.DrawIndexedInstanced(uint32(indexLen), 1, uint32(indexOffset), 0, 0)
 
 	return nil
 }
@@ -1763,84 +1722,158 @@ func (s *Shader) uniformsToFloat32s(uniforms [][]float32) []float32 {
 
 		t := s.uniformTypes[i]
 		switch t.Main {
-		case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
-			fs = append(fs, u...)
+		case shaderir.Float:
+			if u != nil {
+				fs = append(fs, u...)
+			} else {
+				fs = append(fs, 0)
+			}
+		case shaderir.Vec2:
+			if u != nil {
+				fs = append(fs, u...)
+			} else {
+				fs = append(fs, 0, 0)
+			}
+		case shaderir.Vec3:
+			if u != nil {
+				fs = append(fs, u...)
+			} else {
+				fs = append(fs, 0, 0, 0)
+			}
+		case shaderir.Vec4:
+			if u != nil {
+				fs = append(fs, u...)
+			} else {
+				fs = append(fs, 0, 0, 0, 0)
+			}
 		case shaderir.Mat2:
-			fs = append(fs,
-				u[0], u[2], 0, 0,
-				u[1], u[3],
-			)
+			if u != nil {
+				fs = append(fs,
+					u[0], u[2], 0, 0,
+					u[1], u[3],
+				)
+			} else {
+				fs = append(fs,
+					0, 0, 0, 0,
+					0, 0,
+				)
+			}
 		case shaderir.Mat3:
-			fs = append(fs,
-				u[0], u[3], u[6], 0,
-				u[1], u[4], u[7], 0,
-				u[2], u[5], u[8],
-			)
+			if u != nil {
+				fs = append(fs,
+					u[0], u[3], u[6], 0,
+					u[1], u[4], u[7], 0,
+					u[2], u[5], u[8],
+				)
+			} else {
+				fs = append(fs,
+					0, 0, 0, 0,
+					0, 0, 0, 0,
+					0, 0, 0,
+				)
+			}
 		case shaderir.Mat4:
-			fs = append(fs,
-				u[0], u[4], u[8], u[12],
-				u[1], u[5], u[9], u[13],
-				u[2], u[6], u[10], u[14],
-				u[3], u[7], u[11], u[15],
-			)
+			if u != nil {
+				fs = append(fs,
+					u[0], u[4], u[8], u[12],
+					u[1], u[5], u[9], u[13],
+					u[2], u[6], u[10], u[14],
+					u[3], u[7], u[11], u[15],
+				)
+			} else {
+				fs = append(fs,
+					0, 0, 0, 0,
+					0, 0, 0, 0,
+					0, 0, 0, 0,
+					0, 0, 0, 0,
+				)
+			}
 		case shaderir.Array:
 			// Each element is aligned to the boundary.
 			switch t.Sub[0].Main {
 			case shaderir.Float:
-				for j := 0; j < t.Length; j++ {
-					fs = append(fs, u[j])
-					if j < t.Length-1 {
-						fs = append(fs, 0, 0, 0)
+				if u != nil {
+					for j := 0; j < t.Length; j++ {
+						fs = append(fs, u[j])
+						if j < t.Length-1 {
+							fs = append(fs, 0, 0, 0)
+						}
 					}
+				} else {
+					fs = append(fs, make([]float32, (t.Length-1)*4+1)...)
 				}
 			case shaderir.Vec2:
-				for j := 0; j < t.Length; j++ {
-					fs = append(fs, u[2*j:2*(j+1)]...)
-					if j < t.Length-1 {
-						fs = append(fs, 0, 0)
+				if u != nil {
+					for j := 0; j < t.Length; j++ {
+						fs = append(fs, u[2*j:2*(j+1)]...)
+						if j < t.Length-1 {
+							fs = append(fs, 0, 0)
+						}
 					}
+				} else {
+					fs = append(fs, make([]float32, (t.Length-1)*4+2)...)
 				}
 			case shaderir.Vec3:
-				for j := 0; j < t.Length; j++ {
-					fs = append(fs, u[3*j:3*(j+1)]...)
-					if j < t.Length-1 {
-						fs = append(fs, 0)
+				if u != nil {
+					for j := 0; j < t.Length; j++ {
+						fs = append(fs, u[3*j:3*(j+1)]...)
+						if j < t.Length-1 {
+							fs = append(fs, 0)
+						}
 					}
+				} else {
+					fs = append(fs, make([]float32, (t.Length-1)*4+3)...)
 				}
 			case shaderir.Vec4:
-				fs = append(fs, u...)
-			case shaderir.Mat2:
-				for j := 0; j < t.Length; j++ {
-					u1 := u[4*j : 4*(j+1)]
-					fs = append(fs,
-						u1[0], u1[2], 0, 0,
-						u1[1], u1[3], 0, 0,
-					)
+				if u != nil {
+					fs = append(fs, u...)
+				} else {
+					fs = append(fs, make([]float32, t.Length*4)...)
 				}
-				if t.Length > 0 {
-					fs = fs[:len(fs)-2]
+			case shaderir.Mat2:
+				if u != nil {
+					for j := 0; j < t.Length; j++ {
+						u1 := u[4*j : 4*(j+1)]
+						fs = append(fs,
+							u1[0], u1[2], 0, 0,
+							u1[1], u1[3], 0, 0,
+						)
+					}
+					if t.Length > 0 {
+						fs = fs[:len(fs)-2]
+					}
+				} else {
+					fs = append(fs, make([]float32, (t.Length-1)*8+6)...)
 				}
 			case shaderir.Mat3:
-				for j := 0; j < t.Length; j++ {
-					u1 := u[9*j : 9*(j+1)]
-					fs = append(fs,
-						u1[0], u1[3], u1[6], 0,
-						u1[1], u1[4], u1[7], 0,
-						u1[2], u1[5], u1[8], 0,
-					)
-				}
-				if t.Length > 0 {
-					fs = fs[:len(fs)-1]
+				if u != nil {
+					for j := 0; j < t.Length; j++ {
+						u1 := u[9*j : 9*(j+1)]
+						fs = append(fs,
+							u1[0], u1[3], u1[6], 0,
+							u1[1], u1[4], u1[7], 0,
+							u1[2], u1[5], u1[8], 0,
+						)
+					}
+					if t.Length > 0 {
+						fs = fs[:len(fs)-1]
+					}
+				} else {
+					fs = append(fs, make([]float32, (t.Length-1)*12+11)...)
 				}
 			case shaderir.Mat4:
-				for j := 0; j < t.Length; j++ {
-					u1 := u[16*j : 16*(j+1)]
-					fs = append(fs,
-						u1[0], u1[4], u1[8], u1[12],
-						u1[1], u1[5], u1[9], u1[13],
-						u1[2], u1[6], u1[10], u1[14],
-						u1[3], u1[7], u1[11], u1[15],
-					)
+				if u != nil {
+					for j := 0; j < t.Length; j++ {
+						u1 := u[16*j : 16*(j+1)]
+						fs = append(fs,
+							u1[0], u1[4], u1[8], u1[12],
+							u1[1], u1[5], u1[9], u1[13],
+							u1[2], u1[6], u1[10], u1[14],
+							u1[3], u1[7], u1[11], u1[15],
+						)
+					}
+				} else {
+					fs = append(fs, make([]float32, t.Length*16)...)
 				}
 			default:
 				panic(fmt.Sprintf("directx: not implemented type for uniform variables: %s", t.String()))

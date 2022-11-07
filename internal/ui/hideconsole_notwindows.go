@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build !windows || nintendosdk
-// +build !windows nintendosdk
 
 package ui
 

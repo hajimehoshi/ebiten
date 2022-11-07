@@ -359,7 +359,7 @@ func (u *userInterfaceImpl) loop(game Game) <-chan error {
 	}
 
 	// TODO: Should cf be released after the game ends?
-	cf = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	cf = js.FuncOf(func(this js.Value, args []js.Value) any {
 		// f can be blocked but callbacks must not be blocked. Create a goroutine (#1161).
 		go f()
 		return nil
@@ -419,7 +419,7 @@ func init() {
 
 	if !document.Get("body").Truthy() {
 		ch := make(chan struct{})
-		window.Call("addEventListener", "load", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		window.Call("addEventListener", "load", js.FuncOf(func(this js.Value, args []js.Value) any {
 			close(ch)
 			return nil
 		}))
@@ -465,7 +465,7 @@ func init() {
 	setCanvasEventHandlers(canvas)
 
 	// Pointer Lock
-	document.Call("addEventListener", "pointerlockchange", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	document.Call("addEventListener", "pointerlockchange", js.FuncOf(func(this js.Value, args []js.Value) any {
 		if document.Get("pointerLockElement").Truthy() {
 			return nil
 		}
@@ -478,22 +478,22 @@ func init() {
 		theUI.input.recoverCursorPosition()
 		return nil
 	}))
-	document.Call("addEventListener", "pointerlockerror", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	document.Call("addEventListener", "pointerlockerror", js.FuncOf(func(this js.Value, args []js.Value) any {
 		js.Global().Get("console").Call("error", "pointerlockerror event is fired. 'sandbox=\"allow-pointer-lock\"' might be required at an iframe. This function on browsers must be called as a result of a gestural interaction or orientation change.")
 		return nil
 	}))
-	document.Call("addEventListener", "fullscreenerror", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	document.Call("addEventListener", "fullscreenerror", js.FuncOf(func(this js.Value, args []js.Value) any {
 		js.Global().Get("console").Call("error", "fullscreenerror event is fired. 'allow=\"fullscreen\"' or 'allowfullscreen' might be required at an iframe. This function on browsers must be called as a result of a gestural interaction or orientation change.")
 		return nil
 	}))
-	document.Call("addEventListener", "webkitfullscreenerror", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	document.Call("addEventListener", "webkitfullscreenerror", js.FuncOf(func(this js.Value, args []js.Value) any {
 		js.Global().Get("console").Call("error", "webkitfullscreenerror event is fired. 'allow=\"fullscreen\"' or 'allowfullscreen' might be required at an iframe. This function on browsers must be called as a result of a gestural interaction or orientation change.")
 		return nil
 	}))
 }
 
 func setWindowEventHandlers(v js.Value) {
-	v.Call("addEventListener", "resize", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "resize", js.FuncOf(func(this js.Value, args []js.Value) any {
 		theUI.updateScreenSize()
 
 		// updateImpl can block. Use goroutine.
@@ -510,7 +510,7 @@ func setWindowEventHandlers(v js.Value) {
 
 func setCanvasEventHandlers(v js.Value) {
 	// Keyboard
-	v.Call("addEventListener", "keydown", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "keydown", js.FuncOf(func(this js.Value, args []js.Value) any {
 		// Focus the canvas explicitly to activate tha game (#961).
 		v.Call("focus")
 
@@ -522,7 +522,7 @@ func setCanvasEventHandlers(v js.Value) {
 		}
 		return nil
 	}))
-	v.Call("addEventListener", "keyup", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "keyup", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
 		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
@@ -533,7 +533,7 @@ func setCanvasEventHandlers(v js.Value) {
 	}))
 
 	// Mouse
-	v.Call("addEventListener", "mousedown", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "mousedown", js.FuncOf(func(this js.Value, args []js.Value) any {
 		// Focus the canvas explicitly to activate tha game (#961).
 		v.Call("focus")
 
@@ -545,7 +545,7 @@ func setCanvasEventHandlers(v js.Value) {
 		}
 		return nil
 	}))
-	v.Call("addEventListener", "mouseup", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "mouseup", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
 		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
@@ -554,7 +554,7 @@ func setCanvasEventHandlers(v js.Value) {
 		}
 		return nil
 	}))
-	v.Call("addEventListener", "mousemove", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "mousemove", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
 		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
@@ -563,7 +563,7 @@ func setCanvasEventHandlers(v js.Value) {
 		}
 		return nil
 	}))
-	v.Call("addEventListener", "wheel", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "wheel", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
 		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
@@ -574,7 +574,7 @@ func setCanvasEventHandlers(v js.Value) {
 	}))
 
 	// Touch
-	v.Call("addEventListener", "touchstart", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "touchstart", js.FuncOf(func(this js.Value, args []js.Value) any {
 		// Focus the canvas explicitly to activate tha game (#961).
 		v.Call("focus")
 
@@ -586,7 +586,7 @@ func setCanvasEventHandlers(v js.Value) {
 		}
 		return nil
 	}))
-	v.Call("addEventListener", "touchend", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "touchend", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
 		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
@@ -595,7 +595,7 @@ func setCanvasEventHandlers(v js.Value) {
 		}
 		return nil
 	}))
-	v.Call("addEventListener", "touchmove", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "touchmove", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
 		if err := theUI.input.updateFromEvent(e); err != nil && theUI.err != nil {
@@ -606,14 +606,14 @@ func setCanvasEventHandlers(v js.Value) {
 	}))
 
 	// Context menu
-	v.Call("addEventListener", "contextmenu", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "contextmenu", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
 		return nil
 	}))
 
 	// Context
-	v.Call("addEventListener", "webglcontextlost", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	v.Call("addEventListener", "webglcontextlost", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
 		window.Get("location").Call("reload")

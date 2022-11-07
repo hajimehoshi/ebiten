@@ -146,7 +146,7 @@ func (p *pipelineStates) initialize(device *_ID3D12Device) (ferr error) {
 	return nil
 }
 
-func (p *pipelineStates) useGraphicsPipelineState(device *_ID3D12Device, commandList *_ID3D12GraphicsCommandList, frameIndex int, pipelineState *_ID3D12PipelineState, srcs [graphics.ShaderImageCount]*Image, uniforms []float32) error {
+func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D12GraphicsCommandList, frameIndex int, screen bool, srcs [graphics.ShaderImageCount]*Image, shader *Shader, dstRegions []graphicsdriver.DstRegion, uniforms []float32, blend graphicsdriver.Blend, indexOffset int, evenOdd bool) error {
 	idx := len(p.constantBuffers[frameIndex])
 	if idx >= numDescriptorsPerFrame {
 		return fmt.Errorf("directx: too many constant buffers")
@@ -230,8 +230,6 @@ func (p *pipelineStates) useGraphicsPipelineState(device *_ID3D12Device, command
 	// Update the constant buffer.
 	copy(unsafe.Slice((*float32)(unsafe.Pointer(m)), len(uniforms)), uniforms)
 
-	commandList.SetPipelineState(pipelineState)
-
 	rs, err := p.ensureRootSignature(device)
 	if err != nil {
 		return err
@@ -256,6 +254,40 @@ func (p *pipelineStates) useGraphicsPipelineState(device *_ID3D12Device, command
 		return err
 	}
 	commandList.SetGraphicsRootDescriptorTable(2, sh)
+
+	for _, dstRegion := range dstRegions {
+		commandList.RSSetScissorRects([]_D3D12_RECT{
+			{
+				left:   int32(dstRegion.Region.X),
+				top:    int32(dstRegion.Region.Y),
+				right:  int32(dstRegion.Region.X + dstRegion.Region.Width),
+				bottom: int32(dstRegion.Region.Y + dstRegion.Region.Height),
+			},
+		})
+		if evenOdd {
+			s, err := shader.pipelineState(blend, prepareStencil, screen)
+			if err != nil {
+				return err
+			}
+			commandList.SetPipelineState(s)
+			commandList.DrawIndexedInstanced(uint32(dstRegion.IndexCount), 1, uint32(indexOffset), 0, 0)
+
+			s, err = shader.pipelineState(blend, drawWithStencil, screen)
+			if err != nil {
+				return err
+			}
+			commandList.SetPipelineState(s)
+			commandList.DrawIndexedInstanced(uint32(dstRegion.IndexCount), 1, uint32(indexOffset), 0, 0)
+		} else {
+			s, err := shader.pipelineState(blend, noStencil, screen)
+			if err != nil {
+				return err
+			}
+			commandList.SetPipelineState(s)
+			commandList.DrawIndexedInstanced(uint32(dstRegion.IndexCount), 1, uint32(indexOffset), 0, 0)
+		}
+		indexOffset += dstRegion.IndexCount
+	}
 
 	return nil
 }

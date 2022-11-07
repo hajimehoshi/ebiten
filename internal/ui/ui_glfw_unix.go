@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build !android && !darwin && !js && !windows && !nintendosdk
-// +build !android,!darwin,!js,!windows,!nintendosdk
 
 package ui
 

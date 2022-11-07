@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build example && !js
-// +build example,!js
+//go:build !js
 
 package main
 

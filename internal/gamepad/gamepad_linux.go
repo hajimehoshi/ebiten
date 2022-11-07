@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build !android && !nintendosdk
-// +build !android,!nintendosdk
 
 package gamepad
 

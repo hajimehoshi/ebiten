@@ -243,13 +243,13 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		var body [16]float32
 		var translation [4]float32
 		colorm.Elements(body[:], translation[:])
-		uniforms = shader.convertUniforms(map[string]interface{}{
+		uniforms = shader.convertUniforms(map[string]any{
 			builtinshader.UniformColorMBody:        body[:],
 			builtinshader.UniformColorMTranslation: translation[:],
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, false, canSkipMipmap(options.GeoM, filter), false)
+	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), img.adjustedRegion(), [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, false, canSkipMipmap(options.GeoM, filter), false)
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -267,7 +267,7 @@ type Vertex struct {
 	// ColorR/ColorG/ColorB/ColorA represents color scaling values.
 	// Their interpretation depends on the concrete draw call used:
 	// - DrawTriangles: straight-alpha or premultiplied-alpha encoded color multiplier.
-	//   The format is determined by ColorScaleFormat in DrawTrianglesOptions.
+	//   The format is determined by ColorScaleMode in DrawTrianglesOptions.
 	//   If ColorA is 0, the vertex is fully transparent and color is ignored.
 	//   If ColorA is 1, the vertex has the color (ColorR, ColorG, ColorB).
 	//   Vertex colors are converted to premultiplied-alpha internally and
@@ -306,17 +306,17 @@ const (
 	EvenOdd
 )
 
-// ColorScaleFormat is the format of color scales in vertices.
-type ColorScaleFormat int
+// ColorScaleMode is the mode of color scales in vertices.
+type ColorScaleMode int
 
 const (
-	// ColorScaleFormatStraightAlpha indicates color scales in vertices are
+	// ColorScaleModeStraightAlpha indicates color scales in vertices are
 	// straight-alpha encoded color multiplier.
-	ColorScaleFormatStraightAlpha ColorScaleFormat = iota
+	ColorScaleModeStraightAlpha ColorScaleMode = iota
 
-	// ColorScaleFormatStraightAlpha indicates color scales in vertices are
+	// ColorScaleModeStraightAlpha indicates color scales in vertices are
 	// premultiplied-alpha encoded color multiplier.
-	ColorScaleFormatPremultipliedAlpha
+	ColorScaleModePremultipliedAlpha
 )
 
 // DrawTrianglesOptions represents options for DrawTriangles.
@@ -326,9 +326,9 @@ type DrawTrianglesOptions struct {
 	// ColorM is applied before vertex color scale is applied.
 	ColorM ColorM
 
-	// ColorScaleFormat is the format of color scales in vertices.
-	// The default (zero) value is ColorScaleFormatStraightAlpha.
-	ColorScaleFormat ColorScaleFormat
+	// ColorScaleMode is the mode of color scales in vertices.
+	// The default (zero) value is ColorScaleModeStraightAlpha.
+	ColorScaleMode ColorScaleMode
 
 	// CompositeMode is a composite mode to draw.
 	// The default (zero) value is CompositeModeCustom (Blend is used).
@@ -424,18 +424,13 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	}
 
 	address := builtinshader.Address(options.Address)
-	var sr graphicsdriver.Region
-	if address != builtinshader.AddressUnsafe {
-		sr = img.adjustedRegion()
-	}
-
 	filter := builtinshader.Filter(options.Filter)
 
 	colorm, cr, cg, cb, ca := colorMToScale(options.ColorM.affineColorM())
 
 	vs := graphics.Vertices(len(vertices))
 	dst := i
-	if options.ColorScaleFormat == ColorScaleFormatStraightAlpha {
+	if options.ColorScaleMode == ColorScaleModeStraightAlpha {
 		for i, v := range vertices {
 			dx, dy := dst.adjustPositionF32(v.DstX, v.DstY)
 			vs[i*graphics.VertexFloatCount] = dx
@@ -474,13 +469,13 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		var body [16]float32
 		var translation [4]float32
 		colorm.Elements(body[:], translation[:])
-		uniforms = shader.convertUniforms(map[string]interface{}{
+		uniforms = shader.convertUniforms(map[string]any{
 			builtinshader.UniformColorMBody:        body[:],
 			builtinshader.UniformColorMTranslation: translation[:],
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), sr, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, options.FillRule == EvenOdd, filter != builtinshader.FilterLinear, options.AntiAlias)
+	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), img.adjustedRegion(), [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, options.FillRule == EvenOdd, filter != builtinshader.FilterLinear, options.AntiAlias)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
@@ -502,7 +497,7 @@ type DrawTrianglesShaderOptions struct {
 	// If the uniform variable type is an array, a vector or a matrix,
 	// you have to specify linearly flattened values as a slice.
 	// For example, if the uniform variable type is [4]vec4, the number of the slice values will be 16.
-	Uniforms map[string]interface{}
+	Uniforms map[string]any
 
 	// Images is a set of the source images.
 	// All the images' sizes must be the same.
@@ -662,7 +657,7 @@ type DrawRectShaderOptions struct {
 	// If the uniform variable type is an array, a vector or a matrix,
 	// you have to specify linearly flattened values as a slice.
 	// For example, if the uniform variable type is [4]vec4, the number of the slice values will be 16.
-	Uniforms map[string]interface{}
+	Uniforms map[string]any
 
 	// Images is a set of the source images.
 	// All the images' sizes must be the same.
@@ -754,9 +749,8 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 // If a sub-image is used as a rendering source, the image is used as if it is a small image.
 // If a sub-image is used as a rendering destination, the region being rendered is clipped.
 //
-// Successive uses of multiple various regions as rendering destination might not be efficient,
-// even though all the underlying images are the same.
-// It's because such renderings cannot be unified into one internal draw command.
+// Successive uses of multiple various regions as rendering destination is still efficient
+// when all the underlying images are the same, but some platforms like browsers might not work efficiently.
 func (i *Image) SubImage(r image.Rectangle) image.Image {
 	i.copyCheck()
 	if i.isDisposed() {
@@ -769,7 +763,6 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 		r = image.ZR
 	}
 
-	// Keep the original image's reference not to dispose that by GC.
 	var orig = i
 	if i.isSubImage() {
 		orig = i.original
@@ -886,10 +879,6 @@ func (i *Image) at(x, y int) (r, g, b, a byte) {
 // Set sets the color at (x, y).
 //
 // Set implements the standard draw.Image's Set.
-//
-// Set loads pixels from GPU to system memory if necessary, which means that Set can be slow.
-//
-// In the current implementation, successive calls of Set invokes loading pixels at most once, so this is efficient.
 //
 // If the image is disposed, Set does nothing.
 func (i *Image) Set(x, y int, clr color.Color) {

@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build (!android && !ios && !js) || nintendosdk
-// +build !android,!ios,!js nintendosdk
 
 package vibrate
 

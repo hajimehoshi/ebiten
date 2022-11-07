@@ -43,7 +43,7 @@ func drawVerticesForUtil(dst *ebiten.Image, vs []ebiten.Vertex, is []uint16, clr
 	}
 
 	op := &ebiten.DrawTrianglesOptions{}
-	op.ColorScaleFormat = ebiten.ColorScaleFormatPremultipliedAlpha
+	op.ColorScaleMode = ebiten.ColorScaleModePremultipliedAlpha
 	op.AntiAlias = true
 	dst.DrawTriangles(vs, is, whiteSubImage, op)
 }

@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build microsoftgdk
-// +build microsoftgdk
 
 package microsoftgdk
 
@@ -85,6 +84,17 @@ func D3D12DLLName() string {
 		return "d3d12_xs.dll"
 	default:
 		return ""
+	}
+}
+
+func D3D12SDKVersion() uint32 {
+	switch C.XSystemGetDeviceType() {
+	case _XSystemDeviceType_XboxOne, _XSystemDeviceType_XboxOneS, _XSystemDeviceType_XboxOneX, _XSystemDeviceType_XboxOneXDevkit:
+		return (1 << 16) | 10
+	case _XSystemDeviceType_XboxScarlettLockhart, _XSystemDeviceType_XboxScarlettAnaconda, _XSystemDeviceType_XboxScarlettDevkit:
+		return (2 << 16) | 4
+	default:
+		return 0
 	}
 }
 
