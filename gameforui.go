@@ -126,7 +126,7 @@ func (g *gameForUI) NewScreenImage(width, height int) *ui.Image {
 }
 
 func (g *gameForUI) Layout(outsideWidth, outsideHeight float64) (float64, float64) {
-	if l, ok := g.game.(FloatLayouter); ok {
+	if l, ok := g.game.(LayoutFer); ok {
 		return l.LayoutF(outsideWidth, outsideHeight)
 	}
 

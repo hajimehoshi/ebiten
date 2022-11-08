@@ -96,7 +96,7 @@ type game struct {
 }
 
 func (g *game) Layout(outsideWidth, outsideHeight int) (int, int) {
-	// As game implements the interface FloatLayouter, Layout is never called and LayoutF is called instead.
+	// As game implements the interface LayoutFer, Layout is never called and LayoutF is called instead.
 	// However, game has to implement Layout to satisfy the interface Game.
 	panic("windowsize: Layout must not be called")
 }
