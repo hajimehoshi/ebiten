@@ -125,8 +125,20 @@ func (g *gameForUI) NewScreenImage(width, height int) *ui.Image {
 	return g.screen.image
 }
 
-func (g *gameForUI) Layout(outsideWidth, outsideHeight int) (int, int) {
-	return g.game.Layout(outsideWidth, outsideHeight)
+func (g *gameForUI) Layout(outsideWidth, outsideHeight float64) (float64, float64) {
+	// Even if the original value is less than 1, the value must be a positive integer (#2340).
+	// This is for a simple implementation of Layout, which returns the argument values without modifications.
+	// TODO: Remove this hack when Game.Layout takes floats instead of integers.
+	if outsideWidth < 1 {
+		outsideWidth = 1
+	}
+	if outsideHeight < 1 {
+		outsideHeight = 1
+	}
+
+	// TODO: Add a new Layout function taking float values (#2285).
+	sw, sh := g.game.Layout(int(outsideWidth), int(outsideHeight))
+	return float64(sw), float64(sh)
 }
 
 func (g *gameForUI) Update() error {
@@ -147,8 +159,7 @@ func (g *gameForUI) DrawOffscreen() error {
 	return nil
 }
 
-func (g *gameForUI) DrawFinalScreen() {
-	scale, offsetX, offsetY := g.ScreenScaleAndOffsets()
+func (g *gameForUI) DrawFinalScreen(scale, offsetX, offsetY float64) {
 	var geoM GeoM
 	geoM.Scale(scale, scale)
 	geoM.Translate(offsetX, offsetY)
@@ -175,21 +186,4 @@ func (g *gameForUI) DrawFinalScreen() {
 		w, h := g.offscreen.Size()
 		g.screen.DrawRectShader(w, h, g.screenShader, op)
 	}
-}
-
-func (g *gameForUI) ScreenScaleAndOffsets() (scale, offsetX, offsetY float64) {
-	if g.screen == nil {
-		return
-	}
-
-	sw, sh := g.screen.Size()
-	ow, oh := g.offscreen.Size()
-	scaleX := float64(sw) / float64(ow)
-	scaleY := float64(sh) / float64(oh)
-	scale = math.Min(scaleX, scaleY)
-	width := float64(ow) * scale
-	height := float64(oh) * scale
-	offsetX = (float64(sw) - width) / 2
-	offsetY = (float64(sh) - height) / 2
-	return
 }
