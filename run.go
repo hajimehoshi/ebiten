@@ -79,7 +79,17 @@ type Game interface {
 	//
 	// You can return a fixed screen size if you don't care, or you can also return a calculated screen size
 	// adjusted with the given outside size.
+	//
+	// If the game implements the interface FloatLayouter, Layout is never called and LayoutF is called instead.
 	Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int)
+}
+
+// FloatLayouter is an interface for the float version of Game.Layout.
+type FloatLayouter interface {
+	// LayoutF is the float version of Game.Layout.
+	//
+	// If the game implements this interface, Layout is never called and LayoutF is called instead.
+	LayoutF(outsideWidth, outsideHeight float64) (screenWidth, screenHeight float64)
 }
 
 // FinalScreen represents the final screen image.

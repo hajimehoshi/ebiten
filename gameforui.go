@@ -126,6 +126,10 @@ func (g *gameForUI) NewScreenImage(width, height int) *ui.Image {
 }
 
 func (g *gameForUI) Layout(outsideWidth, outsideHeight float64) (float64, float64) {
+	if l, ok := g.game.(FloatLayouter); ok {
+		return l.LayoutF(outsideWidth, outsideHeight)
+	}
+
 	// Even if the original value is less than 1, the value must be a positive integer (#2340).
 	// This is for a simple implementation of Layout, which returns the argument values without modifications.
 	// TODO: Remove this hack when Game.Layout takes floats instead of integers.
