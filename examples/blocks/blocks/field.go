@@ -16,6 +16,7 @@ package blocks
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/colorm"
 )
 
 const maxFlushCount = 20
@@ -193,8 +194,8 @@ func min(a, b float64) float64 {
 	return a
 }
 
-func flushingColor(rate float64) ebiten.ColorM {
-	clr := ebiten.ColorM{}
+func flushingColor(rate float64) colorm.ColorM {
+	var clr colorm.ColorM
 	alpha := min(1, rate*2)
 	clr.Scale(1, 1, 1, alpha)
 	r := min(1, (1-rate)*2)
@@ -211,7 +212,7 @@ func (f *Field) Draw(r *ebiten.Image, x, y int) {
 			}
 		} else {
 			for i := 0; i < fieldBlockCountX; i++ {
-				drawBlock(r, f.blocks[i][j], i*blockWidth+x, j*blockHeight+y, ebiten.ColorM{})
+				drawBlock(r, f.blocks[i][j], i*blockWidth+x, j*blockHeight+y, colorm.ColorM{})
 			}
 		}
 	}

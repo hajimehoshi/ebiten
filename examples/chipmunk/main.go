@@ -96,7 +96,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.Black)
 
 	op := &ebiten.DrawImageOptions{}
-	op.ColorM.Scale(200.0/255.0, 200.0/255.0, 200.0/255.0, 1)
+	op.ColorScale.Scale(200.0/255.0, 200.0/255.0, 200.0/255.0, 1)
 
 	g.space.EachBody(func(body *cp.Body) {
 		op.GeoM.Reset()

@@ -20,6 +20,7 @@ import (
 	_ "image/png"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/colorm"
 	rblocks "github.com/hajimehoshi/ebiten/v2/examples/resources/images/blocks"
 )
 
@@ -165,17 +166,16 @@ const (
 	fieldBlockCountY = 20
 )
 
-func drawBlock(r *ebiten.Image, block BlockType, x, y int, clr ebiten.ColorM) {
+func drawBlock(r *ebiten.Image, block BlockType, x, y int, clr colorm.ColorM) {
 	if block == BlockTypeNone {
 		return
 	}
 
-	op := &ebiten.DrawImageOptions{}
-	op.ColorM = clr
+	op := &colorm.DrawImageOptions{}
 	op.GeoM.Translate(float64(x), float64(y))
 
 	srcX := (int(block) - 1) * blockWidth
-	r.DrawImage(imageBlocks.SubImage(image.Rect(srcX, 0, srcX+blockWidth, blockHeight)).(*ebiten.Image), op)
+	colorm.DrawImage(r, imageBlocks.SubImage(image.Rect(srcX, 0, srcX+blockWidth, blockHeight)).(*ebiten.Image), clr, op)
 }
 
 func (p *Piece) InitialPosition() (int, int) {
@@ -249,7 +249,7 @@ func (p *Piece) Draw(r *ebiten.Image, x, y int, angle Angle) {
 	for i := range p.blocks {
 		for j := range p.blocks[i] {
 			if p.isBlocked(i, j, angle) {
-				drawBlock(r, p.blockType, i*blockWidth+x, j*blockHeight+y, ebiten.ColorM{})
+				drawBlock(r, p.blockType, i*blockWidth+x, j*blockHeight+y, colorm.ColorM{})
 			}
 		}
 	}

@@ -42,6 +42,7 @@ For installation on desktops, see [the installation instruction](https://ebiteng
     * [mp3](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/audio/mp3)
     * [vorbis](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/audio/vorbis)
     * [wav](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/audio/wav)
+  * [colorm](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/colorm)
   * [ebitenutil](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/ebitenutil)
   * [inpututil](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/inpututil)
   * [mobile](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/mobile)

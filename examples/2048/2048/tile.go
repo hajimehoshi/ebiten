@@ -383,7 +383,7 @@ func (t *Tile) Draw(boardImage *ebiten.Image) {
 		op.GeoM.Translate(float64(tileSize/2), float64(tileSize/2))
 	}
 	op.GeoM.Translate(float64(x), float64(y))
-	op.ColorM.ScaleWithColor(tileBackgroundColor(v))
+	op.ColorScale.ScaleWithColor(tileBackgroundColor(v))
 	boardImage.DrawImage(tileImage, op)
 	str := strconv.Itoa(v)
 
