@@ -16,7 +16,6 @@ package cocoa
 
 import (
 	"math"
-	"reflect"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -568,15 +567,16 @@ type NSEvent struct {
 	objc.ID
 }
 
-//otherEventWithType:(NSEventType)type
-//                       location:(NSPoint)location
-//                  modifierFlags:(NSEventModifierFlags)flags
-//                      timestamp:(NSTimeInterval)time
-//                   windowNumber:(NSInteger)wNum
-//                        context:(NSGraphicsContext *)unusedPassNil
-//                        subtype:(short)subtype
-//                          data1:(NSInteger)d1
-//                          data2:(NSInteger)d2;
+// otherEventWithType:(NSEventType)type
+//
+//	     location:(NSPoint)location
+//	modifierFlags:(NSEventModifierFlags)flags
+//	    timestamp:(NSTimeInterval)time
+//	 windowNumber:(NSInteger)wNum
+//	      context:(NSGraphicsContext *)unusedPassNil
+//	      subtype:(short)subtype
+//	        data1:(NSInteger)d1
+//	        data2:(NSInteger)d2;
 func NSEvent_otherEventWithTypeLocationModifierFlagsTimestampWindowNumberContextSubtypeData1Data2(
 	eventType NSEventType, location NSPoint, flags NSEventModifierFlags, timestamp NSTimeInterval,
 	windowNumber NSInteger, unusedPassNil objc.ID, subtype int16, d1, d2 NSInteger) NSEvent {
