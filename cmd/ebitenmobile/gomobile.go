@@ -18,17 +18,26 @@ import (
 	_ "embed"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"runtime/debug"
 
 	// Add a dependency on gomobile in order to get the version via debug.ReadBuildInfo().
 	_ "golang.org/x/mobile/geom"
+	exec "golang.org/x/sys/execabs"
 )
 
 //go:embed gobind.go
 var gobind_go []byte
+
+//go:embed _files/EbitenViewController.m
+var objcM []byte
+
+//go:embed _files/EbitenView.java
+var viewJava []byte
+
+//go:embed _files/EbitenSurfaceView.java
+var surfaceViewJava []byte
 
 func runCommand(command string, args []string, env []string) error {
 	if buildX || buildN {
@@ -116,8 +125,7 @@ func prepareGomobileCommands() (string, error) {
 
 	const (
 		modname   = "ebitenmobiletemporary"
-		buildtags = "//go:build tools" +
-			"\n// +build tools"
+		buildtags = "//go:build tools"
 	)
 	if err := runGo("mod", "init", modname); err != nil {
 		return tmp, err
@@ -167,6 +175,19 @@ import (
 		return tmp, err
 	}
 	if err := os.WriteFile(filepath.Join("src", "gobind.go"), gobind_go, 0644); err != nil {
+		return tmp, err
+	}
+
+	if err := os.Mkdir(filepath.Join("src", "_files"), 0755); err != nil {
+		return tmp, err
+	}
+	if err := os.WriteFile(filepath.Join("src", "_files", "EbitenViewController.m"), objcM, 0644); err != nil {
+		return tmp, err
+	}
+	if err := os.WriteFile(filepath.Join("src", "_files", "EbitenView.java"), viewJava, 0644); err != nil {
+		return tmp, err
+	}
+	if err := os.WriteFile(filepath.Join("src", "_files", "EbitenSurfaceView.java"), surfaceViewJava, 0644); err != nil {
 		return tmp, err
 	}
 

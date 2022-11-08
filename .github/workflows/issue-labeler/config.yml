@@ -1,0 +1,20 @@
+os:windows:
+- "- \\[(x|X)\\] Windows\n"
+os:macos:
+- "- \\[(x|X)\\] macOS\n"
+os:linux:
+- "- \\[(x|X)\\] Linux\n"
+os:freebsd:
+- "- \\[(x|X)\\] FreeBSD\n"
+os:openbsd:
+- "- \\[(x|X)\\] OpenBSD\n"
+os:android:
+- "- \\[(x|X)\\] Android\n"
+os:ios:
+- "- \\[(x|X)\\] iOS\n"
+os:nintendoswitch:
+- "- \\[(x|X)\\] Nintendo Switch\n"
+os:xbox:
+- "- \\[(x|X)\\] Xbox\n"
+os:js:
+- "- \\[(x|X)\\] Web Browsers\n"

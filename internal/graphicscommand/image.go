@@ -43,7 +43,7 @@ type Image struct {
 	// have its graphicsdriver.Image.
 	id int
 
-	bufferedRP []*graphicsdriver.WritePixelsArgs
+	bufferedWP []*graphicsdriver.WritePixelsArgs
 }
 
 var nextID = 1
@@ -52,6 +52,24 @@ func genNextID() int {
 	id := nextID
 	nextID++
 	return id
+}
+
+// imagesWithBuffers is the set of an image with buffers.
+var imagesWithBuffers []*Image
+
+// addImageWithBuffer adds an image to the list of images with unflushed buffers.
+func addImageWithBuffer(img *Image) {
+	imagesWithBuffers = append(imagesWithBuffers, img)
+}
+
+// flushImageBuffers flushes all the image buffers and send to the command queue.
+// flushImageBuffers should be called before flushing commands.
+func flushImageBuffers() {
+	for i, img := range imagesWithBuffers {
+		img.flushBufferedWritePixels()
+		imagesWithBuffers[i] = nil
+	}
+	imagesWithBuffers = imagesWithBuffers[:0]
 }
 
 // NewImage returns a new image.
@@ -74,19 +92,20 @@ func NewImage(width, height int, screenFramebuffer bool) *Image {
 	return i
 }
 
-func (i *Image) resolveBufferedWritePixels() {
-	if len(i.bufferedRP) == 0 {
+func (i *Image) flushBufferedWritePixels() {
+	if len(i.bufferedWP) == 0 {
 		return
 	}
 	c := &writePixelsCommand{
 		dst:  i,
-		args: i.bufferedRP,
+		args: i.bufferedWP,
 	}
 	theCommandQueue.Enqueue(c)
-	i.bufferedRP = nil
+	i.bufferedWP = nil
 }
 
 func (i *Image) Dispose() {
+	i.bufferedWP = nil
 	c := &disposeImageCommand{
 		target: i,
 	}
@@ -127,7 +146,7 @@ func (i *Image) InternalSize() (int, int) {
 //
 // If the source image is not specified, i.e., src is nil and there is no image in the uniform variables, the
 // elements for the source image are not used.
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, mode graphicsdriver.CompositeMode, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
 	for _, src := range srcs {
 		if src == nil {
 			continue
@@ -135,17 +154,17 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [g
 		if src.screen {
 			panic("graphicscommand: the screen image cannot be the rendering source")
 		}
-		src.resolveBufferedWritePixels()
+		src.flushBufferedWritePixels()
 	}
-	i.resolveBufferedWritePixels()
+	i.flushBufferedWritePixels()
 
-	theCommandQueue.EnqueueDrawTrianglesCommand(i, srcs, offsets, vertices, indices, mode, dstRegion, srcRegion, shader, uniforms, evenOdd)
+	theCommandQueue.EnqueueDrawTrianglesCommand(i, srcs, offsets, vertices, indices, blend, dstRegion, srcRegion, shader, uniforms, evenOdd)
 }
 
 // ReadPixels reads the image's pixels.
 // ReadPixels returns an error when an error happens in the graphics driver.
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, buf []byte, x, y, width, height int) error {
-	i.resolveBufferedWritePixels()
+	i.flushBufferedWritePixels()
 	c := &readPixelsCommand{
 		img:    i,
 		x:      x,
@@ -155,20 +174,21 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, buf []byte, x
 		result: buf,
 	}
 	theCommandQueue.Enqueue(c)
-	if err := theCommandQueue.Flush(graphicsDriver); err != nil {
+	if err := theCommandQueue.Flush(graphicsDriver, false); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
-	i.bufferedRP = append(i.bufferedRP, &graphicsdriver.WritePixelsArgs{
+	i.bufferedWP = append(i.bufferedWP, &graphicsdriver.WritePixelsArgs{
 		Pixels: pixels,
 		X:      x,
 		Y:      y,
 		Width:  width,
 		Height: height,
 	})
+	addImageWithBuffer(i)
 }
 
 func (i *Image) IsInvalidated(graphicsDriver graphicsdriver.Graphics) (bool, error) {
@@ -187,7 +207,7 @@ func (i *Image) IsInvalidated(graphicsDriver graphicsdriver.Graphics) (bool, err
 		image: i,
 	}
 	theCommandQueue.Enqueue(c)
-	if err := theCommandQueue.Flush(graphicsDriver); err != nil {
+	if err := theCommandQueue.Flush(graphicsDriver, false); err != nil {
 		return false, err
 	}
 	return c.result, nil

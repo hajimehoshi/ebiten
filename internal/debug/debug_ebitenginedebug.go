@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build ebitenginedebug || ebitendebug
-// +build ebitenginedebug ebitendebug
 
 package debug
 
@@ -23,6 +22,6 @@ import (
 
 const IsDebug = true
 
-func Logf(format string, args ...interface{}) {
+func Logf(format string, args ...any) {
 	fmt.Printf(format, args...)
 }

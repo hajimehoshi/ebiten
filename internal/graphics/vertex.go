@@ -150,8 +150,8 @@ func QuadVertices(sx0, sy0, sx1, sy1 float32, a, b, c, d, tx, ty float32, cr, cg
 	// This function is very performance-sensitive and implement in a very dumb way.
 	_ = vs[:4*VertexFloatCount]
 
-	vs[0] = tx
-	vs[1] = ty
+	vs[0] = adjustDestinationPixel(tx)
+	vs[1] = adjustDestinationPixel(ty)
 	vs[2] = u0
 	vs[3] = v0
 	vs[4] = cr
@@ -159,8 +159,8 @@ func QuadVertices(sx0, sy0, sx1, sy1 float32, a, b, c, d, tx, ty float32, cr, cg
 	vs[6] = cb
 	vs[7] = ca
 
-	vs[8] = ax + tx
-	vs[9] = cx + ty
+	vs[8] = adjustDestinationPixel(ax + tx)
+	vs[9] = adjustDestinationPixel(cx + ty)
 	vs[10] = u1
 	vs[11] = v0
 	vs[12] = cr
@@ -168,8 +168,8 @@ func QuadVertices(sx0, sy0, sx1, sy1 float32, a, b, c, d, tx, ty float32, cr, cg
 	vs[14] = cb
 	vs[15] = ca
 
-	vs[16] = by + tx
-	vs[17] = dy + ty
+	vs[16] = adjustDestinationPixel(by + tx)
+	vs[17] = adjustDestinationPixel(dy + ty)
 	vs[18] = u0
 	vs[19] = v1
 	vs[20] = cr
@@ -177,8 +177,8 @@ func QuadVertices(sx0, sy0, sx1, sy1 float32, a, b, c, d, tx, ty float32, cr, cg
 	vs[22] = cb
 	vs[23] = ca
 
-	vs[24] = ax + by + tx
-	vs[25] = cx + dy + ty
+	vs[24] = adjustDestinationPixel(ax + by + tx)
+	vs[25] = adjustDestinationPixel(cx + dy + ty)
 	vs[26] = u1
 	vs[27] = v1
 	vs[28] = cr
@@ -187,4 +187,30 @@ func QuadVertices(sx0, sy0, sx1, sy1 float32, a, b, c, d, tx, ty float32, cr, cg
 	vs[31] = ca
 
 	return vs
+}
+
+func adjustDestinationPixel(x float32) float32 {
+	// Avoid the center of the pixel, which is problematic (#929, #1171).
+	// Instead, align the vertices with about 1/3 pixels.
+	//
+	// The intention here is roughly this code:
+	//
+	//     float32(math.Floor((float64(x)+1.0/6.0)*3) / 3)
+	//
+	// The actual implementation is more optimized than the above implementation.
+	ix := float32(int(x))
+	if x < 0 && x != ix {
+		ix -= 1
+	}
+	frac := x - ix
+	switch {
+	case frac < 3.0/16.0:
+		return ix
+	case frac < 8.0/16.0:
+		return ix + 5.0/16.0
+	case frac < 13.0/16.0:
+		return ix + 11.0/16.0
+	default:
+		return ix + 16.0/16.0
+	}
 }

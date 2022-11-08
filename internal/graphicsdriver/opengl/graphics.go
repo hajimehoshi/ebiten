@@ -180,7 +180,7 @@ func (g *Graphics) uniformVariableName(idx int) string {
 	return name
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, offsets [graphics.ShaderImageCount - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms [][]float32, evenOdd bool) error {
 	if shaderID == graphicsdriver.InvalidShaderID {
 		return fmt.Errorf("opengl: shader ID is invalid")
 	}
@@ -192,103 +192,31 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 	if err := destination.setViewport(); err != nil {
 		return err
 	}
-	g.context.scissor(
-		int(dstRegion.X),
-		int(dstRegion.Y),
-		int(dstRegion.Width),
-		int(dstRegion.Height),
-	)
-	g.context.blendFunc(mode)
+	g.context.blend(blend)
 
 	shader := g.shaders[shaderID]
 	program := shader.p
 
-	ulen := graphics.PreservedUniformVariablesCount + len(uniforms)
+	ulen := len(uniforms)
 	if cap(g.uniformVars) < ulen {
 		g.uniformVars = make([]uniformVariable, ulen)
 	} else {
 		g.uniformVars = g.uniformVars[:ulen]
 	}
 
-	{
-		const idx = graphics.TextureDestinationSizeUniformVariableIndex
-		w, h := destination.framebufferSize()
-		g.uniformVars[idx].name = g.uniformVariableName(idx)
-		g.uniformVars[idx].value = []float32{float32(w), float32(h)}
-		g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-	}
-	{
-		sizes := make([]float32, 2*len(srcIDs))
-		for i, srcID := range srcIDs {
-			if img := g.images[srcID]; img != nil {
-				w, h := img.framebufferSize()
-				sizes[2*i] = float32(w)
-				sizes[2*i+1] = float32(h)
-			}
-
-		}
-		const idx = graphics.TextureSourceSizesUniformVariableIndex
-		g.uniformVars[idx].name = g.uniformVariableName(idx)
-		g.uniformVars[idx].value = sizes
-		g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-	}
-	dw, dh := destination.framebufferSize()
-	{
-		origin := []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
-		const idx = graphics.TextureDestinationRegionOriginUniformVariableIndex
-		g.uniformVars[idx].name = g.uniformVariableName(idx)
-		g.uniformVars[idx].value = origin
-		g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-	}
-	{
-		size := []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
-		const idx = graphics.TextureDestinationRegionSizeUniformVariableIndex
-		g.uniformVars[idx].name = g.uniformVariableName(idx)
-		g.uniformVars[idx].value = size
-		g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-	}
-	{
-		voffsets := make([]float32, 2*len(offsets))
-		for i, o := range offsets {
-			voffsets[2*i] = o[0]
-			voffsets[2*i+1] = o[1]
-		}
-		const idx = graphics.TextureSourceOffsetsUniformVariableIndex
-		g.uniformVars[idx].name = g.uniformVariableName(idx)
-		g.uniformVars[idx].value = voffsets
-		g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-	}
-	{
-		origin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
-		const idx = graphics.TextureSourceRegionOriginUniformVariableIndex
-		g.uniformVars[idx].name = g.uniformVariableName(idx)
-		g.uniformVars[idx].value = origin
-		g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-	}
-	{
-		size := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
-		const idx = graphics.TextureSourceRegionSizeUniformVariableIndex
-		g.uniformVars[idx].name = g.uniformVariableName(idx)
-		g.uniformVars[idx].value = size
-		g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-	}
-	{
-		const idx = graphics.ProjectionMatrixUniformVariableIndex
-		g.uniformVars[idx].name = g.uniformVariableName(idx)
-		g.uniformVars[idx].value = []float32{
-			2 / float32(dw), 0, 0, 0,
-			0, 2 / float32(dh), 0, 0,
-			0, 0, 1, 0,
-			-1, -1, 0, 1,
-		}
-		g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-	}
-
 	for i, v := range uniforms {
-		const offset = graphics.PreservedUniformVariablesCount
-		g.uniformVars[i+offset].name = g.uniformVariableName(i + offset)
-		g.uniformVars[i+offset].value = v
-		g.uniformVars[i+offset].typ = shader.ir.Uniforms[i+offset]
+		g.uniformVars[i].name = g.uniformVariableName(i)
+		g.uniformVars[i].value = v
+		g.uniformVars[i].typ = shader.ir.Uniforms[i]
+	}
+
+	// In OpenGL, the NDC's Y direction is upward, so flip the Y direction for the final framebuffer.
+	if destination.screen {
+		const idx = graphics.ProjectionMatrixUniformVariableIndex
+		g.uniformVars[idx].value[1] *= -1
+		g.uniformVars[idx].value[5] *= -1
+		g.uniformVars[idx].value[9] *= -1
+		g.uniformVars[idx].value[13] *= -1
 	}
 
 	var imgs [graphics.ShaderImageCount]textureVariable
@@ -314,11 +242,24 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 			return err
 		}
 		g.context.enableStencilTest()
-		g.context.beginStencilWithEvenOddRule()
-		g.context.drawElements(indexLen, indexOffset*2)
-		g.context.endStencilWithEvenOddRule()
 	}
-	g.context.drawElements(indexLen, indexOffset*2) // 2 is uint16 size in bytes
+
+	for _, dstRegion := range dstRegions {
+		g.context.scissor(
+			int(dstRegion.Region.X),
+			int(dstRegion.Region.Y),
+			int(dstRegion.Region.Width),
+			int(dstRegion.Region.Height),
+		)
+		if evenOdd {
+			g.context.beginStencilWithEvenOddRule()
+			g.context.drawElements(dstRegion.IndexCount, indexOffset*2)
+			g.context.endStencilWithEvenOddRule()
+		}
+		g.context.drawElements(dstRegion.IndexCount, indexOffset*2) // 2 is uint16 size in bytes
+		indexOffset += dstRegion.IndexCount
+	}
+
 	if evenOdd {
 		g.context.disableStencilTest()
 	}
@@ -332,10 +273,6 @@ func (g *Graphics) SetVsyncEnabled(enabled bool) {
 
 func (g *Graphics) SetFullscreen(fullscreen bool) {
 	// Do nothing
-}
-
-func (g *Graphics) FramebufferYDirection() graphicsdriver.YDirection {
-	return graphicsdriver.Upward
 }
 
 func (g *Graphics) NeedsRestoring() bool {

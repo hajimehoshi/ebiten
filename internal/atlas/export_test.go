@@ -59,5 +59,4 @@ func (i *Image) EnsureIsolatedForTesting() {
 	i.ensureIsolated()
 }
 
-var ResolveDeferredForTesting = resolveDeferred
-var AdjustDestinationPixelForTesting = adjustDestinationPixel
+var FlushDeferredForTesting = flushDeferred

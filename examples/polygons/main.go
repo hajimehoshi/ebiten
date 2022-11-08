@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build example
-// +build example
-
 package main
 
 import (
@@ -35,11 +32,11 @@ const (
 )
 
 var (
-	emptyImage = ebiten.NewImage(3, 3)
+	whiteImage = ebiten.NewImage(3, 3)
 )
 
 func init() {
-	emptyImage.Fill(color.White)
+	whiteImage.Fill(color.White)
 }
 
 func genVertices(num int) []ebiten.Vertex {
@@ -128,7 +125,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for i := 0; i < g.ngon; i++ {
 		indices = append(indices, uint16(i), uint16(i+1)%uint16(g.ngon), uint16(g.ngon))
 	}
-	screen.DrawTriangles(g.vertices, indices, emptyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image), op)
+	screen.DrawTriangles(g.vertices, indices, whiteImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image), op)
 
 	msg := fmt.Sprintf("TPS: %0.2f\n%d-gon\nPress <- or -> to change the number of the vertices", ebiten.ActualTPS(), g.ngon)
 	ebitenutil.DebugPrint(screen, msg)

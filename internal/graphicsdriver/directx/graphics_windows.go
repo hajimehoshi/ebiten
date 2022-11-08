@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"reflect"
 	"strings"
 	"time"
 	"unsafe"
@@ -147,6 +146,9 @@ type Graphics struct {
 
 	// lastTime is the last time for rendering.
 	lastTime time.Time
+
+	newScreenWidth  int
+	newScreenHeight int
 
 	pipelineStates
 }
@@ -301,7 +303,7 @@ func (g *Graphics) initializeXbox(useWARP bool, useDebugLayer bool) (ferr error)
 	}
 
 	params := &_D3D12XBOX_CREATE_DEVICE_PARAMETERS{
-		Version:                           _D3D12_SDK_VERSION, // TODO: Can we always use the same value?
+		Version:                           microsoftgdk.D3D12SDKVersion(),
 		GraphicsCommandQueueRingSizeBytes: _D3D12XBOX_DEFAULT_SIZE_BYTES,
 		GraphicsScratchMemorySizeBytes:    _D3D12XBOX_DEFAULT_SIZE_BYTES,
 		ComputeScratchMemorySizeBytes:     _D3D12XBOX_DEFAULT_SIZE_BYTES,
@@ -533,9 +535,8 @@ func (g *Graphics) updateSwapChain(width, height int) error {
 		return errors.New("directx: resizing should never happen on Xbox")
 	}
 
-	if err := g.resizeSwapChainDesktop(width, height); err != nil {
-		return err
-	}
+	g.newScreenWidth = width
+	g.newScreenHeight = height
 
 	return nil
 }
@@ -644,19 +645,7 @@ func (g *Graphics) initSwapChainXbox(width, height int) (ferr error) {
 }
 
 func (g *Graphics) resizeSwapChainDesktop(width, height int) error {
-	if err := g.flushCommandList(g.copyCommandList); err != nil {
-		return err
-	}
-	if err := g.copyCommandList.Close(); err != nil {
-		return err
-	}
-	if err := g.flushCommandList(g.drawCommandList); err != nil {
-		return err
-	}
-	if err := g.drawCommandList.Close(); err != nil {
-		return err
-	}
-
+	// All resources must be released before ResizeBuffers.
 	if err := g.waitForCommandQueue(); err != nil {
 		return err
 	}
@@ -679,25 +668,6 @@ func (g *Graphics) resizeSwapChainDesktop(width, height int) error {
 	}
 
 	if err := g.createRenderTargetViewsDesktop(); err != nil {
-		return err
-	}
-
-	// TODO: Reset 0 on Xbox
-	g.frameIndex = int(g.swapChain.GetCurrentBackBufferIndex())
-
-	// TODO: Are these resetting necessary?
-
-	if err := g.drawCommandAllocators[g.frameIndex].Reset(); err != nil {
-		return err
-	}
-	if err := g.drawCommandList.Reset(g.drawCommandAllocators[g.frameIndex], nil); err != nil {
-		return err
-	}
-
-	if err := g.copyCommandAllocators[g.frameIndex].Reset(); err != nil {
-		return err
-	}
-	if err := g.copyCommandList.Reset(g.copyCommandAllocators[g.frameIndex], nil); err != nil {
 		return err
 	}
 
@@ -774,7 +744,8 @@ func (g *Graphics) End(present bool) error {
 		return err
 	}
 
-	if present {
+	// screenImage can be nil in tests.
+	if present && g.screenImage != nil {
 		if rb, ok := g.screenImage.transiteState(_D3D12_RESOURCE_STATE_PRESENT); ok {
 			g.drawCommandList.ResourceBarrier([]_D3D12_RESOURCE_BARRIER_Transition{rb})
 		}
@@ -807,6 +778,14 @@ func (g *Graphics) End(present bool) error {
 			if err := g.presentDesktop(); err != nil {
 				return err
 			}
+		}
+
+		if g.newScreenWidth != 0 && g.newScreenHeight != 0 {
+			if err := g.resizeSwapChainDesktop(g.newScreenWidth, g.newScreenHeight); err != nil {
+				return err
+			}
+			g.newScreenWidth = 0
+			g.newScreenHeight = 0
 		}
 
 		if err := g.moveToNextFrame(); err != nil {
@@ -1033,14 +1012,14 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint16) (ferr error
 	if err != nil {
 		return err
 	}
-	copyFloat32s(m, vertices)
+	copy(unsafe.Slice((*float32)(unsafe.Pointer(m)), len(vertices)), vertices)
 	g.vertices[g.frameIndex][vidx].Unmap(0, nil)
 
 	m, err = g.indices[g.frameIndex][iidx].Map(0, &_D3D12_RANGE{0, 0})
 	if err != nil {
 		return err
 	}
-	copyUint16s(m, indices)
+	copy(unsafe.Slice((*uint16)(unsafe.Pointer(m)), len(indices)), indices)
 	g.indices[g.frameIndex][iidx].Unmap(0, nil)
 
 	return nil
@@ -1149,10 +1128,6 @@ func (g *Graphics) SetVsyncEnabled(enabled bool) {
 func (g *Graphics) SetFullscreen(fullscreen bool) {
 }
 
-func (g *Graphics) FramebufferYDirection() graphicsdriver.YDirection {
-	return graphicsdriver.Downward
-}
-
 func (g *Graphics) NeedsRestoring() bool {
 	return false
 }
@@ -1193,7 +1168,7 @@ func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, 
 	return s, nil
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.ShaderImageCount]graphicsdriver.ImageID, offsets [graphics.ShaderImageCount - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms [][]float32, evenOdd bool) error {
 	if shaderID == graphicsdriver.InvalidShaderID {
 		return fmt.Errorf("directx: shader ID is invalid")
 	}
@@ -1242,45 +1217,15 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 
 	shader := g.shaders[shaderID]
 
-	// TODO: This logic is very similar to Metal's. Let's unify them.
-	dw, dh := dst.internalSize()
-	us := make([][]float32, graphics.PreservedUniformVariablesCount+len(uniforms))
-	us[graphics.TextureDestinationSizeUniformVariableIndex] = []float32{float32(dw), float32(dh)}
-	usizes := make([]float32, 2*len(srcs))
-	for i, src := range srcImages {
-		if src != nil {
-			w, h := src.internalSize()
-			usizes[2*i] = float32(w)
-			usizes[2*i+1] = float32(h)
-		}
-	}
-	us[graphics.TextureSourceSizesUniformVariableIndex] = usizes
-	udorigin := []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
-	us[graphics.TextureDestinationRegionOriginUniformVariableIndex] = udorigin
-	udsize := []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
-	us[graphics.TextureDestinationRegionSizeUniformVariableIndex] = udsize
-	uoffsets := make([]float32, 2*len(offsets))
-	for i, offset := range offsets {
-		uoffsets[2*i] = offset[0]
-		uoffsets[2*i+1] = offset[1]
-	}
-	us[graphics.TextureSourceOffsetsUniformVariableIndex] = uoffsets
-	usorigin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
-	us[graphics.TextureSourceRegionOriginUniformVariableIndex] = usorigin
-	ussize := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
-	us[graphics.TextureSourceRegionSizeUniformVariableIndex] = ussize
-	us[graphics.ProjectionMatrixUniformVariableIndex] = []float32{
-		2 / float32(dw), 0, 0, 0,
-		0, -2 / float32(dh), 0, 0,
-		0, 0, 1, 0,
-		-1, 1, 0, 1,
-	}
+	// In DirectX, the NDC's Y direction (upward) and the framebuffer's Y direction (downward) don't
+	// match. Then, the Y direction must be inverted.
+	const idx = graphics.ProjectionMatrixUniformVariableIndex
+	uniforms[idx][1] *= -1
+	uniforms[idx][5] *= -1
+	uniforms[idx][9] *= -1
+	uniforms[idx][13] *= -1
 
-	for i, u := range uniforms {
-		us[graphics.PreservedUniformVariablesCount+i] = u
-	}
-
-	flattenUniforms := shader.uniformsToFloat32s(us)
+	flattenUniforms := shader.uniformsToFloat32s(uniforms)
 
 	w, h := dst.internalSize()
 	g.needFlushDrawCommandList = true
@@ -1294,15 +1239,6 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 			MaxDepth: _D3D12_MAX_DEPTH,
 		},
 	})
-	g.drawCommandList.RSSetScissorRects([]_D3D12_RECT{
-		{
-			left:   int32(dstRegion.X),
-			top:    int32(dstRegion.Y),
-			right:  int32(dstRegion.X + dstRegion.Width),
-			bottom: int32(dstRegion.Y + dstRegion.Height),
-		},
-	})
-
 	g.drawCommandList.IASetPrimitiveTopology(_D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
 	g.drawCommandList.IASetVertexBuffers(0, []_D3D12_VERTEX_BUFFER_VIEW{
 		{
@@ -1317,41 +1253,9 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 		Format:         _DXGI_FORMAT_R16_UINT,
 	})
 
-	if evenOdd {
-		s, err := shader.pipelineState(mode, prepareStencil, dst.screen)
-		if err != nil {
-			return err
-		}
-		if err := g.drawTriangles(s, srcImages, flattenUniforms, indexLen, indexOffset); err != nil {
-			return err
-		}
-
-		s, err = shader.pipelineState(mode, drawWithStencil, dst.screen)
-		if err != nil {
-			return err
-		}
-		if err := g.drawTriangles(s, srcImages, flattenUniforms, indexLen, indexOffset); err != nil {
-			return err
-		}
-	} else {
-		s, err := shader.pipelineState(mode, noStencil, dst.screen)
-		if err != nil {
-			return err
-		}
-		if err := g.drawTriangles(s, srcImages, flattenUniforms, indexLen, indexOffset); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (g *Graphics) drawTriangles(pipelineState *_ID3D12PipelineState, srcs [graphics.ShaderImageCount]*Image, flattenUniforms []float32, indexLen int, indexOffset int) error {
-	if err := g.pipelineStates.useGraphicsPipelineState(g.device, g.drawCommandList, g.frameIndex, pipelineState, srcs, flattenUniforms); err != nil {
+	if err := g.pipelineStates.drawTriangles(g.device, g.drawCommandList, g.frameIndex, dst.screen, srcImages, shader, dstRegions, flattenUniforms, blend, indexOffset, evenOdd); err != nil {
 		return err
 	}
-
-	g.drawCommandList.DrawIndexedInstanced(uint32(indexLen), 1, uint32(indexOffset), 0, 0)
 
 	return nil
 }
@@ -1495,12 +1399,7 @@ func (i *Image) ReadPixels(buf []byte, x, y, width, height int) error {
 		return err
 	}
 
-	var dstBytes []byte
-	h := (*reflect.SliceHeader)(unsafe.Pointer(&dstBytes))
-	h.Data = uintptr(m)
-	h.Len = int(i.totalBytes)
-	h.Cap = int(i.totalBytes)
-
+	dstBytes := unsafe.Slice((*byte)(unsafe.Pointer(m)), i.totalBytes)
 	for j := 0; j < height; j++ {
 		copy(buf[j*width*4:(j+1)*width*4], dstBytes[j*int(i.layouts.Footprint.RowPitch):])
 	}
@@ -1534,11 +1433,7 @@ func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 
 	i.graphics.needFlushCopyCommandList = true
 
-	var srcBytes []byte
-	h := (*reflect.SliceHeader)(unsafe.Pointer(&srcBytes))
-	h.Data = uintptr(m)
-	h.Len = int(i.totalBytes)
-	h.Cap = int(i.totalBytes)
+	srcBytes := unsafe.Slice((*byte)(unsafe.Pointer(m)), i.totalBytes)
 	for _, a := range args {
 		for j := 0; j < a.Height; j++ {
 			copy(srcBytes[(a.Y+j)*int(i.layouts.Footprint.RowPitch)+a.X*4:], a.Pixels[j*a.Width*4:(j+1)*a.Width*4])
@@ -1749,24 +1644,6 @@ func (i *Image) ensureDepthStencilView(device *_ID3D12Device) error {
 	return nil
 }
 
-func copyFloat32s(dst uintptr, src []float32) {
-	var dsts []float32
-	h := (*reflect.SliceHeader)(unsafe.Pointer(&dsts))
-	h.Data = dst
-	h.Len = len(src)
-	h.Cap = len(src)
-	copy(dsts, src)
-}
-
-func copyUint16s(dst uintptr, src []uint16) {
-	var dsts []uint16
-	h := (*reflect.SliceHeader)(unsafe.Pointer(&dsts))
-	h.Data = dst
-	h.Len = len(src)
-	h.Cap = len(src)
-	copy(dsts, src)
-}
-
 type stencilMode int
 
 const (
@@ -1776,9 +1653,9 @@ const (
 )
 
 type pipelineStateKey struct {
-	compositeMode graphicsdriver.CompositeMode
-	stencilMode   stencilMode
-	screen        bool
+	blend       graphicsdriver.Blend
+	stencilMode stencilMode
+	screen      bool
 }
 
 type Shader struct {
@@ -1815,17 +1692,17 @@ func (s *Shader) disposeImpl() {
 	}
 }
 
-func (s *Shader) pipelineState(compositeMode graphicsdriver.CompositeMode, stencilMode stencilMode, screen bool) (*_ID3D12PipelineState, error) {
+func (s *Shader) pipelineState(blend graphicsdriver.Blend, stencilMode stencilMode, screen bool) (*_ID3D12PipelineState, error) {
 	key := pipelineStateKey{
-		compositeMode: compositeMode,
-		stencilMode:   stencilMode,
-		screen:        screen,
+		blend:       blend,
+		stencilMode: stencilMode,
+		screen:      screen,
 	}
 	if state, ok := s.pipelineStates[key]; ok {
 		return state, nil
 	}
 
-	state, err := s.graphics.pipelineStates.newPipelineState(s.graphics.device, s.vertexShader, s.pixelShader, compositeMode, stencilMode, screen)
+	state, err := s.graphics.pipelineStates.newPipelineState(s.graphics.device, s.vertexShader, s.pixelShader, blend, stencilMode, screen)
 	if err != nil {
 		return nil, err
 	}
@@ -1845,84 +1722,158 @@ func (s *Shader) uniformsToFloat32s(uniforms [][]float32) []float32 {
 
 		t := s.uniformTypes[i]
 		switch t.Main {
-		case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
-			fs = append(fs, u...)
+		case shaderir.Float:
+			if u != nil {
+				fs = append(fs, u...)
+			} else {
+				fs = append(fs, 0)
+			}
+		case shaderir.Vec2:
+			if u != nil {
+				fs = append(fs, u...)
+			} else {
+				fs = append(fs, 0, 0)
+			}
+		case shaderir.Vec3:
+			if u != nil {
+				fs = append(fs, u...)
+			} else {
+				fs = append(fs, 0, 0, 0)
+			}
+		case shaderir.Vec4:
+			if u != nil {
+				fs = append(fs, u...)
+			} else {
+				fs = append(fs, 0, 0, 0, 0)
+			}
 		case shaderir.Mat2:
-			fs = append(fs,
-				u[0], u[2], 0, 0,
-				u[1], u[3],
-			)
+			if u != nil {
+				fs = append(fs,
+					u[0], u[2], 0, 0,
+					u[1], u[3],
+				)
+			} else {
+				fs = append(fs,
+					0, 0, 0, 0,
+					0, 0,
+				)
+			}
 		case shaderir.Mat3:
-			fs = append(fs,
-				u[0], u[3], u[6], 0,
-				u[1], u[4], u[7], 0,
-				u[2], u[5], u[8],
-			)
+			if u != nil {
+				fs = append(fs,
+					u[0], u[3], u[6], 0,
+					u[1], u[4], u[7], 0,
+					u[2], u[5], u[8],
+				)
+			} else {
+				fs = append(fs,
+					0, 0, 0, 0,
+					0, 0, 0, 0,
+					0, 0, 0,
+				)
+			}
 		case shaderir.Mat4:
-			fs = append(fs,
-				u[0], u[4], u[8], u[12],
-				u[1], u[5], u[9], u[13],
-				u[2], u[6], u[10], u[14],
-				u[3], u[7], u[11], u[15],
-			)
+			if u != nil {
+				fs = append(fs,
+					u[0], u[4], u[8], u[12],
+					u[1], u[5], u[9], u[13],
+					u[2], u[6], u[10], u[14],
+					u[3], u[7], u[11], u[15],
+				)
+			} else {
+				fs = append(fs,
+					0, 0, 0, 0,
+					0, 0, 0, 0,
+					0, 0, 0, 0,
+					0, 0, 0, 0,
+				)
+			}
 		case shaderir.Array:
 			// Each element is aligned to the boundary.
 			switch t.Sub[0].Main {
 			case shaderir.Float:
-				for j := 0; j < t.Length; j++ {
-					fs = append(fs, u[j])
-					if j < t.Length-1 {
-						fs = append(fs, 0, 0, 0)
+				if u != nil {
+					for j := 0; j < t.Length; j++ {
+						fs = append(fs, u[j])
+						if j < t.Length-1 {
+							fs = append(fs, 0, 0, 0)
+						}
 					}
+				} else {
+					fs = append(fs, make([]float32, (t.Length-1)*4+1)...)
 				}
 			case shaderir.Vec2:
-				for j := 0; j < t.Length; j++ {
-					fs = append(fs, u[2*j:2*(j+1)]...)
-					if j < t.Length-1 {
-						fs = append(fs, 0, 0)
+				if u != nil {
+					for j := 0; j < t.Length; j++ {
+						fs = append(fs, u[2*j:2*(j+1)]...)
+						if j < t.Length-1 {
+							fs = append(fs, 0, 0)
+						}
 					}
+				} else {
+					fs = append(fs, make([]float32, (t.Length-1)*4+2)...)
 				}
 			case shaderir.Vec3:
-				for j := 0; j < t.Length; j++ {
-					fs = append(fs, u[3*j:3*(j+1)]...)
-					if j < t.Length-1 {
-						fs = append(fs, 0)
+				if u != nil {
+					for j := 0; j < t.Length; j++ {
+						fs = append(fs, u[3*j:3*(j+1)]...)
+						if j < t.Length-1 {
+							fs = append(fs, 0)
+						}
 					}
+				} else {
+					fs = append(fs, make([]float32, (t.Length-1)*4+3)...)
 				}
 			case shaderir.Vec4:
-				fs = append(fs, u...)
-			case shaderir.Mat2:
-				for j := 0; j < t.Length; j++ {
-					u1 := u[4*j : 4*(j+1)]
-					fs = append(fs,
-						u1[0], u1[2], 0, 0,
-						u1[1], u1[3], 0, 0,
-					)
+				if u != nil {
+					fs = append(fs, u...)
+				} else {
+					fs = append(fs, make([]float32, t.Length*4)...)
 				}
-				if t.Length > 0 {
-					fs = fs[:len(fs)-2]
+			case shaderir.Mat2:
+				if u != nil {
+					for j := 0; j < t.Length; j++ {
+						u1 := u[4*j : 4*(j+1)]
+						fs = append(fs,
+							u1[0], u1[2], 0, 0,
+							u1[1], u1[3], 0, 0,
+						)
+					}
+					if t.Length > 0 {
+						fs = fs[:len(fs)-2]
+					}
+				} else {
+					fs = append(fs, make([]float32, (t.Length-1)*8+6)...)
 				}
 			case shaderir.Mat3:
-				for j := 0; j < t.Length; j++ {
-					u1 := u[9*j : 9*(j+1)]
-					fs = append(fs,
-						u1[0], u1[3], u1[6], 0,
-						u1[1], u1[4], u1[7], 0,
-						u1[2], u1[5], u1[8], 0,
-					)
-				}
-				if t.Length > 0 {
-					fs = fs[:len(fs)-1]
+				if u != nil {
+					for j := 0; j < t.Length; j++ {
+						u1 := u[9*j : 9*(j+1)]
+						fs = append(fs,
+							u1[0], u1[3], u1[6], 0,
+							u1[1], u1[4], u1[7], 0,
+							u1[2], u1[5], u1[8], 0,
+						)
+					}
+					if t.Length > 0 {
+						fs = fs[:len(fs)-1]
+					}
+				} else {
+					fs = append(fs, make([]float32, (t.Length-1)*12+11)...)
 				}
 			case shaderir.Mat4:
-				for j := 0; j < t.Length; j++ {
-					u1 := u[16*j : 16*(j+1)]
-					fs = append(fs,
-						u1[0], u1[4], u1[8], u1[12],
-						u1[1], u1[5], u1[9], u1[13],
-						u1[2], u1[6], u1[10], u1[14],
-						u1[3], u1[7], u1[11], u1[15],
-					)
+				if u != nil {
+					for j := 0; j < t.Length; j++ {
+						u1 := u[16*j : 16*(j+1)]
+						fs = append(fs,
+							u1[0], u1[4], u1[8], u1[12],
+							u1[1], u1[5], u1[9], u1[13],
+							u1[2], u1[6], u1[10], u1[14],
+							u1[3], u1[7], u1[11], u1[15],
+						)
+					}
+				} else {
+					fs = append(fs, make([]float32, t.Length*16)...)
 				}
 			default:
 				panic(fmt.Sprintf("directx: not implemented type for uniform variables: %s", t.String()))

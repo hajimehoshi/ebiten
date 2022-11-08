@@ -19,7 +19,6 @@ import (
 	"go/constant"
 	"go/token"
 	"regexp"
-	"sort"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -99,12 +98,6 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 		structNames: map[string]string{},
 	}
 
-	indexToFunc := map[int]*shaderir.Func{}
-	for _, f := range p.Funcs {
-		f := f
-		indexToFunc[f.Index] = &f
-	}
-
 	// Vertex func
 	var vslines []string
 	{
@@ -136,12 +129,7 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 
 		var funcs []*shaderir.Func
 		if p.VertexFunc.Block != nil {
-			indices := p.ReferredFuncIndicesInVertexShader()
-			sort.Ints(indices)
-			funcs = make([]*shaderir.Func, 0, len(indices))
-			for _, idx := range indices {
-				funcs = append(funcs, indexToFunc[idx])
-			}
+			funcs = p.ReachableFuncsFromBlock(p.VertexFunc.Block)
 		} else {
 			// When a vertex entry point is not defined, allow to put all the functions. This is useful for testing.
 			funcs = make([]*shaderir.Func, 0, len(p.Funcs))
@@ -234,12 +222,7 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 
 		var funcs []*shaderir.Func
 		if p.VertexFunc.Block != nil {
-			indices := p.ReferredFuncIndicesInFragmentShader()
-			sort.Ints(indices)
-			funcs = make([]*shaderir.Func, 0, len(indices))
-			for _, idx := range indices {
-				funcs = append(funcs, indexToFunc[idx])
-			}
+			funcs = p.ReachableFuncsFromBlock(p.FragmentFunc.Block)
 		} else {
 			// When a fragment entry point is not defined, allow to put all the functions. This is useful for testing.
 			funcs = make([]*shaderir.Func, 0, len(p.Funcs))

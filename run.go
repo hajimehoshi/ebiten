@@ -16,6 +16,8 @@ package ebiten
 
 import (
 	"errors"
+	"image"
+	"image/color"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
@@ -80,6 +82,38 @@ type Game interface {
 	Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int)
 }
 
+// FinalScreen represents the final screen image.
+// FinalScreen implements a part of Image functions.
+type FinalScreen interface {
+	Bounds() image.Rectangle
+	Size() (int, int)
+
+	DrawImage(img *Image, options *DrawImageOptions)
+	DrawTriangles(vertices []Vertex, indices []uint16, img *Image, options *DrawTrianglesOptions)
+	DrawRectShader(width, height int, shader *Shader, options *DrawRectShaderOptions)
+	DrawTrianglesShader(vertices []Vertex, indices []uint16, shader *Shader, options *DrawTrianglesShaderOptions)
+	Clear()
+	Fill(clr color.Color)
+
+	// private prevents other packages from implementing this interface.
+	// A new function might be added to this interface in the future
+	// even if the Ebitengine major version is not updated.
+	private()
+}
+
+// FinalScreenDrawer is an interface for a custom function to render the final screen.
+// For an actual usage, see examples/flappy.
+type FinalScreenDrawer interface {
+	// DrawFinalScreen draws the final screen.
+	// If a game implementing FinalScreenDrawer is passed to RunGame, DrawFinalScreen is called after Draw.
+	// screen is the final screen. offscreen is the offscreen modified at Draw.
+	//
+	// geoM is the default geometry matrix to render the offscreen onto the final screen.
+	// geoM scales the offscreen to fit the final screen without changing the aspect ratio, and
+	// translates the offscreen to put it on the center of the final screen.
+	DrawFinalScreen(screen FinalScreen, offscreen *Image, geoM GeoM)
+}
+
 // DefaultTPS represents a default ticks per second, that represents how many times game updating happens in a second.
 const DefaultTPS = clock.DefaultTPS
 
@@ -132,44 +166,19 @@ func IsScreenClearedEveryFrame() bool {
 // The default state is true.
 //
 // SetScreenFilterEnabled is concurrent-safe, but takes effect only at the next Draw call.
+//
+// Deprecated: as of v2.5. Use FinalScreenDrawer instead.
 func SetScreenFilterEnabled(enabled bool) {
-	ui.SetScreenFilterEnabled(enabled)
+	setScreenFilterEnabled(enabled)
 }
 
 // IsScreenFilterEnabled returns true if Ebitengine's "screen" filter is enabled.
 //
 // IsScreenFilterEnabled is concurrent-safe.
+//
+// Deprecated: as of v2.5. Use FinalScreenDrawer instead.
 func IsScreenFilterEnabled() bool {
-	return ui.IsScreenFilterEnabled()
-}
-
-type imageDumperGame struct {
-	game Game
-	d    *imageDumper
-	err  error
-}
-
-func (i *imageDumperGame) Update() error {
-	if i.err != nil {
-		return i.err
-	}
-	if i.d == nil {
-		i.d = &imageDumper{g: i.game}
-	}
-	return i.d.update()
-}
-
-func (i *imageDumperGame) Draw(screen *Image) {
-	if i.err != nil {
-		return
-	}
-
-	i.game.Draw(screen)
-	i.err = i.d.dump(screen)
-}
-
-func (i *imageDumperGame) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return i.game.Layout(outsideWidth, outsideHeight)
+	return isScreenFilterEnabled()
 }
 
 // Termination is a special error which indicates Game termination without error.
@@ -179,6 +188,10 @@ var Termination = ui.RegularTermination
 // game's Update function is called every tick to update the game logic.
 // game's Draw function is called every frame to draw the screen.
 // game's Layout function is called when necessary, and you can specify the logical screen size by the function.
+//
+// If game implements FinalScreenDrawer, its DrawFinalScreen is called after Draw.
+// The argument screen represents the final screen. The argument offscreen is an offscreen modified at Draw.
+// If game does not implement FinalScreenDrawer, the dafault rendering for the final screen is used.
 //
 // game's functions are called on the same goroutine.
 //
@@ -206,9 +219,7 @@ func RunGame(game Game) error {
 	defer atomic.StoreInt32(&isRunGameEnded_, 1)
 
 	initializeWindowPositionIfNeeded(WindowSize())
-	g := newGameForUI(&imageDumperGame{
-		game: game,
-	})
+	g := newGameForUI(game)
 	if err := ui.Get().Run(g); err != nil {
 		if errors.Is(err, Termination) {
 			return nil
@@ -367,16 +378,12 @@ func DeviceScaleFactor() float64 {
 
 // IsVsyncEnabled returns a boolean value indicating whether
 // the game uses the display's vsync.
-//
-// Deprecated: as of v2.2. Use FPSMode instead.
 func IsVsyncEnabled() bool {
 	return ui.FPSMode() == ui.FPSModeVsyncOn
 }
 
 // SetVsyncEnabled sets a boolean value indicating whether
 // the game uses the display's vsync.
-//
-// Deprecated: as of v2.2. Use SetFPSMode instead.
 func SetVsyncEnabled(enabled bool) {
 	if enabled {
 		ui.SetFPSMode(ui.FPSModeVsyncOn)
@@ -386,11 +393,15 @@ func SetVsyncEnabled(enabled bool) {
 }
 
 // FPSModeType is a type of FPS modes.
+//
+// Deprecated: as of v2.5. Use SetVsyncEnabled instead.
 type FPSModeType = ui.FPSModeType
 
 const (
 	// FPSModeVsyncOn indicates that the game tries to sync the display's refresh rate.
 	// FPSModeVsyncOn is the default mode.
+	//
+	// Deprecated: as of v2.5. Use SetVsyncEnabled(true) instead.
 	FPSModeVsyncOn FPSModeType = ui.FPSModeVsyncOn
 
 	// FPSModeVsyncOffMaximum indicates that the game doesn't sync with vsync, and
@@ -400,6 +411,8 @@ const (
 	//
 	// In FPSModeVsyncOffMaximum, the game's Draw is called almost without sleeping.
 	// The game's Update is called based on the specified TPS.
+	//
+	// Deprecated: as of v2.5. Use SetVsyncEnabled(false) instead.
 	FPSModeVsyncOffMaximum FPSModeType = ui.FPSModeVsyncOffMaximum
 
 	// FPSModeVsyncOffMinimum indicates that the game doesn't sync with vsync, and
@@ -410,12 +423,17 @@ const (
 	// In FPSModeVsyncOffMinimum, the game's Update and Draw are called only when
 	// 1) new inputting except for gamepads is detected, or 2) ScheduleFrame is called.
 	// In FPSModeVsyncOffMinimum, TPS is SyncWithFPS no matter what TPS is specified at SetTPS.
+	//
+	// Deprecated: as of v2.5. Use SetVsyncEnabled(false) and SetScreenClearedEveryFrame(false) instead.
+	// See examples/skipdraw for GPU optimization with SetScreenClearedEveryFrame(false).
 	FPSModeVsyncOffMinimum FPSModeType = ui.FPSModeVsyncOffMinimum
 )
 
 // FPSMode returns the current FPS mode.
 //
 // FPSMode is concurrent-safe.
+//
+// Deprecated: as of v2.5. Use SetVsyncEnabled instead.
 func FPSMode() FPSModeType {
 	return ui.FPSMode()
 }
@@ -424,6 +442,8 @@ func FPSMode() FPSModeType {
 // The default FPS mode is FPSModeVsyncOn.
 //
 // SetFPSMode is concurrent-safe.
+//
+// Deprecated: as of v2.5. Use SetVsyncEnabled instead.
 func SetFPSMode(mode FPSModeType) {
 	ui.SetFPSMode(mode)
 }
@@ -431,6 +451,9 @@ func SetFPSMode(mode FPSModeType) {
 // ScheduleFrame schedules a next frame when the current FPS mode is FPSModeVsyncOffMinimum.
 //
 // ScheduleFrame is concurrent-safe.
+//
+// Deprecated: as of v2.5. Use SetScreenClearedEveryFrame(false) instead.
+// See examples/skipdraw for GPU optimization with SetScreenClearedEveryFrame(false).
 func ScheduleFrame() {
 	ui.Get().ScheduleFrame()
 }

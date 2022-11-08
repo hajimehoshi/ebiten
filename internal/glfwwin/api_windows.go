@@ -1268,7 +1268,7 @@ func _GetMessageTime() int32 {
 	return int32(r)
 }
 
-func _GetModuleHandleExW(dwFlags uint32, lpModuleName interface{}) (_HMODULE, error) {
+func _GetModuleHandleExW(dwFlags uint32, lpModuleName any) (_HMODULE, error) {
 	var ptr unsafe.Pointer
 	switch moduleName := lpModuleName.(type) {
 	case string:

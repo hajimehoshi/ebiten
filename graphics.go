@@ -15,8 +15,9 @@
 package ebiten
 
 import (
+	"fmt"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -32,58 +33,98 @@ const (
 )
 
 // CompositeMode represents Porter-Duff composition mode.
+//
+// Deprecated: as of v2.5. Use Blend instead.
 type CompositeMode int
 
-// This name convention follows CSS compositing: https://drafts.fxtf.org/compositing-2/.
-//
-// In the comments,
-// c_src, c_dst and c_out represent alpha-premultiplied RGB values of source, destination and output respectively. α_src and α_dst represent alpha values of source and destination respectively.
 const (
-	// Regular alpha blending
-	// c_out = c_src + c_dst × (1 - α_src)
-	CompositeModeSourceOver CompositeMode = CompositeMode(graphicsdriver.CompositeModeSourceOver)
+	// CompositeModeCustom indicates to refer Blend.
+	CompositeModeCustom CompositeMode = iota
 
-	// c_out = 0
-	CompositeModeClear CompositeMode = CompositeMode(graphicsdriver.CompositeModeClear)
+	// Deprecated: as of v2.5. Use BlendSourceOver instead.
+	CompositeModeSourceOver
 
-	// c_out = c_src
-	CompositeModeCopy CompositeMode = CompositeMode(graphicsdriver.CompositeModeCopy)
+	// Deprecated: as of v2.5. Use BlendClear instead.
+	CompositeModeClear
 
-	// c_out = c_dst
-	CompositeModeDestination CompositeMode = CompositeMode(graphicsdriver.CompositeModeDestination)
+	// Deprecated: as of v2.5. Use BlendCopy instead.
+	CompositeModeCopy
 
-	// c_out = c_src × (1 - α_dst) + c_dst
-	CompositeModeDestinationOver CompositeMode = CompositeMode(graphicsdriver.CompositeModeDestinationOver)
+	// Deprecated: as of v2.5. Use BlendDestination instead.
+	CompositeModeDestination
 
-	// c_out = c_src × α_dst
-	CompositeModeSourceIn CompositeMode = CompositeMode(graphicsdriver.CompositeModeSourceIn)
+	// Deprecated: as of v2.5. Use BlendDestinationOver instead.
+	CompositeModeDestinationOver
 
-	// c_out = c_dst × α_src
-	CompositeModeDestinationIn CompositeMode = CompositeMode(graphicsdriver.CompositeModeDestinationIn)
+	// Deprecated: as of v2.5. Use BlendSourceIn instead.
+	CompositeModeSourceIn
 
-	// c_out = c_src × (1 - α_dst)
-	CompositeModeSourceOut CompositeMode = CompositeMode(graphicsdriver.CompositeModeSourceOut)
+	// Deprecated: as of v2.5. Use BlendDestinationIn instead.
+	CompositeModeDestinationIn
 
-	// c_out = c_dst × (1 - α_src)
-	CompositeModeDestinationOut CompositeMode = CompositeMode(graphicsdriver.CompositeModeDestinationOut)
+	// Deprecated: as of v2.5. Use BlendSourceOut instead.
+	CompositeModeSourceOut
 
-	// c_out = c_src × α_dst + c_dst × (1 - α_src)
-	CompositeModeSourceAtop CompositeMode = CompositeMode(graphicsdriver.CompositeModeSourceAtop)
+	// Deprecated: as of v2.5. Use BlendDestinationOut instead.
+	CompositeModeDestinationOut
 
-	// c_out = c_src × (1 - α_dst) + c_dst × α_src
-	CompositeModeDestinationAtop CompositeMode = CompositeMode(graphicsdriver.CompositeModeDestinationAtop)
+	// Deprecated: as of v2.5. Use BlendSourceAtop instead.
+	CompositeModeSourceAtop
 
-	// c_out = c_src × (1 - α_dst) + c_dst × (1 - α_src)
-	CompositeModeXor CompositeMode = CompositeMode(graphicsdriver.CompositeModeXor)
+	// Deprecated: as of v2.5. Use BlendDestinationAtop instead.
+	CompositeModeDestinationAtop
 
-	// Sum of source and destination (a.k.a. 'plus' or 'additive')
-	// c_out = c_src + c_dst
-	CompositeModeLighter CompositeMode = CompositeMode(graphicsdriver.CompositeModeLighter)
+	// Deprecated: as of v2.5. Use BlendXor instead.
+	CompositeModeXor
 
-	// The product of source and destination (a.k.a 'multiply blend mode')
-	// c_out = c_src * c_dst
-	CompositeModeMultiply CompositeMode = CompositeMode(graphicsdriver.CompositeModeMultiply)
+	// Deprecated: as of v2.5. Use BlendLighter instead.
+	CompositeModeLighter
+
+	// Deprecated: as of v2.5. Use Blend with BlendFactorDestinationColor and BlendFactorZero instead.
+	CompositeModeMultiply
 )
+
+func (c CompositeMode) blend() Blend {
+	switch c {
+	case CompositeModeSourceOver:
+		return BlendSourceOver
+	case CompositeModeClear:
+		return BlendClear
+	case CompositeModeCopy:
+		return BlendCopy
+	case CompositeModeDestination:
+		return BlendDestination
+	case CompositeModeDestinationOver:
+		return BlendDestinationOver
+	case CompositeModeSourceIn:
+		return BlendSourceIn
+	case CompositeModeDestinationIn:
+		return BlendDestinationIn
+	case CompositeModeSourceOut:
+		return BlendSourceOut
+	case CompositeModeDestinationOut:
+		return BlendDestinationOut
+	case CompositeModeSourceAtop:
+		return BlendSourceAtop
+	case CompositeModeDestinationAtop:
+		return BlendDestinationAtop
+	case CompositeModeXor:
+		return BlendXor
+	case CompositeModeLighter:
+		return BlendLighter
+	case CompositeModeMultiply:
+		return Blend{
+			BlendFactorSourceRGB:        BlendFactorDestinationColor,
+			BlendFactorSourceAlpha:      BlendFactorDestinationColor,
+			BlendFactorDestinationRGB:   BlendFactorZero,
+			BlendFactorDestinationAlpha: BlendFactorZero,
+			BlendOperationRGB:           BlendOperationAdd,
+			BlendOperationAlpha:         BlendOperationAdd,
+		}
+	default:
+		panic(fmt.Sprintf("ebiten: invalid composite mode: %d", c))
+	}
+}
 
 // GraphicsLibrary represets graphics libraries supported by the engine.
 type GraphicsLibrary = ui.GraphicsLibrary

@@ -237,6 +237,43 @@ func PressedKeys() []ebiten.Key {
 	return AppendPressedKeys(nil)
 }
 
+// AppendJustPressedKeys append just pressed keyboard keys to keys and returns the extended buffer.
+// Giving a slice that already has enough capacity works efficiently.
+//
+// AppendJustPressedKeys is concurrent safe.
+func AppendJustPressedKeys(keys []ebiten.Key) []ebiten.Key {
+	theInputState.m.RLock()
+	defer theInputState.m.RUnlock()
+
+	for i, d := range theInputState.keyDurations {
+		if d != 1 {
+			continue
+		}
+		keys = append(keys, ebiten.Key(i))
+	}
+	return keys
+}
+
+// AppendJustReleasedKeys append just released keyboard keys to keys and returns the extended buffer.
+// Giving a slice that already has enough capacity works efficiently.
+//
+// AppendJustReleasedKeys is concurrent safe.
+func AppendJustReleasedKeys(keys []ebiten.Key) []ebiten.Key {
+	theInputState.m.RLock()
+	defer theInputState.m.RUnlock()
+
+	for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {
+		if theInputState.keyDurations[k] != 0 {
+			continue
+		}
+		if theInputState.prevKeyDurations[k] == 0 {
+			continue
+		}
+		keys = append(keys, k)
+	}
+	return keys
+}
+
 // IsKeyJustPressed returns a boolean value indicating
 // whether the given key is pressed just in the current tick.
 //
@@ -336,6 +373,80 @@ func IsGamepadJustDisconnected(id ebiten.GamepadID) bool {
 	return prev && !current
 }
 
+// AppendPressedGamepadButtons append currently pressed gamepad buttons to buttons and returns the extended buffer.
+// Giving a slice that already has enough capacity works efficiently.
+//
+// AppendPressedGamepadButtons is concurrent safe.
+func AppendPressedGamepadButtons(id ebiten.GamepadID, buttons []ebiten.GamepadButton) []ebiten.GamepadButton {
+	theInputState.m.RLock()
+	defer theInputState.m.RUnlock()
+
+	if _, ok := theInputState.gamepadButtonDurations[id]; !ok {
+		return buttons
+	}
+
+	for b, d := range theInputState.gamepadButtonDurations[id] {
+		if d == 0 {
+			continue
+		}
+		buttons = append(buttons, ebiten.GamepadButton(b))
+	}
+
+	return buttons
+}
+
+// AppendJustPressedGamepadButtons append just pressed gamepad buttons to buttons and returns the extended buffer.
+// Giving a slice that already has enough capacity works efficiently.
+//
+// AppendJustPressedGamepadButtons is concurrent safe.
+func AppendJustPressedGamepadButtons(id ebiten.GamepadID, buttons []ebiten.GamepadButton) []ebiten.GamepadButton {
+	theInputState.m.RLock()
+	defer theInputState.m.RUnlock()
+
+	if _, ok := theInputState.gamepadButtonDurations[id]; !ok {
+		return buttons
+	}
+
+	for b, d := range theInputState.gamepadButtonDurations[id] {
+		if d != 1 {
+			continue
+		}
+		buttons = append(buttons, ebiten.GamepadButton(b))
+	}
+
+	return buttons
+}
+
+// AppendJustReleasedGamepadButtons append just released gamepad buttons to buttons and returns the extended buffer.
+// Giving a slice that already has enough capacity works efficiently.
+//
+// AppendJustReleasedGamepadButtons is concurrent safe.
+func AppendJustReleasedGamepadButtons(id ebiten.GamepadID, buttons []ebiten.GamepadButton) []ebiten.GamepadButton {
+	theInputState.m.RLock()
+	defer theInputState.m.RUnlock()
+
+	if _, ok := theInputState.gamepadButtonDurations[id]; !ok {
+		return buttons
+	}
+	if _, ok := theInputState.prevGamepadButtonDurations[id]; !ok {
+		return buttons
+	}
+
+	for b := ebiten.GamepadButton(0); b <= ebiten.GamepadButtonMax; b++ {
+		if theInputState.gamepadButtonDurations[id][b] == 0 {
+			continue
+		}
+
+		if theInputState.prevGamepadButtonDurations[id][b] > 0 {
+			continue
+		}
+
+		buttons = append(buttons, b)
+	}
+
+	return buttons
+}
+
 // IsGamepadButtonJustPressed returns a boolean value indicating
 // whether the given gamepad button of the gamepad id is pressed just in the current tick.
 //
@@ -373,6 +484,80 @@ func GamepadButtonPressDuration(id ebiten.GamepadID, button ebiten.GamepadButton
 	}
 	theInputState.m.RUnlock()
 	return s
+}
+
+// AppendPressedStandardGamepadButtons append currently pressed standard gamepad buttons to buttons and returns the extended buffer.
+// Giving a slice that already has enough capacity works efficiently.
+//
+// AppendPressedStandardGamepadButtons is concurrent safe.
+func AppendPressedStandardGamepadButtons(id ebiten.GamepadID, buttons []ebiten.StandardGamepadButton) []ebiten.StandardGamepadButton {
+	theInputState.m.RLock()
+	defer theInputState.m.RUnlock()
+
+	if _, ok := theInputState.standardGamepadButtonDurations[id]; !ok {
+		return buttons
+	}
+
+	for b, d := range theInputState.standardGamepadButtonDurations[id] {
+		if d == 0 {
+			continue
+		}
+		buttons = append(buttons, ebiten.StandardGamepadButton(b))
+	}
+
+	return buttons
+}
+
+// AppendJustPressedStandardGamepadButtons append just pressed standard gamepad buttons to buttons and returns the extended buffer.
+// Giving a slice that already has enough capacity works efficiently.
+//
+// AppendJustPressedStandardGamepadButtons is concurrent safe.
+func AppendJustPressedStandardGamepadButtons(id ebiten.GamepadID, buttons []ebiten.StandardGamepadButton) []ebiten.StandardGamepadButton {
+	theInputState.m.RLock()
+	defer theInputState.m.RUnlock()
+
+	if _, ok := theInputState.gamepadButtonDurations[id]; !ok {
+		return buttons
+	}
+
+	for b, d := range theInputState.standardGamepadButtonDurations[id] {
+		if d != 1 {
+			continue
+		}
+		buttons = append(buttons, ebiten.StandardGamepadButton(b))
+	}
+
+	return buttons
+}
+
+// AppendJustReleasedStandardGamepadButtons append just released standard gamepad buttons to buttons and returns the extended buffer.
+// Giving a slice that already has enough capacity works efficiently.
+//
+// AppendJustReleasedStandardGamepadButtons is concurrent safe.
+func AppendJustReleasedStandardGamepadButtons(id ebiten.GamepadID, buttons []ebiten.StandardGamepadButton) []ebiten.StandardGamepadButton {
+	theInputState.m.RLock()
+	defer theInputState.m.RUnlock()
+
+	if _, ok := theInputState.gamepadButtonDurations[id]; !ok {
+		return buttons
+	}
+	if _, ok := theInputState.prevGamepadButtonDurations[id]; !ok {
+		return buttons
+	}
+
+	for b := ebiten.StandardGamepadButton(0); b <= ebiten.StandardGamepadButtonMax; b++ {
+		if theInputState.standardGamepadButtonDurations[id][b] == 0 {
+			continue
+		}
+
+		if theInputState.prevStandardGamepadButtonDurations[id][b] > 0 {
+			continue
+		}
+
+		buttons = append(buttons, b)
+	}
+
+	return buttons
 }
 
 // IsStandardGamepadButtonJustPressed returns a boolean value indicating

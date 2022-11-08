@@ -1,0 +1,14 @@
+name: Security Vulnerability
+description: Provide details about a security vulnerability.
+labels: security
+body:
+- type: textarea
+  id: what
+  attributes:
+    label: What vulnerability have you discovered? Include any relevant details like a CVE.
+  validations:
+    required: true
+- type: textarea
+  id: why
+  attributes:
+    label: What remediation steps are known, if any.

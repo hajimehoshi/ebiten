@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"fmt"
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
@@ -127,4 +128,17 @@ func (c *ColorM) IsInvertible() bool {
 // If c is not invertible, Invert panics.
 func (c *ColorM) Invert() {
 	c.impl = c.affineColorM().Invert()
+}
+
+// ReadElements reads the body part and the translation part to the given float32 slices.
+//
+// len(body) must be 16 and len(translation) must be 4. Otherwise, ReadElements panics.
+func (c *ColorM) ReadElements(body []float32, translation []float32) {
+	if len(body) != 16 {
+		panic(fmt.Sprintf("ebiten: len(body) must be 16 but %d", len(body)))
+	}
+	if len(translation) != 4 {
+		panic(fmt.Sprintf("ebiten: len(translation) must be 4 but %d", len(translation)))
+	}
+	c.affineColorM().Elements(body, translation)
 }

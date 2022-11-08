@@ -12,16 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build android || ios || opengles
-// +build android ios opengles
+//go:build (android || ios || opengles) && !js
 
 package opengl
 
 import (
 	"errors"
 	"fmt"
+	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/glconst"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gles"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
@@ -82,16 +83,6 @@ func getProgramID(p program) programID {
 	return programID(p)
 }
 
-const (
-	zero             = operation(gles.ZERO)
-	one              = operation(gles.ONE)
-	srcAlpha         = operation(gles.SRC_ALPHA)
-	dstAlpha         = operation(gles.DST_ALPHA)
-	oneMinusSrcAlpha = operation(gles.ONE_MINUS_SRC_ALPHA)
-	oneMinusDstAlpha = operation(gles.ONE_MINUS_DST_ALPHA)
-	dstColor         = operation(gles.DST_COLOR)
-)
-
 type contextImpl struct {
 	ctx gles.Context
 }
@@ -102,25 +93,32 @@ func (c *context) reset() error {
 	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
-	c.lastCompositeMode = graphicsdriver.CompositeModeUnknown
-	c.ctx.Enable(gles.BLEND)
-	c.ctx.Enable(gles.SCISSOR_TEST)
-	c.blendFunc(graphicsdriver.CompositeModeSourceOver)
+	c.lastBlend = graphicsdriver.Blend{}
+	c.ctx.Enable(glconst.BLEND)
+	c.ctx.Enable(glconst.SCISSOR_TEST)
+	c.blend(graphicsdriver.BlendSourceOver)
 	f := make([]int32, 1)
-	c.ctx.GetIntegerv(f, gles.FRAMEBUFFER_BINDING)
+	c.ctx.GetIntegerv(f, glconst.FRAMEBUFFER_BINDING)
 	c.screenFramebuffer = framebufferNative(f[0])
 	// TODO: Need to update screenFramebufferWidth/Height?
 	return nil
 }
 
-func (c *context) blendFunc(mode graphicsdriver.CompositeMode) {
-	if c.lastCompositeMode == mode {
+func (c *context) blend(blend graphicsdriver.Blend) {
+	if c.lastBlend == blend {
 		return
 	}
-	c.lastCompositeMode = mode
-	s, d := mode.Operations()
-	s2, d2 := convertOperation(s), convertOperation(d)
-	c.ctx.BlendFunc(uint32(s2), uint32(d2))
+	c.lastBlend = blend
+	c.ctx.BlendFuncSeparate(
+		uint32(convertBlendFactor(blend.BlendFactorSourceRGB)),
+		uint32(convertBlendFactor(blend.BlendFactorDestinationRGB)),
+		uint32(convertBlendFactor(blend.BlendFactorSourceAlpha)),
+		uint32(convertBlendFactor(blend.BlendFactorDestinationAlpha)),
+	)
+	c.ctx.BlendEquationSeparate(
+		uint32(convertBlendOperation(blend.BlendOperationRGB)),
+		uint32(convertBlendOperation(blend.BlendOperationAlpha)),
+	)
 }
 
 func (c *context) scissor(x, y, width, height int) {
@@ -134,18 +132,18 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 	}
 	c.bindTexture(textureNative(t))
 
-	c.ctx.TexParameteri(gles.TEXTURE_2D, gles.TEXTURE_MAG_FILTER, gles.NEAREST)
-	c.ctx.TexParameteri(gles.TEXTURE_2D, gles.TEXTURE_MIN_FILTER, gles.NEAREST)
-	c.ctx.TexParameteri(gles.TEXTURE_2D, gles.TEXTURE_WRAP_S, gles.CLAMP_TO_EDGE)
-	c.ctx.TexParameteri(gles.TEXTURE_2D, gles.TEXTURE_WRAP_T, gles.CLAMP_TO_EDGE)
-	c.ctx.PixelStorei(gles.UNPACK_ALIGNMENT, 4)
-	c.ctx.TexImage2D(gles.TEXTURE_2D, 0, gles.RGBA, int32(width), int32(height), gles.RGBA, gles.UNSIGNED_BYTE, nil)
+	c.ctx.TexParameteri(glconst.TEXTURE_2D, glconst.TEXTURE_MAG_FILTER, glconst.NEAREST)
+	c.ctx.TexParameteri(glconst.TEXTURE_2D, glconst.TEXTURE_MIN_FILTER, glconst.NEAREST)
+	c.ctx.TexParameteri(glconst.TEXTURE_2D, glconst.TEXTURE_WRAP_S, glconst.CLAMP_TO_EDGE)
+	c.ctx.TexParameteri(glconst.TEXTURE_2D, glconst.TEXTURE_WRAP_T, glconst.CLAMP_TO_EDGE)
+	c.ctx.PixelStorei(glconst.UNPACK_ALIGNMENT, 4)
+	c.ctx.TexImage2D(glconst.TEXTURE_2D, 0, glconst.RGBA, int32(width), int32(height), glconst.RGBA, glconst.UNSIGNED_BYTE, nil)
 
 	return textureNative(t), nil
 }
 
 func (c *context) bindFramebufferImpl(f framebufferNative) {
-	c.ctx.BindFramebuffer(gles.FRAMEBUFFER, uint32(f))
+	c.ctx.BindFramebuffer(glconst.FRAMEBUFFER, uint32(f))
 }
 
 func (c *context) framebufferPixels(buf []byte, f *framebuffer, x, y, width, height int) {
@@ -153,7 +151,7 @@ func (c *context) framebufferPixels(buf []byte, f *framebuffer, x, y, width, hei
 
 	c.bindFramebuffer(f.native)
 
-	c.ctx.ReadPixels(buf, int32(x), int32(y), int32(width), int32(height), gles.RGBA, gles.UNSIGNED_BYTE)
+	c.ctx.ReadPixels(buf, int32(x), int32(y), int32(width), int32(height), glconst.RGBA, glconst.UNSIGNED_BYTE)
 }
 
 func (c *context) framebufferPixelsToBuffer(f *framebuffer, buffer buffer, width, height int) {
@@ -161,17 +159,17 @@ func (c *context) framebufferPixelsToBuffer(f *framebuffer, buffer buffer, width
 
 	c.bindFramebuffer(f.native)
 
-	c.ctx.BindBuffer(gles.PIXEL_PACK_BUFFER, uint32(buffer))
-	c.ctx.ReadPixels(nil, 0, 0, int32(width), int32(height), gles.RGBA, gles.UNSIGNED_BYTE)
-	c.ctx.BindBuffer(gles.PIXEL_PACK_BUFFER, 0)
+	c.ctx.BindBuffer(glconst.PIXEL_PACK_BUFFER, uint32(buffer))
+	c.ctx.ReadPixels(nil, 0, 0, int32(width), int32(height), glconst.RGBA, glconst.UNSIGNED_BYTE)
+	c.ctx.BindBuffer(glconst.PIXEL_PACK_BUFFER, 0)
 }
 
 func (c *context) activeTexture(idx int) {
-	c.ctx.ActiveTexture(uint32(gles.TEXTURE0 + idx))
+	c.ctx.ActiveTexture(uint32(glconst.TEXTURE0 + idx))
 }
 
 func (c *context) bindTextureImpl(t textureNative) {
-	c.ctx.BindTexture(gles.TEXTURE_2D, uint32(t))
+	c.ctx.BindTexture(glconst.TEXTURE_2D, uint32(t))
 }
 
 func (c *context) deleteTexture(t textureNative) {
@@ -197,13 +195,13 @@ func (c *context) newRenderbuffer(width, height int) (renderbufferNative, error)
 	renderbuffer := renderbufferNative(r)
 	c.bindRenderbuffer(renderbuffer)
 
-	c.ctx.RenderbufferStorage(gles.RENDERBUFFER, gles.STENCIL_INDEX8, int32(width), int32(height))
+	c.ctx.RenderbufferStorage(glconst.RENDERBUFFER, glconst.STENCIL_INDEX8, int32(width), int32(height))
 
 	return renderbuffer, nil
 }
 
 func (c *context) bindRenderbufferImpl(r renderbufferNative) {
-	c.ctx.BindRenderbuffer(gles.RENDERBUFFER, uint32(r))
+	c.ctx.BindRenderbuffer(glconst.RENDERBUFFER, uint32(r))
 }
 
 func (c *context) deleteRenderbuffer(r renderbufferNative) {
@@ -223,13 +221,13 @@ func (c *context) newFramebuffer(texture textureNative) (framebufferNative, erro
 	}
 	c.bindFramebuffer(framebufferNative(f))
 
-	c.ctx.FramebufferTexture2D(gles.FRAMEBUFFER, gles.COLOR_ATTACHMENT0, gles.TEXTURE_2D, uint32(texture), 0)
-	s := c.ctx.CheckFramebufferStatus(gles.FRAMEBUFFER)
-	if s != gles.FRAMEBUFFER_COMPLETE {
+	c.ctx.FramebufferTexture2D(glconst.FRAMEBUFFER, glconst.COLOR_ATTACHMENT0, glconst.TEXTURE_2D, uint32(texture), 0)
+	s := c.ctx.CheckFramebufferStatus(glconst.FRAMEBUFFER)
+	if s != glconst.FRAMEBUFFER_COMPLETE {
 		if s != 0 {
 			return 0, fmt.Errorf("opengl: creating framebuffer failed: %v", s)
 		}
-		if e := c.ctx.GetError(); e != gles.NO_ERROR {
+		if e := c.ctx.GetError(); e != glconst.NO_ERROR {
 			return 0, fmt.Errorf("opengl: creating framebuffer failed: (glGetError) %d", e)
 		}
 		return 0, fmt.Errorf("opengl: creating framebuffer failed: unknown error")
@@ -240,8 +238,8 @@ func (c *context) newFramebuffer(texture textureNative) (framebufferNative, erro
 func (c *context) bindStencilBuffer(f framebufferNative, r renderbufferNative) error {
 	c.bindFramebuffer(f)
 
-	c.ctx.FramebufferRenderbuffer(gles.FRAMEBUFFER, gles.STENCIL_ATTACHMENT, gles.RENDERBUFFER, uint32(r))
-	if s := c.ctx.CheckFramebufferStatus(gles.FRAMEBUFFER); s != gles.FRAMEBUFFER_COMPLETE {
+	c.ctx.FramebufferRenderbuffer(glconst.FRAMEBUFFER, glconst.STENCIL_ATTACHMENT, glconst.RENDERBUFFER, uint32(r))
+	if s := c.ctx.CheckFramebufferStatus(glconst.FRAMEBUFFER); s != glconst.FRAMEBUFFER_COMPLETE {
 		return errors.New(fmt.Sprintf("opengl: glFramebufferRenderbuffer failed: %d", s))
 	}
 	return nil
@@ -267,11 +265,11 @@ func (c *context) deleteFramebuffer(f framebufferNative) {
 }
 
 func (c *context) newVertexShader(source string) (shader, error) {
-	return c.newShader(gles.VERTEX_SHADER, source)
+	return c.newShader(glconst.VERTEX_SHADER, source)
 }
 
 func (c *context) newFragmentShader(source string) (shader, error) {
-	return c.newShader(gles.FRAGMENT_SHADER, source)
+	return c.newShader(glconst.FRAGMENT_SHADER, source)
 }
 
 func (c *context) newShader(shaderType uint32, source string) (shader, error) {
@@ -283,8 +281,8 @@ func (c *context) newShader(shaderType uint32, source string) (shader, error) {
 	c.ctx.CompileShader(s)
 
 	v := make([]int32, 1)
-	c.ctx.GetShaderiv(v, s, gles.COMPILE_STATUS)
-	if v[0] == gles.FALSE {
+	c.ctx.GetShaderiv(v, s, glconst.COMPILE_STATUS)
+	if v[0] == glconst.FALSE {
 		log := c.ctx.GetShaderInfoLog(s)
 		return 0, fmt.Errorf("opengl: shader compile failed: %s", log)
 	}
@@ -311,8 +309,8 @@ func (c *context) newProgram(shaders []shader, attributes []string) (program, er
 
 	c.ctx.LinkProgram(p)
 	v := make([]int32, 1)
-	c.ctx.GetProgramiv(v, p, gles.LINK_STATUS)
-	if v[0] == gles.FALSE {
+	c.ctx.GetProgramiv(v, p, glconst.LINK_STATUS)
+	if v[0] == glconst.FALSE {
 		info := c.ctx.GetProgramInfoLog(p)
 		return 0, fmt.Errorf("opengl: program error: %s", info)
 	}
@@ -388,7 +386,7 @@ func (c *context) uniformFloats(p program, location string, v []float32, typ sha
 }
 
 func (c *context) vertexAttribPointer(index int, size int, stride int, offset int) {
-	c.ctx.VertexAttribPointer(uint32(index), int32(size), gles.FLOAT, false, int32(stride), offset)
+	c.ctx.VertexAttribPointer(uint32(index), int32(size), glconst.FLOAT, false, int32(stride), offset)
 }
 
 func (c *context) enableVertexAttribArray(index int) {
@@ -401,32 +399,34 @@ func (c *context) disableVertexAttribArray(index int) {
 
 func (c *context) newArrayBuffer(size int) buffer {
 	b := c.ctx.GenBuffers(1)[0]
-	c.ctx.BindBuffer(gles.ARRAY_BUFFER, b)
-	c.ctx.BufferData(gles.ARRAY_BUFFER, size, nil, gles.DYNAMIC_DRAW)
+	c.ctx.BindBuffer(glconst.ARRAY_BUFFER, b)
+	c.ctx.BufferData(glconst.ARRAY_BUFFER, size, nil, glconst.DYNAMIC_DRAW)
 	return buffer(b)
 }
 
 func (c *context) newElementArrayBuffer(size int) buffer {
 	b := c.ctx.GenBuffers(1)[0]
-	c.ctx.BindBuffer(gles.ELEMENT_ARRAY_BUFFER, b)
-	c.ctx.BufferData(gles.ELEMENT_ARRAY_BUFFER, size, nil, gles.DYNAMIC_DRAW)
+	c.ctx.BindBuffer(glconst.ELEMENT_ARRAY_BUFFER, b)
+	c.ctx.BufferData(glconst.ELEMENT_ARRAY_BUFFER, size, nil, glconst.DYNAMIC_DRAW)
 	return buffer(b)
 }
 
 func (c *context) bindArrayBuffer(b buffer) {
-	c.ctx.BindBuffer(gles.ARRAY_BUFFER, uint32(b))
+	c.ctx.BindBuffer(glconst.ARRAY_BUFFER, uint32(b))
 }
 
 func (c *context) bindElementArrayBuffer(b buffer) {
-	c.ctx.BindBuffer(gles.ELEMENT_ARRAY_BUFFER, uint32(b))
+	c.ctx.BindBuffer(glconst.ELEMENT_ARRAY_BUFFER, uint32(b))
 }
 
 func (c *context) arrayBufferSubData(data []float32) {
-	c.ctx.BufferSubData(gles.ARRAY_BUFFER, 0, float32sToBytes(data))
+	s := unsafe.Slice((*byte)(unsafe.Pointer(&data[0])), len(data)*4)
+	c.ctx.BufferSubData(glconst.ARRAY_BUFFER, 0, s)
 }
 
 func (c *context) elementArrayBufferSubData(data []uint16) {
-	c.ctx.BufferSubData(gles.ELEMENT_ARRAY_BUFFER, 0, uint16sToBytes(data))
+	s := unsafe.Slice((*byte)(unsafe.Pointer(&data[0])), len(data)*2)
+	c.ctx.BufferSubData(glconst.ELEMENT_ARRAY_BUFFER, 0, s)
 }
 
 func (c *context) deleteBuffer(b buffer) {
@@ -434,12 +434,12 @@ func (c *context) deleteBuffer(b buffer) {
 }
 
 func (c *context) drawElements(len int, offsetInBytes int) {
-	c.ctx.DrawElements(gles.TRIANGLES, int32(len), gles.UNSIGNED_SHORT, offsetInBytes)
+	c.ctx.DrawElements(glconst.TRIANGLES, int32(len), glconst.UNSIGNED_SHORT, offsetInBytes)
 }
 
 func (c *context) maxTextureSizeImpl() int {
 	v := make([]int32, 1)
-	c.ctx.GetIntegerv(v, gles.MAX_TEXTURE_SIZE)
+	c.ctx.GetIntegerv(v, glconst.MAX_TEXTURE_SIZE)
 	return int(v[0])
 }
 
@@ -460,27 +460,27 @@ func (c *context) canUsePBO() bool {
 func (c *context) texSubImage2D(t textureNative, args []*graphicsdriver.WritePixelsArgs) {
 	c.bindTexture(t)
 	for _, a := range args {
-		c.ctx.TexSubImage2D(gles.TEXTURE_2D, 0, int32(a.X), int32(a.Y), int32(a.Width), int32(a.Height), gles.RGBA, gles.UNSIGNED_BYTE, a.Pixels)
+		c.ctx.TexSubImage2D(glconst.TEXTURE_2D, 0, int32(a.X), int32(a.Y), int32(a.Width), int32(a.Height), glconst.RGBA, glconst.UNSIGNED_BYTE, a.Pixels)
 	}
 }
 
 func (c *context) enableStencilTest() {
-	c.ctx.Enable(gles.STENCIL_TEST)
+	c.ctx.Enable(glconst.STENCIL_TEST)
 }
 
 func (c *context) disableStencilTest() {
-	c.ctx.Disable(gles.STENCIL_TEST)
+	c.ctx.Disable(glconst.STENCIL_TEST)
 }
 
 func (c *context) beginStencilWithEvenOddRule() {
-	c.ctx.Clear(gles.STENCIL_BUFFER_BIT)
-	c.ctx.StencilFunc(gles.ALWAYS, 0x00, 0xff)
-	c.ctx.StencilOp(gles.KEEP, gles.KEEP, gles.INVERT)
+	c.ctx.Clear(glconst.STENCIL_BUFFER_BIT)
+	c.ctx.StencilFunc(glconst.ALWAYS, 0x00, 0xff)
+	c.ctx.StencilOp(glconst.KEEP, glconst.KEEP, glconst.INVERT)
 	c.ctx.ColorMask(false, false, false, false)
 }
 
 func (c *context) endStencilWithEvenOddRule() {
-	c.ctx.StencilFunc(gles.NOTEQUAL, 0x00, 0xff)
-	c.ctx.StencilOp(gles.KEEP, gles.KEEP, gles.KEEP)
+	c.ctx.StencilFunc(glconst.NOTEQUAL, 0x00, 0xff)
+	c.ctx.StencilOp(glconst.KEEP, glconst.KEEP, glconst.KEEP)
 	c.ctx.ColorMask(true, true, true, true)
 }

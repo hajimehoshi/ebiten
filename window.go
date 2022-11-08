@@ -175,7 +175,8 @@ func initializeWindowPositionIfNeeded(width, height int) {
 // WindowSize returns the window size on desktops.
 // WindowSize returns (0, 0) on other environments.
 //
-// WindowSize returns the original window size in fullscreen mode.
+// Even if the application is in fullscreen mode, WindowSize returns the original window size
+// If you need the fullscreen dimensions, see ScreenSizeInFullscreen instead.
 //
 // WindowSize is concurrent-safe.
 func WindowSize() (int, int) {
@@ -185,7 +186,7 @@ func WindowSize() (int, int) {
 // SetWindowSize sets the window size on desktops.
 // SetWindowSize does nothing on other environments.
 //
-// SetWindowSize sets the original window size in fullscreen mode.
+// Even if the application is in fullscreen mode, SetWindowSize sets the original window size.
 //
 // SetWindowSize panics if width or height is not a positive number.
 //

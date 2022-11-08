@@ -25,7 +25,6 @@ package mtl
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"runtime"
 	"unsafe"
 
@@ -290,6 +289,16 @@ const (
 	BlendFactorOneMinusSource1Alpha     BlendFactor = 18
 )
 
+type BlendOperation uint8
+
+const (
+	BlendOperationAdd             BlendOperation = 0
+	BlendOperationSubtract        BlendOperation = 1
+	BlendOperationReverseSubtract BlendOperation = 2
+	BlendOperationMin             BlendOperation = 3
+	BlendOperationMax             BlendOperation = 4
+)
+
 type ColorWriteMask uint8
 
 const (
@@ -383,6 +392,8 @@ type RenderPipelineColorAttachmentDescriptor struct {
 	DestinationRGBBlendFactor   BlendFactor
 	SourceAlphaBlendFactor      BlendFactor
 	SourceRGBBlendFactor        BlendFactor
+	AlphaBlendOperation         BlendOperation
+	RGBBlendOperation           BlendOperation
 
 	WriteMask ColorWriteMask
 }
@@ -492,6 +503,8 @@ var (
 	sel_setDestinationRGBBlendFactor                                                                                                  = objc.RegisterName("setDestinationRGBBlendFactor:")
 	sel_setSourceAlphaBlendFactor                                                                                                     = objc.RegisterName("setSourceAlphaBlendFactor:")
 	sel_setSourceRGBBlendFactor                                                                                                       = objc.RegisterName("setSourceRGBBlendFactor:")
+	sel_setAlphaBlendOperation                                                                                                        = objc.RegisterName("setAlphaBlendOperation:")
+	sel_setRgbBlendOperation                                                                                                          = objc.RegisterName("setRgbBlendOperation:")
 	sel_setWriteMask                                                                                                                  = objc.RegisterName("setWriteMask:")
 	sel_setStencilAttachmentPixelFormat                                                                                               = objc.RegisterName("setStencilAttachmentPixelFormat:")
 	sel_newRenderPipelineStateWithDescriptor_error                                                                                    = objc.RegisterName("newRenderPipelineStateWithDescriptor:error:")
@@ -624,6 +637,8 @@ func (d Device) MakeRenderPipelineState(rpd RenderPipelineDescriptor) (RenderPip
 	colorAttachments0.Send(sel_setDestinationRGBBlendFactor, uintptr(rpd.ColorAttachments[0].DestinationRGBBlendFactor))
 	colorAttachments0.Send(sel_setSourceAlphaBlendFactor, uintptr(rpd.ColorAttachments[0].SourceAlphaBlendFactor))
 	colorAttachments0.Send(sel_setSourceRGBBlendFactor, uintptr(rpd.ColorAttachments[0].SourceRGBBlendFactor))
+	colorAttachments0.Send(sel_setAlphaBlendOperation, uintptr(rpd.ColorAttachments[0].AlphaBlendOperation))
+	colorAttachments0.Send(sel_setRgbBlendOperation, uintptr(rpd.ColorAttachments[0].RGBBlendOperation))
 	colorAttachments0.Send(sel_setWriteMask, uintptr(rpd.ColorAttachments[0].WriteMask))
 	renderPipelineDescriptor.Send(sel_setStencilAttachmentPixelFormat, uintptr(rpd.StencilAttachmentPixelFormat))
 	var err cocoa.NSError
@@ -1070,18 +1085,7 @@ func (b Buffer) Length() uintptr {
 
 func (b Buffer) CopyToContents(data unsafe.Pointer, lengthInBytes uintptr) {
 	contents := b.buffer.Send(sel_contents)
-	// use unsafe.Slice when ebitengine reaches 1.17
-	var contentSlice []byte
-	contentHeader := (*reflect.SliceHeader)(unsafe.Pointer(&contentSlice))
-	contentHeader.Data = uintptr(contents)
-	contentHeader.Len = int(lengthInBytes)
-	contentHeader.Cap = int(lengthInBytes)
-	var dataSlice []byte
-	dataHeader := (*reflect.SliceHeader)(unsafe.Pointer(&dataSlice))
-	dataHeader.Data = uintptr(data)
-	dataHeader.Len = int(lengthInBytes)
-	dataHeader.Cap = int(lengthInBytes)
-	copy(contentSlice, dataSlice)
+	copy(unsafe.Slice((*byte)(unsafe.Pointer(contents)), lengthInBytes), unsafe.Slice((*byte)(data), lengthInBytes))
 	if runtime.GOOS != "ios" {
 		b.buffer.Send(sel_didModifyRange, 0, lengthInBytes)
 	}

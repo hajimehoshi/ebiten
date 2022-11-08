@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build example
-// +build example
-
 package main
 
 import (
 	"bytes"
+	_ "embed"
+	"flag"
 	"fmt"
 	"image"
 	"image/color"
@@ -42,6 +41,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text"
 )
+
+var flagCRT = flag.Bool("crt", false, "enable the CRT effect")
+
+//go:embed crt.go
+var crtGo []byte
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
@@ -159,9 +163,12 @@ type Game struct {
 	hitPlayer    *audio.Player
 }
 
-func NewGame() *Game {
+func NewGame(crt bool) ebiten.Game {
 	g := &Game{}
 	g.init()
+	if crt {
+		return &GameWithCRTEffect{Game: g}
+	}
 	return g
 }
 
@@ -439,10 +446,34 @@ func (g *Game) drawGopher(screen *ebiten.Image) {
 	screen.DrawImage(gopherImage, op)
 }
 
+type GameWithCRTEffect struct {
+	ebiten.Game
+
+	crtShader *ebiten.Shader
+}
+
+func (g *GameWithCRTEffect) DrawFinalScreen(screen ebiten.FinalScreen, offscreen *ebiten.Image, geoM ebiten.GeoM) {
+	if g.crtShader == nil {
+		s, err := ebiten.NewShader(crtGo)
+		if err != nil {
+			panic(fmt.Sprintf("flappy: failed to compiled the CRT shader: %v", err))
+		}
+		g.crtShader = s
+	}
+
+	ow, oh := offscreen.Size()
+
+	op := &ebiten.DrawRectShaderOptions{}
+	op.Images[0] = offscreen
+	op.GeoM = geoM
+	screen.DrawRectShader(ow, oh, g.crtShader, op)
+}
+
 func main() {
+	flag.Parse()
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Flappy Gopher (Ebitengine Demo)")
-	if err := ebiten.RunGame(NewGame()); err != nil {
+	if err := ebiten.RunGame(NewGame(*flagCRT)); err != nil {
 		panic(err)
 	}
 }

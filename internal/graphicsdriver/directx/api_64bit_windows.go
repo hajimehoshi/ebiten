@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build amd64 || arm64
-// +build amd64 arm64
 
 package directx
 

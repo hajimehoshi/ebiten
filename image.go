@@ -38,16 +38,8 @@ type Image struct {
 	original *Image
 	bounds   image.Rectangle
 
-	// Do not add a 'cache' member that are resolved lazily.
-	// This tends to forget resolving the cache easily (#2362).
-}
-
-var emptyImage *Image
-
-func init() {
-	img := NewImage(3, 3)
-	img.Fill(color.White)
-	emptyImage = img.SubImage(image.Rect(1, 1, 2, 2)).(*Image)
+	// Do not add a 'buffering' member that are resolved lazily.
+	// This tends to forget resolving the buffer easily (#2362).
 }
 
 func (i *Image) copyCheck() {
@@ -115,8 +107,15 @@ type DrawImageOptions struct {
 	ColorM ColorM
 
 	// CompositeMode is a composite mode to draw.
-	// The default (zero) value is regular alpha blending.
+	// The default (zero) value is CompositeModeCustom (Blend is used).
+	//
+	// Deprecated: as of v2.5. Use Blend instead.
 	CompositeMode CompositeMode
+
+	// Blend is a blending way of the source color and the destination color.
+	// Blend is used only when CompositeMode is CompositeModeCustom.
+	// The default (zero) value is the regular alpha blending.
+	Blend Blend
 
 	// Filter is a type of texture filter.
 	// The default (zero) value is FilterNearest.
@@ -187,7 +186,7 @@ func (i *Image) adjustedRegion() graphicsdriver.Region {
 //   - If only (*ColorM).Scale is applied to a ColorM, the ColorM has only
 //     diagonal elements. The other ColorM functions might modify the other
 //     elements.
-//   - All CompositeMode values are same
+//   - All CompositeMode/Blend values are same
 //   - All Filter values are same
 //
 // Even when all the above conditions are satisfied, multiple draw commands can
@@ -215,7 +214,12 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		options = &DrawImageOptions{}
 	}
 
-	mode := graphicsdriver.CompositeMode(options.CompositeMode)
+	var blend graphicsdriver.Blend
+	if options.CompositeMode == CompositeModeCustom {
+		blend = options.Blend.internalBlend()
+	} else {
+		blend = options.CompositeMode.blend().internalBlend()
+	}
 	filter := builtinshader.Filter(options.Filter)
 
 	if offsetX, offsetY := i.adjustPosition(0, 0); offsetX != 0 || offsetY != 0 {
@@ -239,13 +243,13 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 		var body [16]float32
 		var translation [4]float32
 		colorm.Elements(body[:], translation[:])
-		uniforms = shader.convertUniforms(map[string]interface{}{
+		uniforms = shader.convertUniforms(map[string]any{
 			builtinshader.UniformColorMBody:        body[:],
 			builtinshader.UniformColorMTranslation: translation[:],
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, mode, i.adjustedRegion(), graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, false, canSkipMipmap(options.GeoM, filter))
+	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), img.adjustedRegion(), [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, false, canSkipMipmap(options.GeoM, filter), false)
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -263,7 +267,7 @@ type Vertex struct {
 	// ColorR/ColorG/ColorB/ColorA represents color scaling values.
 	// Their interpretation depends on the concrete draw call used:
 	// - DrawTriangles: straight-alpha or premultiplied-alpha encoded color multiplier.
-	//   The format is determined by ColorScaleFormat in DrawTrianglesOptions.
+	//   The format is determined by ColorScaleMode in DrawTrianglesOptions.
 	//   If ColorA is 0, the vertex is fully transparent and color is ignored.
 	//   If ColorA is 1, the vertex has the color (ColorR, ColorG, ColorB).
 	//   Vertex colors are converted to premultiplied-alpha internally and
@@ -302,17 +306,17 @@ const (
 	EvenOdd
 )
 
-// ColorScaleFormat is the format of color scales in vertices.
-type ColorScaleFormat int
+// ColorScaleMode is the mode of color scales in vertices.
+type ColorScaleMode int
 
 const (
-	// ColorScaleFormatStraightAlpha indicates color scales in vertices are
+	// ColorScaleModeStraightAlpha indicates color scales in vertices are
 	// straight-alpha encoded color multiplier.
-	ColorScaleFormatStraightAlpha ColorScaleFormat = iota
+	ColorScaleModeStraightAlpha ColorScaleMode = iota
 
-	// ColorScaleFormatStraightAlpha indicates color scales in vertices are
+	// ColorScaleModeStraightAlpha indicates color scales in vertices are
 	// premultiplied-alpha encoded color multiplier.
-	ColorScaleFormatPremultipliedAlpha
+	ColorScaleModePremultipliedAlpha
 )
 
 // DrawTrianglesOptions represents options for DrawTriangles.
@@ -322,13 +326,20 @@ type DrawTrianglesOptions struct {
 	// ColorM is applied before vertex color scale is applied.
 	ColorM ColorM
 
-	// ColorScaleFormat is the format of color scales in vertices.
-	// The default (zero) value is ColorScaleFormatStraightAlpha.
-	ColorScaleFormat ColorScaleFormat
+	// ColorScaleMode is the mode of color scales in vertices.
+	// The default (zero) value is ColorScaleModeStraightAlpha.
+	ColorScaleMode ColorScaleMode
 
 	// CompositeMode is a composite mode to draw.
-	// The default (zero) value is regular alpha blending.
+	// The default (zero) value is CompositeModeCustom (Blend is used).
+	//
+	// Deprecated: as of v2.5. Use Blend instead.
 	CompositeMode CompositeMode
+
+	// Blend is a blending way of the source color and the destination color.
+	// Blend is used only when CompositeMode is CompositeModeCustom.
+	// The default (zero) value is the regular alpha blending.
+	Blend Blend
 
 	// Filter is a type of texture filter.
 	// The default (zero) value is FilterNearest.
@@ -346,6 +357,15 @@ type DrawTrianglesOptions struct {
 	//
 	// The default (zero) value is FillAll.
 	FillRule FillRule
+
+	// AntiAlias indicates whether the rendering uses anti-alias or not.
+	// AntiAlias is useful especially when you pass vertices from the vector package.
+	//
+	// AntiAlias increases internal draw calls and might affect performance.
+	// Use the build tag `ebitenginedebug` to check the number of draw calls if you care.
+	//
+	// The default (zero) value is false.
+	AntiAlias bool
 }
 
 // MaxIndicesCount is the maximum number of indices for DrawTriangles and DrawTrianglesShader.
@@ -396,21 +416,21 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		options = &DrawTrianglesOptions{}
 	}
 
-	mode := graphicsdriver.CompositeMode(options.CompositeMode)
-
-	address := builtinshader.Address(options.Address)
-	var sr graphicsdriver.Region
-	if address != builtinshader.AddressUnsafe {
-		sr = img.adjustedRegion()
+	var blend graphicsdriver.Blend
+	if options.CompositeMode == CompositeModeCustom {
+		blend = options.Blend.internalBlend()
+	} else {
+		blend = options.CompositeMode.blend().internalBlend()
 	}
 
+	address := builtinshader.Address(options.Address)
 	filter := builtinshader.Filter(options.Filter)
 
 	colorm, cr, cg, cb, ca := colorMToScale(options.ColorM.affineColorM())
 
 	vs := graphics.Vertices(len(vertices))
 	dst := i
-	if options.ColorScaleFormat == ColorScaleFormatStraightAlpha {
+	if options.ColorScaleMode == ColorScaleModeStraightAlpha {
 		for i, v := range vertices {
 			dx, dy := dst.adjustPositionF32(v.DstX, v.DstY)
 			vs[i*graphics.VertexFloatCount] = dx
@@ -449,20 +469,27 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		var body [16]float32
 		var translation [4]float32
 		colorm.Elements(body[:], translation[:])
-		uniforms = shader.convertUniforms(map[string]interface{}{
+		uniforms = shader.convertUniforms(map[string]any{
 			builtinshader.UniformColorMBody:        body[:],
 			builtinshader.UniformColorMTranslation: translation[:],
 		})
 	}
 
-	i.image.DrawTriangles(srcs, vs, is, mode, i.adjustedRegion(), sr, [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, options.FillRule == EvenOdd, filter != builtinshader.FilterLinear)
+	i.image.DrawTriangles(srcs, vs, is, blend, i.adjustedRegion(), img.adjustedRegion(), [graphics.ShaderImageCount - 1][2]float32{}, shader.shader, uniforms, options.FillRule == EvenOdd, filter != builtinshader.FilterLinear, options.AntiAlias)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
 type DrawTrianglesShaderOptions struct {
 	// CompositeMode is a composite mode to draw.
-	// The default (zero) value is regular alpha blending.
+	// The default (zero) value is CompositeModeCustom (Blend is used).
+	//
+	// Deprecated: as of v2.5. Use Blend instead.
 	CompositeMode CompositeMode
+
+	// Blend is a blending way of the source color and the destination color.
+	// Blend is used only when CompositeMode is CompositeModeCustom.
+	// The default (zero) value is the regular alpha blending.
+	Blend Blend
 
 	// Uniforms is a set of uniform variables for the shader.
 	// The keys are the names of the uniform variables.
@@ -470,7 +497,7 @@ type DrawTrianglesShaderOptions struct {
 	// If the uniform variable type is an array, a vector or a matrix,
 	// you have to specify linearly flattened values as a slice.
 	// For example, if the uniform variable type is [4]vec4, the number of the slice values will be 16.
-	Uniforms map[string]interface{}
+	Uniforms map[string]any
 
 	// Images is a set of the source images.
 	// All the images' sizes must be the same.
@@ -484,14 +511,19 @@ type DrawTrianglesShaderOptions struct {
 	//
 	// The default (zero) value is FillAll.
 	FillRule FillRule
+
+	// AntiAlias indicates whether the rendering uses anti-alias or not.
+	// AntiAlias is useful especially when you pass vertices from the vector package.
+	//
+	// AntiAlias increases internal draw calls and might affect performance.
+	// Use the build tag `ebitenginedebug` to check the number of draw calls if you care.
+	//
+	// The default (zero) value is false.
+	AntiAlias bool
 }
 
-func init() {
-	var op DrawTrianglesShaderOptions
-	if got, want := len(op.Images), graphics.ShaderImageCount; got != want {
-		panic(fmt.Sprintf("ebiten: len((DrawTrianglesShaderOptions{}).Images) must be %d but %d", want, got))
-	}
-}
+// Check the number of images.
+var _ [len(DrawTrianglesShaderOptions{}.Images)]struct{} = [graphics.ShaderImageCount]struct{}{}
 
 // DrawTrianglesShader draws triangles with the specified vertices and their indices with the specified shader.
 //
@@ -525,7 +557,12 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		options = &DrawTrianglesShaderOptions{}
 	}
 
-	mode := graphicsdriver.CompositeMode(options.CompositeMode)
+	var blend graphicsdriver.Blend
+	if options.CompositeMode == CompositeModeCustom {
+		blend = options.Blend.internalBlend()
+	} else {
+		blend = options.CompositeMode.blend().internalBlend()
+	}
 
 	vs := graphics.Vertices(len(vertices))
 	dst := i
@@ -589,7 +626,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		offsets[i][1] = float32(y - sy)
 	}
 
-	i.image.DrawTriangles(imgs, vs, is, mode, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), options.FillRule == EvenOdd, true)
+	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), options.FillRule == EvenOdd, true, options.AntiAlias)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
@@ -604,8 +641,15 @@ type DrawRectShaderOptions struct {
 	ColorScale ColorScale
 
 	// CompositeMode is a composite mode to draw.
-	// The default (zero) value is regular alpha blending.
+	// The default (zero) value is CompositeModeCustom (Blend is used).
+	//
+	// Deprecated: as of v2.5. Use Blend instead.
 	CompositeMode CompositeMode
+
+	// Blend is a blending way of the source color and the destination color.
+	// Blend is used only when CompositeMode is CompositeModeCustom.
+	// The default (zero) value is the regular alpha blending.
+	Blend Blend
 
 	// Uniforms is a set of uniform variables for the shader.
 	// The keys are the names of the uniform variables.
@@ -613,19 +657,15 @@ type DrawRectShaderOptions struct {
 	// If the uniform variable type is an array, a vector or a matrix,
 	// you have to specify linearly flattened values as a slice.
 	// For example, if the uniform variable type is [4]vec4, the number of the slice values will be 16.
-	Uniforms map[string]interface{}
+	Uniforms map[string]any
 
 	// Images is a set of the source images.
 	// All the images' sizes must be the same.
 	Images [4]*Image
 }
 
-func init() {
-	var op DrawRectShaderOptions
-	if got, want := len(op.Images), graphics.ShaderImageCount; got != want {
-		panic(fmt.Sprintf("ebiten: len((DrawRectShaderOptions{}).Images) must be %d but %d", want, got))
-	}
-}
+// Check the number of images.
+var _ [len(DrawRectShaderOptions{}.Images)]struct{} = [graphics.ShaderImageCount]struct{}{}
 
 // DrawRectShader draws a rectangle with the specified width and height with the specified shader.
 //
@@ -645,7 +685,12 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		options = &DrawRectShaderOptions{}
 	}
 
-	mode := graphicsdriver.CompositeMode(options.CompositeMode)
+	var blend graphicsdriver.Blend
+	if options.CompositeMode == CompositeModeCustom {
+		blend = options.Blend.internalBlend()
+	} else {
+		blend = options.CompositeMode.blend().internalBlend()
+	}
 
 	var imgs [graphics.ShaderImageCount]*ui.Image
 	for i, img := range options.Images {
@@ -690,7 +735,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		offsets[i][1] = float32(y - sy)
 	}
 
-	i.image.DrawTriangles(imgs, vs, is, mode, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), false, true)
+	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), false, true, false)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.
@@ -704,9 +749,8 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 // If a sub-image is used as a rendering source, the image is used as if it is a small image.
 // If a sub-image is used as a rendering destination, the region being rendered is clipped.
 //
-// Successive uses of multiple various regions as rendering destination might not be efficient,
-// even though all the underlying images are the same.
-// It's because such renderings cannot be unified into one internal draw command.
+// Successive uses of multiple various regions as rendering destination is still efficient
+// when all the underlying images are the same, but some platforms like browsers might not work efficiently.
 func (i *Image) SubImage(r image.Rectangle) image.Image {
 	i.copyCheck()
 	if i.isDisposed() {
@@ -719,7 +763,6 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 		r = image.ZR
 	}
 
-	// Keep the original image's reference not to dispose that by GC.
 	var orig = i
 	if i.isSubImage() {
 		orig = i.original
@@ -836,10 +879,6 @@ func (i *Image) at(x, y int) (r, g, b, a byte) {
 // Set sets the color at (x, y).
 //
 // Set implements the standard draw.Image's Set.
-//
-// Set loads pixels from GPU to system memory if necessary, which means that Set can be slow.
-//
-// In the current implementation, successive calls of Set invokes loading pixels at most once, so this is efficient.
 //
 // If the image is disposed, Set does nothing.
 func (i *Image) Set(x, y int, clr color.Color) {
@@ -1089,4 +1128,8 @@ func colorMToScale(colorm affine.ColorM) (newColorM affine.ColorM, r, g, b, a fl
 	}
 
 	return affine.ColorMIdentity{}, r * a, g * a, b * a, a
+}
+
+// private implements FinalScreen.
+func (*Image) private() {
 }

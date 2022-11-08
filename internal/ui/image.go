@@ -15,6 +15,8 @@
 package ui
 
 import (
+	"fmt"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -29,21 +31,32 @@ func SetPanicOnErrorOnReadingPixelsForTesting(value bool) {
 	panicOnErrorOnReadingPixels = value
 }
 
-type Image struct {
-	mipmap   *mipmap.Mipmap
-	width    int
-	height   int
-	volatile bool
+const bigOffscreenScale = 2
 
-	dotsCache map[[2]int][4]byte
+type Image struct {
+	mipmap    *mipmap.Mipmap
+	width     int
+	height    int
+	imageType atlas.ImageType
+
+	dotsBuffer map[[2]int][4]byte
+
+	// bigOffscreenBuffer is a double-sized offscreen for anti-alias rendering.
+	bigOffscreenBuffer      *Image
+	bigOffscreenBufferBlend graphicsdriver.Blend
+	bigOffscreenBufferDirty bool
+
+	// drawCallback is a callback called when DrawTriangles or WritePixels is called.
+	// drawCallback is useful to detect whether the image is manipulated or not after a certain time.
+	drawCallback func()
 }
 
 func NewImage(width, height int, imageType atlas.ImageType) *Image {
 	return &Image{
-		mipmap:   mipmap.New(width, height, imageType),
-		width:    width,
-		height:   height,
-		volatile: imageType == atlas.ImageTypeVolatile,
+		mipmap:    mipmap.New(width, height, imageType),
+		width:     width,
+		height:    height,
+		imageType: imageType,
 	}
 }
 
@@ -51,44 +64,116 @@ func (i *Image) MarkDisposed() {
 	if i.mipmap == nil {
 		return
 	}
+	if i.bigOffscreenBuffer != nil {
+		i.bigOffscreenBuffer.MarkDisposed()
+		i.bigOffscreenBuffer = nil
+		i.bigOffscreenBufferDirty = false
+	}
 	i.mipmap.MarkDisposed()
 	i.mipmap = nil
-	i.dotsCache = nil
+	i.dotsBuffer = nil
+	i.drawCallback = nil
 }
 
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, mode graphicsdriver.CompositeMode, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, canSkipMipmap bool) {
-	i.resolveDotsCacheIfNeeded()
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, canSkipMipmap bool, antialias bool) {
+	if i.drawCallback != nil {
+		i.drawCallback()
+	}
+
+	if antialias {
+		// Flush the other buffer to make the buffers exclusive.
+		i.flushDotsBufferIfNeeded()
+
+		if i.bigOffscreenBufferBlend != blend {
+			i.flushBigOffscreenBufferIfNeeded()
+		}
+
+		if i.bigOffscreenBuffer == nil {
+			var imageType atlas.ImageType
+			switch i.imageType {
+			case atlas.ImageTypeRegular, atlas.ImageTypeUnmanaged:
+				imageType = atlas.ImageTypeUnmanaged
+			case atlas.ImageTypeScreen, atlas.ImageTypeVolatile:
+				imageType = atlas.ImageTypeVolatile
+			default:
+				panic(fmt.Sprintf("ui: unexpected image type: %d", imageType))
+			}
+			i.bigOffscreenBuffer = NewImage(i.width*bigOffscreenScale, i.height*bigOffscreenScale, imageType)
+		}
+
+		i.bigOffscreenBufferBlend = blend
+
+		// Copy the current rendering result to get the correct blending result.
+		if blend != graphicsdriver.BlendSourceOver && !i.bigOffscreenBufferDirty {
+			srcs := [graphics.ShaderImageCount]*Image{i}
+			vs := graphics.QuadVertices(
+				0, 0, float32(i.width), float32(i.height),
+				bigOffscreenScale, 0, 0, bigOffscreenScale, 0, 0,
+				1, 1, 1, 1)
+			is := graphics.QuadIndices()
+			dstRegion := graphicsdriver.Region{
+				X:      0,
+				Y:      0,
+				Width:  float32(i.width * bigOffscreenScale),
+				Height: float32(i.height * bigOffscreenScale),
+			}
+			i.bigOffscreenBuffer.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true, false)
+		}
+
+		for i := 0; i < len(vertices); i += graphics.VertexFloatCount {
+			vertices[i] *= bigOffscreenScale
+			vertices[i+1] *= bigOffscreenScale
+		}
+
+		dstRegion.X *= bigOffscreenScale
+		dstRegion.Y *= bigOffscreenScale
+		dstRegion.Width *= bigOffscreenScale
+		dstRegion.Height *= bigOffscreenScale
+
+		i.bigOffscreenBuffer.DrawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd, canSkipMipmap, false)
+		i.bigOffscreenBufferDirty = true
+		return
+	}
+
+	i.flushBufferIfNeeded()
 
 	var srcMipmaps [graphics.ShaderImageCount]*mipmap.Mipmap
 	for i, src := range srcs {
 		if src == nil {
 			continue
 		}
-		src.resolveDotsCacheIfNeeded()
+		src.flushBufferIfNeeded()
 		srcMipmaps[i] = src.mipmap
 	}
 
-	i.mipmap.DrawTriangles(srcMipmaps, vertices, indices, mode, dstRegion, srcRegion, subimageOffsets, shader.shader, uniforms, evenOdd, canSkipMipmap)
+	i.mipmap.DrawTriangles(srcMipmaps, vertices, indices, blend, dstRegion, srcRegion, subimageOffsets, shader.shader, uniforms, evenOdd, canSkipMipmap)
 }
 
 func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
+	if i.drawCallback != nil {
+		i.drawCallback()
+	}
+
 	if width == 1 && height == 1 {
-		if i.dotsCache == nil {
-			i.dotsCache = map[[2]int][4]byte{}
+		// Flush the other buffer to make the buffers exclusive.
+		i.flushBigOffscreenBufferIfNeeded()
+
+		if i.dotsBuffer == nil {
+			i.dotsBuffer = map[[2]int][4]byte{}
 		}
 
 		var clr [4]byte
 		copy(clr[:], pix)
-		i.dotsCache[[2]int{x, y}] = clr
+		i.dotsBuffer[[2]int{x, y}] = clr
 
 		// One square requires 6 indices (= 2 triangles).
-		if len(i.dotsCache) >= graphics.IndicesCount/6 {
-			i.resolveDotsCacheIfNeeded()
+		if len(i.dotsBuffer) >= graphics.IndicesCount/6 {
+			i.flushDotsBufferIfNeeded()
 		}
 		return
 	}
 
-	i.resolveDotsCacheIfNeeded()
+	i.flushBufferIfNeeded()
 	i.mipmap.WritePixels(pix, x, y, width, height)
 }
 
@@ -98,15 +183,17 @@ func (i *Image) ReadPixels(pixels []byte, x, y, width, height int) {
 		return
 	}
 
+	i.flushBigOffscreenBufferIfNeeded()
+
 	if width == 1 && height == 1 {
-		if c, ok := i.dotsCache[[2]int{x, y}]; ok {
+		if c, ok := i.dotsBuffer[[2]int{x, y}]; ok {
 			copy(pixels, c[:])
 			return
 		}
-		// Do not call resolveDotsCacheIfNeeded here. This would slow (image/draw).Draw.
+		// Do not call flushDotsBufferIfNeeded here. This would slow (image/draw).Draw.
 		// See ebiten.TestImageDrawOver.
 	} else {
-		i.resolveDotsCacheIfNeeded()
+		i.flushDotsBufferIfNeeded()
 	}
 
 	if err := theUI.readPixels(i.mipmap, pixels, x, y, width, height); err != nil {
@@ -118,20 +205,27 @@ func (i *Image) ReadPixels(pixels []byte, x, y, width, height int) {
 }
 
 func (i *Image) DumpScreenshot(name string, blackbg bool) (string, error) {
+	i.flushBufferIfNeeded()
 	return theUI.dumpScreenshot(i.mipmap, name, blackbg)
 }
 
-func (i *Image) resolveDotsCacheIfNeeded() {
-	if len(i.dotsCache) == 0 {
+func (i *Image) flushBufferIfNeeded() {
+	// The buffers are exclusive and the order should not matter.
+	i.flushDotsBufferIfNeeded()
+	i.flushBigOffscreenBufferIfNeeded()
+}
+
+func (i *Image) flushDotsBufferIfNeeded() {
+	if len(i.dotsBuffer) == 0 {
 		return
 	}
 
-	l := len(i.dotsCache)
+	l := len(i.dotsBuffer)
 	vs := graphics.Vertices(l * 4)
 	is := make([]uint16, l*6)
 	sx, sy := float32(1), float32(1)
 	var idx int
-	for p, c := range i.dotsCache {
+	for p, c := range i.dotsBuffer {
 		dx := float32(p[0])
 		dy := float32(p[1])
 		crf := float32(c[0]) / 0xff
@@ -181,16 +275,46 @@ func (i *Image) resolveDotsCacheIfNeeded() {
 
 		idx++
 	}
-	i.dotsCache = nil
+	i.dotsBuffer = nil
 
-	srcs := [graphics.ShaderImageCount]*mipmap.Mipmap{emptyImage.mipmap}
+	srcs := [graphics.ShaderImageCount]*mipmap.Mipmap{whiteImage.mipmap}
 	dr := graphicsdriver.Region{
 		X:      0,
 		Y:      0,
 		Width:  float32(i.width),
 		Height: float32(i.height),
 	}
-	i.mipmap.DrawTriangles(srcs, vs, is, graphicsdriver.CompositeModeCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader.shader, nil, false, true)
+	i.mipmap.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader.shader, nil, false, true)
+}
+
+func (i *Image) flushBigOffscreenBufferIfNeeded() {
+	if !i.bigOffscreenBufferDirty {
+		return
+	}
+
+	// Mark the offscreen clearn earlier to avoid recursive calls.
+	i.bigOffscreenBufferDirty = false
+
+	srcs := [graphics.ShaderImageCount]*Image{i.bigOffscreenBuffer}
+	vs := graphics.QuadVertices(
+		0, 0, float32(i.width*bigOffscreenScale), float32(i.height*bigOffscreenScale),
+		1.0/bigOffscreenScale, 0, 0, 1.0/bigOffscreenScale, 0, 0,
+		1, 1, 1, 1)
+	is := graphics.QuadIndices()
+	dstRegion := graphicsdriver.Region{
+		X:      0,
+		Y:      0,
+		Width:  float32(i.width),
+		Height: float32(i.height),
+	}
+	blend := graphicsdriver.BlendSourceOver
+	if i.bigOffscreenBufferBlend != graphicsdriver.BlendSourceOver {
+		blend = graphicsdriver.BlendCopy
+	}
+	i.DrawTriangles(srcs, vs, is, blend, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, LinearFilterShader, nil, false, true, false)
+
+	i.bigOffscreenBuffer.clear()
+	i.bigOffscreenBufferDirty = false
 }
 
 func DumpImages(dir string) (string, error) {
@@ -198,16 +322,16 @@ func DumpImages(dir string) (string, error) {
 }
 
 var (
-	emptyImage = NewImage(3, 3, atlas.ImageTypeRegular)
+	whiteImage = NewImage(3, 3, atlas.ImageTypeRegular)
 )
 
 func init() {
-	pix := make([]byte, 4*emptyImage.width*emptyImage.height)
+	pix := make([]byte, 4*whiteImage.width*whiteImage.height)
 	for i := range pix {
 		pix[i] = 0xff
 	}
-	// As emptyImage is used at Fill, use WritePixels instead.
-	emptyImage.WritePixels(pix, 0, 0, emptyImage.width, emptyImage.height)
+	// As whiteImage is used at Fill, use WritePixels instead.
+	whiteImage.WritePixels(pix, 0, 0, whiteImage.width, whiteImage.height)
 }
 
 func (i *Image) clear() {
@@ -223,12 +347,12 @@ func (i *Image) Fill(r, g, b, a float32, x, y, width, height int) {
 	}
 
 	vs := graphics.QuadVertices(
-		1, 1, float32(emptyImage.width-1), float32(emptyImage.height-1),
+		1, 1, float32(whiteImage.width-1), float32(whiteImage.height-1),
 		float32(i.width), 0, 0, float32(i.height), 0, 0,
 		r, g, b, a)
 	is := graphics.QuadIndices()
 
-	srcs := [graphics.ShaderImageCount]*Image{emptyImage}
+	srcs := [graphics.ShaderImageCount]*Image{whiteImage}
 
-	i.DrawTriangles(srcs, vs, is, graphicsdriver.CompositeModeCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true)
+	i.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true, false)
 }

@@ -25,9 +25,9 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 var (
@@ -107,7 +107,7 @@ func init() {
 }
 
 func drawWindow(r *ebiten.Image, x, y, width, height int) {
-	ebitenutil.DrawRect(r, float64(x), float64(y), float64(width), float64(height), color.RGBA{0, 0, 0, 0xc0})
+	vector.DrawFilledRect(r, float32(x), float32(y), float32(width), float32(height), color.RGBA{0, 0, 0, 0xc0})
 }
 
 var fontColor = color.NRGBA{0x40, 0x40, 0xff, 0xff}

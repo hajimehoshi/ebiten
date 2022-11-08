@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build example
-// +build example
-
 package main
 
 import (
@@ -28,9 +25,9 @@ import (
 	"golang.org/x/image/font/opentype"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
 	"github.com/hajimehoshi/ebiten/v2/text"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 const (
@@ -96,13 +93,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	{
 		const x, y = 20, 40
 		b := text.BoundString(mplusNormalFont, sampleText)
-		ebitenutil.DrawRect(screen, float64(b.Min.X+x), float64(b.Min.Y+y), float64(b.Dx()), float64(b.Dy()), gray)
+		vector.DrawFilledRect(screen, float32(b.Min.X+x), float32(b.Min.Y+y), float32(b.Dx()), float32(b.Dy()), gray)
 		text.Draw(screen, sampleText, mplusNormalFont, x, y, color.White)
 	}
 	{
 		const x, y = 20, 140
 		b := text.BoundString(mplusBigFont, sampleText)
-		ebitenutil.DrawRect(screen, float64(b.Min.X+x), float64(b.Min.Y+y), float64(b.Dx()), float64(b.Dy()), gray)
+		vector.DrawFilledRect(screen, float32(b.Min.X+x), float32(b.Min.Y+y), float32(b.Dx()), float32(b.Dy()), gray)
 		text.Draw(screen, sampleText, mplusBigFont, x, y, color.White)
 	}
 	{
@@ -117,7 +114,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		const x, y = 160, 240
 		const lineHeight = 80
 		b := text.BoundString(text.FaceWithLineHeight(mplusBigFont, lineHeight), sampleText)
-		ebitenutil.DrawRect(screen, float64(b.Min.X+x), float64(b.Min.Y+y), float64(b.Dx()), float64(b.Dy()), gray)
+		vector.DrawFilledRect(screen, float32(b.Min.X+x), float32(b.Min.Y+y), float32(b.Dx()), float32(b.Dy()), gray)
 		text.Draw(screen, sampleText, text.FaceWithLineHeight(mplusBigFont, lineHeight), x, y, color.White)
 	}
 	{

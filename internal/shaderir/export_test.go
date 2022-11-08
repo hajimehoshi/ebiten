@@ -1,4 +1,4 @@
-// Copyright 2018 The Ebiten Authors
+// Copyright 2022 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,20 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build android || ios
-// +build android ios
+package shaderir
 
-package ebiten
-
-type imageDumper struct {
-	g Game
-}
-
-func (i *imageDumper) update() error {
-	return i.g.Update()
-}
-
-func (i *imageDumper) dump(screen *Image) error {
-	// Do nothing
-	return nil
+func (p *Program) ReachableUniformVariablesFromBlock(block *Block) []int {
+	return p.reachableUniformVariablesFromBlock(block)
 }

@@ -1,0 +1,15 @@
+name: "Issue Labeler"
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: github/issue-labeler@v2.5
+      with:
+        repo-token: "${{ secrets.GITHUB_TOKEN }}"
+        configuration-path: .github/workflows/issue-labeler/config.yml
+        not-before: "2022-10-27T17:00:00+11:00"
+        enable-versioned-regex: 0

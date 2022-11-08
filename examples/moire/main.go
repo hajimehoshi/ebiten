@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build example
-// +build example
-
 // This example is just to check if Ebitengine can draw fine checker pattern evenly.
 // If there is something wrong in the implementation, the result might include
 // uneven patterns (#459).

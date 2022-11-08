@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build !android && !ios && !js && !nintendosdk
-// +build !android,!ios,!js,!nintendosdk
 
 package ui
 
@@ -773,7 +772,13 @@ func (u *userInterfaceImpl) registerWindowSetSizeCallback() {
 			}
 
 			if u.graphicsDriver.IsGL() {
+				glfw.SwapInterval(0)
 				u.swapBuffers()
+				if u.fpsMode == FPSModeVsyncOn {
+					glfw.SwapInterval(1)
+				} else {
+					glfw.SwapInterval(0)
+				}
 			}
 
 			u.forceToRefreshIfNeeded()

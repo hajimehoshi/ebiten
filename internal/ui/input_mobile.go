@@ -13,8 +13,6 @@
 // limitations under the License.
 
 //go:build (android || ios) && !nintendosdk
-// +build android ios
-// +build !nintendosdk
 
 package ui
 

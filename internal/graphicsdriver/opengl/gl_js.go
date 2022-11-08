@@ -26,7 +26,8 @@ type gl struct {
 	bindFramebuffer          js.Value
 	bindRenderbuffer         js.Value
 	bindTexture              js.Value
-	blendFunc                js.Value
+	blendEquationSeparate    js.Value
+	blendFuncSeparate        js.Value
 	bufferData               js.Value
 	bufferSubData            js.Value
 	checkFramebufferStatus   js.Value
@@ -103,7 +104,8 @@ func (c *context) newGL(v js.Value) *gl {
 		bindFramebuffer:          v.Get("bindFramebuffer").Call("bind", v),
 		bindRenderbuffer:         v.Get("bindRenderbuffer").Call("bind", v),
 		bindTexture:              v.Get("bindTexture").Call("bind", v),
-		blendFunc:                v.Get("blendFunc").Call("bind", v),
+		blendEquationSeparate:    v.Get("blendEquationSeparate").Call("bind", v),
+		blendFuncSeparate:        v.Get("blendFuncSeparate").Call("bind", v),
 		bufferData:               v.Get("bufferData").Call("bind", v),
 		bufferSubData:            v.Get("bufferSubData").Call("bind", v),
 		checkFramebufferStatus:   v.Get("checkFramebufferStatus").Call("bind", v),

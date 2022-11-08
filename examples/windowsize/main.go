@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build example
-// +build example
-
 package main
 
 import (
@@ -125,7 +122,7 @@ func (g *game) Update() error {
 	fullscreen := ebiten.IsFullscreen()
 	runnableOnUnfocused := ebiten.IsRunnableOnUnfocused()
 	cursorMode := ebiten.CursorMode()
-	fpsMode := ebiten.FPSMode()
+	vsyncEnabled := ebiten.IsVsyncEnabled()
 	tps := ebiten.TPS()
 	decorated := ebiten.IsWindowDecorated()
 	positionX, positionY := ebiten.WindowPosition()
@@ -206,16 +203,7 @@ func (g *game) Update() error {
 		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyV) {
-		switch fpsMode {
-		case ebiten.FPSModeVsyncOn:
-			fpsMode = ebiten.FPSModeVsyncOffMaximum
-		case ebiten.FPSModeVsyncOffMaximum:
-			fpsMode = ebiten.FPSModeVsyncOffMinimum
-		case ebiten.FPSModeVsyncOffMinimum:
-			fpsMode = ebiten.FPSModeVsyncOn
-			// Reset TPS
-			tps = 60
-		}
+		vsyncEnabled = !vsyncEnabled
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyT) {
 		switch tps {
@@ -274,8 +262,8 @@ func (g *game) Update() error {
 
 	// Set FPS mode enabled only when this is needed.
 	// This makes a bug around FPS mode initialization more explicit (#1364).
-	if fpsMode != ebiten.FPSMode() {
-		ebiten.SetFPSMode(fpsMode)
+	if vsyncEnabled != ebiten.IsVsyncEnabled() {
+		ebiten.SetVsyncEnabled(vsyncEnabled)
 	}
 	ebiten.SetTPS(tps)
 	ebiten.SetWindowDecorated(decorated)
@@ -347,7 +335,7 @@ func (g *game) Draw(screen *ebiten.Image) {
 [U] Switch the runnable-on-unfocused state
 [C] Switch the cursor mode (visible, hidden, or captured)
 [I] Change the window icon (only for desktops)
-[V] Switch the FPS mode
+[V] Switch the vsync
 [T] Switch TPS (ticks per second)
 [D] Switch the window decoration (only for desktops)
 [L] Switch the window floating state (only for desktops)
@@ -421,7 +409,7 @@ func main() {
 		ebiten.MaximizeWindow()
 	}
 	if !*flagVsync {
-		ebiten.SetFPSMode(ebiten.FPSModeVsyncOffMaximum)
+		ebiten.SetVsyncEnabled(false)
 	}
 	if *flagAutoAdjusting {
 		ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)

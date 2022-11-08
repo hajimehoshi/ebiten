@@ -76,7 +76,7 @@ type drawTrianglesHistoryItem struct {
 	offsets   [graphics.ShaderImageCount - 1][2]float32
 	vertices  []float32
 	indices   []uint16
-	mode      graphicsdriver.CompositeMode
+	blend     graphicsdriver.Blend
 	dstRegion graphicsdriver.Region
 	srcRegion graphicsdriver.Region
 	shader    *Shader
@@ -139,18 +139,18 @@ type Image struct {
 	priority bool
 }
 
-var emptyImage *Image
+var whiteImage *Image
 
-func ensureEmptyImage() *Image {
-	if emptyImage != nil {
-		return emptyImage
+func ensureWhiteImage() *Image {
+	if whiteImage != nil {
+		return whiteImage
 	}
 
-	// Initialize the empty image lazily. Some functions like needsRestoring might not work at the initial phase.
+	// Initialize the white image lazily. Some functions like needsRestoring might not work at the initial phase.
 
-	// w and h are the empty image's size. They indicate the 1x1 image with 1px padding around.
+	// w and h are the white image's size. They indicate the 1x1 image with 1px padding around.
 	const w, h = 3, 3
-	emptyImage = &Image{
+	whiteImage = &Image{
 		image:    graphicscommand.NewImage(w, h, false),
 		width:    w,
 		height:   h,
@@ -161,14 +161,14 @@ func ensureEmptyImage() *Image {
 		pix[i] = 0xff
 	}
 
-	// As emptyImage is the source at clearImage, initialize this with WritePixels, not clearImage.
-	// This operation is also important when restoring emptyImage.
-	emptyImage.WritePixels(pix, 0, 0, w, h)
-	theImages.add(emptyImage)
-	return emptyImage
+	// As whiteImage is the source at clearImage, initialize this with WritePixels, not clearImage.
+	// This operation is also important when restoring whiteImage.
+	whiteImage.WritePixels(pix, 0, 0, w, h)
+	theImages.add(whiteImage)
+	return whiteImage
 }
 
-// NewImage creates an empty image with the given size.
+// NewImage creates an white image with the given size.
 //
 // The returned image is cleared.
 //
@@ -218,7 +218,7 @@ func (i *Image) Extend(width, height int) *Image {
 		Width:  float32(sw),
 		Height: float32(sh),
 	}
-	newImg.DrawTriangles(srcs, offsets, vs, is, graphicsdriver.CompositeModeCopy, dr, graphicsdriver.Region{}, NearestFilterShader, nil, false)
+	newImg.DrawTriangles(srcs, offsets, vs, is, graphicsdriver.BlendCopy, dr, graphicsdriver.Region{}, NearestFilterShader, nil, false)
 
 	// Overwrite the history as if the image newImg is created only by WritePixels.
 	newImg.clearDrawTrianglesHistory()
@@ -244,19 +244,19 @@ func quadVertices(src *Image, dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb
 }
 
 func clearImage(i *graphicscommand.Image) {
-	emptyImage := ensureEmptyImage()
+	whiteImage := ensureWhiteImage()
 
-	if i == emptyImage.image {
-		panic("restorable: fillImage cannot be called on emptyImage")
+	if i == whiteImage.image {
+		panic("restorable: fillImage cannot be called on whiteImage")
 	}
 
 	// This needs to use 'InternalSize' to render the whole region, or edges are unexpectedly cleared on some
 	// devices.
 	dw, dh := i.InternalSize()
-	sw, sh := emptyImage.width, emptyImage.height
-	vs := quadVertices(emptyImage, 0, 0, float32(dw), float32(dh), 1, 1, float32(sw-1), float32(sh-1), 0, 0, 0, 0)
+	sw, sh := whiteImage.width, whiteImage.height
+	vs := quadVertices(whiteImage, 0, 0, float32(dw), float32(dh), 1, 1, float32(sw-1), float32(sh-1), 0, 0, 0, 0)
 	is := graphics.QuadIndices()
-	srcs := [graphics.ShaderImageCount]*graphicscommand.Image{emptyImage.image}
+	srcs := [graphics.ShaderImageCount]*graphicscommand.Image{whiteImage.image}
 	var offsets [graphics.ShaderImageCount - 1][2]float32
 	dstRegion := graphicsdriver.Region{
 		X:      0,
@@ -264,7 +264,7 @@ func clearImage(i *graphicscommand.Image) {
 		Width:  float32(dw),
 		Height: float32(dh),
 	}
-	i.DrawTriangles(srcs, offsets, vs, is, graphicsdriver.CompositeModeClear, dstRegion, graphicsdriver.Region{}, NearestFilterShader.shader, nil, false)
+	i.DrawTriangles(srcs, offsets, vs, is, graphicsdriver.BlendClear, dstRegion, graphicsdriver.Region{}, NearestFilterShader.shader, nil, false)
 }
 
 // BasePixelsForTesting returns the image's basePixels for testing.
@@ -371,7 +371,7 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 //	5: Color G
 //	6: Color B
 //	7: Color Y
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, mode graphicsdriver.CompositeMode, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
 	if i.priority {
 		panic("restorable: DrawTriangles cannot be called on a priority image")
 	}
@@ -395,7 +395,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [g
 	if srcstale || !needsRestoring() || !i.needsRestoring() {
 		i.makeStale(image.Rect(0, 0, i.width, i.height))
 	} else {
-		i.appendDrawTrianglesHistory(srcs, offsets, vertices, indices, mode, dstRegion, srcRegion, shader, uniforms, evenOdd)
+		i.appendDrawTrianglesHistory(srcs, offsets, vertices, indices, blend, dstRegion, srcRegion, shader, uniforms, evenOdd)
 	}
 
 	var imgs [graphics.ShaderImageCount]*graphicscommand.Image
@@ -405,11 +405,11 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [g
 		}
 		imgs[i] = src.image
 	}
-	i.image.DrawTriangles(imgs, offsets, vertices, indices, mode, dstRegion, srcRegion, shader.shader, uniforms, evenOdd)
+	i.image.DrawTriangles(imgs, offsets, vertices, indices, blend, dstRegion, srcRegion, shader.shader, uniforms, evenOdd)
 }
 
 // appendDrawTrianglesHistory appends a draw-image history item to the image.
-func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, mode graphicsdriver.CompositeMode, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
+func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
 	if i.stale || !i.needsRestoring() {
 		return
 	}
@@ -434,7 +434,7 @@ func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Imag
 		offsets:   offsets,
 		vertices:  vs,
 		indices:   is,
-		mode:      mode,
+		blend:     blend,
 		dstRegion: dstRegion,
 		srcRegion: srcRegion,
 		shader:    shader,
@@ -602,9 +602,9 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 
 	gimg := graphicscommand.NewImage(w, h, false)
 	// Clear the image explicitly.
-	if i != ensureEmptyImage() {
-		// As clearImage uses emptyImage, clearImage cannot be called on emptyImage.
-		// It is OK to skip this since emptyImage has its entire pixel information.
+	if i != ensureWhiteImage() {
+		// As clearImage uses whiteImage, clearImage cannot be called on whiteImage.
+		// It is OK to skip this since whiteImage has its entire pixel information.
 		clearImage(gimg)
 	}
 	i.basePixels.Apply(gimg)
@@ -620,7 +620,7 @@ func (i *Image) restore(graphicsDriver graphicsdriver.Graphics) error {
 			}
 			imgs[i] = img.image
 		}
-		gimg.DrawTriangles(imgs, c.offsets, c.vertices, c.indices, c.mode, c.dstRegion, c.srcRegion, c.shader.shader, c.uniforms, c.evenOdd)
+		gimg.DrawTriangles(imgs, c.offsets, c.vertices, c.indices, c.blend, c.dstRegion, c.srcRegion, c.shader.shader, c.uniforms, c.evenOdd)
 	}
 
 	if len(i.drawTrianglesHistory) > 0 {

@@ -25,27 +25,60 @@ import (
 
 const numDescriptorsPerFrame = 32
 
-func operationToBlend(c graphicsdriver.Operation, alpha bool) _D3D12_BLEND {
-	switch c {
-	case graphicsdriver.Zero:
+func blendFactorToBlend(f graphicsdriver.BlendFactor, alpha bool) _D3D12_BLEND {
+	// D3D12_RENDER_TARGET_BLEND_DESC's *BlendAlpha members don't allow *_COLOR values.
+	// See https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_render_target_blend_desc.
+
+	switch f {
+	case graphicsdriver.BlendFactorZero:
 		return _D3D12_BLEND_ZERO
-	case graphicsdriver.One:
+	case graphicsdriver.BlendFactorOne:
 		return _D3D12_BLEND_ONE
-	case graphicsdriver.SrcAlpha:
+	case graphicsdriver.BlendFactorSourceColor:
+		if alpha {
+			return _D3D12_BLEND_SRC_ALPHA
+		}
+		return _D3D12_BLEND_SRC_COLOR
+	case graphicsdriver.BlendFactorOneMinusSourceColor:
+		if alpha {
+			return _D3D12_BLEND_INV_SRC_ALPHA
+		}
+		return _D3D12_BLEND_INV_SRC_COLOR
+	case graphicsdriver.BlendFactorSourceAlpha:
 		return _D3D12_BLEND_SRC_ALPHA
-	case graphicsdriver.DstAlpha:
-		return _D3D12_BLEND_DEST_ALPHA
-	case graphicsdriver.OneMinusSrcAlpha:
+	case graphicsdriver.BlendFactorOneMinusSourceAlpha:
 		return _D3D12_BLEND_INV_SRC_ALPHA
-	case graphicsdriver.OneMinusDstAlpha:
-		return _D3D12_BLEND_INV_DEST_ALPHA
-	case graphicsdriver.DstColor:
+	case graphicsdriver.BlendFactorDestinationColor:
 		if alpha {
 			return _D3D12_BLEND_DEST_ALPHA
 		}
 		return _D3D12_BLEND_DEST_COLOR
+	case graphicsdriver.BlendFactorOneMinusDestinationColor:
+		if alpha {
+			return _D3D12_BLEND_INV_DEST_ALPHA
+		}
+		return _D3D12_BLEND_INV_DEST_COLOR
+	case graphicsdriver.BlendFactorDestinationAlpha:
+		return _D3D12_BLEND_DEST_ALPHA
+	case graphicsdriver.BlendFactorOneMinusDestinationAlpha:
+		return _D3D12_BLEND_INV_DEST_ALPHA
+	case graphicsdriver.BlendFactorSourceAlphaSaturated:
+		return _D3D12_BLEND_SRC_ALPHA_SAT
 	default:
-		panic(fmt.Sprintf("directx: invalid operation: %d", c))
+		panic(fmt.Sprintf("directx: invalid blend factor: %d", f))
+	}
+}
+
+func blendOperationToBlendOp(o graphicsdriver.BlendOperation) _D3D12_BLEND_OP {
+	switch o {
+	case graphicsdriver.BlendOperationAdd:
+		return _D3D12_BLEND_OP_ADD
+	case graphicsdriver.BlendOperationSubtract:
+		return _D3D12_BLEND_OP_SUBTRACT
+	case graphicsdriver.BlendOperationReverseSubtract:
+		return _D3D12_BLEND_OP_REV_SUBTRACT
+	default:
+		panic(fmt.Sprintf("directx: invalid blend operation: %d", o))
 	}
 }
 
@@ -113,7 +146,7 @@ func (p *pipelineStates) initialize(device *_ID3D12Device) (ferr error) {
 	return nil
 }
 
-func (p *pipelineStates) useGraphicsPipelineState(device *_ID3D12Device, commandList *_ID3D12GraphicsCommandList, frameIndex int, pipelineState *_ID3D12PipelineState, srcs [graphics.ShaderImageCount]*Image, uniforms []float32) error {
+func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D12GraphicsCommandList, frameIndex int, screen bool, srcs [graphics.ShaderImageCount]*Image, shader *Shader, dstRegions []graphicsdriver.DstRegion, uniforms []float32, blend graphicsdriver.Blend, indexOffset int, evenOdd bool) error {
 	idx := len(p.constantBuffers[frameIndex])
 	if idx >= numDescriptorsPerFrame {
 		return fmt.Errorf("directx: too many constant buffers")
@@ -195,9 +228,7 @@ func (p *pipelineStates) useGraphicsPipelineState(device *_ID3D12Device, command
 	}
 
 	// Update the constant buffer.
-	copyFloat32s(m, uniforms)
-
-	commandList.SetPipelineState(pipelineState)
+	copy(unsafe.Slice((*float32)(unsafe.Pointer(m)), len(uniforms)), uniforms)
 
 	rs, err := p.ensureRootSignature(device)
 	if err != nil {
@@ -223,6 +254,40 @@ func (p *pipelineStates) useGraphicsPipelineState(device *_ID3D12Device, command
 		return err
 	}
 	commandList.SetGraphicsRootDescriptorTable(2, sh)
+
+	for _, dstRegion := range dstRegions {
+		commandList.RSSetScissorRects([]_D3D12_RECT{
+			{
+				left:   int32(dstRegion.Region.X),
+				top:    int32(dstRegion.Region.Y),
+				right:  int32(dstRegion.Region.X + dstRegion.Region.Width),
+				bottom: int32(dstRegion.Region.Y + dstRegion.Region.Height),
+			},
+		})
+		if evenOdd {
+			s, err := shader.pipelineState(blend, prepareStencil, screen)
+			if err != nil {
+				return err
+			}
+			commandList.SetPipelineState(s)
+			commandList.DrawIndexedInstanced(uint32(dstRegion.IndexCount), 1, uint32(indexOffset), 0, 0)
+
+			s, err = shader.pipelineState(blend, drawWithStencil, screen)
+			if err != nil {
+				return err
+			}
+			commandList.SetPipelineState(s)
+			commandList.DrawIndexedInstanced(uint32(dstRegion.IndexCount), 1, uint32(indexOffset), 0, 0)
+		} else {
+			s, err := shader.pipelineState(blend, noStencil, screen)
+			if err != nil {
+				return err
+			}
+			commandList.SetPipelineState(s)
+			commandList.DrawIndexedInstanced(uint32(dstRegion.IndexCount), 1, uint32(indexOffset), 0, 0)
+		}
+		indexOffset += dstRegion.IndexCount
+	}
 
 	return nil
 }
@@ -336,7 +401,7 @@ func newShader(source []byte, defs []_D3D_SHADER_MACRO) (vsh, psh *_ID3DBlob, fe
 	return v, p, nil
 }
 
-func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3DBlob, compositeMode graphicsdriver.CompositeMode, stencilMode stencilMode, screen bool) (state *_ID3D12PipelineState, ferr error) {
+func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3DBlob, blend graphicsdriver.Blend, stencilMode stencilMode, screen bool) (state *_ID3D12PipelineState, ferr error) {
 	rootSignature, err := p.ensureRootSignature(device)
 	if err != nil {
 		return nil, err
@@ -391,7 +456,6 @@ func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3D
 	}
 
 	// Create a pipeline state.
-	srcOp, dstOp := compositeMode.Operations()
 	psoDesc := _D3D12_GRAPHICS_PIPELINE_STATE_DESC{
 		pRootSignature: rootSignature,
 		VS: _D3D12_SHADER_BYTECODE{
@@ -409,12 +473,12 @@ func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3D
 				{
 					BlendEnable:           1,
 					LogicOpEnable:         0,
-					SrcBlend:              operationToBlend(srcOp, false),
-					DestBlend:             operationToBlend(dstOp, false),
-					BlendOp:               _D3D12_BLEND_OP_ADD,
-					SrcBlendAlpha:         operationToBlend(srcOp, true),
-					DestBlendAlpha:        operationToBlend(dstOp, true),
-					BlendOpAlpha:          _D3D12_BLEND_OP_ADD,
+					SrcBlend:              blendFactorToBlend(blend.BlendFactorSourceRGB, false),
+					DestBlend:             blendFactorToBlend(blend.BlendFactorDestinationRGB, false),
+					BlendOp:               blendOperationToBlendOp(blend.BlendOperationRGB),
+					SrcBlendAlpha:         blendFactorToBlend(blend.BlendFactorSourceAlpha, true),
+					DestBlendAlpha:        blendFactorToBlend(blend.BlendFactorDestinationAlpha, true),
+					BlendOpAlpha:          blendOperationToBlendOp(blend.BlendOperationAlpha),
 					LogicOp:               _D3D12_LOGIC_OP_NOOP,
 					RenderTargetWriteMask: writeMask,
 				},
