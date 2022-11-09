@@ -26,18 +26,31 @@ func GoStr(cstr *byte) string {
 	return ""
 }
 
-// CStr takes a Go string (with or without null-termination)
-// and returns the C counterpart.
+// Strs takes a list of Go strings (with or without null-termination) and
+// returns their C counterpart.
 //
-// The returned free function must be called once you are done using the string
+// The returned free function must be called once you are done using the strings
 // in order to free the memory.
-func CStr(str string) (cstr *byte, free func()) {
-	bs := []byte(str)
-	if len(bs) == 0 || bs[len(bs)-1] != 0 {
-		bs = append(bs, 0)
+//
+// If no strings are provided as a parameter this function will panic.
+func Strs(strs ...string) (cstrs **byte, free func()) {
+	if len(strs) == 0 {
+		panic("gl: expected at least 1 string at Strs")
 	}
-	return &bs[0], func() {
-		runtime.KeepAlive(bs)
-		bs = nil
+
+	pinned := make([][]byte, 0, len(strs))
+	ptrs := make([]*byte, 0, len(strs))
+	for _, str := range strs {
+		bs := []byte(str)
+		if len(bs) == 0 || bs[len(bs)-1] != 0 {
+			bs = append(bs, 0)
+		}
+		pinned = append(pinned, bs)
+		ptrs = append(ptrs, &bs[0])
+	}
+
+	return &ptrs[0], func() {
+		runtime.KeepAlive(pinned)
+		pinned = nil
 	}
 }

@@ -290,8 +290,8 @@ func (c *context) newShader(shaderType uint32, source string) (shader, error) {
 	if s == 0 {
 		return 0, fmt.Errorf("opengl: glCreateShader failed: shader type: %d", shaderType)
 	}
-	cSources, free := gl.CStr(source)
-	gl.ShaderSource(uint32(s), 1, &cSources, nil)
+	cSources, free := gl.Strs(source + "\x00")
+	gl.ShaderSource(uint32(s), 1, cSources, nil)
 	free()
 	gl.CompileShader(s)
 
@@ -325,8 +325,8 @@ func (c *context) newProgram(shaders []shader, attributes []string) (program, er
 	}
 
 	for i, name := range attributes {
-		l, free := gl.CStr(name)
-		gl.BindAttribLocation(p, uint32(i), l)
+		l, free := gl.Strs(name + "\x00")
+		gl.BindAttribLocation(p, uint32(i), *l)
 		free()
 	}
 
@@ -360,8 +360,8 @@ func (c *context) deleteProgram(p program) {
 }
 
 func (c *context) getUniformLocationImpl(p program, location string) uniformLocation {
-	l, free := gl.CStr(location)
-	uniform := uniformLocation(gl.GetUniformLocation(uint32(p), l))
+	l, free := gl.Strs(location + "\x00")
+	uniform := uniformLocation(gl.GetUniformLocation(uint32(p), *l))
 	free()
 	return uniform
 }
