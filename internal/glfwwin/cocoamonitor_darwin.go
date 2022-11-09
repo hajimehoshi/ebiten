@@ -18,18 +18,9 @@ func (m *Monitor) GetCocoaMonitor() (uintptr, error) {
 func (m *Monitor) platformGetMonitorPos() (xpos, ypos int, ok bool) {
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
-	// @autoreleasepool {
-	//
+	return
 	bounds := _CGDisplayBounds(m.state.displayID)
-	//    const CGRect bounds = CGDisplayBounds(monitor->ns.displayID);
-	//
-	//    if (xpos)
-	//        *xpos = (int) bounds.origin.x;
-	//    if (ypos)
-	//        *ypos = (int) bounds.origin.y;
-	//
-	//    } // autoreleasepool
-	return int(bounds.Origin.X), int(bounds.Origin.Y), false
+	return int(bounds.Origin.X), int(bounds.Origin.Y), true
 }
 
 func (m *Monitor) platformGetMonitorWorkarea() (xpos, ypos, width, height int) {
