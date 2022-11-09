@@ -17,7 +17,6 @@ package directx
 import (
 	"fmt"
 	"math"
-	"reflect"
 	"runtime"
 	"syscall"
 	"unsafe"
@@ -2294,11 +2293,9 @@ func (i *_ID3DBlob) Release() uint32 {
 }
 
 func (i *_ID3DBlob) String() string {
-	var str string
-	h := (*reflect.StringHeader)(unsafe.Pointer(&str))
-	h.Data = i.GetBufferPointer()
-	h.Len = int(i.GetBufferSize())
-	return str
+	bs := make([]byte, int(i.GetBufferSize()))
+	copy(bs, unsafe.Slice((*byte)(unsafe.Pointer(i.GetBufferPointer())), i.GetBufferSize()))
+	return string(bs)
 }
 
 type _IDXGIAdapter struct {

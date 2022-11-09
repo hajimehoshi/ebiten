@@ -4,8 +4,6 @@ package gl
 
 import (
 	"fmt"
-	"reflect"
-	"strings"
 	"unsafe"
 )
 
@@ -14,7 +12,7 @@ import (
 //
 // For example:
 //
-//	var data []uint8
+//	var data []byte
 //	...
 //	gl.TexImage2D(glconst.TEXTURE_2D, ..., glconst.UNSIGNED_BYTE, gl.Ptr(&data[0]))
 func Ptr(data any) unsafe.Pointer {
@@ -39,15 +37,4 @@ func Ptr(data any) unsafe.Pointer {
 		panic(fmt.Errorf("unsupported type %T; must be a slice or pointer to a singular scalar value or the first element of an array or slice", v))
 	}
 	return addr
-}
-
-// Str takes a null-terminated Go string and returns its GL-compatible address.
-// This function reaches into Go string storage in an unsafe way so the caller
-// must ensure the string is not garbage collected.
-func Str(str string) *uint8 {
-	if !strings.HasSuffix(str, "\x00") {
-		panic("str argument missing null terminator: " + str)
-	}
-	header := (*reflect.StringHeader)(unsafe.Pointer(&str))
-	return (*uint8)(unsafe.Pointer(header.Data))
 }
