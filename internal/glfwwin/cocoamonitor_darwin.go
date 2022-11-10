@@ -18,7 +18,7 @@ func (m *Monitor) GetCocoaMonitor() (uintptr, error) {
 func (m *Monitor) platformGetMonitorPos() (xpos, ypos int, ok bool) {
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
-	return
+	panic("FIX ME")
 	bounds := _CGDisplayBounds(m.state.displayID)
 	return int(bounds.Origin.X), int(bounds.Origin.Y), true
 }
