@@ -39,9 +39,9 @@ type windowDelgate struct {
 
 func (w *windowDelgate) pushResizableState(win objc.ID) {
 	window := cocoa.NSWindow{ID: win}
-	w.origResizable = window.StyleMask()&cocoa.NSWindowStyleMaskResizable != 0
+	w.origResizable = window.StyleMask()&cocoa.NSUInteger(cocoa.NSWindowStyleMaskResizable) != 0
 	if !w.origResizable {
-		window.SetStyleMask(window.StyleMask() | cocoa.NSWindowStyleMaskResizable)
+		window.SetStyleMask(window.StyleMask() | cocoa.NSUInteger(cocoa.NSWindowStyleMaskResizable))
 	}
 }
 
