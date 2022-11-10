@@ -20,6 +20,7 @@ import (
 )
 
 // ColorScale represents a scale of RGBA color.
+// ColorScale is intended to be applied to a premultiplied-alpha color value.
 //
 // The initial (zero) value of ColorScale is an identity scale (1, 1, 1, 1).
 type ColorScale struct {
@@ -31,6 +32,14 @@ type ColorScale struct {
 // String returns a string represeting the color scale.
 func (c *ColorScale) String() string {
 	return fmt.Sprintf("(%f,%f,%f,%f)", c.r_1+1, c.g_1+1, c.b_1+1, c.a_1+1)
+}
+
+// Reset resets the ColorScale as identity.
+func (c *ColorScale) Reset() {
+	c.r_1 = 0
+	c.g_1 = 0
+	c.b_1 = 0
+	c.a_1 = 0
 }
 
 // R returns the red scale.
@@ -85,8 +94,20 @@ func (c *ColorScale) Scale(r, g, b, a float32) {
 	c.a_1 = (c.a_1+1)*a - 1
 }
 
+// ScaleAlpha multiplies the given alpha value to the current scale.
+func (c *ColorScale) ScaleAlpha(a float32) {
+	c.r_1 = (c.r_1+1)*a - 1
+	c.g_1 = (c.g_1+1)*a - 1
+	c.b_1 = (c.b_1+1)*a - 1
+	c.a_1 = (c.a_1+1)*a - 1
+}
+
 // ScaleWithColor multiplies the given color values to the current scale.
 func (c *ColorScale) ScaleWithColor(clr color.Color) {
 	cr, cg, cb, ca := clr.RGBA()
 	c.Scale(float32(cr)/0xffff, float32(cg)/0xffff, float32(cb)/0xffff, float32(ca)/0xffff)
+}
+
+func (c *ColorScale) apply(r, g, b, a float32) (float32, float32, float32, float32) {
+	return (c.r_1 + 1) * r, (c.g_1 + 1) * g, (c.b_1 + 1) * b, (c.a_1 + 1) * a
 }

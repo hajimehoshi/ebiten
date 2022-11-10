@@ -35,11 +35,10 @@ var (
 type Game interface {
 	NewOffscreenImage(width, height int) *Image
 	NewScreenImage(width, height int) *Image
-	Layout(outsideWidth, outsideHeight int) (int, int)
+	Layout(outsideWidth, outsideHeight float64) (screenWidth, screenHeight float64)
 	Update() error
 	DrawOffscreen() error
-	DrawFinalScreen()
-	ScreenScaleAndOffsets() (scale, offsetX, offsetY float64)
+	DrawFinalScreen(scale, offsetX, offsetY float64)
 }
 
 type context struct {
@@ -50,9 +49,10 @@ type context struct {
 	offscreen *Image
 	screen    *Image
 
-	// The following members must be protected by the mutex m.
-	outsideWidth  float64
-	outsideHeight float64
+	screenWidth     float64
+	screenHeight    float64
+	offscreenWidth  float64
+	offscreenHeight float64
 
 	isOffscreenDirty bool
 
@@ -190,7 +190,7 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, forceDraw boo
 			c.screen.clear()
 		}
 
-		c.game.DrawFinalScreen()
+		c.game.DrawFinalScreen(c.screenScaleAndOffsets())
 
 		// The final screen is never used as the rendering source.
 		// Flush its buffer here just in case.
@@ -201,24 +201,21 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, forceDraw boo
 }
 
 func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {
-	c.outsideWidth = outsideWidth
-	c.outsideHeight = outsideHeight
-
-	// Adjust the outside size to integer values.
-	// Even if the original value is less than 1, the value must be a positive integer (#2340).
-	iow, ioh := int(outsideWidth), int(outsideHeight)
-	if iow == 0 {
-		iow = 1
-	}
-	if ioh == 0 {
-		ioh = 1
-	}
-	ow, oh := c.game.Layout(iow, ioh)
-	if ow <= 0 || oh <= 0 {
+	owf, ohf := c.game.Layout(outsideWidth, outsideHeight)
+	if owf <= 0 || ohf <= 0 {
 		panic("ui: Layout must return positive numbers")
 	}
 
-	sw, sh := int(outsideWidth*deviceScaleFactor), int(outsideHeight*deviceScaleFactor)
+	c.screenWidth = outsideWidth * deviceScaleFactor
+	c.screenHeight = outsideHeight * deviceScaleFactor
+	c.offscreenWidth = owf
+	c.offscreenHeight = ohf
+
+	sw := int(math.Ceil(c.screenWidth))
+	sh := int(math.Ceil(c.screenHeight))
+	ow := int(math.Ceil(c.offscreenWidth))
+	oh := int(math.Ceil(c.offscreenHeight))
+
 	if c.screen != nil {
 		if c.screen.width != sw || c.screen.height != sh {
 			c.screen.MarkDisposed()
@@ -246,11 +243,22 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, deviceScaleFac
 }
 
 func (c *context) adjustPosition(x, y float64, deviceScaleFactor float64) (float64, float64) {
-	s, ox, oy := c.game.ScreenScaleAndOffsets()
+	s, ox, oy := c.screenScaleAndOffsets()
 	// The scale 0 indicates that the screen is not initialized yet.
 	// As any cursor values don't make sense, just return NaN.
 	if s == 0 {
 		return math.NaN(), math.NaN()
 	}
 	return (x*deviceScaleFactor - ox) / s, (y*deviceScaleFactor - oy) / s
+}
+
+func (c *context) screenScaleAndOffsets() (scale, offsetX, offsetY float64) {
+	scaleX := c.screenWidth / c.offscreenWidth
+	scaleY := c.screenHeight / c.offscreenHeight
+	scale = math.Min(scaleX, scaleY)
+	width := c.offscreenWidth * scale
+	height := c.offscreenHeight * scale
+	offsetX = (c.screenWidth - width) / 2
+	offsetY = (c.screenHeight - height) / 2
+	return
 }

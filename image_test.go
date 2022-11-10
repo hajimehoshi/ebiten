@@ -1009,12 +1009,12 @@ func TestImageMipmapColor(t *testing.T) {
 		op := &ebiten.DrawImageOptions{}
 		op.Filter = ebiten.FilterLinear
 		op.GeoM.Scale(s, s)
-		op.ColorM.Scale(1, 1, 0, 1)
+		op.ColorScale.Scale(1, 1, 0, 1)
 		img0.DrawImage(img1, op)
 
 		op.GeoM.Translate(128, 0)
-		op.ColorM.Reset()
-		op.ColorM.Scale(0, 1, 1, 1)
+		op.ColorScale.Reset()
+		op.ColorScale.Scale(0, 1, 1, 1)
 		img0.DrawImage(img1, op)
 
 		want := color.RGBA{0, 0xff, 0xff, 0xff}
@@ -3958,6 +3958,30 @@ func TestImageColorMScale(t *testing.T) {
 	op = &ebiten.DrawImageOptions{}
 	op.ColorM.Scale(0.3, 0.4, 0.5, 0.6)
 	op.ColorM.Translate(0, 0, 0, 1e-4)
+	dst1.DrawImage(src, op)
+
+	got := dst0.At(0, 0)
+	want := dst1.At(0, 0)
+	if got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+func TestImageColorScaleAndColorM(t *testing.T) {
+	const w, h = 16, 16
+	dst0 := ebiten.NewImage(w, h)
+	dst1 := ebiten.NewImage(w, h)
+	src := ebiten.NewImage(w, h)
+	src.Fill(color.RGBA{0x24, 0x3f, 0x6a, 0x88})
+
+	// ColorScale is applied to premultiplied-alpha colors.
+	op := &ebiten.DrawImageOptions{}
+	op.ColorScale.Scale(0.3*0.6, 0.4*0.6, 0.5*0.6, 0.6)
+	dst0.DrawImage(src, op)
+
+	// ColorM.Scale is applied to straight-alpha colors.
+	op = &ebiten.DrawImageOptions{}
+	op.ColorM.Scale(0.3, 0.4, 0.5, 0.6)
 	dst1.DrawImage(src, op)
 
 	got := dst0.At(0, 0)

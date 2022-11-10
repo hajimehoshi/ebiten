@@ -22,6 +22,7 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/colorm"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 )
 
@@ -46,15 +47,15 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	// Center the image on the screen.
 	w, h := gophersImage.Size()
-	op := &ebiten.DrawImageOptions{}
+	op := &colorm.DrawImageOptions{}
 	op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
 	op.GeoM.Scale(2, 2)
 	op.GeoM.Translate(float64(screenWidth)/2, float64(screenHeight)/2)
 
 	// Rotate the hue.
-	op.ColorM.RotateHue(float64(g.count%360) * 2 * math.Pi / 360)
-
-	screen.DrawImage(gophersImage, op)
+	var c colorm.ColorM
+	c.RotateHue(float64(g.count%360) * 2 * math.Pi / 360)
+	colorm.DrawImage(screen, gophersImage, c, op)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

@@ -90,12 +90,18 @@ func createRandomIconImage() image.Image {
 
 type game struct {
 	count       int
-	width       int
-	height      int
+	width       float64
+	height      float64
 	transparent bool
 }
 
 func (g *game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	// As game implements the interface LayoutFer, Layout is never called and LayoutF is called instead.
+	// However, game has to implement Layout to satisfy the interface Game.
+	panic("windowsize: Layout must not be called")
+}
+
+func (g *game) LayoutF(outsideWidth, outsideHeight float64) (float64, float64) {
 	if *flagAutoAdjusting {
 		g.width, g.height = outsideWidth, outsideHeight
 		return outsideWidth, outsideHeight
@@ -106,14 +112,14 @@ func (g *game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func (g *game) Update() error {
 	var (
-		screenWidth  int
-		screenHeight int
+		screenWidth  float64
+		screenHeight float64
 		screenScale  float64
 	)
 	screenWidth = g.width
 	screenHeight = g.height
 	if ww, wh := ebiten.WindowSize(); ww > 0 && wh > 0 {
-		screenScale = math.Min(float64(ww)/float64(g.width), float64(wh)/float64(g.height))
+		screenScale = math.Min(float64(ww)/g.width, float64(wh)/g.height)
 	} else {
 		// ebiten.WindowSize can return (0, 0) on browsers or mobiles.
 		screenScale = 1

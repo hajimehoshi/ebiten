@@ -77,10 +77,10 @@ func (s *Sprite) MoveBy(x, y int) {
 }
 
 // Draw draws the sprite.
-func (s *Sprite) Draw(screen *ebiten.Image, dx, dy int, alpha float64) {
+func (s *Sprite) Draw(screen *ebiten.Image, dx, dy int, alpha float32) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(s.x+dx), float64(s.y+dy))
-	op.ColorM.Scale(1, 1, 1, alpha)
+	op.ColorScale.ScaleAlpha(alpha)
 	screen.DrawImage(s.image, op)
 	screen.DrawImage(s.image, op)
 }

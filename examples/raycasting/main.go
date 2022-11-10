@@ -253,7 +253,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	// Draw shadow
 	op := &ebiten.DrawImageOptions{}
-	op.ColorM.Scale(1, 1, 1, 0.7)
+	op.ColorScale.ScaleAlpha(0.7)
 	screen.DrawImage(shadowImage, op)
 
 	// Draw walls
