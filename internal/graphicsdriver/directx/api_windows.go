@@ -2293,9 +2293,7 @@ func (i *_ID3DBlob) Release() uint32 {
 }
 
 func (i *_ID3DBlob) String() string {
-	bs := make([]byte, int(i.GetBufferSize()))
-	copy(bs, unsafe.Slice((*byte)(unsafe.Pointer(i.GetBufferPointer())), i.GetBufferSize()))
-	return string(bs)
+	return string(unsafe.Slice((*byte)(unsafe.Pointer(i.GetBufferPointer())), i.GetBufferSize()))
 }
 
 type _IDXGIAdapter struct {

@@ -18,9 +18,7 @@ func GoStr(cstr *byte) string {
 	x := unsafe.Slice(cstr, 1e9)
 	for i, c := range x {
 		if c == 0 {
-			str := make([]byte, i)
-			copy(str, x[:i])
-			return string(str)
+			return string(x[:i])
 		}
 	}
 	return ""

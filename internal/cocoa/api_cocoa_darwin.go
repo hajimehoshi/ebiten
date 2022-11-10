@@ -280,13 +280,7 @@ func (s NSString) InitWithUTF8String(utf8 string) NSString {
 }
 
 func (s NSString) String() string {
-	// The lifetime of the underlying C string is shorter than s [1].
-	// Copy the bytes to ensure that the returned string's lifetime is unrelated to s.
-	// [1] https://developer.apple.com/documentation/foundation/nsstring/1411189-utf8string?language=objc
-	src := unsafe.Slice((*byte)(unsafe.Pointer(s.Send(sel_UTF8String))), s.Send(sel_length))
-	dst := make([]byte, len(src))
-	copy(dst, src)
-	return string(dst)
+	return string(unsafe.Slice((*byte)(unsafe.Pointer(s.Send(sel_UTF8String))), s.Send(sel_length)))
 }
 
 type NSNotification struct {
