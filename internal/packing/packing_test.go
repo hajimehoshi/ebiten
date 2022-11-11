@@ -313,3 +313,17 @@ func TestAllocTooMuch(t *testing.T) {
 		t.Errorf("got: non-nil, want: nil")
 	}
 }
+
+func TestNonSquareAlloc(t *testing.T) {
+	p := packing.NewPage(1024, 16384)
+	n0 := p.Alloc(16384, 1)
+	if _, h := p.Size(); h != 1024 {
+		t.Errorf("got: %d, want: 1024", h)
+	}
+	n1 := p.Alloc(16384, 1)
+	if _, h := p.Size(); h != 1024 {
+		t.Errorf("got: %d, want: 1024", h)
+	}
+	p.Free(n0)
+	p.Free(n1)
+}
