@@ -253,63 +253,109 @@ func TestPage(t *testing.T) {
 	}
 }
 
-func TestAlloc(t *testing.T) {
-	p := packing.NewPage(1024, 2048)
-	w, h := p.Size()
-	p.Alloc(w/2, h/2)
-
-	n0 := p.Alloc(w*3/2, h*2)
-	if n0 == nil {
-		t.Errorf("p.Alloc failed: width: %d, height: %d", w*3/2, h*2)
+func TestExtend(t *testing.T) {
+	p := packing.NewPage(1024, 4096)
+	s := p.Size()
+	p.Alloc(s/2, s/2)
+	p.Extend(1)
+	if p.Size() != s*2 {
+		t.Errorf("p.Size(): got: %d, want: %d", p.Size(), s*2)
 	}
-	n1 := p.Alloc(w/2, h*3/2)
+	n0 := p.Alloc(s*3/2, s*2)
+	if n0 == nil {
+		t.Errorf("p.Alloc failed: width: %d, height: %d", s*3/2, s*2)
+	}
+	n1 := p.Alloc(s/2, s*3/2)
 	if n1 == nil {
-		t.Errorf("p.Alloc failed: width: %d, height: %d", w/2, h*3/2)
+		t.Errorf("p.Alloc failed: width: %d, height: %d", s/2, s*3/2)
 	}
 	if p.Alloc(1, 1) != nil {
-		t.Errorf("p.Alloc(1, 1) must fail but not")
+		t.Errorf("p.Alloc must fail: width: %d, height: %d", 1, 1)
 	}
 	p.Free(n1)
-	if p.Alloc(1, 1) == nil {
-		t.Errorf("p.Alloc(1, 1) failed")
-	}
 	p.Free(n0)
+
+	p.RollbackExtension()
+
+	if got, want := p.Size(), s; got != want {
+		t.Errorf("p.Size(): got: %d, want: %d", got, want)
+	}
+	if p.Alloc(s*3/2, s*2) != nil {
+		t.Errorf("p.Alloc(%d, %d) must fail but not", s*3/2, s*2)
+	}
+	if p.Alloc(s/2, s*3/2) != nil {
+		t.Errorf("p.Alloc(%d, %d) must fail but not", s/2, s*3/2)
+	}
 }
 
-func TestAlloc2(t *testing.T) {
-	p := packing.NewPage(1024, 2048)
-	w, h := p.Size()
-	p.Alloc(w/2, h/2)
-	n1 := p.Alloc(w/2, h/2)
-	n2 := p.Alloc(w/2, h/2)
-	p.Alloc(w/2, h/2)
+func TestExtend2(t *testing.T) {
+	p := packing.NewPage(1024, 4096)
+	s := p.Size()
+	p.Alloc(s/2, s/2)
+	n1 := p.Alloc(s/2, s/2)
+	n2 := p.Alloc(s/2, s/2)
+	p.Alloc(s/2, s/2)
 	p.Free(n1)
 	p.Free(n2)
-
-	n3 := p.Alloc(w, h*2)
-	if n3 == nil {
-		t.Errorf("p.Alloc failed: width: %d, height: %d", w, h*2)
+	p.Extend(1)
+	if p.Size() != s*2 {
+		t.Errorf("p.Size(): got: %d, want: %d", p.Size(), s*2)
 	}
-	n4 := p.Alloc(w, h)
+
+	n3 := p.Alloc(s, s*2)
+	if n3 == nil {
+		t.Errorf("p.Alloc failed: width: %d, height: %d", s, s*2)
+	}
+	n4 := p.Alloc(s, s)
 	if n4 == nil {
-		t.Errorf("p.Alloc failed: width: %d, height: %d", w, h)
+		t.Errorf("p.Alloc failed: width: %d, height: %d", s, s)
+	}
+	if p.Alloc(s, s) != nil {
+		t.Errorf("p.Alloc must fail: width: %d, height: %d", s, s)
 	}
 	p.Free(n4)
 	p.Free(n3)
-}
 
-func TestAllocJustSize(t *testing.T) {
-	p := packing.NewPage(1024, 4096)
-	if p.Alloc(4096, 4096) == nil {
-		t.Errorf("got: nil, want: non-nil")
+	p.RollbackExtension()
+
+	if got, want := p.Size(), s; got != want {
+		t.Errorf("p.Size(): got: %d, want: %d", got, want)
+	}
+	if p.Alloc(s, s*2) != nil {
+		t.Errorf("p.Alloc(%d, %d) must fail but not", s, s*2)
+	}
+	if p.Alloc(s, s) != nil {
+		t.Errorf("p.Alloc(%d, %d) must fail but not", s, s)
 	}
 }
 
 // Issue #1454
-func TestAllocTooMuch(t *testing.T) {
+func TestExtendTooMuch(t *testing.T) {
 	p := packing.NewPage(1024, 4096)
 	p.Alloc(1, 1)
-	if p.Alloc(4096, 4096) != nil {
-		t.Errorf("got: non-nil, want: nil")
+	if got, want := p.Extend(3), false; got != want {
+		t.Errorf("got: %t, want: %t", got, want)
+	}
+}
+
+func TestExtendWithoutAllocation(t *testing.T) {
+	p := packing.NewPage(1024, 4096)
+
+	if got, want := p.Extend(2), true; got != want {
+		t.Errorf("got: %t, want: %t", got, want)
+	}
+
+	p.RollbackExtension()
+	if got, want := p.Size(), 1024; got != want {
+		t.Errorf("p.Size(): got: %d, want: %d", got, want)
+	}
+
+	if got, want := p.Extend(2), true; got != want {
+		t.Errorf("got: %t, want: %t", got, want)
+	}
+
+	p.CommitExtension()
+	if got, want := p.Size(), 4096; got != want {
+		t.Errorf("p.Size(): got: %d, want: %d", got, want)
 	}
 }
