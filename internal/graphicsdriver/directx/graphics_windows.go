@@ -193,6 +193,7 @@ func (g *Graphics) initialize() (ferr error) {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -264,7 +265,9 @@ func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool) (ferr err
 				continue
 			}
 			// Test D3D12CreateDevice without creating an actual device.
-			if _, err := _D3D12CreateDevice(unsafe.Pointer(adapter), _D3D_FEATURE_LEVEL_11_0, &_IID_ID3D12Device, false); err != nil {
+			// Ebitengine itself doesn't require the features level 12 and 11 should be enough,
+			// but some old cards don't work well (#2447). Specify the level 12 here.
+			if _, err := _D3D12CreateDevice(unsafe.Pointer(adapter), _D3D_FEATURE_LEVEL_12_0, &_IID_ID3D12Device, false); err != nil {
 				continue
 			}
 			break
@@ -275,7 +278,7 @@ func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool) (ferr err
 		return errors.New("directx: DirectX 12 is not supported")
 	}
 
-	d, err := _D3D12CreateDevice(unsafe.Pointer(adapter), _D3D_FEATURE_LEVEL_11_0, &_IID_ID3D12Device, true)
+	d, err := _D3D12CreateDevice(unsafe.Pointer(adapter), _D3D_FEATURE_LEVEL_12_0, &_IID_ID3D12Device, true)
 	if err != nil {
 		return err
 	}
