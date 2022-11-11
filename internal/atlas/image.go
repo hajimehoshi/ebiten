@@ -139,33 +139,14 @@ type backend struct {
 }
 
 func (b *backend) tryAlloc(width, height int) (*packing.Node, bool) {
-	// If the region is allocated without any extension, that's fine.
-	if n := b.page.Alloc(width, height); n != nil {
-		return n, true
-	}
-
-	nExtended := 1
-	var n *packing.Node
-	for {
-		if !b.page.Extend(nExtended) {
-			// The page can't be extended any more. Return as failure.
-			return nil, false
-		}
-		nExtended++
-		n = b.page.Alloc(width, height)
-		if n != nil {
-			b.page.CommitExtension()
-			break
-		}
-		b.page.RollbackExtension()
-	}
-
-	s := b.page.Size()
-	b.restorable = b.restorable.Extend(s, s)
-
+	n := b.page.Alloc(width, height)
 	if n == nil {
-		panic("atlas: Alloc result must not be nil at TryAlloc")
+		// The page can't be extended any more. Return as failure.
+		return nil, false
 	}
+
+	b.restorable = b.restorable.Extend(b.page.Size())
+
 	return n, true
 }
 
