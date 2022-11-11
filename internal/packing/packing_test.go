@@ -254,7 +254,7 @@ func TestPage(t *testing.T) {
 }
 
 func TestAlloc(t *testing.T) {
-	p := packing.NewPage(1024, 4096)
+	p := packing.NewPage(1024, 2048)
 	w, h := p.Size()
 	p.Alloc(w/2, h/2)
 
@@ -266,12 +266,18 @@ func TestAlloc(t *testing.T) {
 	if n1 == nil {
 		t.Errorf("p.Alloc failed: width: %d, height: %d", w/2, h*3/2)
 	}
+	if p.Alloc(1, 1) != nil {
+		t.Errorf("p.Alloc(1, 1) must fail but not")
+	}
 	p.Free(n1)
+	if p.Alloc(1, 1) == nil {
+		t.Errorf("p.Alloc(1, 1) failed")
+	}
 	p.Free(n0)
 }
 
 func TestAlloc2(t *testing.T) {
-	p := packing.NewPage(1024, 4096)
+	p := packing.NewPage(1024, 2048)
 	w, h := p.Size()
 	p.Alloc(w/2, h/2)
 	n1 := p.Alloc(w/2, h/2)
