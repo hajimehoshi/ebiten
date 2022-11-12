@@ -38,7 +38,7 @@ jobs:
           distribution: 'adopt'
 
       - name: Install dependencies
-        if: ${{ startsWith(matrix.os, 'ubuntu-') }}
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install libasound2-dev libgl1-mesa-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev
@@ -46,19 +46,18 @@ jobs:
       - name: Install wasmbrowsertest
         run: |
           go install github.com/agnivade/wasmbrowsertest@8753b3a64e2d666fd88734888f26e48c68882f5f
-          mv $(go env GOPATH)/bin/wasmbrowsertest${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }} $(go env GOPATH)/bin/go_js_wasm_exec${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }}
+          mv $(go env GOPATH)/bin/wasmbrowsertest${{ runner.os == 'Windows' && '.exe' || '' }} $(go env GOPATH)/bin/go_js_wasm_exec${{ runner.os == 'Windows' && '.exe' || '' }}
 
       - name: Prepare ebitenmobile test
         run: |
-          local_ebiten=$(pwd)
           cd /tmp
           git clone --depth=1 https://github.com/hajimehoshi/go-inovation
           cd go-inovation
-          go mod edit -replace=github.com/hajimehoshi/ebiten/v2=$local_ebiten
+          go mod edit -replace=github.com/hajimehoshi/ebiten/v2=$GITHUB_WORKSPACE
           go mod tidy
 
       - name: Xvfb
-        if: ${{ startsWith(matrix.os, 'ubuntu-') }}
+        if: runner.os == 'Linux'
         run: |
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
 
@@ -69,7 +68,7 @@ jobs:
       - name: go vet (vettool)
         run: |
           (cd .github/workflows/vettools; go install .)
-          go vet -vettool=$(which vettools)${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }} -v ./...
+          go vet -vettool=$(which vettools)${{ runner.os == 'Windows' && '.exe' || '' }} -v ./...
 
       - name: go build
         run: |
@@ -85,7 +84,7 @@ jobs:
           env GOOS=windows GOARCH=arm64 go build -v ./...
 
       - name: go build (macOS)
-        if: ${{ startsWith(matrix.os, 'macos-') }}
+        if: runner.os == 'macOS'
         run: |
           env CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -v ./...
           env CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o flappy_amd64 -v ./examples/flappy
@@ -95,7 +94,7 @@ jobs:
           rm flappy
 
       - name: go build (NintendoSDK)
-        if: ${{ startsWith(matrix.os, 'ubuntu-') }}
+        if: runner.os == 'Linux'
         run: |
           go build -tags=nintendosdk -v ./...
           go build -tags=ebitencbackend -v ./... # For backward compatibility. Remove this in the future (#2190).
@@ -119,12 +118,12 @@ jobs:
 
       - name: go test
         # TODO: Add more test environments (#1305)
-        if: ${{ startsWith(matrix.os, 'ubuntu-') || startsWith(matrix.os, 'windows-') }}
+        if: runner.os == 'Linux' || runner.os == 'Windows'
         run: |
           go test -shuffle=on -v ./...
 
       - name: go test (Linux 386)
-        if: ${{ startsWith(matrix.os, 'ubuntu-') }}
+        if: runner.os == 'Linux'
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
@@ -133,13 +132,13 @@ jobs:
           env CGO_ENABLED=1 GOARCH=386 go test -shuffle=on -v ./...
 
       - name: go test (Linux OpenGL ES)
-        if: ${{ startsWith(matrix.os, 'ubuntu-') }}
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get install libgles2-mesa-dev
           env EBITENGINE_GRAPHICS_LIBRARY=opengl go test -tags=opengles -shuffle=on -v ./...
 
       - name: go test (Windows 386)
-        if: ${{ startsWith(matrix.os, 'windows-') }}
+        if: runner.os == 'Windows'
         run: |
           env GOARCH=386 go test -shuffle=on -v ./...
 
@@ -158,7 +157,7 @@ jobs:
           ebitenmobile bind -target android -androidapi 19 -javapkg com.hajimehoshi.goinovation -o inovation.aar -v github.com/hajimehoshi/go-inovation/mobile
 
       - name: ebitenmobile bind (iOS)
-        if: ${{ startsWith(matrix.os, 'macos-') }}
+        if: runner.os == 'macOS'
         run: |
           cd /tmp/go-inovation
           ebitenmobile bind -target ios -o Inovation.xcframework -v github.com/hajimehoshi/go-inovation/mobile
