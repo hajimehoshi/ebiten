@@ -548,10 +548,13 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			const w, h = 1, 1
 
 			dst := ebiten.NewImage(w, h)
+			defer dst.Dispose()
+
 			s, err := ebiten.NewShader([]byte(shader.Shader))
 			if err != nil {
 				t.Fatal(err)
 			}
+			defer s.Dispose()
 
 			op := &ebiten.DrawRectShaderOptions{}
 			op.Uniforms = shader.Uniforms
@@ -1267,5 +1270,115 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}
+	}
+}
+
+func TestShaderUniformInt(t *testing.T) {
+	const ints = `package main
+
+var U0 int
+var U1 int
+var U2 int
+var U3 int
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(float(U0)/255.0, float(U1)/255.0, float(U2)/255.0, float(U3)/255.0)
+}
+`
+
+	const intArray = `package main
+
+var U [4]int
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(float(U[0])/255.0, float(U[1])/255.0, float(U[2])/255.0, float(U[3])/255.0)
+}
+`
+
+	testCases := []struct {
+		Name     string
+		Uniforms map[string]any
+		Shader   string
+		Want     color.RGBA
+	}{
+		{
+			Name: "0xff",
+			Uniforms: map[string]any{
+				"U0": 0xff,
+				"U1": 0xff,
+				"U2": 0xff,
+				"U3": 0xff,
+			},
+			Shader: ints,
+			Want:   color.RGBA{0xff, 0xff, 0xff, 0xff},
+		},
+		{
+			Name: "int",
+			Uniforms: map[string]any{
+				"U0": int8(0x24),
+				"U1": int16(0x3f),
+				"U2": int32(0x6a),
+				"U3": int64(0x88),
+			},
+			Shader: ints,
+			Want:   color.RGBA{0x24, 0x3f, 0x6a, 0x88},
+		},
+		{
+			Name: "uint",
+			Uniforms: map[string]any{
+				"U0": uint8(0x85),
+				"U1": uint16(0xa3),
+				"U2": uint32(0x08),
+				"U3": uint64(0xd3),
+			},
+			Shader: ints,
+			Want:   color.RGBA{0x85, 0xa3, 0x08, 0xd3},
+		},
+		{
+			Name: "0xff,array",
+			Uniforms: map[string]any{
+				"U": []int{0xff, 0xff, 0xff, 0xff},
+			},
+			Shader: intArray,
+			Want:   color.RGBA{0xff, 0xff, 0xff, 0xff},
+		},
+		{
+			Name: "int,array",
+			Uniforms: map[string]any{
+				"U": []int16{0x24, 0x3f, 0x6a, 0x88},
+			},
+			Shader: intArray,
+			Want:   color.RGBA{0x24, 0x3f, 0x6a, 0x88},
+		},
+		{
+			Name: "uint,array",
+			Uniforms: map[string]any{
+				"U": []uint8{0x85, 0xa3, 0x08, 0xd3},
+			},
+			Shader: intArray,
+			Want:   color.RGBA{0x85, 0xa3, 0x08, 0xd3},
+		},
+	}
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.Name, func(t *testing.T) {
+			const w, h = 1, 1
+
+			dst := ebiten.NewImage(w, h)
+			defer dst.Dispose()
+
+			s, err := ebiten.NewShader([]byte(tc.Shader))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer s.Dispose()
+
+			op := &ebiten.DrawRectShaderOptions{}
+			op.Uniforms = tc.Uniforms
+			dst.DrawRectShader(w, h, s, op)
+			if got, want := dst.At(0, 0).(color.RGBA), tc.Want; !sameColors(got, want, 1) {
+				t.Errorf("got: %v, want: %v", got, want)
+			}
+		})
 	}
 }

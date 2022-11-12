@@ -76,6 +76,7 @@ type Context interface {
 	TexSubImage2D(target uint32, level int32, xoffset int32, yoffset int32, width int32, height int32, format uint32, xtype uint32, pixels []byte)
 	Uniform1fv(location int32, value []float32)
 	Uniform1i(location int32, v0 int32)
+	Uniform1iv(location int32, value []int32)
 	Uniform2fv(location int32, value []float32)
 	Uniform3fv(location int32, value []float32)
 	Uniform4fv(location int32, value []float32)

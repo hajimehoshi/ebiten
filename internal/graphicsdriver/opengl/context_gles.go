@@ -344,7 +344,7 @@ func (c *context) uniformInt(p program, location string, v int) bool {
 	return true
 }
 
-func (c *context) uniformFloats(p program, location string, v []float32, typ shaderir.Type) bool {
+func (c *context) uniforms(p program, location string, v []uint32, typ shaderir.Type) bool {
 	l := c.locationCache.GetUniformLocation(c, p, location)
 	if l == invalidUniform {
 		return false
@@ -357,19 +357,21 @@ func (c *context) uniformFloats(p program, location string, v []float32, typ sha
 
 	switch base {
 	case shaderir.Float:
-		c.ctx.Uniform1fv(int32(l), v)
+		c.ctx.Uniform1fv(int32(l), uint32sToFloat32s(v))
+	case shaderir.Int:
+		c.ctx.Uniform1iv(int32(l), uint32sToInt32s(v))
 	case shaderir.Vec2:
-		c.ctx.Uniform2fv(int32(l), v)
+		c.ctx.Uniform2fv(int32(l), uint32sToFloat32s(v))
 	case shaderir.Vec3:
-		c.ctx.Uniform3fv(int32(l), v)
+		c.ctx.Uniform3fv(int32(l), uint32sToFloat32s(v))
 	case shaderir.Vec4:
-		c.ctx.Uniform4fv(int32(l), v)
+		c.ctx.Uniform4fv(int32(l), uint32sToFloat32s(v))
 	case shaderir.Mat2:
-		c.ctx.UniformMatrix2fv(int32(l), false, v)
+		c.ctx.UniformMatrix2fv(int32(l), false, uint32sToFloat32s(v))
 	case shaderir.Mat3:
-		c.ctx.UniformMatrix3fv(int32(l), false, v)
+		c.ctx.UniformMatrix3fv(int32(l), false, uint32sToFloat32s(v))
 	case shaderir.Mat4:
-		c.ctx.UniformMatrix4fv(int32(l), false, v)
+		c.ctx.UniformMatrix4fv(int32(l), false, uint32sToFloat32s(v))
 	default:
 		panic(fmt.Sprintf("opengl: unexpected type: %s", typ.String()))
 	}

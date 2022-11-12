@@ -306,6 +306,10 @@ func (g *GomobileContext) Uniform1i(location int32, v0 int32) {
 	g.ctx.Uniform1i(gl.Uniform{Value: location}, int(v0))
 }
 
+func (g *GomobileContext) Uniform1iv(location int32, value []int32) {
+	g.ctx.Uniform1iv(gl.Uniform{Value: location}, value)
+}
+
 func (g *GomobileContext) Uniform2fv(location int32, value []float32) {
 	g.ctx.Uniform2fv(gl.Uniform{Value: location}, value)
 }

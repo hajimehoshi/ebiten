@@ -451,7 +451,7 @@ func (c *context) uniformInt(p program, location string, v int) bool {
 	return true
 }
 
-func (c *context) uniformFloats(p program, location string, v []float32, typ shaderir.Type) bool {
+func (c *context) uniforms(p program, location string, v []uint32, typ shaderir.Type) bool {
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
 	if l.equal(invalidUniform) {
@@ -463,46 +463,58 @@ func (c *context) uniformFloats(p program, location string, v []float32, typ sha
 		base = typ.Sub[0].Main
 	}
 
-	arr := jsutil.TemporaryFloat32Array(len(v), v)
-
 	switch base {
 	case shaderir.Float:
+		arr := jsutil.TemporaryFloat32Array(len(v), uint32sToFloat32s(v))
 		if c.usesWebGL2() {
 			gl.uniform1fv.Invoke(js.Value(l), arr, 0, len(v))
 		} else {
 			gl.uniform1fv.Invoke(js.Value(l), arr.Call("subarray", 0, len(v)))
 		}
+	case shaderir.Int:
+		arr := jsutil.TemporaryInt32Array(len(v), uint32sToInt32s(v))
+		if c.usesWebGL2() {
+			gl.uniform1iv.Invoke(js.Value(l), arr, 0, len(v))
+		} else {
+			gl.uniform1iv.Invoke(js.Value(l), arr.Call("subarray", 0, len(v)))
+		}
 	case shaderir.Vec2:
+		arr := jsutil.TemporaryFloat32Array(len(v), uint32sToFloat32s(v))
 		if c.usesWebGL2() {
 			gl.uniform2fv.Invoke(js.Value(l), arr, 0, len(v))
 		} else {
 			gl.uniform2fv.Invoke(js.Value(l), arr.Call("subarray", 0, len(v)))
 		}
 	case shaderir.Vec3:
+		arr := jsutil.TemporaryFloat32Array(len(v), uint32sToFloat32s(v))
 		if c.usesWebGL2() {
 			gl.uniform3fv.Invoke(js.Value(l), arr, 0, len(v))
 		} else {
 			gl.uniform3fv.Invoke(js.Value(l), arr.Call("subarray", 0, len(v)))
 		}
 	case shaderir.Vec4:
+		arr := jsutil.TemporaryFloat32Array(len(v), uint32sToFloat32s(v))
 		if c.usesWebGL2() {
 			gl.uniform4fv.Invoke(js.Value(l), arr, 0, len(v))
 		} else {
 			gl.uniform4fv.Invoke(js.Value(l), arr.Call("subarray", 0, len(v)))
 		}
 	case shaderir.Mat2:
+		arr := jsutil.TemporaryFloat32Array(len(v), uint32sToFloat32s(v))
 		if c.usesWebGL2() {
 			gl.uniformMatrix2fv.Invoke(js.Value(l), false, arr, 0, len(v))
 		} else {
 			gl.uniformMatrix2fv.Invoke(js.Value(l), false, arr.Call("subarray", 0, len(v)))
 		}
 	case shaderir.Mat3:
+		arr := jsutil.TemporaryFloat32Array(len(v), uint32sToFloat32s(v))
 		if c.usesWebGL2() {
 			gl.uniformMatrix3fv.Invoke(js.Value(l), false, arr, 0, len(v))
 		} else {
 			gl.uniformMatrix3fv.Invoke(js.Value(l), false, arr.Call("subarray", 0, len(v)))
 		}
 	case shaderir.Mat4:
+		arr := jsutil.TemporaryFloat32Array(len(v), uint32sToFloat32s(v))
 		if c.usesWebGL2() {
 			gl.uniformMatrix4fv.Invoke(js.Value(l), false, arr, 0, len(v))
 		} else {

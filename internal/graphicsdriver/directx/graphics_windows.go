@@ -1732,6 +1732,12 @@ func (s *Shader) flattenUniforms(uniforms [][]uint32) []uint32 {
 			} else {
 				fs = append(fs, 0)
 			}
+		case shaderir.Int:
+			if u != nil {
+				fs = append(fs, u...)
+			} else {
+				fs = append(fs, 0)
+			}
 		case shaderir.Vec2:
 			if u != nil {
 				fs = append(fs, u...)
@@ -1796,6 +1802,17 @@ func (s *Shader) flattenUniforms(uniforms [][]uint32) []uint32 {
 			// Each element is aligned to the boundary.
 			switch t.Sub[0].Main {
 			case shaderir.Float:
+				if u != nil {
+					for j := 0; j < t.Length; j++ {
+						fs = append(fs, u[j])
+						if j < t.Length-1 {
+							fs = append(fs, 0, 0, 0)
+						}
+					}
+				} else {
+					fs = append(fs, make([]uint32, (t.Length-1)*4+1)...)
+				}
+			case shaderir.Int:
 				if u != nil {
 					for j := 0; j < t.Length; j++ {
 						fs = append(fs, u[j])

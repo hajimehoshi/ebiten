@@ -27,18 +27,14 @@ func copyUint8SliceToTemporaryArrayBuffer(src []uint8) {
 	js.CopyBytesToJS(temporaryUint8Array, src)
 }
 
-func copyUint16SliceToTemporaryArrayBuffer(src []uint16) {
-	if len(src) == 0 {
-		return
-	}
-	js.CopyBytesToJS(temporaryUint8Array, unsafe.Slice((*byte)(unsafe.Pointer(&src[0])), len(src)*2))
-	runtime.KeepAlive(src)
+type numeric interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64 | ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr | ~float32 | ~float64
 }
 
-func copyFloat32SliceToTemporaryArrayBuffer(src []float32) {
+func copySliceToTemporaryArrayBuffer[T numeric](src []T) {
 	if len(src) == 0 {
 		return
 	}
-	js.CopyBytesToJS(temporaryUint8Array, unsafe.Slice((*byte)(unsafe.Pointer(&src[0])), len(src)*4))
+	js.CopyBytesToJS(temporaryUint8Array, unsafe.Slice((*byte)(unsafe.Pointer(&src[0])), len(src)*int(unsafe.Sizeof(T(0)))))
 	runtime.KeepAlive(src)
 }

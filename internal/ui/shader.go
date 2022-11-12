@@ -17,6 +17,7 @@ package ui
 import (
 	"fmt"
 	"math"
+	"reflect"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
@@ -48,17 +49,37 @@ func (s *Shader) MarkDisposed() {
 func (s *Shader) ConvertUniforms(uniforms map[string]any) [][]uint32 {
 	nameToU32s := map[string][]uint32{}
 	for name, v := range uniforms {
-		switch v := v.(type) {
-		case float32:
-			nameToU32s[name] = []uint32{math.Float32bits(v)}
-		case []float32:
-			u32s := make([]uint32, len(v))
-			for i := range v {
-				u32s[i] = math.Float32bits(v[i])
+		v := reflect.ValueOf(v)
+		t := v.Type()
+		switch t.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			nameToU32s[name] = []uint32{uint32(v.Int())}
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			nameToU32s[name] = []uint32{uint32(v.Uint())}
+		case reflect.Float32, reflect.Float64:
+			nameToU32s[name] = []uint32{math.Float32bits(float32(v.Float()))}
+		case reflect.Slice:
+			// TODO: Allow reflect.Array (#2448)
+			u32s := make([]uint32, v.Len())
+			switch t.Elem().Kind() {
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				for i := range u32s {
+					u32s[i] = uint32(v.Index(i).Int())
+				}
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+				for i := range u32s {
+					u32s[i] = uint32(v.Index(i).Uint())
+				}
+			case reflect.Float32, reflect.Float64:
+				for i := range u32s {
+					u32s[i] = math.Float32bits(float32(v.Index(i).Float()))
+				}
+			default:
+				panic(fmt.Sprintf("ebiten: unexpected uniform value type: %s (%s)", name, v.Kind().String()))
 			}
 			nameToU32s[name] = u32s
 		default:
-			panic(fmt.Sprintf("ebiten: unexpected uniform value type: %s, %T", name, v))
+			panic(fmt.Sprintf("ebiten: unexpected uniform value type: %s (%s)", name, v.Kind().String()))
 		}
 	}
 
@@ -84,7 +105,7 @@ func (s *Shader) ConvertUniforms(uniforms map[string]any) [][]uint32 {
 			continue
 		}
 		t := s.uniformNameToType[name]
-		us[idx] = make([]uint32, t.FloatCount())
+		us[idx] = make([]uint32, t.Uint32Count())
 	}
 
 	// TODO: Panic if uniforms include an invalid name

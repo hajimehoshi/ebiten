@@ -163,8 +163,9 @@ package gl
 // typedef void  (APIENTRYP GPTEXIMAGE2D)(GLenum  target, GLint  level, GLint  internalformat, GLsizei  width, GLsizei  height, GLint  border, GLenum  format, GLenum  type, const void * pixels);
 // typedef void  (APIENTRYP GPTEXPARAMETERI)(GLenum  target, GLenum  pname, GLint  param);
 // typedef void  (APIENTRYP GPTEXSUBIMAGE2D)(GLenum  target, GLint  level, GLint  xoffset, GLint  yoffset, GLsizei  width, GLsizei  height, GLenum  format, GLenum  type, const void * pixels);
-// typedef void  (APIENTRYP GPUNIFORM1I)(GLint  location, GLint  v0);
 // typedef void  (APIENTRYP GPUNIFORM1FV)(GLint  location, GLsizei  count, const GLfloat * value);
+// typedef void  (APIENTRYP GPUNIFORM1I)(GLint  location, GLint  v0);
+// typedef void  (APIENTRYP GPUNIFORM1IV)(GLint  location, GLsizei  count, const GLint * value);
 // typedef void  (APIENTRYP GPUNIFORM2FV)(GLint  location, GLsizei  count, const GLfloat * value);
 // typedef void  (APIENTRYP GPUNIFORM3FV)(GLint  location, GLsizei  count, const GLfloat * value);
 // typedef void  (APIENTRYP GPUNIFORM4FV)(GLint  location, GLsizei  count, const GLfloat * value);
@@ -382,10 +383,13 @@ package gl
 // static void  glowTexSubImage2D(GPTEXSUBIMAGE2D fnptr, GLenum  target, GLint  level, GLint  xoffset, GLint  yoffset, GLsizei  width, GLsizei  height, GLenum  format, GLenum  type, const void * pixels) {
 //   (*fnptr)(target, level, xoffset, yoffset, width, height, format, type, pixels);
 // }
+// static void  glowUniform1fv(GPUNIFORM1FV fnptr, GLint  location, GLsizei  count, const GLfloat * value) {
+//   (*fnptr)(location, count, value);
+// }
 // static void  glowUniform1i(GPUNIFORM1I fnptr, GLint  location, GLint  v0) {
 //   (*fnptr)(location, v0);
 // }
-// static void  glowUniform1fv(GPUNIFORM1FV fnptr, GLint  location, GLsizei  count, const GLfloat * value) {
+// static void  glowUniform1iv(GPUNIFORM1IV fnptr, GLint  location, GLsizei  count, const GLint * value) {
 //   (*fnptr)(location, count, value);
 // }
 // static void  glowUniform2fv(GPUNIFORM2FV fnptr, GLint  location, GLsizei  count, const GLfloat * value) {
@@ -494,8 +498,9 @@ var (
 	gpTexImage2D                  C.GPTEXIMAGE2D
 	gpTexParameteri               C.GPTEXPARAMETERI
 	gpTexSubImage2D               C.GPTEXSUBIMAGE2D
-	gpUniform1i                   C.GPUNIFORM1I
 	gpUniform1fv                  C.GPUNIFORM1FV
+	gpUniform1i                   C.GPUNIFORM1I
+	gpUniform1iv                  C.GPUNIFORM1IV
 	gpUniform2fv                  C.GPUNIFORM2FV
 	gpUniform3fv                  C.GPUNIFORM3FV
 	gpUniform4fv                  C.GPUNIFORM4FV
@@ -791,12 +796,16 @@ func TexSubImage2D(target uint32, level int32, xoffset int32, yoffset int32, wid
 	C.glowTexSubImage2D(gpTexSubImage2D, (C.GLenum)(target), (C.GLint)(level), (C.GLint)(xoffset), (C.GLint)(yoffset), (C.GLsizei)(width), (C.GLsizei)(height), (C.GLenum)(format), (C.GLenum)(xtype), pixels)
 }
 
+func Uniform1fv(location int32, count int32, value *float32) {
+	C.glowUniform1fv(gpUniform1fv, (C.GLint)(location), (C.GLsizei)(count), (*C.GLfloat)(unsafe.Pointer(value)))
+}
+
 func Uniform1i(location int32, v0 int32) {
 	C.glowUniform1i(gpUniform1i, (C.GLint)(location), (C.GLint)(v0))
 }
 
-func Uniform1fv(location int32, count int32, value *float32) {
-	C.glowUniform1fv(gpUniform1fv, (C.GLint)(location), (C.GLsizei)(count), (*C.GLfloat)(unsafe.Pointer(value)))
+func Uniform1iv(location int32, count int32, value *int32) {
+	C.glowUniform1iv(gpUniform1iv, (C.GLint)(location), (C.GLsizei)(count), (*C.GLint)(unsafe.Pointer(value)))
 }
 
 func Uniform2fv(location int32, count int32, value *float32) {
@@ -1044,13 +1053,17 @@ func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
 	if gpTexSubImage2D == nil {
 		return errors.New("gl: glTexSubImage2D is missing")
 	}
+	gpUniform1fv = (C.GPUNIFORM1FV)(getProcAddr("glUniform1fv"))
+	if gpUniform1fv == nil {
+		return errors.New("gl: glUniform1fv is missing")
+	}
 	gpUniform1i = (C.GPUNIFORM1I)(getProcAddr("glUniform1i"))
 	if gpUniform1i == nil {
 		return errors.New("gl: glUniform1i is missing")
 	}
-	gpUniform1fv = (C.GPUNIFORM1FV)(getProcAddr("glUniform1fv"))
-	if gpUniform1fv == nil {
-		return errors.New("gl: glUniform1fv is missing")
+	gpUniform1iv = (C.GPUNIFORM1IV)(getProcAddr("glUniform1iv"))
+	if gpUniform1iv == nil {
+		return errors.New("gl: glUniform1iv is missing")
 	}
 	gpUniform2fv = (C.GPUNIFORM2FV)(getProcAddr("glUniform2fv"))
 	if gpUniform2fv == nil {

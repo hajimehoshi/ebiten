@@ -223,7 +223,7 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 		if u.value == nil {
 			continue
 		}
-		if got, expected := len(u.value), u.typ.FloatCount(); got != expected {
+		if got, expected := len(u.value), u.typ.Uint32Count(); got != expected {
 			// Copy a shaderir.Type value once. Do not pass u.typ directly to fmt.Errorf arguments, or
 			// the value u would be allocated on heap.
 			typ := u.typ
@@ -234,7 +234,7 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 		if ok && areSameUint32Array(cached, u.value) {
 			continue
 		}
-		g.context.uniformFloats(program, u.name, uint32sToFloat32s(u.value), u.typ)
+		g.context.uniforms(program, u.name, u.value, u.typ)
 		if g.state.lastUniforms == nil {
 			g.state.lastUniforms = map[string][]uint32{}
 		}
@@ -283,4 +283,8 @@ loop:
 
 func uint32sToFloat32s(s []uint32) []float32 {
 	return unsafe.Slice((*float32)(unsafe.Pointer(&s[0])), len(s))
+}
+
+func uint32sToInt32s(s []uint32) []int32 {
+	return unsafe.Slice((*int32)(unsafe.Pointer(&s[0])), len(s))
 }

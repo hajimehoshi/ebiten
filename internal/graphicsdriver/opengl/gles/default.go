@@ -332,6 +332,10 @@ func (DefaultContext) Uniform1i(location int32, v0 int32) {
 	C.glUniform1i(C.GLint(location), C.GLint(v0))
 }
 
+func (DefaultContext) Uniform1iv(location int32, value []int32) {
+	C.glUniform1iv(C.GLint(location), C.GLsizei(len(value)), (*C.GLint)(unsafe.Pointer(&value[0])))
+}
+
 func (DefaultContext) Uniform2fv(location int32, value []float32) {
 	C.glUniform2fv(C.GLint(location), C.GLsizei(len(value)/2), (*C.GLfloat)(unsafe.Pointer(&value[0])))
 }

@@ -375,7 +375,7 @@ func (c *context) uniformInt(p program, location string, v int) bool {
 	return true
 }
 
-func (c *context) uniformFloats(p program, location string, v []float32, typ shaderir.Type) bool {
+func (c *context) uniforms(p program, location string, v []uint32, typ shaderir.Type) bool {
 	l := int32(c.locationCache.GetUniformLocation(c, p, location))
 	if l == invalidUniform {
 		return false
@@ -391,6 +391,8 @@ func (c *context) uniformFloats(p program, location string, v []float32, typ sha
 	switch base {
 	case shaderir.Float:
 		gl.Uniform1fv(l, len, (*float32)(gl.Ptr(v)))
+	case shaderir.Int:
+		gl.Uniform1iv(l, len, (*int32)(gl.Ptr(v)))
 	case shaderir.Vec2:
 		gl.Uniform2fv(l, len, (*float32)(gl.Ptr(v)))
 	case shaderir.Vec3:

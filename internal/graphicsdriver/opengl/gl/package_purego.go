@@ -81,8 +81,9 @@ var (
 	gpTexImage2D                  uintptr
 	gpTexParameteri               uintptr
 	gpTexSubImage2D               uintptr
-	gpUniform1i                   uintptr
 	gpUniform1fv                  uintptr
+	gpUniform1i                   uintptr
+	gpUniform1iv                  uintptr
 	gpUniform2fv                  uintptr
 	gpUniform3fv                  uintptr
 	gpUniform4fv                  uintptr
@@ -378,12 +379,16 @@ func TexSubImage2D(target uint32, level int32, xoffset int32, yoffset int32, wid
 	purego.SyscallN(gpTexSubImage2D, uintptr(target), uintptr(level), uintptr(xoffset), uintptr(yoffset), uintptr(width), uintptr(height), uintptr(format), uintptr(xtype), uintptr(pixels))
 }
 
+func Uniform1fv(location int32, count int32, value *float32) {
+	purego.SyscallN(gpUniform1fv, uintptr(location), uintptr(count), uintptr(unsafe.Pointer(value)))
+}
+
 func Uniform1i(location int32, v0 int32) {
 	purego.SyscallN(gpUniform1i, uintptr(location), uintptr(v0))
 }
 
-func Uniform1fv(location int32, count int32, value *float32) {
-	purego.SyscallN(gpUniform1fv, uintptr(location), uintptr(count), uintptr(unsafe.Pointer(value)))
+func Uniform1iv(location int32, count int32, value *int32) {
+	purego.SyscallN(gpUniform1iv, uintptr(location), uintptr(count), uintptr(unsafe.Pointer(value)))
 }
 
 func Uniform2fv(location int32, count int32, value *float32) {
@@ -631,13 +636,17 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	if gpTexSubImage2D == 0 {
 		return errors.New("gl: glTexSubImage2D is missing")
 	}
+	gpUniform1fv = getProcAddr("glUniform1fv")
+	if gpUniform1fv == 0 {
+		return errors.New("gl: glUniform1fv is missing")
+	}
 	gpUniform1i = getProcAddr("glUniform1i")
 	if gpUniform1i == 0 {
 		return errors.New("gl: glUniform1i is missing")
 	}
-	gpUniform1fv = getProcAddr("glUniform1fv")
-	if gpUniform1fv == 0 {
-		return errors.New("gl: glUniform1fv is missing")
+	gpUniform1iv = getProcAddr("glUniform1iv")
+	if gpUniform1iv == 0 {
+		return errors.New("gl: glUniform1iv is missing")
 	}
 	gpUniform2fv = getProcAddr("glUniform2fv")
 	if gpUniform2fv == 0 {

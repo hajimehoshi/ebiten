@@ -31,6 +31,8 @@ func Ptr(data any) unsafe.Pointer {
 		addr = unsafe.Pointer(&v[0])
 	case []uint16:
 		addr = unsafe.Pointer(&v[0])
+	case []uint32:
+		addr = unsafe.Pointer(&v[0])
 	case []float32:
 		addr = unsafe.Pointer(&v[0])
 	default:

@@ -80,10 +80,11 @@ type gl struct {
 	texSubImage2D            js.Value
 	texParameteri            js.Value
 	uniform1fv               js.Value
+	uniform1i                js.Value
+	uniform1iv               js.Value
 	uniform2fv               js.Value
 	uniform3fv               js.Value
 	uniform4fv               js.Value
-	uniform1i                js.Value
 	uniformMatrix2fv         js.Value
 	uniformMatrix3fv         js.Value
 	uniformMatrix4fv         js.Value
@@ -156,10 +157,11 @@ func (c *context) newGL(v js.Value) *gl {
 		texSubImage2D:            v.Get("texSubImage2D").Call("bind", v),
 		texParameteri:            v.Get("texParameteri").Call("bind", v),
 		uniform1fv:               v.Get("uniform1fv").Call("bind", v),
+		uniform1i:                v.Get("uniform1i").Call("bind", v),
+		uniform1iv:               v.Get("uniform1iv").Call("bind", v),
 		uniform2fv:               v.Get("uniform2fv").Call("bind", v),
 		uniform3fv:               v.Get("uniform3fv").Call("bind", v),
 		uniform4fv:               v.Get("uniform4fv").Call("bind", v),
-		uniform1i:                v.Get("uniform1i").Call("bind", v),
 		uniformMatrix2fv:         v.Get("uniformMatrix2fv").Call("bind", v),
 		uniformMatrix3fv:         v.Get("uniformMatrix3fv").Call("bind", v),
 		uniformMatrix4fv:         v.Get("uniformMatrix4fv").Call("bind", v),
