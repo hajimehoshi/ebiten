@@ -327,3 +327,107 @@ func TestNonSquareAlloc(t *testing.T) {
 	p.Free(n0)
 	p.Free(n1)
 }
+
+func TestExtend(t *testing.T) {
+	p := packing.NewPage(1024, 2048)
+	n0 := p.Alloc(1024, 1024)
+	if n0 == nil {
+		t.Errorf("p.Alloc(1024, 1024) failed")
+	}
+
+	// In the current implementation, the page is extended in a horizontal direction first.
+	n1 := p.Alloc(1024, 1024)
+	if n1 == nil {
+		t.Errorf("p.Alloc(1024, 1024) failed")
+	}
+	gotWidth, gotHeight := p.Size()
+	if wantWidth, wantHeight := 2048, 1024; gotWidth != wantWidth || gotHeight != wantHeight {
+		t.Errorf("got: (%d, %d), want: (%d, %d)", gotWidth, gotHeight, wantWidth, wantHeight)
+	}
+
+	// Then, allocating (1024, 2048) fails unfortunately.
+	if p.Alloc(1024, 2048) != nil {
+		t.Errorf("p.Alloc(1024, 2048) must fail but not")
+	}
+
+	n2 := p.Alloc(2048, 1024)
+	if n2 == nil {
+		t.Errorf("p.Alloc(1024, 2048) failed")
+	}
+	gotWidth, gotHeight = p.Size()
+	if wantWidth, wantHeight := 2048, 2048; gotWidth != wantWidth || gotHeight != wantHeight {
+		t.Errorf("got: (%d, %d), want: (%d, %d)", gotWidth, gotHeight, wantWidth, wantHeight)
+	}
+
+	p.Free(n0)
+	p.Free(n1)
+	p.Free(n2)
+}
+
+func TestExtend2(t *testing.T) {
+	p := packing.NewPage(1024, 2048)
+	n0 := p.Alloc(1024, 1024)
+	if n0 == nil {
+		t.Errorf("p.Alloc(1024, 1024) failed")
+	}
+
+	// Extend the page in the both directions. (1024, 2048) should be allocated on the right side.
+	n1 := p.Alloc(1024, 2048)
+	if n1 == nil {
+		t.Errorf("p.Alloc(1024, 2048) failed")
+	}
+	gotWidth, gotHeight := p.Size()
+	if wantWidth, wantHeight := 2048, 2048; gotWidth != wantWidth || gotHeight != wantHeight {
+		t.Errorf("got: (%d, %d), want: (%d, %d)", gotWidth, gotHeight, wantWidth, wantHeight)
+	}
+
+	// There should be a space in the lower-left corner.
+	n2 := p.Alloc(1024, 1024)
+	if n2 == nil {
+		t.Errorf("p.Alloc(1024, 1024) failed")
+	}
+	gotWidth, gotHeight = p.Size()
+	if wantWidth, wantHeight := 2048, 2048; gotWidth != wantWidth || gotHeight != wantHeight {
+		t.Errorf("got: (%d, %d), want: (%d, %d)", gotWidth, gotHeight, wantWidth, wantHeight)
+	}
+
+	p.Free(n0)
+	p.Free(n1)
+	p.Free(n2)
+}
+
+func TestExtend3(t *testing.T) {
+	p := packing.NewPage(1024, 2048)
+
+	// Allocate a small area that doesn't touch the left edge and the bottom edge.
+	// Allocating (1, 1) would split the entire region into left and right in the current implementation,
+	// so allocate (2, 1) here.
+	n0 := p.Alloc(2, 1)
+	if n0 == nil {
+		t.Errorf("p.Alloc(1, 1) failed")
+	}
+
+	// Extend the page in the vertical direction.
+	n1 := p.Alloc(1024, 2047)
+	if n1 == nil {
+		t.Errorf("p.Alloc(1024, 2047) failed")
+	}
+	gotWidth, gotHeight := p.Size()
+	if wantWidth, wantHeight := 1024, 2048; gotWidth != wantWidth || gotHeight != wantHeight {
+		t.Errorf("got: (%d, %d), want: (%d, %d)", gotWidth, gotHeight, wantWidth, wantHeight)
+	}
+
+	// There should be a space on the right side.
+	n2 := p.Alloc(1024, 2048)
+	if n2 == nil {
+		t.Errorf("p.Alloc(1024, 2048) failed")
+	}
+	gotWidth, gotHeight = p.Size()
+	if wantWidth, wantHeight := 2048, 2048; gotWidth != wantWidth || gotHeight != wantHeight {
+		t.Errorf("got: (%d, %d), want: (%d, %d)", gotWidth, gotHeight, wantWidth, wantHeight)
+	}
+
+	p.Free(n0)
+	p.Free(n1)
+	p.Free(n2)
+}

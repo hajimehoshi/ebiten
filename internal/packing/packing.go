@@ -305,40 +305,47 @@ func (p *Page) extend(newWidth int, newHeight int) func() {
 	if aborted {
 		origRoot := *p.root
 
-		leftUpper := p.root
-		leftLower := &Node{
-			x:      0,
-			y:      p.height,
-			width:  p.width,
-			height: newHeight - p.height,
+		// Extend the page in the vertical direction.
+		if newHeight-p.height > 0 {
+			upper := p.root
+			lower := &Node{
+				x:      0,
+				y:      p.height,
+				width:  p.width,
+				height: newHeight - p.height,
+			}
+			p.root = &Node{
+				x:      0,
+				y:      0,
+				width:  p.width,
+				height: newHeight,
+				child0: upper,
+				child1: lower,
+			}
+			upper.parent = p.root
+			lower.parent = p.root
 		}
-		left := &Node{
-			x:      0,
-			y:      0,
-			width:  p.width,
-			height: p.height,
-			child0: leftUpper,
-			child1: leftLower,
-		}
-		leftUpper.parent = left
-		leftLower.parent = left
 
-		right := &Node{
-			x:      p.width,
-			y:      0,
-			width:  newWidth - p.width,
-			height: newHeight,
+		// Extend the page in the horizontal direction.
+		if newWidth-p.width > 0 {
+			left := p.root
+			right := &Node{
+				x:      p.width,
+				y:      0,
+				width:  newWidth - p.width,
+				height: newHeight,
+			}
+			p.root = &Node{
+				x:      0,
+				y:      0,
+				width:  newWidth,
+				height: newHeight,
+				child0: left,
+				child1: right,
+			}
+			left.parent = p.root
+			right.parent = p.root
 		}
-		p.root = &Node{
-			x:      0,
-			y:      0,
-			width:  newWidth,
-			height: newHeight,
-			child0: left,
-			child1: right,
-		}
-		left.parent = p.root
-		right.parent = p.root
 
 		origWidth, origHeight := p.width, p.height
 		rollback = func() {
