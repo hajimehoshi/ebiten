@@ -344,15 +344,6 @@ func (c *context) uniformInt(p program, location string, v int) bool {
 	return true
 }
 
-func (c *context) uniformFloat(p program, location string, v float32) bool {
-	l := c.locationCache.GetUniformLocation(c, p, location)
-	if l == invalidUniform {
-		return false
-	}
-	c.ctx.Uniform1f(int32(l), v)
-	return true
-}
-
 func (c *context) uniformFloats(p program, location string, v []float32, typ shaderir.Type) bool {
 	l := c.locationCache.GetUniformLocation(c, p, location)
 	if l == invalidUniform {

@@ -163,7 +163,6 @@ package gl
 // typedef void  (APIENTRYP GPTEXIMAGE2D)(GLenum  target, GLint  level, GLint  internalformat, GLsizei  width, GLsizei  height, GLint  border, GLenum  format, GLenum  type, const void * pixels);
 // typedef void  (APIENTRYP GPTEXPARAMETERI)(GLenum  target, GLenum  pname, GLint  param);
 // typedef void  (APIENTRYP GPTEXSUBIMAGE2D)(GLenum  target, GLint  level, GLint  xoffset, GLint  yoffset, GLsizei  width, GLsizei  height, GLenum  format, GLenum  type, const void * pixels);
-// typedef void  (APIENTRYP GPUNIFORM1F)(GLint  location, GLfloat  v0);
 // typedef void  (APIENTRYP GPUNIFORM1I)(GLint  location, GLint  v0);
 // typedef void  (APIENTRYP GPUNIFORM1FV)(GLint  location, GLsizei  count, const GLfloat * value);
 // typedef void  (APIENTRYP GPUNIFORM2FV)(GLint  location, GLsizei  count, const GLfloat * value);
@@ -383,9 +382,6 @@ package gl
 // static void  glowTexSubImage2D(GPTEXSUBIMAGE2D fnptr, GLenum  target, GLint  level, GLint  xoffset, GLint  yoffset, GLsizei  width, GLsizei  height, GLenum  format, GLenum  type, const void * pixels) {
 //   (*fnptr)(target, level, xoffset, yoffset, width, height, format, type, pixels);
 // }
-// static void  glowUniform1f(GPUNIFORM1F fnptr, GLint  location, GLfloat  v0) {
-//   (*fnptr)(location, v0);
-// }
 // static void  glowUniform1i(GPUNIFORM1I fnptr, GLint  location, GLint  v0) {
 //   (*fnptr)(location, v0);
 // }
@@ -498,7 +494,6 @@ var (
 	gpTexImage2D                  C.GPTEXIMAGE2D
 	gpTexParameteri               C.GPTEXPARAMETERI
 	gpTexSubImage2D               C.GPTEXSUBIMAGE2D
-	gpUniform1f                   C.GPUNIFORM1F
 	gpUniform1i                   C.GPUNIFORM1I
 	gpUniform1fv                  C.GPUNIFORM1FV
 	gpUniform2fv                  C.GPUNIFORM2FV
@@ -796,10 +791,6 @@ func TexSubImage2D(target uint32, level int32, xoffset int32, yoffset int32, wid
 	C.glowTexSubImage2D(gpTexSubImage2D, (C.GLenum)(target), (C.GLint)(level), (C.GLint)(xoffset), (C.GLint)(yoffset), (C.GLsizei)(width), (C.GLsizei)(height), (C.GLenum)(format), (C.GLenum)(xtype), pixels)
 }
 
-func Uniform1f(location int32, v0 float32) {
-	C.glowUniform1f(gpUniform1f, (C.GLint)(location), (C.GLfloat)(v0))
-}
-
 func Uniform1i(location int32, v0 int32) {
 	C.glowUniform1i(gpUniform1i, (C.GLint)(location), (C.GLint)(v0))
 }
@@ -1052,10 +1043,6 @@ func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
 	gpTexSubImage2D = (C.GPTEXSUBIMAGE2D)(getProcAddr("glTexSubImage2D"))
 	if gpTexSubImage2D == nil {
 		return errors.New("gl: glTexSubImage2D is missing")
-	}
-	gpUniform1f = (C.GPUNIFORM1F)(getProcAddr("glUniform1f"))
-	if gpUniform1f == nil {
-		return errors.New("gl: glUniform1f is missing")
 	}
 	gpUniform1i = (C.GPUNIFORM1I)(getProcAddr("glUniform1i"))
 	if gpUniform1i == nil {

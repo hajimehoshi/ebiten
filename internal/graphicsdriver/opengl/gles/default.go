@@ -324,10 +324,6 @@ func (DefaultContext) TexSubImage2D(target uint32, level int32, xoffset int32, y
 	C.glTexSubImage2D(C.GLenum(target), C.GLint(level), C.GLint(xoffset), C.GLint(yoffset), C.GLsizei(width), C.GLsizei(height), C.GLenum(format), C.GLenum(xtype), unsafe.Pointer(&pixels[0]))
 }
 
-func (DefaultContext) Uniform1f(location int32, v0 float32) {
-	C.glUniform1f(C.GLint(location), C.GLfloat(v0))
-}
-
 func (DefaultContext) Uniform1fv(location int32, value []float32) {
 	C.glUniform1fv(C.GLint(location), C.GLsizei(len(value)), (*C.GLfloat)(unsafe.Pointer(&value[0])))
 }

@@ -298,10 +298,6 @@ func (g *GomobileContext) TexSubImage2D(target uint32, level int32, xoffset int3
 	g.ctx.TexSubImage2D(gl.Enum(target), int(level), int(xoffset), int(yoffset), int(width), int(height), gl.Enum(format), gl.Enum(xtype), pixels)
 }
 
-func (g *GomobileContext) Uniform1f(location int32, v0 float32) {
-	g.ctx.Uniform1f(gl.Uniform{Value: location}, v0)
-}
-
 func (g *GomobileContext) Uniform1fv(location int32, value []float32) {
 	g.ctx.Uniform1fv(gl.Uniform{Value: location}, value)
 }

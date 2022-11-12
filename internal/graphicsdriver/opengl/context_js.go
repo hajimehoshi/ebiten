@@ -451,16 +451,6 @@ func (c *context) uniformInt(p program, location string, v int) bool {
 	return true
 }
 
-func (c *context) uniformFloat(p program, location string, v float32) bool {
-	gl := c.gl
-	l := c.locationCache.GetUniformLocation(c, p, location)
-	if l.equal(invalidUniform) {
-		return false
-	}
-	gl.uniform1f.Invoke(js.Value(l), v)
-	return true
-}
-
 func (c *context) uniformFloats(p program, location string, v []float32, typ shaderir.Type) bool {
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)

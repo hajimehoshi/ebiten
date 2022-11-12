@@ -79,7 +79,6 @@ type gl struct {
 	texImage2D               js.Value
 	texSubImage2D            js.Value
 	texParameteri            js.Value
-	uniform1f                js.Value
 	uniform1fv               js.Value
 	uniform2fv               js.Value
 	uniform3fv               js.Value
@@ -156,7 +155,6 @@ func (c *context) newGL(v js.Value) *gl {
 		texImage2D:               v.Get("texImage2D").Call("bind", v),
 		texSubImage2D:            v.Get("texSubImage2D").Call("bind", v),
 		texParameteri:            v.Get("texParameteri").Call("bind", v),
-		uniform1f:                v.Get("uniform1f").Call("bind", v),
 		uniform1fv:               v.Get("uniform1fv").Call("bind", v),
 		uniform2fv:               v.Get("uniform2fv").Call("bind", v),
 		uniform3fv:               v.Get("uniform3fv").Call("bind", v),

@@ -81,7 +81,6 @@ var (
 	gpTexImage2D                  uintptr
 	gpTexParameteri               uintptr
 	gpTexSubImage2D               uintptr
-	gpUniform1f                   uintptr
 	gpUniform1i                   uintptr
 	gpUniform1fv                  uintptr
 	gpUniform2fv                  uintptr
@@ -379,10 +378,6 @@ func TexSubImage2D(target uint32, level int32, xoffset int32, yoffset int32, wid
 	purego.SyscallN(gpTexSubImage2D, uintptr(target), uintptr(level), uintptr(xoffset), uintptr(yoffset), uintptr(width), uintptr(height), uintptr(format), uintptr(xtype), uintptr(pixels))
 }
 
-func Uniform1f(location int32, v0 float32) {
-	Uniform1fv(location, 1, (*float32)(Ptr([]float32{v0})))
-}
-
 func Uniform1i(location int32, v0 int32) {
 	purego.SyscallN(gpUniform1i, uintptr(location), uintptr(v0))
 }
@@ -635,10 +630,6 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	gpTexSubImage2D = getProcAddr("glTexSubImage2D")
 	if gpTexSubImage2D == 0 {
 		return errors.New("gl: glTexSubImage2D is missing")
-	}
-	gpUniform1f = getProcAddr("glUniform1f")
-	if gpUniform1f == 0 {
-		return errors.New("gl: glUniform1f is missing")
 	}
 	gpUniform1i = getProcAddr("glUniform1i")
 	if gpUniform1i == 0 {
