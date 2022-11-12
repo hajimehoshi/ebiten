@@ -17,6 +17,7 @@ package opengl
 import (
 	"fmt"
 	"runtime"
+	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -122,7 +123,7 @@ type openGLState struct {
 	elementArrayBuffer buffer
 
 	lastProgram       program
-	lastUniforms      map[string][]float32
+	lastUniforms      map[string][]uint32
 	lastActiveTexture int
 }
 
@@ -164,8 +165,8 @@ func (s *openGLState) reset(context *context) error {
 	return nil
 }
 
-// areSameFloat32Array returns a boolean indicating if a and b are deeply equal.
-func areSameFloat32Array(a, b []float32) bool {
+// areSameUint32Array returns a boolean indicating if a and b are deeply equal.
+func areSameUint32Array(a, b []uint32) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -179,7 +180,7 @@ func areSameFloat32Array(a, b []float32) bool {
 
 type uniformVariable struct {
 	name  string
-	value []float32
+	value []uint32
 	typ   shaderir.Type
 }
 
@@ -230,12 +231,12 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 		}
 
 		cached, ok := g.state.lastUniforms[u.name]
-		if ok && areSameFloat32Array(cached, u.value) {
+		if ok && areSameUint32Array(cached, u.value) {
 			continue
 		}
-		g.context.uniformFloats(program, u.name, u.value, u.typ)
+		g.context.uniformFloats(program, u.name, uint32sToFloat32s(u.value), u.typ)
 		if g.state.lastUniforms == nil {
-			g.state.lastUniforms = map[string][]float32{}
+			g.state.lastUniforms = map[string][]uint32{}
 		}
 		g.state.lastUniforms[u.name] = u.value
 	}
@@ -278,4 +279,8 @@ loop:
 	g.activatedTextures = g.activatedTextures[:0]
 
 	return nil
+}
+
+func uint32sToFloat32s(s []uint32) []float32 {
+	return unsafe.Slice((*float32)(unsafe.Pointer(&s[0])), len(s))
 }

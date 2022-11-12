@@ -1171,7 +1171,7 @@ func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, 
 	return s, nil
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms [][]float32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms [][]uint32, evenOdd bool) error {
 	if shaderID == graphicsdriver.InvalidShaderID {
 		return fmt.Errorf("directx: shader ID is invalid")
 	}
@@ -1223,12 +1223,13 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 	// In DirectX, the NDC's Y direction (upward) and the framebuffer's Y direction (downward) don't
 	// match. Then, the Y direction must be inverted.
 	const idx = graphics.ProjectionMatrixUniformVariableIndex
-	uniforms[idx][1] *= -1
-	uniforms[idx][5] *= -1
-	uniforms[idx][9] *= -1
-	uniforms[idx][13] *= -1
+	// Invert the sign bits as float32 values.
+	uniforms[idx][1] = uniforms[idx][1] ^ (1 << 31)
+	uniforms[idx][5] = uniforms[idx][5] ^ (1 << 31)
+	uniforms[idx][9] = uniforms[idx][9] ^ (1 << 31)
+	uniforms[idx][13] = uniforms[idx][13] ^ (1 << 31)
 
-	flattenUniforms := shader.uniformsToFloat32s(uniforms)
+	flattenUniforms := shader.flattenUniforms(uniforms)
 
 	w, h := dst.internalSize()
 	g.needFlushDrawCommandList = true
@@ -1716,11 +1717,11 @@ func (s *Shader) pipelineState(blend graphicsdriver.Blend, stencilMode stencilMo
 	return state, nil
 }
 
-func (s *Shader) uniformsToFloat32s(uniforms [][]float32) []float32 {
-	var fs []float32
+func (s *Shader) flattenUniforms(uniforms [][]uint32) []uint32 {
+	var fs []uint32
 	for i, u := range uniforms {
 		if len(fs) < s.uniformOffsets[i]/4 {
-			fs = append(fs, make([]float32, s.uniformOffsets[i]/4-len(fs))...)
+			fs = append(fs, make([]uint32, s.uniformOffsets[i]/4-len(fs))...)
 		}
 
 		t := s.uniformTypes[i]
@@ -1803,7 +1804,7 @@ func (s *Shader) uniformsToFloat32s(uniforms [][]float32) []float32 {
 						}
 					}
 				} else {
-					fs = append(fs, make([]float32, (t.Length-1)*4+1)...)
+					fs = append(fs, make([]uint32, (t.Length-1)*4+1)...)
 				}
 			case shaderir.Vec2:
 				if u != nil {
@@ -1814,7 +1815,7 @@ func (s *Shader) uniformsToFloat32s(uniforms [][]float32) []float32 {
 						}
 					}
 				} else {
-					fs = append(fs, make([]float32, (t.Length-1)*4+2)...)
+					fs = append(fs, make([]uint32, (t.Length-1)*4+2)...)
 				}
 			case shaderir.Vec3:
 				if u != nil {
@@ -1825,13 +1826,13 @@ func (s *Shader) uniformsToFloat32s(uniforms [][]float32) []float32 {
 						}
 					}
 				} else {
-					fs = append(fs, make([]float32, (t.Length-1)*4+3)...)
+					fs = append(fs, make([]uint32, (t.Length-1)*4+3)...)
 				}
 			case shaderir.Vec4:
 				if u != nil {
 					fs = append(fs, u...)
 				} else {
-					fs = append(fs, make([]float32, t.Length*4)...)
+					fs = append(fs, make([]uint32, t.Length*4)...)
 				}
 			case shaderir.Mat2:
 				if u != nil {
@@ -1846,7 +1847,7 @@ func (s *Shader) uniformsToFloat32s(uniforms [][]float32) []float32 {
 						fs = fs[:len(fs)-2]
 					}
 				} else {
-					fs = append(fs, make([]float32, (t.Length-1)*8+6)...)
+					fs = append(fs, make([]uint32, (t.Length-1)*8+6)...)
 				}
 			case shaderir.Mat3:
 				if u != nil {
@@ -1862,7 +1863,7 @@ func (s *Shader) uniformsToFloat32s(uniforms [][]float32) []float32 {
 						fs = fs[:len(fs)-1]
 					}
 				} else {
-					fs = append(fs, make([]float32, (t.Length-1)*12+11)...)
+					fs = append(fs, make([]uint32, (t.Length-1)*12+11)...)
 				}
 			case shaderir.Mat4:
 				if u != nil {
@@ -1876,7 +1877,7 @@ func (s *Shader) uniformsToFloat32s(uniforms [][]float32) []float32 {
 						)
 					}
 				} else {
-					fs = append(fs, make([]float32, t.Length*16)...)
+					fs = append(fs, make([]uint32, t.Length*16)...)
 				}
 			default:
 				panic(fmt.Sprintf("directx: not implemented type for uniform variables: %s", t.String()))

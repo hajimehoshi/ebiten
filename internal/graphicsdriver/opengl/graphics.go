@@ -180,7 +180,7 @@ func (g *Graphics) uniformVariableName(idx int) string {
 	return name
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms [][]float32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms [][]uint32, evenOdd bool) error {
 	if shaderID == graphicsdriver.InvalidShaderID {
 		return fmt.Errorf("opengl: shader ID is invalid")
 	}
@@ -213,10 +213,11 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 	// In OpenGL, the NDC's Y direction is upward, so flip the Y direction for the final framebuffer.
 	if destination.screen {
 		const idx = graphics.ProjectionMatrixUniformVariableIndex
-		g.uniformVars[idx].value[1] *= -1
-		g.uniformVars[idx].value[5] *= -1
-		g.uniformVars[idx].value[9] *= -1
-		g.uniformVars[idx].value[13] *= -1
+		// Invert the sign bits as float32 values.
+		g.uniformVars[idx].value[1] = g.uniformVars[idx].value[1] ^ (1 << 31)
+		g.uniformVars[idx].value[5] = g.uniformVars[idx].value[5] ^ (1 << 31)
+		g.uniformVars[idx].value[9] = g.uniformVars[idx].value[9] ^ (1 << 31)
+		g.uniformVars[idx].value[13] = g.uniformVars[idx].value[13] ^ (1 << 31)
 	}
 
 	var imgs [graphics.ShaderImageCount]textureVariable

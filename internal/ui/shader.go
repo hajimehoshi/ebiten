@@ -16,6 +16,7 @@ package ui
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
@@ -44,14 +45,18 @@ func (s *Shader) MarkDisposed() {
 	s.shader = nil
 }
 
-func (s *Shader) ConvertUniforms(uniforms map[string]any) [][]float32 {
-	nameToF32s := map[string][]float32{}
+func (s *Shader) ConvertUniforms(uniforms map[string]any) [][]uint32 {
+	nameToU32s := map[string][]uint32{}
 	for name, v := range uniforms {
 		switch v := v.(type) {
 		case float32:
-			nameToF32s[name] = []float32{v}
+			nameToU32s[name] = []uint32{math.Float32bits(v)}
 		case []float32:
-			nameToF32s[name] = v
+			u32s := make([]uint32, len(v))
+			for i := range v {
+				u32s[i] = math.Float32bits(v[i])
+			}
+			nameToU32s[name] = u32s
 		default:
 			panic(fmt.Sprintf("ebiten: unexpected uniform value type: %s, %T", name, v))
 		}
@@ -72,14 +77,14 @@ func (s *Shader) ConvertUniforms(uniforms map[string]any) [][]float32 {
 		}
 	}
 
-	us := make([][]float32, len(s.uniformNameToIndex))
+	us := make([][]uint32, len(s.uniformNameToIndex))
 	for name, idx := range s.uniformNameToIndex {
-		if v, ok := nameToF32s[name]; ok {
+		if v, ok := nameToU32s[name]; ok {
 			us[idx] = v
 			continue
 		}
 		t := s.uniformNameToType[name]
-		us[idx] = make([]float32, t.FloatCount())
+		us[idx] = make([]uint32, t.FloatCount())
 	}
 
 	// TODO: Panic if uniforms include an invalid name
