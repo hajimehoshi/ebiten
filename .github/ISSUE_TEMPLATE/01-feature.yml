@@ -4,6 +4,24 @@ labels:
 - feature
 - request
 body:
+- type: checkboxes
+  id: os
+  attributes:
+    label: Operating System
+    description: Which Operating System was related?
+    options:
+      - label: Windows
+      - label: macOS
+      - label: Linux
+      - label: FreeBSD
+      - label: OpenBSD
+      - label: Android
+      - label: iOS
+      - label: Nintendo Switch
+      - label: Xbox
+      - label: Web Browsers
+  validations:
+    required: true
 - type: textarea
   id: what
   attributes:
@@ -14,5 +32,3 @@ body:
   id: why
   attributes:
     label: Why is this needed?
-  validations:
-    required: true

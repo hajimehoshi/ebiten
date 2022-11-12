@@ -2,6 +2,24 @@ name: Security Vulnerability
 description: Provide details about a security vulnerability.
 labels: security
 body:
+- type: checkboxes
+  id: os
+  attributes:
+    label: Operating System
+    description: Which Operating System was the issue on?
+    options:
+      - label: Windows
+      - label: macOS
+      - label: Linux
+      - label: FreeBSD
+      - label: OpenBSD
+      - label: Android
+      - label: iOS
+      - label: Nintendo Switch
+      - label: Xbox
+      - label: Web Browsers
+  validations:
+    required: true
 - type: textarea
   id: what
   attributes:
