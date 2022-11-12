@@ -368,10 +368,10 @@ func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs
 	if c.blend != blend {
 		return false
 	}
-	if c.evenOdd || evenOdd {
-		if c.evenOdd && evenOdd {
-			return !mightOverlapDstRegions(c.vertices, vertices)
-		}
+	if c.evenOdd != evenOdd {
+		return false
+	}
+	if c.evenOdd && mightOverlapDstRegions(c.vertices, vertices) {
 		return false
 	}
 	return true
