@@ -97,7 +97,6 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           go build -tags=nintendosdk -v ./...
-          go build -tags=ebitencbackend -v ./... # For backward compatibility. Remove this in the future (#2190).
 
       - name: go mod vendor
         run: |
