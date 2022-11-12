@@ -1224,10 +1224,10 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.Sh
 	// match. Then, the Y direction must be inverted.
 	const idx = graphics.ProjectionMatrixUniformVariableIndex
 	// Invert the sign bits as float32 values.
-	uniforms[idx][1] = uniforms[idx][1] ^ (1 << 31)
-	uniforms[idx][5] = uniforms[idx][5] ^ (1 << 31)
-	uniforms[idx][9] = uniforms[idx][9] ^ (1 << 31)
-	uniforms[idx][13] = uniforms[idx][13] ^ (1 << 31)
+	uniforms[idx][1] ^= 1 << 31
+	uniforms[idx][5] ^= 1 << 31
+	uniforms[idx][9] ^= 1 << 31
+	uniforms[idx][13] ^= 1 << 31
 
 	flattenUniforms := shader.flattenUniforms(uniforms)
 

@@ -568,10 +568,10 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 			// In Metal, the NDC's Y direction (upward) and the framebuffer's Y direction (downward) don't
 			// match. Then, the Y direction must be inverted.
 			// Invert the sign bits as float32 values.
-			v[1] = v[1] ^ (1 << 31)
-			v[5] = v[5] ^ (1 << 31)
-			v[9] = v[9] ^ (1 << 31)
-			v[13] = v[13] ^ (1 << 31)
+			v[1] ^= 1 << 31
+			v[5] ^= 1 << 31
+			v[9] ^= 1 << 31
+			v[13] ^= 1 << 31
 		}
 
 		t := g.shaders[shaderID].ir.Uniforms[i]

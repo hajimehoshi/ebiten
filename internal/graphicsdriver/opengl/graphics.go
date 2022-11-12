@@ -214,10 +214,10 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 	if destination.screen {
 		const idx = graphics.ProjectionMatrixUniformVariableIndex
 		// Invert the sign bits as float32 values.
-		g.uniformVars[idx].value[1] = g.uniformVars[idx].value[1] ^ (1 << 31)
-		g.uniformVars[idx].value[5] = g.uniformVars[idx].value[5] ^ (1 << 31)
-		g.uniformVars[idx].value[9] = g.uniformVars[idx].value[9] ^ (1 << 31)
-		g.uniformVars[idx].value[13] = g.uniformVars[idx].value[13] ^ (1 << 31)
+		g.uniformVars[idx].value[1] ^= 1 << 31
+		g.uniformVars[idx].value[5] ^= 1 << 31
+		g.uniformVars[idx].value[9] ^= 1 << 31
+		g.uniformVars[idx].value[13] ^= 1 << 31
 	}
 
 	var imgs [graphics.ShaderImageCount]textureVariable
