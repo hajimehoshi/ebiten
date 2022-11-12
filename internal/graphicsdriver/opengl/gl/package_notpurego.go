@@ -129,25 +129,13 @@ package gl
 // typedef void  (APIENTRYP GPGENFRAMEBUFFERSEXT)(GLsizei  n, GLuint * framebuffers);
 // typedef void  (APIENTRYP GPGENRENDERBUFFERSEXT)(GLsizei  n, GLuint * renderbuffers);
 // typedef void  (APIENTRYP GPGENTEXTURES)(GLsizei  n, GLuint * textures);
-// typedef void  (APIENTRYP GPGETDOUBLEI_V)(GLenum  target, GLuint  index, GLdouble * data);
-// typedef void  (APIENTRYP GPGETDOUBLEI_VEXT)(GLenum  pname, GLuint  index, GLdouble * params);
 // typedef GLenum  (APIENTRYP GPGETERROR)();
-// typedef void  (APIENTRYP GPGETFLOATI_V)(GLenum  target, GLuint  index, GLfloat * data);
-// typedef void  (APIENTRYP GPGETFLOATI_VEXT)(GLenum  pname, GLuint  index, GLfloat * params);
-// typedef void  (APIENTRYP GPGETINTEGERI_V)(GLenum  target, GLuint  index, GLint * data);
-// typedef void  (APIENTRYP GPGETINTEGERUI64I_VNV)(GLenum  value, GLuint  index, GLuint64EXT * result);
 // typedef void  (APIENTRYP GPGETINTEGERV)(GLenum  pname, GLint * data);
-// typedef void  (APIENTRYP GPGETPOINTERI_VEXT)(GLenum  pname, GLuint  index, void ** params);
 // typedef void  (APIENTRYP GPGETPROGRAMINFOLOG)(GLuint  program, GLsizei  bufSize, GLsizei * length, GLchar * infoLog);
 // typedef void  (APIENTRYP GPGETPROGRAMIV)(GLuint  program, GLenum  pname, GLint * params);
 // typedef void  (APIENTRYP GPGETSHADERINFOLOG)(GLuint  shader, GLsizei  bufSize, GLsizei * length, GLchar * infoLog);
 // typedef void  (APIENTRYP GPGETSHADERIV)(GLuint  shader, GLenum  pname, GLint * params);
-// typedef void  (APIENTRYP GPGETTRANSFORMFEEDBACKI64_V)(GLuint  xfb, GLenum  pname, GLuint  index, GLint64 * param);
-// typedef void  (APIENTRYP GPGETTRANSFORMFEEDBACKI_V)(GLuint  xfb, GLenum  pname, GLuint  index, GLint * param);
 // typedef GLint  (APIENTRYP GPGETUNIFORMLOCATION)(GLuint  program, const GLchar * name);
-// typedef void  (APIENTRYP GPGETUNSIGNEDBYTEI_VEXT)(GLenum  target, GLuint  index, GLubyte * data);
-// typedef void  (APIENTRYP GPGETVERTEXARRAYINTEGERI_VEXT)(GLuint  vaobj, GLuint  index, GLenum  pname, GLint * param);
-// typedef void  (APIENTRYP GPGETVERTEXARRAYPOINTERI_VEXT)(GLuint  vaobj, GLuint  index, GLenum  pname, void ** param);
 // typedef GLboolean  (APIENTRYP GPISFRAMEBUFFEREXT)(GLuint  framebuffer);
 // typedef GLboolean  (APIENTRYP GPISPROGRAM)(GLuint  program);
 // typedef GLboolean  (APIENTRYP GPISRENDERBUFFEREXT)(GLuint  renderbuffer);
@@ -281,32 +269,11 @@ package gl
 // static void  glowGenTextures(GPGENTEXTURES fnptr, GLsizei  n, GLuint * textures) {
 //   (*fnptr)(n, textures);
 // }
-// static void  glowGetDoublei_v(GPGETDOUBLEI_V fnptr, GLenum  target, GLuint  index, GLdouble * data) {
-//   (*fnptr)(target, index, data);
-// }
-// static void  glowGetDoublei_vEXT(GPGETDOUBLEI_VEXT fnptr, GLenum  pname, GLuint  index, GLdouble * params) {
-//   (*fnptr)(pname, index, params);
-// }
 // static GLenum  glowGetError(GPGETERROR fnptr) {
 //   return (*fnptr)();
 // }
-// static void  glowGetFloati_v(GPGETFLOATI_V fnptr, GLenum  target, GLuint  index, GLfloat * data) {
-//   (*fnptr)(target, index, data);
-// }
-// static void  glowGetFloati_vEXT(GPGETFLOATI_VEXT fnptr, GLenum  pname, GLuint  index, GLfloat * params) {
-//   (*fnptr)(pname, index, params);
-// }
-// static void  glowGetIntegeri_v(GPGETINTEGERI_V fnptr, GLenum  target, GLuint  index, GLint * data) {
-//   (*fnptr)(target, index, data);
-// }
-// static void  glowGetIntegerui64i_vNV(GPGETINTEGERUI64I_VNV fnptr, GLenum  value, GLuint  index, GLuint64EXT * result) {
-//   (*fnptr)(value, index, result);
-// }
 // static void  glowGetIntegerv(GPGETINTEGERV fnptr, GLenum  pname, GLint * data) {
 //   (*fnptr)(pname, data);
-// }
-// static void  glowGetPointeri_vEXT(GPGETPOINTERI_VEXT fnptr, GLenum  pname, GLuint  index, void ** params) {
-//   (*fnptr)(pname, index, params);
 // }
 // static void  glowGetProgramInfoLog(GPGETPROGRAMINFOLOG fnptr, GLuint  program, GLsizei  bufSize, GLsizei * length, GLchar * infoLog) {
 //   (*fnptr)(program, bufSize, length, infoLog);
@@ -320,23 +287,8 @@ package gl
 // static void  glowGetShaderiv(GPGETSHADERIV fnptr, GLuint  shader, GLenum  pname, GLint * params) {
 //   (*fnptr)(shader, pname, params);
 // }
-// static void  glowGetTransformFeedbacki64_v(GPGETTRANSFORMFEEDBACKI64_V fnptr, GLuint  xfb, GLenum  pname, GLuint  index, GLint64 * param) {
-//   (*fnptr)(xfb, pname, index, param);
-// }
-// static void  glowGetTransformFeedbacki_v(GPGETTRANSFORMFEEDBACKI_V fnptr, GLuint  xfb, GLenum  pname, GLuint  index, GLint * param) {
-//   (*fnptr)(xfb, pname, index, param);
-// }
 // static GLint  glowGetUniformLocation(GPGETUNIFORMLOCATION fnptr, GLuint  program, const GLchar * name) {
 //   return (*fnptr)(program, name);
-// }
-// static void  glowGetUnsignedBytei_vEXT(GPGETUNSIGNEDBYTEI_VEXT fnptr, GLenum  target, GLuint  index, GLubyte * data) {
-//   (*fnptr)(target, index, data);
-// }
-// static void  glowGetVertexArrayIntegeri_vEXT(GPGETVERTEXARRAYINTEGERI_VEXT fnptr, GLuint  vaobj, GLuint  index, GLenum  pname, GLint * param) {
-//   (*fnptr)(vaobj, index, pname, param);
-// }
-// static void  glowGetVertexArrayPointeri_vEXT(GPGETVERTEXARRAYPOINTERI_VEXT fnptr, GLuint  vaobj, GLuint  index, GLenum  pname, void ** param) {
-//   (*fnptr)(vaobj, index, pname, param);
 // }
 // static GLboolean  glowIsFramebufferEXT(GPISFRAMEBUFFEREXT fnptr, GLuint  framebuffer) {
 //   return (*fnptr)(framebuffer);
@@ -429,87 +381,75 @@ import (
 )
 
 var (
-	gpActiveTexture               C.GPACTIVETEXTURE
-	gpAttachShader                C.GPATTACHSHADER
-	gpBindAttribLocation          C.GPBINDATTRIBLOCATION
-	gpBindBuffer                  C.GPBINDBUFFER
-	gpBindFramebufferEXT          C.GPBINDFRAMEBUFFEREXT
-	gpBindRenderbufferEXT         C.GPBINDRENDERBUFFEREXT
-	gpBindTexture                 C.GPBINDTEXTURE
-	gpBlendEquationSeparate       C.GPBLENDEQUATIONSEPARATE
-	gpBlendFuncSeparate           C.GPBLENDFUNCSEPARATE
-	gpBufferData                  C.GPBUFFERDATA
-	gpBufferSubData               C.GPBUFFERSUBDATA
-	gpCheckFramebufferStatusEXT   C.GPCHECKFRAMEBUFFERSTATUSEXT
-	gpClear                       C.GPCLEAR
-	gpColorMask                   C.GPCOLORMASK
-	gpCompileShader               C.GPCOMPILESHADER
-	gpCreateProgram               C.GPCREATEPROGRAM
-	gpCreateShader                C.GPCREATESHADER
-	gpDeleteBuffers               C.GPDELETEBUFFERS
-	gpDeleteFramebuffersEXT       C.GPDELETEFRAMEBUFFERSEXT
-	gpDeleteProgram               C.GPDELETEPROGRAM
-	gpDeleteRenderbuffersEXT      C.GPDELETERENDERBUFFERSEXT
-	gpDeleteShader                C.GPDELETESHADER
-	gpDeleteTextures              C.GPDELETETEXTURES
-	gpDisable                     C.GPDISABLE
-	gpDisableVertexAttribArray    C.GPDISABLEVERTEXATTRIBARRAY
-	gpDrawElements                C.GPDRAWELEMENTS
-	gpEnable                      C.GPENABLE
-	gpEnableVertexAttribArray     C.GPENABLEVERTEXATTRIBARRAY
-	gpFlush                       C.GPFLUSH
-	gpFramebufferRenderbufferEXT  C.GPFRAMEBUFFERRENDERBUFFEREXT
-	gpFramebufferTexture2DEXT     C.GPFRAMEBUFFERTEXTURE2DEXT
-	gpGenBuffers                  C.GPGENBUFFERS
-	gpGenFramebuffersEXT          C.GPGENFRAMEBUFFERSEXT
-	gpGenRenderbuffersEXT         C.GPGENRENDERBUFFERSEXT
-	gpGenTextures                 C.GPGENTEXTURES
-	gpGetDoublei_v                C.GPGETDOUBLEI_V
-	gpGetDoublei_vEXT             C.GPGETDOUBLEI_VEXT
-	gpGetError                    C.GPGETERROR
-	gpGetFloati_v                 C.GPGETFLOATI_V
-	gpGetFloati_vEXT              C.GPGETFLOATI_VEXT
-	gpGetIntegeri_v               C.GPGETINTEGERI_V
-	gpGetIntegerui64i_vNV         C.GPGETINTEGERUI64I_VNV
-	gpGetIntegerv                 C.GPGETINTEGERV
-	gpGetPointeri_vEXT            C.GPGETPOINTERI_VEXT
-	gpGetProgramInfoLog           C.GPGETPROGRAMINFOLOG
-	gpGetProgramiv                C.GPGETPROGRAMIV
-	gpGetShaderInfoLog            C.GPGETSHADERINFOLOG
-	gpGetShaderiv                 C.GPGETSHADERIV
-	gpGetTransformFeedbacki64_v   C.GPGETTRANSFORMFEEDBACKI64_V
-	gpGetTransformFeedbacki_v     C.GPGETTRANSFORMFEEDBACKI_V
-	gpGetUniformLocation          C.GPGETUNIFORMLOCATION
-	gpGetUnsignedBytei_vEXT       C.GPGETUNSIGNEDBYTEI_VEXT
-	gpGetVertexArrayIntegeri_vEXT C.GPGETVERTEXARRAYINTEGERI_VEXT
-	gpGetVertexArrayPointeri_vEXT C.GPGETVERTEXARRAYPOINTERI_VEXT
-	gpIsFramebufferEXT            C.GPISFRAMEBUFFEREXT
-	gpIsProgram                   C.GPISPROGRAM
-	gpIsRenderbufferEXT           C.GPISRENDERBUFFEREXT
-	gpIsTexture                   C.GPISTEXTURE
-	gpLinkProgram                 C.GPLINKPROGRAM
-	gpPixelStorei                 C.GPPIXELSTOREI
-	gpReadPixels                  C.GPREADPIXELS
-	gpRenderbufferStorageEXT      C.GPRENDERBUFFERSTORAGEEXT
-	gpScissor                     C.GPSCISSOR
-	gpShaderSource                C.GPSHADERSOURCE
-	gpStencilFunc                 C.GPSTENCILFUNC
-	gpStencilOp                   C.GPSTENCILOP
-	gpTexImage2D                  C.GPTEXIMAGE2D
-	gpTexParameteri               C.GPTEXPARAMETERI
-	gpTexSubImage2D               C.GPTEXSUBIMAGE2D
-	gpUniform1fv                  C.GPUNIFORM1FV
-	gpUniform1i                   C.GPUNIFORM1I
-	gpUniform1iv                  C.GPUNIFORM1IV
-	gpUniform2fv                  C.GPUNIFORM2FV
-	gpUniform3fv                  C.GPUNIFORM3FV
-	gpUniform4fv                  C.GPUNIFORM4FV
-	gpUniformMatrix2fv            C.GPUNIFORMMATRIX2FV
-	gpUniformMatrix3fv            C.GPUNIFORMMATRIX3FV
-	gpUniformMatrix4fv            C.GPUNIFORMMATRIX4FV
-	gpUseProgram                  C.GPUSEPROGRAM
-	gpVertexAttribPointer         C.GPVERTEXATTRIBPOINTER
-	gpViewport                    C.GPVIEWPORT
+	gpActiveTexture              C.GPACTIVETEXTURE
+	gpAttachShader               C.GPATTACHSHADER
+	gpBindAttribLocation         C.GPBINDATTRIBLOCATION
+	gpBindBuffer                 C.GPBINDBUFFER
+	gpBindFramebufferEXT         C.GPBINDFRAMEBUFFEREXT
+	gpBindRenderbufferEXT        C.GPBINDRENDERBUFFEREXT
+	gpBindTexture                C.GPBINDTEXTURE
+	gpBlendEquationSeparate      C.GPBLENDEQUATIONSEPARATE
+	gpBlendFuncSeparate          C.GPBLENDFUNCSEPARATE
+	gpBufferData                 C.GPBUFFERDATA
+	gpBufferSubData              C.GPBUFFERSUBDATA
+	gpCheckFramebufferStatusEXT  C.GPCHECKFRAMEBUFFERSTATUSEXT
+	gpClear                      C.GPCLEAR
+	gpColorMask                  C.GPCOLORMASK
+	gpCompileShader              C.GPCOMPILESHADER
+	gpCreateProgram              C.GPCREATEPROGRAM
+	gpCreateShader               C.GPCREATESHADER
+	gpDeleteBuffers              C.GPDELETEBUFFERS
+	gpDeleteFramebuffersEXT      C.GPDELETEFRAMEBUFFERSEXT
+	gpDeleteProgram              C.GPDELETEPROGRAM
+	gpDeleteRenderbuffersEXT     C.GPDELETERENDERBUFFERSEXT
+	gpDeleteShader               C.GPDELETESHADER
+	gpDeleteTextures             C.GPDELETETEXTURES
+	gpDisable                    C.GPDISABLE
+	gpDisableVertexAttribArray   C.GPDISABLEVERTEXATTRIBARRAY
+	gpDrawElements               C.GPDRAWELEMENTS
+	gpEnable                     C.GPENABLE
+	gpEnableVertexAttribArray    C.GPENABLEVERTEXATTRIBARRAY
+	gpFlush                      C.GPFLUSH
+	gpFramebufferRenderbufferEXT C.GPFRAMEBUFFERRENDERBUFFEREXT
+	gpFramebufferTexture2DEXT    C.GPFRAMEBUFFERTEXTURE2DEXT
+	gpGenBuffers                 C.GPGENBUFFERS
+	gpGenFramebuffersEXT         C.GPGENFRAMEBUFFERSEXT
+	gpGenRenderbuffersEXT        C.GPGENRENDERBUFFERSEXT
+	gpGenTextures                C.GPGENTEXTURES
+	gpGetError                   C.GPGETERROR
+	gpGetIntegerv                C.GPGETINTEGERV
+	gpGetProgramInfoLog          C.GPGETPROGRAMINFOLOG
+	gpGetProgramiv               C.GPGETPROGRAMIV
+	gpGetShaderInfoLog           C.GPGETSHADERINFOLOG
+	gpGetShaderiv                C.GPGETSHADERIV
+	gpGetUniformLocation         C.GPGETUNIFORMLOCATION
+	gpIsFramebufferEXT           C.GPISFRAMEBUFFEREXT
+	gpIsProgram                  C.GPISPROGRAM
+	gpIsRenderbufferEXT          C.GPISRENDERBUFFEREXT
+	gpIsTexture                  C.GPISTEXTURE
+	gpLinkProgram                C.GPLINKPROGRAM
+	gpPixelStorei                C.GPPIXELSTOREI
+	gpReadPixels                 C.GPREADPIXELS
+	gpRenderbufferStorageEXT     C.GPRENDERBUFFERSTORAGEEXT
+	gpScissor                    C.GPSCISSOR
+	gpShaderSource               C.GPSHADERSOURCE
+	gpStencilFunc                C.GPSTENCILFUNC
+	gpStencilOp                  C.GPSTENCILOP
+	gpTexImage2D                 C.GPTEXIMAGE2D
+	gpTexParameteri              C.GPTEXPARAMETERI
+	gpTexSubImage2D              C.GPTEXSUBIMAGE2D
+	gpUniform1fv                 C.GPUNIFORM1FV
+	gpUniform1i                  C.GPUNIFORM1I
+	gpUniform1iv                 C.GPUNIFORM1IV
+	gpUniform2fv                 C.GPUNIFORM2FV
+	gpUniform3fv                 C.GPUNIFORM3FV
+	gpUniform4fv                 C.GPUNIFORM4FV
+	gpUniformMatrix2fv           C.GPUNIFORMMATRIX2FV
+	gpUniformMatrix3fv           C.GPUNIFORMMATRIX3FV
+	gpUniformMatrix4fv           C.GPUNIFORMMATRIX4FV
+	gpUseProgram                 C.GPUSEPROGRAM
+	gpVertexAttribPointer        C.GPVERTEXATTRIBPOINTER
+	gpViewport                   C.GPVIEWPORT
 )
 
 func boolToInt(b bool) int {
@@ -662,36 +602,13 @@ func GenTextures(n int32, textures *uint32) {
 	C.glowGenTextures(gpGenTextures, (C.GLsizei)(n), (*C.GLuint)(unsafe.Pointer(textures)))
 }
 
-func GetDoublei_v(target uint32, index uint32, data *float64) {
-	C.glowGetDoublei_v(gpGetDoublei_v, (C.GLenum)(target), (C.GLuint)(index), (*C.GLdouble)(unsafe.Pointer(data)))
-}
-func GetDoublei_vEXT(pname uint32, index uint32, params *float64) {
-	C.glowGetDoublei_vEXT(gpGetDoublei_vEXT, (C.GLenum)(pname), (C.GLuint)(index), (*C.GLdouble)(unsafe.Pointer(params)))
-}
-
 func GetError() uint32 {
 	ret := C.glowGetError(gpGetError)
 	return (uint32)(ret)
 }
-func GetFloati_v(target uint32, index uint32, data *float32) {
-	C.glowGetFloati_v(gpGetFloati_v, (C.GLenum)(target), (C.GLuint)(index), (*C.GLfloat)(unsafe.Pointer(data)))
-}
-func GetFloati_vEXT(pname uint32, index uint32, params *float32) {
-	C.glowGetFloati_vEXT(gpGetFloati_vEXT, (C.GLenum)(pname), (C.GLuint)(index), (*C.GLfloat)(unsafe.Pointer(params)))
-}
 
-func GetIntegeri_v(target uint32, index uint32, data *int32) {
-	C.glowGetIntegeri_v(gpGetIntegeri_v, (C.GLenum)(target), (C.GLuint)(index), (*C.GLint)(unsafe.Pointer(data)))
-}
-func GetIntegerui64i_vNV(value uint32, index uint32, result *uint64) {
-	C.glowGetIntegerui64i_vNV(gpGetIntegerui64i_vNV, (C.GLenum)(value), (C.GLuint)(index), (*C.GLuint64EXT)(unsafe.Pointer(result)))
-}
 func GetIntegerv(pname uint32, data *int32) {
 	C.glowGetIntegerv(gpGetIntegerv, (C.GLenum)(pname), (*C.GLint)(unsafe.Pointer(data)))
-}
-
-func GetPointeri_vEXT(pname uint32, index uint32, params *unsafe.Pointer) {
-	C.glowGetPointeri_vEXT(gpGetPointeri_vEXT, (C.GLenum)(pname), (C.GLuint)(index), params)
 }
 
 func GetProgramInfoLog(program uint32, bufSize int32, length *int32, infoLog *uint8) {
@@ -710,26 +627,9 @@ func GetShaderiv(shader uint32, pname uint32, params *int32) {
 	C.glowGetShaderiv(gpGetShaderiv, (C.GLuint)(shader), (C.GLenum)(pname), (*C.GLint)(unsafe.Pointer(params)))
 }
 
-func GetTransformFeedbacki64_v(xfb uint32, pname uint32, index uint32, param *int64) {
-	C.glowGetTransformFeedbacki64_v(gpGetTransformFeedbacki64_v, (C.GLuint)(xfb), (C.GLenum)(pname), (C.GLuint)(index), (*C.GLint64)(unsafe.Pointer(param)))
-}
-func GetTransformFeedbacki_v(xfb uint32, pname uint32, index uint32, param *int32) {
-	C.glowGetTransformFeedbacki_v(gpGetTransformFeedbacki_v, (C.GLuint)(xfb), (C.GLenum)(pname), (C.GLuint)(index), (*C.GLint)(unsafe.Pointer(param)))
-}
-
 func GetUniformLocation(program uint32, name *uint8) int32 {
 	ret := C.glowGetUniformLocation(gpGetUniformLocation, (C.GLuint)(program), (*C.GLchar)(unsafe.Pointer(name)))
 	return (int32)(ret)
-}
-
-func GetUnsignedBytei_vEXT(target uint32, index uint32, data *uint8) {
-	C.glowGetUnsignedBytei_vEXT(gpGetUnsignedBytei_vEXT, (C.GLenum)(target), (C.GLuint)(index), (*C.GLubyte)(unsafe.Pointer(data)))
-}
-func GetVertexArrayIntegeri_vEXT(vaobj uint32, index uint32, pname uint32, param *int32) {
-	C.glowGetVertexArrayIntegeri_vEXT(gpGetVertexArrayIntegeri_vEXT, (C.GLuint)(vaobj), (C.GLuint)(index), (C.GLenum)(pname), (*C.GLint)(unsafe.Pointer(param)))
-}
-func GetVertexArrayPointeri_vEXT(vaobj uint32, index uint32, pname uint32, param *unsafe.Pointer) {
-	C.glowGetVertexArrayPointeri_vEXT(gpGetVertexArrayPointeri_vEXT, (C.GLuint)(vaobj), (C.GLuint)(index), (C.GLenum)(pname), param)
 }
 
 func IsFramebufferEXT(framebuffer uint32) bool {
@@ -962,21 +862,14 @@ func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
 	if gpGenTextures == nil {
 		return errors.New("gl: glGenTextures is missing")
 	}
-	gpGetDoublei_v = (C.GPGETDOUBLEI_V)(getProcAddr("glGetDoublei_v"))
-	gpGetDoublei_vEXT = (C.GPGETDOUBLEI_VEXT)(getProcAddr("glGetDoublei_vEXT"))
 	gpGetError = (C.GPGETERROR)(getProcAddr("glGetError"))
 	if gpGetError == nil {
 		return errors.New("gl: glGetError is missing")
 	}
-	gpGetFloati_v = (C.GPGETFLOATI_V)(getProcAddr("glGetFloati_v"))
-	gpGetFloati_vEXT = (C.GPGETFLOATI_VEXT)(getProcAddr("glGetFloati_vEXT"))
-	gpGetIntegeri_v = (C.GPGETINTEGERI_V)(getProcAddr("glGetIntegeri_v"))
-	gpGetIntegerui64i_vNV = (C.GPGETINTEGERUI64I_VNV)(getProcAddr("glGetIntegerui64i_vNV"))
 	gpGetIntegerv = (C.GPGETINTEGERV)(getProcAddr("glGetIntegerv"))
 	if gpGetIntegerv == nil {
 		return errors.New("gl: glGetIntegerv is missing")
 	}
-	gpGetPointeri_vEXT = (C.GPGETPOINTERI_VEXT)(getProcAddr("glGetPointeri_vEXT"))
 	gpGetProgramInfoLog = (C.GPGETPROGRAMINFOLOG)(getProcAddr("glGetProgramInfoLog"))
 	if gpGetProgramInfoLog == nil {
 		return errors.New("gl: glGetProgramInfoLog is missing")
@@ -993,15 +886,10 @@ func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
 	if gpGetShaderiv == nil {
 		return errors.New("gl: glGetShaderiv is missing")
 	}
-	gpGetTransformFeedbacki64_v = (C.GPGETTRANSFORMFEEDBACKI64_V)(getProcAddr("glGetTransformFeedbacki64_v"))
-	gpGetTransformFeedbacki_v = (C.GPGETTRANSFORMFEEDBACKI_V)(getProcAddr("glGetTransformFeedbacki_v"))
 	gpGetUniformLocation = (C.GPGETUNIFORMLOCATION)(getProcAddr("glGetUniformLocation"))
 	if gpGetUniformLocation == nil {
 		return errors.New("gl: glGetUniformLocation is missing")
 	}
-	gpGetUnsignedBytei_vEXT = (C.GPGETUNSIGNEDBYTEI_VEXT)(getProcAddr("glGetUnsignedBytei_vEXT"))
-	gpGetVertexArrayIntegeri_vEXT = (C.GPGETVERTEXARRAYINTEGERI_VEXT)(getProcAddr("glGetVertexArrayIntegeri_vEXT"))
-	gpGetVertexArrayPointeri_vEXT = (C.GPGETVERTEXARRAYPOINTERI_VEXT)(getProcAddr("glGetVertexArrayPointeri_vEXT"))
 	gpIsFramebufferEXT = (C.GPISFRAMEBUFFEREXT)(getProcAddr("glIsFramebufferEXT"))
 	gpIsProgram = (C.GPISPROGRAM)(getProcAddr("glIsProgram"))
 	if gpIsProgram == nil {

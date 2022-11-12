@@ -214,20 +214,20 @@ func (g *GomobileContext) GetIntegerv(dst []int32, pname uint32) {
 	g.ctx.GetIntegerv(dst, gl.Enum(pname))
 }
 
-func (g *GomobileContext) GetProgramiv(dst []int32, program uint32, pname uint32) {
-	dst[0] = int32(g.ctx.GetProgrami(gmProgram(program), gl.Enum(pname)))
-}
-
 func (g *GomobileContext) GetProgramInfoLog(program uint32) string {
 	return g.ctx.GetProgramInfoLog(gmProgram(program))
 }
 
-func (g *GomobileContext) GetShaderiv(dst []int32, shader uint32, pname uint32) {
-	dst[0] = int32(g.ctx.GetShaderi(gl.Shader{Value: shader}, gl.Enum(pname)))
+func (g *GomobileContext) GetProgramiv(dst []int32, program uint32, pname uint32) {
+	dst[0] = int32(g.ctx.GetProgrami(gmProgram(program), gl.Enum(pname)))
 }
 
 func (g *GomobileContext) GetShaderInfoLog(shader uint32) string {
 	return g.ctx.GetShaderInfoLog(gl.Shader{Value: shader})
+}
+
+func (g *GomobileContext) GetShaderiv(dst []int32, shader uint32, pname uint32) {
+	dst[0] = int32(g.ctx.GetShaderi(gl.Shader{Value: shader}, gl.Enum(pname)))
 }
 
 func (g *GomobileContext) GetShaderPrecisionFormat(shadertype uint32, precisiontype uint32) (rangeLow, rangeHigh, precision int) {

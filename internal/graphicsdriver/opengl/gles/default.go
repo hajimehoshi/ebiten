@@ -211,10 +211,6 @@ func (DefaultContext) GetIntegerv(dst []int32, pname uint32) {
 	C.glGetIntegerv(C.GLenum(pname), (*C.GLint)(unsafe.Pointer(&dst[0])))
 }
 
-func (DefaultContext) GetProgramiv(dst []int32, program uint32, pname uint32) {
-	C.glGetProgramiv(C.GLuint(program), C.GLenum(pname), (*C.GLint)(unsafe.Pointer(&dst[0])))
-}
-
 func (d DefaultContext) GetProgramInfoLog(program uint32) string {
 	buflens := make([]int32, 1)
 	d.GetProgramiv(buflens, program, glconst.INFO_LOG_LENGTH)
@@ -228,8 +224,8 @@ func (d DefaultContext) GetProgramInfoLog(program uint32) string {
 	return string(buf[:length])
 }
 
-func (DefaultContext) GetShaderiv(dst []int32, shader uint32, pname uint32) {
-	C.glGetShaderiv(C.GLuint(shader), C.GLenum(pname), (*C.GLint)(unsafe.Pointer(&dst[0])))
+func (DefaultContext) GetProgramiv(dst []int32, program uint32, pname uint32) {
+	C.glGetProgramiv(C.GLuint(program), C.GLenum(pname), (*C.GLint)(unsafe.Pointer(&dst[0])))
 }
 
 func (d DefaultContext) GetShaderInfoLog(shader uint32) string {
@@ -243,6 +239,10 @@ func (d DefaultContext) GetShaderInfoLog(shader uint32) string {
 	var length int32
 	C.glGetShaderInfoLog(C.GLuint(shader), C.GLsizei(buflen), (*C.GLsizei)(unsafe.Pointer(&length)), (*C.GLchar)(unsafe.Pointer(&buf[0])))
 	return string(buf[:length])
+}
+
+func (DefaultContext) GetShaderiv(dst []int32, shader uint32, pname uint32) {
+	C.glGetShaderiv(C.GLuint(shader), C.GLenum(pname), (*C.GLint)(unsafe.Pointer(&dst[0])))
 }
 
 func (DefaultContext) GetShaderPrecisionFormat(shadertype uint32, precisiontype uint32) (rangeLow, rangeHigh, precision int) {

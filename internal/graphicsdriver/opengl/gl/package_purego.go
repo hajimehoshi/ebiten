@@ -12,87 +12,75 @@ import (
 )
 
 var (
-	gpActiveTexture               uintptr
-	gpAttachShader                uintptr
-	gpBindAttribLocation          uintptr
-	gpBindBuffer                  uintptr
-	gpBindFramebufferEXT          uintptr
-	gpBindRenderbufferEXT         uintptr
-	gpBindTexture                 uintptr
-	gpBlendEquationSeparate       uintptr
-	gpBlendFuncSeparate           uintptr
-	gpBufferData                  uintptr
-	gpBufferSubData               uintptr
-	gpCheckFramebufferStatusEXT   uintptr
-	gpClear                       uintptr
-	gpColorMask                   uintptr
-	gpCompileShader               uintptr
-	gpCreateProgram               uintptr
-	gpCreateShader                uintptr
-	gpDeleteBuffers               uintptr
-	gpDeleteFramebuffersEXT       uintptr
-	gpDeleteProgram               uintptr
-	gpDeleteRenderbuffersEXT      uintptr
-	gpDeleteShader                uintptr
-	gpDeleteTextures              uintptr
-	gpDisable                     uintptr
-	gpDisableVertexAttribArray    uintptr
-	gpDrawElements                uintptr
-	gpEnable                      uintptr
-	gpEnableVertexAttribArray     uintptr
-	gpFlush                       uintptr
-	gpFramebufferRenderbufferEXT  uintptr
-	gpFramebufferTexture2DEXT     uintptr
-	gpGenBuffers                  uintptr
-	gpGenFramebuffersEXT          uintptr
-	gpGenRenderbuffersEXT         uintptr
-	gpGenTextures                 uintptr
-	gpGetDoublei_v                uintptr
-	gpGetDoublei_vEXT             uintptr
-	gpGetError                    uintptr
-	gpGetFloati_v                 uintptr
-	gpGetFloati_vEXT              uintptr
-	gpGetIntegeri_v               uintptr
-	gpGetIntegerui64i_vNV         uintptr
-	gpGetIntegerv                 uintptr
-	gpGetPointeri_vEXT            uintptr
-	gpGetProgramInfoLog           uintptr
-	gpGetProgramiv                uintptr
-	gpGetShaderInfoLog            uintptr
-	gpGetShaderiv                 uintptr
-	gpGetTransformFeedbacki64_v   uintptr
-	gpGetTransformFeedbacki_v     uintptr
-	gpGetUniformLocation          uintptr
-	gpGetUnsignedBytei_vEXT       uintptr
-	gpGetVertexArrayIntegeri_vEXT uintptr
-	gpGetVertexArrayPointeri_vEXT uintptr
-	gpIsFramebufferEXT            uintptr
-	gpIsProgram                   uintptr
-	gpIsRenderbufferEXT           uintptr
-	gpIsTexture                   uintptr
-	gpLinkProgram                 uintptr
-	gpPixelStorei                 uintptr
-	gpReadPixels                  uintptr
-	gpRenderbufferStorageEXT      uintptr
-	gpScissor                     uintptr
-	gpShaderSource                uintptr
-	gpStencilFunc                 uintptr
-	gpStencilOp                   uintptr
-	gpTexImage2D                  uintptr
-	gpTexParameteri               uintptr
-	gpTexSubImage2D               uintptr
-	gpUniform1fv                  uintptr
-	gpUniform1i                   uintptr
-	gpUniform1iv                  uintptr
-	gpUniform2fv                  uintptr
-	gpUniform3fv                  uintptr
-	gpUniform4fv                  uintptr
-	gpUniformMatrix2fv            uintptr
-	gpUniformMatrix3fv            uintptr
-	gpUniformMatrix4fv            uintptr
-	gpUseProgram                  uintptr
-	gpVertexAttribPointer         uintptr
-	gpViewport                    uintptr
+	gpActiveTexture              uintptr
+	gpAttachShader               uintptr
+	gpBindAttribLocation         uintptr
+	gpBindBuffer                 uintptr
+	gpBindFramebufferEXT         uintptr
+	gpBindRenderbufferEXT        uintptr
+	gpBindTexture                uintptr
+	gpBlendEquationSeparate      uintptr
+	gpBlendFuncSeparate          uintptr
+	gpBufferData                 uintptr
+	gpBufferSubData              uintptr
+	gpCheckFramebufferStatusEXT  uintptr
+	gpClear                      uintptr
+	gpColorMask                  uintptr
+	gpCompileShader              uintptr
+	gpCreateProgram              uintptr
+	gpCreateShader               uintptr
+	gpDeleteBuffers              uintptr
+	gpDeleteFramebuffersEXT      uintptr
+	gpDeleteProgram              uintptr
+	gpDeleteRenderbuffersEXT     uintptr
+	gpDeleteShader               uintptr
+	gpDeleteTextures             uintptr
+	gpDisable                    uintptr
+	gpDisableVertexAttribArray   uintptr
+	gpDrawElements               uintptr
+	gpEnable                     uintptr
+	gpEnableVertexAttribArray    uintptr
+	gpFlush                      uintptr
+	gpFramebufferRenderbufferEXT uintptr
+	gpFramebufferTexture2DEXT    uintptr
+	gpGenBuffers                 uintptr
+	gpGenFramebuffersEXT         uintptr
+	gpGenRenderbuffersEXT        uintptr
+	gpGenTextures                uintptr
+	gpGetError                   uintptr
+	gpGetIntegerv                uintptr
+	gpGetProgramInfoLog          uintptr
+	gpGetProgramiv               uintptr
+	gpGetShaderInfoLog           uintptr
+	gpGetShaderiv                uintptr
+	gpGetUniformLocation         uintptr
+	gpIsFramebufferEXT           uintptr
+	gpIsProgram                  uintptr
+	gpIsRenderbufferEXT          uintptr
+	gpIsTexture                  uintptr
+	gpLinkProgram                uintptr
+	gpPixelStorei                uintptr
+	gpReadPixels                 uintptr
+	gpRenderbufferStorageEXT     uintptr
+	gpScissor                    uintptr
+	gpShaderSource               uintptr
+	gpStencilFunc                uintptr
+	gpStencilOp                  uintptr
+	gpTexImage2D                 uintptr
+	gpTexParameteri              uintptr
+	gpTexSubImage2D              uintptr
+	gpUniform1fv                 uintptr
+	gpUniform1i                  uintptr
+	gpUniform1iv                 uintptr
+	gpUniform2fv                 uintptr
+	gpUniform3fv                 uintptr
+	gpUniform4fv                 uintptr
+	gpUniformMatrix2fv           uintptr
+	gpUniformMatrix3fv           uintptr
+	gpUniformMatrix4fv           uintptr
+	gpUseProgram                 uintptr
+	gpVertexAttribPointer        uintptr
+	gpViewport                   uintptr
 )
 
 func boolToInt(b bool) int {
@@ -245,36 +233,13 @@ func GenTextures(n int32, textures *uint32) {
 	purego.SyscallN(gpGenTextures, uintptr(n), uintptr(unsafe.Pointer(textures)))
 }
 
-func GetDoublei_v(target uint32, index uint32, data *float64) {
-	purego.SyscallN(gpGetDoublei_v, uintptr(target), uintptr(index), uintptr(unsafe.Pointer(data)))
-}
-func GetDoublei_vEXT(pname uint32, index uint32, params *float64) {
-	purego.SyscallN(gpGetDoublei_vEXT, uintptr(pname), uintptr(index), uintptr(unsafe.Pointer(params)))
-}
-
 func GetError() uint32 {
 	ret, _, _ := purego.SyscallN(gpGetError)
 	return uint32(ret)
 }
-func GetFloati_v(target uint32, index uint32, data *float32) {
-	purego.SyscallN(gpGetFloati_v, uintptr(target), uintptr(index), uintptr(unsafe.Pointer(data)))
-}
-func GetFloati_vEXT(pname uint32, index uint32, params *float32) {
-	purego.SyscallN(gpGetFloati_vEXT, uintptr(pname), uintptr(index), uintptr(unsafe.Pointer(params)))
-}
 
-func GetIntegeri_v(target uint32, index uint32, data *int32) {
-	purego.SyscallN(gpGetIntegeri_v, uintptr(target), uintptr(index), uintptr(unsafe.Pointer(data)))
-}
-func GetIntegerui64i_vNV(value uint32, index uint32, result *uint64) {
-	purego.SyscallN(gpGetIntegerui64i_vNV, uintptr(value), uintptr(index), uintptr(unsafe.Pointer(result)))
-}
 func GetIntegerv(pname uint32, data *int32) {
 	purego.SyscallN(gpGetIntegerv, uintptr(pname), uintptr(unsafe.Pointer(data)))
-}
-
-func GetPointeri_vEXT(pname uint32, index uint32, params *unsafe.Pointer) {
-	purego.SyscallN(gpGetPointeri_vEXT, uintptr(pname), uintptr(index), uintptr(unsafe.Pointer(params)))
 }
 
 func GetProgramInfoLog(program uint32, bufSize int32, length *int32, infoLog *uint8) {
@@ -293,26 +258,9 @@ func GetShaderiv(shader uint32, pname uint32, params *int32) {
 	purego.SyscallN(gpGetShaderiv, uintptr(shader), uintptr(pname), uintptr(unsafe.Pointer(params)))
 }
 
-func GetTransformFeedbacki64_v(xfb uint32, pname uint32, index uint32, param *int64) {
-	purego.SyscallN(gpGetTransformFeedbacki64_v, uintptr(xfb), uintptr(pname), uintptr(index), uintptr(unsafe.Pointer(param)))
-}
-func GetTransformFeedbacki_v(xfb uint32, pname uint32, index uint32, param *int32) {
-	purego.SyscallN(gpGetTransformFeedbacki_v, uintptr(xfb), uintptr(pname), uintptr(index), uintptr(unsafe.Pointer(param)))
-}
-
 func GetUniformLocation(program uint32, name *uint8) int32 {
 	ret, _, _ := purego.SyscallN(gpGetUniformLocation, uintptr(program), uintptr(unsafe.Pointer(name)))
 	return int32(ret)
-}
-
-func GetUnsignedBytei_vEXT(target uint32, index uint32, data *uint8) {
-	purego.SyscallN(gpGetUnsignedBytei_vEXT, uintptr(target), uintptr(index), uintptr(unsafe.Pointer(data)))
-}
-func GetVertexArrayIntegeri_vEXT(vaobj uint32, index uint32, pname uint32, param *int32) {
-	purego.SyscallN(gpGetVertexArrayIntegeri_vEXT, uintptr(vaobj), uintptr(index), uintptr(pname), uintptr(unsafe.Pointer(param)))
-}
-func GetVertexArrayPointeri_vEXT(vaobj uint32, index uint32, pname uint32, param *unsafe.Pointer) {
-	purego.SyscallN(gpGetVertexArrayPointeri_vEXT, uintptr(vaobj), uintptr(index), uintptr(pname), uintptr(unsafe.Pointer(param)))
 }
 
 func IsFramebufferEXT(framebuffer uint32) bool {
@@ -545,21 +493,14 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	if gpGenTextures == 0 {
 		return errors.New("gl: glGenTextures is missing")
 	}
-	gpGetDoublei_v = getProcAddr("glGetDoublei_v")
-	gpGetDoublei_vEXT = getProcAddr("glGetDoublei_vEXT")
 	gpGetError = getProcAddr("glGetError")
 	if gpGetError == 0 {
 		return errors.New("gl: glGetError is missing")
 	}
-	gpGetFloati_v = getProcAddr("glGetFloati_v")
-	gpGetFloati_vEXT = getProcAddr("glGetFloati_vEXT")
-	gpGetIntegeri_v = getProcAddr("glGetIntegeri_v")
-	gpGetIntegerui64i_vNV = getProcAddr("glGetIntegerui64i_vNV")
 	gpGetIntegerv = getProcAddr("glGetIntegerv")
 	if gpGetIntegerv == 0 {
 		return errors.New("gl: glGetIntegerv is missing")
 	}
-	gpGetPointeri_vEXT = getProcAddr("glGetPointeri_vEXT")
 	gpGetProgramInfoLog = getProcAddr("glGetProgramInfoLog")
 	if gpGetProgramInfoLog == 0 {
 		return errors.New("gl: glGetProgramInfoLog is missing")
@@ -576,15 +517,10 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	if gpGetShaderiv == 0 {
 		return errors.New("gl: glGetShaderiv is missing")
 	}
-	gpGetTransformFeedbacki64_v = getProcAddr("glGetTransformFeedbacki64_v")
-	gpGetTransformFeedbacki_v = getProcAddr("glGetTransformFeedbacki_v")
 	gpGetUniformLocation = getProcAddr("glGetUniformLocation")
 	if gpGetUniformLocation == 0 {
 		return errors.New("gl: glGetUniformLocation is missing")
 	}
-	gpGetUnsignedBytei_vEXT = getProcAddr("glGetUnsignedBytei_vEXT")
-	gpGetVertexArrayIntegeri_vEXT = getProcAddr("glGetVertexArrayIntegeri_vEXT")
-	gpGetVertexArrayPointeri_vEXT = getProcAddr("glGetVertexArrayPointeri_vEXT")
 	gpIsFramebufferEXT = getProcAddr("glIsFramebufferEXT")
 	gpIsProgram = getProcAddr("glIsProgram")
 	if gpIsProgram == 0 {
