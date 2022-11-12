@@ -20,6 +20,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gles"
 )
 
-func (g *Graphics) init() {
+func (g *Graphics) init() error {
 	g.context.ctx = gles.DefaultContext{}
+	return nil
 }

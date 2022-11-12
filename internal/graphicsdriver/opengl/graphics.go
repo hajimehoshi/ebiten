@@ -30,7 +30,9 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 		return nil, fmt.Errorf("opengl: OpenGL is not supported on Xbox")
 	}
 	g := &Graphics{}
-	g.init()
+	if err := g.init(); err != nil {
+		return nil, err
+	}
 	return g, nil
 }
 

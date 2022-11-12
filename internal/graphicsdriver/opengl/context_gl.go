@@ -83,18 +83,9 @@ func getProgramID(p program) programID {
 }
 
 type contextImpl struct {
-	init bool
 }
 
 func (c *context) reset() error {
-	if !c.init {
-		// Note that this initialization must be done after Loop is called.
-		if err := gl.Init(); err != nil {
-			return fmt.Errorf("opengl: initializing error %v", err)
-		}
-		c.init = true
-	}
-
 	c.locationCache = newLocationCache()
 	c.lastTexture = invalidTexture
 	c.lastFramebuffer = invalidFramebuffer

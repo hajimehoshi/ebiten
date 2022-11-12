@@ -16,6 +16,10 @@
 
 package opengl
 
-func (g *Graphics) init() {
-	// Do nothing.
+import (
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
+)
+
+func (g *Graphics) init() error {
+	return gl.Init()
 }
