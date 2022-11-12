@@ -60,7 +60,6 @@ type gl struct {
 	getProgramParameter      js.Value
 	getShaderInfoLog         js.Value
 	getShaderParameter       js.Value
-	getShaderPrecisionFormat js.Value
 	getUniformLocation       js.Value
 	isContextLost            js.Value
 	isFramebuffer            js.Value
@@ -137,7 +136,6 @@ func (c *context) newGL(v js.Value) *gl {
 		getProgramParameter:      v.Get("getProgramParameter").Call("bind", v),
 		getShaderInfoLog:         v.Get("getShaderInfoLog").Call("bind", v),
 		getShaderParameter:       v.Get("getShaderParameter").Call("bind", v),
-		getShaderPrecisionFormat: v.Get("getShaderPrecisionFormat").Call("bind", v),
 		getUniformLocation:       v.Get("getUniformLocation").Call("bind", v),
 		isContextLost:            v.Get("isContextLost").Call("bind", v),
 		isFramebuffer:            v.Get("isFramebuffer").Call("bind", v),

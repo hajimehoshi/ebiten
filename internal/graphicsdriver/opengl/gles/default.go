@@ -245,13 +245,6 @@ func (DefaultContext) GetShaderiv(dst []int32, shader uint32, pname uint32) {
 	C.glGetShaderiv(C.GLuint(shader), C.GLenum(pname), (*C.GLint)(unsafe.Pointer(&dst[0])))
 }
 
-func (DefaultContext) GetShaderPrecisionFormat(shadertype uint32, precisiontype uint32) (rangeLow, rangeHigh, precision int) {
-	var r [2]int32
-	var p int32
-	C.glGetShaderPrecisionFormat(C.GLenum(shadertype), C.GLenum(precisiontype), (*C.GLint)(unsafe.Pointer(&r[0])), (*C.GLint)(unsafe.Pointer(&p)))
-	return int(r[0]), int(r[1]), int(p)
-}
-
 func (DefaultContext) GetUniformLocation(program uint32, name string) int32 {
 	s := C.CString(name)
 	defer C.free(unsafe.Pointer(s))

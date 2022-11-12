@@ -57,7 +57,6 @@ type Context interface {
 	GetProgramiv(dst []int32, program uint32, pname uint32)
 	GetShaderInfoLog(shader uint32) string
 	GetShaderiv(dst []int32, shader uint32, pname uint32)
-	GetShaderPrecisionFormat(shadertype uint32, precisiontype uint32) (rangeLow, rangeHigh, precision int)
 	GetUniformLocation(program uint32, name string) int32
 	IsFramebuffer(framebuffer uint32) bool
 	IsProgram(program uint32) bool

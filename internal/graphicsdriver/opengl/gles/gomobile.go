@@ -230,10 +230,6 @@ func (g *GomobileContext) GetShaderiv(dst []int32, shader uint32, pname uint32) 
 	dst[0] = int32(g.ctx.GetShaderi(gl.Shader{Value: shader}, gl.Enum(pname)))
 }
 
-func (g *GomobileContext) GetShaderPrecisionFormat(shadertype uint32, precisiontype uint32) (rangeLow, rangeHigh, precision int) {
-	return g.ctx.GetShaderPrecisionFormat(gl.Enum(shadertype), gl.Enum(precisiontype))
-}
-
 func (g *GomobileContext) GetUniformLocation(program uint32, name string) int32 {
 	return g.ctx.GetUniformLocation(gmProgram(program), name).Value
 }
