@@ -226,7 +226,7 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 	//
 	//     Error: WebGL warning: drawElements: This operation requires zeroing texture data. This is slow.
 	//
-	// In Ebiten, textures are filled with pixels laster by the filter that ignores destination, so it is fine
+	// In Ebitengine, textures are filled with pixels laster by the filter that ignores destination, so it is fine
 	// to leave textures as uninitialized here. Rather, extra memory allocating for initialization should be
 	// avoided.
 	gl.texImage2D.Invoke(glconst.TEXTURE_2D, 0, glconst.RGBA, width, height, 0, glconst.RGBA, glconst.UNSIGNED_BYTE, nil)
