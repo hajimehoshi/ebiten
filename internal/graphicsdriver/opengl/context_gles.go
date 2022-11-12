@@ -444,12 +444,6 @@ func (c *context) needsRestoring() bool {
 	return true
 }
 
-func (c *context) canUsePBO() bool {
-	// On Android, using PBO might slow the applications, especially when coming back from the context lost.
-	// Let's not use PBO until we find a good solution.
-	return false
-}
-
 func (c *context) texSubImage2D(t textureNative, args []*graphicsdriver.WritePixelsArgs) {
 	c.bindTexture(t)
 	for _, a := range args {
