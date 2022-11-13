@@ -12,12 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build android || opengles
-
 package gl
 
-// #cgo !android pkg-config: glesv2
-// #cgo android  LDFLAGS:    -lGLESv2
+// #cgo LDFLAGS: -lGLESv2
 //
 // #include <GLES2/gl2.h>
 // #include <stdlib.h>
