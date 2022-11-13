@@ -279,7 +279,7 @@ func (g *Graphics) SetFullscreen(fullscreen bool) {
 }
 
 func (g *Graphics) NeedsRestoring() bool {
-	return g.context.needsRestoring()
+	return needsRestoring
 }
 
 func (g *Graphics) NeedsClearingScreen() bool {

@@ -194,7 +194,9 @@ func (c *context) newRenderbuffer(width, height int) (renderbufferNative, error)
 	renderbuffer := renderbufferNative(r)
 	c.bindRenderbuffer(renderbuffer)
 
-	c.ctx.RenderbufferStorage(gl.RENDERBUFFER, gl.STENCIL_INDEX8, int32(width), int32(height))
+	// GL_STENCIL_INDEX8 might not be available with OpenGL 2.1.
+	// https://www.khronos.org/opengl/wiki/Image_Format
+	c.ctx.RenderbufferStorage(gl.RENDERBUFFER, gl.DEPTH24_STENCIL8, int32(width), int32(height))
 
 	return renderbuffer, nil
 }
@@ -437,10 +439,6 @@ func (c *context) maxTextureSizeImpl() int {
 
 func (c *context) flush() {
 	c.ctx.Flush()
-}
-
-func (c *context) needsRestoring() bool {
-	return true
 }
 
 func (c *context) texSubImage2D(t textureNative, args []*graphicsdriver.WritePixelsArgs) {

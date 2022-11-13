@@ -570,11 +570,6 @@ func (c *context) flush() {
 	c.gl.flush.Invoke()
 }
 
-func (c *context) needsRestoring() bool {
-	// Though it is possible to have a logic to restore the graphics data for GPU, do not use it for performance (#1603).
-	return false
-}
-
 func (c *context) texSubImage2D(t textureNative, args []*graphicsdriver.WritePixelsArgs) {
 	c.bindTexture(t)
 	for _, a := range args {

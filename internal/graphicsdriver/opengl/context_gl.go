@@ -464,10 +464,6 @@ func (c *context) flush() {
 	gl.Flush()
 }
 
-func (c *context) needsRestoring() bool {
-	return false
-}
-
 func (c *context) texSubImage2D(t textureNative, args []*graphicsdriver.WritePixelsArgs) {
 	c.bindTexture(t)
 	for _, a := range args {
