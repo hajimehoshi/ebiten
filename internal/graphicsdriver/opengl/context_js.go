@@ -608,3 +608,8 @@ func (c *context) endStencilWithEvenOddRule() {
 	c.gl.stencilOp.Invoke(gl.KEEP, gl.KEEP, gl.KEEP)
 	c.gl.colorMask.Invoke(true, true, true, true)
 }
+
+func (c *context) isES() bool {
+	// WebGL is compatible with GLES.
+	return true
+}

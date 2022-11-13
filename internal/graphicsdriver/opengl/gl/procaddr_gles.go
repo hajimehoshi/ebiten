@@ -35,6 +35,8 @@ import (
 	"unsafe"
 )
 
+var isES = true
+
 func getProcAddress(namea string) unsafe.Pointer {
 	const ext = "EXT"
 	if strings.HasSuffix(namea, ext) {

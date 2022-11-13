@@ -39,6 +39,10 @@ func (g *gomobileContext) Init() error {
 	return nil
 }
 
+func (g *gomobileContext) IsES() bool {
+	return true
+}
+
 func (g *gomobileContext) ActiveTexture(texture uint32) {
 	g.ctx.ActiveTexture(gl.Enum(texture))
 }

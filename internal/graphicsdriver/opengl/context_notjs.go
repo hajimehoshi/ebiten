@@ -477,3 +477,7 @@ func (c *context) endStencilWithEvenOddRule() {
 	c.ctx.StencilOp(gl.KEEP, gl.KEEP, gl.KEEP)
 	c.ctx.ColorMask(true, true, true, true)
 }
+
+func (c *context) isES() bool {
+	return c.ctx.IsES()
+}
