@@ -28,10 +28,12 @@ import "C"
 
 import "unsafe"
 
-var isES = false
+func (c *defaultContext) init() error {
+	return nil
+}
 
-func getProcAddress(namea string) unsafe.Pointer {
-	cname := C.CString(namea)
+func (c *defaultContext) getProcAddress(name string) unsafe.Pointer {
+	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 	return C.getProcAddress(cname)
 }

@@ -35,7 +35,7 @@ func NewGomobileContext(ctx gl.Context) Context {
 	return &gomobileContext{ctx}
 }
 
-func (g *gomobileContext) Init() error {
+func (g *gomobileContext) LoadFunctions() error {
 	return nil
 }
 

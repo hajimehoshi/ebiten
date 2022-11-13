@@ -393,10 +393,16 @@ type defaultContext struct {
 	gpUseProgram                 C.GPUSEPROGRAM
 	gpVertexAttribPointer        C.GPVERTEXATTRIBPOINTER
 	gpViewport                   C.GPVIEWPORT
+
+	isES bool
 }
 
-func NewDefaultContext() Context {
-	return &defaultContext{}
+func NewDefaultContext() (Context, error) {
+	ctx := &defaultContext{}
+	if err := ctx.init(); err != nil {
+		return nil, err
+	}
+	return ctx, nil
 }
 
 func boolToInt(b bool) int {
@@ -407,7 +413,7 @@ func boolToInt(b bool) int {
 }
 
 func (c *defaultContext) IsES() bool {
-	return isES
+	return c.isES
 }
 
 func (c *defaultContext) ActiveTexture(texture uint32) {
@@ -741,244 +747,244 @@ func (c *defaultContext) Viewport(x int32, y int32, width int32, height int32) {
 	C.glowViewport(c.gpViewport, (C.GLint)(x), (C.GLint)(y), (C.GLsizei)(width), (C.GLsizei)(height))
 }
 
-func (c *defaultContext) Init() error {
-	c.gpActiveTexture = (C.GPACTIVETEXTURE)(getProcAddress("glActiveTexture"))
+func (c *defaultContext) LoadFunctions() error {
+	c.gpActiveTexture = (C.GPACTIVETEXTURE)(c.getProcAddress("glActiveTexture"))
 	if c.gpActiveTexture == nil {
 		return errors.New("gl: glActiveTexture is missing")
 	}
-	c.gpAttachShader = (C.GPATTACHSHADER)(getProcAddress("glAttachShader"))
+	c.gpAttachShader = (C.GPATTACHSHADER)(c.getProcAddress("glAttachShader"))
 	if c.gpAttachShader == nil {
 		return errors.New("gl: glAttachShader is missing")
 	}
-	c.gpBindAttribLocation = (C.GPBINDATTRIBLOCATION)(getProcAddress("glBindAttribLocation"))
+	c.gpBindAttribLocation = (C.GPBINDATTRIBLOCATION)(c.getProcAddress("glBindAttribLocation"))
 	if c.gpBindAttribLocation == nil {
 		return errors.New("gl: glBindAttribLocation is missing")
 	}
-	c.gpBindBuffer = (C.GPBINDBUFFER)(getProcAddress("glBindBuffer"))
+	c.gpBindBuffer = (C.GPBINDBUFFER)(c.getProcAddress("glBindBuffer"))
 	if c.gpBindBuffer == nil {
 		return errors.New("gl: glBindBuffer is missing")
 	}
-	c.gpBindFramebufferEXT = (C.GPBINDFRAMEBUFFEREXT)(getProcAddress("glBindFramebufferEXT"))
-	c.gpBindRenderbufferEXT = (C.GPBINDRENDERBUFFEREXT)(getProcAddress("glBindRenderbufferEXT"))
-	c.gpBindTexture = (C.GPBINDTEXTURE)(getProcAddress("glBindTexture"))
+	c.gpBindFramebufferEXT = (C.GPBINDFRAMEBUFFEREXT)(c.getProcAddress("glBindFramebufferEXT"))
+	c.gpBindRenderbufferEXT = (C.GPBINDRENDERBUFFEREXT)(c.getProcAddress("glBindRenderbufferEXT"))
+	c.gpBindTexture = (C.GPBINDTEXTURE)(c.getProcAddress("glBindTexture"))
 	if c.gpBindTexture == nil {
 		return errors.New("gl: glBindTexture is missing")
 	}
-	c.gpBlendEquationSeparate = (C.GPBLENDEQUATIONSEPARATE)(getProcAddress("glBlendEquationSeparate"))
+	c.gpBlendEquationSeparate = (C.GPBLENDEQUATIONSEPARATE)(c.getProcAddress("glBlendEquationSeparate"))
 	if c.gpBlendEquationSeparate == nil {
 		return errors.New("gl: glBlendEquationSeparate is missing")
 	}
-	c.gpBlendFuncSeparate = (C.GPBLENDFUNCSEPARATE)(getProcAddress("glBlendFuncSeparate"))
+	c.gpBlendFuncSeparate = (C.GPBLENDFUNCSEPARATE)(c.getProcAddress("glBlendFuncSeparate"))
 	if c.gpBlendFuncSeparate == nil {
 		return errors.New("gl: glBlendFuncSeparate is missing")
 	}
-	c.gpBufferData = (C.GPBUFFERDATA)(getProcAddress("glBufferData"))
+	c.gpBufferData = (C.GPBUFFERDATA)(c.getProcAddress("glBufferData"))
 	if c.gpBufferData == nil {
 		return errors.New("gl: glBufferData is missing")
 	}
-	c.gpBufferSubData = (C.GPBUFFERSUBDATA)(getProcAddress("glBufferSubData"))
+	c.gpBufferSubData = (C.GPBUFFERSUBDATA)(c.getProcAddress("glBufferSubData"))
 	if c.gpBufferSubData == nil {
 		return errors.New("gl: glBufferSubData is missing")
 	}
-	c.gpCheckFramebufferStatusEXT = (C.GPCHECKFRAMEBUFFERSTATUSEXT)(getProcAddress("glCheckFramebufferStatusEXT"))
-	c.gpClear = (C.GPCLEAR)(getProcAddress("glClear"))
+	c.gpCheckFramebufferStatusEXT = (C.GPCHECKFRAMEBUFFERSTATUSEXT)(c.getProcAddress("glCheckFramebufferStatusEXT"))
+	c.gpClear = (C.GPCLEAR)(c.getProcAddress("glClear"))
 	if c.gpClear == nil {
 		return errors.New("gl: glClear is missing")
 	}
-	c.gpColorMask = (C.GPCOLORMASK)(getProcAddress("glColorMask"))
+	c.gpColorMask = (C.GPCOLORMASK)(c.getProcAddress("glColorMask"))
 	if c.gpColorMask == nil {
 		return errors.New("gl: glColorMask is missing")
 	}
-	c.gpCompileShader = (C.GPCOMPILESHADER)(getProcAddress("glCompileShader"))
+	c.gpCompileShader = (C.GPCOMPILESHADER)(c.getProcAddress("glCompileShader"))
 	if c.gpCompileShader == nil {
 		return errors.New("gl: glCompileShader is missing")
 	}
-	c.gpCreateProgram = (C.GPCREATEPROGRAM)(getProcAddress("glCreateProgram"))
+	c.gpCreateProgram = (C.GPCREATEPROGRAM)(c.getProcAddress("glCreateProgram"))
 	if c.gpCreateProgram == nil {
 		return errors.New("gl: glCreateProgram is missing")
 	}
-	c.gpCreateShader = (C.GPCREATESHADER)(getProcAddress("glCreateShader"))
+	c.gpCreateShader = (C.GPCREATESHADER)(c.getProcAddress("glCreateShader"))
 	if c.gpCreateShader == nil {
 		return errors.New("gl: glCreateShader is missing")
 	}
-	c.gpDeleteBuffers = (C.GPDELETEBUFFERS)(getProcAddress("glDeleteBuffers"))
+	c.gpDeleteBuffers = (C.GPDELETEBUFFERS)(c.getProcAddress("glDeleteBuffers"))
 	if c.gpDeleteBuffers == nil {
 		return errors.New("gl: glDeleteBuffers is missing")
 	}
-	c.gpDeleteFramebuffersEXT = (C.GPDELETEFRAMEBUFFERSEXT)(getProcAddress("glDeleteFramebuffersEXT"))
-	c.gpDeleteProgram = (C.GPDELETEPROGRAM)(getProcAddress("glDeleteProgram"))
+	c.gpDeleteFramebuffersEXT = (C.GPDELETEFRAMEBUFFERSEXT)(c.getProcAddress("glDeleteFramebuffersEXT"))
+	c.gpDeleteProgram = (C.GPDELETEPROGRAM)(c.getProcAddress("glDeleteProgram"))
 	if c.gpDeleteProgram == nil {
 		return errors.New("gl: glDeleteProgram is missing")
 	}
-	c.gpDeleteRenderbuffersEXT = (C.GPDELETERENDERBUFFERSEXT)(getProcAddress("glDeleteRenderbuffersEXT"))
-	c.gpDeleteShader = (C.GPDELETESHADER)(getProcAddress("glDeleteShader"))
+	c.gpDeleteRenderbuffersEXT = (C.GPDELETERENDERBUFFERSEXT)(c.getProcAddress("glDeleteRenderbuffersEXT"))
+	c.gpDeleteShader = (C.GPDELETESHADER)(c.getProcAddress("glDeleteShader"))
 	if c.gpDeleteShader == nil {
 		return errors.New("gl: glDeleteShader is missing")
 	}
-	c.gpDeleteTextures = (C.GPDELETETEXTURES)(getProcAddress("glDeleteTextures"))
+	c.gpDeleteTextures = (C.GPDELETETEXTURES)(c.getProcAddress("glDeleteTextures"))
 	if c.gpDeleteTextures == nil {
 		return errors.New("gl: glDeleteTextures is missing")
 	}
-	c.gpDisable = (C.GPDISABLE)(getProcAddress("glDisable"))
+	c.gpDisable = (C.GPDISABLE)(c.getProcAddress("glDisable"))
 	if c.gpDisable == nil {
 		return errors.New("gl: glDisable is missing")
 	}
-	c.gpDisableVertexAttribArray = (C.GPDISABLEVERTEXATTRIBARRAY)(getProcAddress("glDisableVertexAttribArray"))
+	c.gpDisableVertexAttribArray = (C.GPDISABLEVERTEXATTRIBARRAY)(c.getProcAddress("glDisableVertexAttribArray"))
 	if c.gpDisableVertexAttribArray == nil {
 		return errors.New("gl: glDisableVertexAttribArray is missing")
 	}
-	c.gpDrawElements = (C.GPDRAWELEMENTS)(getProcAddress("glDrawElements"))
+	c.gpDrawElements = (C.GPDRAWELEMENTS)(c.getProcAddress("glDrawElements"))
 	if c.gpDrawElements == nil {
 		return errors.New("gl: glDrawElements is missing")
 	}
-	c.gpEnable = (C.GPENABLE)(getProcAddress("glEnable"))
+	c.gpEnable = (C.GPENABLE)(c.getProcAddress("glEnable"))
 	if c.gpEnable == nil {
 		return errors.New("gl: glEnable is missing")
 	}
-	c.gpEnableVertexAttribArray = (C.GPENABLEVERTEXATTRIBARRAY)(getProcAddress("glEnableVertexAttribArray"))
+	c.gpEnableVertexAttribArray = (C.GPENABLEVERTEXATTRIBARRAY)(c.getProcAddress("glEnableVertexAttribArray"))
 	if c.gpEnableVertexAttribArray == nil {
 		return errors.New("gl: glEnableVertexAttribArray is missing")
 	}
-	c.gpFlush = (C.GPFLUSH)(getProcAddress("glFlush"))
+	c.gpFlush = (C.GPFLUSH)(c.getProcAddress("glFlush"))
 	if c.gpFlush == nil {
 		return errors.New("gl: glFlush is missing")
 	}
-	c.gpFramebufferRenderbufferEXT = (C.GPFRAMEBUFFERRENDERBUFFEREXT)(getProcAddress("glFramebufferRenderbufferEXT"))
-	c.gpFramebufferTexture2DEXT = (C.GPFRAMEBUFFERTEXTURE2DEXT)(getProcAddress("glFramebufferTexture2DEXT"))
-	c.gpGenBuffers = (C.GPGENBUFFERS)(getProcAddress("glGenBuffers"))
+	c.gpFramebufferRenderbufferEXT = (C.GPFRAMEBUFFERRENDERBUFFEREXT)(c.getProcAddress("glFramebufferRenderbufferEXT"))
+	c.gpFramebufferTexture2DEXT = (C.GPFRAMEBUFFERTEXTURE2DEXT)(c.getProcAddress("glFramebufferTexture2DEXT"))
+	c.gpGenBuffers = (C.GPGENBUFFERS)(c.getProcAddress("glGenBuffers"))
 	if c.gpGenBuffers == nil {
 		return errors.New("gl: glGenBuffers is missing")
 	}
-	c.gpGenFramebuffersEXT = (C.GPGENFRAMEBUFFERSEXT)(getProcAddress("glGenFramebuffersEXT"))
-	c.gpGenRenderbuffersEXT = (C.GPGENRENDERBUFFERSEXT)(getProcAddress("glGenRenderbuffersEXT"))
-	c.gpGenTextures = (C.GPGENTEXTURES)(getProcAddress("glGenTextures"))
+	c.gpGenFramebuffersEXT = (C.GPGENFRAMEBUFFERSEXT)(c.getProcAddress("glGenFramebuffersEXT"))
+	c.gpGenRenderbuffersEXT = (C.GPGENRENDERBUFFERSEXT)(c.getProcAddress("glGenRenderbuffersEXT"))
+	c.gpGenTextures = (C.GPGENTEXTURES)(c.getProcAddress("glGenTextures"))
 	if c.gpGenTextures == nil {
 		return errors.New("gl: glGenTextures is missing")
 	}
-	c.gpGetError = (C.GPGETERROR)(getProcAddress("glGetError"))
+	c.gpGetError = (C.GPGETERROR)(c.getProcAddress("glGetError"))
 	if c.gpGetError == nil {
 		return errors.New("gl: glGetError is missing")
 	}
-	c.gpGetIntegerv = (C.GPGETINTEGERV)(getProcAddress("glGetIntegerv"))
+	c.gpGetIntegerv = (C.GPGETINTEGERV)(c.getProcAddress("glGetIntegerv"))
 	if c.gpGetIntegerv == nil {
 		return errors.New("gl: glGetIntegerv is missing")
 	}
-	c.gpGetProgramInfoLog = (C.GPGETPROGRAMINFOLOG)(getProcAddress("glGetProgramInfoLog"))
+	c.gpGetProgramInfoLog = (C.GPGETPROGRAMINFOLOG)(c.getProcAddress("glGetProgramInfoLog"))
 	if c.gpGetProgramInfoLog == nil {
 		return errors.New("gl: glGetProgramInfoLog is missing")
 	}
-	c.gpGetProgramiv = (C.GPGETPROGRAMIV)(getProcAddress("glGetProgramiv"))
+	c.gpGetProgramiv = (C.GPGETPROGRAMIV)(c.getProcAddress("glGetProgramiv"))
 	if c.gpGetProgramiv == nil {
 		return errors.New("gl: glGetProgramiv is missing")
 	}
-	c.gpGetShaderInfoLog = (C.GPGETSHADERINFOLOG)(getProcAddress("glGetShaderInfoLog"))
+	c.gpGetShaderInfoLog = (C.GPGETSHADERINFOLOG)(c.getProcAddress("glGetShaderInfoLog"))
 	if c.gpGetShaderInfoLog == nil {
 		return errors.New("gl: glGetShaderInfoLog is missing")
 	}
-	c.gpGetShaderiv = (C.GPGETSHADERIV)(getProcAddress("glGetShaderiv"))
+	c.gpGetShaderiv = (C.GPGETSHADERIV)(c.getProcAddress("glGetShaderiv"))
 	if c.gpGetShaderiv == nil {
 		return errors.New("gl: glGetShaderiv is missing")
 	}
-	c.gpGetUniformLocation = (C.GPGETUNIFORMLOCATION)(getProcAddress("glGetUniformLocation"))
+	c.gpGetUniformLocation = (C.GPGETUNIFORMLOCATION)(c.getProcAddress("glGetUniformLocation"))
 	if c.gpGetUniformLocation == nil {
 		return errors.New("gl: glGetUniformLocation is missing")
 	}
-	c.gpIsFramebufferEXT = (C.GPISFRAMEBUFFEREXT)(getProcAddress("glIsFramebufferEXT"))
-	c.gpIsProgram = (C.GPISPROGRAM)(getProcAddress("glIsProgram"))
+	c.gpIsFramebufferEXT = (C.GPISFRAMEBUFFEREXT)(c.getProcAddress("glIsFramebufferEXT"))
+	c.gpIsProgram = (C.GPISPROGRAM)(c.getProcAddress("glIsProgram"))
 	if c.gpIsProgram == nil {
 		return errors.New("gl: glIsProgram is missing")
 	}
-	c.gpIsRenderbufferEXT = (C.GPISRENDERBUFFEREXT)(getProcAddress("glIsRenderbufferEXT"))
-	c.gpIsTexture = (C.GPISTEXTURE)(getProcAddress("glIsTexture"))
+	c.gpIsRenderbufferEXT = (C.GPISRENDERBUFFEREXT)(c.getProcAddress("glIsRenderbufferEXT"))
+	c.gpIsTexture = (C.GPISTEXTURE)(c.getProcAddress("glIsTexture"))
 	if c.gpIsTexture == nil {
 		return errors.New("gl: glIsTexture is missing")
 	}
-	c.gpLinkProgram = (C.GPLINKPROGRAM)(getProcAddress("glLinkProgram"))
+	c.gpLinkProgram = (C.GPLINKPROGRAM)(c.getProcAddress("glLinkProgram"))
 	if c.gpLinkProgram == nil {
 		return errors.New("gl: glLinkProgram is missing")
 	}
-	c.gpPixelStorei = (C.GPPIXELSTOREI)(getProcAddress("glPixelStorei"))
+	c.gpPixelStorei = (C.GPPIXELSTOREI)(c.getProcAddress("glPixelStorei"))
 	if c.gpPixelStorei == nil {
 		return errors.New("gl: glPixelStorei is missing")
 	}
-	c.gpReadPixels = (C.GPREADPIXELS)(getProcAddress("glReadPixels"))
+	c.gpReadPixels = (C.GPREADPIXELS)(c.getProcAddress("glReadPixels"))
 	if c.gpReadPixels == nil {
 		return errors.New("gl: glReadPixels is missing")
 	}
-	c.gpRenderbufferStorageEXT = (C.GPRENDERBUFFERSTORAGEEXT)(getProcAddress("glRenderbufferStorageEXT"))
-	c.gpScissor = (C.GPSCISSOR)(getProcAddress("glScissor"))
+	c.gpRenderbufferStorageEXT = (C.GPRENDERBUFFERSTORAGEEXT)(c.getProcAddress("glRenderbufferStorageEXT"))
+	c.gpScissor = (C.GPSCISSOR)(c.getProcAddress("glScissor"))
 	if c.gpScissor == nil {
 		return errors.New("gl: glScissor is missing")
 	}
-	c.gpShaderSource = (C.GPSHADERSOURCE)(getProcAddress("glShaderSource"))
+	c.gpShaderSource = (C.GPSHADERSOURCE)(c.getProcAddress("glShaderSource"))
 	if c.gpShaderSource == nil {
 		return errors.New("gl: glShaderSource is missing")
 	}
-	c.gpStencilFunc = (C.GPSTENCILFUNC)(getProcAddress("glStencilFunc"))
+	c.gpStencilFunc = (C.GPSTENCILFUNC)(c.getProcAddress("glStencilFunc"))
 	if c.gpStencilFunc == nil {
 		return errors.New("gl: glStencilFunc is missing")
 	}
-	c.gpStencilOp = (C.GPSTENCILOP)(getProcAddress("glStencilOp"))
+	c.gpStencilOp = (C.GPSTENCILOP)(c.getProcAddress("glStencilOp"))
 	if c.gpStencilOp == nil {
 		return errors.New("gl: glStencilOp is missing")
 	}
-	c.gpTexImage2D = (C.GPTEXIMAGE2D)(getProcAddress("glTexImage2D"))
+	c.gpTexImage2D = (C.GPTEXIMAGE2D)(c.getProcAddress("glTexImage2D"))
 	if c.gpTexImage2D == nil {
 		return errors.New("gl: glTexImage2D is missing")
 	}
-	c.gpTexParameteri = (C.GPTEXPARAMETERI)(getProcAddress("glTexParameteri"))
+	c.gpTexParameteri = (C.GPTEXPARAMETERI)(c.getProcAddress("glTexParameteri"))
 	if c.gpTexParameteri == nil {
 		return errors.New("gl: glTexParameteri is missing")
 	}
-	c.gpTexSubImage2D = (C.GPTEXSUBIMAGE2D)(getProcAddress("glTexSubImage2D"))
+	c.gpTexSubImage2D = (C.GPTEXSUBIMAGE2D)(c.getProcAddress("glTexSubImage2D"))
 	if c.gpTexSubImage2D == nil {
 		return errors.New("gl: glTexSubImage2D is missing")
 	}
-	c.gpUniform1fv = (C.GPUNIFORM1FV)(getProcAddress("glUniform1fv"))
+	c.gpUniform1fv = (C.GPUNIFORM1FV)(c.getProcAddress("glUniform1fv"))
 	if c.gpUniform1fv == nil {
 		return errors.New("gl: glUniform1fv is missing")
 	}
-	c.gpUniform1i = (C.GPUNIFORM1I)(getProcAddress("glUniform1i"))
+	c.gpUniform1i = (C.GPUNIFORM1I)(c.getProcAddress("glUniform1i"))
 	if c.gpUniform1i == nil {
 		return errors.New("gl: glUniform1i is missing")
 	}
-	c.gpUniform1iv = (C.GPUNIFORM1IV)(getProcAddress("glUniform1iv"))
+	c.gpUniform1iv = (C.GPUNIFORM1IV)(c.getProcAddress("glUniform1iv"))
 	if c.gpUniform1iv == nil {
 		return errors.New("gl: glUniform1iv is missing")
 	}
-	c.gpUniform2fv = (C.GPUNIFORM2FV)(getProcAddress("glUniform2fv"))
+	c.gpUniform2fv = (C.GPUNIFORM2FV)(c.getProcAddress("glUniform2fv"))
 	if c.gpUniform2fv == nil {
 		return errors.New("gl: glUniform2fv is missing")
 	}
-	c.gpUniform3fv = (C.GPUNIFORM3FV)(getProcAddress("glUniform3fv"))
+	c.gpUniform3fv = (C.GPUNIFORM3FV)(c.getProcAddress("glUniform3fv"))
 	if c.gpUniform3fv == nil {
 		return errors.New("gl: glUniform3fv is missing")
 	}
-	c.gpUniform4fv = (C.GPUNIFORM4FV)(getProcAddress("glUniform4fv"))
+	c.gpUniform4fv = (C.GPUNIFORM4FV)(c.getProcAddress("glUniform4fv"))
 	if c.gpUniform4fv == nil {
 		return errors.New("gl: glUniform4fv is missing")
 	}
-	c.gpUniformMatrix2fv = (C.GPUNIFORMMATRIX2FV)(getProcAddress("glUniformMatrix2fv"))
+	c.gpUniformMatrix2fv = (C.GPUNIFORMMATRIX2FV)(c.getProcAddress("glUniformMatrix2fv"))
 	if c.gpUniformMatrix2fv == nil {
 		return errors.New("gl: glUniformMatrix2fv is missing")
 	}
-	c.gpUniformMatrix3fv = (C.GPUNIFORMMATRIX3FV)(getProcAddress("glUniformMatrix3fv"))
+	c.gpUniformMatrix3fv = (C.GPUNIFORMMATRIX3FV)(c.getProcAddress("glUniformMatrix3fv"))
 	if c.gpUniformMatrix3fv == nil {
 		return errors.New("gl: glUniformMatrix3fv is missing")
 	}
-	c.gpUniformMatrix4fv = (C.GPUNIFORMMATRIX4FV)(getProcAddress("glUniformMatrix4fv"))
+	c.gpUniformMatrix4fv = (C.GPUNIFORMMATRIX4FV)(c.getProcAddress("glUniformMatrix4fv"))
 	if c.gpUniformMatrix4fv == nil {
 		return errors.New("gl: glUniformMatrix4fv is missing")
 	}
-	c.gpUseProgram = (C.GPUSEPROGRAM)(getProcAddress("glUseProgram"))
+	c.gpUseProgram = (C.GPUSEPROGRAM)(c.getProcAddress("glUseProgram"))
 	if c.gpUseProgram == nil {
 		return errors.New("gl: glUseProgram is missing")
 	}
-	c.gpVertexAttribPointer = (C.GPVERTEXATTRIBPOINTER)(getProcAddress("glVertexAttribPointer"))
+	c.gpVertexAttribPointer = (C.GPVERTEXATTRIBPOINTER)(c.getProcAddress("glVertexAttribPointer"))
 	if c.gpVertexAttribPointer == nil {
 		return errors.New("gl: glVertexAttribPointer is missing")
 	}
-	c.gpViewport = (C.GPVIEWPORT)(getProcAddress("glViewport"))
+	c.gpViewport = (C.GPVIEWPORT)(c.getProcAddress("glViewport"))
 	if c.gpViewport == nil {
 		return errors.New("gl: glViewport is missing")
 	}

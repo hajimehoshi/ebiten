@@ -89,8 +89,8 @@ type contextImpl struct {
 
 func (c *context) reset() error {
 	if !c.init {
-		// Initialize OpenGL after WGL is initialized especially for Windows (#2452).
-		if err := c.ctx.Init(); err != nil {
+		// Load OpenGL functions after WGL is initialized especially for Windows (#2452).
+		if err := c.ctx.LoadFunctions(); err != nil {
 			return err
 		}
 		c.init = true

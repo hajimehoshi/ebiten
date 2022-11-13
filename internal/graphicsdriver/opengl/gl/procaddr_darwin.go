@@ -15,23 +15,28 @@
 package gl
 
 import (
+	"fmt"
+
 	"github.com/ebitengine/purego"
 )
 
 var (
 	opengl uintptr
-	isES   bool
 )
 
-func init() {
+func (c *defaultContext) init() error {
 	opengl = purego.Dlopen("/System/Library/Frameworks/OpenGLES.framework/Versions/Current/OpenGLES", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 	if opengl != 0 {
-		isES = true
-		return
+		c.isES = true
+		return nil
 	}
 	opengl = purego.Dlopen("/System/Library/Frameworks/OpenGL.framework/Versions/Current/OpenGL", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	if opengl != 0 {
+		return nil
+	}
+	return fmt.Errorf("gl: failed to load OpenGL.framework and OpenGLES.framework")
 }
 
-func getProcAddress(name string) uintptr {
+func (c *defaultContext) getProcAddress(name string) uintptr {
 	return purego.Dlsym(opengl, name)
 }

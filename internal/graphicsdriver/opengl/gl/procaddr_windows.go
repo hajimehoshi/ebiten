@@ -24,10 +24,13 @@ import (
 var (
 	opengl32              = windows.NewLazySystemDLL("opengl32")
 	procWglGetProcAddress = opengl32.NewProc("wglGetProcAddress")
-	isES                  = false
 )
 
-func getProcAddress(namea string) uintptr {
+func (c *defaultContext) init() error {
+	return nil
+}
+
+func (c *defaultContext) getProcAddress(namea string) uintptr {
 	cname, err := windows.BytePtrFromString(namea)
 	if err != nil {
 		panic(err)

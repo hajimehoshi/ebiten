@@ -94,10 +94,16 @@ type defaultContext struct {
 	gpUseProgram                 uintptr
 	gpVertexAttribPointer        uintptr
 	gpViewport                   uintptr
+
+	isES bool
 }
 
-func NewDefaultContext() Context {
-	return &defaultContext{}
+func NewDefaultContext() (Context, error) {
+	ctx := &defaultContext{}
+	if err := ctx.init(); err != nil {
+		return nil, err
+	}
+	return ctx, nil
 }
 
 func boolToInt(b bool) int {
@@ -108,7 +114,7 @@ func boolToInt(b bool) int {
 }
 
 func (c *defaultContext) IsES() bool {
-	return isES
+	return c.isES
 }
 
 func (c *defaultContext) ActiveTexture(texture uint32) {
@@ -440,244 +446,244 @@ func (c *defaultContext) Viewport(x int32, y int32, width int32, height int32) {
 	purego.SyscallN(c.gpViewport, uintptr(x), uintptr(y), uintptr(width), uintptr(height))
 }
 
-func (c *defaultContext) Init() error {
-	c.gpActiveTexture = getProcAddress("glActiveTexture")
+func (c *defaultContext) LoadFunctions() error {
+	c.gpActiveTexture = c.getProcAddress("glActiveTexture")
 	if c.gpActiveTexture == 0 {
 		return errors.New("gl: glActiveTexture is missing")
 	}
-	c.gpAttachShader = getProcAddress("glAttachShader")
+	c.gpAttachShader = c.getProcAddress("glAttachShader")
 	if c.gpAttachShader == 0 {
 		return errors.New("gl: glAttachShader is missing")
 	}
-	c.gpBindAttribLocation = getProcAddress("glBindAttribLocation")
+	c.gpBindAttribLocation = c.getProcAddress("glBindAttribLocation")
 	if c.gpBindAttribLocation == 0 {
 		return errors.New("gl: glBindAttribLocation is missing")
 	}
-	c.gpBindBuffer = getProcAddress("glBindBuffer")
+	c.gpBindBuffer = c.getProcAddress("glBindBuffer")
 	if c.gpBindBuffer == 0 {
 		return errors.New("gl: glBindBuffer is missing")
 	}
-	c.gpBindFramebufferEXT = getProcAddress("glBindFramebufferEXT")
-	c.gpBindRenderbufferEXT = getProcAddress("glBindRenderbufferEXT")
-	c.gpBindTexture = getProcAddress("glBindTexture")
+	c.gpBindFramebufferEXT = c.getProcAddress("glBindFramebufferEXT")
+	c.gpBindRenderbufferEXT = c.getProcAddress("glBindRenderbufferEXT")
+	c.gpBindTexture = c.getProcAddress("glBindTexture")
 	if c.gpBindTexture == 0 {
 		return errors.New("gl: glBindTexture is missing")
 	}
-	c.gpBlendEquationSeparate = getProcAddress("glBlendEquationSeparate")
+	c.gpBlendEquationSeparate = c.getProcAddress("glBlendEquationSeparate")
 	if c.gpBlendEquationSeparate == 0 {
 		return errors.New("gl: glBlendEquationSeparate is missing")
 	}
-	c.gpBlendFuncSeparate = getProcAddress("glBlendFuncSeparate")
+	c.gpBlendFuncSeparate = c.getProcAddress("glBlendFuncSeparate")
 	if c.gpBlendFuncSeparate == 0 {
 		return errors.New("gl: glBlendFuncSeparate is missing")
 	}
-	c.gpBufferData = getProcAddress("glBufferData")
+	c.gpBufferData = c.getProcAddress("glBufferData")
 	if c.gpBufferData == 0 {
 		return errors.New("gl: glBufferData is missing")
 	}
-	c.gpBufferSubData = getProcAddress("glBufferSubData")
+	c.gpBufferSubData = c.getProcAddress("glBufferSubData")
 	if c.gpBufferSubData == 0 {
 		return errors.New("gl: glBufferSubData is missing")
 	}
-	c.gpCheckFramebufferStatusEXT = getProcAddress("glCheckFramebufferStatusEXT")
-	c.gpClear = getProcAddress("glClear")
+	c.gpCheckFramebufferStatusEXT = c.getProcAddress("glCheckFramebufferStatusEXT")
+	c.gpClear = c.getProcAddress("glClear")
 	if c.gpClear == 0 {
 		return errors.New("gl: glClear is missing")
 	}
-	c.gpColorMask = getProcAddress("glColorMask")
+	c.gpColorMask = c.getProcAddress("glColorMask")
 	if c.gpColorMask == 0 {
 		return errors.New("gl: glColorMask is missing")
 	}
-	c.gpCompileShader = getProcAddress("glCompileShader")
+	c.gpCompileShader = c.getProcAddress("glCompileShader")
 	if c.gpCompileShader == 0 {
 		return errors.New("gl: glCompileShader is missing")
 	}
-	c.gpCreateProgram = getProcAddress("glCreateProgram")
+	c.gpCreateProgram = c.getProcAddress("glCreateProgram")
 	if c.gpCreateProgram == 0 {
 		return errors.New("gl: glCreateProgram is missing")
 	}
-	c.gpCreateShader = getProcAddress("glCreateShader")
+	c.gpCreateShader = c.getProcAddress("glCreateShader")
 	if c.gpCreateShader == 0 {
 		return errors.New("gl: glCreateShader is missing")
 	}
-	c.gpDeleteBuffers = getProcAddress("glDeleteBuffers")
+	c.gpDeleteBuffers = c.getProcAddress("glDeleteBuffers")
 	if c.gpDeleteBuffers == 0 {
 		return errors.New("gl: glDeleteBuffers is missing")
 	}
-	c.gpDeleteFramebuffersEXT = getProcAddress("glDeleteFramebuffersEXT")
-	c.gpDeleteProgram = getProcAddress("glDeleteProgram")
+	c.gpDeleteFramebuffersEXT = c.getProcAddress("glDeleteFramebuffersEXT")
+	c.gpDeleteProgram = c.getProcAddress("glDeleteProgram")
 	if c.gpDeleteProgram == 0 {
 		return errors.New("gl: glDeleteProgram is missing")
 	}
-	c.gpDeleteRenderbuffersEXT = getProcAddress("glDeleteRenderbuffersEXT")
-	c.gpDeleteShader = getProcAddress("glDeleteShader")
+	c.gpDeleteRenderbuffersEXT = c.getProcAddress("glDeleteRenderbuffersEXT")
+	c.gpDeleteShader = c.getProcAddress("glDeleteShader")
 	if c.gpDeleteShader == 0 {
 		return errors.New("gl: glDeleteShader is missing")
 	}
-	c.gpDeleteTextures = getProcAddress("glDeleteTextures")
+	c.gpDeleteTextures = c.getProcAddress("glDeleteTextures")
 	if c.gpDeleteTextures == 0 {
 		return errors.New("gl: glDeleteTextures is missing")
 	}
-	c.gpDisable = getProcAddress("glDisable")
+	c.gpDisable = c.getProcAddress("glDisable")
 	if c.gpDisable == 0 {
 		return errors.New("gl: glDisable is missing")
 	}
-	c.gpDisableVertexAttribArray = getProcAddress("glDisableVertexAttribArray")
+	c.gpDisableVertexAttribArray = c.getProcAddress("glDisableVertexAttribArray")
 	if c.gpDisableVertexAttribArray == 0 {
 		return errors.New("gl: glDisableVertexAttribArray is missing")
 	}
-	c.gpDrawElements = getProcAddress("glDrawElements")
+	c.gpDrawElements = c.getProcAddress("glDrawElements")
 	if c.gpDrawElements == 0 {
 		return errors.New("gl: glDrawElements is missing")
 	}
-	c.gpEnable = getProcAddress("glEnable")
+	c.gpEnable = c.getProcAddress("glEnable")
 	if c.gpEnable == 0 {
 		return errors.New("gl: glEnable is missing")
 	}
-	c.gpEnableVertexAttribArray = getProcAddress("glEnableVertexAttribArray")
+	c.gpEnableVertexAttribArray = c.getProcAddress("glEnableVertexAttribArray")
 	if c.gpEnableVertexAttribArray == 0 {
 		return errors.New("gl: glEnableVertexAttribArray is missing")
 	}
-	c.gpFlush = getProcAddress("glFlush")
+	c.gpFlush = c.getProcAddress("glFlush")
 	if c.gpFlush == 0 {
 		return errors.New("gl: glFlush is missing")
 	}
-	c.gpFramebufferRenderbufferEXT = getProcAddress("glFramebufferRenderbufferEXT")
-	c.gpFramebufferTexture2DEXT = getProcAddress("glFramebufferTexture2DEXT")
-	c.gpGenBuffers = getProcAddress("glGenBuffers")
+	c.gpFramebufferRenderbufferEXT = c.getProcAddress("glFramebufferRenderbufferEXT")
+	c.gpFramebufferTexture2DEXT = c.getProcAddress("glFramebufferTexture2DEXT")
+	c.gpGenBuffers = c.getProcAddress("glGenBuffers")
 	if c.gpGenBuffers == 0 {
 		return errors.New("gl: glGenBuffers is missing")
 	}
-	c.gpGenFramebuffersEXT = getProcAddress("glGenFramebuffersEXT")
-	c.gpGenRenderbuffersEXT = getProcAddress("glGenRenderbuffersEXT")
-	c.gpGenTextures = getProcAddress("glGenTextures")
+	c.gpGenFramebuffersEXT = c.getProcAddress("glGenFramebuffersEXT")
+	c.gpGenRenderbuffersEXT = c.getProcAddress("glGenRenderbuffersEXT")
+	c.gpGenTextures = c.getProcAddress("glGenTextures")
 	if c.gpGenTextures == 0 {
 		return errors.New("gl: glGenTextures is missing")
 	}
-	c.gpGetError = getProcAddress("glGetError")
+	c.gpGetError = c.getProcAddress("glGetError")
 	if c.gpGetError == 0 {
 		return errors.New("gl: glGetError is missing")
 	}
-	c.gpGetIntegerv = getProcAddress("glGetIntegerv")
+	c.gpGetIntegerv = c.getProcAddress("glGetIntegerv")
 	if c.gpGetIntegerv == 0 {
 		return errors.New("gl: glGetIntegerv is missing")
 	}
-	c.gpGetProgramInfoLog = getProcAddress("glGetProgramInfoLog")
+	c.gpGetProgramInfoLog = c.getProcAddress("glGetProgramInfoLog")
 	if c.gpGetProgramInfoLog == 0 {
 		return errors.New("gl: glGetProgramInfoLog is missing")
 	}
-	c.gpGetProgramiv = getProcAddress("glGetProgramiv")
+	c.gpGetProgramiv = c.getProcAddress("glGetProgramiv")
 	if c.gpGetProgramiv == 0 {
 		return errors.New("gl: glGetProgramiv is missing")
 	}
-	c.gpGetShaderInfoLog = getProcAddress("glGetShaderInfoLog")
+	c.gpGetShaderInfoLog = c.getProcAddress("glGetShaderInfoLog")
 	if c.gpGetShaderInfoLog == 0 {
 		return errors.New("gl: glGetShaderInfoLog is missing")
 	}
-	c.gpGetShaderiv = getProcAddress("glGetShaderiv")
+	c.gpGetShaderiv = c.getProcAddress("glGetShaderiv")
 	if c.gpGetShaderiv == 0 {
 		return errors.New("gl: glGetShaderiv is missing")
 	}
-	c.gpGetUniformLocation = getProcAddress("glGetUniformLocation")
+	c.gpGetUniformLocation = c.getProcAddress("glGetUniformLocation")
 	if c.gpGetUniformLocation == 0 {
 		return errors.New("gl: glGetUniformLocation is missing")
 	}
-	c.gpIsFramebufferEXT = getProcAddress("glIsFramebufferEXT")
-	c.gpIsProgram = getProcAddress("glIsProgram")
+	c.gpIsFramebufferEXT = c.getProcAddress("glIsFramebufferEXT")
+	c.gpIsProgram = c.getProcAddress("glIsProgram")
 	if c.gpIsProgram == 0 {
 		return errors.New("gl: glIsProgram is missing")
 	}
-	c.gpIsRenderbufferEXT = getProcAddress("glIsRenderbufferEXT")
-	c.gpIsTexture = getProcAddress("glIsTexture")
+	c.gpIsRenderbufferEXT = c.getProcAddress("glIsRenderbufferEXT")
+	c.gpIsTexture = c.getProcAddress("glIsTexture")
 	if c.gpIsTexture == 0 {
 		return errors.New("gl: glIsTexture is missing")
 	}
-	c.gpLinkProgram = getProcAddress("glLinkProgram")
+	c.gpLinkProgram = c.getProcAddress("glLinkProgram")
 	if c.gpLinkProgram == 0 {
 		return errors.New("gl: glLinkProgram is missing")
 	}
-	c.gpPixelStorei = getProcAddress("glPixelStorei")
+	c.gpPixelStorei = c.getProcAddress("glPixelStorei")
 	if c.gpPixelStorei == 0 {
 		return errors.New("gl: glPixelStorei is missing")
 	}
-	c.gpReadPixels = getProcAddress("glReadPixels")
+	c.gpReadPixels = c.getProcAddress("glReadPixels")
 	if c.gpReadPixels == 0 {
 		return errors.New("gl: glReadPixels is missing")
 	}
-	c.gpRenderbufferStorageEXT = getProcAddress("glRenderbufferStorageEXT")
-	c.gpScissor = getProcAddress("glScissor")
+	c.gpRenderbufferStorageEXT = c.getProcAddress("glRenderbufferStorageEXT")
+	c.gpScissor = c.getProcAddress("glScissor")
 	if c.gpScissor == 0 {
 		return errors.New("gl: glScissor is missing")
 	}
-	c.gpShaderSource = getProcAddress("glShaderSource")
+	c.gpShaderSource = c.getProcAddress("glShaderSource")
 	if c.gpShaderSource == 0 {
 		return errors.New("gl: glShaderSource is missing")
 	}
-	c.gpStencilFunc = getProcAddress("glStencilFunc")
+	c.gpStencilFunc = c.getProcAddress("glStencilFunc")
 	if c.gpStencilFunc == 0 {
 		return errors.New("gl: glStencilFunc is missing")
 	}
-	c.gpStencilOp = getProcAddress("glStencilOp")
+	c.gpStencilOp = c.getProcAddress("glStencilOp")
 	if c.gpStencilOp == 0 {
 		return errors.New("gl: glStencilOp is missing")
 	}
-	c.gpTexImage2D = getProcAddress("glTexImage2D")
+	c.gpTexImage2D = c.getProcAddress("glTexImage2D")
 	if c.gpTexImage2D == 0 {
 		return errors.New("gl: glTexImage2D is missing")
 	}
-	c.gpTexParameteri = getProcAddress("glTexParameteri")
+	c.gpTexParameteri = c.getProcAddress("glTexParameteri")
 	if c.gpTexParameteri == 0 {
 		return errors.New("gl: glTexParameteri is missing")
 	}
-	c.gpTexSubImage2D = getProcAddress("glTexSubImage2D")
+	c.gpTexSubImage2D = c.getProcAddress("glTexSubImage2D")
 	if c.gpTexSubImage2D == 0 {
 		return errors.New("gl: glTexSubImage2D is missing")
 	}
-	c.gpUniform1fv = getProcAddress("glUniform1fv")
+	c.gpUniform1fv = c.getProcAddress("glUniform1fv")
 	if c.gpUniform1fv == 0 {
 		return errors.New("gl: glUniform1fv is missing")
 	}
-	c.gpUniform1i = getProcAddress("glUniform1i")
+	c.gpUniform1i = c.getProcAddress("glUniform1i")
 	if c.gpUniform1i == 0 {
 		return errors.New("gl: glUniform1i is missing")
 	}
-	c.gpUniform1iv = getProcAddress("glUniform1iv")
+	c.gpUniform1iv = c.getProcAddress("glUniform1iv")
 	if c.gpUniform1iv == 0 {
 		return errors.New("gl: glUniform1iv is missing")
 	}
-	c.gpUniform2fv = getProcAddress("glUniform2fv")
+	c.gpUniform2fv = c.getProcAddress("glUniform2fv")
 	if c.gpUniform2fv == 0 {
 		return errors.New("gl: glUniform2fv is missing")
 	}
-	c.gpUniform3fv = getProcAddress("glUniform3fv")
+	c.gpUniform3fv = c.getProcAddress("glUniform3fv")
 	if c.gpUniform3fv == 0 {
 		return errors.New("gl: glUniform3fv is missing")
 	}
-	c.gpUniform4fv = getProcAddress("glUniform4fv")
+	c.gpUniform4fv = c.getProcAddress("glUniform4fv")
 	if c.gpUniform4fv == 0 {
 		return errors.New("gl: glUniform4fv is missing")
 	}
-	c.gpUniformMatrix2fv = getProcAddress("glUniformMatrix2fv")
+	c.gpUniformMatrix2fv = c.getProcAddress("glUniformMatrix2fv")
 	if c.gpUniformMatrix2fv == 0 {
 		return errors.New("gl: glUniformMatrix2fv is missing")
 	}
-	c.gpUniformMatrix3fv = getProcAddress("glUniformMatrix3fv")
+	c.gpUniformMatrix3fv = c.getProcAddress("glUniformMatrix3fv")
 	if c.gpUniformMatrix3fv == 0 {
 		return errors.New("gl: glUniformMatrix3fv is missing")
 	}
-	c.gpUniformMatrix4fv = getProcAddress("glUniformMatrix4fv")
+	c.gpUniformMatrix4fv = c.getProcAddress("glUniformMatrix4fv")
 	if c.gpUniformMatrix4fv == 0 {
 		return errors.New("gl: glUniformMatrix4fv is missing")
 	}
-	c.gpUseProgram = getProcAddress("glUseProgram")
+	c.gpUseProgram = c.getProcAddress("glUseProgram")
 	if c.gpUseProgram == 0 {
 		return errors.New("gl: glUseProgram is missing")
 	}
-	c.gpVertexAttribPointer = getProcAddress("glVertexAttribPointer")
+	c.gpVertexAttribPointer = c.getProcAddress("glVertexAttribPointer")
 	if c.gpVertexAttribPointer == 0 {
 		return errors.New("gl: glVertexAttribPointer is missing")
 	}
-	c.gpViewport = getProcAddress("glViewport")
+	c.gpViewport = c.getProcAddress("glViewport")
 	if c.gpViewport == 0 {
 		return errors.New("gl: glViewport is missing")
 	}

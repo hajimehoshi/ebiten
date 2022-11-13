@@ -134,7 +134,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get install libgles2-mesa-dev
-          env EBITENGINE_GRAPHICS_LIBRARY=opengl go test -tags=opengles -shuffle=on -v ./...
+          env EBITENGINE_GRAPHICS_LIBRARY=opengl EBITENGINE_OPENGL=es go test -shuffle=on -v ./...
 
       - name: go test (Windows 386)
         if: runner.os == 'Windows'

@@ -33,11 +33,11 @@ func glBool(x bool) C.GLboolean {
 
 type defaultContext struct{}
 
-func NewDefaultContext() Context {
-	return defaultContext{}
+func NewDefaultContext() (Context, error) {
+	return defaultContext{}, nil
 }
 
-func (defaultContext) Init() error {
+func (defaultContext) LoadFunctions() error {
 	return nil
 }
 

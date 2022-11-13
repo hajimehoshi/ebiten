@@ -19,7 +19,7 @@ package gl
 // Context is basically the same as gomobile's gl.Context.
 // See https://pkg.go.dev/golang.org/x/mobile/gl#Context
 type Context interface {
-	Init() error
+	LoadFunctions() error
 	IsES() bool
 
 	ActiveTexture(texture uint32)
