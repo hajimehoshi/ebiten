@@ -18,11 +18,7 @@ import (
 	"syscall/js"
 )
 
-func (g *Graphics) init(_ any) error {
-	// Do nothing.
+func (g *Graphics) init(canvas any) error {
+	g.context.canvas = canvas.(js.Value)
 	return nil
-}
-
-func (g *Graphics) SetCanvas(canvas js.Value) {
-	g.context.canvas = canvas
 }
