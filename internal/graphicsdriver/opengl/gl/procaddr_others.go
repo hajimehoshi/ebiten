@@ -6,19 +6,17 @@
 package gl
 
 /*
-#cgo linux freebsd openbsd CFLAGS: -DTAG_POSIX
-#cgo linux,!nintendosdk freebsd,!nintendosdk openbsd,!nintendosdk pkg-config: gl
-#cgo egl nintendosdk CFLAGS: -DTAG_EGL
-#cgo egl,!nintendosdk pkg-config: egl
-#cgo nintendosdk LDFLAGS: -Wl,-unresolved-symbols=ignore-all
+#cgo !nintendosdk pkg-config: gl
+#cgo nintendosdk  CFLAGS: -DTAG_NINTENDOSDK
+#cgo nintendosdk  LDFLAGS: -Wl,-unresolved-symbols=ignore-all
 
-#if defined(TAG_EGL)
+#if defined(TAG_NINTENDOSDK)
 	#include <stdlib.h>
 	#include <EGL/egl.h>
 	static void* getProcAddress(const char* name) {
 		return eglGetProcAddress(name);
 	}
-#elif defined(TAG_POSIX)
+#else
 	#include <stdlib.h>
 	#include <GL/glx.h>
 	static void* getProcAddress(const char* name) {
