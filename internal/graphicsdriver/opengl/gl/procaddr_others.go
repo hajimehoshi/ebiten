@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2014 Eric Woroshow
 
 //go:build !android && !darwin && !js && !windows && !opengles
 

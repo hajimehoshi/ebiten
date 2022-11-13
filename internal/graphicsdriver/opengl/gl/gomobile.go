@@ -35,6 +35,10 @@ func NewGomobileContext(ctx gl.Context) Context {
 	return &gomobileContext{ctx}
 }
 
+func (g *gomobileContext) Init() error {
+	return nil
+}
+
 func (g *gomobileContext) ActiveTexture(texture uint32) {
 	g.ctx.ActiveTexture(gl.Enum(texture))
 }

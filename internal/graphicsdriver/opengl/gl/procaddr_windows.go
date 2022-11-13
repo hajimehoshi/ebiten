@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2014 Eric Woroshow
 
 package gl
 
@@ -25,7 +26,7 @@ func getProcAddress(namea string) uintptr {
 		return r
 	}
 	if err != nil && err != windows.ERROR_SUCCESS && err != windows.ERROR_PROC_NOT_FOUND {
-		panic(fmt.Sprintf("gl: wglGetProcAddress failed: %s", err.Error()))
+		panic(fmt.Sprintf("gl: wglGetProcAddress failed for %s: %s", namea, err.Error()))
 	}
 
 	p := opengl32.NewProc(namea)

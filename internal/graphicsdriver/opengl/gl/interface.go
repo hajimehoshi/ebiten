@@ -14,7 +14,13 @@
 
 package gl
 
+// Context is a context for OpenGL (ES) functions.
+//
+// Context is basically the same as gomobile's gl.Context.
+// See https://pkg.go.dev/golang.org/x/mobile/gl#Context
 type Context interface {
+	Init() error
+
 	ActiveTexture(texture uint32)
 	AttachShader(program uint32, shader uint32)
 	BindAttribLocation(program uint32, index uint32, name string)

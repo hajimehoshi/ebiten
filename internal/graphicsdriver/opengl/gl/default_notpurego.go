@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2014 Eric Woroshow
 
 //go:build !android && !darwin && !js && !windows && !opengles
 
@@ -319,10 +320,11 @@ import "C"
 
 import (
 	"errors"
+	"runtime"
 	"unsafe"
 )
 
-var (
+type defaultContext struct {
 	gpActiveTexture              C.GPACTIVETEXTURE
 	gpAttachShader               C.GPATTACHSHADER
 	gpBindAttribLocation         C.GPBINDATTRIBLOCATION
@@ -392,7 +394,11 @@ var (
 	gpUseProgram                 C.GPUSEPROGRAM
 	gpVertexAttribPointer        C.GPVERTEXATTRIBPOINTER
 	gpViewport                   C.GPVIEWPORT
-)
+}
+
+func NewDefaultContext() Context {
+	return &defaultContext{}
+}
 
 func boolToInt(b bool) int {
 	if b {
@@ -401,534 +407,576 @@ func boolToInt(b bool) int {
 	return 0
 }
 
-func ActiveTexture(texture uint32) {
-	C.glowActiveTexture(gpActiveTexture, (C.GLenum)(texture))
+func (c *defaultContext) ActiveTexture(texture uint32) {
+	C.glowActiveTexture(c.gpActiveTexture, (C.GLenum)(texture))
 }
 
-func AttachShader(program uint32, shader uint32) {
-	C.glowAttachShader(gpAttachShader, (C.GLuint)(program), (C.GLuint)(shader))
+func (c *defaultContext) AttachShader(program uint32, shader uint32) {
+	C.glowAttachShader(c.gpAttachShader, (C.GLuint)(program), (C.GLuint)(shader))
 }
 
-func BindAttribLocation(program uint32, index uint32, name *uint8) {
-	C.glowBindAttribLocation(gpBindAttribLocation, (C.GLuint)(program), (C.GLuint)(index), (*C.GLchar)(unsafe.Pointer(name)))
+func (c *defaultContext) BindAttribLocation(program uint32, index uint32, name string) {
+	cname, free := cStr(name)
+	defer free()
+	C.glowBindAttribLocation(c.gpBindAttribLocation, (C.GLuint)(program), (C.GLuint)(index), (*C.GLchar)(unsafe.Pointer(cname)))
 }
 
-func BindBuffer(target uint32, buffer uint32) {
-	C.glowBindBuffer(gpBindBuffer, (C.GLenum)(target), (C.GLuint)(buffer))
+func (c *defaultContext) BindBuffer(target uint32, buffer uint32) {
+	C.glowBindBuffer(c.gpBindBuffer, (C.GLenum)(target), (C.GLuint)(buffer))
 }
 
-func BindFramebufferEXT(target uint32, framebuffer uint32) {
-	C.glowBindFramebufferEXT(gpBindFramebufferEXT, (C.GLenum)(target), (C.GLuint)(framebuffer))
+func (c *defaultContext) BindFramebuffer(target uint32, framebuffer uint32) {
+	C.glowBindFramebufferEXT(c.gpBindFramebufferEXT, (C.GLenum)(target), (C.GLuint)(framebuffer))
 }
 
-func BindRenderbufferEXT(target uint32, renderbuffer uint32) {
-	C.glowBindRenderbufferEXT(gpBindRenderbufferEXT, (C.GLenum)(target), (C.GLuint)(renderbuffer))
+func (c *defaultContext) BindRenderbuffer(target uint32, renderbuffer uint32) {
+	C.glowBindRenderbufferEXT(c.gpBindRenderbufferEXT, (C.GLenum)(target), (C.GLuint)(renderbuffer))
 }
 
-func BindTexture(target uint32, texture uint32) {
-	C.glowBindTexture(gpBindTexture, (C.GLenum)(target), (C.GLuint)(texture))
+func (c *defaultContext) BindTexture(target uint32, texture uint32) {
+	C.glowBindTexture(c.gpBindTexture, (C.GLenum)(target), (C.GLuint)(texture))
 }
 
-func BlendEquationSeparate(modeRGB uint32, modeAlpha uint32) {
-	C.glowBlendEquationSeparate(gpBlendEquationSeparate, (C.GLenum)(modeRGB), (C.GLenum)(modeAlpha))
+func (c *defaultContext) BlendEquationSeparate(modeRGB uint32, modeAlpha uint32) {
+	C.glowBlendEquationSeparate(c.gpBlendEquationSeparate, (C.GLenum)(modeRGB), (C.GLenum)(modeAlpha))
 }
 
-func BlendFuncSeparate(srcRGB uint32, dstRGB uint32, srcAlpha uint32, dstAlpha uint32) {
-	C.glowBlendFuncSeparate(gpBlendFuncSeparate, (C.GLenum)(srcRGB), (C.GLenum)(dstRGB), (C.GLenum)(srcAlpha), (C.GLenum)(dstAlpha))
+func (c *defaultContext) BlendFuncSeparate(srcRGB uint32, dstRGB uint32, srcAlpha uint32, dstAlpha uint32) {
+	C.glowBlendFuncSeparate(c.gpBlendFuncSeparate, (C.GLenum)(srcRGB), (C.GLenum)(dstRGB), (C.GLenum)(srcAlpha), (C.GLenum)(dstAlpha))
 }
 
-func BufferData(target uint32, size int, data unsafe.Pointer, usage uint32) {
-	C.glowBufferData(gpBufferData, (C.GLenum)(target), (C.GLsizeiptr)(size), data, (C.GLenum)(usage))
+func (c *defaultContext) BufferData(target uint32, size int, data []byte, usage uint32) {
+	var ptr *byte
+	if len(data) > 0 {
+		ptr = &data[0]
+	}
+	C.glowBufferData(c.gpBufferData, (C.GLenum)(target), (C.GLsizeiptr)(size), unsafe.Pointer(ptr), (C.GLenum)(usage))
+	runtime.KeepAlive(data)
 }
 
-func BufferSubData(target uint32, offset int, size int, data unsafe.Pointer) {
-	C.glowBufferSubData(gpBufferSubData, (C.GLenum)(target), (C.GLintptr)(offset), (C.GLsizeiptr)(size), data)
+func (c *defaultContext) BufferSubData(target uint32, offset int, data []byte) {
+	C.glowBufferSubData(c.gpBufferSubData, (C.GLenum)(target), (C.GLintptr)(offset), (C.GLsizeiptr)(len(data)), unsafe.Pointer(&data[0]))
+	runtime.KeepAlive(data)
 }
 
-func CheckFramebufferStatusEXT(target uint32) uint32 {
-	ret := C.glowCheckFramebufferStatusEXT(gpCheckFramebufferStatusEXT, (C.GLenum)(target))
-	return (uint32)(ret)
+func (c *defaultContext) CheckFramebufferStatus(target uint32) uint32 {
+	ret := C.glowCheckFramebufferStatusEXT(c.gpCheckFramebufferStatusEXT, (C.GLenum)(target))
+	return uint32(ret)
 }
 
-func Clear(mask uint32) {
-	C.glowClear(gpClear, (C.GLbitfield)(mask))
+func (c *defaultContext) Clear(mask uint32) {
+	C.glowClear(c.gpClear, (C.GLbitfield)(mask))
 }
 
-func ColorMask(red bool, green bool, blue bool, alpha bool) {
-	C.glowColorMask(gpColorMask, (C.GLboolean)(boolToInt(red)), (C.GLboolean)(boolToInt(green)), (C.GLboolean)(boolToInt(blue)), (C.GLboolean)(boolToInt(alpha)))
+func (c *defaultContext) ColorMask(red bool, green bool, blue bool, alpha bool) {
+	C.glowColorMask(c.gpColorMask, (C.GLboolean)(boolToInt(red)), (C.GLboolean)(boolToInt(green)), (C.GLboolean)(boolToInt(blue)), (C.GLboolean)(boolToInt(alpha)))
 }
 
-func CompileShader(shader uint32) {
-	C.glowCompileShader(gpCompileShader, (C.GLuint)(shader))
+func (c *defaultContext) CompileShader(shader uint32) {
+	C.glowCompileShader(c.gpCompileShader, (C.GLuint)(shader))
 }
 
-func CreateProgram() uint32 {
-	ret := C.glowCreateProgram(gpCreateProgram)
-	return (uint32)(ret)
+func (c *defaultContext) CreateProgram() uint32 {
+	ret := C.glowCreateProgram(c.gpCreateProgram)
+	return uint32(ret)
 }
 
-func CreateShader(xtype uint32) uint32 {
-	ret := C.glowCreateShader(gpCreateShader, (C.GLenum)(xtype))
-	return (uint32)(ret)
+func (c *defaultContext) CreateShader(xtype uint32) uint32 {
+	ret := C.glowCreateShader(c.gpCreateShader, (C.GLenum)(xtype))
+	return uint32(ret)
 }
 
-func DeleteBuffers(n int32, buffers *uint32) {
-	C.glowDeleteBuffers(gpDeleteBuffers, (C.GLsizei)(n), (*C.GLuint)(unsafe.Pointer(buffers)))
+func (c *defaultContext) DeleteBuffers(buffers []uint32) {
+	C.glowDeleteBuffers(c.gpDeleteBuffers, (C.GLsizei)(len(buffers)), (*C.GLuint)(unsafe.Pointer(&buffers[0])))
+	runtime.KeepAlive(buffers)
 }
 
-func DeleteFramebuffersEXT(n int32, framebuffers *uint32) {
-	C.glowDeleteFramebuffersEXT(gpDeleteFramebuffersEXT, (C.GLsizei)(n), (*C.GLuint)(unsafe.Pointer(framebuffers)))
+func (c *defaultContext) DeleteFramebuffers(framebuffers []uint32) {
+	C.glowDeleteFramebuffersEXT(c.gpDeleteFramebuffersEXT, (C.GLsizei)(len(framebuffers)), (*C.GLuint)(unsafe.Pointer(&framebuffers[0])))
+	runtime.KeepAlive(framebuffers)
 }
 
-func DeleteProgram(program uint32) {
-	C.glowDeleteProgram(gpDeleteProgram, (C.GLuint)(program))
+func (c *defaultContext) DeleteProgram(program uint32) {
+	C.glowDeleteProgram(c.gpDeleteProgram, (C.GLuint)(program))
 }
 
-func DeleteRenderbuffersEXT(n int32, renderbuffers *uint32) {
-	C.glowDeleteRenderbuffersEXT(gpDeleteRenderbuffersEXT, (C.GLsizei)(n), (*C.GLuint)(unsafe.Pointer(renderbuffers)))
+func (c *defaultContext) DeleteRenderbuffers(renderbuffers []uint32) {
+	C.glowDeleteRenderbuffersEXT(c.gpDeleteRenderbuffersEXT, (C.GLsizei)(len(renderbuffers)), (*C.GLuint)(unsafe.Pointer(&renderbuffers[0])))
+	runtime.KeepAlive(renderbuffers)
 }
 
-func DeleteShader(shader uint32) {
-	C.glowDeleteShader(gpDeleteShader, (C.GLuint)(shader))
+func (c *defaultContext) DeleteShader(shader uint32) {
+	C.glowDeleteShader(c.gpDeleteShader, (C.GLuint)(shader))
 }
 
-func DeleteTextures(n int32, textures *uint32) {
-	C.glowDeleteTextures(gpDeleteTextures, (C.GLsizei)(n), (*C.GLuint)(unsafe.Pointer(textures)))
+func (c *defaultContext) DeleteTextures(textures []uint32) {
+	C.glowDeleteTextures(c.gpDeleteTextures, (C.GLsizei)(len(textures)), (*C.GLuint)(unsafe.Pointer(&textures[0])))
+	runtime.KeepAlive(textures)
 }
 
-func Disable(cap uint32) {
-	C.glowDisable(gpDisable, (C.GLenum)(cap))
+func (c *defaultContext) Disable(cap uint32) {
+	C.glowDisable(c.gpDisable, (C.GLenum)(cap))
 }
 
-func DisableVertexAttribArray(index uint32) {
-	C.glowDisableVertexAttribArray(gpDisableVertexAttribArray, (C.GLuint)(index))
+func (c *defaultContext) DisableVertexAttribArray(index uint32) {
+	C.glowDisableVertexAttribArray(c.gpDisableVertexAttribArray, (C.GLuint)(index))
 }
 
-func DrawElements(mode uint32, count int32, xtype uint32, indices uintptr) {
-	C.glowDrawElements(gpDrawElements, (C.GLenum)(mode), (C.GLsizei)(count), (C.GLenum)(xtype), C.uintptr_t(indices))
+func (c *defaultContext) DrawElements(mode uint32, count int32, xtype uint32, offset int) {
+	C.glowDrawElements(c.gpDrawElements, (C.GLenum)(mode), (C.GLsizei)(count), (C.GLenum)(xtype), C.uintptr_t(offset))
 }
 
-func Enable(cap uint32) {
-	C.glowEnable(gpEnable, (C.GLenum)(cap))
+func (c *defaultContext) Enable(cap uint32) {
+	C.glowEnable(c.gpEnable, (C.GLenum)(cap))
 }
 
-func EnableVertexAttribArray(index uint32) {
-	C.glowEnableVertexAttribArray(gpEnableVertexAttribArray, (C.GLuint)(index))
+func (c *defaultContext) EnableVertexAttribArray(index uint32) {
+	C.glowEnableVertexAttribArray(c.gpEnableVertexAttribArray, (C.GLuint)(index))
 }
 
-func Flush() {
-	C.glowFlush(gpFlush)
+func (c *defaultContext) Flush() {
+	C.glowFlush(c.gpFlush)
 }
 
-func FramebufferRenderbufferEXT(target uint32, attachment uint32, renderbuffertarget uint32, renderbuffer uint32) {
-	C.glowFramebufferRenderbufferEXT(gpFramebufferRenderbufferEXT, (C.GLenum)(target), (C.GLenum)(attachment), (C.GLenum)(renderbuffertarget), (C.GLuint)(renderbuffer))
+func (c *defaultContext) FramebufferRenderbuffer(target uint32, attachment uint32, renderbuffertarget uint32, renderbuffer uint32) {
+	C.glowFramebufferRenderbufferEXT(c.gpFramebufferRenderbufferEXT, (C.GLenum)(target), (C.GLenum)(attachment), (C.GLenum)(renderbuffertarget), (C.GLuint)(renderbuffer))
 }
 
-func FramebufferTexture2DEXT(target uint32, attachment uint32, textarget uint32, texture uint32, level int32) {
-	C.glowFramebufferTexture2DEXT(gpFramebufferTexture2DEXT, (C.GLenum)(target), (C.GLenum)(attachment), (C.GLenum)(textarget), (C.GLuint)(texture), (C.GLint)(level))
+func (c *defaultContext) FramebufferTexture2D(target uint32, attachment uint32, textarget uint32, texture uint32, level int32) {
+	C.glowFramebufferTexture2DEXT(c.gpFramebufferTexture2DEXT, (C.GLenum)(target), (C.GLenum)(attachment), (C.GLenum)(textarget), (C.GLuint)(texture), (C.GLint)(level))
 }
 
-func GenBuffers(n int32, buffers *uint32) {
-	C.glowGenBuffers(gpGenBuffers, (C.GLsizei)(n), (*C.GLuint)(unsafe.Pointer(buffers)))
+func (c *defaultContext) GenBuffers(n int32) []uint32 {
+	buffers := make([]uint32, n)
+	C.glowGenBuffers(c.gpGenBuffers, (C.GLsizei)(n), (*C.GLuint)(unsafe.Pointer(&buffers[0])))
+	return buffers
 }
 
-func GenFramebuffersEXT(n int32, framebuffers *uint32) {
-	C.glowGenFramebuffersEXT(gpGenFramebuffersEXT, (C.GLsizei)(n), (*C.GLuint)(unsafe.Pointer(framebuffers)))
+func (c *defaultContext) GenFramebuffers(n int32) []uint32 {
+	framebuffers := make([]uint32, n)
+	C.glowGenFramebuffersEXT(c.gpGenFramebuffersEXT, (C.GLsizei)(n), (*C.GLuint)(unsafe.Pointer(&framebuffers[0])))
+	return framebuffers
 }
 
-func GenRenderbuffersEXT(n int32, renderbuffers *uint32) {
-	C.glowGenRenderbuffersEXT(gpGenRenderbuffersEXT, (C.GLsizei)(n), (*C.GLuint)(unsafe.Pointer(renderbuffers)))
+func (c *defaultContext) GenRenderbuffers(n int32) []uint32 {
+	renderbuffers := make([]uint32, n)
+	C.glowGenRenderbuffersEXT(c.gpGenRenderbuffersEXT, (C.GLsizei)(n), (*C.GLuint)(unsafe.Pointer(&renderbuffers[0])))
+	return renderbuffers
 }
 
-func GenTextures(n int32, textures *uint32) {
-	C.glowGenTextures(gpGenTextures, (C.GLsizei)(n), (*C.GLuint)(unsafe.Pointer(textures)))
+func (c *defaultContext) GenTextures(n int32) []uint32 {
+	textures := make([]uint32, n)
+	C.glowGenTextures(c.gpGenTextures, (C.GLsizei)(n), (*C.GLuint)(unsafe.Pointer(&textures[0])))
+	return textures
 }
 
-func GetError() uint32 {
-	ret := C.glowGetError(gpGetError)
-	return (uint32)(ret)
+func (c *defaultContext) GetError() uint32 {
+	ret := C.glowGetError(c.gpGetError)
+	return uint32(ret)
 }
 
-func GetIntegerv(pname uint32, data *int32) {
-	C.glowGetIntegerv(gpGetIntegerv, (C.GLenum)(pname), (*C.GLint)(unsafe.Pointer(data)))
+func (c *defaultContext) GetIntegerv(dst []int32, pname uint32) {
+	C.glowGetIntegerv(c.gpGetIntegerv, (C.GLenum)(pname), (*C.GLint)(unsafe.Pointer(&dst[0])))
 }
 
-func GetProgramInfoLog(program uint32, bufSize int32, length *int32, infoLog *uint8) {
-	C.glowGetProgramInfoLog(gpGetProgramInfoLog, (C.GLuint)(program), (C.GLsizei)(bufSize), (*C.GLsizei)(unsafe.Pointer(length)), (*C.GLchar)(unsafe.Pointer(infoLog)))
+func (c *defaultContext) GetProgramInfoLog(program uint32) string {
+	var bufSize [1]int32
+	c.GetProgramiv(bufSize[:], program, INFO_LOG_LENGTH)
+	infoLog := make([]byte, bufSize[0])
+	C.glowGetProgramInfoLog(c.gpGetProgramInfoLog, (C.GLuint)(program), (C.GLsizei)(bufSize[0]), nil, (*C.GLchar)(unsafe.Pointer(&infoLog[0])))
+	return string(infoLog)
 }
 
-func GetProgramiv(program uint32, pname uint32, params *int32) {
-	C.glowGetProgramiv(gpGetProgramiv, (C.GLuint)(program), (C.GLenum)(pname), (*C.GLint)(unsafe.Pointer(params)))
+func (c *defaultContext) GetProgramiv(dst []int32, program uint32, pname uint32) {
+	C.glowGetProgramiv(c.gpGetProgramiv, (C.GLuint)(program), (C.GLenum)(pname), (*C.GLint)(unsafe.Pointer(&dst[0])))
 }
 
-func GetShaderInfoLog(shader uint32, bufSize int32, length *int32, infoLog *uint8) {
-	C.glowGetShaderInfoLog(gpGetShaderInfoLog, (C.GLuint)(shader), (C.GLsizei)(bufSize), (*C.GLsizei)(unsafe.Pointer(length)), (*C.GLchar)(unsafe.Pointer(infoLog)))
+func (c *defaultContext) GetShaderInfoLog(shader uint32) string {
+	var bufSize [1]int32
+	c.GetShaderiv(bufSize[:], shader, INFO_LOG_LENGTH)
+	infoLog := make([]byte, bufSize[0])
+	C.glowGetShaderInfoLog(c.gpGetShaderInfoLog, (C.GLuint)(shader), (C.GLsizei)(bufSize[0]), nil, (*C.GLchar)(unsafe.Pointer(&infoLog[0])))
+	return string(infoLog)
 }
 
-func GetShaderiv(shader uint32, pname uint32, params *int32) {
-	C.glowGetShaderiv(gpGetShaderiv, (C.GLuint)(shader), (C.GLenum)(pname), (*C.GLint)(unsafe.Pointer(params)))
+func (c *defaultContext) GetShaderiv(dst []int32, shader uint32, pname uint32) {
+	C.glowGetShaderiv(c.gpGetShaderiv, (C.GLuint)(shader), (C.GLenum)(pname), (*C.GLint)(unsafe.Pointer(&dst[0])))
 }
 
-func GetUniformLocation(program uint32, name *uint8) int32 {
-	ret := C.glowGetUniformLocation(gpGetUniformLocation, (C.GLuint)(program), (*C.GLchar)(unsafe.Pointer(name)))
-	return (int32)(ret)
+func (c *defaultContext) GetUniformLocation(program uint32, name string) int32 {
+	cname, free := cStr(name)
+	defer free()
+	ret := C.glowGetUniformLocation(c.gpGetUniformLocation, (C.GLuint)(program), (*C.GLchar)(unsafe.Pointer(cname)))
+	return int32(ret)
 }
 
-func IsFramebufferEXT(framebuffer uint32) bool {
-	ret := C.glowIsFramebufferEXT(gpIsFramebufferEXT, (C.GLuint)(framebuffer))
+func (c *defaultContext) IsFramebuffer(framebuffer uint32) bool {
+	ret := C.glowIsFramebufferEXT(c.gpIsFramebufferEXT, (C.GLuint)(framebuffer))
 	return ret == TRUE
 }
 
-func IsProgram(program uint32) bool {
-	ret := C.glowIsProgram(gpIsProgram, (C.GLuint)(program))
+func (c *defaultContext) IsProgram(program uint32) bool {
+	ret := C.glowIsProgram(c.gpIsProgram, (C.GLuint)(program))
 	return ret == TRUE
 }
 
-func IsRenderbufferEXT(renderbuffer uint32) bool {
-	ret := C.glowIsRenderbufferEXT(gpIsRenderbufferEXT, (C.GLuint)(renderbuffer))
+func (c *defaultContext) IsRenderbuffer(renderbuffer uint32) bool {
+	ret := C.glowIsRenderbufferEXT(c.gpIsRenderbufferEXT, (C.GLuint)(renderbuffer))
 	return ret == TRUE
 }
 
-func IsTexture(texture uint32) bool {
-	ret := C.glowIsTexture(gpIsTexture, (C.GLuint)(texture))
+func (c *defaultContext) IsTexture(texture uint32) bool {
+	ret := C.glowIsTexture(c.gpIsTexture, (C.GLuint)(texture))
 	return ret == TRUE
 }
 
-func LinkProgram(program uint32) {
-	C.glowLinkProgram(gpLinkProgram, (C.GLuint)(program))
+func (c *defaultContext) LinkProgram(program uint32) {
+	C.glowLinkProgram(c.gpLinkProgram, (C.GLuint)(program))
 }
 
-func PixelStorei(pname uint32, param int32) {
-	C.glowPixelStorei(gpPixelStorei, (C.GLenum)(pname), (C.GLint)(param))
+func (c *defaultContext) PixelStorei(pname uint32, param int32) {
+	C.glowPixelStorei(c.gpPixelStorei, (C.GLenum)(pname), (C.GLint)(param))
 }
 
-func ReadPixels(x int32, y int32, width int32, height int32, format uint32, xtype uint32, pixels unsafe.Pointer) {
-	C.glowReadPixels(gpReadPixels, (C.GLint)(x), (C.GLint)(y), (C.GLsizei)(width), (C.GLsizei)(height), (C.GLenum)(format), (C.GLenum)(xtype), pixels)
+func (c *defaultContext) ReadPixels(dst []byte, x int32, y int32, width int32, height int32, format uint32, xtype uint32) {
+	C.glowReadPixels(c.gpReadPixels, (C.GLint)(x), (C.GLint)(y), (C.GLsizei)(width), (C.GLsizei)(height), (C.GLenum)(format), (C.GLenum)(xtype), unsafe.Pointer(&dst[0]))
 }
 
-func RenderbufferStorageEXT(target uint32, internalformat uint32, width int32, height int32) {
-	C.glowRenderbufferStorageEXT(gpRenderbufferStorageEXT, (C.GLenum)(target), (C.GLenum)(internalformat), (C.GLsizei)(width), (C.GLsizei)(height))
+func (c *defaultContext) RenderbufferStorage(target uint32, internalformat uint32, width int32, height int32) {
+	C.glowRenderbufferStorageEXT(c.gpRenderbufferStorageEXT, (C.GLenum)(target), (C.GLenum)(internalformat), (C.GLsizei)(width), (C.GLsizei)(height))
 }
 
-func Scissor(x int32, y int32, width int32, height int32) {
-	C.glowScissor(gpScissor, (C.GLint)(x), (C.GLint)(y), (C.GLsizei)(width), (C.GLsizei)(height))
+func (c *defaultContext) Scissor(x int32, y int32, width int32, height int32) {
+	C.glowScissor(c.gpScissor, (C.GLint)(x), (C.GLint)(y), (C.GLsizei)(width), (C.GLsizei)(height))
 }
 
-func ShaderSource(shader uint32, count int32, xstring **uint8, length *int32) {
-	C.glowShaderSource(gpShaderSource, (C.GLuint)(shader), (C.GLsizei)(count), (**C.GLchar)(unsafe.Pointer(xstring)), (*C.GLint)(unsafe.Pointer(length)))
+func (c *defaultContext) ShaderSource(shader uint32, xstring string) {
+	cstring, free := cStr(xstring)
+	defer free()
+	C.glowShaderSource(c.gpShaderSource, (C.GLuint)(shader), 1, (**C.GLchar)(unsafe.Pointer(&cstring)), nil)
 }
 
-func StencilFunc(xfunc uint32, ref int32, mask uint32) {
-	C.glowStencilFunc(gpStencilFunc, (C.GLenum)(xfunc), (C.GLint)(ref), (C.GLuint)(mask))
+func (c *defaultContext) StencilFunc(xfunc uint32, ref int32, mask uint32) {
+	C.glowStencilFunc(c.gpStencilFunc, (C.GLenum)(xfunc), (C.GLint)(ref), (C.GLuint)(mask))
 }
 
-func StencilOp(fail uint32, zfail uint32, zpass uint32) {
-	C.glowStencilOp(gpStencilOp, (C.GLenum)(fail), (C.GLenum)(zfail), (C.GLenum)(zpass))
+func (c *defaultContext) StencilOp(fail uint32, zfail uint32, zpass uint32) {
+	C.glowStencilOp(c.gpStencilOp, (C.GLenum)(fail), (C.GLenum)(zfail), (C.GLenum)(zpass))
 }
 
-func TexImage2D(target uint32, level int32, internalformat int32, width int32, height int32, border int32, format uint32, xtype uint32, pixels unsafe.Pointer) {
-	C.glowTexImage2D(gpTexImage2D, (C.GLenum)(target), (C.GLint)(level), (C.GLint)(internalformat), (C.GLsizei)(width), (C.GLsizei)(height), (C.GLint)(border), (C.GLenum)(format), (C.GLenum)(xtype), pixels)
+func (c *defaultContext) TexImage2D(target uint32, level int32, internalformat int32, width int32, height int32, format uint32, xtype uint32, pixels []byte) {
+	var ptr *byte
+	if len(pixels) > 0 {
+		ptr = &pixels[0]
+	}
+	C.glowTexImage2D(c.gpTexImage2D, (C.GLenum)(target), (C.GLint)(level), (C.GLint)(internalformat), (C.GLsizei)(width), (C.GLsizei)(height), 0, (C.GLenum)(format), (C.GLenum)(xtype), unsafe.Pointer(ptr))
+	runtime.KeepAlive(pixels)
 }
 
-func TexParameteri(target uint32, pname uint32, param int32) {
-	C.glowTexParameteri(gpTexParameteri, (C.GLenum)(target), (C.GLenum)(pname), (C.GLint)(param))
+func (c *defaultContext) TexParameteri(target uint32, pname uint32, param int32) {
+	C.glowTexParameteri(c.gpTexParameteri, (C.GLenum)(target), (C.GLenum)(pname), (C.GLint)(param))
 }
 
-func TexSubImage2D(target uint32, level int32, xoffset int32, yoffset int32, width int32, height int32, format uint32, xtype uint32, pixels unsafe.Pointer) {
-	C.glowTexSubImage2D(gpTexSubImage2D, (C.GLenum)(target), (C.GLint)(level), (C.GLint)(xoffset), (C.GLint)(yoffset), (C.GLsizei)(width), (C.GLsizei)(height), (C.GLenum)(format), (C.GLenum)(xtype), pixels)
+func (c *defaultContext) TexSubImage2D(target uint32, level int32, xoffset int32, yoffset int32, width int32, height int32, format uint32, xtype uint32, pixels []byte) {
+	C.glowTexSubImage2D(c.gpTexSubImage2D, (C.GLenum)(target), (C.GLint)(level), (C.GLint)(xoffset), (C.GLint)(yoffset), (C.GLsizei)(width), (C.GLsizei)(height), (C.GLenum)(format), (C.GLenum)(xtype), unsafe.Pointer(&pixels[0]))
+	runtime.KeepAlive(pixels)
 }
 
-func Uniform1fv(location int32, count int32, value *float32) {
-	C.glowUniform1fv(gpUniform1fv, (C.GLint)(location), (C.GLsizei)(count), (*C.GLfloat)(unsafe.Pointer(value)))
+func (c *defaultContext) Uniform1fv(location int32, value []float32) {
+	C.glowUniform1fv(c.gpUniform1fv, (C.GLint)(location), (C.GLsizei)(len(value)), (*C.GLfloat)(unsafe.Pointer(&value[0])))
+	runtime.KeepAlive(value)
 }
 
-func Uniform1i(location int32, v0 int32) {
-	C.glowUniform1i(gpUniform1i, (C.GLint)(location), (C.GLint)(v0))
+func (c *defaultContext) Uniform1i(location int32, v0 int32) {
+	C.glowUniform1i(c.gpUniform1i, (C.GLint)(location), (C.GLint)(v0))
 }
 
-func Uniform1iv(location int32, count int32, value *int32) {
-	C.glowUniform1iv(gpUniform1iv, (C.GLint)(location), (C.GLsizei)(count), (*C.GLint)(unsafe.Pointer(value)))
+func (c *defaultContext) Uniform1iv(location int32, value []int32) {
+	C.glowUniform1iv(c.gpUniform1iv, (C.GLint)(location), (C.GLsizei)(len(value)), (*C.GLint)(unsafe.Pointer(&value[0])))
+	runtime.KeepAlive(value)
 }
 
-func Uniform2fv(location int32, count int32, value *float32) {
-	C.glowUniform2fv(gpUniform2fv, (C.GLint)(location), (C.GLsizei)(count), (*C.GLfloat)(unsafe.Pointer(value)))
+func (c *defaultContext) Uniform2fv(location int32, value []float32) {
+	C.glowUniform2fv(c.gpUniform2fv, (C.GLint)(location), (C.GLsizei)(len(value)/2), (*C.GLfloat)(unsafe.Pointer(&value[0])))
+	runtime.KeepAlive(value)
 }
 
-func Uniform3fv(location int32, count int32, value *float32) {
-	C.glowUniform3fv(gpUniform3fv, (C.GLint)(location), (C.GLsizei)(count), (*C.GLfloat)(unsafe.Pointer(value)))
+func (c *defaultContext) Uniform3fv(location int32, value []float32) {
+	C.glowUniform3fv(c.gpUniform3fv, (C.GLint)(location), (C.GLsizei)(len(value)/3), (*C.GLfloat)(unsafe.Pointer(&value[0])))
+	runtime.KeepAlive(value)
 }
 
-func Uniform4fv(location int32, count int32, value *float32) {
-	C.glowUniform4fv(gpUniform4fv, (C.GLint)(location), (C.GLsizei)(count), (*C.GLfloat)(unsafe.Pointer(value)))
+func (c *defaultContext) Uniform4fv(location int32, value []float32) {
+	C.glowUniform4fv(c.gpUniform4fv, (C.GLint)(location), (C.GLsizei)(len(value)/4), (*C.GLfloat)(unsafe.Pointer(&value[0])))
+	runtime.KeepAlive(value)
 }
 
-func UniformMatrix2fv(location int32, count int32, transpose bool, value *float32) {
-	C.glowUniformMatrix2fv(gpUniformMatrix2fv, (C.GLint)(location), (C.GLsizei)(count), (C.GLboolean)(boolToInt(transpose)), (*C.GLfloat)(unsafe.Pointer(value)))
+func (c *defaultContext) UniformMatrix2fv(location int32, transpose bool, value []float32) {
+	C.glowUniformMatrix2fv(c.gpUniformMatrix2fv, (C.GLint)(location), (C.GLsizei)(len(value)/4), (C.GLboolean)(boolToInt(transpose)), (*C.GLfloat)(unsafe.Pointer(&value[0])))
+	runtime.KeepAlive(value)
 }
 
-func UniformMatrix3fv(location int32, count int32, transpose bool, value *float32) {
-	C.glowUniformMatrix3fv(gpUniformMatrix3fv, (C.GLint)(location), (C.GLsizei)(count), (C.GLboolean)(boolToInt(transpose)), (*C.GLfloat)(unsafe.Pointer(value)))
+func (c *defaultContext) UniformMatrix3fv(location int32, transpose bool, value []float32) {
+	C.glowUniformMatrix3fv(c.gpUniformMatrix3fv, (C.GLint)(location), (C.GLsizei)(len(value)/9), (C.GLboolean)(boolToInt(transpose)), (*C.GLfloat)(unsafe.Pointer(&value[0])))
+	runtime.KeepAlive(value)
 }
 
-func UniformMatrix4fv(location int32, count int32, transpose bool, value *float32) {
-	C.glowUniformMatrix4fv(gpUniformMatrix4fv, (C.GLint)(location), (C.GLsizei)(count), (C.GLboolean)(boolToInt(transpose)), (*C.GLfloat)(unsafe.Pointer(value)))
+func (c *defaultContext) UniformMatrix4fv(location int32, transpose bool, value []float32) {
+	C.glowUniformMatrix4fv(c.gpUniformMatrix4fv, (C.GLint)(location), (C.GLsizei)(len(value)/16), (C.GLboolean)(boolToInt(transpose)), (*C.GLfloat)(unsafe.Pointer(&value[0])))
+	runtime.KeepAlive(value)
 }
 
-func UseProgram(program uint32) {
-	C.glowUseProgram(gpUseProgram, (C.GLuint)(program))
+func (c *defaultContext) UseProgram(program uint32) {
+	C.glowUseProgram(c.gpUseProgram, (C.GLuint)(program))
 }
 
-func VertexAttribPointer(index uint32, size int32, xtype uint32, normalized bool, stride int32, pointer uintptr) {
-	C.glowVertexAttribPointer(gpVertexAttribPointer, (C.GLuint)(index), (C.GLint)(size), (C.GLenum)(xtype), (C.GLboolean)(boolToInt(normalized)), (C.GLsizei)(stride), C.uintptr_t(pointer))
+func (c *defaultContext) VertexAttribPointer(index uint32, size int32, xtype uint32, normalized bool, stride int32, offset int) {
+	C.glowVertexAttribPointer(c.gpVertexAttribPointer, (C.GLuint)(index), (C.GLint)(size), (C.GLenum)(xtype), (C.GLboolean)(boolToInt(normalized)), (C.GLsizei)(stride), C.uintptr_t(offset))
 }
 
-func Viewport(x int32, y int32, width int32, height int32) {
-	C.glowViewport(gpViewport, (C.GLint)(x), (C.GLint)(y), (C.GLsizei)(width), (C.GLsizei)(height))
+func (c *defaultContext) Viewport(x int32, y int32, width int32, height int32) {
+	C.glowViewport(c.gpViewport, (C.GLint)(x), (C.GLint)(y), (C.GLsizei)(width), (C.GLsizei)(height))
 }
 
-// InitWithProcAddrFunc intializes the package using the specified OpenGL
-// function pointer loading function.
-//
-// For more cases Init should be used.
-func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
-	gpActiveTexture = (C.GPACTIVETEXTURE)(getProcAddr("glActiveTexture"))
-	if gpActiveTexture == nil {
+func (c *defaultContext) Init() error {
+	c.gpActiveTexture = (C.GPACTIVETEXTURE)(getProcAddress("glActiveTexture"))
+	if c.gpActiveTexture == nil {
 		return errors.New("gl: glActiveTexture is missing")
 	}
-	gpAttachShader = (C.GPATTACHSHADER)(getProcAddr("glAttachShader"))
-	if gpAttachShader == nil {
+	c.gpAttachShader = (C.GPATTACHSHADER)(getProcAddress("glAttachShader"))
+	if c.gpAttachShader == nil {
 		return errors.New("gl: glAttachShader is missing")
 	}
-	gpBindAttribLocation = (C.GPBINDATTRIBLOCATION)(getProcAddr("glBindAttribLocation"))
-	if gpBindAttribLocation == nil {
+	c.gpBindAttribLocation = (C.GPBINDATTRIBLOCATION)(getProcAddress("glBindAttribLocation"))
+	if c.gpBindAttribLocation == nil {
 		return errors.New("gl: glBindAttribLocation is missing")
 	}
-	gpBindBuffer = (C.GPBINDBUFFER)(getProcAddr("glBindBuffer"))
-	if gpBindBuffer == nil {
+	c.gpBindBuffer = (C.GPBINDBUFFER)(getProcAddress("glBindBuffer"))
+	if c.gpBindBuffer == nil {
 		return errors.New("gl: glBindBuffer is missing")
 	}
-	gpBindFramebufferEXT = (C.GPBINDFRAMEBUFFEREXT)(getProcAddr("glBindFramebufferEXT"))
-	gpBindRenderbufferEXT = (C.GPBINDRENDERBUFFEREXT)(getProcAddr("glBindRenderbufferEXT"))
-	gpBindTexture = (C.GPBINDTEXTURE)(getProcAddr("glBindTexture"))
-	if gpBindTexture == nil {
+	c.gpBindFramebufferEXT = (C.GPBINDFRAMEBUFFEREXT)(getProcAddress("glBindFramebufferEXT"))
+	c.gpBindRenderbufferEXT = (C.GPBINDRENDERBUFFEREXT)(getProcAddress("glBindRenderbufferEXT"))
+	c.gpBindTexture = (C.GPBINDTEXTURE)(getProcAddress("glBindTexture"))
+	if c.gpBindTexture == nil {
 		return errors.New("gl: glBindTexture is missing")
 	}
-	gpBlendEquationSeparate = (C.GPBLENDEQUATIONSEPARATE)(getProcAddr("glBlendEquationSeparate"))
-	if gpBlendEquationSeparate == nil {
+	c.gpBlendEquationSeparate = (C.GPBLENDEQUATIONSEPARATE)(getProcAddress("glBlendEquationSeparate"))
+	if c.gpBlendEquationSeparate == nil {
 		return errors.New("gl: glBlendEquationSeparate is missing")
 	}
-	gpBlendFuncSeparate = (C.GPBLENDFUNCSEPARATE)(getProcAddr("glBlendFuncSeparate"))
-	if gpBlendFuncSeparate == nil {
+	c.gpBlendFuncSeparate = (C.GPBLENDFUNCSEPARATE)(getProcAddress("glBlendFuncSeparate"))
+	if c.gpBlendFuncSeparate == nil {
 		return errors.New("gl: glBlendFuncSeparate is missing")
 	}
-	gpBufferData = (C.GPBUFFERDATA)(getProcAddr("glBufferData"))
-	if gpBufferData == nil {
+	c.gpBufferData = (C.GPBUFFERDATA)(getProcAddress("glBufferData"))
+	if c.gpBufferData == nil {
 		return errors.New("gl: glBufferData is missing")
 	}
-	gpBufferSubData = (C.GPBUFFERSUBDATA)(getProcAddr("glBufferSubData"))
-	if gpBufferSubData == nil {
+	c.gpBufferSubData = (C.GPBUFFERSUBDATA)(getProcAddress("glBufferSubData"))
+	if c.gpBufferSubData == nil {
 		return errors.New("gl: glBufferSubData is missing")
 	}
-	gpCheckFramebufferStatusEXT = (C.GPCHECKFRAMEBUFFERSTATUSEXT)(getProcAddr("glCheckFramebufferStatusEXT"))
-	gpClear = (C.GPCLEAR)(getProcAddr("glClear"))
-	if gpClear == nil {
+	c.gpCheckFramebufferStatusEXT = (C.GPCHECKFRAMEBUFFERSTATUSEXT)(getProcAddress("glCheckFramebufferStatusEXT"))
+	c.gpClear = (C.GPCLEAR)(getProcAddress("glClear"))
+	if c.gpClear == nil {
 		return errors.New("gl: glClear is missing")
 	}
-	gpColorMask = (C.GPCOLORMASK)(getProcAddr("glColorMask"))
-	if gpColorMask == nil {
+	c.gpColorMask = (C.GPCOLORMASK)(getProcAddress("glColorMask"))
+	if c.gpColorMask == nil {
 		return errors.New("gl: glColorMask is missing")
 	}
-	gpCompileShader = (C.GPCOMPILESHADER)(getProcAddr("glCompileShader"))
-	if gpCompileShader == nil {
+	c.gpCompileShader = (C.GPCOMPILESHADER)(getProcAddress("glCompileShader"))
+	if c.gpCompileShader == nil {
 		return errors.New("gl: glCompileShader is missing")
 	}
-	gpCreateProgram = (C.GPCREATEPROGRAM)(getProcAddr("glCreateProgram"))
-	if gpCreateProgram == nil {
+	c.gpCreateProgram = (C.GPCREATEPROGRAM)(getProcAddress("glCreateProgram"))
+	if c.gpCreateProgram == nil {
 		return errors.New("gl: glCreateProgram is missing")
 	}
-	gpCreateShader = (C.GPCREATESHADER)(getProcAddr("glCreateShader"))
-	if gpCreateShader == nil {
+	c.gpCreateShader = (C.GPCREATESHADER)(getProcAddress("glCreateShader"))
+	if c.gpCreateShader == nil {
 		return errors.New("gl: glCreateShader is missing")
 	}
-	gpDeleteBuffers = (C.GPDELETEBUFFERS)(getProcAddr("glDeleteBuffers"))
-	if gpDeleteBuffers == nil {
+	c.gpDeleteBuffers = (C.GPDELETEBUFFERS)(getProcAddress("glDeleteBuffers"))
+	if c.gpDeleteBuffers == nil {
 		return errors.New("gl: glDeleteBuffers is missing")
 	}
-	gpDeleteFramebuffersEXT = (C.GPDELETEFRAMEBUFFERSEXT)(getProcAddr("glDeleteFramebuffersEXT"))
-	gpDeleteProgram = (C.GPDELETEPROGRAM)(getProcAddr("glDeleteProgram"))
-	if gpDeleteProgram == nil {
+	c.gpDeleteFramebuffersEXT = (C.GPDELETEFRAMEBUFFERSEXT)(getProcAddress("glDeleteFramebuffersEXT"))
+	c.gpDeleteProgram = (C.GPDELETEPROGRAM)(getProcAddress("glDeleteProgram"))
+	if c.gpDeleteProgram == nil {
 		return errors.New("gl: glDeleteProgram is missing")
 	}
-	gpDeleteRenderbuffersEXT = (C.GPDELETERENDERBUFFERSEXT)(getProcAddr("glDeleteRenderbuffersEXT"))
-	gpDeleteShader = (C.GPDELETESHADER)(getProcAddr("glDeleteShader"))
-	if gpDeleteShader == nil {
+	c.gpDeleteRenderbuffersEXT = (C.GPDELETERENDERBUFFERSEXT)(getProcAddress("glDeleteRenderbuffersEXT"))
+	c.gpDeleteShader = (C.GPDELETESHADER)(getProcAddress("glDeleteShader"))
+	if c.gpDeleteShader == nil {
 		return errors.New("gl: glDeleteShader is missing")
 	}
-	gpDeleteTextures = (C.GPDELETETEXTURES)(getProcAddr("glDeleteTextures"))
-	if gpDeleteTextures == nil {
+	c.gpDeleteTextures = (C.GPDELETETEXTURES)(getProcAddress("glDeleteTextures"))
+	if c.gpDeleteTextures == nil {
 		return errors.New("gl: glDeleteTextures is missing")
 	}
-	gpDisable = (C.GPDISABLE)(getProcAddr("glDisable"))
-	if gpDisable == nil {
+	c.gpDisable = (C.GPDISABLE)(getProcAddress("glDisable"))
+	if c.gpDisable == nil {
 		return errors.New("gl: glDisable is missing")
 	}
-	gpDisableVertexAttribArray = (C.GPDISABLEVERTEXATTRIBARRAY)(getProcAddr("glDisableVertexAttribArray"))
-	if gpDisableVertexAttribArray == nil {
+	c.gpDisableVertexAttribArray = (C.GPDISABLEVERTEXATTRIBARRAY)(getProcAddress("glDisableVertexAttribArray"))
+	if c.gpDisableVertexAttribArray == nil {
 		return errors.New("gl: glDisableVertexAttribArray is missing")
 	}
-	gpDrawElements = (C.GPDRAWELEMENTS)(getProcAddr("glDrawElements"))
-	if gpDrawElements == nil {
+	c.gpDrawElements = (C.GPDRAWELEMENTS)(getProcAddress("glDrawElements"))
+	if c.gpDrawElements == nil {
 		return errors.New("gl: glDrawElements is missing")
 	}
-	gpEnable = (C.GPENABLE)(getProcAddr("glEnable"))
-	if gpEnable == nil {
+	c.gpEnable = (C.GPENABLE)(getProcAddress("glEnable"))
+	if c.gpEnable == nil {
 		return errors.New("gl: glEnable is missing")
 	}
-	gpEnableVertexAttribArray = (C.GPENABLEVERTEXATTRIBARRAY)(getProcAddr("glEnableVertexAttribArray"))
-	if gpEnableVertexAttribArray == nil {
+	c.gpEnableVertexAttribArray = (C.GPENABLEVERTEXATTRIBARRAY)(getProcAddress("glEnableVertexAttribArray"))
+	if c.gpEnableVertexAttribArray == nil {
 		return errors.New("gl: glEnableVertexAttribArray is missing")
 	}
-	gpFlush = (C.GPFLUSH)(getProcAddr("glFlush"))
-	if gpFlush == nil {
+	c.gpFlush = (C.GPFLUSH)(getProcAddress("glFlush"))
+	if c.gpFlush == nil {
 		return errors.New("gl: glFlush is missing")
 	}
-	gpFramebufferRenderbufferEXT = (C.GPFRAMEBUFFERRENDERBUFFEREXT)(getProcAddr("glFramebufferRenderbufferEXT"))
-	gpFramebufferTexture2DEXT = (C.GPFRAMEBUFFERTEXTURE2DEXT)(getProcAddr("glFramebufferTexture2DEXT"))
-	gpGenBuffers = (C.GPGENBUFFERS)(getProcAddr("glGenBuffers"))
-	if gpGenBuffers == nil {
+	c.gpFramebufferRenderbufferEXT = (C.GPFRAMEBUFFERRENDERBUFFEREXT)(getProcAddress("glFramebufferRenderbufferEXT"))
+	c.gpFramebufferTexture2DEXT = (C.GPFRAMEBUFFERTEXTURE2DEXT)(getProcAddress("glFramebufferTexture2DEXT"))
+	c.gpGenBuffers = (C.GPGENBUFFERS)(getProcAddress("glGenBuffers"))
+	if c.gpGenBuffers == nil {
 		return errors.New("gl: glGenBuffers is missing")
 	}
-	gpGenFramebuffersEXT = (C.GPGENFRAMEBUFFERSEXT)(getProcAddr("glGenFramebuffersEXT"))
-	gpGenRenderbuffersEXT = (C.GPGENRENDERBUFFERSEXT)(getProcAddr("glGenRenderbuffersEXT"))
-	gpGenTextures = (C.GPGENTEXTURES)(getProcAddr("glGenTextures"))
-	if gpGenTextures == nil {
+	c.gpGenFramebuffersEXT = (C.GPGENFRAMEBUFFERSEXT)(getProcAddress("glGenFramebuffersEXT"))
+	c.gpGenRenderbuffersEXT = (C.GPGENRENDERBUFFERSEXT)(getProcAddress("glGenRenderbuffersEXT"))
+	c.gpGenTextures = (C.GPGENTEXTURES)(getProcAddress("glGenTextures"))
+	if c.gpGenTextures == nil {
 		return errors.New("gl: glGenTextures is missing")
 	}
-	gpGetError = (C.GPGETERROR)(getProcAddr("glGetError"))
-	if gpGetError == nil {
+	c.gpGetError = (C.GPGETERROR)(getProcAddress("glGetError"))
+	if c.gpGetError == nil {
 		return errors.New("gl: glGetError is missing")
 	}
-	gpGetIntegerv = (C.GPGETINTEGERV)(getProcAddr("glGetIntegerv"))
-	if gpGetIntegerv == nil {
+	c.gpGetIntegerv = (C.GPGETINTEGERV)(getProcAddress("glGetIntegerv"))
+	if c.gpGetIntegerv == nil {
 		return errors.New("gl: glGetIntegerv is missing")
 	}
-	gpGetProgramInfoLog = (C.GPGETPROGRAMINFOLOG)(getProcAddr("glGetProgramInfoLog"))
-	if gpGetProgramInfoLog == nil {
+	c.gpGetProgramInfoLog = (C.GPGETPROGRAMINFOLOG)(getProcAddress("glGetProgramInfoLog"))
+	if c.gpGetProgramInfoLog == nil {
 		return errors.New("gl: glGetProgramInfoLog is missing")
 	}
-	gpGetProgramiv = (C.GPGETPROGRAMIV)(getProcAddr("glGetProgramiv"))
-	if gpGetProgramiv == nil {
+	c.gpGetProgramiv = (C.GPGETPROGRAMIV)(getProcAddress("glGetProgramiv"))
+	if c.gpGetProgramiv == nil {
 		return errors.New("gl: glGetProgramiv is missing")
 	}
-	gpGetShaderInfoLog = (C.GPGETSHADERINFOLOG)(getProcAddr("glGetShaderInfoLog"))
-	if gpGetShaderInfoLog == nil {
+	c.gpGetShaderInfoLog = (C.GPGETSHADERINFOLOG)(getProcAddress("glGetShaderInfoLog"))
+	if c.gpGetShaderInfoLog == nil {
 		return errors.New("gl: glGetShaderInfoLog is missing")
 	}
-	gpGetShaderiv = (C.GPGETSHADERIV)(getProcAddr("glGetShaderiv"))
-	if gpGetShaderiv == nil {
+	c.gpGetShaderiv = (C.GPGETSHADERIV)(getProcAddress("glGetShaderiv"))
+	if c.gpGetShaderiv == nil {
 		return errors.New("gl: glGetShaderiv is missing")
 	}
-	gpGetUniformLocation = (C.GPGETUNIFORMLOCATION)(getProcAddr("glGetUniformLocation"))
-	if gpGetUniformLocation == nil {
+	c.gpGetUniformLocation = (C.GPGETUNIFORMLOCATION)(getProcAddress("glGetUniformLocation"))
+	if c.gpGetUniformLocation == nil {
 		return errors.New("gl: glGetUniformLocation is missing")
 	}
-	gpIsFramebufferEXT = (C.GPISFRAMEBUFFEREXT)(getProcAddr("glIsFramebufferEXT"))
-	gpIsProgram = (C.GPISPROGRAM)(getProcAddr("glIsProgram"))
-	if gpIsProgram == nil {
+	c.gpIsFramebufferEXT = (C.GPISFRAMEBUFFEREXT)(getProcAddress("glIsFramebufferEXT"))
+	c.gpIsProgram = (C.GPISPROGRAM)(getProcAddress("glIsProgram"))
+	if c.gpIsProgram == nil {
 		return errors.New("gl: glIsProgram is missing")
 	}
-	gpIsRenderbufferEXT = (C.GPISRENDERBUFFEREXT)(getProcAddr("glIsRenderbufferEXT"))
-	gpIsTexture = (C.GPISTEXTURE)(getProcAddr("glIsTexture"))
-	if gpIsTexture == nil {
+	c.gpIsRenderbufferEXT = (C.GPISRENDERBUFFEREXT)(getProcAddress("glIsRenderbufferEXT"))
+	c.gpIsTexture = (C.GPISTEXTURE)(getProcAddress("glIsTexture"))
+	if c.gpIsTexture == nil {
 		return errors.New("gl: glIsTexture is missing")
 	}
-	gpLinkProgram = (C.GPLINKPROGRAM)(getProcAddr("glLinkProgram"))
-	if gpLinkProgram == nil {
+	c.gpLinkProgram = (C.GPLINKPROGRAM)(getProcAddress("glLinkProgram"))
+	if c.gpLinkProgram == nil {
 		return errors.New("gl: glLinkProgram is missing")
 	}
-	gpPixelStorei = (C.GPPIXELSTOREI)(getProcAddr("glPixelStorei"))
-	if gpPixelStorei == nil {
+	c.gpPixelStorei = (C.GPPIXELSTOREI)(getProcAddress("glPixelStorei"))
+	if c.gpPixelStorei == nil {
 		return errors.New("gl: glPixelStorei is missing")
 	}
-	gpReadPixels = (C.GPREADPIXELS)(getProcAddr("glReadPixels"))
-	if gpReadPixels == nil {
+	c.gpReadPixels = (C.GPREADPIXELS)(getProcAddress("glReadPixels"))
+	if c.gpReadPixels == nil {
 		return errors.New("gl: glReadPixels is missing")
 	}
-	gpRenderbufferStorageEXT = (C.GPRENDERBUFFERSTORAGEEXT)(getProcAddr("glRenderbufferStorageEXT"))
-	gpScissor = (C.GPSCISSOR)(getProcAddr("glScissor"))
-	if gpScissor == nil {
+	c.gpRenderbufferStorageEXT = (C.GPRENDERBUFFERSTORAGEEXT)(getProcAddress("glRenderbufferStorageEXT"))
+	c.gpScissor = (C.GPSCISSOR)(getProcAddress("glScissor"))
+	if c.gpScissor == nil {
 		return errors.New("gl: glScissor is missing")
 	}
-	gpShaderSource = (C.GPSHADERSOURCE)(getProcAddr("glShaderSource"))
-	if gpShaderSource == nil {
+	c.gpShaderSource = (C.GPSHADERSOURCE)(getProcAddress("glShaderSource"))
+	if c.gpShaderSource == nil {
 		return errors.New("gl: glShaderSource is missing")
 	}
-	gpStencilFunc = (C.GPSTENCILFUNC)(getProcAddr("glStencilFunc"))
-	if gpStencilFunc == nil {
+	c.gpStencilFunc = (C.GPSTENCILFUNC)(getProcAddress("glStencilFunc"))
+	if c.gpStencilFunc == nil {
 		return errors.New("gl: glStencilFunc is missing")
 	}
-	gpStencilOp = (C.GPSTENCILOP)(getProcAddr("glStencilOp"))
-	if gpStencilOp == nil {
+	c.gpStencilOp = (C.GPSTENCILOP)(getProcAddress("glStencilOp"))
+	if c.gpStencilOp == nil {
 		return errors.New("gl: glStencilOp is missing")
 	}
-	gpTexImage2D = (C.GPTEXIMAGE2D)(getProcAddr("glTexImage2D"))
-	if gpTexImage2D == nil {
+	c.gpTexImage2D = (C.GPTEXIMAGE2D)(getProcAddress("glTexImage2D"))
+	if c.gpTexImage2D == nil {
 		return errors.New("gl: glTexImage2D is missing")
 	}
-	gpTexParameteri = (C.GPTEXPARAMETERI)(getProcAddr("glTexParameteri"))
-	if gpTexParameteri == nil {
+	c.gpTexParameteri = (C.GPTEXPARAMETERI)(getProcAddress("glTexParameteri"))
+	if c.gpTexParameteri == nil {
 		return errors.New("gl: glTexParameteri is missing")
 	}
-	gpTexSubImage2D = (C.GPTEXSUBIMAGE2D)(getProcAddr("glTexSubImage2D"))
-	if gpTexSubImage2D == nil {
+	c.gpTexSubImage2D = (C.GPTEXSUBIMAGE2D)(getProcAddress("glTexSubImage2D"))
+	if c.gpTexSubImage2D == nil {
 		return errors.New("gl: glTexSubImage2D is missing")
 	}
-	gpUniform1fv = (C.GPUNIFORM1FV)(getProcAddr("glUniform1fv"))
-	if gpUniform1fv == nil {
+	c.gpUniform1fv = (C.GPUNIFORM1FV)(getProcAddress("glUniform1fv"))
+	if c.gpUniform1fv == nil {
 		return errors.New("gl: glUniform1fv is missing")
 	}
-	gpUniform1i = (C.GPUNIFORM1I)(getProcAddr("glUniform1i"))
-	if gpUniform1i == nil {
+	c.gpUniform1i = (C.GPUNIFORM1I)(getProcAddress("glUniform1i"))
+	if c.gpUniform1i == nil {
 		return errors.New("gl: glUniform1i is missing")
 	}
-	gpUniform1iv = (C.GPUNIFORM1IV)(getProcAddr("glUniform1iv"))
-	if gpUniform1iv == nil {
+	c.gpUniform1iv = (C.GPUNIFORM1IV)(getProcAddress("glUniform1iv"))
+	if c.gpUniform1iv == nil {
 		return errors.New("gl: glUniform1iv is missing")
 	}
-	gpUniform2fv = (C.GPUNIFORM2FV)(getProcAddr("glUniform2fv"))
-	if gpUniform2fv == nil {
+	c.gpUniform2fv = (C.GPUNIFORM2FV)(getProcAddress("glUniform2fv"))
+	if c.gpUniform2fv == nil {
 		return errors.New("gl: glUniform2fv is missing")
 	}
-	gpUniform3fv = (C.GPUNIFORM3FV)(getProcAddr("glUniform3fv"))
-	if gpUniform3fv == nil {
+	c.gpUniform3fv = (C.GPUNIFORM3FV)(getProcAddress("glUniform3fv"))
+	if c.gpUniform3fv == nil {
 		return errors.New("gl: glUniform3fv is missing")
 	}
-	gpUniform4fv = (C.GPUNIFORM4FV)(getProcAddr("glUniform4fv"))
-	if gpUniform4fv == nil {
+	c.gpUniform4fv = (C.GPUNIFORM4FV)(getProcAddress("glUniform4fv"))
+	if c.gpUniform4fv == nil {
 		return errors.New("gl: glUniform4fv is missing")
 	}
-	gpUniformMatrix2fv = (C.GPUNIFORMMATRIX2FV)(getProcAddr("glUniformMatrix2fv"))
-	if gpUniformMatrix2fv == nil {
+	c.gpUniformMatrix2fv = (C.GPUNIFORMMATRIX2FV)(getProcAddress("glUniformMatrix2fv"))
+	if c.gpUniformMatrix2fv == nil {
 		return errors.New("gl: glUniformMatrix2fv is missing")
 	}
-	gpUniformMatrix3fv = (C.GPUNIFORMMATRIX3FV)(getProcAddr("glUniformMatrix3fv"))
-	if gpUniformMatrix3fv == nil {
+	c.gpUniformMatrix3fv = (C.GPUNIFORMMATRIX3FV)(getProcAddress("glUniformMatrix3fv"))
+	if c.gpUniformMatrix3fv == nil {
 		return errors.New("gl: glUniformMatrix3fv is missing")
 	}
-	gpUniformMatrix4fv = (C.GPUNIFORMMATRIX4FV)(getProcAddr("glUniformMatrix4fv"))
-	if gpUniformMatrix4fv == nil {
+	c.gpUniformMatrix4fv = (C.GPUNIFORMMATRIX4FV)(getProcAddress("glUniformMatrix4fv"))
+	if c.gpUniformMatrix4fv == nil {
 		return errors.New("gl: glUniformMatrix4fv is missing")
 	}
-	gpUseProgram = (C.GPUSEPROGRAM)(getProcAddr("glUseProgram"))
-	if gpUseProgram == nil {
+	c.gpUseProgram = (C.GPUSEPROGRAM)(getProcAddress("glUseProgram"))
+	if c.gpUseProgram == nil {
 		return errors.New("gl: glUseProgram is missing")
 	}
-	gpVertexAttribPointer = (C.GPVERTEXATTRIBPOINTER)(getProcAddr("glVertexAttribPointer"))
-	if gpVertexAttribPointer == nil {
+	c.gpVertexAttribPointer = (C.GPVERTEXATTRIBPOINTER)(getProcAddress("glVertexAttribPointer"))
+	if c.gpVertexAttribPointer == nil {
 		return errors.New("gl: glVertexAttribPointer is missing")
 	}
-	gpViewport = (C.GPVIEWPORT)(getProcAddr("glViewport"))
-	if gpViewport == nil {
+	c.gpViewport = (C.GPVIEWPORT)(getProcAddress("glViewport"))
+	if c.gpViewport == nil {
 		return errors.New("gl: glViewport is missing")
 	}
 	return nil

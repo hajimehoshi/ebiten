@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !ios && !js && !opengles
+//go:build !android && !ios && !js
 
 package opengl
 
@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 )
 
@@ -29,6 +30,8 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 	if microsoftgdk.IsXbox() {
 		return nil, fmt.Errorf("opengl: OpenGL is not supported on Xbox")
 	}
+
 	g := &Graphics{}
+	g.context.ctx = gl.NewDefaultContext()
 	return g, nil
 }

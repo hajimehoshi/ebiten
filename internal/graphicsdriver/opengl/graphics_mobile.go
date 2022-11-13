@@ -26,11 +26,15 @@ import (
 // NewGraphics creates an implementation of graphicsdriver.Graphics for OpenGL.
 // The returned graphics value is nil iff the error is not nil.
 func NewGraphics(context mgl.Context) (graphicsdriver.Graphics, error) {
-	g := &Graphics{}
+	var ctx gl.Context
 	if context != nil {
-		g.context.ctx = gl.NewGomobileContext(context.(mgl.Context))
+		ctx = gl.NewGomobileContext(context.(mgl.Context))
 	} else {
-		g.context.ctx = gl.NewDefaultContext()
+		ctx = gl.NewDefaultContext()
 	}
+
+	g := &Graphics{}
+	g.context.ctx = ctx
+
 	return g, nil
 }
