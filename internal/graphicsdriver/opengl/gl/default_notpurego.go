@@ -406,10 +406,6 @@ func boolToInt(b bool) int {
 	return 0
 }
 
-func (c *defaultContext) IsES() bool {
-	return isES
-}
-
 func (c *defaultContext) ActiveTexture(texture uint32) {
 	C.glowActiveTexture(c.gpActiveTexture, (C.GLenum)(texture))
 }

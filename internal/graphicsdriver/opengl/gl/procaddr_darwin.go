@@ -18,15 +18,11 @@ import (
 	"github.com/ebitengine/purego"
 )
 
-var (
-	opengl uintptr
-	isES   bool
-)
+var opengl uintptr
 
 func init() {
 	opengl = purego.Dlopen("/System/Library/Frameworks/OpenGLES.framework/Versions/Current/OpenGLES", purego.RTLD_GLOBAL)
 	if opengl != 0 {
-		isES = true
 		return
 	}
 	opengl = purego.Dlopen("/System/Library/Frameworks/OpenGL.framework/Versions/Current/OpenGL", purego.RTLD_GLOBAL)

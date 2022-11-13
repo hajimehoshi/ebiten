@@ -12,24 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !darwin && !js && !nintendosdk && !windows && !opengles
+//go:build !android && !ios && !opengles
 
-package gl
+package opengl
 
-// #cgo pkg-config: gl
-//
-// #include <stdlib.h>
-// #include <GL/glx.h>
-//
-// static void* getProcAddress(const char* name) {
-//   return glXGetProcAddress((const GLubyte *) name);
-// }
-import "C"
+// Though it is possible to have a logic to restore the graphics data for GPU, do not use it for performance (#1603).
 
-import "unsafe"
-
-func getProcAddress(namea string) unsafe.Pointer {
-	cname := C.CString(namea)
-	defer C.free(unsafe.Pointer(cname))
-	return C.getProcAddress(cname)
-}
+const needsRestoring = false

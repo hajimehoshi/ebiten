@@ -41,10 +41,6 @@ func (defaultContext) Init() error {
 	return nil
 }
 
-func (defaultContext) IsES() bool {
-	return true
-}
-
 func (defaultContext) ActiveTexture(texture uint32) {
 	C.glActiveTexture(C.GLenum(texture))
 }

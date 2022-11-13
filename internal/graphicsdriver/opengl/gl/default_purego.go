@@ -107,10 +107,6 @@ func boolToInt(b bool) int {
 	return 0
 }
 
-func (c *defaultContext) IsES() bool {
-	return isES
-}
-
 func (c *defaultContext) ActiveTexture(texture uint32) {
 	purego.SyscallN(c.gpActiveTexture, uintptr(texture))
 }

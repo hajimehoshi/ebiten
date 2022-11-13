@@ -28,8 +28,6 @@ import "C"
 
 import "unsafe"
 
-var isES = false
-
 func getProcAddress(namea string) unsafe.Pointer {
 	cname := C.CString(namea)
 	defer C.free(unsafe.Pointer(cname))

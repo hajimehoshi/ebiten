@@ -16,7 +16,6 @@ package opengl
 
 import (
 	"fmt"
-	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -266,11 +265,7 @@ func (g *Graphics) SetFullscreen(fullscreen bool) {
 }
 
 func (g *Graphics) NeedsRestoring() bool {
-	// Though it is possible to have a logic to restore the graphics data for GPU, do not use it for performance (#1603).
-	if runtime.GOOS == "js" {
-		return false
-	}
-	return g.context.ctx.IsES()
+	return needsRestoring
 }
 
 func (g *Graphics) NeedsClearingScreen() bool {
