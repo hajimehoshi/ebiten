@@ -47,7 +47,7 @@ func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, Graphics
 }
 
 func (*graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {
-	return opengl.NewGraphics()
+	return opengl.NewGraphics(nil)
 }
 
 func (g *graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error) {

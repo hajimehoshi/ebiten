@@ -35,7 +35,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
@@ -270,23 +269,24 @@ func (u *userInterfaceImpl) run(game Game, mainloop bool) (err error) {
 	}()
 
 	u.context = newContext(game)
+
+	var mgl gl.Context
+	if mainloop {
+		// When gomobile-build is used, GL functions must be called via
+		// gl.Context so that they are called on the appropriate thread.
+		mgl = <-glContextCh
+	} else {
+		u.t = thread.NewOSThread()
+		graphicscommand.SetRenderingThread(u.t)
+	}
+
 	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
-		gomobileBuild: mainloop,
+		gomobileContext: mgl,
 	})
 	if err != nil {
 		return err
 	}
 	u.graphicsDriver = g
-
-	if mainloop {
-		// When gomobile-build is used, GL functions must be called via
-		// gl.Context so that they are called on the appropriate thread.
-		ctx := <-glContextCh
-		g.(*opengl.Graphics).SetGomobileGLContext(ctx)
-	} else {
-		u.t = thread.NewOSThread()
-		graphicscommand.SetRenderingThread(u.t)
-	}
 
 	// If gomobile-build is used, wait for the outside size fixed.
 	if u.setGBuildSizeCh != nil {

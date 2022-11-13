@@ -17,13 +17,15 @@ package ui
 import (
 	"fmt"
 
+	"golang.org/x/mobile/gl"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
 type graphicsDriverCreatorImpl struct {
-	gomobileBuild bool
+	gomobileContext gl.Context
 }
 
 func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {
@@ -38,8 +40,8 @@ func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, Graphics
 	return nil, GraphicsLibraryUnknown, fmt.Errorf("ui: failed to choose graphics drivers: Metal: %v, OpenGL: %v", err1, err2)
 }
 
-func (*graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {
-	return opengl.NewGraphics()
+func (g *graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {
+	return opengl.NewGraphics(g.gomobileContext)
 }
 
 func (*graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error) {
@@ -47,7 +49,7 @@ func (*graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error) 
 }
 
 func (g *graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
-	if g.gomobileBuild {
+	if g.gomobileContext != nil {
 		return nil, fmt.Errorf("ui: Metal is not available with gomobile-build")
 	}
 	return metal.NewGraphics()

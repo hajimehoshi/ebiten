@@ -25,12 +25,15 @@ import (
 
 // NewGraphics creates an implementation of graphicsdriver.Graphics for OpenGL.
 // The returned graphics value is nil iff the error is not nil.
-func NewGraphics() (graphicsdriver.Graphics, error) {
+//
+// context is an additional information to initialize the underlying context.
+// context type depends on environments.
+func NewGraphics(context any) (graphicsdriver.Graphics, error) {
 	if microsoftgdk.IsXbox() {
 		return nil, fmt.Errorf("opengl: OpenGL is not supported on Xbox")
 	}
 	g := &Graphics{}
-	if err := g.init(); err != nil {
+	if err := g.init(context); err != nil {
 		return nil, err
 	}
 	return g, nil

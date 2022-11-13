@@ -22,6 +22,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 )
 
-func (g *Graphics) SetGomobileGLContext(context mgl.Context) {
-	g.context.ctx = gl.NewGomobileContext(context)
+func (g *Graphics) init(context any) error {
+	if context != nil {
+		g.context.ctx = gl.NewGomobileContext(context.(mgl.Context))
+	} else {
+		g.context.ctx = gl.DefaultContext{}
+	}
+	return nil
 }

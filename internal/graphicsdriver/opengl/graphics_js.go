@@ -18,7 +18,7 @@ import (
 	"syscall/js"
 )
 
-func (g *Graphics) init() error {
+func (g *Graphics) init(_ any) error {
 	// Do nothing.
 	return nil
 }

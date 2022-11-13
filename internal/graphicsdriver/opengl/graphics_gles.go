@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build (android || ios || opengles) && !js
+//go:build !android && !ios && !js && opengles
 
 package opengl
 
@@ -20,7 +20,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 )
 
-func (g *Graphics) init() error {
+func (g *Graphics) init(context any) error {
 	g.context.ctx = gl.DefaultContext{}
 	return nil
 }

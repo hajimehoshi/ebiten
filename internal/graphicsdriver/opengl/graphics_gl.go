@@ -20,6 +20,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 )
 
-func (g *Graphics) init() error {
+func (g *Graphics) init(context any) error {
 	return gl.Init()
 }
