@@ -284,9 +284,9 @@ func (defaultContext) Scissor(x, y, width, height int32) {
 }
 
 func (defaultContext) ShaderSource(shader uint32, xstring string) {
-	s, free := cStringPtr(xstring)
-	defer free()
-	C.glShaderSource(C.GLuint(shader), 1, (**C.GLchar)(s), nil)
+	s := C.CString(xstring)
+	defer C.free(unsafe.Pointer(s))
+	C.glShaderSource(C.GLuint(shader), 1, (**C.GLchar)(unsafe.Pointer(&s)), nil)
 }
 
 func (defaultContext) StencilFunc(func_ uint32, ref int32, mask uint32) {
