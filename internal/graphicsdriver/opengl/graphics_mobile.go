@@ -19,6 +19,7 @@ package opengl
 import (
 	mgl "golang.org/x/mobile/gl"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 )
 
