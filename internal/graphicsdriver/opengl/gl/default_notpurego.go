@@ -5,8 +5,6 @@
 
 package gl
 
-// #cgo linux,!nintendosdk freebsd,!nintendosdk openbsd,!nintendosdk pkg-config: gl
-//
 // #ifndef APIENTRY
 //   #define APIENTRY
 // #endif
@@ -20,6 +18,7 @@ package gl
 // #endif
 //
 // #include <stdint.h>
+// #include <stdlib.h>
 //
 // typedef unsigned int GLenum;
 // typedef unsigned char GLboolean;
@@ -416,8 +415,8 @@ func (c *defaultContext) AttachShader(program uint32, shader uint32) {
 }
 
 func (c *defaultContext) BindAttribLocation(program uint32, index uint32, name string) {
-	cname, free := cStr(name)
-	defer free()
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
 	C.glowBindAttribLocation(c.gpBindAttribLocation, (C.GLuint)(program), (C.GLuint)(index), (*C.GLchar)(unsafe.Pointer(cname)))
 }
 
@@ -604,8 +603,8 @@ func (c *defaultContext) GetShaderiv(dst []int32, shader uint32, pname uint32) {
 }
 
 func (c *defaultContext) GetUniformLocation(program uint32, name string) int32 {
-	cname, free := cStr(name)
-	defer free()
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
 	ret := C.glowGetUniformLocation(c.gpGetUniformLocation, (C.GLuint)(program), (*C.GLchar)(unsafe.Pointer(cname)))
 	return int32(ret)
 }
@@ -651,8 +650,8 @@ func (c *defaultContext) Scissor(x int32, y int32, width int32, height int32) {
 }
 
 func (c *defaultContext) ShaderSource(shader uint32, xstring string) {
-	cstring, free := cStr(xstring)
-	defer free()
+	cstring := C.CString(xstring)
+	defer C.free(unsafe.Pointer(cstring))
 	C.glowShaderSource(c.gpShaderSource, (C.GLuint)(shader), 1, (**C.GLchar)(unsafe.Pointer(&cstring)), nil)
 }
 
