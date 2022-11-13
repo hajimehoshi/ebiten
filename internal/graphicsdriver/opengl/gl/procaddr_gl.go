@@ -16,13 +16,24 @@
 
 package gl
 
-// #cgo pkg-config: gl
+// #cgo LDFLAGS: -ldl
 //
+// #include <dlfcn.h>
 // #include <stdlib.h>
-// #include <GL/glx.h>
 //
 // static void* getProcAddress(const char* name) {
-//   return glXGetProcAddress((const GLubyte *) name);
+//   static void* libGL;
+//   if (!libGL) {
+//     libGL = dlopen("libGL.so", RTLD_NOW | RTLD_GLOBAL);
+//   }
+//   static void*(*glXGetProcAddress)(const char*);
+//   if (!glXGetProcAddress) {
+//     glXGetProcAddress = dlsym(libGL, "glXGetProcAddress");
+//     if (!glXGetProcAddress) {
+//       glXGetProcAddress = dlsym(libGL, "glXGetProcAddressARB");
+//     }
+//   }
+//   return glXGetProcAddress(name);
 // }
 import "C"
 
