@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 )
 
@@ -31,8 +30,5 @@ func NewGraphics() (graphicsdriver.Graphics, error) {
 		return nil, fmt.Errorf("opengl: OpenGL is not supported on Xbox")
 	}
 	g := &Graphics{}
-	if err := gl.Init(); err != nil {
-		return nil, err
-	}
 	return g, nil
 }

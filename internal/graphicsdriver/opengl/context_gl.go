@@ -82,9 +82,18 @@ func getProgramID(p program) programID {
 }
 
 type contextImpl struct {
+	init bool
 }
 
 func (c *context) reset() error {
+	if !c.init {
+		// Initialize OpenGL after WGL is initialized especially for Windows (#2452).
+		if err := gl.Init(); err != nil {
+			return err
+		}
+		c.init = true
+	}
+
 	c.locationCache = newLocationCache()
 	c.lastTexture = invalidTexture
 	c.lastFramebuffer = invalidFramebuffer
