@@ -20,7 +20,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 )
 
-func (g *Graphics) init(context any) error {
+// NewGraphics creates an implementation of graphicsdriver.Graphics for OpenGL.
+// The returned graphics value is nil iff the error is not nil.
+func NewGraphics() (graphicsdriver.Graphics, error) {
+	g := &Graphics{}
 	g.context.ctx = gl.DefaultContext{}
-	return nil
+	return g, nil
 }

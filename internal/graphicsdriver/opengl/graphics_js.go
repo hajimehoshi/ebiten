@@ -18,7 +18,10 @@ import (
 	"syscall/js"
 )
 
-func (g *Graphics) init(canvas any) error {
-	g.context.canvas = canvas.(js.Value)
-	return nil
+// NewGraphics creates an implementation of graphicsdriver.Graphics for OpenGL.
+// The returned graphics value is nil iff the error is not nil.
+func NewGraphics(canvas js.Value) (graphicsdriver.Graphics, error) {
+	g := &Graphics{}
+	g.context.canvas = canvas
+	return g, nil
 }

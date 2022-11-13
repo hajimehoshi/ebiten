@@ -19,25 +19,8 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
-
-// NewGraphics creates an implementation of graphicsdriver.Graphics for OpenGL.
-// The returned graphics value is nil iff the error is not nil.
-//
-// context is an additional information to initialize the underlying context.
-// context type depends on environments.
-func NewGraphics(context any) (graphicsdriver.Graphics, error) {
-	if microsoftgdk.IsXbox() {
-		return nil, fmt.Errorf("opengl: OpenGL is not supported on Xbox")
-	}
-	g := &Graphics{}
-	if err := g.init(context); err != nil {
-		return nil, err
-	}
-	return g, nil
-}
 
 type activatedTexture struct {
 	textureNative textureNative
