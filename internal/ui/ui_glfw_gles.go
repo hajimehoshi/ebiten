@@ -24,4 +24,5 @@ func setGLFWClientAPI() {
 	glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLESAPI)
 	glfw.WindowHint(glfw.ContextVersionMajor, 2)
 	glfw.WindowHint(glfw.ContextVersionMinor, 0)
+	glfw.WindowHint(glfw.ContextCreationAPI, glfw.EGLContextAPI)
 }

@@ -59,6 +59,7 @@ const (
 const (
 	AutoIconify            = Hint(0x00020006)
 	ClientAPI              = Hint(0x00022001)
+	ContextCreationAPI     = Hint(0x0002200B)
 	ContextVersionMajor    = Hint(0x00022002)
 	ContextVersionMinor    = Hint(0x00022003)
 	Decorated              = Hint(0x00020005)
@@ -82,6 +83,7 @@ const (
 	CursorDisabled = 0x00034003
 	CursorHidden   = 0x00034002
 	CursorNormal   = 0x00034001
+	EGLContextAPI  = 0x00036002
 	NoAPI          = 0
 	OpenGLAPI      = 0x00030001
 	OpenGLESAPI    = 0x00030002
