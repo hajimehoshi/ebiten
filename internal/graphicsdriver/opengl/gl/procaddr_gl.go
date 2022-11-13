@@ -24,7 +24,7 @@ package gl
 // static void* getProcAddress(const char* name) {
 //   static void* libGL;
 //   if (!libGL) {
-//     libGL = dlopen("libGL.so", RTLD_NOW | RTLD_GLOBAL);
+//     libGL = dlopen("libGL.so", RTLD_LAZY | RTLD_GLOBAL);
 //   }
 //   static void*(*glXGetProcAddress)(const char*);
 //   if (!glXGetProcAddress) {

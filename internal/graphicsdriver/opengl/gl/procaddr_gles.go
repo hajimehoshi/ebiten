@@ -24,7 +24,7 @@ package gl
 // static void* getProcAddress(const char* name) {
 //   static void* libGLES;
 //   if (!libGLES) {
-//     libGLES = dlopen("libGLESv2.so", RTLD_NOW | RTLD_GLOBAL);
+//     libGLES = dlopen("libGLESv2.so", RTLD_LAZY | RTLD_GLOBAL);
 //   }
 //   return dlsym(libGLES, name);
 // }
