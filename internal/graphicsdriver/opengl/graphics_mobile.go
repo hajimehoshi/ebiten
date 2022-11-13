@@ -30,7 +30,7 @@ func NewGraphics(context mgl.Context) (graphicsdriver.Graphics, error) {
 	if context != nil {
 		g.context.ctx = gl.NewGomobileContext(context.(mgl.Context))
 	} else {
-		g.context.ctx = gl.DefaultContext{}
+		g.context.ctx = gl.NewDefaultContext()
 	}
 	return g, nil
 }

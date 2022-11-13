@@ -25,6 +25,6 @@ import (
 // The returned graphics value is nil iff the error is not nil.
 func NewGraphics() (graphicsdriver.Graphics, error) {
 	g := &Graphics{}
-	g.context.ctx = gl.DefaultContext{}
+	g.context.ctx = gl.NewDefaultContext()
 	return g, nil
 }
