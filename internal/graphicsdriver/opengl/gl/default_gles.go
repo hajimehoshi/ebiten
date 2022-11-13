@@ -12,25 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build android || ios || opengles
+//go:build android || opengles
 
 package gl
 
-// #cgo !darwin          CFLAGS:     -Dos_notdarwin
-// #cgo darwin           CFLAGS:     -Dos_darwin
-// #cgo !android,!darwin pkg-config: glesv2
-// #cgo android          LDFLAGS:    -lGLESv2
-// #cgo darwin           LDFLAGS:    -framework OpenGLES
+// #cgo !android pkg-config: glesv2
+// #cgo android  LDFLAGS:    -lGLESv2
 //
-// #if defined(os_darwin)
-//   #define GLES_SILENCE_DEPRECATION
-//   #include <OpenGLES/ES2/glext.h>
-// #endif
-//
-// #if defined(os_notdarwin)
-//   #include <GLES2/gl2.h>
-// #endif
-//
+// #include <GLES2/gl2.h>
 // #include <stdlib.h>
 import "C"
 
