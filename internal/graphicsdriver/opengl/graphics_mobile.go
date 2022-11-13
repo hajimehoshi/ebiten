@@ -17,11 +17,11 @@
 package opengl
 
 import (
-	"golang.org/x/mobile/gl"
+	mgl "golang.org/x/mobile/gl"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gles"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 )
 
-func (g *Graphics) SetGomobileGLContext(context gl.Context) {
-	g.context.ctx = gles.NewGomobileContext(context)
+func (g *Graphics) SetGomobileGLContext(context mgl.Context) {
+	g.context.ctx = gl.NewGomobileContext(context)
 }

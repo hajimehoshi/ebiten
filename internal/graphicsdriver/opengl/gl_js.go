@@ -18,7 +18,7 @@ import (
 	"syscall/js"
 )
 
-type gl struct {
+type jsGL struct {
 	activeTexture            js.Value
 	attachShader             js.Value
 	bindAttribLocation       js.Value
@@ -92,10 +92,10 @@ type gl struct {
 	viewport                 js.Value
 }
 
-func (c *context) newGL(v js.Value) *gl {
+func (c *context) newJSGL(v js.Value) *jsGL {
 	// Passing a Go string to the JS world is expensive. This causes conversion to UTF-16 (#1438).
 	// In order to reduce the cost when calling functions, create the function objects by bind and use them.
-	g := &gl{
+	g := &jsGL{
 		activeTexture:            v.Get("activeTexture").Call("bind", v),
 		attachShader:             v.Get("attachShader").Call("bind", v),
 		bindAttribLocation:       v.Get("bindAttribLocation").Call("bind", v),

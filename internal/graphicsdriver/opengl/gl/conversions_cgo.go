@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-//go:build !darwin && !windows
+//go:build !android && !darwin && !js && !windows && !opengles
 
 package gl
 

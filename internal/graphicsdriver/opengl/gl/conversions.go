@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 
+//go:build !android && !ios && !js && !opengles
+
 package gl
 
 import (
@@ -14,7 +16,7 @@ import (
 //
 //	var data []byte
 //	...
-//	gl.TexImage2D(glconst.TEXTURE_2D, ..., glconst.UNSIGNED_BYTE, gl.Ptr(&data[0]))
+//	gl.TexImage2D(gl.TEXTURE_2D, ..., gl.UNSIGNED_BYTE, gl.Ptr(&data[0]))
 func Ptr(data any) unsafe.Pointer {
 	if data == nil {
 		return unsafe.Pointer(nil)

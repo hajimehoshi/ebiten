@@ -17,10 +17,10 @@
 package opengl
 
 import (
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gles"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 )
 
 func (g *Graphics) init() error {
-	g.context.ctx = gles.DefaultContext{}
+	g.context.ctx = gl.DefaultContext{}
 	return nil
 }

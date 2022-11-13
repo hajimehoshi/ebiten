@@ -14,7 +14,7 @@
 
 //go:build android || ios
 
-package gles
+package gl
 
 import (
 	"golang.org/x/mobile/gl"
@@ -76,7 +76,7 @@ func (g *GomobileContext) BufferData(target uint32, size int, data []byte, usage
 		g.ctx.BufferInit(gl.Enum(target), size, gl.Enum(usage))
 	} else {
 		if size != len(data) {
-			panic("gles: size and len(data) must be same at BufferData")
+			panic("gl: size and len(data) must be same at BufferData")
 		}
 		g.ctx.BufferData(gl.Enum(target), data, gl.Enum(usage))
 	}
@@ -320,21 +320,21 @@ func (g *GomobileContext) Uniform4fv(location int32, value []float32) {
 
 func (g *GomobileContext) UniformMatrix2fv(location int32, transpose bool, value []float32) {
 	if transpose {
-		panic("gles: UniformMatrix2fv with transpose is not implemented")
+		panic("gl: UniformMatrix2fv with transpose is not implemented")
 	}
 	g.ctx.UniformMatrix2fv(gl.Uniform{Value: location}, value)
 }
 
 func (g *GomobileContext) UniformMatrix3fv(location int32, transpose bool, value []float32) {
 	if transpose {
-		panic("gles: UniformMatrix3fv with transpose is not implemented")
+		panic("gl: UniformMatrix3fv with transpose is not implemented")
 	}
 	g.ctx.UniformMatrix3fv(gl.Uniform{Value: location}, value)
 }
 
 func (g *GomobileContext) UniformMatrix4fv(location int32, transpose bool, value []float32) {
 	if transpose {
-		panic("gles: UniformMatrix4fv with transpose is not implemented")
+		panic("gl: UniformMatrix4fv with transpose is not implemented")
 	}
 	g.ctx.UniformMatrix4fv(gl.Uniform{Value: location}, value)
 }

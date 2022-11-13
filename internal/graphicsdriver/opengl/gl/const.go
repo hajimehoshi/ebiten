@@ -12,9 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package glconst provides constants to the implementations of Go bindings to
-// OpenGL and OpenGL ES, for packages gl and gles respectively.
-package glconst
+package gl
 
 const (
 	ALWAYS               = 0x0207

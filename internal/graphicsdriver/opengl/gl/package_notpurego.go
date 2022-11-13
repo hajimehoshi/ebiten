@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-//go:build !darwin && !windows
+//go:build !android && !darwin && !js && !windows && !opengles
 
 package gl
 
@@ -320,8 +320,6 @@ import "C"
 import (
 	"errors"
 	"unsafe"
-
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/glconst"
 )
 
 var (
@@ -578,22 +576,22 @@ func GetUniformLocation(program uint32, name *uint8) int32 {
 
 func IsFramebufferEXT(framebuffer uint32) bool {
 	ret := C.glowIsFramebufferEXT(gpIsFramebufferEXT, (C.GLuint)(framebuffer))
-	return ret == glconst.TRUE
+	return ret == TRUE
 }
 
 func IsProgram(program uint32) bool {
 	ret := C.glowIsProgram(gpIsProgram, (C.GLuint)(program))
-	return ret == glconst.TRUE
+	return ret == TRUE
 }
 
 func IsRenderbufferEXT(renderbuffer uint32) bool {
 	ret := C.glowIsRenderbufferEXT(gpIsRenderbufferEXT, (C.GLuint)(renderbuffer))
-	return ret == glconst.TRUE
+	return ret == TRUE
 }
 
 func IsTexture(texture uint32) bool {
 	ret := C.glowIsTexture(gpIsTexture, (C.GLuint)(texture))
-	return ret == glconst.TRUE
+	return ret == TRUE
 }
 
 func LinkProgram(program uint32) {

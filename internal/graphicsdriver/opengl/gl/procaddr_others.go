@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-//go:build !darwin && !windows
+//go:build !android && !darwin && !js && !windows && !opengles
 
 // This file implements GlowGetProcAddress for every supported platform. The
 // correct version is chosen automatically based on build tags:
@@ -40,6 +40,7 @@ package gl
 #endif
 */
 import "C"
+
 import "unsafe"
 
 func getProcAddress(namea string) unsafe.Pointer {
