@@ -50,7 +50,7 @@ const (
 )
 
 var (
-	corefoundation                = purego.Dlopen("CoreFoundation.framework/CoreFoundation", purego.RTLD_GLOBAL)
+	corefoundation                = purego.Dlopen("CoreFoundation.framework/CoreFoundation", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 	procCFNumberCreate            = purego.Dlsym(corefoundation, "CFNumberCreate")
 	procCFNumberGetValue          = purego.Dlsym(corefoundation, "CFNumberGetValue")
 	procCFArrayCreate             = purego.Dlsym(corefoundation, "CFArrayCreate")
