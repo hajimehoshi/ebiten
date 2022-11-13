@@ -24,6 +24,7 @@ import (
 var (
 	opengl32              = windows.NewLazySystemDLL("opengl32")
 	procWglGetProcAddress = opengl32.NewProc("wglGetProcAddress")
+	isES                  = false
 )
 
 func getProcAddress(namea string) uintptr {

@@ -20,6 +20,7 @@ package gl
 // See https://pkg.go.dev/golang.org/x/mobile/gl#Context
 type Context interface {
 	Init() error
+	IsES() bool
 
 	ActiveTexture(texture uint32)
 	AttachShader(program uint32, shader uint32)
