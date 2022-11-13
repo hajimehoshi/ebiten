@@ -16,6 +16,8 @@ package opengl
 
 import (
 	"syscall/js"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
 // NewGraphics creates an implementation of graphicsdriver.Graphics for OpenGL.
