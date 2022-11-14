@@ -106,9 +106,8 @@ func getProcAddressGL(name string) unsafe.Pointer {
 }
 
 func getProcAddressGLES(name string) unsafe.Pointer {
-	const ext = "EXT"
 	if strings.HasSuffix(name, ext) {
-		name = name[:len(name)-len(ext)]
+		name = strings.TrimSuffix(name, "EXT")
 	}
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))

@@ -40,10 +40,7 @@ func (c *defaultContext) init() error {
 
 func (c *defaultContext) getProcAddress(name string) uintptr {
 	if c.isES {
-		const ext = "EXT"
-		if strings.HasSuffix(name, ext) {
-			name = name[:len(name)-len(ext)]
-		}
+		name = strings.TrimSuffix(name, "EXT")
 	}
 	return purego.Dlsym(opengl, name)
 }
