@@ -55,13 +55,34 @@ func (g *graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) 
 	return metal.NewGraphics()
 }
 
-func SetUIView(uiview uintptr) {
-	// This function should be called only when the graphics library is Metal.
-	if g, ok := theUI.graphicsDriver.(interface{ SetUIView(uintptr) }); ok {
-		g.SetUIView(uiview)
-	}
+func SetUIView(uiview uintptr) error {
+	return theUI.setUIView(uiview)
 }
 
-func IsGL() bool {
-	return theUI.graphicsDriver.IsGL()
+func IsGL() (bool, error) {
+	return theUI.isGL()
+}
+
+func (u *userInterfaceImpl) setUIView(uiview uintptr) error {
+	select {
+	case err := <-u.errCh:
+		return err
+	case <-u.graphicsDriverInitCh:
+	}
+
+	// This function should be called only when the graphics library is Metal.
+	if g, ok := u.graphicsDriver.(interface{ SetUIView(uintptr) }); ok {
+		g.SetUIView(uiview)
+	}
+	return nil
+}
+
+func (u *userInterfaceImpl) isGL() (bool, error) {
+	select {
+	case err := <-u.errCh:
+		return false, err
+	case <-u.graphicsDriverInitCh:
+	}
+
+	return u.graphicsDriver.IsGL(), nil
 }

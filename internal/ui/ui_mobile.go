@@ -52,8 +52,9 @@ var (
 
 func init() {
 	theUI.userInterfaceImpl = userInterfaceImpl{
-		foreground: 1,
-		errCh:      make(chan error),
+		foreground:           1,
+		graphicsDriverInitCh: make(chan struct{}),
+		errCh:                make(chan error),
 
 		// Give a default outside size so that the game can start without initializing them.
 		outsideWidth:  640,
@@ -90,7 +91,8 @@ func (u *userInterfaceImpl) Update() error {
 }
 
 type userInterfaceImpl struct {
-	graphicsDriver graphicsdriver.Graphics
+	graphicsDriver       graphicsdriver.Graphics
+	graphicsDriverInitCh chan struct{}
 
 	outsideWidth  float64
 	outsideHeight float64
@@ -287,6 +289,7 @@ func (u *userInterfaceImpl) run(game Game, mainloop bool) (err error) {
 		return err
 	}
 	u.graphicsDriver = g
+	close(u.graphicsDriverInitCh)
 
 	// If gomobile-build is used, wait for the outside size fixed.
 	if u.setGBuildSizeCh != nil {
