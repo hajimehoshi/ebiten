@@ -16,6 +16,7 @@ package gl
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/ebitengine/purego"
 )
@@ -25,12 +26,12 @@ var (
 )
 
 func (c *defaultContext) init() error {
-	opengl = purego.Dlopen("/System/Library/Frameworks/OpenGLES.framework/Versions/Current/OpenGLES", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	opengl = purego.Dlopen("OpenGLES.framework/OpenGLES", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 	if opengl != 0 {
 		c.isES = true
 		return nil
 	}
-	opengl = purego.Dlopen("/System/Library/Frameworks/OpenGL.framework/Versions/Current/OpenGL", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	opengl = purego.Dlopen("OpenGL.framework/OpenGL", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 	if opengl != 0 {
 		return nil
 	}
@@ -38,5 +39,11 @@ func (c *defaultContext) init() error {
 }
 
 func (c *defaultContext) getProcAddress(name string) uintptr {
+	if c.isES {
+		const ext = "EXT"
+		if strings.HasSuffix(name, ext) {
+			name = name[:len(name)-len(ext)]
+		}
+	}
 	return purego.Dlsym(opengl, name)
 }
