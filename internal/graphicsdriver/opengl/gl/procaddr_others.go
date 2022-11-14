@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !darwin && !js && !nintendosdk && !windows
+//go:build !darwin && !js && !nintendosdk && !windows
 
 package gl
 
@@ -56,17 +56,23 @@ import "C"
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 	"unsafe"
 )
 
 func (c *defaultContext) init() error {
 	var preferES bool
-	for _, t := range strings.Split(os.Getenv("EBITENGINE_OPENGL"), ",") {
-		switch strings.TrimSpace(t) {
-		case "es":
-			preferES = true
-			break
+	if runtime.GOOS == "android" {
+		preferES = true
+	}
+	if !preferES {
+		for _, t := range strings.Split(os.Getenv("EBITENGINE_OPENGL"), ",") {
+			switch strings.TrimSpace(t) {
+			case "es":
+				preferES = true
+				break
+			}
 		}
 	}
 
