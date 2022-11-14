@@ -83,7 +83,7 @@ func (c *defaultContext) init() error {
 		return nil
 	}
 
-	return fmt.Errorf("gl: failed to load libGL.so and libGLES.so")
+	return fmt.Errorf("gl: failed to load libGL.so and libGLESv2.so")
 }
 
 func (c *defaultContext) getProcAddress(name string) unsafe.Pointer {
