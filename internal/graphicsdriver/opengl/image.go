@@ -44,10 +44,10 @@ func (i *Image) Dispose() {
 	if i.framebuffer != nil {
 		i.framebuffer.delete(&i.graphics.context)
 	}
-	if !i.texture.equal(*new(textureNative)) {
+	if i.texture != 0 {
 		i.graphics.context.deleteTexture(i.texture)
 	}
-	if !i.stencil.equal(*new(renderbufferNative)) {
+	if i.stencil != 0 {
 		i.graphics.context.deleteRenderbuffer(i.stencil)
 	}
 
@@ -100,7 +100,7 @@ func (i *Image) ensureFramebuffer() error {
 }
 
 func (i *Image) ensureStencilBuffer() error {
-	if !i.stencil.equal(*new(renderbufferNative)) {
+	if i.stencil != 0 {
 		return nil
 	}
 

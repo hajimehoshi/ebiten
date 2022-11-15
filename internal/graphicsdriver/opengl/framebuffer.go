@@ -45,7 +45,7 @@ func newScreenFramebuffer(context *context, width, height int) *framebuffer {
 }
 
 func (f *framebuffer) delete(context *context) {
-	if !f.native.equal(context.getScreenFramebuffer()) {
+	if f.native != context.getScreenFramebuffer() {
 		context.deleteFramebuffer(f.native)
 	}
 }

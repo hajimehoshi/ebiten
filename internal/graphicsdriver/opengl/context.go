@@ -105,7 +105,7 @@ type context struct {
 }
 
 func (c *context) bindTexture(t textureNative) {
-	if c.lastTexture.equal(t) {
+	if c.lastTexture == t {
 		return
 	}
 	c.bindTextureImpl(t)
@@ -113,7 +113,7 @@ func (c *context) bindTexture(t textureNative) {
 }
 
 func (c *context) bindRenderbuffer(r renderbufferNative) {
-	if c.lastRenderbuffer.equal(r) {
+	if c.lastRenderbuffer == r {
 		return
 	}
 	c.bindRenderbufferImpl(r)
@@ -121,7 +121,7 @@ func (c *context) bindRenderbuffer(r renderbufferNative) {
 }
 
 func (c *context) bindFramebuffer(f framebufferNative) {
-	if c.lastFramebuffer.equal(f) {
+	if c.lastFramebuffer == f {
 		return
 	}
 	c.bindFramebufferImpl(f)
@@ -139,7 +139,7 @@ func (c *context) setViewport(f *framebuffer) {
 		// glViewport must be called at least at every frame on iOS.
 		// As the screen framebuffer is the last render target, next SetViewport should be
 		// the first call at a frame.
-		if f.native.equal(c.screenFramebuffer) {
+		if f.native == c.screenFramebuffer {
 			c.lastViewportWidth = 0
 			c.lastViewportHeight = 0
 		} else {

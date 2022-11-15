@@ -35,49 +35,15 @@ type (
 	buffer             uint32
 )
 
-func (t textureNative) equal(rhs textureNative) bool {
-	return t == rhs
-}
-
-func (r renderbufferNative) equal(rhs renderbufferNative) bool {
-	return r == rhs
-}
-
-func (f framebufferNative) equal(rhs framebufferNative) bool {
-	return f == rhs
-}
-
-func (s shader) equal(rhs shader) bool {
-	return s == rhs
-}
-
-func (b buffer) equal(rhs buffer) bool {
-	return b == rhs
-}
-
-func (p program) equal(rhs program) bool {
-	return p == rhs
-}
-
 type (
 	uniformLocation int32
 	attribLocation  int32
 )
 
-func (u uniformLocation) equal(rhs uniformLocation) bool {
-	return u == rhs
-}
-
-type programID uint32
-
 const (
 	invalidFramebuffer = (1 << 32) - 1
 	invalidUniform     = -1
 )
-
-func getProgramID(p program) programID {
-	return programID(p)
-}
 
 type contextImpl struct {
 	ctx  gl.Context
@@ -150,10 +116,12 @@ func (c *context) bindFramebufferImpl(f framebufferNative) {
 }
 
 func (c *context) framebufferPixels(buf []byte, f *framebuffer, x, y, width, height int) {
+	if got, want := len(buf), 4*width*height; got != want {
+		panic(fmt.Sprintf("opengl: len(buf) must be %d but %d", got, want))
+	}
+
 	c.ctx.Flush()
-
 	c.bindFramebuffer(f.native)
-
 	c.ctx.ReadPixels(buf, int32(x), int32(y), int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE)
 }
 
@@ -213,7 +181,7 @@ func (c *context) deleteRenderbuffer(r renderbufferNative) {
 	if !c.ctx.IsRenderbuffer(uint32(r)) {
 		return
 	}
-	if c.lastRenderbuffer.equal(r) {
+	if c.lastRenderbuffer == r {
 		c.lastRenderbuffer = 0
 	}
 	c.ctx.DeleteRenderbuffer(uint32(r))
@@ -332,8 +300,7 @@ func (c *context) deleteProgram(p program) {
 }
 
 func (c *context) getUniformLocationImpl(p program, location string) uniformLocation {
-	u := uniformLocation(c.ctx.GetUniformLocation(uint32(p), location))
-	return u
+	return uniformLocation(c.ctx.GetUniformLocation(uint32(p), location))
 }
 
 func (c *context) uniformInt(p program, location string, v int) bool {

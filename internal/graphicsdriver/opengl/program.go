@@ -127,19 +127,14 @@ type openGLState struct {
 	lastActiveTexture int
 }
 
-var (
-	zeroBuffer  buffer
-	zeroProgram program
-)
-
 // reset resets or initializes the OpenGL state.
 func (s *openGLState) reset(context *context) error {
 	if err := context.reset(); err != nil {
 		return err
 	}
 
-	s.lastProgram = zeroProgram
-	context.useProgram(zeroProgram)
+	s.lastProgram = 0
+	context.useProgram(0)
 	for key := range s.lastUniforms {
 		delete(s.lastUniforms, key)
 	}
@@ -147,10 +142,10 @@ func (s *openGLState) reset(context *context) error {
 	// On browsers (at least Chrome), buffers are already detached from the context
 	// and must not be deleted by DeleteBuffer.
 	if runtime.GOOS != "js" {
-		if !s.arrayBuffer.equal(zeroBuffer) {
+		if s.arrayBuffer != 0 {
 			context.deleteBuffer(s.arrayBuffer)
 		}
-		if !s.elementArrayBuffer.equal(zeroBuffer) {
+		if s.elementArrayBuffer != 0 {
 			context.deleteBuffer(s.elementArrayBuffer)
 		}
 	}
@@ -203,9 +198,9 @@ func (g *Graphics) textureVariableName(idx int) string {
 
 // useProgram uses the program (programTexture).
 func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textures [graphics.ShaderImageCount]textureVariable) error {
-	if !g.state.lastProgram.equal(program) {
+	if g.state.lastProgram != program {
 		g.context.useProgram(program)
-		if g.state.lastProgram.equal(zeroProgram) {
+		if g.state.lastProgram == 0 {
 			theArrayBufferLayout.enable(&g.context)
 			g.context.bindArrayBuffer(g.state.arrayBuffer)
 			g.context.bindElementArrayBuffer(g.state.elementArrayBuffer)
@@ -251,7 +246,7 @@ loop:
 		// If the texture is already bound, set the texture variable to point to the texture.
 		// Rebinding the same texture seems problematic (#1193).
 		for _, at := range g.activatedTextures {
-			if t.native.equal(at.textureNative) {
+			if t.native == at.textureNative {
 				g.context.uniformInt(program, g.textureVariableName(i), at.index)
 				continue loop
 			}
