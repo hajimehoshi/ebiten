@@ -98,15 +98,6 @@ func webGL2MightBeAvailable() bool {
 	return js.Global().Get("WebGL2RenderingContext").Truthy()
 }
 
-func uint8ArrayToSlice(value js.Value, length int) []byte {
-	if l := value.Get("byteLength").Int(); length > l {
-		length = l
-	}
-	s := make([]byte, length)
-	js.CopyBytesToGo(s, value)
-	return s
-}
-
 type contextImpl struct {
 	gl            *jsGL
 	canvas        js.Value
@@ -237,10 +228,13 @@ func (c *context) bindFramebufferImpl(f framebufferNative) {
 func (c *context) framebufferPixels(buf []byte, f *framebuffer, x, y, width, height int) {
 	c.bindFramebuffer(f.native)
 
-	l := 4 * width * height
-	p := jsutil.TemporaryUint8ArrayFromUint8Slice(l, nil)
+	if got, want := len(buf), 4*width*height; got != want {
+		panic(fmt.Sprintf("opengl: len(buf) must be %d but %d", got, want))
+	}
+
+	p := jsutil.TemporaryUint8ArrayFromUint8Slice(len(buf), nil)
 	c.gl.readPixels.Invoke(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, p)
-	copy(buf, uint8ArrayToSlice(p, l))
+	js.CopyBytesToGo(buf, p)
 }
 
 func (c *context) framebufferPixelsToBuffer(f *framebuffer, buffer buffer, width, height int) {
