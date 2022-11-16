@@ -79,15 +79,8 @@ func (g *gomobileContext) BlendFuncSeparate(srcRGB uint32, dstRGB uint32, srcAlp
 	g.ctx.BlendFuncSeparate(gl.Enum(srcRGB), gl.Enum(dstRGB), gl.Enum(srcAlpha), gl.Enum(dstAlpha))
 }
 
-func (g *gomobileContext) BufferData(target uint32, size int, data []byte, usage uint32) {
-	if data == nil {
-		g.ctx.BufferInit(gl.Enum(target), size, gl.Enum(usage))
-	} else {
-		if size != len(data) {
-			panic("gl: size and len(data) must be same at BufferData")
-		}
-		g.ctx.BufferData(gl.Enum(target), data, gl.Enum(usage))
-	}
+func (g *gomobileContext) BufferInit(target uint32, size int, usage uint32) {
+	g.ctx.BufferInit(gl.Enum(target), size, gl.Enum(usage))
 }
 
 func (g *gomobileContext) BufferSubData(target uint32, offset int, data []byte) {
@@ -110,44 +103,52 @@ func (g *gomobileContext) CompileShader(shader uint32) {
 	g.ctx.CompileShader(gl.Shader{Value: shader})
 }
 
+func (g *gomobileContext) CreateBuffer() uint32 {
+	return g.ctx.CreateBuffer().Value
+}
+
+func (g *gomobileContext) CreateFramebuffer() uint32 {
+	return g.ctx.CreateFramebuffer().Value
+}
+
 func (g *gomobileContext) CreateProgram() uint32 {
 	return g.ctx.CreateProgram().Value
+}
+
+func (g *gomobileContext) CreateRenderbuffer() uint32 {
+	return g.ctx.CreateRenderbuffer().Value
 }
 
 func (g *gomobileContext) CreateShader(xtype uint32) uint32 {
 	return g.ctx.CreateShader(gl.Enum(xtype)).Value
 }
 
-func (g *gomobileContext) DeleteBuffers(buffers []uint32) {
-	for _, b := range buffers {
-		g.ctx.DeleteBuffer(gl.Buffer{Value: b})
-	}
+func (g *gomobileContext) CreateTexture() uint32 {
+	return g.ctx.CreateTexture().Value
 }
 
-func (g *gomobileContext) DeleteFramebuffers(framebuffers []uint32) {
-	for _, b := range framebuffers {
-		g.ctx.DeleteFramebuffer(gl.Framebuffer{Value: b})
-	}
+func (g *gomobileContext) DeleteBuffer(buffer uint32) {
+	g.ctx.DeleteBuffer(gl.Buffer{Value: buffer})
+}
+
+func (g *gomobileContext) DeleteFramebuffer(framebuffer uint32) {
+	g.ctx.DeleteFramebuffer(gl.Framebuffer{Value: framebuffer})
 }
 
 func (g *gomobileContext) DeleteProgram(program uint32) {
 	g.ctx.DeleteProgram(gmProgram(program))
 }
 
-func (g *gomobileContext) DeleteRenderbuffers(renderbuffers []uint32) {
-	for _, r := range renderbuffers {
-		g.ctx.DeleteRenderbuffer(gl.Renderbuffer{Value: r})
-	}
+func (g *gomobileContext) DeleteRenderbuffer(renderbuffer uint32) {
+	g.ctx.DeleteRenderbuffer(gl.Renderbuffer{Value: renderbuffer})
 }
 
 func (g *gomobileContext) DeleteShader(shader uint32) {
 	g.ctx.DeleteShader(gl.Shader{Value: shader})
 }
 
-func (g *gomobileContext) DeleteTextures(textures []uint32) {
-	for _, t := range textures {
-		g.ctx.DeleteTexture(gl.Texture{Value: t})
-	}
+func (g *gomobileContext) DeleteTexture(texture uint32) {
+	g.ctx.DeleteTexture(gl.Texture{Value: texture})
 }
 
 func (g *gomobileContext) Disable(cap uint32) {
@@ -180,38 +181,6 @@ func (g *gomobileContext) FramebufferRenderbuffer(target uint32, attachment uint
 
 func (g *gomobileContext) FramebufferTexture2D(target uint32, attachment uint32, textarget uint32, texture uint32, level int32) {
 	g.ctx.FramebufferTexture2D(gl.Enum(target), gl.Enum(attachment), gl.Enum(textarget), gl.Texture{Value: texture}, int(level))
-}
-
-func (g *gomobileContext) GenBuffers(n int32) []uint32 {
-	buffers := make([]uint32, n)
-	for i := range buffers {
-		buffers[i] = g.ctx.CreateBuffer().Value
-	}
-	return buffers
-}
-
-func (g *gomobileContext) GenFramebuffers(n int32) []uint32 {
-	framebuffers := make([]uint32, n)
-	for i := range framebuffers {
-		framebuffers[i] = g.ctx.CreateFramebuffer().Value
-	}
-	return framebuffers
-}
-
-func (g *gomobileContext) GenRenderbuffers(n int32) []uint32 {
-	renderbuffers := make([]uint32, n)
-	for i := range renderbuffers {
-		renderbuffers[i] = g.ctx.CreateRenderbuffer().Value
-	}
-	return renderbuffers
-}
-
-func (g *gomobileContext) GenTextures(n int32) []uint32 {
-	textures := make([]uint32, n)
-	for i := range textures {
-		textures[i] = g.ctx.CreateTexture().Value
-	}
-	return textures
 }
 
 func (g *gomobileContext) GetError() uint32 {
@@ -326,24 +295,15 @@ func (g *gomobileContext) Uniform4fv(location int32, value []float32) {
 	g.ctx.Uniform4fv(gl.Uniform{Value: location}, value)
 }
 
-func (g *gomobileContext) UniformMatrix2fv(location int32, transpose bool, value []float32) {
-	if transpose {
-		panic("gl: UniformMatrix2fv with transpose is not implemented")
-	}
+func (g *gomobileContext) UniformMatrix2fv(location int32, value []float32) {
 	g.ctx.UniformMatrix2fv(gl.Uniform{Value: location}, value)
 }
 
-func (g *gomobileContext) UniformMatrix3fv(location int32, transpose bool, value []float32) {
-	if transpose {
-		panic("gl: UniformMatrix3fv with transpose is not implemented")
-	}
+func (g *gomobileContext) UniformMatrix3fv(location int32, value []float32) {
 	g.ctx.UniformMatrix3fv(gl.Uniform{Value: location}, value)
 }
 
-func (g *gomobileContext) UniformMatrix4fv(location int32, transpose bool, value []float32) {
-	if transpose {
-		panic("gl: UniformMatrix4fv with transpose is not implemented")
-	}
+func (g *gomobileContext) UniformMatrix4fv(location int32, value []float32) {
 	g.ctx.UniformMatrix4fv(gl.Uniform{Value: location}, value)
 }
 

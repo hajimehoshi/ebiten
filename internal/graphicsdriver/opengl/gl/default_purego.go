@@ -155,13 +155,8 @@ func (c *defaultContext) BlendFuncSeparate(srcRGB uint32, dstRGB uint32, srcAlph
 	purego.SyscallN(c.gpBlendFuncSeparate, uintptr(srcRGB), uintptr(dstRGB), uintptr(srcAlpha), uintptr(dstAlpha))
 }
 
-func (c *defaultContext) BufferData(target uint32, size int, data []byte, usage uint32) {
-	var ptr *byte
-	if len(data) > 0 {
-		ptr = &data[0]
-	}
-	purego.SyscallN(c.gpBufferData, uintptr(target), uintptr(size), uintptr(unsafe.Pointer(ptr)), uintptr(usage))
-	runtime.KeepAlive(data)
+func (c *defaultContext) BufferInit(target uint32, size int, usage uint32) {
+	purego.SyscallN(c.gpBufferData, uintptr(target), uintptr(size), 0, uintptr(usage))
 }
 
 func (c *defaultContext) BufferSubData(target uint32, offset int, data []byte) {
@@ -186,9 +181,27 @@ func (c *defaultContext) CompileShader(shader uint32) {
 	purego.SyscallN(c.gpCompileShader, uintptr(shader))
 }
 
+func (c *defaultContext) CreateBuffer() uint32 {
+	var buffer uint32
+	purego.SyscallN(c.gpGenBuffers, 1, uintptr(unsafe.Pointer(&buffer)))
+	return buffer
+}
+
+func (c *defaultContext) CreateFramebuffer() uint32 {
+	var framebuffer uint32
+	purego.SyscallN(c.gpGenFramebuffersEXT, 1, uintptr(unsafe.Pointer(&framebuffer)))
+	return framebuffer
+}
+
 func (c *defaultContext) CreateProgram() uint32 {
 	ret, _, _ := purego.SyscallN(c.gpCreateProgram)
 	return uint32(ret)
+}
+
+func (c *defaultContext) CreateRenderbuffer() uint32 {
+	var renderbuffer uint32
+	purego.SyscallN(c.gpGenRenderbuffersEXT, 1, uintptr(unsafe.Pointer(&renderbuffer)))
+	return renderbuffer
 }
 
 func (c *defaultContext) CreateShader(xtype uint32) uint32 {
@@ -196,30 +209,34 @@ func (c *defaultContext) CreateShader(xtype uint32) uint32 {
 	return uint32(ret)
 }
 
-func (c *defaultContext) DeleteBuffers(buffers []uint32) {
-	purego.SyscallN(c.gpDeleteBuffers, uintptr(len(buffers)), uintptr(unsafe.Pointer(&buffers[0])))
-	runtime.KeepAlive(buffers)
+func (c *defaultContext) CreateTexture() uint32 {
+	var texture uint32
+	purego.SyscallN(c.gpGenTextures, 1, uintptr(unsafe.Pointer(&texture)))
+	return texture
 }
 
-func (c *defaultContext) DeleteFramebuffers(framebuffers []uint32) {
-	purego.SyscallN(c.gpDeleteFramebuffersEXT, uintptr(len(framebuffers)), uintptr(unsafe.Pointer(&framebuffers[0])))
-	runtime.KeepAlive(framebuffers)
+func (c *defaultContext) DeleteBuffer(buffer uint32) {
+	purego.SyscallN(c.gpDeleteBuffers, 1, uintptr(unsafe.Pointer(&buffer)))
+}
+
+func (c *defaultContext) DeleteFramebuffer(framebuffer uint32) {
+	purego.SyscallN(c.gpDeleteFramebuffersEXT, 1, uintptr(unsafe.Pointer(&framebuffer)))
 }
 
 func (c *defaultContext) DeleteProgram(program uint32) {
 	purego.SyscallN(c.gpDeleteProgram, uintptr(program))
 }
 
-func (c *defaultContext) DeleteRenderbuffers(renderbuffers []uint32) {
-	purego.SyscallN(c.gpDeleteRenderbuffersEXT, uintptr(len(renderbuffers)), uintptr(unsafe.Pointer(&renderbuffers[0])))
+func (c *defaultContext) DeleteRenderbuffer(renderbuffer uint32) {
+	purego.SyscallN(c.gpDeleteRenderbuffersEXT, 1, uintptr(unsafe.Pointer(&renderbuffer)))
 }
 
 func (c *defaultContext) DeleteShader(shader uint32) {
 	purego.SyscallN(c.gpDeleteShader, uintptr(shader))
 }
 
-func (c *defaultContext) DeleteTextures(textures []uint32) {
-	purego.SyscallN(c.gpDeleteTextures, uintptr(len(textures)), uintptr(unsafe.Pointer(&textures[0])))
+func (c *defaultContext) DeleteTexture(texture uint32) {
+	purego.SyscallN(c.gpDeleteTextures, 1, uintptr(unsafe.Pointer(&texture)))
 }
 
 func (c *defaultContext) Disable(cap uint32) {
@@ -252,30 +269,6 @@ func (c *defaultContext) FramebufferRenderbuffer(target uint32, attachment uint3
 
 func (c *defaultContext) FramebufferTexture2D(target uint32, attachment uint32, textarget uint32, texture uint32, level int32) {
 	purego.SyscallN(c.gpFramebufferTexture2DEXT, uintptr(target), uintptr(attachment), uintptr(textarget), uintptr(texture), uintptr(level))
-}
-
-func (c *defaultContext) GenBuffers(n int32) []uint32 {
-	buffers := make([]uint32, n)
-	purego.SyscallN(c.gpGenBuffers, uintptr(n), uintptr(unsafe.Pointer(&buffers[0])))
-	return buffers
-}
-
-func (c *defaultContext) GenFramebuffers(n int32) []uint32 {
-	framebuffers := make([]uint32, n)
-	purego.SyscallN(c.gpGenFramebuffersEXT, uintptr(n), uintptr(unsafe.Pointer(&framebuffers[0])))
-	return framebuffers
-}
-
-func (c *defaultContext) GenRenderbuffers(n int32) []uint32 {
-	renderbuffers := make([]uint32, n)
-	purego.SyscallN(c.gpGenRenderbuffersEXT, uintptr(n), uintptr(unsafe.Pointer(&renderbuffers[0])))
-	return renderbuffers
-}
-
-func (c *defaultContext) GenTextures(n int32) []uint32 {
-	textures := make([]uint32, n)
-	purego.SyscallN(c.gpGenTextures, uintptr(n), uintptr(unsafe.Pointer(&textures[0])))
-	return textures
 }
 
 func (c *defaultContext) GetError() uint32 {
@@ -423,18 +416,18 @@ func (c *defaultContext) Uniform4fv(location int32, value []float32) {
 	runtime.KeepAlive(value)
 }
 
-func (c *defaultContext) UniformMatrix2fv(location int32, transpose bool, value []float32) {
-	purego.SyscallN(c.gpUniformMatrix2fv, uintptr(location), uintptr(len(value)/4), uintptr(boolToInt(transpose)), uintptr(unsafe.Pointer(&value[0])))
+func (c *defaultContext) UniformMatrix2fv(location int32, value []float32) {
+	purego.SyscallN(c.gpUniformMatrix2fv, uintptr(location), uintptr(len(value)/4), 0, uintptr(unsafe.Pointer(&value[0])))
 	runtime.KeepAlive(value)
 }
 
-func (c *defaultContext) UniformMatrix3fv(location int32, transpose bool, value []float32) {
-	purego.SyscallN(c.gpUniformMatrix3fv, uintptr(location), uintptr(len(value)/9), uintptr(boolToInt(transpose)), uintptr(unsafe.Pointer(&value[0])))
+func (c *defaultContext) UniformMatrix3fv(location int32, value []float32) {
+	purego.SyscallN(c.gpUniformMatrix3fv, uintptr(location), uintptr(len(value)/9), 0, uintptr(unsafe.Pointer(&value[0])))
 	runtime.KeepAlive(value)
 }
 
-func (c *defaultContext) UniformMatrix4fv(location int32, transpose bool, value []float32) {
-	purego.SyscallN(c.gpUniformMatrix4fv, uintptr(location), uintptr(len(value)/16), uintptr(boolToInt(transpose)), uintptr(unsafe.Pointer(&value[0])))
+func (c *defaultContext) UniformMatrix4fv(location int32, value []float32) {
+	purego.SyscallN(c.gpUniformMatrix4fv, uintptr(location), uintptr(len(value)/16), 0, uintptr(unsafe.Pointer(&value[0])))
 	runtime.KeepAlive(value)
 }
 

@@ -454,13 +454,8 @@ func (c *defaultContext) BlendFuncSeparate(srcRGB uint32, dstRGB uint32, srcAlph
 	C.glowBlendFuncSeparate(c.gpBlendFuncSeparate, (C.GLenum)(srcRGB), (C.GLenum)(dstRGB), (C.GLenum)(srcAlpha), (C.GLenum)(dstAlpha))
 }
 
-func (c *defaultContext) BufferData(target uint32, size int, data []byte, usage uint32) {
-	var ptr *byte
-	if len(data) > 0 {
-		ptr = &data[0]
-	}
-	C.glowBufferData(c.gpBufferData, (C.GLenum)(target), (C.GLsizeiptr)(size), unsafe.Pointer(ptr), (C.GLenum)(usage))
-	runtime.KeepAlive(data)
+func (c *defaultContext) BufferInit(target uint32, size int, usage uint32) {
+	C.glowBufferData(c.gpBufferData, (C.GLenum)(target), (C.GLsizeiptr)(size), nil, (C.GLenum)(usage))
 }
 
 func (c *defaultContext) BufferSubData(target uint32, offset int, data []byte) {
@@ -485,9 +480,27 @@ func (c *defaultContext) CompileShader(shader uint32) {
 	C.glowCompileShader(c.gpCompileShader, (C.GLuint)(shader))
 }
 
+func (c *defaultContext) CreateBuffer() uint32 {
+	var buffer uint32
+	C.glowGenBuffers(c.gpGenBuffers, 1, (*C.GLuint)(unsafe.Pointer(&buffer)))
+	return buffer
+}
+
+func (c *defaultContext) CreateFramebuffer() uint32 {
+	var framebuffer uint32
+	C.glowGenFramebuffersEXT(c.gpGenFramebuffersEXT, 1, (*C.GLuint)(unsafe.Pointer(&framebuffer)))
+	return framebuffer
+}
+
 func (c *defaultContext) CreateProgram() uint32 {
 	ret := C.glowCreateProgram(c.gpCreateProgram)
 	return uint32(ret)
+}
+
+func (c *defaultContext) CreateRenderbuffer() uint32 {
+	var renderbuffer uint32
+	C.glowGenRenderbuffersEXT(c.gpGenRenderbuffersEXT, 1, (*C.GLuint)(unsafe.Pointer(&renderbuffer)))
+	return renderbuffer
 }
 
 func (c *defaultContext) CreateShader(xtype uint32) uint32 {
@@ -495,32 +508,34 @@ func (c *defaultContext) CreateShader(xtype uint32) uint32 {
 	return uint32(ret)
 }
 
-func (c *defaultContext) DeleteBuffers(buffers []uint32) {
-	C.glowDeleteBuffers(c.gpDeleteBuffers, (C.GLsizei)(len(buffers)), (*C.GLuint)(unsafe.Pointer(&buffers[0])))
-	runtime.KeepAlive(buffers)
+func (c *defaultContext) CreateTexture() uint32 {
+	var texture uint32
+	C.glowGenTextures(c.gpGenTextures, 1, (*C.GLuint)(unsafe.Pointer(&texture)))
+	return texture
 }
 
-func (c *defaultContext) DeleteFramebuffers(framebuffers []uint32) {
-	C.glowDeleteFramebuffersEXT(c.gpDeleteFramebuffersEXT, (C.GLsizei)(len(framebuffers)), (*C.GLuint)(unsafe.Pointer(&framebuffers[0])))
-	runtime.KeepAlive(framebuffers)
+func (c *defaultContext) DeleteBuffer(buffer uint32) {
+	C.glowDeleteBuffers(c.gpDeleteBuffers, 1, (*C.GLuint)(unsafe.Pointer(&buffer)))
+}
+
+func (c *defaultContext) DeleteFramebuffer(framebuffer uint32) {
+	C.glowDeleteFramebuffersEXT(c.gpDeleteFramebuffersEXT, 1, (*C.GLuint)(unsafe.Pointer(&framebuffer)))
 }
 
 func (c *defaultContext) DeleteProgram(program uint32) {
 	C.glowDeleteProgram(c.gpDeleteProgram, (C.GLuint)(program))
 }
 
-func (c *defaultContext) DeleteRenderbuffers(renderbuffers []uint32) {
-	C.glowDeleteRenderbuffersEXT(c.gpDeleteRenderbuffersEXT, (C.GLsizei)(len(renderbuffers)), (*C.GLuint)(unsafe.Pointer(&renderbuffers[0])))
-	runtime.KeepAlive(renderbuffers)
+func (c *defaultContext) DeleteRenderbuffer(renderbuffer uint32) {
+	C.glowDeleteRenderbuffersEXT(c.gpDeleteRenderbuffersEXT, 1, (*C.GLuint)(unsafe.Pointer(&renderbuffer)))
 }
 
 func (c *defaultContext) DeleteShader(shader uint32) {
 	C.glowDeleteShader(c.gpDeleteShader, (C.GLuint)(shader))
 }
 
-func (c *defaultContext) DeleteTextures(textures []uint32) {
-	C.glowDeleteTextures(c.gpDeleteTextures, (C.GLsizei)(len(textures)), (*C.GLuint)(unsafe.Pointer(&textures[0])))
-	runtime.KeepAlive(textures)
+func (c *defaultContext) DeleteTexture(texture uint32) {
+	C.glowDeleteTextures(c.gpDeleteTextures, 1, (*C.GLuint)(unsafe.Pointer(&texture)))
 }
 
 func (c *defaultContext) Disable(cap uint32) {
@@ -553,30 +568,6 @@ func (c *defaultContext) FramebufferRenderbuffer(target uint32, attachment uint3
 
 func (c *defaultContext) FramebufferTexture2D(target uint32, attachment uint32, textarget uint32, texture uint32, level int32) {
 	C.glowFramebufferTexture2DEXT(c.gpFramebufferTexture2DEXT, (C.GLenum)(target), (C.GLenum)(attachment), (C.GLenum)(textarget), (C.GLuint)(texture), (C.GLint)(level))
-}
-
-func (c *defaultContext) GenBuffers(n int32) []uint32 {
-	buffers := make([]uint32, n)
-	C.glowGenBuffers(c.gpGenBuffers, (C.GLsizei)(n), (*C.GLuint)(unsafe.Pointer(&buffers[0])))
-	return buffers
-}
-
-func (c *defaultContext) GenFramebuffers(n int32) []uint32 {
-	framebuffers := make([]uint32, n)
-	C.glowGenFramebuffersEXT(c.gpGenFramebuffersEXT, (C.GLsizei)(n), (*C.GLuint)(unsafe.Pointer(&framebuffers[0])))
-	return framebuffers
-}
-
-func (c *defaultContext) GenRenderbuffers(n int32) []uint32 {
-	renderbuffers := make([]uint32, n)
-	C.glowGenRenderbuffersEXT(c.gpGenRenderbuffersEXT, (C.GLsizei)(n), (*C.GLuint)(unsafe.Pointer(&renderbuffers[0])))
-	return renderbuffers
-}
-
-func (c *defaultContext) GenTextures(n int32) []uint32 {
-	textures := make([]uint32, n)
-	C.glowGenTextures(c.gpGenTextures, (C.GLsizei)(n), (*C.GLuint)(unsafe.Pointer(&textures[0])))
-	return textures
 }
 
 func (c *defaultContext) GetError() uint32 {
@@ -724,18 +715,18 @@ func (c *defaultContext) Uniform4fv(location int32, value []float32) {
 	runtime.KeepAlive(value)
 }
 
-func (c *defaultContext) UniformMatrix2fv(location int32, transpose bool, value []float32) {
-	C.glowUniformMatrix2fv(c.gpUniformMatrix2fv, (C.GLint)(location), (C.GLsizei)(len(value)/4), (C.GLboolean)(boolToInt(transpose)), (*C.GLfloat)(unsafe.Pointer(&value[0])))
+func (c *defaultContext) UniformMatrix2fv(location int32, value []float32) {
+	C.glowUniformMatrix2fv(c.gpUniformMatrix2fv, (C.GLint)(location), (C.GLsizei)(len(value)/4), 0, (*C.GLfloat)(unsafe.Pointer(&value[0])))
 	runtime.KeepAlive(value)
 }
 
-func (c *defaultContext) UniformMatrix3fv(location int32, transpose bool, value []float32) {
-	C.glowUniformMatrix3fv(c.gpUniformMatrix3fv, (C.GLint)(location), (C.GLsizei)(len(value)/9), (C.GLboolean)(boolToInt(transpose)), (*C.GLfloat)(unsafe.Pointer(&value[0])))
+func (c *defaultContext) UniformMatrix3fv(location int32, value []float32) {
+	C.glowUniformMatrix3fv(c.gpUniformMatrix3fv, (C.GLint)(location), (C.GLsizei)(len(value)/9), 0, (*C.GLfloat)(unsafe.Pointer(&value[0])))
 	runtime.KeepAlive(value)
 }
 
-func (c *defaultContext) UniformMatrix4fv(location int32, transpose bool, value []float32) {
-	C.glowUniformMatrix4fv(c.gpUniformMatrix4fv, (C.GLint)(location), (C.GLsizei)(len(value)/16), (C.GLboolean)(boolToInt(transpose)), (*C.GLfloat)(unsafe.Pointer(&value[0])))
+func (c *defaultContext) UniformMatrix4fv(location int32, value []float32) {
+	C.glowUniformMatrix4fv(c.gpUniformMatrix4fv, (C.GLint)(location), (C.GLsizei)(len(value)/16), 0, (*C.GLfloat)(unsafe.Pointer(&value[0])))
 	runtime.KeepAlive(value)
 }
 

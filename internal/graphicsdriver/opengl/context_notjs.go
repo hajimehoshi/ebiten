@@ -132,7 +132,7 @@ func (c *context) scissor(x, y, width, height int) {
 }
 
 func (c *context) newTexture(width, height int) (textureNative, error) {
-	t := c.ctx.GenTextures(1)[0]
+	t := c.ctx.CreateTexture()
 	if t <= 0 {
 		return 0, errors.New("opengl: creating texture failed")
 	}
@@ -185,7 +185,7 @@ func (c *context) deleteTexture(t textureNative) {
 	if c.lastTexture == t {
 		c.lastTexture = invalidTexture
 	}
-	c.ctx.DeleteTextures([]uint32{uint32(t)})
+	c.ctx.DeleteTexture(uint32(t))
 }
 
 func (c *context) isTexture(t textureNative) bool {
@@ -193,7 +193,7 @@ func (c *context) isTexture(t textureNative) bool {
 }
 
 func (c *context) newRenderbuffer(width, height int) (renderbufferNative, error) {
-	r := c.ctx.GenRenderbuffers(1)[0]
+	r := c.ctx.CreateRenderbuffer()
 	if r <= 0 {
 		return 0, errors.New("opengl: creating renderbuffer failed")
 	}
@@ -219,11 +219,11 @@ func (c *context) deleteRenderbuffer(r renderbufferNative) {
 	if c.lastRenderbuffer.equal(r) {
 		c.lastRenderbuffer = 0
 	}
-	c.ctx.DeleteRenderbuffers([]uint32{uint32(r)})
+	c.ctx.DeleteRenderbuffer(uint32(r))
 }
 
 func (c *context) newFramebuffer(texture textureNative) (framebufferNative, error) {
-	f := c.ctx.GenFramebuffers(1)[0]
+	f := c.ctx.CreateFramebuffer()
 	if f <= 0 {
 		return 0, fmt.Errorf("opengl: creating framebuffer failed: the returned value is not positive but %d", f)
 	}
@@ -269,7 +269,7 @@ func (c *context) deleteFramebuffer(f framebufferNative) {
 		c.lastViewportWidth = 0
 		c.lastViewportHeight = 0
 	}
-	c.ctx.DeleteFramebuffers([]uint32{uint32(f)})
+	c.ctx.DeleteFramebuffer(uint32(f))
 }
 
 func (c *context) newVertexShader(source string) (shader, error) {
@@ -371,11 +371,11 @@ func (c *context) uniforms(p program, location string, v []uint32, typ shaderir.
 	case shaderir.Vec4:
 		c.ctx.Uniform4fv(int32(l), uint32sToFloat32s(v))
 	case shaderir.Mat2:
-		c.ctx.UniformMatrix2fv(int32(l), false, uint32sToFloat32s(v))
+		c.ctx.UniformMatrix2fv(int32(l), uint32sToFloat32s(v))
 	case shaderir.Mat3:
-		c.ctx.UniformMatrix3fv(int32(l), false, uint32sToFloat32s(v))
+		c.ctx.UniformMatrix3fv(int32(l), uint32sToFloat32s(v))
 	case shaderir.Mat4:
-		c.ctx.UniformMatrix4fv(int32(l), false, uint32sToFloat32s(v))
+		c.ctx.UniformMatrix4fv(int32(l), uint32sToFloat32s(v))
 	default:
 		panic(fmt.Sprintf("opengl: unexpected type: %s", typ.String()))
 	}
@@ -395,16 +395,16 @@ func (c *context) disableVertexAttribArray(index int) {
 }
 
 func (c *context) newArrayBuffer(size int) buffer {
-	b := c.ctx.GenBuffers(1)[0]
+	b := c.ctx.CreateBuffer()
 	c.ctx.BindBuffer(gl.ARRAY_BUFFER, b)
-	c.ctx.BufferData(gl.ARRAY_BUFFER, size, nil, gl.DYNAMIC_DRAW)
+	c.ctx.BufferInit(gl.ARRAY_BUFFER, size, gl.DYNAMIC_DRAW)
 	return buffer(b)
 }
 
 func (c *context) newElementArrayBuffer(size int) buffer {
-	b := c.ctx.GenBuffers(1)[0]
+	b := c.ctx.CreateBuffer()
 	c.ctx.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b)
-	c.ctx.BufferData(gl.ELEMENT_ARRAY_BUFFER, size, nil, gl.DYNAMIC_DRAW)
+	c.ctx.BufferInit(gl.ELEMENT_ARRAY_BUFFER, size, gl.DYNAMIC_DRAW)
 	return buffer(b)
 }
 
@@ -427,7 +427,7 @@ func (c *context) elementArrayBufferSubData(data []uint16) {
 }
 
 func (c *context) deleteBuffer(b buffer) {
-	c.ctx.DeleteBuffers([]uint32{uint32(b)})
+	c.ctx.DeleteBuffer(uint32(b))
 }
 
 func (c *context) drawElements(len int, offsetInBytes int) {
