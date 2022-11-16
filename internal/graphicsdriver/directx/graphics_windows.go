@@ -255,9 +255,8 @@ func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool) (ferr err
 				return err
 			}
 			defer a.Release()
-			adapter = a
 
-			desc, err := adapter.GetDesc1()
+			desc, err := a.GetDesc1()
 			if err != nil {
 				return err
 			}
@@ -267,9 +266,11 @@ func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool) (ferr err
 			// Test D3D12CreateDevice without creating an actual device.
 			// Ebitengine itself doesn't require the features level 12 and 11 should be enough,
 			// but some old cards don't work well (#2447). Specify the level 12 here.
-			if _, err := _D3D12CreateDevice(unsafe.Pointer(adapter), _D3D_FEATURE_LEVEL_12_0, &_IID_ID3D12Device, false); err != nil {
+			if _, err := _D3D12CreateDevice(unsafe.Pointer(a), _D3D_FEATURE_LEVEL_12_0, &_IID_ID3D12Device, false); err != nil {
 				continue
 			}
+
+			adapter = a
 			break
 		}
 	}
