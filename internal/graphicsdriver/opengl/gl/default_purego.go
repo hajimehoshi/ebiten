@@ -284,33 +284,35 @@ func (c *defaultContext) GetError() uint32 {
 }
 
 func (c *defaultContext) GetInteger(pname uint32) int {
-	dst := make([]int32, 1)
-	purego.SyscallN(c.gpGetIntegerv, uintptr(pname), uintptr(unsafe.Pointer(&dst[0])))
-	return int(dst[0])
+	var dst int32
+	purego.SyscallN(c.gpGetIntegerv, uintptr(pname), uintptr(unsafe.Pointer(&dst)))
+	return int(dst)
 }
 
 func (c *defaultContext) GetProgramInfoLog(program uint32) string {
-	var bufSize [1]int32
-	c.GetProgramiv(bufSize[:], program, INFO_LOG_LENGTH)
-	infoLog := make([]byte, bufSize[0])
-	purego.SyscallN(c.gpGetProgramInfoLog, uintptr(program), uintptr(bufSize[0]), 0, uintptr(unsafe.Pointer(&infoLog[0])))
+	bufSize := c.GetProgrami(program, INFO_LOG_LENGTH)
+	infoLog := make([]byte, bufSize)
+	purego.SyscallN(c.gpGetProgramInfoLog, uintptr(program), uintptr(bufSize), 0, uintptr(unsafe.Pointer(&infoLog[0])))
 	return string(infoLog)
 }
 
-func (c *defaultContext) GetProgramiv(dst []int32, program uint32, pname uint32) {
-	purego.SyscallN(c.gpGetProgramiv, uintptr(program), uintptr(pname), uintptr(unsafe.Pointer(&dst[0])))
+func (c *defaultContext) GetProgrami(program uint32, pname uint32) int {
+	var dst int32
+	purego.SyscallN(c.gpGetProgramiv, uintptr(program), uintptr(pname), uintptr(unsafe.Pointer(&dst)))
+	return int(dst)
 }
 
 func (c *defaultContext) GetShaderInfoLog(shader uint32) string {
-	var bufSize [1]int32
-	c.GetShaderiv(bufSize[:], shader, INFO_LOG_LENGTH)
-	infoLog := make([]byte, bufSize[0])
-	purego.SyscallN(c.gpGetShaderInfoLog, uintptr(shader), uintptr(bufSize[0]), 0, uintptr(unsafe.Pointer(&infoLog[0])))
+	bufSize := c.GetShaderi(shader, INFO_LOG_LENGTH)
+	infoLog := make([]byte, bufSize)
+	purego.SyscallN(c.gpGetShaderInfoLog, uintptr(shader), uintptr(bufSize), 0, uintptr(unsafe.Pointer(&infoLog[0])))
 	return string(infoLog)
 }
 
-func (c *defaultContext) GetShaderiv(dst []int32, shader uint32, pname uint32) {
-	purego.SyscallN(c.gpGetShaderiv, uintptr(shader), uintptr(pname), uintptr(unsafe.Pointer(&dst[0])))
+func (c *defaultContext) GetShaderi(shader uint32, pname uint32) int {
+	var dst int32
+	purego.SyscallN(c.gpGetShaderiv, uintptr(shader), uintptr(pname), uintptr(unsafe.Pointer(&dst)))
+	return int(dst)
 }
 
 func (c *defaultContext) GetUniformLocation(program uint32, name string) int32 {

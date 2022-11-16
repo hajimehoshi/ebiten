@@ -288,9 +288,7 @@ func (c *context) newShader(shaderType uint32, source string) (shader, error) {
 	c.ctx.ShaderSource(s, source)
 	c.ctx.CompileShader(s)
 
-	v := make([]int32, 1)
-	c.ctx.GetShaderiv(v, s, gl.COMPILE_STATUS)
-	if v[0] == gl.FALSE {
+	if c.ctx.GetShaderi(s, gl.COMPILE_STATUS) == gl.FALSE {
 		log := c.ctx.GetShaderInfoLog(s)
 		return 0, fmt.Errorf("opengl: shader compile failed: %s", log)
 	}
@@ -316,9 +314,7 @@ func (c *context) newProgram(shaders []shader, attributes []string) (program, er
 	}
 
 	c.ctx.LinkProgram(p)
-	v := make([]int32, 1)
-	c.ctx.GetProgramiv(v, p, gl.LINK_STATUS)
-	if v[0] == gl.FALSE {
+	if c.ctx.GetProgrami(p, gl.LINK_STATUS) == gl.FALSE {
 		info := c.ctx.GetProgramInfoLog(p)
 		return 0, fmt.Errorf("opengl: program error: %s", info)
 	}

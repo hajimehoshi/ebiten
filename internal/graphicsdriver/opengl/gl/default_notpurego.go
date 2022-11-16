@@ -585,33 +585,35 @@ func (c *defaultContext) GetError() uint32 {
 }
 
 func (c *defaultContext) GetInteger(pname uint32) int {
-	dst := make([]int32, 1)
-	C.glowGetIntegerv(c.gpGetIntegerv, (C.GLenum)(pname), (*C.GLint)(unsafe.Pointer(&dst[0])))
-	return int(dst[0])
+	var dst int32
+	C.glowGetIntegerv(c.gpGetIntegerv, (C.GLenum)(pname), (*C.GLint)(unsafe.Pointer(&dst)))
+	return int(dst)
 }
 
 func (c *defaultContext) GetProgramInfoLog(program uint32) string {
-	var bufSize [1]int32
-	c.GetProgramiv(bufSize[:], program, INFO_LOG_LENGTH)
-	infoLog := make([]byte, bufSize[0])
-	C.glowGetProgramInfoLog(c.gpGetProgramInfoLog, (C.GLuint)(program), (C.GLsizei)(bufSize[0]), nil, (*C.GLchar)(unsafe.Pointer(&infoLog[0])))
+	bufSize := c.GetProgrami(program, INFO_LOG_LENGTH)
+	infoLog := make([]byte, bufSize)
+	C.glowGetProgramInfoLog(c.gpGetProgramInfoLog, (C.GLuint)(program), (C.GLsizei)(bufSize), nil, (*C.GLchar)(unsafe.Pointer(&infoLog[0])))
 	return string(infoLog)
 }
 
-func (c *defaultContext) GetProgramiv(dst []int32, program uint32, pname uint32) {
-	C.glowGetProgramiv(c.gpGetProgramiv, (C.GLuint)(program), (C.GLenum)(pname), (*C.GLint)(unsafe.Pointer(&dst[0])))
+func (c *defaultContext) GetProgrami(program uint32, pname uint32) int {
+	var dst int32
+	C.glowGetProgramiv(c.gpGetProgramiv, (C.GLuint)(program), (C.GLenum)(pname), (*C.GLint)(unsafe.Pointer(&dst)))
+	return int(dst)
 }
 
 func (c *defaultContext) GetShaderInfoLog(shader uint32) string {
-	var bufSize [1]int32
-	c.GetShaderiv(bufSize[:], shader, INFO_LOG_LENGTH)
-	infoLog := make([]byte, bufSize[0])
-	C.glowGetShaderInfoLog(c.gpGetShaderInfoLog, (C.GLuint)(shader), (C.GLsizei)(bufSize[0]), nil, (*C.GLchar)(unsafe.Pointer(&infoLog[0])))
+	bufSize := c.GetShaderi(shader, INFO_LOG_LENGTH)
+	infoLog := make([]byte, bufSize)
+	C.glowGetShaderInfoLog(c.gpGetShaderInfoLog, (C.GLuint)(shader), (C.GLsizei)(bufSize), nil, (*C.GLchar)(unsafe.Pointer(&infoLog[0])))
 	return string(infoLog)
 }
 
-func (c *defaultContext) GetShaderiv(dst []int32, shader uint32, pname uint32) {
-	C.glowGetShaderiv(c.gpGetShaderiv, (C.GLuint)(shader), (C.GLenum)(pname), (*C.GLint)(unsafe.Pointer(&dst[0])))
+func (c *defaultContext) GetShaderi(shader uint32, pname uint32) int {
+	var dst int32
+	C.glowGetShaderiv(c.gpGetShaderiv, (C.GLuint)(shader), (C.GLenum)(pname), (*C.GLint)(unsafe.Pointer(&dst)))
+	return int(dst)
 }
 
 func (c *defaultContext) GetUniformLocation(program uint32, name string) int32 {

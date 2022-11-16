@@ -60,9 +60,9 @@ type Context interface {
 	GetError() uint32
 	GetInteger(pname uint32) int
 	GetProgramInfoLog(program uint32) string
-	GetProgramiv(dst []int32, program uint32, pname uint32)
+	GetProgrami(program uint32, pname uint32) int
 	GetShaderInfoLog(shader uint32) string
-	GetShaderiv(dst []int32, shader uint32, pname uint32)
+	GetShaderi(shader uint32, pname uint32) int
 	GetUniformLocation(program uint32, name string) int32
 	IsFramebuffer(framebuffer uint32) bool
 	IsProgram(program uint32) bool

@@ -226,16 +226,16 @@ func (g *gomobileContext) GetProgramInfoLog(program uint32) string {
 	return g.ctx.GetProgramInfoLog(gmProgram(program))
 }
 
-func (g *gomobileContext) GetProgramiv(dst []int32, program uint32, pname uint32) {
-	dst[0] = int32(g.ctx.GetProgrami(gmProgram(program), gl.Enum(pname)))
+func (g *gomobileContext) GetProgrami(program uint32, pname uint32) int {
+	return g.ctx.GetProgrami(gmProgram(program), gl.Enum(pname))
 }
 
 func (g *gomobileContext) GetShaderInfoLog(shader uint32) string {
 	return g.ctx.GetShaderInfoLog(gl.Shader{Value: shader})
 }
 
-func (g *gomobileContext) GetShaderiv(dst []int32, shader uint32, pname uint32) {
-	dst[0] = int32(g.ctx.GetShaderi(gl.Shader{Value: shader}, gl.Enum(pname)))
+func (g *gomobileContext) GetShaderi(shader uint32, pname uint32) int {
+	return g.ctx.GetShaderi(gl.Shader{Value: shader}, gl.Enum(pname))
 }
 
 func (g *gomobileContext) GetUniformLocation(program uint32, name string) int32 {
