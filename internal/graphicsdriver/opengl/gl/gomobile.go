@@ -218,8 +218,8 @@ func (g *gomobileContext) GetError() uint32 {
 	return uint32(g.ctx.GetError())
 }
 
-func (g *gomobileContext) GetIntegerv(dst []int32, pname uint32) {
-	g.ctx.GetIntegerv(dst, gl.Enum(pname))
+func (g *gomobileContext) GetInteger(pname uint32) int {
+	return g.ctx.GetInteger(gl.Enum(pname))
 }
 
 func (g *gomobileContext) GetProgramInfoLog(program uint32) string {

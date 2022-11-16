@@ -283,8 +283,10 @@ func (c *defaultContext) GetError() uint32 {
 	return uint32(ret)
 }
 
-func (c *defaultContext) GetIntegerv(dst []int32, pname uint32) {
+func (c *defaultContext) GetInteger(pname uint32) int {
+	dst := make([]int32, 1)
 	purego.SyscallN(c.gpGetIntegerv, uintptr(pname), uintptr(unsafe.Pointer(&dst[0])))
+	return int(dst[0])
 }
 
 func (c *defaultContext) GetProgramInfoLog(program uint32) string {

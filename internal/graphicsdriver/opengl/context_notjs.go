@@ -105,9 +105,7 @@ func (c *context) reset() error {
 	c.ctx.Enable(gl.BLEND)
 	c.ctx.Enable(gl.SCISSOR_TEST)
 	c.blend(graphicsdriver.BlendSourceOver)
-	f := make([]int32, 1)
-	c.ctx.GetIntegerv(f, gl.FRAMEBUFFER_BINDING)
-	c.screenFramebuffer = framebufferNative(f[0])
+	c.screenFramebuffer = framebufferNative(c.ctx.GetInteger(gl.FRAMEBUFFER_BINDING))
 	// TODO: Need to update screenFramebufferWidth/Height?
 	return nil
 }
@@ -441,9 +439,7 @@ func (c *context) drawElements(len int, offsetInBytes int) {
 }
 
 func (c *context) maxTextureSizeImpl() int {
-	v := make([]int32, 1)
-	c.ctx.GetIntegerv(v, gl.MAX_TEXTURE_SIZE)
-	return int(v[0])
+	return c.ctx.GetInteger(gl.MAX_TEXTURE_SIZE)
 }
 
 func (c *context) flush() {

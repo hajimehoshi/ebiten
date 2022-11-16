@@ -58,7 +58,7 @@ type Context interface {
 	GenRenderbuffers(n int32) []uint32
 	GenTextures(n int32) []uint32
 	GetError() uint32
-	GetIntegerv(dst []int32, pname uint32)
+	GetInteger(pname uint32) int
 	GetProgramInfoLog(program uint32) string
 	GetProgramiv(dst []int32, program uint32, pname uint32)
 	GetShaderInfoLog(shader uint32) string
