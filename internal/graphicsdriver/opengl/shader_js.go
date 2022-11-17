@@ -19,11 +19,8 @@ import (
 )
 
 func (c *context) glslVersion() glsl.GLSLVersion {
-	switch c.webGLVersion {
-	case webGLVersion1:
-		return glsl.GLSLVersionES100
-	case webGLVersion2:
+	if c.webGL2 {
 		return glsl.GLSLVersionES300
 	}
-	panic("opengl: WebGL context is not initialized yet at glslVersion")
+	return glsl.GLSLVersionES100
 }

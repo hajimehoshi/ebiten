@@ -46,14 +46,6 @@ const (
 	invalidUniform     = -1
 )
 
-type webGLVersion int
-
-const (
-	webGLVersionUnknown webGLVersion = iota
-	webGLVersion1
-	webGLVersion2
-)
-
 func webGL2MightBeAvailable() bool {
 	env := os.Getenv("EBITENGINE_OPENGL")
 	for _, t := range strings.Split(env, ",") {
@@ -66,21 +58,15 @@ func webGL2MightBeAvailable() bool {
 }
 
 type contextImpl struct {
-	ctx          gl.Context
-	canvas       js.Value
-	webGLVersion webGLVersion
+	ctx    gl.Context
+	canvas js.Value
+	webGL2 bool
 
 	fnGetExtension  js.Value
 	fnIsContextLost js.Value
 }
 
-func (c *context) usesWebGL2() bool {
-	return c.webGLVersion == webGLVersion2
-}
-
 func (c *context) initGL() error {
-	c.webGLVersion = webGLVersionUnknown
-
 	var glContext js.Value
 
 	if doc := js.Global().Get("document"); doc.Truthy() {
@@ -93,7 +79,7 @@ func (c *context) initGL() error {
 		if webGL2MightBeAvailable() {
 			glContext = canvas.Call("getContext", "webgl2", attr)
 			if glContext.Truthy() {
-				c.webGLVersion = webGLVersion2
+				c.webGL2 = true
 			}
 		}
 
@@ -104,11 +90,12 @@ func (c *context) initGL() error {
 				glContext = canvas.Call("getContext", "experimental-webgl", attr)
 			}
 			if glContext.Truthy() {
-				c.webGLVersion = webGLVersion1
+				c.webGL2 = false
 			}
 		}
 
 		if !glContext.Truthy() {
+			c.webGL2 = false
 			return fmt.Errorf("opengl: getContext failed")
 		}
 	}
@@ -146,7 +133,7 @@ func (c *context) reset() error {
 	f := c.ctx.GetInteger(gl.FRAMEBUFFER_BINDING)
 	c.screenFramebuffer = framebufferNative(f)
 
-	if !c.usesWebGL2() {
+	if !c.webGL2 {
 		c.fnGetExtension.Invoke("OES_standard_derivatives")
 	}
 	return nil
