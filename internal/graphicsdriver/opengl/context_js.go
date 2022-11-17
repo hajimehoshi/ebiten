@@ -16,16 +16,9 @@ package opengl
 
 import (
 	"syscall/js"
-
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 )
 
 type contextImpl struct {
 	canvas js.Value
 	webGL2 bool
-}
-
-func (*context) stencilFormat() uint32 {
-	// gl.DEPTH24_STENCIL8 is not available on WebGL1.
-	return gl.STENCIL_INDEX8
 }

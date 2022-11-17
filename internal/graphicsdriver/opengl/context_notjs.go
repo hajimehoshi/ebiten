@@ -16,15 +16,5 @@
 
 package opengl
 
-import (
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
-)
-
 type contextImpl struct {
-}
-
-func (*context) stencilFormat() uint32 {
-	// GL_STENCIL_INDEX8 might not be available with OpenGL 2.1.
-	// https://www.khronos.org/opengl/wiki/Image_Format
-	return gl.DEPTH24_STENCIL8
 }

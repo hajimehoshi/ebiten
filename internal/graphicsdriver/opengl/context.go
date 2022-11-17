@@ -316,7 +316,30 @@ func (c *context) newRenderbuffer(width, height int) (renderbufferNative, error)
 	renderbuffer := renderbufferNative(r)
 	c.bindRenderbuffer(renderbuffer)
 
-	c.ctx.RenderbufferStorage(gl.RENDERBUFFER, c.stencilFormat(), int32(width), int32(height))
+	var stencilFormat uint32
+	if c.ctx.IsES() {
+		// https://docs.gl/es2/glRenderbufferStorage
+		// > Must be one of the following symbolic constants: GL_RGBA4, GL_RGB565, GL_RGB5_A1,
+		// > GL_DEPTH_COMPONENT16, or GL_STENCIL_INDEX8.
+		//
+		// https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/renderbufferStorage
+		// > A GLenum specifying the internal format of the renderbuffer. Possible values:
+		// > * gl.RGBA4: 4 red bits, 4 green bits, 4 blue bits 4 alpha bits.
+		// > * gl.RGB565: 5 red bits, 6 green bits, 5 blue bits.
+		// > * gl.RGB5_A1: 5 red bits, 5 green bits, 5 blue bits, 1 alpha bit.
+		// > * gl.DEPTH_COMPONENT16: 16 depth bits.
+		// > * gl.STENCIL_INDEX8: 8 stencil bits.
+		// > * gl.DEPTH_STENCIL
+		stencilFormat = gl.STENCIL_INDEX8
+	} else {
+		// GL_STENCIL_INDEX8 might not be available with OpenGL 2.1.
+		// https://www.khronos.org/opengl/wiki/Image_Format
+		// > There are only 2 depth/stencil formats, each providing 8 stencil bits: GL_DEPTH24_STENCIL8 and GL_DEPTH32F_STENCIL8.
+		// > [...]
+		// > Stencil formats can only be used for Textures if OpenGL 4.4 or ARB_texture_stencil8 is available.
+		stencilFormat = gl.DEPTH24_STENCIL8
+	}
+	c.ctx.RenderbufferStorage(gl.RENDERBUFFER, stencilFormat, int32(width), int32(height))
 
 	return renderbuffer, nil
 }
