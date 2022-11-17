@@ -17,8 +17,6 @@ package opengl
 import (
 	"errors"
 	"fmt"
-	"os"
-	"strings"
 	"syscall/js"
 	"unsafe"
 
@@ -46,17 +44,6 @@ const (
 	invalidUniform     = -1
 )
 
-func webGL2MightBeAvailable() bool {
-	env := os.Getenv("EBITENGINE_OPENGL")
-	for _, t := range strings.Split(env, ",") {
-		switch strings.TrimSpace(t) {
-		case "webgl1":
-			return false
-		}
-	}
-	return js.Global().Get("WebGL2RenderingContext").Truthy()
-}
-
 type contextImpl struct {
 	ctx    gl.Context
 	canvas js.Value
@@ -66,52 +53,6 @@ type contextImpl struct {
 	fnIsContextLost js.Value
 }
 
-func (c *context) initGL() error {
-	var glContext js.Value
-
-	if doc := js.Global().Get("document"); doc.Truthy() {
-		canvas := c.canvas
-		attr := js.Global().Get("Object").New()
-		attr.Set("alpha", true)
-		attr.Set("premultipliedAlpha", true)
-		attr.Set("stencil", true)
-
-		if webGL2MightBeAvailable() {
-			glContext = canvas.Call("getContext", "webgl2", attr)
-			if glContext.Truthy() {
-				c.webGL2 = true
-			}
-		}
-
-		// Even though WebGL2RenderingContext exists, getting a webgl2 context might fail (#1738).
-		if !glContext.Truthy() {
-			glContext = canvas.Call("getContext", "webgl", attr)
-			if !glContext.Truthy() {
-				glContext = canvas.Call("getContext", "experimental-webgl", attr)
-			}
-			if glContext.Truthy() {
-				c.webGL2 = false
-			}
-		}
-
-		if !glContext.Truthy() {
-			c.webGL2 = false
-			return fmt.Errorf("opengl: getContext failed")
-		}
-	}
-
-	ctx, err := gl.NewDefaultContext(glContext)
-	if err != nil {
-		return err
-	}
-	c.ctx = ctx
-
-	c.fnGetExtension = glContext.Get("getExtension").Call("bind", glContext)
-	c.fnIsContextLost = glContext.Get("isContextLost").Call("bind", glContext)
-
-	return nil
-}
-
 func (c *context) reset() error {
 	c.locationCache = newLocationCache()
 	c.lastTexture = 0
@@ -119,10 +60,6 @@ func (c *context) reset() error {
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
 	c.lastBlend = graphicsdriver.Blend{}
-
-	if err := c.initGL(); err != nil {
-		return err
-	}
 
 	if c.fnIsContextLost.Invoke().Bool() {
 		return graphicsdriver.GraphicsNotReady
