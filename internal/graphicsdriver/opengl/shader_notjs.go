@@ -21,7 +21,7 @@ import (
 )
 
 func (c *context) glslVersion() glsl.GLSLVersion {
-	if c.isES() {
+	if c.ctx.IsES() {
 		return glsl.GLSLVersionES100
 	}
 	return glsl.GLSLVersionDefault

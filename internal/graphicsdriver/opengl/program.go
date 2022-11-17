@@ -20,6 +20,7 @@ import (
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
@@ -70,12 +71,12 @@ func (a *arrayBufferLayout) newArrayBuffer(context *context) buffer {
 // enable starts using the array buffer.
 func (a *arrayBufferLayout) enable(context *context) {
 	for i := range a.parts {
-		context.enableVertexAttribArray(i)
+		context.ctx.EnableVertexAttribArray(uint32(i))
 	}
 	total := a.totalBytes()
 	offset := 0
 	for i, p := range a.parts {
-		context.vertexAttribPointer(i, p.num, total, offset)
+		context.ctx.VertexAttribPointer(uint32(i), int32(p.num), gl.FLOAT, false, int32(total), offset)
 		offset += floatSizeInBytes * p.num
 	}
 }
@@ -84,7 +85,7 @@ func (a *arrayBufferLayout) enable(context *context) {
 func (a *arrayBufferLayout) disable(context *context) {
 	// TODO: Disabling should be done in reversed order?
 	for i := range a.parts {
-		context.disableVertexAttribArray(i)
+		context.ctx.DisableVertexAttribArray(uint32(i))
 	}
 }
 
@@ -134,7 +135,7 @@ func (s *openGLState) reset(context *context) error {
 	}
 
 	s.lastProgram = 0
-	context.useProgram(0)
+	context.ctx.UseProgram(0)
 	for key := range s.lastUniforms {
 		delete(s.lastUniforms, key)
 	}
@@ -143,10 +144,10 @@ func (s *openGLState) reset(context *context) error {
 	// and must not be deleted by DeleteBuffer.
 	if runtime.GOOS != "js" {
 		if s.arrayBuffer != 0 {
-			context.deleteBuffer(s.arrayBuffer)
+			context.ctx.DeleteBuffer(uint32(s.arrayBuffer))
 		}
 		if s.elementArrayBuffer != 0 {
-			context.deleteBuffer(s.elementArrayBuffer)
+			context.ctx.DeleteBuffer(uint32(s.elementArrayBuffer))
 		}
 	}
 
@@ -199,11 +200,11 @@ func (g *Graphics) textureVariableName(idx int) string {
 // useProgram uses the program (programTexture).
 func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textures [graphics.ShaderImageCount]textureVariable) error {
 	if g.state.lastProgram != program {
-		g.context.useProgram(program)
+		g.context.ctx.UseProgram(uint32(program))
 		if g.state.lastProgram == 0 {
 			theArrayBufferLayout.enable(&g.context)
-			g.context.bindArrayBuffer(g.state.arrayBuffer)
-			g.context.bindElementArrayBuffer(g.state.elementArrayBuffer)
+			g.context.ctx.BindBuffer(gl.ARRAY_BUFFER, uint32(g.state.arrayBuffer))
+			g.context.ctx.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, uint32(g.state.elementArrayBuffer))
 		}
 
 		g.state.lastProgram = program
@@ -211,7 +212,7 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 			delete(g.state.lastUniforms, k)
 		}
 		g.state.lastActiveTexture = 0
-		g.context.activeTexture(0)
+		g.context.ctx.ActiveTexture(gl.TEXTURE0)
 	}
 
 	for _, u := range uniforms {
@@ -258,7 +259,7 @@ loop:
 		})
 		g.context.uniformInt(program, g.textureVariableName(i), idx)
 		if g.state.lastActiveTexture != idx {
-			g.context.activeTexture(idx)
+			g.context.ctx.ActiveTexture(uint32(gl.TEXTURE0 + idx))
 			g.state.lastActiveTexture = idx
 		}
 

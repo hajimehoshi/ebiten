@@ -30,7 +30,7 @@ func (c *locationCache) GetUniformLocation(context *context, p program, location
 	}
 	l, ok := c.uniformLocationCache[p][location]
 	if !ok {
-		l = context.getUniformLocationImpl(p, location)
+		l = uniformLocation(context.ctx.GetUniformLocation(uint32(p), location))
 		c.uniformLocationCache[p][location] = l
 	}
 	return l

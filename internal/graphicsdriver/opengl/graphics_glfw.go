@@ -21,7 +21,7 @@ import (
 )
 
 func (g *Graphics) SetGLFWClientAPI() {
-	if g.context.isES() {
+	if g.context.ctx.IsES() {
 		glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLESAPI)
 		glfw.WindowHint(glfw.ContextVersionMajor, 2)
 		glfw.WindowHint(glfw.ContextVersionMinor, 0)

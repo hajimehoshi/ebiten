@@ -19,6 +19,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 )
 
 type Image struct {
@@ -37,7 +38,7 @@ func (i *Image) ID() graphicsdriver.ImageID {
 }
 
 func (i *Image) IsInvalidated() bool {
-	return !i.graphics.context.isTexture(i.texture)
+	return !i.graphics.context.ctx.IsTexture(uint32(i.texture))
 }
 
 func (i *Image) Dispose() {
@@ -132,9 +133,14 @@ func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 	// glFlush is necessary on Android.
 	// glTexSubImage2D didn't work without this hack at least on Nexus 5x and NuAns NEO [Reloaded] (#211).
 	if i.graphics.drawCalled {
-		i.graphics.context.flush()
+		i.graphics.context.ctx.Flush()
 	}
 	i.graphics.drawCalled = false
-	i.graphics.context.texSubImage2D(i.texture, args)
+
+	i.graphics.context.bindTexture(i.texture)
+	for _, a := range args {
+		i.graphics.context.ctx.TexSubImage2D(gl.TEXTURE_2D, 0, int32(a.X), int32(a.Y), int32(a.Width), int32(a.Height), gl.RGBA, gl.UNSIGNED_BYTE, a.Pixels)
+	}
+
 	return nil
 }

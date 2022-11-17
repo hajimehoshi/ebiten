@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
 )
@@ -54,17 +55,17 @@ func (s *Shader) Dispose() {
 func (s *Shader) compile() error {
 	vssrc, fssrc := glsl.Compile(s.ir, s.graphics.context.glslVersion())
 
-	vs, err := s.graphics.context.newVertexShader(vssrc)
+	vs, err := s.graphics.context.newShader(gl.VERTEX_SHADER, vssrc)
 	if err != nil {
 		return fmt.Errorf("opengl: vertex shader compile error: %v, source:\n%s", err, vssrc)
 	}
-	defer s.graphics.context.deleteShader(vs)
+	defer s.graphics.context.ctx.DeleteShader(uint32(vs))
 
-	fs, err := s.graphics.context.newFragmentShader(fssrc)
+	fs, err := s.graphics.context.newShader(gl.FRAGMENT_SHADER, fssrc)
 	if err != nil {
 		return fmt.Errorf("opengl: fragment shader compile error: %v, source:\n%s", err, fssrc)
 	}
-	defer s.graphics.context.deleteShader(fs)
+	defer s.graphics.context.ctx.DeleteShader(uint32(fs))
 
 	p, err := s.graphics.context.newProgram([]shader{vs, fs}, theArrayBufferLayout.names())
 	if err != nil {
