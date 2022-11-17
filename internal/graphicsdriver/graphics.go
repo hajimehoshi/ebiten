@@ -15,8 +15,6 @@
 package graphicsdriver
 
 import (
-	"errors"
-
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
@@ -59,9 +57,6 @@ type Graphics interface {
 	// DrawTriangles draws an image onto another image with the given parameters.
 	DrawTriangles(dst ImageID, srcs [graphics.ShaderImageCount]ImageID, shader ShaderID, dstRegions []DstRegion, indexOffset int, blend Blend, uniforms [][]uint32, evenOdd bool) error
 }
-
-// GraphicsNotReady represents that the graphics driver is not ready for recovering from the context lost.
-var GraphicsNotReady = errors.New("graphics not ready")
 
 type Image interface {
 	ID() ImageID

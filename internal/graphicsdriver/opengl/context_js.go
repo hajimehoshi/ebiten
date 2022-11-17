@@ -48,8 +48,6 @@ type contextImpl struct {
 	ctx    gl.Context
 	canvas js.Value
 	webGL2 bool
-
-	fnIsContextLost js.Value
 }
 
 func (c *context) reset() error {
@@ -60,9 +58,6 @@ func (c *context) reset() error {
 	c.lastViewportHeight = 0
 	c.lastBlend = graphicsdriver.Blend{}
 
-	if c.fnIsContextLost.Invoke().Bool() {
-		return graphicsdriver.GraphicsNotReady
-	}
 	c.ctx.Enable(gl.BLEND)
 	c.ctx.Enable(gl.SCISSOR_TEST)
 	c.blend(graphicsdriver.BlendSourceOver)
