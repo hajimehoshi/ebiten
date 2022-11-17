@@ -26,51 +26,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
-type (
-	textureNative      uint32
-	renderbufferNative uint32
-	framebufferNative  uint32
-	shader             uint32
-	program            uint32
-	buffer             uint32
-)
-
-type (
-	uniformLocation int32
-	attribLocation  int32
-)
-
-const (
-	invalidFramebuffer = (1 << 32) - 1
-	invalidUniform     = -1
-)
-
 type contextImpl struct {
-	ctx  gl.Context
-	init bool
-}
-
-func (c *context) reset() error {
-	if !c.init {
-		// Load OpenGL functions after WGL is initialized especially for Windows (#2452).
-		if err := c.ctx.LoadFunctions(); err != nil {
-			return err
-		}
-		c.init = true
-	}
-
-	c.locationCache = newLocationCache()
-	c.lastTexture = 0
-	c.lastFramebuffer = invalidFramebuffer
-	c.lastViewportWidth = 0
-	c.lastViewportHeight = 0
-	c.lastBlend = graphicsdriver.Blend{}
-	c.ctx.Enable(gl.BLEND)
-	c.ctx.Enable(gl.SCISSOR_TEST)
-	c.blend(graphicsdriver.BlendSourceOver)
-	c.screenFramebuffer = framebufferNative(c.ctx.GetInteger(gl.FRAMEBUFFER_BINDING))
-	// TODO: Need to update screenFramebufferWidth/Height?
-	return nil
 }
 
 func (c *context) blend(blend graphicsdriver.Blend) {

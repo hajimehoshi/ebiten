@@ -19,6 +19,7 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 )
 
 type blendFactor int
@@ -87,7 +88,28 @@ func convertBlendOperation(o graphicsdriver.BlendOperation) blendOperation {
 	}
 }
 
+type (
+	textureNative      uint32
+	renderbufferNative uint32
+	framebufferNative  uint32
+	shader             uint32
+	program            uint32
+	buffer             uint32
+)
+
+type (
+	uniformLocation int32
+	attribLocation  int32
+)
+
+const (
+	invalidFramebuffer = (1 << 32) - 1
+	invalidUniform     = -1
+)
+
 type context struct {
+	ctx gl.Context
+
 	locationCache      *locationCache
 	screenFramebuffer  framebufferNative // This might not be the default frame buffer '0' (e.g. iOS).
 	lastFramebuffer    framebufferNative
@@ -100,6 +122,7 @@ type context struct {
 	maxTextureSizeOnce sync.Once
 	highp              bool
 	highpOnce          sync.Once
+	initOnce           sync.Once
 
 	contextImpl
 }
@@ -158,4 +181,32 @@ func (c *context) getMaxTextureSize() int {
 		c.maxTextureSize = c.maxTextureSizeImpl()
 	})
 	return c.maxTextureSize
+}
+
+func (c *context) reset() error {
+	var err1 error
+	c.initOnce.Do(func() {
+		// Load OpenGL functions after WGL is initialized especially for Windows (#2452).
+		if err := c.ctx.LoadFunctions(); err != nil {
+			err1 = err
+			return
+		}
+	})
+	if err1 != nil {
+		return err1
+	}
+
+	c.locationCache = newLocationCache()
+	c.lastTexture = 0
+	c.lastFramebuffer = invalidFramebuffer
+	c.lastViewportWidth = 0
+	c.lastViewportHeight = 0
+	c.lastBlend = graphicsdriver.Blend{}
+
+	c.ctx.Enable(gl.BLEND)
+	c.ctx.Enable(gl.SCISSOR_TEST)
+	c.blend(graphicsdriver.BlendSourceOver)
+	c.screenFramebuffer = framebufferNative(c.ctx.GetInteger(gl.FRAMEBUFFER_BINDING))
+	// TODO: Need to update screenFramebufferWidth/Height?
+	return nil
 }
