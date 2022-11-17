@@ -66,8 +66,9 @@ func (i *Image) ReadPixels(buf []byte, x, y, width, height int) error {
 	if err := i.ensureFramebuffer(); err != nil {
 		return err
 	}
-
-	i.graphics.context.framebufferPixels(buf, i.framebuffer, x, y, width, height)
+	if err := i.graphics.context.framebufferPixels(buf, i.framebuffer, x, y, width, height); err != nil {
+		return err
+	}
 	return nil
 }
 
