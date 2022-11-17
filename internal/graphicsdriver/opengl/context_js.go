@@ -71,8 +71,6 @@ func (p program) equal(rhs program) bool {
 	return p.value.Equal(rhs.value) && p.id == rhs.id
 }
 
-var InvalidTexture = textureNative(js.Null())
-
 var invalidUniform = uniformLocation(js.Null())
 
 func getProgramID(p program) programID {

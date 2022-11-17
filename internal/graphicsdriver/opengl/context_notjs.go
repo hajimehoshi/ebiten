@@ -59,8 +59,6 @@ func (p program) equal(rhs program) bool {
 	return p == rhs
 }
 
-var InvalidTexture textureNative
-
 type (
 	uniformLocation int32
 	attribLocation  int32
@@ -73,7 +71,6 @@ func (u uniformLocation) equal(rhs uniformLocation) bool {
 type programID uint32
 
 const (
-	invalidTexture     = 0
 	invalidFramebuffer = (1 << 32) - 1
 	invalidUniform     = -1
 )
@@ -97,7 +94,7 @@ func (c *context) reset() error {
 	}
 
 	c.locationCache = newLocationCache()
-	c.lastTexture = invalidTexture
+	c.lastTexture = 0
 	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
@@ -183,7 +180,7 @@ func (c *context) deleteTexture(t textureNative) {
 		return
 	}
 	if c.lastTexture == t {
-		c.lastTexture = invalidTexture
+		c.lastTexture = 0
 	}
 	c.ctx.DeleteTexture(uint32(t))
 }
