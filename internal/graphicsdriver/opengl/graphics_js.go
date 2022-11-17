@@ -62,8 +62,11 @@ func NewGraphics(canvas js.Value) (graphicsdriver.Graphics, error) {
 	g.context.canvas = canvas
 	g.context.ctx = ctx
 	g.context.webGL2 = webGL2
-	g.context.fnGetExtension = glContext.Get("getExtension").Call("bind", glContext)
 	g.context.fnIsContextLost = glContext.Get("isContextLost").Call("bind", glContext)
+
+	if !webGL2 {
+		glContext.Call("getExtension", "OES_standard_derivatives")
+	}
 
 	return g, nil
 }

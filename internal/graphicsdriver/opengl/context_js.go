@@ -49,7 +49,6 @@ type contextImpl struct {
 	canvas js.Value
 	webGL2 bool
 
-	fnGetExtension  js.Value
 	fnIsContextLost js.Value
 }
 
@@ -70,9 +69,6 @@ func (c *context) reset() error {
 	f := c.ctx.GetInteger(gl.FRAMEBUFFER_BINDING)
 	c.screenFramebuffer = framebufferNative(f)
 
-	if !c.webGL2 {
-		c.fnGetExtension.Invoke("OES_standard_derivatives")
-	}
 	return nil
 }
 
