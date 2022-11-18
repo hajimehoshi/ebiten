@@ -16,9 +16,18 @@ package opengl
 
 import (
 	"syscall/js"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
 )
 
-type contextImpl struct {
+type contextPlatform struct {
 	canvas js.Value
 	webGL2 bool
+}
+
+func (c *context) glslVersion() glsl.GLSLVersion {
+	if c.webGL2 {
+		return glsl.GLSLVersionES300
+	}
+	return glsl.GLSLVersionES100
 }

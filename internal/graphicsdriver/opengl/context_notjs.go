@@ -16,5 +16,16 @@
 
 package opengl
 
-type contextImpl struct {
+import (
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
+)
+
+type contextPlatform struct {
+}
+
+func (c *context) glslVersion() glsl.GLSLVersion {
+	if c.ctx.IsES() {
+		return glsl.GLSLVersionES100
+	}
+	return glsl.GLSLVersionDefault
 }

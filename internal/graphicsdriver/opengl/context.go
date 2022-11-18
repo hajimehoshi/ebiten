@@ -127,7 +127,7 @@ type context struct {
 	highpOnce          sync.Once
 	initOnce           sync.Once
 
-	contextImpl
+	contextPlatform
 }
 
 func (c *context) bindTexture(t textureNative) {
@@ -156,27 +156,33 @@ func (c *context) bindFramebuffer(f framebufferNative) {
 
 func (c *context) setViewport(f *framebuffer) {
 	c.bindFramebuffer(f.native)
-	if c.lastViewportWidth != f.width || c.lastViewportHeight != f.height {
-		// On some environments, viewport size must be within the framebuffer size.
-		// e.g. Edge (#71), Chrome on GPD Pocket (#420), macOS Mojave (#691).
-		// Use the same size of the framebuffer here.
-		c.ctx.Viewport(0, 0, int32(f.width), int32(f.height))
+	if c.lastViewportWidth == f.width && c.lastViewportHeight == f.height {
+		return
+	}
 
-		// glViewport must be called at least at every frame on iOS.
-		// As the screen framebuffer is the last render target, next SetViewport should be
-		// the first call at a frame.
-		if f.native == c.screenFramebuffer {
-			c.lastViewportWidth = 0
-			c.lastViewportHeight = 0
-		} else {
-			c.lastViewportWidth = f.width
-			c.lastViewportHeight = f.height
-		}
+	// On some environments, viewport size must be within the framebuffer size.
+	// e.g. Edge (#71), Chrome on GPD Pocket (#420), macOS Mojave (#691).
+	// Use the same size of the framebuffer here.
+	c.ctx.Viewport(0, 0, int32(f.width), int32(f.height))
+
+	// glViewport must be called at least at every frame on iOS.
+	// As the screen framebuffer is the last render target, next SetViewport should be
+	// the first call at a frame.
+	if f.native == c.screenFramebuffer {
+		c.lastViewportWidth = 0
+		c.lastViewportHeight = 0
+	} else {
+		c.lastViewportWidth = f.width
+		c.lastViewportHeight = f.height
 	}
 }
 
-func (c *context) getScreenFramebuffer() framebufferNative {
-	return c.screenFramebuffer
+func (c *context) newScreenFramebuffer(width, height int) *framebuffer {
+	return &framebuffer{
+		native: c.screenFramebuffer,
+		width:  width,
+		height: height,
+	}
 }
 
 func (c *context) getMaxTextureSize() int {
@@ -334,24 +340,28 @@ func (c *context) deleteRenderbuffer(r renderbufferNative) {
 	c.ctx.DeleteRenderbuffer(uint32(r))
 }
 
-func (c *context) newFramebuffer(texture textureNative) (framebufferNative, error) {
+func (c *context) newFramebuffer(texture textureNative, width, height int) (*framebuffer, error) {
 	f := c.ctx.CreateFramebuffer()
 	if f <= 0 {
-		return 0, fmt.Errorf("opengl: creating framebuffer failed: the returned value is not positive but %d", f)
+		return nil, fmt.Errorf("opengl: creating framebuffer failed: the returned value is not positive but %d", f)
 	}
 	c.bindFramebuffer(framebufferNative(f))
 
 	c.ctx.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, uint32(texture), 0)
 	if s := c.ctx.CheckFramebufferStatus(gl.FRAMEBUFFER); s != gl.FRAMEBUFFER_COMPLETE {
 		if s != 0 {
-			return 0, fmt.Errorf("opengl: creating framebuffer failed: %v", s)
+			return nil, fmt.Errorf("opengl: creating framebuffer failed: %v", s)
 		}
 		if e := c.ctx.GetError(); e != gl.NO_ERROR {
-			return 0, fmt.Errorf("opengl: creating framebuffer failed: (glGetError) %d", e)
+			return nil, fmt.Errorf("opengl: creating framebuffer failed: (glGetError) %d", e)
 		}
-		return 0, fmt.Errorf("opengl: creating framebuffer failed: unknown error")
+		return nil, fmt.Errorf("opengl: creating framebuffer failed: unknown error")
 	}
-	return framebufferNative(f), nil
+	return &framebuffer{
+		native: framebufferNative(f),
+		width:  width,
+		height: height,
+	}, nil
 }
 
 func (c *context) bindStencilBuffer(f framebufferNative, r renderbufferNative) error {
@@ -365,6 +375,9 @@ func (c *context) bindStencilBuffer(f framebufferNative, r renderbufferNative) e
 }
 
 func (c *context) deleteFramebuffer(f framebufferNative) {
+	if f == c.screenFramebuffer {
+		return
+	}
 	if !c.ctx.IsFramebuffer(uint32(f)) {
 		return
 	}

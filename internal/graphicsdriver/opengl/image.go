@@ -33,6 +33,14 @@ type Image struct {
 	screen      bool
 }
 
+// framebuffer is a wrapper of OpenGL's framebuffer.
+type framebuffer struct {
+	graphics *Graphics
+	native   framebufferNative
+	width    int
+	height   int
+}
+
 func (i *Image) ID() graphicsdriver.ImageID {
 	return i.id
 }
@@ -43,7 +51,7 @@ func (i *Image) IsInvalidated() bool {
 
 func (i *Image) Dispose() {
 	if i.framebuffer != nil {
-		i.framebuffer.delete(&i.graphics.context)
+		i.graphics.context.deleteFramebuffer(i.framebuffer.native)
 	}
 	if i.texture != 0 {
 		i.graphics.context.deleteTexture(i.texture)
@@ -90,10 +98,10 @@ func (i *Image) ensureFramebuffer() error {
 
 	w, h := i.framebufferSize()
 	if i.screen {
-		i.framebuffer = newScreenFramebuffer(&i.graphics.context, w, h)
+		i.framebuffer = i.graphics.context.newScreenFramebuffer(w, h)
 		return nil
 	}
-	f, err := newFramebufferFromTexture(&i.graphics.context, i.texture, w, h)
+	f, err := i.graphics.context.newFramebuffer(i.texture, w, h)
 	if err != nil {
 		return err
 	}
