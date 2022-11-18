@@ -1335,7 +1335,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			Want:   color.RGBA{0x85, 0xa3, 0x08, 0xd3},
 		},
 		{
-			Name: "0xff,array",
+			Name: "0xff,slice",
 			Uniforms: map[string]any{
 				"U": []int{0xff, 0xff, 0xff, 0xff},
 			},
@@ -1343,7 +1343,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			Want:   color.RGBA{0xff, 0xff, 0xff, 0xff},
 		},
 		{
-			Name: "int,array",
+			Name: "int,slice",
 			Uniforms: map[string]any{
 				"U": []int16{0x24, 0x3f, 0x6a, 0x88},
 			},
@@ -1351,9 +1351,33 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			Want:   color.RGBA{0x24, 0x3f, 0x6a, 0x88},
 		},
 		{
-			Name: "uint,array",
+			Name: "uint,slice",
 			Uniforms: map[string]any{
 				"U": []uint8{0x85, 0xa3, 0x08, 0xd3},
+			},
+			Shader: intArray,
+			Want:   color.RGBA{0x85, 0xa3, 0x08, 0xd3},
+		},
+		{
+			Name: "0xff,array",
+			Uniforms: map[string]any{
+				"U": [...]int{0xff, 0xff, 0xff, 0xff},
+			},
+			Shader: intArray,
+			Want:   color.RGBA{0xff, 0xff, 0xff, 0xff},
+		},
+		{
+			Name: "int,array",
+			Uniforms: map[string]any{
+				"U": [...]int16{0x24, 0x3f, 0x6a, 0x88},
+			},
+			Shader: intArray,
+			Want:   color.RGBA{0x24, 0x3f, 0x6a, 0x88},
+		},
+		{
+			Name: "uint,array",
+			Uniforms: map[string]any{
+				"U": [...]uint8{0x85, 0xa3, 0x08, 0xd3},
 			},
 			Shader: intArray,
 			Want:   color.RGBA{0x85, 0xa3, 0x08, 0xd3},

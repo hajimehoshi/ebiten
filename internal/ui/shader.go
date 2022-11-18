@@ -58,8 +58,7 @@ func (s *Shader) ConvertUniforms(uniforms map[string]any) [][]uint32 {
 			nameToU32s[name] = []uint32{uint32(v.Uint())}
 		case reflect.Float32, reflect.Float64:
 			nameToU32s[name] = []uint32{math.Float32bits(float32(v.Float()))}
-		case reflect.Slice:
-			// TODO: Allow reflect.Array (#2448)
+		case reflect.Slice, reflect.Array:
 			u32s := make([]uint32, v.Len())
 			switch t.Elem().Kind() {
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
