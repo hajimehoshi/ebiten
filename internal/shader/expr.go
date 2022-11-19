@@ -21,6 +21,7 @@ import (
 	"go/token"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
@@ -869,7 +870,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		return cs.parseExpr(block, fname, e.X, markLocalVariableUsed)
 
 	case *ast.SelectorExpr:
-		exprs, _, stmts, ok := cs.parseExpr(block, fname, e.X, true)
+		exprs, types, stmts, ok := cs.parseExpr(block, fname, e.X, true)
 		if !ok {
 			return nil, nil, nil, false
 		}
@@ -877,6 +878,12 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			cs.addError(e.Pos(), fmt.Sprintf("multiple-value context is not available at a selector: %s", e.X))
 			return nil, nil, nil, false
 		}
+
+		if !isValidSwizzling(e.Sel.Name, types[0]) {
+			cs.addError(e.Pos(), fmt.Sprintf("unexpected swizzling: %s", e.Sel.Name))
+			return nil, nil, nil, false
+		}
+
 		var t shaderir.Type
 		switch len(e.Sel.Name) {
 		case 1:
@@ -1068,4 +1075,21 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		cs.addError(e.Pos(), fmt.Sprintf("expression not implemented: %#v", e))
 	}
 	return nil, nil, nil, false
+}
+
+func isValidSwizzling(swizzling string, t shaderir.Type) bool {
+	if !shaderir.IsValidSwizzling(swizzling) {
+		return false
+	}
+
+	switch t.Main {
+	case shaderir.Vec2:
+		return !strings.ContainsAny(swizzling, "zwbarq")
+	case shaderir.Vec3:
+		return !strings.ContainsAny(swizzling, "waq")
+	case shaderir.Vec4:
+		return true
+	default:
+		return false
+	}
 }

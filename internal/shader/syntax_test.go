@@ -2409,3 +2409,59 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestSwizzling(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "var a vec2; var b float = a.x; _ = b", err: false},
+		{stmt: "var a vec2; var b float = a.y; _ = b", err: false},
+		{stmt: "var a vec2; var b float = a.z; _ = b", err: true},
+		{stmt: "var a vec2; var b float = a.w; _ = b", err: true},
+		{stmt: "var a vec2; var b vec2 = a.xy; _ = b", err: false},
+		{stmt: "var a vec2; var b vec3 = a.xyz; _ = b", err: true},
+		{stmt: "var a vec2; var b vec3 = a.xyw; _ = b", err: true},
+		{stmt: "var a vec2; var b vec3 = a.xyy; _ = b", err: false},
+		{stmt: "var a vec2; var b vec3 = a.xyz; _ = b", err: true},
+		{stmt: "var a vec2; var b vec4 = a.xyzw; _ = b", err: true},
+
+		{stmt: "var a vec3; var b float = a.x; _ = b", err: false},
+		{stmt: "var a vec3; var b float = a.y; _ = b", err: false},
+		{stmt: "var a vec3; var b float = a.z; _ = b", err: false},
+		{stmt: "var a vec3; var b float = a.w; _ = b", err: true},
+		{stmt: "var a vec3; var b vec2 = a.xy; _ = b", err: false},
+		{stmt: "var a vec3; var b vec3 = a.xyz; _ = b", err: false},
+		{stmt: "var a vec3; var b vec3 = a.xyw; _ = b", err: true},
+		{stmt: "var a vec3; var b vec3 = a.xyy; _ = b", err: false},
+		{stmt: "var a vec3; var b vec3 = a.xyz; _ = b", err: false},
+		{stmt: "var a vec3; var b vec4 = a.xyzw; _ = b", err: true},
+
+		{stmt: "var a vec4; var b float = a.x; _ = b", err: false},
+		{stmt: "var a vec4; var b float = a.y; _ = b", err: false},
+		{stmt: "var a vec4; var b float = a.z; _ = b", err: false},
+		{stmt: "var a vec4; var b float = a.w; _ = b", err: false},
+		{stmt: "var a vec4; var b vec2 = a.xy; _ = b", err: false},
+		{stmt: "var a vec4; var b vec3 = a.xyz; _ = b", err: false},
+		{stmt: "var a vec4; var b vec3 = a.xyw; _ = b", err: false},
+		{stmt: "var a vec4; var b vec3 = a.xyy; _ = b", err: false},
+		{stmt: "var a vec4; var b vec3 = a.xyz; _ = b", err: false},
+		{stmt: "var a vec4; var b vec4 = a.xyzw; _ = b", err: false},
+	}
+
+	for _, c := range cases {
+		stmt := c.stmt
+		src := fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	%s
+	return position
+}`, stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", stmt, err)
+		}
+	}
+}
