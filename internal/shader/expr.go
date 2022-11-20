@@ -228,7 +228,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 
 		if lhs[0].Const != nil && rhs[0].Const != nil {
 			op := e.Op
-			// https://golang.org/pkg/go/constant/#BinaryOp
+			// https://pkg.go.dev/go/constant/#BinaryOp
 			// "To force integer division of Int operands, use op == token.QUO_ASSIGN instead of
 			// token.QUO; the result is guaranteed to be Int in this case."
 			if op == token.QUO && lhs[0].Const.Kind() == gconstant.Int && rhs[0].Const.Kind() == gconstant.Int {
@@ -255,25 +255,25 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					v = gconstant.MakeBool(gconstant.Compare(lhs[0].Const, op, rhs[0].Const))
 				}
 				t = shaderir.Type{Main: shaderir.Bool}
-			default:
-				if op == token.REM {
-					if !isModAvailableForConsts(&lhs[0], &rhs[0]) {
-						var wrongTypeName string
-						if lhs[0].Const.Kind() != gconstant.Int {
-							wrongTypeName = goConstantKindString(lhs[0].Const.Kind())
-						} else {
-							wrongTypeName = goConstantKindString(rhs[0].Const.Kind())
-						}
-						cs.addError(e.Pos(), fmt.Sprintf("invalid operation: operator %% not defined on untyped %s", wrongTypeName))
-						return nil, nil, nil, false
+			case token.REM:
+				if !isModAvailableForConsts(&lhs[0], &rhs[0]) {
+					var wrongTypeName string
+					if lhs[0].Const.Kind() != gconstant.Int {
+						wrongTypeName = goConstantKindString(lhs[0].Const.Kind())
+					} else {
+						wrongTypeName = goConstantKindString(rhs[0].Const.Kind())
 					}
-					if !cs.forceToInt(e, &lhs[0]) {
-						return nil, nil, nil, false
-					}
-					if !cs.forceToInt(e, &rhs[0]) {
-						return nil, nil, nil, false
-					}
+					cs.addError(e.Pos(), fmt.Sprintf("invalid operation: operator %% not defined on untyped %s", wrongTypeName))
+					return nil, nil, nil, false
 				}
+				if !cs.forceToInt(e, &lhs[0]) {
+					return nil, nil, nil, false
+				}
+				if !cs.forceToInt(e, &rhs[0]) {
+					return nil, nil, nil, false
+				}
+				fallthrough
+			default:
 				v = gconstant.BinaryOp(lhs[0].Const, op, rhs[0].Const)
 				if v.Kind() == gconstant.Float {
 					t = shaderir.Type{Main: shaderir.Float}
@@ -346,6 +346,9 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			case shaderir.IVec2, shaderir.IVec3, shaderir.IVec4:
 				if !canTruncateToInteger(rhs[0].Const) {
 					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
+					return nil, nil, nil, false
+				}
+				if !cs.forceToInt(e, &rhs[0]) {
 					return nil, nil, nil, false
 				}
 			case shaderir.Int:

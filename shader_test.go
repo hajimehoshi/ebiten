@@ -15,6 +15,7 @@
 package ebiten_test
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"math"
@@ -1501,5 +1502,67 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	dst.DrawRectShader(w, h, s, op)
 	if got, want := dst.At(0, 0).(color.RGBA), (color.RGBA{0x24, 0x85, 0x13, 0x19}); !sameColors(got, want, 1) {
 		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+func TestShaderIVecMod(t *testing.T) {
+	cases := []struct {
+		source string
+		want   color.RGBA
+	}{
+		{
+			source: `a := ivec4(0x24, 0x3f, 0x6a, 0x88)
+return vec4(a)/255`,
+			want: color.RGBA{0x24, 0x3f, 0x6a, 0x88},
+		},
+		{
+			source: `a := ivec4(0x24, 0x3f, 0x6a, 0x88)
+a %= 0x85
+return vec4(a)/255`,
+			want: color.RGBA{0x24, 0x3f, 0x6a, 0x03},
+		},
+		{
+			source: `a := ivec4(0x24, 0x3f, 0x6a, 0x88)
+a %= ivec4(0x85, 0xa3, 0x08, 0xd3)
+return vec4(a)/255`,
+			want: color.RGBA{0x24, 0x3f, 0x02, 0x88},
+		},
+		{
+			source: `a := ivec4(0x24, 0x3f, 0x6a, 0x88)
+b := a % 0x85
+return vec4(b)/255`,
+			want: color.RGBA{0x24, 0x3f, 0x6a, 0x03},
+		},
+		{
+			source: `a := ivec4(0x24, 0x3f, 0x6a, 0x88)
+b := a % ivec4(0x85, 0xa3, 0x08, 0xd3)
+return vec4(b)/255`,
+			want: color.RGBA{0x24, 0x3f, 0x02, 0x88},
+		},
+	}
+
+	for _, tc := range cases {
+		shader := fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	%s
+}
+`, tc.source)
+		const w, h = 1, 1
+
+		dst := ebiten.NewImage(w, h)
+		defer dst.Dispose()
+
+		s, err := ebiten.NewShader([]byte(shader))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer s.Dispose()
+
+		op := &ebiten.DrawRectShaderOptions{}
+		dst.DrawRectShader(w, h, s, op)
+		if got, want := dst.At(0, 0).(color.RGBA), tc.want; !sameColors(got, want, 1) {
+			t.Errorf("%s: got: %v, want: %v", tc.source, got, want)
+		}
 	}
 }

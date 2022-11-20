@@ -35,6 +35,30 @@ const (
 // utilFunctions is GLSL utility functions for old GLSL versions.
 const utilFunctions = `int modInt(int x, int y) {
 	return x - y*(x/y);
+}
+
+ivec2 modInt(ivec2 x, int y) {
+	return x - y*(x/y);
+}
+
+ivec3 modInt(ivec3 x, int y) {
+	return x - y*(x/y);
+}
+
+ivec4 modInt(ivec4 x, int y) {
+	return x - y*(x/y);
+}
+
+ivec2 modInt(ivec2 x, ivec2 y) {
+	return x - y*(x/y);
+}
+
+ivec3 modInt(ivec3 x, ivec3 y) {
+	return x - y*(x/y);
+}
+
+ivec4 modInt(ivec4 x, ivec4 y) {
+	return x - y*(x/y);
 }`
 
 func VertexPrelude(version GLSLVersion) string {
