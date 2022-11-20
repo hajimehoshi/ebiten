@@ -108,16 +108,7 @@ type NSColor struct {
 }
 
 func NSColor_colorWithSRGBRedGreenBlueAlpha(red, green, blue, alpha CGFloat) (color NSColor) {
-	sig := NSMethodSignature_signatureWithObjCTypes("@@:ffff")
-	inv := NSInvocation_invocationWithMethodSignature(sig)
-	inv.SetSelector(sel_colorWithSRGBRedGreenBlueAlpha)
-	inv.SetArgumentAtIndex(unsafe.Pointer(&red), 2)
-	inv.SetArgumentAtIndex(unsafe.Pointer(&green), 3)
-	inv.SetArgumentAtIndex(unsafe.Pointer(&blue), 4)
-	inv.SetArgumentAtIndex(unsafe.Pointer(&alpha), 5)
-	inv.InvokeWithTarget(objc.ID(class_NSColor))
-	inv.GetReturnValue(unsafe.Pointer(&color))
-	return color
+	return NSColor{objc.ID(class_NSColor).Send(sel_colorWithSRGBRedGreenBlueAlpha, red, green, blue, alpha)}
 }
 
 type NSOperatingSystemVersion struct {
