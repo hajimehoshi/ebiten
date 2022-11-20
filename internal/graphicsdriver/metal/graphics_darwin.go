@@ -421,7 +421,7 @@ func (g *Graphics) flushRenderCommandEncoderIfNeeded() {
 	g.lastDst = nil
 }
 
-func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs [graphics.ShaderImageCount]*Image, indexOffset int, shader *Shader, uniforms [][]float32, blend graphicsdriver.Blend, evenOdd bool) error {
+func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs [graphics.ShaderImageCount]*Image, indexOffset int, shader *Shader, uniforms [][]uint32, blend graphicsdriver.Blend, evenOdd bool) error {
 	// When prepareing a stencil buffer, flush the current render command encoder
 	// to make sure the stencil buffer is cleared when loading.
 	// TODO: What about clearing the stencil buffer by vertices?
@@ -544,7 +544,7 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 	return nil
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms [][]float32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms [][]uint32, evenOdd bool) error {
 	if shaderID == graphicsdriver.InvalidShaderID {
 		return fmt.Errorf("metal: shader ID is invalid")
 	}
@@ -560,32 +560,46 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 		srcs[i] = g.images[srcID]
 	}
 
-	uniformVars := make([][]float32, len(uniforms))
+	uniformVars := make([][]uint32, len(uniforms))
 
 	// Set the additional uniform variables.
 	for i, v := range uniforms {
 		if i == graphics.ProjectionMatrixUniformVariableIndex {
 			// In Metal, the NDC's Y direction (upward) and the framebuffer's Y direction (downward) don't
 			// match. Then, the Y direction must be inverted.
-			v[1] *= -1
-			v[5] *= -1
-			v[9] *= -1
-			v[13] *= -1
+			// Invert the sign bits as float32 values.
+			v[1] ^= 1 << 31
+			v[5] ^= 1 << 31
+			v[9] ^= 1 << 31
+			v[13] ^= 1 << 31
 		}
 
 		t := g.shaders[shaderID].ir.Uniforms[i]
 		switch t.Main {
+		case shaderir.Vec3:
+			// float3 requires 16-byte alignment (#2463).
+			v1 := make([]uint32, 4)
+			copy(v1[0:3], v[0:3])
+			uniformVars[i] = v1
 		case shaderir.Mat3:
 			// float3x3 requires 16-byte alignment (#2036).
-			v1 := make([]float32, 12)
+			v1 := make([]uint32, 12)
 			copy(v1[0:3], v[0:3])
 			copy(v1[4:7], v[3:6])
 			copy(v1[8:11], v[6:9])
 			uniformVars[i] = v1
 		case shaderir.Array:
 			switch t.Sub[0].Main {
+			case shaderir.Vec3:
+				v1 := make([]uint32, t.Length*4)
+				for j := 0; j < t.Length; j++ {
+					offset0 := j * 3
+					offset1 := j * 4
+					copy(v1[offset1:offset1+3], v[offset0:offset0+3])
+				}
+				uniformVars[i] = v1
 			case shaderir.Mat3:
-				v1 := make([]float32, t.Length*12)
+				v1 := make([]uint32, t.Length*12)
 				for j := 0; j < t.Length; j++ {
 					offset0 := j * 9
 					offset1 := j * 12

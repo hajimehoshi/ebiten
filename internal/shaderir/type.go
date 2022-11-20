@@ -66,7 +66,7 @@ func (t *Type) String() string {
 	case Mat4:
 		return "mat4"
 	case Array:
-		return fmt.Sprintf("%s[%d]", t.Sub[0].String(), t.Length)
+		return fmt.Sprintf("[%d]%s", t.Length, t.Sub[0].String())
 	case Struct:
 		str := "struct{"
 		sub := make([]string, 0, len(t.Sub))
@@ -81,8 +81,10 @@ func (t *Type) String() string {
 	}
 }
 
-func (t *Type) FloatCount() int {
+func (t *Type) Uint32Count() int {
 	switch t.Main {
+	case Int:
+		return 1
 	case Float:
 		return 1
 	case Vec2:
@@ -98,7 +100,7 @@ func (t *Type) FloatCount() int {
 	case Mat4:
 		return 16
 	case Array:
-		return t.Length * t.Sub[0].FloatCount()
+		return t.Length * t.Sub[0].Uint32Count()
 	default: // TODO: Parse a struct correctly
 		return -1
 	}

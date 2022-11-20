@@ -109,11 +109,7 @@ func RestoreIfNeeded(graphicsDriver graphicsdriver.Graphics) error {
 		}
 	}
 
-	err := graphicscommand.ResetGraphicsDriverState(graphicsDriver)
-	if err == graphicsdriver.GraphicsNotReady {
-		return nil
-	}
-	if err != nil {
+	if err := graphicscommand.ResetGraphicsDriverState(graphicsDriver); err != nil {
 		return err
 	}
 	return theImages.restore(graphicsDriver)

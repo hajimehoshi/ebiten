@@ -59,7 +59,18 @@
     started_ = true;
   }
 
-  if (EbitenmobileviewIsGL()) {
+  NSError* err = nil;
+  BOOL isGL = NO;
+  EbitenmobileviewIsGL(&isGL, &err);
+  if (err != nil) {
+    [self onErrorOnGameUpdate:err];
+    @synchronized(self) {
+      error_ = true;
+    }
+    return;
+  }
+
+  if (isGL) {
     self.glkView.delegate = (id<GLKViewDelegate>)(self);
     [self.view addSubview: self.glkView];
 
@@ -69,7 +80,14 @@
     [EAGLContext setCurrentContext:context];
   } else {
     [self.view addSubview: self.metalView];
-    EbitenmobileviewSetUIView((uintptr_t)(self.metalView));
+    EbitenmobileviewSetUIView((uintptr_t)(self.metalView), &err);
+    if (err != nil) {
+      [self onErrorOnGameUpdate:err];
+      @synchronized(self) {
+        error_ = true;
+      }
+      return;
+    }
   }
 
   displayLink_ = [CADisplayLink displayLinkWithTarget:self selector:@selector(drawFrame)];
@@ -78,8 +96,19 @@
 }
 
 - (void)viewWillLayoutSubviews {
+  NSError* err = nil;
+  BOOL isGL = NO;
+  EbitenmobileviewIsGL(&isGL, &err);
+  if (err != nil) {
+    [self onErrorOnGameUpdate:err];
+    @synchronized(self) {
+      error_ = true;
+    }
+    return;
+  }
+
   CGRect viewRect = [[self view] frame];
-  if (EbitenmobileviewIsGL()) {
+  if (isGL) {
     [[self glkView] setFrame:viewRect];
   } else {
     [[self metalView] setFrame:viewRect];
@@ -106,7 +135,18 @@
     }
   }
 
-  if (EbitenmobileviewIsGL()) {
+  NSError* err = nil;
+  BOOL isGL = NO;
+  EbitenmobileviewIsGL(&isGL, &err);
+  if (err != nil) {
+    [self onErrorOnGameUpdate:err];
+    @synchronized(self) {
+      error_ = true;
+    }
+    return;
+  }
+
+  if (isGL) {
     [[self glkView] setNeedsDisplay];
   } else {
     [self updateEbiten];
@@ -124,8 +164,10 @@
 }
 
 - (void)updateEbiten {
-  if (error_) {
-    return;
+  @synchronized(self) {
+    if (error_) {
+      return;
+    }
   }
 
   NSError* err = nil;
@@ -134,7 +176,9 @@
     [self performSelectorOnMainThread:@selector(onErrorOnGameUpdate:)
                            withObject:err
                         waitUntilDone:NO];
-    error_ = true;
+    @synchronized(self) {
+      error_ = true;
+    }
   }
 }
 
@@ -143,8 +187,19 @@
 }
 
 - (void)updateTouches:(NSSet*)touches {
+  NSError* err = nil;
+  BOOL isGL = NO;
+  EbitenmobileviewIsGL(&isGL, &err);
+  if (err != nil) {
+    [self onErrorOnGameUpdate:err];
+    @synchronized(self) {
+      error_ = true;
+    }
+    return;
+  }
+
   for (UITouch* touch in touches) {
-    if (EbitenmobileviewIsGL()) {
+    if (isGL) {
       if (touch.view != [self glkView]) {
         continue;
       }

@@ -1,4 +1,4 @@
-// Copyright 2020 The Ebiten Authors
+// Copyright 2022 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,14 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !ios && !js && !opengles
+//go:build !android && !ios && !js && !nintendosdk
 
 package opengl
 
 import (
-	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
+	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
 
-func (c *context) glslVersion() glsl.GLSLVersion {
-	return glsl.GLSLVersionDefault
+func (g *Graphics) SetGLFWClientAPI() {
+	if g.context.ctx.IsES() {
+		glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLESAPI)
+		glfw.WindowHint(glfw.ContextVersionMajor, 2)
+		glfw.WindowHint(glfw.ContextVersionMinor, 0)
+		glfw.WindowHint(glfw.ContextCreationAPI, glfw.EGLContextAPI)
+		return
+	}
+
+	glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLAPI)
+	glfw.WindowHint(glfw.ContextVersionMajor, 2)
+	glfw.WindowHint(glfw.ContextVersionMinor, 1)
 }

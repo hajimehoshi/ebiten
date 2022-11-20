@@ -906,7 +906,7 @@ func (u *userInterfaceImpl) init() error {
 	u.graphicsDriver.SetTransparent(u.isInitScreenTransparent())
 
 	if u.graphicsDriver.IsGL() {
-		setGLFWClientAPI()
+		u.graphicsDriver.(interface{ SetGLFWClientAPI() }).SetGLFWClientAPI()
 	} else {
 		glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
 	}

@@ -348,7 +348,7 @@ const (
 )
 
 var (
-	metal                         = purego.Dlopen("Metal.framework/Metal", purego.RTLD_GLOBAL)
+	metal                         = purego.Dlopen("Metal.framework/Metal", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 	_MTLCreateSystemDefaultDevice = purego.Dlsym(metal, "MTLCreateSystemDefaultDevice")
 )
 

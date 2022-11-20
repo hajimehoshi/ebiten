@@ -1,49 +1,113 @@
-// SPDX-License-Identifier: MIT
+// Copyright 2022 The Ebitengine Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-//go:build !darwin && !windows
-
-// This file implements GlowGetProcAddress for every supported platform. The
-// correct version is chosen automatically based on build tags:
-//
-// darwin: CGL
-// linux freebsd openbsd: GLX
-//
-// Use of EGL instead of the platform's default (listed above) is made possible
-// via the "egl" build tag.
-//
-// It is also possible to install your own function outside this package for
-// retrieving OpenGL function pointers, to do this see InitWithProcAddrFunc.
+//go:build !darwin && !js && !nintendosdk && !windows
 
 package gl
 
-/*
-#cgo linux freebsd openbsd CFLAGS: -DTAG_POSIX
-#cgo linux,!nintendosdk freebsd,!nintendosdk openbsd,!nintendosdk pkg-config: gl
-#cgo egl nintendosdk CFLAGS: -DTAG_EGL
-#cgo egl,!nintendosdk pkg-config: egl
-#cgo nintendosdk LDFLAGS: -Wl,-unresolved-symbols=ignore-all
-
-// Check the EGL tag first as it takes priority over the platform's default
-// configuration of WGL/GLX/CGL.
-#if defined(TAG_EGL)
-	#include <stdlib.h>
-	#include <EGL/egl.h>
-	static void* GlowGetProcAddress_gl21(const char* name) {
-		return eglGetProcAddress(name);
-	}
-#elif defined(TAG_POSIX)
-	#include <stdlib.h>
-	#include <GL/glx.h>
-	static void* GlowGetProcAddress_gl21(const char* name) {
-		return glXGetProcAddress((const GLubyte *) name);
-	}
-#endif
-*/
+// #cgo LDFLAGS: -ldl
+//
+// #include <dlfcn.h>
+// #include <stdlib.h>
+//
+// static void* libGL() {
+//   static void* so;
+//   if (!so) {
+//     so = dlopen("libGL.so", RTLD_LAZY | RTLD_GLOBAL);
+//   }
+//   return so;
+// }
+//
+// static void* libGLES() {
+//   static void* so;
+//   if (!so) {
+//     so = dlopen("libGLESv2.so", RTLD_LAZY | RTLD_GLOBAL);
+//   }
+//   return so;
+// }
+//
+// static void* getProcAddressGL(const char* name) {
+//   static void*(*glXGetProcAddress)(const char*);
+//   if (!glXGetProcAddress) {
+//     glXGetProcAddress = dlsym(libGL(), "glXGetProcAddress");
+//     if (!glXGetProcAddress) {
+//       glXGetProcAddress = dlsym(libGL(), "glXGetProcAddressARB");
+//     }
+//   }
+//   return glXGetProcAddress(name);
+// }
+//
+// static void* getProcAddressGLES(const char* name) {
+//   return dlsym(libGLES(), name);
+// }
 import "C"
-import "unsafe"
 
-func getProcAddress(namea string) unsafe.Pointer {
-	cname := C.CString(namea)
+import (
+	"fmt"
+	"os"
+	"runtime"
+	"strings"
+	"unsafe"
+)
+
+func (c *defaultContext) init() error {
+	var preferES bool
+	if runtime.GOOS == "android" {
+		preferES = true
+	}
+	if !preferES {
+		for _, t := range strings.Split(os.Getenv("EBITENGINE_OPENGL"), ",") {
+			switch strings.TrimSpace(t) {
+			case "es":
+				preferES = true
+				break
+			}
+		}
+	}
+
+	// Try OpenGL first. OpenGL is preferrable as this doesn't cause context losts.
+	if !preferES {
+		if C.libGL() != nil {
+			return nil
+		}
+	}
+
+	// Try OpenGL ES.
+	if C.libGLES() != nil {
+		c.isES = true
+		return nil
+	}
+
+	return fmt.Errorf("gl: failed to load libGL.so and libGLESv2.so")
+}
+
+func (c *defaultContext) getProcAddress(name string) unsafe.Pointer {
+	if c.isES {
+		return getProcAddressGLES(name)
+	}
+	return getProcAddressGL(name)
+}
+
+func getProcAddressGL(name string) unsafe.Pointer {
+	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
-	return C.GlowGetProcAddress_gl21(cname)
+	return C.getProcAddressGL(cname)
+}
+
+func getProcAddressGLES(name string) unsafe.Pointer {
+	name = strings.TrimSuffix(name, "EXT")
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+	return C.getProcAddressGLES(cname)
 }

@@ -507,7 +507,7 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 			}
 
 			for i, rt := range rts {
-				if !canAssign(&es[i], &t, &rt) {
+				if !canAssign(&t, &rt, es[i].Const) {
 					s.addError(vs.Pos(), fmt.Sprintf("cannot use type %s as type %s in variable declaration", rt.String(), t.String()))
 				}
 			}
@@ -545,7 +545,7 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 				t = inittypes[i]
 			}
 
-			if !canAssign(&initexprs[i], &t, &inittypes[i]) {
+			if !canAssign(&t, &inittypes[i], initexprs[i].Const) {
 				s.addError(vs.Pos(), fmt.Sprintf("cannot use type %s as type %s in variable declaration", inittypes[i].String(), t.String()))
 			}
 
@@ -617,10 +617,26 @@ func (s *compileState) parseConstant(block *block, fname string, vs *ast.ValueSp
 			s.addError(vs.Pos(), fmt.Sprintf("constant expression must be a number but not: %s", n))
 			return nil, false
 		}
+
+		if !t.Equal(&shaderir.Type{}) && !canAssign(&t, &ts[0], es[0].Const) {
+			s.addError(vs.Pos(), fmt.Sprintf("cannot use %v as %s value in constant declaration", es[0].Const, t.String()))
+			return nil, false
+		}
+
+		constType := es[0].ConstType
+		switch t.Main {
+		case shaderir.Bool:
+			constType = shaderir.ConstTypeBool
+		case shaderir.Int:
+			constType = shaderir.ConstTypeInt
+		case shaderir.Float:
+			constType = shaderir.ConstTypeFloat
+		}
+
 		cs = append(cs, constant{
 			name:  name,
 			typ:   t,
-			ctyp:  es[0].ConstType,
+			ctyp:  constType,
 			value: es[0].Const,
 		})
 	}

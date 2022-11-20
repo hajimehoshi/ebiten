@@ -146,7 +146,7 @@ func (p *pipelineStates) initialize(device *_ID3D12Device) (ferr error) {
 	return nil
 }
 
-func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D12GraphicsCommandList, frameIndex int, screen bool, srcs [graphics.ShaderImageCount]*Image, shader *Shader, dstRegions []graphicsdriver.DstRegion, uniforms []float32, blend graphicsdriver.Blend, indexOffset int, evenOdd bool) error {
+func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D12GraphicsCommandList, frameIndex int, screen bool, srcs [graphics.ShaderImageCount]*Image, shader *Shader, dstRegions []graphicsdriver.DstRegion, uniforms []uint32, blend graphicsdriver.Blend, indexOffset int, evenOdd bool) error {
 	idx := len(p.constantBuffers[frameIndex])
 	if idx >= numDescriptorsPerFrame {
 		return fmt.Errorf("directx: too many constant buffers")
@@ -161,7 +161,7 @@ func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D
 	}
 
 	const bufferSizeAlignement = 256
-	bufferSize := uint32(unsafe.Sizeof(float32(0))) * uint32(len(uniforms))
+	bufferSize := uint32(unsafe.Sizeof(uint32(0))) * uint32(len(uniforms))
 	if bufferSize > 0 {
 		bufferSize = ((bufferSize-1)/bufferSizeAlignement + 1) * bufferSizeAlignement
 	}
@@ -228,7 +228,7 @@ func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D
 	}
 
 	// Update the constant buffer.
-	copy(unsafe.Slice((*float32)(unsafe.Pointer(m)), len(uniforms)), uniforms)
+	copy(unsafe.Slice((*uint32)(unsafe.Pointer(m)), len(uniforms)), uniforms)
 
 	rs, err := p.ensureRootSignature(device)
 	if err != nil {

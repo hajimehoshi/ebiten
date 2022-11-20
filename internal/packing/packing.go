@@ -17,6 +17,7 @@ package packing
 
 import (
 	"errors"
+	"fmt"
 )
 
 const (
@@ -25,15 +26,15 @@ const (
 
 type Page struct {
 	root    *Node
-	size    int
+	width   int
+	height  int
 	maxSize int
-
-	rollbackExtension func()
 }
 
 func NewPage(initSize int, maxSize int) *Page {
 	return &Page{
-		size:    initSize,
+		width:   initSize,
+		height:  initSize,
 		maxSize: maxSize,
 	}
 }
@@ -84,7 +85,33 @@ func square(width, height int) float64 {
 	return float64(height) / float64(width)
 }
 
-func (p *Page) alloc(n *Node, width, height int) *Node {
+func (p *Page) canAlloc(n *Node, width, height int) bool {
+	if p.root == nil {
+		return p.width >= width && p.height >= height
+	}
+	return canAlloc(p.root, width, height)
+}
+
+func canAlloc(n *Node, width, height int) bool {
+	if n.width < width || n.height < height {
+		return false
+	}
+	if n.used {
+		return false
+	}
+	if n.child0 == nil && n.child1 == nil {
+		return true
+	}
+	if canAlloc(n.child0, width, height) {
+		return true
+	}
+	if canAlloc(n.child1, width, height) {
+		return true
+	}
+	return false
+}
+
+func alloc(n *Node, width, height int) *Node {
 	if n.width < width || n.height < height {
 		return nil
 	}
@@ -129,22 +156,22 @@ func (p *Page) alloc(n *Node, width, height int) *Node {
 				parent: n,
 			}
 		}
-		return p.alloc(n.child0, width, height)
+		return alloc(n.child0, width, height)
 	}
 	if n.child0 == nil || n.child1 == nil {
 		panic("packing: both two children must not be nil at alloc")
 	}
-	if node := p.alloc(n.child0, width, height); node != nil {
+	if node := alloc(n.child0, width, height); node != nil {
 		return node
 	}
-	if node := p.alloc(n.child1, width, height); node != nil {
+	if node := alloc(n.child1, width, height); node != nil {
 		return node
 	}
 	return nil
 }
 
-func (p *Page) Size() int {
-	return p.size
+func (p *Page) Size() (int, int) {
+	return p.width, p.height
 }
 
 func (p *Page) SetMaxSize(size int) {
@@ -158,10 +185,15 @@ func (p *Page) Alloc(width, height int) *Node {
 	if width <= 0 || height <= 0 {
 		panic("packing: width and height must > 0")
 	}
+
+	if !p.extendFor(width, height) {
+		return nil
+	}
+
 	if p.root == nil {
 		p.root = &Node{
-			width:  p.size,
-			height: p.size,
+			width:  p.width,
+			height: p.height,
 		}
 	}
 	if width < minSize {
@@ -170,8 +202,7 @@ func (p *Page) Alloc(width, height int) *Node {
 	if height < minSize {
 		height = minSize
 	}
-	n := p.alloc(p.root, width, height)
-	return n
+	return alloc(p.root, width, height)
 }
 
 func (p *Page) Free(node *Node) {
@@ -209,30 +240,55 @@ func walk(n *Node, f func(n *Node) error) error {
 	return nil
 }
 
-func (p *Page) Extend(count int) bool {
-	if p.rollbackExtension != nil {
-		panic("packing: Extend cannot be called without rolling back or committing")
+func (p *Page) extendFor(width, height int) bool {
+	if p.canAlloc(p.root, width, height) {
+		return true
 	}
 
-	if p.size >= p.maxSize {
+	if p.width >= p.maxSize && p.height >= p.maxSize {
 		return false
 	}
 
-	newSize := p.size
-	for i := 0; i < count; i++ {
-		newSize *= 2
-	}
+	// (1, 0), (0, 1), (2, 0), (1, 1), (0, 2), (3, 0), (2, 1), (1, 2), (0, 3), ...
+	for i := 1; ; i++ {
+		for j := 0; j <= i; j++ {
+			newWidth := p.width
+			for k := 0; k < i-j; k++ {
+				newWidth *= 2
+			}
+			newHeight := p.height
+			for k := 0; k < j; k++ {
+				newHeight *= 2
+			}
 
-	if newSize > p.maxSize {
-		return false
-	}
+			if newWidth > p.maxSize || newHeight > p.maxSize {
+				if newWidth > p.maxSize && newHeight > p.maxSize {
+					panic(fmt.Sprintf("packing: too big extension: (%d, %d)", newWidth, newHeight))
+				}
+				continue
+			}
 
+			rollback := p.extend(newWidth, newHeight)
+			if p.canAlloc(p.root, width, height) {
+				return true
+			}
+			rollback()
+
+			// If the allocation failed even with a maximized page, give up the allocation.
+			if newWidth >= p.maxSize && newHeight >= p.maxSize {
+				return false
+			}
+		}
+	}
+}
+
+func (p *Page) extend(newWidth int, newHeight int) func() {
 	edgeNodes := []*Node{}
 	abort := errors.New("abort")
 	aborted := false
 	if p.root != nil {
 		_ = walk(p.root, func(n *Node) error {
-			if n.x+n.width < p.size && n.y+n.height < p.size {
+			if n.x+n.width < p.width && n.y+n.height < p.height {
 				return nil
 			}
 			if n.used {
@@ -244,67 +300,78 @@ func (p *Page) Extend(count int) bool {
 		})
 	}
 
+	var rollback func()
+
 	if aborted {
 		origRoot := *p.root
 
-		leftUpper := p.root
-		leftLower := &Node{
-			x:      0,
-			y:      p.size,
-			width:  p.size,
-			height: newSize - p.size,
+		// Extend the page in the vertical direction.
+		if newHeight-p.height > 0 {
+			upper := p.root
+			lower := &Node{
+				x:      0,
+				y:      p.height,
+				width:  p.width,
+				height: newHeight - p.height,
+			}
+			p.root = &Node{
+				x:      0,
+				y:      0,
+				width:  p.width,
+				height: newHeight,
+				child0: upper,
+				child1: lower,
+			}
+			upper.parent = p.root
+			lower.parent = p.root
 		}
-		left := &Node{
-			x:      0,
-			y:      0,
-			width:  p.size,
-			height: p.size,
-			child0: leftUpper,
-			child1: leftLower,
-		}
-		leftUpper.parent = left
-		leftLower.parent = left
 
-		right := &Node{
-			x:      p.size,
-			y:      0,
-			width:  newSize - p.size,
-			height: newSize,
+		// Extend the page in the horizontal direction.
+		if newWidth-p.width > 0 {
+			left := p.root
+			right := &Node{
+				x:      p.width,
+				y:      0,
+				width:  newWidth - p.width,
+				height: newHeight,
+			}
+			p.root = &Node{
+				x:      0,
+				y:      0,
+				width:  newWidth,
+				height: newHeight,
+				child0: left,
+				child1: right,
+			}
+			left.parent = p.root
+			right.parent = p.root
 		}
-		p.root = &Node{
-			x:      0,
-			y:      0,
-			width:  newSize,
-			height: newSize,
-			child0: left,
-			child1: right,
-		}
-		left.parent = p.root
-		right.parent = p.root
 
-		origSize := p.size
-		p.rollbackExtension = func() {
-			p.size = origSize
+		origWidth, origHeight := p.width, p.height
+		rollback = func() {
+			p.width = origWidth
+			p.height = origHeight
 			p.root = &origRoot
 		}
 	} else {
-		origSize := p.size
+		origWidth, origHeight := p.width, p.height
 		origWidths := map[*Node]int{}
 		origHeights := map[*Node]int{}
 
 		for _, n := range edgeNodes {
-			if n.x+n.width == p.size {
+			if n.x+n.width == p.width {
 				origWidths[n] = n.width
-				n.width += newSize - p.size
+				n.width += newWidth - p.width
 			}
-			if n.y+n.height == p.size {
+			if n.y+n.height == p.height {
 				origHeights[n] = n.height
-				n.height += newSize - p.size
+				n.height += newHeight - p.height
 			}
 		}
 
-		p.rollbackExtension = func() {
-			p.size = origSize
+		rollback = func() {
+			p.width = origWidth
+			p.height = origHeight
 			for n, w := range origWidths {
 				n.width = w
 			}
@@ -314,24 +381,8 @@ func (p *Page) Extend(count int) bool {
 		}
 	}
 
-	p.size = newSize
+	p.width = newWidth
+	p.height = newHeight
 
-	return true
-}
-
-// RollbackExtension rollbacks Extend call once.
-func (p *Page) RollbackExtension() {
-	if p.rollbackExtension == nil {
-		panic("packing: RollbackExtension cannot be called without Extend")
-	}
-	p.rollbackExtension()
-	p.rollbackExtension = nil
-}
-
-// CommitExtension commits Extend call.
-func (p *Page) CommitExtension() {
-	if p.rollbackExtension == nil {
-		panic("packing: RollbackExtension cannot be called without Extend")
-	}
-	p.rollbackExtension = nil
+	return rollback
 }

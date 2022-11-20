@@ -43,6 +43,9 @@ func calculateMemoryOffsets(uniforms []shaderir.Type) []int {
 		case shaderir.Float:
 			offsets = append(offsets, head)
 			head += 4
+		case shaderir.Int:
+			offsets = append(offsets, head)
+			head += 4
 		case shaderir.Vec2:
 			if head%boundaryInBytes >= 4*3 {
 				head = align(head)
@@ -79,7 +82,7 @@ func calculateMemoryOffsets(uniforms []shaderir.Type) []int {
 			// TODO: What if the array has 2 or more dimensions?
 			head = align(head)
 			offsets = append(offsets, head)
-			n := u.Sub[0].FloatCount()
+			n := u.Sub[0].Uint32Count()
 			switch u.Sub[0].Main {
 			case shaderir.Mat2:
 				n = 6
@@ -95,7 +98,7 @@ func calculateMemoryOffsets(uniforms []shaderir.Type) []int {
 			// TODO: Implement this
 			panic("hlsl: offset for a struct is not implemented yet")
 		default:
-			panic(fmt.Sprintf("hlsl: unexpected type: %d", u.Main))
+			panic(fmt.Sprintf("hlsl: unexpected type: %s", u.String()))
 		}
 	}
 

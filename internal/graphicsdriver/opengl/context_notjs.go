@@ -1,4 +1,4 @@
-// Copyright 2020 The Ebiten Authors
+// Copyright 2014 Hajime Hoshi
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,18 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build !js
+
 package opengl
 
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
 )
 
+type contextPlatform struct {
+}
+
 func (c *context) glslVersion() glsl.GLSLVersion {
-	switch c.webGLVersion {
-	case webGLVersion1:
+	if c.ctx.IsES() {
 		return glsl.GLSLVersionES100
-	case webGLVersion2:
-		return glsl.GLSLVersionES300
 	}
-	panic("opengl: WebGL context is not initialized yet at glslVersion")
+	return glsl.GLSLVersionDefault
 }

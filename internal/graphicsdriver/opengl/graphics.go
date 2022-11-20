@@ -16,23 +16,13 @@ package opengl
 
 import (
 	"fmt"
+	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
-
-// NewGraphics creates an implementation of graphicsdriver.Graphics for OpenGL.
-// The returned graphics value is nil iff the error is not nil.
-func NewGraphics() (graphicsdriver.Graphics, error) {
-	if microsoftgdk.IsXbox() {
-		return nil, fmt.Errorf("opengl: OpenGL is not supported on Xbox")
-	}
-	g := &Graphics{}
-	g.init()
-	return g, nil
-}
 
 type activatedTexture struct {
 	textureNative textureNative
@@ -70,7 +60,7 @@ func (g *Graphics) Begin() error {
 func (g *Graphics) End(present bool) error {
 	// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
 	// TODO: examples/sprites worked without this. Is this really needed?
-	g.context.flush()
+	g.context.ctx.Flush()
 	return nil
 }
 
@@ -180,7 +170,7 @@ func (g *Graphics) uniformVariableName(idx int) string {
 	return name
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms [][]float32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms [][]uint32, evenOdd bool) error {
 	if shaderID == graphicsdriver.InvalidShaderID {
 		return fmt.Errorf("opengl: shader ID is invalid")
 	}
@@ -213,10 +203,11 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 	// In OpenGL, the NDC's Y direction is upward, so flip the Y direction for the final framebuffer.
 	if destination.screen {
 		const idx = graphics.ProjectionMatrixUniformVariableIndex
-		g.uniformVars[idx].value[1] *= -1
-		g.uniformVars[idx].value[5] *= -1
-		g.uniformVars[idx].value[9] *= -1
-		g.uniformVars[idx].value[13] *= -1
+		// Invert the sign bits as float32 values.
+		g.uniformVars[idx].value[1] ^= 1 << 31
+		g.uniformVars[idx].value[5] ^= 1 << 31
+		g.uniformVars[idx].value[9] ^= 1 << 31
+		g.uniformVars[idx].value[13] ^= 1 << 31
 	}
 
 	var imgs [graphics.ShaderImageCount]textureVariable
@@ -241,27 +232,34 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 		if err := destination.ensureStencilBuffer(); err != nil {
 			return err
 		}
-		g.context.enableStencilTest()
+		g.context.ctx.Enable(gl.STENCIL_TEST)
 	}
 
 	for _, dstRegion := range dstRegions {
-		g.context.scissor(
-			int(dstRegion.Region.X),
-			int(dstRegion.Region.Y),
-			int(dstRegion.Region.Width),
-			int(dstRegion.Region.Height),
+		g.context.ctx.Scissor(
+			int32(dstRegion.Region.X),
+			int32(dstRegion.Region.Y),
+			int32(dstRegion.Region.Width),
+			int32(dstRegion.Region.Height),
 		)
 		if evenOdd {
-			g.context.beginStencilWithEvenOddRule()
-			g.context.drawElements(dstRegion.IndexCount, indexOffset*2)
-			g.context.endStencilWithEvenOddRule()
+			g.context.ctx.Clear(gl.STENCIL_BUFFER_BIT)
+			g.context.ctx.StencilFunc(gl.ALWAYS, 0x00, 0xff)
+			g.context.ctx.StencilOp(gl.KEEP, gl.KEEP, gl.INVERT)
+			g.context.ctx.ColorMask(false, false, false, false)
+
+			g.context.ctx.DrawElements(gl.TRIANGLES, int32(dstRegion.IndexCount), gl.UNSIGNED_SHORT, indexOffset*2)
+
+			g.context.ctx.StencilFunc(gl.NOTEQUAL, 0x00, 0xff)
+			g.context.ctx.StencilOp(gl.KEEP, gl.KEEP, gl.KEEP)
+			g.context.ctx.ColorMask(true, true, true, true)
 		}
-		g.context.drawElements(dstRegion.IndexCount, indexOffset*2) // 2 is uint16 size in bytes
+		g.context.ctx.DrawElements(gl.TRIANGLES, int32(dstRegion.IndexCount), gl.UNSIGNED_SHORT, indexOffset*2) // 2 is uint16 size in bytes
 		indexOffset += dstRegion.IndexCount
 	}
 
 	if evenOdd {
-		g.context.disableStencilTest()
+		g.context.ctx.Disable(gl.STENCIL_TEST)
 	}
 
 	return nil
@@ -276,7 +274,11 @@ func (g *Graphics) SetFullscreen(fullscreen bool) {
 }
 
 func (g *Graphics) NeedsRestoring() bool {
-	return g.context.needsRestoring()
+	// Though it is possible to have a logic to restore the graphics data for GPU, do not use it for performance (#1603).
+	if runtime.GOOS == "js" {
+		return false
+	}
+	return g.context.ctx.IsES()
 }
 
 func (g *Graphics) NeedsClearingScreen() bool {

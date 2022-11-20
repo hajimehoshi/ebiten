@@ -17,13 +17,15 @@ package ui
 import (
 	"fmt"
 
+	"golang.org/x/mobile/gl"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
 type graphicsDriverCreatorImpl struct {
-	gomobileBuild bool
+	gomobileContext gl.Context
 }
 
 func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {
@@ -38,8 +40,8 @@ func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, Graphics
 	return nil, GraphicsLibraryUnknown, fmt.Errorf("ui: failed to choose graphics drivers: Metal: %v, OpenGL: %v", err1, err2)
 }
 
-func (*graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {
-	return opengl.NewGraphics()
+func (g *graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {
+	return opengl.NewGraphics(g.gomobileContext)
 }
 
 func (*graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error) {
@@ -47,19 +49,40 @@ func (*graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error) 
 }
 
 func (g *graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
-	if g.gomobileBuild {
+	if g.gomobileContext != nil {
 		return nil, fmt.Errorf("ui: Metal is not available with gomobile-build")
 	}
 	return metal.NewGraphics()
 }
 
-func SetUIView(uiview uintptr) {
-	// This function should be called only when the graphics library is Metal.
-	if g, ok := theUI.graphicsDriver.(interface{ SetUIView(uintptr) }); ok {
-		g.SetUIView(uiview)
-	}
+func SetUIView(uiview uintptr) error {
+	return theUI.setUIView(uiview)
 }
 
-func IsGL() bool {
-	return theUI.graphicsDriver.IsGL()
+func IsGL() (bool, error) {
+	return theUI.isGL()
+}
+
+func (u *userInterfaceImpl) setUIView(uiview uintptr) error {
+	select {
+	case err := <-u.errCh:
+		return err
+	case <-u.graphicsDriverInitCh:
+	}
+
+	// This function should be called only when the graphics library is Metal.
+	if g, ok := u.graphicsDriver.(interface{ SetUIView(uintptr) }); ok {
+		g.SetUIView(uiview)
+	}
+	return nil
+}
+
+func (u *userInterfaceImpl) isGL() (bool, error) {
+	select {
+	case err := <-u.errCh:
+		return false, err
+	case <-u.graphicsDriverInitCh:
+	}
+
+	return u.graphicsDriver.IsGL(), nil
 }

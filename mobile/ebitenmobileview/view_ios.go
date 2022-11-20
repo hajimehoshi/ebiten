@@ -18,10 +18,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
-func SetUIView(uiview int64) {
-	ui.SetUIView(uintptr(uiview))
+func SetUIView(uiview int64) error {
+	return ui.SetUIView(uintptr(uiview))
 }
 
-func IsGL() bool {
+func IsGL() (bool, error) {
 	return ui.IsGL()
 }

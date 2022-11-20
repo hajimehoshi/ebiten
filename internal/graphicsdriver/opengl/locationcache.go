@@ -14,31 +14,28 @@
 
 package opengl
 
-// Since js.Object (Program) can't be keys of a map, use integers (programID) instead.
-
 type locationCache struct {
-	uniformLocationCache map[programID]map[string]uniformLocation
+	uniformLocationCache map[program]map[string]uniformLocation
 }
 
 func newLocationCache() *locationCache {
 	return &locationCache{
-		uniformLocationCache: map[programID]map[string]uniformLocation{},
+		uniformLocationCache: map[program]map[string]uniformLocation{},
 	}
 }
 
 func (c *locationCache) GetUniformLocation(context *context, p program, location string) uniformLocation {
-	id := getProgramID(p)
-	if _, ok := c.uniformLocationCache[id]; !ok {
-		c.uniformLocationCache[id] = map[string]uniformLocation{}
+	if _, ok := c.uniformLocationCache[p]; !ok {
+		c.uniformLocationCache[p] = map[string]uniformLocation{}
 	}
-	l, ok := c.uniformLocationCache[id][location]
+	l, ok := c.uniformLocationCache[p][location]
 	if !ok {
-		l = context.getUniformLocationImpl(p, location)
-		c.uniformLocationCache[id][location] = l
+		l = uniformLocation(context.ctx.GetUniformLocation(uint32(p), location))
+		c.uniformLocationCache[p][location] = l
 	}
 	return l
 }
 
 func (c *locationCache) deleteProgram(p program) {
-	delete(c.uniformLocationCache, getProgramID(p))
+	delete(c.uniformLocationCache, p)
 }

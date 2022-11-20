@@ -17,8 +17,10 @@ package opengl
 import (
 	"fmt"
 	"runtime"
+	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
@@ -69,12 +71,12 @@ func (a *arrayBufferLayout) newArrayBuffer(context *context) buffer {
 // enable starts using the array buffer.
 func (a *arrayBufferLayout) enable(context *context) {
 	for i := range a.parts {
-		context.enableVertexAttribArray(i)
+		context.ctx.EnableVertexAttribArray(uint32(i))
 	}
 	total := a.totalBytes()
 	offset := 0
 	for i, p := range a.parts {
-		context.vertexAttribPointer(i, p.num, total, offset)
+		context.ctx.VertexAttribPointer(uint32(i), int32(p.num), gl.FLOAT, false, int32(total), offset)
 		offset += floatSizeInBytes * p.num
 	}
 }
@@ -83,7 +85,7 @@ func (a *arrayBufferLayout) enable(context *context) {
 func (a *arrayBufferLayout) disable(context *context) {
 	// TODO: Disabling should be done in reversed order?
 	for i := range a.parts {
-		context.disableVertexAttribArray(i)
+		context.ctx.DisableVertexAttribArray(uint32(i))
 	}
 }
 
@@ -122,14 +124,9 @@ type openGLState struct {
 	elementArrayBuffer buffer
 
 	lastProgram       program
-	lastUniforms      map[string][]float32
+	lastUniforms      map[string][]uint32
 	lastActiveTexture int
 }
-
-var (
-	zeroBuffer  buffer
-	zeroProgram program
-)
 
 // reset resets or initializes the OpenGL state.
 func (s *openGLState) reset(context *context) error {
@@ -137,8 +134,8 @@ func (s *openGLState) reset(context *context) error {
 		return err
 	}
 
-	s.lastProgram = zeroProgram
-	context.useProgram(zeroProgram)
+	s.lastProgram = 0
+	context.ctx.UseProgram(0)
 	for key := range s.lastUniforms {
 		delete(s.lastUniforms, key)
 	}
@@ -146,11 +143,11 @@ func (s *openGLState) reset(context *context) error {
 	// On browsers (at least Chrome), buffers are already detached from the context
 	// and must not be deleted by DeleteBuffer.
 	if runtime.GOOS != "js" {
-		if !s.arrayBuffer.equal(zeroBuffer) {
-			context.deleteBuffer(s.arrayBuffer)
+		if s.arrayBuffer != 0 {
+			context.ctx.DeleteBuffer(uint32(s.arrayBuffer))
 		}
-		if !s.elementArrayBuffer.equal(zeroBuffer) {
-			context.deleteBuffer(s.elementArrayBuffer)
+		if s.elementArrayBuffer != 0 {
+			context.ctx.DeleteBuffer(uint32(s.elementArrayBuffer))
 		}
 	}
 
@@ -164,8 +161,8 @@ func (s *openGLState) reset(context *context) error {
 	return nil
 }
 
-// areSameFloat32Array returns a boolean indicating if a and b are deeply equal.
-func areSameFloat32Array(a, b []float32) bool {
+// areSameUint32Array returns a boolean indicating if a and b are deeply equal.
+func areSameUint32Array(a, b []uint32) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -179,7 +176,7 @@ func areSameFloat32Array(a, b []float32) bool {
 
 type uniformVariable struct {
 	name  string
-	value []float32
+	value []uint32
 	typ   shaderir.Type
 }
 
@@ -202,12 +199,12 @@ func (g *Graphics) textureVariableName(idx int) string {
 
 // useProgram uses the program (programTexture).
 func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textures [graphics.ShaderImageCount]textureVariable) error {
-	if !g.state.lastProgram.equal(program) {
-		g.context.useProgram(program)
-		if g.state.lastProgram.equal(zeroProgram) {
+	if g.state.lastProgram != program {
+		g.context.ctx.UseProgram(uint32(program))
+		if g.state.lastProgram == 0 {
 			theArrayBufferLayout.enable(&g.context)
-			g.context.bindArrayBuffer(g.state.arrayBuffer)
-			g.context.bindElementArrayBuffer(g.state.elementArrayBuffer)
+			g.context.ctx.BindBuffer(gl.ARRAY_BUFFER, uint32(g.state.arrayBuffer))
+			g.context.ctx.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, uint32(g.state.elementArrayBuffer))
 		}
 
 		g.state.lastProgram = program
@@ -215,14 +212,14 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 			delete(g.state.lastUniforms, k)
 		}
 		g.state.lastActiveTexture = 0
-		g.context.activeTexture(0)
+		g.context.ctx.ActiveTexture(gl.TEXTURE0)
 	}
 
 	for _, u := range uniforms {
 		if u.value == nil {
 			continue
 		}
-		if got, expected := len(u.value), u.typ.FloatCount(); got != expected {
+		if got, expected := len(u.value), u.typ.Uint32Count(); got != expected {
 			// Copy a shaderir.Type value once. Do not pass u.typ directly to fmt.Errorf arguments, or
 			// the value u would be allocated on heap.
 			typ := u.typ
@@ -230,12 +227,12 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 		}
 
 		cached, ok := g.state.lastUniforms[u.name]
-		if ok && areSameFloat32Array(cached, u.value) {
+		if ok && areSameUint32Array(cached, u.value) {
 			continue
 		}
-		g.context.uniformFloats(program, u.name, u.value, u.typ)
+		g.context.uniforms(program, u.name, u.value, u.typ)
 		if g.state.lastUniforms == nil {
-			g.state.lastUniforms = map[string][]float32{}
+			g.state.lastUniforms = map[string][]uint32{}
 		}
 		g.state.lastUniforms[u.name] = u.value
 	}
@@ -250,7 +247,7 @@ loop:
 		// If the texture is already bound, set the texture variable to point to the texture.
 		// Rebinding the same texture seems problematic (#1193).
 		for _, at := range g.activatedTextures {
-			if t.native.equal(at.textureNative) {
+			if t.native == at.textureNative {
 				g.context.uniformInt(program, g.textureVariableName(i), at.index)
 				continue loop
 			}
@@ -262,7 +259,7 @@ loop:
 		})
 		g.context.uniformInt(program, g.textureVariableName(i), idx)
 		if g.state.lastActiveTexture != idx {
-			g.context.activeTexture(idx)
+			g.context.ctx.ActiveTexture(uint32(gl.TEXTURE0 + idx))
 			g.state.lastActiveTexture = idx
 		}
 
@@ -278,4 +275,12 @@ loop:
 	g.activatedTextures = g.activatedTextures[:0]
 
 	return nil
+}
+
+func uint32sToFloat32s(s []uint32) []float32 {
+	return unsafe.Slice((*float32)(unsafe.Pointer(&s[0])), len(s))
+}
+
+func uint32sToInt32s(s []uint32) []int32 {
+	return unsafe.Slice((*int32)(unsafe.Pointer(&s[0])), len(s))
 }

@@ -71,7 +71,7 @@ type _IOHIDElementType uint
 type _IOHIDDeviceCallback func(context unsafe.Pointer, result _IOReturn, sender unsafe.Pointer, device _IOHIDDeviceRef)
 
 var (
-	iokit = purego.Dlopen("IOKit.framework/IOKit", purego.RTLD_GLOBAL)
+	iokit = purego.Dlopen("IOKit.framework/IOKit", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 
 	procIOHIDElementGetTypeID                      = purego.Dlsym(iokit, "IOHIDElementGetTypeID")
 	procIOHIDManagerCreate                         = purego.Dlsym(iokit, "IOHIDManagerCreate")

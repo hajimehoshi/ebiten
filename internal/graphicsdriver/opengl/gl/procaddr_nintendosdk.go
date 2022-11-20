@@ -12,10 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !android && !ios && !js && !opengles
+//go:build nintendosdk
 
-package opengl
+package gl
 
-func (g *Graphics) init() {
-	// Do nothing.
+// #cgo LDFLAGS: -Wl,-unresolved-symbols=ignore-all
+//
+// #include <stdlib.h>
+// #include <EGL/egl.h>
+//
+// static void* getProcAddress(const char* name) {
+//   return eglGetProcAddress(name);
+// }
+import "C"
+
+import "unsafe"
+
+func (c *defaultContext) init() error {
+	return nil
+}
+
+func (c *defaultContext) getProcAddress(name string) unsafe.Pointer {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+	return C.getProcAddress(cname)
 }
