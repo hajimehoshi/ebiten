@@ -92,6 +92,12 @@ func basicTypeString(t shaderir.BasicType) string {
 		return "float3"
 	case shaderir.Vec4:
 		return "float4"
+	case shaderir.IVec2:
+		return "int2"
+	case shaderir.IVec3:
+		return "int3"
+	case shaderir.IVec4:
+		return "int4"
 	case shaderir.Mat2:
 		return "float2x2"
 	case shaderir.Mat3:
@@ -115,6 +121,12 @@ func (c *compileContext) builtinFuncString(f shaderir.BuiltinFunc) string {
 		return "float3"
 	case shaderir.Vec4F:
 		return "float4"
+	case shaderir.IVec2F:
+		return "int2"
+	case shaderir.IVec3F:
+		return "int3"
+	case shaderir.IVec4F:
+		return "int4"
 	case shaderir.Mat2F:
 		return "float2x2"
 	case shaderir.Mat3F:

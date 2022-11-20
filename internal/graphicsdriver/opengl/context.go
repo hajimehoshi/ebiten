@@ -470,6 +470,12 @@ func (c *context) uniforms(p program, location string, v []uint32, typ shaderir.
 		c.ctx.Uniform3fv(int32(l), uint32sToFloat32s(v))
 	case shaderir.Vec4:
 		c.ctx.Uniform4fv(int32(l), uint32sToFloat32s(v))
+	case shaderir.IVec2:
+		c.ctx.Uniform2iv(int32(l), uint32sToInt32s(v))
+	case shaderir.IVec3:
+		c.ctx.Uniform3iv(int32(l), uint32sToInt32s(v))
+	case shaderir.IVec4:
+		c.ctx.Uniform4iv(int32(l), uint32sToInt32s(v))
 	case shaderir.Mat2:
 		c.ctx.UniformMatrix2fv(int32(l), uint32sToFloat32s(v))
 	case shaderir.Mat3:

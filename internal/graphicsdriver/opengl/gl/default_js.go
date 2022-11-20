@@ -84,8 +84,11 @@ type defaultContext struct {
 	fnUniform1i                js.Value
 	fnUniform1iv               js.Value
 	fnUniform2fv               js.Value
+	fnUniform2iv               js.Value
 	fnUniform3fv               js.Value
+	fnUniform3iv               js.Value
 	fnUniform4fv               js.Value
+	fnUniform4iv               js.Value
 	fnUniformMatrix2fv         js.Value
 	fnUniformMatrix3fv         js.Value
 	fnUniformMatrix4fv         js.Value
@@ -210,8 +213,11 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnUniform1i:                v.Get("uniform1i").Call("bind", v),
 		fnUniform1iv:               v.Get("uniform1iv").Call("bind", v),
 		fnUniform2fv:               v.Get("uniform2fv").Call("bind", v),
+		fnUniform2iv:               v.Get("uniform2iv").Call("bind", v),
 		fnUniform3fv:               v.Get("uniform3fv").Call("bind", v),
+		fnUniform3iv:               v.Get("uniform3iv").Call("bind", v),
 		fnUniform4fv:               v.Get("uniform4fv").Call("bind", v),
+		fnUniform4iv:               v.Get("uniform4iv").Call("bind", v),
 		fnUniformMatrix2fv:         v.Get("uniformMatrix2fv").Call("bind", v),
 		fnUniformMatrix3fv:         v.Get("uniformMatrix3fv").Call("bind", v),
 		fnUniformMatrix4fv:         v.Get("uniformMatrix4fv").Call("bind", v),
@@ -582,6 +588,16 @@ func (c *defaultContext) Uniform2fv(location int32, value []float32) {
 	}
 }
 
+func (c *defaultContext) Uniform2iv(location int32, value []int32) {
+	l := c.getUniformLocation(location)
+	arr := jsutil.TemporaryInt32Array(len(value), value)
+	if c.webGL2 {
+		c.fnUniform2iv.Invoke(l, arr, 0, len(value))
+	} else {
+		c.fnUniform2iv.Invoke(l, arr.Call("subarray", 0, len(value)))
+	}
+}
+
 func (c *defaultContext) Uniform3fv(location int32, value []float32) {
 	l := c.getUniformLocation(location)
 	arr := jsutil.TemporaryFloat32Array(len(value), value)
@@ -592,6 +608,16 @@ func (c *defaultContext) Uniform3fv(location int32, value []float32) {
 	}
 }
 
+func (c *defaultContext) Uniform3iv(location int32, value []int32) {
+	l := c.getUniformLocation(location)
+	arr := jsutil.TemporaryInt32Array(len(value), value)
+	if c.webGL2 {
+		c.fnUniform3iv.Invoke(l, arr, 0, len(value))
+	} else {
+		c.fnUniform3iv.Invoke(l, arr.Call("subarray", 0, len(value)))
+	}
+}
+
 func (c *defaultContext) Uniform4fv(location int32, value []float32) {
 	l := c.getUniformLocation(location)
 	arr := jsutil.TemporaryFloat32Array(len(value), value)
@@ -599,6 +625,16 @@ func (c *defaultContext) Uniform4fv(location int32, value []float32) {
 		c.fnUniform4fv.Invoke(l, arr, 0, len(value))
 	} else {
 		c.fnUniform4fv.Invoke(l, arr.Call("subarray", 0, len(value)))
+	}
+}
+
+func (c *defaultContext) Uniform4iv(location int32, value []int32) {
+	l := c.getUniformLocation(location)
+	arr := jsutil.TemporaryInt32Array(len(value), value)
+	if c.webGL2 {
+		c.fnUniform4iv.Invoke(l, arr, 0, len(value))
+	} else {
+		c.fnUniform4iv.Invoke(l, arr.Call("subarray", 0, len(value)))
 	}
 }
 

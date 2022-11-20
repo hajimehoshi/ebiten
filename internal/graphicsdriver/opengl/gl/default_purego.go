@@ -86,8 +86,11 @@ type defaultContext struct {
 	gpUniform1i                  uintptr
 	gpUniform1iv                 uintptr
 	gpUniform2fv                 uintptr
+	gpUniform2iv                 uintptr
 	gpUniform3fv                 uintptr
+	gpUniform3iv                 uintptr
 	gpUniform4fv                 uintptr
+	gpUniform4iv                 uintptr
 	gpUniformMatrix2fv           uintptr
 	gpUniformMatrix3fv           uintptr
 	gpUniformMatrix4fv           uintptr
@@ -406,13 +409,28 @@ func (c *defaultContext) Uniform2fv(location int32, value []float32) {
 	runtime.KeepAlive(value)
 }
 
+func (c *defaultContext) Uniform2iv(location int32, value []int32) {
+	purego.SyscallN(c.gpUniform2iv, uintptr(location), uintptr(len(value)/2), uintptr(unsafe.Pointer(&value[0])))
+	runtime.KeepAlive(value)
+}
+
 func (c *defaultContext) Uniform3fv(location int32, value []float32) {
 	purego.SyscallN(c.gpUniform3fv, uintptr(location), uintptr(len(value)/3), uintptr(unsafe.Pointer(&value[0])))
 	runtime.KeepAlive(value)
 }
 
+func (c *defaultContext) Uniform3iv(location int32, value []int32) {
+	purego.SyscallN(c.gpUniform3iv, uintptr(location), uintptr(len(value)/3), uintptr(unsafe.Pointer(&value[0])))
+	runtime.KeepAlive(value)
+}
+
 func (c *defaultContext) Uniform4fv(location int32, value []float32) {
 	purego.SyscallN(c.gpUniform4fv, uintptr(location), uintptr(len(value)/4), uintptr(unsafe.Pointer(&value[0])))
+	runtime.KeepAlive(value)
+}
+
+func (c *defaultContext) Uniform4iv(location int32, value []int32) {
+	purego.SyscallN(c.gpUniform4iv, uintptr(location), uintptr(len(value)/4), uintptr(unsafe.Pointer(&value[0])))
 	runtime.KeepAlive(value)
 }
 
@@ -652,13 +670,25 @@ func (c *defaultContext) LoadFunctions() error {
 	if c.gpUniform2fv == 0 {
 		return errors.New("gl: glUniform2fv is missing")
 	}
+	c.gpUniform2iv = c.getProcAddress("glUniform2iv")
+	if c.gpUniform2iv == 0 {
+		return errors.New("gl: glUniform2iv is missing")
+	}
 	c.gpUniform3fv = c.getProcAddress("glUniform3fv")
 	if c.gpUniform3fv == 0 {
 		return errors.New("gl: glUniform3fv is missing")
 	}
+	c.gpUniform3iv = c.getProcAddress("glUniform3iv")
+	if c.gpUniform3iv == 0 {
+		return errors.New("gl: glUniform3iv is missing")
+	}
 	c.gpUniform4fv = c.getProcAddress("glUniform4fv")
 	if c.gpUniform4fv == 0 {
 		return errors.New("gl: glUniform4fv is missing")
+	}
+	c.gpUniform4iv = c.getProcAddress("glUniform4iv")
+	if c.gpUniform4iv == 0 {
+		return errors.New("gl: glUniform4iv is missing")
 	}
 	c.gpUniformMatrix2fv = c.getProcAddress("glUniformMatrix2fv")
 	if c.gpUniformMatrix2fv == 0 {

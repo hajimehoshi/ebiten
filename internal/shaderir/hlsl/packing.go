@@ -46,19 +46,19 @@ func calculateMemoryOffsets(uniforms []shaderir.Type) []int {
 		case shaderir.Int:
 			offsets = append(offsets, head)
 			head += 4
-		case shaderir.Vec2:
+		case shaderir.Vec2, shaderir.IVec2:
 			if head%boundaryInBytes >= 4*3 {
 				head = align(head)
 			}
 			offsets = append(offsets, head)
 			head += 4 * 2
-		case shaderir.Vec3:
+		case shaderir.Vec3, shaderir.IVec3:
 			if head%boundaryInBytes >= 4*2 {
 				head = align(head)
 			}
 			offsets = append(offsets, head)
 			head += 4 * 3
-		case shaderir.Vec4:
+		case shaderir.Vec4, shaderir.IVec4:
 			if head%boundaryInBytes >= 4*1 {
 				head = align(head)
 			}

@@ -54,6 +54,34 @@ func isModAvailableForConsts(lhs, rhs *shaderir.Expr) bool {
 	return false
 }
 
+func isValidForModOp(lhs, rhs *shaderir.Expr, lhst, rhst shaderir.Type) bool {
+	isInt := func(s *shaderir.Expr, t shaderir.Type) bool {
+		if t.Main == shaderir.Int {
+			return true
+		}
+		if s.Const == nil {
+			return false
+		}
+		if s.ConstType == shaderir.ConstTypeInt {
+			return true
+		}
+		if canTruncateToInteger(s.Const) {
+			return true
+		}
+		return false
+	}
+
+	if isInt(lhs, lhst) {
+		return isInt(rhs, rhst)
+	}
+
+	if lhst.Main == shaderir.IVec2 || lhst.Main == shaderir.IVec3 || lhst.Main == shaderir.IVec4 {
+		return lhst.Equal(&rhst) || isInt(rhs, rhst)
+	}
+
+	return false
+}
+
 func canApplyBinaryOp(lhs, rhs *shaderir.Expr, lhst, rhst shaderir.Type, op shaderir.Op) bool {
 	if op == shaderir.AndAnd || op == shaderir.OrOr {
 		return lhst.Main == shaderir.Bool && rhst.Main == shaderir.Bool
@@ -289,6 +317,11 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 					return nil, nil, nil, false
 				}
+			case shaderir.IVec2, shaderir.IVec3, shaderir.IVec4:
+				if !canTruncateToInteger(lhs[0].Const) {
+					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
+					return nil, nil, nil, false
+				}
 			case shaderir.Int:
 				if !canTruncateToInteger(lhs[0].Const) {
 					cs.addError(e.Pos(), fmt.Sprintf("constant %s truncated to integer", lhs[0].Const.String()))
@@ -307,6 +340,11 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				fallthrough
 			case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
 				if rhs[0].ConstType == shaderir.ConstTypeInt {
+					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
+					return nil, nil, nil, false
+				}
+			case shaderir.IVec2, shaderir.IVec3, shaderir.IVec4:
+				if !canTruncateToInteger(rhs[0].Const) {
 					cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), e.Op, rhst.String()))
 					return nil, nil, nil, false
 				}
@@ -368,9 +406,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 
 		// For `%`, both types must be deducible to integers.
 		if op == shaderir.ModOp {
-			// TODO: What about ivec?
-			if lhst.Main != shaderir.Int && (lhs[0].ConstType == shaderir.ConstTypeNone || !canTruncateToInteger(lhs[0].Const)) ||
-				rhst.Main != shaderir.Int && (rhs[0].ConstType == shaderir.ConstTypeNone || !canTruncateToInteger(rhs[0].Const)) {
+			if !isValidForModOp(&lhs[0], &rhs[0], lhst, rhst) {
 				var wrongType shaderir.Type
 				if lhst.Main != shaderir.Int {
 					wrongType = lhst
@@ -527,6 +563,24 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					return nil, nil, nil, false
 				}
 				t = shaderir.Type{Main: shaderir.Vec4}
+			case shaderir.IVec2F:
+				if err := checkArgsForVec2BuiltinFunc(args, argts); err != nil {
+					cs.addError(e.Pos(), err.Error())
+					return nil, nil, nil, false
+				}
+				t = shaderir.Type{Main: shaderir.IVec2}
+			case shaderir.IVec3F:
+				if err := checkArgsForVec3BuiltinFunc(args, argts); err != nil {
+					cs.addError(e.Pos(), err.Error())
+					return nil, nil, nil, false
+				}
+				t = shaderir.Type{Main: shaderir.IVec3}
+			case shaderir.IVec4F:
+				if err := checkArgsForVec4BuiltinFunc(args, argts); err != nil {
+					cs.addError(e.Pos(), err.Error())
+					return nil, nil, nil, false
+				}
+				t = shaderir.Type{Main: shaderir.IVec4}
 			case shaderir.Mat2F:
 				if err := checkArgsForMat2BuiltinFunc(args, argts); err != nil {
 					cs.addError(e.Pos(), err.Error())
@@ -901,16 +955,31 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		}
 
 		var t shaderir.Type
-		switch len(e.Sel.Name) {
-		case 1:
-			t.Main = shaderir.Float
-		case 2:
-			t.Main = shaderir.Vec2
-		case 3:
-			t.Main = shaderir.Vec3
-		case 4:
-			t.Main = shaderir.Vec4
-		default:
+		switch types[0].Main {
+		case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
+			switch len(e.Sel.Name) {
+			case 1:
+				t.Main = shaderir.Float
+			case 2:
+				t.Main = shaderir.Vec2
+			case 3:
+				t.Main = shaderir.Vec3
+			case 4:
+				t.Main = shaderir.Vec4
+			}
+		case shaderir.IVec2, shaderir.IVec3, shaderir.IVec4:
+			switch len(e.Sel.Name) {
+			case 1:
+				t.Main = shaderir.Int
+			case 2:
+				t.Main = shaderir.IVec2
+			case 3:
+				t.Main = shaderir.IVec3
+			case 4:
+				t.Main = shaderir.IVec4
+			}
+		}
+		if t.Equal(&shaderir.Type{}) {
 			cs.addError(e.Pos(), fmt.Sprintf("unexpected swizzling: %s", e.Sel.Name))
 			return nil, nil, nil, false
 		}
@@ -1064,6 +1133,8 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		switch t.Main {
 		case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
 			typ = shaderir.Type{Main: shaderir.Float}
+		case shaderir.IVec2, shaderir.IVec3, shaderir.IVec4:
+			typ = shaderir.Type{Main: shaderir.Int}
 		case shaderir.Mat2:
 			typ = shaderir.Type{Main: shaderir.Vec2}
 		case shaderir.Mat3:
@@ -1099,11 +1170,11 @@ func isValidSwizzling(swizzling string, t shaderir.Type) bool {
 	}
 
 	switch t.Main {
-	case shaderir.Vec2:
+	case shaderir.Vec2, shaderir.IVec2:
 		return !strings.ContainsAny(swizzling, "zwbarq")
-	case shaderir.Vec3:
+	case shaderir.Vec3, shaderir.IVec3:
 		return !strings.ContainsAny(swizzling, "waq")
-	case shaderir.Vec4:
+	case shaderir.Vec4, shaderir.IVec4:
 		return true
 	default:
 		return false

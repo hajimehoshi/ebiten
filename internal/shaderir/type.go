@@ -59,6 +59,12 @@ func (t *Type) String() string {
 		return "vec3"
 	case Vec4:
 		return "vec4"
+	case IVec2:
+		return "ivec2"
+	case IVec3:
+		return "ivec3"
+	case IVec4:
+		return "ivec4"
 	case Mat2:
 		return "mat2"
 	case Mat3:
@@ -93,6 +99,12 @@ func (t *Type) Uint32Count() int {
 		return 3
 	case Vec4:
 		return 4
+	case IVec2:
+		return 2
+	case IVec3:
+		return 3
+	case IVec4:
+		return 4
 	case Mat2:
 		return 4
 	case Mat3:
@@ -108,10 +120,29 @@ func (t *Type) Uint32Count() int {
 
 func (t *Type) IsVector() bool {
 	switch t.Main {
-	case Vec2, Vec3, Vec4:
+	case Vec2, Vec3, Vec4, IVec2, IVec3, IVec4:
 		return true
 	}
 	return false
+}
+
+func (t *Type) VectorElementCount() int {
+	switch t.Main {
+	case Vec2:
+		return 2
+	case Vec3:
+		return 3
+	case Vec4:
+		return 4
+	case IVec2:
+		return 2
+	case IVec3:
+		return 3
+	case IVec4:
+		return 4
+	default:
+		return -1
+	}
 }
 
 func (t *Type) IsMatrix() bool {
@@ -132,6 +163,9 @@ const (
 	Vec2
 	Vec3
 	Vec4
+	IVec2
+	IVec3
+	IVec4
 	Mat2
 	Mat3
 	Mat4

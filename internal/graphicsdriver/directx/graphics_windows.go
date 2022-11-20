@@ -1739,19 +1739,19 @@ func (s *Shader) flattenUniforms(uniforms [][]uint32) []uint32 {
 			} else {
 				fs = append(fs, 0)
 			}
-		case shaderir.Vec2:
+		case shaderir.Vec2, shaderir.IVec2:
 			if u != nil {
 				fs = append(fs, u...)
 			} else {
 				fs = append(fs, 0, 0)
 			}
-		case shaderir.Vec3:
+		case shaderir.Vec3, shaderir.IVec3:
 			if u != nil {
 				fs = append(fs, u...)
 			} else {
 				fs = append(fs, 0, 0, 0)
 			}
-		case shaderir.Vec4:
+		case shaderir.Vec4, shaderir.IVec4:
 			if u != nil {
 				fs = append(fs, u...)
 			} else {
@@ -1824,7 +1824,7 @@ func (s *Shader) flattenUniforms(uniforms [][]uint32) []uint32 {
 				} else {
 					fs = append(fs, make([]uint32, (t.Length-1)*4+1)...)
 				}
-			case shaderir.Vec2:
+			case shaderir.Vec2, shaderir.IVec2:
 				if u != nil {
 					for j := 0; j < t.Length; j++ {
 						fs = append(fs, u[2*j:2*(j+1)]...)
@@ -1835,7 +1835,7 @@ func (s *Shader) flattenUniforms(uniforms [][]uint32) []uint32 {
 				} else {
 					fs = append(fs, make([]uint32, (t.Length-1)*4+2)...)
 				}
-			case shaderir.Vec3:
+			case shaderir.Vec3, shaderir.IVec3:
 				if u != nil {
 					for j := 0; j < t.Length; j++ {
 						fs = append(fs, u[3*j:3*(j+1)]...)
@@ -1846,7 +1846,7 @@ func (s *Shader) flattenUniforms(uniforms [][]uint32) []uint32 {
 				} else {
 					fs = append(fs, make([]uint32, (t.Length-1)*4+3)...)
 				}
-			case shaderir.Vec4:
+			case shaderir.Vec4, shaderir.IVec4:
 				if u != nil {
 					fs = append(fs, u...)
 				} else {
