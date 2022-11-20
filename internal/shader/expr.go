@@ -153,19 +153,21 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 	case *ast.BasicLit:
 		switch e.Kind {
 		case token.INT:
+			// The type is not determined yet.
 			return []shaderir.Expr{
 				{
 					Type:  shaderir.NumberExpr,
 					Const: gconstant.MakeFromLiteral(e.Value, e.Kind, 0),
 				},
-			}, []shaderir.Type{{Main: shaderir.Int}}, nil, true
+			}, []shaderir.Type{{}}, nil, true
 		case token.FLOAT:
+			// The type is not determined yet.
 			return []shaderir.Expr{
 				{
 					Type:  shaderir.NumberExpr,
 					Const: gconstant.MakeFromLiteral(e.Value, e.Kind, 0),
 				},
-			}, []shaderir.Type{{Main: shaderir.Float}}, nil, true
+			}, []shaderir.Type{{}}, nil, true
 		default:
 			cs.addError(e.Pos(), fmt.Sprintf("literal not implemented: %#v", e))
 		}
@@ -444,6 +446,20 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 						ConstType: shaderir.ConstTypeInt,
 					},
 				}, []shaderir.Type{{Main: shaderir.Int}}, stmts, true
+			case shaderir.BoolF:
+				if len(args) == 1 && args[0].Const != nil {
+					if args[0].Const.Kind() != gconstant.Bool {
+						cs.addError(e.Pos(), fmt.Sprintf("cannot convert %s to type bool", args[0].Const.String()))
+						return nil, nil, nil, false
+					}
+					return []shaderir.Expr{
+						{
+							Type:      shaderir.NumberExpr,
+							Const:     args[0].Const,
+							ConstType: shaderir.ConstTypeBool,
+						},
+					}, []shaderir.Type{{Main: shaderir.Bool}}, stmts, true
+				}
 			case shaderir.IntF:
 				if len(args) == 1 && args[0].Const != nil {
 					if !canTruncateToInteger(args[0].Const) {

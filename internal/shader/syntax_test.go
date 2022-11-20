@@ -2491,11 +2491,41 @@ func TestConstType(t *testing.T) {
 		{stmt: "const a float = false", err: true},
 		{stmt: "const a vec2 = false", err: true},
 
+		{stmt: "const a = bool(false)", err: false},
+		{stmt: "const a bool = bool(false)", err: false},
+		{stmt: "const a int = bool(false)", err: true},
+		{stmt: "const a float = bool(false)", err: true},
+		{stmt: "const a vec2 = bool(false)", err: true},
+
+		{stmt: "const a = int(false)", err: true},
+		{stmt: "const a bool = int(false)", err: true},
+		{stmt: "const a int = int(false)", err: true},
+		{stmt: "const a float = int(false)", err: true},
+		{stmt: "const a vec2 = int(false)", err: true},
+
+		{stmt: "const a = float(false)", err: true},
+		{stmt: "const a bool = float(false)", err: true},
+		{stmt: "const a int = float(false)", err: true},
+		{stmt: "const a float = float(false)", err: true},
+		{stmt: "const a vec2 = float(false)", err: true},
+
 		{stmt: "const a = 1", err: false},
 		{stmt: "const a bool = 1", err: true},
 		{stmt: "const a int = 1", err: false},
 		{stmt: "const a float = 1", err: false},
 		{stmt: "const a vec2 = 1", err: true},
+
+		{stmt: "const a = int(1)", err: false},
+		{stmt: "const a bool = int(1)", err: true},
+		{stmt: "const a int = int(1)", err: false},
+		{stmt: "const a float = int(1)", err: true},
+		{stmt: "const a vec2 = int(1)", err: true},
+
+		{stmt: "const a = float(1)", err: false},
+		{stmt: "const a bool = float(1)", err: true},
+		{stmt: "const a int = float(1)", err: true},
+		{stmt: "const a float = float(1)", err: false},
+		{stmt: "const a vec2 = float(1)", err: true},
 
 		{stmt: "const a = 1.0", err: false},
 		{stmt: "const a bool = 1.0", err: true},
@@ -2503,11 +2533,35 @@ func TestConstType(t *testing.T) {
 		{stmt: "const a float = 1.0", err: false},
 		{stmt: "const a vec2 = 1.0", err: true},
 
+		{stmt: "const a = int(1.0)", err: false},
+		{stmt: "const a bool = int(1.0)", err: true},
+		{stmt: "const a int = int(1.0)", err: false},
+		{stmt: "const a float = int(1.0)", err: true},
+		{stmt: "const a vec2 = int(1.0)", err: true},
+
+		{stmt: "const a = float(1.0)", err: false},
+		{stmt: "const a bool = float(1.0)", err: true},
+		{stmt: "const a int = float(1.0)", err: true},
+		{stmt: "const a float = float(1.0)", err: false},
+		{stmt: "const a vec2 = float(1.0)", err: true},
+
 		{stmt: "const a = 1.1", err: false},
 		{stmt: "const a bool = 1.1", err: true},
 		{stmt: "const a int = 1.1", err: true},
 		{stmt: "const a float = 1.1", err: false},
 		{stmt: "const a vec2 = 1.1", err: true},
+
+		{stmt: "const a = int(1.1)", err: true},
+		{stmt: "const a bool = int(1.1)", err: true},
+		{stmt: "const a int = int(1.1)", err: true},
+		{stmt: "const a float = int(1.1)", err: true},
+		{stmt: "const a vec2 = int(1.1)", err: true},
+
+		{stmt: "const a = float(1.1)", err: false},
+		{stmt: "const a bool = float(1.1)", err: true},
+		{stmt: "const a int = float(1.1)", err: true},
+		{stmt: "const a float = float(1.1)", err: false},
+		{stmt: "const a vec2 = float(1.1)", err: true},
 
 		{stmt: "const a = vec2(0)", err: true},
 		{stmt: "const a bool = vec2(0)", err: true},
