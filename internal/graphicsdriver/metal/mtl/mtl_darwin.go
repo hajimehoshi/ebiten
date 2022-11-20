@@ -910,14 +910,7 @@ func (rce RenderCommandEncoder) SetFragmentTexture(texture Texture, index int) {
 }
 
 func (rce RenderCommandEncoder) SetBlendColor(red, green, blue, alpha float32) {
-	inv := cocoa.NSInvocation_invocationWithMethodSignature(cocoa.NSMethodSignature_signatureWithObjCTypes("v@:ffff"))
-	inv.SetTarget(rce.commandEncoder)
-	inv.SetSelector(sel_setBlendColorRedGreenBlueAlpha)
-	inv.SetArgumentAtIndex(unsafe.Pointer(&red), 2)
-	inv.SetArgumentAtIndex(unsafe.Pointer(&green), 3)
-	inv.SetArgumentAtIndex(unsafe.Pointer(&blue), 4)
-	inv.SetArgumentAtIndex(unsafe.Pointer(&alpha), 5)
-	inv.Invoke()
+	rce.commandEncoder.Send(sel_setBlendColorRedGreenBlueAlpha, red, green, blue, alpha)
 }
 
 // SetDepthStencilState sets the depth and stencil test state.
