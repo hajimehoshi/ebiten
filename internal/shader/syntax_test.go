@@ -483,7 +483,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 
 	// Increment statement treats a variable 'used'.
-	// https://play.golang.org/p/2RuYMrSLjt3
+	// https://go.dev/play/p/2RuYMrSLjt3
 	if _, err := compileToIR([]byte(`package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
