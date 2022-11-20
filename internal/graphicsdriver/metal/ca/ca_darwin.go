@@ -49,7 +49,7 @@ type MetalLayer struct {
 }
 
 var (
-	coreGraphics                = purego.Dlopen("/System/Library/Frameworks/CoreGraphics.framework/Versions/Current/CoreGraphics", purego.RTLD_GLOBAL)
+	coreGraphics                = purego.Dlopen("/System/Library/Frameworks/CoreGraphics.framework/Versions/Current/CoreGraphics", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 	_CGColorSpaceCreateWithName = purego.Dlsym(coreGraphics, "CGColorSpaceCreateWithName")
 	_CGColorSpaceRelease        = purego.Dlsym(coreGraphics, "CGColorSpaceRelease")
 	kCGColorSpaceDisplayP3      = purego.Dlsym(coreGraphics, "kCGColorSpaceDisplayP3")

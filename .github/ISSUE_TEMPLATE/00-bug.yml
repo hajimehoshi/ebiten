@@ -12,7 +12,6 @@ body:
   id: os
   attributes:
     label: Operating System
-    description: Which Operating System was the bug on?
     options:
       - label: Windows
       - label: macOS

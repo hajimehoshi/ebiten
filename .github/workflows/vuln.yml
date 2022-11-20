@@ -36,7 +36,7 @@ jobs:
           go install golang.org/x/vuln/cmd/govulncheck@latest
 
       - name: Install dependencies
-        if: ${{ startsWith(matrix.os, 'ubuntu-') }}
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install libasound2-dev libgl1-mesa-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev

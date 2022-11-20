@@ -19,6 +19,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 )
 
 type Image struct {
@@ -32,22 +33,30 @@ type Image struct {
 	screen      bool
 }
 
+// framebuffer is a wrapper of OpenGL's framebuffer.
+type framebuffer struct {
+	graphics *Graphics
+	native   framebufferNative
+	width    int
+	height   int
+}
+
 func (i *Image) ID() graphicsdriver.ImageID {
 	return i.id
 }
 
 func (i *Image) IsInvalidated() bool {
-	return !i.graphics.context.isTexture(i.texture)
+	return !i.graphics.context.ctx.IsTexture(uint32(i.texture))
 }
 
 func (i *Image) Dispose() {
 	if i.framebuffer != nil {
-		i.framebuffer.delete(&i.graphics.context)
+		i.graphics.context.deleteFramebuffer(i.framebuffer.native)
 	}
-	if !i.texture.equal(*new(textureNative)) {
+	if i.texture != 0 {
 		i.graphics.context.deleteTexture(i.texture)
 	}
-	if !i.stencil.equal(*new(renderbufferNative)) {
+	if i.stencil != 0 {
 		i.graphics.context.deleteRenderbuffer(i.stencil)
 	}
 
@@ -66,8 +75,9 @@ func (i *Image) ReadPixels(buf []byte, x, y, width, height int) error {
 	if err := i.ensureFramebuffer(); err != nil {
 		return err
 	}
-
-	i.graphics.context.framebufferPixels(buf, i.framebuffer, x, y, width, height)
+	if err := i.graphics.context.framebufferPixels(buf, i.framebuffer, x, y, width, height); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -88,10 +98,10 @@ func (i *Image) ensureFramebuffer() error {
 
 	w, h := i.framebufferSize()
 	if i.screen {
-		i.framebuffer = newScreenFramebuffer(&i.graphics.context, w, h)
+		i.framebuffer = i.graphics.context.newScreenFramebuffer(w, h)
 		return nil
 	}
-	f, err := newFramebufferFromTexture(&i.graphics.context, i.texture, w, h)
+	f, err := i.graphics.context.newFramebuffer(i.texture, w, h)
 	if err != nil {
 		return err
 	}
@@ -100,7 +110,7 @@ func (i *Image) ensureFramebuffer() error {
 }
 
 func (i *Image) ensureStencilBuffer() error {
-	if !i.stencil.equal(*new(renderbufferNative)) {
+	if i.stencil != 0 {
 		return nil
 	}
 
@@ -131,9 +141,14 @@ func (i *Image) WritePixels(args []*graphicsdriver.WritePixelsArgs) error {
 	// glFlush is necessary on Android.
 	// glTexSubImage2D didn't work without this hack at least on Nexus 5x and NuAns NEO [Reloaded] (#211).
 	if i.graphics.drawCalled {
-		i.graphics.context.flush()
+		i.graphics.context.ctx.Flush()
 	}
 	i.graphics.drawCalled = false
-	i.graphics.context.texSubImage2D(i.texture, args)
+
+	i.graphics.context.bindTexture(i.texture)
+	for _, a := range args {
+		i.graphics.context.ctx.TexSubImage2D(gl.TEXTURE_2D, 0, int32(a.X), int32(a.Y), int32(a.Width), int32(a.Height), gl.RGBA, gl.UNSIGNED_BYTE, a.Pixels)
+	}
+
 	return nil
 }

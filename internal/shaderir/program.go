@@ -454,7 +454,7 @@ func (p *Program) reachableUniformVariablesFromBlock(block *Block) []int {
 	return is
 }
 
-func (p *Program) FilterUniformVariables(uniforms [][]float32) {
+func (p *Program) FilterUniformVariables(uniforms [][]uint32) {
 	if p.reachableUniforms == nil {
 		p.reachableUniforms = map[int]struct{}{}
 		for _, i := range p.reachableUniformVariablesFromBlock(p.VertexFunc.Block) {

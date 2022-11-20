@@ -1127,6 +1127,10 @@ func TestSyntaxOperatorMultiplyAssign(t *testing.T) {
 		{stmt: "a := 1.0; a *= 2.0", err: false},
 		{stmt: "const c = 2; a := 1.0; a *= c", err: false},
 		{stmt: "const c = 2.0; a := 1.0; a *= c", err: false},
+		{stmt: "const c int = 2; a := 1.0; a *= c", err: true},
+		{stmt: "const c int = 2.0; a := 1.0; a *= c", err: true},
+		{stmt: "const c float = 2; a := 1.0; a *= c", err: false},
+		{stmt: "const c float = 2.0; a := 1.0; a *= c", err: false},
 		{stmt: "a := 1.0; a *= int(2)", err: true},
 		{stmt: "a := 1.0; a *= vec2(2)", err: true},
 		{stmt: "a := 1.0; a *= vec3(2)", err: true},
@@ -1134,10 +1138,15 @@ func TestSyntaxOperatorMultiplyAssign(t *testing.T) {
 		{stmt: "a := 1.0; a *= mat2(2)", err: true},
 		{stmt: "a := 1.0; a *= mat3(2)", err: true},
 		{stmt: "a := 1.0; a *= mat4(2)", err: true},
+
 		{stmt: "a := vec2(1); a *= 2", err: false},
 		{stmt: "a := vec2(1); a *= 2.0", err: false},
 		{stmt: "const c = 2; a := vec2(1); a *= c", err: false},
 		{stmt: "const c = 2.0; a := vec2(1); a *= c", err: false},
+		{stmt: "const c int = 2; a := vec2(1); a *= c", err: true},
+		{stmt: "const c int = 2.0; a := vec2(1); a *= c", err: true},
+		{stmt: "const c float = 2; a := vec2(1); a *= c", err: false},
+		{stmt: "const c float = 2.0; a := vec2(1); a *= c", err: false},
 		{stmt: "a := vec2(1); a /= 2.0", err: false},
 		{stmt: "a := vec2(1); a += 2.0", err: false},
 		{stmt: "a := vec2(1); a *= int(2)", err: true},
@@ -1152,10 +1161,15 @@ func TestSyntaxOperatorMultiplyAssign(t *testing.T) {
 		{stmt: "a := vec2(1); a /= mat2(2)", err: true},
 		{stmt: "a := vec2(1); a *= mat3(2)", err: true},
 		{stmt: "a := vec2(1); a *= mat4(2)", err: true},
+
 		{stmt: "a := mat2(1); a *= 2", err: false},
 		{stmt: "a := mat2(1); a *= 2.0", err: false},
 		{stmt: "const c = 2; a := mat2(1); a *= c", err: false},
 		{stmt: "const c = 2.0; a := mat2(1); a *= c", err: false},
+		{stmt: "const c int = 2; a := mat2(1); a *= c", err: true},
+		{stmt: "const c int = 2.0; a := mat2(1); a *= c", err: true},
+		{stmt: "const c float = 2; a := mat2(1); a *= c", err: false},
+		{stmt: "const c float = 2.0; a := mat2(1); a *= c", err: false},
 		{stmt: "a := mat2(1); a /= 2.0", err: false},
 		{stmt: "a := mat2(1); a += 2.0", err: true},
 		{stmt: "a := mat2(1); a *= int(2)", err: true},
@@ -1188,39 +1202,31 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 }
 
 func TestSyntaxAtan(t *testing.T) {
-	// `atan` takes 1 argument.
-	if _, err := compileToIR([]byte(`package main
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		// `atan` takes 1 argument.
+		{stmt: "_ = atan(vec4(0))", err: false},
+		{stmt: "_ = atan(vec4(0), vec4(0))", err: true},
 
-func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	return atan(vec4(0))
-}
-`)); err != nil {
-		t.Error(err)
+		// `atan2` takes 2 arguments.
+		{stmt: "_ = atan2(vec4(0))", err: true},
+		{stmt: "_ = atan2(vec4(0), vec4(0))", err: false},
 	}
-	if _, err := compileToIR([]byte(`package main
+
+	for _, c := range cases {
+		_, err := compileToIR([]byte(fmt.Sprintf(`package main
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	return atan(vec4(0), vec4(0))
-}
-`)); err == nil {
-		t.Errorf("error must be non-nil but was nil")
-	}
-	// `atan2` takes 2 arguments.
-	if _, err := compileToIR([]byte(`package main
-
-func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	return atan2(vec4(0))
-}
-`)); err == nil {
-		t.Errorf("error must be non-nil but was nil")
-	}
-	if _, err := compileToIR([]byte(`package main
-
-func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	return atan2(vec4(0), vec4(0))
-}
-`)); err != nil {
-		t.Error(err)
+	%s
+	return position
+}`, c.stmt)))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", c.stmt, err)
+		}
 	}
 }
 
@@ -2391,6 +2397,169 @@ func TestTypeRedeclaration(t *testing.T) {
 		{stmt: "type Foo int; type Foo float", err: true},
 		{stmt: "type Foo int; { type Foo int }", err: false},
 		{stmt: "type Foo int; type Bar int", err: false},
+	}
+
+	for _, c := range cases {
+		stmt := c.stmt
+		src := fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	%s
+	return position
+}`, stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", stmt, err)
+		}
+	}
+}
+
+func TestSwizzling(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "var a vec2; var b float = a.x; _ = b", err: false},
+		{stmt: "var a vec2; var b float = a.y; _ = b", err: false},
+		{stmt: "var a vec2; var b float = a.z; _ = b", err: true},
+		{stmt: "var a vec2; var b float = a.w; _ = b", err: true},
+		{stmt: "var a vec2; var b vec2 = a.xy; _ = b", err: false},
+		{stmt: "var a vec2; var b vec3 = a.xyz; _ = b", err: true},
+		{stmt: "var a vec2; var b vec3 = a.xyw; _ = b", err: true},
+		{stmt: "var a vec2; var b vec3 = a.xyy; _ = b", err: false},
+		{stmt: "var a vec2; var b vec3 = a.xyz; _ = b", err: true},
+		{stmt: "var a vec2; var b vec4 = a.xyzw; _ = b", err: true},
+
+		{stmt: "var a vec3; var b float = a.x; _ = b", err: false},
+		{stmt: "var a vec3; var b float = a.y; _ = b", err: false},
+		{stmt: "var a vec3; var b float = a.z; _ = b", err: false},
+		{stmt: "var a vec3; var b float = a.w; _ = b", err: true},
+		{stmt: "var a vec3; var b vec2 = a.xy; _ = b", err: false},
+		{stmt: "var a vec3; var b vec3 = a.xyz; _ = b", err: false},
+		{stmt: "var a vec3; var b vec3 = a.xyw; _ = b", err: true},
+		{stmt: "var a vec3; var b vec3 = a.xyy; _ = b", err: false},
+		{stmt: "var a vec3; var b vec3 = a.xyz; _ = b", err: false},
+		{stmt: "var a vec3; var b vec4 = a.xyzw; _ = b", err: true},
+
+		{stmt: "var a vec4; var b float = a.x; _ = b", err: false},
+		{stmt: "var a vec4; var b float = a.y; _ = b", err: false},
+		{stmt: "var a vec4; var b float = a.z; _ = b", err: false},
+		{stmt: "var a vec4; var b float = a.w; _ = b", err: false},
+		{stmt: "var a vec4; var b vec2 = a.xy; _ = b", err: false},
+		{stmt: "var a vec4; var b vec3 = a.xyz; _ = b", err: false},
+		{stmt: "var a vec4; var b vec3 = a.xyw; _ = b", err: false},
+		{stmt: "var a vec4; var b vec3 = a.xyy; _ = b", err: false},
+		{stmt: "var a vec4; var b vec3 = a.xyz; _ = b", err: false},
+		{stmt: "var a vec4; var b vec4 = a.xyzw; _ = b", err: false},
+	}
+
+	for _, c := range cases {
+		stmt := c.stmt
+		src := fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	%s
+	return position
+}`, stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", stmt, err)
+		}
+	}
+}
+
+func TestConstType(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "const a = false", err: false},
+		{stmt: "const a bool = false", err: false},
+		{stmt: "const a int = false", err: true},
+		{stmt: "const a float = false", err: true},
+		{stmt: "const a vec2 = false", err: true},
+
+		{stmt: "const a = bool(false)", err: false},
+		{stmt: "const a bool = bool(false)", err: false},
+		{stmt: "const a int = bool(false)", err: true},
+		{stmt: "const a float = bool(false)", err: true},
+		{stmt: "const a vec2 = bool(false)", err: true},
+
+		{stmt: "const a = int(false)", err: true},
+		{stmt: "const a bool = int(false)", err: true},
+		{stmt: "const a int = int(false)", err: true},
+		{stmt: "const a float = int(false)", err: true},
+		{stmt: "const a vec2 = int(false)", err: true},
+
+		{stmt: "const a = float(false)", err: true},
+		{stmt: "const a bool = float(false)", err: true},
+		{stmt: "const a int = float(false)", err: true},
+		{stmt: "const a float = float(false)", err: true},
+		{stmt: "const a vec2 = float(false)", err: true},
+
+		{stmt: "const a = 1", err: false},
+		{stmt: "const a bool = 1", err: true},
+		{stmt: "const a int = 1", err: false},
+		{stmt: "const a float = 1", err: false},
+		{stmt: "const a vec2 = 1", err: true},
+
+		{stmt: "const a = int(1)", err: false},
+		{stmt: "const a bool = int(1)", err: true},
+		{stmt: "const a int = int(1)", err: false},
+		{stmt: "const a float = int(1)", err: true},
+		{stmt: "const a vec2 = int(1)", err: true},
+
+		{stmt: "const a = float(1)", err: false},
+		{stmt: "const a bool = float(1)", err: true},
+		{stmt: "const a int = float(1)", err: true},
+		{stmt: "const a float = float(1)", err: false},
+		{stmt: "const a vec2 = float(1)", err: true},
+
+		{stmt: "const a = 1.0", err: false},
+		{stmt: "const a bool = 1.0", err: true},
+		{stmt: "const a int = 1.0", err: false},
+		{stmt: "const a float = 1.0", err: false},
+		{stmt: "const a vec2 = 1.0", err: true},
+
+		{stmt: "const a = int(1.0)", err: false},
+		{stmt: "const a bool = int(1.0)", err: true},
+		{stmt: "const a int = int(1.0)", err: false},
+		{stmt: "const a float = int(1.0)", err: true},
+		{stmt: "const a vec2 = int(1.0)", err: true},
+
+		{stmt: "const a = float(1.0)", err: false},
+		{stmt: "const a bool = float(1.0)", err: true},
+		{stmt: "const a int = float(1.0)", err: true},
+		{stmt: "const a float = float(1.0)", err: false},
+		{stmt: "const a vec2 = float(1.0)", err: true},
+
+		{stmt: "const a = 1.1", err: false},
+		{stmt: "const a bool = 1.1", err: true},
+		{stmt: "const a int = 1.1", err: true},
+		{stmt: "const a float = 1.1", err: false},
+		{stmt: "const a vec2 = 1.1", err: true},
+
+		{stmt: "const a = int(1.1)", err: true},
+		{stmt: "const a bool = int(1.1)", err: true},
+		{stmt: "const a int = int(1.1)", err: true},
+		{stmt: "const a float = int(1.1)", err: true},
+		{stmt: "const a vec2 = int(1.1)", err: true},
+
+		{stmt: "const a = float(1.1)", err: false},
+		{stmt: "const a bool = float(1.1)", err: true},
+		{stmt: "const a int = float(1.1)", err: true},
+		{stmt: "const a float = float(1.1)", err: false},
+		{stmt: "const a vec2 = float(1.1)", err: true},
+
+		{stmt: "const a = vec2(0)", err: true},
+		{stmt: "const a bool = vec2(0)", err: true},
+		{stmt: "const a int = vec2(0)", err: true},
+		{stmt: "const a float = vec2(0)", err: true},
+		{stmt: "const a vec2 = vec2(0)", err: true},
 	}
 
 	for _, c := range cases {

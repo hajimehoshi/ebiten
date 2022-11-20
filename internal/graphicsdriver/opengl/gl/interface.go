@@ -12,10 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package gles implements Go bindings to OpenGL ES.
-package gles
+package gl
 
+// Context is a context for OpenGL (ES) functions.
+//
+// Context is basically the same as gomobile's gl.Context.
+// See https://pkg.go.dev/golang.org/x/mobile/gl#Context
 type Context interface {
+	LoadFunctions() error
+	IsES() bool
+
 	ActiveTexture(texture uint32)
 	AttachShader(program uint32, shader uint32)
 	BindAttribLocation(program uint32, index uint32, name string)
@@ -25,20 +31,24 @@ type Context interface {
 	BindTexture(target uint32, texture uint32)
 	BlendEquationSeparate(modeRGB uint32, modeAlpha uint32)
 	BlendFuncSeparate(srcRGB uint32, dstRGB uint32, srcAlpha uint32, dstAlpha uint32)
-	BufferData(target uint32, size int, data []byte, usage uint32)
+	BufferInit(target uint32, size int, usage uint32)
 	BufferSubData(target uint32, offset int, data []byte)
 	CheckFramebufferStatus(target uint32) uint32
 	Clear(mask uint32)
 	ColorMask(red, green, blue, alpha bool)
 	CompileShader(shader uint32)
+	CreateBuffer() uint32
+	CreateFramebuffer() uint32
 	CreateProgram() uint32
+	CreateRenderbuffer() uint32
 	CreateShader(xtype uint32) uint32
-	DeleteBuffers(buffers []uint32)
-	DeleteFramebuffers(framebuffers []uint32)
+	CreateTexture() uint32
+	DeleteBuffer(buffer uint32)
+	DeleteFramebuffer(framebuffer uint32)
 	DeleteProgram(program uint32)
-	DeleteRenderbuffers(renderbuffer []uint32)
+	DeleteRenderbuffer(renderbuffer uint32)
 	DeleteShader(shader uint32)
-	DeleteTextures(textures []uint32)
+	DeleteTexture(textures uint32)
 	Disable(cap uint32)
 	DisableVertexAttribArray(index uint32)
 	DrawElements(mode uint32, count int32, xtype uint32, offset int)
@@ -47,17 +57,12 @@ type Context interface {
 	Flush()
 	FramebufferRenderbuffer(target uint32, attachment uint32, renderbuffertarget uint32, renderbuffer uint32)
 	FramebufferTexture2D(target uint32, attachment uint32, textarget uint32, texture uint32, level int32)
-	GenBuffers(n int32) []uint32
-	GenFramebuffers(n int32) []uint32
-	GenRenderbuffers(n int32) []uint32
-	GenTextures(n int32) []uint32
 	GetError() uint32
-	GetIntegerv(dst []int32, pname uint32)
-	GetProgramiv(dst []int32, program uint32, pname uint32)
+	GetInteger(pname uint32) int
 	GetProgramInfoLog(program uint32) string
-	GetShaderiv(dst []int32, shader uint32, pname uint32)
+	GetProgrami(program uint32, pname uint32) int
 	GetShaderInfoLog(shader uint32) string
-	GetShaderPrecisionFormat(shadertype uint32, precisiontype uint32) (rangeLow, rangeHigh, precision int)
+	GetShaderi(shader uint32, pname uint32) int
 	GetUniformLocation(program uint32, name string) int32
 	IsFramebuffer(framebuffer uint32) bool
 	IsProgram(program uint32) bool
@@ -74,15 +79,15 @@ type Context interface {
 	TexImage2D(target uint32, level int32, internalformat int32, width int32, height int32, format uint32, xtype uint32, pixels []byte)
 	TexParameteri(target uint32, pname uint32, param int32)
 	TexSubImage2D(target uint32, level int32, xoffset int32, yoffset int32, width int32, height int32, format uint32, xtype uint32, pixels []byte)
-	Uniform1f(location int32, v0 float32)
 	Uniform1fv(location int32, value []float32)
 	Uniform1i(location int32, v0 int32)
+	Uniform1iv(location int32, value []int32)
 	Uniform2fv(location int32, value []float32)
 	Uniform3fv(location int32, value []float32)
 	Uniform4fv(location int32, value []float32)
-	UniformMatrix2fv(location int32, transpose bool, value []float32)
-	UniformMatrix3fv(location int32, transpose bool, value []float32)
-	UniformMatrix4fv(location int32, transpose bool, value []float32)
+	UniformMatrix2fv(location int32, value []float32)
+	UniformMatrix3fv(location int32, value []float32)
+	UniformMatrix4fv(location int32, value []float32)
 	UseProgram(program uint32)
 	VertexAttribPointer(index uint32, size int32, xtype uint32, normalized bool, stride int32, offset int)
 	Viewport(x int32, y int32, width int32, height int32)

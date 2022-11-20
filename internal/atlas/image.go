@@ -139,33 +139,14 @@ type backend struct {
 }
 
 func (b *backend) tryAlloc(width, height int) (*packing.Node, bool) {
-	// If the region is allocated without any extension, that's fine.
-	if n := b.page.Alloc(width, height); n != nil {
-		return n, true
-	}
-
-	nExtended := 1
-	var n *packing.Node
-	for {
-		if !b.page.Extend(nExtended) {
-			// The page can't be extended any more. Return as failure.
-			return nil, false
-		}
-		nExtended++
-		n = b.page.Alloc(width, height)
-		if n != nil {
-			b.page.CommitExtension()
-			break
-		}
-		b.page.RollbackExtension()
-	}
-
-	s := b.page.Size()
-	b.restorable = b.restorable.Extend(s, s)
-
+	n := b.page.Alloc(width, height)
 	if n == nil {
-		panic("atlas: Alloc result must not be nil at TryAlloc")
+		// The page can't be extended any more. Return as failure.
+		return nil, false
 	}
+
+	b.restorable = b.restorable.Extend(b.page.Size())
+
 	return n, true
 }
 
@@ -395,13 +376,13 @@ func (i *Image) processSrc(src *Image) {
 //	5: Color G
 //	6: Color B
 //	7: Color Y
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]uint32, evenOdd bool) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	i.drawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd, false)
 }
 
-func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, keepOnAtlas bool) {
+func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]uint32, evenOdd bool, keepOnAtlas bool) {
 	if i.disposed {
 		panic("atlas: the drawing target image must not be disposed (DrawTriangles)")
 	}

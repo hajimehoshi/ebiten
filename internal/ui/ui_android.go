@@ -15,12 +15,14 @@
 package ui
 
 import (
+	"golang.org/x/mobile/gl"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 )
 
 type graphicsDriverCreatorImpl struct {
-	gomobileBuild bool
+	gomobileContext gl.Context
 }
 
 func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {
@@ -28,8 +30,8 @@ func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, Graphics
 	return graphics, GraphicsLibraryOpenGL, err
 }
 
-func (*graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {
-	return opengl.NewGraphics()
+func (g *graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {
+	return opengl.NewGraphics(g.gomobileContext)
 }
 
 func (*graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error) {

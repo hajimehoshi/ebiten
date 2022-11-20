@@ -80,7 +80,7 @@ type drawTrianglesHistoryItem struct {
 	dstRegion graphicsdriver.Region
 	srcRegion graphicsdriver.Region
 	shader    *Shader
-	uniforms  [][]float32
+	uniforms  [][]uint32
 	evenOdd   bool
 }
 
@@ -192,15 +192,9 @@ func NewImage(width, height int, imageType ImageType) *Image {
 // Extend extends the image by the given size.
 // Extend creates a new image with the given size and copies the pixels of the given source image.
 // Extend disposes itself after its call.
-//
-// If the given size (width and height) is smaller than the source image, ExtendImage panics.
-//
-// The image must be WritePixels-only image. Extend panics when Fill or DrawTriangles are applied on the image.
-//
-// Extend panics when the image is stale.
 func (i *Image) Extend(width, height int) *Image {
-	if i.width > width || i.height > height {
-		panic(fmt.Sprintf("restorable: the original size (%d, %d) cannot be extended to (%d, %d)", i.width, i.height, width, height))
+	if i.width >= width && i.height >= height {
+		return i
 	}
 
 	newImg := NewImage(width, height, i.imageType)
@@ -371,7 +365,7 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 //	5: Color G
 //	6: Color B
 //	7: Color Y
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]uint32, evenOdd bool) {
 	if i.priority {
 		panic("restorable: DrawTriangles cannot be called on a priority image")
 	}
@@ -409,7 +403,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [g
 }
 
 // appendDrawTrianglesHistory appends a draw-image history item to the image.
-func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]float32, evenOdd bool) {
+func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]uint32, evenOdd bool) {
 	if i.stale || !i.needsRestoring() {
 		return
 	}

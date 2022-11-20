@@ -17,7 +17,6 @@ package directx
 import (
 	"fmt"
 	"math"
-	"reflect"
 	"runtime"
 	"syscall"
 	"unsafe"
@@ -74,7 +73,7 @@ const (
 type _D3D_FEATURE_LEVEL int32
 
 const (
-	_D3D_FEATURE_LEVEL_11_0 _D3D_FEATURE_LEVEL = 0xb000
+	_D3D_FEATURE_LEVEL_12_0 _D3D_FEATURE_LEVEL = 0xc000
 )
 
 type _D3D_PRIMITIVE_TOPOLOGY int32
@@ -2294,11 +2293,7 @@ func (i *_ID3DBlob) Release() uint32 {
 }
 
 func (i *_ID3DBlob) String() string {
-	var str string
-	h := (*reflect.StringHeader)(unsafe.Pointer(&str))
-	h.Data = i.GetBufferPointer()
-	h.Len = int(i.GetBufferSize())
-	return str
+	return string(unsafe.Slice((*byte)(unsafe.Pointer(i.GetBufferPointer())), i.GetBufferSize()))
 }
 
 type _IDXGIAdapter struct {

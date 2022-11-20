@@ -26,15 +26,17 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
-type graphicsDriverCreatorImpl struct{}
+type graphicsDriverCreatorImpl struct {
+	canvas js.Value
+}
 
 func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {
 	graphics, err := g.newOpenGL()
 	return graphics, GraphicsLibraryOpenGL, err
 }
 
-func (*graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {
-	return opengl.NewGraphics()
+func (g *graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {
+	return opengl.NewGraphics(g.canvas)
 }
 
 func (*graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error) {
@@ -645,14 +647,13 @@ func (u *userInterfaceImpl) Run(game Game) error {
 		}
 	}
 	u.running = true
-	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{})
+	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
+		canvas: canvas,
+	})
 	if err != nil {
 		return err
 	}
 	u.graphicsDriver = g
-	if g, ok := u.graphicsDriver.(interface{ SetCanvas(js.Value) }); ok {
-		g.SetCanvas(canvas)
-	}
 	return <-u.loop(game)
 }
 

@@ -59,6 +59,7 @@ func FragmentPrelude(version GLSLVersion) string {
 	}
 	prelude := prefix + `#if defined(GL_ES)
 precision highp float;
+precision highp int;
 #else
 #define lowp
 #define mediump
