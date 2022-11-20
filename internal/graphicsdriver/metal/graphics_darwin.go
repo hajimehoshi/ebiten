@@ -577,7 +577,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 		t := g.shaders[shaderID].ir.Uniforms[i]
 		switch t.Main {
 		case shaderir.Vec3:
-			// float3x3 requires 16-byte alignment (#2463).
+			// float3 requires 16-byte alignment (#2463).
 			v1 := make([]uint32, 4)
 			copy(v1[0:3], v[0:3])
 			uniformVars[i] = v1
