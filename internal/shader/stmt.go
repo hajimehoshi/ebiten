@@ -667,7 +667,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 			}
 
 			for i := range lts {
-				if !canAssign(&r[i], &lts[i], &rts[i]) {
+				if !canAssign(&lts[i], &rts[i], r[i].Const) {
 					cs.addError(pos, fmt.Sprintf("cannot use type %s as type %s in variable declaration", rts[i].String(), lts[i].String()))
 					return nil, false
 				}
@@ -755,7 +755,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 			allblank = false
 
 			for i, lt := range lts {
-				if !canAssign(&rhsExprs[i], &lt, &rhsTypes[i]) {
+				if !canAssign(&lt, &rhsTypes[i], rhsExprs[i].Const) {
 					cs.addError(pos, fmt.Sprintf("cannot use type %s as type %s in variable declaration", rhsTypes[i].String(), lt.String()))
 					return nil, false
 				}
@@ -789,19 +789,23 @@ func toDefaultType(v gconstant.Value) shaderir.Type {
 	return shaderir.Type{}
 }
 
-func canAssign(re *shaderir.Expr, lt *shaderir.Type, rt *shaderir.Type) bool {
+func canAssign(lt *shaderir.Type, rt *shaderir.Type, rc gconstant.Value) bool {
 	if lt.Equal(rt) {
 		return true
 	}
-	if re.Const != nil {
-		switch lt.Main {
-		case shaderir.Bool:
-			return re.Const.Kind() == gconstant.Bool
-		case shaderir.Int:
-			return canTruncateToInteger(re.Const)
-		case shaderir.Float:
-			return gconstant.ToFloat(re.Const).Kind() != gconstant.Unknown
-		}
+
+	if rc == nil {
+		return false
 	}
+
+	switch lt.Main {
+	case shaderir.Bool:
+		return rc.Kind() == gconstant.Bool
+	case shaderir.Int:
+		return canTruncateToInteger(rc)
+	case shaderir.Float:
+		return gconstant.ToFloat(rc).Kind() != gconstant.Unknown
+	}
+
 	return false
 }

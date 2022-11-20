@@ -731,7 +731,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				}
 			}
 
-			if !canAssign(&args[i], &p, &argts[i]) {
+			if !canAssign(&p, &argts[i], args[i].Const) {
 				cs.addError(e.Pos(), fmt.Sprintf("cannot use type %s as type %s in argument", argts[i].String(), p.String()))
 				return nil, nil, nil, false
 			}
