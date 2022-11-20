@@ -1406,3 +1406,39 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		})
 	}
 }
+
+// Issue #2463
+func TestShaderVec3Array(t *testing.T) {
+	const shader = `package main
+
+var U [4]vec3
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(U[0].x/255.0, U[1].y/255.0, U[2].z/255.0, U[3].x/255.0)
+}
+`
+	const w, h = 1, 1
+
+	dst := ebiten.NewImage(w, h)
+	defer dst.Dispose()
+
+	s, err := ebiten.NewShader([]byte(shader))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Dispose()
+
+	op := &ebiten.DrawRectShaderOptions{}
+	op.Uniforms = map[string]any{
+		"U": []float32{
+			0x24, 0x3f, 0x6a,
+			0x88, 0x85, 0xa3,
+			0x08, 0xd3, 0x13,
+			0x19, 0x8a, 0x2e,
+		},
+	}
+	dst.DrawRectShader(w, h, s, op)
+	if got, want := dst.At(0, 0).(color.RGBA), (color.RGBA{0x24, 0x85, 0x13, 0x19}); !sameColors(got, want, 1) {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
