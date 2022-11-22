@@ -149,9 +149,9 @@ func (i *Input) Wheel() (xoff, yoff float64) {
 }
 
 var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
-	glfw.MouseButtonLeft:   MouseButtonLeft,
-	glfw.MouseButtonRight:  MouseButtonRight,
-	glfw.MouseButtonMiddle: MouseButtonMiddle,
+	glfw.MouseButtonLeft:   MouseButton0,
+	glfw.MouseButtonRight:  MouseButton1,
+	glfw.MouseButtonMiddle: MouseButton2,
 	glfw.MouseButton3:      MouseButton3,
 	glfw.MouseButton4:      MouseButton4,
 }
