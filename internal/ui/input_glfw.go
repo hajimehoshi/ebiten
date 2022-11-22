@@ -152,6 +152,8 @@ var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 	glfw.MouseButtonLeft:   MouseButtonLeft,
 	glfw.MouseButtonRight:  MouseButtonRight,
 	glfw.MouseButtonMiddle: MouseButtonMiddle,
+	glfw.MouseButton3:      MouseButton3,
+	glfw.MouseButton4:      MouseButton4,
 }
 
 // update must be called from the main thread.
