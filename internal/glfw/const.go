@@ -54,8 +54,8 @@ const (
 	MouseButtonLeft   = MouseButton(0)
 	MouseButtonRight  = MouseButton(1)
 	MouseButtonMiddle = MouseButton(2)
-	MouseButtonExtra1 = MouseButton(3)
-	MouseButtonExtra2 = MouseButton(4)
+	MouseButton3      = MouseButton(3)
+	MouseButton4      = MouseButton(4)
 )
 
 const (

@@ -24,11 +24,15 @@ import (
 type MouseButton int
 
 const (
-	MouseButtonLeft MouseButton = iota
-	MouseButtonRight
-	MouseButtonMiddle
-	MouseButtonExtra1
-	MouseButtonExtra2
+	MouseButton0 MouseButton = iota
+	MouseButton1
+	MouseButton2
+	MouseButton3
+	MouseButton4
+
+	MouseButtonLeft   = MouseButton0
+	MouseButtonRight  = MouseButton1
+	MouseButtonMiddle = MouseButton2
 )
 
 type TouchID int

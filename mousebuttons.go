@@ -26,7 +26,10 @@ const (
 	MouseButtonLeft   MouseButton = ui.MouseButtonLeft
 	MouseButtonRight  MouseButton = ui.MouseButtonRight
 	MouseButtonMiddle MouseButton = ui.MouseButtonMiddle
-	MouseButtonExtra1 MouseButton = ui.MouseButtonExtra1
-	MouseButtonExtra2 MouseButton = ui.MouseButtonExtra2
-	MouseButtonMax    MouseButton = MouseButtonExtra2
+	MouseButton0      MouseButton = ui.MouseButton0
+	MouseButton1      MouseButton = ui.MouseButton1
+	MouseButton2      MouseButton = ui.MouseButton2
+	MouseButton3      MouseButton = ui.MouseButton3
+	MouseButton4      MouseButton = ui.MouseButton4
+	MouseButtonMax    MouseButton = MouseButton4
 )
