@@ -250,13 +250,15 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 	c.ctx.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
 	c.ctx.PixelStorei(gl.UNPACK_ALIGNMENT, 4)
 
-	// Firefox warns the usage of textures without specifying pixels (#629)
+	// Firefox warns the usage of textures without specifying pixels (#629, #2077)
 	//
 	//     Error: WebGL warning: drawElements: This operation requires zeroing texture data. This is slow.
 	//
 	// In Ebitengine, textures are filled with pixels later by the filter that ignores destination, so it is fine
 	// to leave textures as uninitialized here. Rather, extra memory allocating for initialization should be
 	// avoided.
+	//
+	// See also https://stackoverflow.com/questions/57734645.
 	c.ctx.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, nil)
 
 	return textureNative(t), nil
