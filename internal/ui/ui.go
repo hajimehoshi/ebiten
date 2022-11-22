@@ -27,11 +27,8 @@ const (
 	MouseButtonLeft MouseButton = iota
 	MouseButtonRight
 	MouseButtonMiddle
-	MouseButton4
-	MouseButton5
-	MouseButton6
-	MouseButton7
-	MouseButton8
+	MouseButtonExtra1
+	MouseButtonExtra2
 )
 
 type TouchID int

@@ -129,8 +129,8 @@ var codeToMouseButton = map[int]MouseButton{
 	0: MouseButtonLeft,
 	1: MouseButtonMiddle,
 	2: MouseButtonRight,
-	3: MouseButton4,
-	4: MouseButton5,
+	3: MouseButtonExtra1,
+	4: MouseButtonExtra2,
 }
 
 func (i *Input) IsMouseButtonPressed(button MouseButton) bool {

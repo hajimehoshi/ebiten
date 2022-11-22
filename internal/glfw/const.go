@@ -51,17 +51,11 @@ const (
 )
 
 const (
-	MouseButton1      = MouseButton(0)
-	MouseButton2      = MouseButton(1)
-	MouseButton3      = MouseButton(2)
-	MouseButton4      = MouseButton(3)
-	MouseButton5      = MouseButton(4)
-	MouseButton6      = MouseButton(5)
-	MouseButton7      = MouseButton(6)
-	MouseButton8      = MouseButton(7)
-	MouseButtonLeft   = MouseButton1
-	MouseButtonRight  = MouseButton2
-	MouseButtonMiddle = MouseButton3
+	MouseButtonLeft   = MouseButton(0)
+	MouseButtonRight  = MouseButton(1)
+	MouseButtonMiddle = MouseButton(2)
+	MouseButtonExtra1 = MouseButton(3)
+	MouseButtonExtra2 = MouseButton(4)
 )
 
 const (
