@@ -53,7 +53,7 @@ func init() {
 	mplusNormalFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    24,
 		DPI:     dpi,
-		Hinting: font.HintingFull,
+		Hinting: font.HintingVertical,
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -61,7 +61,7 @@ func init() {
 	mplusBigFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    32,
 		DPI:     dpi,
-		Hinting: font.HintingFull,
+		Hinting: font.HintingVertical,
 	})
 	if err != nil {
 		log.Fatal(err)

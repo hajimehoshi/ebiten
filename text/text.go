@@ -48,6 +48,10 @@ func fixed26_6ToFloat64(x fixed.Int26_6) float64 {
 	return float64(x>>6) + float64(x&((1<<6)-1))/float64(1<<6)
 }
 
+func adjustOffsetGranularity(x fixed.Int26_6) fixed.Int26_6 {
+	return x / (1 << 4) * (1 << 4)
+}
+
 func drawGlyph(dst *ebiten.Image, face font.Face, r rune, img *ebiten.Image, topleft fixed.Point26_6, op *ebiten.DrawImageOptions) {
 	if img == nil {
 		return
@@ -83,21 +87,30 @@ func getGlyphBounds(face font.Face, r rune) fixed.Rectangle26_6 {
 	return b
 }
 
+type glyphImageCacheKey struct {
+	rune    rune
+	xoffset fixed.Int26_6
+}
+
 type glyphImageCacheEntry struct {
 	image *ebiten.Image
 	atime int64
 }
 
 var (
-	glyphImageCache = map[font.Face]map[rune]*glyphImageCacheEntry{}
+	glyphImageCache = map[font.Face]map[glyphImageCacheKey]*glyphImageCacheEntry{}
 )
 
 func getGlyphImage(face font.Face, r rune, offset fixed.Point26_6) *ebiten.Image {
 	if _, ok := glyphImageCache[face]; !ok {
-		glyphImageCache[face] = map[rune]*glyphImageCacheEntry{}
+		glyphImageCache[face] = map[glyphImageCacheKey]*glyphImageCacheEntry{}
 	}
 
-	if e, ok := glyphImageCache[face][r]; ok {
+	key := glyphImageCacheKey{
+		rune:    r,
+		xoffset: offset.X,
+	}
+	if e, ok := glyphImageCache[face][key]; ok {
 		e.atime = now()
 		return e.image
 	}
@@ -105,7 +118,7 @@ func getGlyphImage(face font.Face, r rune, offset fixed.Point26_6) *ebiten.Image
 	b := getGlyphBounds(face, r)
 	w, h := (b.Max.X - b.Min.X).Ceil(), (b.Max.Y - b.Min.Y).Ceil()
 	if w == 0 || h == 0 {
-		glyphImageCache[face][r] = &glyphImageCacheEntry{
+		glyphImageCache[face][key] = &glyphImageCacheEntry{
 			image: nil,
 			atime: now(),
 		}
@@ -133,7 +146,7 @@ func getGlyphImage(face font.Face, r rune, offset fixed.Point26_6) *ebiten.Image
 	d.DrawString(string(r))
 
 	img := ebiten.NewImageFromImage(rgba)
-	glyphImageCache[face][r] = &glyphImageCacheEntry{
+	glyphImageCache[face][key] = &glyphImageCacheEntry{
 		image: img,
 		atime: now(),
 	}
@@ -242,7 +255,7 @@ func DrawWithOptions(dst *ebiten.Image, text string, face font.Face, options *eb
 		// The current glyph images assume that they are rendered on integer positions so far.
 		b := getGlyphBounds(face, r)
 		offset := fixed.Point26_6{
-			X: b.Min.X & ((1 << 6) - 1),
+			X: (adjustOffsetGranularity(dx) + b.Min.X) & ((1 << 6) - 1),
 			Y: b.Min.Y & ((1 << 6) - 1),
 		}
 		img := getGlyphImage(face, r, offset)
@@ -353,13 +366,24 @@ func CacheGlyphs(face font.Face, text string) {
 	textM.Lock()
 	defer textM.Unlock()
 
+	var dx fixed.Int26_6
+	prevR := rune(-1)
 	for _, r := range text {
+		if prevR >= 0 {
+			dx += face.Kern(prevR, r)
+		}
+		if r == '\n' {
+			dx = 0
+			continue
+		}
 		b := getGlyphBounds(face, r)
 		offset := fixed.Point26_6{
-			X: b.Min.X & ((1 << 6) - 1),
+			X: (adjustOffsetGranularity(dx) + b.Min.X) & ((1 << 6) - 1),
 			Y: b.Min.Y & ((1 << 6) - 1),
 		}
 		getGlyphImage(face, r, offset)
+		dx += glyphAdvance(face, r)
+		prevR = r
 	}
 }
 
@@ -448,7 +472,7 @@ func AppendGlyphs(glyphs []Glyph, face font.Face, text string) []Glyph {
 
 		b := getGlyphBounds(face, r)
 		offset := fixed.Point26_6{
-			X: b.Min.X & ((1 << 6) - 1),
+			X: (adjustOffsetGranularity(pos.X) + b.Min.X) & ((1 << 6) - 1),
 			Y: b.Min.Y & ((1 << 6) - 1),
 		}
 		if img := getGlyphImage(face, r, offset); img != nil {
@@ -463,7 +487,6 @@ func AppendGlyphs(glyphs []Glyph, face font.Face, text string) []Glyph {
 			})
 		}
 		pos.X += glyphAdvance(face, r)
-
 		prevR = r
 	}
 
