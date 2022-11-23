@@ -60,10 +60,15 @@ func drawGlyph(dst *ebiten.Image, face font.Face, r rune, img *ebiten.Image, dx,
 		*op2 = *op
 		op2.GeoM.Reset()
 	}
+
+	// Adjust the position to the integers.
+	// The current glyph images assume that they are rendered on integer positions so far.
+	// The nearest filter cannot handle float positions.
 	op2.GeoM.Translate(math.Floor(fixed26_6ToFloat64(dx+b.Min.X)), math.Floor(fixed26_6ToFloat64(dy+b.Min.Y)))
 	if op != nil {
 		op2.GeoM.Concat(op.GeoM)
 	}
+
 	dst.DrawImage(img, op2)
 }
 
@@ -125,17 +130,18 @@ func getGlyphImage(face font.Face, r rune) *ebiten.Image {
 		Src:  image.White,
 		Face: face,
 	}
+
+	// Adjust the dot position so that the glyph image can be rendered on integer positions.
+	// The nearest filter cannot handle float positions.
 	x, y := -b.Min.X, -b.Min.Y
 	x, y = fixed.I(x.Ceil()), fixed.I(y.Ceil())
 	d.Dot = fixed.Point26_6{X: x, Y: y}
 	d.DrawString(string(r))
 
 	img := ebiten.NewImageFromImage(rgba)
-	if _, ok := glyphImageCache[face][r]; !ok {
-		glyphImageCache[face][r] = &glyphImageCacheEntry{
-			image: img,
-			atime: now(),
-		}
+	glyphImageCache[face][r] = &glyphImageCacheEntry{
+		image: img,
+		atime: now(),
 	}
 
 	return img
@@ -433,6 +439,9 @@ func AppendGlyphs(glyphs []Glyph, face font.Face, text string) []Glyph {
 
 		if img := getGlyphImage(face, r); img != nil {
 			b := getGlyphBounds(face, r)
+			// Adjust the position to the integers.
+			// The current glyph images assume that they are rendered on integer positions so far.
+			// The nearest filter cannot handle float positions.
 			glyphs = append(glyphs, Glyph{
 				Rune:  r,
 				Image: img,
