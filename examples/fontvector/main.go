@@ -141,11 +141,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		g.vertices[i].SrcY = 1
 	}
 
-	{
-		op := &ebiten.DrawTrianglesOptions{}
-		op.AntiAlias = true
-		screen.DrawTriangles(g.vertices, g.indices, whiteSubImage, op)
-	}
+	screen.DrawTriangles(g.vertices, g.indices, whiteSubImage, &ebiten.DrawTrianglesOptions{
+		AntiAlias: true,
+	})
 }
 
 func (*Game) Layout(width, height int) (int, int) {
