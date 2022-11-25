@@ -20,7 +20,6 @@ package text
 import (
 	"image"
 	"image/color"
-	"math"
 	"sync"
 
 	"golang.org/x/image/font"
@@ -49,21 +48,18 @@ func fixed26_6ToFloat64(x fixed.Int26_6) float64 {
 	return float64(x>>6) + float64(x&((1<<6)-1))/float64(1<<6)
 }
 
-func drawGlyph(dst *ebiten.Image, face font.Face, r rune, img *ebiten.Image, dx, dy fixed.Int26_6, op *ebiten.DrawImageOptions) {
+func drawGlyph(dst *ebiten.Image, face font.Face, r rune, img *ebiten.Image, topleft fixed.Point26_6, op *ebiten.DrawImageOptions) {
 	if img == nil {
 		return
 	}
 
-	b := getGlyphBounds(face, r)
 	op2 := &ebiten.DrawImageOptions{}
 	if op != nil {
 		*op2 = *op
 		op2.GeoM.Reset()
 	}
 
-	// Adjust the position to the integers.
-	// The current glyph images assume that they are rendered on integer positions so far.
-	op2.GeoM.Translate(math.Floor(fixed26_6ToFloat64(dx+b.Min.X)), math.Floor(fixed26_6ToFloat64(dy+b.Min.Y)))
+	op2.GeoM.Translate(fixed26_6ToFloat64(topleft.X), fixed26_6ToFloat64(topleft.Y))
 	if op != nil {
 		op2.GeoM.Concat(op.GeoM)
 	}
@@ -96,7 +92,7 @@ var (
 	glyphImageCache = map[font.Face]map[rune]*glyphImageCacheEntry{}
 )
 
-func getGlyphImage(face font.Face, r rune) *ebiten.Image {
+func getGlyphImage(face font.Face, r rune, offset fixed.Point26_6) *ebiten.Image {
 	if _, ok := glyphImageCache[face]; !ok {
 		glyphImageCache[face] = map[rune]*glyphImageCacheEntry{}
 	}
@@ -130,9 +126,9 @@ func getGlyphImage(face font.Face, r rune) *ebiten.Image {
 		Face: face,
 	}
 
-	// Adjust the dot position so that the glyph image can be rendered on integer positions.
 	x, y := -b.Min.X, -b.Min.Y
-	x, y = fixed.I(x.Ceil()), fixed.I(y.Ceil())
+	x += offset.X
+	y += offset.Y
 	d.Dot = fixed.Point26_6{X: x, Y: y}
 	d.DrawString(string(r))
 
@@ -242,8 +238,18 @@ func DrawWithOptions(dst *ebiten.Image, text string, face font.Face, options *eb
 			continue
 		}
 
-		img := getGlyphImage(face, r)
-		drawGlyph(dst, face, r, img, dx, dy, options)
+		// Adjust the position to the integers.
+		// The current glyph images assume that they are rendered on integer positions so far.
+		b := getGlyphBounds(face, r)
+		offset := fixed.Point26_6{
+			X: b.Min.X & ((1 << 6) - 1),
+			Y: b.Min.Y & ((1 << 6) - 1),
+		}
+		img := getGlyphImage(face, r, offset)
+		drawGlyph(dst, face, r, img, fixed.Point26_6{
+			X: dx + b.Min.X - offset.X,
+			Y: dy + b.Min.Y - offset.Y,
+		}, options)
 		dx += glyphAdvance(face, r)
 
 		prevR = r
@@ -348,7 +354,12 @@ func CacheGlyphs(face font.Face, text string) {
 	defer textM.Unlock()
 
 	for _, r := range text {
-		getGlyphImage(face, r)
+		b := getGlyphBounds(face, r)
+		offset := fixed.Point26_6{
+			X: b.Min.X & ((1 << 6) - 1),
+			Y: b.Min.Y & ((1 << 6) - 1),
+		}
+		getGlyphImage(face, r, offset)
 	}
 }
 
@@ -435,15 +446,20 @@ func AppendGlyphs(glyphs []Glyph, face font.Face, text string) []Glyph {
 			continue
 		}
 
-		if img := getGlyphImage(face, r); img != nil {
+		b := getGlyphBounds(face, r)
+		offset := fixed.Point26_6{
+			X: b.Min.X & ((1 << 6) - 1),
+			Y: b.Min.Y & ((1 << 6) - 1),
+		}
+		if img := getGlyphImage(face, r, offset); img != nil {
 			b := getGlyphBounds(face, r)
 			// Adjust the position to the integers.
 			// The current glyph images assume that they are rendered on integer positions so far.
 			glyphs = append(glyphs, Glyph{
 				Rune:  r,
 				Image: img,
-				X:     math.Floor(fixed26_6ToFloat64(pos.X + b.Min.X)),
-				Y:     math.Floor(fixed26_6ToFloat64(pos.Y + b.Min.Y)),
+				X:     fixed26_6ToFloat64(pos.X + b.Min.X - offset.X),
+				Y:     fixed26_6ToFloat64(pos.Y + b.Min.Y - offset.Y),
 			})
 		}
 		pos.X += glyphAdvance(face, r)
