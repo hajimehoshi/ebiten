@@ -129,7 +129,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.indices = g.indices[:0]
 
 	op := &vector.StrokeOptions{}
-	op.Width = 3 * (float32(math.Sin(float64(g.tick)*2*math.Pi/180)) + 1)
+	op.Width = 7*(float32(math.Sin(float64(g.tick)*2*math.Pi/180))+1) + 1
 	op.LineJoin = vector.LineJoinRound
 	op.LineCap = vector.LineCapRound
 	g.vertices, g.indices = path.AppendVerticesAndIndicesForStroke(g.vertices, g.indices, op)
