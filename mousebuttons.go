@@ -24,8 +24,8 @@ type MouseButton = ui.MouseButton
 // MouseButtons
 const (
 	MouseButtonLeft   MouseButton = MouseButton0
-	MouseButtonRight  MouseButton = MouseButton1
-	MouseButtonMiddle MouseButton = MouseButton2
+	MouseButtonMiddle MouseButton = MouseButton1
+	MouseButtonRight  MouseButton = MouseButton2
 
 	MouseButton0   MouseButton = ui.MouseButton0
 	MouseButton1   MouseButton = ui.MouseButton1

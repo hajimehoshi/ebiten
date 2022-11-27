@@ -127,8 +127,8 @@ func (i *Input) IsKeyPressed(key Key) bool {
 
 var codeToMouseButton = map[int]MouseButton{
 	0: MouseButton0, // Left
-	1: MouseButton2, // Middle
-	2: MouseButton1, // Right
+	1: MouseButton1, // Middle
+	2: MouseButton2, // Right
 	3: MouseButton3,
 	4: MouseButton4,
 }
