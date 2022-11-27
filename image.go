@@ -189,12 +189,7 @@ func (i *Image) adjustedRegion() graphicsdriver.Region {
 // when the successive calls of DrawImages satisfy the below conditions:
 //
 //   - All render targets are same (A in A.DrawImage(B, op))
-//   - Either all ColorM element values are same or all the ColorM have only
-//     diagonal ('scale') elements
-//   - If only (*ColorM).Scale is applied to a ColorM, the ColorM has only
-//     diagonal elements. The other ColorM functions might modify the other
-//     elements.
-//   - All CompositeMode/Blend values are same
+//   - All Blend values are same
 //   - All Filter values are same
 //
 // Even when all the above conditions are satisfied, multiple draw commands can
