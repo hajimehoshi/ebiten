@@ -215,7 +215,7 @@ func (c *compileContext) varInit(p *shaderir.Program, t *shaderir.Type) string {
 		panic("not implemented")
 	case shaderir.Bool:
 		return "false"
-	case shaderir.Int:
+	case shaderir.Int, shaderir.IVec2, shaderir.IVec3, shaderir.IVec4:
 		return "0"
 	case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
 		return "0.0"
@@ -404,7 +404,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			}
 			if callee.Type == shaderir.BuiltinFuncExpr {
 				switch callee.BuiltinFunc {
-				case shaderir.Vec2F, shaderir.Vec3F, shaderir.Vec4F:
+				case shaderir.Vec2F, shaderir.Vec3F, shaderir.Vec4F, shaderir.IVec2F, shaderir.IVec3F, shaderir.IVec4F:
 					if len(args) == 1 {
 						// Use casting. For example, `float4(1)` doesn't work.
 						return fmt.Sprintf("(%s)(%s)", expr(&e.Exprs[0]), args[0])

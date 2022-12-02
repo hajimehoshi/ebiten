@@ -224,6 +224,9 @@ const (
 	Vec2F       BuiltinFunc = "vec2"
 	Vec3F       BuiltinFunc = "vec3"
 	Vec4F       BuiltinFunc = "vec4"
+	IVec2F      BuiltinFunc = "ivec2"
+	IVec3F      BuiltinFunc = "ivec3"
+	IVec4F      BuiltinFunc = "ivec4"
 	Mat2F       BuiltinFunc = "mat2"
 	Mat3F       BuiltinFunc = "mat3"
 	Mat4F       BuiltinFunc = "mat4"
@@ -281,6 +284,9 @@ func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
 		Vec2F,
 		Vec3F,
 		Vec4F,
+		IVec2F,
+		IVec3F,
+		IVec4F,
 		Mat2F,
 		Mat3F,
 		Mat4F,

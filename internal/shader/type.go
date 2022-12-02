@@ -39,6 +39,12 @@ func (cs *compileState) parseType(block *block, fname string, expr ast.Expr) (sh
 			return shaderir.Type{Main: shaderir.Vec3}, true
 		case "vec4":
 			return shaderir.Type{Main: shaderir.Vec4}, true
+		case "ivec2":
+			return shaderir.Type{Main: shaderir.IVec2}, true
+		case "ivec3":
+			return shaderir.Type{Main: shaderir.IVec3}, true
+		case "ivec4":
+			return shaderir.Type{Main: shaderir.IVec4}, true
 		case "mat2":
 			return shaderir.Type{Main: shaderir.Mat2}, true
 		case "mat3":
@@ -177,7 +183,7 @@ func checkArgsForVec2BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 		if canBeFloatImplicitly(args[0], argts[0]) {
 			return nil
 		}
-		if argts[0].Main == shaderir.Vec2 {
+		if argts[0].IsVector() && argts[0].VectorElementCount() == 2 {
 			return nil
 		}
 	case 2:
@@ -205,14 +211,14 @@ func checkArgsForVec3BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 		if canBeFloatImplicitly(args[0], argts[0]) {
 			return nil
 		}
-		if argts[0].Main == shaderir.Vec3 {
+		if argts[0].IsVector() && argts[0].VectorElementCount() == 3 {
 			return nil
 		}
 	case 2:
-		if canBeFloatImplicitly(args[0], argts[0]) && argts[1].Main == shaderir.Vec2 {
+		if canBeFloatImplicitly(args[0], argts[0]) && argts[1].IsVector() && argts[1].VectorElementCount() == 2 {
 			return nil
 		}
-		if argts[0].Main == shaderir.Vec2 && canBeFloatImplicitly(args[1], argts[1]) {
+		if argts[0].IsVector() && argts[0].VectorElementCount() == 2 && canBeFloatImplicitly(args[1], argts[1]) {
 			return nil
 		}
 	case 3:
@@ -240,27 +246,27 @@ func checkArgsForVec4BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 		if canBeFloatImplicitly(args[0], argts[0]) {
 			return nil
 		}
-		if argts[0].Main == shaderir.Vec4 {
+		if argts[0].IsVector() && argts[0].VectorElementCount() == 4 {
 			return nil
 		}
 	case 2:
-		if canBeFloatImplicitly(args[0], argts[0]) && argts[1].Main == shaderir.Vec3 {
+		if canBeFloatImplicitly(args[0], argts[0]) && argts[1].IsVector() && argts[1].VectorElementCount() == 3 {
 			return nil
 		}
-		if argts[0].Main == shaderir.Vec2 && argts[1].Main == shaderir.Vec2 {
+		if argts[0].IsVector() && argts[0].VectorElementCount() == 2 && argts[1].IsVector() && argts[1].VectorElementCount() == 2 {
 			return nil
 		}
-		if argts[0].Main == shaderir.Vec3 && canBeFloatImplicitly(args[1], argts[1]) {
+		if argts[0].IsVector() && argts[0].VectorElementCount() == 3 && canBeFloatImplicitly(args[1], argts[1]) {
 			return nil
 		}
 	case 3:
-		if canBeFloatImplicitly(args[0], argts[0]) && canBeFloatImplicitly(args[1], argts[1]) && argts[2].Main == shaderir.Vec2 {
+		if canBeFloatImplicitly(args[0], argts[0]) && canBeFloatImplicitly(args[1], argts[1]) && argts[2].IsVector() && argts[2].VectorElementCount() == 2 {
 			return nil
 		}
-		if canBeFloatImplicitly(args[0], argts[0]) && argts[1].Main == shaderir.Vec2 && canBeFloatImplicitly(args[2], argts[2]) {
+		if canBeFloatImplicitly(args[0], argts[0]) && argts[1].IsVector() && argts[1].VectorElementCount() == 2 && canBeFloatImplicitly(args[2], argts[2]) {
 			return nil
 		}
-		if argts[0].Main == shaderir.Vec2 && canBeFloatImplicitly(args[1], argts[1]) && canBeFloatImplicitly(args[2], argts[2]) {
+		if argts[0].IsVector() && argts[0].VectorElementCount() == 2 && canBeFloatImplicitly(args[1], argts[1]) && canBeFloatImplicitly(args[2], argts[2]) {
 			return nil
 		}
 	case 4:
@@ -292,7 +298,7 @@ func checkArgsForMat2BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 			return nil
 		}
 	case 2:
-		if argts[0].Main == shaderir.Vec2 && argts[1].Main == shaderir.Vec2 {
+		if argts[0].IsVector() && argts[0].VectorElementCount() == 2 && argts[1].IsVector() && argts[1].VectorElementCount() == 2 {
 			return nil
 		}
 	case 4:
@@ -331,7 +337,9 @@ func checkArgsForMat3BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 			return nil
 		}
 	case 3:
-		if argts[0].Main == shaderir.Vec3 && argts[1].Main == shaderir.Vec3 && argts[2].Main == shaderir.Vec3 {
+		if argts[0].IsVector() && argts[0].VectorElementCount() == 3 &&
+			argts[1].IsVector() && argts[1].VectorElementCount() == 3 &&
+			argts[2].IsVector() && argts[2].VectorElementCount() == 3 {
 			return nil
 		}
 	case 9:
@@ -370,7 +378,10 @@ func checkArgsForMat4BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 			return nil
 		}
 	case 4:
-		if argts[0].Main == shaderir.Vec4 && argts[1].Main == shaderir.Vec4 && argts[2].Main == shaderir.Vec4 && argts[3].Main == shaderir.Vec4 {
+		if argts[0].IsVector() && argts[0].VectorElementCount() == 4 &&
+			argts[1].IsVector() && argts[1].VectorElementCount() == 4 &&
+			argts[2].IsVector() && argts[2].VectorElementCount() == 4 &&
+			argts[3].IsVector() && argts[3].VectorElementCount() == 4 {
 			return nil
 		}
 	case 16:

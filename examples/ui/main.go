@@ -57,7 +57,7 @@ func init() {
 	uiFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    12,
 		DPI:     72,
-		Hinting: font.HintingFull,
+		Hinting: font.HintingVertical,
 	})
 	if err != nil {
 		log.Fatal(err)

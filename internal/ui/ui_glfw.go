@@ -538,6 +538,10 @@ func (u *userInterfaceImpl) isFullscreen() bool {
 }
 
 func (u *userInterfaceImpl) IsFullscreen() bool {
+	if microsoftgdk.IsXbox() {
+		return false
+	}
+
 	if !u.isRunning() {
 		return u.isInitFullscreen()
 	}
@@ -549,6 +553,10 @@ func (u *userInterfaceImpl) IsFullscreen() bool {
 }
 
 func (u *userInterfaceImpl) SetFullscreen(fullscreen bool) {
+	if microsoftgdk.IsXbox() {
+		return
+	}
+
 	if !u.isRunning() {
 		u.setInitFullscreen(fullscreen)
 		return

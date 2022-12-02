@@ -35,6 +35,30 @@ const (
 // utilFunctions is GLSL utility functions for old GLSL versions.
 const utilFunctions = `int modInt(int x, int y) {
 	return x - y*(x/y);
+}
+
+ivec2 modInt(ivec2 x, int y) {
+	return x - y*(x/y);
+}
+
+ivec3 modInt(ivec3 x, int y) {
+	return x - y*(x/y);
+}
+
+ivec4 modInt(ivec4 x, int y) {
+	return x - y*(x/y);
+}
+
+ivec2 modInt(ivec2 x, ivec2 y) {
+	return x - y*(x/y);
+}
+
+ivec3 modInt(ivec3 x, ivec3 y) {
+	return x - y*(x/y);
+}
+
+ivec4 modInt(ivec4 x, ivec4 y) {
+	return x - y*(x/y);
 }`
 
 func VertexPrelude(version GLSLVersion) string {
@@ -164,7 +188,7 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 			}
 			str := fmt.Sprintf("U%d[%d]", i, t.Length-1)
 			switch t.Sub[0].Main {
-			case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4:
+			case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.IVec2, shaderir.IVec3, shaderir.IVec4:
 				str += ".x"
 			case shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
 				str += "[0][0]"
@@ -325,7 +349,9 @@ func (c *compileContext) varInit(p *shaderir.Program, t *shaderir.Type) string {
 		return "false"
 	case shaderir.Int:
 		return "0"
-	case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
+	case shaderir.Float, shaderir.Vec2, shaderir.Vec3, shaderir.Vec4,
+		shaderir.IVec2, shaderir.IVec3, shaderir.IVec4,
+		shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
 		return fmt.Sprintf("%s(0)", basicTypeString(t.Main))
 	default:
 		t0, t1 := c.typ(p, t)

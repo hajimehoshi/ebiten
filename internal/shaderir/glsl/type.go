@@ -92,6 +92,12 @@ func basicTypeString(t shaderir.BasicType) string {
 		return "vec3"
 	case shaderir.Vec4:
 		return "vec4"
+	case shaderir.IVec2:
+		return "ivec2"
+	case shaderir.IVec3:
+		return "ivec3"
+	case shaderir.IVec4:
+		return "ivec4"
 	case shaderir.Mat2:
 		return "mat2"
 	case shaderir.Mat3:

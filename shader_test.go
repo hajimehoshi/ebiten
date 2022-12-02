@@ -15,6 +15,7 @@
 package ebiten_test
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"math"
@@ -1295,6 +1296,16 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 }
 `
 
+	const intVec = `package main
+
+var U0 ivec4
+var U1 [2]ivec3
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(float(U0.x)/255.0, float(U0.y)/255.0, float(U1[0].z)/255.0, float(U1[1].x)/255.0)
+}
+`
+
 	testCases := []struct {
 		Name     string
 		Uniforms map[string]any
@@ -1382,6 +1393,57 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			Shader: intArray,
 			Want:   color.RGBA{0x85, 0xa3, 0x08, 0xd3},
 		},
+		{
+			Name: "0xff,array",
+			Uniforms: map[string]any{
+				"U": [...]int{0xff, 0xff, 0xff, 0xff},
+			},
+			Shader: intArray,
+			Want:   color.RGBA{0xff, 0xff, 0xff, 0xff},
+		},
+		{
+			Name: "int,array",
+			Uniforms: map[string]any{
+				"U": [...]int16{0x24, 0x3f, 0x6a, 0x88},
+			},
+			Shader: intArray,
+			Want:   color.RGBA{0x24, 0x3f, 0x6a, 0x88},
+		},
+		{
+			Name: "uint,array",
+			Uniforms: map[string]any{
+				"U": [...]uint8{0x85, 0xa3, 0x08, 0xd3},
+			},
+			Shader: intArray,
+			Want:   color.RGBA{0x85, 0xa3, 0x08, 0xd3},
+		},
+		{
+			Name: "0xff,ivec",
+			Uniforms: map[string]any{
+				"U0": [...]int{0xff, 0xff, 0xff, 0xff},
+				"U1": [...]int{0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+			},
+			Shader: intVec,
+			Want:   color.RGBA{0xff, 0xff, 0xff, 0xff},
+		},
+		{
+			Name: "int,ivec",
+			Uniforms: map[string]any{
+				"U0": [...]int16{0x24, 0x3f, 0x6a, 0x88},
+				"U1": [...]int16{0x85, 0xa3, 0x08, 0xd3, 0x13, 0x19},
+			},
+			Shader: intVec,
+			Want:   color.RGBA{0x24, 0x3f, 0x08, 0xd3},
+		},
+		{
+			Name: "uint,ivec",
+			Uniforms: map[string]any{
+				"U0": [...]uint8{0x24, 0x3f, 0x6a, 0x88},
+				"U1": [...]uint8{0x85, 0xa3, 0x08, 0xd3, 0x13, 0x19},
+			},
+			Shader: intVec,
+			Want:   color.RGBA{0x24, 0x3f, 0x08, 0xd3},
+		},
 	}
 	for _, tc := range testCases {
 		tc := tc
@@ -1408,7 +1470,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 }
 
 // Issue #2463
-func TestShaderVec3Array(t *testing.T) {
+func TestShaderUniformVec3Array(t *testing.T) {
 	const shader = `package main
 
 var U [4]vec3
@@ -1440,5 +1502,67 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	dst.DrawRectShader(w, h, s, op)
 	if got, want := dst.At(0, 0).(color.RGBA), (color.RGBA{0x24, 0x85, 0x13, 0x19}); !sameColors(got, want, 1) {
 		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+func TestShaderIVecMod(t *testing.T) {
+	cases := []struct {
+		source string
+		want   color.RGBA
+	}{
+		{
+			source: `a := ivec4(0x24, 0x3f, 0x6a, 0x88)
+return vec4(a)/255`,
+			want: color.RGBA{0x24, 0x3f, 0x6a, 0x88},
+		},
+		{
+			source: `a := ivec4(0x24, 0x3f, 0x6a, 0x88)
+a %= 0x85
+return vec4(a)/255`,
+			want: color.RGBA{0x24, 0x3f, 0x6a, 0x03},
+		},
+		{
+			source: `a := ivec4(0x24, 0x3f, 0x6a, 0x88)
+a %= ivec4(0x85, 0xa3, 0x08, 0xd3)
+return vec4(a)/255`,
+			want: color.RGBA{0x24, 0x3f, 0x02, 0x88},
+		},
+		{
+			source: `a := ivec4(0x24, 0x3f, 0x6a, 0x88)
+b := a % 0x85
+return vec4(b)/255`,
+			want: color.RGBA{0x24, 0x3f, 0x6a, 0x03},
+		},
+		{
+			source: `a := ivec4(0x24, 0x3f, 0x6a, 0x88)
+b := a % ivec4(0x85, 0xa3, 0x08, 0xd3)
+return vec4(b)/255`,
+			want: color.RGBA{0x24, 0x3f, 0x02, 0x88},
+		},
+	}
+
+	for _, tc := range cases {
+		shader := fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	%s
+}
+`, tc.source)
+		const w, h = 1, 1
+
+		dst := ebiten.NewImage(w, h)
+		defer dst.Dispose()
+
+		s, err := ebiten.NewShader([]byte(shader))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer s.Dispose()
+
+		op := &ebiten.DrawRectShaderOptions{}
+		dst.DrawRectShader(w, h, s, op)
+		if got, want := dst.At(0, 0).(color.RGBA), tc.want; !sameColors(got, want, 1) {
+			t.Errorf("%s: got: %v, want: %v", tc.source, got, want)
+		}
 	}
 }

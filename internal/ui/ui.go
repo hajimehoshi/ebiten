@@ -24,9 +24,11 @@ import (
 type MouseButton int
 
 const (
-	MouseButtonLeft MouseButton = iota
-	MouseButtonRight
-	MouseButtonMiddle
+	MouseButton0 MouseButton = iota // The 'left' button
+	MouseButton1                    // The 'right' button
+	MouseButton2                    // The 'middle' button
+	MouseButton3                    // The additional button (usually browser-back)
+	MouseButton4                    // The additional button (usually browser-forward)
 )
 
 type TouchID int

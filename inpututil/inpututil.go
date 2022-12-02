@@ -101,11 +101,7 @@ func (i *inputState) update() {
 	}
 
 	// Mouse
-	for _, b := range []ebiten.MouseButton{
-		ebiten.MouseButtonLeft,
-		ebiten.MouseButtonRight,
-		ebiten.MouseButtonMiddle,
-	} {
+	for b := ebiten.MouseButton(0); b <= ebiten.MouseButtonMax; b++ {
 		i.prevMouseButtonDurations[b] = i.mouseButtonDurations[b]
 		if ebiten.IsMouseButtonPressed(b) {
 			i.mouseButtonDurations[b]++

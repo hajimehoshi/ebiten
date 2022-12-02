@@ -173,6 +173,24 @@ func (g *Graphics) initialize() (ferr error) {
 		}
 	}
 
+	// Ebitengine itself doesn't require the features level 12 and 11 should be enough,
+	// but some old cards don't work well (#2447). Specify the level 12 by default.
+	var featureLevel _D3D_FEATURE_LEVEL = _D3D_FEATURE_LEVEL_12_0
+	if env := os.Getenv("EBITENGINE_DIRECTX_FEATURE_LEVEL"); env != "" {
+		switch env {
+		case "11_0":
+			featureLevel = _D3D_FEATURE_LEVEL_11_0
+		case "11_1":
+			featureLevel = _D3D_FEATURE_LEVEL_11_1
+		case "12_0":
+			featureLevel = _D3D_FEATURE_LEVEL_12_0
+		case "12_1":
+			featureLevel = _D3D_FEATURE_LEVEL_12_1
+		case "12_2":
+			featureLevel = _D3D_FEATURE_LEVEL_12_2
+		}
+	}
+
 	// Initialize not only a device but also other members like a fence.
 	// Even if initializing a device succeeds, initializing a fence might fail (#2142).
 
@@ -181,7 +199,7 @@ func (g *Graphics) initialize() (ferr error) {
 			return err
 		}
 	} else {
-		if err := g.initializeDesktop(useWARP, useDebugLayer); err != nil {
+		if err := g.initializeDesktop(useWARP, useDebugLayer, featureLevel); err != nil {
 			return err
 		}
 	}
@@ -189,7 +207,7 @@ func (g *Graphics) initialize() (ferr error) {
 	return nil
 }
 
-func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool) (ferr error) {
+func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool, featureLevel _D3D_FEATURE_LEVEL) (ferr error) {
 	if err := d3d12.Load(); err != nil {
 		return err
 	}
@@ -256,9 +274,7 @@ func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool) (ferr err
 				continue
 			}
 			// Test D3D12CreateDevice without creating an actual device.
-			// Ebitengine itself doesn't require the features level 12 and 11 should be enough,
-			// but some old cards don't work well (#2447). Specify the level 12 here.
-			if _, err := _D3D12CreateDevice(unsafe.Pointer(a), _D3D_FEATURE_LEVEL_12_0, &_IID_ID3D12Device, false); err != nil {
+			if _, err := _D3D12CreateDevice(unsafe.Pointer(a), featureLevel, &_IID_ID3D12Device, false); err != nil {
 				continue
 			}
 
@@ -271,7 +287,7 @@ func (g *Graphics) initializeDesktop(useWARP bool, useDebugLayer bool) (ferr err
 		return errors.New("directx: DirectX 12 is not supported")
 	}
 
-	d, err := _D3D12CreateDevice(unsafe.Pointer(adapter), _D3D_FEATURE_LEVEL_12_0, &_IID_ID3D12Device, true)
+	d, err := _D3D12CreateDevice(unsafe.Pointer(adapter), featureLevel, &_IID_ID3D12Device, true)
 	if err != nil {
 		return err
 	}
@@ -1739,19 +1755,19 @@ func (s *Shader) flattenUniforms(uniforms [][]uint32) []uint32 {
 			} else {
 				fs = append(fs, 0)
 			}
-		case shaderir.Vec2:
+		case shaderir.Vec2, shaderir.IVec2:
 			if u != nil {
 				fs = append(fs, u...)
 			} else {
 				fs = append(fs, 0, 0)
 			}
-		case shaderir.Vec3:
+		case shaderir.Vec3, shaderir.IVec3:
 			if u != nil {
 				fs = append(fs, u...)
 			} else {
 				fs = append(fs, 0, 0, 0)
 			}
-		case shaderir.Vec4:
+		case shaderir.Vec4, shaderir.IVec4:
 			if u != nil {
 				fs = append(fs, u...)
 			} else {
@@ -1824,7 +1840,7 @@ func (s *Shader) flattenUniforms(uniforms [][]uint32) []uint32 {
 				} else {
 					fs = append(fs, make([]uint32, (t.Length-1)*4+1)...)
 				}
-			case shaderir.Vec2:
+			case shaderir.Vec2, shaderir.IVec2:
 				if u != nil {
 					for j := 0; j < t.Length; j++ {
 						fs = append(fs, u[2*j:2*(j+1)]...)
@@ -1835,7 +1851,7 @@ func (s *Shader) flattenUniforms(uniforms [][]uint32) []uint32 {
 				} else {
 					fs = append(fs, make([]uint32, (t.Length-1)*4+2)...)
 				}
-			case shaderir.Vec3:
+			case shaderir.Vec3, shaderir.IVec3:
 				if u != nil {
 					for j := 0; j < t.Length; j++ {
 						fs = append(fs, u[3*j:3*(j+1)]...)
@@ -1846,7 +1862,7 @@ func (s *Shader) flattenUniforms(uniforms [][]uint32) []uint32 {
 				} else {
 					fs = append(fs, make([]uint32, (t.Length-1)*4+3)...)
 				}
-			case shaderir.Vec4:
+			case shaderir.Vec4, shaderir.IVec4:
 				if u != nil {
 					fs = append(fs, u...)
 				} else {
