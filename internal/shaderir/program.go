@@ -32,7 +32,7 @@ type Program struct {
 	VertexFunc   VertexFunc
 	FragmentFunc FragmentFunc
 
-	reachableUniforms map[int]struct{}
+	reachableUniforms []bool
 }
 
 type Func struct {
@@ -462,16 +462,16 @@ func (p *Program) reachableUniformVariablesFromBlock(block *Block) []int {
 
 func (p *Program) FilterUniformVariables(uniforms [][]uint32) {
 	if p.reachableUniforms == nil {
-		p.reachableUniforms = map[int]struct{}{}
+		p.reachableUniforms = make([]bool, len(p.Uniforms))
 		for _, i := range p.reachableUniformVariablesFromBlock(p.VertexFunc.Block) {
-			p.reachableUniforms[i] = struct{}{}
+			p.reachableUniforms[i] = true
 		}
 		for _, i := range p.reachableUniformVariablesFromBlock(p.FragmentFunc.Block) {
-			p.reachableUniforms[i] = struct{}{}
+			p.reachableUniforms[i] = true
 		}
 	}
 	for i := range uniforms {
-		if _, ok := p.reachableUniforms[i]; !ok {
+		if !p.reachableUniforms[i] {
 			uniforms[i] = nil
 		}
 	}
