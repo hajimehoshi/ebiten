@@ -148,12 +148,12 @@ func (m *Mipmap) level(level int) *buffered.Image {
 	}
 
 	var src *buffered.Image
-	var vs []float32
+	vs := make([]float32, 4*graphics.VertexFloatCount)
 	shader := NearestFilterShader
 	switch {
 	case level == 1:
 		src = m.orig
-		vs = graphics.QuadVertices(0, 0, float32(m.width), float32(m.height), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
+		graphics.QuadVertices(vs, 0, 0, float32(m.width), float32(m.height), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 		shader = LinearFilterShader
 	case level > 1:
 		src = m.level(level - 1)
@@ -163,7 +163,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		}
 		w := sizeForLevel(m.width, level-1)
 		h := sizeForLevel(m.height, level-1)
-		vs = graphics.QuadVertices(0, 0, float32(w), float32(h), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
+		graphics.QuadVertices(vs, 0, 0, float32(w), float32(h), 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 		shader = LinearFilterShader
 	default:
 		panic(fmt.Sprintf("mipmap: invalid level: %d", level))

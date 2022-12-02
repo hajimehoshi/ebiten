@@ -321,7 +321,8 @@ func (i *Image) putOnAtlas(graphicsDriver graphicsdriver.Graphics) error {
 	newI := NewImage(i.width, i.height, ImageTypeRegular)
 
 	w, h := float32(i.width), float32(i.height)
-	vs := graphics.QuadVertices(0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	vs := make([]float32, 4*graphics.VertexFloatCount)
+	graphics.QuadVertices(vs, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dr := graphicsdriver.Region{
 		X:      0,

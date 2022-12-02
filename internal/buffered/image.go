@@ -148,9 +148,13 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	}
 
 	if maybeCanAddDelayedCommand() {
+		vs := make([]float32, len(vertices))
+		copy(vs, vertices)
+		is := make([]uint16, len(indices))
+		copy(is, indices)
+		// TODO: Copy uniform variables. Now this is created for each call, so copying is not necessary, but this is fragile.
 		if tryAddDelayedCommand(func() {
-			// Arguments are not copied. Copying is the caller's responsibility.
-			i.DrawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd)
+			i.DrawTriangles(srcs, vs, is, blend, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd)
 		}) {
 			return
 		}

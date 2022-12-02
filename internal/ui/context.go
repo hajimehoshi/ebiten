@@ -21,7 +21,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
@@ -105,15 +104,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		return err
 	}
 	defer func() {
-		// All the vertices data are consumed at the end of the frame, and the data backend can be
-		// available after that. Until then, lock the vertices backend.
-		err1 := graphics.LockAndResetVertices(func() error {
-			if err := buffered.EndFrame(graphicsDriver); err != nil {
-				return err
-			}
-			return nil
-		})
-		if err == nil {
+		if err1 := buffered.EndFrame(graphicsDriver); err == nil && err1 != nil {
 			err = err1
 		}
 	}()
