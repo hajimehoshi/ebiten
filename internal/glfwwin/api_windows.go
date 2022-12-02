@@ -1856,7 +1856,8 @@ func wglShareLists(unnamedParam1 _HGLRC, unnamedParam2 _HGLRC) error {
 
 func wglSwapIntervalEXT(interval int32) error {
 	r, _, e := syscall.Syscall(procWGLSwapIntervalEXT, 1, uintptr(interval), 0, 0)
-	if int32(r) == 0 {
+	// wglSwapIntervalEXT can return ERROR_SUCCESS (#2478).
+	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
 		return fmt.Errorf("glfwwin: wglSwapIntervalEXT failed: %w", e)
 	}
 	return nil
