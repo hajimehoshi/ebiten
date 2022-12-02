@@ -1063,7 +1063,11 @@ func _DragFinish(hDrop _HDROP) {
 }
 
 func _DragQueryFileW(hDrop _HDROP, iFile uint32, file []uint16) uint32 {
-	r, _, _ := procDragQueryFileW.Call(uintptr(hDrop), uintptr(iFile), uintptr(unsafe.Pointer(&file[0])), uintptr(len(file)))
+	var filePtr unsafe.Pointer
+	if len(file) > 0 {
+		filePtr = unsafe.Pointer(&file[0])
+	}
+	r, _, _ := procDragQueryFileW.Call(uintptr(hDrop), uintptr(iFile), uintptr(filePtr), uintptr(len(file)))
 	return uint32(r)
 }
 
@@ -1493,7 +1497,11 @@ func _RegisterDeviceNotificationW(hRecipient windows.Handle, notificationFilter 
 }
 
 func _RegisterRawInputDevices(pRawInputDevices []_RAWINPUTDEVICE) error {
-	r, _, e := procRegisterRawInputDevices.Call(uintptr(unsafe.Pointer(&pRawInputDevices[0])), uintptr(len(pRawInputDevices)), unsafe.Sizeof(pRawInputDevices[0]))
+	var rawInputDevices unsafe.Pointer
+	if len(pRawInputDevices) > 0 {
+		rawInputDevices = unsafe.Pointer(&pRawInputDevices[0])
+	}
+	r, _, e := procRegisterRawInputDevices.Call(uintptr(rawInputDevices), uintptr(len(pRawInputDevices)), unsafe.Sizeof(_RAWINPUTDEVICE{}))
 	if int32(r) == 0 {
 		return fmt.Errorf("glfwwin: RegisterRawInputDevices failed: %w", e)
 	}
