@@ -36,6 +36,15 @@ const (
 	TextureSourceRegionOriginUniformVariableIndex      = 5
 	TextureSourceRegionSizeUniformVariableIndex        = 6
 	ProjectionMatrixUniformVariableIndex               = 7
+
+	PreservedUniformUint32Count = 2 + // the destination texture size
+		2*ShaderImageCount + // the texture sizes array
+		2 + // the texture destination region's origin
+		2 + // the texture destination region's size
+		2*(ShaderImageCount-1) + // the offsets array of the second and the following images
+		2 + // the texture source region's origin
+		2 + // the texture source region's size
+		16 // the projection matrix
 )
 
 const (

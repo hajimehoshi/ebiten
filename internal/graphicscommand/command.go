@@ -580,14 +580,9 @@ func roundUpPower2(x int) int {
 }
 
 func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shader, dst *Image, srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, dstRegion, srcRegion graphicsdriver.Region) []uint32 {
-	var n int
-	for _, typ := range shader.ir.Uniforms[:graphics.PreservedUniformVariablesCount] {
-		n += typ.Uint32Count()
-	}
-
 	origUniforms := uniforms
-	uniforms = q.uint32sBuffer.alloc(len(origUniforms) + n)
-	copy(uniforms[n:], origUniforms)
+	uniforms = q.uint32sBuffer.alloc(len(origUniforms) + graphics.PreservedUniformUint32Count)
+	copy(uniforms[graphics.PreservedUniformUint32Count:], origUniforms)
 
 	var idx int
 

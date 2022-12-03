@@ -32,7 +32,8 @@ type Program struct {
 	VertexFunc   VertexFunc
 	FragmentFunc FragmentFunc
 
-	reachableUniforms []bool
+	reachableUniforms   []bool
+	uniformUint32Counts []int
 }
 
 type Func struct {
@@ -473,9 +474,15 @@ func (p *Program) FilterUniformVariables(uniforms []uint32) {
 		}
 	}
 
+	if p.uniformUint32Counts == nil {
+		p.uniformUint32Counts = make([]int, len(p.Uniforms))
+		for i, typ := range p.Uniforms {
+			p.uniformUint32Counts[i] = typ.Uint32Count()
+		}
+	}
+
 	var idx int
-	for i, typ := range p.Uniforms {
-		n := typ.Uint32Count()
+	for i, n := range p.uniformUint32Counts {
 		if !p.reachableUniforms[i] {
 			for j := 0; j < n; j++ {
 				uniforms[idx+j] = 0
