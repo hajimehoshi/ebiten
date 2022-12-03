@@ -34,8 +34,8 @@ type Shader struct {
 func NewShader(ir *shaderir.Program) *Shader {
 	return &Shader{
 		shader:       mipmap.NewShader(ir),
-		uniformNames: ir.UniformNames,
-		uniformTypes: ir.Uniforms,
+		uniformNames: ir.UniformNames[graphics.PreservedUniformVariablesCount:],
+		uniformTypes: ir.Uniforms[graphics.PreservedUniformVariablesCount:],
 	}
 }
 
@@ -46,14 +46,14 @@ func (s *Shader) MarkDisposed() {
 
 func (s *Shader) ConvertUniforms(uniforms map[string]any) []uint32 {
 	var n int
-	for _, typ := range s.uniformTypes[graphics.PreservedUniformVariablesCount:] {
+	for _, typ := range s.uniformTypes {
 		n += typ.Uint32Count()
 	}
 
 	us := make([]uint32, n)
 	var idx int
-	for i, name := range s.uniformNames[graphics.PreservedUniformVariablesCount:] {
-		typ := s.uniformTypes[graphics.PreservedUniformVariablesCount+i]
+	for i, name := range s.uniformNames {
+		typ := s.uniformTypes[i]
 
 		if uv, ok := uniforms[name]; ok {
 			// TODO: Panic if uniforms include an invalid name
