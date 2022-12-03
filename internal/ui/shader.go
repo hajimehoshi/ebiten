@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"math"
 	"reflect"
-	"strings"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
@@ -27,10 +27,8 @@ import (
 type Shader struct {
 	shader *mipmap.Shader
 
-	uniformNames       []string
-	uniformTypes       []shaderir.Type
-	uniformNameToIndex map[string]int
-	uniformNameToType  map[string]shaderir.Type
+	uniformNames []string
+	uniformTypes []shaderir.Type
 }
 
 func NewShader(ir *shaderir.Program) *Shader {
@@ -47,17 +45,23 @@ func (s *Shader) MarkDisposed() {
 }
 
 func (s *Shader) ConvertUniforms(uniforms map[string]any) [][]uint32 {
-	nameToU32s := map[string][]uint32{}
-	for name, v := range uniforms {
-		v := reflect.ValueOf(v)
+	idxToU32s := make([][]uint32, len(s.uniformNames))
+	for idx, name := range s.uniformNames[graphics.PreservedUniformVariablesCount:] {
+		uv, ok := uniforms[name]
+		if !ok {
+			// TODO: Panic if uniforms include an invalid name
+			continue
+		}
+
+		v := reflect.ValueOf(uv)
 		t := v.Type()
 		switch t.Kind() {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			nameToU32s[name] = []uint32{uint32(v.Int())}
+			idxToU32s[idx] = []uint32{uint32(v.Int())}
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-			nameToU32s[name] = []uint32{uint32(v.Uint())}
+			idxToU32s[idx] = []uint32{uint32(v.Uint())}
 		case reflect.Float32, reflect.Float64:
-			nameToU32s[name] = []uint32{math.Float32bits(float32(v.Float()))}
+			idxToU32s[idx] = []uint32{math.Float32bits(float32(v.Float()))}
 		case reflect.Slice, reflect.Array:
 			u32s := make([]uint32, v.Len())
 			switch t.Elem().Kind() {
@@ -76,38 +80,20 @@ func (s *Shader) ConvertUniforms(uniforms map[string]any) [][]uint32 {
 			default:
 				panic(fmt.Sprintf("ebiten: unexpected uniform value type: %s (%s)", name, v.Kind().String()))
 			}
-			nameToU32s[name] = u32s
+			idxToU32s[idx] = u32s
 		default:
 			panic(fmt.Sprintf("ebiten: unexpected uniform value type: %s (%s)", name, v.Kind().String()))
 		}
 	}
 
-	if s.uniformNameToIndex == nil {
-		s.uniformNameToIndex = map[string]int{}
-		s.uniformNameToType = map[string]shaderir.Type{}
-
-		var idx int
-		for i, n := range s.uniformNames {
-			if strings.HasPrefix(n, "__") {
-				continue
-			}
-			s.uniformNameToIndex[n] = idx
-			s.uniformNameToType[n] = s.uniformTypes[i]
-			idx++
+	us := make([][]uint32, len(s.uniformTypes)-graphics.PreservedUniformVariablesCount)
+	for idx, typ := range s.uniformTypes[graphics.PreservedUniformVariablesCount:] {
+		v := idxToU32s[idx]
+		if v == nil {
+			v = make([]uint32, typ.Uint32Count())
 		}
+		us[idx] = v
 	}
-
-	us := make([][]uint32, len(s.uniformNameToIndex))
-	for name, idx := range s.uniformNameToIndex {
-		if v, ok := nameToU32s[name]; ok {
-			us[idx] = v
-			continue
-		}
-		t := s.uniformNameToType[name]
-		us[idx] = make([]uint32, t.Uint32Count())
-	}
-
-	// TODO: Panic if uniforms include an invalid name
 
 	return us
 }
