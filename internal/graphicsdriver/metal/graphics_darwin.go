@@ -544,7 +544,7 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 	return nil
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms [][]uint32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32, evenOdd bool) error {
 	if shaderID == graphicsdriver.InvalidShaderID {
 		return fmt.Errorf("metal: shader ID is invalid")
 	}
@@ -560,33 +560,35 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 		srcs[i] = g.images[srcID]
 	}
 
-	uniformVars := make([][]uint32, len(uniforms))
+	uniformVars := make([][]uint32, len(g.shaders[shaderID].ir.Uniforms))
 
 	// Set the additional uniform variables.
-	for i, v := range uniforms {
+	var idx int
+	for i, t := range g.shaders[shaderID].ir.Uniforms {
 		if i == graphics.ProjectionMatrixUniformVariableIndex {
 			// In Metal, the NDC's Y direction (upward) and the framebuffer's Y direction (downward) don't
 			// match. Then, the Y direction must be inverted.
 			// Invert the sign bits as float32 values.
-			v[1] ^= 1 << 31
-			v[5] ^= 1 << 31
-			v[9] ^= 1 << 31
-			v[13] ^= 1 << 31
+			uniforms[idx+1] ^= 1 << 31
+			uniforms[idx+5] ^= 1 << 31
+			uniforms[idx+9] ^= 1 << 31
+			uniforms[idx+13] ^= 1 << 31
 		}
 
-		t := g.shaders[shaderID].ir.Uniforms[i]
+		n := t.Uint32Count()
+
 		switch t.Main {
 		case shaderir.Vec3, shaderir.IVec3:
 			// float3 requires 16-byte alignment (#2463).
 			v1 := make([]uint32, 4)
-			copy(v1[0:3], v[0:3])
+			copy(v1[0:3], uniforms[idx:idx+3])
 			uniformVars[i] = v1
 		case shaderir.Mat3:
 			// float3x3 requires 16-byte alignment (#2036).
 			v1 := make([]uint32, 12)
-			copy(v1[0:3], v[0:3])
-			copy(v1[4:7], v[3:6])
-			copy(v1[8:11], v[6:9])
+			copy(v1[0:3], uniforms[idx:idx+3])
+			copy(v1[4:7], uniforms[idx+3:idx+6])
+			copy(v1[8:11], uniforms[idx+6:idx+9])
 			uniformVars[i] = v1
 		case shaderir.Array:
 			switch t.Sub[0].Main {
@@ -595,7 +597,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 				for j := 0; j < t.Length; j++ {
 					offset0 := j * 3
 					offset1 := j * 4
-					copy(v1[offset1:offset1+3], v[offset0:offset0+3])
+					copy(v1[offset1:offset1+3], uniforms[idx+offset0:idx+offset0+3])
 				}
 				uniformVars[i] = v1
 			case shaderir.Mat3:
@@ -603,17 +605,19 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 				for j := 0; j < t.Length; j++ {
 					offset0 := j * 9
 					offset1 := j * 12
-					copy(v1[offset1:offset1+3], v[offset0:offset0+3])
-					copy(v1[offset1+4:offset1+7], v[offset0+3:offset0+6])
-					copy(v1[offset1+8:offset1+11], v[offset0+6:offset0+9])
+					copy(v1[offset1:offset1+3], uniforms[idx+offset0:idx+offset0+3])
+					copy(v1[offset1+4:offset1+7], uniforms[idx+offset0+3:idx+offset0+6])
+					copy(v1[offset1+8:offset1+11], uniforms[idx+offset0+6:idx+offset0+9])
 				}
 				uniformVars[i] = v1
 			default:
-				uniformVars[i] = v
+				uniformVars[i] = uniforms[idx : idx+n]
 			}
 		default:
-			uniformVars[i] = v
+			uniformVars[i] = uniforms[idx : idx+n]
 		}
+
+		idx += n
 	}
 
 	if err := g.draw(dst, dstRegions, srcs, indexOffset, g.shaders[shaderID], uniformVars, blend, evenOdd); err != nil {

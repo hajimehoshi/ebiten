@@ -44,55 +44,52 @@ func (s *Shader) MarkDisposed() {
 	s.shader = nil
 }
 
-func (s *Shader) ConvertUniforms(uniforms map[string]any) [][]uint32 {
-	idxToU32s := make([][]uint32, len(s.uniformNames))
-	for idx, name := range s.uniformNames[graphics.PreservedUniformVariablesCount:] {
-		uv, ok := uniforms[name]
-		if !ok {
-			// TODO: Panic if uniforms include an invalid name
-			continue
-		}
+func (s *Shader) ConvertUniforms(uniforms map[string]any) []uint32 {
+	var n int
+	for _, typ := range s.uniformTypes[graphics.PreservedUniformVariablesCount:] {
+		n += typ.Uint32Count()
+	}
 
-		v := reflect.ValueOf(uv)
-		t := v.Type()
-		switch t.Kind() {
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			idxToU32s[idx] = []uint32{uint32(v.Int())}
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-			idxToU32s[idx] = []uint32{uint32(v.Uint())}
-		case reflect.Float32, reflect.Float64:
-			idxToU32s[idx] = []uint32{math.Float32bits(float32(v.Float()))}
-		case reflect.Slice, reflect.Array:
-			u32s := make([]uint32, v.Len())
-			switch t.Elem().Kind() {
+	us := make([]uint32, n)
+	var idx int
+	for i, name := range s.uniformNames[graphics.PreservedUniformVariablesCount:] {
+		typ := s.uniformTypes[graphics.PreservedUniformVariablesCount+i]
+
+		if uv, ok := uniforms[name]; ok {
+			// TODO: Panic if uniforms include an invalid name
+			v := reflect.ValueOf(uv)
+			t := v.Type()
+			switch t.Kind() {
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				for i := range u32s {
-					u32s[i] = uint32(v.Index(i).Int())
-				}
+				us[idx] = uint32(v.Int())
 			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-				for i := range u32s {
-					u32s[i] = uint32(v.Index(i).Uint())
-				}
+				us[idx] = uint32(v.Uint())
 			case reflect.Float32, reflect.Float64:
-				for i := range u32s {
-					u32s[i] = math.Float32bits(float32(v.Index(i).Float()))
+				us[idx] = math.Float32bits(float32(v.Float()))
+			case reflect.Slice, reflect.Array:
+				l := v.Len()
+				switch t.Elem().Kind() {
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					for i := 0; i < l; i++ {
+						us[idx+i] = uint32(v.Index(i).Int())
+					}
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+					for i := 0; i < l; i++ {
+						us[idx+i] = uint32(v.Index(i).Uint())
+					}
+				case reflect.Float32, reflect.Float64:
+					for i := 0; i < l; i++ {
+						us[idx+i] = math.Float32bits(float32(v.Index(i).Float()))
+					}
+				default:
+					panic(fmt.Sprintf("ebiten: unexpected uniform value type: %s (%s)", name, v.Kind().String()))
 				}
 			default:
 				panic(fmt.Sprintf("ebiten: unexpected uniform value type: %s (%s)", name, v.Kind().String()))
 			}
-			idxToU32s[idx] = u32s
-		default:
-			panic(fmt.Sprintf("ebiten: unexpected uniform value type: %s (%s)", name, v.Kind().String()))
 		}
-	}
 
-	us := make([][]uint32, len(s.uniformTypes)-graphics.PreservedUniformVariablesCount)
-	for idx, typ := range s.uniformTypes[graphics.PreservedUniformVariablesCount:] {
-		v := idxToU32s[idx]
-		if v == nil {
-			v = make([]uint32, typ.Uint32Count())
-		}
-		us[idx] = v
+		idx += typ.Uint32Count()
 	}
 
 	return us

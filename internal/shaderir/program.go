@@ -462,7 +462,7 @@ func (p *Program) reachableUniformVariablesFromBlock(block *Block) []int {
 
 // FilterUniformVariables replaces uniform variables with nil when they are not used.
 // By minimizing uniform variables, more commands can be merged in the graphicscommand package.
-func (p *Program) FilterUniformVariables(uniforms [][]uint32) {
+func (p *Program) FilterUniformVariables(uniforms []uint32) {
 	if p.reachableUniforms == nil {
 		p.reachableUniforms = make([]bool, len(p.Uniforms))
 		for _, i := range p.reachableUniformVariablesFromBlock(p.VertexFunc.Block) {
@@ -472,9 +472,15 @@ func (p *Program) FilterUniformVariables(uniforms [][]uint32) {
 			p.reachableUniforms[i] = true
 		}
 	}
-	for i := range uniforms {
+
+	var idx int
+	for i, typ := range p.Uniforms {
+		n := typ.Uint32Count()
 		if !p.reachableUniforms[i] {
-			uniforms[i] = nil
+			for j := 0; j < n; j++ {
+				uniforms[idx+j] = 0
+			}
 		}
+		idx += n
 	}
 }

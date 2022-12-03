@@ -55,7 +55,7 @@ type Graphics interface {
 	NewShader(program *shaderir.Program) (Shader, error)
 
 	// DrawTriangles draws an image onto another image with the given parameters.
-	DrawTriangles(dst ImageID, srcs [graphics.ShaderImageCount]ImageID, shader ShaderID, dstRegions []DstRegion, indexOffset int, blend Blend, uniforms [][]uint32, evenOdd bool) error
+	DrawTriangles(dst ImageID, srcs [graphics.ShaderImageCount]ImageID, shader ShaderID, dstRegions []DstRegion, indexOffset int, blend Blend, uniforms []uint32, evenOdd bool) error
 }
 
 type Image interface {
