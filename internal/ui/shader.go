@@ -44,13 +44,15 @@ func (s *Shader) MarkDisposed() {
 	s.shader = nil
 }
 
-func (s *Shader) ConvertUniforms(uniforms map[string]any) []uint32 {
+func (s *Shader) UniformUint32Count() int {
 	var n int
 	for _, typ := range s.uniformTypes {
 		n += typ.Uint32Count()
 	}
+	return n
+}
 
-	us := make([]uint32, n)
+func (s *Shader) ConvertUniforms(dst []uint32, uniforms map[string]any) {
 	var idx int
 	for i, name := range s.uniformNames {
 		typ := s.uniformTypes[i]
@@ -61,36 +63,34 @@ func (s *Shader) ConvertUniforms(uniforms map[string]any) []uint32 {
 			t := v.Type()
 			switch t.Kind() {
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				us[idx] = uint32(v.Int())
+				dst[idx] = uint32(v.Int())
 			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-				us[idx] = uint32(v.Uint())
+				dst[idx] = uint32(v.Uint())
 			case reflect.Float32, reflect.Float64:
-				us[idx] = math.Float32bits(float32(v.Float()))
+				dst[idx] = math.Float32bits(float32(v.Float()))
 			case reflect.Slice, reflect.Array:
 				l := v.Len()
 				switch t.Elem().Kind() {
 				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 					for i := 0; i < l; i++ {
-						us[idx+i] = uint32(v.Index(i).Int())
+						dst[idx+i] = uint32(v.Index(i).Int())
 					}
 				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 					for i := 0; i < l; i++ {
-						us[idx+i] = uint32(v.Index(i).Uint())
+						dst[idx+i] = uint32(v.Index(i).Uint())
 					}
 				case reflect.Float32, reflect.Float64:
 					for i := 0; i < l; i++ {
-						us[idx+i] = math.Float32bits(float32(v.Index(i).Float()))
+						dst[idx+i] = math.Float32bits(float32(v.Index(i).Float()))
 					}
 				default:
-					panic(fmt.Sprintf("ebiten: unexpected uniform value type: %s (%s)", name, v.Kind().String()))
+					panic(fmt.Sprintf("ui: unexpected uniform value type: %s (%s)", name, v.Kind().String()))
 				}
 			default:
-				panic(fmt.Sprintf("ebiten: unexpected uniform value type: %s (%s)", name, v.Kind().String()))
+				panic(fmt.Sprintf("ui: unexpected uniform value type: %s (%s)", name, v.Kind().String()))
 			}
 		}
 
 		idx += typ.Uint32Count()
 	}
-
-	return us
 }

@@ -43,6 +43,9 @@ type Image struct {
 
 	// tmpVertices must not be reused until the vertices are sent to the graphics command queue.
 	tmpVertices []float32
+
+	// tmpUniforms must not be reused until the vertices are sent to the graphics command queue.
+	tmpUniforms []uint32
 }
 
 func (i *Image) copyCheck() {
@@ -252,12 +255,12 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 
 	useColorM := !colorm.IsIdentity()
 	shader := builtinShader(filter, builtinshader.AddressUnsafe, useColorM)
-	var uniforms []uint32
+	uniforms := i.ensureTmpUniforms(shader)
 	if useColorM {
 		var body [16]float32
 		var translation [4]float32
 		colorm.Elements(body[:], translation[:])
-		uniforms = shader.convertUniforms(map[string]any{
+		shader.convertUniforms(uniforms, map[string]any{
 			builtinshader.UniformColorMBody:        body[:],
 			builtinshader.UniformColorMTranslation: translation[:],
 		})
@@ -481,12 +484,12 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	useColorM := !colorm.IsIdentity()
 	shader := builtinShader(filter, address, useColorM)
-	var uniforms []uint32
+	uniforms := i.ensureTmpUniforms(shader)
 	if useColorM {
 		var body [16]float32
 		var translation [4]float32
 		colorm.Elements(body[:], translation[:])
-		uniforms = shader.convertUniforms(map[string]any{
+		shader.convertUniforms(uniforms, map[string]any{
 			builtinshader.UniformColorMBody:        body[:],
 			builtinshader.UniformColorMTranslation: translation[:],
 		})
@@ -643,7 +646,10 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		offsets[i][1] = float32(y - sy)
 	}
 
-	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), options.FillRule == EvenOdd, true, options.AntiAlias)
+	uniforms := i.ensureTmpUniforms(shader)
+	shader.convertUniforms(uniforms, options.Uniforms)
+
+	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedRegion(), sr, offsets, shader.shader, uniforms, options.FillRule == EvenOdd, true, options.AntiAlias)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
@@ -753,7 +759,10 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		offsets[i][1] = float32(y - sy)
 	}
 
-	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), false, true, false)
+	uniforms := i.ensureTmpUniforms(shader)
+	shader.convertUniforms(uniforms, options.Uniforms)
+
+	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedRegion(), sr, offsets, shader.shader, uniforms, false, true, false)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.
@@ -1153,6 +1162,14 @@ func (i *Image) ensureTmpVertices(n int) []float32 {
 		i.tmpVertices = make([]float32, n)
 	}
 	return i.tmpVertices[:n]
+}
+
+func (i *Image) ensureTmpUniforms(shader *Shader) []uint32 {
+	n := shader.uniformUint32Count()
+	if cap(i.tmpUniforms) < n {
+		i.tmpUniforms = make([]uint32, n)
+	}
+	return i.tmpUniforms[:n]
 }
 
 // private implements FinalScreen.

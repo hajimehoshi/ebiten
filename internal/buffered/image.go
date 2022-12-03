@@ -152,9 +152,10 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		copy(vs, vertices)
 		is := make([]uint16, len(indices))
 		copy(is, indices)
-		// TODO: Copy uniform variables. Now this is created for each call, so copying is not necessary, but this is fragile.
+		us := make([]uint32, len(uniforms))
+		copy(us, uniforms)
 		if tryAddDelayedCommand(func() {
-			i.DrawTriangles(srcs, vs, is, blend, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd)
+			i.DrawTriangles(srcs, vs, is, blend, dstRegion, srcRegion, subimageOffsets, shader, us, evenOdd)
 		}) {
 			return
 		}

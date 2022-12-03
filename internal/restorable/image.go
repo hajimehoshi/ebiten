@@ -423,6 +423,9 @@ func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Imag
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
+	us := make([]uint32, len(uniforms))
+	copy(us, uniforms)
+
 	item := &drawTrianglesHistoryItem{
 		images:    srcs,
 		offsets:   offsets,
@@ -432,7 +435,7 @@ func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Imag
 		dstRegion: dstRegion,
 		srcRegion: srcRegion,
 		shader:    shader,
-		uniforms:  uniforms,
+		uniforms:  us,
 		evenOdd:   evenOdd,
 	}
 	i.drawTrianglesHistory = append(i.drawTrianglesHistory, item)
