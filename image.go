@@ -38,14 +38,14 @@ type Image struct {
 	original *Image
 	bounds   image.Rectangle
 
-	// Do not add a 'buffering' member that are resolved lazily.
-	// This tends to forget resolving the buffer easily (#2362).
-
 	// tmpVertices must not be reused until the vertices are sent to the graphics command queue.
 	tmpVertices []float32
 
 	// tmpUniforms must not be reused until the vertices are sent to the graphics command queue.
 	tmpUniforms []uint32
+
+	// Do not add a 'buffering' member that are resolved lazily.
+	// This tends to forget resolving the buffer easily (#2362).
 }
 
 func (i *Image) copyCheck() {
