@@ -49,6 +49,12 @@ type Image struct {
 	// drawCallback is a callback called when DrawTriangles or WritePixels is called.
 	// drawCallback is useful to detect whether the image is manipulated or not after a certain time.
 	drawCallback func()
+
+	// These temporary vertices must not be reused until the vertices are sent to the graphics command queue.
+
+	tmpVerticesForFlushing []float32
+	tmpVerticesForCopying  []float32
+	tmpVerticesForFill     []float32
 }
 
 func NewImage(width, height int, imageType atlas.ImageType) *Image {
@@ -75,7 +81,7 @@ func (i *Image) MarkDisposed() {
 	i.drawCallback = nil
 }
 
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]uint32, evenOdd bool, canSkipMipmap bool, antialias bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms []uint32, evenOdd bool, canSkipMipmap bool, antialias bool) {
 	if i.drawCallback != nil {
 		i.drawCallback()
 	}
@@ -106,7 +112,11 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 		// Copy the current rendering result to get the correct blending result.
 		if blend != graphicsdriver.BlendSourceOver && !i.bigOffscreenBufferDirty {
 			srcs := [graphics.ShaderImageCount]*Image{i}
-			vs := graphics.QuadVertices(
+			if len(i.tmpVerticesForCopying) < 4*graphics.VertexFloatCount {
+				i.tmpVerticesForCopying = make([]float32, 4*graphics.VertexFloatCount)
+			}
+			graphics.QuadVertices(
+				i.tmpVerticesForCopying,
 				0, 0, float32(i.width), float32(i.height),
 				bigOffscreenScale, 0, 0, bigOffscreenScale, 0, 0,
 				1, 1, 1, 1)
@@ -117,7 +127,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 				Width:  float32(i.width * bigOffscreenScale),
 				Height: float32(i.height * bigOffscreenScale),
 			}
-			i.bigOffscreenBuffer.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true, false)
+			i.bigOffscreenBuffer.DrawTriangles(srcs, i.tmpVerticesForCopying, is, graphicsdriver.BlendCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true, false)
 		}
 
 		for i := 0; i < len(vertices); i += graphics.VertexFloatCount {
@@ -221,7 +231,7 @@ func (i *Image) flushDotsBufferIfNeeded() {
 	}
 
 	l := len(i.dotsBuffer)
-	vs := graphics.Vertices(l * 4)
+	vs := make([]float32, l*4*graphics.VertexFloatCount)
 	is := make([]uint16, l*6)
 	sx, sy := float32(1), float32(1)
 	var idx int
@@ -296,7 +306,11 @@ func (i *Image) flushBigOffscreenBufferIfNeeded() {
 	i.bigOffscreenBufferDirty = false
 
 	srcs := [graphics.ShaderImageCount]*Image{i.bigOffscreenBuffer}
-	vs := graphics.QuadVertices(
+	if len(i.tmpVerticesForFlushing) < 4*graphics.VertexFloatCount {
+		i.tmpVerticesForFlushing = make([]float32, 4*graphics.VertexFloatCount)
+	}
+	graphics.QuadVertices(
+		i.tmpVerticesForFlushing,
 		0, 0, float32(i.width*bigOffscreenScale), float32(i.height*bigOffscreenScale),
 		1.0/bigOffscreenScale, 0, 0, 1.0/bigOffscreenScale, 0, 0,
 		1, 1, 1, 1)
@@ -311,7 +325,7 @@ func (i *Image) flushBigOffscreenBufferIfNeeded() {
 	if i.bigOffscreenBufferBlend != graphicsdriver.BlendSourceOver {
 		blend = graphicsdriver.BlendCopy
 	}
-	i.DrawTriangles(srcs, vs, is, blend, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, LinearFilterShader, nil, false, true, false)
+	i.DrawTriangles(srcs, i.tmpVerticesForFlushing, is, blend, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, LinearFilterShader, nil, false, true, false)
 
 	i.bigOffscreenBuffer.clear()
 	i.bigOffscreenBufferDirty = false
@@ -346,7 +360,11 @@ func (i *Image) Fill(r, g, b, a float32, x, y, width, height int) {
 		Height: float32(height),
 	}
 
-	vs := graphics.QuadVertices(
+	if len(i.tmpVerticesForFill) < 4*graphics.VertexFloatCount {
+		i.tmpVerticesForFill = make([]float32, 4*graphics.VertexFloatCount)
+	}
+	graphics.QuadVertices(
+		i.tmpVerticesForFill,
 		1, 1, float32(whiteImage.width-1), float32(whiteImage.height-1),
 		float32(i.width), 0, 0, float32(i.height), 0, 0,
 		r, g, b, a)
@@ -354,5 +372,5 @@ func (i *Image) Fill(r, g, b, a float32, x, y, width, height int) {
 
 	srcs := [graphics.ShaderImageCount]*Image{whiteImage}
 
-	i.DrawTriangles(srcs, vs, is, graphicsdriver.BlendCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true, false)
+	i.DrawTriangles(srcs, i.tmpVerticesForFill, is, graphicsdriver.BlendCopy, dstRegion, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, NearestFilterShader, nil, false, true, false)
 }

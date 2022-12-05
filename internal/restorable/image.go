@@ -80,7 +80,7 @@ type drawTrianglesHistoryItem struct {
 	dstRegion graphicsdriver.Region
 	srcRegion graphicsdriver.Region
 	shader    *Shader
-	uniforms  [][]uint32
+	uniforms  []uint32
 	evenOdd   bool
 }
 
@@ -365,7 +365,7 @@ func (i *Image) WritePixels(pixels []byte, x, y, width, height int) {
 //	5: Color G
 //	6: Color B
 //	7: Color Y
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]uint32, evenOdd bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms []uint32, evenOdd bool) {
 	if i.priority {
 		panic("restorable: DrawTriangles cannot be called on a priority image")
 	}
@@ -403,7 +403,7 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, offsets [g
 }
 
 // appendDrawTrianglesHistory appends a draw-image history item to the image.
-func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms [][]uint32, evenOdd bool) {
+func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Image, offsets [graphics.ShaderImageCount - 1][2]float32, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion, srcRegion graphicsdriver.Region, shader *Shader, uniforms []uint32, evenOdd bool) {
 	if i.stale || !i.needsRestoring() {
 		return
 	}
@@ -423,6 +423,9 @@ func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Imag
 	is := make([]uint16, len(indices))
 	copy(is, indices)
 
+	us := make([]uint32, len(uniforms))
+	copy(us, uniforms)
+
 	item := &drawTrianglesHistoryItem{
 		images:    srcs,
 		offsets:   offsets,
@@ -432,7 +435,7 @@ func (i *Image) appendDrawTrianglesHistory(srcs [graphics.ShaderImageCount]*Imag
 		dstRegion: dstRegion,
 		srcRegion: srcRegion,
 		shader:    shader,
-		uniforms:  uniforms,
+		uniforms:  us,
 		evenOdd:   evenOdd,
 	}
 	i.drawTrianglesHistory = append(i.drawTrianglesHistory, item)

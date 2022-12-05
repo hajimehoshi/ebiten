@@ -38,6 +38,12 @@ type Image struct {
 	original *Image
 	bounds   image.Rectangle
 
+	// tmpVertices must not be reused until the vertices are sent to the graphics command queue.
+	tmpVertices []float32
+
+	// tmpUniforms must not be reused until the vertices are sent to the graphics command queue.
+	tmpUniforms []uint32
+
 	// Do not add a 'buffering' member that are resolved lazily.
 	// This tends to forget resolving the buffer easily (#2362).
 }
@@ -241,19 +247,20 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	sx1, sy1 := img.adjustPosition(bounds.Max.X, bounds.Max.Y)
 	colorm, cr, cg, cb, ca := colorMToScale(options.ColorM.affineColorM())
 	cr, cg, cb, ca = options.ColorScale.apply(cr, cg, cb, ca)
-	vs := graphics.QuadVertices(float32(sx0), float32(sy0), float32(sx1), float32(sy1), a, b, c, d, tx, ty, cr, cg, cb, ca)
+	vs := i.ensureTmpVertices(4 * graphics.VertexFloatCount)
+	graphics.QuadVertices(vs, float32(sx0), float32(sy0), float32(sx1), float32(sy1), a, b, c, d, tx, ty, cr, cg, cb, ca)
 	is := graphics.QuadIndices()
 
 	srcs := [graphics.ShaderImageCount]*ui.Image{img.image}
 
 	useColorM := !colorm.IsIdentity()
 	shader := builtinShader(filter, builtinshader.AddressUnsafe, useColorM)
-	var uniforms [][]uint32
+	uniforms := i.ensureTmpUniforms(shader)
 	if useColorM {
 		var body [16]float32
 		var translation [4]float32
 		colorm.Elements(body[:], translation[:])
-		uniforms = shader.convertUniforms(map[string]any{
+		shader.convertUniforms(uniforms, map[string]any{
 			builtinshader.UniformColorMBody:        body[:],
 			builtinshader.UniformColorMTranslation: translation[:],
 		})
@@ -441,7 +448,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	colorm, cr, cg, cb, ca := colorMToScale(options.ColorM.affineColorM())
 
-	vs := graphics.Vertices(len(vertices))
+	vs := i.ensureTmpVertices(len(vertices) * graphics.VertexFloatCount)
 	dst := i
 	if options.ColorScaleMode == ColorScaleModeStraightAlpha {
 		for i, v := range vertices {
@@ -477,12 +484,12 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	useColorM := !colorm.IsIdentity()
 	shader := builtinShader(filter, address, useColorM)
-	var uniforms [][]uint32
+	uniforms := i.ensureTmpUniforms(shader)
 	if useColorM {
 		var body [16]float32
 		var translation [4]float32
 		colorm.Elements(body[:], translation[:])
-		uniforms = shader.convertUniforms(map[string]any{
+		shader.convertUniforms(uniforms, map[string]any{
 			builtinshader.UniformColorMBody:        body[:],
 			builtinshader.UniformColorMTranslation: translation[:],
 		})
@@ -577,7 +584,7 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		blend = options.CompositeMode.blend().internalBlend()
 	}
 
-	vs := graphics.Vertices(len(vertices))
+	vs := i.ensureTmpVertices(len(vertices) * graphics.VertexFloatCount)
 	dst := i
 	src := options.Images[0]
 	for i, v := range vertices {
@@ -639,7 +646,10 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 		offsets[i][1] = float32(y - sy)
 	}
 
-	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), options.FillRule == EvenOdd, true, options.AntiAlias)
+	uniforms := i.ensureTmpUniforms(shader)
+	shader.convertUniforms(uniforms, options.Uniforms)
+
+	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedRegion(), sr, offsets, shader.shader, uniforms, options.FillRule == EvenOdd, true, options.AntiAlias)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
@@ -732,7 +742,8 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	}
 	a, b, c, d, tx, ty := options.GeoM.elements32()
 	cr, cg, cb, ca := options.ColorScale.elements()
-	vs := graphics.QuadVertices(float32(sx), float32(sy), float32(sx+width), float32(sy+height), a, b, c, d, tx, ty, cr, cg, cb, ca)
+	vs := i.ensureTmpVertices(4 * graphics.VertexFloatCount)
+	graphics.QuadVertices(vs, float32(sx), float32(sy), float32(sx+width), float32(sy+height), a, b, c, d, tx, ty, cr, cg, cb, ca)
 	is := graphics.QuadIndices()
 
 	var offsets [graphics.ShaderImageCount - 1][2]float32
@@ -748,7 +759,10 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		offsets[i][1] = float32(y - sy)
 	}
 
-	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedRegion(), sr, offsets, shader.shader, shader.convertUniforms(options.Uniforms), false, true, false)
+	uniforms := i.ensureTmpUniforms(shader)
+	shader.convertUniforms(uniforms, options.Uniforms)
+
+	i.image.DrawTriangles(imgs, vs, is, blend, i.adjustedRegion(), sr, offsets, shader.shader, uniforms, false, true, false)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.
@@ -1141,6 +1155,21 @@ func colorMToScale(colorm affine.ColorM) (newColorM affine.ColorM, r, g, b, a fl
 	}
 
 	return affine.ColorMIdentity{}, r * a, g * a, b * a, a
+}
+
+func (i *Image) ensureTmpVertices(n int) []float32 {
+	if cap(i.tmpVertices) < n {
+		i.tmpVertices = make([]float32, n)
+	}
+	return i.tmpVertices[:n]
+}
+
+func (i *Image) ensureTmpUniforms(shader *Shader) []uint32 {
+	n := shader.uniformUint32Count()
+	if cap(i.tmpUniforms) < n {
+		i.tmpUniforms = make([]uint32, n)
+	}
+	return i.tmpUniforms[:n]
 }
 
 // private implements FinalScreen.

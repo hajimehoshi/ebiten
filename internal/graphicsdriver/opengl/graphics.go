@@ -170,7 +170,7 @@ func (g *Graphics) uniformVariableName(idx int) string {
 	return name
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms [][]uint32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32, evenOdd bool) error {
 	if shaderID == graphicsdriver.InvalidShaderID {
 		return fmt.Errorf("opengl: shader ID is invalid")
 	}
@@ -187,17 +187,20 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 	shader := g.shaders[shaderID]
 	program := shader.p
 
-	ulen := len(uniforms)
+	ulen := len(shader.ir.Uniforms)
 	if cap(g.uniformVars) < ulen {
 		g.uniformVars = make([]uniformVariable, ulen)
 	} else {
 		g.uniformVars = g.uniformVars[:ulen]
 	}
 
-	for i, v := range uniforms {
+	var idx int
+	for i, typ := range shader.ir.Uniforms {
+		n := typ.Uint32Count()
 		g.uniformVars[i].name = g.uniformVariableName(i)
-		g.uniformVars[i].value = v
-		g.uniformVars[i].typ = shader.ir.Uniforms[i]
+		g.uniformVars[i].value = uniforms[idx : idx+n]
+		g.uniformVars[i].typ = typ
+		idx += n
 	}
 
 	// In OpenGL, the NDC's Y direction is upward, so flip the Y direction for the final framebuffer.
