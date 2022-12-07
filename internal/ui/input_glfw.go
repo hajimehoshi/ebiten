@@ -175,8 +175,8 @@ func (i *Input) update(window *glfw.Window, context *context) error {
 			// As this function is called from GLFW callbacks, the current thread is main.
 			i.ui.m.Lock()
 			defer i.ui.m.Unlock()
-			i.scrollX = xoff
-			i.scrollY = yoff
+			i.scrollX += xoff
+			i.scrollY += yoff
 		}))
 	})
 	if i.keyPressed == nil {
