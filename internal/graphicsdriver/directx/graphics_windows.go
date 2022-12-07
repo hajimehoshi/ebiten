@@ -181,9 +181,9 @@ func (g *Graphics) initialize() (ferr error) {
 		}
 	}
 
-	// Ebitengine itself doesn't require the features level 12 and 11 should be enough,
-	// but some old cards don't work well (#2447). Specify the level 12 by default.
-	var featureLevel _D3D_FEATURE_LEVEL = _D3D_FEATURE_LEVEL_12_0
+	// Specify the level 11 by default.
+	// Some old cards don't work well with the default feature level (#2447, #2486).
+	var featureLevel _D3D_FEATURE_LEVEL = _D3D_FEATURE_LEVEL_11_0
 	if env := os.Getenv("EBITENGINE_DIRECTX_FEATURE_LEVEL"); env != "" {
 		switch env {
 		case "11_0":
