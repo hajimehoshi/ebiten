@@ -83,7 +83,7 @@
 //
 // `EBITENGINE_DIRECTX_FEATURE_LEVEL` environment variable specifies DirectX feature level.
 // The possible values are "11_0", "11_1", "12_0", "12_1", and "12_2".
-// The default value is "12_0".
+// The default value is "11_0".
 //
 // `EBITENGINE_OPENGL` environment variable specifies various parameters for OpenGL.
 // You can specify multiple values separated by a comma. The default value is empty (i.e. no parameters).
