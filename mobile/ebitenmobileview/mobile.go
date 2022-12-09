@@ -49,11 +49,11 @@ func (s *state) run() {
 	atomic.StoreInt32(&s.running, 1)
 }
 
-func SetGame(game ebiten.Game) {
+func SetGame(game ebiten.Game, options *ebiten.RunGameOptions) {
 	if theState.isRunning() {
 		panic("ebitenmobileview: SetGame cannot be called twice or more")
 	}
-	ebiten.RunGameWithoutMainLoop(game)
+	ebiten.RunGameWithoutMainLoop(game, options)
 	theState.run()
 }
 

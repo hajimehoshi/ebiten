@@ -56,9 +56,9 @@ type userInterfaceImpl struct {
 	input   Input
 }
 
-func (u *userInterfaceImpl) Run(game Game) error {
+func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 	u.context = newContext(game)
-	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{})
+	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{}, options.GraphicsLibrary)
 	if err != nil {
 		return err
 	}

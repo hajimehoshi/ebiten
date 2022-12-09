@@ -73,15 +73,6 @@ const (
 	WindowResizingModeEnabled
 )
 
-type GraphicsLibrary int
-
-const (
-	GraphicsLibraryUnknown GraphicsLibrary = iota
-	GraphicsLibraryOpenGL
-	GraphicsLibraryDirectX
-	GraphicsLibraryMetal
-)
-
 type UserInterface struct {
 	userInterfaceImpl
 }
@@ -103,4 +94,8 @@ func (u *UserInterface) dumpScreenshot(mipmap *mipmap.Mipmap, name string, black
 
 func (u *UserInterface) dumpImages(dir string) (string, error) {
 	return atlas.DumpImages(u.graphicsDriver, dir)
+}
+
+type RunOptions struct {
+	GraphicsLibrary GraphicsLibrary
 }

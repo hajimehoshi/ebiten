@@ -888,7 +888,7 @@ event:
 	u.framebufferSizeCallbackCh = nil
 }
 
-func (u *userInterfaceImpl) init() error {
+func (u *userInterfaceImpl) init(options *RunOptions) error {
 	glfw.WindowHint(glfw.AutoIconify, glfw.False)
 
 	decorated := glfw.False
@@ -906,7 +906,7 @@ func (u *userInterfaceImpl) init() error {
 
 	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
 		transparent: transparent,
-	})
+	}, options.GraphicsLibrary)
 	if err != nil {
 		return err
 	}

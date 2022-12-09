@@ -27,6 +27,6 @@ import (
 // Instead, functions in github.com/hajimehoshi/ebiten/v2/mobile package calls this.
 //
 // TODO: Remove this. In order to remove this, the gameForUI should be in another package.
-func RunGameWithoutMainLoop(game Game) {
-	ui.RunWithoutMainLoop(newGameForUI(game))
+func RunGameWithoutMainLoop(game Game, options *RunGameOptions) {
+	ui.RunWithoutMainLoop(newGameForUI(game), toUIRunOptions(options))
 }

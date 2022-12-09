@@ -127,22 +127,32 @@ func (c CompositeMode) blend() Blend {
 }
 
 // GraphicsLibrary represets graphics libraries supported by the engine.
-type GraphicsLibrary = ui.GraphicsLibrary
+type GraphicsLibrary int
 
 const (
+	GraphicsLibraryAuto GraphicsLibrary = GraphicsLibrary(ui.GraphicsLibraryAuto)
+
 	// GraphicsLibraryUnknown represents the state at which graphics library cannot be determined,
 	// e.g. hasn't loaded yet or failed to initialize.
-	GraphicsLibraryUnknown GraphicsLibrary = ui.GraphicsLibraryUnknown
+	GraphicsLibraryUnknown GraphicsLibrary = GraphicsLibrary(ui.GraphicsLibraryUnknown)
 
 	// GraphicsLibraryOpenGL represents the graphics library OpenGL.
-	GraphicsLibraryOpenGL GraphicsLibrary = ui.GraphicsLibraryOpenGL
+	GraphicsLibraryOpenGL GraphicsLibrary = GraphicsLibrary(ui.GraphicsLibraryOpenGL)
 
 	// GraphicsLibraryDirectX represents the graphics library Microsoft DirectX.
-	GraphicsLibraryDirectX GraphicsLibrary = ui.GraphicsLibraryDirectX
+	GraphicsLibraryDirectX GraphicsLibrary = GraphicsLibrary(ui.GraphicsLibraryDirectX)
 
 	// GraphicsLibraryMetal represents the graphics library Apple's Metal.
-	GraphicsLibraryMetal GraphicsLibrary = ui.GraphicsLibraryMetal
+	GraphicsLibraryMetal GraphicsLibrary = GraphicsLibrary(ui.GraphicsLibraryMetal)
 )
+
+// String returns a string representing the graphics library.
+func (g GraphicsLibrary) String() string {
+	return ui.GraphicsLibrary(g).String()
+}
+
+// Ensures GraphicsLibraryAuto is zero (the default value for RunOptions).
+var _ [GraphicsLibraryAuto]int = [0]int{}
 
 // DebugInfo is a struct to store debug info about the graphics.
 type DebugInfo struct {
@@ -152,5 +162,5 @@ type DebugInfo struct {
 
 // ReadDebugInfo writes debug info (e.g. current graphics library) into a provided struct.
 func ReadDebugInfo(d *DebugInfo) {
-	d.GraphicsLibrary = ui.GetGraphicsLibrary()
+	d.GraphicsLibrary = GraphicsLibrary(ui.GetGraphicsLibrary())
 }

@@ -637,7 +637,7 @@ func (u *userInterfaceImpl) forceUpdateOnMinimumFPSMode() {
 	}()
 }
 
-func (u *userInterfaceImpl) Run(game Game) error {
+func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 	if u.initFocused && window.Truthy() {
 		// Do not focus the canvas when the current document is in an iframe.
 		// Otherwise, the parent page tries to focus the iframe on every loading, which is annoying (#1373).
@@ -649,7 +649,7 @@ func (u *userInterfaceImpl) Run(game Game) error {
 	u.running = true
 	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
 		canvas: canvas,
-	})
+	}, options.GraphicsLibrary)
 	if err != nil {
 		return err
 	}
