@@ -28,5 +28,6 @@ import (
 //
 // TODO: Remove this. In order to remove this, the gameForUI should be in another package.
 func RunGameWithoutMainLoop(game Game, options *RunGameOptions) {
-	ui.RunWithoutMainLoop(newGameForUI(game), toUIRunOptions(options))
+	op := toUIRunOptions(options)
+	ui.RunWithoutMainLoop(newGameForUI(game, op.ScreenTransparent), op)
 }

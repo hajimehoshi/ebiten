@@ -404,7 +404,6 @@ func main() {
 	if x, y, ok := parseWindowPosition(); ok {
 		ebiten.SetWindowPosition(x, y)
 	}
-	ebiten.SetScreenTransparent(*flagTransparent)
 
 	g := &game{
 		width:  initScreenWidth,
@@ -464,6 +463,7 @@ func main() {
 		log.Fatalf("unexpected graphics library: %s", *flagGraphicsLibrary)
 	}
 	op.InitUnfocused = !*flagInitFocused
+	op.ScreenTransparent = *flagTransparent
 
 	const title = "Window Size (Ebitengine Demo)"
 	ww := int(float64(g.width) * initScreenScale)

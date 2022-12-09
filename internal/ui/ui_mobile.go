@@ -421,14 +421,6 @@ func (u *userInterfaceImpl) DeviceScaleFactor() float64 {
 	return deviceScale()
 }
 
-func (u *userInterfaceImpl) SetScreenTransparent(transparent bool) {
-	// Do nothing
-}
-
-func (u *userInterfaceImpl) IsScreenTransparent() bool {
-	return false
-}
-
 func (u *userInterfaceImpl) resetForTick() {
 	u.input.resetForTick()
 }
@@ -474,4 +466,8 @@ func (u *userInterfaceImpl) beginFrame() {
 }
 
 func (u *userInterfaceImpl) endFrame() {
+}
+
+func IsScreenTransparentAvailable() bool {
+	return false
 }

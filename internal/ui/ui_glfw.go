@@ -92,7 +92,6 @@ type userInterfaceImpl struct {
 	initWindowHeightInDIP    int
 	initWindowFloating       bool
 	initWindowMaximized      bool
-	initScreenTransparent    bool
 
 	origWindowPosX        int
 	origWindowPosY        int
@@ -357,19 +356,6 @@ func (u *userInterfaceImpl) isRunnableOnUnfocused() bool {
 func (u *userInterfaceImpl) setRunnableOnUnfocused(runnableOnUnfocused bool) {
 	u.m.Lock()
 	u.runnableOnUnfocused = runnableOnUnfocused
-	u.m.Unlock()
-}
-
-func (u *userInterfaceImpl) isInitScreenTransparent() bool {
-	u.m.RLock()
-	v := u.initScreenTransparent
-	u.m.RUnlock()
-	return v
-}
-
-func (u *userInterfaceImpl) setInitScreenTransparent(transparent bool) {
-	u.m.Lock()
-	u.initScreenTransparent = transparent
 	u.m.Unlock()
 }
 
@@ -874,21 +860,20 @@ func (u *userInterfaceImpl) init(options *RunOptions) error {
 	}
 	glfw.WindowHint(glfw.Decorated, decorated)
 
-	transparent := u.isInitScreenTransparent()
 	glfwTransparent := glfw.False
-	if transparent {
+	if options.ScreenTransparent {
 		glfwTransparent = glfw.True
 	}
 	glfw.WindowHint(glfw.TransparentFramebuffer, glfwTransparent)
 
 	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
-		transparent: transparent,
+		transparent: options.ScreenTransparent,
 	}, options.GraphicsLibrary)
 	if err != nil {
 		return err
 	}
 	u.graphicsDriver = g
-	u.graphicsDriver.SetTransparent(u.isInitScreenTransparent())
+	u.graphicsDriver.SetTransparent(options.ScreenTransparent)
 
 	if u.graphicsDriver.IsGL() {
 		u.graphicsDriver.(interface{ SetGLFWClientAPI() }).SetGLFWClientAPI()
@@ -1417,25 +1402,6 @@ func monitorFromWindow(window *glfw.Window) *glfw.Monitor {
 	return nil
 }
 
-func (u *userInterfaceImpl) SetScreenTransparent(transparent bool) {
-	if !u.isRunning() {
-		u.setInitScreenTransparent(transparent)
-		return
-	}
-	panic("ui: SetScreenTransparent can't be called after the main loop starts")
-}
-
-func (u *userInterfaceImpl) IsScreenTransparent() bool {
-	if !u.isRunning() {
-		return u.isInitScreenTransparent()
-	}
-	val := false
-	u.t.Call(func() {
-		val = u.window.GetAttrib(glfw.TransparentFramebuffer) == glfw.True
-	})
-	return val
-}
-
 func (u *userInterfaceImpl) resetForTick() {
 	u.input.resetForTick()
 
@@ -1616,4 +1582,8 @@ func (u *userInterfaceImpl) origWindowPos() (int, int) {
 func (u *userInterfaceImpl) setOrigWindowPos(x, y int) {
 	u.origWindowPosX = x
 	u.origWindowPosY = y
+}
+
+func IsScreenTransparentAvailable() bool {
+	return true
 }

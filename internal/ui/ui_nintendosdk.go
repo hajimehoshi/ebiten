@@ -126,13 +126,6 @@ func (*userInterfaceImpl) SetFPSMode(mode FPSModeType) {
 func (*userInterfaceImpl) ScheduleFrame() {
 }
 
-func (*userInterfaceImpl) IsScreenTransparent() bool {
-	return false
-}
-
-func (*userInterfaceImpl) SetScreenTransparent(transparent bool) {
-}
-
 func (*userInterfaceImpl) Input() *Input {
 	return &theUI.input
 }
@@ -145,4 +138,8 @@ func (u *userInterfaceImpl) beginFrame() {
 }
 
 func (u *userInterfaceImpl) endFrame() {
+}
+
+func IsScreenTransparentAvailable() bool {
+	return false
 }

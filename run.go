@@ -241,6 +241,12 @@ type RunGameOptions struct {
 	//
 	// The default (zero) value is false, which means that the window is focused.
 	InitUnfocused bool
+
+	// ScreenTransparent represents whether the window is transparent or not.
+	// ScreenTransparent is valid on desktops and browsers.
+	//
+	// The default (zero) value is false, which means that the window is not transparent.
+	ScreenTransparent bool
 }
 
 // RunGameWithOptions starts the main loop and runs the game with the specified options.
@@ -280,8 +286,17 @@ func RunGameWithOptions(game Game, options *RunGameOptions) error {
 	defer atomic.StoreInt32(&isRunGameEnded_, 1)
 
 	initializeWindowPositionIfNeeded(WindowSize())
-	g := newGameForUI(game)
-	if err := ui.Get().Run(g, toUIRunOptions(options)); err != nil {
+
+	op := toUIRunOptions(options)
+	// This is necessary to change the result of IsScreenTransparent.
+	if op.ScreenTransparent {
+		atomic.StoreInt32(&screenTransparent, 1)
+	} else {
+		atomic.StoreInt32(&screenTransparent, 0)
+	}
+	g := newGameForUI(game, op.ScreenTransparent)
+
+	if err := ui.Get().Run(g, op); err != nil {
 		if errors.Is(err, Termination) {
 			return nil
 		}
@@ -582,8 +597,13 @@ func SetMaxTPS(tps int) {
 // IsScreenTransparent reports whether the window is transparent.
 //
 // IsScreenTransparent is concurrent-safe.
+//
+// Deprecated: as of v2.5.
 func IsScreenTransparent() bool {
-	return ui.Get().IsScreenTransparent()
+	if !ui.IsScreenTransparentAvailable() {
+		return false
+	}
+	return atomic.LoadInt32(&screenTransparent) != 0
 }
 
 // SetScreenTransparent sets the state if the window is transparent.
@@ -593,9 +613,17 @@ func IsScreenTransparent() bool {
 // SetScreenTransparent does nothing on mobiles.
 //
 // SetScreenTransparent is concurrent-safe.
+//
+// Deprecated: as of v2.5. Use RunGameWithOptions instead.
 func SetScreenTransparent(transparent bool) {
-	ui.Get().SetScreenTransparent(transparent)
+	if transparent {
+		atomic.StoreInt32(&screenTransparent, 1)
+	} else {
+		atomic.StoreInt32(&screenTransparent, 0)
+	}
 }
+
+var screenTransparent int32 = 0
 
 // SetInitFocused sets whether the application is focused on show.
 // The default value is true, i.e., the application is focused.
@@ -620,11 +648,13 @@ var initUnfocused int32 = 0
 func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 	if options == nil {
 		return &ui.RunOptions{
-			InitUnfocused: atomic.LoadInt32(&initUnfocused) != 0,
+			InitUnfocused:     atomic.LoadInt32(&initUnfocused) != 0,
+			ScreenTransparent: atomic.LoadInt32(&screenTransparent) != 0,
 		}
 	}
 	return &ui.RunOptions{
-		GraphicsLibrary: ui.GraphicsLibrary(options.GraphicsLibrary),
-		InitUnfocused:   options.InitUnfocused,
+		GraphicsLibrary:   ui.GraphicsLibrary(options.GraphicsLibrary),
+		InitUnfocused:     options.InitUnfocused,
+		ScreenTransparent: options.ScreenTransparent,
 	}
 }

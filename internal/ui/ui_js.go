@@ -652,6 +652,13 @@ func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 		return err
 	}
 	u.graphicsDriver = g
+
+	if bodyStyle := document.Get("body").Get("style"); options.ScreenTransparent {
+		bodyStyle.Set("backgroundColor", "transparent")
+	} else {
+		bodyStyle.Set("backgroundColor", "#000")
+	}
+
 	return <-u.loop(game)
 }
 
@@ -670,17 +677,6 @@ func (u *userInterfaceImpl) SetScreenTransparent(transparent bool) {
 		panic("ui: SetScreenTransparent can't be called after the main loop starts")
 	}
 
-	bodyStyle := document.Get("body").Get("style")
-	if transparent {
-		bodyStyle.Set("backgroundColor", "transparent")
-	} else {
-		bodyStyle.Set("backgroundColor", "#000")
-	}
-}
-
-func (u *userInterfaceImpl) IsScreenTransparent() bool {
-	bodyStyle := document.Get("body").Get("style")
-	return bodyStyle.Get("backgroundColor").Equal(stringTransparent)
 }
 
 func (u *userInterfaceImpl) resetForTick() {
@@ -699,4 +695,8 @@ func (u *userInterfaceImpl) beginFrame() {
 }
 
 func (u *userInterfaceImpl) endFrame() {
+}
+
+func IsScreenTransparentAvailable() bool {
+	return true
 }
