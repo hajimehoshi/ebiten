@@ -71,7 +71,7 @@ type commandQueue struct {
 
 	drawTrianglesCommandPool drawTrianglesCommandPool
 
-	uint32sBuffer buffer[uint32]
+	uint32sBuffer uint32sBuffer
 }
 
 // theCommandQueue is the command queue for the current process.
@@ -660,26 +660,26 @@ func (q *commandQueue) prependPreservedUniforms(uniforms []uint32, shader *Shade
 	return uniforms
 }
 
-// buffer is a reusable buffer to allocate []T.
-type buffer[T any] struct {
-	buf [2][]T
+// uint32sBuffer is a reusable buffer to allocate []uint32.
+type uint32sBuffer struct {
+	buf [2][]uint32
 
 	// index is switched at the end of the frame,
 	// and the buffer of the original index is kept until the next frame ends.
 	index int
 }
 
-func (b *buffer[T]) alloc(n int) []T {
+func (b *uint32sBuffer) alloc(n int) []uint32 {
 	buf := b.buf[b.index]
 	if len(buf)+n > cap(buf) {
-		buf = make([]T, 0, max(roundUpPower2(len(buf)+n), 16))
+		buf = make([]uint32, 0, max(roundUpPower2(len(buf)+n), 16))
 	}
 	s := buf[len(buf) : len(buf)+n]
 	b.buf[b.index] = buf[:len(buf)+n]
 	return s
 }
 
-func (b *buffer[T]) reset() {
+func (b *uint32sBuffer) reset() {
 	b.buf[b.index] = b.buf[b.index][:0]
 	b.index++
 	b.index %= len(b.buf)
