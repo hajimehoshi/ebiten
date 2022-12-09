@@ -548,8 +548,6 @@ func SetScreenTransparent(transparent bool) {
 
 // SetInitFocused sets whether the application is focused on show.
 // The default value is true, i.e., the application is focused.
-// Note that the application does not proceed if this is not focused by default.
-// This behavior can be changed by SetRunnableOnUnfocused.
 //
 // SetInitFocused does nothing on mobile.
 //
