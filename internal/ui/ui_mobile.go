@@ -433,10 +433,6 @@ func (u *userInterfaceImpl) resetForTick() {
 	u.input.resetForTick()
 }
 
-func (u *userInterfaceImpl) SetInitFocused(focused bool) {
-	// Do nothing
-}
-
 func (u *userInterfaceImpl) Input() *Input {
 	return &u.input
 }

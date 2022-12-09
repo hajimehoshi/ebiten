@@ -431,7 +431,6 @@ func main() {
 		ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	}
 
-	ebiten.SetInitFocused(*flagInitFocused)
 	if !*flagInitFocused {
 		ebiten.SetRunnableOnUnfocused(true)
 	}
@@ -464,6 +463,7 @@ func main() {
 	default:
 		log.Fatalf("unexpected graphics library: %s", *flagGraphicsLibrary)
 	}
+	op.InitUnfocused = !*flagInitFocused
 
 	const title = "Window Size (Ebitengine Demo)"
 	ww := int(float64(g.width) * initScreenScale)

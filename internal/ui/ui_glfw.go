@@ -93,7 +93,6 @@ type userInterfaceImpl struct {
 	initWindowFloating       bool
 	initWindowMaximized      bool
 	initScreenTransparent    bool
-	initFocused              bool
 
 	origWindowPosX        int
 	origWindowPosY        int
@@ -135,7 +134,6 @@ func init() {
 		initWindowPositionYInDIP: invalidPos,
 		initWindowWidthInDIP:     640,
 		initWindowHeightInDIP:    480,
-		initFocused:              true,
 		fpsMode:                  FPSModeVsyncOn,
 		origWindowPosX:           invalidPos,
 		origWindowPosY:           invalidPos,
@@ -488,27 +486,6 @@ func (u *userInterfaceImpl) isWindowBeingClosed() bool {
 	v := u.windowBeingClosed
 	u.m.RUnlock()
 	return v
-}
-
-func (u *userInterfaceImpl) isInitFocused() bool {
-	if microsoftgdk.IsXbox() {
-		return true
-	}
-
-	u.m.RLock()
-	v := u.initFocused
-	u.m.RUnlock()
-	return v
-}
-
-func (u *userInterfaceImpl) setInitFocused(focused bool) {
-	if microsoftgdk.IsXbox() {
-		return
-	}
-
-	u.m.Lock()
-	u.initFocused = focused
-	u.m.Unlock()
 }
 
 func (u *userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
@@ -933,9 +910,9 @@ func (u *userInterfaceImpl) init(options *RunOptions) error {
 	}
 	glfw.WindowHint(glfw.Floating, floating)
 
-	focused := glfw.False
-	if u.isInitFocused() {
-		focused = glfw.True
+	focused := glfw.True
+	if options.InitUnfocused {
+		focused = glfw.False
 	}
 	glfw.WindowHint(glfw.FocusOnShow, focused)
 
@@ -1465,13 +1442,6 @@ func (u *userInterfaceImpl) resetForTick() {
 	u.m.Lock()
 	u.windowBeingClosed = false
 	u.m.Unlock()
-}
-
-func (u *userInterfaceImpl) SetInitFocused(focused bool) {
-	if u.isRunning() {
-		panic("ui: SetInitFocused must be called before the main loop")
-	}
-	u.setInitFocused(focused)
 }
 
 func (u *userInterfaceImpl) Input() *Input {

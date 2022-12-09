@@ -133,9 +133,6 @@ func (*userInterfaceImpl) IsScreenTransparent() bool {
 func (*userInterfaceImpl) SetScreenTransparent(transparent bool) {
 }
 
-func (*userInterfaceImpl) SetInitFocused(focused bool) {
-}
-
 func (*userInterfaceImpl) Input() *Input {
 	return &theUI.input
 }

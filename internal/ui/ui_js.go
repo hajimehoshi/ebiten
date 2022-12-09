@@ -77,7 +77,6 @@ type userInterfaceImpl struct {
 	fpsMode             FPSModeType
 	renderingScheduled  bool
 	running             bool
-	initFocused         bool
 	cursorMode          CursorMode
 	cursorPrevMode      CursorMode
 	cursorShape         CursorShape
@@ -96,7 +95,6 @@ type userInterfaceImpl struct {
 func init() {
 	theUI.userInterfaceImpl = userInterfaceImpl{
 		runnableOnUnfocused: true,
-		initFocused:         true,
 	}
 	theUI.input.ui = &theUI.userInterfaceImpl
 }
@@ -638,7 +636,7 @@ func (u *userInterfaceImpl) forceUpdateOnMinimumFPSMode() {
 }
 
 func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
-	if u.initFocused && window.Truthy() {
+	if !options.InitUnfocused && window.Truthy() {
 		// Do not focus the canvas when the current document is in an iframe.
 		// Otherwise, the parent page tries to focus the iframe on every loading, which is annoying (#1373).
 		isInIframe := !window.Get("location").Equal(window.Get("parent").Get("location"))
@@ -687,13 +685,6 @@ func (u *userInterfaceImpl) IsScreenTransparent() bool {
 
 func (u *userInterfaceImpl) resetForTick() {
 	u.input.resetForTick()
-}
-
-func (u *userInterfaceImpl) SetInitFocused(focused bool) {
-	if u.running {
-		panic("ui: SetInitFocused must be called before the main loop")
-	}
-	u.initFocused = focused
 }
 
 func (u *userInterfaceImpl) Input() *Input {

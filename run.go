@@ -232,8 +232,15 @@ func RunGame(game Game) error {
 // RungameOptions represents options for RunGameWithOptions.
 type RunGameOptions struct {
 	// GraphicsLibrary is a graphics library Ebitengine will use.
+	//
 	// The default (zero) value is GraphicsLibraryAuto, which lets Ebitengine choose the graphics library.
 	GraphicsLibrary GraphicsLibrary
+
+	// InitUnfocused represents whether the window is unfocused or not on launching.
+	// InitUnfocused is valid on desktops and browsers.
+	//
+	// The default (zero) value is false, which means that the window is focused.
+	InitUnfocused bool
 }
 
 // RunGameWithOptions starts the main loop and runs the game with the specified options.
@@ -598,15 +605,26 @@ func SetScreenTransparent(transparent bool) {
 // SetInitFocused panics if this is called after the main loop.
 //
 // SetInitFocused is cuncurrent-safe.
+//
+// Deprecated: as of v2.5. Use RunGameWithOptions instead.
 func SetInitFocused(focused bool) {
-	ui.Get().SetInitFocused(focused)
+	if focused {
+		atomic.StoreInt32(&initUnfocused, 0)
+	} else {
+		atomic.StoreInt32(&initUnfocused, 1)
+	}
 }
+
+var initUnfocused int32 = 0
 
 func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 	if options == nil {
-		return &ui.RunOptions{}
+		return &ui.RunOptions{
+			InitUnfocused: atomic.LoadInt32(&initUnfocused) != 0,
+		}
 	}
 	return &ui.RunOptions{
 		GraphicsLibrary: ui.GraphicsLibrary(options.GraphicsLibrary),
+		InitUnfocused:   options.InitUnfocused,
 	}
 }

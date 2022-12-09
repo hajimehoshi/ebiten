@@ -98,4 +98,5 @@ func (u *UserInterface) dumpImages(dir string) (string, error) {
 
 type RunOptions struct {
 	GraphicsLibrary GraphicsLibrary
+	InitUnfocused   bool
 }
