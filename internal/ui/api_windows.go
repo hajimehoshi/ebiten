@@ -158,5 +158,5 @@ func (i *_ITaskbarList) DeleteTab(hwnd windows.HWND) error {
 }
 
 func (i *_ITaskbarList) Release() {
-	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+	_, _, _ := syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 }
