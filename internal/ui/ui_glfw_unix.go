@@ -229,3 +229,7 @@ func initializeWindowAfterCreation(w *glfw.Window) {
 	// Apparently the window state is inconsistent just after the window is created, but we are not sure.
 	// For more details, see the discussion in #1829.
 }
+
+func (u *userInterfaceImpl) skipTaskbar() error {
+	return nil
+}

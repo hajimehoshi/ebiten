@@ -236,17 +236,23 @@ type RunGameOptions struct {
 	// The default (zero) value is GraphicsLibraryAuto, which lets Ebitengine choose the graphics library.
 	GraphicsLibrary GraphicsLibrary
 
-	// InitUnfocused represents whether the window is unfocused or not on launching.
+	// InitUnfocused indicates whether the window is unfocused or not on launching.
 	// InitUnfocused is valid on desktops and browsers.
 	//
 	// The default (zero) value is false, which means that the window is focused.
 	InitUnfocused bool
 
-	// ScreenTransparent represents whether the window is transparent or not.
+	// ScreenTransparent indicates whether the window is transparent or not.
 	// ScreenTransparent is valid on desktops and browsers.
 	//
 	// The default (zero) value is false, which means that the window is not transparent.
 	ScreenTransparent bool
+
+	// SkipTaskbar indicates whether an application icon is shown on a taskbar or not.
+	// SkipTaskbar is valid only on Windows.
+	//
+	// The default (zero) value is false, which means that an icon is shown on a taskbar.
+	SkipTaskbar bool
 }
 
 // RunGameWithOptions starts the main loop and runs the game with the specified options.
@@ -656,5 +662,6 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 		GraphicsLibrary:   ui.GraphicsLibrary(options.GraphicsLibrary),
 		InitUnfocused:     options.InitUnfocused,
 		ScreenTransparent: options.ScreenTransparent,
+		SkipTaskbar:       options.SkipTaskbar,
 	}
 }

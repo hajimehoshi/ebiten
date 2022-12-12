@@ -940,6 +940,11 @@ func (u *userInterfaceImpl) init(options *RunOptions) error {
 
 	u.setWindowResizingModeForOS(u.windowResizingMode)
 
+	if options.SkipTaskbar {
+		// Ignore the error.
+		_ = u.skipTaskbar()
+	}
+
 	u.window.Show()
 
 	if g, ok := u.graphicsDriver.(interface{ SetWindow(uintptr) }); ok {

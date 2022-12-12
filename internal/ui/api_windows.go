@@ -17,15 +17,37 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
+	"runtime"
+	"syscall"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
 )
 
 const (
-	_SM_CYCAPTION             = 4
+	_CLSCTX_INPROC_SERVER     = 0x1
+	_CLSCTX_LOCAL_SERVER      = 0x4
+	_CLSCTX_REMOTE_SERVER     = 0x10
+	_CLSCTX_SERVER            = _CLSCTX_INPROC_SERVER | _CLSCTX_LOCAL_SERVER | _CLSCTX_REMOTE_SERVER
 	_MONITOR_DEFAULTTONEAREST = 2
+	_SM_CYCAPTION             = 4
+)
+
+var (
+	_CLSID_TaskbarList = windows.GUID{
+		Data1: 0x56FDF344,
+		Data2: 0xFD6D,
+		Data3: 0x11D0,
+		Data4: [...]byte{0x95, 0x8A, 0x00, 0x60, 0x97, 0xC9, 0xA0, 0x90},
+	}
+	_IID_ITaskbarList = windows.GUID{
+		Data1: 0x56FDF342,
+		Data2: 0xFD6D,
+		Data3: 0x11D0,
+		Data4: [...]byte{0x95, 0x8A, 0x00, 0x60, 0x97, 0xC9, 0xA0, 0x90},
+	}
 )
 
 type _RECT struct {
@@ -48,13 +70,27 @@ type _POINT struct {
 }
 
 var (
+	ole32  = windows.NewLazySystemDLL("ole32.dll")
 	user32 = windows.NewLazySystemDLL("user32.dll")
+
+	procCoCreateInstance = ole32.NewProc("CoCreateInstance")
 
 	procGetSystemMetrics  = user32.NewProc("GetSystemMetrics")
 	procMonitorFromWindow = user32.NewProc("MonitorFromWindow")
 	procGetMonitorInfoW   = user32.NewProc("GetMonitorInfoW")
 	procGetCursorPos      = user32.NewProc("GetCursorPos")
 )
+
+func _CoCreateInstance(rclsid *windows.GUID, pUnkOuter unsafe.Pointer, dwClsContext uint32, riid *windows.GUID) (unsafe.Pointer, error) {
+	var ptr unsafe.Pointer
+	r, _, _ := procCoCreateInstance.Call(uintptr(unsafe.Pointer(rclsid)), uintptr(pUnkOuter), uintptr(dwClsContext), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(&ptr)))
+	runtime.KeepAlive(rclsid)
+	runtime.KeepAlive(riid)
+	if uint32(r) != uint32(windows.S_OK) {
+		return nil, fmt.Errorf("ui: CoCreateInstance failed: error code: HRESULT(%d)", uint32(r))
+	}
+	return ptr, nil
+}
 
 func _GetSystemMetrics(nIndex int) (int32, error) {
 	r, _, _ := procGetSystemMetrics.Call(uintptr(nIndex))
@@ -77,7 +113,7 @@ func _GetMonitorInfoW(hMonitor uintptr) (_MONITORINFO, error) {
 
 	r, _, e := procGetMonitorInfoW.Call(hMonitor, uintptr(unsafe.Pointer(&mi)))
 	if int32(r) == 0 {
-		if e != nil && e != windows.ERROR_SUCCESS {
+		if e != nil && !errors.Is(e, windows.ERROR_SUCCESS) {
 			return _MONITORINFO{}, fmt.Errorf("ui: GetMonitorInfoW failed: error code: %w", e)
 		}
 		return _MONITORINFO{}, fmt.Errorf("ui: GetMonitorInfoW failed: returned 0")
@@ -89,10 +125,38 @@ func _GetCursorPos() (int32, int32, error) {
 	var pt _POINT
 	r, _, e := procGetCursorPos.Call(uintptr(unsafe.Pointer(&pt)))
 	if int32(r) == 0 {
-		if e != nil && e != windows.ERROR_SUCCESS {
+		if e != nil && !errors.Is(e, windows.ERROR_SUCCESS) {
 			return 0, 0, fmt.Errorf("ui: GetCursorPos failed: error code: %w", e)
 		}
 		return 0, 0, fmt.Errorf("ui: GetCursorPos failed: returned 0")
 	}
 	return pt.x, pt.y, nil
+}
+
+type _ITaskbarList struct {
+	vtbl *_ITaskbarList_Vtbl
+}
+
+type _ITaskbarList_Vtbl struct {
+	QueryInterface uintptr
+	AddRef         uintptr
+	Release        uintptr
+
+	HrInit       uintptr
+	AddTab       uintptr
+	DeleteTab    uintptr
+	ActivateTab  uintptr
+	SetActiveAlt uintptr
+}
+
+func (i *_ITaskbarList) DeleteTab(hwnd windows.HWND) error {
+	r, _, _ := syscall.Syscall(i.vtbl.DeleteTab, 2, uintptr(unsafe.Pointer(i)), uintptr(hwnd), 0)
+	if uint32(r) != uint32(windows.S_OK) {
+		return fmt.Errorf("ui: ITaskbarList::DeleteTab failed: HRESULT(%d)", uint32(r))
+	}
+	return nil
+}
+
+func (i *_ITaskbarList) Release() {
+	syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 }

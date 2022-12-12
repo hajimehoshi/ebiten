@@ -145,6 +145,7 @@ func main() {
 
 	op := &ebiten.RunGameOptions{}
 	op.ScreenTransparent = true
+	op.SkipTaskbar = true
 	if err := ebiten.RunGameWithOptions(&mascot{}, op); err != nil {
 		log.Fatal(err)
 	}

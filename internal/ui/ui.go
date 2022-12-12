@@ -100,4 +100,5 @@ type RunOptions struct {
 	GraphicsLibrary   GraphicsLibrary
 	InitUnfocused     bool
 	ScreenTransparent bool
+	SkipTaskbar       bool
 }
