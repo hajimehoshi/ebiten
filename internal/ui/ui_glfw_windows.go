@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"syscall"
 
 	"golang.org/x/sys/windows"
 
@@ -187,9 +188,11 @@ func initializeWindowAfterCreation(w *glfw.Window) {
 }
 
 func (u *userInterfaceImpl) skipTaskbar() error {
-	if err := windows.CoInitializeEx(0, windows.COINIT_MULTITHREADED); err != nil {
+	// S_FALSE is returned when CoInitializeEx is nested. This is a successful case.
+	if err := windows.CoInitializeEx(0, windows.COINIT_MULTITHREADED); err != nil && !errors.Is(err, syscall.Errno(windows.S_FALSE)) {
 		return err
 	}
+	// CoUninitialize should be called even when CoInitializeEx returns S_FALSE.
 	defer windows.CoUninitialize()
 
 	ptr, err := _CoCreateInstance(&_CLSID_TaskbarList, nil, _CLSCTX_SERVER, &_IID_ITaskbarList)
